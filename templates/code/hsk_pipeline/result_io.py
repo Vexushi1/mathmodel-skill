@@ -49,11 +49,27 @@ def workbook_paths(project_root: Path, problem_name: str) -> tuple[Path, Path]:
     )
 
 
-def not_applicable_table(reason: str) -> pd.DataFrame:
-    text = str(reason).strip()
-    if not text:
-        raise ValueError("不适用原因不能为空")
-    return pd.DataFrame({"状态": ["不适用"], "原因": [text]})
+def not_applicable_table(
+    reason: str,
+    analysis_type: str = "敏感性与鲁棒性分析",
+    alternative_test: str = "边界条件、有效性或一致性检查",
+    evidence_location: str = "",
+) -> pd.DataFrame:
+    """生成符合 workbook_schema 的非空“适用性说明”记录。"""
+    reason_text = str(reason).strip()
+    analysis_text = str(analysis_type).strip()
+    alternative_text = str(alternative_test).strip()
+    if not reason_text or not analysis_text or not alternative_text:
+        raise ValueError("分析类型、不适用原因和替代检验均不能为空")
+    data = {
+        "分析类型": [analysis_text],
+        "不适用原因": [reason_text],
+        "替代检验": [alternative_text],
+    }
+    location = str(evidence_location).strip()
+    if location:
+        data["证据位置"] = [location]
+    return pd.DataFrame(data)
 
 
 def _sheet_name(name: str) -> str:
@@ -74,6 +90,8 @@ def _to_frame(value: Any) -> pd.DataFrame:
         frame = pd.DataFrame({"数值": [value]})
     if frame.empty:
         raise ValueError("禁止写入空工作表；不适用时请使用 not_applicable_table() 说明原因")
+    if len(frame.columns) == 0:
+        raise ValueError("工作表至少需要一个字段")
     return frame
 
 
