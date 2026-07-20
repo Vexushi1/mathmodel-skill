@@ -38,6 +38,10 @@ REQUIRED = [
     "modules/05_writing/latex.md",
     "modules/05_writing/ai_cleanup.md",
     "modules/06_review_delivery.md",
+    "packs/task/advanced_method_gate.md",
+    "templates/figure/chart_selection.md",
+    "templates/writing/docx_check.md",
+    "templates/writing/caption_explanation.md",
     "templates/code/hsk_pipeline/result_io.py",
     "templates/matlab/hsk_find_project_root.m",
     "templates/matlab/hsk_read_result_workbooks.m",
@@ -47,6 +51,19 @@ REQUIRED = [
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
 ]
+TASK_PACKS = [
+    "mechanism",
+    "optimization",
+    "prediction",
+    "evaluation",
+    "statistics_ml",
+    "simulation",
+    "spatial",
+    "graph_network",
+    "scheduling",
+    "game_decision",
+]
+TASK_HEADINGS = ["## 1. 进入条件", "## 2. 路线比较", "## 3. 变量与公式闭环", "## 4. 必做验证与输出", "## 5. 否决或降级条件"]
 ACTIVE_DIRS = ["core", "modules", "packs", "templates", "scripts", "config", "state", ".github"]
 TEXT_SUFFIXES = {".md", ".yaml", ".yml", ".json", ".py", ".m", ".tex", ".bib"}
 BAD_PATTERNS = {
@@ -57,6 +74,7 @@ BAD_PATTERNS = {
     r"plot_results\(": "obsolete Python plotting entry point",
     r"SEED v0\.1": "obsolete SEED template marker",
     r"Filled by stage 8 output": "obsolete Stage template comment",
+    r"templates/writing/docx_(?:draft|layout)_check\.md": "obsolete duplicate DOCX checklist reference",
 }
 PATH_PATTERN = re.compile(
     r"(?P<path>(?:core|modules|packs|templates|scripts|state)/[A-Za-z0-9_./{}-]+\.(?:md|yaml|yml|json|py|m|tex|bib))"
@@ -185,6 +203,31 @@ def check_workbook_schema(errors: list[str]) -> None:
         errors.append("workbook schema must forbid empty worksheets")
 
 
+def check_task_pack_contract(errors: list[str]) -> None:
+    for name in TASK_PACKS:
+        path = ROOT / "packs" / "task" / f"{name}.md"
+        if not path.is_file():
+            errors.append(f"missing task pack: {path.relative_to(ROOT)}")
+            continue
+        text = read_text(path)
+        for heading in TASK_HEADINGS:
+            if heading not in text:
+                errors.append(f"task pack missing heading: {path.relative_to(ROOT)} -> {heading}")
+        if len(text.splitlines()) < 20:
+            errors.append(f"task pack is too thin for execution: {path.relative_to(ROOT)}")
+
+
+def check_writing_templates(errors: list[str]) -> None:
+    for obsolete in ("docx_draft_check.md", "docx_layout_check.md"):
+        path = ROOT / "templates" / "writing" / obsolete
+        if path.exists():
+            errors.append(f"superseded DOCX checklist still exists: {path.relative_to(ROOT)}")
+    caption = read_text(ROOT / "templates/writing/caption_explanation.md")
+    for fixed in ("由图X可知，……。这一结果说明", "由表X可知，……。该结果与"):
+        if fixed in caption:
+            errors.append(f"fixed AI-like caption sentence remains: {fixed}")
+
+
 def check_tex_templates(errors: list[str]) -> None:
     for path in (ROOT / "templates/latex").rglob("*.tex"):
         text = read_text(path)
@@ -223,6 +266,8 @@ def main() -> int:
     check_declared_paths(errors)
     check_project_state_schema(errors)
     check_workbook_schema(errors)
+    check_task_pack_contract(errors)
+    check_writing_templates(errors)
     check_tex_templates(errors)
     check_python_syntax(errors)
     if not args.skip_generated:
