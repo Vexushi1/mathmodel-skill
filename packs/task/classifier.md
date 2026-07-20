@@ -6,6 +6,8 @@
 
 `mechanism`、`optimization`、`prediction`、`evaluation`、`statistics_ml`、`simulation`、`spatial`、`graph_network`、`scheduling`、`game_decision`。
 
+W-DRO、CVaR、MPEC、Stackelberg、ALNS、GNN、DML、强化学习和深度学习是候选方法，不是题型标签。用户提出这些方法时，先完成题型分类，再加载 `advanced_method_gate.md` 审查准入。
+
 ## 输出格式
 
 ```yaml
