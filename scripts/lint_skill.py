@@ -14,9 +14,14 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
+EXPECTED_VERSION = "6.2.2"
 REQUIRED = [
     "SKILL.md",
+    "README.md",
     "REPOSITORY_INDEX.md",
+    "PROJECT_INSTRUCTIONS_HSK_V622.md",
+    "HSK_RUNTIME_ROUTER_V622.md",
+    "CHANGELOG_V622.md",
     "core/hsk_core_policy.md",
     "core/workflow_router.yaml",
     "core/module_manifest.yaml",
@@ -38,6 +43,7 @@ REQUIRED = [
     "templates/matlab/hsk_read_result_workbooks.m",
     "templates/matlab/plot_from_workbook.m",
     "templates/latex/cumcm/cumcmthesis/cumcmthesis.cls",
+    ".github/workflows/ci.yml",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
 ]
@@ -91,6 +97,33 @@ def check_required(errors: list[str]) -> None:
     for relative in REQUIRED:
         if not (ROOT / relative).exists():
             errors.append(f"missing required: {relative}")
+
+
+def check_versions(errors: list[str]) -> None:
+    structured = [
+        "core/workflow_router.yaml",
+        "core/module_manifest.yaml",
+        "core/output_contract.yaml",
+        "core/workbook_schema.yaml",
+        "core/project_state.schema.yaml",
+        "core/compile_profiles.yaml",
+        "config/review_weights.json",
+        ".codex-plugin/plugin.json",
+    ]
+    for relative in structured:
+        path = ROOT / relative
+        if not path.is_file():
+            continue
+        data = json.loads(read_text(path)) if path.suffix == ".json" else load_yaml(path)
+        version = str((data or {}).get("version", ""))
+        if version != EXPECTED_VERSION:
+            errors.append(f"version mismatch: {relative} -> {version or '<missing>'}, expected {EXPECTED_VERSION}")
+
+    textual = ["SKILL.md", "README.md", "PROJECT_INSTRUCTIONS_HSK_V622.md", "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V622.md"]
+    for relative in textual:
+        path = ROOT / relative
+        if path.is_file() and EXPECTED_VERSION not in read_text(path):
+            errors.append(f"version marker missing: {relative} -> {EXPECTED_VERSION}")
 
 
 def check_obsolete_patterns(errors: list[str]) -> None:
@@ -184,6 +217,7 @@ def main() -> int:
 
     errors: list[str] = []
     check_required(errors)
+    check_versions(errors)
     check_obsolete_patterns(errors)
     check_structured_files(errors)
     check_declared_paths(errors)
