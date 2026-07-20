@@ -33,6 +33,13 @@ routing:
       - modules/02_model_design.md
       - packs/task/classifier.md
       - packs/task/{classified_label}.md
+  advanced_method:
+    triggers: [高级模型, W-DRO, CVaR, MPEC, Stackelberg, ALNS, GNN, 空间杜宾, DML, 强化学习, 深度学习]
+    load:
+      - modules/02_model_design.md
+      - packs/task/advanced_method_gate.md
+      - packs/task/classifier.md
+      - packs/task/{classified_label}.md
   code_and_solution:
     triggers: [代码, Python, MATLAB, 求解, 算法, 最优解]
     load:
@@ -48,7 +55,10 @@ routing:
       - packs/task/{classified_label}.md
   figures:
     triggers: [图表, 可视化, 机理图, 推导图, Nature, SCI]
-    load: [modules/04_figure_evidence.md, packs/artifact/figure.md]
+    load:
+      - modules/04_figure_evidence.md
+      - packs/artifact/figure.md
+      - templates/figure/chart_selection.md
   docx:
     triggers: [DOCX, Word, 草稿论文]
     load: [modules/05_writing/docx.md, packs/artifact/docx.md]
@@ -83,5 +93,6 @@ rules:
   - Do not load legacy by default.
   - Reuse locked project state and artifacts before recomputing.
   - Replace {classified_label} only with classifier labels selected under classifier_contract.
+  - Load advanced_method_gate only for explicit advanced-method requests or when route B is proposed as the main model.
   - DOCX and LaTeX modules are both loaded only for explicit migration.
   - Result figures precede final mechanism-figure refinement.
