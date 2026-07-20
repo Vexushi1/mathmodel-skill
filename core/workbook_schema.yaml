@@ -1,0 +1,82 @@
+version: 6.2.2
+purpose: 约束每问两类标准工作簿的工作表名称、最低字段和非空规则，供 Python 输出、MATLAB 读取和终审共同使用。
+
+global_rules:
+  worksheet_name_language: Chinese descriptive names
+  worksheet_name_max_length: 31
+  empty_worksheet_allowed: false
+  missing_analysis_policy: 使用“适用性说明”工作表记录不适用原因、替代检验和证据位置，不得写入空表。
+  units_policy: 数值字段涉及物理量、时间、成本、距离、概率或比例时，列名或独立“单位”列必须明确单位。
+  key_policy: 明细数据应包含可唯一定位记录的时间、区域、对象、方案或样本键。
+
+solution_workbook:
+  filename: 问题{中文序号}求解结果.xlsx
+  common_required_sheets:
+    核心指标:
+      required_columns: [指标, 数值]
+      optional_columns: [单位, 统计口径, 说明]
+    数据审计:
+      required_columns: [等级, 检查项, 信息, 处理方式]
+  common_recommended_sheets:
+    推荐方案:
+      required_columns: [方案]
+      optional_columns: [目标值, 单位, 排名, 选择理由]
+    明细结果:
+      required_columns: [记录键]
+      optional_columns: [时间, 区域, 对象, 方案, 数值, 单位]
+    多算法对比:
+      required_columns: [算法, 目标值, 可行性]
+      optional_columns: [运行时间, 最优间隙, 重复次数, 均值, 标准差, 说明]
+    约束违反检查:
+      required_columns: [约束编号, 约束含义, 违反量, 容差, 是否满足]
+      optional_columns: [左端值, 右端值或界, 最坏样本或时刻]
+  conditional_requirements:
+    constraint_based_problem_types:
+      problem_types: [mechanism, optimization, simulation, graph_network, scheduling, game_decision]
+      required_sheets: [约束违反检查]
+    decision_output_problem_types:
+      problem_types: [optimization, evaluation, scheduling, game_decision]
+      recommended_sheets: [推荐方案]
+  task_profiles:
+    prediction:
+      required_any: [预测明细, 误差指标, 核心指标]
+      recommended: [残差诊断, 区间预测, 基准模型对比]
+    evaluation:
+      required_any: [综合评分, 排序结果, 核心指标]
+      recommended: [指标权重, 排名变化]
+    statistics_ml:
+      required_any: [模型指标, 预测或分类结果, 核心指标]
+      recommended: [交叉验证, 校准结果, 解释性结果]
+    spatial:
+      required_any: [空间诊断, 参数估计, 核心指标]
+      recommended: [空间效应分解, 局部结果]
+    graph_network:
+      required_any: [节点结果, 边结果, 路径或流结果, 核心指标]
+      recommended: [连通性检查, 复杂度记录]
+
+sensitivity_robustness_workbook:
+  filename: 问题{中文序号}敏感性与鲁棒性结果.xlsx
+  required_any_sheets: [参数敏感性, 鲁棒性区间, 扰动明细, 算法稳定性, 适用性说明]
+  sheet_schemas:
+    参数敏感性:
+      required_columns: [参数, 基准值, 扰动值, 目标指标]
+      optional_columns: [变化率, 弹性系数, 单位, 场景]
+    鲁棒性区间:
+      required_columns: [指标, 下界, 上界]
+      optional_columns: [置信水平, 分位数口径, 样本数, 单位]
+    扰动明细:
+      required_columns: [扰动编号, 扰动对象, 扰动值, 结果指标]
+      optional_columns: [随机种子, 场景, 是否可行, 约束最大违反量]
+    算法稳定性:
+      required_columns: [算法, 重复编号, 目标值, 是否可行]
+      optional_columns: [随机种子, 运行时间, 最优间隙, 初值]
+    适用性说明:
+      required_columns: [分析类型, 不适用原因, 替代检验]
+      optional_columns: [证据位置, 结论]
+
+matlab_handoff:
+  required_mapping_fields: [figure_id, workbook, worksheet, matlab_script]
+  rules:
+    - MATLAB 读取前必须确认工作表存在且字段满足对应图表需要。
+    - 正式图不得从论文摘要数字或人工构造序列反推。
+    - 图表合同必须记录源工作簿、工作表和字段。
