@@ -1,20 +1,18 @@
 from __future__ import annotations
 
 import logging
-import warnings
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
-from result_io import workbook_paths, write_workbook
+from result_io import find_project_root, not_applicable_table, workbook_paths, write_workbook
 
-warnings.filterwarnings("ignore")
 RANDOM_SEED = 2026
 np.random.seed(RANDOM_SEED)
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1] if Path(__file__).resolve().parent.name == "Python求解" else Path(__file__).resolve().parent
+PROJECT_ROOT = find_project_root(Path(__file__))
 DATA_DIR = PROJECT_ROOT / "数据"
 PROBLEM_NAME = "问题一"
 SOLUTION_WORKBOOK, ROBUSTNESS_WORKBOOK = workbook_paths(PROJECT_ROOT, PROBLEM_NAME)
@@ -72,16 +70,20 @@ def check_constraints(solution: dict[str, Any]) -> pd.DataFrame:
 
 
 def run_validation(solution: dict[str, Any]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    raise NotImplementedError("请返回多算法对比、参数敏感性和鲁棒性明细")
+    raise NotImplementedError("请返回多算法对比、参数敏感性和鲁棒性明细；不适用时返回带原因的非空表")
 
 
-def save_outputs(solution: dict[str, Any], constraints: pd.DataFrame,
-                 algorithm_comparison: pd.DataFrame, sensitivity: pd.DataFrame,
-                 robustness: pd.DataFrame) -> tuple[Path, Path]:
+def save_outputs(
+    solution: dict[str, Any],
+    constraints: pd.DataFrame,
+    algorithm_comparison: pd.DataFrame,
+    sensitivity: pd.DataFrame,
+    robustness: pd.DataFrame,
+) -> tuple[Path, Path]:
     solution_tables = {
-        "核心指标": solution.get("核心指标", {}),
-        "推荐方案": solution.get("推荐方案", {}),
-        "明细结果": solution.get("明细结果", []),
+        "核心指标": solution["核心指标"],
+        "推荐方案": solution.get("推荐方案", not_applicable_table("本题不涉及离散方案推荐")),
+        "明细结果": solution["明细结果"],
         "约束违反检查": constraints,
         "多算法对比": algorithm_comparison,
         "数据审计": AUDIT_ROWS or [{"等级": "Info", "检查项": "数据审计", "信息": "未发现需记录问题", "处理方式": "无"}],
@@ -89,8 +91,8 @@ def save_outputs(solution: dict[str, Any], constraints: pd.DataFrame,
     robustness_tables = {
         "参数敏感性": sensitivity,
         "鲁棒性区间": robustness,
-        "扰动明细": solution.get("扰动明细", []),
-        "算法稳定性": solution.get("算法稳定性", []),
+        "扰动明细": solution.get("扰动明细", not_applicable_table("扰动明细由参数敏感性或场景分析工作表完整承载")),
+        "算法稳定性": solution.get("算法稳定性", not_applicable_table("本题采用确定性精确算法或该项不适用")),
     }
     write_workbook(SOLUTION_WORKBOOK, solution_tables)
     write_workbook(ROBUSTNESS_WORKBOOK, robustness_tables)
