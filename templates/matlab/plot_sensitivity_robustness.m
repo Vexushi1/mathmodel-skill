@@ -1,5 +1,8 @@
 %% 问题一敏感性与鲁棒性绘图模板
-projectRoot = string(fileparts(fileparts(mfilename("fullpath"))));
+scriptDir = string(fileparts(mfilename("fullpath")));
+addpath(scriptDir);
+addpath(string(fileparts(scriptDir)));
+projectRoot = hsk_find_project_root(scriptDir);
 problemName = "问题一";
 books = hsk_read_result_workbooks(projectRoot, problemName);
 
