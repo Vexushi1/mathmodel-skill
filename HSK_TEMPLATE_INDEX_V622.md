@@ -55,5 +55,3 @@
 - `templates/writing/caption_explanation.md`
 - `templates/writing/code_appendix_description.md`
 - `templates/writing/docx_check.md`
-- `templates/writing/docx_draft_check.md`
-- `templates/writing/docx_layout_check.md`

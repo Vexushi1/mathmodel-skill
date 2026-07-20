@@ -222,8 +222,6 @@
 - `templates/writing/caption_explanation.md`
 - `templates/writing/code_appendix_description.md`
 - `templates/writing/docx_check.md`
-- `templates/writing/docx_draft_check.md`
-- `templates/writing/docx_layout_check.md`
 - `tests/test_no_active_old_stage.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_result_io.py`
