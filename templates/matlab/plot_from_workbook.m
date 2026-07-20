@@ -1,5 +1,8 @@
 %% 问题一结果绘图模板：读取工作簿，不重新计算结果
-projectRoot = string(fileparts(fileparts(mfilename("fullpath"))));
+scriptDir = string(fileparts(mfilename("fullpath")));
+addpath(scriptDir);
+addpath(string(fileparts(scriptDir)));
+projectRoot = hsk_find_project_root(scriptDir);
 problemName = "问题一";
 books = hsk_read_result_workbooks(projectRoot, problemName);
 
@@ -13,7 +16,8 @@ ax = axes(fig);
 % plot(ax, data.("横轴字段"), data.("纵轴字段"), "LineWidth", 2.2);
 xlabel(ax, "横轴名称（单位）");
 ylabel(ax, "纵轴名称（单位）");
-legend(ax, "Location", "best", "Box", "off");
+% 仅在存在有效图元时添加图例，避免空图例警告。
+% legend(ax, "Location", "best", "Box", "off");
 hsk_apply_scientific_style(fig);
 
 % 人工调整完成后再显式导出：
