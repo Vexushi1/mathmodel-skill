@@ -1,0 +1,68 @@
+version: 6.2.1
+default_load:
+  - core/hsk_core_policy.md
+  - core/workflow_router.yaml
+
+routing:
+  new_problem_full:
+    triggers: [新赛题, 完整求解, 建模方案, 全流程]
+    load:
+      - modules/01_problem_audit.md
+      - packs/competition/auto.md
+      - packs/task/classifier.md
+    then:
+      - modules/02_model_design.md
+      - packs/task/{classified_label}.md
+  problem_analysis:
+    triggers: [审题, 问题理解, 题目拆解, 命题意图]
+    load: [modules/01_problem_audit.md]
+  model_selection:
+    triggers: [模型比较, 建模路线, 变量, 假设, 公式, 目标函数, 约束]
+    load:
+      - modules/02_model_design.md
+      - packs/task/classifier.md
+      - packs/task/{classified_label}.md
+  code_and_solution:
+    triggers: [代码, Python, MATLAB, 求解, 算法, 最优解]
+    load:
+      - modules/03_solve_validate.md
+      - packs/artifact/code.md
+      - packs/task/{classified_label}.md
+  validation:
+    triggers: [检验, 多算法, 全局最优, 敏感性, 鲁棒性, 误差, 稳健性]
+    load:
+      - modules/03_solve_validate.md
+      - packs/task/{classified_label}.md
+  figures:
+    triggers: [图表, 可视化, 机理图, 推导图, Nature, SCI]
+    load: [modules/04_figure_evidence.md, packs/artifact/figure.md]
+  docx:
+    triggers: [DOCX, Word, 草稿论文]
+    load: [modules/05_writing/docx.md, packs/artifact/docx.md]
+  latex:
+    triggers: [LaTeX, PDF终稿, cumcmthesis, 终稿论文]
+    load:
+      - modules/05_writing/latex.md
+      - modules/05_latex_compile_quality.md
+      - modules/05_writing/ai_cleanup.md
+      - packs/artifact/latex.md
+      - packs/competition/auto.md
+  full_submission:
+    triggers: [完整交付, 复现包, 提交压缩包, 全套成果]
+    load:
+      - modules/06_review_delivery.md
+      - packs/artifact/full_submission.md
+      - packs/competition/auto.md
+  review:
+    triggers: [评分, 审稿, 终审, 检查, 提交包]
+    load:
+      - modules/06_review_delivery.md
+      - packs/artifact/review.md
+      - packs/competition/auto.md
+
+rules:
+  - Do not load legacy by default.
+  - Reuse locked project state and artifacts before recomputing.
+  - Replace {classified_label} with only the task packs returned by the classifier.
+  - DOCX and LaTeX modules are both loaded only for explicit migration.
+  - Result figures precede final mechanism-figure refinement.

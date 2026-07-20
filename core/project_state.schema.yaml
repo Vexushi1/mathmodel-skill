@@ -1,0 +1,12 @@
+version: 6.2.1
+fields:
+  project: [competition, problem, current_phase, problem_types]
+  requirements: [total, completed, pending]
+  decisions: [selected_model, rejected_models, key_reason]
+  variables: [locked, source]
+  artifacts: [code, results, figures, papers]
+  risks: []
+  next_gate: [module, condition]
+policy:
+  required_on_every_chat: false
+  create_when: [full_project, cross_chat_handoff, multiple_artifacts, user_request]

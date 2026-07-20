@@ -1,0 +1,4 @@
+interface:
+  display_name: "HSK 数学建模 Skill"
+  short_description: "Python求解、标准Excel结果表、MATLAB科研绘图、DOCX草稿与LaTeX终稿"
+  default_prompt: "Read core/hsk_core_policy.md and core/workflow_router.yaml, then load only the relevant modules. Python solves and writes the two standard workbooks for each question; MATLAB reads them to create formal result figures."
