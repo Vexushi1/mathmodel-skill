@@ -145,6 +145,7 @@
 - `packs/competition/cumcm.md`
 - `packs/competition/diangong.md`
 - `packs/competition/mcm_icm.md`
+- `packs/task/advanced_method_gate.md`
 - `packs/task/classifier.md`
 - `packs/task/evaluation.md`
 - `packs/task/game_decision.md`
