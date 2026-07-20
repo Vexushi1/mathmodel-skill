@@ -11,6 +11,7 @@
 - `templates/code/starter/optimization.py`
 - `templates/code/starter/prediction.py`
 - `templates/code/starter/simulation.py`
+- `templates/figure/chart_selection.md`
 - `templates/figure/figure_paper_closure.md`
 - `templates/figure/figure_plan.md`
 - `templates/figure/mechanism_contract.md`
@@ -53,5 +54,6 @@
 - `templates/writing/abstract_result_check.md`
 - `templates/writing/caption_explanation.md`
 - `templates/writing/code_appendix_description.md`
+- `templates/writing/docx_check.md`
 - `templates/writing/docx_draft_check.md`
 - `templates/writing/docx_layout_check.md`
