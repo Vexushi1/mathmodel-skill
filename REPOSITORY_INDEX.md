@@ -38,14 +38,15 @@
 |---|---|---|
 | 新赛题、完整建模、问题拆解 | `modules/01_problem_audit.md` | `packs/competition/auto.md`、`packs/task/classifier.md` |
 | 模型路线、变量、假设、公式、约束 | `modules/02_model_design.md` | 分类器命中的主/次题型 Pack |
+| W-DRO、MPEC、ALNS、GNN、DML、强化学习等高级方法 | `modules/02_model_design.md` | `packs/task/advanced_method_gate.md` + 对应题型 Pack |
 | Python 求解、优化、仿真、统计检验 | `modules/03_solve_validate.md` | `packs/artifact/code.md`、题型 Pack、工作簿 Schema |
 | 敏感性、鲁棒性、多算法验证 | `modules/03_solve_validate.md` | 题型 Pack、`templates/review/robustness_check.md` |
-| MATLAB 结果图、机理图、科研绘图 | `modules/04_figure_evidence.md` | `packs/artifact/figure.md`、`templates/figure/`、`templates/matlab/` |
-| Word/DOCX 草稿 | `modules/05_writing/docx.md` | `packs/artifact/docx.md`、`templates/writing/` |
+| MATLAB 结果图、机理图、科研绘图 | `modules/04_figure_evidence.md` | `templates/figure/chart_selection.md`、结果图合同、MATLAB 模板 |
+| Word/DOCX 草稿 | `modules/05_writing/docx.md` | `templates/writing/docx_check.md`、图表解释规范 |
 | LaTeX 终稿与编译 | `modules/05_writing/latex.md`、`modules/05_latex_compile_quality.md`、`modules/05_writing/ai_cleanup.md` | `packs/artifact/latex.md`、竞赛 Pack、`templates/latex/` |
 | 评分、终审、提交包 | `modules/06_review_delivery.md` | `packs/artifact/review.md` 或 `packs/artifact/full_submission.md` |
 
-分类器输出一个主标签和最多两个必要次标签。次标签只有在会改变变量、约束、验证方法或交付物时才加载；不得一次加载全部题型 Pack。
+分类器输出一个主标签和最多两个必要次标签。次标签只有在会改变变量、约束、验证方法或交付物时才加载；不得一次加载全部题型 Pack。高级方法准入不是题型标签，只在路线 B 拟作为主模型或用户明确提出高级方法时加载。
 
 ## 4. 题型 Pack
 
@@ -61,7 +62,10 @@
 - `graph_network.md`：图论、复杂网络、传播路径；
 - `scheduling.md`：排程、调度、时空协同；
 - `game_decision.md`：博弈、多主体决策；
-- `classifier.md`：题型分类入口。
+- `advanced_method_gate.md`：高级模型七项准入和专项最低验证；
+- `classifier.md`：主/次题型分类入口。
+
+十类题型 Pack 统一采用“进入条件—路线比较—变量公式闭环—必做验证—否决条件”结构。
 
 ## 5. 竞赛与交付 Pack
 
@@ -75,8 +79,8 @@
 - `templates/model/`：变量、假设、公式—代码闭环、约束违反检查；
 - `templates/code/`：Python 起步脚本和 HSK 管线；
 - `templates/matlab/`：项目根定位、工作簿读取、科研绘图和可选导出；
-- `templates/figure/`：机理图与结果图合同、QA、论文闭环；
-- `templates/writing/`：摘要、图后解释、DOCX、代码附录；
+- `templates/figure/`：图型选择、机理图与结果图合同、QA、论文闭环；
+- `templates/writing/`：摘要、图表解释、统一 DOCX 检查、代码附录；
 - `templates/latex/`：国赛、MCM/ICM、电工杯 LaTeX 模板；
 - `templates/review/`：鲁棒性、代码精简、结果清单。
 
