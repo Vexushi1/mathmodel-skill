@@ -2,65 +2,68 @@
 % 电子版提交时通常可使用：\documentclass[withoutpreface]{cumcmthesis}
 
 \usepackage{booktabs}
-\usepackage{amsmath, amssymb, bm}
+\usepackage{amsmath,amssymb,bm}
 \usepackage{subcaption}
 \usepackage{graphicx}
-\usepackage{url}
 \usepackage{float}
 \usepackage{algorithm}
 \usepackage{algorithmic}
 \usepackage{cleveref}
+\usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
+\addbibresource{references.bib}
+
+% 按当届题面和队伍信息修改，不在模板中固定年份、题号和小问数。
+\newcommand{\HSKProblemCode}{A}
+\newcommand{\HSKTeamNumber}{0000}
+\newcommand{\HSKContestYear}{YYYY}
+\newcommand{\HSKContestMonth}{9}
+\newcommand{\HSKContestDay}{1}
 
 \title{基于XXX模型的XXX问题研究}
-\tihao{A}
-\baominghao{0000}
+\tihao{\HSKProblemCode}
+\baominghao{\HSKTeamNumber}
 \schoolname{学校名称}
 \membera{成员A}
 \memberb{成员B}
 \memberc{成员C}
 \supervisor{}
-\yearinput{2026}
-\monthinput{9}
-\dayinput{1}
+\yearinput{\HSKContestYear}
+\monthinput{\HSKContestMonth}
+\dayinput{\HSKContestDay}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-本文围绕XXX问题，针对题目给出的XXX数据与XXX约束，建立了XXX模型、XXX模型和XXX模型，并通过XXX方法完成求解与检验。
+% 按实际小问数量写作。每问采用“模型—算法—关键数值—结论”结构，删除未使用的占位语句。
+本文围绕XXX问题，针对题目给出的XXX数据、XXX机制与XXX约束，建立XXX模型并完成求解与检验。
 
-针对问题一，本文首先……，建立……模型，得到……。结果表明……。
+针对问题一，……。
 
-针对问题二，本文在问题一结果基础上……，建立……模型，得到……。结果表明……。
+% 继续按实际小问添加摘要段，不固定为三问。
 
-针对问题三，本文进一步考虑……，建立……模型，得到……。结果表明……。
-
-最后，本文从参数扰动、数据噪声和替代模型三个角度进行敏感性与鲁棒性分析，验证了模型结论的稳定性，并指出模型的适用边界与改进方向。
+本文通过参数扰动、数据噪声、替代模型或多算法验证中的适用方法检验结论稳定性，并给出模型适用边界。
 
 \keywords{关键词1\quad 关键词2\quad 关键词3\quad 关键词4}
 \end{abstract}
 
 \section{问题重述}
 \subsection{问题背景}
-% 不照抄题目，用自己的语言概括现实背景、研究对象和业务机制。
+% 用自己的语言概括现实背景、研究对象和业务机制，不照抄题干。
 
 \subsection{问题要求}
-% 概括各小问，不必在正文放内部覆盖检查表，但必须确保题干要求没有遗漏。
+% 概括各小问；内部题目覆盖表不得进入终稿正文或附录。
 
 \section{问题分析}
 \subsection{问题一分析}
-% 说明直接目标、隐含目标、数据依赖、题型和方法选择理由。
+% 说明直接目标、隐含目标、数据依赖、题型、核心难点和方法选择理由。
 
-\subsection{问题二分析}
-% 说明与问题一的联系和新增难点。
-
-\subsection{问题三分析}
-% 说明与前两问的衔接和需要扩展的机制。
+% 按实际小问继续添加分析小节。
 
 \section{模型假设与符号说明}
 \subsection{模型假设}
 \begin{enumerate}
-    \item 假设一：……。该假设用于……，若失效将导致……，可通过……检验。
+    \item 假设一：……。说明设立原因、影响、失效偏差和检验方式。
     \item 假设二：……。
     \item 假设三：……。
 \end{enumerate}
@@ -85,8 +88,8 @@
 \subsection{数据口径与字段说明}
 % 说明数据表、字段、单位、时间/空间粒度、样本范围和关联键。
 
-\subsection{缺失值、异常值与单位统一}
-% 说明缺失、异常、重复、单位换算、时间对齐等处理依据。
+\subsection{数据质量与变换}
+% 说明缺失、异常、重复、单位换算、时间对齐及特征构造依据。
 
 \section{模型建立与求解}
 \subsection{问题一模型建立与求解}
@@ -96,44 +99,38 @@
     \min Z = C_1 + C_2 + C_3,
     \label{eq:q1-objective}
 \end{equation}
-其中，$C_1$ 表示……，$C_2$ 表示……，$C_3$ 表示……。
+其中，$C_1$、$C_2$ 和 $C_3$ 分别表示……。
 
-\subsubsection{模型求解}
-% 写求解方法、参数设置、程序位置和核心结果。
+\subsubsection{求解方法}
+% 写求解器、参数、终止条件、程序位置和可行性检查。
 
-\subsubsection{结果分析}
-% 图表必须就近解释。
+\subsubsection{结果与分析}
+% 图表必须就近解释，并绑定标准结果工作簿和 MATLAB 绘图脚本。
 
-\subsection{问题二模型建立与求解}
-
-\subsection{问题三模型建立与求解}
+% 按实际小问继续添加“模型建立—求解方法—结果与分析”。
 
 \section{模型检验}
-% 有效性检验、误差分析、对比模型或残差诊断。
+% 按题型选择有效性检验、残差诊断、边界验证、多算法对比或误差分析。
 
 \section{敏感性与鲁棒性分析}
-% 参数扰动、噪声扰动、场景压力测试、替代模型对比。
+% 参数扰动、数据噪声、场景压力测试或替代模型对比。
 
 \section{模型评价与改进}
-\subsection{模型优点}
+\subsection{模型优势}
 \subsection{模型局限}
 \subsection{改进方向}
 
 \section{结论}
-% 逐问给出可以直接回答题目的结论，不空泛。
+% 逐问直接回答题目，给出关键数值、策略和边界，不写空泛总结。
 
-\begin{thebibliography}{99}
-\bibitem{ref:example} 作者. 文献题名[J]. 期刊名, 年份, 卷(期): 页码.
-\end{thebibliography}
+\printbibliography[title={参考文献}]
 
 \begin{appendices}
-\section{核心代码}
-% 附录代码可以使用 verbatim、listings 或单独提交代码压缩包。
+\section{核心代码与复现说明}
+% 正文只保留伪代码；完整代码可放附录或独立附件，并说明输入、功能和输出。
 
 \section{补充图表}
-
-\section{内部题目要求覆盖检查说明}
-本文写作过程中已对题目原始要求进行内部覆盖检查，确保各小问的模型、结果与结论均对应题目要求。该检查用于过程审稿，不作为正文表格呈现。
+% 仅放正文不宜展开但仍有证据价值的图表。
 \end{appendices}
 
 \end{document}

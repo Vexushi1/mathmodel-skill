@@ -1,24 +1,32 @@
 from __future__ import annotations
 
 import logging
-import warnings
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
-from result_io import workbook_paths, write_workbook
+from result_io import find_project_root, not_applicable_table, workbook_paths, write_workbook
 
-warnings.filterwarnings("ignore")
 RANDOM_SEED = 2026
 np.random.seed(RANDOM_SEED)
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1] if Path(__file__).resolve().parent.name == "Python求解" else Path(__file__).resolve().parent
+PROJECT_ROOT = find_project_root(Path(__file__))
 DATA_DIR = PROJECT_ROOT / "数据"
 PROBLEM_NAME = "问题一"
 SOLUTION_WORKBOOK, ROBUSTNESS_WORKBOOK = workbook_paths(PROJECT_ROOT, PROBLEM_NAME)
 AUDIT_ROWS: list[dict[str, str]] = []
+
+
+@dataclass(frozen=True)
+class ModelContext:
+    raw_data: dict[str, pd.DataFrame]
+    clean_data: dict[str, pd.DataFrame]
+    features: dict[str, Any]
+    solution: dict[str, Any]
+    random_seed: int = RANDOM_SEED
 
 
 def setup_logger() -> logging.Logger:
@@ -31,7 +39,7 @@ def record_audit(level: str, item: str, message: str, action: str = "") -> None:
 
 
 def check_required_columns(df: pd.DataFrame, required: list[str], table_name: str) -> None:
-    missing = [col for col in required if col not in df.columns]
+    missing = [column for column in required if column not in df.columns]
     if missing:
         record_audit("Error", table_name, f"缺少字段: {missing}", "修正输入后重跑")
         raise ValueError(f"{table_name} 缺少字段: {missing}")
@@ -71,29 +79,40 @@ def check_constraints(solution: dict[str, Any]) -> pd.DataFrame:
     raise NotImplementedError("请返回约束编号、违反量、容差和是否满足")
 
 
-def run_validation(solution: dict[str, Any]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    raise NotImplementedError("请返回多算法对比、参数敏感性和鲁棒性明细")
+def run_validation(context: ModelContext) -> tuple[pd.DataFrame, dict[str, pd.DataFrame]]:
+    """返回多算法对比，以及敏感性与鲁棒性工作簿的非空工作表映射。"""
+    raise NotImplementedError(
+        "validation_tables 应包含参数敏感性、鲁棒性区间、扰动明细、算法稳定性中的适用项；"
+        "全部不适用时返回 {'适用性说明': not_applicable_table(...)}"
+    )
 
 
-def save_outputs(solution: dict[str, Any], constraints: pd.DataFrame,
-                 algorithm_comparison: pd.DataFrame, sensitivity: pd.DataFrame,
-                 robustness: pd.DataFrame) -> tuple[Path, Path]:
-    solution_tables = {
-        "核心指标": solution.get("核心指标", {}),
-        "推荐方案": solution.get("推荐方案", {}),
-        "明细结果": solution.get("明细结果", []),
+def save_outputs(
+    solution: dict[str, Any],
+    constraints: pd.DataFrame,
+    algorithm_comparison: pd.DataFrame,
+    validation_tables: dict[str, pd.DataFrame],
+) -> tuple[Path, Path]:
+    solution_tables: dict[str, Any] = {
+        "核心指标": solution["核心指标"],
+        "明细结果": solution["明细结果"],
         "约束违反检查": constraints,
         "多算法对比": algorithm_comparison,
         "数据审计": AUDIT_ROWS or [{"等级": "Info", "检查项": "数据审计", "信息": "未发现需记录问题", "处理方式": "无"}],
     }
-    robustness_tables = {
-        "参数敏感性": sensitivity,
-        "鲁棒性区间": robustness,
-        "扰动明细": solution.get("扰动明细", []),
-        "算法稳定性": solution.get("算法稳定性", []),
-    }
+    for optional_sheet in ("推荐方案",):
+        if optional_sheet in solution:
+            solution_tables[optional_sheet] = solution[optional_sheet]
+
+    if not validation_tables:
+        validation_tables = {
+            "适用性说明": not_applicable_table(
+                "该题没有可独立扰动的外生参数或随机输入",
+                alternative_test="边界、极限状态与数值一致性检查",
+            )
+        }
     write_workbook(SOLUTION_WORKBOOK, solution_tables)
-    write_workbook(ROBUSTNESS_WORKBOOK, robustness_tables)
+    write_workbook(ROBUSTNESS_WORKBOOK, validation_tables)
     return SOLUTION_WORKBOOK, ROBUSTNESS_WORKBOOK
 
 
@@ -103,10 +122,11 @@ def main() -> None:
     clean = preprocess_data(raw)
     features = build_features(clean)
     solution = solve_model(features)
+    context = ModelContext(raw_data=raw, clean_data=clean, features=features, solution=solution)
     constraints = check_constraints(solution)
-    comparison, sensitivity, robustness = run_validation(solution)
-    paths = save_outputs(solution, constraints, comparison, sensitivity, robustness)
-    logger.info("结果已写入: %s", [p.as_posix() for p in paths])
+    comparison, validation_tables = run_validation(context)
+    paths = save_outputs(solution, constraints, comparison, validation_tables)
+    logger.info("结果已写入: %s", [path.as_posix() for path in paths])
     logger.info("正式论文图由 MATLAB 读取上述工作簿绘制。")
 
 

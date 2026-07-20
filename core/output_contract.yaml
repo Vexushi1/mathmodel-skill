@@ -1,4 +1,5 @@
-version: 6.2.1
+version: 6.2.2
+schema: core/workbook_schema.yaml
 root_directories:
   raw_data: 数据/
   python_solution: Python求解/
@@ -29,6 +30,7 @@ sensitivity_robustness_workbook_recommended_sheets:
   - 鲁棒性区间
   - 扰动明细
   - 算法稳定性
+  - 适用性说明
 
 ownership:
   Python: 数据处理、模型求解、优化、仿真、检验、敏感性、鲁棒性、结果工作簿输出
@@ -50,6 +52,8 @@ optional_metadata:
 rules:
   - Excel workbooks are the default result exchange format; do not scatter core results across standalone CSV files.
   - Constraint checks, multi-algorithm comparisons and detailed time/space records are worksheets in the two standard workbooks.
+  - Every worksheet must contain at least one record; when an analysis is not applicable, write an “适用性说明” worksheet instead of an empty sheet.
+  - Worksheet columns and task profiles follow core/workbook_schema.yaml.
   - CSV may be generated only for explicit compatibility needs and must remain in the same question result-data directory.
   - MATLAB plotting scripts read the standard workbooks and write figures to figures/ or figures_editable/.
   - MATLAB scripts keep figure windows visible by default; export is an explicit optional action after manual adjustment.

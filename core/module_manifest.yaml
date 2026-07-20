@@ -1,4 +1,9 @@
-version: 6.2.1
+version: 6.2.2
+contracts:
+  output: core/output_contract.yaml
+  workbook: core/workbook_schema.yaml
+  project_state: core/project_state.schema.yaml
+  compile_profiles: core/compile_profiles.yaml
 modules:
   problem_audit:
     path: modules/01_problem_audit.md
@@ -10,11 +15,11 @@ modules:
     outputs: [route_comparison, selected_models, variables, assumptions, formula_closure, mechanism_contracts]
   solve_validate:
     path: modules/03_solve_validate.md
-    inputs: [selected_models, formula_closure, data]
+    inputs: [selected_models, formula_closure, data, workbook_schema]
     outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, constraint_checks, validation_report]
   figure_evidence:
     path: modules/04_figure_evidence.md
-    inputs: [result_tables, mechanism_contracts]
+    inputs: [result_tables, workbook_schema, mechanism_contracts]
     outputs: [matlab_scripts, result_figures, refined_mechanism_figures, figure_contracts]
   writing_docx:
     path: modules/05_writing/docx.md

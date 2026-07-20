@@ -1,30 +1,37 @@
 from __future__ import annotations
+
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
+from result_io import find_project_root, workbook_paths, write_workbook
+
 RANDOM_SEED = 2026
 np.random.seed(RANDOM_SEED)
-PROJECT_ROOT = Path(__file__).resolve().parent
 PROBLEM_NAME = "问题一"
-RESULT_DIR = PROJECT_ROOT / "结果数据表" / PROBLEM_NAME / f"{PROBLEM_NAME}结果数据"
-RESULT_DIR.mkdir(parents=True, exist_ok=True)
-SOLUTION_BOOK = RESULT_DIR / f"{PROBLEM_NAME}求解结果.xlsx"
-ROBUST_BOOK = RESULT_DIR / f"{PROBLEM_NAME}敏感性与鲁棒性结果.xlsx"
+PROJECT_ROOT = find_project_root(Path(__file__))
+SOLUTION_BOOK, ROBUSTNESS_BOOK = workbook_paths(PROJECT_ROOT, PROBLEM_NAME)
 
-def write_book(path: Path, tables: dict[str, pd.DataFrame]) -> None:
-    with pd.ExcelWriter(path, engine="openpyxl") as writer:
-        for name, table in tables.items():
-            table.to_excel(writer, sheet_name=name[:31], index=False)
 
-def fit_and_validate(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """替换为训练、滚动/外样本验证和残差诊断。"""
+def load_data() -> pd.DataFrame:
+    """读取时间序列并检查频率、缺失、重复、时间排序和泄漏边界。"""
     raise NotImplementedError
 
+
+def fit_and_validate(data: pd.DataFrame) -> tuple[dict[str, pd.DataFrame], dict[str, pd.DataFrame]]:
+    """完成基准模型、滚动/外样本验证、区间预测和残差诊断。"""
+    raise NotImplementedError(
+        "求解工作簿应保留预测明细、误差指标和残差诊断；"
+        "敏感性工作簿应保留参数敏感性、窗口稳定性或场景扰动明细"
+    )
+
+
 def main() -> None:
-    predictions, metrics = fit_and_validate(pd.DataFrame())
-    write_book(SOLUTION_BOOK, {"预测明细": predictions, "误差指标": metrics})
-    write_book(ROBUST_BOOK, {"参数敏感性": pd.DataFrame(), "鲁棒性区间": pd.DataFrame()})
+    solution_tables, robustness_tables = fit_and_validate(load_data())
+    write_workbook(SOLUTION_BOOK, solution_tables)
+    write_workbook(ROBUSTNESS_BOOK, robustness_tables)
+
 
 if __name__ == "__main__":
     main()

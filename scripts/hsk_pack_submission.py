@@ -1,18 +1,65 @@
 #!/usr/bin/env python3
 """Pack a modeling project while excluding caches and temporary build files."""
 from __future__ import annotations
-import argparse, zipfile
+
+import argparse
+import zipfile
 from pathlib import Path
-EXCLUDE_DIRS={'.git','__pycache__','.pytest_cache','.mypy_cache','.venv','venv'}
-EXCLUDE_SUFFIX={'.aux','.log','.out','.toc','.synctex.gz','.fdb_latexmk','.fls'}
+
+EXCLUDED_DIRS = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".venv", "venv"}
+EXCLUDED_NAMES = {
+    ".DS_Store",
+    "Thumbs.db",
+}
+EXCLUDED_ENDINGS = (
+    ".aux",
+    ".bcf",
+    ".bbl",
+    ".blg",
+    ".log",
+    ".out",
+    ".toc",
+    ".lof",
+    ".lot",
+    ".run.xml",
+    ".synctex.gz",
+    ".fdb_latexmk",
+    ".fls",
+    ".xdv",
+)
+
+
+def should_exclude(path: Path, root: Path, output: Path) -> bool:
+    if path.resolve() == output:
+        return True
+    relative = path.relative_to(root)
+    if any(part in EXCLUDED_DIRS for part in relative.parts):
+        return True
+    if path.name in EXCLUDED_NAMES:
+        return True
+    return path.name.endswith(EXCLUDED_ENDINGS)
+
+
 def main() -> int:
-    ap=argparse.ArgumentParser(); ap.add_argument('project',nargs='?',default='.')
-    ap.add_argument('--output',default='hsk_submission_backup.zip'); a=ap.parse_args()
-    root=Path(a.project).resolve(); out=Path(a.output).resolve()
-    with zipfile.ZipFile(out,'w',zipfile.ZIP_DEFLATED) as z:
-        for f in root.rglob('*'):
-            if not f.is_file() or any(x in EXCLUDE_DIRS for x in f.parts): continue
-            if f.suffix in EXCLUDE_SUFFIX or f==out: continue
-            z.write(f,f.relative_to(root))
-    print(out); return 0
-if __name__=='__main__': raise SystemExit(main())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("project", nargs="?", default=".")
+    parser.add_argument("--output", default="hsk_submission_backup.zip")
+    args = parser.parse_args()
+
+    root = Path(args.project).resolve()
+    if not root.is_dir():
+        raise SystemExit(f"project directory not found: {root}")
+    output = Path(args.output).resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
+        for path in sorted(root.rglob("*")):
+            if not path.is_file() or should_exclude(path, root, output):
+                continue
+            archive.write(path, path.relative_to(root))
+    print(output)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
