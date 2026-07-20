@@ -6,20 +6,33 @@ results/
 figures/
 paper_workspace/
 paper_output/
+
+# LaTeX 辅助文件
 *.aux
+*.bcf
+*.bbl
+*.blg
 *.log
 *.toc
 *.out
+*.lof
+*.lot
+*.run.xml
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.xdv
 
 # Python
 __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+.mypy_cache/
 .venv/
 venv/
 
-# 蒸馏后 PDF 已删, 防误提交大文件
+# 蒸馏后 PDF 已删，防误提交大文件
 references/papers/*.pdf
 
 # OS / 编辑器

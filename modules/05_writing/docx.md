@@ -17,4 +17,4 @@ DOCX 用于模型、结果和逻辑尚未完全锁定时的快速浏览、修改
 - 摘要分段，覆盖各问方法、核心数值和结论；
 - 摘要、目录、正文、参考文献、附录等主要部分分页；致谢如有则单独分页。
 
-输出前执行 `templates/writing/docx_layout_check.md`。
+输出前执行 `templates/writing/docx_check.md`。图后与表后解释按 `templates/writing/caption_explanation.md` 的证据要素组织，不套用固定句式。

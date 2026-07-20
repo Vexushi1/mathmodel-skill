@@ -1,12 +1,10 @@
-% SEED v0.1 — 电工杯论文 LaTeX 模板 (基于 ctex article)
-% 用法: 由 scripts/render_paper.py --competition diangong 调用
-% 编译: xelatex main.tex (三编, 中文必须 xelatex)
-% 电工杯无官方模板, 本模板按工程类常见排版习惯组织
-
+% HSK 电工杯 LaTeX 模板 v6.2.2
+% 编译：python scripts/render_paper.py final_latex --profile diangong --clean
+% 当届规则、页数和封面要求优先于本通用起稿模板。
 \documentclass[12pt,a4paper]{ctexart}
 
 \usepackage[margin=2.54cm]{geometry}
-\usepackage{amsmath,amssymb,amsthm}
+\usepackage{amsmath,amssymb,amsthm,bm}
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{booktabs}
@@ -15,159 +13,112 @@
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{hyperref}
-\usepackage{url}
-\usepackage{cite}
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{enumitem}
 \usepackage{titlesec}
 \usepackage{fancyhdr}
 \usepackage{lastpage}
+\usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
+\addbibresource{references.bib}
 
-\hypersetup{
-    colorlinks=true,
-    linkcolor=blue,
-    filecolor=magenta,
-    urlcolor=blue,
-    citecolor=blue,
-}
+\newcommand{\ProblemCode}{A}
+\newcommand{\TeamNumber}{XXXX}
+\newcommand{\PaperTitle}{电工杯论文标题}
 
+\hypersetup{colorlinks=false,pdfborder={0 0 0}}
 \lstset{
     basicstyle=\small\ttfamily,
     breaklines=true,
     frame=single,
     numbers=left,
     numberstyle=\tiny,
-    showstringspaces=false,
-    extendedchars=false,
+    showstringspaces=false
 }
 
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{电工杯论文 \#XXXX}
+\fancyhead[L]{队伍编号 \TeamNumber}
 \fancyhead[R]{第 \thepage\ 页 / 共 \pageref{LastPage} 页}
 \renewcommand{\headrulewidth}{0.4pt}
-
 \titleformat*{\section}{\Large\bfseries}
 \titleformat*{\subsection}{\large\bfseries}
 \titleformat*{\subsubsection}{\normalsize\bfseries}
 
 \begin{document}
 
-% ===== 封面 =====
 \begin{titlepage}
 \begin{center}
 \vspace*{2cm}
-{\Huge \textbf{电工杯论文标题}}\\[2cm]
-{\Large 题号: \textbf{A}}\\[1cm]
-{\Large 队伍编号: \textbf{XXXX}}\\[3cm]
+{\Huge\bfseries \PaperTitle}\\[2cm]
+{\Large 题号：\textbf{\ProblemCode}}\\[1cm]
+{\Large 队伍编号：\textbf{\TeamNumber}}\\[3cm]
 \end{center}
 \end{titlepage}
 
-% ===== 摘要 =====
 \section*{摘要}
+% 按当届要求控制篇幅。摘要必须覆盖实际小问，写明模型、求解方法、
+% 工程量化结果、约束检查和结论，不固定段数或小问数量。
+填写摘要正文。
 
-% TODO: 4 段式, 600-1000 字。
-% 1. 背景段 + 题目情境
-% 2. 方法段 + 命名变体 + 求解算法
-% 3. 结果段 (≥3 个工程量化数值, 含单位)
-% 4. 工程建议段
-
-\textbf{关键词:} 关键词1; 关键词2; 关键词3; 关键词4
+\noindent\textbf{关键词：}关键词1；关键词2；关键词3；关键词4
 
 \newpage
 \tableofcontents
 \newpage
 
-% ===== 正文 =====
-
 \section{问题背景与重述}
-
 \subsection{工程背景}
-
-\subsection{题目重述}
-
-\subsection{数据概览}
+\subsection{问题要求}
+\subsection{数据与附件概览}
 
 \section{问题分析}
-
-\subsection{子问题分解}
-
-\subsection{子问题依赖关系}
-
-\subsection{整体技术路线}
+\subsection{子问题拆解与依赖}
+\subsection{工程机制与关键约束}
+\subsection{模型路线选择}
 
 \section{模型假设与符号说明}
-
-\subsection{基本假设}
-
+\subsection{模型假设}
+% 每条假设说明原因、影响、失效偏差和检验方式。
 \subsection{符号说明}
 
 \section{数据预处理}
+\subsection{字段、单位与粒度}
+\subsection{缺失、异常、重复与时间对齐}
 
-\subsection{数据描述}
+\section{模型建立与求解}
+\subsection{问题一}
+\subsubsection{工程机制与变量}
+\subsubsection{数学模型}
+\subsubsection{求解方法与参数}
+\subsubsection{结果、约束检查与工程解释}
 
-\subsection{缺失值处理}
+% 仅按实际小问继续添加同结构小节，不预设五个子问题。
 
-\subsection{异常值剔除}
+\section{模型检验}
+% 选择物理边界、量纲、守恒、仿真、实验、基准方法或多算法验证。
 
-\subsection{预处理后统计描述}
+\section{敏感性与鲁棒性分析}
+\subsection{扰动方案}
+\subsection{结果与鲁棒区间}
+\subsection{工程含义}
 
-\section{子问题求解}
+% 仅当题目要求或结论能够支撑时保留工程实施建议。
+\section{工程建议与实施边界}
 
-\subsection{子问题 1: \{子问题名\} (主线)}
+\section{模型评价与改进}
+\subsection{模型优势}
+\subsection{局限与改进}
 
-\subsubsection{问题描述与工程语境}
-\subsubsection{模型建立}
-\subsubsection{求解算法}
-\subsubsection{结果与物理意义}
+\section{结论}
+% 按小问直接回答题目，给出数值、单位、方案和适用边界。
 
-\subsection{子问题 2: \{子问题名\} (主线)}
+\printbibliography[title={参考文献}]
 
-\subsection{子问题 3: \{子问题名\} (主线)}
-
-\subsection{子问题 4: \{子问题名\} (加分)}
-
-\subsection{子问题 5: \{子问题名\} (加分)}
-
-% ... 视题目子问数添加
-
-\section{灵敏度与鲁棒性分析}
-
-\subsection{工程参数扰动设计}
-
-\subsection{联合扰动结果}
-
-\subsection{鲁棒区间与工程含义}
-
-\section{工程实施建议}
-
-\subsection{分阶段方案}
-
-\subsection{实施代价估算}
-
-\subsection{落地风险与应对}
-
-\section{模型评价}
-
-\subsection{优点}
-
-\subsection{缺点与改进}
-
-\subsection{推广性}
-
-\bibliographystyle{gbt7714-numerical}
-\bibliography{references}
-
-% ===== 附录 =====
 \appendix
-
-\section{主要算法伪代码}
-
-\section{完整代码}
-
-% TODO: 完整代码或 GitHub 链接
-
+\section{主要算法与复现说明}
 \section{补充图表}
+\section{代码说明}
+% 完整代码可独立提交；附录说明输入、功能、输出和复现顺序。
 
 \end{document}

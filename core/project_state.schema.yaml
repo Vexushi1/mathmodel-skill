@@ -1,12 +1,118 @@
-version: 6.2.1
-fields:
-  project: [competition, problem, current_phase, problem_types]
-  requirements: [total, completed, pending]
-  decisions: [selected_model, rejected_models, key_reason]
-  variables: [locked, source]
-  artifacts: [code, results, figures, papers]
-  risks: []
-  next_gate: [module, condition]
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: https://example.local/hsk/project_state.schema.yaml
+title: HSK 数学建模项目状态
+version: 6.2.2
+type: object
+additionalProperties: false
+required: [project, requirements, decisions, variables, artifacts, risks, next_gate]
+properties:
+  project:
+    type: object
+    additionalProperties: false
+    required: [competition, problem, current_phase, problem_types]
+    properties:
+      competition:
+        type: string
+        minLength: 1
+      problem:
+        type: string
+        minLength: 1
+      current_phase:
+        type: string
+        enum: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, review_delivery, completed]
+      problem_types:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          type: string
+          enum: [mechanism, optimization, prediction, evaluation, statistics_ml, simulation, spatial, graph_network, scheduling, game_decision]
+      version:
+        type: string
+  requirements:
+    type: object
+    additionalProperties: false
+    required: [total, completed, pending]
+    properties:
+      total:
+        type: integer
+        minimum: 0
+      completed:
+        type: array
+        uniqueItems: true
+        items: {type: string}
+      pending:
+        type: array
+        uniqueItems: true
+        items: {type: string}
+  decisions:
+    type: object
+    additionalProperties:
+      type: object
+      additionalProperties: false
+      required: [selected_model, rejected_models, key_reason]
+      properties:
+        selected_model: {type: string}
+        rejected_models:
+          type: array
+          items: {type: string}
+        key_reason: {type: string}
+        solver_candidates:
+          type: array
+          items: {type: string}
+        validation_plan:
+          type: array
+          items: {type: string}
+  variables:
+    type: object
+    additionalProperties: false
+    required: [locked, source]
+    properties:
+      locked:
+        type: array
+        uniqueItems: true
+        items: {type: string}
+      source:
+        type: object
+        additionalProperties: {type: string}
+  artifacts:
+    type: object
+    additionalProperties: false
+    required: [code, results, figures, papers]
+    properties:
+      code:
+        type: array
+        items: {type: string}
+      results:
+        type: array
+        items: {type: string}
+      figures:
+        type: array
+        items: {type: string}
+      papers:
+        type: array
+        items: {type: string}
+  risks:
+    type: array
+    items:
+      oneOf:
+        - type: string
+        - type: object
+          additionalProperties: false
+          required: [level, item, action]
+          properties:
+            level: {type: string, enum: [fatal, important, general]}
+            item: {type: string}
+            action: {type: string}
+  next_gate:
+    type: object
+    additionalProperties: false
+    required: [module, condition]
+    properties:
+      module:
+        type: string
+        enum: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, review_delivery, completed]
+      condition: {type: string}
 policy:
   required_on_every_chat: false
   create_when: [full_project, cross_chat_handoff, multiple_artifacts, user_request]
