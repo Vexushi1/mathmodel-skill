@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 import yaml
+from openpyxl import Workbook
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -37,6 +38,33 @@ class TestTooling(unittest.TestCase):
             self.assertTrue(module.should_exclude(root / "main.run.xml", root, output))
             self.assertTrue(module.should_exclude(root / "main.bcf", root, output))
             self.assertFalse(module.should_exclude(root / "main.pdf", root, output))
+
+    def test_artifact_checker_accepts_nonempty_standard_workbooks(self):
+        module = load_module("hsk_check_artifact", ROOT / "scripts/hsk_check_artifact.py")
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            solution = root / "solution.xlsx"
+            robustness = root / "robustness.xlsx"
+
+            workbook = Workbook()
+            core = workbook.active
+            core.title = "核心指标"
+            core.append(["指标", "数值"])
+            core.append(["目标值", 1.0])
+            audit = workbook.create_sheet("数据审计")
+            audit.append(["等级", "检查项", "信息", "处理方式"])
+            audit.append(["Info", "字段", "通过", "无"])
+            workbook.save(solution)
+
+            workbook = Workbook()
+            sheet = workbook.active
+            sheet.title = "适用性说明"
+            sheet.append(["分析类型", "不适用原因", "替代检验"])
+            sheet.append(["参数敏感性", "无外生参数", "边界条件检查"])
+            workbook.save(robustness)
+
+            self.assertEqual(module.inspect_workbook(solution, "solution"), [])
+            self.assertEqual(module.inspect_workbook(robustness, "robustness"), [])
 
     def test_matlab_templates_use_root_finder_and_font_fallback(self):
         plotting = (ROOT / "templates/matlab/plot_from_workbook.m").read_text(encoding="utf-8")
