@@ -1,7 +1,18 @@
-version: 6.2.1
+version: 6.2.2
 default_load:
   - core/hsk_core_policy.md
   - core/workflow_router.yaml
+
+classifier_contract:
+  output:
+    primary: one task label
+    secondary: zero to two task labels
+    confidence: mapping from task label to score in [0, 1]
+  allowed_labels: [mechanism, optimization, prediction, evaluation, statistics_ml, simulation, spatial, graph_network, scheduling, game_decision]
+  load_policy:
+    - Load the primary task pack.
+    - Load a secondary task pack only when it changes variables, constraints, validation or deliverables.
+    - Do not load more than three task packs for one request without an explicit reason.
 
 routing:
   new_problem_full:
@@ -27,11 +38,13 @@ routing:
     load:
       - modules/03_solve_validate.md
       - packs/artifact/code.md
+      - packs/task/classifier.md
       - packs/task/{classified_label}.md
   validation:
     triggers: [检验, 多算法, 全局最优, 敏感性, 鲁棒性, 误差, 稳健性]
     load:
       - modules/03_solve_validate.md
+      - packs/task/classifier.md
       - packs/task/{classified_label}.md
   figures:
     triggers: [图表, 可视化, 机理图, 推导图, Nature, SCI]
@@ -60,9 +73,15 @@ routing:
       - packs/artifact/review.md
       - packs/competition/auto.md
 
+multi_intent_policy:
+  - Merge module lists in workflow order and remove duplicates.
+  - When a request includes solving and writing, solve and validate before generating final prose.
+  - When a request includes figures and LaTeX, verify workbook sources before inserting figures.
+  - Full submission includes review_delivery after all requested artifact modules.
+
 rules:
   - Do not load legacy by default.
   - Reuse locked project state and artifacts before recomputing.
-  - Replace {classified_label} with only the task packs returned by the classifier.
+  - Replace {classified_label} only with classifier labels selected under classifier_contract.
   - DOCX and LaTeX modules are both loaded only for explicit migration.
   - Result figures precede final mechanism-figure refinement.
