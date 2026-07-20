@@ -32,16 +32,18 @@
 - 新增 MIT `LICENSE` 与 `THIRD_PARTY_NOTICES.md`；
 - 根 Skill、插件元数据、核心政策、语义索引和运行入口统一升级为 v6.2.2。
 
+## P2：内容增强与去模板化
+
+- 十类题型 Pack 统一扩展为“进入条件—路线比较—变量公式闭环—必做验证—否决条件”；
+- 新增 `packs/task/advanced_method_gate.md`，覆盖 W-DRO、CVaR、MPEC、Stackelberg、ALNS、GNN、空间计量、DML、强化学习和深度学习的最低准入；
+- 新增 `templates/figure/chart_selection.md`，按结论任务和底层数据选择图型；
+- 路由器增加高级方法和图型选择的按需加载规则；
+- 合并两份 DOCX 检查表为 `templates/writing/docx_check.md`；
+- 重写图表解释规范，以趋势、关键数值、机制和决策含义替代固定套话；
+- 更新模型设计、图表证据、DOCX 写作和语义索引之间的引用闭环。
+
 ## 自动验证
 
-- Python 3.10、3.11、3.12、3.13、3.14 的 lint 与单元测试均已接入 CI；
+- Python 3.10、3.11、3.12、3.13、3.14 的 lint 与单元测试均接入 CI；
 - V622 完整文件索引、模板索引和 `MANIFEST.sha256` 由 Actions 自动维护；
-- 全部修改保留在 Draft PR 中，P2 完成并终审后再转为可合并状态。
-
-## 待完成：P2
-
-- 统一增强现有题型 Pack；
-- 增加高级模型准入 Pack；
-- 增加图型选择索引；
-- 合并重复 DOCX 检查模板；
-- 删除容易诱发机械套话的固定图后解释句式。
+- P2 完成后执行最终 lint、CI、生成文件一致性和评委式终审，再将 Draft PR 转为 Ready for review。
