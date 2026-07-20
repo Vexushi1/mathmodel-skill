@@ -1,0 +1,55 @@
+version: 6.2.1
+root_directories:
+  raw_data: 数据/
+  python_solution: Python求解/
+  result_tables: 结果数据表/
+  matlab_plotting: MATLAB绘图/
+  figures_editable: figures_editable/
+  figures: figures/
+  draft_docx: draft_docx/
+  final_latex: final_latex/
+
+per_question:
+  question_directory: 结果数据表/问题{中文序号}/
+  result_data_directory: 结果数据表/问题{中文序号}/问题{中文序号}结果数据/
+  mandatory_workbooks:
+    solution: 问题{中文序号}求解结果.xlsx
+    sensitivity_robustness: 问题{中文序号}敏感性与鲁棒性结果.xlsx
+
+solution_workbook_recommended_sheets:
+  - 核心指标
+  - 推荐方案
+  - 明细结果
+  - 约束违反检查
+  - 多算法对比
+  - 数据审计
+
+sensitivity_robustness_workbook_recommended_sheets:
+  - 参数敏感性
+  - 鲁棒性区间
+  - 扰动明细
+  - 算法稳定性
+
+ownership:
+  Python: 数据处理、模型求解、优化、仿真、检验、敏感性、鲁棒性、结果工作簿输出
+  MATLAB: 读取结果工作簿并绘制正式论文结果图；不得重新计算核心结果
+  other_figure_tools: GeoGebra、PPT、draw.io、SVG、TikZ可用于非数据驱动机理图
+
+filenames:
+  python_scripts: Chinese descriptive names
+  workbooks: Chinese fixed names above
+  worksheets: Chinese descriptive names, maximum 31 characters
+  figures: ASCII English or pinyin
+
+optional_metadata:
+  run_info.json: [full_reproduction, many_algorithms, cross_chat_handoff, final_review, explicit_request]
+  result_manifest.yaml: [full_reproduction, many_algorithms, cross_chat_handoff, final_review, explicit_request]
+  matlab_figure_handoff.json: [many_figures, cross_chat_handoff, explicit_request]
+  metadata_location: corresponding 结果数据表/问题X/问题X结果数据/ or MATLAB绘图/问题X/
+
+rules:
+  - Excel workbooks are the default result exchange format; do not scatter core results across standalone CSV files.
+  - Constraint checks, multi-algorithm comparisons and detailed time/space records are worksheets in the two standard workbooks.
+  - CSV may be generated only for explicit compatibility needs and must remain in the same question result-data directory.
+  - MATLAB plotting scripts read the standard workbooks and write figures to figures/ or figures_editable/.
+  - MATLAB scripts keep figure windows visible by default; export is an explicit optional action after manual adjustment.

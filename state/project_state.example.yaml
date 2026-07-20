@@ -1,0 +1,22 @@
+project:
+  competition: CUMCM
+  problem: A
+  current_phase: model_design
+  problem_types: [mechanism, optimization]
+requirements:
+  total: 5
+  completed: [Q1]
+  pending: [Q2, Q3, Q4, Q5]
+decisions:
+  Q1:
+    selected_model: "填写模型名称"
+    rejected_models: []
+    key_reason: "填写选择理由"
+artifacts:
+  code: []
+  results: []
+  figures: []
+risks: []
+next_gate:
+  module: solve_validate
+  condition: "变量、目标和约束已锁定"

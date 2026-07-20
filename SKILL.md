@@ -1,0 +1,46 @@
+---
+name: mathmodel-skill
+version: 6.2.1
+summary: HSK modular mathematical-modeling workflow with Python-only solving, standardized Chinese Excel result workbooks, MATLAB-only formal result figures, DOCX draft, LaTeX final, and reviewer-grade delivery.
+triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型选择, 敏感性分析, 鲁棒性分析, 机理图, MATLAB绘图, LaTeX, DOCX]
+---
+
+# HSK 数学建模模块化工作流 v6.2.1
+
+## 启动顺序
+
+1. 始终读取 `core/hsk_core_policy.md`。
+2. 读取 `core/workflow_router.yaml`，按任务只加载必要模块。
+3. 若已有项目状态，读取 `state/project_state.yaml` 或当前对话中的等价摘要。
+4. 按需加载 `modules/`、`packs/task/`、`packs/competition/` 和 `packs/artifact/`。
+5. 禁止默认读取 `legacy/`；只有兼容旧项目、追溯旧规则或修复旧脚本时才加载。
+
+## 六大运行模块
+
+- `modules/01_problem_audit.md`：任务接入、逐字审题、小问拆解与交付映射。
+- `modules/02_model_design.md`：路线比较、数据协议、变量假设公式闭环、机理图合同。
+- `modules/03_solve_validate.md`：Python 求解、约束检查、多算法验证、敏感性与鲁棒性、Excel 输出。
+- `modules/04_figure_evidence.md`：MATLAB 结果图证据链与后期机理图精修。
+- `modules/05_writing/`：DOCX 草稿、LaTeX 终稿、AI 模板感清除。
+- `modules/06_review_delivery.md`：评委式终审与提交包检查。
+
+## 固定软件分工
+
+- Python：数据处理、模型求解、优化、仿真、检验、敏感性、鲁棒性和标准工作簿输出。
+- MATLAB：读取标准工作簿绘制正式论文结果图，不重新计算核心结果。
+- GeoGebra/PPT/draw.io/SVG/TikZ：按需承担非数据驱动机理图。
+- DOCX：前期修改与逻辑检查；LaTeX：最终论文与 PDF。
+
+## 固定结果结构
+
+```text
+结果数据表/问题X/问题X结果数据/
+├─ 问题X求解结果.xlsx
+└─ 问题X敏感性与鲁棒性结果.xlsx
+```
+
+约束违反、多算法对比、逐时/逐区域明细和绘图底层数据写入两类工作簿的中文工作表，不默认散落为独立 CSV。
+
+## 默认主线
+
+审题 → 模型设计 → Python 求解验证 → 中文结果工作簿 → MATLAB 结果图 → DOCX 草稿 → 核心机理图精修 → LaTeX 终稿 → 终审交付。

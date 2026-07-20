@@ -1,0 +1,32 @@
+{
+  "version": "6.1.6-hsk-docxdraft-latexfinal-mechanism-nature-ponytail",
+  "principle": "题意契合、人工思考证据、变量闭环、数据支撑、可复现、DOCX草稿便于迭代、LaTeX终稿规范提交优先于模型名词高级感。",
+  "weights": {
+    "problem_understanding": 1.5,
+    "requirement_coverage_internal": 1.5,
+    "model_fit": 1.5,
+    "mathematical_rigor": 1.4,
+    "data_protocol": 1.4,
+    "code_reproducibility": 1.4,
+    "visual_quality": 1.35,
+    "robustness_sensitivity": 1.35,
+    "latex_paper_quality": 1.4,
+    "cumcm_template_compliance": 1.4,
+    "innovation": 1.1,
+    "mechanism_reasoning_evidence": 1.35,
+    "docx_draft_reviewability": 1.05
+  },
+  "hard_fail": [
+    "missing_problem_requirement",
+    "unsupported_advanced_model",
+    "unclosed_variable",
+    "no_data_protocol",
+    "unreproducible_code",
+    "no_validation_or_robustness",
+    "low_quality_figures",
+    "latex_compile_failure",
+    "cumcm_template_removed",
+    "no_mechanism_or_derivation_evidence_for_mechanistic_problem",
+    "docx_placeholders_not_resolved_before_final_latex"
+  ]
+}
