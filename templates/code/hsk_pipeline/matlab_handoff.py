@@ -23,7 +23,7 @@ def write_matlab_handoff(project_root: Path, problem_name: str, figures: list[di
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / "matlab_figure_handoff.json"
     payload = {
-        "version": "6.2.1",
+        "version": "6.2.2",
         "problem": problem_name,
         "solution_workbook": solve_book.as_posix(),
         "sensitivity_robustness_workbook": robust_book.as_posix(),
