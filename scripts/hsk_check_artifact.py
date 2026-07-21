@@ -1,18 +1,42 @@
 #!/usr/bin/env python3
-"""Check HSK v6.2.2 project structure, workbook contract and software ownership."""
+"""Check HSK v6.2.2 project structure, workbook schema and software ownership."""
 from __future__ import annotations
 
 import argparse
 import re
+from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
+import yaml
 from openpyxl import load_workbook
 
 CN_NUM = "一二三四五六七八九十"
 FIG_EXT = {".png", ".pdf", ".svg", ".jpg", ".jpeg", ".tif", ".tiff"}
 PY_PLOT_TOKENS = ("matplotlib", "seaborn", "savefig(", "plt.show(")
-SOLUTION_REQUIRED = {"核心指标", "数据审计"}
-ROBUSTNESS_ALLOWED = {"参数敏感性", "鲁棒性区间", "扰动明细", "算法稳定性", "适用性说明"}
+PROBLEM_TYPES = (
+    "mechanism",
+    "optimization",
+    "prediction",
+    "evaluation",
+    "statistics_ml",
+    "simulation",
+    "spatial",
+    "graph_network",
+    "scheduling",
+    "game_decision",
+)
+SCHEMA_PATH = Path(__file__).resolve().parents[1] / "core" / "workbook_schema.yaml"
+
+
+@lru_cache(maxsize=1)
+def load_workbook_schema() -> dict[str, Any]:
+    if not SCHEMA_PATH.is_file():
+        raise FileNotFoundError(f"workbook schema not found: {SCHEMA_PATH}")
+    schema = yaml.safe_load(SCHEMA_PATH.read_text(encoding="utf-8"))
+    if not isinstance(schema, dict):
+        raise ValueError(f"workbook schema must be a mapping: {SCHEMA_PATH}")
+    return schema
 
 
 def check_code(root: Path) -> list[str]:
@@ -40,31 +64,89 @@ def worksheet_has_data(worksheet) -> bool:
     return False
 
 
-def inspect_workbook(path: Path, kind: str) -> list[str]:
+def worksheet_headers(worksheet) -> list[str]:
+    row = next(worksheet.iter_rows(min_row=1, max_row=1, values_only=True), ())
+    return [str(value).strip() for value in row if value not in (None, "")]
+
+
+def workbook_contract(
+    schema: dict[str, Any],
+    kind: str,
+    problem_type: str | None,
+) -> tuple[set[str], set[str], dict[str, dict[str, Any]]]:
+    if kind == "solution":
+        contract = schema["solution_workbook"]
+        required = set(contract.get("common_required_sheets", {}))
+        specs: dict[str, dict[str, Any]] = {}
+        for section in ("common_required_sheets", "common_recommended_sheets"):
+            specs.update(contract.get(section, {}) or {})
+
+        if problem_type:
+            for rule in (contract.get("conditional_requirements", {}) or {}).values():
+                if problem_type in set(rule.get("problem_types", [])):
+                    required.update(rule.get("required_sheets", []))
+            profile = (contract.get("task_profiles", {}) or {}).get(problem_type, {})
+            required_any = set(profile.get("required_any", []))
+        else:
+            required_any = set()
+        return required, required_any, specs
+
+    if kind == "robustness":
+        contract = schema["sensitivity_robustness_workbook"]
+        required_any = set(contract.get("required_any_sheets", []))
+        specs = contract.get("sheet_schemas", {}) or {}
+        return set(), required_any, specs
+
+    raise ValueError(f"unsupported workbook kind: {kind}")
+
+
+def inspect_workbook(path: Path, kind: str, problem_type: str | None = None) -> list[str]:
     issues: list[str] = []
     try:
-        workbook = load_workbook(path, read_only=True, data_only=True)
+        schema = load_workbook_schema()
+    except Exception as exc:  # noqa: BLE001
+        return [f"cannot load workbook schema {SCHEMA_PATH}: {exc}"]
+
+    try:
+        workbook = load_workbook(path, read_only=True, data_only=False)
     except Exception as exc:  # noqa: BLE001
         return [f"cannot open workbook {path}: {exc}"]
+
     try:
         names = set(workbook.sheetnames)
-        if kind == "solution":
-            missing = SOLUTION_REQUIRED - names
-            if missing:
-                issues.append(f"solution workbook missing sheets {sorted(missing)}: {path}")
-        elif not (names & ROBUSTNESS_ALLOWED):
-            issues.append(f"robustness workbook lacks analysis or applicability sheet: {path}")
+        required, required_any, specs = workbook_contract(schema, kind, problem_type)
+        missing = required - names
+        if missing:
+            issues.append(f"{kind} workbook missing sheets {sorted(missing)}: {path}")
+        if required_any and not (names & required_any):
+            issues.append(f"{kind} workbook lacks one of required sheets {sorted(required_any)}: {path}")
+
+        max_name_length = int(schema.get("global_rules", {}).get("worksheet_name_max_length", 31))
         for worksheet in workbook.worksheets:
-            if len(worksheet.title) > 31:
-                issues.append(f"worksheet name exceeds 31 characters: {path} -> {worksheet.title}")
+            location = f"{path} -> {worksheet.title}"
+            if len(worksheet.title) > max_name_length:
+                issues.append(f"worksheet name exceeds {max_name_length} characters: {location}")
             if not worksheet_has_data(worksheet):
-                issues.append(f"empty worksheet is forbidden: {path} -> {worksheet.title}")
+                issues.append(f"empty worksheet is forbidden: {location}")
+
+            headers = worksheet_headers(worksheet)
+            duplicate_headers = sorted({header for header in headers if headers.count(header) > 1})
+            if duplicate_headers:
+                issues.append(f"worksheet has duplicate headers {duplicate_headers}: {location}")
+
+            sheet_spec = specs.get(worksheet.title)
+            if not sheet_spec:
+                continue
+            required_columns = set(sheet_spec.get("required_columns", []))
+            missing_columns = sorted(required_columns - set(headers))
+            if missing_columns:
+                issues.append(f"worksheet missing required columns {missing_columns}: {location}")
     finally:
         workbook.close()
     return issues
 
 
-def check_results(root: Path) -> list[str]:
+def check_results(root: Path, problem_type: str | None = None) -> list[str]:
     issues: list[str] = []
     base = root / "结果数据表"
     if not base.exists():
@@ -83,7 +165,7 @@ def check_results(root: Path) -> list[str]:
             if not path.is_file():
                 issues.append(f"missing: {path.relative_to(root)}")
             else:
-                issues.extend(inspect_workbook(path, kind))
+                issues.extend(inspect_workbook(path, kind, problem_type))
     return issues
 
 
@@ -103,13 +185,18 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("project", nargs="?", default=".")
     parser.add_argument("--mode", choices=["full", "code", "data", "figures"], default="full")
+    parser.add_argument(
+        "--problem-type",
+        choices=PROBLEM_TYPES,
+        help="enforce problem-type-dependent workbook sheets from core/workbook_schema.yaml",
+    )
     args = parser.parse_args()
     root = Path(args.project).resolve()
     issues: list[str] = []
     if args.mode in {"full", "code"}:
         issues += check_code(root)
     if args.mode in {"full", "data"}:
-        issues += check_results(root)
+        issues += check_results(root, args.problem_type)
     if args.mode in {"full", "figures"}:
         issues += check_figures(root)
     if issues:
