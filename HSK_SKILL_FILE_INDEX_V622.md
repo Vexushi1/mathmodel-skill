@@ -1,6 +1,7 @@
 # HSK Skill File Index v6.2.2
 
 - `.codex-plugin/plugin.json`
+- `.gitattributes`
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
