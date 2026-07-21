@@ -1,0 +1,28 @@
+* text=auto eol=lf
+
+# Binary artifacts must retain exact bytes.
+*.7z -text
+*.doc -text
+*.docx -text
+*.gif -text
+*.gz -text
+*.ico -text
+*.jpeg -text
+*.jpg -text
+*.mat -text
+*.npy -text
+*.npz -text
+*.otf -text
+*.pdf -text
+*.pickle -text
+*.pkl -text
+*.png -text
+*.rar -text
+*.tif -text
+*.tiff -text
+*.ttf -text
+*.woff -text
+*.woff2 -text
+*.xls -text
+*.xlsx -text
+*.zip -text
