@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate repository file indexes and a cross-platform MANIFEST.sha256 for HSK v6.2.2."""
+"""Generate active-package indexes and a cross-platform MANIFEST.sha256 for HSK v6.2.3."""
 from __future__ import annotations
 
 import argparse
@@ -7,43 +7,29 @@ import hashlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = "6.2.2"
+VERSION = "6.2.3"
+# Public filenames remain V622 for compatibility; their generated titles carry the current version.
 SKILL_INDEX = ROOT / "HSK_SKILL_FILE_INDEX_V622.md"
 TEMPLATE_INDEX = ROOT / "HSK_TEMPLATE_INDEX_V622.md"
 MANIFEST = ROOT / "MANIFEST.sha256"
 EXCLUDED_DIRS = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".venv", "venv"}
+ACTIVE_ARCHIVE_POINTERS = {Path("legacy/README.md")}
 BINARY_SUFFIXES = {
-    ".7z",
-    ".doc",
-    ".docx",
-    ".gif",
-    ".gz",
-    ".ico",
-    ".jpeg",
-    ".jpg",
-    ".mat",
-    ".npy",
-    ".npz",
-    ".otf",
-    ".pdf",
-    ".pickle",
-    ".pkl",
-    ".png",
-    ".rar",
-    ".tif",
-    ".tiff",
-    ".ttf",
-    ".woff",
-    ".woff2",
-    ".xls",
-    ".xlsx",
-    ".zip",
+    ".7z", ".doc", ".docx", ".gif", ".gz", ".ico", ".jpeg", ".jpg", ".mat", ".npy",
+    ".npz", ".otf", ".pdf", ".pickle", ".pkl", ".png", ".rar", ".tif", ".tiff",
+    ".ttf", ".woff", ".woff2", ".xls", ".xlsx", ".zip",
 }
 GENERATED_RELATIVE = {
     SKILL_INDEX.relative_to(ROOT),
     TEMPLATE_INDEX.relative_to(ROOT),
     MANIFEST.relative_to(ROOT),
 }
+
+
+def is_active_path(relative: Path) -> bool:
+    if relative.parts and relative.parts[0] == "legacy":
+        return relative in ACTIVE_ARCHIVE_POINTERS
+    return True
 
 
 def iter_files() -> list[Path]:
@@ -54,12 +40,14 @@ def iter_files() -> list[Path]:
         relative = path.relative_to(ROOT)
         if any(part in EXCLUDED_DIRS for part in relative.parts):
             continue
+        if not is_active_path(relative):
+            continue
         files.add(relative)
     return sorted(files, key=lambda item: item.as_posix())
 
 
 def index_text(title: str, files: list[Path]) -> str:
-    lines = [f"# {title} v{VERSION}", ""]
+    lines = [f"# {title} v{VERSION}", "", "本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。", ""]
     lines.extend(f"- `{path.as_posix()}`" for path in files)
     return "\n".join(lines) + "\n"
 
@@ -80,8 +68,7 @@ def normalized_manifest_bytes(path: Path, data: bytes) -> bytes:
 
 
 def digest_file(path: Path) -> str:
-    data = path.read_bytes()
-    return digest_bytes(normalized_manifest_bytes(path, data))
+    return digest_bytes(normalized_manifest_bytes(path, path.read_bytes()))
 
 
 def manifest_text(files: list[Path], overrides: dict[Path, str]) -> str:
@@ -103,8 +90,8 @@ def manifest_text(files: list[Path], overrides: dict[Path, str]) -> str:
 def generated_payloads() -> dict[Path, str]:
     files = iter_files()
     template_files = [path for path in files if path.parts and path.parts[0] == "templates"]
-    skill_payload = index_text("HSK Skill File Index", files)
-    template_payload = index_text("HSK Template Index", template_files)
+    skill_payload = index_text("HSK Active Skill File Index", files)
+    template_payload = index_text("HSK Active Template Index", template_files)
     overrides = {
         SKILL_INDEX.relative_to(ROOT): skill_payload,
         TEMPLATE_INDEX.relative_to(ROOT): template_payload,
@@ -125,7 +112,6 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true", help="fail when generated files differ from repository state")
     args = parser.parse_args()
-
     payloads = generated_payloads()
     if args.check:
         differences = []
@@ -140,7 +126,6 @@ def main() -> int:
             return 1
         print("generated indexes are current")
         return 0
-
     for path, text in payloads.items():
         write_lf_text(path, text)
         print(path.relative_to(ROOT).as_posix())

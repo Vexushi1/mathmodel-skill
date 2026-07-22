@@ -1,4 +1,4 @@
-version: 6.2.2
+version: 6.2.3
 purpose: 约束每问两类标准工作簿的工作表名称、最低字段、条件工作表和非空规则，供 Python 输出、MATLAB 读取和终审共同使用。
 
 runtime_enforcement:
@@ -7,7 +7,7 @@ runtime_enforcement:
   matlab_reader: templates/matlab/hsk_read_result_workbooks.m
   rules:
     - 标准工作簿写入前必须执行本 Schema；不得只检查工作表是否存在。
-    - 交付检查必须复用同一工作表与字段规则。
+    - 交付检查必须复用写入器的同一校验函数，不维护第二套字段规则。
     - MATLAB 绘图脚本必须声明所需工作表和字段，并以 VariableNamingRule=preserve 读取中文列名。
 
 global_rules:
@@ -18,6 +18,26 @@ global_rules:
   units_policy: 数值字段涉及物理量、时间、成本、距离、概率或比例时，列名或独立“单位”列必须明确单位。
   key_policy: 明细数据优先提供“记录键”或“样本键”；显式主键必须非空且唯一。多维明细可自行构造复合记录键。
   numeric_policy: 数值字段不得包含正负无穷；允许有依据的缺失值，但必须在数据审计中说明。
+
+capability_contract:
+  allowed:
+    - has_explicit_constraints
+    - requires_feasibility_check
+    - requires_equilibrium_residual
+    - requires_conservation_residual
+    - requires_discretization_check
+    - requires_convergence_diagnostic
+  required_sheets:
+    has_explicit_constraints: [约束违反检查]
+    requires_feasibility_check: [约束违反检查]
+    requires_equilibrium_residual: [均衡残差]
+    requires_conservation_residual: [守恒残差]
+    requires_discretization_check: [离散精度]
+    requires_convergence_diagnostic: [收敛诊断]
+  legacy_problem_type_fallback:
+    description: 仅在旧项目没有 capability 标志时兼容使用；新项目不得依赖该回退。
+    problem_types: [optimization, scheduling]
+    required_sheets: [约束违反检查]
 
 solution_workbook:
   filename: 问题{中文序号}求解结果.xlsx
@@ -40,13 +60,18 @@ solution_workbook:
     约束违反检查:
       required_columns: [约束编号, 约束含义, 违反量, 容差, 是否满足]
       optional_columns: [左端值, 右端值或界, 最坏样本或时刻]
-  conditional_requirements:
-    constraint_based_problem_types:
-      problem_types: [mechanism, optimization, simulation, graph_network, scheduling, game_decision]
-      required_sheets: [约束违反检查]
-    decision_output_problem_types:
-      problem_types: [optimization, evaluation, scheduling, game_decision]
-      recommended_sheets: [推荐方案]
+    均衡残差:
+      required_columns: [主体或均衡, 残差, 容差, 是否满足]
+      optional_columns: [策略组合, 收益, 说明]
+    守恒残差:
+      required_columns: [守恒量, 残差, 容差, 是否满足]
+      optional_columns: [时刻或区域, 基准量, 相对残差, 说明]
+    离散精度:
+      required_columns: [离散参数, 取值, 目标指标, 相对变化]
+      optional_columns: [计算时间, 是否收敛, 说明]
+    收敛诊断:
+      required_columns: [迭代或样本数, 指标, 数值, 判定]
+      optional_columns: [阈值, 随机种子, 说明]
   task_profiles:
     prediction:
       required_any: [预测明细, 误差指标]
