@@ -27,6 +27,39 @@ class TestOwnership(unittest.TestCase):
         self.assertNotIn('close(fig)', text)
         self.assertIn('exportFigures = false', text)
 
+    def test_matlab_template_contains_high_contrast_layered_charts(self):
+        text=(ROOT/'templates/matlab/QX_plot.m').read_text(encoding='utf-8')
+        for fragment in [
+            'high_contrast_palette',
+            'plot_bar_line_combo',
+            'plot_scatter_fit_combo',
+            'plot_box_scatter_combo',
+            'plot_violin_scatter_combo',
+            'plot_hist_density_combo',
+            'plot_hybrid_evidence_combo',
+            'palette.navy = [18, 59, 93] / 255',
+            'palette.teal = [0, 158, 145] / 255',
+            'palette.orange = [224, 122, 36] / 255',
+            '"TickDir", "out"',
+        ]:
+            self.assertIn(fragment, text)
+
+    def test_composite_figure_contract_exists(self):
+        path=ROOT/'templates/figure/scientific_composite_system.md'
+        self.assertTrue(path.is_file())
+        text=path.read_text(encoding='utf-8')
+        for fragment in [
+            '层叠组合图',
+            '柱状 + 折线',
+            '散点 + 模型直线/曲线 + 置信带',
+            '箱线 + 抖动散点',
+            '小提琴 + 箱线 + 原始散点',
+            '多面板组合图',
+            '混合组合图',
+            '双纵轴准入',
+        ]:
+            self.assertIn(fragment, text)
+
     def test_split_plot_templates_are_removed(self):
         self.assertFalse((ROOT/'templates/matlab/plot_from_workbook.m').exists())
         self.assertFalse((ROOT/'templates/matlab/plot_sensitivity_robustness.m').exists())
