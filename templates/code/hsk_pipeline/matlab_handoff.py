@@ -7,6 +7,20 @@ from typing import Any
 
 
 PLOT_SCRIPT_PATTERN = re.compile(r"^Q[1-9][0-9]*_plot\.m$")
+ALLOWED_COMPOSITION_LEVELS = {"single", "layered", "multi-panel", "hybrid"}
+REQUIRED_FIGURE_FIELDS = {
+    "figure_id",
+    "workbook",
+    "worksheet",
+    "matlab_script",
+    "local_plot_function",
+    "composition_level",
+    "layer_map",
+    "axis_contract",
+    "panel_map",
+    "shared_color_mapping",
+    "rendering_transforms",
+}
 
 
 def write_matlab_handoff(project_root: Path, problem_name: str, figures: list[dict[str, Any]]) -> Path:
@@ -21,17 +35,33 @@ def write_matlab_handoff(project_root: Path, problem_name: str, figures: list[di
 
     normalized: list[dict[str, Any]] = []
     script_names: set[str] = set()
-    required = {
-        "figure_id",
-        "workbook",
-        "worksheet",
-        "matlab_script",
-        "local_plot_function",
-    }
     for spec in figures:
-        missing = required - set(spec)
+        missing = REQUIRED_FIGURE_FIELDS - set(spec)
         if missing:
             raise ValueError(f"图表映射缺少字段: {sorted(missing)}")
+
+        composition_level = str(spec["composition_level"])
+        if composition_level not in ALLOWED_COMPOSITION_LEVELS:
+            raise ValueError(
+                f"composition_level 必须为 {sorted(ALLOWED_COMPOSITION_LEVELS)} 之一: "
+                f"{composition_level}"
+            )
+
+        for field in (
+            "figure_id",
+            "workbook",
+            "worksheet",
+            "matlab_script",
+            "local_plot_function",
+            "layer_map",
+            "axis_contract",
+            "panel_map",
+            "shared_color_mapping",
+            "rendering_transforms",
+        ):
+            if not str(spec[field]).strip():
+                raise ValueError(f"图表映射字段不得为空: {field}")
+
         script_name = Path(str(spec["matlab_script"])).name
         if not PLOT_SCRIPT_PATTERN.fullmatch(script_name):
             raise ValueError(f"MATLAB 绘图文件必须命名为 QX_plot.m: {script_name}")
@@ -50,6 +80,7 @@ def write_matlab_handoff(project_root: Path, problem_name: str, figures: list[di
         "solution_workbook": solve_book.as_posix(),
         "sensitivity_robustness_workbook": robust_book.as_posix(),
         "matlab_plot_script": next(iter(script_names)),
+        "allowed_composition_levels": sorted(ALLOWED_COMPOSITION_LEVELS),
         "figures": normalized,
     }
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
