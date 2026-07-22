@@ -1,6 +1,5 @@
 # HSK Skill File Index v6.2.2
 
-- `.ci-trigger-single-matlab`
 - `.codex-plugin/plugin.json`
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
