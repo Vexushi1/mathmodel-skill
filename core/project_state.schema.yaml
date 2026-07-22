@@ -1,28 +1,57 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 6.2.2
+version: 6.2.3
 type: object
 additionalProperties: false
-required: [project, requirements, decisions, variables, artifacts, risks, next_gate]
+required: [project, requirements, decisions, subproblems, variables, artifacts, risks, next_gate]
+
+$defs:
+  task_label:
+    type: string
+    enum: [mechanism, optimization, prediction, evaluation, statistics_ml, simulation, spatial, graph_network, scheduling, game_decision]
+  problem_types:
+    type: object
+    additionalProperties: false
+    required: [primary, secondary]
+    properties:
+      primary: {$ref: '#/$defs/task_label'}
+      secondary:
+        type: array
+        maxItems: 2
+        uniqueItems: true
+        items: {$ref: '#/$defs/task_label'}
+      confidence:
+        type: object
+        additionalProperties: {type: number, minimum: 0, maximum: 1}
+  capabilities:
+    type: object
+    additionalProperties: false
+    required: [has_explicit_constraints, requires_feasibility_check, requires_equilibrium_residual, requires_conservation_residual, requires_discretization_check, requires_convergence_diagnostic]
+    properties:
+      has_explicit_constraints: {type: boolean}
+      requires_feasibility_check: {type: boolean}
+      requires_equilibrium_residual: {type: boolean}
+      requires_conservation_residual: {type: boolean}
+      requires_discretization_check: {type: boolean}
+      requires_convergence_diagnostic: {type: boolean}
+
 properties:
   project:
     type: object
     additionalProperties: false
-    required: [competition, problem, current_phase, problem_types]
+    required: [competition, problem, current_phase]
     properties:
       competition: {type: string, minLength: 1}
       problem: {type: string, minLength: 1}
       current_phase:
         type: string
-        enum: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, review_delivery, completed]
+        enum: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery, completed]
       problem_types:
+        description: 项目级汇总标签，仅用于导航；运行校验以 subproblems 中的每问题型为准。
         type: array
-        minItems: 1
         uniqueItems: true
-        items:
-          type: string
-          enum: [mechanism, optimization, prediction, evaluation, statistics_ml, simulation, spatial, graph_network, scheduling, game_decision]
+        items: {$ref: '#/$defs/task_label'}
       version: {type: string}
       updated_at: {type: string, format: date-time}
 
@@ -86,17 +115,28 @@ properties:
     additionalProperties:
       type: object
       additionalProperties: false
-      required: [status, selected_model, validation_status]
+      required: [status, selected_model, problem_types, capabilities, validation_status]
       properties:
         status:
           type: string
           enum: [pending, audited, designed, solved, validated, written, completed]
         selected_model: {type: string}
+        problem_types: {$ref: '#/$defs/problem_types'}
+        capabilities: {$ref: '#/$defs/capabilities'}
         data_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+        validated_data_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+        model_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+        validated_model_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+        artifacts_stale: {type: boolean, default: false}
         code: {type: string}
         solution_workbook: {type: string}
         robustness_workbook: {type: string}
+        paper_source: {type: string}
         solver_status: {type: string}
+        optimality_claim:
+          type: string
+          enum: [none, local, heuristic, bounded, proven_optimal, global]
+          default: none
         random_seed:
           oneOf: [{type: integer}, {type: 'null'}]
         tolerance: {type: number, minimum: 0}
@@ -176,14 +216,16 @@ properties:
     properties:
       module:
         type: string
-        enum: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, review_delivery, completed]
+        enum: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery, completed]
       condition: {type: string}
 
 policy:
   required_on_every_chat: false
   create_when: [full_project, cross_chat_handoff, multiple_artifacts, user_request]
+  semantic_validator: scripts/validate_project_state.py
   semantic_checks:
     - requirements.total equals the number of unique completed and pending requirements.
     - completed and pending are disjoint.
     - subproblem artifact paths must exist before status becomes validated, written or completed.
     - solver claims must include tolerance, feasibility evidence and applicable optimality evidence.
+    - validated artifacts become stale when the current data or model hash differs from the validated hash.
