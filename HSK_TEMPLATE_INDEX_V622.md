@@ -40,8 +40,6 @@
 - `templates/matlab/hsk_export_figure.m`
 - `templates/matlab/hsk_find_project_root.m`
 - `templates/matlab/hsk_read_result_workbooks.m`
-- `templates/matlab/plot_from_workbook.m`
-- `templates/matlab/plot_sensitivity_robustness.m`
 - `templates/model/assumption_audit.md`
 - `templates/model/constraint_violation.md`
 - `templates/model/formula_code_closure.md`
