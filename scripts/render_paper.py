@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -70,18 +71,57 @@ def resolve_main(project: Path, main_name: str | None) -> Path:
     return tex_files[0]
 
 
+def _strip_tex_comments(text: str) -> str:
+    return "\n".join(re.sub(r"(?<!\\)%.*$", "", line) for line in text.splitlines())
+
+
+def detect_tex_requirements(main: Path) -> dict[str, bool]:
+    text = _strip_tex_comments(main.read_text(encoding="utf-8", errors="ignore"))
+    lowered = text.lower()
+    return {
+        "cumcm": "cumcmthesis" in lowered,
+        "mcm": "mcmthesis" in lowered or "mcm/summary" in lowered,
+        "needs_xetex": any(token in lowered for token in ("fontspec", "xecjk", "ctexart", "ctexrep", "ctexbook")),
+        "uses_biber": "addbibresource" in lowered or "usepackage{biblatex}" in lowered,
+        "uses_bibtex": "\\bibliography{" in lowered or "usepackage{natbib}" in lowered,
+    }
+
+
 def infer_profile(main: Path, profiles: dict[str, dict[str, Any]]) -> str:
-    text = main.read_text(encoding="utf-8", errors="ignore")
+    requirements = detect_tex_requirements(main)
     lowered_path = main.as_posix().lower()
-    if "cumcmthesis" in text or "cumcm" in lowered_path:
-        return "cumcm"
-    if "ctexart" in text or "diangong" in lowered_path or "电工" in main.as_posix():
-        return "diangong"
-    if "mcm" in lowered_path or "icm" in lowered_path:
-        return "mcm_icm"
-    if "mcm_icm" in profiles:
-        return "mcm_icm"
-    return next(iter(profiles))
+
+    if requirements["cumcm"] or "cumcm" in lowered_path:
+        candidate = "cumcm"
+    elif requirements["mcm"] or re.search(r"(^|[/_-])(mcm|icm)([/_.-]|$)", lowered_path):
+        candidate = "mcm_icm"
+    elif "diangong" in lowered_path or "电工" in main.as_posix():
+        candidate = "diangong"
+    else:
+        raise SystemExit(
+            "cannot safely infer compile profile; specify --profile. "
+            "Unknown LaTeX projects must not default to MCM/ICM."
+        )
+
+    if candidate not in profiles:
+        raise SystemExit(f"inferred profile is unavailable: {candidate}")
+
+    config = profiles[candidate]
+    engine = str(config.get("engine", "")).lower()
+    bibliography = str(config.get("bibliography", "none")).lower()
+    if requirements["needs_xetex"] and engine not in {"xelatex", "lualatex"}:
+        raise SystemExit(
+            f"profile {candidate} uses {engine}, but the document requires a Unicode/CJK engine"
+        )
+    if requirements["uses_biber"] and bibliography != "biber":
+        raise SystemExit(
+            f"profile {candidate} uses {bibliography}, but the document loads biblatex/Biber"
+        )
+    if requirements["uses_bibtex"] and not requirements["uses_biber"] and bibliography == "biber":
+        raise SystemExit(
+            f"profile {candidate} uses Biber, but the document declares a BibTeX-style bibliography"
+        )
+    return candidate
 
 
 def clean_auxiliary(project: Path, stem: str) -> None:
@@ -163,8 +203,6 @@ def main() -> int:
     profiles = load_profiles()
     requested = args.profile or args.competition
     profile_name = resolve_profile_name(requested, profiles) or infer_profile(main_tex, profiles)
-    if profile_name not in profiles:
-        raise SystemExit(f"inferred profile is unavailable: {profile_name}")
     if args.clean:
         clean_auxiliary(project, main_tex.stem)
     bibliography = "bibtex" if args.bibtex else args.bibliography
