@@ -76,6 +76,7 @@
 - `legacy/reference_details/hsk_nature_figure_protocol.md`
 - `legacy/reference_details/hsk_ponytail_code_protocol.md`
 - `legacy/reference_details/model_catalog.md`
+- `legacy/releases/v6.2.1/README.md`
 - `legacy/stage_v616/hsk_stage_00_task_intake.md`
 - `legacy/stage_v616/hsk_stage_01_problem_audit.md`
 - `legacy/stage_v616/hsk_stage_02_model_route_compare.md`
