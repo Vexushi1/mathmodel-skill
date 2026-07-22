@@ -4,10 +4,11 @@
 
 1. Python 完成求解、检验并锁定两类标准工作簿；
 2. 先写每张图的 Core conclusion，再按 `templates/figure/chart_selection.md` 选择图型；
-3. MATLAB 读取工作簿生成结果图；
-4. 检查每个核心结论是否有图/表证据；
-5. 回看早期机理图合同，只精修 S/A 级图；
-6. 统一图号、图注、正文引用和结论映射。
+3. MATLAB 声明目标工作表和必需字段，调用 `hsk_read_result_workbooks.m` 校验后读取数据；
+4. MATLAB 生成结果图；
+5. 检查每个核心结论是否有图/表证据；
+6. 回看早期机理图合同，只精修 S/A 级图；
+7. 统一图号、图注、正文引用和结论映射。
 
 ## A 类：机理/推导图
 
@@ -17,7 +18,7 @@
 
 ## B 类：结果图
 
-每张核心图建立：Core conclusion、Figure role、Panel map、Source workbook、Worksheet、MATLAB script、Export files、Statistics/error、Reviewer risk、Paper location 和 Caption duty。
+每张核心图建立：Core conclusion、Figure role、Panel map、Source workbook、Worksheet、Required columns、MATLAB script、Export files、Statistics/error、Reviewer risk、Paper location 和 Caption duty。
 
 源数据只允许来自：
 
@@ -27,6 +28,19 @@
 ```
 
 不得在 MATLAB 中重算核心指标，不得根据论文摘要数字伪造绘图序列。图型由结论任务和底层数据决定：趋势、分布、稳定性、排序、空间、网络、调度和 Pareto 权衡分别使用适配图型；禁止为装饰选择 3D、饼图、彩虹色或信息密度不足的多面板。
+
+## MATLAB 数据校验
+
+正式绘图脚本必须：
+
+1. 以 `VariableNamingRule="preserve"` 读取中文字段；
+2. 在 Figure Contract 中声明工作簿、工作表和必需字段；
+3. 读取前检查工作表存在、字段齐全、至少一条真实记录；
+4. 对显式 `记录键` 检查空值和重复；
+5. 对数值字段检查 Inf 与非法值；
+6. 时间、类别或坐标排序必须在脚本中显式完成，不依赖 Excel 原始顺序。
+
+`templates/matlab/hsk_read_result_workbooks.m` 提供上述基础检查。未通过检查不得进入绘图阶段。
 
 ## MATLAB 绘图规范
 
