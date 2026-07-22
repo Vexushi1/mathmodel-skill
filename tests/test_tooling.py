@@ -164,11 +164,13 @@ class TestTooling(unittest.TestCase):
             self.assertTrue(patched.endswith(suffix))
             self.assertFalse(module.patch_cumcm_class(target))
 
-    def test_matlab_templates_use_root_finder_font_fallback_and_preserve_columns(self):
+    def test_matlab_templates_use_local_result_dir_font_fallback_and_preserve_columns(self):
         plotting = (ROOT / "templates/matlab/q1_plot.m").read_text(encoding="utf-8")
         style = (ROOT / "templates/matlab/hsk_apply_scientific_style.m").read_text(encoding="utf-8")
         reader = (ROOT / "templates/matlab/hsk_read_result_workbooks.m").read_text(encoding="utf-8")
-        self.assertIn("hsk_find_project_root", plotting)
+        self.assertNotIn("hsk_find_project_root", plotting)
+        self.assertIn('fullfile(resultDir, "问题一求解结果.xlsx")', plotting)
+        self.assertIn('fullfile(resultDir, "图表")', plotting)
         self.assertIn("信息效率", plotting)
         self.assertIn("listfonts", style)
         self.assertIn("Noto Sans CJK SC", style)
