@@ -2,7 +2,7 @@ name: HSK Skill CI
 
 on:
   push:
-    branches: [main, "refactor/**"]
+    branches: [main, "refactor/**", "agent/**"]
   pull_request:
 
 permissions:
@@ -28,6 +28,45 @@ jobs:
         run: python scripts/lint_skill.py --skip-generated
       - name: Run unit tests
         run: python -m unittest discover -s tests -p "test_*.py"
+
+  latex-smoke:
+    name: LaTeX ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: CUMCM
+            working_directory: templates/latex/cumcm/hsk
+            root_file: hsk_main.tex
+            xelatex: true
+          - name: MCM-ICM
+            working_directory: templates/latex/mcm
+            root_file: main.tex
+            xelatex: false
+          - name: Diangong
+            working_directory: templates/latex/diangong
+            root_file: main.tex
+            xelatex: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare CUMCM class
+        if: matrix.name == 'CUMCM'
+        run: cp templates/latex/cumcm/cumcmthesis/cumcmthesis.cls templates/latex/cumcm/hsk/
+      - name: Compile template
+        uses: xu-cheng/latex-action@v4
+        with:
+          root_file: ${{ matrix.root_file }}
+          working_directory: ${{ matrix.working_directory }}
+          latexmk_use_xelatex: ${{ matrix.xelatex }}
+          args: -file-line-error -halt-on-error -interaction=nonstopmode
+      - name: Reject unresolved references and fatal warnings
+        shell: bash
+        run: |
+          log="${{ matrix.working_directory }}/${{ matrix.root_file }}"
+          log="${log%.tex}.log"
+          test -f "$log"
+          ! grep -E "Undefined control sequence|LaTeX Error|Citation .* undefined|There were undefined references" "$log"
 
   generated-files:
     name: Generated file contract
