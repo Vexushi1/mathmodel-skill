@@ -13,6 +13,8 @@ root_directories:
 per_question:
   question_directory: 结果数据表/问题{中文序号}/
   result_data_directory: 结果数据表/问题{中文序号}/问题{中文序号}结果数据/
+  matlab_plot_directory: MATLAB绘图/问题{中文序号}/
+  matlab_plot_script: MATLAB绘图/问题{中文序号}/Q{阿拉伯序号}_plot.m
   mandatory_workbooks:
     solution: 问题{中文序号}求解结果.xlsx
     sensitivity_robustness: 问题{中文序号}敏感性与鲁棒性结果.xlsx
@@ -34,13 +36,14 @@ sensitivity_robustness_workbook_recommended_sheets:
 
 ownership:
   Python: 数据处理、模型求解、优化、仿真、检验、敏感性、鲁棒性、结果工作簿输出
-  MATLAB: 读取结果工作簿并绘制正式论文结果图；不得重新计算核心结果
+  MATLAB: 读取结果工作簿并通过每问唯一的 QX_plot.m 绘制全部正式论文结果图；不得重新计算核心结果
   other_figure_tools: GeoGebra、PPT、draw.io、SVG、TikZ可用于非数据驱动机理图
 
 filenames:
   python_scripts: Chinese descriptive names
   workbooks: Chinese fixed names above
   worksheets: Chinese descriptive names, maximum 31 characters
+  matlab_plot_scripts: Q{positive integer}_plot.m
   figures: ASCII English or pinyin
 
 optional_metadata:
@@ -55,5 +58,9 @@ rules:
   - Every worksheet must contain at least one record; when an analysis is not applicable, write an “适用性说明” worksheet instead of an empty sheet.
   - Worksheet columns and task profiles follow core/workbook_schema.yaml.
   - CSV may be generated only for explicit compatibility needs and must remain in the same question result-data directory.
-  - MATLAB plotting scripts read the standard workbooks and write figures to figures/ or figures_editable/.
-  - MATLAB scripts keep figure windows visible by default; export is an explicit optional action after manual adjustment.
+  - Each question has exactly one delivered MATLAB plotting file named QX_plot.m, where X is the Arabic question number.
+  - QX_plot.m must be self-contained; workbook reading, field validation, style and optional export helpers are local functions in the same file.
+  - One execution of QX_plot.m creates all required result, diagnostic, sensitivity and robustness figure windows for that question.
+  - Do not deliver auxiliary MATLAB files such as read_result.m, style.m, export.m or separate sensitivity plotting scripts.
+  - MATLAB plotting files read the standard workbooks and write figures to figures/ or figures_editable/.
+  - MATLAB files keep figure windows visible by default; export is an explicit optional action after manual adjustment.
