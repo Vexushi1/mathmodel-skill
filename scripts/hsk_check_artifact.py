@@ -3,16 +3,23 @@
 from __future__ import annotations
 
 import argparse
+import math
 import re
 from pathlib import Path
+from typing import Any, Mapping, Sequence
 
+import yaml
 from openpyxl import load_workbook
 
-CN_NUM = "一二三四五六七八九十"
+CN_NUM = "一二三四五六七八九十百"
 FIG_EXT = {".png", ".pdf", ".svg", ".jpg", ".jpeg", ".tif", ".tiff"}
 PY_PLOT_TOKENS = ("matplotlib", "seaborn", "savefig(", "plt.show(")
-SOLUTION_REQUIRED = {"核心指标", "数据审计"}
-ROBUSTNESS_ALLOWED = {"参数敏感性", "鲁棒性区间", "扰动明细", "算法稳定性", "适用性说明"}
+ROOT = Path(__file__).resolve().parent.parent
+SCHEMA_PATH = ROOT / "core" / "workbook_schema.yaml"
+
+
+def load_schema() -> dict[str, Any]:
+    return yaml.safe_load(SCHEMA_PATH.read_text(encoding="utf-8")) or {}
 
 
 def check_code(root: Path) -> list[str]:
@@ -40,36 +47,112 @@ def worksheet_has_data(worksheet) -> bool:
     return False
 
 
-def inspect_workbook(path: Path, kind: str) -> list[str]:
+def worksheet_headers(worksheet) -> list[str]:
+    row = next(worksheet.iter_rows(min_row=1, max_row=1, values_only=True), ())
+    return [str(value).strip() if value is not None else "" for value in row]
+
+
+def required_solution_sheets(schema: Mapping[str, Any], problem_types: Sequence[str]) -> set[str]:
+    section = schema["solution_workbook"]
+    required = set(section.get("common_required_sheets", {}))
+    selected = set(problem_types)
+    for config in section.get("conditional_requirements", {}).values():
+        if selected.intersection(config.get("problem_types", [])):
+            required.update(config.get("required_sheets", []))
+    return required
+
+
+def sheet_schema_map(schema: Mapping[str, Any], kind: str) -> dict[str, Mapping[str, Any]]:
+    if kind == "solution":
+        section = schema["solution_workbook"]
+        return {
+            **dict(section.get("common_required_sheets", {})),
+            **dict(section.get("common_recommended_sheets", {})),
+        }
+    return dict(schema["sensitivity_robustness_workbook"].get("sheet_schemas", {}))
+
+
+def check_sheet_values(path: Path, worksheet) -> list[str]:
     issues: list[str] = []
+    for row in worksheet.iter_rows(min_row=2, values_only=True):
+        for value in row:
+            if isinstance(value, float) and not math.isfinite(value):
+                issues.append(f"non-finite numeric value: {path} -> {worksheet.title}")
+                return issues
+    return issues
+
+
+def inspect_workbook(path: Path, kind: str, problem_types: Sequence[str] = ()) -> list[str]:
+    issues: list[str] = []
+    schema = load_schema()
     try:
         workbook = load_workbook(path, read_only=True, data_only=True)
     except Exception as exc:  # noqa: BLE001
         return [f"cannot open workbook {path}: {exc}"]
+
     try:
         names = set(workbook.sheetnames)
         if kind == "solution":
-            missing = SOLUTION_REQUIRED - names
+            missing = required_solution_sheets(schema, problem_types) - names
             if missing:
                 issues.append(f"solution workbook missing sheets {sorted(missing)}: {path}")
-        elif not (names & ROBUSTNESS_ALLOWED):
-            issues.append(f"robustness workbook lacks analysis or applicability sheet: {path}")
+            profiles = schema.get("solution_workbook", {}).get("task_profiles", {})
+            for problem_type in problem_types:
+                required_any = set(profiles.get(problem_type, {}).get("required_any", []))
+                if required_any and not names.intersection(required_any):
+                    issues.append(
+                        f"solution workbook lacks task-specific sheet for {problem_type} "
+                        f"{sorted(required_any)}: {path}"
+                    )
+        else:
+            allowed = set(schema["sensitivity_robustness_workbook"].get("required_any_sheets", []))
+            if not names.intersection(allowed):
+                issues.append(f"robustness workbook lacks analysis or applicability sheet: {path}")
+
+        schemas = sheet_schema_map(schema, kind)
         for worksheet in workbook.worksheets:
             if len(worksheet.title) > 31:
                 issues.append(f"worksheet name exceeds 31 characters: {path} -> {worksheet.title}")
             if not worksheet_has_data(worksheet):
                 issues.append(f"empty worksheet is forbidden: {path} -> {worksheet.title}")
+                continue
+
+            headers = worksheet_headers(worksheet)
+            if len(headers) != len(set(headers)):
+                issues.append(f"duplicate worksheet columns: {path} -> {worksheet.title}")
+            spec = schemas.get(worksheet.title, {})
+            required_columns = [str(item) for item in spec.get("required_columns", [])]
+            missing_columns = [column for column in required_columns if column not in headers]
+            if missing_columns:
+                issues.append(
+                    f"worksheet missing required columns {missing_columns}: {path} -> {worksheet.title}"
+                )
+            issues.extend(check_sheet_values(path, worksheet))
     finally:
         workbook.close()
     return issues
 
 
-def check_results(root: Path) -> list[str]:
+def resolve_problem_types(root: Path, explicit: Sequence[str]) -> tuple[str, ...]:
+    if explicit:
+        return tuple(dict.fromkeys(explicit))
+    state_path = root / "state" / "project_state.yaml"
+    if not state_path.is_file():
+        return ()
+    payload = yaml.safe_load(state_path.read_text(encoding="utf-8")) or {}
+    values = payload.get("project", {}).get("problem_types", [])
+    return tuple(str(item) for item in values)
+
+
+def check_results(root: Path, problem_types: Sequence[str]) -> list[str]:
     issues: list[str] = []
     base = root / "结果数据表"
     if not base.exists():
         return ["missing: 结果数据表/"]
-    questions = [path for path in base.iterdir() if path.is_dir() and re.fullmatch(rf"问题[{CN_NUM}]+", path.name)]
+    questions = [
+        path for path in base.iterdir()
+        if path.is_dir() and re.fullmatch(rf"问题[{CN_NUM}]+", path.name)
+    ]
     if not questions:
         return ["missing: no 结果数据表/问题X/ directories"]
     for question in questions:
@@ -83,7 +166,7 @@ def check_results(root: Path) -> list[str]:
             if not path.is_file():
                 issues.append(f"missing: {path.relative_to(root)}")
             else:
-                issues.extend(inspect_workbook(path, kind))
+                issues.extend(inspect_workbook(path, kind, problem_types))
     return issues
 
 
@@ -103,13 +186,21 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("project", nargs="?", default=".")
     parser.add_argument("--mode", choices=["full", "code", "data", "figures"], default="full")
+    parser.add_argument(
+        "--problem-types",
+        nargs="*",
+        default=[],
+        help="题型标签；未提供时尝试从 state/project_state.yaml 读取",
+    )
     args = parser.parse_args()
     root = Path(args.project).resolve()
+    problem_types = resolve_problem_types(root, args.problem_types)
+
     issues: list[str] = []
     if args.mode in {"full", "code"}:
         issues += check_code(root)
     if args.mode in {"full", "data"}:
-        issues += check_results(root)
+        issues += check_results(root, problem_types)
     if args.mode in {"full", "figures"}:
         issues += check_figures(root)
     if issues:
