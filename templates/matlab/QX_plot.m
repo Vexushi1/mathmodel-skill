@@ -61,12 +61,11 @@ if has_sheet(books.robustness, "参数敏感性")
         "sensitivity", fig, filePrefix + "_sensitivity"); %#ok<AGROW>
 end
 
-%% 5. 鲁棒性：逐场景数据优先箱线/小提琴+散点，只有区间时使用区间点图
+%% 5. 鲁棒性：逐扰动数据优先箱线/小提琴+散点，只有区间时使用区间点图
 if has_sheet(books.robustness, "扰动明细")
     robustnessData = read_required_table(books.robustness, "扰动明细", ...
-        ["场景", "指标值"]);
-    group = string(robustnessData.("场景"));
-    value = robustnessData.("指标值");
+        ["扰动对象", "结果指标"]);
+    [group, value] = extract_robustness_series(robustnessData);
     if minimum_group_size(group) >= 8
         fig = plot_violin_scatter_combo(group, value, palette);
     else
@@ -337,9 +336,9 @@ draw_sensitivity_on_axes(axB, sensitivityData, palette);
 add_panel_label(axB, "b", palette);
 
 axC = nexttile(t);
-if has_columns(robustnessData, ["场景", "指标值"])
-    draw_box_scatter_on_axes(axC, string(robustnessData.("场景")), ...
-        robustnessData.("指标值"), palette);
+if has_columns(robustnessData, ["扰动对象", "结果指标"])
+    [group, value] = extract_robustness_series(robustnessData);
+    draw_box_scatter_on_axes(axC, group, value, palette);
 else
     draw_robustness_interval_on_axes(axC, robustnessData, palette);
 end
@@ -515,6 +514,16 @@ end
 
 function tf = has_columns(data, requiredColumns)
 tf = all(ismember(string(requiredColumns), string(data.Properties.VariableNames)));
+end
+
+function [group, value] = extract_robustness_series(data)
+% “场景”为可选细分字段；不存在时使用标准必需字段“扰动对象”。
+if has_columns(data, "场景")
+    group = string(data.("场景"));
+else
+    group = string(data.("扰动对象"));
+end
+value = data.("结果指标");
 end
 
 function tf = is_feasible(value)
