@@ -2,7 +2,7 @@ name: Refresh generated repository metadata
 
 on:
   push:
-    branches: [main, "refactor/**"]
+    branches: [main, "refactor/**", "agent/**"]
     paths-ignore:
       - HSK_SKILL_FILE_INDEX_V622.md
       - HSK_TEMPLATE_INDEX_V622.md

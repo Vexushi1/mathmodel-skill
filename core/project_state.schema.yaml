@@ -11,12 +11,8 @@ properties:
     additionalProperties: false
     required: [competition, problem, current_phase, problem_types]
     properties:
-      competition:
-        type: string
-        minLength: 1
-      problem:
-        type: string
-        minLength: 1
+      competition: {type: string, minLength: 1}
+      problem: {type: string, minLength: 1}
       current_phase:
         type: string
         enum: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, review_delivery, completed]
@@ -27,16 +23,15 @@ properties:
         items:
           type: string
           enum: [mechanism, optimization, prediction, evaluation, statistics_ml, simulation, spatial, graph_network, scheduling, game_decision]
-      version:
-        type: string
+      version: {type: string}
+      updated_at: {type: string, format: date-time}
+
   requirements:
     type: object
     additionalProperties: false
     required: [total, completed, pending]
     properties:
-      total:
-        type: integer
-        minimum: 0
+      total: {type: integer, minimum: 0}
       completed:
         type: array
         uniqueItems: true
@@ -45,6 +40,28 @@ properties:
         type: array
         uniqueItems: true
         items: {type: string}
+
+  data:
+    type: object
+    additionalProperties: false
+    properties:
+      sources:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [name, path, role]
+          properties:
+            name: {type: string, minLength: 1}
+            path: {type: string, minLength: 1}
+            role: {type: string, minLength: 1}
+            sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+            as_of: {type: string}
+      version_hashes:
+        type: object
+        additionalProperties: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      locked_scope: {type: string}
+
   decisions:
     type: object
     additionalProperties:
@@ -63,6 +80,38 @@ properties:
         validation_plan:
           type: array
           items: {type: string}
+
+  subproblems:
+    type: object
+    additionalProperties:
+      type: object
+      additionalProperties: false
+      required: [status, selected_model, validation_status]
+      properties:
+        status:
+          type: string
+          enum: [pending, audited, designed, solved, validated, written, completed]
+        selected_model: {type: string}
+        data_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+        code: {type: string}
+        solution_workbook: {type: string}
+        robustness_workbook: {type: string}
+        solver_status: {type: string}
+        random_seed:
+          oneOf: [{type: integer}, {type: 'null'}]
+        tolerance: {type: number, minimum: 0}
+        optimality_gap:
+          oneOf: [{type: number, minimum: 0}, {type: 'null'}]
+        max_constraint_violation:
+          oneOf: [{type: number, minimum: 0}, {type: 'null'}]
+        validation_status:
+          type: string
+          enum: [pending, passed, failed, not_applicable]
+        evidence:
+          type: array
+          uniqueItems: true
+          items: {type: string}
+
   variables:
     type: object
     additionalProperties: false
@@ -75,6 +124,20 @@ properties:
       source:
         type: object
         additionalProperties: {type: string}
+
+  execution:
+    type: object
+    additionalProperties: false
+    properties:
+      python_version: {type: string}
+      matlab_version: {type: string}
+      dependencies:
+        type: object
+        additionalProperties: {type: string}
+      last_run: {type: string, format: date-time}
+      command: {type: string}
+      platform: {type: string}
+
   artifacts:
     type: object
     additionalProperties: false
@@ -92,6 +155,7 @@ properties:
       papers:
         type: array
         items: {type: string}
+
   risks:
     type: array
     items:
@@ -104,6 +168,7 @@ properties:
             level: {type: string, enum: [fatal, important, general]}
             item: {type: string}
             action: {type: string}
+
   next_gate:
     type: object
     additionalProperties: false
@@ -113,6 +178,12 @@ properties:
         type: string
         enum: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, review_delivery, completed]
       condition: {type: string}
+
 policy:
   required_on_every_chat: false
   create_when: [full_project, cross_chat_handoff, multiple_artifacts, user_request]
+  semantic_checks:
+    - requirements.total equals the number of unique completed and pending requirements.
+    - completed and pending are disjoint.
+    - subproblem artifact paths must exist before status becomes validated, written or completed.
+    - solver claims must include tolerance, feasibility evidence and applicable optimality evidence.

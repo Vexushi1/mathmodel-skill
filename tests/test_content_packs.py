@@ -41,9 +41,33 @@ class TestContentPacks(unittest.TestCase):
 
     def test_chart_selection_is_evidence_driven(self):
         text = (ROOT / "templates/figure/chart_selection.md").read_text(encoding="utf-8")
-        for token in ("参数敏感性", "鲁棒性与扰动", "多算法比较", "多目标权衡", "删除规则"):
+        for token in (
+            "参数敏感性",
+            "鲁棒性与扰动",
+            "多算法比较",
+            "多目标权衡",
+            "删除规则",
+            "信息效率",
+            "饼图",
+            "雷达图",
+            "3D 曲面",
+            "q{x}_plot.m",
+        ):
             self.assertIn(token, text)
         self.assertIn("工作簿", text)
+        self.assertIn("均允许使用", text)
+
+    def test_figure_pack_uses_efficiency_gate_and_standard_script_name(self):
+        pack = (ROOT / "packs/artifact/figure.md").read_text(encoding="utf-8")
+        module = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
+        matlab_readme = (ROOT / "templates/matlab/README.md").read_text(encoding="utf-8")
+        for text in (pack, module, matlab_readme):
+            self.assertIn("q{x}_plot.m", text)
+            self.assertIn("信息", text)
+        self.assertIn("高级图表准入检查", pack)
+        self.assertIn("颜色不是固定约束", module)
+        self.assertIn("q1_plot.m", matlab_readme)
+        self.assertIn("q1_polt.m", matlab_readme)
 
     def test_docx_checklists_are_merged(self):
         writing = ROOT / "templates/writing"

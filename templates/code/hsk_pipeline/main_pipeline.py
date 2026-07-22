@@ -16,6 +16,8 @@ np.random.seed(RANDOM_SEED)
 PROJECT_ROOT = find_project_root(Path(__file__))
 DATA_DIR = PROJECT_ROOT / "数据"
 PROBLEM_NAME = "问题一"
+# 按题意填写，可包含一个主标签和必要次标签。
+PROBLEM_TYPES: tuple[str, ...] = ()
 SOLUTION_WORKBOOK, ROBUSTNESS_WORKBOOK = workbook_paths(PROJECT_ROOT, PROBLEM_NAME)
 AUDIT_ROWS: list[dict[str, str]] = []
 
@@ -72,38 +74,73 @@ def build_features(clean_data: dict[str, pd.DataFrame]) -> dict[str, Any]:
 
 
 def solve_model(features: dict[str, Any]) -> dict[str, Any]:
+    """至少返回符合 Schema 的“核心指标”；其他工作表按题型返回。"""
     raise NotImplementedError("请实现目标函数、约束与求解算法")
 
 
-def check_constraints(solution: dict[str, Any]) -> pd.DataFrame:
-    raise NotImplementedError("请返回约束编号、违反量、容差和是否满足")
+def check_constraints(solution: dict[str, Any]) -> pd.DataFrame | None:
+    """约束型题返回约束检查表；无约束题返回 None。"""
+    return None
 
 
-def run_validation(context: ModelContext) -> tuple[pd.DataFrame, dict[str, pd.DataFrame]]:
-    """返回多算法对比，以及敏感性与鲁棒性工作簿的非空工作表映射。"""
+def run_validation(
+    context: ModelContext,
+) -> tuple[pd.DataFrame | None, dict[str, pd.DataFrame]]:
+    """返回可选多算法对比，以及敏感性与鲁棒性工作簿的非空工作表映射。"""
     raise NotImplementedError(
         "validation_tables 应包含参数敏感性、鲁棒性区间、扰动明细、算法稳定性中的适用项；"
         "全部不适用时返回 {'适用性说明': not_applicable_table(...)}"
     )
 
 
+def build_solution_tables(
+    solution: dict[str, Any],
+    constraints: pd.DataFrame | None,
+    algorithm_comparison: pd.DataFrame | None,
+) -> dict[str, Any]:
+    """只写入真实适用的工作表；条件必需项由 Schema 校验器把关。"""
+    if "核心指标" not in solution:
+        raise KeyError("solution 必须包含“核心指标”")
+    tables: dict[str, Any] = {
+        "核心指标": solution["核心指标"],
+        "数据审计": AUDIT_ROWS
+        or [{"等级": "Info", "检查项": "数据审计", "信息": "未发现需记录问题", "处理方式": "无"}],
+    }
+    for optional_sheet in (
+        "推荐方案",
+        "明细结果",
+        "预测明细",
+        "误差指标",
+        "残差诊断",
+        "综合评分",
+        "排序结果",
+        "指标权重",
+        "模型指标",
+        "预测或分类结果",
+        "交叉验证",
+        "校准结果",
+        "空间诊断",
+        "参数估计",
+        "空间效应分解",
+        "节点结果",
+        "边结果",
+        "路径或流结果",
+    ):
+        if optional_sheet in solution:
+            tables[optional_sheet] = solution[optional_sheet]
+    if constraints is not None:
+        tables["约束违反检查"] = constraints
+    if algorithm_comparison is not None:
+        tables["多算法对比"] = algorithm_comparison
+    return tables
+
+
 def save_outputs(
     solution: dict[str, Any],
-    constraints: pd.DataFrame,
-    algorithm_comparison: pd.DataFrame,
+    constraints: pd.DataFrame | None,
+    algorithm_comparison: pd.DataFrame | None,
     validation_tables: dict[str, pd.DataFrame],
 ) -> tuple[Path, Path]:
-    solution_tables: dict[str, Any] = {
-        "核心指标": solution["核心指标"],
-        "明细结果": solution["明细结果"],
-        "约束违反检查": constraints,
-        "多算法对比": algorithm_comparison,
-        "数据审计": AUDIT_ROWS or [{"等级": "Info", "检查项": "数据审计", "信息": "未发现需记录问题", "处理方式": "无"}],
-    }
-    for optional_sheet in ("推荐方案",):
-        if optional_sheet in solution:
-            solution_tables[optional_sheet] = solution[optional_sheet]
-
     if not validation_tables:
         validation_tables = {
             "适用性说明": not_applicable_table(
@@ -111,8 +148,20 @@ def save_outputs(
                 alternative_test="边界、极限状态与数值一致性检查",
             )
         }
-    write_workbook(SOLUTION_WORKBOOK, solution_tables)
-    write_workbook(ROBUSTNESS_WORKBOOK, validation_tables)
+
+    solution_tables = build_solution_tables(solution, constraints, algorithm_comparison)
+    write_workbook(
+        SOLUTION_WORKBOOK,
+        solution_tables,
+        workbook_kind="solution",
+        problem_types=PROBLEM_TYPES,
+    )
+    write_workbook(
+        ROBUSTNESS_WORKBOOK,
+        validation_tables,
+        workbook_kind="robustness",
+        problem_types=PROBLEM_TYPES,
+    )
     return SOLUTION_WORKBOOK, ROBUSTNESS_WORKBOOK
 
 
