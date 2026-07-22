@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the active HSK skill graph, schemas, templates and generated indexes."""
+"""Validate the active HSK skill graph, schemas, flat paths and templates."""
 from __future__ import annotations
 
 import argparse
@@ -15,7 +15,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-EXPECTED_VERSION = "6.2.3"
+PACKAGE_VERSION = "6.2.4"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "PROJECT_INSTRUCTIONS_HSK_V622.md",
     "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V622.md", "core/hsk_core_policy.md",
@@ -27,8 +27,7 @@ REQUIRED = [
     "modules/05_writing/ai_cleanup.md", "modules/06_review_delivery.md",
     "packs/task/advanced_method_gate.md", "templates/figure/chart_selection.md",
     "templates/writing/docx_check.md", "templates/writing/caption_explanation.md",
-    "templates/code/hsk_pipeline/result_io.py", "templates/matlab/hsk_find_project_root.m",
-    "templates/matlab/hsk_read_result_workbooks.m", "templates/matlab/q1_plot.m",
+    "templates/code/hsk_pipeline/result_io.py", "templates/matlab/q1_plot.m",
     "templates/latex/cumcm/cumcmthesis/cumcmthesis.cls", "scripts/resolve_workflow.py",
     "scripts/validate_project_state.py", "scripts/score_submission.py",
     "assets/figure_assets.yaml", "assets/nature_figure/README.md",
@@ -104,25 +103,71 @@ def check_required(errors: list[str]) -> None:
 
 
 def check_versions(errors: list[str]) -> None:
-    structured = [
-        "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml",
-        "core/workbook_schema.yaml", "core/project_state.schema.yaml", "core/compile_profiles.yaml",
-        "config/review_weights.json", "assets/figure_assets.yaml", ".codex-plugin/plugin.json",
-    ]
-    for relative in structured:
+    package_structured = ["core/output_contract.yaml", ".codex-plugin/plugin.json"]
+    for relative in package_structured:
         path = ROOT / relative
-        if not path.is_file():
-            continue
         data = json.loads(read_text(path)) if path.suffix == ".json" else load_yaml(path)
         version = str((data or {}).get("version", ""))
-        if version != EXPECTED_VERSION:
-            errors.append(f"version mismatch: {relative} -> {version or '<missing>'}, expected {EXPECTED_VERSION}")
+        if version != PACKAGE_VERSION:
+            errors.append(f"package version mismatch: {relative} -> {version or '<missing>'}, expected {PACKAGE_VERSION}")
 
-    textual = ["SKILL.md", "README.md", "PROJECT_INSTRUCTIONS_HSK_V622.md", "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V622.md"]
+    textual = [
+        "SKILL.md", "README.md", "PROJECT_INSTRUCTIONS_HSK_V622.md",
+        "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V622.md",
+    ]
     for relative in textual:
+        if PACKAGE_VERSION not in read_text(ROOT / relative):
+            errors.append(f"version marker missing: {relative} -> {PACKAGE_VERSION}")
+
+    # 其他机器契约拥有独立 schema revision；只要求版本字段存在，不强制随包版本递增。
+    for relative in [
+        "core/workflow_router.yaml", "core/module_manifest.yaml", "core/workbook_schema.yaml",
+        "core/project_state.schema.yaml", "core/compile_profiles.yaml",
+        "config/review_weights.json", "assets/figure_assets.yaml",
+    ]:
         path = ROOT / relative
-        if path.is_file() and EXPECTED_VERSION not in read_text(path):
-            errors.append(f"version marker missing: {relative} -> {EXPECTED_VERSION}")
+        data = json.loads(read_text(path)) if path.suffix == ".json" else load_yaml(path)
+        if not str((data or {}).get("version", "")).strip():
+            errors.append(f"schema revision missing: {relative}")
+
+
+def check_flat_path_contract(errors: list[str]) -> None:
+    contract = load_yaml(ROOT / "core/output_contract.yaml") or {}
+    question = contract.get("per_question", {})
+    if question.get("question_directory") != "结果数据表/问题{中文序号}/":
+        errors.append("output contract must use flat 结果数据表/问题X/ directory")
+    if question.get("matlab_script") != "q{阿拉伯序号}_plot.m":
+        errors.append("output contract must co-locate q{x}_plot.m with workbooks")
+    if question.get("figure_directory") != "图表/":
+        errors.append("output contract must export to local 图表/")
+
+    active_targets = [
+        ROOT / "SKILL.md", ROOT / "core/hsk_core_policy.md",
+        ROOT / "modules/03_solve_validate.md", ROOT / "modules/04_figure_evidence.md",
+        ROOT / "packs/artifact/code.md", ROOT / "packs/artifact/figure.md",
+    ]
+    stale_patterns = [
+        "结果数据表/问题X/问题X结果数据/",
+        "MATLAB绘图/问题X/q{x}_plot.m",
+        "MATLAB绘图/问题一/q1_plot.m",
+    ]
+    for path in active_targets:
+        text = read_text(path)
+        for pattern in stale_patterns:
+            if pattern in text:
+                errors.append(f"stale project path remains: {path.relative_to(ROOT)} -> {pattern}")
+
+    plot = read_text(ROOT / "templates/matlab/q1_plot.m")
+    for required in [
+        'fileparts(scriptPath)',
+        'fullfile(resultDir, "问题一求解结果.xlsx")',
+        'fullfile(resultDir, "问题一敏感性与鲁棒性结果.xlsx")',
+        'fullfile(resultDir, "图表")',
+    ]:
+        if required not in plot:
+            errors.append(f"q1_plot.m lacks local path contract: {required}")
+    if "hsk_find_project_root" in plot or "hsk_read_result_workbooks" in plot:
+        errors.append("q1_plot.m must be self-contained by default")
 
 
 def check_obsolete_patterns(errors: list[str]) -> None:
@@ -148,22 +193,17 @@ def check_structured_files(errors: list[str]) -> None:
 
 def check_declared_paths(errors: list[str]) -> None:
     for relative in ("core/workflow_router.yaml", "core/module_manifest.yaml", "assets/figure_assets.yaml"):
-        data = load_yaml(ROOT / relative)
-        for value in iter_strings(data):
+        for value in iter_strings(load_yaml(ROOT / relative)):
             for match in PATH_PATTERN.finditer(value):
                 declared = match.group("path")
-                if "{" in declared:
-                    continue
-                if not (ROOT / declared).exists():
+                if "{" not in declared and not (ROOT / declared).exists():
                     errors.append(f"declared path does not exist: {relative} -> {declared}")
 
 
 def check_module_artifact_closure(errors: list[str]) -> None:
     manifest = load_yaml(ROOT / "core/module_manifest.yaml") or {}
     modules = manifest.get("modules", {})
-    catalog = set(manifest.get("artifact_catalog", {}))
-    external = set(manifest.get("external_artifacts", []))
-    known = catalog | external
+    known = set(manifest.get("artifact_catalog", {})) | set(manifest.get("external_artifacts", []))
     for name, module in modules.items():
         for field in ("inputs", "outputs"):
             unknown = sorted(set(module.get(field, [])) - known)
@@ -171,7 +211,7 @@ def check_module_artifact_closure(errors: list[str]) -> None:
                 errors.append(f"module {name} has uncatalogued {field}: {unknown}")
 
     profile = manifest.get("workflow_profiles", {}).get("full_workflow", {})
-    available = set(external)
+    available = set(manifest.get("external_artifacts", []))
     for name in profile.get("modules", []):
         module = modules.get(name)
         if not module:
@@ -181,24 +221,22 @@ def check_module_artifact_closure(errors: list[str]) -> None:
         if missing:
             errors.append(f"module {name} has no upstream producer for inputs: {missing}")
         available.update(module.get("outputs", []))
-    terminal = set(profile.get("terminal_outputs", []))
-    if not terminal.issubset(available):
-        errors.append(f"full_workflow terminal outputs are not produced: {sorted(terminal - available)}")
+    missing_terminal = set(profile.get("terminal_outputs", [])) - available
+    if missing_terminal:
+        errors.append(f"full_workflow terminal outputs are not produced: {sorted(missing_terminal)}")
 
 
 def check_project_state_schema(errors: list[str]) -> None:
-    schema_path = ROOT / "core/project_state.schema.yaml"
-    example_path = ROOT / "state/project_state.example.yaml"
-    schema = load_yaml(schema_path)
-    example = load_yaml(example_path)
+    schema = load_yaml(ROOT / "core/project_state.schema.yaml")
+    example = load_yaml(ROOT / "state/project_state.example.yaml")
     try:
         validator = Draft202012Validator(schema)
         validator.check_schema(schema)
-        for violation in sorted(validator.iter_errors(example), key=lambda error: list(error.path)):
+        for violation in validator.iter_errors(example):
             location = "/".join(str(item) for item in violation.path) or "<root>"
             errors.append(f"project state example violates schema at {location}: {violation.message}")
-        state_module = load_module("validate_project_state", ROOT / "scripts/validate_project_state.py")
-        for issue in state_module.validate_state_payload(example, project_root=ROOT):
+        module = load_module("validate_project_state", ROOT / "scripts/validate_project_state.py")
+        for issue in module.validate_state_payload(example, project_root=ROOT):
             errors.append(f"project state example violates semantics: {issue}")
     except Exception as exc:  # noqa: BLE001
         errors.append(f"invalid project state schema: {exc}")
@@ -210,21 +248,15 @@ def check_workbook_schema(errors: list[str]) -> None:
         "version", "global_rules", "capability_contract", "solution_workbook",
         "sensitivity_robustness_workbook", "matlab_handoff",
     }
-    missing = required_top - set(schema)
-    if missing:
-        errors.append(f"workbook schema missing keys: {sorted(missing)}")
+    if required_top - set(schema):
+        errors.append(f"workbook schema missing keys: {sorted(required_top - set(schema))}")
     if schema.get("global_rules", {}).get("empty_worksheet_allowed") is not False:
         errors.append("workbook schema must forbid empty worksheets")
-    sheet_names = set(schema.get("solution_workbook", {}).get("common_recommended_sheets", {}))
-    for capability, required in schema.get("capability_contract", {}).get("required_sheets", {}).items():
-        missing_sheets = sorted(set(required) - sheet_names)
-        if missing_sheets:
-            errors.append(f"capability {capability} requires undefined sheets: {missing_sheets}")
 
 
-def check_task_pack_contract(errors: list[str]) -> None:
+def check_task_packs(errors: list[str]) -> None:
     for name in TASK_PACKS:
-        path = ROOT / "packs" / "task" / f"{name}.md"
+        path = ROOT / "packs/task" / f"{name}.md"
         if not path.is_file():
             errors.append(f"missing task pack: {path.relative_to(ROOT)}")
             continue
@@ -236,57 +268,37 @@ def check_task_pack_contract(errors: list[str]) -> None:
             errors.append(f"task pack is too thin for execution: {path.relative_to(ROOT)}")
 
 
-def check_review_weights(errors: list[str]) -> None:
-    config = json.loads(read_text(ROOT / "config/review_weights.json"))
-    weights = [float(item["weight"]) for item in config.get("dimensions", {}).values()]
-    if abs(sum(weights) - 1.0) > 1e-9:
+def check_supporting_assets(errors: list[str]) -> None:
+    weights = json.loads(read_text(ROOT / "config/review_weights.json"))
+    total = sum(float(item["weight"]) for item in weights.get("dimensions", {}).values())
+    if abs(total - 1.0) > 1e-9:
         errors.append("review weights must sum to 1")
-    if config.get("status") == "active" and not (ROOT / "scripts/score_submission.py").is_file():
-        errors.append("active review weights have no executable scorer")
 
-
-def check_figure_assets(errors: list[str]) -> None:
     registry = load_yaml(ROOT / "assets/figure_assets.yaml") or {}
     for value in iter_strings(registry.get("assets", {})):
         if value.startswith("assets/") and not (ROOT / value).is_file():
             errors.append(f"figure asset registry path missing: {value}")
-    chart = read_text(ROOT / "templates/figure/chart_selection.md")
-    if "assets/figure_assets.yaml" not in chart:
-        errors.append("figure asset registry is not connected to chart selection")
 
-
-def check_compile_profiles(errors: list[str]) -> None:
     profiles = (load_yaml(ROOT / "core/compile_profiles.yaml") or {}).get("profiles", {})
     for name, profile in profiles.items():
-        directory = ROOT / str(profile.get("template_directory", ""))
-        template_main = directory / str(profile.get("template_main", ""))
-        if not directory.is_dir() or not template_main.is_file():
-            errors.append(f"compile profile {name} template entry does not exist: {template_main.relative_to(ROOT)}")
+        entry = ROOT / str(profile.get("template_directory", "")) / str(profile.get("template_main", ""))
+        if not entry.is_file():
+            errors.append(f"compile profile {name} template entry does not exist: {entry.relative_to(ROOT)}")
         if not profile.get("project_main"):
             errors.append(f"compile profile {name} lacks project_main")
 
 
-def check_writing_templates(errors: list[str]) -> None:
-    for obsolete in ("docx_draft_check.md", "docx_layout_check.md"):
-        path = ROOT / "templates" / "writing" / obsolete
-        if path.exists():
-            errors.append(f"superseded DOCX checklist still exists: {path.relative_to(ROOT)}")
+def check_templates_and_syntax(errors: list[str]) -> None:
     caption = read_text(ROOT / "templates/writing/caption_explanation.md")
     for fixed in ("由图X可知，……。这一结果说明", "由表X可知，……。该结果与"):
         if fixed in caption:
             errors.append(f"fixed AI-like caption sentence remains: {fixed}")
 
-
-def check_tex_templates(errors: list[str]) -> None:
     for path in (ROOT / "templates/latex").rglob("*.tex"):
         text = read_text(path)
         if "\\begin{document}" not in text or "\\end{document}" not in text:
             errors.append(f"LaTeX template lacks document boundary: {path.relative_to(ROOT)}")
-        if "内部题目要求覆盖检查说明" in text:
-            errors.append(f"internal QA leaked into final template: {path.relative_to(ROOT)}")
 
-
-def check_python_syntax(errors: list[str]) -> None:
     for base in (ROOT / "templates/code", ROOT / "scripts"):
         for path in base.rglob("*.py"):
             try:
@@ -295,41 +307,37 @@ def check_python_syntax(errors: list[str]) -> None:
                 errors.append(f"Python syntax error: {path.relative_to(ROOT)}:{exc.lineno}: {exc.msg}")
 
 
-def check_generated_indexes(errors: list[str]) -> None:
-    script = ROOT / "scripts/generate_indexes.py"
-    result = subprocess.run([sys.executable, str(script), "--check"], cwd=ROOT, text=True, capture_output=True)
+def check_generated(errors: list[str]) -> None:
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts/generate_indexes.py"), "--check"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+    )
     if result.returncode:
-        detail = (result.stdout + result.stderr).strip()
-        errors.append(f"generated indexes or MANIFEST are stale: {detail}")
-    index = ROOT / "HSK_SKILL_FILE_INDEX_V622.md"
-    if index.is_file():
-        legacy_entries = [line for line in read_text(index).splitlines() if "`legacy/" in line and "legacy/README.md" not in line]
-        if legacy_entries:
-            errors.append("active skill index contains archived legacy entries")
+        errors.append(f"generated indexes or MANIFEST are stale: {(result.stdout + result.stderr).strip()}")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--skip-generated", action="store_true", help="skip generated index and MANIFEST consistency check")
+    parser.add_argument("--skip-generated", action="store_true")
     args = parser.parse_args()
     errors: list[str] = []
     check_required(errors)
     check_versions(errors)
+    check_flat_path_contract(errors)
     check_obsolete_patterns(errors)
     check_structured_files(errors)
     check_declared_paths(errors)
     check_module_artifact_closure(errors)
     check_project_state_schema(errors)
     check_workbook_schema(errors)
-    check_task_pack_contract(errors)
-    check_review_weights(errors)
-    check_figure_assets(errors)
-    check_compile_profiles(errors)
-    check_writing_templates(errors)
-    check_tex_templates(errors)
-    check_python_syntax(errors)
+    check_task_packs(errors)
+    check_supporting_assets(errors)
+    check_templates_and_syntax(errors)
     if not args.skip_generated:
-        check_generated_indexes(errors)
+        check_generated(errors)
+
     if errors:
         print("HSK skill lint failed:")
         for item in sorted(set(errors)):

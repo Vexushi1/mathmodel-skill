@@ -1,4 +1,4 @@
-# HSK Active Skill File Index v6.2.3
+# HSK Active Skill File Index v6.2.4
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 

@@ -7,15 +7,17 @@ project:
 
 outputs:
   问题一:
-    solution_workbook: "结果数据表/问题一/问题一结果数据/问题一求解结果.xlsx"
-    sensitivity_robustness_workbook: "结果数据表/问题一/问题一结果数据/问题一敏感性与鲁棒性结果.xlsx"
+    result_directory: "结果数据表/问题一"
+    solution_workbook: "结果数据表/问题一/问题一求解结果.xlsx"
+    sensitivity_robustness_workbook: "结果数据表/问题一/问题一敏感性与鲁棒性结果.xlsx"
     matlab_scripts:
-      - "MATLAB绘图/问题一/问题一结果绘图.m"
+      - "结果数据表/问题一/q1_plot.m"
+    figure_directory: "结果数据表/问题一/图表"
     figure_sources:
       - figure: "图 1"
         workbook: "问题一求解结果.xlsx"
         worksheet: "明细结果"
-        file: "figures/q1_core_result.pdf"
+        file: "结果数据表/问题一/图表/q1_core_result.pdf"
     paper_locations:
       - "第 5.1.3 节"
     final: true

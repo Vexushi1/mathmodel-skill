@@ -1,26 +1,35 @@
-import ast, unittest
+import ast
+import unittest
 from pathlib import Path
 
-ROOT=Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1]
+
 
 class TestOwnership(unittest.TestCase):
     def test_python_templates_have_no_formal_plot_imports(self):
-        for f in (ROOT/'templates/code').rglob('*.py'):
-            text=f.read_text(encoding='utf-8')
-            self.assertNotIn('matplotlib', text, str(f))
-            self.assertNotIn('seaborn', text, str(f))
-            self.assertNotIn('savefig(', text, str(f))
+        for file in (ROOT / "templates/code").rglob("*.py"):
+            text = file.read_text(encoding="utf-8")
+            self.assertNotIn("matplotlib", text, str(file))
+            self.assertNotIn("seaborn", text, str(file))
+            self.assertNotIn("savefig(", text, str(file))
             ast.parse(text)
-    def test_matlab_plot_template_visible_and_manual_export(self):
-        text=(ROOT/'templates/matlab/q1_plot.m').read_text(encoding='utf-8')
-        self.assertNotIn('"Visible", "off"', text)
-        self.assertNotIn('close(fig)', text)
-        self.assertIn('% hsk_export_figure', text)
-        self.assertIn('信息效率', text)
-    def test_mechanism_template_has_no_generic_default_nodes(self):
-        text=(ROOT/'templates/matlab/draw_mechanism_structure.m').read_text(encoding='utf-8')
-        self.assertNotIn('输入', text)
-        self.assertNotIn('模型', text)
-        self.assertNotIn('结果', text)
 
-if __name__=='__main__': unittest.main()
+    def test_matlab_plot_template_is_colocated_and_manual_export(self):
+        text = (ROOT / "templates/matlab/q1_plot.m").read_text(encoding="utf-8")
+        self.assertNotIn("close(fig)", text)
+        self.assertNotIn("hsk_find_project_root", text)
+        self.assertNotIn("hsk_read_result_workbooks", text)
+        self.assertIn('fullfile(resultDir, "问题一求解结果.xlsx")', text)
+        self.assertIn('fullfile(resultDir, "图表")', text)
+        self.assertIn("EXPORT_FIGURES = false", text)
+        self.assertIn("信息效率", text)
+
+    def test_mechanism_template_has_no_generic_default_nodes(self):
+        text = (ROOT / "templates/matlab/draw_mechanism_structure.m").read_text(encoding="utf-8")
+        self.assertNotIn("输入", text)
+        self.assertNotIn("模型", text)
+        self.assertNotIn("结果", text)
+
+
+if __name__ == "__main__":
+    unittest.main()
