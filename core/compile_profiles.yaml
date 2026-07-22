@@ -1,25 +1,35 @@
-version: 6.2.2
+version: 6.2.3
 profiles:
   cumcm:
     aliases: [国赛, CUMCM, cumcm]
     engine: xelatex
     bibliography: biber
     sequence: [xelatex, biber, xelatex, xelatex]
-    default_main: main.tex
+    template_directory: templates/latex/cumcm/hsk
+    template_main: hsk_main.tex
+    project_main: main.tex
+    main_aliases: [paper.tex]
   mcm_icm:
     aliases: [MCM, ICM, mcm, icm, mcm_icm]
     engine: pdflatex
     bibliography: bibtex
     sequence: [pdflatex, bibtex, pdflatex, pdflatex]
-    default_main: main.tex
+    template_directory: templates/latex/mcm
+    template_main: main.tex
+    project_main: main.tex
+    main_aliases: [paper.tex]
   diangong:
     aliases: [电工杯, diangong]
     engine: xelatex
     bibliography: biber
     sequence: [xelatex, biber, xelatex, xelatex]
-    default_main: main.tex
+    template_directory: templates/latex/diangong
+    template_main: main.tex
+    project_main: main.tex
+    main_aliases: [paper.tex]
 rules:
   - The profile sequence is the source of truth for compilation.
+  - project_main is the expected filename in final_latex; template_main is the repository smoke-test entry.
   - CUMCM and Chinese engineering papers use ASCII project paths and XeLaTeX.
   - Biber and BibTeX are not interchangeable; follow the selected profile.
   - A custom profile may override engine and bibliography only when the user explicitly requests it.
