@@ -9,6 +9,9 @@
 \usepackage{algorithm}
 \usepackage{algorithmic}
 \usepackage{cleveref}
+% cumcmthesis v2.6 自定义了旧版 \supercite；在加载 biblatex 前释放该命令，
+% 由 biblatex 提供统一的上标引用实现。
+\let\supercite\relax
 \usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
 \addbibresource{references.bib}
 
