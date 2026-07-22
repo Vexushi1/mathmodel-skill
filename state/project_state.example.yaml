@@ -12,8 +12,8 @@ requirements:
 data:
   sources:
     - name: 赛题附件一
-      path: 数据/附件一.xlsx
-      role: 原始输入数据
+      path: 附件一.xlsx
+      role: 项目根目录中的原始输入数据
   version_hashes: {}
   locked_scope: 字段、单位和时间口径已完成审计，数据值尚未锁定。
 decisions:
