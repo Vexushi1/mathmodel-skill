@@ -17,6 +17,22 @@ def load_module(name: str, path: Path):
     return module
 
 
+def figure_spec(script: str, figure_id: str, worksheet: str, function: str, level: str = "layered"):
+    return {
+        "figure_id": figure_id,
+        "workbook": "求解结果",
+        "worksheet": worksheet,
+        "matlab_script": script,
+        "local_plot_function": function,
+        "composition_level": level,
+        "layer_map": "结构层+原始数据层+结论层",
+        "axis_contract": "单轴，单位一致",
+        "panel_map": "不适用",
+        "shared_color_mapping": "主模型深蓝，关键点橙色",
+        "rendering_transforms": "确定性抖动与透明度",
+    }
+
+
 class TestTooling(unittest.TestCase):
     def test_compile_profiles_are_complete(self):
         profiles = yaml.safe_load((ROOT / "core/compile_profiles.yaml").read_text(encoding="utf-8"))
@@ -86,22 +102,47 @@ class TestTooling(unittest.TestCase):
             for name in (f"{problem}求解结果.xlsx", f"{problem}敏感性与鲁棒性结果.xlsx"):
                 (result_dir / name).write_bytes(b"placeholder")
             figures = [
-                {
-                    "figure_id": "图1",
-                    "workbook": "求解结果",
-                    "worksheet": "明细结果",
-                    "matlab_script": "Q1_plot.m",
-                    "local_plot_function": "plot_core_result",
-                },
-                {
-                    "figure_id": "图2",
-                    "workbook": "敏感性与鲁棒性结果",
-                    "worksheet": "参数敏感性",
-                    "matlab_script": "Q2_plot.m",
-                    "local_plot_function": "plot_sensitivity",
-                },
+                figure_spec("Q1_plot.m", "图1", "明细结果", "plot_core_result"),
+                figure_spec("Q2_plot.m", "图2", "参数敏感性", "plot_sensitivity"),
             ]
-            with self.assertRaises(ValueError):
+            with self.assertRaisesRegex(ValueError, "同一问题只能映射到一个 MATLAB"):
+                module.write_matlab_handoff(root, problem, figures)
+
+    def test_matlab_handoff_accepts_composite_metadata(self):
+        module = load_module(
+            "matlab_handoff", ROOT / "templates/code/hsk_pipeline/matlab_handoff.py"
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            problem = "问题一"
+            result_dir = root / "结果数据表" / problem / f"{problem}结果数据"
+            result_dir.mkdir(parents=True)
+            for name in (f"{problem}求解结果.xlsx", f"{problem}敏感性与鲁棒性结果.xlsx"):
+                (result_dir / name).write_bytes(b"placeholder")
+            figures = [
+                figure_spec("Q1_plot.m", "图1", "明细结果", "plot_bar_line_combo", "layered"),
+                figure_spec("Q1_plot.m", "图2", "参数敏感性", "plot_hybrid_evidence_combo", "hybrid"),
+            ]
+            figures[1]["panel_map"] = "a主结果；b敏感性；c鲁棒性"
+            path = module.write_matlab_handoff(root, problem, figures)
+            self.assertTrue(path.is_file())
+            payload = path.read_text(encoding="utf-8")
+            self.assertIn('"composition_level": "layered"', payload)
+            self.assertIn('"composition_level": "hybrid"', payload)
+
+    def test_matlab_handoff_rejects_invalid_composition_level(self):
+        module = load_module(
+            "matlab_handoff", ROOT / "templates/code/hsk_pipeline/matlab_handoff.py"
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            problem = "问题一"
+            result_dir = root / "结果数据表" / problem / f"{problem}结果数据"
+            result_dir.mkdir(parents=True)
+            for name in (f"{problem}求解结果.xlsx", f"{problem}敏感性与鲁棒性结果.xlsx"):
+                (result_dir / name).write_bytes(b"placeholder")
+            figures = [figure_spec("Q1_plot.m", "图1", "明细结果", "plot_core_result", "dashboard")]
+            with self.assertRaisesRegex(ValueError, "composition_level"):
                 module.write_matlab_handoff(root, problem, figures)
 
 
