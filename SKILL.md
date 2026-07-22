@@ -1,7 +1,7 @@
 ---
 name: mathmodel-skill
 version: 6.2.2
-summary: HSK modular mathematical-modeling workflow with Python-only solving, validated Chinese Excel result workbooks, MATLAB-only formal result figures, DOCX draft, LaTeX final, and reviewer-grade delivery.
+summary: HSK modular mathematical-modeling workflow with Python-only solving, validated Chinese Excel result workbooks, one self-contained MATLAB plotting file per question, DOCX draft, LaTeX final, and reviewer-grade delivery.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型选择, 敏感性分析, 鲁棒性分析, 机理图, MATLAB绘图, LaTeX, DOCX]
 ---
 
@@ -20,21 +20,21 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 - `modules/01_problem_audit.md`：任务接入、逐字审题、小问拆解与交付映射。
 - `modules/02_model_design.md`：路线比较、数据协议、变量假设公式闭环、机理图合同。
 - `modules/03_solve_validate.md`：Python 求解、约束检查、多算法验证、敏感性与鲁棒性、Excel 输出。
-- `modules/04_figure_evidence.md`：MATLAB 结果图证据链与后期机理图精修。
+- `modules/04_figure_evidence.md`：每问唯一 `QX_plot.m`、MATLAB 结果图证据链与后期机理图精修。
 - `modules/05_writing/`：DOCX 草稿、LaTeX 终稿、AI 模板感清除。
 - `modules/06_review_delivery.md`：评委式终审与提交包检查。
 
 ## 固定软件分工
 
 - Python：数据处理、模型求解、优化、仿真、检验、敏感性、鲁棒性和标准工作簿输出。
-- MATLAB：读取标准工作簿绘制正式论文结果图，不重新计算核心结果。
+- MATLAB：每个问题只交付一个自包含 `QX_plot.m`；读取两类标准工作簿，一次运行生成该问题全部正式结果图，不重新计算核心结果。
 - GeoGebra/PPT/draw.io/SVG/TikZ：按需承担非数据驱动机理图。
 - DOCX：前期修改与逻辑检查；LaTeX：最终论文与 PDF。
 
 ## 机器可读契约
 
 - `core/output_contract.yaml`：项目目录、文件名与软件职责；
-- `core/workbook_schema.yaml`：工作表、字段、非空和交接规则；
+- `core/workbook_schema.yaml`：工作表、字段、非空和单文件 MATLAB 交接规则；
 - `core/project_state.schema.yaml`：跨聊天项目状态；
 - `core/compile_profiles.yaml`：各竞赛 LaTeX 编译链。
 
@@ -44,10 +44,13 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 结果数据表/问题X/问题X结果数据/
 ├─ 问题X求解结果.xlsx
 └─ 问题X敏感性与鲁棒性结果.xlsx
+
+MATLAB绘图/问题X/
+└─ QX_plot.m
 ```
 
-约束违反、多算法对比、逐时/逐区域明细和绘图底层数据写入两类工作簿的中文工作表，不默认散落为独立 CSV。所有工作表必须非空；不适用分析写入 `适用性说明`。
+约束违反、多算法对比、逐时/逐区域明细和绘图底层数据写入两类工作簿的中文工作表，不默认散落为独立 CSV。所有工作表必须非空；不适用分析写入 `适用性说明`。同一问题不得额外交付独立结果图、敏感性图、样式或导出辅助 `.m` 文件。
 
 ## 默认主线
 
-审题 → 模型设计 → Python 求解验证 → 中文结果工作簿 → MATLAB 结果图 → DOCX 草稿 → 核心机理图精修 → LaTeX 终稿 → 终审交付。
+审题 → 模型设计 → Python 求解验证 → 中文结果工作簿 → 每问唯一 MATLAB 绘图文件 → DOCX 草稿 → 核心机理图精修 → LaTeX 终稿 → 终审交付。
