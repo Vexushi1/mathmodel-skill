@@ -1,10 +1,12 @@
-# LaTeX 编译质量规范 v6.2.2
+# LaTeX 编译质量规范 v6.2.3
+
+本模块只编译 `ai_cleanup` 输出的已清理 `latex_source`，输出 `compiled_pdf` 与 `compile_report`。
 
 ## 工程与配置
 
-- Windows 工程放纯英文路径，主文件使用 `main.tex`；
+- Windows 工程放纯英文路径，项目主文件使用 Profile 的 `project_main`；
 - 图片文件名使用英文或拼音；
-- 编译链以 `core/compile_profiles.yaml` 为唯一机器可读配置；
+- 编译链、仓库模板入口和最终项目入口以 `core/compile_profiles.yaml` 为唯一机器可读配置；
 - `scripts/render_paper.py --profile <name>` 必须与所用模板一致，不得手工混用引擎和文献工具。
 
 ## 竞赛编译链
@@ -30,4 +32,4 @@ Times New Roman 缺失时回退 TeX Gyre Termes；SimSun 缺失时回退 FandolS
 
 ## 终稿检查
 
-无 Error、未定义引用、缺失文献、缺图、字体错误、Overfull box 和表格越界；目录页码正确；摘要单页；图题在图下、表题在表上；PDF 必须逐页检查。编译命令、profile、主文件和最终 PDF 路径写入复现说明。
+无 Error、未定义引用、缺失文献、缺图、字体错误、Overfull box 和表格越界；目录页码正确；摘要单页；图题在图下、表题在表上；PDF 必须逐页检查。编译命令、profile、主文件和最终 PDF 路径写入 `compile_report` 与复现说明。

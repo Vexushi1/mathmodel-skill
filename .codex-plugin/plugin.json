@@ -1,27 +1,16 @@
 {
   "name": "mathmodel-skill",
-  "version": "6.2.2",
-  "description": "HSK modular math-modeling workflow: Python solving, validated Chinese Excel outputs, MATLAB formal figures, DOCX draft, LaTeX final.",
-  "author": {
-    "name": "HSK"
-  },
+  "version": "6.2.3",
+  "description": "HSK modular math-modeling workflow with per-subproblem state, capability-driven workbook validation, MATLAB evidence figures, DOCX draft, and LaTeX final.",
+  "author": {"name": "HSK"},
   "license": "MIT",
-  "keywords": [
-    "math-modeling",
-    "cumcm",
-    "mcm",
-    "icm",
-    "matlab"
-  ],
+  "keywords": ["math-modeling", "cumcm", "mcm", "icm", "matlab"],
   "skills": "./skills/",
   "interface": {
     "displayName": "HSK 数学建模 Skill",
-    "shortDescription": "Python求解、标准Excel结果表、MATLAB绘图、LaTeX终稿",
+    "shortDescription": "逐问建模状态、Python求解、标准Excel、MATLAB绘图、LaTeX终稿",
     "category": "Education",
-    "capabilities": [
-      "Interactive",
-      "Write"
-    ],
+    "capabilities": ["Interactive", "Write"],
     "brandColor": "#173B5E"
   }
 }

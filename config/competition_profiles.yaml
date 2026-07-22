@@ -1,4 +1,4 @@
-version: 6.2.2
+version: 6.2.3
 purpose: 为竞赛识别、模板选择和当届规则核验提供机器可读入口；稳定配置与时效性规则严格分离。
 
 edition_rule_contract:

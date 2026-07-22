@@ -1,10 +1,58 @@
-version: 6.2.2
+version: 6.2.3
 
 contracts:
   output: core/output_contract.yaml
   workbook: core/workbook_schema.yaml
   project_state: core/project_state.schema.yaml
   compile_profiles: core/compile_profiles.yaml
+
+external_artifacts:
+  - problem_text
+  - attachments
+  - competition
+  - requested_deliverable
+  - data
+  - bibliography
+  - compile_profile
+  - workbook_schema
+  - output_contract
+  - all_requested_artifacts
+
+artifact_catalog:
+  requirement_map: 题目要求与交付映射
+  subproblem_map: 小问依赖和边界
+  problem_types_by_subproblem: 每问主/次题型与置信度
+  data_schema: 字段、单位、粒度、键和数据质量口径
+  risks: 审题、数据、模型和交付风险
+  route_comparison: 每问模型路线比较
+  selected_models: 每问选定模型
+  locked_model_spec: 已锁定的变量、假设、公式、目标和约束
+  formula_closure: 公式—代码—输出映射
+  mechanism_contracts: 机理图合同
+  validation_plan: 每问验证与稳健性计划
+  python_code: Python 求解代码
+  solution_workbook: 每问求解结果工作簿
+  sensitivity_robustness_workbook: 每问敏感性与鲁棒性工作簿
+  validated_results: 已通过约束、误差和稳健性检查的结果
+  constraint_checks: 约束、残差、守恒、离散或收敛检查
+  validation_report: 求解器、可行性、误差、敏感性和多算法报告
+  evidence_map: 结论到公式、代码、表和图的证据映射
+  matlab_scripts: MATLAB 问题专属绘图脚本
+  result_figures: 工作簿驱动的正式结果图
+  refined_mechanism_figures: 精修后的 S/A 级机理图
+  figure_contracts: 结果图和机理图合同
+  approved_figures: 已人工确认可入文的图
+  docx_draft: DOCX 草稿
+  latex_migration_notes: DOCX 到 LaTeX 的迁移说明
+  latex_source_draft: 未经 AI 模板感清除的 LaTeX 源码
+  paper_text: 可执行文本审查的论文内容
+  latex_source: 已清理且待编译的 LaTeX 源码
+  cleaned_paper_text: 已清理的论文正文
+  unsupported_claims: 缺乏证据的结论清单
+  compiled_pdf: 最终 PDF
+  compile_report: 编译引擎、日志和警告检查结果
+  review_report: 终审问题与评分报告
+  validated_submission_package: 通过交付检查的提交包
 
 workflow_profiles:
   design:
@@ -14,43 +62,48 @@ workflow_profiles:
     modules: [problem_audit, model_design, solve_validate]
     terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report]
   full_workflow:
-    modules: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, review_delivery]
+    modules: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery]
     terminal_outputs: [validated_submission_package]
   gate_policy:
     - Each module may run only when its declared inputs exist or the missing prerequisite is recorded.
     - A route stops at the user-requested deliverable and does not fabricate downstream artifacts.
     - Full workflow preserves module order and cannot place writing before solve_validate.
+    - AI cleanup precedes the final LaTeX compile so cleaned text, not the draft, is compiled.
 
 modules:
   problem_audit:
     path: modules/01_problem_audit.md
     inputs: [problem_text, attachments, competition, requested_deliverable]
-    outputs: [requirement_map, subproblem_map, problem_types, risks]
+    outputs: [requirement_map, subproblem_map, problem_types_by_subproblem, data_schema, risks]
   model_design:
     path: modules/02_model_design.md
-    inputs: [requirement_map, data_schema]
-    outputs: [route_comparison, selected_models, variables, assumptions, formula_closure, mechanism_contracts]
+    inputs: [requirement_map, data_schema, problem_types_by_subproblem]
+    outputs: [route_comparison, selected_models, locked_model_spec, formula_closure, mechanism_contracts, validation_plan]
   solve_validate:
     path: modules/03_solve_validate.md
-    inputs: [selected_models, formula_closure, data, workbook_schema]
-    outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, constraint_checks, validation_report]
+    inputs: [locked_model_spec, formula_closure, data_schema, data, workbook_schema]
+    outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validated_results, constraint_checks, validation_report, evidence_map]
   figure_evidence:
     path: modules/04_figure_evidence.md
-    inputs: [result_tables, workbook_schema, mechanism_contracts]
-    outputs: [matlab_scripts, result_figures, refined_mechanism_figures, figure_contracts]
+    inputs: [solution_workbook, sensitivity_robustness_workbook, workbook_schema, mechanism_contracts, evidence_map]
+    outputs: [matlab_scripts, result_figures, refined_mechanism_figures, figure_contracts, approved_figures, evidence_map]
   writing_docx:
     path: modules/05_writing/docx.md
-    inputs: [locked_models, validated_results, figure_contracts]
+    inputs: [locked_model_spec, validated_results, figure_contracts]
     outputs: [docx_draft, latex_migration_notes]
   writing_latex:
     path: modules/05_writing/latex.md
-    inputs: [locked_models, validated_results, approved_figures, bibliography]
-    outputs: [latex_source, compiled_pdf]
+    inputs: [locked_model_spec, validated_results, approved_figures, bibliography]
+    outputs: [latex_source_draft, paper_text]
   ai_cleanup:
     path: modules/05_writing/ai_cleanup.md
-    inputs: [paper_text, evidence_map]
-    outputs: [cleaned_paper_text, unsupported_claims]
+    inputs: [latex_source_draft, paper_text, evidence_map]
+    outputs: [latex_source, cleaned_paper_text, unsupported_claims]
+  latex_compile_quality:
+    path: modules/05_latex_compile_quality.md
+    inputs: [latex_source, compile_profile]
+    outputs: [compiled_pdf, compile_report]
   review_delivery:
     path: modules/06_review_delivery.md
-    inputs: [all_requested_artifacts, output_contract, workbook_schema, compile_profile]
+    inputs: [all_requested_artifacts, output_contract, workbook_schema, compile_profile, compile_report]
     outputs: [review_report, validated_submission_package]

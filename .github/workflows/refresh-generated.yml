@@ -2,7 +2,7 @@ name: Refresh generated repository metadata
 
 on:
   push:
-    branches: [main, "refactor/**", "agent/**"]
+    branches: [main]
     paths-ignore:
       - HSK_SKILL_FILE_INDEX_V622.md
       - HSK_TEMPLATE_INDEX_V622.md
@@ -27,7 +27,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Rebuild indexes and manifest
+      - name: Rebuild active indexes and manifest
         run: python scripts/generate_indexes.py
       - name: Commit generated metadata when changed
         run: |

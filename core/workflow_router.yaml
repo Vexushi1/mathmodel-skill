@@ -1,4 +1,4 @@
-version: 6.2.2
+version: 6.2.3
 
 default_load:
   - core/hsk_core_policy.md
@@ -10,53 +10,57 @@ classifier_contract:
     primary: one task label
     secondary: zero to two task labels
     confidence: mapping from task label to score in [0, 1]
+    capabilities: per-subproblem validation capability flags
   allowed_labels: [mechanism, optimization, prediction, evaluation, statistics_ml, simulation, spatial, graph_network, scheduling, game_decision]
+  allowed_capabilities: [has_explicit_constraints, requires_feasibility_check, requires_equilibrium_residual, requires_conservation_residual, requires_discretization_check, requires_convergence_diagnostic]
   load_policy:
     - Load the primary task pack.
     - Load a secondary task pack only when it changes variables, constraints, validation or deliverables.
     - Do not load more than three task packs for one request without an explicit reason.
+    - Store task labels and capability flags separately for every subproblem.
 
 execution_contract:
-  workflow_order: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, review_delivery]
+  workflow_order: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery]
   rules:
     - Stop after the last module required by the user deliverable; do not manufacture later artifacts.
     - A downstream module may run only when its gate inputs exist or the response explicitly records the missing prerequisite.
     - Full solution ends after solve_validate unless figures or writing are explicitly requested.
     - Full workflow includes all modules in workflow order and ends with review_delivery.
     - Reuse locked project state and existing artifacts before recomputing.
+    - Compile only the LaTeX source produced after AI cleanup.
 
 routing:
   new_problem_design:
     triggers: [新赛题, 建模方案, 建模思路, 全流程思路]
     load:
       - modules/01_problem_audit.md
-      - packs/competition/auto.md
       - packs/task/classifier.md
     then:
       - modules/02_model_design.md
-      - packs/task/{classified_label}.md
+    load_classified_task_packs: true
+    load_competition_pack: true
+    terminal_outputs: [requirement_map, route_comparison, selected_models, formula_closure]
 
   full_solution:
     triggers: [完整求解, 全部计算, 求出各问, 完成求解]
     load:
       - modules/01_problem_audit.md
-      - packs/competition/auto.md
       - packs/task/classifier.md
     then:
       - modules/02_model_design.md
-      - packs/task/{classified_label}.md
       - modules/03_solve_validate.md
       - packs/artifact/code.md
+    load_classified_task_packs: true
+    load_competition_pack: true
+    terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report]
 
   full_workflow:
     triggers: [全流程, 完整论文, 全套成果, 完整交付]
     load:
       - modules/01_problem_audit.md
-      - packs/competition/auto.md
       - packs/task/classifier.md
     then:
       - modules/02_model_design.md
-      - packs/task/{classified_label}.md
       - modules/03_solve_validate.md
       - packs/artifact/code.md
       - modules/04_figure_evidence.md
@@ -65,22 +69,27 @@ routing:
       - modules/05_writing/docx.md
       - packs/artifact/docx.md
       - modules/05_writing/latex.md
-      - modules/05_latex_compile_quality.md
       - modules/05_writing/ai_cleanup.md
+      - modules/05_latex_compile_quality.md
       - packs/artifact/latex.md
       - modules/06_review_delivery.md
       - packs/artifact/full_submission.md
+    load_classified_task_packs: true
+    load_competition_pack: true
+    terminal_outputs: [validated_submission_package]
 
   problem_analysis:
     triggers: [审题, 问题理解, 题目拆解, 命题意图]
     load: [modules/01_problem_audit.md]
+    terminal_outputs: [requirement_map, subproblem_map, problem_types_by_subproblem, data_schema]
 
   model_selection:
     triggers: [模型比较, 建模路线, 变量, 假设, 公式, 目标函数, 约束]
     load:
       - modules/02_model_design.md
       - packs/task/classifier.md
-      - packs/task/{classified_label}.md
+    load_classified_task_packs: true
+    terminal_outputs: [route_comparison, selected_models, locked_model_spec, formula_closure]
 
   advanced_method:
     triggers: [高级模型, W-DRO, CVaR, MPEC, Stackelberg, ALNS, GNN, 空间杜宾, DML, 强化学习, 深度学习]
@@ -88,22 +97,25 @@ routing:
       - modules/02_model_design.md
       - packs/task/advanced_method_gate.md
       - packs/task/classifier.md
-      - packs/task/{classified_label}.md
+    load_classified_task_packs: true
+    terminal_outputs: [route_comparison, selected_models, locked_model_spec, validation_plan]
 
   code_and_solution:
-    triggers: [代码, Python, MATLAB, 求解, 算法, 最优解]
+    triggers: [代码, Python, 求解, 算法, 最优解]
     load:
       - modules/03_solve_validate.md
       - packs/artifact/code.md
       - packs/task/classifier.md
-      - packs/task/{classified_label}.md
+    load_classified_task_packs: true
+    terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report]
 
   validation:
     triggers: [检验, 多算法, 全局最优, 敏感性, 鲁棒性, 误差, 稳健性]
     load:
       - modules/03_solve_validate.md
       - packs/task/classifier.md
-      - packs/task/{classified_label}.md
+    load_classified_task_packs: true
+    terminal_outputs: [validated_results, validation_report, evidence_map]
 
   figures:
     triggers: [图表, 可视化, 机理图, 推导图, Nature, SCI]
@@ -111,44 +123,50 @@ routing:
       - modules/04_figure_evidence.md
       - packs/artifact/figure.md
       - templates/figure/chart_selection.md
+    terminal_outputs: [figure_contracts, approved_figures]
 
   docx:
     triggers: [DOCX, Word, 草稿论文]
     load: [modules/05_writing/docx.md, packs/artifact/docx.md]
+    terminal_outputs: [docx_draft, latex_migration_notes]
 
   latex:
     triggers: [LaTeX, PDF终稿, cumcmthesis, 终稿论文]
     load:
       - modules/05_writing/latex.md
-      - modules/05_latex_compile_quality.md
       - modules/05_writing/ai_cleanup.md
+      - modules/05_latex_compile_quality.md
       - packs/artifact/latex.md
-      - packs/competition/auto.md
+    load_competition_pack: true
+    terminal_outputs: [latex_source, compiled_pdf, compile_report]
 
   full_submission:
     triggers: [复现包, 提交压缩包, 提交包]
     load:
       - modules/06_review_delivery.md
       - packs/artifact/full_submission.md
-      - packs/competition/auto.md
+    load_competition_pack: true
+    terminal_outputs: [validated_submission_package]
 
   review:
     triggers: [评分, 审稿, 终审, 检查, 提交包检查]
     load:
       - modules/06_review_delivery.md
       - packs/artifact/review.md
-      - packs/competition/auto.md
+    load_competition_pack: true
+    terminal_outputs: [review_report]
 
 multi_intent_policy:
   - Merge module lists in workflow order and remove duplicates.
   - When a request includes solving and writing, solve and validate before generating final prose.
   - When a request includes figures and LaTeX, verify workbook sources before inserting figures.
   - Full submission includes review_delivery after all requested artifact modules.
+  - AI cleanup must precede latex_compile_quality.
 
 rules:
   - Do not load legacy by default.
   - Reuse locked project state and artifacts before recomputing.
-  - Replace {classified_label} only with classifier labels selected under classifier_contract.
+  - Expand classified task packs from one primary and at most two necessary secondary labels.
   - Load advanced_method_gate only for explicit advanced-method requests or when route B is proposed as the main model.
   - DOCX and LaTeX modules are both loaded only for explicit migration or full_workflow.
   - Result figures precede final mechanism-figure refinement.

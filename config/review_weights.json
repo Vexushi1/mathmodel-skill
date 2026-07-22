@@ -1,33 +1,15 @@
 {
-  "version": "6.2.2",
+  "version": "6.2.3",
   "status": "active",
   "scale": 100,
   "principle": "题意与机制、数学闭环、数据验证、结果证据、写作排版、复现交付优先于模型名称和形式创新。",
   "dimensions": {
-    "problem_and_mechanism": {
-      "weight": 0.22,
-      "label": "题意与机制"
-    },
-    "mathematical_closure": {
-      "weight": 0.20,
-      "label": "数学闭环"
-    },
-    "data_and_validation": {
-      "weight": 0.18,
-      "label": "数据与验证"
-    },
-    "results_and_figures": {
-      "weight": 0.15,
-      "label": "结果与图表"
-    },
-    "writing_and_layout": {
-      "weight": 0.12,
-      "label": "写作与排版"
-    },
-    "reproduction_and_delivery": {
-      "weight": 0.13,
-      "label": "复现与交付"
-    }
+    "problem_and_mechanism": {"weight": 0.22, "label": "题意与机制"},
+    "mathematical_closure": {"weight": 0.20, "label": "数学闭环"},
+    "data_and_validation": {"weight": 0.18, "label": "数据与验证"},
+    "results_and_figures": {"weight": 0.15, "label": "结果与图表"},
+    "writing_and_layout": {"weight": 0.12, "label": "写作与排版"},
+    "reproduction_and_delivery": {"weight": 0.13, "label": "复现与交付"}
   },
   "hard_fail_action": "reject_or_major_rework",
   "hard_fail": [

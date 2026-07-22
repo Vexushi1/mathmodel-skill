@@ -3,8 +3,8 @@ project:
   problem: A
   current_phase: model_design
   problem_types: [mechanism, optimization]
-  version: v0.1-working
-  updated_at: '2026-07-22T10:00:00Z'
+  version: v0.2-working
+  updated_at: '2026-07-22T14:00:00Z'
 requirements:
   total: 5
   completed: [Q1]
@@ -27,7 +27,22 @@ subproblems:
   Q1:
     status: designed
     selected_model: 填写模型名称
+    problem_types:
+      primary: mechanism
+      secondary: [optimization]
+      confidence:
+        mechanism: 0.92
+        optimization: 0.76
+    capabilities:
+      has_explicit_constraints: true
+      requires_feasibility_check: true
+      requires_equilibrium_residual: false
+      requires_conservation_residual: false
+      requires_discretization_check: false
+      requires_convergence_diagnostic: false
     validation_status: pending
+    optimality_claim: none
+    artifacts_stale: false
     random_seed: 2026
     tolerance: 1.0e-8
     evidence: []

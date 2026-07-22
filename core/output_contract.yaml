@@ -1,4 +1,4 @@
-version: 6.2.2
+version: 6.2.3
 schema: core/workbook_schema.yaml
 root_directories:
   raw_data: 数据/
@@ -54,6 +54,7 @@ rules:
   - Constraint checks, multi-algorithm comparisons and detailed time/space records are worksheets in the two standard workbooks.
   - Every worksheet must contain at least one record; when an analysis is not applicable, write an “适用性说明” worksheet instead of an empty sheet.
   - Worksheet columns and task profiles follow core/workbook_schema.yaml.
+  - Per-question problem types and validation capabilities come from state/project_state.yaml when that state exists.
   - CSV may be generated only for explicit compatibility needs and must remain in the same question result-data directory.
   - MATLAB plotting scripts read the standard workbooks and write figures to figures/ or figures_editable/.
   - MATLAB scripts keep figure windows visible by default; export is an explicit optional action after manual adjustment.

@@ -7,7 +7,7 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import yaml
 
@@ -57,14 +57,26 @@ def resolve_profile_name(requested: str | None, profiles: dict[str, dict[str, An
     raise SystemExit(f"unknown compile profile: {requested}; choose one of {valid}")
 
 
-def resolve_main(project: Path, main_name: str | None) -> Path:
+def resolve_main(
+    project: Path,
+    main_name: str | None,
+    profile: Mapping[str, Any] | None = None,
+) -> Path:
     if main_name:
         main = project / main_name
         if not main.is_file():
             raise SystemExit(f"main tex not found: {main}")
         return main
-    candidates = [project / "main.tex", project / "paper.tex", project / "hsk_main.tex"]
-    detected = [path for path in candidates if path.is_file()]
+
+    candidates: list[Path] = []
+    if profile:
+        for key in ("project_main", "template_main"):
+            value = profile.get(key)
+            if value:
+                candidates.append(project / str(value))
+        candidates.extend(project / str(name) for name in profile.get("main_aliases", []))
+    candidates.extend(project / name for name in ("main.tex", "paper.tex", "hsk_main.tex"))
+    detected = [path for path in dict.fromkeys(candidates) if path.is_file()]
     if detected:
         return detected[0]
     tex_files = sorted(project.glob("*.tex"))
@@ -92,7 +104,6 @@ def detect_tex_requirements(main: Path) -> dict[str, bool]:
 def infer_profile(main: Path, profiles: dict[str, dict[str, Any]]) -> str:
     requirements = detect_tex_requirements(main)
     lowered_path = main.as_posix().lower()
-
     if requirements["cumcm"] or "cumcm" in lowered_path:
         candidate = "cumcm"
     elif requirements["mcm"] or re.search(r"(^|[/_-])(mcm|icm)([/_.-]|$)", lowered_path):
@@ -107,22 +118,15 @@ def infer_profile(main: Path, profiles: dict[str, dict[str, Any]]) -> str:
 
     if candidate not in profiles:
         raise SystemExit(f"inferred profile is unavailable: {candidate}")
-
     config = profiles[candidate]
     engine = str(config.get("engine", "")).lower()
     bibliography = str(config.get("bibliography", "none")).lower()
     if requirements["needs_xetex"] and engine not in {"xelatex", "lualatex"}:
-        raise SystemExit(
-            f"profile {candidate} uses {engine}, but the document requires a Unicode/CJK engine"
-        )
+        raise SystemExit(f"profile {candidate} uses {engine}, but the document requires a Unicode/CJK engine")
     if requirements["uses_biber"] and bibliography != "biber":
-        raise SystemExit(
-            f"profile {candidate} uses {bibliography}, but the document loads biblatex/Biber"
-        )
+        raise SystemExit(f"profile {candidate} uses {bibliography}, but the document loads biblatex/Biber")
     if requirements["uses_bibtex"] and not requirements["uses_biber"] and bibliography == "biber":
-        raise SystemExit(
-            f"profile {candidate} uses Biber, but the document declares a BibTeX-style bibliography"
-        )
+        raise SystemExit(f"profile {candidate} uses Biber, but the document declares a BibTeX-style bibliography")
     return candidate
 
 
@@ -146,13 +150,7 @@ def clean_auxiliary(project: Path, stem: str) -> None:
 
 
 def engine_command(engine: str, main_name: str) -> list[str]:
-    return [
-        engine,
-        "-interaction=nonstopmode",
-        "-halt-on-error",
-        "-file-line-error",
-        main_name,
-    ]
+    return [engine, "-interaction=nonstopmode", "-halt-on-error", "-file-line-error", main_name]
 
 
 def compile_project(
@@ -199,7 +197,7 @@ def compile_project(
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("project", nargs="?", default="final_latex")
-    parser.add_argument("--main", default=None, help="main tex filename; autodetect if omitted")
+    parser.add_argument("--main", default=None, help="main tex filename; profile-driven autodetection if omitted")
     parser.add_argument("--profile", default=None, help="compile profile name")
     parser.add_argument("--competition", default=None, help="compatibility alias for --profile")
     parser.add_argument("--engine", choices=["xelatex", "pdflatex", "lualatex"], default=None)
@@ -212,15 +210,17 @@ def main() -> int:
     project = Path(args.project).resolve()
     if not project.is_dir():
         raise SystemExit(f"project directory not found: {project}")
-    main_tex = resolve_main(project, args.main)
     profiles = load_profiles()
     requested = args.profile or args.competition
-    profile_name = resolve_profile_name(requested, profiles) or infer_profile(main_tex, profiles)
+    profile_name = resolve_profile_name(requested, profiles)
+    main_tex = resolve_main(project, args.main, profiles.get(profile_name) if profile_name else None)
+    profile_name = profile_name or infer_profile(main_tex, profiles)
     prepare_profile_files(project, profile_name)
     if args.clean:
         clean_auxiliary(project, main_tex.stem)
     bibliography = "bibtex" if args.bibtex else args.bibliography
     print(f"compile profile: {profile_name}")
+    print(f"main tex: {main_tex.name}")
     compile_project(project, main_tex, profiles[profile_name], args.engine, bibliography, args.runs)
     return 0
 

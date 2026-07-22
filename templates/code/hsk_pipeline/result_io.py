@@ -9,6 +9,7 @@ from typing import Any, Mapping, Sequence
 
 import pandas as pd
 import yaml
+from openpyxl import load_workbook
 
 INVALID_SHEET_CHARS = set('[]:*?/\\')
 PROBLEM_PATTERN = re.compile(r"问题[一二三四五六七八九十百]+")
@@ -16,6 +17,28 @@ VALID_WORKBOOK_KINDS = {"solution", "robustness"}
 
 _FALLBACK_SCHEMA: dict[str, Any] = {
     "global_rules": {"empty_worksheet_allowed": False},
+    "capability_contract": {
+        "allowed": [
+            "has_explicit_constraints",
+            "requires_feasibility_check",
+            "requires_equilibrium_residual",
+            "requires_conservation_residual",
+            "requires_discretization_check",
+            "requires_convergence_diagnostic",
+        ],
+        "required_sheets": {
+            "has_explicit_constraints": ["约束违反检查"],
+            "requires_feasibility_check": ["约束违反检查"],
+            "requires_equilibrium_residual": ["均衡残差"],
+            "requires_conservation_residual": ["守恒残差"],
+            "requires_discretization_check": ["离散精度"],
+            "requires_convergence_diagnostic": ["收敛诊断"],
+        },
+        "legacy_problem_type_fallback": {
+            "problem_types": ["optimization", "scheduling"],
+            "required_sheets": ["约束违反检查"],
+        },
+    },
     "solution_workbook": {
         "common_required_sheets": {
             "核心指标": {"required_columns": ["指标", "数值"]},
@@ -28,19 +51,10 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
             "约束违反检查": {
                 "required_columns": ["约束编号", "约束含义", "违反量", "容差", "是否满足"]
             },
-        },
-        "conditional_requirements": {
-            "constraint_based_problem_types": {
-                "problem_types": [
-                    "mechanism",
-                    "optimization",
-                    "simulation",
-                    "graph_network",
-                    "scheduling",
-                    "game_decision",
-                ],
-                "required_sheets": ["约束违反检查"],
-            }
+            "均衡残差": {"required_columns": ["主体或均衡", "残差", "容差", "是否满足"]},
+            "守恒残差": {"required_columns": ["守恒量", "残差", "容差", "是否满足"]},
+            "离散精度": {"required_columns": ["离散参数", "取值", "目标指标", "相对变化"]},
+            "收敛诊断": {"required_columns": ["迭代或样本数", "指标", "数值", "判定"]},
         },
         "task_profiles": {},
     },
@@ -102,16 +116,10 @@ def not_applicable_table(
     evidence_location: str = "",
 ) -> pd.DataFrame:
     """生成符合 workbook_schema 的非空“适用性说明”记录。"""
-    reason_text = str(reason).strip()
-    analysis_text = str(analysis_type).strip()
-    alternative_text = str(alternative_test).strip()
-    if not reason_text or not analysis_text or not alternative_text:
+    values = [str(item).strip() for item in (analysis_type, reason, alternative_test)]
+    if not all(values):
         raise ValueError("分析类型、不适用原因和替代检验均不能为空")
-    data = {
-        "分析类型": [analysis_text],
-        "不适用原因": [reason_text],
-        "替代检验": [alternative_text],
-    }
+    data = {"分析类型": [values[0]], "不适用原因": [values[1]], "替代检验": [values[2]]}
     location = str(evidence_location).strip()
     if location:
         data["证据位置"] = [location]
@@ -134,13 +142,18 @@ def _to_frame(value: Any) -> pd.DataFrame:
         frame = pd.DataFrame(value)
     else:
         frame = pd.DataFrame({"数值": [value]})
+    frame = frame.dropna(how="all").reset_index(drop=True)
     if frame.empty:
         raise ValueError("禁止写入空工作表；不适用时请使用 not_applicable_table() 说明原因")
     if len(frame.columns) == 0:
         raise ValueError("工作表至少需要一个字段")
-    if frame.columns.duplicated().any():
-        duplicate = frame.columns[frame.columns.duplicated()].tolist()
+    columns = [str(column).strip() for column in frame.columns]
+    if any(not column for column in columns):
+        raise ValueError("工作表字段名称不能为空")
+    if len(columns) != len(set(columns)):
+        duplicate = [column for index, column in enumerate(columns) if column in columns[:index]]
         raise ValueError(f"工作表包含重复字段: {duplicate}")
+    frame.columns = columns
     return frame
 
 
@@ -177,14 +190,24 @@ def _required_sheet_schemas(schema: Mapping[str, Any], kind: str) -> tuple[set[s
 
 
 def _conditional_required_sheets(
-    schema: Mapping[str, Any], problem_types: Sequence[str]
+    schema: Mapping[str, Any],
+    problem_types: Sequence[str],
+    capabilities: Mapping[str, bool] | None,
 ) -> set[str]:
+    contract = schema.get("capability_contract", {})
     required: set[str] = set()
-    section = schema.get("solution_workbook", {})
-    selected = set(problem_types)
-    for config in section.get("conditional_requirements", {}).values():
-        if selected.intersection(config.get("problem_types", [])):
-            required.update(config.get("required_sheets", []))
+    if capabilities is not None:
+        allowed = set(contract.get("allowed", []))
+        unknown = sorted(set(capabilities) - allowed)
+        if unknown:
+            raise ValueError(f"未知验证能力标志: {unknown}")
+        for capability, enabled in capabilities.items():
+            if enabled:
+                required.update(contract.get("required_sheets", {}).get(capability, []))
+        return required
+    fallback = contract.get("legacy_problem_type_fallback", {})
+    if set(problem_types).intersection(fallback.get("problem_types", [])):
+        required.update(fallback.get("required_sheets", []))
     return required
 
 
@@ -215,13 +238,50 @@ def _check_finite_numbers(sheet: str, frame: pd.DataFrame) -> None:
             raise ValueError(f"工作表“{sheet}”的数值字段“{column}”包含 NaN 以外的非有限值")
 
 
+def _as_bool(value: Any) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text in {"true", "1", "yes", "是", "满足"}:
+        return True
+    if text in {"false", "0", "no", "否", "不满足"}:
+        return False
+    return None
+
+
+def _check_residual_consistency(sheet: str, frame: pd.DataFrame) -> None:
+    value_column = "违反量" if "违反量" in frame.columns else "残差" if "残差" in frame.columns else None
+    if value_column is None or "容差" not in frame.columns or "是否满足" not in frame.columns:
+        return
+    for index, row in frame.iterrows():
+        if pd.isna(row[value_column]) or pd.isna(row["容差"]):
+            continue
+        expected = abs(float(row[value_column])) <= float(row["容差"])
+        actual = _as_bool(row["是否满足"])
+        if actual is None or actual != expected:
+            raise ValueError(f"工作表“{sheet}”第 {index + 2} 行的是否满足与残差/容差不一致")
+
+
+def _check_missing_value_audit(prepared: Sequence[tuple[str, pd.DataFrame]]) -> None:
+    affected = [name for name, frame in prepared if name != "数据审计" and frame.isna().any().any()]
+    if not affected:
+        return
+    audit = next((frame for name, frame in prepared if name == "数据审计"), None)
+    if audit is None:
+        raise ValueError(f"工作表 {affected} 包含缺失值，但缺少数据审计说明")
+    text = " ".join(audit.astype(str).fillna("").to_numpy().ravel()).lower()
+    if "缺失" not in text and "missing" not in text:
+        raise ValueError(f"工作表 {affected} 包含缺失值，但数据审计未说明缺失处理")
+
+
 def validate_workbook_tables(
     tables: Mapping[str, Any],
     workbook_kind: str,
     problem_types: Sequence[str] = (),
+    capabilities: Mapping[str, bool] | None = None,
     schema_path: Path | None = None,
 ) -> list[tuple[str, pd.DataFrame]]:
-    """按 workbook_schema 校验工作表、字段、主键和数值有效性。"""
+    """按 workbook_schema 校验工作表、字段、主键、能力条件和数值有效性。"""
     if workbook_kind not in VALID_WORKBOOK_KINDS:
         raise ValueError(f"workbook_kind 必须为 {sorted(VALID_WORKBOOK_KINDS)}")
     if not tables:
@@ -241,7 +301,7 @@ def validate_workbook_tables(
     names = {name for name, _ in prepared}
 
     if workbook_kind == "solution":
-        required_sheets.update(_conditional_required_sheets(schema, problem_types))
+        required_sheets.update(_conditional_required_sheets(schema, problem_types, capabilities))
         missing = sorted(required_sheets - names)
         if missing:
             raise ValueError(f"求解工作簿缺少必需工作表: {missing}")
@@ -249,9 +309,7 @@ def validate_workbook_tables(
         for problem_type in problem_types:
             required_any = set(profiles.get(problem_type, {}).get("required_any", []))
             if required_any and not names.intersection(required_any):
-                raise ValueError(
-                    f"题型“{problem_type}”至少需要一个专项工作表: {sorted(required_any)}"
-                )
+                raise ValueError(f"题型“{problem_type}”至少需要一个专项工作表: {sorted(required_any)}")
     else:
         allowed_any = set(schema["sensitivity_robustness_workbook"].get("required_any_sheets", []))
         if not names.intersection(allowed_any):
@@ -263,7 +321,47 @@ def validate_workbook_tables(
             _check_required_columns(name, frame, spec)
         _check_record_keys(name, frame)
         _check_finite_numbers(name, frame)
+        _check_residual_consistency(name, frame)
+    _check_missing_value_audit(prepared)
     return prepared
+
+
+def read_workbook_tables(path: Path) -> dict[str, pd.DataFrame]:
+    """读取现有工作簿并保留原始表头，用于交付检查复用写入器契约。"""
+    workbook = load_workbook(path, read_only=True, data_only=True)
+    tables: dict[str, pd.DataFrame] = {}
+    try:
+        for worksheet in workbook.worksheets:
+            rows = list(worksheet.iter_rows(values_only=True))
+            if not rows:
+                raise ValueError(f"工作表“{worksheet.title}”为空")
+            headers = ["" if value is None else str(value).strip() for value in rows[0]]
+            if any(not header for header in headers):
+                raise ValueError(f"工作表“{worksheet.title}”存在空字段名")
+            if len(headers) != len(set(headers)):
+                raise ValueError(f"工作表“{worksheet.title}”包含重复字段")
+            tables[worksheet.title] = pd.DataFrame(rows[1:], columns=headers)
+    finally:
+        workbook.close()
+    return tables
+
+
+def validate_workbook_file(
+    path: Path,
+    workbook_kind: str,
+    problem_types: Sequence[str] = (),
+    capabilities: Mapping[str, bool] | None = None,
+    schema_path: Path | None = None,
+) -> list[tuple[str, pd.DataFrame]]:
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    return validate_workbook_tables(
+        read_workbook_tables(path),
+        workbook_kind,
+        problem_types=problem_types,
+        capabilities=capabilities,
+        schema_path=schema_path,
+    )
 
 
 def _infer_workbook_kind(path: Path) -> str | None:
@@ -280,6 +378,7 @@ def write_workbook(
     *,
     workbook_kind: str | None = None,
     problem_types: Sequence[str] = (),
+    capabilities: Mapping[str, bool] | None = None,
     schema_path: Path | None = None,
 ) -> Path:
     """写入前执行统一契约校验；标准文件名可自动识别工作簿类型。"""
@@ -301,6 +400,7 @@ def write_workbook(
             tables,
             workbook_kind=kind,
             problem_types=problem_types,
+            capabilities=capabilities,
             schema_path=schema_path,
         )
 
