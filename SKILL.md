@@ -1,8 +1,8 @@
 ---
 name: mathmodel-skill
 version: 6.2.2
-summary: HSK modular mathematical-modeling workflow with Python-only solving, validated Chinese Excel result workbooks, one self-contained MATLAB plotting file per question, DOCX draft, LaTeX final, and reviewer-grade delivery.
-triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型选择, 敏感性分析, 鲁棒性分析, 机理图, MATLAB绘图, LaTeX, DOCX]
+summary: HSK modular mathematical-modeling workflow with Python-only solving, validated Chinese Excel result workbooks, one self-contained MATLAB plotting file per question, high-contrast layered and multi-panel scientific figures, DOCX draft, LaTeX final, and reviewer-grade delivery.
+triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型选择, 敏感性分析, 鲁棒性分析, 机理图, MATLAB绘图, 组合图, LaTeX, DOCX]
 ---
 
 # HSK 数学建模模块化工作流 v6.2.2
@@ -20,7 +20,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 - `modules/01_problem_audit.md`：任务接入、逐字审题、小问拆解与交付映射。
 - `modules/02_model_design.md`：路线比较、数据协议、变量假设公式闭环、机理图合同。
 - `modules/03_solve_validate.md`：Python 求解、约束检查、多算法验证、敏感性与鲁棒性、Excel 输出。
-- `modules/04_figure_evidence.md`：每问唯一 `QX_plot.m`、MATLAB 结果图证据链与后期机理图精修。
+- `modules/04_figure_evidence.md`：每问唯一 `QX_plot.m`、高对比层叠/多面板/混合组合图、MATLAB 结果图证据链与后期机理图精修。
 - `modules/05_writing/`：DOCX 草稿、LaTeX 终稿、AI 模板感清除。
 - `modules/06_review_delivery.md`：评委式终审与提交包检查。
 
@@ -30,6 +30,17 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 - MATLAB：每个问题只交付一个自包含 `QX_plot.m`；读取两类标准工作簿，一次运行生成该问题全部正式结果图，不重新计算核心结果。
 - GeoGebra/PPT/draw.io/SVG/TikZ：按需承担非数据驱动机理图。
 - DOCX：前期修改与逻辑检查；LaTeX：最终论文与 PDF。
+
+## 正式绘图体系
+
+正式结果图按四个复杂度等级选择：
+
+- `single`：单一图形；
+- `layered`：同一坐标区叠加柱、线、散点、箱体、小提琴、区间带、等高线等多种图形；
+- `multi-panel`：多个坐标区组织结果、机制和验证；
+- `hybrid`：多面板中的面板继续使用层叠组合图。
+
+默认使用高对比科研配色和固定颜色角色，完整执行 `templates/figure/scientific_composite_system.md` 与 `templates/figure/chart_selection.md`。典型层叠图包括柱状+折线、散点+模型线+区间带、箱线+散点、小提琴+箱线/中位数+散点、直方图+密度、热图+等高线和 Pareto 散点+前沿+推荐点。
 
 ## 机器可读契约
 
