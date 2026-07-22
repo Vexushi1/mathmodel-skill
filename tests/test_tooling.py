@@ -188,7 +188,7 @@ class TestTooling(unittest.TestCase):
 
     def test_matlab_templates_use_root_finder_font_fallback_and_preserve_columns(self):
         plotting = (
-            ROOT / "templates/matlab/plot_from_workbook.m"
+            ROOT / "templates/matlab/q1_plot.m"
         ).read_text(encoding="utf-8")
         style = (
             ROOT / "templates/matlab/hsk_apply_scientific_style.m"
@@ -197,6 +197,7 @@ class TestTooling(unittest.TestCase):
             ROOT / "templates/matlab/hsk_read_result_workbooks.m"
         ).read_text(encoding="utf-8")
         self.assertIn("hsk_find_project_root", plotting)
+        self.assertIn("信息效率", plotting)
         self.assertIn("listfonts", style)
         self.assertIn("Noto Sans CJK SC", style)
         self.assertIn('VariableNamingRule", "preserve"', reader)
