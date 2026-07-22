@@ -75,10 +75,13 @@ class TestSchemas(unittest.TestCase):
         self.assertIn("requires_equilibrium_residual", contract["allowed"])
         self.assertEqual(contract["required_sheets"]["requires_conservation_residual"], ["守恒残差"])
 
-    def test_output_contract_references_workbook_schema(self):
+    def test_output_contract_references_workbook_schema_and_flat_layout(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         self.assertEqual(contract["schema"], "core/workbook_schema.yaml")
-        self.assertEqual(contract["version"], "6.2.3")
+        self.assertEqual(contract["version"], "6.2.4")
+        self.assertEqual(contract["per_question"]["question_directory"], "结果数据表/问题{中文序号}/")
+        self.assertEqual(contract["per_question"]["matlab_script"], "q{阿拉伯序号}_plot.m")
+        self.assertEqual(contract["per_question"]["figure_directory"], "图表/")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,59 @@
-# v6.2.3 contract-closure 变更记录
+# v6.2.4 flat-question-layout 变更记录
 
 文件名保留 V622 作为稳定兼容路径。
+
+## 目标
+
+本版本不改变六模块主工作流和 Python/MATLAB 软件职责，重点消除竞赛项目中的重复目录、路径搜索辅助文件和工作簿—绘图脚本分离问题，使每问证据链在一个目录内闭合。
+
+## P0：项目目录统一
+
+- 赛题 PDF、附件数据表、说明文件和具体问题 Python 脚本直接放在项目根目录；
+- 不再默认创建 `数据/`、`Python求解/` 和 `MATLAB绘图/`；
+- Python 统一使用 `Path(__file__).resolve().parent` 定位项目根目录；
+- 旧目录结构只用于历史项目迁移，不作为新项目交付格式。
+
+## P1：每问结果目录扁平化
+
+旧结构：
+
+```text
+结果数据表/问题X/问题X结果数据/
+```
+
+新结构：
+
+```text
+结果数据表/问题X/
+├─ 问题X求解结果.xlsx
+├─ 问题X敏感性与鲁棒性结果.xlsx
+├─ q{x}_plot.m
+└─ 图表/
+```
+
+- 删除 `问题X结果数据/` 重复层级；
+- 两类标准工作簿、可选元数据和 MATLAB 绘图入口统一位于问题目录；
+- 正式结果图统一导出到同级 `图表/`，可编辑图源按需放入 `图表/可编辑源/`。
+
+## P2：MATLAB 单文件默认入口
+
+- `q{x}_plot.m` 使用 `fileparts(mfilename("fullpath"))` 获取自身目录；
+- 直接读取同目录两类固定工作簿，不再搜索项目根目录；
+- 简单问题默认自包含文件、工作表、字段、空表和非法值检查，以及基础科研样式；
+- 不再强制生成 `hsk_find_project_root.m`、`hsk_read_result_workbooks.m` 等辅助文件；
+- 共享辅助函数仍保留为多问题复杂项目的兼容选项，但不进入默认入口。
+
+## P3：机器契约和测试同步
+
+- `core/output_contract.yaml`、`core/hsk_core_policy.md`、Module 03/04 和 Artifact Pack 同步新路径；
+- `result_io.py` 改为直接写入 `结果数据表/问题X/`，新增问题图表目录和 MATLAB 入口路径函数；
+- `hsk_check_artifact.py` 改为检查项目根目录 Python 脚本、扁平问题目录、同目录 `q{x}_plot.m` 和 `图表/`；
+- `config.yaml`、`matlab_handoff.py`、Figure Contract、结果 Manifest 和提交包说明同步；
+- 单元测试新增扁平路径、首次运行项目根目录、同目录 MATLAB 入口和图表目录检查。
+
+---
+
+# v6.2.3 contract-closure 变更记录
 
 ## 目标
 
@@ -40,4 +93,4 @@
 
 ## v6.2.2 基线
 
-v6.2.2 完成六模块架构、十类题型 Pack、高级方法准入、两个标准工作簿、MATLAB 证据图、三套 LaTeX 冒烟编译、Python 3.10–3.14 CI、自动索引和跨平台 Manifest。本版本在该基线上做契约闭环，不改变软件职责和竞赛主工作流。
+v6.2.2 完成六模块架构、十类题型 Pack、高级方法准入、两个标准工作簿、MATLAB 证据图、三套 LaTeX 冒烟编译、Python 3.10–3.14 CI、自动索引和跨平台 Manifest。v6.2.3 在该基线上完成契约闭环，v6.2.4 进一步统一项目与证据目录。

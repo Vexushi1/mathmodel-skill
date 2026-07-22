@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check HSK project structure, per-subproblem workbook contracts and software ownership."""
+"""Check HSK flat project structure, workbook contracts and software ownership."""
 from __future__ import annotations
 
 import argparse
@@ -37,19 +37,51 @@ RESULT_IO = _load_module("hsk_result_io", ROOT / "templates/code/hsk_pipeline/re
 STATE_VALIDATOR = _load_module("hsk_state_validator", ROOT / "scripts/validate_project_state.py")
 
 
+def _question_number(question_name: str) -> str | None:
+    mapping = {
+        "一": 1,
+        "二": 2,
+        "三": 3,
+        "四": 4,
+        "五": 5,
+        "六": 6,
+        "七": 7,
+        "八": 8,
+        "九": 9,
+        "十": 10,
+    }
+    value = mapping.get(question_name.removeprefix("问题"))
+    return f"Q{value}" if value is not None else None
+
+
+def _plot_filename(question_name: str) -> str | None:
+    token = _question_number(question_name)
+    return f"q{token[1:]}_plot.m" if token else None
+
+
 def check_code(root: Path) -> list[str]:
     issues: list[str] = []
-    py_dir, matlab_dir = root / "Python求解", root / "MATLAB绘图"
-    if not py_dir.exists():
-        issues.append("missing: Python求解/")
-    if not matlab_dir.exists():
-        issues.append("missing: MATLAB绘图/")
-    for path in py_dir.rglob("*.py") if py_dir.exists() else []:
+    python_files = [
+        path
+        for path in root.glob("*.py")
+        if any(key in path.stem for key in ("求解", "敏感性", "鲁棒性", "检验"))
+    ]
+    if not python_files:
+        issues.append("missing: 项目根目录中没有问题求解/检验 Python 脚本")
+
+    for path in python_files:
         text = path.read_text(encoding="utf-8", errors="ignore")
         if any(token in text for token in PY_PLOT_TOKENS):
             issues.append(f"Python formal-plot ownership violation: {path.relative_to(root)}")
-        if "if __name__" not in text and any(key in path.stem for key in ("求解", "敏感性", "鲁棒性")):
+        if "if __name__" not in text:
             issues.append(f"Python main script lacks entry point: {path.relative_to(root)}")
+
+    result_root = root / "结果数据表"
+    if result_root.exists():
+        for question in _question_directories(result_root):
+            expected = _plot_filename(question.name)
+            if expected and not (question / expected).is_file():
+                issues.append(f"missing: {(question / expected).relative_to(root)}")
     return issues
 
 
@@ -69,13 +101,6 @@ def inspect_workbook(
     except Exception as exc:  # noqa: BLE001
         return [f"workbook contract violation: {path}: {exc}"]
     return []
-
-
-def _question_number(question_name: str) -> str | None:
-    mapping = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
-    token = question_name.removeprefix("问题")
-    value = mapping.get(token)
-    return f"Q{value}" if value is not None else None
 
 
 def load_project_state(root: Path) -> dict[str, Any]:
@@ -106,26 +131,33 @@ def resolve_question_contract(
     return tuple(str(item) for item in legacy), None
 
 
+def _question_directories(base: Path) -> list[Path]:
+    return [
+        path
+        for path in base.iterdir()
+        if path.is_dir() and re.fullmatch(rf"问题[{CN_NUM}]+", path.name)
+    ]
+
+
 def check_results(root: Path, explicit_types: Sequence[str]) -> list[str]:
     issues: list[str] = []
     base = root / "结果数据表"
     if not base.exists():
         return ["missing: 结果数据表/"]
-    questions = [
-        path for path in base.iterdir()
-        if path.is_dir() and re.fullmatch(rf"问题[{CN_NUM}]+", path.name)
-    ]
+
+    questions = _question_directories(base)
     if not questions:
         return ["missing: no 结果数据表/问题X/ directories"]
+
     for question in questions:
         problem_types, capabilities = resolve_question_contract(root, question.name, explicit_types)
-        data_dir = question / f"{question.name}结果数据"
-        if not data_dir.exists():
-            issues.append(f"missing: {data_dir.relative_to(root)}")
-            continue
+        legacy_dir = question / f"{question.name}结果数据"
+        if legacy_dir.exists():
+            issues.append(f"obsolete nested directory: {legacy_dir.relative_to(root)}")
+
         pairs = (
-            (data_dir / f"{question.name}求解结果.xlsx", "solution"),
-            (data_dir / f"{question.name}敏感性与鲁棒性结果.xlsx", "robustness"),
+            (question / f"{question.name}求解结果.xlsx", "solution"),
+            (question / f"{question.name}敏感性与鲁棒性结果.xlsx", "robustness"),
         )
         for path, kind in pairs:
             if not path.is_file():
@@ -137,13 +169,18 @@ def check_results(root: Path, explicit_types: Sequence[str]) -> list[str]:
 
 def check_figures(root: Path) -> list[str]:
     issues: list[str] = []
-    for dirname in ("figures", "figures_editable"):
-        directory = root / dirname
-        if not directory.exists():
+    base = root / "结果数据表"
+    if not base.exists():
+        return issues
+
+    for question in _question_directories(base):
+        figure_dir = question / "图表"
+        if not figure_dir.exists():
             continue
-        for path in directory.rglob("*"):
-            if path.is_file() and path.suffix.lower() in FIG_EXT and any(ord(char) >= 128 for char in path.name):
-                issues.append(f"figure filename should be ASCII: {path.relative_to(root)}")
+        for path in figure_dir.rglob("*"):
+            if path.is_file() and path.suffix.lower() in FIG_EXT:
+                if any(ord(char) >= 128 for char in path.name):
+                    issues.append(f"figure filename should be ASCII: {path.relative_to(root)}")
     return issues
 
 
@@ -151,7 +188,10 @@ def check_state(root: Path) -> list[str]:
     state = root / "state" / "project_state.yaml"
     if not state.is_file():
         return []
-    return [f"project state violation: {item}" for item in STATE_VALIDATOR.validate_state_file(state, project_root=root)]
+    return [
+        f"project state violation: {item}"
+        for item in STATE_VALIDATOR.validate_state_file(state, project_root=root)
+    ]
 
 
 def main() -> int:
@@ -176,6 +216,7 @@ def main() -> int:
         issues += check_figures(root)
     if args.mode in {"full", "state"}:
         issues += check_state(root)
+
     if issues:
         print("HSK artifact check: ISSUES FOUND")
         for item in issues:

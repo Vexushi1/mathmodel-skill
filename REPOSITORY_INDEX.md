@@ -1,4 +1,4 @@
-# Mathmodel Skill Repository Index v6.2.3
+# Mathmodel Skill Repository Index v6.2.4
 
 本文件是面向 AI、维护者和协作者的语义导航索引。完整活动文件清单以 `HSK_SKILL_FILE_INDEX_V622.md` 为准；该兼容文件名的标题显示当前版本。历史文件只通过 `legacy/README.md` 追溯。
 
@@ -68,27 +68,31 @@ python scripts/resolve_workflow.py full_solution --primary mechanism --secondary
 
 - `templates/problem/`：要求覆盖、路线比较、数据审计；
 - `templates/model/`：变量、假设、公式—代码闭环和适用检查；
-- `templates/code/`：无导入副作用的 Python 起步管线；
-- `templates/matlab/`：根目录定位、工作簿读取、科研绘图和可选导出；
+- `templates/code/`：项目根目录 Python 起步管线与标准工作簿写入；
+- `templates/matlab/`：同目录工作簿读取、单文件科研绘图和可选导出；
 - `templates/figure/`：图型选择、机理图与结果图合同、QA、论文闭环；
 - `templates/writing/`：摘要、图表解释、DOCX 检查、代码附录；
 - `templates/latex/`：国赛、MCM/ICM、电工杯模板；
 - `scripts/validate_project_state.py`：项目状态语义校验；
-- `scripts/hsk_check_artifact.py`：代码、逐问工作簿、图像和状态检查；
+- `scripts/hsk_check_artifact.py`：根目录 Python、逐问工作簿、同目录 MATLAB、图像和状态检查；
 - `scripts/score_submission.py`：六维评分与硬否决；
 - `scripts/generate_indexes.py`：活动索引与 Manifest。
 
 ## 7. 核心输出契约
 
 ```text
-结果数据表/
-└─ 问题X/
-   └─ 问题X结果数据/
-      ├─ 问题X求解结果.xlsx
-      └─ 问题X敏感性与鲁棒性结果.xlsx
+项目根目录/
+├─ 赛题与附件
+├─ 问题一求解.py
+└─ 结果数据表/
+   └─ 问题一/
+      ├─ 问题一求解结果.xlsx
+      ├─ 问题一敏感性与鲁棒性结果.xlsx
+      ├─ q1_plot.m
+      └─ 图表/
 ```
 
-Python 负责求解、验证和工作簿输出；MATLAB 只读取工作簿绘制正式结果图。所有工作表必须非空；不适用分析写入 `适用性说明`。
+Python 代码与赛题、附件同放项目根目录；每问两类工作簿和唯一 MATLAB 入口直接位于 `结果数据表/问题X/`；MATLAB 正式图写入同级 `图表/`。不再默认创建 `数据/`、`Python求解/`、`MATLAB绘图/` 或“问题X结果数据”重复层级。所有工作表必须非空；不适用分析写入 `适用性说明`。
 
 ## 8. 维护规则
 

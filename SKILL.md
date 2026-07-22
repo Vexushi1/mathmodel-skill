@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 6.2.3
-summary: HSK modular mathematical-modeling workflow with per-subproblem state, capability-driven Chinese Excel workbooks, Python-only solving, MATLAB-only formal result figures, DOCX draft, cleaned LaTeX final, and reviewer-grade delivery.
+version: 6.2.4
+summary: HSK modular mathematical-modeling workflow with per-subproblem state, root-level problem code, flat per-question Chinese Excel workbooks, co-located MATLAB result scripts, DOCX draft, cleaned LaTeX final, and reviewer-grade delivery.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型选择, 敏感性分析, 鲁棒性分析, 机理图, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v6.2.3
+# HSK 数学建模模块化工作流 v6.2.4
 
 ## 启动顺序
 
@@ -36,8 +36,8 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 
 ## 固定软件分工
 
-- Python：数据处理、模型求解、优化、仿真、检验、敏感性、鲁棒性和标准工作簿输出。
-- MATLAB：读取标准工作簿绘制正式论文结果图，不重新计算核心结果。
+- Python：读取项目根目录中的题目附件，完成数据处理、模型求解、优化、仿真、检验、敏感性、鲁棒性和标准工作簿输出。
+- MATLAB：与对应问题工作簿同目录，读取标准工作簿绘制正式论文结果图，不重新计算核心结果。
 - GeoGebra/PPT/draw.io/SVG/TikZ：按需承担非数据驱动机理图。
 - DOCX：前期修改与逻辑检查；LaTeX：最终论文与 PDF。
 
@@ -51,15 +51,23 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 
 Python 写入器与交付检查器复用 `result_io.py` 的同一工作簿校验函数。项目状态语义由 `scripts/validate_project_state.py` 检查。
 
-## 固定结果结构
+## 固定项目与结果结构
 
 ```text
-结果数据表/问题X/问题X结果数据/
-├─ 问题X求解结果.xlsx
-└─ 问题X敏感性与鲁棒性结果.xlsx
+项目根目录/
+├─ A题.pdf
+├─ 附件1.xlsx
+├─ 问题一求解.py
+├─ 问题一敏感性与鲁棒性.py
+└─ 结果数据表/
+   └─ 问题一/
+      ├─ 问题一求解结果.xlsx
+      ├─ 问题一敏感性与鲁棒性结果.xlsx
+      ├─ q1_plot.m
+      └─ 图表/
 ```
 
-约束、均衡、守恒、离散和收敛检查由每问 capability 标志决定，不再仅按题型名称机械强制。所有工作表必须非空；不适用分析写入 `适用性说明`。
+不再默认创建 `数据/`、`Python求解/`、`MATLAB绘图/` 或 `问题X结果数据/` 重复层级。Python 使用脚本目录定位项目根目录；MATLAB 使用自身目录直接读取同目录工作簿。约束、均衡、守恒、离散和收敛检查由每问 capability 标志决定。所有工作表必须非空；不适用分析写入 `适用性说明`。
 
 ## 默认主线
 
