@@ -1,4 +1,6 @@
 import importlib.util
+import shutil
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,7 +15,15 @@ def load_module(name: str, path: Path):
     spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
-    spec.loader.exec_module(module)
+    parent = str(path.parent)
+    added = parent not in sys.path
+    if added:
+        sys.path.insert(0, parent)
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        if added:
+            sys.path.remove(parent)
     return module
 
 
@@ -131,6 +141,24 @@ class TestTooling(unittest.TestCase):
             )
             with self.assertRaisesRegex(SystemExit, "cannot safely infer"):
                 module.infer_profile(main, profiles)
+
+    def test_cumcm_font_patch_is_narrow_and_idempotent(self):
+        module = load_module(
+            "prepare_cumcm_class", ROOT / "scripts/prepare_cumcm_class.py"
+        )
+        source = ROOT / "templates/latex/cumcm/cumcmthesis/cumcmthesis.cls"
+        original = source.read_text(encoding="utf-8")
+        self.assertEqual(original.count(module.ORIGINAL_FONT_BLOCK), 1)
+        suffix = original.split(module.ORIGINAL_FONT_BLOCK, 1)[1]
+
+        with tempfile.TemporaryDirectory() as temp:
+            target = Path(temp) / "cumcmthesis.cls"
+            shutil.copyfile(source, target)
+            self.assertTrue(module.patch_cumcm_class(target))
+            patched = target.read_text(encoding="utf-8")
+            self.assertIn(module.FALLBACK_FONT_BLOCK, patched)
+            self.assertTrue(patched.endswith(suffix))
+            self.assertFalse(module.patch_cumcm_class(target))
 
     def test_matlab_templates_use_root_finder_font_fallback_and_preserve_columns(self):
         plotting = (
