@@ -19,6 +19,7 @@
 - `THIRD_PARTY_NOTICES.md`
 - `agents/openai.yaml`
 - `assets/figure_assets.yaml`
+- `assets/nature_figure/README.md`
 - `assets/nature_figure/chart-atlas/atlas-01-bar-charts.png`
 - `assets/nature_figure/chart-atlas/atlas-02-line-trends.png`
 - `assets/nature_figure/chart-atlas/atlas-03-heatmaps.png`
