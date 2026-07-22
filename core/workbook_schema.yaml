@@ -75,7 +75,19 @@ sensitivity_robustness_workbook:
       optional_columns: [证据位置, 结论]
 
 matlab_handoff:
-  required_mapping_fields: [figure_id, workbook, worksheet, matlab_script, local_plot_function]
+  required_mapping_fields:
+    - figure_id
+    - workbook
+    - worksheet
+    - matlab_script
+    - local_plot_function
+    - composition_level
+    - layer_map
+    - axis_contract
+    - panel_map
+    - shared_color_mapping
+    - rendering_transforms
+  allowed_composition_levels: [single, layered, multi-panel, hybrid]
   script_pattern: ^Q[1-9][0-9]*_plot\.m$
   single_script_per_question: true
   rules:
@@ -84,4 +96,8 @@ matlab_handoff:
     - 图表合同必须记录源工作簿、工作表和字段。
     - 同一问题全部图表映射必须指向同一个 QX_plot.m。
     - local_plot_function 指向 QX_plot.m 内生成该图的本地函数。
+    - composition_level 只能为 single、layered、multi-panel 或 hybrid。
+    - layered 和 hybrid 必须记录图层职责、坐标轴契约和固定颜色角色。
+    - multi-panel 和 hybrid 必须记录 panel_map；不适用时显式写“不适用”。
+    - rendering_transforms 只记录抖动、固定带宽 KDE、分箱、透明度和布局等非决策性绘图变换。
     - QX_plot.m 必须自包含，不得依赖项目交付目录中的其他辅助 MATLAB 文件。
