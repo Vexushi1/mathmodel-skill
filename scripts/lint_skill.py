@@ -43,9 +43,7 @@ REQUIRED = [
     "templates/writing/docx_check.md",
     "templates/writing/caption_explanation.md",
     "templates/code/hsk_pipeline/result_io.py",
-    "templates/matlab/hsk_find_project_root.m",
-    "templates/matlab/hsk_read_result_workbooks.m",
-    "templates/matlab/plot_from_workbook.m",
+    "templates/matlab/QX_plot.m",
     "templates/latex/cumcm/cumcmthesis/cumcmthesis.cls",
     ".github/workflows/ci.yml",
     "LICENSE",
@@ -75,6 +73,8 @@ BAD_PATTERNS = {
     r"SEED v0\.1": "obsolete SEED template marker",
     r"Filled by stage 8 output": "obsolete Stage template comment",
     r"templates/writing/docx_(?:draft|layout)_check\.md": "obsolete duplicate DOCX checklist reference",
+    r"templates/matlab/plot_from_workbook\.m": "obsolete split MATLAB result template reference",
+    r"templates/matlab/plot_sensitivity_robustness\.m": "obsolete split MATLAB sensitivity template reference",
 }
 PATH_PATTERN = re.compile(
     r"(?P<path>(?:core|modules|packs|templates|scripts|state)/[A-Za-z0-9_./{}-]+\.(?:md|yaml|yml|json|py|m|tex|bib))"
@@ -203,6 +203,32 @@ def check_workbook_schema(errors: list[str]) -> None:
         errors.append("workbook schema must forbid empty worksheets")
 
 
+def check_matlab_single_entry(errors: list[str]) -> None:
+    template = ROOT / "templates/matlab/QX_plot.m"
+    if not template.is_file():
+        return
+    text = read_text(template)
+    required_fragments = [
+        "function figureRegistry = QX_plot()",
+        "plot_core_result",
+        "plot_sensitivity",
+        "plot_robustness_interval",
+        "function projectRoot = find_project_root",
+        "function apply_scientific_style",
+        "function export_figure",
+        "exportFigures = false",
+    ]
+    for fragment in required_fragments:
+        if fragment not in text:
+            errors.append(f"QX_plot template missing fragment: {fragment}")
+    for obsolete in ("plot_from_workbook.m", "plot_sensitivity_robustness.m"):
+        if (ROOT / "templates/matlab" / obsolete).exists():
+            errors.append(f"obsolete split MATLAB template still exists: templates/matlab/{obsolete}")
+    output_contract = read_text(ROOT / "core/output_contract.yaml")
+    if "matlab_plot_script: MATLAB绘图/问题{中文序号}/Q{阿拉伯序号}_plot.m" not in output_contract:
+        errors.append("output contract lacks QX_plot per-question path")
+
+
 def check_task_pack_contract(errors: list[str]) -> None:
     for name in TASK_PACKS:
         path = ROOT / "packs" / "task" / f"{name}.md"
@@ -266,6 +292,7 @@ def main() -> int:
     check_declared_paths(errors)
     check_project_state_schema(errors)
     check_workbook_schema(errors)
+    check_matlab_single_entry(errors)
     check_task_pack_contract(errors)
     check_writing_templates(errors)
     check_tex_templates(errors)
