@@ -1,21 +1,17 @@
 # HSK Skill File Index v6.2.2
 
 - `.codex-plugin/plugin.json`
+- `.gitattributes`
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
 - `AGENTS.md`
-- `CHANGELOG_V621.md`
 - `CHANGELOG_V622.md`
-- `HSK_RUNTIME_ROUTER_V621.md`
 - `HSK_RUNTIME_ROUTER_V622.md`
-- `HSK_SKILL_FILE_INDEX_V621.md`
 - `HSK_SKILL_FILE_INDEX_V622.md`
-- `HSK_TEMPLATE_INDEX_V621.md`
 - `HSK_TEMPLATE_INDEX_V622.md`
 - `LICENSE`
 - `MANIFEST.sha256`
-- `PROJECT_INSTRUCTIONS_HSK_V621.md`
 - `PROJECT_INSTRUCTIONS_HSK_V622.md`
 - `README.md`
 - `REPOSITORY_INDEX.md`
@@ -37,6 +33,7 @@
 - `assets/nature_figure/gallery/fig3-in-vivo-efficacy-rich.png`
 - `assets/nature_figure/gallery/fig4-single-cell-systems-rich.png`
 - `assets/nature_figure/gallery/fig5-validation-perturbation-rich.png`
+- `config/competition_profiles.yaml`
 - `config/review_weights.json`
 - `core/compile_profiles.yaml`
 - `core/hsk_core_policy.md`
@@ -76,6 +73,7 @@
 - `legacy/reference_details/hsk_nature_figure_protocol.md`
 - `legacy/reference_details/hsk_ponytail_code_protocol.md`
 - `legacy/reference_details/model_catalog.md`
+- `legacy/releases/v6.2.1/README.md`
 - `legacy/stage_v616/hsk_stage_00_task_intake.md`
 - `legacy/stage_v616/hsk_stage_01_problem_audit.md`
 - `legacy/stage_v616/hsk_stage_02_model_route_compare.md`
@@ -163,6 +161,7 @@
 - `scripts/hsk_check_artifact.py`
 - `scripts/hsk_pack_submission.py`
 - `scripts/lint_skill.py`
+- `scripts/prepare_cumcm_class.py`
 - `scripts/render_paper.py`
 - `skills/mathmodel-skill/SKILL.md`
 - `state/.gitkeep`
@@ -206,8 +205,7 @@
 - `templates/matlab/hsk_export_figure.m`
 - `templates/matlab/hsk_find_project_root.m`
 - `templates/matlab/hsk_read_result_workbooks.m`
-- `templates/matlab/plot_from_workbook.m`
-- `templates/matlab/plot_sensitivity_robustness.m`
+- `templates/matlab/q1_plot.m`
 - `templates/model/assumption_audit.md`
 - `templates/model/constraint_violation.md`
 - `templates/model/formula_code_closure.md`

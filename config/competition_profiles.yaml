@@ -1,0 +1,79 @@
+version: 6.2.2
+purpose: 为竞赛识别、模板选择和当届规则核验提供机器可读入口；稳定配置与时效性规则严格分离。
+
+edition_rule_contract:
+  required_fields: [edition, verification_status, verified_at, source, page_limit, anonymity, submission_files, ai_disclosure]
+  verification_status: [verified, unverified, expired]
+  rules:
+    - 当届页数、匿名、文件命名、附件和 AI 披露要求必须来自题面或官方通知。
+    - verification_status 不是 verified 时，不得把默认值写成官方要求。
+    - verified_at 和 source 必须随竞赛年度更新。
+
+profiles:
+  cumcm:
+    aliases: [国赛, CUMCM, cumcm]
+    stable:
+      competition_pack: packs/competition/cumcm.md
+      latex_template: templates/latex/cumcm/cumcmthesis/
+      compile_profile: cumcm
+      language: zh-CN
+    edition_rules:
+      edition: current
+      verification_status: unverified
+      verified_at: null
+      source: null
+      page_limit: null
+      anonymity: null
+      submission_files: []
+      ai_disclosure: null
+
+  mcm_icm:
+    aliases: [MCM, ICM, mcm, icm]
+    stable:
+      competition_pack: packs/competition/mcm_icm.md
+      latex_template: templates/latex/mcm/
+      compile_profile: mcm_icm
+      language: en
+    edition_rules:
+      edition: current
+      verification_status: unverified
+      verified_at: null
+      source: null
+      page_limit: null
+      anonymity: null
+      submission_files: []
+      ai_disclosure: null
+
+  diangong:
+    aliases: [电工杯, diangong]
+    stable:
+      competition_pack: packs/competition/diangong.md
+      latex_template: templates/latex/diangong/
+      compile_profile: diangong
+      language: zh-CN
+    edition_rules:
+      edition: current
+      verification_status: unverified
+      verified_at: null
+      source: null
+      page_limit: null
+      anonymity: null
+      submission_files: []
+      ai_disclosure: null
+
+  certification_cup:
+    aliases: [认证杯, certification cup]
+    stable:
+      competition_pack: packs/competition/certification_cup.md
+      latex_template: null
+      compile_profile: null
+      language: zh-CN
+    edition_rules:
+      edition: current
+      verification_status: unverified
+      verified_at: null
+      source: null
+      page_limit: null
+      anonymity: null
+      submission_files: []
+      ai_disclosure: null

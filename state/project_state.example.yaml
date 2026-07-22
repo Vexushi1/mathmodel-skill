@@ -4,10 +4,18 @@ project:
   current_phase: model_design
   problem_types: [mechanism, optimization]
   version: v0.1-working
+  updated_at: '2026-07-22T10:00:00Z'
 requirements:
   total: 5
   completed: [Q1]
   pending: [Q2, Q3, Q4, Q5]
+data:
+  sources:
+    - name: 赛题附件一
+      path: 数据/附件一.xlsx
+      role: 原始输入数据
+  version_hashes: {}
+  locked_scope: 字段、单位和时间口径已完成审计，数据值尚未锁定。
 decisions:
   Q1:
     selected_model: 填写模型名称
@@ -15,12 +23,24 @@ decisions:
     key_reason: 填写选择理由
     solver_candidates: [主求解器, 对照算法]
     validation_plan: [约束违反检查, 多初值验证, 参数扰动]
+subproblems:
+  Q1:
+    status: designed
+    selected_model: 填写模型名称
+    validation_status: pending
+    random_seed: 2026
+    tolerance: 1.0e-8
+    evidence: []
 variables:
   locked: [x_i, t, v]
   source:
     x_i: 问题一决策变量
     t: 题目时间参数
     v: 题目给定速度
+execution:
+  python_version: '3.12'
+  dependencies: {}
+  platform: 待运行时填写
 artifacts:
   code: []
   results: []

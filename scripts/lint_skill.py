@@ -45,7 +45,7 @@ REQUIRED = [
     "templates/code/hsk_pipeline/result_io.py",
     "templates/matlab/hsk_find_project_root.m",
     "templates/matlab/hsk_read_result_workbooks.m",
-    "templates/matlab/plot_from_workbook.m",
+    "templates/matlab/q1_plot.m",
     "templates/latex/cumcm/cumcmthesis/cumcmthesis.cls",
     ".github/workflows/ci.yml",
     "LICENSE",

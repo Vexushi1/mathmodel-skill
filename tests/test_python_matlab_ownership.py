@@ -12,10 +12,11 @@ class TestOwnership(unittest.TestCase):
             self.assertNotIn('savefig(', text, str(f))
             ast.parse(text)
     def test_matlab_plot_template_visible_and_manual_export(self):
-        text=(ROOT/'templates/matlab/plot_from_workbook.m').read_text(encoding='utf-8')
+        text=(ROOT/'templates/matlab/q1_plot.m').read_text(encoding='utf-8')
         self.assertNotIn('"Visible", "off"', text)
         self.assertNotIn('close(fig)', text)
         self.assertIn('% hsk_export_figure', text)
+        self.assertIn('信息效率', text)
     def test_mechanism_template_has_no_generic_default_nodes(self):
         text=(ROOT/'templates/matlab/draw_mechanism_structure.m').read_text(encoding='utf-8')
         self.assertNotIn('输入', text)
