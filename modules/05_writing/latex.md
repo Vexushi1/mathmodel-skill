@@ -18,7 +18,6 @@
 - 摘要覆盖每问并给关键数值，原则上不放图表和复杂公式；
 - 关键词 3--6 个，写方法和研究对象，不写软件名；
 - 正文不放完整代码；复杂算法用伪代码，完整代码附录/附件；
-- 参考文献格式统一、引用闭合；
-- 编译严格执行 `modules/05_latex_compile_quality.md`，检查未定义引用、重复标签、溢出、缺图、缺字体和 Biber 错误。
+- 参考文献格式统一、引用闭合。
 
-完成后必须继续执行 `ai_cleanup.md` 和 `modules/06_review_delivery.md`。
+本模块先输出 `latex_source_draft` 与可审查的 `paper_text`，随后执行 `modules/05_writing/ai_cleanup.md`。清理后的 `latex_source` 才能进入 `modules/05_latex_compile_quality.md`，不得先编译旧草稿再把清理结果停留在文本层。
