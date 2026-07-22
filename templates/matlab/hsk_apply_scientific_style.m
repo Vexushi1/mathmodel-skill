@@ -1,5 +1,6 @@
 function palette = hsk_apply_scientific_style(fig)
-% 应用统一科研风格；不导出、不关闭图窗，并提供跨平台字体回退。
+% 应用统一科研基础风格；不导出、不关闭图窗，并提供跨平台字体回退。
+% 返回的 palette 是默认规则色板，不是固定限制；问题脚本可按变量语义和图型调整。
 arguments
     fig (1,1) matlab.ui.Figure = gcf
 end
