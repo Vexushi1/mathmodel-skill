@@ -46,6 +46,26 @@ filenames:
   matlab_plot_scripts: Q{positive integer}_plot.m
   figures: ASCII English or pinyin
 
+figure_system:
+  composition_levels: [single, layered, multi-panel, hybrid]
+  layered_examples:
+    - 柱状+折线
+    - 散点+模型线+区间带
+    - 箱线+散点
+    - 小提琴+箱线或中位数+散点
+    - 直方图+密度+参考线
+    - 中心线+双层区间带+关键点
+    - 热图+等高线+推荐点
+    - Pareto散点+前沿+推荐点
+  palette_roles:
+    primary: '#123B5D'
+    secondary: '#009E91'
+    tertiary: '#6B4FA3'
+    risk: '#C63D3D'
+    highlight: '#E07A24'
+    ink: '#181C22'
+  canonical_guide: templates/figure/scientific_composite_system.md
+
 optional_metadata:
   run_info.json: [full_reproduction, many_algorithms, cross_chat_handoff, final_review, explicit_request]
   result_manifest.yaml: [full_reproduction, many_algorithms, cross_chat_handoff, final_review, explicit_request]
@@ -61,6 +81,11 @@ rules:
   - Each question has exactly one delivered MATLAB plotting file named QX_plot.m, where X is the Arabic question number.
   - QX_plot.m must be self-contained; workbook reading, field validation, style and optional export helpers are local functions in the same file.
   - One execution of QX_plot.m creates all required result, diagnostic, sensitivity and robustness figure windows for that question.
+  - Formal figures choose the lowest sufficient composition level among single, layered, multi-panel and hybrid.
+  - Layered and hybrid figures record layer_map, axis_contract, shared_color_mapping and rendering_transforms in the figure handoff.
+  - Double y-axes require a shared x-axis, different units and a defensible mechanism relationship; each figure has at most two y-axes.
+  - MATLAB may compute only non-decisional rendering transforms such as deterministic jitter, fixed-bandwidth KDE, histogram bins and layout.
+  - Model lines, prediction intervals, Pareto status, significance and statistics used in conclusions come from Python workbooks.
   - Do not deliver auxiliary MATLAB files such as read_result.m, style.m, export.m or separate sensitivity plotting scripts.
   - MATLAB plotting files read the standard workbooks and write figures to figures/ or figures_editable/.
   - MATLAB files keep figure windows visible by default; export is an explicit optional action after manual adjustment.
