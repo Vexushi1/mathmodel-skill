@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import shutil
 import sys
 import tempfile
@@ -38,6 +39,31 @@ class TestTooling(unittest.TestCase):
             self.assertTrue(profile["sequence"])
             self.assertIn(profile["engine"], {"xelatex", "pdflatex", "lualatex"})
         self.assertIn("biber", profiles["profiles"]["cumcm"]["sequence"])
+
+    def test_competition_profiles_separate_stable_and_edition_rules(self):
+        payload = yaml.safe_load(
+            (ROOT / "config/competition_profiles.yaml").read_text(encoding="utf-8")
+        )
+        required = set(payload["edition_rule_contract"]["required_fields"])
+        for profile in payload["profiles"].values():
+            self.assertIn("stable", profile)
+            self.assertTrue(required.issubset(profile["edition_rules"]))
+            status = profile["edition_rules"]["verification_status"]
+            self.assertIn(status, payload["edition_rule_contract"]["verification_status"])
+
+    def test_review_overlays_normalize_and_match_base_dimensions(self):
+        module = load_module(
+            "resolve_review_weights", ROOT / "scripts/resolve_review_weights.py"
+        )
+        base = json.loads(
+            (ROOT / "config/review_weights.json").read_text(encoding="utf-8")
+        )
+        dimensions = set(base["dimensions"])
+        for overlay in ("cumcm_a", "mcm_icm", "statistics_modeling", "certification_cup"):
+            weights = module.resolve_weights(overlay)
+            self.assertEqual(set(weights), dimensions)
+            self.assertAlmostEqual(sum(weights.values()), 1.0, places=12)
+            self.assertTrue(all(value > 0 for value in weights.values()))
 
     def test_packager_excludes_multisuffix_latex_files(self):
         module = load_module(
