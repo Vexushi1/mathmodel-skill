@@ -1,0 +1,63 @@
+{
+  "version": "6.2.2",
+  "status": "active",
+  "method": "normalized_multipliers",
+  "disclaimer": "Internal review heuristics only. These overlays are not official competition rubrics and must not override current official rules.",
+  "overlays": {
+    "cumcm_a": {
+      "label": "CUMCM mechanism/optimization emphasis",
+      "multipliers": {
+        "problem_and_mechanism": 1.25,
+        "mathematical_closure": 1.15,
+        "data_and_validation": 1.0,
+        "results_and_figures": 0.95,
+        "writing_and_layout": 0.9,
+        "reproduction_and_delivery": 1.0
+      }
+    },
+    "cumcm_data": {
+      "label": "CUMCM data/statistics emphasis",
+      "multipliers": {
+        "problem_and_mechanism": 1.0,
+        "mathematical_closure": 1.0,
+        "data_and_validation": 1.25,
+        "results_and_figures": 1.05,
+        "writing_and_layout": 0.95,
+        "reproduction_and_delivery": 1.05
+      }
+    },
+    "mcm_icm": {
+      "label": "MCM/ICM communication and decision emphasis",
+      "multipliers": {
+        "problem_and_mechanism": 1.0,
+        "mathematical_closure": 0.95,
+        "data_and_validation": 1.0,
+        "results_and_figures": 1.15,
+        "writing_and_layout": 1.25,
+        "reproduction_and_delivery": 0.95
+      }
+    },
+    "statistics_modeling": {
+      "label": "Statistical modeling emphasis",
+      "multipliers": {
+        "problem_and_mechanism": 0.95,
+        "mathematical_closure": 1.05,
+        "data_and_validation": 1.35,
+        "results_and_figures": 1.05,
+        "writing_and_layout": 0.95,
+        "reproduction_and_delivery": 1.0
+      }
+    },
+    "certification_cup": {
+      "label": "Certification Cup reproducibility and presentation emphasis",
+      "multipliers": {
+        "problem_and_mechanism": 1.0,
+        "mathematical_closure": 1.0,
+        "data_and_validation": 1.05,
+        "results_and_figures": 1.05,
+        "writing_and_layout": 1.1,
+        "reproduction_and_delivery": 1.2
+      }
+    }
+  }
+}
