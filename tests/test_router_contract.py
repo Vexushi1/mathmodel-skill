@@ -24,10 +24,21 @@ class TestRouterContract(unittest.TestCase):
         )
 
     def test_output_contract(self):
-        text = (ROOT / "core/output_contract.yaml").read_text(encoding="utf-8")
-        self.assertIn("结果数据表/问题{中文序号}/问题{中文序号}结果数据/", text)
-        self.assertIn("问题{中文序号}求解结果.xlsx", text)
-        self.assertIn("问题{中文序号}敏感性与鲁棒性结果.xlsx", text)
+        contract = yaml.safe_load(
+            (ROOT / "core/output_contract.yaml").read_text(encoding="utf-8")
+        )
+        per_question = contract["per_question"]
+        self.assertEqual(per_question["question_directory"], "结果数据表/问题{中文序号}/")
+        self.assertEqual(per_question["matlab_script"], "q{阿拉伯序号}_plot.m")
+        self.assertEqual(per_question["figure_directory"], "图表/")
+        self.assertEqual(
+            per_question["mandatory_workbooks"]["solution"],
+            "问题{中文序号}求解结果.xlsx",
+        )
+        self.assertEqual(
+            per_question["mandatory_workbooks"]["sensitivity_robustness"],
+            "问题{中文序号}敏感性与鲁棒性结果.xlsx",
+        )
 
     def test_latex_cleanup_precedes_compile(self):
         latex_route = self.router["routing"]["latex"]["load"]
