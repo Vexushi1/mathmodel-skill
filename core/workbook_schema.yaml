@@ -75,8 +75,13 @@ sensitivity_robustness_workbook:
       optional_columns: [证据位置, 结论]
 
 matlab_handoff:
-  required_mapping_fields: [figure_id, workbook, worksheet, matlab_script]
+  required_mapping_fields: [figure_id, workbook, worksheet, matlab_script, local_plot_function]
+  script_pattern: ^Q[1-9][0-9]*_plot\.m$
+  single_script_per_question: true
   rules:
     - MATLAB 读取前必须确认工作表存在且字段满足对应图表需要。
     - 正式图不得从论文摘要数字或人工构造序列反推。
     - 图表合同必须记录源工作簿、工作表和字段。
+    - 同一问题全部图表映射必须指向同一个 QX_plot.m。
+    - local_plot_function 指向 QX_plot.m 内生成该图的本地函数。
+    - QX_plot.m 必须自包含，不得依赖项目交付目录中的其他辅助 MATLAB 文件。
