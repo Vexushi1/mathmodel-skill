@@ -1,9 +1,26 @@
 version: 6.2.2
+
 contracts:
   output: core/output_contract.yaml
   workbook: core/workbook_schema.yaml
   project_state: core/project_state.schema.yaml
   compile_profiles: core/compile_profiles.yaml
+
+workflow_profiles:
+  design:
+    modules: [problem_audit, model_design]
+    terminal_outputs: [requirement_map, route_comparison, selected_models, formula_closure]
+  full_solution:
+    modules: [problem_audit, model_design, solve_validate]
+    terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report]
+  full_workflow:
+    modules: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, review_delivery]
+    terminal_outputs: [validated_submission_package]
+  gate_policy:
+    - Each module may run only when its declared inputs exist or the missing prerequisite is recorded.
+    - A route stops at the user-requested deliverable and does not fabricate downstream artifacts.
+    - Full workflow preserves module order and cannot place writing before solve_validate.
+
 modules:
   problem_audit:
     path: modules/01_problem_audit.md
@@ -23,9 +40,17 @@ modules:
     outputs: [matlab_scripts, result_figures, refined_mechanism_figures, figure_contracts]
   writing_docx:
     path: modules/05_writing/docx.md
+    inputs: [locked_models, validated_results, figure_contracts]
+    outputs: [docx_draft, latex_migration_notes]
   writing_latex:
     path: modules/05_writing/latex.md
+    inputs: [locked_models, validated_results, approved_figures, bibliography]
+    outputs: [latex_source, compiled_pdf]
   ai_cleanup:
     path: modules/05_writing/ai_cleanup.md
+    inputs: [paper_text, evidence_map]
+    outputs: [cleaned_paper_text, unsupported_claims]
   review_delivery:
     path: modules/06_review_delivery.md
+    inputs: [all_requested_artifacts, output_contract, workbook_schema, compile_profile]
+    outputs: [review_report, validated_submission_package]
