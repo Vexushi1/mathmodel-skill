@@ -1,13 +1,16 @@
-# Scripts
+# Scripts v6.2.3
 
-- `lint_skill.py`：检查核心文件、YAML/JSON Schema、路由路径、活动模板、Python 语法、标准 MATLAB 绘图入口以及生成索引的一致性。
-- `generate_indexes.py`：重建 `HSK_SKILL_FILE_INDEX_V622.md`、`HSK_TEMPLATE_INDEX_V622.md` 与 `MANIFEST.sha256`；发布、移动或删除文件后必须运行。UTF-8 文本按 LF 规范化计算哈希，减少跨平台伪差异。
-- `hsk_check_artifact.py`：检查具体建模项目的代码职责、结果目录和图像命名。
+- `lint_skill.py`：检查核心文件、版本、路由路径、模块产物闭环、Schema、题型 Pack、评分配置、视觉资产、编译入口、Python 语法和活动索引。
+- `resolve_workflow.py`：将任务意图、主/次题型与竞赛解析为确定性的模块、Pack、模板和契约加载计划。
+- `validate_project_state.py`：验证真实项目状态的结构、阶段、需求计数、产物路径、证据、哈希失效、容差和最优性声明。
+- `generate_indexes.py`：重建活动 `HSK_SKILL_FILE_INDEX_V622.md`、模板索引与 `MANIFEST.sha256`；UTF-8 文本按 LF 规范化计算哈希，完整 legacy 不进入活动索引。
+- `hsk_check_artifact.py`：检查具体建模项目的代码职责、逐问状态、两类工作簿契约和图像命名；工作簿校验复用 `result_io.py`。
+- `score_submission.py`：读取 `config/review_weights.json` 计算六维评分并执行硬否决。
 - `hsk_pack_submission.py`：打包提交产物，并排除缓存与 LaTeX 辅助文件。
-- `render_paper.py`：按 `core/compile_profiles.yaml` 编译既有 LaTeX 工程，支持 XeLaTeX/Biber 与 pdfLaTeX/BibTeX 配置。
-- `prepare_cumcm_class.py`：对复制到项目目录的 CUMCM 类文件执行窄范围、幂等的字体回退补丁。
+- `render_paper.py`：按 `core/compile_profiles.yaml` 的 template/project 主入口与编译链编译 LaTeX 工程。
+- `prepare_cumcm_class.py`：对复制到项目目录的 CUMCM 类文件执行窄范围、幂等兼容补丁。
 
-MATLAB 问题绘图入口统一使用 `q{x}_plot.m`，例如问题一为 `q1_plot.m`。规则色板只作为默认起点，可在问题脚本中按信息展示效率和变量语义调整。
+MATLAB 问题绘图入口统一使用 `q{x}_plot.m`。视觉参考通过 `assets/figure_assets.yaml` 按需加载，规则色板只作为默认起点。
 
 推荐维护命令：
 
@@ -16,6 +19,8 @@ python scripts/generate_indexes.py
 python scripts/generate_indexes.py --check
 python scripts/lint_skill.py
 python -m unittest discover -s tests -p "test_*.py"
+python scripts/resolve_workflow.py full_solution --primary mechanism --secondary optimization --competition CUMCM
+python scripts/validate_project_state.py state/project_state.yaml --project-root .
 ```
 
-旧评分、下载与语料处理脚本位于 `legacy/`，不属于默认运行链路。
+旧评分、下载与语料处理脚本位于 `legacy/`，不属于默认运行链路或活动 Manifest。
