@@ -1,19 +1,17 @@
 project:
   random_seed: 2026
-  raw_data_dir: 数据
-  python_solution_dir: Python求解
+  source_root: .
   result_root: 结果数据表
-  matlab_dir: MATLAB绘图
-  figures_editable_dir: figures_editable
-  figures_dir: figures
   draft_docx_dir: draft_docx
   final_latex_dir: final_latex
 
 question_output:
   problem_name: 问题一
-  result_data_dir: 结果数据表/问题一/问题一结果数据
+  result_dir: 结果数据表/问题一
   solution_workbook: 问题一求解结果.xlsx
   sensitivity_robustness_workbook: 问题一敏感性与鲁棒性结果.xlsx
+  matlab_script: q1_plot.m
+  figure_dir: 图表
 
 runtime:
   strict_column_check: true
