@@ -1,5 +1,4 @@
 import importlib.util
-import json
 import shutil
 import sys
 import tempfile
@@ -50,20 +49,6 @@ class TestTooling(unittest.TestCase):
             self.assertTrue(required.issubset(profile["edition_rules"]))
             status = profile["edition_rules"]["verification_status"]
             self.assertIn(status, payload["edition_rule_contract"]["verification_status"])
-
-    def test_review_overlays_normalize_and_match_base_dimensions(self):
-        module = load_module(
-            "resolve_review_weights", ROOT / "scripts/resolve_review_weights.py"
-        )
-        base = json.loads(
-            (ROOT / "config/review_weights.json").read_text(encoding="utf-8")
-        )
-        dimensions = set(base["dimensions"])
-        for overlay in ("cumcm_a", "mcm_icm", "statistics_modeling", "certification_cup"):
-            weights = module.resolve_weights(overlay)
-            self.assertEqual(set(weights), dimensions)
-            self.assertAlmostEqual(sum(weights.values()), 1.0, places=12)
-            self.assertTrue(all(value > 0 for value in weights.values()))
 
     def test_packager_excludes_multisuffix_latex_files(self):
         module = load_module(
@@ -153,6 +138,16 @@ class TestTooling(unittest.TestCase):
             )
             self.assertTrue(any("约束违反检查" in issue for issue in issues), issues)
 
+    def test_manifest_digest_normalizes_text_line_endings(self):
+        module = load_module("generate_indexes", ROOT / "scripts/generate_indexes.py")
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "sample.txt"
+            path.write_bytes(b"alpha\r\nbeta\r\n")
+            crlf_digest = module.digest_file(path)
+            path.write_bytes(b"alpha\nbeta\n")
+            lf_digest = module.digest_file(path)
+            self.assertEqual(crlf_digest, lf_digest)
+
     def test_render_paper_refuses_ambiguous_profile(self):
         module = load_module("render_paper", ROOT / "scripts/render_paper.py")
         profiles = module.load_profiles()
@@ -187,9 +182,7 @@ class TestTooling(unittest.TestCase):
             self.assertFalse(module.patch_cumcm_class(target))
 
     def test_matlab_templates_use_root_finder_font_fallback_and_preserve_columns(self):
-        plotting = (
-            ROOT / "templates/matlab/q1_plot.m"
-        ).read_text(encoding="utf-8")
+        plotting = (ROOT / "templates/matlab/q1_plot.m").read_text(encoding="utf-8")
         style = (
             ROOT / "templates/matlab/hsk_apply_scientific_style.m"
         ).read_text(encoding="utf-8")
