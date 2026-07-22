@@ -14,20 +14,24 @@ ORIGINAL_FONT_BLOCK = r"""% 设置字体
 \setCJKfamilyfont{song}[AutoFakeBold]{SimSun}
 \newcommand*{\song}{\CJKfamily{song}}"""
 
-FALLBACK_FONT_BLOCK = r"""% 设置字体：优先使用竞赛常用字体，缺失时回退到 TeX Live 自带字体。
+FALLBACK_FONT_BLOCK = r"""% 设置字体：优先使用竞赛常用字体，缺失时回退到 TeX Live 字体文件。
 \IfFontExistsTF{Times New Roman}
   {\setmainfont{Times New Roman}}
-  {\setmainfont{TeX Gyre Termes}}
+  {\IfFontExistsTF{TeX Gyre Termes}
+     {\setmainfont{TeX Gyre Termes}}
+     {\setmainfont{lmroman10-regular.otf}}}
 \IfFontExistsTF{Arial}
   {\setsansfont{Arial}}
-  {\setsansfont{TeX Gyre Heros}}
+  {\IfFontExistsTF{TeX Gyre Heros}
+     {\setsansfont{TeX Gyre Heros}}
+     {\setsansfont{lmsans10-regular.otf}}}
 \IfFontExistsTF{KaiTi}
   {\setCJKfamilyfont{kai}[AutoFakeBold]{KaiTi}}
-  {\setCJKfamilyfont{kai}[AutoFakeBold]{FandolKai-Regular}}
+  {\setCJKfamilyfont{kai}[AutoFakeBold]{FandolKai-Regular.otf}}
 \newcommand*{\kai}{\CJKfamily{kai}}
 \IfFontExistsTF{SimSun}
   {\setCJKfamilyfont{song}[AutoFakeBold]{SimSun}}
-  {\setCJKfamilyfont{song}[AutoFakeBold]{FandolSong-Regular}}
+  {\setCJKfamilyfont{song}[AutoFakeBold]{FandolSong-Regular.otf}}
 \newcommand*{\song}{\CJKfamily{song}}"""
 
 
