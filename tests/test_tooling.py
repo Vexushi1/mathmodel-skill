@@ -66,12 +66,43 @@ class TestTooling(unittest.TestCase):
             self.assertEqual(module.inspect_workbook(solution, "solution"), [])
             self.assertEqual(module.inspect_workbook(robustness, "robustness"), [])
 
-    def test_matlab_templates_use_root_finder_and_font_fallback(self):
-        plotting = (ROOT / "templates/matlab/plot_from_workbook.m").read_text(encoding="utf-8")
-        style = (ROOT / "templates/matlab/hsk_apply_scientific_style.m").read_text(encoding="utf-8")
-        self.assertIn("hsk_find_project_root", plotting)
-        self.assertIn("listfonts", style)
-        self.assertIn("Noto Sans CJK SC", style)
+    def test_qx_plot_is_self_contained_and_has_font_fallback(self):
+        plotting = (ROOT / "templates/matlab/QX_plot.m").read_text(encoding="utf-8")
+        self.assertIn("function projectRoot = find_project_root", plotting)
+        self.assertIn("function apply_scientific_style", plotting)
+        self.assertIn("function export_figure", plotting)
+        self.assertIn("listfonts", plotting)
+        self.assertIn("Noto Sans CJK SC", plotting)
+
+    def test_matlab_handoff_rejects_multiple_scripts(self):
+        module = load_module(
+            "matlab_handoff", ROOT / "templates/code/hsk_pipeline/matlab_handoff.py"
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            problem = "问题一"
+            result_dir = root / "结果数据表" / problem / f"{problem}结果数据"
+            result_dir.mkdir(parents=True)
+            for name in (f"{problem}求解结果.xlsx", f"{problem}敏感性与鲁棒性结果.xlsx"):
+                (result_dir / name).write_bytes(b"placeholder")
+            figures = [
+                {
+                    "figure_id": "图1",
+                    "workbook": "求解结果",
+                    "worksheet": "明细结果",
+                    "matlab_script": "Q1_plot.m",
+                    "local_plot_function": "plot_core_result",
+                },
+                {
+                    "figure_id": "图2",
+                    "workbook": "敏感性与鲁棒性结果",
+                    "worksheet": "参数敏感性",
+                    "matlab_script": "Q2_plot.m",
+                    "local_plot_function": "plot_sensitivity",
+                },
+            ]
+            with self.assertRaises(ValueError):
+                module.write_matlab_handoff(root, problem, figures)
 
 
 if __name__ == "__main__":
