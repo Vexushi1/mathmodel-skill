@@ -163,6 +163,7 @@
 - `scripts/lint_skill.py`
 - `scripts/prepare_cumcm_class.py`
 - `scripts/render_paper.py`
+- `scripts/resolve_workflow.py`
 - `scripts/validate_project_state.py`
 - `skills/mathmodel-skill/SKILL.md`
 - `state/.gitkeep`
