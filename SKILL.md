@@ -10,10 +10,19 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 ## 启动顺序
 
 1. 始终读取 `core/hsk_core_policy.md`。
-2. 读取 `core/workflow_router.yaml`，按任务只加载必要模块。
-3. 若已有项目状态，按 `core/project_state.schema.yaml` 读取 `state/project_state.yaml` 或当前对话中的等价摘要。
-4. 按需加载 `modules/`、`packs/task/`、`packs/competition/` 和 `packs/artifact/`。
-5. 禁止默认读取 `legacy/`；只有兼容旧项目、追溯旧规则或修复旧脚本时才加载。
+2. 读取 `core/workflow_router.yaml`，确定任务层级、模块顺序和题型 Pack。
+3. 读取 `core/module_manifest.yaml`，核对模块输入、输出、依赖和机器契约。
+4. 若已有项目状态，按 `core/project_state.schema.yaml` 读取 `state/project_state.yaml` 或当前对话中的等价摘要。
+5. 按需加载 `modules/`、`packs/task/`、`packs/competition/` 和 `packs/artifact/`。
+6. 禁止默认读取 `legacy/`；只有兼容旧项目、追溯旧规则或修复旧脚本时才加载。
+
+## 三种完整度
+
+- **建模方案**：审题与模型设计，停在变量、假设、公式、约束和验证计划闭环。
+- **完整求解**：在建模方案基础上继续完成 Python 求解、约束检查、多算法验证和两类标准工作簿。
+- **全流程**：继续完成 MATLAB 结果图、DOCX 草稿、LaTeX 终稿、AI 模板感清除和评委式终审。
+
+路由以用户实际交付物为终点，不为凑流程伪造后续成果；下游模块缺少前置结果时必须记录缺口，不能用占位数字替代。
 
 ## 六大运行模块
 
@@ -34,9 +43,11 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 ## 机器可读契约
 
 - `core/output_contract.yaml`：项目目录、文件名与软件职责；
-- `core/workbook_schema.yaml`：工作表、字段、非空和交接规则；
+- `core/workbook_schema.yaml`：工作表、字段、非空、条件工作表和 MATLAB 交接规则；
 - `core/project_state.schema.yaml`：跨聊天项目状态；
 - `core/compile_profiles.yaml`：各竞赛 LaTeX 编译链。
+
+Python 写入器与交付检查器必须执行 `core/workbook_schema.yaml`，不能只检查工作表是否存在。
 
 ## 固定结果结构
 
