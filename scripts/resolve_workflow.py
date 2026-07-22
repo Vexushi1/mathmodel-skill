@@ -49,8 +49,7 @@ def resolve_workflow(
 
     classifier = router.get("classifier_contract", {})
     allowed = set(classifier.get("allowed_labels", []))
-    labels = unique([primary] if primary else []) + unique(secondary)
-    labels = unique(labels)
+    labels = unique(([primary] if primary else []) + list(secondary))
     if len(labels) > 3:
         raise ValueError("one request may load at most one primary and two secondary task packs")
     unknown = [label for label in labels if label not in allowed]
@@ -59,27 +58,24 @@ def resolve_workflow(
     if route.get("load_classified_task_packs") and not primary:
         raise ValueError(f"intent {intent} requires a primary task label")
 
-    paths = [*router.get("default_load", []), *route.get("load", []), *route.get("then", [])]
-    if route.get("load_classified_task_packs"):
-        paths.extend(f"packs/task/{label}.md" for label in labels)
+    paths = [*router.get("default_load", []), *route.get("load", [])]
     if route.get("load_competition_pack"):
         pack = resolve_competition_pack(competition, load_yaml(competition_path))
         paths.append(pack or "packs/competition/auto.md")
+    if route.get("load_classified_task_packs"):
+        paths.extend(f"packs/task/{label}.md" for label in labels)
+    paths.extend(route.get("then", []))
 
     ordered = unique(paths)
-    modules = [item for item in ordered if item.startswith("modules/")]
-    packs = [item for item in ordered if item.startswith("packs/")]
-    templates = [item for item in ordered if item.startswith("templates/")]
-    contracts = [item for item in ordered if item.startswith("core/")]
     return {
         "version": router.get("version"),
         "intent": intent,
         "primary": primary,
         "secondary": [label for label in labels if label != primary],
-        "modules": modules,
-        "packs": packs,
-        "templates": templates,
-        "contracts": contracts,
+        "modules": [item for item in ordered if item.startswith("modules/")],
+        "packs": [item for item in ordered if item.startswith("packs/")],
+        "templates": [item for item in ordered if item.startswith("templates/")],
+        "contracts": [item for item in ordered if item.startswith("core/")],
         "load_order": ordered,
         "terminal_outputs": route.get("terminal_outputs", []),
     }
