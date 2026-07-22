@@ -1,6 +1,7 @@
 # HSK Skill File Index v6.2.2
 
 - `.codex-plugin/plugin.json`
+- `.gitattributes`
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
@@ -33,7 +34,6 @@
 - `assets/nature_figure/gallery/fig4-single-cell-systems-rich.png`
 - `assets/nature_figure/gallery/fig5-validation-perturbation-rich.png`
 - `config/competition_profiles.yaml`
-- `config/review_overlays.json`
 - `config/review_weights.json`
 - `core/compile_profiles.yaml`
 - `core/hsk_core_policy.md`
@@ -163,7 +163,6 @@
 - `scripts/lint_skill.py`
 - `scripts/prepare_cumcm_class.py`
 - `scripts/render_paper.py`
-- `scripts/resolve_review_weights.py`
 - `skills/mathmodel-skill/SKILL.md`
 - `state/.gitkeep`
 - `state/project_state.example.yaml`
@@ -206,8 +205,7 @@
 - `templates/matlab/hsk_export_figure.m`
 - `templates/matlab/hsk_find_project_root.m`
 - `templates/matlab/hsk_read_result_workbooks.m`
-- `templates/matlab/plot_from_workbook.m`
-- `templates/matlab/plot_sensitivity_robustness.m`
+- `templates/matlab/q1_plot.m`
 - `templates/model/assumption_audit.md`
 - `templates/model/constraint_violation.md`
 - `templates/model/formula_code_closure.md`
