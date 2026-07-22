@@ -6,7 +6,6 @@
 - `hsk_pack_submission.py`：打包提交产物，并排除缓存与 LaTeX 辅助文件。
 - `render_paper.py`：按 `core/compile_profiles.yaml` 编译既有 LaTeX 工程，支持 XeLaTeX/Biber 与 pdfLaTeX/BibTeX 配置。
 - `prepare_cumcm_class.py`：对复制到项目目录的 CUMCM 类文件执行窄范围、幂等的字体回退补丁。
-- `resolve_review_weights.py`：将内部竞赛评分 Overlay 与基础维度合并并归一化。
 
 MATLAB 问题绘图入口统一使用 `q{x}_plot.m`，例如问题一为 `q1_plot.m`。规则色板只作为默认起点，可在问题脚本中按信息展示效率和变量语义调整。
 
