@@ -41,7 +41,7 @@
 | W-DRO、MPEC、ALNS、GNN、DML、强化学习等高级方法 | `modules/02_model_design.md` | `packs/task/advanced_method_gate.md` + 对应题型 Pack |
 | Python 求解、优化、仿真、统计检验 | `modules/03_solve_validate.md` | `packs/artifact/code.md`、题型 Pack、工作簿 Schema |
 | 敏感性、鲁棒性、多算法验证 | `modules/03_solve_validate.md` | 题型 Pack、`templates/review/robustness_check.md` |
-| MATLAB 结果图、机理图、科研绘图 | `modules/04_figure_evidence.md` | `templates/figure/chart_selection.md`、结果图合同、MATLAB 模板 |
+| MATLAB 结果图、科研绘图、组合图、机理图 | `modules/04_figure_evidence.md` | `templates/figure/chart_selection.md`、`templates/figure/scientific_composite_system.md`、结果图合同、`templates/matlab/QX_plot.m` |
 | Word/DOCX 草稿 | `modules/05_writing/docx.md` | `templates/writing/docx_check.md`、图表解释规范 |
 | LaTeX 终稿与编译 | `modules/05_writing/latex.md`、`modules/05_latex_compile_quality.md`、`modules/05_writing/ai_cleanup.md` | `packs/artifact/latex.md`、竞赛 Pack、`templates/latex/` |
 | 评分、终审、提交包 | `modules/06_review_delivery.md` | `packs/artifact/review.md` 或 `packs/artifact/full_submission.md` |
@@ -78,8 +78,8 @@
 - `templates/problem/`：题目要求覆盖、路线比较、数据审计；
 - `templates/model/`：变量、假设、公式—代码闭环、约束违反检查；
 - `templates/code/`：Python 起步脚本和 HSK 管线；
-- `templates/matlab/`：项目根定位、工作簿读取、科研绘图和可选导出；
-- `templates/figure/`：图型选择、机理图与结果图合同、QA、论文闭环；
+- `templates/matlab/`：每问唯一 `QX_plot.m`、高对比层叠/多面板/混合组合图和可选导出；
+- `templates/figure/`：图型选择、高对比组合图系统、机理图与结果图合同、QA、论文闭环；
 - `templates/writing/`：摘要、图表解释、统一 DOCX 检查、代码附录；
 - `templates/latex/`：国赛、MCM/ICM、电工杯 LaTeX 模板；
 - `templates/review/`：鲁棒性、代码精简、结果清单。
@@ -92,6 +92,9 @@
    └─ 问题X结果数据/
       ├─ 问题X求解结果.xlsx
       └─ 问题X敏感性与鲁棒性结果.xlsx
+
+MATLAB绘图/问题X/
+└─ QX_plot.m
 ```
 
 Python 负责数据处理、模型求解、验证和工作簿输出；MATLAB 只读取工作簿绘制正式结果图，不重新计算核心结果。所有工作表必须非空；不适用分析写入 `适用性说明`。
