@@ -11,6 +11,8 @@ from typing import Any
 
 import yaml
 
+from prepare_cumcm_class import patch_cumcm_class
+
 ROOT = Path(__file__).resolve().parent.parent
 PROFILE_FILE = ROOT / "core" / "compile_profiles.yaml"
 AUX_SUFFIXES = (
@@ -124,6 +126,17 @@ def infer_profile(main: Path, profiles: dict[str, dict[str, Any]]) -> str:
     return candidate
 
 
+def prepare_profile_files(project: Path, profile_name: str) -> None:
+    """Apply audited, idempotent local compatibility patches before compilation."""
+    if profile_name != "cumcm":
+        return
+    class_file = project / "cumcmthesis.cls"
+    if class_file.is_file():
+        changed = patch_cumcm_class(class_file)
+        if changed:
+            print(f"patched CUMCM font fallback: {class_file}")
+
+
 def clean_auxiliary(project: Path, stem: str) -> None:
     for path in project.iterdir():
         if not path.is_file() or not path.name.startswith(stem):
@@ -203,6 +216,7 @@ def main() -> int:
     profiles = load_profiles()
     requested = args.profile or args.competition
     profile_name = resolve_profile_name(requested, profiles) or infer_profile(main_tex, profiles)
+    prepare_profile_files(project, profile_name)
     if args.clean:
         clean_auxiliary(project, main_tex.stem)
     bibliography = "bibtex" if args.bibtex else args.bibliography
