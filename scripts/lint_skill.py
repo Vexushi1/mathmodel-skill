@@ -40,6 +40,7 @@ REQUIRED = [
     "modules/06_review_delivery.md",
     "packs/task/advanced_method_gate.md",
     "templates/figure/chart_selection.md",
+    "templates/figure/scientific_composite_system.md",
     "templates/writing/docx_check.md",
     "templates/writing/caption_explanation.md",
     "templates/code/hsk_pipeline/result_io.py",
@@ -213,9 +214,16 @@ def check_matlab_single_entry(errors: list[str]) -> None:
         "plot_core_result",
         "plot_sensitivity",
         "plot_robustness_interval",
+        "plot_bar_line_combo",
+        "plot_scatter_fit_combo",
+        "plot_box_scatter_combo",
+        "plot_violin_scatter_combo",
+        "plot_hist_density_combo",
+        "plot_hybrid_evidence_combo",
         "function projectRoot = find_project_root",
         "function apply_scientific_style",
         "function export_figure",
+        "high_contrast_palette",
         "exportFigures = false",
     ]
     for fragment in required_fragments:
@@ -227,6 +235,10 @@ def check_matlab_single_entry(errors: list[str]) -> None:
     output_contract = read_text(ROOT / "core/output_contract.yaml")
     if "matlab_plot_script: MATLAB绘图/问题{中文序号}/Q{阿拉伯序号}_plot.m" not in output_contract:
         errors.append("output contract lacks QX_plot per-question path")
+    composite = read_text(ROOT / "templates/figure/scientific_composite_system.md")
+    for fragment in ("层叠组合图", "柱状 + 折线", "箱线 + 抖动散点", "小提琴 + 箱线 + 原始散点", "混合组合图"):
+        if fragment not in composite:
+            errors.append(f"scientific composite system missing fragment: {fragment}")
 
 
 def check_task_pack_contract(errors: list[str]) -> None:
