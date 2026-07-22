@@ -33,6 +33,7 @@
 - `templates/latex/diangong/references.bib`
 - `templates/latex/mcm/main.tex`
 - `templates/latex/mcm/references.bib`
+- `templates/matlab/QX_plot.m`
 - `templates/matlab/README.md`
 - `templates/matlab/draw_mechanism_structure.m`
 - `templates/matlab/hsk_apply_scientific_style.m`
