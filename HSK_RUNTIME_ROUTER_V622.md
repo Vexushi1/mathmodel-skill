@@ -1,4 +1,4 @@
-# HSK Runtime Router v6.2.3
+# HSK Runtime Router v6.2.4
 
 文件名保留 V622 作为稳定兼容路径；机器事实源仍为 `core/workflow_router.yaml`。
 
@@ -28,4 +28,4 @@
 | LaTeX 终稿 | `modules/05_writing/latex.md` → `modules/05_writing/ai_cleanup.md` → `modules/05_latex_compile_quality.md` |
 | 评分、终审、提交检查 | `modules/06_review_delivery.md` + `scripts/score_submission.py` |
 
-分类器按小问输出一个主标签和最多两个必要次标签，并单独输出 capability 标志。确定性加载计划由 `scripts/resolve_workflow.py` 解析。每问结果统一读取/写入 `结果数据表/问题X/问题X结果数据/`。禁止默认加载 `legacy/`。
+分类器按小问输出一个主标签和最多两个必要次标签，并单独输出 capability 标志。项目题目、附件和 Python 脚本位于项目根目录；每问两类工作簿和 `q{x}_plot.m` 统一位于 `结果数据表/问题X/`，正式图位于同目录 `图表/`。禁止默认创建 `问题X结果数据/`，禁止默认加载 `legacy/`。
