@@ -50,9 +50,14 @@ jobs:
             xelatex: true
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Prepare CUMCM class
         if: matrix.name == 'CUMCM'
-        run: cp templates/latex/cumcm/cumcmthesis/cumcmthesis.cls templates/latex/cumcm/hsk/
+        run: |
+          cp templates/latex/cumcm/cumcmthesis/cumcmthesis.cls templates/latex/cumcm/hsk/
+          python scripts/prepare_cumcm_class.py templates/latex/cumcm/hsk/cumcmthesis.cls
       - name: Compile template
         uses: xu-cheng/latex-action@v4
         with:
