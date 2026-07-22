@@ -1,0 +1,46 @@
+version: 6.2.3
+purpose: 将 Nature 风格图集作为按需视觉参考接入图型选择；资产不提供数据、结论或固定配色。
+default_load: false
+rules:
+  - 仅在图型选择、版式对照或多面板设计需要时加载对应资产。
+  - 资产不能替代 Figure Contract、底层工作簿或 MATLAB 重绘脚本。
+  - 不按示例图机械复制颜色、面板数量和统计图型。
+assets:
+  bar_comparison:
+    path: assets/nature_figure/chart-atlas/atlas-01-bar-charts.png
+    use_for: [方案比较, 类别比较, 排名]
+  line_trends:
+    path: assets/nature_figure/chart-atlas/atlas-02-line-trends.png
+    use_for: [时间趋势, 预测, 收敛]
+  heatmaps:
+    path: assets/nature_figure/chart-atlas/atlas-03-heatmaps.png
+    use_for: [敏感性矩阵, 相关结构, 排名稳定性]
+  scatter_bubble:
+    path: assets/nature_figure/chart-atlas/atlas-04-scatter-bubble.png
+    use_for: [目标权衡, 误差时间, 相关关系]
+  radar_polar:
+    path: assets/nature_figure/chart-atlas/atlas-05-radar-polar.png
+    use_for: [少量对象多指标画像]
+  distributions:
+    path: assets/nature_figure/chart-atlas/atlas-06-distributions.png
+    use_for: [鲁棒性, 扰动分布, 残差]
+  forest_interval:
+    path: assets/nature_figure/chart-atlas/atlas-07-forest-interval.png
+    use_for: [区间估计, 效应比较, 不确定性]
+  area_stacked:
+    path: assets/nature_figure/chart-atlas/atlas-08-area-stacked.png
+    use_for: [构成变化, 资源占用, 流量变化]
+  image_plates:
+    path: assets/nature_figure/chart-atlas/atlas-09-image-plates.png
+    use_for: [空间图像, 场景对照, 机理快照]
+  network_matrix:
+    path: assets/nature_figure/chart-atlas/atlas-10-network-matrix.png
+    use_for: [网络, 邻接矩阵, 流与路径]
+  biomedical_panel_examples:
+    paths:
+      - assets/nature_figure/gallery/fig1-material-mechanism-rich.png
+      - assets/nature_figure/gallery/fig2-spatial-imaging-rich.png
+      - assets/nature_figure/gallery/fig3-in-vivo-efficacy-rich.png
+      - assets/nature_figure/gallery/fig4-single-cell-systems-rich.png
+      - assets/nature_figure/gallery/fig5-validation-perturbation-rich.png
+    use_for: [紧凑多面板, 主结果与验证组合, 留白和层级参考]
