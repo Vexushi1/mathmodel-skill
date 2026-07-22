@@ -1,21 +1,35 @@
-version: 6.2.3
+version: 6.2.4
 schema: core/workbook_schema.yaml
-root_directories:
-  raw_data: 数据/
-  python_solution: Python求解/
+
+project_root:
+  problem_and_attachments: 赛题、附件数据表和说明文件直接放在项目根目录
+  python_scripts: 问题求解、检验、敏感性与鲁棒性 Python 脚本直接放在项目根目录
   result_tables: 结果数据表/
-  matlab_plotting: MATLAB绘图/
-  figures_editable: figures_editable/
-  figures: figures/
   draft_docx: draft_docx/
   final_latex: final_latex/
 
 per_question:
   question_directory: 结果数据表/问题{中文序号}/
-  result_data_directory: 结果数据表/问题{中文序号}/问题{中文序号}结果数据/
   mandatory_workbooks:
     solution: 问题{中文序号}求解结果.xlsx
     sensitivity_robustness: 问题{中文序号}敏感性与鲁棒性结果.xlsx
+  matlab_script: q{阿拉伯序号}_plot.m
+  figure_directory: 图表/
+  optional_editable_directory: 图表/可编辑源/
+
+canonical_example:
+  project_root_files:
+    - A题.pdf
+    - 附件1.xlsx
+    - 问题一求解.py
+    - 问题一敏感性与鲁棒性.py
+  question_one:
+    directory: 结果数据表/问题一/
+    files:
+      - 问题一求解结果.xlsx
+      - 问题一敏感性与鲁棒性结果.xlsx
+      - q1_plot.m
+    figures: 结果数据表/问题一/图表/
 
 solution_workbook_recommended_sheets:
   - 核心指标
@@ -33,28 +47,31 @@ sensitivity_robustness_workbook_recommended_sheets:
   - 适用性说明
 
 ownership:
-  Python: 数据处理、模型求解、优化、仿真、检验、敏感性、鲁棒性、结果工作簿输出
-  MATLAB: 读取结果工作簿并绘制正式论文结果图；不得重新计算核心结果
+  Python: 读取项目根目录中的题目附件，完成数据处理、模型求解、优化、仿真、检验、敏感性、鲁棒性并输出结果工作簿
+  MATLAB: 与对应问题工作簿同目录，读取同目录工作簿绘制正式论文结果图；不得重新计算核心结果
   other_figure_tools: GeoGebra、PPT、draw.io、SVG、TikZ可用于非数据驱动机理图
 
 filenames:
-  python_scripts: Chinese descriptive names
-  workbooks: Chinese fixed names above
-  worksheets: Chinese descriptive names, maximum 31 characters
-  figures: ASCII English or pinyin
+  python_scripts: 项目根目录中的中文描述性名称
+  matlab_scripts: q1_plot.m、q2_plot.m 等 ASCII 固定名称
+  workbooks: 中文固定名称
+  worksheets: 中文描述性名称，最长31字符
+  figures: ASCII英文或拼音
 
 optional_metadata:
   run_info.json: [full_reproduction, many_algorithms, cross_chat_handoff, final_review, explicit_request]
   result_manifest.yaml: [full_reproduction, many_algorithms, cross_chat_handoff, final_review, explicit_request]
   matlab_figure_handoff.json: [many_figures, cross_chat_handoff, explicit_request]
-  metadata_location: corresponding 结果数据表/问题X/问题X结果数据/ or MATLAB绘图/问题X/
+  metadata_location: 对应的 结果数据表/问题X/
 
 rules:
-  - Excel workbooks are the default result exchange format; do not scatter core results across standalone CSV files.
-  - Constraint checks, multi-algorithm comparisons and detailed time/space records are worksheets in the two standard workbooks.
-  - Every worksheet must contain at least one record; when an analysis is not applicable, write an “适用性说明” worksheet instead of an empty sheet.
-  - Worksheet columns and task profiles follow core/workbook_schema.yaml.
-  - Per-question problem types and validation capabilities come from state/project_state.yaml when that state exists.
-  - CSV may be generated only for explicit compatibility needs and must remain in the same question result-data directory.
-  - MATLAB plotting scripts read the standard workbooks and write figures to figures/ or figures_editable/.
-  - MATLAB scripts keep figure windows visible by default; export is an explicit optional action after manual adjustment.
+  - 不再默认创建 Python求解/、MATLAB绘图/ 或 问题X结果数据/ 重复层级。
+  - Python 脚本使用 Path(__file__).resolve().parent 作为项目根目录，题目和附件直接从该目录读取。
+  - 每问两类标准工作簿、q{x}_plot.m 和可选元数据同放在 结果数据表/问题X/。
+  - q{x}_plot.m 以自身所在目录作为 resultDir，直接读取同目录两类工作簿，不搜索项目根目录。
+  - MATLAB 正式图导出到同目录下的 图表/；默认保留可见图窗，导出由人工调整后显式触发。
+  - Excel 工作簿是默认结果交换格式，不得把核心结果散落为独立 CSV。
+  - 约束检查、多算法对比和逐时空明细写入两类标准工作簿的工作表。
+  - 每个工作表必须至少一条记录；不适用分析使用非空的“适用性说明”。
+  - 工作表字段、题型专项与 capability 条件执行 core/workbook_schema.yaml。
+  - CSV 仅用于明确的兼容需求，并留在对应的 结果数据表/问题X/。
