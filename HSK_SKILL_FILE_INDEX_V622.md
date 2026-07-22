@@ -5,17 +5,12 @@
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
 - `AGENTS.md`
-- `CHANGELOG_V621.md`
 - `CHANGELOG_V622.md`
-- `HSK_RUNTIME_ROUTER_V621.md`
 - `HSK_RUNTIME_ROUTER_V622.md`
-- `HSK_SKILL_FILE_INDEX_V621.md`
 - `HSK_SKILL_FILE_INDEX_V622.md`
-- `HSK_TEMPLATE_INDEX_V621.md`
 - `HSK_TEMPLATE_INDEX_V622.md`
 - `LICENSE`
 - `MANIFEST.sha256`
-- `PROJECT_INSTRUCTIONS_HSK_V621.md`
 - `PROJECT_INSTRUCTIONS_HSK_V622.md`
 - `README.md`
 - `REPOSITORY_INDEX.md`
@@ -37,6 +32,8 @@
 - `assets/nature_figure/gallery/fig3-in-vivo-efficacy-rich.png`
 - `assets/nature_figure/gallery/fig4-single-cell-systems-rich.png`
 - `assets/nature_figure/gallery/fig5-validation-perturbation-rich.png`
+- `config/competition_profiles.yaml`
+- `config/review_overlays.json`
 - `config/review_weights.json`
 - `core/compile_profiles.yaml`
 - `core/hsk_core_policy.md`
@@ -166,6 +163,7 @@
 - `scripts/lint_skill.py`
 - `scripts/prepare_cumcm_class.py`
 - `scripts/render_paper.py`
+- `scripts/resolve_review_weights.py`
 - `skills/mathmodel-skill/SKILL.md`
 - `state/.gitkeep`
 - `state/project_state.example.yaml`
