@@ -41,16 +41,30 @@ class TestResultIO(unittest.TestCase):
             solve, robust = MOD.workbook_paths(root, "问题一")
             self.assertEqual(
                 solve.relative_to(root).as_posix(),
-                "结果数据表/问题一/问题一结果数据/问题一求解结果.xlsx",
+                "结果数据表/问题一/问题一求解结果.xlsx",
             )
             self.assertEqual(
                 robust.relative_to(root).as_posix(),
-                "结果数据表/问题一/问题一结果数据/问题一敏感性与鲁棒性结果.xlsx",
+                "结果数据表/问题一/问题一敏感性与鲁棒性结果.xlsx",
+            )
+            self.assertEqual(
+                MOD.matlab_script_path(root, "问题一", 1).relative_to(root).as_posix(),
+                "结果数据表/问题一/q1_plot.m",
+            )
+            self.assertEqual(
+                MOD.figure_dir(root, "问题一").relative_to(root).as_posix(),
+                "结果数据表/问题一/图表",
             )
             MOD.write_workbook(solve, self.solution_tables())
             self.assertTrue(solve.exists())
             with pd.ExcelFile(solve) as workbook:
                 self.assertEqual(workbook.sheet_names, ["核心指标", "数据审计"])
+
+    def test_project_root_defaults_to_script_directory_on_first_run(self):
+        with tempfile.TemporaryDirectory() as directory:
+            script = Path(directory) / "问题一求解.py"
+            script.write_text("", encoding="utf-8")
+            self.assertEqual(MOD.find_project_root(script), Path(directory))
 
     def test_empty_worksheet_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
