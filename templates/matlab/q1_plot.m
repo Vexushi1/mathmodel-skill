@@ -32,8 +32,8 @@ sourceBook = solutionBook;
 sourceSheet = "__ACTUAL_SHEET_NAME__";
 xHeader = "__ACTUAL_X_HEADER__";
 yHeader = "__ACTUAL_Y_HEADER__";
-xColumn = __ACTUAL_X_COLUMN__;
-yColumn = __ACTUAL_Y_COLUMN__;
+xColumn = NaN;
+yColumn = NaN;
 
 assert(~startsWith(sourceSheet, "__ACTUAL_"), ...
     "MATLAB 模板尚未按实际工作簿实例化：工作表名未替换");
@@ -41,6 +41,10 @@ assert(~startsWith(xHeader, "__ACTUAL_"), ...
     "MATLAB 模板尚未按实际工作簿实例化：横轴表头未替换");
 assert(~startsWith(yHeader, "__ACTUAL_"), ...
     "MATLAB 模板尚未按实际工作簿实例化：纵轴表头未替换");
+assert(isfinite(xColumn) && xColumn >= 1 && xColumn == floor(xColumn), ...
+    "MATLAB 模板尚未按实际工作簿实例化：横轴固定列号未填写");
+assert(isfinite(yColumn) && yColumn >= 1 && yColumn == floor(yColumn), ...
+    "MATLAB 模板尚未按实际工作簿实例化：纵轴固定列号未填写");
 
 availableSheets = string(sheetnames(sourceBook));
 assert(any(availableSheets == sourceSheet), ...
