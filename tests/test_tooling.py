@@ -164,7 +164,7 @@ class TestTooling(unittest.TestCase):
             self.assertTrue(patched.endswith(suffix))
             self.assertFalse(module.patch_cumcm_class(target))
 
-    def test_matlab_templates_use_local_result_dir_font_fallback_and_preserve_columns(self):
+    def test_matlab_templates_use_local_result_dir_and_exact_workbook_headers(self):
         plotting = (ROOT / "templates/matlab/q1_plot.m").read_text(encoding="utf-8")
         style = (ROOT / "templates/matlab/hsk_apply_scientific_style.m").read_text(encoding="utf-8")
         reader = (ROOT / "templates/matlab/hsk_read_result_workbooks.m").read_text(encoding="utf-8")
@@ -172,10 +172,17 @@ class TestTooling(unittest.TestCase):
         self.assertIn('fullfile(resultDir, "问题一求解结果.xlsx")', plotting)
         self.assertIn('fullfile(resultDir, "图表")', plotting)
         self.assertIn("信息效率", plotting)
+        self.assertIn("readcell", plotting)
+        self.assertIn("xColumn = NaN", plotting)
+        self.assertIn("actualXHeader == xHeader", plotting)
+        self.assertNotIn("readtable(", plotting)
         self.assertIn("listfonts", style)
         self.assertIn("Noto Sans CJK SC", style)
-        self.assertIn('VariableNamingRule", "preserve"', reader)
-        self.assertIn("missingColumns", reader)
+        self.assertIn("readcell", reader)
+        self.assertIn("fixedColumns", reader)
+        self.assertIn("expectedHeaders", reader)
+        self.assertNotIn("missingColumns", reader)
+        self.assertNotIn('VariableNamingRule", "preserve"', reader)
 
 
 if __name__ == "__main__":
