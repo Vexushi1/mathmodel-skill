@@ -1,6 +1,11 @@
 %% q1_plot：问题一结果绘图入口
 % 本文件应放在“结果数据表/问题一/”中，与两份问题一工作簿同目录。
 % MATLAB 只读取工作簿绘图，不重新计算核心结果。
+%
+% 重要：本文件是实例化模板，不得直接作为正式脚本交付。
+% 生成具体问题脚本前，必须先读取实际工作簿，并将全部 __ACTUAL_*__
+% 替换为真实工作表名、真实表头、固定列位置和真实坐标轴名称。
+% 正式脚本不得保留占位符，不得动态寻找替代表头。
 
 clearvars;
 clc;
@@ -21,14 +26,50 @@ EXPORT_FIGURES = false;
 assert(isfile(solutionBook), "缺少求解结果工作簿: %s", solutionBook);
 assert(isfile(robustnessBook), "缺少敏感性与鲁棒性工作簿: %s", robustnessBook);
 
-%% 2. Figure Contract 对应的数据读取
-% 按实际图表合同替换工作表和字段。中文字段必须保留原名。
-requiredSheet = "明细结果";
-requiredColumns = ["记录键", "横轴字段", "纵轴字段"];
-data = read_and_check(solutionBook, requiredSheet, requiredColumns);
+%% 2. 实际工作簿结构锁定
+% 以下内容必须由生成器在读取实际工作簿后写成真实值。
+sourceBook = solutionBook;
+sourceSheet = "__ACTUAL_SHEET_NAME__";
+xHeader = "__ACTUAL_X_HEADER__";
+yHeader = "__ACTUAL_Y_HEADER__";
+xColumn = __ACTUAL_X_COLUMN__;
+yColumn = __ACTUAL_Y_COLUMN__;
+
+assert(~startsWith(sourceSheet, "__ACTUAL_"), ...
+    "MATLAB 模板尚未按实际工作簿实例化：工作表名未替换");
+assert(~startsWith(xHeader, "__ACTUAL_"), ...
+    "MATLAB 模板尚未按实际工作簿实例化：横轴表头未替换");
+assert(~startsWith(yHeader, "__ACTUAL_"), ...
+    "MATLAB 模板尚未按实际工作簿实例化：纵轴表头未替换");
+
+availableSheets = string(sheetnames(sourceBook));
+assert(any(availableSheets == sourceSheet), ...
+    "工作簿“%s”缺少已锁定工作表“%s”", sourceBook, sourceSheet);
+
+raw = readcell(sourceBook, "Sheet", sourceSheet);
+assert(size(raw, 1) >= 2, "工作表“%s”没有真实数据", sourceSheet);
+assert(size(raw, 2) >= max(xColumn, yColumn), ...
+    "工作表“%s”的列数少于已锁定列位置", sourceSheet);
+
+actualXHeader = strtrim(string(raw{1, xColumn}));
+actualYHeader = strtrim(string(raw{1, yColumn}));
+assert(actualXHeader == xHeader, ...
+    "工作表“%s”第%d列表头应为“%s”，实际为“%s”", ...
+    sourceSheet, xColumn, xHeader, actualXHeader);
+assert(actualYHeader == yHeader, ...
+    "工作表“%s”第%d列表头应为“%s”，实际为“%s”", ...
+    sourceSheet, yColumn, yHeader, actualYHeader);
+
+x = cell_to_numeric(raw(2:end, xColumn));
+y = cell_to_numeric(raw(2:end, yColumn));
+valid = isfinite(x) & isfinite(y);
+x = x(valid);
+y = y(valid);
+assert(~isempty(x), "工作表“%s”没有可绘制的真实数据", sourceSheet);
 
 % 时间、类别、名次或坐标必须显式排序，不依赖 Excel 原始顺序。
-% data = sortrows(data, "横轴字段");
+[x, order] = sort(x);
+y = y(order);
 
 %% 3. 正式结果图
 % 图型依据 Core conclusion、底层数据和信息效率选择；高级图表不得制造遮挡或比例失真。
@@ -36,15 +77,20 @@ fig = figure("Color", "w", "Position", [100, 100, 900, 620]);
 ax = axes(fig);
 hold(ax, "on");
 
-% 示例：替换为本题真实字段后启用。
-% plot(ax, data.("横轴字段"), data.("纵轴字段"), ...
-%     "LineWidth", 2.2, "Color", [23, 59, 94] / 255);
+plot(ax, x, y, ...
+    "LineWidth", 2.2, ...
+    "Color", [23, 59, 94] / 255);
 
-xlabel(ax, "横轴名称（单位）");
-ylabel(ax, "纵轴名称（单位）");
+xlabel(ax, "__ACTUAL_X_LABEL_WITH_UNIT__");
+ylabel(ax, "__ACTUAL_Y_LABEL_WITH_UNIT__");
 grid(ax, "off");
 box(ax, "on");
 hold(ax, "off");
+
+assert(~contains(string(ax.XLabel.String), "__ACTUAL_"), ...
+    "横轴名称尚未按实际字段替换");
+assert(~contains(string(ax.YLabel.String), "__ACTUAL_"), ...
+    "纵轴名称尚未按实际字段替换");
 
 apply_scientific_style(fig);
 
@@ -61,34 +107,20 @@ if EXPORT_FIGURES
 end
 
 %% 局部函数
-function T = read_and_check(workbookPath, sheetName, requiredColumns)
-availableSheets = string(sheetnames(workbookPath));
-assert(any(availableSheets == sheetName), ...
-    "工作簿“%s”缺少工作表“%s”", workbookPath, sheetName);
-
-opts = detectImportOptions(workbookPath, "Sheet", sheetName, ...
-    "VariableNamingRule", "preserve");
-T = readtable(workbookPath, opts, "Sheet", sheetName, ...
-    "VariableNamingRule", "preserve");
-
-assert(height(T) >= 1, "工作表“%s”没有真实数据", sheetName);
-actualColumns = string(T.Properties.VariableNames);
-missingColumns = requiredColumns(~ismember(requiredColumns, actualColumns));
-assert(isempty(missingColumns), "工作表“%s”缺少字段: %s", ...
-    sheetName, strjoin(missingColumns, "、"));
-
-if any(actualColumns == "记录键")
-    key = string(T.("记录键"));
-    assert(all(strlength(strtrim(key)) > 0), "记录键存在空值");
-    assert(numel(unique(key)) == numel(key), "记录键存在重复值");
-end
-
-numericMask = varfun(@isnumeric, T, "OutputFormat", "uniform");
-numericNames = actualColumns(numericMask);
-for i = 1:numel(numericNames)
-    values = T.(numericNames(i));
-    assert(all(isfinite(values) | ismissing(values)), ...
-        "数值字段“%s”包含 Inf 或非法值", numericNames(i));
+function values = cell_to_numeric(column)
+values = nan(size(column, 1), 1);
+for i = 1:size(column, 1)
+    item = column{i};
+    if isnumeric(item) && isscalar(item)
+        values(i) = double(item);
+    elseif islogical(item) && isscalar(item)
+        values(i) = double(item);
+    elseif ischar(item) || isstring(item)
+        parsed = str2double(string(item));
+        if isfinite(parsed)
+            values(i) = parsed;
+        end
+    end
 end
 end
 
