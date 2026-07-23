@@ -4,11 +4,11 @@ purpose: 约束每问两类标准工作簿的工作表名称、最低字段、�
 runtime_enforcement:
   writer: templates/code/hsk_pipeline/result_io.py
   artifact_checker: scripts/hsk_check_artifact.py
-  matlab_reader: templates/matlab/hsk_read_result_workbooks.m
+  matlab_reader: 每问同目录 q{x}_plot.m 的固定实表读取逻辑
   rules:
     - 标准工作簿写入前必须执行本 Schema；不得只检查工作表是否存在。
     - 交付检查必须复用写入器的同一校验函数，不维护第二套字段规则。
-    - MATLAB 绘图脚本必须声明所需工作表和字段，并以 VariableNamingRule=preserve 读取中文列名。
+    - MATLAB 绘图脚本生成前必须读取实际工作簿，并直接写入真实工作表名、真实表头和固定列位置；不得用动态字段校准替代实表核对。
 
 global_rules:
   worksheet_name_language: Chinese descriptive names
@@ -110,9 +110,11 @@ sensitivity_robustness_workbook:
       optional_columns: [证据位置, 结论]
 
 matlab_handoff:
-  required_mapping_fields: [figure_id, workbook, worksheet, matlab_script]
+  required_mapping_fields: [figure_id, workbook, worksheet, required_headers, column_positions, matlab_script]
   rules:
-    - MATLAB 读取前必须确认工作表存在且字段满足对应图表需要。
+    - MATLAB 代码生成前必须实际读取本次工作簿并确认工作表、第一行真实表头和固定列位置。
+    - 正式脚本直接写真实工作表名、真实表头和固定列号；不得动态寻找替代字段。
+    - 禁止模糊匹配、别名映射、相似字段猜测、自动回退和运行时改变列映射。
     - 正式图不得从论文摘要数字或人工构造序列反推。
-    - 图表合同必须记录源工作簿、工作表和字段。
-    - 中文字段读取必须使用 VariableNamingRule=preserve。
+    - 图表合同必须记录源工作簿、工作表、真实字段、固定列位置和单位。
+    - VariableNamingRule=preserve 不能替代对实际工作簿的读取与固定表头断言。
