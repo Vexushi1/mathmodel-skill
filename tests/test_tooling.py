@@ -115,6 +115,48 @@ class TestTooling(unittest.TestCase):
             issues = module.inspect_workbook(path, "solution", problem_types=("optimization",))
             self.assertTrue(any("约束违反检查" in issue for issue in issues), issues)
 
+    def test_framework_validator_accepts_template_and_links_solved_summary(self):
+        module = load_module(
+            "validate_model_paper_framework", ROOT / "scripts/validate_model_paper_framework.py"
+        )
+        template = ROOT / "templates/model/model_paper_framework.md"
+        self.assertEqual(module.validate_framework_file(template), [])
+        text = template.read_text(encoding="utf-8")
+        state = {
+            "paper_framework": {"sync_status": "current"},
+            "subproblems": {
+                "Q1": {
+                    "status": "solved",
+                    "framework_section": "### Q1：__QUESTION_NAME__",
+                    "result_summary_status": "current",
+                    "result_summary_anchor": "#### 结果摘要",
+                    "artifacts_stale": False,
+                }
+            },
+        }
+        self.assertEqual(module.validate_framework_text(text, state=state), [])
+
+    def test_framework_validator_rejects_stale_solved_summary(self):
+        module = load_module(
+            "validate_model_paper_framework_stale", ROOT / "scripts/validate_model_paper_framework.py"
+        )
+        text = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
+        state = {
+            "paper_framework": {"sync_status": "stale"},
+            "subproblems": {
+                "Q1": {
+                    "status": "solved",
+                    "framework_section": "### Q1：__QUESTION_NAME__",
+                    "result_summary_status": "stale",
+                    "result_summary_anchor": "",
+                    "artifacts_stale": True,
+                }
+            },
+        }
+        issues = module.validate_framework_text(text, state=state)
+        self.assertTrue(any("sync_status" in issue for issue in issues), issues)
+        self.assertTrue(any("result_summary_status" in issue for issue in issues), issues)
+
     def test_manifest_digest_normalizes_text_line_endings(self):
         module = load_module("generate_indexes", ROOT / "scripts/generate_indexes.py")
         with tempfile.TemporaryDirectory() as temp:
@@ -164,7 +206,7 @@ class TestTooling(unittest.TestCase):
             self.assertTrue(patched.endswith(suffix))
             self.assertFalse(module.patch_cumcm_class(target))
 
-    def test_matlab_templates_use_local_result_dir_and_exact_workbook_headers(self):
+    def test_matlab_templates_use_real_headers_fixed_columns_and_titles(self):
         plotting = (ROOT / "templates/matlab/q1_plot.m").read_text(encoding="utf-8")
         style = (ROOT / "templates/matlab/hsk_apply_scientific_style.m").read_text(encoding="utf-8")
         reader = (ROOT / "templates/matlab/hsk_read_result_workbooks.m").read_text(encoding="utf-8")
@@ -176,13 +218,22 @@ class TestTooling(unittest.TestCase):
         self.assertIn("xColumn = NaN", plotting)
         self.assertIn("actualXHeader == xHeader", plotting)
         self.assertNotIn("readtable(", plotting)
+        self.assertIn('figureTitle = "__ACTUAL_FIGURE_TITLE__"', plotting)
+        self.assertIn("title(ax, figureTitle", plotting)
+        self.assertIn("FontWeight", plotting)
         self.assertIn("listfonts", style)
         self.assertIn("Noto Sans CJK SC", style)
+        self.assertIn("ax.Title", style)
         self.assertIn("readcell", reader)
         self.assertIn("fixedColumns", reader)
         self.assertIn("expectedHeaders", reader)
         self.assertNotIn("missingColumns", reader)
         self.assertNotIn('VariableNamingRule", "preserve"', reader)
+
+    def test_matlab_handoff_requires_title_caption_and_framework_registry(self):
+        module = load_module("matlab_handoff", ROOT / "templates/code/hsk_pipeline/matlab_handoff.py")
+        for field in ("matlab_title", "paper_caption", "framework_registry"):
+            self.assertIn(field, module.REQUIRED_FIELDS)
 
 
 if __name__ == "__main__":

@@ -39,6 +39,9 @@ class TestRouterContract(unittest.TestCase):
             per_question["mandatory_workbooks"]["sensitivity_robustness"],
             "问题{中文序号}敏感性与鲁棒性结果.xlsx",
         )
+        self.assertEqual(contract["project_root"]["model_paper_framework"], "模型论文框架.md")
+        self.assertTrue(contract["model_paper_framework"]["formal_delivery_sync"])
+        self.assertTrue(contract["matlab_figure_contract"]["title_required"])
 
     def test_latex_cleanup_precedes_compile(self):
         latex_route = self.router["routing"]["latex"]["load"]
@@ -54,20 +57,30 @@ class TestRouterContract(unittest.TestCase):
     def test_default_load_includes_manifest(self):
         self.assertIn("core/module_manifest.yaml", self.router["default_load"])
 
-    def test_full_solution_reaches_solver(self):
+    def test_framework_sync_route_exists(self):
+        route = self.router["routing"]["framework_sync"]
+        self.assertIn("templates/model/model_paper_framework.md", route["load"])
+        self.assertEqual(route["terminal_outputs"], ["model_paper_framework"])
+
+    def test_full_solution_reaches_solver_and_framework(self):
         route = self.router["routing"]["full_solution"]
         sequence = route["load"] + route["then"]
         self.assertLess(sequence.index("modules/01_problem_audit.md"), sequence.index("modules/02_model_design.md"))
         self.assertLess(sequence.index("modules/02_model_design.md"), sequence.index("modules/03_solve_validate.md"))
+        self.assertIn("model_paper_framework", route["terminal_outputs"])
 
     def test_full_workflow_reaches_review_in_order(self):
         route = self.router["routing"]["full_workflow"]
         sequence = route["load"] + route["then"]
         expected = [
-            "modules/01_problem_audit.md", "modules/02_model_design.md",
-            "modules/03_solve_validate.md", "modules/04_figure_evidence.md",
-            "modules/05_writing/docx.md", "modules/05_writing/latex.md",
-            "modules/05_writing/ai_cleanup.md", "modules/05_latex_compile_quality.md",
+            "modules/01_problem_audit.md",
+            "modules/02_model_design.md",
+            "modules/03_solve_validate.md",
+            "modules/04_figure_evidence.md",
+            "modules/05_writing/docx.md",
+            "modules/05_writing/latex.md",
+            "modules/05_writing/ai_cleanup.md",
+            "modules/05_latex_compile_quality.md",
             "modules/06_review_delivery.md",
         ]
         positions = [sequence.index(item) for item in expected]

@@ -24,6 +24,12 @@ OBSOLETE_ROOT_ARTIFACTS = (
     "HSK_TEMPLATE_INDEX_V621.md",
     "PROJECT_INSTRUCTIONS_HSK_V621.md",
 )
+OLD_TITLE_PHRASES = (
+    "图内不重复总标题",
+    "图内不重复放总标题",
+    "图题由 LaTeX 图注承担",
+    "图内是否没有重复总标题",
+)
 
 
 class TestStructure(unittest.TestCase):
@@ -35,6 +41,7 @@ class TestStructure(unittest.TestCase):
             "packs/competition",
             "packs/artifact",
             "templates/code",
+            "templates/model",
             "templates/matlab",
             "templates/latex",
             "scripts",
@@ -48,12 +55,14 @@ class TestStructure(unittest.TestCase):
         self.assertTrue((ROOT / ".codex-plugin/plugin.json").exists())
         self.assertTrue((ROOT / "skills/mathmodel-skill/SKILL.md").exists())
 
-    def test_machine_readable_contracts(self):
+    def test_machine_readable_contracts_and_framework_tools(self):
         for relative in [
             "core/compile_profiles.yaml",
             "core/output_contract.yaml",
             "core/workbook_schema.yaml",
             "core/project_state.schema.yaml",
+            "templates/model/model_paper_framework.md",
+            "scripts/validate_model_paper_framework.py",
         ]:
             self.assertTrue((ROOT / relative).is_file(), relative)
 
@@ -79,6 +88,27 @@ class TestStructure(unittest.TestCase):
                         violations.append(path.relative_to(ROOT).as_posix())
         self.assertEqual(violations, [])
 
+    def test_active_files_do_not_keep_old_no_title_rules(self):
+        violations = []
+        skipped = {
+            Path(__file__).resolve(),
+            (ROOT / "scripts/lint_skill.py").resolve(),
+        }
+        for directory in ACTIVE_TEXT_DIRS:
+            base = ROOT / directory
+            if not base.exists():
+                continue
+            for path in base.rglob("*"):
+                if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
+                    continue
+                if path.resolve() in skipped:
+                    continue
+                text = path.read_text(encoding="utf-8-sig", errors="strict")
+                for phrase in OLD_TITLE_PHRASES:
+                    if phrase in text:
+                        violations.append(f"{path.relative_to(ROOT).as_posix()}: {phrase}")
+        self.assertEqual(violations, [])
+
     def test_gitattributes_forces_lf(self):
         attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
         self.assertIn("* text=auto eol=lf", attributes)
@@ -88,6 +118,10 @@ class TestStructure(unittest.TestCase):
         self.assertTrue((matlab_dir / "q1_plot.m").is_file())
         self.assertFalse((matlab_dir / "plot_from_workbook.m").exists())
         self.assertFalse((matlab_dir / "plot_sensitivity_robustness.m").exists())
+
+    def test_framework_template_is_not_installed_as_project_state(self):
+        self.assertTrue((ROOT / "templates/model/model_paper_framework.md").is_file())
+        self.assertFalse((ROOT / "模型论文框架.md").exists())
 
 
 if __name__ == "__main__":

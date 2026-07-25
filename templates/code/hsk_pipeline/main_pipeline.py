@@ -15,6 +15,8 @@ from result_io import find_project_root, not_applicable_table, workbook_paths, w
 @dataclass(frozen=True)
 class PipelineConfig:
     project_root: Path
+    framework_path: Path
+    framework_section: str
     problem_name: str
     problem_types: tuple[str, ...]
     capabilities: Mapping[str, bool]
@@ -34,6 +36,19 @@ class PipelineConfig:
         missing = sorted(required - set(self.capabilities))
         if missing:
             raise ValueError(f"缺少验证能力标志: {missing}")
+        if not self.framework_path.is_file():
+            raise FileNotFoundError(
+                f"模型锁定后必须先创建项目根目录模型论文框架: {self.framework_path}"
+            )
+        if not self.framework_section.strip():
+            raise ValueError("必须填写该问在模型论文框架.md中的当前章节标题")
+        framework_text = self.framework_path.read_text(encoding="utf-8")
+        if self.framework_section not in framework_text:
+            raise ValueError(
+                f"模型论文框架中缺少该问当前章节: {self.framework_section}"
+            )
+        if "只保留当前有效" not in framework_text and "当前有效版本" not in framework_text:
+            raise ValueError("模型论文框架必须声明只保留当前有效版本")
 
 
 @dataclass
@@ -63,6 +78,8 @@ def build_config(script_path: Path) -> PipelineConfig:
     project_root = find_project_root(script_path)
     config = PipelineConfig(
         project_root=project_root,
+        framework_path=project_root / "模型论文框架.md",
+        framework_section="### Q1：__QUESTION_NAME__",
         problem_name="问题一",
         problem_types=(),  # 例如 ("mechanism", "optimization")
         capabilities={
@@ -129,12 +146,12 @@ def preprocess_data(
 
 
 def build_features(clean_data: dict[str, pd.DataFrame], config: PipelineConfig) -> dict[str, Any]:
-    raise NotImplementedError("请根据模型构造参数、状态或特征")
+    raise NotImplementedError("请根据当前模型论文框架构造参数、状态或特征")
 
 
 def solve_model(features: dict[str, Any], config: PipelineConfig) -> dict[str, Any]:
     """至少返回符合 Schema 的“核心指标”；其他工作表按题型返回。"""
-    raise NotImplementedError("请实现目标函数、约束与求解算法")
+    raise NotImplementedError("请实现当前框架中的目标函数、约束与求解算法")
 
 
 def check_constraints(solution: dict[str, Any], config: PipelineConfig) -> pd.DataFrame | None:
@@ -210,6 +227,20 @@ def save_outputs(
     return solution_path, robustness_path
 
 
+def sync_model_paper_framework(
+    context: ModelContext,
+    output_paths: tuple[Path, Path],
+    constraints: pd.DataFrame | None,
+    algorithm_comparison: pd.DataFrame | None,
+    validation_tables: dict[str, pd.DataFrame],
+) -> None:
+    """重写该问当前模型口径和结果摘要；不得在框架中叠加旧版。"""
+    raise NotImplementedError(
+        "工作簿通过校验后，必须同步模型论文框架.md：删除该问旧模型/旧摘要，写入当前模型与算法、"
+        "核心数值、验证/可行性、敏感性/鲁棒性、最终结论和证据位置，并将结果摘要状态设为 current"
+    )
+
+
 def main() -> None:
     logger = setup_logger()
     config = build_config(Path(__file__))
@@ -223,8 +254,10 @@ def main() -> None:
     constraints = check_constraints(solution, config)
     comparison, validation_tables = run_validation(context)
     paths = save_outputs(context, constraints, comparison, validation_tables, audit)
+    sync_model_paper_framework(context, paths, constraints, comparison, validation_tables)
     logger.info("结果已写入: %s", [path.as_posix() for path in paths])
-    logger.info("正式论文图由 MATLAB 读取上述工作簿绘制。")
+    logger.info("模型论文框架已同步: %s", config.framework_path.as_posix())
+    logger.info("正式论文图由 MATLAB 读取上述工作簿绘制，并保留简洁 title/sgtitle。")
 
 
 if __name__ == "__main__":

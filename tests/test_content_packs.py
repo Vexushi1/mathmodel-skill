@@ -39,7 +39,7 @@ class TestContentPacks(unittest.TestCase):
         self.assertIn("不是题型标签", classifier)
         self.assertIn("advanced_method_gate.md", classifier)
 
-    def test_chart_selection_is_evidence_driven(self):
+    def test_chart_selection_is_evidence_driven_and_titled(self):
         text = (ROOT / "templates/figure/chart_selection.md").read_text(encoding="utf-8")
         for token in (
             "参数敏感性",
@@ -52,30 +52,58 @@ class TestContentPacks(unittest.TestCase):
             "雷达图",
             "3D 曲面",
             "q{x}_plot.m",
+            "MATLAB 标题",
+            "sgtitle",
+            "模型论文框架.md",
         ):
             self.assertIn(token, text)
         self.assertIn("工作簿", text)
         self.assertIn("均允许使用", text)
+        self.assertNotIn("图内不重复总标题", text)
 
-    def test_figure_pack_uses_efficiency_gate_and_standard_script_name(self):
+    def test_figure_pack_uses_efficiency_gate_titles_and_standard_script_name(self):
         pack = (ROOT / "packs/artifact/figure.md").read_text(encoding="utf-8")
         module = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
         matlab_readme = (ROOT / "templates/matlab/README.md").read_text(encoding="utf-8")
         for text in (pack, module, matlab_readme):
             self.assertIn("q{x}_plot.m", text)
             self.assertIn("信息", text)
+            self.assertIn("title", text)
+            self.assertIn("sgtitle", text)
+            self.assertIn("模型论文框架.md", text)
         self.assertIn("高级图表准入检查", pack)
         self.assertIn("颜色不是固定约束", module)
         self.assertIn("q1_plot.m", matlab_readme)
         self.assertIn("q1_polt.m", matlab_readme)
+        for text in (pack, module, matlab_readme):
+            self.assertNotIn("图题由 LaTeX 图注承担", text)
 
-    def test_docx_checklists_are_merged(self):
+    def test_model_paper_framework_template_is_current_state_and_complete(self):
+        text = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
+        for token in (
+            "只保留当前有效口径",
+            "## 当前有效口径",
+            "## 论文整体框架",
+            "## 各问模型与结果",
+            "#### 结果摘要",
+            "MATLAB 图标题",
+            "## 图表证据链",
+            "## 同步检查",
+        ):
+            self.assertIn(token, text)
+        self.assertIn("Git", text)
+        self.assertIn("stale", text)
+
+    def test_docx_checklists_are_merged_and_framework_aware(self):
         writing = ROOT / "templates/writing"
         self.assertTrue((writing / "docx_check.md").is_file())
         self.assertFalse((writing / "docx_draft_check.md").exists())
         self.assertFalse((writing / "docx_layout_check.md").exists())
         module = (ROOT / "modules/05_writing/docx.md").read_text(encoding="utf-8")
+        checklist = (writing / "docx_check.md").read_text(encoding="utf-8")
         self.assertIn("templates/writing/docx_check.md", module)
+        self.assertIn("模型论文框架.md", module)
+        self.assertIn("sgtitle", checklist)
 
     def test_caption_template_has_no_copyable_fixed_sentence(self):
         text = (ROOT / "templates/writing/caption_explanation.md").read_text(encoding="utf-8")

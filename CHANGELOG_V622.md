@@ -1,3 +1,48 @@
+# v6.2.5 current-model-framework 变更记录
+
+文件名保留 V622 作为稳定兼容路径。
+
+## 目标
+
+本版本在 v6.2.4 扁平目录与 MATLAB 实表固定列读取基础上，解决两个长期断点：一是模型设计、求解修正、结果摘要与论文写作之间缺少单一当前口径文件；二是 MATLAB 正式图标题被旧规则统一删除，影响本地筛图与答辩复用。
+
+## P0：`模型论文框架.md` 当前口径契约
+
+- `locked_model_spec` 形成后，在项目根目录创建 `模型论文框架.md`；
+- 新增 `templates/model/model_paper_framework.md`，覆盖当前数据/模型口径、论文结构、逐问模型与结果摘要、综合检验、图表证据链和待办；
+- 文件内部只保留当前有效模型、参数、约束、数据处理、算法、结果和图表映射；发生变化时删除受影响旧内容并完整替换，历史由 Git 保存；
+- 每次正式交付模型、代码、工作簿、验证、MATLAB 图、DOCX 或 LaTeX 时，必须同时交付完整最新版框架；
+- 每问求解后结果摘要记录模型与算法、核心数值、验证/可行性、敏感性/鲁棒性、最终结论和证据位置。
+
+## P1：机器状态与模块闭环
+
+- `core/output_contract.yaml` 增加框架路径、更新触发器、权威边界和正式交付同步规则；
+- `core/module_manifest.yaml` 将 `model_paper_framework` 接入 model_design、solve_validate、figure_evidence、writing 和 review 生产者—消费者链；
+- `core/workflow_router.yaml` 增加 `framework_sync` 路由，并要求所有改变模型、结果、图表或论文结构的正式模块同步框架；
+- `core/project_state.schema.yaml` 增加 `paper_framework`、每问 `framework_section`、`result_summary_status` 和 `result_summary_anchor`；
+- `scripts/validate_project_state.py` 增加框架/结果摘要 freshness、stale 和可选哈希一致性检查；
+- 新增 `scripts/validate_model_paper_framework.py`，检查必需章节、逐问章节、结果摘要锚点、同步状态和可选哈希；
+- `scripts/hsk_check_artifact.py` 接入框架校验，并检查每问 MATLAB 正式脚本存在 `title` 或 `sgtitle`。
+
+## P2：MATLAB 图标题恢复
+
+- 单图必须使用简洁 `title`，多面板必须使用一个整体 `sgtitle`；
+- 标题只说明研究对象、指标关系和必要方法信息，不写完整结论；
+- 标题默认保留在可见图窗和导出文件中；
+- DOCX/LaTeX 图注继续置于图下，用于补充样本、时间范围、统计口径、误差和解释，不与图内标题逐字重复；
+- `q1_plot.m` 新增标题占位、非空/长度检查和标题样式；
+- Figure Contract、图型选择、QA、MATLAB README、DOCX/LaTeX 规则和交付 Pack 全部同步。
+
+## P3：全面同步与优化
+
+- 根 `SKILL.md`、插件 shim、插件元数据、Agent prompt、README、项目说明、Runtime Router、Repository Index 和 Scripts README 更新至 v6.2.5；
+- 写作模块改为先读取 current 框架，再从标准工作簿复核数值，禁止从聊天记忆恢复已删除旧口径；
+- 终审新增框架—状态—工作簿—图标题/图注—论文一致性检查；
+- 静态 lint、Schema 测试、工具测试、内容 Pack 测试和结构测试增加框架与图标题合同；
+- 保留 v6.2.4 的项目根目录 Python、扁平问题目录、同目录工作簿与 `q{x}_plot.m`、实表真实表头和固定列读取规则。
+
+---
+
 # v6.2.4 flat-question-layout 变更记录
 
 文件名保留 V622 作为稳定兼容路径。
@@ -93,4 +138,4 @@
 
 ## v6.2.2 基线
 
-v6.2.2 完成六模块架构、十类题型 Pack、高级方法准入、两个标准工作簿、MATLAB 证据图、三套 LaTeX 冒烟编译、Python 3.10–3.14 CI、自动索引和跨平台 Manifest。v6.2.3 在该基线上完成契约闭环，v6.2.4 进一步统一项目与证据目录。
+v6.2.2 完成六模块架构、十类题型 Pack、高级方法准入、两个标准工作簿、MATLAB 证据图、三套 LaTeX 冒烟编译、Python 3.10–3.14 CI、自动索引和跨平台 Manifest。v6.2.3 在该基线上完成契约闭环，v6.2.4 进一步统一项目与证据目录，v6.2.5 增加当前模型论文框架和 MATLAB 图标题闭环。
