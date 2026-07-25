@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check HSK flat project structure, workbook contracts and software ownership."""
+"""Check HSK project structure, current framework, workbooks and software ownership."""
 from __future__ import annotations
 
 import argparse
@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CN_NUM = "一二三四五六七八九十百"
 FIG_EXT = {".png", ".pdf", ".svg", ".jpg", ".jpeg", ".tif", ".tiff"}
 PY_PLOT_TOKENS = ("matplotlib", "seaborn", "savefig(", "plt.show(")
+MATLAB_TITLE_TOKENS = ("title(", "sgtitle(")
 
 
 def _load_module(name: str, path: Path):
@@ -35,6 +36,9 @@ def _load_module(name: str, path: Path):
 
 RESULT_IO = _load_module("hsk_result_io", ROOT / "templates/code/hsk_pipeline/result_io.py")
 STATE_VALIDATOR = _load_module("hsk_state_validator", ROOT / "scripts/validate_project_state.py")
+FRAMEWORK_VALIDATOR = _load_module(
+    "hsk_framework_validator", ROOT / "scripts/validate_model_paper_framework.py"
+)
 
 
 def _question_number(question_name: str) -> str | None:
@@ -80,8 +84,16 @@ def check_code(root: Path) -> list[str]:
     if result_root.exists():
         for question in _question_directories(result_root):
             expected = _plot_filename(question.name)
-            if expected and not (question / expected).is_file():
-                issues.append(f"missing: {(question / expected).relative_to(root)}")
+            if expected:
+                plot_path = question / expected
+                if not plot_path.is_file():
+                    issues.append(f"missing: {plot_path.relative_to(root)}")
+                else:
+                    text = plot_path.read_text(encoding="utf-8", errors="ignore")
+                    if not any(token in text for token in MATLAB_TITLE_TOKENS):
+                        issues.append(
+                            f"MATLAB formal figure title missing: {plot_path.relative_to(root)}"
+                        )
     return issues
 
 
@@ -184,6 +196,18 @@ def check_figures(root: Path) -> list[str]:
     return issues
 
 
+def check_framework(root: Path) -> list[str]:
+    framework = root / "模型论文框架.md"
+    state = root / "state" / "project_state.yaml"
+    return [
+        f"model paper framework violation: {item}"
+        for item in FRAMEWORK_VALIDATOR.validate_framework_file(
+            framework,
+            state_path=state if state.is_file() else None,
+        )
+    ]
+
+
 def check_state(root: Path) -> list[str]:
     state = root / "state" / "project_state.yaml"
     if not state.is_file():
@@ -197,7 +221,11 @@ def check_state(root: Path) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("project", nargs="?", default=".")
-    parser.add_argument("--mode", choices=["full", "code", "data", "figures", "state"], default="full")
+    parser.add_argument(
+        "--mode",
+        choices=["full", "code", "data", "figures", "framework", "state"],
+        default="full",
+    )
     parser.add_argument(
         "--problem-types",
         nargs="*",
@@ -208,6 +236,8 @@ def main() -> int:
     root = Path(args.project).resolve()
 
     issues: list[str] = []
+    if args.mode in {"full", "framework"}:
+        issues += check_framework(root)
     if args.mode in {"full", "code"}:
         issues += check_code(root)
     if args.mode in {"full", "data"}:
