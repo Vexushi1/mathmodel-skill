@@ -2,11 +2,15 @@
 project:
   competition: "CUMCM / MCM / Diangong / 认证杯"
   problem: "A"
-  version: "v1.0-final"
+  version: "v1.0-current"
   random_seed: 2026
+  model_paper_framework: "模型论文框架.md"
+  framework_sync_status: "current"
 
 outputs:
   问题一:
+    framework_section: "### Q1：填写问题名称"
+    result_summary_status: "current"
     result_directory: "结果数据表/问题一"
     solution_workbook: "结果数据表/问题一/问题一求解结果.xlsx"
     sensitivity_robustness_workbook: "结果数据表/问题一/问题一敏感性与鲁棒性结果.xlsx"
@@ -15,8 +19,14 @@ outputs:
     figure_directory: "结果数据表/问题一/图表"
     figure_sources:
       - figure: "图 1"
+        matlab_title: "填写简洁 MATLAB 图标题"
+        paper_caption: "填写补充统计口径且不与标题逐字重复的论文图注"
         workbook: "问题一求解结果.xlsx"
         worksheet: "明细结果"
+        required_headers: ["记录键", "横轴真实字段", "纵轴真实字段"]
+        column_positions: {"横轴真实字段": 2, "纵轴真实字段": 3}
+        matlab_script: "结果数据表/问题一/q1_plot.m"
+        framework_registry: "模型论文框架.md / 图表证据链 / 图1"
         file: "结果数据表/问题一/图表/q1_core_result.pdf"
     paper_locations:
       - "第 5.1.3 节"

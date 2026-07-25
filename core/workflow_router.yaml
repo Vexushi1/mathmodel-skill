@@ -1,4 +1,4 @@
-version: 6.2.3
+version: 6.2.5
 
 default_load:
   - core/hsk_core_policy.md
@@ -28,6 +28,8 @@ execution_contract:
     - Full workflow includes all modules in workflow order and ends with review_delivery.
     - Reuse locked project state and existing artifacts before recomputing.
     - Compile only the LaTeX source produced after AI cleanup.
+    - Create 模型论文框架.md immediately after locked_model_spec exists.
+    - Every formal model, code, workbook, validation, MATLAB figure, DOCX or LaTeX delivery synchronizes and returns the complete current 模型论文框架.md.
 
 routing:
   new_problem_design:
@@ -39,7 +41,14 @@ routing:
       - modules/02_model_design.md
     load_classified_task_packs: true
     load_competition_pack: true
-    terminal_outputs: [requirement_map, route_comparison, selected_models, formula_closure]
+    terminal_outputs: [requirement_map, route_comparison, selected_models, formula_closure, model_paper_framework]
+
+  framework_sync:
+    triggers: [模型论文框架, 框架同步, 结果摘要, 模型变更同步, 参数变更同步, 约束变更同步]
+    load:
+      - modules/02_model_design.md
+      - templates/model/model_paper_framework.md
+    terminal_outputs: [model_paper_framework]
 
   full_solution:
     triggers: [完整求解, 全部计算, 求出各问, 完成求解]
@@ -52,7 +61,7 @@ routing:
       - packs/artifact/code.md
     load_classified_task_packs: true
     load_competition_pack: true
-    terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report]
+    terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report, model_paper_framework]
 
   full_workflow:
     triggers: [全流程, 完整论文, 全套成果, 完整交付]
@@ -89,7 +98,7 @@ routing:
       - modules/02_model_design.md
       - packs/task/classifier.md
     load_classified_task_packs: true
-    terminal_outputs: [route_comparison, selected_models, locked_model_spec, formula_closure]
+    terminal_outputs: [route_comparison, selected_models, locked_model_spec, formula_closure, model_paper_framework]
 
   advanced_method:
     triggers: [高级模型, W-DRO, CVaR, MPEC, Stackelberg, ALNS, GNN, 空间杜宾, DML, 强化学习, 深度学习]
@@ -98,7 +107,7 @@ routing:
       - packs/task/advanced_method_gate.md
       - packs/task/classifier.md
     load_classified_task_packs: true
-    terminal_outputs: [route_comparison, selected_models, locked_model_spec, validation_plan]
+    terminal_outputs: [route_comparison, selected_models, locked_model_spec, validation_plan, model_paper_framework]
 
   code_and_solution:
     triggers: [代码, Python, 求解, 算法, 最优解]
@@ -107,7 +116,7 @@ routing:
       - packs/artifact/code.md
       - packs/task/classifier.md
     load_classified_task_packs: true
-    terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report]
+    terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report, model_paper_framework]
 
   validation:
     triggers: [检验, 多算法, 全局最优, 敏感性, 鲁棒性, 误差, 稳健性]
@@ -115,15 +124,15 @@ routing:
       - modules/03_solve_validate.md
       - packs/task/classifier.md
     load_classified_task_packs: true
-    terminal_outputs: [validated_results, validation_report, evidence_map]
+    terminal_outputs: [validated_results, validation_report, evidence_map, model_paper_framework]
 
   figures:
-    triggers: [图表, 可视化, 机理图, 推导图, Nature, SCI]
+    triggers: [图表, 可视化, 机理图, 推导图, Nature, SCI, MATLAB图标题]
     load:
       - modules/04_figure_evidence.md
       - packs/artifact/figure.md
       - templates/figure/chart_selection.md
-    terminal_outputs: [figure_contracts, approved_figures]
+    terminal_outputs: [figure_contracts, approved_figures, model_paper_framework]
 
   docx:
     triggers: [DOCX, Word, 草稿论文]
@@ -162,6 +171,7 @@ multi_intent_policy:
   - When a request includes figures and LaTeX, verify workbook sources before inserting figures.
   - Full submission includes review_delivery after all requested artifact modules.
   - AI cleanup must precede latex_compile_quality.
+  - Synchronize 模型论文框架.md after each module that changes model semantics, numerical results, validation evidence, figures or paper structure.
 
 rules:
   - Do not load legacy by default.
@@ -170,3 +180,4 @@ rules:
   - Load advanced_method_gate only for explicit advanced-method requests or when route B is proposed as the main model.
   - DOCX and LaTeX modules are both loaded only for explicit migration or full_workflow.
   - Result figures precede final mechanism-figure refinement.
+  - 模型论文框架.md stores only the current effective version; Git history stores prior versions.

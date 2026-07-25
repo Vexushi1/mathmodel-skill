@@ -1,4 +1,4 @@
-# HSK Active Skill File Index v6.2.4
+# HSK Active Skill File Index v6.2.5
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -89,6 +89,7 @@
 - `scripts/render_paper.py`
 - `scripts/resolve_workflow.py`
 - `scripts/score_submission.py`
+- `scripts/validate_model_paper_framework.py`
 - `scripts/validate_project_state.py`
 - `skills/mathmodel-skill/SKILL.md`
 - `state/.gitkeep`
@@ -136,6 +137,7 @@
 - `templates/model/assumption_audit.md`
 - `templates/model/constraint_violation.md`
 - `templates/model/formula_code_closure.md`
+- `templates/model/model_paper_framework.md`
 - `templates/model/variable_table.md`
 - `templates/problem/data_schema_audit.md`
 - `templates/problem/model_route_compare.md`

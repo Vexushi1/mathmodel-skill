@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the active HSK skill graph, schemas, flat paths and templates."""
+"""Validate the active HSK v6.2.5 skill graph, framework, schemas and templates."""
 from __future__ import annotations
 
 import argparse
@@ -15,33 +15,82 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "6.2.4"
+PACKAGE_VERSION = "6.2.5"
 REQUIRED = [
-    "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "PROJECT_INSTRUCTIONS_HSK_V622.md",
-    "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V622.md", "core/hsk_core_policy.md",
-    "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml",
-    "core/workbook_schema.yaml", "core/project_state.schema.yaml", "core/compile_profiles.yaml",
-    "modules/01_problem_audit.md", "modules/02_model_design.md", "modules/03_solve_validate.md",
-    "modules/04_figure_evidence.md", "modules/05_latex_compile_quality.md",
-    "modules/05_writing/docx.md", "modules/05_writing/latex.md",
-    "modules/05_writing/ai_cleanup.md", "modules/06_review_delivery.md",
-    "packs/task/advanced_method_gate.md", "templates/figure/chart_selection.md",
-    "templates/writing/docx_check.md", "templates/writing/caption_explanation.md",
-    "templates/code/hsk_pipeline/result_io.py", "templates/matlab/q1_plot.m",
-    "templates/latex/cumcm/cumcmthesis/cumcmthesis.cls", "scripts/resolve_workflow.py",
-    "scripts/validate_project_state.py", "scripts/score_submission.py",
-    "assets/figure_assets.yaml", "assets/nature_figure/README.md",
-    ".github/workflows/ci.yml", "LICENSE", "THIRD_PARTY_NOTICES.md",
+    "SKILL.md",
+    "README.md",
+    "REPOSITORY_INDEX.md",
+    "PROJECT_INSTRUCTIONS_HSK_V622.md",
+    "HSK_RUNTIME_ROUTER_V622.md",
+    "CHANGELOG_V622.md",
+    "core/hsk_core_policy.md",
+    "core/workflow_router.yaml",
+    "core/module_manifest.yaml",
+    "core/output_contract.yaml",
+    "core/workbook_schema.yaml",
+    "core/project_state.schema.yaml",
+    "core/compile_profiles.yaml",
+    "modules/01_problem_audit.md",
+    "modules/02_model_design.md",
+    "modules/03_solve_validate.md",
+    "modules/04_figure_evidence.md",
+    "modules/05_latex_compile_quality.md",
+    "modules/05_writing/docx.md",
+    "modules/05_writing/latex.md",
+    "modules/05_writing/ai_cleanup.md",
+    "modules/06_review_delivery.md",
+    "packs/task/advanced_method_gate.md",
+    "templates/model/model_paper_framework.md",
+    "templates/figure/chart_selection.md",
+    "templates/writing/docx_check.md",
+    "templates/writing/caption_explanation.md",
+    "templates/code/hsk_pipeline/result_io.py",
+    "templates/code/hsk_pipeline/matlab_handoff.py",
+    "templates/matlab/q1_plot.m",
+    "templates/latex/cumcm/cumcmthesis/cumcmthesis.cls",
+    "scripts/resolve_workflow.py",
+    "scripts/validate_model_paper_framework.py",
+    "scripts/validate_project_state.py",
+    "scripts/score_submission.py",
+    "assets/figure_assets.yaml",
+    "assets/nature_figure/README.md",
+    ".github/workflows/ci.yml",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
 ]
 TASK_PACKS = [
-    "mechanism", "optimization", "prediction", "evaluation", "statistics_ml",
-    "simulation", "spatial", "graph_network", "scheduling", "game_decision",
+    "mechanism",
+    "optimization",
+    "prediction",
+    "evaluation",
+    "statistics_ml",
+    "simulation",
+    "spatial",
+    "graph_network",
+    "scheduling",
+    "game_decision",
 ]
 TASK_HEADINGS = [
-    "## 1. 进入条件", "## 2. 路线比较", "## 3. 变量与公式闭环",
-    "## 4. 必做验证与输出", "## 5. 否决或降级条件",
+    "## 1. 进入条件",
+    "## 2. 路线比较",
+    "## 3. 变量与公式闭环",
+    "## 4. 必做验证与输出",
+    "## 5. 否决或降级条件",
 ]
-ACTIVE_DIRS = ["core", "modules", "packs", "templates", "scripts", "config", "state", "assets", ".github"]
+ACTIVE_DIRS = [
+    "core",
+    "modules",
+    "packs",
+    "templates",
+    "scripts",
+    "config",
+    "state",
+    "assets",
+    "agents",
+    "skills",
+    ".codex-plugin",
+    ".github",
+]
 TEXT_SUFFIXES = {".md", ".yaml", ".yml", ".json", ".py", ".m", ".tex", ".bib"}
 BAD_PATTERNS = {
     r"references/hsk_stage_": "active file depends on obsolete Stage reference",
@@ -52,6 +101,12 @@ BAD_PATTERNS = {
     r"SEED v0\.1": "obsolete SEED template marker",
     r"Filled by stage 8 output": "obsolete Stage template comment",
     r"templates/writing/docx_(?:draft|layout)_check\.md": "obsolete duplicate DOCX checklist reference",
+}
+STALE_TITLE_PATTERNS = {
+    "图内不重复总标题": "old no-title rule remains",
+    "图内不重复放总标题": "old no-title rule remains",
+    "图题由 LaTeX 图注承担": "old LaTeX-only title rule remains",
+    "图内是否没有重复总标题": "old no-title QA remains",
 }
 PATH_PATTERN = re.compile(
     r"(?P<path>(?:assets|core|modules|packs|templates|scripts|state)/[A-Za-z0-9_./{}-]+\.(?:md|yaml|yml|json|py|m|tex|bib|png))"
@@ -109,21 +164,31 @@ def check_versions(errors: list[str]) -> None:
         data = json.loads(read_text(path)) if path.suffix == ".json" else load_yaml(path)
         version = str((data or {}).get("version", ""))
         if version != PACKAGE_VERSION:
-            errors.append(f"package version mismatch: {relative} -> {version or '<missing>'}, expected {PACKAGE_VERSION}")
+            errors.append(
+                f"package version mismatch: {relative} -> {version or '<missing>'}, expected {PACKAGE_VERSION}"
+            )
 
     textual = [
-        "SKILL.md", "README.md", "PROJECT_INSTRUCTIONS_HSK_V622.md",
-        "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V622.md",
+        "SKILL.md",
+        "README.md",
+        "PROJECT_INSTRUCTIONS_HSK_V622.md",
+        "HSK_RUNTIME_ROUTER_V622.md",
+        "CHANGELOG_V622.md",
+        "REPOSITORY_INDEX.md",
+        "scripts/README.md",
     ]
     for relative in textual:
         if PACKAGE_VERSION not in read_text(ROOT / relative):
             errors.append(f"version marker missing: {relative} -> {PACKAGE_VERSION}")
 
-    # 其他机器契约拥有独立 schema revision；只要求版本字段存在，不强制随包版本递增。
     for relative in [
-        "core/workflow_router.yaml", "core/module_manifest.yaml", "core/workbook_schema.yaml",
-        "core/project_state.schema.yaml", "core/compile_profiles.yaml",
-        "config/review_weights.json", "assets/figure_assets.yaml",
+        "core/workflow_router.yaml",
+        "core/module_manifest.yaml",
+        "core/workbook_schema.yaml",
+        "core/project_state.schema.yaml",
+        "core/compile_profiles.yaml",
+        "config/review_weights.json",
+        "assets/figure_assets.yaml",
     ]:
         path = ROOT / relative
         data = json.loads(read_text(path)) if path.suffix == ".json" else load_yaml(path)
@@ -131,7 +196,7 @@ def check_versions(errors: list[str]) -> None:
             errors.append(f"schema revision missing: {relative}")
 
 
-def check_flat_path_contract(errors: list[str]) -> None:
+def check_output_contract(errors: list[str]) -> None:
     contract = load_yaml(ROOT / "core/output_contract.yaml") or {}
     question = contract.get("per_question", {})
     if question.get("question_directory") != "结果数据表/问题{中文序号}/":
@@ -141,19 +206,42 @@ def check_flat_path_contract(errors: list[str]) -> None:
     if question.get("figure_directory") != "图表/":
         errors.append("output contract must export to local 图表/")
 
+    framework = contract.get("model_paper_framework", {})
+    if contract.get("project_root", {}).get("model_paper_framework") != "模型论文框架.md":
+        errors.append("output contract must place 模型论文框架.md in project root")
+    if framework.get("template") != "templates/model/model_paper_framework.md":
+        errors.append("output contract must reference the active framework template")
+    if framework.get("formal_delivery_sync") is not True:
+        errors.append("every formal delivery must synchronize 模型论文框架.md")
+
+    figure = contract.get("matlab_figure_contract", {})
+    if figure.get("title_required") is not True:
+        errors.append("MATLAB figure title must be required")
+    if figure.get("single_panel_title") != "title":
+        errors.append("single-panel MATLAB figure must use title")
+    if figure.get("multi_panel_title") != "sgtitle":
+        errors.append("multi-panel MATLAB figure must use sgtitle")
+    if figure.get("keep_title_in_export_by_default") is not True:
+        errors.append("MATLAB title must be retained in exports by default")
+
+
+def check_flat_path_and_matlab_template(errors: list[str]) -> None:
     active_targets = [
-        ROOT / "SKILL.md", ROOT / "core/hsk_core_policy.md",
-        ROOT / "modules/03_solve_validate.md", ROOT / "modules/04_figure_evidence.md",
-        ROOT / "packs/artifact/code.md", ROOT / "packs/artifact/figure.md",
+        ROOT / "SKILL.md",
+        ROOT / "core/hsk_core_policy.md",
+        ROOT / "modules/03_solve_validate.md",
+        ROOT / "modules/04_figure_evidence.md",
+        ROOT / "packs/artifact/code.md",
+        ROOT / "packs/artifact/figure.md",
     ]
-    stale_patterns = [
+    stale_paths = [
         "结果数据表/问题X/问题X结果数据/",
         "MATLAB绘图/问题X/q{x}_plot.m",
         "MATLAB绘图/问题一/q1_plot.m",
     ]
     for path in active_targets:
         text = read_text(path)
-        for pattern in stale_patterns:
+        for pattern in stale_paths:
             if pattern in text:
                 errors.append(f"stale project path remains: {path.relative_to(ROOT)} -> {pattern}")
 
@@ -163,9 +251,11 @@ def check_flat_path_contract(errors: list[str]) -> None:
         'fullfile(resultDir, "问题一求解结果.xlsx")',
         'fullfile(resultDir, "问题一敏感性与鲁棒性结果.xlsx")',
         'fullfile(resultDir, "图表")',
+        'figureTitle = "__ACTUAL_FIGURE_TITLE__"',
+        "title(ax, figureTitle",
     ]:
         if required not in plot:
-            errors.append(f"q1_plot.m lacks local path contract: {required}")
+            errors.append(f"q1_plot.m lacks required contract: {required}")
     if "hsk_find_project_root" in plot or "hsk_read_result_workbooks" in plot:
         errors.append("q1_plot.m must be self-contained by default")
 
@@ -178,6 +268,9 @@ def check_obsolete_patterns(errors: list[str]) -> None:
         for pattern, message in BAD_PATTERNS.items():
             if re.search(pattern, text, flags=re.IGNORECASE):
                 errors.append(f"{message}: {path.relative_to(ROOT)} -> {pattern}")
+        for phrase, message in STALE_TITLE_PATTERNS.items():
+            if phrase in text:
+                errors.append(f"{message}: {path.relative_to(ROOT)} -> {phrase}")
 
 
 def check_structured_files(errors: list[str]) -> None:
@@ -192,7 +285,12 @@ def check_structured_files(errors: list[str]) -> None:
 
 
 def check_declared_paths(errors: list[str]) -> None:
-    for relative in ("core/workflow_router.yaml", "core/module_manifest.yaml", "assets/figure_assets.yaml"):
+    for relative in (
+        "core/workflow_router.yaml",
+        "core/module_manifest.yaml",
+        "core/output_contract.yaml",
+        "assets/figure_assets.yaml",
+    ):
         for value in iter_strings(load_yaml(ROOT / relative)):
             for match in PATH_PATTERN.finditer(value):
                 declared = match.group("path")
@@ -225,6 +323,12 @@ def check_module_artifact_closure(errors: list[str]) -> None:
     if missing_terminal:
         errors.append(f"full_workflow terminal outputs are not produced: {sorted(missing_terminal)}")
 
+    if "model_paper_framework" not in manifest.get("artifact_catalog", {}):
+        errors.append("module manifest must catalogue model_paper_framework")
+    for name in ("model_design", "solve_validate", "figure_evidence"):
+        if "model_paper_framework" not in modules.get(name, {}).get("outputs", []):
+            errors.append(f"{name} must output synchronized model_paper_framework")
+
 
 def check_project_state_schema(errors: list[str]) -> None:
     schema = load_yaml(ROOT / "core/project_state.schema.yaml")
@@ -241,22 +345,53 @@ def check_project_state_schema(errors: list[str]) -> None:
     except Exception as exc:  # noqa: BLE001
         errors.append(f"invalid project state schema: {exc}")
 
+    properties = (schema or {}).get("properties", {})
+    if "paper_framework" not in properties:
+        errors.append("project state schema must define paper_framework")
+    subproblem = properties.get("subproblems", {}).get("additionalProperties", {})
+    subprops = subproblem.get("properties", {})
+    for field in ("framework_section", "result_summary_status", "result_summary_anchor"):
+        if field not in subprops:
+            errors.append(f"project state subproblem must define {field}")
+
+
+def check_framework_template(errors: list[str]) -> None:
+    path = ROOT / "templates/model/model_paper_framework.md"
+    module = load_module(
+        "validate_model_paper_framework", ROOT / "scripts/validate_model_paper_framework.py"
+    )
+    for issue in module.validate_framework_file(path):
+        errors.append(f"framework template violation: {issue}")
+    text = read_text(path)
+    for token in ("结果摘要状态", "MATLAB 图标题", "图表证据链", "只保留当前有效"):
+        if token not in text:
+            errors.append(f"framework template lacks token: {token}")
+
 
 def check_workbook_schema(errors: list[str]) -> None:
     schema = load_yaml(ROOT / "core/workbook_schema.yaml") or {}
     required_top = {
-        "version", "global_rules", "capability_contract", "solution_workbook",
-        "sensitivity_robustness_workbook", "matlab_handoff",
+        "version",
+        "global_rules",
+        "capability_contract",
+        "solution_workbook",
+        "sensitivity_robustness_workbook",
+        "matlab_handoff",
     }
     if required_top - set(schema):
         errors.append(f"workbook schema missing keys: {sorted(required_top - set(schema))}")
     if schema.get("global_rules", {}).get("empty_worksheet_allowed") is not False:
         errors.append("workbook schema must forbid empty worksheets")
+    handoff = schema.get("matlab_handoff", {})
+    required_fields = set(handoff.get("required_mapping_fields", []))
+    for field in ("matlab_title", "paper_caption", "framework_registry"):
+        if field not in required_fields:
+            errors.append(f"workbook MATLAB handoff must require {field}")
 
 
 def check_task_packs(errors: list[str]) -> None:
     for name in TASK_PACKS:
-        path = ROOT / "packs/task" / f"{name}.md"
+        path = ROOT / "packs" / "task" / f"{name}.md"
         if not path.is_file():
             errors.append(f"missing task pack: {path.relative_to(ROOT)}")
             continue
@@ -281,10 +416,12 @@ def check_supporting_assets(errors: list[str]) -> None:
 
     profiles = (load_yaml(ROOT / "core/compile_profiles.yaml") or {}).get("profiles", {})
     for name, profile in profiles.items():
-        entry = ROOT / str(profile.get("template_directory", "")) / str(profile.get("template_main", ""))
+        entry = ROOT / str(profile.get("template_directory", "")) / str(
+            profile.get("template_main", "")
+        )
         if not entry.is_file():
-            errors.append(f"compile profile {name} template entry does not exist: {entry.relative_to(ROOT)}")
-        if not profile.get("project_main"):
+            errors.append(f"compile profile {name} template entry does not exist: {entry}")
+        if not str(profile.get("project_main", "")).strip():
             errors.append(f"compile profile {name} lacks project_main")
 
 
@@ -325,12 +462,14 @@ def main() -> int:
     errors: list[str] = []
     check_required(errors)
     check_versions(errors)
-    check_flat_path_contract(errors)
+    check_output_contract(errors)
+    check_flat_path_and_matlab_template(errors)
     check_obsolete_patterns(errors)
     check_structured_files(errors)
     check_declared_paths(errors)
     check_module_artifact_closure(errors)
     check_project_state_schema(errors)
+    check_framework_template(errors)
     check_workbook_schema(errors)
     check_task_packs(errors)
     check_supporting_assets(errors)

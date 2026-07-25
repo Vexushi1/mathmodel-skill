@@ -1,10 +1,10 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 6.2.3
+version: 6.2.5
 type: object
 additionalProperties: false
-required: [project, requirements, decisions, subproblems, variables, artifacts, risks, next_gate]
+required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
 
 $defs:
   task_label:
@@ -115,7 +115,7 @@ properties:
     additionalProperties:
       type: object
       additionalProperties: false
-      required: [status, selected_model, problem_types, capabilities, validation_status]
+      required: [status, selected_model, problem_types, capabilities, validation_status, framework_section, result_summary_status]
       properties:
         status:
           type: string
@@ -123,6 +123,11 @@ properties:
         selected_model: {type: string}
         problem_types: {$ref: '#/$defs/problem_types'}
         capabilities: {$ref: '#/$defs/capabilities'}
+        framework_section: {type: string, minLength: 1}
+        result_summary_status:
+          type: string
+          enum: [pending, current, stale]
+        result_summary_anchor: {type: string}
         data_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         validated_data_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         model_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
@@ -164,6 +169,22 @@ properties:
       source:
         type: object
         additionalProperties: {type: string}
+
+  paper_framework:
+    type: object
+    additionalProperties: false
+    required: [path, version, sync_status, last_sync_scope]
+    properties:
+      path:
+        type: string
+        const: 模型论文框架.md
+      version: {type: string, minLength: 1}
+      sync_status:
+        type: string
+        enum: [current, stale]
+      last_synced_at: {type: string, format: date-time}
+      last_sync_scope: {type: string, minLength: 1}
+      sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
 
   execution:
     type: object
@@ -223,9 +244,13 @@ policy:
   required_on_every_chat: false
   create_when: [full_project, cross_chat_handoff, multiple_artifacts, user_request]
   semantic_validator: scripts/validate_project_state.py
+  framework_validator: scripts/validate_model_paper_framework.py
   semantic_checks:
     - requirements.total equals the number of unique completed and pending requirements.
     - completed and pending are disjoint.
+    - 模型设计阶段及以后必须存在当前有效的 模型论文框架.md。
+    - 每个小问必须能定位到框架章节；solved、validated、written 或 completed 状态要求结果摘要为 current。
     - subproblem artifact paths must exist before status becomes validated, written or completed.
     - solver claims must include tolerance, feasibility evidence and applicable optimality evidence.
     - validated artifacts become stale when the current data or model hash differs from the validated hash.
+    - artifacts_stale 为 true 时，paper_framework 与对应 result_summary_status 不得保持 current。

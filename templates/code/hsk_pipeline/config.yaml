@@ -1,17 +1,28 @@
 project:
   random_seed: 2026
   source_root: .
+  model_paper_framework: 模型论文框架.md
   result_root: 结果数据表
   draft_docx_dir: draft_docx
   final_latex_dir: final_latex
 
+framework_sync:
+  required_after_model_lock: true
+  current_only: true
+  formal_delivery_sync: true
+  result_summary_after_solve: true
+  history_storage: git
+
 question_output:
   problem_name: 问题一
+  framework_section: '### Q1：填写问题名称'
+  result_summary_status: pending
   result_dir: 结果数据表/问题一
   solution_workbook: 问题一求解结果.xlsx
   sensitivity_robustness_workbook: 问题一敏感性与鲁棒性结果.xlsx
   matlab_script: q1_plot.m
   figure_dir: 图表
+  matlab_title_policy: title_or_sgtitle
 
 runtime:
   strict_column_check: true

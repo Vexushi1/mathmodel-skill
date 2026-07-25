@@ -1,15 +1,17 @@
-# Module 04：MATLAB 结果图证据与机理图精修
+# Module 04：MATLAB 结果图证据、图标题与机理图精修
 
 ## 正确顺序
 
 1. Python 完成求解、检验并锁定两类标准工作簿；
 2. 先写每张图的 Core conclusion，再按 `templates/figure/chart_selection.md` 选择图型；
 3. 在生成 MATLAB 代码前，实际读取两类工作簿，逐表锁定真实工作表名、真实表头、列位置、单位和数据类型；
-4. 将问题专属 `q{x}_plot.m` 放入对应的 `结果数据表/问题X/`，与两类工作簿同目录；
-5. MATLAB 以脚本所在目录为 `resultDir`，按已锁定的真实工作表、真实表头和固定列位置直接读取同目录工作簿；
-6. 检查每个核心结论是否有图/表证据；
-7. 回看早期机理图合同，只精修 S/A 级图；
-8. 统一图号、图注、正文引用和结论映射。
+4. 为每张单图确定一个简洁 `title`，为每张多面板确定一个整体 `sgtitle`，并同时拟定不逐字重复的 DOCX/LaTeX 图注；
+5. 将问题专属 `q{x}_plot.m` 放入对应的 `结果数据表/问题X/`，与两类工作簿同目录；
+6. MATLAB 以脚本所在目录为 `resultDir`，按已锁定的真实工作表、真实表头和固定列位置直接读取同目录工作簿；
+7. 检查每个核心结论是否有图/表证据；
+8. 将 MATLAB 图标题、图注、源工作簿、工作表、固定列、脚本和支撑结论同步到 `模型论文框架.md`；
+9. 回看早期机理图合同，只精修 S/A 级图；
+10. 统一图号、图注、正文引用和结论映射。
 
 ## A 类：机理/推导图
 
@@ -19,7 +21,7 @@
 
 ## B 类：结果图
 
-每张核心图建立：Core conclusion、Figure role、Panel map、Source workbook、Worksheet、Required columns、MATLAB script、Export files、Statistics/error、Reviewer risk、Paper location 和 Caption duty。
+每张核心图建立：Core conclusion、Figure role、MATLAB title、DOCX/LaTeX caption、Panel map、Source workbook、Worksheet、Required columns、Column positions、MATLAB script、Export files、Statistics/error、Reviewer risk、Paper location 和 Caption duty。
 
 源数据只允许来自：
 
@@ -84,6 +86,29 @@
 
 每问脚本默认自包含上述检查。只有多个问题确有共享校验需求时才调用辅助函数；不得为简单绘图强制生成 `hsk_find_project_root.m`、`hsk_read_result_workbooks.m` 等额外文件。
 
+## MATLAB 图标题规范
+
+- 单图使用 `title(ax, figureTitle, ...)`；多面板使用一个 `sgtitle(layout, figureTitle, ...)`；
+- 图标题是 MATLAB 图像的一部分，默认保留在可见图窗和导出文件中；
+- 标题只说明“研究对象 + 指标或关系 + 必要方法信息”，不得把结论、推荐方案或整段解释写进标题；
+- 多面板只有在面板对象或指标确有差异时设置短子标题，同时保留 a、b、c、d 面板字母；
+- 图标题与 DOCX/LaTeX 图注职责分离：标题便于本地筛图和答辩使用，图注补充样本、统计口径、时间范围、误差线和解释；二者不得逐字复制；
+- 每个标题必须写入 Figure Contract 和 `模型论文框架.md`，不得只存在于 MATLAB 代码中。
+
+推荐示例：
+
+```matlab
+figureTitle = "不同分类模型的验证集性能比较";
+title(ax, figureTitle, "FontWeight", "normal");
+```
+
+多面板示例：
+
+```matlab
+layout = tiledlayout(fig, 2, 2, "TileSpacing", "compact");
+sgtitle(layout, "模型性能、误差结构与鲁棒性检验", "FontWeight", "normal");
+```
+
 ## MATLAB 绘图规范
 
 - 问题专属脚本统一命名为 `q{x}_plot.m`，例如 `q1_plot.m`、`q2_plot.m`；
@@ -92,16 +117,19 @@
 - 默认不批量调用 `exportgraphics` 或 `print`；人工调整后显式调用导出；
 - 导出目录为同级 `图表/`，不存在时由显式导出分支创建；
 - 默认白底、坐标轴和边框清楚，网格按证据需要决定，常规情况下 `grid off`；
-- 默认字号 18，图例约 16，面板字母 20--22；
+- 默认字号 18，图例约 16，标题约 18，多面板总标题约 20，面板字母 20--22；
 - 默认色板采用深蓝、青绿、蓝紫、暗红、米色、深灰和浅灰，但颜色不是固定约束，可根据变量语义、类别数量、背景、连续/离散数据和对比需求灵活调整；
 - 调整配色时应保持同一对象同色、同一语义同色，并避免颜色数量超过有效辨识能力；
-- 图内不重复写总标题；多面板只保留 a、b、c、d 标记；
-- 中文坐标轴和单位完整，标签不重叠，图例不遮挡；
+- 中文标题、坐标轴和单位完整，标签不重叠，图例不遮挡；
 - 3D 图必须设置合理视角、光照、投影和遮挡处理，必要时同时提供二维投影、等高线或数据标签；
 - 饼图、环形图和雷达图必须控制类别/对象数量，并保留可核对的数值或比例信息。
 
-图像文件名使用英文或拼音，图题由 LaTeX 图注承担。
+图像文件名使用英文或拼音。DOCX/LaTeX 图题仍位于图下，但不删除 MATLAB 图内已确认的简洁标题。
+
+## `模型论文框架.md` 同步
+
+每完成或修改一张正式图，必须在框架的“论文与图表映射”及“图表证据链”中更新：MATLAB 图标题、DOCX/LaTeX 图注、图型作用、工作簿、工作表、固定列、脚本、导出文件、支撑结论和论文位置。旧图被替换时删除旧映射，不保留失效条目。
 
 ## 入文闭环
 
-图后另起正文段，按 `templates/writing/caption_explanation.md` 组织趋势/差异、关键数值、机制和结论作用，不套用固定句式。无法绑定小问、公式、工作簿工作表、同目录 `q{x}_plot.m` 或正文结论的图删除。
+图后另起正文段，按 `templates/writing/caption_explanation.md` 组织趋势/差异、关键数值、机制和结论作用，不套用固定句式。无法绑定小问、公式、工作簿工作表、同目录 `q{x}_plot.m`、框架映射或正文结论的图删除。
