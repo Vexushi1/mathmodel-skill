@@ -20,7 +20,7 @@ model_paper_framework:
   result_summary_required_after: solved
   authoritative_boundaries:
     model_semantics_and_paper_structure: 模型论文框架.md
-    machine_state_and_freshness: state/project_state.yaml
+    machine_state_and_freshness: project_state_runtime_file
     numerical_results: 每问两类标准工作簿
   required_sections:
     - 当前有效口径
