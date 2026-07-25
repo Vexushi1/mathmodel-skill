@@ -43,7 +43,7 @@
 - 模型语义和论文结构以框架为准，数值以标准工作簿为准，机器状态与 stale 以 `state/project_state.yaml` 为准。
 
 模板：`templates/model/model_paper_framework.md`  
-校验：`python scripts/validate_model_paper_framework.py 模型论文框架.md --state state/project_state.yaml`
+项目校验：`python scripts/validate_model_paper_framework.py 模型论文框架.md --state state/project_state.yaml`
 
 ## 固定职责
 
@@ -98,7 +98,7 @@ python scripts/lint_skill.py
 python -m unittest discover -s tests -p "test_*.py"
 python scripts/generate_indexes.py --check
 python scripts/resolve_workflow.py full_solution --primary mechanism --secondary optimization --competition CUMCM
-python scripts/validate_model_paper_framework.py 模型论文框架.md --state state/project_state.yaml
+python scripts/validate_model_paper_framework.py templates/model/model_paper_framework.md
 ```
 
 详细变更见 `CHANGELOG_V622.md`。
