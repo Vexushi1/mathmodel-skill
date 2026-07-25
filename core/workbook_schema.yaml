@@ -1,5 +1,5 @@
-version: 6.2.3
-purpose: 约束每问两类标准工作簿的工作表名称、最低字段、条件工作表和非空规则，供 Python 输出、MATLAB 读取和终审共同使用。
+version: 6.2.5
+purpose: 约束每问两类标准工作簿的工作表名称、最低字段、条件工作表、非空规则和 MATLAB 图标题交接，供 Python 输出、MATLAB 读取、模型论文框架与终审共同使用。
 
 runtime_enforcement:
   writer: templates/code/hsk_pipeline/result_io.py
@@ -9,6 +9,7 @@ runtime_enforcement:
     - 标准工作簿写入前必须执行本 Schema；不得只检查工作表是否存在。
     - 交付检查必须复用写入器的同一校验函数，不维护第二套字段规则。
     - MATLAB 绘图脚本生成前必须读取实际工作簿，并直接写入真实工作表名、真实表头和固定列位置；不得用动态字段校准替代实表核对。
+    - MATLAB 正式图必须设置简洁 title 或 sgtitle，并将标题、图注和数据映射同步到 模型论文框架.md。
 
 global_rules:
   worksheet_name_language: Chinese descriptive names
@@ -110,11 +111,18 @@ sensitivity_robustness_workbook:
       optional_columns: [证据位置, 结论]
 
 matlab_handoff:
-  required_mapping_fields: [figure_id, workbook, worksheet, required_headers, column_positions, matlab_script]
+  required_mapping_fields: [figure_id, matlab_title, paper_caption, workbook, worksheet, required_headers, column_positions, matlab_script, framework_registry]
+  title_contract:
+    single_panel: title
+    multi_panel: sgtitle
+    keep_in_export: true
+    content: 研究对象 + 指标或关系 + 必要方法信息
+    caption_policy: DOCX/LaTeX 图注补充统计口径、数据范围和解释，不与 MATLAB 标题逐字重复
   rules:
     - MATLAB 代码生成前必须实际读取本次工作簿并确认工作表、第一行真实表头和固定列位置。
     - 正式脚本直接写真实工作表名、真实表头和固定列号；不得动态寻找替代字段。
     - 禁止模糊匹配、别名映射、相似字段猜测、自动回退和运行时改变列映射。
     - 正式图不得从论文摘要数字或人工构造序列反推。
-    - 图表合同必须记录源工作簿、工作表、真实字段、固定列位置和单位。
+    - 图表合同必须记录 MATLAB 标题、论文图注、源工作簿、工作表、真实字段、固定列位置和单位。
+    - 图表映射必须同步写入项目根目录 模型论文框架.md。
     - VariableNamingRule=preserve 不能替代对实际工作簿的读取与固定表头断言。
