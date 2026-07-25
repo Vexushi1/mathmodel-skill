@@ -1,6 +1,6 @@
-# mathmodel-skill v6.2.4-flat-question-layout
+# mathmodel-skill v6.2.5-current-model-framework
 
-本版本保留六模块主架构，在 v6.2.3 契约闭环基础上统一项目路径：赛题、附件和 Python 脚本直接位于项目根目录；每问两类工作簿、唯一 MATLAB 入口和图表统一收敛到 `结果数据表/问题X/`，删除重复目录层级。
+本版本在 v6.2.4 扁平目录与实表固定列读取基础上，引入项目根目录 `模型论文框架.md` 作为当前模型语义、论文结构、逐问结果摘要和图表映射的唯一有效入口，并恢复 MATLAB 正式结果图的简洁标题。
 
 ## 快速入口
 
@@ -9,7 +9,8 @@
 3. `core/hsk_core_policy.md`：唯一全局硬规则；
 4. `core/workflow_router.yaml`：机器可读路由；
 5. `core/module_manifest.yaml`：模块产物闭环；
-6. `HSK_SKILL_FILE_INDEX_V622.md`：活动文件清单，文件名为兼容路径，标题显示当前版本。
+6. `templates/model/model_paper_framework.md`：项目根目录框架模板；
+7. `HSK_SKILL_FILE_INDEX_V622.md`：活动文件清单，文件名为兼容路径，标题显示当前版本。
 
 ## 核心工作流
 
@@ -18,9 +19,12 @@
 → 每问题型、能力与依赖拆解
 → 两条模型路线与高级方法准入
 → 变量、假设、公式和约束闭环
+→ 创建/重写 模型论文框架.md
 → Python 求解、约束/残差检查和多算法验证
 → 每问两类中文 Excel 工作簿
-→ MATLAB 读取同目录工作簿绘制正式结果图
+→ 同步逐问结果摘要
+→ MATLAB 读取同目录工作簿绘制带简洁标题的正式结果图
+→ 同步标题—图注—数据—结论证据链
 → DOCX 草稿检查
 → LaTeX 草稿
 → AI 模板感清除
@@ -28,10 +32,23 @@
 → 评委式终审和提交包检查
 ```
 
+## `模型论文框架.md`
+
+- 模型锁定后在项目根目录创建；
+- 只保留当前有效模型、参数、约束、数据处理、算法、结果和图表映射；
+- 发生变化时删除旧内容并完整替换，不在文件中累计修改日志；
+- Git 历史保存旧版本；
+- 每问求解后写入模型与算法、核心数值、验证/可行性、敏感性/鲁棒性、最终结论和证据位置；
+- 每次正式交付模型、代码、工作簿、验证、MATLAB 图、DOCX 或 LaTeX 时，同步交付完整最新版；
+- 模型语义和论文结构以框架为准，数值以标准工作簿为准，机器状态与 stale 以 `state/project_state.yaml` 为准。
+
+模板：`templates/model/model_paper_framework.md`  
+校验：`python scripts/validate_model_paper_framework.py 模型论文框架.md --state state/project_state.yaml`
+
 ## 固定职责
 
 - Python：读取项目根目录中的题目附件，完成数据处理、模型求解、优化、仿真、检验、敏感性、鲁棒性和结果工作簿输出；
-- MATLAB：与对应问题工作簿同目录，只读取工作簿绘制正式结果图，不重新计算核心结果；
+- MATLAB：与对应问题工作簿同目录，只读取工作簿绘制正式结果图，不重新计算核心结果；单图使用 `title`，多面板使用整体 `sgtitle`，默认保留在导出图中；
 - DOCX：前期修改、批注和逻辑检查；
 - LaTeX：最终论文与 PDF；中文国赛保留 `cumcmthesis`；
 - `legacy/`：仅用于历史追溯和兼容，不参与活动索引与 Manifest，除 `legacy/README.md` 指针外不默认加载。
@@ -42,6 +59,7 @@
 项目根目录/
 ├─ A题.pdf
 ├─ 附件1.xlsx
+├─ 模型论文框架.md
 ├─ 问题一求解.py
 ├─ 问题一敏感性与鲁棒性.py
 └─ 结果数据表/
@@ -60,15 +78,17 @@
 
 工作簿结构见 `core/workbook_schema.yaml`。题型决定专项结果，capability 标志决定约束、均衡、守恒、离散和收敛检查。写入器与交付检查器复用同一校验实现。
 
-## v6.2.4 重点
+## v6.2.5 重点
 
-- 删除 `问题X结果数据/` 重复层级，两类工作簿直接位于 `结果数据表/问题X/`；
-- 具体问题 Python 脚本与赛题、附件同放项目根目录，不再默认创建 `Python求解/`；
-- `q{x}_plot.m` 与对应工作簿同目录，不再默认创建 `MATLAB绘图/`；
-- MATLAB 使用自身脚本目录直接定位工作簿，简单问题默认采用单文件自包含读取、校验和样式；
-- 正式结果图统一导出到 `结果数据表/问题X/图表/`；
-- `result_io.py`、`hsk_check_artifact.py`、MATLAB 模板、Figure Contract、Manifest 和测试同步到新路径；
-- 旧目录仅允许作为历史项目迁移输入，不作为新项目输出。
+- 新增根目录 `模型论文框架.md` 当前口径契约与完整模板；
+- 模型/参数/约束/数据/算法/结果变化时执行“删除旧版—重写当前版”，Git 负责历史；
+- 每问结果摘要正式纳入求解交付，记录核心数值、验证、鲁棒性和证据位置；
+- 模块产物闭环、路由、项目状态 Schema、交付合同和审查规则全部接入框架同步；
+- 新增 `scripts/validate_model_paper_framework.py`，并接入 `hsk_check_artifact.py`；
+- MATLAB 单图恢复 `title`，多面板恢复整体 `sgtitle`，图标题默认保留；
+- Figure Contract 增加 MATLAB title、DOCX/LaTeX caption 和框架登记位置；
+- 图注继续置于 DOCX/LaTeX 图下，但用于补充统计口径，不与图内标题逐字重复；
+- 延续 v6.2.4 的项目根目录 Python、扁平问题目录、同目录工作簿与 `q{x}_plot.m`、实表真实表头与固定列读取规则。
 
 ## 本地检查
 
@@ -78,6 +98,7 @@ python scripts/lint_skill.py
 python -m unittest discover -s tests -p "test_*.py"
 python scripts/generate_indexes.py --check
 python scripts/resolve_workflow.py full_solution --primary mechanism --secondary optimization --competition CUMCM
+python scripts/validate_model_paper_framework.py 模型论文框架.md --state state/project_state.yaml
 ```
 
 详细变更见 `CHANGELOG_V622.md`。
