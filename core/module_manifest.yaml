@@ -1,9 +1,10 @@
-version: 6.2.3
+version: 6.2.5
 
 contracts:
   output: core/output_contract.yaml
   workbook: core/workbook_schema.yaml
   project_state: core/project_state.schema.yaml
+  model_paper_framework_template: templates/model/model_paper_framework.md
   compile_profiles: core/compile_profiles.yaml
 
 external_artifacts:
@@ -28,6 +29,7 @@ artifact_catalog:
   selected_models: 每问选定模型
   locked_model_spec: 已锁定的变量、假设、公式、目标和约束
   formula_closure: 公式—代码—输出映射
+  model_paper_framework: 项目根目录中只保留当前有效版本的模型论文框架、逐问结果摘要与图表映射
   mechanism_contracts: 机理图合同
   validation_plan: 每问验证与稳健性计划
   python_code: Python 求解代码
@@ -38,7 +40,7 @@ artifact_catalog:
   validation_report: 求解器、可行性、误差、敏感性和多算法报告
   evidence_map: 结论到公式、代码、表和图的证据映射
   matlab_scripts: MATLAB 问题专属绘图脚本
-  result_figures: 工作簿驱动的正式结果图
+  result_figures: 工作簿驱动且包含简洁图标题的正式结果图
   refined_mechanism_figures: 精修后的 S/A 级机理图
   figure_contracts: 结果图和机理图合同
   approved_figures: 已人工确认可入文的图
@@ -57,10 +59,10 @@ artifact_catalog:
 workflow_profiles:
   design:
     modules: [problem_audit, model_design]
-    terminal_outputs: [requirement_map, route_comparison, selected_models, formula_closure]
+    terminal_outputs: [requirement_map, route_comparison, selected_models, formula_closure, model_paper_framework]
   full_solution:
     modules: [problem_audit, model_design, solve_validate]
-    terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report]
+    terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report, model_paper_framework]
   full_workflow:
     modules: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery]
     terminal_outputs: [validated_submission_package]
@@ -69,6 +71,7 @@ workflow_profiles:
     - A route stops at the user-requested deliverable and does not fabricate downstream artifacts.
     - Full workflow preserves module order and cannot place writing before solve_validate.
     - AI cleanup precedes the final LaTeX compile so cleaned text, not the draft, is compiled.
+    - Model design creates model_paper_framework; solve, figure and writing modules consume the current version and synchronize it when their evidence changes.
 
 modules:
   problem_audit:
@@ -78,22 +81,22 @@ modules:
   model_design:
     path: modules/02_model_design.md
     inputs: [requirement_map, data_schema, problem_types_by_subproblem]
-    outputs: [route_comparison, selected_models, locked_model_spec, formula_closure, mechanism_contracts, validation_plan]
+    outputs: [route_comparison, selected_models, locked_model_spec, formula_closure, model_paper_framework, mechanism_contracts, validation_plan]
   solve_validate:
     path: modules/03_solve_validate.md
-    inputs: [locked_model_spec, formula_closure, data_schema, data, workbook_schema]
-    outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validated_results, constraint_checks, validation_report, evidence_map]
+    inputs: [locked_model_spec, formula_closure, model_paper_framework, data_schema, data, workbook_schema]
+    outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validated_results, constraint_checks, validation_report, evidence_map, model_paper_framework]
   figure_evidence:
     path: modules/04_figure_evidence.md
-    inputs: [solution_workbook, sensitivity_robustness_workbook, workbook_schema, mechanism_contracts, evidence_map]
-    outputs: [matlab_scripts, result_figures, refined_mechanism_figures, figure_contracts, approved_figures, evidence_map]
+    inputs: [solution_workbook, sensitivity_robustness_workbook, workbook_schema, model_paper_framework, mechanism_contracts, evidence_map]
+    outputs: [matlab_scripts, result_figures, refined_mechanism_figures, figure_contracts, approved_figures, evidence_map, model_paper_framework]
   writing_docx:
     path: modules/05_writing/docx.md
-    inputs: [locked_model_spec, validated_results, figure_contracts]
+    inputs: [model_paper_framework, locked_model_spec, validated_results, figure_contracts]
     outputs: [docx_draft, latex_migration_notes]
   writing_latex:
     path: modules/05_writing/latex.md
-    inputs: [locked_model_spec, validated_results, approved_figures, bibliography]
+    inputs: [model_paper_framework, locked_model_spec, validated_results, approved_figures, bibliography]
     outputs: [latex_source_draft, paper_text]
   ai_cleanup:
     path: modules/05_writing/ai_cleanup.md
@@ -105,5 +108,5 @@ modules:
     outputs: [compiled_pdf, compile_report]
   review_delivery:
     path: modules/06_review_delivery.md
-    inputs: [all_requested_artifacts, output_contract, workbook_schema, compile_profile, compile_report]
+    inputs: [all_requested_artifacts, model_paper_framework, output_contract, workbook_schema, compile_profile, compile_report]
     outputs: [review_report, validated_submission_package]
