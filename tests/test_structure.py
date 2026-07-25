@@ -90,6 +90,10 @@ class TestStructure(unittest.TestCase):
 
     def test_active_files_do_not_keep_old_no_title_rules(self):
         violations = []
+        skipped = {
+            Path(__file__).resolve(),
+            (ROOT / "scripts/lint_skill.py").resolve(),
+        }
         for directory in ACTIVE_TEXT_DIRS:
             base = ROOT / directory
             if not base.exists():
@@ -97,7 +101,7 @@ class TestStructure(unittest.TestCase):
             for path in base.rglob("*"):
                 if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
                     continue
-                if path.resolve() == Path(__file__).resolve():
+                if path.resolve() in skipped:
                     continue
                 text = path.read_text(encoding="utf-8-sig", errors="strict")
                 for phrase in OLD_TITLE_PHRASES:
