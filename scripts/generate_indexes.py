@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate active-package indexes and a cross-platform MANIFEST.sha256 for HSK v6.2.6."""
+"""Generate active-package indexes and a cross-platform MANIFEST.sha256 for HSK v6.3.1."""
 from __future__ import annotations
 
 import argparse
@@ -7,8 +7,8 @@ import hashlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = "6.2.6"
-# Public filenames remain V622 for compatibility; their generated titles carry the current version.
+VERSION = "6.3.1"
+# Public filenames remain V622 for compatibility; generated titles carry the active Skill version.
 SKILL_INDEX = ROOT / "HSK_SKILL_FILE_INDEX_V622.md"
 TEMPLATE_INDEX = ROOT / "HSK_TEMPLATE_INDEX_V622.md"
 MANIFEST = ROOT / "MANIFEST.sha256"
