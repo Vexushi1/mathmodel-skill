@@ -23,6 +23,7 @@ def append_sheet(book: Workbook, title: str, headers, row):
     if len(book.sheetnames) == 1 and book.active.max_row == 1 and book.active["A1"].value is None:
         ws = book.active
         ws.title = title
+        ws.delete_rows(1, 1)
     else:
         ws = book.create_sheet(title)
     ws.append(list(headers))
@@ -154,7 +155,7 @@ class TestSyncProject(unittest.TestCase):
             result = setup_valid_project(root, status="validated", phase="solve_validate")
             initial = syncer.synchronize(root, write=False)
             current = initial["questions"]["Q1"]["artifact_hashes"]
-            state_path = root / "state" / "project_state.yaml"
+            state_path = root / "state/project_state.yaml"
             state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
             state["subproblems"]["Q1"]["validated_artifact_hashes"] = current
             state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
