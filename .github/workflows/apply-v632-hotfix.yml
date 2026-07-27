@@ -1,0 +1,39 @@
+name: Apply v6.3.2 post-migration hotfix
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths:
+      - scripts/apply_v632_hotfix.py
+      - .github/workflows/apply-v632-hotfix.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-v632-hotfix-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply deterministic fixes
+        run: python scripts/apply_v632_hotfix.py
+      - name: Compile Python sources
+        run: python -m compileall -q scripts templates tests
+      - name: Commit repaired sources
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/validate_project_state.py templates/code/hsk_pipeline/result_io.py
+          git commit -m 'fix: repair v6.3.2 state and generic workbook code'
+          git push origin HEAD:${{ github.head_ref }}
