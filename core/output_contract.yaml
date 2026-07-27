@@ -1,10 +1,14 @@
-version: 6.2.6
+version: 6.3.0
 schema: core/workbook_schema.yaml
+bootstrap: core/bootstrap.yaml
+taxonomy: core/task_taxonomy.yaml
 
 project_root:
   problem_and_attachments: 赛题、附件数据表和说明文件直接放在项目根目录
   model_paper_framework: 模型论文框架.md
-  python_scripts: 问题求解、检验、敏感性与鲁棒性 Python 脚本直接放在项目根目录
+  project_state: state/project_state.yaml
+  sync_report: sync_report.yaml
+  python_scripts: 问题求解、检验、敏感性与鲁棒性Python脚本直接放在项目根目录
   result_tables: 结果数据表/
   draft_docx: draft_docx/
   final_latex: final_latex/
@@ -13,96 +17,74 @@ model_paper_framework:
   path: 模型论文框架.md
   template: templates/model/model_paper_framework.md
   create_after: locked_model_spec
-  role: 当前有效模型语义、论文结构、全文命题与证明规划、逐问结果摘要与图表映射
-  history_policy: 文件内部不累积旧版；旧版本由 Git 历史保存
-  replacement_policy: 模型、参数、约束、数据处理、算法、命题、证明、结果或图表变化时，删除受影响旧内容并完整替换为当前版本
+  role: 当前有效模型语义、论文结构、命题规划、逐问结果摘要与图表映射
+  modes:
+    compact:
+      use_when: 日常迭代、单问交付、普通聊天续作
+      required_sections: [当前有效口径, 各问模型与结果, 图表证据链, 待办与缺口]
+    full:
+      use_when: 跨聊天交接、完整复现、DOCX/LaTeX终稿、终审提交
+      required_sections: [当前有效口径, 论文整体框架, 命题与证明规划, 各问模型与结果, 综合检验与跨问结论, 图表证据链, 待办与缺口, 同步检查]
+  default_mode: compact
+  history_policy: 文件内部不累积旧版；旧版本由Git历史保存
+  replacement_policy: 模型、参数、约束、数据处理、算法、命题、证明、结果或图表变化时，删除受影响旧内容并完整替换
   formal_delivery_sync: true
+  sync_command: python scripts/sync_project.py <project_root> --write --strict
   result_summary_required_after: solved
   authoritative_boundaries:
     model_semantics_and_paper_structure: 模型论文框架.md
-    machine_state_and_freshness: project_state_runtime_file
+    machine_state_and_freshness: state/project_state.yaml
     numerical_results: 每问两类标准工作簿
-  required_sections:
-    - 当前有效口径
-    - 论文整体框架
-    - 命题与证明规划
-    - 各问模型与结果
-    - 综合检验与跨问结论
-    - 图表证据链
-    - 待办与缺口
-    - 同步检查
-  update_triggers:
-    - locked_model_spec_changed
-    - variable_or_parameter_changed
-    - objective_or_constraint_changed
-    - data_processing_changed
-    - algorithm_or_hyperparameter_changed
-    - proposition_or_proof_changed
-    - result_or_validation_changed
-    - matlab_figure_or_title_changed
-    - docx_or_latex_structure_changed
+
+project_sync:
+  script: scripts/sync_project.py
+  report: sync_report.yaml
+  default_mode: dry_run
+  write_flag: --write
+  strict_flag: --strict
+  responsibilities:
+    - 发现根目录Python、每问工作簿、MATLAB脚本和图表
+    - 读取工作簿真实工作表、表头与数据行数
+    - 计算输入、模型、工作簿和框架哈希
+    - 当已验证哈希变化时传播stale
+    - 更新产物路径和同步报告
+  forbidden:
+    - 自动生成模型语义
+    - 自动填写结果数值
+    - 自动把validation_status提升为passed
+    - 以文件存在代替可行性或正确性验证
+
+classification_contract:
+  taxonomy: core/task_taxonomy.yaml
+  current_axes: [objective, structures, capabilities]
+  legacy_task_labels_supported: true
+  per_subproblem: true
 
 proposition_contract:
   optional: true
   maximum_per_paper: 4
   minimum_per_paper: 0
-  default_environment_name: 命题
+  detail_pack: packs/artifact/proposition_proof.md
+  lazy_load_when: [explicit_proof_request, proposition_count_greater_than_zero]
   latex_outer_environment: hskproposition
   latex_proof_environment: hskproof
-  planning_location: 模型论文框架.md/论文整体框架/命题与证明规划
-  required_fields:
-    - proposition_id
-    - related_question
-    - claim_type
-    - assumptions_and_domain
-    - conclusion
-    - proof_level
-    - modeling_effect
-    - failure_boundary
-    - status
-  primary_modeling_effects:
-    - problem_simplification
-    - model_necessity
-    - critical_point_or_threshold_identification
-    - dimension_or_candidate_reduction
-    - redundant_constraint_removal
-    - feasibility_preservation
-    - theoretical_boundary
-  allowed_claim_types:
-    - equivalence
-    - existence_or_feasibility
-    - monotonicity_or_threshold
-    - convexity_uniqueness_or_solution_structure
-    - constraint_reduction_or_dimension_reduction
-    - feasibility_preservation
-    - stability_or_error_bound
-    - cited_standard_theorem
-  proof_levels: [full, outline, cited]
   main_text_default_proof_level: outline
   main_text_key_steps_min: 2
   main_text_key_steps_max: 6
-  main_text_typical_lines_min: 3
-  main_text_typical_lines_max: 8
-  main_text_recommended_page_fraction_max: one_third
-  full_proof_appendix_threshold: half_page
+  required_fields: [proposition_id, assumptions_and_domain, conclusion, proof_level, modeling_effect, failure_boundary, status]
   display_contract:
     single_outer_box: true
     statement_and_proof_in_same_box: true
     nested_box_forbidden: true
-    page_break_discouraged: true
     background: white
     border: thin
-    allowed_border_tones: [black, dark_gray, restrained_dark_blue]
     shadow: false
     large_color_fill: false
     flowchart_or_mechanism_color_rule_applies: false
-  rules:
-    - 命题数量按实际需要确定，可以为0，全文最多4个，不按小问机械分配。
-    - 命题优先用于问题简化、模型必要性说明、关键点识别、降维、候选范围缩减、约束删减、算法可行性或理论边界，否则改为普通推导。
-    - 正文默认采用B级关键证明链，仅保留2--6个逻辑步骤；超过半页的完整技术证明移入附录。
-    - 命题正文与短证明必须置于同一个外框；流程图和机理图的彩色框限制不适用于命题证明环境。
-    - 数值实验、交叉验证和求解器成功状态只能作复核证据，不能替代数学证明。
-    - 模型、参数、约束或定义域变化后，相关命题与证明必须重新检查并同步框架和项目状态。
+  hard_rules:
+    - 命题必须实际服务问题简化、模型必要性、关键点识别、降维、约束删减、可行性保持或理论边界。
+    - 数值实验、准确率比较和求解器退出状态不能替代数学证明。
+    - 模型、参数、约束或定义域变化后必须重新检查相关证明。
 
 per_question:
   question_directory: 结果数据表/问题{中文序号}/
@@ -113,56 +95,29 @@ per_question:
   figure_directory: 图表/
   optional_editable_directory: 图表/可编辑源/
 
-canonical_example:
-  project_root_files:
-    - A题.pdf
-    - 附件1.xlsx
-    - 模型论文框架.md
-    - 问题一求解.py
-    - 问题一敏感性与鲁棒性.py
-  question_one:
-    directory: 结果数据表/问题一/
-    files:
-      - 问题一求解结果.xlsx
-      - 问题一敏感性与鲁棒性结果.xlsx
-      - q1_plot.m
-    figures: 结果数据表/问题一/图表/
-
-solution_workbook_recommended_sheets:
-  - 核心指标
-  - 推荐方案
-  - 明细结果
-  - 约束违反检查
-  - 多算法对比
-  - 数据审计
-
-sensitivity_robustness_workbook_recommended_sheets:
-  - 参数敏感性
-  - 鲁棒性区间
-  - 扰动明细
-  - 算法稳定性
-  - 适用性说明
-
 matlab_figure_contract:
   title_required: true
   single_panel_title: title
   multi_panel_title: sgtitle
-  panel_subtitle_policy: 仅当面板对象或指标确有差异时使用短子标题
-  title_content: 研究对象 + 指标或关系 + 必要方法信息
-  conclusion_sentence_forbidden: true
+  field_resolution: exact_header_unique_match
+  expected_column_position: optional_drift_check
+  fuzzy_matching_forbidden: true
+  alias_guessing_forbidden: true
   keep_title_in_export_by_default: true
-  caption_role: DOCX/LaTeX 图注补充统计口径、数据范围和解释，不与图内标题逐字重复
-  title_registry: 模型论文框架.md 与 Figure Contract
+  caption_role: DOCX/LaTeX图注补充统计口径、数据范围和解释，不与图内标题逐字重复
+  title_registry: 模型论文框架.md与Figure Contract
 
 ownership:
-  Python: 读取项目根目录中的题目附件，完成数据处理、模型求解、优化、仿真、检验、敏感性、鲁棒性并输出结果工作簿
-  MATLAB: 与对应问题工作簿同目录，读取同目录工作簿绘制正式论文结果图并保留简洁图标题；不得重新计算核心结果
+  Python: 读取项目根目录题目附件，完成数据处理、求解、优化、仿真、检验、敏感性、鲁棒性并输出工作簿
+  MATLAB: 与对应问题工作簿同目录，精确读取真实表头绘图，不重新计算核心结果
   other_figure_tools: GeoGebra、PPT、draw.io、SVG、TikZ可用于非数据驱动机理图
 
 filenames:
-  model_paper_framework: 项目根目录固定中文名 模型论文框架.md
-  python_scripts: 项目根目录中的中文描述性名称
-  matlab_scripts: q1_plot.m、q2_plot.m 等 ASCII 固定名称
+  model_paper_framework: 模型论文框架.md
+  project_state: state/project_state.yaml
+  sync_report: sync_report.yaml
+  python_scripts: 项目根目录中文描述性名称
+  matlab_scripts: q1_plot.m、q2_plot.m等ASCII固定名称
   workbooks: 中文固定名称
   worksheets: 中文描述性名称，最长31字符
   figures: ASCII英文或拼音
@@ -171,21 +126,11 @@ optional_metadata:
   run_info.json: [full_reproduction, many_algorithms, cross_chat_handoff, final_review, explicit_request]
   result_manifest.yaml: [full_reproduction, many_algorithms, cross_chat_handoff, final_review, explicit_request]
   matlab_figure_handoff.json: [many_figures, cross_chat_handoff, explicit_request]
-  metadata_location: 对应的 结果数据表/问题X/
+  metadata_location: 对应的结果数据表/问题X/
 
 rules:
-  - 锁定模型后必须在项目根目录创建 模型论文框架.md；每次正式交付同步完整最新版。
-  - 框架文件只保留当前有效内容，旧模型、旧参数、旧约束、旧命题、旧证明、旧结果和旧图表结论必须删除，不得与新版并存。
-  - 全文命题数量可以为0但不得超过4；命题编号、数量、条件、作用和失效边界必须登记在框架和项目状态中。
-  - 命题正文与短证明使用同一外框，正文默认短证明，完整长证明按需移附录。
-  - 不再默认创建 Python求解/、MATLAB绘图/ 或 问题X结果数据/ 重复层级。
-  - Python 脚本使用 Path(__file__).resolve().parent 作为项目根目录，题目和附件直接从该目录读取。
-  - 每问两类标准工作簿、q{x}_plot.m 和可选元数据同放在 结果数据表/问题X/。
-  - q{x}_plot.m 以自身所在目录作为 resultDir，直接读取同目录两类工作簿，不搜索项目根目录。
-  - MATLAB 正式图必须设置简洁 title 或 sgtitle，并默认保留在导出图中。
-  - MATLAB 正式图导出到同目录下的 图表/；默认保留可见图窗，导出由人工调整后显式触发。
-  - Excel 工作簿是默认结果交换格式，不得把核心结果散落为独立 CSV。
-  - 约束检查、多算法对比和逐时空明细写入两类标准工作簿的工作表。
-  - 每个工作表必须至少一条记录；不适用分析使用非空的“适用性说明”。
-  - 工作表字段、题型专项与 capability 条件执行 core/workbook_schema.yaml。
-  - CSV 仅用于明确的兼容需求，并留在对应的 结果数据表/问题X/。
+  - 每次正式模型、代码、工作簿、图表、DOCX、LaTeX或提交包交付前必须生成sync_report。
+  - 同步器只做发现、哈希和stale传播，不替代求解与验证。
+  - 不再默认创建Python求解/、MATLAB绘图/或问题X结果数据/重复层级。
+  - Excel工作簿是默认结果交换格式；CSV仅用于明确兼容需求。
+  - 所有工作表必须非空；不适用分析写入非空适用性说明。
