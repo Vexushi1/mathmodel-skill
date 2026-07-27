@@ -10,6 +10,15 @@
 6. 仅加载命中的模块、Pack 和模板；
 7. 正式交付前运行 `scripts/sync_project.py`。
 
+## 仓库修改
+
+任何聊天、Agent 或人工维护者准备修改活动文件时，必须先从 `main` 读取：
+
+1. `core/bootstrap.yaml`；
+2. `SKILL_CHANGE_GOVERNANCE.md`。
+
+随后确认当前版本、最新提交、重叠 PR 和权威事实源，先形成修改简报，再创建独立分支与单主题 PR。禁止依赖旧聊天记忆、直接写 `main`、复制多份硬规则或手工伪造生成文件。
+
 ## 常用任务
 
 | 任务 | 入口 |
@@ -22,12 +31,13 @@
 | 终审与提交包 | `modules/06_review_delivery.md` |
 | 命题证明 | `packs/artifact/proposition_proof.md`，仅按需加载 |
 | 项目状态与产物同步 | `scripts/sync_project.py` |
+| Skill 修改治理 | `SKILL_CHANGE_GOVERNANCE.md` |
 
 ## 机器契约
 
 | 文件 | 作用 |
 |---|---|
-| `core/bootstrap.yaml` | 最小入口与权威源指针 |
+| `core/bootstrap.yaml` | 最小入口、权威源指针与仓库维护入口 |
 | `core/task_taxonomy.yaml` | 正交分类与旧Pack映射 |
 | `core/workflow_router.yaml` | 多意图路由、自然语言关键词与正式交付标志 |
 | `core/module_manifest.yaml` | 模块输入输出、sync_report和同步门槛 |
