@@ -1,4 +1,4 @@
-version: 6.3.0
+version: 6.3.1
 bootstrap: core/bootstrap.yaml
 
 default_load:
@@ -8,6 +8,8 @@ default_load:
 
 classification_contract:
   axes: [objective, structures, capabilities]
+  capability_source: subproblem.capabilities
+  deprecated_capability_alias: classification.capabilities
   objective_required_for_modeling_routes: true
   structures_max_items: 3
   legacy_task_labels_supported: true
@@ -15,12 +17,14 @@ classification_contract:
 
 execution_contract:
   workflow_order: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery]
+  formal_delivery_gates: [project_sync]
   rules:
     - Stop after the last module required by the user deliverable.
     - Never manufacture downstream artifacts when gate inputs are missing.
     - Merge multiple intents in workflow order and remove duplicate modules, packs and outputs.
     - Reuse current project state, framework and artifacts before recomputing.
-    - Run project synchronization before every formal artifact delivery.
+    - Run project synchronization as an explicit pre-delivery gate before every formal artifact delivery.
+    - A gate output is available only after the gate executes successfully.
     - Compile only the LaTeX source produced after AI cleanup.
 
 routing:
@@ -33,13 +37,15 @@ routing:
     load_competition_pack: true
     terminal_outputs: [requirement_map, route_comparison, selected_models, locked_model_spec, formula_closure, validation_plan, model_paper_framework]
     formal_delivery: true
+    delivery_scope: design
 
   framework_sync:
     triggers: [模型论文框架, 框架同步, 结果摘要, 模型变更同步, 参数变更同步, 约束变更同步]
     infer_keywords: [模型论文框架, 框架同步, 更新框架, 同步结果摘要]
     load: [modules/02_model_design.md, templates/model/model_paper_framework.md]
-    terminal_outputs: [model_paper_framework, sync_report]
+    terminal_outputs: [model_paper_framework]
     formal_delivery: true
+    delivery_scope: design
 
   project_sync:
     triggers: [项目同步, 同步项目, stale, 哈希检查, 产物一致性]
@@ -55,6 +61,7 @@ routing:
     load_proposition_pack: true
     terminal_outputs: [formula_closure, proposition_plan, model_paper_framework]
     formal_delivery: true
+    delivery_scope: design
 
   full_solution:
     triggers: [完整求解, 全部计算, 求出各问, 完成求解]
@@ -65,6 +72,7 @@ routing:
     load_competition_pack: true
     terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report, proposition_plan, model_paper_framework]
     formal_delivery: true
+    delivery_scope: results
 
   full_workflow:
     triggers: [全流程, 完整论文, 全套成果, 完整交付]
@@ -87,8 +95,9 @@ routing:
       - packs/artifact/full_submission.md
     load_classified_task_packs: true
     load_competition_pack: true
-    terminal_outputs: [validated_submission_package]
+    terminal_outputs: [validated_submission_package, model_paper_framework]
     formal_delivery: true
+    delivery_scope: submission
 
   problem_analysis:
     triggers: [审题, 问题理解, 题目拆解, 设问意图, 命题意图]
@@ -104,6 +113,7 @@ routing:
     load_classified_task_packs: true
     terminal_outputs: [route_comparison, selected_models, locked_model_spec, formula_closure, proposition_plan, validation_plan, model_paper_framework]
     formal_delivery: true
+    delivery_scope: design
 
   advanced_method:
     triggers: [高级模型, W-DRO, CVaR, MPEC, Stackelberg, ALNS, GNN, 空间杜宾, DML, 强化学习, 深度学习]
@@ -112,6 +122,7 @@ routing:
     load_classified_task_packs: true
     terminal_outputs: [route_comparison, selected_models, locked_model_spec, validation_plan, proposition_plan, model_paper_framework]
     formal_delivery: true
+    delivery_scope: design
 
   code_and_solution:
     triggers: [代码, Python, 求解, 算法, 最优解]
@@ -120,6 +131,7 @@ routing:
     load_classified_task_packs: true
     terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report, model_paper_framework]
     formal_delivery: true
+    delivery_scope: results
 
   validation:
     triggers: [检验, 多算法, 全局最优, 敏感性, 鲁棒性, 误差, 稳健性]
@@ -128,6 +140,7 @@ routing:
     load_classified_task_packs: true
     terminal_outputs: [validated_results, validation_report, evidence_map, model_paper_framework]
     formal_delivery: true
+    delivery_scope: results
 
   figures:
     triggers: [图表, 可视化, 机理图, 推导图, Nature, SCI, MATLAB图标题]
@@ -135,6 +148,7 @@ routing:
     load: [modules/04_figure_evidence.md, packs/artifact/figure.md, templates/figure/chart_selection.md]
     terminal_outputs: [figure_contracts, approved_figures, model_paper_framework]
     formal_delivery: true
+    delivery_scope: figures
 
   docx:
     triggers: [DOCX, Word, 草稿论文]
@@ -142,6 +156,7 @@ routing:
     load: [modules/05_writing/docx.md, packs/artifact/docx.md]
     terminal_outputs: [docx_draft, latex_migration_notes]
     formal_delivery: true
+    delivery_scope: docx
 
   latex:
     triggers: [LaTeX, PDF终稿, cumcmthesis, 终稿论文]
@@ -150,6 +165,7 @@ routing:
     load_competition_pack: true
     terminal_outputs: [latex_source, compiled_pdf, compile_report]
     formal_delivery: true
+    delivery_scope: latex
 
   full_submission:
     triggers: [复现包, 提交压缩包, 提交包]
@@ -158,6 +174,7 @@ routing:
     load_competition_pack: true
     terminal_outputs: [validated_submission_package]
     formal_delivery: true
+    delivery_scope: submission
 
   review:
     triggers: [评分, 审稿, 终审, 检查, 提交包检查]
@@ -166,10 +183,12 @@ routing:
     load_competition_pack: true
     terminal_outputs: [review_report]
     formal_delivery: true
+    delivery_scope: submission
 
 multi_intent_policy:
   - Merge modules in workflow order and remove duplicates.
-  - Merge terminal outputs without dropping model_paper_framework or sync_report for formal deliveries.
+  - Merge terminal outputs without dropping model_paper_framework for formal deliveries.
+  - Execute project_sync after modules and before exposing sync_report/project_state as gate outputs.
   - Solving precedes figures and writing; figures precede final writing insertion.
   - AI cleanup precedes LaTeX compilation.
   - Proposition details are loaded only for explicit proof requests or a nonzero proposition plan.

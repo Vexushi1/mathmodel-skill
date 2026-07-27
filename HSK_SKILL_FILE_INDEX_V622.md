@@ -1,4 +1,4 @@
-# HSK Active Skill File Index v6.2.6
+# HSK Active Skill File Index v6.3.1
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -166,3 +166,4 @@
 - `tests/test_structure.py`
 - `tests/test_sync_project.py`
 - `tests/test_tooling.py`
+- `tests/test_v631_contract_closure.py`

@@ -11,6 +11,22 @@ import pandas as pd
 
 from result_io import find_project_root, not_applicable_table, workbook_paths, write_workbook
 
+VALID_OBJECTIVES = {"explanation", "inference", "prediction", "evaluation", "optimization", "simulation"}
+VALID_STRUCTURES = {"physical_mechanism", "temporal", "spatial", "network", "scheduling", "game", "stochastic", "static_tabular"}
+REQUIRED_CAPABILITIES = {
+    "has_explicit_constraints",
+    "requires_feasibility_check",
+    "requires_equilibrium_residual",
+    "requires_conservation_residual",
+    "requires_discretization_check",
+    "requires_convergence_diagnostic",
+    "requires_out_of_sample_validation",
+    "requires_uncertainty_quantification",
+    "requires_leakage_check",
+    "requires_calibration_check",
+    "requires_identifiability_check",
+}
+
 
 @dataclass(frozen=True)
 class PipelineConfig:
@@ -18,35 +34,34 @@ class PipelineConfig:
     framework_path: Path
     framework_section: str
     problem_name: str
-    problem_types: tuple[str, ...]
+    objective: str
+    structures: tuple[str, ...]
     capabilities: Mapping[str, bool]
     random_seed: int = 2026
 
     def validate(self) -> None:
-        if not self.problem_types:
-            raise ValueError("必须填写每问主/次题型，禁止以空标签绕过专项工作簿校验")
-        required = {
-            "has_explicit_constraints",
-            "requires_feasibility_check",
-            "requires_equilibrium_residual",
-            "requires_conservation_residual",
-            "requires_discretization_check",
-            "requires_convergence_diagnostic",
-        }
-        missing = sorted(required - set(self.capabilities))
+        if self.objective not in VALID_OBJECTIVES:
+            raise ValueError(f"objective 必须为 {sorted(VALID_OBJECTIVES)} 之一")
+        if len(self.structures) > 3 or len(self.structures) != len(set(self.structures)):
+            raise ValueError("structures 必须唯一且最多三项")
+        unknown_structures = sorted(set(self.structures) - VALID_STRUCTURES)
+        if unknown_structures:
+            raise ValueError(f"未知 structures: {unknown_structures}")
+        missing = sorted(REQUIRED_CAPABILITIES - set(self.capabilities))
+        unknown = sorted(set(self.capabilities) - REQUIRED_CAPABILITIES)
         if missing:
             raise ValueError(f"缺少验证能力标志: {missing}")
+        if unknown:
+            raise ValueError(f"未知验证能力标志: {unknown}")
+        if not all(isinstance(value, bool) for value in self.capabilities.values()):
+            raise TypeError("capabilities 的所有值必须为 bool")
         if not self.framework_path.is_file():
-            raise FileNotFoundError(
-                f"模型锁定后必须先创建项目根目录模型论文框架: {self.framework_path}"
-            )
+            raise FileNotFoundError(f"模型锁定后必须先创建项目根目录模型论文框架: {self.framework_path}")
         if not self.framework_section.strip():
             raise ValueError("必须填写该问在模型论文框架.md中的当前章节标题")
         framework_text = self.framework_path.read_text(encoding="utf-8")
         if self.framework_section not in framework_text:
-            raise ValueError(
-                f"模型论文框架中缺少该问当前章节: {self.framework_section}"
-            )
+            raise ValueError(f"模型论文框架中缺少该问当前章节: {self.framework_section}")
         if "只保留当前有效" not in framework_text and "当前有效版本" not in framework_text:
             raise ValueError("模型论文框架必须声明只保留当前有效版本")
 
@@ -59,9 +74,7 @@ class AuditLog:
         self.rows.append({"等级": level, "检查项": item, "信息": message, "处理方式": action})
 
     def table(self) -> list[dict[str, str]]:
-        return self.rows or [
-            {"等级": "Info", "检查项": "数据审计", "信息": "未发现需记录问题", "处理方式": "无"}
-        ]
+        return self.rows or [{"等级": "Info", "检查项": "数据审计", "信息": "未发现需记录问题", "处理方式": "无"}]
 
 
 @dataclass(frozen=True)
@@ -81,7 +94,8 @@ def build_config(script_path: Path) -> PipelineConfig:
         framework_path=project_root / "模型论文框架.md",
         framework_section="### Q1：__QUESTION_NAME__",
         problem_name="问题一",
-        problem_types=(),  # 例如 ("mechanism", "optimization")
+        objective="optimization",
+        structures=(),
         capabilities={
             "has_explicit_constraints": False,
             "requires_feasibility_check": False,
@@ -89,6 +103,11 @@ def build_config(script_path: Path) -> PipelineConfig:
             "requires_conservation_residual": False,
             "requires_discretization_check": False,
             "requires_convergence_diagnostic": False,
+            "requires_out_of_sample_validation": False,
+            "requires_uncertainty_quantification": False,
+            "requires_leakage_check": False,
+            "requires_calibration_check": False,
+            "requires_identifiability_check": False,
         },
         random_seed=2026,
     )
@@ -150,7 +169,7 @@ def build_features(clean_data: dict[str, pd.DataFrame], config: PipelineConfig) 
 
 
 def solve_model(features: dict[str, Any], config: PipelineConfig) -> dict[str, Any]:
-    """至少返回符合 Schema 的“核心指标”；其他工作表按题型返回。"""
+    """至少返回符合 Schema 的“核心指标”；专项表由三轴分类决定。"""
     raise NotImplementedError("请实现当前框架中的目标函数、约束与求解算法")
 
 
@@ -162,9 +181,9 @@ def check_constraints(solution: dict[str, Any], config: PipelineConfig) -> pd.Da
 
 
 def run_validation(context: ModelContext) -> tuple[pd.DataFrame | None, dict[str, pd.DataFrame]]:
-    """返回可选多算法对比，以及敏感性与鲁棒性工作簿的非空工作表映射。"""
+    """返回多算法对比和敏感性/鲁棒性工作簿的非空表映射。"""
     raise NotImplementedError(
-        "validation_tables 应包含参数敏感性、鲁棒性区间、扰动明细、算法稳定性中的适用项；"
+        "validation_tables 应包含适用的参数敏感性、鲁棒性区间、扰动明细或算法稳定性；"
         "全部不适用时返回 {'适用性说明': not_applicable_table(...)}"
     )
 
@@ -179,10 +198,10 @@ def build_solution_tables(
         raise KeyError("solution 必须包含“核心指标”")
     tables: dict[str, Any] = {"核心指标": solution["核心指标"], "数据审计": audit.table()}
     optional_sheets = (
-        "推荐方案", "明细结果", "预测明细", "误差指标", "残差诊断", "综合评分", "排序结果",
-        "指标权重", "模型指标", "预测或分类结果", "交叉验证", "校准结果", "空间诊断",
-        "参数估计", "空间效应分解", "节点结果", "边结果", "路径或流结果", "均衡残差",
-        "守恒残差", "离散精度", "收敛诊断",
+        "推荐方案", "明细结果", "预测明细", "误差指标", "外样本验证", "不确定性区间",
+        "综合评分", "排序结果", "模型指标", "预测或分类结果", "泄漏检查", "校准结果",
+        "可识别性检查", "空间诊断", "参数估计", "节点结果", "边结果", "路径或流结果",
+        "均衡残差", "守恒残差", "离散精度", "收敛诊断",
     )
     for sheet in optional_sheets:
         if sheet in solution:
@@ -208,18 +227,11 @@ def save_outputs(
                 alternative_test="边界、极限状态与数值一致性检查",
             )
         }
-    solution_path, robustness_path = workbook_paths(
-        context.config.project_root,
-        context.config.problem_name,
-    )
-    solution_tables = build_solution_tables(
-        context.solution,
-        constraints,
-        algorithm_comparison,
-        audit,
-    )
+    solution_path, robustness_path = workbook_paths(context.config.project_root, context.config.problem_name)
+    solution_tables = build_solution_tables(context.solution, constraints, algorithm_comparison, audit)
     common = {
-        "problem_types": context.config.problem_types,
+        "objective": context.config.objective,
+        "structures": context.config.structures,
         "capabilities": context.config.capabilities,
     }
     write_workbook(solution_path, solution_tables, workbook_kind="solution", **common)
@@ -234,10 +246,17 @@ def sync_model_paper_framework(
     algorithm_comparison: pd.DataFrame | None,
     validation_tables: dict[str, pd.DataFrame],
 ) -> None:
-    """重写该问当前模型口径和结果摘要；不得在框架中叠加旧版。"""
+    """完整替换该问当前模型口径和结果摘要，不叠加旧版本。"""
     raise NotImplementedError(
-        "工作簿通过校验后，必须同步模型论文框架.md：删除该问旧模型/旧摘要，写入当前模型与算法、"
-        "核心数值、验证/可行性、敏感性/鲁棒性、最终结论和证据位置，并将结果摘要状态设为 current"
+        "工作簿通过校验后，删除该问旧模型/旧摘要，写入当前模型与算法、核心数值、"
+        "验证/可行性、敏感性/鲁棒性、最终结论和证据位置，并将结果摘要状态设为 current"
+    )
+
+
+def project_sync_command(config: PipelineConfig) -> str:
+    return (
+        f'python scripts/sync_project.py "{config.project_root.as_posix()}" '
+        "--write --strict --delivery-scope results"
     )
 
 
@@ -257,6 +276,7 @@ def main() -> None:
     sync_model_paper_framework(context, paths, constraints, comparison, validation_tables)
     logger.info("结果已写入: %s", [path.as_posix() for path in paths])
     logger.info("模型论文框架已同步: %s", config.framework_path.as_posix())
+    logger.info("正式交付前执行: %s", project_sync_command(config))
     logger.info("正式论文图由 MATLAB 读取上述工作簿绘制，并保留简洁 title/sgtitle。")
 
 

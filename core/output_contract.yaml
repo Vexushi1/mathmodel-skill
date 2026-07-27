@@ -1,4 +1,4 @@
-version: 6.3.0
+version: 6.3.1
 schema: core/workbook_schema.yaml
 bootstrap: core/bootstrap.yaml
 taxonomy: core/task_taxonomy.yaml
@@ -25,11 +25,11 @@ model_paper_framework:
     full:
       use_when: 跨聊天交接、完整复现、DOCX/LaTeX终稿、终审提交
       required_sections: [当前有效口径, 论文整体框架, 命题与证明规划, 各问模型与结果, 综合检验与跨问结论, 图表证据链, 待办与缺口, 同步检查]
+  validation_mode_priority: [cli, project_state, framework_header, default]
   default_mode: compact
   history_policy: 文件内部不累积旧版；旧版本由Git历史保存
   replacement_policy: 模型、参数、约束、数据处理、算法、命题、证明、结果或图表变化时，删除受影响旧内容并完整替换
   formal_delivery_sync: true
-  sync_command: python scripts/sync_project.py <project_root> --write --strict
   result_summary_required_after: solved
   authoritative_boundaries:
     model_semantics_and_paper_structure: 模型论文框架.md
@@ -37,17 +37,53 @@ model_paper_framework:
     numerical_results: 每问两类标准工作簿
 
 project_sync:
+  role: formal_pre_delivery_gate
   script: scripts/sync_project.py
   report: sync_report.yaml
   default_mode: dry_run
   write_flag: --write
   strict_flag: --strict
+  command: python scripts/sync_project.py <project_root> --write --strict --delivery-scope <scope>
+  delivery_scopes: [design, results, figures, docx, latex, submission]
+  phase_scope_mapping:
+    problem_audit: design
+    model_design: design
+    solve_validate: results
+    figure_evidence: figures
+    writing_docx: docx
+    writing_latex: latex
+    ai_cleanup: latex
+    latex_compile_quality: latex
+    review_delivery: submission
+    completed: submission
+  stage_requirements:
+    design: [project_state]
+    results: [project_state, model_paper_framework, python_code, solution_workbook, sensitivity_robustness_workbook]
+    figures: [project_state, model_paper_framework, solution_workbook, sensitivity_robustness_workbook, matlab_scripts, result_figures]
+    docx: [project_state, model_paper_framework, solution_workbook, sensitivity_robustness_workbook, approved_figures]
+    latex: [project_state, model_paper_framework, solution_workbook, sensitivity_robustness_workbook, approved_figures]
+    submission: [project_state, model_paper_framework, all_requested_artifacts]
+  artifact_hash_layers: [data, model, solution_workbook, robustness_workbook, matlab_script, figure_bundle, framework]
+  stale_propagation:
+    data_or_model: [solution_workbook, robustness_workbook, validation, matlab_script, figure_bundle, result_summary]
+    workbooks: [validation, matlab_script, figure_bundle, result_summary]
+    matlab_script: [figure_bundle, paper_figure_evidence]
+    figure_bundle: [paper_figure_evidence]
+  write_order:
+    - 发现产物并执行工作簿与图表链检查
+    - 计算当前分层哈希并比较已验证哈希
+    - 传播stale并更新框架头部
+    - 重新计算最终框架哈希
+    - 写入project_state
+    - 写入sync_report
+    - 执行写后哈希自检
   responsibilities:
     - 发现根目录Python、每问工作簿、MATLAB脚本和图表
-    - 读取工作簿真实工作表、表头与数据行数
-    - 计算输入、模型、工作簿和框架哈希
-    - 当已验证哈希变化时传播stale
-    - 更新产物路径和同步报告
+    - 复用工作簿Schema检查工作表、字段、capability条件、主键、非有限数值和约束判定
+    - 核对MATLAB工作簿引用、声明导出图、正式图存在性和时间新旧关系
+    - 计算输入、模型、两类工作簿、MATLAB脚本、图表包和框架哈希
+    - 当已验证哈希变化时按证据链传播stale
+    - 更新产物路径、项目状态和同步报告
   forbidden:
     - 自动生成模型语义
     - 自动填写结果数值
@@ -57,8 +93,15 @@ project_sync:
 classification_contract:
   taxonomy: core/task_taxonomy.yaml
   current_axes: [objective, structures, capabilities]
-  legacy_task_labels_supported: true
   per_subproblem: true
+  authoritative_locations:
+    objective_and_structures: subproblem.classification
+    capabilities: subproblem.capabilities
+  deprecated_aliases:
+    classification.capabilities: 若保留必须与顶层capabilities完全一致
+    problem_types: 由三轴分类派生的旧Pack兼容字段
+    legacy_task_packs: 由三轴分类派生的旧Pack兼容字段
+  legacy_task_labels_supported: true
 
 proposition_contract:
   optional: true
@@ -103,6 +146,9 @@ matlab_figure_contract:
   expected_column_position: optional_drift_check
   fuzzy_matching_forbidden: true
   alias_guessing_forbidden: true
+  workbook_reference_scope: same_question_standard_workbooks
+  declared_export_must_exist: true
+  formal_figure_must_not_predate_sources: true
   keep_title_in_export_by_default: true
   caption_role: DOCX/LaTeX图注补充统计口径、数据范围和解释，不与图内标题逐字重复
   title_registry: 模型论文框架.md与Figure Contract
@@ -129,8 +175,9 @@ optional_metadata:
   metadata_location: 对应的结果数据表/问题X/
 
 rules:
-  - 每次正式模型、代码、工作簿、图表、DOCX、LaTeX或提交包交付前必须生成sync_report。
-  - 同步器只做发现、哈希和stale传播，不替代求解与验证。
+  - 每次正式模型、代码、工作簿、图表、DOCX、LaTeX或提交包交付前必须成功执行project_sync gate并生成sync_report。
+  - sync_report只有在gate成功执行后才视为available产物。
+  - 同步器只做发现、校验、哈希和stale传播，不替代求解与验证。
   - 不再默认创建Python求解/、MATLAB绘图/或问题X结果数据/重复层级。
   - Excel工作簿是默认结果交换格式；CSV仅用于明确兼容需求。
   - 所有工作表必须非空；不适用分析写入非空适用性说明。
