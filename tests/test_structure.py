@@ -2,6 +2,8 @@ import re
 import unittest
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 ACTIVE_TEXT_DIRS = (
     "core",
@@ -65,6 +67,34 @@ class TestStructure(unittest.TestCase):
             "scripts/validate_model_paper_framework.py",
         ]:
             self.assertTrue((ROOT / relative).is_file(), relative)
+
+    def test_repository_change_governance_is_installed(self):
+        governance = ROOT / "SKILL_CHANGE_GOVERNANCE.md"
+        pr_template = ROOT / ".github/pull_request_template.md"
+        self.assertTrue(governance.is_file())
+        self.assertTrue(pr_template.is_file())
+        text = governance.read_text(encoding="utf-8")
+        for token in (
+            "每个新聊天的强制启动顺序",
+            "修改简报",
+            "单一事实源",
+            "一次聊天一个分支",
+            "一个 PR 一个主题",
+            "禁止直接写 main",
+            "生成文件规则",
+            "测试与验收",
+        ):
+            self.assertIn(token, text)
+
+    def test_bootstrap_requires_governance_before_repository_write(self):
+        payload = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
+        maintenance = payload["repository_maintenance"]
+        self.assertEqual(maintenance["governance"], "SKILL_CHANGE_GOVERNANCE.md")
+        self.assertTrue(maintenance["mandatory_before_write"])
+        self.assertEqual(maintenance["read_from_ref"], "main")
+        self.assertTrue(maintenance["branch_required"])
+        self.assertTrue(maintenance["pull_request_required"])
+        self.assertFalse(maintenance["direct_main_write_allowed"])
 
     def test_legal_notices(self):
         self.assertTrue((ROOT / "LICENSE").is_file())
