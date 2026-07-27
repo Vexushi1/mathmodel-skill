@@ -1,10 +1,17 @@
-taxonomy_version: 2.0.0
-skill_compatibility: '>=6.3.0,<7.0.0'
+taxonomy_version: 2.1.0
+skill_compatibility: '>=6.3.1,<7.0.0'
 
 classification_contract:
   per_subproblem: true
   objective_required: true
   structures_max_items: 3
+  authoritative_locations:
+    objective_and_structures: subproblem.classification
+    capabilities: subproblem.capabilities
+  deprecated_aliases:
+    classification.capabilities: must_equal_top_level
+    problem_types: derived_compatibility_only
+    legacy_task_packs: derived_compatibility_only
   capabilities_are_independent: true
 
 objectives:
