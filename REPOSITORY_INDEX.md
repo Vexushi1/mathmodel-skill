@@ -1,14 +1,14 @@
-# Mathmodel Skill Repository Index v6.3.0
+# Mathmodel Skill Repository Index v6.3.1
 
 ## 启动
 
 1. `core/bootstrap.yaml`：最小启动契约；
-2. `scripts/resolve_workflow.py`：一个或多个意图的确定性加载计划；
+2. `scripts/resolve_workflow.py`：一个或多个意图的确定性执行计划；
 3. `core/hsk_core_policy.md`：全局硬规则；
 4. `core/task_taxonomy.yaml`：objective、structures、capabilities；
-5. `core/module_manifest.yaml`：产物闭环；
+5. `core/module_manifest.yaml`：模块与 utility gate 产物闭环；
 6. 仅加载命中的模块、Pack 和模板；
-7. 正式交付前运行 `scripts/sync_project.py`。
+7. 正式交付前执行解析结果中的 `pre_delivery_gates`。
 
 ## 仓库修改
 
@@ -39,19 +39,20 @@
 |---|---|
 | `core/bootstrap.yaml` | 最小入口、权威源指针与仓库维护入口 |
 | `core/task_taxonomy.yaml` | 正交分类与旧Pack映射 |
-| `core/workflow_router.yaml` | 多意图路由、自然语言关键词与正式交付标志 |
-| `core/module_manifest.yaml` | 模块输入输出、sync_report和同步门槛 |
-| `core/output_contract.yaml` | 目录、框架compact/full、同步器和MATLAB读取规则 |
-| `core/workbook_schema.yaml` | 工作表、字段、capability条件和精确表头交接 |
-| `core/project_state.schema.yaml` | classification、哈希、stale、框架和产物状态 |
+| `core/workflow_router.yaml` | 多意图路由、交付scope与显式同步门槛 |
+| `core/module_manifest.yaml` | 模块输入输出、utility gate及terminal output闭环 |
+| `core/output_contract.yaml` | 目录、框架模式、分层哈希、阶段产物与MATLAB证据链 |
+| `core/workbook_schema.yaml` | objective/structure/capability工作簿条件与精确表头交接 |
+| `core/project_state.schema.yaml` | 单一capability事实源、分层哈希、stale和框架状态 |
 
 ## 工具
 
-- `scripts/resolve_workflow.py`：多意图合并、Pack去重、模块排序和前置缺口；
-- `scripts/sync_project.py`：产物发现、工作簿结构、哈希、stale和同步报告；
-- `scripts/validate_project_state.py`：状态语义；
-- `scripts/validate_model_paper_framework.py`：框架结构；
+- `scripts/resolve_workflow.py`：多意图合并、模块排序、前置缺口与 `pre_delivery_gates`；
+- `scripts/sync_project.py`：阶段产物发现、工作簿Schema、图表链、分层哈希和stale；
+- `scripts/validate_project_state.py`：分类兼容、哈希与状态语义；
+- `scripts/validate_model_paper_framework.py`：compact/full模式感知校验；
 - `scripts/hsk_check_artifact.py`：交付物检查；
+- `scripts/lint_skill.py`：版本、路径、生产者—消费者、gate和语义闭环；
 - `scripts/score_submission.py`：评委式评分。
 
 完整活动文件清单仍使用兼容文件名 `HSK_SKILL_FILE_INDEX_V622.md`；历史只通过 `legacy/README.md` 追溯。

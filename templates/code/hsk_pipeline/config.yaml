@@ -7,16 +7,33 @@ project:
   final_latex_dir: final_latex
 
 framework_sync:
+  mode: compact
   required_after_model_lock: true
   current_only: true
-  formal_delivery_sync: true
+  formal_delivery_gate: project_sync
   result_summary_after_solve: true
   history_storage: git
 
-question_output:
+question:
   problem_name: 问题一
   framework_section: '### Q1：填写问题名称'
   result_summary_status: pending
+  objective: optimization
+  structures: []
+  capabilities:
+    has_explicit_constraints: false
+    requires_feasibility_check: false
+    requires_equilibrium_residual: false
+    requires_conservation_residual: false
+    requires_discretization_check: false
+    requires_convergence_diagnostic: false
+    requires_out_of_sample_validation: false
+    requires_uncertainty_quantification: false
+    requires_leakage_check: false
+    requires_calibration_check: false
+    requires_identifiability_check: false
+
+question_output:
   result_dir: 结果数据表/问题一
   solution_workbook: 问题一求解结果.xlsx
   sensitivity_robustness_workbook: 问题一敏感性与鲁棒性结果.xlsx
@@ -28,6 +45,7 @@ runtime:
   strict_column_check: true
   n_jobs: 1
   use_progress_bar: false
+  delivery_scope_after_solve: results
 
 metadata:
   generate_run_info: false

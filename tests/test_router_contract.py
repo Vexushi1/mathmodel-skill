@@ -1,4 +1,5 @@
 import importlib.util
+import sys
 import unittest
 from pathlib import Path
 
@@ -11,6 +12,7 @@ def load_resolver():
     spec = importlib.util.spec_from_file_location("resolve_workflow", ROOT / "scripts/resolve_workflow.py")
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
@@ -23,8 +25,9 @@ class TestRouterContract(unittest.TestCase):
     def test_bootstrap_and_sync_route_exist(self):
         self.assertEqual(self.router["bootstrap"], "core/bootstrap.yaml")
         self.assertIn("project_sync", self.router["routing"])
+        self.assertEqual(self.router["execution_contract"]["formal_delivery_gates"], ["project_sync"])
 
-    def test_multi_intent_merge_order_and_outputs(self):
+    def test_multi_intent_merge_order_outputs_and_gate(self):
         plan = self.resolver.resolve_workflow(
             ["code_and_solution", "figures"],
             objective="optimization",
@@ -32,9 +35,20 @@ class TestRouterContract(unittest.TestCase):
             competition="CUMCM",
         )
         self.assertLess(plan["modules"].index("modules/03_solve_validate.md"), plan["modules"].index("modules/04_figure_evidence.md"))
-        self.assertIn("model_paper_framework", plan["terminal_outputs"])
+        self.assertIn("model_paper_framework", plan["module_terminal_outputs"])
+        self.assertNotIn("sync_report", plan["available_after_modules"])
+        self.assertEqual([item["name"] for item in plan["pre_delivery_gates"]], ["project_sync"])
+        self.assertEqual(plan["delivery_scope"], "figures")
+        self.assertIn("--delivery-scope figures", plan["pre_delivery_gates"][0]["command"])
+        self.assertIn("sync_report", plan["available_after_plan"])
         self.assertIn("sync_report", plan["terminal_outputs"])
         self.assertTrue(plan["sync_required_before_delivery"])
+
+    def test_nonformal_route_has_no_gate(self):
+        plan = self.resolver.resolve_workflow("problem_analysis")
+        self.assertEqual(plan["pre_delivery_gates"], [])
+        self.assertFalse(plan["sync_required_before_delivery"])
+        self.assertNotIn("sync_report", plan["available_after_plan"])
 
     def test_request_inference(self):
         plan = self.resolver.resolve_workflow(

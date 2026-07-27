@@ -1,4 +1,4 @@
-"""定位项目根目录、校验工作簿契约并写入每问两类中文 Excel 结果工作簿。"""
+"""定位项目根目录、校验三轴工作簿契约并写入每问两类中文 Excel。"""
 from __future__ import annotations
 
 import math
@@ -19,12 +19,12 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
     "global_rules": {"empty_worksheet_allowed": False},
     "capability_contract": {
         "allowed": [
-            "has_explicit_constraints",
-            "requires_feasibility_check",
-            "requires_equilibrium_residual",
-            "requires_conservation_residual",
-            "requires_discretization_check",
-            "requires_convergence_diagnostic",
+            "has_explicit_constraints", "requires_feasibility_check",
+            "requires_equilibrium_residual", "requires_conservation_residual",
+            "requires_discretization_check", "requires_convergence_diagnostic",
+            "requires_out_of_sample_validation", "requires_uncertainty_quantification",
+            "requires_leakage_check", "requires_calibration_check",
+            "requires_identifiability_check",
         ],
         "required_sheets": {
             "has_explicit_constraints": ["约束违反检查"],
@@ -33,6 +33,11 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
             "requires_conservation_residual": ["守恒残差"],
             "requires_discretization_check": ["离散精度"],
             "requires_convergence_diagnostic": ["收敛诊断"],
+            "requires_out_of_sample_validation": ["外样本验证"],
+            "requires_uncertainty_quantification": ["不确定性区间"],
+            "requires_leakage_check": ["泄漏检查"],
+            "requires_calibration_check": ["校准结果"],
+            "requires_identifiability_check": ["可识别性检查"],
         },
         "legacy_problem_type_fallback": {
             "problem_types": ["optimization", "scheduling"],
@@ -48,19 +53,43 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
             "推荐方案": {"required_columns": ["方案"]},
             "明细结果": {"required_columns": ["记录键"]},
             "多算法对比": {"required_columns": ["算法", "目标值", "可行性"]},
-            "约束违反检查": {
-                "required_columns": ["约束编号", "约束含义", "违反量", "容差", "是否满足"]
-            },
+            "约束违反检查": {"required_columns": ["约束编号", "约束含义", "违反量", "容差", "是否满足"]},
             "均衡残差": {"required_columns": ["主体或均衡", "残差", "容差", "是否满足"]},
             "守恒残差": {"required_columns": ["守恒量", "残差", "容差", "是否满足"]},
             "离散精度": {"required_columns": ["离散参数", "取值", "目标指标", "相对变化"]},
             "收敛诊断": {"required_columns": ["迭代或样本数", "指标", "数值", "判定"]},
+            "外样本验证": {"required_columns": ["划分或窗口", "指标", "数值"]},
+            "不确定性区间": {"required_columns": ["指标", "下界", "上界"]},
+            "泄漏检查": {"required_columns": ["检查项", "是否通过", "证据"]},
+            "校准结果": {"required_columns": ["分组或方法", "预测概率", "实际频率"]},
+            "可识别性检查": {"required_columns": ["参数或效应", "检查方法", "结论"]},
+            "预测明细": {"required_columns": ["记录键", "真实值", "预测值"]},
+            "误差指标": {"required_columns": ["指标", "数值"]},
+            "综合评分": {"required_columns": ["对象", "综合评分"]},
+            "排序结果": {"required_columns": ["对象", "排名"]},
+            "模型指标": {"required_columns": ["指标", "数值"]},
+            "预测或分类结果": {"required_columns": ["记录键", "真实标签", "预测标签"]},
+            "空间诊断": {"required_columns": ["诊断项", "数值"]},
+            "参数估计": {"required_columns": ["参数", "估计值"]},
+            "节点结果": {"required_columns": ["节点", "数值"]},
+            "边结果": {"required_columns": ["起点", "终点", "数值"]},
+            "路径或流结果": {"required_columns": ["路径或流", "数值"]},
+        },
+        "objective_profiles": {
+            "prediction": {"required_any": ["预测明细", "误差指标", "外样本验证"]},
+            "evaluation": {"required_any": ["综合评分", "排序结果"]},
+            "inference": {"required_any": ["模型指标", "参数估计", "预测或分类结果"]},
+            "optimization": {"required_any": ["推荐方案", "明细结果", "核心指标"]},
+        },
+        "structure_profiles": {
+            "spatial": {"required_any": ["空间诊断", "参数估计"]},
+            "network": {"required_any": ["节点结果", "边结果", "路径或流结果"]},
         },
         "task_profiles": {
-            "prediction": {"required_any": ["预测明细", "误差指标", "残差诊断"]},
-            "evaluation": {"required_any": ["综合评分", "排序结果", "指标权重"]},
-            "statistics_ml": {"required_any": ["模型指标", "预测或分类结果", "交叉验证", "校准结果"]},
-            "spatial": {"required_any": ["空间诊断", "参数估计", "空间效应分解"]},
+            "prediction": {"required_any": ["预测明细", "误差指标", "外样本验证"]},
+            "evaluation": {"required_any": ["综合评分", "排序结果"]},
+            "statistics_ml": {"required_any": ["模型指标", "预测或分类结果"]},
+            "spatial": {"required_any": ["空间诊断", "参数估计"]},
             "graph_network": {"required_any": ["节点结果", "边结果", "路径或流结果"]},
         },
     },
@@ -78,14 +107,8 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
 
 
 def find_project_root(start: Path) -> Path:
-    """定位赛题、附件和 Python 脚本所在的项目根目录。
-
-    新项目的具体问题脚本直接位于项目根目录。若结果目录已经创建，
-    以“结果数据表/”为强标记；首次运行时退回到传入脚本的父目录。
-    """
     start = Path(start).resolve()
     current = start.parent if start.is_file() else start
-
     for candidate in (current, *current.parents):
         if (candidate / "结果数据表").is_dir():
             return candidate
@@ -93,14 +116,10 @@ def find_project_root(start: Path) -> Path:
             return candidate.parent
         if candidate.parent.name == "结果数据表" and PROBLEM_PATTERN.fullmatch(candidate.name):
             return candidate.parent.parent
-
-    if start.is_file():
-        return start.parent
-    return current
+    return start.parent if start.is_file() else current
 
 
 def result_data_dir(project_root: Path, problem_name: str) -> Path:
-    """返回扁平的每问结果目录：结果数据表/问题X/。"""
     if not PROBLEM_PATTERN.fullmatch(problem_name):
         raise ValueError("problem_name 应为问题一、问题二等中文名称")
     path = Path(project_root) / "结果数据表" / problem_name
@@ -109,7 +128,6 @@ def result_data_dir(project_root: Path, problem_name: str) -> Path:
 
 
 def figure_dir(project_root: Path, problem_name: str) -> Path:
-    """返回该问 MATLAB 正式图目录：结果数据表/问题X/图表/。"""
     path = result_data_dir(project_root, problem_name) / "图表"
     path.mkdir(parents=True, exist_ok=True)
     return path
@@ -117,10 +135,7 @@ def figure_dir(project_root: Path, problem_name: str) -> Path:
 
 def workbook_paths(project_root: Path, problem_name: str) -> tuple[Path, Path]:
     base = result_data_dir(project_root, problem_name)
-    return (
-        base / f"{problem_name}求解结果.xlsx",
-        base / f"{problem_name}敏感性与鲁棒性结果.xlsx",
-    )
+    return base / f"{problem_name}求解结果.xlsx", base / f"{problem_name}敏感性与鲁棒性结果.xlsx"
 
 
 def matlab_script_path(project_root: Path, problem_name: str, question_number: int) -> Path:
@@ -192,9 +207,7 @@ def load_workbook_schema(schema_path: Path | None = None) -> dict[str, Any]:
     return _FALLBACK_SCHEMA
 
 
-def _required_sheet_schemas(
-    schema: Mapping[str, Any], kind: str
-) -> tuple[set[str], dict[str, Mapping[str, Any]]]:
+def _required_sheet_schemas(schema: Mapping[str, Any], kind: str) -> tuple[set[str], dict[str, Mapping[str, Any]]]:
     if kind == "solution":
         section = schema["solution_workbook"]
         required = dict(section.get("common_required_sheets", {}))
@@ -205,9 +218,7 @@ def _required_sheet_schemas(
 
 
 def _conditional_required_sheets(
-    schema: Mapping[str, Any],
-    problem_types: Sequence[str],
-    capabilities: Mapping[str, bool] | None,
+    schema: Mapping[str, Any], problem_types: Sequence[str], capabilities: Mapping[str, bool] | None,
 ) -> set[str]:
     contract = schema.get("capability_contract", {})
     required: set[str] = set()
@@ -224,6 +235,31 @@ def _conditional_required_sheets(
     if set(problem_types).intersection(fallback.get("problem_types", [])):
         required.update(fallback.get("required_sheets", []))
     return required
+
+
+def _profile_requirements(
+    schema: Mapping[str, Any], objective: str | None,
+    structures: Sequence[str], problem_types: Sequence[str],
+) -> list[tuple[str, set[str]]]:
+    section = schema.get("solution_workbook", {})
+    requirements: list[tuple[str, set[str]]] = []
+    if objective:
+        required = set(section.get("objective_profiles", {}).get(objective, {}).get("required_any", []))
+        if required:
+            requirements.append((f"objective:{objective}", required))
+    for structure in structures:
+        required = set(section.get("structure_profiles", {}).get(structure, {}).get("required_any", []))
+        if required:
+            requirements.append((f"structure:{structure}", required))
+    if not objective and not structures:
+        profiles = section.get("task_profiles", {})
+        for problem_type in problem_types:
+            spec = profiles.get(problem_type, {})
+            if isinstance(spec, Mapping):
+                required = set(spec.get("required_any", []))
+                if required:
+                    requirements.append((f"legacy:{problem_type}", required))
+    return requirements
 
 
 def _check_required_columns(sheet: str, frame: pd.DataFrame, spec: Mapping[str, Any]) -> None:
@@ -256,9 +292,9 @@ def _as_bool(value: Any) -> bool | None:
     if isinstance(value, bool):
         return value
     text = str(value).strip().lower()
-    if text in {"true", "1", "yes", "是", "满足"}:
+    if text in {"true", "1", "yes", "是", "满足", "通过"}:
         return True
-    if text in {"false", "0", "no", "否", "不满足"}:
+    if text in {"false", "0", "no", "否", "不满足", "未通过"}:
         return False
     return None
 
@@ -294,12 +330,14 @@ def validate_workbook_tables(
     problem_types: Sequence[str] = (),
     capabilities: Mapping[str, bool] | None = None,
     schema_path: Path | None = None,
+    *,
+    objective: str | None = None,
+    structures: Sequence[str] = (),
 ) -> list[tuple[str, pd.DataFrame]]:
     if workbook_kind not in VALID_WORKBOOK_KINDS:
         raise ValueError(f"workbook_kind 必须为 {sorted(VALID_WORKBOOK_KINDS)}")
     if not tables:
         raise ValueError("没有可写入的结果表")
-
     prepared: list[tuple[str, pd.DataFrame]] = []
     used: set[str] = set()
     for raw_name, value in tables.items():
@@ -308,26 +346,21 @@ def validate_workbook_tables(
             raise ValueError(f"工作表名称截断后重复: {name}")
         used.add(name)
         prepared.append((name, _to_frame(value)))
-
     schema = load_workbook_schema(schema_path)
     required_sheets, sheet_schemas = _required_sheet_schemas(schema, workbook_kind)
     names = {name for name, _ in prepared}
-
     if workbook_kind == "solution":
         required_sheets.update(_conditional_required_sheets(schema, problem_types, capabilities))
         missing = sorted(required_sheets - names)
         if missing:
             raise ValueError(f"求解工作簿缺少必需工作表: {missing}")
-        profiles = schema.get("solution_workbook", {}).get("task_profiles", {})
-        for problem_type in problem_types:
-            required_any = set(profiles.get(problem_type, {}).get("required_any", []))
+        for profile, required_any in _profile_requirements(schema, objective, structures, problem_types):
             if required_any and not names.intersection(required_any):
-                raise ValueError(f"题型“{problem_type}”至少需要一个专项工作表: {sorted(required_any)}")
+                raise ValueError(f"分类剖面“{profile}”至少需要一个专项工作表: {sorted(required_any)}")
     else:
         allowed_any = set(schema["sensitivity_robustness_workbook"].get("required_any_sheets", []))
         if not names.intersection(allowed_any):
             raise ValueError(f"敏感性与鲁棒性工作簿至少需要一个工作表: {sorted(allowed_any)}")
-
     for name, frame in prepared:
         if name in sheet_schemas:
             _check_required_columns(name, frame, sheet_schemas[name])
@@ -363,15 +396,16 @@ def validate_workbook_file(
     problem_types: Sequence[str] = (),
     capabilities: Mapping[str, bool] | None = None,
     schema_path: Path | None = None,
+    *,
+    objective: str | None = None,
+    structures: Sequence[str] = (),
 ) -> list[tuple[str, pd.DataFrame]]:
     if not Path(path).is_file():
         raise FileNotFoundError(path)
     return validate_workbook_tables(
-        read_workbook_tables(Path(path)),
-        workbook_kind,
-        problem_types=problem_types,
-        capabilities=capabilities,
-        schema_path=schema_path,
+        read_workbook_tables(Path(path)), workbook_kind,
+        problem_types=problem_types, capabilities=capabilities,
+        schema_path=schema_path, objective=objective, structures=structures,
     )
 
 
@@ -391,6 +425,8 @@ def write_workbook(
     problem_types: Sequence[str] = (),
     capabilities: Mapping[str, bool] | None = None,
     schema_path: Path | None = None,
+    objective: str | None = None,
+    structures: Sequence[str] = (),
 ) -> Path:
     path = Path(path)
     kind = workbook_kind or _infer_workbook_kind(path)
@@ -401,13 +437,10 @@ def write_workbook(
             _check_finite_numbers(name, frame)
     else:
         prepared = validate_workbook_tables(
-            tables,
-            workbook_kind=kind,
-            problem_types=problem_types,
-            capabilities=capabilities,
-            schema_path=schema_path,
+            tables, workbook_kind=kind, problem_types=problem_types,
+            capabilities=capabilities, schema_path=schema_path,
+            objective=objective, structures=structures,
         )
-
     path.parent.mkdir(parents=True, exist_ok=True)
     with pd.ExcelWriter(path, engine="openpyxl", mode="w") as writer:
         for name, frame in prepared:
