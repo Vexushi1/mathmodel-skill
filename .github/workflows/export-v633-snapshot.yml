@@ -1,0 +1,22 @@
+name: Export v6.3.3 branch snapshot
+
+on:
+  push:
+    branches:
+      - fix/v6.3.3-gate-hardening
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload branch snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: v633-branch-snapshot
+          path: .
+          include-hidden-files: true
+          retention-days: 1
