@@ -1,6 +1,6 @@
-# HSK Core Policy v6.3.0
+# HSK Core Policy v6.3.1
 
-本文件只保存全局硬规则。任务路由、字段契约和详细模板分别以 `core/workflow_router.yaml`、`core/module_manifest.yaml`、`core/task_taxonomy.yaml`、`core/output_contract.yaml` 和 `core/workbook_schema.yaml` 为准，其他文件不得复制出第二套冲突规则。
+本文件只保存全局硬规则。任务路由、产物图、分类、输出、工作簿和项目状态分别以 `core/workflow_router.yaml`、`core/module_manifest.yaml`、`core/task_taxonomy.yaml`、`core/output_contract.yaml`、`core/workbook_schema.yaml` 和 `core/project_state.schema.yaml` 为准，其他文件不得复制出第二套冲突规则。
 
 ## 1. 总目标与优先级
 
@@ -15,7 +15,7 @@ $$
 ## 2. 启动与按需加载
 
 1. 首先读取 `core/bootstrap.yaml`；
-2. 使用 `scripts/resolve_workflow.py` 根据一个或多个用户意图生成确定性加载计划；
+2. 使用 `scripts/resolve_workflow.py` 根据一个或多个用户意图生成确定性执行计划；
 3. 只加载命中的模块、题型 Pack、竞赛 Pack、交付 Pack 和必要模板；
 4. `legacy/` 不参与默认执行；
 5. 不再要求在路由前通读整个 Skill、所有模块或全部资产。
@@ -24,11 +24,11 @@ $$
 
 每个小问分别记录：
 
-- `objective`：explanation、inference、prediction、evaluation、optimization、simulation 之一；
-- `structures`：physical_mechanism、temporal、spatial、network、scheduling、game、stochastic、static_tabular 中至多三项；
-- `capabilities`：独立决定必须执行的可行性、残差、离散、收敛、外样本、不确定性、泄漏、校准或可识别性检查。
+- `classification.objective`：explanation、inference、prediction、evaluation、optimization、simulation 之一；
+- `classification.structures`：physical_mechanism、temporal、spatial、network、scheduling、game、stochastic、static_tabular 中至多三项；
+- 小问顶层 `capabilities`：独立决定必须执行的可行性、残差、离散、收敛、外样本、不确定性、泄漏、校准或可识别性检查。
 
-旧版十类题型仅作 Pack 兼容映射，不再承担不同维度概念的唯一主标签。
+顶层 `capabilities` 是唯一权威能力事实源。`classification.capabilities`、`problem_types` 和 `legacy_task_packs` 只允许作为旧项目兼容派生字段，存在时必须与当前三轴事实完全一致。
 
 ## 4. 工作顺序与最小闭环
 
@@ -42,23 +42,27 @@ $$
 
 `locked_model_spec` 形成后，项目根目录必须创建 `模型论文框架.md`。该文件只保留当前有效模型语义、论文结构、逐问结果摘要、必要命题规划和图表映射，旧版本由 Git 历史保存。
 
-三类事实源边界：
+框架分为 compact 与 full。compact 用于日常迭代，full 用于跨聊天交接、完整写作、终审和提交；校验器必须读取 mode 并应用对应章节集合。
+
+事实源边界：
 
 - 模型语义与论文组织：`模型论文框架.md`；
 - 数值事实：每问两类标准工作簿；
-- 哈希、新旧状态与产物路径：`state/project_state.yaml`。
+- 分类、分层哈希、新旧状态与产物路径：`state/project_state.yaml`。
 
 三者冲突时停止下游写作，回到源产物修正。
 
-## 6. 项目同步器
+## 6. 正式交付同步门槛
 
-每次正式交付模型、代码、工作簿、验证、MATLAB 图、DOCX、LaTeX 或提交包前，运行：
+所有正式模型、代码、工作簿、验证、MATLAB 图、DOCX、LaTeX 或提交包交付，必须执行解析器返回的 `pre_delivery_gates`。`project_sync` 使用：
 
 ```bash
-python scripts/sync_project.py <project_root> --write --strict
+python scripts/sync_project.py <project_root> --write --strict --delivery-scope <scope>
 ```
 
-同步器只执行产物发现、工作簿结构读取、哈希计算、路径登记和 stale 传播；不得生成模型语义、伪造结果或将未验证状态提升为 passed。同步结果写入 `sync_report.yaml`。
+scope 为 design、results、figures、docx、latex 或 submission。同步器按阶段检查必需产物、工作簿 Schema、MATLAB 工作簿引用、图表存在性与时间新旧关系；计算 data、model、solution_workbook、robustness_workbook、matlab_script、figure_bundle 和 framework 分层哈希；只允许保守传播 stale，不得生成模型语义、伪造结果或将未验证状态提升为 passed。
+
+写入顺序固定为：发现与检查 → 计算当前哈希 → 传播 stale → 更新框架头部 → 计算最终框架哈希 → 写 project_state → 写 sync_report → 写后自检。`sync_report.yaml` 只有在 gate 成功后才视为可用产物。
 
 ## 7. 软件职责与目录
 
@@ -90,9 +94,11 @@ python scripts/sync_project.py <project_root> --write --strict
 - 仿真必须给随机种子、重复试验、置信区间和收敛；
 - 数值机理必须检查量纲、边界、守恒和离散精度。
 
+工作簿由 objective 决定主要结果类型，structures 决定结构专项，capabilities 决定强制验证工作表。旧 task_profiles 仅兼容历史项目。
+
 ## 9. 图表
 
-正式 MATLAB 代码生成前必须读取实际工作簿。字段定位采用“精确表头唯一匹配”，允许记录期望列号作结构漂移警告，但不得模糊匹配、别名猜测或自动回退。单图保留简洁 `title`，多面板保留一个 `sgtitle`；图注补充统计口径和解释，不与标题逐字重复。
+正式 MATLAB 代码生成前必须读取实际工作簿。字段定位采用“精确表头唯一匹配”，允许记录期望列号作结构漂移警告，但不得模糊匹配、别名猜测或自动回退。MATLAB 只能引用本问标准工作簿；声明导出的图必须存在，正式图不得早于其工作簿或脚本。单图保留简洁 `title`，多面板保留一个 `sgtitle`；图注补充统计口径和解释，不与标题逐字重复。
 
 机理图必须服务对象关系、公式来源、约束来源、临界状态或策略机制，不用通用“输入—模型—输出”流程图替代。
 
