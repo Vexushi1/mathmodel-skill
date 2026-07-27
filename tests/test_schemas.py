@@ -35,12 +35,24 @@ class TestSchemas(unittest.TestCase):
         self.assertTrue(completed.isdisjoint(pending))
         self.assertEqual(requirements["total"], len(completed | pending))
 
-    def test_project_state_tracks_framework_and_per_subproblem_contract(self):
+    def test_project_state_tracks_framework_propositions_and_subproblem_contract(self):
         schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
         self.assertIn("paper_framework", schema["required"])
         framework = schema["properties"]["paper_framework"]
-        for key in ("path", "version", "sync_status", "last_sync_scope"):
+        for key in (
+            "path",
+            "version",
+            "sync_status",
+            "last_sync_scope",
+            "proposition_limit",
+            "proposition_count",
+            "proposition_status",
+            "propositions",
+        ):
             self.assertIn(key, framework["required"])
+        self.assertEqual(framework["properties"]["proposition_limit"]["const"], 4)
+        self.assertEqual(framework["properties"]["proposition_count"]["maximum"], 4)
+        self.assertEqual(framework["properties"]["propositions"]["maxItems"], 4)
 
         subproblem = schema["properties"]["subproblems"]["additionalProperties"]
         self.assertIn("problem_types", subproblem["required"])
@@ -63,6 +75,7 @@ class TestSchemas(unittest.TestCase):
             "framework_section",
             "result_summary_status",
             "result_summary_anchor",
+            "proposition_refs",
         ):
             self.assertIn(key, properties)
 
@@ -89,6 +102,46 @@ class TestSchemas(unittest.TestCase):
         self.assertTrue(any("artifacts_stale" in issue for issue in issues), issues)
         self.assertTrue(any("paper_framework.sync_status" in issue for issue in issues), issues)
 
+    def test_semantic_validator_rejects_proposition_count_mismatch(self):
+        module = load_state_validator()
+        payload = yaml.safe_load((ROOT / "state/project_state.example.yaml").read_text(encoding="utf-8"))
+        payload["paper_framework"].update(
+            proposition_count=1,
+            proposition_status="planned",
+            propositions=[],
+        )
+        issues = module.validate_state_payload(payload, project_root=ROOT)
+        self.assertTrue(any("proposition_count" in issue for issue in issues), issues)
+
+    def test_semantic_validator_rejects_unknown_proposition_ref(self):
+        module = load_state_validator()
+        payload = yaml.safe_load((ROOT / "state/project_state.example.yaml").read_text(encoding="utf-8"))
+        payload["subproblems"]["Q1"]["proposition_refs"] = ["P1"]
+        issues = module.validate_state_payload(payload, project_root=ROOT)
+        self.assertTrue(any("unknown IDs" in issue for issue in issues), issues)
+
+    def test_semantic_validator_requires_current_proposition_contract_fields(self):
+        module = load_state_validator()
+        payload = yaml.safe_load((ROOT / "state/project_state.example.yaml").read_text(encoding="utf-8"))
+        payload["paper_framework"].update(
+            proposition_count=1,
+            proposition_status="current",
+            propositions=[
+                {
+                    "id": "P1",
+                    "title": "等价性",
+                    "related_question": "Q1",
+                    "claim_type": "equivalence",
+                    "proof_level": "full",
+                    "status": "current",
+                }
+            ],
+        )
+        payload["subproblems"]["Q1"]["proposition_refs"] = ["P1"]
+        issues = module.validate_state_payload(payload, project_root=ROOT)
+        self.assertTrue(any("assumptions_and_domain" in issue for issue in issues), issues)
+        self.assertTrue(any("failure_boundary" in issue for issue in issues), issues)
+
     def test_workbook_schema_uses_capabilities_and_title_handoff(self):
         schema = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_text(encoding="utf-8"))
         self.assertFalse(schema["global_rules"]["empty_worksheet_allowed"])
@@ -100,12 +153,17 @@ class TestSchemas(unittest.TestCase):
             self.assertIn(key, handoff["required_mapping_fields"])
         self.assertTrue(handoff["title_contract"]["keep_in_export"])
 
-    def test_output_contract_references_framework_workbooks_and_flat_layout(self):
+    def test_output_contract_references_framework_workbooks_flat_layout_and_propositions(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         self.assertEqual(contract["schema"], "core/workbook_schema.yaml")
-        self.assertEqual(contract["version"], "6.2.5")
+        self.assertEqual(contract["version"], "6.2.6")
         self.assertEqual(contract["project_root"]["model_paper_framework"], "模型论文框架.md")
         self.assertTrue(contract["model_paper_framework"]["formal_delivery_sync"])
+        self.assertIn("命题与证明规划", contract["model_paper_framework"]["required_sections"])
+        proposition = contract["proposition_contract"]
+        self.assertTrue(proposition["optional"])
+        self.assertEqual(proposition["minimum_per_paper"], 0)
+        self.assertEqual(proposition["maximum_per_paper"], 4)
         self.assertEqual(contract["per_question"]["question_directory"], "结果数据表/问题{中文序号}/")
         self.assertEqual(contract["per_question"]["matlab_script"], "q{阿拉伯序号}_plot.m")
         self.assertEqual(contract["per_question"]["figure_directory"], "图表/")
