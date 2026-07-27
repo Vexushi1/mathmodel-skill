@@ -1,16 +1,29 @@
 {
   "name": "mathmodel-skill",
-  "version": "6.3.1",
+  "version": "6.3.2",
   "description": "HSK lightweight-bootstrap mathematical-modeling workflow with multi-intent routing, orthogonal task classification, stage-aware project synchronization, layered artifact freshness, Python-to-Excel-to-MATLAB evidence figures, DOCX draft and LaTeX final.",
-  "author": {"name": "HSK"},
+  "author": {
+    "name": "HSK"
+  },
   "license": "MIT",
-  "keywords": ["math-modeling", "cumcm", "mcm", "icm", "matlab", "project-sync", "multi-intent-router"],
+  "keywords": [
+    "math-modeling",
+    "cumcm",
+    "mcm",
+    "icm",
+    "matlab",
+    "project-sync",
+    "multi-intent-router"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "HSK 数学建模 Skill",
     "shortDescription": "轻量启动、多意图路由、分层同步、Python求解、MATLAB图、LaTeX终稿",
     "category": "Education",
-    "capabilities": ["Interactive", "Write"],
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
     "brandColor": "#173B5E"
   }
 }

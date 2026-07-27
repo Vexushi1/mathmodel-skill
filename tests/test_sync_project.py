@@ -33,6 +33,7 @@ def write_solution(path: Path, *, constraint=False, out_of_sample=False):
     book = Workbook()
     append_sheet(book, "核心指标", ["指标", "数值"], ["目标值", 1.0])
     append_sheet(book, "数据审计", ["等级", "检查项", "信息", "处理方式"], ["Info", "完整性", "通过", "无需处理"])
+    append_sheet(book, "推荐方案", ["方案"], ["A"])
     if constraint:
         append_sheet(book, "约束违反检查", ["约束编号", "约束含义", "违反量", "容差", "是否满足"], ["C1", "容量", 0.0, 1e-8, "是"])
     if out_of_sample:

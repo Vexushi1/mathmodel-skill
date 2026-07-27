@@ -1,6 +1,6 @@
-# mathmodel-skill v6.3.1
+# mathmodel-skill v6.3.2
 
-v6.3.1 是 v6.3.0 运行架构的 contract-closure 补丁，集中修复 compact/full 校验冲突、框架哈希写入顺序、工作簿与图表链校验不足、重复 capability 事实源、分层 stale 缺失和同步门槛未进入执行计划等问题。
+v6.3.2 是 v6.3.0 运行架构的 contract-closure 补丁，集中修复 compact/full 校验冲突、框架哈希写入顺序、工作簿与图表链校验不足、重复 capability 事实源、分层 stale 缺失和同步门槛未进入执行计划等问题。
 
 ## v6.3 核心架构
 
@@ -11,7 +11,7 @@ v6.3.1 是 v6.3.0 运行架构的 contract-closure 补丁，集中修复 compact
 - **MATLAB 精确表头读取**：按真实表头唯一匹配，列号仅作漂移警告；
 - **命题懒加载**：详细规则只在命题计划非零或明确证明任务时加载。
 
-## v6.3.1 修复
+## v6.3.2 修复
 
 - compact/full 框架按模式使用不同章节集合；
 - 同步器更新框架头部后再写入最终框架 SHA-256；

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the active HSK v6.3.1 graph, contracts, semantics and generated files."""
+"""Validate the active HSK v6.3.2 graph, contracts, semantics and generated files."""
 from __future__ import annotations
 
 import argparse
@@ -14,9 +14,9 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "6.3.1"
+PACKAGE_VERSION = "6.3.2"
 REQUIRED = [
-    "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md",
+    "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG_V632.md",
     "PROJECT_INSTRUCTIONS_HSK_V622.md", "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V630.md",
     "core/bootstrap.yaml", "core/hsk_core_policy.md", "core/task_taxonomy.yaml",
     "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml",
@@ -27,7 +27,7 @@ REQUIRED = [
     "modules/05_writing/ai_cleanup.md", "modules/06_review_delivery.md",
     "packs/task/classifier.md", "packs/task/advanced_method_gate.md",
     "packs/artifact/proposition_proof.md", "templates/model/model_paper_framework.md",
-    "templates/code/hsk_pipeline/result_io.py", "templates/matlab/q1_plot.m",
+    "templates/code/hsk_pipeline/result_io.py", "templates/code/hsk_pipeline/workbook_validation.py", "templates/matlab/q1_plot.m",
     "scripts/resolve_workflow.py", "scripts/sync_project.py",
     "scripts/validate_model_paper_framework.py", "scripts/validate_project_state.py",
     "scripts/score_submission.py", ".github/pull_request_template.md",
@@ -83,10 +83,10 @@ def check_versions(errors: list[str]) -> None:
     if plugin.get("version") != PACKAGE_VERSION:
         errors.append("plugin version mismatch")
     workbook = load_structured(ROOT / "core/workbook_schema.yaml") or {}
-    if workbook.get("schema_version") != "2.1.0":
-        errors.append("workbook schema version must be 2.1.0")
-    if ">=6.3.1" not in str(workbook.get("skill_compatibility", "")):
-        errors.append("workbook schema compatibility must start at 6.3.1")
+    if workbook.get("schema_version") != "2.2.0":
+        errors.append("workbook schema version must be 2.2.0")
+    if ">=6.3.2" not in str(workbook.get("skill_compatibility", "")):
+        errors.append("workbook schema compatibility must start at 6.3.2")
 
 
 def check_bootstrap_and_governance(errors: list[str]) -> None:

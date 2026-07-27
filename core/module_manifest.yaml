@@ -1,6 +1,14 @@
-version: 6.3.1
-workflow_order: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery]
-
+version: 6.3.2
+workflow_order:
+- problem_audit
+- model_design
+- solve_validate
+- figure_evidence
+- writing_docx
+- writing_latex
+- ai_cleanup
+- latex_compile_quality
+- review_delivery
 contracts:
   bootstrap: core/bootstrap.yaml
   taxonomy: core/task_taxonomy.yaml
@@ -9,22 +17,20 @@ contracts:
   project_state: core/project_state.schema.yaml
   framework_template: templates/model/model_paper_framework.md
   compile_profiles: core/compile_profiles.yaml
-
 external_artifacts:
-  - problem_text
-  - attachments
-  - competition
-  - requested_deliverable
-  - data
-  - bibliography
-  - compile_profile
-  - workbook_schema
-  - output_contract
-  - all_requested_artifacts
-  - existing_project_state
-  - existing_model_paper_framework
-  - discovered_artifacts
-
+- problem_text
+- attachments
+- competition
+- requested_deliverable
+- data
+- bibliography
+- compile_profile
+- workbook_schema
+- output_contract
+- all_requested_artifacts
+- existing_project_state
+- existing_model_paper_framework
+- discovered_artifacts
 artifact_catalog:
   requirement_map: 题目要求与交付映射
   subproblem_map: 小问依赖和边界
@@ -65,78 +71,255 @@ artifact_catalog:
   validated_submission_package: 通过交付检查的提交包
   project_state: 项目机器状态
   sync_report: 项目同步器生成的发现、Schema校验、分层哈希、stale和证据链报告
-
+  figure_evidence: 工作簿、MATLAB脚本与逐图哈希证据
 workflow_profiles:
   design:
-    modules: [problem_audit, model_design]
-    module_terminal_outputs: [requirement_map, route_comparison, selected_models, locked_model_spec, formula_closure, validation_plan, model_paper_framework]
-    pre_delivery_gates: [project_sync]
-    terminal_outputs: [requirement_map, route_comparison, selected_models, locked_model_spec, formula_closure, validation_plan, model_paper_framework, project_state, sync_report]
+    modules:
+    - problem_audit
+    - model_design
+    module_terminal_outputs:
+    - requirement_map
+    - route_comparison
+    - selected_models
+    - locked_model_spec
+    - formula_closure
+    - validation_plan
+    - model_paper_framework
+    pre_delivery_gates:
+    - project_sync
+    terminal_outputs:
+    - requirement_map
+    - route_comparison
+    - selected_models
+    - locked_model_spec
+    - formula_closure
+    - validation_plan
+    - model_paper_framework
+    - project_state
+    - sync_report
   full_solution:
-    modules: [problem_audit, model_design, solve_validate]
-    module_terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report, proposition_plan, model_paper_framework]
-    pre_delivery_gates: [project_sync]
-    terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report, proposition_plan, model_paper_framework, project_state, sync_report]
+    modules:
+    - problem_audit
+    - model_design
+    - solve_validate
+    module_terminal_outputs:
+    - python_code
+    - solution_workbook
+    - sensitivity_robustness_workbook
+    - validation_report
+    - proposition_plan
+    - model_paper_framework
+    pre_delivery_gates:
+    - project_sync
+    terminal_outputs:
+    - python_code
+    - solution_workbook
+    - sensitivity_robustness_workbook
+    - validation_report
+    - proposition_plan
+    - model_paper_framework
+    - project_state
+    - sync_report
   full_workflow:
-    modules: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery]
-    module_terminal_outputs: [validated_submission_package, model_paper_framework]
-    pre_delivery_gates: [project_sync]
-    terminal_outputs: [validated_submission_package, model_paper_framework, project_state, sync_report]
-
+    modules:
+    - problem_audit
+    - model_design
+    - solve_validate
+    - figure_evidence
+    - writing_docx
+    - writing_latex
+    - ai_cleanup
+    - latex_compile_quality
+    - review_delivery
+    module_terminal_outputs:
+    - validated_submission_package
+    - model_paper_framework
+    pre_delivery_gates:
+    - project_sync
+    terminal_outputs:
+    - validated_submission_package
+    - model_paper_framework
+    - project_state
+    - sync_report
 modules:
   problem_audit:
     path: modules/01_problem_audit.md
-    inputs: [problem_text, attachments, competition, requested_deliverable]
-    outputs: [requirement_map, subproblem_map, classification_by_subproblem, problem_types_by_subproblem, data_schema, risks]
+    inputs:
+    - problem_text
+    - attachments
+    - competition
+    - requested_deliverable
+    outputs:
+    - requirement_map
+    - subproblem_map
+    - classification_by_subproblem
+    - problem_types_by_subproblem
+    - data_schema
+    - risks
   model_design:
     path: modules/02_model_design.md
-    inputs: [requirement_map, data_schema, classification_by_subproblem]
-    outputs: [route_comparison, selected_models, locked_model_spec, formula_closure, proposition_plan, model_paper_framework, mechanism_contracts, validation_plan]
+    inputs:
+    - requirement_map
+    - data_schema
+    - classification_by_subproblem
+    outputs:
+    - route_comparison
+    - selected_models
+    - locked_model_spec
+    - formula_closure
+    - proposition_plan
+    - model_paper_framework
+    - mechanism_contracts
+    - validation_plan
   solve_validate:
     path: modules/03_solve_validate.md
-    inputs: [locked_model_spec, formula_closure, proposition_plan, model_paper_framework, data_schema, data, workbook_schema]
-    outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validated_results, constraint_checks, validation_report, evidence_map, model_paper_framework]
+    inputs:
+    - locked_model_spec
+    - formula_closure
+    - proposition_plan
+    - model_paper_framework
+    - data_schema
+    - data
+    - workbook_schema
+    outputs:
+    - python_code
+    - solution_workbook
+    - sensitivity_robustness_workbook
+    - validated_results
+    - constraint_checks
+    - validation_report
+    - evidence_map
+    - model_paper_framework
   figure_evidence:
     path: modules/04_figure_evidence.md
-    inputs: [solution_workbook, sensitivity_robustness_workbook, workbook_schema, model_paper_framework, mechanism_contracts, evidence_map]
-    outputs: [matlab_scripts, result_figures, refined_mechanism_figures, figure_contracts, approved_figures, evidence_map, model_paper_framework]
+    inputs:
+    - solution_workbook
+    - sensitivity_robustness_workbook
+    - workbook_schema
+    - model_paper_framework
+    - mechanism_contracts
+    - evidence_map
+    outputs:
+    - matlab_scripts
+    - result_figures
+    - refined_mechanism_figures
+    - figure_contracts
+    - approved_figures
+    - evidence_map
+    - model_paper_framework
   writing_docx:
     path: modules/05_writing/docx.md
-    inputs: [model_paper_framework, proposition_plan, locked_model_spec, validated_results, figure_contracts]
-    outputs: [docx_draft, latex_migration_notes]
+    inputs:
+    - model_paper_framework
+    - proposition_plan
+    - locked_model_spec
+    - validated_results
+    - figure_contracts
+    outputs:
+    - docx_draft
+    - latex_migration_notes
   writing_latex:
     path: modules/05_writing/latex.md
-    inputs: [model_paper_framework, proposition_plan, locked_model_spec, validated_results, approved_figures, bibliography]
-    outputs: [latex_source_draft, paper_text]
+    inputs:
+    - model_paper_framework
+    - proposition_plan
+    - locked_model_spec
+    - validated_results
+    - approved_figures
+    - bibliography
+    outputs:
+    - latex_source_draft
+    - paper_text
   ai_cleanup:
     path: modules/05_writing/ai_cleanup.md
-    inputs: [latex_source_draft, paper_text, evidence_map]
-    outputs: [latex_source, cleaned_paper_text, unsupported_claims]
+    inputs:
+    - latex_source_draft
+    - paper_text
+    - evidence_map
+    outputs:
+    - latex_source
+    - cleaned_paper_text
+    - unsupported_claims
   latex_compile_quality:
     path: modules/05_latex_compile_quality.md
-    inputs: [latex_source, compile_profile]
-    outputs: [compiled_pdf, compile_report]
+    inputs:
+    - latex_source
+    - compile_profile
+    outputs:
+    - compiled_pdf
+    - compile_report
   review_delivery:
     path: modules/06_review_delivery.md
-    inputs: [all_requested_artifacts, proposition_plan, model_paper_framework, output_contract, workbook_schema, compile_profile, compile_report]
-    outputs: [review_report, validated_submission_package]
-
+    inputs:
+    - all_requested_artifacts
+    - proposition_plan
+    - model_paper_framework
+    - output_contract
+    - workbook_schema
+    - compile_profile
+    - compile_report
+    outputs:
+    - review_report
+    - validated_submission_package
 utility_gates:
   project_sync:
     path: scripts/sync_project.py
-    command: python scripts/sync_project.py <project_root> --write --strict --delivery-scope <delivery_scope>
-    inputs: [existing_project_state, existing_model_paper_framework, discovered_artifacts, workbook_schema]
-    outputs: [project_state, sync_report]
-    delivery_scopes: [design, results, figures, docx, latex, submission]
+    command: python scripts/sync_project.py <project_root> --write --strict --delivery-scope
+      <delivery_scope>
+    inputs:
+    - existing_project_state
+    - existing_model_paper_framework
+    - discovered_artifacts
+    - workbook_schema
+    outputs:
+    - project_state
+    - sync_report
+    delivery_scopes:
+    - design
+    - results
+    - figures
+    - docx
+    - latex
+    - submission
     stage_requirements:
-      design: [project_state]
-      results: [project_state, model_paper_framework, python_code, solution_workbook, sensitivity_robustness_workbook]
-      figures: [project_state, model_paper_framework, solution_workbook, sensitivity_robustness_workbook, matlab_scripts, result_figures]
-      docx: [project_state, model_paper_framework, solution_workbook, sensitivity_robustness_workbook, approved_figures]
-      latex: [project_state, model_paper_framework, solution_workbook, sensitivity_robustness_workbook, approved_figures]
-      submission: [project_state, model_paper_framework, all_requested_artifacts]
+      design:
+      - project_state
+      - model_paper_framework
+      results:
+      - project_state
+      - model_paper_framework
+      - python_code
+      - solution_workbook
+      - sensitivity_robustness_workbook
+      figures:
+      - project_state
+      - model_paper_framework
+      - matlab_scripts
+      - result_figures
+      - figure_evidence
+      docx:
+      - project_state
+      - model_paper_framework
+      - approved_figures
+      - docx_draft
+      latex:
+      - project_state
+      - model_paper_framework
+      - approved_figures
+      - latex_source
+      - compiled_pdf
+      - compile_report
+      submission:
+      - project_state
+      - model_paper_framework
+      - compiled_pdf
+      - validated_submission_package
     rules:
-      - Discovers artifacts, validates workbook contracts and hashes the complete evidence chain without inventing model semantics or validation success.
-      - Propagates stale from data, model, workbooks, MATLAB scripts and figure bundles.
-      - Updates the framework header before computing and persisting its final SHA-256.
-      - Required before formal model, code, workbook, figure, DOCX, LaTeX or submission delivery.
+    - Discovers artifacts, validates workbook contracts and hashes the complete evidence
+      chain without inventing model semantics or validation success.
+    - Propagates stale from data, model, workbooks, MATLAB scripts and figure bundles.
+    - Updates the framework header before computing and persisting its final SHA-256.
+    - Required before formal model, code, workbook, figure, DOCX, LaTeX or submission
+      delivery.
+    - DOCX, LaTeX and submission scopes must validate concrete deliverables rather
+      than framework presence alone.
