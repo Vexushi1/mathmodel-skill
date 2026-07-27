@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 6.3.0
-summary: Lightweight-bootstrap HSK mathematical-modeling workflow with orthogonal task classification, multi-intent routing, conservative project synchronization, Python-to-Excel-to-MATLAB evidence chains, DOCX draft and LaTeX final delivery.
+version: 6.3.1
+summary: Lightweight-bootstrap HSK mathematical-modeling workflow with orthogonal task classification, explicit pre-delivery synchronization, layered artifact freshness, Python-to-Excel-to-MATLAB evidence chains, DOCX draft and LaTeX final delivery.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 项目同步, 结果摘要, 模型选择, 敏感性分析, 鲁棒性分析, 机理图, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v6.3.0
+# HSK 数学建模模块化工作流 v6.3.1
 
 ## 启动
 
@@ -28,7 +28,7 @@ python scripts/resolve_workflow.py \
 
 ## 三轴分类
 
-每个小问分别记录：一个 `objective`、至多三个 `structures`、独立 `capabilities`。旧版十类标签只用于映射现有题型 Pack，不再混合任务目标、数据结构和建模范式。
+每个小问分别记录：一个 `classification.objective`、至多三个 `classification.structures`、一份顶层 `capabilities`。顶层 capabilities 是唯一权威源；`classification.capabilities`、`problem_types` 和 `legacy_task_packs` 仅用于旧项目兼容，存在时必须由当前三轴事实派生。
 
 定义见 `core/task_taxonomy.yaml`，执行模板见 `packs/task/classifier.md`。
 
@@ -45,24 +45,25 @@ python scripts/resolve_workflow.py \
 → MATLAB读取真实工作簿绘制带简洁标题的正式结果图
 → DOCX草稿
 → LaTeX终稿与AI模板感清除
-→ 项目同步、编译和终审
+→ 显式project_sync gate、编译和终审
 ```
 
 路由停止在用户要求的交付物，不为凑流程伪造后续成果。
 
-## 项目同步
+## 正式交付同步门槛
 
-正式交付前执行：
+解析器对正式交付返回 `pre_delivery_gates`，其中 `project_sync` 必须在模块执行完成后、交付前成功运行：
 
 ```bash
-python scripts/sync_project.py <project_root> --write --strict
+python scripts/sync_project.py <project_root> \
+  --write --strict --delivery-scope <scope>
 ```
 
-同步器发现代码、工作簿、MATLAB 和图表，读取工作簿结构，计算哈希并传播 stale；它不会自动生成模型语义、填写结果或把验证状态提升为 passed。输出 `sync_report.yaml`。
+`scope` 为 `design`、`results`、`figures`、`docx`、`latex` 或 `submission`。同步器按阶段检查必需产物和工作簿 Schema，核对 MATLAB—图表链，计算 data、model、两类工作簿、MATLAB、图表包和框架分层哈希，并保守传播 stale。它不会生成模型语义、填写结果或把验证状态提升为 passed。`sync_report.yaml` 只有在 gate 成功后才视为可用产物。
 
 ## 当前模型框架
 
-`locked_model_spec` 形成后创建项目根目录 `模型论文框架.md`。日常迭代采用 compact 口径，跨聊天交接、完整复现、终稿和终审采用 full 口径。文件只保留当前有效内容，历史由 Git 保存。
+`locked_model_spec` 形成后创建项目根目录 `模型论文框架.md`。日常迭代采用 compact，跨聊天交接、完整复现、终稿和终审采用 full。校验器按模式应用不同章节集合。同步器先更新框架头部，再计算并写入最终 SHA-256。
 
 ## 软件职责
 
@@ -91,4 +92,4 @@ python scripts/sync_project.py <project_root> --write --strict
    └─ 图表/
 ```
 
-全局硬规则见 `core/hsk_core_policy.md`；机器产物闭环见 `core/module_manifest.yaml`；工作簿字段见 `core/workbook_schema.yaml`。
+全局硬规则见 `core/hsk_core_policy.md`；机器产物闭环见 `core/module_manifest.yaml`；工作簿字段见 `core/workbook_schema.yaml`；仓库修改必须先读 `SKILL_CHANGE_GOVERNANCE.md`。
