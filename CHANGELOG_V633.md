@@ -9,6 +9,14 @@
 - 首次生成 `figure_evidence.yaml` 后立即同步写入 `subproblem.evidence`；
 - 项目状态 Schema 要求至少包含一个小问。
 
+## 验收口径
+
+- 空或不符合 Schema 的 `project_state.yaml` 必须阻断所有正式 scope；
+- figures scope 必须检查 MATLAB、正式图和 `figure_evidence.yaml`，不得由低状态绕过；
+- 同步器不得清除已有 stale 标记；
+- Manifest 与运行代码必须引用 Output Contract 的 exact-scope 要求；
+- 首次生成图表证据文件后，同一次写入必须更新项目状态 evidence。
+
 ## 兼容性
 
 - CLI、目录、三轴分类、工作簿 Schema、Python/MATLAB 职责保持兼容；
