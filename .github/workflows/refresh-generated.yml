@@ -6,6 +6,7 @@ on:
       - main
       - "codex/**"
       - "refactor/**"
+      - "upgrade/**"
     paths-ignore:
       - HSK_SKILL_FILE_INDEX_V622.md
       - HSK_TEMPLATE_INDEX_V622.md

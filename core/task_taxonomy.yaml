@@ -1,0 +1,79 @@
+taxonomy_version: 2.0.0
+skill_compatibility: '>=6.3.0,<7.0.0'
+
+classification_contract:
+  per_subproblem: true
+  objective_required: true
+  structures_max_items: 3
+  capabilities_are_independent: true
+
+objectives:
+  explanation:
+    description: 从几何、物理、守恒、制度或对象关系解释机制并推导数学关系。
+    legacy_pack: mechanism
+  inference:
+    description: 估计参数、检验假设、识别关联或因果效应。
+    legacy_pack: statistics_ml
+  prediction:
+    description: 预测未来、未观测样本的数值、类别或区间。
+    legacy_pack: prediction
+  evaluation:
+    description: 输出评分、排序、等级、分层或综合指数。
+    legacy_pack: evaluation
+  optimization:
+    description: 在可行域内选择决策变量以优化一个或多个目标。
+    legacy_pack: optimization
+  simulation:
+    description: 通过状态转移、随机试验或离散事件生成系统行为。
+    legacy_pack: simulation
+
+structures:
+  physical_mechanism:
+    description: 几何、动力学、守恒或边界条件决定核心关系。
+    supplemental_pack: mechanism
+  temporal:
+    description: 时间顺序、滞后、状态转移或滚动外推改变模型。
+    supplemental_pack: prediction
+  spatial:
+    description: 坐标、距离、邻接或空间权重改变关系。
+    supplemental_pack: spatial
+  network:
+    description: 节点、边、路径、流、匹配或拓扑结构决定输出。
+    supplemental_pack: graph_network
+  scheduling:
+    description: 作业、资源、工序、时窗与冲突是核心约束。
+    supplemental_pack: scheduling
+  game:
+    description: 多主体策略与收益相互依赖。
+    supplemental_pack: game_decision
+  stochastic:
+    description: 随机变量、分布、场景或风险度量改变决策与验证。
+    supplemental_pack: simulation
+  static_tabular:
+    description: 样本主要表现为无显式时空拓扑的静态表格数据。
+    supplemental_pack: statistics_ml
+
+capabilities:
+  has_explicit_constraints: 显式约束可计算违反量。
+  requires_feasibility_check: 方案、路径、几何或资源可行性必须检查。
+  requires_equilibrium_residual: 结论依赖均衡条件。
+  requires_conservation_residual: 结论依赖质量、能量、流量、概率或数量守恒。
+  requires_discretization_check: 结果依赖网格、步长或离散粒度。
+  requires_convergence_diagnostic: 结果依赖迭代、样本数或仿真长度收敛。
+  requires_out_of_sample_validation: 必须进行外样本、滚动或交叉验证。
+  requires_uncertainty_quantification: 必须输出区间、分位数、场景风险或置信度。
+  requires_leakage_check: 必须检查目标泄漏、时间穿越或预处理泄漏。
+  requires_calibration_check: 概率输出或风险评分必须检查校准。
+  requires_identifiability_check: 参数、因果效应或潜变量需要可识别性论证。
+
+legacy_mapping:
+  mechanism: {objective: explanation, structures: [physical_mechanism]}
+  optimization: {objective: optimization, structures: []}
+  prediction: {objective: prediction, structures: [temporal]}
+  evaluation: {objective: evaluation, structures: []}
+  statistics_ml: {objective: inference, structures: [static_tabular]}
+  simulation: {objective: simulation, structures: [stochastic]}
+  spatial: {objective: inference, structures: [spatial]}
+  graph_network: {objective: optimization, structures: [network]}
+  scheduling: {objective: optimization, structures: [scheduling]}
+  game_decision: {objective: optimization, structures: [game]}

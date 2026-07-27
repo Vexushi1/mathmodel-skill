@@ -1,33 +1,46 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 6.2.6
+version: 6.3.0
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
 
 $defs:
-  task_label:
+  legacy_task_label:
     type: string
     enum: [mechanism, optimization, prediction, evaluation, statistics_ml, simulation, spatial, graph_network, scheduling, game_decision]
+  objective:
+    type: string
+    enum: [explanation, inference, prediction, evaluation, optimization, simulation]
+  structure:
+    type: string
+    enum: [physical_mechanism, temporal, spatial, network, scheduling, game, stochastic, static_tabular]
   problem_types:
+    description: v6.2兼容字段；新项目以classification为准
     type: object
     additionalProperties: false
     required: [primary, secondary]
     properties:
-      primary: {$ref: '#/$defs/task_label'}
+      primary: {$ref: '#/$defs/legacy_task_label'}
       secondary:
         type: array
         maxItems: 2
         uniqueItems: true
-        items: {$ref: '#/$defs/task_label'}
+        items: {$ref: '#/$defs/legacy_task_label'}
       confidence:
         type: object
         additionalProperties: {type: number, minimum: 0, maximum: 1}
   capabilities:
     type: object
     additionalProperties: false
-    required: [has_explicit_constraints, requires_feasibility_check, requires_equilibrium_residual, requires_conservation_residual, requires_discretization_check, requires_convergence_diagnostic]
+    required:
+      - has_explicit_constraints
+      - requires_feasibility_check
+      - requires_equilibrium_residual
+      - requires_conservation_residual
+      - requires_discretization_check
+      - requires_convergence_diagnostic
     properties:
       has_explicit_constraints: {type: boolean}
       requires_feasibility_check: {type: boolean}
@@ -35,6 +48,31 @@ $defs:
       requires_conservation_residual: {type: boolean}
       requires_discretization_check: {type: boolean}
       requires_convergence_diagnostic: {type: boolean}
+      requires_out_of_sample_validation: {type: boolean, default: false}
+      requires_uncertainty_quantification: {type: boolean, default: false}
+      requires_leakage_check: {type: boolean, default: false}
+      requires_calibration_check: {type: boolean, default: false}
+      requires_identifiability_check: {type: boolean, default: false}
+  classification:
+    type: object
+    additionalProperties: false
+    required: [objective, structures, capabilities]
+    properties:
+      objective: {$ref: '#/$defs/objective'}
+      structures:
+        type: array
+        maxItems: 3
+        uniqueItems: true
+        items: {$ref: '#/$defs/structure'}
+      confidence:
+        type: object
+        additionalProperties: {type: number, minimum: 0, maximum: 1}
+      capabilities: {$ref: '#/$defs/capabilities'}
+      legacy_task_packs:
+        type: array
+        maxItems: 3
+        uniqueItems: true
+        items: {$ref: '#/$defs/legacy_task_label'}
   proposition_entry:
     type: object
     additionalProperties: false
@@ -66,10 +104,14 @@ properties:
         type: string
         enum: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery, completed]
       problem_types:
-        description: 项目级汇总标签，仅用于导航；运行校验以 subproblems 中的每问题型为准。
+        description: 旧版项目级导航标签
         type: array
         uniqueItems: true
-        items: {$ref: '#/$defs/task_label'}
+        items: {$ref: '#/$defs/legacy_task_label'}
+      objectives:
+        type: array
+        uniqueItems: true
+        items: {$ref: '#/$defs/objective'}
       version: {type: string}
       updated_at: {type: string, format: date-time}
 
@@ -79,14 +121,8 @@ properties:
     required: [total, completed, pending]
     properties:
       total: {type: integer, minimum: 0}
-      completed:
-        type: array
-        uniqueItems: true
-        items: {type: string}
-      pending:
-        type: array
-        uniqueItems: true
-        items: {type: string}
+      completed: {type: array, uniqueItems: true, items: {type: string}}
+      pending: {type: array, uniqueItems: true, items: {type: string}}
 
   data:
     type: object
@@ -117,34 +153,30 @@ properties:
       required: [selected_model, rejected_models, key_reason]
       properties:
         selected_model: {type: string}
-        rejected_models:
-          type: array
-          items: {type: string}
+        rejected_models: {type: array, items: {type: string}}
         key_reason: {type: string}
-        solver_candidates:
-          type: array
-          items: {type: string}
-        validation_plan:
-          type: array
-          items: {type: string}
+        solver_candidates: {type: array, items: {type: string}}
+        validation_plan: {type: array, items: {type: string}}
 
   subproblems:
     type: object
     additionalProperties:
       type: object
       additionalProperties: false
-      required: [status, selected_model, problem_types, capabilities, validation_status, framework_section, result_summary_status]
+      required: [status, selected_model, capabilities, validation_status, framework_section, result_summary_status]
+      anyOf:
+        - required: [classification]
+        - required: [problem_types]
       properties:
         status:
           type: string
           enum: [pending, audited, designed, solved, validated, written, completed]
         selected_model: {type: string}
+        classification: {$ref: '#/$defs/classification'}
         problem_types: {$ref: '#/$defs/problem_types'}
         capabilities: {$ref: '#/$defs/capabilities'}
         framework_section: {type: string, minLength: 1}
-        result_summary_status:
-          type: string
-          enum: [pending, current, stale]
+        result_summary_status: {type: string, enum: [pending, current, stale]}
         result_summary_anchor: {type: string}
         proposition_refs:
           type: array
@@ -159,60 +191,43 @@ properties:
         code: {type: string}
         solution_workbook: {type: string}
         robustness_workbook: {type: string}
+        matlab_script: {type: string}
         paper_source: {type: string}
         solver_status: {type: string}
         optimality_claim:
           type: string
           enum: [none, local, heuristic, bounded, proven_optimal, global]
           default: none
-        random_seed:
-          oneOf: [{type: integer}, {type: 'null'}]
+        random_seed: {oneOf: [{type: integer}, {type: 'null'}]}
         tolerance: {type: number, minimum: 0}
-        optimality_gap:
-          oneOf: [{type: number, minimum: 0}, {type: 'null'}]
-        max_constraint_violation:
-          oneOf: [{type: number, minimum: 0}, {type: 'null'}]
-        validation_status:
-          type: string
-          enum: [pending, passed, failed, not_applicable]
-        evidence:
-          type: array
-          uniqueItems: true
-          items: {type: string}
+        optimality_gap: {oneOf: [{type: number, minimum: 0}, {type: 'null'}]}
+        max_constraint_violation: {oneOf: [{type: number, minimum: 0}, {type: 'null'}]}
+        validation_status: {type: string, enum: [pending, passed, failed, not_applicable]}
+        evidence: {type: array, uniqueItems: true, items: {type: string}}
 
   variables:
     type: object
     additionalProperties: false
     required: [locked, source]
     properties:
-      locked:
-        type: array
-        uniqueItems: true
-        items: {type: string}
-      source:
-        type: object
-        additionalProperties: {type: string}
+      locked: {type: array, uniqueItems: true, items: {type: string}}
+      source: {type: object, additionalProperties: {type: string}}
 
   paper_framework:
     type: object
     additionalProperties: false
     required: [path, version, sync_status, last_sync_scope, proposition_limit, proposition_count, proposition_status, propositions]
     properties:
-      path:
-        type: string
-        const: 模型论文框架.md
+      path: {type: string, const: 模型论文框架.md}
       version: {type: string, minLength: 1}
-      sync_status:
-        type: string
-        enum: [current, stale]
+      mode: {type: string, enum: [compact, full], default: compact}
+      sync_status: {type: string, enum: [current, stale]}
       last_synced_at: {type: string, format: date-time}
       last_sync_scope: {type: string, minLength: 1}
       sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
       proposition_limit: {type: integer, const: 4}
       proposition_count: {type: integer, minimum: 0, maximum: 4}
-      proposition_status:
-        type: string
-        enum: [not_assessed, planned, current, stale]
+      proposition_status: {type: string, enum: [not_assessed, planned, current, stale]}
       propositions:
         type: array
         maxItems: 4
@@ -224,30 +239,22 @@ properties:
     properties:
       python_version: {type: string}
       matlab_version: {type: string}
-      dependencies:
-        type: object
-        additionalProperties: {type: string}
+      dependencies: {type: object, additionalProperties: {type: string}}
       last_run: {type: string, format: date-time}
       command: {type: string}
       platform: {type: string}
+      last_sync_report: {type: string}
 
   artifacts:
     type: object
     additionalProperties: false
     required: [code, results, figures, papers]
     properties:
-      code:
-        type: array
-        items: {type: string}
-      results:
-        type: array
-        items: {type: string}
-      figures:
-        type: array
-        items: {type: string}
-      papers:
-        type: array
-        items: {type: string}
+      code: {type: array, items: {type: string}}
+      results: {type: array, items: {type: string}}
+      figures: {type: array, items: {type: string}}
+      papers: {type: array, items: {type: string}}
+      sync_report: {type: string}
 
   risks:
     type: array
@@ -269,7 +276,7 @@ properties:
     properties:
       module:
         type: string
-        enum: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery, completed]
+        enum: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery, project_sync, completed]
       condition: {type: string}
 
 policy:
@@ -277,13 +284,11 @@ policy:
   create_when: [full_project, cross_chat_handoff, multiple_artifacts, user_request]
   semantic_validator: scripts/validate_project_state.py
   framework_validator: scripts/validate_model_paper_framework.py
+  synchronizer: scripts/sync_project.py
   semantic_checks:
-    - requirements.total equals the number of unique completed and pending requirements.
-    - completed and pending are disjoint.
-    - 模型设计阶段及以后必须存在当前有效的 模型论文框架.md。
-    - 全文命题数量允许为0但不得超过4；proposition_count、propositions 数组与框架登记数量必须一致。
-    - 每个小问必须能定位到框架章节；solved、validated、written 或 completed 状态要求结果摘要为 current。
-    - subproblem artifact paths must exist before status becomes validated, written or completed.
-    - solver claims must include tolerance, feasibility evidence and applicable optimality evidence.
-    - validated artifacts become stale when the current data or model hash differs from the validated hash.
-    - artifacts_stale 为 true 时，paper_framework、相关命题状态与对应 result_summary_status 不得保持 current。
+    - requirements.total等于completed与pending去重并集数量。
+    - 模型设计阶段及以后必须存在当前有效模型论文框架.md。
+    - 每问必须有classification或兼容problem_types，且capabilities独立登记。
+    - solved、validated、written或completed状态要求结果摘要为current，除非同步器已标记stale。
+    - validated artifacts become stale when current data/model hash differs from validated hash.
+    - 同步器不得将validation_status自动提升为passed。
