@@ -145,7 +145,7 @@ class TestContentPacks(unittest.TestCase):
         self.assertIn("正文默认使用短证明", text)
         self.assertIn("全文命题总数不得超过 4", text)
         self.assertIn("colback=white", text)
-        self.assertIn("shadow", text.lower() if "shadow" in text.lower() else "shadow")
+        self.assertIn("无阴影", text)
 
     def test_output_contract_has_boxed_concise_proposition_contract(self):
         import yaml
