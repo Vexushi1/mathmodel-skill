@@ -90,6 +90,9 @@ class TestContentPacks(unittest.TestCase):
             "证明等级",
             "模型作用",
             "失效边界",
+            "正文证明默认",
+            "同一个外框",
+            "流程图和机理图的彩色框限制不适用于命题证明环境",
             "## 各问模型与结果",
             "#### 结果摘要",
             "MATLAB 图标题",
@@ -111,8 +114,10 @@ class TestContentPacks(unittest.TestCase):
             text = path.read_text(encoding="utf-8")
             self.assertTrue("最多 4" in text or "不得超过 4" in text, str(path))
             self.assertIn("失效边界", text, str(path))
+            self.assertTrue("同一个外框" in text or "同一外框" in text, str(path))
+            self.assertIn("2--6", text, str(path))
         latex = paths[1].read_text(encoding="utf-8")
-        self.assertIn("proposition", latex)
+        self.assertIn("hskproposition", latex)
         self.assertIn("hskproof", latex)
 
     def test_docx_checklists_are_merged_and_framework_aware(self):
@@ -127,13 +132,34 @@ class TestContentPacks(unittest.TestCase):
         self.assertIn("sgtitle", checklist)
         self.assertIn("## 2. 命题与证明", checklist)
         self.assertIn("不超过 4", checklist)
+        self.assertIn("同一个外框", checklist)
+        self.assertIn("流程图、机理图的彩色框限制", checklist)
 
-    def test_cumcm_hsk_template_has_proposition_environment(self):
+    def test_cumcm_hsk_template_has_boxed_concise_proposition_environment(self):
         text = (ROOT / "templates/latex/cumcm/hsk/hsk_main.tex").read_text(encoding="utf-8")
+        self.assertIn("\\usepackage[most]{tcolorbox}", text)
         self.assertIn("\\newtheorem{proposition}{命题}[section]", text)
+        self.assertIn("\\newenvironment{hskproposition}[1]", text)
         self.assertIn("\\newenvironment{hskproof}", text)
         self.assertIn("证明：", text)
+        self.assertIn("正文默认使用短证明", text)
         self.assertIn("全文命题总数不得超过 4", text)
+        self.assertIn("colback=white", text)
+        self.assertIn("shadow", text.lower() if "shadow" in text.lower() else "shadow")
+
+    def test_output_contract_has_boxed_concise_proposition_contract(self):
+        import yaml
+
+        contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
+        proposition = contract["proposition_contract"]
+        self.assertEqual(proposition["latex_outer_environment"], "hskproposition")
+        self.assertEqual(proposition["main_text_default_proof_level"], "outline")
+        self.assertEqual(proposition["main_text_key_steps_min"], 2)
+        self.assertEqual(proposition["main_text_key_steps_max"], 6)
+        display = proposition["display_contract"]
+        self.assertTrue(display["single_outer_box"])
+        self.assertTrue(display["statement_and_proof_in_same_box"])
+        self.assertFalse(display["flowchart_or_mechanism_color_rule_applies"])
 
     def test_caption_template_has_no_copyable_fixed_sentence(self):
         text = (ROOT / "templates/writing/caption_explanation.md").read_text(encoding="utf-8")
