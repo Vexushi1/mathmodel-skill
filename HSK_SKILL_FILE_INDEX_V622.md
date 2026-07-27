@@ -6,7 +6,6 @@
 - `.gitattributes`
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
-- `.github/workflows/export-v632-snapshot.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
 - `AGENTS.md`
