@@ -1,15 +1,26 @@
-# mathmodel-skill v6.3.0
+# mathmodel-skill v6.3.1
 
-HSK 数学建模工作流的本次升级集中解决四个问题：启动上下文过重、单意图路由不足、题型标签维度混杂、框架—状态—工作簿—图表依赖人工同步。
+v6.3.1 是 v6.3.0 运行架构的 contract-closure 补丁，集中修复 compact/full 校验冲突、框架哈希写入顺序、工作簿与图表链校验不足、重复 capability 事实源、分层 stale 缺失和同步门槛未进入执行计划等问题。
 
-## v6.3 核心
+## v6.3 核心架构
 
 - **轻量启动**：只先读取 `core/bootstrap.yaml`，再由解析器按需加载；
-- **多意图解析**：`resolve_workflow.py` 支持多个 intent、自然语言 request、目标/结构/能力和前置产物；
-- **正交分类**：objective、structures、capabilities 分离，旧题型标签只作 Pack 兼容；
-- **统一项目同步器**：发现产物、读取 Excel 结构、计算哈希、传播 stale、生成 `sync_report.yaml`；
+- **多意图解析**：支持多个 intent、自然语言 request、目标/结构/能力和前置产物；
+- **正交分类**：objective、structures、顶层 capabilities 分离，旧题型标签只作兼容派生；
+- **统一项目同步器**：按交付阶段发现并校验产物、计算分层哈希、传播 stale、生成 `sync_report.yaml`；
 - **MATLAB 精确表头读取**：按真实表头唯一匹配，列号仅作漂移警告；
-- **命题懒加载**：全局只保留三条硬规则，详细规则仅在需要时加载。
+- **命题懒加载**：详细规则只在命题计划非零或明确证明任务时加载。
+
+## v6.3.1 修复
+
+- compact/full 框架按模式使用不同章节集合；
+- 同步器更新框架头部后再写入最终框架 SHA-256；
+- `subproblem.capabilities` 成为唯一权威能力字段；
+- 新增 data、model、两类工作簿、MATLAB、图表包和 framework 分层哈希；
+- 工作簿 Schema、capability 条件、主键、非有限数值和约束判定进入同步检查；
+- MATLAB 工作簿引用、声明导出图、图文件存在性和时间新旧关系进入同步检查；
+- 正式交付计划显式返回 `pre_delivery_gates`，`sync_report` 仅在 gate 后可用；
+- 静态 Lint 恢复产物生产者—消费者、terminal output、Schema 语义和框架模式闭环检查。
 
 ## 快速使用
 
@@ -21,24 +32,33 @@ python scripts/resolve_workflow.py full_workflow \
   --competition CUMCM
 ```
 
-```bash
-python scripts/resolve_workflow.py \
-  --request "继续求解问题三并生成MATLAB鲁棒性图" \
-  --objective optimization \
-  --structures stochastic
+解析结果包含：
+
+```yaml
+module_terminal_outputs: [...]
+pre_delivery_gates:
+  - name: project_sync
+    delivery_scope: submission
+    command: python scripts/sync_project.py <project_root> --write --strict --delivery-scope submission
+terminal_outputs: [..., project_state, sync_report]
 ```
 
+直接同步：
+
 ```bash
-python scripts/sync_project.py D:/A_model_project --write --strict
+python scripts/sync_project.py D:/A_model_project \
+  --write --strict --delivery-scope results
 ```
 
-`sync_project.py` 默认 dry-run。`--write` 才会写回状态、框架头部和同步报告；它不会自动认定模型正确或验证通过。
+可选 scope：`design`、`results`、`figures`、`docx`、`latex`、`submission`。未显式指定时根据 `project.current_phase` 推断。
 
 ## 事实源
 
 - 模型语义与论文组织：`模型论文框架.md`；
 - 数值事实：每问两类标准工作簿；
-- 哈希、路径与 stale：`state/project_state.yaml`；
+- objective 与 structures：`subproblem.classification`；
+- 验证能力：`subproblem.capabilities`；
+- 路径、分层哈希与 stale：`state/project_state.yaml`；
 - 本次同步结果：`sync_report.yaml`。
 
 ## 目录
@@ -60,13 +80,14 @@ python scripts/sync_project.py D:/A_model_project --write --strict
 ## 入口
 
 - `core/bootstrap.yaml`：最小启动契约；
-- `core/hsk_core_policy.md`：全局硬规则；
 - `core/task_taxonomy.yaml`：正交分类；
-- `core/workflow_router.yaml`：多意图路由；
-- `core/module_manifest.yaml`：产物生产者—消费者闭环；
-- `scripts/resolve_workflow.py`：确定性加载计划；
-- `scripts/sync_project.py`：项目同步；
-- `REPOSITORY_INDEX.md`：语义导航。
+- `core/workflow_router.yaml`：多意图路由与交付 scope；
+- `core/module_manifest.yaml`：模块与 utility gate 产物闭环；
+- `core/output_contract.yaml`：目录、框架模式、分层哈希和同步门槛；
+- `core/workbook_schema.yaml`：工作簿三轴规则和 MATLAB 交接；
+- `scripts/resolve_workflow.py`：确定性执行计划；
+- `scripts/sync_project.py`：项目同步与交付检查；
+- `SKILL_CHANGE_GOVERNANCE.md`：跨聊天仓库修改治理。
 
 本地检查：
 
