@@ -35,6 +35,12 @@ FRAMEWORK_REQUIRED_PHASES = {
 }
 PROPOSITION_LIMIT = 4
 PROPOSITION_ID_PATTERN = re.compile(r"^P([1-4])$")
+PROPOSITION_STATE_FIELDS = {
+    "proposition_limit",
+    "proposition_count",
+    "proposition_status",
+    "propositions",
+}
 
 
 def load_yaml(path: Path) -> Any:
@@ -158,22 +164,24 @@ def validate_framework_text(
     if expected_hash and expected_hash.lower() != sha256_text(text):
         issues.append("paper_framework.sha256 does not match 模型论文框架.md")
 
-    state_limit = framework.get("proposition_limit")
-    state_count = framework.get("proposition_count")
-    state_entries = framework.get("propositions", []) or []
-    state_ids = {
-        str(item.get("id", ""))
-        for item in state_entries
-        if isinstance(item, Mapping) and str(item.get("id", "")).strip()
-    }
-    if state_limit != PROPOSITION_LIMIT:
-        issues.append(f"paper_framework.proposition_limit must be {PROPOSITION_LIMIT}")
-    if declared_count is not None and state_count != declared_count:
-        issues.append("paper_framework.proposition_count does not match 当前计划命题数")
-    if isinstance(state_count, int) and state_count != len(state_entries):
-        issues.append("paper_framework.proposition_count does not match propositions array length")
-    if state_ids != proposition_ids:
-        issues.append("project-state proposition IDs do not match 模型论文框架.md")
+    state_ids: set[str] = set()
+    if PROPOSITION_STATE_FIELDS.intersection(framework):
+        state_limit = framework.get("proposition_limit")
+        state_count = framework.get("proposition_count")
+        state_entries = framework.get("propositions", []) or []
+        state_ids = {
+            str(item.get("id", ""))
+            for item in state_entries
+            if isinstance(item, Mapping) and str(item.get("id", "")).strip()
+        }
+        if state_limit != PROPOSITION_LIMIT:
+            issues.append(f"paper_framework.proposition_limit must be {PROPOSITION_LIMIT}")
+        if declared_count is not None and state_count != declared_count:
+            issues.append("paper_framework.proposition_count does not match 当前计划命题数")
+        if isinstance(state_count, int) and state_count != len(state_entries):
+            issues.append("paper_framework.proposition_count does not match propositions array length")
+        if state_ids != proposition_ids:
+            issues.append("project-state proposition IDs do not match 模型论文框架.md")
 
     for name, subproblem in (state.get("subproblems", {}) or {}).items():
         if not isinstance(subproblem, Mapping):
@@ -186,7 +194,7 @@ def validate_framework_text(
 
         refs = set(subproblem.get("proposition_refs", []) or [])
         unknown_refs = sorted(refs - state_ids)
-        if unknown_refs:
+        if refs and unknown_refs:
             issues.append(f"{name}.proposition_refs contain unknown IDs: {unknown_refs}")
 
         status = str(subproblem.get("status", ""))
