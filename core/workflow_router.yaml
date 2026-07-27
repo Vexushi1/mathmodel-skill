@@ -1,4 +1,4 @@
-version: 6.2.5
+version: 6.2.6
 
 default_load:
   - core/hsk_core_policy.md
@@ -29,7 +29,9 @@ execution_contract:
     - Reuse locked project state and existing artifacts before recomputing.
     - Compile only the LaTeX source produced after AI cleanup.
     - Create 模型论文框架.md immediately after locked_model_spec exists.
+    - Create a paper-level proposition_plan during model design; propositions are optional and capped at four for the whole paper.
     - Every formal model, code, workbook, validation, MATLAB figure, DOCX or LaTeX delivery synchronizes and returns the complete current 模型论文框架.md.
+    - Any change to proposition conditions, conclusions, proof steps or failure boundaries invalidates the affected framework and written artifacts until resynchronized.
 
 routing:
   new_problem_design:
@@ -41,14 +43,21 @@ routing:
       - modules/02_model_design.md
     load_classified_task_packs: true
     load_competition_pack: true
-    terminal_outputs: [requirement_map, route_comparison, selected_models, formula_closure, model_paper_framework]
+    terminal_outputs: [requirement_map, route_comparison, selected_models, formula_closure, proposition_plan, model_paper_framework]
 
   framework_sync:
-    triggers: [模型论文框架, 框架同步, 结果摘要, 模型变更同步, 参数变更同步, 约束变更同步]
+    triggers: [模型论文框架, 框架同步, 结果摘要, 模型变更同步, 参数变更同步, 约束变更同步, 命题变更同步, 证明变更同步]
     load:
       - modules/02_model_design.md
       - templates/model/model_paper_framework.md
-    terminal_outputs: [model_paper_framework]
+    terminal_outputs: [proposition_plan, model_paper_framework]
+
+  proposition_proof:
+    triggers: [命题证明, 命题, 证明, 引理, 推论, 理论依据, 等价性证明, 可行性证明, 单调性证明, 误差界]
+    load:
+      - modules/02_model_design.md
+      - templates/model/model_paper_framework.md
+    terminal_outputs: [formula_closure, proposition_plan, model_paper_framework]
 
   full_solution:
     triggers: [完整求解, 全部计算, 求出各问, 完成求解]
@@ -61,7 +70,7 @@ routing:
       - packs/artifact/code.md
     load_classified_task_packs: true
     load_competition_pack: true
-    terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report, model_paper_framework]
+    terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report, proposition_plan, model_paper_framework]
 
   full_workflow:
     triggers: [全流程, 完整论文, 全套成果, 完整交付]
@@ -88,7 +97,7 @@ routing:
     terminal_outputs: [validated_submission_package]
 
   problem_analysis:
-    triggers: [审题, 问题理解, 题目拆解, 命题意图]
+    triggers: [审题, 问题理解, 题目拆解, 设问意图, 命题意图]
     load: [modules/01_problem_audit.md]
     terminal_outputs: [requirement_map, subproblem_map, problem_types_by_subproblem, data_schema]
 
@@ -98,7 +107,7 @@ routing:
       - modules/02_model_design.md
       - packs/task/classifier.md
     load_classified_task_packs: true
-    terminal_outputs: [route_comparison, selected_models, locked_model_spec, formula_closure, model_paper_framework]
+    terminal_outputs: [route_comparison, selected_models, locked_model_spec, formula_closure, proposition_plan, model_paper_framework]
 
   advanced_method:
     triggers: [高级模型, W-DRO, CVaR, MPEC, Stackelberg, ALNS, GNN, 空间杜宾, DML, 强化学习, 深度学习]
@@ -107,7 +116,7 @@ routing:
       - packs/task/advanced_method_gate.md
       - packs/task/classifier.md
     load_classified_task_packs: true
-    terminal_outputs: [route_comparison, selected_models, locked_model_spec, validation_plan, model_paper_framework]
+    terminal_outputs: [route_comparison, selected_models, locked_model_spec, validation_plan, proposition_plan, model_paper_framework]
 
   code_and_solution:
     triggers: [代码, Python, 求解, 算法, 最优解]
@@ -169,9 +178,10 @@ multi_intent_policy:
   - Merge module lists in workflow order and remove duplicates.
   - When a request includes solving and writing, solve and validate before generating final prose.
   - When a request includes figures and LaTeX, verify workbook sources before inserting figures.
+  - When a request includes proposition design and writing, screen proposition necessity in model_design before typesetting.
   - Full submission includes review_delivery after all requested artifact modules.
   - AI cleanup must precede latex_compile_quality.
-  - Synchronize 模型论文框架.md after each module that changes model semantics, numerical results, validation evidence, figures or paper structure.
+  - Synchronize 模型论文框架.md after each module that changes model semantics, proposition proofs, numerical results, validation evidence, figures or paper structure.
 
 rules:
   - Do not load legacy by default.
@@ -181,3 +191,4 @@ rules:
   - DOCX and LaTeX modules are both loaded only for explicit migration or full_workflow.
   - Result figures precede final mechanism-figure refinement.
   - 模型论文框架.md stores only the current effective version; Git history stores prior versions.
+  - Proposition planning is paper-level and optional; the final paper must contain no more than four propositions.
