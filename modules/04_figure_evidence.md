@@ -3,7 +3,7 @@
 ## 正确顺序
 
 1. Python 完成求解、检验并锁定两类标准工作簿；
-2. 为每张图先写 Core conclusion，再按图型选择模板选图；
+2. 为每张图先写 Core conclusion，再按信息效率和图型选择模板选图；
 3. 生成 MATLAB 代码前实际读取工作簿，锁定工作簿名、工作表名、真实表头、单位和数据类型；
 4. 字段定位采用精确表头唯一匹配；期望列号只作结构漂移警告，不作为唯一读取机制；
 5. 设置简洁 `title` 或一个整体 `sgtitle`，并拟定不逐字重复的论文图注；
@@ -20,7 +20,7 @@
 
 每张图记录：Core conclusion、Figure role、MATLAB title、论文 caption、Panel map、Source workbook、Worksheet、Required headers、Expected positions（可选）、MATLAB script、Export files、Statistics/error、Reviewer risk、Paper location 和 Caption duty。
 
-数据源仅允许来自每问两类标准工作簿。不得在 MATLAB 中重算核心指标，不得从摘要数字反推绘图序列。
+数据源仅允许来自每问两类标准工作簿。不得在 MATLAB 中重算核心指标，不得从摘要数字反推绘图序列。图型必须提高信息展示或比较效率，否则降级为更直接的二维图。
 
 ## 实表读取规则
 
