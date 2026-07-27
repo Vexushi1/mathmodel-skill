@@ -9,6 +9,7 @@
 - `.gitignore`
 - `AGENTS.md`
 - `CHANGELOG_V622.md`
+- `CHANGELOG_V630.md`
 - `HSK_RUNTIME_ROUTER_V622.md`
 - `HSK_SKILL_FILE_INDEX_V622.md`
 - `HSK_TEMPLATE_INDEX_V622.md`
@@ -39,11 +40,13 @@
 - `assets/nature_figure/gallery/fig5-validation-perturbation-rich.png`
 - `config/competition_profiles.yaml`
 - `config/review_weights.json`
+- `core/bootstrap.yaml`
 - `core/compile_profiles.yaml`
 - `core/hsk_core_policy.md`
 - `core/module_manifest.yaml`
 - `core/output_contract.yaml`
 - `core/project_state.schema.yaml`
+- `core/task_taxonomy.yaml`
 - `core/workbook_schema.yaml`
 - `core/workflow_router.yaml`
 - `legacy/README.md`
@@ -61,6 +64,7 @@
 - `packs/artifact/figure.md`
 - `packs/artifact/full_submission.md`
 - `packs/artifact/latex.md`
+- `packs/artifact/proposition_proof.md`
 - `packs/artifact/review.md`
 - `packs/competition/auto.md`
 - `packs/competition/certification_cup.md`
@@ -89,6 +93,7 @@
 - `scripts/render_paper.py`
 - `scripts/resolve_workflow.py`
 - `scripts/score_submission.py`
+- `scripts/sync_project.py`
 - `scripts/validate_model_paper_framework.py`
 - `scripts/validate_project_state.py`
 - `skills/mathmodel-skill/SKILL.md`
@@ -157,4 +162,5 @@
 - `tests/test_router_contract.py`
 - `tests/test_schemas.py`
 - `tests/test_structure.py`
+- `tests/test_sync_project.py`
 - `tests/test_tooling.py`
