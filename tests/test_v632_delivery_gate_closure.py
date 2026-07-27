@@ -31,6 +31,7 @@ def append_sheet(book: Workbook, title: str, headers, row):
     if len(book.sheetnames) == 1 and book.active["A1"].value is None:
         sheet = book.active
         sheet.title = title
+        sheet.delete_rows(1, 1)
     else:
         sheet = book.create_sheet(title)
     sheet.append(headers)
