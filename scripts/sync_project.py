@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synchronize project artifacts and enforce v6.3.2 delivery-gate contracts.
+"""Synchronize project artifacts and enforce v6.3.3 delivery-gate contracts.
 
 The synchronizer is conservative: it discovers and validates existing artifacts,
 computes provenance hashes and propagates stale state. It never invents model
@@ -24,6 +24,7 @@ from openpyxl import load_workbook
 
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_SCHEMA_PATH = SKILL_ROOT / "core" / "workbook_schema.yaml"
+DEFAULT_OUTPUT_CONTRACT_PATH = SKILL_ROOT / "core" / "output_contract.yaml"
 QUESTION_RE = re.compile(r"问题([一二三四五六七八九十百]+)")
 MATLAB_TITLE_RE = re.compile(r"\b(?:title|sgtitle)\s*\(", re.IGNORECASE)
 EXPORT_RE = re.compile(r"(?:exportgraphics|print)\s*\([^\n]*?[\"']([^\"']+\.(?:png|pdf|svg|tif|tiff))[\"']", re.IGNORECASE)
@@ -32,7 +33,6 @@ LATEX_GRAPHICS_RE = re.compile(r"\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}")
 FIGURE_SUFFIXES = {".png", ".pdf", ".svg", ".tif", ".tiff", ".jpg", ".jpeg"}
 DATA_SUFFIXES = {".csv", ".xlsx", ".xls", ".json", ".yaml", ".yml", ".txt"}
 IGNORED_ROOT_NAMES = {".git", ".idea", ".vscode", "__pycache__", "结果数据表", "draft_docx", "final_latex", "submission", "figures", "figures_editable", "state"}
-STATUS_RANK = {"pending": 0, "audited": 1, "designed": 2, "solved": 3, "validated": 4, "written": 5, "completed": 6}
 SCOPE_RANK = {"design": 0, "results": 1, "figures": 2, "docx": 3, "latex": 4, "submission": 5}
 PHASE_SCOPE = {
     "problem_audit": "design", "model_design": "design", "solve_validate": "results",
@@ -43,17 +43,25 @@ PHASE_SCOPE = {
 HASH_KEYS = ("data", "model", "solution_workbook", "robustness_workbook", "matlab_script", "figure_bundle", "framework")
 
 
-def _load_shared_validator():
-    path = SKILL_ROOT / "templates" / "code" / "hsk_pipeline" / "workbook_validation.py"
-    spec = importlib.util.spec_from_file_location("hsk_workbook_validation", path)
+def _load_module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
-    sys.modules[spec.name] = module
+    sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 
 
-WORKBOOK_VALIDATION = _load_shared_validator()
+WORKBOOK_VALIDATION = _load_module(
+    "hsk_workbook_validation",
+    SKILL_ROOT / "templates" / "code" / "hsk_pipeline" / "workbook_validation.py",
+)
+STATE_VALIDATION = _load_module(
+    "hsk_project_state_validation", SKILL_ROOT / "scripts" / "validate_project_state.py"
+)
+FRAMEWORK_VALIDATION = _load_module(
+    "hsk_framework_validation", SKILL_ROOT / "scripts" / "validate_model_paper_framework.py"
+)
 
 
 @dataclass
@@ -355,6 +363,34 @@ def infer_scope(state: Mapping[str, Any], explicit: str | None) -> str:
     return PHASE_SCOPE.get(phase, "design")
 
 
+def stage_requirements(scope: str, output_contract: Mapping[str, Any]) -> set[str]:
+    requirements = ((output_contract.get("project_sync") or {}).get("stage_requirements") or {})
+    if scope not in requirements:
+        raise ValueError(f"output contract缺少交付范围定义: {scope}")
+    values = requirements.get(scope)
+    if not isinstance(values, list) or not values:
+        raise ValueError(f"output contract交付要求无效: {scope}")
+    return {str(item) for item in values}
+
+
+def contract_preflight_issues(
+    root: Path, state_path: Path, framework_path: Path,
+) -> list[str]:
+    issues: list[str] = []
+    if not state_path.is_file():
+        issues.append("项目状态校验: state/project_state.yaml不存在")
+    else:
+        for item in STATE_VALIDATION.validate_state_file(state_path, project_root=root):
+            issues.append(f"项目状态校验: {item}")
+    for item in FRAMEWORK_VALIDATION.validate_framework_file(
+        framework_path,
+        state_path=state_path if state_path.is_file() else None,
+        strict=False,
+    ):
+        issues.append(f"模型论文框架校验: {item}")
+    return issues
+
+
 def artifact_hashes(snapshot: QuestionSnapshot, data_hash: str | None) -> dict[str, str]:
     values = {
         "data": data_hash,
@@ -415,7 +451,9 @@ def _figure_evidence_issues(snapshot: QuestionSnapshot, root: Path) -> list[str]
     return issues
 
 
-def figure_chain_issues(snapshot: QuestionSnapshot, root: Path) -> tuple[list[str], list[str]]:
+def figure_chain_issues(
+    snapshot: QuestionSnapshot, root: Path, *, allow_generate_evidence: bool,
+) -> tuple[list[str], list[str]]:
     issues: list[str] = []
     warnings: list[str] = []
     if not snapshot.matlab_script:
@@ -442,7 +480,11 @@ def figure_chain_issues(snapshot: QuestionSnapshot, root: Path) -> tuple[list[st
     evidence_issues = _figure_evidence_issues(snapshot, root)
     issues.extend(evidence_issues)
     if not snapshot.figure_evidence:
-        warnings.append("缺少figure_evidence.yaml；--write将在图表链无错误时生成哈希证据")
+        message = "缺少figure_evidence.yaml"
+        if allow_generate_evidence:
+            warnings.append(f"{message}；--write将在图表链无错误时生成哈希证据")
+        else:
+            issues.append(message)
         source_paths = [root / snapshot.matlab_script]
         for book in (snapshot.solution_workbook, snapshot.robustness_workbook):
             if book:
@@ -544,38 +586,44 @@ def _submission_zip_issues(path: Path, *, require_matlab: bool) -> list[str]:
     return [f"提交ZIP缺少{label}" for label, present in requirements.items() if not present]
 
 
-def delivery_artifact_issues(root: Path, state: Mapping[str, Any], scope: str, snapshots: Mapping[str, QuestionSnapshot]) -> tuple[list[str], dict[str, Any]]:
+def delivery_artifact_issues(
+    root: Path,
+    state: Mapping[str, Any],
+    requirements: set[str],
+    snapshots: Mapping[str, QuestionSnapshot],
+) -> tuple[list[str], dict[str, Any]]:
     issues: list[str] = []
     discovered: dict[str, Any] = {}
     framework = root / "模型论文框架.md"
     state_path = root / "state" / "project_state.yaml"
-    if not state_path.is_file():
+    if "project_state" in requirements and not state_path.is_file():
         issues.append("交付缺少state/project_state.yaml")
-    if not framework.is_file():
+    if "model_paper_framework" in requirements and not framework.is_file():
         issues.append("交付缺少模型论文框架.md")
-    if scope == "docx":
+    if "approved_figures" in requirements:
         issues.extend(_approved_figure_issues(root, state))
+    if "docx_draft" in requirements:
         docx_files = _docx_artifacts(root)
         discovered["docx"] = [path.relative_to(root).as_posix() for path in docx_files]
         if not docx_files:
             issues.append("DOCX交付缺少draft_docx/*.docx")
-    if SCOPE_RANK[scope] >= SCOPE_RANK["latex"]:
-        issues.extend(_approved_figure_issues(root, state))
-        main_tex = root / "final_latex" / "main.tex"
-        main_pdf = root / "final_latex" / "main.pdf"
-        compile_report = root / "final_latex" / "compile_report.yaml"
-        discovered.update({
-            "latex_source": main_tex.relative_to(root).as_posix() if main_tex.is_file() else None,
-            "compiled_pdf": main_pdf.relative_to(root).as_posix() if main_pdf.is_file() else None,
-            "compile_report": compile_report.relative_to(root).as_posix() if compile_report.is_file() else None,
-        })
+
+    main_tex = root / "final_latex" / "main.tex"
+    main_pdf = root / "final_latex" / "main.pdf"
+    compile_report = root / "final_latex" / "compile_report.yaml"
+    if "latex_source" in requirements:
+        discovered["latex_source"] = main_tex.relative_to(root).as_posix() if main_tex.is_file() else None
         if not main_tex.is_file():
             issues.append("LaTeX交付缺少final_latex/main.tex")
+        issues.extend(_latex_graphics_issues(main_tex))
+    if "compiled_pdf" in requirements:
+        discovered["compiled_pdf"] = main_pdf.relative_to(root).as_posix() if main_pdf.is_file() else None
         if not main_pdf.is_file():
             issues.append("LaTeX交付缺少final_latex/main.pdf")
+    if "compile_report" in requirements:
+        discovered["compile_report"] = compile_report.relative_to(root).as_posix() if compile_report.is_file() else None
         issues.extend(_compile_report_issues(compile_report))
-        issues.extend(_latex_graphics_issues(main_tex))
-    if SCOPE_RANK[scope] >= SCOPE_RANK["submission"]:
+    if "validated_submission_package" in requirements:
         candidates = _submission_candidates(root)
         if not candidates:
             issues.append("提交交付缺少submission目录或命名明确的提交ZIP")
@@ -621,13 +669,19 @@ def synchronize(
     question: str | None = None,
     delivery_scope: str | None = None,
     schema_path: Path = DEFAULT_SCHEMA_PATH,
+    output_contract_path: Path = DEFAULT_OUTPUT_CONTRACT_PATH,
 ) -> dict[str, Any]:
     root = root.resolve()
     state_path = root / "state" / "project_state.yaml"
     state = load_yaml(state_path)
     schema = load_yaml(schema_path)
+    output_contract = load_yaml(output_contract_path)
     scope = infer_scope(state, delivery_scope)
+    requirements = stage_requirements(scope, output_contract)
     timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    preflight_issues = contract_preflight_issues(
+        root, state_path, root / "模型论文框架.md"
+    )
     data_files, data_hash_mode, data_issues, data_warnings = data_source_files(root, state)
     data_hash = combined_hash(data_files, root)
     snapshots = discover_questions(root, state)
@@ -636,13 +690,15 @@ def synchronize(
         snapshots = {key: value for key, value in snapshots.items() if key == normalized}
         if not snapshots:
             raise ValueError(f"未发现小问: {question}")
-    issues: list[str] = list(data_issues)
+    issues: list[str] = [*preflight_issues, *data_issues]
     warnings: list[str] = list(data_warnings)
     stale_questions: list[str] = []
     subproblems = state.get("subproblems", {}) if state else {}
     snapshots_payload: dict[str, Any] = {}
 
-    global_issues, discovered_delivery = delivery_artifact_issues(root, state, scope, snapshots)
+    global_issues, discovered_delivery = delivery_artifact_issues(
+        root, state, requirements, snapshots
+    )
     issues.extend(global_issues)
 
     for key, snapshot in snapshots.items():
@@ -650,17 +706,22 @@ def synchronize(
         if not isinstance(sub, dict):
             issues.append(f"{key}: 项目状态中缺少对应小问")
             continue
-        status_rank = STATUS_RANK.get(str(sub.get("status", "pending")), 0)
-        require_results = status_rank >= STATUS_RANK["solved"] or SCOPE_RANK[scope] >= SCOPE_RANK["results"]
-        require_figures = SCOPE_RANK[scope] >= SCOPE_RANK["figures"] and status_rank >= STATUS_RANK["solved"]
-        contract_issues = validate_workbooks(
-            snapshot, sub, schema, require_solution=require_results,
-            require_robustness=require_results, root=root,
+        require_solution = "solution_workbook" in requirements
+        require_robustness = "sensitivity_robustness_workbook" in requirements
+        require_python = "python_code" in requirements
+        require_figures = bool(
+            {"matlab_scripts", "result_figures", "figure_evidence"}.intersection(requirements)
         )
-        if require_results and not snapshot.code_files:
+        contract_issues = validate_workbooks(
+            snapshot, sub, schema, require_solution=require_solution,
+            require_robustness=require_robustness, root=root,
+        )
+        if require_python and not snapshot.code_files:
             contract_issues.append("缺少问题求解Python脚本")
         if require_figures:
-            figure_issues, figure_warnings = figure_chain_issues(snapshot, root)
+            figure_issues, figure_warnings = figure_chain_issues(
+                snapshot, root, allow_generate_evidence=write
+            )
             contract_issues.extend(figure_issues)
             snapshot.warnings.extend(figure_warnings)
         snapshot.issues.extend(contract_issues)
@@ -685,9 +746,6 @@ def synchronize(
                 sub["status"] = "solved"
             if sub.get("validation_status") == "passed":
                 sub["validation_status"] = "pending"
-        elif sub.get("artifacts_stale") is True and not snapshot.issues:
-            sub["artifacts_stale"] = False
-            sub["stale_layers"] = []
         if data_hash:
             sub["data_hash"] = data_hash
         if snapshot.model_hash:
@@ -715,10 +773,13 @@ def synchronize(
         sub["evidence"] = sorted(evidence)
         snapshots_payload[key] = snapshot_to_dict(snapshot, current)
 
-    stale = bool(stale_questions)
+    stale = bool(stale_questions) or any(
+        isinstance(item, Mapping) and item.get("artifacts_stale") is True
+        for item in subproblems.values()
+    )
     if write:
         update_framework_header(root / "模型论文框架.md", stale=stale, scope=question or f"{scope}交付同步", timestamp=timestamp)
-        if SCOPE_RANK[scope] >= SCOPE_RANK["figures"]:
+        if "figure_evidence" in requirements:
             for snapshot in snapshots.values():
                 if snapshot.matlab_script and snapshot.discovered_figures and not snapshot.issues:
                     result_dir = root / "结果数据表" / snapshot.chinese_name
@@ -729,6 +790,11 @@ def synchronize(
                     )
                     snapshot.figure_evidence_path = evidence_path.relative_to(root).as_posix()
                     snapshot.figure_evidence = load_yaml(evidence_path)
+                    sub = subproblems.get(snapshot.key)
+                    if isinstance(sub, dict):
+                        evidence = set(sub.get("evidence", []) or [])
+                        evidence.add(snapshot.figure_evidence_path)
+                        sub["evidence"] = sorted(evidence)
                     snapshots_payload[snapshot.key] = snapshot_to_dict(
                         snapshot, artifact_hashes(snapshot, data_hash)
                     )
@@ -758,8 +824,8 @@ def synchronize(
             framework["sha256"] = framework_hash
 
     report = {
-        "sync_version": "1.2.0",
-        "skill_version": "6.3.2",
+        "sync_version": "1.3.0",
+        "skill_version": "6.3.3",
         "generated_at": timestamp,
         "project_root": root.as_posix(),
         "delivery_scope": scope,
@@ -778,6 +844,8 @@ def synchronize(
             "approves_figures": False,
             "rewrites_model_semantics": False,
             "stale_propagation": True,
+            "clears_stale": False,
+            "stage_requirements_source": "core/output_contract.yaml#project_sync.stage_requirements",
         },
     }
     if write:
@@ -798,6 +866,7 @@ def main() -> int:
     parser.add_argument("--question", help="Q1或问题一")
     parser.add_argument("--delivery-scope", choices=sorted(SCOPE_RANK, key=SCOPE_RANK.get))
     parser.add_argument("--schema", default=str(DEFAULT_SCHEMA_PATH))
+    parser.add_argument("--output-contract", default=str(DEFAULT_OUTPUT_CONTRACT_PATH))
     parser.add_argument("--write", action="store_true")
     parser.add_argument("--strict", action="store_true")
     args = parser.parse_args()
@@ -805,6 +874,7 @@ def main() -> int:
         report = synchronize(
             Path(args.project_root), write=args.write, question=args.question,
             delivery_scope=args.delivery_scope, schema_path=Path(args.schema),
+            output_contract_path=Path(args.output_contract),
         )
     except (ValueError, OSError, RuntimeError) as exc:
         raise SystemExit(str(exc)) from exc

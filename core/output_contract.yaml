@@ -1,4 +1,4 @@
-version: 6.3.2
+version: 6.3.3
 schema: core/workbook_schema.yaml
 bootstrap: core/bootstrap.yaml
 taxonomy: core/task_taxonomy.yaml
@@ -77,6 +77,8 @@ project_sync:
     latex_compile_quality: latex
     review_delivery: submission
     completed: submission
+  stage_requirements_authority: core/output_contract.yaml#project_sync.stage_requirements
+  stage_requirements_semantics: exact_scope
   stage_requirements:
     design:
     - project_state
@@ -149,16 +151,19 @@ project_sync:
   - 写入sync_report
   - 执行写后哈希自检
   responsibilities:
+  - 进入产物同步前强制执行项目状态Schema/语义校验与模型论文框架校验
   - 发现根目录Python、每问工作簿、MATLAB脚本和图表
   - 复用工作簿Schema检查工作表、字段、capability条件、主键、非有限数值和约束判定
   - 核对MATLAB工作簿引用、声明导出图、正式图存在性和时间新旧关系
   - 计算输入、模型、两类工作簿、MATLAB脚本、图表包和框架哈希
   - 当已验证哈希变化时按证据链传播stale
+  - 只允许设置或保持stale；清除stale必须由验证流程在完整验证哈希覆盖后显式完成
   - 更新产物路径、项目状态和同步报告
   - 对DOCX、LaTeX与提交scope检查真实文件、编译报告、图片引用和提交ZIP内容
   - 优先按data.sources计算数据哈希，避免论文、草稿和提交包污染数据版本
   forbidden:
   - 自动生成模型语义
+  - 自动清除artifacts_stale或stale_layers
   - 自动填写结果数值
   - 自动把validation_status提升为passed
   - 以文件存在代替可行性或正确性验证

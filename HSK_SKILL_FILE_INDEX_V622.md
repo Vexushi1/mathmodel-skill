@@ -1,4 +1,4 @@
-# HSK Active Skill File Index v6.3.2
+# HSK Active Skill File Index v6.3.3
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -12,6 +12,7 @@
 - `CHANGELOG_V622.md`
 - `CHANGELOG_V630.md`
 - `CHANGELOG_V632.md`
+- `CHANGELOG_V633.md`
 - `HSK_RUNTIME_ROUTER_V622.md`
 - `HSK_SKILL_FILE_INDEX_V622.md`
 - `HSK_TEMPLATE_INDEX_V622.md`
@@ -170,3 +171,4 @@
 - `tests/test_tooling.py`
 - `tests/test_v631_contract_closure.py`
 - `tests/test_v632_delivery_gate_closure.py`
+- `tests/test_v633_gate_hardening.py`

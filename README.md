@@ -1,6 +1,6 @@
-# mathmodel-skill v6.3.2
+# mathmodel-skill v6.3.3
 
-v6.3.2 是 v6.3.0 运行架构的 contract-closure 补丁，集中修复 compact/full 校验冲突、框架哈希写入顺序、工作簿与图表链校验不足、重复 capability 事实源、分层 stale 缺失和同步门槛未进入执行计划等问题。
+v6.3.3 是 v6.3 系列的 gate-hardening 封板补丁：正式同步在发现产物前强制校验项目状态与模型论文框架，交付范围直接读取 Output Contract，figures scope 不再受较低小问状态绕过，同步器不再自动清除 stale，并修复首次生成图表证据后未写入项目状态的问题。
 
 ## v6.3 核心架构
 
@@ -10,6 +10,14 @@ v6.3.2 是 v6.3.0 运行架构的 contract-closure 补丁，集中修复 compact
 - **统一项目同步器**：按交付阶段发现并校验产物、计算分层哈希、传播 stale、生成 `sync_report.yaml`；
 - **MATLAB 精确表头读取**：按真实表头唯一匹配，列号仅作漂移警告；
 - **命题懒加载**：详细规则只在命题计划非零或明确证明任务时加载。
+
+## v6.3.3 Gate Hardening
+
+- `project_sync` 内部强制执行项目状态 Schema/语义校验与模型论文框架校验；
+- figures scope 无条件执行 MATLAB、正式图与 figure evidence 检查；
+- 同步器只传播或保持 stale，不自动清除 stale；
+- `core/output_contract.yaml` 成为 stage requirements 唯一事实源，Manifest 仅保存引用；
+- 首次生成 `figure_evidence.yaml` 后立即写入 `subproblem.evidence`。
 
 ## v6.3.2 修复
 
