@@ -1,4 +1,4 @@
-# HSK Active Template Index v6.3.1
+# HSK Active Template Index v6.3.2
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -7,6 +7,7 @@
 - `templates/code/hsk_pipeline/main_pipeline.py`
 - `templates/code/hsk_pipeline/matlab_handoff.py`
 - `templates/code/hsk_pipeline/result_io.py`
+- `templates/code/hsk_pipeline/workbook_validation.py`
 - `templates/code/requirements.txt`
 - `templates/code/starter/classification.py`
 - `templates/code/starter/evaluation.py`

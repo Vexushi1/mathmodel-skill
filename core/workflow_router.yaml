@@ -1,195 +1,465 @@
-version: 6.3.1
+version: 6.3.2
 bootstrap: core/bootstrap.yaml
-
 default_load:
-  - core/hsk_core_policy.md
-  - core/module_manifest.yaml
-  - core/task_taxonomy.yaml
-
+- core/hsk_core_policy.md
+- core/module_manifest.yaml
+- core/task_taxonomy.yaml
 classification_contract:
-  axes: [objective, structures, capabilities]
+  axes:
+  - objective
+  - structures
+  - capabilities
   capability_source: subproblem.capabilities
   deprecated_capability_alias: classification.capabilities
   objective_required_for_modeling_routes: true
   structures_max_items: 3
   legacy_task_labels_supported: true
   task_pack_budget: 3
-
 execution_contract:
-  workflow_order: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery]
-  formal_delivery_gates: [project_sync]
+  workflow_order:
+  - problem_audit
+  - model_design
+  - solve_validate
+  - figure_evidence
+  - writing_docx
+  - writing_latex
+  - ai_cleanup
+  - latex_compile_quality
+  - review_delivery
+  formal_delivery_gates:
+  - project_sync
   rules:
-    - Stop after the last module required by the user deliverable.
-    - Never manufacture downstream artifacts when gate inputs are missing.
-    - Merge multiple intents in workflow order and remove duplicate modules, packs and outputs.
-    - Reuse current project state, framework and artifacts before recomputing.
-    - Run project synchronization as an explicit pre-delivery gate before every formal artifact delivery.
-    - A gate output is available only after the gate executes successfully.
-    - Compile only the LaTeX source produced after AI cleanup.
-
+  - Stop after the last module required by the user deliverable.
+  - Never manufacture downstream artifacts when gate inputs are missing.
+  - Merge multiple intents in workflow order and remove duplicate modules, packs and
+    outputs.
+  - Reuse current project state, framework and artifacts before recomputing.
+  - Run project synchronization as an explicit pre-delivery gate before every formal
+    artifact delivery.
+  - A gate output is available only after the gate executes successfully.
+  - Compile only the LaTeX source produced after AI cleanup.
 routing:
   new_problem_design:
-    triggers: [新赛题, 建模方案, 建模思路, 全流程思路]
-    infer_keywords: [新赛题, 建模方案, 建模思路, 审题并建模]
-    load: [modules/01_problem_audit.md, packs/task/classifier.md]
-    then: [modules/02_model_design.md]
+    triggers:
+    - 新赛题
+    - 建模方案
+    - 建模思路
+    - 全流程思路
+    infer_keywords:
+    - 新赛题
+    - 建模方案
+    - 建模思路
+    - 审题并建模
+    load:
+    - modules/01_problem_audit.md
+    - packs/task/classifier.md
+    then:
+    - modules/02_model_design.md
     load_classified_task_packs: true
     load_competition_pack: true
-    terminal_outputs: [requirement_map, route_comparison, selected_models, locked_model_spec, formula_closure, validation_plan, model_paper_framework]
+    terminal_outputs:
+    - requirement_map
+    - route_comparison
+    - selected_models
+    - locked_model_spec
+    - formula_closure
+    - validation_plan
+    - model_paper_framework
     formal_delivery: true
     delivery_scope: design
-
   framework_sync:
-    triggers: [模型论文框架, 框架同步, 结果摘要, 模型变更同步, 参数变更同步, 约束变更同步]
-    infer_keywords: [模型论文框架, 框架同步, 更新框架, 同步结果摘要]
-    load: [modules/02_model_design.md, templates/model/model_paper_framework.md]
-    terminal_outputs: [model_paper_framework]
+    triggers:
+    - 模型论文框架
+    - 框架同步
+    - 结果摘要
+    - 模型变更同步
+    - 参数变更同步
+    - 约束变更同步
+    infer_keywords:
+    - 模型论文框架
+    - 框架同步
+    - 更新框架
+    - 同步结果摘要
+    load:
+    - modules/02_model_design.md
+    - templates/model/model_paper_framework.md
+    terminal_outputs:
+    - model_paper_framework
     formal_delivery: true
     delivery_scope: design
-
   project_sync:
-    triggers: [项目同步, 同步项目, stale, 哈希检查, 产物一致性]
-    infer_keywords: [项目同步, 同步项目, stale, 哈希, 产物一致性]
-    load: [scripts/sync_project.py]
-    terminal_outputs: [sync_report, project_state]
+    triggers:
+    - 项目同步
+    - 同步项目
+    - stale
+    - 哈希检查
+    - 产物一致性
+    infer_keywords:
+    - 项目同步
+    - 同步项目
+    - stale
+    - 哈希
+    - 产物一致性
+    load:
+    - scripts/sync_project.py
+    terminal_outputs:
+    - sync_report
+    - project_state
     formal_delivery: false
-
   proposition_proof:
-    triggers: [命题证明, 命题, 证明, 引理, 推论, 等价性证明, 可行性证明, 单调性证明, 误差界]
-    infer_keywords: [命题证明, 等价性证明, 可行性证明, 单调性证明, 误差界, 引理, 推论]
-    load: [modules/02_model_design.md, templates/model/model_paper_framework.md]
+    triggers:
+    - 命题证明
+    - 命题
+    - 证明
+    - 引理
+    - 推论
+    - 等价性证明
+    - 可行性证明
+    - 单调性证明
+    - 误差界
+    infer_keywords:
+    - 命题证明
+    - 等价性证明
+    - 可行性证明
+    - 单调性证明
+    - 误差界
+    - 引理
+    - 推论
+    load:
+    - modules/02_model_design.md
+    - templates/model/model_paper_framework.md
     load_proposition_pack: true
-    terminal_outputs: [formula_closure, proposition_plan, model_paper_framework]
+    terminal_outputs:
+    - formula_closure
+    - proposition_plan
+    - model_paper_framework
     formal_delivery: true
     delivery_scope: design
-
   full_solution:
-    triggers: [完整求解, 全部计算, 求出各问, 完成求解]
-    infer_keywords: [完整求解, 全部计算, 求出各问, 完成求解]
-    load: [modules/01_problem_audit.md, packs/task/classifier.md]
-    then: [modules/02_model_design.md, modules/03_solve_validate.md, packs/artifact/code.md]
+    triggers:
+    - 完整求解
+    - 全部计算
+    - 求出各问
+    - 完成求解
+    infer_keywords:
+    - 完整求解
+    - 全部计算
+    - 求出各问
+    - 完成求解
+    load:
+    - modules/01_problem_audit.md
+    - packs/task/classifier.md
+    then:
+    - modules/02_model_design.md
+    - modules/03_solve_validate.md
+    - packs/artifact/code.md
     load_classified_task_packs: true
     load_competition_pack: true
-    terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report, proposition_plan, model_paper_framework]
+    terminal_outputs:
+    - python_code
+    - solution_workbook
+    - sensitivity_robustness_workbook
+    - validation_report
+    - proposition_plan
+    - model_paper_framework
     formal_delivery: true
     delivery_scope: results
-
   full_workflow:
-    triggers: [全流程, 完整论文, 全套成果, 完整交付]
-    infer_keywords: [全流程, 完整论文, 全套成果, 完整交付]
-    load: [modules/01_problem_audit.md, packs/task/classifier.md]
+    triggers:
+    - 全流程
+    - 完整论文
+    - 全套成果
+    - 完整交付
+    infer_keywords:
+    - 全流程
+    - 完整论文
+    - 全套成果
+    - 完整交付
+    load:
+    - modules/01_problem_audit.md
+    - packs/task/classifier.md
     then:
-      - modules/02_model_design.md
-      - modules/03_solve_validate.md
-      - packs/artifact/code.md
-      - modules/04_figure_evidence.md
-      - packs/artifact/figure.md
-      - templates/figure/chart_selection.md
-      - modules/05_writing/docx.md
-      - packs/artifact/docx.md
-      - modules/05_writing/latex.md
-      - modules/05_writing/ai_cleanup.md
-      - modules/05_latex_compile_quality.md
-      - packs/artifact/latex.md
-      - modules/06_review_delivery.md
-      - packs/artifact/full_submission.md
+    - modules/02_model_design.md
+    - modules/03_solve_validate.md
+    - packs/artifact/code.md
+    - modules/04_figure_evidence.md
+    - packs/artifact/figure.md
+    - templates/figure/chart_selection.md
+    - modules/05_writing/docx.md
+    - packs/artifact/docx.md
+    - modules/05_writing/latex.md
+    - modules/05_writing/ai_cleanup.md
+    - modules/05_latex_compile_quality.md
+    - packs/artifact/latex.md
+    - modules/06_review_delivery.md
+    - packs/artifact/full_submission.md
     load_classified_task_packs: true
     load_competition_pack: true
-    terminal_outputs: [validated_submission_package, model_paper_framework]
+    terminal_outputs:
+    - validated_submission_package
+    - model_paper_framework
     formal_delivery: true
     delivery_scope: submission
-
   problem_analysis:
-    triggers: [审题, 问题理解, 题目拆解, 设问意图, 命题意图]
-    infer_keywords: [审题, 问题理解, 题目拆解, 设问意图]
-    load: [modules/01_problem_audit.md, packs/task/classifier.md]
-    terminal_outputs: [requirement_map, subproblem_map, classification_by_subproblem, data_schema]
+    triggers:
+    - 审题
+    - 问题理解
+    - 题目拆解
+    - 设问意图
+    - 命题意图
+    infer_keywords:
+    - 审题
+    - 问题理解
+    - 题目拆解
+    - 设问意图
+    load:
+    - modules/01_problem_audit.md
+    - packs/task/classifier.md
+    terminal_outputs:
+    - requirement_map
+    - subproblem_map
+    - classification_by_subproblem
+    - data_schema
     formal_delivery: false
-
   model_selection:
-    triggers: [模型比较, 建模路线, 变量, 假设, 公式, 目标函数, 约束]
-    infer_keywords: [模型比较, 建模路线, 变量, 假设, 公式, 目标函数, 约束]
-    load: [modules/02_model_design.md, packs/task/classifier.md]
+    triggers:
+    - 模型比较
+    - 建模路线
+    - 变量
+    - 假设
+    - 公式
+    - 目标函数
+    - 约束
+    infer_keywords:
+    - 模型比较
+    - 建模路线
+    - 变量
+    - 假设
+    - 公式
+    - 目标函数
+    - 约束
+    load:
+    - modules/02_model_design.md
+    - packs/task/classifier.md
     load_classified_task_packs: true
-    terminal_outputs: [route_comparison, selected_models, locked_model_spec, formula_closure, proposition_plan, validation_plan, model_paper_framework]
+    terminal_outputs:
+    - route_comparison
+    - selected_models
+    - locked_model_spec
+    - formula_closure
+    - proposition_plan
+    - validation_plan
+    - model_paper_framework
     formal_delivery: true
     delivery_scope: design
-
   advanced_method:
-    triggers: [高级模型, W-DRO, CVaR, MPEC, Stackelberg, ALNS, GNN, 空间杜宾, DML, 强化学习, 深度学习]
-    infer_keywords: [W-DRO, CVaR, MPEC, Stackelberg, ALNS, GNN, 空间杜宾, DML, 强化学习, 深度学习]
-    load: [modules/02_model_design.md, packs/task/advanced_method_gate.md, packs/task/classifier.md]
+    triggers:
+    - 高级模型
+    - W-DRO
+    - CVaR
+    - MPEC
+    - Stackelberg
+    - ALNS
+    - GNN
+    - 空间杜宾
+    - DML
+    - 强化学习
+    - 深度学习
+    infer_keywords:
+    - W-DRO
+    - CVaR
+    - MPEC
+    - Stackelberg
+    - ALNS
+    - GNN
+    - 空间杜宾
+    - DML
+    - 强化学习
+    - 深度学习
+    load:
+    - modules/02_model_design.md
+    - packs/task/advanced_method_gate.md
+    - packs/task/classifier.md
     load_classified_task_packs: true
-    terminal_outputs: [route_comparison, selected_models, locked_model_spec, validation_plan, proposition_plan, model_paper_framework]
+    terminal_outputs:
+    - route_comparison
+    - selected_models
+    - locked_model_spec
+    - validation_plan
+    - proposition_plan
+    - model_paper_framework
     formal_delivery: true
     delivery_scope: design
-
   code_and_solution:
-    triggers: [代码, Python, 求解, 算法, 最优解]
-    infer_keywords: [Python代码, 求解代码, 开始求解, 算法实现, 最优解]
-    load: [modules/03_solve_validate.md, packs/artifact/code.md, packs/task/classifier.md]
+    triggers:
+    - 代码
+    - Python
+    - 求解
+    - 算法
+    - 最优解
+    infer_keywords:
+    - Python代码
+    - 求解代码
+    - 开始求解
+    - 算法实现
+    - 最优解
+    load:
+    - modules/03_solve_validate.md
+    - packs/artifact/code.md
+    - packs/task/classifier.md
     load_classified_task_packs: true
-    terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report, model_paper_framework]
+    terminal_outputs:
+    - python_code
+    - solution_workbook
+    - sensitivity_robustness_workbook
+    - validation_report
+    - model_paper_framework
     formal_delivery: true
     delivery_scope: results
-
   validation:
-    triggers: [检验, 多算法, 全局最优, 敏感性, 鲁棒性, 误差, 稳健性]
-    infer_keywords: [多算法, 全局最优, 敏感性, 鲁棒性, 稳健性, 误差分析, 模型检验]
-    load: [modules/03_solve_validate.md, packs/task/classifier.md]
+    triggers:
+    - 检验
+    - 多算法
+    - 全局最优
+    - 敏感性
+    - 鲁棒性
+    - 误差
+    - 稳健性
+    infer_keywords:
+    - 多算法
+    - 全局最优
+    - 敏感性
+    - 鲁棒性
+    - 稳健性
+    - 误差分析
+    - 模型检验
+    load:
+    - modules/03_solve_validate.md
+    - packs/task/classifier.md
     load_classified_task_packs: true
-    terminal_outputs: [validated_results, validation_report, evidence_map, model_paper_framework]
+    terminal_outputs:
+    - validated_results
+    - validation_report
+    - evidence_map
+    - model_paper_framework
     formal_delivery: true
     delivery_scope: results
-
   figures:
-    triggers: [图表, 可视化, 机理图, 推导图, Nature, SCI, MATLAB图标题]
-    infer_keywords: [MATLAB绘图, MATLAB, 结果图, 敏感性图, 鲁棒性图, 机理图, 推导图, 可视化, 图表]
-    load: [modules/04_figure_evidence.md, packs/artifact/figure.md, templates/figure/chart_selection.md]
-    terminal_outputs: [figure_contracts, approved_figures, model_paper_framework]
+    triggers:
+    - 图表
+    - 可视化
+    - 机理图
+    - 推导图
+    - Nature
+    - SCI
+    - MATLAB图标题
+    infer_keywords:
+    - MATLAB绘图
+    - MATLAB
+    - 结果图
+    - 敏感性图
+    - 鲁棒性图
+    - 机理图
+    - 推导图
+    - 可视化
+    - 图表
+    load:
+    - modules/04_figure_evidence.md
+    - packs/artifact/figure.md
+    - templates/figure/chart_selection.md
+    terminal_outputs:
+    - figure_contracts
+    - approved_figures
+    - model_paper_framework
     formal_delivery: true
     delivery_scope: figures
-
   docx:
-    triggers: [DOCX, Word, 草稿论文]
-    infer_keywords: [DOCX, Word, 草稿论文, 论文草稿]
-    load: [modules/05_writing/docx.md, packs/artifact/docx.md]
-    terminal_outputs: [docx_draft, latex_migration_notes]
+    triggers:
+    - DOCX
+    - Word
+    - 草稿论文
+    infer_keywords:
+    - DOCX
+    - Word
+    - 草稿论文
+    - 论文草稿
+    load:
+    - modules/05_writing/docx.md
+    - packs/artifact/docx.md
+    terminal_outputs:
+    - docx_draft
+    - latex_migration_notes
     formal_delivery: true
     delivery_scope: docx
-
   latex:
-    triggers: [LaTeX, PDF终稿, cumcmthesis, 终稿论文]
-    infer_keywords: [LaTeX, PDF终稿, cumcmthesis, 终稿论文, 编译论文]
-    load: [modules/05_writing/latex.md, modules/05_writing/ai_cleanup.md, modules/05_latex_compile_quality.md, packs/artifact/latex.md]
+    triggers:
+    - LaTeX
+    - PDF终稿
+    - cumcmthesis
+    - 终稿论文
+    infer_keywords:
+    - LaTeX
+    - PDF终稿
+    - cumcmthesis
+    - 终稿论文
+    - 编译论文
+    load:
+    - modules/05_writing/latex.md
+    - modules/05_writing/ai_cleanup.md
+    - modules/05_latex_compile_quality.md
+    - packs/artifact/latex.md
     load_competition_pack: true
-    terminal_outputs: [latex_source, compiled_pdf, compile_report]
+    terminal_outputs:
+    - latex_source
+    - compiled_pdf
+    - compile_report
     formal_delivery: true
     delivery_scope: latex
-
   full_submission:
-    triggers: [复现包, 提交压缩包, 提交包]
-    infer_keywords: [复现包, 提交压缩包, 提交包]
-    load: [modules/06_review_delivery.md, packs/artifact/full_submission.md]
+    triggers:
+    - 复现包
+    - 提交压缩包
+    - 提交包
+    infer_keywords:
+    - 复现包
+    - 提交压缩包
+    - 提交包
+    load:
+    - modules/06_review_delivery.md
+    - packs/artifact/full_submission.md
     load_competition_pack: true
-    terminal_outputs: [validated_submission_package]
+    terminal_outputs:
+    - validated_submission_package
     formal_delivery: true
     delivery_scope: submission
-
   review:
-    triggers: [评分, 审稿, 终审, 检查, 提交包检查]
-    infer_keywords: [评分, 审稿, 终审, 提交包检查, 论文检查]
-    load: [modules/06_review_delivery.md, packs/artifact/review.md]
+    triggers:
+    - 评分
+    - 审稿
+    - 终审
+    - 检查
+    - 提交包检查
+    infer_keywords:
+    - 评分
+    - 审稿
+    - 终审
+    - 提交包检查
+    - 论文检查
+    load:
+    - modules/06_review_delivery.md
+    - packs/artifact/review.md
     load_competition_pack: true
-    terminal_outputs: [review_report]
+    terminal_outputs:
+    - review_report
     formal_delivery: true
     delivery_scope: submission
-
 multi_intent_policy:
-  - Merge modules in workflow order and remove duplicates.
-  - Merge terminal outputs without dropping model_paper_framework for formal deliveries.
-  - Execute project_sync after modules and before exposing sync_report/project_state as gate outputs.
-  - Solving precedes figures and writing; figures precede final writing insertion.
-  - AI cleanup precedes LaTeX compilation.
-  - Proposition details are loaded only for explicit proof requests or a nonzero proposition plan.
-  - Project synchronization is a utility gate and does not promote validation success.
+- Merge modules in workflow order and remove duplicates.
+- Merge terminal outputs without dropping model_paper_framework for formal deliveries.
+- Execute project_sync after modules and before exposing sync_report/project_state
+  as gate outputs.
+- Solving precedes figures and writing; figures precede final writing insertion.
+- AI cleanup precedes LaTeX compilation.
+- Proposition details are loaded only for explicit proof requests or a nonzero proposition
+  plan.
+- Project synchronization is a utility gate and does not promote validation success.

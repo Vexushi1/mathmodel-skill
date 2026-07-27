@@ -23,6 +23,7 @@ def append_sheet(book: Workbook, title: str, headers, row):
     if len(book.sheetnames) == 1 and book.active.max_row == 1 and book.active["A1"].value is None:
         ws = book.active
         ws.title = title
+        ws.delete_rows(1, 1)
     else:
         ws = book.create_sheet(title)
     ws.append(list(headers))
@@ -33,6 +34,7 @@ def write_solution(path: Path, *, constraint=False, out_of_sample=False):
     book = Workbook()
     append_sheet(book, "核心指标", ["指标", "数值"], ["目标值", 1.0])
     append_sheet(book, "数据审计", ["等级", "检查项", "信息", "处理方式"], ["Info", "完整性", "通过", "无需处理"])
+    append_sheet(book, "推荐方案", ["方案"], ["A"])
     if constraint:
         append_sheet(book, "约束违反检查", ["约束编号", "约束含义", "违反量", "容差", "是否满足"], ["C1", "容量", 0.0, 1e-8, "是"])
     if out_of_sample:
@@ -153,7 +155,7 @@ class TestSyncProject(unittest.TestCase):
             result = setup_valid_project(root, status="validated", phase="solve_validate")
             initial = syncer.synchronize(root, write=False)
             current = initial["questions"]["Q1"]["artifact_hashes"]
-            state_path = root / "state" / "project_state.yaml"
+            state_path = root / "state/project_state.yaml"
             state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
             state["subproblems"]["Q1"]["validated_artifact_hashes"] = current
             state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
