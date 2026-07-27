@@ -15,19 +15,22 @@ from jsonschema import Draft202012Validator
 ROOT = Path(__file__).resolve().parent.parent
 PACKAGE_VERSION = "6.3.0"
 REQUIRED = [
-    "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "PROJECT_INSTRUCTIONS_HSK_V622.md",
-    "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V630.md", "core/bootstrap.yaml",
-    "core/hsk_core_policy.md", "core/task_taxonomy.yaml", "core/workflow_router.yaml",
-    "core/module_manifest.yaml", "core/output_contract.yaml", "core/workbook_schema.yaml",
-    "core/project_state.schema.yaml", "core/compile_profiles.yaml", "modules/01_problem_audit.md",
-    "modules/02_model_design.md", "modules/03_solve_validate.md", "modules/04_figure_evidence.md",
-    "modules/05_latex_compile_quality.md", "modules/05_writing/docx.md", "modules/05_writing/latex.md",
-    "modules/05_writing/ai_cleanup.md", "modules/06_review_delivery.md", "packs/task/classifier.md",
-    "packs/task/advanced_method_gate.md", "packs/artifact/proposition_proof.md",
-    "templates/model/model_paper_framework.md", "templates/code/hsk_pipeline/result_io.py",
-    "templates/matlab/q1_plot.m", "scripts/resolve_workflow.py", "scripts/sync_project.py",
+    "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md",
+    "PROJECT_INSTRUCTIONS_HSK_V622.md", "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V630.md",
+    "core/bootstrap.yaml", "core/hsk_core_policy.md", "core/task_taxonomy.yaml",
+    "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml",
+    "core/workbook_schema.yaml", "core/project_state.schema.yaml", "core/compile_profiles.yaml",
+    "modules/01_problem_audit.md", "modules/02_model_design.md", "modules/03_solve_validate.md",
+    "modules/04_figure_evidence.md", "modules/05_latex_compile_quality.md",
+    "modules/05_writing/docx.md", "modules/05_writing/latex.md",
+    "modules/05_writing/ai_cleanup.md", "modules/06_review_delivery.md",
+    "packs/task/classifier.md", "packs/task/advanced_method_gate.md",
+    "packs/artifact/proposition_proof.md", "templates/model/model_paper_framework.md",
+    "templates/code/hsk_pipeline/result_io.py", "templates/matlab/q1_plot.m",
+    "scripts/resolve_workflow.py", "scripts/sync_project.py",
     "scripts/validate_model_paper_framework.py", "scripts/validate_project_state.py",
-    "scripts/score_submission.py", ".github/workflows/ci.yml", ".github/workflows/refresh-generated.yml",
+    "scripts/score_submission.py", ".github/pull_request_template.md",
+    ".github/workflows/ci.yml", ".github/workflows/refresh-generated.yml",
     "LICENSE", "THIRD_PARTY_NOTICES.md",
 ]
 ACTIVE_DIRS = ["core", "modules", "packs", "templates", "scripts", "config", "state", "assets", "agents", "skills", ".codex-plugin", ".github"]
@@ -81,6 +84,36 @@ def check_bootstrap(errors: list[str]) -> None:
             errors.append(f"bootstrap authoritative source missing: {key} -> {path}")
     if data.get("entrypoints", {}).get("sync") != "python scripts/sync_project.py":
         errors.append("bootstrap must expose sync_project.py")
+    maintenance = data.get("repository_maintenance", {})
+    if maintenance.get("governance") != "SKILL_CHANGE_GOVERNANCE.md":
+        errors.append("bootstrap must reference SKILL_CHANGE_GOVERNANCE.md")
+    if maintenance.get("mandatory_before_write") is not True:
+        errors.append("repository governance must be mandatory before write")
+    if maintenance.get("read_from_ref") != "main":
+        errors.append("repository governance must be read from main")
+    if maintenance.get("direct_main_write_allowed") is not False:
+        errors.append("bootstrap must forbid direct main writes")
+
+
+def check_governance(errors: list[str]) -> None:
+    governance = read_text(ROOT / "SKILL_CHANGE_GOVERNANCE.md")
+    for token in (
+        "每个新聊天的强制启动顺序",
+        "修改简报",
+        "单一事实源",
+        "一次聊天一个分支",
+        "一个 PR 一个主题",
+        "禁止直接写 main",
+        "生成文件规则",
+        "测试与验收",
+        "完成报告",
+    ):
+        if token not in governance:
+            errors.append(f"governance document lacks section: {token}")
+    template = read_text(ROOT / ".github/pull_request_template.md")
+    for token in ("修改简报", "治理确认", "SKILL_CHANGE_GOVERNANCE.md", "generate_indexes.py --check"):
+        if token not in template:
+            errors.append(f"pull request template lacks governance token: {token}")
 
 
 def check_taxonomy(errors: list[str]) -> None:
@@ -193,7 +226,19 @@ def main() -> int:
     parser.add_argument("--skip-generated", action="store_true")
     args = parser.parse_args()
     errors: list[str] = []
-    for check in (check_required, check_versions, check_bootstrap, check_taxonomy, check_router, check_manifest, check_contracts, check_project_state, check_templates, check_syntax):
+    for check in (
+        check_required,
+        check_versions,
+        check_bootstrap,
+        check_governance,
+        check_taxonomy,
+        check_router,
+        check_manifest,
+        check_contracts,
+        check_project_state,
+        check_templates,
+        check_syntax,
+    ):
         try:
             check(errors)
         except Exception as exc:  # noqa: BLE001

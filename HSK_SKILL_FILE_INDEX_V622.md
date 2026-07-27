@@ -4,6 +4,7 @@
 
 - `.codex-plugin/plugin.json`
 - `.gitattributes`
+- `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
@@ -19,6 +20,7 @@
 - `README.md`
 - `REPOSITORY_INDEX.md`
 - `SKILL.md`
+- `SKILL_CHANGE_GOVERNANCE.md`
 - `THIRD_PARTY_NOTICES.md`
 - `agents/openai.yaml`
 - `assets/figure_assets.yaml`
