@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import re
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -13,6 +14,7 @@ REQUIRED_HEADINGS = (
     "# 模型论文框架",
     "## 当前有效口径",
     "## 论文整体框架",
+    "### 命题与证明规划",
     "## 各问模型与结果",
     "## 综合检验与跨问结论",
     "## 图表证据链",
@@ -31,6 +33,14 @@ FRAMEWORK_REQUIRED_PHASES = {
     "review_delivery",
     "completed",
 }
+PROPOSITION_LIMIT = 4
+PROPOSITION_ID_PATTERN = re.compile(r"^P([1-4])$")
+PROPOSITION_STATE_FIELDS = {
+    "proposition_limit",
+    "proposition_count",
+    "proposition_status",
+    "propositions",
+}
 
 
 def load_yaml(path: Path) -> Any:
@@ -40,6 +50,77 @@ def load_yaml(path: Path) -> Any:
 def sha256_text(text: str) -> str:
     normalized = text.replace("\r\n", "\n").replace("\r", "\n")
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def _extract_int(text: str, label: str) -> int | None:
+    match = re.search(rf"{re.escape(label)}\s*[:：]\s*(\d+)", text)
+    return int(match.group(1)) if match else None
+
+
+def _proposition_section(text: str) -> str:
+    heading = "### 命题与证明规划"
+    start = text.find(heading)
+    if start < 0:
+        return ""
+    tail = text[start + len(heading) :]
+    next_heading = re.search(r"\n###\s+", tail)
+    return tail[: next_heading.start()] if next_heading else tail
+
+
+def _proposition_rows(text: str) -> list[tuple[str, list[str]]]:
+    rows: list[tuple[str, list[str]]] = []
+    for line in _proposition_section(text).splitlines():
+        match = re.match(r"^\|\s*(P\d+)\s*\|", line)
+        if not match:
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        rows.append((match.group(1), cells))
+    return rows
+
+
+def _validate_proposition_plan(text: str, *, strict: bool) -> tuple[list[str], int | None, set[str]]:
+    issues: list[str] = []
+    declared_limit = _extract_int(text, "全文命题上限")
+    declared_count = _extract_int(text, "当前计划命题数")
+    rows = _proposition_rows(text)
+    row_ids = [item[0] for item in rows]
+    unique_ids = set(row_ids)
+
+    if declared_limit is None:
+        issues.append("framework must declare 全文命题上限")
+    elif declared_limit != PROPOSITION_LIMIT:
+        issues.append(f"全文命题上限 must be {PROPOSITION_LIMIT}, got {declared_limit}")
+
+    if declared_count is None:
+        issues.append("framework must declare 当前计划命题数")
+    elif not 0 <= declared_count <= PROPOSITION_LIMIT:
+        issues.append(f"当前计划命题数 must be between 0 and {PROPOSITION_LIMIT}")
+
+    invalid_ids = sorted({item for item in row_ids if not PROPOSITION_ID_PATTERN.fullmatch(item)})
+    if invalid_ids:
+        issues.append(f"proposition IDs must be P1--P4: {invalid_ids}")
+    if len(row_ids) != len(unique_ids):
+        issues.append("duplicate proposition IDs in 命题与证明规划")
+    if len(unique_ids) > PROPOSITION_LIMIT:
+        issues.append(f"paper may contain at most {PROPOSITION_LIMIT} propositions")
+    if declared_count is not None and declared_count != len(unique_ids):
+        issues.append(
+            f"当前计划命题数 ({declared_count}) does not match proposition table rows ({len(unique_ids)})"
+        )
+
+    for proposition_id, cells in rows:
+        if len(cells) < 9:
+            issues.append(f"{proposition_id} proposition row must contain all nine contract fields")
+            continue
+        status = cells[8].lower()
+        if strict and status == "current":
+            missing = [index + 1 for index, value in enumerate(cells[:9]) if not value]
+            if missing:
+                issues.append(f"{proposition_id} current proposition has empty contract fields: {missing}")
+            if cells[5] not in {"A", "B", "C"}:
+                issues.append(f"{proposition_id} proof level must be A, B or C")
+
+    return issues, declared_count, unique_ids
 
 
 def validate_framework_text(
@@ -60,8 +141,15 @@ def validate_framework_text(
     if "只保留当前有效" not in text and "当前有效版本" not in text:
         issues.append("framework must state that only the current effective version is retained")
 
+    proposition_issues, declared_count, proposition_ids = _validate_proposition_plan(
+        text, strict=strict
+    )
+    issues.extend(proposition_issues)
+
     if strict:
-        unresolved = sorted({token for token in text.split() if token.startswith("__") and token.endswith("__")})
+        unresolved = sorted(
+            {token for token in text.split() if token.startswith("__") and token.endswith("__")}
+        )
         if unresolved:
             issues.append(f"unresolved framework placeholders: {unresolved}")
 
@@ -76,6 +164,25 @@ def validate_framework_text(
     if expected_hash and expected_hash.lower() != sha256_text(text):
         issues.append("paper_framework.sha256 does not match 模型论文框架.md")
 
+    state_ids: set[str] = set()
+    if PROPOSITION_STATE_FIELDS.intersection(framework):
+        state_limit = framework.get("proposition_limit")
+        state_count = framework.get("proposition_count")
+        state_entries = framework.get("propositions", []) or []
+        state_ids = {
+            str(item.get("id", ""))
+            for item in state_entries
+            if isinstance(item, Mapping) and str(item.get("id", "")).strip()
+        }
+        if state_limit != PROPOSITION_LIMIT:
+            issues.append(f"paper_framework.proposition_limit must be {PROPOSITION_LIMIT}")
+        if declared_count is not None and state_count != declared_count:
+            issues.append("paper_framework.proposition_count does not match 当前计划命题数")
+        if isinstance(state_count, int) and state_count != len(state_entries):
+            issues.append("paper_framework.proposition_count does not match propositions array length")
+        if state_ids != proposition_ids:
+            issues.append("project-state proposition IDs do not match 模型论文框架.md")
+
     for name, subproblem in (state.get("subproblems", {}) or {}).items():
         if not isinstance(subproblem, Mapping):
             continue
@@ -84,6 +191,11 @@ def validate_framework_text(
             issues.append(f"{name}.framework_section is empty")
         elif section not in text:
             issues.append(f"{name}.framework_section is not present in 模型论文框架.md: {section}")
+
+        refs = set(subproblem.get("proposition_refs", []) or [])
+        unknown_refs = sorted(refs - state_ids)
+        if refs and unknown_refs:
+            issues.append(f"{name}.proposition_refs contain unknown IDs: {unknown_refs}")
 
         status = str(subproblem.get("status", ""))
         summary_status = str(subproblem.get("result_summary_status", ""))

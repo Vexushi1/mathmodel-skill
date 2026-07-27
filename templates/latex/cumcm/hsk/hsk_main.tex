@@ -15,6 +15,13 @@
 \usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
 \addbibresource{references.bib}
 
+% 命题按章节编号。全文按实际需要使用，可以为 0，但不得超过 4 个。
+% 不复用模板中已有的 theorem/proof 环境，避免中文标题与编号样式冲突。
+\newtheorem{proposition}{命题}[section]
+\newenvironment{hskproof}
+  {\par\noindent\textbf{证明：}\hspace{0.5em}}
+  {\hfill$\square$\par}
+
 % 按当届题面和队伍信息修改，不在模板中固定年份、题号和小问数。
 \newcommand{\HSKProblemCode}{A}
 \newcommand{\HSKTeamNumber}{0000}
@@ -104,19 +111,30 @@
 \end{equation}
 其中，$C_1$、$C_2$ 和 $C_3$ 分别表示……。
 
+% 命题只在确有理论作用时使用。推荐位置：详细推导之后、核心模型汇总和求解算法之前。
+% 全文命题总数不得超过 4；无高价值命题时删除以下示例。
+% \begin{proposition}[变换模型的等价性]\label{prop:q1-equivalence}
+% 在假设 A1--A3 及参数范围……内，原模型与变换模型具有相同的可行解映射和最优目标值。
+% \end{proposition}
+% \begin{hskproof}
+% 由……可得……，进而证明两个可行域之间存在双射，且目标函数值保持不变。
+% \end{hskproof}
+% 命题~\ref{prop:q1-equivalence} 表明……，因此后续可在不改变原问题最优解的前提下采用变换模型求解；当……不成立时，该结论失效。
+
 \subsubsection{求解方法}
 % 写求解器、参数、终止条件、程序位置和可行性检查。
 
 \subsubsection{结果与分析}
 % 图表必须就近解释，并绑定标准结果工作簿和 MATLAB 绘图脚本。
 
-% 按实际小问继续添加“模型建立—求解方法—结果与分析”。
+% 按实际小问继续添加“模型建立—必要命题与证明—求解方法—结果与分析”。
 
 \section{模型检验}
 % 按题型选择有效性检验、残差诊断、边界验证、多算法对比或误差分析。
 
 \section{敏感性与鲁棒性分析}
 % 参数扰动、数据噪声、场景压力测试或替代模型对比。
+% 同时检查实际参数和扰动范围是否触及命题的失效边界。
 
 \section{模型评价与改进}
 \subsection{模型优势}
@@ -132,7 +150,8 @@
 \section{核心代码与复现说明}
 % 正文只保留伪代码；完整代码可放附录或独立附件，并说明输入、功能和输出。
 
-\section{补充图表}
+\section{补充推导与图表}
+% 长证明可将技术细节放在此处，但正文仍须保留命题条件、关键证明链、建模作用和失效边界。
 % 仅放正文不宜展开但仍有证据价值的图表。
 \end{appendices}
 

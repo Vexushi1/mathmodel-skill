@@ -84,6 +84,12 @@ class TestContentPacks(unittest.TestCase):
             "只保留当前有效口径",
             "## 当前有效口径",
             "## 论文整体框架",
+            "### 命题与证明规划",
+            "全文命题上限：4",
+            "当前计划命题数：0",
+            "证明等级",
+            "模型作用",
+            "失效边界",
             "## 各问模型与结果",
             "#### 结果摘要",
             "MATLAB 图标题",
@@ -93,6 +99,21 @@ class TestContentPacks(unittest.TestCase):
             self.assertIn(token, text)
         self.assertIn("Git", text)
         self.assertIn("stale", text)
+
+    def test_writing_modules_enforce_optional_max_four_propositions(self):
+        paths = [
+            ROOT / "modules/05_writing/docx.md",
+            ROOT / "modules/05_writing/latex.md",
+            ROOT / "modules/05_writing/ai_cleanup.md",
+            ROOT / "modules/06_review_delivery.md",
+        ]
+        for path in paths:
+            text = path.read_text(encoding="utf-8")
+            self.assertTrue("最多 4" in text or "不得超过 4" in text, str(path))
+            self.assertIn("失效边界", text, str(path))
+        latex = paths[1].read_text(encoding="utf-8")
+        self.assertIn("proposition", latex)
+        self.assertIn("hskproof", latex)
 
     def test_docx_checklists_are_merged_and_framework_aware(self):
         writing = ROOT / "templates/writing"
@@ -104,6 +125,15 @@ class TestContentPacks(unittest.TestCase):
         self.assertIn("templates/writing/docx_check.md", module)
         self.assertIn("模型论文框架.md", module)
         self.assertIn("sgtitle", checklist)
+        self.assertIn("## 2. 命题与证明", checklist)
+        self.assertIn("不超过 4", checklist)
+
+    def test_cumcm_hsk_template_has_proposition_environment(self):
+        text = (ROOT / "templates/latex/cumcm/hsk/hsk_main.tex").read_text(encoding="utf-8")
+        self.assertIn("\\newtheorem{proposition}{命题}[section]", text)
+        self.assertIn("\\newenvironment{hskproof}", text)
+        self.assertIn("证明：", text)
+        self.assertIn("全文命题总数不得超过 4", text)
 
     def test_caption_template_has_no_copyable_fixed_sentence(self):
         text = (ROOT / "templates/writing/caption_explanation.md").read_text(encoding="utf-8")

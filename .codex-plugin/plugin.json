@@ -1,14 +1,14 @@
 {
   "name": "mathmodel-skill",
-  "version": "6.2.5",
-  "description": "HSK modular math-modeling workflow with a current-only model paper framework, root-level problem code, flat per-question workbooks, titled MATLAB evidence figures, DOCX draft, and LaTeX final.",
+  "version": "6.2.6",
+  "description": "HSK modular math-modeling workflow with a current-only model paper framework, optional paper-level proposition proofs capped at four, root-level problem code, flat per-question workbooks, titled MATLAB evidence figures, DOCX draft, and LaTeX final.",
   "author": {"name": "HSK"},
   "license": "MIT",
-  "keywords": ["math-modeling", "cumcm", "mcm", "icm", "matlab", "model-paper-framework"],
+  "keywords": ["math-modeling", "cumcm", "mcm", "icm", "matlab", "model-paper-framework", "proposition-proof"],
   "skills": "./skills/",
   "interface": {
     "displayName": "HSK 数学建模 Skill",
-    "shortDescription": "当前模型框架、Python求解、标准Excel、带标题MATLAB、LaTeX终稿",
+    "shortDescription": "当前模型框架、0–4个命题证明、Python求解、MATLAB图、LaTeX终稿",
     "category": "Education",
     "capabilities": ["Interactive", "Write"],
     "brandColor": "#173B5E"
