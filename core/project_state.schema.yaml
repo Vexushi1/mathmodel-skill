@@ -1,7 +1,7 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 6.3.0
+version: 6.3.1
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
@@ -17,7 +17,7 @@ $defs:
     type: string
     enum: [physical_mechanism, temporal, spatial, network, scheduling, game, stochastic, static_tabular]
   problem_types:
-    description: v6.2兼容字段；新项目以classification为准
+    description: v6.2兼容派生字段；新项目以classification和顶层capabilities为准
     type: object
     additionalProperties: false
     required: [primary, secondary]
@@ -56,7 +56,7 @@ $defs:
   classification:
     type: object
     additionalProperties: false
-    required: [objective, structures, capabilities]
+    required: [objective, structures]
     properties:
       objective: {$ref: '#/$defs/objective'}
       structures:
@@ -67,12 +67,29 @@ $defs:
       confidence:
         type: object
         additionalProperties: {type: number, minimum: 0, maximum: 1}
-      capabilities: {$ref: '#/$defs/capabilities'}
+      capabilities:
+        description: v6.3.0兼容别名；若存在必须与小问顶层capabilities完全一致，v6.4后删除
+        $ref: '#/$defs/capabilities'
       legacy_task_packs:
+        description: 兼容派生字段；不得作为独立人工事实源
         type: array
         maxItems: 3
         uniqueItems: true
         items: {$ref: '#/$defs/legacy_task_label'}
+  artifact_hashes:
+    type: object
+    additionalProperties: false
+    properties:
+      data: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      model: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      solution_workbook: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      robustness_workbook: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      matlab_script: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      figure_bundle: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      framework: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+  artifact_layer:
+    type: string
+    enum: [data, model, solution_workbook, robustness_workbook, matlab_script, figure_bundle, framework]
   proposition_entry:
     type: object
     additionalProperties: false
@@ -104,7 +121,7 @@ properties:
         type: string
         enum: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery, completed]
       problem_types:
-        description: 旧版项目级导航标签
+        description: 旧版项目级导航标签，仅兼容读取
         type: array
         uniqueItems: true
         items: {$ref: '#/$defs/legacy_task_label'}
@@ -183,6 +200,12 @@ properties:
           maxItems: 4
           uniqueItems: true
           items: {type: string, pattern: '^P[1-4]$'}
+        artifact_hashes: {$ref: '#/$defs/artifact_hashes'}
+        validated_artifact_hashes: {$ref: '#/$defs/artifact_hashes'}
+        stale_layers:
+          type: array
+          uniqueItems: true
+          items: {$ref: '#/$defs/artifact_layer'}
         data_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         validated_data_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         model_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
@@ -258,37 +281,12 @@ properties:
 
   risks:
     type: array
-    items:
-      oneOf:
-        - type: string
-        - type: object
-          additionalProperties: false
-          required: [level, item, action]
-          properties:
-            level: {type: string, enum: [fatal, important, general]}
-            item: {type: string}
-            action: {type: string}
+    items: {type: string}
 
   next_gate:
     type: object
     additionalProperties: false
     required: [module, condition]
     properties:
-      module:
-        type: string
-        enum: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery, project_sync, completed]
+      module: {type: string}
       condition: {type: string}
-
-policy:
-  required_on_every_chat: false
-  create_when: [full_project, cross_chat_handoff, multiple_artifacts, user_request]
-  semantic_validator: scripts/validate_project_state.py
-  framework_validator: scripts/validate_model_paper_framework.py
-  synchronizer: scripts/sync_project.py
-  semantic_checks:
-    - requirements.total等于completed与pending去重并集数量。
-    - 模型设计阶段及以后必须存在当前有效模型论文框架.md。
-    - 每问必须有classification或兼容problem_types，且capabilities独立登记。
-    - solved、validated、written或completed状态要求结果摘要为current，除非同步器已标记stale。
-    - validated artifacts become stale when current data/model hash differs from validated hash.
-    - 同步器不得将validation_status自动提升为passed。
