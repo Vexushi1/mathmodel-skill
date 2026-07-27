@@ -1,7 +1,7 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 6.2.5
+version: 6.2.6
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
@@ -35,6 +35,24 @@ $defs:
       requires_conservation_residual: {type: boolean}
       requires_discretization_check: {type: boolean}
       requires_convergence_diagnostic: {type: boolean}
+  proposition_entry:
+    type: object
+    additionalProperties: false
+    required: [id, title, related_question, claim_type, proof_level, status]
+    properties:
+      id: {type: string, pattern: '^P[1-4]$'}
+      title: {type: string, minLength: 1}
+      related_question: {type: string, minLength: 1}
+      claim_type:
+        type: string
+        enum: [equivalence, existence_or_feasibility, monotonicity_or_threshold, convexity_uniqueness_or_solution_structure, constraint_reduction_or_dimension_reduction, feasibility_preservation, stability_or_error_bound, cited_standard_theorem]
+      proof_level: {type: string, enum: [full, outline, cited]}
+      status: {type: string, enum: [candidate, current, stale, removed]}
+      assumptions_and_domain: {type: string}
+      conclusion: {type: string}
+      modeling_effect: {type: string}
+      failure_boundary: {type: string}
+      framework_anchor: {type: string}
 
 properties:
   project:
@@ -128,6 +146,11 @@ properties:
           type: string
           enum: [pending, current, stale]
         result_summary_anchor: {type: string}
+        proposition_refs:
+          type: array
+          maxItems: 4
+          uniqueItems: true
+          items: {type: string, pattern: '^P[1-4]$'}
         data_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         validated_data_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         model_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
@@ -173,7 +196,7 @@ properties:
   paper_framework:
     type: object
     additionalProperties: false
-    required: [path, version, sync_status, last_sync_scope]
+    required: [path, version, sync_status, last_sync_scope, proposition_limit, proposition_count, proposition_status, propositions]
     properties:
       path:
         type: string
@@ -185,6 +208,15 @@ properties:
       last_synced_at: {type: string, format: date-time}
       last_sync_scope: {type: string, minLength: 1}
       sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      proposition_limit: {type: integer, const: 4}
+      proposition_count: {type: integer, minimum: 0, maximum: 4}
+      proposition_status:
+        type: string
+        enum: [not_assessed, planned, current, stale]
+      propositions:
+        type: array
+        maxItems: 4
+        items: {$ref: '#/$defs/proposition_entry'}
 
   execution:
     type: object
@@ -249,8 +281,9 @@ policy:
     - requirements.total equals the number of unique completed and pending requirements.
     - completed and pending are disjoint.
     - 模型设计阶段及以后必须存在当前有效的 模型论文框架.md。
+    - 全文命题数量允许为0但不得超过4；proposition_count、propositions 数组与框架登记数量必须一致。
     - 每个小问必须能定位到框架章节；solved、validated、written 或 completed 状态要求结果摘要为 current。
     - subproblem artifact paths must exist before status becomes validated, written or completed.
     - solver claims must include tolerance, feasibility evidence and applicable optimality evidence.
     - validated artifacts become stale when the current data or model hash differs from the validated hash.
-    - artifacts_stale 为 true 时，paper_framework 与对应 result_summary_status 不得保持 current。
+    - artifacts_stale 为 true 时，paper_framework、相关命题状态与对应 result_summary_status 不得保持 current。

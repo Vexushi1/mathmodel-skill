@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the active HSK v6.2.5 skill graph, framework, schemas and templates."""
+"""Validate the active HSK v6.2.6 skill graph, framework, schemas and templates."""
 from __future__ import annotations
 
 import argparse
@@ -15,7 +15,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "6.2.5"
+PACKAGE_VERSION = "6.2.6"
 REQUIRED = [
     "SKILL.md",
     "README.md",
@@ -48,6 +48,7 @@ REQUIRED = [
     "templates/code/hsk_pipeline/matlab_handoff.py",
     "templates/matlab/q1_plot.m",
     "templates/latex/cumcm/cumcmthesis/cumcmthesis.cls",
+    "templates/latex/cumcm/hsk/hsk_main.tex",
     "scripts/resolve_workflow.py",
     "scripts/validate_model_paper_framework.py",
     "scripts/validate_project_state.py",
@@ -213,6 +214,29 @@ def check_output_contract(errors: list[str]) -> None:
         errors.append("output contract must reference the active framework template")
     if framework.get("formal_delivery_sync") is not True:
         errors.append("every formal delivery must synchronize 模型论文框架.md")
+    required_sections = set(framework.get("required_sections", []))
+    if "命题与证明规划" not in required_sections:
+        errors.append("model paper framework contract must require 命题与证明规划")
+
+    proposition = contract.get("proposition_contract", {})
+    if proposition.get("optional") is not True:
+        errors.append("proposition use must be optional")
+    if proposition.get("minimum_per_paper") != 0:
+        errors.append("minimum proposition count must be 0")
+    if proposition.get("maximum_per_paper") != 4:
+        errors.append("maximum proposition count must be 4")
+    required_fields = set(proposition.get("required_fields", []))
+    for field in (
+        "proposition_id",
+        "assumptions_and_domain",
+        "conclusion",
+        "proof_level",
+        "modeling_effect",
+        "failure_boundary",
+        "status",
+    ):
+        if field not in required_fields:
+            errors.append(f"proposition contract must require {field}")
 
     figure = contract.get("matlab_figure_contract", {})
     if figure.get("title_required") is not True:
@@ -325,6 +349,10 @@ def check_module_artifact_closure(errors: list[str]) -> None:
 
     if "model_paper_framework" not in manifest.get("artifact_catalog", {}):
         errors.append("module manifest must catalogue model_paper_framework")
+    if "proposition_plan" not in manifest.get("artifact_catalog", {}):
+        errors.append("module manifest must catalogue proposition_plan")
+    if "proposition_plan" not in modules.get("model_design", {}).get("outputs", []):
+        errors.append("model_design must output proposition_plan")
     for name in ("model_design", "solve_validate", "figure_evidence"):
         if "model_paper_framework" not in modules.get(name, {}).get("outputs", []):
             errors.append(f"{name} must output synchronized model_paper_framework")
@@ -346,11 +374,25 @@ def check_project_state_schema(errors: list[str]) -> None:
         errors.append(f"invalid project state schema: {exc}")
 
     properties = (schema or {}).get("properties", {})
-    if "paper_framework" not in properties:
+    framework = properties.get("paper_framework", {})
+    if not framework:
         errors.append("project state schema must define paper_framework")
+    for field in (
+        "proposition_limit",
+        "proposition_count",
+        "proposition_status",
+        "propositions",
+    ):
+        if field not in framework.get("required", []):
+            errors.append(f"project state paper_framework must require {field}")
     subproblem = properties.get("subproblems", {}).get("additionalProperties", {})
     subprops = subproblem.get("properties", {})
-    for field in ("framework_section", "result_summary_status", "result_summary_anchor"):
+    for field in (
+        "framework_section",
+        "result_summary_status",
+        "result_summary_anchor",
+        "proposition_refs",
+    ):
         if field not in subprops:
             errors.append(f"project state subproblem must define {field}")
 
@@ -363,7 +405,17 @@ def check_framework_template(errors: list[str]) -> None:
     for issue in module.validate_framework_file(path):
         errors.append(f"framework template violation: {issue}")
     text = read_text(path)
-    for token in ("结果摘要状态", "MATLAB 图标题", "图表证据链", "只保留当前有效"):
+    for token in (
+        "结果摘要状态",
+        "MATLAB 图标题",
+        "图表证据链",
+        "只保留当前有效",
+        "### 命题与证明规划",
+        "全文命题上限：4",
+        "当前计划命题数：0",
+        "证明等级",
+        "失效边界",
+    ):
         if token not in text:
             errors.append(f"framework template lacks token: {token}")
 
@@ -435,6 +487,16 @@ def check_templates_and_syntax(errors: list[str]) -> None:
         text = read_text(path)
         if "\\begin{document}" not in text or "\\end{document}" not in text:
             errors.append(f"LaTeX template lacks document boundary: {path.relative_to(ROOT)}")
+
+    hsk_main = read_text(ROOT / "templates/latex/cumcm/hsk/hsk_main.tex")
+    for token in (
+        "\\newtheorem{proposition}{命题}[section]",
+        "\\newenvironment{hskproof}",
+        "证明：",
+        "全文命题总数不得超过 4",
+    ):
+        if token not in hsk_main:
+            errors.append(f"CUMCM HSK template lacks proposition contract: {token}")
 
     for base in (ROOT / "templates/code", ROOT / "scripts"):
         for path in base.rglob("*.py"):

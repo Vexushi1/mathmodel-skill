@@ -42,6 +42,10 @@ class TestRouterContract(unittest.TestCase):
         self.assertEqual(contract["project_root"]["model_paper_framework"], "模型论文框架.md")
         self.assertTrue(contract["model_paper_framework"]["formal_delivery_sync"])
         self.assertTrue(contract["matlab_figure_contract"]["title_required"])
+        proposition = contract["proposition_contract"]
+        self.assertTrue(proposition["optional"])
+        self.assertEqual(proposition["minimum_per_paper"], 0)
+        self.assertEqual(proposition["maximum_per_paper"], 4)
 
     def test_latex_cleanup_precedes_compile(self):
         latex_route = self.router["routing"]["latex"]["load"]
@@ -60,14 +64,22 @@ class TestRouterContract(unittest.TestCase):
     def test_framework_sync_route_exists(self):
         route = self.router["routing"]["framework_sync"]
         self.assertIn("templates/model/model_paper_framework.md", route["load"])
-        self.assertEqual(route["terminal_outputs"], ["model_paper_framework"])
+        self.assertEqual(route["terminal_outputs"], ["proposition_plan", "model_paper_framework"])
 
-    def test_full_solution_reaches_solver_and_framework(self):
+    def test_proposition_proof_route_exists(self):
+        route = self.router["routing"]["proposition_proof"]
+        self.assertIn("modules/02_model_design.md", route["load"])
+        self.assertIn("proposition_plan", route["terminal_outputs"])
+        rules = self.router["rules"]
+        self.assertTrue(any("no more than four propositions" in item for item in rules))
+
+    def test_full_solution_reaches_solver_framework_and_proposition_plan(self):
         route = self.router["routing"]["full_solution"]
         sequence = route["load"] + route["then"]
         self.assertLess(sequence.index("modules/01_problem_audit.md"), sequence.index("modules/02_model_design.md"))
         self.assertLess(sequence.index("modules/02_model_design.md"), sequence.index("modules/03_solve_validate.md"))
         self.assertIn("model_paper_framework", route["terminal_outputs"])
+        self.assertIn("proposition_plan", route["terminal_outputs"])
 
     def test_full_workflow_reaches_review_in_order(self):
         route = self.router["routing"]["full_workflow"]

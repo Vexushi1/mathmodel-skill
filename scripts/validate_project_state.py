@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import re
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -26,6 +27,15 @@ FRAMEWORK_REQUIRED_PHASES = {
     "review_delivery",
     "completed",
 }
+PROPOSITION_LIMIT = 4
+PROPOSITION_ID_PATTERN = re.compile(r"^P[1-4]$")
+CURRENT_PROPOSITION_REQUIRED_FIELDS = (
+    "assumptions_and_domain",
+    "conclusion",
+    "modeling_effect",
+    "failure_boundary",
+    "framework_anchor",
+)
 
 
 def load_yaml(path: Path) -> Any:
@@ -41,6 +51,60 @@ def _artifact_exists(project_root: Path, value: Any) -> bool:
 def _sha256_text(path: Path) -> str:
     text = path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _validate_propositions(
+    framework: Mapping[str, Any],
+    *,
+    framework_sync: Any,
+) -> tuple[list[str], set[str], bool]:
+    issues: list[str] = []
+    limit = framework.get("proposition_limit")
+    count = framework.get("proposition_count")
+    status = framework.get("proposition_status")
+    entries = framework.get("propositions", []) or []
+
+    if limit != PROPOSITION_LIMIT:
+        issues.append(f"paper_framework.proposition_limit must be {PROPOSITION_LIMIT}")
+    if not isinstance(count, int) or not 0 <= count <= PROPOSITION_LIMIT:
+        issues.append(f"paper_framework.proposition_count must be an integer in [0, {PROPOSITION_LIMIT}]")
+    if isinstance(count, int) and count != len(entries):
+        issues.append("paper_framework.proposition_count must equal len(paper_framework.propositions)")
+    if len(entries) > PROPOSITION_LIMIT:
+        issues.append(f"paper may contain at most {PROPOSITION_LIMIT} propositions")
+
+    ids: list[str] = []
+    has_stale = status == "stale"
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, Mapping):
+            issues.append(f"paper_framework.propositions[{index}] must be a mapping")
+            continue
+        proposition_id = str(entry.get("id", "")).strip()
+        ids.append(proposition_id)
+        if not PROPOSITION_ID_PATTERN.fullmatch(proposition_id):
+            issues.append(f"invalid proposition id: {proposition_id or '<empty>'}; use P1--P4")
+        entry_status = str(entry.get("status", ""))
+        if entry_status == "stale":
+            has_stale = True
+        if entry_status == "current":
+            for field in CURRENT_PROPOSITION_REQUIRED_FIELDS:
+                if not str(entry.get(field, "")).strip():
+                    issues.append(f"{proposition_id}.{field} is required for a current proposition")
+            if str(entry.get("proof_level", "")) not in {"full", "outline", "cited"}:
+                issues.append(f"{proposition_id}.proof_level must be full, outline or cited")
+
+    if len(ids) != len(set(ids)):
+        issues.append("paper_framework.propositions must use unique IDs")
+    proposition_ids = {item for item in ids if item}
+
+    if count == 0 and status in {"planned", "current"}:
+        issues.append("paper_framework.proposition_status cannot be planned/current when proposition_count is 0")
+    if isinstance(count, int) and count > 0 and status == "not_assessed":
+        issues.append("paper_framework.proposition_status cannot be not_assessed when propositions exist")
+    if has_stale and framework_sync == "current":
+        issues.append("paper_framework.sync_status cannot remain current while proposition plan is stale")
+
+    return issues, proposition_ids, has_stale
 
 
 def validate_state_payload(
@@ -77,7 +141,12 @@ def validate_state_payload(
         if _sha256_text(framework_path).lower() != str(expected_framework_hash).lower():
             issues.append("paper_framework.sha256 does not match the current framework file")
 
-    any_stale = False
+    proposition_issues, proposition_ids, proposition_stale = _validate_propositions(
+        framework, framework_sync=framework_sync
+    )
+    issues.extend(proposition_issues)
+
+    any_stale = proposition_stale
     for name, state in payload.get("subproblems", {}).items():
         if not isinstance(state, Mapping):
             continue
@@ -87,6 +156,12 @@ def validate_state_payload(
         framework_section = str(state.get("framework_section", "")).strip()
         if not framework_section:
             issues.append(f"{name}.framework_section must identify the current framework section")
+
+        proposition_refs = set(state.get("proposition_refs", []) or [])
+        unknown_refs = sorted(proposition_refs - proposition_ids)
+        if unknown_refs:
+            issues.append(f"{name}.proposition_refs contain unknown IDs: {unknown_refs}")
+
         if status in SOLVED_STATUSES:
             if summary_status != "current":
                 issues.append(f"{name}.result_summary_status must be current when status is {status}")
@@ -96,6 +171,8 @@ def validate_state_payload(
             any_stale = True
             if summary_status == "current":
                 issues.append(f"{name}.result_summary_status cannot be current while artifacts_stale is true")
+            if proposition_refs:
+                issues.append(f"{name}.proposition_refs must be revalidated while artifacts_stale is true")
 
         if status in VALIDATED_STATUSES:
             for field in ("solution_workbook", "robustness_workbook"):
@@ -131,7 +208,7 @@ def validate_state_payload(
                 issues.append(f"{name}.paper_source does not exist")
 
     if any_stale and framework_sync == "current":
-        issues.append("paper_framework.sync_status cannot remain current while a subproblem is stale")
+        issues.append("paper_framework.sync_status cannot remain current while a subproblem or proposition is stale")
 
     if phase == "completed":
         if pending:
