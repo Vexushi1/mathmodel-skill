@@ -3,8 +3,7 @@ project:
   problem: A
   current_phase: model_design
   objectives: [explanation, optimization]
-  problem_types: [mechanism, optimization]
-  version: v0.5-v63-sync
+  version: v0.6-v631-contract
   updated_at: '2026-07-27T12:00:00Z'
 requirements:
   total: 5
@@ -34,25 +33,6 @@ subproblems:
       confidence:
         objective: 0.92
         physical_mechanism: 0.88
-      capabilities:
-        has_explicit_constraints: true
-        requires_feasibility_check: true
-        requires_equilibrium_residual: false
-        requires_conservation_residual: false
-        requires_discretization_check: false
-        requires_convergence_diagnostic: false
-        requires_out_of_sample_validation: false
-        requires_uncertainty_quantification: false
-        requires_leakage_check: false
-        requires_calibration_check: false
-        requires_identifiability_check: false
-      legacy_task_packs: [mechanism, optimization]
-    problem_types:
-      primary: mechanism
-      secondary: [optimization]
-      confidence:
-        mechanism: 0.92
-        optimization: 0.76
     capabilities:
       has_explicit_constraints: true
       requires_feasibility_check: true
@@ -65,6 +45,9 @@ subproblems:
       requires_leakage_check: false
       requires_calibration_check: false
       requires_identifiability_check: false
+    artifact_hashes: {}
+    validated_artifact_hashes: {}
+    stale_layers: []
     framework_section: '### Q1：填写问题名称'
     result_summary_status: pending
     proposition_refs: []
@@ -82,7 +65,7 @@ variables:
     v: 题目给定速度
 paper_framework:
   path: 模型论文框架.md
-  version: v0.3-v63-sync
+  version: v0.4-v631-contract
   mode: compact
   sync_status: current
   last_synced_at: '2026-07-27T12:00:00Z'
@@ -104,4 +87,4 @@ artifacts:
 risks: []
 next_gate:
   module: solve_validate
-  condition: 变量、目标函数、约束、求解器候选、验证方案和模型论文框架已锁定
+  condition: objective、structures、顶层capabilities、变量、目标函数、约束、求解器候选、验证方案和模型论文框架已锁定
