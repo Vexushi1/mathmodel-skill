@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve one or more user intents into an ordered HSK v6.3 load plan."""
+"""Resolve one or more user intents into an ordered HSK v6.3.1 execution plan."""
 from __future__ import annotations
 
 import argparse
@@ -14,6 +14,7 @@ ROUTER_PATH = ROOT / "core" / "workflow_router.yaml"
 MANIFEST_PATH = ROOT / "core" / "module_manifest.yaml"
 TAXONOMY_PATH = ROOT / "core" / "task_taxonomy.yaml"
 COMPETITION_PATH = ROOT / "config" / "competition_profiles.yaml"
+SCOPE_RANK = {"design": 0, "results": 1, "figures": 2, "docx": 3, "latex": 4, "submission": 5}
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -127,6 +128,35 @@ def prerequisite_report(
     return unique(missing), sorted(produced)
 
 
+def highest_scope(scopes: Iterable[str]) -> str | None:
+    valid = [scope for scope in scopes if scope in SCOPE_RANK]
+    return max(valid, key=SCOPE_RANK.get) if valid else None
+
+
+def gate_plan(
+    gate_names: Iterable[str],
+    manifest: dict[str, Any],
+    delivery_scope: str | None,
+) -> list[dict[str, Any]]:
+    plans: list[dict[str, Any]] = []
+    for name in unique(gate_names):
+        spec = manifest.get("utility_gates", {}).get(name)
+        if not isinstance(spec, dict):
+            raise ValueError(f"unknown utility gate: {name}")
+        command = str(spec.get("command", ""))
+        if delivery_scope:
+            command = command.replace("<delivery_scope>", delivery_scope)
+        plans.append({
+            "name": name,
+            "path": spec.get("path"),
+            "command": command,
+            "delivery_scope": delivery_scope,
+            "inputs": list(spec.get("inputs", [])),
+            "outputs": list(spec.get("outputs", [])),
+        })
+    return plans
+
+
 def resolve_workflow(
     intents: str | Iterable[str] | None = None,
     *,
@@ -152,7 +182,6 @@ def resolve_workflow(
     resolved_intents = unique(explicit_intents + infer_intents(request or "", router))
     if not resolved_intents:
         raise ValueError("no workflow intent resolved; pass an intent or --request")
-
     unknown_intents = [name for name in resolved_intents if name not in router.get("routing", {})]
     if unknown_intents:
         valid = ", ".join(sorted(router.get("routing", {})))
@@ -164,27 +193,30 @@ def resolve_workflow(
     max_structures = int(taxonomy.get("classification_contract", {}).get("structures_max_items", 3))
     if len(structures) > max_structures:
         raise ValueError(f"at most {max_structures} structures are allowed")
-
     allowed_capabilities = set(taxonomy.get("capabilities", {}))
     capability_list = unique(capabilities)
     unknown_capabilities = sorted(set(capability_list) - allowed_capabilities)
     if unknown_capabilities:
         raise ValueError(f"unknown capabilities: {unknown_capabilities}")
-
     task_packs = unique([*legacy_packs, *axes_to_packs(objective, structures, taxonomy)])
     if len(task_packs) > 3:
         raise ValueError("resolved task packs exceed the one-primary/two-secondary loading budget")
 
     paths: list[str] = ["core/bootstrap.yaml"]
-    terminal_outputs: list[str] = []
+    module_terminal_outputs: list[str] = []
     formal_delivery = False
+    route_scopes: list[str] = []
+    explicit_gates: list[str] = []
     for intent in resolved_intents:
         route = router["routing"][intent]
         paths.extend(router.get("default_load", []))
         paths.extend(route.get("load", []))
         paths.extend(route.get("then", []))
-        terminal_outputs.extend(route.get("terminal_outputs", []))
+        module_terminal_outputs.extend(route.get("terminal_outputs", []))
         formal_delivery = formal_delivery or bool(route.get("formal_delivery"))
+        if route.get("delivery_scope"):
+            route_scopes.append(route["delivery_scope"])
+        explicit_gates.extend(route.get("pre_delivery_gates", []))
         if route.get("load_competition_pack"):
             pack = resolve_competition_pack(competition, load_yaml(competition_path))
             paths.append(pack or "packs/competition/auto.md")
@@ -192,17 +224,27 @@ def resolve_workflow(
             if not task_packs:
                 raise ValueError(f"intent {intent} requires objective/structures or legacy primary label")
             paths.extend(f"packs/task/{label}.md" for label in task_packs)
-
     if any(router["routing"][name].get("load_proposition_pack") for name in resolved_intents):
         paths.append("packs/artifact/proposition_proof.md")
 
     module_paths = ordered_modules(paths, manifest)
     non_modules = [path for path in unique(paths) if not path.startswith("modules/")]
     ordered = unique([*non_modules, *module_paths])
-
     if formal_delivery:
-        terminal_outputs.extend(["model_paper_framework", "sync_report"])
-    missing, produced = prerequisite_report(module_paths, set(available_artifacts), manifest)
+        module_terminal_outputs.append("model_paper_framework")
+        explicit_gates.extend(router.get("execution_contract", {}).get("formal_delivery_gates", []))
+    delivery_scope = highest_scope(route_scopes)
+    gates = gate_plan(explicit_gates, manifest, delivery_scope)
+
+    missing, produced_after_modules = prerequisite_report(module_paths, set(available_artifacts), manifest)
+    available_after_plan = set(produced_after_modules)
+    terminal_outputs = unique(module_terminal_outputs)
+    for gate in gates:
+        for artifact in gate["inputs"]:
+            if artifact not in available_after_plan and artifact not in manifest.get("external_artifacts", []):
+                missing.append(f"gate:{gate['name']}:{artifact}")
+        available_after_plan.update(gate["outputs"])
+        terminal_outputs.extend(gate["outputs"])
 
     return {
         "version": router.get("version", bootstrap.get("skill_version")),
@@ -214,15 +256,19 @@ def resolve_workflow(
             "capabilities": capability_list,
         },
         "competition": competition,
+        "delivery_scope": delivery_scope,
         "modules": module_paths,
         "packs": [item for item in ordered if item.startswith("packs/")],
         "templates": [item for item in ordered if item.startswith("templates/")],
         "contracts": [item for item in ordered if item.startswith("core/")],
         "load_order": ordered,
+        "module_terminal_outputs": unique(module_terminal_outputs),
+        "pre_delivery_gates": gates,
         "terminal_outputs": unique(terminal_outputs),
-        "missing_prerequisites": missing,
-        "available_after_plan": produced,
-        "sync_required_before_delivery": formal_delivery,
+        "missing_prerequisites": unique(missing),
+        "available_after_modules": produced_after_modules,
+        "available_after_plan": sorted(available_after_plan),
+        "sync_required_before_delivery": any(gate["name"] == "project_sync" for gate in gates),
     }
 
 
