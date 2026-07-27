@@ -90,6 +90,7 @@
 - `requirements-dev.txt`
 - `scripts/.v633_patch_1.b64`
 - `scripts/.v633_patch_2.b64`
+- `scripts/.v633_patch_3.b64`
 - `scripts/README.md`
 - `scripts/generate_indexes.py`
 - `scripts/hsk_check_artifact.py`
