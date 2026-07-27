@@ -5,6 +5,7 @@
 - `.codex-plugin/plugin.json`
 - `.gitattributes`
 - `.github/pull_request_template.md`
+- `.github/workflows/apply-v632-ci-fixes.yml`
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
