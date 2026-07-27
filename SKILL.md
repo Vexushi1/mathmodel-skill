@@ -1,7 +1,7 @@
 ---
 name: mathmodel-skill
 version: 6.2.6
-summary: HSK modular mathematical-modeling workflow with a current-only model paper framework, optional paper-level proposition proofs capped at four, per-subproblem state, root-level problem code, flat Chinese Excel workbooks, titled MATLAB figures, DOCX draft, cleaned LaTeX final, and reviewer-grade delivery.
+summary: HSK modular mathematical-modeling workflow with a current-only model paper framework, optional paper-level proposition proofs capped at four, concise single-box proposition writing, per-subproblem state, root-level problem code, flat Chinese Excel workbooks, titled MATLAB figures, DOCX draft, cleaned LaTeX final, and reviewer-grade delivery.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 结果摘要, 模型选择, 命题证明, 引理, 推论, 等价性证明, 可行性证明, 敏感性分析, 鲁棒性分析, 机理图, MATLAB绘图, MATLAB图标题, LaTeX, DOCX]
 ---
 
@@ -22,7 +22,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 
 - **建模方案**：审题与模型设计，停在变量、假设、公式、约束、全文命题必要性和验证计划闭环，并创建完整当前版 `模型论文框架.md`。
 - **完整求解**：在建模方案基础上继续完成 Python 求解、约束/残差检查、多算法验证、两类标准工作簿、命题数值复核和逐问结果摘要同步。
-- **全流程**：继续完成保留简洁标题的 MATLAB 结果图、DOCX 草稿、LaTeX 草稿、命题证明排版、AI 模板感清除、最终编译和评委式终审。
+- **全流程**：继续完成保留简洁标题的 MATLAB 结果图、DOCX 草稿、LaTeX 草稿、命题短证明与统一外框排版、AI 模板感清除、最终编译和评委式终审。
 
 路由以用户实际交付物为终点，不为凑流程伪造后续成果；下游模块缺少前置结果时必须记录缺口，不能用占位数字替代。确定性加载计划可由 `scripts/resolve_workflow.py` 生成。
 
@@ -41,11 +41,14 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 ## 命题与证明硬规则
 
 - 命题是全文级可选内容，可以为 0，最终论文最多 4 个，不按小问机械分配；
-- 仅用于模型等价性、可行性/存在性、单调性或阈值、凸性/唯一性/解结构、约束或维度缩减、算法可行性保持、稳定性或误差界；
+- 命题优先用于问题简化、模型必要性说明、关键点或阈值识别、维度或候选范围缩减、冗余约束删除、算法可行性保持和理论边界；
 - 变量定义、直接代数变形、题意复述、单个样本结果、准确率比较和求解器退出状态不得包装成命题；
 - 每个命题必须给出前提与定义域、结论、证明等级、模型作用和失效边界；数值检查只作复核，不能替代数学证明；
+- 正文默认采用 B 级短证明，通常保留 2--6 个关键逻辑步骤、3--8 行，原则上不超过三分之一页；超过半页的完整技术证明移附录；
+- 命题正文与短证明必须置于同一个外框，框内不嵌套第二层边框；外框可使用白底细边以及黑色、深灰或克制的深蓝边线，不加阴影和大面积底色；
+- “不得使用彩色框”的限制针对流程图和机理图中的装饰性框，不适用于命题证明环境；
 - 模型、参数、约束或定义域变化后，相关命题与证明必须重新检查并同步框架和项目状态；
-- 推荐正文顺序为“模型详细推导 → 必要命题与证明 → 核心模型汇总 → 求解算法 → 结果分析”。
+- 推荐正文顺序为“模型详细推导 → 必要命题与短证明 → 核心模型汇总 → 求解算法 → 结果分析”。
 
 ## 六大运行模块
 
@@ -53,7 +56,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 - `modules/02_model_design.md`：路线比较、数据协议、变量假设公式闭环、全文命题规划、机理图合同和当前模型论文框架锁定。
 - `modules/03_solve_validate.md`：Python 求解、能力对应检查、多算法验证、敏感性与鲁棒性、Excel 输出和逐问结果摘要同步。
 - `modules/04_figure_evidence.md`：保留简洁标题的 MATLAB 结果图证据链与后期机理图精修。
-- `modules/05_writing/`：DOCX 草稿、LaTeX 草稿、命题证明排版、AI 模板感清除；清理后由编译质量子模块生成 PDF。
+- `modules/05_writing/`：DOCX 草稿、LaTeX 草稿、命题短证明与统一外框排版、AI 模板感清除；清理后由编译质量子模块生成 PDF。
 - `modules/06_review_delivery.md`：评委式终审、命题证明审计、可执行评分与提交包检查。
 
 ## 固定软件分工
@@ -65,7 +68,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 
 ## 机器可读契约
 
-- `core/output_contract.yaml`：项目目录、框架同步、命题上限与字段、文件名、MATLAB 标题和软件职责；
+- `core/output_contract.yaml`：项目目录、框架同步、命题上限、短证明与外框字段、文件名、MATLAB 标题和软件职责；
 - `core/workbook_schema.yaml`：工作表、字段、非空、能力条件和 MATLAB 交接规则；
 - `core/project_state.schema.yaml`：逐问状态、题型、能力、命题引用、框架/结果摘要状态、哈希与失效标志；
 - `core/compile_profiles.yaml`：各竞赛模板入口、项目入口和 LaTeX 编译链；
@@ -94,4 +97,4 @@ Python 写入器与交付检查器复用 `result_io.py` 的同一工作簿校验
 
 ## 默认主线
 
-审题 → 模型设计与锁定 → 全文命题必要性筛选 → 创建/重写 `模型论文框架.md` → Python 求解验证 → 中文结果工作簿 → 同步各问结果摘要与命题复核 → MATLAB 结果图与图标题 → 同步图表证据链 → DOCX 草稿 → 核心机理图精修 → LaTeX 草稿与命题证明 → AI 模板感清除 → LaTeX 编译 → 终审交付。
+审题 → 模型设计与锁定 → 全文命题必要性筛选 → 创建/重写 `模型论文框架.md` → Python 求解验证 → 中文结果工作簿 → 同步各问结果摘要与命题复核 → MATLAB 结果图与图标题 → 同步图表证据链 → DOCX 草稿 → 核心机理图精修 → LaTeX 草稿、命题短证明与统一外框 → AI 模板感清除 → LaTeX 编译 → 终审交付。

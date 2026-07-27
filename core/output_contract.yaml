@@ -47,6 +47,8 @@ proposition_contract:
   maximum_per_paper: 4
   minimum_per_paper: 0
   default_environment_name: 命题
+  latex_outer_environment: hskproposition
+  latex_proof_environment: hskproof
   planning_location: 模型论文框架.md/论文整体框架/命题与证明规划
   required_fields:
     - proposition_id
@@ -58,6 +60,14 @@ proposition_contract:
     - modeling_effect
     - failure_boundary
     - status
+  primary_modeling_effects:
+    - problem_simplification
+    - model_necessity
+    - critical_point_or_threshold_identification
+    - dimension_or_candidate_reduction
+    - redundant_constraint_removal
+    - feasibility_preservation
+    - theoretical_boundary
   allowed_claim_types:
     - equivalence
     - existence_or_feasibility
@@ -68,9 +78,29 @@ proposition_contract:
     - stability_or_error_bound
     - cited_standard_theorem
   proof_levels: [full, outline, cited]
+  main_text_default_proof_level: outline
+  main_text_key_steps_min: 2
+  main_text_key_steps_max: 6
+  main_text_typical_lines_min: 3
+  main_text_typical_lines_max: 8
+  main_text_recommended_page_fraction_max: one_third
+  full_proof_appendix_threshold: half_page
+  display_contract:
+    single_outer_box: true
+    statement_and_proof_in_same_box: true
+    nested_box_forbidden: true
+    page_break_discouraged: true
+    background: white
+    border: thin
+    allowed_border_tones: [black, dark_gray, restrained_dark_blue]
+    shadow: false
+    large_color_fill: false
+    flowchart_or_mechanism_color_rule_applies: false
   rules:
     - 命题数量按实际需要确定，可以为0，全文最多4个，不按小问机械分配。
-    - 命题必须改变模型选择、约束结构、求解范围、算法可行性或结论可信度，否则改为普通推导。
+    - 命题优先用于问题简化、模型必要性说明、关键点识别、降维、候选范围缩减、约束删减、算法可行性或理论边界，否则改为普通推导。
+    - 正文默认采用B级关键证明链，仅保留2--6个逻辑步骤；超过半页的完整技术证明移入附录。
+    - 命题正文与短证明必须置于同一个外框；流程图和机理图的彩色框限制不适用于命题证明环境。
     - 数值实验、交叉验证和求解器成功状态只能作复核证据，不能替代数学证明。
     - 模型、参数、约束或定义域变化后，相关命题与证明必须重新检查并同步框架和项目状态。
 
@@ -147,6 +177,7 @@ rules:
   - 锁定模型后必须在项目根目录创建 模型论文框架.md；每次正式交付同步完整最新版。
   - 框架文件只保留当前有效内容，旧模型、旧参数、旧约束、旧命题、旧证明、旧结果和旧图表结论必须删除，不得与新版并存。
   - 全文命题数量可以为0但不得超过4；命题编号、数量、条件、作用和失效边界必须登记在框架和项目状态中。
+  - 命题正文与短证明使用同一外框，正文默认短证明，完整长证明按需移附录。
   - 不再默认创建 Python求解/、MATLAB绘图/ 或 问题X结果数据/ 重复层级。
   - Python 脚本使用 Path(__file__).resolve().parent 作为项目根目录，题目和附件直接从该目录读取。
   - 每问两类标准工作簿、q{x}_plot.m 和可选元数据同放在 结果数据表/问题X/。
