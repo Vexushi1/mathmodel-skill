@@ -162,4 +162,5 @@
 - `tests/test_router_contract.py`
 - `tests/test_schemas.py`
 - `tests/test_structure.py`
+- `tests/test_sync_project.py`
 - `tests/test_tooling.py`
