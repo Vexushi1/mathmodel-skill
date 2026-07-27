@@ -509,8 +509,8 @@ def _compile_report_issues(path: Path) -> list[str]:
     payload = load_yaml(path)
     issues: list[str] = []
     status = str(payload.get("status", payload.get("conclusion", ""))).lower()
-    if status and status not in {"passed", "pass", "success", "completed"}:
-        issues.append(f"compile_report状态不是通过: {status}")
+    if status not in {"passed", "pass", "success", "completed"}:
+        issues.append(f"compile_report状态不是通过: {status or '<empty>'}")
     unresolved = payload.get("unresolved_references")
     if unresolved not in (None, 0, "0", [], {}):
         issues.append("compile_report仍包含未解决引用")
@@ -553,13 +553,14 @@ def delivery_artifact_issues(root: Path, state: Mapping[str, Any], scope: str, s
         issues.append("交付缺少state/project_state.yaml")
     if not framework.is_file():
         issues.append("交付缺少模型论文框架.md")
-    if SCOPE_RANK[scope] >= SCOPE_RANK["docx"]:
+    if scope == "docx":
         issues.extend(_approved_figure_issues(root, state))
         docx_files = _docx_artifacts(root)
         discovered["docx"] = [path.relative_to(root).as_posix() for path in docx_files]
         if not docx_files:
             issues.append("DOCX交付缺少draft_docx/*.docx")
     if SCOPE_RANK[scope] >= SCOPE_RANK["latex"]:
+        issues.extend(_approved_figure_issues(root, state))
         main_tex = root / "final_latex" / "main.tex"
         main_pdf = root / "final_latex" / "main.pdf"
         compile_report = root / "final_latex" / "compile_report.yaml"

@@ -122,7 +122,7 @@ class TestV632DeliveryGateClosure(unittest.TestCase):
             (root / "模型论文框架.md").write_text("### Q1\n", encoding="utf-8")
             report = SYNC.synchronize(root, write=False, delivery_scope="latex")
             joined = "\n".join(report["issues"])
-            self.assertIn("draft_docx", joined)
+            self.assertNotIn("draft_docx", joined)
             self.assertIn("final_latex/main.tex", joined)
             self.assertIn("final_latex/main.pdf", joined)
             self.assertIn("compile_report", joined)

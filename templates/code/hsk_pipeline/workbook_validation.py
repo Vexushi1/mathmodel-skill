@@ -210,10 +210,17 @@ def validate_tables(
     required_sheets, sheet_schemas = _required_sheet_schemas(schema, workbook_kind)
     names = {name for name, _ in prepared}
     if workbook_kind == "solution":
-        required_sheets.update(_conditional_required_sheets(schema, problem_types, capabilities))
+        conditional = _conditional_required_sheets(schema, problem_types, capabilities)
+        required_sheets.update(conditional)
         missing = sorted(required_sheets - names)
         if missing:
-            raise ValueError(f"求解工作簿缺少必需工作表: {missing}")
+            active_capabilities = sorted(
+                name for name, enabled in (capabilities or {}).items() if enabled
+            )
+            capability_note = (
+                f"；启用的capabilities: {active_capabilities}" if active_capabilities else ""
+            )
+            raise ValueError(f"求解工作簿缺少必需工作表: {missing}{capability_note}")
         for profile, required_any in _profile_requirements(schema, objective, structures, problem_types):
             if required_any and not names.intersection(required_any):
                 raise ValueError(f"分类剖面“{profile}”至少需要一个专项工作表: {sorted(required_any)}")
