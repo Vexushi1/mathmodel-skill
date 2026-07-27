@@ -1,0 +1,26 @@
+name: Export v6.3.2 branch snapshot
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths:
+      - .github/workflows/export-v632-snapshot.yml
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Upload branch snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: v632-branch-snapshot
+          path: .
+          include-hidden-files: true
+          retention-days: 1
