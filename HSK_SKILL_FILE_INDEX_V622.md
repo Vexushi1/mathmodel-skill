@@ -88,6 +88,7 @@
 - `packs/task/spatial.md`
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
+- `scripts/.v633_patch_1.b64`
 - `scripts/README.md`
 - `scripts/generate_indexes.py`
 - `scripts/hsk_check_artifact.py`
