@@ -1,9 +1,11 @@
 name: Export v6.3.3 branch snapshot
 
 on:
-  push:
-    branches:
-      - fix/v6.3.3-gate-hardening
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths:
+      - .github/workflows/export-v633-snapshot.yml
 
 permissions:
   contents: read
@@ -13,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
       - name: Upload branch snapshot
         uses: actions/upload-artifact@v4
         with:
