@@ -39,11 +39,13 @@
 - `assets/nature_figure/gallery/fig5-validation-perturbation-rich.png`
 - `config/competition_profiles.yaml`
 - `config/review_weights.json`
+- `core/bootstrap.yaml`
 - `core/compile_profiles.yaml`
 - `core/hsk_core_policy.md`
 - `core/module_manifest.yaml`
 - `core/output_contract.yaml`
 - `core/project_state.schema.yaml`
+- `core/task_taxonomy.yaml`
 - `core/workbook_schema.yaml`
 - `core/workflow_router.yaml`
 - `legacy/README.md`
@@ -89,6 +91,7 @@
 - `scripts/render_paper.py`
 - `scripts/resolve_workflow.py`
 - `scripts/score_submission.py`
+- `scripts/sync_project.py`
 - `scripts/validate_model_paper_framework.py`
 - `scripts/validate_project_state.py`
 - `skills/mathmodel-skill/SKILL.md`
