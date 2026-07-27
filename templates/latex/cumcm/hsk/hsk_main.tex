@@ -2,7 +2,7 @@
 % 电子版提交时通常可使用：\documentclass[withoutpreface]{cumcmthesis}
 
 \usepackage{booktabs}
-\usepackage{amsmath,amssymb,bm,amsthm}
+\usepackage{amsmath,amssymb,bm}
 \usepackage{subcaption}
 \usepackage{graphicx}
 \usepackage{float}
@@ -19,7 +19,7 @@
 % 命题按章节编号。全文按实际需要使用，可以为 0，但不得超过 4 个。
 % 默认将命题正文与短证明置于同一外框，便于评委快速识别理论结论边界。
 % 该外框不属于流程图或机理图的彩色框限制；默认白底、细边、无阴影。
-\theoremstyle{definition}
+% cumcmthesis 已提供定理基础环境，此处不额外加载 amsthm，避免 proof 命令冲突。
 \newtheorem{proposition}{命题}[section]
 \newenvironment{hskproposition}[1]
   {\begin{tcolorbox}[
