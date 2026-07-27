@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate an HSK project-state file against structure, framework sync and stage semantics."""
+"""Validate project state structure, classification aliases and artifact freshness."""
 from __future__ import annotations
 
 import argparse
@@ -13,29 +13,25 @@ from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = ROOT / "core" / "project_state.schema.yaml"
+TAXONOMY_PATH = ROOT / "core" / "task_taxonomy.yaml"
 VALIDATED_STATUSES = {"validated", "written", "completed"}
 SOLVED_STATUSES = {"solved", "validated", "written", "completed"}
 WRITTEN_STATUSES = {"written", "completed"}
 FRAMEWORK_REQUIRED_PHASES = {
-    "model_design",
-    "solve_validate",
-    "figure_evidence",
-    "writing_docx",
-    "writing_latex",
-    "ai_cleanup",
-    "latex_compile_quality",
-    "review_delivery",
-    "completed",
+    "model_design", "solve_validate", "figure_evidence", "writing_docx",
+    "writing_latex", "ai_cleanup", "latex_compile_quality",
+    "review_delivery", "completed",
 }
 PROPOSITION_LIMIT = 4
 PROPOSITION_ID_PATTERN = re.compile(r"^P[1-4]$")
 CURRENT_PROPOSITION_REQUIRED_FIELDS = (
-    "assumptions_and_domain",
-    "conclusion",
-    "modeling_effect",
-    "failure_boundary",
-    "framework_anchor",
+    "assumptions_and_domain", "conclusion", "modeling_effect",
+    "failure_boundary", "framework_anchor",
 )
+ARTIFACT_LAYERS = {
+    "data", "model", "solution_workbook", "robustness_workbook",
+    "matlab_script", "figure_bundle", "framework",
+}
 
 
 def load_yaml(path: Path) -> Any:
@@ -43,9 +39,7 @@ def load_yaml(path: Path) -> Any:
 
 
 def _artifact_exists(project_root: Path, value: Any) -> bool:
-    if not isinstance(value, str) or not value.strip():
-        return False
-    return (project_root / value).exists()
+    return isinstance(value, str) and bool(value.strip()) and (project_root / value).exists()
 
 
 def _sha256_text(path: Path) -> str:
@@ -54,16 +48,13 @@ def _sha256_text(path: Path) -> str:
 
 
 def _validate_propositions(
-    framework: Mapping[str, Any],
-    *,
-    framework_sync: Any,
+    framework: Mapping[str, Any], *, framework_sync: Any,
 ) -> tuple[list[str], set[str], bool]:
     issues: list[str] = []
     limit = framework.get("proposition_limit")
     count = framework.get("proposition_count")
     status = framework.get("proposition_status")
     entries = framework.get("propositions", []) or []
-
     if limit != PROPOSITION_LIMIT:
         issues.append(f"paper_framework.proposition_limit must be {PROPOSITION_LIMIT}")
     if not isinstance(count, int) or not 0 <= count <= PROPOSITION_LIMIT:
@@ -72,7 +63,6 @@ def _validate_propositions(
         issues.append("paper_framework.proposition_count must equal len(paper_framework.propositions)")
     if len(entries) > PROPOSITION_LIMIT:
         issues.append(f"paper may contain at most {PROPOSITION_LIMIT} propositions")
-
     ids: list[str] = []
     has_stale = status == "stale"
     for index, entry in enumerate(entries):
@@ -92,30 +82,91 @@ def _validate_propositions(
                     issues.append(f"{proposition_id}.{field} is required for a current proposition")
             if str(entry.get("proof_level", "")) not in {"full", "outline", "cited"}:
                 issues.append(f"{proposition_id}.proof_level must be full, outline or cited")
-
     if len(ids) != len(set(ids)):
         issues.append("paper_framework.propositions must use unique IDs")
     proposition_ids = {item for item in ids if item}
-
     if count == 0 and status in {"planned", "current"}:
         issues.append("paper_framework.proposition_status cannot be planned/current when proposition_count is 0")
     if isinstance(count, int) and count > 0 and status == "not_assessed":
         issues.append("paper_framework.proposition_status cannot be not_assessed when propositions exist")
     if has_stale and framework_sync == "current":
         issues.append("paper_framework.sync_status cannot remain current while proposition plan is stale")
-
     return issues, proposition_ids, has_stale
 
 
-def validate_state_payload(
-    payload: Mapping[str, Any],
-    *,
-    project_root: Path,
-    schema_path: Path = SCHEMA_PATH,
+def _derived_legacy_packs(classification: Mapping[str, Any], taxonomy: Mapping[str, Any]) -> list[str]:
+    packs: list[str] = []
+    objective = classification.get("objective")
+    if objective in taxonomy.get("objectives", {}):
+        packs.append(taxonomy["objectives"][objective].get("legacy_pack"))
+    for structure in classification.get("structures", []) or []:
+        if structure in taxonomy.get("structures", {}):
+            packs.append(taxonomy["structures"][structure].get("supplemental_pack"))
+    return list(dict.fromkeys(item for item in packs if item))
+
+
+def _validate_classification_aliases(
+    name: str, state: Mapping[str, Any], taxonomy: Mapping[str, Any],
 ) -> list[str]:
-    """Return structural and semantic violations without mutating the state."""
+    issues: list[str] = []
+    classification = state.get("classification") or {}
+    capabilities = state.get("capabilities") or {}
+    deprecated_capabilities = classification.get("capabilities")
+    if deprecated_capabilities is not None and deprecated_capabilities != capabilities:
+        issues.append(f"{name}.classification.capabilities must equal top-level capabilities while deprecated alias exists")
+    if classification:
+        derived = _derived_legacy_packs(classification, taxonomy)
+        declared = classification.get("legacy_task_packs")
+        if declared is not None and list(declared) != derived:
+            issues.append(f"{name}.classification.legacy_task_packs must be derived as {derived}")
+        problem_types = state.get("problem_types")
+        if problem_types:
+            old = [problem_types.get("primary"), *(problem_types.get("secondary", []) or [])]
+            old = list(dict.fromkeys(item for item in old if item))
+            if old != derived[:3]:
+                issues.append(f"{name}.problem_types must match derived compatibility packs {derived[:3]}")
+    return issues
+
+
+def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[str]:
+    issues: list[str] = []
+    current = dict(state.get("artifact_hashes", {}) or {})
+    validated = dict(state.get("validated_artifact_hashes", {}) or {})
+    if not current:
+        if state.get("data_hash"):
+            current["data"] = state["data_hash"]
+        if state.get("model_hash"):
+            current["model"] = state["model_hash"]
+    if not validated:
+        if state.get("validated_data_hash"):
+            validated["data"] = state["validated_data_hash"]
+        if state.get("validated_model_hash"):
+            validated["model"] = state["validated_model_hash"]
+    stale_layers = set(state.get("stale_layers", []) or [])
+    invalid_layers = stale_layers - ARTIFACT_LAYERS
+    if invalid_layers:
+        issues.append(f"{name}.stale_layers contains invalid layers: {sorted(invalid_layers)}")
+    mismatched = {key for key, value in validated.items() if current.get(key) != value}
+    if mismatched != stale_layers and state.get("artifacts_stale") is True:
+        issues.append(f"{name}.stale_layers must equal changed validated layers: {sorted(mismatched)}")
+    if status in VALIDATED_STATUSES:
+        required = {"data", "model", "solution_workbook", "robustness_workbook"}
+        missing = sorted(key for key in required if key not in current or key not in validated)
+        if missing:
+            issues.append(f"{name} validated status requires current and validated hashes for: {missing}")
+        mismatched_validated = sorted(key for key in validated if current.get(key) != validated.get(key))
+        if mismatched_validated:
+            issues.append(f"{name} validated artifact hashes are stale: {mismatched_validated}")
+    return issues
+
+
+def validate_state_payload(
+    payload: Mapping[str, Any], *, project_root: Path,
+    schema_path: Path = SCHEMA_PATH, taxonomy_path: Path = TAXONOMY_PATH,
+) -> list[str]:
     issues: list[str] = []
     schema = load_yaml(schema_path)
+    taxonomy = load_yaml(taxonomy_path)
     validator = Draft202012Validator(schema)
     for error in sorted(validator.iter_errors(payload), key=lambda item: list(item.path)):
         location = "/".join(str(part) for part in error.path) or "<root>"
@@ -145,8 +196,8 @@ def validate_state_payload(
         framework, framework_sync=framework_sync
     )
     issues.extend(proposition_issues)
-
     any_stale = proposition_stale
+
     for name, state in payload.get("subproblems", {}).items():
         if not isinstance(state, Mapping):
             continue
@@ -154,14 +205,14 @@ def validate_state_payload(
         capabilities = state.get("capabilities", {}) or {}
         summary_status = state.get("result_summary_status")
         framework_section = str(state.get("framework_section", "")).strip()
+        issues.extend(_validate_classification_aliases(name, state, taxonomy))
+        issues.extend(_validate_hashes(name, state, status))
         if not framework_section:
             issues.append(f"{name}.framework_section must identify the current framework section")
-
         proposition_refs = set(state.get("proposition_refs", []) or [])
         unknown_refs = sorted(proposition_refs - proposition_ids)
         if unknown_refs:
             issues.append(f"{name}.proposition_refs contain unknown IDs: {unknown_refs}")
-
         if status in SOLVED_STATUSES:
             if summary_status != "current":
                 issues.append(f"{name}.result_summary_status must be current when status is {status}")
@@ -173,7 +224,6 @@ def validate_state_payload(
                 issues.append(f"{name}.result_summary_status cannot be current while artifacts_stale is true")
             if proposition_refs:
                 issues.append(f"{name}.proposition_refs must be revalidated while artifacts_stale is true")
-
         if status in VALIDATED_STATUSES:
             for field in ("solution_workbook", "robustness_workbook"):
                 if not _artifact_exists(project_root, state.get(field)):
@@ -184,14 +234,6 @@ def validate_state_payload(
                 issues.append(f"{name}.validation_status must be passed when status is {status}")
             if state.get("artifacts_stale") is True:
                 issues.append(f"{name} cannot be {status} while artifacts_stale is true")
-            data_hash = state.get("data_hash")
-            validated_data_hash = state.get("validated_data_hash")
-            if data_hash and validated_data_hash and data_hash != validated_data_hash:
-                issues.append(f"{name} validated_data_hash does not match current data_hash")
-            model_hash = state.get("model_hash")
-            validated_model_hash = state.get("validated_model_hash")
-            if model_hash and validated_model_hash and model_hash != validated_model_hash:
-                issues.append(f"{name} validated_model_hash does not match current model_hash")
             if capabilities.get("has_explicit_constraints"):
                 value = state.get("max_constraint_violation")
                 tolerance = state.get("tolerance")
@@ -199,9 +241,8 @@ def validate_state_payload(
                     issues.append(f"{name} requires tolerance and max_constraint_violation")
                 elif float(value) > float(tolerance):
                     issues.append(f"{name} maximum constraint violation exceeds tolerance")
-            if state.get("optimality_claim") in {"proven_optimal", "global"}:
-                if state.get("optimality_gap") is None:
-                    issues.append(f"{name} global/proven optimality claim requires optimality_gap")
+            if state.get("optimality_claim") in {"proven_optimal", "global"} and state.get("optimality_gap") is None:
+                issues.append(f"{name} global/proven optimality claim requires optimality_gap")
         if status in WRITTEN_STATUSES:
             paper = state.get("paper_source")
             if paper and not _artifact_exists(project_root, paper):
@@ -209,7 +250,6 @@ def validate_state_payload(
 
     if any_stale and framework_sync == "current":
         issues.append("paper_framework.sync_status cannot remain current while a subproblem or proposition is stale")
-
     if phase == "completed":
         if pending:
             issues.append("completed project cannot retain pending requirements")
