@@ -1,4 +1,4 @@
-version: 6.3.0
+version: 6.3.1
 workflow_order: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery]
 
 contracts:
@@ -23,12 +23,13 @@ external_artifacts:
   - all_requested_artifacts
   - existing_project_state
   - existing_model_paper_framework
+  - discovered_artifacts
 
 artifact_catalog:
   requirement_map: 题目要求与交付映射
   subproblem_map: 小问依赖和边界
-  classification_by_subproblem: 每问objective、structures、capabilities与置信度
-  problem_types_by_subproblem: 旧版题型标签兼容输出
+  classification_by_subproblem: 每问objective、structures、顶层capabilities与置信度
+  problem_types_by_subproblem: 旧版题型标签兼容派生输出
   data_schema: 字段、单位、粒度、键和数据质量口径
   risks: 审题、数据、模型和交付风险
   route_comparison: 每问模型路线比较
@@ -63,18 +64,24 @@ artifact_catalog:
   review_report: 终审问题与评分报告
   validated_submission_package: 通过交付检查的提交包
   project_state: 项目机器状态
-  sync_report: 项目同步器生成的发现、哈希、stale和一致性报告
+  sync_report: 项目同步器生成的发现、Schema校验、分层哈希、stale和证据链报告
 
 workflow_profiles:
   design:
     modules: [problem_audit, model_design]
-    terminal_outputs: [requirement_map, route_comparison, selected_models, locked_model_spec, formula_closure, validation_plan, model_paper_framework, sync_report]
+    module_terminal_outputs: [requirement_map, route_comparison, selected_models, locked_model_spec, formula_closure, validation_plan, model_paper_framework]
+    pre_delivery_gates: [project_sync]
+    terminal_outputs: [requirement_map, route_comparison, selected_models, locked_model_spec, formula_closure, validation_plan, model_paper_framework, project_state, sync_report]
   full_solution:
     modules: [problem_audit, model_design, solve_validate]
-    terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report, proposition_plan, model_paper_framework, sync_report]
+    module_terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report, proposition_plan, model_paper_framework]
+    pre_delivery_gates: [project_sync]
+    terminal_outputs: [python_code, solution_workbook, sensitivity_robustness_workbook, validation_report, proposition_plan, model_paper_framework, project_state, sync_report]
   full_workflow:
     modules: [problem_audit, model_design, solve_validate, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery]
-    terminal_outputs: [validated_submission_package, model_paper_framework]
+    module_terminal_outputs: [validated_submission_package, model_paper_framework]
+    pre_delivery_gates: [project_sync]
+    terminal_outputs: [validated_submission_package, model_paper_framework, project_state, sync_report]
 
 modules:
   problem_audit:
@@ -116,10 +123,20 @@ modules:
 
 utility_gates:
   project_sync:
-    command: python scripts/sync_project.py <project_root> --write --strict
-    inputs: [existing_project_state, existing_model_paper_framework]
+    path: scripts/sync_project.py
+    command: python scripts/sync_project.py <project_root> --write --strict --delivery-scope <delivery_scope>
+    inputs: [existing_project_state, existing_model_paper_framework, discovered_artifacts, workbook_schema]
     outputs: [project_state, sync_report]
+    delivery_scopes: [design, results, figures, docx, latex, submission]
+    stage_requirements:
+      design: [project_state]
+      results: [project_state, model_paper_framework, python_code, solution_workbook, sensitivity_robustness_workbook]
+      figures: [project_state, model_paper_framework, solution_workbook, sensitivity_robustness_workbook, matlab_scripts, result_figures]
+      docx: [project_state, model_paper_framework, solution_workbook, sensitivity_robustness_workbook, approved_figures]
+      latex: [project_state, model_paper_framework, solution_workbook, sensitivity_robustness_workbook, approved_figures]
+      submission: [project_state, model_paper_framework, all_requested_artifacts]
     rules:
-      - Discovers artifacts and hashes but never invents model semantics or validation success.
-      - Propagates stale when validated data/model hashes no longer match.
+      - Discovers artifacts, validates workbook contracts and hashes the complete evidence chain without inventing model semantics or validation success.
+      - Propagates stale from data, model, workbooks, MATLAB scripts and figure bundles.
+      - Updates the framework header before computing and persisting its final SHA-256.
       - Required before formal model, code, workbook, figure, DOCX, LaTeX or submission delivery.
