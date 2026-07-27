@@ -1,4 +1,4 @@
-version: 6.3.2
+version: 6.3.3
 workflow_order:
 - problem_audit
 - model_design
@@ -271,6 +271,7 @@ utility_gates:
     - existing_model_paper_framework
     - discovered_artifacts
     - workbook_schema
+    - output_contract
     outputs:
     - project_state
     - sync_report
@@ -281,43 +282,13 @@ utility_gates:
     - docx
     - latex
     - submission
-    stage_requirements:
-      design:
-      - project_state
-      - model_paper_framework
-      results:
-      - project_state
-      - model_paper_framework
-      - python_code
-      - solution_workbook
-      - sensitivity_robustness_workbook
-      figures:
-      - project_state
-      - model_paper_framework
-      - matlab_scripts
-      - result_figures
-      - figure_evidence
-      docx:
-      - project_state
-      - model_paper_framework
-      - approved_figures
-      - docx_draft
-      latex:
-      - project_state
-      - model_paper_framework
-      - approved_figures
-      - latex_source
-      - compiled_pdf
-      - compile_report
-      submission:
-      - project_state
-      - model_paper_framework
-      - compiled_pdf
-      - validated_submission_package
+    stage_requirements_source: core/output_contract.yaml#project_sync.stage_requirements
     rules:
+    - Reads exact delivery requirements from core/output_contract.yaml before checking artifacts.
+    - Validates project state and the current model-paper framework before artifact discovery.
     - Discovers artifacts, validates workbook contracts and hashes the complete evidence
       chain without inventing model semantics or validation success.
-    - Propagates stale from data, model, workbooks, MATLAB scripts and figure bundles.
+    - Propagates stale from data, model, workbooks, MATLAB scripts and figure bundles without clearing it.
     - Updates the framework header before computing and persisting its final SHA-256.
     - Required before formal model, code, workbook, figure, DOCX, LaTeX or submission
       delivery.

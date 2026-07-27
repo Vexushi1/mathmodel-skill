@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the active HSK v6.3.2 graph, contracts, semantics and generated files."""
+"""Validate the active HSK v6.3.3 graph, contracts, semantics and generated files."""
 from __future__ import annotations
 
 import argparse
@@ -14,9 +14,9 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "6.3.2"
+PACKAGE_VERSION = "6.3.3"
 REQUIRED = [
-    "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG_V632.md",
+    "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG_V633.md", "CHANGELOG_V632.md",
     "PROJECT_INSTRUCTIONS_HSK_V622.md", "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V630.md",
     "core/bootstrap.yaml", "core/hsk_core_policy.md", "core/task_taxonomy.yaml",
     "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml",
@@ -36,7 +36,7 @@ REQUIRED = [
 ]
 ACTIVE_DIRS = ["core", "modules", "packs", "templates", "scripts", "config", "state", "assets", "agents", "skills", ".codex-plugin", ".github"]
 TEXT_SUFFIXES = {".md", ".yaml", ".yml", ".json", ".py", ".m", ".tex", ".bib"}
-VERSION_DOCS = ["SKILL.md", "README.md", "REPOSITORY_INDEX.md", "PROJECT_INSTRUCTIONS_HSK_V622.md", "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V632.md"]
+VERSION_DOCS = ["SKILL.md", "README.md", "REPOSITORY_INDEX.md", "PROJECT_INSTRUCTIONS_HSK_V622.md", "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V633.md"]
 VERSION_CONTRACTS = ["core/bootstrap.yaml", "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml", "core/project_state.schema.yaml"]
 
 
@@ -179,6 +179,11 @@ def check_manifest(errors: list[str]) -> None:
         errors.append("project_sync gate must point to scripts/sync_project.py")
     if set(gate.get("outputs", [])) != {"project_state", "sync_report"}:
         errors.append("project_sync must produce project_state and sync_report")
+    source = "core/output_contract.yaml#project_sync.stage_requirements"
+    if gate.get("stage_requirements_source") != source:
+        errors.append("module manifest project_sync must reference the output-contract stage requirements")
+    if "stage_requirements" in gate:
+        errors.append("module manifest must not duplicate project_sync.stage_requirements")
     for field in ("inputs", "outputs"):
         unknown = set(gate.get(field, [])) - known
         if unknown:
@@ -211,6 +216,18 @@ def check_contracts(errors: list[str]) -> None:
     sync = output.get("project_sync", {})
     if sync.get("role") != "formal_pre_delivery_gate":
         errors.append("project_sync must be a formal pre-delivery gate")
+    expected_scopes = {"design", "results", "figures", "docx", "latex", "submission"}
+    requirements = sync.get("stage_requirements", {}) or {}
+    if set(requirements) != expected_scopes or any(not isinstance(value, list) or not value for value in requirements.values()):
+        errors.append("output contract must define non-empty exact stage requirements for every delivery scope")
+    if sync.get("stage_requirements_authority") != "core/output_contract.yaml#project_sync.stage_requirements":
+        errors.append("output contract must declare itself as the stage-requirements authority")
+    if sync.get("stage_requirements_semantics") != "exact_scope":
+        errors.append("project_sync stage requirements must use exact_scope semantics")
+    sync_text = read_text(ROOT / "scripts/sync_project.py")
+    for token in ("stage_requirements(scope, output_contract)", "contract_preflight_issues", "clears_stale"):
+        if token not in sync_text:
+            errors.append(f"sync_project lacks gate-hardening token: {token}")
     expected_layers = {"data", "model", "solution_workbook", "robustness_workbook", "matlab_script", "figure_bundle", "framework"}
     if set(sync.get("artifact_hash_layers", [])) != expected_layers:
         errors.append("project_sync artifact hash layers are incomplete")
@@ -239,9 +256,12 @@ def check_project_state_and_framework(errors: list[str]) -> None:
     classification_required = set(schema.get("$defs", {}).get("classification", {}).get("required", []))
     if "capabilities" in classification_required:
         errors.append("classification.capabilities must not remain required")
-    sub_required = set(schema.get("properties", {}).get("subproblems", {}).get("additionalProperties", {}).get("required", []))
+    subproblem_contract = schema.get("properties", {}).get("subproblems", {})
+    sub_required = set(subproblem_contract.get("additionalProperties", {}).get("required", []))
     if "capabilities" not in sub_required:
         errors.append("subproblem top-level capabilities must be required")
+    if subproblem_contract.get("minProperties") != 1:
+        errors.append("project state must require at least one subproblem")
     state_validator = load_module("lint_state_validator", ROOT / "scripts/validate_project_state.py")
     for issue in state_validator.validate_state_payload(example, project_root=ROOT):
         errors.append(f"project state semantic violation: {issue}")
