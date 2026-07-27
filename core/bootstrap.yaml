@@ -1,10 +1,10 @@
-skill_version: 6.3.0
+skill_version: 6.3.1
 bootstrap_schema_version: 1.1.0
 
 purpose: >-
   Minimal startup contract for the HSK mathematical-modeling workflow. Read this
   file first, then use scripts/resolve_workflow.py to obtain the deterministic
-  task-specific load plan. Do not preload the whole repository.
+  task-specific execution plan. Do not preload the whole repository.
 
 authoritative_sources:
   global_policy: core/hsk_core_policy.md
@@ -20,7 +20,8 @@ hard_invariants:
   - 先审题与锁定模型，再进行求解、绘图和写作；不得伪造缺失前置结果。
   - Python负责数据处理、求解、检验与结果工作簿；MATLAB只读取工作簿绘制正式结果图。
   - locked_model_spec形成后维护项目根目录当前版模型论文框架.md；旧版本由Git历史保存。
-  - 每次正式产物交付前运行项目同步器，检查框架、状态、代码、工作簿、MATLAB与图表的新旧一致性。
+  - 每次正式产物交付前执行解析器返回的project_sync gate，检查框架、状态、代码、工作簿、MATLAB与图表的新旧一致性。
+  - 顶层subproblem.capabilities是唯一能力事实源；旧别名只能兼容读取且必须一致。
   - legacy目录不参与默认执行。
 
 entrypoints:
@@ -42,4 +43,6 @@ repository_maintenance:
 compatibility:
   legacy_task_labels_supported: true
   legacy_router_single_intent_supported: true
+  deprecated_classification_capabilities_supported: true
+  deprecated_problem_types_supported: true
   generated_index_filename_compatibility: V622
