@@ -1,4 +1,4 @@
-61d9d329c6142ef84771ac64aad9991eecc06dc6be8fa2fc1d63777aa9dcc726  .codex-plugin/plugin.json
+d2a86ba66ca7200c992fec83fc13f4df204667ca49079104178865fe3c7c263c  .codex-plugin/plugin.json
 13fafae143371f65dafc7254532fde4e7ff9185a6887a290e4b1ed6675494b12  .gitattributes
 19d6ea8b97d68719e53b0a037242fcaacda32f1fdf09213e6fec43f8abc3ed79  .github/workflows/ci.yml
 188fab94d03ee7afe5761e35ffcb54ceb91903f9df377c2787ebd710899584a0  .github/workflows/refresh-generated.yml
