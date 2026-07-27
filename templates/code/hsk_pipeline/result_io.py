@@ -285,10 +285,7 @@ def write_workbook(
     path = Path(path)
     kind = workbook_kind or _infer_workbook_kind(path)
     if kind is None:
-        prepared = [(_sheet_name(name), _to_frame(value)) for name, value in tables.items()]
-        for name, frame in prepared:
-            _check_record_keys(name, frame)
-            _check_finite_numbers(name, frame)
+        prepared = WORKBOOK_VALIDATION.prepare_tables(tables, name_normalizer=_sheet_name)
     else:
         prepared = validate_workbook_tables(
             tables, workbook_kind=kind, problem_types=problem_types,

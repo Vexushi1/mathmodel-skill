@@ -131,15 +131,18 @@ def _validate_classification_aliases(
 def _framework_section_hash(path: Path, anchor: str) -> str | None:
     if not path.is_file() or not anchor.strip():
         return None
-    lines = path.read_text(encoding="utf-8").replace("
-", "
-").replace("
-", "
-").splitlines()
+    lines = path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n").splitlines()
     target = anchor.strip()
     start = next((index for index, line in enumerate(lines) if line.strip() == target), None)
     if start is None:
-        start = next((index for index, line in enumerate(lines) if line.lstrip().startswith("#") and target in line.strip()), None)
+        start = next(
+            (
+                index
+                for index, line in enumerate(lines)
+                if line.lstrip().startswith("#") and target in line.strip()
+            ),
+            None,
+        )
     if start is None:
         return None
     heading = lines[start].lstrip()
@@ -152,11 +155,8 @@ def _framework_section_hash(path: Path, anchor: str) -> str | None:
             if next_level <= level:
                 end = index
                 break
-    text = "
-".join(lines[start:end]).strip() + "
-"
+    text = "\n".join(lines[start:end]).strip() + "\n"
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
 
 def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[str]:
     issues: list[str] = []
