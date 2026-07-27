@@ -3,8 +3,8 @@ project:
   problem: A
   current_phase: model_design
   problem_types: [mechanism, optimization]
-  version: v0.3-current-framework
-  updated_at: '2026-07-25T14:00:00Z'
+  version: v0.4-proposition-plan
+  updated_at: '2026-07-27T12:00:00Z'
 requirements:
   total: 5
   completed: [Q1]
@@ -42,6 +42,7 @@ subproblems:
       requires_convergence_diagnostic: false
     framework_section: '### Q1：填写问题名称'
     result_summary_status: pending
+    proposition_refs: []
     validation_status: pending
     optimality_claim: none
     artifacts_stale: false
@@ -56,10 +57,14 @@ variables:
     v: 题目给定速度
 paper_framework:
   path: 模型论文框架.md
-  version: v0.1-current
+  version: v0.2-proposition-plan
   sync_status: current
-  last_synced_at: '2026-07-25T14:00:00Z'
-  last_sync_scope: Q1模型框架已锁定，结果摘要待求解后填写
+  last_synced_at: '2026-07-27T12:00:00Z'
+  last_sync_scope: Q1模型框架已锁定，全文命题必要性已初审，结果摘要待求解后填写
+  proposition_limit: 4
+  proposition_count: 0
+  proposition_status: not_assessed
+  propositions: []
 execution:
   python_version: '3.12'
   dependencies: {}
@@ -72,4 +77,4 @@ artifacts:
 risks: []
 next_gate:
   module: solve_validate
-  condition: 变量、目标函数、约束、求解器候选、验证方案和模型论文框架已锁定
+  condition: 变量、目标函数、约束、求解器候选、验证方案、命题必要性和模型论文框架已锁定
