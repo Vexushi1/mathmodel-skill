@@ -89,7 +89,6 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
-- `scripts/apply_v632_ci_fixes.py`
 - `scripts/generate_indexes.py`
 - `scripts/hsk_check_artifact.py`
 - `scripts/hsk_pack_submission.py`
