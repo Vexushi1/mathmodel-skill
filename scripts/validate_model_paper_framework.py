@@ -35,7 +35,6 @@ FRAMEWORK_REQUIRED_PHASES = {
 }
 PROPOSITION_LIMIT = 4
 PROPOSITION_ID_PATTERN = re.compile(r"^P([1-4])$")
-PROPOSITION_ROW_PATTERN = re.compile(r"^\|\s*(P\d+)\s*\|", re.MULTILINE)
 
 
 def load_yaml(path: Path) -> Any:
@@ -52,9 +51,19 @@ def _extract_int(text: str, label: str) -> int | None:
     return int(match.group(1)) if match else None
 
 
+def _proposition_section(text: str) -> str:
+    heading = "### 命题与证明规划"
+    start = text.find(heading)
+    if start < 0:
+        return ""
+    tail = text[start + len(heading) :]
+    next_heading = re.search(r"\n###\s+", tail)
+    return tail[: next_heading.start()] if next_heading else tail
+
+
 def _proposition_rows(text: str) -> list[tuple[str, list[str]]]:
     rows: list[tuple[str, list[str]]] = []
-    for line in text.splitlines():
+    for line in _proposition_section(text).splitlines():
         match = re.match(r"^\|\s*(P\d+)\s*\|", line)
         if not match:
             continue
