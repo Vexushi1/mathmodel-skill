@@ -109,7 +109,7 @@ class TestContentPacks(unittest.TestCase):
         ]
         for path in paths:
             text = path.read_text(encoding="utf-8")
-            self.assertIn("最多 4", text, str(path))
+            self.assertTrue("最多 4" in text or "不得超过 4" in text, str(path))
             self.assertIn("失效边界", text, str(path))
         latex = paths[1].read_text(encoding="utf-8")
         self.assertIn("proposition", latex)
