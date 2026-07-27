@@ -63,6 +63,7 @@
 - `packs/artifact/figure.md`
 - `packs/artifact/full_submission.md`
 - `packs/artifact/latex.md`
+- `packs/artifact/proposition_proof.md`
 - `packs/artifact/review.md`
 - `packs/competition/auto.md`
 - `packs/competition/certification_cup.md`
