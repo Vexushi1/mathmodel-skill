@@ -8,12 +8,19 @@ on:
       - scripts/apply_v632_bootstrap.py
       - scripts/.v632/**
       - .github/workflows/apply-v632-delivery-closure.yml
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths:
+      - scripts/apply_v632_bootstrap.py
+      - scripts/.v632/**
+      - .github/workflows/apply-v632-delivery-closure.yml
 
 permissions:
   contents: write
 
 concurrency:
-  group: apply-v632-${{ github.ref }}
+  group: apply-v632-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -23,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -37,4 +44,4 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           git commit -m 'fix: close v6.3.2 delivery gates'
-          git push
+          git push origin HEAD:${{ github.head_ref || github.ref_name }}
