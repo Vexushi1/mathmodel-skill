@@ -57,6 +57,7 @@ class TestV631ContractClosure(unittest.TestCase):
         tables = {
             "核心指标": pd.DataFrame({"指标": ["目标"], "数值": [1.0]}),
             "数据审计": pd.DataFrame({"等级": ["Info"], "检查项": ["字段"], "信息": ["通过"], "处理方式": ["无"]}),
+            "推荐方案": pd.DataFrame({"方案": ["A"]}),
         }
         with self.assertRaisesRegex(ValueError, "structure:network"):
             self.result_io.validate_workbook_tables(tables, "solution", objective="optimization", structures=("network",))

@@ -58,7 +58,7 @@ def write_matlab_handoff(
     result_dir.mkdir(parents=True, exist_ok=True)
     path = result_dir / "matlab_figure_handoff.json"
     payload = {
-        "version": "6.3.1",
+        "version": "6.3.2",
         "problem": problem_name,
         "result_directory": result_dir.as_posix(),
         "solution_workbook": solve_book.as_posix(),

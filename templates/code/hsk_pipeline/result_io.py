@@ -11,6 +11,22 @@ import pandas as pd
 import yaml
 from openpyxl import load_workbook
 
+
+def _load_workbook_validation():
+    import importlib.util
+    import sys
+
+    path = Path(__file__).resolve().with_name("workbook_validation.py")
+    spec = importlib.util.spec_from_file_location("hsk_pipeline_workbook_validation", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+WORKBOOK_VALIDATION = _load_workbook_validation()
+
 INVALID_SHEET_CHARS = set('[]:*?/\\')
 PROBLEM_PATTERN = re.compile(r"问题[一二三四五六七八九十百]+")
 VALID_WORKBOOK_KINDS = {"solution", "robustness"}
@@ -79,7 +95,9 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
             "prediction": {"required_any": ["预测明细", "误差指标", "外样本验证"]},
             "evaluation": {"required_any": ["综合评分", "排序结果"]},
             "inference": {"required_any": ["模型指标", "参数估计", "预测或分类结果"]},
-            "optimization": {"required_any": ["推荐方案", "明细结果", "核心指标"]},
+            "explanation": {"required_any": ["机理分析", "状态明细", "边界检验", "量纲检查"]},
+            "optimization": {"required_any": ["推荐方案", "决策变量明细", "方案对比", "Pareto结果"]},
+            "simulation": {"required_any": ["仿真明细", "逐时刻结果", "逐场景结果", "重复试验结果"]},
         },
         "structure_profiles": {
             "spatial": {"required_any": ["空间诊断", "参数估计"]},
@@ -207,123 +225,6 @@ def load_workbook_schema(schema_path: Path | None = None) -> dict[str, Any]:
     return _FALLBACK_SCHEMA
 
 
-def _required_sheet_schemas(schema: Mapping[str, Any], kind: str) -> tuple[set[str], dict[str, Mapping[str, Any]]]:
-    if kind == "solution":
-        section = schema["solution_workbook"]
-        required = dict(section.get("common_required_sheets", {}))
-        all_schemas = {**required, **dict(section.get("common_recommended_sheets", {}))}
-        return set(required), all_schemas
-    section = schema["sensitivity_robustness_workbook"]
-    return set(), dict(section.get("sheet_schemas", {}))
-
-
-def _conditional_required_sheets(
-    schema: Mapping[str, Any], problem_types: Sequence[str], capabilities: Mapping[str, bool] | None,
-) -> set[str]:
-    contract = schema.get("capability_contract", {})
-    required: set[str] = set()
-    if capabilities is not None:
-        allowed = set(contract.get("allowed", []))
-        unknown = sorted(set(capabilities) - allowed)
-        if unknown:
-            raise ValueError(f"未知验证能力标志: {unknown}")
-        for capability, enabled in capabilities.items():
-            if enabled:
-                required.update(contract.get("required_sheets", {}).get(capability, []))
-        return required
-    fallback = contract.get("legacy_problem_type_fallback", {})
-    if set(problem_types).intersection(fallback.get("problem_types", [])):
-        required.update(fallback.get("required_sheets", []))
-    return required
-
-
-def _profile_requirements(
-    schema: Mapping[str, Any], objective: str | None,
-    structures: Sequence[str], problem_types: Sequence[str],
-) -> list[tuple[str, set[str]]]:
-    section = schema.get("solution_workbook", {})
-    requirements: list[tuple[str, set[str]]] = []
-    if objective:
-        required = set(section.get("objective_profiles", {}).get(objective, {}).get("required_any", []))
-        if required:
-            requirements.append((f"objective:{objective}", required))
-    for structure in structures:
-        required = set(section.get("structure_profiles", {}).get(structure, {}).get("required_any", []))
-        if required:
-            requirements.append((f"structure:{structure}", required))
-    if not objective and not structures:
-        profiles = section.get("task_profiles", {})
-        for problem_type in problem_types:
-            spec = profiles.get(problem_type, {})
-            if isinstance(spec, Mapping):
-                required = set(spec.get("required_any", []))
-                if required:
-                    requirements.append((f"legacy:{problem_type}", required))
-    return requirements
-
-
-def _check_required_columns(sheet: str, frame: pd.DataFrame, spec: Mapping[str, Any]) -> None:
-    missing = [str(column) for column in spec.get("required_columns", []) if str(column) not in frame.columns]
-    if missing:
-        raise ValueError(f"工作表“{sheet}”缺少必需字段: {missing}")
-
-
-def _check_record_keys(sheet: str, frame: pd.DataFrame) -> None:
-    for key in ("记录键", "样本键"):
-        if key not in frame.columns:
-            continue
-        series = frame[key]
-        if series.isna().any() or series.astype(str).str.strip().eq("").any():
-            raise ValueError(f"工作表“{sheet}”的主键字段“{key}”存在空值")
-        if series.duplicated().any():
-            duplicate = series[series.duplicated()].iloc[0]
-            raise ValueError(f"工作表“{sheet}”的主键字段“{key}”存在重复值: {duplicate}")
-        break
-
-
-def _check_finite_numbers(sheet: str, frame: pd.DataFrame) -> None:
-    for column in frame.select_dtypes(include="number").columns:
-        values = frame[column].dropna()
-        if not values.map(lambda value: math.isfinite(float(value))).all():
-            raise ValueError(f"工作表“{sheet}”的数值字段“{column}”包含 NaN 以外的非有限值")
-
-
-def _as_bool(value: Any) -> bool | None:
-    if isinstance(value, bool):
-        return value
-    text = str(value).strip().lower()
-    if text in {"true", "1", "yes", "是", "满足", "通过"}:
-        return True
-    if text in {"false", "0", "no", "否", "不满足", "未通过"}:
-        return False
-    return None
-
-
-def _check_residual_consistency(sheet: str, frame: pd.DataFrame) -> None:
-    value_column = "违反量" if "违反量" in frame.columns else "残差" if "残差" in frame.columns else None
-    if value_column is None or "容差" not in frame.columns or "是否满足" not in frame.columns:
-        return
-    for index, row in frame.iterrows():
-        if pd.isna(row[value_column]) or pd.isna(row["容差"]):
-            continue
-        expected = abs(float(row[value_column])) <= float(row["容差"])
-        actual = _as_bool(row["是否满足"])
-        if actual is None or actual != expected:
-            raise ValueError(f"工作表“{sheet}”第 {index + 2} 行的是否满足与残差/容差不一致")
-
-
-def _check_missing_value_audit(prepared: Sequence[tuple[str, pd.DataFrame]]) -> None:
-    affected = [name for name, frame in prepared if name != "数据审计" and frame.isna().any().any()]
-    if not affected:
-        return
-    audit = next((frame for name, frame in prepared if name == "数据审计"), None)
-    if audit is None:
-        raise ValueError(f"工作表 {affected} 包含缺失值，但缺少数据审计说明")
-    text = " ".join(audit.astype(str).fillna("").to_numpy().ravel()).lower()
-    if "缺失" not in text and "missing" not in text:
-        raise ValueError(f"工作表 {affected} 包含缺失值，但数据审计未说明缺失处理")
-
-
 def validate_workbook_tables(
     tables: Mapping[str, Any],
     workbook_kind: str,
@@ -334,60 +235,15 @@ def validate_workbook_tables(
     objective: str | None = None,
     structures: Sequence[str] = (),
 ) -> list[tuple[str, pd.DataFrame]]:
-    if workbook_kind not in VALID_WORKBOOK_KINDS:
-        raise ValueError(f"workbook_kind 必须为 {sorted(VALID_WORKBOOK_KINDS)}")
-    if not tables:
-        raise ValueError("没有可写入的结果表")
-    prepared: list[tuple[str, pd.DataFrame]] = []
-    used: set[str] = set()
-    for raw_name, value in tables.items():
-        name = _sheet_name(raw_name)
-        if name in used:
-            raise ValueError(f"工作表名称截断后重复: {name}")
-        used.add(name)
-        prepared.append((name, _to_frame(value)))
-    schema = load_workbook_schema(schema_path)
-    required_sheets, sheet_schemas = _required_sheet_schemas(schema, workbook_kind)
-    names = {name for name, _ in prepared}
-    if workbook_kind == "solution":
-        required_sheets.update(_conditional_required_sheets(schema, problem_types, capabilities))
-        missing = sorted(required_sheets - names)
-        if missing:
-            raise ValueError(f"求解工作簿缺少必需工作表: {missing}")
-        for profile, required_any in _profile_requirements(schema, objective, structures, problem_types):
-            if required_any and not names.intersection(required_any):
-                raise ValueError(f"分类剖面“{profile}”至少需要一个专项工作表: {sorted(required_any)}")
-    else:
-        allowed_any = set(schema["sensitivity_robustness_workbook"].get("required_any_sheets", []))
-        if not names.intersection(allowed_any):
-            raise ValueError(f"敏感性与鲁棒性工作簿至少需要一个工作表: {sorted(allowed_any)}")
-    for name, frame in prepared:
-        if name in sheet_schemas:
-            _check_required_columns(name, frame, sheet_schemas[name])
-        _check_record_keys(name, frame)
-        _check_finite_numbers(name, frame)
-        _check_residual_consistency(name, frame)
-    _check_missing_value_audit(prepared)
-    return prepared
+    return WORKBOOK_VALIDATION.validate_tables(
+        tables, workbook_kind, schema=load_workbook_schema(schema_path),
+        problem_types=problem_types, capabilities=capabilities,
+        objective=objective, structures=structures, name_normalizer=_sheet_name,
+    )
 
 
 def read_workbook_tables(path: Path) -> dict[str, pd.DataFrame]:
-    workbook = load_workbook(path, read_only=True, data_only=True)
-    tables: dict[str, pd.DataFrame] = {}
-    try:
-        for worksheet in workbook.worksheets:
-            rows = list(worksheet.iter_rows(values_only=True))
-            if not rows:
-                raise ValueError(f"工作表“{worksheet.title}”为空")
-            headers = ["" if value is None else str(value).strip() for value in rows[0]]
-            if any(not header for header in headers):
-                raise ValueError(f"工作表“{worksheet.title}”存在空字段名")
-            if len(headers) != len(set(headers)):
-                raise ValueError(f"工作表“{worksheet.title}”包含重复字段")
-            tables[worksheet.title] = pd.DataFrame(rows[1:], columns=headers)
-    finally:
-        workbook.close()
-    return tables
+    return WORKBOOK_VALIDATION.read_workbook_tables(Path(path))
 
 
 def validate_workbook_file(
@@ -400,12 +256,10 @@ def validate_workbook_file(
     objective: str | None = None,
     structures: Sequence[str] = (),
 ) -> list[tuple[str, pd.DataFrame]]:
-    if not Path(path).is_file():
-        raise FileNotFoundError(path)
-    return validate_workbook_tables(
-        read_workbook_tables(Path(path)), workbook_kind,
+    return WORKBOOK_VALIDATION.validate_workbook_file(
+        Path(path), workbook_kind, schema=load_workbook_schema(schema_path),
         problem_types=problem_types, capabilities=capabilities,
-        schema_path=schema_path, objective=objective, structures=structures,
+        objective=objective, structures=structures,
     )
 
 
@@ -431,10 +285,7 @@ def write_workbook(
     path = Path(path)
     kind = workbook_kind or _infer_workbook_kind(path)
     if kind is None:
-        prepared = [(_sheet_name(name), _to_frame(value)) for name, value in tables.items()]
-        for name, frame in prepared:
-            _check_record_keys(name, frame)
-            _check_finite_numbers(name, frame)
+        prepared = WORKBOOK_VALIDATION.prepare_tables(tables, name_normalizer=_sheet_name)
     else:
         prepared = validate_workbook_tables(
             tables, workbook_kind=kind, problem_types=problem_types,

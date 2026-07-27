@@ -35,7 +35,8 @@ def _load_module(name: str, path: Path):
     return module
 
 
-RESULT_IO = _load_module("hsk_result_io", ROOT / "templates/code/hsk_pipeline/result_io.py")
+WORKBOOK_VALIDATOR = _load_module("hsk_workbook_validator", ROOT / "templates/code/hsk_pipeline/workbook_validation.py")
+WORKBOOK_SCHEMA = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_text(encoding="utf-8")) or {}
 STATE_VALIDATOR = _load_module("hsk_state_validator", ROOT / "scripts/validate_project_state.py")
 FRAMEWORK_VALIDATOR = _load_module("hsk_framework_validator", ROOT / "scripts/validate_model_paper_framework.py")
 
@@ -92,9 +93,9 @@ def inspect_workbook(
     structures: Sequence[str] = (),
 ) -> list[str]:
     try:
-        RESULT_IO.validate_workbook_file(
-            path, kind, problem_types=problem_types, capabilities=capabilities,
-            objective=objective, structures=structures,
+        WORKBOOK_VALIDATOR.validate_workbook_file(
+            path, kind, schema=WORKBOOK_SCHEMA, problem_types=problem_types,
+            capabilities=capabilities, objective=objective, structures=structures,
         )
     except Exception as exc:  # noqa: BLE001
         return [f"workbook contract violation: {path}: {exc}"]

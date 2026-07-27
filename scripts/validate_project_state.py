@@ -128,6 +128,36 @@ def _validate_classification_aliases(
     return issues
 
 
+def _framework_section_hash(path: Path, anchor: str) -> str | None:
+    if not path.is_file() or not anchor.strip():
+        return None
+    lines = path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n").splitlines()
+    target = anchor.strip()
+    start = next((index for index, line in enumerate(lines) if line.strip() == target), None)
+    if start is None:
+        start = next(
+            (
+                index
+                for index, line in enumerate(lines)
+                if line.lstrip().startswith("#") and target in line.strip()
+            ),
+            None,
+        )
+    if start is None:
+        return None
+    heading = lines[start].lstrip()
+    level = len(heading) - len(heading.lstrip("#"))
+    end = len(lines)
+    for index in range(start + 1, len(lines)):
+        stripped = lines[index].lstrip()
+        if stripped.startswith("#"):
+            next_level = len(stripped) - len(stripped.lstrip("#"))
+            if next_level <= level:
+                end = index
+                break
+    text = "\n".join(lines[start:end]).strip() + "\n"
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
 def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[str]:
     issues: list[str] = []
     current = dict(state.get("artifact_hashes", {}) or {})
@@ -147,16 +177,20 @@ def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[s
     if invalid_layers:
         issues.append(f"{name}.stale_layers contains invalid layers: {sorted(invalid_layers)}")
     mismatched = {key for key, value in validated.items() if current.get(key) != value}
-    if mismatched != stale_layers and state.get("artifacts_stale") is True:
+    stale_flag = state.get("artifacts_stale") is True
+    if mismatched and not stale_flag:
+        issues.append(f"{name}.artifacts_stale must be true while validated hashes differ: {sorted(mismatched)}")
+    if stale_flag and mismatched != stale_layers:
         issues.append(f"{name}.stale_layers must equal changed validated layers: {sorted(mismatched)}")
+    if not stale_flag and stale_layers:
+        issues.append(f"{name}.stale_layers must be empty while artifacts_stale is false")
     if status in VALIDATED_STATUSES:
-        required = {"data", "model", "solution_workbook", "robustness_workbook"}
+        required = {"data", "model", "solution_workbook", "robustness_workbook", "framework"}
         missing = sorted(key for key in required if key not in current or key not in validated)
         if missing:
             issues.append(f"{name} validated status requires current and validated hashes for: {missing}")
-        mismatched_validated = sorted(key for key in validated if current.get(key) != validated.get(key))
-        if mismatched_validated:
-            issues.append(f"{name} validated artifact hashes are stale: {mismatched_validated}")
+        if mismatched:
+            issues.append(f"{name} validated artifact hashes are stale: {sorted(mismatched)}")
     return issues
 
 
@@ -207,6 +241,11 @@ def validate_state_payload(
         framework_section = str(state.get("framework_section", "")).strip()
         issues.extend(_validate_classification_aliases(name, state, taxonomy))
         issues.extend(_validate_hashes(name, state, status))
+        section_hash = (state.get("artifact_hashes", {}) or {}).get("framework")
+        if section_hash and framework_path.is_file():
+            actual_section_hash = _framework_section_hash(framework_path, framework_section)
+            if actual_section_hash != section_hash:
+                issues.append(f"{name}.artifact_hashes.framework does not match the current framework section")
         if not framework_section:
             issues.append(f"{name}.framework_section must identify the current framework section")
         proposition_refs = set(state.get("proposition_refs", []) or [])

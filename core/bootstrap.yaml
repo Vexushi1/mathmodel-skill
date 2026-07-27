@@ -1,11 +1,8 @@
-skill_version: 6.3.1
+skill_version: 6.3.2
 bootstrap_schema_version: 1.1.0
-
-purpose: >-
-  Minimal startup contract for the HSK mathematical-modeling workflow. Read this
-  file first, then use scripts/resolve_workflow.py to obtain the deterministic
+purpose: Minimal startup contract for the HSK mathematical-modeling workflow. Read
+  this file first, then use scripts/resolve_workflow.py to obtain the deterministic
   task-specific execution plan. Do not preload the whole repository.
-
 authoritative_sources:
   global_policy: core/hsk_core_policy.md
   routing: core/workflow_router.yaml
@@ -14,23 +11,21 @@ authoritative_sources:
   project_state: core/project_state.schema.yaml
   workbook: core/workbook_schema.yaml
   output: core/output_contract.yaml
-
 hard_invariants:
-  - 题意正确优先于模型高级、代码复杂和排版炫技。
-  - 先审题与锁定模型，再进行求解、绘图和写作；不得伪造缺失前置结果。
-  - Python负责数据处理、求解、检验与结果工作簿；MATLAB只读取工作簿绘制正式结果图。
-  - locked_model_spec形成后维护项目根目录当前版模型论文框架.md；旧版本由Git历史保存。
-  - 每次正式产物交付前执行解析器返回的project_sync gate，检查框架、状态、代码、工作簿、MATLAB与图表的新旧一致性。
-  - 顶层subproblem.capabilities是唯一能力事实源；旧别名只能兼容读取且必须一致。
-  - legacy目录不参与默认执行。
-
+- 题意正确优先于模型高级、代码复杂和排版炫技。
+- 先审题与锁定模型，再进行求解、绘图和写作；不得伪造缺失前置结果。
+- Python负责数据处理、求解、检验与结果工作簿；MATLAB只读取工作簿绘制正式结果图。
+- locked_model_spec形成后维护项目根目录当前版模型论文框架.md；旧版本由Git历史保存。
+- 每次正式产物交付前执行解析器返回的project_sync gate，检查框架、状态、代码、工作簿、MATLAB与图表的新旧一致性。
+- 顶层subproblem.capabilities是唯一能力事实源；旧别名只能兼容读取且必须一致。
+- DOCX、LaTeX与提交scope必须检查真实交付文件，不得以框架或状态文件替代。
+- legacy目录不参与默认执行。
 entrypoints:
   resolve: python scripts/resolve_workflow.py
   sync: python scripts/sync_project.py
   validate_state: python scripts/validate_project_state.py
   validate_framework: python scripts/validate_model_paper_framework.py
   review: python scripts/score_submission.py
-
 repository_maintenance:
   governance: SKILL_CHANGE_GOVERNANCE.md
   mandatory_before_write: true
@@ -39,7 +34,6 @@ repository_maintenance:
   pull_request_required: true
   direct_main_write_allowed: false
   generated_files_managed_by: scripts/generate_indexes.py
-
 compatibility:
   legacy_task_labels_supported: true
   legacy_router_single_intent_supported: true

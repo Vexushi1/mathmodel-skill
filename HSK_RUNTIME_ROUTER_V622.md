@@ -1,4 +1,4 @@
-# HSK Runtime Router v6.3.1
+# HSK Runtime Router v6.3.2
 
 文件名保留 V622 作为兼容路径。机器路由以 `core/workflow_router.yaml` 为准。
 
