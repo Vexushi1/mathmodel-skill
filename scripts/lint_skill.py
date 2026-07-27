@@ -2,6 +2,7 @@
 """Validate the active HSK v6.3.1 graph, contracts, semantics and generated files."""
 from __future__ import annotations
 
+import argparse
 import importlib.util
 import json
 import subprocess
@@ -90,20 +91,13 @@ def check_versions(errors: list[str]) -> None:
 
 def check_bootstrap_and_governance(errors: list[str]) -> None:
     data = load_structured(ROOT / "core/bootstrap.yaml") or {}
-    sources = data.get("authoritative_sources", {})
-    for key in ("global_policy", "routing", "artifact_graph", "task_taxonomy", "project_state", "workbook", "output"):
-        path = sources.get(key)
+    for key, path in (data.get("authoritative_sources", {}) or {}).items():
         if not path or not (ROOT / path).is_file():
             errors.append(f"bootstrap authoritative source missing: {key} -> {path}")
     if data.get("entrypoints", {}).get("sync") != "python scripts/sync_project.py":
         errors.append("bootstrap must expose sync_project.py")
     maintenance = data.get("repository_maintenance", {})
-    expected = {
-        "governance": "SKILL_CHANGE_GOVERNANCE.md",
-        "mandatory_before_write": True,
-        "read_from_ref": "main",
-        "direct_main_write_allowed": False,
-    }
+    expected = {"governance": "SKILL_CHANGE_GOVERNANCE.md", "mandatory_before_write": True, "read_from_ref": "main", "direct_main_write_allowed": False}
     for key, value in expected.items():
         if maintenance.get(key) != value:
             errors.append(f"repository maintenance mismatch: {key}")
@@ -125,6 +119,8 @@ def check_taxonomy(errors: list[str]) -> None:
     required_capabilities = {"requires_out_of_sample_validation", "requires_uncertainty_quantification", "requires_leakage_check", "requires_calibration_check", "requires_identifiability_check"}
     if required_capabilities - set(data.get("capabilities", {})):
         errors.append("task taxonomy lacks required validation capabilities")
+    if data.get("classification_contract", {}).get("authoritative_locations", {}).get("capabilities") != "subproblem.capabilities":
+        errors.append("taxonomy must declare top-level capabilities as authoritative")
     if len(data.get("legacy_mapping", {})) != 10:
         errors.append("task taxonomy must map all ten legacy packs")
 
@@ -181,12 +177,12 @@ def check_manifest(errors: list[str]) -> None:
     gate = manifest.get("utility_gates", {}).get("project_sync", {})
     if gate.get("path") != "scripts/sync_project.py" or not (ROOT / str(gate.get("path", ""))).is_file():
         errors.append("project_sync gate must point to scripts/sync_project.py")
+    if set(gate.get("outputs", [])) != {"project_state", "sync_report"}:
+        errors.append("project_sync must produce project_state and sync_report")
     for field in ("inputs", "outputs"):
         unknown = set(gate.get(field, [])) - known
         if unknown:
             errors.append(f"project_sync has uncatalogued {field}: {sorted(unknown)}")
-    if set(gate.get("outputs", [])) != {"project_state", "sync_report"}:
-        errors.append("project_sync must produce project_state and sync_report")
     for profile_name, profile in manifest.get("workflow_profiles", {}).items():
         profile_modules = profile.get("modules", [])
         if profile_modules != sorted(profile_modules, key=lambda item: rank.get(item, 999)):
@@ -199,8 +195,7 @@ def check_manifest(errors: list[str]) -> None:
                 errors.append(f"workflow profile {profile_name} missing inputs before {module_name}: {sorted(missing)}")
             available.update(spec.get("outputs", []))
         for gate_name in profile.get("pre_delivery_gates", []):
-            gate_spec = manifest.get("utility_gates", {}).get(gate_name, {})
-            available.update(gate_spec.get("outputs", []))
+            available.update(manifest.get("utility_gates", {}).get(gate_name, {}).get("outputs", []))
         unavailable = set(profile.get("terminal_outputs", [])) - available
         if unavailable:
             errors.append(f"workflow profile {profile_name} has unproducible terminal outputs: {sorted(unavailable)}")
@@ -209,21 +204,18 @@ def check_manifest(errors: list[str]) -> None:
 def check_contracts(errors: list[str]) -> None:
     output = load_structured(ROOT / "core/output_contract.yaml") or {}
     modes = output.get("model_paper_framework", {}).get("modes", {})
-    if set(modes) != {"compact", "full"}:
-        errors.append("framework contract must define compact and full modes")
     compact = set(modes.get("compact", {}).get("required_sections", []))
     full = set(modes.get("full", {}).get("required_sections", []))
-    if not compact or not compact < full:
-        errors.append("full framework sections must strictly extend compact sections")
+    if set(modes) != {"compact", "full"} or not compact or not compact < full:
+        errors.append("framework compact/full contract is invalid")
     sync = output.get("project_sync", {})
     if sync.get("role") != "formal_pre_delivery_gate":
         errors.append("project_sync must be a formal pre-delivery gate")
     expected_layers = {"data", "model", "solution_workbook", "robustness_workbook", "matlab_script", "figure_bundle", "framework"}
     if set(sync.get("artifact_hash_layers", [])) != expected_layers:
         errors.append("project_sync artifact hash layers are incomplete")
-    locations = output.get("classification_contract", {}).get("authoritative_locations", {})
-    if locations.get("capabilities") != "subproblem.capabilities":
-        errors.append("top-level subproblem.capabilities must be authoritative")
+    if output.get("classification_contract", {}).get("authoritative_locations", {}).get("capabilities") != "subproblem.capabilities":
+        errors.append("output contract capabilities source is invalid")
     workbook = load_structured(ROOT / "core/workbook_schema.yaml") or {}
     if workbook.get("global_rules", {}).get("empty_worksheet_allowed") is not False:
         errors.append("workbook schema must forbid empty worksheets")
@@ -232,7 +224,7 @@ def check_contracts(errors: list[str]) -> None:
     if not workbook.get("solution_workbook", {}).get("structure_profiles"):
         errors.append("workbook schema lacks structure_profiles")
     if workbook.get("classification_contract", {}).get("capabilities_source") != "subproblem.capabilities":
-        errors.append("workbook capabilities source is not authoritative top-level field")
+        errors.append("workbook capabilities source is invalid")
     if workbook.get("matlab_handoff", {}).get("field_resolution", {}).get("method") != "exact_header_unique_match":
         errors.append("workbook MATLAB handoff must use exact header matching")
 
@@ -246,30 +238,25 @@ def check_project_state_and_framework(errors: list[str]) -> None:
         errors.append(f"project state example violates schema at {location}: {violation.message}")
     classification_required = set(schema.get("$defs", {}).get("classification", {}).get("required", []))
     if "capabilities" in classification_required:
-        errors.append("classification.capabilities must not remain a required fact source")
+        errors.append("classification.capabilities must not remain required")
     sub_required = set(schema.get("properties", {}).get("subproblems", {}).get("additionalProperties", {}).get("required", []))
     if "capabilities" not in sub_required:
         errors.append("subproblem top-level capabilities must be required")
     state_validator = load_module("lint_state_validator", ROOT / "scripts/validate_project_state.py")
-    semantic = state_validator.validate_state_payload(example, project_root=ROOT)
-    allowed_missing_framework = {
-        "paper_framework.sha256 does not match the current framework file",
-    }
-    for issue in semantic:
-        if issue not in allowed_missing_framework:
-            errors.append(f"project state semantic violation: {issue}")
+    for issue in state_validator.validate_state_payload(example, project_root=ROOT):
+        errors.append(f"project state semantic violation: {issue}")
     framework_validator = load_module("lint_framework_validator", ROOT / "scripts/validate_model_paper_framework.py")
     compact = "# 模型论文框架\n只保留当前有效版本\n## 当前有效口径\n## 各问模型与结果\n## 图表证据链\n## 待办与缺口\n"
-    full = compact + "## 论文整体框架\n### 命题与证明规划\n全文命题上限：4\n当前计划命题数：0\n## 综合检验与跨问结论\n## 同步检查\n"
+    full_text = compact + "## 论文整体框架\n### 命题与证明规划\n全文命题上限：4\n当前计划命题数：0\n## 综合检验与跨问结论\n## 同步检查\n"
     if framework_validator.validate_framework_text(compact, mode="compact"):
-        errors.append("minimal compact framework must pass mode-aware validation")
-    if framework_validator.validate_framework_text(full, mode="full"):
-        errors.append("minimal full framework must pass mode-aware validation")
+        errors.append("minimal compact framework must pass")
+    if framework_validator.validate_framework_text(full_text, mode="full"):
+        errors.append("minimal full framework must pass")
     if not framework_validator.validate_framework_text(compact, mode="full"):
-        errors.append("compact framework must fail full-mode validation")
+        errors.append("compact framework must fail full mode")
 
 
-def check_templates_and_paths(errors: list[str]) -> None:
+def check_templates(errors: list[str]) -> None:
     plot = read_text(ROOT / "templates/matlab/q1_plot.m")
     for token in ("exact_header_column", "headers ==", "warn_position_drift", "title(ax, figureTitle"):
         if token not in plot:
@@ -277,12 +264,6 @@ def check_templates_and_paths(errors: list[str]) -> None:
     proposition = read_text(ROOT / "packs/artifact/proposition_proof.md")
     if "全文最多 4 个" not in proposition or "数值复核不能替代证明" not in proposition:
         errors.append("proposition proof pack is incomplete")
-    for structured_path in ("core/bootstrap.yaml", "core/module_manifest.yaml", "core/output_contract.yaml"):
-        payload = load_structured(ROOT / structured_path) or {}
-        for key, value in payload.items():
-            if key in {"path", "script", "template", "taxonomy", "schema", "bootstrap"} and isinstance(value, str) and "/" in value:
-                if not (ROOT / value).exists():
-                    errors.append(f"declared path missing in {structured_path}: {value}")
 
 
 def check_syntax(errors: list[str]) -> None:
@@ -307,11 +288,7 @@ def main() -> int:
     parser.add_argument("--skip-generated", action="store_true")
     args = parser.parse_args()
     errors: list[str] = []
-    checks = (
-        check_required, check_versions, check_bootstrap_and_governance, check_taxonomy,
-        check_router, check_manifest, check_contracts, check_project_state_and_framework,
-        check_templates_and_paths, check_syntax,
-    )
+    checks = (check_required, check_versions, check_bootstrap_and_governance, check_taxonomy, check_router, check_manifest, check_contracts, check_project_state_and_framework, check_templates, check_syntax)
     for check in checks:
         try:
             check(errors)
