@@ -29,7 +29,6 @@
 - `templates/latex/cumcm/cumcmthesis/.gitignore`
 - `templates/latex/cumcm/cumcmthesis/README.md`
 - `templates/latex/cumcm/cumcmthesis/cumcmthesis.cls`
-- `templates/latex/cumcm/cumcmthesis/example.pdf`
 - `templates/latex/cumcm/cumcmthesis/example.tex`
 - `templates/latex/cumcm/hsk/README.md`
 - `templates/latex/cumcm/hsk/hsk_main.tex`
@@ -41,7 +40,6 @@
 - `templates/matlab/README.md`
 - `templates/matlab/draw_mechanism_structure.m`
 - `templates/matlab/hsk_apply_scientific_style.m`
-- `templates/matlab/hsk_export_figure.m`
 - `templates/matlab/hsk_read_result_workbooks.m`
 - `templates/matlab/q1_plot.m`
 - `templates/model/assumption_audit.md`

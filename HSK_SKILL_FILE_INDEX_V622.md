@@ -13,6 +13,7 @@
 - `CHANGELOG_V630.md`
 - `CHANGELOG_V632.md`
 - `CHANGELOG_V633.md`
+- `CHANGELOG_V634.md`
 - `HSK_RUNTIME_ROUTER_V622.md`
 - `HSK_SKILL_FILE_INDEX_V622.md`
 - `HSK_TEMPLATE_INDEX_V622.md`
@@ -101,7 +102,6 @@
 - `scripts/validate_model_paper_framework.py`
 - `scripts/validate_project_state.py`
 - `skills/mathmodel-skill/SKILL.md`
-- `state/.gitkeep`
 - `state/project_state.example.yaml`
 - `templates/code/hsk_pipeline/README.md`
 - `templates/code/hsk_pipeline/__init__.py`
@@ -130,7 +130,6 @@
 - `templates/latex/cumcm/cumcmthesis/.gitignore`
 - `templates/latex/cumcm/cumcmthesis/README.md`
 - `templates/latex/cumcm/cumcmthesis/cumcmthesis.cls`
-- `templates/latex/cumcm/cumcmthesis/example.pdf`
 - `templates/latex/cumcm/cumcmthesis/example.tex`
 - `templates/latex/cumcm/hsk/README.md`
 - `templates/latex/cumcm/hsk/hsk_main.tex`
@@ -142,7 +141,6 @@
 - `templates/matlab/README.md`
 - `templates/matlab/draw_mechanism_structure.m`
 - `templates/matlab/hsk_apply_scientific_style.m`
-- `templates/matlab/hsk_export_figure.m`
 - `templates/matlab/hsk_read_result_workbooks.m`
 - `templates/matlab/q1_plot.m`
 - `templates/model/assumption_audit.md`
@@ -167,6 +165,7 @@
 - `tests/test_result_io.py`
 - `tests/test_router_contract.py`
 - `tests/test_schemas.py`
+- `tests/test_starter_templates.py`
 - `tests/test_structure.py`
 - `tests/test_sync_project.py`
 - `tests/test_tooling.py`
