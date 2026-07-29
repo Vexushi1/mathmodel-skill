@@ -1,16 +1,16 @@
-# Temporary workflow; delete before opening the pull request.
+# Temporary workflow. It deletes itself after synchronizing the pull-request branch.
 name: One-time v6.3.4 synchronization
 
 on:
-  push:
+  pull_request:
     branches:
-      - fix/v6.3.3-starter-cleanup
+      - main
 
 permissions:
   contents: write
 
 concurrency:
-  group: one-time-v634-${{ github.ref }}
+  group: one-time-v634-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
@@ -20,7 +20,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -72,32 +73,15 @@ jobs:
           python scripts/lint_skill.py
           python -m unittest discover -s tests -p "test_*.py"
           python scripts/generate_indexes.py --check
-      - name: Commit synchronized files
+      - name: Remove temporary workflow and commit synchronized files
         run: |
+          rm .github/workflows/one-time-v634.yml
+          python scripts/generate_indexes.py
+          python scripts/lint_skill.py
+          python -m unittest discover -s tests -p "test_*.py"
+          python scripts/generate_indexes.py --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            core/workflow_router.yaml \
-            core/module_manifest.yaml \
-            core/output_contract.yaml \
-            core/project_state.schema.yaml \
-            scripts/generate_indexes.py \
-            scripts/lint_skill.py \
-            scripts/resolve_workflow.py \
-            scripts/sync_project.py \
-            scripts/validate_model_paper_framework.py \
-            scripts/validate_project_state.py \
-            scripts/README.md \
-            skills/mathmodel-skill/SKILL.md \
-            state/project_state.example.yaml \
-            templates/code/hsk_pipeline/README.md \
-            agents/openai.yaml \
-            HSK_SKILL_FILE_INDEX_V622.md \
-            HSK_TEMPLATE_INDEX_V622.md \
-            MANIFEST.sha256
-          if git diff --cached --quiet; then
-            echo "Version markers are already synchronized."
-            exit 0
-          fi
-          git commit -m "chore: synchronize v6.3.4 repository metadata"
-          git push
+          git add -A
+          git commit -m "chore: synchronize v6.3.4 and remove temporary workflow"
+          git push origin HEAD:${{ github.head_ref }}
