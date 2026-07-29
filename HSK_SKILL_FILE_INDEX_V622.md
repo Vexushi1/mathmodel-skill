@@ -111,6 +111,7 @@
 - `templates/code/hsk_pipeline/result_io.py`
 - `templates/code/hsk_pipeline/workbook_validation.py`
 - `templates/code/requirements.txt`
+- `templates/code/starter/README.md`
 - `templates/code/starter/classification.py`
 - `templates/code/starter/evaluation.py`
 - `templates/code/starter/optimization.py`
