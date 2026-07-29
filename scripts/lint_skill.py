@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the active HSK v6.3.3 graph, contracts, semantics and generated files."""
+"""Validate the active HSK v6.3.4 graph, contracts, semantics and generated files."""
 from __future__ import annotations
 
 import argparse
@@ -14,9 +14,9 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "6.3.3"
+PACKAGE_VERSION = "6.3.4"
 REQUIRED = [
-    "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG_V633.md", "CHANGELOG_V632.md",
+    "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG_V634.md", "CHANGELOG_V633.md", "CHANGELOG_V632.md",
     "PROJECT_INSTRUCTIONS_HSK_V622.md", "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V630.md",
     "core/bootstrap.yaml", "core/hsk_core_policy.md", "core/task_taxonomy.yaml",
     "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml",
@@ -36,7 +36,7 @@ REQUIRED = [
 ]
 ACTIVE_DIRS = ["core", "modules", "packs", "templates", "scripts", "config", "state", "assets", "agents", "skills", ".codex-plugin", ".github"]
 TEXT_SUFFIXES = {".md", ".yaml", ".yml", ".json", ".py", ".m", ".tex", ".bib"}
-VERSION_DOCS = ["SKILL.md", "README.md", "REPOSITORY_INDEX.md", "PROJECT_INSTRUCTIONS_HSK_V622.md", "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V633.md"]
+VERSION_DOCS = ["SKILL.md", "README.md", "REPOSITORY_INDEX.md", "PROJECT_INSTRUCTIONS_HSK_V622.md", "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V634.md"]
 VERSION_CONTRACTS = ["core/bootstrap.yaml", "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml", "core/project_state.schema.yaml"]
 
 

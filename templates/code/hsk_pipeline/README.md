@@ -1,4 +1,4 @@
-# HSK Python 求解管线 v6.3.3
+# HSK Python 求解管线 v6.3.4
 
 本目录是所有 Python starter 的唯一执行底座。`main_pipeline.py` 负责随机种子、数据审计、求解主链、三轴工作簿校验、结果保存和框架同步；`templates/code/starter/` 只填写题型配置与题目专属函数。
 

@@ -1,4 +1,4 @@
-# HSK Active Skill File Index v6.3.3
+# HSK Active Skill File Index v6.3.4
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -6,7 +6,6 @@
 - `.gitattributes`
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
-- `.github/workflows/one-time-v634.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
 - `AGENTS.md`
