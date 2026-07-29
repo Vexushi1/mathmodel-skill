@@ -47,6 +47,7 @@ jobs:
               "state/project_state.example.yaml",
               "templates/code/hsk_pipeline/README.md",
               "agents/openai.yaml",
+              "tests/test_schemas.py",
           ]
           for relative in targets:
               path = Path(relative)
