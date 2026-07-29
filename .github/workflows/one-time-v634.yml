@@ -1,0 +1,102 @@
+name: One-time v6.3.4 synchronization
+
+on:
+  push:
+    branches:
+      - fix/v6.3.3-starter-cleanup
+
+permissions:
+  contents: write
+
+concurrency:
+  group: one-time-v634-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synchronize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Synchronize current version markers
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          targets = [
+              "core/workflow_router.yaml",
+              "core/module_manifest.yaml",
+              "core/output_contract.yaml",
+              "core/project_state.schema.yaml",
+              "scripts/generate_indexes.py",
+              "scripts/lint_skill.py",
+              "scripts/resolve_workflow.py",
+              "scripts/sync_project.py",
+              "scripts/validate_model_paper_framework.py",
+              "scripts/validate_project_state.py",
+              "scripts/README.md",
+              "skills/mathmodel-skill/SKILL.md",
+              "state/project_state.example.yaml",
+              "templates/code/hsk_pipeline/README.md",
+              "agents/openai.yaml",
+          ]
+          for relative in targets:
+              path = Path(relative)
+              text = path.read_text(encoding="utf-8")
+              updated = text.replace("6.3.3", "6.3.4")
+              if relative == "scripts/lint_skill.py":
+                  updated = updated.replace(
+                      '"CHANGELOG_V633.md", "CHANGELOG_V632.md"',
+                      '"CHANGELOG_V634.md", "CHANGELOG_V633.md", "CHANGELOG_V632.md"',
+                  )
+                  updated = updated.replace(
+                      ', "CHANGELOG_V633.md"]',
+                      ', "CHANGELOG_V634.md"]',
+                  )
+              if updated != text:
+                  path.write_text(updated, encoding="utf-8", newline="\n")
+          PY
+      - name: Install validation dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
+      - name: Refresh generated repository metadata
+        run: python scripts/generate_indexes.py
+      - name: Validate repository
+        run: |
+          python scripts/lint_skill.py
+          python -m unittest discover -s tests -p "test_*.py"
+          python scripts/generate_indexes.py --check
+      - name: Commit synchronized files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            core/workflow_router.yaml \
+            core/module_manifest.yaml \
+            core/output_contract.yaml \
+            core/project_state.schema.yaml \
+            scripts/generate_indexes.py \
+            scripts/lint_skill.py \
+            scripts/resolve_workflow.py \
+            scripts/sync_project.py \
+            scripts/validate_model_paper_framework.py \
+            scripts/validate_project_state.py \
+            scripts/README.md \
+            skills/mathmodel-skill/SKILL.md \
+            state/project_state.example.yaml \
+            templates/code/hsk_pipeline/README.md \
+            agents/openai.yaml \
+            HSK_SKILL_FILE_INDEX_V622.md \
+            HSK_TEMPLATE_INDEX_V622.md \
+            MANIFEST.sha256
+          if git diff --cached --quiet; then
+            echo "Version markers are already synchronized."
+            exit 0
+          fi
+          git commit -m "chore: synchronize v6.3.4 repository metadata"
+          git push
