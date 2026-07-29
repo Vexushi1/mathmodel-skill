@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 6.3.3
+version: 6.3.4
 summary: Lightweight-bootstrap HSK mathematical-modeling workflow with orthogonal task classification, explicit pre-delivery synchronization, layered artifact freshness, Python-to-Excel-to-MATLAB evidence chains, DOCX draft and LaTeX final delivery.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 项目同步, 结果摘要, 模型选择, 敏感性分析, 鲁棒性分析, 机理图, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v6.3.3
+# HSK 数学建模模块化工作流 v6.3.4
 
 ## 启动
 

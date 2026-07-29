@@ -1,4 +1,4 @@
-# HSK Runtime Router v6.3.3
+# HSK Runtime Router v6.3.4
 
 文件名保留 V622 作为兼容路径。机器路由以 `core/workflow_router.yaml` 为准。
 
@@ -14,6 +14,8 @@
 → 执行 pre_delivery_gates
 → gate 成功后暴露 project_state / sync_report
 ```
+
+Python starter 使用 `templates/code/hsk_pipeline/run_pipeline()` 统一执行配置校验、随机种子、求解、验证、工作簿写入和框架同步；starter 本身只保留题型配置与题目专属钩子。
 
 ## 示例
 

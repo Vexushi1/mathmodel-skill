@@ -17,7 +17,7 @@ class TestSchemas(unittest.TestCase):
     def test_v631_classification_has_single_capability_source(self):
         schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
         defs = schema["$defs"]
-        self.assertEqual(schema["version"], "6.3.3")
+        self.assertEqual(schema["version"], "6.3.4")
         self.assertEqual(set(defs["classification"]["required"]), {"objective", "structures"})
         subproblems = schema["properties"]["subproblems"]
         sub_required = set(subproblems["additionalProperties"]["required"])
@@ -38,7 +38,7 @@ class TestSchemas(unittest.TestCase):
 
     def test_output_contract_defines_stage_sync_and_framework_modes(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(contract["version"], "6.3.3")
+        self.assertEqual(contract["version"], "6.3.4")
         self.assertEqual(contract["project_sync"]["role"], "formal_pre_delivery_gate")
         self.assertEqual(contract["project_sync"]["stage_requirements_semantics"], "exact_scope")
         self.assertEqual(set(contract["model_paper_framework"]["modes"]), {"compact", "full"})

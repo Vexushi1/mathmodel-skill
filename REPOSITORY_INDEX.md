@@ -1,4 +1,4 @@
-# Mathmodel Skill Repository Index v6.3.3
+# Mathmodel Skill Repository Index v6.3.4
 
 ## 启动
 
@@ -26,6 +26,7 @@
 | 新赛题与审题 | `modules/01_problem_audit.md` |
 | 模型路线、变量、假设、公式、约束 | `modules/02_model_design.md` |
 | Python求解、验证、敏感性与鲁棒性 | `modules/03_solve_validate.md` |
+| Python题型 starter | `templates/code/starter/` + `templates/code/hsk_pipeline/` |
 | MATLAB结果图与机理图 | `modules/04_figure_evidence.md` |
 | DOCX / LaTeX | `modules/05_writing/` |
 | 终审与提交包 | `modules/06_review_delivery.md` |

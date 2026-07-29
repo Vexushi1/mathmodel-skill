@@ -1,4 +1,5 @@
-version: 6.2.3
+schema_version: 1.0.0
+skill_compatibility: ">=6.2.3,<7.0.0"
 purpose: 将 Nature 风格图集作为按需视觉参考接入图型选择；资产不提供数据、结论或固定配色。
 default_load: false
 rules:

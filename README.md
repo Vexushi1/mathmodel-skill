@@ -1,6 +1,6 @@
-# mathmodel-skill v6.3.3
+# mathmodel-skill v6.3.4
 
-v6.3.3 是 v6.3 系列的 gate-hardening 封板补丁：正式同步在发现产物前强制校验项目状态与模型论文框架，交付范围直接读取 Output Contract，figures scope 不再受较低小问状态绕过，同步器不再自动清除 stale，并修复首次生成图表证据后未写入项目状态的问题。
+v6.3.4 是 v6.3 系列的 starter-cleanup 补丁：五类 Python starter 统一接入 `run_pipeline()`，导入阶段不再创建目录、设置随机种子或直接写工作簿；活动包同时清理可再生文件和已退出默认链路的 MATLAB 辅助项。
 
 ## v6.3 核心架构
 
@@ -10,6 +10,14 @@ v6.3.3 是 v6.3 系列的 gate-hardening 封板补丁：正式同步在发现产
 - **统一项目同步器**：按交付阶段发现并校验产物、计算分层哈希、传播 stale、生成 `sync_report.yaml`；
 - **MATLAB 精确表头读取**：按真实表头唯一匹配，列号仅作漂移警告；
 - **命题懒加载**：详细规则只在命题计划非零或明确证明任务时加载。
+
+## v6.3.4 Starter Cleanup
+
+- `templates/code/starter/` 五类入口改为题型配置与题目专属钩子，不再复制输出和校验逻辑；
+- `templates/code/hsk_pipeline/main_pipeline.py` 新增统一 `run_pipeline()`；
+- starter 显式传递 objective、structures 和完整 capabilities；
+- 删除冗余 `.gitkeep`、可再生 `example.pdf`，迁移非默认 MATLAB 辅助函数；
+- 新增 starter 导入副作用、能力配置和活动残留回归测试。
 
 ## v6.3.3 Gate Hardening
 

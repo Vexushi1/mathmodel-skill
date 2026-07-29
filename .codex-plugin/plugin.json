@@ -1,6 +1,6 @@
 {
   "name": "mathmodel-skill",
-  "version": "6.3.3",
+  "version": "6.3.4",
   "description": "HSK lightweight-bootstrap mathematical-modeling workflow with multi-intent routing, orthogonal task classification, stage-aware project synchronization, layered artifact freshness, Python-to-Excel-to-MATLAB evidence figures, DOCX draft and LaTeX final.",
   "author": {
     "name": "HSK"

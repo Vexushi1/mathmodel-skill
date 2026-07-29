@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synchronize project artifacts and enforce v6.3.3 delivery-gate contracts.
+"""Synchronize project artifacts and enforce v6.3.4 delivery-gate contracts.
 
 The synchronizer is conservative: it discovers and validates existing artifacts,
 computes provenance hashes and propagates stale state. It never invents model
@@ -825,7 +825,7 @@ def synchronize(
 
     report = {
         "sync_version": "1.3.0",
-        "skill_version": "6.3.3",
+        "skill_version": "6.3.4",
         "generated_at": timestamp,
         "project_root": root.as_posix(),
         "delivery_scope": scope,
