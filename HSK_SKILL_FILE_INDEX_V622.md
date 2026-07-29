@@ -1,4 +1,4 @@
-# HSK Active Skill File Index v6.3.3
+# HSK Active Skill File Index v6.3.4
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -13,6 +13,7 @@
 - `CHANGELOG_V630.md`
 - `CHANGELOG_V632.md`
 - `CHANGELOG_V633.md`
+- `CHANGELOG_V634.md`
 - `HSK_RUNTIME_ROUTER_V622.md`
 - `HSK_SKILL_FILE_INDEX_V622.md`
 - `HSK_TEMPLATE_INDEX_V622.md`
@@ -101,15 +102,16 @@
 - `scripts/validate_model_paper_framework.py`
 - `scripts/validate_project_state.py`
 - `skills/mathmodel-skill/SKILL.md`
-- `state/.gitkeep`
 - `state/project_state.example.yaml`
 - `templates/code/hsk_pipeline/README.md`
+- `templates/code/hsk_pipeline/__init__.py`
 - `templates/code/hsk_pipeline/config.yaml`
 - `templates/code/hsk_pipeline/main_pipeline.py`
 - `templates/code/hsk_pipeline/matlab_handoff.py`
 - `templates/code/hsk_pipeline/result_io.py`
 - `templates/code/hsk_pipeline/workbook_validation.py`
 - `templates/code/requirements.txt`
+- `templates/code/starter/README.md`
 - `templates/code/starter/classification.py`
 - `templates/code/starter/evaluation.py`
 - `templates/code/starter/optimization.py`
@@ -128,7 +130,6 @@
 - `templates/latex/cumcm/cumcmthesis/.gitignore`
 - `templates/latex/cumcm/cumcmthesis/README.md`
 - `templates/latex/cumcm/cumcmthesis/cumcmthesis.cls`
-- `templates/latex/cumcm/cumcmthesis/example.pdf`
 - `templates/latex/cumcm/cumcmthesis/example.tex`
 - `templates/latex/cumcm/hsk/README.md`
 - `templates/latex/cumcm/hsk/hsk_main.tex`
@@ -140,8 +141,6 @@
 - `templates/matlab/README.md`
 - `templates/matlab/draw_mechanism_structure.m`
 - `templates/matlab/hsk_apply_scientific_style.m`
-- `templates/matlab/hsk_export_figure.m`
-- `templates/matlab/hsk_find_project_root.m`
 - `templates/matlab/hsk_read_result_workbooks.m`
 - `templates/matlab/q1_plot.m`
 - `templates/model/assumption_audit.md`
@@ -166,6 +165,7 @@
 - `tests/test_result_io.py`
 - `tests/test_router_contract.py`
 - `tests/test_schemas.py`
+- `tests/test_starter_templates.py`
 - `tests/test_structure.py`
 - `tests/test_sync_project.py`
 - `tests/test_tooling.py`

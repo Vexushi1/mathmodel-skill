@@ -4,12 +4,15 @@ import logging
 import random
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 import numpy as np
 import pandas as pd
 
-from result_io import find_project_root, not_applicable_table, workbook_paths, write_workbook
+try:
+    from .result_io import find_project_root, not_applicable_table, workbook_paths, write_workbook
+except ImportError:  # 允许将本文件作为独立脚本运行
+    from result_io import find_project_root, not_applicable_table, workbook_paths, write_workbook
 
 VALID_OBJECTIVES = {"explanation", "inference", "prediction", "evaluation", "optimization", "simulation"}
 VALID_STRUCTURES = {"physical_mechanism", "temporal", "spatial", "network", "scheduling", "game", "stochastic", "static_tabular"}
@@ -86,33 +89,31 @@ class ModelContext:
     solution: dict[str, Any]
 
 
+LoadDataHook = Callable[[PipelineConfig, AuditLog], dict[str, pd.DataFrame]]
+PreprocessHook = Callable[[dict[str, pd.DataFrame], PipelineConfig, AuditLog], dict[str, pd.DataFrame]]
+BuildFeaturesHook = Callable[[dict[str, pd.DataFrame], PipelineConfig], dict[str, Any]]
+SolveHook = Callable[[dict[str, Any], PipelineConfig], dict[str, Any]]
+ConstraintHook = Callable[[dict[str, Any], PipelineConfig], pd.DataFrame | None]
+ValidationHook = Callable[[ModelContext], tuple[pd.DataFrame | None, dict[str, pd.DataFrame]]]
+FrameworkSyncHook = Callable[
+    [ModelContext, tuple[Path, Path], pd.DataFrame | None, pd.DataFrame | None, dict[str, pd.DataFrame]],
+    None,
+]
+
+
 def build_config(script_path: Path) -> PipelineConfig:
-    """按题目填写后再运行；目录定位和创建只在 main() 内发生。"""
+    """通用入口示例；实际项目优先使用 starter 中的题型专属 build_config。"""
     project_root = find_project_root(script_path)
-    config = PipelineConfig(
+    return PipelineConfig(
         project_root=project_root,
         framework_path=project_root / "模型论文框架.md",
         framework_section="### Q1：__QUESTION_NAME__",
         problem_name="问题一",
         objective="optimization",
         structures=(),
-        capabilities={
-            "has_explicit_constraints": False,
-            "requires_feasibility_check": False,
-            "requires_equilibrium_residual": False,
-            "requires_conservation_residual": False,
-            "requires_discretization_check": False,
-            "requires_convergence_diagnostic": False,
-            "requires_out_of_sample_validation": False,
-            "requires_uncertainty_quantification": False,
-            "requires_leakage_check": False,
-            "requires_calibration_check": False,
-            "requires_identifiability_check": False,
-        },
+        capabilities={name: False for name in REQUIRED_CAPABILITIES},
         random_seed=2026,
     )
-    config.validate()
-    return config
 
 
 def set_random_seed(seed: int) -> None:
@@ -260,24 +261,50 @@ def project_sync_command(config: PipelineConfig) -> str:
     )
 
 
-def main() -> None:
+def run_pipeline(
+    config: PipelineConfig,
+    *,
+    load_data_hook: LoadDataHook,
+    preprocess_hook: PreprocessHook,
+    build_features_hook: BuildFeaturesHook,
+    solve_hook: SolveHook,
+    constraint_hook: ConstraintHook,
+    validation_hook: ValidationHook,
+    framework_sync_hook: FrameworkSyncHook,
+) -> tuple[Path, Path]:
+    """执行统一求解主链；所有目录创建、随机种子和文件写入均从这里开始。"""
+    config.validate()
     logger = setup_logger()
-    config = build_config(Path(__file__))
     set_random_seed(config.random_seed)
     audit = AuditLog()
-    raw = load_data(config, audit)
-    clean = preprocess_data(raw, config, audit)
-    features = build_features(clean, config)
-    solution = solve_model(features, config)
+    raw = load_data_hook(config, audit)
+    clean = preprocess_hook(raw, config, audit)
+    features = build_features_hook(clean, config)
+    solution = solve_hook(features, config)
     context = ModelContext(config=config, raw_data=raw, clean_data=clean, features=features, solution=solution)
-    constraints = check_constraints(solution, config)
-    comparison, validation_tables = run_validation(context)
+    constraints = constraint_hook(solution, config)
+    comparison, validation_tables = validation_hook(context)
     paths = save_outputs(context, constraints, comparison, validation_tables, audit)
-    sync_model_paper_framework(context, paths, constraints, comparison, validation_tables)
+    framework_sync_hook(context, paths, constraints, comparison, validation_tables)
     logger.info("结果已写入: %s", [path.as_posix() for path in paths])
     logger.info("模型论文框架已同步: %s", config.framework_path.as_posix())
     logger.info("正式交付前执行: %s", project_sync_command(config))
     logger.info("正式论文图由 MATLAB 读取上述工作簿绘制，并保留简洁 title/sgtitle。")
+    return paths
+
+
+def main() -> None:
+    config = build_config(Path(__file__))
+    run_pipeline(
+        config,
+        load_data_hook=load_data,
+        preprocess_hook=preprocess_data,
+        build_features_hook=build_features,
+        solve_hook=solve_model,
+        constraint_hook=check_constraints,
+        validation_hook=run_validation,
+        framework_sync_hook=sync_model_paper_framework,
+    )
 
 
 if __name__ == "__main__":

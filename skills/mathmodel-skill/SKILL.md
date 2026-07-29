@@ -1,6 +1,6 @@
 ---
 name: mathmodel-skill
-description: Plugin discovery shim for the HSK v6.3.3 lightweight-bootstrap, multi-intent routing and contract-closed project synchronization workflow.
+description: Plugin discovery shim for the HSK v6.3.4 lightweight-bootstrap, multi-intent routing and contract-closed project synchronization workflow.
 ---
 
 Read `../../core/bootstrap.yaml` first. Resolve the request with `../../scripts/resolve_workflow.py`, then load only the returned contracts, modules, packs and templates. Classify every subproblem by one `classification.objective`, up to three `classification.structures`, and one authoritative top-level `capabilities` mapping; legacy task labels and `classification.capabilities` are compatibility aliases only.
