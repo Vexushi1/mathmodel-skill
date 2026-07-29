@@ -3,6 +3,7 @@
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
 - `templates/code/hsk_pipeline/README.md`
+- `templates/code/hsk_pipeline/__init__.py`
 - `templates/code/hsk_pipeline/config.yaml`
 - `templates/code/hsk_pipeline/main_pipeline.py`
 - `templates/code/hsk_pipeline/matlab_handoff.py`

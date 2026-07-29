@@ -104,6 +104,7 @@
 - `state/.gitkeep`
 - `state/project_state.example.yaml`
 - `templates/code/hsk_pipeline/README.md`
+- `templates/code/hsk_pipeline/__init__.py`
 - `templates/code/hsk_pipeline/config.yaml`
 - `templates/code/hsk_pipeline/main_pipeline.py`
 - `templates/code/hsk_pipeline/matlab_handoff.py`
