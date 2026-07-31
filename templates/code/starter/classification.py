@@ -5,7 +5,14 @@ from typing import Any
 
 import pandas as pd
 
-from hsk_pipeline import AuditLog, ModelContext, PipelineConfig, REQUIRED_CAPABILITIES, run_pipeline
+from hsk_pipeline import (
+    AuditLog,
+    ModelContext,
+    PipelineConfig,
+    PrimarySolveResult,
+    REQUIRED_CAPABILITIES,
+    run_pipeline,
+)
 from hsk_pipeline.result_io import find_project_root
 
 INPUT_FILE = "__INPUT_FILE__"
@@ -22,25 +29,6 @@ def capabilities(**enabled: bool) -> dict[str, bool]:
     return values
 
 
-def read_tabular_input(config: PipelineConfig, audit: AuditLog) -> pd.DataFrame:
-    if INPUT_FILE.startswith("__"):
-        raise ValueError("请将 INPUT_FILE 替换为项目根目录中的真实附件文件名")
-    path = config.project_root / INPUT_FILE
-    if not path.is_file():
-        raise FileNotFoundError(f"缺少输入文件: {path}")
-    suffix = path.suffix.lower()
-    if suffix == ".csv":
-        data = pd.read_csv(path)
-    elif suffix in {".xlsx", ".xls"}:
-        data = pd.read_excel(path)
-    else:
-        raise ValueError(f"暂不支持的输入格式: {suffix}")
-    if data.empty:
-        raise ValueError("输入数据为空")
-    audit.record("Info", "输入文件", path.name, f"读取 {data.shape[0]} 行、{data.shape[1]} 列")
-    return data
-
-
 def build_config(script_path: Path) -> PipelineConfig:
     project_root = find_project_root(script_path)
     return PipelineConfig(
@@ -50,15 +38,16 @@ def build_config(script_path: Path) -> PipelineConfig:
         problem_name=PROBLEM_NAME,
         objective="inference",
         structures=("static_tabular",),
-        capabilities=capabilities(requires_out_of_sample_validation=True, requires_leakage_check=True),
+        capabilities=capabilities(
+            requires_out_of_sample_validation=True,
+            requires_leakage_check=True,
+        ),
         random_seed=2026,
     )
 
 
 def load_data(config: PipelineConfig, audit: AuditLog) -> dict[str, pd.DataFrame]:
-    """读取分类样本并检查标签、主键、缺失、重复和类别分布。"""
-    data = read_tabular_input(config, audit)
-    return {"原始数据": data}
+    raise NotImplementedError("请读取真实分类数据并记录标签、类别分布和样本键")
 
 
 def preprocess_data(
@@ -66,38 +55,48 @@ def preprocess_data(
     config: PipelineConfig,
     audit: AuditLog,
 ) -> dict[str, pd.DataFrame]:
-    """按题意完成字段选择、缺失处理、单位统一和异常处理。"""
-    raise NotImplementedError("请依据模型论文框架实现预处理，并记录处理前后样本量")
+    raise NotImplementedError("请完成缺失、异常、编码、类别不平衡和泄漏检查")
 
 
 def build_features(clean_data: dict[str, pd.DataFrame], config: PipelineConfig) -> dict[str, Any]:
-    """构造训练特征、标签和不泄漏的训练/验证/测试划分。"""
-    raise NotImplementedError("请将当前模型的变量和参数映射为可计算对象")
+    raise NotImplementedError("请构造训练与测试特征，并保证预处理只在训练集拟合")
 
 
 def solve_model(features: dict[str, Any], config: PipelineConfig) -> dict[str, Any]:
-    """训练基准与候选分类器，输出核心指标、预测或分类结果和模型指标。"""
-    raise NotImplementedError("solution 至少包含符合工作簿 Schema 的‘核心指标’")
+    raise NotImplementedError("请训练主分类模型并输出模型指标、分类结果、外样本验证和泄漏检查")
 
 
 def check_constraints(solution: dict[str, Any], config: PipelineConfig) -> pd.DataFrame | None:
     return None
 
 
-def validate_model(context: ModelContext) -> tuple[pd.DataFrame | None, dict[str, pd.DataFrame]]:
-    """输出多算法对比，以及阈值、Bootstrap、校准或外样本稳定性表。"""
-    raise NotImplementedError("敏感性与鲁棒性工作簿必须非空；不适用时写明原因和替代检验")
-
-
-def sync_framework(
+def evaluate_primary_quality(
     context: ModelContext,
-    output_paths: tuple[Path, Path],
     constraints: pd.DataFrame | None,
-    algorithm_comparison: pd.DataFrame | None,
-    validation_tables: dict[str, pd.DataFrame],
+) -> pd.DataFrame:
+    raise NotImplementedError(
+        "请检查数据泄漏、外样本指标、类别不平衡处理、校准或阈值口径和可复算性，"
+        "返回检查项/是否通过/证据"
+    )
+
+
+def analyze_results(primary: PrimarySolveResult) -> dict[str, pd.DataFrame]:
+    raise NotImplementedError(
+        "根据类别、群体、阈值和分布漂移风险，选择异质性、误差分解、阈值、结构稳健性、"
+        "外样本稳定性或算法一致性分析；必须含分析设计和结论稳定性汇总"
+    )
+
+
+def sync_primary_framework(primary: PrimarySolveResult) -> None:
+    raise NotImplementedError("回写主分类结果、基础外样本精度、质量门结论和证据")
+
+
+def sync_analysis_framework(
+    primary: PrimarySolveResult,
+    analysis_path: Path,
+    tables: dict[str, pd.DataFrame],
 ) -> None:
-    """完整替换该问当前模型口径和结果摘要，不保留并列旧版本。"""
-    raise NotImplementedError("请回写模型、算法、核心数值、验证结论和工作簿证据位置")
+    raise NotImplementedError("回写阈值、群体差异、稳定范围和分析工作簿证据")
 
 
 def main() -> None:
@@ -109,8 +108,10 @@ def main() -> None:
         build_features_hook=build_features,
         solve_hook=solve_model,
         constraint_hook=check_constraints,
-        validation_hook=validate_model,
-        framework_sync_hook=sync_framework,
+        quality_hook=evaluate_primary_quality,
+        result_analysis_hook=analyze_results,
+        primary_framework_sync_hook=sync_primary_framework,
+        analysis_framework_sync_hook=sync_analysis_framework,
     )
 
 
