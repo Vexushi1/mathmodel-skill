@@ -8,7 +8,16 @@ from typing import Any, Callable, Mapping, Sequence
 import pandas as pd
 from openpyxl import load_workbook
 
-VALID_WORKBOOK_KINDS = {"solution", "robustness"}
+VALID_WORKBOOK_KINDS = {"solution", "result_analysis"}
+WORKBOOK_KIND_ALIASES = {"robustness": "result_analysis"}
+
+
+def _normalize_kind(kind: str) -> str:
+    normalized = WORKBOOK_KIND_ALIASES.get(kind, kind)
+    if normalized not in VALID_WORKBOOK_KINDS:
+        allowed = sorted(VALID_WORKBOOK_KINDS | set(WORKBOOK_KIND_ALIASES))
+        raise ValueError(f"workbook_kind 必须为 {allowed}")
+    return normalized
 
 
 def _as_frame(value: Any) -> pd.DataFrame:
@@ -22,7 +31,7 @@ def _as_frame(value: Any) -> pd.DataFrame:
         frame = pd.DataFrame({"数值": [value]})
     frame = frame.dropna(how="all").reset_index(drop=True)
     if frame.empty:
-        raise ValueError("禁止写入空工作表；不适用时请使用适用性说明记录原因")
+        raise ValueError("禁止写入空工作表")
     columns = [str(column).strip() for column in frame.columns]
     if not columns or any(not column for column in columns):
         raise ValueError("工作表至少需要一个非空字段")
@@ -69,7 +78,11 @@ def read_workbook_tables(path: Path) -> dict[str, pd.DataFrame]:
                 raise ValueError(f"工作表“{worksheet.title}”存在空字段名")
             if len(headers) != len(set(headers)):
                 raise ValueError(f"工作表“{worksheet.title}”包含重复字段")
-            data = [tuple(row[: len(headers)]) for row in rows[1:] if any(value is not None for value in row[: len(headers)])]
+            data = [
+                tuple(row[: len(headers)])
+                for row in rows[1:]
+                if any(value is not None for value in row[: len(headers)])
+            ]
             if not data:
                 raise ValueError(f"工作表“{worksheet.title}”为空")
             tables[worksheet.title] = pd.DataFrame(data, columns=headers)
@@ -78,18 +91,22 @@ def read_workbook_tables(path: Path) -> dict[str, pd.DataFrame]:
     return tables
 
 
-def _required_sheet_schemas(schema: Mapping[str, Any], kind: str) -> tuple[set[str], dict[str, Mapping[str, Any]]]:
+def _required_sheet_schemas(
+    schema: Mapping[str, Any], kind: str,
+) -> tuple[set[str], dict[str, Mapping[str, Any]]]:
     if kind == "solution":
         section = schema["solution_workbook"]
         required = dict(section.get("common_required_sheets", {}))
         all_schemas = {**required, **dict(section.get("common_recommended_sheets", {}))}
         return set(required), all_schemas
-    section = schema["sensitivity_robustness_workbook"]
+    section = schema["result_analysis_workbook"]
     return set(), dict(section.get("sheet_schemas", {}))
 
 
 def _conditional_required_sheets(
-    schema: Mapping[str, Any], problem_types: Sequence[str], capabilities: Mapping[str, bool] | None,
+    schema: Mapping[str, Any],
+    problem_types: Sequence[str],
+    capabilities: Mapping[str, bool] | None,
 ) -> set[str]:
     contract = schema.get("capability_contract", {})
     required: set[str] = set()
@@ -109,8 +126,10 @@ def _conditional_required_sheets(
 
 
 def _profile_requirements(
-    schema: Mapping[str, Any], objective: str | None,
-    structures: Sequence[str], problem_types: Sequence[str],
+    schema: Mapping[str, Any],
+    objective: str | None,
+    structures: Sequence[str],
+    problem_types: Sequence[str],
 ) -> list[tuple[str, set[str]]]:
     section = schema.get("solution_workbook", {})
     requirements: list[tuple[str, set[str]]] = []
@@ -181,9 +200,11 @@ def _check_residual_consistency(sheet: str, frame: pd.DataFrame) -> None:
             raise ValueError(f"工作表“{sheet}”第 {index + 2} 行的是否满足与残差/容差不一致")
 
 
-def _check_missing_value_audit(prepared: Sequence[tuple[str, pd.DataFrame]]) -> None:
+def _check_missing_value_audit(prepared: Sequence[tuple[str, pd.DataFrame]], kind: str) -> None:
     affected = [name for name, frame in prepared if name != "数据审计" and frame.isna().any().any()]
     if not affected:
+        return
+    if kind != "solution":
         return
     audit = next((frame for name, frame in prepared if name == "数据审计"), None)
     if audit is None:
@@ -204,37 +225,34 @@ def validate_tables(
     structures: Sequence[str] = (),
     name_normalizer: Callable[[str], str] | None = None,
 ) -> list[tuple[str, pd.DataFrame]]:
-    if workbook_kind not in VALID_WORKBOOK_KINDS:
-        raise ValueError(f"workbook_kind 必须为 {sorted(VALID_WORKBOOK_KINDS)}")
+    kind = _normalize_kind(workbook_kind)
     prepared = prepare_tables(tables, name_normalizer=name_normalizer)
-    required_sheets, sheet_schemas = _required_sheet_schemas(schema, workbook_kind)
+    required_sheets, sheet_schemas = _required_sheet_schemas(schema, kind)
     names = {name for name, _ in prepared}
-    if workbook_kind == "solution":
-        conditional = _conditional_required_sheets(schema, problem_types, capabilities)
-        required_sheets.update(conditional)
+    if kind == "solution":
+        required_sheets.update(_conditional_required_sheets(schema, problem_types, capabilities))
         missing = sorted(required_sheets - names)
         if missing:
-            active_capabilities = sorted(
-                name for name, enabled in (capabilities or {}).items() if enabled
-            )
-            capability_note = (
-                f"；启用的capabilities: {active_capabilities}" if active_capabilities else ""
-            )
-            raise ValueError(f"求解工作簿缺少必需工作表: {missing}{capability_note}")
+            active = sorted(name for name, enabled in (capabilities or {}).items() if enabled)
+            note = f"；启用的capabilities: {active}" if active else ""
+            raise ValueError(f"求解工作簿缺少必需工作表: {missing}{note}")
         for profile, required_any in _profile_requirements(schema, objective, structures, problem_types):
             if required_any and not names.intersection(required_any):
                 raise ValueError(f"分类剖面“{profile}”至少需要一个专项工作表: {sorted(required_any)}")
     else:
-        allowed_any = set(schema["sensitivity_robustness_workbook"].get("required_any_sheets", []))
+        allowed_any = set(schema["result_analysis_workbook"].get("required_any_sheets", []))
+        unknown_sheets = sorted(names - set(sheet_schemas))
+        if unknown_sheets:
+            raise ValueError(f"结果深化分析工作簿包含未登记工作表: {unknown_sheets}")
         if not names.intersection(allowed_any):
-            raise ValueError(f"敏感性与鲁棒性工作簿至少需要一个工作表: {sorted(allowed_any)}")
+            raise ValueError(f"结果深化分析工作簿至少需要一个已登记分析表: {sorted(allowed_any)}")
     for name, frame in prepared:
         if name in sheet_schemas:
             _check_required_columns(name, frame, sheet_schemas[name])
         _check_record_keys(name, frame)
         _check_finite_numbers(name, frame)
         _check_residual_consistency(name, frame)
-    _check_missing_value_audit(prepared)
+    _check_missing_value_audit(prepared, kind)
     return prepared
 
 
@@ -260,22 +278,30 @@ def validate_workbook_file(
 
 def validate_pair(
     solution_path: Path | None,
-    robustness_path: Path | None,
+    result_analysis_path: Path | None,
     *,
     schema: Mapping[str, Any],
     require_solution: bool,
-    require_robustness: bool,
+    require_result_analysis: bool = False,
+    require_robustness: bool | None = None,
     problem_types: Sequence[str] = (),
     capabilities: Mapping[str, bool] | None = None,
     objective: str | None = None,
     structures: Sequence[str] = (),
 ) -> list[str]:
+    if require_robustness is not None:
+        require_result_analysis = require_robustness
     issues: list[str] = []
     if require_solution and (solution_path is None or not Path(solution_path).is_file()):
         issues.append("缺少标准求解结果工作簿")
-    if require_robustness and (robustness_path is None or not Path(robustness_path).is_file()):
-        issues.append("缺少标准敏感性与鲁棒性工作簿")
-    for path, kind in ((solution_path, "solution"), (robustness_path, "robustness")):
+    if require_result_analysis and (
+        result_analysis_path is None or not Path(result_analysis_path).is_file()
+    ):
+        issues.append("缺少标准结果深化分析工作簿")
+    for path, kind in (
+        (solution_path, "solution"),
+        (result_analysis_path, "result_analysis"),
+    ):
         if path is None or not Path(path).is_file():
             continue
         try:
