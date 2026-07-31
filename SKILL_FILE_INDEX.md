@@ -175,6 +175,7 @@
 - `tests/test_result_io.py`
 - `tests/test_router_contract.py`
 - `tests/test_schemas.py`
+- `tests/test_split_pipeline_runtime.py`
 - `tests/test_starter_templates.py`
 - `tests/test_structure.py`
 - `tests/test_sync_project.py`
