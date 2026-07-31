@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 6.3.4
-summary: Lightweight-bootstrap HSK mathematical-modeling workflow with orthogonal task classification, explicit pre-delivery synchronization, layered artifact freshness, Python-to-Excel-to-MATLAB evidence chains, DOCX draft and LaTeX final delivery.
+version: 6.4.0
+summary: Lightweight-bootstrap HSK mathematical-modeling workflow with orthogonal task classification, explicit pre-delivery synchronization, layered artifact freshness, Python-to-Excel-to-MATLAB evidence chains, LaTeX-first paper authoring and optional explicit DOCX review delivery.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 项目同步, 结果摘要, 模型选择, 敏感性分析, 鲁棒性分析, 机理图, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v6.3.4
+# HSK 数学建模模块化工作流 v6.4.0
 
 ## 启动
 
@@ -43,12 +43,12 @@ python scripts/resolve_workflow.py \
 → Python求解、适用检查、多算法、敏感性与鲁棒性
 → 每问两类中文Excel工作簿
 → MATLAB读取真实工作簿绘制带简洁标题的正式结果图
-→ DOCX草稿
-→ LaTeX终稿与AI模板感清除
+→ 直接编写LaTeX草稿并在源码上持续修改
+→ AI模板感清除
 → 显式project_sync gate、编译和终审
 ```
 
-路由停止在用户要求的交付物，不为凑流程伪造后续成果。
+路由停止在用户要求的交付物，不为凑流程伪造后续成果。DOCX 不属于默认主链，仅在用户明确要求 Word 审阅、批注或特定提交格式时加载独立路由。
 
 ## 正式交付同步门槛
 
@@ -69,8 +69,8 @@ python scripts/sync_project.py <project_root> \
 
 - Python：数据处理、模型求解、优化、仿真、统计检验、约束/残差、敏感性、鲁棒性和两类工作簿；
 - MATLAB：与工作簿同目录，精确匹配真实表头绘制正式图，不重新计算结果；
-- DOCX：修改与逻辑检查；
-- LaTeX：最终论文和 PDF；中文国赛保留 `cumcmthesis`。
+- LaTeX：从首个论文正文版本开始直接编写并持续修改，承担终稿和 PDF；中文国赛保留 `cumcmthesis`；
+- DOCX：仅在用户明确要求 Word 审阅、批注或特定提交格式时作为独立可选分支，不是 LaTeX 前置。
 
 ## 命题
 
@@ -91,5 +91,7 @@ python scripts/sync_project.py <project_root> \
    ├─ q1_plot.m
    └─ 图表/
 ```
+
+活动说明使用无版本文件名：`PROJECT_INSTRUCTIONS.md`、`RUNTIME_ROUTER.md`、`SKILL_FILE_INDEX.md` 和 `TEMPLATE_INDEX.md`。旧版本化文件名只保留兼容指针。
 
 全局硬规则见 `core/hsk_core_policy.md`；机器产物闭环见 `core/module_manifest.yaml`；工作簿字段见 `core/workbook_schema.yaml`；仓库修改必须先读 `SKILL_CHANGE_GOVERNANCE.md`。
