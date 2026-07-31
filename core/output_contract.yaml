@@ -1,4 +1,4 @@
-version: 6.3.4
+version: 6.4.0
 schema: core/workbook_schema.yaml
 bootstrap: core/bootstrap.yaml
 taxonomy: core/task_taxonomy.yaml
@@ -12,6 +12,15 @@ project_root:
   draft_docx: draft_docx/
   final_latex: final_latex/
   submission: submission/
+writing_policy:
+  default_mode: latex_first
+  default_sequence:
+  - figure_evidence
+  - writing_latex
+  - ai_cleanup
+  - latex_compile_quality
+  docx_mode: explicit_only_independent
+  docx_is_latex_prerequisite: false
 model_paper_framework:
   path: 模型论文框架.md
   template: templates/model/model_paper_framework.md
