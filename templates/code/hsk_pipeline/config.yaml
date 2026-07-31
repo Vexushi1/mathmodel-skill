@@ -33,10 +33,24 @@ question:
     requires_calibration_check: false
     requires_identifiability_check: false
 
+primary_solve:
+  quality_gate_required: true
+  quality_sheet: 主结果质量门
+  required_quality_fields: [检查项, 是否通过, 证据]
+  result_quality_status: pending
+
+result_analysis:
+  status: pending
+  selection_basis: [题目要求, 模型结构, 数据特征, 主结果表现, 评委风险]
+  candidate_methods: []
+  required_sheets: [分析设计, 结论稳定性汇总]
+  fixed_uniform_perturbation: forbidden
+  redo_primary_solve_when_failed: true
+
 question_output:
   result_dir: 结果数据表/问题一
   solution_workbook: 问题一求解结果.xlsx
-  sensitivity_robustness_workbook: 问题一敏感性与鲁棒性结果.xlsx
+  result_analysis_workbook: 问题一结果深化分析.xlsx
   matlab_script: q1_plot.m
   figure_dir: 图表
   matlab_title_policy: title_or_sgtitle
