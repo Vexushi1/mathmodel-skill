@@ -1,36 +1,55 @@
 # Scripts v6.4.0
 
-- `lint_skill.py`：检查活动版本、稳定入口文件、LaTeX-first 写作合同、核心契约、三轴分类、模块产物闭环、交付 gate、Schema、题型 Pack、模板、Python 语法和活动索引。
-- `resolve_workflow.py`：将一个或多个任务意图、自然语言请求、`objective`、`structures`、`capabilities` 与竞赛类型解析为确定性的模块、Pack、模板、契约和交付前 gate；`primary`、`secondary` 仅保留为旧项目兼容参数。
-- `validate_model_paper_framework.py`：验证项目根目录 `模型论文框架.md` 的必需章节、全文命题上限与 P1--P4 编号、当前同步状态、逐问章节、结果摘要锚点和可选哈希；仓库维护时用于检查模板本身。
-- `validate_project_state.py`：验证真实项目状态的结构、阶段、需求计数、产物路径、证据、命题数量/引用/失效、框架/结果摘要 freshness、哈希失效、容差和最优性声明。
-- `generate_indexes.py`：重建活动 `SKILL_FILE_INDEX.md`、`TEMPLATE_INDEX.md`、旧文件名兼容指针与 `MANIFEST.sha256`；UTF-8 文本按 LF 规范化计算哈希，完整 legacy 不进入活动索引。
-- `hsk_check_artifact.py`：检查项目根目录当前框架、Python 脚本、`结果数据表/问题X/` 两类工作簿、同目录 `q{x}_plot.m`、MATLAB `title`/`sgtitle`、本地图表目录和逐问状态；工作簿校验复用 `result_io.py`。
-- `score_submission.py`：读取 `config/review_weights.json` 计算六维评分并执行硬否决。
-- `hsk_pack_submission.py`：打包提交产物，并排除缓存与 LaTeX 辅助文件。
-- `render_paper.py`：按 `core/compile_profiles.yaml` 的 template/project 主入口与编译链编译 LaTeX 工程。
-- `prepare_cumcm_class.py`：对复制到项目目录的 CUMCM 类文件执行窄范围、幂等兼容补丁。
+- `lint_skill.py`：检查活动版本、LaTeX-first、主求解质量门、独立结果深化分析、模块产物闭环、两类工作簿 Schema、状态字段、交付 gate、Python 语法和活动索引。
+- `resolve_workflow.py`：将一个或多个任务意图、自然语言 request、objective、structures、capabilities 与竞赛类型解析为确定性的模块、Pack、模板和交付前 gate。
+- `sync_project.py`：发现主求解与结果深化分析工作簿、MATLAB脚本和图表；校验工作簿；计算 data、model、solution_workbook、result_analysis_workbook、matlab_script、figure_bundle 和 framework 哈希；保守传播 stale。
+- `validate_project_state.py`：分别验证 `result_quality_status` 与 `result_analysis_status`，检查 `redo_required` 回退状态、产物路径、哈希、证据、容差和最优性声明。
+- `validate_model_paper_framework.py`：验证当前模型框架、逐问结果摘要、命题规划、同步状态和可选哈希。
+- `hsk_check_artifact.py`：检查项目根目录 Python、`问题X求解结果.xlsx`、`问题X结果深化分析.xlsx`、同目录 `q{x}_plot.m`、正式图和逐问状态。
+- `generate_indexes.py`：重建活动索引、旧文件名兼容指针与 `MANIFEST.sha256`。
+- `score_submission.py`：读取评分配置执行评委式评分和硬否决。
+- `hsk_pack_submission.py`：打包提交产物并排除缓存与 LaTeX 辅助文件。
+- `render_paper.py`：按编译配置执行 LaTeX 编译链。
+- `prepare_cumcm_class.py`：对项目中的 CUMCM 类文件执行窄范围、幂等兼容补丁。
 
-默认完整工作流在 MATLAB 图表锁定后直接进入 LaTeX；DOCX 仅由显式 Word/DOCX 请求加载独立 route，不是 LaTeX 前置。MATLAB 问题绘图入口统一使用 `结果数据表/问题X/q{x}_plot.m`，并读取同目录两类工作簿；单图保留简洁 `title`，多面板保留整体 `sgtitle`；正式图写入同级 `图表/`。标题、图注、数据源和正文结论同步到项目根目录 `模型论文框架.md`。视觉参考通过 `assets/figure_assets.yaml` 按需加载，规则色板只作为默认起点。
+## Python 主链
 
-命题与证明在框架和项目状态中按全文登记，允许为 0，最多 4 个。校验器检查条件、结论、证明等级、模型作用、失效边界和每问引用；数值实验不能替代数学证明。
+```text
+run_primary_pipeline
+→ 数据审计
+→ 完整主求解
+→ 主结果质量门
+→ 问题X求解结果.xlsx
 
-推荐仓库维护命令：
+run_result_analysis_pipeline
+→ 读取已通过质量门的主结果
+→ 选择题目专属分析
+→ 问题X结果深化分析.xlsx
+```
+
+`run_pipeline()` 只是按顺序调用两个独立阶段。主结果质量报告写入 `主结果质量门`；分析计划和结论写入 `分析设计` 与 `结论稳定性汇总`。
+
+## 真实项目校验
+
+```bash
+python scripts/validate_model_paper_framework.py 模型论文框架.md --state state/project_state.yaml
+python scripts/validate_project_state.py state/project_state.yaml --project-root .
+python scripts/hsk_check_artifact.py .
+python scripts/sync_project.py . --write --strict --delivery-scope results
+```
+
+## 仓库维护
 
 ```bash
 python scripts/generate_indexes.py
 python scripts/generate_indexes.py --check
 python scripts/lint_skill.py
 python -m unittest discover -s tests -p "test_*.py"
-python scripts/resolve_workflow.py full_solution --objective optimization --structures scheduling stochastic --capabilities has_explicit_constraints requires_feasibility_check --competition CUMCM
-python scripts/validate_model_paper_framework.py templates/model/model_paper_framework.md
+python scripts/resolve_workflow.py full_solution \
+  --objective optimization \
+  --structures scheduling stochastic \
+  --capabilities has_explicit_constraints requires_feasibility_check \
+  --competition CUMCM
 ```
 
-真实项目校验命令：
-
-```bash
-python scripts/validate_model_paper_framework.py 模型论文框架.md --state state/project_state.yaml
-python scripts/validate_project_state.py state/project_state.yaml --project-root .
-```
-
-旧评分、下载与语料处理脚本位于 `legacy/`，不属于默认运行链路或活动 Manifest。
+默认完整工作流在图表锁定后直接进入 LaTeX；DOCX 仅由显式请求加载。旧 `问题X敏感性与鲁棒性结果.xlsx` 只作历史读取兼容，不属于新项目正式交付。
