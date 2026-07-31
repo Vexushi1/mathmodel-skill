@@ -53,6 +53,7 @@
 - `templates/problem/model_route_compare.md`
 - `templates/problem/requirement_coverage.md`
 - `templates/review/code_slimming.md`
+- `templates/review/result_analysis_check.md`
 - `templates/review/result_manifest.yaml`
 - `templates/review/robustness_check.md`
 - `templates/writing/abstract_result_check.md`
