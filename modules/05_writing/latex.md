@@ -1,6 +1,6 @@
 # Module 05B：LaTeX 终稿写作
 
-最终论文默认使用 LaTeX。中文国赛基于 `templates/latex/cumcm/cumcmthesis/`，不得删除或替换模板体系。
+论文从首个正文版本开始直接使用 LaTeX，并在源码中持续修改至终稿。中文国赛基于 `templates/latex/cumcm/cumcmthesis/`，不得删除或替换模板体系。DOCX 不是进入本模块的前置条件；存在显式 DOCX 审阅件时也不得将其升级为模型或数值事实源。
 
 ## 进入门槛
 
