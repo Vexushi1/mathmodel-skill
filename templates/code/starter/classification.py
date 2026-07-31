@@ -10,6 +10,7 @@ from hsk_pipeline import (
     ModelContext,
     PipelineConfig,
     PrimarySolveResult,
+    ResultAnalysisResult,
     REQUIRED_CAPABILITIES,
     run_pipeline,
 )
@@ -80,10 +81,10 @@ def evaluate_primary_quality(
     )
 
 
-def analyze_results(primary: PrimarySolveResult) -> dict[str, pd.DataFrame]:
+def analyze_results(primary: PrimarySolveResult) -> ResultAnalysisResult:
     raise NotImplementedError(
         "根据类别、群体、阈值和分布漂移风险，选择异质性、误差分解、阈值、结构稳健性、"
-        "外样本稳定性或算法一致性分析；必须含分析设计和结论稳定性汇总"
+        "外样本稳定性或算法一致性，并返回 ResultAnalysisResult；结论失效时使用 redo_required"
     )
 
 
@@ -96,7 +97,7 @@ def sync_analysis_framework(
     analysis_path: Path,
     tables: dict[str, pd.DataFrame],
 ) -> None:
-    raise NotImplementedError("回写阈值、群体差异、稳定范围和分析工作簿证据")
+    raise NotImplementedError("回写阈值、群体差异、稳定范围、回退结论和分析工作簿证据")
 
 
 def main() -> None:
