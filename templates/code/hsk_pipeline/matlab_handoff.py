@@ -1,4 +1,4 @@
-"""可选生成 MATLAB 图表映射；真实数据仍以两类标准工作簿为准。"""
+"""可选生成 MATLAB 图表映射；数值事实来自主求解与结果深化分析工作簿。"""
 from __future__ import annotations
 
 import json
@@ -25,11 +25,11 @@ def write_matlab_handoff(
 ) -> Path:
     result_dir = Path(project_root) / "结果数据表" / problem_name
     solve_book = result_dir / f"{problem_name}求解结果.xlsx"
-    robust_book = result_dir / f"{problem_name}敏感性与鲁棒性结果.xlsx"
-    for path in (solve_book, robust_book):
+    analysis_book = result_dir / f"{problem_name}结果深化分析.xlsx"
+    for path in (solve_book, analysis_book):
         if not path.exists():
             raise FileNotFoundError(path)
-    allowed_books = {solve_book.name, robust_book.name}
+    allowed_books = {solve_book.name, analysis_book.name}
     normalized = []
     for spec in figures:
         missing = REQUIRED_FIELDS - set(spec)
@@ -42,7 +42,7 @@ def write_matlab_handoff(
         caption = str(spec["paper_caption"]).strip()
         workbook = Path(str(spec["workbook"])).name
         if workbook not in allowed_books:
-            raise ValueError(f"workbook 必须是本问两类标准工作簿之一: {workbook}")
+            raise ValueError(f"workbook 必须是本问主求解或结果深化分析工作簿: {workbook}")
         if not title:
             raise ValueError("matlab_title 不能为空")
         if len(title) > 30:
@@ -58,11 +58,11 @@ def write_matlab_handoff(
     result_dir.mkdir(parents=True, exist_ok=True)
     path = result_dir / "matlab_figure_handoff.json"
     payload = {
-        "version": "6.3.3",
+        "version": "6.4.0",
         "problem": problem_name,
         "result_directory": result_dir.as_posix(),
         "solution_workbook": solve_book.as_posix(),
-        "sensitivity_robustness_workbook": robust_book.as_posix(),
+        "result_analysis_workbook": analysis_book.as_posix(),
         "model_paper_framework": (Path(project_root) / "模型论文框架.md").as_posix(),
         "matlab_script_location": f"{result_dir.as_posix()}/q{{x}}_plot.m",
         "figure_directory": f"{result_dir.as_posix()}/图表",
