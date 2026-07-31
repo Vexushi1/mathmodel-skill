@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve one or more user intents into an ordered HSK v6.3.1 execution plan."""
+"""Resolve one or more user intents into an ordered HSK v6.4.0 execution plan."""
 from __future__ import annotations
 
 import argparse
@@ -106,6 +106,47 @@ def ordered_modules(paths: Iterable[str], manifest: dict[str, Any]) -> list[str]
     return sorted(modules, key=lambda path: (path_rank.get(path, 10_000), modules.index(path)))
 
 
+def close_module_dependencies(
+    modules: Iterable[str],
+    available_artifacts: set[str],
+    manifest: dict[str, Any],
+) -> list[str]:
+    """Add unique upstream producers when the caller supplied current artifact state."""
+    module_specs = manifest.get("modules", {})
+    path_to_name = {
+        spec.get("path"): name for name, spec in module_specs.items() if isinstance(spec, dict)
+    }
+    producers: dict[str, list[str]] = {}
+    for name, spec in module_specs.items():
+        if not isinstance(spec, dict):
+            continue
+        for artifact in spec.get("outputs", []):
+            producers.setdefault(str(artifact), []).append(name)
+    selected = set(modules)
+    external = set(manifest.get("external_artifacts", []))
+    while True:
+        produced = set(available_artifacts)
+        changed = False
+        for path in ordered_modules(selected, manifest):
+            name = path_to_name.get(path)
+            if not name:
+                continue
+            spec = module_specs[name]
+            for artifact in spec.get("inputs", []):
+                if artifact in produced or artifact in external:
+                    continue
+                candidates = producers.get(str(artifact), [])
+                if len(candidates) != 1:
+                    continue
+                producer_path = module_specs[candidates[0]].get("path")
+                if producer_path and producer_path not in selected:
+                    selected.add(producer_path)
+                    changed = True
+            produced.update(spec.get("outputs", []))
+        if not changed:
+            return ordered_modules(selected, manifest)
+
+
 def prerequisite_report(
     modules: Iterable[str],
     available_artifacts: set[str],
@@ -167,7 +208,7 @@ def resolve_workflow(
     primary: str | None = None,
     secondary: Iterable[str] = (),
     competition: str | None = None,
-    available_artifacts: Iterable[str] = (),
+    available_artifacts: Iterable[str] | None = None,
     router_path: Path = ROUTER_PATH,
     manifest_path: Path = MANIFEST_PATH,
     taxonomy_path: Path = TAXONOMY_PATH,
@@ -228,6 +269,11 @@ def resolve_workflow(
         paths.append("packs/artifact/proposition_proof.md")
 
     module_paths = ordered_modules(paths, manifest)
+    dependency_closure_applied = available_artifacts is not None
+    available_set = set(available_artifacts or ())
+    if dependency_closure_applied:
+        module_paths = close_module_dependencies(module_paths, available_set, manifest)
+        paths.extend(module_paths)
     non_modules = [path for path in unique(paths) if not path.startswith("modules/")]
     ordered = unique([*non_modules, *module_paths])
     if formal_delivery:
@@ -236,7 +282,7 @@ def resolve_workflow(
     delivery_scope = highest_scope(route_scopes)
     gates = gate_plan(explicit_gates, manifest, delivery_scope)
 
-    missing, produced_after_modules = prerequisite_report(module_paths, set(available_artifacts), manifest)
+    missing, produced_after_modules = prerequisite_report(module_paths, available_set, manifest)
     available_after_plan = set(produced_after_modules)
     terminal_outputs = unique(module_terminal_outputs)
     for gate in gates:
@@ -257,6 +303,7 @@ def resolve_workflow(
         },
         "competition": competition,
         "delivery_scope": delivery_scope,
+        "dependency_closure_applied": dependency_closure_applied,
         "modules": module_paths,
         "packs": [item for item in ordered if item.startswith("packs/")],
         "templates": [item for item in ordered if item.startswith("templates/")],
@@ -282,7 +329,7 @@ def main() -> int:
     parser.add_argument("--primary", help="legacy compatibility label")
     parser.add_argument("--secondary", nargs="*", default=[], help="legacy compatibility labels")
     parser.add_argument("--competition")
-    parser.add_argument("--available-artifacts", nargs="*", default=[])
+    parser.add_argument("--available-artifacts", nargs="*", default=None)
     args = parser.parse_args()
     try:
         plan = resolve_workflow(
