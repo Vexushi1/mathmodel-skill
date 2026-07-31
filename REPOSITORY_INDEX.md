@@ -1,4 +1,4 @@
-# Mathmodel Skill Repository Index v6.3.4
+# Mathmodel Skill Repository Index
 
 ## 启动
 
@@ -9,6 +9,21 @@
 5. `core/module_manifest.yaml`：模块与 utility gate 产物闭环；
 6. 仅加载命中的模块、Pack 和模板；
 7. 正式交付前执行解析结果中的 `pre_delivery_gates`。
+
+## 活动入口
+
+| 文件 | 作用 |
+|---|---|
+| `PROJECT_INSTRUCTIONS.md` | 项目调用说明 |
+| `RUNTIME_ROUTER.md` | 运行时路由说明 |
+| `SKILL_FILE_INDEX.md` | 活动 Skill 文件索引 |
+| `TEMPLATE_INDEX.md` | 活动模板索引 |
+
+旧 `V622` 文件只保留兼容指针，不再承载活动规则。
+
+## 默认写作策略
+
+默认完整流程在求解、验证和图表锁定后直接进入 LaTeX。`modules/05_writing/docx.md` 与 `docx` delivery scope 保留，但仅在用户明确要求 Word 审阅、批注、协作或特定提交格式时加载；DOCX 不是 LaTeX 前置。
 
 ## 仓库修改
 
@@ -28,7 +43,8 @@
 | Python求解、验证、敏感性与鲁棒性 | `modules/03_solve_validate.md` |
 | Python题型 starter | `templates/code/starter/` + `templates/code/hsk_pipeline/` |
 | MATLAB结果图与机理图 | `modules/04_figure_evidence.md` |
-| DOCX / LaTeX | `modules/05_writing/` |
+| 默认 LaTeX 写作 | `modules/05_writing/latex.md` |
+| 可选 DOCX 审阅 | `modules/05_writing/docx.md` |
 | 终审与提交包 | `modules/06_review_delivery.md` |
 | 命题证明 | `packs/artifact/proposition_proof.md`，仅按需加载 |
 | 项目状态与产物同步 | `scripts/sync_project.py` |
@@ -42,7 +58,7 @@
 | `core/task_taxonomy.yaml` | 正交分类与旧Pack映射 |
 | `core/workflow_router.yaml` | 多意图路由、交付scope与显式同步门槛 |
 | `core/module_manifest.yaml` | 模块输入输出、utility gate及terminal output闭环 |
-| `core/output_contract.yaml` | 目录、框架模式、分层哈希、阶段产物与MATLAB证据链 |
+| `core/output_contract.yaml` | 目录、写作策略、分层哈希、阶段产物与MATLAB证据链 |
 | `core/workbook_schema.yaml` | objective/structure/capability工作簿条件与精确表头交接 |
 | `core/project_state.schema.yaml` | 单一capability事实源、分层哈希、stale和框架状态 |
 
@@ -56,4 +72,4 @@
 - `scripts/lint_skill.py`：版本、路径、生产者—消费者、gate和语义闭环；
 - `scripts/score_submission.py`：评委式评分。
 
-完整活动文件清单仍使用兼容文件名 `HSK_SKILL_FILE_INDEX_V622.md`；历史只通过 `legacy/README.md` 追溯。
+完整活动文件清单见 `SKILL_FILE_INDEX.md`；历史只通过 `legacy/README.md` 追溯。
