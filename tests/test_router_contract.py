@@ -64,13 +64,39 @@ class TestRouterContract(unittest.TestCase):
         self.assertIn("modules/03_result_analysis.md", plan["modules"])
         self.assertIn("modules/04_figure_evidence.md", plan["modules"])
 
-    def test_result_analysis_request_does_not_reload_primary_solve(self):
+    def test_result_analysis_request_does_not_reload_primary_solve_without_state(self):
         plan = self.resolver.resolve_workflow(
             "result_analysis", objective="prediction", structures=["temporal"]
         )
+        self.assertFalse(plan["dependency_closure_applied"])
         self.assertIn("modules/03_result_analysis.md", plan["modules"])
         self.assertNotIn("modules/03_solve_validate.md", plan["modules"])
         self.assertIn("result_analysis_workbook", plan["module_terminal_outputs"])
+
+    def test_result_analysis_adds_primary_solve_when_state_has_no_solution(self):
+        plan = self.resolver.resolve_workflow(
+            "result_analysis",
+            objective="prediction",
+            structures=["temporal"],
+            available_artifacts=[],
+        )
+        self.assertTrue(plan["dependency_closure_applied"])
+        self.assertIn("modules/03_solve_validate.md", plan["modules"])
+        self.assertLess(
+            plan["modules"].index("modules/03_solve_validate.md"),
+            plan["modules"].index("modules/03_result_analysis.md"),
+        )
+
+    def test_result_analysis_reuses_current_solution_artifacts(self):
+        plan = self.resolver.resolve_workflow(
+            "result_analysis",
+            objective="prediction",
+            structures=["temporal"],
+            available_artifacts=["solved_results", "result_quality_report", "solution_workbook"],
+        )
+        self.assertTrue(plan["dependency_closure_applied"])
+        self.assertNotIn("modules/03_solve_validate.md", plan["modules"])
+        self.assertIn("modules/03_result_analysis.md", plan["modules"])
 
     def test_legacy_labels_remain_compatible(self):
         plan = self.resolver.resolve_workflow("full_solution", primary="mechanism", secondary=["optimization"])
