@@ -4,12 +4,17 @@ on:
   push:
     branches:
       - agent/v6.4.0-latex-first-zero-comments
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
 
 jobs:
   finalize:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
