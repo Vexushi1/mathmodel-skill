@@ -1,14 +1,14 @@
-version: 6.3.4
+version: 6.4.0
 workflow_order:
 - problem_audit
 - model_design
 - solve_validate
 - figure_evidence
-- writing_docx
 - writing_latex
 - ai_cleanup
 - latex_compile_quality
 - review_delivery
+- writing_docx
 contracts:
   bootstrap: core/bootstrap.yaml
   taxonomy: core/task_taxonomy.yaml
@@ -126,7 +126,6 @@ workflow_profiles:
     - model_design
     - solve_validate
     - figure_evidence
-    - writing_docx
     - writing_latex
     - ai_cleanup
     - latex_compile_quality
