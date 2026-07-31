@@ -10,6 +10,7 @@ from hsk_pipeline import (
     ModelContext,
     PipelineConfig,
     PrimarySolveResult,
+    ResultAnalysisResult,
     REQUIRED_CAPABILITIES,
     run_pipeline,
 )
@@ -80,10 +81,10 @@ def evaluate_primary_quality(
     )
 
 
-def analyze_results(primary: PrimarySolveResult) -> dict[str, pd.DataFrame]:
+def analyze_results(primary: PrimarySolveResult) -> ResultAnalysisResult:
     raise NotImplementedError(
         "根据随机输入、极端场景和样本量风险，选择场景压力、阈值、参数敏感性、误差分解、"
-        "结构稳健性或异质性分析；必须含分析设计和结论稳定性汇总"
+        "结构稳健性或异质性分析，并返回 ResultAnalysisResult；失效时使用 redo_required"
     )
 
 
@@ -96,7 +97,7 @@ def sync_analysis_framework(
     analysis_path: Path,
     tables: dict[str, pd.DataFrame],
 ) -> None:
-    raise NotImplementedError("回写极端场景、稳定范围、失效边界和分析工作簿证据")
+    raise NotImplementedError("回写极端场景、稳定范围、失效边界、回退结论和分析工作簿证据")
 
 
 def main() -> None:
