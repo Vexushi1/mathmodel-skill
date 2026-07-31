@@ -69,14 +69,8 @@ class TestResultIO(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             solve, analysis = MOD.workbook_paths(root, "问题一")
-            self.assertEqual(
-                solve.relative_to(root).as_posix(),
-                "结果数据表/问题一/问题一求解结果.xlsx",
-            )
-            self.assertEqual(
-                analysis.relative_to(root).as_posix(),
-                "结果数据表/问题一/问题一结果深化分析.xlsx",
-            )
+            self.assertEqual(solve.relative_to(root).as_posix(), "结果数据表/问题一/问题一求解结果.xlsx")
+            self.assertEqual(analysis.relative_to(root).as_posix(), "结果数据表/问题一/问题一结果深化分析.xlsx")
             MOD.write_workbook(solve, self.solution_tables())
             MOD.write_workbook(analysis, self.analysis_tables())
             self.assertTrue(solve.exists())
@@ -100,17 +94,36 @@ class TestResultIO(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "缺少必需字段"):
             MOD.validate_workbook_tables(tables, "solution")
 
-    def test_failed_quality_gate_is_rejected(self):
+    def test_failed_quality_gate_is_rejected_for_downstream(self):
         tables = self.solution_tables()
         tables["主结果质量门"].loc[0, "是否通过"] = False
         with self.assertRaisesRegex(ValueError, "质量门存在未通过项"):
             MOD.validate_workbook_tables(tables, "solution")
 
+    def test_failed_quality_gate_can_be_persisted_structurally(self):
+        tables = self.solution_tables()
+        tables["主结果质量门"].loc[0, "是否通过"] = False
+        prepared = MOD.validate_workbook_tables(
+            tables,
+            "solution",
+            require_quality_passed=False,
+        )
+        self.assertIn("主结果质量门", {name for name, _ in prepared})
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "问题一求解结果.xlsx"
+            MOD.write_workbook(
+                path,
+                tables,
+                workbook_kind="solution",
+                require_quality_passed=False,
+            )
+            self.assertTrue(path.is_file())
+            with self.assertRaisesRegex(ValueError, "质量门存在未通过项"):
+                MOD.validate_workbook_file(path, "solution")
+
     def test_legacy_optimization_fallback_requires_constraint_sheet(self):
         with self.assertRaisesRegex(ValueError, "约束违反检查"):
-            MOD.validate_workbook_tables(
-                self.solution_tables(), "solution", problem_types=("optimization",)
-            )
+            MOD.validate_workbook_tables(self.solution_tables(), "solution", problem_types=("optimization",))
 
     def test_explicit_capabilities_override_problem_type_fallback(self):
         prepared = MOD.validate_workbook_tables(
@@ -119,10 +132,7 @@ class TestResultIO(unittest.TestCase):
             problem_types=("mechanism",),
             capabilities=self.all_capabilities(),
         )
-        self.assertEqual(
-            {name for name, _ in prepared},
-            {"核心指标", "数据审计", "主结果质量门"},
-        )
+        self.assertEqual({name for name, _ in prepared}, {"核心指标", "数据审计", "主结果质量门"})
 
     def test_constraint_capability_requires_and_checks_sheet(self):
         tables = self.solution_tables()
