@@ -1,0 +1,42 @@
+# HSK Runtime Router
+
+机器路由以 `core/workflow_router.yaml` 为唯一事实源。
+
+## 启动
+
+```text
+读取 core/bootstrap.yaml
+→ 调用 scripts/resolve_workflow.py
+→ 合并多个意图
+→ 确定 objective / structures / 顶层 capabilities
+→ 加载必要模块、Pack、模板
+→ 到用户要求的模块产物停止
+→ 执行 pre_delivery_gates
+→ gate 成功后暴露 project_state / sync_report
+```
+
+默认完整流程在 `figure_evidence` 后直接进入 `writing_latex`、`ai_cleanup`、`latex_compile_quality` 和 `review_delivery`。`writing_docx` 不在默认顺序中，仅由显式 DOCX/Word 请求加载，且不是 LaTeX 前置。
+
+Python starter 使用 `templates/code/hsk_pipeline/run_pipeline()` 统一执行配置校验、随机种子、求解、验证、工作簿写入和框架同步；starter 本身只保留题型配置与题目专属钩子。
+
+## 示例
+
+```bash
+python scripts/resolve_workflow.py code_and_solution figures \
+  --objective optimization \
+  --structures stochastic \
+  --competition CUMCM
+```
+
+解析结果会返回：
+
+```yaml
+module_terminal_outputs: [...]
+pre_delivery_gates:
+  - name: project_sync
+    delivery_scope: figures
+    command: python scripts/sync_project.py <project_root> --write --strict --delivery-scope figures
+terminal_outputs: [..., project_state, sync_report]
+```
+
+`project_sync` 是 utility gate，不属于求解模块。它按 exact delivery scope 检查必需产物、工作簿 Schema、MATLAB 图表链和分层哈希，不得自动把验证状态提升为 passed。`sync_report` 只有在 gate 成功后才视为 available。
