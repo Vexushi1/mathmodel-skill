@@ -5,7 +5,15 @@ from typing import Any
 
 import pandas as pd
 
-from hsk_pipeline import AuditLog, ModelContext, PipelineConfig, REQUIRED_CAPABILITIES, run_pipeline
+from hsk_pipeline import (
+    AuditLog,
+    ModelContext,
+    PipelineConfig,
+    PrimarySolveResult,
+    ResultAnalysisResult,
+    REQUIRED_CAPABILITIES,
+    run_pipeline,
+)
 from hsk_pipeline.result_io import find_project_root
 
 INPUT_FILE = "__INPUT_FILE__"
@@ -50,13 +58,15 @@ def build_config(script_path: Path) -> PipelineConfig:
         problem_name=PROBLEM_NAME,
         objective="optimization",
         structures=(),
-        capabilities=capabilities(has_explicit_constraints=True, requires_feasibility_check=True),
+        capabilities=capabilities(
+            has_explicit_constraints=True,
+            requires_feasibility_check=True,
+        ),
         random_seed=2026,
     )
 
 
 def load_data(config: PipelineConfig, audit: AuditLog) -> dict[str, pd.DataFrame]:
-    """读取参数与资源数据，检查单位、维度、边界和关联键。"""
     data = read_tabular_input(config, audit)
     return {"原始数据": data}
 
@@ -66,38 +76,49 @@ def preprocess_data(
     config: PipelineConfig,
     audit: AuditLog,
 ) -> dict[str, pd.DataFrame]:
-    """按题意完成字段选择、缺失处理、单位统一和异常处理。"""
-    raise NotImplementedError("请依据模型论文框架实现预处理，并记录处理前后样本量")
+    raise NotImplementedError("请依据题意实现清洗、单位统一和关联键检查")
 
 
 def build_features(clean_data: dict[str, pd.DataFrame], config: PipelineConfig) -> dict[str, Any]:
-    """构造决策变量索引、目标系数、约束矩阵或非线性参数。"""
-    raise NotImplementedError("请将当前模型的变量和参数映射为可计算对象")
+    raise NotImplementedError("请构造决策变量索引、目标系数和约束参数")
 
 
 def solve_model(features: dict[str, Any], config: PipelineConfig) -> dict[str, Any]:
-    """建立并求解目标函数与约束，输出核心指标、推荐方案和决策变量明细。"""
-    raise NotImplementedError("solution 至少包含符合工作簿 Schema 的‘核心指标’")
+    raise NotImplementedError("请完整求解主模型并输出核心指标、推荐方案和决策变量明细")
 
 
 def check_constraints(solution: dict[str, Any], config: PipelineConfig) -> pd.DataFrame | None:
     raise NotImplementedError("请按约束编号输出违反量、容差和是否满足")
 
 
-def validate_model(context: ModelContext) -> tuple[pd.DataFrame | None, dict[str, pd.DataFrame]]:
-    """输出多算法对比、参数敏感性、鲁棒性区间或算法稳定性表。"""
-    raise NotImplementedError("敏感性与鲁棒性工作簿必须非空；不适用时写明原因和替代检验")
-
-
-def sync_framework(
+def evaluate_primary_quality(
     context: ModelContext,
-    output_paths: tuple[Path, Path],
     constraints: pd.DataFrame | None,
-    algorithm_comparison: pd.DataFrame | None,
-    validation_tables: dict[str, pd.DataFrame],
+) -> pd.DataFrame:
+    raise NotImplementedError(
+        "请检查求解器终止、可行性、最优间隙或停止条件、数值收敛和可复算性，"
+        "返回检查项/是否通过/证据"
+    )
+
+
+def analyze_results(primary: PrimarySolveResult) -> ResultAnalysisResult:
+    raise NotImplementedError(
+        "根据局部最优风险、资源或需求不确定性、关键参数和方案失效边界，选择多算法、"
+        "场景压力、阈值、结构稳健性或参数敏感性，并返回 ResultAnalysisResult；"
+        "主方案失效时使用 redo_required"
+    )
+
+
+def sync_primary_framework(primary: PrimarySolveResult) -> None:
+    raise NotImplementedError("回写当前主模型、核心结果、质量门结论和求解工作簿证据")
+
+
+def sync_analysis_framework(
+    primary: PrimarySolveResult,
+    analysis_path: Path,
+    tables: dict[str, pd.DataFrame],
 ) -> None:
-    """完整替换该问当前模型口径和结果摘要，不保留并列旧版本。"""
-    raise NotImplementedError("请回写模型、算法、核心数值、验证结论和工作簿证据位置")
+    raise NotImplementedError("回写实际分析方法、稳定范围、失效边界、回退结论和分析工作簿证据")
 
 
 def main() -> None:
@@ -109,8 +130,10 @@ def main() -> None:
         build_features_hook=build_features,
         solve_hook=solve_model,
         constraint_hook=check_constraints,
-        validation_hook=validate_model,
-        framework_sync_hook=sync_framework,
+        quality_hook=evaluate_primary_quality,
+        result_analysis_hook=analyze_results,
+        primary_framework_sync_hook=sync_primary_framework,
+        analysis_framework_sync_hook=sync_analysis_framework,
     )
 
 

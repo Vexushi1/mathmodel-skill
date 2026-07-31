@@ -53,6 +53,21 @@ class TestStructure(unittest.TestCase):
         ]:
             self.assertTrue((ROOT / relative).exists(), relative)
 
+    def test_required_active_modules(self):
+        for relative in [
+            "modules/01_problem_audit.md",
+            "modules/02_model_design.md",
+            "modules/03_solve_validate.md",
+            "modules/03_result_analysis.md",
+            "modules/04_figure_evidence.md",
+            "modules/05_writing/latex.md",
+            "modules/05_writing/docx.md",
+            "modules/05_writing/ai_cleanup.md",
+            "modules/05_latex_compile_quality.md",
+            "modules/06_review_delivery.md",
+        ]:
+            self.assertTrue((ROOT / relative).is_file(), relative)
+
     def test_plugin_wrapper(self):
         self.assertTrue((ROOT / ".codex-plugin/plugin.json").exists())
         self.assertTrue((ROOT / "skills/mathmodel-skill/SKILL.md").exists())
@@ -153,6 +168,20 @@ class TestStructure(unittest.TestCase):
         self.assertTrue((ROOT / "templates/model/model_paper_framework.md").is_file())
         self.assertFalse((ROOT / "模型论文框架.md").exists())
 
+    def test_result_analysis_is_registered_after_primary_solve(self):
+        router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8"))
+        manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
+        for order in (
+            router["execution_contract"]["workflow_order"],
+            manifest["workflow_order"],
+        ):
+            self.assertLess(order.index("solve_validate"), order.index("result_analysis"))
+            self.assertLess(order.index("result_analysis"), order.index("figure_evidence"))
+        self.assertEqual(
+            manifest["modules"]["result_analysis"]["path"],
+            "modules/03_result_analysis.md",
+        )
+
     def test_active_documentation_matches_current_skill_version_and_taxonomy(self):
         bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
         version = str(bootstrap["skill_version"])
@@ -160,7 +189,7 @@ class TestStructure(unittest.TestCase):
         legacy_readme = (ROOT / "legacy/README.md").read_text(encoding="utf-8")
 
         self.assertEqual(scripts_readme.splitlines()[0], f"# Scripts v{version}")
-        for token in ("`objective`", "`structures`", "`capabilities`"):
+        for token in ("objective", "structures", "capabilities"):
             self.assertIn(token, scripts_readme)
         self.assertNotIn("主/次题型", scripts_readme)
         self.assertIn(f"不属于 v{version} 默认运行链路", legacy_readme)

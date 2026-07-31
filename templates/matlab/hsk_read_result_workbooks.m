@@ -1,12 +1,12 @@
 function books = hsk_read_result_workbooks(location, problemName, requirements)
-% 兼容辅助函数。新项目优先在 q{x}_plot.m 中直接读取实际工作簿。
-% 本函数只接受已经由实表核对得到的“真实表头 + 固定列号”映射，
-% 不支持按字段名动态查列、别名匹配、模糊校准或自动回退。
+% 读取主求解与结果深化分析工作簿，并按真实表头和固定列号校验。
+% 不支持模糊字段匹配、别名猜测或在 MATLAB 中重新计算核心结果。
 %
 % requirements 示例：
 % requirements.solution.核心指标.headers = ["指标", "数值"];
 % requirements.solution.核心指标.columns = [1, 2];
-% requirements.solution.核心指标.numeric_columns = 2;
+% requirements.analysis.参数敏感性.headers = ["参数", "基准值", "变化值", "结果指标"];
+% requirements.analysis.参数敏感性.columns = [1, 2, 3, 4];
 
 arguments
     location (1,1) string
@@ -17,15 +17,7 @@ end
 if strlength(problemName) == 0
     resultDir = location;
 else
-    flatDir = fullfile(location, "结果数据表", problemName);
-    legacyDir = fullfile(flatDir, problemName + "结果数据");
-    if isfolder(flatDir)
-        resultDir = flatDir;
-    elseif isfolder(legacyDir)
-        resultDir = legacyDir;
-    else
-        resultDir = flatDir;
-    end
+    resultDir = fullfile(location, "结果数据表", problemName);
 end
 
 if strlength(problemName) == 0
@@ -37,21 +29,28 @@ end
 
 books.resultDir = resultDir;
 books.solution = fullfile(resultDir, problemName + "求解结果.xlsx");
-books.robustness = fullfile(resultDir, problemName + "敏感性与鲁棒性结果.xlsx");
+books.analysis = fullfile(resultDir, problemName + "结果深化分析.xlsx");
+legacyAnalysis = fullfile(resultDir, problemName + "敏感性与鲁棒性结果.xlsx");
+if ~isfile(books.analysis) && isfile(legacyAnalysis)
+    books.analysis = legacyAnalysis;
+    warning("使用旧工作簿名，仅作兼容读取；新项目应迁移为结果深化分析工作簿");
+end
 books.matlabScript = fullfile(resultDir, "q" + question_number(problemName) + "_plot.m");
 books.figureDir = fullfile(resultDir, "图表");
 
 assert(isfile(books.solution), "缺少求解结果工作簿: %s", books.solution);
-assert(isfile(books.robustness), "缺少敏感性与鲁棒性工作簿: %s", books.robustness);
+assert(isfile(books.analysis), "缺少结果深化分析工作簿: %s", books.analysis);
 
 books.solutionSheets = string(sheetnames(books.solution));
-books.robustnessSheets = string(sheetnames(books.robustness));
+books.analysisSheets = string(sheetnames(books.analysis));
 
 if isfield(requirements, "solution")
     validate_exact_requirements(books.solution, requirements.solution);
 end
-if isfield(requirements, "robustness")
-    validate_exact_requirements(books.robustness, requirements.robustness);
+if isfield(requirements, "analysis")
+    validate_exact_requirements(books.analysis, requirements.analysis);
+elseif isfield(requirements, "robustness")
+    validate_exact_requirements(books.analysis, requirements.robustness);
 end
 end
 

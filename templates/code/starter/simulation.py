@@ -5,7 +5,15 @@ from typing import Any
 
 import pandas as pd
 
-from hsk_pipeline import AuditLog, ModelContext, PipelineConfig, REQUIRED_CAPABILITIES, run_pipeline
+from hsk_pipeline import (
+    AuditLog,
+    ModelContext,
+    PipelineConfig,
+    PrimarySolveResult,
+    ResultAnalysisResult,
+    REQUIRED_CAPABILITIES,
+    run_pipeline,
+)
 from hsk_pipeline.result_io import find_project_root
 
 INPUT_FILE = "__INPUT_FILE__"
@@ -20,25 +28,6 @@ def capabilities(**enabled: bool) -> dict[str, bool]:
     values = {name: False for name in REQUIRED_CAPABILITIES}
     values.update(enabled)
     return values
-
-
-def read_tabular_input(config: PipelineConfig, audit: AuditLog) -> pd.DataFrame:
-    if INPUT_FILE.startswith("__"):
-        raise ValueError("请将 INPUT_FILE 替换为项目根目录中的真实附件文件名")
-    path = config.project_root / INPUT_FILE
-    if not path.is_file():
-        raise FileNotFoundError(f"缺少输入文件: {path}")
-    suffix = path.suffix.lower()
-    if suffix == ".csv":
-        data = pd.read_csv(path)
-    elif suffix in {".xlsx", ".xls"}:
-        data = pd.read_excel(path)
-    else:
-        raise ValueError(f"暂不支持的输入格式: {suffix}")
-    if data.empty:
-        raise ValueError("输入数据为空")
-    audit.record("Info", "输入文件", path.name, f"读取 {data.shape[0]} 行、{data.shape[1]} 列")
-    return data
 
 
 def build_config(script_path: Path) -> PipelineConfig:
@@ -59,9 +48,7 @@ def build_config(script_path: Path) -> PipelineConfig:
 
 
 def load_data(config: PipelineConfig, audit: AuditLog) -> dict[str, pd.DataFrame]:
-    """读取状态、事件或分布参数，检查单位、时间粒度和参数定义域。"""
-    data = read_tabular_input(config, audit)
-    return {"原始数据": data}
+    raise NotImplementedError("请读取仿真参数、初始状态和外部场景并检查单位与边界")
 
 
 def preprocess_data(
@@ -69,38 +56,48 @@ def preprocess_data(
     config: PipelineConfig,
     audit: AuditLog,
 ) -> dict[str, pd.DataFrame]:
-    """按题意完成字段选择、缺失处理、单位统一和异常处理。"""
-    raise NotImplementedError("请依据模型论文框架实现预处理，并记录处理前后样本量")
+    raise NotImplementedError("请完成参数校准、场景整理和随机变量分布检查")
 
 
 def build_features(clean_data: dict[str, pd.DataFrame], config: PipelineConfig) -> dict[str, Any]:
-    """构造初始状态、状态转移、随机输入和仿真场景。"""
-    raise NotImplementedError("请将当前模型的变量和参数映射为可计算对象")
+    raise NotImplementedError("请构造状态转移、事件机制、随机输入和停止条件")
 
 
 def solve_model(features: dict[str, Any], config: PipelineConfig) -> dict[str, Any]:
-    """执行重复仿真，输出核心指标、仿真明细、逐场景结果和不确定性区间。"""
-    raise NotImplementedError("solution 至少包含符合工作簿 Schema 的‘核心指标’")
+    raise NotImplementedError("请完成主仿真并输出底层明细、重复试验、收敛诊断和不确定性区间")
 
 
 def check_constraints(solution: dict[str, Any], config: PipelineConfig) -> pd.DataFrame | None:
     return None
 
 
-def validate_model(context: ModelContext) -> tuple[pd.DataFrame | None, dict[str, pd.DataFrame]]:
-    """输出样本数收敛、步长敏感性、随机种子稳定性和扰动明细。"""
-    raise NotImplementedError("敏感性与鲁棒性工作簿必须非空；不适用时写明原因和替代检验")
-
-
-def sync_framework(
+def evaluate_primary_quality(
     context: ModelContext,
-    output_paths: tuple[Path, Path],
     constraints: pd.DataFrame | None,
-    algorithm_comparison: pd.DataFrame | None,
-    validation_tables: dict[str, pd.DataFrame],
+) -> pd.DataFrame:
+    raise NotImplementedError(
+        "请检查随机种子、重复次数、收敛、守恒或状态边界、置信区间和可复算性，"
+        "返回检查项/是否通过/证据"
+    )
+
+
+def analyze_results(primary: PrimarySolveResult) -> ResultAnalysisResult:
+    raise NotImplementedError(
+        "根据随机输入、极端场景和样本量风险，选择场景压力、阈值、参数敏感性、误差分解、"
+        "结构稳健性或异质性分析，并返回 ResultAnalysisResult；失效时使用 redo_required"
+    )
+
+
+def sync_primary_framework(primary: PrimarySolveResult) -> None:
+    raise NotImplementedError("回写主仿真结果、收敛与区间证据和质量门结论")
+
+
+def sync_analysis_framework(
+    primary: PrimarySolveResult,
+    analysis_path: Path,
+    tables: dict[str, pd.DataFrame],
 ) -> None:
-    """完整替换该问当前模型口径和结果摘要，不保留并列旧版本。"""
-    raise NotImplementedError("请回写模型、算法、核心数值、验证结论和工作簿证据位置")
+    raise NotImplementedError("回写极端场景、稳定范围、失效边界、回退结论和分析工作簿证据")
 
 
 def main() -> None:
@@ -112,8 +109,10 @@ def main() -> None:
         build_features_hook=build_features,
         solve_hook=solve_model,
         constraint_hook=check_constraints,
-        validation_hook=validate_model,
-        framework_sync_hook=sync_framework,
+        quality_hook=evaluate_primary_quality,
+        result_analysis_hook=analyze_results,
+        primary_framework_sync_hook=sync_primary_framework,
+        analysis_framework_sync_hook=sync_analysis_framework,
     )
 
 

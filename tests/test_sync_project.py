@@ -30,11 +30,13 @@ def append_sheet(book: Workbook, title: str, headers, row):
     ws.append(list(row))
 
 
-def write_solution(path: Path, *, constraint=False, out_of_sample=False):
+def write_solution(path: Path, *, constraint=False, out_of_sample=False, objective="optimization"):
     book = Workbook()
     append_sheet(book, "核心指标", ["指标", "数值"], ["目标值", 1.0])
     append_sheet(book, "数据审计", ["等级", "检查项", "信息", "处理方式"], ["Info", "完整性", "通过", "无需处理"])
-    append_sheet(book, "推荐方案", ["方案"], ["A"])
+    append_sheet(book, "主结果质量门", ["检查项", "是否通过", "证据"], ["收敛", True, "达到终止条件"])
+    if objective == "optimization":
+        append_sheet(book, "推荐方案", ["方案"], ["A"])
     if constraint:
         append_sheet(book, "约束违反检查", ["约束编号", "约束含义", "违反量", "容差", "是否满足"], ["C1", "容量", 0.0, 1e-8, "是"])
     if out_of_sample:
@@ -42,9 +44,21 @@ def write_solution(path: Path, *, constraint=False, out_of_sample=False):
     book.save(path)
 
 
-def write_robustness(path: Path):
+def write_analysis(path: Path):
     book = Workbook()
-    append_sheet(book, "参数敏感性", ["参数", "基准值", "扰动值", "目标指标"], ["a", 1.0, 1.1, 2.0])
+    append_sheet(
+        book,
+        "分析设计",
+        ["风险来源", "分析问题", "方法", "指标", "通过标准"],
+        ["局部最优", "算法是否一致", "多算法", "目标差异", "小于1%"],
+    )
+    append_sheet(book, "算法一致性", ["算法", "重复编号", "目标值", "是否可行"], ["A", 1, 1.0, True])
+    append_sheet(
+        book,
+        "结论稳定性汇总",
+        ["核心结论", "分析方法", "稳定范围", "是否保持"],
+        ["方案A最优", "多算法", "三种算法", True],
+    )
     book.save(path)
 
 
@@ -66,40 +80,96 @@ def capabilities(**overrides):
     return values
 
 
+def framework_text() -> str:
+    return (
+        "# 模型论文框架\n\n"
+        "> 本文件只保留当前有效版本。\n\n"
+        "- 最近同步：`design`\n"
+        "- 最近同步时间：`x`\n"
+        "- 当前状态：`current`\n\n"
+        "## 当前有效口径\n\n"
+        "## 各问模型与结果\n\n"
+        "### Q1\n\n"
+        "## 图表证据链\n\n"
+        "## 待办与缺口\n"
+    )
+
+
 def write_state(root: Path, status="designed", caps=None, phase="model_design", validated=None):
     state_dir = root / "state"
     state_dir.mkdir(exist_ok=True)
+    solved = status in {"solved", "analyzed", "validated", "written", "completed"}
+    analyzed = status in {"analyzed", "validated", "written", "completed"}
     payload = {
-        "project": {"current_phase": phase},
+        "project": {"competition": "测试", "problem": "A", "current_phase": phase},
+        "requirements": {"total": 0, "completed": [], "pending": []},
+        "decisions": {},
         "subproblems": {
             "Q1": {
                 "status": status,
+                "selected_model": "测试模型",
                 "classification": {"objective": "optimization", "structures": []},
                 "capabilities": caps or capabilities(),
-                "validation_status": "passed" if status == "validated" else "pending",
-                "result_summary_status": "current" if status in {"solved", "validated"} else "pending",
-                "result_summary_anchor": "### Q1" if status in {"solved", "validated"} else "",
+                "result_quality_status": "passed" if solved else "pending",
+                "result_analysis_status": "passed" if analyzed else "pending",
+                "validation_status": "passed" if status in {"validated", "written", "completed"} else "pending",
+                "result_summary_status": "current" if solved else "pending",
+                "result_summary_anchor": "### Q1" if solved else "",
+                "framework_section": "### Q1",
                 "artifacts_stale": False,
-                "evidence": [],
+                "stale_layers": [],
+                "evidence": ["evidence"] if status in {"validated", "written", "completed"} else [],
+                "analysis_methods": ["算法一致性"] if analyzed else [],
+                "artifact_hashes": {},
                 "validated_artifact_hashes": validated or {},
+                "optimality_claim": "none",
             }
         },
+        "variables": {"locked": [], "source": {}},
         "artifacts": {"code": [], "results": [], "figures": [], "papers": []},
-        "paper_framework": {"path": "模型论文框架.md", "sync_status": "current", "mode": "compact"},
+        "paper_framework": {
+            "path": "模型论文框架.md",
+            "version": "1",
+            "mode": "compact",
+            "sync_status": "current",
+            "last_sync_scope": "design",
+            "proposition_limit": 4,
+            "proposition_count": 0,
+            "proposition_status": "not_assessed",
+            "propositions": [],
+        },
+        "risks": [],
+        "next_gate": {"module": "solve_validate", "condition": "test"},
     }
-    (state_dir / "project_state.yaml").write_text(yaml.safe_dump(payload, allow_unicode=True), encoding="utf-8")
+    (state_dir / "project_state.yaml").write_text(
+        yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8"
+    )
 
 
-def setup_valid_project(root: Path, status="designed", caps=None, phase="model_design"):
-    (root / "问题一求解.py").write_text("def main():\n    return 1\n", encoding="utf-8")
-    result = root / "结果数据表" / "问题一"
-    result.mkdir(parents=True)
-    write_solution(result / "问题一求解结果.xlsx", constraint=bool((caps or {}).get("has_explicit_constraints")), out_of_sample=bool((caps or {}).get("requires_out_of_sample_validation")))
-    write_robustness(result / "问题一敏感性与鲁棒性结果.xlsx")
-    (root / "模型论文框架.md").write_text(
-        "- 最近同步：`x`\n- 最近同步时间：`x`\n- 当前状态：`current`\n### Q1\n",
+def setup_project(
+    root: Path,
+    *,
+    status="designed",
+    caps=None,
+    phase="model_design",
+    include_solution=True,
+    include_analysis=True,
+):
+    (root / "问题一求解.py").write_text(
+        "def main():\n    return 1\n\nif __name__ == '__main__':\n    main()\n",
         encoding="utf-8",
     )
+    result = root / "结果数据表" / "问题一"
+    result.mkdir(parents=True)
+    if include_solution:
+        write_solution(
+            result / "问题一求解结果.xlsx",
+            constraint=bool((caps or {}).get("has_explicit_constraints")),
+            out_of_sample=bool((caps or {}).get("requires_out_of_sample_validation")),
+        )
+    if include_analysis:
+        write_analysis(result / "问题一结果深化分析.xlsx")
+    (root / "模型论文框架.md").write_text(framework_text(), encoding="utf-8")
     write_state(root, status=status, caps=caps, phase=phase)
     return result
 
@@ -109,12 +179,12 @@ class TestSyncProject(unittest.TestCase):
         syncer = load_syncer()
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            result = setup_valid_project(root)
+            result = setup_project(root)
             (result / "q1_plot.m").write_text('title(gca, "结果");', encoding="utf-8")
-            report = syncer.synchronize(root, write=True)
+            report = syncer.synchronize(root, write=True, delivery_scope="design")
             self.assertIn("Q1", report["questions"])
             self.assertTrue((root / "sync_report.yaml").is_file())
-            updated = yaml.safe_load((root / "state" / "project_state.yaml").read_text(encoding="utf-8"))
+            updated = yaml.safe_load((root / "state/project_state.yaml").read_text(encoding="utf-8"))
             actual_hash = syncer.sha256_file(root / "模型论文框架.md")
             self.assertEqual(updated["paper_framework"]["sha256"], actual_hash)
             self.assertEqual(report["framework_hash"], actual_hash)
@@ -123,60 +193,80 @@ class TestSyncProject(unittest.TestCase):
         syncer = load_syncer()
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            (root / "问题一求解.py").write_text("VALUE = 1\n", encoding="utf-8")
+            (root / "模型论文框架.md").write_text(framework_text(), encoding="utf-8")
             write_state(root, status="designed", phase="model_design")
             report = syncer.synchronize(root, write=False)
             self.assertFalse(any("缺少标准" in issue for issue in report["issues"]))
 
-    def test_solved_project_requires_both_workbooks(self):
+    def test_solved_project_requires_only_primary_workbook_before_formal_results_delivery(self):
         syncer = load_syncer()
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            (root / "问题一求解.py").write_text("VALUE = 1\n", encoding="utf-8")
-            write_state(root, status="solved", phase="solve_validate")
+            setup_project(root, status="solved", phase="solve_validate", include_analysis=False)
             report = syncer.synchronize(root, write=False)
-            self.assertTrue(any("缺少标准求解结果工作簿" in issue for issue in report["issues"]))
-            self.assertTrue(any("缺少标准敏感性与鲁棒性工作簿" in issue for issue in report["issues"]))
+            self.assertFalse(any("结果深化分析工作簿" in issue for issue in report["issues"]))
+
+    def test_analyzed_project_requires_result_analysis_workbook(self):
+        syncer = load_syncer()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            setup_project(root, status="analyzed", phase="result_analysis", include_analysis=False)
+            report = syncer.synchronize(root, write=False)
+            self.assertTrue(any("缺少标准结果深化分析工作簿" in issue for issue in report["issues"]))
+
+    def test_formal_results_scope_requires_both_stages(self):
+        syncer = load_syncer()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            setup_project(root, status="solved", phase="solve_validate", include_analysis=False)
+            report = syncer.synchronize(root, write=False, delivery_scope="results")
+            self.assertTrue(any("结果深化分析" in issue for issue in report["issues"]))
 
     def test_capability_required_sheet_is_enforced(self):
         syncer = load_syncer()
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             caps = capabilities(requires_out_of_sample_validation=True)
-            result = setup_valid_project(root, status="solved", caps=caps, phase="solve_validate")
+            result = setup_project(root, status="solved", caps=caps, phase="solve_validate", include_analysis=False)
             write_solution(result / "问题一求解结果.xlsx", out_of_sample=False)
             report = syncer.synchronize(root, write=False)
             self.assertTrue(any("requires_out_of_sample_validation" in issue for issue in report["issues"]))
 
-    def test_workbook_hash_change_propagates_stale(self):
+    def test_solution_hash_change_invalidates_quality_and_analysis(self):
         syncer = load_syncer()
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            result = setup_valid_project(root, status="validated", phase="solve_validate")
+            result = setup_project(root, status="analyzed", phase="result_analysis")
             initial = syncer.synchronize(root, write=False)
             current = initial["questions"]["Q1"]["artifact_hashes"]
             state_path = root / "state/project_state.yaml"
             state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+            state["subproblems"]["Q1"]["artifact_hashes"] = current
             state["subproblems"]["Q1"]["validated_artifact_hashes"] = current
-            state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
-            book_path = result / "问题一求解结果.xlsx"
+            state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
+            write_solution(result / "问题一求解结果.xlsx")
             book = Workbook()
             append_sheet(book, "核心指标", ["指标", "数值"], ["目标值", 2.0])
             append_sheet(book, "数据审计", ["等级", "检查项", "信息", "处理方式"], ["Info", "完整性", "通过", "无需处理"])
-            book.save(book_path)
+            append_sheet(book, "主结果质量门", ["检查项", "是否通过", "证据"], ["收敛", True, "通过"])
+            append_sheet(book, "推荐方案", ["方案"], ["B"])
+            book.save(result / "问题一求解结果.xlsx")
             report = syncer.synchronize(root, write=True)
             updated = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+            entry = updated["subproblems"]["Q1"]
             self.assertEqual(report["stale_questions"], ["Q1"])
-            self.assertIn("solution_workbook", updated["subproblems"]["Q1"]["stale_layers"])
-            self.assertEqual(updated["subproblems"]["Q1"]["validation_status"], "pending")
+            self.assertIn("solution_workbook", entry["stale_layers"])
+            self.assertEqual(entry["result_quality_status"], "pending")
+            self.assertEqual(entry["result_analysis_status"], "pending")
 
     def test_figure_scope_checks_declared_export(self):
         syncer = load_syncer()
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            result = setup_valid_project(root, status="solved", phase="figure_evidence")
+            result = setup_project(root, status="analyzed", phase="figure_evidence")
             (result / "q1_plot.m").write_text(
-                'title(gca, "结果"); exportgraphics(gca, "图表/missing.png");',
+                'readcell("问题一求解结果.xlsx"); title(gca, "结果"); '
+                'exportgraphics(gca, "图表/missing.png");',
                 encoding="utf-8",
             )
             report = syncer.synchronize(root, write=False, delivery_scope="figures")

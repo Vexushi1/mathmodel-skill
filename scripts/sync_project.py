@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Synchronize project artifacts and enforce v6.3.4 delivery-gate contracts.
-
-The synchronizer is conservative: it discovers and validates existing artifacts,
-computes provenance hashes and propagates stale state. It never invents model
-semantics, numerical results, figure approval or validation success.
-"""
+"""Synchronize project artifacts without promoting solve or analysis decisions."""
 from __future__ import annotations
 
 import argparse
@@ -14,33 +9,38 @@ import json
 import re
 import sys
 import zipfile
-from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 import yaml
-from openpyxl import load_workbook
 
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_SCHEMA_PATH = SKILL_ROOT / "core" / "workbook_schema.yaml"
 DEFAULT_OUTPUT_CONTRACT_PATH = SKILL_ROOT / "core" / "output_contract.yaml"
 QUESTION_RE = re.compile(r"问题([一二三四五六七八九十百]+)")
 MATLAB_TITLE_RE = re.compile(r"\b(?:title|sgtitle)\s*\(", re.IGNORECASE)
-EXPORT_RE = re.compile(r"(?:exportgraphics|print)\s*\([^\n]*?[\"']([^\"']+\.(?:png|pdf|svg|tif|tiff))[\"']", re.IGNORECASE)
+EXPORT_RE = re.compile(
+    r"(?:exportgraphics|print)\s*\([^\n]*?[\"']([^\"']+\.(?:png|pdf|svg|tif|tiff|jpg|jpeg))[\"']",
+    re.IGNORECASE,
+)
 WORKBOOK_REF_RE = re.compile(r"[\"']([^\"']+\.xlsx)[\"']", re.IGNORECASE)
-LATEX_GRAPHICS_RE = re.compile(r"\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}")
 FIGURE_SUFFIXES = {".png", ".pdf", ".svg", ".tif", ".tiff", ".jpg", ".jpeg"}
 DATA_SUFFIXES = {".csv", ".xlsx", ".xls", ".json", ".yaml", ".yml", ".txt"}
-IGNORED_ROOT_NAMES = {".git", ".idea", ".vscode", "__pycache__", "结果数据表", "draft_docx", "final_latex", "submission", "figures", "figures_editable", "state"}
-SCOPE_RANK = {"design": 0, "results": 1, "figures": 2, "docx": 3, "latex": 4, "submission": 5}
 PHASE_SCOPE = {
-    "problem_audit": "design", "model_design": "design", "solve_validate": "results",
-    "figure_evidence": "figures", "writing_docx": "docx", "writing_latex": "latex",
-    "ai_cleanup": "latex", "latex_compile_quality": "latex", "review_delivery": "submission",
+    "problem_audit": "design", "model_design": "design",
+    "solve_validate": "results", "result_analysis": "results",
+    "figure_evidence": "figures", "writing_docx": "docx",
+    "writing_latex": "latex", "ai_cleanup": "latex",
+    "latex_compile_quality": "latex", "review_delivery": "submission",
     "completed": "submission",
 }
-HASH_KEYS = ("data", "model", "solution_workbook", "robustness_workbook", "matlab_script", "figure_bundle", "framework")
+HASH_KEYS = (
+    "data", "model", "solution_workbook", "result_analysis_workbook",
+    "matlab_script", "figure_bundle", "framework",
+)
+SOLVED_STATUSES = {"solved", "analyzed", "validated", "written", "completed"}
+ANALYZED_STATUSES = {"analyzed", "validated", "written", "completed"}
 
 
 def _load_module(name: str, path: Path):
@@ -54,7 +54,7 @@ def _load_module(name: str, path: Path):
 
 WORKBOOK_VALIDATION = _load_module(
     "hsk_workbook_validation",
-    SKILL_ROOT / "templates" / "code" / "hsk_pipeline" / "workbook_validation.py",
+    SKILL_ROOT / "templates/code" / "hsk_pipeline" / "workbook_validation.py",
 )
 STATE_VALIDATION = _load_module(
     "hsk_project_state_validation", SKILL_ROOT / "scripts" / "validate_project_state.py"
@@ -62,45 +62,6 @@ STATE_VALIDATION = _load_module(
 FRAMEWORK_VALIDATION = _load_module(
     "hsk_framework_validation", SKILL_ROOT / "scripts" / "validate_model_paper_framework.py"
 )
-
-
-@dataclass
-class SheetInfo:
-    headers: list[str] = field(default_factory=list)
-    data_rows: int = 0
-    max_column: int = 0
-
-
-@dataclass
-class WorkbookInfo:
-    path: str
-    sha256: str
-    sheets: dict[str, SheetInfo] = field(default_factory=dict)
-    issues: list[str] = field(default_factory=list)
-
-
-@dataclass
-class QuestionSnapshot:
-    key: str
-    chinese_name: str
-    code_files: list[str] = field(default_factory=list)
-    model_hash: str | None = None
-    solution_workbook: WorkbookInfo | None = None
-    robustness_workbook: WorkbookInfo | None = None
-    matlab_script: str | None = None
-    matlab_hash: str | None = None
-    matlab_has_title: bool = False
-    workbook_references: list[str] = field(default_factory=list)
-    handoff_path: str | None = None
-    handoff_payload: dict[str, Any] = field(default_factory=dict)
-    exported_figures: list[str] = field(default_factory=list)
-    discovered_figures: list[str] = field(default_factory=list)
-    figure_hash: str | None = None
-    figure_evidence_path: str | None = None
-    figure_evidence: dict[str, Any] = field(default_factory=dict)
-    framework_hash: str | None = None
-    issues: list[str] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -122,7 +83,7 @@ def load_json_or_yaml(path: Path) -> dict[str, Any]:
 
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
-    with path.open("rb") as handle:
+    with Path(path).open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
@@ -134,7 +95,10 @@ def sha256_text(text: str) -> str:
 
 
 def combined_hash(paths: Iterable[Path], root: Path) -> str | None:
-    files = sorted({path.resolve() for path in paths if path.is_file()}, key=lambda item: item.as_posix())
+    files = sorted(
+        {Path(path).resolve() for path in paths if Path(path).is_file()},
+        key=lambda item: item.as_posix(),
+    )
     if not files:
         return None
     digest = hashlib.sha256()
@@ -143,7 +107,8 @@ def combined_hash(paths: Iterable[Path], root: Path) -> str | None:
             relative = path.relative_to(root).as_posix()
         except ValueError:
             relative = path.as_posix()
-        digest.update(relative.encode("utf-8")); digest.update(b"\0")
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
         digest.update(bytes.fromhex(sha256_file(path)))
     return digest.hexdigest()
 
@@ -151,10 +116,7 @@ def combined_hash(paths: Iterable[Path], root: Path) -> str | None:
 def question_key(chinese_name: str) -> str:
     order = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
     suffix = chinese_name.removeprefix("问题")
-    try:
-        return f"Q{order.index(suffix) + 1}"
-    except ValueError:
-        return chinese_name
+    return f"Q{order.index(suffix) + 1}" if suffix in order else chinese_name
 
 
 def chinese_question_name(key: str) -> str:
@@ -165,7 +127,14 @@ def chinese_question_name(key: str) -> str:
     return key
 
 
-def data_source_files(root: Path, state: Mapping[str, Any]) -> tuple[list[Path], str, list[str], list[str]]:
+def question_number(chinese_name: str) -> int | None:
+    match = re.fullmatch(r"Q(\d+)", question_key(chinese_name))
+    return int(match.group(1)) if match else None
+
+
+def data_source_files(
+    root: Path, state: Mapping[str, Any]
+) -> tuple[list[Path], str, list[str], list[str]]:
     issues: list[str] = []
     warnings: list[str] = []
     entries = ((state.get("data") or {}).get("sources") or []) if state else []
@@ -189,36 +158,12 @@ def data_source_files(root: Path, state: Mapping[str, Any]) -> tuple[list[Path],
             else:
                 issues.append(f"data.sources 文件不存在: {relative}")
         return files, "declared_sources", issues, warnings
-    for path in root.iterdir():
-        if not path.is_file() or path.name.startswith("."):
-            continue
-        if path.name in {"模型论文框架.md", "sync_report.yaml"}:
-            continue
-        if path.suffix.lower() in DATA_SUFFIXES:
-            files.append(path)
+    for path in root.iterdir() if root.is_dir() else []:
+        if path.is_file() and not path.name.startswith("."):
+            if path.name not in {"模型论文框架.md", "sync_report.yaml"} and path.suffix.lower() in DATA_SUFFIXES:
+                files.append(path)
     warnings.append("项目状态未声明data.sources；data hash使用受限根目录数据文件回退扫描")
     return files, "fallback_scan", issues, warnings
-
-
-def inspect_workbook(path: Path, root: Path) -> WorkbookInfo:
-    info = WorkbookInfo(path=path.relative_to(root).as_posix(), sha256=sha256_file(path))
-    try:
-        book = load_workbook(path, read_only=True, data_only=True)
-    except Exception as exc:  # noqa: BLE001
-        info.issues.append(f"无法读取工作簿: {exc}")
-        return info
-    try:
-        for sheet in book.worksheets:
-            iterator = sheet.iter_rows(values_only=True)
-            first = next(iterator, None)
-            headers = [str(value).strip() if value is not None else "" for value in (first or [])]
-            while headers and not headers[-1]:
-                headers.pop()
-            rows = sum(1 for row in iterator if any(value is not None for value in row[: len(headers)]))
-            info.sheets[sheet.title] = SheetInfo(headers, rows, sheet.max_column)
-    finally:
-        book.close()
-    return info
 
 
 def framework_section_text(path: Path, anchor: str) -> str | None:
@@ -228,7 +173,10 @@ def framework_section_text(path: Path, anchor: str) -> str | None:
     target = anchor.strip()
     start = next((index for index, line in enumerate(lines) if line.strip() == target), None)
     if start is None:
-        start = next((index for index, line in enumerate(lines) if line.lstrip().startswith("#") and target in line.strip()), None)
+        start = next(
+            (index for index, line in enumerate(lines) if line.lstrip().startswith("#") and target in line.strip()),
+            None,
+        )
     if start is None:
         return None
     heading = lines[start].lstrip()
@@ -236,12 +184,11 @@ def framework_section_text(path: Path, anchor: str) -> str | None:
     end = len(lines)
     for index in range(start + 1, len(lines)):
         stripped = lines[index].lstrip()
-        if not stripped.startswith("#"):
-            continue
-        next_level = len(stripped) - len(stripped.lstrip("#"))
-        if next_level <= level:
-            end = index
-            break
+        if stripped.startswith("#"):
+            next_level = len(stripped) - len(stripped.lstrip("#"))
+            if next_level <= level:
+                end = index
+                break
     return "\n".join(lines[start:end]).strip() + "\n"
 
 
@@ -250,639 +197,543 @@ def framework_section_hash(path: Path, anchor: str) -> str | None:
     return sha256_text(text) if text else None
 
 
-def _collect_strings(value: Any) -> list[str]:
-    values: list[str] = []
-    if isinstance(value, str):
-        values.append(value)
-    elif isinstance(value, Mapping):
-        for item in value.values():
-            values.extend(_collect_strings(item))
-    elif isinstance(value, list):
-        for item in value:
-            values.extend(_collect_strings(item))
-    return values
-
-
-def discover_questions(root: Path, state: Mapping[str, Any]) -> dict[str, QuestionSnapshot]:
-    snapshots: dict[str, QuestionSnapshot] = {}
-    for key in (state.get("subproblems", {}) or {}):
-        snapshots[key] = QuestionSnapshot(key, chinese_question_name(key))
-    result_root = root / "结果数据表"
-    if result_root.is_dir():
-        for directory in sorted(path for path in result_root.iterdir() if path.is_dir()):
-            if QUESTION_RE.fullmatch(directory.name):
-                key = question_key(directory.name)
-                snapshots.setdefault(key, QuestionSnapshot(key, directory.name))
-    for script in sorted(root.glob("问题*.py")):
-        match = QUESTION_RE.match(script.stem)
-        if match:
-            chinese_name = match.group(0); key = question_key(chinese_name)
-            snapshots.setdefault(key, QuestionSnapshot(key, chinese_name)).code_files.append(script.relative_to(root).as_posix())
-    framework_path = root / "模型论文框架.md"
-    subproblems = state.get("subproblems", {}) or {}
-    for key, snapshot in snapshots.items():
-        sub = subproblems.get(key, {}) or {}
-        snapshot.model_hash = combined_hash([root / item for item in snapshot.code_files], root)
-        result_dir = result_root / snapshot.chinese_name
-        solution = result_dir / f"{snapshot.chinese_name}求解结果.xlsx"
-        robustness = result_dir / f"{snapshot.chinese_name}敏感性与鲁棒性结果.xlsx"
-        if solution.is_file():
-            snapshot.solution_workbook = inspect_workbook(solution, root)
-        if robustness.is_file():
-            snapshot.robustness_workbook = inspect_workbook(robustness, root)
-        number = re.sub(r"\D", "", snapshot.key)
-        matlab = result_dir / f"q{number}_plot.m" if number else None
-        if matlab and matlab.is_file():
-            snapshot.matlab_script = matlab.relative_to(root).as_posix()
-            snapshot.matlab_hash = sha256_file(matlab)
-            text = matlab.read_text(encoding="utf-8", errors="replace")
-            snapshot.matlab_has_title = bool(MATLAB_TITLE_RE.search(text))
-            snapshot.workbook_references = sorted(set(WORKBOOK_REF_RE.findall(text)))
-            snapshot.exported_figures = sorted(set(EXPORT_RE.findall(text)))
-        for name in ("matlab_figure_handoff.json", "matlab_figure_handoff.yaml", "matlab_figure_handoff.yml"):
-            candidate = result_dir / name
-            if candidate.is_file():
-                snapshot.handoff_path = candidate.relative_to(root).as_posix()
-                snapshot.handoff_payload = load_json_or_yaml(candidate)
-                handoff_refs = [item for item in _collect_strings(snapshot.handoff_payload) if item.lower().endswith(".xlsx")]
-                snapshot.workbook_references = sorted(set([*snapshot.workbook_references, *handoff_refs]))
-                break
-        evidence = result_dir / "figure_evidence.yaml"
-        if evidence.is_file():
-            snapshot.figure_evidence_path = evidence.relative_to(root).as_posix()
-            snapshot.figure_evidence = load_yaml(evidence)
-        figure_dir = result_dir / "图表"
-        if figure_dir.is_dir():
-            figure_paths = [path for path in figure_dir.rglob("*") if path.is_file() and path.suffix.lower() in FIGURE_SUFFIXES]
-            snapshot.discovered_figures = sorted(path.relative_to(root).as_posix() for path in figure_paths)
-            snapshot.figure_hash = combined_hash(figure_paths, root)
-        anchor = str(sub.get("framework_section", "")).strip()
-        snapshot.framework_hash = framework_section_hash(framework_path, anchor)
-        if anchor and snapshot.framework_hash is None:
-            snapshot.issues.append(f"模型论文框架中未找到小问章节: {anchor}")
-    return snapshots
-
-
-def active_contract(subproblem: Mapping[str, Any]) -> tuple[str | None, tuple[str, ...], tuple[str, ...], Mapping[str, bool] | None]:
-    classification = subproblem.get("classification") or {}
-    objective = classification.get("objective")
-    structures = tuple(classification.get("structures", []) or [])
-    legacy = subproblem.get("problem_types") or {}
-    labels = [legacy.get("primary"), *(legacy.get("secondary", []) or [])]
-    problem_types = tuple(dict.fromkeys(str(item) for item in labels if item))
-    capabilities = subproblem.get("capabilities")
-    return objective, structures, problem_types, capabilities if isinstance(capabilities, Mapping) else None
-
-
-def validate_workbooks(
-    snapshot: QuestionSnapshot,
-    subproblem: Mapping[str, Any],
-    schema: Mapping[str, Any],
-    *,
-    require_solution: bool,
-    require_robustness: bool,
-    root: Path,
-) -> list[str]:
-    objective, structures, problem_types, capabilities = active_contract(subproblem)
-    solution = root / snapshot.solution_workbook.path if snapshot.solution_workbook else None
-    robustness = root / snapshot.robustness_workbook.path if snapshot.robustness_workbook else None
-    return WORKBOOK_VALIDATION.validate_pair(
-        solution, robustness, schema=schema,
-        require_solution=require_solution, require_robustness=require_robustness,
-        objective=objective, structures=structures, problem_types=problem_types,
-        capabilities=capabilities,
+def stage_requirements(scope: str, output_contract: Mapping[str, Any]) -> list[str]:
+    return list(
+        ((output_contract.get("project_sync") or {}).get("stage_requirements") or {}).get(scope, [])
     )
 
 
-def infer_scope(state: Mapping[str, Any], explicit: str | None) -> str:
-    if explicit:
-        if explicit not in SCOPE_RANK:
-            raise ValueError(f"未知交付范围: {explicit}")
-        return explicit
-    phase = str((state.get("project", {}) or {}).get("current_phase", "model_design"))
-    return PHASE_SCOPE.get(phase, "design")
-
-
-def stage_requirements(scope: str, output_contract: Mapping[str, Any]) -> set[str]:
-    requirements = ((output_contract.get("project_sync") or {}).get("stage_requirements") or {})
-    if scope not in requirements:
-        raise ValueError(f"output contract缺少交付范围定义: {scope}")
-    values = requirements.get(scope)
-    if not isinstance(values, list) or not values:
-        raise ValueError(f"output contract交付要求无效: {scope}")
-    return {str(item) for item in values}
-
-
 def contract_preflight_issues(
-    root: Path, state_path: Path, framework_path: Path,
+    root: Path,
+    scope: str,
+    state_path: Path,
+    framework_path: Path,
+    output_contract: Mapping[str, Any],
 ) -> list[str]:
     issues: list[str] = []
-    if not state_path.is_file():
-        issues.append("项目状态校验: state/project_state.yaml不存在")
-    else:
-        for item in STATE_VALIDATION.validate_state_file(state_path, project_root=root):
-            issues.append(f"项目状态校验: {item}")
-    for item in FRAMEWORK_VALIDATION.validate_framework_file(
-        framework_path,
-        state_path=state_path if state_path.is_file() else None,
-        strict=False,
-    ):
-        issues.append(f"模型论文框架校验: {item}")
+    required = set(stage_requirements(scope, output_contract))
+    if "project_state" in required and not state_path.is_file():
+        issues.append("项目状态校验: 缺少 state/project_state.yaml")
+    elif state_path.is_file():
+        issues.extend(
+            f"项目状态校验: {item}"
+            for item in STATE_VALIDATION.validate_state_file(state_path, project_root=root)
+        )
+    if "model_paper_framework" in required and not framework_path.is_file():
+        issues.append("模型论文框架校验: 缺少 模型论文框架.md")
+    elif framework_path.is_file():
+        issues.extend(
+            f"模型论文框架校验: {item}"
+            for item in FRAMEWORK_VALIDATION.validate_framework_file(
+                framework_path,
+                state_path=state_path if state_path.is_file() else None,
+            )
+        )
     return issues
 
 
-def artifact_hashes(snapshot: QuestionSnapshot, data_hash: str | None) -> dict[str, str]:
-    values = {
-        "data": data_hash,
-        "model": snapshot.model_hash,
-        "solution_workbook": snapshot.solution_workbook.sha256 if snapshot.solution_workbook else None,
-        "robustness_workbook": snapshot.robustness_workbook.sha256 if snapshot.robustness_workbook else None,
-        "matlab_script": snapshot.matlab_hash,
-        "figure_bundle": snapshot.figure_hash,
-        "framework": snapshot.framework_hash,
-    }
-    return {key: value for key, value in values.items() if value}
+def _classification(entry: Mapping[str, Any]):
+    classification = entry.get("classification") or {}
+    objective = classification.get("objective")
+    structures = tuple(classification.get("structures", []) or [])
+    old = entry.get("problem_types") or {}
+    labels = [old.get("primary"), *(old.get("secondary", []) or [])]
+    problem_types = tuple(dict.fromkeys(str(item) for item in labels if item))
+    capabilities = entry.get("capabilities")
+    return objective, structures, problem_types, capabilities if isinstance(capabilities, Mapping) else None
 
 
-def stale_layers(current: Mapping[str, str], validated: Mapping[str, str]) -> list[str]:
-    return [key for key in HASH_KEYS if validated.get(key) and current.get(key) != validated.get(key)]
+def _question_names(root: Path, state: Mapping[str, Any]) -> list[str]:
+    names = {chinese_question_name(str(key)) for key in (state.get("subproblems") or {})}
+    result_root = root / "结果数据表"
+    if result_root.is_dir():
+        names.update(
+            path.name for path in result_root.iterdir()
+            if path.is_dir() and QUESTION_RE.fullmatch(path.name)
+        )
+    for path in root.glob("*.py"):
+        match = QUESTION_RE.search(path.stem)
+        if match:
+            names.add(match.group(0))
+    return sorted(names, key=lambda value: question_number(value) or 999)
 
 
-def _figure_hash_map(snapshot: QuestionSnapshot, root: Path) -> dict[str, str]:
-    return {relative: sha256_file(root / relative) for relative in snapshot.discovered_figures if (root / relative).is_file()}
-
-
-def _figure_evidence_payload(snapshot: QuestionSnapshot, root: Path, timestamp: str) -> dict[str, Any]:
-    return {
-        "schema_version": "1.0.0",
-        "generated_at": timestamp,
-        "question": snapshot.key,
-        "source_workbook_hashes": {
-            "solution": snapshot.solution_workbook.sha256 if snapshot.solution_workbook else None,
-            "robustness": snapshot.robustness_workbook.sha256 if snapshot.robustness_workbook else None,
+def _python_files(root: Path, chinese_name: str) -> list[Path]:
+    terms = ("求解", "分析", "检验", "验证", "仿真", "优化", "预测")
+    return sorted(
+        {
+            path for path in root.glob("*.py")
+            if chinese_name in path.stem or any(term in path.stem for term in terms)
         },
-        "matlab_script": snapshot.matlab_script,
-        "matlab_script_hash": snapshot.matlab_hash,
-        "figure_bundle_hash": snapshot.figure_hash,
-        "figures": _figure_hash_map(snapshot, root),
-    }
+        key=lambda item: item.name,
+    )
 
 
-def _figure_evidence_issues(snapshot: QuestionSnapshot, root: Path) -> list[str]:
-    if not snapshot.figure_evidence:
+def _analysis_path(result_dir: Path, chinese_name: str) -> tuple[Path, bool]:
+    current = result_dir / f"{chinese_name}结果深化分析.xlsx"
+    if current.is_file():
+        return current, False
+    legacy = result_dir / f"{chinese_name}敏感性与鲁棒性结果.xlsx"
+    return (legacy, True) if legacy.is_file() else (current, False)
+
+
+def _figure_files(result_dir: Path) -> list[Path]:
+    directory = result_dir / "图表"
+    if not directory.is_dir():
         return []
-    payload = snapshot.figure_evidence
-    source = payload.get("source_workbook_hashes", {}) or {}
-    expected_solution = snapshot.solution_workbook.sha256 if snapshot.solution_workbook else None
-    expected_robustness = snapshot.robustness_workbook.sha256 if snapshot.robustness_workbook else None
-    issues: list[str] = []
-    if source.get("solution") != expected_solution:
-        issues.append("figure_evidence记录的求解工作簿哈希与当前文件不一致")
-    if source.get("robustness") != expected_robustness:
-        issues.append("figure_evidence记录的鲁棒性工作簿哈希与当前文件不一致")
-    if payload.get("matlab_script_hash") != snapshot.matlab_hash:
-        issues.append("figure_evidence记录的MATLAB脚本哈希与当前文件不一致")
-    if payload.get("figure_bundle_hash") != snapshot.figure_hash:
-        issues.append("figure_evidence记录的图表包哈希与当前文件不一致")
-    declared = payload.get("figures", {}) or {}
-    actual = _figure_hash_map(snapshot, root)
-    if declared != actual:
-        issues.append("figure_evidence记录的逐图哈希与当前正式图不一致")
-    return issues
+    return sorted(
+        (path for path in directory.rglob("*") if path.is_file() and path.suffix.lower() in FIGURE_SUFFIXES),
+        key=lambda item: item.as_posix(),
+    )
 
 
-def figure_chain_issues(
-    snapshot: QuestionSnapshot, root: Path, *, allow_generate_evidence: bool,
-) -> tuple[list[str], list[str]]:
-    issues: list[str] = []
-    warnings: list[str] = []
-    if not snapshot.matlab_script:
-        return ["图表交付缺少MATLAB脚本"], warnings
-    if not snapshot.matlab_has_title:
-        issues.append("MATLAB脚本缺少title或sgtitle")
-    expected_books = {
-        Path(snapshot.solution_workbook.path).name if snapshot.solution_workbook else "",
-        Path(snapshot.robustness_workbook.path).name if snapshot.robustness_workbook else "",
-    } - {""}
-    referenced = {Path(item).name for item in snapshot.workbook_references}
-    if not referenced:
-        issues.append("MATLAB脚本与handoff均未发现标准工作簿引用")
-    elif not referenced.issubset(expected_books):
-        issues.append(f"MATLAB引用了非本问标准工作簿: {sorted(referenced - expected_books)}")
-    result_dir = root / "结果数据表" / snapshot.chinese_name
-    discovered_names = {Path(item).name for item in snapshot.discovered_figures}
-    for declared in snapshot.exported_figures:
-        name = Path(declared).name
-        if name not in discovered_names and not (result_dir / declared).is_file():
-            issues.append(f"MATLAB声明导出的图不存在: {declared}")
-    if not snapshot.discovered_figures:
-        issues.append("图表交付未发现正式图文件")
-    evidence_issues = _figure_evidence_issues(snapshot, root)
-    issues.extend(evidence_issues)
-    if not snapshot.figure_evidence:
-        message = "缺少figure_evidence.yaml"
-        if allow_generate_evidence:
-            warnings.append(f"{message}；--write将在图表链无错误时生成哈希证据")
-        else:
-            issues.append(message)
-        source_paths = [root / snapshot.matlab_script]
-        for book in (snapshot.solution_workbook, snapshot.robustness_workbook):
-            if book:
-                source_paths.append(root / book.path)
-        newest_source = max((path.stat().st_mtime for path in source_paths if path.is_file()), default=0)
-        for relative in snapshot.discovered_figures:
-            if (root / relative).stat().st_mtime < newest_source:
-                warnings.append(f"mtime辅助检查：正式图早于工作簿或MATLAB脚本: {relative}")
-    return issues, warnings
+def _validate_workbook(path: Path, kind: str, schema: Mapping[str, Any], entry: Mapping[str, Any]) -> list[str]:
+    objective, structures, problem_types, capabilities = _classification(entry)
+    try:
+        WORKBOOK_VALIDATION.validate_workbook_file(
+            path,
+            kind,
+            schema=schema,
+            problem_types=problem_types,
+            capabilities=capabilities,
+            objective=objective,
+            structures=structures,
+            require_quality_passed=True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return [f"{path.name}: {exc}"]
+    return []
 
 
-def update_framework_header(path: Path, *, stale: bool, scope: str, timestamp: str) -> bool:
+def _has_sheets(path: Path, names: set[str]) -> bool:
     if not path.is_file():
         return False
-    text = path.read_text(encoding="utf-8")
-    replacements = {
-        r"(?m)^- 最近同步：.*$": f"- 最近同步：`{scope}`",
-        r"(?m)^- 最近同步时间：.*$": f"- 最近同步时间：`{timestamp}`",
-        r"(?m)^- 当前状态：.*$": f"- 当前状态：`{'stale' if stale else 'current'}`",
+    try:
+        return names.issubset(WORKBOOK_VALIDATION.read_workbook_tables(path))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _parse_matlab(script: Path) -> tuple[bool, list[str], list[str]]:
+    if not script.is_file():
+        return False, [], []
+    text = script.read_text(encoding="utf-8", errors="ignore")
+    return bool(MATLAB_TITLE_RE.search(text)), WORKBOOK_REF_RE.findall(text), EXPORT_RE.findall(text)
+
+
+def _snapshot_question(
+    root: Path,
+    chinese_name: str,
+    entry: Mapping[str, Any],
+    schema: Mapping[str, Any],
+    data_hash: str | None,
+    delivery_scope: str | None,
+) -> dict[str, Any]:
+    key = question_key(chinese_name)
+    result_dir = root / "结果数据表" / chinese_name
+    solution = result_dir / f"{chinese_name}求解结果.xlsx"
+    analysis, legacy_analysis = _analysis_path(result_dir, chinese_name)
+    number = question_number(chinese_name)
+    matlab = result_dir / f"q{number}_plot.m" if number else result_dir / "q_plot.m"
+    figures = _figure_files(result_dir)
+    codes = _python_files(root, chinese_name)
+    status = str(entry.get("status", "pending"))
+    require_solution = status in SOLVED_STATUSES
+    require_analysis = status in ANALYZED_STATUSES
+    if delivery_scope in {"results", "figures", "docx"}:
+        require_solution = True
+        require_analysis = True
+
+    issues: list[str] = []
+    warnings: list[str] = []
+    if require_solution and not solution.is_file():
+        issues.append("缺少标准求解结果工作簿")
+    if require_analysis and not analysis.is_file():
+        issues.append("缺少标准结果深化分析工作簿")
+    if solution.is_file():
+        issues.extend(_validate_workbook(solution, "solution", schema, entry))
+    if analysis.is_file():
+        issues.extend(_validate_workbook(analysis, "result_analysis", schema, entry))
+        if legacy_analysis:
+            warnings.append("使用旧敏感性与鲁棒性工作簿名；新交付应迁移为结果深化分析工作簿")
+
+    quality_exists = _has_sheets(solution, {"主结果质量门"})
+    analysis_report_exists = _has_sheets(analysis, {"分析设计", "结论稳定性汇总"})
+    if require_solution and not quality_exists:
+        issues.append("主求解工作簿缺少主结果质量门报告")
+    if require_analysis and not analysis_report_exists:
+        issues.append("结果深化分析工作簿缺少分析设计或结论稳定性汇总")
+
+    matlab_has_title, workbook_refs, exports = _parse_matlab(matlab)
+    if delivery_scope == "figures":
+        if not matlab.is_file():
+            issues.append("图表交付缺少MATLAB脚本")
+        else:
+            if not matlab_has_title:
+                issues.append("MATLAB正式图缺少title或sgtitle")
+            standard = {
+                f"{chinese_name}求解结果.xlsx",
+                f"{chinese_name}结果深化分析.xlsx",
+                f"{chinese_name}敏感性与鲁棒性结果.xlsx",
+            }
+            if not {Path(item).name for item in workbook_refs}.intersection(standard):
+                issues.append("MATLAB脚本未发现标准工作簿引用")
+            for item in exports:
+                export_path = (matlab.parent / item).resolve()
+                if not export_path.is_file():
+                    shown = export_path.relative_to(root).as_posix() if export_path.is_relative_to(root) else export_path.as_posix()
+                    issues.append(f"MATLAB声明导出的图不存在: {shown}")
+        if not figures:
+            issues.append("图表交付缺少正式结果图")
+
+    framework = root / "模型论文框架.md"
+    hashes = {
+        "data": data_hash,
+        "model": combined_hash(codes, root),
+        "solution_workbook": sha256_file(solution) if solution.is_file() else None,
+        "result_analysis_workbook": sha256_file(analysis) if analysis.is_file() else None,
+        "matlab_script": sha256_file(matlab) if matlab.is_file() else None,
+        "figure_bundle": combined_hash(figures, root),
+        "framework": framework_section_hash(framework, str(entry.get("framework_section", ""))),
     }
-    changed = False
-    for pattern, replacement in replacements.items():
-        text, count = re.subn(pattern, replacement, text)
-        changed = changed or bool(count)
-    if changed:
-        path.write_text(text, encoding="utf-8")
-    return changed
+    hashes = {name: value for name, value in hashes.items() if value}
+    return {
+        "key": key,
+        "chinese_name": chinese_name,
+        "status": status,
+        "code_files": [path.relative_to(root).as_posix() for path in codes],
+        "solution_workbook": solution.relative_to(root).as_posix() if solution.is_file() else None,
+        "result_analysis_workbook": analysis.relative_to(root).as_posix() if analysis.is_file() else None,
+        "legacy_analysis_workbook": legacy_analysis,
+        "result_quality_report": quality_exists,
+        "result_analysis_report": analysis_report_exists,
+        "matlab_script": matlab.relative_to(root).as_posix() if matlab.is_file() else None,
+        "matlab_has_title": matlab_has_title,
+        "workbook_references": workbook_refs,
+        "declared_exports": exports,
+        "figures": [path.relative_to(root).as_posix() for path in figures],
+        "individual_figure_hashes": {
+            path.relative_to(root).as_posix(): sha256_file(path) for path in figures
+        },
+        "artifact_hashes": hashes,
+        "issues": issues,
+        "warnings": warnings,
+    }
 
 
-def _existing_files(root: Path, values: Iterable[str]) -> list[str]:
-    return [value for value in values if isinstance(value, str) and (root / value).is_file()]
+def _normalized_validated_hashes(entry: Mapping[str, Any]) -> dict[str, str]:
+    validated = dict(entry.get("validated_artifact_hashes", {}) or {})
+    if "result_analysis_workbook" not in validated and "robustness_workbook" in validated:
+        validated["result_analysis_workbook"] = validated["robustness_workbook"]
+    return {key: value for key, value in validated.items() if key in HASH_KEYS}
+
+
+def _mismatched_layers(entry: Mapping[str, Any], current: Mapping[str, str]) -> set[str]:
+    return {
+        key for key, value in _normalized_validated_hashes(entry).items()
+        if current.get(key) != value
+    }
+
+
+def _apply_snapshot_to_state(root: Path, state: dict[str, Any], snapshot: Mapping[str, Any]) -> set[str]:
+    entry = state.setdefault("subproblems", {}).setdefault(str(snapshot["key"]), {})
+    current = dict(snapshot.get("artifact_hashes", {}))
+    mismatched = _mismatched_layers(entry, current)
+    stale_layers = set(entry.get("stale_layers", []) or []) | mismatched
+    # clears_stale is intentionally forbidden here; validated workflows clear it explicitly.
+    entry["artifact_hashes"] = current
+    if snapshot.get("code_files"):
+        entry["code"] = snapshot["code_files"][0]
+    for field in ("solution_workbook", "result_analysis_workbook", "matlab_script"):
+        if snapshot.get(field):
+            entry[field] = snapshot[field]
+    if stale_layers:
+        entry["artifacts_stale"] = True
+        entry["stale_layers"] = sorted(stale_layers)
+        entry["result_summary_status"] = "stale"
+        entry["validation_status"] = "pending"
+        if mismatched.intersection({"data", "model", "solution_workbook"}):
+            entry["result_quality_status"] = "pending"
+            entry["result_analysis_status"] = "pending"
+        elif "result_analysis_workbook" in mismatched:
+            entry["result_analysis_status"] = "pending"
+    evidence = root / "结果数据表" / str(snapshot["chinese_name"]) / "figure_evidence.yaml"
+    if evidence.is_file():
+        relative = evidence.relative_to(root).as_posix()
+        values = list(entry.get("evidence", []) or [])
+        if relative not in values:
+            values.append(relative)
+        entry["evidence"] = values
+    return stale_layers
+
+
+def _write_figure_evidence(root: Path, snapshot: Mapping[str, Any]) -> str | None:
+    if not snapshot.get("matlab_script") or not snapshot.get("figures"):
+        return None
+    path = root / "结果数据表" / str(snapshot["chinese_name"]) / "figure_evidence.yaml"
+    hashes = snapshot.get("artifact_hashes", {}) or {}
+    payload = {
+        "question": snapshot["key"],
+        "solution_workbook": hashes.get("solution_workbook"),
+        "result_analysis_workbook": hashes.get("result_analysis_workbook"),
+        "matlab_script": hashes.get("matlab_script"),
+        "figure_bundle": hashes.get("figure_bundle"),
+        "individual_figures": snapshot.get("individual_figure_hashes", {}),
+        "workbook_references": snapshot.get("workbook_references", []),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    path.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    return path.relative_to(root).as_posix()
+
+
+def _replace_or_prepend(lines: list[str], prefix: str, replacement: str) -> list[str]:
+    for index, line in enumerate(lines):
+        if line.startswith(prefix):
+            lines[index] = replacement
+            return lines
+    return [replacement, *lines]
+
+
+def _update_framework_header(path: Path, scope: str, stale: bool) -> None:
+    if not path.is_file():
+        return
+    lines = path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n").splitlines()
+    timestamp = datetime.now(timezone.utc).isoformat()
+    lines = _replace_or_prepend(lines, "- 最近同步：", f"- 最近同步：`{scope}`")
+    lines = _replace_or_prepend(lines, "- 最近同步时间：", f"- 最近同步时间：`{timestamp}`")
+    lines = _replace_or_prepend(lines, "- 当前状态：", f"- 当前状态：`{'stale' if stale else 'current'}`")
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
 def _approved_figure_issues(root: Path, state: Mapping[str, Any]) -> list[str]:
-    artifacts = state.get("artifacts", {}) or {}
-    approved = artifacts.get("approved_figures", []) or []
+    approved = ((state.get("artifacts") or {}).get("approved_figures") or [])
     if not approved:
-        return ["正式写作交付缺少artifacts.approved_figures人工批准清单"]
-    missing = [value for value in approved if not (root / str(value)).is_file()]
-    return [f"批准图文件不存在: {value}" for value in missing]
+        return ["缺少已批准图表"]
+    return [f"已批准图表不存在: {item}" for item in approved if not (root / str(item)).is_file()]
 
 
-def _docx_artifacts(root: Path) -> list[Path]:
-    directory = root / "draft_docx"
-    return sorted(path for path in directory.rglob("*.docx") if path.is_file()) if directory.is_dir() else []
-
-
-def _latex_graphics_issues(main_tex: Path) -> list[str]:
-    if not main_tex.is_file():
-        return []
+def _compile_artifact_issues(root: Path, state: Mapping[str, Any]) -> list[str]:
+    artifacts = state.get("artifacts") or {}
+    source = root / str(artifacts.get("latex_source") or "final_latex/main.tex")
+    pdf = root / str(artifacts.get("compiled_pdf") or "final_latex/main.pdf")
+    report_path = root / str(artifacts.get("compile_report") or "final_latex/compile_report.yaml")
     issues: list[str] = []
-    text = main_tex.read_text(encoding="utf-8", errors="replace")
-    for raw in LATEX_GRAPHICS_RE.findall(text):
-        candidate = (main_tex.parent / raw).resolve()
-        choices = [candidate] if candidate.suffix else [candidate.with_suffix(ext) for ext in (".pdf", ".png", ".jpg", ".jpeg", ".svg")]
-        if not any(path.is_file() for path in choices):
-            issues.append(f"LaTeX引用图片不存在: {raw}")
+    if not source.is_file():
+        issues.append("LaTeX交付缺少 final_latex/main.tex")
+    if not pdf.is_file():
+        issues.append("LaTeX交付缺少 final_latex/main.pdf")
+    if not report_path.is_file():
+        issues.append("LaTeX交付缺少 compile_report")
+    else:
+        report = load_json_or_yaml(report_path)
+        if str(report.get("status", "")).lower() != "passed":
+            issues.append("compile_report 未通过")
+        if int(report.get("unresolved_references", 0) or 0) != 0:
+            issues.append("compile_report 存在未解析引用")
     return issues
 
 
-def _compile_report_issues(path: Path) -> list[str]:
+def _docx_issues(root: Path, state: Mapping[str, Any]) -> list[str]:
+    declared = ((state.get("artifacts") or {}).get("docx") or [])
+    files = [root / str(item) for item in declared] if declared else list((root / "draft_docx").glob("*.docx"))
+    return [] if any(path.is_file() for path in files) else ["DOCX交付缺少真实.docx文件"]
+
+
+def _submission_zip_issues(path: Path, require_matlab: bool = True) -> list[str]:
     if not path.is_file():
-        return ["LaTeX交付缺少final_latex/compile_report.yaml"]
-    payload = load_yaml(path)
-    issues: list[str] = []
-    status = str(payload.get("status", payload.get("conclusion", ""))).lower()
-    if status not in {"passed", "pass", "success", "completed"}:
-        issues.append(f"compile_report状态不是通过: {status or '<empty>'}")
-    unresolved = payload.get("unresolved_references")
-    if unresolved not in (None, 0, "0", [], {}):
-        issues.append("compile_report仍包含未解决引用")
-    return issues
-
-
-def _submission_candidates(root: Path) -> list[Path]:
-    candidates: list[Path] = []
-    directory = root / "submission"
-    if directory.is_dir():
-        candidates.extend(path for path in directory.rglob("*.zip") if path.is_file())
-    candidates.extend(path for path in root.glob("*.zip") if any(token in path.stem.lower() for token in ("submission", "submit", "提交")))
-    return sorted(set(candidates))
-
-
-def _submission_zip_issues(path: Path, *, require_matlab: bool) -> list[str]:
+        return ["缺少提交ZIP"]
     try:
         with zipfile.ZipFile(path) as archive:
-            names = [name for name in archive.namelist() if not name.endswith("/")]
+            names = [name.lower() for name in archive.namelist() if not name.endswith("/")]
     except Exception as exc:  # noqa: BLE001
         return [f"无法读取提交ZIP: {exc}"]
-    lowered = [name.lower() for name in names]
-    requirements = {
-        "最终论文PDF": any(name.endswith(".pdf") for name in lowered),
-        "Python代码": any(name.endswith(".py") for name in lowered),
-        "结果工作簿": any(name.endswith(".xlsx") for name in lowered),
-        "复现说明": any(("readme" in name or "复现" in name or "运行说明" in name) and name.endswith((".md", ".txt")) for name in lowered),
-    }
-    if require_matlab:
-        requirements["MATLAB绘图代码"] = any(name.endswith(".m") for name in lowered)
-    return [f"提交ZIP缺少{label}" for label, present in requirements.items() if not present]
-
-
-def delivery_artifact_issues(
-    root: Path,
-    state: Mapping[str, Any],
-    requirements: set[str],
-    snapshots: Mapping[str, QuestionSnapshot],
-) -> tuple[list[str], dict[str, Any]]:
     issues: list[str] = []
-    discovered: dict[str, Any] = {}
-    framework = root / "模型论文框架.md"
-    state_path = root / "state" / "project_state.yaml"
-    if "project_state" in requirements and not state_path.is_file():
-        issues.append("交付缺少state/project_state.yaml")
-    if "model_paper_framework" in requirements and not framework.is_file():
-        issues.append("交付缺少模型论文框架.md")
-    if "approved_figures" in requirements:
+    if not any(name.endswith(".pdf") for name in names):
+        issues.append("提交ZIP缺少PDF")
+    if not any(name.endswith(".py") for name in names):
+        issues.append("提交ZIP缺少Python代码")
+    if not any(name.endswith(".xlsx") for name in names):
+        issues.append("提交ZIP缺少结果工作簿")
+    if require_matlab and not any(name.endswith(".m") for name in names):
+        issues.append("提交ZIP缺少MATLAB脚本")
+    return issues
+
+
+def _formal_state_issues(required: set[str], state: Mapping[str, Any]) -> list[str]:
+    issues: list[str] = []
+    for name, entry in (state.get("subproblems") or {}).items():
+        if not isinstance(entry, Mapping):
+            continue
+        if "result_quality_report" in required and entry.get("result_quality_status") != "passed":
+            issues.append(f"{name}: 正式交付要求 result_quality_status=passed")
+        if "result_analysis_report" in required and entry.get("result_analysis_status") != "passed":
+            issues.append(f"{name}: 正式交付要求 result_analysis_status=passed")
+        if required.intersection({"approved_figures", "docx_draft", "latex_source", "compiled_pdf", "validated_submission_package"}):
+            if entry.get("artifacts_stale") is True:
+                issues.append(f"{name}: 下游正式交付禁止使用 stale 结果")
+    return issues
+
+
+def _scope_artifact_issues(
+    root: Path,
+    scope: str,
+    state: Mapping[str, Any],
+    snapshots: Mapping[str, Mapping[str, Any]],
+) -> list[str]:
+    required = set(stage_requirements(scope, load_yaml(DEFAULT_OUTPUT_CONTRACT_PATH)))
+    issues = _formal_state_issues(required, state)
+    if "python_code" in required and not any(snapshot.get("code_files") for snapshot in snapshots.values()):
+        issues.append("结果交付缺少问题求解Python脚本")
+    if "solution_workbook" in required and not all(snapshot.get("solution_workbook") for snapshot in snapshots.values()):
+        issues.append("结果交付缺少标准求解结果工作簿")
+    if "result_quality_report" in required and not all(snapshot.get("result_quality_report") for snapshot in snapshots.values()):
+        issues.append("结果交付缺少主结果质量报告")
+    if "result_analysis_workbook" in required and not all(snapshot.get("result_analysis_workbook") for snapshot in snapshots.values()):
+        issues.append("结果交付缺少标准结果深化分析工作簿")
+    if "result_analysis_report" in required and not all(snapshot.get("result_analysis_report") for snapshot in snapshots.values()):
+        issues.append("结果交付缺少结果深化分析报告")
+    if "approved_figures" in required:
         issues.extend(_approved_figure_issues(root, state))
-    if "docx_draft" in requirements:
-        docx_files = _docx_artifacts(root)
-        discovered["docx"] = [path.relative_to(root).as_posix() for path in docx_files]
-        if not docx_files:
-            issues.append("DOCX交付缺少draft_docx/*.docx")
-
-    main_tex = root / "final_latex" / "main.tex"
-    main_pdf = root / "final_latex" / "main.pdf"
-    compile_report = root / "final_latex" / "compile_report.yaml"
-    if "latex_source" in requirements:
-        discovered["latex_source"] = main_tex.relative_to(root).as_posix() if main_tex.is_file() else None
-        if not main_tex.is_file():
-            issues.append("LaTeX交付缺少final_latex/main.tex")
-        issues.extend(_latex_graphics_issues(main_tex))
-    if "compiled_pdf" in requirements:
-        discovered["compiled_pdf"] = main_pdf.relative_to(root).as_posix() if main_pdf.is_file() else None
-        if not main_pdf.is_file():
-            issues.append("LaTeX交付缺少final_latex/main.pdf")
-    if "compile_report" in requirements:
-        discovered["compile_report"] = compile_report.relative_to(root).as_posix() if compile_report.is_file() else None
-        issues.extend(_compile_report_issues(compile_report))
-    if "validated_submission_package" in requirements:
-        candidates = _submission_candidates(root)
-        if not candidates:
-            issues.append("提交交付缺少submission目录或命名明确的提交ZIP")
-        else:
-            package = candidates[0]
-            discovered["submission_package"] = package.relative_to(root).as_posix()
-            require_matlab = any(snapshot.matlab_script for snapshot in snapshots.values())
-            issues.extend(_submission_zip_issues(package, require_matlab=require_matlab))
-    return issues, discovered
-
-
-def snapshot_to_dict(snapshot: QuestionSnapshot, current_hashes: Mapping[str, str]) -> dict[str, Any]:
-    def workbook_payload(info: WorkbookInfo | None) -> dict[str, Any] | None:
-        if info is None:
-            return None
-        return {
-            "path": info.path, "sha256": info.sha256,
-            "sheets": {name: {"headers": sheet.headers, "data_rows": sheet.data_rows, "max_column": sheet.max_column} for name, sheet in info.sheets.items()},
-            "issues": info.issues,
-        }
-    return {
-        "question": snapshot.chinese_name,
-        "code_files": snapshot.code_files,
-        "artifact_hashes": dict(current_hashes),
-        "solution_workbook": workbook_payload(snapshot.solution_workbook),
-        "robustness_workbook": workbook_payload(snapshot.robustness_workbook),
-        "matlab_script": snapshot.matlab_script,
-        "matlab_has_title": snapshot.matlab_has_title,
-        "workbook_references": snapshot.workbook_references,
-        "handoff_path": snapshot.handoff_path,
-        "exported_figures": snapshot.exported_figures,
-        "discovered_figures": snapshot.discovered_figures,
-        "figure_evidence": snapshot.figure_evidence_path,
-        "issues": snapshot.issues,
-        "warnings": snapshot.warnings,
-    }
+    if "docx_draft" in required:
+        issues.extend(_docx_issues(root, state))
+    if required.intersection({"latex_source", "compiled_pdf", "compile_report"}):
+        issues.extend(_compile_artifact_issues(root, state))
+    if "validated_submission_package" in required:
+        artifacts = state.get("artifacts") or {}
+        package = root / str(artifacts.get("submission_package") or "submission/submission.zip")
+        issues.extend(_submission_zip_issues(package, require_matlab=True))
+    return issues
 
 
 def synchronize(
-    root: Path,
+    project_root: Path,
     *,
-    write: bool,
-    question: str | None = None,
+    write: bool = False,
+    strict: bool = False,
     delivery_scope: str | None = None,
     schema_path: Path = DEFAULT_SCHEMA_PATH,
     output_contract_path: Path = DEFAULT_OUTPUT_CONTRACT_PATH,
 ) -> dict[str, Any]:
-    root = root.resolve()
-    state_path = root / "state" / "project_state.yaml"
+    root = Path(project_root).resolve()
+    state_path = root / "state/project_state.yaml"
+    framework_path = root / "模型论文框架.md"
     state = load_yaml(state_path)
-    schema = load_yaml(schema_path)
-    output_contract = load_yaml(output_contract_path)
-    scope = infer_scope(state, delivery_scope)
-    requirements = stage_requirements(scope, output_contract)
-    timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-    preflight_issues = contract_preflight_issues(
-        root, state_path, root / "模型论文框架.md"
-    )
-    data_files, data_hash_mode, data_issues, data_warnings = data_source_files(root, state)
+    schema = load_yaml(Path(schema_path))
+    output_contract = load_yaml(Path(output_contract_path))
+    phase = str((state.get("project") or {}).get("current_phase", "model_design"))
+    explicit_delivery_scope = delivery_scope is not None
+    scope = delivery_scope or PHASE_SCOPE.get(phase, "design")
+    if scope not in {"design", "results", "figures", "docx", "latex", "submission"}:
+        raise ValueError(f"未知delivery scope: {scope}")
+
+    issues = contract_preflight_issues(root, scope, state_path, framework_path, output_contract)
+    warnings: list[str] = []
+    data_files, data_mode, data_issues, data_warnings = data_source_files(root, state)
+    issues.extend(data_issues)
+    warnings.extend(data_warnings)
     data_hash = combined_hash(data_files, root)
-    snapshots = discover_questions(root, state)
-    if question:
-        normalized = question if question.startswith("Q") else question_key(question)
-        snapshots = {key: value for key, value in snapshots.items() if key == normalized}
-        if not snapshots:
-            raise ValueError(f"未发现小问: {question}")
-    issues: list[str] = [*preflight_issues, *data_issues]
-    warnings: list[str] = list(data_warnings)
+    snapshots: dict[str, dict[str, Any]] = {}
+    subproblems = state.get("subproblems") or {}
+    for chinese_name in _question_names(root, state):
+        key = question_key(chinese_name)
+        entry = subproblems.get(key) or subproblems.get(chinese_name) or {}
+        snapshot = _snapshot_question(
+            root,
+            chinese_name,
+            entry,
+            schema,
+            data_hash,
+            scope if explicit_delivery_scope else None,
+        )
+        snapshots[key] = snapshot
+        issues.extend(f"{key}: {item}" for item in snapshot["issues"])
+        warnings.extend(f"{key}: {item}" for item in snapshot["warnings"])
+    if explicit_delivery_scope and scope in {"results", "figures", "docx"} and not snapshots:
+        issues.append("未发现任何小问结果目录或项目状态")
+    if explicit_delivery_scope:
+        issues.extend(_scope_artifact_issues(root, scope, state, snapshots))
+
     stale_questions: list[str] = []
-    subproblems = state.get("subproblems", {}) if state else {}
-    snapshots_payload: dict[str, Any] = {}
-
-    global_issues, discovered_delivery = delivery_artifact_issues(
-        root, state, requirements, snapshots
-    )
-    issues.extend(global_issues)
-
-    for key, snapshot in snapshots.items():
-        sub = subproblems.get(key)
-        if not isinstance(sub, dict):
-            issues.append(f"{key}: 项目状态中缺少对应小问")
-            continue
-        require_solution = "solution_workbook" in requirements
-        require_robustness = "sensitivity_robustness_workbook" in requirements
-        require_python = "python_code" in requirements
-        require_figures = bool(
-            {"matlab_scripts", "result_figures", "figure_evidence"}.intersection(requirements)
+    if write and state_path.is_file():
+        for snapshot in snapshots.values():
+            if explicit_delivery_scope and scope == "figures":
+                evidence = _write_figure_evidence(root, snapshot)
+                if evidence:
+                    snapshot["figure_evidence"] = evidence
+            stale = _apply_snapshot_to_state(root, state, snapshot)
+            if stale:
+                stale_questions.append(str(snapshot["key"]))
+        any_stale = any(
+            bool(entry.get("artifacts_stale"))
+            for entry in (state.get("subproblems") or {}).values()
+            if isinstance(entry, Mapping)
         )
-        contract_issues = validate_workbooks(
-            snapshot, sub, schema, require_solution=require_solution,
-            require_robustness=require_robustness, root=root,
-        )
-        if require_python and not snapshot.code_files:
-            contract_issues.append("缺少问题求解Python脚本")
-        if require_figures:
-            figure_issues, figure_warnings = figure_chain_issues(
-                snapshot, root, allow_generate_evidence=write
-            )
-            contract_issues.extend(figure_issues)
-            snapshot.warnings.extend(figure_warnings)
-        snapshot.issues.extend(contract_issues)
-        issues.extend(f"{key}: {item}" for item in snapshot.issues)
-        warnings.extend(f"{key}: {item}" for item in snapshot.warnings)
-
-        current = artifact_hashes(snapshot, data_hash)
-        validated = dict(sub.get("validated_artifact_hashes", {}) or {})
-        if not validated:
-            if sub.get("validated_data_hash"):
-                validated["data"] = sub["validated_data_hash"]
-            if sub.get("validated_model_hash"):
-                validated["model"] = sub["validated_model_hash"]
-        changed = stale_layers(current, validated)
-        sub["artifact_hashes"] = current
-        if changed:
-            stale_questions.append(key)
-            sub["artifacts_stale"] = True
-            sub["stale_layers"] = changed
-            sub["result_summary_status"] = "stale"
-            if sub.get("status") in {"validated", "written", "completed"}:
-                sub["status"] = "solved"
-            if sub.get("validation_status") == "passed":
-                sub["validation_status"] = "pending"
-        if data_hash:
-            sub["data_hash"] = data_hash
-        if snapshot.model_hash:
-            sub["model_hash"] = snapshot.model_hash
-        if snapshot.code_files:
-            sub["code"] = snapshot.code_files[0]
-        if snapshot.solution_workbook:
-            sub["solution_workbook"] = snapshot.solution_workbook.path
-        if snapshot.robustness_workbook:
-            sub["robustness_workbook"] = snapshot.robustness_workbook.path
-        if snapshot.matlab_script:
-            sub["matlab_script"] = snapshot.matlab_script
-        evidence = set(sub.get("evidence", []))
-        for value in [
-            *snapshot.code_files,
-            snapshot.solution_workbook.path if snapshot.solution_workbook else None,
-            snapshot.robustness_workbook.path if snapshot.robustness_workbook else None,
-            snapshot.matlab_script,
-            snapshot.handoff_path,
-            snapshot.figure_evidence_path,
-            *snapshot.discovered_figures,
-        ]:
-            if value:
-                evidence.add(value)
-        sub["evidence"] = sorted(evidence)
-        snapshots_payload[key] = snapshot_to_dict(snapshot, current)
-
-    stale = bool(stale_questions) or any(
-        isinstance(item, Mapping) and item.get("artifacts_stale") is True
-        for item in subproblems.values()
-    )
-    if write:
-        update_framework_header(root / "模型论文框架.md", stale=stale, scope=question or f"{scope}交付同步", timestamp=timestamp)
-        if "figure_evidence" in requirements:
-            for snapshot in snapshots.values():
-                if snapshot.matlab_script and snapshot.discovered_figures and not snapshot.issues:
-                    result_dir = root / "结果数据表" / snapshot.chinese_name
-                    evidence_path = result_dir / "figure_evidence.yaml"
-                    evidence_path.write_text(
-                        yaml.safe_dump(_figure_evidence_payload(snapshot, root, timestamp), allow_unicode=True, sort_keys=False),
-                        encoding="utf-8",
-                    )
-                    snapshot.figure_evidence_path = evidence_path.relative_to(root).as_posix()
-                    snapshot.figure_evidence = load_yaml(evidence_path)
-                    sub = subproblems.get(snapshot.key)
-                    if isinstance(sub, dict):
-                        evidence = set(sub.get("evidence", []) or [])
-                        evidence.add(snapshot.figure_evidence_path)
-                        sub["evidence"] = sorted(evidence)
-                    snapshots_payload[snapshot.key] = snapshot_to_dict(
-                        snapshot, artifact_hashes(snapshot, data_hash)
-                    )
-    framework_hash = sha256_file(root / "模型论文框架.md") if (root / "模型论文框架.md").is_file() else None
-
-    if state:
-        execution = state.setdefault("execution", {})
-        execution["last_run"] = timestamp
-        execution["command"] = f"python scripts/sync_project.py --write --delivery-scope {scope}"
-        execution["last_sync_report"] = "sync_report.yaml"
-        artifacts = state.setdefault("artifacts", {})
-        artifacts["code"] = sorted({path for item in snapshots.values() for path in item.code_files})
-        artifacts["results"] = sorted({path for item in snapshots.values() for path in [item.solution_workbook.path if item.solution_workbook else None, item.robustness_workbook.path if item.robustness_workbook else None] if path})
-        artifacts["figures"] = sorted({path for item in snapshots.values() for path in item.discovered_figures})
-        artifacts["sync_report"] = "sync_report.yaml"
-        if discovered_delivery.get("docx"):
-            artifacts["docx"] = discovered_delivery["docx"]
-        for key in ("latex_source", "compiled_pdf", "compile_report", "submission_package"):
-            if discovered_delivery.get(key):
-                artifacts[key] = discovered_delivery[key]
         framework = state.setdefault("paper_framework", {})
-        framework["path"] = "模型论文框架.md"
-        framework["sync_status"] = "stale" if stale else "current"
-        framework["last_synced_at"] = timestamp
-        framework["last_sync_scope"] = question or scope
-        if framework_hash:
-            framework["sha256"] = framework_hash
+        framework["sync_status"] = "stale" if any_stale else "current"
+        framework["last_sync_scope"] = scope
+        framework["last_synced_at"] = datetime.now(timezone.utc).isoformat()
+        _update_framework_header(framework_path, scope, any_stale)
+        if framework_path.is_file():
+            framework["sha256"] = sha256_file(framework_path)
+        state.setdefault("artifacts", {})["sync_report"] = "sync_report.yaml"
+        state.setdefault("execution", {})["last_sync_report"] = "sync_report.yaml"
+        state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    else:
+        for key, snapshot in snapshots.items():
+            entry = subproblems.get(key) or subproblems.get(snapshot["chinese_name"]) or {}
+            if entry.get("artifacts_stale") or _mismatched_layers(entry, snapshot.get("artifact_hashes", {})):
+                stale_questions.append(key)
 
     report = {
-        "sync_version": "1.3.0",
-        "skill_version": "6.3.4",
-        "generated_at": timestamp,
-        "project_root": root.as_posix(),
+        "status": "passed" if not issues else "failed",
         "delivery_scope": scope,
-        "write_requested": write,
+        "formal_delivery_scope": explicit_delivery_scope,
+        "write": write,
+        "strict": strict,
+        "data_hash_mode": data_mode,
         "data_hash": data_hash,
-        "data_hash_mode": data_hash_mode,
-        "data_sources": [path.relative_to(root).as_posix() for path in data_files],
-        "framework_hash": framework_hash,
-        "stale_questions": stale_questions,
-        "questions": snapshots_payload,
-        "delivery_artifacts": discovered_delivery,
-        "issues": issues,
-        "warnings": warnings,
-        "policy": {
-            "promotes_validation": False,
-            "approves_figures": False,
-            "rewrites_model_semantics": False,
-            "stale_propagation": True,
-            "clears_stale": False,
-            "stage_requirements_source": "core/output_contract.yaml#project_sync.stage_requirements",
-        },
+        "framework_hash": sha256_file(framework_path) if framework_path.is_file() else None,
+        "questions": snapshots,
+        "stale_questions": sorted(set(stale_questions)),
+        "issues": sorted(set(issues)),
+        "warnings": sorted(set(warnings)),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
     }
     if write:
-        if state:
-            state_path.parent.mkdir(parents=True, exist_ok=True)
-            state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
-        (root / "sync_report.yaml").write_text(yaml.safe_dump(report, allow_unicode=True, sort_keys=False), encoding="utf-8")
-        if state and framework_hash:
-            persisted = load_yaml(state_path)
-            if (persisted.get("paper_framework", {}) or {}).get("sha256") != framework_hash:
-                raise RuntimeError("同步后框架哈希写入不一致")
+        report_path = root / "sync_report.yaml"
+        report_path.write_text(yaml.safe_dump(report, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        if state_path.is_file() and framework_path.is_file():
+            expected = ((load_yaml(state_path).get("paper_framework") or {}).get("sha256"))
+            actual = sha256_file(framework_path)
+            if expected != actual:
+                report["issues"].append("写后哈希自检失败: paper_framework.sha256不一致")
+                report["status"] = "failed"
+                report_path.write_text(yaml.safe_dump(report, allow_unicode=True, sort_keys=False), encoding="utf-8")
     return report
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("project_root", nargs="?", default=".")
-    parser.add_argument("--question", help="Q1或问题一")
-    parser.add_argument("--delivery-scope", choices=sorted(SCOPE_RANK, key=SCOPE_RANK.get))
-    parser.add_argument("--schema", default=str(DEFAULT_SCHEMA_PATH))
-    parser.add_argument("--output-contract", default=str(DEFAULT_OUTPUT_CONTRACT_PATH))
     parser.add_argument("--write", action="store_true")
     parser.add_argument("--strict", action="store_true")
+    parser.add_argument(
+        "--delivery-scope",
+        choices=["design", "results", "figures", "docx", "latex", "submission"],
+    )
     args = parser.parse_args()
-    try:
-        report = synchronize(
-            Path(args.project_root), write=args.write, question=args.question,
-            delivery_scope=args.delivery_scope, schema_path=Path(args.schema),
-            output_contract_path=Path(args.output_contract),
-        )
-    except (ValueError, OSError, RuntimeError) as exc:
-        raise SystemExit(str(exc)) from exc
-    if not args.write:
-        print(yaml.safe_dump(report, allow_unicode=True, sort_keys=False))
-    if args.strict and (report["issues"] or report["stale_questions"]):
-        return 2
-    return 0
+    report = synchronize(
+        Path(args.project_root),
+        write=args.write,
+        strict=args.strict,
+        delivery_scope=args.delivery_scope,
+    )
+    for item in report["issues"]:
+        print("-", item)
+    for item in report["warnings"]:
+        print("warning:", item)
+    print(f"sync status: {report['status']}")
+    return 1 if args.strict and report["issues"] else 0
 
 
 if __name__ == "__main__":

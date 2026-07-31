@@ -3,17 +3,17 @@ project:
   problem: A
   current_phase: model_design
   objectives: [explanation, optimization]
-  version: v0.6-v631-contract
-  updated_at: '2026-07-27T12:00:00Z'
+  version: v0.7-result-analysis
+  updated_at: '2026-07-31T15:00:00Z'
 requirements:
   total: 5
   completed: [Q1]
   pending: [Q2, Q3, Q4, Q5]
 data:
   sources:
-    - name: 赛题附件一
-      path: 附件一.xlsx
-      role: 项目根目录中的原始输入数据
+  - name: 赛题附件一
+    path: 附件一.xlsx
+    role: 项目根目录中的原始输入数据
   version_hashes: {}
   locked_scope: 字段、单位和时间口径已完成审计，数据值尚未锁定。
 decisions:
@@ -21,8 +21,9 @@ decisions:
     selected_model: 填写模型名称
     rejected_models: []
     key_reason: 填写选择理由
-    solver_candidates: [主求解器, 对照算法]
-    validation_plan: [约束违反检查, 多初值验证, 参数扰动]
+    solver_candidates: [主求解器, 候选对照算法]
+    validation_plan: [约束违反检查, 收敛诊断]
+    result_analysis_candidates: [阈值与失效边界, 场景压力测试, 算法一致性]
 subproblems:
   Q1:
     status: designed
@@ -51,11 +52,14 @@ subproblems:
     framework_section: '### Q1：填写问题名称'
     result_summary_status: pending
     proposition_refs: []
+    result_quality_status: pending
+    result_analysis_status: pending
     validation_status: pending
     optimality_claim: none
     artifacts_stale: false
     random_seed: 2026
     tolerance: 1.0e-8
+    analysis_methods: []
     evidence: []
 variables:
   locked: [x_i, t, v]
@@ -65,11 +69,11 @@ variables:
     v: 题目给定速度
 paper_framework:
   path: 模型论文框架.md
-  version: v0.4-v631-contract
+  version: v0.5-result-analysis
   mode: compact
   sync_status: current
-  last_synced_at: '2026-07-27T12:00:00Z'
-  last_sync_scope: Q1模型框架已锁定，结果摘要待求解后填写
+  last_synced_at: '2026-07-31T15:00:00Z'
+  last_sync_scope: Q1模型框架已锁定，主求解与结果深化分析待执行
   proposition_limit: 4
   proposition_count: 0
   proposition_status: not_assessed
@@ -87,4 +91,4 @@ artifacts:
 risks: []
 next_gate:
   module: solve_validate
-  condition: objective、structures、顶层capabilities、变量、目标函数、约束、求解器候选、验证方案和模型论文框架已锁定
+  condition: objective、structures、顶层capabilities、变量、目标函数、约束、求解器候选和结果分析候选方向已锁定

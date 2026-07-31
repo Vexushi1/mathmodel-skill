@@ -1,42 +1,69 @@
-# mathmodel-skill v6.3.4
+# mathmodel-skill v6.4.0
 
-v6.3.4 是 v6.3 系列的 starter-cleanup 补丁：五类 Python starter 统一接入 `run_pipeline()`，导入阶段不再创建目录、设置随机种子或直接写工作簿；活动包同时清理可再生文件和已退出默认链路的 MATLAB 辅助项。
+当前活动工作流采用 **高质量主求解 + 独立结果深化分析 + MATLAB证据图 + LaTeX直写**。DOCX 保留为显式按需分支，活动说明使用稳定、无版本文件名。
 
-## v6.3 核心架构
+## 核心架构
 
-- **轻量启动**：只先读取 `core/bootstrap.yaml`，再由解析器按需加载；
-- **多意图解析**：支持多个 intent、自然语言 request、目标/结构/能力和前置产物；
-- **正交分类**：objective、structures、顶层 capabilities 分离，旧题型标签只作兼容派生；
-- **统一项目同步器**：按交付阶段发现并校验产物、计算分层哈希、传播 stale、生成 `sync_report.yaml`；
-- **MATLAB 精确表头读取**：按真实表头唯一匹配，列号仅作漂移警告；
-- **命题懒加载**：详细规则只在命题计划非零或明确证明任务时加载。
+- **轻量启动**：先读取 `core/bootstrap.yaml`，再由解析器按需加载；
+- **正交分类**：objective、structures、顶层 capabilities 分离；
+- **主求解质量门**：先保证当前模型下的精度、收敛、可行性、残差或基础外样本要求；
+- **自适应结果分析**：根据题目、模型、数据、主结果表现和评委风险选择分析方法；
+- **反馈重算**：结果分析发现主结论不可靠时，回退模型设计或主求解；
+- **Python—Excel—MATLAB 证据链**：Python计算并输出中文工作簿，MATLAB精确读取真实表头绘图；
+- **LaTeX-first**：默认完整流程不经过 DOCX 中间稿；
+- **DOCX 按需**：仅由显式 Word/DOCX 请求触发，不是 LaTeX 前置。
 
-## v6.3.4 Starter Cleanup
+## 默认工作流
 
-- `templates/code/starter/` 五类入口改为题型配置与题目专属钩子，不再复制输出和校验逻辑；
-- `templates/code/hsk_pipeline/main_pipeline.py` 新增统一 `run_pipeline()`；
-- starter 显式传递 objective、structures 和完整 capabilities；
-- 删除冗余 `.gitkeep`、可再生 `example.pdf`，迁移非默认 MATLAB 辅助函数；
-- 新增 starter 导入副作用、能力配置和活动残留回归测试。
+```text
+逐字审题
+→ 每问目标、结构、能力与依赖
+→ 两条模型路线与高级方法准入
+→ 变量、假设、公式、目标和约束闭环
+→ 锁定模型并维护模型论文框架.md
+→ Python完整主求解
+→ 主结果质量门
+→ 问题X求解结果.xlsx
+→ 选择题目专属结果深化分析
+→ 问题X结果深化分析.xlsx
+→ MATLAB读取真实工作簿绘图
+→ 直接编写并持续修改LaTeX
+→ AI模板感清除
+→ project_sync gate、编译和终审
+```
 
-## v6.3.3 Gate Hardening
+主求解阶段不得因模块分离而削弱。求解器状态、最优间隙、约束违反、KKT或残差、离散精度、收敛、无泄漏外样本精度和基础不确定性均属于主结果质量门。
 
-- `project_sync` 内部强制执行项目状态 Schema/语义校验与模型论文框架校验；
-- figures scope 无条件执行 MATLAB、正式图与 figure evidence 检查；
-- 同步器只传播或保持 stale，不自动清除 stale；
-- `core/output_contract.yaml` 成为 stage requirements 唯一事实源，Manifest 仅保存引用；
-- 首次生成 `figure_evidence.yaml` 后立即写入 `subproblem.evidence`。
+后续结果深化分析可能采用：
 
-## v6.3.2 修复
+- 参数与机制敏感性；
+- 场景压力测试和不确定性鲁棒性；
+- 多算法、多初值、上下界和数值一致性；
+- 结构、约束、赋权或分布假设稳健性；
+- 阈值与失效边界；
+- 异质性与误差分解；
+- 外样本、滚动或迁移稳定性。
 
-- compact/full 框架按模式使用不同章节集合；
-- 同步器更新框架头部后再写入最终框架 SHA-256；
-- `subproblem.capabilities` 成为唯一权威能力字段；
-- 新增 data、model、两类工作簿、MATLAB、图表包和 framework 分层哈希；
-- 工作簿 Schema、capability 条件、主键、非有限数值和约束判定进入同步检查；
-- MATLAB 工作簿引用、声明导出图、图文件存在性和时间新旧关系进入同步检查；
-- 正式交付计划显式返回 `pre_delivery_gates`，`sync_report` 仅在 gate 后可用；
-- 静态 Lint 恢复产物生产者—消费者、terminal output、Schema 语义和框架模式闭环检查。
+不要求固定三件套，不允许所有题统一做 ±5%、±10% 扰动。
+
+## 两类标准工作簿
+
+```text
+结果数据表/问题一/
+├─ 问题一求解结果.xlsx
+│  ├─ 核心指标
+│  ├─ 数据审计
+│  ├─ 主结果质量门
+│  └─ 题型专项结果
+├─ 问题一结果深化分析.xlsx
+│  ├─ 分析设计
+│  ├─ 至少一个实质分析表
+│  └─ 结论稳定性汇总
+├─ q1_plot.m
+└─ 图表/
+```
+
+旧 `问题X敏感性与鲁棒性结果.xlsx` 只作历史项目读取兼容，新项目不再生成。
 
 ## 快速使用
 
@@ -48,64 +75,39 @@ python scripts/resolve_workflow.py full_workflow \
   --competition CUMCM
 ```
 
-解析结果包含：
-
-```yaml
-module_terminal_outputs: [...]
-pre_delivery_gates:
-  - name: project_sync
-    delivery_scope: submission
-    command: python scripts/sync_project.py <project_root> --write --strict --delivery-scope submission
-terminal_outputs: [..., project_state, sync_report]
-```
-
-直接同步：
+正式同步：
 
 ```bash
 python scripts/sync_project.py D:/A_model_project \
   --write --strict --delivery-scope results
 ```
 
-可选 scope：`design`、`results`、`figures`、`docx`、`latex`、`submission`。未显式指定时根据 `project.current_phase` 推断。
+可选 scope：`design`、`results`、`figures`、`docx`、`latex`、`submission`。`results` 要求主结果质量门和结果深化分析均已完成；`docx` 是独立按需 scope。
 
 ## 事实源
 
 - 模型语义与论文组织：`模型论文框架.md`；
-- 数值事实：每问两类标准工作簿；
+- 主结果和质量门：`问题X求解结果.xlsx`；
+- 稳定范围、阈值和结果解释：`问题X结果深化分析.xlsx`；
 - objective 与 structures：`subproblem.classification`；
-- 验证能力：`subproblem.capabilities`；
-- 路径、分层哈希与 stale：`state/project_state.yaml`；
+- 主结果能力要求：`subproblem.capabilities`；
+- 状态、路径、分层哈希与 stale：`state/project_state.yaml`；
 - 本次同步结果：`sync_report.yaml`。
 
-## 目录
+## 活动入口
 
-```text
-项目根目录/
-├─ 赛题与附件
-├─ 模型论文框架.md
-├─ 问题一求解.py
-├─ state/project_state.yaml
-├─ sync_report.yaml
-└─ 结果数据表/问题一/
-   ├─ 问题一求解结果.xlsx
-   ├─ 问题一敏感性与鲁棒性结果.xlsx
-   ├─ q1_plot.m
-   └─ 图表/
-```
-
-## 入口
-
+- `PROJECT_INSTRUCTIONS.md`：项目调用说明；
+- `RUNTIME_ROUTER.md`：运行时路由说明；
+- `SKILL_FILE_INDEX.md`：活动 Skill 文件索引；
+- `TEMPLATE_INDEX.md`：活动模板索引；
 - `core/bootstrap.yaml`：最小启动契约；
-- `core/task_taxonomy.yaml`：正交分类；
-- `core/workflow_router.yaml`：多意图路由与交付 scope；
-- `core/module_manifest.yaml`：模块与 utility gate 产物闭环；
-- `core/output_contract.yaml`：目录、框架模式、分层哈希和同步门槛；
-- `core/workbook_schema.yaml`：工作簿三轴规则和 MATLAB 交接；
-- `scripts/resolve_workflow.py`：确定性执行计划；
-- `scripts/sync_project.py`：项目同步与交付检查；
-- `SKILL_CHANGE_GOVERNANCE.md`：跨聊天仓库修改治理。
+- `core/workflow_router.yaml`：多意图路由；
+- `core/module_manifest.yaml`：模块与产物闭环；
+- `core/output_contract.yaml`：目录、写作模式、哈希和同步门槛；
+- `core/workbook_schema.yaml`：两类工作簿和 MATLAB 交接；
+- `SKILL_CHANGE_GOVERNANCE.md`：仓库修改治理。
 
-本地检查：
+## 本地检查
 
 ```bash
 python -m pip install -r requirements-dev.txt

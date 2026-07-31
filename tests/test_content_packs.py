@@ -39,11 +39,27 @@ class TestContentPacks(unittest.TestCase):
         self.assertIn("不是题型标签", classifier)
         self.assertIn("advanced_method_gate.md", classifier)
 
+    def test_code_pack_separates_primary_solve_and_result_analysis(self):
+        text = (ROOT / "packs/artifact/code.md").read_text(encoding="utf-8")
+        for token in (
+            "run_primary_pipeline",
+            "run_result_analysis_pipeline",
+            "主结果质量门",
+            "分析设计",
+            "结论稳定性汇总",
+            "问题X求解结果.xlsx",
+            "问题X结果深化分析.xlsx",
+            "q{x}_plot.m",
+            "精确表头唯一匹配",
+            "redo_required",
+        ):
+            self.assertIn(token, text)
+        self.assertIn("统一做 ±5%、±10% 扰动", text)
+
     def test_chart_selection_is_evidence_driven_and_titled(self):
         text = (ROOT / "templates/figure/chart_selection.md").read_text(encoding="utf-8")
         for token in (
             "参数敏感性",
-            "鲁棒性与扰动",
             "多算法比较",
             "多目标权衡",
             "删除规则",
@@ -58,25 +74,26 @@ class TestContentPacks(unittest.TestCase):
         ):
             self.assertIn(token, text)
         self.assertIn("工作簿", text)
-        self.assertIn("均允许使用", text)
         self.assertNotIn("图内不重复总标题", text)
 
-    def test_figure_pack_uses_efficiency_gate_titles_and_standard_script_name(self):
+    def test_figure_pack_uses_adaptive_analysis_and_standard_script_name(self):
         pack = (ROOT / "packs/artifact/figure.md").read_text(encoding="utf-8")
         module = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
         matlab_readme = (ROOT / "templates/matlab/README.md").read_text(encoding="utf-8")
         for text in (pack, module, matlab_readme):
             self.assertIn("q{x}_plot.m", text)
-            self.assertIn("信息", text)
             self.assertIn("title", text)
             self.assertIn("sgtitle", text)
             self.assertIn("模型论文框架.md", text)
+        for text in (pack, module):
+            self.assertIn("问题X求解结果.xlsx", text)
+            self.assertIn("问题X结果深化分析.xlsx", text)
+            self.assertIn("阈值", text)
+            self.assertIn("结构稳健性", text)
         self.assertIn("高级图表准入检查", pack)
         self.assertIn("颜色不是固定约束", module)
         self.assertIn("q1_plot.m", matlab_readme)
         self.assertIn("q1_polt.m", matlab_readme)
-        for text in (pack, module, matlab_readme):
-            self.assertNotIn("图题由 LaTeX 图注承担", text)
 
     def test_model_paper_framework_template_is_current_state_and_complete(self):
         text = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
@@ -133,7 +150,6 @@ class TestContentPacks(unittest.TestCase):
         self.assertIn("## 2. 命题与证明", checklist)
         self.assertIn("不超过 4", checklist)
         self.assertIn("同一个外框", checklist)
-        self.assertIn("流程图、机理图的彩色框限制", checklist)
 
     def test_cumcm_hsk_template_has_boxed_concise_proposition_environment(self):
         text = (ROOT / "templates/latex/cumcm/hsk/hsk_main.tex").read_text(encoding="utf-8")
@@ -147,7 +163,7 @@ class TestContentPacks(unittest.TestCase):
         self.assertIn("colback=white", text)
         self.assertIn("无阴影", text)
 
-    def test_output_contract_has_boxed_concise_proposition_contract(self):
+    def test_output_contract_keeps_concise_proposition_contract(self):
         import yaml
 
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
@@ -156,10 +172,7 @@ class TestContentPacks(unittest.TestCase):
         self.assertEqual(proposition["main_text_default_proof_level"], "outline")
         self.assertEqual(proposition["main_text_key_steps_min"], 2)
         self.assertEqual(proposition["main_text_key_steps_max"], 6)
-        display = proposition["display_contract"]
-        self.assertTrue(display["single_outer_box"])
-        self.assertTrue(display["statement_and_proof_in_same_box"])
-        self.assertFalse(display["flowchart_or_mechanism_color_rule_applies"])
+        self.assertEqual(proposition["maximum_per_paper"], 4)
 
     def test_caption_template_has_no_copyable_fixed_sentence(self):
         text = (ROOT / "templates/writing/caption_explanation.md").read_text(encoding="utf-8")

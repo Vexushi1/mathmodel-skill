@@ -1,34 +1,35 @@
 from __future__ import annotations
 
+import hashlib
 import logging
 import random
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Literal, Mapping
 
 import numpy as np
 import pandas as pd
+import yaml
 
 try:
-    from .result_io import find_project_root, not_applicable_table, workbook_paths, write_workbook
+    from .result_io import find_project_root, workbook_paths, write_workbook
 except ImportError:  # 允许将本文件作为独立脚本运行
-    from result_io import find_project_root, not_applicable_table, workbook_paths, write_workbook
+    from result_io import find_project_root, workbook_paths, write_workbook
 
 VALID_OBJECTIVES = {"explanation", "inference", "prediction", "evaluation", "optimization", "simulation"}
 VALID_STRUCTURES = {"physical_mechanism", "temporal", "spatial", "network", "scheduling", "game", "stochastic", "static_tabular"}
 REQUIRED_CAPABILITIES = {
-    "has_explicit_constraints",
-    "requires_feasibility_check",
-    "requires_equilibrium_residual",
-    "requires_conservation_residual",
-    "requires_discretization_check",
-    "requires_convergence_diagnostic",
-    "requires_out_of_sample_validation",
-    "requires_uncertainty_quantification",
-    "requires_leakage_check",
-    "requires_calibration_check",
+    "has_explicit_constraints", "requires_feasibility_check",
+    "requires_equilibrium_residual", "requires_conservation_residual",
+    "requires_discretization_check", "requires_convergence_diagnostic",
+    "requires_out_of_sample_validation", "requires_uncertainty_quantification",
+    "requires_leakage_check", "requires_calibration_check",
     "requires_identifiability_check",
 }
+ANALYSIS_STATUSES = {"passed", "failed", "redo_required"}
+REDO_STALE_LAYERS = (
+    "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
+)
 
 
 @dataclass(frozen=True)
@@ -89,20 +90,53 @@ class ModelContext:
     solution: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class PrimarySolveResult:
+    context: ModelContext
+    solution_path: Path
+    quality_report: pd.DataFrame
+    constraints: pd.DataFrame | None
+
+
+@dataclass(frozen=True)
+class ResultAnalysisResult:
+    tables: dict[str, pd.DataFrame]
+    status: Literal["passed", "failed", "redo_required"] = "passed"
+    methods: tuple[str, ...] = ()
+    reason: str = ""
+    stale_layers: tuple[str, ...] = REDO_STALE_LAYERS
+    restart_phase: Literal["model_design", "solve_validate"] = "solve_validate"
+
+    def validate(self) -> None:
+        if self.status not in ANALYSIS_STATUSES:
+            raise ValueError(f"未知结果深化分析状态: {self.status}")
+        required = {"分析设计", "结论稳定性汇总"}
+        missing = sorted(required - set(self.tables))
+        if missing:
+            raise ValueError(f"结果深化分析缺少必需工作表: {missing}")
+        if not self.methods:
+            raise ValueError("结果深化分析必须登记实际采用的方法")
+        if self.status in {"failed", "redo_required"} and not self.reason.strip():
+            raise ValueError(f"结果深化分析状态为 {self.status} 时必须说明原因")
+        if self.status == "redo_required":
+            if self.restart_phase not in {"model_design", "solve_validate"}:
+                raise ValueError("redo_required 的 restart_phase 必须为 model_design 或 solve_validate")
+            if not self.stale_layers:
+                raise ValueError("redo_required 必须声明至少一个 stale layer")
+
+
 LoadDataHook = Callable[[PipelineConfig, AuditLog], dict[str, pd.DataFrame]]
 PreprocessHook = Callable[[dict[str, pd.DataFrame], PipelineConfig, AuditLog], dict[str, pd.DataFrame]]
 BuildFeaturesHook = Callable[[dict[str, pd.DataFrame], PipelineConfig], dict[str, Any]]
 SolveHook = Callable[[dict[str, Any], PipelineConfig], dict[str, Any]]
 ConstraintHook = Callable[[dict[str, Any], PipelineConfig], pd.DataFrame | None]
-ValidationHook = Callable[[ModelContext], tuple[pd.DataFrame | None, dict[str, pd.DataFrame]]]
-FrameworkSyncHook = Callable[
-    [ModelContext, tuple[Path, Path], pd.DataFrame | None, pd.DataFrame | None, dict[str, pd.DataFrame]],
-    None,
-]
+QualityHook = Callable[[ModelContext, pd.DataFrame | None], pd.DataFrame]
+ResultAnalysisHook = Callable[[PrimarySolveResult], ResultAnalysisResult | dict[str, pd.DataFrame]]
+PrimaryFrameworkSyncHook = Callable[[PrimarySolveResult], None]
+AnalysisFrameworkSyncHook = Callable[[PrimarySolveResult, Path, dict[str, pd.DataFrame]], None]
 
 
 def build_config(script_path: Path) -> PipelineConfig:
-    """通用入口示例；实际项目优先使用 starter 中的题型专属 build_config。"""
     project_root = find_project_root(script_path)
     return PipelineConfig(
         project_root=project_root,
@@ -170,38 +204,79 @@ def build_features(clean_data: dict[str, pd.DataFrame], config: PipelineConfig) 
 
 
 def solve_model(features: dict[str, Any], config: PipelineConfig) -> dict[str, Any]:
-    """至少返回符合 Schema 的“核心指标”；专项表由三轴分类决定。"""
     raise NotImplementedError("请实现当前框架中的目标函数、约束与求解算法")
 
 
 def check_constraints(solution: dict[str, Any], config: PipelineConfig) -> pd.DataFrame | None:
-    """显式约束/可行性能力为 true 时必须返回约束检查表。"""
     if config.capabilities.get("has_explicit_constraints") or config.capabilities.get("requires_feasibility_check"):
         raise NotImplementedError("该问题声明需要可行性检查，请实现约束违反检查表")
     return None
 
 
-def run_validation(context: ModelContext) -> tuple[pd.DataFrame | None, dict[str, pd.DataFrame]]:
-    """返回多算法对比和敏感性/鲁棒性工作簿的非空表映射。"""
+def evaluate_primary_quality(context: ModelContext, constraints: pd.DataFrame | None) -> pd.DataFrame:
     raise NotImplementedError(
-        "validation_tables 应包含适用的参数敏感性、鲁棒性区间、扰动明细或算法稳定性；"
-        "全部不适用时返回 {'适用性说明': not_applicable_table(...)}"
+        "请按检查项输出是否通过和证据；至少覆盖数据口径、收敛/终止、可行性或残差、"
+        "基础精度和可复算性"
     )
+
+
+def analyze_results(primary: PrimarySolveResult) -> ResultAnalysisResult:
+    raise NotImplementedError(
+        "根据题目、模型、数据、主结果表现和评委风险选择真实分析，并返回含状态、方法、"
+        "原因、回退阶段和工作表的 ResultAnalysisResult"
+    )
+
+
+def _as_bool(value: Any) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text in {"true", "1", "yes", "是", "通过", "满足"}:
+        return True
+    if text in {"false", "0", "no", "否", "未通过", "不满足"}:
+        return False
+    return None
+
+
+def _quality_failures(quality_report: pd.DataFrame) -> list[str]:
+    required = {"检查项", "是否通过", "证据"}
+    missing = sorted(required - set(quality_report.columns))
+    if missing:
+        raise ValueError(f"主结果质量报告缺少字段: {missing}")
+    if quality_report.empty:
+        raise ValueError("主结果质量报告不能为空")
+    return [
+        str(row["检查项"])
+        for _, row in quality_report.iterrows()
+        if _as_bool(row["是否通过"]) is not True
+    ]
+
+
+def assert_primary_quality(quality_report: pd.DataFrame) -> None:
+    failed = _quality_failures(quality_report)
+    if failed:
+        raise RuntimeError(f"主结果质量门未通过，禁止进入结果深化分析: {failed}")
 
 
 def build_solution_tables(
     solution: dict[str, Any],
     constraints: pd.DataFrame | None,
-    algorithm_comparison: pd.DataFrame | None,
+    quality_report: pd.DataFrame,
     audit: AuditLog,
 ) -> dict[str, Any]:
     if "核心指标" not in solution:
         raise KeyError("solution 必须包含“核心指标”")
-    tables: dict[str, Any] = {"核心指标": solution["核心指标"], "数据审计": audit.table()}
+    tables: dict[str, Any] = {
+        "核心指标": solution["核心指标"],
+        "数据审计": audit.table(),
+        "主结果质量门": quality_report,
+    }
     optional_sheets = (
         "推荐方案", "明细结果", "预测明细", "误差指标", "外样本验证", "不确定性区间",
         "综合评分", "排序结果", "模型指标", "预测或分类结果", "泄漏检查", "校准结果",
         "可识别性检查", "空间诊断", "参数估计", "节点结果", "边结果", "路径或流结果",
+        "机理分析", "状态明细", "边界检验", "量纲检查", "决策变量明细", "方案对比",
+        "Pareto结果", "仿真明细", "逐时刻结果", "逐场景结果", "重复试验结果",
         "均衡残差", "守恒残差", "离散精度", "收敛诊断",
     )
     for sheet in optional_sheets:
@@ -209,49 +284,125 @@ def build_solution_tables(
             tables[sheet] = solution[sheet]
     if constraints is not None:
         tables["约束违反检查"] = constraints
-    if algorithm_comparison is not None:
-        tables["多算法对比"] = algorithm_comparison
     return tables
 
 
-def save_outputs(
-    context: ModelContext,
-    constraints: pd.DataFrame | None,
-    algorithm_comparison: pd.DataFrame | None,
-    validation_tables: dict[str, pd.DataFrame],
-    audit: AuditLog,
-) -> tuple[Path, Path]:
-    if not validation_tables:
-        validation_tables = {
-            "适用性说明": not_applicable_table(
-                "该题没有可独立扰动的外生参数或随机输入",
-                alternative_test="边界、极限状态与数值一致性检查",
-            )
-        }
-    solution_path, robustness_path = workbook_paths(context.config.project_root, context.config.problem_name)
-    solution_tables = build_solution_tables(context.solution, constraints, algorithm_comparison, audit)
-    common = {
-        "objective": context.config.objective,
-        "structures": context.config.structures,
-        "capabilities": context.config.capabilities,
-    }
-    write_workbook(solution_path, solution_tables, workbook_kind="solution", **common)
-    write_workbook(robustness_path, validation_tables, workbook_kind="robustness", **common)
-    return solution_path, robustness_path
+def _file_hash(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
-def sync_model_paper_framework(
-    context: ModelContext,
-    output_paths: tuple[Path, Path],
-    constraints: pd.DataFrame | None,
-    algorithm_comparison: pd.DataFrame | None,
-    validation_tables: dict[str, pd.DataFrame],
-) -> None:
-    """完整替换该问当前模型口径和结果摘要，不叠加旧版本。"""
-    raise NotImplementedError(
-        "工作簿通过校验后，删除该问旧模型/旧摘要，写入当前模型与算法、核心数值、"
-        "验证/可行性、敏感性/鲁棒性、最终结论和证据位置，并将结果摘要状态设为 current"
+def _question_key(problem_name: str) -> str:
+    order = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
+    suffix = problem_name.removeprefix("问题")
+    return f"Q{order.index(suffix) + 1}" if suffix in order else problem_name
+
+
+def _load_state(config: PipelineConfig) -> tuple[Path, dict[str, Any]] | None:
+    path = config.project_root / "state" / "project_state.yaml"
+    if not path.is_file():
+        return None
+    return path, yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+
+
+def _write_state(path: Path, state: dict[str, Any]) -> None:
+    path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
+
+
+def _update_primary_state(primary: PrimarySolveResult, passed: bool) -> None:
+    loaded = _load_state(primary.context.config)
+    if loaded is None:
+        return
+    path, state = loaded
+    entry = (state.setdefault("subproblems", {})).setdefault(
+        _question_key(primary.context.config.problem_name), {}
     )
+    relative = primary.solution_path.relative_to(primary.context.config.project_root).as_posix()
+    entry["solution_workbook"] = relative
+    entry["result_quality_report"] = f"{relative}#主结果质量门"
+    entry["result_quality_status"] = "passed" if passed else "failed"
+    entry["result_analysis_status"] = "pending"
+    hashes = entry.setdefault("artifact_hashes", {})
+    hashes["solution_workbook"] = _file_hash(primary.solution_path)
+    if passed:
+        entry.setdefault("validated_artifact_hashes", {})["solution_workbook"] = hashes["solution_workbook"]
+        if entry.get("status") in {"pending", "audited", "designed"}:
+            required = {"data", "model", "solution_workbook", "framework"}
+            validated = entry.get("validated_artifact_hashes", {}) or {}
+            if required.issubset(hashes) and required.issubset(validated):
+                entry["status"] = "solved"
+    else:
+        entry["status"] = "designed"
+        entry["result_summary_status"] = "stale"
+        entry["validation_status"] = "pending"
+        entry["artifacts_stale"] = True
+        entry["stale_layers"] = sorted(set(entry.get("stale_layers", [])) | {
+            "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
+        })
+        entry["proposition_refs"] = []
+        state.setdefault("paper_framework", {})["sync_status"] = "stale"
+    state.setdefault("project", {})["current_phase"] = "solve_validate"
+    _write_state(path, state)
+
+
+def _normalize_analysis_result(
+    value: ResultAnalysisResult | dict[str, pd.DataFrame],
+) -> ResultAnalysisResult:
+    if isinstance(value, ResultAnalysisResult):
+        result = value
+    elif isinstance(value, dict):
+        methods: tuple[str, ...] = ()
+        design = value.get("分析设计")
+        if isinstance(design, pd.DataFrame) and "方法" in design.columns:
+            methods = tuple(dict.fromkeys(str(item) for item in design["方法"] if str(item).strip()))
+        result = ResultAnalysisResult(tables=value, status="passed", methods=methods)
+    else:
+        raise TypeError("analysis_hook 必须返回 ResultAnalysisResult 或工作表字典")
+    result.validate()
+    return result
+
+
+def _update_analysis_state(
+    primary: PrimarySolveResult,
+    analysis_path: Path,
+    result: ResultAnalysisResult,
+) -> None:
+    config = primary.context.config
+    loaded = _load_state(config)
+    if loaded is None:
+        return
+    path, state = loaded
+    entry = state.setdefault("subproblems", {}).setdefault(_question_key(config.problem_name), {})
+    relative = analysis_path.relative_to(config.project_root).as_posix()
+    entry["result_analysis_workbook"] = relative
+    entry["result_analysis_report"] = f"{relative}#结论稳定性汇总"
+    entry["result_analysis_status"] = result.status
+    entry["analysis_methods"] = list(result.methods)
+    hashes = entry.setdefault("artifact_hashes", {})
+    hashes["result_analysis_workbook"] = _file_hash(analysis_path)
+    if result.status == "passed":
+        entry.setdefault("validated_artifact_hashes", {})["result_analysis_workbook"] = hashes["result_analysis_workbook"]
+        if entry.get("status") == "solved":
+            entry["status"] = "analyzed"
+        state.setdefault("project", {})["current_phase"] = "result_analysis"
+    elif result.status == "failed":
+        entry["validation_status"] = "pending"
+        state.setdefault("project", {})["current_phase"] = "result_analysis"
+    else:
+        entry["status"] = "designed"
+        entry["validation_status"] = "pending"
+        entry["result_summary_status"] = "stale"
+        entry["artifacts_stale"] = True
+        entry["stale_layers"] = sorted(
+            set(entry.get("stale_layers", [])) | set(result.stale_layers)
+        )
+        entry["proposition_refs"] = []
+        state.setdefault("project", {})["current_phase"] = result.restart_phase
+        state.setdefault("paper_framework", {})["sync_status"] = "stale"
+    _write_state(path, state)
 
 
 def project_sync_command(config: PipelineConfig) -> str:
@@ -261,7 +412,7 @@ def project_sync_command(config: PipelineConfig) -> str:
     )
 
 
-def run_pipeline(
+def run_primary_pipeline(
     config: PipelineConfig,
     *,
     load_data_hook: LoadDataHook,
@@ -269,10 +420,10 @@ def run_pipeline(
     build_features_hook: BuildFeaturesHook,
     solve_hook: SolveHook,
     constraint_hook: ConstraintHook,
-    validation_hook: ValidationHook,
-    framework_sync_hook: FrameworkSyncHook,
-) -> tuple[Path, Path]:
-    """执行统一求解主链；所有目录创建、随机种子和文件写入均从这里开始。"""
+    quality_hook: QualityHook,
+    framework_sync_hook: PrimaryFrameworkSyncHook,
+) -> PrimarySolveResult:
+    """完整主求解；失败证据先落盘，再阻断结果深化分析。"""
     config.validate()
     logger = setup_logger()
     set_random_seed(config.random_seed)
@@ -283,14 +434,107 @@ def run_pipeline(
     solution = solve_hook(features, config)
     context = ModelContext(config=config, raw_data=raw, clean_data=clean, features=features, solution=solution)
     constraints = constraint_hook(solution, config)
-    comparison, validation_tables = validation_hook(context)
-    paths = save_outputs(context, constraints, comparison, validation_tables, audit)
-    framework_sync_hook(context, paths, constraints, comparison, validation_tables)
-    logger.info("结果已写入: %s", [path.as_posix() for path in paths])
-    logger.info("模型论文框架已同步: %s", config.framework_path.as_posix())
+    quality_report = quality_hook(context, constraints)
+    failures = _quality_failures(quality_report)
+    solution_path, _ = workbook_paths(config.project_root, config.problem_name)
+    write_workbook(
+        solution_path,
+        build_solution_tables(solution, constraints, quality_report, audit),
+        workbook_kind="solution",
+        objective=config.objective,
+        structures=config.structures,
+        capabilities=config.capabilities,
+        require_quality_passed=False,
+    )
+    primary = PrimarySolveResult(context, solution_path, quality_report, constraints)
+    framework_sync_hook(primary)
+    _update_primary_state(primary, passed=not failures)
+    if failures:
+        raise RuntimeError(
+            f"主结果质量门未通过；失败证据已写入 {solution_path.as_posix()}，禁止进入结果深化分析: {failures}"
+        )
+    logger.info("主求解结果已通过质量门并写入: %s", solution_path.as_posix())
+    return primary
+
+
+def run_result_analysis_pipeline(
+    primary: PrimarySolveResult,
+    *,
+    analysis_hook: ResultAnalysisHook,
+    framework_sync_hook: AnalysisFrameworkSyncHook,
+) -> Path:
+    """写入题目专属分析；failed/redo_required 均阻断绘图和写作。"""
+    assert_primary_quality(primary.quality_report)
+    result = _normalize_analysis_result(analysis_hook(primary))
+    _, analysis_path = workbook_paths(
+        primary.context.config.project_root,
+        primary.context.config.problem_name,
+    )
+    config = primary.context.config
+    write_workbook(
+        analysis_path,
+        result.tables,
+        workbook_kind="result_analysis",
+        objective=config.objective,
+        structures=config.structures,
+        capabilities=config.capabilities,
+    )
+    framework_sync_hook(primary, analysis_path, result.tables)
+    _update_analysis_state(primary, analysis_path, result)
+    if result.status == "failed":
+        raise RuntimeError(f"结果深化分析未通过；证据已写入 {analysis_path.as_posix()}: {result.reason}")
+    if result.status == "redo_required":
+        raise RuntimeError(
+            f"结果深化分析要求回退到 {result.restart_phase}；下游产物已标记 stale: {result.reason}"
+        )
+    return analysis_path
+
+
+def run_pipeline(
+    config: PipelineConfig,
+    *,
+    load_data_hook: LoadDataHook,
+    preprocess_hook: PreprocessHook,
+    build_features_hook: BuildFeaturesHook,
+    solve_hook: SolveHook,
+    constraint_hook: ConstraintHook,
+    quality_hook: QualityHook,
+    result_analysis_hook: ResultAnalysisHook,
+    primary_framework_sync_hook: PrimaryFrameworkSyncHook,
+    analysis_framework_sync_hook: AnalysisFrameworkSyncHook,
+) -> tuple[Path, Path]:
+    """一键编排器；内部保持主求解和结果深化分析两道独立门。"""
+    primary = run_primary_pipeline(
+        config,
+        load_data_hook=load_data_hook,
+        preprocess_hook=preprocess_hook,
+        build_features_hook=build_features_hook,
+        solve_hook=solve_hook,
+        constraint_hook=constraint_hook,
+        quality_hook=quality_hook,
+        framework_sync_hook=primary_framework_sync_hook,
+    )
+    analysis_path = run_result_analysis_pipeline(
+        primary,
+        analysis_hook=result_analysis_hook,
+        framework_sync_hook=analysis_framework_sync_hook,
+    )
+    logger = setup_logger()
+    logger.info("结果深化分析已写入: %s", analysis_path.as_posix())
     logger.info("正式交付前执行: %s", project_sync_command(config))
-    logger.info("正式论文图由 MATLAB 读取上述工作簿绘制，并保留简洁 title/sgtitle。")
-    return paths
+    return primary.solution_path, analysis_path
+
+
+def sync_primary_framework(primary: PrimarySolveResult) -> None:
+    raise NotImplementedError("完整替换该问主模型、主结果、质量门结论和证据位置")
+
+
+def sync_analysis_framework(
+    primary: PrimarySolveResult,
+    analysis_path: Path,
+    tables: dict[str, pd.DataFrame],
+) -> None:
+    raise NotImplementedError("写入实际分析方法、稳定范围、失效边界、回退记录和工作簿证据")
 
 
 def main() -> None:
@@ -302,8 +546,10 @@ def main() -> None:
         build_features_hook=build_features,
         solve_hook=solve_model,
         constraint_hook=check_constraints,
-        validation_hook=run_validation,
-        framework_sync_hook=sync_model_paper_framework,
+        quality_hook=evaluate_primary_quality,
+        result_analysis_hook=analyze_results,
+        primary_framework_sync_hook=sync_primary_framework,
+        analysis_framework_sync_hook=sync_analysis_framework,
     )
 
 
