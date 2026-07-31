@@ -54,9 +54,23 @@ class TestSchemas(unittest.TestCase):
         self.assertEqual(contract["version"], "6.4.0")
         self.assertEqual(contract["project_sync"]["role"], "formal_pre_delivery_gate")
         self.assertEqual(contract["project_sync"]["stage_requirements_semantics"], "exact_scope")
+        self.assertEqual(contract["project_sync"]["implicit_phase_sync_semantics"], "status_minimum_only")
+        self.assertTrue(contract["project_sync"]["formal_scope_requires_explicit_flag"])
+        self.assertEqual(
+            contract["project_sync"]["formal_state_requirements"],
+            {
+                "result_quality_status": "passed",
+                "result_analysis_status": "passed",
+                "downstream_artifacts_stale": False,
+            },
+        )
         self.assertEqual(set(contract["model_paper_framework"]["modes"]), {"compact", "full"})
-        self.assertTrue(contract["result_policy"]["primary_quality_gate_required"])
-        self.assertTrue(contract["result_policy"]["fixed_perturbation_forbidden"])
+        policy = contract["result_policy"]
+        self.assertTrue(policy["primary_quality_gate_required"])
+        self.assertTrue(policy["failed_quality_evidence_persisted"])
+        self.assertTrue(policy["downstream_admission_requires_quality_passed"])
+        self.assertEqual(set(policy["result_analysis_outcomes"]), {"passed", "failed", "redo_required"})
+        self.assertTrue(policy["fixed_perturbation_forbidden"])
         self.assertEqual(
             set(contract["project_sync"]["artifact_hash_layers"]),
             {"data", "model", "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework"},
