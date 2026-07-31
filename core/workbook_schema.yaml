@@ -8,7 +8,8 @@ runtime_enforcement:
   shared_validator: templates/code/hsk_pipeline/workbook_validation.py
   matlab_reader: 每问同目录q{x}_plot.m的精确表头唯一匹配逻辑
   rules:
-  - 主求解工作簿写入前必须通过主结果质量门和本Schema。
+  - 主求解工作簿必须先通过结构Schema并持久化主结果质量报告；质量门允许记录未通过项。
+  - 只有主结果质量门全部通过，才允许进入结果深化分析或正式results交付。
   - 结果深化分析只在主结果质量门通过后执行。
   - 主结果质量报告必须写入求解工作簿的主结果质量门工作表。
   - 结果分析计划与结论必须分别写入分析设计和结论稳定性汇总工作表。
@@ -61,7 +62,7 @@ capability_contract:
     required_sheets: [约束违反检查]
 solution_workbook:
   filename: 问题{中文序号}求解结果.xlsx
-  role: 在当前模型口径下保存已经算准的主结果和基础正确性证据
+  role: 保存主结果、基础正确性证据和主结果质量门；质量门失败时保留失败证据但不得进入下游
   common_required_sheets:
     核心指标:
       required_columns: [指标, 数值]
