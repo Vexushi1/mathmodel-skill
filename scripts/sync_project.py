@@ -54,13 +54,13 @@ def _load_module(name: str, path: Path):
 
 WORKBOOK_VALIDATION = _load_module(
     "hsk_workbook_validation",
-    SKILL_ROOT / "templates/code/hsk_pipeline/workbook_validation.py",
+    SKILL_ROOT / "templates/code" / "hsk_pipeline" / "workbook_validation.py",
 )
 STATE_VALIDATION = _load_module(
-    "hsk_project_state_validation", SKILL_ROOT / "scripts/validate_project_state.py"
+    "hsk_project_state_validation", SKILL_ROOT / "scripts" / "validate_project_state.py"
 )
 FRAMEWORK_VALIDATION = _load_module(
-    "hsk_framework_validation", SKILL_ROOT / "scripts/validate_model_paper_framework.py"
+    "hsk_framework_validation", SKILL_ROOT / "scripts" / "validate_model_paper_framework.py"
 )
 
 
@@ -559,6 +559,21 @@ def _submission_zip_issues(path: Path, require_matlab: bool = True) -> list[str]
     return issues
 
 
+def _formal_state_issues(required: set[str], state: Mapping[str, Any]) -> list[str]:
+    issues: list[str] = []
+    for name, entry in (state.get("subproblems") or {}).items():
+        if not isinstance(entry, Mapping):
+            continue
+        if "result_quality_report" in required and entry.get("result_quality_status") != "passed":
+            issues.append(f"{name}: 正式交付要求 result_quality_status=passed")
+        if "result_analysis_report" in required and entry.get("result_analysis_status") != "passed":
+            issues.append(f"{name}: 正式交付要求 result_analysis_status=passed")
+        if required.intersection({"approved_figures", "docx_draft", "latex_source", "compiled_pdf", "validated_submission_package"}):
+            if entry.get("artifacts_stale") is True:
+                issues.append(f"{name}: 下游正式交付禁止使用 stale 结果")
+    return issues
+
+
 def _scope_artifact_issues(
     root: Path,
     scope: str,
@@ -566,7 +581,7 @@ def _scope_artifact_issues(
     snapshots: Mapping[str, Mapping[str, Any]],
 ) -> list[str]:
     required = set(stage_requirements(scope, load_yaml(DEFAULT_OUTPUT_CONTRACT_PATH)))
-    issues: list[str] = []
+    issues = _formal_state_issues(required, state)
     if "python_code" in required and not any(snapshot.get("code_files") for snapshot in snapshots.values()):
         issues.append("结果交付缺少问题求解Python脚本")
     if "solution_workbook" in required and not all(snapshot.get("solution_workbook") for snapshot in snapshots.values()):
