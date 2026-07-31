@@ -124,7 +124,7 @@ routing:
     delivery_scope: design
   code_and_solution:
     triggers: [代码, Python, 求解, 算法, 最优解]
-    infer_keywords: [Python代码, 求解代码, 开始求解, 算法实现, 最优解]
+    infer_keywords: [Python代码, 求解代码, 开始求解, 求解, 继续求解, 重新求解, 重算, 算法实现, 最优解]
     load: [modules/03_solve_validate.md, modules/03_result_analysis.md, packs/artifact/code.md, packs/task/classifier.md]
     load_classified_task_packs: true
     terminal_outputs: [python_code, solution_workbook, result_quality_report, result_analysis_workbook, result_analysis_report, validated_results, model_paper_framework]
