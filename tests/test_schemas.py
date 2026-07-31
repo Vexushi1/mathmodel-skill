@@ -38,11 +38,12 @@ class TestSchemas(unittest.TestCase):
         self.assertIn("objective_profiles", schema["solution_workbook"])
         self.assertIn("structure_profiles", schema["solution_workbook"])
         self.assertIn("主结果质量门", schema["solution_workbook"]["common_required_sheets"])
+        rules = "\n".join(schema["runtime_enforcement"]["rules"])
+        self.assertIn("质量门允许记录未通过项", rules)
+        self.assertIn("只有主结果质量门全部通过", rules)
+        self.assertIn("不得进入下游", schema["solution_workbook"]["role"])
         analysis = schema["result_analysis_workbook"]
-        self.assertEqual(
-            set(analysis["common_required_sheets"]),
-            {"分析设计", "结论稳定性汇总"},
-        )
+        self.assertEqual(set(analysis["common_required_sheets"]), {"分析设计", "结论稳定性汇总"})
         self.assertIn("算法一致性", analysis["required_any_sheets"])
         self.assertIn("结构稳健性", analysis["required_any_sheets"])
         self.assertNotIn("适用性说明", analysis["sheet_schemas"])
@@ -60,10 +61,7 @@ class TestSchemas(unittest.TestCase):
             set(contract["project_sync"]["artifact_hash_layers"]),
             {"data", "model", "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework"},
         )
-        self.assertEqual(
-            set(contract["per_question"]["mandatory_workbooks"]),
-            {"solution", "result_analysis"},
-        )
+        self.assertEqual(set(contract["per_question"]["mandatory_workbooks"]), {"solution", "result_analysis"})
         self.assertEqual(contract["writing_policy"]["default_mode"], "latex_first")
         self.assertEqual(contract["writing_policy"]["docx_mode"], "explicit_only_independent")
         self.assertFalse(contract["writing_policy"]["docx_is_latex_prerequisite"])
