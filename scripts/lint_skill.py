@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the active HSK v6.3.4 graph, contracts, semantics and generated files."""
+"""Validate the active HSK graph, contracts, semantics and generated files."""
 from __future__ import annotations
 
 import argparse
@@ -14,10 +14,13 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "6.3.4"
+PACKAGE_VERSION = "6.4.0"
 REQUIRED = [
-    "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG_V634.md", "CHANGELOG_V633.md", "CHANGELOG_V632.md",
-    "PROJECT_INSTRUCTIONS_HSK_V622.md", "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V630.md",
+    "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
+    "CHANGELOG_V634.md", "CHANGELOG_V633.md", "CHANGELOG_V632.md", "CHANGELOG_V630.md",
+    "PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",
+    "PROJECT_INSTRUCTIONS_HSK_V622.md", "HSK_RUNTIME_ROUTER_V622.md",
+    "HSK_SKILL_FILE_INDEX_V622.md", "HSK_TEMPLATE_INDEX_V622.md",
     "core/bootstrap.yaml", "core/hsk_core_policy.md", "core/task_taxonomy.yaml",
     "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml",
     "core/workbook_schema.yaml", "core/project_state.schema.yaml", "core/compile_profiles.yaml",
@@ -36,7 +39,7 @@ REQUIRED = [
 ]
 ACTIVE_DIRS = ["core", "modules", "packs", "templates", "scripts", "config", "state", "assets", "agents", "skills", ".codex-plugin", ".github"]
 TEXT_SUFFIXES = {".md", ".yaml", ".yml", ".json", ".py", ".m", ".tex", ".bib"}
-VERSION_DOCS = ["SKILL.md", "README.md", "REPOSITORY_INDEX.md", "PROJECT_INSTRUCTIONS_HSK_V622.md", "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V634.md"]
+VERSION_DOCS = ["SKILL.md", "README.md", "CHANGELOG.md"]
 VERSION_CONTRACTS = ["core/bootstrap.yaml", "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml", "core/project_state.schema.yaml"]
 
 
@@ -142,6 +145,15 @@ def check_router(errors: list[str]) -> None:
                 errors.append(f"formal route lacks valid delivery_scope: {name}")
     if not routes.get("proposition_proof", {}).get("load_proposition_pack"):
         errors.append("proposition route must lazily load proposition pack")
+    full_workflow = routes.get("full_workflow", {})
+    loaded = list(full_workflow.get("load", [])) + list(full_workflow.get("then", []))
+    if "modules/05_writing/docx.md" in loaded or "packs/artifact/docx.md" in loaded:
+        errors.append("default full_workflow must not load DOCX")
+    if "modules/05_writing/latex.md" not in loaded:
+        errors.append("default full_workflow must load LaTeX writing")
+    explicit_docx = routes.get("docx", {})
+    if explicit_docx.get("delivery_scope") != "docx" or "modules/05_writing/docx.md" not in explicit_docx.get("load", []):
+        errors.append("explicit DOCX route must remain available")
     resolver = read_text(ROOT / "scripts/resolve_workflow.py")
     for token in ("pre_delivery_gates", "available_after_modules", "available_after_plan", "gate_plan"):
         if token not in resolver:
@@ -204,6 +216,11 @@ def check_manifest(errors: list[str]) -> None:
         unavailable = set(profile.get("terminal_outputs", [])) - available
         if unavailable:
             errors.append(f"workflow profile {profile_name} has unproducible terminal outputs: {sorted(unavailable)}")
+    profile_modules = manifest.get("workflow_profiles", {}).get("full_workflow", {}).get("modules", [])
+    if "writing_docx" in profile_modules or "writing_latex" not in profile_modules:
+        errors.append("full_workflow manifest profile must be LaTeX-first with DOCX opt-in")
+    if "writing_docx" not in modules:
+        errors.append("optional writing_docx module must remain registered")
 
 
 def check_contracts(errors: list[str]) -> None:
@@ -213,6 +230,11 @@ def check_contracts(errors: list[str]) -> None:
     full = set(modes.get("full", {}).get("required_sections", []))
     if set(modes) != {"compact", "full"} or not compact or not compact < full:
         errors.append("framework compact/full contract is invalid")
+    policy = output.get("writing_policy", {})
+    if policy.get("default_mode") != "latex_first":
+        errors.append("default writing mode must be latex_first")
+    if policy.get("docx_mode") != "explicit_only_independent" or policy.get("docx_is_latex_prerequisite") is not False:
+        errors.append("DOCX must remain explicit-only and not be a LaTeX prerequisite")
     sync = output.get("project_sync", {})
     if sync.get("role") != "formal_pre_delivery_gate":
         errors.append("project_sync must be a formal pre-delivery gate")
