@@ -1,4 +1,4 @@
-version: 6.3.4
+version: 6.4.0
 bootstrap: core/bootstrap.yaml
 default_load:
 - core/hsk_core_policy.md
@@ -21,11 +21,11 @@ execution_contract:
   - model_design
   - solve_validate
   - figure_evidence
-  - writing_docx
   - writing_latex
   - ai_cleanup
   - latex_compile_quality
   - review_delivery
+  - writing_docx
   formal_delivery_gates:
   - project_sync
   rules:
@@ -185,8 +185,6 @@ routing:
     - modules/04_figure_evidence.md
     - packs/artifact/figure.md
     - templates/figure/chart_selection.md
-    - modules/05_writing/docx.md
-    - packs/artifact/docx.md
     - modules/05_writing/latex.md
     - modules/05_writing/ai_cleanup.md
     - modules/05_latex_compile_quality.md
