@@ -61,6 +61,7 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
         "common_required_sheets": {
             "核心指标": {"required_columns": ["指标", "数值"]},
             "数据审计": {"required_columns": ["等级", "检查项", "信息", "处理方式"]},
+            "主结果质量门": {"required_columns": ["检查项", "是否通过", "证据"]},
         },
         "common_recommended_sheets": {
             "推荐方案": {"required_columns": ["方案"]},
@@ -113,11 +114,16 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
         "task_profiles": {},
     },
     "result_analysis_workbook": {
+        "common_required_sheets": {
+            "分析设计": {"required_columns": ["风险来源", "分析问题", "方法", "指标", "通过标准"]},
+            "结论稳定性汇总": {"required_columns": ["核心结论", "分析方法", "稳定范围", "是否保持"]},
+        },
         "required_any_sheets": [
             "参数敏感性", "阈值与失效边界", "场景压力测试", "算法一致性",
-            "结构稳健性", "异质性分析", "误差分解", "外样本稳定性", "结论稳定性汇总",
+            "结构稳健性", "异质性分析", "误差分解", "外样本稳定性",
         ],
         "sheet_schemas": {
+            "分析设计": {"required_columns": ["风险来源", "分析问题", "方法", "指标", "通过标准"]},
             "参数敏感性": {"required_columns": ["参数", "基准值", "变化值", "结果指标"]},
             "阈值与失效边界": {"required_columns": ["分析对象", "临界值", "临界前结论", "临界后结论"]},
             "场景压力测试": {"required_columns": ["场景", "变化条件", "结果指标", "是否可行"]},
@@ -206,6 +212,7 @@ def validate_workbook_tables(
     *,
     objective: str | None = None,
     structures: Sequence[str] = (),
+    require_quality_passed: bool = True,
 ) -> list[tuple[str, pd.DataFrame]]:
     if workbook_kind not in VALID_WORKBOOK_KINDS:
         raise ValueError(f"未知工作簿类型: {workbook_kind}")
@@ -213,6 +220,7 @@ def validate_workbook_tables(
         tables, workbook_kind, schema=load_workbook_schema(schema_path),
         problem_types=problem_types, capabilities=capabilities,
         objective=objective, structures=structures, name_normalizer=_sheet_name,
+        require_quality_passed=require_quality_passed,
     )
 
 
@@ -229,11 +237,13 @@ def validate_workbook_file(
     *,
     objective: str | None = None,
     structures: Sequence[str] = (),
+    require_quality_passed: bool = True,
 ) -> list[tuple[str, pd.DataFrame]]:
     return WORKBOOK_VALIDATION.validate_workbook_file(
         Path(path), workbook_kind, schema=load_workbook_schema(schema_path),
         problem_types=problem_types, capabilities=capabilities,
         objective=objective, structures=structures,
+        require_quality_passed=require_quality_passed,
     )
 
 
@@ -257,6 +267,7 @@ def write_workbook(
     schema_path: Path | None = None,
     objective: str | None = None,
     structures: Sequence[str] = (),
+    require_quality_passed: bool = True,
 ) -> Path:
     path = Path(path)
     kind = workbook_kind or _infer_workbook_kind(path)
@@ -267,6 +278,7 @@ def write_workbook(
             tables, workbook_kind=kind, problem_types=problem_types,
             capabilities=capabilities, schema_path=schema_path,
             objective=objective, structures=structures,
+            require_quality_passed=require_quality_passed,
         )
     path.parent.mkdir(parents=True, exist_ok=True)
     with pd.ExcelWriter(path, engine="openpyxl", mode="w") as writer:
