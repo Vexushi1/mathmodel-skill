@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate project state, split result-quality/result-analysis status and artifact freshness."""
+"""Validate split result-quality/result-analysis state and artifact freshness."""
 from __future__ import annotations
 
 import argparse
@@ -12,8 +12,8 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-SCHEMA_PATH = ROOT / "core" / "project_state.schema.yaml"
-TAXONOMY_PATH = ROOT / "core" / "task_taxonomy.yaml"
+SCHEMA_PATH = ROOT / "core/project_state.schema.yaml"
+TAXONOMY_PATH = ROOT / "core/task_taxonomy.yaml"
 SOLVED_STATUSES = {"solved", "analyzed", "validated", "written", "completed"}
 ANALYZED_STATUSES = {"analyzed", "validated", "written", "completed"}
 VALIDATED_STATUSES = {"validated", "written", "completed"}
@@ -132,7 +132,10 @@ def _framework_section_hash(path: Path, anchor: str) -> str | None:
     target = anchor.strip()
     start = next((index for index, line in enumerate(lines) if line.strip() == target), None)
     if start is None:
-        start = next((index for index, line in enumerate(lines) if line.lstrip().startswith("#") and target in line.strip()), None)
+        start = next(
+            (index for index, line in enumerate(lines) if line.lstrip().startswith("#") and target in line.strip()),
+            None,
+        )
     if start is None:
         return None
     heading = lines[start].lstrip()
@@ -178,10 +181,20 @@ def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[s
         issues.append(f"{name}.stale_layers contains invalid layers: {sorted(invalid_layers)}")
     mismatched = {key for key, value in validated.items() if current.get(key) != value}
     stale_flag = state.get("artifacts_stale") is True
+    semantic_stale = (
+        state.get("result_quality_status") == "failed"
+        or state.get("result_analysis_status") == "redo_required"
+    )
     if mismatched and not stale_flag:
         issues.append(f"{name}.artifacts_stale must be true while validated hashes differ: {sorted(mismatched)}")
-    if stale_flag and mismatched != stale_layers:
-        issues.append(f"{name}.stale_layers must equal changed validated layers: {sorted(mismatched)}")
+    if stale_flag:
+        if semantic_stale:
+            if not stale_layers:
+                issues.append(f"{name}.stale_layers must be non-empty for semantic stale")
+            if not mismatched.issubset(stale_layers):
+                issues.append(f"{name}.stale_layers must include changed validated layers: {sorted(mismatched)}")
+        elif mismatched != stale_layers:
+            issues.append(f"{name}.stale_layers must equal changed validated layers: {sorted(mismatched)}")
     if not stale_flag and stale_layers:
         issues.append(f"{name}.stale_layers must be empty while artifacts_stale is false")
     if status in SOLVED_STATUSES:
@@ -224,8 +237,6 @@ def validate_state_payload(
     phase = str(project.get("current_phase", ""))
     framework_path = project_root / str(framework.get("path", "模型论文框架.md"))
     framework_sync = framework.get("sync_status")
-    if phase in FRAMEWORK_REQUIRED_PHASES and framework_sync != "current":
-        issues.append(f"paper_framework.sync_status must be current in phase {phase}")
     expected_framework_hash = framework.get("sha256")
     if framework_path.is_file() and expected_framework_hash:
         if _sha256_text(framework_path).lower() != str(expected_framework_hash).lower():
@@ -276,8 +287,11 @@ def validate_state_payload(
                 issues.append(f"{name}.result_analysis_workbook must exist when status is {status}")
             if not state.get("analysis_methods"):
                 issues.append(f"{name}.analysis_methods must be non-empty when status is {status}")
-        if analysis_status == "redo_required" and state.get("artifacts_stale") is not True:
-            issues.append(f"{name}.artifacts_stale must be true when result_analysis_status is redo_required")
+        if analysis_status == "redo_required":
+            if state.get("artifacts_stale") is not True:
+                issues.append(f"{name}.artifacts_stale must be true when result_analysis_status is redo_required")
+            if phase not in {"model_design", "solve_validate"}:
+                issues.append(f"{name} redo_required must return project.current_phase to model_design or solve_validate")
         if state.get("artifacts_stale") is True:
             any_stale = True
             if summary_status == "current":
@@ -305,6 +319,8 @@ def validate_state_payload(
             if paper and not _artifact_exists(project_root, paper):
                 issues.append(f"{name}.paper_source does not exist")
 
+    if phase in FRAMEWORK_REQUIRED_PHASES and framework_sync != "current" and not any_stale:
+        issues.append(f"paper_framework.sync_status must be current in phase {phase}")
     if any_stale and framework_sync == "current":
         issues.append("paper_framework.sync_status cannot remain current while a subproblem or proposition is stale")
     if phase == "completed":
