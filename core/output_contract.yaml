@@ -20,10 +20,13 @@ writing_policy:
 result_policy:
   primary_solve_role: 在当前题意、数据和模型口径下得到高精度、可行、收敛且可复算的主结果
   primary_quality_gate_required: true
+  failed_quality_evidence_persisted: true
+  downstream_admission_requires_quality_passed: true
   result_analysis_role: 在主结果通过质量门后解释形成机制、稳定范围、适用边界和算法或结构依赖
   result_analysis_method_selection: based_on_problem_model_data_result_and_reviewer_risk
+  result_analysis_outcomes: [passed, failed, redo_required]
   fixed_perturbation_forbidden: true
-  feedback_loop: 深化分析发现主结果不可靠时，标记下游stale并回退模型设计或主求解
+  feedback_loop: 深化分析发现主结果不可靠时，自动写入redo_required、标记下游stale并回退模型设计或主求解
 model_paper_framework:
   path: 模型论文框架.md
   template: templates/model/model_paper_framework.md
@@ -55,6 +58,9 @@ project_sync:
   strict_flag: --strict
   command: python scripts/sync_project.py <project_root> --write --strict --delivery-scope <scope>
   delivery_scopes: [design, results, figures, docx, latex, submission]
+  phase_scope_mapping_role: 未显式传入delivery_scope时只用于报告标签，不激活正式交付全量要求
+  implicit_phase_sync_semantics: status_minimum_only
+  formal_scope_requires_explicit_flag: true
   phase_scope_mapping:
     problem_audit: design
     model_design: design
@@ -69,6 +75,10 @@ project_sync:
     completed: submission
   stage_requirements_authority: core/output_contract.yaml#project_sync.stage_requirements
   stage_requirements_semantics: exact_scope
+  formal_state_requirements:
+    result_quality_status: passed
+    result_analysis_status: passed
+    downstream_artifacts_stale: false
   stage_requirements:
     design: [project_state, model_paper_framework]
     results: [project_state, model_paper_framework, python_code, solution_workbook, result_quality_report, result_analysis_workbook, result_analysis_report]
@@ -95,6 +105,8 @@ project_sync:
   - 进入产物同步前强制执行项目状态Schema/语义校验与模型论文框架校验
   - 发现根目录Python、每问主求解与结果深化工作簿、MATLAB脚本和图表
   - 复用工作簿Schema检查工作表、字段、capability条件、主键、非有限数值和约束判定
+  - 普通阶段同步按小问status检查最低产物；只有显式delivery scope执行正式交付全量门槛
+  - 正式交付同时核对工作簿存在、质量与分析状态为passed以及下游产物非stale
   - 核对MATLAB工作簿引用、声明导出图、正式图存在性和时间新旧关系
   - 计算输入、模型、两类工作簿、MATLAB脚本、图表包和框架哈希
   - 当已验证哈希变化时按证据链传播stale
@@ -193,6 +205,7 @@ optional_metadata:
 rules:
 - 每次正式模型、代码、工作簿、图表、DOCX、LaTeX或提交包交付前必须成功执行project_sync gate并生成sync_report。
 - 同步器只做发现、校验、哈希和stale传播，不替代主求解质量门与结果深化分析。
+- 普通阶段同步不等于正式results交付；只有显式--delivery-scope启用对应stage_requirements。
 - 不再默认创建Python求解/、MATLAB绘图/或问题X结果数据/重复层级。
 - Excel工作簿是默认结果交换格式；CSV仅用于明确兼容需求。
 - 所有工作表必须非空；不生成不适用分析的占位工作表。
