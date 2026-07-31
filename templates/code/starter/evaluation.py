@@ -10,6 +10,7 @@ from hsk_pipeline import (
     ModelContext,
     PipelineConfig,
     PrimarySolveResult,
+    ResultAnalysisResult,
     REQUIRED_CAPABILITIES,
     run_pipeline,
 )
@@ -77,10 +78,10 @@ def evaluate_primary_quality(
     )
 
 
-def analyze_results(primary: PrimarySolveResult) -> dict[str, pd.DataFrame]:
+def analyze_results(primary: PrimarySolveResult) -> ResultAnalysisResult:
     raise NotImplementedError(
         "根据权重主观性、指标冗余和排名稳定性风险，选择替代赋权、指标删减、标准化结构、"
-        "阈值或异质性分析；必须含分析设计和结论稳定性汇总"
+        "阈值或异质性分析，并返回 ResultAnalysisResult；排名结论失效时使用 redo_required"
     )
 
 
@@ -93,7 +94,7 @@ def sync_analysis_framework(
     analysis_path: Path,
     tables: dict[str, pd.DataFrame],
 ) -> None:
-    raise NotImplementedError("回写排名稳定范围、结构依赖和分析工作簿证据")
+    raise NotImplementedError("回写排名稳定范围、结构依赖、回退结论和分析工作簿证据")
 
 
 def main() -> None:
