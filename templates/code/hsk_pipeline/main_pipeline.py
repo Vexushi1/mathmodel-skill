@@ -17,16 +17,11 @@ except ImportError:  # 允许将本文件作为独立脚本运行
 VALID_OBJECTIVES = {"explanation", "inference", "prediction", "evaluation", "optimization", "simulation"}
 VALID_STRUCTURES = {"physical_mechanism", "temporal", "spatial", "network", "scheduling", "game", "stochastic", "static_tabular"}
 REQUIRED_CAPABILITIES = {
-    "has_explicit_constraints",
-    "requires_feasibility_check",
-    "requires_equilibrium_residual",
-    "requires_conservation_residual",
-    "requires_discretization_check",
-    "requires_convergence_diagnostic",
-    "requires_out_of_sample_validation",
-    "requires_uncertainty_quantification",
-    "requires_leakage_check",
-    "requires_calibration_check",
+    "has_explicit_constraints", "requires_feasibility_check",
+    "requires_equilibrium_residual", "requires_conservation_residual",
+    "requires_discretization_check", "requires_convergence_diagnostic",
+    "requires_out_of_sample_validation", "requires_uncertainty_quantification",
+    "requires_leakage_check", "requires_calibration_check",
     "requires_identifiability_check",
 }
 
@@ -217,10 +212,7 @@ def assert_primary_quality(quality_report: pd.DataFrame) -> None:
         raise ValueError(f"主结果质量报告缺少字段: {missing}")
     if quality_report.empty:
         raise ValueError("主结果质量报告不能为空")
-    failed = []
-    for _, row in quality_report.iterrows():
-        if _as_bool(row["是否通过"]) is not True:
-            failed.append(str(row["检查项"]))
+    failed = [str(row["检查项"]) for _, row in quality_report.iterrows() if _as_bool(row["是否通过"]) is not True]
     if failed:
         raise RuntimeError(f"主结果质量门未通过，禁止进入结果深化分析: {failed}")
 
@@ -228,11 +220,16 @@ def assert_primary_quality(quality_report: pd.DataFrame) -> None:
 def build_solution_tables(
     solution: dict[str, Any],
     constraints: pd.DataFrame | None,
+    quality_report: pd.DataFrame,
     audit: AuditLog,
 ) -> dict[str, Any]:
     if "核心指标" not in solution:
         raise KeyError("solution 必须包含“核心指标”")
-    tables: dict[str, Any] = {"核心指标": solution["核心指标"], "数据审计": audit.table()}
+    tables: dict[str, Any] = {
+        "核心指标": solution["核心指标"],
+        "数据审计": audit.table(),
+        "主结果质量门": quality_report,
+    }
     optional_sheets = (
         "推荐方案", "明细结果", "预测明细", "误差指标", "外样本验证", "不确定性区间",
         "综合评分", "排序结果", "模型指标", "预测或分类结果", "泄漏检查", "校准结果",
@@ -283,7 +280,7 @@ def run_primary_pipeline(
     solution_path, _ = workbook_paths(config.project_root, config.problem_name)
     write_workbook(
         solution_path,
-        build_solution_tables(solution, constraints, audit),
+        build_solution_tables(solution, constraints, quality_report, audit),
         workbook_kind="solution",
         objective=config.objective,
         structures=config.structures,
@@ -304,8 +301,10 @@ def run_result_analysis_pipeline(
     """在已通过质量门的主结果上执行题目专属结果深化分析。"""
     assert_primary_quality(primary.quality_report)
     tables = analysis_hook(primary)
-    if not tables:
-        raise ValueError("结果深化分析不能为空；应选择至少一项真正服务结论的分析")
+    required = {"分析设计", "结论稳定性汇总"}
+    missing = sorted(required - set(tables))
+    if missing:
+        raise ValueError(f"结果深化分析缺少必需工作表: {missing}")
     _, analysis_path = workbook_paths(
         primary.context.config.project_root,
         primary.context.config.problem_name,
