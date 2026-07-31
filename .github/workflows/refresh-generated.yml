@@ -9,6 +9,8 @@ on:
       - "refactor/**"
       - "upgrade/**"
     paths-ignore:
+      - SKILL_FILE_INDEX.md
+      - TEMPLATE_INDEX.md
       - HSK_SKILL_FILE_INDEX_V622.md
       - HSK_TEMPLATE_INDEX_V622.md
       - MANIFEST.sha256
@@ -36,12 +38,12 @@ jobs:
         run: python scripts/generate_indexes.py
       - name: Commit generated metadata when changed
         run: |
-          if git diff --quiet -- HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256; then
+          if git diff --quiet -- SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256; then
             echo "Generated metadata is current."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
+          git add SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
           git commit -m "chore: refresh generated repository metadata"
           git push

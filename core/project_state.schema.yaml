@@ -1,75 +1,34 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 6.3.4
+version: 6.4.0
 type: object
 additionalProperties: false
-required:
-- project
-- requirements
-- decisions
-- subproblems
-- variables
-- paper_framework
-- artifacts
-- risks
-- next_gate
+required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
 $defs:
   legacy_task_label:
     type: string
-    enum:
-    - mechanism
-    - optimization
-    - prediction
-    - evaluation
-    - statistics_ml
-    - simulation
-    - spatial
-    - graph_network
-    - scheduling
-    - game_decision
+    enum: [mechanism, optimization, prediction, evaluation, statistics_ml, simulation, spatial, graph_network, scheduling, game_decision]
   objective:
     type: string
-    enum:
-    - explanation
-    - inference
-    - prediction
-    - evaluation
-    - optimization
-    - simulation
+    enum: [explanation, inference, prediction, evaluation, optimization, simulation]
   structure:
     type: string
-    enum:
-    - physical_mechanism
-    - temporal
-    - spatial
-    - network
-    - scheduling
-    - game
-    - stochastic
-    - static_tabular
+    enum: [physical_mechanism, temporal, spatial, network, scheduling, game, stochastic, static_tabular]
   problem_types:
-    description: v6.2兼容派生字段；新项目以classification和顶层capabilities为准
     type: object
     additionalProperties: false
-    required:
-    - primary
-    - secondary
+    required: [primary, secondary]
     properties:
-      primary:
-        $ref: '#/$defs/legacy_task_label'
+      primary: {$ref: '#/$defs/legacy_task_label'}
       secondary:
         type: array
         maxItems: 2
         uniqueItems: true
-        items:
-          $ref: '#/$defs/legacy_task_label'
+        items: {$ref: '#/$defs/legacy_task_label'}
       confidence:
         type: object
-        additionalProperties:
-          type: number
-          minimum: 0
-          maximum: 1
+        additionalProperties: {type: number, minimum: 0, maximum: 1}
   capabilities:
     type: object
     additionalProperties: false
@@ -81,218 +40,104 @@ $defs:
     - requires_discretization_check
     - requires_convergence_diagnostic
     properties:
-      has_explicit_constraints:
-        type: boolean
-      requires_feasibility_check:
-        type: boolean
-      requires_equilibrium_residual:
-        type: boolean
-      requires_conservation_residual:
-        type: boolean
-      requires_discretization_check:
-        type: boolean
-      requires_convergence_diagnostic:
-        type: boolean
-      requires_out_of_sample_validation:
-        type: boolean
-        default: false
-      requires_uncertainty_quantification:
-        type: boolean
-        default: false
-      requires_leakage_check:
-        type: boolean
-        default: false
-      requires_calibration_check:
-        type: boolean
-        default: false
-      requires_identifiability_check:
-        type: boolean
-        default: false
+      has_explicit_constraints: {type: boolean}
+      requires_feasibility_check: {type: boolean}
+      requires_equilibrium_residual: {type: boolean}
+      requires_conservation_residual: {type: boolean}
+      requires_discretization_check: {type: boolean}
+      requires_convergence_diagnostic: {type: boolean}
+      requires_out_of_sample_validation: {type: boolean, default: false}
+      requires_uncertainty_quantification: {type: boolean, default: false}
+      requires_leakage_check: {type: boolean, default: false}
+      requires_calibration_check: {type: boolean, default: false}
+      requires_identifiability_check: {type: boolean, default: false}
   classification:
     type: object
     additionalProperties: false
-    required:
-    - objective
-    - structures
+    required: [objective, structures]
     properties:
-      objective:
-        $ref: '#/$defs/objective'
+      objective: {$ref: '#/$defs/objective'}
       structures:
         type: array
         maxItems: 3
         uniqueItems: true
-        items:
-          $ref: '#/$defs/structure'
+        items: {$ref: '#/$defs/structure'}
       confidence:
         type: object
-        additionalProperties:
-          type: number
-          minimum: 0
-          maximum: 1
+        additionalProperties: {type: number, minimum: 0, maximum: 1}
       capabilities:
-        description: v6.3.0兼容别名；若存在必须与小问顶层capabilities完全一致，v6.4后删除
+        description: 兼容别名；若存在必须与小问顶层capabilities一致
         $ref: '#/$defs/capabilities'
       legacy_task_packs:
-        description: 兼容派生字段；不得作为独立人工事实源
         type: array
         maxItems: 3
         uniqueItems: true
-        items:
-          $ref: '#/$defs/legacy_task_label'
+        items: {$ref: '#/$defs/legacy_task_label'}
   artifact_hashes:
     type: object
     additionalProperties: false
     properties:
-      data:
-        type: string
-        pattern: ^[0-9a-fA-F]{64}$
-      model:
-        type: string
-        pattern: ^[0-9a-fA-F]{64}$
-      solution_workbook:
-        type: string
-        pattern: ^[0-9a-fA-F]{64}$
+      data: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      model: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      solution_workbook: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      result_analysis_workbook: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
       robustness_workbook:
+        description: 旧项目兼容字段
         type: string
-        pattern: ^[0-9a-fA-F]{64}$
-      matlab_script:
-        type: string
-        pattern: ^[0-9a-fA-F]{64}$
-      figure_bundle:
-        type: string
-        pattern: ^[0-9a-fA-F]{64}$
-      framework:
-        type: string
-        pattern: ^[0-9a-fA-F]{64}$
+        pattern: '^[0-9a-fA-F]{64}$'
+      matlab_script: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      figure_bundle: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      framework: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
   artifact_layer:
     type: string
-    enum:
-    - data
-    - model
-    - solution_workbook
-    - robustness_workbook
-    - matlab_script
-    - figure_bundle
-    - framework
+    enum: [data, model, solution_workbook, result_analysis_workbook, robustness_workbook, matlab_script, figure_bundle, framework]
   proposition_entry:
     type: object
     additionalProperties: false
-    required:
-    - id
-    - title
-    - related_question
-    - claim_type
-    - proof_level
-    - status
+    required: [id, title, related_question, claim_type, proof_level, status]
     properties:
-      id:
-        type: string
-        pattern: ^P[1-4]$
-      title:
-        type: string
-        minLength: 1
-      related_question:
-        type: string
-        minLength: 1
+      id: {type: string, pattern: '^P[1-4]$'}
+      title: {type: string, minLength: 1}
+      related_question: {type: string, minLength: 1}
       claim_type:
         type: string
-        enum:
-        - equivalence
-        - existence_or_feasibility
-        - monotonicity_or_threshold
-        - convexity_uniqueness_or_solution_structure
-        - constraint_reduction_or_dimension_reduction
-        - feasibility_preservation
-        - stability_or_error_bound
-        - cited_standard_theorem
-      proof_level:
-        type: string
-        enum:
-        - full
-        - outline
-        - cited
-      status:
-        type: string
-        enum:
-        - candidate
-        - current
-        - stale
-        - removed
-      assumptions_and_domain:
-        type: string
-      conclusion:
-        type: string
-      modeling_effect:
-        type: string
-      failure_boundary:
-        type: string
-      framework_anchor:
-        type: string
+        enum: [equivalence, existence_or_feasibility, monotonicity_or_threshold, convexity_uniqueness_or_solution_structure, constraint_reduction_or_dimension_reduction, feasibility_preservation, stability_or_error_bound, cited_standard_theorem]
+      proof_level: {type: string, enum: [full, outline, cited]}
+      status: {type: string, enum: [candidate, current, stale, removed]}
+      assumptions_and_domain: {type: string}
+      conclusion: {type: string}
+      modeling_effect: {type: string}
+      failure_boundary: {type: string}
+      framework_anchor: {type: string}
 properties:
   project:
     type: object
     additionalProperties: false
-    required:
-    - competition
-    - problem
-    - current_phase
+    required: [competition, problem, current_phase]
     properties:
-      competition:
-        type: string
-        minLength: 1
-      problem:
-        type: string
-        minLength: 1
+      competition: {type: string, minLength: 1}
+      problem: {type: string, minLength: 1}
       current_phase:
         type: string
-        enum:
-        - problem_audit
-        - model_design
-        - solve_validate
-        - figure_evidence
-        - writing_docx
-        - writing_latex
-        - ai_cleanup
-        - latex_compile_quality
-        - review_delivery
-        - completed
+        enum: [problem_audit, model_design, solve_validate, result_analysis, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery, completed]
       problem_types:
-        description: 旧版项目级导航标签，仅兼容读取
         type: array
         uniqueItems: true
-        items:
-          $ref: '#/$defs/legacy_task_label'
+        items: {$ref: '#/$defs/legacy_task_label'}
       objectives:
         type: array
         uniqueItems: true
-        items:
-          $ref: '#/$defs/objective'
-      version:
-        type: string
-      updated_at:
-        type: string
-        format: date-time
+        items: {$ref: '#/$defs/objective'}
+      version: {type: string}
+      updated_at: {type: string, format: date-time}
   requirements:
     type: object
     additionalProperties: false
-    required:
-    - total
-    - completed
-    - pending
+    required: [total, completed, pending]
     properties:
-      total:
-        type: integer
-        minimum: 0
-      completed:
-        type: array
-        uniqueItems: true
-        items:
-          type: string
-      pending:
-        type: array
-        uniqueItems: true
-        items:
-          type: string
+      total: {type: integer, minimum: 0}
+      completed: {type: array, uniqueItems: true, items: {type: string}}
+      pending: {type: array, uniqueItems: true, items: {type: string}}
   data:
     type: object
     additionalProperties: false
@@ -302,340 +147,156 @@ properties:
         items:
           type: object
           additionalProperties: false
-          required:
-          - name
-          - path
-          - role
+          required: [name, path, role]
           properties:
-            name:
-              type: string
-              minLength: 1
-            path:
-              type: string
-              minLength: 1
-            role:
-              type: string
-              minLength: 1
-            sha256:
-              type: string
-              pattern: ^[0-9a-fA-F]{64}$
-            as_of:
-              type: string
+            name: {type: string, minLength: 1}
+            path: {type: string, minLength: 1}
+            role: {type: string, minLength: 1}
+            sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+            as_of: {type: string}
       version_hashes:
         type: object
-        additionalProperties:
-          type: string
-          pattern: ^[0-9a-fA-F]{64}$
-      locked_scope:
-        type: string
+        additionalProperties: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      locked_scope: {type: string}
   decisions:
     type: object
     additionalProperties:
       type: object
       additionalProperties: false
-      required:
-      - selected_model
-      - rejected_models
-      - key_reason
+      required: [selected_model, rejected_models, key_reason]
       properties:
-        selected_model:
-          type: string
-        rejected_models:
-          type: array
-          items:
-            type: string
-        key_reason:
-          type: string
-        solver_candidates:
-          type: array
-          items:
-            type: string
-        validation_plan:
-          type: array
-          items:
-            type: string
+        selected_model: {type: string}
+        rejected_models: {type: array, items: {type: string}}
+        key_reason: {type: string}
+        solver_candidates: {type: array, items: {type: string}}
+        validation_plan: {type: array, items: {type: string}}
+        result_analysis_candidates: {type: array, items: {type: string}}
   subproblems:
     type: object
     minProperties: 1
     additionalProperties:
       type: object
       additionalProperties: false
-      required:
-      - status
-      - selected_model
-      - capabilities
-      - validation_status
-      - framework_section
-      - result_summary_status
+      required: [status, selected_model, capabilities, result_quality_status, result_analysis_status, framework_section, result_summary_status]
       anyOf:
-      - required:
-        - classification
-      - required:
-        - problem_types
+      - required: [classification]
+      - required: [problem_types]
       properties:
         status:
           type: string
-          enum:
-          - pending
-          - audited
-          - designed
-          - solved
-          - validated
-          - written
-          - completed
-        selected_model:
-          type: string
-        classification:
-          $ref: '#/$defs/classification'
-        problem_types:
-          $ref: '#/$defs/problem_types'
-        capabilities:
-          $ref: '#/$defs/capabilities'
-        framework_section:
-          type: string
-          minLength: 1
-        result_summary_status:
-          type: string
-          enum:
-          - pending
-          - current
-          - stale
-        result_summary_anchor:
-          type: string
+          enum: [pending, audited, designed, solved, analyzed, validated, written, completed]
+        selected_model: {type: string}
+        classification: {$ref: '#/$defs/classification'}
+        problem_types: {$ref: '#/$defs/problem_types'}
+        capabilities: {$ref: '#/$defs/capabilities'}
+        framework_section: {type: string, minLength: 1}
+        result_summary_status: {type: string, enum: [pending, current, stale]}
+        result_summary_anchor: {type: string}
         proposition_refs:
           type: array
           maxItems: 4
           uniqueItems: true
-          items:
-            type: string
-            pattern: ^P[1-4]$
-        artifact_hashes:
-          $ref: '#/$defs/artifact_hashes'
-        validated_artifact_hashes:
-          $ref: '#/$defs/artifact_hashes'
+          items: {type: string, pattern: '^P[1-4]$'}
+        artifact_hashes: {$ref: '#/$defs/artifact_hashes'}
+        validated_artifact_hashes: {$ref: '#/$defs/artifact_hashes'}
         stale_layers:
           type: array
           uniqueItems: true
-          items:
-            $ref: '#/$defs/artifact_layer'
-        data_hash:
-          type: string
-          pattern: ^[0-9a-fA-F]{64}$
-        validated_data_hash:
-          type: string
-          pattern: ^[0-9a-fA-F]{64}$
-        model_hash:
-          type: string
-          pattern: ^[0-9a-fA-F]{64}$
-        validated_model_hash:
-          type: string
-          pattern: ^[0-9a-fA-F]{64}$
-        artifacts_stale:
-          type: boolean
-          default: false
-        code:
-          type: string
-        solution_workbook:
-          type: string
-        robustness_workbook:
-          type: string
-        matlab_script:
-          type: string
-        paper_source:
-          type: string
-        solver_status:
-          type: string
-        optimality_claim:
-          type: string
-          enum:
-          - none
-          - local
-          - heuristic
-          - bounded
-          - proven_optimal
-          - global
-          default: none
+          items: {$ref: '#/$defs/artifact_layer'}
+        data_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+        validated_data_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+        model_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+        validated_model_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+        artifacts_stale: {type: boolean, default: false}
+        code: {type: string}
+        solution_workbook: {type: string}
+        result_analysis_workbook: {type: string}
+        robustness_workbook: {type: string, description: 旧项目兼容字段}
+        result_quality_report: {type: string}
+        result_analysis_report: {type: string}
+        matlab_script: {type: string}
+        paper_source: {type: string}
+        solver_status: {type: string}
+        optimality_claim: {type: string, enum: [none, local, heuristic, bounded, proven_optimal, global], default: none}
         random_seed:
-          oneOf:
-          - type: integer
-          - type: 'null'
-        tolerance:
-          type: number
-          minimum: 0
+          oneOf: [{type: integer}, {type: 'null'}]
+        tolerance: {type: number, minimum: 0}
         optimality_gap:
-          oneOf:
-          - type: number
-            minimum: 0
-          - type: 'null'
+          oneOf: [{type: number, minimum: 0}, {type: 'null'}]
         max_constraint_violation:
-          oneOf:
-          - type: number
-            minimum: 0
-          - type: 'null'
+          oneOf: [{type: number, minimum: 0}, {type: 'null'}]
+        result_quality_status: {type: string, enum: [pending, passed, failed]}
+        result_analysis_status: {type: string, enum: [pending, passed, failed, redo_required]}
         validation_status:
+          description: 旧项目兼容汇总字段
           type: string
-          enum:
-          - pending
-          - passed
-          - failed
-          - not_applicable
+          enum: [pending, passed, failed, not_applicable]
+        analysis_methods:
+          type: array
+          uniqueItems: true
+          items: {type: string}
         evidence:
           type: array
           uniqueItems: true
-          items:
-            type: string
+          items: {type: string}
   variables:
     type: object
     additionalProperties: false
-    required:
-    - locked
-    - source
+    required: [locked, source]
     properties:
-      locked:
-        type: array
-        uniqueItems: true
-        items:
-          type: string
-      source:
-        type: object
-        additionalProperties:
-          type: string
+      locked: {type: array, uniqueItems: true, items: {type: string}}
+      source: {type: object, additionalProperties: {type: string}}
   paper_framework:
     type: object
     additionalProperties: false
-    required:
-    - path
-    - version
-    - sync_status
-    - last_sync_scope
-    - proposition_limit
-    - proposition_count
-    - proposition_status
-    - propositions
+    required: [path, version, sync_status, last_sync_scope, proposition_limit, proposition_count, proposition_status, propositions]
     properties:
-      path:
-        type: string
-        const: 模型论文框架.md
-      version:
-        type: string
-        minLength: 1
-      mode:
-        type: string
-        enum:
-        - compact
-        - full
-        default: compact
-      sync_status:
-        type: string
-        enum:
-        - current
-        - stale
-      last_synced_at:
-        type: string
-        format: date-time
-      last_sync_scope:
-        type: string
-        minLength: 1
-      sha256:
-        type: string
-        pattern: ^[0-9a-fA-F]{64}$
-      proposition_limit:
-        type: integer
-        const: 4
-      proposition_count:
-        type: integer
-        minimum: 0
-        maximum: 4
-      proposition_status:
-        type: string
-        enum:
-        - not_assessed
-        - planned
-        - current
-        - stale
+      path: {type: string, const: 模型论文框架.md}
+      version: {type: string, minLength: 1}
+      mode: {type: string, enum: [compact, full], default: compact}
+      sync_status: {type: string, enum: [current, stale]}
+      last_synced_at: {type: string, format: date-time}
+      last_sync_scope: {type: string, minLength: 1}
+      sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      proposition_limit: {type: integer, const: 4}
+      proposition_count: {type: integer, minimum: 0, maximum: 4}
+      proposition_status: {type: string, enum: [not_assessed, planned, current, stale]}
       propositions:
         type: array
         maxItems: 4
-        items:
-          $ref: '#/$defs/proposition_entry'
+        items: {$ref: '#/$defs/proposition_entry'}
   execution:
     type: object
     additionalProperties: false
     properties:
-      python_version:
-        type: string
-      matlab_version:
-        type: string
-      dependencies:
-        type: object
-        additionalProperties:
-          type: string
-      last_run:
-        type: string
-        format: date-time
-      command:
-        type: string
-      platform:
-        type: string
-      last_sync_report:
-        type: string
+      python_version: {type: string}
+      matlab_version: {type: string}
+      dependencies: {type: object, additionalProperties: {type: string}}
+      last_run: {type: string, format: date-time}
+      command: {type: string}
+      platform: {type: string}
+      last_sync_report: {type: string}
   artifacts:
     type: object
     additionalProperties: false
-    required:
-    - code
-    - results
-    - figures
-    - papers
+    required: [code, results, figures, papers]
     properties:
-      code:
-        type: array
-        items:
-          type: string
-      results:
-        type: array
-        items:
-          type: string
-      figures:
-        type: array
-        items:
-          type: string
-      papers:
-        type: array
-        items:
-          type: string
-      sync_report:
-        type: string
-      approved_figures:
-        type: array
-        uniqueItems: true
-        items:
-          type: string
-      docx:
-        type: array
-        uniqueItems: true
-        items:
-          type: string
-      latex_source:
-        type: string
-      compiled_pdf:
-        type: string
-      compile_report:
-        type: string
-      submission_package:
-        type: string
-  risks:
-    type: array
-    items:
-      type: string
+      code: {type: array, items: {type: string}}
+      results: {type: array, items: {type: string}}
+      figures: {type: array, items: {type: string}}
+      papers: {type: array, items: {type: string}}
+      sync_report: {type: string}
+      approved_figures: {type: array, uniqueItems: true, items: {type: string}}
+      docx: {type: array, uniqueItems: true, items: {type: string}}
+      latex_source: {type: string}
+      compiled_pdf: {type: string}
+      compile_report: {type: string}
+      submission_package: {type: string}
+  risks: {type: array, items: {type: string}}
   next_gate:
     type: object
     additionalProperties: false
-    required:
-    - module
-    - condition
+    required: [module, condition]
     properties:
-      module:
-        type: string
-      condition:
-        type: string
+      module: {type: string}
+      condition: {type: string}

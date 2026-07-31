@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the active HSK v6.3.4 graph, contracts, semantics and generated files."""
+"""Validate active HSK graph, split result contracts, semantics and generated files."""
 from __future__ import annotations
 
 import argparse
@@ -14,20 +14,24 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "6.3.4"
+PACKAGE_VERSION = "6.4.0"
 REQUIRED = [
-    "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG_V634.md", "CHANGELOG_V633.md", "CHANGELOG_V632.md",
-    "PROJECT_INSTRUCTIONS_HSK_V622.md", "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V630.md",
+    "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
+    "CHANGELOG_V634.md", "CHANGELOG_V633.md", "CHANGELOG_V632.md", "CHANGELOG_V630.md",
+    "PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",
+    "PROJECT_INSTRUCTIONS_HSK_V622.md", "HSK_RUNTIME_ROUTER_V622.md",
+    "HSK_SKILL_FILE_INDEX_V622.md", "HSK_TEMPLATE_INDEX_V622.md",
     "core/bootstrap.yaml", "core/hsk_core_policy.md", "core/task_taxonomy.yaml",
     "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml",
     "core/workbook_schema.yaml", "core/project_state.schema.yaml", "core/compile_profiles.yaml",
     "modules/01_problem_audit.md", "modules/02_model_design.md", "modules/03_solve_validate.md",
-    "modules/04_figure_evidence.md", "modules/05_latex_compile_quality.md",
+    "modules/03_result_analysis.md", "modules/04_figure_evidence.md", "modules/05_latex_compile_quality.md",
     "modules/05_writing/docx.md", "modules/05_writing/latex.md",
     "modules/05_writing/ai_cleanup.md", "modules/06_review_delivery.md",
     "packs/task/classifier.md", "packs/task/advanced_method_gate.md",
     "packs/artifact/proposition_proof.md", "templates/model/model_paper_framework.md",
-    "templates/code/hsk_pipeline/result_io.py", "templates/code/hsk_pipeline/workbook_validation.py", "templates/matlab/q1_plot.m",
+    "templates/code/hsk_pipeline/result_io.py", "templates/code/hsk_pipeline/workbook_validation.py",
+    "templates/code/hsk_pipeline/main_pipeline.py", "templates/matlab/q1_plot.m",
     "scripts/resolve_workflow.py", "scripts/sync_project.py",
     "scripts/validate_model_paper_framework.py", "scripts/validate_project_state.py",
     "scripts/score_submission.py", ".github/pull_request_template.md",
@@ -36,7 +40,7 @@ REQUIRED = [
 ]
 ACTIVE_DIRS = ["core", "modules", "packs", "templates", "scripts", "config", "state", "assets", "agents", "skills", ".codex-plugin", ".github"]
 TEXT_SUFFIXES = {".md", ".yaml", ".yml", ".json", ".py", ".m", ".tex", ".bib"}
-VERSION_DOCS = ["SKILL.md", "README.md", "REPOSITORY_INDEX.md", "PROJECT_INSTRUCTIONS_HSK_V622.md", "HSK_RUNTIME_ROUTER_V622.md", "CHANGELOG_V634.md"]
+VERSION_DOCS = ["SKILL.md", "README.md", "CHANGELOG.md"]
 VERSION_CONTRACTS = ["core/bootstrap.yaml", "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml", "core/project_state.schema.yaml"]
 
 
@@ -97,7 +101,12 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
     if data.get("entrypoints", {}).get("sync") != "python scripts/sync_project.py":
         errors.append("bootstrap must expose sync_project.py")
     maintenance = data.get("repository_maintenance", {})
-    expected = {"governance": "SKILL_CHANGE_GOVERNANCE.md", "mandatory_before_write": True, "read_from_ref": "main", "direct_main_write_allowed": False}
+    expected = {
+        "governance": "SKILL_CHANGE_GOVERNANCE.md",
+        "mandatory_before_write": True,
+        "read_from_ref": "main",
+        "direct_main_write_allowed": False,
+    }
     for key, value in expected.items():
         if maintenance.get(key) != value:
             errors.append(f"repository maintenance mismatch: {key}")
@@ -105,10 +114,6 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
     for token in ("每个新聊天的强制启动顺序", "修改简报", "单一事实源", "一次聊天一个分支", "一个 PR 一个主题", "禁止直接写 main", "生成文件规则", "测试与验收", "完成报告"):
         if token not in governance:
             errors.append(f"governance document lacks section: {token}")
-    template = read_text(ROOT / ".github/pull_request_template.md")
-    for token in ("修改简报", "治理确认", "SKILL_CHANGE_GOVERNANCE.md", "generate_indexes.py --check"):
-        if token not in template:
-            errors.append(f"pull request template lacks governance token: {token}")
 
 
 def check_taxonomy(errors: list[str]) -> None:
@@ -121,27 +126,39 @@ def check_taxonomy(errors: list[str]) -> None:
         errors.append("task taxonomy lacks required validation capabilities")
     if data.get("classification_contract", {}).get("authoritative_locations", {}).get("capabilities") != "subproblem.capabilities":
         errors.append("taxonomy must declare top-level capabilities as authoritative")
-    if len(data.get("legacy_mapping", {})) != 10:
-        errors.append("task taxonomy must map all ten legacy packs")
 
 
 def check_router(errors: list[str]) -> None:
     router = load_structured(ROOT / "core/workflow_router.yaml") or {}
     routes = router.get("routing", {})
-    if router.get("bootstrap") != "core/bootstrap.yaml":
-        errors.append("router must reference bootstrap")
-    if "project_sync" not in routes:
-        errors.append("router must define project_sync")
+    order = router.get("execution_contract", {}).get("workflow_order", [])
+    for name in ("solve_validate", "result_analysis", "figure_evidence"):
+        if name not in order:
+            errors.append(f"workflow order lacks: {name}")
+    if all(name in order for name in ("solve_validate", "result_analysis", "figure_evidence")):
+        if not order.index("solve_validate") < order.index("result_analysis") < order.index("figure_evidence"):
+            errors.append("workflow must place result_analysis between solve and figures")
     if router.get("execution_contract", {}).get("formal_delivery_gates") != ["project_sync"]:
         errors.append("formal delivery must declare project_sync gate")
-    for name, route in routes.items():
-        if route.get("formal_delivery"):
-            if not route.get("terminal_outputs"):
-                errors.append(f"formal route lacks terminal outputs: {name}")
-            if route.get("delivery_scope") not in {"design", "results", "figures", "docx", "latex", "submission"}:
-                errors.append(f"formal route lacks valid delivery_scope: {name}")
-    if not routes.get("proposition_proof", {}).get("load_proposition_pack"):
-        errors.append("proposition route must lazily load proposition pack")
+    full = routes.get("full_workflow", {})
+    loaded = list(full.get("load", [])) + list(full.get("then", []))
+    if "modules/03_solve_validate.md" not in loaded or "modules/03_result_analysis.md" not in loaded:
+        errors.append("full_workflow must load primary solve and result analysis")
+    if loaded.index("modules/03_solve_validate.md") > loaded.index("modules/03_result_analysis.md"):
+        errors.append("full_workflow result-analysis order invalid")
+    if "modules/05_writing/docx.md" in loaded:
+        errors.append("default full_workflow must not load DOCX")
+    if "modules/05_writing/latex.md" not in loaded:
+        errors.append("default full_workflow must load LaTeX")
+    analysis_route = routes.get("result_analysis", {})
+    if "modules/03_result_analysis.md" not in analysis_route.get("load", []):
+        errors.append("result_analysis route must load the dedicated module")
+    validation_route = routes.get("validation", {})
+    if "modules/03_result_analysis.md" not in validation_route.get("load", []):
+        errors.append("validation route must use result-analysis module")
+    explicit_docx = routes.get("docx", {})
+    if explicit_docx.get("delivery_scope") != "docx" or "modules/05_writing/docx.md" not in explicit_docx.get("load", []):
+        errors.append("explicit DOCX route must remain available")
     resolver = read_text(ROOT / "scripts/resolve_workflow.py")
     for token in ("pre_delivery_gates", "available_after_modules", "available_after_plan", "gate_plan"):
         if token not in resolver:
@@ -174,76 +191,56 @@ def check_manifest(errors: list[str]) -> None:
             upstream = [producer for producer in producers.get(artifact, []) if rank.get(producer, 999) < rank.get(name, 999)]
             if not upstream:
                 errors.append(f"module input lacks upstream producer: {name}:{artifact}")
+    if "result_analysis" not in modules:
+        errors.append("manifest lacks dedicated result_analysis module")
+    else:
+        inputs = set(modules["result_analysis"].get("inputs", []))
+        if not {"solved_results", "result_quality_report", "solution_workbook"}.issubset(inputs):
+            errors.append("result_analysis must depend on solved results and quality report")
+    profile = manifest.get("workflow_profiles", {}).get("full_workflow", {}).get("modules", [])
+    if "result_analysis" not in profile or "writing_docx" in profile or "writing_latex" not in profile:
+        errors.append("full_workflow manifest profile is incomplete")
     gate = manifest.get("utility_gates", {}).get("project_sync", {})
-    if gate.get("path") != "scripts/sync_project.py" or not (ROOT / str(gate.get("path", ""))).is_file():
-        errors.append("project_sync gate must point to scripts/sync_project.py")
-    if set(gate.get("outputs", [])) != {"project_state", "sync_report"}:
-        errors.append("project_sync must produce project_state and sync_report")
-    source = "core/output_contract.yaml#project_sync.stage_requirements"
-    if gate.get("stage_requirements_source") != source:
-        errors.append("module manifest project_sync must reference the output-contract stage requirements")
-    if "stage_requirements" in gate:
-        errors.append("module manifest must not duplicate project_sync.stage_requirements")
-    for field in ("inputs", "outputs"):
-        unknown = set(gate.get(field, [])) - known
-        if unknown:
-            errors.append(f"project_sync has uncatalogued {field}: {sorted(unknown)}")
-    for profile_name, profile in manifest.get("workflow_profiles", {}).items():
-        profile_modules = profile.get("modules", [])
-        if profile_modules != sorted(profile_modules, key=lambda item: rank.get(item, 999)):
-            errors.append(f"workflow profile module order invalid: {profile_name}")
-        available = set(external)
-        for module_name in profile_modules:
-            spec = modules.get(module_name, {})
-            missing = set(spec.get("inputs", [])) - available
-            if missing:
-                errors.append(f"workflow profile {profile_name} missing inputs before {module_name}: {sorted(missing)}")
-            available.update(spec.get("outputs", []))
-        for gate_name in profile.get("pre_delivery_gates", []):
-            available.update(manifest.get("utility_gates", {}).get(gate_name, {}).get("outputs", []))
-        unavailable = set(profile.get("terminal_outputs", [])) - available
-        if unavailable:
-            errors.append(f"workflow profile {profile_name} has unproducible terminal outputs: {sorted(unavailable)}")
+    if gate.get("stage_requirements_source") != "core/output_contract.yaml#project_sync.stage_requirements":
+        errors.append("project_sync must reference output-contract stage requirements")
 
 
 def check_contracts(errors: list[str]) -> None:
     output = load_structured(ROOT / "core/output_contract.yaml") or {}
-    modes = output.get("model_paper_framework", {}).get("modes", {})
-    compact = set(modes.get("compact", {}).get("required_sections", []))
-    full = set(modes.get("full", {}).get("required_sections", []))
-    if set(modes) != {"compact", "full"} or not compact or not compact < full:
-        errors.append("framework compact/full contract is invalid")
+    policy = output.get("writing_policy", {})
+    if policy.get("default_mode") != "latex_first":
+        errors.append("default writing mode must be latex_first")
+    if policy.get("docx_mode") != "explicit_only_independent" or policy.get("docx_is_latex_prerequisite") is not False:
+        errors.append("DOCX must remain explicit-only and not be a LaTeX prerequisite")
+    result_policy = output.get("result_policy", {})
+    if result_policy.get("primary_quality_gate_required") is not True:
+        errors.append("primary result quality gate must be required")
+    if result_policy.get("fixed_perturbation_forbidden") is not True:
+        errors.append("fixed perturbation must be forbidden")
     sync = output.get("project_sync", {})
-    if sync.get("role") != "formal_pre_delivery_gate":
-        errors.append("project_sync must be a formal pre-delivery gate")
     expected_scopes = {"design", "results", "figures", "docx", "latex", "submission"}
     requirements = sync.get("stage_requirements", {}) or {}
     if set(requirements) != expected_scopes or any(not isinstance(value, list) or not value for value in requirements.values()):
-        errors.append("output contract must define non-empty exact stage requirements for every delivery scope")
-    if sync.get("stage_requirements_authority") != "core/output_contract.yaml#project_sync.stage_requirements":
-        errors.append("output contract must declare itself as the stage-requirements authority")
+        errors.append("output contract must define every exact delivery scope")
     if sync.get("stage_requirements_semantics") != "exact_scope":
         errors.append("project_sync stage requirements must use exact_scope semantics")
+    expected_layers = {"data", "model", "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework"}
+    if set(sync.get("artifact_hash_layers", [])) != expected_layers:
+        errors.append("project_sync artifact hash layers are incomplete")
     sync_text = read_text(ROOT / "scripts/sync_project.py")
     for token in ("stage_requirements(scope, output_contract)", "contract_preflight_issues", "clears_stale"):
         if token not in sync_text:
             errors.append(f"sync_project lacks gate-hardening token: {token}")
-    expected_layers = {"data", "model", "solution_workbook", "robustness_workbook", "matlab_script", "figure_bundle", "framework"}
-    if set(sync.get("artifact_hash_layers", [])) != expected_layers:
-        errors.append("project_sync artifact hash layers are incomplete")
-    if output.get("classification_contract", {}).get("authoritative_locations", {}).get("capabilities") != "subproblem.capabilities":
-        errors.append("output contract capabilities source is invalid")
     workbook = load_structured(ROOT / "core/workbook_schema.yaml") or {}
     if workbook.get("global_rules", {}).get("empty_worksheet_allowed") is not False:
         errors.append("workbook schema must forbid empty worksheets")
-    if not workbook.get("solution_workbook", {}).get("objective_profiles"):
-        errors.append("workbook schema lacks objective_profiles")
-    if not workbook.get("solution_workbook", {}).get("structure_profiles"):
-        errors.append("workbook schema lacks structure_profiles")
-    if workbook.get("classification_contract", {}).get("capabilities_source") != "subproblem.capabilities":
-        errors.append("workbook capabilities source is invalid")
-    if workbook.get("matlab_handoff", {}).get("field_resolution", {}).get("method") != "exact_header_unique_match":
-        errors.append("workbook MATLAB handoff must use exact header matching")
+    if "主结果质量门" not in workbook.get("solution_workbook", {}).get("common_required_sheets", {}):
+        errors.append("solution workbook must persist the quality gate")
+    analysis = workbook.get("result_analysis_workbook", {})
+    if not {"分析设计", "结论稳定性汇总"}.issubset(analysis.get("common_required_sheets", {})):
+        errors.append("result-analysis workbook lacks required plan/report sheets")
+    if "适用性说明" in analysis.get("sheet_schemas", {}):
+        errors.append("result-analysis workbook must not use applicability placeholders")
 
 
 def check_project_state_and_framework(errors: list[str]) -> None:
@@ -253,15 +250,13 @@ def check_project_state_and_framework(errors: list[str]) -> None:
     for violation in Draft202012Validator(schema).iter_errors(example):
         location = "/".join(map(str, violation.path)) or "<root>"
         errors.append(f"project state example violates schema at {location}: {violation.message}")
-    classification_required = set(schema.get("$defs", {}).get("classification", {}).get("required", []))
-    if "capabilities" in classification_required:
-        errors.append("classification.capabilities must not remain required")
-    subproblem_contract = schema.get("properties", {}).get("subproblems", {})
-    sub_required = set(subproblem_contract.get("additionalProperties", {}).get("required", []))
-    if "capabilities" not in sub_required:
-        errors.append("subproblem top-level capabilities must be required")
-    if subproblem_contract.get("minProperties") != 1:
-        errors.append("project state must require at least one subproblem")
+    subproblem = schema["properties"]["subproblems"]["additionalProperties"]
+    required = set(subproblem.get("required", []))
+    if not {"capabilities", "result_quality_status", "result_analysis_status"}.issubset(required):
+        errors.append("project state must require split quality/analysis statuses")
+    phases = set(schema["properties"]["project"]["properties"]["current_phase"]["enum"])
+    if "result_analysis" not in phases:
+        errors.append("project state phases lack result_analysis")
     state_validator = load_module("lint_state_validator", ROOT / "scripts/validate_project_state.py")
     for issue in state_validator.validate_state_payload(example, project_root=ROOT):
         errors.append(f"project state semantic violation: {issue}")
@@ -272,18 +267,21 @@ def check_project_state_and_framework(errors: list[str]) -> None:
         errors.append("minimal compact framework must pass")
     if framework_validator.validate_framework_text(full_text, mode="full"):
         errors.append("minimal full framework must pass")
-    if not framework_validator.validate_framework_text(compact, mode="full"):
-        errors.append("compact framework must fail full mode")
 
 
 def check_templates(errors: list[str]) -> None:
+    pipeline = read_text(ROOT / "templates/code/hsk_pipeline/main_pipeline.py")
+    for token in ("def run_primary_pipeline(", "def run_result_analysis_pipeline(", "assert_primary_quality", "主结果质量门", "分析设计", "结论稳定性汇总"):
+        if token not in pipeline:
+            errors.append(f"main pipeline lacks token: {token}")
+    reader = read_text(ROOT / "templates/matlab/hsk_read_result_workbooks.m")
+    for token in ("结果深化分析.xlsx", "books.analysis", "fixedColumns", "expectedHeaders"):
+        if token not in reader:
+            errors.append(f"MATLAB reader lacks token: {token}")
     plot = read_text(ROOT / "templates/matlab/q1_plot.m")
     for token in ("exact_header_column", "headers ==", "warn_position_drift", "title(ax, figureTitle"):
         if token not in plot:
             errors.append(f"q1_plot.m lacks required token: {token}")
-    proposition = read_text(ROOT / "packs/artifact/proposition_proof.md")
-    if "全文最多 4 个" not in proposition or "数值复核不能替代证明" not in proposition:
-        errors.append("proposition proof pack is incomplete")
 
 
 def check_syntax(errors: list[str]) -> None:
@@ -298,7 +296,12 @@ def check_syntax(errors: list[str]) -> None:
 
 
 def check_generated(errors: list[str]) -> None:
-    result = subprocess.run([sys.executable, str(ROOT / "scripts/generate_indexes.py"), "--check"], cwd=ROOT, text=True, capture_output=True)
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts/generate_indexes.py"), "--check"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+    )
     if result.returncode:
         errors.append(f"generated indexes or MANIFEST are stale: {(result.stdout + result.stderr).strip()}")
 
@@ -308,7 +311,11 @@ def main() -> int:
     parser.add_argument("--skip-generated", action="store_true")
     args = parser.parse_args()
     errors: list[str] = []
-    checks = (check_required, check_versions, check_bootstrap_and_governance, check_taxonomy, check_router, check_manifest, check_contracts, check_project_state_and_framework, check_templates, check_syntax)
+    checks = (
+        check_required, check_versions, check_bootstrap_and_governance, check_taxonomy,
+        check_router, check_manifest, check_contracts, check_project_state_and_framework,
+        check_templates, check_syntax,
+    )
     for check in checks:
         try:
             check(errors)

@@ -42,6 +42,7 @@ def solution_book(path: Path, specialized="推荐方案"):
     book = Workbook()
     append_sheet(book, "核心指标", ["指标", "数值"], ["目标值", 1.0])
     append_sheet(book, "数据审计", ["等级", "检查项", "信息", "处理方式"], ["Info", "字段", "通过", "无"])
+    append_sheet(book, "主结果质量门", ["检查项", "是否通过", "证据"], ["收敛", True, "通过"])
     if specialized == "推荐方案":
         append_sheet(book, "推荐方案", ["方案"], ["A"])
     elif specialized == "机理分析":
@@ -51,9 +52,21 @@ def solution_book(path: Path, specialized="推荐方案"):
     book.save(path)
 
 
-def robust_book(path: Path):
+def analysis_book(path: Path):
     book = Workbook()
-    append_sheet(book, "参数敏感性", ["参数", "基准值", "扰动值", "目标指标"], ["a", 1.0, 1.1, 2.0])
+    append_sheet(
+        book,
+        "分析设计",
+        ["风险来源", "分析问题", "方法", "指标", "通过标准"],
+        ["算法", "一致性", "多算法", "差异", "小于1%"],
+    )
+    append_sheet(book, "算法一致性", ["算法", "重复编号", "目标值", "是否可行"], ["A", 1, 1.0, True])
+    append_sheet(
+        book,
+        "结论稳定性汇总",
+        ["核心结论", "分析方法", "稳定范围", "是否保持"],
+        ["结论", "多算法", "三种算法", True],
+    )
     book.save(path)
 
 
@@ -63,6 +76,8 @@ def caps():
 
 def project_state(root: Path, *, status="designed", phase="model_design", objective="optimization"):
     (root / "state").mkdir(parents=True, exist_ok=True)
+    solved = status in {"solved", "analyzed", "validated", "written", "completed"}
+    analyzed = status in {"analyzed", "validated", "written", "completed"}
     payload = {
         "project": {"competition": "测试", "problem": "A", "current_phase": phase},
         "requirements": {"total": 0, "completed": [], "pending": []},
@@ -73,13 +88,19 @@ def project_state(root: Path, *, status="designed", phase="model_design", object
                 "selected_model": "测试模型",
                 "classification": {"objective": objective, "structures": []},
                 "capabilities": caps(),
-                "validation_status": "pending",
+                "result_quality_status": "passed" if solved else "pending",
+                "result_analysis_status": "passed" if analyzed else "pending",
+                "validation_status": "passed" if status in {"validated", "written", "completed"} else "pending",
                 "framework_section": "### Q1",
-                "result_summary_status": "current" if status in {"solved", "validated"} else "pending",
-                "result_summary_anchor": "### Q1" if status in {"solved", "validated"} else "",
+                "result_summary_status": "current" if solved else "pending",
+                "result_summary_anchor": "### Q1" if solved else "",
                 "artifacts_stale": False,
                 "stale_layers": [],
-                "evidence": [],
+                "analysis_methods": ["算法一致性"] if analyzed else [],
+                "evidence": ["evidence"] if status in {"validated", "written", "completed"} else [],
+                "artifact_hashes": {},
+                "validated_artifact_hashes": {},
+                "optimality_claim": "none",
             }
         },
         "variables": {"locked": [], "source": {}},
@@ -98,16 +119,30 @@ def project_state(root: Path, *, status="designed", phase="model_design", object
     return path
 
 
+def framework_text() -> str:
+    return (
+        "# 模型论文框架\n只保留当前有效版本\n"
+        "## 当前有效口径\n## 各问模型与结果\n### Q1\n"
+        "## 图表证据链\n## 待办与缺口\n"
+    )
+
+
 class TestV632DeliveryGateClosure(unittest.TestCase):
-    def test_objective_profiles_require_specialized_evidence(self):
-        base = {
+    def base_tables(self):
+        return {
             "核心指标": pd.DataFrame({"指标": ["x"], "数值": [1.0]}),
             "数据审计": pd.DataFrame({"等级": ["Info"], "检查项": ["字段"], "信息": ["通过"], "处理方式": ["无"]}),
+            "主结果质量门": pd.DataFrame({"检查项": ["收敛"], "是否通过": [True], "证据": ["通过"]}),
         }
+
+    def test_objective_profiles_require_specialized_evidence(self):
         for objective in ("explanation", "optimization", "simulation"):
             with self.subTest(objective=objective):
                 with self.assertRaisesRegex(ValueError, objective):
-                    VALIDATOR.validate_tables(base, "solution", schema=SCHEMA, objective=objective, capabilities=caps())
+                    VALIDATOR.validate_tables(
+                        self.base_tables(), "solution", schema=SCHEMA,
+                        objective=objective, capabilities=caps(),
+                    )
 
     def test_design_scope_requires_framework(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -116,14 +151,15 @@ class TestV632DeliveryGateClosure(unittest.TestCase):
             report = SYNC.synchronize(root, write=False, delivery_scope="design")
             self.assertTrue(any("模型论文框架" in issue for issue in report["issues"]))
 
-    def test_latex_scope_requires_concrete_artifacts(self):
+    def test_latex_scope_requires_concrete_artifacts_without_results(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             project_state(root)
-            (root / "模型论文框架.md").write_text("### Q1\n", encoding="utf-8")
+            (root / "模型论文框架.md").write_text(framework_text(), encoding="utf-8")
             report = SYNC.synchronize(root, write=False, delivery_scope="latex")
             joined = "\n".join(report["issues"])
-            self.assertNotIn("draft_docx", joined)
+            self.assertNotIn("求解结果工作簿", joined)
+            self.assertNotIn("结果深化分析工作簿", joined)
             self.assertIn("final_latex/main.tex", joined)
             self.assertIn("final_latex/main.pdf", joined)
             self.assertIn("compile_report", joined)
@@ -160,11 +196,11 @@ class TestV632DeliveryGateClosure(unittest.TestCase):
             result = root / "结果数据表" / "问题一"
             (result / "图表").mkdir(parents=True)
             solution_book(result / "问题一求解结果.xlsx")
-            robust_book(result / "问题一敏感性与鲁棒性结果.xlsx")
+            analysis_book(result / "问题一结果深化分析.xlsx")
             (result / "q1_plot.m").write_text('title(gca, "结果");', encoding="utf-8")
             (result / "图表/a.png").write_bytes(b"x")
-            project_state(root, status="solved", phase="figure_evidence")
-            (root / "模型论文框架.md").write_text("### Q1\n", encoding="utf-8")
+            project_state(root, status="analyzed", phase="figure_evidence")
+            (root / "模型论文框架.md").write_text(framework_text(), encoding="utf-8")
             report = SYNC.synchronize(root, write=False, delivery_scope="figures")
             self.assertTrue(any("未发现标准工作簿引用" in issue for issue in report["issues"]))
 

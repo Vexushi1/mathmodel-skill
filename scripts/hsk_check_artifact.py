@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check HSK project structure, framework, three-axis workbooks and ownership."""
+"""Check HSK project structure, split workbooks, framework and software ownership."""
 from __future__ import annotations
 
 import argparse
@@ -35,7 +35,9 @@ def _load_module(name: str, path: Path):
     return module
 
 
-WORKBOOK_VALIDATOR = _load_module("hsk_workbook_validator", ROOT / "templates/code/hsk_pipeline/workbook_validation.py")
+WORKBOOK_VALIDATOR = _load_module(
+    "hsk_workbook_validator", ROOT / "templates/code/hsk_pipeline/workbook_validation.py"
+)
 WORKBOOK_SCHEMA = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_text(encoding="utf-8")) or {}
 STATE_VALIDATOR = _load_module("hsk_state_validator", ROOT / "scripts/validate_project_state.py")
 FRAMEWORK_VALIDATOR = _load_module("hsk_framework_validator", ROOT / "scripts/validate_model_paper_framework.py")
@@ -53,14 +55,17 @@ def _plot_filename(question_name: str) -> str | None:
 
 
 def _question_directories(base: Path) -> list[Path]:
+    if not base.is_dir():
+        return []
     return [path for path in base.iterdir() if path.is_dir() and re.fullmatch(rf"问题[{CN_NUM}]+", path.name)]
 
 
 def check_code(root: Path) -> list[str]:
     issues: list[str] = []
-    python_files = [path for path in root.glob("*.py") if any(key in path.stem for key in ("求解", "敏感性", "鲁棒性", "检验"))]
+    terms = ("求解", "分析", "敏感性", "鲁棒性", "检验", "验证", "仿真", "预测", "优化")
+    python_files = [path for path in root.glob("*.py") if any(key in path.stem for key in terms)]
     if not python_files:
-        issues.append("missing: 项目根目录中没有问题求解/检验 Python 脚本")
+        issues.append("missing: 项目根目录中没有问题求解/结果分析 Python 脚本")
     for path in python_files:
         text = path.read_text(encoding="utf-8", errors="ignore")
         if any(token in text for token in PY_PLOT_TOKENS):
@@ -68,18 +73,17 @@ def check_code(root: Path) -> list[str]:
         if "if __name__" not in text:
             issues.append(f"Python main script lacks entry point: {path.relative_to(root)}")
     result_root = root / "结果数据表"
-    if result_root.exists():
-        for question in _question_directories(result_root):
-            expected = _plot_filename(question.name)
-            if not expected:
-                continue
-            plot_path = question / expected
-            if not plot_path.is_file():
-                issues.append(f"missing: {plot_path.relative_to(root)}")
-            else:
-                text = plot_path.read_text(encoding="utf-8", errors="ignore")
-                if not any(token in text for token in MATLAB_TITLE_TOKENS):
-                    issues.append(f"MATLAB formal figure title missing: {plot_path.relative_to(root)}")
+    for question in _question_directories(result_root):
+        expected = _plot_filename(question.name)
+        if not expected:
+            continue
+        plot_path = question / expected
+        if not plot_path.is_file():
+            issues.append(f"missing: {plot_path.relative_to(root)}")
+        else:
+            text = plot_path.read_text(encoding="utf-8", errors="ignore")
+            if not any(token in text for token in MATLAB_TITLE_TOKENS):
+                issues.append(f"MATLAB formal figure title missing: {plot_path.relative_to(root)}")
     return issues
 
 
@@ -94,8 +98,13 @@ def inspect_workbook(
 ) -> list[str]:
     try:
         WORKBOOK_VALIDATOR.validate_workbook_file(
-            path, kind, schema=WORKBOOK_SCHEMA, problem_types=problem_types,
-            capabilities=capabilities, objective=objective, structures=structures,
+            path,
+            kind,
+            schema=WORKBOOK_SCHEMA,
+            problem_types=problem_types,
+            capabilities=capabilities,
+            objective=objective,
+            structures=structures,
         )
     except Exception as exc:  # noqa: BLE001
         return [f"workbook contract violation: {path}: {exc}"]
@@ -130,6 +139,14 @@ def resolve_question_contract(
     return explicit_objective, tuple(explicit_structures), tuple(dict.fromkeys(explicit_types)), None
 
 
+def _analysis_path(question: Path) -> tuple[Path, bool]:
+    current = question / f"{question.name}结果深化分析.xlsx"
+    if current.is_file():
+        return current, False
+    legacy = question / f"{question.name}敏感性与鲁棒性结果.xlsx"
+    return (legacy, True) if legacy.is_file() else (current, False)
+
+
 def check_results(
     root: Path,
     explicit_types: Sequence[str],
@@ -150,27 +167,30 @@ def check_results(
         legacy_dir = question / f"{question.name}结果数据"
         if legacy_dir.exists():
             issues.append(f"obsolete nested directory: {legacy_dir.relative_to(root)}")
-        pairs = (
-            (question / f"{question.name}求解结果.xlsx", "solution"),
-            (question / f"{question.name}敏感性与鲁棒性结果.xlsx", "robustness"),
-        )
-        for path, kind in pairs:
-            if not path.is_file():
-                issues.append(f"missing: {path.relative_to(root)}")
-            else:
-                issues.extend(inspect_workbook(
-                    path, kind, problem_types, capabilities,
-                    objective=objective, structures=structures,
-                ))
+        solution = question / f"{question.name}求解结果.xlsx"
+        analysis, legacy = _analysis_path(question)
+        if not solution.is_file():
+            issues.append(f"missing: {solution.relative_to(root)}")
+        else:
+            issues.extend(inspect_workbook(
+                solution, "solution", problem_types, capabilities,
+                objective=objective, structures=structures,
+            ))
+        if not analysis.is_file():
+            issues.append(f"missing: {analysis.relative_to(root)}")
+        else:
+            issues.extend(inspect_workbook(
+                analysis, "result_analysis", problem_types, capabilities,
+                objective=objective, structures=structures,
+            ))
+            if legacy:
+                issues.append(f"legacy workbook filename: {analysis.relative_to(root)}")
     return issues
 
 
 def check_figures(root: Path) -> list[str]:
     issues: list[str] = []
-    base = root / "结果数据表"
-    if not base.exists():
-        return issues
-    for question in _question_directories(base):
+    for question in _question_directories(root / "结果数据表"):
         figure_dir = question / "图表"
         if not figure_dir.exists():
             continue
@@ -185,7 +205,9 @@ def check_framework(root: Path) -> list[str]:
     state = root / "state" / "project_state.yaml"
     return [
         f"model paper framework violation: {item}"
-        for item in FRAMEWORK_VALIDATOR.validate_framework_file(framework, state_path=state if state.is_file() else None)
+        for item in FRAMEWORK_VALIDATOR.validate_framework_file(
+            framework, state_path=state if state.is_file() else None
+        )
     ]
 
 
@@ -193,7 +215,10 @@ def check_state(root: Path) -> list[str]:
     state = root / "state" / "project_state.yaml"
     if not state.is_file():
         return []
-    return [f"project state violation: {item}" for item in STATE_VALIDATOR.validate_state_file(state, project_root=root)]
+    return [
+        f"project state violation: {item}"
+        for item in STATE_VALIDATOR.validate_state_file(state, project_root=root)
+    ]
 
 
 def main() -> int:
@@ -206,14 +231,20 @@ def main() -> int:
     args = parser.parse_args()
     root = Path(args.project).resolve()
     issues: list[str] = []
-    if args.mode in {"full", "framework"}: issues += check_framework(root)
-    if args.mode in {"full", "code"}: issues += check_code(root)
-    if args.mode in {"full", "data"}: issues += check_results(root, args.problem_types, args.objective, args.structures)
-    if args.mode in {"full", "figures"}: issues += check_figures(root)
-    if args.mode in {"full", "state"}: issues += check_state(root)
+    if args.mode in {"full", "framework"}:
+        issues += check_framework(root)
+    if args.mode in {"full", "code"}:
+        issues += check_code(root)
+    if args.mode in {"full", "data"}:
+        issues += check_results(root, args.problem_types, args.objective, args.structures)
+    if args.mode in {"full", "figures"}:
+        issues += check_figures(root)
+    if args.mode in {"full", "state"}:
+        issues += check_state(root)
     if issues:
         print("HSK artifact check: ISSUES FOUND")
-        for item in issues: print("-", item)
+        for item in issues:
+            print("-", item)
         return 1
     print("HSK artifact check: PASS")
     return 0
