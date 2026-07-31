@@ -173,6 +173,7 @@
 - `tests/test_no_active_old_stage.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_result_io.py`
+- `tests/test_result_state_semantics.py`
 - `tests/test_router_contract.py`
 - `tests/test_schemas.py`
 - `tests/test_split_pipeline_runtime.py`
