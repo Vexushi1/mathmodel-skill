@@ -1,0 +1,173 @@
+name: Finalize LaTeX-first migration
+
+on:
+  push:
+    branches:
+      - agent/v6.4.0-latex-first-zero-comments
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/v6.4.0-latex-first-zero-comments
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply repository-wide migration
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+
+          def write(path: str, text: str) -> None:
+              (root / path).write_text(text, encoding='utf-8', newline='\n')
+
+          def edit(path: str, transform) -> None:
+              target = root / path
+              text = target.read_text(encoding='utf-8')
+              target.write_text(transform(text), encoding='utf-8', newline='\n')
+
+          def stable_names(text: str) -> str:
+              return (text
+                  .replace('PROJECT_INSTRUCTIONS_HSK_V622.md', 'PROJECT_INSTRUCTIONS.md')
+                  .replace('HSK_RUNTIME_ROUTER_V622.md', 'RUNTIME_ROUTER.md')
+                  .replace('HSK_SKILL_FILE_INDEX_V622.md', 'SKILL_FILE_INDEX.md')
+                  .replace('HSK_TEMPLATE_INDEX_V622.md', 'TEMPLATE_INDEX.md'))
+
+          def update_lint(text: str) -> str:
+              text = stable_names(text)
+              text = text.replace('v6.3.4 graph', 'v6.4.0 graph')
+              text = text.replace('PACKAGE_VERSION = "6.3.4"', 'PACKAGE_VERSION = "6.4.0"')
+              text = text.replace(
+                  '"SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG_V634.md", "CHANGELOG_V633.md", "CHANGELOG_V632.md",',
+                  '"SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md", "CHANGELOG_V634.md", "CHANGELOG_V633.md", "CHANGELOG_V632.md",'
+              )
+              text = text.replace(
+                  '"PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "CHANGELOG_V630.md",',
+                  '"PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",\n    "PROJECT_INSTRUCTIONS_HSK_V622.md", "HSK_RUNTIME_ROUTER_V622.md", "HSK_SKILL_FILE_INDEX_V622.md", "HSK_TEMPLATE_INDEX_V622.md", "CHANGELOG_V630.md",'
+              )
+              start = text.index('VERSION_DOCS = [')
+              end = text.index('\nVERSION_CONTRACTS =', start)
+              text = text[:start] + 'VERSION_DOCS = ["SKILL.md", "README.md", "CHANGELOG.md"]' + text[end:]
+              return text
+
+          edit('scripts/lint_skill.py', update_lint)
+          edit('scripts/README.md', lambda text: stable_names(text).replace('# Scripts v6.3.4', '# Scripts v6.4.0'))
+          edit('SKILL_CHANGE_GOVERNANCE.md', stable_names)
+          edit('legacy/README.md', lambda text: text.replace('v6.3.4 默认运行链路', 'v6.4.0 默认运行链路'))
+
+          for path in (root / 'tests').glob('test_*.py'):
+              text = path.read_text(encoding='utf-8')
+              path.write_text(stable_names(text), encoding='utf-8', newline='\n')
+
+          write('CHANGELOG.md', '''# Changelog
+
+## Current release: 6.4.0
+
+### LaTeX-first default workflow
+
+- 默认 `full_workflow` 从正式图表直接进入 LaTeX、AI 模板感清除、编译与终审，不再自动加载 DOCX。
+- `docx` 路由、`writing_docx` 模块和 `docx` delivery scope 保留，仅由显式 Word/DOCX 请求触发。
+- DOCX 不再是 LaTeX 的事实源或进入门槛；LaTeX 直接读取当前 `模型论文框架.md`、标准工作簿和已批准图表。
+
+### Stable active filenames
+
+- 新增 `PROJECT_INSTRUCTIONS.md`、`RUNTIME_ROUTER.md`、`SKILL_FILE_INDEX.md` 和 `TEMPLATE_INDEX.md` 作为稳定活动入口。
+- 旧 `V622` 文件名保留为兼容指针，不再复制活动规则。
+- `scripts/generate_indexes.py` 统一生成新索引、旧兼容指针和 `MANIFEST.sha256`。
+
+### Compatibility
+
+- 旧项目仍可显式执行 DOCX route 和 DOCX delivery scope。
+- 目录、工作簿 Schema、项目状态字段、同步器 stale 语义和 Python—Excel—MATLAB 证据链保持兼容。
+- 历史版本 Changelog 保留，不参与当前规则入口。
+''')
+
+          write('tests/test_latex_first_versionless_docs.py', '''from pathlib import Path
+import unittest
+import yaml
+
+ROOT = Path(__file__).resolve().parent.parent
+
+
+class LatexFirstVersionlessDocsTests(unittest.TestCase):
+    def test_full_workflow_skips_docx_but_explicit_route_remains(self):
+        router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8"))
+        full = router["routing"]["full_workflow"]
+        loaded = list(full.get("load", [])) + list(full.get("then", []))
+        self.assertNotIn("modules/05_writing/docx.md", loaded)
+        self.assertNotIn("packs/artifact/docx.md", loaded)
+        self.assertIn("modules/05_writing/latex.md", loaded)
+        docx = router["routing"]["docx"]
+        self.assertEqual(docx["delivery_scope"], "docx")
+        self.assertIn("modules/05_writing/docx.md", docx["load"])
+
+    def test_manifest_and_output_contract_are_latex_first(self):
+        manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
+        self.assertNotIn("writing_docx", manifest["workflow_profiles"]["full_workflow"]["modules"])
+        self.assertIn("writing_docx", manifest["modules"])
+        output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
+        policy = output["writing_policy"]
+        self.assertEqual(policy["default_mode"], "latex_first")
+        self.assertEqual(policy["docx_mode"], "explicit_only_independent")
+        self.assertFalse(policy["docx_is_latex_prerequisite"])
+
+    def test_versionless_active_documents_and_legacy_pointers(self):
+        pairs = {
+            "PROJECT_INSTRUCTIONS_HSK_V622.md": "PROJECT_INSTRUCTIONS.md",
+            "HSK_RUNTIME_ROUTER_V622.md": "RUNTIME_ROUTER.md",
+            "HSK_SKILL_FILE_INDEX_V622.md": "SKILL_FILE_INDEX.md",
+            "HSK_TEMPLATE_INDEX_V622.md": "TEMPLATE_INDEX.md",
+        }
+        for legacy, active in pairs.items():
+            self.assertTrue((ROOT / active).is_file())
+            pointer = (ROOT / legacy).read_text(encoding="utf-8")
+            self.assertIn(active, pointer)
+            self.assertIn("Compatibility Pointer", pointer)
+
+    def test_generator_targets_stable_names(self):
+        text = (ROOT / "scripts/generate_indexes.py").read_text(encoding="utf-8")
+        self.assertIn('SKILL_INDEX = ROOT / "SKILL_FILE_INDEX.md"', text)
+        self.assertIn('TEMPLATE_INDEX = ROOT / "TEMPLATE_INDEX.md"', text)
+        self.assertIn('LEGACY_SKILL_INDEX = ROOT / "HSK_SKILL_FILE_INDEX_V622.md"', text)
+        self.assertIn('LEGACY_TEMPLATE_INDEX = ROOT / "HSK_TEMPLATE_INDEX_V622.md"', text)
+
+
+if __name__ == "__main__":
+    unittest.main()
+''')
+          PY
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Remove one-time workflow and regenerate files
+        shell: bash
+        run: |
+          rm .github/workflows/finalize-latex-first.yml
+          python scripts/generate_indexes.py
+      - name: Run validation
+        shell: bash
+        run: |
+          python scripts/lint_skill.py
+          python -m unittest discover -s tests -p "test_*.py"
+          python scripts/generate_indexes.py --check
+          python scripts/resolve_workflow.py full_workflow --objective optimization --structures scheduling stochastic --capabilities has_explicit_constraints requires_feasibility_check --competition CUMCM > /tmp/full_workflow.yaml
+          python scripts/resolve_workflow.py docx --objective explanation --competition CUMCM > /tmp/docx.yaml
+      - name: Commit generated migration
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "chore: finalize LaTeX-first stable-name migration"
+          git push origin HEAD:agent/v6.4.0-latex-first-zero-comments
