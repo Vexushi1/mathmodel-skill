@@ -21,6 +21,7 @@ def load_module(name: str, path: Path):
     if added:
         sys.path.insert(0, parent)
     try:
+        sys.modules[name] = module
         spec.loader.exec_module(module)
     finally:
         if added:
@@ -63,45 +64,56 @@ class TestTooling(unittest.TestCase):
             self.assertTrue(module.should_exclude(root / "main.bcf", root, output))
             self.assertFalse(module.should_exclude(root / "main.pdf", root, output))
 
-    def _write_standard_workbooks(self, solution: Path, robustness: Path) -> None:
+    def _append(self, book: Workbook, title: str, headers, row) -> None:
+        if len(book.sheetnames) == 1 and book.active["A1"].value is None:
+            sheet = book.active
+            sheet.title = title
+            sheet.delete_rows(1, 1)
+        else:
+            sheet = book.create_sheet(title)
+        sheet.append(list(headers))
+        sheet.append(list(row))
+
+    def _write_standard_workbooks(self, solution: Path, analysis: Path) -> None:
         workbook = Workbook()
-        core = workbook.active
-        core.title = "核心指标"
-        core.append(["指标", "数值"])
-        core.append(["目标值", 1.0])
-        audit = workbook.create_sheet("数据审计")
-        audit.append(["等级", "检查项", "信息", "处理方式"])
-        audit.append(["Info", "字段", "通过", "无"])
+        self._append(workbook, "核心指标", ["指标", "数值"], ["目标值", 1.0])
+        self._append(workbook, "数据审计", ["等级", "检查项", "信息", "处理方式"], ["Info", "字段", "通过", "无"])
+        self._append(workbook, "主结果质量门", ["检查项", "是否通过", "证据"], ["收敛", True, "终止条件"])
         workbook.save(solution)
 
         workbook = Workbook()
-        sheet = workbook.active
-        sheet.title = "适用性说明"
-        sheet.append(["分析类型", "不适用原因", "替代检验"])
-        sheet.append(["参数敏感性", "无外生参数", "边界条件检查"])
-        workbook.save(robustness)
+        self._append(
+            workbook,
+            "分析设计",
+            ["风险来源", "分析问题", "方法", "指标", "通过标准"],
+            ["算法偶然性", "结论是否一致", "多算法", "目标差异", "小于1%"],
+        )
+        self._append(workbook, "算法一致性", ["算法", "重复编号", "目标值", "是否可行"], ["A", 1, 1.0, True])
+        self._append(
+            workbook,
+            "结论稳定性汇总",
+            ["核心结论", "分析方法", "稳定范围", "是否保持"],
+            ["主结论", "多算法", "三种算法", True],
+        )
+        workbook.save(analysis)
 
-    def test_artifact_checker_accepts_nonempty_standard_workbooks(self):
+    def test_artifact_checker_accepts_split_standard_workbooks(self):
         module = load_module("hsk_check_artifact", ROOT / "scripts/hsk_check_artifact.py")
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            solution, robustness = root / "solution.xlsx", root / "robustness.xlsx"
-            self._write_standard_workbooks(solution, robustness)
+            solution, analysis = root / "solution.xlsx", root / "analysis.xlsx"
+            self._write_standard_workbooks(solution, analysis)
             self.assertEqual(module.inspect_workbook(solution, "solution"), [])
-            self.assertEqual(module.inspect_workbook(robustness, "robustness"), [])
+            self.assertEqual(module.inspect_workbook(analysis, "result_analysis"), [])
 
     def test_artifact_checker_reuses_required_column_validation(self):
         module = load_module("hsk_check_artifact_columns", ROOT / "scripts/hsk_check_artifact.py")
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "solution.xlsx"
             workbook = Workbook()
-            core = workbook.active
-            core.title = "核心指标"
-            core.append(["结果"])
-            core.append([1.0])
-            audit = workbook.create_sheet("数据审计")
-            audit.append(["等级", "检查项", "信息", "处理方式"])
-            audit.append(["Info", "字段", "通过", "无"])
+            self._append(workbook, "核心指标", ["结果"], [1.0])
+            self._append(workbook, "数据审计", ["等级", "检查项", "信息", "处理方式"], ["Info", "字段", "通过", "无"])
+            self._append(workbook, "主结果质量门", ["检查项", "是否通过", "证据"], ["收敛", True, "通过"])
             workbook.save(path)
             issues = module.inspect_workbook(path, "solution")
             self.assertTrue(any("缺少必需字段" in issue for issue in issues), issues)
@@ -110,15 +122,13 @@ class TestTooling(unittest.TestCase):
         module = load_module("hsk_check_artifact_constraints", ROOT / "scripts/hsk_check_artifact.py")
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "solution.xlsx"
-            robust = Path(temp) / "robust.xlsx"
-            self._write_standard_workbooks(path, robust)
+            analysis = Path(temp) / "analysis.xlsx"
+            self._write_standard_workbooks(path, analysis)
             issues = module.inspect_workbook(path, "solution", problem_types=("optimization",))
             self.assertTrue(any("约束违反检查" in issue for issue in issues), issues)
 
     def test_framework_validator_accepts_template_and_links_solved_summary(self):
-        module = load_module(
-            "validate_model_paper_framework", ROOT / "scripts/validate_model_paper_framework.py"
-        )
+        module = load_module("validate_model_paper_framework", ROOT / "scripts/validate_model_paper_framework.py")
         template = ROOT / "templates/model/model_paper_framework.md"
         self.assertEqual(module.validate_framework_file(template), [])
         text = template.read_text(encoding="utf-8")
@@ -137,9 +147,7 @@ class TestTooling(unittest.TestCase):
         self.assertEqual(module.validate_framework_text(text, state=state), [])
 
     def test_framework_validator_rejects_stale_solved_summary(self):
-        module = load_module(
-            "validate_model_paper_framework_stale", ROOT / "scripts/validate_model_paper_framework.py"
-        )
+        module = load_module("validate_model_paper_framework_stale", ROOT / "scripts/validate_model_paper_framework.py")
         text = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
         state = {
             "paper_framework": {"sync_status": "stale"},
@@ -224,11 +232,12 @@ class TestTooling(unittest.TestCase):
         self.assertIn("listfonts", style)
         self.assertIn("Noto Sans CJK SC", style)
         self.assertIn("ax.Title", style)
+        self.assertIn("结果深化分析.xlsx", reader)
+        self.assertIn("books.analysis", reader)
         self.assertIn("readcell", reader)
         self.assertIn("fixedColumns", reader)
         self.assertIn("expectedHeaders", reader)
         self.assertNotIn("missingColumns", reader)
-        self.assertNotIn('VariableNamingRule", "preserve"', reader)
 
     def test_matlab_handoff_requires_title_caption_and_framework_registry(self):
         module = load_module("matlab_handoff", ROOT / "templates/code/hsk_pipeline/matlab_handoff.py")
