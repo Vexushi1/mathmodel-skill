@@ -1,4 +1,4 @@
-skill_version: 6.3.4
+skill_version: 6.4.0
 bootstrap_schema_version: 1.1.0
 purpose: Minimal startup contract for the HSK mathematical-modeling workflow. Read
   this file first, then use scripts/resolve_workflow.py to obtain the deterministic
@@ -15,6 +15,7 @@ hard_invariants:
 - 题意正确优先于模型高级、代码复杂和排版炫技。
 - 先审题与锁定模型，再进行求解、绘图和写作；不得伪造缺失前置结果。
 - Python负责数据处理、求解、检验与结果工作簿；MATLAB只读取工作簿绘制正式结果图。
+- 默认写作链在结果与图表锁定后直接进入LaTeX；DOCX仅由用户显式请求触发，且不是LaTeX前置。
 - locked_model_spec形成后维护项目根目录当前版模型论文框架.md；旧版本由Git历史保存。
 - 每次正式产物交付前执行解析器返回的project_sync gate，先校验项目状态与模型论文框架，再按Output Contract的exact scope检查产物。
 - project_sync只允许设置或保持stale；清除stale必须由验证流程在完整验证哈希覆盖后显式完成。
@@ -40,4 +41,9 @@ compatibility:
   legacy_router_single_intent_supported: true
   deprecated_classification_capabilities_supported: true
   deprecated_problem_types_supported: true
-  generated_index_filename_compatibility: V622
+  versionless_active_documents:
+  - PROJECT_INSTRUCTIONS.md
+  - RUNTIME_ROUTER.md
+  - SKILL_FILE_INDEX.md
+  - TEMPLATE_INDEX.md
+  legacy_document_pointers_supported: true
