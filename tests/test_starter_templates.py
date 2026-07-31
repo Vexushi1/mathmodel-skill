@@ -39,6 +39,8 @@ class TestStarterTemplates(unittest.TestCase):
             self.assertIn("sync_primary_framework", text)
             self.assertIn("sync_analysis_framework", text)
             self.assertIn("REQUIRED_CAPABILITIES", text)
+            self.assertIn("ResultAnalysisResult", text)
+            self.assertIn("-> ResultAnalysisResult", text)
             self.assertIn('if __name__ == "__main__":', text)
             for token in forbidden:
                 self.assertNotIn(token, text, f"{filename}: {token}")
@@ -65,15 +67,23 @@ class TestStarterTemplates(unittest.TestCase):
     def test_pipeline_exposes_split_authoritative_runners(self):
         init_text = (PIPELINE_DIR / "__init__.py").read_text(encoding="utf-8")
         pipeline_text = (PIPELINE_DIR / "main_pipeline.py").read_text(encoding="utf-8")
-        for token in ("run_primary_pipeline", "run_result_analysis_pipeline", "PrimarySolveResult"):
+        for token in (
+            "run_primary_pipeline",
+            "run_result_analysis_pipeline",
+            "PrimarySolveResult",
+            "ResultAnalysisResult",
+        ):
             self.assertIn(token, init_text)
         self.assertIn("def run_primary_pipeline(", pipeline_text)
         self.assertIn("def run_result_analysis_pipeline(", pipeline_text)
-        self.assertIn("assert_primary_quality(quality_report)", pipeline_text)
+        self.assertIn("require_quality_passed=False", pipeline_text)
+        self.assertIn("assert_primary_quality(primary.quality_report)", pipeline_text)
         self.assertIn('workbook_kind="solution"', pipeline_text)
         self.assertIn('workbook_kind="result_analysis"', pipeline_text)
         self.assertIn('"主结果质量门": quality_report', pipeline_text)
-        self.assertIn('{"分析设计", "结论稳定性汇总"}', pipeline_text)
+        self.assertIn('status: Literal["passed", "failed", "redo_required"]', pipeline_text)
+        self.assertIn("_update_analysis_state", pipeline_text)
+        self.assertIn("result.restart_phase", pipeline_text)
 
     def test_profiles_enable_required_primary_capabilities(self):
         optimization = (STARTER_DIR / "optimization.py").read_text(encoding="utf-8")
@@ -96,8 +106,8 @@ class TestStarterTemplates(unittest.TestCase):
             self.assertNotIn("全部不适用", text)
             self.assertNotIn("适用性说明", text)
             self.assertNotIn("±5%", text)
-            self.assertIn("分析设计", text)
-            self.assertIn("结论稳定性汇总", text)
+            self.assertIn("ResultAnalysisResult", text)
+            self.assertIn("redo_required", text)
 
     def test_cleanup_has_no_active_residual_files(self):
         self.assertFalse((ROOT / "state/.gitkeep").exists())
