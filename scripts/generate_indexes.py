@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate active-package indexes and a cross-platform MANIFEST.sha256 for HSK v6.3.4."""
+"""Generate active-package indexes and a cross-platform MANIFEST.sha256."""
 from __future__ import annotations
 
 import argparse
@@ -7,10 +7,11 @@ import hashlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = "6.3.4"
-# Public filenames remain V622 for compatibility; generated titles carry the active Skill version.
-SKILL_INDEX = ROOT / "HSK_SKILL_FILE_INDEX_V622.md"
-TEMPLATE_INDEX = ROOT / "HSK_TEMPLATE_INDEX_V622.md"
+VERSION = "6.4.0"
+SKILL_INDEX = ROOT / "SKILL_FILE_INDEX.md"
+TEMPLATE_INDEX = ROOT / "TEMPLATE_INDEX.md"
+LEGACY_SKILL_INDEX = ROOT / "HSK_SKILL_FILE_INDEX_V622.md"
+LEGACY_TEMPLATE_INDEX = ROOT / "HSK_TEMPLATE_INDEX_V622.md"
 MANIFEST = ROOT / "MANIFEST.sha256"
 EXCLUDED_DIRS = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".venv", "venv"}
 ACTIVE_ARCHIVE_POINTERS = {Path("legacy/README.md")}
@@ -22,6 +23,8 @@ BINARY_SUFFIXES = {
 GENERATED_RELATIVE = {
     SKILL_INDEX.relative_to(ROOT),
     TEMPLATE_INDEX.relative_to(ROOT),
+    LEGACY_SKILL_INDEX.relative_to(ROOT),
+    LEGACY_TEMPLATE_INDEX.relative_to(ROOT),
     MANIFEST.relative_to(ROOT),
 }
 
@@ -47,9 +50,17 @@ def iter_files() -> list[Path]:
 
 
 def index_text(title: str, files: list[Path]) -> str:
-    lines = [f"# {title} v{VERSION}", "", "本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。", ""]
+    lines = [f"# {title}", "", f"当前 Skill 版本：{VERSION}", "", "本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。", ""]
     lines.extend(f"- `{path.as_posix()}`" for path in files)
     return "\n".join(lines) + "\n"
+
+
+def compatibility_pointer(target: str) -> str:
+    return (
+        "# Compatibility Pointer\n\n"
+        "该文件名仅为旧链接保留，不再承载活动索引。\n\n"
+        f"请使用 [`{target}`]({target})。\n"
+    )
 
 
 def digest_bytes(data: bytes) -> str:
@@ -92,13 +103,19 @@ def generated_payloads() -> dict[Path, str]:
     template_files = [path for path in files if path.parts and path.parts[0] == "templates"]
     skill_payload = index_text("HSK Active Skill File Index", files)
     template_payload = index_text("HSK Active Template Index", template_files)
+    legacy_skill_payload = compatibility_pointer(SKILL_INDEX.name)
+    legacy_template_payload = compatibility_pointer(TEMPLATE_INDEX.name)
     overrides = {
         SKILL_INDEX.relative_to(ROOT): skill_payload,
         TEMPLATE_INDEX.relative_to(ROOT): template_payload,
+        LEGACY_SKILL_INDEX.relative_to(ROOT): legacy_skill_payload,
+        LEGACY_TEMPLATE_INDEX.relative_to(ROOT): legacy_template_payload,
     }
     return {
         SKILL_INDEX: skill_payload,
         TEMPLATE_INDEX: template_payload,
+        LEGACY_SKILL_INDEX: legacy_skill_payload,
+        LEGACY_TEMPLATE_INDEX: legacy_template_payload,
         MANIFEST: manifest_text(files, overrides),
     }
 
