@@ -236,6 +236,7 @@ def validate_tables(
     objective: str | None = None,
     structures: Sequence[str] = (),
     name_normalizer: Callable[[str], str] | None = None,
+    require_quality_passed: bool = True,
 ) -> list[tuple[str, pd.DataFrame]]:
     kind = _normalize_kind(workbook_kind)
     prepared = prepare_tables(tables, name_normalizer=name_normalizer)
@@ -270,7 +271,7 @@ def validate_tables(
         _check_record_keys(name, frame)
         _check_finite_numbers(name, frame)
         _check_residual_consistency(name, frame)
-    if kind == "solution":
+    if kind == "solution" and require_quality_passed:
         _check_quality_gate(prepared)
     _check_missing_value_audit(prepared, kind)
     return prepared
@@ -285,6 +286,7 @@ def validate_workbook_file(
     capabilities: Mapping[str, bool] | None = None,
     objective: str | None = None,
     structures: Sequence[str] = (),
+    require_quality_passed: bool = True,
 ) -> list[tuple[str, pd.DataFrame]]:
     path = Path(path)
     if not path.is_file():
@@ -293,6 +295,7 @@ def validate_workbook_file(
         read_workbook_tables(path), workbook_kind, schema=schema,
         problem_types=problem_types, capabilities=capabilities,
         objective=objective, structures=structures,
+        require_quality_passed=require_quality_passed,
     )
 
 
@@ -308,6 +311,7 @@ def validate_pair(
     capabilities: Mapping[str, bool] | None = None,
     objective: str | None = None,
     structures: Sequence[str] = (),
+    require_quality_passed: bool = True,
 ) -> list[str]:
     if require_robustness is not None:
         require_result_analysis = require_robustness
@@ -325,6 +329,7 @@ def validate_pair(
             validate_workbook_file(
                 Path(path), kind, schema=schema, problem_types=problem_types,
                 capabilities=capabilities, objective=objective, structures=structures,
+                require_quality_passed=require_quality_passed if kind == "solution" else True,
             )
         except Exception as exc:  # noqa: BLE001
             issues.append(f"{Path(path).name}: {exc}")
