@@ -5,7 +5,14 @@ from typing import Any
 
 import pandas as pd
 
-from hsk_pipeline import AuditLog, ModelContext, PipelineConfig, REQUIRED_CAPABILITIES, run_pipeline
+from hsk_pipeline import (
+    AuditLog,
+    ModelContext,
+    PipelineConfig,
+    PrimarySolveResult,
+    REQUIRED_CAPABILITIES,
+    run_pipeline,
+)
 from hsk_pipeline.result_io import find_project_root
 
 INPUT_FILE = "__INPUT_FILE__"
@@ -22,25 +29,6 @@ def capabilities(**enabled: bool) -> dict[str, bool]:
     return values
 
 
-def read_tabular_input(config: PipelineConfig, audit: AuditLog) -> pd.DataFrame:
-    if INPUT_FILE.startswith("__"):
-        raise ValueError("请将 INPUT_FILE 替换为项目根目录中的真实附件文件名")
-    path = config.project_root / INPUT_FILE
-    if not path.is_file():
-        raise FileNotFoundError(f"缺少输入文件: {path}")
-    suffix = path.suffix.lower()
-    if suffix == ".csv":
-        data = pd.read_csv(path)
-    elif suffix in {".xlsx", ".xls"}:
-        data = pd.read_excel(path)
-    else:
-        raise ValueError(f"暂不支持的输入格式: {suffix}")
-    if data.empty:
-        raise ValueError("输入数据为空")
-    audit.record("Info", "输入文件", path.name, f"读取 {data.shape[0]} 行、{data.shape[1]} 列")
-    return data
-
-
 def build_config(script_path: Path) -> PipelineConfig:
     project_root = find_project_root(script_path)
     return PipelineConfig(
@@ -52,7 +40,6 @@ def build_config(script_path: Path) -> PipelineConfig:
         structures=("temporal",),
         capabilities=capabilities(
             requires_out_of_sample_validation=True,
-            requires_uncertainty_quantification=True,
             requires_leakage_check=True,
         ),
         random_seed=2026,
@@ -60,9 +47,7 @@ def build_config(script_path: Path) -> PipelineConfig:
 
 
 def load_data(config: PipelineConfig, audit: AuditLog) -> dict[str, pd.DataFrame]:
-    """读取时间序列并检查时间排序、频率、缺失、重复和时间穿越。"""
-    data = read_tabular_input(config, audit)
-    return {"原始数据": data}
+    raise NotImplementedError("请读取真实预测数据并记录时间范围、粒度和目标变量")
 
 
 def preprocess_data(
@@ -70,38 +55,48 @@ def preprocess_data(
     config: PipelineConfig,
     audit: AuditLog,
 ) -> dict[str, pd.DataFrame]:
-    """按题意完成字段选择、缺失处理、单位统一和异常处理。"""
-    raise NotImplementedError("请依据模型论文框架实现预处理，并记录处理前后样本量")
+    raise NotImplementedError("请按时间顺序完成缺失、异常、滞后和数据泄漏检查")
 
 
 def build_features(clean_data: dict[str, pd.DataFrame], config: PipelineConfig) -> dict[str, Any]:
-    """构造滞后、滚动窗口、外生变量和滚动验证切分。"""
-    raise NotImplementedError("请将当前模型的变量和参数映射为可计算对象")
+    raise NotImplementedError("请构造只使用预测时点可获得信息的特征和滚动划分")
 
 
 def solve_model(features: dict[str, Any], config: PipelineConfig) -> dict[str, Any]:
-    """训练基准与候选预测模型，输出核心指标、预测明细、误差指标和区间。"""
-    raise NotImplementedError("solution 至少包含符合工作簿 Schema 的‘核心指标’")
+    raise NotImplementedError("请训练主预测模型并输出预测明细、误差指标、外样本验证和泄漏检查")
 
 
 def check_constraints(solution: dict[str, Any], config: PipelineConfig) -> pd.DataFrame | None:
     return None
 
 
-def validate_model(context: ModelContext) -> tuple[pd.DataFrame | None, dict[str, pd.DataFrame]]:
-    """输出滚动外样本、多窗口、参数敏感性和预测区间覆盖检验。"""
-    raise NotImplementedError("敏感性与鲁棒性工作簿必须非空；不适用时写明原因和替代检验")
-
-
-def sync_framework(
+def evaluate_primary_quality(
     context: ModelContext,
-    output_paths: tuple[Path, Path],
     constraints: pd.DataFrame | None,
-    algorithm_comparison: pd.DataFrame | None,
-    validation_tables: dict[str, pd.DataFrame],
+) -> pd.DataFrame:
+    raise NotImplementedError(
+        "请检查时间切分、泄漏、测试集误差、基准模型、校准或区间覆盖和可复算性，"
+        "返回检查项/是否通过/证据"
+    )
+
+
+def analyze_results(primary: PrimarySolveResult) -> dict[str, pd.DataFrame]:
+    raise NotImplementedError(
+        "根据残差模式、时间漂移、区域或群体差异和迁移风险，选择滚动稳定性、误差分解、"
+        "异质性、结构稳健性或外样本迁移分析；必须含分析设计和结论稳定性汇总"
+    )
+
+
+def sync_primary_framework(primary: PrimarySolveResult) -> None:
+    raise NotImplementedError("回写主预测结果、基础外样本精度、质量门结论和证据")
+
+
+def sync_analysis_framework(
+    primary: PrimarySolveResult,
+    analysis_path: Path,
+    tables: dict[str, pd.DataFrame],
 ) -> None:
-    """完整替换该问当前模型口径和结果摘要，不保留并列旧版本。"""
-    raise NotImplementedError("请回写模型、算法、核心数值、验证结论和工作簿证据位置")
+    raise NotImplementedError("回写预测稳定范围、漂移或失效边界和分析证据")
 
 
 def main() -> None:
@@ -113,8 +108,10 @@ def main() -> None:
         build_features_hook=build_features,
         solve_hook=solve_model,
         constraint_hook=check_constraints,
-        validation_hook=validate_model,
-        framework_sync_hook=sync_framework,
+        quality_hook=evaluate_primary_quality,
+        result_analysis_hook=analyze_results,
+        primary_framework_sync_hook=sync_primary_framework,
+        analysis_framework_sync_hook=sync_analysis_framework,
     )
 
 
