@@ -1,7 +1,7 @@
 {
   "name": "mathmodel-skill",
   "version": "6.4.0",
-  "description": "HSK lightweight-bootstrap mathematical-modeling workflow with multi-intent routing, orthogonal task classification, stage-aware project synchronization, layered artifact freshness, Python-to-Excel-to-MATLAB evidence figures, LaTeX-first authoring and optional DOCX review.",
+  "description": "HSK lightweight-bootstrap mathematical-modeling workflow with high-quality primary solving, an explicit result-quality gate, adaptive result analysis, Python-to-Excel-to-MATLAB evidence figures, LaTeX-first authoring and optional DOCX review.",
   "author": {
     "name": "HSK"
   },
@@ -12,13 +12,13 @@
     "mcm",
     "icm",
     "matlab",
-    "project-sync",
-    "multi-intent-router"
+    "result-analysis",
+    "project-sync"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "HSK 数学建模 Skill",
-    "shortDescription": "轻量启动、多意图路由、分层同步、Python求解、MATLAB图、LaTeX直写",
+    "shortDescription": "主求解质量门、自适应结果分析、MATLAB证据图、LaTeX直写",
     "category": "Education",
     "capabilities": [
       "Interactive",
