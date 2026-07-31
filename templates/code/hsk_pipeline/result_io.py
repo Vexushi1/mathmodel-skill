@@ -1,7 +1,6 @@
-"""定位项目根目录、校验三轴工作簿契约并写入每问两类中文 Excel。"""
+"""定位项目根目录、校验工作簿契约并写入主求解与结果深化分析 Excel。"""
 from __future__ import annotations
 
-import math
 import os
 import re
 from pathlib import Path
@@ -9,7 +8,6 @@ from typing import Any, Mapping, Sequence
 
 import pandas as pd
 import yaml
-from openpyxl import load_workbook
 
 
 def _load_workbook_validation():
@@ -26,10 +24,9 @@ def _load_workbook_validation():
 
 
 WORKBOOK_VALIDATION = _load_workbook_validation()
-
 INVALID_SHEET_CHARS = set('[]:*?/\\')
 PROBLEM_PATTERN = re.compile(r"问题[一二三四五六七八九十百]+")
-VALID_WORKBOOK_KINDS = {"solution", "robustness"}
+VALID_WORKBOOK_KINDS = {"solution", "result_analysis", "robustness"}
 
 _FALLBACK_SCHEMA: dict[str, Any] = {
     "global_rules": {"empty_worksheet_allowed": False},
@@ -68,7 +65,6 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
         "common_recommended_sheets": {
             "推荐方案": {"required_columns": ["方案"]},
             "明细结果": {"required_columns": ["记录键"]},
-            "多算法对比": {"required_columns": ["算法", "目标值", "可行性"]},
             "约束违反检查": {"required_columns": ["约束编号", "约束含义", "违反量", "容差", "是否满足"]},
             "均衡残差": {"required_columns": ["主体或均衡", "残差", "容差", "是否满足"]},
             "守恒残差": {"required_columns": ["守恒量", "残差", "容差", "是否满足"]},
@@ -90,6 +86,17 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
             "节点结果": {"required_columns": ["节点", "数值"]},
             "边结果": {"required_columns": ["起点", "终点", "数值"]},
             "路径或流结果": {"required_columns": ["路径或流", "数值"]},
+            "机理分析": {"required_columns": ["对象或机制", "关系或结论"]},
+            "状态明细": {"required_columns": ["记录键"]},
+            "边界检验": {"required_columns": ["边界条件", "检验指标", "结论"]},
+            "量纲检查": {"required_columns": ["公式或变量", "量纲", "结论"]},
+            "决策变量明细": {"required_columns": ["变量", "取值"]},
+            "方案对比": {"required_columns": ["方案", "目标值", "可行性"]},
+            "Pareto结果": {"required_columns": ["方案", "目标一", "目标二"]},
+            "仿真明细": {"required_columns": ["记录键", "场景", "时刻", "数值"]},
+            "逐时刻结果": {"required_columns": ["时间", "数值"]},
+            "逐场景结果": {"required_columns": ["场景", "指标", "数值"]},
+            "重复试验结果": {"required_columns": ["重复编号", "指标", "数值"]},
         },
         "objective_profiles": {
             "prediction": {"required_any": ["预测明细", "误差指标", "外样本验证"]},
@@ -103,22 +110,23 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
             "spatial": {"required_any": ["空间诊断", "参数估计"]},
             "network": {"required_any": ["节点结果", "边结果", "路径或流结果"]},
         },
-        "task_profiles": {
-            "prediction": {"required_any": ["预测明细", "误差指标", "外样本验证"]},
-            "evaluation": {"required_any": ["综合评分", "排序结果"]},
-            "statistics_ml": {"required_any": ["模型指标", "预测或分类结果"]},
-            "spatial": {"required_any": ["空间诊断", "参数估计"]},
-            "graph_network": {"required_any": ["节点结果", "边结果", "路径或流结果"]},
-        },
+        "task_profiles": {},
     },
-    "sensitivity_robustness_workbook": {
-        "required_any_sheets": ["参数敏感性", "鲁棒性区间", "扰动明细", "算法稳定性", "适用性说明"],
+    "result_analysis_workbook": {
+        "required_any_sheets": [
+            "参数敏感性", "阈值与失效边界", "场景压力测试", "算法一致性",
+            "结构稳健性", "异质性分析", "误差分解", "外样本稳定性", "结论稳定性汇总",
+        ],
         "sheet_schemas": {
-            "参数敏感性": {"required_columns": ["参数", "基准值", "扰动值", "目标指标"]},
-            "鲁棒性区间": {"required_columns": ["指标", "下界", "上界"]},
-            "扰动明细": {"required_columns": ["扰动编号", "扰动对象", "扰动值", "结果指标"]},
-            "算法稳定性": {"required_columns": ["算法", "重复编号", "目标值", "是否可行"]},
-            "适用性说明": {"required_columns": ["分析类型", "不适用原因", "替代检验"]},
+            "参数敏感性": {"required_columns": ["参数", "基准值", "变化值", "结果指标"]},
+            "阈值与失效边界": {"required_columns": ["分析对象", "临界值", "临界前结论", "临界后结论"]},
+            "场景压力测试": {"required_columns": ["场景", "变化条件", "结果指标", "是否可行"]},
+            "算法一致性": {"required_columns": ["算法", "重复编号", "目标值", "是否可行"]},
+            "结构稳健性": {"required_columns": ["替代结构", "核心设定", "结果指标", "与主模型差异"]},
+            "异质性分析": {"required_columns": ["分组维度", "分组", "指标", "数值"]},
+            "误差分解": {"required_columns": ["误差来源", "指标", "数值"]},
+            "外样本稳定性": {"required_columns": ["划分或迁移场景", "指标", "数值"]},
+            "结论稳定性汇总": {"required_columns": ["核心结论", "分析方法", "稳定范围", "是否保持"]},
         },
     },
 }
@@ -153,7 +161,7 @@ def figure_dir(project_root: Path, problem_name: str) -> Path:
 
 def workbook_paths(project_root: Path, problem_name: str) -> tuple[Path, Path]:
     base = result_data_dir(project_root, problem_name)
-    return base / f"{problem_name}求解结果.xlsx", base / f"{problem_name}敏感性与鲁棒性结果.xlsx"
+    return base / f"{problem_name}求解结果.xlsx", base / f"{problem_name}结果深化分析.xlsx"
 
 
 def matlab_script_path(project_root: Path, problem_name: str, question_number: int) -> Path:
@@ -162,47 +170,11 @@ def matlab_script_path(project_root: Path, problem_name: str, question_number: i
     return result_data_dir(project_root, problem_name) / f"q{question_number}_plot.m"
 
 
-def not_applicable_table(
-    reason: str,
-    analysis_type: str = "敏感性与鲁棒性分析",
-    alternative_test: str = "边界条件、有效性或一致性检查",
-    evidence_location: str = "",
-) -> pd.DataFrame:
-    values = [str(item).strip() for item in (analysis_type, reason, alternative_test)]
-    if not all(values):
-        raise ValueError("分析类型、不适用原因和替代检验均不能为空")
-    data = {"分析类型": [values[0]], "不适用原因": [values[1]], "替代检验": [values[2]]}
-    if str(evidence_location).strip():
-        data["证据位置"] = [str(evidence_location).strip()]
-    return pd.DataFrame(data)
-
-
 def _sheet_name(name: str) -> str:
     safe = "".join("_" if ch in INVALID_SHEET_CHARS else ch for ch in str(name)).strip()
     if not safe:
         raise ValueError("工作表名称不能为空")
     return safe[:31]
-
-
-def _to_frame(value: Any) -> pd.DataFrame:
-    if isinstance(value, pd.DataFrame):
-        frame = value.copy()
-    elif isinstance(value, Mapping):
-        frame = pd.DataFrame([dict(value)])
-    elif isinstance(value, (list, tuple)):
-        frame = pd.DataFrame(value)
-    else:
-        frame = pd.DataFrame({"数值": [value]})
-    frame = frame.dropna(how="all").reset_index(drop=True)
-    if frame.empty:
-        raise ValueError("禁止写入空工作表；不适用时请使用 not_applicable_table() 说明原因")
-    columns = [str(column).strip() for column in frame.columns]
-    if not columns or any(not column for column in columns):
-        raise ValueError("工作表至少需要一个非空字段")
-    if len(columns) != len(set(columns)):
-        raise ValueError("工作表包含重复字段")
-    frame.columns = columns
-    return frame
 
 
 def _schema_candidates(explicit: Path | None) -> list[Path]:
@@ -220,7 +192,7 @@ def load_workbook_schema(schema_path: Path | None = None) -> dict[str, Any]:
     for candidate in _schema_candidates(schema_path):
         if candidate.is_file():
             payload = yaml.safe_load(candidate.read_text(encoding="utf-8")) or {}
-            if "solution_workbook" in payload and "sensitivity_robustness_workbook" in payload:
+            if "solution_workbook" in payload and "result_analysis_workbook" in payload:
                 return payload
     return _FALLBACK_SCHEMA
 
@@ -235,6 +207,8 @@ def validate_workbook_tables(
     objective: str | None = None,
     structures: Sequence[str] = (),
 ) -> list[tuple[str, pd.DataFrame]]:
+    if workbook_kind not in VALID_WORKBOOK_KINDS:
+        raise ValueError(f"未知工作簿类型: {workbook_kind}")
     return WORKBOOK_VALIDATION.validate_tables(
         tables, workbook_kind, schema=load_workbook_schema(schema_path),
         problem_types=problem_types, capabilities=capabilities,
@@ -264,6 +238,8 @@ def validate_workbook_file(
 
 
 def _infer_workbook_kind(path: Path) -> str | None:
+    if "结果深化分析" in path.name:
+        return "result_analysis"
     if "敏感性与鲁棒性" in path.name:
         return "robustness"
     if "求解结果" in path.name:
