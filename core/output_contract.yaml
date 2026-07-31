@@ -82,10 +82,10 @@ project_sync:
   stage_requirements:
     design: [project_state, model_paper_framework]
     results: [project_state, model_paper_framework, python_code, solution_workbook, result_quality_report, result_analysis_workbook, result_analysis_report]
-    figures: [project_state, model_paper_framework, solution_workbook, result_analysis_workbook, matlab_scripts, result_figures, figure_evidence]
-    docx: [project_state, model_paper_framework, solution_workbook, result_analysis_workbook, approved_figures, docx_draft]
-    latex: [project_state, model_paper_framework, approved_figures, latex_source, compiled_pdf, compile_report]
-    submission: [project_state, model_paper_framework, compiled_pdf, validated_submission_package]
+    figures: [project_state, model_paper_framework, solution_workbook, result_quality_report, result_analysis_workbook, result_analysis_report, matlab_scripts, result_figures, figure_evidence]
+    docx: [project_state, model_paper_framework, solution_workbook, result_quality_report, result_analysis_workbook, result_analysis_report, approved_figures, docx_draft]
+    latex: [project_state, model_paper_framework, result_quality_report, result_analysis_report, approved_figures, latex_source, compiled_pdf, compile_report]
+    submission: [project_state, model_paper_framework, result_quality_report, result_analysis_report, compiled_pdf, validated_submission_package]
   artifact_hash_layers: [data, model, solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, framework]
   stale_propagation:
     data_or_model: [solution_workbook, result_quality, result_analysis_workbook, result_analysis, matlab_script, figure_bundle, result_summary]
