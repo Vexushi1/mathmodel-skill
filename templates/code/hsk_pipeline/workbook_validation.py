@@ -100,7 +100,9 @@ def _required_sheet_schemas(
         all_schemas = {**required, **dict(section.get("common_recommended_sheets", {}))}
         return set(required), all_schemas
     section = schema["result_analysis_workbook"]
-    return set(), dict(section.get("sheet_schemas", {}))
+    required = dict(section.get("common_required_sheets", {}))
+    all_schemas = {**required, **dict(section.get("sheet_schemas", {}))}
+    return set(required), all_schemas
 
 
 def _conditional_required_sheets(
@@ -200,11 +202,21 @@ def _check_residual_consistency(sheet: str, frame: pd.DataFrame) -> None:
             raise ValueError(f"工作表“{sheet}”第 {index + 2} 行的是否满足与残差/容差不一致")
 
 
+def _check_quality_gate(prepared: Sequence[tuple[str, pd.DataFrame]]) -> None:
+    frame = next((item for name, item in prepared if name == "主结果质量门"), None)
+    if frame is None:
+        return
+    failed = []
+    for _, row in frame.iterrows():
+        if _as_bool(row["是否通过"]) is not True:
+            failed.append(str(row["检查项"]))
+    if failed:
+        raise ValueError(f"主结果质量门存在未通过项: {failed}")
+
+
 def _check_missing_value_audit(prepared: Sequence[tuple[str, pd.DataFrame]], kind: str) -> None:
     affected = [name for name, frame in prepared if name != "数据审计" and frame.isna().any().any()]
-    if not affected:
-        return
-    if kind != "solution":
+    if not affected or kind != "solution":
         return
     audit = next((frame for name, frame in prepared if name == "数据审计"), None)
     if audit is None:
@@ -229,29 +241,37 @@ def validate_tables(
     prepared = prepare_tables(tables, name_normalizer=name_normalizer)
     required_sheets, sheet_schemas = _required_sheet_schemas(schema, kind)
     names = {name for name, _ in prepared}
+    missing = sorted(required_sheets - names)
+    if missing:
+        label = "求解" if kind == "solution" else "结果深化分析"
+        raise ValueError(f"{label}工作簿缺少必需工作表: {missing}")
     if kind == "solution":
-        required_sheets.update(_conditional_required_sheets(schema, problem_types, capabilities))
-        missing = sorted(required_sheets - names)
-        if missing:
+        required = _conditional_required_sheets(schema, problem_types, capabilities)
+        missing_conditional = sorted(required - names)
+        if missing_conditional:
             active = sorted(name for name, enabled in (capabilities or {}).items() if enabled)
             note = f"；启用的capabilities: {active}" if active else ""
-            raise ValueError(f"求解工作簿缺少必需工作表: {missing}{note}")
+            raise ValueError(f"求解工作簿缺少必需工作表: {missing_conditional}{note}")
         for profile, required_any in _profile_requirements(schema, objective, structures, problem_types):
             if required_any and not names.intersection(required_any):
                 raise ValueError(f"分类剖面“{profile}”至少需要一个专项工作表: {sorted(required_any)}")
     else:
-        allowed_any = set(schema["result_analysis_workbook"].get("required_any_sheets", []))
-        unknown_sheets = sorted(names - set(sheet_schemas))
+        section = schema["result_analysis_workbook"]
+        allowed_any = set(section.get("required_any_sheets", []))
+        allowed_all = set(sheet_schemas)
+        unknown_sheets = sorted(names - allowed_all)
         if unknown_sheets:
             raise ValueError(f"结果深化分析工作簿包含未登记工作表: {unknown_sheets}")
         if not names.intersection(allowed_any):
-            raise ValueError(f"结果深化分析工作簿至少需要一个已登记分析表: {sorted(allowed_any)}")
+            raise ValueError(f"结果深化分析工作簿至少需要一个实质分析表: {sorted(allowed_any)}")
     for name, frame in prepared:
         if name in sheet_schemas:
             _check_required_columns(name, frame, sheet_schemas[name])
         _check_record_keys(name, frame)
         _check_finite_numbers(name, frame)
         _check_residual_consistency(name, frame)
+    if kind == "solution":
+        _check_quality_gate(prepared)
     _check_missing_value_audit(prepared, kind)
     return prepared
 
@@ -298,10 +318,7 @@ def validate_pair(
         result_analysis_path is None or not Path(result_analysis_path).is_file()
     ):
         issues.append("缺少标准结果深化分析工作簿")
-    for path, kind in (
-        (solution_path, "solution"),
-        (result_analysis_path, "result_analysis"),
-    ):
+    for path, kind in ((solution_path, "solution"), (result_analysis_path, "result_analysis")):
         if path is None or not Path(path).is_file():
             continue
         try:
