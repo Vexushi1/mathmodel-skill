@@ -15,11 +15,36 @@ SPEC.loader.exec_module(MOD)
 
 
 class TestResultIO(unittest.TestCase):
+    def quality_table(self):
+        return pd.DataFrame(
+            {"检查项": ["收敛"], "是否通过": [True], "证据": ["达到终止条件"]}
+        )
+
     def solution_tables(self):
         return {
             "核心指标": pd.DataFrame({"指标": ["目标值"], "数值": [1.0]}),
             "数据审计": pd.DataFrame(
                 {"等级": ["Info"], "检查项": ["字段"], "信息": ["通过"], "处理方式": ["无"]}
+            ),
+            "主结果质量门": self.quality_table(),
+        }
+
+    def analysis_tables(self):
+        return {
+            "分析设计": pd.DataFrame(
+                {
+                    "风险来源": ["局部最优"],
+                    "分析问题": ["算法是否偶然"],
+                    "方法": ["多算法一致性"],
+                    "指标": ["目标值差异"],
+                    "通过标准": ["差异小于1%"],
+                }
+            ),
+            "算法一致性": pd.DataFrame(
+                {"算法": ["A"], "重复编号": [1], "目标值": [1.0], "是否可行": [True]}
+            ),
+            "结论稳定性汇总": pd.DataFrame(
+                {"核心结论": ["方案A最优"], "分析方法": ["算法一致性"], "稳定范围": ["三种算法"], "是否保持": [True]}
             ),
         }
 
@@ -31,6 +56,11 @@ class TestResultIO(unittest.TestCase):
             "requires_conservation_residual": False,
             "requires_discretization_check": False,
             "requires_convergence_diagnostic": False,
+            "requires_out_of_sample_validation": False,
+            "requires_uncertainty_quantification": False,
+            "requires_leakage_check": False,
+            "requires_calibration_check": False,
+            "requires_identifiability_check": False,
         }
         values.update(updates)
         return values
@@ -38,27 +68,19 @@ class TestResultIO(unittest.TestCase):
     def test_paths_and_workbooks(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            solve, robust = MOD.workbook_paths(root, "问题一")
+            solve, analysis = MOD.workbook_paths(root, "问题一")
             self.assertEqual(
                 solve.relative_to(root).as_posix(),
                 "结果数据表/问题一/问题一求解结果.xlsx",
             )
             self.assertEqual(
-                robust.relative_to(root).as_posix(),
-                "结果数据表/问题一/问题一敏感性与鲁棒性结果.xlsx",
-            )
-            self.assertEqual(
-                MOD.matlab_script_path(root, "问题一", 1).relative_to(root).as_posix(),
-                "结果数据表/问题一/q1_plot.m",
-            )
-            self.assertEqual(
-                MOD.figure_dir(root, "问题一").relative_to(root).as_posix(),
-                "结果数据表/问题一/图表",
+                analysis.relative_to(root).as_posix(),
+                "结果数据表/问题一/问题一结果深化分析.xlsx",
             )
             MOD.write_workbook(solve, self.solution_tables())
+            MOD.write_workbook(analysis, self.analysis_tables())
             self.assertTrue(solve.exists())
-            with pd.ExcelFile(solve) as workbook:
-                self.assertEqual(workbook.sheet_names, ["核心指标", "数据审计"])
+            self.assertTrue(analysis.exists())
 
     def test_project_root_defaults_to_script_directory_on_first_run(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -72,14 +94,16 @@ class TestResultIO(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "禁止写入空工作表"):
                 MOD.write_workbook(path, {"参数敏感性": pd.DataFrame()})
 
-    def test_applicability_table_matches_schema(self):
-        table = MOD.not_applicable_table("没有外生扰动参数")
-        self.assertEqual(list(table.columns[:3]), ["分析类型", "不适用原因", "替代检验"])
-
     def test_required_columns_are_enforced(self):
         tables = self.solution_tables()
         tables["核心指标"] = pd.DataFrame({"结果": [1.0]})
         with self.assertRaisesRegex(ValueError, "缺少必需字段"):
+            MOD.validate_workbook_tables(tables, "solution")
+
+    def test_failed_quality_gate_is_rejected(self):
+        tables = self.solution_tables()
+        tables["主结果质量门"].loc[0, "是否通过"] = False
+        with self.assertRaisesRegex(ValueError, "质量门存在未通过项"):
             MOD.validate_workbook_tables(tables, "solution")
 
     def test_legacy_optimization_fallback_requires_constraint_sheet(self):
@@ -95,7 +119,10 @@ class TestResultIO(unittest.TestCase):
             problem_types=("mechanism",),
             capabilities=self.all_capabilities(),
         )
-        self.assertEqual({name for name, _ in prepared}, {"核心指标", "数据审计"})
+        self.assertEqual(
+            {name for name, _ in prepared},
+            {"核心指标", "数据审计", "主结果质量门"},
+        )
 
     def test_constraint_capability_requires_and_checks_sheet(self):
         tables = self.solution_tables()
@@ -120,43 +147,34 @@ class TestResultIO(unittest.TestCase):
             capabilities=self.all_capabilities(has_explicit_constraints=True),
         )
 
-    def test_residual_flag_consistency_is_enforced(self):
-        tables = self.solution_tables()
-        tables["均衡残差"] = pd.DataFrame(
-            {"主体或均衡": ["Nash"], "残差": [0.1], "容差": [0.01], "是否满足": [True]}
-        )
-        with self.assertRaisesRegex(ValueError, "不一致"):
-            MOD.validate_workbook_tables(
-                tables,
-                "solution",
-                capabilities=self.all_capabilities(requires_equilibrium_residual=True),
-            )
-
     def test_duplicate_record_key_is_rejected(self):
         tables = self.solution_tables()
         tables["明细结果"] = pd.DataFrame({"记录键": ["A", "A"], "数值": [1.0, 2.0]})
         with self.assertRaisesRegex(ValueError, "重复值"):
             MOD.validate_workbook_tables(tables, "solution")
 
-    def test_missing_values_require_audit_explanation(self):
-        tables = self.solution_tables()
-        tables["明细结果"] = pd.DataFrame({"记录键": ["A", "B"], "数值": [1.0, None]})
-        with self.assertRaisesRegex(ValueError, "数据审计未说明缺失"):
-            MOD.validate_workbook_tables(tables, "solution")
-        tables["数据审计"].loc[0, "检查项"] = "缺失值"
-        MOD.validate_workbook_tables(tables, "solution")
-
-    def test_prediction_requires_task_specific_sheet(self):
-        with self.assertRaisesRegex(ValueError, "prediction"):
+    def test_result_analysis_requires_plan_summary_and_substantive_sheet(self):
+        with self.assertRaisesRegex(ValueError, "缺少必需工作表"):
             MOD.validate_workbook_tables(
-                self.solution_tables(), "solution", problem_types=("prediction",)
+                {"算法一致性": self.analysis_tables()["算法一致性"]},
+                "result_analysis",
             )
+        only_headers = {
+            "分析设计": self.analysis_tables()["分析设计"],
+            "结论稳定性汇总": self.analysis_tables()["结论稳定性汇总"],
+        }
+        with self.assertRaisesRegex(ValueError, "至少需要一个实质分析表"):
+            MOD.validate_workbook_tables(only_headers, "result_analysis")
+        MOD.validate_workbook_tables(self.analysis_tables(), "result_analysis")
 
-    def test_robustness_requires_known_analysis_sheet(self):
-        with self.assertRaisesRegex(ValueError, "至少需要一个工作表"):
-            MOD.validate_workbook_tables(
-                {"汇总": pd.DataFrame({"指标": ["均值"], "数值": [1.0]})}, "robustness"
-            )
+    def test_result_analysis_rejects_unregistered_placeholder_sheet(self):
+        tables = self.analysis_tables()
+        tables["适用性说明"] = pd.DataFrame({"原因": ["无"]})
+        with self.assertRaisesRegex(ValueError, "未登记工作表"):
+            MOD.validate_workbook_tables(tables, "result_analysis")
+
+    def test_legacy_robustness_kind_is_read_compatible(self):
+        MOD.validate_workbook_tables(self.analysis_tables(), "robustness")
 
 
 if __name__ == "__main__":
