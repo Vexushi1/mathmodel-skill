@@ -1,32 +1,29 @@
 schema_version: 2.2.0
 skill_compatibility: '>=6.3.2,<7.0.0'
-purpose: 约束每问两类标准工作簿的工作表、最低字段、三轴分类条件、非空规则和MATLAB交接。
+purpose: 约束主求解工作簿与按需结果深化分析工作簿的工作表、字段、三轴条件、非空规则和MATLAB交接。
 runtime_enforcement:
   writer: templates/code/hsk_pipeline/result_io.py
   artifact_checker: scripts/hsk_check_artifact.py
   project_sync: scripts/sync_project.py
+  shared_validator: templates/code/hsk_pipeline/workbook_validation.py
   matlab_reader: 每问同目录q{x}_plot.m的精确表头唯一匹配逻辑
   rules:
-  - 标准工作簿写入前必须执行本Schema。
+  - 主求解工作簿写入前必须通过主结果质量门和本Schema。
+  - 结果深化分析只在主结果质量门通过后执行。
   - 写入器、交付检查器和项目同步器复用同一事实源。
   - MATLAB代码生成前必须读取实际工作簿并确认真实工作表与真实表头。
-  shared_validator: templates/code/hsk_pipeline/workbook_validation.py
 classification_contract:
   objective_source: subproblem.classification.objective
   structures_source: subproblem.classification.structures
   capabilities_source: subproblem.capabilities
   legacy_task_profiles_status: deprecated_compatibility_only
-  resolution_order:
-  - objective_profiles
-  - structure_profiles
-  - capability_contract
-  - legacy_task_profiles
+  resolution_order: [objective_profiles, structure_profiles, capability_contract, legacy_task_profiles]
 global_rules:
   worksheet_name_language: Chinese descriptive names
   worksheet_name_max_length: 31
   empty_worksheet_allowed: false
   duplicate_header_allowed: false
-  missing_analysis_policy: 使用适用性说明记录不适用原因、替代检验和证据位置
+  missing_analysis_policy: 不生成空表；未采用某类方法时在分析计划或报告中说明原因，不创建占位工作表
   units_policy: 物理量、时间、成本、距离、概率或比例必须在列名或单位列中明确单位
   key_policy: 显式记录键或样本键必须非空且唯一
   numeric_policy: 数值字段不得包含正负无穷；有依据的缺失值必须在数据审计中说明
@@ -45,523 +42,194 @@ capability_contract:
   - requires_calibration_check
   - requires_identifiability_check
   required_sheets:
-    has_explicit_constraints:
-    - 约束违反检查
-    requires_feasibility_check:
-    - 约束违反检查
-    requires_equilibrium_residual:
-    - 均衡残差
-    requires_conservation_residual:
-    - 守恒残差
-    requires_discretization_check:
-    - 离散精度
-    requires_convergence_diagnostic:
-    - 收敛诊断
-    requires_out_of_sample_validation:
-    - 外样本验证
-    requires_uncertainty_quantification:
-    - 不确定性区间
-    requires_leakage_check:
-    - 泄漏检查
-    requires_calibration_check:
-    - 校准结果
-    requires_identifiability_check:
-    - 可识别性检查
+    has_explicit_constraints: [约束违反检查]
+    requires_feasibility_check: [约束违反检查]
+    requires_equilibrium_residual: [均衡残差]
+    requires_conservation_residual: [守恒残差]
+    requires_discretization_check: [离散精度]
+    requires_convergence_diagnostic: [收敛诊断]
+    requires_out_of_sample_validation: [外样本验证]
+    requires_uncertainty_quantification: [不确定性区间]
+    requires_leakage_check: [泄漏检查]
+    requires_calibration_check: [校准结果]
+    requires_identifiability_check: [可识别性检查]
   legacy_problem_type_fallback:
-    description: 仅兼容缺少三轴分类的旧项目；新项目不得依赖该回退
-    problem_types:
-    - optimization
-    - scheduling
-    required_sheets:
-    - 约束违反检查
+    description: 仅兼容缺少三轴分类的旧项目
+    problem_types: [optimization, scheduling]
+    required_sheets: [约束违反检查]
 solution_workbook:
   filename: 问题{中文序号}求解结果.xlsx
+  role: 在当前模型口径下保存已经算准的主结果和基础正确性证据
   common_required_sheets:
     核心指标:
-      required_columns:
-      - 指标
-      - 数值
-      optional_columns:
-      - 单位
-      - 统计口径
-      - 说明
+      required_columns: [指标, 数值]
+      optional_columns: [单位, 统计口径, 说明]
     数据审计:
-      required_columns:
-      - 等级
-      - 检查项
-      - 信息
-      - 处理方式
+      required_columns: [等级, 检查项, 信息, 处理方式]
   common_recommended_sheets:
     推荐方案:
-      required_columns:
-      - 方案
-      optional_columns:
-      - 目标值
-      - 单位
-      - 排名
-      - 选择理由
+      required_columns: [方案]
+      optional_columns: [目标值, 单位, 排名, 选择理由]
     明细结果:
-      required_columns:
-      - 记录键
-      optional_columns:
-      - 时间
-      - 区域
-      - 对象
-      - 方案
-      - 数值
-      - 单位
-    多算法对比:
-      required_columns:
-      - 算法
-      - 目标值
-      - 可行性
-      optional_columns:
-      - 运行时间
-      - 最优间隙
-      - 重复次数
-      - 均值
-      - 标准差
-      - 说明
+      required_columns: [记录键]
+      optional_columns: [时间, 区域, 对象, 方案, 数值, 单位]
     约束违反检查:
-      required_columns:
-      - 约束编号
-      - 约束含义
-      - 违反量
-      - 容差
-      - 是否满足
-      optional_columns:
-      - 左端值
-      - 右端值或界
-      - 最坏样本或时刻
+      required_columns: [约束编号, 约束含义, 违反量, 容差, 是否满足]
+      optional_columns: [左端值, 右端值或界, 最坏样本或时刻]
     均衡残差:
-      required_columns:
-      - 主体或均衡
-      - 残差
-      - 容差
-      - 是否满足
+      required_columns: [主体或均衡, 残差, 容差, 是否满足]
     守恒残差:
-      required_columns:
-      - 守恒量
-      - 残差
-      - 容差
-      - 是否满足
+      required_columns: [守恒量, 残差, 容差, 是否满足]
     离散精度:
-      required_columns:
-      - 离散参数
-      - 取值
-      - 目标指标
-      - 相对变化
+      required_columns: [离散参数, 取值, 目标指标, 相对变化]
     收敛诊断:
-      required_columns:
-      - 迭代或样本数
-      - 指标
-      - 数值
-      - 判定
+      required_columns: [迭代或样本数, 指标, 数值, 判定]
     外样本验证:
-      required_columns:
-      - 划分或窗口
-      - 指标
-      - 数值
-      optional_columns:
-      - 样本数
-      - 时间范围
-      - 基准模型
-      - 说明
+      required_columns: [划分或窗口, 指标, 数值]
+      optional_columns: [样本数, 时间范围, 基准模型, 说明]
     不确定性区间:
-      required_columns:
-      - 指标
-      - 下界
-      - 上界
-      optional_columns:
-      - 置信水平
-      - 分位数口径
-      - 样本数
-      - 单位
+      required_columns: [指标, 下界, 上界]
+      optional_columns: [置信水平, 分位数口径, 样本数, 单位]
     泄漏检查:
-      required_columns:
-      - 检查项
-      - 是否通过
-      - 证据
+      required_columns: [检查项, 是否通过, 证据]
     校准结果:
-      required_columns:
-      - 分组或方法
-      - 预测概率
-      - 实际频率
-      optional_columns:
-      - 样本数
-      - Brier分数
-      - ECE
+      required_columns: [分组或方法, 预测概率, 实际频率]
+      optional_columns: [样本数, Brier分数, ECE]
     可识别性检查:
-      required_columns:
-      - 参数或效应
-      - 检查方法
-      - 结论
-      optional_columns:
-      - 条件数
-      - 秩
-      - 置信区间
-      - 说明
+      required_columns: [参数或效应, 检查方法, 结论]
+      optional_columns: [条件数, 秩, 置信区间, 说明]
     预测明细:
-      required_columns:
-      - 记录键
-      - 真实值
-      - 预测值
-      optional_columns:
-      - 时间
-      - 分组
-      - 下界
-      - 上界
-      - 单位
+      required_columns: [记录键, 真实值, 预测值]
+      optional_columns: [时间, 分组, 下界, 上界, 单位]
     误差指标:
-      required_columns:
-      - 指标
-      - 数值
-      optional_columns:
-      - 数据划分
-      - 样本数
-      - 基准值
+      required_columns: [指标, 数值]
+      optional_columns: [数据划分, 样本数, 基准值]
     综合评分:
-      required_columns:
-      - 对象
-      - 综合评分
-      optional_columns:
-      - 排名
-      - 等级
+      required_columns: [对象, 综合评分]
+      optional_columns: [排名, 等级]
     排序结果:
-      required_columns:
-      - 对象
-      - 排名
-      optional_columns:
-      - 综合评分
-      - 等级
+      required_columns: [对象, 排名]
+      optional_columns: [综合评分, 等级]
     模型指标:
-      required_columns:
-      - 指标
-      - 数值
-      optional_columns:
-      - 数据划分
-      - 样本数
+      required_columns: [指标, 数值]
+      optional_columns: [数据划分, 样本数]
     预测或分类结果:
-      required_columns:
-      - 记录键
-      - 真实标签
-      - 预测标签
-      optional_columns:
-      - 预测概率
-      - 分组
+      required_columns: [记录键, 真实标签, 预测标签]
+      optional_columns: [预测概率, 分组]
     空间诊断:
-      required_columns:
-      - 诊断项
-      - 数值
-      optional_columns:
-      - 显著性
-      - 说明
+      required_columns: [诊断项, 数值]
+      optional_columns: [显著性, 说明]
     参数估计:
-      required_columns:
-      - 参数
-      - 估计值
-      optional_columns:
-      - 标准误
-      - 置信区间
-      - 显著性
+      required_columns: [参数, 估计值]
+      optional_columns: [标准误, 置信区间, 显著性]
     节点结果:
-      required_columns:
-      - 节点
-      - 数值
-      optional_columns:
-      - 类别
-      - 单位
+      required_columns: [节点, 数值]
+      optional_columns: [类别, 单位]
     边结果:
-      required_columns:
-      - 起点
-      - 终点
-      - 数值
-      optional_columns:
-      - 容量
-      - 成本
-      - 单位
+      required_columns: [起点, 终点, 数值]
+      optional_columns: [容量, 成本, 单位]
     路径或流结果:
-      required_columns:
-      - 路径或流
-      - 数值
-      optional_columns:
-      - 起点
-      - 终点
-      - 成本
-      - 单位
+      required_columns: [路径或流, 数值]
+      optional_columns: [起点, 终点, 成本, 单位]
     机理分析:
-      required_columns:
-      - 对象或机制
-      - 关系或结论
+      required_columns: [对象或机制, 关系或结论]
     状态明细:
-      required_columns:
-      - 记录键
-      optional_columns:
-      - 状态
-      - 数值
-      - 单位
+      required_columns: [记录键]
+      optional_columns: [状态, 数值, 单位]
     边界检验:
-      required_columns:
-      - 边界条件
-      - 检验指标
-      - 结论
+      required_columns: [边界条件, 检验指标, 结论]
     量纲检查:
-      required_columns:
-      - 公式或变量
-      - 量纲
-      - 结论
+      required_columns: [公式或变量, 量纲, 结论]
     决策变量明细:
-      required_columns:
-      - 变量
-      - 取值
-      optional_columns:
-      - 单位
-      - 上下界
+      required_columns: [变量, 取值]
+      optional_columns: [单位, 上下界]
     方案对比:
-      required_columns:
-      - 方案
-      - 目标值
-      - 可行性
+      required_columns: [方案, 目标值, 可行性]
     Pareto结果:
-      required_columns:
-      - 方案
-      - 目标一
-      - 目标二
+      required_columns: [方案, 目标一, 目标二]
     仿真明细:
-      required_columns:
-      - 记录键
-      - 场景
-      - 时刻
-      - 数值
+      required_columns: [记录键, 场景, 时刻, 数值]
     逐时刻结果:
-      required_columns:
-      - 时间
-      - 数值
+      required_columns: [时间, 数值]
     逐场景结果:
-      required_columns:
-      - 场景
-      - 指标
-      - 数值
+      required_columns: [场景, 指标, 数值]
     重复试验结果:
-      required_columns:
-      - 重复编号
-      - 指标
-      - 数值
+      required_columns: [重复编号, 指标, 数值]
   objective_profiles:
     explanation:
-      required_any:
-      - 机理分析
-      - 状态明细
-      - 边界检验
-      - 量纲检查
-      recommended:
-      - 边界检查
-      - 量纲检查
+      required_any: [机理分析, 状态明细, 边界检验, 量纲检查]
     inference:
-      required_any:
-      - 模型指标
-      - 参数估计
-      - 预测或分类结果
-      recommended:
-      - 交叉验证
-      - 可识别性检查
-      - 泄漏检查
-      - 不确定性区间
+      required_any: [模型指标, 参数估计, 预测或分类结果]
     prediction:
-      required_any:
-      - 预测明细
-      - 误差指标
-      - 外样本验证
-      recommended:
-      - 残差诊断
-      - 区间预测
-      - 基准模型对比
+      required_any: [预测明细, 误差指标, 外样本验证]
     evaluation:
-      required_any:
-      - 综合评分
-      - 排序结果
-      recommended:
-      - 指标权重
-      - 排名变化
+      required_any: [综合评分, 排序结果]
     optimization:
-      required_any:
-      - 推荐方案
-      - 决策变量明细
-      - 方案对比
-      - Pareto结果
-      recommended:
-      - 多算法对比
-      - 约束违反检查
+      required_any: [推荐方案, 决策变量明细, 方案对比, Pareto结果]
     simulation:
-      required_any:
-      - 仿真明细
-      - 逐时刻结果
-      - 逐场景结果
-      - 重复试验结果
-      recommended:
-      - 收敛诊断
-      - 不确定性区间
+      required_any: [仿真明细, 逐时刻结果, 逐场景结果, 重复试验结果]
   structure_profiles:
-    physical_mechanism:
-      recommended:
-      - 量纲检查
-      - 边界检查
-      - 守恒残差
-    temporal:
-      recommended:
-      - 时间切分
-      - 外样本验证
-      - 滞后检查
+    physical_mechanism: {recommended: [量纲检查, 边界检验, 守恒残差]}
+    temporal: {recommended: [外样本验证]}
     spatial:
-      required_any:
-      - 空间诊断
-      - 参数估计
-      recommended:
-      - 空间效应分解
-      - 局部结果
+      required_any: [空间诊断, 参数估计]
     network:
-      required_any:
-      - 节点结果
-      - 边结果
-      - 路径或流结果
-      recommended:
-      - 连通性检查
-      - 复杂度记录
-    scheduling:
-      recommended:
-      - 推荐方案
-      - 明细结果
-      - 约束违反检查
-    game:
-      recommended:
-      - 均衡残差
-      - 多均衡对比
-    stochastic:
-      recommended:
-      - 不确定性区间
-      - 扰动明细
-      - 算法稳定性
-    static_tabular:
-      recommended:
-      - 数据审计
-      - 泄漏检查
-      - 交叉验证
+      required_any: [节点结果, 边结果, 路径或流结果]
+    scheduling: {recommended: [推荐方案, 明细结果, 约束违反检查]}
+    game: {recommended: [均衡残差]}
+    stochastic: {recommended: [不确定性区间]}
+    static_tabular: {recommended: [数据审计, 泄漏检查]}
   task_profiles:
     status: deprecated_compatibility_only
-    prediction:
-      required_any:
-      - 预测明细
-      - 误差指标
-      - 外样本验证
-      recommended:
-      - 残差诊断
-      - 区间预测
-      - 基准模型对比
-    evaluation:
-      required_any:
-      - 综合评分
-      - 排序结果
-      recommended:
-      - 指标权重
-      - 排名变化
-    statistics_ml:
-      required_any:
-      - 模型指标
-      - 预测或分类结果
-      recommended:
-      - 交叉验证
-      - 校准结果
-      - 解释性结果
-      - 泄漏检查
-    spatial:
-      required_any:
-      - 空间诊断
-      - 参数估计
-      recommended:
-      - 空间效应分解
-      - 局部结果
-    graph_network:
-      required_any:
-      - 节点结果
-      - 边结果
-      - 路径或流结果
-      recommended:
-      - 连通性检查
-      - 复杂度记录
-sensitivity_robustness_workbook:
-  filename: 问题{中文序号}敏感性与鲁棒性结果.xlsx
+    prediction: {required_any: [预测明细, 误差指标, 外样本验证]}
+    evaluation: {required_any: [综合评分, 排序结果]}
+    statistics_ml: {required_any: [模型指标, 预测或分类结果]}
+    spatial: {required_any: [空间诊断, 参数估计]}
+    graph_network: {required_any: [节点结果, 边结果, 路径或流结果]}
+result_analysis_workbook:
+  filename: 问题{中文序号}结果深化分析.xlsx
+  role: 在主结果质量门通过后，保存按题目风险选择的结果解释、稳定性和适用边界证据
   required_any_sheets:
   - 参数敏感性
-  - 鲁棒性区间
-  - 扰动明细
-  - 算法稳定性
-  - 适用性说明
+  - 阈值与失效边界
+  - 场景压力测试
+  - 算法一致性
+  - 结构稳健性
+  - 异质性分析
+  - 误差分解
+  - 外样本稳定性
+  - 结论稳定性汇总
   sheet_schemas:
     参数敏感性:
-      required_columns:
-      - 参数
-      - 基准值
-      - 扰动值
-      - 目标指标
-      optional_columns:
-      - 变化率
-      - 弹性系数
-      - 单位
-      - 场景
-    鲁棒性区间:
-      required_columns:
-      - 指标
-      - 下界
-      - 上界
-      optional_columns:
-      - 置信水平
-      - 分位数口径
-      - 样本数
-      - 单位
-    扰动明细:
-      required_columns:
-      - 扰动编号
-      - 扰动对象
-      - 扰动值
-      - 结果指标
-      optional_columns:
-      - 随机种子
-      - 场景
-      - 是否可行
-      - 约束最大违反量
-    算法稳定性:
-      required_columns:
-      - 算法
-      - 重复编号
-      - 目标值
-      - 是否可行
-      optional_columns:
-      - 随机种子
-      - 运行时间
-      - 最优间隙
-      - 初值
-    适用性说明:
-      required_columns:
-      - 分析类型
-      - 不适用原因
-      - 替代检验
-      optional_columns:
-      - 证据位置
-      - 结论
+      required_columns: [参数, 基准值, 变化值, 结果指标]
+      optional_columns: [变化率, 弹性系数, Sobol指数, Morris均值, 单位, 场景]
+    阈值与失效边界:
+      required_columns: [分析对象, 临界值, 临界前结论, 临界后结论]
+      optional_columns: [单位, 搜索方法, 安全裕度, 说明]
+    场景压力测试:
+      required_columns: [场景, 变化条件, 结果指标, 是否可行]
+      optional_columns: [约束最大违反量, 相对损失, 稳定概率, 说明]
+    算法一致性:
+      required_columns: [算法, 重复编号, 目标值, 是否可行]
+      optional_columns: [随机种子, 初值, 运行时间, 最优间隙, 与主结果差异]
+    结构稳健性:
+      required_columns: [替代结构, 核心设定, 结果指标, 与主模型差异]
+      optional_columns: [排名相关, 结论是否一致, 说明]
+    异质性分析:
+      required_columns: [分组维度, 分组, 指标, 数值]
+      optional_columns: [样本数, 与总体差异, 置信区间, 说明]
+    误差分解:
+      required_columns: [误差来源, 指标, 数值]
+      optional_columns: [占比, 分组, 时间范围, 说明]
+    外样本稳定性:
+      required_columns: [划分或迁移场景, 指标, 数值]
+      optional_columns: [样本数, 时间范围, 地区, 基准值, 变化率]
+    结论稳定性汇总:
+      required_columns: [核心结论, 分析方法, 稳定范围, 是否保持]
+      optional_columns: [失效边界, 证据工作表, 论文位置, 说明]
 matlab_handoff:
-  required_mapping_fields:
-  - figure_id
-  - matlab_title
-  - paper_caption
-  - workbook
-  - worksheet
-  - required_headers
-  - matlab_script
-  - framework_registry
-  optional_mapping_fields:
-  - expected_column_positions
-  - units
-  - schema_hash
+  required_mapping_fields: [figure_id, matlab_title, paper_caption, workbook, worksheet, required_headers, matlab_script, framework_registry]
+  optional_mapping_fields: [expected_column_positions, units, schema_hash]
   field_resolution:
     method: exact_header_unique_match
     normalize_whitespace: true
@@ -582,6 +250,4 @@ matlab_handoff:
     content: 研究对象+指标或关系+必要方法信息
     caption_policy: 图注补充统计口径、数据范围和解释，不与MATLAB标题逐字重复
   reference_required: true
-  machine_readable_alternative:
-  - matlab_figure_handoff.json
-  - matlab_figure_handoff.yaml
+  machine_readable_alternative: [matlab_figure_handoff.json, matlab_figure_handoff.yaml]
