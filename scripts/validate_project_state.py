@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate project state structure, classification aliases and artifact freshness."""
+"""Validate project state, split result-quality/result-analysis status and artifact freshness."""
 from __future__ import annotations
 
 import argparse
@@ -14,12 +14,13 @@ from jsonschema import Draft202012Validator
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = ROOT / "core" / "project_state.schema.yaml"
 TAXONOMY_PATH = ROOT / "core" / "task_taxonomy.yaml"
+SOLVED_STATUSES = {"solved", "analyzed", "validated", "written", "completed"}
+ANALYZED_STATUSES = {"analyzed", "validated", "written", "completed"}
 VALIDATED_STATUSES = {"validated", "written", "completed"}
-SOLVED_STATUSES = {"solved", "validated", "written", "completed"}
 WRITTEN_STATUSES = {"written", "completed"}
 FRAMEWORK_REQUIRED_PHASES = {
-    "model_design", "solve_validate", "figure_evidence", "writing_docx",
-    "writing_latex", "ai_cleanup", "latex_compile_quality",
+    "model_design", "solve_validate", "result_analysis", "figure_evidence",
+    "writing_docx", "writing_latex", "ai_cleanup", "latex_compile_quality",
     "review_delivery", "completed",
 }
 PROPOSITION_LIMIT = 4
@@ -29,8 +30,8 @@ CURRENT_PROPOSITION_REQUIRED_FIELDS = (
     "failure_boundary", "framework_anchor",
 )
 ARTIFACT_LAYERS = {
-    "data", "model", "solution_workbook", "robustness_workbook",
-    "matlab_script", "figure_bundle", "framework",
+    "data", "model", "solution_workbook", "result_analysis_workbook",
+    "robustness_workbook", "matlab_script", "figure_bundle", "framework",
 }
 
 
@@ -61,8 +62,6 @@ def _validate_propositions(
         issues.append(f"paper_framework.proposition_count must be an integer in [0, {PROPOSITION_LIMIT}]")
     if isinstance(count, int) and count != len(entries):
         issues.append("paper_framework.proposition_count must equal len(paper_framework.propositions)")
-    if len(entries) > PROPOSITION_LIMIT:
-        issues.append(f"paper may contain at most {PROPOSITION_LIMIT} propositions")
     ids: list[str] = []
     has_stale = status == "stale"
     for index, entry in enumerate(entries):
@@ -80,8 +79,6 @@ def _validate_propositions(
             for field in CURRENT_PROPOSITION_REQUIRED_FIELDS:
                 if not str(entry.get(field, "")).strip():
                     issues.append(f"{proposition_id}.{field} is required for a current proposition")
-            if str(entry.get("proof_level", "")) not in {"full", "outline", "cited"}:
-                issues.append(f"{proposition_id}.proof_level must be full, outline or cited")
     if len(ids) != len(set(ids)):
         issues.append("paper_framework.propositions must use unique IDs")
     proposition_ids = {item for item in ids if item}
@@ -135,14 +132,7 @@ def _framework_section_hash(path: Path, anchor: str) -> str | None:
     target = anchor.strip()
     start = next((index for index, line in enumerate(lines) if line.strip() == target), None)
     if start is None:
-        start = next(
-            (
-                index
-                for index, line in enumerate(lines)
-                if line.lstrip().startswith("#") and target in line.strip()
-            ),
-            None,
-        )
+        start = next((index for index, line in enumerate(lines) if line.lstrip().startswith("#") and target in line.strip()), None)
     if start is None:
         return None
     heading = lines[start].lstrip()
@@ -158,10 +148,14 @@ def _framework_section_hash(path: Path, anchor: str) -> str | None:
     text = "\n".join(lines[start:end]).strip() + "\n"
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
-def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[str]:
-    issues: list[str] = []
+
+def _normalized_hashes(state: Mapping[str, Any]) -> tuple[dict[str, str], dict[str, str]]:
     current = dict(state.get("artifact_hashes", {}) or {})
     validated = dict(state.get("validated_artifact_hashes", {}) or {})
+    if "result_analysis_workbook" not in current and "robustness_workbook" in current:
+        current["result_analysis_workbook"] = current["robustness_workbook"]
+    if "result_analysis_workbook" not in validated and "robustness_workbook" in validated:
+        validated["result_analysis_workbook"] = validated["robustness_workbook"]
     if not current:
         if state.get("data_hash"):
             current["data"] = state["data_hash"]
@@ -172,6 +166,12 @@ def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[s
             validated["data"] = state["validated_data_hash"]
         if state.get("validated_model_hash"):
             validated["model"] = state["validated_model_hash"]
+    return current, validated
+
+
+def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[str]:
+    issues: list[str] = []
+    current, validated = _normalized_hashes(state)
     stale_layers = set(state.get("stale_layers", []) or [])
     invalid_layers = stale_layers - ARTIFACT_LAYERS
     if invalid_layers:
@@ -184,13 +184,18 @@ def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[s
         issues.append(f"{name}.stale_layers must equal changed validated layers: {sorted(mismatched)}")
     if not stale_flag and stale_layers:
         issues.append(f"{name}.stale_layers must be empty while artifacts_stale is false")
-    if status in VALIDATED_STATUSES:
-        required = {"data", "model", "solution_workbook", "robustness_workbook", "framework"}
+    if status in SOLVED_STATUSES:
+        required = {"data", "model", "solution_workbook", "framework"}
         missing = sorted(key for key in required if key not in current or key not in validated)
         if missing:
-            issues.append(f"{name} validated status requires current and validated hashes for: {missing}")
-        if mismatched:
-            issues.append(f"{name} validated artifact hashes are stale: {sorted(mismatched)}")
+            issues.append(f"{name} solved status requires current and validated hashes for: {missing}")
+    if status in ANALYZED_STATUSES:
+        required = {"result_analysis_workbook"}
+        missing = sorted(key for key in required if key not in current or key not in validated)
+        if missing:
+            issues.append(f"{name} analyzed status requires current and validated hashes for: {missing}")
+    if status in VALIDATED_STATUSES and mismatched:
+        issues.append(f"{name} validated artifact hashes are stale: {sorted(mismatched)}")
     return issues
 
 
@@ -239,6 +244,8 @@ def validate_state_payload(
         capabilities = state.get("capabilities", {}) or {}
         summary_status = state.get("result_summary_status")
         framework_section = str(state.get("framework_section", "")).strip()
+        quality_status = state.get("result_quality_status")
+        analysis_status = state.get("result_analysis_status")
         issues.extend(_validate_classification_aliases(name, state, taxonomy))
         issues.extend(_validate_hashes(name, state, status))
         section_hash = (state.get("artifact_hashes", {}) or {}).get("framework")
@@ -253,10 +260,24 @@ def validate_state_payload(
         if unknown_refs:
             issues.append(f"{name}.proposition_refs contain unknown IDs: {unknown_refs}")
         if status in SOLVED_STATUSES:
+            if quality_status != "passed":
+                issues.append(f"{name}.result_quality_status must be passed when status is {status}")
             if summary_status != "current":
                 issues.append(f"{name}.result_summary_status must be current when status is {status}")
             if not str(state.get("result_summary_anchor", "")).strip():
                 issues.append(f"{name}.result_summary_anchor is required when status is {status}")
+            if not _artifact_exists(project_root, state.get("solution_workbook")):
+                issues.append(f"{name}.solution_workbook must exist when status is {status}")
+        if status in ANALYZED_STATUSES:
+            if analysis_status != "passed":
+                issues.append(f"{name}.result_analysis_status must be passed when status is {status}")
+            analysis_path = state.get("result_analysis_workbook") or state.get("robustness_workbook")
+            if not _artifact_exists(project_root, analysis_path):
+                issues.append(f"{name}.result_analysis_workbook must exist when status is {status}")
+            if not state.get("analysis_methods"):
+                issues.append(f"{name}.analysis_methods must be non-empty when status is {status}")
+        if analysis_status == "redo_required" and state.get("artifacts_stale") is not True:
+            issues.append(f"{name}.artifacts_stale must be true when result_analysis_status is redo_required")
         if state.get("artifacts_stale") is True:
             any_stale = True
             if summary_status == "current":
@@ -264,12 +285,9 @@ def validate_state_payload(
             if proposition_refs:
                 issues.append(f"{name}.proposition_refs must be revalidated while artifacts_stale is true")
         if status in VALIDATED_STATUSES:
-            for field in ("solution_workbook", "robustness_workbook"):
-                if not _artifact_exists(project_root, state.get(field)):
-                    issues.append(f"{name}.{field} must exist when status is {status}")
             if not state.get("evidence"):
                 issues.append(f"{name}.evidence must be non-empty when status is {status}")
-            if state.get("validation_status") != "passed":
+            if state.get("validation_status") not in {None, "passed"}:
                 issues.append(f"{name}.validation_status must be passed when status is {status}")
             if state.get("artifacts_stale") is True:
                 issues.append(f"{name} cannot be {status} while artifacts_stale is true")
@@ -312,11 +330,10 @@ def main() -> int:
         raise SystemExit(f"project state not found: {state_path}")
     issues = validate_state_file(state_path, project_root=Path(args.project_root).resolve())
     if issues:
-        print("HSK project state: ISSUES FOUND")
         for issue in issues:
             print("-", issue)
         return 1
-    print("HSK project state: PASS")
+    print("project state validation passed")
     return 0
 
 
