@@ -2,20 +2,43 @@
 
 ## Current release: 6.4.0
 
+### Quality-first primary solving
+
+- `modules/03_solve_validate.md` now represents complete primary solving plus a mandatory result-quality gate.
+- Solver termination, feasibility, optimality gap, residuals, convergence, leakage, base out-of-sample accuracy, uncertainty and identifiability remain in primary solving when applicable.
+- The quality report is persisted in `问题X求解结果.xlsx` as `主结果质量门`; failed primary results cannot enter downstream analysis.
+
+### Adaptive result analysis
+
+- Added `modules/03_result_analysis.md` after primary solving and before figures.
+- Result analysis methods are selected from the actual problem, model, data, primary-result behavior and reviewer risk.
+- Supported evidence families include sensitivity, scenario robustness, multi-algorithm consistency, structural robustness, thresholds, heterogeneity, error decomposition and out-of-sample stability.
+- Uniform ±5%/±10% perturbation is explicitly forbidden as a default template.
+- Analysis failures can set `redo_required`, propagate stale and return the workflow to model design or primary solving.
+
+### Workbook and state contracts
+
+- New projects write `问题X求解结果.xlsx` and `问题X结果深化分析.xlsx`.
+- Result-analysis workbooks require `分析设计`, at least one substantive analysis sheet and `结论稳定性汇总`.
+- `result_quality_status` and `result_analysis_status` are tracked separately.
+- Artifact hashes now distinguish `solution_workbook` and `result_analysis_workbook`.
+- Legacy `问题X敏感性与鲁棒性结果.xlsx` remains read-only compatible but is not a new-project deliverable.
+
+### Python, MATLAB and synchronization
+
+- Added authoritative `run_primary_pipeline()` and `run_result_analysis_pipeline()` functions.
+- Updated all starter templates to expose separate quality and result-analysis hooks.
+- MATLAB handoff and readers now consume primary-solve and result-analysis workbooks.
+- Project synchronization uses solved/analyzed state semantics and never promotes either quality or analysis status.
+
 ### LaTeX-first default workflow
 
-- 默认 `full_workflow` 从正式图表直接进入 LaTeX、AI 模板感清除、编译与终审，不再自动加载 DOCX。
-- `docx` 路由、`writing_docx` 模块和 `docx` delivery scope 保留，仅由显式 Word/DOCX 请求触发。
-- DOCX 不再是 LaTeX 的事实源或进入门槛；LaTeX 直接读取当前 `模型论文框架.md`、标准工作簿和已批准图表。
+- Default `full_workflow` proceeds from approved figures directly to LaTeX, AI cleanup, compilation and final review.
+- DOCX route, module and delivery scope remain available only for explicit Word/DOCX requests.
+- DOCX is not a LaTeX prerequisite.
 
 ### Stable active filenames
 
-- 新增 `PROJECT_INSTRUCTIONS.md`、`RUNTIME_ROUTER.md`、`SKILL_FILE_INDEX.md` 和 `TEMPLATE_INDEX.md` 作为稳定活动入口。
-- 旧 `V622` 文件名保留为兼容指针，不再复制活动规则。
-- `scripts/generate_indexes.py` 统一生成新索引、旧兼容指针和 `MANIFEST.sha256`。
-
-### Compatibility
-
-- 旧项目仍可显式执行 DOCX route 和 DOCX delivery scope。
-- 目录、工作簿 Schema、项目状态字段、同步器 stale 语义和 Python—Excel—MATLAB 证据链保持兼容。
-- 历史版本 Changelog 保留，不参与当前规则入口。
+- Active instructions and indexes use `PROJECT_INSTRUCTIONS.md`, `RUNTIME_ROUTER.md`, `SKILL_FILE_INDEX.md` and `TEMPLATE_INDEX.md`.
+- Old `V622` filenames remain compatibility pointers.
+- `scripts/generate_indexes.py` manages active indexes, pointers and `MANIFEST.sha256`.
