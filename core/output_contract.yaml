@@ -7,58 +7,45 @@ project_root:
   model_paper_framework: 模型论文框架.md
   project_state: state/project_state.yaml
   sync_report: sync_report.yaml
-  python_scripts: 问题求解、检验、敏感性与鲁棒性Python脚本直接放在项目根目录
+  python_scripts: 主求解、结果深化分析和专项检验Python脚本直接放在项目根目录
   result_tables: 结果数据表/
   draft_docx: draft_docx/
   final_latex: final_latex/
   submission: submission/
 writing_policy:
   default_mode: latex_first
-  default_sequence:
-  - figure_evidence
-  - writing_latex
-  - ai_cleanup
-  - latex_compile_quality
+  default_sequence: [figure_evidence, writing_latex, ai_cleanup, latex_compile_quality]
   docx_mode: explicit_only_independent
   docx_is_latex_prerequisite: false
+result_policy:
+  primary_solve_role: 在当前题意、数据和模型口径下得到高精度、可行、收敛且可复算的主结果
+  primary_quality_gate_required: true
+  result_analysis_role: 在主结果通过质量门后解释形成机制、稳定范围、适用边界和算法或结构依赖
+  result_analysis_method_selection: based_on_problem_model_data_result_and_reviewer_risk
+  fixed_perturbation_forbidden: true
+  feedback_loop: 深化分析发现主结果不可靠时，标记下游stale并回退模型设计或主求解
 model_paper_framework:
   path: 模型论文框架.md
   template: templates/model/model_paper_framework.md
   create_after: locked_model_spec
-  role: 当前有效模型语义、论文结构、命题规划、逐问结果摘要与图表映射
+  role: 当前有效模型语义、论文结构、命题规划、逐问主结果与深化分析摘要和图表映射
   modes:
     compact:
       use_when: 日常迭代、单问交付、普通聊天续作
-      required_sections:
-      - 当前有效口径
-      - 各问模型与结果
-      - 图表证据链
-      - 待办与缺口
+      required_sections: [当前有效口径, 各问模型与结果, 图表证据链, 待办与缺口]
     full:
       use_when: 跨聊天交接、完整复现、DOCX/LaTeX终稿、终审提交
-      required_sections:
-      - 当前有效口径
-      - 论文整体框架
-      - 命题与证明规划
-      - 各问模型与结果
-      - 综合检验与跨问结论
-      - 图表证据链
-      - 待办与缺口
-      - 同步检查
-  validation_mode_priority:
-  - cli
-  - project_state
-  - framework_header
-  - default
+      required_sections: [当前有效口径, 论文整体框架, 命题与证明规划, 各问模型与结果, 综合检验与跨问结论, 图表证据链, 待办与缺口, 同步检查]
+  validation_mode_priority: [cli, project_state, framework_header, default]
   default_mode: compact
   history_policy: 文件内部不累积旧版；旧版本由Git历史保存
-  replacement_policy: 模型、参数、约束、数据处理、算法、命题、证明、结果或图表变化时，删除受影响旧内容并完整替换
+  replacement_policy: 模型、参数、约束、数据处理、算法、主结果或深化分析变化时，删除受影响旧内容并完整替换
   formal_delivery_sync: true
   result_summary_required_after: solved
   authoritative_boundaries:
     model_semantics_and_paper_structure: 模型论文框架.md
     machine_state_and_freshness: state/project_state.yaml
-    numerical_results: 每问两类标准工作簿
+    numerical_results: 主求解工作簿与结果深化分析工作簿
 project_sync:
   role: formal_pre_delivery_gate
   script: scripts/sync_project.py
@@ -66,19 +53,13 @@ project_sync:
   default_mode: dry_run
   write_flag: --write
   strict_flag: --strict
-  command: python scripts/sync_project.py <project_root> --write --strict --delivery-scope
-    <scope>
-  delivery_scopes:
-  - design
-  - results
-  - figures
-  - docx
-  - latex
-  - submission
+  command: python scripts/sync_project.py <project_root> --write --strict --delivery-scope <scope>
+  delivery_scopes: [design, results, figures, docx, latex, submission]
   phase_scope_mapping:
     problem_audit: design
     model_design: design
     solve_validate: results
+    result_analysis: results
     figure_evidence: figures
     writing_docx: docx
     writing_latex: latex
@@ -89,68 +70,19 @@ project_sync:
   stage_requirements_authority: core/output_contract.yaml#project_sync.stage_requirements
   stage_requirements_semantics: exact_scope
   stage_requirements:
-    design:
-    - project_state
-    - model_paper_framework
-    results:
-    - project_state
-    - model_paper_framework
-    - python_code
-    - solution_workbook
-    - sensitivity_robustness_workbook
-    figures:
-    - project_state
-    - model_paper_framework
-    - solution_workbook
-    - sensitivity_robustness_workbook
-    - matlab_scripts
-    - result_figures
-    - figure_evidence
-    docx:
-    - project_state
-    - model_paper_framework
-    - solution_workbook
-    - sensitivity_robustness_workbook
-    - approved_figures
-    - docx_draft
-    latex:
-    - project_state
-    - model_paper_framework
-    - approved_figures
-    - latex_source
-    - compiled_pdf
-    - compile_report
-    submission:
-    - project_state
-    - model_paper_framework
-    - compiled_pdf
-    - validated_submission_package
-  artifact_hash_layers:
-  - data
-  - model
-  - solution_workbook
-  - robustness_workbook
-  - matlab_script
-  - figure_bundle
-  - framework
+    design: [project_state, model_paper_framework]
+    results: [project_state, model_paper_framework, python_code, solution_workbook, result_quality_report, result_analysis_workbook, result_analysis_report]
+    figures: [project_state, model_paper_framework, solution_workbook, result_analysis_workbook, matlab_scripts, result_figures, figure_evidence]
+    docx: [project_state, model_paper_framework, solution_workbook, result_analysis_workbook, approved_figures, docx_draft]
+    latex: [project_state, model_paper_framework, approved_figures, latex_source, compiled_pdf, compile_report]
+    submission: [project_state, model_paper_framework, compiled_pdf, validated_submission_package]
+  artifact_hash_layers: [data, model, solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, framework]
   stale_propagation:
-    data_or_model:
-    - solution_workbook
-    - robustness_workbook
-    - validation
-    - matlab_script
-    - figure_bundle
-    - result_summary
-    workbooks:
-    - validation
-    - matlab_script
-    - figure_bundle
-    - result_summary
-    matlab_script:
-    - figure_bundle
-    - paper_figure_evidence
-    figure_bundle:
-    - paper_figure_evidence
+    data_or_model: [solution_workbook, result_quality, result_analysis_workbook, result_analysis, matlab_script, figure_bundle, result_summary]
+    solution_workbook: [result_quality, result_analysis_workbook, result_analysis, matlab_script, figure_bundle, result_summary]
+    result_analysis_workbook: [result_analysis, matlab_script, figure_bundle, result_summary]
+    matlab_script: [figure_bundle, paper_figure_evidence]
+    figure_bundle: [paper_figure_evidence]
   write_order:
   - 发现产物并执行工作簿与图表链检查
   - 计算当前分层哈希并比较已验证哈希
@@ -161,21 +93,19 @@ project_sync:
   - 执行写后哈希自检
   responsibilities:
   - 进入产物同步前强制执行项目状态Schema/语义校验与模型论文框架校验
-  - 发现根目录Python、每问工作簿、MATLAB脚本和图表
+  - 发现根目录Python、每问主求解与结果深化工作簿、MATLAB脚本和图表
   - 复用工作簿Schema检查工作表、字段、capability条件、主键、非有限数值和约束判定
   - 核对MATLAB工作簿引用、声明导出图、正式图存在性和时间新旧关系
   - 计算输入、模型、两类工作簿、MATLAB脚本、图表包和框架哈希
   - 当已验证哈希变化时按证据链传播stale
-  - 只允许设置或保持stale；清除stale必须由验证流程在完整验证哈希覆盖后显式完成
-  - 更新产物路径、项目状态和同步报告
+  - 只允许设置或保持stale；清除stale必须由质量门或结果分析流程在完整验证哈希覆盖后显式完成
   - 对DOCX、LaTeX与提交scope检查真实文件、编译报告、图片引用和提交ZIP内容
-  - 优先按data.sources计算数据哈希，避免论文、草稿和提交包污染数据版本
   forbidden:
   - 自动生成模型语义
   - 自动清除artifacts_stale或stale_layers
   - 自动填写结果数值
-  - 自动把validation_status提升为passed
-  - 以文件存在代替可行性或正确性验证
+  - 自动把result_quality_status或result_analysis_status提升为passed
+  - 以文件存在代替可行性、精度或稳定性验证
   artifact_hash_semantics:
     global_framework: paper_framework.sha256记录完整模型论文框架文件哈希
     subproblem_framework: subproblem.artifact_hashes.framework记录framework_section对应章节哈希
@@ -184,19 +114,11 @@ project_sync:
     fallback: 仅扫描根目录数据型文件，不包含PDF、DOCX、ZIP和正式交付目录
   figure_provenance:
     record: 结果数据表/问题X/figure_evidence.yaml
-    hashes:
-    - solution_workbook
-    - robustness_workbook
-    - matlab_script
-    - figure_bundle
-    - individual_figures
+    hashes: [solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, individual_figures]
     mtime_role: 缺少哈希证据时的辅助警告，不作为主要判定
 classification_contract:
   taxonomy: core/task_taxonomy.yaml
-  current_axes:
-  - objective
-  - structures
-  - capabilities
+  current_axes: [objective, structures, capabilities]
   per_subproblem: true
   authoritative_locations:
     objective_and_structures: subproblem.classification
@@ -211,31 +133,13 @@ proposition_contract:
   maximum_per_paper: 4
   minimum_per_paper: 0
   detail_pack: packs/artifact/proposition_proof.md
-  lazy_load_when:
-  - explicit_proof_request
-  - proposition_count_greater_than_zero
+  lazy_load_when: [explicit_proof_request, proposition_count_greater_than_zero]
   latex_outer_environment: hskproposition
   latex_proof_environment: hskproof
   main_text_default_proof_level: outline
   main_text_key_steps_min: 2
   main_text_key_steps_max: 6
-  required_fields:
-  - proposition_id
-  - assumptions_and_domain
-  - conclusion
-  - proof_level
-  - modeling_effect
-  - failure_boundary
-  - status
-  display_contract:
-    single_outer_box: true
-    statement_and_proof_in_same_box: true
-    nested_box_forbidden: true
-    background: white
-    border: thin
-    shadow: false
-    large_color_fill: false
-    flowchart_or_mechanism_color_rule_applies: false
+  required_fields: [proposition_id, assumptions_and_domain, conclusion, proof_level, modeling_effect, failure_boundary, status]
   hard_rules:
   - 命题必须实际服务问题简化、模型必要性、关键点识别、降维、约束删减、可行性保持或理论边界。
   - 数值实验、准确率比较和求解器退出状态不能替代数学证明。
@@ -244,10 +148,12 @@ per_question:
   question_directory: 结果数据表/问题{中文序号}/
   mandatory_workbooks:
     solution: 问题{中文序号}求解结果.xlsx
-    sensitivity_robustness: 问题{中文序号}敏感性与鲁棒性结果.xlsx
+    result_analysis: 问题{中文序号}结果深化分析.xlsx
   matlab_script: q{阿拉伯序号}_plot.m
   figure_directory: 图表/
   optional_editable_directory: 图表/可编辑源/
+  legacy_compatibility:
+    sensitivity_robustness_filename: 旧项目只读兼容，不得用于新交付
 matlab_figure_contract:
   title_required: true
   single_panel_title: title
@@ -267,7 +173,7 @@ matlab_figure_contract:
   provenance_record: figure_evidence.yaml
   mtime_role: auxiliary_warning_only
 ownership:
-  Python: 读取项目根目录题目附件，完成数据处理、求解、优化、仿真、检验、敏感性、鲁棒性并输出工作簿
+  Python: 主求解阶段完成高精度求解与质量门；随后按题设计结果深化分析并输出对应工作簿
   MATLAB: 与对应问题工作簿同目录，精确读取真实表头绘图，不重新计算核心结果
   other_figure_tools: GeoGebra、PPT、draw.io、SVG、TikZ可用于非数据驱动机理图
 filenames:
@@ -280,27 +186,13 @@ filenames:
   worksheets: 中文描述性名称，最长31字符
   figures: ASCII英文或拼音
 optional_metadata:
-  run_info.json:
-  - full_reproduction
-  - many_algorithms
-  - cross_chat_handoff
-  - final_review
-  - explicit_request
-  result_manifest.yaml:
-  - full_reproduction
-  - many_algorithms
-  - cross_chat_handoff
-  - final_review
-  - explicit_request
-  matlab_figure_handoff.json:
-  - many_figures
-  - cross_chat_handoff
-  - explicit_request
+  run_info.json: [full_reproduction, many_algorithms, cross_chat_handoff, final_review, explicit_request]
+  result_manifest.yaml: [full_reproduction, many_algorithms, cross_chat_handoff, final_review, explicit_request]
+  matlab_figure_handoff.json: [many_figures, cross_chat_handoff, explicit_request]
   metadata_location: 对应的结果数据表/问题X/
 rules:
 - 每次正式模型、代码、工作簿、图表、DOCX、LaTeX或提交包交付前必须成功执行project_sync gate并生成sync_report。
-- sync_report只有在gate成功执行后才视为available产物。
-- 同步器只做发现、校验、哈希和stale传播，不替代求解与验证。
+- 同步器只做发现、校验、哈希和stale传播，不替代主求解质量门与结果深化分析。
 - 不再默认创建Python求解/、MATLAB绘图/或问题X结果数据/重复层级。
 - Excel工作簿是默认结果交换格式；CSV仅用于明确兼容需求。
-- 所有工作表必须非空；不适用分析写入非空适用性说明。
+- 所有工作表必须非空；不生成不适用分析的占位工作表。
