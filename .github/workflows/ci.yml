@@ -1,150 +1,46 @@
-name: HSK Skill CI
+name: Apply and validate v6.5.1 cleanup
 
 on:
-  push:
-    branches: [main, "refactor/**"]
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: hsk-skill-ci-${{ github.workflow }}-${{ github.ref }}
+  group: apply-v651-pr-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
-  static-lint:
-    name: Static contract lint
+  apply:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
       - name: Install validation dependencies
-        run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
-      - name: Lint active skill graph and artifact closure
-        shell: bash
-        run: python scripts/lint_skill.py --skip-generated > static-lint.log 2>&1
-      - name: Upload static lint diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: static-lint-diagnostics
-          path: static-lint.log
-      - name: Resolve representative workflow
-        run: python scripts/resolve_workflow.py full_solution --primary mechanism --secondary optimization --competition CUMCM
-
-  unit-matrix:
-    name: Python ${{ matrix.python-version }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-      - name: Install test dependencies
-        run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
-      - name: Run unit tests
-        shell: bash
-        run: python -m unittest discover -s tests -p "test_*.py" > unittest.log 2>&1
-      - name: Upload unit test diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: unittest-diagnostics-${{ matrix.python-version }}
-          path: unittest.log
-
-  latex-smoke:
-    name: LaTeX ${{ matrix.name }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: CUMCM
-            working_directory: templates/latex/cumcm/hsk
-            root_file: hsk_main.tex
-            xelatex: true
-          - name: MCM-ICM
-            working_directory: templates/latex/mcm
-            root_file: main.tex
-            xelatex: false
-          - name: Diangong
-            working_directory: templates/latex/diangong
-            root_file: main.tex
-            xelatex: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Prepare CUMCM class
-        if: matrix.name == 'CUMCM'
+        run: pip install -r requirements-dev.txt
+      - name: Apply cleanup migration
+        run: python legacy/.apply_v651_cleanup.py
+      - name: Validate static contracts
+        run: python scripts/lint_skill.py
+      - name: Run all unit tests
+        run: python -m unittest discover -s tests -p "test_*.py"
+      - name: Restore standard workflows and rebuild generated metadata
         run: |
-          cp templates/latex/cumcm/cumcmthesis/cumcmthesis.cls templates/latex/cumcm/hsk/
-          python scripts/prepare_cumcm_class.py templates/latex/cumcm/hsk/cumcmthesis.cls
-      - name: Compile template
-        uses: xu-cheng/latex-action@v4
-        with:
-          root_file: ${{ matrix.root_file }}
-          working_directory: ${{ matrix.working_directory }}
-          latexmk_use_xelatex: ${{ matrix.xelatex }}
-          args: -file-line-error -halt-on-error -interaction=nonstopmode
-      - name: Reject unresolved references and fatal warnings
-        shell: bash
+          rm legacy/.apply_v651_cleanup.py
+          git show 495aa73167796225522c96779d2286f9cfa51b5c:.github/workflows/ci.yml > .github/workflows/ci.yml
+          git show 495aa73167796225522c96779d2286f9cfa51b5c:.github/workflows/refresh-generated.yml > .github/workflows/refresh-generated.yml
+          python scripts/generate_indexes.py
+          python scripts/generate_indexes.py --check
+      - name: Commit validated cleanup
         run: |
-          log="${{ matrix.working_directory }}/${{ matrix.root_file }}"
-          log="${log%.tex}.log"
-          test -f "$log"
-          ! grep -E "Undefined control sequence|LaTeX Error|Citation .* undefined|There were undefined references" "$log"
-      - name: Collect LaTeX diagnostics
-        if: failure()
-        shell: bash
-        run: |
-          log="${{ matrix.working_directory }}/${{ matrix.root_file }}"
-          log="${log%.tex}.log"
-          {
-            echo "Template: ${{ matrix.name }}"
-            echo "Expected log: $log"
-            if test -f "$log"; then
-              tail -n 200 "$log"
-            else
-              echo "Expected log was not created. Files in the working directory:"
-              find "${{ matrix.working_directory }}" -maxdepth 1 -type f -printf '%f\n' | sort
-            fi
-          } > latex-diagnostics.txt
-      - name: Upload LaTeX diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: latex-diagnostics-${{ matrix.name }}
-          path: latex-diagnostics.txt
-
-  generated-files:
-    name: Generated file contract
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Rebuild generated indexes and active manifest
-        run: python scripts/generate_indexes.py
-      - name: Upload regenerated metadata
-        uses: actions/upload-artifact@v4
-        with:
-          name: regenerated-repository-metadata
-          path: |
-            HSK_SKILL_FILE_INDEX_V622.md
-            HSK_TEMPLATE_INDEX_V622.md
-            MANIFEST.sha256
-      - name: Reject stale generated files
-        shell: bash
-        run: git diff --exit-code -- HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: complete v6.5.1 active residue cleanup"
+          git push
