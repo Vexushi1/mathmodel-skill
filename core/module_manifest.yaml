@@ -1,4 +1,4 @@
-version: 6.4.1
+version: 6.5.0
 workflow_order:
 - problem_audit
 - model_design
@@ -32,6 +32,8 @@ external_artifacts:
 - existing_project_state
 - existing_model_paper_framework
 - discovered_artifacts
+- accepted_solution_workbook
+- accepted_result_analysis_workbook
 artifact_catalog:
   requirement_map: 题目要求与交付映射
   subproblem_map: 小问依赖和边界
@@ -47,7 +49,13 @@ artifact_catalog:
   model_paper_framework: 当前有效模型语义、论文组织、逐问结果摘要和图表映射
   mechanism_contracts: 机理图合同
   validation_plan: 建模阶段识别的风险与候选验证方向
-  python_code: Python主求解与结果分析代码
+  python_code: 用户本地执行的完整版Python主求解代码
+  result_analysis_code: 用户本地执行的完整版结果深化分析代码
+  full_run_config: 完整精度运行参数、代码与数据哈希和禁止降级标志
+  execution_instructions: 用户本地运行与返回工作簿说明
+  code_delivery_report: 不执行赛题代码的静态交付检查报告
+  awaiting_user_execution: 等待用户本地运行并返回工作簿的暂停状态
+  user_execution_validation_report: 用户返回工作簿的运行配置、哈希和质量门验收报告
   solution_workbook: 每问高质量主求解结果工作簿
   result_quality_report: 主结果精度、收敛、可行性和基础正确性报告
   solved_results: 已通过主结果质量门的结果
@@ -82,13 +90,18 @@ workflow_profiles:
     module_terminal_outputs: [requirement_map, route_comparison, selected_models, locked_model_spec, formula_closure, validation_plan, model_paper_framework]
     pre_delivery_gates: [project_sync]
     terminal_outputs: [requirement_map, route_comparison, selected_models, locked_model_spec, formula_closure, validation_plan, model_paper_framework, project_state, sync_report]
-  full_solution:
-    modules: [problem_audit, model_design, solve_validate, result_analysis]
-    module_terminal_outputs: [python_code, solution_workbook, result_quality_report, result_analysis_workbook, result_analysis_report, validated_results, proposition_plan, model_paper_framework]
-    pre_delivery_gates: [project_sync]
-    terminal_outputs: [python_code, solution_workbook, result_quality_report, result_analysis_workbook, result_analysis_report, validated_results, proposition_plan, model_paper_framework, project_state, sync_report]
+full_solution:
+  modules: [problem_audit, model_design, solve_validate]
+  module_terminal_outputs: [python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, proposition_plan, model_paper_framework]
+  pre_delivery_gates: [code_delivery]
+  terminal_outputs: [python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, proposition_plan, model_paper_framework, project_state]
   full_workflow:
-    modules: [problem_audit, model_design, solve_validate, result_analysis, figure_evidence, writing_latex, ai_cleanup, latex_compile_quality, review_delivery]
+    modules: [problem_audit, model_design, solve_validate]
+    module_terminal_outputs: [python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
+    pre_delivery_gates: [code_delivery]
+    terminal_outputs: [python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework, project_state]
+modules:
+modules: [problem_audit, model_design, solve_validate, result_analysis, figure_evidence, writing_latex, ai_cleanup, latex_compile_quality, review_delivery]
     module_terminal_outputs: [validated_submission_package, model_paper_framework]
     pre_delivery_gates: [project_sync]
     terminal_outputs: [validated_submission_package, model_paper_framework, project_state, sync_report]
@@ -101,14 +114,14 @@ modules:
     path: modules/02_model_design.md
     inputs: [requirement_map, data_schema, classification_by_subproblem]
     outputs: [route_comparison, selected_models, locked_model_spec, formula_closure, proposition_plan, model_paper_framework, mechanism_contracts, validation_plan]
-  solve_validate:
-    path: modules/03_solve_validate.md
-    inputs: [locked_model_spec, formula_closure, proposition_plan, model_paper_framework, data_schema, data, workbook_schema]
-    outputs: [python_code, solution_workbook, result_quality_report, solved_results, constraint_checks, evidence_map, model_paper_framework]
-  result_analysis:
-    path: modules/03_result_analysis.md
-    inputs: [solved_results, solution_workbook, result_quality_report, validation_plan, model_paper_framework, workbook_schema]
-    outputs: [result_analysis_plan, result_analysis_workbook, result_analysis_report, validated_results, evidence_map, model_paper_framework]
+solve_validate:
+  path: modules/03_solve_validate.md
+  inputs: [locked_model_spec, formula_closure, proposition_plan, model_paper_framework, data_schema, data, workbook_schema]
+  outputs: [python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
+result_analysis:
+  path: modules/03_result_analysis.md
+  inputs: [accepted_solution_workbook, result_quality_report, validation_plan, model_paper_framework, workbook_schema]
+  outputs: [result_analysis_plan, result_analysis_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
   figure_evidence:
     path: modules/04_figure_evidence.md
     inputs: [solution_workbook, result_analysis_workbook, workbook_schema, model_paper_framework, mechanism_contracts, evidence_map]
@@ -134,12 +147,23 @@ modules:
     inputs: [all_requested_artifacts, proposition_plan, model_paper_framework, output_contract, workbook_schema, compile_profile, compile_report]
     outputs: [review_report, validated_submission_package]
 utility_gates:
+  code_delivery:
+    path: scripts/validate_code_delivery.py
+    command: python scripts/validate_code_delivery.py <project_root> --write --strict
+    inputs: [existing_project_state, existing_model_paper_framework, python_code, full_run_config, execution_instructions]
+    outputs: [code_delivery_report, project_state, awaiting_user_execution]
+  user_execution_receipt:
+    path: scripts/validate_user_execution.py
+    command: python scripts/validate_user_execution.py <project_root> --write --strict
+    inputs: [existing_project_state, discovered_artifacts]
+    outputs: [user_execution_validation_report, project_state, solution_workbook, result_analysis_workbook]
   project_sync:
+
     path: scripts/sync_project.py
     command: python scripts/sync_project.py <project_root> --write --strict --delivery-scope <delivery_scope>
     inputs: [existing_project_state, existing_model_paper_framework, discovered_artifacts, workbook_schema, output_contract]
     outputs: [project_state, sync_report]
-    delivery_scopes: [design, results, figures, docx, latex, submission]
+    delivery_scopes: [design, code, results, figures, docx, latex, submission]
     stage_requirements_source: core/output_contract.yaml#project_sync.stage_requirements
     rules:
     - Reads exact delivery requirements from core/output_contract.yaml before checking artifacts.

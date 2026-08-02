@@ -1,0 +1,100 @@
+version: 1.0.0
+skill_version: 6.5.0
+purpose: Define the user-executed full-fidelity numerical workflow without allowing the assistant to run task-specific solve or result-analysis programs.
+default_mode:
+  execution_owner: user
+  execution_profile: full_fidelity
+  assistant_runs_task_specific_code: false
+  local_pipeline_remains_runnable_by_user: true
+assistant_policy:
+  prohibited:
+  - 运行、导入或通过subprocess/runpy/notebook执行问题X求解.py
+  - 运行、导入或通过subprocess/runpy/notebook执行问题X结果深化分析.py
+  - 为节省时间自动缩减数据、网格、时域、场景、重复次数、随机种子、迭代次数或容差
+  - 在完整版失败后静默切换轻量模型、替代求解器、粗粒度近似或演示结果
+  - 用户未返回工作簿前声称已求解、已分析或已得到正式数值
+  allowed:
+  - 审题、模型设计、公式闭环和完整版代码生成
+  - 不导入求解脚本的静态代码检查、依赖检查和语法检查
+  - 读取用户返回的工作簿并执行Schema、哈希、质量门和证据一致性校验
+  - 运行本Skill仓库自身的lint、单元测试、索引生成和LaTeX模板CI
+full_fidelity_flags:
+  execution_profile: full_fidelity
+  allow_reduced_data: false
+  allow_coarser_grid: false
+  allow_shorter_horizon: false
+  allow_fewer_repetitions: false
+  allow_relaxed_tolerance: false
+  allow_silent_solver_fallback: false
+code_delivery:
+  required_artifacts:
+  - task_specific_python_code
+  - full_run_config
+  - execution_instructions
+  required_config_fields:
+  - execution_owner
+  - execution_profile
+  - stage
+  - problem_name
+  - code_path
+  - code_sha256
+  - data_paths
+  - solver
+  - solver_version
+  - random_seed
+  - tolerance
+  - iteration_or_time_limit
+  - expected_workbook
+  - allow_reduced_data
+  - allow_coarser_grid
+  - allow_shorter_horizon
+  - allow_fewer_repetitions
+  - allow_relaxed_tolerance
+  - allow_silent_solver_fallback
+  no_placeholder_markers: [TODO, FIXME, __QUESTION_NAME__, NotImplementedError]
+execution_states:
+  primary: [pending, code_delivered, awaiting_user_execution, workbook_received, accepted, rejected]
+  analysis: [pending, code_delivered, awaiting_user_execution, workbook_received, accepted, rejected, redo_required]
+  rules:
+  - 代码交付不得把小问status提升为solved或analyzed。
+  - primary_execution_status=accepted且主结果质量门通过后，status才可进入solved。
+  - analysis_execution_status=accepted且结论稳定性校验通过后，status才可进入analyzed。
+  - 主工作簿未验收前不得生成最终结果深化分析代码；只能形成候选分析方向。
+returned_workbook:
+  required_sheet: 运行配置
+  required_columns: [项目, 值]
+  required_items:
+  - execution_owner
+  - execution_profile
+  - stage
+  - problem_name
+  - code_sha256
+  - data_sha256
+  - solver
+  - solver_version
+  - tolerance
+  - iteration_or_time_limit
+  - actual_stop_reason
+  - random_seed
+  - repetitions_or_scenarios
+  - grid_or_time_range
+  - fallback_used
+  - platform
+  acceptance_rules:
+  - execution_owner必须为user。
+  - execution_profile必须为full_fidelity。
+  - 所有缩减、放宽和静默回退标志必须为false。
+  - fallback_used必须为false；需要替代求解器时必须形成新版代码与新版配置后重跑。
+  - code_sha256必须与已交付代码完全一致。
+  - 主结果工作簿必须通过主结果质量门，结果深化分析工作簿必须包含分析设计和结论稳定性汇总。
+filenames:
+  primary_code: 问题X求解.py
+  primary_config: 问题X完整运行配置.yaml
+  primary_instructions: 问题X本地运行说明.md
+  primary_workbook: 结果数据表/问题X/问题X求解结果.xlsx
+  analysis_code: 问题X结果深化分析.py
+  analysis_config: 问题X结果深化完整运行配置.yaml
+  analysis_instructions: 问题X结果深化本地运行说明.md
+  analysis_workbook: 结果数据表/问题X/问题X结果深化分析.xlsx
+  code_delivery_report: code_delivery_report.yaml
+  receipt_report: user_execution_validation_report.yaml

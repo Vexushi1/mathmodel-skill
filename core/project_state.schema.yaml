@@ -1,7 +1,7 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 6.4.1
+version: 6.5.0
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
@@ -208,7 +208,16 @@ properties:
         model_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         validated_model_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         artifacts_stale: {type: boolean, default: false}
-        code: {type: string}
+code: {type: string}
+result_analysis_code: {type: string}
+primary_code_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+analysis_code_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+primary_execution_status:
+  type: string
+  enum: [pending, code_delivered, awaiting_user_execution, workbook_received, accepted, rejected]
+analysis_execution_status:
+  type: string
+  enum: [pending, code_delivered, awaiting_user_execution, workbook_received, accepted, rejected, redo_required]
         solution_workbook: {type: string}
         result_analysis_workbook: {type: string}
         robustness_workbook: {type: string, description: 旧项目兼容字段}
@@ -226,6 +235,7 @@ properties:
         max_constraint_violation:
           oneOf: [{type: number, minimum: 0}, {type: 'null'}]
         result_quality_status: {type: string, enum: [pending, passed, failed]}
+        execution_note: {type: string, description: 代码交付与用户本地运行状态说明}
         result_analysis_status: {type: string, enum: [pending, passed, failed, redo_required]}
         validation_status:
           description: 旧项目兼容汇总字段
@@ -269,7 +279,16 @@ properties:
     type: object
     additionalProperties: false
     properties:
-      python_version: {type: string}
+owner: {type: string, enum: [user, assistant, external]}
+profile: {type: string, enum: [full_fidelity]}
+assistant_task_execution_allowed: {type: boolean}
+allow_reduced_data: {type: boolean}
+allow_coarser_grid: {type: boolean}
+allow_shorter_horizon: {type: boolean}
+allow_fewer_repetitions: {type: boolean}
+allow_relaxed_tolerance: {type: boolean}
+allow_silent_solver_fallback: {type: boolean}
+python_version: {type: string}
       matlab_version: {type: string}
       dependencies: {type: object, additionalProperties: {type: string}}
       last_run: {type: string, format: date-time}
