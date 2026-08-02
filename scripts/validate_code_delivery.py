@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import re
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +25,11 @@ def load_yaml(path: Path) -> dict[str, Any]:
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def is_sha256(value: Any) -> bool:
+    text = str(value).strip().lower()
+    return len(text) == 64 and all(character in "0123456789abcdef" for character in text)
 
 
 def infer_stage(config: dict[str, Any]) -> str:
@@ -55,6 +59,10 @@ def validate_config(project_root: Path, config_path: Path) -> tuple[list[str], d
     for flag in FALSE_FLAGS:
         if config.get(flag) is not False:
             issues.append(f"{flag}必须显式为false")
+    if not is_sha256(config.get("code_sha256")):
+        issues.append("code_sha256必须是64位十六进制SHA-256")
+    if not is_sha256(config.get("data_sha256")):
+        issues.append("data_sha256必须是64位十六进制SHA-256")
     code_path = project_root / str(config.get("code_path", ""))
     if not code_path.is_file():
         issues.append(f"代码文件不存在: {code_path}")
@@ -92,6 +100,7 @@ def update_state(project_root: Path, config: dict[str, Any], code_path: Path) ->
     entry = state.setdefault("subproblems", {}).setdefault(key, {})
     relative = code_path.relative_to(project_root).as_posix()
     stage = infer_stage(config)
+    entry["data_hash"] = str(config["data_sha256"]).lower()
     if stage == "primary":
         entry["code"] = relative
         entry["primary_code_sha256"] = sha256(code_path)
@@ -113,6 +122,11 @@ def update_state(project_root: Path, config: dict[str, Any], code_path: Path) ->
     state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
 
 
+def discover_configs(root: Path) -> list[Path]:
+    patterns = ("问题*完整运行配置.yaml", "问题*结果深化完整运行配置.yaml")
+    return sorted({path.resolve() for pattern in patterns for path in root.glob(pattern)})
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("project_root", type=Path)
@@ -121,7 +135,7 @@ def main() -> int:
     parser.add_argument("--strict", action="store_true")
     args = parser.parse_args()
     root = args.project_root.resolve()
-    configs = [args.config] if args.config else sorted(root.glob("问题*完整运行配置.yaml")) + sorted(root.glob("问题*结果深化完整运行配置.yaml"))
+    configs = [args.config] if args.config else discover_configs(root)
     issues: list[str] = []
     checked: list[str] = []
     for raw in configs:
@@ -130,9 +144,19 @@ def main() -> int:
         issues.extend(f"{path.name}: {item}" for item in item_issues)
         checked.append(path.relative_to(root).as_posix())
         if args.write and not item_issues:
-            update_state(root, config, code_path)
-    report = {"status": "passed" if not issues else "failed", "checked_configs": checked, "issues": issues, "task_code_executed": False}
-    (root / "code_delivery_report.yaml").write_text(yaml.safe_dump(report, allow_unicode=True, sort_keys=False), encoding="utf-8")
+            try:
+                update_state(root, config, code_path)
+            except ValueError as exc:
+                issues.append(f"{path.name}: {exc}")
+    report = {
+        "status": "passed" if not issues else "failed",
+        "checked_configs": checked,
+        "issues": issues,
+        "task_code_executed": False,
+    }
+    (root / "code_delivery_report.yaml").write_text(
+        yaml.safe_dump(report, allow_unicode=True, sort_keys=False), encoding="utf-8"
+    )
     if issues:
         print("\n".join(issues))
         return 1 if args.strict else 0
