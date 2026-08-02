@@ -1,4 +1,4 @@
-# HSK Core Policy v6.5.0
+# HSK Core Policy v6.5.1
 
 本文件只保存全局硬规则。用户执行合同以 `core/user_execution_contract.yaml` 为准；路由、产物图、输出、工作簿和项目状态分别以对应 `core/` 文件为准。
 

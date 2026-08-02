@@ -10,9 +10,8 @@ from hsk_pipeline import (
     ModelContext,
     PipelineConfig,
     PrimarySolveResult,
-    ResultAnalysisResult,
     REQUIRED_CAPABILITIES,
-    run_pipeline,
+    run_primary_pipeline,
 )
 from hsk_pipeline.result_io import find_project_root
 
@@ -81,28 +80,13 @@ def evaluate_primary_quality(
     )
 
 
-def analyze_results(primary: PrimarySolveResult) -> ResultAnalysisResult:
-    raise NotImplementedError(
-        "根据残差模式、时间漂移、区域或群体差异和迁移风险，选择滚动稳定性、误差分解、"
-        "异质性、结构稳健性或外样本迁移分析，并返回 ResultAnalysisResult；失效时使用 redo_required"
-    )
-
-
 def sync_primary_framework(primary: PrimarySolveResult) -> None:
     raise NotImplementedError("回写主预测结果、基础外样本精度、质量门结论和证据")
 
 
-def sync_analysis_framework(
-    primary: PrimarySolveResult,
-    analysis_path: Path,
-    tables: dict[str, pd.DataFrame],
-) -> None:
-    raise NotImplementedError("回写预测稳定范围、漂移、失效边界、回退结论和分析证据")
-
-
 def main() -> None:
     config = build_config(Path(__file__))
-    run_pipeline(
+    run_primary_pipeline(
         config,
         load_data_hook=load_data,
         preprocess_hook=preprocess_data,
@@ -110,9 +94,7 @@ def main() -> None:
         solve_hook=solve_model,
         constraint_hook=check_constraints,
         quality_hook=evaluate_primary_quality,
-        result_analysis_hook=analyze_results,
-        primary_framework_sync_hook=sync_primary_framework,
-        analysis_framework_sync_hook=sync_analysis_framework,
+        framework_sync_hook=sync_primary_framework,
     )
 
 

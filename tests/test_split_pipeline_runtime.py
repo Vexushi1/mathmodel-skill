@@ -51,8 +51,13 @@ def build_features(clean, cfg):
     return {"x": 1.0}
 
 
+def run_config(stage):
+    return pd.DataFrame({"项目": ["execution_owner", "execution_profile", "stage"], "值": ["user", "full_fidelity", stage]})
+
+
 def solve(features, cfg):
     return {
+        "运行配置": run_config("primary"),
         "核心指标": pd.DataFrame({"指标": ["目标值"], "数值": [1.0]}),
         "推荐方案": pd.DataFrame({"方案": ["A"]}),
     }
@@ -142,6 +147,7 @@ class TestSplitPipelineRuntime(unittest.TestCase):
             )
 
             tables = {
+                "运行配置": run_config("analysis"),
                 "分析设计": pd.DataFrame(
                     {
                         "风险来源": ["结构"],
@@ -188,6 +194,7 @@ class TestSplitPipelineRuntime(unittest.TestCase):
             self.assertTrue(analysis_path.is_file())
             updated = yaml.safe_load(state_path.read_text(encoding="utf-8"))
             entry = updated["subproblems"]["Q1"]
+            self.assertEqual(entry["analysis_execution_status"], "redo_required")
             self.assertEqual(entry["result_analysis_status"], "redo_required")
             self.assertTrue(entry["artifacts_stale"])
             self.assertIn("result_analysis_workbook", entry["stale_layers"])

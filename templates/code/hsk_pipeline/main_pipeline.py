@@ -68,7 +68,7 @@ class PipelineConfig:
         if not all(isinstance(value, bool) for value in self.capabilities.values()):
             raise TypeError("capabilities 的所有值必须为 bool")
         if self.execution_owner != "user" or self.execution_profile != "full_fidelity":
-            raise ValueError("v6.5.0正式代码必须由用户以full_fidelity模式执行")
+            raise ValueError("v6.5.1正式代码必须由用户以full_fidelity模式执行")
         forbidden_flags = {
             "allow_reduced_data": self.allow_reduced_data,
             "allow_coarser_grid": self.allow_coarser_grid,
@@ -131,7 +131,7 @@ class ResultAnalysisResult:
     def validate(self) -> None:
         if self.status not in ANALYSIS_STATUSES:
             raise ValueError(f"未知结果深化分析状态: {self.status}")
-        required = {"分析设计", "结论稳定性汇总"}
+        required = {"运行配置", "分析设计", "结论稳定性汇总"}
         missing = sorted(required - set(self.tables))
         if missing:
             raise ValueError(f"结果深化分析缺少必需工作表: {missing}")
@@ -285,9 +285,11 @@ def build_solution_tables(
     quality_report: pd.DataFrame,
     audit: AuditLog,
 ) -> dict[str, Any]:
-    if "核心指标" not in solution:
-        raise KeyError("solution 必须包含“核心指标”")
+    for required_sheet in ("运行配置", "核心指标"):
+        if required_sheet not in solution:
+            raise KeyError(f"solution 必须包含“{required_sheet}”")
     tables: dict[str, Any] = {
+        "运行配置": solution["运行配置"],
         "核心指标": solution["核心指标"],
         "数据审计": audit.table(),
         "主结果质量门": quality_report,
@@ -338,33 +340,31 @@ def _update_primary_state(primary: PrimarySolveResult, passed: bool) -> None:
     if loaded is None:
         return
     path, state = loaded
-    entry = (state.setdefault("subproblems", {})).setdefault(
+    entry = state.setdefault("subproblems", {}).setdefault(
         _question_key(primary.context.config.problem_name), {}
     )
     relative = primary.solution_path.relative_to(primary.context.config.project_root).as_posix()
     entry["solution_workbook"] = relative
     entry["result_quality_report"] = f"{relative}#主结果质量门"
-    entry["result_quality_status"] = "passed" if passed else "failed"
+    entry["primary_execution_status"] = "workbook_received" if passed else "rejected"
+    entry["result_quality_status"] = "pending" if passed else "failed"
     entry["result_analysis_status"] = "pending"
+    entry["execution_note"] = (
+        "主工作簿已由用户本地运行生成，等待validate_user_execution.py验收"
+        if passed else "主结果质量门未通过，需修正后重跑"
+    )
     hashes = entry.setdefault("artifact_hashes", {})
     hashes["solution_workbook"] = _file_hash(primary.solution_path)
-    if passed:
-        entry.setdefault("validated_artifact_hashes", {})["solution_workbook"] = hashes["solution_workbook"]
-        if entry.get("status") in {"pending", "audited", "designed"}:
-            required = {"data", "model", "solution_workbook", "framework"}
-            validated = entry.get("validated_artifact_hashes", {}) or {}
-            if required.issubset(hashes) and required.issubset(validated):
-                entry["status"] = "solved"
-    else:
-        entry["status"] = "designed"
-        entry["result_summary_status"] = "stale"
-        entry["validation_status"] = "pending"
-        entry["artifacts_stale"] = True
-        entry["stale_layers"] = sorted(set(entry.get("stale_layers", [])) | {
-            "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
-        })
-        entry["proposition_refs"] = []
-        state.setdefault("paper_framework", {})["sync_status"] = "stale"
+    entry.setdefault("validated_artifact_hashes", {}).pop("solution_workbook", None)
+    entry["status"] = "designed"
+    entry["result_summary_status"] = "stale" if not passed else "pending"
+    entry["validation_status"] = "pending"
+    entry["artifacts_stale"] = True
+    entry["stale_layers"] = sorted(set(entry.get("stale_layers", [])) | {
+        "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
+    })
+    entry["proposition_refs"] = []
+    state.setdefault("paper_framework", {})["sync_status"] = "stale"
     state.setdefault("project", {})["current_phase"] = "solve_validate"
     _write_state(path, state)
 
@@ -400,26 +400,33 @@ def _update_analysis_state(
     relative = analysis_path.relative_to(config.project_root).as_posix()
     entry["result_analysis_workbook"] = relative
     entry["result_analysis_report"] = f"{relative}#结论稳定性汇总"
-    entry["result_analysis_status"] = result.status
     entry["analysis_methods"] = list(result.methods)
     hashes = entry.setdefault("artifact_hashes", {})
     hashes["result_analysis_workbook"] = _file_hash(analysis_path)
+    entry.setdefault("validated_artifact_hashes", {}).pop("result_analysis_workbook", None)
     if result.status == "passed":
-        entry.setdefault("validated_artifact_hashes", {})["result_analysis_workbook"] = hashes["result_analysis_workbook"]
-        if entry.get("status") == "solved":
-            entry["status"] = "analyzed"
+        entry["analysis_execution_status"] = "workbook_received"
+        entry["result_analysis_status"] = "pending"
+        entry["execution_note"] = "深化工作簿已由用户本地运行生成，等待validate_user_execution.py验收"
+        entry["status"] = "solved"
+        entry["artifacts_stale"] = True
+        entry["stale_layers"] = sorted(set(entry.get("stale_layers", [])) | {
+            "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
+        })
         state.setdefault("project", {})["current_phase"] = "result_analysis"
     elif result.status == "failed":
+        entry["analysis_execution_status"] = "rejected"
+        entry["result_analysis_status"] = "failed"
         entry["validation_status"] = "pending"
         state.setdefault("project", {})["current_phase"] = "result_analysis"
     else:
+        entry["analysis_execution_status"] = "redo_required"
+        entry["result_analysis_status"] = "redo_required"
         entry["status"] = "designed"
         entry["validation_status"] = "pending"
         entry["result_summary_status"] = "stale"
         entry["artifacts_stale"] = True
-        entry["stale_layers"] = sorted(
-            set(entry.get("stale_layers", [])) | set(result.stale_layers)
-        )
+        entry["stale_layers"] = sorted(set(entry.get("stale_layers", [])) | set(result.stale_layers))
         entry["proposition_refs"] = []
         state.setdefault("project", {})["current_phase"] = result.restart_phase
         state.setdefault("paper_framework", {})["sync_status"] = "stale"
@@ -560,7 +567,7 @@ def sync_analysis_framework(
 
 def main() -> None:
     config = build_config(Path(__file__))
-    run_pipeline(
+    run_primary_pipeline(
         config,
         load_data_hook=load_data,
         preprocess_hook=preprocess_data,
@@ -568,9 +575,7 @@ def main() -> None:
         solve_hook=solve_model,
         constraint_hook=check_constraints,
         quality_hook=evaluate_primary_quality,
-        result_analysis_hook=analyze_results,
-        primary_framework_sync_hook=sync_primary_framework,
-        analysis_framework_sync_hook=sync_analysis_framework,
+        framework_sync_hook=sync_primary_framework,
     )
 
 

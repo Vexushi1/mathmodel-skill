@@ -1,4 +1,4 @@
-schema_version: 2.2.0
+schema_version: 2.2.1
 skill_compatibility: '>=6.3.2,<7.0.0'
 purpose: 约束主求解工作簿与按需结果深化分析工作簿的工作表、字段、三轴条件、非空规则和MATLAB交接。
 runtime_enforcement:
@@ -15,6 +15,7 @@ runtime_enforcement:
   - 结果分析计划与结论必须分别写入分析设计和结论稳定性汇总工作表。
   - 写入器、交付检查器和项目同步器复用同一事实源。
   - MATLAB代码生成前必须读取实际工作簿并确认真实工作表与真实表头。
+  - 两类工作簿都必须包含运行配置工作表，作为用户完整版执行、代码/数据哈希和禁止降级标志的验收证据。
 classification_contract:
   objective_source: subproblem.classification.objective
   structures_source: subproblem.classification.structures
@@ -64,6 +65,8 @@ solution_workbook:
   filename: 问题{中文序号}求解结果.xlsx
   role: 保存主结果、基础正确性证据和主结果质量门；质量门失败时保留失败证据但不得进入下游
   common_required_sheets:
+    运行配置:
+      required_columns: [项目, 值]
     核心指标:
       required_columns: [指标, 数值]
       optional_columns: [单位, 统计口径, 说明]
@@ -196,6 +199,8 @@ result_analysis_workbook:
   filename: 问题{中文序号}结果深化分析.xlsx
   role: 在主结果质量门通过后，保存按题目风险选择的结果解释、稳定性和适用边界证据
   common_required_sheets:
+    运行配置:
+      required_columns: [项目, 值]
     分析设计:
       required_columns: [风险来源, 分析问题, 方法, 指标, 通过标准]
       optional_columns: [输入, 论文作用, 选择理由]
@@ -212,6 +217,8 @@ result_analysis_workbook:
   - 误差分解
   - 外样本稳定性
   sheet_schemas:
+    运行配置:
+      required_columns: [项目, 值]
     分析设计:
       required_columns: [风险来源, 分析问题, 方法, 指标, 通过标准]
       optional_columns: [输入, 论文作用, 选择理由]

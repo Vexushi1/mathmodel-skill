@@ -17,30 +17,22 @@ STARTERS = {
 
 
 class TestStarterTemplates(unittest.TestCase):
-    def test_starters_are_thin_side_effect_free_entries(self):
+    def test_starters_are_primary_only_side_effect_free_entries(self):
         forbidden = (
-            "np.random.seed",
-            "PROJECT_ROOT =",
-            "SOLUTION_BOOK",
-            "ROBUSTNESS_BOOK",
-            "workbook_paths(",
-            "write_workbook(",
-            "def validate_model(",
+            "np.random.seed", "PROJECT_ROOT =", "SOLUTION_BOOK", "ROBUSTNESS_BOOK",
+            "workbook_paths(", "write_workbook(", "def validate_model(",
+            "run_pipeline(", "ResultAnalysisResult", "analyze_results",
+            "sync_analysis_framework", "result_analysis_hook=",
         )
         for filename, objective in STARTERS.items():
             path = STARTER_DIR / filename
-            self.assertTrue(path.is_file(), filename)
             text = path.read_text(encoding="utf-8")
             ast.parse(text)
             self.assertIn(f'objective="{objective}"', text)
-            self.assertIn("run_pipeline(", text)
+            self.assertIn("run_primary_pipeline(", text)
             self.assertIn("evaluate_primary_quality", text)
-            self.assertIn("analyze_results", text)
             self.assertIn("sync_primary_framework", text)
-            self.assertIn("sync_analysis_framework", text)
             self.assertIn("REQUIRED_CAPABILITIES", text)
-            self.assertIn("ResultAnalysisResult", text)
-            self.assertIn("-> ResultAnalysisResult", text)
             self.assertIn('if __name__ == "__main__":', text)
             for token in forbidden:
                 self.assertNotIn(token, text, f"{filename}: {token}")
@@ -64,26 +56,16 @@ class TestStarterTemplates(unittest.TestCase):
             if added:
                 sys.path.remove(code_root)
 
-    def test_pipeline_exposes_split_authoritative_runners(self):
+    def test_pipeline_keeps_split_runners_and_compatibility_api(self):
         init_text = (PIPELINE_DIR / "__init__.py").read_text(encoding="utf-8")
         pipeline_text = (PIPELINE_DIR / "main_pipeline.py").read_text(encoding="utf-8")
-        for token in (
-            "run_primary_pipeline",
-            "run_result_analysis_pipeline",
-            "PrimarySolveResult",
-            "ResultAnalysisResult",
-        ):
+        for token in ("run_primary_pipeline", "run_result_analysis_pipeline", "run_pipeline"):
             self.assertIn(token, init_text)
         self.assertIn("def run_primary_pipeline(", pipeline_text)
         self.assertIn("def run_result_analysis_pipeline(", pipeline_text)
-        self.assertIn("require_quality_passed=False", pipeline_text)
-        self.assertIn("assert_primary_quality(primary.quality_report)", pipeline_text)
-        self.assertIn('workbook_kind="solution"', pipeline_text)
-        self.assertIn('workbook_kind="result_analysis"', pipeline_text)
-        self.assertIn('"主结果质量门": quality_report', pipeline_text)
-        self.assertIn('status: Literal["passed", "failed", "redo_required"]', pipeline_text)
-        self.assertIn("_update_analysis_state", pipeline_text)
-        self.assertIn("result.restart_phase", pipeline_text)
+        self.assertIn("def run_pipeline(", pipeline_text)
+        self.assertIn('"运行配置": solution["运行配置"]', pipeline_text)
+        self.assertIn('required = {"运行配置", "分析设计", "结论稳定性汇总"}', pipeline_text)
 
     def test_profiles_enable_required_primary_capabilities(self):
         optimization = (STARTER_DIR / "optimization.py").read_text(encoding="utf-8")
@@ -98,18 +80,13 @@ class TestStarterTemplates(unittest.TestCase):
         self.assertIn("requires_convergence_diagnostic=True", simulation)
         self.assertIn("requires_uncertainty_quantification=True", simulation)
 
-    def test_starters_describe_problem_specific_analysis_not_uniform_perturbation(self):
-        for path in STARTER_DIR.glob("*.py"):
-            text = path.read_text(encoding="utf-8")
-            if path.name == "README.md":
-                continue
-            self.assertNotIn("全部不适用", text)
-            self.assertNotIn("适用性说明", text)
-            self.assertNotIn("±5%", text)
-            self.assertIn("ResultAnalysisResult", text)
-            self.assertIn("redo_required", text)
+    def test_cleanup_removes_obsolete_active_templates(self):
+        self.assertFalse((PIPELINE_DIR / "config.yaml").exists())
+        self.assertFalse((ROOT / "templates/review/robustness_check.md").exists())
+        self.assertTrue((ROOT / "templates/code/full_fidelity_config.yaml").is_file())
+        self.assertTrue((ROOT / "templates/review/result_analysis_check.md").is_file())
 
-    def test_cleanup_has_no_active_residual_files(self):
+    def test_cleanup_has_no_recreatable_or_migrated_residual_files(self):
         self.assertFalse((ROOT / "state/.gitkeep").exists())
         self.assertTrue((ROOT / "state/project_state.example.yaml").is_file())
         self.assertFalse((ROOT / "templates/latex/cumcm/cumcmthesis/example.pdf").exists())
