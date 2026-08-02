@@ -208,16 +208,16 @@ properties:
         model_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         validated_model_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         artifacts_stale: {type: boolean, default: false}
-code: {type: string}
-result_analysis_code: {type: string}
-primary_code_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
-analysis_code_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
-primary_execution_status:
-  type: string
-  enum: [pending, code_delivered, awaiting_user_execution, workbook_received, accepted, rejected]
-analysis_execution_status:
-  type: string
-  enum: [pending, code_delivered, awaiting_user_execution, workbook_received, accepted, rejected, redo_required]
+        code: {type: string}
+        result_analysis_code: {type: string}
+        primary_code_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+        analysis_code_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+        primary_execution_status:
+          type: string
+          enum: [pending, code_delivered, awaiting_user_execution, workbook_received, accepted, rejected]
+        analysis_execution_status:
+          type: string
+          enum: [pending, code_delivered, awaiting_user_execution, workbook_received, accepted, rejected, redo_required]
         solution_workbook: {type: string}
         result_analysis_workbook: {type: string}
         robustness_workbook: {type: string, description: 旧项目兼容字段}
@@ -279,16 +279,16 @@ analysis_execution_status:
     type: object
     additionalProperties: false
     properties:
-owner: {type: string, enum: [user, assistant, external]}
-profile: {type: string, enum: [full_fidelity]}
-assistant_task_execution_allowed: {type: boolean}
-allow_reduced_data: {type: boolean}
-allow_coarser_grid: {type: boolean}
-allow_shorter_horizon: {type: boolean}
-allow_fewer_repetitions: {type: boolean}
-allow_relaxed_tolerance: {type: boolean}
-allow_silent_solver_fallback: {type: boolean}
-python_version: {type: string}
+      owner: {type: string, enum: [user, assistant, external]}
+      profile: {type: string, enum: [full_fidelity]}
+      assistant_task_execution_allowed: {type: boolean}
+      allow_reduced_data: {type: boolean}
+      allow_coarser_grid: {type: boolean}
+      allow_shorter_horizon: {type: boolean}
+      allow_fewer_repetitions: {type: boolean}
+      allow_relaxed_tolerance: {type: boolean}
+      allow_silent_solver_fallback: {type: boolean}
+      python_version: {type: string}
       matlab_version: {type: string}
       dependencies: {type: object, additionalProperties: {type: string}}
       last_run: {type: string, format: date-time}
