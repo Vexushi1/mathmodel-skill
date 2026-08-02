@@ -41,6 +41,19 @@ class ActiveResidueCleanupTests(unittest.TestCase):
         self.assertIn("DOCX is an explicit optional review branch", text)
         self.assertIn("问题X结果深化分析.xlsx", text)
 
+    def test_v651_obsolete_templates_are_absent(self) -> None:
+        self.assertFalse((ROOT / "templates/review/robustness_check.md").exists())
+        self.assertFalse((ROOT / "templates/code/hsk_pipeline/config.yaml").exists())
+        self.assertTrue((ROOT / "templates/review/result_analysis_check.md").is_file())
+        self.assertTrue((ROOT / "templates/code/full_fidelity_config.yaml").is_file())
+
+    def test_current_starters_stop_at_primary_user_execution_gate(self) -> None:
+        for path in (ROOT / "templates/code/starter").glob("*.py"):
+            text = path.read_text(encoding="utf-8")
+            self.assertIn("run_primary_pipeline(", text, path.name)
+            self.assertNotIn("run_pipeline(", text, path.name)
+            self.assertNotIn("analyze_results", text, path.name)
+
     def test_root_and_packaged_skill_versions_match(self) -> None:
         root_skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         packaged_skill = (ROOT / "skills/mathmodel-skill/SKILL.md").read_text(encoding="utf-8")

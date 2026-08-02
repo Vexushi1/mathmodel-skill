@@ -1,6 +1,13 @@
 # Changelog
 
-## Current release: 6.5.0
+## Current release: 6.5.1
+
+- Removed the obsolete fixed sensitivity/robustness checklist and the unreferenced pre-user-execution pipeline config.
+- New-project starters now stop after `run_primary_pipeline()`; `run_pipeline()` remains only as a user-local compatibility API.
+- Local workbook generation records `workbook_received` and can no longer promote a subproblem to `solved` or `analyzed` before returned-workbook validation.
+- Both standard workbooks now require the `运行配置` evidence sheet; workbook schema version is 2.2.1.
+
+## Previous release: 6.5.0
 
 - Default execution ownership is now user-managed full-fidelity: the assistant generates task-specific code but never runs solve or result-analysis programs.
 - Added formal code-delivery and returned-workbook gates, execution states, full-run configuration, code/data hash checks, and the mandatory `运行配置` workbook evidence contract.

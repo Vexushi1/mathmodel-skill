@@ -40,6 +40,7 @@ def append_sheet(book: Workbook, title: str, headers, row):
 
 def solution_book(path: Path, specialized="推荐方案"):
     book = Workbook()
+    append_sheet(book, "运行配置", ["项目", "值"], ["stage", "primary"])
     append_sheet(book, "核心指标", ["指标", "数值"], ["目标值", 1.0])
     append_sheet(book, "数据审计", ["等级", "检查项", "信息", "处理方式"], ["Info", "字段", "通过", "无"])
     append_sheet(book, "主结果质量门", ["检查项", "是否通过", "证据"], ["收敛", True, "通过"])
@@ -54,6 +55,7 @@ def solution_book(path: Path, specialized="推荐方案"):
 
 def analysis_book(path: Path):
     book = Workbook()
+    append_sheet(book, "运行配置", ["项目", "值"], ["stage", "analysis"])
     append_sheet(
         book,
         "分析设计",
@@ -130,6 +132,7 @@ def framework_text() -> str:
 class TestV632DeliveryGateClosure(unittest.TestCase):
     def base_tables(self):
         return {
+            "运行配置": pd.DataFrame({"项目": ["stage"], "值": ["primary"]}),
             "核心指标": pd.DataFrame({"指标": ["x"], "数值": [1.0]}),
             "数据审计": pd.DataFrame({"等级": ["Info"], "检查项": ["字段"], "信息": ["通过"], "处理方式": ["无"]}),
             "主结果质量门": pd.DataFrame({"检查项": ["收敛"], "是否通过": [True], "证据": ["通过"]}),

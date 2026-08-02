@@ -1,51 +1,49 @@
-name: Apply v6.5.1 active residue cleanup
+name: Refresh generated repository metadata
 
 on:
   push:
     branches:
-      - "fix/v6.5.1-active-residue-cleanup"
-    paths:
-      - legacy/.apply_v651_cleanup.py
-      - .github/workflows/refresh-generated.yml
+      - main
+      - "codex/**"
+      - "fix/**"
+      - "refactor/**"
+      - "upgrade/**"
+    paths-ignore:
+      - SKILL_FILE_INDEX.md
+      - TEMPLATE_INDEX.md
+      - HSK_SKILL_FILE_INDEX_V622.md
+      - HSK_TEMPLATE_INDEX_V622.md
+      - MANIFEST.sha256
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: apply-v651-cleanup-${{ github.ref }}
+  group: refresh-generated-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  apply:
+  refresh:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
-          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install validation dependencies
-        run: pip install -r requirements-dev.txt
-      - name: Apply cleanup migration
-        run: python legacy/.apply_v651_cleanup.py
-      - name: Validate static contracts
-        run: python scripts/lint_skill.py
-      - name: Run all unit tests
-        run: python -m unittest discover -s tests -p "test_*.py"
-      - name: Remove migration and restore standard metadata workflow
+      - name: Rebuild active indexes and manifest
+        run: python scripts/generate_indexes.py
+      - name: Commit generated metadata when changed
         run: |
-          rm legacy/.apply_v651_cleanup.py
-          git show 495aa73167796225522c96779d2286f9cfa51b5c:.github/workflows/refresh-generated.yml > .github/workflows/refresh-generated.yml
-          python scripts/generate_indexes.py
-          python scripts/generate_indexes.py --check
-      - name: Commit validated cleanup
-        run: |
+          if git diff --quiet -- SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256; then
+            echo "Generated metadata is current."
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "fix: complete v6.5.1 active residue cleanup"
+          git add SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
+          git commit -m "chore: refresh generated repository metadata"
           git push

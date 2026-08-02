@@ -1,4 +1,4 @@
-# mathmodel-skill v6.5.0
+# mathmodel-skill v6.5.1
 
 当前活动工作流采用 **高质量主求解 + 独立结果深化分析 + MATLAB证据图 + LaTeX直写**。DOCX 保留为显式按需分支，活动说明使用稳定、无版本文件名。
 
@@ -115,6 +115,6 @@ python scripts/lint_skill.py
 python -m unittest discover -s tests -p "test_*.py"
 python scripts/generate_indexes.py --check
 ```
-## v6.5.0 用户执行完整版代码
+## v6.5.1 用户执行完整版代码
 
 默认不由助手运行赛题主求解或结果深化分析程序。助手交付题目专属完整版代码、完整运行配置和本地说明，用户运行后返回标准工作簿；工作簿通过运行配置、代码/数据哈希和质量门验收后，工作流才继续。禁止自动降采样、粗网格、短时域、少重复、宽容差、静默求解器 fallback 或用轻量结果代替正式结果。

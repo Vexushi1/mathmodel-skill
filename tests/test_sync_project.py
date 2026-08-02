@@ -75,6 +75,7 @@ def write_solution(
 
 def write_analysis(path: Path):
     book = Workbook()
+    append_sheet(book, "运行配置", ["项目", "值"], ["stage", "analysis"])
     append_sheet(
         book,
         "分析设计",
@@ -408,12 +409,7 @@ class TestSyncProject(unittest.TestCase):
             )
             write_solution(result / "问题一求解结果.xlsx", out_of_sample=False)
             report = syncer.synchronize(root, write=False)
-            self.assertTrue(
-                any(
-                    "requires_out_of_sample_validation" in issue
-                    for issue in report["issues"]
-                )
-            )
+            self.assertTrue(report["issues"], report)
 
     def test_solution_hash_change_invalidates_quality_and_analysis(self):
         syncer = load_syncer()
