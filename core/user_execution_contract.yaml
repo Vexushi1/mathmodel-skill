@@ -39,6 +39,7 @@ code_delivery:
   - code_path
   - code_sha256
   - data_paths
+  - data_sha256
   - solver
   - solver_version
   - random_seed
@@ -80,12 +81,19 @@ returned_workbook:
   - grid_or_time_range
   - fallback_used
   - platform
+  - allow_reduced_data
+  - allow_coarser_grid
+  - allow_shorter_horizon
+  - allow_fewer_repetitions
+  - allow_relaxed_tolerance
+  - allow_silent_solver_fallback
   acceptance_rules:
   - execution_owner必须为user。
   - execution_profile必须为full_fidelity。
   - 所有缩减、放宽和静默回退标志必须为false。
   - fallback_used必须为false；需要替代求解器时必须形成新版代码与新版配置后重跑。
   - code_sha256必须与已交付代码完全一致。
+  - data_sha256必须与代码交付时锁定的数据哈希完全一致。
   - 主结果工作簿必须通过主结果质量门，结果深化分析工作簿必须包含分析设计和结论稳定性汇总。
 filenames:
   primary_code: 问题X求解.py
