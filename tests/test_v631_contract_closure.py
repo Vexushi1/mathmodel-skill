@@ -29,6 +29,7 @@ class TestV631ContractClosure(unittest.TestCase):
 
     def base_solution_tables(self):
         return {
+            "运行配置": pd.DataFrame({"项目": ["stage"], "值": ["primary"]}),
             "核心指标": pd.DataFrame({"指标": ["MAE"], "数值": [0.1]}),
             "数据审计": pd.DataFrame(
                 {"等级": ["Info"], "检查项": ["字段"], "信息": ["通过"], "处理方式": ["无"]}
@@ -75,6 +76,7 @@ class TestV631ContractClosure(unittest.TestCase):
 
     def test_result_analysis_requires_real_method_and_summary(self):
         tables = {
+            "运行配置": pd.DataFrame({"项目": ["stage"], "值": ["analysis"]}),
             "分析设计": pd.DataFrame(
                 {"风险来源": ["结构"], "分析问题": ["结论依赖性"], "方法": ["结构稳健性"], "指标": ["差异"], "通过标准": ["小于5%"]}
             ),

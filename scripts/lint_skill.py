@@ -14,7 +14,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "6.5.0"
+PACKAGE_VERSION = "6.5.1"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "CHANGELOG_V634.md", "CHANGELOG_V633.md", "CHANGELOG_V632.md", "CHANGELOG_V630.md",
@@ -89,8 +89,8 @@ def check_versions(errors: list[str]) -> None:
     if plugin.get("version") != PACKAGE_VERSION:
         errors.append("plugin version mismatch")
     workbook = load_structured(ROOT / "core/workbook_schema.yaml") or {}
-    if workbook.get("schema_version") != "2.2.0":
-        errors.append("workbook schema version must be 2.2.0")
+    if workbook.get("schema_version") != "2.2.1":
+        errors.append("workbook schema version must be 2.2.1")
     if ">=6.3.2" not in str(workbook.get("skill_compatibility", "")):
         errors.append("workbook schema compatibility must start at 6.3.2")
 

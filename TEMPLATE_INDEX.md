@@ -1,13 +1,12 @@
 # HSK Active Template Index
 
-当前 Skill 版本：6.5.0
+当前 Skill 版本：6.5.1
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
 - `templates/code/full_fidelity_config.yaml`
 - `templates/code/hsk_pipeline/README.md`
 - `templates/code/hsk_pipeline/__init__.py`
-- `templates/code/hsk_pipeline/config.yaml`
 - `templates/code/hsk_pipeline/main_pipeline.py`
 - `templates/code/hsk_pipeline/matlab_handoff.py`
 - `templates/code/hsk_pipeline/result_io.py`
@@ -57,7 +56,6 @@
 - `templates/review/code_slimming.md`
 - `templates/review/result_analysis_check.md`
 - `templates/review/result_manifest.yaml`
-- `templates/review/robustness_check.md`
 - `templates/writing/abstract_result_check.md`
 - `templates/writing/caption_explanation.md`
 - `templates/writing/code_appendix_description.md`

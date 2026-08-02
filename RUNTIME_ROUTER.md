@@ -59,6 +59,6 @@ python scripts/resolve_workflow.py result_analysis \
 ```
 
 解析结果返回 `module_terminal_outputs`、`pre_delivery_gates` 和 `terminal_outputs`。`project_sync` 是 utility gate，不属于主求解或结果深化分析模块；它按 exact scope 检查产物、工作簿、图表链和哈希，不得自动把质量门或分析状态提升为 passed。
-## v6.5.0 用户执行完整版代码
+## v6.5.1 用户执行完整版代码
 
 默认不由助手运行赛题主求解或结果深化分析程序。助手交付题目专属完整版代码、完整运行配置和本地说明，用户运行后返回标准工作簿；工作簿通过运行配置、代码/数据哈希和质量门验收后，工作流才继续。禁止自动降采样、粗网格、短时域、少重复、宽容差、静默求解器 fallback 或用轻量结果代替正式结果。

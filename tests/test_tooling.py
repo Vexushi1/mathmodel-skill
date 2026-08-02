@@ -76,12 +76,14 @@ class TestTooling(unittest.TestCase):
 
     def _write_standard_workbooks(self, solution: Path, analysis: Path) -> None:
         workbook = Workbook()
+        self._append(workbook, "运行配置", ["项目", "值"], ["stage", "primary"])
         self._append(workbook, "核心指标", ["指标", "数值"], ["目标值", 1.0])
         self._append(workbook, "数据审计", ["等级", "检查项", "信息", "处理方式"], ["Info", "字段", "通过", "无"])
         self._append(workbook, "主结果质量门", ["检查项", "是否通过", "证据"], ["收敛", True, "终止条件"])
         workbook.save(solution)
 
         workbook = Workbook()
+        self._append(workbook, "运行配置", ["项目", "值"], ["stage", "analysis"])
         self._append(
             workbook,
             "分析设计",
@@ -111,6 +113,7 @@ class TestTooling(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "solution.xlsx"
             workbook = Workbook()
+            self._append(workbook, "运行配置", ["项目", "值"], ["stage", "primary"])
             self._append(workbook, "核心指标", ["结果"], [1.0])
             self._append(workbook, "数据审计", ["等级", "检查项", "信息", "处理方式"], ["Info", "字段", "通过", "无"])
             self._append(workbook, "主结果质量门", ["检查项", "是否通过", "证据"], ["收敛", True, "通过"])
