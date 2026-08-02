@@ -13,6 +13,58 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  v650-repair-bundle:
+    name: v6.5.0 repair bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install repair dependencies
+        run: python -m pip install PyYAML
+      - name: Apply structural repair in CI workspace
+        run: python scripts/fix_v650_structure_once.py
+      - name: Rebuild generated metadata
+        run: python scripts/generate_indexes.py
+      - name: Validate repaired YAML and Python
+        run: |
+          python - <<'PY'
+          import py_compile
+          from pathlib import Path
+          import yaml
+          for path in [
+              Path('core/project_state.schema.yaml'),
+              Path('core/workflow_router.yaml'),
+              Path('core/module_manifest.yaml'),
+              Path('core/output_contract.yaml'),
+              Path('core/user_execution_contract.yaml'),
+          ]:
+              yaml.safe_load(path.read_text(encoding='utf-8'))
+          for path in [
+              Path('templates/code/hsk_pipeline/main_pipeline.py'),
+              Path('scripts/validate_code_delivery.py'),
+              Path('scripts/validate_user_execution.py'),
+              Path('scripts/resolve_workflow.py'),
+          ]:
+              py_compile.compile(str(path), doraise=True)
+          PY
+      - name: Upload repaired files
+        uses: actions/upload-artifact@v4
+        with:
+          name: v650-repaired-files
+          path: |
+            core/project_state.schema.yaml
+            core/workflow_router.yaml
+            core/module_manifest.yaml
+            templates/code/hsk_pipeline/main_pipeline.py
+            .github/workflows/refresh-generated.yml
+            SKILL_FILE_INDEX.md
+            TEMPLATE_INDEX.md
+            HSK_SKILL_FILE_INDEX_V622.md
+            HSK_TEMPLATE_INDEX_V622.md
+            MANIFEST.sha256
+
   static-lint:
     name: Static contract lint
     runs-on: ubuntu-latest
