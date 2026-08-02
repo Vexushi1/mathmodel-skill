@@ -34,21 +34,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Apply one-time pending patch release migration
-        run: |
-          if [ -f scripts/release_v641_once.py ]; then
-            python scripts/release_v641_once.py
-          fi
       - name: Rebuild active indexes and manifest
         run: python scripts/generate_indexes.py
-      - name: Commit release and generated metadata when changed
+      - name: Commit generated metadata when changed
         run: |
-          if git diff --quiet; then
-            echo "Repository metadata is current."
+          if git diff --quiet -- SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256; then
+            echo "Generated metadata is current."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "chore: release v6.4.1 and refresh generated metadata"
+          git add SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
+          git commit -m "chore: refresh generated repository metadata"
           git push
