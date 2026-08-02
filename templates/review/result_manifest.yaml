@@ -13,7 +13,7 @@ outputs:
     result_summary_status: "current"
     result_directory: "结果数据表/问题一"
     solution_workbook: "结果数据表/问题一/问题一求解结果.xlsx"
-    sensitivity_robustness_workbook: "结果数据表/问题一/问题一敏感性与鲁棒性结果.xlsx"
+    result_analysis_workbook: "结果数据表/问题一/问题一结果深化分析.xlsx"
     matlab_scripts:
       - "结果数据表/问题一/q1_plot.m"
     figure_directory: "结果数据表/问题一/图表"

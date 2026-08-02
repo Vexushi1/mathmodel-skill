@@ -1,4 +1,4 @@
-# HSK Core Policy v6.4.0
+# HSK Core Policy v6.4.1
 
 本文件只保存全局硬规则。任务路由、产物图、分类、输出、工作簿和项目状态分别以 `core/workflow_router.yaml`、`core/module_manifest.yaml`、`core/task_taxonomy.yaml`、`core/output_contract.yaml`、`core/workbook_schema.yaml` 和 `core/project_state.schema.yaml` 为准。
 

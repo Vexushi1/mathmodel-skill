@@ -1,4 +1,4 @@
-# mathmodel-skill v6.4.0
+# mathmodel-skill v6.4.1
 
 当前活动工作流采用 **高质量主求解 + 独立结果深化分析 + MATLAB证据图 + LaTeX直写**。DOCX 保留为显式按需分支，活动说明使用稳定、无版本文件名。
 

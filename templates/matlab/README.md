@@ -1,4 +1,4 @@
-# HSK MATLAB 科研绘图模板 v6.3.4
+# HSK MATLAB 科研绘图模板
 
 MATLAB 只读取 Python 输出的两类标准工作簿，不重新求解。每问唯一入口 `q{x}_plot.m` 与工作簿同目录，正式图导出到同级 `图表/`。
 
@@ -10,10 +10,10 @@ MATLAB 只读取 Python 输出的两类标准工作簿，不重新求解。每�
 scriptPath = string(mfilename("fullpath"));
 resultDir = string(fileparts(scriptPath));
 solutionBook = fullfile(resultDir, "问题一求解结果.xlsx");
-robustnessBook = fullfile(resultDir, "问题一敏感性与鲁棒性结果.xlsx");
+resultAnalysisBook = fullfile(resultDir, "问题一结果深化分析.xlsx");
 ```
 
-MATLAB 只能引用本问两类标准工作簿，不得跨问题目录读取摘要数字或临时 Excel。
+MATLAB 只能引用本问两类当前标准工作簿，不得跨问题目录读取摘要数字或临时 Excel。主结果图读取 `solutionBook`；稳定性、阈值、算法或结构图读取 `resultAnalysisBook`。历史项目兼容由专用读取器和兼容合同处理，不得写入新项目生成模板。
 
 ## 实表读取
 
