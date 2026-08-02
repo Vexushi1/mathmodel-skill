@@ -13,7 +13,7 @@ solutionBook = fullfile(resultDir, "问题一求解结果.xlsx");
 resultAnalysisBook = fullfile(resultDir, "问题一结果深化分析.xlsx");
 ```
 
-MATLAB 只能引用本问两类当前标准工作簿，不得跨问题目录读取摘要数字或临时 Excel。主结果图读取 `solutionBook`；稳定性、阈值、算法或结构图读取 `resultAnalysisBook`。旧 `问题X敏感性与鲁棒性结果.xlsx` 只允许用于明确的历史项目兼容，不得写入新项目模板。
+MATLAB 只能引用本问两类当前标准工作簿，不得跨问题目录读取摘要数字或临时 Excel。主结果图读取 `solutionBook`；稳定性、阈值、算法或结构图读取 `resultAnalysisBook`。历史项目兼容由专用读取器和兼容合同处理，不得写入新项目生成模板。
 
 ## 实表读取
 
