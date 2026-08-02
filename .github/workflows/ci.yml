@@ -28,6 +28,7 @@ jobs:
         run: |
           sed -i 's/    "agents\/openai.yaml", //' legacy/.apply_v651_cleanup.py
           python legacy/.apply_v651_cleanup.py
+          python scripts/generate_indexes.py
       - name: Validate static contracts
         run: python scripts/lint_skill.py
       - name: Run all unit tests
