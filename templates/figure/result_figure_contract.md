@@ -23,4 +23,4 @@
 | Paper location | 正文章节 |
 | Reviewer risk | 可能质疑点与处理 |
 
-新项目不得把历史 `问题X敏感性与鲁棒性结果.xlsx` 写入 Figure Contract；该名称仅供明确的旧项目迁移读取。
+历史项目兼容名称只允许出现在专用兼容合同中，不得写入新项目 Figure Contract。
