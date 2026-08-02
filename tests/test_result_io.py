@@ -20,8 +20,12 @@ class TestResultIO(unittest.TestCase):
             {"检查项": ["收敛"], "是否通过": [True], "证据": ["达到终止条件"]}
         )
 
+    def run_config(self, stage="primary"):
+        return pd.DataFrame({"项目": ["execution_owner", "execution_profile", "stage"], "值": ["user", "full_fidelity", stage]})
+
     def solution_tables(self):
         return {
+            "运行配置": self.run_config("primary"),
             "核心指标": pd.DataFrame({"指标": ["目标值"], "数值": [1.0]}),
             "数据审计": pd.DataFrame(
                 {"等级": ["Info"], "检查项": ["字段"], "信息": ["通过"], "处理方式": ["无"]}
@@ -31,6 +35,7 @@ class TestResultIO(unittest.TestCase):
 
     def analysis_tables(self):
         return {
+            "运行配置": self.run_config("analysis"),
             "分析设计": pd.DataFrame(
                 {
                     "风险来源": ["局部最优"],
@@ -132,7 +137,7 @@ class TestResultIO(unittest.TestCase):
             problem_types=("mechanism",),
             capabilities=self.all_capabilities(),
         )
-        self.assertEqual({name for name, _ in prepared}, {"核心指标", "数据审计", "主结果质量门"})
+        self.assertEqual({name for name, _ in prepared}, {"运行配置", "核心指标", "数据审计", "主结果质量门"})
 
     def test_constraint_capability_requires_and_checks_sheet(self):
         tables = self.solution_tables()
@@ -170,6 +175,7 @@ class TestResultIO(unittest.TestCase):
                 "result_analysis",
             )
         only_headers = {
+            "运行配置": self.analysis_tables()["运行配置"],
             "分析设计": self.analysis_tables()["分析设计"],
             "结论稳定性汇总": self.analysis_tables()["结论稳定性汇总"],
         }
