@@ -10,9 +10,8 @@ from hsk_pipeline import (
     ModelContext,
     PipelineConfig,
     PrimarySolveResult,
-    ResultAnalysisResult,
     REQUIRED_CAPABILITIES,
-    run_pipeline,
+    run_primary_pipeline,
 )
 from hsk_pipeline.result_io import find_project_root
 
@@ -84,7 +83,9 @@ def build_features(clean_data: dict[str, pd.DataFrame], config: PipelineConfig) 
 
 
 def solve_model(features: dict[str, Any], config: PipelineConfig) -> dict[str, Any]:
-    raise NotImplementedError("请完整求解主模型并输出核心指标、推荐方案和决策变量明细")
+    raise NotImplementedError(
+        "请完整求解主模型，输出核心指标、推荐方案、决策变量明细，并按完整运行配置与实际终止信息生成运行配置表"
+    )
 
 
 def check_constraints(solution: dict[str, Any], config: PipelineConfig) -> pd.DataFrame | None:
@@ -101,29 +102,13 @@ def evaluate_primary_quality(
     )
 
 
-def analyze_results(primary: PrimarySolveResult) -> ResultAnalysisResult:
-    raise NotImplementedError(
-        "根据局部最优风险、资源或需求不确定性、关键参数和方案失效边界，选择多算法、"
-        "场景压力、阈值、结构稳健性或参数敏感性，并返回 ResultAnalysisResult；"
-        "主方案失效时使用 redo_required"
-    )
-
-
 def sync_primary_framework(primary: PrimarySolveResult) -> None:
     raise NotImplementedError("回写当前主模型、核心结果、质量门结论和求解工作簿证据")
 
 
-def sync_analysis_framework(
-    primary: PrimarySolveResult,
-    analysis_path: Path,
-    tables: dict[str, pd.DataFrame],
-) -> None:
-    raise NotImplementedError("回写实际分析方法、稳定范围、失效边界、回退结论和分析工作簿证据")
-
-
 def main() -> None:
     config = build_config(Path(__file__))
-    run_pipeline(
+    run_primary_pipeline(
         config,
         load_data_hook=load_data,
         preprocess_hook=preprocess_data,
@@ -131,9 +116,7 @@ def main() -> None:
         solve_hook=solve_model,
         constraint_hook=check_constraints,
         quality_hook=evaluate_primary_quality,
-        result_analysis_hook=analyze_results,
-        primary_framework_sync_hook=sync_primary_framework,
-        analysis_framework_sync_hook=sync_analysis_framework,
+        framework_sync_hook=sync_primary_framework,
     )
 
 
