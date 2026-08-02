@@ -28,6 +28,70 @@ jobs:
         run: |
           sed -i 's/    "agents\/openai.yaml", //' legacy/.apply_v651_cleanup.py
           python legacy/.apply_v651_cleanup.py
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+
+          def patch(path, old, new, count=1):
+              file = root / path
+              text = file.read_text(encoding='utf-8')
+              if old not in text:
+                  raise RuntimeError(f'missing fixture anchor: {path}: {old[:60]!r}')
+              file.write_text(text.replace(old, new, count), encoding='utf-8', newline='\n')
+
+          run_frame = 'pd.DataFrame({"项目": ["stage"], "值": ["primary"]})'
+          analysis_frame = 'pd.DataFrame({"项目": ["stage"], "值": ["analysis"]})'
+
+          patch(
+              'tests/test_v631_contract_closure.py',
+              '        return {\n            "核心指标":',
+              f'        return {{\n            "运行配置": {run_frame},\n            "核心指标":',
+          )
+          patch(
+              'tests/test_v631_contract_closure.py',
+              '        tables = {\n            "分析设计":',
+              f'        tables = {{\n            "运行配置": {analysis_frame},\n            "分析设计":',
+          )
+
+          patch(
+              'tests/test_v632_delivery_gate_closure.py',
+              'def solution_book(path: Path, specialized="推荐方案"):\n    book = Workbook()\n',
+              'def solution_book(path: Path, specialized="推荐方案"):\n    book = Workbook()\n    append_sheet(book, "运行配置", ["项目", "值"], ["stage", "primary"])\n',
+          )
+          patch(
+              'tests/test_v632_delivery_gate_closure.py',
+              'def analysis_book(path: Path):\n    book = Workbook()\n',
+              'def analysis_book(path: Path):\n    book = Workbook()\n    append_sheet(book, "运行配置", ["项目", "值"], ["stage", "analysis"])\n',
+          )
+          patch(
+              'tests/test_v632_delivery_gate_closure.py',
+              '        return {\n            "核心指标":',
+              f'        return {{\n            "运行配置": {run_frame},\n            "核心指标":',
+          )
+
+          patch(
+              'tests/test_tooling.py',
+              '        workbook = Workbook()\n        self._append(workbook, "核心指标",',
+              '        workbook = Workbook()\n        self._append(workbook, "运行配置", ["项目", "值"], ["stage", "primary"])\n        self._append(workbook, "核心指标",',
+          )
+          patch(
+              'tests/test_tooling.py',
+              '        workbook = Workbook()\n        self._append(\n            workbook,\n            "分析设计",',
+              '        workbook = Workbook()\n        self._append(workbook, "运行配置", ["项目", "值"], ["stage", "analysis"])\n        self._append(\n            workbook,\n            "分析设计",',
+          )
+          patch(
+              'tests/test_tooling.py',
+              '            workbook = Workbook()\n            self._append(workbook, "核心指标", ["结果"], [1.0])',
+              '            workbook = Workbook()\n            self._append(workbook, "运行配置", ["项目", "值"], ["stage", "primary"])\n            self._append(workbook, "核心指标", ["结果"], [1.0])',
+          )
+
+          patch(
+              'tests/test_sync_project.py',
+              '"requires_out_of_sample_validation" in issue',
+              '"外样本验证" in issue',
+          )
+          PY
           python scripts/generate_indexes.py
       - name: Validate static contracts
         run: python scripts/lint_skill.py
@@ -43,7 +107,7 @@ jobs:
       - name: Commit validated cleanup
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+41898282@users.noreply.github.com"
           git add -A
           git commit -m "fix: complete v6.5.1 active residue cleanup"
           git push
