@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 6.4.0
+version: 6.4.1
 summary: Lightweight-bootstrap HSK mathematical-modeling workflow with high-quality primary solving, an explicit result-quality gate, adaptive result analysis, Python-to-Excel-to-MATLAB evidence chains, LaTeX-first authoring and optional DOCX review.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 项目同步, 主结果质量, 结果深化分析, 敏感性分析, 鲁棒性分析, 多算法验证, 机理图, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v6.4.0
+# HSK 数学建模模块化工作流 v6.4.1
 
 ## 启动
 

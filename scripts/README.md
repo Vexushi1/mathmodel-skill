@@ -1,4 +1,4 @@
-# Scripts v6.4.0
+# Scripts v6.4.1
 
 - `lint_skill.py`：检查活动版本、LaTeX-first、主求解质量门、独立结果深化分析、模块产物闭环、两类工作簿 Schema、状态字段、交付 gate、Python 语法和活动索引。
 - `resolve_workflow.py`：将一个或多个任务意图、自然语言 request、objective、structures、capabilities 与竞赛类型解析为确定性的模块、Pack、模板和交付前 gate。
