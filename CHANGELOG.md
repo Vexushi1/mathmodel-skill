@@ -1,6 +1,14 @@
 # Changelog
 
-## Current release: 6.4.1
+## Current release: 6.5.0
+
+- Default execution ownership is now user-managed full-fidelity: the assistant generates task-specific code but never runs solve or result-analysis programs.
+- Added formal code-delivery and returned-workbook gates, execution states, full-run configuration, code/data hash checks, and the mandatory `运行配置` workbook evidence contract.
+- Primary code delivery pauses at `awaiting_user_execution`; final result-analysis code is generated only after the returned primary workbook is accepted.
+- Existing local pipelines remain runnable by the user; legacy projects without the new optional execution fields remain readable.
+
+## Previous release: 6.4.1
+
 
 - Active MATLAB and figure templates now use `问题X结果深化分析.xlsx` instead of generating the historical `问题X敏感性与鲁棒性结果.xlsx` name.
 - `result_manifest.yaml` now records `result_analysis_workbook` as the current field.

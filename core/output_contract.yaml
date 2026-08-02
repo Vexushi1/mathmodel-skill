@@ -1,5 +1,6 @@
-version: 6.4.1
+version: 6.5.0
 schema: core/workbook_schema.yaml
+user_execution_contract: core/user_execution_contract.yaml
 bootstrap: core/bootstrap.yaml
 taxonomy: core/task_taxonomy.yaml
 project_root:
@@ -17,6 +18,16 @@ writing_policy:
   default_sequence: [figure_evidence, writing_latex, ai_cleanup, latex_compile_quality]
   docx_mode: explicit_only_independent
   docx_is_latex_prerequisite: false
+execution_policy:
+  default_owner: user
+  default_profile: full_fidelity
+  assistant_task_code_execution_allowed: false
+  code_delivery_gate: scripts/validate_code_delivery.py
+  returned_workbook_gate: scripts/validate_user_execution.py
+  pause_states: [awaiting_user_execution]
+  code_delivery_does_not_promote_result_status: true
+  analysis_code_requires_primary_workbook_accepted: true
+  full_fidelity_flags_must_be_false: [allow_reduced_data, allow_coarser_grid, allow_shorter_horizon, allow_fewer_repetitions, allow_relaxed_tolerance, allow_silent_solver_fallback]
 result_policy:
   primary_solve_role: 在当前题意、数据和模型口径下得到高精度、可行、收敛且可复算的主结果
   primary_quality_gate_required: true
@@ -57,15 +68,15 @@ project_sync:
   write_flag: --write
   strict_flag: --strict
   command: python scripts/sync_project.py <project_root> --write --strict --delivery-scope <scope>
-  delivery_scopes: [design, results, figures, docx, latex, submission]
+  delivery_scopes: [design, code, results, figures, docx, latex, submission]
   phase_scope_mapping_role: 未显式传入delivery_scope时只用于报告标签，不激活正式交付全量要求
   implicit_phase_sync_semantics: status_minimum_only
   formal_scope_requires_explicit_flag: true
   phase_scope_mapping:
     problem_audit: design
     model_design: design
-    solve_validate: results
-    result_analysis: results
+    solve_validate: code
+    result_analysis: code
     figure_evidence: figures
     writing_docx: docx
     writing_latex: latex
@@ -81,6 +92,7 @@ project_sync:
     downstream_artifacts_stale: false
   stage_requirements:
     design: [project_state, model_paper_framework]
+    code: [project_state, model_paper_framework, python_code, full_run_config, execution_instructions, code_delivery_report]
     results: [project_state, model_paper_framework, python_code, solution_workbook, result_quality_report, result_analysis_workbook, result_analysis_report]
     figures: [project_state, model_paper_framework, solution_workbook, result_quality_report, result_analysis_workbook, result_analysis_report, matlab_scripts, result_figures, figure_evidence]
     docx: [project_state, model_paper_framework, solution_workbook, result_quality_report, result_analysis_workbook, result_analysis_report, approved_figures, docx_draft]
@@ -185,7 +197,7 @@ matlab_figure_contract:
   provenance_record: figure_evidence.yaml
   mtime_role: auxiliary_warning_only
 ownership:
-  Python: 主求解阶段完成高精度求解与质量门；随后按题设计结果深化分析并输出对应工作簿
+  Python: 生成可由用户本地执行的完整版主求解与结果深化代码；助手不得运行赛题代码，工作簿由用户执行后返回验收
   MATLAB: 与对应问题工作簿同目录，精确读取真实表头绘图，不重新计算核心结果
   other_figure_tools: GeoGebra、PPT、draw.io、SVG、TikZ可用于非数据驱动机理图
 filenames:
@@ -203,7 +215,8 @@ optional_metadata:
   matlab_figure_handoff.json: [many_figures, cross_chat_handoff, explicit_request]
   metadata_location: 对应的结果数据表/问题X/
 rules:
-- 每次正式模型、代码、工作簿、图表、DOCX、LaTeX或提交包交付前必须成功执行project_sync gate并生成sync_report。
+- 正式代码交付必须先通过validate_code_delivery且不得执行赛题代码；图表、DOCX、LaTeX和提交包继续通过project_sync。
+- 用户返回工作簿必须先通过validate_user_execution；代码交付本身不得把状态提升为solved或analyzed。
 - 同步器只做发现、校验、哈希和stale传播，不替代主求解质量门与结果深化分析。
 - 普通阶段同步不等于正式results交付；只有显式--delivery-scope启用对应stage_requirements。
 - 不再默认创建Python求解/、MATLAB绘图/或问题X结果数据/重复层级。

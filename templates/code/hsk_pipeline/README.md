@@ -1,4 +1,4 @@
-# HSK Python 求解与结果深化管线 v6.4.1
+# HSK Python 求解与结果深化管线 v6.5.0
 
 本目录是所有 Python starter 的唯一执行底座。`main_pipeline.py` 提供两个权威阶段：
 

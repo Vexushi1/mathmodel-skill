@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve one or more user intents into an ordered HSK v6.4.1 execution plan."""
+"""Resolve one or more user intents into an ordered HSK v6.5.0 execution plan."""
 from __future__ import annotations
 
 import argparse
@@ -14,7 +14,7 @@ ROUTER_PATH = ROOT / "core" / "workflow_router.yaml"
 MANIFEST_PATH = ROOT / "core" / "module_manifest.yaml"
 TAXONOMY_PATH = ROOT / "core" / "task_taxonomy.yaml"
 COMPETITION_PATH = ROOT / "config" / "competition_profiles.yaml"
-SCOPE_RANK = {"design": 0, "results": 1, "figures": 2, "docx": 3, "latex": 4, "submission": 5}
+SCOPE_RANK = {"design": 0, "code": 1, "results": 2, "figures": 3, "docx": 4, "latex": 5, "submission": 6}
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -198,6 +198,87 @@ def gate_plan(
     return plans
 
 
+PRIMARY_CODE_OUTPUTS = [
+    "python_code", "full_run_config", "execution_instructions", "code_delivery_report",
+    "awaiting_user_execution", "model_paper_framework",
+]
+ANALYSIS_CODE_OUTPUTS = [
+    "result_analysis_plan", "result_analysis_code", "full_run_config",
+    "execution_instructions", "code_delivery_report", "awaiting_user_execution",
+    "model_paper_framework",
+]
+FINAL_WORKFLOW_OUTPUTS = [
+    "approved_figures", "latex_source", "compiled_pdf", "compile_report",
+    "review_report", "model_paper_framework",
+]
+DOWNSTREAM_MODULES = {
+    "modules/03_result_analysis.md", "modules/04_figure_evidence.md",
+    "modules/05_writing/docx.md", "modules/05_writing/latex.md",
+    "modules/05_writing/ai_cleanup.md", "modules/05_latex_compile_quality.md",
+    "modules/06_review_delivery.md",
+}
+
+
+def apply_user_execution_boundary(
+    intents: list[str],
+    paths: list[str],
+    outputs: list[str],
+    scopes: list[str],
+    gates: list[str],
+    formal_delivery: bool,
+    pause: bool,
+    available: set[str],
+) -> tuple[list[str], list[str], list[str], list[str], bool, bool]:
+    """Select the next executable segment without crossing a user execution gate."""
+    primary_accepted = (
+        "accepted_solution_workbook" in available
+        or {"solution_workbook", "result_quality_report"}.issubset(available)
+        or {"solved_results", "result_quality_report"}.issubset(available)
+    )
+    analysis_accepted = (
+        "accepted_result_analysis_workbook" in available
+        or {"result_analysis_workbook", "validated_results"}.issubset(available)
+    )
+    intent_set = set(intents)
+    analysis_requested = bool(intent_set & {"result_analysis", "validation"})
+    code_requested = bool(intent_set & {"full_solution", "code_and_solution"})
+
+    def keep_before_analysis(items: list[str]) -> list[str]:
+        return [item for item in items if item not in DOWNSTREAM_MODULES]
+
+    if "full_workflow" in intent_set:
+        if not primary_accepted:
+            paths = keep_before_analysis(paths)
+            if "modules/03_solve_validate.md" not in paths:
+                paths.append("modules/03_solve_validate.md")
+            return paths, PRIMARY_CODE_OUTPUTS.copy(), ["code"], ["code_delivery"], False, True
+        if not analysis_accepted:
+            paths = [item for item in paths if item != "modules/03_solve_validate.md" and item not in DOWNSTREAM_MODULES]
+            paths.append("modules/03_result_analysis.md")
+            return paths, ANALYSIS_CODE_OUTPUTS.copy(), ["code"], ["code_delivery"], False, True
+        paths = [item for item in paths if item not in {"modules/03_solve_validate.md", "modules/03_result_analysis.md"}]
+        paths.extend([
+            "modules/04_figure_evidence.md", "modules/05_writing/latex.md",
+            "modules/05_writing/ai_cleanup.md", "modules/05_latex_compile_quality.md",
+            "modules/06_review_delivery.md",
+        ])
+        return paths, FINAL_WORKFLOW_OUTPUTS.copy(), ["submission"], ["project_sync"], True, False
+
+    if analysis_requested and not primary_accepted:
+        paths = keep_before_analysis(paths)
+        if "modules/03_solve_validate.md" not in paths:
+            paths.append("modules/03_solve_validate.md")
+        return paths, PRIMARY_CODE_OUTPUTS.copy(), ["code"], ["code_delivery"], False, True
+    if analysis_requested and primary_accepted and not analysis_accepted:
+        paths = [item for item in paths if item != "modules/03_solve_validate.md" and item not in DOWNSTREAM_MODULES]
+        paths.append("modules/03_result_analysis.md")
+        return paths, ANALYSIS_CODE_OUTPUTS.copy(), ["code"], ["code_delivery"], False, True
+    if code_requested and not primary_accepted:
+        paths = keep_before_analysis(paths)
+        return paths, PRIMARY_CODE_OUTPUTS.copy(), ["code"], ["code_delivery"], False, True
+    return paths, outputs, scopes, gates, formal_delivery, pause
+
+
 def resolve_workflow(
     intents: str | Iterable[str] | None = None,
     *,
@@ -243,11 +324,13 @@ def resolve_workflow(
     if len(task_packs) > 3:
         raise ValueError("resolved task packs exceed the one-primary/two-secondary loading budget")
 
+    available_set = set(available_artifacts or ())
     paths: list[str] = ["core/bootstrap.yaml"]
     module_terminal_outputs: list[str] = []
     formal_delivery = False
     route_scopes: list[str] = []
     explicit_gates: list[str] = []
+    pause_for_user_execution = False
     for intent in resolved_intents:
         route = router["routing"][intent]
         paths.extend(router.get("default_load", []))
@@ -258,6 +341,7 @@ def resolve_workflow(
         if route.get("delivery_scope"):
             route_scopes.append(route["delivery_scope"])
         explicit_gates.extend(route.get("pre_delivery_gates", []))
+        pause_for_user_execution = pause_for_user_execution or bool(route.get("pause_for_user_execution"))
         if route.get("load_competition_pack"):
             pack = resolve_competition_pack(competition, load_yaml(competition_path))
             paths.append(pack or "packs/competition/auto.md")
@@ -268,9 +352,18 @@ def resolve_workflow(
     if any(router["routing"][name].get("load_proposition_pack") for name in resolved_intents):
         paths.append("packs/artifact/proposition_proof.md")
 
+    paths, module_terminal_outputs, route_scopes, explicit_gates, formal_delivery, pause_for_user_execution = apply_user_execution_boundary(
+        resolved_intents,
+        paths,
+        module_terminal_outputs,
+        route_scopes,
+        explicit_gates,
+        formal_delivery,
+        pause_for_user_execution,
+        available_set,
+    )
     module_paths = ordered_modules(paths, manifest)
     dependency_closure_applied = available_artifacts is not None
-    available_set = set(available_artifacts or ())
     if dependency_closure_applied:
         module_paths = close_module_dependencies(module_paths, available_set, manifest)
         paths.extend(module_paths)
@@ -316,6 +409,8 @@ def resolve_workflow(
         "available_after_modules": produced_after_modules,
         "available_after_plan": sorted(available_after_plan),
         "sync_required_before_delivery": any(gate["name"] == "project_sync" for gate in gates),
+        "pause_for_user_execution": pause_for_user_execution,
+        "task_code_execution_allowed": False,
     }
 
 

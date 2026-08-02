@@ -29,7 +29,7 @@ FIGURE_SUFFIXES = {".png", ".pdf", ".svg", ".tif", ".tiff", ".jpg", ".jpeg"}
 DATA_SUFFIXES = {".csv", ".xlsx", ".xls", ".json", ".yaml", ".yml", ".txt"}
 PHASE_SCOPE = {
     "problem_audit": "design", "model_design": "design",
-    "solve_validate": "results", "result_analysis": "results",
+    "solve_validate": "code", "result_analysis": "code",
     "figure_evidence": "figures", "writing_docx": "docx",
     "writing_latex": "latex", "ai_cleanup": "latex",
     "latex_compile_quality": "latex", "review_delivery": "submission",
@@ -574,6 +574,47 @@ def _formal_state_issues(required: set[str], state: Mapping[str, Any]) -> list[s
     return issues
 
 
+def _code_delivery_artifact_issues(
+    root: Path,
+    snapshots: Mapping[str, Mapping[str, Any]],
+) -> list[str]:
+    """Check a code handoff by files and reports only; never import task code."""
+    issues: list[str] = []
+    if not any(snapshot.get("code_files") for snapshot in snapshots.values()):
+        issues.append("代码交付缺少问题求解或结果深化Python脚本")
+    configs = sorted(
+        {
+            *root.glob("问题*完整运行配置.yaml"),
+            *root.glob("问题*结果深化完整运行配置.yaml"),
+        },
+        key=lambda item: item.name,
+    )
+    if not configs:
+        issues.append("代码交付缺少完整运行配置")
+    for config in configs:
+        instruction = config.with_name(
+            config.name.replace("完整运行配置.yaml", "本地运行说明.md")
+        )
+        if not instruction.is_file():
+            issues.append(f"代码交付缺少本地运行说明: {instruction.name}")
+    if not configs and not any(root.glob("问题*本地运行说明.md")):
+        issues.append("代码交付缺少本地运行说明")
+    report_path = root / "code_delivery_report.yaml"
+    if not report_path.is_file():
+        issues.append("代码交付缺少code_delivery_report.yaml")
+    else:
+        report = load_json_or_yaml(report_path)
+        if str(report.get("status", "")).lower() != "passed":
+            issues.append("code_delivery_report未通过")
+        if report.get("task_code_executed") is not False:
+            issues.append("code_delivery_report必须声明task_code_executed=false")
+        checked = {Path(str(item)).name for item in report.get("checked_configs", [])}
+        missing = [config.name for config in configs if config.name not in checked]
+        if missing:
+            issues.append(f"code_delivery_report未覆盖配置: {missing}")
+    return issues
+
+
 def _scope_artifact_issues(
     root: Path,
     scope: str,
@@ -582,8 +623,10 @@ def _scope_artifact_issues(
 ) -> list[str]:
     required = set(stage_requirements(scope, load_yaml(DEFAULT_OUTPUT_CONTRACT_PATH)))
     issues = _formal_state_issues(required, state)
-    if "python_code" in required and not any(snapshot.get("code_files") for snapshot in snapshots.values()):
-        issues.append("结果交付缺少问题求解Python脚本")
+    if required.intersection({"full_run_config", "execution_instructions", "code_delivery_report"}):
+        issues.extend(_code_delivery_artifact_issues(root, snapshots))
+    elif "python_code" in required and not any(snapshot.get("code_files") for snapshot in snapshots.values()):
+        issues.append("正式交付缺少问题求解Python脚本")
     if "solution_workbook" in required and not all(snapshot.get("solution_workbook") for snapshot in snapshots.values()):
         issues.append("结果交付缺少标准求解结果工作簿")
     if "result_quality_report" in required and not all(snapshot.get("result_quality_report") for snapshot in snapshots.values()):
@@ -623,7 +666,7 @@ def synchronize(
     phase = str((state.get("project") or {}).get("current_phase", "model_design"))
     explicit_delivery_scope = delivery_scope is not None
     scope = delivery_scope or PHASE_SCOPE.get(phase, "design")
-    if scope not in {"design", "results", "figures", "docx", "latex", "submission"}:
+    if scope not in {"design", "code", "results", "figures", "docx", "latex", "submission"}:
         raise ValueError(f"未知delivery scope: {scope}")
 
     issues = contract_preflight_issues(root, scope, state_path, framework_path, output_contract)
@@ -719,7 +762,7 @@ def main() -> int:
     parser.add_argument("--strict", action="store_true")
     parser.add_argument(
         "--delivery-scope",
-        choices=["design", "results", "figures", "docx", "latex", "submission"],
+        choices=["design", "code", "results", "figures", "docx", "latex", "submission"],
     )
     args = parser.parse_args()
     report = synchronize(

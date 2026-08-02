@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：6.4.1
+当前 Skill 版本：6.5.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -59,6 +59,7 @@
 - `core/output_contract.yaml`
 - `core/project_state.schema.yaml`
 - `core/task_taxonomy.yaml`
+- `core/user_execution_contract.yaml`
 - `core/workbook_schema.yaml`
 - `core/workflow_router.yaml`
 - `legacy/README.md`
@@ -107,10 +108,13 @@
 - `scripts/resolve_workflow.py`
 - `scripts/score_submission.py`
 - `scripts/sync_project.py`
+- `scripts/validate_code_delivery.py`
 - `scripts/validate_model_paper_framework.py`
 - `scripts/validate_project_state.py`
+- `scripts/validate_user_execution.py`
 - `skills/mathmodel-skill/SKILL.md`
 - `state/project_state.example.yaml`
+- `templates/code/full_fidelity_config.yaml`
 - `templates/code/hsk_pipeline/README.md`
 - `templates/code/hsk_pipeline/__init__.py`
 - `templates/code/hsk_pipeline/config.yaml`
@@ -125,6 +129,7 @@
 - `templates/code/starter/optimization.py`
 - `templates/code/starter/prediction.py`
 - `templates/code/starter/simulation.py`
+- `templates/code/user_execution_instructions.md`
 - `templates/figure/chart_selection.md`
 - `templates/figure/figure_paper_closure.md`
 - `templates/figure/figure_plan.md`
@@ -182,6 +187,7 @@
 - `tests/test_structure.py`
 - `tests/test_sync_project.py`
 - `tests/test_tooling.py`
+- `tests/test_user_execution_contract.py`
 - `tests/test_v631_contract_closure.py`
 - `tests/test_v632_delivery_gate_closure.py`
 - `tests/test_v633_gate_hardening.py`
