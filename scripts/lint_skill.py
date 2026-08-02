@@ -24,6 +24,7 @@ REQUIRED = [
     "core/bootstrap.yaml", "core/hsk_core_policy.md", "core/task_taxonomy.yaml",
     "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml",
     "core/workbook_schema.yaml", "core/project_state.schema.yaml", "core/compile_profiles.yaml",
+    "core/user_execution_contract.yaml",
     "modules/01_problem_audit.md", "modules/02_model_design.md", "modules/03_solve_validate.md",
     "modules/03_result_analysis.md", "modules/04_figure_evidence.md", "modules/05_latex_compile_quality.md",
     "modules/05_writing/docx.md", "modules/05_writing/latex.md",
@@ -33,6 +34,7 @@ REQUIRED = [
     "templates/code/hsk_pipeline/result_io.py", "templates/code/hsk_pipeline/workbook_validation.py",
     "templates/code/hsk_pipeline/main_pipeline.py", "templates/matlab/q1_plot.m",
     "scripts/resolve_workflow.py", "scripts/sync_project.py",
+    "scripts/validate_code_delivery.py", "scripts/validate_user_execution.py",
     "scripts/validate_model_paper_framework.py", "scripts/validate_project_state.py",
     "scripts/score_submission.py", ".github/pull_request_template.md",
     ".github/workflows/ci.yml", ".github/workflows/refresh-generated.yml",
@@ -41,7 +43,7 @@ REQUIRED = [
 ACTIVE_DIRS = ["core", "modules", "packs", "templates", "scripts", "config", "state", "assets", "agents", "skills", ".codex-plugin", ".github"]
 TEXT_SUFFIXES = {".md", ".yaml", ".yml", ".json", ".py", ".m", ".tex", ".bib"}
 VERSION_DOCS = ["SKILL.md", "README.md", "CHANGELOG.md"]
-VERSION_CONTRACTS = ["core/bootstrap.yaml", "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml", "core/project_state.schema.yaml"]
+VERSION_CONTRACTS = ["core/bootstrap.yaml", "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml", "core/project_state.schema.yaml", "core/user_execution_contract.yaml"]
 
 
 def read_text(path: Path) -> str:
@@ -142,14 +144,18 @@ def check_router(errors: list[str]) -> None:
         errors.append("formal delivery must declare project_sync gate")
     full = routes.get("full_workflow", {})
     loaded = list(full.get("load", [])) + list(full.get("then", []))
-    if "modules/03_solve_validate.md" not in loaded or "modules/03_result_analysis.md" not in loaded:
-        errors.append("full_workflow must load primary solve and result analysis")
-    if loaded.index("modules/03_solve_validate.md") > loaded.index("modules/03_result_analysis.md"):
-        errors.append("full_workflow result-analysis order invalid")
+    if full.get("pause_for_user_execution") is not True:
+        errors.append("full_workflow must pause at the user execution gate")
+    if full.get("delivery_scope") != "code" or full.get("pre_delivery_gates") != ["code_delivery"]:
+        errors.append("full_workflow initial segment must use the code-delivery gate")
+    if "modules/03_solve_validate.md" not in loaded:
+        errors.append("full_workflow initial segment must load primary solve code generation")
+    if any(item in loaded for item in ("modules/03_result_analysis.md", "modules/04_figure_evidence.md", "modules/05_writing/latex.md")):
+        errors.append("full_workflow must not cross a user execution gate in its initial segment")
     if "modules/05_writing/docx.md" in loaded:
         errors.append("default full_workflow must not load DOCX")
-    if "modules/05_writing/latex.md" not in loaded:
-        errors.append("default full_workflow must load LaTeX")
+    if router.get("execution_contract", {}).get("task_code_execution_allowed") is not False:
+        errors.append("router must forbid assistant task-code execution")
     analysis_route = routes.get("result_analysis", {})
     if "modules/03_result_analysis.md" not in analysis_route.get("load", []):
         errors.append("result_analysis route must load the dedicated module")
@@ -184,22 +190,31 @@ def check_manifest(errors: list[str]) -> None:
                 errors.append(f"module {name} has uncatalogued {field}: {sorted(unknown)}")
         for output in spec.get("outputs", []):
             producers.setdefault(output, []).append(name)
+    for gate_name, gate in (manifest.get("utility_gates", {}) or {}).items():
+        for output in gate.get("outputs", []):
+            producers.setdefault(output, []).append(f"gate:{gate_name}")
     for name, spec in modules.items():
         for artifact in spec.get("inputs", []):
             if artifact in external:
                 continue
-            upstream = [producer for producer in producers.get(artifact, []) if rank.get(producer, 999) < rank.get(name, 999)]
+            upstream = [
+                producer for producer in producers.get(artifact, [])
+                if producer.startswith("gate:") or rank.get(producer, 999) < rank.get(name, 999)
+            ]
             if not upstream:
                 errors.append(f"module input lacks upstream producer: {name}:{artifact}")
     if "result_analysis" not in modules:
         errors.append("manifest lacks dedicated result_analysis module")
     else:
         inputs = set(modules["result_analysis"].get("inputs", []))
-        if not {"solved_results", "result_quality_report", "solution_workbook"}.issubset(inputs):
-            errors.append("result_analysis must depend on solved results and quality report")
-    profile = manifest.get("workflow_profiles", {}).get("full_workflow", {}).get("modules", [])
-    if "result_analysis" not in profile or "writing_docx" in profile or "writing_latex" not in profile:
-        errors.append("full_workflow manifest profile is incomplete")
+        if not {"accepted_solution_workbook", "result_quality_report"}.issubset(inputs):
+            errors.append("result_analysis must depend on an accepted primary workbook and quality report")
+    profile_spec = manifest.get("workflow_profiles", {}).get("full_workflow", {})
+    profile = profile_spec.get("modules", [])
+    if profile != ["problem_audit", "model_design", "solve_validate"]:
+        errors.append("full_workflow initial manifest profile must stop at solve_validate")
+    if profile_spec.get("pre_delivery_gates") != ["code_delivery"]:
+        errors.append("full_workflow initial manifest profile must use code_delivery")
     gate = manifest.get("utility_gates", {}).get("project_sync", {})
     if gate.get("stage_requirements_source") != "core/output_contract.yaml#project_sync.stage_requirements":
         errors.append("project_sync must reference output-contract stage requirements")
@@ -218,7 +233,7 @@ def check_contracts(errors: list[str]) -> None:
     if result_policy.get("fixed_perturbation_forbidden") is not True:
         errors.append("fixed perturbation must be forbidden")
     sync = output.get("project_sync", {})
-    expected_scopes = {"design", "results", "figures", "docx", "latex", "submission"}
+    expected_scopes = {"design", "code", "results", "figures", "docx", "latex", "submission"}
     requirements = sync.get("stage_requirements", {}) or {}
     if set(requirements) != expected_scopes or any(not isinstance(value, list) or not value for value in requirements.values()):
         errors.append("output contract must define every exact delivery scope")
