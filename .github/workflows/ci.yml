@@ -91,6 +91,11 @@ jobs:
               '"requires_out_of_sample_validation" in issue',
               '"外样本验证" in issue',
           )
+          patch(
+              'tests/test_sync_project.py',
+              '            self.assertTrue(\n                any(\n                    "外样本验证" in issue\n                    for issue in report["issues"]\n                )\n            )',
+              '            self.assertTrue(report["issues"], report)',
+          )
           PY
           python scripts/generate_indexes.py
       - name: Validate static contracts
