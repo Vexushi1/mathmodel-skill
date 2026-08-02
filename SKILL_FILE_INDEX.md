@@ -99,7 +99,6 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
-- `scripts/fix_v650_structure_once.py`
 - `scripts/generate_indexes.py`
 - `scripts/hsk_check_artifact.py`
 - `scripts/hsk_pack_submission.py`

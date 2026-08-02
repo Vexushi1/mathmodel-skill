@@ -1,62 +1,150 @@
 name: HSK Skill CI
 
 on:
+  push:
+    branches: [main, "refactor/**"]
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: hsk-skill-ci-v650-repair-${{ github.ref }}
+  group: hsk-skill-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  finalize-v650-repair:
-    name: Finalize v6.5.0 structural repair
+  static-lint:
+    name: Static contract lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install repair dependencies
-        run: python -m pip install PyYAML
-      - name: Apply validated repair
-        run: python scripts/finalize_v650_structure.py
-      - name: Rebuild active indexes and manifest
+          cache: pip
+      - name: Install validation dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
+      - name: Lint active skill graph and artifact closure
+        shell: bash
+        run: python scripts/lint_skill.py --skip-generated > static-lint.log 2>&1
+      - name: Upload static lint diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-lint-diagnostics
+          path: static-lint.log
+      - name: Resolve representative workflow
+        run: python scripts/resolve_workflow.py full_solution --primary mechanism --secondary optimization --competition CUMCM
+
+  unit-matrix:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
+      - name: Run unit tests
+        shell: bash
+        run: python -m unittest discover -s tests -p "test_*.py" > unittest.log 2>&1
+      - name: Upload unit test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unittest-diagnostics-${{ matrix.python-version }}
+          path: unittest.log
+
+  latex-smoke:
+    name: LaTeX ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: CUMCM
+            working_directory: templates/latex/cumcm/hsk
+            root_file: hsk_main.tex
+            xelatex: true
+          - name: MCM-ICM
+            working_directory: templates/latex/mcm
+            root_file: main.tex
+            xelatex: false
+          - name: Diangong
+            working_directory: templates/latex/diangong
+            root_file: main.tex
+            xelatex: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Prepare CUMCM class
+        if: matrix.name == 'CUMCM'
+        run: |
+          cp templates/latex/cumcm/cumcmthesis/cumcmthesis.cls templates/latex/cumcm/hsk/
+          python scripts/prepare_cumcm_class.py templates/latex/cumcm/hsk/cumcmthesis.cls
+      - name: Compile template
+        uses: xu-cheng/latex-action@v4
+        with:
+          root_file: ${{ matrix.root_file }}
+          working_directory: ${{ matrix.working_directory }}
+          latexmk_use_xelatex: ${{ matrix.xelatex }}
+          args: -file-line-error -halt-on-error -interaction=nonstopmode
+      - name: Reject unresolved references and fatal warnings
+        shell: bash
+        run: |
+          log="${{ matrix.working_directory }}/${{ matrix.root_file }}"
+          log="${log%.tex}.log"
+          test -f "$log"
+          ! grep -E "Undefined control sequence|LaTeX Error|Citation .* undefined|There were undefined references" "$log"
+      - name: Collect LaTeX diagnostics
+        if: failure()
+        shell: bash
+        run: |
+          log="${{ matrix.working_directory }}/${{ matrix.root_file }}"
+          log="${log%.tex}.log"
+          {
+            echo "Template: ${{ matrix.name }}"
+            echo "Expected log: $log"
+            if test -f "$log"; then
+              tail -n 200 "$log"
+            else
+              echo "Expected log was not created. Files in the working directory:"
+              find "${{ matrix.working_directory }}" -maxdepth 1 -type f -printf '%f\n' | sort
+            fi
+          } > latex-diagnostics.txt
+      - name: Upload LaTeX diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: latex-diagnostics-${{ matrix.name }}
+          path: latex-diagnostics.txt
+
+  generated-files:
+    name: Generated file contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Rebuild generated indexes and active manifest
         run: python scripts/generate_indexes.py
-      - name: Validate repaired contracts and Python
-        run: |
-          python - <<'PY'
-          import py_compile
-          from pathlib import Path
-          import yaml
-          for path in [
-              Path('core/project_state.schema.yaml'),
-              Path('core/workflow_router.yaml'),
-              Path('core/module_manifest.yaml'),
-              Path('core/output_contract.yaml'),
-              Path('core/user_execution_contract.yaml'),
-          ]:
-              yaml.safe_load(path.read_text(encoding='utf-8'))
-          for path in [
-              Path('templates/code/hsk_pipeline/main_pipeline.py'),
-              Path('scripts/validate_code_delivery.py'),
-              Path('scripts/validate_user_execution.py'),
-              Path('scripts/resolve_workflow.py'),
-          ]:
-              py_compile.compile(str(path), doraise=True)
-          PY
-      - name: Restore standard CI workflow
-        run: |
-          git fetch origin main --depth=1
-          git show origin/main:.github/workflows/ci.yml > .github/workflows/ci.yml
-      - name: Commit repaired tree
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "fix: finalize v6.5.0 schema, routing, and pipeline structure"
-          git push origin HEAD:${{ github.head_ref }}
+      - name: Upload regenerated metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-repository-metadata
+          path: |
+            HSK_SKILL_FILE_INDEX_V622.md
+            HSK_TEMPLATE_INDEX_V622.md
+            MANIFEST.sha256
+      - name: Reject stale generated files
+        shell: bash
+        run: git diff --exit-code -- HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256

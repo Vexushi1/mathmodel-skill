@@ -41,15 +41,15 @@ class PipelineConfig:
     objective: str
     structures: tuple[str, ...]
     capabilities: Mapping[str, bool]
-random_seed: int = 2026
-execution_owner: Literal["user"] = "user"
-execution_profile: Literal["full_fidelity"] = "full_fidelity"
-allow_reduced_data: bool = False
-allow_coarser_grid: bool = False
-allow_shorter_horizon: bool = False
-allow_fewer_repetitions: bool = False
-allow_relaxed_tolerance: bool = False
-allow_silent_solver_fallback: bool = False
+    random_seed: int = 2026
+    execution_owner: Literal["user"] = "user"
+    execution_profile: Literal["full_fidelity"] = "full_fidelity"
+    allow_reduced_data: bool = False
+    allow_coarser_grid: bool = False
+    allow_shorter_horizon: bool = False
+    allow_fewer_repetitions: bool = False
+    allow_relaxed_tolerance: bool = False
+    allow_silent_solver_fallback: bool = False
 
     def validate(self) -> None:
         if self.objective not in VALID_OBJECTIVES:
@@ -67,20 +67,20 @@ allow_silent_solver_fallback: bool = False
             raise ValueError(f"未知验证能力标志: {unknown}")
         if not all(isinstance(value, bool) for value in self.capabilities.values()):
             raise TypeError("capabilities 的所有值必须为 bool")
-if self.execution_owner != "user" or self.execution_profile != "full_fidelity":
-    raise ValueError("v6.5.0正式代码必须由用户以full_fidelity模式执行")
-forbidden_flags = {
-    "allow_reduced_data": self.allow_reduced_data,
-    "allow_coarser_grid": self.allow_coarser_grid,
-    "allow_shorter_horizon": self.allow_shorter_horizon,
-    "allow_fewer_repetitions": self.allow_fewer_repetitions,
-    "allow_relaxed_tolerance": self.allow_relaxed_tolerance,
-    "allow_silent_solver_fallback": self.allow_silent_solver_fallback,
-}
-enabled = sorted(name for name, value in forbidden_flags.items() if value)
-if enabled:
-    raise ValueError(f"完整版运行禁止启用降级标志: {enabled}")
-if not self.framework_path.is_file():
+        if self.execution_owner != "user" or self.execution_profile != "full_fidelity":
+            raise ValueError("v6.5.0正式代码必须由用户以full_fidelity模式执行")
+        forbidden_flags = {
+            "allow_reduced_data": self.allow_reduced_data,
+            "allow_coarser_grid": self.allow_coarser_grid,
+            "allow_shorter_horizon": self.allow_shorter_horizon,
+            "allow_fewer_repetitions": self.allow_fewer_repetitions,
+            "allow_relaxed_tolerance": self.allow_relaxed_tolerance,
+            "allow_silent_solver_fallback": self.allow_silent_solver_fallback,
+        }
+        enabled = sorted(name for name, value in forbidden_flags.items() if value)
+        if enabled:
+            raise ValueError(f"完整版运行禁止启用降级标志: {enabled}")
+        if not self.framework_path.is_file():
             raise FileNotFoundError(f"模型锁定后必须先创建项目根目录模型论文框架: {self.framework_path}")
         if not self.framework_section.strip():
             raise ValueError("必须填写该问在模型论文框架.md中的当前章节标题")
