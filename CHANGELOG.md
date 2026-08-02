@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased: 6.4.1 active-residue cleanup
+
+- Active MATLAB and figure templates now use `问题X结果深化分析.xlsx` instead of generating the historical `问题X敏感性与鲁棒性结果.xlsx` name.
+- `result_manifest.yaml` now records `result_analysis_workbook` as the current field.
+- The code-appendix template now names the primary-solve and result-analysis scripts separately.
+- `AGENTS.md` now matches the LaTeX-first workflow and treats DOCX as an explicit optional branch.
+- Added regression coverage that prevents current-generation templates from reintroducing legacy workbook names and checks packaged/root Skill version alignment.
+
+The package version remains 6.4.0 while this draft patch is under review. The coordinated 6.4.1 version bump is applied only after the cleanup diff and generated files pass CI.
+
 ## Current release: 6.4.0
 
 ### Quality-first primary solving
