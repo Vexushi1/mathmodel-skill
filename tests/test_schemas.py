@@ -17,7 +17,7 @@ class TestSchemas(unittest.TestCase):
     def test_classification_has_single_capability_source_and_split_status(self):
         schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
         defs = schema["$defs"]
-        self.assertEqual(schema["version"], "6.4.0")
+        self.assertEqual(schema["version"], "6.4.1")
         self.assertEqual(set(defs["classification"]["required"]), {"objective", "structures"})
         subproblems = schema["properties"]["subproblems"]
         sub_required = set(subproblems["additionalProperties"]["required"])
@@ -51,7 +51,7 @@ class TestSchemas(unittest.TestCase):
 
     def test_output_contract_defines_split_result_policy(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(contract["version"], "6.4.0")
+        self.assertEqual(contract["version"], "6.4.1")
         self.assertEqual(contract["project_sync"]["role"], "formal_pre_delivery_gate")
         self.assertEqual(contract["project_sync"]["stage_requirements_semantics"], "exact_scope")
         self.assertEqual(contract["project_sync"]["implicit_phase_sync_semantics"], "status_minimum_only")

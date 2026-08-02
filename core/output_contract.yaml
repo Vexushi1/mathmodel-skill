@@ -1,4 +1,4 @@
-version: 6.4.0
+version: 6.4.1
 schema: core/workbook_schema.yaml
 bootstrap: core/bootstrap.yaml
 taxonomy: core/task_taxonomy.yaml

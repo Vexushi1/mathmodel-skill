@@ -1,4 +1,4 @@
-%% q1_plot：问题一结果绘图入口（v6.3实例化模板）
+%% q1_plot：问题一结果绘图入口（当前活动模板）
 % 放在“结果数据表/问题一/”，生成正式脚本前必须读取实际工作簿并替换全部占位符。
 % 字段使用精确表头唯一匹配；期望列号仅用于结构漂移警告。
 
@@ -10,14 +10,15 @@ scriptPath = string(mfilename("fullpath"));
 assert(strlength(scriptPath) > 0, "请从已保存的q1_plot.m运行脚本");
 resultDir = string(fileparts(scriptPath));
 solutionBook = fullfile(resultDir, "问题一求解结果.xlsx");
-robustnessBook = fullfile(resultDir, "问题一敏感性与鲁棒性结果.xlsx");
+resultAnalysisBook = fullfile(resultDir, "问题一结果深化分析.xlsx");
 figureDir = fullfile(resultDir, "图表");
 EXPORT_FIGURES = false;
 assert(isfile(solutionBook), "缺少工作簿: %s", solutionBook);
-assert(isfile(robustnessBook), "缺少工作簿: %s", robustnessBook);
+assert(isfile(resultAnalysisBook), "缺少工作簿: %s", resultAnalysisBook);
 
 %% 2. 实际结构锁定
 % 图型选择以核心结论和信息效率为准。兼容检查标记：xColumn = NaN；actualXHeader == xHeader。
+% 主结果图使用solutionBook；稳定性、阈值、算法或结构图使用resultAnalysisBook。
 sourceBook = solutionBook;
 sourceSheet = "__ACTUAL_SHEET_NAME__";
 xHeader = "__ACTUAL_X_HEADER__";

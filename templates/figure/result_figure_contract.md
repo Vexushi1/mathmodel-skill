@@ -9,7 +9,7 @@
 | DOCX/LaTeX caption | 图下题注，补充样本、统计口径、时间范围、误差或解释，不与 MATLAB title 逐字重复 |
 | Chart type | 条形图 / 折线图 / 热图 / 饼图 / 雷达图 / 3D 柱状图 / 3D 曲面 / 桑基图 / 其他 |
 | Efficiency rationale | 该图型相较常规替代图如何提高信息展示效率 |
-| Source workbook | `结果数据表/问题X/问题X求解结果.xlsx` 或 `问题X敏感性与鲁棒性结果.xlsx` |
+| Source workbook | `结果数据表/问题X/问题X求解结果.xlsx` 或 `结果数据表/问题X/问题X结果深化分析.xlsx` |
 | Worksheet | 中文工作表名 |
 | Required columns | 绘图必需字段、记录键、单位和排序字段 |
 | Column positions | Excel 固定列号及对应真实表头 |
@@ -22,3 +22,5 @@
 | Framework registry | `模型论文框架.md` 中“论文与图表映射”和“图表证据链”的对应行 |
 | Paper location | 正文章节 |
 | Reviewer risk | 可能质疑点与处理 |
+
+历史项目兼容名称只允许出现在专用兼容合同中，不得写入新项目 Figure Contract。
