@@ -103,7 +103,6 @@
 - `scripts/hsk_pack_submission.py`
 - `scripts/lint_skill.py`
 - `scripts/prepare_cumcm_class.py`
-- `scripts/release_v641_once.py`
 - `scripts/render_paper.py`
 - `scripts/resolve_workflow.py`
 - `scripts/score_submission.py`
