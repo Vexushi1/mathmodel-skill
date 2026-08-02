@@ -1,4 +1,4 @@
-version: 6.4.1
+version: 6.5.0
 bootstrap: core/bootstrap.yaml
 default_load:
 - core/hsk_core_policy.md
@@ -28,7 +28,8 @@ execution_contract:
   rules:
   - Stop after the last module required by the user deliverable.
   - Never manufacture downstream artifacts when gate inputs are missing.
-  - Primary solving must pass the result-quality gate before result analysis starts.
+  - Generate full-fidelity task code and stop at awaiting_user_execution; never execute task-specific solve or analysis code.
+  - Primary user-produced workbook must be accepted before final result-analysis code is generated.
   - Result analysis may send the workflow back to model_design or solve_validate when the locked result is not stable enough.
   - Merge multiple intents in workflow order and remove duplicate modules, packs and outputs.
   - Reuse current project state, framework and artifacts before recomputing.
@@ -67,39 +68,28 @@ routing:
     terminal_outputs: [formula_closure, proposition_plan, model_paper_framework]
     formal_delivery: true
     delivery_scope: design
-  full_solution:
-    triggers: [完整求解, 全部计算, 求出各问, 完成求解]
-    infer_keywords: [完整求解, 全部计算, 求出各问, 完成求解]
-    load: [modules/01_problem_audit.md, packs/task/classifier.md]
-    then: [modules/02_model_design.md, modules/03_solve_validate.md, modules/03_result_analysis.md, packs/artifact/code.md]
-    load_classified_task_packs: true
-    load_competition_pack: true
-    terminal_outputs: [python_code, solution_workbook, result_quality_report, result_analysis_workbook, result_analysis_report, validated_results, proposition_plan, model_paper_framework]
-    formal_delivery: true
-    delivery_scope: results
-  full_workflow:
-    triggers: [全流程, 完整论文, 全套成果, 完整交付]
-    infer_keywords: [全流程, 完整论文, 全套成果, 完整交付]
-    load: [modules/01_problem_audit.md, packs/task/classifier.md]
-    then:
-    - modules/02_model_design.md
-    - modules/03_solve_validate.md
-    - modules/03_result_analysis.md
-    - packs/artifact/code.md
-    - modules/04_figure_evidence.md
-    - packs/artifact/figure.md
-    - templates/figure/chart_selection.md
-    - modules/05_writing/latex.md
-    - modules/05_writing/ai_cleanup.md
-    - modules/05_latex_compile_quality.md
-    - packs/artifact/latex.md
-    - modules/06_review_delivery.md
-    - packs/artifact/full_submission.md
-    load_classified_task_packs: true
-    load_competition_pack: true
-    terminal_outputs: [validated_submission_package, model_paper_framework]
-    formal_delivery: true
-    delivery_scope: submission
+full_solution:
+  triggers: [完整求解, 全部计算, 求出各问, 完成求解]
+  infer_keywords: [完整求解, 全部计算, 求出各问, 完成求解]
+  load: [modules/01_problem_audit.md, packs/task/classifier.md]
+  then: [modules/02_model_design.md, modules/03_solve_validate.md, packs/artifact/code.md]
+  load_classified_task_packs: true
+  load_competition_pack: true
+  terminal_outputs: [python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, proposition_plan, model_paper_framework]
+  formal_delivery: true
+  delivery_scope: code
+  pause_for_user_execution: true
+full_workflow:
+  triggers: [全流程, 完整论文, 全套成果, 完整交付]
+  infer_keywords: [全流程, 完整论文, 全套成果, 完整交付]
+  load: [modules/01_problem_audit.md, packs/task/classifier.md]
+  then: [modules/02_model_design.md, modules/03_solve_validate.md, packs/artifact/code.md]
+  load_classified_task_packs: true
+  load_competition_pack: true
+  terminal_outputs: [python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
+  formal_delivery: true
+  delivery_scope: code
+  pause_for_user_execution: true
   problem_analysis:
     triggers: [审题, 问题理解, 题目拆解, 设问意图, 命题意图]
     infer_keywords: [审题, 问题理解, 题目拆解, 设问意图]
@@ -122,22 +112,31 @@ routing:
     terminal_outputs: [route_comparison, selected_models, locked_model_spec, validation_plan, proposition_plan, model_paper_framework]
     formal_delivery: true
     delivery_scope: design
-  code_and_solution:
-    triggers: [代码, Python, 求解, 算法, 最优解]
-    infer_keywords: [Python代码, 求解代码, 开始求解, 求解, 继续求解, 重新求解, 重算, 算法实现, 最优解]
-    load: [modules/03_solve_validate.md, modules/03_result_analysis.md, packs/artifact/code.md, packs/task/classifier.md]
-    load_classified_task_packs: true
-    terminal_outputs: [python_code, solution_workbook, result_quality_report, result_analysis_workbook, result_analysis_report, validated_results, model_paper_framework]
-    formal_delivery: true
-    delivery_scope: results
-  result_analysis:
-    triggers: [结果分析, 深化分析, 敏感性, 鲁棒性, 多算法, 稳健性, 阈值分析, 结构稳健性, 异质性]
-    infer_keywords: [结果分析, 敏感性分析, 鲁棒性分析, 多算法验证, 稳健性分析, 阈值分析, 结构稳健性, 异质性分析]
-    load: [modules/03_result_analysis.md, packs/task/classifier.md]
-    load_classified_task_packs: true
-    terminal_outputs: [result_analysis_plan, result_analysis_workbook, result_analysis_report, validated_results, evidence_map, model_paper_framework]
-    formal_delivery: true
-    delivery_scope: results
+code_and_solution:
+  triggers: [代码, Python, 求解, 算法, 最优解]
+  infer_keywords: [Python代码, 求解代码, 开始求解, 求解, 继续求解, 重新求解, 重算, 算法实现, 最优解]
+  load: [modules/03_solve_validate.md, packs/artifact/code.md, packs/task/classifier.md]
+  load_classified_task_packs: true
+  terminal_outputs: [python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
+  formal_delivery: true
+  delivery_scope: code
+  pause_for_user_execution: true
+result_analysis:
+  triggers: [结果分析, 深化分析, 敏感性, 鲁棒性, 多算法, 稳健性, 阈值分析, 结构稳健性, 异质性]
+  infer_keywords: [结果分析, 敏感性分析, 鲁棒性分析, 多算法验证, 稳健性分析, 阈值分析, 结构稳健性, 异质性分析]
+  load: [modules/03_result_analysis.md, packs/artifact/code.md, packs/task/classifier.md]
+  load_classified_task_packs: true
+  terminal_outputs: [result_analysis_plan, result_analysis_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
+  formal_delivery: true
+  delivery_scope: code
+  pause_for_user_execution: true
+returned_workbook_validation:
+  triggers: [返回工作簿, 验收工作簿, 校验求解结果, 校验结果深化分析, 本地运行完成]
+  infer_keywords: [返回工作簿, 验收工作簿, 本地运行完成, 校验求解结果]
+  load: [scripts/validate_user_execution.py]
+  pre_delivery_gates: [user_execution_receipt]
+  terminal_outputs: [user_execution_validation_report, project_state]
+  formal_delivery: false
   validation:
     triggers: [检验, 多算法, 全局最优, 敏感性, 鲁棒性, 误差, 稳健性]
     infer_keywords: [多算法, 全局最优, 敏感性, 鲁棒性, 稳健性, 误差分析, 模型检验]
@@ -188,7 +187,8 @@ multi_intent_policy:
 - Merge modules in workflow order and remove duplicates.
 - Merge terminal outputs without dropping model_paper_framework for formal deliveries.
 - Execute project_sync after modules and before exposing sync_report/project_state as gate outputs.
-- Primary solving precedes result analysis; result analysis precedes figures and writing.
+- Primary code delivery pauses for user execution; accepted primary workbooks precede result-analysis code delivery.
+- Accepted result-analysis workbooks precede figures and writing.
 - Result-analysis failure may route back to model design or primary solving.
 - Figures precede final writing insertion; AI cleanup precedes LaTeX compilation.
 - Proposition details are loaded only for explicit proof requests or a nonzero proposition plan.

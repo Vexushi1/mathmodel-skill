@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve one or more user intents into an ordered HSK v6.4.1 execution plan."""
+"""Resolve one or more user intents into an ordered HSK v6.5.0 execution plan."""
 from __future__ import annotations
 
 import argparse
@@ -14,7 +14,7 @@ ROUTER_PATH = ROOT / "core" / "workflow_router.yaml"
 MANIFEST_PATH = ROOT / "core" / "module_manifest.yaml"
 TAXONOMY_PATH = ROOT / "core" / "task_taxonomy.yaml"
 COMPETITION_PATH = ROOT / "config" / "competition_profiles.yaml"
-SCOPE_RANK = {"design": 0, "results": 1, "figures": 2, "docx": 3, "latex": 4, "submission": 5}
+SCOPE_RANK = {"design": 0, "code": 1, "results": 2, "figures": 3, "docx": 4, "latex": 5, "submission": 6}
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -248,6 +248,7 @@ def resolve_workflow(
     formal_delivery = False
     route_scopes: list[str] = []
     explicit_gates: list[str] = []
+    pause_for_user_execution = False
     for intent in resolved_intents:
         route = router["routing"][intent]
         paths.extend(router.get("default_load", []))
@@ -258,6 +259,7 @@ def resolve_workflow(
         if route.get("delivery_scope"):
             route_scopes.append(route["delivery_scope"])
         explicit_gates.extend(route.get("pre_delivery_gates", []))
+        pause_for_user_execution = pause_for_user_execution or bool(route.get("pause_for_user_execution"))
         if route.get("load_competition_pack"):
             pack = resolve_competition_pack(competition, load_yaml(competition_path))
             paths.append(pack or "packs/competition/auto.md")
@@ -316,6 +318,8 @@ def resolve_workflow(
         "available_after_modules": produced_after_modules,
         "available_after_plan": sorted(available_after_plan),
         "sync_required_before_delivery": any(gate["name"] == "project_sync" for gate in gates),
+        "pause_for_user_execution": pause_for_user_execution,
+        "task_code_execution_allowed": False,
     }
 
 
