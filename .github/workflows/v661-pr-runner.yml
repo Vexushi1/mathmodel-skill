@@ -45,6 +45,43 @@ jobs:
               "if 'legacy' in path.parts or path.name == 'CHANGELOG.md' or path == ROOT / 'scripts/lint_skill.py' or path == ROOT / 'tests/test_v661_active_residue_cleanup.py' or '.github' in path.parts:",
           )
           exec(compile(body, str(path), 'exec'))
+
+          for relative in ('tests/test_active_residue_cleanup.py', 'tests/test_starter_templates.py'):
+              target = Path(relative)
+              value = target.read_text(encoding='utf-8')
+              value = value.replace(
+                  'self.assertTrue((ROOT / "templates/code/full_fidelity_config.yaml").is_file())',
+                  'self.assertFalse((ROOT / "templates/code/full_fidelity_config.yaml").exists())',
+              )
+              target.write_text(value, encoding='utf-8')
+
+          pack = Path('packs/artifact/figure.md')
+          value = pack.read_text(encoding='utf-8')
+          value = value.replace(
+              '- 每问入口统一为 `问题X求解/qX_plot.m`；',
+              '- 每问入口统一为 `问题X求解/qX_plot.m`；通用模板记为 `q{x}_plot.m`；',
+          )
+          value = value.replace(
+              '饼图、雷达图、3D 曲面和复杂网络图必须提供额外可验证信息，否则降级或删除。',
+              '饼图、雷达图、3D 曲面和复杂网络图必须通过高级图表准入检查，并提供额外可验证信息，否则降级或删除。',
+          )
+          pack.write_text(value, encoding='utf-8')
+
+          matlab_readme = Path('templates/matlab/README.md')
+          value = matlab_readme.read_text(encoding='utf-8')
+          value = value.replace(
+              'MATLAB 只读取 Python 输出的两个标准工作簿，不重新求解。每问唯一入口 `qX_plot.m` 与工作簿同处 `问题X求解/`。',
+              'MATLAB 只读取 Python 输出的两个标准工作簿，不重新求解。每问唯一入口通用记为 `q{x}_plot.m`，问题一实例为 `q1_plot.m`，与工作簿同处 `问题X求解/`。禁止 `q1_polt.m` 等拼写变体。',
+          )
+          matlab_readme.write_text(value, encoding='utf-8')
+
+          scripts_readme = Path('scripts/README.md')
+          value = scripts_readme.read_text(encoding='utf-8')
+          value = value.replace(
+              '- `resolve_workflow.py`：解析意图、题型、能力与竞赛类型，返回确定性执行计划；',
+              '- `resolve_workflow.py`：解析意图、`objective`、`structures`、`capabilities` 与竞赛类型，返回确定性执行计划；',
+          )
+          scripts_readme.write_text(value, encoding='utf-8')
           PY
       - name: Run focused and full validation
         run: |
