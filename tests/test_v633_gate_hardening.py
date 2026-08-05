@@ -184,24 +184,22 @@ class TestV633GateHardening(unittest.TestCase):
         )
         self.assertEqual(output["project_sync"]["stage_requirements_semantics"], "exact_scope")
 
-    def test_first_figure_evidence_generation_updates_state_evidence(self):
+    def test_figure_scope_accepts_colocated_matlab_without_evidence_file(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             result = setup_project(root, status="analyzed", phase="figure_evidence")
-            (result / "图表").mkdir()
-            (result / "图表/q1.png").write_bytes(b"figure")
             (result / "q1_plot.m").write_text(
-                'raw = readcell("问题一求解结果.xlsx");\n'
-                'title(gca, "结果");\n'
-                'exportgraphics(gca, "图表/q1.png");\n',
+                'primary = readcell("问题一求解结果.xlsx");\n'
+                'analysis = readcell("问题一结果深化分析.xlsx");\n'
+                'title(gca, "结果");\n',
                 encoding="utf-8",
             )
             report = SYNC.synchronize(root, write=True, delivery_scope="figures")
             self.assertFalse(any("图表交付缺少MATLAB脚本" in issue for issue in report["issues"]))
+            self.assertFalse((result / "figure_evidence.yaml").exists())
             state = yaml.safe_load((root / "state/project_state.yaml").read_text(encoding="utf-8"))
-            evidence_path = "结果数据表/问题一/figure_evidence.yaml"
-            self.assertTrue((root / evidence_path).is_file())
-            self.assertIn(evidence_path, state["subproblems"]["Q1"]["evidence"])
+            evidence = state["subproblems"]["Q1"].get("evidence", [])
+            self.assertFalse(any(str(item).endswith("figure_evidence.yaml") for item in evidence))
 
     def test_latex_scope_uses_exact_contract_not_cumulative_results(self):
         with tempfile.TemporaryDirectory() as temp:

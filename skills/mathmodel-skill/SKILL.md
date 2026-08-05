@@ -1,20 +1,20 @@
 ---
 name: mathmodel-skill
-version: 6.5.1
+version: 6.6.0
 summary: Lightweight-bootstrap HSK mathematical-modeling workflow with high-quality primary solving, an explicit result-quality gate, adaptive result analysis, Python-to-Excel-to-MATLAB evidence chains, LaTeX-first authoring and optional DOCX review.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 项目同步, 主结果质量, 结果深化分析, 敏感性分析, 鲁棒性分析, 多算法验证, 机理图, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v6.5.1
+# HSK 数学建模模块化工作流 v6.6.0
 
-## v6.5.1 默认执行方式
+## v6.6.0 默认执行方式
 
 赛题数值代码默认由用户本地以 `full_fidelity` 模式运行。助手输出完整版代码、运行配置和说明后停在 `awaiting_user_execution`；用户返回主工作簿并验收后，才输出最终结果深化分析代码。助手不得运行赛题代码或自动采用轻量近似。
 
 ## 启动
 
-1. 读取 `core/bootstrap.yaml`；
-2. 使用 `scripts/resolve_workflow.py` 解析用户意图；
+1. 先定位仓库根目录 `../..`，读取 `../../core/bootstrap.yaml`；
+2. 使用 `../../scripts/resolve_workflow.py` 解析用户意图；
 3. 只加载命中的模块、Pack 和模板；
 4. `legacy/` 不参与默认执行。
 

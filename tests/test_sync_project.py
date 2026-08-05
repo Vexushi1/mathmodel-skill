@@ -208,7 +208,7 @@ def setup_project(
         "def main():\n    return 1\n\nif __name__ == '__main__':\n    main()\n",
         encoding="utf-8",
     )
-    result = root / "结果数据表" / "问题一"
+    result = root / "问题一求解"
     result.mkdir(parents=True)
     if include_solution:
         write_solution(
@@ -241,7 +241,7 @@ def write_code_delivery(root: Path):
         "random_seed": 2026,
         "tolerance": 1e-8,
         "iteration_or_time_limit": "full",
-        "expected_workbook": "结果数据表/问题一/问题一求解结果.xlsx",
+        "expected_workbook": "问题一求解/问题一求解结果.xlsx",
         "allow_reduced_data": False,
         "allow_coarser_grid": False,
         "allow_shorter_horizon": False,
@@ -315,7 +315,7 @@ class TestSyncProject(unittest.TestCase):
             self.assertFalse(any("工作簿" in issue for issue in report["issues"]))
             self.assertFalse(report["issues"])
 
-    def test_formal_code_scope_requires_config_instructions_and_report(self):
+    def test_formal_code_scope_does_not_require_auxiliary_files(self):
         syncer = load_syncer()
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -327,9 +327,10 @@ class TestSyncProject(unittest.TestCase):
                 include_analysis=False,
             )
             report = syncer.synchronize(root, write=False, delivery_scope="code")
-            self.assertTrue(any("完整运行配置" in issue for issue in report["issues"]))
-            self.assertTrue(any("本地运行说明" in issue for issue in report["issues"]))
-            self.assertTrue(any("code_delivery_report" in issue for issue in report["issues"]))
+            self.assertFalse(any("完整运行配置" in issue for issue in report["issues"]))
+            self.assertFalse(any("本地运行说明" in issue for issue in report["issues"]))
+            self.assertFalse(any("code_delivery_report" in issue for issue in report["issues"]))
+            self.assertFalse(report["issues"])
 
     def test_solve_phase_defaults_to_code_scope(self):
         syncer = load_syncer()

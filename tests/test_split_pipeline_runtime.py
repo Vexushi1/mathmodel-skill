@@ -97,7 +97,7 @@ class TestSplitPipelineRuntime(unittest.TestCase):
                     quality_hook=quality,
                     framework_sync_hook=sync_primary,
                 )
-            workbook = root / "结果数据表/问题一/问题一求解结果.xlsx"
+            workbook = root / "问题一求解/问题一求解结果.xlsx"
             self.assertTrue(workbook.is_file())
             quality_table = read_workbook_tables(workbook)["主结果质量门"]
             self.assertFalse(bool(quality_table.loc[0, "是否通过"]))
@@ -190,7 +190,7 @@ class TestSplitPipelineRuntime(unittest.TestCase):
                     analysis_hook=analyze,
                     framework_sync_hook=sync_analysis,
                 )
-            analysis_path = root / "结果数据表/问题一/问题一结果深化分析.xlsx"
+            analysis_path = root / "问题一求解/问题一结果深化分析.xlsx"
             self.assertTrue(analysis_path.is_file())
             updated = yaml.safe_load(state_path.read_text(encoding="utf-8"))
             entry = updated["subproblems"]["Q1"]

@@ -1,4 +1,4 @@
-version: 6.5.1
+version: 6.6.0
 workflow_order:
 - problem_audit
 - model_design
@@ -48,11 +48,11 @@ artifact_catalog:
   model_paper_framework: 当前有效模型语义、论文组织、逐问结果摘要和图表映射
   mechanism_contracts: 机理图合同
   validation_plan: 建模阶段识别的风险与候选验证方向
-  python_code: 用户本地执行的完整版Python主求解代码
-  result_analysis_code: 用户本地执行的完整版结果深化分析代码
-  full_run_config: 完整精度运行参数、代码与数据哈希和禁止降级标志
-  execution_instructions: 用户本地运行与返回工作簿说明
-  code_delivery_report: 不执行赛题代码的静态交付检查报告
+  python_code: 问题X求解目录中的唯一Python脚本；先交付主求解版本，验收后原位更新结果深化分析阶段
+  result_analysis_code: 对同一个问题X求解.py的结果深化分析更新，不生成第二个Python文件
+  full_run_config: 嵌入Python和工作簸运行配置表的完整精度参数，不单独落盘
+  execution_instructions: 聊天内给出的本地运行步骤，不单独落盘
+  code_delivery_report: 聊天或标准输出中的静态交付检查结果，不单独落盘
   awaiting_user_execution: 等待用户本地运行并返回工作簿的暂停状态
   user_execution_validation_report: 用户返回工作簿的运行配置、哈希和质量门验收报告
   solution_workbook: 用户返回并验收的主求解结果工作簿
@@ -82,7 +82,7 @@ artifact_catalog:
   validated_submission_package: 通过交付检查的提交包
   project_state: 项目机器状态
   sync_report: 项目同步器生成的发现、Schema校验、分层哈希、stale和证据链报告
-  figure_evidence: 工作簿、MATLAB脚本与逐图哈希证据
+  figure_evidence: 由同目录两个工作簿与qX_plot.m形成的逻辑证据，不默认生成独立文件
   accepted_solution_workbook: 通过运行配置、哈希和主结果质量门验收的主工作簿
   accepted_result_analysis_workbook: 通过运行配置和结论稳定性验收的结果深化工作簿
 workflow_profiles:
@@ -297,8 +297,6 @@ utility_gates:
     - existing_project_state
     - existing_model_paper_framework
     - python_code
-    - full_run_config
-    - execution_instructions
     outputs:
     - code_delivery_report
     - project_state
