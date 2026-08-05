@@ -73,6 +73,10 @@ jobs:
               'MATLAB 只读取 Python 输出的两个标准工作簿，不重新求解。每问唯一入口 `qX_plot.m` 与工作簿同处 `问题X求解/`。',
               'MATLAB 只读取 Python 输出的两个标准工作簿，不重新求解。每问唯一入口通用记为 `q{x}_plot.m`，问题一实例为 `q1_plot.m`，与工作簿同处 `问题X求解/`。禁止 `q1_polt.m` 等拼写变体。',
           )
+          value = value.replace(
+              '图表交付前执行 `python scripts/sync_project.py',
+              '每张图的源工作簿、工作表、真实表头、脚本、图注和正文位置同步登记到 `模型论文框架.md`。\n\n图表交付前执行 `python scripts/sync_project.py',
+          )
           matlab_readme.write_text(value, encoding='utf-8')
 
           scripts_readme = Path('scripts/README.md')
@@ -82,6 +86,11 @@ jobs:
               '- `resolve_workflow.py`：解析意图、`objective`、`structures`、`capabilities` 与竞赛类型，返回确定性执行计划；',
           )
           scripts_readme.write_text(value, encoding='utf-8')
+
+          legacy_readme = Path('legacy/README.md')
+          value = legacy_readme.read_text(encoding='utf-8')
+          value = value.replace('不属于 v6.6.0 默认运行链路', '不属于 v6.6.1 默认运行链路')
+          legacy_readme.write_text(value, encoding='utf-8')
           PY
       - name: Run focused and full validation
         run: |
