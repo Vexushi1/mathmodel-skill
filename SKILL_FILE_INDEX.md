@@ -9,7 +9,6 @@
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
-- `.github/workflows/v661-active-residue-cleanup.yml`
 - `.gitignore`
 - `AGENTS.md`
 - `CHANGELOG.md`
