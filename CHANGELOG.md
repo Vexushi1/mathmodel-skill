@@ -8,6 +8,7 @@
 - Fixed cross-question Python hash contamination in project synchronization.
 - Kept legacy `结果数据表/问题X/` and separate analysis-code layouts as read-only compatibility inputs.
 - Corrected the nested plugin entry path and removed the stale LaTeX module version title.
+- Kept the existing DOCX + review multi-intent ordering unchanged in this release.
 
 ## Previous release: 6.5.1
 
@@ -25,13 +26,11 @@
 
 ## Previous release: 6.4.1
 
-
 - Active MATLAB and figure templates now use `问题X结果深化分析.xlsx` instead of generating the historical `问题X敏感性与鲁棒性结果.xlsx` name.
 - `result_manifest.yaml` now records `result_analysis_workbook` as the current field.
 - The code-appendix template now names the primary-solve and result-analysis scripts separately.
 - `AGENTS.md` now matches the LaTeX-first workflow and treats DOCX as an explicit optional branch.
 - Added regression coverage that prevents current-generation templates from reintroducing legacy workbook names and checks packaged/root Skill version alignment.
-
 
 ## Previous release: 6.4.0
 
