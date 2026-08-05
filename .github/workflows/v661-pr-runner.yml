@@ -35,8 +35,16 @@ jobs:
           end = "\n          PY\n"
           if start not in text or end not in text:
               raise SystemExit('embedded migration block not found')
-          body = text.split(start, 1)[1].split(end, 1)[0]
-          exec(compile(textwrap.dedent(body), str(path), 'exec'))
+          body = textwrap.dedent(text.split(start, 1)[1].split(end, 1)[0])
+          body = body.replace(
+              'if path.name in {"CHANGELOG.md"}:',
+              'if path.name in {"CHANGELOG.md"} or path == ROOT / "scripts/lint_skill.py" or ".github" in path.parts:',
+          )
+          body = body.replace(
+              "if 'legacy' in path.parts or path.name == 'CHANGELOG.md':",
+              "if 'legacy' in path.parts or path.name == 'CHANGELOG.md' or path == ROOT / 'scripts/lint_skill.py' or '.github' in path.parts:",
+          )
+          exec(compile(body, str(path), 'exec'))
           PY
       - name: Run focused and full validation
         run: |
