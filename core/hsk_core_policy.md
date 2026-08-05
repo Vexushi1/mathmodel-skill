@@ -1,4 +1,4 @@
-# HSK Core Policy v6.6.1
+# HSK Core Policy v6.6.0
 
 本文件只保存全局硬规则。目录与交付文件以 `core/output_contract.yaml` 为准，用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；本文件不复制两份合同的完整字段。
 
