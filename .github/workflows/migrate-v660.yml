@@ -31,6 +31,18 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
       - name: Apply migration
         run: python scripts/migrate_v660_self_contained.py
+      - name: Repair generated validator quoting
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/validate_code_delivery.py')
+          text = path.read_text(encoding='utf-8')
+          broken = 'if "if __name__ == "__main__":" not in text and "if __name__ == \'__main__\':" not in text:'
+          fixed = 'if \'if __name__ == "__main__":\' not in text and "if __name__ == \'__main__\':" not in text:'
+          if broken not in text:
+              raise SystemExit('generated quoting pattern not found')
+          path.write_text(text.replace(broken, fixed), encoding='utf-8')
+          PY
       - name: Run targeted tests
         run: |
           python -m unittest tests.test_result_io
