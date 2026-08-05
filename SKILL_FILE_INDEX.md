@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：6.5.1
+当前 Skill 版本：6.6.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -191,3 +191,4 @@
 - `tests/test_v631_contract_closure.py`
 - `tests/test_v632_delivery_gate_closure.py`
 - `tests/test_v633_gate_hardening.py`
+- `tests/test_v660_self_contained_question_folder.py`

@@ -1,6 +1,15 @@
 # Changelog
 
-## Current release: 6.5.1
+## Current release: 6.6.0
+
+- Restored one self-contained `问题X求解/` directory per subproblem.
+- New projects keep exactly one evolving Python script, two standard workbooks and one `qX_plot.m` in that directory.
+- Removed standalone run-config, execution-instruction and validation-report files from the default user-visible output.
+- Fixed cross-question Python hash contamination in project synchronization.
+- Kept legacy `结果数据表/问题X/` and separate analysis-code layouts as read-only compatibility inputs.
+- Corrected the nested plugin entry path and removed the stale LaTeX module version title.
+
+## Previous release: 6.5.1
 
 - Removed the obsolete fixed sensitivity/robustness checklist and the unreferenced pre-user-execution pipeline config.
 - New-project starters now stop after `run_primary_pipeline()`; `run_pipeline()` remains only as a user-local compatibility API.

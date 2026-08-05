@@ -243,30 +243,39 @@ def _classification(entry: Mapping[str, Any]):
     return objective, structures, problem_types, capabilities if isinstance(capabilities, Mapping) else None
 
 
+
+def _question_dir(root: Path, chinese_name: str) -> Path:
+    current = root / f"{chinese_name}求解"
+    if current.is_dir():
+        return current
+    return root / "结果数据表" / chinese_name
+
+
 def _question_names(root: Path, state: Mapping[str, Any]) -> list[str]:
     names = {chinese_question_name(str(key)) for key in (state.get("subproblems") or {})}
+    names.update(
+        path.name.removesuffix("求解")
+        for path in root.glob("问题*求解")
+        if path.is_dir() and QUESTION_RE.fullmatch(path.name.removesuffix("求解"))
+    )
     result_root = root / "结果数据表"
     if result_root.is_dir():
         names.update(
             path.name for path in result_root.iterdir()
             if path.is_dir() and QUESTION_RE.fullmatch(path.name)
         )
-    for path in root.glob("*.py"):
-        match = QUESTION_RE.search(path.stem)
-        if match:
-            names.add(match.group(0))
     return sorted(names, key=lambda value: question_number(value) or 999)
 
 
 def _python_files(root: Path, chinese_name: str) -> list[Path]:
-    terms = ("求解", "分析", "检验", "验证", "仿真", "优化", "预测")
-    return sorted(
-        {
-            path for path in root.glob("*.py")
-            if chinese_name in path.stem or any(term in path.stem for term in terms)
-        },
-        key=lambda item: item.name,
-    )
+    current = root / f"{chinese_name}求解" / f"{chinese_name}求解.py"
+    if current.is_file():
+        return [current]
+    legacy = [
+        root / f"{chinese_name}求解.py",
+        root / f"{chinese_name}结果深化分析.py",
+    ]
+    return [path for path in legacy if path.is_file()]
 
 
 def _analysis_path(result_dir: Path, chinese_name: str) -> tuple[Path, bool]:
@@ -278,11 +287,10 @@ def _analysis_path(result_dir: Path, chinese_name: str) -> tuple[Path, bool]:
 
 
 def _figure_files(result_dir: Path) -> list[Path]:
-    directory = result_dir / "图表"
-    if not directory.is_dir():
-        return []
+    directories = [result_dir, result_dir / "图表"]
     return sorted(
-        (path for path in directory.rglob("*") if path.is_file() and path.suffix.lower() in FIGURE_SUFFIXES),
+        {path for directory in directories if directory.is_dir() for path in directory.iterdir()
+         if path.is_file() and path.suffix.lower() in FIGURE_SUFFIXES},
         key=lambda item: item.as_posix(),
     )
 
@@ -330,7 +338,7 @@ def _snapshot_question(
     delivery_scope: str | None,
 ) -> dict[str, Any]:
     key = question_key(chinese_name)
-    result_dir = root / "结果数据表" / chinese_name
+    result_dir = _question_dir(root, chinese_name)
     solution = result_dir / f"{chinese_name}求解结果.xlsx"
     analysis, legacy_analysis = _analysis_path(result_dir, chinese_name)
     number = question_number(chinese_name)
@@ -383,8 +391,6 @@ def _snapshot_question(
                 if not export_path.is_file():
                     shown = export_path.relative_to(root).as_posix() if export_path.is_relative_to(root) else export_path.as_posix()
                     issues.append(f"MATLAB声明导出的图不存在: {shown}")
-        if not figures:
-            issues.append("图表交付缺少正式结果图")
 
     framework = root / "模型论文框架.md"
     hashes = {
@@ -457,7 +463,7 @@ def _apply_snapshot_to_state(root: Path, state: dict[str, Any], snapshot: Mappin
             entry["result_analysis_status"] = "pending"
         elif "result_analysis_workbook" in mismatched:
             entry["result_analysis_status"] = "pending"
-    evidence = root / "结果数据表" / str(snapshot["chinese_name"]) / "figure_evidence.yaml"
+    evidence = _question_dir(root, str(snapshot["chinese_name"])) / "figure_evidence.yaml"
     if evidence.is_file():
         relative = evidence.relative_to(root).as_posix()
         values = list(entry.get("evidence", []) or [])
@@ -468,22 +474,8 @@ def _apply_snapshot_to_state(root: Path, state: dict[str, Any], snapshot: Mappin
 
 
 def _write_figure_evidence(root: Path, snapshot: Mapping[str, Any]) -> str | None:
-    if not snapshot.get("matlab_script") or not snapshot.get("figures"):
-        return None
-    path = root / "结果数据表" / str(snapshot["chinese_name"]) / "figure_evidence.yaml"
-    hashes = snapshot.get("artifact_hashes", {}) or {}
-    payload = {
-        "question": snapshot["key"],
-        "solution_workbook": hashes.get("solution_workbook"),
-        "result_analysis_workbook": hashes.get("result_analysis_workbook"),
-        "matlab_script": hashes.get("matlab_script"),
-        "figure_bundle": hashes.get("figure_bundle"),
-        "individual_figures": snapshot.get("individual_figure_hashes", {}),
-        "workbook_references": snapshot.get("workbook_references", []),
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-    }
-    path.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
-    return path.relative_to(root).as_posix()
+    # v6.6.0默认不生成额外figure_evidence文件。
+    return None
 
 
 def _replace_or_prepend(lines: list[str], prefix: str, replacement: str) -> list[str]:

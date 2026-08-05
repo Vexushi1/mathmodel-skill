@@ -1,6 +1,6 @@
-version: 1.0.0
-skill_version: 6.5.1
-purpose: Define the user-executed full-fidelity numerical workflow without allowing the assistant to run task-specific solve or result-analysis programs.
+version: 1.1.0
+skill_version: 6.6.0
+purpose: 定义用户本地完整版数值执行链，同时保持每问一个自包含目录和一个持续更新的Python脚本。
 default_mode:
   execution_owner: user
   execution_profile: full_fidelity
@@ -8,14 +8,13 @@ default_mode:
   local_pipeline_remains_runnable_by_user: true
 assistant_policy:
   prohibited:
-  - 运行、导入或通过subprocess/runpy/notebook执行问题X求解.py
-  - 运行、导入或通过subprocess/runpy/notebook执行问题X结果深化分析.py
+  - 运行、导入或通过subprocess/runpy/notebook执行问题X求解/问题X求解.py
   - 为节省时间自动缩减数据、网格、时域、场景、重复次数、随机种子、迭代次数或容差
   - 在完整版失败后静默切换轻量模型、替代求解器、粗粒度近似或演示结果
   - 用户未返回工作簿前声称已求解、已分析或已得到正式数值
   allowed:
   - 审题、模型设计、公式闭环和完整版代码生成
-  - 不导入求解脚本的静态代码检查、依赖检查和语法检查
+  - 不导入求解脚本的静态代码、依赖和语法检查
   - 读取用户返回的工作簿并执行Schema、哈希、质量门和证据一致性校验
   - 运行本Skill仓库自身的lint、单元测试、索引生成和LaTeX模板CI
 full_fidelity_flags:
@@ -29,15 +28,20 @@ full_fidelity_flags:
 code_delivery:
   required_artifacts:
   - task_specific_python_code
-  - full_run_config
-  - execution_instructions
+  single_script: 问题X求解/问题X求解.py
+  runtime_metadata: 嵌入Python中的FULL_FIDELITY_CONFIG，并写入两个工作簿的运行配置工作表
+  standalone_files_forbidden_by_default:
+  - 问题X完整运行配置.yaml
+  - 问题X本地运行说明.md
+  - code_delivery_report.yaml
+  - 问题X结果深化分析.py
+  - 问题X结果深化完整运行配置.yaml
+  - 问题X结果深化本地运行说明.md
   required_config_fields:
   - execution_owner
   - execution_profile
   - stage
   - problem_name
-  - code_path
-  - code_sha256
   - data_paths
   - data_sha256
   - solver
@@ -52,18 +56,41 @@ code_delivery:
   - allow_fewer_repetitions
   - allow_relaxed_tolerance
   - allow_silent_solver_fallback
-  no_placeholder_markers: [TODO, FIXME, __QUESTION_NAME__, NotImplementedError]
+  no_placeholder_markers:
+  - TODO
+  - FIXME
+  - __QUESTION_NAME__
+  - NotImplementedError
+single_script_update_policy:
+  primary: 首次交付问题X求解.py，仅运行主求解并输出问题X求解结果.xlsx
+  analysis: 主工作簿验收后覆盖更新同一个问题X求解.py，加入结果深化分析入口并输出第二工作簿
+  forbidden: 不得另建问题X结果深化分析.py
 execution_states:
-  primary: [pending, code_delivered, awaiting_user_execution, workbook_received, accepted, rejected]
-  analysis: [pending, code_delivered, awaiting_user_execution, workbook_received, accepted, rejected, redo_required]
+  primary:
+  - pending
+  - code_delivered
+  - awaiting_user_execution
+  - workbook_received
+  - accepted
+  - rejected
+  analysis:
+  - pending
+  - code_delivered
+  - awaiting_user_execution
+  - workbook_received
+  - accepted
+  - rejected
+  - redo_required
   rules:
   - 代码交付不得把小问status提升为solved或analyzed。
   - primary_execution_status=accepted且主结果质量门通过后，status才可进入solved。
   - analysis_execution_status=accepted且结论稳定性校验通过后，status才可进入analyzed。
-  - 主工作簿未验收前不得生成最终结果深化分析代码；只能形成候选分析方向。
+  - 主工作簿未验收前不得写入最终结果深化分析实现；只能形成候选分析方向。
 returned_workbook:
   required_sheet: 运行配置
-  required_columns: [项目, 值]
+  required_columns:
+  - 项目
+  - 值
   required_items:
   - execution_owner
   - execution_profile
@@ -91,18 +118,16 @@ returned_workbook:
   - execution_owner必须为user。
   - execution_profile必须为full_fidelity。
   - 所有缩减、放宽和静默回退标志必须为false。
-  - fallback_used必须为false；需要替代求解器时必须形成新版代码与新版配置后重跑。
-  - code_sha256必须与已交付代码完全一致。
+  - fallback_used必须为false。
+  - code_sha256必须与对应阶段已交付的同一Python脚本版本完全一致。
   - data_sha256必须与代码交付时锁定的数据哈希完全一致。
   - 主结果工作簿必须通过主结果质量门，结果深化分析工作簿必须包含分析设计和结论稳定性汇总。
 filenames:
-  primary_code: 问题X求解.py
-  primary_config: 问题X完整运行配置.yaml
-  primary_instructions: 问题X本地运行说明.md
-  primary_workbook: 结果数据表/问题X/问题X求解结果.xlsx
-  analysis_code: 问题X结果深化分析.py
-  analysis_config: 问题X结果深化完整运行配置.yaml
-  analysis_instructions: 问题X结果深化本地运行说明.md
-  analysis_workbook: 结果数据表/问题X/问题X结果深化分析.xlsx
-  code_delivery_report: code_delivery_report.yaml
-  receipt_report: user_execution_validation_report.yaml
+  question_directory: 问题X求解/
+  python_code: 问题X求解/问题X求解.py
+  primary_workbook: 问题X求解/问题X求解结果.xlsx
+  analysis_workbook: 问题X求解/问题X结果深化分析.xlsx
+  matlab_script: 问题X求解/qX_plot.m
+  legacy_result_directory: 结果数据表/问题X/
+  legacy_analysis_code: 问题X结果深化分析.py
+  validation_reports: 仅在聊天或标准输出返回，不写入用户项目

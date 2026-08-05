@@ -74,8 +74,8 @@ class TestResultIO(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             solve, analysis = MOD.workbook_paths(root, "问题一")
-            self.assertEqual(solve.relative_to(root).as_posix(), "结果数据表/问题一/问题一求解结果.xlsx")
-            self.assertEqual(analysis.relative_to(root).as_posix(), "结果数据表/问题一/问题一结果深化分析.xlsx")
+            self.assertEqual(solve.relative_to(root).as_posix(), "问题一求解/问题一求解结果.xlsx")
+            self.assertEqual(analysis.relative_to(root).as_posix(), "问题一求解/问题一结果深化分析.xlsx")
             MOD.write_workbook(solve, self.solution_tables())
             MOD.write_workbook(analysis, self.analysis_tables())
             self.assertTrue(solve.exists())
@@ -83,7 +83,9 @@ class TestResultIO(unittest.TestCase):
 
     def test_project_root_defaults_to_script_directory_on_first_run(self):
         with tempfile.TemporaryDirectory() as directory:
-            script = Path(directory) / "问题一求解.py"
+            folder = Path(directory) / "问题一求解"
+            folder.mkdir()
+            script = folder / "问题一求解.py"
             script.write_text("", encoding="utf-8")
             self.assertEqual(MOD.find_project_root(script), Path(directory))
 
