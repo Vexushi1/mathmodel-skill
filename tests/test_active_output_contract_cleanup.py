@@ -31,8 +31,12 @@ class TestActiveOutputContractCleanup(unittest.TestCase):
         self.assertTrue(per_question["no_auxiliary_files_by_default"])
 
     def test_active_templates_use_self_contained_question_directory(self):
+        policy = (ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8")
+        self.assertIn("默认恰好包含", policy)
+        self.assertIn("只保留只读兼容", policy)
+        self.assertNotIn("输出问题X结果深化分析.py", policy)
+
         checks = {
-            "core/hsk_core_policy.md": "默认恰好包含",
             "templates/code/starter/README.md": "问题一求解/问题一求解.py",
             "templates/code/hsk_pipeline/README.md": "问题一求解/问题一求解结果.xlsx",
             "templates/writing/code_appendix_description.md": "问题X求解/问题X求解.py",
