@@ -5,22 +5,20 @@
 | Figure ID | 图 X |
 | Core conclusion | 一句话核心结论 |
 | Figure role | 趋势 / 分布 / 诊断 / 敏感性 / 鲁棒性 / Pareto / 空间 / 网络 / 构成 / 多维画像 |
-| MATLAB title | 单图 `title` 或多面板 `sgtitle` 的简洁中文标题；只写研究对象、指标关系和必要方法信息 |
-| DOCX/LaTeX caption | 图下题注，补充样本、统计口径、时间范围、误差或解释，不与 MATLAB title 逐字重复 |
-| Chart type | 条形图 / 折线图 / 热图 / 饼图 / 雷达图 / 3D 柱状图 / 3D 曲面 / 桑基图 / 其他 |
-| Efficiency rationale | 该图型相较常规替代图如何提高信息展示效率 |
-| Source workbook | `结果数据表/问题X/问题X求解结果.xlsx` 或 `结果数据表/问题X/问题X结果深化分析.xlsx` |
+| MATLAB title | 单图 `title` 或多面板 `sgtitle` 的简洁中文标题 |
+| DOCX/LaTeX caption | 图下题注，补充样本、统计口径、时间范围和误差，不与 MATLAB title 逐字重复 |
+| Chart type | 折线图 / 条形图 / 散点图 / 区间图 / 热力图 / Pareto / 网络图 / 其他 |
+| Efficiency rationale | 相较替代图如何提高可验证信息密度 |
+| Source workbook | `问题X求解/问题X求解结果.xlsx` 或 `问题X求解/问题X结果深化分析.xlsx` |
 | Worksheet | 中文工作表名 |
-| Required columns | 绘图必需字段、记录键、单位和排序字段 |
-| Column positions | Excel 固定列号及对应真实表头 |
-| MATLAB script | `结果数据表/问题X/q{x}_plot.m`，例如问题一为 `结果数据表/问题一/q1_plot.m` |
-| Panel map | a/b/c/d 各自证据职责；只有对象确有差异时设置短子标题 |
+| Required columns | 绘图必需真实字段、记录键、单位和排序字段 |
+| Expected positions | 可选列号，仅作结构漂移警告 |
+| MATLAB script | `问题X求解/qX_plot.m` |
+| Panel map | a/b/c/d 各面板证据职责 |
 | Statistics/error | 误差线、区间、样本量和统计口径 |
-| Color plan | 默认规则色板或按变量语义定制的配色及其含义 |
-| Advanced chart safeguards | 视角、遮挡、比例、标准化、色条、二维投影或数值标签等控制措施 |
-| Export files | `结果数据表/问题X/图表/qx_*.pdf`、`.png`，可选 `.svg`；默认保留 MATLAB title |
-| Framework registry | `模型论文框架.md` 中“论文与图表映射”和“图表证据链”的对应行 |
+| Export files | 求解阶段留空；论文阶段人工确认后可登记项目级 `figures/qx_*.pdf`、`.png` 或 `.svg` |
+| Framework registry | `模型论文框架.md` 中的对应图表登记 |
 | Paper location | 正文章节 |
 | Reviewer risk | 可能质疑点与处理 |
 
-历史项目兼容名称只允许出现在专用兼容合同中，不得写入新项目 Figure Contract。
+Figure Contract 默认登记在 `模型论文框架.md`，不生成独立 `figure_evidence` 文件。历史目录和旧工作簿名只允许出现在专用兼容说明中。
