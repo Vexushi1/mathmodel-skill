@@ -1,4 +1,4 @@
-# LaTeX 编译质量规范 v6.2.3
+# Module 05D：LaTeX 编译质量检查
 
 本模块只编译 `ai_cleanup` 输出的已清理 `latex_source`，输出 `compiled_pdf` 与 `compile_report`。
 

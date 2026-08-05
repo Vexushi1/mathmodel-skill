@@ -39,22 +39,23 @@ class TestContentPacks(unittest.TestCase):
         self.assertIn("不是题型标签", classifier)
         self.assertIn("advanced_method_gate.md", classifier)
 
-    def test_code_pack_separates_primary_solve_and_result_analysis(self):
+    def test_code_pack_uses_one_self_contained_question_folder(self):
         text = (ROOT / "packs/artifact/code.md").read_text(encoding="utf-8")
         for token in (
-            "run_primary_pipeline",
-            "run_result_analysis_pipeline",
-            "主结果质量门",
-            "分析设计",
-            "结论稳定性汇总",
+            "问题X求解/",
+            "问题X求解.py",
             "问题X求解结果.xlsx",
             "问题X结果深化分析.xlsx",
-            "q{x}_plot.m",
-            "精确表头唯一匹配",
-            "redo_required",
+            "qX_plot.m",
+            "唯一Python文件",
+            "覆盖更新同一文件",
+            "不生成独立 YAML",
+            "同目录两个真实工作簿",
+            "精确匹配表头",
+            "只读兼容",
         ):
             self.assertIn(token, text)
-        self.assertIn("统一做 ±5%、±10% 扰动", text)
+        self.assertNotIn("问题X结果深化分析.py", text)
 
     def test_chart_selection_is_evidence_driven_and_titled(self):
         text = (ROOT / "templates/figure/chart_selection.md").read_text(encoding="utf-8")

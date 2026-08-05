@@ -1,22 +1,27 @@
 #!/usr/bin/env python3
-"""Validate a full-fidelity code handoff without importing or executing task code."""
+"""静态校验每问唯一Python脚本，不运行赛题代码，也不生成额外报告文件。"""
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-ROOT = Path(__file__).resolve().parents[1]
-CONTRACT = ROOT / "core" / "user_execution_contract.yaml"
 FALSE_FLAGS = (
     "allow_reduced_data", "allow_coarser_grid", "allow_shorter_horizon",
     "allow_fewer_repetitions", "allow_relaxed_tolerance",
     "allow_silent_solver_fallback",
 )
 PLACEHOLDERS = ("TODO", "FIXME", "__QUESTION_NAME__", "NotImplementedError")
+CONFIG_NAMES = {"FULL_FIDELITY_CONFIG", "FULL_RUN_CONFIG", "RUN_CONFIG"}
+REQUIRED_FIELDS = {
+    "execution_owner", "execution_profile", "stage", "problem_name", "data_paths",
+    "data_sha256", "solver", "solver_version", "random_seed", "tolerance",
+    "iteration_or_time_limit", "expected_workbook", *FALSE_FLAGS,
+}
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -32,26 +37,56 @@ def is_sha256(value: Any) -> bool:
     return len(text) == 64 and all(character in "0123456789abcdef" for character in text)
 
 
-def infer_stage(config: dict[str, Any]) -> str:
-    stage = str(config.get("stage", "")).strip()
-    if stage not in {"primary", "analysis"}:
-        raise ValueError("stage必须为primary或analysis")
-    return stage
+def embedded_config(text: str) -> dict[str, Any]:
+    tree = ast.parse(text)
+    for node in tree.body:
+        if isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            if any(isinstance(target, ast.Name) and target.id in CONFIG_NAMES for target in targets):
+                value = ast.literal_eval(node.value)
+                if not isinstance(value, dict):
+                    raise ValueError("FULL_FIDELITY_CONFIG必须为字典常量")
+                return value
+    raise ValueError("缺少FULL_FIDELITY_CONFIG字典常量")
 
 
-def validate_config(project_root: Path, config_path: Path) -> tuple[list[str], dict[str, Any], Path]:
+def problem_from_path(script: Path) -> str:
+    folder = script.parent.name
+    if not folder.endswith("求解"):
+        raise ValueError("Python脚本必须位于问题X求解目录")
+    problem = folder.removesuffix("求解")
+    if script.name != f"{problem}求解.py":
+        raise ValueError(f"脚本名必须为{problem}求解.py")
+    return problem
+
+
+def validate_script(project_root: Path, script: Path, expected_stage: str | None = None) -> tuple[list[str], dict[str, Any]]:
     issues: list[str] = []
-    config = load_yaml(config_path)
-    contract = load_yaml(CONTRACT)
-    required = contract["code_delivery"]["required_config_fields"]
-    for field in required:
-        if field not in config or config[field] in (None, "", []):
-            issues.append(f"完整运行配置缺少字段: {field}")
     try:
-        stage = infer_stage(config)
+        problem = problem_from_path(script)
     except ValueError as exc:
+        return [str(exc)], {}
+    text = script.read_text(encoding="utf-8", errors="strict")
+    for marker in PLACEHOLDERS:
+        if marker in text:
+            issues.append(f"正式代码仍含占位标记: {marker}")
+    if 'if __name__ == "__main__":' not in text and "if __name__ == '__main__':" not in text:
+        issues.append("正式代码缺少main入口")
+    try:
+        config = embedded_config(text)
+    except (SyntaxError, ValueError) as exc:
         issues.append(str(exc))
-        stage = "primary"
+        config = {}
+    for field in sorted(REQUIRED_FIELDS):
+        if field not in config or config[field] in (None, "", []):
+            issues.append(f"嵌入运行配置缺少字段: {field}")
+    stage = str(config.get("stage", ""))
+    if stage not in {"primary", "analysis"}:
+        issues.append("stage必须为primary或analysis")
+    if expected_stage and stage != expected_stage:
+        issues.append(f"stage应为{expected_stage}")
+    if config.get("problem_name") != problem:
+        issues.append("problem_name与目录名不一致")
     if config.get("execution_owner") != "user":
         issues.append("execution_owner必须为user")
     if config.get("execution_profile") != "full_fidelity":
@@ -59,36 +94,15 @@ def validate_config(project_root: Path, config_path: Path) -> tuple[list[str], d
     for flag in FALSE_FLAGS:
         if config.get(flag) is not False:
             issues.append(f"{flag}必须显式为false")
-    if not is_sha256(config.get("code_sha256")):
-        issues.append("code_sha256必须是64位十六进制SHA-256")
     if not is_sha256(config.get("data_sha256")):
         issues.append("data_sha256必须是64位十六进制SHA-256")
-    code_path = project_root / str(config.get("code_path", ""))
-    if not code_path.is_file():
-        issues.append(f"代码文件不存在: {code_path}")
-        return issues, config, code_path
-    text = code_path.read_text(encoding="utf-8", errors="ignore")
-    for marker in PLACEHOLDERS:
-        if marker in text:
-            issues.append(f"正式代码仍含占位标记: {marker}")
-    if "if __name__ == \"__main__\":" not in text and "if __name__ == '__main__':" not in text:
-        issues.append("正式代码缺少main入口")
-    declared = str(config.get("code_sha256", "")).lower()
-    actual = sha256(code_path)
-    if declared != actual:
-        issues.append(f"code_sha256不匹配: declared={declared}, actual={actual}")
-    expected_suffix = "结果深化分析.py" if stage == "analysis" else "求解.py"
-    if not code_path.name.endswith(expected_suffix):
-        issues.append(f"{stage}阶段代码文件名应以{expected_suffix}结尾")
-    instructions = config_path.with_name(
-        config_path.name.replace("完整运行配置.yaml", "本地运行说明.md")
-    )
-    if not instructions.is_file():
-        issues.append(f"缺少本地运行说明: {instructions.name}")
-    return issues, config, code_path
+    expected = f"{problem}求解结果.xlsx" if stage == "primary" else f"{problem}结果深化分析.xlsx"
+    if Path(str(config.get("expected_workbook", ""))).name != expected:
+        issues.append(f"expected_workbook必须指向同目录{expected}")
+    return issues, config
 
 
-def update_state(project_root: Path, config: dict[str, Any], code_path: Path) -> None:
+def update_state(project_root: Path, config: dict[str, Any], script: Path) -> None:
     state_path = project_root / "state" / "project_state.yaml"
     if not state_path.is_file():
         return
@@ -98,70 +112,56 @@ def update_state(project_root: Path, config: dict[str, Any], code_path: Path) ->
     suffix = problem.removeprefix("问题")
     key = f"Q{order.index(suffix) + 1}" if suffix in order else problem
     entry = state.setdefault("subproblems", {}).setdefault(key, {})
-    relative = code_path.relative_to(project_root).as_posix()
-    stage = infer_stage(config)
+    relative = script.relative_to(project_root).as_posix()
+    stage = str(config["stage"])
     entry["data_hash"] = str(config["data_sha256"]).lower()
+    entry["code"] = relative
     if stage == "primary":
-        entry["code"] = relative
-        entry["primary_code_sha256"] = sha256(code_path)
+        entry["primary_code_sha256"] = sha256(script)
         entry["primary_execution_status"] = "awaiting_user_execution"
         entry.setdefault("analysis_execution_status", "pending")
     else:
         if entry.get("primary_execution_status") != "accepted":
-            raise ValueError("主工作簿未accepted，禁止交付最终结果深化分析代码")
-        entry["result_analysis_code"] = relative
-        entry["analysis_code_sha256"] = sha256(code_path)
+            raise ValueError("主工作簿未accepted，禁止写入最终结果深化分析实现")
+        entry["analysis_code_sha256"] = sha256(script)
         entry["analysis_execution_status"] = "awaiting_user_execution"
-    execution = state.setdefault("execution", {})
-    execution.update({
-        "owner": "user",
-        "profile": "full_fidelity",
-        "assistant_task_execution_allowed": False,
-        **{flag: False for flag in FALSE_FLAGS},
-    })
     state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
 
 
-def discover_configs(root: Path) -> list[Path]:
-    patterns = ("问题*完整运行配置.yaml", "问题*结果深化完整运行配置.yaml")
-    return sorted({path.resolve() for pattern in patterns for path in root.glob(pattern)})
+def discover_scripts(root: Path) -> list[Path]:
+    return sorted(root.glob("问题*求解/问题*求解.py"))
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("project_root", type=Path)
-    parser.add_argument("--config", type=Path)
+    parser.add_argument("--script", type=Path)
+    parser.add_argument("--stage", choices=("primary", "analysis"))
     parser.add_argument("--write", action="store_true")
     parser.add_argument("--strict", action="store_true")
     args = parser.parse_args()
     root = args.project_root.resolve()
-    configs = [args.config] if args.config else discover_configs(root)
+    scripts = [args.script if args.script and args.script.is_absolute() else root / args.script] if args.script else discover_scripts(root)
     issues: list[str] = []
     checked: list[str] = []
-    for raw in configs:
-        path = raw if raw.is_absolute() else root / raw
-        item_issues, config, code_path = validate_config(root, path)
-        issues.extend(f"{path.name}: {item}" for item in item_issues)
-        checked.append(path.relative_to(root).as_posix())
+    for script in scripts:
+        item_issues, config = validate_script(root, script, args.stage)
+        issues.extend(f"{script.name}: {item}" for item in item_issues)
+        checked.append(script.relative_to(root).as_posix())
         if args.write and not item_issues:
             try:
-                update_state(root, config, code_path)
+                update_state(root, config, script)
             except ValueError as exc:
-                issues.append(f"{path.name}: {exc}")
+                issues.append(f"{script.name}: {exc}")
     report = {
         "status": "passed" if not issues else "failed",
-        "checked_configs": checked,
+        "checked_scripts": checked,
         "issues": issues,
         "task_code_executed": False,
+        "report_persisted": False,
     }
-    (root / "code_delivery_report.yaml").write_text(
-        yaml.safe_dump(report, allow_unicode=True, sort_keys=False), encoding="utf-8"
-    )
-    if issues:
-        print("\n".join(issues))
-        return 1 if args.strict else 0
-    print("full-fidelity code delivery validated without executing task code")
-    return 0
+    print(yaml.safe_dump(report, allow_unicode=True, sort_keys=False).rstrip())
+    return 1 if issues and args.strict else 0
 
 
 if __name__ == "__main__":

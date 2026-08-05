@@ -1,5 +1,5 @@
 %% q1_plot：问题一结果绘图入口（当前活动模板）
-% 放在“结果数据表/问题一/”，生成正式脚本前必须读取实际工作簿并替换全部占位符。
+% 放在“问题一求解/”，与唯一Python脚本和两个标准工作簿同目录。
 % 字段使用精确表头唯一匹配；期望列号仅用于结构漂移警告。
 
 clearvars;
@@ -11,8 +11,6 @@ assert(strlength(scriptPath) > 0, "请从已保存的q1_plot.m运行脚本");
 resultDir = string(fileparts(scriptPath));
 solutionBook = fullfile(resultDir, "问题一求解结果.xlsx");
 resultAnalysisBook = fullfile(resultDir, "问题一结果深化分析.xlsx");
-figureDir = fullfile(resultDir, "图表");
-EXPORT_FIGURES = false;
 assert(isfile(solutionBook), "缺少工作簿: %s", solutionBook);
 assert(isfile(resultAnalysisBook), "缺少工作簿: %s", resultAnalysisBook);
 
@@ -64,12 +62,7 @@ grid(ax, "off");
 box(ax, "on");
 apply_scientific_style(fig);
 
-%% 4. 人工调整后按需导出
-if EXPORT_FIGURES
-    if ~isfolder(figureDir), mkdir(figureDir); end
-    exportgraphics(fig, fullfile(figureDir, "q1_core_result.pdf"), "ContentType", "vector");
-    exportgraphics(fig, fullfile(figureDir, "q1_core_result.png"), "Resolution", 600);
-end
+%% 4. 图窗保留供人工检查；本脚本默认不自动导出文件
 
 function column = exact_header_column(headers, expected)
 matches = find(headers == strtrim(string(expected)));

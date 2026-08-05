@@ -26,6 +26,7 @@ def _load_workbook_validation():
 WORKBOOK_VALIDATION = _load_workbook_validation()
 INVALID_SHEET_CHARS = set('[]:*?/\\')
 PROBLEM_PATTERN = re.compile(r"问题[一二三四五六七八九十百]+")
+QUESTION_DIR_PATTERN = re.compile(r"问题[一二三四五六七八九十百]+求解")
 VALID_WORKBOOK_KINDS = {"solution", "result_analysis", "robustness"}
 
 _FALLBACK_SCHEMA: dict[str, Any] = {
@@ -141,8 +142,10 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
 def find_project_root(start: Path) -> Path:
     start = Path(start).resolve()
     current = start.parent if start.is_file() else start
+    if QUESTION_DIR_PATTERN.fullmatch(current.name):
+        return current.parent
     for candidate in (current, *current.parents):
-        if (candidate / "结果数据表").is_dir():
+        if (candidate / "模型论文框架.md").is_file() or (candidate / "state" / "project_state.yaml").is_file():
             return candidate
         if candidate.name == "结果数据表":
             return candidate.parent
@@ -154,15 +157,18 @@ def find_project_root(start: Path) -> Path:
 def result_data_dir(project_root: Path, problem_name: str) -> Path:
     if not PROBLEM_PATTERN.fullmatch(problem_name):
         raise ValueError("problem_name 应为问题一、问题二等中文名称")
-    path = Path(project_root) / "结果数据表" / problem_name
+    path = Path(project_root) / f"{problem_name}求解"
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def legacy_result_data_dir(project_root: Path, problem_name: str) -> Path:
+    return Path(project_root) / "结果数据表" / problem_name
 
 
 def figure_dir(project_root: Path, problem_name: str) -> Path:
-    path = result_data_dir(project_root, problem_name) / "图表"
-    path.mkdir(parents=True, exist_ok=True)
-    return path
+    # v6.6.0默认不创建图表子目录；MATLAB脚本只打开图窗，用户按需导出。
+    return result_data_dir(project_root, problem_name)
 
 
 def workbook_paths(project_root: Path, problem_name: str) -> tuple[Path, Path]:
