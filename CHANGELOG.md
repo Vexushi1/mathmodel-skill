@@ -9,6 +9,9 @@
 - Kept legacy `结果数据表/问题X/` and separate analysis-code layouts as read-only compatibility inputs.
 - Corrected the nested plugin entry path and removed the stale LaTeX module version title.
 - Kept the existing DOCX + review multi-intent ordering unchanged in this release.
+- Hotfix: removed the obsolete standalone run-config and execution-instruction templates, the superseded MATLAB handoff writer, and the redundant artifact checker.
+- Hotfix: aligned the global policy, Starter guides, code appendix, Figure Contract, MATLAB reader, optional manifest, review pack and active tests with the exact four-file contract.
+- Hotfix: default MATLAB delivery now keeps only the visible figure window; exports belong to project-level `figures/` only after paper-stage confirmation.
 
 ## Previous release: 6.5.1
 
@@ -36,41 +39,43 @@
 
 ### Quality-first primary solving
 
-- `modules/03_solve_validate.md` now represents complete primary solving plus a mandatory result-quality gate.
-- Solver termination, feasibility, optimality gap, residuals, convergence, leakage, base out-of-sample accuracy, uncertainty and identifiability remain in primary solving when applicable.
-- The quality report is persisted in `问题X求解结果.xlsx` as `主结果质量门`; failed primary results cannot enter downstream analysis.
+- Added an explicit primary-result quality gate before any sensitivity, robustness or multi-algorithm analysis.
+- Split primary solving from result analysis in the module graph, state machine and workbook contract.
+- Added adaptive result-analysis selection based on problem, model, data, result and reviewer risk instead of a fixed perturbation checklist.
+- Added structured `passed` / `failed` / `redo_required` outcomes and stale propagation when result analysis invalidates the primary result.
+- Switched the default full workflow to LaTeX-first authoring; DOCX is now an explicit independent review branch.
+- Replaced versioned active entry filenames with stable names and moved historical release documents into `legacy/`.
 
-### Adaptive result analysis
+## Previous release: 6.3.4
 
-- Added `modules/03_result_analysis.md` after primary solving and before figures.
-- Result analysis methods are selected from the actual problem, model, data, primary-result behavior and reviewer risk.
-- Supported evidence families include sensitivity, scenario robustness, multi-algorithm consistency, structural robustness, thresholds, heterogeneity, error decomposition and out-of-sample stability.
-- Uniform ±5%/±10% perturbation is explicitly forbidden as a default template.
-- Analysis failures can set `redo_required`, propagate stale and return the workflow to model design or primary solving.
+- Added the `result_analysis` module and separated it from primary solving.
+- Added current-state `模型论文框架.md` synchronization for model, result, analysis and figure changes.
+- Added adaptive analysis categories, redo-required feedback and figure-evidence updates.
+- Updated the three competition profiles, score rubric and submission checks.
 
-### Workbook and state contracts
+## Previous release: 6.3.3
 
-- New projects write `问题X求解结果.xlsx` and `问题X结果深化分析.xlsx`.
-- Result-analysis workbooks require `分析设计`, at least one substantive analysis sheet and `结论稳定性汇总`.
-- `result_quality_status` and `result_analysis_status` are tracked separately.
-- Artifact hashes now distinguish `solution_workbook` and `result_analysis_workbook`.
-- Legacy `问题X敏感性与鲁棒性结果.xlsx` remains read-only compatible but is not a new-project deliverable.
+- Hardened formal delivery gates with exact-scope artifact requirements.
+- Added conservative stale propagation and write-after-hash checks.
+- Added state and framework preflight validation before synchronization.
 
-### Python, MATLAB and synchronization
+## Previous release: 6.3.2
 
-- Added authoritative `run_primary_pipeline()` and `run_result_analysis_pipeline()` functions.
-- Updated all starter templates to expose separate quality and result-analysis hooks.
-- MATLAB handoff and readers now consume primary-solve and result-analysis workbooks.
-- Project synchronization uses solved/analyzed state semantics and never promotes either quality or analysis status.
+- Added current-state project synchronization and per-question artifact hashes.
+- Added objective-specific workbook evidence and data-source hashing isolation.
+- Added document, LaTeX and submission artifact validation.
 
-### LaTeX-first default workflow
+## Previous release: 6.3.1
 
-- Default `full_workflow` proceeds from approved figures directly to LaTeX, AI cleanup, compilation and final review.
-- DOCX route, module and delivery scope remain available only for explicit Word/DOCX requests.
-- DOCX is not a LaTeX prerequisite.
+- Added three-axis task classification: objective, structures and capabilities.
+- Added deterministic workflow resolution and multi-intent support.
+- Added proposition planning and proof integration.
 
-### Stable active filenames
+## Previous release: 6.3.0
 
-- Active instructions and indexes use `PROJECT_INSTRUCTIONS.md`, `RUNTIME_ROUTER.md`, `SKILL_FILE_INDEX.md` and `TEMPLATE_INDEX.md`.
-- Old `V622` filenames remain compatibility pointers.
-- `scripts/generate_indexes.py` manages active indexes, pointers and `MANIFEST.sha256`.
+- Introduced the modular workflow graph and project-state contract.
+- Added output, workbook, figure and compile contracts.
+
+## Previous releases
+
+See the versioned changelog files and `legacy/README.md` for v6.2.x and earlier history.
