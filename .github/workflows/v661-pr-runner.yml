@@ -1,0 +1,61 @@
+name: Run v6.6.1 cleanup on PR
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.head_ref == 'fix/v6.6.1-active-residue-cleanup' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/v6.6.1-active-residue-cleanup
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install validation dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Execute embedded cleanup migration
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          path = Path('.github/workflows/v661-active-residue-cleanup.yml')
+          text = path.read_text(encoding='utf-8')
+          start = "          python - <<'PY'\n"
+          end = "\n          PY\n"
+          if start not in text or end not in text:
+              raise SystemExit('embedded migration block not found')
+          body = text.split(start, 1)[1].split(end, 1)[0]
+          exec(compile(textwrap.dedent(body), str(path), 'exec'))
+          PY
+      - name: Run focused and full validation
+        run: |
+          python scripts/lint_skill.py --skip-generated
+          python -m unittest tests.test_v660_self_contained_question_folder
+          python -m unittest tests.test_v661_active_residue_cleanup
+          python -m unittest tests.test_tooling
+          python -m unittest discover -s tests -p "test_*.py"
+      - name: Remove temporary workflows and regenerate metadata
+        run: |
+          git rm .github/workflows/v661-active-residue-cleanup.yml
+          git rm .github/workflows/v661-pr-runner.yml
+          python scripts/generate_indexes.py
+          python scripts/lint_skill.py
+          python -m unittest discover -s tests -p "test_*.py"
+      - name: Commit cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix: release v6.6.1 active residue cleanup'
+          git push origin HEAD:fix/v6.6.1-active-residue-cleanup
