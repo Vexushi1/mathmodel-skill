@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - upgrade/v6.6.0-self-contained-question-folders
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
@@ -31,50 +28,17 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
       - name: Apply migration
         run: python scripts/migrate_v660_self_contained.py
-      - name: Repair generated validator and obsolete code-scope test
+      - name: Repair generated validator quoting
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
-
-          validator = Path('scripts/validate_code_delivery.py')
-          text = validator.read_text(encoding='utf-8')
+          path = Path('scripts/validate_code_delivery.py')
+          text = path.read_text(encoding='utf-8')
           broken = 'if "if __name__ == "__main__":" not in text and "if __name__ == \'__main__\':" not in text:'
           fixed = 'if \'if __name__ == "__main__":\' not in text and "if __name__ == \'__main__\':" not in text:'
           if broken not in text:
               raise SystemExit('generated quoting pattern not found')
-          validator.write_text(text.replace(broken, fixed), encoding='utf-8')
-
-          test_path = Path('tests/test_sync_project.py')
-          test_text = test_path.read_text(encoding='utf-8')
-          pattern = re.compile(
-              r'    def test_formal_code_scope_requires_config_instructions_and_report\(self\):\n'
-              r'.*?'
-              r'(?=    def test_solve_phase_defaults_to_code_scope)',
-              re.S,
-          )
-          replacement = '''    def test_formal_code_scope_does_not_require_auxiliary_files(self):
-              syncer = load_syncer()
-              with tempfile.TemporaryDirectory() as temp:
-                  root = Path(temp)
-                  setup_project(
-                      root,
-                      status="designed",
-                      phase="solve_validate",
-                      include_solution=False,
-                      include_analysis=False,
-                  )
-                  report = syncer.synchronize(root, write=False, delivery_scope="code")
-                  self.assertFalse(any("完整运行配置" in issue for issue in report["issues"]))
-                  self.assertFalse(any("本地运行说明" in issue for issue in report["issues"]))
-                  self.assertFalse(any("code_delivery_report" in issue for issue in report["issues"]))
-                  self.assertFalse(report["issues"])
-
-'''.replace('              ', '    ')
-          updated, count = pattern.subn(replacement, test_text, count=1)
-          if count != 1:
-              raise SystemExit(f'obsolete code-scope test replacement count={count}')
-          test_path.write_text(updated, encoding='utf-8')
+          path.write_text(text.replace(broken, fixed), encoding='utf-8')
           PY
       - name: Run targeted tests
         run: |
