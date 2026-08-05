@@ -83,7 +83,9 @@ class TestStarterTemplates(unittest.TestCase):
     def test_cleanup_removes_obsolete_active_templates(self):
         self.assertFalse((PIPELINE_DIR / "config.yaml").exists())
         self.assertFalse((ROOT / "templates/review/robustness_check.md").exists())
-        self.assertTrue((ROOT / "templates/code/full_fidelity_config.yaml").is_file())
+        self.assertFalse((ROOT / "templates/code/full_fidelity_config.yaml").exists())
+        self.assertFalse((ROOT / "templates/code/user_execution_instructions.md").exists())
+        self.assertFalse((PIPELINE_DIR / "matlab_handoff.py").exists())
         self.assertTrue((ROOT / "templates/review/result_analysis_check.md").is_file())
 
     def test_cleanup_has_no_recreatable_or_migrated_residual_files(self):
