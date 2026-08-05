@@ -1,4 +1,4 @@
-# HSK MATLAB 科研绘图模板 v6.6.1
+# HSK MATLAB 科研绘图模板 v6.6.0
 
 MATLAB 只读取 Python 输出的两个标准工作簿，不重新求解。每问唯一入口通用记为 `q{x}_plot.m`，问题一实例为 `q1_plot.m`，与工作簿同处 `问题X求解/`。禁止 `q1_polt.m` 等拼写变体。
 
