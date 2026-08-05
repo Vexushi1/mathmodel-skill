@@ -103,6 +103,7 @@
 - `scripts/hsk_check_artifact.py`
 - `scripts/hsk_pack_submission.py`
 - `scripts/lint_skill.py`
+- `scripts/migrate_v660_self_contained.py`
 - `scripts/prepare_cumcm_class.py`
 - `scripts/render_paper.py`
 - `scripts/resolve_workflow.py`
