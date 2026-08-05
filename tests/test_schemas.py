@@ -17,7 +17,7 @@ class TestSchemas(unittest.TestCase):
     def test_classification_has_single_capability_source_and_split_status(self):
         schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
         defs = schema["$defs"]
-        self.assertEqual(schema["version"], "6.5.1")
+        self.assertEqual(schema["version"], "6.6.0")
         self.assertEqual(set(defs["classification"]["required"]), {"objective", "structures"})
         subproblems = schema["properties"]["subproblems"]
         sub_required = set(subproblems["additionalProperties"]["required"])
@@ -52,7 +52,7 @@ class TestSchemas(unittest.TestCase):
 
     def test_output_contract_defines_split_result_policy(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(contract["version"], "6.5.1")
+        self.assertEqual(contract["version"], "6.6.0")
         self.assertEqual(contract["project_sync"]["role"], "formal_pre_delivery_gate")
         self.assertEqual(contract["project_sync"]["stage_requirements_semantics"], "exact_scope")
         self.assertEqual(contract["project_sync"]["implicit_phase_sync_semantics"], "status_minimum_only")
@@ -76,7 +76,11 @@ class TestSchemas(unittest.TestCase):
             set(contract["project_sync"]["artifact_hash_layers"]),
             {"data", "model", "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework"},
         )
-        self.assertEqual(set(contract["per_question"]["mandatory_workbooks"]), {"solution", "result_analysis"})
+        per_question = contract["per_question"]
+        self.assertEqual(set(per_question["mandatory_workbooks"]), {"solution", "result_analysis"})
+        self.assertEqual(per_question["question_directory"], "问题{中文序号}求解/")
+        self.assertEqual(len(per_question["exact_default_files"]), 4)
+        self.assertTrue(per_question["no_auxiliary_files_by_default"])
         self.assertEqual(contract["writing_policy"]["default_mode"], "latex_first")
         self.assertEqual(contract["writing_policy"]["docx_mode"], "explicit_only_independent")
         self.assertFalse(contract["writing_policy"]["docx_is_latex_prerequisite"])
