@@ -45,7 +45,8 @@ class ActiveResidueCleanupTests(unittest.TestCase):
         self.assertFalse((ROOT / "templates/review/robustness_check.md").exists())
         self.assertFalse((ROOT / "templates/code/hsk_pipeline/config.yaml").exists())
         self.assertTrue((ROOT / "templates/review/result_analysis_check.md").is_file())
-        self.assertTrue((ROOT / "templates/code/full_fidelity_config.yaml").is_file())
+        self.assertFalse((ROOT / "templates/code/full_fidelity_config.yaml").exists())
+        self.assertFalse((ROOT / "templates/code/user_execution_instructions.md").exists())
 
     def test_current_starters_stop_at_primary_user_execution_gate(self) -> None:
         for path in (ROOT / "templates/code/starter").glob("*.py"):
