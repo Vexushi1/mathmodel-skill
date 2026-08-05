@@ -1,4 +1,4 @@
-# 题型 Starter 使用说明 v6.6.1
+# 题型 Starter 使用说明 v6.6.0
 
 本目录包含五个主求解入口：`classification.py`、`evaluation.py`、`optimization.py`、`prediction.py` 和 `simulation.py`。Starter 首次版本只调用 `run_primary_pipeline()`；主工作簿验收后，在同一个问题脚本中加入 `run_result_analysis_pipeline()`。
 
