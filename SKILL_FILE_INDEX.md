@@ -10,7 +10,6 @@
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.github/workflows/v661-active-residue-cleanup.yml`
-- `.github/workflows/v661-pr-runner.yml`
 - `.gitignore`
 - `AGENTS.md`
 - `CHANGELOG.md`
