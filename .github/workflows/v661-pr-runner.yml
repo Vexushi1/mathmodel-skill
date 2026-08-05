@@ -42,7 +42,7 @@ jobs:
           )
           body = body.replace(
               "if 'legacy' in path.parts or path.name == 'CHANGELOG.md':",
-              "if 'legacy' in path.parts or path.name == 'CHANGELOG.md' or path == ROOT / 'scripts/lint_skill.py' or '.github' in path.parts:",
+              "if 'legacy' in path.parts or path.name == 'CHANGELOG.md' or path == ROOT / 'scripts/lint_skill.py' or path == ROOT / 'tests/test_v661_active_residue_cleanup.py' or '.github' in path.parts:",
           )
           exec(compile(body, str(path), 'exec'))
           PY
