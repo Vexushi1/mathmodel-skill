@@ -100,7 +100,6 @@
 - `requirements-dev.txt`
 - `scripts/README.md`
 - `scripts/generate_indexes.py`
-- `scripts/hsk_check_artifact.py`
 - `scripts/hsk_pack_submission.py`
 - `scripts/lint_skill.py`
 - `scripts/prepare_cumcm_class.py`
@@ -114,11 +113,9 @@
 - `scripts/validate_user_execution.py`
 - `skills/mathmodel-skill/SKILL.md`
 - `state/project_state.example.yaml`
-- `templates/code/full_fidelity_config.yaml`
 - `templates/code/hsk_pipeline/README.md`
 - `templates/code/hsk_pipeline/__init__.py`
 - `templates/code/hsk_pipeline/main_pipeline.py`
-- `templates/code/hsk_pipeline/matlab_handoff.py`
 - `templates/code/hsk_pipeline/result_io.py`
 - `templates/code/hsk_pipeline/workbook_validation.py`
 - `templates/code/requirements.txt`
@@ -128,7 +125,6 @@
 - `templates/code/starter/optimization.py`
 - `templates/code/starter/prediction.py`
 - `templates/code/starter/simulation.py`
-- `templates/code/user_execution_instructions.md`
 - `templates/figure/chart_selection.md`
 - `templates/figure/figure_paper_closure.md`
 - `templates/figure/figure_plan.md`
@@ -170,6 +166,7 @@
 - `templates/writing/caption_explanation.md`
 - `templates/writing/code_appendix_description.md`
 - `templates/writing/docx_check.md`
+- `tests/test_active_output_contract_cleanup.py`
 - `tests/test_active_residue_cleanup.py`
 - `tests/test_content_packs.py`
 - `tests/test_contract_closure.py`
