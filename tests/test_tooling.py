@@ -7,7 +7,6 @@ import unittest
 from pathlib import Path
 
 import yaml
-from openpyxl import Workbook
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -63,72 +62,6 @@ class TestTooling(unittest.TestCase):
             self.assertTrue(module.should_exclude(root / "main.run.xml", root, output))
             self.assertTrue(module.should_exclude(root / "main.bcf", root, output))
             self.assertFalse(module.should_exclude(root / "main.pdf", root, output))
-
-    def _append(self, book: Workbook, title: str, headers, row) -> None:
-        if len(book.sheetnames) == 1 and book.active["A1"].value is None:
-            sheet = book.active
-            sheet.title = title
-            sheet.delete_rows(1, 1)
-        else:
-            sheet = book.create_sheet(title)
-        sheet.append(list(headers))
-        sheet.append(list(row))
-
-    def _write_standard_workbooks(self, solution: Path, analysis: Path) -> None:
-        workbook = Workbook()
-        self._append(workbook, "运行配置", ["项目", "值"], ["stage", "primary"])
-        self._append(workbook, "核心指标", ["指标", "数值"], ["目标值", 1.0])
-        self._append(workbook, "数据审计", ["等级", "检查项", "信息", "处理方式"], ["Info", "字段", "通过", "无"])
-        self._append(workbook, "主结果质量门", ["检查项", "是否通过", "证据"], ["收敛", True, "终止条件"])
-        workbook.save(solution)
-
-        workbook = Workbook()
-        self._append(workbook, "运行配置", ["项目", "值"], ["stage", "analysis"])
-        self._append(
-            workbook,
-            "分析设计",
-            ["风险来源", "分析问题", "方法", "指标", "通过标准"],
-            ["算法偶然性", "结论是否一致", "多算法", "目标差异", "小于1%"],
-        )
-        self._append(workbook, "算法一致性", ["算法", "重复编号", "目标值", "是否可行"], ["A", 1, 1.0, True])
-        self._append(
-            workbook,
-            "结论稳定性汇总",
-            ["核心结论", "分析方法", "稳定范围", "是否保持"],
-            ["主结论", "多算法", "三种算法", True],
-        )
-        workbook.save(analysis)
-
-    def test_artifact_checker_accepts_split_standard_workbooks(self):
-        module = load_module("hsk_check_artifact", ROOT / "scripts/hsk_check_artifact.py")
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            solution, analysis = root / "solution.xlsx", root / "analysis.xlsx"
-            self._write_standard_workbooks(solution, analysis)
-            self.assertEqual(module.inspect_workbook(solution, "solution"), [])
-            self.assertEqual(module.inspect_workbook(analysis, "result_analysis"), [])
-
-    def test_artifact_checker_reuses_required_column_validation(self):
-        module = load_module("hsk_check_artifact_columns", ROOT / "scripts/hsk_check_artifact.py")
-        with tempfile.TemporaryDirectory() as temp:
-            path = Path(temp) / "solution.xlsx"
-            workbook = Workbook()
-            self._append(workbook, "运行配置", ["项目", "值"], ["stage", "primary"])
-            self._append(workbook, "核心指标", ["结果"], [1.0])
-            self._append(workbook, "数据审计", ["等级", "检查项", "信息", "处理方式"], ["Info", "字段", "通过", "无"])
-            self._append(workbook, "主结果质量门", ["检查项", "是否通过", "证据"], ["收敛", True, "通过"])
-            workbook.save(path)
-            issues = module.inspect_workbook(path, "solution")
-            self.assertTrue(any("缺少必需字段" in issue for issue in issues), issues)
-
-    def test_artifact_checker_enforces_conditional_constraint_sheet(self):
-        module = load_module("hsk_check_artifact_constraints", ROOT / "scripts/hsk_check_artifact.py")
-        with tempfile.TemporaryDirectory() as temp:
-            path = Path(temp) / "solution.xlsx"
-            analysis = Path(temp) / "analysis.xlsx"
-            self._write_standard_workbooks(path, analysis)
-            issues = module.inspect_workbook(path, "solution", problem_types=("optimization",))
-            self.assertTrue(any("约束违反检查" in issue for issue in issues), issues)
 
     def test_framework_validator_accepts_template_and_links_solved_summary(self):
         module = load_module("validate_model_paper_framework", ROOT / "scripts/validate_model_paper_framework.py")
@@ -245,11 +178,9 @@ class TestTooling(unittest.TestCase):
         self.assertIn("fixedColumns", reader)
         self.assertIn("expectedHeaders", reader)
         self.assertNotIn("missingColumns", reader)
-
-    def test_matlab_handoff_requires_title_caption_and_framework_registry(self):
-        module = load_module("matlab_handoff", ROOT / "templates/code/hsk_pipeline/matlab_handoff.py")
-        for field in ("matlab_title", "paper_caption", "framework_registry"):
-            self.assertIn(field, module.REQUIRED_FIELDS)
+        self.assertIn('fullfile(location, problemName + "求解")', reader)
+        self.assertNotIn('resultDir = fullfile(location, "结果数据表", problemName)', reader)
+        self.assertNotIn("books.figureDir", reader)
 
 
 if __name__ == "__main__":

@@ -40,7 +40,7 @@
 |---|---|
 | 新赛题与审题 | `modules/01_problem_audit.md` |
 | 模型路线、变量、假设、公式、约束 | `modules/02_model_design.md` |
-| Python求解、验证、敏感性与鲁棒性 | `modules/03_solve_validate.md` |
+| Python主求解与题目专属结果深化分析 | `modules/03_solve_validate.md`、`modules/03_result_analysis.md` |
 | Python题型 starter | `templates/code/starter/` + `templates/code/hsk_pipeline/` |
 | MATLAB结果图与机理图 | `modules/04_figure_evidence.md` |
 | 默认 LaTeX 写作 | `modules/05_writing/latex.md` |
@@ -65,10 +65,11 @@
 ## 工具
 
 - `scripts/resolve_workflow.py`：多意图合并、模块排序、前置缺口与 `pre_delivery_gates`；
+- `scripts/validate_code_delivery.py`：静态校验每问唯一 Python 脚本；
+- `scripts/validate_user_execution.py`：验收两个标准工作簿及运行配置、哈希和质量门；
 - `scripts/sync_project.py`：阶段产物发现、工作簿Schema、图表链、分层哈希和stale；
 - `scripts/validate_project_state.py`：分类兼容、哈希与状态语义；
 - `scripts/validate_model_paper_framework.py`：compact/full模式感知校验；
-- `scripts/hsk_check_artifact.py`：交付物检查；
 - `scripts/lint_skill.py`：版本、路径、生产者—消费者、gate和语义闭环；
 - `scripts/score_submission.py`：评委式评分。
 
