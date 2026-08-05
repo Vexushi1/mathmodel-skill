@@ -7,6 +7,7 @@
 - `.codex-plugin/plugin.json`
 - `.gitattributes`
 - `.github/pull_request_template.md`
+- `.github/workflows/apply-v660-now.yml`
 - `.github/workflows/ci.yml`
 - `.github/workflows/migrate-v660.yml`
 - `.github/workflows/refresh-generated.yml`
