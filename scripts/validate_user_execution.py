@@ -188,12 +188,19 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
 
 
 def discover(root: Path) -> list[Path]:
-    patterns = (
-        "问题*/问题*求解结果.xlsx",
-        "问题*/问题*结果深化分析.xlsx",
+    current_patterns = (
+        "问题*求解/问题*求解结果.xlsx",
+        "问题*求解/问题*结果深化分析.xlsx",
     )
-    result_root = root / "结果数据表"
-    return sorted({path.resolve() for pattern in patterns for path in result_root.glob(pattern)})
+    legacy_patterns = (
+        "结果数据表/问题*/问题*求解结果.xlsx",
+        "结果数据表/问题*/问题*结果深化分析.xlsx",
+    )
+    return sorted({
+        path.resolve()
+        for pattern in (*current_patterns, *legacy_patterns)
+        for path in root.glob(pattern)
+    })
 
 
 def main() -> int:
@@ -229,13 +236,11 @@ def main() -> int:
         "issues": all_issues,
         "task_code_executed": False,
     }
-    (root / "user_execution_validation_report.yaml").write_text(
-        yaml.safe_dump(report, allow_unicode=True, sort_keys=False), encoding="utf-8"
-    )
+    report["report_persisted"] = False
+    print(yaml.safe_dump(report, allow_unicode=True, sort_keys=False).rstrip())
     if all_issues:
         print("\n".join(all_issues))
         return 1 if args.strict else 0
-    print("user-produced workbooks accepted without executing task code")
     return 0
 
 

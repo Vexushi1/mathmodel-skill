@@ -68,7 +68,7 @@ class PipelineConfig:
         if not all(isinstance(value, bool) for value in self.capabilities.values()):
             raise TypeError("capabilities 的所有值必须为 bool")
         if self.execution_owner != "user" or self.execution_profile != "full_fidelity":
-            raise ValueError("v6.5.1正式代码必须由用户以full_fidelity模式执行")
+            raise ValueError("v6.6.0正式代码必须由用户以full_fidelity模式执行")
         forbidden_flags = {
             "allow_reduced_data": self.allow_reduced_data,
             "allow_coarser_grid": self.allow_coarser_grid,

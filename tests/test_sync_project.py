@@ -208,7 +208,7 @@ def setup_project(
         "def main():\n    return 1\n\nif __name__ == '__main__':\n    main()\n",
         encoding="utf-8",
     )
-    result = root / "结果数据表" / "问题一"
+    result = root / "问题一求解"
     result.mkdir(parents=True)
     if include_solution:
         write_solution(
@@ -241,7 +241,7 @@ def write_code_delivery(root: Path):
         "random_seed": 2026,
         "tolerance": 1e-8,
         "iteration_or_time_limit": "full",
-        "expected_workbook": "结果数据表/问题一/问题一求解结果.xlsx",
+        "expected_workbook": "问题一求解/问题一求解结果.xlsx",
         "allow_reduced_data": False,
         "allow_coarser_grid": False,
         "allow_shorter_horizon": False,
