@@ -1,0 +1,695 @@
+name: v6.6.1 active residue cleanup
+
+on:
+  push:
+    branches:
+      - fix/v6.6.1-active-residue-cleanup
+    paths:
+      - .github/workflows/v661-active-residue-cleanup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/v6.6.1-active-residue-cleanup
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install validation dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Wait for generated metadata refresh and update branch
+        run: |
+          sleep 30
+          git pull --rebase origin fix/v6.6.1-active-residue-cleanup
+      - name: Apply v6.6.1 cleanup
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          ROOT = Path('.')
+          VERSION = '6.6.1'
+
+          def write(path: str, content: str) -> None:
+              target = ROOT / path
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_text(content.strip() + '\n', encoding='utf-8')
+
+          for obsolete in (
+              'templates/code/full_fidelity_config.yaml',
+              'templates/code/user_execution_instructions.md',
+              'templates/code/hsk_pipeline/matlab_handoff.py',
+              'scripts/hsk_check_artifact.py',
+          ):
+              path = ROOT / obsolete
+              if path.exists():
+                  path.unlink()
+
+          write('core/hsk_core_policy.md', r'''
+          # HSK Core Policy v6.6.1
+
+          本文件只保存全局硬规则。目录与交付文件以 `core/output_contract.yaml` 为准，用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；本文件不复制两份合同的完整字段。
+
+          ## 1. 总目标与优先级
+
+          数学建模任务必须形成题意正确、机制闭合、数值可信、可复现和可审查的成果链。优先级为：
+
+          $$
+          \text{题意正确}>\text{机制与变量闭合}>\text{数据可信}>\text{完整版数值求解}>\text{结果证据}>\text{图表}>\text{论文表达}>\text{形式创新}.
+          $$
+
+          不能落地、不能解释、不能检验或不能复现的模型必须否决、降级或重构。
+
+          ## 2. 每问唯一数值交付目录
+
+          新项目每个小问只建立一个 `问题X求解/`。完成数值求解、深化分析与 MATLAB 交接后，该目录默认恰好包含：
+
+          ```text
+          问题X求解/
+          ├─ 问题X求解.py
+          ├─ 问题X求解结果.xlsx
+          ├─ 问题X结果深化分析.xlsx
+          └─ qX_plot.m
+          ```
+
+          `问题X求解.py` 是唯一 Python 文件。首次版本完成主求解；主工作簿验收后覆盖更新同一文件，加入结果深化分析阶段。不得在该目录增加独立配置、运行说明、校验报告、图表目录或元数据文件。
+
+          ## 3. 用户执行与质量门
+
+          新项目默认采用 `execution_owner=user`、`execution_profile=full_fidelity`。助手负责审题、模型设计、公式闭环、完整版代码生成、静态检查和返回工作簿验收；用户负责实际运行赛题代码。
+
+          助手不得运行、导入或间接执行题目专属求解脚本，不得自动缩减数据、网格、时域、场景、重复次数、迭代次数或放宽容差，也不得静默切换求解器或轻量近似。
+
+          完整运行配置嵌入 Python，并写入两个工作簿的 `运行配置` 工作表。运行步骤和校验结果只在聊天或标准输出中返回，不额外落盘。主工作簿通过运行配置、代码/数据哈希和 `主结果质量门` 后才能进入 `solved`；深化工作簿通过 `分析设计`、实质分析表和 `结论稳定性汇总` 后才能进入 `analyzed`。
+
+          ## 4. 软件职责
+
+          - Python：完整数据处理、主求解、质量门、结果深化分析和两类工作簿；
+          - MATLAB：同目录 `qX_plot.m` 只读本问两个标准工作簿，精确匹配真实表头，不重新求解；
+          - LaTeX：默认论文主链；
+          - DOCX：仅在用户明确要求时加载，不是 LaTeX 前置。
+
+          MATLAB 默认只保留图窗，不创建 `图表/`，不自动导出 PNG、PDF 或 SVG。进入论文阶段后，用户人工确认并按需导出的正式图片放在项目级 `figures/`，不混入 `问题X求解/`。
+
+          ## 5. 元数据与兼容边界
+
+          `run_info.json`、`result_manifest.yaml` 和 `matlab_figure_handoff.json` 只在用户明确要求完整复现包时生成，并放入项目级内部元数据目录，不得放入 `问题X求解/`。
+
+          旧 `结果数据表/问题X/`、旧独立深化分析脚本和旧工作簿名只保留只读兼容。活动模板、Pack 和新项目生成器不得继续输出旧结构。
+
+          ## 6. 正式交付同步
+
+          - 代码交付：`scripts/validate_code_delivery.py`；
+          - 用户返回工作簿：`scripts/validate_user_execution.py`；
+          - 图表、论文和提交包：`scripts/sync_project.py`。
+
+          同步器只检查、哈希和传播 stale，不生成模型语义、数值结果或 passed 状态。缺失用户返回结果时必须暂停，不得生成示意数值。
+          ''')
+
+          write('templates/code/starter/README.md', r'''
+          # 题型 Starter 使用说明 v6.6.1
+
+          本目录包含五个主求解入口：`classification.py`、`evaluation.py`、`optimization.py`、`prediction.py` 和 `simulation.py`。Starter 首次版本只调用 `run_primary_pipeline()`；主工作簿验收后，在同一个问题脚本中加入 `run_result_analysis_pipeline()`。
+
+          ## 推荐项目结构
+
+          ```text
+          项目根目录/
+          ├─ hsk_pipeline/
+          ├─ 问题一求解/
+          │  ├─ 问题一求解.py
+          │  ├─ 问题一求解结果.xlsx
+          │  ├─ 问题一结果深化分析.xlsx
+          │  └─ q1_plot.m
+          ├─ 模型论文框架.md
+          └─ 赛题附件.xlsx
+          ```
+
+          ## 使用步骤
+
+          1. 将 `templates/code/hsk_pipeline/` 复制到项目根目录的 `hsk_pipeline/`；
+          2. 新建 `问题一求解/`，把一个 starter 复制为 `问题一求解/问题一求解.py`；
+          3. 在脚本中实例化 `FULL_FIDELITY_CONFIG`，锁定数据路径、哈希、求解器、随机种子、容差和完整运行规模；
+          4. 实现数据处理、模型求解、约束或残差检查、主结果质量门和 `运行配置` 工作表；
+          5. 执行 `validate_code_delivery.py`，校验结果只输出到终端；
+          6. 用户运行脚本并返回 `问题一求解结果.xlsx`；
+          7. 主工作簿 accepted 后覆盖更新同一个 `问题一求解.py`，加入题目专属结果深化分析；
+          8. 用户再次运行该脚本并返回 `问题一结果深化分析.xlsx`；
+          9. 两类工作簿 accepted 后生成同目录 `q1_plot.m`，MATLAB 只读工作簿绘图。
+
+          不生成独立运行配置、运行说明、深化分析脚本或校验报告。不得把多个 starter 拼接到同一问题脚本，也不得在主工作簿验收前写入依赖真实结果的最终深化分析实现。
+          ''')
+
+          write('templates/code/hsk_pipeline/README.md', r'''
+          # HSK Python 用户执行管线 v6.6.1
+
+          本目录提供用户本地运行的数值底座：
+
+          - `run_primary_pipeline()`：数据审计、完整版主求解、主结果质量门和主工作簿；
+          - `run_result_analysis_pipeline()`：主工作簿 accepted 后执行题目专属深化分析并写入第二工作簿；
+          - `run_pipeline()`：仅保留为旧项目显式编排的兼容 API，不是新项目默认入口。
+
+          ## 推荐复制结构
+
+          ```text
+          项目根目录/
+          ├─ hsk_pipeline/
+          │  ├─ __init__.py
+          │  ├─ main_pipeline.py
+          │  ├─ result_io.py
+          │  └─ workbook_validation.py
+          ├─ 问题一求解/
+          │  └─ 问题一求解.py
+          ├─ 模型论文框架.md
+          └─ 赛题附件.xlsx
+          ```
+
+          运行配置以 `FULL_FIDELITY_CONFIG` 字典嵌入 `问题一求解.py`，并写入工作簿 `运行配置` 表；不生成独立 YAML 或说明文件。
+
+          ## 主求解阶段
+
+          ```text
+          config.validate
+          → set_random_seed
+          → load_data / preprocess / build_features
+          → solve_model / check_constraints
+          → evaluate_primary_quality
+          → 写入运行配置、核心指标、数据审计、主结果质量门和底层表
+          → 问题一求解/问题一求解结果.xlsx
+          → validate_user_execution.py
+          → accepted / solved
+          ```
+
+          ## 结果深化阶段
+
+          主工作簿 accepted 后覆盖更新同一个 `问题一求解/问题一求解.py`，将配置中的 `stage` 改为 `analysis`，加入实际需要的敏感性、阈值、算法一致性、结构稳健性、异质性或误差分析，并输出 `问题一求解/问题一结果深化分析.xlsx`。不得创建第二个 Python 文件。
+
+          两类工作簿均验收后，`q1_plot.m` 与它们置于同一目录。Python 不生成正式论文图；MATLAB 不重新求解，默认不创建图表目录或自动导出文件。
+          ''')
+
+          write('templates/writing/code_appendix_description.md', r'''
+          # 附录代码说明模板
+
+          | 项目 | 内容 |
+          |---|---|
+          | 程序名称 | `问题X求解/问题X求解.py`；`问题X求解/qX_plot.m` |
+          | 输入 | 项目根目录赛题附件、已锁定参数；深化阶段读取已验收的主结果工作簿 |
+          | 功能 | 同一 Python 脚本先完成主求解，验收后覆盖更新并完成题目专属结果深化分析；MATLAB 读取同目录两个工作簿绘图 |
+          | 主要输出 | `问题X求解/问题X求解结果.xlsx`、`问题X求解/问题X结果深化分析.xlsx` |
+          | 复现顺序 | 运行主求解版本 → 验收主工作簿 → 覆盖更新同一脚本并运行分析阶段 → 验收深化工作簿 → 运行 `qX_plot.m` → LaTeX 编译 |
+
+          完整运行配置写在 Python 和两个工作簿的 `运行配置` 表中。求解目录默认不包含独立配置、说明、校验报告、图表目录或自动导出的图片。
+          ''')
+
+          write('templates/figure/result_figure_contract.md', r'''
+          # 结果图 Figure Contract
+
+          | 字段 | 内容 |
+          |---|---|
+          | Figure ID | 图 X |
+          | Core conclusion | 一句话核心结论 |
+          | Figure role | 趋势 / 分布 / 诊断 / 敏感性 / 鲁棒性 / Pareto / 空间 / 网络 / 构成 / 多维画像 |
+          | MATLAB title | 单图 `title` 或多面板 `sgtitle` 的简洁中文标题 |
+          | DOCX/LaTeX caption | 图下题注，补充样本、统计口径、时间范围和误差，不与 MATLAB title 逐字重复 |
+          | Chart type | 折线图 / 条形图 / 散点图 / 区间图 / 热力图 / Pareto / 网络图 / 其他 |
+          | Efficiency rationale | 相较替代图如何提高可验证信息密度 |
+          | Source workbook | `问题X求解/问题X求解结果.xlsx` 或 `问题X求解/问题X结果深化分析.xlsx` |
+          | Worksheet | 中文工作表名 |
+          | Required columns | 绘图必需真实字段、记录键、单位和排序字段 |
+          | Expected positions | 可选列号，仅作结构漂移警告 |
+          | MATLAB script | `问题X求解/qX_plot.m` |
+          | Panel map | a/b/c/d 各面板证据职责 |
+          | Statistics/error | 误差线、区间、样本量和统计口径 |
+          | Export files | 求解阶段留空；论文阶段人工确认后可登记项目级 `figures/qx_*.pdf`、`.png` 或 `.svg` |
+          | Framework registry | `模型论文框架.md` 中的对应图表登记 |
+          | Paper location | 正文章节 |
+          | Reviewer risk | 可能质疑点与处理 |
+
+          Figure Contract 默认登记在 `模型论文框架.md`，不生成独立 `figure_evidence` 文件。历史目录和旧工作簿名只允许出现在专用兼容说明中。
+          ''')
+
+          write('packs/artifact/figure.md', r'''
+          # Artifact Pack：图表
+
+          ## 进入条件
+
+          用户要求结果图、敏感性图、鲁棒性图、多算法图、机理图或 MATLAB 代码时加载。图表必须服务明确结论，不以复杂图型或面板数量替代证据。
+
+          ## 数据前置条件
+
+          正式结果图只读取本问 `问题X求解/` 中的两个标准工作簿：
+
+          - `问题X求解结果.xlsx`：主结果、题型专项结果和主结果质量门；
+          - `问题X结果深化分析.xlsx`：分析设计、实际深化数据和结论稳定性汇总。
+
+          深化分析方法必须根据具体风险选择。未执行某类分析时不得生成对应占位图；深化分析要求回退重算时不得继续绘图。
+
+          ## MATLAB 规则
+
+          - 每问入口统一为 `问题X求解/qX_plot.m`；
+          - 脚本精确读取同目录两个标准工作簿；
+          - 生成代码前确认工作表、真实表头、单位和数据类型；
+          - 字段定位采用精确表头唯一匹配，列号只作结构漂移警告；
+          - 禁止模糊匹配、别名猜测、自动回退和在 MATLAB 中重新求解；
+          - 单图使用简洁 `title`，多面板使用一个整体 `sgtitle`；
+          - 默认白底、细轴、低饱和深色、字号 18，网格关闭或极浅；
+          - 默认只保留图窗，不创建图表子目录，不自动导出图片。
+
+          进入论文阶段后，人工确认并按需导出的正式图片放在项目级 `figures/`。每张图的结论、图型、源工作簿、工作表、真实表头、脚本、图注和正文位置登记在 `模型论文框架.md`，不额外生成证据 YAML。
+
+          ## 信息效率与删除规则
+
+          优先使用直接、低维和可比较的二维图。饼图、雷达图、3D 曲面和复杂网络图必须提供额外可验证信息，否则降级或删除。统一扰动模板、无通过标准、只说明“变化不大”、从摘要手工录入数据或无法支持正文判断的图全部删除。
+
+          ## 机理图
+
+          机理图服务公式来源、约束来源、对象关系、临界状态和策略机制。图中只保留对象、变量、方向、边界、距离、角度和临界状态，完整解释放正文。禁止通用“输入—模型—输出”流程图替代题目专属图。
+          ''')
+
+          write('templates/matlab/README.md', r'''
+          # HSK MATLAB 科研绘图模板 v6.6.1
+
+          MATLAB 只读取 Python 输出的两个标准工作簿，不重新求解。每问唯一入口 `qX_plot.m` 与工作簿同处 `问题X求解/`。
+
+          ## 路径
+
+          ```matlab
+          scriptPath = string(mfilename("fullpath"));
+          resultDir = string(fileparts(scriptPath));
+          solutionBook = fullfile(resultDir, "问题一求解结果.xlsx");
+          resultAnalysisBook = fullfile(resultDir, "问题一结果深化分析.xlsx");
+          ```
+
+          主结果图读取 `solutionBook`；稳定性、阈值、算法或结构图读取 `resultAnalysisBook`。不得跨问题读取临时 Excel、根据摘要数字反推数据或在 MATLAB 中重算核心结果。
+
+          ## 实表读取
+
+          字段定位采用精确表头唯一匹配。允许登记期望列号作为结构漂移警告，禁止模糊匹配、别名猜测、相似字段回退和自动改变语义映射。
+
+          ## 图标题与风格
+
+          - 单图使用简洁 `title`，多面板使用一个整体 `sgtitle`；
+          - 图注补充统计口径、时间范围和误差，不与标题逐字重复；
+          - 白底、细轴、低饱和深色、中文坐标轴和单位，默认字号 18；
+          - 默认保留可见图窗，不自动关闭，不创建图表子目录，不批量导出；
+          - 论文阶段人工确认后，按需导出到项目级 `figures/`。
+
+          图表交付前执行 `python scripts/sync_project.py <project_root> --write --strict --delivery-scope figures`。同步器检查两个工作簿、`qX_plot.m` 的真实引用、标题和证据链；默认不要求导出图片已经存在。
+          ''')
+
+          write('templates/matlab/hsk_read_result_workbooks.m', r'''
+          function books = hsk_read_result_workbooks(location, problemName, requirements)
+          % 读取同一问题目录中的主求解与结果深化分析工作簿。
+          % 新项目目录为“问题X求解/”；旧“结果数据表/问题X/”只读兼容。
+
+          arguments
+              location (1,1) string
+              problemName (1,1) string = ""
+              requirements (1,1) struct = struct()
+          end
+
+          if strlength(problemName) == 0
+              resultDir = location;
+              folderName = string(get_last_folder(resultDir));
+              assert(endsWith(folderName, "求解"), ...
+                  "直接传入结果目录时，目录名应为问题一求解、问题二求解等");
+              problemName = extractBefore(folderName, strlength(folderName) - 1);
+          else
+              resultDir = fullfile(location, problemName + "求解");
+              if ~isfolder(resultDir)
+                  legacyDir = fullfile(location, "结果数据表", problemName);
+                  assert(isfolder(legacyDir), "缺少问题求解目录: %s", resultDir);
+                  resultDir = legacyDir;
+                  warning("使用旧结果数据表目录，仅作只读兼容");
+              end
+          end
+
+          books.resultDir = resultDir;
+          books.solution = fullfile(resultDir, problemName + "求解结果.xlsx");
+          books.analysis = fullfile(resultDir, problemName + "结果深化分析.xlsx");
+          legacyAnalysis = fullfile(resultDir, problemName + "敏感性与鲁棒性结果.xlsx");
+          if ~isfile(books.analysis) && isfile(legacyAnalysis)
+              books.analysis = legacyAnalysis;
+              warning("使用旧工作簿名，仅作只读兼容");
+          end
+          books.matlabScript = fullfile(resultDir, "q" + question_number(problemName) + "_plot.m");
+
+          assert(isfile(books.solution), "缺少求解结果工作簿: %s", books.solution);
+          assert(isfile(books.analysis), "缺少结果深化分析工作簿: %s", books.analysis);
+
+          books.solutionSheets = string(sheetnames(books.solution));
+          books.analysisSheets = string(sheetnames(books.analysis));
+
+          if isfield(requirements, "solution")
+              validate_exact_requirements(books.solution, requirements.solution);
+          end
+          if isfield(requirements, "analysis")
+              validate_exact_requirements(books.analysis, requirements.analysis);
+          elseif isfield(requirements, "robustness")
+              validate_exact_requirements(books.analysis, requirements.robustness);
+          end
+          end
+
+          function validate_exact_requirements(workbookPath, sheetRequirements)
+          assert(isstruct(sheetRequirements), "工作表校验要求必须为 struct");
+          availableSheets = string(sheetnames(workbookPath));
+          sheetNames = string(fieldnames(sheetRequirements));
+          for i = 1:numel(sheetNames)
+              sheetName = sheetNames(i);
+              assert(any(availableSheets == sheetName), "工作簿缺少工作表“%s”", sheetName);
+              spec = sheetRequirements.(sheetName);
+              assert(isstruct(spec) && isfield(spec, "headers") && isfield(spec, "columns"), ...
+                  "工作表“%s”必须提供 headers 和 columns", sheetName);
+              expectedHeaders = string(spec.headers);
+              fixedColumns = double(spec.columns);
+              assert(numel(expectedHeaders) == numel(fixedColumns), "headers 与 columns 数量不一致");
+              raw = readcell(workbookPath, "Sheet", sheetName);
+              assert(size(raw, 1) >= 2, "工作表“%s”没有真实数据", sheetName);
+              for j = 1:numel(fixedColumns)
+                  columnIndex = fixedColumns(j);
+                  actualHeader = strtrim(string(raw{1, columnIndex}));
+                  assert(actualHeader == expectedHeaders(j), ...
+                      "工作表“%s”第%d列表头应为“%s”，实际为“%s”", ...
+                      sheetName, columnIndex, expectedHeaders(j), actualHeader);
+              end
+              if isfield(spec, "key_column")
+                  key = cell_to_string(raw(2:end, double(spec.key_column)));
+                  assert(all(strlength(strtrim(key)) > 0), "记录键存在空值");
+                  assert(numel(unique(key)) == numel(key), "记录键存在重复值");
+              end
+              if isfield(spec, "numeric_columns")
+                  for columnIndex = double(spec.numeric_columns)
+                      values = cell_to_numeric(raw(2:end, columnIndex));
+                      assert(all(isfinite(values) | isnan(values)), "数值列包含 Inf 或非法值");
+                  end
+              end
+          end
+          end
+
+          function values = cell_to_string(column)
+          values = strings(size(column, 1), 1);
+          for i = 1:size(column, 1)
+              if isempty(column{i}), values(i) = ""; else, values(i) = strtrim(string(column{i})); end
+          end
+          end
+
+          function values = cell_to_numeric(column)
+          values = nan(size(column, 1), 1);
+          for i = 1:size(column, 1)
+              item = column{i};
+              if (isnumeric(item) || islogical(item)) && isscalar(item)
+                  values(i) = double(item);
+              elseif ischar(item) || isstring(item)
+                  parsed = str2double(string(item));
+                  if isfinite(parsed), values(i) = parsed; end
+              end
+          end
+          end
+
+          function name = get_last_folder(pathValue)
+          [~, name] = fileparts(char(pathValue));
+          end
+
+          function number = question_number(problemName)
+          mapping = containers.Map( ...
+              ["问题一", "问题二", "问题三", "问题四", "问题五", ...
+               "问题六", "问题七", "问题八", "问题九", "问题十"], ...
+              ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]);
+          assert(isKey(mapping, problemName), "无法识别问题编号: %s", problemName);
+          number = mapping(problemName);
+          end
+          ''')
+
+          write('templates/review/result_manifest.yaml', r'''
+          # 仅在用户明确要求完整复现包、跨聊天交接或终稿审查时生成。
+          # 实际文件应放在项目级 metadata/，不得放入问题X求解/。
+          project:
+            competition: "CUMCM / MCM / Diangong / 认证杯"
+            problem: "A"
+            version: "v1.0-current"
+            random_seed: 2026
+            model_paper_framework: "模型论文框架.md"
+            framework_sync_status: "current"
+
+          outputs:
+            问题一:
+              framework_section: "### Q1：填写问题名称"
+              result_summary_status: "current"
+              result_directory: "问题一求解"
+              solution_workbook: "问题一求解/问题一求解结果.xlsx"
+              result_analysis_workbook: "问题一求解/问题一结果深化分析.xlsx"
+              matlab_script: "问题一求解/q1_plot.m"
+              figure_sources:
+                - figure: "图 1"
+                  workbook: "问题一求解结果.xlsx"
+                  worksheet: "明细结果"
+                  required_headers: ["记录键", "横轴真实字段", "纵轴真实字段"]
+                  matlab_script: "问题一求解/q1_plot.m"
+                  exported_file: "figures/q1_core_result.pdf"
+                  framework_registry: "模型论文框架.md / 图表证据链 / 图1"
+              final: true
+              risk_note: "填写仍需人工复核的风险点"
+          ''')
+
+          write('packs/artifact/review.md', r'''
+          # 审查交付适配器
+
+          审查报告按致命、重要、一般问题排序，并给出可执行修改位置、原因和修复方案。评分必须说明证据与扣分来源，不能只给总分。
+
+          审查前执行：
+
+          ```bash
+          python scripts/validate_model_paper_framework.py 模型论文框架.md --state state/project_state.yaml
+          python scripts/validate_project_state.py state/project_state.yaml --project-root .
+          python scripts/sync_project.py . --write --strict --delivery-scope submission
+          ```
+
+          重点核对：当前模型口径、命题与证明、主结果质量门、深化分析、代码—工作簿—MATLAB—正文证据链、LaTeX 编译和提交包内容。每问数值目录必须符合四文件合同；旧目录只能作为只读兼容输入。
+
+          评分权重以 `config/review_weights.json` 为唯一机器配置。出现硬否决时不得用加权总分掩盖，先按 `reject_or_major_rework` 处理。
+          ''')
+
+          write('scripts/README.md', r'''
+          # Scripts v6.6.1
+
+          - `lint_skill.py`：检查活动版本、路由、产物闭环、四文件合同、旧结构残留、Schema、Python 语法和生成文件；
+          - `resolve_workflow.py`：解析意图、题型、能力与竞赛类型，返回确定性执行计划；
+          - `validate_code_delivery.py`：静态校验每问唯一 Python 脚本，不运行赛题代码；
+          - `validate_user_execution.py`：验收用户返回的两个工作簿及运行配置、哈希和质量门；
+          - `sync_project.py`：发现每问唯一脚本、两个工作簿和 `qX_plot.m`，校验并传播 stale；
+          - `validate_project_state.py`、`validate_model_paper_framework.py`：校验机器状态与当前模型论文框架；
+          - `generate_indexes.py`：重建活动索引与 `MANIFEST.sha256`；
+          - `score_submission.py`、`hsk_pack_submission.py`、`render_paper.py`：评分、打包和 LaTeX 编译。
+
+          每问 Python 主链为：主求解版本 → 用户运行 → 主工作簿验收 → 覆盖更新同一脚本 → 分析阶段 → 深化工作簿验收。运行配置嵌入 Python 和工作簿，不产生独立配置、说明或校验报告。
+
+          仓库维护至少执行：
+
+          ```bash
+          python scripts/lint_skill.py
+          python -m unittest discover -s tests -p "test_*.py"
+          python scripts/generate_indexes.py --check
+          ```
+          ''')
+
+          repo_index = (ROOT / 'REPOSITORY_INDEX.md').read_text(encoding='utf-8')
+          repo_index = repo_index.replace('- `scripts/hsk_check_artifact.py`：交付物检查；\n', '')
+          repo_index = repo_index.replace('Python求解、验证、敏感性与鲁棒性', 'Python主求解与题目专属结果深化分析')
+          (ROOT / 'REPOSITORY_INDEX.md').write_text(repo_index, encoding='utf-8')
+
+          project_instructions = (ROOT / 'PROJECT_INSTRUCTIONS.md').read_text(encoding='utf-8')
+          project_instructions = project_instructions.replace('## v6.6.0 用户执行完整版代码', '## v6.6.1 用户执行完整版代码')
+          (ROOT / 'PROJECT_INSTRUCTIONS.md').write_text(project_instructions, encoding='utf-8')
+
+          tooling = (ROOT / 'tests/test_tooling.py').read_text(encoding='utf-8')
+          tooling = tooling.replace('from openpyxl import Workbook\n', '')
+          for name in (
+              '_append', '_write_standard_workbooks',
+              'test_artifact_checker_accepts_split_standard_workbooks',
+              'test_artifact_checker_reuses_required_column_validation',
+              'test_artifact_checker_enforces_conditional_constraint_sheet',
+              'test_matlab_handoff_requires_title_caption_and_framework_registry',
+          ):
+              tooling = re.sub(
+                  rf'\n    def {name}\(.*?(?=\n    def |\n\nif __name__)',
+                  '', tooling, flags=re.S,
+              )
+          marker = '        self.assertNotIn("missingColumns", reader)\n'
+          replacement = marker + (
+              '        self.assertIn(\'fullfile(location, problemName + "求解")\', reader)\n'
+              '        self.assertNotIn(\'resultDir = fullfile(location, "结果数据表", problemName)\', reader)\n'
+              '        self.assertNotIn("books.figureDir", reader)\n'
+          )
+          if marker not in tooling:
+              raise SystemExit('test_tooling MATLAB marker not found')
+          tooling = tooling.replace(marker, replacement)
+          (ROOT / 'tests/test_tooling.py').write_text(tooling, encoding='utf-8')
+
+          lint_path = ROOT / 'scripts/lint_skill.py'
+          lint = lint_path.read_text(encoding='utf-8')
+          lint = lint.replace('PACKAGE_VERSION = "6.6.0"', 'PACKAGE_VERSION = "6.6.1"')
+          function = r'''
+
+          def check_v661_active_output_cleanup(errors: list[str]) -> None:
+              obsolete = (
+                  "templates/code/full_fidelity_config.yaml",
+                  "templates/code/user_execution_instructions.md",
+                  "templates/code/hsk_pipeline/matlab_handoff.py",
+                  "scripts/hsk_check_artifact.py",
+              )
+              for relative in obsolete:
+                  if (ROOT / relative).exists():
+                      errors.append(f"obsolete active file remains: {relative}")
+              forbidden = {
+                  "core/hsk_core_policy.md": ("输出问题X结果深化分析.py", "问题X完整运行配置.yaml"),
+                  "templates/code/starter/README.md": ("另行生成 `问题X结果深化分析.py`", "问题X完整运行配置.yaml"),
+                  "templates/code/hsk_pipeline/README.md": ("结果数据表/问题X", "单独生成 `问题X结果深化分析.py`"),
+                  "templates/writing/code_appendix_description.md": ("结果数据表/问题X", "问题X结果深化分析.py"),
+                  "templates/figure/result_figure_contract.md": ("结果数据表/问题X", "figure_evidence.yaml"),
+                  "packs/artifact/figure.md": ("结果数据表/问题X", "写入同级 `图表/`", "figure_evidence.yaml"),
+                  "templates/matlab/README.md": ("正式图导出到同级 `图表/`", "正式图必须真实存在"),
+                  "templates/matlab/hsk_read_result_workbooks.m": ('resultDir = fullfile(location, "结果数据表", problemName)', "books.figureDir"),
+                  "templates/review/result_manifest.yaml": ("结果数据表/问题一", "figure_directory"),
+              }
+              for relative, tokens in forbidden.items():
+                  text = read_text(ROOT / relative)
+                  for token in tokens:
+                      if token in text:
+                          errors.append(f"v6.6.1 active residue: {relative} -> {token}")
+              for path in active_files():
+                  if path.name in {"CHANGELOG.md"}:
+                      continue
+                  text = read_text(path)
+                  for obsolete_name in ("full_fidelity_config.yaml", "user_execution_instructions.md", "matlab_handoff.py", "hsk_check_artifact.py"):
+                      if obsolete_name in text:
+                          errors.append(f"reference to removed active file: {path.relative_to(ROOT)} -> {obsolete_name}")
+          '''
+          if 'def check_v661_active_output_cleanup' not in lint:
+              lint = lint.replace('\n\ndef check_syntax(errors: list[str]) -> None:', function + '\n\ndef check_syntax(errors: list[str]) -> None:')
+          lint = lint.replace('check_templates, check_syntax,', 'check_templates, check_v661_active_output_cleanup, check_syntax,')
+          lint_path.write_text(lint, encoding='utf-8')
+
+          write('tests/test_v661_active_residue_cleanup.py', r'''
+          import unittest
+          from pathlib import Path
+
+          import yaml
+
+          ROOT = Path(__file__).resolve().parents[1]
+
+
+          class TestV661ActiveResidueCleanup(unittest.TestCase):
+              def test_removed_active_files_are_absent(self):
+                  for relative in (
+                      "templates/code/full_fidelity_config.yaml",
+                      "templates/code/user_execution_instructions.md",
+                      "templates/code/hsk_pipeline/matlab_handoff.py",
+                      "scripts/hsk_check_artifact.py",
+                  ):
+                      self.assertFalse((ROOT / relative).exists(), relative)
+
+              def test_contract_remains_exact_four_files(self):
+                  data = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
+                  per_question = data["per_question"]
+                  self.assertEqual(len(per_question["exact_default_files"]), 4)
+                  self.assertTrue(per_question["no_auxiliary_files_by_default"])
+
+              def test_active_templates_use_self_contained_question_directory(self):
+                  checks = {
+                      "templates/writing/code_appendix_description.md": "问题X求解/问题X求解.py",
+                      "templates/figure/result_figure_contract.md": "问题X求解/qX_plot.m",
+                      "packs/artifact/figure.md": "问题X求解/qX_plot.m",
+                      "templates/review/result_manifest.yaml": "问题一求解/问题一求解结果.xlsx",
+                  }
+                  for relative, token in checks.items():
+                      text = (ROOT / relative).read_text(encoding="utf-8")
+                      self.assertIn(token, text, relative)
+                      self.assertNotIn("结果数据表/问题X", text, relative)
+
+              def test_matlab_reader_prefers_current_directory_and_has_no_figure_dir(self):
+                  text = (ROOT / "templates/matlab/hsk_read_result_workbooks.m").read_text(encoding="utf-8")
+                  self.assertIn('fullfile(location, problemName + "求解")', text)
+                  self.assertNotIn('resultDir = fullfile(location, "结果数据表", problemName)', text)
+                  self.assertNotIn("books.figureDir", text)
+
+              def test_global_policy_is_v661_and_single_script(self):
+                  text = (ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8")
+                  self.assertIn("HSK Core Policy v6.6.1", text)
+                  self.assertIn("唯一 Python 文件", text)
+                  self.assertIn("默认恰好包含", text)
+                  self.assertNotIn("输出问题X结果深化分析.py", text)
+
+
+          if __name__ == "__main__":
+              unittest.main()
+          ''')
+
+          changelog = (ROOT / 'CHANGELOG.md').read_text(encoding='utf-8')
+          old_header = '# Changelog\n\n## Current release: 6.6.0\n'
+          new_header = '''# Changelog
+
+          ## Current release: 6.6.1
+
+          - Removed obsolete active standalone run-config and local-instruction templates.
+          - Removed the unused MATLAB handoff writer and the superseded legacy artifact checker.
+          - Aligned the global policy, starters, appendix, figure contracts, MATLAB reader and optional manifest with the four-file per-question contract.
+          - Added lint and unit-test regression coverage against reintroducing active v6.5.1 directory and auxiliary-file residue.
+          - Preserved legacy directories and filenames as read-only compatibility inputs only.
+
+          ## Previous release: 6.6.0
+          '''
+          if old_header not in changelog:
+              raise SystemExit('CHANGELOG current header not found')
+          changelog = changelog.replace(old_header, new_header, 1)
+          (ROOT / 'CHANGELOG.md').write_text(changelog, encoding='utf-8')
+
+          generated = {
+              'SKILL_FILE_INDEX.md', 'TEMPLATE_INDEX.md', 'HSK_SKILL_FILE_INDEX_V622.md',
+              'HSK_TEMPLATE_INDEX_V622.md', 'MANIFEST.sha256', 'CHANGELOG.md',
+          }
+          suffixes = {'.md', '.yaml', '.yml', '.json', '.py', '.m', '.tex', '.bib'}
+          for path in ROOT.rglob('*'):
+              if not path.is_file() or path.suffix.lower() not in suffixes:
+                  continue
+              if 'legacy' in path.parts or path.name in generated:
+                  continue
+              text = path.read_text(encoding='utf-8-sig')
+              if '6.6.0' in text:
+                  path.write_text(text.replace('6.6.0', VERSION), encoding='utf-8')
+
+          for path in ROOT.rglob('*'):
+              if not path.is_file() or path.suffix.lower() not in suffixes:
+                  continue
+              if 'legacy' in path.parts or path.name == 'CHANGELOG.md':
+                  continue
+              text = path.read_text(encoding='utf-8-sig')
+              text = text.replace('scripts/hsk_check_artifact.py', 'scripts/sync_project.py')
+              path.write_text(text, encoding='utf-8')
+          PY
+      - name: Run focused and full validation
+        run: |
+          python scripts/lint_skill.py --skip-generated
+          python -m unittest tests.test_v660_self_contained_question_folder
+          python -m unittest tests.test_v661_active_residue_cleanup
+          python -m unittest tests.test_tooling
+          python -m unittest discover -s tests -p "test_*.py"
+      - name: Remove one-shot workflow and regenerate metadata
+        run: |
+          git rm .github/workflows/v661-active-residue-cleanup.yml
+          python scripts/generate_indexes.py
+          python scripts/lint_skill.py
+          python -m unittest discover -s tests -p "test_*.py"
+      - name: Commit cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix: release v6.6.1 active residue cleanup'
+          git push origin HEAD:fix/v6.6.1-active-residue-cleanup
