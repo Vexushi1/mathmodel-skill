@@ -114,7 +114,6 @@
 - `scripts/validate_user_execution.py`
 - `skills/mathmodel-skill/SKILL.md`
 - `state/project_state.example.yaml`
-- `templates/code/full_fidelity_config.yaml`
 - `templates/code/hsk_pipeline/README.md`
 - `templates/code/hsk_pipeline/__init__.py`
 - `templates/code/hsk_pipeline/main_pipeline.py`
