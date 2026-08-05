@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - upgrade/v6.6.0-self-contained-question-folders
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -19,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: upgrade/v6.6.0-self-contained-question-folders
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
