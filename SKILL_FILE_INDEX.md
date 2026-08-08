@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：6.6.0
+当前 Skill 版本：6.6.1
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -53,6 +53,7 @@
 - `config/competition_profiles.yaml`
 - `config/review_weights.json`
 - `core/bootstrap.yaml`
+- `core/code_quality_contract.yaml`
 - `core/compile_profiles.yaml`
 - `core/hsk_core_policy.md`
 - `core/module_manifest.yaml`
@@ -168,6 +169,7 @@
 - `templates/writing/docx_check.md`
 - `tests/test_active_output_contract_cleanup.py`
 - `tests/test_active_residue_cleanup.py`
+- `tests/test_code_quality_contract.py`
 - `tests/test_content_packs.py`
 - `tests/test_contract_closure.py`
 - `tests/test_latex_first_versionless_docs.py`
@@ -187,3 +189,4 @@
 - `tests/test_v632_delivery_gate_closure.py`
 - `tests/test_v633_gate_hardening.py`
 - `tests/test_v660_self_contained_question_folder.py`
+- `tests/test_v661_code_quality_closure.py`

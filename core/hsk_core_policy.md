@@ -1,6 +1,6 @@
-# HSK Core Policy v6.6.0
+# HSK Core Policy v6.6.1
 
-本文件只保存全局硬规则。目录与交付文件以 `core/output_contract.yaml` 为准，用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；本文件不复制两份合同的完整字段。
+本文件只保存全局硬规则。目录与交付文件以 `core/output_contract.yaml` 为准，用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准，题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准；本文件不复制这些合同的完整字段。
 
 ## 1. 总目标与优先级
 
@@ -27,6 +27,8 @@ $$
 `问题X求解.py` 是唯一 Python 文件。首次版本完成主求解；主工作簿验收后覆盖更新同一文件，加入结果深化分析阶段。不得在该目录增加独立配置、运行说明、校验报告、图表目录或元数据文件。
 
 ## 3. 用户执行与质量门
+
+正式 `问题X求解.py` 在交付前必须通过 `scripts/validate_code_delivery.py` 的静态执行配置与代码工程质量门；该门不替代主结果数值质量门。
 
 新项目默认采用 `execution_owner=user`、`execution_profile=full_fidelity`。助手负责审题、模型设计、公式闭环、完整版代码生成、静态检查和返回工作簿验收；用户负责实际运行赛题代码。
 

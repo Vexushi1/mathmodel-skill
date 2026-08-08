@@ -1,0 +1,44 @@
+version: 1.0.0
+skill_version: 6.6.1
+purpose: 约束题目专属Python求解代码的规模、可读性、反过度工程和静态工程质量；不替代模型正确性与数值结果质量门。
+scope: 问题X求解/问题X求解.py
+line_count:
+  metric: nonblank_physical_lines
+  target_max: 500
+  warning_max: 700
+  hard_max: 700
+  exemption_max: 900
+  exemption_field: code_quality_exemption
+  exemption_required_fields: [enabled, reason]
+  exemption_reason_min_chars: 20
+  policy: 501--700行给出warning；超过700行默认failed；只有复杂题显式说明无法进一步精简的原因时才允许到900行；超过900行始终failed。
+function_size:
+  target_max: 80
+  warning_max: 120
+  hard_max: 120
+parameter_count:
+  target_max: 8
+  warning_max: 12
+  hard_max: 12
+complexity:
+  warning_max: 15
+  hard_max: 25
+print_calls:
+  warning_count: 1
+  hard_count: 5
+forbidden_import_roots: [matplotlib, seaborn]
+hard_antipatterns:
+  wildcard_import: true
+  bare_except: true
+  breakpoint_call: true
+  pdb_set_trace: true
+  duplicate_top_level_definitions: true
+warning_antipatterns:
+  unused_import: true
+  any_print_call: true
+principles:
+- 成熟科学计算库优先，不手写无必要的低质量替代实现。
+- 一个问题脚本只保留数据读取与审计、模型求解、约束/残差或题型质量检查、结果整理、工作簿输出和主入口。
+- 删除无用import、调试print、重复逻辑、死代码、伪抽象和未来脚手架。
+- Python不承担论文结果图绘制；正式结果图由MATLAB读取工作簿完成。
+- 代码长度是工程质量门，不得为了压行数删除随机种子、目标函数、约束、质量检查、结果输出或复现信息。

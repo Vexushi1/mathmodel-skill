@@ -1,4 +1,4 @@
-skill_version: 6.6.0
+skill_version: 6.6.1
 bootstrap_schema_version: 1.1.0
 purpose: Minimal startup contract for the HSK mathematical-modeling workflow. Read this file first, then use scripts/resolve_workflow.py to obtain the deterministic task-specific execution plan. Do not preload the whole repository.
 authoritative_sources:
@@ -10,6 +10,7 @@ authoritative_sources:
   workbook: core/workbook_schema.yaml
   output: core/output_contract.yaml
   user_execution: core/user_execution_contract.yaml
+  code_quality: core/code_quality_contract.yaml
 hard_invariants:
 - 题意正确优先于模型高级、代码复杂和排版炫技。
 - 先审题与锁定模型，再完整求解；不得用后续分析弥补主结果精度、收敛或可行性不足。
@@ -18,6 +19,7 @@ hard_invariants:
 - 新项目默认由用户本地执行完整版主求解与结果深化代码；助手只生成代码、静态校验和验收返回工作簿，不得运行赛题代码。
 - 禁止自动缩减数据、网格、时域、场景、重复次数、迭代或容差，禁止静默求解器fallback和轻量近似。
 - Python代码负责完整数据处理、主求解、质量门、结果深化分析与工作簿；MATLAB只读取验收后的工作簿绘图。
+- 正式问题脚本必须通过core/code_quality_contract.yaml定义的代码工程质量门。
 - 默认写作链在结果与图表锁定后直接进入LaTeX；DOCX仅由用户显式请求触发，且不是LaTeX前置。
 - locked_model_spec形成后维护项目根目录当前版模型论文框架.md；旧版本由Git历史保存。
 - 每次正式产物交付前执行解析器返回的project_sync gate，先校验项目状态与模型论文框架，再按Output Contract的exact scope检查产物。

@@ -3,7 +3,8 @@ skill_compatibility: '>=6.3.2,<7.0.0'
 purpose: 约束主求解工作簿与按需结果深化分析工作簿的工作表、字段、三轴条件、非空规则和MATLAB交接。
 runtime_enforcement:
   writer: templates/code/hsk_pipeline/result_io.py
-  artifact_checker: scripts/hsk_check_artifact.py
+  code_delivery_checker: scripts/validate_code_delivery.py
+  returned_workbook_checker: scripts/validate_user_execution.py
   project_sync: scripts/sync_project.py
   shared_validator: templates/code/hsk_pipeline/workbook_validation.py
   matlab_reader: 每问同目录q{x}_plot.m的精确表头唯一匹配逻辑
@@ -13,7 +14,7 @@ runtime_enforcement:
   - 结果深化分析只在主结果质量门通过后执行。
   - 主结果质量报告必须写入求解工作簿的主结果质量门工作表。
   - 结果分析计划与结论必须分别写入分析设计和结论稳定性汇总工作表。
-  - 写入器、交付检查器和项目同步器复用同一事实源。
+  - 写入器、代码交付检查器、返回工作簿检查器和项目同步器复用同一事实源。
   - MATLAB代码生成前必须读取实际工作簿并确认真实工作表与真实表头。
   - 两类工作簿都必须包含运行配置工作表，作为用户完整版执行、代码/数据哈希和禁止降级标志的验收证据。
 classification_contract:
@@ -261,9 +262,10 @@ matlab_handoff:
     expected_position_role: optional_drift_warning
   evidence_chain:
     workbook_scope: same_question_standard_workbooks
-    declared_export_must_exist: true
-    formal_figure_must_not_predate_workbook_or_script: true
-    provenance_record: figure_evidence.yaml
+    declared_export_must_exist: false
+    formal_figure_must_not_predate_workbook_or_script: false
+    provenance_record: 模型论文框架.md#图表证据链
+    independent_evidence_file_default: false
     mtime_role: auxiliary_warning_only
   title_contract:
     single_panel: title
@@ -272,4 +274,6 @@ matlab_handoff:
     content: 研究对象+指标或关系+必要方法信息
     caption_policy: 图注补充统计口径、数据范围和解释，不与MATLAB标题逐字重复
   reference_required: true
-  machine_readable_alternative: [matlab_figure_handoff.json, matlab_figure_handoff.yaml]
+  machine_readable_alternative:
+    default_generation: forbidden
+    explicit_full_repro_only: [matlab_figure_handoff.json, matlab_figure_handoff.yaml]

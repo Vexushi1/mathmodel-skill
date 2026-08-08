@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate active HSK graph, split result contracts, semantics and generated files."""
+"""Validate active HSK graph, result contracts, code quality, semantics and generated files."""
 from __future__ import annotations
 
 import argparse
@@ -14,7 +14,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "6.6.0"
+PACKAGE_VERSION = "6.6.1"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "CHANGELOG_V634.md", "CHANGELOG_V633.md", "CHANGELOG_V632.md", "CHANGELOG_V630.md",
@@ -24,7 +24,7 @@ REQUIRED = [
     "core/bootstrap.yaml", "core/hsk_core_policy.md", "core/task_taxonomy.yaml",
     "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml",
     "core/workbook_schema.yaml", "core/project_state.schema.yaml", "core/compile_profiles.yaml",
-    "core/user_execution_contract.yaml",
+    "core/user_execution_contract.yaml", "core/code_quality_contract.yaml",
     "modules/01_problem_audit.md", "modules/02_model_design.md", "modules/03_solve_validate.md",
     "modules/03_result_analysis.md", "modules/04_figure_evidence.md", "modules/05_latex_compile_quality.md",
     "modules/05_writing/docx.md", "modules/05_writing/latex.md",
@@ -43,7 +43,11 @@ REQUIRED = [
 ACTIVE_DIRS = ["core", "modules", "packs", "templates", "scripts", "config", "state", "assets", "agents", "skills", ".codex-plugin", ".github"]
 TEXT_SUFFIXES = {".md", ".yaml", ".yml", ".json", ".py", ".m", ".tex", ".bib"}
 VERSION_DOCS = ["SKILL.md", "README.md", "CHANGELOG.md"]
-VERSION_CONTRACTS = ["core/bootstrap.yaml", "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml", "core/project_state.schema.yaml", "core/user_execution_contract.yaml"]
+VERSION_CONTRACTS = [
+    "core/bootstrap.yaml", "core/workflow_router.yaml", "core/module_manifest.yaml",
+    "core/output_contract.yaml", "core/project_state.schema.yaml", "core/user_execution_contract.yaml",
+    "core/code_quality_contract.yaml",
+]
 
 
 def read_text(path: Path) -> str:
@@ -100,6 +104,8 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
     for key, path in (data.get("authoritative_sources", {}) or {}).items():
         if not path or not (ROOT / path).is_file():
             errors.append(f"bootstrap authoritative source missing: {key} -> {path}")
+    if data.get("authoritative_sources", {}).get("code_quality") != "core/code_quality_contract.yaml":
+        errors.append("bootstrap must declare code-quality authority")
     if data.get("entrypoints", {}).get("sync") != "python scripts/sync_project.py":
         errors.append("bootstrap must expose sync_project.py")
     maintenance = data.get("repository_maintenance", {})
@@ -176,6 +182,8 @@ def check_manifest(errors: list[str]) -> None:
     catalog = set(manifest.get("artifact_catalog", {}))
     external = set(manifest.get("external_artifacts", []))
     known = catalog | external
+    if manifest.get("contracts", {}).get("code_quality") != "core/code_quality_contract.yaml":
+        errors.append("manifest must register code-quality contract")
     modules = manifest.get("modules", {})
     order = manifest.get("workflow_order", [])
     rank = {name: index for index, name in enumerate(order)}
@@ -207,8 +215,11 @@ def check_manifest(errors: list[str]) -> None:
         errors.append("manifest lacks dedicated result_analysis module")
     else:
         inputs = set(modules["result_analysis"].get("inputs", []))
-        if not {"accepted_solution_workbook", "result_quality_report"}.issubset(inputs):
-            errors.append("result_analysis must depend on an accepted primary workbook and quality report")
+        if not {"accepted_solution_workbook", "result_quality_report", "code_quality_contract"}.issubset(inputs):
+            errors.append("result_analysis must depend on accepted primary evidence and code-quality contract")
+    solve_inputs = set(modules.get("solve_validate", {}).get("inputs", []))
+    if "code_quality_contract" not in solve_inputs:
+        errors.append("solve_validate must consume code-quality contract")
     profile_spec = manifest.get("workflow_profiles", {}).get("full_workflow", {})
     profile = profile_spec.get("modules", [])
     if profile != ["problem_audit", "model_design", "solve_validate"]:
@@ -218,10 +229,23 @@ def check_manifest(errors: list[str]) -> None:
     gate = manifest.get("utility_gates", {}).get("project_sync", {})
     if gate.get("stage_requirements_source") != "core/output_contract.yaml#project_sync.stage_requirements":
         errors.append("project_sync must reference output-contract stage requirements")
+    code_gate = manifest.get("utility_gates", {}).get("code_delivery", {})
+    if "code_quality_contract" not in code_gate.get("inputs", []):
+        errors.append("code-delivery gate must consume code-quality contract")
 
 
 def check_contracts(errors: list[str]) -> None:
     output = load_structured(ROOT / "core/output_contract.yaml") or {}
+    quality = load_structured(ROOT / "core/code_quality_contract.yaml") or {}
+    line_policy = quality.get("line_count", {})
+    if (line_policy.get("target_max"), line_policy.get("hard_max"), line_policy.get("exemption_max")) != (500, 700, 900):
+        errors.append("code-quality line thresholds must be 500/700/900")
+    if quality.get("function_size", {}).get("hard_max") != 120:
+        errors.append("code-quality function hard limit must be 120")
+    if quality.get("parameter_count", {}).get("hard_max") != 12:
+        errors.append("code-quality parameter hard limit must be 12")
+    if output.get("code_quality_contract") != "core/code_quality_contract.yaml":
+        errors.append("output contract must reference code-quality contract")
     policy = output.get("writing_policy", {})
     if policy.get("default_mode") != "latex_first":
         errors.append("default writing mode must be latex_first")
@@ -247,6 +271,20 @@ def check_contracts(errors: list[str]) -> None:
         if token not in sync_text:
             errors.append(f"sync_project lacks gate-hardening token: {token}")
     workbook = load_structured(ROOT / "core/workbook_schema.yaml") or {}
+    runtime = workbook.get("runtime_enforcement", {}) or {}
+    if "artifact_checker" in runtime:
+        errors.append("workbook schema still references removed artifact_checker")
+    for key in ("code_delivery_checker", "returned_workbook_checker", "project_sync", "shared_validator"):
+        value = runtime.get(key)
+        if not value or not (ROOT / value).is_file():
+            errors.append(f"workbook runtime checker missing: {key} -> {value}")
+    handoff = workbook.get("matlab_handoff", {}).get("evidence_chain", {}) or {}
+    if handoff.get("declared_export_must_exist") is not False:
+        errors.append("workbook MATLAB handoff must not require exported figures by default")
+    if handoff.get("independent_evidence_file_default") is not False:
+        errors.append("workbook MATLAB handoff must not default to an independent evidence file")
+    if "figure_evidence.yaml" in str(handoff.get("provenance_record", "")):
+        errors.append("workbook MATLAB handoff must not default to figure_evidence.yaml")
     if workbook.get("global_rules", {}).get("empty_worksheet_allowed") is not False:
         errors.append("workbook schema must forbid empty worksheets")
     if "主结果质量门" not in workbook.get("solution_workbook", {}).get("common_required_sheets", {}):
@@ -297,6 +335,21 @@ def check_templates(errors: list[str]) -> None:
     for token in ("exact_header_column", "headers ==", "warn_position_drift", "title(ax, figureTitle"):
         if token not in plot:
             errors.append(f"q1_plot.m lacks required token: {token}")
+    validator = read_text(ROOT / "scripts/validate_code_delivery.py")
+    for token in ("QUALITY_CONTRACT", "code_quality_findings", "nonblank_lines", "forbidden_import_roots"):
+        if token not in validator:
+            errors.append(f"code delivery validator lacks quality token: {token}")
+    for relative in ("SKILL.md", "README.md", "skills/mathmodel-skill/SKILL.md"):
+        text = read_text(ROOT / relative)
+        if "└─ 图表/" in text or "输出完整版代码、运行配置和说明" in text:
+            errors.append(f"active entry still contains obsolete output wording: {relative}")
+    removed_checker = "hsk_check_" + "artifact.py"
+    lint_path = ROOT / "scripts/lint_skill.py"
+    for path in active_files():
+        if path == lint_path:
+            continue
+        if removed_checker in read_text(path):
+            errors.append(f"active file references removed artifact checker: {path.relative_to(ROOT)}")
 
 
 def check_syntax(errors: list[str]) -> None:
