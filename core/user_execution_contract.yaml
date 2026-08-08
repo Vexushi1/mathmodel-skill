@@ -1,5 +1,5 @@
 version: 1.1.0
-skill_version: 6.6.0
+skill_version: 6.6.1
 purpose: 定义用户本地完整版数值执行链，同时保持每问一个自包含目录和一个持续更新的Python脚本。
 default_mode:
   execution_owner: user
@@ -14,7 +14,7 @@ assistant_policy:
   - 用户未返回工作簿前声称已求解、已分析或已得到正式数值
   allowed:
   - 审题、模型设计、公式闭环和完整版代码生成
-  - 不导入求解脚本的静态代码、依赖和语法检查
+  - 不导入求解脚本的静态代码、依赖、语法和工程质量检查
   - 读取用户返回的工作簿并执行Schema、哈希、质量门和证据一致性校验
   - 运行本Skill仓库自身的lint、单元测试、索引生成和LaTeX模板CI
 full_fidelity_flags:
@@ -26,6 +26,7 @@ full_fidelity_flags:
   allow_relaxed_tolerance: false
   allow_silent_solver_fallback: false
 code_delivery:
+  code_quality_contract: core/code_quality_contract.yaml
   required_artifacts:
   - task_specific_python_code
   single_script: 问题X求解/问题X求解.py
