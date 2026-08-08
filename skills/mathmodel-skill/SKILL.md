@@ -1,62 +1,18 @@
 ---
 name: mathmodel-skill
-version: 6.6.0
-summary: Lightweight-bootstrap HSK mathematical-modeling workflow with high-quality primary solving, an explicit result-quality gate, adaptive result analysis, Python-to-Excel-to-MATLAB evidence chains, LaTeX-first authoring and optional DOCX review.
-triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 项目同步, 主结果质量, 结果深化分析, 敏感性分析, 鲁棒性分析, 多算法验证, 机理图, MATLAB绘图, LaTeX, DOCX]
+version: 6.6.1
+summary: HSK mathematical-modeling workflow with full-fidelity solving, code-quality enforcement, result gates, MATLAB evidence figures and LaTeX-first writing.
+triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v6.6.0
+# HSK 数学建模模块化工作流 v6.6.1
 
-## v6.6.0 默认执行方式
+1. 从本目录定位仓库根目录 `../..`，读取 `../../core/bootstrap.yaml`；
+2. 使用 `../../scripts/resolve_workflow.py` 获取任务执行计划；
+3. 每问只维护 `问题X求解.py`、两个标准工作簿和 `qX_plot.m`；
+4. 代码交付必须通过 `../../core/code_quality_contract.yaml` 与 `../../scripts/validate_code_delivery.py`；
+5. 用户完整运行后，由 `validate_user_execution.py` 验收工作簿、哈希和主结果质量门；
+6. 深化分析不稳定时回退模型或主求解并传播 stale；
+7. MATLAB只读工作簿绘图，LaTeX为默认论文主链，DOCX仅显式按需。
 
-赛题数值代码默认由用户本地以 `full_fidelity` 模式运行。助手输出完整版代码、运行配置和说明后停在 `awaiting_user_execution`；用户返回主工作簿并验收后，才输出最终结果深化分析代码。助手不得运行赛题代码或自动采用轻量近似。
-
-## 启动
-
-1. 先定位仓库根目录 `../..`，读取 `../../core/bootstrap.yaml`；
-2. 使用 `../../scripts/resolve_workflow.py` 解析用户意图；
-3. 只加载命中的模块、Pack 和模板；
-4. `legacy/` 不参与默认执行。
-
-## 核心主链
-
-```text
-审题与模型锁定
-→ Python完整主求解
-→ 主结果质量门
-→ 问题X求解结果.xlsx
-→ 按题选择结果深化分析
-→ 问题X结果深化分析.xlsx
-→ MATLAB正式图
-→ LaTeX直写与持续修改
-→ 编译终审
-```
-
-主求解必须先保证当前模型口径下的精度、收敛、可行性、外样本或残差要求。敏感性、鲁棒性、多算法、结构稳健性、阈值、异质性和误差分解属于后续可选结果深化方法，不得以统一扰动模板替代题目专属设计。
-
-结果深化分析发现主结论不可靠时，必须标记下游 stale，回退模型设计或主求解并重新计算。
-
-## 工作簿合同
-
-- `问题X求解结果.xlsx`：核心指标、数据审计、主结果质量门和题型专项结果；
-- `问题X结果深化分析.xlsx`：分析设计、至少一个实质分析表和结论稳定性汇总；
-- 旧 `问题X敏感性与鲁棒性结果.xlsx` 仅作只读兼容。
-
-## 软件职责
-
-- Python：数据、主求解、质量门、结果深化分析和工作簿；
-- MATLAB：只读真实工作簿绘制正式图；
-- LaTeX：默认论文主链；
-- DOCX：显式按需，不是 LaTeX 前置。
-
-## 正式交付
-
-所有正式产物在交付前执行：
-
-```bash
-python scripts/sync_project.py <project_root> --write --strict --delivery-scope <scope>
-```
-
-同步器只检查、哈希和传播 stale，不自动提升主结果质量或结果分析状态。
-
-命题允许为 0，全文最多 4 个；数值实验不能替代证明。活动入口使用稳定文件名，详细规则以 `core/` 下权威合同为准。
+详细规则以 `../../core/` 下权威合同为准，`legacy/` 不参与默认执行。
