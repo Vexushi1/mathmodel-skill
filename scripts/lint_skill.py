@@ -343,8 +343,12 @@ def check_templates(errors: list[str]) -> None:
         text = read_text(ROOT / relative)
         if "└─ 图表/" in text or "输出完整版代码、运行配置和说明" in text:
             errors.append(f"active entry still contains obsolete output wording: {relative}")
+    removed_checker = "hsk_check_" + "artifact.py"
+    lint_path = ROOT / "scripts/lint_skill.py"
     for path in active_files():
-        if "hsk_check_artifact.py" in read_text(path):
+        if path == lint_path:
+            continue
+        if removed_checker in read_text(path):
             errors.append(f"active file references removed artifact checker: {path.relative_to(ROOT)}")
 
 
