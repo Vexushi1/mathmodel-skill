@@ -169,6 +169,7 @@
 - `templates/writing/docx_check.md`
 - `tests/test_active_output_contract_cleanup.py`
 - `tests/test_active_residue_cleanup.py`
+- `tests/test_code_quality_contract.py`
 - `tests/test_content_packs.py`
 - `tests/test_contract_closure.py`
 - `tests/test_latex_first_versionless_docs.py`
