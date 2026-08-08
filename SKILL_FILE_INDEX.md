@@ -189,3 +189,4 @@
 - `tests/test_v632_delivery_gate_closure.py`
 - `tests/test_v633_gate_hardening.py`
 - `tests/test_v660_self_contained_question_folder.py`
+- `tests/test_v661_code_quality_closure.py`
