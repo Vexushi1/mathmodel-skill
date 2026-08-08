@@ -7,7 +7,7 @@ import hashlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = "6.6.0"
+VERSION = "6.6.1"
 SKILL_INDEX = ROOT / "SKILL_FILE_INDEX.md"
 TEMPLATE_INDEX = ROOT / "TEMPLATE_INDEX.md"
 LEGACY_SKILL_INDEX = ROOT / "HSK_SKILL_FILE_INDEX_V622.md"
