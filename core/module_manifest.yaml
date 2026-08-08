@@ -1,4 +1,4 @@
-version: 6.6.0
+version: 6.6.1
 workflow_order:
 - problem_audit
 - model_design
@@ -17,6 +17,7 @@ contracts:
   workbook: core/workbook_schema.yaml
   project_state: core/project_state.schema.yaml
   user_execution: core/user_execution_contract.yaml
+  code_quality: core/code_quality_contract.yaml
   framework_template: templates/model/model_paper_framework.md
   compile_profiles: core/compile_profiles.yaml
 external_artifacts:
@@ -29,6 +30,7 @@ external_artifacts:
 - compile_profile
 - workbook_schema
 - output_contract
+- code_quality_contract
 - all_requested_artifacts
 - existing_project_state
 - existing_model_paper_framework
@@ -196,6 +198,7 @@ modules:
     - data_schema
     - data
     - workbook_schema
+    - code_quality_contract
     outputs:
     - python_code
     - full_run_config
@@ -211,6 +214,7 @@ modules:
     - validation_plan
     - model_paper_framework
     - workbook_schema
+    - code_quality_contract
     outputs:
     - result_analysis_plan
     - result_analysis_code
@@ -297,6 +301,7 @@ utility_gates:
     - existing_project_state
     - existing_model_paper_framework
     - python_code
+    - code_quality_contract
     outputs:
     - code_delivery_report
     - project_state
@@ -341,8 +346,7 @@ utility_gates:
     rules:
     - Reads exact delivery requirements from core/output_contract.yaml before checking artifacts.
     - Validates project state and the current model-paper framework before artifact discovery.
-    - Discovers artifacts, validates workbook contracts and hashes the evidence chain without inventing model semantics or
-      validation success.
+    - Discovers artifacts, validates workbook contracts and hashes the evidence chain without inventing model semantics or validation success.
     - Propagates stale from data, model, workbooks, MATLAB scripts and figure bundles without clearing it.
     - Required before formal model, workbooks, figures, DOCX, LaTeX or submission delivery.
     - Code delivery uses the dedicated non-executing code_delivery gate.
