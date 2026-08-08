@@ -1,6 +1,16 @@
 # Changelog
 
-## Current release: 6.6.0
+## Current release: 6.6.1
+
+- Added `core/code_quality_contract.yaml` as the single active authority for task-specific Python engineering quality.
+- `validate_code_delivery.py` now checks script/function/parameter size, static complexity and key anti-patterns without executing task code.
+- Restored the 500-line target with a controlled complex-problem exemption up to 900 lines; functions target 80 lines and 8 parameters with hard limits at 120 lines and 12 parameters.
+- Removed stale top-level `图表/` and standalone-config wording from active Skill entry documents.
+- Replaced the deleted `hsk_check_artifact.py` workbook runtime reference with the current code-delivery and returned-workbook validators.
+- Aligned the workbook MATLAB handoff with the current window-only default: exported figures and independent evidence files are not required by default.
+- Slimmed active entry documents so detailed rules live in authoritative contracts instead of being duplicated.
+
+## Previous release: 6.6.0
 
 - Restored one self-contained `问题X求解/` directory per subproblem.
 - New projects keep exactly one evolving Python script, two standard workbooks and one `qX_plot.m` in that directory.

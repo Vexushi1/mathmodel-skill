@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""静态校验每问唯一Python脚本，不运行赛题代码，也不生成额外报告文件。"""
+"""Static delivery and engineering-quality validation for the one task-specific Python script."""
 from __future__ import annotations
 
 import argparse
@@ -10,10 +10,11 @@ from typing import Any
 
 import yaml
 
+SKILL_ROOT = Path(__file__).resolve().parents[1]
+QUALITY_CONTRACT = SKILL_ROOT / "core" / "code_quality_contract.yaml"
 FALSE_FLAGS = (
     "allow_reduced_data", "allow_coarser_grid", "allow_shorter_horizon",
-    "allow_fewer_repetitions", "allow_relaxed_tolerance",
-    "allow_silent_solver_fallback",
+    "allow_fewer_repetitions", "allow_relaxed_tolerance", "allow_silent_solver_fallback",
 )
 PLACEHOLDERS = ("TODO", "FIXME", "__QUESTION_NAME__", "NotImplementedError")
 CONFIG_NAMES = {"FULL_FIDELITY_CONFIG", "FULL_RUN_CONFIG", "RUN_CONFIG"}
@@ -60,23 +61,157 @@ def problem_from_path(script: Path) -> str:
     return problem
 
 
-def validate_script(project_root: Path, script: Path, expected_stage: str | None = None) -> tuple[list[str], dict[str, Any]]:
+def _param_count(node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
+    args = [*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs]
+    return sum(arg.arg not in {"self", "cls"} for arg in args)
+
+
+def _complexity(node: ast.AST) -> int:
+    branch_nodes = (ast.If, ast.For, ast.AsyncFor, ast.While, ast.Try, ast.IfExp, ast.Match, ast.comprehension)
+    score = 1 + sum(isinstance(item, branch_nodes) for item in ast.walk(node))
+    score += sum(max(0, len(item.values) - 1) for item in ast.walk(node) if isinstance(item, ast.BoolOp))
+    return score
+
+
+def code_quality_findings(
+    text: str,
+    config: dict[str, Any] | None = None,
+) -> tuple[list[str], list[str], dict[str, Any]]:
+    """Return blocking issues, warnings and lightweight static metrics without executing task code."""
+    contract = load_yaml(QUALITY_CONTRACT)
+    errors: list[str] = []
+    warnings: list[str] = []
+    metrics: dict[str, Any] = {}
+    try:
+        tree = ast.parse(text)
+    except SyntaxError as exc:
+        return [f"Python语法错误: {exc}"], [], metrics
+
+    nonblank = sum(bool(line.strip()) for line in text.splitlines())
+    metrics["nonblank_lines"] = nonblank
+    line_policy = contract["line_count"]
+    exemption = (config or {}).get(line_policy["exemption_field"], {})
+    valid_exemption = (
+        isinstance(exemption, dict)
+        and exemption.get("enabled") is True
+        and len(str(exemption.get("reason", "")).strip()) >= int(line_policy["exemption_reason_min_chars"])
+    )
+    if nonblank > int(line_policy["exemption_max"]):
+        errors.append(f"代码{nonblank}行，超过绝对上限{line_policy['exemption_max']}行")
+    elif nonblank > int(line_policy["hard_max"]):
+        if valid_exemption:
+            warnings.append(f"代码{nonblank}行，已使用复杂题豁免；仍应继续精简")
+        else:
+            errors.append(
+                f"代码{nonblank}行，超过{line_policy['hard_max']}行；"
+                "复杂题需在FULL_FIDELITY_CONFIG提供code_quality_exemption"
+            )
+    elif nonblank > int(line_policy["target_max"]):
+        warnings.append(f"代码{nonblank}行，超过目标{line_policy['target_max']}行")
+
+    function_policy = contract["function_size"]
+    parameter_policy = contract["parameter_count"]
+    complexity_policy = contract["complexity"]
+    functions = [node for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))]
+    metrics["function_count"] = len(functions)
+    for node in functions:
+        span = (node.end_lineno or node.lineno) - node.lineno + 1
+        params = _param_count(node)
+        complexity = _complexity(node)
+        if span > int(function_policy["hard_max"]):
+            errors.append(f"函数{node.name}共{span}行，超过{function_policy['hard_max']}行硬上限")
+        elif span > int(function_policy["target_max"]):
+            warnings.append(f"函数{node.name}共{span}行，超过{function_policy['target_max']}行目标")
+        if params > int(parameter_policy["hard_max"]):
+            errors.append(f"函数{node.name}有{params}个参数，超过{parameter_policy['hard_max']}个硬上限")
+        elif params > int(parameter_policy["target_max"]):
+            warnings.append(f"函数{node.name}有{params}个参数，超过{parameter_policy['target_max']}个目标")
+        if complexity > int(complexity_policy["hard_max"]):
+            errors.append(f"函数{node.name}静态复杂度{complexity}，超过{complexity_policy['hard_max']}")
+        elif complexity > int(complexity_policy["warning_max"]):
+            warnings.append(f"函数{node.name}静态复杂度{complexity}偏高")
+
+    imported: dict[str, str] = {}
+    used = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)}
+    forbidden_imports = set(contract["forbidden_import_roots"])
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                root = alias.name.split(".")[0]
+                if root in forbidden_imports:
+                    errors.append(f"正式求解脚本禁止导入绘图库: {root}")
+                imported[alias.asname or root] = alias.name
+        elif isinstance(node, ast.ImportFrom):
+            root = (node.module or "").split(".")[0]
+            if root in forbidden_imports:
+                errors.append(f"正式求解脚本禁止导入绘图库: {root}")
+            for alias in node.names:
+                if alias.name == "*":
+                    errors.append("禁止通配import")
+                else:
+                    imported[alias.asname or alias.name] = f"{node.module}.{alias.name}"
+        elif isinstance(node, ast.ExceptHandler) and node.type is None:
+            errors.append("禁止裸except")
+        elif isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name) and node.func.id == "breakpoint":
+                errors.append("正式代码禁止breakpoint()")
+            if (
+                isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "pdb"
+                and node.func.attr == "set_trace"
+            ):
+                errors.append("正式代码禁止pdb.set_trace()")
+
+    unused = sorted(name for name in imported if name not in used and name != "annotations")
+    if unused:
+        warnings.append("可能存在未使用import: " + ", ".join(unused))
+
+    print_count = sum(
+        isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "print"
+        for node in ast.walk(tree)
+    )
+    metrics["print_calls"] = print_count
+    if print_count > int(contract["print_calls"]["hard_count"]):
+        errors.append(f"print调用{print_count}次，疑似调试输出过多")
+    elif print_count >= int(contract["print_calls"]["warning_count"]):
+        warnings.append(f"存在{print_count}处print；最终版优先使用必要日志或工作簿记录")
+
+    top_names = [
+        node.name for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+    ]
+    duplicates = sorted({name for name in top_names if top_names.count(name) > 1})
+    if duplicates:
+        errors.append("重复顶层定义: " + ", ".join(duplicates))
+
+    return list(dict.fromkeys(errors)), list(dict.fromkeys(warnings)), metrics
+
+
+def validate_script(
+    project_root: Path,
+    script: Path,
+    expected_stage: str | None = None,
+) -> tuple[list[str], dict[str, Any]]:
     issues: list[str] = []
     try:
         problem = problem_from_path(script)
     except ValueError as exc:
         return [str(exc)], {}
+
     text = script.read_text(encoding="utf-8", errors="strict")
     for marker in PLACEHOLDERS:
         if marker in text:
             issues.append(f"正式代码仍含占位标记: {marker}")
     if 'if __name__ == "__main__":' not in text and "if __name__ == '__main__':" not in text:
         issues.append("正式代码缺少main入口")
+
     try:
         config = embedded_config(text)
     except (SyntaxError, ValueError) as exc:
         issues.append(str(exc))
         config = {}
+
     for field in sorted(REQUIRED_FIELDS):
         if field not in config or config[field] in (None, "", []):
             issues.append(f"嵌入运行配置缺少字段: {field}")
@@ -96,10 +231,14 @@ def validate_script(project_root: Path, script: Path, expected_stage: str | None
             issues.append(f"{flag}必须显式为false")
     if not is_sha256(config.get("data_sha256")):
         issues.append("data_sha256必须是64位十六进制SHA-256")
+
     expected = f"{problem}求解结果.xlsx" if stage == "primary" else f"{problem}结果深化分析.xlsx"
     if Path(str(config.get("expected_workbook", ""))).name != expected:
         issues.append(f"expected_workbook必须指向同目录{expected}")
-    return issues, config
+
+    quality_errors, _, _ = code_quality_findings(text, config)
+    issues.extend(quality_errors)
+    return list(dict.fromkeys(issues)), config
 
 
 def update_state(project_root: Path, config: dict[str, Any], script: Path) -> None:
@@ -141,22 +280,35 @@ def main() -> int:
     parser.add_argument("--strict", action="store_true")
     args = parser.parse_args()
     root = args.project_root.resolve()
-    scripts = [args.script if args.script and args.script.is_absolute() else root / args.script] if args.script else discover_scripts(root)
+    scripts = (
+        [args.script if args.script and args.script.is_absolute() else root / args.script]
+        if args.script else discover_scripts(root)
+    )
     issues: list[str] = []
+    warnings: list[str] = []
+    metrics: dict[str, Any] = {}
     checked: list[str] = []
     for script in scripts:
         item_issues, config = validate_script(root, script, args.stage)
         issues.extend(f"{script.name}: {item}" for item in item_issues)
+        _, item_warnings, item_metrics = code_quality_findings(
+            script.read_text(encoding="utf-8"), config
+        )
+        warnings.extend(f"{script.name}: {item}" for item in item_warnings)
+        metrics[script.relative_to(root).as_posix()] = item_metrics
         checked.append(script.relative_to(root).as_posix())
         if args.write and not item_issues:
             try:
                 update_state(root, config, script)
             except ValueError as exc:
                 issues.append(f"{script.name}: {exc}")
+
     report = {
         "status": "passed" if not issues else "failed",
         "checked_scripts": checked,
         "issues": issues,
+        "warnings": warnings,
+        "code_quality_metrics": metrics,
         "task_code_executed": False,
         "report_persisted": False,
     }
