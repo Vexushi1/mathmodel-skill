@@ -1,7 +1,7 @@
 {
   "name": "mathmodel-skill",
-  "version": "6.6.0",
-  "description": "HSK lightweight-bootstrap mathematical-modeling workflow with high-quality primary solving, an explicit result-quality gate, adaptive result analysis, Python-to-Excel-to-MATLAB evidence figures, LaTeX-first authoring and optional DOCX review.",
+  "version": "6.6.1",
+  "description": "HSK lightweight-bootstrap mathematical-modeling workflow with full-fidelity user execution, code-quality enforcement, explicit numerical quality gates, adaptive result analysis, MATLAB evidence figures and LaTeX-first authoring.",
   "author": {
     "name": "HSK"
   },
@@ -12,13 +12,14 @@
     "mcm",
     "icm",
     "matlab",
+    "code-quality",
     "result-analysis",
     "project-sync"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "HSK 数学建模 Skill",
-    "shortDescription": "主求解质量门、自适应结果分析、MATLAB证据图、LaTeX直写",
+    "shortDescription": "代码质量门、主结果质量门、自适应结果分析、MATLAB证据图、LaTeX直写",
     "category": "Education",
     "capabilities": [
       "Interactive",
