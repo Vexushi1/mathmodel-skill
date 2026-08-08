@@ -1,6 +1,7 @@
-version: 6.6.0
+version: 6.6.1
 schema: core/workbook_schema.yaml
 user_execution_contract: core/user_execution_contract.yaml
+code_quality_contract: core/code_quality_contract.yaml
 bootstrap: core/bootstrap.yaml
 taxonomy: core/task_taxonomy.yaml
 project_root:
@@ -26,6 +27,7 @@ execution_policy:
   default_profile: full_fidelity
   assistant_task_code_execution_allowed: false
   code_delivery_gate: scripts/validate_code_delivery.py
+  code_quality_contract: core/code_quality_contract.yaml
   returned_workbook_gate: scripts/validate_user_execution.py
   pause_states:
   - awaiting_user_execution
