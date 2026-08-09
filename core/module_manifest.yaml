@@ -52,6 +52,7 @@ artifact_catalog:
   validation_plan: 建模阶段识别的风险与候选验证方向
   python_code: 问题X求解/问题X求解.py；只负责主求解，主工作簿accepted后冻结
   result_analysis_code: 问题X求解/问题X结果深化分析.py；主工作簿accepted后独立生成，只负责深化分析
+  stage_python_code: 当前代码交付阶段的题目专属Python文件；solve_validate映射主求解脚本，result_analysis映射深化分析脚本
   full_run_config: 分别嵌入对应阶段Python和工作簸运行配置表的完整精度参数，不单独落盘
   execution_instructions: 聊天内给出的本地运行步骤，不单独落盘
   code_delivery_report: 聊天或标准输出中的静态交付检查结果，不单独落盘
@@ -119,6 +120,7 @@ workflow_profiles:
     - solve_validate
     module_terminal_outputs:
     - python_code
+    - stage_python_code
     - full_run_config
     - execution_instructions
     - code_delivery_report
@@ -129,6 +131,7 @@ workflow_profiles:
     - code_delivery
     terminal_outputs:
     - python_code
+    - stage_python_code
     - full_run_config
     - execution_instructions
     - code_delivery_report
@@ -143,6 +146,7 @@ workflow_profiles:
     - solve_validate
     module_terminal_outputs:
     - python_code
+    - stage_python_code
     - full_run_config
     - execution_instructions
     - code_delivery_report
@@ -152,6 +156,7 @@ workflow_profiles:
     - code_delivery
     terminal_outputs:
     - python_code
+    - stage_python_code
     - full_run_config
     - execution_instructions
     - code_delivery_report
@@ -201,6 +206,7 @@ modules:
     - code_quality_contract
     outputs:
     - python_code
+    - stage_python_code
     - full_run_config
     - execution_instructions
     - code_delivery_report
@@ -218,6 +224,7 @@ modules:
     outputs:
     - result_analysis_plan
     - result_analysis_code
+    - stage_python_code
     - full_run_config
     - execution_instructions
     - code_delivery_report
@@ -300,8 +307,7 @@ utility_gates:
     inputs:
     - existing_project_state
     - existing_model_paper_framework
-    - python_code
-    - result_analysis_code
+    - stage_python_code
     - code_quality_contract
     outputs:
     - code_delivery_report
