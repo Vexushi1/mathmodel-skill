@@ -1,7 +1,7 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 6.6.1
+version: 7.0.0
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
@@ -208,8 +208,8 @@ properties:
         model_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         validated_model_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         artifacts_stale: {type: boolean, default: false}
-        code: {type: string}
-        result_analysis_code: {type: string}
+        code: {type: string, description: 主求解脚本路径}
+        result_analysis_code: {type: string, description: 独立结果深化分析脚本路径}
         primary_code_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         analysis_code_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         primary_execution_status:
