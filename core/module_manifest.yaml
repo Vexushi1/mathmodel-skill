@@ -1,4 +1,4 @@
-version: 6.6.1
+version: 7.0.0
 workflow_order:
 - problem_audit
 - model_design
@@ -50,9 +50,9 @@ artifact_catalog:
   model_paper_framework: 当前有效模型语义、论文组织、逐问结果摘要和图表映射
   mechanism_contracts: 机理图合同
   validation_plan: 建模阶段识别的风险与候选验证方向
-  python_code: 问题X求解目录中的唯一Python脚本；先交付主求解版本，验收后原位更新结果深化分析阶段
-  result_analysis_code: 对同一个问题X求解.py的结果深化分析更新，不生成第二个Python文件
-  full_run_config: 嵌入Python和工作簸运行配置表的完整精度参数，不单独落盘
+  python_code: 问题X求解/问题X求解.py；只负责主求解，主工作簿accepted后冻结
+  result_analysis_code: 问题X求解/问题X结果深化分析.py；主工作簿accepted后独立生成，只负责深化分析
+  full_run_config: 分别嵌入对应阶段Python和工作簸运行配置表的完整精度参数，不单独落盘
   execution_instructions: 聊天内给出的本地运行步骤，不单独落盘
   code_delivery_report: 聊天或标准输出中的静态交付检查结果，不单独落盘
   awaiting_user_execution: 等待用户本地运行并返回工作簿的暂停状态
@@ -301,6 +301,7 @@ utility_gates:
     - existing_project_state
     - existing_model_paper_framework
     - python_code
+    - result_analysis_code
     - code_quality_contract
     outputs:
     - code_delivery_report
@@ -346,7 +347,7 @@ utility_gates:
     rules:
     - Reads exact delivery requirements from core/output_contract.yaml before checking artifacts.
     - Validates project state and the current model-paper framework before artifact discovery.
-    - Discovers artifacts, validates workbook contracts and hashes the evidence chain without inventing model semantics or validation success.
-    - Propagates stale from data, model, workbooks, MATLAB scripts and figure bundles without clearing it.
+    - Discovers both stage-specific Python scripts, validates workbook contracts and hashes the evidence chain without inventing model semantics or validation success.
+    - Propagates stale from data, primary code, analysis code, workbooks, MATLAB scripts and figure bundles without clearing it.
     - Required before formal model, workbooks, figures, DOCX, LaTeX or submission delivery.
     - Code delivery uses the dedicated non-executing code_delivery gate.
