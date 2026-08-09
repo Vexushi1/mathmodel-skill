@@ -1,4 +1,4 @@
-skill_version: 6.6.1
+skill_version: 7.0.0
 bootstrap_schema_version: 1.1.0
 purpose: Minimal startup contract for the HSK mathematical-modeling workflow. Read this file first, then use scripts/resolve_workflow.py to obtain the deterministic task-specific execution plan. Do not preload the whole repository.
 authoritative_sources:
@@ -17,9 +17,10 @@ hard_invariants:
 - 主求解必须通过独立质量门，随后才按题目风险选择敏感性、鲁棒性、多算法、结构、阈值、异质性或其他结果深化分析。
 - 结果深化分析发现主结论不可靠时，必须标记下游stale并回退模型设计或主求解。
 - 新项目默认由用户本地执行完整版主求解与结果深化代码；助手只生成代码、静态校验和验收返回工作簿，不得运行赛题代码。
+- 每问主求解与结果深化分析使用两个独立Python脚本；主工作簿accepted后冻结主求解脚本，深化分析不得覆盖改写它。
 - 禁止自动缩减数据、网格、时域、场景、重复次数、迭代或容差，禁止静默求解器fallback和轻量近似。
 - Python代码负责完整数据处理、主求解、质量门、结果深化分析与工作簿；MATLAB只读取验收后的工作簿绘图。
-- 正式问题脚本必须通过core/code_quality_contract.yaml定义的代码工程质量门。
+- 两个正式问题脚本都必须通过core/code_quality_contract.yaml定义的代码工程质量门。
 - 默认写作链在结果与图表锁定后直接进入LaTeX；DOCX仅由用户显式请求触发，且不是LaTeX前置。
 - locked_model_spec形成后维护项目根目录当前版模型论文框架.md；旧版本由Git历史保存。
 - 每次正式产物交付前执行解析器返回的project_sync gate，先校验项目状态与模型论文框架，再按Output Contract的exact scope检查产物。
@@ -49,6 +50,7 @@ compatibility:
   deprecated_classification_capabilities_supported: true
   deprecated_problem_types_supported: true
   legacy_robustness_workbook_read_supported: true
+  v6_6_single_script_question_folders_read_supported: true
   versionless_active_documents:
   - PROJECT_INSTRUCTIONS.md
   - RUNTIME_ROUTER.md
