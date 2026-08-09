@@ -1,4 +1,4 @@
-version: 6.6.1
+version: 7.0.0
 bootstrap: core/bootstrap.yaml
 default_load:
 - core/hsk_core_policy.md
@@ -22,6 +22,7 @@ execution_contract:
   - Never manufacture downstream artifacts when gate inputs are missing.
   - Generate full-fidelity task code and stop at awaiting_user_execution; never execute task-specific solve or analysis code.
   - Primary user-produced workbook must be accepted before final result-analysis code is generated.
+  - Accepted primary workbooks freeze the primary solve script; result-analysis code is a separate stage-specific Python file.
   - Accepted result-analysis workbooks precede figures and writing.
   - Result analysis may send the workflow back to model_design or solve_validate when the locked result is not stable enough.
   - Merge multiple intents in workflow order and remove duplicate modules, packs and outputs.
@@ -185,7 +186,7 @@ multi_intent_policy:
 - Merge modules in workflow order and remove duplicates.
 - Merge terminal outputs without dropping model_paper_framework for formal deliveries.
 - Code delivery and returned-workbook validation use dedicated gates that never execute task code.
-- Primary code delivery pauses for user execution; accepted primary workbooks precede result-analysis code delivery.
+- Primary code delivery pauses for user execution; accepted primary workbooks freeze the primary script and precede separate result-analysis code delivery.
 - Accepted result-analysis workbooks precede figures and writing.
 - Result-analysis failure may route back to model design or primary solving.
 - Figures precede final writing insertion; AI cleanup precedes LaTeX compilation.
