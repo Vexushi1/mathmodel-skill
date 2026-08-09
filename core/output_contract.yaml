@@ -1,4 +1,4 @@
-version: 6.6.1
+version: 7.0.0
 schema: core/workbook_schema.yaml
 user_execution_contract: core/user_execution_contract.yaml
 code_quality_contract: core/code_quality_contract.yaml
@@ -33,6 +33,7 @@ execution_policy:
   - awaiting_user_execution
   code_delivery_does_not_promote_result_status: true
   analysis_code_requires_primary_workbook_accepted: true
+  primary_code_freezes_after_acceptance: true
   full_fidelity_flags_must_be_false:
   - allow_reduced_data
   - allow_coarser_grid
@@ -140,6 +141,7 @@ project_sync:
     - project_state
     - model_paper_framework
     - python_code
+    - result_analysis_code
     - solution_workbook
     - result_quality_report
     - result_analysis_workbook
@@ -194,6 +196,20 @@ project_sync:
     - matlab_script
     - figure_bundle
     - result_summary
+    primary_code:
+    - solution_workbook
+    - result_quality
+    - result_analysis_workbook
+    - result_analysis
+    - matlab_script
+    - figure_bundle
+    - result_summary
+    analysis_code:
+    - result_analysis_workbook
+    - result_analysis
+    - matlab_script
+    - figure_bundle
+    - result_summary
     solution_workbook:
     - result_quality
     - result_analysis_workbook
@@ -213,7 +229,7 @@ project_sync:
     - paper_figure_evidence
   write_order:
   - 发现产物并执行工作簿与图表链检查
-  - 计算当前分层哈希并比较已验证哈希
+  - 计算当前分层哈希并比较已验证哈希和两阶段代码哈希
   - 传播stale并更新框架头部
   - 重新计算最终框架哈希
   - 写入project_state
@@ -221,12 +237,13 @@ project_sync:
   - 执行写后哈希自检
   responsibilities:
   - 进入产物同步前强制执行项目状态Schema/语义校验与模型论文框架校验
-  - 发现每问问题X求解目录中的唯一Python脚本、两类工作簿和qX_plot.m
+  - 发现每问问题X求解目录中的主求解Python、结果深化分析Python、两类工作簿和qX_plot.m
   - 复用工作簿Schema检查工作表、字段、capability条件、主键、非有限数值和约束判定
   - 普通阶段同步按小问status检查最低产物；只有显式delivery scope执行正式交付全量门槛
   - 正式交付同时核对工作簿存在、质量与分析状态为passed以及下游产物非stale
   - 核对MATLAB对同目录两个标准工作簿的真实引用，不要求脚本自动导出图片
-  - 按小问独立计算输入、唯一Python脚本、两类工作簿、MATLAB脚本和框架哈希
+  - 主求解脚本哈希与主结果链绑定；深化分析脚本哈希只影响深化工作簿及其下游，不反向污染主结果质量状态
+  - 按小问独立计算输入、主求解脚本、两类工作簿、MATLAB脚本和框架哈希
   - 当已验证哈希变化时按证据链传播stale
   - 只允许设置或保持stale；清除stale必须由质量门或结果分析流程显式完成
   - 对DOCX、LaTeX与提交scope检查真实文件、编译报告、图片引用和提交ZIP内容
@@ -239,6 +256,9 @@ project_sync:
   artifact_hash_semantics:
     global_framework: paper_framework.sha256记录完整模型论文框架文件哈希
     subproblem_framework: subproblem.artifact_hashes.framework记录framework_section对应章节哈希
+    primary_code: subproblem.primary_code_sha256记录已交付主求解脚本哈希
+    analysis_code: subproblem.analysis_code_sha256记录已交付结果深化分析脚本哈希
+    model_layer: subproblem.artifact_hashes.model只使用主求解脚本，不把结果深化分析脚本并入主模型哈希
   data_hash_policy:
     primary: state/project_state.yaml中的data.sources
     fallback: 仅扫描根目录数据型文件，不包含PDF、DOCX、ZIP和正式交付目录
@@ -288,7 +308,9 @@ proposition_contract:
   - 模型、参数、约束或定义域变化后必须重新检查相关证明。
 per_question:
   question_directory: 问题{中文序号}求解/
-  python_script: 问题{中文序号}求解.py
+  python_scripts:
+    primary: 问题{中文序号}求解.py
+    result_analysis: 问题{中文序号}结果深化分析.py
   mandatory_workbooks:
     solution: 问题{中文序号}求解结果.xlsx
     result_analysis: 问题{中文序号}结果深化分析.xlsx
@@ -296,13 +318,17 @@ per_question:
   exact_default_files:
   - 问题{中文序号}求解.py
   - 问题{中文序号}求解结果.xlsx
+  - 问题{中文序号}结果深化分析.py
   - 问题{中文序号}结果深化分析.xlsx
   - q{阿拉伯序号}_plot.m
-  single_python_update_policy: 主求解阶段先交付同一脚本；主工作簿验收后在原文件中加入结果深化分析并覆盖更新，不另建分析脚本
+  two_python_stage_policy:
+    primary: 主求解阶段交付问题X求解.py；主工作簿accepted后冻结该脚本。
+    result_analysis: 主工作簿accepted后单独生成问题X结果深化分析.py；该脚本只负责读取已验收主结果并形成深化分析工作簿。
+    no_backwrite: 深化分析不得通过改写问题X求解.py实现；若主模型确需修改，则明确回退solve_validate并重新验收主结果。
   no_auxiliary_files_by_default: true
   legacy_compatibility:
     result_directory: 结果数据表/问题{中文序号}/
-    separate_analysis_code: 问题{中文序号}结果深化分析.py
+    single_evolving_python: v6.6.x仅问题X求解.py的四文件项目可只读兼容
     sensitivity_robustness_filename: 问题{中文序号}敏感性与鲁棒性结果.xlsx
     mode: read_only
 matlab_figure_contract:
@@ -325,14 +351,16 @@ matlab_figure_contract:
   mtime_role: auxiliary_warning_only
   default_output: 仅交付同目录qX_plot.m；图窗由用户人工检查和按需导出
 ownership:
-  Python: 每问仅维护同目录一个问题X求解.py；先输出主工作簿，验收后原位加入结果深化分析并输出第二工作簿
+  Python: 每问维护同目录两个题目专属脚本；问题X求解.py负责主求解，问题X结果深化分析.py负责主结果验收后的独立深化分析。
   MATLAB: 同目录qX_plot.m精确读取两个标准工作簿，不重新计算核心结果，默认不自动导出图片
   other_figure_tools: GeoGebra、PPT、draw.io、SVG、TikZ可用于非数据驱动机理图
 filenames:
   model_paper_framework: 模型论文框架.md
   project_state: state/project_state.yaml
   sync_report: sync_report.yaml
-  python_scripts: 问题X求解/问题X求解.py
+  python_scripts:
+  - 问题X求解/问题X求解.py
+  - 问题X求解/问题X结果深化分析.py
   matlab_scripts: 问题X求解/q1_plot.m、q2_plot.m等ASCII固定名称
   workbooks: 中文固定名称
   worksheets: 中文描述性名称，最长31字符
@@ -345,12 +373,12 @@ optional_metadata:
   - matlab_figure_handoff.json
   rule: 不得放入问题X求解目录；仅在用户明确要求完整复现包时放入项目内部元数据目录
 rules:
-- 新项目每问只创建一个问题X求解目录，默认恰好包含一个Python脚本、两个Excel工作簿和一个qX_plot.m。
-- 主工作簿验收后在同一个问题X求解.py中加入结果深化分析阶段，不生成问题X结果深化分析.py。
+- 新项目每问只创建一个问题X求解目录，默认最终恰好包含两个Python脚本、两个Excel工作簿和一个qX_plot.m。
+- 主工作簿accepted后冻结问题X求解.py，并单独生成问题X结果深化分析.py；不得为深化分析覆盖更新主求解脚本。
 - 默认不生成独立完整运行配置、运行说明、code_delivery_report、user_execution_validation_report、figure_evidence或图表子目录。
-- 正式代码交付必须通过validate_code_delivery且不得执行赛题代码；校验结果在聊天或标准输出中返回，不额外落盘。
+- 两个正式Python脚本都必须分别通过validate_code_delivery且不得由助手执行；校验结果在聊天或标准输出中返回，不额外落盘。
 - 用户返回工作簿必须先通过validate_user_execution；代码交付本身不得把状态提升为solved或analyzed。
 - 同步器只做发现、校验、哈希和stale传播，不替代主求解质量门与结果深化分析。
-- 旧结果数据表/问题X/与独立结果深化分析脚本仅作只读兼容，新项目不得继续生成。
+- v6.6.x四文件项目和旧结果数据表/问题X/仅作只读兼容；新项目或重新深化分析时使用五文件结构。
 - Excel工作簿是默认结果交换格式；CSV仅用于明确兼容需求。
 - 所有工作表必须非空；不生成不适用分析的占位工作表。

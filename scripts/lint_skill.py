@@ -14,7 +14,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "6.6.1"
+PACKAGE_VERSION = "7.0.0"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "CHANGELOG_V634.md", "CHANGELOG_V633.md", "CHANGELOG_V632.md", "CHANGELOG_V630.md",
@@ -95,8 +95,9 @@ def check_versions(errors: list[str]) -> None:
     workbook = load_structured(ROOT / "core/workbook_schema.yaml") or {}
     if workbook.get("schema_version") != "2.2.1":
         errors.append("workbook schema version must be 2.2.1")
-    if ">=6.3.2" not in str(workbook.get("skill_compatibility", "")):
-        errors.append("workbook schema compatibility must start at 6.3.2")
+    compatibility = str(workbook.get("skill_compatibility", ""))
+    if ">=6.3.2" not in compatibility or "<8.0.0" not in compatibility:
+        errors.append("workbook schema compatibility must cover 6.3.2 through v7")
 
 
 def check_bootstrap_and_governance(errors: list[str]) -> None:
@@ -122,6 +123,8 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
     for token in ("每个新聊天的强制启动顺序", "修改简报", "单一事实源", "一次聊天一个分支", "一个 PR 一个主题", "禁止直接写 main", "生成文件规则", "测试与验收", "完成报告"):
         if token not in governance:
             errors.append(f"governance document lacks section: {token}")
+    if '<8.0.0' not in governance:
+        errors.append("governance applicability must include v7")
 
 
 def check_taxonomy(errors: list[str]) -> None:
@@ -165,6 +168,8 @@ def check_router(errors: list[str]) -> None:
     analysis_route = routes.get("result_analysis", {})
     if "modules/03_result_analysis.md" not in analysis_route.get("load", []):
         errors.append("result_analysis route must load the dedicated module")
+    if "result_analysis_code" not in analysis_route.get("terminal_outputs", []):
+        errors.append("result_analysis route must deliver independent analysis code")
     validation_route = routes.get("validation", {})
     if "modules/03_result_analysis.md" not in validation_route.get("load", []):
         errors.append("validation route must use result-analysis module")
@@ -215,8 +220,11 @@ def check_manifest(errors: list[str]) -> None:
         errors.append("manifest lacks dedicated result_analysis module")
     else:
         inputs = set(modules["result_analysis"].get("inputs", []))
+        outputs = set(modules["result_analysis"].get("outputs", []))
         if not {"accepted_solution_workbook", "result_quality_report", "code_quality_contract"}.issubset(inputs):
             errors.append("result_analysis must depend on accepted primary evidence and code-quality contract")
+        if "result_analysis_code" not in outputs:
+            errors.append("result_analysis must produce independent result_analysis_code")
     solve_inputs = set(modules.get("solve_validate", {}).get("inputs", []))
     if "code_quality_contract" not in solve_inputs:
         errors.append("solve_validate must consume code-quality contract")
@@ -237,6 +245,7 @@ def check_manifest(errors: list[str]) -> None:
 def check_contracts(errors: list[str]) -> None:
     output = load_structured(ROOT / "core/output_contract.yaml") or {}
     quality = load_structured(ROOT / "core/code_quality_contract.yaml") or {}
+    user_execution = load_structured(ROOT / "core/user_execution_contract.yaml") or {}
     line_policy = quality.get("line_count", {})
     if (line_policy.get("target_max"), line_policy.get("hard_max"), line_policy.get("exemption_max")) != (500, 700, 900):
         errors.append("code-quality line thresholds must be 500/700/900")
@@ -244,6 +253,9 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("code-quality function hard limit must be 120")
     if quality.get("parameter_count", {}).get("hard_max") != 12:
         errors.append("code-quality parameter hard limit must be 12")
+    scopes = quality.get("scope", [])
+    if not isinstance(scopes, list) or "问题X求解/问题X结果深化分析.py" not in scopes:
+        errors.append("code-quality contract must cover independent analysis script")
     if output.get("code_quality_contract") != "core/code_quality_contract.yaml":
         errors.append("output contract must reference code-quality contract")
     policy = output.get("writing_policy", {})
@@ -256,20 +268,38 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("primary result quality gate must be required")
     if result_policy.get("fixed_perturbation_forbidden") is not True:
         errors.append("fixed perturbation must be forbidden")
+    per_question = output.get("per_question", {}) or {}
+    expected_files = [
+        "问题{中文序号}求解.py", "问题{中文序号}求解结果.xlsx",
+        "问题{中文序号}结果深化分析.py", "问题{中文序号}结果深化分析.xlsx",
+        "q{阿拉伯序号}_plot.m",
+    ]
+    if per_question.get("exact_default_files") != expected_files:
+        errors.append("per-question default must be exact five-file two-script layout")
+    if "single_python_update_policy" in per_question:
+        errors.append("output contract must not restore single-script overwrite policy")
+    stages = ((user_execution.get("code_delivery") or {}).get("stage_scripts") or {})
+    if stages.get("primary") != "问题X求解/问题X求解.py" or stages.get("analysis") != "问题X求解/问题X结果深化分析.py":
+        errors.append("user execution contract must define separate primary/analysis scripts")
+    forbidden = set(((user_execution.get("code_delivery") or {}).get("standalone_files_forbidden_by_default") or []))
+    if "问题X结果深化分析.py" in forbidden:
+        errors.append("analysis script must not be forbidden")
     sync = output.get("project_sync", {})
     expected_scopes = {"design", "code", "results", "figures", "docx", "latex", "submission"}
     requirements = sync.get("stage_requirements", {}) or {}
     if set(requirements) != expected_scopes or any(not isinstance(value, list) or not value for value in requirements.values()):
         errors.append("output contract must define every exact delivery scope")
+    if "result_analysis_code" not in requirements.get("results", []):
+        errors.append("results scope must require independent result-analysis code")
     if sync.get("stage_requirements_semantics") != "exact_scope":
         errors.append("project_sync stage requirements must use exact_scope semantics")
     expected_layers = {"data", "model", "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework"}
     if set(sync.get("artifact_hash_layers", [])) != expected_layers:
         errors.append("project_sync artifact hash layers are incomplete")
     sync_text = read_text(ROOT / "scripts/sync_project.py")
-    for token in ("stage_requirements(scope, output_contract)", "contract_preflight_issues", "clears_stale"):
+    for token in ("stage_requirements(scope, output_contract)", "contract_preflight_issues", "_code_hash_mismatches", "analysis_code_sha256", "result_analysis_code"):
         if token not in sync_text:
-            errors.append(f"sync_project lacks gate-hardening token: {token}")
+            errors.append(f"sync_project lacks two-stage gate token: {token}")
     workbook = load_structured(ROOT / "core/workbook_schema.yaml") or {}
     runtime = workbook.get("runtime_enforcement", {}) or {}
     if "artifact_checker" in runtime:
@@ -307,6 +337,9 @@ def check_project_state_and_framework(errors: list[str]) -> None:
     required = set(subproblem.get("required", []))
     if not {"capabilities", "result_quality_status", "result_analysis_status"}.issubset(required):
         errors.append("project state must require split quality/analysis statuses")
+    fields = subproblem.get("properties", {})
+    if not {"code", "result_analysis_code", "primary_code_sha256", "analysis_code_sha256"}.issubset(fields):
+        errors.append("project state must expose both stage-specific code paths and hashes")
     phases = set(schema["properties"]["project"]["properties"]["current_phase"]["enum"])
     if "result_analysis" not in phases:
         errors.append("project state phases lack result_analysis")
@@ -336,13 +369,19 @@ def check_templates(errors: list[str]) -> None:
         if token not in plot:
             errors.append(f"q1_plot.m lacks required token: {token}")
     validator = read_text(ROOT / "scripts/validate_code_delivery.py")
-    for token in ("QUALITY_CONTRACT", "code_quality_findings", "nonblank_lines", "forbidden_import_roots"):
+    for token in ("QUALITY_CONTRACT", "code_quality_findings", "nonblank_lines", "forbidden_import_roots", "结果深化分析.py", "result_analysis_code"):
         if token not in validator:
-            errors.append(f"code delivery validator lacks quality token: {token}")
+            errors.append(f"code delivery validator lacks quality/two-stage token: {token}")
+    solve = read_text(ROOT / "modules/03_solve_validate.md")
+    analysis = read_text(ROOT / "modules/03_result_analysis.md")
+    if "冻结问题X求解.py" not in solve or "问题X结果深化分析.py" not in analysis:
+        errors.append("solve/result-analysis modules must enforce frozen primary and separate analysis script")
     for relative in ("SKILL.md", "README.md", "skills/mathmodel-skill/SKILL.md"):
         text = read_text(ROOT / relative)
         if "└─ 图表/" in text or "输出完整版代码、运行配置和说明" in text:
             errors.append(f"active entry still contains obsolete output wording: {relative}")
+        if "问题X结果深化分析.py" not in text:
+            errors.append(f"active entry lacks independent analysis script: {relative}")
     removed_checker = "hsk_check_" + "artifact.py"
     lint_path = ROOT / "scripts/lint_skill.py"
     for path in active_files():
