@@ -1,6 +1,6 @@
-version: 1.1.0
-skill_version: 6.6.1
-purpose: 定义用户本地完整版数值执行链，同时保持每问一个自包含目录和一个持续更新的Python脚本。
+version: 2.0.0
+skill_version: 7.0.0
+purpose: 定义用户本地完整版数值执行链；每问主求解与结果深化分析使用两个独立Python脚本，主求解脚本在主工作簿验收后冻结。
 default_mode:
   execution_owner: user
   execution_profile: full_fidelity
@@ -8,13 +8,13 @@ default_mode:
   local_pipeline_remains_runnable_by_user: true
 assistant_policy:
   prohibited:
-  - 运行、导入或通过subprocess/runpy/notebook执行问题X求解/问题X求解.py
+  - 运行、导入或通过subprocess/runpy/notebook执行问题X求解目录中的主求解或结果深化分析脚本
   - 为节省时间自动缩减数据、网格、时域、场景、重复次数、随机种子、迭代次数或容差
   - 在完整版失败后静默切换轻量模型、替代求解器、粗粒度近似或演示结果
   - 用户未返回工作簿前声称已求解、已分析或已得到正式数值
   allowed:
   - 审题、模型设计、公式闭环和完整版代码生成
-  - 不导入求解脚本的静态代码、依赖、语法和工程质量检查
+  - 不导入赛题脚本的静态代码、依赖、语法和工程质量检查
   - 读取用户返回的工作簿并执行Schema、哈希、质量门和证据一致性校验
   - 运行本Skill仓库自身的lint、单元测试、索引生成和LaTeX模板CI
 full_fidelity_flags:
@@ -27,15 +27,14 @@ full_fidelity_flags:
   allow_silent_solver_fallback: false
 code_delivery:
   code_quality_contract: core/code_quality_contract.yaml
-  required_artifacts:
-  - task_specific_python_code
-  single_script: 问题X求解/问题X求解.py
-  runtime_metadata: 嵌入Python中的FULL_FIDELITY_CONFIG，并写入两个工作簿的运行配置工作表
+  stage_scripts:
+    primary: 问题X求解/问题X求解.py
+    analysis: 问题X求解/问题X结果深化分析.py
+  runtime_metadata: FULL_FIDELITY_CONFIG分别嵌入对应阶段Python脚本，并写入该阶段工作簿的运行配置工作表
   standalone_files_forbidden_by_default:
   - 问题X完整运行配置.yaml
   - 问题X本地运行说明.md
   - code_delivery_report.yaml
-  - 问题X结果深化分析.py
   - 问题X结果深化完整运行配置.yaml
   - 问题X结果深化本地运行说明.md
   required_config_fields:
@@ -62,10 +61,10 @@ code_delivery:
   - FIXME
   - __QUESTION_NAME__
   - NotImplementedError
-single_script_update_policy:
-  primary: 首次交付问题X求解.py，仅运行主求解并输出问题X求解结果.xlsx
-  analysis: 主工作簿验收后覆盖更新同一个问题X求解.py，加入结果深化分析入口并输出第二工作簿
-  forbidden: 不得另建问题X结果深化分析.py
+two_script_stage_policy:
+  primary: 首次交付问题X求解.py，只负责主求解并输出问题X求解结果.xlsx；主工作簿accepted后该脚本冻结，不为结果深化分析改写。
+  analysis: 主工作簿accepted后新建问题X结果深化分析.py，读取已验收主工作簿与必要原始数据，输出问题X结果深化分析.xlsx。
+  isolation: 修改深化分析脚本不得改变主求解代码哈希、主工作簿或主结果质量状态；修改主求解脚本则主结果及其全部下游重新进入待验收状态。
 execution_states:
   primary:
   - pending
@@ -86,7 +85,7 @@ execution_states:
   - 代码交付不得把小问status提升为solved或analyzed。
   - primary_execution_status=accepted且主结果质量门通过后，status才可进入solved。
   - analysis_execution_status=accepted且结论稳定性校验通过后，status才可进入analyzed。
-  - 主工作簿未验收前不得写入最终结果深化分析实现；只能形成候选分析方向。
+  - 主工作簿未验收前不得生成最终结果深化分析脚本；只能形成候选分析方向。
 returned_workbook:
   required_sheet: 运行配置
   required_columns:
@@ -120,15 +119,18 @@ returned_workbook:
   - execution_profile必须为full_fidelity。
   - 所有缩减、放宽和静默回退标志必须为false。
   - fallback_used必须为false。
-  - code_sha256必须与对应阶段已交付的同一Python脚本版本完全一致。
-  - data_sha256必须与代码交付时锁定的数据哈希完全一致。
+  - 主工作簿code_sha256必须与已交付的问题X求解.py完全一致；深化工作簿code_sha256必须与已交付的问题X结果深化分析.py完全一致。
+  - data_sha256必须与对应阶段代码交付时锁定的数据哈希完全一致。
   - 主结果工作簿必须通过主结果质量门，结果深化分析工作簿必须包含分析设计和结论稳定性汇总。
 filenames:
   question_directory: 问题X求解/
-  python_code: 问题X求解/问题X求解.py
+  primary_python_code: 问题X求解/问题X求解.py
+  analysis_python_code: 问题X求解/问题X结果深化分析.py
   primary_workbook: 问题X求解/问题X求解结果.xlsx
   analysis_workbook: 问题X求解/问题X结果深化分析.xlsx
   matlab_script: 问题X求解/qX_plot.m
   legacy_result_directory: 结果数据表/问题X/
-  legacy_analysis_code: 问题X结果深化分析.py
   validation_reports: 仅在聊天或标准输出返回，不写入用户项目
+legacy_compatibility:
+  v6_6_single_evolving_script: read_only
+  rule: 旧项目只有问题X求解.py时可继续读取已有产物；新生成或重新深化分析时迁移为独立问题X结果深化分析.py。
