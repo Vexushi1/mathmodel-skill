@@ -16,7 +16,7 @@ class TestActiveOutputContractCleanup(unittest.TestCase):
         ):
             self.assertFalse((ROOT / relative).exists(), relative)
 
-    def test_output_contract_keeps_exact_four_default_files(self):
+    def test_output_contract_keeps_exact_five_default_files(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         per_question = contract["per_question"]
         self.assertEqual(
@@ -24,31 +24,34 @@ class TestActiveOutputContractCleanup(unittest.TestCase):
             [
                 "问题{中文序号}求解.py",
                 "问题{中文序号}求解结果.xlsx",
+                "问题{中文序号}结果深化分析.py",
                 "问题{中文序号}结果深化分析.xlsx",
                 "q{阿拉伯序号}_plot.m",
             ],
         )
         self.assertTrue(per_question["no_auxiliary_files_by_default"])
+        self.assertNotIn("single_python_update_policy", per_question)
 
-    def test_active_templates_use_self_contained_question_directory(self):
+    def test_active_templates_use_self_contained_two_script_question_directory(self):
         policy = (ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8")
         self.assertIn("默认恰好包含", policy)
-        self.assertIn("只保留只读兼容", policy)
-        self.assertNotIn("输出问题X结果深化分析.py", policy)
+        self.assertIn("问题X结果深化分析.py", policy)
+        self.assertIn("只读兼容", policy)
+        self.assertIn("冻结", policy)
 
         checks = {
-            "templates/code/starter/README.md": "问题一求解/问题一求解.py",
-            "templates/code/hsk_pipeline/README.md": "问题一求解/问题一求解结果.xlsx",
-            "templates/writing/code_appendix_description.md": "问题X求解/问题X求解.py",
-            "templates/figure/result_figure_contract.md": "问题X求解/qX_plot.m",
-            "packs/artifact/figure.md": "问题X求解/qX_plot.m",
-            "templates/review/result_manifest.yaml": "问题一求解/问题一求解结果.xlsx",
+            "templates/code/starter/README.md": ("问题一求解/问题一求解.py", "问题一结果深化分析.py"),
+            "templates/code/hsk_pipeline/README.md": ("问题一求解/问题一求解结果.xlsx", "问题一结果深化分析.py"),
+            "templates/writing/code_appendix_description.md": ("问题X求解/问题X求解.py", "问题X结果深化分析.py"),
+            "templates/figure/result_figure_contract.md": ("问题X求解/qX_plot.m",),
+            "packs/artifact/figure.md": ("问题X求解/qX_plot.m",),
+            "templates/review/result_manifest.yaml": ("问题一求解/问题一求解结果.xlsx",),
         }
-        for relative, required in checks.items():
+        for relative, required_tokens in checks.items():
             text = (ROOT / relative).read_text(encoding="utf-8")
-            self.assertIn(required, text, relative)
+            for token in required_tokens:
+                self.assertIn(token, text, relative)
             self.assertNotIn("结果数据表/问题X", text, relative)
-            self.assertNotIn("问题X结果深化分析.py", text, relative)
 
     def test_active_figure_files_do_not_default_to_auxiliary_outputs(self):
         for relative in (
