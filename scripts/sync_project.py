@@ -289,6 +289,12 @@ def _stage_code_paths(root: Path, chinese_name: str) -> tuple[Path | None, Path 
     )
 
 
+def _python_files(root: Path, chinese_name: str) -> list[Path]:
+    """Compatibility helper returning this question's stage-specific Python files only."""
+    primary, analysis, _ = _stage_code_paths(root, chinese_name)
+    return [path for path in (primary, analysis) if path is not None]
+
+
 def _analysis_path(result_dir: Path, chinese_name: str) -> tuple[Path, bool]:
     current = result_dir / f"{chinese_name}结果深化分析.xlsx"
     if current.is_file():
@@ -369,7 +375,7 @@ def _snapshot_question(
     if require_analysis and not analysis_workbook.is_file():
         issues.append("缺少标准结果深化分析工作簿")
     if require_analysis_code and analysis_code is None:
-        if legacy_single_code and not entry.get("analysis_code_sha256"):
+        if delivery_scope is None and legacy_single_code and not entry.get("analysis_code_sha256"):
             warnings.append("检测到v6.6.x单脚本项目；只读兼容，重新深化分析时应迁移为独立结果深化分析脚本")
         else:
             issues.append("缺少标准结果深化分析Python脚本")
@@ -620,12 +626,8 @@ def _scope_artifact_issues(
         issues.append("正式交付缺少标准主求解Python脚本")
     if "result_analysis_code" in required:
         for key, snapshot in snapshots.items():
-            if snapshot.get("result_analysis_code"):
-                continue
-            entry = (state.get("subproblems") or {}).get(key, {}) or {}
-            if snapshot.get("legacy_single_code") and not entry.get("analysis_code_sha256"):
-                continue
-            issues.append(f"{key}: 正式结果交付缺少独立结果深化分析Python脚本")
+            if not snapshot.get("result_analysis_code"):
+                issues.append(f"{key}: 正式结果交付缺少独立结果深化分析Python脚本")
     if "solution_workbook" in required and not all(snapshot.get("solution_workbook") for snapshot in snapshots.values()):
         issues.append("结果交付缺少标准求解结果工作簿")
     if "result_quality_report" in required and not all(snapshot.get("result_quality_report") for snapshot in snapshots.values()):
