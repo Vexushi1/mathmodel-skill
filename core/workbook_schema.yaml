@@ -1,5 +1,5 @@
 schema_version: 2.2.1
-skill_compatibility: '>=6.3.2,<7.0.0'
+skill_compatibility: '>=6.3.2,<8.0.0'
 purpose: 约束主求解工作簿与按需结果深化分析工作簿的工作表、字段、三轴条件、非空规则和MATLAB交接。
 runtime_enforcement:
   writer: templates/code/hsk_pipeline/result_io.py
