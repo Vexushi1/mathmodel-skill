@@ -39,23 +39,24 @@ class TestContentPacks(unittest.TestCase):
         self.assertIn("不是题型标签", classifier)
         self.assertIn("advanced_method_gate.md", classifier)
 
-    def test_code_pack_uses_one_self_contained_question_folder(self):
+    def test_code_pack_uses_one_self_contained_two_script_question_folder(self):
         text = (ROOT / "packs/artifact/code.md").read_text(encoding="utf-8")
         for token in (
             "问题X求解/",
             "问题X求解.py",
             "问题X求解结果.xlsx",
+            "问题X结果深化分析.py",
             "问题X结果深化分析.xlsx",
             "qX_plot.m",
-            "唯一Python文件",
-            "覆盖更新同一文件",
+            "两个阶段明确的 Python 文件",
+            "冻结",
             "不生成独立 YAML",
             "同目录两个真实工作簿",
             "精确匹配表头",
             "只读兼容",
         ):
             self.assertIn(token, text)
-        self.assertNotIn("问题X结果深化分析.py", text)
+        self.assertNotIn("覆盖更新同一文件", text)
 
     def test_chart_selection_is_evidence_driven_and_titled(self):
         text = (ROOT / "templates/figure/chart_selection.md").read_text(encoding="utf-8")
