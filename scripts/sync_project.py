@@ -41,6 +41,13 @@ HASH_KEYS = (
 )
 SOLVED_STATUSES = {"solved", "analyzed", "validated", "written", "completed"}
 ANALYZED_STATUSES = {"analyzed", "validated", "written", "completed"}
+PRIMARY_STALE_LAYERS = {
+    "model", "solution_workbook", "result_analysis_workbook",
+    "matlab_script", "figure_bundle", "framework",
+}
+ANALYSIS_STALE_LAYERS = {
+    "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
+}
 
 
 def _load_module(name: str, path: Path):
@@ -243,7 +250,6 @@ def _classification(entry: Mapping[str, Any]):
     return objective, structures, problem_types, capabilities if isinstance(capabilities, Mapping) else None
 
 
-
 def _question_dir(root: Path, chinese_name: str) -> Path:
     current = root / f"{chinese_name}求解"
     if current.is_dir():
@@ -267,15 +273,20 @@ def _question_names(root: Path, state: Mapping[str, Any]) -> list[str]:
     return sorted(names, key=lambda value: question_number(value) or 999)
 
 
-def _python_files(root: Path, chinese_name: str) -> list[Path]:
-    current = root / f"{chinese_name}求解" / f"{chinese_name}求解.py"
-    if current.is_file():
-        return [current]
-    legacy = [
-        root / f"{chinese_name}求解.py",
-        root / f"{chinese_name}结果深化分析.py",
-    ]
-    return [path for path in legacy if path.is_file()]
+def _stage_code_paths(root: Path, chinese_name: str) -> tuple[Path | None, Path | None, bool]:
+    current_dir = root / f"{chinese_name}求解"
+    primary = current_dir / f"{chinese_name}求解.py"
+    analysis = current_dir / f"{chinese_name}结果深化分析.py"
+    if primary.is_file() or analysis.is_file():
+        legacy_single = primary.is_file() and not analysis.is_file()
+        return primary if primary.is_file() else None, analysis if analysis.is_file() else None, legacy_single
+    legacy_primary = root / f"{chinese_name}求解.py"
+    legacy_analysis = root / f"{chinese_name}结果深化分析.py"
+    return (
+        legacy_primary if legacy_primary.is_file() else None,
+        legacy_analysis if legacy_analysis.is_file() else None,
+        legacy_primary.is_file() and not legacy_analysis.is_file(),
+    )
 
 
 def _analysis_path(result_dir: Path, chinese_name: str) -> tuple[Path, bool]:
@@ -299,13 +310,8 @@ def _validate_workbook(path: Path, kind: str, schema: Mapping[str, Any], entry: 
     objective, structures, problem_types, capabilities = _classification(entry)
     try:
         WORKBOOK_VALIDATION.validate_workbook_file(
-            path,
-            kind,
-            schema=schema,
-            problem_types=problem_types,
-            capabilities=capabilities,
-            objective=objective,
-            structures=structures,
+            path, kind, schema=schema, problem_types=problem_types,
+            capabilities=capabilities, objective=objective, structures=structures,
             require_quality_passed=True,
         )
     except Exception as exc:  # noqa: BLE001
@@ -340,33 +346,42 @@ def _snapshot_question(
     key = question_key(chinese_name)
     result_dir = _question_dir(root, chinese_name)
     solution = result_dir / f"{chinese_name}求解结果.xlsx"
-    analysis, legacy_analysis = _analysis_path(result_dir, chinese_name)
+    analysis_workbook, legacy_analysis_workbook = _analysis_path(result_dir, chinese_name)
+    primary_code, analysis_code, legacy_single_code = _stage_code_paths(root, chinese_name)
     number = question_number(chinese_name)
     matlab = result_dir / f"q{number}_plot.m" if number else result_dir / "q_plot.m"
     figures = _figure_files(result_dir)
-    codes = _python_files(root, chinese_name)
     status = str(entry.get("status", "pending"))
     require_solution = status in SOLVED_STATUSES
     require_analysis = status in ANALYZED_STATUSES
+    require_analysis_code = status in ANALYZED_STATUSES and bool(entry.get("analysis_code_sha256"))
     if delivery_scope in {"results", "figures", "docx"}:
         require_solution = True
         require_analysis = True
+        require_analysis_code = True
 
     issues: list[str] = []
     warnings: list[str] = []
+    if delivery_scope == "code" and primary_code is None:
+        issues.append("代码交付缺少标准主求解Python脚本")
     if require_solution and not solution.is_file():
         issues.append("缺少标准求解结果工作簿")
-    if require_analysis and not analysis.is_file():
+    if require_analysis and not analysis_workbook.is_file():
         issues.append("缺少标准结果深化分析工作簿")
+    if require_analysis_code and analysis_code is None:
+        if legacy_single_code and not entry.get("analysis_code_sha256"):
+            warnings.append("检测到v6.6.x单脚本项目；只读兼容，重新深化分析时应迁移为独立结果深化分析脚本")
+        else:
+            issues.append("缺少标准结果深化分析Python脚本")
     if solution.is_file():
         issues.extend(_validate_workbook(solution, "solution", schema, entry))
-    if analysis.is_file():
-        issues.extend(_validate_workbook(analysis, "result_analysis", schema, entry))
-        if legacy_analysis:
+    if analysis_workbook.is_file():
+        issues.extend(_validate_workbook(analysis_workbook, "result_analysis", schema, entry))
+        if legacy_analysis_workbook:
             warnings.append("使用旧敏感性与鲁棒性工作簿名；新交付应迁移为结果深化分析工作簿")
 
     quality_exists = _has_sheets(solution, {"主结果质量门"})
-    analysis_report_exists = _has_sheets(analysis, {"分析设计", "结论稳定性汇总"})
+    analysis_report_exists = _has_sheets(analysis_workbook, {"分析设计", "结论稳定性汇总"})
     if require_solution and not quality_exists:
         issues.append("主求解工作簿缺少主结果质量门报告")
     if require_analysis and not analysis_report_exists:
@@ -395,9 +410,9 @@ def _snapshot_question(
     framework = root / "模型论文框架.md"
     hashes = {
         "data": data_hash,
-        "model": combined_hash(codes, root),
+        "model": sha256_file(primary_code) if primary_code else None,
         "solution_workbook": sha256_file(solution) if solution.is_file() else None,
-        "result_analysis_workbook": sha256_file(analysis) if analysis.is_file() else None,
+        "result_analysis_workbook": sha256_file(analysis_workbook) if analysis_workbook.is_file() else None,
         "matlab_script": sha256_file(matlab) if matlab.is_file() else None,
         "figure_bundle": combined_hash(figures, root),
         "framework": framework_section_hash(framework, str(entry.get("framework_section", ""))),
@@ -407,10 +422,14 @@ def _snapshot_question(
         "key": key,
         "chinese_name": chinese_name,
         "status": status,
-        "code_files": [path.relative_to(root).as_posix() for path in codes],
+        "primary_code": primary_code.relative_to(root).as_posix() if primary_code else None,
+        "result_analysis_code": analysis_code.relative_to(root).as_posix() if analysis_code else None,
+        "primary_code_sha256": sha256_file(primary_code) if primary_code else None,
+        "analysis_code_sha256": sha256_file(analysis_code) if analysis_code else None,
+        "legacy_single_code": legacy_single_code,
         "solution_workbook": solution.relative_to(root).as_posix() if solution.is_file() else None,
-        "result_analysis_workbook": analysis.relative_to(root).as_posix() if analysis.is_file() else None,
-        "legacy_analysis_workbook": legacy_analysis,
+        "result_analysis_workbook": analysis_workbook.relative_to(root).as_posix() if analysis_workbook.is_file() else None,
+        "legacy_analysis_workbook": legacy_analysis_workbook,
         "result_quality_report": quality_exists,
         "result_analysis_report": analysis_report_exists,
         "matlab_script": matlab.relative_to(root).as_posix() if matlab.is_file() else None,
@@ -441,28 +460,55 @@ def _mismatched_layers(entry: Mapping[str, Any], current: Mapping[str, str]) -> 
     }
 
 
+def _code_hash_mismatches(entry: Mapping[str, Any], snapshot: Mapping[str, Any]) -> tuple[bool, bool]:
+    expected_primary = entry.get("primary_code_sha256")
+    expected_analysis = entry.get("analysis_code_sha256")
+    current_primary = snapshot.get("primary_code_sha256")
+    current_analysis = snapshot.get("analysis_code_sha256")
+    primary_changed = bool(expected_primary and current_primary != expected_primary)
+    analysis_changed = bool(expected_analysis and current_analysis != expected_analysis)
+    return primary_changed, analysis_changed
+
+
 def _apply_snapshot_to_state(root: Path, state: dict[str, Any], snapshot: Mapping[str, Any]) -> set[str]:
     entry = state.setdefault("subproblems", {}).setdefault(str(snapshot["key"]), {})
     current = dict(snapshot.get("artifact_hashes", {}))
     mismatched = _mismatched_layers(entry, current)
+    primary_changed, analysis_changed = _code_hash_mismatches(entry, snapshot)
     stale_layers = set(entry.get("stale_layers", []) or []) | mismatched
-    # clears_stale is intentionally forbidden here; validated workflows clear it explicitly.
+
+    if primary_changed:
+        stale_layers |= PRIMARY_STALE_LAYERS
+        entry["result_quality_status"] = "pending"
+        entry["result_analysis_status"] = "pending"
+        entry["analysis_execution_status"] = "pending"
+        entry["result_summary_status"] = "stale"
+    elif analysis_changed:
+        stale_layers |= ANALYSIS_STALE_LAYERS
+        entry["result_analysis_status"] = "pending"
+        entry["analysis_execution_status"] = "pending"
+        entry["result_summary_status"] = "stale"
+
+    if mismatched.intersection({"data", "model", "solution_workbook"}):
+        entry["result_quality_status"] = "pending"
+        entry["result_analysis_status"] = "pending"
+    elif "result_analysis_workbook" in mismatched:
+        entry["result_analysis_status"] = "pending"
+
     entry["artifact_hashes"] = current
-    if snapshot.get("code_files"):
-        entry["code"] = snapshot["code_files"][0]
+    if snapshot.get("primary_code"):
+        entry["code"] = snapshot["primary_code"]
+    if snapshot.get("result_analysis_code"):
+        entry["result_analysis_code"] = snapshot["result_analysis_code"]
     for field in ("solution_workbook", "result_analysis_workbook", "matlab_script"):
         if snapshot.get(field):
             entry[field] = snapshot[field]
+
     if stale_layers:
         entry["artifacts_stale"] = True
         entry["stale_layers"] = sorted(stale_layers)
         entry["result_summary_status"] = "stale"
         entry["validation_status"] = "pending"
-        if mismatched.intersection({"data", "model", "solution_workbook"}):
-            entry["result_quality_status"] = "pending"
-            entry["result_analysis_status"] = "pending"
-        elif "result_analysis_workbook" in mismatched:
-            entry["result_analysis_status"] = "pending"
     evidence = _question_dir(root, str(snapshot["chinese_name"])) / "figure_evidence.yaml"
     if evidence.is_file():
         relative = evidence.relative_to(root).as_posix()
@@ -471,11 +517,6 @@ def _apply_snapshot_to_state(root: Path, state: dict[str, Any], snapshot: Mappin
             values.append(relative)
         entry["evidence"] = values
     return stale_layers
-
-
-def _write_figure_evidence(root: Path, snapshot: Mapping[str, Any]) -> str | None:
-    # v6.6.0默认不生成额外figure_evidence文件。
-    return None
 
 
 def _replace_or_prepend(lines: list[str], prefix: str, replacement: str) -> list[str]:
@@ -566,59 +607,25 @@ def _formal_state_issues(required: set[str], state: Mapping[str, Any]) -> list[s
     return issues
 
 
-def _code_delivery_artifact_issues(
-    root: Path,
-    snapshots: Mapping[str, Mapping[str, Any]],
-) -> list[str]:
-    """Check a code handoff by files and reports only; never import task code."""
-    issues: list[str] = []
-    if not any(snapshot.get("code_files") for snapshot in snapshots.values()):
-        issues.append("代码交付缺少问题求解或结果深化Python脚本")
-    configs = sorted(
-        {
-            *root.glob("问题*完整运行配置.yaml"),
-            *root.glob("问题*结果深化完整运行配置.yaml"),
-        },
-        key=lambda item: item.name,
-    )
-    if not configs:
-        issues.append("代码交付缺少完整运行配置")
-    for config in configs:
-        instruction = config.with_name(
-            config.name.replace("完整运行配置.yaml", "本地运行说明.md")
-        )
-        if not instruction.is_file():
-            issues.append(f"代码交付缺少本地运行说明: {instruction.name}")
-    if not configs and not any(root.glob("问题*本地运行说明.md")):
-        issues.append("代码交付缺少本地运行说明")
-    report_path = root / "code_delivery_report.yaml"
-    if not report_path.is_file():
-        issues.append("代码交付缺少code_delivery_report.yaml")
-    else:
-        report = load_json_or_yaml(report_path)
-        if str(report.get("status", "")).lower() != "passed":
-            issues.append("code_delivery_report未通过")
-        if report.get("task_code_executed") is not False:
-            issues.append("code_delivery_report必须声明task_code_executed=false")
-        checked = {Path(str(item)).name for item in report.get("checked_configs", [])}
-        missing = [config.name for config in configs if config.name not in checked]
-        if missing:
-            issues.append(f"code_delivery_report未覆盖配置: {missing}")
-    return issues
-
-
 def _scope_artifact_issues(
     root: Path,
     scope: str,
     state: Mapping[str, Any],
     snapshots: Mapping[str, Mapping[str, Any]],
+    output_contract: Mapping[str, Any],
 ) -> list[str]:
-    required = set(stage_requirements(scope, load_yaml(DEFAULT_OUTPUT_CONTRACT_PATH)))
+    required = set(stage_requirements(scope, output_contract))
     issues = _formal_state_issues(required, state)
-    if required.intersection({"full_run_config", "execution_instructions", "code_delivery_report"}):
-        issues.extend(_code_delivery_artifact_issues(root, snapshots))
-    elif "python_code" in required and not any(snapshot.get("code_files") for snapshot in snapshots.values()):
-        issues.append("正式交付缺少问题求解Python脚本")
+    if "python_code" in required and not all(snapshot.get("primary_code") for snapshot in snapshots.values()):
+        issues.append("正式交付缺少标准主求解Python脚本")
+    if "result_analysis_code" in required:
+        for key, snapshot in snapshots.items():
+            if snapshot.get("result_analysis_code"):
+                continue
+            entry = (state.get("subproblems") or {}).get(key, {}) or {}
+            if snapshot.get("legacy_single_code") and not entry.get("analysis_code_sha256"):
+                continue
+            issues.append(f"{key}: 正式结果交付缺少独立结果深化分析Python脚本")
     if "solution_workbook" in required and not all(snapshot.get("solution_workbook") for snapshot in snapshots.values()):
         issues.append("结果交付缺少标准求解结果工作簿")
     if "result_quality_report" in required and not all(snapshot.get("result_quality_report") for snapshot in snapshots.values()):
@@ -673,11 +680,7 @@ def synchronize(
         key = question_key(chinese_name)
         entry = subproblems.get(key) or subproblems.get(chinese_name) or {}
         snapshot = _snapshot_question(
-            root,
-            chinese_name,
-            entry,
-            schema,
-            data_hash,
+            root, chinese_name, entry, schema, data_hash,
             scope if explicit_delivery_scope else None,
         )
         snapshots[key] = snapshot
@@ -686,15 +689,11 @@ def synchronize(
     if explicit_delivery_scope and scope in {"results", "figures", "docx"} and not snapshots:
         issues.append("未发现任何小问结果目录或项目状态")
     if explicit_delivery_scope:
-        issues.extend(_scope_artifact_issues(root, scope, state, snapshots))
+        issues.extend(_scope_artifact_issues(root, scope, state, snapshots, output_contract))
 
     stale_questions: list[str] = []
     if write and state_path.is_file():
         for snapshot in snapshots.values():
-            if explicit_delivery_scope and scope == "figures":
-                evidence = _write_figure_evidence(root, snapshot)
-                if evidence:
-                    snapshot["figure_evidence"] = evidence
             stale = _apply_snapshot_to_state(root, state, snapshot)
             if stale:
                 stale_questions.append(str(snapshot["key"]))
@@ -716,7 +715,13 @@ def synchronize(
     else:
         for key, snapshot in snapshots.items():
             entry = subproblems.get(key) or subproblems.get(snapshot["chinese_name"]) or {}
-            if entry.get("artifacts_stale") or _mismatched_layers(entry, snapshot.get("artifact_hashes", {})):
+            primary_changed, analysis_changed = _code_hash_mismatches(entry, snapshot)
+            if (
+                entry.get("artifacts_stale")
+                or _mismatched_layers(entry, snapshot.get("artifact_hashes", {}))
+                or primary_changed
+                or analysis_changed
+            ):
                 stale_questions.append(key)
 
     report = {
@@ -758,9 +763,7 @@ def main() -> int:
     )
     args = parser.parse_args()
     report = synchronize(
-        Path(args.project_root),
-        write=args.write,
-        strict=args.strict,
+        Path(args.project_root), write=args.write, strict=args.strict,
         delivery_scope=args.delivery_scope,
     )
     for item in report["issues"]:
