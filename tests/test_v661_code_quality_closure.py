@@ -8,11 +8,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class TestV661CodeQualityClosure(unittest.TestCase):
     def test_entry_docs_match_current_output_contract(self):
+        current = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))["skill_version"]
         for relative in ("SKILL.md", "README.md", "skills/mathmodel-skill/SKILL.md"):
             text = (ROOT / relative).read_text(encoding="utf-8")
-            self.assertIn("6.6.1", text, relative)
+            self.assertIn(str(current), text, relative)
             self.assertNotIn("└─ 图表/", text, relative)
             self.assertNotIn("输出完整版代码、运行配置和说明", text, relative)
+            self.assertIn("问题X结果深化分析.py", text, relative)
 
     def test_workbook_runtime_checkers_exist(self):
         data = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_text(encoding="utf-8"))
@@ -41,14 +43,17 @@ class TestV661CodeQualityClosure(unittest.TestCase):
         self.assertFalse(evidence["independent_evidence_file_default"])
         self.assertNotIn("figure_evidence.yaml", evidence["provenance_record"])
 
-    def test_code_quality_contract_thresholds(self):
+    def test_code_quality_contract_thresholds_are_preserved_for_both_scripts(self):
         data = yaml.safe_load((ROOT / "core/code_quality_contract.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(data["skill_version"], "6.6.1")
+        current = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))["skill_version"]
+        self.assertEqual(data["skill_version"], current)
         self.assertEqual(data["line_count"]["target_max"], 500)
         self.assertEqual(data["line_count"]["hard_max"], 700)
         self.assertEqual(data["line_count"]["exemption_max"], 900)
         self.assertEqual(data["function_size"]["hard_max"], 120)
         self.assertEqual(data["parameter_count"]["hard_max"], 12)
+        self.assertIn("问题X求解/问题X求解.py", data["scope"])
+        self.assertIn("问题X求解/问题X结果深化分析.py", data["scope"])
 
 
 if __name__ == "__main__":
