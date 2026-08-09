@@ -17,13 +17,16 @@ class TestSchemas(unittest.TestCase):
     def test_classification_has_single_capability_source_and_split_status(self):
         schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
         defs = schema["$defs"]
-        self.assertEqual(schema["version"], "6.6.1")
+        self.assertEqual(schema["version"], "7.0.0")
         self.assertEqual(set(defs["classification"]["required"]), {"objective", "structures"})
         subproblems = schema["properties"]["subproblems"]
         sub_required = set(subproblems["additionalProperties"]["required"])
         self.assertEqual(subproblems["minProperties"], 1)
         for name in ("capabilities", "result_quality_status", "result_analysis_status"):
             self.assertIn(name, sub_required)
+        fields = subproblems["additionalProperties"]["properties"]
+        for name in ("code", "result_analysis_code", "primary_code_sha256", "analysis_code_sha256"):
+            self.assertIn(name, fields)
         phases = set(schema["properties"]["project"]["properties"]["current_phase"]["enum"])
         statuses = set(subproblems["additionalProperties"]["properties"]["status"]["enum"])
         self.assertIn("result_analysis", phases)
@@ -34,6 +37,7 @@ class TestSchemas(unittest.TestCase):
         schema = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_text(encoding="utf-8"))
         self.assertEqual(schema["schema_version"], "2.2.1")
         self.assertIn(">=6.3.2", schema["skill_compatibility"])
+        self.assertIn("<8.0.0", schema["skill_compatibility"])
         self.assertEqual(schema["classification_contract"]["capabilities_source"], "subproblem.capabilities")
         runtime = schema["runtime_enforcement"]
         self.assertNotIn("artifact_checker", runtime)
@@ -56,7 +60,7 @@ class TestSchemas(unittest.TestCase):
 
     def test_output_contract_defines_split_result_policy(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(contract["version"], "6.6.1")
+        self.assertEqual(contract["version"], "7.0.0")
         self.assertEqual(contract["code_quality_contract"], "core/code_quality_contract.yaml")
         self.assertEqual(contract["project_sync"]["role"], "formal_pre_delivery_gate")
         self.assertEqual(contract["project_sync"]["stage_requirements_semantics"], "exact_scope")
@@ -84,7 +88,12 @@ class TestSchemas(unittest.TestCase):
         per_question = contract["per_question"]
         self.assertEqual(set(per_question["mandatory_workbooks"]), {"solution", "result_analysis"})
         self.assertEqual(per_question["question_directory"], "问题{中文序号}求解/")
-        self.assertEqual(len(per_question["exact_default_files"]), 4)
+        self.assertEqual(len(per_question["exact_default_files"]), 5)
+        self.assertEqual(
+            set(per_question["python_scripts"]),
+            {"primary", "result_analysis"},
+        )
+        self.assertNotIn("single_python_update_policy", per_question)
         self.assertTrue(per_question["no_auxiliary_files_by_default"])
         self.assertEqual(contract["writing_policy"]["default_mode"], "latex_first")
         self.assertEqual(contract["writing_policy"]["docx_mode"], "explicit_only_independent")
