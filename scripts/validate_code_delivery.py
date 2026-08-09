@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static delivery and engineering-quality validation for the one task-specific Python script."""
+"""Static delivery and engineering-quality validation for stage-specific task Python scripts."""
 from __future__ import annotations
 
 import argparse
@@ -22,6 +22,12 @@ REQUIRED_FIELDS = {
     "execution_owner", "execution_profile", "stage", "problem_name", "data_paths",
     "data_sha256", "solver", "solver_version", "random_seed", "tolerance",
     "iteration_or_time_limit", "expected_workbook", *FALSE_FLAGS,
+}
+ANALYSIS_STALE_LAYERS = {
+    "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
+}
+PRIMARY_STALE_LAYERS = {
+    "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
 }
 
 
@@ -56,9 +62,14 @@ def problem_from_path(script: Path) -> str:
     if not folder.endswith("求解"):
         raise ValueError("Python脚本必须位于问题X求解目录")
     problem = folder.removesuffix("求解")
-    if script.name != f"{problem}求解.py":
-        raise ValueError(f"脚本名必须为{problem}求解.py")
+    allowed = {f"{problem}求解.py", f"{problem}结果深化分析.py"}
+    if script.name not in allowed:
+        raise ValueError(f"脚本名必须为{problem}求解.py或{problem}结果深化分析.py")
     return problem
+
+
+def stage_from_filename(script: Path, problem: str) -> str:
+    return "analysis" if script.name == f"{problem}结果深化分析.py" else "primary"
 
 
 def _param_count(node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
@@ -198,6 +209,7 @@ def validate_script(
         problem = problem_from_path(script)
     except ValueError as exc:
         return [str(exc)], {}
+    filename_stage = stage_from_filename(script, problem)
 
     text = script.read_text(encoding="utf-8", errors="strict")
     for marker in PLACEHOLDERS:
@@ -218,6 +230,8 @@ def validate_script(
     stage = str(config.get("stage", ""))
     if stage not in {"primary", "analysis"}:
         issues.append("stage必须为primary或analysis")
+    if stage and stage != filename_stage:
+        issues.append(f"脚本文件名对应{filename_stage}阶段，但FULL_FIDELITY_CONFIG.stage={stage}")
     if expected_stage and stage != expected_stage:
         issues.append(f"stage应为{expected_stage}")
     if config.get("problem_name") != problem:
@@ -253,22 +267,51 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path) -> No
     entry = state.setdefault("subproblems", {}).setdefault(key, {})
     relative = script.relative_to(project_root).as_posix()
     stage = str(config["stage"])
+    new_hash = sha256(script)
     entry["data_hash"] = str(config["data_sha256"]).lower()
-    entry["code"] = relative
+
     if stage == "primary":
-        entry["primary_code_sha256"] = sha256(script)
+        old_hash = entry.get("primary_code_sha256")
+        accepted = entry.get("primary_execution_status") == "accepted"
+        phase = str((state.get("project") or {}).get("current_phase", ""))
+        if accepted and old_hash and old_hash != new_hash and phase != "solve_validate":
+            raise ValueError("主求解脚本已accepted并冻结；如需修改必须先显式回退solve_validate")
+        entry["code"] = relative
+        entry["primary_code_sha256"] = new_hash
         entry["primary_execution_status"] = "awaiting_user_execution"
         entry.setdefault("analysis_execution_status", "pending")
+        if old_hash and old_hash != new_hash:
+            entry["status"] = "designed"
+            entry["result_quality_status"] = "pending"
+            entry["result_analysis_status"] = "pending"
+            entry["analysis_execution_status"] = "pending"
+            entry["result_summary_status"] = "stale"
+            entry["artifacts_stale"] = True
+            entry["stale_layers"] = sorted(set(entry.get("stale_layers", [])) | PRIMARY_STALE_LAYERS)
     else:
         if entry.get("primary_execution_status") != "accepted":
-            raise ValueError("主工作簿未accepted，禁止写入最终结果深化分析实现")
-        entry["analysis_code_sha256"] = sha256(script)
+            raise ValueError("主工作簿未accepted，禁止交付最终结果深化分析脚本")
+        old_hash = entry.get("analysis_code_sha256")
+        entry["result_analysis_code"] = relative
+        entry["analysis_code_sha256"] = new_hash
         entry["analysis_execution_status"] = "awaiting_user_execution"
+        if old_hash != new_hash:
+            entry["status"] = "solved"
+            entry["result_analysis_status"] = "pending"
+            entry["result_summary_status"] = "stale"
+            entry["artifacts_stale"] = True
+            entry["stale_layers"] = sorted(set(entry.get("stale_layers", [])) | ANALYSIS_STALE_LAYERS)
+            state.setdefault("project", {})["current_phase"] = "result_analysis"
+
     state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
 
 
 def discover_scripts(root: Path) -> list[Path]:
-    return sorted(root.glob("问题*求解/问题*求解.py"))
+    patterns = (
+        "问题*求解/问题*求解.py",
+        "问题*求解/问题*结果深化分析.py",
+    )
+    return sorted({path for pattern in patterns for path in root.glob(pattern)})
 
 
 def main() -> int:
