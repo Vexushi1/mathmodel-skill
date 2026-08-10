@@ -1,6 +1,6 @@
 {
   "name": "mathmodel-skill",
-  "version": "7.0.0",
+  "version": "7.0.1",
   "description": "HSK lightweight-bootstrap mathematical-modeling workflow with full-fidelity user execution, separate primary/result-analysis Python stages, code-quality enforcement, explicit numerical quality gates, MATLAB evidence figures and LaTeX-first authoring.",
   "author": {
     "name": "HSK"

@@ -1,7 +1,7 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 7.0.0
+version: 7.0.1
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]

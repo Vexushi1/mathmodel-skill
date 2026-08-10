@@ -1,4 +1,4 @@
-# mathmodel-skill v7.0.0
+# mathmodel-skill v7.0.1
 
 当前工作流：**审题与模型闭合 → 用户本地完整版 Python 主求解 → 主代码质量门 → 主结果质量门 → 独立 Python 结果深化分析 → 深化代码质量门 → 用户本地运行与稳定性验收 → MATLAB证据图 → LaTeX终稿**。
 

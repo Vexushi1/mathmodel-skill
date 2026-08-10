@@ -273,13 +273,15 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path) -> No
     if stage == "primary":
         old_hash = entry.get("primary_code_sha256")
         accepted = entry.get("primary_execution_status") == "accepted"
+        unchanged_accepted = accepted and old_hash == new_hash
         phase = str((state.get("project") or {}).get("current_phase", ""))
         if accepted and old_hash and old_hash != new_hash and phase != "solve_validate":
             raise ValueError("主求解脚本已accepted并冻结；如需修改必须先显式回退solve_validate")
         entry["code"] = relative
         entry["primary_code_sha256"] = new_hash
-        entry["primary_execution_status"] = "awaiting_user_execution"
         entry.setdefault("analysis_execution_status", "pending")
+        if not unchanged_accepted:
+            entry["primary_execution_status"] = "awaiting_user_execution"
         if old_hash and old_hash != new_hash:
             entry["status"] = "designed"
             entry["result_quality_status"] = "pending"

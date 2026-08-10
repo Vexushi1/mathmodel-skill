@@ -1,4 +1,4 @@
-version: 7.0.0
+version: 7.0.1
 schema: core/workbook_schema.yaml
 user_execution_contract: core/user_execution_contract.yaml
 code_quality_contract: core/code_quality_contract.yaml

@@ -1,4 +1,4 @@
-# Scripts v7.0.0
+# Scripts v7.0.1
 
 - `lint_skill.py`：检查活动版本、路由、产物闭环、五文件合同、代码质量合同、Schema、旧结构残留、Python 语法和生成文件；
 - `resolve_workflow.py`：解析意图、`objective`、`structures`、`capabilities` 与竞赛类型，返回确定性执行计划；
