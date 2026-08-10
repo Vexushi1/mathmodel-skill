@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.0.0
+version: 7.0.1
 summary: HSK mathematical-modeling workflow with full-fidelity user execution, separate primary/result-analysis Python stages, explicit numerical quality gates, code-quality enforcement, MATLAB evidence figures and LaTeX-first writing.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 主结果质量, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.0.0
+# HSK 数学建模模块化工作流 v7.0.1
 
 ## 默认执行
 
