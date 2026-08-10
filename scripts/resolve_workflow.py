@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve one or more user intents into an ordered HSK v6.6.0 execution plan."""
+"""Resolve one or more user intents into an ordered HSK v7.0.1 execution plan."""
 from __future__ import annotations
 
 import argparse
