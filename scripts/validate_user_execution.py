@@ -73,6 +73,37 @@ def configuration_map(workbook: Path) -> tuple[dict[str, Any], list[str]]:
     return mapping, issues
 
 
+def workbook_identity(root: Path, workbook: Path) -> tuple[str, str, list[str]]:
+    root = root.resolve()
+    workbook = workbook.resolve()
+    try:
+        workbook.relative_to(root)
+    except ValueError:
+        return "", "", ["工作簿路径越出项目根目录"]
+
+    parent = workbook.parent
+    problem = ""
+    if parent.parent == root and parent.name.endswith("求解"):
+        problem = parent.name.removesuffix("求解")
+    elif parent.parent.name == "结果数据表" and parent.parent.parent == root:
+        problem = parent.name
+    else:
+        return "", "", ["工作簿必须位于问题X求解/或旧版结果数据表/问题X/目录"]
+
+    if not problem.startswith("问题") or len(problem) <= len("问题"):
+        return "", "", ["工作簿目录无法解析有效问题编号"]
+
+    if workbook.name == f"{problem}求解结果.xlsx":
+        stage = "primary"
+    elif workbook.name == f"{problem}结果深化分析.xlsx":
+        stage = "analysis"
+    else:
+        return problem, "", [
+            f"工作簿名必须为{problem}求解结果.xlsx或{problem}结果深化分析.xlsx"
+        ]
+    return problem, stage, []
+
+
 def quality_passed(workbook: Path) -> tuple[bool, list[str]]:
     book = openpyxl.load_workbook(workbook, read_only=True, data_only=True)
     if "主结果质量门" not in book.sheetnames:
@@ -144,8 +175,20 @@ def validate_execution_evidence(config: dict[str, Any], entry: dict[str, Any], s
 
 def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool) -> list[str]:
     config, issues = configuration_map(workbook)
-    stage = str(config.get("stage", ""))
-    problem = str(config.get("problem_name", ""))
+    problem, stage, identity_issues = workbook_identity(root, workbook)
+    issues.extend(identity_issues)
+    if identity_issues:
+        return list(dict.fromkeys(issues))
+
+    configured_stage = str(config.get("stage", ""))
+    configured_problem = str(config.get("problem_name", ""))
+    if configured_stage != stage:
+        issues.append(f"运行配置stage={configured_stage or '<missing>'}与工作簿文件名对应{stage}阶段不一致")
+    if configured_problem != problem:
+        issues.append("运行配置problem_name与工作簿目录/文件名不一致")
+    if configured_stage != stage or configured_problem != problem:
+        return list(dict.fromkeys(issues))
+
     key = question_key(problem)
     entry = (state.get("subproblems") or {}).get(key, {})
     issues.extend(validate_execution_evidence(config, entry, stage))
@@ -160,7 +203,7 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
             if not issues and passed:
                 entry.setdefault("validated_artifact_hashes", {})["solution_workbook"] = file_hash(workbook)
                 entry["status"] = "solved"
-    elif stage == "analysis":
+    else:
         passed, result_status, analysis_issues = analysis_passed(workbook)
         issues.extend(analysis_issues)
         if write:
@@ -182,9 +225,7 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
                 ]
                 entry["result_summary_status"] = "stale"
                 state.setdefault("project", {})["current_phase"] = "solve_validate"
-    else:
-        issues.append("运行配置stage必须为primary或analysis")
-    return issues
+    return list(dict.fromkeys(issues))
 
 
 def discover(root: Path) -> list[Path]:
