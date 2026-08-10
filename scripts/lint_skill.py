@@ -14,7 +14,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "7.0.0"
+PACKAGE_VERSION = "7.0.1"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "CHANGELOG_V634.md", "CHANGELOG_V633.md", "CHANGELOG_V632.md", "CHANGELOG_V630.md",
@@ -180,6 +180,10 @@ def check_router(errors: list[str]) -> None:
     for token in ("pre_delivery_gates", "available_after_modules", "available_after_plan", "gate_plan"):
         if token not in resolver:
             errors.append(f"resolver lacks gate-closure token: {token}")
+    if f"HSK v{PACKAGE_VERSION} execution plan" not in resolver:
+        errors.append("resolver release marker mismatch")
+    if "HSK v6.6.0 execution plan" in resolver:
+        errors.append("resolver still contains obsolete v6.6.0 release marker")
 
 
 def check_manifest(errors: list[str]) -> None:
@@ -284,6 +288,10 @@ def check_contracts(errors: list[str]) -> None:
     forbidden = set(((user_execution.get("code_delivery") or {}).get("standalone_files_forbidden_by_default") or []))
     if "问题X结果深化分析.py" in forbidden:
         errors.append("analysis script must not be forbidden")
+    acceptance_rules = "\n".join((user_execution.get("returned_workbook") or {}).get("acceptance_rules", []))
+    for token in ("实际路径", "标准文件名", "problem_name", "stage"):
+        if token not in acceptance_rules:
+            errors.append(f"returned-workbook contract lacks identity binding token: {token}")
     sync = output.get("project_sync", {})
     expected_scopes = {"design", "code", "results", "figures", "docx", "latex", "submission"}
     requirements = sync.get("stage_requirements", {}) or {}
@@ -369,9 +377,13 @@ def check_templates(errors: list[str]) -> None:
         if token not in plot:
             errors.append(f"q1_plot.m lacks required token: {token}")
     validator = read_text(ROOT / "scripts/validate_code_delivery.py")
-    for token in ("QUALITY_CONTRACT", "code_quality_findings", "nonblank_lines", "forbidden_import_roots", "结果深化分析.py", "result_analysis_code"):
+    for token in ("QUALITY_CONTRACT", "code_quality_findings", "nonblank_lines", "forbidden_import_roots", "结果深化分析.py", "result_analysis_code", "unchanged_accepted"):
         if token not in validator:
             errors.append(f"code delivery validator lacks quality/two-stage token: {token}")
+    receipt = read_text(ROOT / "scripts/validate_user_execution.py")
+    for token in ("workbook_identity", "工作簿文件名对应", "problem_name与工作簿目录/文件名不一致"):
+        if token not in receipt:
+            errors.append(f"returned-workbook validator lacks identity-binding token: {token}")
     solve = read_text(ROOT / "modules/03_solve_validate.md")
     analysis = read_text(ROOT / "modules/03_result_analysis.md")
     if "冻结问题X求解.py" not in solve or "问题X结果深化分析.py" not in analysis:

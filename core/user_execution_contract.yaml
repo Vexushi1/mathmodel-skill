@@ -1,5 +1,5 @@
 version: 2.0.0
-skill_version: 7.0.0
+skill_version: 7.0.1
 purpose: 定义用户本地完整版数值执行链；每问主求解与结果深化分析使用两个独立Python脚本，主求解脚本在主工作簿验收后冻结。
 default_mode:
   execution_owner: user
@@ -119,6 +119,7 @@ returned_workbook:
   - execution_profile必须为full_fidelity。
   - 所有缩减、放宽和静默回退标志必须为false。
   - fallback_used必须为false。
+  - 工作簿实际路径与标准文件名必须先解析出唯一problem_name和stage，再与运行配置中的problem_name和stage完全一致；当前项目只接受问题X求解/中的两个标准工作簿，旧结果数据表/问题X/仅作只读兼容。
   - 主工作簿code_sha256必须与已交付的问题X求解.py完全一致；深化工作簿code_sha256必须与已交付的问题X结果深化分析.py完全一致。
   - data_sha256必须与对应阶段代码交付时锁定的数据哈希完全一致。
   - 主结果工作簿必须通过主结果质量门，结果深化分析工作簿必须包含分析设计和结论稳定性汇总。

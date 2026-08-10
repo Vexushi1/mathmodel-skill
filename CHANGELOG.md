@@ -1,6 +1,13 @@
 # Changelog
 
-## Current release: 7.0.0
+## Current release: 7.0.1
+
+- Preserved `primary_execution_status=accepted` when an accepted primary script is revalidated without a hash change, so the standard unscoped code-delivery gate can safely inspect both stage scripts.
+- Bound returned-workbook acceptance to the actual path, exact standard filename, derived problem and derived stage before runtime evidence can mutate project state.
+- Added regression coverage for unscoped two-script code delivery, workbook stage/problem/path spoofing rejection, and legacy result-directory read compatibility.
+- Removed the stale `v6.6.0` release marker from `scripts/resolve_workflow.py`.
+
+## Previous release: 7.0.0
 
 - Restored two independent task-specific Python programs per question: `问题X求解.py` for primary solving and `问题X结果深化分析.py` for post-acceptance result analysis.
 - The default question folder now contains exactly two Python scripts, two standard Excel workbooks and one `qX_plot.m`.
