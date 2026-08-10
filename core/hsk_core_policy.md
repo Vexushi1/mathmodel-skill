@@ -1,4 +1,4 @@
-# HSK Core Policy v7.0.0
+# HSK Core Policy v7.0.1
 
 本文件只保存全局硬规则。目录与交付文件以 `core/output_contract.yaml` 为准，用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准，题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准；本文件不复制这些合同的完整字段。
 
