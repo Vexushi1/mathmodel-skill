@@ -32,7 +32,11 @@ class TestRouterContract(unittest.TestCase):
         self.assertIn("returned_workbook_validation", self.router["routing"])
         self.assertEqual(
             self.router["execution_contract"]["formal_delivery_gates"],
-            ["project_sync"],
+            ["semantic_governance", "project_sync"],
+        )
+        self.assertEqual(
+            self.router["execution_contract"]["code_stage_gates"],
+            ["semantic_governance", "code_delivery"],
         )
         self.assertFalse(
             self.router["execution_contract"]["task_code_execution_allowed"]
@@ -51,9 +55,10 @@ class TestRouterContract(unittest.TestCase):
         self.assertEqual(plan["delivery_scope"], "code")
         self.assertEqual(
             [item["name"] for item in plan["pre_delivery_gates"]],
-            ["code_delivery"],
+            ["semantic_governance", "code_delivery"],
         )
         self.assertIn("python_code", plan["terminal_outputs"])
+        self.assertIn("semantic_governance_report", plan["terminal_outputs"])
         self.assertIn("awaiting_user_execution", plan["terminal_outputs"])
         self.assertNotIn("sync_report", plan["terminal_outputs"])
         self.assertTrue(plan["pause_for_user_execution"])
@@ -75,6 +80,10 @@ class TestRouterContract(unittest.TestCase):
         self.assertNotIn("modules/03_result_analysis.md", plan["modules"])
         self.assertNotIn("modules/04_figure_evidence.md", plan["modules"])
         self.assertTrue(plan["pause_for_user_execution"])
+        self.assertEqual(
+            [item["name"] for item in plan["pre_delivery_gates"]],
+            ["semantic_governance", "code_delivery"],
+        )
 
     def test_result_analysis_without_accepted_primary_returns_primary_code(self):
         plan = self.resolver.resolve_workflow(
@@ -85,6 +94,10 @@ class TestRouterContract(unittest.TestCase):
         self.assertNotIn("modules/03_result_analysis.md", plan["modules"])
         self.assertIn("python_code", plan["module_terminal_outputs"])
         self.assertTrue(plan["pause_for_user_execution"])
+        self.assertEqual(
+            [item["name"] for item in plan["pre_delivery_gates"]],
+            ["semantic_governance", "code_delivery"],
+        )
 
     def test_result_analysis_empty_state_returns_primary_code(self):
         plan = self.resolver.resolve_workflow(
@@ -114,7 +127,7 @@ class TestRouterContract(unittest.TestCase):
         self.assertTrue(plan["pause_for_user_execution"])
         self.assertEqual(
             [item["name"] for item in plan["pre_delivery_gates"]],
-            ["code_delivery"],
+            ["semantic_governance", "code_delivery"],
         )
 
     def test_full_workflow_continues_after_both_workbooks_are_accepted(self):
@@ -148,7 +161,7 @@ class TestRouterContract(unittest.TestCase):
         self.assertEqual(plan["delivery_scope"], "submission")
         self.assertEqual(
             [item["name"] for item in plan["pre_delivery_gates"]],
-            ["project_sync"],
+            ["semantic_governance", "project_sync"],
         )
         self.assertFalse(plan["pause_for_user_execution"])
         self.assertTrue(plan["sync_required_before_delivery"])
@@ -168,6 +181,10 @@ class TestRouterContract(unittest.TestCase):
         proof = self.resolver.resolve_workflow("proposition_proof")
         self.assertNotIn("packs/artifact/proposition_proof.md", ordinary["packs"])
         self.assertIn("packs/artifact/proposition_proof.md", proof["packs"])
+        self.assertEqual(
+            [item["name"] for item in ordinary["pre_delivery_gates"]],
+            ["semantic_governance", "project_sync"],
+        )
 
 
 if __name__ == "__main__":
