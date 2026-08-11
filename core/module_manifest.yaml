@@ -1,4 +1,4 @@
-version: 7.0.1
+version: 7.1.0
 workflow_order:
 - problem_audit
 - model_design
@@ -37,7 +37,8 @@ external_artifacts:
 - discovered_artifacts
 artifact_catalog:
   requirement_map: 题目要求与交付映射
-  subproblem_map: 小问依赖和边界
+  subproblem_map: 小问依赖、边界与依赖类型
+  problem_contract: 每问题意对象、量、约束、禁止假设、数据角色和依赖的冻结合同
   classification_by_subproblem: 每问objective、structures、顶层capabilities与置信度
   problem_types_by_subproblem: 旧版题型标签兼容派生输出
   data_schema: 字段、单位、粒度、键和数据质量口径
@@ -46,10 +47,13 @@ artifact_catalog:
   selected_models: 每问选定模型
   locked_model_spec: 已锁定变量、假设、公式、目标和约束
   formula_closure: 公式—代码—输出映射
+  semantic_closure: 题面对象与要求—数学层—Python层—输出证据三层闭环
+  complexity_sanity_check: 对异常降维、解耦、条件闲置和异常容易求解的复审结论
   proposition_plan: 全文0--4个高价值命题规划
-  model_paper_framework: 当前有效模型语义、论文组织、逐问结果摘要和图表映射
+  model_paper_framework: 当前有效模型语义、Problem Contract、论文组织、逐问结果摘要和图表映射
   mechanism_contracts: 机理图合同
   validation_plan: 建模阶段识别的风险与候选验证方向
+  semantic_governance_report: 聊天或标准输出中的Problem Contract、语义闭环、复杂度复审、语义哈希和跨问stale校验结果
   python_code: 问题X求解/问题X求解.py；只负责主求解，主工作簿accepted后冻结
   result_analysis_code: 问题X求解/问题X结果深化分析.py；主工作簿accepted后独立生成，只负责深化分析
   stage_python_code: 当前代码交付阶段的题目专属Python文件；solve_validate映射主求解脚本，result_analysis映射深化分析脚本
@@ -95,22 +99,30 @@ workflow_profiles:
     - model_design
     module_terminal_outputs:
     - requirement_map
+    - problem_contract
     - route_comparison
     - selected_models
     - locked_model_spec
     - formula_closure
+    - semantic_closure
+    - complexity_sanity_check
     - validation_plan
     - model_paper_framework
     pre_delivery_gates:
+    - semantic_governance
     - project_sync
     terminal_outputs:
     - requirement_map
+    - problem_contract
     - route_comparison
     - selected_models
     - locked_model_spec
     - formula_closure
+    - semantic_closure
+    - complexity_sanity_check
     - validation_plan
     - model_paper_framework
+    - semantic_governance_report
     - project_state
     - sync_report
   full_solution:
@@ -128,6 +140,7 @@ workflow_profiles:
     - proposition_plan
     - model_paper_framework
     pre_delivery_gates:
+    - semantic_governance
     - code_delivery
     terminal_outputs:
     - python_code
@@ -138,6 +151,7 @@ workflow_profiles:
     - awaiting_user_execution
     - proposition_plan
     - model_paper_framework
+    - semantic_governance_report
     - project_state
   full_workflow:
     modules:
@@ -153,6 +167,7 @@ workflow_profiles:
     - awaiting_user_execution
     - model_paper_framework
     pre_delivery_gates:
+    - semantic_governance
     - code_delivery
     terminal_outputs:
     - python_code
@@ -162,6 +177,7 @@ workflow_profiles:
     - code_delivery_report
     - awaiting_user_execution
     - model_paper_framework
+    - semantic_governance_report
     - project_state
 modules:
   problem_audit:
@@ -174,6 +190,7 @@ modules:
     outputs:
     - requirement_map
     - subproblem_map
+    - problem_contract
     - classification_by_subproblem
     - problem_types_by_subproblem
     - data_schema
@@ -182,6 +199,7 @@ modules:
     path: modules/02_model_design.md
     inputs:
     - requirement_map
+    - problem_contract
     - data_schema
     - classification_by_subproblem
     outputs:
@@ -189,6 +207,8 @@ modules:
     - selected_models
     - locked_model_spec
     - formula_closure
+    - semantic_closure
+    - complexity_sanity_check
     - proposition_plan
     - model_paper_framework
     - mechanism_contracts
@@ -198,6 +218,8 @@ modules:
     inputs:
     - locked_model_spec
     - formula_closure
+    - semantic_closure
+    - complexity_sanity_check
     - proposition_plan
     - model_paper_framework
     - data_schema
@@ -301,6 +323,21 @@ modules:
     - review_report
     - validated_submission_package
 utility_gates:
+  semantic_governance:
+    path: scripts/validate_semantic_governance.py
+    command: python scripts/validate_semantic_governance.py <project_root> --write --strict
+    inputs:
+    - existing_project_state
+    - existing_model_paper_framework
+    outputs:
+    - semantic_governance_report
+    - project_state
+    rules:
+    - Requires frozen Problem Contract, passed semantic closure and passed complexity sanity for designed-or-later subproblems.
+    - Hashes only each question's current model-scope section, not numerical result summaries.
+    - Semantic changes require an incremented revision and explicit change categories.
+    - Propagates stale recursively through typed cross-question dependencies before accepting a new semantic hash.
+    - Never runs task-specific Python and never clears numerical stale states.
   code_delivery:
     path: scripts/validate_code_delivery.py
     command: python scripts/validate_code_delivery.py <project_root> --write --strict
@@ -351,6 +388,7 @@ utility_gates:
     - submission
     stage_requirements_source: core/output_contract.yaml#project_sync.stage_requirements
     rules:
+    - Runs after semantic governance for formal design and downstream delivery.
     - Reads exact delivery requirements from core/output_contract.yaml before checking artifacts.
     - Validates project state and the current model-paper framework before artifact discovery.
     - Discovers both stage-specific Python scripts, validates workbook contracts and hashes the evidence chain without inventing model semantics or validation success.
