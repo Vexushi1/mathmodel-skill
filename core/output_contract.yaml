@@ -1,4 +1,4 @@
-version: 7.0.1
+version: 7.1.0
 schema: core/workbook_schema.yaml
 user_execution_contract: core/user_execution_contract.yaml
 code_quality_contract: core/code_quality_contract.yaml
@@ -26,6 +26,7 @@ execution_policy:
   default_owner: user
   default_profile: full_fidelity
   assistant_task_code_execution_allowed: false
+  semantic_governance_gate: scripts/validate_semantic_governance.py
   code_delivery_gate: scripts/validate_code_delivery.py
   code_quality_contract: core/code_quality_contract.yaml
   returned_workbook_gate: scripts/validate_user_execution.py
@@ -41,6 +42,64 @@ execution_policy:
   - allow_fewer_repetitions
   - allow_relaxed_tolerance
   - allow_silent_solver_fallback
+semantic_governance:
+  version: 1.0.0
+  script: scripts/validate_semantic_governance.py
+  role: 在模型设计、代码交付、工作簿验收和正式下游交付前检查题意口径、三层语义闭环、复杂度合理性与语义变更影响
+  report_persistence: stdout_or_chat_only
+  framework_scope: 每问#### 当前模型口径至#### 结果摘要之前的当前语义区
+  required_for_designed_or_later:
+    problem_contract_status: frozen
+    semantic_closure_status: passed
+    complexity_sanity_status: passed
+    semantic_revision_min: 1
+    semantic_change_categories_nonempty: true
+  problem_contract_required_fields:
+  - research_object
+  - original_objects
+  - derived_objects
+  - known_quantities
+  - computable_quantities
+  - decision_variables
+  - state_variables
+  - outputs
+  - explicit_constraints
+  - implicit_constraints
+  - forbidden_assumptions
+  - data_roles
+  - typed_dependencies
+  semantic_closure_chain: 题面对象与要求 -> 数学变量/公式/目标/约束 -> Python变量/函数 -> 工作簿输出或验证证据
+  semantic_change_categories:
+  - problem_definition
+  - data_scope
+  - variable
+  - parameter
+  - assumption
+  - objective
+  - constraint
+  - preprocessing
+  - algorithm
+  - dependency
+  complexity_sanity_flags:
+  - unused_problem_conditions
+  - unused_attachment_fields
+  - unexpected_dimension_collapse
+  - unexpected_decoupling
+  - dynamic_to_static_collapse
+  - multi_agent_to_independent
+  - inactive_key_constraints
+  - downstream_copy
+  - implausibly_easy_computation
+  dependency_kinds: [data, parameter, model, result]
+  change_policy:
+  - 语义变化必须递增semantic_revision并记录具体semantic_change_categories。
+  - 已验证语义哈希变化时，本问主结果及全部下游先标记stale。
+  - 按depends_on递归传播到后续依赖小问，不能只失效本问。
+  - 接受新的语义哈希不等于恢复数值结果；重新求解和工作簿验收后才能清除数值stale。
+  - 模型论文框架只保存当前有效语义，历史由Git保存，不新增用户项目变更日志文件。
+  legacy_compatibility:
+    v7_0_projects_without_fields: read_only
+    migration_trigger: 旧项目重新进入problem_audit或model_design时补齐semantic_governance_version和当前小问语义字段
 result_policy:
   primary_solve_role: 在当前题意、数据和模型口径下得到高精度、可行、收敛且可复算的主结果
   primary_quality_gate_required: true
@@ -58,7 +117,7 @@ model_paper_framework:
   path: 模型论文框架.md
   template: templates/model/model_paper_framework.md
   create_after: locked_model_spec
-  role: 当前有效模型语义、论文结构、命题规划、逐问主结果与深化分析摘要和图表映射
+  role: 当前有效题意口径、模型语义、三层闭环、复杂度复审、论文结构、命题规划、逐问主结果与深化分析摘要和图表映射
   modes:
     compact:
       use_when: 日常迭代、单问交付、普通聊天续作
@@ -85,15 +144,15 @@ model_paper_framework:
   - default
   default_mode: compact
   history_policy: 文件内部不累积旧版；旧版本由Git历史保存
-  replacement_policy: 模型、参数、约束、数据处理、算法、主结果或深化分析变化时，删除受影响旧内容并完整替换
+  replacement_policy: 题意解释、模型、参数、约束、数据处理、算法、主结果或深化分析变化时，删除受影响旧内容并完整替换
   formal_delivery_sync: true
   result_summary_required_after: solved
   authoritative_boundaries:
     model_semantics_and_paper_structure: 模型论文框架.md
-    machine_state_and_freshness: state/project_state.yaml
+    semantic_revision_dependency_hash_and_freshness: state/project_state.yaml
     numerical_results: 主求解工作簿与结果深化分析工作簿
 project_sync:
-  role: formal_pre_delivery_gate
+  role: formal_pre_delivery_gate_after_semantic_governance
   script: scripts/sync_project.py
   report: sync_report.yaml
   default_mode: dry_run
@@ -236,6 +295,7 @@ project_sync:
   - 写入sync_report
   - 执行写后哈希自检
   responsibilities:
+  - 正式交付前先由semantic_governance检查当前模型语义和跨问失效传播
   - 进入产物同步前强制执行项目状态Schema/语义校验与模型论文框架校验
   - 发现每问问题X求解目录中的主求解Python、结果深化分析Python、两类工作簿和qX_plot.m
   - 复用工作簿Schema检查工作表、字段、capability条件、主键、非有限数值和约束判定
@@ -374,11 +434,13 @@ optional_metadata:
   rule: 不得放入问题X求解目录；仅在用户明确要求完整复现包时放入项目内部元数据目录
 rules:
 - 新项目每问只创建一个问题X求解目录，默认最终恰好包含两个Python脚本、两个Excel工作簿和一个qX_plot.m。
+- Problem Contract、语义闭环与复杂度复审先于正式模型和代码交付，不能用运行成功或结果合理替代语义正确性。
 - 主工作簿accepted后冻结问题X求解.py，并单独生成问题X结果深化分析.py；不得为深化分析覆盖更新主求解脚本。
-- 默认不生成独立完整运行配置、运行说明、code_delivery_report、user_execution_validation_report、figure_evidence或图表子目录。
-- 两个正式Python脚本都必须分别通过validate_code_delivery且不得由助手执行；校验结果在聊天或标准输出中返回，不额外落盘。
-- 用户返回工作簿必须先通过validate_user_execution；代码交付本身不得把状态提升为solved或analyzed。
-- 同步器只做发现、校验、哈希和stale传播，不替代主求解质量门与结果深化分析。
+- 默认不生成独立完整运行配置、运行说明、code_delivery_report、user_execution_validation_report、semantic_governance_report、figure_evidence或图表子目录。
+- 两个正式Python脚本都必须分别通过semantic_governance与validate_code_delivery且不得由助手执行；校验结果在聊天或标准输出中返回，不额外落盘。
+- 用户返回工作簿必须先通过semantic_governance与validate_user_execution；代码交付本身不得把状态提升为solved或analyzed。
+- 同步器只做发现、校验、哈希和stale传播，不替代语义治理、主求解质量门与结果深化分析。
+- v7.0.x缺少语义治理字段的旧项目可只读；重新进入审题或模型设计时补齐当前语义字段。
 - v6.6.x四文件项目和旧结果数据表/问题X/仅作只读兼容；新项目或重新深化分析时使用五文件结构。
 - Excel工作簿是默认结果交换格式；CSV仅用于明确兼容需求。
 - 所有工作表必须非空；不生成不适用分析的占位工作表。
