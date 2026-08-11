@@ -1,6 +1,15 @@
-# mathmodel-skill v7.0.1
+# mathmodel-skill v7.1.0
 
-当前工作流：**审题与模型闭合 → 用户本地完整版 Python 主求解 → 主代码质量门 → 主结果质量门 → 独立 Python 结果深化分析 → 深化代码质量门 → 用户本地运行与稳定性验收 → MATLAB证据图 → LaTeX终稿**。
+当前工作流：**审题与 Problem Contract 冻结 → 题面—数学—代码语义闭环 → Complexity Sanity Check → semantic governance → 用户本地完整版 Python 主求解 → 主代码质量门 → 主结果质量门 → 独立 Python 结果深化分析 → 深化代码质量门 → 用户本地运行与稳定性验收 → MATLAB证据图 → LaTeX终稿**。
+
+## 四个前置治理点
+
+- `Problem Contract`：冻结原始/派生对象、已知/可计算量、决策/状态/输出量、显式/隐含约束、禁止假设、数据角色和小问依赖；
+- `semantic closure`：题面对象与要求 → 数学变量/公式/目标/约束 → Python变量/函数 → 工作簿输出/验证证据；
+- `semantic revision`：题意、数据、变量、参数、假设、目标、约束、预处理、算法语义或依赖变化时递增，并按 typed dependencies 递归传播 stale；
+- `complexity sanity`：复杂题异常降维、异常解耦、关键条件或附件闲置、关键约束长期不生效、后问复制前问或计算异常容易时强制复审。
+
+这些规则由 `scripts/validate_semantic_governance.py` 执行。校验结果只返回聊天/标准输出，不增加项目可见文件，也不改变现有五文件小问目录。
 
 ## 每问默认交付
 
@@ -17,6 +26,7 @@
 
 ## 质量门
 
+- `scripts/validate_semantic_governance.py`：题意口径、三层语义闭环、复杂度复审、semantic revision 与跨小问 stale；
 - `core/code_quality_contract.yaml`：两个 Python 的代码长度、函数规模、参数数量、复杂度与反模式；
 - `scripts/validate_code_delivery.py`：按主求解/深化分析阶段静态检查代码，不执行赛题；
 - `core/workbook_schema.yaml`：主结果和深化分析工作簿证据；
@@ -29,8 +39,9 @@
 
 ```bash
 python scripts/resolve_workflow.py full_solution --objective optimization --competition CUMCM
+python scripts/validate_semantic_governance.py <project_root> --write --strict
 python scripts/validate_code_delivery.py <project_root> --write --strict
 python scripts/sync_project.py <project_root> --write --strict --delivery-scope results
 ```
 
-仓库维护执行 `python scripts/lint_skill.py`、全量单元测试和生成索引检查。DOCX 是显式可选分支；v6.6.x 单脚本项目和 `legacy/` 只保存历史与只读兼容。
+仓库维护执行 `python scripts/lint_skill.py`、全量单元测试和生成索引检查。DOCX 是显式可选分支；v7.0.x 缺少语义治理字段的项目在重新进入设计前迁移，v6.6.x 单脚本项目和 `legacy/` 只保存历史与只读兼容。

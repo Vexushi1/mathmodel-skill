@@ -1,10 +1,10 @@
 # 模型论文框架
 
-> 本文件只保留当前有效口径。模型、参数、约束、数据处理、算法、命题、证明、结果或图表发生变化时，直接替换受影响内容并删除旧版本；历史由 Git 保存。
+> 本文件只保留当前有效口径。题意解释、模型、参数、约束、数据处理、算法、命题、证明、结果或图表发生变化时，直接替换受影响内容并删除旧版本；历史由 Git 保存。
 
 - 项目：`__PROJECT__`
 - 竞赛与题号：`__COMPETITION_AND_PROBLEM__`
-- 框架版本：`v0.2-proposition-plan`
+- 框架版本：`v0.3-semantic-governance`
 - 当前阶段：`审题 / 模型设计 / 求解 / 验证 / 绘图 / 写作 / 终审`
 - 最近同步：`__LAST_SYNC_SCOPE__`
 - 最近同步时间：`__ISO_DATETIME__`
@@ -18,13 +18,14 @@
 - 核心问题：
 - 显式约束：
 - 隐含约束：
+- 禁止假设：
 - 统一单位与精度：
 
 ### 全局数据协议
 
-| 数据源 | 文件/工作表 | 字段与单位 | 时间/空间粒度 | 关联键 | 当前处理口径 |
-|---|---|---|---|---|---|
-|  |  |  |  |  |  |
+| 数据源 | 文件/工作表 | 字段与单位 | 时间/空间粒度 | 关联键 | 数据角色 | 当前处理口径 |
+|---|---|---|---|---|---|---|
+|  |  |  |  |  | 输入/标定/验证/边界/结果观测 |  |
 
 ### 全局符号、参数与假设
 
@@ -34,9 +35,9 @@
 
 ### 各问依赖关系
 
-| 小问 | 直接目标 | 隐含目标 | 依赖前问/数据 | 输出交付 | 当前状态 |
-|---|---|---|---|---|---|
-| Q1 |  |  |  |  |  |
+| 小问 | 直接目标 | 隐含目标 | 依赖前问 | 依赖类型 | 输出交付 | 当前状态 |
+|---|---|---|---|---|---|---|
+| Q1 |  |  |  | data / parameter / model / result |  |  |
 
 ## 论文整体框架
 
@@ -87,17 +88,45 @@
 
 ## 各问模型与结果
 
-> 每个小问复制一份以下结构。小问完成求解后，`结果摘要状态` 必须改为 `current`；模型、命题条件或数据变化导致旧结果失效时，删除旧摘要并改为 `pending` 或 `stale`。
+> 每个小问复制一份以下结构。`#### 当前模型口径` 到 `#### 结果摘要` 之间属于语义哈希区；题意、变量、参数、假设、目标、约束、预处理、算法语义或依赖变化时，必须递增 `semantic_revision`。小问完成求解后，`结果摘要状态` 必须改为 `current`；模型或数据变化导致旧结果失效时，删除旧摘要或标记 `stale`。
 
 ### Q1：__QUESTION_NAME__
 
 - 主/次题型：
 - capability：
-- 当前状态：`designed / solved / validated / written / completed`
+- 当前状态：`audited / designed / solved / analyzed / validated / written / completed`
 - 结果摘要状态：`pending / current / stale`
+- Problem Contract：`pending / frozen / stale`
+- 语义闭环：`pending / passed / stale`
+- 复杂度复审：`pending / passed / review_required`
+- semantic revision：`1`
+- semantic change categories：`initial_design / problem_definition / data_scope / variable / parameter / assumption / objective / constraint / preprocessing / algorithm / dependency`
 - 关联命题：`无 / P1 / P2 / P3 / P4`
 
 #### 当前模型口径
+
+**题意口径合同（Problem Contract）**
+
+| 项目 | 当前冻结口径 | 来源/推导依据 |
+|---|---|---|
+| 研究对象 |  |  |
+| 原始对象 |  |  |
+| 派生对象 |  |  |
+| 已知量 |  |  |
+| 可计算量 |  |  |
+| 决策变量 |  |  |
+| 状态变量 |  |  |
+| 输出量 |  |  |
+| 显式约束 |  |  |
+| 隐含约束 |  |  |
+| 禁止假设 |  |  |
+| 数据角色 |  |  |
+
+**小问依赖**
+
+| 依赖前问 | 类型 | 继承内容 | 变化时是否使本问失效 |
+|---|---|---|---|
+|  | data / parameter / model / result |  | 是 |
 
 **目标与设问意图**
 
@@ -131,7 +160,38 @@ $$
 - 公式来源：
 - 现实含义：
 - 约束可行性：
-- 公式—代码—输出映射：
+
+**题面—数学—代码语义闭环**
+
+| 题面来源/对象/要求 | 数学变量、公式、目标或约束 | Python变量/函数 | 输出工作表/指标 | 状态 |
+|---|---|---|---|---|
+|  |  |  |  | closed / gap |
+
+闭环检查：
+
+- [ ] 题目要求的核心输出均进入计算；
+- [ ] Python 核心变量、函数、惩罚项、阈值、预处理和约束均有数学来源；
+- [ ] 隐含约束和假设均能回溯到题意、数据或机制；
+- [ ] 三层对象含义、单位、索引和时间/空间粒度一致；
+- [ ] 不存在“代码有、论文无”或“论文有、题面无法支持”的核心关系。
+
+**复杂度合理性复审**
+
+- 当前 flags：`无 / unused_problem_conditions / unused_attachment_fields / unexpected_dimension_collapse / unexpected_decoupling / dynamic_to_static_collapse / multi_agent_to_independent / inactive_key_constraints / downstream_copy / implausibly_easy_computation`
+- 题面复杂度与模型维度是否匹配：
+- 未使用条件/字段及理由：
+- 被删除的耦合、状态、边界或约束及依据：
+- 是否存在可证明等价或降维：
+- 极端/边界/小规模复核：
+- 复审结论：`passed / review_required`
+- 复审说明：
+
+**语义修订记录（仅当前修订，不累积历史）**
+
+- semantic revision：
+- 本次 change categories：
+- 当前修改直接影响：
+- 需要重新计算/重新验证的小问与层级：
 
 **理论论证需求**
 
@@ -243,6 +303,13 @@ $$
 
 ## 同步检查
 
+- [ ] 每个已进入模型设计的小问均已冻结 Problem Contract；
+- [ ] 原始对象、派生对象、决策变量、状态变量和输出量没有混淆；
+- [ ] 每个隐含约束均有题意、数据或机制来源；
+- [ ] 每问题面—数学—代码—输出映射无关键 gap；
+- [ ] 复杂度异常信号均已解释，`review_required` 小问没有进入求解；
+- [ ] 题意、数据口径、变量、参数、假设、目标、约束、预处理、算法或依赖变化时 semantic revision 已递增；
+- [ ] 小问依赖已区分 data / parameter / model / result，语义变化后受影响后问已 stale；
 - [ ] 文件只保留当前有效模型、参数、约束、命题、证明和结果，不存在新旧版本并存；
 - [ ] 全文命题可以为 0，但当前计划命题数不超过 4，且与表中 `P1`--`P4` 行数和项目状态一致；
 - [ ] 每个保留命题均写明前提、结论、证明等级、模型作用和失效边界；

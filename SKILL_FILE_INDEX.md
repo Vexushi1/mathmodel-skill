@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：6.6.1
+当前 Skill 版本：7.1.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -111,6 +111,7 @@
 - `scripts/validate_code_delivery.py`
 - `scripts/validate_model_paper_framework.py`
 - `scripts/validate_project_state.py`
+- `scripts/validate_semantic_governance.py`
 - `scripts/validate_user_execution.py`
 - `skills/mathmodel-skill/SKILL.md`
 - `state/project_state.example.yaml`
@@ -191,3 +192,4 @@
 - `tests/test_v661_code_quality_closure.py`
 - `tests/test_v700_two_stage_question_folder.py`
 - `tests/test_v701_stage_boundary_closure.py`
+- `tests/test_v710_semantic_governance.py`
