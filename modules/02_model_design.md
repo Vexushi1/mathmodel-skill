@@ -1,4 +1,8 @@
-# Module 02：模型设计、数学闭环、命题规划与论文框架锁定
+# Module 02：模型设计、语义闭环、复杂度复审、命题规划与论文框架锁定
+
+## 0. 前置条件
+
+只接受 `problem_contract_status=frozen` 的小问。若题意对象、数据角色、约束来源或小问依赖仍存在会改变模型结论的歧义，必须退回 Module 01，不允许通过代码试错代替审题。
 
 ## 1. 路线比较
 
@@ -9,6 +13,8 @@
 ## 2. 数据协议
 
 在 Module 01 的 `data_schema` 上锁定字段—含义—单位—粒度—范围—关联键表，检查缺失、异常、重复、单位冲突和时间错位。标准化、归一化、对数、Box-Cox、滞后、窗口、空间权重、重采样和编码必须说明依据及边界。无真实数据时可模拟，但写明生成机制和参数来源。
+
+任何数据角色或预处理口径变化都属于模型语义变化，必须更新 `semantic_revision` 与 `semantic_change_categories`，不能只改 Python。
 
 ## 3. 变量、假设与三轴分类
 
@@ -22,13 +28,79 @@
 2. `classification.structures`：真正改变变量、约束、验证或交付结构的特征，最多三个；
 3. 小问顶层 `capabilities`：必须执行的可行性、残差、外样本、不确定性、泄漏、校准或可识别性检查。
 
-`capabilities` 的唯一权威位置是小问顶层。`classification.capabilities` 仅作为 v6.3.0 兼容别名，存在时必须与顶层完全一致；`problem_types` 与 `legacy_task_packs` 只能由三轴分类派生，不得独立编辑。objective 决定主要结果类型，structures 决定结构专项，capabilities 决定强制验证工作表。不得因“机理、仿真、网络”等名称自动生成不适用表格。
+`capabilities` 的唯一权威位置是小问顶层。`classification.capabilities` 仅作为兼容别名，存在时必须与顶层完全一致；`problem_types` 与 `legacy_task_packs` 只能由三轴分类派生，不得独立编辑。objective 决定主要结果类型，structures 决定结构专项，capabilities 决定强制验证工作表。不得因“机理、仿真、网络”等名称自动生成不适用表格。
 
-## 4. 公式闭环
+## 4. 题面—数学—代码三层语义闭环
 
-核心公式需标明来源：题目条件、几何关系、物理机理、统计假设、优化约束或算法定义。目标函数、约束和指标逐项解释现实含义，并建立公式—代码—输出映射。
+现有 `formula_closure` 必须升级为语义闭环，不只检查“公式是否有代码”。每个核心对象、条件、变量、约束和输出至少建立以下映射：
 
-## 5. 命题与证明规划
+$$
+\boxed{
+\text{题面对象/要求}
+\Longrightarrow
+\text{数学变量、关系、目标或约束}
+\Longrightarrow
+\text{Python变量/函数}
+\Longrightarrow
+\text{工作簿输出或验证证据}
+}
+$$
+
+推荐表结构：
+
+| 题面来源 | 数学层 | 计算层 | 输出证据 | 状态 |
+|---|---|---|---|---|
+| 题目对象/条件/要求 | 符号、公式、目标、约束 | Python变量/函数 | 工作表/指标 | closed / gap |
+
+硬检查：
+
+1. **题目要求有、代码没有**：题目要求的输出或约束未进入计算，判为 gap；
+2. **代码有、论文没有**：核心变量、惩罚项、阈值、约束、预处理或状态转移没有数学来源，判为 gap；
+3. **论文有、题面推不出**：隐含约束、假设或变量变换没有题意/机理/统计依据，判为 gap；
+4. **同名不同义**：题面对象、数学符号和 Python 变量实际含义不同，判为 gap；
+5. **单位或粒度断裂**：三层中的单位、时间/空间粒度或索引集合不一致，判为 gap。
+
+只有全部关键项 closed 后，`semantic_closure_status` 才能置为 `passed`。否则保持 `pending` 或 `stale`。
+
+## 5. 复杂度合理性复审（Complexity Sanity Check）
+
+模型路线确定后、锁定模型并进入 Python 前，必须检查赛题复杂度是否被异常压扁。以下信号任一出现都要触发复审：
+
+- `unused_problem_conditions`：题面专门给出的条件长期未进入模型；
+- `unused_attachment_fields`：大量附件或关键字段完全没有用途；
+- `unexpected_dimension_collapse`：原本多维/组合问题无充分证明地退化为极低维直接计算；
+- `unexpected_decoupling`：明显耦合的问题被无依据拆成互不影响的独立子问题；
+- `dynamic_to_static_collapse`：动态、路径或时序问题被无依据静态化；
+- `multi_agent_to_independent`：多主体/多资源问题被无依据逐主体独立求解；
+- `inactive_key_constraints`：题目强调的关键约束在合理解域内始终不生效；
+- `downstream_copy`：后续小问几乎直接复制前问结果，新增条件没有实质改变模型；
+- `implausibly_easy_computation`：题目结构复杂但模型异常容易、求解规模和题面复杂度明显不匹配。
+
+出现 flag 不等于模型一定错误，但必须回答：
+
+1. 简化来自严格等价、可证明降维、主导机制，还是只是计算方便？
+2. 被删除的耦合、状态、边界和约束是否有数学依据？
+3. 未使用字段是否确实冗余，能否通过题面或命题证明？
+4. 极端情形、边界情形或小规模枚举是否支持该简化？
+
+若无法解释，`complexity_sanity_status=review_required`，禁止进入求解。完成复审并记录 `complexity_sanity_note` 后才可置为 `passed`。
+
+## 6. 模型语义修订与跨小问失效传播
+
+`模型论文框架.md` 只保存当前有效模型，不建立第二份变更日志。Git 保存历史；`state/project_state.yaml` 只记录当前语义修订号、当前变更类别和依赖。
+
+每问维护：
+
+- `semantic_revision`：初始设计为 1；模型语义变化时递增；
+- `semantic_change_categories`：当前修订涉及的类别；
+- `depends_on`：依赖前问的数据、参数、模型或结果；
+- `semantic_hash` / `validated_semantic_hash`：由语义治理门计算，不手工伪造。
+
+下列任一变化都必须递增 `semantic_revision`：题意解释、数据范围、变量、参数、假设、目标函数、约束、预处理、算法语义或小问依赖。
+
+若已验收语义哈希变化，`scripts/validate_semantic_governance.py` 必须先将本问主结果及下游标记 stale，再按 `depends_on` 递归传播到受影响后问。只有重新完成 Problem Contract、语义闭环和复杂度复审后，才接受新的语义哈希；旧结果仍保持 stale，直到重新求解和验收。
+
+## 7. 命题与证明规划
 
 命题规划是全文级决策，不按小问机械分配。论文可以不设命题，全文最终保留数量不得超过 4 个。先收集待证明对象，再按必要性筛选；候选数量可以临时多于 4，但写入终稿和 current 框架的命题最多 4 个。
 
@@ -38,9 +110,9 @@
 
 变量定义、参数范围、目标函数、约束、数据处理或算法变化时，逐个检查相关命题。条件或结论不再成立时标记 stale，删除旧证明并重写。
 
-## 6. `模型论文框架.md`
+## 8. `模型论文框架.md`
 
-`locked_model_spec` 形成后，以 `templates/model/model_paper_framework.md` 为骨架在项目根目录创建 `模型论文框架.md`。它承担当前模型语义、论文组织、命题规划、逐问结果摘要和图表映射，不承担历史日志。
+`locked_model_spec` 形成后，以 `templates/model/model_paper_framework.md` 为骨架在项目根目录创建 `模型论文框架.md`。它承担当前模型语义、Problem Contract、三层闭环、复杂度复审、论文组织、命题规划、逐问结果摘要和图表映射，不承担历史日志。
 
 框架分为两种模式：
 
@@ -54,15 +126,24 @@
 3. Git 保存历史；框架顶部只保留版本、模式、阶段、最近同步范围和同步状态；
 4. 设计阶段建立结果摘要区但标记 `pending`，不得填入未求解数字；
 5. 命题规划只有在 full 模式或命题数量非零时展开详细合同；
-6. `state/project_state.yaml` 记录模式、框架哈希、命题状态、每问引用、章节锚点和结果摘要状态；
-7. 正式交付前由 `project_sync` gate 更新框架头部，再计算最终哈希并写入项目状态。
+6. `state/project_state.yaml` 记录模式、框架哈希、命题状态、每问引用、章节锚点、结果摘要状态和语义治理状态；
+7. 正式交付前先通过语义治理门，再由 `project_sync` 更新框架头部和产物哈希。
 
-事实源边界：模型语义和论文组织以框架为准；结果数值以标准工作簿为准；分类、分层哈希和 stale 以项目状态为准。三者冲突时回到模型或求解环节修正。
+事实源边界：模型语义和论文组织以框架为准；语义修订、依赖、哈希与 stale 以项目状态为准；结果数值以标准工作簿为准。三者冲突时回到审题、模型或求解环节修正。
 
-## 7. 机理图合同
+## 9. 机理图合同
 
 早期只建立合同和占位，不立即追求最终美术。合同回答：解释对象、支撑公式/约束、必需变量、排除变量、评委应相信什么、无图时哪段说不清。分 S/A/B 级，S 级必须绑定核心公式、约束或命题。
 
 ## 阶段门槛
 
-进入求解前必须锁定：每问数据口径、objective、structures、顶层 capabilities、变量维度、目标函数、约束、求解器候选、评价指标和验证方案；完成全文命题必要性初审并给出 0--4 个规划。形成 `locked_model_spec`、`formula_closure`、`proposition_plan`、`validation_plan` 与当前有效框架；未闭环不得以代码试错代替建模。
+进入求解前必须同时满足：
+
+1. `problem_contract_status=frozen`；
+2. 每问数据口径、objective、structures、顶层 capabilities、变量维度、目标函数、约束、求解器候选、评价指标和验证方案已锁定；
+3. 三层题面—数学—代码映射无关键 gap，`semantic_closure_status=passed`；
+4. 复杂度复审完成，`complexity_sanity_status=passed`；
+5. `semantic_revision` 和 `semantic_change_categories` 与当前框架一致；
+6. 完成全文命题必要性初审并给出 0--4 个规划。
+
+形成 `locked_model_spec`、`formula_closure`、`semantic_closure`、`complexity_sanity_check`、`proposition_plan`、`validation_plan` 与当前有效框架；未闭环不得以代码试错代替建模。
