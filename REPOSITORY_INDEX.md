@@ -65,7 +65,8 @@
 ## 工具
 
 - `scripts/resolve_workflow.py`：多意图合并、模块排序、前置缺口与 `pre_delivery_gates`；
-- `scripts/validate_code_delivery.py`：静态校验每问唯一 Python 脚本；
+- `scripts/validate_semantic_governance.py`：题意口径、语义闭环、复杂度复审、semantic revision 与跨问 stale 门；
+- `scripts/validate_code_delivery.py`：分别静态校验每问主求解与结果深化分析两个 Python 脚本；
 - `scripts/validate_user_execution.py`：验收两个标准工作簿及运行配置、哈希和质量门；
 - `scripts/sync_project.py`：阶段产物发现、工作簿Schema、图表链、分层哈希和stale；
 - `scripts/validate_project_state.py`：分类兼容、哈希与状态语义；
@@ -73,4 +74,4 @@
 - `scripts/lint_skill.py`：版本、路径、生产者—消费者、gate和语义闭环；
 - `scripts/score_submission.py`：评委式评分。
 
-完整活动文件清单见 `SKILL_FILE_INDEX.md`；历史只通过 `legacy/README.md` 追溯。
+完整活动文件清单见 `SKILL_FILE_INDEX.md`；历史只通过 `legacy/README.md` 与 Git 历史追溯。
