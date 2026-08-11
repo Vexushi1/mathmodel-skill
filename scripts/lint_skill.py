@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate active HSK graph, result contracts, code quality, semantics and generated files."""
+"""Validate active HSK graph, semantic governance, result contracts, code quality and generated files."""
 from __future__ import annotations
 
 import argparse
@@ -14,7 +14,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "7.0.1"
+PACKAGE_VERSION = "7.1.0"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "CHANGELOG_V634.md", "CHANGELOG_V633.md", "CHANGELOG_V632.md", "CHANGELOG_V630.md",
@@ -33,7 +33,7 @@ REQUIRED = [
     "packs/artifact/proposition_proof.md", "templates/model/model_paper_framework.md",
     "templates/code/hsk_pipeline/result_io.py", "templates/code/hsk_pipeline/workbook_validation.py",
     "templates/code/hsk_pipeline/main_pipeline.py", "templates/matlab/q1_plot.m",
-    "scripts/resolve_workflow.py", "scripts/sync_project.py",
+    "scripts/resolve_workflow.py", "scripts/validate_semantic_governance.py", "scripts/sync_project.py",
     "scripts/validate_code_delivery.py", "scripts/validate_user_execution.py",
     "scripts/validate_model_paper_framework.py", "scripts/validate_project_state.py",
     "scripts/score_submission.py", ".github/pull_request_template.md",
@@ -92,6 +92,9 @@ def check_versions(errors: list[str]) -> None:
     plugin = load_structured(ROOT / ".codex-plugin/plugin.json") or {}
     if plugin.get("version") != PACKAGE_VERSION:
         errors.append("plugin version mismatch")
+    packaged = read_text(ROOT / "skills/mathmodel-skill/SKILL.md")
+    if f"version: {PACKAGE_VERSION}" not in packaged:
+        errors.append("packaged skill version mismatch")
     workbook = load_structured(ROOT / "core/workbook_schema.yaml") or {}
     if workbook.get("schema_version") != "2.2.1":
         errors.append("workbook schema version must be 2.2.1")
@@ -107,6 +110,10 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
             errors.append(f"bootstrap authoritative source missing: {key} -> {path}")
     if data.get("authoritative_sources", {}).get("code_quality") != "core/code_quality_contract.yaml":
         errors.append("bootstrap must declare code-quality authority")
+    if data.get("authoritative_sources", {}).get("semantic_governance") != "scripts/validate_semantic_governance.py":
+        errors.append("bootstrap must declare semantic-governance authority")
+    if data.get("entrypoints", {}).get("semantic_governance") != "python scripts/validate_semantic_governance.py":
+        errors.append("bootstrap must expose validate_semantic_governance.py")
     if data.get("entrypoints", {}).get("sync") != "python scripts/sync_project.py":
         errors.append("bootstrap must expose sync_project.py")
     maintenance = data.get("repository_maintenance", {})
@@ -149,14 +156,17 @@ def check_router(errors: list[str]) -> None:
     if all(name in order for name in ("solve_validate", "result_analysis", "figure_evidence")):
         if not order.index("solve_validate") < order.index("result_analysis") < order.index("figure_evidence"):
             errors.append("workflow must place result_analysis between solve and figures")
-    if router.get("execution_contract", {}).get("formal_delivery_gates") != ["project_sync"]:
-        errors.append("formal delivery must declare project_sync gate")
+    expected_formal = ["semantic_governance", "project_sync"]
+    if router.get("execution_contract", {}).get("formal_delivery_gates") != expected_formal:
+        errors.append("formal delivery must declare semantic_governance then project_sync")
+    if router.get("execution_contract", {}).get("code_stage_gates") != ["semantic_governance", "code_delivery"]:
+        errors.append("code stages must declare semantic_governance before code_delivery")
     full = routes.get("full_workflow", {})
     loaded = list(full.get("load", [])) + list(full.get("then", []))
     if full.get("pause_for_user_execution") is not True:
         errors.append("full_workflow must pause at the user execution gate")
-    if full.get("delivery_scope") != "code" or full.get("pre_delivery_gates") != ["code_delivery"]:
-        errors.append("full_workflow initial segment must use the code-delivery gate")
+    if full.get("delivery_scope") != "code" or full.get("pre_delivery_gates") != ["semantic_governance", "code_delivery"]:
+        errors.append("full_workflow initial segment must use semantic and code-delivery gates")
     if "modules/03_solve_validate.md" not in loaded:
         errors.append("full_workflow initial segment must load primary solve code generation")
     if any(item in loaded for item in ("modules/03_result_analysis.md", "modules/04_figure_evidence.md", "modules/05_writing/latex.md")):
@@ -169,7 +179,12 @@ def check_router(errors: list[str]) -> None:
     if "modules/03_result_analysis.md" not in analysis_route.get("load", []):
         errors.append("result_analysis route must load the dedicated module")
     if "result_analysis_code" not in analysis_route.get("terminal_outputs", []):
-        errors.append("result_analysis route must deliver independent analysis code")
+        errors.append("result_analysis route must deliver independent result_analysis_code")
+    if analysis_route.get("pre_delivery_gates") != ["semantic_governance", "code_delivery"]:
+        errors.append("result_analysis must pass semantic governance before code delivery")
+    returned = routes.get("returned_workbook_validation", {})
+    if returned.get("pre_delivery_gates") != ["semantic_governance", "user_execution_receipt"]:
+        errors.append("returned workbook validation must run semantic governance first")
     validation_route = routes.get("validation", {})
     if "modules/03_result_analysis.md" not in validation_route.get("load", []):
         errors.append("validation route must use result-analysis module")
@@ -177,13 +192,13 @@ def check_router(errors: list[str]) -> None:
     if explicit_docx.get("delivery_scope") != "docx" or "modules/05_writing/docx.md" not in explicit_docx.get("load", []):
         errors.append("explicit DOCX route must remain available")
     resolver = read_text(ROOT / "scripts/resolve_workflow.py")
-    for token in ("pre_delivery_gates", "available_after_modules", "available_after_plan", "gate_plan"):
+    for token in ("pre_delivery_gates", "available_after_modules", "available_after_plan", "gate_plan", "SEMANTIC_CODE_GATES", "SEMANTIC_SYNC_GATES"):
         if token not in resolver:
             errors.append(f"resolver lacks gate-closure token: {token}")
     if f"HSK v{PACKAGE_VERSION} execution plan" not in resolver:
         errors.append("resolver release marker mismatch")
-    if "HSK v6.6.0 execution plan" in resolver:
-        errors.append("resolver still contains obsolete v6.6.0 release marker")
+    if "HSK v7.0.1 execution plan" in resolver:
+        errors.append("resolver still contains obsolete v7.0.1 release marker")
 
 
 def check_manifest(errors: list[str]) -> None:
@@ -193,6 +208,9 @@ def check_manifest(errors: list[str]) -> None:
     known = catalog | external
     if manifest.get("contracts", {}).get("code_quality") != "core/code_quality_contract.yaml":
         errors.append("manifest must register code-quality contract")
+    for token in ("problem_contract", "semantic_closure", "complexity_sanity_check", "semantic_governance_report"):
+        if token not in catalog:
+            errors.append(f"manifest lacks semantic artifact: {token}")
     modules = manifest.get("modules", {})
     order = manifest.get("workflow_order", [])
     rank = {name: index for index, name in enumerate(order)}
@@ -230,14 +248,19 @@ def check_manifest(errors: list[str]) -> None:
         if "result_analysis_code" not in outputs:
             errors.append("result_analysis must produce independent result_analysis_code")
     solve_inputs = set(modules.get("solve_validate", {}).get("inputs", []))
-    if "code_quality_contract" not in solve_inputs:
-        errors.append("solve_validate must consume code-quality contract")
+    if not {"code_quality_contract", "semantic_closure", "complexity_sanity_check"}.issubset(solve_inputs):
+        errors.append("solve_validate must consume code quality and semantic governance outputs")
+    if "problem_contract" not in set(modules.get("model_design", {}).get("inputs", [])):
+        errors.append("model_design must require frozen problem_contract")
     profile_spec = manifest.get("workflow_profiles", {}).get("full_workflow", {})
     profile = profile_spec.get("modules", [])
     if profile != ["problem_audit", "model_design", "solve_validate"]:
         errors.append("full_workflow initial manifest profile must stop at solve_validate")
-    if profile_spec.get("pre_delivery_gates") != ["code_delivery"]:
-        errors.append("full_workflow initial manifest profile must use code_delivery")
+    if profile_spec.get("pre_delivery_gates") != ["semantic_governance", "code_delivery"]:
+        errors.append("full_workflow initial manifest profile must use semantic and code delivery")
+    semantic_gate = manifest.get("utility_gates", {}).get("semantic_governance", {})
+    if semantic_gate.get("path") != "scripts/validate_semantic_governance.py":
+        errors.append("manifest must register semantic governance gate")
     gate = manifest.get("utility_gates", {}).get("project_sync", {})
     if gate.get("stage_requirements_source") != "core/output_contract.yaml#project_sync.stage_requirements":
         errors.append("project_sync must reference output-contract stage requirements")
@@ -262,6 +285,13 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("code-quality contract must cover independent analysis script")
     if output.get("code_quality_contract") != "core/code_quality_contract.yaml":
         errors.append("output contract must reference code-quality contract")
+    semantic = output.get("semantic_governance", {})
+    if semantic.get("script") != "scripts/validate_semantic_governance.py":
+        errors.append("output contract must declare semantic governance script")
+    if semantic.get("dependency_kinds") != ["data", "parameter", "model", "result"]:
+        errors.append("semantic governance must define typed dependency kinds")
+    if output.get("execution_policy", {}).get("semantic_governance_gate") != "scripts/validate_semantic_governance.py":
+        errors.append("execution policy must require semantic governance")
     policy = output.get("writing_policy", {})
     if policy.get("default_mode") != "latex_first":
         errors.append("default writing mode must be latex_first")
@@ -285,6 +315,8 @@ def check_contracts(errors: list[str]) -> None:
     stages = ((user_execution.get("code_delivery") or {}).get("stage_scripts") or {})
     if stages.get("primary") != "问题X求解/问题X求解.py" or stages.get("analysis") != "问题X求解/问题X结果深化分析.py":
         errors.append("user execution contract must define separate primary/analysis scripts")
+    if user_execution.get("code_delivery", {}).get("semantic_governance_required") is not True:
+        errors.append("user execution code delivery must require semantic governance")
     forbidden = set(((user_execution.get("code_delivery") or {}).get("standalone_files_forbidden_by_default") or []))
     if "问题X结果深化分析.py" in forbidden:
         errors.append("analysis script must not be forbidden")
@@ -341,11 +373,19 @@ def check_project_state_and_framework(errors: list[str]) -> None:
     for violation in Draft202012Validator(schema).iter_errors(example):
         location = "/".join(map(str, violation.path)) or "<root>"
         errors.append(f"project state example violates schema at {location}: {violation.message}")
+    if example.get("semantic_governance_version") != "1.0.0":
+        errors.append("project state example must enable semantic governance v1.0.0")
     subproblem = schema["properties"]["subproblems"]["additionalProperties"]
     required = set(subproblem.get("required", []))
     if not {"capabilities", "result_quality_status", "result_analysis_status"}.issubset(required):
         errors.append("project state must require split quality/analysis statuses")
     fields = subproblem.get("properties", {})
+    semantic_fields = {
+        "depends_on", "problem_contract_status", "semantic_closure_status", "complexity_sanity_status",
+        "semantic_revision", "semantic_change_categories", "semantic_hash", "validated_semantic_hash",
+    }
+    if semantic_fields - set(fields):
+        errors.append(f"project state lacks semantic fields: {sorted(semantic_fields - set(fields))}")
     if not {"code", "result_analysis_code", "primary_code_sha256", "analysis_code_sha256"}.issubset(fields):
         errors.append("project state must expose both stage-specific code paths and hashes")
     phases = set(schema["properties"]["project"]["properties"]["current_phase"]["enum"])
@@ -376,6 +416,10 @@ def check_templates(errors: list[str]) -> None:
     for token in ("exact_header_column", "headers ==", "warn_position_drift", "title(ax, figureTitle"):
         if token not in plot:
             errors.append(f"q1_plot.m lacks required token: {token}")
+    semantic = read_text(ROOT / "scripts/validate_semantic_governance.py")
+    for token in ("problem_contract_status", "semantic_closure_status", "complexity_sanity_status", "semantic_revision", "depends_on", "_dependent_closure"):
+        if token not in semantic:
+            errors.append(f"semantic governance validator lacks token: {token}")
     validator = read_text(ROOT / "scripts/validate_code_delivery.py")
     for token in ("QUALITY_CONTRACT", "code_quality_findings", "nonblank_lines", "forbidden_import_roots", "结果深化分析.py", "result_analysis_code", "unchanged_accepted"):
         if token not in validator:
@@ -384,16 +428,32 @@ def check_templates(errors: list[str]) -> None:
     for token in ("workbook_identity", "工作簿文件名对应", "problem_name与工作簿目录/文件名不一致"):
         if token not in receipt:
             errors.append(f"returned-workbook validator lacks identity-binding token: {token}")
+    audit = read_text(ROOT / "modules/01_problem_audit.md")
+    design = read_text(ROOT / "modules/02_model_design.md")
     solve = read_text(ROOT / "modules/03_solve_validate.md")
     analysis = read_text(ROOT / "modules/03_result_analysis.md")
+    for token in ("Problem Contract", "禁止假设", "data", "parameter", "model", "result"):
+        if token not in audit:
+            errors.append(f"problem audit lacks semantic freeze token: {token}")
+    for token in ("题面—数学—代码三层语义闭环", "Complexity Sanity Check", "semantic_revision", "review_required"):
+        if token not in design:
+            errors.append(f"model design lacks semantic governance token: {token}")
+    if "validate_semantic_governance.py" not in solve:
+        errors.append("solve module must require semantic governance")
     if "冻结问题X求解.py" not in solve or "问题X结果深化分析.py" not in analysis:
         errors.append("solve/result-analysis modules must enforce frozen primary and separate analysis script")
+    framework = read_text(ROOT / "templates/model/model_paper_framework.md")
+    for token in ("题意口径合同（Problem Contract）", "题面—数学—代码语义闭环", "复杂度合理性复审", "semantic revision"):
+        if token not in framework:
+            errors.append(f"model framework lacks semantic governance token: {token}")
     for relative in ("SKILL.md", "README.md", "skills/mathmodel-skill/SKILL.md"):
         text = read_text(ROOT / relative)
         if "└─ 图表/" in text or "输出完整版代码、运行配置和说明" in text:
             errors.append(f"active entry still contains obsolete output wording: {relative}")
         if "问题X结果深化分析.py" not in text:
             errors.append(f"active entry lacks independent analysis script: {relative}")
+        if "semantic" not in text.lower() and "语义" not in text:
+            errors.append(f"active entry lacks semantic governance summary: {relative}")
     removed_checker = "hsk_check_" + "artifact.py"
     lint_path = ROOT / "scripts/lint_skill.py"
     for path in active_files():
