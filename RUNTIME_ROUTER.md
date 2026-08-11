@@ -58,7 +58,6 @@ python scripts/resolve_workflow.py result_analysis \
   --structures temporal
 ```
 
-解析结果返回 `module_terminal_outputs`、`pre_delivery_gates` 和 `terminal_outputs`。`project_sync` 是 utility gate，不属于主求解或结果深化分析模块；它按 exact scope 检查产物、工作簿、图表链和哈希，不得自动把质量门或分析状态提升为 passed。
-## v6.6.0 用户执行完整版代码
+解析结果返回 `module_terminal_outputs`、`pre_delivery_gates` 和 `terminal_outputs`。`semantic_governance` 在正式模型、代码、返回工作簿和下游交付前检查当前题意口径、语义闭环、复杂度复审和跨问 stale；`project_sync` 是正式产物交付的 utility gate，按 exact scope 检查产物、工作簿、图表链和哈希，不得自动把质量门或分析状态提升为 passed。
 
-默认不由助手运行赛题主求解或结果深化分析程序。助手交付题目专属完整版代码、嵌入式完整运行配置和聊天内运行说明，用户运行后返回标准工作簿；工作簿通过运行配置、代码/数据哈希和质量门验收后，工作流才继续。禁止自动降采样、粗网格、短时域、少重复、宽容差、静默求解器 fallback 或用轻量结果代替正式结果。
+赛题主求解与结果深化分析程序的执行权、完整运行配置和禁止降采样/粗网格/短时域/少重复/宽容差/静默求解器 fallback 等规则，以 `core/user_execution_contract.yaml` 为唯一事实源；活动路由文档不再复制旧版本执行条款。
