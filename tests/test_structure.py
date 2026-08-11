@@ -20,7 +20,6 @@ ACTIVE_TEXT_DIRS = (
 )
 TEXT_SUFFIXES = {".md", ".yaml", ".yml", ".json", ".py", ".m", ".tex", ".bib"}
 OBSOLETE_ROOT_ARTIFACTS = (
-    "CHANGELOG_V621.md",
     "HSK_RUNTIME_ROUTER_V621.md",
     "HSK_SKILL_FILE_INDEX_V621.md",
     "HSK_TEMPLATE_INDEX_V621.md",
@@ -118,6 +117,10 @@ class TestStructure(unittest.TestCase):
     def test_obsolete_v621_root_artifacts_are_removed(self):
         for relative in OBSOLETE_ROOT_ARTIFACTS:
             self.assertFalse((ROOT / relative).exists(), relative)
+
+    def test_versioned_root_changelogs_are_removed(self):
+        stale = sorted(path.name for path in ROOT.glob("CHANGELOG_V*.md") if path.is_file())
+        self.assertEqual(stale, [])
 
     def test_active_files_do_not_reference_v621(self):
         stale = re.compile(r"\bv6\.2\.1\b|\bV621\b", flags=re.IGNORECASE)
