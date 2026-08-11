@@ -1,7 +1,7 @@
 {
   "name": "mathmodel-skill",
-  "version": "7.0.1",
-  "description": "HSK lightweight-bootstrap mathematical-modeling workflow with full-fidelity user execution, separate primary/result-analysis Python stages, code-quality enforcement, explicit numerical quality gates, MATLAB evidence figures and LaTeX-first authoring.",
+  "version": "7.1.0",
+  "description": "HSK lightweight-bootstrap mathematical-modeling workflow with Problem Contract freezing, semantic closure, complexity sanity checks, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, code-quality enforcement, MATLAB evidence figures and LaTeX-first authoring.",
   "author": {
     "name": "HSK"
   },
@@ -12,6 +12,7 @@
     "mcm",
     "icm",
     "matlab",
+    "semantic-governance",
     "code-quality",
     "result-analysis",
     "project-sync"
@@ -19,7 +20,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "HSK 数学建模 Skill",
-    "shortDescription": "双阶段Python、代码质量门、主结果质量门、MATLAB证据图、LaTeX直写",
+    "shortDescription": "题意冻结、语义闭环、复杂度复审、双阶段Python、MATLAB证据图、LaTeX直写",
     "category": "Education",
     "capabilities": [
       "Interactive",
