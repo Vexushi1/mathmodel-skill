@@ -10,6 +10,13 @@
 - Kept the v7.0 five-file per-question layout unchanged and added no new user-visible project report file; semantic governance results remain in chat/stdout, current semantics remain in `模型论文框架.md`, and machine revision/freshness state remains in `state/project_state.yaml`.
 - Preserved read compatibility for v7.0.x projects without semantic-governance fields; projects migrate when they re-enter problem audit/model design.
 
+### Repository maintenance
+
+- Consolidated active release history into this `CHANGELOG.md`; root-level versioned release-note files are no longer part of the active Skill surface.
+- Removed the superseded `CHANGELOG_V630.md`, `CHANGELOG_V632.md`, `CHANGELOG_V633.md` and `CHANGELOG_V634.md` root artifacts after their release history had already been summarized here and remained available through Git history.
+- Repository lint and structure tests now reject any future root-level `CHANGELOG_V*.md`, preventing historical release notes from becoming accidental runtime or CI dependencies again.
+- Kept the four V622 compatibility pointer documents because `core/bootstrap.yaml` still explicitly promises legacy document-pointer compatibility.
+
 ## Previous release: 7.0.1
 
 - Preserved `primary_execution_status=accepted` when an accepted primary script is revalidated without a hash change, so the standard unscoped code-delivery gate can safely inspect both stage scripts.
@@ -116,4 +123,4 @@
 
 ## Previous releases
 
-See the versioned changelog files and `legacy/README.md` for v6.2.x and earlier history.
+Use this file and Git history for release chronology; `legacy/README.md` documents compatibility-era material that is intentionally outside the active runtime.
