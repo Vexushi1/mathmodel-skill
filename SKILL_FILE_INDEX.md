@@ -12,7 +12,6 @@
 - `.gitignore`
 - `AGENTS.md`
 - `CHANGELOG.md`
-- `CHANGELOG_V622.md`
 - `CHANGELOG_V630.md`
 - `CHANGELOG_V632.md`
 - `CHANGELOG_V633.md`
