@@ -1,4 +1,4 @@
-version: 7.0.1
+version: 7.1.0
 bootstrap: core/bootstrap.yaml
 default_load:
 - core/hsk_core_policy.md
@@ -15,16 +15,20 @@ classification_contract:
   task_pack_budget: 3
 execution_contract:
   workflow_order: [problem_audit, model_design, solve_validate, result_analysis, figure_evidence, writing_latex, ai_cleanup, latex_compile_quality, review_delivery, writing_docx]
-  formal_delivery_gates: [project_sync]
+  formal_delivery_gates: [semantic_governance, project_sync]
+  code_stage_gates: [semantic_governance, code_delivery]
+  returned_workbook_gates: [semantic_governance, user_execution_receipt]
   task_code_execution_allowed: false
   rules:
   - Stop after the last module required by the user deliverable.
   - Never manufacture downstream artifacts when gate inputs are missing.
+  - Problem Contract, semantic closure and complexity sanity must pass before any formal model or code delivery.
   - Generate full-fidelity task code and stop at awaiting_user_execution; never execute task-specific solve or analysis code.
   - Primary user-produced workbook must be accepted before final result-analysis code is generated.
   - Accepted primary workbooks freeze the primary solve script; result-analysis code is a separate stage-specific Python file.
   - Accepted result-analysis workbooks precede figures and writing.
   - Result analysis may send the workflow back to model_design or solve_validate when the locked result is not stable enough.
+  - Semantic changes must propagate stale through typed cross-question dependencies before downstream work continues.
   - Merge multiple intents in workflow order and remove duplicate modules, packs and outputs.
   - Reuse current project state, framework and artifacts before recomputing.
   - A gate output is available only after the gate executes successfully.
@@ -37,14 +41,14 @@ routing:
     then: [modules/02_model_design.md]
     load_classified_task_packs: true
     load_competition_pack: true
-    terminal_outputs: [requirement_map, route_comparison, selected_models, locked_model_spec, formula_closure, validation_plan, model_paper_framework]
+    terminal_outputs: [requirement_map, problem_contract, route_comparison, selected_models, locked_model_spec, formula_closure, semantic_closure, complexity_sanity_check, validation_plan, model_paper_framework]
     formal_delivery: true
     delivery_scope: design
   framework_sync:
     triggers: [模型论文框架, 框架同步, 结果摘要, 模型变更同步, 参数变更同步, 约束变更同步]
     infer_keywords: [模型论文框架, 框架同步, 更新框架, 同步结果摘要]
     load: [modules/02_model_design.md, templates/model/model_paper_framework.md]
-    terminal_outputs: [model_paper_framework]
+    terminal_outputs: [model_paper_framework, semantic_closure, complexity_sanity_check]
     formal_delivery: true
     delivery_scope: design
   project_sync:
@@ -58,7 +62,7 @@ routing:
     infer_keywords: [命题证明, 等价性证明, 可行性证明, 单调性证明, 误差界, 引理, 推论]
     load: [modules/02_model_design.md, templates/model/model_paper_framework.md]
     load_proposition_pack: true
-    terminal_outputs: [formula_closure, proposition_plan, model_paper_framework]
+    terminal_outputs: [formula_closure, semantic_closure, proposition_plan, model_paper_framework]
     formal_delivery: true
     delivery_scope: design
   full_solution:
@@ -69,7 +73,7 @@ routing:
     load_classified_task_packs: true
     load_competition_pack: true
     terminal_outputs: [python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, proposition_plan, model_paper_framework]
-    pre_delivery_gates: [code_delivery]
+    pre_delivery_gates: [semantic_governance, code_delivery]
     formal_delivery: false
     delivery_scope: code
     pause_for_user_execution: true
@@ -81,7 +85,7 @@ routing:
     load_classified_task_packs: true
     load_competition_pack: true
     terminal_outputs: [python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
-    pre_delivery_gates: [code_delivery]
+    pre_delivery_gates: [semantic_governance, code_delivery]
     formal_delivery: false
     delivery_scope: code
     pause_for_user_execution: true
@@ -89,14 +93,14 @@ routing:
     triggers: [审题, 问题理解, 题目拆解, 设问意图, 命题意图]
     infer_keywords: [审题, 问题理解, 题目拆解, 设问意图]
     load: [modules/01_problem_audit.md, packs/task/classifier.md]
-    terminal_outputs: [requirement_map, subproblem_map, classification_by_subproblem, data_schema]
+    terminal_outputs: [requirement_map, subproblem_map, problem_contract, classification_by_subproblem, data_schema]
     formal_delivery: false
   model_selection:
     triggers: [模型比较, 建模路线, 变量, 假设, 公式, 目标函数, 约束]
     infer_keywords: [模型比较, 建模路线, 变量, 假设, 公式, 目标函数, 约束]
     load: [modules/02_model_design.md, packs/task/classifier.md]
     load_classified_task_packs: true
-    terminal_outputs: [route_comparison, selected_models, locked_model_spec, formula_closure, proposition_plan, validation_plan, model_paper_framework]
+    terminal_outputs: [route_comparison, selected_models, locked_model_spec, formula_closure, semantic_closure, complexity_sanity_check, proposition_plan, validation_plan, model_paper_framework]
     formal_delivery: true
     delivery_scope: design
   advanced_method:
@@ -104,7 +108,7 @@ routing:
     infer_keywords: [W-DRO, CVaR, MPEC, Stackelberg, ALNS, GNN, 空间杜宾, DML, 强化学习, 深度学习]
     load: [modules/02_model_design.md, packs/task/advanced_method_gate.md, packs/task/classifier.md]
     load_classified_task_packs: true
-    terminal_outputs: [route_comparison, selected_models, locked_model_spec, validation_plan, proposition_plan, model_paper_framework]
+    terminal_outputs: [route_comparison, selected_models, locked_model_spec, semantic_closure, complexity_sanity_check, validation_plan, proposition_plan, model_paper_framework]
     formal_delivery: true
     delivery_scope: design
   code_and_solution:
@@ -113,7 +117,7 @@ routing:
     load: [modules/03_solve_validate.md, packs/artifact/code.md, packs/task/classifier.md]
     load_classified_task_packs: true
     terminal_outputs: [python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
-    pre_delivery_gates: [code_delivery]
+    pre_delivery_gates: [semantic_governance, code_delivery]
     formal_delivery: false
     delivery_scope: code
     pause_for_user_execution: true
@@ -123,7 +127,7 @@ routing:
     load: [modules/03_result_analysis.md, packs/artifact/code.md, packs/task/classifier.md]
     load_classified_task_packs: true
     terminal_outputs: [result_analysis_plan, result_analysis_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
-    pre_delivery_gates: [code_delivery]
+    pre_delivery_gates: [semantic_governance, code_delivery]
     formal_delivery: false
     delivery_scope: code
     pause_for_user_execution: true
@@ -131,8 +135,8 @@ routing:
     triggers: [返回工作簿, 验收工作簿, 校验求解结果, 校验结果深化分析, 本地运行完成]
     infer_keywords: [返回工作簿, 验收工作簿, 本地运行完成, 校验求解结果]
     load: [scripts/validate_user_execution.py]
-    pre_delivery_gates: [user_execution_receipt]
-    terminal_outputs: [user_execution_validation_report, project_state]
+    pre_delivery_gates: [semantic_governance, user_execution_receipt]
+    terminal_outputs: [semantic_governance_report, user_execution_validation_report, project_state]
     formal_delivery: false
   validation:
     triggers: [检验, 多算法, 全局最优, 敏感性, 鲁棒性, 误差, 稳健性]
@@ -140,7 +144,7 @@ routing:
     load: [modules/03_result_analysis.md, packs/task/classifier.md]
     load_classified_task_packs: true
     terminal_outputs: [result_analysis_code, full_run_config, execution_instructions, awaiting_user_execution, model_paper_framework]
-    pre_delivery_gates: [code_delivery]
+    pre_delivery_gates: [semantic_governance, code_delivery]
     formal_delivery: false
     delivery_scope: code
     pause_for_user_execution: true
@@ -185,10 +189,12 @@ routing:
 multi_intent_policy:
 - Merge modules in workflow order and remove duplicates.
 - Merge terminal outputs without dropping model_paper_framework for formal deliveries.
+- Semantic governance precedes formal design, code delivery, workbook acceptance and downstream project synchronization.
 - Code delivery and returned-workbook validation use dedicated gates that never execute task code.
 - Primary code delivery pauses for user execution; accepted primary workbooks freeze the primary script and precede separate result-analysis code delivery.
 - Accepted result-analysis workbooks precede figures and writing.
 - Result-analysis failure may route back to model design or primary solving.
+- Semantic changes propagate stale through typed cross-question dependencies before any downstream reuse.
 - Figures precede final writing insertion; AI cleanup precedes LaTeX compilation.
 - Proposition details are loaded only for explicit proof requests or a nonzero proposition plan.
 - Project synchronization is a utility gate and does not promote quality or validation success.
