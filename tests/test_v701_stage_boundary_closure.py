@@ -222,7 +222,8 @@ class TestV701StageBoundaryClosure(unittest.TestCase):
     def test_resolver_docstring_uses_current_release(self):
         text = (ROOT / "scripts/resolve_workflow.py").read_text(encoding="utf-8")
         self.assertNotIn("v6.6.0 execution plan", text)
-        self.assertIn("v7.0.1 execution plan", text)
+        self.assertNotIn("v7.0.1 execution plan", text)
+        self.assertIn("v7.1.0 execution plan", text)
 
 
 if __name__ == "__main__":

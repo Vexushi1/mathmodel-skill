@@ -13,19 +13,26 @@ class TestSchemas(unittest.TestCase):
         example = yaml.safe_load((ROOT / "state/project_state.example.yaml").read_text(encoding="utf-8"))
         Draft202012Validator.check_schema(schema)
         self.assertEqual(list(Draft202012Validator(schema).iter_errors(example)), [])
+        self.assertEqual(example["semantic_governance_version"], "1.0.0")
 
     def test_classification_has_single_capability_source_and_split_status(self):
         schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
         defs = schema["$defs"]
-        self.assertEqual(schema["version"], "7.0.1")
+        self.assertEqual(schema["version"], "7.1.0")
         self.assertEqual(set(defs["classification"]["required"]), {"objective", "structures"})
+        self.assertEqual(set(defs["dependency_kind"]["enum"]), {"data", "parameter", "model", "result"})
         subproblems = schema["properties"]["subproblems"]
         sub_required = set(subproblems["additionalProperties"]["required"])
         self.assertEqual(subproblems["minProperties"], 1)
         for name in ("capabilities", "result_quality_status", "result_analysis_status"):
             self.assertIn(name, sub_required)
         fields = subproblems["additionalProperties"]["properties"]
-        for name in ("code", "result_analysis_code", "primary_code_sha256", "analysis_code_sha256"):
+        for name in (
+            "code", "result_analysis_code", "primary_code_sha256", "analysis_code_sha256",
+            "depends_on", "problem_contract_status", "semantic_closure_status",
+            "complexity_sanity_status", "semantic_revision", "semantic_change_categories",
+            "semantic_hash", "validated_semantic_hash",
+        ):
             self.assertIn(name, fields)
         phases = set(schema["properties"]["project"]["properties"]["current_phase"]["enum"])
         statuses = set(subproblems["additionalProperties"]["properties"]["status"]["enum"])
@@ -60,9 +67,11 @@ class TestSchemas(unittest.TestCase):
 
     def test_output_contract_defines_split_result_policy(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(contract["version"], "7.0.1")
+        self.assertEqual(contract["version"], "7.1.0")
         self.assertEqual(contract["code_quality_contract"], "core/code_quality_contract.yaml")
-        self.assertEqual(contract["project_sync"]["role"], "formal_pre_delivery_gate")
+        self.assertEqual(contract["semantic_governance"]["script"], "scripts/validate_semantic_governance.py")
+        self.assertEqual(contract["semantic_governance"]["dependency_kinds"], ["data", "parameter", "model", "result"])
+        self.assertEqual(contract["project_sync"]["role"], "formal_pre_delivery_gate_after_semantic_governance")
         self.assertEqual(contract["project_sync"]["stage_requirements_semantics"], "exact_scope")
         self.assertEqual(contract["project_sync"]["implicit_phase_sync_semantics"], "status_minimum_only")
         self.assertTrue(contract["project_sync"]["formal_scope_requires_explicit_flag"])
@@ -89,10 +98,7 @@ class TestSchemas(unittest.TestCase):
         self.assertEqual(set(per_question["mandatory_workbooks"]), {"solution", "result_analysis"})
         self.assertEqual(per_question["question_directory"], "问题{中文序号}求解/")
         self.assertEqual(len(per_question["exact_default_files"]), 5)
-        self.assertEqual(
-            set(per_question["python_scripts"]),
-            {"primary", "result_analysis"},
-        )
+        self.assertEqual(set(per_question["python_scripts"]), {"primary", "result_analysis"})
         self.assertNotIn("single_python_update_policy", per_question)
         self.assertTrue(per_question["no_auxiliary_files_by_default"])
         self.assertEqual(contract["writing_policy"]["default_mode"], "latex_first")

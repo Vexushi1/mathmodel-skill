@@ -1,5 +1,5 @@
 version: 2.0.0
-skill_version: 7.0.1
+skill_version: 7.1.0
 purpose: 定义用户本地完整版数值执行链；每问主求解与结果深化分析使用两个独立Python脚本，主求解脚本在主工作簿验收后冻结。
 default_mode:
   execution_owner: user
@@ -26,6 +26,7 @@ full_fidelity_flags:
   allow_relaxed_tolerance: false
   allow_silent_solver_fallback: false
 code_delivery:
+  semantic_governance_required: true
   code_quality_contract: core/code_quality_contract.yaml
   stage_scripts:
     primary: 问题X求解/问题X求解.py
@@ -87,6 +88,7 @@ execution_states:
   - analysis_execution_status=accepted且结论稳定性校验通过后，status才可进入analyzed。
   - 主工作簿未验收前不得生成最终结果深化分析脚本；只能形成候选分析方向。
 returned_workbook:
+  semantic_governance_required: true
   required_sheet: 运行配置
   required_columns:
   - 项目
@@ -115,6 +117,7 @@ returned_workbook:
   - allow_relaxed_tolerance
   - allow_silent_solver_fallback
   acceptance_rules:
+  - 当前Problem Contract、语义闭环与复杂度复审必须先通过semantic_governance gate。
   - execution_owner必须为user。
   - execution_profile必须为full_fidelity。
   - 所有缩减、放宽和静默回退标志必须为false。
@@ -133,5 +136,6 @@ filenames:
   legacy_result_directory: 结果数据表/问题X/
   validation_reports: 仅在聊天或标准输出返回，不写入用户项目
 legacy_compatibility:
+  v7_0_semantic_governance_fields: read_only_until_redesign
   v6_6_single_evolving_script: read_only
-  rule: 旧项目只有问题X求解.py时可继续读取已有产物；新生成或重新深化分析时迁移为独立问题X结果深化分析.py。
+  rule: 旧项目可继续读取已有产物；重新进入审题/模型设计时补齐语义治理字段，重新深化分析时使用独立问题X结果深化分析.py。
