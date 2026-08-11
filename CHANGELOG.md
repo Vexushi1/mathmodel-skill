@@ -1,6 +1,16 @@
 # Changelog
 
-## Current release: 7.0.1
+## Current release: 7.1.0
+
+- Added a mandatory per-question Problem Contract that freezes original/derived objects, known/computable quantities, decision/state/output variables, explicit/implicit constraints, forbidden assumptions, data roles and typed cross-question dependencies before model design.
+- Upgraded formula closure to a four-link semantic chain: problem statement and objects -> mathematical variables/formulas/objective/constraints -> Python variables/functions -> workbook outputs or validation evidence.
+- Added `scripts/validate_semantic_governance.py` as a non-executing gate for Problem Contract status, semantic closure, Complexity Sanity Check, semantic revisions and current semantic hashes.
+- Added `semantic_revision`, explicit semantic change categories and dependency-aware recursive stale propagation. Changes to problem interpretation, data scope, variables, parameters, assumptions, objectives, constraints, preprocessing, algorithm semantics or dependencies now invalidate the affected question and recursively dependent questions before new semantics are accepted.
+- Added Complexity Sanity Check signals for unused conditions/attachments, unexplained dimensional collapse or decoupling, dynamic-to-static or multi-agent-to-independent collapse, inactive key constraints, downstream-copy behavior and implausibly easy computation. `review_required` blocks model/code delivery.
+- Kept the v7.0 five-file per-question layout unchanged and added no new user-visible project report file; semantic governance results remain in chat/stdout, current semantics remain in `模型论文框架.md`, and machine revision/freshness state remains in `state/project_state.yaml`.
+- Preserved read compatibility for v7.0.x projects without semantic-governance fields; projects migrate when they re-enter problem audit/model design.
+
+## Previous release: 7.0.1
 
 - Preserved `primary_execution_status=accepted` when an accepted primary script is revalidated without a hash change, so the standard unscoped code-delivery gate can safely inspect both stage scripts.
 - Bound returned-workbook acceptance to the actual path, exact standard filename, derived problem and derived stage before runtime evidence can mutate project state.
