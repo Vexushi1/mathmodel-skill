@@ -1,4 +1,4 @@
-skill_version: 7.0.1
+skill_version: 7.1.0
 bootstrap_schema_version: 1.1.0
 purpose: Minimal startup contract for the HSK mathematical-modeling workflow. Read this file first, then use scripts/resolve_workflow.py to obtain the deterministic task-specific execution plan. Do not preload the whole repository.
 authoritative_sources:
@@ -11,9 +11,14 @@ authoritative_sources:
   output: core/output_contract.yaml
   user_execution: core/user_execution_contract.yaml
   code_quality: core/code_quality_contract.yaml
+  semantic_governance: scripts/validate_semantic_governance.py
 hard_invariants:
 - 题意正确优先于模型高级、代码复杂和排版炫技。
-- 先审题与锁定模型，再完整求解；不得用后续分析弥补主结果精度、收敛或可行性不足。
+- 每问先冻结Problem Contract，明确原始/派生对象、已知/可计算量、决策/状态/输出量、显式/隐含约束、禁止假设、数据角色和typed dependencies。
+- 题面对象与要求、数学变量/公式/目标/约束、Python变量/函数和工作簿输出必须形成三层语义闭环；存在关键gap时不得交付代码。
+- 复杂赛题出现异常降维、异常解耦、条件或附件大量闲置、关键约束长期不生效或计算异常容易时，必须完成Complexity Sanity Check；review_required禁止求解。
+- 题意、数据口径、变量、参数、假设、目标、约束、预处理、算法语义或小问依赖变化时必须递增semantic_revision，并按data/parameter/model/result依赖递归传播stale。
+- 先审题与锁定模型，再完整求解；不得用后续分析弥补主结果精度、收敛、可行性或语义不足。
 - 主求解必须通过独立质量门，随后才按题目风险选择敏感性、鲁棒性、多算法、结构、阈值、异质性或其他结果深化分析。
 - 结果深化分析发现主结论不可靠时，必须标记下游stale并回退模型设计或主求解。
 - 新项目默认由用户本地执行完整版主求解与结果深化代码；助手只生成代码、静态校验和验收返回工作簿，不得运行赛题代码。
@@ -23,13 +28,14 @@ hard_invariants:
 - 两个正式问题脚本都必须通过core/code_quality_contract.yaml定义的代码工程质量门。
 - 默认写作链在结果与图表锁定后直接进入LaTeX；DOCX仅由用户显式请求触发，且不是LaTeX前置。
 - locked_model_spec形成后维护项目根目录当前版模型论文框架.md；旧版本由Git历史保存。
-- 每次正式产物交付前执行解析器返回的project_sync gate，先校验项目状态与模型论文框架，再按Output Contract的exact scope检查产物。
-- project_sync只允许设置或保持stale；清除stale必须由主结果质量门或结果深化分析流程在完整验证哈希覆盖后显式完成。
+- 正式模型/代码/返回工作簿/下游交付前先执行semantic_governance gate；正式产物交付再执行解析器返回的project_sync gate。
+- semantic_governance只允许接受当前语义哈希和设置/传播stale，不得恢复旧数值结果；project_sync只允许设置或保持产物stale。
 - 顶层subproblem.capabilities是唯一能力事实源；旧别名只能兼容读取且必须一致。
 - DOCX、LaTeX与提交scope必须检查真实交付文件，不得以框架或状态文件替代。
 - legacy目录不参与默认执行。
 entrypoints:
   resolve: python scripts/resolve_workflow.py
+  semantic_governance: python scripts/validate_semantic_governance.py
   sync: python scripts/sync_project.py
   validate_state: python scripts/validate_project_state.py
   validate_framework: python scripts/validate_model_paper_framework.py
@@ -50,6 +56,7 @@ compatibility:
   deprecated_classification_capabilities_supported: true
   deprecated_problem_types_supported: true
   legacy_robustness_workbook_read_supported: true
+  v7_0_semantic_governance_fields_optional_for_read: true
   v6_6_single_script_question_folders_read_supported: true
   versionless_active_documents:
   - PROJECT_INSTRUCTIONS.md
