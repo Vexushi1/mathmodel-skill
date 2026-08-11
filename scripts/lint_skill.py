@@ -17,7 +17,6 @@ ROOT = Path(__file__).resolve().parent.parent
 PACKAGE_VERSION = "7.1.0"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
-    "CHANGELOG_V634.md", "CHANGELOG_V633.md", "CHANGELOG_V632.md", "CHANGELOG_V630.md",
     "PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",
     "PROJECT_INSTRUCTIONS_HSK_V622.md", "HSK_RUNTIME_ROUTER_V622.md",
     "HSK_SKILL_FILE_INDEX_V622.md", "HSK_TEMPLATE_INDEX_V622.md",
@@ -78,6 +77,15 @@ def check_required(errors: list[str]) -> None:
     for relative in REQUIRED:
         if not (ROOT / relative).is_file():
             errors.append(f"missing required: {relative}")
+
+
+def check_root_release_note_hygiene(errors: list[str]) -> None:
+    stale = sorted(path.name for path in ROOT.glob("CHANGELOG_V*.md") if path.is_file())
+    if stale:
+        errors.append(
+            "versioned root changelogs are forbidden; keep active release history in CHANGELOG.md "
+            f"and use Git history/legacy for archival material: {', '.join(stale)}"
+        )
 
 
 def check_versions(errors: list[str]) -> None:
@@ -491,8 +499,8 @@ def main() -> int:
     args = parser.parse_args()
     errors: list[str] = []
     checks = (
-        check_required, check_versions, check_bootstrap_and_governance, check_taxonomy,
-        check_router, check_manifest, check_contracts, check_project_state_and_framework,
+        check_required, check_root_release_note_hygiene, check_versions, check_bootstrap_and_governance,
+        check_taxonomy, check_router, check_manifest, check_contracts, check_project_state_and_framework,
         check_templates, check_syntax,
     )
     for check in checks:
