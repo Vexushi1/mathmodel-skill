@@ -38,6 +38,7 @@
 - `templates/latex/mcm/main.tex`
 - `templates/latex/mcm/references.bib`
 - `templates/matlab/README.md`
+- `templates/matlab/data_process.m`
 - `templates/matlab/draw_mechanism_structure.m`
 - `templates/matlab/hsk_apply_scientific_style.m`
 - `templates/matlab/hsk_read_result_workbooks.m`

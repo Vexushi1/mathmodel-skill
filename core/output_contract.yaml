@@ -1,4 +1,4 @@
-version: 7.2.2
+version: 7.2.3
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 user_execution_contract: core/user_execution_contract.yaml
@@ -7,7 +7,7 @@ bootstrap: core/bootstrap.yaml
 taxonomy: core/task_taxonomy.yaml
 project_root:
   problem_and_attachments: 赛题、附件数据表和说明文件直接放在项目根目录
-  preprocessing_outputs: 仅preprocessing_decision=project_level时创建数据预处理/
+  preprocessing_outputs: 仅preprocessing_decision=project_level时创建数据预处理/；最终包含数据预处理.py、数据预处理结果.xlsx和data_process.m
   model_paper_framework: 模型论文框架.md
   project_state: state/project_state.yaml
   sync_report: sync_report.yaml
@@ -39,6 +39,9 @@ execution_policy:
   preprocessing_decision_required_before_solve: true
   preprocessing_required_before_solve_when_decision: project_level
   shared_data_alone_does_not_require_preprocessing: true
+  preprocessing_paper_evidence_required_when_operations_nonempty: true
+  preprocessing_matlab_required_for_project_level_figures: true
+  preprocessing_matlab_filename: data_process.m
   analysis_code_requires_primary_workbook_accepted: true
   primary_code_freezes_after_acceptance: true
   full_fidelity_flags_must_be_false:
@@ -113,8 +116,9 @@ semantic_governance:
     migration_trigger: 旧项目重新进入problem_audit、model_design或solve_validate时先补齐preprocessing_decision；只有判为project_level才迁移到统一预处理结构
 result_policy:
   preprocessing_decision_role: 所有数据项目先判断原始数据是否可直接建模、是否仅需本问局部变换、或是否确需项目级公共处理
-  preprocessing_role: 仅decision=project_level时一次性完成共享原始数据审计与有依据的公共处理，形成依赖小问的数据入口
+  preprocessing_role: 仅decision=project_level时一次性完成共享原始数据审计与有依据的公共处理，形成依赖小问的数据入口，并持久化论文数学方法、验证和data_process绘图底层证据
   preprocessing_quality_gate_required_when: preprocessing_decision == project_level
+  preprocessing_paper_chain: 问题证据 -> 数学公式/定义 -> 参数依据 -> 方法验证 -> 处理前后证据 -> data_process或qX_plot图 -> 后续模型接口
   primary_solve_role: 在当前题意、当前数据事实源和模型口径下得到高精度、可行、收敛且可复算的主结果
   primary_quality_gate_required: true
   failed_quality_evidence_persisted: true
@@ -131,7 +135,7 @@ model_paper_framework:
   path: 模型论文框架.md
   template: templates/model/model_paper_framework.md
   create_after: locked_model_spec
-  role: 当前有效题意口径、preprocessing_decision、数据事实源、模型语义、三层闭环、复杂度复审、论文结构、命题规划、逐问主结果与深化分析摘要和图表映射
+  role: 当前有效题意口径、preprocessing_decision、数据事实源、预处理公式/验证/图证据、模型语义、三层闭环、复杂度复审、论文结构、命题规划、逐问主结果与深化分析摘要和图表映射
   modes:
     compact:
       use_when: 日常迭代、单问交付、普通聊天续作
@@ -165,6 +169,7 @@ model_paper_framework:
     model_semantics_and_paper_structure: 模型论文框架.md
     preprocessing_decision_and_active_data_source: state/project_state.yaml + core/global_preprocessing_contract.yaml
     preprocessing_workbook_when_project_level: 数据预处理结果.xlsx
+    preprocessing_figure_script_when_project_level: 数据预处理/data_process.m
     semantic_revision_dependency_hash_and_freshness: state/project_state.yaml
     numerical_results: 主求解工作簿与结果深化分析工作簿
 project_sync:
@@ -261,18 +266,19 @@ project_sync:
       condition: preprocessing_decision == project_level
       code: [preprocessing_code, preprocessing_workbook]
       results: [preprocessing_workbook]
-      figures: [preprocessing_workbook]
-      docx: [preprocessing_workbook]
-      latex: [preprocessing_workbook]
-      submission: [preprocessing_workbook]
+      figures: [preprocessing_workbook, preprocessing_matlab_script]
+      docx: [preprocessing_workbook, preprocessing_matlab_script]
+      latex: [preprocessing_workbook, preprocessing_matlab_script]
+      submission: [preprocessing_workbook, preprocessing_matlab_script]
     preprocessing_decision_not_needed_or_question_local:
       condition: preprocessing_decision in [not_needed, question_local]
-      forbidden_required_artifacts: [preprocessing_code, preprocessing_workbook]
+      forbidden_required_artifacts: [preprocessing_code, preprocessing_workbook, preprocessing_matlab_script]
   artifact_hash_layers:
   - raw_data
   - preprocessing_decision
   - preprocessing_code
   - preprocessing_workbook
+  - preprocessing_matlab_script
   - model
   - solution_workbook
   - result_analysis_workbook
@@ -282,6 +288,7 @@ project_sync:
   stale_propagation:
     raw_data:
     - preprocessing_workbook
+    - preprocessing_matlab_script
     - solution_workbook
     - result_quality
     - result_analysis_workbook
@@ -290,6 +297,7 @@ project_sync:
     - figure_bundle
     - result_summary
     preprocessing_decision_or_project_level_preprocessing:
+    - preprocessing_matlab_script
     - solution_workbook
     - result_quality
     - result_analysis_workbook
@@ -305,6 +313,18 @@ project_sync:
     - matlab_script
     - figure_bundle
     - result_summary
+    preprocessing_workbook:
+    - preprocessing_matlab_script
+    - solution_workbook
+    - result_quality
+    - result_analysis_workbook
+    - result_analysis
+    - matlab_script
+    - figure_bundle
+    - result_summary
+    preprocessing_matlab_script:
+    - figure_bundle
+    - paper_figure_evidence
     primary_code:
     - solution_workbook
     - result_quality
@@ -339,7 +359,7 @@ project_sync:
   write_order:
   - 读取preprocessing_decision并按当前数据事实源发现项目级可选预处理产物与每问产物
   - 执行工作簿与图表链检查
-  - 计算当前分层哈希并比较已验证哈希、条件式预处理哈希和两阶段小问代码哈希
+  - 计算当前分层哈希并比较已验证哈希、条件式预处理哈希、data_process哈希和两阶段小问代码哈希
   - 传播stale并更新框架头部
   - 重新计算最终框架哈希
   - 写入project_state
@@ -348,14 +368,15 @@ project_sync:
   responsibilities:
   - 正式交付前先由semantic_governance检查当前模型语义、preprocessing_decision和跨问失效传播
   - 进入产物同步前强制执行项目状态Schema/语义校验与模型论文框架校验
-  - decision=project_level时发现数据预处理目录中的统一预处理Python与工作簿；其他状态不得因缺少该目录报错
+  - decision=project_level时发现数据预处理目录中的统一预处理Python、工作簿和图表阶段data_process.m；其他状态不得因缺少该目录报错
   - 发现每问问题X求解目录中的主求解Python、结果深化分析Python、两类工作簿和qX_plot.m
   - 只有decision=project_level时检查依赖下游脚本不得再次直接读取对应共享原始数据源
   - 复用工作簿Schema检查工作表、字段、capability条件、主键、非有限数值和约束判定
   - 普通阶段同步按小问status检查最低产物；只有显式delivery scope执行正式交付全量门槛
   - 正式交付按decision条件核对预处理质量，再核对主结果质量、分析状态为passed以及下游产物非stale
-  - 核对MATLAB只读取其实际需要的数据事实源和标准工作簿，不要求所有脚本强制引用统一预处理工作簿
-  - project_level时统一预处理脚本/工作簿哈希绑定依赖数据链；not_needed/question_local时以原始数据哈希作为数据事实源
+  - project_level进入figures及后续scope时必须核对data_process.m存在、引用数据预处理结果.xlsx且不重新执行预处理；question_local需要局部处理图时由qX_plot.m承接
+  - 核对MATLAB只读取其实际需要的数据事实源和标准工作簿，不要求所有qX_plot.m强制引用统一预处理工作簿
+  - project_level时统一预处理脚本/工作簿哈希绑定依赖数据链，data_process.m只影响预处理图表/论文层；not_needed/question_local时以原始数据哈希作为数据事实源
   - 主求解脚本哈希与本问主结果链绑定；深化分析脚本哈希只影响本问深化工作簿及其下游
   - 当已验证哈希变化时按实际依赖证据链传播stale
   - 只允许设置或保持stale；清除stale必须由适用的数据质量门、主结果质量门或结果分析流程显式完成
@@ -366,12 +387,13 @@ project_sync:
   - 自动清除artifacts_stale或stale_layers
   - 自动填写结果数值
   - 自动把preprocessing_quality_status、result_quality_status或result_analysis_status提升为passed
-  - 以文件存在代替数据质量、可行性、精度或稳定性验证
+  - 以文件存在代替数据质量、可行性、精度、预处理验证或稳定性验证
   artifact_hash_semantics:
     global_framework: paper_framework.sha256记录完整模型论文框架文件哈希
     preprocessing_decision: 项目级预处理判定本身属于数据/模型语义层
     preprocessing_code: 仅project_level时绑定依赖共享数据下游
-    preprocessing_workbook: 仅project_level时作为依赖小问数据哈希事实源
+    preprocessing_workbook: 仅project_level时作为依赖小问数据哈希事实源，同时保存论文/图证据底层数据
+    preprocessing_matlab_script: data_process.m只影响预处理图表与论文证据层，不改变已验收数值数据事实源
     subproblem_framework: subproblem.artifact_hashes.framework记录framework_section对应章节哈希
     primary_code: subproblem.primary_code_sha256记录已交付主求解脚本哈希
     analysis_code: subproblem.analysis_code_sha256记录已交付结果深化分析脚本哈希
@@ -383,6 +405,8 @@ project_sync:
     fallback: 仅扫描根目录数据型文件，不包含PDF、DOCX、ZIP和正式交付目录
   figure_provenance:
     default: 不生成独立figure_evidence文件
+    project_level_preprocessing: 数据预处理结果.xlsx -> data_process.m -> 预处理证据图 -> LaTeX正文结论
+    per_question: 问题X标准工作簿 -> qX_plot.m -> 结果图 -> LaTeX正文结论
     legacy_read_compatibility: 结果数据表/问题X/figure_evidence.yaml
     mtime_role: 仅作辅助警告，不作为主要判定
 classification_contract:
@@ -422,22 +446,25 @@ proposition_contract:
   - failure_boundary
   - status
   hard_rules:
-  - 命题必须实际服务问题简化、模型必要性、关键点识别、降维、约束删减、可行性保持或理论边界。
+  - 命题必须实际服务问题简化、模型必要性、关键点识别、降维、约束删减、可行性保持、预处理等价性/误差界或理论边界。
   - 数值实验、准确率比较和求解器退出状态不能替代数学证明。
-  - 模型、参数、约束或定义域变化后必须重新检查相关证明。
+  - 模型、预处理、参数、约束或定义域变化后必须重新检查相关证明。
 global_preprocessing:
   contract: core/global_preprocessing_contract.yaml
   activation: preprocessing_decision == project_level
   directory: 数据预处理/
   python_script: 数据预处理.py
   workbook: 数据预处理结果.xlsx
+  matlab_script: data_process.m
   exact_default_files:
   - 数据预处理.py
   - 数据预处理结果.xlsx
+  - data_process.m
   no_auxiliary_files_by_default: true
   raw_data_reader_exclusive_when_project_level: true
   downstream_raw_read_forbidden_when_project_level: true
   workbook_is_single_project_data_entry_when_project_level: true
+  matlab_reprocessing_forbidden: true
   absent_when: preprocessing_decision in [not_needed, question_local]
 per_question:
   question_directory: 问题{中文序号}求解/
@@ -480,28 +507,34 @@ matlab_figure_contract:
   caption_role: DOCX/LaTeX图注补充统计口径、数据范围和解释，不与图内标题逐字重复
   title_registry: 模型论文框架.md与Figure Contract
   workbook_reference_required: true
+  preprocessing_script: 数据预处理/data_process.m
+  preprocessing_export_stem: data_process
+  preprocessing_source_workbook: 数据预处理/数据预处理结果.xlsx
+  preprocessing_matlab_must_not_reprocess: true
   handoff_alternative: matlab_figure_handoff.json/yaml
   provenance_record: null
   mtime_role: auxiliary_warning_only
-  default_output: 仅交付同目录qX_plot.m；图窗由用户人工检查和按需导出
+  default_output: 每问交付同目录qX_plot.m；project_level另交付数据预处理/data_process.m；图窗由用户人工检查和按需导出
 ownership:
-  Python_preprocessing: 仅preprocessing_decision=project_level时生成；负责共享原始数据的公共审计与已批准处理并输出统一工作簿，不求解小问核心模型。
+  Python_preprocessing: 仅preprocessing_decision=project_level时生成；负责共享原始数据的公共审计与已批准处理、论文方法/验证证据和绘图底层数据并输出统一工作簿，不求解小问核心模型。
+  MATLAB_preprocessing: 仅project_level时由data_process.m读取统一工作簿绘制处理前后与验证证据；不重新清洗、插值、滤波、重采样或估计参数。
   Python: 每问维护同目录两个题目专属脚本；not_needed/question_local可读取原始数据，project_level读取统一工作簿。问题X求解.py负责主求解，问题X结果深化分析.py负责主结果验收后的独立深化分析。
   MATLAB: 同目录qX_plot.m精确读取本问两个标准工作簿，并仅在图确实需要底层数据时按preprocessing_decision读取原始数据或统一预处理工作簿；不重新计算核心结果，默认不自动导出图片
   other_figure_tools: GeoGebra、PPT、draw.io、SVG、TikZ可用于非数据驱动机理图
 filenames:
   preprocessing_script: 数据预处理/数据预处理.py（仅project_level）
   preprocessing_workbook: 数据预处理/数据预处理结果.xlsx（仅project_level）
+  preprocessing_matlab_script: 数据预处理/data_process.m（仅project_level，图表阶段生成）
   model_paper_framework: 模型论文框架.md
   project_state: state/project_state.yaml
   sync_report: sync_report.yaml
   python_scripts:
   - 问题X求解/问题X求解.py
   - 问题X求解/问题X结果深化分析.py
-  matlab_scripts: 问题X求解/q1_plot.m、q2_plot.m等ASCII固定名称
+  matlab_scripts: 数据预处理/data_process.m（project_level）以及问题X求解/q1_plot.m、q2_plot.m等ASCII固定名称
   workbooks: 中文固定名称
   worksheets: 中文描述性名称，最长31字符
-  figures: ASCII英文或拼音
+  figures: ASCII英文或拼音；预处理图基名data_process或data_process_<evidence>
 optional_metadata:
   default_generation: forbidden
   explicit_request_only:
@@ -514,11 +547,13 @@ rules:
 - 预处理判定必须以当前附件的缺失结构、单位/主键/时间/坐标一致性、有效性、重复身份、采样覆盖、测量质量、模型输入要求和时间因果/信息泄漏风险为依据；不得从题型或过去赛题套固定处理模板。
 - 两个及以上小问共享同一原始数据，只触发统一口径审计，不自动触发项目级预处理。
 - preprocessing_decision=not_needed时不创建数据预处理目录，各问可直接读取原始数据并保留必要检查。
-- preprocessing_decision=question_local时不创建全局预处理目录，本问可执行有数学来源的局部变换。
-- preprocessing_decision=project_level时才创建数据预处理目录，默认恰好包含数据预处理.py和数据预处理结果.xlsx；一个总表指一个统一工作簿，可含多个对象语义明确的工作表。
+- preprocessing_decision=question_local时不创建全局预处理目录，本问可执行有数学来源的局部变换；实质变换必须写公式/定义、参数依据和验证，必要图由qX_plot.m承接。
+- preprocessing_decision=project_level时才创建数据预处理目录；最终默认恰好包含数据预处理.py、数据预处理结果.xlsx和data_process.m；一个总表指一个统一工作簿，可含多个对象语义明确的工作表。
 - 只有project_level时，共享原始数据在统一工作簿验收后只允许数据预处理.py作为公共处理入口，依赖小问主求解、深化分析和数据型MATLAB流程不得再次直接读取对应共享原始数据。
 - project_level统一工作簿质量门未通过时必须停在awaiting_user_preprocessing；其他两种decision不得因为缺少统一工作簿而阻塞。
 - 缺失填补、预测填补、异常删除、插值、平滑、滤波、去趋势、归一化、标准化和重采样等操作必须有数据/机理/模型必要性证据；有缺失不等于必须插值，赛题本身要求的预测结果不得包装为预处理。
+- 只要实际预处理参与后续模型，论文必须闭合问题证据、数学公式/确定性映射、参数依据、方法验证、处理前后证据、图和模型接口；形式证明仅在数学上适用时使用。
+- project_level进入figure_evidence时必须生成data_process.m，并至少形成一张预处理必要性或有效性证据图；MATLAB不得重新执行预处理。
 - 新项目每问只创建一个问题X求解目录，默认最终恰好包含两个Python脚本、两个Excel工作簿和一个qX_plot.m。
 - Problem Contract、preprocessing_decision、语义闭环与复杂度复审先于正式模型和代码交付，不能用运行成功或结果合理替代语义正确性。
 - 主工作簿accepted后冻结问题X求解.py，并单独生成问题X结果深化分析.py；不得为深化分析覆盖更新主求解脚本。
@@ -526,7 +561,7 @@ rules:
 - 实际生成的项目级预处理脚本和两个正式小问Python脚本都必须通过静态工程质量检查且不得由助手执行；校验结果在聊天或标准输出中返回，不额外落盘。
 - 用户返回的适用预处理工作簿和小问工作簿均必须先通过对应质量门；代码交付本身不得把状态提升为solved或analyzed。
 - 同步器只做发现、校验、哈希和stale传播，不替代语义治理、条件式预处理质量门、主求解质量门与结果深化分析。
-- v7.2.0--v7.2.1旧项目重新进入模型设计或求解时继续沿用三态preprocessing_decision，并按当前通用审计规则复核处理必要性。
+- v7.2.0--v7.2.2旧项目重新进入模型设计、预处理、绘图或写作时继续沿用三态preprocessing_decision，并按当前通用审计与论文证据规则复核；只读历史交付不强制反向补文件。
 - v7.1.x及更早旧项目可只读；重新进入当前流程时先做数据审计和preprocessing_decision。
 - v7.0.x缺少语义治理字段的旧项目可只读；重新进入审题或模型设计时补齐当前语义字段。
 - v6.6.x四文件项目和旧结果数据表/问题X/仅作只读兼容；新项目或重新深化分析时使用五文件结构。
