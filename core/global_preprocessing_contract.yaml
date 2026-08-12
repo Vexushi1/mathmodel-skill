@@ -1,5 +1,5 @@
 version: 1.3.0
-skill_version: 7.2.3
+skill_version: 7.2.4
 purpose: 规定跨赛题通用的数据质量审计、预处理必要性判定、项目级统一预处理、论文数学证据、MATLAB预处理图证据与下游读取边界。任何数据题都先判断原始数据能否正确、充分且无信息泄漏地支撑当前模型；只有真实数据问题或模型输入要求提供证据时才修改数据。共享数据、特定题型或某一次赛题经验都不能单独触发清洗、插值、预测填补、滤波或统一工作簿。
 
 decision_gate:
@@ -194,6 +194,8 @@ preprocessing_figure_contract:
   export_stem: data_process
   required_when: preprocessing_decision.decision == project_level
   role: 只读取数据预处理结果.xlsx中Python已持久化的处理前/后、诊断和验证数据，绘制预处理证据图；不得在MATLAB中重新清洗、插值、滤波、重采样或估计参数。
+  runtime_forbidden_matlab_functions: [interp1, interp2, interp3, interpn, griddedInterpolant, scatteredInterpolant, fillmissing, rmmissing, standardizeMissing, filloutliers, rmoutliers, isoutlier, smooth, smoothdata, movmean, movmedian, resample, interpft, decimate, downsample, upsample, retime, synchronize, detrend, normalize, rescale, zscore, filter, filtfilt, designfilt, lowpass, highpass, bandpass, bandstop, butter, cheby1, cheby2, ellip, fir1, fir2, fit, fitlm, fitrlinear, fitrgp, fitrensemble, fitrtree, predict, trainNetwork, trainnet]
+  runtime_gate_rule: figures及后续正式交付时，sync_project必须对data_process.m实际代码执行函数调用扫描；命中上述函数即拒绝交付。完整行注释不参与扫描，避免说明性注释造成误报。
   minimum_evidence: 至少一张图直接回答“为什么需要处理”或“处理是否合理”；变换较多时按证据职责组织多面板，不为凑图重复画同一结论。
   candidate_figures:
   - 缺失位置/覆盖与填补结果对比
