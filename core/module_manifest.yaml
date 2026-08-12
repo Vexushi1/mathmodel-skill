@@ -1,7 +1,8 @@
-version: 7.1.0
+version: 7.2.0
 workflow_order:
 - problem_audit
 - model_design
+- data_preprocessing
 - solve_validate
 - result_analysis
 - figure_evidence
@@ -15,6 +16,7 @@ contracts:
   taxonomy: core/task_taxonomy.yaml
   output: core/output_contract.yaml
   workbook: core/workbook_schema.yaml
+  preprocessing: core/global_preprocessing_contract.yaml
   project_state: core/project_state.schema.yaml
   user_execution: core/user_execution_contract.yaml
   code_quality: core/code_quality_contract.yaml
@@ -54,9 +56,13 @@ artifact_catalog:
   mechanism_contracts: 机理图合同
   validation_plan: 建模阶段识别的风险与候选验证方向
   semantic_governance_report: 聊天或标准输出中的Problem Contract、语义闭环、复杂度复审、语义哈希和跨问stale校验结果
+  preprocessing_code: 数据预处理/数据预处理.py；共享原始数据唯一直接读取者，只执行统一数据审计与预处理
+  preprocessing_workbook: 数据预处理/数据预处理结果.xlsx；全项目唯一统一数值数据入口
+  preprocessing_quality_report: 统一工作簿中预处理质量门及聊天/标准输出验收结论
+  awaiting_user_preprocessing: 等待用户本地运行统一数据预处理并返回工作簿的暂停状态
   python_code: 问题X求解/问题X求解.py；只负责主求解，主工作簿accepted后冻结
   result_analysis_code: 问题X求解/问题X结果深化分析.py；主工作簿accepted后独立生成，只负责深化分析
-  stage_python_code: 当前代码交付阶段的题目专属Python文件；solve_validate映射主求解脚本，result_analysis映射深化分析脚本
+  stage_python_code: 当前代码交付阶段的题目专属Python文件；data_preprocessing映射统一预处理脚本，solve_validate映射主求解脚本，result_analysis映射深化分析脚本
   full_run_config: 分别嵌入对应阶段Python和工作簸运行配置表的完整精度参数，不单独落盘
   execution_instructions: 聊天内给出的本地运行步骤，不单独落盘
   code_delivery_report: 聊天或标准输出中的静态交付检查结果，不单独落盘
@@ -89,7 +95,7 @@ artifact_catalog:
   validated_submission_package: 通过交付检查的提交包
   project_state: 项目机器状态
   sync_report: 项目同步器生成的发现、Schema校验、分层哈希、stale和证据链报告
-  figure_evidence: 由同目录两个工作簿与qX_plot.m形成的逻辑证据，不默认生成独立文件
+  figure_evidence: 由统一预处理工作簿、同目录两个工作簿与qX_plot.m形成的逻辑证据，不默认生成独立文件
   accepted_solution_workbook: 通过运行配置、哈希和主结果质量门验收的主工作簿
   accepted_result_analysis_workbook: 通过运行配置和结论稳定性验收的结果深化工作簿
 workflow_profiles:
@@ -129,8 +135,11 @@ workflow_profiles:
     modules:
     - problem_audit
     - model_design
+    - data_preprocessing
     - solve_validate
     module_terminal_outputs:
+    - preprocessing_code
+    - preprocessing_workbook
     - python_code
     - stage_python_code
     - full_run_config
@@ -143,6 +152,8 @@ workflow_profiles:
     - semantic_governance
     - code_delivery
     terminal_outputs:
+    - preprocessing_code
+    - preprocessing_workbook
     - python_code
     - stage_python_code
     - full_run_config
@@ -157,8 +168,11 @@ workflow_profiles:
     modules:
     - problem_audit
     - model_design
+    - data_preprocessing
     - solve_validate
     module_terminal_outputs:
+    - preprocessing_code
+    - preprocessing_workbook
     - python_code
     - stage_python_code
     - full_run_config
@@ -170,6 +184,8 @@ workflow_profiles:
     - semantic_governance
     - code_delivery
     terminal_outputs:
+    - preprocessing_code
+    - preprocessing_workbook
     - python_code
     - stage_python_code
     - full_run_config
@@ -213,6 +229,21 @@ modules:
     - model_paper_framework
     - mechanism_contracts
     - validation_plan
+  data_preprocessing:
+    path: modules/03_data_preprocessing.md
+    inputs:
+    - locked_model_spec
+    - data_schema
+    - model_paper_framework
+    - data
+    - preprocessing_contract
+    - code_quality_contract
+    outputs:
+    - preprocessing_code
+    - preprocessing_workbook
+    - preprocessing_quality_report
+    - awaiting_user_preprocessing
+    - model_paper_framework
   solve_validate:
     path: modules/03_solve_validate.md
     inputs:
@@ -223,7 +254,7 @@ modules:
     - proposition_plan
     - model_paper_framework
     - data_schema
-    - data
+    - preprocessing_workbook
     - workbook_schema
     - code_quality_contract
     outputs:
@@ -237,6 +268,7 @@ modules:
   result_analysis:
     path: modules/03_result_analysis.md
     inputs:
+    - preprocessing_workbook
     - accepted_solution_workbook
     - result_quality_report
     - validation_plan
@@ -255,6 +287,7 @@ modules:
   figure_evidence:
     path: modules/04_figure_evidence.md
     inputs:
+    - preprocessing_workbook
     - solution_workbook
     - result_analysis_workbook
     - workbook_schema
@@ -337,6 +370,7 @@ utility_gates:
     - Hashes only each question's current model-scope section, not numerical result summaries.
     - Semantic changes require an incremented revision and explicit change categories.
     - Propagates stale recursively through typed cross-question dependencies before accepting a new semantic hash.
+    - Preprocessing changes are semantic changes and invalidate all dependent downstream question results.
     - Never runs task-specific Python and never clears numerical stale states.
   code_delivery:
     path: scripts/validate_code_delivery.py
@@ -391,7 +425,7 @@ utility_gates:
     - Runs after semantic governance for formal design and downstream delivery.
     - Reads exact delivery requirements from core/output_contract.yaml before checking artifacts.
     - Validates project state and the current model-paper framework before artifact discovery.
-    - Discovers both stage-specific Python scripts, validates workbook contracts and hashes the evidence chain without inventing model semantics or validation success.
-    - Propagates stale from data, primary code, analysis code, workbooks, MATLAB scripts and figure bundles without clearing it.
+    - Discovers preprocessing artifacts and both stage-specific per-question Python scripts, validates workbook contracts and hashes the evidence chain without inventing model semantics or validation success.
+    - Propagates stale from raw/preprocessed data, primary code, analysis code, workbooks, MATLAB scripts and figure bundles without clearing it.
     - Required before formal model, workbooks, figures, DOCX, LaTeX or submission delivery.
     - Code delivery uses the dedicated non-executing code_delivery gate.
