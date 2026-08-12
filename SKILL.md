@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.2.2
-summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, complexity sanity checks, generalized evidence-driven conditional data preprocessing, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, MATLAB evidence figures and LaTeX-first writing.
+version: 7.2.3
+summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, complexity sanity checks, generalized evidence-driven conditional data preprocessing, preprocessing MATLAB evidence via data_process.m, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, MATLAB evidence figures and LaTeX-first writing.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 数据预处理, 数据清洗, 主结果质量, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.2.2
+# HSK 数学建模模块化工作流 v7.2.3
 
 ## 默认执行
 
@@ -28,6 +28,8 @@ preprocessing_decision
 
 预测填补仅可用于恢复后续模型确实需要的缺测输入，并必须有独立验证且不得使用未来信息或目标标签；若赛题本身要求预测未来值、未知类别、需求、价格、风险或其他最终结果，该预测属于核心建模，不得提前包装成数据预处理。
 
+若最终判定为 `project_level`，Python 预处理脚本还必须把处理前后、缺失修复验证、采样覆盖、结构对齐或其他实际需要的底层证据写入 `数据预处理结果.xlsx`。到 MATLAB Figure Evidence 阶段统一生成固定命名 **`数据预处理/data_process.m`**，该脚本只读统一工作簿绘图，不重新插值、填补、滤波、平滑、预测、异常修复或重采样。
+
 赛题数值代码由用户本地以 `full_fidelity` 运行；助手生成并静态检查代码，不运行赛题代码、不自动降采样、不静默切换求解器。
 
 每问完成数值阶段后默认恰好包含：
@@ -41,12 +43,13 @@ preprocessing_decision
 └─ qX_plot.m
 ```
 
-只有 `preprocessing_decision=project_level` 时额外创建：
+只有 `preprocessing_decision=project_level` 时额外创建，Python阶段先形成前两项，统一 MATLAB 绘图阶段补齐第三项：
 
 ```text
 数据预处理/
 ├─ 数据预处理.py
-└─ 数据预处理结果.xlsx
+├─ 数据预处理结果.xlsx
+└─ data_process.m
 ```
 
 完整运行配置分别嵌入实际生成的阶段 Python 并写入对应工作簿；运行步骤和校验结果只在聊天或标准输出中返回。主工作簿验收后冻结 `问题X求解.py`，随后独立生成 `问题X结果深化分析.py`，不得为深化分析覆盖改写主求解脚本。
@@ -63,11 +66,12 @@ preprocessing_decision
 → Python完整主求解 → 主代码质量门 → 用户完整运行
 → 主结果质量门 → 独立Python结果深化分析 → 深化代码质量门 → 用户完整运行
 → 稳定性验收/必要时回退重算
-→ MATLAB读取真实结果数据绘图 → LaTeX直写 → 编译与终审
+→ MATLAB Figure Evidence：[project_level] data_process.m + 各问qX_plot.m
+→ LaTeX直写 → 编译与终审
 ```
 
 题意解释、数据范围、变量、参数、假设、目标、约束、`preprocessing_decision`、实际预处理、算法语义或小问依赖变化时必须递增 `semantic_revision`；已验证语义变化先使受影响结果 stale，再按 `data / parameter / model / result` 依赖递归传播。接受新语义不恢复旧数值，仍须重新执行适用的数据处理、求解与验收。
 
 代码工程质量由 `core/code_quality_contract.yaml` 唯一定义并由 `scripts/validate_code_delivery.py` 检查实际生成的 `preprocessing / primary / analysis` Python；工作簿由 `scripts/validate_user_execution.py` 按当前数据决策验收。目录与正式交付以 `core/output_contract.yaml` 为准。
 
-MATLAB 默认只保留图窗，不在求解目录创建 `图表/` 或自动导出。DOCX 仅在用户显式要求时加载，不是 LaTeX 前置。v7.2.0--7.2.1 项目重新进入设计/求解时继续沿用三态 `preprocessing_decision`，并按当前通用审计规则复核处理必要性；更早版本按既有只读兼容规则处理。
+MATLAB 默认只保留图窗，不在求解目录创建 `图表/` 或自动导出。DOCX 仅在用户显式要求时加载，不是 LaTeX 前置。v7.2.0--7.2.2 项目重新进入设计/求解时继续沿用三态 `preprocessing_decision`，并按当前通用审计规则复核处理必要性；project_level旧项目重新进入 Figure Evidence 时补充 `data_process.m`。更早版本按既有只读兼容规则处理。
