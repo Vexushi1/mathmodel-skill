@@ -1,4 +1,4 @@
-version: 7.2.2
+version: 7.2.3
 workflow_order:
 - problem_audit
 - model_design
@@ -55,13 +55,15 @@ artifact_catalog:
   semantic_closure: 题面对象与要求—数学层—Python层—输出证据三层闭环
   complexity_sanity_check: 对异常降维、解耦、条件闲置和异常容易求解的复审结论
   proposition_plan: 全文0--4个高价值命题规划
-  model_paper_framework: 当前有效模型语义、Problem Contract、预处理判定、论文组织、逐问结果摘要和图表映射
+  model_paper_framework: 当前有效模型语义、Problem Contract、预处理判定与论文证据、论文组织、逐问结果摘要和图表映射
   mechanism_contracts: 机理图合同
   validation_plan: 建模阶段识别的风险与候选验证方向
   semantic_governance_report: 聊天或标准输出中的Problem Contract、语义闭环、复杂度复审、语义哈希和跨问stale校验结果
   preprocessing_code: 仅decision=project_level时生成的数据预处理/数据预处理.py；共享原始数据唯一公共处理入口
-  preprocessing_workbook: 仅decision=project_level时生成的数据预处理/数据预处理结果.xlsx；依赖小问的统一数值数据入口
+  preprocessing_workbook: 仅decision=project_level时生成的数据预处理/数据预处理结果.xlsx；依赖小问的统一数值数据入口，同时保存论文方法验证和MATLAB绘图底层证据
   preprocessing_quality_report: 仅project_level时适用的统一工作簿预处理质量门及聊天/标准输出验收结论
+  preprocessing_matlab_script: 仅project_level在figure_evidence阶段生成的数据预处理/data_process.m；只读预处理工作簿绘制处理前后与验证证据
+  preprocessing_figures: 由data_process.m形成并人工确认的预处理必要性/有效性证据图；默认不要求自动导出文件
   awaiting_user_preprocessing: decision=project_level且预处理代码已交付后等待用户本地运行的暂停状态
   python_code: 问题X求解/问题X求解.py；只负责主求解，主工作簿accepted后冻结
   result_analysis_code: 问题X求解/问题X结果深化分析.py；主工作簿accepted后独立生成，只负责深化分析
@@ -80,10 +82,10 @@ artifact_catalog:
   result_analysis_report: 实际深化分析报告
   validated_results: 通过结果深化分析且可用于写作的结果
   evidence_map: 结论到公式、代码、表和图的证据映射
-  matlab_scripts: MATLAB问题专属绘图脚本
+  matlab_scripts: MATLAB绘图脚本集合；project_level包含data_process.m，每问包含qX_plot.m
   result_figures: 工作簿驱动且包含简洁标题的正式结果图
   refined_mechanism_figures: 精修后的S/A级机理图
-  figure_contracts: 结果图和机理图合同
+  figure_contracts: 预处理图、结果图和机理图合同
   approved_figures: 已确认可入文的图
   docx_draft: DOCX草稿
   latex_migration_notes: DOCX到LaTeX迁移说明
@@ -98,7 +100,7 @@ artifact_catalog:
   validated_submission_package: 通过交付检查的提交包
   project_state: 项目机器状态
   sync_report: 项目同步器生成的发现、Schema校验、分层哈希、stale和证据链报告
-  figure_evidence: 由当前数据事实源、同目录两个结果工作簿与qX_plot.m形成的逻辑证据，不默认生成独立文件
+  figure_evidence: 由当前数据事实源、预处理/结果工作簿与对应MATLAB脚本形成的逻辑证据，不默认生成独立文件
   accepted_solution_workbook: 通过运行配置、哈希和主结果质量门验收的主工作簿
   accepted_result_analysis_workbook: 通过运行配置和结论稳定性验收的结果深化工作簿
 workflow_profiles:
@@ -314,8 +316,10 @@ modules:
     - mechanism_contracts
     conditional_inputs:
       preprocessing_workbook:
-        when: preprocessing_decision == project_level and figure_requires_bottom_level_data
+        when: preprocessing_decision == project_level
     outputs:
+    - preprocessing_matlab_script
+    - preprocessing_figures
     - matlab_scripts
     - result_figures
     - refined_mechanism_figures
@@ -447,8 +451,8 @@ utility_gates:
     - Runs after semantic governance for formal design and downstream delivery.
     - Reads exact delivery requirements from core/output_contract.yaml before checking artifacts.
     - Validates project state and the current model-paper framework before artifact discovery.
-    - Discovers preprocessing artifacts only when preprocessing_decision=project_level; otherwise raw-data projects must not fail because those artifacts are absent.
+    - Discovers preprocessing Python/workbook only when preprocessing_decision=project_level, and additionally requires data_process.m from figure_evidence onward.
     - Discovers both stage-specific per-question Python scripts, validates workbook contracts and hashes the evidence chain without inventing model semantics or validation success.
-    - Propagates stale from the active data source, primary code, analysis code, workbooks, MATLAB scripts and figure bundles without clearing it.
+    - Propagates stale from the active data source, preprocessing figure script, primary code, analysis code, workbooks, MATLAB scripts and figure bundles without clearing it.
     - Required before formal model, workbooks, figures, DOCX, LaTeX or submission delivery.
     - Code delivery uses the dedicated non-executing code_delivery gate.
