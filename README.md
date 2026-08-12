@@ -1,6 +1,6 @@
-# mathmodel-skill v7.2.2
+# mathmodel-skill v7.2.3
 
-当前工作流：**审题与 Problem Contract 冻结 → 通用数据审计与 `preprocessing_decision` → 题面—数学—代码语义闭环 → Complexity Sanity Check → semantic governance → 条件式项目级预处理（仅 `project_level`）→ 用户本地完整版 Python 主求解 → 主结果质量门 → 独立 Python 结果深化分析 → 稳定性验收 → MATLAB证据图 → LaTeX终稿**。
+当前工作流：**审题与 Problem Contract 冻结 → 通用数据审计与 `preprocessing_decision` → 题面—数学—代码语义闭环 → Complexity Sanity Check → semantic governance → 条件式项目级预处理（仅 `project_level`）→ 用户本地完整版 Python 主求解 → 主结果质量门 → 独立 Python 结果深化分析 → 稳定性验收 → MATLAB证据图（project_level含 `data_process.m`）→ LaTeX终稿**。
 
 ## 数据阶段：先判断，不默认清洗
 
@@ -40,6 +40,16 @@ preprocessing_decision
 
 地震类规则只作为领域示例：去直流、去趋势、带通、坏道修复、taper、插值/重采样均为条件操作，不是其他赛题的默认模板。
 
+### 预处理也进入 MATLAB 证据链
+
+若 `preprocessing_decision=project_level`，Python 预处理除了输出正式数据外，还要把处理前后、缺失修复验证、采样覆盖、结构对齐或其他实际需要的底层证据写入 `数据预处理结果.xlsx`。统一 MATLAB Figure Evidence 阶段固定生成：
+
+```text
+数据预处理/data_process.m
+```
+
+`data_process.m` **只读取 `数据预处理结果.xlsx`**，用于绘制处理前后对比、修复验证、采样/空间覆盖或结构统一等图。它不得重新插值、填补、预测、滤波、平滑、去噪、异常修复、标准化或重采样。若 MATLAB 发现数据有问题，应回退 Python 预处理，而不是在绘图脚本中修数据。
+
 ## 四个前置治理点
 
 - `Problem Contract`：冻结原始/派生对象、已知/可计算量、决策/状态/输出量、显式/隐含约束、禁止假设、数据角色和小问依赖；
@@ -58,12 +68,15 @@ preprocessing_decision
 └─ qX_plot.m
 ```
 
-只有 `preprocessing_decision=project_level` 时额外存在：
+通用脚本命名合同写作 `q{x}_plot.m`；实际第1、2、3问分别为 `q1_plot.m`、`q2_plot.m`、`q3_plot.m` 等。
+
+只有 `preprocessing_decision=project_level` 时额外存在；Python阶段先形成前两项，MATLAB Figure Evidence阶段补齐第三项：
 
 ```text
 数据预处理/
 ├─ 数据预处理.py
-└─ 数据预处理结果.xlsx
+├─ 数据预处理结果.xlsx
+└─ data_process.m
 ```
 
 主工作簿 accepted 后冻结 `问题X求解.py`；随后单独生成 `问题X结果深化分析.py`。不默认生成独立运行配置、运行说明、校验报告、`图表/` 或额外元数据。
@@ -71,11 +84,11 @@ preprocessing_decision
 ## 质量门
 
 - `scripts/validate_semantic_governance.py`：题意口径、语义闭环、复杂度复审、semantic revision 与跨小问 stale；
-- `core/global_preprocessing_contract.yaml`：通用数据审计、缺失/插值/预测填补边界、预处理必要性、三态判定、处理操作准入与公共数据边界；
+- `core/global_preprocessing_contract.yaml`：通用数据审计、缺失/插值/预测填补边界、预处理必要性、三态判定、处理操作准入、公共数据边界与 `data_process.m` 预处理可视化证据；
 - `core/code_quality_contract.yaml`：实际生成的预处理/主求解/深化分析 Python 的代码工程质量；
 - `scripts/validate_code_delivery.py`：按 `preprocessing / primary / analysis` 阶段静态检查代码，不执行赛题；
 - `scripts/validate_user_execution.py`：按当前 decision 验收适用工作簿、代码/数据哈希与质量门；
-- `scripts/sync_project.py`：正式交付前按 active data source 检查产物、哈希和 stale。
+- `scripts/sync_project.py`：正式交付前按 active data source 检查产物、哈希和 stale；figures scope 下 `project_level` 额外检查 `data_process.m`。
 
 代码默认以 500 行以内为目标；501--700 行给 warning；超过 700 行默认拒绝，复杂题显式豁免最多到 900 行。单函数以 80 行以内为目标，超过 120 行拒绝；函数参数以 8 个以内为目标，超过 12 个拒绝。详细规则只在 `core/code_quality_contract.yaml` 定义。
 
@@ -91,6 +104,7 @@ python scripts/resolve_workflow.py full_solution --objective optimization --comp
 python scripts/validate_semantic_governance.py <project_root> --write --strict
 python scripts/validate_code_delivery.py <project_root> --write --strict
 python scripts/sync_project.py <project_root> --write --strict --delivery-scope results
+python scripts/sync_project.py <project_root> --write --strict --delivery-scope figures
 ```
 
-仓库维护执行 `python scripts/lint_skill.py`、全量单元测试和生成索引检查。DOCX 是显式可选分支；v7.2.0--7.2.1 项目重新进入设计/求解时继续沿用三态 `preprocessing_decision`，但按当前通用审计规则复核处理必要性；更早版本继续按只读兼容规则处理。
+仓库维护执行 `python scripts/lint_skill.py`、全量单元测试和生成索引检查。DOCX 是显式可选分支；v7.2.0--v7.2.2 项目重新进入设计/求解时继续沿用三态 `preprocessing_decision`，但按当前通用审计规则复核处理必要性；`project_level` 旧项目重新进入 Figure Evidence 时补充 `data_process.m`。更早版本继续按只读兼容规则处理。
