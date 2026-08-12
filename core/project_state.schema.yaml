@@ -1,7 +1,7 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 7.1.0
+version: 7.2.1
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
@@ -32,6 +32,15 @@ $defs:
   complexity_sanity_flag:
     type: string
     enum: [unused_problem_conditions, unused_attachment_fields, unexpected_dimension_collapse, unexpected_decoupling, dynamic_to_static_collapse, multi_agent_to_independent, inactive_key_constraints, downstream_copy, implausibly_easy_computation]
+  preprocessing_decision:
+    type: string
+    enum: [not_needed, question_local, project_level]
+  preprocessing_level:
+    type: string
+    enum: [none, structural, transformative]
+  preprocessing_source_mode:
+    type: string
+    enum: [raw, preprocessed]
   problem_types:
     type: object
     additionalProperties: false
@@ -140,7 +149,7 @@ properties:
       problem: {type: string, minLength: 1}
       current_phase:
         type: string
-        enum: [problem_audit, model_design, solve_validate, result_analysis, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery, completed]
+        enum: [problem_audit, model_design, data_preprocessing, solve_validate, result_analysis, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery, completed]
       problem_types:
         type: array
         uniqueItems: true
@@ -179,6 +188,35 @@ properties:
         type: object
         additionalProperties: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
       locked_scope: {type: string}
+      active_source_mode: {$ref: '#/$defs/preprocessing_source_mode'}
+  preprocessing:
+    description: v7.2.1条件式预处理状态。旧项目可缺失；重新进入模型设计或求解时先锁定decision。
+    type: object
+    additionalProperties: false
+    properties:
+      decision: {$ref: '#/$defs/preprocessing_decision'}
+      level: {$ref: '#/$defs/preprocessing_level'}
+      status:
+        type: string
+        enum: [pending, locked, not_applicable, code_delivered, awaiting_user_preprocessing, workbook_received, accepted, rejected, stale]
+      evidence:
+        type: array
+        items: {type: string}
+      operations:
+        type: array
+        uniqueItems: true
+        items: {type: string}
+      forbidden_operations:
+        type: array
+        uniqueItems: true
+        items: {type: string}
+      downstream_data_source: {$ref: '#/$defs/preprocessing_source_mode'}
+      code: {type: string}
+      workbook: {type: string}
+      code_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      workbook_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      quality_status: {type: string, enum: [not_applicable, pending, passed, failed]}
+      note: {type: string}
   decisions:
     type: object
     additionalProperties:
