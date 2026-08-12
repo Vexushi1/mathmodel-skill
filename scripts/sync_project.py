@@ -49,6 +49,24 @@ ANALYSIS_STALE_LAYERS = {
     "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
 }
 VALID_PREPROCESSING_DECISIONS = {"not_needed", "question_local", "project_level"}
+MATLAB_PREPROCESSING_FORBIDDEN_FUNCTIONS = (
+    "interp1", "interp2", "interp3", "interpn", "griddedInterpolant", "scatteredInterpolant",
+    "fillmissing", "rmmissing", "standardizeMissing",
+    "filloutliers", "rmoutliers", "isoutlier",
+    "smooth", "smoothdata", "movmean", "movmedian",
+    "resample", "interpft", "decimate", "downsample", "upsample", "retime", "synchronize",
+    "detrend", "normalize", "rescale", "zscore",
+    "filter", "filtfilt", "designfilt", "lowpass", "highpass", "bandpass", "bandstop",
+    "butter", "cheby1", "cheby2", "ellip", "fir1", "fir2",
+    "fit", "fitlm", "fitrlinear", "fitrgp", "fitrensemble", "fitrtree",
+    "predict", "trainNetwork", "trainnet",
+)
+MATLAB_PREPROCESSING_FORBIDDEN_RE = re.compile(
+    r"(?<![\w])("
+    + "|".join(re.escape(name) for name in MATLAB_PREPROCESSING_FORBIDDEN_FUNCTIONS)
+    + r")\s*\(",
+    re.IGNORECASE,
+)
 
 
 def _load_module(name: str, path: Path):
@@ -686,9 +704,18 @@ def _preprocessing_artifact_issues(
             if "数据预处理结果.xlsx" not in {Path(item).name for item in workbook_refs}:
                 issues.append("data_process.m必须读取数据预处理结果.xlsx")
             text = matlab.read_text(encoding="utf-8", errors="ignore")
-            forbidden_calls = ("interp1(", "fillmissing(", "smoothdata(", "resample(", "filtfilt(", "designfilt(")
-            if any(token in text for token in forbidden_calls):
-                issues.append("data_process.m不得重新执行插值、填补、平滑、重采样或滤波")
+            code_text = "\n".join(
+                line for line in text.splitlines() if not line.lstrip().startswith("%")
+            )
+            forbidden_matches = sorted({
+                match.group(1).lower()
+                for match in MATLAB_PREPROCESSING_FORBIDDEN_RE.finditer(code_text)
+            })
+            if forbidden_matches:
+                issues.append(
+                    "data_process.m不得重新执行预处理、拟合或预测；检测到MATLAB调用: "
+                    + ", ".join(forbidden_matches)
+                )
             for item in exports:
                 export_path = (matlab.parent / item).resolve()
                 if not export_path.is_file():

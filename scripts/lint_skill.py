@@ -14,7 +14,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "7.2.3"
+PACKAGE_VERSION = "7.2.4"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",
@@ -353,6 +353,13 @@ def check_contracts(errors: list[str]) -> None:
             errors.append(f"data_process MATLAB template lacks: {token}")
     if "exportgraphics(" in data_process:
         errors.append("data_process MATLAB template must not auto-export")
+    sync_runtime = read_text(ROOT / "scripts/sync_project.py")
+    for token in (
+        "MATLAB_PREPROCESSING_FORBIDDEN_FUNCTIONS", "interp2", "normalize", "detrend",
+        "filter", "movmean", "movmedian", "predict",
+    ):
+        if token not in sync_runtime:
+            errors.append(f"sync_project preprocessing MATLAB runtime gate lacks: {token}")
     line_policy = quality.get("line_count", {})
     if (line_policy.get("target_max"), line_policy.get("hard_max"), line_policy.get("exemption_max")) != (500, 700, 900):
         errors.append("code-quality line thresholds must be 500/700/900")

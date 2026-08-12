@@ -232,6 +232,50 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
         self.assertNotIn("preprocessing_matlab_script", raw_required)
         self.assertIn("preprocessing_matlab_script", project_required)
 
+    def test_runtime_forbidden_matlab_calls_match_contract_and_block_reprocessing(self):
+        declared = set(self.contract["preprocessing_figure_contract"]["runtime_forbidden_matlab_functions"])
+        runtime = set(self.sync.MATLAB_PREPROCESSING_FORBIDDEN_FUNCTIONS)
+        self.assertEqual(declared, runtime)
+        for name in ("interp2", "normalize", "detrend", "filter", "movmean", "movmedian", "predict"):
+            self.assertIn(name, runtime)
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            process_dir = root / "数据预处理"
+            process_dir.mkdir()
+            script = process_dir / "data_process.m"
+            script.write_text(
+                'title("证据图");\nbook = "数据预处理结果.xlsx";\ny = normalize(x);\n',
+                encoding="utf-8",
+            )
+            issues = self.sync._preprocessing_artifact_issues(
+                root,
+                {"preprocessing_matlab_script"},
+                {"preprocessing": {"decision": "project_level"}},
+            )
+            self.assertTrue(any("normalize" in item for item in issues))
+
+            script.write_text(
+                '% normalize(x) 仅为说明，不应触发\ntitle("证据图");\nbook = "数据预处理结果.xlsx";\nplot(x, y);\n',
+                encoding="utf-8",
+            )
+            issues = self.sync._preprocessing_artifact_issues(
+                root,
+                {"preprocessing_matlab_script"},
+                {"preprocessing": {"decision": "project_level"}},
+            )
+            self.assertFalse(any("不得重新执行预处理" in item for item in issues))
+
+    def test_figure_evidence_order_matches_router_stage_boundary(self):
+        text = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
+        primary = text.index("Python 完成完整主求解")
+        analysis = text.index("Python 基于题目风险完成实际需要的结果深化分析")
+        enter_figures = text.index("只有上述数值阶段完成后才进入 Figure Evidence")
+        data_process = text.index("此时生成并人工检查 `数据预处理/data_process.m`")
+        self.assertLess(primary, analysis)
+        self.assertLess(analysis, enter_figures)
+        self.assertLess(enter_figures, data_process)
+
 
 if __name__ == "__main__":
     unittest.main()

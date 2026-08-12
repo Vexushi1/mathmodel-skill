@@ -2,12 +2,12 @@
 
 ## 正确顺序
 
-1. 若 `preprocessing_decision=project_level`，先锁定已验收的 `数据预处理结果.xlsx`，生成并人工检查 `数据预处理/data_process.m` 的预处理证据图；
+1. 继承已经锁定的 `preprocessing_decision`；若为 `project_level`，确认 `数据预处理结果.xlsx` 已 accepted 且预处理质量门通过，但此时不要求先生成 `data_process.m`；
 2. Python 完成完整主求解并通过主结果质量门；
-3. Python 基于题目风险完成实际需要的结果深化分析；
-4. 锁定 `问题X求解/` 中的两个标准工作簿；
-5. 继承当前 `preprocessing_decision`，明确每张图读取原始数据、统一预处理工作簿或结果工作簿中的哪一种事实源；
-6. 为每张图先写 Core conclusion，再按信息效率选择图型；
+3. Python 基于题目风险完成实际需要的结果深化分析，并验收 `问题X求解/` 中两个标准工作簿；
+4. 只有上述数值阶段完成后才进入 Figure Evidence；先明确每张图读取原始数据、统一预处理工作簿或结果工作簿中的哪一种事实源；
+5. 若为 `project_level`，此时生成并人工检查 `数据预处理/data_process.m`，只把已验收预处理工作簿中的底层证据转成图；
+6. 为各问结果图先写 Core conclusion，再按信息效率选择图型；
 7. 生成 MATLAB 代码前实际读取工作簿，锁定工作簿名、工作表名、真实表头、单位和数据类型；
 8. 设置简洁 `title` 或一个整体 `sgtitle`，拟定不逐字重复的论文图注；
 9. 将各问 `q{x}_plot.m` 与两类 Python 脚本、两类结果工作簿放在同一 `问题X求解/`；项目级预处理图脚本固定为 `数据预处理/data_process.m`；
