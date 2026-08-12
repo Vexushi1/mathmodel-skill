@@ -20,34 +20,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Adjust packaged-skill wording match
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('scripts/apply_v725_patch.py')
-          text = path.read_text(encoding='utf-8')
-          old = '''for path in ("SKILL.md", "skills/mathmodel-skill/SKILL.md"):
-    replace_once(
-        path,
-        '`data_process.m` 是预处理阶段固定 MATLAB 绘图脚本名，只读取 `数据预处理结果.xlsx` 中 Python 已保存的处理前后、诊断和验证底层数据，',
-        '`data_process.m` 是项目级预处理证据的固定 MATLAB 绘图脚本名；文件归属 `数据预处理/`，但仅在 Figure Evidence 阶段、主求解与结果深化分析完成后生成。它只读取 `数据预处理结果.xlsx` 中 Python 已保存的处理前后、诊断和验证底层数据，',
-    )
-'''
-          new = '''replace_once(
-    "SKILL.md",
-    '`data_process.m` 是预处理阶段固定 MATLAB 绘图脚本名，只读取 `数据预处理结果.xlsx` 中 Python 已保存的处理前后、诊断和验证底层数据，',
-    '`data_process.m` 是项目级预处理证据的固定 MATLAB 绘图脚本名；文件归属 `数据预处理/`，但仅在 Figure Evidence 阶段、主求解与结果深化分析完成后生成。它只读取 `数据预处理结果.xlsx` 中 Python 已保存的处理前后、诊断和验证底层数据，',
-)
-replace_once(
-    "skills/mathmodel-skill/SKILL.md",
-    '`project_level` 的 `data_process.m` 只读取 `数据预处理结果.xlsx` 中 Python 已持久化的处理前后、诊断和验证数据绘图，不重新清洗、插值、滤波、重采样或估计参数；正式导出基名使用 `data_process` 或 `data_process_<evidence>`；',
-    '`project_level` 的 `data_process.m` 是项目级预处理证据固定 MATLAB 脚本；文件归属 `数据预处理/`，但仅在 Figure Evidence 阶段、主求解与结果深化分析完成后生成。它只读取 `数据预处理结果.xlsx` 中 Python 已持久化的处理前后、诊断和验证数据绘图，不重新清洗、插值、滤波、重采样或估计参数；正式导出基名使用 `data_process` 或 `data_process_<evidence>`；',
-)
-'''
-          if text.count(old) != 1:
-              raise SystemExit('packaged-skill patch block drifted')
-          path.write_text(text.replace(old, new, 1), encoding='utf-8')
-          PY
+      - name: Adjust packaged-skill mismatch
+        run: sed -i 's/for path in ("SKILL.md", "skills\/mathmodel-skill\/SKILL.md"):/for path in ("SKILL.md",):/' scripts/apply_v725_patch.py
       - name: Apply exact patch
         run: python scripts/apply_v725_patch.py
       - name: Commit patched repository
