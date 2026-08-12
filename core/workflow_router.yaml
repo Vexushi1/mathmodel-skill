@@ -1,4 +1,4 @@
-version: 7.2.1
+version: 7.2.2
 bootstrap: core/bootstrap.yaml
 default_load:
 - core/hsk_core_policy.md
@@ -25,7 +25,8 @@ execution_contract:
   - Stop after the last module required by the user deliverable.
   - Never manufacture downstream artifacts when gate inputs are missing.
   - Problem Contract, semantic closure and complexity sanity must pass before any formal model or code delivery.
-  - Every data project audits data and freezes preprocessing_decision in model_design before code generation.
+  - Every data project audits the current attachments and freezes preprocessing_decision in model_design before code generation.
+  - Preprocessing judgment must use the current data's completeness, consistency, validity, sampling/coverage, measurement quality, model-readiness and leakage risks; no competition type or previous dataset supplies a default cleaning recipe.
   - Shared raw data alone never makes data_preprocessing mandatory.
   - If preprocessing_decision=not_needed, skip data_preprocessing and let downstream code use raw data with non-destructive checks.
   - If preprocessing_decision=question_local, skip data_preprocessing and keep mathematically defined local transformations inside the relevant question script.

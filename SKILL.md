@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.2.1
-summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, complexity sanity checks, evidence-driven conditional data preprocessing, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, MATLAB evidence figures and LaTeX-first writing.
+version: 7.2.2
+summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, complexity sanity checks, generalized evidence-driven conditional data preprocessing, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, MATLAB evidence figures and LaTeX-first writing.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 数据预处理, 数据清洗, 主结果质量, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.2.1
+# HSK 数学建模模块化工作流 v7.2.2
 
 ## 默认执行
 
@@ -22,7 +22,11 @@ preprocessing_decision
 └─ project_level  → 数据预处理.py → 数据预处理结果.xlsx → 依赖小问统一读取
 ```
 
-两个及以上小问共享同一原始数据源只触发统一口径审计，不能单独推出需要清洗、插值、滤波、标准化或统一工作簿。缺失填补、异常删除、插值、平滑、滤波、去趋势、归一化、标准化和重采样等操作必须有数据、机理或模型必要性证据。
+是否进入预处理阶段必须根据**当前题目和当前附件本身**判断，不按某一种赛题或过去经验套模板。至少审计：缺失/NaN/Inf、缺失分布与连续缺口、单位/类型/主键/时间/坐标一致性、重复记录、物理或逻辑无效值、时间/空间采样与覆盖、测量噪声或漂移、模型对规则网格/完整矩阵/尺度/编码等输入要求，以及预测任务中的时间因果和信息泄漏。
+
+两个及以上小问共享同一原始数据源只触发统一口径审计，不能单独推出需要清洗、插值、滤波、标准化或统一工作簿。存在缺失值也不能直接推出“必须插值”：应先判断变量类型、缺失位置、缺口长度、连续机制、模型是否原生支持缺失，以及删除、保持缺失、插值、统计填补、模型填补或预测填补哪一种假设最弱且可验证。
+
+预测填补仅可用于恢复后续模型确实需要的缺测输入，并必须有独立验证且不得使用未来信息或目标标签；若赛题本身要求预测未来值、未知类别、需求、价格、风险或其他最终结果，该预测属于核心建模，不得提前包装成数据预处理。
 
 赛题数值代码由用户本地以 `full_fidelity` 运行；助手生成并静态检查代码，不运行赛题代码、不自动降采样、不静默切换求解器。
 
@@ -51,7 +55,7 @@ preprocessing_decision
 
 ```text
 逐字审题 → Problem Contract冻结
-→ 数据审计 → preprocessing_decision
+→ 通用数据审计 → preprocessing_decision
 → 两条模型路线 → 变量/假设/公式/约束闭合
 → 题面—数学—代码语义闭环 → Complexity Sanity Check
 → semantic governance gate
@@ -66,4 +70,4 @@ preprocessing_decision
 
 代码工程质量由 `core/code_quality_contract.yaml` 唯一定义并由 `scripts/validate_code_delivery.py` 检查实际生成的 `preprocessing / primary / analysis` Python；工作簿由 `scripts/validate_user_execution.py` 按当前数据决策验收。目录与正式交付以 `core/output_contract.yaml` 为准。
 
-MATLAB 默认只保留图窗，不在求解目录创建 `图表/` 或自动导出。DOCX 仅在用户显式要求时加载，不是 LaTeX 前置。v7.2.0 项目重新进入设计/求解时先补齐 `preprocessing_decision`，不得因共享数据自动迁移为 `project_level`；更早版本按既有只读兼容规则处理。
+MATLAB 默认只保留图窗，不在求解目录创建 `图表/` 或自动导出。DOCX 仅在用户显式要求时加载，不是 LaTeX 前置。v7.2.0--7.2.1 项目重新进入设计/求解时继续沿用三态 `preprocessing_decision`，并按当前通用审计规则复核处理必要性；更早版本按既有只读兼容规则处理。
