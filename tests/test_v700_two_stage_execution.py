@@ -190,15 +190,22 @@ class V700TwoStageExecutionTests(unittest.TestCase):
         self.assertIn("问题{中文序号}结果深化分析.py", per_question["exact_default_files"])
         self.assertNotIn("single_python_update_policy", per_question)
 
-    def test_user_execution_contract_exposes_three_stage_scripts(self):
+    def test_user_execution_contract_preserves_two_stage_scripts_and_conditional_preprocessing(self):
         contract = yaml.safe_load((ROOT / "core/user_execution_contract.yaml").read_text(encoding="utf-8"))
         self.assertEqual(
             contract["code_delivery"]["stage_scripts"],
             {
-                "preprocessing": "数据预处理/数据预处理.py",
                 "primary": "问题X求解/问题X求解.py",
                 "analysis": "问题X求解/问题X结果深化分析.py",
             },
+        )
+        self.assertEqual(
+            contract["code_delivery"]["preprocessing_script"],
+            "数据预处理/数据预处理.py",
+        )
+        self.assertEqual(
+            contract["code_delivery"]["stage_activation"]["preprocessing"],
+            "preprocessing_decision == project_level",
         )
         forbidden = contract["code_delivery"]["standalone_files_forbidden_by_default"]
         self.assertNotIn("问题X结果深化分析.py", forbidden)
