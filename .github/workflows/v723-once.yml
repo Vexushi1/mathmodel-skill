@@ -1,0 +1,85 @@
+name: v7.2.3 one-shot consistency patch
+
+on:
+  push:
+    branches: [fix/v7.2.3-preprocessing-paper-evidence]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/v7.2.3-preprocessing-paper-evidence
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply precise v7.2.3 patches
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, count=-1):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              if old not in text:
+                  raise SystemExit(f'anchor missing: {path}: {old[:80]}')
+              text = text.replace(old, new, count)
+              p.write_text(text, encoding='utf-8')
+
+          replace('scripts/resolve_workflow.py', 'HSK v7.2.2 execution plan', 'HSK v7.2.3 execution plan')
+          replace('core/project_state.schema.yaml', 'version: 7.2.2', 'version: 7.2.3', 1)
+          replace('core/project_state.schema.yaml', 'v7.2.2条件式预处理状态', 'v7.2.3条件式预处理状态', 1)
+          replace('scripts/lint_skill.py', 'PACKAGE_VERSION = "7.2.2"', 'PACKAGE_VERSION = "7.2.3"', 1)
+          replace(
+              'scripts/lint_skill.py',
+              '"templates/code/hsk_pipeline/main_pipeline.py", "templates/matlab/q1_plot.m",',
+              '"templates/code/hsk_pipeline/main_pipeline.py", "templates/matlab/q1_plot.m",\n    "templates/matlab/data_process.m",',
+              1,
+          )
+          replace(
+              'scripts/lint_skill.py',
+              '"raw_data", "preprocessing_decision", "preprocessing_code", "preprocessing_workbook",\n        "model",',
+              '"raw_data", "preprocessing_decision", "preprocessing_code", "preprocessing_workbook",\n        "preprocessing_matlab_script", "model",',
+              1,
+          )
+          lint_anchor = '''    if not any("赛题直接要求预测未来值" in str(item) for item in prediction_boundary.get("not_preprocessing_when", [])):\n        errors.append("task-requested forecasting must be explicitly excluded from preprocessing")\n'''
+          lint_extra = lint_anchor + '''    paper = preprocessing.get("paper_evidence_contract") or {}\n    paper_text = "\\n".join(str(item) for item in paper.get("required_paper_elements", []))\n    for token in ("数学公式", "参数", "合理性验证", "预处理图"):\n        if token not in paper_text:\n            errors.append(f"preprocessing paper evidence contract lacks: {token}")\n    if "不得编造数学证明" not in str(paper.get("formal_proof_boundary", "")):\n        errors.append("preprocessing paper evidence must reject fabricated formal proofs")\n    figure_contract = preprocessing.get("preprocessing_figure_contract") or {}\n    if figure_contract.get("project_level_script") != "数据预处理/data_process.m":\n        errors.append("project-level preprocessing MATLAB script must be 数据预处理/data_process.m")\n    if figure_contract.get("export_stem") != "data_process":\n        errors.append("preprocessing figure export stem must be data_process")\n    pre_files = ((preprocessing.get("project_directory") or {}).get("exact_default_files") or [])\n    if pre_files != ["数据预处理.py", "数据预处理结果.xlsx", "data_process.m"]:\n        errors.append("project-level preprocessing directory must be the exact three-file data_process layout")\n    pre_sheets = set(((preprocessing.get("workbook") or {}).get("common_required_sheets") or {}))\n    if not {"预处理方法证据", "处理前后对比", "绘图数据索引"}.issubset(pre_sheets):\n        errors.append("preprocessing workbook lacks paper/figure evidence sheets")\n    data_process = read_text(ROOT / "templates/matlab/data_process.m")\n    for token in ("数据预处理结果.xlsx", "处理前", "处理后"):\n        if token not in data_process:\n            errors.append(f"data_process MATLAB template lacks: {token}")\n    if "exportgraphics(" in data_process:\n        errors.append("data_process MATLAB template must not auto-export")\n'''
+          replace('scripts/lint_skill.py', lint_anchor, lint_extra, 1)
+
+          old_sync = '''def _preprocessing_artifact_issues(\n    root: Path,\n    required: set[str],\n    state: Mapping[str, Any],\n) -> list[str]:\n    if preprocessing_decision(state) != "project_level":\n        return []\n    issues: list[str] = []\n    preprocessing = state.get("preprocessing") or {}\n    code = root / str(preprocessing.get("code") or "数据预处理/数据预处理.py")\n    workbook = root / str(preprocessing.get("workbook") or "数据预处理/数据预处理结果.xlsx")\n    if "preprocessing_code" in required and not code.is_file():\n        issues.append("project_level正式交付缺少数据预处理/数据预处理.py")\n    if "preprocessing_workbook" in required:\n        if not workbook.is_file():\n            issues.append("project_level正式交付缺少数据预处理/数据预处理结果.xlsx")\n        if preprocessing.get("status") != "accepted" or preprocessing.get("quality_status") != "passed":\n            issues.append("project_level正式交付要求预处理工作簿accepted且预处理质量门passed")\n    return issues\n'''
+          new_sync = '''def _preprocessing_artifact_issues(\n    root: Path,\n    required: set[str],\n    state: Mapping[str, Any],\n) -> list[str]:\n    if preprocessing_decision(state) != "project_level":\n        return []\n    issues: list[str] = []\n    preprocessing = state.get("preprocessing") or {}\n    code = root / str(preprocessing.get("code") or "数据预处理/数据预处理.py")\n    workbook = root / str(preprocessing.get("workbook") or "数据预处理/数据预处理结果.xlsx")\n    matlab = root / "数据预处理/data_process.m"\n    if "preprocessing_code" in required and not code.is_file():\n        issues.append("project_level正式交付缺少数据预处理/数据预处理.py")\n    if "preprocessing_workbook" in required:\n        if not workbook.is_file():\n            issues.append("project_level正式交付缺少数据预处理/数据预处理结果.xlsx")\n        if preprocessing.get("status") != "accepted" or preprocessing.get("quality_status") != "passed":\n            issues.append("project_level正式交付要求预处理工作簿accepted且预处理质量门passed")\n    if "preprocessing_matlab_script" in required:\n        if not matlab.is_file():\n            issues.append("project_level图表及论文交付缺少数据预处理/data_process.m")\n        else:\n            has_title, workbook_refs, exports = _parse_matlab(matlab)\n            if not has_title:\n                issues.append("data_process.m缺少title或sgtitle")\n            if "数据预处理结果.xlsx" not in {Path(item).name for item in workbook_refs}:\n                issues.append("data_process.m必须读取数据预处理结果.xlsx")\n            text = matlab.read_text(encoding="utf-8", errors="ignore")\n            forbidden_calls = ("interp1(", "fillmissing(", "smoothdata(", "resample(", "filtfilt(", "designfilt(")\n            if any(token in text for token in forbidden_calls):\n                issues.append("data_process.m不得重新执行插值、填补、平滑、重采样或滤波")\n            for item in exports:\n                export_path = (matlab.parent / item).resolve()\n                if not export_path.is_file():\n                    shown = export_path.relative_to(root).as_posix() if export_path.is_relative_to(root) else export_path.as_posix()\n                    issues.append(f"data_process.m声明导出的图不存在: {shown}")\n    return issues\n'''
+          replace('scripts/sync_project.py', old_sync, new_sync, 1)
+
+          changelog = Path('CHANGELOG.md')
+          text = changelog.read_text(encoding='utf-8')
+          marker = '## Current release: 7.2.2'
+          if marker not in text:
+              raise SystemExit('CHANGELOG current release anchor missing')
+          section = '''## Current release: 7.2.3\n\n- Elevated any substantive preprocessing that actually changes model inputs into a paper evidence chain: data problem/necessity -> mathematical formula or deterministic mapping -> parameter basis -> method-matched validation -> before/after evidence -> MATLAB figure -> downstream model interface.\n- Added writing-depth rules for deterministic structural fixes, statistical transforms, interpolation/imputation, filtering/resampling and outlier/deletion operations.\n- Clarified the proof boundary: formal proofs are used only for genuine equivalence, conservation, monotonicity, error-bound or feasibility-preservation claims; empirical cleaning uses reproducible statistical/physical/masking/holdout validation rather than fabricated theorems.\n- Expanded the project-level preprocessing workbook with `预处理方法证据`, `处理前后对比` and `绘图数据索引`, plus bottom-level task-specific before/after or validation data so plots never need to be reconstructed from summary numbers.\n- Added the dedicated project-level MATLAB script `数据预处理/data_process.m`. It reads only `数据预处理结果.xlsx`, plots preprocessing necessity/effectiveness evidence, and may not redo cleaning, interpolation, filtering, resampling or learned imputation.\n- Standardized preprocessing figure export stems as `data_process` or `data_process_<evidence>` while preserving the default visible-window/no-auto-export behavior.\n- Project-level preprocessing now has an exact three-file final layout (`数据预处理.py`, `数据预处理结果.xlsx`, `data_process.m`); the per-question exact five-file/two-Python layout is unchanged.\n- Added returned-workbook and formal figure-delivery gates plus regression/static-lint coverage for the new preprocessing paper/figure evidence chain.\n\n## Previous release: 7.2.2'''
+          changelog.write_text(text.replace(marker, section, 1), encoding='utf-8')
+
+          for path in ('scripts/README.md', 'legacy/README.md'):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              text = text.replace('7.2.2', '7.2.3', 1)
+              p.write_text(text, encoding='utf-8')
+
+          workflow = Path('.github/workflows/v723-once.yml')
+          workflow.unlink()
+          PY
+      - name: Commit patched sources and remove one-shot workflow
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No patch changes.'
+            exit 0
+          fi
+          git commit -m 'fix: close v7.2.3 runtime and version consistency'
+          git push origin HEAD:fix/v7.2.3-preprocessing-paper-evidence
