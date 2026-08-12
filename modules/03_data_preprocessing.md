@@ -10,7 +10,8 @@
 preprocessing_decision
 ├─ not_needed     → 直接进入 solve_validate，允许读取原始数据
 ├─ question_local → 直接进入 solve_validate，本问脚本内构造有数学来源的局部变换
-└─ project_level  → 进入本模块 → 质量门通过 → data_process.m → solve_validate
+└─ project_level  → 进入本模块 → 质量门通过 → solve_validate
+                                      └─ 后续 Figure Evidence 阶段生成 data_process.m
 ```
 
 判定依据必须来自**当前题目、当前附件和当前模型输入要求**，不得因为多问共享数据、题型名称、过去竞赛经验或“通常都要清洗”而自动启用本模块。
@@ -26,7 +27,7 @@ preprocessing_decision
 5. **局部模型变换不升级为全局清洗**。仅某一问需要标准化、滞后、窗口、编码、局部缺失处理或专属特征时保持 `question_local`；
 6. **项目级预处理只处理公共口径**。只有多个小问共同依赖的单位、坐标、时间、主键、采样、缺失、异常、预测填补、滤波等操作才进入本模块；
 7. **方法按数据结构选择，不按“高级程度”选择**。能保持原始数据或由模型原生处理时，不引入额外修复假设；
-8. **预处理结果也需要图形证据**。进入 `project_level` 后，Python 负责输出处理前后/修复验证/采样覆盖等底层数据，MATLAB 统一通过 `data_process.m` 可视化；
+8. **预处理结果也要为 MATLAB 证据链准备底层数据**。进入 `project_level` 后，Python 输出处理前后、修复验证、采样覆盖等真实底层数据；到统一 Figure Evidence 阶段再由 `data_process.m` 绘图；
 9. **不以结果好坏反向调参**。预处理参数由数据、机理与模型需求决定，而不是为了让后续结果更平滑、更优或更接近预期答案；
 10. 若后问发现公共数据口径确需改变，回退本模块并按依赖传播 stale；若只是本问新增派生特征，则留在本问处理。
 
@@ -111,7 +112,7 @@ vs project_level公共处理
 | 参数依据 | 每个不可逆处理参数的数据、统计或机理依据 |
 | 验证方式 | 插值、填补、异常处理或其他修改如何独立验证 |
 | 统一输出对象 | 后续依赖小问共同读取的标准字段/矩阵 |
-| 可视化证据 | `data_process.m` 应展示哪些处理前后/修复/结构证据 |
+| 可视化证据数据 | 后续 `data_process.m` 需要哪些处理前后/修复/结构底层数据 |
 | 质量门 | 输出一致、处理有证据、哈希可追溯、无越权修改 |
 
 若 `decision=not_needed` 或 `question_local`，不得为了满足目录模板而生成项目级 `数据预处理.py`、`数据预处理结果.xlsx` 和 `data_process.m`。
@@ -200,11 +201,11 @@ Python 可以计算 MATLAB 绘图所需的底层数据，但不能代替 MATLAB 
 - 学习型预处理没有跨训练/验证或时间因果边界造成信息泄漏；
 - 没有为了得到更平滑、更好看或更优的后续结果而擅自处理数据；
 - 没有把具有物理或结构意义的极端值当普通异常删除；
-- `data_process.m` 所需的处理前后或验证底层数据已经写入工作簿，MATLAB 无需再次计算预处理。
+- 后续 `data_process.m` 所需的处理前后或验证底层数据已经写入工作簿，MATLAB 无需再次计算预处理。
 
 ## 8. MATLAB 预处理绘图 `data_process.m`
 
-预处理工作簿通过质量门后，生成：
+`data_process.m` **不属于进入主求解前的前置门**。它属于统一 MATLAB Figure Evidence 阶段，但只要项目采用 `project_level`，最终必须生成：
 
 ```text
 数据预处理/
@@ -221,7 +222,7 @@ Python 可以计算 MATLAB 绘图所需的底层数据，但不能代替 MATLAB 
 
 `data_process.m` 只负责：
 
-- 读取 `数据预处理结果.xlsx`；
+- 读取已验收的 `数据预处理结果.xlsx`；
 - 按真实工作表和表头绘制处理前后、修复验证、采样覆盖、结构对齐等证据图；
 - 使用统一 MATLAB 科研绘图规范；
 - 保留图窗供人工调整，默认不批量自动导出。
@@ -263,12 +264,13 @@ Python 可以计算 MATLAB 绘图所需的底层数据，但不能代替 MATLAB 
 统一工作簿通过质量门后：
 
 ```text
-data_process.m
-    └─ 只读：数据预处理结果.xlsx
-
 问题X求解.py
     └─ 允许读取：数据预处理结果.xlsx + 已验收前问/本问标准工作簿
     └─ 禁止读取：对应的共享原始 CSV/XLSX/TXT 等数据源
+
+Figure Evidence阶段：
+data_process.m
+    └─ 只读：数据预处理结果.xlsx
 ```
 
 只有这一种状态下，下游重复直接读取共享原始数据才属于数据口径硬违规。
@@ -299,15 +301,16 @@ data_process.m
 
 ## 12. 阶段门槛
 
-若 `decision=project_level`，进入正式主求解前依次满足：
+若 `decision=project_level`，进入 `solve_validate` 前必须满足：
 
 1. 模型设计已锁定预处理必要性、level、操作和禁止操作；
 2. `数据预处理.py` 静态检查通过；
 3. 用户本地 full-fidelity 运行并返回 `数据预处理结果.xlsx`；
 4. `预处理质量门` 全部通过；
-5. 生成并静态检查 `data_process.m`，确认只读取统一工作簿且不重新处理数据；
-6. 后续依赖小问的数据事实源统一指向该工作簿。
+5. 后续依赖小问的数据事实源统一指向该工作簿。
 
-未完成 Python 工作簿验收时暂停在 `awaiting_user_preprocessing`；工作簿通过后再生成 `data_process.m`。
+未完成时暂停在 `awaiting_user_preprocessing`。
+
+进入 `figure_evidence` 时，若 `decision=project_level`，必须额外生成并静态检查 `data_process.m`，确认它只读取统一工作簿且不重新处理数据。
 
 若 `decision=not_needed` 或 `question_local`，上述工作簿与 `data_process.m` 门槛不适用，允许直接进入正式主求解。
