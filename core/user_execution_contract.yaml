@@ -39,6 +39,7 @@ preprocessing_decision_policy:
   not_needed_or_question_local_preprocessing_artifacts_required: false
 code_delivery:
   semantic_governance_required: true
+  code_quality_contract: core/code_quality_contract.yaml
   preprocessing_script: 数据预处理/数据预处理.py
   stage_scripts:
     primary: 问题X求解/问题X求解.py
@@ -117,9 +118,6 @@ execution_states:
   - workbook_received
   - accepted
   - rejected
-  result_analysis_outcomes:
-  - passed
-  - failed
   - redo_required
   rules:
   - preprocessing_decision=not_needed或question_local时，preprocessing状态应为not_applicable或不生成该阶段，不得阻塞primary。
