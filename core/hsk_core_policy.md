@@ -1,6 +1,6 @@
-# HSK Core Policy v7.2.1
+# HSK Core Policy v7.2.3
 
-本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision` 与条件式统一数据预处理以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准。本文件不复制这些合同的完整字段。
+本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision`、条件式统一数据预处理、预处理论文数学证据与 `data_process.m` 图证据以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准。本文件不复制这些合同的完整字段。
 
 ## 1. 总目标与优先级
 
@@ -46,11 +46,11 @@ $$
 
 上述语义治理由 `scripts/validate_semantic_governance.py` 在正式模型、代码、返回工作簿和下游交付前执行。该门不运行赛题代码、不生成数值结果，也不清除数值 stale。
 
-## 3. 数据审计与条件式预处理
+## 3. 数据审计、条件式预处理与论文证据
 
 **所有数据题先审计，但不是所有数据题都要清洗或建立统一预处理工作簿。**
 
-模型设计阶段必须形成 `preprocessing_decision`：
+模型设计阶段必须形成：
 
 ```text
 not_needed
@@ -58,26 +58,31 @@ question_local
 project_level
 ```
 
-硬规则如下：
+硬规则：
 
-1. 字段、维度、单位、主键、NaN/Inf、重复、时间/空间粒度等非破坏性数据审计默认执行；
-2. 两个及以上小问共享同一原始数据源，只触发统一口径审计，**不能单独推出需要项目级预处理**；
-3. 原始数据已满足模型要求时，`decision=not_needed`，不创建 `数据预处理/`，各问可直接读取原始数据；
-4. 仅某一问需要对数、标准化、滞后、窗口或专属派生特征时，`decision=question_local`，由本问脚本在数学层有来源的前提下构造，不建立全局预处理目录；
-5. 只有多个小问确实依赖同一公共单位、坐标、时间、主键、采样、缺失、异常、滤波或其他有依据的数据变换时，才使用 `decision=project_level`；
-6. `project_level` 才创建：
+1. 字段、维度、单位、主键、NaN/Inf、重复、时间/空间粒度、采样覆盖、测量质量、模型输入条件和信息泄漏风险等非破坏性审计默认执行；
+2. 多问共享同一原始数据源不能单独推出需要项目级预处理；
+3. 原数据满足模型要求时使用 `not_needed`，不创建 `数据预处理/`；
+4. 仅某一问需要对数、标准化、滞后、窗口、专属派生特征或局部缺失处理时使用 `question_local`；
+5. 只有多个小问共同依赖同一公共单位、坐标、时间、主键、采样、缺失、异常、填补、滤波或其他有依据的变换时，才使用 `project_level`；
+6. 缺失填补、异常删除、插值、平滑、滤波、去噪、标准化、归一化、重采样等操作必须逐项有数据、机理或模型必要性证据；统计极端值不得直接等价为错误数据；
+7. `project_level` 统一工作簿验收后，依赖该公共口径的下游脚本不得重新读取共享原始数据；
+8. 任何实际改变模型输入的预处理都必须形成论文证据链：**问题证据 → 数学公式/定义 → 参数依据 → 合理性验证 → 处理前后证据 → 对后续模型的接口说明**；不能在论文中用一句“完成清洗/插值/标准化”替代；
+9. 形式证明只用于确实可证明的等价性、守恒性、单调性、误差界或可行性保持；经验型清洗使用统计/物理/留出/人工掩蔽等可复验方法，不编造数学证明；
+10. `project_level` 必须使用独立 MATLAB 脚本 `数据预处理/data_process.m` 读取 `数据预处理结果.xlsx` 中 Python 已保存的处理前后、诊断和验证数据，形成至少一张能证明预处理必要性或有效性的图；MATLAB 不重新做预处理；
+11. `question_local` 若需要处理前后图证据，由对应 `qX_plot.m` 读取 Python 已输出的底层数据绘制；
+12. 地震、时序、空间、传感器等题的去趋势、滤波、插值、坏道修复、taper 等均为条件操作，不得写成默认模板步骤。
+
+`project_level` 的默认目录为：
 
 ```text
 数据预处理/
 ├─ 数据预处理.py
-└─ 数据预处理结果.xlsx
+├─ 数据预处理结果.xlsx
+└─ data_process.m
 ```
 
-7. 缺失填补、异常删除、插值、平滑、滤波、去噪、标准化、归一化、重采样等修改数据的操作必须逐项有数据、机理或模型必要性证据；统计极端值不得直接等价为错误数据；
-8. `project_level` 的统一工作簿通过质量门后，依赖该公共数据口径的下游脚本不得重新读取对应共享原始数据；`not_needed` 与 `question_local` 不受此限制；
-9. 地震、时序、空间、传感器等题的去趋势、滤波、插值、坏道修复、taper 等均为条件操作，不得写成默认模板步骤。
-
-完整判定、操作四问门、地震审计和 stale 规则以 `core/global_preprocessing_contract.yaml` 为唯一事实源。
+完整判定、方法数学化写作深度、工作簿证据、`data_process` 图规则和 stale 规则以 `core/global_preprocessing_contract.yaml` 为唯一事实源。
 
 ## 4. 每问唯一数值交付目录
 
@@ -94,12 +99,14 @@ project_level
 
 两个 Python 文件职责分离。`问题X求解.py` 只负责主求解；主工作簿 accepted 后冻结。随后单独生成 `问题X结果深化分析.py`，继承当前 `preprocessing_decision` 与数据事实源，完成题目专属深化分析。不得为了深化分析覆盖改写主求解脚本，也不得在该目录增加独立配置、运行说明、校验报告、图表目录或元数据文件。
 
+`data_process.m` 属于项目级预处理目录，不计入每问五文件合同。
+
 ## 5. 用户执行与质量门
 
 实际生成的 `数据预处理.py`、`问题X求解.py` 与 `问题X结果深化分析.py` 均由助手生成和静态检查、由用户本地 full-fidelity 执行。
 
-- `project_level`：预处理工作簿 accepted 且 `预处理质量门` passed 后才能进入依赖主求解；
-- `not_needed/question_local`：没有预处理工作簿门槛，不能因为该文件不存在而阻塞；
+- `project_level`：预处理工作簿 accepted 且 `预处理质量门` passed 后才能进入依赖主求解；工作簿还必须持久化论文方法证据、处理前后对比和 `data_process.m` 绘图底层数据；
+- `not_needed/question_local`：没有统一预处理工作簿门槛；
 - 主工作簿通过当前语义、运行配置、代码/数据哈希与 `主结果质量门` 后才进入 `solved`；
 - 深化工作簿通过运行配置、代码/数据哈希、`分析设计` 与 `结论稳定性汇总` 后才进入 `analyzed`。
 
@@ -107,11 +114,12 @@ project_level
 
 ## 6. 软件职责
 
-- Python 条件式项目级预处理：仅 `project_level` 时读取共享原始数据，执行已批准公共处理，输出 `数据预处理结果.xlsx`；
+- Python 条件式项目级预处理：仅 `project_level` 时读取共享原始数据，执行已批准公共处理，输出 `数据预处理结果.xlsx`，同时保存论文公式参数、方法验证和 MATLAB 绘图底层证据；
+- MATLAB `data_process.m`：仅 `project_level` 时读取 `数据预处理结果.xlsx` 绘制预处理证据图，不重新处理数据；正式导出基名使用 `data_process` 或 `data_process_<evidence>`；
 - Python 主求解：按 `preprocessing_decision` 读取原始数据或统一工作簿，完成模型求解、质量门和主工作簿；
 - Python 深化分析：继承同一数据事实源，读取已验收主结果与必要前问结果，完成题目专属深化分析；
-- MATLAB：优先读取本问标准结果工作簿；只有图确实需要底层数据时，才按 `preprocessing_decision` 读取原始数据或统一预处理工作簿；不重新求解；
-- LaTeX：默认论文主链；
+- MATLAB `qX_plot.m`：读取本问标准结果工作簿及必要数据事实源绘制各问结果图，不重新求解；
+- LaTeX：默认论文主链；若存在实质预处理，必须写入对应数学方法、验证和图表证据；
 - DOCX：仅用户明确要求时加载，不是 LaTeX 前置。
 
 MATLAB 默认只保留图窗，不自动创建图表目录或批量导出正式图片。
@@ -120,7 +128,7 @@ MATLAB 默认只保留图窗，不自动创建图表目录或批量导出正式�
 
 `run_info.json`、`result_manifest.yaml` 和 `matlab_figure_handoff.json` 只在用户明确要求完整复现包时生成，并放入项目级内部元数据目录，不得放入 `问题X求解/` 或 `数据预处理/`。
 
-v7.2.0 项目重新进入模型设计或求解时，先补齐 `preprocessing_decision`；不得因为历史上存在共享数据就默认迁移为 `project_level`。v7.1.x 及更早项目继续只读兼容；重新进入当前流程时先审计数据并形成判定。v7.0.x 缺少语义治理字段的项目按既有兼容规则迁移；v6.6.x 单脚本四文件项目和旧 `结果数据表/问题X/` 继续只读兼容。
+v7.2.0--7.2.2 项目重新进入模型设计、预处理、绘图或写作时，应按当前规则补齐适用的论文证据与 `data_process.m` 图证据；不要求为已完成的只读历史交付反向生成新文件。v7.1.x 及更早项目继续只读兼容；重新进入当前流程时先审计数据并形成判定。
 
 ## 8. 正式交付同步
 
@@ -130,4 +138,4 @@ v7.2.0 项目重新进入模型设计或求解时，先补齐 `preprocessing_dec
 - 用户返回工作簿：`scripts/validate_user_execution.py`；
 - 图表、论文和提交包：`scripts/sync_project.py`。
 
-同步器必须根据 `preprocessing_decision` 判断数据事实源和条件产物：`project_level` 才要求预处理脚本/工作簿；`not_needed/question_local` 不得因不存在预处理目录而失败。同步器只做发现、校验、哈希与 stale 传播，不自动生成模型语义、数据处理决策、数值结果或 passed 状态。
+同步器必须根据 `preprocessing_decision` 判断数据事实源和条件产物：`project_level` 才要求预处理脚本/工作簿/`data_process.m`；`not_needed/question_local` 不得因不存在预处理目录而失败。同步器只做发现、校验、哈希与 stale 传播，不自动生成模型语义、数据处理决策、数值结果或 passed 状态。
