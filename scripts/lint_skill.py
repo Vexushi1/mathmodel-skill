@@ -14,7 +14,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "7.2.2"
+PACKAGE_VERSION = "7.2.3"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",
@@ -33,6 +33,7 @@ REQUIRED = [
     "packs/artifact/proposition_proof.md", "templates/model/model_paper_framework.md",
     "templates/code/hsk_pipeline/result_io.py", "templates/code/hsk_pipeline/workbook_validation.py",
     "templates/code/hsk_pipeline/main_pipeline.py", "templates/matlab/q1_plot.m",
+    "templates/matlab/data_process.m",
     "scripts/resolve_workflow.py", "scripts/validate_semantic_governance.py", "scripts/sync_project.py",
     "scripts/validate_code_delivery.py", "scripts/validate_user_execution.py",
     "scripts/validate_model_paper_framework.py", "scripts/validate_project_state.py",
@@ -328,6 +329,30 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("prediction boundary must separate predictive imputation from task prediction")
     if not any("赛题直接要求预测未来值" in str(item) for item in prediction_boundary.get("not_preprocessing_when", [])):
         errors.append("task-requested forecasting must be explicitly excluded from preprocessing")
+    paper = preprocessing.get("paper_evidence_contract") or {}
+    paper_text = "\n".join(str(item) for item in paper.get("required_paper_elements", []))
+    for token in ("数学公式", "参数", "合理性验证", "预处理图"):
+        if token not in paper_text:
+            errors.append(f"preprocessing paper evidence contract lacks: {token}")
+    if "不得编造数学证明" not in str(paper.get("formal_proof_boundary", "")):
+        errors.append("preprocessing paper evidence must reject fabricated formal proofs")
+    figure_contract = preprocessing.get("preprocessing_figure_contract") or {}
+    if figure_contract.get("project_level_script") != "数据预处理/data_process.m":
+        errors.append("project-level preprocessing MATLAB script must be 数据预处理/data_process.m")
+    if figure_contract.get("export_stem") != "data_process":
+        errors.append("preprocessing figure export stem must be data_process")
+    pre_files = ((preprocessing.get("project_directory") or {}).get("exact_default_files") or [])
+    if pre_files != ["数据预处理.py", "数据预处理结果.xlsx", "data_process.m"]:
+        errors.append("project-level preprocessing directory must be the exact three-file data_process layout")
+    pre_sheets = set(((preprocessing.get("workbook") or {}).get("common_required_sheets") or {}))
+    if not {"预处理方法证据", "处理前后对比", "绘图数据索引"}.issubset(pre_sheets):
+        errors.append("preprocessing workbook lacks paper/figure evidence sheets")
+    data_process = read_text(ROOT / "templates/matlab/data_process.m")
+    for token in ("数据预处理结果.xlsx", "处理前", "处理后"):
+        if token not in data_process:
+            errors.append(f"data_process MATLAB template lacks: {token}")
+    if "exportgraphics(" in data_process:
+        errors.append("data_process MATLAB template must not auto-export")
     line_policy = quality.get("line_count", {})
     if (line_policy.get("target_max"), line_policy.get("hard_max"), line_policy.get("exemption_max")) != (500, 700, 900):
         errors.append("code-quality line thresholds must be 500/700/900")
@@ -413,7 +438,7 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("project_sync must define additive conditional preprocessing semantics separately")
     expected_layers = {
         "raw_data", "preprocessing_decision", "preprocessing_code", "preprocessing_workbook",
-        "model", "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
+        "preprocessing_matlab_script", "model", "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
     }
     if set(sync.get("artifact_hash_layers", [])) != expected_layers:
         errors.append("project_sync artifact hash layers are incomplete")
