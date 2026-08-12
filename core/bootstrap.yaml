@@ -1,4 +1,4 @@
-skill_version: 7.2.2
+skill_version: 7.2.3
 bootstrap_schema_version: 1.1.0
 purpose: Minimal startup contract for the HSK mathematical-modeling workflow. Read this file first, then use scripts/resolve_workflow.py to obtain the deterministic task-specific execution plan. Do not preload the whole repository.
 authoritative_sources:
@@ -23,6 +23,7 @@ hard_invariants:
 - preprocessing_decision=not_needed时直接使用原始数据；question_local时只允许本问有数学来源的局部变换；project_level时才创建数据预处理/并在验收后冻结公共数据口径。
 - 缺失填补、预测填补、异常删除、插值、平滑、滤波、去趋势、标准化、归一化和重采样等数据修改必须有数据、机理或模型必要性证据，不能作为模板默认步骤。
 - 预测填补只可用于恢复后续模型确实需要的缺测输入；赛题本身要求预测的未来值、类别、需求、风险或其他结果属于核心建模，不得提前包装成预处理。
+- project_level预处理必须由Python把处理前后、修复验证、采样覆盖或结构对齐等真实底层证据写入数据预处理结果.xlsx；Figure Evidence阶段固定生成数据预处理/data_process.m，只读该工作簿绘图，不在MATLAB中重新处理数据。
 - 题意、数据口径、变量、参数、假设、目标、约束、preprocessing_decision、实际预处理、算法语义或小问依赖变化时必须递增semantic_revision，并按data/parameter/model/result依赖递归传播stale。
 - 先审题与锁定模型，再完整求解；不得用后续分析弥补主结果精度、收敛、可行性或语义不足。
 - 主求解必须通过独立质量门，随后才按题目风险选择敏感性、鲁棒性、多算法、结构、阈值、异质性或其他结果深化分析。
@@ -30,7 +31,7 @@ hard_invariants:
 - 新项目默认由用户本地执行实际生成的项目级预处理、完整版主求解与结果深化代码；助手只生成代码、静态校验和验收返回工作簿，不得运行赛题代码。
 - 每问主求解与结果深化分析使用两个独立Python脚本；主工作簿accepted后冻结主求解脚本，深化分析不得覆盖改写它。
 - 禁止自动缩减数据、网格、时域、场景、重复次数、迭代或容差，禁止静默求解器fallback和轻量近似。
-- Python负责当前数据事实源检查、主求解、质量门与结果深化分析；项目级公共数据处理仅在project_level时由数据预处理.py执行；MATLAB只读真实结果数据绘图。
+- Python负责当前数据事实源检查、主求解、质量门与结果深化分析；项目级公共数据处理仅在project_level时由数据预处理.py执行；MATLAB只读Python输出的真实工作簿绘图。
 - 实际生成的数据预处理脚本和两个正式问题脚本都必须通过core/code_quality_contract.yaml定义的代码工程质量门。
 - 默认写作链在结果与图表锁定后直接进入LaTeX；DOCX仅由用户显式请求触发，且不是LaTeX前置。
 - locked_model_spec形成后维护项目根目录当前版模型论文框架.md；旧版本由Git历史保存。
