@@ -232,7 +232,7 @@ class TestV701StageBoundaryClosure(unittest.TestCase):
         self.assertNotIn("v7.0.1 execution plan", text)
         self.assertNotIn("v7.1.0 execution plan", text)
         self.assertNotIn("v7.2.2 execution plan", text)
-        self.assertIn("v7.2.4 execution plan", text)
+        self.assertIn("v7.2.5 execution plan", text)
 
 
 if __name__ == "__main__":

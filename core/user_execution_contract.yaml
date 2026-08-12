@@ -1,5 +1,5 @@
 version: 2.2.0
-skill_version: 7.2.4
+skill_version: 7.2.5
 purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界，每问主求解与结果深化分析继续使用两个独立Python脚本。project_level工作簿还必须保存论文数学方法、验证和data_process.m绘图所需证据。
 default_mode:
   execution_owner: user
@@ -17,7 +17,7 @@ assistant_policy:
   - 审题、通用数据审计、preprocessing_decision、模型设计、公式闭环和完整版代码生成
   - 不导入赛题脚本的静态代码、依赖、语法和工程质量检查
   - 读取用户返回的工作簿并执行Schema、哈希、质量门和证据一致性校验
-  - 在预处理工作簿accepted后生成data_process.m；该MATLAB脚本只读工作簿绘图，不执行数值预处理
+  - 在预处理工作簿accepted、主求解与结果深化分析完成后，于Figure Evidence阶段生成data_process.m；该MATLAB脚本只读工作簿绘图，不执行数值预处理
   - 运行本Skill仓库自身的lint、单元测试、索引生成和LaTeX模板CI
 full_fidelity_flags:
   execution_profile: full_fidelity
@@ -35,6 +35,7 @@ preprocessing_decision_policy:
   shared_data_alone_is_not_project_level: true
   missing_values_alone_do_not_imply_interpolation: true
   task_prediction_is_not_preprocessing: true
+  project_level_covered_raw_sources_required: true
   substantive_preprocessing_requires_paper_evidence: true
   source_modes:
     not_needed: raw
@@ -91,7 +92,7 @@ code_delivery:
 three_stage_policy:
   preprocessing:
     activation: 仅preprocessing_decision=project_level
-    role: 读取需要统一处理的共享原始数据，执行通用审计和已批准公共处理，输出数据预处理结果.xlsx；同时保存论文公式/方法证据、处理前后对比、验证和data_process绘图底层数据
+    role: 读取需要统一处理的共享原始数据，冻结covered_raw_sources，执行通用审计和已批准公共处理，输出数据预处理结果.xlsx；同时保存论文公式/方法证据、处理前后对比、验证和data_process绘图底层数据
     freeze_after: preprocessing_workbook_accepted
   primary:
     role: 首次交付问题X求解.py，只负责主求解并输出问题X求解结果.xlsx；主工作簿accepted后该脚本冻结，不为结果深化分析改写。
