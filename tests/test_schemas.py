@@ -18,9 +18,10 @@ class TestSchemas(unittest.TestCase):
     def test_classification_has_single_capability_source_and_split_status(self):
         schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
         defs = schema["$defs"]
-        self.assertEqual(schema["version"], "7.1.0")
+        self.assertEqual(schema["version"], "7.2.1")
         self.assertEqual(set(defs["classification"]["required"]), {"objective", "structures"})
         self.assertEqual(set(defs["dependency_kind"]["enum"]), {"data", "parameter", "model", "result"})
+        self.assertEqual(set(defs["preprocessing_decision"]["enum"]), {"not_needed", "question_local", "project_level"})
         subproblems = schema["properties"]["subproblems"]
         sub_required = set(subproblems["additionalProperties"]["required"])
         self.assertEqual(subproblems["minProperties"], 1)
@@ -36,9 +37,11 @@ class TestSchemas(unittest.TestCase):
             self.assertIn(name, fields)
         phases = set(schema["properties"]["project"]["properties"]["current_phase"]["enum"])
         statuses = set(subproblems["additionalProperties"]["properties"]["status"]["enum"])
+        self.assertIn("data_preprocessing", phases)
         self.assertIn("result_analysis", phases)
         self.assertIn("analyzed", statuses)
         self.assertIn("result_analysis_workbook", defs["artifact_hashes"]["properties"])
+        self.assertIn("preprocessing", schema["properties"])
 
     def test_workbook_schema_has_quality_gate_and_adaptive_analysis(self):
         schema = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_text(encoding="utf-8"))
@@ -67,12 +70,13 @@ class TestSchemas(unittest.TestCase):
 
     def test_output_contract_defines_split_result_policy(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(contract["version"], "7.1.0")
+        self.assertEqual(contract["version"], "7.2.1")
         self.assertEqual(contract["code_quality_contract"], "core/code_quality_contract.yaml")
+        self.assertEqual(contract["preprocessing_contract"], "core/global_preprocessing_contract.yaml")
         self.assertEqual(contract["semantic_governance"]["script"], "scripts/validate_semantic_governance.py")
         self.assertEqual(contract["semantic_governance"]["dependency_kinds"], ["data", "parameter", "model", "result"])
         self.assertEqual(contract["project_sync"]["role"], "formal_pre_delivery_gate_after_semantic_governance")
-        self.assertEqual(contract["project_sync"]["stage_requirements_semantics"], "exact_scope")
+        self.assertEqual(contract["project_sync"]["stage_requirements_semantics"], "exact_scope_plus_conditional_preprocessing")
         self.assertEqual(contract["project_sync"]["implicit_phase_sync_semantics"], "status_minimum_only")
         self.assertTrue(contract["project_sync"]["formal_scope_requires_explicit_flag"])
         self.assertEqual(
@@ -92,8 +96,18 @@ class TestSchemas(unittest.TestCase):
         self.assertTrue(policy["fixed_perturbation_forbidden"])
         self.assertEqual(
             set(contract["project_sync"]["artifact_hash_layers"]),
-            {"data", "model", "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework"},
+            {
+                "raw_data", "preprocessing_decision", "preprocessing_code", "preprocessing_workbook",
+                "model", "solution_workbook", "result_analysis_workbook", "matlab_script",
+                "figure_bundle", "framework",
+            },
         )
+        conditional = contract["project_sync"]["conditional_stage_requirements"]
+        self.assertEqual(
+            conditional["preprocessing_decision_project_level"]["condition"],
+            "preprocessing_decision == project_level",
+        )
+        self.assertIn("preprocessing_workbook", conditional["preprocessing_decision_project_level"]["results"])
         per_question = contract["per_question"]
         self.assertEqual(set(per_question["mandatory_workbooks"]), {"solution", "result_analysis"})
         self.assertEqual(per_question["question_directory"], "问题{中文序号}求解/")
