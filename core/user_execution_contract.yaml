@@ -1,6 +1,6 @@
 version: 2.1.0
-skill_version: 7.2.2
-purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界，每问主求解与结果深化分析继续使用两个独立Python脚本。
+skill_version: 7.2.3
+purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界，每问主求解与结果深化分析继续使用两个独立Python脚本；预处理MATLAB证据属于后续Figure Evidence，不属于数值执行门。
 default_mode:
   execution_owner: user
   execution_profile: full_fidelity
@@ -125,6 +125,7 @@ execution_states:
   rules:
   - preprocessing_decision=not_needed或question_local时，preprocessing状态应为not_applicable或不生成该阶段，不得阻塞primary。
   - preprocessing_decision=project_level时，preprocessing=accepted且预处理质量门通过后才能进入primary。
+  - data_process.m不属于primary前置门；它在后续Figure Evidence阶段基于已验收预处理工作簿生成。
   - 代码交付不得把小问status提升为solved或analyzed。
   - primary_execution_status=accepted且主结果质量门通过后，status才可进入solved。
   - analysis_execution_status=accepted且结论稳定性校验通过后，status才可进入analyzed。
@@ -173,6 +174,7 @@ filenames:
   preprocessing_directory: 数据预处理/
   preprocessing_python_code: 数据预处理/数据预处理.py
   preprocessing_workbook: 数据预处理/数据预处理结果.xlsx
+  preprocessing_matlab: 数据预处理/data_process.m
   question_directory: 问题X求解/
   primary_python_code: 问题X求解/问题X求解.py
   analysis_python_code: 问题X求解/问题X结果深化分析.py
@@ -185,4 +187,4 @@ legacy_compatibility:
   v7_2_0_preprocessing_without_decision: read_only_until_redesign
   v7_0_semantic_governance_fields: read_only_until_redesign
   v6_6_single_evolving_script: read_only
-  rule: 旧项目可继续读取已有产物；v7.2.0--7.2.1项目重新进入模型设计/求解时沿用三态decision并按当前通用审计规则复核必要性；更早项目重新进入当前流程时先补齐preprocessing_decision，只有project_level才要求统一预处理；重新深化分析时使用独立问题X结果深化分析.py。
+  rule: 旧项目可继续读取已有产物；v7.2.0--v7.2.2项目重新进入模型设计/求解时沿用三态decision并按当前通用审计规则复核必要性；project_level旧项目重新进入Figure Evidence时补充data_process.m；更早项目重新进入当前流程时先补齐preprocessing_decision，只有project_level才要求统一预处理；重新深化分析时使用独立问题X结果深化分析.py。
