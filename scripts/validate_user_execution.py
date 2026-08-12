@@ -16,6 +16,15 @@ FALSE_FLAGS = (
     "allow_silent_solver_fallback",
 )
 VALID_DECISIONS = {"not_needed", "question_local", "project_level"}
+PREPROCESSING_EVIDENCE_SHEETS = {
+    "运行配置": ("项目", "值"),
+    "数据审计": ("数据源", "检查项", "结论", "处理方式"),
+    "预处理参数": ("步骤", "参数", "取值", "单位", "依据"),
+    "预处理方法证据": ("步骤", "问题证据", "数学方法", "参数依据", "验证方法", "验证结论"),
+    "处理前后对比": ("对象", "指标", "处理前", "处理后"),
+    "绘图数据索引": ("图组", "图作用", "源工作表"),
+    "预处理质量门": ("检查项", "是否通过", "证据"),
+}
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -126,13 +135,51 @@ def _boolean_gate(workbook: Path, sheet: str, column: str) -> tuple[bool, list[s
     return not failures, [f"{sheet}未通过: {item}" for item in failures]
 
 
+def _evidence_sheet_issues(book: openpyxl.Workbook, sheet: str, required: tuple[str, ...]) -> list[str]:
+    if sheet not in book.sheetnames:
+        return [f"预处理工作簿缺少工作表: {sheet}"]
+    rows = list(book[sheet].iter_rows(values_only=True))
+    if len(rows) < 2:
+        return [f"{sheet}必须包含表头和至少一行实质证据"]
+    headers = [str(item).strip() if item is not None else "" for item in rows[0]]
+    missing = [column for column in required if column not in headers]
+    issues = [f"{sheet}缺少列: {column}" for column in missing]
+    if not any(any(value not in (None, "") for value in row) for row in rows[1:]):
+        issues.append(f"{sheet}没有实质数据")
+    return issues
+
+
 def preprocessing_passed(workbook: Path) -> tuple[bool, list[str]]:
     book = openpyxl.load_workbook(workbook, read_only=True, data_only=True)
-    required = {"运行配置", "数据审计", "预处理参数", "预处理质量门"}
-    missing = sorted(required - set(book.sheetnames))
-    if missing:
-        return False, [f"预处理工作簿缺少工作表: {missing}"]
-    return _boolean_gate(workbook, "预处理质量门", "是否通过")
+    issues: list[str] = []
+    for sheet, required_columns in PREPROCESSING_EVIDENCE_SHEETS.items():
+        issues.extend(_evidence_sheet_issues(book, sheet, required_columns))
+    if issues:
+        return False, list(dict.fromkeys(issues))
+
+    # 绘图数据索引必须至少指向一个真实、非空的底层数据工作表，避免MATLAB从摘要数字反推。
+    index_rows = list(book["绘图数据索引"].iter_rows(values_only=True))
+    headers = [str(item).strip() if item is not None else "" for item in index_rows[0]]
+    source_idx = headers.index("源工作表")
+    referenced = {
+        str(row[source_idx]).strip()
+        for row in index_rows[1:]
+        if len(row) > source_idx and row[source_idx] not in (None, "")
+    }
+    if not referenced:
+        issues.append("绘图数据索引至少必须登记一个源工作表")
+    else:
+        for sheet in sorted(referenced):
+            if sheet not in book.sheetnames:
+                issues.append(f"绘图数据索引引用不存在的工作表: {sheet}")
+                continue
+            rows = list(book[sheet].iter_rows(values_only=True))
+            if len(rows) < 2:
+                issues.append(f"绘图数据索引引用的工作表无底层数据: {sheet}")
+
+    gate_passed, gate_issues = _boolean_gate(workbook, "预处理质量门", "是否通过")
+    issues.extend(gate_issues)
+    return gate_passed and not issues, list(dict.fromkeys(issues))
 
 
 def quality_passed(workbook: Path) -> tuple[bool, list[str]]:

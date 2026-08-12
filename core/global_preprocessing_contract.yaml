@@ -1,6 +1,6 @@
-version: 1.2.0
-skill_version: 7.2.2
-purpose: 规定跨赛题通用的数据质量审计、预处理必要性判定、项目级统一预处理与下游读取边界。任何数据题都先判断原始数据能否正确、充分且无信息泄漏地支撑当前模型；只有真实数据问题或模型输入要求提供证据时才修改数据。共享数据、特定题型或某一次赛题经验都不能单独触发清洗、插值、预测填补、滤波或统一工作簿。
+version: 1.3.0
+skill_version: 7.2.3
+purpose: 规定跨赛题通用的数据质量审计、预处理必要性判定、项目级统一预处理、论文数学证据、MATLAB预处理图证据与下游读取边界。任何数据题都先判断原始数据能否正确、充分且无信息泄漏地支撑当前模型；只有真实数据问题或模型输入要求提供证据时才修改数据。共享数据、特定题型或某一次赛题经验都不能单独触发清洗、插值、预测填补、滤波或统一工作簿。
 
 decision_gate:
   required_for_any_data_project: true
@@ -91,6 +91,7 @@ project_directory:
   exact_default_files:
   - 数据预处理.py
   - 数据预处理结果.xlsx
+  - data_process.m
   no_auxiliary_files_by_default: true
 
 missing_data_policy:
@@ -156,6 +157,55 @@ method_selection:
   - 异常处理阈值缺乏唯一物理依据
   rule: 出现上述情况时，至少比较保持原样与一种处理方案，必要时比较多种方案，并把结论稳定性送入结果深化分析。
 
+paper_evidence_contract:
+  activation: preprocessing_decision.decision in [question_local, project_level] and preprocessing_decision.operations is not empty
+  principle: 只要实际数据变换参与后续模型，论文不得用“完成清洗/插值/标准化”等一句话带过；必须形成问题证据、数学方法、参数依据、验证证据、处理前后证据和模型影响的闭环。
+  depth_by_operation:
+    structural:
+      examples: [单位换算, 坐标修正, 类型修正, 编码统一, 主键对齐, 确定性时间对齐]
+      writing: 给出映射关系或变换公式、单位/索引一致性条件和处理前后核对；确定性操作无需伪造形式证明。
+    statistical_transform:
+      examples: [标准化, 归一化, 对数变换, Box-Cox, 去趋势]
+      writing: 给出变换公式、参数估计口径、适用条件以及分布/尺度/残差变化验证。
+    interpolation_imputation:
+      examples: [插值, 统计填补, 模型化填补, 预测填补]
+      writing: 给出插值或估计公式/目标函数、边界条件或特征集合、参数选择和人工掩蔽/留出恢复误差；预测填补还要报告不确定性或适用边界。
+    filtering_resampling:
+      examples: [滤波, 平滑, 去噪, 重采样, taper]
+      writing: 给出核函数、频率响应、离散映射或重采样关系及参数依据，并验证有效信息未被不可接受地削弱。
+    outlier_or_deletion:
+      examples: [异常识别, 异常替换, 样本删除, 去重, 坏道修复]
+      writing: 给出判定指标/阈值的数学定义和来源，说明对象语义，并比较保留与处理后的关键结果或统计量。
+  required_paper_elements:
+  - 原始数据问题及规模，不只报告总体比例
+  - 选择当前方法而非保持原样或更弱方法的理由
+  - 与实际操作对应的数学公式、变换关系、目标函数或算法定义
+  - 参数、阈值、窗口、频带、阶数、邻域或模型超参数的来源
+  - 合理性验证：理论条件、物理约束、人工掩蔽、留出验证、残差、频谱、分布或处理前后对照中至少一种与方法匹配的证据
+  - 处理误差、信息损失、适用范围或潜在偏差
+  - 处理后数据如何进入后续模型的变量/公式/代码接口
+  - 至少一张真正支撑处理必要性或有效性的预处理图；不得用装饰性图替代证据
+  formal_proof_boundary: 只有存在可证明的等价性、守恒性、单调性、误差界或可行性保持命题时才写形式证明；经验型清洗不得编造数学证明，应使用可复验的统计/物理验证。
+  question_local_location: 写入对应小问的数据处理或模型输入构造段，并由该问qX_plot.m承接必要图证据。
+  project_level_location: 论文设置实质“数据预处理”章节或节，集中写公共方法、公式、验证和data_process图证据，后续各问引用该统一数据口径，不重复全文推导。
+
+preprocessing_figure_contract:
+  project_level_script: 数据预处理/data_process.m
+  export_stem: data_process
+  required_when: preprocessing_decision.decision == project_level
+  role: 只读取数据预处理结果.xlsx中Python已持久化的处理前/后、诊断和验证数据，绘制预处理证据图；不得在MATLAB中重新清洗、插值、滤波、重采样或估计参数。
+  minimum_evidence: 至少一张图直接回答“为什么需要处理”或“处理是否合理”；变换较多时按证据职责组织多面板，不为凑图重复画同一结论。
+  candidate_figures:
+  - 缺失位置/覆盖与填补结果对比
+  - 处理前后时序、空间场、轨迹或剖面对比
+  - 分布、箱线、QQ、残差或尺度变化对比
+  - 频谱/功率谱/频率响应处理前后对比
+  - 人工掩蔽或留出样本的真实值—恢复值对比与误差分布
+  - 重采样前后网格/采样间隔/覆盖变化
+  - 异常判定边界与保留/处理样本对比
+  style: 服从MATLAB科研绘图总规范；白底、低饱和、标题简洁、默认不自动导出，正式图片人工确认后导出。
+  filename_rule: MATLAB脚本固定为data_process.m；需要导出正式图片时文件基名使用data_process或data_process_<evidence>，不得使用中文文件名。
+
 source_policy:
   raw_data_role: immutable_source
   modes:
@@ -179,6 +229,7 @@ preprocessing_script:
   - 仅执行preprocessing_decision中已批准且有依据的公共操作
   - 对插值、填补或预测修复输出独立验证证据和适用边界
   - 保留不可逆处理前后的统计证据，不覆盖原始文件
+  - 为data_process.m持久化足够的处理前后底层数据、诊断数据和验证数据，MATLAB不得根据摘要数字反推
   - 输出统一工作簿、运行配置、数据哈希与预处理质量门
   forbidden:
   - 因为数据被多问共享就自动清洗、插值、滤波或标准化
@@ -191,7 +242,7 @@ preprocessing_script:
 
 workbook:
   filename: 数据预处理结果.xlsx
-  role: decision=project_level时的全项目统一数值数据入口
+  role: decision=project_level时的全项目统一数值数据入口，同时保存论文公式参数、方法验证和data_process.m绘图所需底层证据
   common_required_sheets:
     运行配置:
       required_columns: [项目, 值]
@@ -199,14 +250,24 @@ workbook:
       required_columns: [数据源, 检查项, 结论, 处理方式]
     预处理参数:
       required_columns: [步骤, 参数, 取值, 单位, 依据]
+    预处理方法证据:
+      required_columns: [步骤, 问题证据, 数学方法, 参数依据, 验证方法, 验证结论]
+      optional_columns: [公式编号或名称, 误差指标, 误差数值, 适用范围, 风险]
+    处理前后对比:
+      required_columns: [对象, 指标, 处理前, 处理后]
+      optional_columns: [单位, 变化量, 变化率, 说明]
+    绘图数据索引:
+      required_columns: [图组, 图作用, 源工作表]
+      optional_columns: [横轴字段, 处理前字段, 处理后字段, 分组字段, 验证字段, 单位, 论文位置]
     预处理质量门:
       required_columns: [检查项, 是否通过, 证据]
   task_specific_data_sheets:
-    rule: 由题目真实数据对象决定，使用中文描述性工作表名并记录行列、单位、主键与处理状态；不得把不同物理对象硬拼成超宽表。
+    rule: 由题目真实数据对象决定，使用中文描述性工作表名并记录行列、单位、主键与处理状态；必须保留data_process.m所需的处理前后或验证底层数据，不得只保存摘要统计，不得把不同物理对象硬拼成超宽表。
   quality_gate:
     must_pass_before_downstream: true
     checks:
     - 所有实际执行的变换均存在必要性证据和参数依据
+    - 每个实质变换具有可写入论文的数学定义/公式或确定性映射关系，并明确何时不需要形式证明
     - 输出数据无未说明的NaN或Inf；保留缺失时必须说明模型为何允许及其传播方式
     - 坐标、时间、单位和索引口径唯一
     - 输出行列与预期数据对象一致
@@ -215,6 +276,8 @@ workbook:
     - 未执行preprocessing_decision.operations之外的数据修改
     - 插值、统计填补或预测填补在适用时具有人工掩蔽、留出样本、物理约束或其他独立验证证据
     - 任何学习型预处理均未跨越训练验证或时间因果边界造成信息泄漏
+    - 预处理方法证据、处理前后对比和绘图数据索引与实际执行步骤一致
+    - data_process.m所需底层证据已保存，MATLAB无需重新计算预处理
 
 question_local:
   allowed_examples: [对数变换, 本问标准化, 滞后变量, 滑动窗口, 本问专属派生特征, 仅服务本问算法的编码, 只影响本问输入且有依据的局部缺失处理]
@@ -223,6 +286,8 @@ question_local:
   - 不建立数据预处理目录，不要求其他小问复用。
   - 不得包含本应统一的坐标修正、公共单位换算或跨问共享清洗。
   - 若局部填补或预测会学习数据分布，仍必须遵守训练验证边界与信息泄漏检查。
+  - 只要局部处理会实质改变模型输入，就必须在该问正文给出方法公式/定义、参数依据和验证，不得以“简单预处理”省略。
+  - 需要处理前后图证据时，由该问qX_plot.m读取Python已输出的底层数据绘制，不在MATLAB中重新处理。
 
 semantic_governance:
   preprocessing_decision_is_semantic: true
@@ -232,7 +297,9 @@ semantic_governance:
 downstream_contract:
   solve_scripts: 问题X求解/问题X求解.py
   analysis_scripts: 问题X求解/问题X结果深化分析.py
-  matlab_scripts: 问题X求解/qX_plot.m
+  matlab_scripts:
+    project_level_preprocessing: 数据预处理/data_process.m
+    per_question: 问题X求解/qX_plot.m
   source_selection:
     not_needed: 原始数据 + 已验收标准结果工作簿
     question_local: 原始数据 + 本问数学层定义的局部变换 + 已验收标准结果工作簿
@@ -240,6 +307,7 @@ downstream_contract:
   rules:
   - 下游必须先读取preprocessing_decision，再决定原始数据或统一工作簿作为事实源。
   - 只有decision=project_level时才禁止下游直接读取共享原始数据。
+  - project_level的data_process.m只读取统一预处理工作簿中的处理前后/验证证据；它不是数据事实源也不得重新生成统一数据。
   - 若某小问需要改变公共预处理口径，必须回退本阶段；若只新增本问派生特征，则保持question_local并在本问语义闭环中说明。
 
 seismic_guidance:

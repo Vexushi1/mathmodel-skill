@@ -668,6 +668,7 @@ def _preprocessing_artifact_issues(
     preprocessing = state.get("preprocessing") or {}
     code = root / str(preprocessing.get("code") or "数据预处理/数据预处理.py")
     workbook = root / str(preprocessing.get("workbook") or "数据预处理/数据预处理结果.xlsx")
+    matlab = root / "数据预处理/data_process.m"
     if "preprocessing_code" in required and not code.is_file():
         issues.append("project_level正式交付缺少数据预处理/数据预处理.py")
     if "preprocessing_workbook" in required:
@@ -675,6 +676,24 @@ def _preprocessing_artifact_issues(
             issues.append("project_level正式交付缺少数据预处理/数据预处理结果.xlsx")
         if preprocessing.get("status") != "accepted" or preprocessing.get("quality_status") != "passed":
             issues.append("project_level正式交付要求预处理工作簿accepted且预处理质量门passed")
+    if "preprocessing_matlab_script" in required:
+        if not matlab.is_file():
+            issues.append("project_level图表及论文交付缺少数据预处理/data_process.m")
+        else:
+            has_title, workbook_refs, exports = _parse_matlab(matlab)
+            if not has_title:
+                issues.append("data_process.m缺少title或sgtitle")
+            if "数据预处理结果.xlsx" not in {Path(item).name for item in workbook_refs}:
+                issues.append("data_process.m必须读取数据预处理结果.xlsx")
+            text = matlab.read_text(encoding="utf-8", errors="ignore")
+            forbidden_calls = ("interp1(", "fillmissing(", "smoothdata(", "resample(", "filtfilt(", "designfilt(")
+            if any(token in text for token in forbidden_calls):
+                issues.append("data_process.m不得重新执行插值、填补、平滑、重采样或滤波")
+            for item in exports:
+                export_path = (matlab.parent / item).resolve()
+                if not export_path.is_file():
+                    shown = export_path.relative_to(root).as_posix() if export_path.is_relative_to(root) else export_path.as_posix()
+                    issues.append(f"data_process.m声明导出的图不存在: {shown}")
     return issues
 
 

@@ -1,6 +1,17 @@
 # Changelog
 
-## Current release: 7.2.2
+## Current release: 7.2.3
+
+- Elevated substantive preprocessing into a paper evidence chain: data problem/necessity -> mathematical formula or deterministic mapping -> parameter basis -> method-matched validation -> before/after evidence -> MATLAB figure -> downstream model interface.
+- Added writing-depth rules for deterministic structural fixes, statistical transforms, interpolation/imputation, filtering/resampling and outlier/deletion operations.
+- Clarified that formal proofs are used only for genuine equivalence, conservation, monotonicity, error-bound or feasibility-preservation claims; empirical cleaning uses reproducible statistical/physical/masking/holdout validation instead of fabricated theorems.
+- Expanded the project-level preprocessing workbook with `预处理方法证据`, `处理前后对比` and `绘图数据索引`, plus bottom-level before/after or validation data.
+- Added `数据预处理/data_process.m`; it reads only `数据预处理结果.xlsx`, plots preprocessing necessity/effectiveness evidence, and may not redo cleaning, interpolation, filtering, resampling or learned imputation.
+- Standardized preprocessing figure export stems as `data_process` or `data_process_<evidence>` while preserving the visible-window/no-auto-export default.
+- Project-level preprocessing now has an exact three-file final layout (`数据预处理.py`, `数据预处理结果.xlsx`, `data_process.m`); the per-question exact five-file/two-Python layout is unchanged.
+- Added returned-workbook and formal figure-delivery gates plus regression/static-lint coverage for the new preprocessing paper/figure evidence chain.
+
+## Previous release: 7.2.2
 
 - Generalized preprocessing judgment from the v7.2.1 evidence gate into a cross-competition framework driven by the **current problem statement, current attachments and current model requirements**, rather than seismic-specific practice or any fixed competition template.
 - Added mandatory audit dimensions for completeness, consistency, validity, duplicate identity, sampling and coverage, measurement quality, model readiness, temporal causality/information leakage, and target/label integrity before deciding whether data can be used directly.

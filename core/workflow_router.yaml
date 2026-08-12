@@ -1,4 +1,4 @@
-version: 7.2.2
+version: 7.2.3
 bootstrap: core/bootstrap.yaml
 default_load:
 - core/hsk_core_policy.md
@@ -29,8 +29,9 @@ execution_contract:
   - Preprocessing judgment must use the current data's completeness, consistency, validity, sampling/coverage, measurement quality, model-readiness and leakage risks; no competition type or previous dataset supplies a default cleaning recipe.
   - Shared raw data alone never makes data_preprocessing mandatory.
   - If preprocessing_decision=not_needed, skip data_preprocessing and let downstream code use raw data with non-destructive checks.
-  - If preprocessing_decision=question_local, skip data_preprocessing and keep mathematically defined local transformations inside the relevant question script.
+  - If preprocessing_decision=question_local, skip data_preprocessing and keep mathematically defined local transformations inside the relevant question script; substantive local transforms still require paper formula/validation evidence and may use qX_plot.m for before/after evidence.
   - If preprocessing_decision=project_level, pause before solve_validate, complete data_preprocessing, accept the unified workbook, then forbid dependent downstream code from rereading the corresponding shared raw sources.
+  - Project-level preprocessing must persist paper method/validation/before-after plotting evidence in the unified workbook; figure_evidence then creates 数据预处理/data_process.m, which may only read that workbook and may not redo preprocessing.
   - Generate full-fidelity task code and stop at the applicable user-execution boundary; never execute task-specific preprocessing, solve or analysis code.
   - Primary user-produced workbook must be accepted before final result-analysis code is generated.
   - Accepted primary workbooks freeze the primary solve script; result-analysis code is a separate stage-specific Python file.
@@ -183,10 +184,10 @@ routing:
     delivery_scope: code
     pause_for_user_execution: true
   figures:
-    triggers: [图表, 可视化, 机理图, 推导图, Nature, SCI, MATLAB图标题]
-    infer_keywords: [MATLAB绘图, MATLAB, 结果图, 敏感性图, 鲁棒性图, 机理图, 推导图, 可视化, 图表]
+    triggers: [图表, 可视化, 机理图, 推导图, Nature, SCI, MATLAB图标题, 数据预处理图, 处理前后对比图]
+    infer_keywords: [MATLAB绘图, MATLAB, 结果图, 敏感性图, 鲁棒性图, 机理图, 推导图, 可视化, 图表, data_process, 预处理图]
     load: [modules/04_figure_evidence.md, packs/artifact/figure.md, templates/figure/chart_selection.md]
-    terminal_outputs: [figure_contracts, approved_figures, model_paper_framework]
+    terminal_outputs: [preprocessing_matlab_script, preprocessing_figures, matlab_scripts, figure_contracts, approved_figures, model_paper_framework]
     formal_delivery: true
     delivery_scope: figures
   docx:
@@ -218,19 +219,3 @@ routing:
     load: [modules/06_review_delivery.md, packs/artifact/review.md]
     load_competition_pack: true
     terminal_outputs: [review_report]
-    formal_delivery: true
-    delivery_scope: submission
-multi_intent_policy:
-- Merge modules in workflow order and remove duplicates.
-- Merge terminal outputs without dropping model_paper_framework for formal deliveries.
-- Semantic governance precedes formal design, conditional preprocessing, code delivery, workbook acceptance and downstream project synchronization.
-- Shared-data projects must audit and decide; only preprocessing_decision=project_level requires a unified preprocessing workbook before dependent solve code consumes data.
-- not_needed and question_local projects must not be blocked by a missing preprocessing workbook.
-- Code delivery and returned-workbook validation use dedicated gates that never execute task code.
-- Primary code delivery pauses for user execution; accepted primary workbooks freeze the primary script and precede separate result-analysis code delivery.
-- Accepted result-analysis workbooks precede figures and writing.
-- Result-analysis failure may route back to model design, conditionally to data preprocessing, or to primary solving.
-- Semantic or preprocessing-decision changes propagate stale through typed cross-question dependencies before any downstream reuse.
-- Figures precede final writing insertion; AI cleanup precedes LaTeX compilation.
-- Proposition details are loaded only for explicit proof requests or a nonzero proposition plan.
-- Project synchronization is a utility gate and does not promote quality or validation success.
