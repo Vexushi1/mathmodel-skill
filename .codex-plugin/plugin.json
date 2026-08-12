@@ -1,7 +1,7 @@
 {
   "name": "mathmodel-skill",
-  "version": "7.2.2",
-  "description": "HSK lightweight-bootstrap mathematical-modeling workflow with Problem Contract freezing, semantic closure, complexity sanity checks, generalized evidence-driven conditional data preprocessing, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, code-quality enforcement, MATLAB evidence figures and LaTeX-first authoring.",
+  "version": "7.2.3",
+  "description": "HSK lightweight-bootstrap mathematical-modeling workflow with Problem Contract freezing, semantic closure, complexity sanity checks, generalized evidence-driven conditional data preprocessing, project-level preprocessing MATLAB evidence via data_process.m, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, code-quality enforcement, MATLAB evidence figures and LaTeX-first authoring.",
   "author": {
     "name": "HSK"
   },
@@ -21,7 +21,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "HSK 数学建模 Skill",
-    "shortDescription": "题意冻结、语义闭环、通用判定式数据预处理、双阶段Python、MATLAB证据图、LaTeX直写",
+    "shortDescription": "题意冻结、语义闭环、通用判定式数据预处理、data_process证据图、双阶段Python、LaTeX直写",
     "category": "Education",
     "capabilities": [
       "Interactive",
