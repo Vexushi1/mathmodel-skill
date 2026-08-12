@@ -36,10 +36,10 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
         cls.state_schema = yaml.safe_load(
             (ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8")
         )
-        cls.resolver = load_module("resolver_722", "scripts/resolve_workflow.py")
-        cls.code_gate = load_module("code_gate_722", "scripts/validate_code_delivery.py")
-        cls.execution_gate = load_module("execution_gate_722", "scripts/validate_user_execution.py")
-        cls.sync = load_module("sync_722", "scripts/sync_project.py")
+        cls.resolver = load_module("resolver_723", "scripts/resolve_workflow.py")
+        cls.code_gate = load_module("code_gate_723", "scripts/validate_code_delivery.py")
+        cls.execution_gate = load_module("execution_gate_723", "scripts/validate_user_execution.py")
+        cls.sync = load_module("sync_723", "scripts/sync_project.py")
 
     def test_three_state_decision_is_authoritative(self):
         self.assertEqual(
@@ -136,6 +136,39 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
             conditional["preprocessing_decision_project_level"]["results"],
         )
 
+    def test_project_level_preprocessing_has_standard_data_process_matlab(self):
+        directory = self.contract["project_directory"]
+        self.assertEqual(directory["figure_stage_file"], "data_process.m")
+        self.assertEqual(
+            directory["final_default_files"],
+            ["数据预处理.py", "数据预处理结果.xlsx", "data_process.m"],
+        )
+        visual = self.contract["visual_evidence"]
+        self.assertEqual(visual["matlab_script"], "数据预处理/data_process.m")
+        self.assertEqual(visual["data_source"], "数据预处理/数据预处理结果.xlsx")
+        self.assertTrue(any("MATLAB只读取统一工作簿绘图" in item for item in visual["python_matlab_boundary"]))
+
+    def test_data_process_is_figure_stage_not_solve_gate(self):
+        conditional = self.output["project_sync"]["conditional_stage_requirements"]["preprocessing_decision_project_level"]
+        self.assertNotIn("preprocessing_matlab_script", conditional["code"])
+        self.assertNotIn("preprocessing_matlab_script", conditional["results"])
+        self.assertIn("preprocessing_matlab_script", conditional["figures"])
+        figure_module = self.manifest["modules"]["figure_evidence"]
+        self.assertEqual(
+            figure_module["conditional_outputs"]["preprocessing_matlab_script"]["when"],
+            "preprocessing_decision == project_level",
+        )
+
+    def test_data_process_cannot_recompute_preprocessing(self):
+        visual = self.contract["visual_evidence"]
+        boundary = "\n".join(visual["python_matlab_boundary"])
+        self.assertIn("不重新插值", boundary)
+        self.assertIn("不重新", boundary)
+        module_text = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
+        self.assertIn("data_process.m", module_text)
+        self.assertIn("重新插值", module_text)
+        self.assertIn("只读取 `数据预处理结果.xlsx`", module_text)
+
     def test_resolver_skips_preprocessing_for_clean_shared_data_decision(self):
         plan = self.resolver.resolve_workflow(
             "full_solution",
@@ -205,10 +238,12 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
     def test_sync_stage_requirements_follow_decision(self):
         raw_state = {"preprocessing": {"decision": "not_needed"}}
         project_state = {"preprocessing": {"decision": "project_level"}}
-        raw_required = self.sync.stage_requirements("results", self.output, raw_state)
-        project_required = self.sync.stage_requirements("results", self.output, project_state)
+        raw_required = self.sync.stage_requirements("figures", self.output, raw_state)
+        project_required = self.sync.stage_requirements("figures", self.output, project_state)
         self.assertNotIn("preprocessing_workbook", raw_required)
+        self.assertNotIn("preprocessing_matlab_script", raw_required)
         self.assertIn("preprocessing_workbook", project_required)
+        self.assertIn("preprocessing_matlab_script", project_required)
 
 
 if __name__ == "__main__":
