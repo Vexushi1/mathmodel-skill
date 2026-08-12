@@ -187,7 +187,6 @@
 - `tests/test_v631_contract_closure.py`
 - `tests/test_v632_delivery_gate_closure.py`
 - `tests/test_v633_gate_hardening.py`
-- `tests/test_v633_hardening.py`
 - `tests/test_v661_code_quality_closure.py`
 - `tests/test_v700_two_stage_execution.py`
 - `tests/test_v700_two_stage_question_folder.py`
