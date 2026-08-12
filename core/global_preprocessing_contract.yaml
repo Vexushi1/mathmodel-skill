@@ -1,5 +1,5 @@
 version: 1.3.0
-skill_version: 7.2.4
+skill_version: 7.2.5
 purpose: 规定跨赛题通用的数据质量审计、预处理必要性判定、项目级统一预处理、论文数学证据、MATLAB预处理图证据与下游读取边界。任何数据题都先判断原始数据能否正确、充分且无信息泄漏地支撑当前模型；只有真实数据问题或模型输入要求提供证据时才修改数据。共享数据、特定题型或某一次赛题经验都不能单独触发清洗、插值、预测填补、滤波或统一工作簿。
 
 decision_gate:
@@ -195,7 +195,8 @@ preprocessing_figure_contract:
   required_when: preprocessing_decision.decision == project_level
   role: 只读取数据预处理结果.xlsx中Python已持久化的处理前/后、诊断和验证数据，绘制预处理证据图；不得在MATLAB中重新清洗、插值、滤波、重采样或估计参数。
   runtime_forbidden_matlab_functions: [interp1, interp2, interp3, interpn, griddedInterpolant, scatteredInterpolant, fillmissing, rmmissing, standardizeMissing, filloutliers, rmoutliers, isoutlier, smooth, smoothdata, movmean, movmedian, resample, interpft, decimate, downsample, upsample, retime, synchronize, detrend, normalize, rescale, zscore, filter, filtfilt, designfilt, lowpass, highpass, bandpass, bandstop, butter, cheby1, cheby2, ellip, fir1, fir2, fit, fitlm, fitrlinear, fitrgp, fitrensemble, fitrtree, predict, trainNetwork, trainnet]
-  runtime_gate_rule: figures及后续正式交付时，sync_project必须对data_process.m实际代码执行函数调用扫描；命中上述函数即拒绝交付。完整行注释不参与扫描，避免说明性注释造成误报。
+  runtime_forbidden_matlab_dispatch_functions: [eval, evalin, feval, str2func, builtin]
+  runtime_gate_rule: figures及后续正式交付时，sync_project必须对data_process.m剥离行尾/整行注释后的实际代码执行函数调用扫描；命中上述预处理函数、动态调度函数或被禁止函数句柄即拒绝交付，避免通过feval/str2func/@function等方式绕过绘图职责边界。
   minimum_evidence: 至少一张图直接回答“为什么需要处理”或“处理是否合理”；变换较多时按证据职责组织多面板，不为凑图重复画同一结论。
   candidate_figures:
   - 缺失位置/覆盖与填补结果对比
@@ -219,13 +220,16 @@ source_policy:
       when: preprocessing_decision.decision == project_level
       raw_readers_allowed:
       - 数据预处理/数据预处理.py
+      covered_raw_sources_field: state.preprocessing.covered_raw_sources
+      covered_raw_sources_required: true
+      independent_raw_sources_allowed: true
       downstream_raw_read_forbidden: true
-      rule: 统一工作簿通过质量门后，所有依赖该公共数据口径的主求解、深化分析和数据型MATLAB流程不得再次直接读取共享原始数据；如需改变公共口径必须回退本阶段并传播stale。
+      rule: 统一工作簿通过质量门后，state.preprocessing.covered_raw_sources中列出的原始源由统一工作簿替代，依赖该公共口径的主求解、深化分析和数据型MATLAB流程不得再次直接读取这些源；未列入covered_raw_sources的独立辅助附件可按题意继续读取。如需改变覆盖范围或公共口径必须回退本阶段并传播stale。
 
 preprocessing_script:
   filename: 数据预处理.py
   responsibilities:
-  - 读取需要统一处理的共享原始数据源
+  - 读取需要统一处理的共享原始数据源，并把实际被统一工作簿替代的路径冻结到state.preprocessing.covered_raw_sources
   - 字段、维度、单位、坐标、时间与空间粒度审计
   - 缺失、无穷、重复、有效性、采样覆盖、测量质量、信息泄漏或题目专属质量检查
   - 仅执行preprocessing_decision中已批准且有依据的公共操作
