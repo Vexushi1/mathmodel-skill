@@ -141,7 +141,7 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
     for token in ("每个新聊天的强制启动顺序", "修改简报", "单一事实源", "一次聊天一个分支", "一个 PR 一个主题", "禁止直接写 main", "生成文件规则", "测试与验收", "完成报告"):
         if token not in governance:
             errors.append(f"governance document lacks section: {token}")
-    if '<8.0.0' not in governance:
+    if "<8.0.0" not in governance:
         errors.append("governance applicability must include v7")
 
 
@@ -170,8 +170,7 @@ def check_router(errors: list[str]) -> None:
             errors.append("workflow must place result_analysis between solve and figures")
     if "data_preprocessing" not in execution.get("conditional_modules", []):
         errors.append("data_preprocessing must be declared conditional")
-    expected_formal = ["semantic_governance", "project_sync"]
-    if execution.get("formal_delivery_gates") != expected_formal:
+    if execution.get("formal_delivery_gates") != ["semantic_governance", "project_sync"]:
         errors.append("formal delivery must declare semantic_governance then project_sync")
     if execution.get("code_stage_gates") != ["semantic_governance", "code_delivery"]:
         errors.append("code stages must declare semantic_governance before code_delivery")
@@ -361,14 +360,19 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("per-question default must be exact five-file two-script layout")
     if "single_python_update_policy" in per_question:
         errors.append("output contract must not restore single-script overwrite policy")
-    stages = ((user_execution.get("code_delivery") or {}).get("stage_scripts") or {})
-    if stages.get("preprocessing") != "数据预处理/数据预处理.py":
-        errors.append("user execution contract must define conditional preprocessing script")
-    if stages.get("primary") != "问题X求解/问题X求解.py" or stages.get("analysis") != "问题X求解/问题X结果深化分析.py":
-        errors.append("user execution contract must define separate primary/analysis scripts")
-    if user_execution.get("code_delivery", {}).get("semantic_governance_required") is not True:
+    delivery = user_execution.get("code_delivery") or {}
+    stages = delivery.get("stage_scripts") or {}
+    expected_stage_scripts = {
+        "primary": "问题X求解/问题X求解.py",
+        "analysis": "问题X求解/问题X结果深化分析.py",
+    }
+    if stages != expected_stage_scripts:
+        errors.append("user execution stage_scripts must preserve the per-question primary/analysis two-script interface")
+    if delivery.get("preprocessing_script") != "数据预处理/数据预处理.py":
+        errors.append("user execution contract must expose conditional preprocessing_script separately")
+    if delivery.get("semantic_governance_required") is not True:
         errors.append("user execution code delivery must require semantic governance")
-    forbidden = set(((user_execution.get("code_delivery") or {}).get("standalone_files_forbidden_by_default") or []))
+    forbidden = set(delivery.get("standalone_files_forbidden_by_default") or [])
     if "问题X结果深化分析.py" in forbidden:
         errors.append("analysis script must not be forbidden")
     acceptance_rules = "\n".join((user_execution.get("returned_workbook") or {}).get("acceptance_rules", []))
@@ -387,8 +391,10 @@ def check_contracts(errors: list[str]) -> None:
     conditional = (sync.get("conditional_stage_requirements") or {}).get("preprocessing_decision_project_level", {})
     if "preprocessing_workbook" not in conditional.get("results", []):
         errors.append("project_level results scope must conditionally require preprocessing_workbook")
-    if sync.get("stage_requirements_semantics") != "exact_scope_plus_conditional_preprocessing":
-        errors.append("project_sync stage requirements must use conditional preprocessing semantics")
+    if sync.get("stage_requirements_semantics") != "exact_scope":
+        errors.append("project_sync must preserve the existing exact_scope stage requirements interface")
+    if sync.get("conditional_stage_requirements_semantics") != "additive_when_condition_true_without_changing_base_exact_scope":
+        errors.append("project_sync must define additive conditional preprocessing semantics separately")
     expected_layers = {
         "raw_data", "preprocessing_decision", "preprocessing_code", "preprocessing_workbook",
         "model", "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
