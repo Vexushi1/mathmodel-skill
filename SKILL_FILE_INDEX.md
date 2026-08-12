@@ -50,6 +50,7 @@
 - `core/bootstrap.yaml`
 - `core/code_quality_contract.yaml`
 - `core/compile_profiles.yaml`
+- `core/global_preprocessing_contract.yaml`
 - `core/hsk_core_policy.md`
 - `core/module_manifest.yaml`
 - `core/output_contract.yaml`
