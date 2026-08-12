@@ -1,12 +1,12 @@
-version: 1.2.0
-skill_version: 7.2.2
-purpose: 规定跨赛题通用的数据质量审计、预处理必要性判定、项目级统一预处理与下游读取边界。任何数据题都先判断原始数据能否正确、充分且无信息泄漏地支撑当前模型；只有真实数据问题或模型输入要求提供证据时才修改数据。共享数据、特定题型或某一次赛题经验都不能单独触发清洗、插值、预测填补、滤波或统一工作簿。
+version: 1.3.0
+skill_version: 7.2.3
+purpose: 规定跨赛题通用的数据质量审计、预处理必要性判定、项目级统一预处理、MATLAB预处理可视化证据与下游读取边界。任何数据题都先判断原始数据能否正确、充分且无信息泄漏地支撑当前模型；只有真实数据问题或模型输入要求提供证据时才修改数据。共享数据、特定题型或某一次赛题经验都不能单独触发清洗、插值、预测填补、滤波或统一工作簿。
 
 decision_gate:
   required_for_any_data_project: true
   decision_values: [not_needed, question_local, project_level]
   level_values: [none, structural, transformative]
-  principle: 数据审计默认执行；数据修改按证据执行；方法按数据结构和模型需求选择；项目级统一预处理按必要性启用。
+  principle: 数据审计默认执行；数据修改按证据执行；方法按数据结构和模型需求选择；项目级统一预处理按必要性启用；进入project_level后由MATLAB建立可视化证据。
   required_fields:
   - decision
   - level
@@ -82,16 +82,22 @@ activation:
 workflow_position:
   decision_after: model_design
   project_level_stage_after: preprocessing_decision
-  before: solve_validate
-  rationale: 模型设计先锁定数据需求并形成preprocessing_decision；只有decision=project_level才执行数据预处理模块，否则直接进入主求解。
+  preprocessing_workbook_before: solve_validate
+  preprocessing_figure_after: accepted_preprocessing_workbook
+  rationale: 模型设计先锁定数据需求并形成preprocessing_decision；只有decision=project_level才执行数据预处理。Python工作簿通过质量门后，生成data_process.m作为MATLAB预处理证据脚本，再进入后续求解与统一Figure Evidence链。
 
 project_directory:
   create_only_when: preprocessing_decision.decision == project_level
   path: 数据预处理/
-  exact_default_files:
+  final_default_files:
   - 数据预处理.py
   - 数据预处理结果.xlsx
-  no_auxiliary_files_by_default: true
+  - data_process.m
+  python_stage_files:
+  - 数据预处理.py
+  - 数据预处理结果.xlsx
+  figure_stage_file: data_process.m
+  no_other_auxiliary_files_by_default: true
 
 missing_data_policy:
   principle: 先识别缺失模式和变量语义，再决定保持缺失、删除、插值、统计填补、模型化填补或预测填补；不存在“有缺失就插值”的默认规则。
@@ -168,7 +174,7 @@ source_policy:
       raw_readers_allowed:
       - 数据预处理/数据预处理.py
       downstream_raw_read_forbidden: true
-      rule: 统一工作簿通过质量门后，所有依赖该公共数据口径的主求解、深化分析和数据型MATLAB流程不得再次直接读取共享原始数据；如需改变公共口径必须回退本阶段并传播stale。
+      rule: 统一工作簿通过质量门后，所有依赖该公共数据口径的主求解、深化分析和MATLAB流程不得再次直接读取共享原始数据；data_process.m需要的处理前数据也必须由Python原样写入统一工作簿。
 
 preprocessing_script:
   filename: 数据预处理.py
@@ -179,6 +185,7 @@ preprocessing_script:
   - 仅执行preprocessing_decision中已批准且有依据的公共操作
   - 对插值、填补或预测修复输出独立验证证据和适用边界
   - 保留不可逆处理前后的统计证据，不覆盖原始文件
+  - 为data_process.m输出处理前后、修复验证、采样覆盖或其他真正需要的底层对照数据
   - 输出统一工作簿、运行配置、数据哈希与预处理质量门
   forbidden:
   - 因为数据被多问共享就自动清洗、插值、滤波或标准化
@@ -191,7 +198,7 @@ preprocessing_script:
 
 workbook:
   filename: 数据预处理结果.xlsx
-  role: decision=project_level时的全项目统一数值数据入口
+  role: decision=project_level时的全项目统一数值数据入口，同时作为data_process.m唯一数值数据源
   common_required_sheets:
     运行配置:
       required_columns: [项目, 值]
@@ -203,6 +210,10 @@ workbook:
       required_columns: [检查项, 是否通过, 证据]
   task_specific_data_sheets:
     rule: 由题目真实数据对象决定，使用中文描述性工作表名并记录行列、单位、主键与处理状态；不得把不同物理对象硬拼成超宽表。
+  visual_evidence_sheets:
+    rule: 只输出data_process.m实际需要的真实底层数据，不设置固定空表模板。
+    examples: [处理前后对照, 缺失修复验证, 采样覆盖对照, 异常处理对照, 频域对照, 分布对照, 空间对照]
+    requirement: 至少有一组可支撑项目级预处理证据的数据表；纯结构修正可用覆盖、对齐、映射或一致性可视化，不强制伪造处理前后连续序列。
   quality_gate:
     must_pass_before_downstream: true
     checks:
@@ -215,31 +226,58 @@ workbook:
     - 未执行preprocessing_decision.operations之外的数据修改
     - 插值、统计填补或预测填补在适用时具有人工掩蔽、留出样本、物理约束或其他独立验证证据
     - 任何学习型预处理均未跨越训练验证或时间因果边界造成信息泄漏
+    - data_process.m所需的处理前后或验证数据已写入工作簿，MATLAB无需重新计算预处理
+
+visual_evidence:
+  required_when: preprocessing_decision.decision == project_level
+  matlab_script: 数据预处理/data_process.m
+  generated_after: preprocessing_workbook accepted
+  data_source: 数据预处理/数据预处理结果.xlsx
+  python_matlab_boundary:
+  - Python计算全部预处理、验证量和处理前后底层证据。
+  - MATLAB只读取统一工作簿绘图，不重新插值、填补、预测、滤波、平滑、去噪、异常修复或重采样。
+  - MATLAB发现口径问题时必须回退Python预处理阶段，不能在绘图脚本中修数据。
+  figure_selection:
+    structural: 选择最能说明时间/空间对齐、采样覆盖、单位/坐标口径、表关联或结构一致性的图，不强制连续曲线。
+    transformative: 至少保留一类处理前后或修复验证图，证明修改解决真实数据问题且没有明显破坏关键结构。
+  candidate_figures:
+  - 处理前后曲线或分面
+  - 缺失位置与缺口结构
+  - 人工掩蔽恢复误差或真实值-估计值散点
+  - 异常处理前后分布与阈值附近样本
+  - 时间/空间采样覆盖与规则网格对比
+  - 有依据的时域或频域处理前后证据
+  - 多表关联覆盖或共同索引结构
+  style: 继承modules/04_figure_evidence.md的MATLAB科研绘图规范；白底、低饱和、清晰坐标与单位、默认关闭或极浅网格。
+  export_policy: 默认保留MATLAB图窗，不在预处理阶段批量自动导出图片；进入LaTeX时按需人工导出。
 
 question_local:
   allowed_examples: [对数变换, 本问标准化, 滞后变量, 滑动窗口, 本问专属派生特征, 仅服务本问算法的编码, 只影响本问输入且有依据的局部缺失处理]
   rules:
   - 由问题X求解.py在数学层有来源的前提下构造。
   - 不建立数据预处理目录，不要求其他小问复用。
+  - 不创建项目级data_process.m；若局部变换需要可视化，只进入对应qX_plot.m。
   - 不得包含本应统一的坐标修正、公共单位换算或跨问共享清洗。
   - 若局部填补或预测会学习数据分布，仍必须遵守训练验证边界与信息泄漏检查。
 
 semantic_governance:
   preprocessing_decision_is_semantic: true
   change_category: preprocessing
-  stale_policy: decision、公共处理操作、参数、源数据或统一工作簿发生变化时，只对实际依赖该公共数据口径的小问及其下游传播stale；not_needed或question_local项目不得因不存在的统一工作簿变化而失效。
+  stale_policy: decision、公共处理操作、参数、源数据或统一工作簿发生变化时，只对实际依赖该公共数据口径的小问及其下游传播stale；data_process.m属于工作簿下游Figure Evidence，工作簿变化时应标记其可视化证据stale；not_needed或question_local项目不得因不存在的统一工作簿或data_process.m变化而失效。
 
 downstream_contract:
   solve_scripts: 问题X求解/问题X求解.py
   analysis_scripts: 问题X求解/问题X结果深化分析.py
-  matlab_scripts: 问题X求解/qX_plot.m
+  preprocessing_matlab_script: 数据预处理/data_process.m
+  question_matlab_scripts: 问题X求解/qX_plot.m
   source_selection:
     not_needed: 原始数据 + 已验收标准结果工作簿
     question_local: 原始数据 + 本问数学层定义的局部变换 + 已验收标准结果工作簿
     project_level: 数据预处理/数据预处理结果.xlsx + 已验收标准结果工作簿
   rules:
   - 下游必须先读取preprocessing_decision，再决定原始数据或统一工作簿作为事实源。
-  - 只有decision=project_level时才禁止下游直接读取共享原始数据。
+  - 只有decision=project_level时才要求data_process.m，并禁止依赖公共数据口径的下游直接读取共享原始数据。
+  - data_process.m只能读取数据预处理结果.xlsx，不得重新读取共享原始附件或重新执行数据处理。
   - 若某小问需要改变公共预处理口径，必须回退本阶段；若只新增本问派生特征，则保持question_local并在本问语义闭环中说明。
 
 seismic_guidance:
