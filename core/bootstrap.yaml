@@ -1,4 +1,4 @@
-skill_version: 7.2.1
+skill_version: 7.2.2
 bootstrap_schema_version: 1.1.0
 purpose: Minimal startup contract for the HSK mathematical-modeling workflow. Read this file first, then use scripts/resolve_workflow.py to obtain the deterministic task-specific execution plan. Do not preload the whole repository.
 authoritative_sources:
@@ -18,9 +18,11 @@ hard_invariants:
 - 每问先冻结Problem Contract，明确原始/派生对象、已知/可计算量、决策/状态/输出量、显式/隐含约束、禁止假设、数据角色和typed dependencies。
 - 题面对象与要求、数学变量/公式/目标/约束、Python变量/函数和工作簿输出必须形成三层语义闭环；存在关键gap时不得交付代码。
 - 复杂赛题出现异常降维、异常解耦、条件或附件大量闲置、关键约束长期不生效或计算异常容易时，必须完成Complexity Sanity Check；review_required禁止求解。
-- 所有数据题先进行非破坏性数据审计并锁定preprocessing_decision；共享原始数据本身不能自动触发清洗、插值、滤波或统一工作簿。
+- 所有数据题先进行非破坏性数据审计并锁定preprocessing_decision；共享原始数据、特定题型或过去赛题经验本身不能自动触发清洗、插值、预测填补、滤波或统一工作簿。
+- 数据预处理判断必须结合当前附件的完整性、一致性、有效性、重复身份、采样覆盖、测量质量、模型输入要求以及时间因果与信息泄漏风险；不存在“有缺失就插值”的默认规则。
 - preprocessing_decision=not_needed时直接使用原始数据；question_local时只允许本问有数学来源的局部变换；project_level时才创建数据预处理/并在验收后冻结公共数据口径。
-- 缺失填补、异常删除、插值、平滑、滤波、去趋势、标准化、归一化和重采样等数据修改必须有数据、机理或模型必要性证据，不能作为模板默认步骤。
+- 缺失填补、预测填补、异常删除、插值、平滑、滤波、去趋势、标准化、归一化和重采样等数据修改必须有数据、机理或模型必要性证据，不能作为模板默认步骤。
+- 预测填补只可用于恢复后续模型确实需要的缺测输入；赛题本身要求预测的未来值、类别、需求、风险或其他结果属于核心建模，不得提前包装成预处理。
 - 题意、数据口径、变量、参数、假设、目标、约束、preprocessing_decision、实际预处理、算法语义或小问依赖变化时必须递增semantic_revision，并按data/parameter/model/result依赖递归传播stale。
 - 先审题与锁定模型，再完整求解；不得用后续分析弥补主结果精度、收敛、可行性或语义不足。
 - 主求解必须通过独立质量门，随后才按题目风险选择敏感性、鲁棒性、多算法、结构、阈值、异质性或其他结果深化分析。
