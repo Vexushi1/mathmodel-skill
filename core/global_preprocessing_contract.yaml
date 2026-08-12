@@ -1,0 +1,162 @@
+version: 1.1.0
+skill_version: 7.2.1
+purpose: 规定数据质量审计、预处理必要性判定、项目级统一预处理与下游读取边界。任何数据题都先审计，但只有证据表明必须改变公共数据口径时才启用项目级预处理；共享数据本身不能作为清洗、插值、滤波或统一工作簿的充分理由。
+
+decision_gate:
+  required_for_any_data_project: true
+  decision_values: [not_needed, question_local, project_level]
+  level_values: [none, structural, transformative]
+  principle: 数据审计默认执行；数据修改按证据执行；项目级统一预处理按必要性启用。
+  required_fields:
+  - decision
+  - level
+  - evidence
+  - operations
+  - forbidden_operations
+  - downstream_data_source
+  rules:
+  - 两个及以上小问共享同一原始数据源，只触发统一口径审计，不自动触发项目级预处理。
+  - 原始数据完整、单位和索引一致、模型不要求公共变换时，必须判为not_needed，后续允许直接读取原始数据。
+  - 仅某一问需要对数、标准化、窗口、滞后、专属派生特征或其他模型内变换时，判为question_local，不建立全局数据预处理目录。
+  - 多问确实依赖同一单位换算、坐标修正、时间对齐、表关联、重采样、缺失处理、异常处理、滤波或其他公共变换时，才判为project_level。
+  - 用户明确要求统一数据总表时，可判为project_level；若数据无需清洗，则level应为structural而不是transformative。
+
+activation:
+  audit_required_when:
+  - 题目提供任何数值附件或结构化数据
+  project_level_when_any:
+  - 多个小问确实依赖同一且有依据的公共数据变换
+  - 多数据源必须先统一单位、坐标、时间、主键或采样结构才能保持跨问数据语义一致
+  - 用户明确要求统一数据预处理或统一数据总表
+  never_sufficient_alone:
+  - 两个及以上小问共享同一原始数据源
+  - 检测到统计极端值但没有证据表明其为错误记录
+  - 存在可选的平滑、插值、滤波、归一化或标准化方法
+
+workflow_position:
+  decision_after: model_design
+  project_level_stage_after: preprocessing_decision
+  before: solve_validate
+  rationale: 模型设计先锁定数据需求并形成preprocessing_decision；只有decision=project_level才执行数据预处理模块，否则直接进入主求解。
+
+project_directory:
+  create_only_when: preprocessing_decision.decision == project_level
+  path: 数据预处理/
+  exact_default_files:
+  - 数据预处理.py
+  - 数据预处理结果.xlsx
+  no_auxiliary_files_by_default: true
+
+operation_gate:
+  applies_to: [缺失值填补, 异常值替换或删除, 插值, 平滑, 滤波, 去噪, 去趋势, 去直流, 归一化, 标准化, 对数变换, 重采样, 坏道修复, taper, 坐标修正, 单位换算]
+  each_operation_must_answer:
+  - 数据是否真实存在该问题或模型是否真实要求该变换
+  - 若不处理会怎样影响当前模型或跨问数据语义
+  - 为什么选择该方法和参数而不是保持原数据或采用更弱处理
+  - 该操作是否会删除、平滑或扭曲具有物理、统计或决策意义的信息
+  rules:
+  - 检查结果为零问题时不得保留对应处理代码，例如NaN为0时不得机械插值。
+  - 统计异常不等于错误数据；尖峰、跳变、边界、稀有事件和地质突变必须先判断其对象语义。
+  - 不可逆处理必须记录处理前后证据、参数依据和失效风险。
+
+source_policy:
+  raw_data_role: immutable_source
+  modes:
+    raw:
+      when: preprocessing_decision.decision in [not_needed, question_local]
+      downstream_raw_read_allowed: true
+      rule: 主求解可直接读取题目原始附件；仍必须执行字段、维度、单位、NaN/Inf、主键等非破坏性检查。question_local变换只能服务本问模型，不能伪装成项目级清洗。
+    preprocessed:
+      when: preprocessing_decision.decision == project_level
+      raw_readers_allowed:
+      - 数据预处理/数据预处理.py
+      downstream_raw_read_forbidden: true
+      rule: 统一工作簿通过质量门后，所有依赖该公共数据口径的主求解、深化分析和数据型MATLAB流程不得再次直接读取共享原始数据；如需改变公共口径必须回退本阶段并传播stale。
+
+preprocessing_script:
+  filename: 数据预处理.py
+  responsibilities:
+  - 读取需要统一处理的共享原始数据源
+  - 字段、维度、单位、坐标、时间与空间粒度审计
+  - 缺失、无穷、重复、异常或题目专属质量检查
+  - 仅执行preprocessing_decision中已批准且有依据的公共操作
+  - 保留不可逆处理前后的统计证据，不覆盖原始文件
+  - 输出统一工作簿、运行配置、数据哈希与预处理质量门
+  forbidden:
+  - 因为数据被多问共享就自动清洗、插值、滤波或标准化
+  - 求解任何小问核心模型
+  - 生成某一小问专属特征或决策结果
+  - 为得到更好结果而按小问反向调整清洗参数
+  - 覆盖或改写原始数据文件
+  - 使用matplotlib或seaborn生成论文图
+
+workbook:
+  filename: 数据预处理结果.xlsx
+  role: decision=project_level时的全项目统一数值数据入口
+  common_required_sheets:
+    运行配置:
+      required_columns: [项目, 值]
+    数据审计:
+      required_columns: [数据源, 检查项, 结论, 处理方式]
+    预处理参数:
+      required_columns: [步骤, 参数, 取值, 单位, 依据]
+    预处理质量门:
+      required_columns: [检查项, 是否通过, 证据]
+  task_specific_data_sheets:
+    rule: 由题目真实数据对象决定，使用中文描述性工作表名并记录行列、单位、主键与处理状态；不得把不同物理对象硬拼成超宽表。
+  quality_gate:
+    must_pass_before_downstream: true
+    checks:
+    - 所有实际执行的变换均存在必要性证据和参数依据
+    - 输出数据无未说明的NaN或Inf
+    - 坐标、时间、单位和索引口径唯一
+    - 输出行列与预期数据对象一致
+    - 原始数据哈希和预处理脚本哈希已记录
+    - 未引入小问专属求解结果
+    - 未执行preprocessing_decision.operations之外的数据修改
+
+question_local:
+  allowed_examples: [对数变换, 本问标准化, 滞后变量, 滑动窗口, 本问专属派生特征, 仅服务本问算法的编码]
+  rules:
+  - 由问题X求解.py在数学层有来源的前提下构造。
+  - 不建立数据预处理目录，不要求其他小问复用。
+  - 不得包含本应统一的坐标修正、公共单位换算或跨问共享清洗。
+
+semantic_governance:
+  preprocessing_decision_is_semantic: true
+  change_category: preprocessing
+  stale_policy: decision、公共处理操作、参数、源数据或统一工作簿发生变化时，只对实际依赖该公共数据口径的小问及其下游传播stale；not_needed或question_local项目不得因不存在的统一工作簿变化而失效。
+
+downstream_contract:
+  solve_scripts: 问题X求解/问题X求解.py
+  analysis_scripts: 问题X求解/问题X结果深化分析.py
+  matlab_scripts: 问题X求解/qX_plot.m
+  source_selection:
+    not_needed: 原始数据 + 已验收标准结果工作簿
+    question_local: 原始数据 + 本问数学层定义的局部变换 + 已验收标准结果工作簿
+    project_level: 数据预处理/数据预处理结果.xlsx + 已验收标准结果工作簿
+  rules:
+  - 下游必须先读取preprocessing_decision，再决定原始数据或统一工作簿作为事实源。
+  - 只有decision=project_level时才禁止下游直接读取共享原始数据。
+  - 若某小问需要改变公共预处理口径，必须回退本阶段；若只新增本问派生特征，则保持question_local并在本问语义闭环中说明。
+
+seismic_guidance:
+  principle: 先审计后处理；推荐检查不等于推荐修改。
+  audits:
+  - 采样间隔、记录长度、NaN/Inf、道数和坐标一致性
+  - 振幅均值、趋势、RMS、频谱、相邻道相关和边界效应
+  - 速度场范围、梯度、界面突变及其地质语义
+  optional_operations:
+    去直流: 仅在存在非物理均值偏移且会影响算法时启用
+    去趋势: 仅在检测到非物理趋势且会影响算法时启用
+    带通滤波: 仅在频谱证据支持有效频带且不会破坏所需幅值解释时启用
+    坏道处理: 仅在坏道判定有证据且不是实际地质结构时启用
+    taper: 仅在所用算法存在明确边界伪影风险时启用
+    插值或重采样: 仅在求解方法要求规则网格而原始采样不满足时启用
+  forbidden_defaults:
+  - 默认平滑速度场
+  - 默认AGC
+  - 默认逐道强归一化
+  - 默认带通滤波
+  - 默认插值坏道
+  - 将速度突变或振幅极端值直接视为异常删除

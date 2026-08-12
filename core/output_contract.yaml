@@ -1,11 +1,13 @@
-version: 7.1.0
+version: 7.2.1
 schema: core/workbook_schema.yaml
+preprocessing_contract: core/global_preprocessing_contract.yaml
 user_execution_contract: core/user_execution_contract.yaml
 code_quality_contract: core/code_quality_contract.yaml
 bootstrap: core/bootstrap.yaml
 taxonomy: core/task_taxonomy.yaml
 project_root:
   problem_and_attachments: 赛题、附件数据表和说明文件直接放在项目根目录
+  preprocessing_outputs: 仅preprocessing_decision=project_level时创建数据预处理/
   model_paper_framework: 模型论文框架.md
   project_state: state/project_state.yaml
   sync_report: sync_report.yaml
@@ -31,8 +33,12 @@ execution_policy:
   code_quality_contract: core/code_quality_contract.yaml
   returned_workbook_gate: scripts/validate_user_execution.py
   pause_states:
+  - awaiting_user_preprocessing
   - awaiting_user_execution
   code_delivery_does_not_promote_result_status: true
+  preprocessing_decision_required_before_solve: true
+  preprocessing_required_before_solve_when_decision: project_level
+  shared_data_alone_does_not_require_preprocessing: true
   analysis_code_requires_primary_workbook_accepted: true
   primary_code_freezes_after_acceptance: true
   full_fidelity_flags_must_be_false:
@@ -45,13 +51,14 @@ execution_policy:
 semantic_governance:
   version: 1.0.0
   script: scripts/validate_semantic_governance.py
-  role: 在模型设计、代码交付、工作簿验收和正式下游交付前检查题意口径、三层语义闭环、复杂度合理性与语义变更影响
+  role: 在模型设计、条件式统一数据预处理、代码交付、工作簿验收和正式下游交付前检查题意口径、三层语义闭环、复杂度合理性、preprocessing_decision与语义变更影响
   report_persistence: stdout_or_chat_only
   framework_scope: 每问#### 当前模型口径至#### 结果摘要之前的当前语义区
   required_for_designed_or_later:
     problem_contract_status: frozen
     semantic_closure_status: passed
     complexity_sanity_status: passed
+    preprocessing_decision_status: locked
     semantic_revision_min: 1
     semantic_change_categories_nonempty: true
   problem_contract_required_fields:
@@ -93,15 +100,22 @@ semantic_governance:
   dependency_kinds: [data, parameter, model, result]
   change_policy:
   - 语义变化必须递增semantic_revision并记录具体semantic_change_categories。
-  - 已验证语义哈希变化时，本问主结果及全部下游先标记stale。
-  - 按depends_on递归传播到后续依赖小问，不能只失效本问。
-  - 接受新的语义哈希不等于恢复数值结果；重新求解和工作簿验收后才能清除数值stale。
+  - preprocessing_decision、实际公共预处理的源数据、参数、脚本或输出口径变化属于preprocessing语义变化。
+  - 共享数据但decision=not_needed时，不得因为不存在统一工作簿而虚构preprocessing stale。
+  - 已验证语义发生变化时，本问主结果及相关下游先标记stale。
+  - 按depends_on递归传播到实际依赖的小问，不能无差别失效全部小问。
+  - 接受新的语义哈希不等于恢复旧数值；需要重新处理的数据、求解和验收完成后才能清除对应数值stale。
   - 模型论文框架只保存当前有效语义，历史由Git保存，不新增用户项目变更日志文件。
   legacy_compatibility:
+    v7_2_0_projects_without_preprocessing_decision: read_only
+    v7_1_projects_without_global_preprocessing: read_only
     v7_0_projects_without_fields: read_only
-    migration_trigger: 旧项目重新进入problem_audit或model_design时补齐semantic_governance_version和当前小问语义字段
+    migration_trigger: 旧项目重新进入problem_audit、model_design或solve_validate时先补齐preprocessing_decision；只有判为project_level才迁移到统一预处理结构
 result_policy:
-  primary_solve_role: 在当前题意、数据和模型口径下得到高精度、可行、收敛且可复算的主结果
+  preprocessing_decision_role: 所有数据项目先判断原始数据是否可直接建模、是否仅需本问局部变换、或是否确需项目级公共处理
+  preprocessing_role: 仅decision=project_level时一次性完成共享原始数据审计与有依据的公共处理，形成依赖小问的数据入口
+  preprocessing_quality_gate_required_when: preprocessing_decision == project_level
+  primary_solve_role: 在当前题意、当前数据事实源和模型口径下得到高精度、可行、收敛且可复算的主结果
   primary_quality_gate_required: true
   failed_quality_evidence_persisted: true
   downstream_admission_requires_quality_passed: true
@@ -112,12 +126,12 @@ result_policy:
   - failed
   - redo_required
   fixed_perturbation_forbidden: true
-  feedback_loop: 深化分析发现主结果不可靠时，自动写入redo_required、标记下游stale并回退模型设计或主求解
+  feedback_loop: 深化分析发现主结果不可靠时，自动写入redo_required、标记下游stale并按原因回退模型设计、条件式统一数据预处理或主求解
 model_paper_framework:
   path: 模型论文框架.md
   template: templates/model/model_paper_framework.md
   create_after: locked_model_spec
-  role: 当前有效题意口径、模型语义、三层闭环、复杂度复审、论文结构、命题规划、逐问主结果与深化分析摘要和图表映射
+  role: 当前有效题意口径、preprocessing_decision、数据事实源、模型语义、三层闭环、复杂度复审、论文结构、命题规划、逐问主结果与深化分析摘要和图表映射
   modes:
     compact:
       use_when: 日常迭代、单问交付、普通聊天续作
@@ -144,11 +158,13 @@ model_paper_framework:
   - default
   default_mode: compact
   history_policy: 文件内部不累积旧版；旧版本由Git历史保存
-  replacement_policy: 题意解释、模型、参数、约束、数据处理、算法、主结果或深化分析变化时，删除受影响旧内容并完整替换
+  replacement_policy: 题意解释、模型、参数、约束、preprocessing_decision、数据处理、算法、主结果或深化分析变化时，删除受影响旧内容并完整替换
   formal_delivery_sync: true
   result_summary_required_after: solved
   authoritative_boundaries:
     model_semantics_and_paper_structure: 模型论文框架.md
+    preprocessing_decision_and_active_data_source: state/project_state.yaml + core/global_preprocessing_contract.yaml
+    preprocessing_workbook_when_project_level: 数据预处理结果.xlsx
     semantic_revision_dependency_hash_and_freshness: state/project_state.yaml
     numerical_results: 主求解工作簿与结果深化分析工作簿
 project_sync:
@@ -173,6 +189,7 @@ project_sync:
   phase_scope_mapping:
     problem_audit: design
     model_design: design
+    data_preprocessing: code
     solve_validate: code
     result_analysis: code
     figure_evidence: figures
@@ -184,6 +201,7 @@ project_sync:
     completed: submission
   stage_requirements_authority: core/output_contract.yaml#project_sync.stage_requirements
   stage_requirements_semantics: exact_scope
+  conditional_stage_requirements_semantics: additive_when_condition_true_without_changing_base_exact_scope
   formal_state_requirements:
     result_quality_status: passed
     result_analysis_status: passed
@@ -238,8 +256,23 @@ project_sync:
     - result_analysis_report
     - compiled_pdf
     - validated_submission_package
+  conditional_stage_requirements:
+    preprocessing_decision_project_level:
+      condition: preprocessing_decision == project_level
+      code: [preprocessing_code, preprocessing_workbook]
+      results: [preprocessing_workbook]
+      figures: [preprocessing_workbook]
+      docx: [preprocessing_workbook]
+      latex: [preprocessing_workbook]
+      submission: [preprocessing_workbook]
+    preprocessing_decision_not_needed_or_question_local:
+      condition: preprocessing_decision in [not_needed, question_local]
+      forbidden_required_artifacts: [preprocessing_code, preprocessing_workbook]
   artifact_hash_layers:
-  - data
+  - raw_data
+  - preprocessing_decision
+  - preprocessing_code
+  - preprocessing_workbook
   - model
   - solution_workbook
   - result_analysis_workbook
@@ -247,6 +280,23 @@ project_sync:
   - figure_bundle
   - framework
   stale_propagation:
+    raw_data:
+    - preprocessing_workbook
+    - solution_workbook
+    - result_quality
+    - result_analysis_workbook
+    - result_analysis
+    - matlab_script
+    - figure_bundle
+    - result_summary
+    preprocessing_decision_or_project_level_preprocessing:
+    - solution_workbook
+    - result_quality
+    - result_analysis_workbook
+    - result_analysis
+    - matlab_script
+    - figure_bundle
+    - result_summary
     data_or_model:
     - solution_workbook
     - result_quality
@@ -287,40 +337,49 @@ project_sync:
     figure_bundle:
     - paper_figure_evidence
   write_order:
-  - 发现产物并执行工作簿与图表链检查
-  - 计算当前分层哈希并比较已验证哈希和两阶段代码哈希
+  - 读取preprocessing_decision并按当前数据事实源发现项目级可选预处理产物与每问产物
+  - 执行工作簿与图表链检查
+  - 计算当前分层哈希并比较已验证哈希、条件式预处理哈希和两阶段小问代码哈希
   - 传播stale并更新框架头部
   - 重新计算最终框架哈希
   - 写入project_state
   - 写入sync_report
   - 执行写后哈希自检
   responsibilities:
-  - 正式交付前先由semantic_governance检查当前模型语义和跨问失效传播
+  - 正式交付前先由semantic_governance检查当前模型语义、preprocessing_decision和跨问失效传播
   - 进入产物同步前强制执行项目状态Schema/语义校验与模型论文框架校验
+  - decision=project_level时发现数据预处理目录中的统一预处理Python与工作簿；其他状态不得因缺少该目录报错
   - 发现每问问题X求解目录中的主求解Python、结果深化分析Python、两类工作簿和qX_plot.m
+  - 只有decision=project_level时检查依赖下游脚本不得再次直接读取对应共享原始数据源
   - 复用工作簿Schema检查工作表、字段、capability条件、主键、非有限数值和约束判定
   - 普通阶段同步按小问status检查最低产物；只有显式delivery scope执行正式交付全量门槛
-  - 正式交付同时核对工作簿存在、质量与分析状态为passed以及下游产物非stale
-  - 核对MATLAB对同目录两个标准工作簿的真实引用，不要求脚本自动导出图片
-  - 主求解脚本哈希与主结果链绑定；深化分析脚本哈希只影响深化工作簿及其下游，不反向污染主结果质量状态
-  - 按小问独立计算输入、主求解脚本、两类工作簿、MATLAB脚本和框架哈希
-  - 当已验证哈希变化时按证据链传播stale
-  - 只允许设置或保持stale；清除stale必须由质量门或结果分析流程显式完成
+  - 正式交付按decision条件核对预处理质量，再核对主结果质量、分析状态为passed以及下游产物非stale
+  - 核对MATLAB只读取其实际需要的数据事实源和标准工作簿，不要求所有脚本强制引用统一预处理工作簿
+  - project_level时统一预处理脚本/工作簿哈希绑定依赖数据链；not_needed/question_local时以原始数据哈希作为数据事实源
+  - 主求解脚本哈希与本问主结果链绑定；深化分析脚本哈希只影响本问深化工作簿及其下游
+  - 当已验证哈希变化时按实际依赖证据链传播stale
+  - 只允许设置或保持stale；清除stale必须由适用的数据质量门、主结果质量门或结果分析流程显式完成
   - 对DOCX、LaTeX与提交scope检查真实文件、编译报告、图片引用和提交ZIP内容
   forbidden:
-  - 自动生成模型语义
+  - 自动生成模型语义或preprocessing_decision
+  - 因共享数据自动把preprocessing_decision提升为project_level
   - 自动清除artifacts_stale或stale_layers
   - 自动填写结果数值
-  - 自动把result_quality_status或result_analysis_status提升为passed
-  - 以文件存在代替可行性、精度或稳定性验证
+  - 自动把preprocessing_quality_status、result_quality_status或result_analysis_status提升为passed
+  - 以文件存在代替数据质量、可行性、精度或稳定性验证
   artifact_hash_semantics:
     global_framework: paper_framework.sha256记录完整模型论文框架文件哈希
+    preprocessing_decision: 项目级预处理判定本身属于数据/模型语义层
+    preprocessing_code: 仅project_level时绑定依赖共享数据下游
+    preprocessing_workbook: 仅project_level时作为依赖小问数据哈希事实源
     subproblem_framework: subproblem.artifact_hashes.framework记录framework_section对应章节哈希
     primary_code: subproblem.primary_code_sha256记录已交付主求解脚本哈希
     analysis_code: subproblem.analysis_code_sha256记录已交付结果深化分析脚本哈希
     model_layer: subproblem.artifact_hashes.model只使用主求解脚本，不把结果深化分析脚本并入主模型哈希
   data_hash_policy:
-    primary: state/project_state.yaml中的data.sources
+    project_level: 已验收数据预处理结果.xlsx哈希；预处理阶段另记录state/project_state.yaml中的raw data sources
+    not_needed: state/project_state.yaml中的原始data.sources哈希
+    question_local: 原始data.sources哈希 + 本问模型/代码中的局部变换语义
     fallback: 仅扫描根目录数据型文件，不包含PDF、DOCX、ZIP和正式交付目录
   figure_provenance:
     default: 不生成独立figure_evidence文件
@@ -366,6 +425,20 @@ proposition_contract:
   - 命题必须实际服务问题简化、模型必要性、关键点识别、降维、约束删减、可行性保持或理论边界。
   - 数值实验、准确率比较和求解器退出状态不能替代数学证明。
   - 模型、参数、约束或定义域变化后必须重新检查相关证明。
+global_preprocessing:
+  contract: core/global_preprocessing_contract.yaml
+  activation: preprocessing_decision == project_level
+  directory: 数据预处理/
+  python_script: 数据预处理.py
+  workbook: 数据预处理结果.xlsx
+  exact_default_files:
+  - 数据预处理.py
+  - 数据预处理结果.xlsx
+  no_auxiliary_files_by_default: true
+  raw_data_reader_exclusive_when_project_level: true
+  downstream_raw_read_forbidden_when_project_level: true
+  workbook_is_single_project_data_entry_when_project_level: true
+  absent_when: preprocessing_decision in [not_needed, question_local]
 per_question:
   question_directory: 问题{中文序号}求解/
   python_scripts:
@@ -382,9 +455,10 @@ per_question:
   - 问题{中文序号}结果深化分析.xlsx
   - q{阿拉伯序号}_plot.m
   two_python_stage_policy:
-    primary: 主求解阶段交付问题X求解.py；主工作簿accepted后冻结该脚本。
-    result_analysis: 主工作簿accepted后单独生成问题X结果深化分析.py；该脚本只负责读取已验收主结果并形成深化分析工作簿。
+    primary: 主求解阶段交付问题X求解.py；数据入口由preprocessing_decision决定，主工作簿accepted后冻结该脚本。
+    result_analysis: 主工作簿accepted后单独生成问题X结果深化分析.py；该脚本继承同一preprocessing_decision与数据事实源并形成深化分析工作簿。
     no_backwrite: 深化分析不得通过改写问题X求解.py实现；若主模型确需修改，则明确回退solve_validate并重新验收主结果。
+    raw_shared_data_read: 只有decision=project_level时禁止两个小问Python直接读取对应共享原始数据源。
   no_auxiliary_files_by_default: true
   legacy_compatibility:
     result_directory: 结果数据表/问题{中文序号}/
@@ -399,7 +473,7 @@ matlab_figure_contract:
   expected_column_position: optional_drift_check
   fuzzy_matching_forbidden: true
   alias_guessing_forbidden: true
-  workbook_reference_scope: same_question_standard_workbooks
+  workbook_reference_scope: current_data_source_when_needed_and_same_question_standard_workbooks
   declared_export_must_exist: false
   formal_figure_must_not_predate_sources: false
   keep_title_in_export_by_default: true
@@ -411,10 +485,13 @@ matlab_figure_contract:
   mtime_role: auxiliary_warning_only
   default_output: 仅交付同目录qX_plot.m；图窗由用户人工检查和按需导出
 ownership:
-  Python: 每问维护同目录两个题目专属脚本；问题X求解.py负责主求解，问题X结果深化分析.py负责主结果验收后的独立深化分析。
-  MATLAB: 同目录qX_plot.m精确读取两个标准工作簿，不重新计算核心结果，默认不自动导出图片
+  Python_preprocessing: 仅preprocessing_decision=project_level时生成；负责共享原始数据的公共审计与已批准处理并输出统一工作簿，不求解小问核心模型。
+  Python: 每问维护同目录两个题目专属脚本；not_needed/question_local可读取原始数据，project_level读取统一工作簿。问题X求解.py负责主求解，问题X结果深化分析.py负责主结果验收后的独立深化分析。
+  MATLAB: 同目录qX_plot.m精确读取本问两个标准工作簿，并仅在图确实需要底层数据时按preprocessing_decision读取原始数据或统一预处理工作簿；不重新计算核心结果，默认不自动导出图片
   other_figure_tools: GeoGebra、PPT、draw.io、SVG、TikZ可用于非数据驱动机理图
 filenames:
+  preprocessing_script: 数据预处理/数据预处理.py（仅project_level）
+  preprocessing_workbook: 数据预处理/数据预处理结果.xlsx（仅project_level）
   model_paper_framework: 模型论文框架.md
   project_state: state/project_state.yaml
   sync_report: sync_report.yaml
@@ -431,15 +508,25 @@ optional_metadata:
   - run_info.json
   - result_manifest.yaml
   - matlab_figure_handoff.json
-  rule: 不得放入问题X求解目录；仅在用户明确要求完整复现包时放入项目内部元数据目录
+  rule: 不得放入问题X求解目录或数据预处理目录；仅在用户明确要求完整复现包时放入项目内部元数据目录
 rules:
+- 所有数据题先做非破坏性数据审计并锁定preprocessing_decision；审计不等于清洗。
+- 两个及以上小问共享同一原始数据，只触发统一口径审计，不自动触发项目级预处理。
+- preprocessing_decision=not_needed时不创建数据预处理目录，各问可直接读取原始数据并保留必要检查。
+- preprocessing_decision=question_local时不创建全局预处理目录，本问可执行有数学来源的局部变换。
+- preprocessing_decision=project_level时才创建数据预处理目录，默认恰好包含数据预处理.py和数据预处理结果.xlsx；一个总表指一个统一工作簿，可含多个对象语义明确的工作表。
+- 只有project_level时，共享原始数据在统一工作簿验收后只允许数据预处理.py作为公共处理入口，依赖小问主求解、深化分析和数据型MATLAB流程不得再次直接读取对应共享原始数据。
+- project_level统一工作簿质量门未通过时必须停在awaiting_user_preprocessing；其他两种decision不得因为缺少统一工作簿而阻塞。
+- 缺失填补、异常删除、插值、平滑、滤波、去趋势、归一化、标准化和重采样等操作必须有数据/机理/模型必要性证据，不能作为默认模板步骤。
 - 新项目每问只创建一个问题X求解目录，默认最终恰好包含两个Python脚本、两个Excel工作簿和一个qX_plot.m。
-- Problem Contract、语义闭环与复杂度复审先于正式模型和代码交付，不能用运行成功或结果合理替代语义正确性。
+- Problem Contract、preprocessing_decision、语义闭环与复杂度复审先于正式模型和代码交付，不能用运行成功或结果合理替代语义正确性。
 - 主工作簿accepted后冻结问题X求解.py，并单独生成问题X结果深化分析.py；不得为深化分析覆盖更新主求解脚本。
 - 默认不生成独立完整运行配置、运行说明、code_delivery_report、user_execution_validation_report、semantic_governance_report、figure_evidence或图表子目录。
-- 两个正式Python脚本都必须分别通过semantic_governance与validate_code_delivery且不得由助手执行；校验结果在聊天或标准输出中返回，不额外落盘。
-- 用户返回工作簿必须先通过semantic_governance与validate_user_execution；代码交付本身不得把状态提升为solved或analyzed。
-- 同步器只做发现、校验、哈希和stale传播，不替代语义治理、主求解质量门与结果深化分析。
+- 实际生成的项目级预处理脚本和两个正式小问Python脚本都必须通过静态工程质量检查且不得由助手执行；校验结果在聊天或标准输出中返回，不额外落盘。
+- 用户返回的适用预处理工作簿和小问工作簿均必须先通过对应质量门；代码交付本身不得把状态提升为solved或analyzed。
+- 同步器只做发现、校验、哈希和stale传播，不替代语义治理、条件式预处理质量门、主求解质量门与结果深化分析。
+- v7.2.0旧项目重新进入模型设计或求解时先补齐preprocessing_decision；不得因为历史上存在共享数据就默认迁移为project_level。
+- v7.1.x及更早旧项目可只读；重新进入当前流程时先做数据审计和preprocessing_decision。
 - v7.0.x缺少语义治理字段的旧项目可只读；重新进入审题或模型设计时补齐当前语义字段。
 - v6.6.x四文件项目和旧结果数据表/问题X/仅作只读兼容；新项目或重新深化分析时使用五文件结构。
 - Excel工作簿是默认结果交换格式；CSV仅用于明确兼容需求。

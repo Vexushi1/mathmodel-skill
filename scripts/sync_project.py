@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synchronize project artifacts without promoting solve or analysis decisions."""
+"""Synchronize project artifacts without promoting preprocessing, solve, or analysis decisions."""
 from __future__ import annotations
 
 import argparse
@@ -29,7 +29,7 @@ FIGURE_SUFFIXES = {".png", ".pdf", ".svg", ".tif", ".tiff", ".jpg", ".jpeg"}
 DATA_SUFFIXES = {".csv", ".xlsx", ".xls", ".json", ".yaml", ".yml", ".txt"}
 PHASE_SCOPE = {
     "problem_audit": "design", "model_design": "design",
-    "solve_validate": "code", "result_analysis": "code",
+    "data_preprocessing": "code", "solve_validate": "code", "result_analysis": "code",
     "figure_evidence": "figures", "writing_docx": "docx",
     "writing_latex": "latex", "ai_cleanup": "latex",
     "latex_compile_quality": "latex", "review_delivery": "submission",
@@ -48,6 +48,7 @@ PRIMARY_STALE_LAYERS = {
 ANALYSIS_STALE_LAYERS = {
     "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
 }
+VALID_PREPROCESSING_DECISIONS = {"not_needed", "question_local", "project_level"}
 
 
 def _load_module(name: str, path: Path):
@@ -75,6 +76,10 @@ def load_yaml(path: Path) -> dict[str, Any]:
     if not path.is_file():
         return {}
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+
+
+def unique(items: Iterable[Any]) -> list[str]:
+    return list(dict.fromkeys(str(item) for item in items if item and str(item).strip()))
 
 
 def load_json_or_yaml(path: Path) -> dict[str, Any]:
@@ -139,6 +144,11 @@ def question_number(chinese_name: str) -> int | None:
     return int(match.group(1)) if match else None
 
 
+def preprocessing_decision(state: Mapping[str, Any]) -> str | None:
+    value = str(((state.get("preprocessing") or {}).get("decision", ""))).strip()
+    return value if value in VALID_PREPROCESSING_DECISIONS else None
+
+
 def data_source_files(
     root: Path, state: Mapping[str, Any]
 ) -> tuple[list[Path], str, list[str], list[str]]:
@@ -173,6 +183,31 @@ def data_source_files(
     return files, "fallback_scan", issues, warnings
 
 
+def active_data_hash(
+    root: Path,
+    state: Mapping[str, Any],
+    raw_files: Iterable[Path],
+    raw_mode: str,
+) -> tuple[str | None, str, list[str]]:
+    """Select raw or accepted unified workbook as the downstream data hash fact source."""
+    decision = preprocessing_decision(state)
+    warnings: list[str] = []
+    raw_hash = combined_hash(raw_files, root)
+    if decision != "project_level":
+        return raw_hash, raw_mode, warnings
+    preprocessing = state.get("preprocessing") or {}
+    workbook_rel = str(preprocessing.get("workbook") or "数据预处理/数据预处理结果.xlsx")
+    workbook = (root / workbook_rel).resolve()
+    if (
+        preprocessing.get("status") == "accepted"
+        and preprocessing.get("quality_status") == "passed"
+        and workbook.is_file()
+    ):
+        return sha256_file(workbook), "preprocessing_workbook", warnings
+    warnings.append("preprocessing_decision=project_level但统一预处理工作簿尚未accepted；当前data hash仍使用原始数据，仅可用于预处理阶段")
+    return raw_hash, "raw_project_level_pending", warnings
+
+
 def framework_section_text(path: Path, anchor: str) -> str | None:
     if not path.is_file() or not anchor.strip():
         return None
@@ -204,10 +239,20 @@ def framework_section_hash(path: Path, anchor: str) -> str | None:
     return sha256_text(text) if text else None
 
 
-def stage_requirements(scope: str, output_contract: Mapping[str, Any]) -> list[str]:
-    return list(
-        ((output_contract.get("project_sync") or {}).get("stage_requirements") or {}).get(scope, [])
-    )
+def stage_requirements(
+    scope: str,
+    output_contract: Mapping[str, Any],
+    state: Mapping[str, Any] | None = None,
+) -> list[str]:
+    sync = output_contract.get("project_sync") or {}
+    required = list((sync.get("stage_requirements") or {}).get(scope, []))
+    if state is not None and preprocessing_decision(state) == "project_level":
+        conditional = (
+            (sync.get("conditional_stage_requirements") or {})
+            .get("preprocessing_decision_project_level", {})
+        )
+        required.extend((conditional or {}).get(scope, []) or [])
+    return unique(required)
 
 
 def contract_preflight_issues(
@@ -290,7 +335,6 @@ def _stage_code_paths(root: Path, chinese_name: str) -> tuple[Path | None, Path 
 
 
 def _python_files(root: Path, chinese_name: str) -> list[Path]:
-    """Compatibility helper returning this question's stage-specific Python files only."""
     primary, analysis, _ = _stage_code_paths(root, chinese_name)
     return [path for path in (primary, analysis) if path is not None]
 
@@ -613,6 +657,27 @@ def _formal_state_issues(required: set[str], state: Mapping[str, Any]) -> list[s
     return issues
 
 
+def _preprocessing_artifact_issues(
+    root: Path,
+    required: set[str],
+    state: Mapping[str, Any],
+) -> list[str]:
+    if preprocessing_decision(state) != "project_level":
+        return []
+    issues: list[str] = []
+    preprocessing = state.get("preprocessing") or {}
+    code = root / str(preprocessing.get("code") or "数据预处理/数据预处理.py")
+    workbook = root / str(preprocessing.get("workbook") or "数据预处理/数据预处理结果.xlsx")
+    if "preprocessing_code" in required and not code.is_file():
+        issues.append("project_level正式交付缺少数据预处理/数据预处理.py")
+    if "preprocessing_workbook" in required:
+        if not workbook.is_file():
+            issues.append("project_level正式交付缺少数据预处理/数据预处理结果.xlsx")
+        if preprocessing.get("status") != "accepted" or preprocessing.get("quality_status") != "passed":
+            issues.append("project_level正式交付要求预处理工作簿accepted且预处理质量门passed")
+    return issues
+
+
 def _scope_artifact_issues(
     root: Path,
     scope: str,
@@ -620,8 +685,9 @@ def _scope_artifact_issues(
     snapshots: Mapping[str, Mapping[str, Any]],
     output_contract: Mapping[str, Any],
 ) -> list[str]:
-    required = set(stage_requirements(scope, output_contract))
+    required = set(stage_requirements(scope, output_contract, state))
     issues = _formal_state_issues(required, state)
+    issues.extend(_preprocessing_artifact_issues(root, required, state))
     if "python_code" in required and not all(snapshot.get("primary_code") for snapshot in snapshots.values()):
         issues.append("正式交付缺少标准主求解Python脚本")
     if "result_analysis_code" in required:
@@ -672,10 +738,16 @@ def synchronize(
 
     issues = contract_preflight_issues(root, scope, state_path, framework_path, output_contract)
     warnings: list[str] = []
-    data_files, data_mode, data_issues, data_warnings = data_source_files(root, state)
+    raw_files, raw_mode, data_issues, data_warnings = data_source_files(root, state)
     issues.extend(data_issues)
     warnings.extend(data_warnings)
-    data_hash = combined_hash(data_files, root)
+    data_hash, data_mode, active_warnings = active_data_hash(root, state, raw_files, raw_mode)
+    warnings.extend(active_warnings)
+
+    decision = preprocessing_decision(state)
+    if state.get("data") and decision is None:
+        warnings.append("项目含数据但尚未锁定preprocessing.decision；重新进入模型设计/求解前必须补齐")
+
     snapshots: dict[str, dict[str, Any]] = {}
     subproblems = state.get("subproblems") or {}
     for chinese_name in _question_names(root, state):
@@ -732,6 +804,7 @@ def synchronize(
         "formal_delivery_scope": explicit_delivery_scope,
         "write": write,
         "strict": strict,
+        "preprocessing_decision": decision,
         "data_hash_mode": data_mode,
         "data_hash": data_hash,
         "framework_hash": sha256_file(framework_path) if framework_path.is_file() else None,

@@ -38,7 +38,14 @@ class UserExecutionContractTests(unittest.TestCase):
         config = self.config("primary", "问题一求解结果.xlsx")
         self.write_code(code, config)
         state = {
-            "project": {"competition": "test", "problem": "A", "current_phase": "solve_validate"},
+            "project": {"competition": "test", "problem": "A", "current_phase": "solve_validate", "version": "7.2.1"},
+            "data": {"active_source_mode": "raw"},
+            "preprocessing": {
+                "decision": "not_needed", "level": "none", "status": "not_applicable",
+                "evidence": ["fixture raw data is directly usable"], "operations": [],
+                "forbidden_operations": [], "downstream_data_source": "raw",
+                "quality_status": "not_applicable",
+            },
             "requirements": {"total": 0, "completed": [], "pending": []}, "decisions": {},
             "subproblems": {"Q1": {"status": "designed", "selected_model": "m", "capabilities": {},
                 "result_quality_status": "pending", "result_analysis_status": "pending",
@@ -242,7 +249,8 @@ class UserExecutionContractTests(unittest.TestCase):
             state["project"]["current_phase"] = "result_analysis"
             self.write_state(root, state)
             self.write_code(primary, self.config("primary", "问题一求解结果.xlsx"), marker=2)
-            _, config = CODE.validate_script(root, primary, "primary")
+            issues, config = CODE.validate_script(root, primary, "primary")
+            self.assertEqual(issues, [])
             with self.assertRaisesRegex(ValueError, "已accepted并冻结"):
                 CODE.update_state(root, config, primary)
 

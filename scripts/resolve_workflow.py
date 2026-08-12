@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve one or more user intents into an ordered HSK v7.1.0 execution plan."""
+"""Resolve one or more user intents into an ordered HSK v7.2.1 execution plan."""
 from __future__ import annotations
 
 import argparse
@@ -15,6 +15,7 @@ MANIFEST_PATH = ROOT / "core" / "module_manifest.yaml"
 TAXONOMY_PATH = ROOT / "core" / "task_taxonomy.yaml"
 COMPETITION_PATH = ROOT / "config" / "competition_profiles.yaml"
 SCOPE_RANK = {"design": 0, "code": 1, "results": 2, "figures": 3, "docx": 4, "latex": 5, "submission": 6}
+VALID_PREPROCESSING_DECISIONS = {"not_needed", "question_local", "project_level"}
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -111,7 +112,7 @@ def close_module_dependencies(
     available_artifacts: set[str],
     manifest: dict[str, Any],
 ) -> list[str]:
-    """Add unique upstream producers when the caller supplied current artifact state."""
+    """Add unique unconditional upstream producers when current artifact state is supplied."""
     module_specs = manifest.get("modules", {})
     path_to_name = {
         spec.get("path"): name for name, spec in module_specs.items() if isinstance(spec, dict)
@@ -151,6 +152,7 @@ def prerequisite_report(
     modules: Iterable[str],
     available_artifacts: set[str],
     manifest: dict[str, Any],
+    preprocessing_decision: str | None = None,
 ) -> tuple[list[str], list[str]]:
     missing: list[str] = []
     produced = set(available_artifacts)
@@ -165,6 +167,10 @@ def prerequisite_report(
         for artifact in spec.get("inputs", []):
             if artifact not in produced and artifact not in manifest.get("external_artifacts", []):
                 missing.append(f"{name}:{artifact}")
+        if preprocessing_decision == "project_level":
+            conditional = spec.get("conditional_inputs", {}) or {}
+            if "preprocessing_workbook" in conditional and "preprocessing_workbook" not in produced:
+                missing.append(f"{name}:preprocessing_workbook")
         produced.update(spec.get("outputs", []))
     return unique(missing), sorted(produced)
 
@@ -198,9 +204,13 @@ def gate_plan(
     return plans
 
 
+PREPROCESSING_OUTPUTS = [
+    "preprocessing_decision", "preprocessing_code", "preprocessing_workbook",
+    "preprocessing_quality_report", "awaiting_user_preprocessing", "model_paper_framework",
+]
 PRIMARY_CODE_OUTPUTS = [
-    "python_code", "full_run_config", "execution_instructions", "code_delivery_report",
-    "awaiting_user_execution", "model_paper_framework",
+    "preprocessing_decision", "python_code", "full_run_config", "execution_instructions",
+    "code_delivery_report", "awaiting_user_execution", "model_paper_framework",
 ]
 ANALYSIS_CODE_OUTPUTS = [
     "result_analysis_plan", "result_analysis_code", "full_run_config",
@@ -219,6 +229,47 @@ DOWNSTREAM_MODULES = {
 }
 SEMANTIC_CODE_GATES = ["semantic_governance", "code_delivery"]
 SEMANTIC_SYNC_GATES = ["semantic_governance", "project_sync"]
+
+
+def apply_preprocessing_boundary(
+    intents: list[str],
+    paths: list[str],
+    outputs: list[str],
+    scopes: list[str],
+    gates: list[str],
+    formal_delivery: bool,
+    pause: bool,
+    available: set[str],
+    decision: str | None,
+) -> tuple[list[str], list[str], list[str], list[str], bool, bool]:
+    """Insert or skip project-level preprocessing without treating shared raw data as sufficient evidence."""
+    if decision is not None and decision not in VALID_PREPROCESSING_DECISIONS:
+        raise ValueError(f"unknown preprocessing decision: {decision}")
+    if decision in {"not_needed", "question_local"}:
+        return (
+            [item for item in paths if item != "modules/03_data_preprocessing.md"],
+            outputs, scopes, gates, formal_delivery, pause,
+        )
+    if decision != "project_level":
+        return paths, outputs, scopes, gates, formal_delivery, pause
+
+    preprocessing_accepted = bool(
+        {"accepted_preprocessing_workbook", "preprocessing_workbook"}.intersection(available)
+    )
+    if preprocessing_accepted:
+        return (
+            [item for item in paths if item != "modules/03_data_preprocessing.md"],
+            outputs, scopes, gates, formal_delivery, pause,
+        )
+
+    relevant_intents = {"full_solution", "full_workflow", "code_and_solution", "data_preprocessing"}
+    if not set(intents).intersection(relevant_intents):
+        return paths, outputs, scopes, gates, formal_delivery, pause
+    blocked = set(DOWNSTREAM_MODULES) | {"modules/03_solve_validate.md"}
+    paths = [item for item in paths if item not in blocked]
+    if "modules/03_data_preprocessing.md" not in paths:
+        paths.append("modules/03_data_preprocessing.md")
+    return paths, PREPROCESSING_OUTPUTS.copy(), ["code"], SEMANTIC_CODE_GATES.copy(), False, True
 
 
 def apply_user_execution_boundary(
@@ -292,6 +343,7 @@ def resolve_workflow(
     secondary: Iterable[str] = (),
     competition: str | None = None,
     available_artifacts: Iterable[str] | None = None,
+    preprocessing_decision: str | None = None,
     router_path: Path = ROUTER_PATH,
     manifest_path: Path = MANIFEST_PATH,
     taxonomy_path: Path = TAXONOMY_PATH,
@@ -310,6 +362,8 @@ def resolve_workflow(
     if unknown_intents:
         valid = ", ".join(sorted(router.get("routing", {})))
         raise ValueError(f"unknown intents {unknown_intents}; choose from {valid}")
+    if preprocessing_decision is not None and preprocessing_decision not in VALID_PREPROCESSING_DECISIONS:
+        raise ValueError(f"unknown preprocessing decision: {preprocessing_decision}")
 
     legacy_objective, legacy_structures, legacy_packs = legacy_to_axes(primary, secondary, taxonomy)
     objective = objective or legacy_objective
@@ -354,7 +408,7 @@ def resolve_workflow(
     if any(router["routing"][name].get("load_proposition_pack") for name in resolved_intents):
         paths.append("packs/artifact/proposition_proof.md")
 
-    paths, module_terminal_outputs, route_scopes, explicit_gates, formal_delivery, pause_for_user_execution = apply_user_execution_boundary(
+    paths, module_terminal_outputs, route_scopes, explicit_gates, formal_delivery, pause_for_user_execution = apply_preprocessing_boundary(
         resolved_intents,
         paths,
         module_terminal_outputs,
@@ -363,7 +417,24 @@ def resolve_workflow(
         formal_delivery,
         pause_for_user_execution,
         available_set,
+        preprocessing_decision,
     )
+    preprocessing_pause = (
+        preprocessing_decision == "project_level"
+        and "modules/03_data_preprocessing.md" in paths
+        and not {"accepted_preprocessing_workbook", "preprocessing_workbook"}.intersection(available_set)
+    )
+    if not preprocessing_pause:
+        paths, module_terminal_outputs, route_scopes, explicit_gates, formal_delivery, pause_for_user_execution = apply_user_execution_boundary(
+            resolved_intents,
+            paths,
+            module_terminal_outputs,
+            route_scopes,
+            explicit_gates,
+            formal_delivery,
+            pause_for_user_execution,
+            available_set,
+        )
     module_paths = ordered_modules(paths, manifest)
     dependency_closure_applied = available_artifacts is not None
     if dependency_closure_applied:
@@ -377,7 +448,9 @@ def resolve_workflow(
     delivery_scope = highest_scope(route_scopes)
     gates = gate_plan(explicit_gates, manifest, delivery_scope)
 
-    missing, produced_after_modules = prerequisite_report(module_paths, available_set, manifest)
+    missing, produced_after_modules = prerequisite_report(
+        module_paths, available_set, manifest, preprocessing_decision
+    )
     available_after_plan = set(produced_after_modules)
     terminal_outputs = unique(module_terminal_outputs)
     for gate in gates:
@@ -390,6 +463,7 @@ def resolve_workflow(
     return {
         "version": router.get("version", bootstrap.get("skill_version")),
         "intents": resolved_intents,
+        "preprocessing_decision": preprocessing_decision,
         "classification": {
             "objective": objective,
             "structures": structures,
@@ -427,6 +501,7 @@ def main() -> int:
     parser.add_argument("--secondary", nargs="*", default=[], help="legacy compatibility labels")
     parser.add_argument("--competition")
     parser.add_argument("--available-artifacts", nargs="*", default=None)
+    parser.add_argument("--preprocessing-decision", choices=sorted(VALID_PREPROCESSING_DECISIONS))
     args = parser.parse_args()
     try:
         plan = resolve_workflow(
@@ -439,6 +514,7 @@ def main() -> int:
             secondary=args.secondary,
             competition=args.competition,
             available_artifacts=args.available_artifacts,
+            preprocessing_decision=args.preprocessing_decision,
         )
     except (ValueError, FileNotFoundError) as exc:
         raise SystemExit(str(exc)) from exc

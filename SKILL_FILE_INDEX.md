@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：7.1.0
+当前 Skill 版本：7.2.1
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -50,6 +50,7 @@
 - `core/bootstrap.yaml`
 - `core/code_quality_contract.yaml`
 - `core/compile_profiles.yaml`
+- `core/global_preprocessing_contract.yaml`
 - `core/hsk_core_policy.md`
 - `core/module_manifest.yaml`
 - `core/output_contract.yaml`
@@ -61,6 +62,7 @@
 - `legacy/README.md`
 - `modules/01_problem_audit.md`
 - `modules/02_model_design.md`
+- `modules/03_data_preprocessing.md`
 - `modules/03_result_analysis.md`
 - `modules/03_solve_validate.md`
 - `modules/04_figure_evidence.md`
@@ -170,6 +172,7 @@
 - `tests/test_contract_closure.py`
 - `tests/test_latex_first_versionless_docs.py`
 - `tests/test_no_active_old_stage.py`
+- `tests/test_preprocessing_decision_contract.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_result_io.py`
 - `tests/test_result_state_semantics.py`
@@ -185,6 +188,7 @@
 - `tests/test_v632_delivery_gate_closure.py`
 - `tests/test_v633_gate_hardening.py`
 - `tests/test_v661_code_quality_closure.py`
+- `tests/test_v700_two_stage_execution.py`
 - `tests/test_v700_two_stage_question_folder.py`
 - `tests/test_v701_stage_boundary_closure.py`
 - `tests/test_v710_semantic_governance.py`
