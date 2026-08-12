@@ -36,10 +36,10 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
         cls.state_schema = yaml.safe_load(
             (ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8")
         )
-        cls.resolver = load_module("resolver_721", "scripts/resolve_workflow.py")
-        cls.code_gate = load_module("code_gate_721", "scripts/validate_code_delivery.py")
-        cls.execution_gate = load_module("execution_gate_721", "scripts/validate_user_execution.py")
-        cls.sync = load_module("sync_721", "scripts/sync_project.py")
+        cls.resolver = load_module("resolver_722", "scripts/resolve_workflow.py")
+        cls.code_gate = load_module("code_gate_722", "scripts/validate_code_delivery.py")
+        cls.execution_gate = load_module("execution_gate_722", "scripts/validate_user_execution.py")
+        cls.sync = load_module("sync_722", "scripts/sync_project.py")
 
     def test_three_state_decision_is_authoritative(self):
         self.assertEqual(
@@ -57,6 +57,46 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
         self.assertIn("never_sufficient_alone", self.contract["activation"])
         insufficient = self.contract["activation"]["never_sufficient_alone"]
         self.assertTrue(any("共享同一原始数据源" in item for item in insufficient))
+
+    def test_generic_judgment_framework_covers_cross_competition_data_risks(self):
+        audit = self.contract["judgment_framework"]["audit_dimensions"]
+        for key in (
+            "completeness",
+            "consistency",
+            "validity",
+            "identity_and_duplicates",
+            "sampling_and_coverage",
+            "measurement_quality",
+            "model_readiness",
+            "temporal_causality_and_leakage",
+            "target_and_label_integrity",
+        ):
+            self.assertIn(key, audit)
+        principle = self.contract["judgment_framework"]["general_rules"]
+        self.assertTrue(any("某一赛题" in item or "固定操作模板" in item for item in principle))
+
+    def test_missing_values_do_not_imply_interpolation(self):
+        policy = self.contract["missing_data_policy"]
+        self.assertIn("不存在“有缺失就插值”的默认规则", policy["principle"])
+        boundaries = policy["method_boundaries"]
+        self.assertIn("interpolation", boundaries)
+        self.assertIn("类别", boundaries["interpolation"])
+        self.assertIn("predictive_imputation", boundaries)
+        self.assertIn("人工掩蔽", boundaries["model_based_imputation"])
+
+    def test_predictive_imputation_is_not_the_task_prediction_model(self):
+        boundary = self.contract["prediction_boundary"]
+        self.assertIn("只有前者可能属于预处理", boundary["principle"])
+        self.assertTrue(any("赛题直接要求预测未来值" in item for item in boundary["not_preprocessing_when"]))
+        self.assertTrue(any("缺测" in item for item in boundary["preprocessing_prediction_when"]))
+        self.assertIn("不得以“数据预处理”的名义提前生成答案", boundary["rule"])
+
+    def test_learned_preprocessing_requires_no_leakage_and_validation(self):
+        rules = self.contract["operation_gate"]["rules"]
+        self.assertTrue(any("训练/验证边界" in item for item in rules))
+        quality = self.contract["workbook"]["quality_gate"]["checks"]
+        self.assertTrue(any("人工掩蔽" in item or "留出样本" in item for item in quality))
+        self.assertTrue(any("信息泄漏" in item for item in quality))
 
     def test_full_solution_does_not_unconditionally_load_preprocessing(self):
         route = self.router["routing"]["full_solution"]
@@ -138,8 +178,10 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
         self.assertEqual(decisions, ["not_needed", "question_local", "project_level"])
         self.assertIn("preprocessing", self.state_schema["properties"])
 
-    def test_seismic_operations_are_conditional_not_default(self):
+    def test_seismic_operations_are_conditional_domain_example_not_default(self):
         seismic = self.contract["seismic_guidance"]
+        self.assertIn("领域专项示例", seismic["role"])
+        self.assertIn("不得反向成为其他赛题的默认预处理模板", seismic["role"])
         self.assertIn("先审计后处理", seismic["principle"])
         self.assertIn("默认带通滤波", seismic["forbidden_defaults"])
         self.assertIn("默认插值坏道", seismic["forbidden_defaults"])

@@ -1,6 +1,19 @@
 # Changelog
 
-## Current release: 7.2.1
+## Current release: 7.2.2
+
+- Generalized preprocessing judgment from the v7.2.1 evidence gate into a cross-competition framework driven by the **current problem statement, current attachments and current model requirements**, rather than seismic-specific practice or any fixed competition template.
+- Added mandatory audit dimensions for completeness, consistency, validity, duplicate identity, sampling and coverage, measurement quality, model readiness, temporal causality/information leakage, and target/label integrity before deciding whether data can be used directly.
+- Added a dedicated missing-data policy. Missing values no longer imply interpolation: the workflow must distinguish isolated/continuous/boundary/group missingness, variable semantics and model-native missing-data support before choosing to keep missing values, delete rows, interpolate, use statistical imputation, model-based imputation or predictive imputation.
+- Restricted interpolation to continuous variables with a defensible local-continuity mechanism and appropriate gap length/sampling structure; categorical variables, IDs, labels and event states cannot be mechanically interpolated.
+- Added a predictive-imputation boundary: prediction may be used during preprocessing only to restore a genuinely missing model input, with independent masking/holdout validation and no future/target leakage. Forecasting or classification explicitly requested by the competition remains a core modeling task and cannot be hidden inside preprocessing.
+- Added method-selection rules that prefer keeping raw data or model-native handling, then deterministic structural fixes, then simple mechanism-supported treatment, and only then validated statistical/model/predictive repair when simpler approaches are insufficient.
+- Expanded the preprocessing operation gate to require independent validation evidence for data-changing operations and to route materially method-sensitive preprocessing choices into sensitivity/robustness analysis.
+- Reframed seismic preprocessing as a domain-specific example only. Its DC removal, detrending, band-pass filtering, bad-trace repair, taper and interpolation rules must not be copied as defaults into unrelated competitions.
+- Preserved the v7.2.1 three-state interface and output layout: `not_needed`, `question_local`, `project_level`; no new default user-visible files or directories were introduced.
+- Added regression and static-lint coverage preventing future regressions to `shared data => forced preprocessing`, `missing => interpolation`, or `task prediction => preprocessing` behavior.
+
+## Previous release: 7.2.1
 
 - Replaced the v7.2.0 shared-data trigger with an explicit evidence-driven `preprocessing_decision`: `not_needed`, `question_local`, or `project_level`.
 - Data quality audit is now mandatory for data projects, while data modification is conditional. Sharing the same raw attachment across questions is no longer sufficient to require cleaning, interpolation, filtering, standardization, or a unified preprocessing workbook.
