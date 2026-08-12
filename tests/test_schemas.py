@@ -102,8 +102,8 @@ class TestSchemas(unittest.TestCase):
             set(contract["project_sync"]["artifact_hash_layers"]),
             {
                 "raw_data", "preprocessing_decision", "preprocessing_code", "preprocessing_workbook",
-                "model", "solution_workbook", "result_analysis_workbook", "matlab_script",
-                "figure_bundle", "framework",
+                "preprocessing_matlab_script", "model", "solution_workbook", "result_analysis_workbook",
+                "matlab_script", "figure_bundle", "framework",
             },
         )
         conditional = contract["project_sync"]["conditional_stage_requirements"]
