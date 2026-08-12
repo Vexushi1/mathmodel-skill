@@ -14,7 +14,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "7.2.1"
+PACKAGE_VERSION = "7.2.2"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",
@@ -312,6 +312,22 @@ def check_contracts(errors: list[str]) -> None:
     insufficient = (preprocessing.get("activation") or {}).get("never_sufficient_alone", []) or []
     if not any("共享同一原始数据源" in str(item) for item in insufficient):
         errors.append("shared raw data must be explicitly insufficient to require project-level preprocessing")
+    audit_dimensions = ((preprocessing.get("judgment_framework") or {}).get("audit_dimensions") or {})
+    required_audits = {
+        "completeness", "consistency", "validity", "identity_and_duplicates",
+        "sampling_and_coverage", "measurement_quality", "model_readiness",
+        "temporal_causality_and_leakage", "target_and_label_integrity",
+    }
+    if required_audits - set(audit_dimensions):
+        errors.append("generic preprocessing judgment lacks required cross-competition audit dimensions")
+    missing_policy = preprocessing.get("missing_data_policy") or {}
+    if "有缺失就插值" not in str(missing_policy.get("principle", "")):
+        errors.append("missing-data policy must explicitly reject missing=>interpolation defaults")
+    prediction_boundary = preprocessing.get("prediction_boundary") or {}
+    if "核心建模" not in str(prediction_boundary.get("principle", "")):
+        errors.append("prediction boundary must separate predictive imputation from task prediction")
+    if not any("赛题直接要求预测未来值" in str(item) for item in prediction_boundary.get("not_preprocessing_when", [])):
+        errors.append("task-requested forecasting must be explicitly excluded from preprocessing")
     line_policy = quality.get("line_count", {})
     if (line_policy.get("target_max"), line_policy.get("hard_max"), line_policy.get("exemption_max")) != (500, 700, 900):
         errors.append("code-quality line thresholds must be 500/700/900")
@@ -509,9 +525,9 @@ def check_templates(errors: list[str]) -> None:
     for token in ("题面—数学—代码三层语义闭环", "Complexity Sanity Check", "semantic_revision", "review_required", "preprocessing_decision"):
         if token not in design:
             errors.append(f"model design lacks semantic/preprocessing governance token: {token}")
-    for token in ("not_needed", "question_local", "project_level", "共享", "四问"):
+    for token in ("not_needed", "question_local", "project_level", "共享", "五问", "预测填补"):
         if token not in preprocessing:
-            errors.append(f"preprocessing module lacks decision/necessity token: {token}")
+            errors.append(f"preprocessing module lacks generic decision/necessity token: {token}")
     if "validate_semantic_governance.py" not in solve:
         errors.append("solve module must require semantic governance")
     if "冻结问题X求解.py" not in solve or "问题X结果深化分析.py" not in analysis:
