@@ -1,6 +1,13 @@
 # Changelog
 
-## Current release: 7.2.3
+## Current release: 7.2.4
+
+- Hardened `data_process.m` delivery with a contract-backed runtime forbidden-call set covering interpolation, missing/outlier repair, smoothing, resampling/alignment, detrending/normalization, filtering/filter design, fitting and prediction calls.
+- `scripts/sync_project.py` now scans executable MATLAB lines at figures-and-later delivery scopes and reports the exact forbidden functions detected; full-line comments are ignored to avoid documentation false positives.
+- Aligned `modules/04_figure_evidence.md` with the authoritative router: project-level preprocessing workbook acceptance precedes solving, while `data_process.m` is created only after primary solving and result analysis when Figure Evidence begins.
+- Added regression/static-lint coverage that locks the contract/runtime forbidden-function set and the Figure Evidence stage order without changing the three-state preprocessing decision or per-question five-file interface.
+
+## Previous release: 7.2.3
 
 - Elevated substantive preprocessing into a paper evidence chain: data problem/necessity -> mathematical formula or deterministic mapping -> parameter basis -> method-matched validation -> before/after evidence -> MATLAB figure -> downstream model interface.
 - Added writing-depth rules for deterministic structural fixes, statistical transforms, interpolation/imputation, filtering/resampling and outlier/deletion operations.
