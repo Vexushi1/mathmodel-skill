@@ -14,7 +14,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "7.2.2"
+PACKAGE_VERSION = "7.2.3"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",
@@ -231,6 +231,8 @@ def check_manifest(errors: list[str]) -> None:
     for token in ("problem_contract", "preprocessing_decision", "semantic_closure", "complexity_sanity_check", "semantic_governance_report"):
         if token not in catalog:
             errors.append(f"manifest lacks semantic artifact: {token}")
+    if "preprocessing_matlab_script" not in catalog:
+        errors.append("manifest must register preprocessing_matlab_script")
     modules = manifest.get("modules", {})
     order = manifest.get("workflow_order", [])
     rank = {name: index for index, name in enumerate(order)}
@@ -261,6 +263,10 @@ def check_manifest(errors: list[str]) -> None:
     preprocessing = modules.get("data_preprocessing", {})
     if preprocessing.get("conditional") is not True or preprocessing.get("activation") != "preprocessing_decision == project_level":
         errors.append("manifest data_preprocessing must be conditional on project_level")
+    figures = modules.get("figure_evidence", {})
+    figure_conditional = figures.get("conditional_outputs", {}) or {}
+    if (figure_conditional.get("preprocessing_matlab_script") or {}).get("when") != "preprocessing_decision == project_level":
+        errors.append("figure_evidence must condition data_process output on project_level")
     if "result_analysis" not in modules:
         errors.append("manifest lacks dedicated result_analysis module")
     else:
@@ -328,6 +334,14 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("prediction boundary must separate predictive imputation from task prediction")
     if not any("赛题直接要求预测未来值" in str(item) for item in prediction_boundary.get("not_preprocessing_when", [])):
         errors.append("task-requested forecasting must be explicitly excluded from preprocessing")
+    visual = preprocessing.get("visual_evidence") or {}
+    if visual.get("matlab_script") != "数据预处理/data_process.m":
+        errors.append("project-level preprocessing visual evidence must use data_process.m")
+    if visual.get("data_source") != "数据预处理/数据预处理结果.xlsx":
+        errors.append("data_process.m must read the unified preprocessing workbook")
+    boundary = "\n".join(str(item) for item in visual.get("python_matlab_boundary", []))
+    if "不重新插值" not in boundary or "MATLAB只读取统一工作簿绘图" not in boundary:
+        errors.append("preprocessing MATLAB boundary must forbid recomputation")
     line_policy = quality.get("line_count", {})
     if (line_policy.get("target_max"), line_policy.get("hard_max"), line_policy.get("exemption_max")) != (500, 700, 900):
         errors.append("code-quality line thresholds must be 500/700/900")
@@ -356,6 +370,8 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("execution policy must require preprocessing only for project_level")
     if execution.get("shared_data_alone_does_not_require_preprocessing") is not True:
         errors.append("execution policy must not promote shared data to preprocessing automatically")
+    if execution.get("preprocessing_matlab_required_at_figure_stage_when_decision") != "project_level":
+        errors.append("execution policy must require data_process only at project-level figure stage")
     policy = output.get("writing_policy", {})
     if policy.get("default_mode") != "latex_first":
         errors.append("default writing mode must be latex_first")
@@ -376,6 +392,11 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("per-question default must be exact five-file two-script layout")
     if "single_python_update_policy" in per_question:
         errors.append("output contract must not restore single-script overwrite policy")
+    global_pre = output.get("global_preprocessing", {}) or {}
+    if global_pre.get("matlab_script") != "data_process.m":
+        errors.append("output contract must fix project-level preprocessing MATLAB name to data_process.m")
+    if global_pre.get("matlab_created_at") != "figure_evidence":
+        errors.append("data_process.m must remain a figure_evidence artifact, not a solve prerequisite")
     delivery = user_execution.get("code_delivery") or {}
     stages = delivery.get("stage_scripts") or {}
     expected_stage_scripts = {
@@ -407,20 +428,23 @@ def check_contracts(errors: list[str]) -> None:
     conditional = (sync.get("conditional_stage_requirements") or {}).get("preprocessing_decision_project_level", {})
     if "preprocessing_workbook" not in conditional.get("results", []):
         errors.append("project_level results scope must conditionally require preprocessing_workbook")
+    if "preprocessing_matlab_script" not in conditional.get("figures", []):
+        errors.append("project_level figures scope must conditionally require data_process.m")
     if sync.get("stage_requirements_semantics") != "exact_scope":
         errors.append("project_sync must preserve the existing exact_scope stage requirements interface")
     if sync.get("conditional_stage_requirements_semantics") != "additive_when_condition_true_without_changing_base_exact_scope":
         errors.append("project_sync must define additive conditional preprocessing semantics separately")
     expected_layers = {
         "raw_data", "preprocessing_decision", "preprocessing_code", "preprocessing_workbook",
-        "model", "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
+        "preprocessing_matlab_script", "model", "solution_workbook", "result_analysis_workbook",
+        "matlab_script", "figure_bundle", "framework",
     }
     if set(sync.get("artifact_hash_layers", [])) != expected_layers:
         errors.append("project_sync artifact hash layers are incomplete")
     sync_text = read_text(ROOT / "scripts/sync_project.py")
-    for token in ("stage_requirements(", "contract_preflight_issues", "_code_hash_mismatches", "analysis_code_sha256", "result_analysis_code", "active_data_hash", "preprocessing_decision"):
+    for token in ("stage_requirements(", "contract_preflight_issues", "_code_hash_mismatches", "analysis_code_sha256", "result_analysis_code", "active_data_hash", "preprocessing_decision", "preprocessing_matlab_script", "data_process.m"):
         if token not in sync_text:
-            errors.append(f"sync_project lacks conditional/two-stage gate token: {token}")
+            errors.append(f"sync_project lacks conditional/two-stage/figure gate token: {token}")
     workbook = load_structured(ROOT / "core/workbook_schema.yaml") or {}
     runtime = workbook.get("runtime_enforcement", {}) or {}
     if "artifact_checker" in runtime:
@@ -519,15 +543,19 @@ def check_templates(errors: list[str]) -> None:
     preprocessing = read_text(ROOT / "modules/03_data_preprocessing.md")
     solve = read_text(ROOT / "modules/03_solve_validate.md")
     analysis = read_text(ROOT / "modules/03_result_analysis.md")
+    figures = read_text(ROOT / "modules/04_figure_evidence.md")
     for token in ("Problem Contract", "禁止假设", "data", "parameter", "model", "result"):
         if token not in audit:
             errors.append(f"problem audit lacks semantic freeze token: {token}")
     for token in ("题面—数学—代码三层语义闭环", "Complexity Sanity Check", "semantic_revision", "review_required", "preprocessing_decision"):
         if token not in design:
             errors.append(f"model design lacks semantic/preprocessing governance token: {token}")
-    for token in ("not_needed", "question_local", "project_level", "共享", "五问", "预测填补"):
+    for token in ("not_needed", "question_local", "project_level", "共享", "五问", "预测填补", "data_process.m"):
         if token not in preprocessing:
-            errors.append(f"preprocessing module lacks generic decision/necessity token: {token}")
+            errors.append(f"preprocessing module lacks generic decision/necessity/figure token: {token}")
+    for token in ("data_process.m", "数据预处理结果.xlsx", "重新插值", "q{x}_plot.m"):
+        if token not in figures:
+            errors.append(f"figure module lacks preprocessing visual-evidence token: {token}")
     if "validate_semantic_governance.py" not in solve:
         errors.append("solve module must require semantic governance")
     if "冻结问题X求解.py" not in solve or "问题X结果深化分析.py" not in analysis:
@@ -546,6 +574,8 @@ def check_templates(errors: list[str]) -> None:
             errors.append(f"active entry lacks semantic governance summary: {relative}")
         if "preprocessing_decision" not in text:
             errors.append(f"active entry lacks conditional preprocessing summary: {relative}")
+        if "data_process.m" not in text:
+            errors.append(f"active entry lacks project-level preprocessing MATLAB summary: {relative}")
     removed_checker = "hsk_check_" + "artifact.py"
     lint_path = ROOT / "scripts/lint_skill.py"
     for path in active_files():
