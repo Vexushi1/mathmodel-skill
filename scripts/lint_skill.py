@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate active HSK graph, semantic governance, result contracts, code quality and generated files."""
+"""Validate active HSK graph, preprocessing governance, semantic governance, result contracts, code quality and generated files."""
 from __future__ import annotations
 
 import argparse
@@ -14,7 +14,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "7.1.0"
+PACKAGE_VERSION = "7.2.1"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",
@@ -22,11 +22,12 @@ REQUIRED = [
     "HSK_SKILL_FILE_INDEX_V622.md", "HSK_TEMPLATE_INDEX_V622.md",
     "core/bootstrap.yaml", "core/hsk_core_policy.md", "core/task_taxonomy.yaml",
     "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml",
-    "core/workbook_schema.yaml", "core/project_state.schema.yaml", "core/compile_profiles.yaml",
+    "core/global_preprocessing_contract.yaml", "core/workbook_schema.yaml",
+    "core/project_state.schema.yaml", "core/compile_profiles.yaml",
     "core/user_execution_contract.yaml", "core/code_quality_contract.yaml",
-    "modules/01_problem_audit.md", "modules/02_model_design.md", "modules/03_solve_validate.md",
-    "modules/03_result_analysis.md", "modules/04_figure_evidence.md", "modules/05_latex_compile_quality.md",
-    "modules/05_writing/docx.md", "modules/05_writing/latex.md",
+    "modules/01_problem_audit.md", "modules/02_model_design.md", "modules/03_data_preprocessing.md",
+    "modules/03_solve_validate.md", "modules/03_result_analysis.md", "modules/04_figure_evidence.md",
+    "modules/05_latex_compile_quality.md", "modules/05_writing/docx.md", "modules/05_writing/latex.md",
     "modules/05_writing/ai_cleanup.md", "modules/06_review_delivery.md",
     "packs/task/classifier.md", "packs/task/advanced_method_gate.md",
     "packs/artifact/proposition_proof.md", "templates/model/model_paper_framework.md",
@@ -45,7 +46,7 @@ VERSION_DOCS = ["SKILL.md", "README.md", "CHANGELOG.md"]
 VERSION_CONTRACTS = [
     "core/bootstrap.yaml", "core/workflow_router.yaml", "core/module_manifest.yaml",
     "core/output_contract.yaml", "core/project_state.schema.yaml", "core/user_execution_contract.yaml",
-    "core/code_quality_contract.yaml",
+    "core/code_quality_contract.yaml", "core/global_preprocessing_contract.yaml",
 ]
 
 
@@ -118,6 +119,8 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
             errors.append(f"bootstrap authoritative source missing: {key} -> {path}")
     if data.get("authoritative_sources", {}).get("code_quality") != "core/code_quality_contract.yaml":
         errors.append("bootstrap must declare code-quality authority")
+    if data.get("authoritative_sources", {}).get("preprocessing") != "core/global_preprocessing_contract.yaml":
+        errors.append("bootstrap must declare conditional preprocessing authority")
     if data.get("authoritative_sources", {}).get("semantic_governance") != "scripts/validate_semantic_governance.py":
         errors.append("bootstrap must declare semantic-governance authority")
     if data.get("entrypoints", {}).get("semantic_governance") != "python scripts/validate_semantic_governance.py":
@@ -157,18 +160,23 @@ def check_taxonomy(errors: list[str]) -> None:
 def check_router(errors: list[str]) -> None:
     router = load_structured(ROOT / "core/workflow_router.yaml") or {}
     routes = router.get("routing", {})
-    order = router.get("execution_contract", {}).get("workflow_order", [])
-    for name in ("solve_validate", "result_analysis", "figure_evidence"):
+    execution = router.get("execution_contract", {})
+    order = execution.get("workflow_order", [])
+    for name in ("data_preprocessing", "solve_validate", "result_analysis", "figure_evidence"):
         if name not in order:
             errors.append(f"workflow order lacks: {name}")
     if all(name in order for name in ("solve_validate", "result_analysis", "figure_evidence")):
         if not order.index("solve_validate") < order.index("result_analysis") < order.index("figure_evidence"):
             errors.append("workflow must place result_analysis between solve and figures")
+    if "data_preprocessing" not in execution.get("conditional_modules", []):
+        errors.append("data_preprocessing must be declared conditional")
     expected_formal = ["semantic_governance", "project_sync"]
-    if router.get("execution_contract", {}).get("formal_delivery_gates") != expected_formal:
+    if execution.get("formal_delivery_gates") != expected_formal:
         errors.append("formal delivery must declare semantic_governance then project_sync")
-    if router.get("execution_contract", {}).get("code_stage_gates") != ["semantic_governance", "code_delivery"]:
+    if execution.get("code_stage_gates") != ["semantic_governance", "code_delivery"]:
         errors.append("code stages must declare semantic_governance before code_delivery")
+    if execution.get("task_code_execution_allowed") is not False:
+        errors.append("router must forbid assistant task-code execution")
     full = routes.get("full_workflow", {})
     loaded = list(full.get("load", [])) + list(full.get("then", []))
     if full.get("pause_for_user_execution") is not True:
@@ -177,12 +185,15 @@ def check_router(errors: list[str]) -> None:
         errors.append("full_workflow initial segment must use semantic and code-delivery gates")
     if "modules/03_solve_validate.md" not in loaded:
         errors.append("full_workflow initial segment must load primary solve code generation")
+    if "modules/03_data_preprocessing.md" in loaded:
+        errors.append("full_workflow must not unconditionally load project-level preprocessing")
+    conditional = full.get("conditional_stage", {})
+    if conditional.get("when") != "preprocessing_decision == project_level":
+        errors.append("full_workflow must condition preprocessing on project_level decision")
     if any(item in loaded for item in ("modules/03_result_analysis.md", "modules/04_figure_evidence.md", "modules/05_writing/latex.md")):
         errors.append("full_workflow must not cross a user execution gate in its initial segment")
     if "modules/05_writing/docx.md" in loaded:
         errors.append("default full_workflow must not load DOCX")
-    if router.get("execution_contract", {}).get("task_code_execution_allowed") is not False:
-        errors.append("router must forbid assistant task-code execution")
     analysis_route = routes.get("result_analysis", {})
     if "modules/03_result_analysis.md" not in analysis_route.get("load", []):
         errors.append("result_analysis route must load the dedicated module")
@@ -200,7 +211,7 @@ def check_router(errors: list[str]) -> None:
     if explicit_docx.get("delivery_scope") != "docx" or "modules/05_writing/docx.md" not in explicit_docx.get("load", []):
         errors.append("explicit DOCX route must remain available")
     resolver = read_text(ROOT / "scripts/resolve_workflow.py")
-    for token in ("pre_delivery_gates", "available_after_modules", "available_after_plan", "gate_plan", "SEMANTIC_CODE_GATES", "SEMANTIC_SYNC_GATES"):
+    for token in ("pre_delivery_gates", "available_after_modules", "available_after_plan", "gate_plan", "SEMANTIC_CODE_GATES", "SEMANTIC_SYNC_GATES", "apply_preprocessing_boundary", "preprocessing_decision"):
         if token not in resolver:
             errors.append(f"resolver lacks gate-closure token: {token}")
     if f"HSK v{PACKAGE_VERSION} execution plan" not in resolver:
@@ -216,7 +227,9 @@ def check_manifest(errors: list[str]) -> None:
     known = catalog | external
     if manifest.get("contracts", {}).get("code_quality") != "core/code_quality_contract.yaml":
         errors.append("manifest must register code-quality contract")
-    for token in ("problem_contract", "semantic_closure", "complexity_sanity_check", "semantic_governance_report"):
+    if manifest.get("contracts", {}).get("preprocessing") != "core/global_preprocessing_contract.yaml":
+        errors.append("manifest must register preprocessing contract")
+    for token in ("problem_contract", "preprocessing_decision", "semantic_closure", "complexity_sanity_check", "semantic_governance_report"):
         if token not in catalog:
             errors.append(f"manifest lacks semantic artifact: {token}")
     modules = manifest.get("modules", {})
@@ -246,6 +259,9 @@ def check_manifest(errors: list[str]) -> None:
             ]
             if not upstream:
                 errors.append(f"module input lacks upstream producer: {name}:{artifact}")
+    preprocessing = modules.get("data_preprocessing", {})
+    if preprocessing.get("conditional") is not True or preprocessing.get("activation") != "preprocessing_decision == project_level":
+        errors.append("manifest data_preprocessing must be conditional on project_level")
     if "result_analysis" not in modules:
         errors.append("manifest lacks dedicated result_analysis module")
     else:
@@ -256,14 +272,23 @@ def check_manifest(errors: list[str]) -> None:
         if "result_analysis_code" not in outputs:
             errors.append("result_analysis must produce independent result_analysis_code")
     solve_inputs = set(modules.get("solve_validate", {}).get("inputs", []))
-    if not {"code_quality_contract", "semantic_closure", "complexity_sanity_check"}.issubset(solve_inputs):
-        errors.append("solve_validate must consume code quality and semantic governance outputs")
+    if not {"code_quality_contract", "semantic_closure", "complexity_sanity_check", "preprocessing_decision"}.issubset(solve_inputs):
+        errors.append("solve_validate must consume code quality, semantic governance and preprocessing decision outputs")
+    if "preprocessing_workbook" in solve_inputs:
+        errors.append("solve_validate must not unconditionally require preprocessing_workbook")
+    solve_conditional = modules.get("solve_validate", {}).get("conditional_inputs", {}) or {}
+    if (solve_conditional.get("preprocessing_workbook") or {}).get("when") != "preprocessing_decision == project_level":
+        errors.append("solve_validate must condition preprocessing_workbook on project_level")
     if "problem_contract" not in set(modules.get("model_design", {}).get("inputs", [])):
         errors.append("model_design must require frozen problem_contract")
+    if "preprocessing_decision" not in set(modules.get("model_design", {}).get("outputs", [])):
+        errors.append("model_design must produce preprocessing_decision")
     profile_spec = manifest.get("workflow_profiles", {}).get("full_workflow", {})
     profile = profile_spec.get("modules", [])
     if profile != ["problem_audit", "model_design", "solve_validate"]:
         errors.append("full_workflow initial manifest profile must stop at solve_validate")
+    if (profile_spec.get("conditional_modules") or {}).get("data_preprocessing", {}).get("when") != "preprocessing_decision == project_level":
+        errors.append("full_workflow manifest profile must condition data_preprocessing")
     if profile_spec.get("pre_delivery_gates") != ["semantic_governance", "code_delivery"]:
         errors.append("full_workflow initial manifest profile must use semantic and code delivery")
     semantic_gate = manifest.get("utility_gates", {}).get("semantic_governance", {})
@@ -281,6 +306,13 @@ def check_contracts(errors: list[str]) -> None:
     output = load_structured(ROOT / "core/output_contract.yaml") or {}
     quality = load_structured(ROOT / "core/code_quality_contract.yaml") or {}
     user_execution = load_structured(ROOT / "core/user_execution_contract.yaml") or {}
+    preprocessing = load_structured(ROOT / "core/global_preprocessing_contract.yaml") or {}
+    decision_values = ((preprocessing.get("decision_gate") or {}).get("decision_values") or [])
+    if decision_values != ["not_needed", "question_local", "project_level"]:
+        errors.append("preprocessing contract must expose the three-state decision")
+    insufficient = (preprocessing.get("activation") or {}).get("never_sufficient_alone", []) or []
+    if not any("共享同一原始数据源" in str(item) for item in insufficient):
+        errors.append("shared raw data must be explicitly insufficient to require project-level preprocessing")
     line_policy = quality.get("line_count", {})
     if (line_policy.get("target_max"), line_policy.get("hard_max"), line_policy.get("exemption_max")) != (500, 700, 900):
         errors.append("code-quality line thresholds must be 500/700/900")
@@ -291,15 +323,24 @@ def check_contracts(errors: list[str]) -> None:
     scopes = quality.get("scope", [])
     if not isinstance(scopes, list) or "问题X求解/问题X结果深化分析.py" not in scopes:
         errors.append("code-quality contract must cover independent analysis script")
+    if "数据预处理/数据预处理.py" not in scopes:
+        errors.append("code-quality contract must cover conditional preprocessing script")
     if output.get("code_quality_contract") != "core/code_quality_contract.yaml":
         errors.append("output contract must reference code-quality contract")
+    if output.get("preprocessing_contract") != "core/global_preprocessing_contract.yaml":
+        errors.append("output contract must reference preprocessing contract")
     semantic = output.get("semantic_governance", {})
     if semantic.get("script") != "scripts/validate_semantic_governance.py":
         errors.append("output contract must declare semantic governance script")
     if semantic.get("dependency_kinds") != ["data", "parameter", "model", "result"]:
         errors.append("semantic governance must define typed dependency kinds")
-    if output.get("execution_policy", {}).get("semantic_governance_gate") != "scripts/validate_semantic_governance.py":
+    execution = output.get("execution_policy", {})
+    if execution.get("semantic_governance_gate") != "scripts/validate_semantic_governance.py":
         errors.append("execution policy must require semantic governance")
+    if execution.get("preprocessing_required_before_solve_when_decision") != "project_level":
+        errors.append("execution policy must require preprocessing only for project_level")
+    if execution.get("shared_data_alone_does_not_require_preprocessing") is not True:
+        errors.append("execution policy must not promote shared data to preprocessing automatically")
     policy = output.get("writing_policy", {})
     if policy.get("default_mode") != "latex_first":
         errors.append("default writing mode must be latex_first")
@@ -321,6 +362,8 @@ def check_contracts(errors: list[str]) -> None:
     if "single_python_update_policy" in per_question:
         errors.append("output contract must not restore single-script overwrite policy")
     stages = ((user_execution.get("code_delivery") or {}).get("stage_scripts") or {})
+    if stages.get("preprocessing") != "数据预处理/数据预处理.py":
+        errors.append("user execution contract must define conditional preprocessing script")
     if stages.get("primary") != "问题X求解/问题X求解.py" or stages.get("analysis") != "问题X求解/问题X结果深化分析.py":
         errors.append("user execution contract must define separate primary/analysis scripts")
     if user_execution.get("code_delivery", {}).get("semantic_governance_required") is not True:
@@ -339,15 +382,23 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("output contract must define every exact delivery scope")
     if "result_analysis_code" not in requirements.get("results", []):
         errors.append("results scope must require independent result-analysis code")
-    if sync.get("stage_requirements_semantics") != "exact_scope":
-        errors.append("project_sync stage requirements must use exact_scope semantics")
-    expected_layers = {"data", "model", "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework"}
+    if "preprocessing_workbook" in requirements.get("results", []):
+        errors.append("base results scope must not unconditionally require preprocessing_workbook")
+    conditional = (sync.get("conditional_stage_requirements") or {}).get("preprocessing_decision_project_level", {})
+    if "preprocessing_workbook" not in conditional.get("results", []):
+        errors.append("project_level results scope must conditionally require preprocessing_workbook")
+    if sync.get("stage_requirements_semantics") != "exact_scope_plus_conditional_preprocessing":
+        errors.append("project_sync stage requirements must use conditional preprocessing semantics")
+    expected_layers = {
+        "raw_data", "preprocessing_decision", "preprocessing_code", "preprocessing_workbook",
+        "model", "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
+    }
     if set(sync.get("artifact_hash_layers", [])) != expected_layers:
         errors.append("project_sync artifact hash layers are incomplete")
     sync_text = read_text(ROOT / "scripts/sync_project.py")
-    for token in ("stage_requirements(scope, output_contract)", "contract_preflight_issues", "_code_hash_mismatches", "analysis_code_sha256", "result_analysis_code"):
+    for token in ("stage_requirements(", "contract_preflight_issues", "_code_hash_mismatches", "analysis_code_sha256", "result_analysis_code", "active_data_hash", "preprocessing_decision"):
         if token not in sync_text:
-            errors.append(f"sync_project lacks two-stage gate token: {token}")
+            errors.append(f"sync_project lacks conditional/two-stage gate token: {token}")
     workbook = load_structured(ROOT / "core/workbook_schema.yaml") or {}
     runtime = workbook.get("runtime_enforcement", {}) or {}
     if "artifact_checker" in runtime:
@@ -397,8 +448,13 @@ def check_project_state_and_framework(errors: list[str]) -> None:
     if not {"code", "result_analysis_code", "primary_code_sha256", "analysis_code_sha256"}.issubset(fields):
         errors.append("project state must expose both stage-specific code paths and hashes")
     phases = set(schema["properties"]["project"]["properties"]["current_phase"]["enum"])
-    if "result_analysis" not in phases:
-        errors.append("project state phases lack result_analysis")
+    if "result_analysis" not in phases or "data_preprocessing" not in phases:
+        errors.append("project state phases must include data_preprocessing and result_analysis")
+    if "preprocessing" not in schema["properties"]:
+        errors.append("project state must expose preprocessing decision/execution state")
+    decision_enum = set(schema["$defs"]["preprocessing_decision"]["enum"])
+    if decision_enum != {"not_needed", "question_local", "project_level"}:
+        errors.append("project state preprocessing decision enum mismatch")
     state_validator = load_module("lint_state_validator", ROOT / "scripts/validate_project_state.py")
     for issue in state_validator.validate_state_payload(example, project_root=ROOT):
         errors.append(f"project state semantic violation: {issue}")
@@ -429,23 +485,27 @@ def check_templates(errors: list[str]) -> None:
         if token not in semantic:
             errors.append(f"semantic governance validator lacks token: {token}")
     validator = read_text(ROOT / "scripts/validate_code_delivery.py")
-    for token in ("QUALITY_CONTRACT", "code_quality_findings", "nonblank_lines", "forbidden_import_roots", "结果深化分析.py", "result_analysis_code", "unchanged_accepted"):
+    for token in ("QUALITY_CONTRACT", "code_quality_findings", "nonblank_lines", "forbidden_import_roots", "结果深化分析.py", "result_analysis_code", "unchanged_accepted", "preprocessing", "数据预处理.py"):
         if token not in validator:
-            errors.append(f"code delivery validator lacks quality/two-stage token: {token}")
+            errors.append(f"code delivery validator lacks quality/conditional-stage token: {token}")
     receipt = read_text(ROOT / "scripts/validate_user_execution.py")
-    for token in ("workbook_identity", "工作簿文件名对应", "problem_name与工作簿目录/文件名不一致"):
+    for token in ("workbook_identity", "工作簿文件名对应", "problem_name与工作簿目录/文件名不一致", "预处理质量门", "project_level"):
         if token not in receipt:
-            errors.append(f"returned-workbook validator lacks identity-binding token: {token}")
+            errors.append(f"returned-workbook validator lacks conditional identity-binding token: {token}")
     audit = read_text(ROOT / "modules/01_problem_audit.md")
     design = read_text(ROOT / "modules/02_model_design.md")
+    preprocessing = read_text(ROOT / "modules/03_data_preprocessing.md")
     solve = read_text(ROOT / "modules/03_solve_validate.md")
     analysis = read_text(ROOT / "modules/03_result_analysis.md")
     for token in ("Problem Contract", "禁止假设", "data", "parameter", "model", "result"):
         if token not in audit:
             errors.append(f"problem audit lacks semantic freeze token: {token}")
-    for token in ("题面—数学—代码三层语义闭环", "Complexity Sanity Check", "semantic_revision", "review_required"):
+    for token in ("题面—数学—代码三层语义闭环", "Complexity Sanity Check", "semantic_revision", "review_required", "preprocessing_decision"):
         if token not in design:
-            errors.append(f"model design lacks semantic governance token: {token}")
+            errors.append(f"model design lacks semantic/preprocessing governance token: {token}")
+    for token in ("not_needed", "question_local", "project_level", "共享", "四问"):
+        if token not in preprocessing:
+            errors.append(f"preprocessing module lacks decision/necessity token: {token}")
     if "validate_semantic_governance.py" not in solve:
         errors.append("solve module must require semantic governance")
     if "冻结问题X求解.py" not in solve or "问题X结果深化分析.py" not in analysis:
@@ -462,6 +522,8 @@ def check_templates(errors: list[str]) -> None:
             errors.append(f"active entry lacks independent analysis script: {relative}")
         if "semantic" not in text.lower() and "语义" not in text:
             errors.append(f"active entry lacks semantic governance summary: {relative}")
+        if "preprocessing_decision" not in text:
+            errors.append(f"active entry lacks conditional preprocessing summary: {relative}")
     removed_checker = "hsk_check_" + "artifact.py"
     lint_path = ROOT / "scripts/lint_skill.py"
     for path in active_files():
