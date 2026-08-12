@@ -1,4 +1,4 @@
-version: 7.2.0
+version: 7.2.1
 workflow_order:
 - problem_audit
 - model_design
@@ -11,6 +11,8 @@ workflow_order:
 - latex_compile_quality
 - review_delivery
 - writing_docx
+conditional_modules:
+- data_preprocessing
 contracts:
   bootstrap: core/bootstrap.yaml
   taxonomy: core/task_taxonomy.yaml
@@ -44,6 +46,7 @@ artifact_catalog:
   classification_by_subproblem: 每问objective、structures、顶层capabilities与置信度
   problem_types_by_subproblem: 旧版题型标签兼容派生输出
   data_schema: 字段、单位、粒度、键和数据质量口径
+  preprocessing_decision: 数据审计后的条件判定；not_needed/question_local/project_level决定是否创建统一预处理阶段以及下游raw/preprocessed事实源
   risks: 审题、数据、模型和交付风险
   route_comparison: 每问模型路线比较
   selected_models: 每问选定模型
@@ -52,17 +55,17 @@ artifact_catalog:
   semantic_closure: 题面对象与要求—数学层—Python层—输出证据三层闭环
   complexity_sanity_check: 对异常降维、解耦、条件闲置和异常容易求解的复审结论
   proposition_plan: 全文0--4个高价值命题规划
-  model_paper_framework: 当前有效模型语义、Problem Contract、论文组织、逐问结果摘要和图表映射
+  model_paper_framework: 当前有效模型语义、Problem Contract、预处理判定、论文组织、逐问结果摘要和图表映射
   mechanism_contracts: 机理图合同
   validation_plan: 建模阶段识别的风险与候选验证方向
   semantic_governance_report: 聊天或标准输出中的Problem Contract、语义闭环、复杂度复审、语义哈希和跨问stale校验结果
-  preprocessing_code: 数据预处理/数据预处理.py；共享原始数据唯一直接读取者，只执行统一数据审计与预处理
-  preprocessing_workbook: 数据预处理/数据预处理结果.xlsx；全项目唯一统一数值数据入口
-  preprocessing_quality_report: 统一工作簿中预处理质量门及聊天/标准输出验收结论
-  awaiting_user_preprocessing: 等待用户本地运行统一数据预处理并返回工作簿的暂停状态
+  preprocessing_code: 仅decision=project_level时生成的数据预处理/数据预处理.py；共享原始数据唯一公共处理入口
+  preprocessing_workbook: 仅decision=project_level时生成的数据预处理/数据预处理结果.xlsx；依赖小问的统一数值数据入口
+  preprocessing_quality_report: 仅project_level时适用的统一工作簿预处理质量门及聊天/标准输出验收结论
+  awaiting_user_preprocessing: decision=project_level且预处理代码已交付后等待用户本地运行的暂停状态
   python_code: 问题X求解/问题X求解.py；只负责主求解，主工作簿accepted后冻结
   result_analysis_code: 问题X求解/问题X结果深化分析.py；主工作簿accepted后独立生成，只负责深化分析
-  stage_python_code: 当前代码交付阶段的题目专属Python文件；data_preprocessing映射统一预处理脚本，solve_validate映射主求解脚本，result_analysis映射深化分析脚本
+  stage_python_code: 当前代码交付阶段的题目专属Python文件；data_preprocessing仅在project_level时映射统一预处理脚本，solve_validate映射主求解脚本，result_analysis映射深化分析脚本
   full_run_config: 分别嵌入对应阶段Python和工作簸运行配置表的完整精度参数，不单独落盘
   execution_instructions: 聊天内给出的本地运行步骤，不单独落盘
   code_delivery_report: 聊天或标准输出中的静态交付检查结果，不单独落盘
@@ -95,7 +98,7 @@ artifact_catalog:
   validated_submission_package: 通过交付检查的提交包
   project_state: 项目机器状态
   sync_report: 项目同步器生成的发现、Schema校验、分层哈希、stale和证据链报告
-  figure_evidence: 由统一预处理工作簿、同目录两个工作簿与qX_plot.m形成的逻辑证据，不默认生成独立文件
+  figure_evidence: 由当前数据事实源、同目录两个结果工作簿与qX_plot.m形成的逻辑证据，不默认生成独立文件
   accepted_solution_workbook: 通过运行配置、哈希和主结果质量门验收的主工作簿
   accepted_result_analysis_workbook: 通过运行配置和结论稳定性验收的结果深化工作簿
 workflow_profiles:
@@ -109,6 +112,7 @@ workflow_profiles:
     - route_comparison
     - selected_models
     - locked_model_spec
+    - preprocessing_decision
     - formula_closure
     - semantic_closure
     - complexity_sanity_check
@@ -123,6 +127,7 @@ workflow_profiles:
     - route_comparison
     - selected_models
     - locked_model_spec
+    - preprocessing_decision
     - formula_closure
     - semantic_closure
     - complexity_sanity_check
@@ -135,11 +140,13 @@ workflow_profiles:
     modules:
     - problem_audit
     - model_design
-    - data_preprocessing
     - solve_validate
+    conditional_modules:
+      data_preprocessing:
+        when: preprocessing_decision == project_level
+        before: solve_validate
     module_terminal_outputs:
-    - preprocessing_code
-    - preprocessing_workbook
+    - preprocessing_decision
     - python_code
     - stage_python_code
     - full_run_config
@@ -152,8 +159,7 @@ workflow_profiles:
     - semantic_governance
     - code_delivery
     terminal_outputs:
-    - preprocessing_code
-    - preprocessing_workbook
+    - preprocessing_decision
     - python_code
     - stage_python_code
     - full_run_config
@@ -168,11 +174,13 @@ workflow_profiles:
     modules:
     - problem_audit
     - model_design
-    - data_preprocessing
     - solve_validate
+    conditional_modules:
+      data_preprocessing:
+        when: preprocessing_decision == project_level
+        before: solve_validate
     module_terminal_outputs:
-    - preprocessing_code
-    - preprocessing_workbook
+    - preprocessing_decision
     - python_code
     - stage_python_code
     - full_run_config
@@ -184,8 +192,7 @@ workflow_profiles:
     - semantic_governance
     - code_delivery
     terminal_outputs:
-    - preprocessing_code
-    - preprocessing_workbook
+    - preprocessing_decision
     - python_code
     - stage_python_code
     - full_run_config
@@ -222,6 +229,7 @@ modules:
     - route_comparison
     - selected_models
     - locked_model_spec
+    - preprocessing_decision
     - formula_closure
     - semantic_closure
     - complexity_sanity_check
@@ -231,12 +239,14 @@ modules:
     - validation_plan
   data_preprocessing:
     path: modules/03_data_preprocessing.md
+    conditional: true
+    activation: preprocessing_decision == project_level
     inputs:
     - locked_model_spec
     - data_schema
+    - preprocessing_decision
     - model_paper_framework
     - data
-    - preprocessing_contract
     - code_quality_contract
     outputs:
     - preprocessing_code
@@ -248,15 +258,19 @@ modules:
     path: modules/03_solve_validate.md
     inputs:
     - locked_model_spec
+    - preprocessing_decision
     - formula_closure
     - semantic_closure
     - complexity_sanity_check
     - proposition_plan
     - model_paper_framework
     - data_schema
-    - preprocessing_workbook
+    - data
     - workbook_schema
     - code_quality_contract
+    conditional_inputs:
+      preprocessing_workbook:
+        when: preprocessing_decision == project_level
     outputs:
     - python_code
     - stage_python_code
@@ -268,13 +282,17 @@ modules:
   result_analysis:
     path: modules/03_result_analysis.md
     inputs:
-    - preprocessing_workbook
+    - preprocessing_decision
+    - data
     - accepted_solution_workbook
     - result_quality_report
     - validation_plan
     - model_paper_framework
     - workbook_schema
     - code_quality_contract
+    conditional_inputs:
+      preprocessing_workbook:
+        when: preprocessing_decision == project_level
     outputs:
     - result_analysis_plan
     - result_analysis_code
@@ -287,12 +305,16 @@ modules:
   figure_evidence:
     path: modules/04_figure_evidence.md
     inputs:
-    - preprocessing_workbook
+    - preprocessing_decision
+    - data
     - solution_workbook
     - result_analysis_workbook
     - workbook_schema
     - model_paper_framework
     - mechanism_contracts
+    conditional_inputs:
+      preprocessing_workbook:
+        when: preprocessing_decision == project_level and figure_requires_bottom_level_data
     outputs:
     - matlab_scripts
     - result_figures
@@ -366,11 +388,11 @@ utility_gates:
     - semantic_governance_report
     - project_state
     rules:
-    - Requires frozen Problem Contract, passed semantic closure and passed complexity sanity for designed-or-later subproblems.
+    - Requires frozen Problem Contract, passed semantic closure, passed complexity sanity and a locked preprocessing_decision for designed-or-later subproblems.
     - Hashes only each question's current model-scope section, not numerical result summaries.
     - Semantic changes require an incremented revision and explicit change categories.
     - Propagates stale recursively through typed cross-question dependencies before accepting a new semantic hash.
-    - Preprocessing changes are semantic changes and invalidate all dependent downstream question results.
+    - Changes to preprocessing_decision or actual project-level preprocessing are semantic changes and invalidate only dependent downstream question results.
     - Never runs task-specific Python and never clears numerical stale states.
   code_delivery:
     path: scripts/validate_code_delivery.py
@@ -425,7 +447,8 @@ utility_gates:
     - Runs after semantic governance for formal design and downstream delivery.
     - Reads exact delivery requirements from core/output_contract.yaml before checking artifacts.
     - Validates project state and the current model-paper framework before artifact discovery.
-    - Discovers preprocessing artifacts and both stage-specific per-question Python scripts, validates workbook contracts and hashes the evidence chain without inventing model semantics or validation success.
-    - Propagates stale from raw/preprocessed data, primary code, analysis code, workbooks, MATLAB scripts and figure bundles without clearing it.
+    - Discovers preprocessing artifacts only when preprocessing_decision=project_level; otherwise raw-data projects must not fail because those artifacts are absent.
+    - Discovers both stage-specific per-question Python scripts, validates workbook contracts and hashes the evidence chain without inventing model semantics or validation success.
+    - Propagates stale from the active data source, primary code, analysis code, workbooks, MATLAB scripts and figure bundles without clearing it.
     - Required before formal model, workbooks, figures, DOCX, LaTeX or submission delivery.
     - Code delivery uses the dedicated non-executing code_delivery gate.
