@@ -5,13 +5,14 @@
 1. Python 完成完整主求解并通过主结果质量门；
 2. Python 基于题目风险完成实际需要的结果深化分析；
 3. 锁定 `问题X求解/` 中的两个标准工作簿；
-4. 为每张图先写 Core conclusion，再按信息效率选择图型；
-5. 生成 MATLAB 代码前实际读取工作簿，锁定工作簿名、工作表名、真实表头、单位和数据类型；
-6. 设置简洁 `title` 或一个整体 `sgtitle`，拟定不逐字重复的论文图注；
-7. 将 `q{x}_plot.m` 与唯一Python脚本、两类工作簿放在同一 `问题X求解/` 目录；
-8. 检查核心结论是否有图或表证据，并同步 `模型论文框架.md`；
-9. 只精修 S/A 级机理图；
-10. 默认只交付 `q{x}_plot.m`，保留图窗供人工检查，不自动创建图表子目录或导出图片。
+4. 继承当前 `preprocessing_decision`，明确绘图是否需要原始数据、统一预处理工作簿或只需要结果工作簿；
+5. 为每张图先写 Core conclusion，再按信息效率选择图型；
+6. 生成 MATLAB 代码前实际读取需要使用的工作簿，锁定工作簿名、工作表名、真实表头、单位和数据类型；
+7. 设置简洁 `title` 或一个整体 `sgtitle`，拟定不逐字重复的论文图注；
+8. 将 `q{x}_plot.m` 与两类 Python 脚本、两类结果工作簿放在同一 `问题X求解/` 目录；
+9. 检查核心结论是否有图或表证据，并同步 `模型论文框架.md`；
+10. 只精修 S/A 级机理图；
+11. 默认只交付 `q{x}_plot.m`，保留图窗供人工检查，不自动创建图表子目录或导出图片。
 
 ## A 类：机理与推导图
 
@@ -21,10 +22,18 @@
 
 每张图记录：Core conclusion、Figure role、MATLAB title、论文 caption、Panel map、Source workbook、Worksheet、Required headers、Expected positions（可选）、MATLAB script、Export files、Statistics/error、Reviewer risk、Paper location 和 Caption duty。
 
-数据源仅允许来自本问主求解工作簿或结果深化分析工作簿：
+结果证据优先来自本问主求解工作簿或结果深化分析工作簿：
 
 - 主结果、决策变量、预测明细、基础误差和质量门证据来自 `问题X求解结果.xlsx`；
 - 参数、场景、算法、结构、阈值、异质性和稳定范围证据来自 `问题X结果深化分析.xlsx`。
+
+只有图本身确实需要底层数据时，才按 `preprocessing_decision` 追加数据事实源：
+
+- `not_needed`：允许读取必要原始数据；
+- `question_local`：允许读取必要原始数据，但不得在 MATLAB 中重新构造求解所需的模型变换；应优先使用 Python 已输出到底层结果表的数据；
+- `project_level`：允许读取 `数据预处理结果.xlsx`，不得绕回对应共享原始附件。
+
+不得为了让所有 MATLAB 脚本结构一致而强制每张图读取 `数据预处理结果.xlsx`。若图只依赖标准结果工作簿，则不额外加载任何原始或预处理数据。
 
 不得在 MATLAB 中重新求解，不得从摘要数字反推绘图序列。图型必须提高信息展示或比较效率，否则降级为更直接的二维图。
 
