@@ -1,10 +1,11 @@
-version: 7.1.0
+version: 7.2.0
 bootstrap: core/bootstrap.yaml
 default_load:
 - core/hsk_core_policy.md
 - core/module_manifest.yaml
 - core/task_taxonomy.yaml
 - core/user_execution_contract.yaml
+- core/global_preprocessing_contract.yaml
 classification_contract:
   axes: [objective, structures, capabilities]
   capability_source: subproblem.capabilities
@@ -14,7 +15,7 @@ classification_contract:
   legacy_task_labels_supported: true
   task_pack_budget: 3
 execution_contract:
-  workflow_order: [problem_audit, model_design, solve_validate, result_analysis, figure_evidence, writing_latex, ai_cleanup, latex_compile_quality, review_delivery, writing_docx]
+  workflow_order: [problem_audit, model_design, data_preprocessing, solve_validate, result_analysis, figure_evidence, writing_latex, ai_cleanup, latex_compile_quality, review_delivery, writing_docx]
   formal_delivery_gates: [semantic_governance, project_sync]
   code_stage_gates: [semantic_governance, code_delivery]
   returned_workbook_gates: [semantic_governance, user_execution_receipt]
@@ -23,12 +24,14 @@ execution_contract:
   - Stop after the last module required by the user deliverable.
   - Never manufacture downstream artifacts when gate inputs are missing.
   - Problem Contract, semantic closure and complexity sanity must pass before any formal model or code delivery.
-  - Generate full-fidelity task code and stop at awaiting_user_execution; never execute task-specific solve or analysis code.
+  - When multiple subproblems share raw data or a common preprocessing semantics, data_preprocessing is mandatory after model_design and before solve_validate.
+  - Once a unified preprocessing workbook is accepted, downstream solve, analysis and data-driven MATLAB scripts must not directly read the shared raw sources.
+  - Generate full-fidelity task code and stop at awaiting_user_execution; never execute task-specific preprocessing, solve or analysis code.
   - Primary user-produced workbook must be accepted before final result-analysis code is generated.
   - Accepted primary workbooks freeze the primary solve script; result-analysis code is a separate stage-specific Python file.
   - Accepted result-analysis workbooks precede figures and writing.
-  - Result analysis may send the workflow back to model_design or solve_validate when the locked result is not stable enough.
-  - Semantic changes must propagate stale through typed cross-question dependencies before downstream work continues.
+  - Result analysis may send the workflow back to model_design, data_preprocessing or solve_validate when the locked result is not stable enough.
+  - Semantic or preprocessing changes must propagate stale through typed cross-question dependencies before downstream work continues.
   - Merge multiple intents in workflow order and remove duplicate modules, packs and outputs.
   - Reuse current project state, framework and artifacts before recomputing.
   - A gate output is available only after the gate executes successfully.
@@ -65,14 +68,23 @@ routing:
     terminal_outputs: [formula_closure, semantic_closure, proposition_plan, model_paper_framework]
     formal_delivery: true
     delivery_scope: design
+  data_preprocessing:
+    triggers: [数据预处理, 数据清洗, 统一预处理, 数据总表, 统一数据表, 预处理结果]
+    infer_keywords: [数据预处理, 数据清洗, 统一预处理, 数据总表, 统一数据表, 预处理结果]
+    load: [modules/03_data_preprocessing.md, core/global_preprocessing_contract.yaml, packs/artifact/code.md]
+    terminal_outputs: [preprocessing_code, preprocessing_workbook, preprocessing_quality_report, awaiting_user_preprocessing, model_paper_framework]
+    pre_delivery_gates: [semantic_governance, code_delivery]
+    formal_delivery: false
+    delivery_scope: code
+    pause_for_user_execution: true
   full_solution:
     triggers: [完整求解, 全部计算, 求出各问, 完成求解]
     infer_keywords: [完整求解, 全部计算, 求出各问, 完成求解]
     load: [modules/01_problem_audit.md, packs/task/classifier.md]
-    then: [modules/02_model_design.md, modules/03_solve_validate.md, packs/artifact/code.md]
+    then: [modules/02_model_design.md, modules/03_data_preprocessing.md, modules/03_solve_validate.md, packs/artifact/code.md]
     load_classified_task_packs: true
     load_competition_pack: true
-    terminal_outputs: [python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, proposition_plan, model_paper_framework]
+    terminal_outputs: [preprocessing_code, preprocessing_workbook, python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, proposition_plan, model_paper_framework]
     pre_delivery_gates: [semantic_governance, code_delivery]
     formal_delivery: false
     delivery_scope: code
@@ -81,10 +93,10 @@ routing:
     triggers: [全流程, 完整论文, 全套成果, 完整交付]
     infer_keywords: [全流程, 完整论文, 全套成果, 完整交付]
     load: [modules/01_problem_audit.md, packs/task/classifier.md]
-    then: [modules/02_model_design.md, modules/03_solve_validate.md, packs/artifact/code.md]
+    then: [modules/02_model_design.md, modules/03_data_preprocessing.md, modules/03_solve_validate.md, packs/artifact/code.md]
     load_classified_task_packs: true
     load_competition_pack: true
-    terminal_outputs: [python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
+    terminal_outputs: [preprocessing_code, preprocessing_workbook, python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
     pre_delivery_gates: [semantic_governance, code_delivery]
     formal_delivery: false
     delivery_scope: code
@@ -114,9 +126,9 @@ routing:
   code_and_solution:
     triggers: [代码, Python, 求解, 算法, 最优解]
     infer_keywords: [Python代码, 求解代码, 开始求解, 求解, 继续求解, 重新求解, 重算, 算法实现, 最优解]
-    load: [modules/03_solve_validate.md, packs/artifact/code.md, packs/task/classifier.md]
+    load: [modules/03_data_preprocessing.md, modules/03_solve_validate.md, packs/artifact/code.md, packs/task/classifier.md]
     load_classified_task_packs: true
-    terminal_outputs: [python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
+    terminal_outputs: [preprocessing_code, preprocessing_workbook, python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
     pre_delivery_gates: [semantic_governance, code_delivery]
     formal_delivery: false
     delivery_scope: code
@@ -189,12 +201,13 @@ routing:
 multi_intent_policy:
 - Merge modules in workflow order and remove duplicates.
 - Merge terminal outputs without dropping model_paper_framework for formal deliveries.
-- Semantic governance precedes formal design, code delivery, workbook acceptance and downstream project synchronization.
+- Semantic governance precedes formal design, preprocessing, code delivery, workbook acceptance and downstream project synchronization.
+- Shared-data projects must complete and accept the unified preprocessing workbook before any downstream solve script may consume data.
 - Code delivery and returned-workbook validation use dedicated gates that never execute task code.
 - Primary code delivery pauses for user execution; accepted primary workbooks freeze the primary script and precede separate result-analysis code delivery.
 - Accepted result-analysis workbooks precede figures and writing.
-- Result-analysis failure may route back to model design or primary solving.
-- Semantic changes propagate stale through typed cross-question dependencies before any downstream reuse.
+- Result-analysis failure may route back to model design, data preprocessing or primary solving.
+- Semantic or preprocessing changes propagate stale through typed cross-question dependencies before any downstream reuse.
 - Figures precede final writing insertion; AI cleanup precedes LaTeX compilation.
 - Proposition details are loaded only for explicit proof requests or a nonzero proposition plan.
 - Project synchronization is a utility gate and does not promote quality or validation success.
