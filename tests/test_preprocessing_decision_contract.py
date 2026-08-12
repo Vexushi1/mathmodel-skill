@@ -195,6 +195,7 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
         self.assertNotIn("modules/03_data_preprocessing.md", plan["modules"])
         self.assertIn("modules/03_solve_validate.md", plan["modules"])
         self.assertIn("python_code", plan["terminal_outputs"])
+        self.assertNotIn("solve_validate:preprocessing_workbook", plan["missing_prerequisites"])
 
     def test_state_schema_supports_conditional_preprocessing_phase(self):
         phases = self.state_schema["properties"]["project"]["properties"]["current_phase"]["enum"]
@@ -236,6 +237,9 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
         declared = set(self.contract["preprocessing_figure_contract"]["runtime_forbidden_matlab_functions"])
         runtime = set(self.sync.MATLAB_PREPROCESSING_FORBIDDEN_FUNCTIONS)
         self.assertEqual(declared, runtime)
+        declared_dispatch = set(self.contract["preprocessing_figure_contract"]["runtime_forbidden_matlab_dispatch_functions"])
+        runtime_dispatch = set(self.sync.MATLAB_PREPROCESSING_FORBIDDEN_DISPATCH_FUNCTIONS)
+        self.assertEqual(declared_dispatch, runtime_dispatch)
         for name in ("interp2", "normalize", "detrend", "filter", "movmean", "movmedian", "predict"):
             self.assertIn(name, runtime)
 
@@ -256,7 +260,7 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
             self.assertTrue(any("normalize" in item for item in issues))
 
             script.write_text(
-                '% normalize(x) 仅为说明，不应触发\ntitle("证据图");\nbook = "数据预处理结果.xlsx";\nplot(x, y);\n',
+                'title("证据图");\nbook = "数据预处理结果.xlsx";\nplot(x, y); % normalize(x) 仅为行尾说明\n',
                 encoding="utf-8",
             )
             issues = self.sync._preprocessing_artifact_issues(
@@ -265,6 +269,72 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
                 {"preprocessing": {"decision": "project_level"}},
             )
             self.assertFalse(any("不得重新执行预处理" in item for item in issues))
+
+            script.write_text(
+                'title("证据图");\nbook = "数据预处理结果.xlsx";\ny = feval("normalize", x);\n',
+                encoding="utf-8",
+            )
+            issues = self.sync._preprocessing_artifact_issues(
+                root,
+                {"preprocessing_matlab_script"},
+                {"preprocessing": {"decision": "project_level"}},
+            )
+            self.assertTrue(any("动态调用" in item and "feval" in item for item in issues))
+
+            script.write_text(
+                'title("证据图");\nbook = "数据预处理结果.xlsx";\nf = @normalize;\ny = f(x);\n',
+                encoding="utf-8",
+            )
+            issues = self.sync._preprocessing_artifact_issues(
+                root,
+                {"preprocessing_matlab_script"},
+                {"preprocessing": {"decision": "project_level"}},
+            )
+            self.assertTrue(any("函数句柄" in item and "normalize" in item for item in issues))
+
+    def test_project_level_code_gate_blocks_covered_raw_source_but_allows_independent_auxiliary(self):
+        config = {
+            "execution_owner": "user", "execution_profile": "full_fidelity",
+            "stage": "primary", "problem_name": "问题一",
+            "data_paths": ["数据预处理/数据预处理结果.xlsx", "data/aux.csv"],
+            "data_sha256": "b" * 64, "solver": "test", "solver_version": "1",
+            "random_seed": 2026, "tolerance": 1e-8, "iteration_or_time_limit": "full",
+            "expected_workbook": "问题一求解结果.xlsx",
+            "allow_reduced_data": False, "allow_coarser_grid": False,
+            "allow_shorter_horizon": False, "allow_fewer_repetitions": False,
+            "allow_relaxed_tolerance": False, "allow_silent_solver_fallback": False,
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "state").mkdir()
+            (root / "state/project_state.yaml").write_text(
+                yaml.safe_dump({"preprocessing": {
+                    "decision": "project_level", "status": "accepted", "quality_status": "passed",
+                    "workbook": "数据预处理/数据预处理结果.xlsx", "workbook_sha256": "b" * 64,
+                    "covered_raw_sources": ["data/raw.csv"],
+                }}, allow_unicode=True),
+                encoding="utf-8",
+            )
+            folder = root / "问题一求解"
+            folder.mkdir()
+            script = folder / "问题一求解.py"
+            script.write_text(
+                "FULL_FIDELITY_CONFIG = " + repr(config)
+                + "\nimport pandas as pd\ndef main():\n    pd.read_csv('data/raw.csv')\n    return 0"
+                + "\nif __name__ == '__main__':\n    raise SystemExit(main())\n",
+                encoding="utf-8",
+            )
+            issues, _ = self.code_gate.validate_script(root, script, "primary")
+            self.assertTrue(any("不得重新读取已覆盖共享原始数据源" in item for item in issues))
+
+            script.write_text(
+                "FULL_FIDELITY_CONFIG = " + repr(config)
+                + "\nimport pandas as pd\ndef main():\n    pd.read_csv('data/aux.csv')\n    return 0"
+                + "\nif __name__ == '__main__':\n    raise SystemExit(main())\n",
+                encoding="utf-8",
+            )
+            issues, _ = self.code_gate.validate_script(root, script, "primary")
+            self.assertFalse(any("共享原始数据源" in item for item in issues))
 
     def test_figure_evidence_order_matches_router_stage_boundary(self):
         text = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")

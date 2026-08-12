@@ -33,6 +33,12 @@ ALL_RESULT_STALE_LAYERS = {
     "data", "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
 }
 VALID_PREPROCESSING_DECISIONS = {"not_needed", "question_local", "project_level"}
+DATA_READER_NAMES = {
+    "open", "ExcelFile", "read_csv", "read_excel", "read_table", "read_fwf",
+    "read_json", "read_parquet", "read_feather", "read_pickle", "read_hdf",
+    "load", "loadtxt", "genfromtxt",
+}
+DATA_READER_PATH_KEYWORDS = {"path", "filepath", "filename", "fname", "io", "filepath_or_buffer"}
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -210,7 +216,66 @@ def code_quality_findings(
     return list(dict.fromkeys(errors)), list(dict.fromkeys(warnings)), metrics
 
 
-def _decision_gate_issues(project_root: Path, stage: str, data_hash: str | None = None) -> list[str]:
+def _normalize_path_token(value: Any) -> str:
+    text = str(value or "").strip().replace("\\", "/")
+    while text.startswith("./"):
+        text = text[2:]
+    return text.casefold()
+
+
+def _path_matches(candidate: Any, target: Any) -> bool:
+    left = _normalize_path_token(candidate)
+    right = _normalize_path_token(target)
+    if not left or not right:
+        return False
+    return left == right or left.endswith("/" + right) or right.endswith("/" + left)
+
+
+def _call_leaf_name(node: ast.AST) -> str:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    return ""
+
+
+def _literal_path_argument(node: ast.AST) -> str | None:
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.Call) and _call_leaf_name(node.func) in {"Path", "str"} and node.args:
+        return _literal_path_argument(node.args[0])
+    return None
+
+
+def literal_data_reader_paths(text: str) -> list[str]:
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return []
+    found: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or _call_leaf_name(node.func) not in DATA_READER_NAMES:
+            continue
+        candidate: ast.AST | None = node.args[0] if node.args else None
+        if candidate is None:
+            candidate = next(
+                (item.value for item in node.keywords if item.arg in DATA_READER_PATH_KEYWORDS),
+                None,
+            )
+        if candidate is not None:
+            value = _literal_path_argument(candidate)
+            if value:
+                found.append(value)
+    return list(dict.fromkeys(found))
+
+
+def _decision_gate_issues(
+    project_root: Path,
+    stage: str,
+    data_hash: str | None = None,
+    data_paths: Any = None,
+    code_text: str = "",
+) -> list[str]:
     state_path = project_root / "state" / "project_state.yaml"
     if not state_path.is_file():
         return []
@@ -224,13 +289,27 @@ def _decision_gate_issues(project_root: Path, stage: str, data_hash: str | None 
         if decision != "project_level":
             issues.append("只有preprocessing.decision=project_level时才允许交付数据预处理.py")
         return issues
-    if stage == "primary" and decision == "project_level":
+    if stage in {"primary", "analysis"} and decision == "project_level":
         if preprocessing.get("status") != "accepted" or preprocessing.get("quality_status") != "passed":
             issues.append("project_level项目必须先验收数据预处理结果.xlsx并通过预处理质量门")
         expected = str(preprocessing.get("workbook_sha256", "")).lower()
         if expected and data_hash and expected != str(data_hash).lower():
-            issues.append("主求解data_sha256必须等于已验收数据预处理结果.xlsx哈希")
-    return issues
+            issues.append(f"{stage}阶段data_sha256必须等于已验收数据预处理结果.xlsx哈希")
+
+        covered = [str(item) for item in (preprocessing.get("covered_raw_sources") or []) if str(item).strip()]
+        if not covered:
+            issues.append("project_level必须在state.preprocessing.covered_raw_sources声明被统一工作簿替代的原始数据源")
+        configured_paths = [str(item) for item in (data_paths or [])] if isinstance(data_paths, (list, tuple)) else []
+        workbook = str(preprocessing.get("workbook") or "数据预处理/数据预处理结果.xlsx")
+        if stage == "primary" and not any(_path_matches(item, workbook) for item in configured_paths):
+            issues.append("project_level主求解FULL_FIDELITY_CONFIG.data_paths必须包含已验收数据预处理结果.xlsx")
+        for item in configured_paths:
+            if any(_path_matches(item, source) for source in covered):
+                issues.append(f"project_level下游data_paths不得重新声明已覆盖共享原始数据源: {item}")
+        for item in literal_data_reader_paths(code_text):
+            if any(_path_matches(item, source) for source in covered):
+                issues.append(f"project_level下游代码不得重新读取已覆盖共享原始数据源: {item}")
+    return list(dict.fromkeys(issues))
 
 
 def validate_script(
@@ -287,7 +366,10 @@ def validate_script(
     if expected and Path(str(config.get("expected_workbook", ""))).name != expected:
         issues.append(f"expected_workbook必须指向{expected}")
 
-    issues.extend(_decision_gate_issues(project_root, stage, str(config.get("data_sha256", ""))))
+    issues.extend(_decision_gate_issues(
+        project_root, stage, str(config.get("data_sha256", "")),
+        config.get("data_paths"), text,
+    ))
     quality_errors, _, _ = code_quality_findings(text, config)
     issues.extend(quality_errors)
     return list(dict.fromkeys(issues)), config

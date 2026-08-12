@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve one or more user intents into an ordered HSK v7.2.4 execution plan."""
+"""Resolve one or more user intents into an ordered HSK v7.2.5 execution plan."""
 from __future__ import annotations
 
 import argparse
@@ -381,6 +381,8 @@ def resolve_workflow(
         raise ValueError("resolved task packs exceed the one-primary/two-secondary loading budget")
 
     available_set = set(available_artifacts or ())
+    if "accepted_preprocessing_workbook" in available_set:
+        available_set.add("preprocessing_workbook")
     paths: list[str] = ["core/bootstrap.yaml"]
     module_terminal_outputs: list[str] = []
     formal_delivery = False
