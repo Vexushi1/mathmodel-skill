@@ -62,6 +62,7 @@
 - `legacy/README.md`
 - `modules/01_problem_audit.md`
 - `modules/02_model_design.md`
+- `modules/03_data_preprocessing.md`
 - `modules/03_result_analysis.md`
 - `modules/03_solve_validate.md`
 - `modules/04_figure_evidence.md`
