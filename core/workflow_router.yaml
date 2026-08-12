@@ -1,4 +1,4 @@
-version: 7.2.2
+version: 7.2.3
 bootstrap: core/bootstrap.yaml
 default_load:
 - core/hsk_core_policy.md
@@ -31,6 +31,7 @@ execution_contract:
   - If preprocessing_decision=not_needed, skip data_preprocessing and let downstream code use raw data with non-destructive checks.
   - If preprocessing_decision=question_local, skip data_preprocessing and keep mathematically defined local transformations inside the relevant question script.
   - If preprocessing_decision=project_level, pause before solve_validate, complete data_preprocessing, accept the unified workbook, then forbid dependent downstream code from rereading the corresponding shared raw sources.
+  - Project-level preprocessing writes visual-evidence data to the unified workbook; Figure Evidence later generates data_process.m and MATLAB never recomputes preprocessing.
   - Generate full-fidelity task code and stop at the applicable user-execution boundary; never execute task-specific preprocessing, solve or analysis code.
   - Primary user-produced workbook must be accepted before final result-analysis code is generated.
   - Accepted primary workbooks freeze the primary solve script; result-analysis code is a separate stage-specific Python file.
@@ -183,10 +184,10 @@ routing:
     delivery_scope: code
     pause_for_user_execution: true
   figures:
-    triggers: [图表, 可视化, 机理图, 推导图, Nature, SCI, MATLAB图标题]
-    infer_keywords: [MATLAB绘图, MATLAB, 结果图, 敏感性图, 鲁棒性图, 机理图, 推导图, 可视化, 图表]
+    triggers: [图表, 可视化, 机理图, 推导图, Nature, SCI, MATLAB图标题, 数据预处理图, 处理前后对比图]
+    infer_keywords: [MATLAB绘图, MATLAB, 结果图, 敏感性图, 鲁棒性图, 机理图, 推导图, 可视化, 图表, data_process, 数据预处理图]
     load: [modules/04_figure_evidence.md, packs/artifact/figure.md, templates/figure/chart_selection.md]
-    terminal_outputs: [figure_contracts, approved_figures, model_paper_framework]
+    terminal_outputs: [matlab_scripts, figure_contracts, approved_figures, model_paper_framework]
     formal_delivery: true
     delivery_scope: figures
   docx:
@@ -225,10 +226,10 @@ multi_intent_policy:
 - Merge terminal outputs without dropping model_paper_framework for formal deliveries.
 - Semantic governance precedes formal design, conditional preprocessing, code delivery, workbook acceptance and downstream project synchronization.
 - Shared-data projects must audit and decide; only preprocessing_decision=project_level requires a unified preprocessing workbook before dependent solve code consumes data.
-- not_needed and question_local projects must not be blocked by a missing preprocessing workbook.
+- not_needed and question_local projects must not be blocked by a missing preprocessing workbook or project-level data_process.m.
 - Code delivery and returned-workbook validation use dedicated gates that never execute task code.
 - Primary code delivery pauses for user execution; accepted primary workbooks freeze the primary script and precede separate result-analysis code delivery.
-- Accepted result-analysis workbooks precede figures and writing.
+- Accepted result-analysis workbooks precede figures and writing; project_level Figure Evidence includes data_process.m from the unified preprocessing workbook.
 - Result-analysis failure may route back to model design, conditionally to data preprocessing, or to primary solving.
 - Semantic or preprocessing-decision changes propagate stale through typed cross-question dependencies before any downstream reuse.
 - Figures precede final writing insertion; AI cleanup precedes LaTeX compilation.
