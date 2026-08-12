@@ -36,10 +36,10 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
         cls.state_schema = yaml.safe_load(
             (ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8")
         )
-        cls.resolver = load_module("resolver_722", "scripts/resolve_workflow.py")
-        cls.code_gate = load_module("code_gate_722", "scripts/validate_code_delivery.py")
-        cls.execution_gate = load_module("execution_gate_722", "scripts/validate_user_execution.py")
-        cls.sync = load_module("sync_722", "scripts/sync_project.py")
+        cls.resolver = load_module("resolver_723", "scripts/resolve_workflow.py")
+        cls.code_gate = load_module("code_gate_723", "scripts/validate_code_delivery.py")
+        cls.execution_gate = load_module("execution_gate_723", "scripts/validate_user_execution.py")
+        cls.sync = load_module("sync_723", "scripts/sync_project.py")
 
     def test_three_state_decision_is_authoritative(self):
         self.assertEqual(
@@ -54,22 +54,15 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
     def test_shared_data_is_not_sufficient_for_project_level(self):
         text = yaml.safe_dump(self.contract, allow_unicode=True)
         self.assertIn("两个及以上小问共享同一原始数据源", text)
-        self.assertIn("never_sufficient_alone", self.contract["activation"])
         insufficient = self.contract["activation"]["never_sufficient_alone"]
         self.assertTrue(any("共享同一原始数据源" in item for item in insufficient))
 
     def test_generic_judgment_framework_covers_cross_competition_data_risks(self):
         audit = self.contract["judgment_framework"]["audit_dimensions"]
         for key in (
-            "completeness",
-            "consistency",
-            "validity",
-            "identity_and_duplicates",
-            "sampling_and_coverage",
-            "measurement_quality",
-            "model_readiness",
-            "temporal_causality_and_leakage",
-            "target_and_label_integrity",
+            "completeness", "consistency", "validity", "identity_and_duplicates",
+            "sampling_and_coverage", "measurement_quality", "model_readiness",
+            "temporal_causality_and_leakage", "target_and_label_integrity",
         ):
             self.assertIn(key, audit)
         principle = self.contract["judgment_framework"]["general_rules"]
@@ -79,7 +72,6 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
         policy = self.contract["missing_data_policy"]
         self.assertIn("不存在“有缺失就插值”的默认规则", policy["principle"])
         boundaries = policy["method_boundaries"]
-        self.assertIn("interpolation", boundaries)
         self.assertIn("类别", boundaries["interpolation"])
         self.assertIn("predictive_imputation", boundaries)
         self.assertIn("人工掩蔽", boundaries["model_based_imputation"])
@@ -98,14 +90,58 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
         self.assertTrue(any("人工掩蔽" in item or "留出样本" in item for item in quality))
         self.assertTrue(any("信息泄漏" in item for item in quality))
 
+    def test_substantive_preprocessing_requires_paper_math_and_validation(self):
+        paper = self.contract["paper_evidence_contract"]
+        required = "\n".join(paper["required_paper_elements"])
+        self.assertIn("数学公式", required)
+        self.assertIn("参数", required)
+        self.assertIn("合理性验证", required)
+        self.assertIn("预处理图", required)
+        self.assertIn("形式证明", paper["formal_proof_boundary"])
+        self.assertIn("不得编造数学证明", paper["formal_proof_boundary"])
+
+    def test_project_level_preprocessing_directory_has_data_process(self):
+        self.assertEqual(
+            self.contract["project_directory"]["exact_default_files"],
+            ["数据预处理.py", "数据预处理结果.xlsx", "data_process.m"],
+        )
+        output_files = self.output["global_preprocessing"]["exact_default_files"]
+        self.assertEqual(output_files, ["数据预处理.py", "数据预处理结果.xlsx", "data_process.m"])
+
+    def test_preprocessing_workbook_persists_paper_and_plot_evidence(self):
+        required = self.contract["workbook"]["common_required_sheets"]
+        for sheet in ("预处理方法证据", "处理前后对比", "绘图数据索引"):
+            self.assertIn(sheet, required)
+        validator_sheets = self.execution_gate.PREPROCESSING_EVIDENCE_SHEETS
+        for sheet in ("预处理方法证据", "处理前后对比", "绘图数据索引"):
+            self.assertIn(sheet, validator_sheets)
+
+    def test_data_process_contract_and_template_are_fixed(self):
+        figure = self.contract["preprocessing_figure_contract"]
+        self.assertEqual(figure["project_level_script"], "数据预处理/data_process.m")
+        self.assertEqual(figure["export_stem"], "data_process")
+        template = (ROOT / "templates/matlab/data_process.m").read_text(encoding="utf-8")
+        self.assertIn("数据预处理结果.xlsx", template)
+        self.assertIn("处理前", template)
+        self.assertIn("处理后", template)
+        self.assertNotIn("exportgraphics(", template)
+        self.assertNotIn("interp1(", template)
+        self.assertNotIn("smoothdata(", template)
+
+    def test_figures_scope_requires_data_process_only_for_project_level(self):
+        conditional = self.output["project_sync"]["conditional_stage_requirements"]
+        project = conditional["preprocessing_decision_project_level"]
+        self.assertIn("preprocessing_matlab_script", project["figures"])
+        self.assertIn("preprocessing_matlab_script", project["latex"])
+        forbidden = conditional["preprocessing_decision_not_needed_or_question_local"]["forbidden_required_artifacts"]
+        self.assertIn("preprocessing_matlab_script", forbidden)
+        self.assertNotIn("preprocessing_matlab_script", self.output["project_sync"]["stage_requirements"]["figures"])
+
     def test_full_solution_does_not_unconditionally_load_preprocessing(self):
         route = self.router["routing"]["full_solution"]
         loaded = [*route.get("load", []), *route.get("then", [])]
         self.assertNotIn("modules/03_data_preprocessing.md", loaded)
-        self.assertEqual(
-            route["conditional_stage"]["when"],
-            "preprocessing_decision == project_level",
-        )
+        self.assertEqual(route["conditional_stage"]["when"], "preprocessing_decision == project_level")
         self.assertIn("data_preprocessing", self.router["execution_contract"]["conditional_modules"])
 
     def test_manifest_makes_preprocessing_conditional(self):
@@ -113,14 +149,12 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
         pre = self.manifest["modules"]["data_preprocessing"]
         self.assertTrue(pre["conditional"])
         self.assertEqual(pre["activation"], "preprocessing_decision == project_level")
-        self.assertNotIn(
-            "preprocessing_workbook",
-            self.manifest["modules"]["solve_validate"]["inputs"],
-        )
+        self.assertNotIn("preprocessing_workbook", self.manifest["modules"]["solve_validate"]["inputs"])
         self.assertEqual(
             self.manifest["modules"]["solve_validate"]["conditional_inputs"]["preprocessing_workbook"]["when"],
             "preprocessing_decision == project_level",
         )
+        self.assertIn("preprocessing_matlab_script", self.manifest["modules"]["figure_evidence"]["outputs"])
 
     def test_output_contract_requires_preprocessing_only_for_project_level(self):
         base_code = self.output["project_sync"]["stage_requirements"]["code"]
@@ -131,16 +165,11 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
             conditional["preprocessing_decision_project_level"]["condition"],
             "preprocessing_decision == project_level",
         )
-        self.assertIn(
-            "preprocessing_workbook",
-            conditional["preprocessing_decision_project_level"]["results"],
-        )
+        self.assertIn("preprocessing_workbook", conditional["preprocessing_decision_project_level"]["results"])
 
     def test_resolver_skips_preprocessing_for_clean_shared_data_decision(self):
         plan = self.resolver.resolve_workflow(
-            "full_solution",
-            objective="optimization",
-            preprocessing_decision="not_needed",
+            "full_solution", objective="optimization", preprocessing_decision="not_needed",
         )
         self.assertNotIn("modules/03_data_preprocessing.md", plan["modules"])
         self.assertIn("modules/03_solve_validate.md", plan["modules"])
@@ -149,10 +178,8 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
 
     def test_resolver_pauses_at_project_level_preprocessing(self):
         plan = self.resolver.resolve_workflow(
-            "full_solution",
-            objective="optimization",
-            preprocessing_decision="project_level",
-            available_artifacts=[],
+            "full_solution", objective="optimization",
+            preprocessing_decision="project_level", available_artifacts=[],
         )
         self.assertIn("modules/03_data_preprocessing.md", plan["modules"])
         self.assertNotIn("modules/03_solve_validate.md", plan["modules"])
@@ -162,9 +189,7 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
 
     def test_resolver_continues_after_project_level_workbook_is_accepted(self):
         plan = self.resolver.resolve_workflow(
-            "full_solution",
-            objective="optimization",
-            preprocessing_decision="project_level",
+            "full_solution", objective="optimization", preprocessing_decision="project_level",
             available_artifacts=["accepted_preprocessing_workbook"],
         )
         self.assertNotIn("modules/03_data_preprocessing.md", plan["modules"])
@@ -185,13 +210,10 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
         self.assertIn("先审计后处理", seismic["principle"])
         self.assertIn("默认带通滤波", seismic["forbidden_defaults"])
         self.assertIn("默认插值坏道", seismic["forbidden_defaults"])
-        self.assertIn("带通滤波", seismic["optional_operations"])
         self.assertIn("仅在", seismic["optional_operations"]["带通滤波"])
 
     def test_code_delivery_recognizes_preprocessing_stage(self):
-        problem, stage = self.code_gate.script_identity(
-            Path("项目") / "数据预处理" / "数据预处理.py"
-        )
+        problem, stage = self.code_gate.script_identity(Path("项目") / "数据预处理" / "数据预处理.py")
         self.assertEqual((problem, stage), ("数据预处理", "preprocessing"))
 
     def test_returned_workbook_recognizes_preprocessing_stage(self):
@@ -205,10 +227,10 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
     def test_sync_stage_requirements_follow_decision(self):
         raw_state = {"preprocessing": {"decision": "not_needed"}}
         project_state = {"preprocessing": {"decision": "project_level"}}
-        raw_required = self.sync.stage_requirements("results", self.output, raw_state)
-        project_required = self.sync.stage_requirements("results", self.output, project_state)
-        self.assertNotIn("preprocessing_workbook", raw_required)
-        self.assertIn("preprocessing_workbook", project_required)
+        raw_required = self.sync.stage_requirements("figures", self.output, raw_state)
+        project_required = self.sync.stage_requirements("figures", self.output, project_state)
+        self.assertNotIn("preprocessing_matlab_script", raw_required)
+        self.assertIn("preprocessing_matlab_script", project_required)
 
 
 if __name__ == "__main__":
