@@ -1,6 +1,6 @@
 version: 2.1.0
-skill_version: 7.2.1
-purpose: 定义用户本地完整版数值执行链；所有数据项目先锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界，每问主求解与结果深化分析继续使用两个独立Python脚本。
+skill_version: 7.2.2
+purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界，每问主求解与结果深化分析继续使用两个独立Python脚本。
 default_mode:
   execution_owner: user
   execution_profile: full_fidelity
@@ -12,9 +12,9 @@ assistant_policy:
   - 为节省时间自动缩减数据、网格、时域、场景、重复次数、随机种子、迭代次数或容差
   - 在完整版失败后静默切换轻量模型、替代求解器、粗粒度近似或演示结果
   - 用户未返回相应工作簿前声称已完成项目级预处理、已求解、已分析或已得到正式数值
-  - 因多问共享同一原始数据而自动生成或强制执行项目级预处理
+  - 因多问共享同一原始数据、检测到缺失值或某类赛题通常采用某处理方法而自动生成或强制执行项目级预处理
   allowed:
-  - 审题、数据审计、preprocessing_decision、模型设计、公式闭环和完整版代码生成
+  - 审题、通用数据审计、preprocessing_decision、模型设计、公式闭环和完整版代码生成
   - 不导入赛题脚本的静态代码、依赖、语法和工程质量检查
   - 读取用户返回的工作簿并执行Schema、哈希、质量门和证据一致性校验
   - 运行本Skill仓库自身的lint、单元测试、索引生成和LaTeX模板CI
@@ -30,7 +30,10 @@ preprocessing_decision_policy:
   required_before_code: true
   values: [not_needed, question_local, project_level]
   levels: [none, structural, transformative]
+  judgment_source: current_problem_current_attachments_and_model_requirements
   shared_data_alone_is_not_project_level: true
+  missing_values_alone_do_not_imply_interpolation: true
+  task_prediction_is_not_preprocessing: true
   source_modes:
     not_needed: raw
     question_local: raw
@@ -84,7 +87,7 @@ code_delivery:
 three_stage_policy:
   preprocessing:
     activation: 仅preprocessing_decision=project_level
-    role: 读取需要统一处理的共享原始数据，执行审计和已批准公共处理，输出数据预处理结果.xlsx
+    role: 读取需要统一处理的共享原始数据，执行通用审计和已批准公共处理，输出数据预处理结果.xlsx
     freeze_after: preprocessing_workbook_accepted
   primary:
     role: 首次交付问题X求解.py，只负责主求解并输出问题X求解结果.xlsx；主工作簿accepted后该脚本冻结，不为结果深化分析改写。
@@ -182,4 +185,4 @@ legacy_compatibility:
   v7_2_0_preprocessing_without_decision: read_only_until_redesign
   v7_0_semantic_governance_fields: read_only_until_redesign
   v6_6_single_evolving_script: read_only
-  rule: 旧项目可继续读取已有产物；重新进入模型设计/求解时先补齐preprocessing_decision，只有project_level才要求统一预处理；重新深化分析时使用独立问题X结果深化分析.py。
+  rule: 旧项目可继续读取已有产物；v7.2.0--7.2.1项目重新进入模型设计/求解时沿用三态decision并按当前通用审计规则复核必要性；更早项目重新进入当前流程时先补齐preprocessing_decision，只有project_level才要求统一预处理；重新深化分析时使用独立问题X结果深化分析.py。
