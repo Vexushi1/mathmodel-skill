@@ -1,6 +1,26 @@
 # Changelog
 
-## Current release: 7.1.0
+## Current release: 7.2.1
+
+- Replaced the v7.2.0 shared-data trigger with an explicit evidence-driven `preprocessing_decision`: `not_needed`, `question_local`, or `project_level`.
+- Data quality audit is now mandatory for data projects, while data modification is conditional. Sharing the same raw attachment across questions is no longer sufficient to require cleaning, interpolation, filtering, standardization, or a unified preprocessing workbook.
+- Added a strict operation-necessity gate for imputation, anomaly removal, interpolation, smoothing, filtering, detrending, normalization, standardization, resampling, bad-trace repair and related transformations. Operations must be supported by observed data issues or model requirements and must assess information-destruction risk.
+- Made `data_preprocessing` a conditional workflow stage. `not_needed` and `question_local` projects skip the project-level preprocessing directory; only `project_level` creates `数据预处理/数据预处理.py` and `数据预处理/数据预处理结果.xlsx`.
+- Added `preprocessing_decision`, preprocessing level, active data-source mode and conditional preprocessing execution state to the project-state contract; `data_preprocessing` is now a valid project phase.
+- Updated solve, result-analysis and MATLAB evidence rules to inherit the active data source instead of always requiring `数据预处理结果.xlsx`.
+- Extended code-delivery and returned-workbook validators to recognize the project-level preprocessing stage while refusing preprocessing artifacts when the decision is not `project_level`.
+- Extended `resolve_workflow.py` with `--preprocessing-decision`; a `project_level` plan pauses at preprocessing until the unified workbook is accepted, while `not_needed` and `question_local` proceed directly to solve.
+- Reworked seismic preprocessing guidance to audit first: DC removal, detrending, band-pass filtering, bad-trace repair, taper and interpolation are conditional operations rather than defaults. Default velocity smoothing, AGC, per-trace strong normalization, default band-pass filtering and default bad-trace interpolation are prohibited.
+- Preserved read compatibility for v7.2.0 and earlier projects. Re-entering design/solve first establishes the new decision; legacy shared-data projects are not automatically migrated to `project_level`.
+
+## Previous release: 7.2.0
+
+- Added a project-level global preprocessing contract, `modules/03_data_preprocessing.md`, a unified `数据预处理/` directory, and a single `数据预处理结果.xlsx` handoff for shared-data projects.
+- Added preprocessing artifacts to routing, manifest, output, code-quality and downstream data-source contracts.
+- Added preprocessing-aware stale propagation and a user-execution pause before primary solving.
+- This release treated shared raw data as a sufficient activation signal in several runtime contracts; v7.2.1 replaces that behavior with an explicit necessity decision.
+
+## Previous release: 7.1.0
 
 - Added a mandatory per-question Problem Contract that freezes original/derived objects, known/computable quantities, decision/state/output variables, explicit/implicit constraints, forbidden assumptions, data roles and typed cross-question dependencies before model design.
 - Upgraded formula closure to a four-link semantic chain: problem statement and objects -> mathematical variables/formulas/objective/constraints -> Python variables/functions -> workbook outputs or validation evidence.
