@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static delivery and engineering-quality validation for stage-specific task Python scripts."""
+"""Static delivery and engineering-quality validation for preprocessing and question-stage Python scripts."""
 from __future__ import annotations
 
 import argparse
@@ -29,6 +29,10 @@ ANALYSIS_STALE_LAYERS = {
 PRIMARY_STALE_LAYERS = {
     "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
 }
+ALL_RESULT_STALE_LAYERS = {
+    "data", "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
+}
+VALID_PREPROCESSING_DECISIONS = {"not_needed", "question_local", "project_level"}
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -57,19 +61,26 @@ def embedded_config(text: str) -> dict[str, Any]:
     raise ValueError("缺少FULL_FIDELITY_CONFIG字典常量")
 
 
-def problem_from_path(script: Path) -> str:
+def script_identity(script: Path) -> tuple[str, str]:
+    if script.parent.name == "数据预处理" and script.name == "数据预处理.py":
+        return "数据预处理", "preprocessing"
     folder = script.parent.name
     if not folder.endswith("求解"):
-        raise ValueError("Python脚本必须位于问题X求解目录")
+        raise ValueError("正式Python脚本必须位于数据预处理/或问题X求解/目录")
     problem = folder.removesuffix("求解")
-    allowed = {f"{problem}求解.py", f"{problem}结果深化分析.py"}
-    if script.name not in allowed:
-        raise ValueError(f"脚本名必须为{problem}求解.py或{problem}结果深化分析.py")
-    return problem
+    if script.name == f"{problem}求解.py":
+        return problem, "primary"
+    if script.name == f"{problem}结果深化分析.py":
+        return problem, "analysis"
+    raise ValueError(f"脚本名必须为{problem}求解.py或{problem}结果深化分析.py")
 
 
-def stage_from_filename(script: Path, problem: str) -> str:
-    return "analysis" if script.name == f"{problem}结果深化分析.py" else "primary"
+def problem_from_path(script: Path) -> str:
+    return script_identity(script)[0]
+
+
+def stage_from_filename(script: Path, problem: str | None = None) -> str:
+    return script_identity(script)[1]
 
 
 def _param_count(node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
@@ -150,12 +161,12 @@ def code_quality_findings(
             for alias in node.names:
                 root = alias.name.split(".")[0]
                 if root in forbidden_imports:
-                    errors.append(f"正式求解脚本禁止导入绘图库: {root}")
+                    errors.append(f"正式数值脚本禁止导入绘图库: {root}")
                 imported[alias.asname or root] = alias.name
         elif isinstance(node, ast.ImportFrom):
             root = (node.module or "").split(".")[0]
             if root in forbidden_imports:
-                errors.append(f"正式求解脚本禁止导入绘图库: {root}")
+                errors.append(f"正式数值脚本禁止导入绘图库: {root}")
             for alias in node.names:
                 if alias.name == "*":
                     errors.append("禁止通配import")
@@ -199,6 +210,38 @@ def code_quality_findings(
     return list(dict.fromkeys(errors)), list(dict.fromkeys(warnings)), metrics
 
 
+def _preprocessing_state(project_root: Path) -> dict[str, Any]:
+    state_path = project_root / "state" / "project_state.yaml"
+    if not state_path.is_file():
+        return {}
+    state = load_yaml(state_path)
+    value = state.get("preprocessing") or {}
+    return value if isinstance(value, dict) else {}
+
+
+def _decision_gate_issues(project_root: Path, stage: str, data_hash: str | None = None) -> list[str]:
+    state_path = project_root / "state" / "project_state.yaml"
+    if not state_path.is_file():
+        return []
+    state = load_yaml(state_path)
+    preprocessing = state.get("preprocessing") or {}
+    decision = str(preprocessing.get("decision", "")).strip()
+    if decision not in VALID_PREPROCESSING_DECISIONS:
+        return ["项目状态缺少有效preprocessing.decision；正式代码前必须先锁定not_needed/question_local/project_level"]
+    issues: list[str] = []
+    if stage == "preprocessing":
+        if decision != "project_level":
+            issues.append("只有preprocessing.decision=project_level时才允许交付数据预处理.py")
+        return issues
+    if stage == "primary" and decision == "project_level":
+        if preprocessing.get("status") != "accepted" or preprocessing.get("quality_status") != "passed":
+            issues.append("project_level项目必须先验收数据预处理结果.xlsx并通过预处理质量门")
+        expected = str(preprocessing.get("workbook_sha256", "")).lower()
+        if expected and data_hash and expected != str(data_hash).lower():
+            issues.append("主求解data_sha256必须等于已验收数据预处理结果.xlsx哈希")
+    return issues
+
+
 def validate_script(
     project_root: Path,
     script: Path,
@@ -206,10 +249,9 @@ def validate_script(
 ) -> tuple[list[str], dict[str, Any]]:
     issues: list[str] = []
     try:
-        problem = problem_from_path(script)
+        problem, filename_stage = script_identity(script)
     except ValueError as exc:
         return [str(exc)], {}
-    filename_stage = stage_from_filename(script, problem)
 
     text = script.read_text(encoding="utf-8", errors="strict")
     for marker in PLACEHOLDERS:
@@ -228,14 +270,14 @@ def validate_script(
         if field not in config or config[field] in (None, "", []):
             issues.append(f"嵌入运行配置缺少字段: {field}")
     stage = str(config.get("stage", ""))
-    if stage not in {"primary", "analysis"}:
-        issues.append("stage必须为primary或analysis")
+    if stage not in {"preprocessing", "primary", "analysis"}:
+        issues.append("stage必须为preprocessing、primary或analysis")
     if stage and stage != filename_stage:
         issues.append(f"脚本文件名对应{filename_stage}阶段，但FULL_FIDELITY_CONFIG.stage={stage}")
     if expected_stage and stage != expected_stage:
         issues.append(f"stage应为{expected_stage}")
     if config.get("problem_name") != problem:
-        issues.append("problem_name与目录名不一致")
+        issues.append("problem_name与目录/阶段身份不一致")
     if config.get("execution_owner") != "user":
         issues.append("execution_owner必须为user")
     if config.get("execution_profile") != "full_fidelity":
@@ -246,13 +288,24 @@ def validate_script(
     if not is_sha256(config.get("data_sha256")):
         issues.append("data_sha256必须是64位十六进制SHA-256")
 
-    expected = f"{problem}求解结果.xlsx" if stage == "primary" else f"{problem}结果深化分析.xlsx"
-    if Path(str(config.get("expected_workbook", ""))).name != expected:
-        issues.append(f"expected_workbook必须指向同目录{expected}")
+    expected = {
+        "preprocessing": "数据预处理结果.xlsx",
+        "primary": f"{problem}求解结果.xlsx",
+        "analysis": f"{problem}结果深化分析.xlsx",
+    }.get(stage, "")
+    if expected and Path(str(config.get("expected_workbook", ""))).name != expected:
+        issues.append(f"expected_workbook必须指向{expected}")
 
+    issues.extend(_decision_gate_issues(project_root, stage, str(config.get("data_sha256", ""))))
     quality_errors, _, _ = code_quality_findings(text, config)
     issues.extend(quality_errors)
     return list(dict.fromkeys(issues)), config
+
+
+def _question_key(problem: str) -> str:
+    order = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
+    suffix = problem.removeprefix("问题")
+    return f"Q{order.index(suffix) + 1}" if suffix in order else problem
 
 
 def update_state(project_root: Path, config: dict[str, Any], script: Path) -> None:
@@ -261,13 +314,38 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path) -> No
         return
     state = load_yaml(state_path)
     problem = str(config["problem_name"])
-    order = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
-    suffix = problem.removeprefix("问题")
-    key = f"Q{order.index(suffix) + 1}" if suffix in order else problem
-    entry = state.setdefault("subproblems", {}).setdefault(key, {})
-    relative = script.relative_to(project_root).as_posix()
     stage = str(config["stage"])
     new_hash = sha256(script)
+    relative = script.relative_to(project_root).as_posix()
+
+    if stage == "preprocessing":
+        preprocessing = state.setdefault("preprocessing", {})
+        if preprocessing.get("decision") != "project_level":
+            raise ValueError("只有project_level项目允许写入预处理执行状态")
+        old_hash = preprocessing.get("code_sha256")
+        preprocessing["code"] = relative
+        preprocessing["code_sha256"] = new_hash
+        preprocessing["data_hash"] = str(config["data_sha256"]).lower()
+        preprocessing["status"] = "awaiting_user_preprocessing"
+        preprocessing["quality_status"] = "pending"
+        state.setdefault("data", {})["active_source_mode"] = "raw"
+        state.setdefault("project", {})["current_phase"] = "data_preprocessing"
+        if old_hash and old_hash != new_hash:
+            preprocessing["workbook"] = ""
+            preprocessing["workbook_sha256"] = ""
+            for entry in (state.get("subproblems") or {}).values():
+                if not isinstance(entry, dict):
+                    continue
+                entry["result_quality_status"] = "pending"
+                entry["result_analysis_status"] = "pending"
+                entry["result_summary_status"] = "stale"
+                entry["artifacts_stale"] = True
+                entry["stale_layers"] = sorted(set(entry.get("stale_layers", [])) | ALL_RESULT_STALE_LAYERS)
+        state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        return
+
+    key = _question_key(problem)
+    entry = state.setdefault("subproblems", {}).setdefault(key, {})
     entry["data_hash"] = str(config["data_sha256"]).lower()
 
     if stage == "primary":
@@ -310,6 +388,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path) -> No
 
 def discover_scripts(root: Path) -> list[Path]:
     patterns = (
+        "数据预处理/数据预处理.py",
         "问题*求解/问题*求解.py",
         "问题*求解/问题*结果深化分析.py",
     )
@@ -320,7 +399,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("project_root", type=Path)
     parser.add_argument("--script", type=Path)
-    parser.add_argument("--stage", choices=("primary", "analysis"))
+    parser.add_argument("--stage", choices=("preprocessing", "primary", "analysis"))
     parser.add_argument("--write", action="store_true")
     parser.add_argument("--strict", action="store_true")
     args = parser.parse_args()
