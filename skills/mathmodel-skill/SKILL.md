@@ -15,7 +15,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 6. 判定必须检查当前数据的完整性、一致性、有效性、重复身份、采样与覆盖、测量质量、模型输入要求以及时间因果/信息泄漏；缺失值不等于必须插值，插值、统计填补、模型填补和预测填补都必须按变量语义、缺失结构与可验证性选择；
 7. 预测填补只可用于恢复后续模型确实需要的缺测输入，并须独立验证且禁止未来信息/标签泄漏；赛题本身要求预测的未来值、类别、需求、风险等属于核心模型，不得包装为数据预处理；
 8. 只要实际预处理改变后续模型输入，论文必须给出数据问题、数学公式或映射、参数依据、方法验证、处理前后证据和后续模型接口；经验型处理不得编造形式证明；
-9. `project_level` 的 `data_process.m` 只读取 `数据预处理结果.xlsx` 中 Python 已持久化的处理前后、诊断和验证数据绘图，不重新清洗、插值、滤波、重采样或估计参数；正式导出基名使用 `data_process` 或 `data_process_<evidence>`；
+9. `project_level` 的 `data_process.m` 是项目级预处理证据固定 MATLAB 脚本；文件归属 `数据预处理/`，但仅在 Figure Evidence 阶段、主求解与结果深化分析完成后生成。它只读取 `数据预处理结果.xlsx` 中 Python 已持久化的处理前后、诊断和验证数据绘图，不重新清洗、插值、滤波、重采样或估计参数；正式导出基名使用 `data_process` 或 `data_process_<evidence>`；
 10. 模型语义或数据处理判定变化时递增 semantic revision，并按 data / parameter / model / result 依赖递归传播 stale；
 11. 每问最终维护两个题目专属 Python：`问题X求解.py` 和 `问题X结果深化分析.py`，并保留两个标准工作簿与一个 `qX_plot.m`；主求解脚本 accepted 后冻结，结果深化分析使用独立脚本；
 12. 实际生成的 `preprocessing / primary / analysis` 代码阶段都必须通过 `../../core/code_quality_contract.yaml` 与 `../../scripts/validate_code_delivery.py`；
