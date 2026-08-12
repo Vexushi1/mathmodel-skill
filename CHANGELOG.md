@@ -1,6 +1,16 @@
 # Changelog
 
-## Current release: 7.2.2
+## Current release: 7.2.3
+
+- Added a formal MATLAB evidence stage for project-level preprocessing. When `preprocessing_decision=project_level`, Python still performs all preprocessing and writes `数据预处理.py` plus `数据预处理结果.xlsx`; the later Figure Evidence stage now adds the fixed-name MATLAB script `数据预处理/data_process.m`.
+- `data_process.m` reads only the accepted `数据预处理结果.xlsx`. It must not recompute interpolation, imputation, predictive repair, filtering, smoothing, denoising, anomaly repair, normalization, standardization or resampling.
+- Required Python preprocessing outputs now include real bottom-level evidence for visualization where applicable: before/after values, missing-value recovery validation, sampling or spatial coverage, structural alignment, distribution/frequency evidence or other operation-specific data. MATLAB may visualize these values but may not reconstruct them.
+- Project-level `transformative` preprocessing must provide at least one meaningful before/after or repair-validation visual evidence path. `structural` preprocessing uses the most informative alignment/coverage/mapping evidence and must not fabricate continuous before/after curves when no such interpretation exists.
+- `not_needed` projects do not create `data_process.m`. `question_local` projects keep local transformation evidence inside the relevant `q{x}_plot.m`; no project-level preprocessing plot script is created.
+- Preserved the numerical-stage boundary: acceptance of `数据预处理结果.xlsx` remains the only project-level preprocessing prerequisite for `solve_validate`; `data_process.m` is a Figure Evidence artifact and does not block primary solving.
+- Extended the output contract, module manifest, router, entry documentation and regression tests so project-level figures recognize `data_process.m` while the per-question five-file layout remains unchanged.
+
+## Previous release: 7.2.2
 
 - Generalized preprocessing judgment from the v7.2.1 evidence gate into a cross-competition framework driven by the **current problem statement, current attachments and current model requirements**, rather than seismic-specific practice or any fixed competition template.
 - Added mandatory audit dimensions for completeness, consistency, validity, duplicate identity, sampling and coverage, measurement quality, model readiness, temporal causality/information leakage, and target/label integrity before deciding whether data can be used directly.
@@ -77,83 +87,3 @@
 - Replaced the deleted `hsk_check_artifact.py` workbook runtime reference with the current code-delivery and returned-workbook validators.
 - Aligned the workbook MATLAB handoff with the current window-only default: exported figures and independent evidence files are not required by default.
 - Slimmed active entry documents so detailed rules live in authoritative contracts instead of being duplicated.
-
-## Previous release: 6.6.0
-
-- Restored one self-contained `问题X求解/` directory per subproblem.
-- New projects used one evolving Python script, two standard workbooks and one `qX_plot.m` in that directory; v7.0.0 supersedes this single-script rule.
-- Removed standalone run-config, execution-instruction and validation-report files from the default user-visible output.
-- Fixed cross-question Python hash contamination in project synchronization.
-- Kept legacy `结果数据表/问题X/` layouts as read-only compatibility inputs.
-- Corrected the nested plugin entry path and removed the stale LaTeX module version title.
-- Kept the existing DOCX + review multi-intent ordering unchanged in this release.
-- Hotfix: removed the obsolete standalone run-config and execution-instruction templates, the superseded MATLAB handoff writer, and the redundant artifact checker.
-- Hotfix: aligned the global policy, Starter guides, code appendix, Figure Contract, MATLAB reader, optional manifest, review pack and active tests with the then-current four-file contract.
-- Hotfix: default MATLAB delivery keeps only the visible figure window; exports belong to project-level `figures/` only after paper-stage confirmation.
-
-## Previous release: 6.5.1
-
-- Removed the obsolete fixed sensitivity/robustness checklist and the unreferenced pre-user-execution pipeline config.
-- New-project starters stop after `run_primary_pipeline()`; `run_pipeline()` remains only as a user-local compatibility API.
-- Local workbook generation records `workbook_received` and can no longer promote a subproblem to `solved` or `analyzed` before returned-workbook validation.
-- Both standard workbooks require the `运行配置` evidence sheet; workbook schema version is 2.2.1.
-
-## Previous release: 6.5.0
-
-- Default execution ownership is user-managed full-fidelity: the assistant generates task-specific code but never runs solve or result-analysis programs.
-- Added formal code-delivery and returned-workbook gates, execution states, full-run configuration, code/data hash checks, and the mandatory `运行配置` workbook evidence contract.
-- Primary code delivery pauses at `awaiting_user_execution`; final result-analysis code is generated only after the returned primary workbook is accepted.
-- Existing local pipelines remain runnable by the user; legacy projects without the new optional execution fields remain readable.
-
-## Previous release: 6.4.1
-
-- Active MATLAB and figure templates use `问题X结果深化分析.xlsx` instead of generating the historical `问题X敏感性与鲁棒性结果.xlsx` name.
-- `result_manifest.yaml` records `result_analysis_workbook` as the current field.
-- The code-appendix template names the primary-solve and result-analysis scripts separately.
-- `AGENTS.md` matches the LaTeX-first workflow and treats DOCX as an explicit optional branch.
-- Added regression coverage that prevents current-generation templates from reintroducing legacy workbook names and checks packaged/root Skill version alignment.
-
-## Previous release: 6.4.0
-
-### Quality-first primary solving
-
-- Added an explicit primary-result quality gate before any sensitivity, robustness or multi-algorithm analysis.
-- Split primary solving from result analysis in the module graph, state machine and workbook contract.
-- Added adaptive result-analysis selection based on problem, model, data, result and reviewer risk instead of a fixed perturbation checklist.
-- Added structured `passed` / `failed` / `redo_required` outcomes and stale propagation when result analysis invalidates the primary result.
-- Switched the default full workflow to LaTeX-first authoring; DOCX is an explicit independent review branch.
-- Replaced versioned active entry filenames with stable names and moved historical release documents into `legacy/`.
-
-## Previous release: 6.3.4
-
-- Added the `result_analysis` module and separated it from primary solving.
-- Added current-state `模型论文框架.md` synchronization for model, result, analysis and figure changes.
-- Added adaptive analysis categories, redo-required feedback and figure-evidence updates.
-- Updated the three competition profiles, score rubric and submission checks.
-
-## Previous release: 6.3.3
-
-- Hardened formal delivery gates with exact-scope artifact requirements.
-- Added conservative stale propagation and write-after-hash checks.
-- Added state and framework preflight validation before synchronization.
-
-## Previous release: 6.3.2
-
-- Added current-state project synchronization and per-question artifact hashes.
-- Added objective-specific workbook evidence and data-source hashing isolation.
-- Added document, LaTeX and submission artifact validation.
-
-## Previous release: 6.3.1
-
-- Added three-axis task classification: objective, structures and capabilities.
-- Added deterministic workflow resolution and multi-intent support.
-- Added proposition planning and proof integration.
-
-## Previous release: 6.3.0
-
-- Introduced the modular workflow graph and project-state contract.
-- Added output, workbook, figure and compile contracts.
-
-## Previous releases
-
-Use this file and Git history for release chronology; `legacy/README.md` documents compatibility-era material that is intentionally outside the active runtime.
