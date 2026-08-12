@@ -210,15 +210,6 @@ def code_quality_findings(
     return list(dict.fromkeys(errors)), list(dict.fromkeys(warnings)), metrics
 
 
-def _preprocessing_state(project_root: Path) -> dict[str, Any]:
-    state_path = project_root / "state" / "project_state.yaml"
-    if not state_path.is_file():
-        return {}
-    state = load_yaml(state_path)
-    value = state.get("preprocessing") or {}
-    return value if isinstance(value, dict) else {}
-
-
 def _decision_gate_issues(project_root: Path, stage: str, data_hash: str | None = None) -> list[str]:
     state_path = project_root / "state" / "project_state.yaml"
     if not state_path.is_file():
@@ -325,10 +316,11 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path) -> No
         old_hash = preprocessing.get("code_sha256")
         preprocessing["code"] = relative
         preprocessing["code_sha256"] = new_hash
-        preprocessing["data_hash"] = str(config["data_sha256"]).lower()
         preprocessing["status"] = "awaiting_user_preprocessing"
         preprocessing["quality_status"] = "pending"
-        state.setdefault("data", {})["active_source_mode"] = "raw"
+        data = state.setdefault("data", {})
+        data.setdefault("version_hashes", {})["preprocessing_input"] = str(config["data_sha256"]).lower()
+        data["active_source_mode"] = "raw"
         state.setdefault("project", {})["current_phase"] = "data_preprocessing"
         if old_hash and old_hash != new_hash:
             preprocessing["workbook"] = ""
