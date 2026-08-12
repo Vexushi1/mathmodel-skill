@@ -1,26 +1,73 @@
-# Module 04：MATLAB 结果图证据、标题与机理图精修
+# Module 04：MATLAB 结果图、预处理图证据与机理图精修
 
 ## 正确顺序
 
-1. Python 完成完整主求解并通过主结果质量门；
-2. Python 基于题目风险完成实际需要的结果深化分析；
-3. 锁定 `问题X求解/` 中的两个标准工作簿；
-4. 继承当前 `preprocessing_decision`，明确绘图是否需要原始数据、统一预处理工作簿或只需要结果工作簿；
-5. 为每张图先写 Core conclusion，再按信息效率选择图型；
-6. 生成 MATLAB 代码前实际读取需要使用的工作簿，锁定工作簿名、工作表名、真实表头、单位和数据类型；
-7. 设置简洁 `title` 或一个整体 `sgtitle`，拟定不逐字重复的论文图注；
-8. 将 `q{x}_plot.m` 与两类 Python 脚本、两类结果工作簿放在同一 `问题X求解/` 目录；
-9. 检查核心结论是否有图或表证据，并同步 `模型论文框架.md`；
-10. 只精修 S/A 级机理图；
-11. 默认只交付 `q{x}_plot.m`，保留图窗供人工检查，不自动创建图表子目录或导出图片。
+1. 若 `preprocessing_decision=project_level`，先锁定已验收的 `数据预处理结果.xlsx`，生成并人工检查 `数据预处理/data_process.m` 的预处理证据图；
+2. Python 完成完整主求解并通过主结果质量门；
+3. Python 基于题目风险完成实际需要的结果深化分析；
+4. 锁定 `问题X求解/` 中的两个标准工作簿；
+5. 继承当前 `preprocessing_decision`，明确每张图读取原始数据、统一预处理工作簿或结果工作簿中的哪一种事实源；
+6. 为每张图先写 Core conclusion，再按信息效率选择图型；
+7. 生成 MATLAB 代码前实际读取工作簿，锁定工作簿名、工作表名、真实表头、单位和数据类型；
+8. 设置简洁 `title` 或一个整体 `sgtitle`，拟定不逐字重复的论文图注；
+9. 将各问 `q{x}_plot.m` 与两类 Python 脚本、两类结果工作簿放在同一 `问题X求解/`；项目级预处理图脚本固定为 `数据预处理/data_process.m`；
+10. 检查核心结论是否有图或表证据，并同步 `模型论文框架.md`；
+11. 默认只保留图窗供人工检查，不自动创建图表子目录或批量导出图片。
 
 ## A 类：机理与推导图
 
 优先表达公式来源、约束来源、临界状态和策略机制。图内只放对象、变量、方向、边界、距离、角度、流向和临界状态，完整推导留在正文。禁止用通用“输入—模型—输出”流程图替代题目专属机理图。
 
-## B 类：结果图合同
+## B 类：项目级预处理证据图
 
-每张图记录：Core conclusion、Figure role、MATLAB title、论文 caption、Panel map、Source workbook、Worksheet、Required headers、Expected positions（可选）、MATLAB script、Export files、Statistics/error、Reviewer risk、Paper location 和 Caption duty。
+当 `preprocessing_decision=project_level` 时，必须生成独立 MATLAB 脚本：
+
+```text
+数据预处理/data_process.m
+```
+
+它只读取：
+
+```text
+数据预处理/数据预处理结果.xlsx
+```
+
+其职责是把 Python 已经保存的处理前/后、诊断和验证底层数据转成论文证据图。MATLAB 不允许重新清洗、插值、滤波、重采样、预测填补、训练模型或重新确定参数。
+
+至少有一张图直接回答下列问题之一：
+
+- 为什么原始数据需要处理；
+- 当前处理是否解决了已审计问题；
+- 插值/填补恢复误差是否可接受；
+- 滤波/平滑是否保留所需信息；
+- 重采样/时间对齐/空间对齐是否满足模型输入要求；
+- 异常处理是否有清晰边界并避免误删真实结构。
+
+优先图型包括：
+
+- 处理前后时序、轨迹、空间场或剖面对比；
+- 缺失位置/覆盖与填补结果图；
+- 分布、箱线、QQ、残差、尺度变化图；
+- 频谱/功率谱/频率响应处理前后对比；
+- 人工掩蔽或留出样本的真实值—恢复值图及误差分布；
+- 重采样前后的网格/采样间隔/覆盖图；
+- 异常阈值边界与保留/处理样本图。
+
+`data_process.m` 的 Figure Contract 必须记录：Core conclusion、Figure role、MATLAB title、论文 caption、Source workbook=`数据预处理结果.xlsx`、Worksheet、Required headers、Panel map、Statistics/error、Paper location。
+
+若需要正式导出，文件基名固定为：
+
+```text
+data_process
+或
+data_process_<evidence>
+```
+
+默认仍不自动导出，先保留图窗人工调整。
+
+## C 类：各问结果图合同
+
+每张结果图记录：Core conclusion、Figure role、MATLAB title、论文 caption、Panel map、Source workbook、Worksheet、Required headers、Expected positions（可选）、MATLAB script、Export files、Statistics/error、Reviewer risk、Paper location 和 Caption duty。
 
 结果证据优先来自本问主求解工作簿或结果深化分析工作簿：
 
@@ -30,10 +77,10 @@
 只有图本身确实需要底层数据时，才按 `preprocessing_decision` 追加数据事实源：
 
 - `not_needed`：允许读取必要原始数据；
-- `question_local`：允许读取必要原始数据，但不得在 MATLAB 中重新构造求解所需的模型变换；应优先使用 Python 已输出到底层结果表的数据；
-- `project_level`：允许读取 `数据预处理结果.xlsx`，不得绕回对应共享原始附件。
+- `question_local`：允许读取必要原始数据，但不得在 MATLAB 中重新构造模型变换；若该局部处理需要论文图证据，应由 Python 将处理前后底层数据写入本问工作簿，再由 `qX_plot.m` 绘制；
+- `project_level`：各问需要底层公共数据时读取 `数据预处理结果.xlsx`，不得绕回共享原始附件；公共预处理本身的前后对比优先集中在 `data_process.m`。
 
-不得为了让所有 MATLAB 脚本结构一致而强制每张图读取 `数据预处理结果.xlsx`。若图只依赖标准结果工作簿，则不额外加载任何原始或预处理数据。
+不得为了统一脚本结构而强制所有 `qX_plot.m` 读取 `数据预处理结果.xlsx`。若图只依赖标准结果工作簿，则不额外加载任何原始或预处理数据。
 
 不得在 MATLAB 中重新求解，不得从摘要数字反推绘图序列。图型必须提高信息展示或比较效率，否则降级为更直接的二维图。
 
@@ -76,4 +123,4 @@ end
 
 ## 入文闭环
 
-图后另起正文段解释趋势、关键数值、机制、稳定范围或失效边界。正式图片在进入LaTeX时按需人工导出；求解阶段不额外生成图片文件。
+预处理图后正文必须解释原始问题、处理机制、关键参数、验证误差或信息保留情况，以及处理后数据为何可以进入后续模型；结果图后解释趋势、关键数值、机制、稳定范围或失效边界。正式图片进入 LaTeX 时按需人工导出。
