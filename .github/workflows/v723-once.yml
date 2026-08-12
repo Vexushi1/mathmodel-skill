@@ -15,6 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: fix/v7.2.3-preprocessing-paper-evidence
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -28,8 +29,7 @@ jobs:
               text = p.read_text(encoding='utf-8')
               if old not in text:
                   raise SystemExit(f'anchor missing: {path}: {old[:80]}')
-              text = text.replace(old, new, count)
-              p.write_text(text, encoding='utf-8')
+              p.write_text(text.replace(old, new, count), encoding='utf-8')
 
           replace('scripts/resolve_workflow.py', 'HSK v7.2.2 execution plan', 'HSK v7.2.3 execution plan')
           replace('core/project_state.schema.yaml', 'version: 7.2.2', 'version: 7.2.3', 1)
@@ -38,14 +38,12 @@ jobs:
           replace(
               'scripts/lint_skill.py',
               '"templates/code/hsk_pipeline/main_pipeline.py", "templates/matlab/q1_plot.m",',
-              '"templates/code/hsk_pipeline/main_pipeline.py", "templates/matlab/q1_plot.m",\n    "templates/matlab/data_process.m",',
-              1,
+              '"templates/code/hsk_pipeline/main_pipeline.py", "templates/matlab/q1_plot.m",\n    "templates/matlab/data_process.m",', 1,
           )
           replace(
               'scripts/lint_skill.py',
               '"raw_data", "preprocessing_decision", "preprocessing_code", "preprocessing_workbook",\n        "model",',
-              '"raw_data", "preprocessing_decision", "preprocessing_code", "preprocessing_workbook",\n        "preprocessing_matlab_script", "model",',
-              1,
+              '"raw_data", "preprocessing_decision", "preprocessing_code", "preprocessing_workbook",\n        "preprocessing_matlab_script", "model",', 1,
           )
           lint_anchor = '''    if not any("赛题直接要求预测未来值" in str(item) for item in prediction_boundary.get("not_preprocessing_when", [])):\n        errors.append("task-requested forecasting must be explicitly excluded from preprocessing")\n'''
           lint_extra = lint_anchor + '''    paper = preprocessing.get("paper_evidence_contract") or {}\n    paper_text = "\\n".join(str(item) for item in paper.get("required_paper_elements", []))\n    for token in ("数学公式", "参数", "合理性验证", "预处理图"):\n        if token not in paper_text:\n            errors.append(f"preprocessing paper evidence contract lacks: {token}")\n    if "不得编造数学证明" not in str(paper.get("formal_proof_boundary", "")):\n        errors.append("preprocessing paper evidence must reject fabricated formal proofs")\n    figure_contract = preprocessing.get("preprocessing_figure_contract") or {}\n    if figure_contract.get("project_level_script") != "数据预处理/data_process.m":\n        errors.append("project-level preprocessing MATLAB script must be 数据预处理/data_process.m")\n    if figure_contract.get("export_stem") != "data_process":\n        errors.append("preprocessing figure export stem must be data_process")\n    pre_files = ((preprocessing.get("project_directory") or {}).get("exact_default_files") or [])\n    if pre_files != ["数据预处理.py", "数据预处理结果.xlsx", "data_process.m"]:\n        errors.append("project-level preprocessing directory must be the exact three-file data_process layout")\n    pre_sheets = set(((preprocessing.get("workbook") or {}).get("common_required_sheets") or {}))\n    if not {"预处理方法证据", "处理前后对比", "绘图数据索引"}.issubset(pre_sheets):\n        errors.append("preprocessing workbook lacks paper/figure evidence sheets")\n    data_process = read_text(ROOT / "templates/matlab/data_process.m")\n    for token in ("数据预处理结果.xlsx", "处理前", "处理后"):\n        if token not in data_process:\n            errors.append(f"data_process MATLAB template lacks: {token}")\n    if "exportgraphics(" in data_process:\n        errors.append("data_process MATLAB template must not auto-export")\n'''
@@ -60,19 +58,17 @@ jobs:
           marker = '## Current release: 7.2.2'
           if marker not in text:
               raise SystemExit('CHANGELOG current release anchor missing')
-          section = '''## Current release: 7.2.3\n\n- Elevated any substantive preprocessing that actually changes model inputs into a paper evidence chain: data problem/necessity -> mathematical formula or deterministic mapping -> parameter basis -> method-matched validation -> before/after evidence -> MATLAB figure -> downstream model interface.\n- Added writing-depth rules for deterministic structural fixes, statistical transforms, interpolation/imputation, filtering/resampling and outlier/deletion operations.\n- Clarified the proof boundary: formal proofs are used only for genuine equivalence, conservation, monotonicity, error-bound or feasibility-preservation claims; empirical cleaning uses reproducible statistical/physical/masking/holdout validation rather than fabricated theorems.\n- Expanded the project-level preprocessing workbook with `预处理方法证据`, `处理前后对比` and `绘图数据索引`, plus bottom-level task-specific before/after or validation data so plots never need to be reconstructed from summary numbers.\n- Added the dedicated project-level MATLAB script `数据预处理/data_process.m`. It reads only `数据预处理结果.xlsx`, plots preprocessing necessity/effectiveness evidence, and may not redo cleaning, interpolation, filtering, resampling or learned imputation.\n- Standardized preprocessing figure export stems as `data_process` or `data_process_<evidence>` while preserving the default visible-window/no-auto-export behavior.\n- Project-level preprocessing now has an exact three-file final layout (`数据预处理.py`, `数据预处理结果.xlsx`, `data_process.m`); the per-question exact five-file/two-Python layout is unchanged.\n- Added returned-workbook and formal figure-delivery gates plus regression/static-lint coverage for the new preprocessing paper/figure evidence chain.\n\n## Previous release: 7.2.2'''
+          section = '''## Current release: 7.2.3\n\n- Elevated substantive preprocessing into a paper evidence chain: data problem/necessity -> mathematical formula or deterministic mapping -> parameter basis -> method-matched validation -> before/after evidence -> MATLAB figure -> downstream model interface.\n- Added writing-depth rules for deterministic structural fixes, statistical transforms, interpolation/imputation, filtering/resampling and outlier/deletion operations.\n- Clarified that formal proofs are used only for genuine equivalence, conservation, monotonicity, error-bound or feasibility-preservation claims; empirical cleaning uses reproducible statistical/physical/masking/holdout validation instead of fabricated theorems.\n- Expanded the project-level preprocessing workbook with `预处理方法证据`, `处理前后对比` and `绘图数据索引`, plus bottom-level before/after or validation data.\n- Added `数据预处理/data_process.m`; it reads only `数据预处理结果.xlsx`, plots preprocessing necessity/effectiveness evidence, and may not redo cleaning, interpolation, filtering, resampling or learned imputation.\n- Standardized preprocessing figure export stems as `data_process` or `data_process_<evidence>` while preserving the visible-window/no-auto-export default.\n- Project-level preprocessing now has an exact three-file final layout (`数据预处理.py`, `数据预处理结果.xlsx`, `data_process.m`); the per-question exact five-file/two-Python layout is unchanged.\n- Added returned-workbook and formal figure-delivery gates plus regression/static-lint coverage for the new preprocessing paper/figure evidence chain.\n\n## Previous release: 7.2.2'''
           changelog.write_text(text.replace(marker, section, 1), encoding='utf-8')
 
           for path in ('scripts/README.md', 'legacy/README.md'):
               p = Path(path)
               text = p.read_text(encoding='utf-8')
-              text = text.replace('7.2.2', '7.2.3', 1)
-              p.write_text(text, encoding='utf-8')
+              p.write_text(text.replace('7.2.2', '7.2.3', 1), encoding='utf-8')
 
-          workflow = Path('.github/workflows/v723-once.yml')
-          workflow.unlink()
+          Path('.github/workflows/v723-once.yml').unlink()
           PY
-      - name: Commit patched sources and remove one-shot workflow
+      - name: Commit and rebase onto latest branch before push
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
@@ -82,4 +78,6 @@ jobs:
             exit 0
           fi
           git commit -m 'fix: close v7.2.3 runtime and version consistency'
+          git fetch origin fix/v7.2.3-preprocessing-paper-evidence
+          git rebase origin/fix/v7.2.3-preprocessing-paper-evidence
           git push origin HEAD:fix/v7.2.3-preprocessing-paper-evidence
