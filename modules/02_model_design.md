@@ -10,11 +10,35 @@
 
 高级模型执行必要性、变量闭环、数据支撑、计算可行、解释性、验证性和复现性七项准入。用户明确提出 W-DRO、CVaR、MPEC、Stackelberg、ALNS、GNN、空间杜宾、DML、强化学习或深度学习，或路线 B 准备作为主模型时，加载 `packs/task/advanced_method_gate.md`。未通过则降级为补充验证或否决。
 
-## 2. 数据协议
+## 2. 数据协议与预处理必要性判定
 
-在 Module 01 的 `data_schema` 上锁定字段—含义—单位—粒度—范围—关联键表，检查缺失、异常、重复、单位冲突和时间错位。标准化、归一化、对数、Box-Cox、滞后、窗口、空间权重、重采样和编码必须说明依据及边界。无真实数据时可模拟，但写明生成机制和参数来源。
+在 Module 01 的 `data_schema` 上锁定字段—含义—单位—粒度—范围—关联键表，先做**非破坏性数据审计**：检查缺失、NaN/Inf、异常候选、重复、单位冲突、时间错位、空间坐标、主键与采样结构。检查本身不等于需要修改数据。
 
-任何数据角色或预处理口径变化都属于模型语义变化，必须更新 `semantic_revision` 与 `semantic_change_categories`，不能只改 Python。
+标准化、归一化、对数、Box-Cox、滞后、窗口、空间权重、插值、滤波、重采样、异常替换和编码等操作必须说明依据及边界。无真实数据时可模拟，但写明生成机制和参数来源。
+
+完成数据审计和模型路线选择后，必须锁定项目级 `preprocessing_decision`：
+
+| 字段 | 取值/要求 |
+|---|---|
+| `decision` | `not_needed` / `question_local` / `project_level` |
+| `level` | `none` / `structural` / `transformative` |
+| `evidence` | 为什么原始数据可直接使用，或为什么必须处理 |
+| `operations` | 实际允许的数据变换列表；可为空 |
+| `forbidden_operations` | 会破坏题意、物理意义或后续解释的操作 |
+| `downstream_data_source` | `raw` 或 `preprocessed` |
+
+判定规则：
+
+1. **共享数据本身不是项目级预处理证据**。两个及以上小问读取同一原始数据，但数据已经满足模型要求时，必须判为 `not_needed`；
+2. **本问专属变换保持局部**。只有某一问需要对数、标准化、滞后、滑动窗口、模型专属编码或派生特征时，判为 `question_local`；
+3. **只有公共数据口径确需改变才进入项目级预处理**。例如多问共同需要单位换算、坐标统一、时间对齐、表关联、公共重采样、缺失处理、异常处理或滤波时，判为 `project_level`；
+4. 用户明确要求统一数据总表时，可以判为 `project_level`；若只是整理/对齐而不改变观测值，`level=structural`，不能包装成“清洗”；
+5. `NaN=0`、无坏道、采样规则、单位一致等审计证据出现时，对应的插值、坏道修复、重采样或单位修正不得继续保留；
+6. 统计极端值不等于错误数据。尖峰、边界、结构突变、稀有事件和地质界面必须先判断真实对象语义。
+
+对任何会改变数据的操作，还必须回答四个问题：问题是否真实存在；不处理会影响哪个模型环节；为什么选择当前方法和参数；操作是否可能破坏真实信息。四问无法闭合的处理应删除，而不是降级成“可选默认步骤”。
+
+`preprocessing_decision` 是模型语义的一部分。任何数据角色、判定状态或预处理口径变化都必须更新 `semantic_revision` 与 `semantic_change_categories`，不能只改 Python。
 
 ## 3. 变量、假设与三轴分类
 
@@ -121,15 +145,15 @@ $$
 
 写入规则：
 
-1. 只保留当前有效的数据口径、变量、假设、公式、目标、约束、算法、评价指标、命题、结果和依赖；
+1. 只保留当前有效的数据口径、`preprocessing_decision`、变量、假设、公式、目标、约束、算法、评价指标、命题、结果和依赖；
 2. 口径变化时删除受影响旧内容并完整重写，不长期堆叠“原方案—修正方案”；
 3. Git 保存历史；框架顶部只保留版本、模式、阶段、最近同步范围和同步状态；
 4. 设计阶段建立结果摘要区但标记 `pending`，不得填入未求解数字；
 5. 命题规划只有在 full 模式或命题数量非零时展开详细合同；
-6. `state/project_state.yaml` 记录模式、框架哈希、命题状态、每问引用、章节锚点、结果摘要状态和语义治理状态；
+6. `state/project_state.yaml` 记录模式、框架哈希、预处理判定、命题状态、每问引用、章节锚点、结果摘要状态和语义治理状态；
 7. 正式交付前先通过语义治理门，再由 `project_sync` 更新框架头部和产物哈希。
 
-事实源边界：模型语义和论文组织以框架为准；语义修订、依赖、哈希与 stale 以项目状态为准；结果数值以标准工作簿为准。三者冲突时回到审题、模型或求解环节修正。
+事实源边界：模型语义和论文组织以框架为准；语义修订、预处理判定、依赖、哈希与 stale 以项目状态为准；结果数值以标准工作簿为准。三者冲突时回到审题、模型或求解环节修正。
 
 ## 9. 机理图合同
 
@@ -141,9 +165,12 @@ $$
 
 1. `problem_contract_status=frozen`；
 2. 每问数据口径、objective、structures、顶层 capabilities、变量维度、目标函数、约束、求解器候选、评价指标和验证方案已锁定；
-3. 三层题面—数学—代码映射无关键 gap，`semantic_closure_status=passed`；
-4. 复杂度复审完成，`complexity_sanity_status=passed`；
-5. `semantic_revision` 和 `semantic_change_categories` 与当前框架一致；
-6. 完成全文命题必要性初审并给出 0--4 个规划。
+3. 数据审计完成且 `preprocessing_decision` 已锁定为 `not_needed`、`question_local` 或 `project_level`，不得以“共享数据”直接替代必要性判断；
+4. 三层题面—数学—代码映射无关键 gap，`semantic_closure_status=passed`；
+5. 复杂度复审完成，`complexity_sanity_status=passed`；
+6. `semantic_revision` 和 `semantic_change_categories` 与当前框架一致；
+7. 完成全文命题必要性初审并给出 0--4 个规划。
 
-形成 `locked_model_spec`、`formula_closure`、`semantic_closure`、`complexity_sanity_check`、`proposition_plan`、`validation_plan` 与当前有效框架；未闭环不得以代码试错代替建模。
+若 `preprocessing_decision=project_level`，下一阶段进入 Module 03P；若为 `not_needed` 或 `question_local`，跳过 Module 03P，直接进入主求解。
+
+形成 `locked_model_spec`、`preprocessing_decision`、`formula_closure`、`semantic_closure`、`complexity_sanity_check`、`proposition_plan`、`validation_plan` 与当前有效框架；未闭环不得以代码试错代替建模。
