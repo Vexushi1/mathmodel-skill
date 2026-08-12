@@ -1,4 +1,4 @@
-version: 7.2.1
+version: 7.2.2
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 user_execution_contract: core/user_execution_contract.yaml
@@ -511,13 +511,14 @@ optional_metadata:
   rule: 不得放入问题X求解目录或数据预处理目录；仅在用户明确要求完整复现包时放入项目内部元数据目录
 rules:
 - 所有数据题先做非破坏性数据审计并锁定preprocessing_decision；审计不等于清洗。
+- 预处理判定必须以当前附件的缺失结构、单位/主键/时间/坐标一致性、有效性、重复身份、采样覆盖、测量质量、模型输入要求和时间因果/信息泄漏风险为依据；不得从题型或过去赛题套固定处理模板。
 - 两个及以上小问共享同一原始数据，只触发统一口径审计，不自动触发项目级预处理。
 - preprocessing_decision=not_needed时不创建数据预处理目录，各问可直接读取原始数据并保留必要检查。
 - preprocessing_decision=question_local时不创建全局预处理目录，本问可执行有数学来源的局部变换。
 - preprocessing_decision=project_level时才创建数据预处理目录，默认恰好包含数据预处理.py和数据预处理结果.xlsx；一个总表指一个统一工作簿，可含多个对象语义明确的工作表。
 - 只有project_level时，共享原始数据在统一工作簿验收后只允许数据预处理.py作为公共处理入口，依赖小问主求解、深化分析和数据型MATLAB流程不得再次直接读取对应共享原始数据。
 - project_level统一工作簿质量门未通过时必须停在awaiting_user_preprocessing；其他两种decision不得因为缺少统一工作簿而阻塞。
-- 缺失填补、异常删除、插值、平滑、滤波、去趋势、归一化、标准化和重采样等操作必须有数据/机理/模型必要性证据，不能作为默认模板步骤。
+- 缺失填补、预测填补、异常删除、插值、平滑、滤波、去趋势、归一化、标准化和重采样等操作必须有数据/机理/模型必要性证据；有缺失不等于必须插值，赛题本身要求的预测结果不得包装为预处理。
 - 新项目每问只创建一个问题X求解目录，默认最终恰好包含两个Python脚本、两个Excel工作簿和一个qX_plot.m。
 - Problem Contract、preprocessing_decision、语义闭环与复杂度复审先于正式模型和代码交付，不能用运行成功或结果合理替代语义正确性。
 - 主工作簿accepted后冻结问题X求解.py，并单独生成问题X结果深化分析.py；不得为深化分析覆盖更新主求解脚本。
@@ -525,7 +526,7 @@ rules:
 - 实际生成的项目级预处理脚本和两个正式小问Python脚本都必须通过静态工程质量检查且不得由助手执行；校验结果在聊天或标准输出中返回，不额外落盘。
 - 用户返回的适用预处理工作簿和小问工作簿均必须先通过对应质量门；代码交付本身不得把状态提升为solved或analyzed。
 - 同步器只做发现、校验、哈希和stale传播，不替代语义治理、条件式预处理质量门、主求解质量门与结果深化分析。
-- v7.2.0旧项目重新进入模型设计或求解时先补齐preprocessing_decision；不得因为历史上存在共享数据就默认迁移为project_level。
+- v7.2.0--v7.2.1旧项目重新进入模型设计或求解时继续沿用三态preprocessing_decision，并按当前通用审计规则复核处理必要性。
 - v7.1.x及更早旧项目可只读；重新进入当前流程时先做数据审计和preprocessing_decision。
 - v7.0.x缺少语义治理字段的旧项目可只读；重新进入审题或模型设计时补齐当前语义字段。
 - v6.6.x四文件项目和旧结果数据表/问题X/仅作只读兼容；新项目或重新深化分析时使用五文件结构。
