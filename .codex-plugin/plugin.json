@@ -1,7 +1,7 @@
 {
   "name": "mathmodel-skill",
-  "version": "7.2.3",
-  "description": "HSK lightweight-bootstrap mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, substantive preprocessing paper evidence, dedicated data_process MATLAB figures, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, code-quality enforcement and LaTeX-first authoring.",
+  "version": "7.2.4",
+  "description": "HSK lightweight-bootstrap mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, substantive preprocessing paper evidence, runtime-gated data_process MATLAB figures, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, code-quality enforcement and LaTeX-first authoring.",
   "author": {
     "name": "HSK"
   },
