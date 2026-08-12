@@ -75,7 +75,14 @@ def state_payload(primary_hash: str, analysis_hash: str | None = None) -> dict:
         entry["result_analysis_code"] = "问题一求解/问题一结果深化分析.py"
         entry["analysis_code_sha256"] = analysis_hash
     return {
-        "project": {"competition": "test", "problem": "A", "current_phase": "result_analysis"},
+        "project": {"competition": "test", "problem": "A", "current_phase": "result_analysis", "version": "7.2.1"},
+        "data": {"active_source_mode": "raw"},
+        "preprocessing": {
+            "decision": "not_needed", "level": "none", "status": "not_applicable",
+            "evidence": ["legacy layout fixture uses raw data directly"], "operations": [],
+            "forbidden_operations": [], "downstream_data_source": "raw",
+            "quality_status": "not_applicable",
+        },
         "subproblems": {"Q1": entry},
     }
 
@@ -223,7 +230,8 @@ class TestV701StageBoundaryClosure(unittest.TestCase):
         text = (ROOT / "scripts/resolve_workflow.py").read_text(encoding="utf-8")
         self.assertNotIn("v6.6.0 execution plan", text)
         self.assertNotIn("v7.0.1 execution plan", text)
-        self.assertIn("v7.1.0 execution plan", text)
+        self.assertNotIn("v7.1.0 execution plan", text)
+        self.assertIn("v7.2.1 execution plan", text)
 
 
 if __name__ == "__main__":
