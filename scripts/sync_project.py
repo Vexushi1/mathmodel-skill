@@ -78,6 +78,10 @@ def load_yaml(path: Path) -> dict[str, Any]:
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
+def unique(items: Iterable[Any]) -> list[str]:
+    return list(dict.fromkeys(str(item) for item in items if item and str(item).strip()))
+
+
 def load_json_or_yaml(path: Path) -> dict[str, Any]:
     if not path.is_file():
         return {}
