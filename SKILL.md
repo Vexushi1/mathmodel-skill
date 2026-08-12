@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.2.4
+version: 7.2.5
 summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, preprocessing paper/mathematical evidence, dedicated data_process MATLAB figures, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages and LaTeX-first writing.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 数据预处理, 数据清洗, 主结果质量, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.2.4
+# HSK 数学建模模块化工作流 v7.2.5
 
 ## 默认执行
 
@@ -56,7 +56,7 @@ preprocessing_decision
 └─ data_process.m
 ```
 
-`data_process.m` 是预处理阶段固定 MATLAB 绘图脚本名，只读取 `数据预处理结果.xlsx` 中 Python 已保存的处理前后、诊断和验证底层数据，绘制处理前后、缺失/填补、分布、频谱、掩蔽恢复、采样覆盖或异常阈值等证据图；禁止在 MATLAB 中重新清洗、插值、滤波、重采样、训练填补模型或重新选择参数。正式导出图片基名使用 `data_process` 或 `data_process_<evidence>`，默认仍只保留图窗人工检查。
+`data_process.m` 是项目级预处理证据的固定 MATLAB 绘图脚本名；文件归属 `数据预处理/`，但仅在 Figure Evidence 阶段、主求解与结果深化分析完成后生成。它只读取 `数据预处理结果.xlsx` 中 Python 已保存的处理前后、诊断和验证底层数据，绘制处理前后、缺失/填补、分布、频谱、掩蔽恢复、采样覆盖或异常阈值等证据图；禁止在 MATLAB 中重新清洗、插值、滤波、重采样、训练填补模型或重新选择参数。正式导出图片基名使用 `data_process` 或 `data_process_<evidence>`，默认仍只保留图窗人工检查。
 
 `question_local` 的实质变换在对应小问正文写公式、参数依据和验证；若需要图证据，由该问 `qX_plot.m` 读取 Python 已输出的底层数据绘制。
 

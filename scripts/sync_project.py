@@ -67,6 +67,17 @@ MATLAB_PREPROCESSING_FORBIDDEN_RE = re.compile(
     + r")\s*\(",
     re.IGNORECASE,
 )
+MATLAB_PREPROCESSING_FORBIDDEN_DISPATCH_FUNCTIONS = ("eval", "evalin", "feval", "str2func", "builtin")
+MATLAB_PREPROCESSING_FORBIDDEN_DISPATCH_RE = re.compile(
+    r"(?<![\w])("
+    + "|".join(re.escape(name) for name in MATLAB_PREPROCESSING_FORBIDDEN_DISPATCH_FUNCTIONS)
+    + r")\s*\(",
+    re.IGNORECASE,
+)
+MATLAB_PREPROCESSING_FORBIDDEN_HANDLE_RE = re.compile(
+    r"@(" + "|".join(re.escape(name) for name in MATLAB_PREPROCESSING_FORBIDDEN_FUNCTIONS) + r")\b",
+    re.IGNORECASE,
+)
 
 
 def _load_module(name: str, path: Path):
@@ -396,6 +407,39 @@ def _has_sheets(path: Path, names: set[str]) -> bool:
         return False
 
 
+def _matlab_executable_text(text: str) -> str:
+    """Remove MATLAB comments while preserving percent signs inside quoted strings."""
+    cleaned: list[str] = []
+    for source in text.splitlines():
+        line = source
+        in_single = False
+        in_double = False
+        index = 0
+        while index < len(line):
+            char = line[index]
+            if char == '"' and not in_single:
+                if in_double and index + 1 < len(line) and line[index + 1] == '"':
+                    index += 2
+                    continue
+                in_double = not in_double
+            elif char == "'" and not in_double:
+                if in_single:
+                    if index + 1 < len(line) and line[index + 1] == "'":
+                        index += 2
+                        continue
+                    in_single = False
+                else:
+                    previous = line[index - 1] if index else ""
+                    if not previous or not (previous.isalnum() or previous in "_)]}."):
+                        in_single = True
+            elif char == "%" and not in_single and not in_double:
+                line = line[:index]
+                break
+            index += 1
+        cleaned.append(line)
+    return "\n".join(cleaned)
+
+
 def _parse_matlab(script: Path) -> tuple[bool, list[str], list[str]]:
     if not script.is_file():
         return False, [], []
@@ -704,17 +748,33 @@ def _preprocessing_artifact_issues(
             if "数据预处理结果.xlsx" not in {Path(item).name for item in workbook_refs}:
                 issues.append("data_process.m必须读取数据预处理结果.xlsx")
             text = matlab.read_text(encoding="utf-8", errors="ignore")
-            code_text = "\n".join(
-                line for line in text.splitlines() if not line.lstrip().startswith("%")
-            )
+            code_text = _matlab_executable_text(text)
             forbidden_matches = sorted({
                 match.group(1).lower()
                 for match in MATLAB_PREPROCESSING_FORBIDDEN_RE.finditer(code_text)
+            })
+            dispatch_matches = sorted({
+                match.group(1).lower()
+                for match in MATLAB_PREPROCESSING_FORBIDDEN_DISPATCH_RE.finditer(code_text)
+            })
+            handle_matches = sorted({
+                match.group(1).lower()
+                for match in MATLAB_PREPROCESSING_FORBIDDEN_HANDLE_RE.finditer(code_text)
             })
             if forbidden_matches:
                 issues.append(
                     "data_process.m不得重新执行预处理、拟合或预测；检测到MATLAB调用: "
                     + ", ".join(forbidden_matches)
+                )
+            if dispatch_matches:
+                issues.append(
+                    "data_process.m不得使用可绕过绘图职责边界的动态调用: "
+                    + ", ".join(dispatch_matches)
+                )
+            if handle_matches:
+                issues.append(
+                    "data_process.m不得持有被禁止预处理函数句柄: "
+                    + ", ".join(handle_matches)
                 )
             for item in exports:
                 export_path = (matlab.parent / item).resolve()

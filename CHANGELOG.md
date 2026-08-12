@@ -1,6 +1,14 @@
 # Changelog
 
-## Current release: 7.2.4
+## Current release: 7.2.5
+
+- Normalized `accepted_preprocessing_workbook` to the canonical `preprocessing_workbook` artifact before resolver dependency reporting, eliminating false missing-prerequisite warnings after an accepted project-level preprocessing workbook.
+- Added `state.preprocessing.covered_raw_sources` so project-level preprocessing explicitly records only the raw sources replaced by the unified workbook; independent auxiliary attachments remain readable when they are not covered.
+- Hardened `validate_code_delivery.py` so project-level primary/analysis code must retain the accepted preprocessing data hash, primary code must declare the unified workbook in `data_paths`, and covered raw sources cannot be reintroduced through `data_paths` or literal data-reader calls.
+- Hardened `data_process.m` runtime checks by stripping inline MATLAB comments and blocking dynamic dispatch (`eval`, `evalin`, `feval`, `str2func`, `builtin`) plus forbidden preprocessing function handles.
+- Clarified across Skill/module contracts that `data_process.m` belongs to the project-level preprocessing evidence directory but is generated only in the later Figure Evidence stage after primary solve and result analysis.
+
+## Previous release: 7.2.4
 
 - Hardened `data_process.m` delivery with a contract-backed runtime forbidden-call set covering interpolation, missing/outlier repair, smoothing, resampling/alignment, detrending/normalization, filtering/filter design, fitting and prediction calls.
 - `scripts/sync_project.py` now scans executable MATLAB lines at figures-and-later delivery scopes and reports the exact forbidden functions detected; full-line comments are ignored to avoid documentation false positives.
