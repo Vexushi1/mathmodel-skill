@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate user-produced workbooks and advance state only after evidence passes."""
+"""Validate user-produced preprocessing/solve/analysis workbooks and advance state only after evidence passes."""
 from __future__ import annotations
 
 import argparse
@@ -15,6 +15,7 @@ FALSE_FLAGS = (
     "allow_fewer_repetitions", "allow_relaxed_tolerance",
     "allow_silent_solver_fallback",
 )
+VALID_DECISIONS = {"not_needed", "question_local", "project_level"}
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -81,6 +82,9 @@ def workbook_identity(root: Path, workbook: Path) -> tuple[str, str, list[str]]:
     except ValueError:
         return "", "", ["工作簿路径越出项目根目录"]
 
+    if workbook == (root / "数据预处理" / "数据预处理结果.xlsx").resolve():
+        return "数据预处理", "preprocessing", []
+
     parent = workbook.parent
     problem = ""
     if parent.parent == root and parent.name.endswith("求解"):
@@ -88,7 +92,7 @@ def workbook_identity(root: Path, workbook: Path) -> tuple[str, str, list[str]]:
     elif parent.parent.name == "结果数据表" and parent.parent.parent == root:
         problem = parent.name
     else:
-        return "", "", ["工作簿必须位于问题X求解/或旧版结果数据表/问题X/目录"]
+        return "", "", ["工作簿必须位于数据预处理/、问题X求解/或旧版结果数据表/问题X/目录"]
 
     if not problem.startswith("问题") or len(problem) <= len("问题"):
         return "", "", ["工作簿目录无法解析有效问题编号"]
@@ -104,22 +108,35 @@ def workbook_identity(root: Path, workbook: Path) -> tuple[str, str, list[str]]:
     return problem, stage, []
 
 
-def quality_passed(workbook: Path) -> tuple[bool, list[str]]:
+def _boolean_gate(workbook: Path, sheet: str, column: str) -> tuple[bool, list[str]]:
     book = openpyxl.load_workbook(workbook, read_only=True, data_only=True)
-    if "主结果质量门" not in book.sheetnames:
-        return False, ["缺少主结果质量门工作表"]
-    rows = list(book["主结果质量门"].iter_rows(values_only=True))
+    if sheet not in book.sheetnames:
+        return False, [f"缺少{sheet}工作表"]
+    rows = list(book[sheet].iter_rows(values_only=True))
     if not rows:
-        return False, ["主结果质量门为空"]
+        return False, [f"{sheet}为空"]
     headers = [str(item) if item is not None else "" for item in rows[0]]
-    if "是否通过" not in headers:
-        return False, ["主结果质量门缺少是否通过列"]
-    index = headers.index("是否通过")
+    if column not in headers:
+        return False, [f"{sheet}缺少{column}列"]
+    index = headers.index(column)
     failures = [
         str(row[0]) for row in rows[1:]
         if row and as_bool(row[index] if len(row) > index else None) is not True
     ]
-    return not failures, [f"质量门未通过: {item}" for item in failures]
+    return not failures, [f"{sheet}未通过: {item}" for item in failures]
+
+
+def preprocessing_passed(workbook: Path) -> tuple[bool, list[str]]:
+    book = openpyxl.load_workbook(workbook, read_only=True, data_only=True)
+    required = {"运行配置", "数据审计", "预处理参数", "预处理质量门"}
+    missing = sorted(required - set(book.sheetnames))
+    if missing:
+        return False, [f"预处理工作簿缺少工作表: {missing}"]
+    return _boolean_gate(workbook, "预处理质量门", "是否通过")
+
+
+def quality_passed(workbook: Path) -> tuple[bool, list[str]]:
+    return _boolean_gate(workbook, "主结果质量门", "是否通过")
 
 
 def analysis_passed(workbook: Path) -> tuple[bool, str, list[str]]:
@@ -146,7 +163,9 @@ def analysis_passed(workbook: Path) -> tuple[bool, str, list[str]]:
     )
 
 
-def validate_execution_evidence(config: dict[str, Any], entry: dict[str, Any], stage: str) -> list[str]:
+def validate_execution_evidence(
+    config: dict[str, Any], state: dict[str, Any], entry: dict[str, Any], stage: str
+) -> list[str]:
     issues: list[str] = []
     if config.get("execution_owner") != "user":
         issues.append("execution_owner必须为user")
@@ -157,15 +176,31 @@ def validate_execution_evidence(config: dict[str, Any], entry: dict[str, Any], s
     for flag in FALSE_FLAGS:
         if as_bool(config.get(flag)) is not False:
             issues.append(f"{flag}必须为false")
-    expected_code_hash = (
-        entry.get("analysis_code_sha256") if stage == "analysis"
-        else entry.get("primary_code_sha256")
-    )
+
+    if stage == "preprocessing":
+        preprocessing = state.get("preprocessing") or {}
+        if preprocessing.get("decision") != "project_level":
+            issues.append("只有preprocessing.decision=project_level时才允许验收数据预处理结果.xlsx")
+        expected_code_hash = preprocessing.get("code_sha256")
+        expected_data_hash = ((state.get("data") or {}).get("version_hashes") or {}).get("preprocessing_input")
+    else:
+        expected_code_hash = (
+            entry.get("analysis_code_sha256") if stage == "analysis"
+            else entry.get("primary_code_sha256")
+        )
+        expected_data_hash = entry.get("data_hash")
+        decision = str(((state.get("preprocessing") or {}).get("decision", "")))
+        if decision not in VALID_DECISIONS:
+            issues.append("项目状态缺少有效preprocessing.decision")
+        if stage == "primary" and decision == "project_level":
+            preprocessing = state.get("preprocessing") or {}
+            if preprocessing.get("status") != "accepted" or preprocessing.get("quality_status") != "passed":
+                issues.append("project_level项目的预处理工作簿尚未accepted/passed")
+
     if not expected_code_hash:
         issues.append("项目状态缺少已交付代码哈希")
     elif str(config.get("code_sha256", "")).lower() != str(expected_code_hash).lower():
         issues.append("工作簿code_sha256与已交付代码不一致")
-    expected_data_hash = entry.get("data_hash")
     if not expected_data_hash:
         issues.append("项目状态缺少代码交付时锁定的数据哈希")
     elif str(config.get("data_sha256", "")).lower() != str(expected_data_hash).lower():
@@ -190,8 +225,24 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
         return list(dict.fromkeys(issues))
 
     key = question_key(problem)
-    entry = (state.get("subproblems") or {}).get(key, {})
-    issues.extend(validate_execution_evidence(config, entry, stage))
+    entry = {} if stage == "preprocessing" else (state.get("subproblems") or {}).get(key, {})
+    issues.extend(validate_execution_evidence(config, state, entry, stage))
+
+    if stage == "preprocessing":
+        passed, quality_issues = preprocessing_passed(workbook)
+        issues.extend(quality_issues)
+        if write:
+            preprocessing = state.setdefault("preprocessing", {})
+            accepted = not issues and passed
+            preprocessing["status"] = "accepted" if accepted else "rejected"
+            preprocessing["quality_status"] = "passed" if accepted else "failed"
+            preprocessing["workbook"] = workbook.relative_to(root).as_posix()
+            preprocessing["workbook_sha256"] = file_hash(workbook)
+            if accepted:
+                state.setdefault("data", {})["active_source_mode"] = "preprocessed"
+                state.setdefault("project", {})["current_phase"] = "solve_validate"
+        return list(dict.fromkeys(issues))
+
     if stage == "primary":
         passed, quality_issues = quality_passed(workbook)
         issues.extend(quality_issues)
@@ -230,6 +281,7 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
 
 def discover(root: Path) -> list[Path]:
     current_patterns = (
+        "数据预处理/数据预处理结果.xlsx",
         "问题*求解/问题*求解结果.xlsx",
         "问题*求解/问题*结果深化分析.xlsx",
     )
@@ -276,8 +328,8 @@ def main() -> int:
         "checked_workbooks": checked,
         "issues": all_issues,
         "task_code_executed": False,
+        "report_persisted": False,
     }
-    report["report_persisted"] = False
     print(yaml.safe_dump(report, allow_unicode=True, sort_keys=False).rstrip())
     if all_issues:
         print("\n".join(all_issues))

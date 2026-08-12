@@ -1,4 +1,4 @@
-skill_version: 7.1.0
+skill_version: 7.2.1
 bootstrap_schema_version: 1.1.0
 purpose: Minimal startup contract for the HSK mathematical-modeling workflow. Read this file first, then use scripts/resolve_workflow.py to obtain the deterministic task-specific execution plan. Do not preload the whole repository.
 authoritative_sources:
@@ -9,6 +9,7 @@ authoritative_sources:
   project_state: core/project_state.schema.yaml
   workbook: core/workbook_schema.yaml
   output: core/output_contract.yaml
+  preprocessing: core/global_preprocessing_contract.yaml
   user_execution: core/user_execution_contract.yaml
   code_quality: core/code_quality_contract.yaml
   semantic_governance: scripts/validate_semantic_governance.py
@@ -17,15 +18,18 @@ hard_invariants:
 - 每问先冻结Problem Contract，明确原始/派生对象、已知/可计算量、决策/状态/输出量、显式/隐含约束、禁止假设、数据角色和typed dependencies。
 - 题面对象与要求、数学变量/公式/目标/约束、Python变量/函数和工作簿输出必须形成三层语义闭环；存在关键gap时不得交付代码。
 - 复杂赛题出现异常降维、异常解耦、条件或附件大量闲置、关键约束长期不生效或计算异常容易时，必须完成Complexity Sanity Check；review_required禁止求解。
-- 题意、数据口径、变量、参数、假设、目标、约束、预处理、算法语义或小问依赖变化时必须递增semantic_revision，并按data/parameter/model/result依赖递归传播stale。
+- 所有数据题先进行非破坏性数据审计并锁定preprocessing_decision；共享原始数据本身不能自动触发清洗、插值、滤波或统一工作簿。
+- preprocessing_decision=not_needed时直接使用原始数据；question_local时只允许本问有数学来源的局部变换；project_level时才创建数据预处理/并在验收后冻结公共数据口径。
+- 缺失填补、异常删除、插值、平滑、滤波、去趋势、标准化、归一化和重采样等数据修改必须有数据、机理或模型必要性证据，不能作为模板默认步骤。
+- 题意、数据口径、变量、参数、假设、目标、约束、preprocessing_decision、实际预处理、算法语义或小问依赖变化时必须递增semantic_revision，并按data/parameter/model/result依赖递归传播stale。
 - 先审题与锁定模型，再完整求解；不得用后续分析弥补主结果精度、收敛、可行性或语义不足。
 - 主求解必须通过独立质量门，随后才按题目风险选择敏感性、鲁棒性、多算法、结构、阈值、异质性或其他结果深化分析。
-- 结果深化分析发现主结论不可靠时，必须标记下游stale并回退模型设计或主求解。
-- 新项目默认由用户本地执行完整版主求解与结果深化代码；助手只生成代码、静态校验和验收返回工作簿，不得运行赛题代码。
+- 结果深化分析发现主结论不可靠时，必须按原因回退模型设计、条件式预处理或主求解并传播stale。
+- 新项目默认由用户本地执行实际生成的项目级预处理、完整版主求解与结果深化代码；助手只生成代码、静态校验和验收返回工作簿，不得运行赛题代码。
 - 每问主求解与结果深化分析使用两个独立Python脚本；主工作簿accepted后冻结主求解脚本，深化分析不得覆盖改写它。
 - 禁止自动缩减数据、网格、时域、场景、重复次数、迭代或容差，禁止静默求解器fallback和轻量近似。
-- Python代码负责完整数据处理、主求解、质量门、结果深化分析与工作簿；MATLAB只读取验收后的工作簿绘图。
-- 两个正式问题脚本都必须通过core/code_quality_contract.yaml定义的代码工程质量门。
+- Python负责当前数据事实源检查、主求解、质量门与结果深化分析；项目级公共数据处理仅在project_level时由数据预处理.py执行；MATLAB只读真实结果数据绘图。
+- 实际生成的数据预处理脚本和两个正式问题脚本都必须通过core/code_quality_contract.yaml定义的代码工程质量门。
 - 默认写作链在结果与图表锁定后直接进入LaTeX；DOCX仅由用户显式请求触发，且不是LaTeX前置。
 - locked_model_spec形成后维护项目根目录当前版模型论文框架.md；旧版本由Git历史保存。
 - 正式模型/代码/返回工作簿/下游交付前先执行semantic_governance gate；正式产物交付再执行解析器返回的project_sync gate。
@@ -56,6 +60,7 @@ compatibility:
   deprecated_classification_capabilities_supported: true
   deprecated_problem_types_supported: true
   legacy_robustness_workbook_read_supported: true
+  v7_2_0_preprocessing_without_decision_read_supported: true
   v7_0_semantic_governance_fields_optional_for_read: true
   v6_6_single_script_question_folders_read_supported: true
   versionless_active_documents:
