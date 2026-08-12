@@ -76,7 +76,11 @@ class TestSchemas(unittest.TestCase):
         self.assertEqual(contract["semantic_governance"]["script"], "scripts/validate_semantic_governance.py")
         self.assertEqual(contract["semantic_governance"]["dependency_kinds"], ["data", "parameter", "model", "result"])
         self.assertEqual(contract["project_sync"]["role"], "formal_pre_delivery_gate_after_semantic_governance")
-        self.assertEqual(contract["project_sync"]["stage_requirements_semantics"], "exact_scope_plus_conditional_preprocessing")
+        self.assertEqual(contract["project_sync"]["stage_requirements_semantics"], "exact_scope")
+        self.assertEqual(
+            contract["project_sync"]["conditional_stage_requirements_semantics"],
+            "additive_when_condition_true_without_changing_base_exact_scope",
+        )
         self.assertEqual(contract["project_sync"]["implicit_phase_sync_semantics"], "status_minimum_only")
         self.assertTrue(contract["project_sync"]["formal_scope_requires_explicit_flag"])
         self.assertEqual(
