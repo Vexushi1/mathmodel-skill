@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：7.2.1
+当前 Skill 版本：7.2.5
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -166,6 +166,7 @@
 - `templates/writing/caption_explanation.md`
 - `templates/writing/code_appendix_description.md`
 - `templates/writing/docx_check.md`
+- `tests/test_active_consistency_cleanup.py`
 - `tests/test_active_output_contract_cleanup.py`
 - `tests/test_active_residue_cleanup.py`
 - `tests/test_code_quality_contract.py`
