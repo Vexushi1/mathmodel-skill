@@ -1,4 +1,4 @@
-# HSK Core Policy v7.2.5
+# HSK Core Policy v7.2.6
 
 本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision`、条件式统一数据预处理、预处理论文数学证据与 `data_process.m` 图证据以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准。本文件不复制这些合同的完整字段。
 
@@ -45,6 +45,20 @@ $$
 复杂赛题异常退化为低维直接计算、弱耦合独立求解、动态转静态、多主体转单主体，或题目专门条件/附件字段大量闲置、关键约束长期不生效、后问近乎复制前问时，必须触发复审。无法证明简化合理时，`complexity_sanity_status=review_required`，禁止进入主求解。
 
 上述语义治理由 `scripts/validate_semantic_governance.py` 在正式模型、代码、返回工作簿和下游交付前执行。该门不运行赛题代码、不生成数值结果，也不清除数值 stale。
+
+### 2.5 项目工作记忆与上下文恢复
+
+`模型论文框架.md` 同时承担当前项目的**助手可读工作记忆**。它不是只给用户查看的交付说明，而是在模型锁定以后，把长上下文中最容易丢失的题意口径、数据角色、`preprocessing_decision`、变量/参数/假设、核心公式与约束、小问依赖、当前算法语义、结果摘要、验证边界、图表证据位置和论文组织压缩为一份可再次读取的当前态文档。
+
+执行现有项目时采用 **read-before-use / write-after-change**：
+
+1. 框架存在且 `current` 时，继续预处理、主求解、结果深化、绘图或单问修改前，优先读取“当前有效口径”、目标小问的当前模型/结果区和必要跨问依赖，不得仅凭聊天记忆恢复模型；
+2. 新聊天接续、长上下文恢复、整篇 DOCX/LaTeX 写作、跨问综合和终审时读取完整 current 框架；日常单问工作允许定向读取相关段落，避免无差别加载整份文件；
+3. 题意、数据口径、参数、假设、目标、约束、预处理、算法语义或依赖变化后，先按 semantic governance 处理 stale，再重写框架中的受影响当前内容；主结果、深化结果或图表验收后同步结果摘要和证据位置；
+4. 框架只保留当前有效版本，不保存历史流水账；历史仍由 Git 保存；
+5. 框架不是数值数据库。需要写入论文、比较算法或生成图表的具体数字必须回到已验收的标准工作簿复核；`state/project_state.yaml` 继续负责 semantic revision、hash、依赖和 stale。
+
+因此，框架的作用是“当前语义索引 + 项目记忆 + 写作骨架”，工作簿是数值事实源，project state 是机器状态源；三者职责互补而不互相替代。
 
 ## 3. 数据审计、条件式预处理与论文证据
 

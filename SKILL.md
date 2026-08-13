@@ -1,15 +1,21 @@
 ---
 name: mathmodel-skill
-version: 7.2.5
+version: 7.2.6
 summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, preprocessing paper/mathematical evidence, dedicated data_process MATLAB figures, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages and LaTeX-first writing.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 数据预处理, 数据清洗, 主结果质量, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.2.5
+# HSK 数学建模模块化工作流 v7.2.6
 
 ## 默认执行
 
 先读 `core/bootstrap.yaml`，再由 `scripts/resolve_workflow.py` 按任务加载模块。进入正式模型或代码前，必须完成 Problem Contract 题意口径冻结、数据质量审计与 `preprocessing_decision`、题面—数学—代码—输出语义闭环、Complexity Sanity Check，并由 `scripts/validate_semantic_governance.py` 检查当前 semantic revision 和跨小问依赖 stale。
+
+### `模型论文框架.md` 是项目工作记忆
+
+`locked_model_spec` 形成后，项目根目录 `模型论文框架.md` 不只是交付给用户查看的框架文件，也是助手跨阶段、跨聊天恢复当前项目语义的首选入口。已有 current 框架时，后续预处理、求解、深化分析、绘图和写作应先按需读取相关段落；单问继续优先读取当前有效口径、对应小问和必要依赖，整篇论文、跨问综合、长上下文恢复与终审读取完整框架。不得仅依赖聊天记忆重新拼接已锁定模型。
+
+框架负责当前语义、结果摘要和证据导航；具体数值必须回到已验收工作簿复核，semantic revision、hash 和 stale 继续由 `state/project_state.yaml` 管理。模型/参数/约束/预处理/算法语义变化后，以及主结果、深化结果、图表验收后，都要同步受影响的当前框架内容。
 
 ### 数据阶段硬规则
 
