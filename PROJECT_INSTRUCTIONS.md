@@ -6,7 +6,7 @@
 2. 使用 `scripts/resolve_workflow.py` 解析一个或多个意图，只加载命中的模块、Pack 和模板；
 3. 每问按 `classification.objective`、`classification.structures` 和顶层 `capabilities` 分类；
 4. Module 01 先冻结 Problem Contract，Module 02 再锁定模型语义、复杂度复审和 `preprocessing_decision`；
-5. `locked_model_spec` 形成后维护项目根目录 `模型论文框架.md`，只保留当前有效语义，历史由 Git 保存；
+5. `locked_model_spec` 形成后维护项目根目录 `模型论文框架.md`，只保留当前有效语义，历史由 Git 保存；该文件同时是助手的项目级工作记忆：已有 current 框架时，继续预处理、求解、深化分析、绘图和写作前优先按需读取相关段落，跨聊天/整篇写作/终审时读取完整框架，不得只依赖聊天记忆重建当前模型；具体数值仍回到已验收工作簿复核，hash/stale 仍以 project state 为准；
 6. 所有数据题都先做非破坏性审计，但只有 `preprocessing_decision=project_level` 时创建 `数据预处理/`；`not_needed` 直接使用原始数据，`question_local` 仅在对应小问 Python 中执行有数学来源的局部变换；
 7. `project_level` 时先交付并由用户本地 full-fidelity 运行 `数据预处理/数据预处理.py`，验收 `数据预处理结果.xlsx` 后才进入依赖主求解；`data_process.m` 在后续 Figure Evidence 阶段生成，不是主求解前置；
 8. 每问数值阶段最终默认恰好保留五个文件：

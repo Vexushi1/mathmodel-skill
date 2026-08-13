@@ -1,4 +1,4 @@
-version: 7.2.5
+version: 7.2.6
 workflow_order:
 - problem_audit
 - model_design
@@ -55,7 +55,7 @@ artifact_catalog:
   semantic_closure: 题面对象与要求—数学层—Python层—输出证据三层闭环
   complexity_sanity_check: 对异常降维、解耦、条件闲置和异常容易求解的复审结论
   proposition_plan: 全文0--4个高价值命题规划
-  model_paper_framework: 当前有效模型语义、Problem Contract、预处理判定与论文证据、论文组织、逐问结果摘要和图表映射
+  model_paper_framework: 助手可再次读取的当前项目语义记忆与论文骨架；保存Problem Contract、预处理判定、模型语义、逐问结果摘要和图表映射，具体数值仍以已验收工作簿为准，读取策略以core/workflow_router.yaml#project_memory_contract为准
   mechanism_contracts: 机理图合同
   validation_plan: 建模阶段识别的风险与候选验证方向
   semantic_governance_report: 聊天或标准输出中的Problem Contract、语义闭环、复杂度复审、语义哈希和跨问stale校验结果

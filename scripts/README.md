@@ -1,4 +1,4 @@
-# Scripts v7.2.5
+# Scripts v7.2.6
 
 - `lint_skill.py`：检查活动版本、路由、语义治理、通用判定式条件数据预处理、产物闭环、五文件合同、代码质量合同、Schema、旧结构残留、Python 语法和生成文件；
 - `resolve_workflow.py`：解析意图、`objective`、`structures`、`capabilities`、`preprocessing_decision` 与竞赛类型，返回确定性执行计划；只有 `project_level` 才插入项目级预处理阶段；
