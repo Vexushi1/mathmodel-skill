@@ -7,7 +7,7 @@ import hashlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = "7.2.1"
+BOOTSTRAP = ROOT / "core" / "bootstrap.yaml"
 SKILL_INDEX = ROOT / "SKILL_FILE_INDEX.md"
 TEMPLATE_INDEX = ROOT / "TEMPLATE_INDEX.md"
 LEGACY_SKILL_INDEX = ROOT / "HSK_SKILL_FILE_INDEX_V622.md"
@@ -27,6 +27,20 @@ GENERATED_RELATIVE = {
     LEGACY_TEMPLATE_INDEX.relative_to(ROOT),
     MANIFEST.relative_to(ROOT),
 }
+
+
+def current_skill_version() -> str:
+    """Read the active Skill version from the bootstrap single source of truth."""
+    if not BOOTSTRAP.is_file():
+        raise FileNotFoundError(f"bootstrap missing: {BOOTSTRAP}")
+    for raw_line in BOOTSTRAP.read_text(encoding="utf-8-sig").splitlines():
+        line = raw_line.strip()
+        if not line.startswith("skill_version:"):
+            continue
+        value = line.split(":", 1)[1].strip().strip('"\'')
+        if value:
+            return value
+    raise ValueError("core/bootstrap.yaml must declare a non-empty skill_version")
 
 
 def is_active_path(relative: Path) -> bool:
@@ -49,8 +63,15 @@ def iter_files() -> list[Path]:
     return sorted(files, key=lambda item: item.as_posix())
 
 
-def index_text(title: str, files: list[Path]) -> str:
-    lines = [f"# {title}", "", f"当前 Skill 版本：{VERSION}", "", "本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。", ""]
+def index_text(title: str, files: list[Path], version: str) -> str:
+    lines = [
+        f"# {title}",
+        "",
+        f"当前 Skill 版本：{version}",
+        "",
+        "本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。",
+        "",
+    ]
     lines.extend(f"- `{path.as_posix()}`" for path in files)
     return "\n".join(lines) + "\n"
 
@@ -99,10 +120,11 @@ def manifest_text(files: list[Path], overrides: dict[Path, str]) -> str:
 
 
 def generated_payloads() -> dict[Path, str]:
+    version = current_skill_version()
     files = iter_files()
     template_files = [path for path in files if path.parts and path.parts[0] == "templates"]
-    skill_payload = index_text("HSK Active Skill File Index", files)
-    template_payload = index_text("HSK Active Template Index", template_files)
+    skill_payload = index_text("HSK Active Skill File Index", files, version)
+    template_payload = index_text("HSK Active Template Index", template_files, version)
     legacy_skill_payload = compatibility_pointer(SKILL_INDEX.name)
     legacy_template_payload = compatibility_pointer(TEMPLATE_INDEX.name)
     overrides = {
