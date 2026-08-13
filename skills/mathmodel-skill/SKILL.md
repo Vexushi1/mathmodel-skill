@@ -10,6 +10,9 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 1. 从本目录定位仓库根目录 `../..`，读取 `../../core/bootstrap.yaml`；
 2. 使用 `../../scripts/resolve_workflow.py` 获取任务执行计划；
 3. 正式模型与代码前先完成 Problem Contract、当前附件的非破坏性通用数据审计、`preprocessing_decision`、题面—数学—代码语义闭环和 Complexity Sanity Check，并运行 `../../scripts/validate_semantic_governance.py`；
+
+### 数据阶段硬规则
+
 4. `preprocessing_decision` 只有三种：`not_needed`、`question_local`、`project_level`。共享同一原始数据源、检测到缺失值或某类赛题过去常见处理本身都不是 `project_level` 的充分条件；
 5. 只有 `project_level` 才创建 `数据预处理/`；最终标准文件为 `数据预处理.py`、`数据预处理结果.xlsx` 和 `data_process.m`。`not_needed` 直接使用原始数据，`question_local` 只在本问脚本内做有数学来源的局部变换；
 6. 判定必须检查当前数据的完整性、一致性、有效性、重复身份、采样与覆盖、测量质量、模型输入要求以及时间因果/信息泄漏；缺失值不等于必须插值，插值、统计填补、模型填补和预测填补都必须按变量语义、缺失结构与可验证性选择；
