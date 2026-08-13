@@ -97,6 +97,7 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
+- `scripts/apply_v726_framework_memory_patch.py`
 - `scripts/generate_indexes.py`
 - `scripts/hsk_pack_submission.py`
 - `scripts/lint_skill.py`
