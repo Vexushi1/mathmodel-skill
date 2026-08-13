@@ -1,4 +1,4 @@
-version: 7.2.5
+version: 7.2.6
 bootstrap: core/bootstrap.yaml
 default_load:
 - core/hsk_core_policy.md
@@ -6,6 +6,23 @@ default_load:
 - core/task_taxonomy.yaml
 - core/user_execution_contract.yaml
 - core/global_preprocessing_contract.yaml
+project_memory_contract:
+  artifact: model_paper_framework
+  project_file: 模型论文框架.md
+  activation: locked_model_spec exists and current framework is available
+  purpose: assistant-readable current project semantic memory for context recovery across stages and chats
+  read_before_modules: [data_preprocessing, solve_validate, result_analysis, figure_evidence, writing_docx, writing_latex, review_delivery]
+  targeted_read_sections: [当前有效口径, relevant_subproblem, required_dependencies, relevant_result_summary, 待办与缺口]
+  full_read_when: [cross_chat_handoff, long_context_recovery, full_paper_writing, cross_question_synthesis, final_review]
+  numeric_fact_source: accepted_standard_workbooks
+  machine_state_source: state/project_state.yaml
+  rules:
+  - Prefer the current framework over reconstructing current model semantics from chat memory.
+  - Use targeted section reads for ordinary single-question continuation; do not preload the whole framework without need.
+  - Use the full current framework for full-paper writing, cross-question synthesis, handoff and final review.
+  - Verify concrete numerical claims against accepted workbooks; framework result summaries are a navigation and context layer, not the numerical source of truth.
+  - If the framework is stale or conflicts with project state/workbooks, repair the upstream semantic/result state before downstream use.
+  - Synchronize affected framework sections after semantic changes and after accepted primary results, result analysis or figure evidence.
 classification_contract:
   axes: [objective, structures, capabilities]
   capability_source: subproblem.capabilities
@@ -39,7 +56,7 @@ execution_contract:
   - Result analysis may send the workflow back to model_design, conditionally to data_preprocessing, or to solve_validate when the locked result is not stable enough.
   - Semantic or preprocessing-decision changes must propagate stale through typed cross-question dependencies before downstream work continues.
   - Merge multiple intents in workflow order and remove duplicate modules, packs and outputs.
-  - Reuse current project state, framework and artifacts before recomputing.
+  - Reuse current project state, framework and artifacts before recomputing; when a current 模型论文框架.md exists, apply project_memory_contract and read the relevant sections before downstream work.
   - A gate output is available only after the gate executes successfully.
   - Compile only the LaTeX source produced after AI cleanup.
 routing:

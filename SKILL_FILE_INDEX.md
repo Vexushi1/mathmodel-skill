@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：7.2.5
+当前 Skill 版本：7.2.6
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -172,6 +172,7 @@
 - `tests/test_code_quality_contract.py`
 - `tests/test_content_packs.py`
 - `tests/test_contract_closure.py`
+- `tests/test_framework_project_memory_contract.py`
 - `tests/test_latex_first_versionless_docs.py`
 - `tests/test_no_active_old_stage.py`
 - `tests/test_preprocessing_decision_contract.py`

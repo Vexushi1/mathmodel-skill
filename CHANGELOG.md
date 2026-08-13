@@ -1,6 +1,16 @@
 # Changelog
 
-## Current release: 7.2.5
+## Current release: 7.2.6
+
+- Repositioned project-root `模型论文框架.md` as assistant-readable project memory in addition to a user-visible modeling/paper artifact, so current semantics can be recovered across long contexts and new chats without reconstructing the model from conversation history.
+- Added a router-level `project_memory_contract` with targeted reads for ordinary single-question continuation and full reads for cross-chat recovery, full-paper writing, cross-question synthesis and final review.
+- Added explicit read-before-use rules to project-level preprocessing, primary solving, result analysis, Figure Evidence and LaTeX writing; downstream stages must consult the current framework before acting when it exists.
+- Kept source-of-truth boundaries strict: accepted workbooks remain the numerical fact source and project state remains the semantic-revision/hash/stale source; framework summaries are context, navigation and writing memory rather than a replacement database.
+- Added write-after-change synchronization requirements for semantic changes, accepted primary/results-analysis outputs and locked figure evidence, while continuing to keep only the current framework version and using Git for history.
+- Removed the remaining active legacy `结果数据表/问题一/q1_plot.m` path from the framework template and renamed its generic sensitivity/robustness evidence row to the current result-analysis workbook terminology.
+- Added regression coverage for the framework project-memory contract without changing the existing three-state preprocessing API or per-question five-file interface.
+
+## Previous release: 7.2.5
 
 - Normalized `accepted_preprocessing_workbook` to the canonical `preprocessing_workbook` artifact before resolver dependency reporting, eliminating false missing-prerequisite warnings after an accepted project-level preprocessing workbook.
 - Added `state.preprocessing.covered_raw_sources` so project-level preprocessing explicitly records only the raw sources replaced by the unified workbook; independent auxiliary attachments remain readable when they are not covered.
