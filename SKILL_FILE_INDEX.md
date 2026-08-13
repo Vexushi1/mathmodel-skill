@@ -166,6 +166,7 @@
 - `templates/writing/caption_explanation.md`
 - `templates/writing/code_appendix_description.md`
 - `templates/writing/docx_check.md`
+- `tests/test_active_consistency_cleanup.py`
 - `tests/test_active_output_contract_cleanup.py`
 - `tests/test_active_residue_cleanup.py`
 - `tests/test_code_quality_contract.py`
