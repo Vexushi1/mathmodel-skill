@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   patch:
-    if: "github.event.head_commit.message == 'chore: fix v7.2.6 framework-memory patch runner'"
+    if: "github.event.head_commit.message == 'chore: rerun v7.2.6 framework-memory patch'"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
