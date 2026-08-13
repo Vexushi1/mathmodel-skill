@@ -21,10 +21,20 @@ class FrameworkProjectMemoryContractTests(unittest.TestCase):
         self.assertEqual(contract.get("numeric_fact_source"), "accepted_standard_workbooks")
         self.assertEqual(contract.get("machine_state_source"), "state/project_state.yaml")
         modules = set(contract.get("read_before_modules", []))
-        for required in {"data_preprocessing", "solve_validate", "result_analysis", "figure_evidence", "writing_latex", "review_delivery"}:
+        for required in {
+            "data_preprocessing",
+            "solve_validate",
+            "result_analysis",
+            "figure_evidence",
+            "writing_latex",
+            "review_delivery",
+        }:
             self.assertIn(required, modules)
         self.assertIn("cross_chat_handoff", contract.get("full_read_when", []))
         self.assertIn("full_paper_writing", contract.get("full_read_when", []))
+        rules = "\n".join(str(item) for item in contract.get("rules", []))
+        self.assertIn("Synchronize affected framework sections after semantic changes", rules)
+        self.assertIn("accepted primary results, result analysis or figure evidence", rules)
 
     def test_downstream_modules_explicitly_read_framework(self) -> None:
         checks = {
