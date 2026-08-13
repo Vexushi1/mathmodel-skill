@@ -1,31 +1,36 @@
 # HSK 项目调用说明
 
-当前活动规则以 `core/bootstrap.yaml` 指向的权威文件为准。
+当前活动规则以 `core/bootstrap.yaml` 指向的权威文件为准。本文件只提供调用顺序和稳定摘要，不复制各合同的完整字段。
 
 1. 首先读取 `core/bootstrap.yaml`；
-2. 使用 `scripts/resolve_workflow.py` 解析一个或多个意图；
-3. 每问以 `classification.objective`、`classification.structures` 和顶层 `capabilities` 分类；
-4. 模型锁定后维护项目根目录 `模型论文框架.md`；
-5. 每问新建一个 `问题X求解/`，默认只保留 `问题X求解.py`、`问题X求解结果.xlsx`、`问题X结果深化分析.xlsx` 和 `qX_plot.m`；
-6. Python 先完成完整主求解，不得因模块分离删除求解器状态、外样本精度、约束、残差、收敛或可复算检查；
-7. 每次正式 Python 代码交付前执行 `validate_code_delivery.py`，同时检查完整版运行配置和 `core/code_quality_contract.yaml` 的工程质量门；
-8. 主结果质量报告写入同目录 `问题X求解结果.xlsx` 的 `主结果质量门` 工作表，全部通过后才能进入结果深化分析；
-9. 结果深化方法根据题目、模型、数据、主结果表现和评委风险选择，可为敏感性、鲁棒性、多算法、结构稳健性、阈值、异质性、误差分解或外样本稳定性；
-10. 主工作簿验收后覆盖更新同一个 `问题X求解.py`，深化分析写入同目录 `问题X结果深化分析.xlsx`，不得另建结果深化分析 Python 脚本；
-11. 深化分析工作簿必须包含 `分析设计`、至少一个实质分析表和 `结论稳定性汇总`；
-12. 深化分析发现主结论不可靠时，标记下游 stale，回退模型设计或主求解并重新计算；
-13. MATLAB 使用同目录 `qX_plot.m` 精确读取两个真实工作簿，不重新计算核心结果，默认不创建图表子目录或自动导出图片；
-14. 默认完整流程在结果和图表锁定后直接进入 LaTeX；
-15. DOCX 仅在用户明确要求 Word 审阅、批注、协作或特定提交格式时加载独立路由，不是 LaTeX 前置；
-16. 正式交付执行解析器返回的 `pre_delivery_gates`；
-17. `project_sync` 使用 `python scripts/sync_project.py <project_root> --write --strict --delivery-scope <scope>`；
-18. 同步器按 exact scope 检查必需产物、工作簿 Schema、MATLAB 图表链和分层哈希，只传播 stale，不生成模型语义、结果或 passed；
-19. 旧 `结果数据表/问题X/`、独立结果深化脚本和 `问题X敏感性与鲁棒性结果.xlsx` 仅作历史项目只读兼容，新项目不再生成；
-20. 命题详细 Pack 仅在明确需要证明或命题计划非零时加载；
-21. 中文国赛终稿保留 `cumcmthesis`。
+2. 使用 `scripts/resolve_workflow.py` 解析一个或多个意图，只加载命中的模块、Pack 和模板；
+3. 每问按 `classification.objective`、`classification.structures` 和顶层 `capabilities` 分类；
+4. Module 01 先冻结 Problem Contract，Module 02 再锁定模型语义、复杂度复审和 `preprocessing_decision`；
+5. `locked_model_spec` 形成后维护项目根目录 `模型论文框架.md`，只保留当前有效语义，历史由 Git 保存；
+6. 所有数据题都先做非破坏性审计，但只有 `preprocessing_decision=project_level` 时创建 `数据预处理/`；`not_needed` 直接使用原始数据，`question_local` 仅在对应小问 Python 中执行有数学来源的局部变换；
+7. `project_level` 时先交付并由用户本地 full-fidelity 运行 `数据预处理/数据预处理.py`，验收 `数据预处理结果.xlsx` 后才进入依赖主求解；`data_process.m` 在后续 Figure Evidence 阶段生成，不是主求解前置；
+8. 每问数值阶段最终默认恰好保留五个文件：
 
-活动入口使用稳定文件名：`PROJECT_INSTRUCTIONS.md`、`RUNTIME_ROUTER.md`、`SKILL_FILE_INDEX.md` 和 `TEMPLATE_INDEX.md`。历史版本化文件名仅保留兼容指针。
+```text
+问题X求解/
+├─ 问题X求解.py
+├─ 问题X求解结果.xlsx
+├─ 问题X结果深化分析.py
+├─ 问题X结果深化分析.xlsx
+└─ qX_plot.m
+```
 
-## v6.6.1 用户执行完整版代码
+9. `问题X求解.py` 只负责主求解；用户返回的主工作簿 accepted 后冻结该脚本；
+10. 主工作簿通过质量门后，单独生成 `问题X结果深化分析.py`，读取当前数据事实源和已验收主结果，输出 `问题X结果深化分析.xlsx`；不得为了深化分析覆盖改写主求解脚本；
+11. 实际赛题的预处理、主求解和深化分析 Python 默认由用户本地 full-fidelity 运行；助手只生成、静态检查并验收返回工作簿，不自动降采样、粗网格、缩短时域、减少重复、放宽容差或静默切换求解器；
+12. Python 不生成论文结果图；MATLAB 在 Figure Evidence 阶段读取真实工作簿和精确表头绘图，不重新预处理或求解；
+13. `project_level` 的公共预处理证据图脚本固定为 `数据预处理/data_process.m`；各问结果图脚本固定为同目录 `qX_plot.m`；默认只保留可见图窗，不自动创建图表子目录或批量导出；
+14. 默认写作链为 Figure Evidence → LaTeX → AI cleanup → 编译质量检查；DOCX 仅在用户明确要求 Word 审阅、批注、协作或特定提交格式时加载，不是 LaTeX 前置；
+15. 正式模型、代码、返回工作簿和下游交付先执行 `scripts/validate_semantic_governance.py`；正式产物交付再按解析器返回的 scope 执行 `scripts/sync_project.py <project_root> --write --strict --delivery-scope <scope>`；
+16. `project_sync` 只发现产物、校验 Schema、计算哈希和传播 stale，不生成模型语义、数值结果或 passed 状态；
+17. `run_info.json`、`result_manifest.yaml`、`matlab_figure_handoff.json` 只在用户明确要求完整复现包时生成，并放在项目级内部元数据目录，不得进入 `问题X求解/` 或 `数据预处理/`；
+18. 旧 `结果数据表/问题X/`、旧敏感性与鲁棒性工作簿以及 v6.6 单脚本四文件目录只作历史项目只读兼容，新项目不得按旧结构生成；
+19. 命题证明详细 Pack 仅在明确需要证明或当前命题规划非零时加载；
+20. 中文国赛终稿保留 `cumcmthesis`。
 
-默认不由助手运行赛题主求解或结果深化分析程序。助手交付题目专属完整版代码；完整运行配置嵌入代码，运行说明在聊天内给出。代码先通过工程质量门，用户运行后返回标准工作簿；工作簿再通过运行配置、代码/数据哈希和数值质量门验收后，工作流才继续。禁止自动降采样、粗网格、短时域、少重复、宽容差、静默求解器 fallback 或用轻量结果代替正式结果。
+活动入口使用稳定文件名：`PROJECT_INSTRUCTIONS.md`、`RUNTIME_ROUTER.md`、`SKILL_FILE_INDEX.md` 和 `TEMPLATE_INDEX.md`。旧版本化入口只保留兼容指针，不承载活动规则。

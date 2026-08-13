@@ -17,6 +17,21 @@ data:
     role: 项目根目录中的原始输入数据
   version_hashes: {}
   locked_scope: 字段、单位、时间口径与数据角色已完成审计，数据值尚未锁定。
+  active_source_mode: raw
+preprocessing:
+  decision: not_needed
+  level: none
+  status: not_applicable
+  evidence:
+  - 当前附件完整性、字段、单位、主键、时间/空间粒度与模型输入要求经非破坏性审计后可直接建模。
+  operations: []
+  forbidden_operations:
+  - 无证据的插值
+  - 无证据的异常删除
+  - 为流程完整而强制标准化或滤波
+  downstream_data_source: raw
+  quality_status: not_applicable
+  note: 示例采用not_needed；真实项目必须根据当前题目、附件和模型要求重新判定，不能照抄。
 decisions:
   Q1:
     selected_model: 填写模型名称
@@ -82,7 +97,7 @@ paper_framework:
   mode: compact
   sync_status: current
   last_synced_at: '2026-08-11T03:45:00Z'
-  last_sync_scope: Q1 Problem Contract、语义闭环与复杂度复审已完成，主求解待执行
+  last_sync_scope: Q1 Problem Contract、语义闭环、复杂度复审与preprocessing_decision=not_needed已锁定，主求解待执行
   proposition_limit: 4
   proposition_count: 0
   proposition_status: not_assessed
@@ -100,4 +115,4 @@ artifacts:
 risks: []
 next_gate:
   module: solve_validate
-  condition: problem_contract=frozen、semantic_closure=passed、complexity_sanity=passed，且objective、structures、capabilities、变量、目标函数、约束和求解器候选已锁定
+  condition: problem_contract=frozen、semantic_closure=passed、complexity_sanity=passed、preprocessing_decision已锁定为not_needed，且objective、structures、capabilities、变量、目标函数、约束和求解器候选已锁定
