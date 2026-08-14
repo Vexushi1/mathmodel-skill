@@ -50,6 +50,16 @@ class TestV741SkillClosureHygiene(unittest.TestCase):
             self.assertNotIn(f"`{legacy}`", index)
             self.assertFalse(any(line.endswith(f"  {legacy}") for line in manifest.splitlines()))
 
+    def test_agent_entrypoint_delegates_gate_order_to_resolver(self):
+        agent = yaml.safe_load((ROOT / "agents/openai.yaml").read_text(encoding="utf-8"))
+        prompt = agent["interface"]["default_prompt"]
+        for token in ("pre_delivery_gates", "semantic_governance", "code_delivery", "user_execution_receipt", "project_sync"):
+            self.assertIn(token, prompt)
+        self.assertIn("do not replace stage-specific gates with a blanket project-sync call", prompt)
+        self.assertIn("DOCX is explicit-only", prompt)
+        self.assertIn("Do not load legacy or V622 compatibility pointers by default", prompt)
+        self.assertNotIn("Before every formal model, code, workbook, MATLAB figure, DOCX, LaTeX or submission delivery, run scripts/sync_project.py", prompt)
+
     def test_every_router_route_resolves_to_existing_paths(self):
         resolver = load_resolver()
         router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8"))
