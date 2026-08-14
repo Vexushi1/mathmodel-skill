@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.3.0
+version: 7.4.0
 summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, preprocessing paper/mathematical evidence, dedicated data_process MATLAB figures, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, adaptive evidence-driven paper rhetoric and LaTeX-first writing.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 数据预处理, 数据清洗, 主结果质量, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.3.0
+# HSK 数学建模模块化工作流 v7.4.0
 
 ## 默认执行
 
@@ -83,7 +83,7 @@ preprocessing_decision
 
 ### 写作阶段硬规则
 
-LaTeX 仍是默认论文主链，但 v7.3.0 起正文写作不再只依赖章节清单和 AI 套话清理。`modules/05_writing/latex.md` 的“正文表达与章节组织协议（写作权威）”统一约束 DOCX、LaTeX 与 AI-cleanup：
+LaTeX 仍是默认论文主链，但 v7.4.0 起正文写作不再只依赖章节清单和 AI 套话清理。`modules/05_writing/latex.md` 的“正文表达与章节组织协议（写作权威）”统一约束 DOCX、LaTeX 与 AI-cleanup：
 
 - 问题重述压缩为研究对象、关键条件和逐问输入/输出，不逐句复制赛题；
 - 问题分析写本问难点、对象关系、跨问依赖和建模抓手，不写“预处理—建模—求解—绘图”的流程清单；
@@ -92,6 +92,7 @@ LaTeX 仍是默认论文主链，但 v7.3.0 起正文写作不再只依赖章节
 - 结果正文优先形成“关键数值/现象—比较基准—机制解释—题目结论—必要边界”的证据闭环；
 - 模型评价必须指向当前模型的机制、验证、计算结构、解释能力和失效来源，不强制“优点三条、缺点两条、推广一段”；
 - 物理机理、统计回归、机器学习、优化网络、动态仿真和多问混合题按不同证据链组织章节，不机械同构。
+- v7.4.0 进一步按证据架构组织正文：复杂对象允许题目专属恢复图；共享/局部假设分层放置；算法只解释本题必要部分；推导—结果—检验优先局部闭环；模型检验与优缺点评价分工，验证证据不能被模板评价替代。
 
 DOCX 仅在用户显式要求时加载，不是 LaTeX 前置；其正文表达与 LaTeX 使用同一权威写作协议。
 

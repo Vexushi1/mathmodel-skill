@@ -18,7 +18,7 @@ class TestSchemas(unittest.TestCase):
     def test_classification_has_single_capability_source_and_split_status(self):
         schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
         defs = schema["$defs"]
-        self.assertEqual(schema["version"], "7.3.0")
+        self.assertEqual(schema["version"], "7.4.0")
         self.assertEqual(set(defs["classification"]["required"]), {"objective", "structures"})
         self.assertEqual(set(defs["dependency_kind"]["enum"]), {"data", "parameter", "model", "result"})
         self.assertEqual(set(defs["preprocessing_decision"]["enum"]), {"not_needed", "question_local", "project_level"})
@@ -70,7 +70,7 @@ class TestSchemas(unittest.TestCase):
 
     def test_output_contract_defines_split_result_policy(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(contract["version"], "7.3.0")
+        self.assertEqual(contract["version"], "7.4.0")
         self.assertEqual(contract["code_quality_contract"], "core/code_quality_contract.yaml")
         self.assertEqual(contract["preprocessing_contract"], "core/global_preprocessing_contract.yaml")
         self.assertEqual(contract["semantic_governance"]["script"], "scripts/validate_semantic_governance.py")

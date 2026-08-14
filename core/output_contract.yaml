@@ -1,4 +1,4 @@
-version: 7.3.0
+version: 7.4.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 user_execution_contract: core/user_execution_contract.yaml
@@ -31,6 +31,14 @@ writing_policy:
   generic_textbook_derivation_forbidden: true
   result_explanation_chain: 关键数值或现象 -> 比较基准 -> 机制解释 -> 题目结论 -> 必要边界
   generic_model_evaluation_forbidden: true
+  title_software_as_contribution_forbidden: true
+  abstract_implementation_detail_forbidden: true
+  object_restoration_figure_allowed_when_structurally_necessary: true
+  assumption_scope_localization_required: true
+  local_evidence_closure_preferred: true
+  model_validation_precedes_evaluation: true
+  standalone_model_evaluation_required: false
+  generic_algorithm_background_budget: minimal_task_specific
 execution_policy:
   default_owner: user
   default_profile: full_fidelity
