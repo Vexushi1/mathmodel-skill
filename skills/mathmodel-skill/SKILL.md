@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.2.6
-summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, substantive preprocessing paper evidence, dedicated data_process MATLAB figures, dependency-aware stale propagation, full-fidelity solving, separate primary/result-analysis Python stages and LaTeX-first writing.
+version: 7.3.0
+summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, substantive preprocessing paper evidence, dedicated data_process MATLAB figures, dependency-aware stale propagation, full-fidelity solving, separate primary/result-analysis Python stages, adaptive evidence-driven paper rhetoric and LaTeX-first writing.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 数据预处理, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.2.6
+# HSK 数学建模模块化工作流 v7.3.0
 
 1. 从本目录定位仓库根目录 `../..`，读取 `../../core/bootstrap.yaml`；
 2. 使用 `../../scripts/resolve_workflow.py` 获取任务执行计划；
@@ -30,6 +30,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 12. 实际生成的 `preprocessing / primary / analysis` 代码阶段都必须通过 `../../core/code_quality_contract.yaml` 与 `../../scripts/validate_code_delivery.py`；
 13. 用户完整运行后，由 `validate_user_execution.py` 按当前数据事实源验收工作簿、对应阶段代码/数据哈希和质量门；project_level 工作簿同时必须保存论文方法、处理前后和绘图底层证据；
 14. 深化分析不稳定时按原因回退模型、条件式预处理或主求解并传播 stale；只改深化脚本不得污染已通过的主结果质量状态；
-15. MATLAB只读真实工作簿证据绘图，LaTeX为默认论文主链，DOCX仅显式按需。
+15. MATLAB只读真实工作簿证据绘图，LaTeX为默认论文主链，DOCX仅显式按需；
+16. 正文写作统一遵循 `../../modules/05_writing/latex.md` 的“正文表达与章节组织协议（写作权威）”：问题重述不复制题面，问题分析不写流水账，假设只保留真正影响模型的条件，模型推导不写通用算法百科，结果形成“数值/现象—比较—机制—结论—边界”闭环，模型评价不得使用换题仍成立的万能优缺点，并按题型自适应组织章节。
 
 详细规则以 `../../core/` 下权威合同为准。v7.2.0--v7.2.2 项目重新进入设计、预处理、绘图或写作时沿用三态 `preprocessing_decision` 并按当前通用审计与论文证据框架复核；历史只读交付不强制反向补 `data_process.m`，更早项目与 `legacy/` 按既有只读兼容规则处理。

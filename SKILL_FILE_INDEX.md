@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：7.2.6
+当前 Skill 版本：7.3.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -195,3 +195,4 @@
 - `tests/test_v700_two_stage_question_folder.py`
 - `tests/test_v701_stage_boundary_closure.py`
 - `tests/test_v710_semantic_governance.py`
+- `tests/test_v730_writing_expression_protocol.py`

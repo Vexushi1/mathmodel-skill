@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.2.6
-summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, preprocessing paper/mathematical evidence, dedicated data_process MATLAB figures, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages and LaTeX-first writing.
+version: 7.3.0
+summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, preprocessing paper/mathematical evidence, dedicated data_process MATLAB figures, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, adaptive evidence-driven paper rhetoric and LaTeX-first writing.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 数据预处理, 数据清洗, 主结果质量, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.2.6
+# HSK 数学建模模块化工作流 v7.3.0
 
 ## 默认执行
 
@@ -81,6 +81,20 @@ preprocessing_decision
 
 完整运行配置分别嵌入实际生成的阶段 Python 并写入对应工作簿；运行步骤和校验结果只在聊天或标准输出中返回。主工作簿验收后冻结 `问题X求解.py`，随后独立生成 `问题X结果深化分析.py`，不得为深化分析覆盖改写主求解脚本。
 
+### 写作阶段硬规则
+
+LaTeX 仍是默认论文主链，但 v7.3.0 起正文写作不再只依赖章节清单和 AI 套话清理。`modules/05_writing/latex.md` 的“正文表达与章节组织协议（写作权威）”统一约束 DOCX、LaTeX 与 AI-cleanup：
+
+- 问题重述压缩为研究对象、关键条件和逐问输入/输出，不逐句复制赛题；
+- 问题分析写本问难点、对象关系、跨问依赖和建模抓手，不写“预处理—建模—求解—绘图”的流程清单；
+- 模型假设只保留真正改变模型、可解释失效边界且可检查的条件，不把题面事实和单位约定伪装成假设；
+- 模型推导从本题对象、机制、变量和约束出发，删除通用算法百科、模型发展史和无直接作用的教科书式定义；
+- 结果正文优先形成“关键数值/现象—比较基准—机制解释—题目结论—必要边界”的证据闭环；
+- 模型评价必须指向当前模型的机制、验证、计算结构、解释能力和失效来源，不强制“优点三条、缺点两条、推广一段”；
+- 物理机理、统计回归、机器学习、优化网络、动态仿真和多问混合题按不同证据链组织章节，不机械同构。
+
+DOCX 仅在用户显式要求时加载，不是 LaTeX 前置；其正文表达与 LaTeX 使用同一权威写作协议。
+
 ## 主链
 
 ```text
@@ -94,11 +108,11 @@ preprocessing_decision
 → 主结果质量门 → 独立Python结果深化分析 → 深化代码质量门 → 用户完整运行
 → 稳定性验收/必要时回退重算
 → [project_level] data_process预处理证据图
-→ MATLAB各问结果图 → LaTeX直写 → 编译与终审
+→ MATLAB各问结果图 → 题型自适应LaTeX直写 → AI-cleanup → 编译与终审
 ```
 
 题意解释、数据范围、变量、参数、假设、目标、约束、`preprocessing_decision`、实际预处理、算法语义或小问依赖变化时必须递增 `semantic_revision`；已验证语义变化先使受影响结果 stale，再按 `data / parameter / model / result` 依赖递归传播。接受新语义不恢复旧数值，仍须重新执行适用的数据处理、求解与验收。
 
 代码工程质量由 `core/code_quality_contract.yaml` 唯一定义并由 `scripts/validate_code_delivery.py` 检查实际生成的 `preprocessing / primary / analysis` Python；工作簿由 `scripts/validate_user_execution.py` 按当前数据决策验收。目录与正式交付以 `core/output_contract.yaml` 为准。
 
-MATLAB 默认只保留图窗，不在求解目录创建 `图表/` 或自动导出。DOCX 仅在用户显式要求时加载，不是 LaTeX 前置。v7.2.0--7.2.2 项目重新进入设计、预处理、绘图或写作时继续沿用三态 `preprocessing_decision`，并按当前通用审计与论文证据规则复核；历史只读交付不强制反向补文件。
+MATLAB 默认只保留图窗，不在求解目录创建 `图表/` 或自动导出。v7.2.0--v7.2.2 项目重新进入设计、预处理、绘图或写作时继续沿用三态 `preprocessing_decision`，并按当前通用审计与论文证据规则复核；历史只读交付不强制反向补文件。

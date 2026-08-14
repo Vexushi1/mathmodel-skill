@@ -1,6 +1,20 @@
 # Changelog
 
-## Current release: 7.2.6
+## Current release: 7.3.0
+
+- Added a shared evidence-driven **paper expression and section-organization protocol** for DOCX, LaTeX and AI cleanup, derived from cross-paper review of 2025 mathematical-modeling showcase papers rather than fixed phrase imitation.
+- Reframed problem restatement as a compact recovery of research object, modeling-relevant conditions and per-question inputs/outputs; direct prompt copying, premature model naming and premature result reporting are rejected.
+- Reframed problem analysis around the actual modeling difficulty, object/mechanism, cross-question dependency and model-selection rationale instead of generic “preprocess -> model -> solve -> plot” workflow prose.
+- Made model assumptions impact-based rather than quota-based: facts and conventions are separated from assumptions, and retained assumptions must affect model structure, approximation, distribution or validity boundaries and be defensible/checkable.
+- Added anti-textbook derivation rules: start from problem-specific objects and mechanisms, connect every core equation to its modeling role, and avoid generic model history or algorithm encyclopedias unless needed for the current derivation.
+- Added a result-writing evidence chain: key value/phenomenon -> comparison or threshold -> mechanism -> direct answer -> validity/failure boundary; result paragraphs must distinguish description, explanation and question answering and must preserve inconvenient anomalies or local instability.
+- Replaced generic “three strengths, two weaknesses, one promotion” evaluation with model-specific mechanism closure, validation evidence, computational structure, interpretability, explicit limitation consequences and concrete extension conditions.
+- Added adaptive sectioning patterns for physical/mechanistic, statistical/regression, machine-learning, optimization/network, dynamic/simulation and mixed multi-question problems; shared foundations are defined once and downstream questions emphasize only new variables, objectives, constraints and evidence.
+- Strengthened AI cleanup with prompt-copy, pipeline-listing, universal-assumption, textbook-derivation, software-as-algorithm, result-reporting and generic-evaluation checks plus a cross-topic replacement test for detecting reusable template paragraphs.
+- Preserved the v7.2.x three-state preprocessing API, full-fidelity execution ownership, two-Python/five-file per-question interface, MATLAB ownership and LaTeX-first workflow; this is a backward-compatible writing-capability release with no new required user-visible artifacts.
+- Added v7.3.0 regression coverage locking the shared writing authority and version consistency.
+
+## Previous release: 7.2.6
 
 - Repositioned project-root `模型论文框架.md` as assistant-readable project memory in addition to a user-visible modeling/paper artifact, so current semantics can be recovered across long contexts and new chats without reconstructing the model from conversation history.
 - Added a router-level `project_memory_contract` with targeted reads for ordinary single-question continuation and full reads for cross-chat recovery, full-paper writing, cross-question synthesis and final review.
