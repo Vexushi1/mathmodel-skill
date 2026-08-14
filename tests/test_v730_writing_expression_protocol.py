@@ -15,7 +15,7 @@ class WritingExpressionProtocolV730Tests(unittest.TestCase):
         self.assertIn("问题分析：写“为什么这样建模”，不是方法目录", latex)
         self.assertIn("模型推导：从本题对象出发，避免教科书腔", latex)
         self.assertIn("结果段：形成“数值—机制—结论”闭环", latex)
-        self.assertIn("模型评价：评价当前模型，不写万能优缺点", latex)
+        self.assertIn("模型检验、评价与改进：先证据，后判断", latex)
         self.assertIn("不同题型的推荐章节组织", latex)
 
     def test_docx_and_cleanup_reference_shared_authority(self):
@@ -68,17 +68,17 @@ class WritingExpressionProtocolV730Tests(unittest.TestCase):
         manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
         output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(bootstrap["skill_version"], "7.3.0")
-        self.assertEqual(manifest["version"], "7.3.0")
-        self.assertEqual(output["version"], "7.3.0")
-        self.assertEqual(plugin["version"], "7.3.0")
-        self.assertIn("version: 7.3.0", (ROOT / "SKILL.md").read_text(encoding="utf-8"))
+        self.assertEqual(bootstrap["skill_version"], "7.4.0")
+        self.assertEqual(manifest["version"], "7.4.0")
+        self.assertEqual(output["version"], "7.4.0")
+        self.assertEqual(plugin["version"], "7.4.0")
+        self.assertIn("version: 7.4.0", (ROOT / "SKILL.md").read_text(encoding="utf-8"))
         self.assertIn(
-            "version: 7.3.0",
+            "version: 7.4.0",
             (ROOT / "skills/mathmodel-skill/SKILL.md").read_text(encoding="utf-8"),
         )
-        self.assertTrue((ROOT / "README.md").read_text(encoding="utf-8").startswith("# mathmodel-skill v7.3.0"))
-        self.assertIn("## Current release: 7.3.0", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
+        self.assertTrue((ROOT / "README.md").read_text(encoding="utf-8").startswith("# mathmodel-skill v7.4.0"))
+        self.assertIn("## Current release: 7.4.0", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
