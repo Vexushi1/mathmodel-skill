@@ -1,0 +1,335 @@
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def read(path: str) -> str:
+    return (ROOT / path).read_text(encoding="utf-8")
+
+
+def write(path: str, text: str) -> None:
+    (ROOT / path).write_text(text, encoding="utf-8")
+
+
+def replace_once(text: str, old: str, new: str, label: str) -> str:
+    if old not in text:
+        raise SystemExit(f"anchor missing: {label}")
+    return text.replace(old, new, 1)
+
+
+# Release markers. CHANGELOG is handled separately to preserve v7.3.0 history.
+version_paths = [
+    "SKILL.md", "README.md",
+    "core/bootstrap.yaml", "core/workflow_router.yaml", "core/module_manifest.yaml",
+    "core/output_contract.yaml", "core/project_state.schema.yaml",
+    "core/user_execution_contract.yaml", "core/code_quality_contract.yaml",
+    "core/global_preprocessing_contract.yaml", ".codex-plugin/plugin.json",
+    "skills/mathmodel-skill/SKILL.md", "scripts/lint_skill.py", "scripts/README.md",
+    "scripts/resolve_workflow.py",
+]
+for path in version_paths:
+    p = ROOT / path
+    if p.exists():
+        write(path, read(path).replace("7.3.0", "7.4.0"))
+for p in (ROOT / "tests").glob("test_*.py"):
+    text = p.read_text(encoding="utf-8")
+    if "7.3.0" in text:
+        p.write_text(text.replace("7.3.0", "7.4.0"), encoding="utf-8")
+
+# Authoritative LaTeX writing protocol.
+path = "modules/05_writing/latex.md"
+text = read(path)
+text = replace_once(
+    text,
+    "## 终稿结构\n\n摘要、关键词、问题重述、问题分析、假设与符号、数据预处理、各问建模求解、结果分析、模型评价与改进、结论、参考文献、附录。",
+    """## 终稿结构
+
+### 标题、摘要与引言的前置规则
+
+- **标题写研究对象、关键机制或模型贡献，不写实现工具。** “基于 Python/MATLAB 的……”通常不是学术贡献；只有软件平台本身就是研究对象时才可进入标题。
+- **摘要按问压缩证据。** 每问优先保留“研究对象/模型选择—关键算法或机制—1--2 个决定性数值—直接结论”，不罗列脚本名、工作表名、软件操作、完整参数表或所有中间指标。
+- 摘要中的数值必须能在正文表图或已验收工作簿反向定位；同一问若有大量结果，只选能改变判断的峰值、阈值、区间、误差、概率、收益或最优方案。
+- **引言不是默认必需章节。** 只有外部背景、相关研究或方法冲突确实用于解释模型选择时才设置短引言；不得为了“像论文”扩写通用行业背景或文献综述。
+
+摘要、关键词、问题重述、问题分析、假设与符号、数据预处理、各问建模求解、结果分析、模型评价与改进、结论、参考文献、附录。""",
+    "title abstract intro rules",
+)
+text = replace_once(
+    text,
+    """各问推荐采用：
+
+```text
+模型详细推导
+→ 必要命题与短证明（可选）
+→ 核心模型汇总
+→ 主求解算法与质量门
+→ 主结果
+→ 题目专属结果深化分析
+→ 小问结论
+```""",
+    """各问推荐采用**局部证据闭环**，而不是把所有结果和检验拖到全文末尾：
+
+```text
+模型详细推导
+→ 必要局部性质/命题与短证明（可选）
+→ 核心模型汇总
+→ 主求解算法与质量门
+→ 主结果
+→ 与该结论直接相关的误差/检验/深化证据
+→ 小问结论
+```""",
+    "local evidence skeleton",
+)
+text = replace_once(
+    text,
+    "禁止：逐句复制赛题、把题面中的全部故事细节无差别搬入正文、在“问题重述”中提前宣布“采用某算法得到某结果”。\n\n### 3. 问题分析",
+    """禁止：逐句复制赛题、把题面中的全部故事细节无差别搬入正文、在“问题重述”中提前宣布“采用某算法得到某结果”。
+
+**对象恢复图准入。** 对机构几何、网络拓扑、空间区域、生产装配关系、复杂数据层级等仅靠文字难以恢复的对象，可在问题重述或问题分析放 1--2 张题目专属对象图。图必须直接标识后续公式会使用的对象、方向、距离、层级或连接关系，并明显减少正文解释成本。通用“输入—处理—输出”流程图、装饰性场景图和与公式无变量映射的示意图不得占用前置篇幅。
+
+### 3. 问题分析""",
+    "object restoration figure",
+)
+text = replace_once(
+    text,
+    "好的问题分析应出现本题专属对象，例如几何位置、反射界面、风险阈值、网络节点、孕周、速度场、轨迹特征等；若把对象名替换后仍适用于任何赛题，说明分析仍然过于模板化。\n\n### 4. 模型假设",
+    """好的问题分析应出现本题专属对象，例如几何位置、反射界面、风险阈值、网络节点、孕周、速度场、轨迹特征等；若把对象名替换后仍适用于任何赛题，说明分析仍然过于模板化。
+
+**问题分析放置规则。** 若多个小问共享同一对象机制、统一数据关系或共同约束，在总章集中说明一次；若难点只服务单个小问，则把“问题分析”嵌入该问建模开头；若两者并存，采用“总章概括共享关系 + 各问补充新增难点”。不为了目录对称把同一分析复制两遍。
+
+### 4. 模型假设""",
+    "analysis placement",
+)
+text = replace_once(
+    text,
+    "假设用于缩小现实问题到可计算模型，不用于重复事实或表达愿望。假设数量按需要确定，不机械追求固定个数；通常 2--6 条已经足够，纯数据驱动模型若关键条件已在数据协议和统计模型中明确，也可以少于 2 条。\n\n每条假设至少满足两项：",
+    """假设用于缩小现实问题到可计算模型，不用于重复事实或表达愿望。假设数量按需要确定，不机械追求固定个数；通常 2--6 条已经足够，纯数据驱动模型若关键条件已在数据协议和统计模型中明确，也可以少于 2 条。
+
+**按作用域放置假设。** 同时影响两个及以上小问的假设才进入全局“模型假设”；只改变某一问变量、边界、分布或近似的条件，应在该问第一次使用前就近说明。若不存在实质性的共享假设，可以不设置独立“模型假设”总章。不得为了形式完整把局部假设搬到全文开头，也不得在框架中预留固定三条假设。
+
+每条假设至少满足两项：""",
+    "assumption scope",
+)
+text = replace_once(
+    text,
+    "每个核心公式前说明“为什么需要这个关系”，公式后说明“它在本问中控制什么”。连续公式之间应有对象关系或推理连接，而不是只写“进一步可得”“同理可得”。\n\n不同题型采用不同叙事主线：",
+    """每个核心公式前说明“为什么需要这个关系”，公式后说明“它在本问中控制什么”。连续公式之间应有对象关系或推理连接，而不是只写“进一步可得”“同理可得”。
+
+公式块优先形成“**来源条件 → 公式 → 新变量/参数说明 → 对下一步的作用**”四步微结构。已经在符号表定义过的量不重复逐个解释；单纯代数展开若不改变建模含义可合并或移附录。
+
+如果某个局部性质只用于当前一段的降维、坐标变换、概率化简或单调性判断，可以直接写“性质/结论 + 关键证明链”，不必机械包装成独立命题框；是否升级为正式命题仍以 `packs/artifact/proposition_proof.md` 的准入规则为权威。
+
+不同题型采用不同叙事主线：""",
+    "equation microstructure",
+)
+text = replace_once(
+    text,
+    "求解段至少回答：求什么、为什么选该算法、参数/初值如何确定、何时停止、如何确认结果可行。复杂算法可给伪代码或流程图，但伪代码必须与当前模型变量一致。\n\n不要只写“使用 Python/MATLAB 求解得到结果”。",
+    """求解段至少回答：求什么、为什么选该算法、参数/初值如何确定、何时停止、如何确认结果可行。复杂算法可给伪代码或流程图，但伪代码必须与当前模型变量一致。
+
+**算法说明实行最小必要预算。** 对遗传算法、粒子群、差分进化、K-means、XGBoost、动态规划等通用方法，正文重点只写与本题有关的编码/状态表示、目标或适应度、约束处理、关键参数、初始化、终止条件和验证方式；通用算法原理通常 1--2 句并给引用即可。只有对标准算法做了实质改造时，才展开新增算子、更新规则和为什么需要改造。
+
+不要只写“使用 Python/MATLAB 求解得到结果”。""",
+    "algorithm detail budget",
+)
+text = replace_once(
+    text,
+    "若出现反常结果、局部不稳定、算法分歧或边界失效，应在正文说明，不得为了“论文流畅”删掉与主结论不完全一致的证据。\n\n图后和表后具体写法继续遵循",
+    """若出现反常结果、局部不稳定、算法分歧或边界失效，应在正文说明，不得为了“论文流畅”删掉与主结论不完全一致的证据。
+
+**证据邻近原则。** 能直接验证某个局部结论的结果表、误差图、残差、灵敏度或物理校核，应尽量放在产生该结论的推导/求解之后；只有跨问比较、总体稳健性或综合机制才集中到独立结果分析章。不得把公式放前半篇、关键结果放后半篇，迫使评委跨多页寻找证据。
+
+图后和表后具体写法继续遵循""",
+    "evidence proximity",
+)
+old_heading = """### 8. 模型评价：评价当前模型，不写万能优缺点
+
+“模型简单、易于理解、具有推广性”“模型忽略了一些因素”“数据有限”等表述本身不能构成评价。评价必须指向当前模型的结构、证据或边界。"""
+new_heading = """### 8. 模型检验、评价与改进：先证据，后判断
+
+**模型检验与模型评价必须分工。** 检验回答“当前结论是否可信、误差多大、在哪些扰动下仍成立”；评价回答“当前建模取舍的结构优势、代价与失效来源是什么”。不能用“模型精度较高、稳定性较好”这种评价句替代数值检验。
+
+检验应按当前模型风险就近选择：几何/物理模型检查误差、守恒、边界、步长或物理量级；优化模型检查可行性、约束违反、最优性间隙、算法一致性或局部邻域；统计/机器学习模型检查残差、外样本、校准、泄漏、显著性或误差结构；随机/仿真模型检查重复抽样、置信区间、场景扰动和收敛。若结果深化分析已经完成这些职责，正文引用其证据即可，不另造重复“模型检验”。
+
+独立“模型评价”章节不是硬要求；但**对核心结论所需的验证证据不能省略**。验证可嵌在各问末尾，也可在共享风险明显时集中成“模型检验/稳定性分析”章节。
+
+“模型简单、易于理解、具有推广性”“模型忽略了一些因素”“数据有限”等表述本身不能构成评价。评价必须指向当前模型的结构、证据或边界。"""
+text = replace_once(text, old_heading, new_heading, "validation vs evaluation")
+text = text.replace(
+    "- 评价：优缺点是否换一道题就不再成立。",
+    "- 检验：核心结论是否有与其风险匹配的误差、可行性、外样本、敏感性或其他证据；\n- 评价：优缺点是否换一道题就不再成立。",
+)
+text = replace_once(
+    text,
+    "## 命题与证明排版\n\n- 全文命题允许为 0，最多 4 个；",
+    """## 命题与证明排版
+
+- 普通局部性质、坐标变换、概率化简和单段使用的短证明可直接就近写入推导，不要求全部命题化；正式命题的准入与数量仍由 `packs/artifact/proposition_proof.md` 管理；
+- 全文命题允许为 0，最多 4 个；""",
+    "local proof packaging",
+)
+write(path, text)
+
+# AI cleanup: add evidence-architecture checks without duplicating authority text.
+path = "modules/05_writing/ai_cleanup.md"
+text = read(path).rstrip() + """
+38. **标题去软件化**：标题若以“基于 Python/MATLAB/某软件”充当主要贡献，而软件并非研究对象，改为研究对象、机制、模型或决策目标；
+39. **摘要去实现清单化**：删除脚本名、工作表名、文件路径、软件操作和无决策作用的完整参数列表；每问保留能反向定位到正文证据的少量关键数值与直接结论；
+40. **前置图去装饰化**：问题重述/分析中的图必须承担对象恢复或关系澄清，并与后续变量、公式或约束有映射；通用流程图、场景配图和纯装饰图删除；
+41. **问题分析位置去形式化**：共享机制只在总章解释一次，单问难点放回对应小问；总章与小问同时重复同一分析时删除一处；
+42. **假设去全局滥用**：只影响单问的假设不得为了凑“模型假设”总章而提前集中；没有共享实质假设时允许取消独立假设章；
+43. **算法去百科化**：通用算法正文若大篇幅介绍发展史、标准步骤和普适优点，而没有落到本题编码/状态、目标、约束、参数和终止条件，压缩为引用 + 本题映射；
+44. **证据去漂移化**：局部结论的关键表图/误差若被放到相距很远的统一结果章，优先移回对应求解段后；跨问综合证据才集中展示；
+45. **检验与评价去混淆**：不得用“模型稳定、精度高、效果好”的优点句替代误差、残差、可行性、外样本、敏感性、置信区间或其他量化检验；
+46. **检验去重复化**：结果深化分析已经覆盖同一风险时，正文引用其证据并解释作用，不再机械重复一套“模型检验”；
+47. **证明去过度包装**：仅服务一个局部变换或化简的短证明不强制升级为命题框；正式命题仍需满足命题准入规则；
+48. **引言去伪综述化**：没有直接支撑模型选择的行业背景、方法发展史和宽泛文献罗列删除；必要引言保持短而有用；
+49. **评价去验证替代化**：独立优缺点章可以省略，但核心结论需要的验证证据不能因为篇幅紧张而删除；
+50. **证据邻近检查**：逐问检查“公式/算法—结果—检验—小问回答”能否在局部连续阅读；若需要频繁跨章节追索，重排章节而不是增加导航套话。
+"""
+write(path, text)
+
+# Model-paper framework stores evidence-architecture choices, not prose templates.
+path = "templates/model/model_paper_framework.md"
+text = read(path)
+text = text.replace("v0.4-adaptive-writing", "v0.5-evidence-architecture", 1)
+text = text.replace("### 全局符号、参数与假设", "### 全局符号、参数与共享假设", 1)
+text = replace_once(
+    text,
+    "- 总述：研究对象、模型组合和总体求解链；",
+    "- 标题策略：研究对象/关键机制/模型贡献；是否存在软件名或实现细节：\n- 总述：研究对象、模型组合和总体求解链；",
+    "framework abstract title",
+)
+text = replace_once(
+    text,
+    "- 管理、机制或策略启示：仅保留有证据支撑的内容。",
+    "- 管理、机制或策略启示：仅保留有证据支撑的内容。\n- 摘要数值预算：每问计划保留的 1--2 个决定性数值/区间/阈值：",
+    "framework abstract budget",
+)
+text = replace_once(
+    text,
+    "- 问题分析安排：`独立总章 / 每问内嵌 / 总章概括 + 每问补充`；当前选择：",
+    "- 问题分析安排：`独立总章 / 每问内嵌 / 总章概括 + 每问补充`；当前选择：\n- 对象恢复图：`不需要 / 问题重述放置 / 问题分析放置`；图中必须映射的后续变量/公式/约束：\n- 假设组织：跨问共享假设放全局；单问假设就近放置；是否保留独立“模型假设”章：",
+    "framework placement fields",
+)
+text = replace_once(
+    text,
+    "- 结果解释链：`关键数值/现象 → 比较基准/阈值 → 机制解释 → 题目结论 → 必要边界`",
+    "- 结果解释链：`关键数值/现象 → 比较基准/阈值 → 机制解释 → 题目结论 → 必要边界`\n- 局部证据闭环：哪些结果/误差/检验必须紧跟对应推导，哪些跨问证据集中展示：\n- 模型检验安排：核心风险 → 检验方法 → 指标/阈值 → 证据位置：\n- 算法说明预算：正文只保留的编码/状态、目标、约束处理、关键参数、终止与验证内容：",
+    "framework evidence architecture",
+)
+text = text.replace(
+    "1. 假设一：原因、影响、失效偏差和检验方式；\n2. 假设二：原因、影响、失效偏差和检验方式；\n3. 假设三：原因、影响、失效偏差和检验方式。",
+    "- 本问局部假设：按实际需要列出，不固定数量；仅影响本问的条件不要重复进入全局假设。\n- 每条保留假设写清：依据、改变的模型结构、失效偏差和检验方式。",
+    1,
+)
+write(path, text)
+
+# Output contract freezes the new behavior without adding user-visible artifacts.
+path = "core/output_contract.yaml"
+text = read(path)
+anchor = "  generic_model_evaluation_forbidden: true\n"
+addition = """  generic_model_evaluation_forbidden: true
+  title_software_as_contribution_forbidden: true
+  abstract_implementation_detail_forbidden: true
+  object_restoration_figure_allowed_when_structurally_necessary: true
+  assumption_scope_localization_required: true
+  local_evidence_closure_preferred: true
+  model_validation_precedes_evaluation: true
+  standalone_model_evaluation_required: false
+  generic_algorithm_background_budget: minimal_task_specific
+"""
+text = replace_once(text, anchor, addition, "output writing policy")
+write(path, text)
+
+# Bootstrap invariant and root skill summary.
+path = "core/bootstrap.yaml"
+text = read(path)
+anchor = "- 论文正文的问题重述、问题分析、模型假设、模型推导、结果解释、模型评价和章节组织必须按题目对象与题型证据链写作；不得复制题面、堆通用算法百科、把问题分析写成流程清单或使用换题仍成立的万能优缺点。\n"
+addition = anchor + "- 写作时共享假设与单问假设按作用域放置，局部结果与检验证据尽量就近闭环；模型检验负责量化可信度，模型评价只讨论结构取舍，不能以优缺点替代误差、可行性、外样本或敏感性证据。\n"
+text = replace_once(text, anchor, addition, "bootstrap writing invariant")
+write(path, text)
+
+path = "SKILL.md"
+text = read(path)
+anchor = "- 物理机理、统计回归、机器学习、优化网络、动态仿真和多问混合题按不同证据链组织章节，不机械同构。\n"
+addition = anchor + "- v7.4.0 进一步按证据架构组织正文：复杂对象允许题目专属恢复图；共享/局部假设分层放置；算法只解释本题必要部分；推导—结果—检验优先局部闭环；模型检验与优缺点评价分工，验证证据不能被模板评价替代。\n"
+text = replace_once(text, anchor, addition, "root skill v740 writing summary")
+write(path, text)
+
+# Changelog preserves v7.3.0 as history.
+path = "CHANGELOG.md"
+text = read(path)
+old = "# Changelog\n\n## Current release: 7.3.0\n\n"
+new = """# Changelog
+
+## Current release: 7.4.0
+
+- Reviewed all 16 user-supplied 2024 CUMCM showcase papers (A016, A053, A163, A178, A242, B159, B195, B196, C038, C063, C094, C234, D033, E010, E061, E218; 807 pages) and extracted cross-paper evidence-architecture rules rather than copying phrases or treating every showcase-paper convention as exemplary.
+- Added title/abstract discipline: implementation software, script names, workbooks and parameter dumps cannot substitute for research object, modeling mechanism, decisive values and direct conclusions.
+- Added task-specific object-restoration figures to the front-matter contract when complex geometry, topology, spatial relations or production structure cannot be recovered efficiently from prose; decorative/general workflow figures remain rejected.
+- Localized assumptions by scope: only cross-question assumptions belong in the global assumption section, question-local assumptions stay near first use, and a standalone assumption chapter is optional when no substantive shared assumptions exist.
+- Added placement criteria for problem analysis: shared mechanisms go to a global analysis, local difficulties stay inside the question, and hybrid problems use a short global map plus local additions.
+- Added local evidence closure so derivation, solution, key result and its matching error/validation evidence are kept close when possible; only cross-question synthesis is deferred to a global analysis section.
+- Separated model validation from model evaluation. Quantitative credibility evidence (error, residual, feasibility, optimality gap, external validation, calibration, sensitivity, confidence interval, convergence or physical checks as appropriate) cannot be replaced by generic strengths/weaknesses. A standalone evaluation chapter remains optional.
+- Added a minimal algorithm-explanation budget: generic algorithm background is compressed to citation-level context while problem-specific encoding/state, objective, constraints, parameters, stopping and validation remain explicit.
+- Allowed local short properties/proofs to remain embedded in derivations without being forced into formal proposition boxes; formal proposition admission remains governed by the proposition-proof authority.
+- Updated `模型论文框架.md` to remember title/abstract strategy, object-restoration figures, assumption scope, local evidence closure, validation placement and algorithm explanation budget; removed the old fixed three-assumption placeholder.
+- Preserved all v7.3.0 numerical, preprocessing, workbook, MATLAB, LaTeX-first and five-file interfaces; no new required user-visible artifacts were introduced.
+
+## Previous release: 7.3.0
+
+"""
+text = replace_once(text, old, new, "changelog current release")
+write(path, text)
+
+# Dedicated regression coverage.
+test = ROOT / "tests/test_v740_writing_evidence_architecture.py"
+test.write_text('''import unittest
+from pathlib import Path
+
+import yaml
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class TestV740WritingEvidenceArchitecture(unittest.TestCase):
+    def test_latex_authority_contains_2024_evidence_architecture(self):
+        text = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
+        for token in (
+            "对象恢复图准入", "按作用域放置假设", "问题分析放置规则",
+            "算法说明实行最小必要预算", "证据邻近原则",
+            "模型检验与模型评价必须分工", "标题写研究对象、关键机制或模型贡献",
+        ):
+            self.assertIn(token, text)
+        self.assertIn("不必机械包装成独立命题框", text)
+
+    def test_framework_remembers_evidence_placement_without_fixed_assumption_quota(self):
+        text = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
+        self.assertIn("v0.5-evidence-architecture", text)
+        for token in ("对象恢复图", "假设组织", "局部证据闭环", "模型检验安排", "算法说明预算"):
+            self.assertIn(token, text)
+        self.assertNotIn("1. 假设一：原因、影响、失效偏差和检验方式", text)
+
+    def test_output_contract_freezes_validation_evaluation_split(self):
+        data = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
+        policy = data["writing_policy"]
+        self.assertEqual(data["version"], "7.4.0")
+        self.assertTrue(policy["model_validation_precedes_evaluation"])
+        self.assertFalse(policy["standalone_model_evaluation_required"])
+        self.assertTrue(policy["assumption_scope_localization_required"])
+        self.assertTrue(policy["local_evidence_closure_preferred"])
+        self.assertEqual(policy["generic_algorithm_background_budget"], "minimal_task_specific")
+
+    def test_cleanup_has_evidence_architecture_antipatterns(self):
+        text = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
+        for token in ("标题去软件化", "摘要去实现清单化", "假设去全局滥用", "检验与评价去混淆", "证据邻近检查"):
+            self.assertIn(token, text)
+
+
+if __name__ == "__main__":
+    unittest.main()
+''', encoding="utf-8")
+
+# This is a one-shot migration helper; do not retain it in the branch.
+Path(__file__).unlink(missing_ok=True)
