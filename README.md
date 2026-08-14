@@ -1,4 +1,4 @@
-# mathmodel-skill v7.3.0
+# mathmodel-skill v7.4.0
 
 当前工作流：**审题与 Problem Contract 冻结 → 通用数据审计与 `preprocessing_decision` → 题面—数学—代码语义闭环 → Complexity Sanity Check → semantic governance → 条件式项目级预处理（仅 `project_level`）→ 用户本地完整版 Python 主求解 → 主结果质量门 → 独立 Python 结果深化分析 → 稳定性验收 → MATLAB预处理/结果证据图 → 题型自适应 LaTeX 写作 → AI cleanup → 编译终审**。
 
@@ -76,7 +76,7 @@ preprocessing_decision
 
 ## 写作阶段：按题型证据链写，不按模板写
 
-v7.3.0 将正文表达从“章节清单 + 终稿去套话”升级为共享写作协议。权威规则位于 `modules/05_writing/latex.md` 的“正文表达与章节组织协议（写作权威）”，DOCX 与 AI cleanup 复用同一套规则。
+v7.4.0 将正文表达从“章节清单 + 终稿去套话”升级为共享写作协议。权威规则位于 `modules/05_writing/latex.md` 的“正文表达与章节组织协议（写作权威）”，DOCX 与 AI cleanup 复用同一套规则。
 
 核心要求：
 

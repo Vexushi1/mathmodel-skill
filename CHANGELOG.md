@@ -1,6 +1,20 @@
 # Changelog
 
-## Current release: 7.3.0
+## Current release: 7.4.0
+
+- Reviewed all 16 user-supplied 2024 CUMCM showcase papers (A016, A053, A163, A178, A242, B159, B195, B196, C038, C063, C094, C234, D033, E010, E061, E218; 807 pages) and extracted cross-paper evidence-architecture rules rather than copying phrases or treating every showcase-paper convention as exemplary.
+- Added title/abstract discipline: implementation software, script names, workbooks and parameter dumps cannot substitute for research object, modeling mechanism, decisive values and direct conclusions.
+- Added task-specific object-restoration figures to the front-matter contract when complex geometry, topology, spatial relations or production structure cannot be recovered efficiently from prose; decorative/general workflow figures remain rejected.
+- Localized assumptions by scope: only cross-question assumptions belong in the global assumption section, question-local assumptions stay near first use, and a standalone assumption chapter is optional when no substantive shared assumptions exist.
+- Added placement criteria for problem analysis: shared mechanisms go to a global analysis, local difficulties stay inside the question, and hybrid problems use a short global map plus local additions.
+- Added local evidence closure so derivation, solution, key result and its matching error/validation evidence are kept close when possible; only cross-question synthesis is deferred to a global analysis section.
+- Separated model validation from model evaluation. Quantitative credibility evidence (error, residual, feasibility, optimality gap, external validation, calibration, sensitivity, confidence interval, convergence or physical checks as appropriate) cannot be replaced by generic strengths/weaknesses. A standalone evaluation chapter remains optional.
+- Added a minimal algorithm-explanation budget: generic algorithm background is compressed to citation-level context while problem-specific encoding/state, objective, constraints, parameters, stopping and validation remain explicit.
+- Allowed local short properties/proofs to remain embedded in derivations without being forced into formal proposition boxes; formal proposition admission remains governed by the proposition-proof authority.
+- Updated `模型论文框架.md` to remember title/abstract strategy, object-restoration figures, assumption scope, local evidence closure, validation placement and algorithm explanation budget; removed the old fixed three-assumption placeholder.
+- Preserved all v7.3.0 numerical, preprocessing, workbook, MATLAB, LaTeX-first and five-file interfaces; no new required user-visible artifacts were introduced.
+
+## Previous release: 7.3.0
 
 - Added a shared evidence-driven **paper expression and section-organization protocol** for DOCX, LaTeX and AI cleanup, derived from cross-paper review of 2025 mathematical-modeling showcase papers rather than fixed phrase imitation.
 - Reframed problem restatement as a compact recovery of research object, modeling-relevant conditions and per-question inputs/outputs; direct prompt copying, premature model naming and premature result reporting are rejected.
