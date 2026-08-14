@@ -15,7 +15,7 @@ class WritingExpressionProtocolV730Tests(unittest.TestCase):
         self.assertIn("问题分析：写“为什么这样建模”，不是方法目录", latex)
         self.assertIn("模型推导：从本题对象出发，避免教科书腔", latex)
         self.assertIn("结果段：形成“数值—机制—结论”闭环", latex)
-        self.assertIn("模型评价：评价当前模型，不写万能优缺点", latex)
+        self.assertIn("模型检验、评价与改进：先证据，后判断", latex)
         self.assertIn("不同题型的推荐章节组织", latex)
 
     def test_docx_and_cleanup_reference_shared_authority(self):
