@@ -39,6 +39,30 @@ class WritingExpressionProtocolV730Tests(unittest.TestCase):
         self.assertIn("关键数值/现象—比较基准—机制—题目结论—必要边界", pack)
         self.assertIn("不强制“优点三条、缺点两条、推广一段”", pack)
 
+    def test_framework_records_project_specific_writing_strategy(self):
+        framework = (ROOT / "templates/model/model_paper_framework.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("### 写作组织策略", framework)
+        self.assertIn("主写作类型", framework)
+        self.assertIn("问题分析安排", framework)
+        self.assertIn("全局共享内容", framework)
+        self.assertIn("结果解释链", framework)
+        self.assertIn("模型评价安排", framework)
+        self.assertIn("写作组织策略已按当前题型和证据链确定", framework)
+
+    def test_output_contract_points_to_shared_authority(self):
+        output = yaml.safe_load(
+            (ROOT / "core/output_contract.yaml").read_text(encoding="utf-8")
+        )
+        policy = output["writing_policy"]
+        self.assertIn("modules/05_writing/latex.md", policy["expression_authority"])
+        self.assertTrue(policy["adaptive_sectioning_by_task_type"])
+        self.assertTrue(policy["problem_restatement_copy_forbidden"])
+        self.assertTrue(policy["problem_analysis_pipeline_listing_forbidden"])
+        self.assertTrue(policy["generic_textbook_derivation_forbidden"])
+        self.assertTrue(policy["generic_model_evaluation_forbidden"])
+
     def test_release_versions_are_consistent(self):
         bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
         manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
@@ -53,6 +77,8 @@ class WritingExpressionProtocolV730Tests(unittest.TestCase):
             "version: 7.3.0",
             (ROOT / "skills/mathmodel-skill/SKILL.md").read_text(encoding="utf-8"),
         )
+        self.assertTrue((ROOT / "README.md").read_text(encoding="utf-8").startswith("# mathmodel-skill v7.3.0"))
+        self.assertIn("## Current release: 7.3.0", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
