@@ -34,4 +34,4 @@
 20. 命题证明详细 Pack 仅在明确需要证明或当前命题规划非零时加载；
 21. 中文国赛终稿保留 `cumcmthesis`。
 
-活动入口使用稳定文件名：`PROJECT_INSTRUCTIONS.md`、`RUNTIME_ROUTER.md`、`SKILL_FILE_INDEX.md` 和 `TEMPLATE_INDEX.md`。旧版本化入口只保留兼容指针，不承载活动规则。
+活动入口使用稳定文件名：`PROJECT_INSTRUCTIONS.md`、`RUNTIME_ROUTER.md`、`SKILL_FILE_INDEX.md` 和 `TEMPLATE_INDEX.md`。旧版本化入口只保留兼容指针，不承载活动规则，也不进入 Active Skill Index/Active MANIFEST；默认 resolver 不加载它们。

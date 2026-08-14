@@ -19,7 +19,7 @@
 | `SKILL_FILE_INDEX.md` | 活动 Skill 文件索引 |
 | `TEMPLATE_INDEX.md` | 活动模板索引 |
 
-旧 `V622` 文件只保留兼容指针，不再承载活动规则。
+旧 `V622` 文件只保留兼容指针，不再承载活动规则，也不计入 Active Skill Index、Active MANIFEST 或活动 REQUIRED 集合；默认 resolver 不加载这些文件。
 
 ## 默认写作策略
 
