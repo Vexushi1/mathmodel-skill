@@ -1,5 +1,5 @@
 taxonomy_version: 2.1.0
-skill_compatibility: '>=6.3.1,<7.0.0'
+skill_compatibility: '>=6.3.1,<8.0.0'
 
 classification_contract:
   per_subproblem: true

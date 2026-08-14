@@ -20,11 +20,15 @@ BINARY_SUFFIXES = {
     ".npz", ".otf", ".pdf", ".pickle", ".pkl", ".png", ".rar", ".tif", ".tiff",
     ".ttf", ".woff", ".woff2", ".xls", ".xlsx", ".zip",
 }
+COMPATIBILITY_POINTERS = {
+    Path("PROJECT_INSTRUCTIONS_HSK_V622.md"),
+    Path("HSK_RUNTIME_ROUTER_V622.md"),
+    Path("HSK_SKILL_FILE_INDEX_V622.md"),
+    Path("HSK_TEMPLATE_INDEX_V622.md"),
+}
 GENERATED_RELATIVE = {
     SKILL_INDEX.relative_to(ROOT),
     TEMPLATE_INDEX.relative_to(ROOT),
-    LEGACY_SKILL_INDEX.relative_to(ROOT),
-    LEGACY_TEMPLATE_INDEX.relative_to(ROOT),
     MANIFEST.relative_to(ROOT),
 }
 
@@ -44,6 +48,8 @@ def current_skill_version() -> str:
 
 
 def is_active_path(relative: Path) -> bool:
+    if relative in COMPATIBILITY_POINTERS:
+        return False
     if relative.parts and relative.parts[0] == "legacy":
         return relative in ACTIVE_ARCHIVE_POINTERS
     return True
