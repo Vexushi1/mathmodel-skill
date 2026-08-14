@@ -1,7 +1,7 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 7.4.0
+version: 7.4.1
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
@@ -190,7 +190,7 @@ properties:
       locked_scope: {type: string}
       active_source_mode: {$ref: '#/$defs/preprocessing_source_mode'}
   preprocessing:
-    description: v7.2.6条件式预处理状态。旧项目可缺失；重新进入模型设计或求解时先锁定decision并按当前通用审计规则复核必要性。
+    description: v7.2.6引入的条件式预处理状态。旧项目可缺失；重新进入模型设计或求解时先锁定decision并按当前通用审计规则复核必要性。
     type: object
     additionalProperties: false
     properties:

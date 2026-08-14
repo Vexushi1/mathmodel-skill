@@ -1,4 +1,4 @@
-# HSK CUMCM LaTeX Template Add-on v6.2.2
+# HSK CUMCM LaTeX Template Add-on
 
 本目录是对原国赛 `cumcmthesis` 模板的增强起稿文件，不替换原模板。
 

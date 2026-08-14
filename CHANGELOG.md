@@ -1,6 +1,17 @@
 # Changelog
 
-## Current release: 7.4.0
+## Current release: 7.4.1
+
+- Audited every active Module 01--06 stage plus bootstrap, router, manifest, contracts, templates and compatibility boundaries for read/load closure.
+- Fixed the active `core/hsk_core_policy.md` header that still advertised v7.2.6, and extended release-marker linting so current authoritative Markdown cannot silently lag the Skill version again.
+- Fixed `core/task_taxonomy.yaml` declaring `<7.0.0` compatibility even though the active Skill is v7; the taxonomy now explicitly supports the v7 line.
+- Removed the stale fixed `3--5` assumption quota from Module 02 and aligned model design with the writing authority: assumptions are impact-based, checkable and localized by cross-question or question-local scope.
+- Kept the four V622 filenames as backward-compatible pointers but removed them from the active Skill index, active MANIFEST and active-required-file set, so historical pointer names cannot be mistaken for current runtime modules.
+- Made the CUMCM HSK template add-on README versionless so a stable active template entry does not carry an obsolete Skill-era version label.
+- Hardened `lint_skill.py` with compatibility-pointer isolation, taxonomy compatibility checks, repository-relative path validation, Markdown local-link checks and all-route resolver smoke checks.
+- Added v7.4.1 regression coverage for active/compatibility separation and resolver path existence. No Problem Contract, preprocessing, numerical, workbook, MATLAB, five-file or writing-evidence interface changed.
+
+## Previous release: 7.4.0
 
 - Reviewed all 16 user-supplied 2024 CUMCM showcase papers (A016, A053, A163, A178, A242, B159, B195, B196, C038, C063, C094, C234, D033, E010, E061, E218; 807 pages) and extracted cross-paper evidence-architecture rules rather than copying phrases or treating every showcase-paper convention as exemplary.
 - Added title/abstract discipline: implementation software, script names, workbooks and parameter dumps cannot substitute for research object, modeling mechanism, decisive values and direct conclusions.

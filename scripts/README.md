@@ -1,6 +1,6 @@
-# Scripts v7.4.0
+# Scripts v7.4.1
 
-- `lint_skill.py`：检查活动版本、路由、语义治理、通用判定式条件数据预处理、产物闭环、五文件合同、代码质量合同、Schema、旧结构残留、Python 语法和生成文件；
+- `lint_skill.py`：检查活动版本、路由、语义治理、通用判定式条件数据预处理、产物闭环、五文件合同、代码质量合同、Schema、兼容层隔离、仓库引用路径、本地 Markdown 链接、全路由 resolver smoke、旧结构残留、Python 语法和生成文件；
 - `resolve_workflow.py`：解析意图、`objective`、`structures`、`capabilities`、`preprocessing_decision` 与竞赛类型，返回确定性执行计划；只有 `project_level` 才插入项目级预处理阶段；
 - `validate_semantic_governance.py`：检查 Problem Contract、题面—数学—代码语义闭环、Complexity Sanity Check、semantic revision 和 typed dependency stale 传播，不运行赛题代码；
 - `validate_code_delivery.py`：按 `preprocessing / primary / analysis` 阶段静态校验实际生成 Python 的完整运行配置与工程质量，不运行赛题代码；
