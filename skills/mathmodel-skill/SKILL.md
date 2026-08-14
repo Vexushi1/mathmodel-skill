@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.3.0
+version: 7.4.0
 summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, substantive preprocessing paper evidence, dedicated data_process MATLAB figures, dependency-aware stale propagation, full-fidelity solving, separate primary/result-analysis Python stages, adaptive evidence-driven paper rhetoric and LaTeX-first writing.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 数据预处理, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.3.0
+# HSK 数学建模模块化工作流 v7.4.0
 
 1. 从本目录定位仓库根目录 `../..`，读取 `../../core/bootstrap.yaml`；
 2. 使用 `../../scripts/resolve_workflow.py` 获取任务执行计划；
