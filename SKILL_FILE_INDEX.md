@@ -1,25 +1,20 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：7.4.0
+当前 Skill 版本：7.4.1
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
 - `.codex-plugin/plugin.json`
 - `.gitattributes`
 - `.github/pull_request_template.md`
-- `.github/workflows/_v741_closure_migration.yml`
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
 - `AGENTS.md`
 - `CHANGELOG.md`
-- `HSK_RUNTIME_ROUTER_V622.md`
-- `HSK_SKILL_FILE_INDEX_V622.md`
-- `HSK_TEMPLATE_INDEX_V622.md`
 - `LICENSE`
 - `MANIFEST.sha256`
 - `PROJECT_INSTRUCTIONS.md`
-- `PROJECT_INSTRUCTIONS_HSK_V622.md`
 - `README.md`
 - `REPOSITORY_INDEX.md`
 - `RUNTIME_ROUTER.md`
@@ -98,7 +93,6 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
-- `scripts/_v741_closure_migration.py`
 - `scripts/generate_indexes.py`
 - `scripts/hsk_pack_submission.py`
 - `scripts/lint_skill.py`
@@ -199,3 +193,4 @@
 - `tests/test_v710_semantic_governance.py`
 - `tests/test_v730_writing_expression_protocol.py`
 - `tests/test_v740_writing_evidence_architecture.py`
+- `tests/test_v741_skill_closure_hygiene.py`
