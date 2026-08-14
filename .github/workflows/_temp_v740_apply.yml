@@ -1,0 +1,43 @@
+name: Temporary v7.4.0 migration runner
+
+on:
+  push:
+    branches:
+      - upgrade/v7.4.0-writing-evidence-architecture
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Synchronize companion generated-metadata commit
+        run: |
+          sleep 15
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+      - name: Apply one-shot migration
+        run: python scripts/_apply_v740_writing_upgrade.py
+      - name: Refresh generated repository metadata
+        run: python scripts/generate_indexes.py
+      - name: Run preflight checks
+        run: |
+          python scripts/lint_skill.py --skip-generated
+          python -m unittest tests.test_v740_writing_evidence_architecture tests.test_schemas tests.test_v701_stage_boundary_closure
+          python scripts/generate_indexes.py --check
+      - name: Commit non-workflow changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A ':!.github/workflows/_temp_v740_apply.yml'
+          git commit -m "feat: v7.4.0 evidence-architecture paper writing"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin HEAD:"${GITHUB_REF_NAME}"
