@@ -32,12 +32,14 @@ class TestV740WritingEvidenceArchitecture(unittest.TestCase):
     def test_output_contract_freezes_validation_evaluation_split(self):
         data = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         policy = data["writing_policy"]
-        self.assertEqual(data["version"], "7.4.3")
+        self.assertEqual(data["version"], "7.4.4")
         self.assertTrue(policy["model_validation_precedes_evaluation"])
         self.assertFalse(policy["standalone_model_evaluation_required"])
         self.assertTrue(policy["assumption_scope_localization_required"])
         self.assertTrue(policy["local_evidence_closure_preferred"])
         self.assertEqual(policy["generic_algorithm_background_budget"], "minimal_task_specific")
+        self.assertTrue(policy["figure_table_text_reference_required"])
+        self.assertTrue(policy["affirmative_statement_preferred"])
 
     def test_cleanup_preserves_evidence_architecture_antipatterns(self):
         text = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
