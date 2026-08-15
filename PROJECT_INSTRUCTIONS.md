@@ -26,7 +26,7 @@
 12. Python 不生成论文结果图；MATLAB 在 Figure Evidence 阶段读取真实工作簿和精确表头绘图，不重新预处理或求解；
 13. `project_level` 的公共预处理证据图脚本固定为 `数据预处理/data_process.m`；各问结果图脚本固定为同目录 `qX_plot.m`；默认只保留可见图窗，不自动创建图表子目录或批量导出；
 14. 默认写作链为 Figure Evidence → LaTeX → AI cleanup → 编译质量检查；DOCX 仅在用户明确要求 Word 审阅、批注、协作或特定提交格式时加载，不是 LaTeX 前置；
-15. DOCX、LaTeX 和 AI cleanup 的正文表达统一读取 `modules/05_writing/latex.md` 中“正文表达与章节组织协议（写作权威）”：问题重述不复制题面，问题分析说明本问难点/对象关系/跨问依赖/建模抓手，假设只保留会改变模型或适用边界的条件，推导从本题对象与机制进入公式，结果形成数值/现象—比较—机制—结论—边界闭环，模型评价不得使用换题仍成立的万能优缺点，并按题型证据链自适应组织章节；
+15. DOCX、LaTeX 和 AI cleanup 的正文表达统一读取 `modules/05_writing/latex.md` 中“正文表达与章节组织协议（写作权威）”。中文国赛问题重述默认采用“问题背景 + 问题提出”，问题提出按“问题一：”“问题二：”逐问转述；问题分析逐问说明难点、对象关系、跨问依赖和建模抓手且不写公式/结果；每问详细推导后设置“核心模型汇总”，主结果放在本问“求解结果”小节，深化证据按真实方法命名，默认不再设置固定“小问结论”或全文独立“结论”章；正文核心图表必须有邻近编号引用和解释；短证明分段优先、多阶段证明才分点；语言以正向连续叙述为主，不把科研初学者式写成频繁否定、自我辩护或免责声明；
 16. 正式模型、代码、返回工作簿和下游交付先执行 `scripts/validate_semantic_governance.py`；正式产物交付再按解析器返回的 scope 执行 `scripts/sync_project.py <project_root> --write --strict --delivery-scope <scope>`；
 17. `project_sync` 只发现产物、校验 Schema、计算哈希和传播 stale，不生成模型语义、数值结果或 passed 状态；
 18. `run_info.json`、`result_manifest.yaml`、`matlab_figure_handoff.json` 只在用户明确要求完整复现包时生成，并放在项目级内部元数据目录，不得进入 `问题X求解/` 或 `数据预处理/`；
