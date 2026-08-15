@@ -19,7 +19,7 @@ class TestV742DynamicFigureLayout(unittest.TestCase):
             "Primary question",
             "Evidence level",
             "Split decision",
-            "Visual Attention Budget" if False else "视觉注意力预算",
+            "视觉注意力预算",
         ):
             self.assertIn(token, text)
         self.assertIn("任一条件不满足", text)
