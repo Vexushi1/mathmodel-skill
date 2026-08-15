@@ -1,6 +1,17 @@
 # Changelog
 
-## Current release: 7.4.1
+## Current release: 7.4.2
+
+- Added a Figure Evidence hierarchy (`L1` main result, `L2` mechanism/heterogeneity, `L3` robustness, `L4` numerical-validity evidence) so unlike evidence layers are not automatically packed into one dense multi-panel figure.
+- Added a dynamic Figure Layout Gate. MATLAB planning now asks whether a single panel already closes the primary question, then considers paired `1×2/2×1`, inseparable `1×3`, and only conditionally retains `2×2`; otherwise evidence is split by Primary question / Evidence level.
+- Defined explicit `2×2` retention criteria: one core conclusion, clear paired/cross structure, limited visual encodings, real same-screen comparison value, indispensable panels and a single coherent caption duty. `2×2` is neither the default nor mechanically forbidden.
+- Added a visual-attention budget: one first-level conclusion per Figure by default, usually no more than 2--3 primary comparison objects, no more than two main visual encodings, and clear de-emphasis of auxiliary evidence.
+- Replaced the old low-saturation-dark default with a competition-oriented high-contrast policy. Primary objects may use medium/high saturation colors such as bright blue `#1478FF`, vivid red `#F04444`, bright green `#16B364`, orange `#F79009` and purple `#7A5AF8`; confidence bands, backgrounds and secondary references remain muted or transparent.
+- Kept color semantics stable across the paper and prohibited rainbow/unordered color cycling and color-only red/green encoding. Continuous fields still use physically meaningful continuous/diverging colormaps rather than categorical bright colors.
+- Updated Figure Contract fields with Evidence level, Primary question, Layout decision, Split decision and Panel necessity; aligned project-level preprocessing figures with the same authority instead of retaining a conflicting low-saturation style.
+- Added v7.4.2 regression coverage to prevent future reintroduction of a fixed panel layout or the old low-saturation default. No Problem Contract, preprocessing-decision API, numerical model, workbook schema, user-execution boundary, five-file layout or LaTeX writing interface changed.
+
+## Previous release: 7.4.1
 
 - Audited every active Module 01--06 stage plus bootstrap, router, manifest, contracts, templates and compatibility boundaries for read/load closure.
 - Fixed the active `core/hsk_core_policy.md` header that still advertised v7.2.6, and extended release-marker linting so current authoritative Markdown cannot silently lag the Skill version again.
