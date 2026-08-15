@@ -1,5 +1,5 @@
 version: 2.2.0
-skill_version: 7.4.1
+skill_version: 7.4.2
 purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界，每问主求解与结果深化分析继续使用两个独立Python脚本。project_level工作簿还必须保存论文数学方法、验证和data_process.m绘图所需证据。
 default_mode:
   execution_owner: user
