@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.4.3
-summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, substantive preprocessing paper evidence, dedicated data_process MATLAB figures, dynamic evidence-driven MATLAB layouts and high-contrast scientific palettes, dependency-aware stale propagation, full-fidelity solving, separate primary/result-analysis Python stages, evidence-driven CUMCM writing structure, anti-template academic prose and LaTeX-first writing.
+version: 7.4.4
+summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, substantive preprocessing paper evidence, dedicated data_process MATLAB figures, dynamic evidence-driven MATLAB layouts and high-contrast scientific palettes, dependency-aware stale propagation, full-fidelity solving, separate primary/result-analysis Python stages, affirmative evidence-driven CUMCM writing, paragraph-first proposition proofs and LaTeX-first writing.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 数据预处理, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.4.3
+# HSK 数学建模模块化工作流 v7.4.4
 
 1. 从本目录定位仓库根目录 `../..`，读取 `../../core/bootstrap.yaml`；
 2. 使用 `../../scripts/resolve_workflow.py` 获取任务执行计划；
@@ -31,6 +31,6 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 13. 用户完整运行后，由 `validate_user_execution.py` 按当前数据事实源验收工作簿、对应阶段代码/数据哈希和质量门；project_level 工作簿同时必须保存论文方法、处理前后和绘图底层证据；
 14. 深化分析不稳定时按原因回退模型、条件式预处理或主求解并传播 stale；只改深化脚本不得污染已通过的主结果质量状态；
 15. MATLAB只读真实工作簿证据绘图。正式绘图前根据 Core conclusion、Evidence level 和 Primary question 动态选择单图、1×2、2×1、1×3、2×2或拆图；不存在固定默认版式。主比较允许中高饱和、高对比颜色，亮蓝/鲜红等主色用于快速建立视觉差异，辅助元素降权；完整规则以 `../../modules/04_figure_evidence.md` 为准；
-16. LaTeX为默认论文主链，DOCX仅显式按需；正文写作统一遵循 `../../modules/05_writing/latex.md` 的“正文表达与章节组织协议（写作权威）”。中文国赛多问题默认逐问分析且不写公式/结果；模型假设与符号说明分章；各问使用“问题X模型建立及求解”；详细推导后、求解前设置核心模型汇总；命题短证明分步骤并原则上不跨页；表题在上、图题在下；AI-cleanup 后执行略朴素、生涩但规范的科研初学者式学术重写，减少“本文……因此……”和“不是……而是……”同构句式。
+16. LaTeX为默认论文主链，DOCX仅显式按需；正文写作统一遵循 `../../modules/05_writing/latex.md` 的“正文表达与章节组织协议（写作权威）”。中文国赛问题重述默认采用“问题背景 + 问题提出”，问题提出逐问写“问题X：”；问题分析逐问且不写公式/结果；模型假设与符号说明分章；各问使用“问题X模型建立及求解”，详细推导后设置核心模型汇总，主结果放在“求解结果”；默认不设固定“小问结论”和全文独立“结论”章；命题短证明分段优先、多阶段才分点；核心图表必须有正文编号引用和解释；AI-cleanup 后执行略朴素、生涩但规范且以正向连续叙述为主的科研初学者式学术重写。
 
 详细规则以 `../../core/` 下权威合同为准。v7.2.0--v7.2.2 项目重新进入设计、预处理、绘图或写作时沿用三态 `preprocessing_decision` 并按当前通用审计与论文证据框架复核；历史只读交付不强制反向补 `data_process.m`，更早项目与 `legacy/` 按既有只读兼容规则处理。

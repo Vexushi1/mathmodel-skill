@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.4.3
-summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, preprocessing paper/mathematical evidence, dedicated data_process MATLAB figures, dynamic evidence-driven MATLAB layouts and high-contrast scientific palettes, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, evidence-driven CUMCM writing structure, anti-template academic prose and LaTeX-first writing.
+version: 7.4.4
+summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, preprocessing paper/mathematical evidence, dedicated data_process MATLAB figures, dynamic evidence-driven MATLAB layouts and high-contrast scientific palettes, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, affirmative evidence-driven CUMCM writing, paragraph-first proposition proofs and LaTeX-first delivery.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 数据预处理, 数据清洗, 主结果质量, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.4.3
+# HSK 数学建模模块化工作流 v7.4.4
 
 ## 默认执行
 
@@ -89,20 +89,22 @@ MATLAB 结果图不固定套用单图、`1×2` 或 `2×2`。生成代码前必�
 
 ### 写作阶段硬规则
 
-LaTeX 是默认论文主链，`modules/05_writing/latex.md` 的“正文表达与章节组织协议（写作权威）”统一约束 DOCX、LaTeX 与 AI-cleanup。v7.4.3 对中文国赛写作进一步锁定：
+LaTeX 是默认论文主链，`modules/05_writing/latex.md` 的“正文表达与章节组织协议（写作权威）”统一约束 DOCX、LaTeX 与 AI-cleanup。v7.4.4 对中文国赛写作进一步锁定：
 
-- 问题背景通常一个自然段，只写现实对象、关键矛盾和建模必要性，不用第二段管理全文结构；
-- 问题分析按问题一、问题二……逐问分小节，只讲难点、对象关系、跨问依赖和建模抓手，禁止数学公式与最终结果；
+- 问题重述默认采用“问题背景 + 问题提出”；问题背景通常一个自然段，问题提出按“问题一：”“问题二：”逐问用自己的理解转述研究对象、关键条件和待求输出；
+- 问题分析按问题一、问题二……逐问分小节，只讲难点、对象关系、跨问依赖和建模抓手，禁止数学公式与最终结果；“问题提出”和“问题分析”不能换词重复；
 - “模型假设”和“符号说明”为两个独立一级章节；可见假设使用 1.、2.、3. 自然编号，不显示 H1/A1 等内部合同编号；
 - 符号尽量避免长文本和多层复合下标；场景、模型、方案等信息可优先使用简短上标，真实元素/坐标/时间索引保留短下标；
 - 各问主章节默认使用“问题X模型建立及求解”，内部小节按题型动态命名；
 - 每问详细推导后、数值求解前必须设置“核心模型汇总”，集中给出实际求解的目标、方程、约束和边界；
-- 命题证明采用分段/分条关键证明链，常规命题框原则上不跨页；过长技术证明移附录，不通过缩小字号硬塞；
-- 表格严格“表上”，图片严格“图下”；三线表数值和短文本默认水平、垂直居中；
+- 每问主结果默认放在“求解结果”小节，深化证据按实际方法命名；默认不设置固定“小问结论”，最后一个结果/深化段自然回答当前设问；
+- 中文国赛默认不设置全文独立“结论”一级章；仅当届模板、用户或论文类型明确要求时增加；
+- 命题短证明采用“分段优先、分点按需”：连续推理使用自然段和必要公式，只有分情况、存在性/唯一性、多条件验证等明显多阶段结构才使用 2--6 个编号步骤；命题显示编号使用阿拉伯章节号；
+- 表格严格“表上”，图片严格“图下”；三线表数值和短文本默认水平、垂直居中；每张正文核心图、核心表必须有邻近的显式编号引用和解释；
 - 默认评价章节使用“模型的评价与推广”，确有实质改进时可用“模型的改进、评价与推广”；优点多于缺点且优点不超过 4 条，改进/推广按证据选写；
-- AI 模板清理后再进行科研初学者式学术重写：语言略朴素、生涩、认真但保持规范书面语；减少连续“本文……因此……”“不是……而是……”等同构句式，不通过故意病句、口语化或机械同义词替换制造风格。
+- AI 模板清理后再进行科研初学者式学术重写：语言略朴素、生涩、认真但保持规范书面语，以正向连续叙述为主；高密度“但/然而/不是/不能/只能”等结构必须复查真实冲突，不通过故意病句、口语化、频繁自我否定或机械同义词替换制造风格。
 
-正文仍坚持本题对象和证据优先：问题重述不复制赛题；模型推导不写无关算法百科；结果解释必须把关键数值、机制、题目回答和必要边界贴在一起；模型检验用量化证据，不能被万能优缺点替代。共享基础模型只定义一次，后续小问只写新增变量、目标、约束和证据。
+正文仍坚持本题对象和证据优先：问题重述不复制赛题；模型推导不写无关算法百科；结果解释必须把核心图表/关键数值、机制、题目回答和必要边界贴在一起；模型检验用量化证据，不能被万能优缺点替代。共享基础模型只定义一次，后续小问只写新增变量、目标、约束和证据。
 
 DOCX 仅在用户显式要求时加载，不是 LaTeX 前置；其正文表达与 LaTeX 使用同一权威写作协议。
 
