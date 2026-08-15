@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.4.1
-summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, preprocessing paper/mathematical evidence, dedicated data_process MATLAB figures, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, adaptive evidence-driven paper rhetoric and LaTeX-first writing.
+version: 7.4.2
+summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, preprocessing paper/mathematical evidence, dedicated data_process MATLAB figures, dynamic evidence-driven MATLAB layouts and high-contrast scientific palettes, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, adaptive evidence-driven paper rhetoric and LaTeX-first writing.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 数据预处理, 数据清洗, 主结果质量, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.4.1
+# HSK 数学建模模块化工作流 v7.4.2
 
 ## 默认执行
 
@@ -80,6 +80,12 @@ preprocessing_decision
 ```
 
 完整运行配置分别嵌入实际生成的阶段 Python 并写入对应工作簿；运行步骤和校验结果只在聊天或标准输出中返回。主工作簿验收后冻结 `问题X求解.py`，随后独立生成 `问题X结果深化分析.py`，不得为深化分析覆盖改写主求解脚本。
+
+### Figure Evidence 硬规则
+
+MATLAB 结果图不固定套用单图、`1×2` 或 `2×2`。生成代码前必须先写 `Core conclusion / Evidence level / Primary question`，再通过 `modules/04_figure_evidence.md` 的 Figure Layout Gate 动态选择 `单图 / 1×2 / 2×1 / 1×3 / 2×2 / 拆图`。单图能闭合结论时不强行加 panel；两个互补证据优先双面板；`2×2` 只有在四个 panel 同属一个核心结论、具有明确成对/交叉结构且拆图会明显损失直接比较效率时保留。主结果、异质性、稳健性和数值合法性证据默认按 Evidence level 分层，不一股脑混装。
+
+配色不再默认追求低饱和深色。白底、清晰轴线和语义一致性保持不变，但主比较允许使用中高饱和、高对比颜色，例如亮蓝 `#1478FF` 与鲜红 `#F04444`；主对象应醒目，置信区间、背景带、参考网格和次要元素使用浅色、灰色或透明度降权。禁止彩虹滥用和无序多色轮换。
 
 ### 写作阶段硬规则
 
