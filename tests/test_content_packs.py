@@ -93,7 +93,8 @@ class TestContentPacks(unittest.TestCase):
             self.assertIn("阈值", text)
             self.assertIn("结构稳健性", text)
         self.assertIn("高级图表准入检查", pack)
-        self.assertIn("颜色不是固定约束", module)
+        self.assertIn("推荐主色仅作为起点，不是固定模板", module)
+        self.assertIn("中高饱和、高对比", module)
         self.assertIn("q1_plot.m", matlab_readme)
         self.assertIn("q1_polt.m", matlab_readme)
 
