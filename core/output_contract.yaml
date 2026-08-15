@@ -1,4 +1,4 @@
-version: 7.4.3
+version: 7.4.4
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 user_execution_contract: core/user_execution_contract.yaml
@@ -28,6 +28,9 @@ writing_policy:
   adaptive_sectioning_by_task_type: true
   cumcm_problem_analysis_by_question: true
   problem_restatement_copy_forbidden: true
+  problem_restatement_second_section: 问题提出
+  problem_statement_per_question_required: true
+  problem_statement_method_result_forbidden: true
   problem_analysis_pipeline_listing_forbidden: true
   problem_analysis_formula_result_forbidden: true
   assumptions_symbols_separate_sections: true
@@ -35,13 +38,19 @@ writing_policy:
   notation_long_subscript_avoidance_required: true
   core_model_summary_before_solve_required: true
   cumcm_question_model_section_name: 问题X模型建立及求解
+  question_result_section_default: 求解结果
+  standalone_question_conclusion_default: false
+  standalone_paper_conclusion_default: false
   generic_textbook_derivation_forbidden: true
-  result_explanation_chain: 关键数值或现象 -> 比较基准 -> 机制解释 -> 题目结论 -> 必要边界
+  result_explanation_chain: 核心图表或关键数值显式引用 -> 比较基准 -> 机制解释 -> 题目回答 -> 必要边界
+  figure_table_text_reference_required: true
+  figure_table_adjacent_explanation_required: true
   generic_model_evaluation_forbidden: true
   default_model_evaluation_section: 模型的评价与推广
   title_software_as_contribution_forbidden: true
   abstract_implementation_detail_forbidden: true
   abstract_first_paragraph_compact: true
+  abstract_affirmative_statement_preferred: true
   object_restoration_figure_allowed_when_structurally_necessary: true
   assumption_scope_localization_required: true
   local_evidence_closure_preferred: true
@@ -49,7 +58,13 @@ writing_policy:
   standalone_model_evaluation_required: false
   generic_algorithm_background_budget: minimal_task_specific
   proposition_proof_segmented_steps: true
+  proof_structure_default: paragraph_first
+  proof_numbered_steps_when_needed: true
+  proposition_display_numbering: arabic_section_dot_arabic_proposition
   proposition_box_page_break_forbidden: true
+  affirmative_statement_preferred: true
+  negation_contrast_density_review: true
+  paragraph_logic_continuity_review: true
   table_caption_position: above
   figure_caption_position: below
   three_line_table_default_alignment: center
@@ -465,9 +480,12 @@ proposition_contract:
   latex_outer_environment: hskproposition
   latex_proof_environment: hskproof
   main_text_default_proof_level: outline
+  main_text_default_structure: paragraph_first
   main_text_key_steps_min: 2
   main_text_key_steps_max: 6
+  numbered_steps_when_needed: true
   segmented_steps_required: true
+  display_numbering: arabic_section_dot_arabic_proposition
   outer_box_page_break_forbidden: true
   required_fields:
   - proposition_id
@@ -480,7 +498,8 @@ proposition_contract:
   hard_rules:
   - 命题必须实际服务问题简化、模型必要性、关键点识别、降维、约束删减、可行性保持、预处理等价性/误差界或理论边界。
   - 数值实验、准确率比较和求解器退出状态不能替代数学证明。
-  - 正文B级短证明采用2--6个分段/分条逻辑步骤；常规命题框原则上不跨页，超长技术证明移附录。
+  - 正文B级短证明分段优先、分点按需；连续推理采用自然段和必要公式，只有明显多阶段证明才使用2--6个编号步骤。
+  - 命题显示编号使用阿拉伯章节号；常规命题框原则上不跨页，超长技术证明移附录。
   - 模型、预处理、参数、约束或定义域变化后必须重新检查相关证明。
 global_preprocessing:
   contract: core/global_preprocessing_contract.yaml
@@ -546,7 +565,7 @@ matlab_figure_contract:
   preprocessing_matlab_must_not_reprocess: true
   handoff_alternative: matlab_figure_handoff.json/yaml
   provenance_record: null
-  mtime_role: auxiliary_warning_only
+  mtime_role: 仅作辅助警告
   default_output: 每问交付同目录qX_plot.m；project_level另交付数据预处理/data_process.m；图窗由用户人工检查和按需导出
 ownership:
   Python_preprocessing: 仅preprocessing_decision=project_level时生成；负责共享原始数据的公共审计与已批准处理、论文方法/验证证据和绘图底层数据并输出统一工作簿，不求解小问核心模型。
