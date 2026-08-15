@@ -1,6 +1,7 @@
 %% q1_plot：问题一结果绘图入口（当前活动模板）
-% 放在“问题一求解/”，与唯一Python脚本和两个标准工作簿同目录。
+% 放在“问题一求解/”，与主求解Python、深化分析Python和两个标准工作簿同目录。
 % 字段使用精确表头唯一匹配；期望列号仅用于结构漂移警告。
+% 版式不预设，必须先按 modules/04_figure_evidence.md 的 Figure Layout Gate 动态判断。
 
 clearvars;
 clc;
@@ -15,8 +16,10 @@ assert(isfile(solutionBook), "缺少工作簿: %s", solutionBook);
 assert(isfile(resultAnalysisBook), "缺少工作簿: %s", resultAnalysisBook);
 
 %% 2. 实际结构锁定
-% 图型选择以核心结论和信息效率为准。兼容检查标记：xColumn = NaN；actualXHeader == xHeader。
-% 主结果图使用solutionBook；稳定性、阈值、算法或结构图使用resultAnalysisBook。
+% 图型选择以 Core conclusion / Evidence level / Primary question 和信息效率为准。
+% 兼容检查标记：xColumn = NaN；actualXHeader == xHeader。
+% 主结果图优先使用solutionBook；稳定性、阈值、算法或结构图优先使用resultAnalysisBook。
+% 若图确实需要底层事实源，必须继承当前 preprocessing_decision；MATLAB 不重建模型变换。
 sourceBook = solutionBook;
 sourceSheet = "__ACTUAL_SHEET_NAME__";
 xHeader = "__ACTUAL_X_HEADER__";
@@ -52,9 +55,10 @@ assert(~isempty(x), "没有可绘制的真实数据");
 y = y(order);
 
 %% 3. 正式结果图
+% 这里只给单图骨架；若 Figure Layout Gate 判定为多面板，应实例化 tiledlayout，而不是机械沿用本段。
 fig = figure("Color", "w", "Position", [100, 100, 900, 620]);
 ax = axes(fig);
-plot(ax, x, y, "LineWidth", 2.2, "Color", [23, 59, 94] / 255);
+plot(ax, x, y, "LineWidth", 2.2, "Color", [20, 120, 255] / 255);  % #1478FF 亮蓝
 xlabel(ax, xLabelText);
 ylabel(ax, yLabelText);
 title(ax, figureTitle, "FontWeight", "normal");
