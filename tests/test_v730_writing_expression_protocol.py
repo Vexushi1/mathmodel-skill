@@ -11,13 +11,14 @@ class WritingExpressionProtocolV730Tests(unittest.TestCase):
     def test_latex_module_owns_shared_expression_protocol(self):
         latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
         self.assertIn("正文表达与章节组织协议（写作权威）", latex)
-        self.assertIn("问题重述：背景一段、任务压缩", latex)
+        self.assertIn("问题重述：问题背景 + 问题提出", latex)
         self.assertIn("问题分析：国赛式逐问分析，不写公式和结果", latex)
         self.assertIn("模型推导：从本题对象出发", latex)
         self.assertIn("核心模型汇总：推导后、求解前必须出现", latex)
-        self.assertIn("结果段：数值、机制与题目回答贴在一起", latex)
+        self.assertIn("求解结果：图表、数值、机制和题目回答就近闭环", latex)
         self.assertIn("模型的评价与推广", latex)
         self.assertIn("科研初学者式学术表达", latex)
+        self.assertIn("分段优先，分点按需", latex)
 
     def test_docx_and_cleanup_reference_shared_authority(self):
         docx = (ROOT / "modules/05_writing/docx.md").read_text(encoding="utf-8")
@@ -26,20 +27,23 @@ class WritingExpressionProtocolV730Tests(unittest.TestCase):
         self.assertIn(marker, docx)
         self.assertIn(marker, cleanup)
         self.assertIn("问题重述去复制化", cleanup)
+        self.assertIn("问题提出逐问化", cleanup)
         self.assertIn("问题分析去流程图化", cleanup)
         self.assertIn("问题分析禁公式结果", cleanup)
         self.assertIn("假设去万能化", cleanup)
         self.assertIn("推导去教科书化", cleanup)
         self.assertIn("结果去报表化", cleanup)
         self.assertIn("评价去万能化", cleanup)
+        self.assertIn("正向叙述优先", cleanup)
         self.assertIn("科研初学者式学术表达", cleanup)
 
     def test_latex_pack_enforces_non_template_writing(self):
         pack = (ROOT / "packs/artifact/latex.md").read_text(encoding="utf-8")
-        self.assertIn("问题重述压缩为研究对象、关键条件和逐问输入/输出", pack)
+        self.assertIn("问题重述默认采用“问题背景 + 问题提出”", pack)
         self.assertIn("问题分析必须说明本问难点、对象关系、跨问依赖和建模抓手", pack)
-        self.assertIn("关键数值/现象—比较基准—机制—题目结论—必要边界", pack)
+        self.assertIn("核心图表/关键数值引用—比较基准—机制—题目回答—必要边界", pack)
         self.assertIn("不强制“优点三条、缺点两条、推广一段”", pack)
+        self.assertIn("B 级短证明默认自然分段", pack)
 
     def test_framework_records_project_specific_writing_strategy(self):
         framework = (ROOT / "templates/model/model_paper_framework.md").read_text(
@@ -47,10 +51,12 @@ class WritingExpressionProtocolV730Tests(unittest.TestCase):
         )
         self.assertIn("### 写作组织策略", framework)
         self.assertIn("主写作类型", framework)
+        self.assertIn("问题重述口径", framework)
         self.assertIn("问题分析安排", framework)
         self.assertIn("全局共享内容", framework)
         self.assertIn("结果解释链", framework)
         self.assertIn("模型评价安排", framework)
+        self.assertIn("正向叙述策略", framework)
         self.assertIn("写作组织策略已按当前题型和证据链确定", framework)
 
     def test_output_contract_points_to_shared_authority(self):
@@ -61,12 +67,17 @@ class WritingExpressionProtocolV730Tests(unittest.TestCase):
         self.assertIn("modules/05_writing/latex.md", policy["expression_authority"])
         self.assertTrue(policy["adaptive_sectioning_by_task_type"])
         self.assertTrue(policy["problem_restatement_copy_forbidden"])
+        self.assertEqual(policy["problem_restatement_second_section"], "问题提出")
+        self.assertTrue(policy["problem_statement_per_question_required"])
         self.assertTrue(policy["problem_analysis_pipeline_listing_forbidden"])
         self.assertTrue(policy["problem_analysis_formula_result_forbidden"])
         self.assertTrue(policy["assumptions_symbols_separate_sections"])
         self.assertTrue(policy["core_model_summary_before_solve_required"])
+        self.assertEqual(policy["question_result_section_default"], "求解结果")
+        self.assertFalse(policy["standalone_paper_conclusion_default"])
         self.assertTrue(policy["generic_textbook_derivation_forbidden"])
         self.assertTrue(policy["generic_model_evaluation_forbidden"])
+        self.assertTrue(policy["affirmative_statement_preferred"])
         self.assertTrue(policy["novice_academic_rewrite_after_cleanup"])
 
     def test_release_versions_are_consistent(self):
@@ -74,17 +85,17 @@ class WritingExpressionProtocolV730Tests(unittest.TestCase):
         manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
         output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(bootstrap["skill_version"], "7.4.3")
-        self.assertEqual(manifest["version"], "7.4.3")
-        self.assertEqual(output["version"], "7.4.3")
-        self.assertEqual(plugin["version"], "7.4.3")
-        self.assertIn("version: 7.4.3", (ROOT / "SKILL.md").read_text(encoding="utf-8"))
+        self.assertEqual(bootstrap["skill_version"], "7.4.4")
+        self.assertEqual(manifest["version"], "7.4.4")
+        self.assertEqual(output["version"], "7.4.4")
+        self.assertEqual(plugin["version"], "7.4.4")
+        self.assertIn("version: 7.4.4", (ROOT / "SKILL.md").read_text(encoding="utf-8"))
         self.assertIn(
-            "version: 7.4.3",
+            "version: 7.4.4",
             (ROOT / "skills/mathmodel-skill/SKILL.md").read_text(encoding="utf-8"),
         )
-        self.assertTrue((ROOT / "README.md").read_text(encoding="utf-8").startswith("# mathmodel-skill v7.4.3"))
-        self.assertIn("## Current release: 7.4.3", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
+        self.assertTrue((ROOT / "README.md").read_text(encoding="utf-8").startswith("# mathmodel-skill v7.4.4"))
+        self.assertIn("## Current release: 7.4.4", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
