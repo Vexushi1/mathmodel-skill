@@ -20,8 +20,14 @@ COMPACT_HEADINGS = (
 FULL_EXTRA_HEADINGS = (
     "## 论文整体框架",
     "### 命题与证明规划",
-    "## 综合检验与跨问结论",
     "## 同步检查",
+)
+# “综合检验与跨问结论”是历史稳定的内部项目记忆标题，并非论文正文的
+# 独立“结论”章节。v7.4.4 允许新框架使用更中性的“跨问判断”，同时保留
+# 旧标题只读兼容，避免为了写作结构修正强迫旧项目迁移。
+CROSS_QUESTION_HEADING_ALIASES = (
+    "## 综合检验与跨问结论",
+    "## 综合检验与跨问判断",
 )
 VALID_MODES = {"compact", "full"}
 SOLVED_STATUSES = {"solved", "validated", "written", "completed"}
@@ -145,9 +151,24 @@ def validate_framework_text(
             issues.append(f"missing required heading for {resolved_mode}: {heading}")
         elif count > 1:
             issues.append(f"duplicate required heading: {heading}")
-    for heading in set(COMPACT_HEADINGS + FULL_EXTRA_HEADINGS):
-        if heading not in required_headings(resolved_mode) and text.count(heading) > 1:
-            issues.append(f"duplicate optional heading: {heading}")
+
+    cross_heading_count = sum(text.count(heading) for heading in CROSS_QUESTION_HEADING_ALIASES)
+    if resolved_mode == "full":
+        if cross_heading_count == 0:
+            issues.append(
+                "missing required full-framework cross-question heading: "
+                + " or ".join(CROSS_QUESTION_HEADING_ALIASES)
+            )
+        elif cross_heading_count > 1:
+            issues.append("full framework must contain exactly one cross-question synthesis heading")
+    elif cross_heading_count > 1:
+        issues.append("duplicate optional cross-question synthesis heading")
+
+    all_known_headings = set(COMPACT_HEADINGS + FULL_EXTRA_HEADINGS + CROSS_QUESTION_HEADING_ALIASES)
+    for heading in all_known_headings:
+        if heading not in required_headings(resolved_mode) and heading not in CROSS_QUESTION_HEADING_ALIASES:
+            if text.count(heading) > 1:
+                issues.append(f"duplicate optional heading: {heading}")
     if "只保留当前有效" not in text and "当前有效版本" not in text:
         issues.append("framework must state that only the current effective version is retained")
 
