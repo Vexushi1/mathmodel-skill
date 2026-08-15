@@ -87,7 +87,8 @@ class NaturalPaperFlowV744Tests(unittest.TestCase):
             "正向叙述策略",
             "求解结果",
             "正文显式引用位置",
-            "分段优先",
+            "优先自然分段",
+            "只有存在明显独立阶段时",
         ):
             self.assertIn(token, text)
         self.assertIn("独立“结论”一级章", text)
