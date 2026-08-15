@@ -9,7 +9,7 @@
 3. Python 基于题目风险完成实际需要的结果深化分析，并验收 `问题X求解/` 中两个标准工作簿；
 4. 只有上述数值阶段完成后才进入 Figure Evidence；先明确每张图读取原始数据、统一预处理工作簿或结果工作簿中的哪一种事实源；
 5. 若为 `project_level`，此时生成并人工检查 `数据预处理/data_process.m`，只把已验收预处理工作簿中的底层证据转成图；
-6. 为各问结果图先写 Core conclusion，再按信息效率选择图型；
+6. 为各问结果图先写 Core conclusion、Evidence level 和 Primary question，再通过 Figure Layout Gate 动态选择单图、1×2、2×1、1×3、2×2 或拆分为多张 Figure；不得先决定版式再硬塞证据；
 7. 生成 MATLAB 代码前实际读取工作簿，锁定工作簿名、工作表名、真实表头、单位和数据类型；
 8. 设置简洁 `title` 或一个整体 `sgtitle`，拟定不逐字重复的论文图注；
 9. 将各问 `q{x}_plot.m` 与两类 Python 脚本、两类结果工作簿放在同一 `问题X求解/`；项目级预处理图脚本固定为 `数据预处理/data_process.m`；
@@ -55,7 +55,7 @@
 - 重采样前后的网格/采样间隔/覆盖图；
 - 异常阈值边界与保留/处理样本图。
 
-`data_process.m` 的 Figure Contract 必须记录：Core conclusion、Figure role、MATLAB title、论文 caption、Source workbook=`数据预处理结果.xlsx`、Worksheet、Required headers、Panel map、Statistics/error、Paper location。
+`data_process.m` 的 Figure Contract 必须记录：Core conclusion、Evidence level、Primary question、Figure role、MATLAB title、论文 caption、Source workbook=`数据预处理结果.xlsx`、Worksheet、Required headers、Panel map、Layout decision、Split decision、Statistics/error、Paper location。
 
 若需要正式导出，文件基名固定为：
 
@@ -69,7 +69,7 @@ data_process_<evidence>
 
 ## C 类：各问结果图合同
 
-每张结果图记录：Core conclusion、Figure role、MATLAB title、论文 caption、Panel map、Source workbook、Worksheet、Required headers、Expected positions（可选）、MATLAB script、Export files、Statistics/error、Reviewer risk、Paper location 和 Caption duty。
+每张结果图记录：Core conclusion、Evidence level、Primary question、Figure role、MATLAB title、论文 caption、Panel map、Layout decision、Split decision、Panel necessity、Source workbook、Worksheet、Required headers、Expected positions（可选）、MATLAB script、Export files、Statistics/error、Reviewer risk、Paper location 和 Caption duty。
 
 结果证据优先来自本问主求解工作簿或结果深化分析工作簿：
 
@@ -85,6 +85,101 @@ data_process_<evidence>
 不得为了统一脚本结构而强制所有 `qX_plot.m` 读取 `数据预处理结果.xlsx`。若图只依赖标准结果工作簿，则不额外加载任何原始或预处理数据。
 
 不得在 MATLAB 中重新求解，不得从摘要数字反推绘图序列。图型必须提高信息展示或比较效率，否则降级为更直接的二维图。
+
+## Figure Evidence 层级
+
+为避免把主结果、机制解释、稳健性和数值合法性一股脑塞进同一张图，绘图前给每个证据单元标记层级：
+
+```text
+L1 主结果证据       → 直接回答本问主要数值/结构结论
+L2 机制或异质性证据 → 解释结论为何发生、发生在哪里、对谁成立
+L3 稳健性证据       → 敏感性、阈值、场景、多算法、结构稳定范围
+L4 数值合法性证据   → 收敛、频带、残差、可行性、预处理有效性等方法后盾
+```
+
+同一 Figure 可以包含多个 panel，但默认应属于同一 Evidence level 并共同回答一个 Primary question。跨层级合图只有在“必须同屏直接比较”且拆分会明显损失证据关系时才允许，并须在 Figure Contract 中写明原因。
+
+## Figure Layout Gate：单图 / 1×2 / 2×2 动态判断
+
+**不存在固定默认版式。** MATLAB 代码生成前必须先做布局判定，布局由证据关系决定，而不是由“有几个结果表”决定。
+
+### 1. 单图
+
+优先使用单图，当满足任一条件：
+
+- 一个二维图已经完整回答 Primary question；
+- 第二个 panel 只是重复同一趋势、换一种图型复述同一数字；
+- 增加 panel 不会改变结论强度、适用边界或机制解释；
+- 单图配合正文一句解释比多面板更清楚。
+
+单图不是“信息少”，而是证据闭环已经足够紧凑。
+
+### 2. 1×2 或 2×1
+
+当两个证据单元存在强配对、互补或前后关系时使用双面板。典型情况：
+
+- 方法 A vs 方法 B 的直接并列成像/空间场；
+- 主结果 vs 对应误差/残差；
+- 连续逐点变化 vs 分组统计总结；
+- 处理前 vs 处理后；
+- 稳健性趋势 vs 失效边界。
+
+横向比较优先 `1×2`；若纵轴较长、图例/标签横向拥挤或论文栏宽更适合纵向阅读，可使用 `2×1`。双面板应能用一句 Core conclusion 统领，而不是两个互不相关的小结论。
+
+### 3. 1×3
+
+只有三个 panel 形成不可拆的同一序列时使用，例如三阶段演化、三种必须同屏比较的方案或“基准—改进—误差”三联证据。若第三个 panel 属于不同证据层级或需要独立解释，应拆图，不为了凑满版面使用 1×3。
+
+### 4. 2×2
+
+`2×2` 不是默认“高级版式”，只有同时满足以下条件才保留：
+
+1. 四个 panel 共同服务**一个**一级 Core conclusion；
+2. panel 之间具有清楚的 2×2 对称、交叉或成对结构，而不是四个独立指标并排；
+3. 主要视觉编码种类原则上不超过 2 类；
+4. 拆成两个 1×2 会显著损失直接比较效率或读者需要来回翻图；
+5. 每个 panel 都是不可替代证据，删去任一个都会损失结论闭环；
+6. 图注能够用一个主句解释四个 panel，而不需要写四段互不相干的说明。
+
+任一条件不满足，优先拆为两张 1×2、单图 + 1×2 或其他更轻的结构。
+
+### 5. 超过 4 个 panel
+
+正文核心 Figure 原则上不超过 4 个 panel。若底层证据超过 4 个，先按 Primary question / Evidence level / 机制链拆分；只有地图阵列、参数矩阵、时序快照等“多 panel 本身就是研究对象”的情形可以例外。例外必须说明为何矩阵式浏览比拆图更有效。
+
+### 6. 动态判定顺序
+
+生成代码前按以下顺序判断：
+
+```text
+先问：单图能否闭合核心结论？
+  ├─ 能 → 单图
+  └─ 不能
+      ↓
+两个 panel 是否形成强配对/互补？
+  ├─ 是 → 1×2 或 2×1
+  └─ 否
+      ↓
+三个 panel 是否属于不可拆的同一序列？
+  ├─ 是 → 1×3
+  └─ 否
+      ↓
+四个 panel 是否同时通过 2×2 六项条件？
+  ├─ 是 → 2×2
+  └─ 否 → 按 Primary question / Evidence level 拆成多张 Figure
+```
+
+不能为了“核心结果看起来丰富”把所有可画指标都放入同一 Figure。评委阅读效率优先：**每张 Figure 应让读者在数秒内知道比较对象、主要差异和下一步该看哪里。**
+
+## 视觉注意力预算
+
+布局确定后继续检查视觉负荷：
+
+- 一张 Figure 原则上只有 1 个一级 Core conclusion；
+- 主要比较对象通常不超过 2--3 个；对象更多时优先分组、小 multiples 或另图，而不是堆图例；
+- 主要视觉编码（如热图、折线、柱图、箱线）原则上不超过 2 类；
+- 主结果颜色语义通常不超过 3 个，辅助对象使用灰、浅色或透明度降权；
+- panel 数量少但视觉编码冲突严重时仍应拆图；panel 数量多但本身构成规则矩阵时可保留。
 
 ## 实表读取规则
 
@@ -108,9 +203,33 @@ if isfinite(expectedXColumn) && xColumn ~= expectedXColumn
 end
 ```
 
-## 图标题与风格
+## 图标题、配色与风格
 
-单图使用 `title`，多面板使用一个 `sgtitle`。标题只说明研究对象、指标关系和必要方法，不写结论长句。默认白底、细轴、低饱和深色、中文坐标轴和单位、字号 18，网格关闭或极浅。颜色不是固定约束，但同一对象和同一语义应保持一致。图窗默认可见，不批量自动导出。
+单图使用 `title`，多面板使用一个 `sgtitle`。标题只说明研究对象、指标关系和必要方法，不写结论长句。默认白底、清晰细轴、中文坐标轴和单位、字号 18，网格关闭或极浅。**主结果允许并鼓励使用中高饱和、高对比、抓眼球的科研配色**；不再以“低饱和深色”为默认目标。数学建模竞赛图表应让评委快速识别对象和差异，只要语义层级清楚，就不必为了“期刊感”把主色压得过暗。
+
+推荐主色仅作为起点，不是固定模板：
+
+```text
+亮蓝   #1478FF   RGB [20,120,255]
+鲜红   #F04444   RGB [240,68,68]
+亮绿   #16B364   RGB [22,179,100]
+亮橙   #F79009   RGB [247,144,9]
+亮紫   #7A5AF8   RGB [122,90,248]
+深灰   #252B37
+浅灰   #E9EAEB
+```
+
+配色动态规则：
+
+- 两对象强比较优先使用高对比双色，例如亮蓝 vs 鲜红；
+- 正向改善/可行可使用亮绿，风险/恶化可使用鲜红，警告/临界可使用亮橙，基准/参考可使用深灰；
+- 同一对象和同一语义一旦在全文建立颜色映射，后续图保持一致；
+- 主线、主柱、关键区域可以鲜艳；置信区间、背景带、参考网格、次要对象必须通过浅色、灰色或透明度降权；
+- 允许高饱和，不允许“所有元素都高饱和”：如果颜色过多导致读者不知道先看哪里，说明视觉层级失败；
+- 禁止彩虹色、无序多色轮换、红绿单独承担唯一语义；必要时同时使用线型、标记或明暗确保可辨识；
+- 热图/连续场使用与物理量语义匹配的连续或发散色图，不把分类高对比色硬套到连续变量。
+
+图窗默认可见，不批量自动导出。
 
 ## 分析图准入
 
