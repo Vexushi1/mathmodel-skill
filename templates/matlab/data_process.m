@@ -2,6 +2,7 @@
 % 仅 preprocessing_decision=project_level 时实例化并放入“数据预处理/”。
 % 只读取“数据预处理结果.xlsx”中 Python 已输出的处理前/后与验证底层数据。
 % 禁止在 MATLAB 中重新清洗、插值、滤波、重采样、训练填补模型或重新选择参数。
+% 版式同样服从 modules/04_figure_evidence.md 的 Figure Layout Gate，不默认多面板。
 
 clearvars;
 clc;
@@ -55,11 +56,12 @@ before = before(order);
 after = after(order);
 
 %% 3. 处理前后证据图
+% “处理前”作为参考对象降权，“处理后”作为主比较对象使用高对比主色。
 fig = figure("Color", "w", "Position", [100, 100, 960, 620]);
 ax = axes(fig);
 hold(ax, "on");
-plot(ax, x, before, "LineWidth", 1.8, "Color", [32, 38, 46] / 255, "DisplayName", "处理前");
-plot(ax, x, after, "LineWidth", 2.2, "Color", [23, 59, 94] / 255, "DisplayName", "处理后");
+plot(ax, x, before, "LineWidth", 1.8, "Color", [37, 43, 55] / 255, "DisplayName", "处理前");
+plot(ax, x, after, "LineWidth", 2.2, "Color", [240, 68, 68] / 255, "DisplayName", "处理后"); % #F04444
 xlabel(ax, xLabelText);
 ylabel(ax, yLabelText);
 title(ax, figureTitle, "FontWeight", "normal");
@@ -71,6 +73,7 @@ apply_scientific_style(fig);
 %% 4. 可选：按“绘图数据索引”继续实例化掩蔽恢复、误差分布、频谱或覆盖证据
 % 每个面板必须直接对应一个预处理必要性/有效性判断。
 % 所有数值必须来自数据预处理结果.xlsx；不得从摘要数字反推序列。
+% 若两个或更多证据并不回答同一个 Primary question，应拆为多张 Figure。
 
 %% 5. 图窗保留供人工检查；默认不自动导出
 % 正式导出时文件基名使用 data_process 或 data_process_<evidence>。
