@@ -111,12 +111,14 @@ class TestContentPacks(unittest.TestCase):
             "模型作用",
             "失效边界",
             "正文证明默认",
-            "同一个外框",
+            "同一外框",
             "流程图和机理图的彩色框限制不适用于命题证明环境",
             "## 各问模型与结果",
             "#### 结果摘要",
             "MATLAB 图标题",
             "## 图表证据链",
+            "正文显式引用位置",
+            "正向叙述策略",
             "## 同步检查",
         ):
             self.assertIn(token, text)
@@ -139,6 +141,7 @@ class TestContentPacks(unittest.TestCase):
         latex = paths[1].read_text(encoding="utf-8")
         self.assertIn("hskproposition", latex)
         self.assertIn("hskproof", latex)
+        self.assertIn("分段优先，分点按需", latex)
 
     def test_docx_checklists_are_merged_and_framework_aware(self):
         writing = ROOT / "templates/writing"
@@ -154,19 +157,22 @@ class TestContentPacks(unittest.TestCase):
         self.assertIn("不超过 4", checklist)
         self.assertIn("同一个外框", checklist)
         self.assertIn("核心模型汇总", checklist)
+        self.assertIn("求解结果", checklist)
+        self.assertIn("正文核心图", checklist)
         self.assertIn("表题是否严格位于表格正上方", checklist)
         self.assertIn("图题是否严格位于图片正下方", checklist)
 
-    def test_cumcm_hsk_template_has_boxed_segmented_proposition_environment(self):
+    def test_cumcm_hsk_template_has_boxed_paragraph_first_proposition_environment(self):
         text = (ROOT / "templates/latex/cumcm/hsk/hsk_main.tex").read_text(encoding="utf-8")
         self.assertIn("\\usepackage[most]{tcolorbox}", text)
         self.assertIn("\\newtheorem{proposition}{命题}[section]", text)
+        self.assertIn("\\renewcommand{\\theproposition}{\\arabic{section}.\\arabic{proposition}}", text)
         self.assertIn("\\newenvironment{hskproposition}[1]", text)
         self.assertIn("\\newenvironment{hskproof}", text)
         self.assertIn("证明：", text)
         self.assertIn("B 级短证明", text)
+        self.assertIn("短证明默认自然分段", text)
         self.assertIn("全文按实际需要使用，可以为 0，但不得超过 4 个", text)
-        self.assertIn("\\begin{enumerate}[label=\\arabic*.,leftmargin=2.2em]", text)
         self.assertNotIn("breakable,", text)
         self.assertIn("colback=white", text)
         self.assertIn("colframe=black!72", text)
@@ -178,17 +184,20 @@ class TestContentPacks(unittest.TestCase):
         proposition = contract["proposition_contract"]
         self.assertEqual(proposition["latex_outer_environment"], "hskproposition")
         self.assertEqual(proposition["main_text_default_proof_level"], "outline")
+        self.assertEqual(proposition["main_text_default_structure"], "paragraph_first")
         self.assertEqual(proposition["main_text_key_steps_min"], 2)
         self.assertEqual(proposition["main_text_key_steps_max"], 6)
+        self.assertTrue(proposition["numbered_steps_when_needed"])
+        self.assertEqual(proposition["display_numbering"], "arabic_section_dot_arabic_proposition")
         self.assertEqual(proposition["maximum_per_paper"], 4)
         self.assertTrue(proposition["segmented_steps_required"])
         self.assertTrue(proposition["outer_box_page_break_forbidden"])
 
-    def test_caption_template_has_no_copyable_fixed_sentence(self):
+    def test_caption_template_has_no_copyable_fixed_sentence_and_requires_body_reference(self):
         text = (ROOT / "templates/writing/caption_explanation.md").read_text(encoding="utf-8")
         self.assertNotIn("由图X可知，……。这一结果说明", text)
         self.assertNotIn("由表X可知，……。该结果与", text)
-        for token in ("读图结论", "关键数值", "机制解释", "这些是信息结构"):
+        for token in ("读图结论", "关键数值", "机制解释", "显式编号引用", "图~\\ref{...}", "表~\\ref{...}"):
             self.assertIn(token, text)
 
 
