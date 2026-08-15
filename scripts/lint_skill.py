@@ -15,7 +15,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "7.4.2"
+PACKAGE_VERSION = "7.4.3"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",
@@ -51,10 +51,11 @@ COMPATIBILITY_POINTERS = {
 REPO_PATH_PREFIXES = ("core/", "modules/", "packs/", "templates/", "scripts/", "config/", "state/", "assets/", "agents/", "skills/", ".github/", ".codex-plugin/")
 MARKDOWN_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 VERSION_DOCS = ["SKILL.md", "README.md", "CHANGELOG.md", "scripts/README.md", "legacy/README.md", "core/hsk_core_policy.md"]
+# Patch-level Skill releases only force the global release carriers to match. Domain
+# contracts retain their own schema/compatibility marker unless their behavior changes.
 VERSION_CONTRACTS = [
     "core/bootstrap.yaml", "core/workflow_router.yaml", "core/module_manifest.yaml",
-    "core/output_contract.yaml", "core/project_state.schema.yaml", "core/user_execution_contract.yaml",
-    "core/code_quality_contract.yaml", "core/global_preprocessing_contract.yaml",
+    "core/output_contract.yaml",
 ]
 
 
@@ -570,6 +571,26 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("default writing mode must be latex_first")
     if policy.get("docx_mode") != "explicit_only_independent" or policy.get("docx_is_latex_prerequisite") is not False:
         errors.append("DOCX must remain explicit-only and not be a LaTeX prerequisite")
+    writing_expectations = {
+        "cumcm_problem_analysis_by_question": True,
+        "problem_analysis_formula_result_forbidden": True,
+        "assumptions_symbols_separate_sections": True,
+        "visible_assumption_contract_labels_forbidden": True,
+        "core_model_summary_before_solve_required": True,
+        "proposition_proof_segmented_steps": True,
+        "proposition_box_page_break_forbidden": True,
+        "table_caption_position": "above",
+        "figure_caption_position": "below",
+        "three_line_table_default_alignment": "center",
+        "novice_academic_rewrite_after_cleanup": True,
+    }
+    for key, expected in writing_expectations.items():
+        if policy.get(key) != expected:
+            errors.append(f"writing policy mismatch: {key} -> {policy.get(key)!r}")
+    if policy.get("cumcm_question_model_section_name") != "问题X模型建立及求解":
+        errors.append("writing policy must lock the CUMCM question-model section entry")
+    if policy.get("default_model_evaluation_section") != "模型的评价与推广":
+        errors.append("writing policy must use 模型的评价与推广 as the default evaluation section")
     result_policy = output.get("result_policy", {})
     if result_policy.get("primary_quality_gate_required") is not True:
         errors.append("primary result quality gate must be required")

@@ -1,4 +1,4 @@
-skill_version: 7.4.2
+skill_version: 7.4.3
 bootstrap_schema_version: 1.1.0
 purpose: Minimal startup contract for the HSK mathematical-modeling workflow. Read this file first, then use scripts/resolve_workflow.py to obtain the deterministic task-specific execution plan. Do not preload the whole repository.
 authoritative_sources:
@@ -38,8 +38,10 @@ hard_invariants:
 - Python负责当前数据事实源检查、主求解、质量门与结果深化分析；项目级公共数据处理仅在project_level时由数据预处理.py执行；MATLAB只读真实工作簿证据绘图。
 - 实际生成的数据预处理脚本和两个正式问题脚本都必须通过core/code_quality_contract.yaml定义的代码工程质量门。
 - 默认写作链在结果与图表锁定后直接进入LaTeX；DOCX仅由用户显式请求触发，且不是LaTeX前置。
-- 论文正文的问题重述、问题分析、模型假设、模型推导、结果解释、模型评价和章节组织必须按题目对象与题型证据链写作；不得复制题面、堆通用算法百科、把问题分析写成流程清单或使用换题仍成立的万能优缺点。
+- 论文正文的问题重述、问题分析、模型假设、符号说明、模型推导、核心模型汇总、结果解释、模型评价和章节组织必须按modules/05_writing/latex.md执行；不得复制题面、把问题分析写成含公式/结果的求解段、堆通用算法百科或使用换题仍成立的万能优缺点。
+- 中文国赛多问论文默认逐问分析、模型假设与符号说明分章、各问使用“问题X模型建立及求解”，并在详细推导后、求解前设置核心模型汇总；命题短证明按步骤分段且原则上不跨页。
 - 写作时共享假设与单问假设按作用域放置，局部结果与检验证据尽量就近闭环；模型检验负责量化可信度，模型评价只讨论结构取舍，不能以优缺点替代误差、可行性、外样本或敏感性证据。
+- AI模板清理后执行科研初学者式学术重写：表达略朴素、生涩但规范，避免连续“本文……因此……”和“不是……而是……”同构句式，不通过故意语病、口语化或机械同义词替换制造风格。
 - locked_model_spec形成后维护项目根目录当前版模型论文框架.md；旧版本由Git历史保存。
 - 模型论文框架.md不仅是交付给用户的可读文档，也是助手跨阶段、跨聊天恢复当前项目上下文的首选语义记忆；只要框架存在且current，后续预处理、求解、深化分析、绘图、写作和终审都应在执行前按需读取相关段落，不得只依赖聊天记忆重建当前模型。
 - 模型论文框架.md保存当前有效语义、结果摘要和证据位置，但不替代数值事实源与机器状态：具体数值必须回到已验收工作簿复核，semantic revision、hash与stale以project state为准。

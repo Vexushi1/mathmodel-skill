@@ -7,15 +7,20 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class TestV740WritingEvidenceArchitecture(unittest.TestCase):
-    def test_latex_authority_contains_2024_evidence_architecture(self):
+    def test_latex_authority_preserves_evidence_architecture(self):
         text = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
         for token in (
-            "对象恢复图准入", "按作用域放置假设", "问题分析放置规则",
-            "算法说明实行最小必要预算", "证据邻近原则",
-            "模型检验与模型评价必须分工", "标题写研究对象、关键机制或模型贡献",
+            "对象几何、网络拓扑、空间区域或复杂层级仅靠文字难以恢复时",
+            "局部假设只在对应问题首次使用前说明",
+            "问题分析：国赛式逐问分析，不写公式和结果",
+            "通用遗传算法、粒子群、差分进化",
+            "能直接验证局部结论的误差图、残差、灵敏度",
+            "模型评价不能替代模型检验",
+            "标题写研究对象、关键机制或模型贡献",
         ):
             self.assertIn(token, text)
-        self.assertIn("不必机械包装成独立命题框", text)
+        self.assertIn("普通局部性质", text)
+        self.assertIn("不机械升级为正式命题", text)
 
     def test_framework_remembers_evidence_placement_without_fixed_assumption_quota(self):
         text = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
@@ -27,16 +32,19 @@ class TestV740WritingEvidenceArchitecture(unittest.TestCase):
     def test_output_contract_freezes_validation_evaluation_split(self):
         data = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         policy = data["writing_policy"]
-        self.assertEqual(data["version"], "7.4.2")
+        self.assertEqual(data["version"], "7.4.3")
         self.assertTrue(policy["model_validation_precedes_evaluation"])
         self.assertFalse(policy["standalone_model_evaluation_required"])
         self.assertTrue(policy["assumption_scope_localization_required"])
         self.assertTrue(policy["local_evidence_closure_preferred"])
         self.assertEqual(policy["generic_algorithm_background_budget"], "minimal_task_specific")
 
-    def test_cleanup_has_evidence_architecture_antipatterns(self):
+    def test_cleanup_preserves_evidence_architecture_antipatterns(self):
         text = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
-        for token in ("标题去软件化", "摘要去实现清单化", "假设去全局滥用", "检验与评价去混淆", "证据邻近检查"):
+        for token in (
+            "问题重述去复制化", "摘要第一段压缩", "假设去万能化",
+            "模型检验与模型评价分工明确", "证据邻近检查",
+        ):
             self.assertIn(token, text)
 
 
