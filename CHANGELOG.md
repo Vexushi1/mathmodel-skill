@@ -1,6 +1,19 @@
 # Changelog
 
-## Current release: 7.4.2
+## Current release: 7.4.3
+
+- Reworked the CUMCM writing authority around actual reviewer reading order: problem background is normally one paragraph, problem analysis is organized question-by-question and excludes formal equations/final results, model assumptions and symbol definitions are separate top-level sections, and each question enters through “问题X模型建立及求解”.
+- Added a mandatory `核心模型汇总` between detailed derivation and numerical solving so the final variables, objective/equations, constraints and boundaries can be recovered without rereading the full derivation.
+- Strengthened notation readability: visible assumptions use natural numbering instead of H1/A1 contract labels; high-frequency symbols avoid long text/multi-level subscripts and use short superscripts for model/scenario/stage information where appropriate.
+- Reworked proposition presentation: B-level proofs use 2--6 segmented/numbered logical steps; standard proposition boxes are non-breaking, and overlong technical proofs move to the appendix instead of shrinking fonts or splitting across pages.
+- Replaced the default “模型评价与适用范围” pattern with “模型的评价与推广” or, when real improvement content exists, “模型的改进、评价与推广”. Strengths must outnumber weaknesses, strengths are capped at four, and improvement/promotion sections are evidence-driven optional content rather than fixed quotas.
+- Enforced strict “表上图下”: table captions are above, figure captions below, tables/figures are centered, and three-line table numeric/short-text cells are centered by default.
+- Extended AI cleanup from phrase deletion to sentence-structure de-templating: repeated “本文……因此……”, “不是……而是……”, repeated paragraph-start subjects, abstract-jargon stacking and identical result-paragraph rhythms are now explicit rewrite triggers.
+- Added a final “科研初学者式学术表达” pass: prose stays formal and technically stable but intentionally a little plainer and less over-polished, preserving visible reasoning steps without manufacturing grammatical errors, colloquialism or mechanical synonym replacement.
+- Updated the CUMCM HSK LaTeX template and DOCX/check templates to implement these rules instead of leaving them only in documentation; removed fixed top-level model-validation/sensitivity placeholders from the default paper skeleton.
+- Added v7.4.3 regression coverage for question-analysis structure, separate assumptions/symbols, core-model summaries, segmented/non-breaking propositions, caption positions and anti-template language. Numerical, preprocessing, workbook, MATLAB, user-execution and five-file interfaces remain unchanged.
+
+## Previous release: 7.4.2
 
 - Added a Figure Evidence hierarchy (`L1` main result, `L2` mechanism/heterogeneity, `L3` robustness, `L4` numerical-validity evidence) so unlike evidence layers are not automatically packed into one dense multi-panel figure.
 - Added a dynamic Figure Layout Gate. MATLAB planning now asks whether a single panel already closes the primary question, then considers paired `1×2/2×1`, inseparable `1×3`, and only conditionally retains `2×2`; otherwise evidence is split by Primary question / Evidence level.
