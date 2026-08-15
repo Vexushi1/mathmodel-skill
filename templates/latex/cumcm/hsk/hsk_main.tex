@@ -10,21 +10,16 @@
 \usepackage{algorithmic}
 \usepackage{cleveref}
 \usepackage[most]{tcolorbox}
-% cumcmthesis v2.6 自定义了旧版 \supercite；在加载 biblatex 前释放该命令，
-% 由 biblatex 提供统一的上标引用实现。
+% cumcmthesis v2.6 自定义了旧版 \supercite；在加载 biblatex 前释放该命令。
 \let\supercite\relax
 \usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
 \addbibresource{references.bib}
 
 % 命题按章节编号。全文按实际需要使用，可以为 0，但不得超过 4 个。
-% 默认将命题正文与短证明置于同一外框，便于评委快速识别理论结论边界。
-% 该外框不属于流程图或机理图的彩色框限制；默认白底、细边、无阴影。
-% cumcmthesis 已提供定理基础环境，此处不额外加载 amsthm，避免 proof 命令冲突。
+% B 级短证明与命题正文放在同一不可分页外框；若内容过长，应把技术证明移到附录。
 \newtheorem{proposition}{命题}[section]
 \newenvironment{hskproposition}[1]
   {\begin{tcolorbox}[
-      enhanced,
-      breakable,
       colback=white,
       colframe=black!72,
       boxrule=0.65pt,
@@ -41,7 +36,7 @@
     \begin{proposition}[#1]}
   {\end{proposition}\end{tcolorbox}}
 \newenvironment{hskproof}
-  {\par\smallskip\noindent\textbf{证明：}\hspace{0.5em}}
+  {\par\smallskip\noindent\textbf{证明：}\par\nopagebreak\smallskip}
   {\hfill$\square$\par}
 
 % 按当届题面和队伍信息修改，不在模板中固定年份、题号和小问数。
@@ -51,7 +46,7 @@
 \newcommand{\HSKContestMonth}{9}
 \newcommand{\HSKContestDay}{1}
 
-\title{基于XXX模型的XXX问题研究}
+\title{XXX问题的XXX建模与分析}
 \tihao{\HSKProblemCode}
 \baominghao{\HSKTeamNumber}
 \schoolname{学校名称}
@@ -67,40 +62,39 @@
 \maketitle
 
 \begin{abstract}
-% 按实际小问数量写作。每问采用“模型—算法—关键数值—结论”结构，删除未使用的占位语句。
-本文围绕XXX问题，针对题目给出的XXX数据、XXX机制与XXX约束，建立XXX模型并完成求解与检验。
+% 第一段通常 2--3 句：研究对象 + 核心矛盾 + 全文统一路线。不要在第一段堆五问方法清单。
+……
 
-针对问题一，……。
-
-% 继续按实际小问添加摘要段，不固定为三问。
-
-本文通过参数扰动、数据噪声、替代模型或多算法验证中的适用方法检验结论稳定性，并给出模型适用边界。
+% 随后按问写“模型/机制 + 决定性数值 + 直接结论”，避免每段都复制“针对问题X，本文……”。
+……
 
 \keywords{关键词1\quad 关键词2\quad 关键词3\quad 关键词4}
 \end{abstract}
 
 \section{问题重述}
 \subsection{问题背景}
-% 用自己的语言概括现实背景、研究对象和业务机制，不照抄题干。
+% 默认一个自然段。结合与本题直接相关的现实背景，并自然收束到待解决的数学矛盾。
 
 \subsection{问题要求}
-% 概括各小问；内部题目覆盖表不得进入终稿正文或附录。
+% 用自己的语言压缩各小问输入和输出；不提前写模型名、公式和求解结果。
 
 \section{问题分析}
-\subsection{问题一分析}
-% 说明直接目标、隐含目标、数据依赖、题型、核心难点和方法选择理由。
+\subsection{问题一的分析}
+% 通常一个自然段：难点、对象关系、跨问依赖、建模抓手。禁止数学公式和最终结果。
 
-% 按实际小问继续添加分析小节。
+\subsection{问题二的分析}
+% 按实际小问继续；不要写“先清洗、再建模、再求解、再画图”的流水线。
 
-\section{模型假设与符号说明}
-\subsection{模型假设}
+\section{模型假设}
+% 正文只使用自然序号，不显示 H1/H2、A1/A2 等内部合同编号。
 \begin{enumerate}
-    \item 假设一：……。说明设立原因、影响、失效偏差和检验方式。
-    \item 假设二：……。
-    \item 假设三：……。
+    \item ……。
+    \item ……。
+    \item ……。
 \end{enumerate}
 
-\subsection{符号说明}
+\section{符号说明}
+% 只列全文高频符号。场景/模型/方案等优先考虑短上标，避免长文本和多层下标。
 \begin{table}[H]
     \centering
     \caption{主要符号说明}
@@ -109,73 +103,107 @@
         \toprule
         符号 & 含义 & 单位 & 类型 \\
         \midrule
-        $x_i$ & 决策变量示例 & -- & 决策变量 \\
-        $s_t$ & 状态变量示例 & -- & 状态变量 \\
+        $x_i$ & 元素/位置索引示例 & -- & 变量 \\
+        $I^{(s)}$ & 第 $s$ 个模型对应结果 & -- & 状态量 \\
         $\theta$ & 参数示例 & -- & 参数 \\
         \bottomrule
     \end{tabular}
 \end{table}
 
+% preprocessing_decision=not_needed 时删除本章，只在数据说明中简洁交代数据审计结论。
+% question_local 时把必要变换放入对应问题；project_level 时才保留实质数据预处理章节。
 \section{数据预处理}
-\subsection{数据口径与字段说明}
-% 说明数据表、字段、单位、时间/空间粒度、样本范围和关联键。
+\subsection{数据问题与处理必要性}
+% 说明真实数据问题；不得为了形式完整编造清洗、插值、标准化。
 
-\subsection{数据质量与变换}
-% 说明缺失、异常、重复、单位换算、时间对齐及特征构造依据。
+\subsection{处理方法与验证}
+% project_level 时给公式、参数依据、验证、处理前后证据和后续模型接口。
 
-\section{模型建立与求解}
-\subsection{问题一模型建立与求解}
-\subsubsection{模型建立}
-设……，目标函数为
+\section{问题一模型建立及求解}
+\subsection{模型建立}
+% 从本题对象和机制开始，详细推导关键关系。
+设……，得到
 \begin{equation}
-    \min Z = C_1 + C_2 + C_3,
-    \label{eq:q1-objective}
+    F(x,\theta)=0,
+    \label{eq:q1-core-relation}
 \end{equation}
-其中，$C_1$、$C_2$ 和 $C_3$ 分别表示……。
+式~\eqref{eq:q1-core-relation} 控制……，并用于下一步构造……。
 
-% 命题优先用于问题简化、模型必要性说明、关键点识别、降维、约束删减或算法可行性。
-% 正文默认使用短证明：保留 2--6 个关键逻辑步骤，通常不超过三分之一页。
-% 全文命题总数不得超过 4；无高价值命题时删除以下示例。
+% 命题只在确实承担降维、等价变换、单调性、可行性等建模作用时使用。
 % \begin{hskproposition}{变换模型的等价性}
 % \label{prop:q1-equivalence}
-% 在假设 A1--A3 及参数范围……内，原模型与变换模型具有相同的可行解映射和最优目标值。
+% 在条件……及参数范围……内，原模型与变换模型具有相同的可行解映射和最优目标值。
 % \begin{hskproof}
-% 由变量映射……可知两个可行域一一对应；又因目标函数在该映射下保持不变，故两模型最优值及最优解映射一致。
+% \begin{enumerate}[label=\arabic*.,leftmargin=2.2em]
+%     \item 构造变量映射……，并说明在当前定义域内一一对应。
+%     \item 验证约束在该映射下保持，因此两个可行域相互对应。
+%     \item 目标函数保持不变，故最优值及最优解映射一致。
+% \end{enumerate}
 % \end{hskproof}
 % \end{hskproposition}
-% 命题~\ref{prop:q1-equivalence} 将原问题化为低维模型，从而减少搜索变量并保留最优性；当……不成立时，该结论失效。
+% 框后另起段说明命题对当前模型的实际作用和失效边界。
 
-\subsubsection{求解方法}
-% 写求解器、参数、终止条件、程序位置和可行性检查。
+\subsection{核心模型汇总}
+% 详细推导后、求解前必须集中展示最终可计算模型；不要重新解释推导来源。
+\begin{equation}
+\left\{
+\begin{aligned}
+\min\quad & f(x) \\
+\text{s.t.}\quad & g_i(x)\le 0, \quad i=1,\ldots,m, \\
+& h_j(x)=0, \quad j=1,\ldots,n, \\
+& x\in\Omega .
+\end{aligned}
+\right.
+\label{eq:q1-model-summary}
+\end{equation}
+% 非优化题按本题结构改成“状态方程—观测关系—概率映射—边界/初值—输出量”的大括号汇总。
 
-\subsubsection{结果与分析}
-% 图表必须就近解释，并绑定标准结果工作簿和 MATLAB 绘图脚本。
+\subsection{模型求解}
+% 写实际算法、初始化/参数、停止条件、可行性/收敛口径；不要只写“利用Python/MATLAB求解”。
 
-% 按实际小问继续添加“模型建立—必要命题与短证明—求解方法—结果与分析”。
+\subsection{结果与分析}
+% 图表就近解释。可从异常、对比、阈值、空间差异或关键数值切入，不套“由图可知—结果说明—因此”。
 
-\section{模型检验}
-% 按题型选择有效性检验、残差诊断、边界验证、多算法对比或误差分析。
+% 按实际题目继续设置：
+% \section{问题二模型建立及求解}
+%   \subsection{模型建立}
+%   \subsection{核心模型汇总}
+%   \subsection{模型求解}
+%   \subsection{结果与分析}
+% 共享基础模型只完整定义一次，后问只写新增变量、目标、约束和证据。
 
-\section{敏感性与鲁棒性分析}
-% 参数扰动、数据噪声、场景压力测试或替代模型对比。
-% 同时检查实际参数和扰动范围是否触及命题的失效边界。
+\section{模型的评价与推广}
+% 若确有实质“改进”内容，可改名为“模型的改进、评价与推广”。
+% “模型的改进”和“模型的推广”均为选写，通常只保留确实有内容的一项。
+\subsection{模型的优点}
+% 优点多于缺点，且不超过4条；只写当前模型真正具有的结构优势。
+\begin{enumerate}
+    \item ……。
+    \item ……。
+    \item ……。
+\end{enumerate}
 
-\section{模型评价与改进}
-\subsection{模型优势}
-\subsection{模型局限}
-\subsection{改进方向}
+\subsection{模型的缺点}
+% 通常1--2条，写清限制会影响哪个结果或边界。
+\begin{enumerate}
+    \item ……。
+    \item ……。
+\end{enumerate}
+
+\subsection{模型的推广}
+% 选写。简要说明可迁移对象、需要替换的参数/边界和不能直接迁移的条件。
 
 \section{结论}
-% 逐问直接回答题目，给出关键数值、策略和边界，不写空泛总结。
+% 逐问直接回答题目，保留关键数值、判断和边界，不写空泛总结。
 
 \printbibliography[title={参考文献}]
 
 \begin{appendices}
 \section{核心代码与复现说明}
-% 正文只保留伪代码；完整代码可放附录或独立附件，并说明输入、功能和输出。
+% 正文只保留必要伪代码；完整代码可放附录或独立附件，并说明输入、功能和输出。
 
 \section{补充推导与图表}
-% 完整证明过长时，将技术细节放在此处；正文命题框只保留条件、关键证明链、模型作用和失效边界。
+% 技术证明超过正文安全长度时放在此处；正文命题框只保留关键证明链。
 % 仅放正文不宜展开但仍有证据价值的图表。
 \end{appendices}
 

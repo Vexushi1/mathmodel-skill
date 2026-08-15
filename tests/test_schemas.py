@@ -70,7 +70,7 @@ class TestSchemas(unittest.TestCase):
 
     def test_output_contract_defines_split_result_policy(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(contract["version"], "7.4.2")
+        self.assertEqual(contract["version"], "7.4.3")
         self.assertEqual(contract["code_quality_contract"], "core/code_quality_contract.yaml")
         self.assertEqual(contract["preprocessing_contract"], "core/global_preprocessing_contract.yaml")
         self.assertEqual(contract["semantic_governance"]["script"], "scripts/validate_semantic_governance.py")
@@ -125,9 +125,20 @@ class TestSchemas(unittest.TestCase):
             contract["global_preprocessing"]["exact_default_files"],
             ["数据预处理.py", "数据预处理结果.xlsx", "data_process.m"],
         )
-        self.assertEqual(contract["writing_policy"]["default_mode"], "latex_first")
-        self.assertEqual(contract["writing_policy"]["docx_mode"], "explicit_only_independent")
-        self.assertFalse(contract["writing_policy"]["docx_is_latex_prerequisite"])
+        writing = contract["writing_policy"]
+        self.assertEqual(writing["default_mode"], "latex_first")
+        self.assertEqual(writing["docx_mode"], "explicit_only_independent")
+        self.assertFalse(writing["docx_is_latex_prerequisite"])
+        self.assertTrue(writing["cumcm_problem_analysis_by_question"])
+        self.assertTrue(writing["problem_analysis_formula_result_forbidden"])
+        self.assertTrue(writing["assumptions_symbols_separate_sections"])
+        self.assertTrue(writing["core_model_summary_before_solve_required"])
+        self.assertTrue(writing["proposition_proof_segmented_steps"])
+        self.assertTrue(writing["proposition_box_page_break_forbidden"])
+        self.assertEqual(writing["table_caption_position"], "above")
+        self.assertEqual(writing["figure_caption_position"], "below")
+        self.assertEqual(writing["three_line_table_default_alignment"], "center")
+        self.assertTrue(writing["novice_academic_rewrite_after_cleanup"])
 
 
 if __name__ == "__main__":

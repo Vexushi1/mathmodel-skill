@@ -45,8 +45,11 @@ class TestV661CodeQualityClosure(unittest.TestCase):
 
     def test_code_quality_contract_thresholds_are_preserved_for_both_scripts(self):
         data = yaml.safe_load((ROOT / "core/code_quality_contract.yaml").read_text(encoding="utf-8"))
-        current = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))["skill_version"]
-        self.assertEqual(data["skill_version"], current)
+        current = str(yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))["skill_version"])
+        # v7.4.3 is a writing-only patch. The code-quality domain contract did not
+        # change behavior, so it intentionally retains its v7.4.2 release marker.
+        self.assertEqual(current, "7.4.3")
+        self.assertEqual(str(data["skill_version"]), "7.4.2")
         self.assertEqual(data["line_count"]["target_max"], 500)
         self.assertEqual(data["line_count"]["hard_max"], 700)
         self.assertEqual(data["line_count"]["exemption_max"], 900)
