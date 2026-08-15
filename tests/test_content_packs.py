@@ -150,21 +150,26 @@ class TestContentPacks(unittest.TestCase):
         self.assertIn("templates/writing/docx_check.md", module)
         self.assertIn("模型论文框架.md", module)
         self.assertIn("sgtitle", checklist)
-        self.assertIn("## 2. 命题与证明", checklist)
+        self.assertIn("## 2. 符号、命题与证明", checklist)
         self.assertIn("不超过 4", checklist)
         self.assertIn("同一个外框", checklist)
+        self.assertIn("核心模型汇总", checklist)
+        self.assertIn("表题是否严格位于表格正上方", checklist)
+        self.assertIn("图题是否严格位于图片正下方", checklist)
 
-    def test_cumcm_hsk_template_has_boxed_concise_proposition_environment(self):
+    def test_cumcm_hsk_template_has_boxed_segmented_proposition_environment(self):
         text = (ROOT / "templates/latex/cumcm/hsk/hsk_main.tex").read_text(encoding="utf-8")
         self.assertIn("\\usepackage[most]{tcolorbox}", text)
         self.assertIn("\\newtheorem{proposition}{命题}[section]", text)
         self.assertIn("\\newenvironment{hskproposition}[1]", text)
         self.assertIn("\\newenvironment{hskproof}", text)
         self.assertIn("证明：", text)
-        self.assertIn("正文默认使用短证明", text)
-        self.assertIn("全文命题总数不得超过 4", text)
+        self.assertIn("B 级短证明", text)
+        self.assertIn("全文按实际需要使用，可以为 0，但不得超过 4 个", text)
+        self.assertIn("\\begin{enumerate}[label=\\arabic*.,leftmargin=2.2em]", text)
+        self.assertNotIn("breakable,", text)
         self.assertIn("colback=white", text)
-        self.assertIn("无阴影", text)
+        self.assertIn("colframe=black!72", text)
 
     def test_output_contract_keeps_concise_proposition_contract(self):
         import yaml
@@ -176,6 +181,8 @@ class TestContentPacks(unittest.TestCase):
         self.assertEqual(proposition["main_text_key_steps_min"], 2)
         self.assertEqual(proposition["main_text_key_steps_max"], 6)
         self.assertEqual(proposition["maximum_per_paper"], 4)
+        self.assertTrue(proposition["segmented_steps_required"])
+        self.assertTrue(proposition["outer_box_page_break_forbidden"])
 
     def test_caption_template_has_no_copyable_fixed_sentence(self):
         text = (ROOT / "templates/writing/caption_explanation.md").read_text(encoding="utf-8")
