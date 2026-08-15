@@ -1,4 +1,4 @@
-version: 7.4.1
+version: 7.4.2
 bootstrap: core/bootstrap.yaml
 default_load:
 - core/hsk_core_policy.md
