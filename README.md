@@ -1,6 +1,12 @@
-# mathmodel-skill v7.4.1
+# mathmodel-skill v7.4.2
 
 当前工作流：**审题与 Problem Contract 冻结 → 通用数据审计与 `preprocessing_decision` → 题面—数学—代码语义闭环 → Complexity Sanity Check → semantic governance → 条件式项目级预处理（仅 `project_level`）→ 用户本地完整版 Python 主求解 → 主结果质量门 → 独立 Python 结果深化分析 → 稳定性验收 → MATLAB预处理/结果证据图 → 题型自适应 LaTeX 写作 → AI cleanup → 编译终审**。
+
+## v7.4.2：Figure Evidence 动态布局与高对比配色
+
+MATLAB 绘图不再预设“核心结果就用 2×2”或“默认都用 1×2”。生成代码前先根据 `Core conclusion / Evidence level / Primary question` 判断单图能否闭合结论，再动态选择 `单图 / 1×2 / 2×1 / 1×3 / 2×2 / 拆成多张 Figure`。`2×2` 只有在四个 panel 同属一个核心结论、具有明确成对/交叉结构且拆图会损失直接比较效率时保留；否则优先拆分，避免主结果、异质性、稳健性和数值合法性证据混装后稀释结论。
+
+配色也不再默认压成低饱和深色。白底和清晰轴线保持不变，但主比较对象允许使用中高饱和、高对比颜色，例如亮蓝 `#1478FF` 与鲜红 `#F04444`；亮绿、亮橙、亮紫可按改善、警告和第三对象等语义使用。主对象可以醒目，置信区间、背景带、参考网格和次要对象必须降权；同一对象的颜色语义在全文保持一致。完整规则以 `modules/04_figure_evidence.md` 为唯一权威。
 
 ## 数据阶段：先判断，不默认清洗
 
