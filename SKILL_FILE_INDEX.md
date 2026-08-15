@@ -196,3 +196,4 @@
 - `tests/test_v740_writing_evidence_architecture.py`
 - `tests/test_v741_skill_closure_hygiene.py`
 - `tests/test_v742_dynamic_figure_layout.py`
+- `tests/test_v743_writing_structure_style.py`
