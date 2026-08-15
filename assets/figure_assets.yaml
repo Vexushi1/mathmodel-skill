@@ -1,11 +1,12 @@
 schema_version: 1.0.0
-skill_compatibility: ">=6.2.3,<7.0.0"
-purpose: 将 Nature 风格图集作为按需视觉参考接入图型选择；资产不提供数据、结论或固定配色。
+skill_compatibility: ">=7.4.2,<8.0.0"
+purpose: 将 Nature 风格图集作为按需视觉参考接入图型选择；资产不提供数据、结论、固定配色或固定面板数量。
 default_load: false
 rules:
   - 仅在图型选择、版式对照或多面板设计需要时加载对应资产。
   - 资产不能替代 Figure Contract、底层工作簿或 MATLAB 重绘脚本。
   - 不按示例图机械复制颜色、面板数量和统计图型。
+  - 视觉参考只影响表现形式，不得改变模型结果、统计口径、证据层级或 Figure Layout Gate 的判定。
 assets:
   bar_comparison:
     path: assets/nature_figure/chart-atlas/atlas-01-bar-charts.png
