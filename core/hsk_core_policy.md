@@ -1,4 +1,4 @@
-# HSK Core Policy v7.4.1
+# HSK Core Policy v7.4.2
 
 本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision`、条件式统一数据预处理、预处理论文数学证据与 `data_process.m` 图证据以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准。本文件不复制这些合同的完整字段。
 
@@ -132,7 +132,7 @@ project_level
 - MATLAB `data_process.m`：仅 `project_level` 时读取 `数据预处理结果.xlsx` 绘制预处理证据图，不重新处理数据；正式导出基名使用 `data_process` 或 `data_process_<evidence>`；
 - Python 主求解：按 `preprocessing_decision` 读取原始数据或统一工作簿，完成模型求解、质量门和主工作簿；
 - Python 深化分析：继承同一数据事实源，读取已验收主结果与必要前问结果，完成题目专属深化分析；
-- MATLAB `qX_plot.m`：读取本问标准结果工作簿及必要数据事实源绘制各问结果图，不重新求解；
+- MATLAB `qX_plot.m`：读取本问标准结果工作簿及必要数据事实源绘制各问结果图，不重新求解；绘图前按 `Core conclusion / Evidence level / Primary question` 动态选择单图、1×2、2×1、1×3、2×2或拆图，主结果允许中高饱和高对比配色，完整规则以 `modules/04_figure_evidence.md` 为准；
 - LaTeX：默认论文主链；若存在实质预处理，必须写入对应数学方法、验证和图表证据；
 - DOCX：仅用户明确要求时加载，不是 LaTeX 前置。
 
