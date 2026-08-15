@@ -33,7 +33,7 @@ class TestV743WritingStructureStyle(unittest.TestCase):
         ):
             self.assertIn(token, cleanup)
 
-    def test_cumcm_hsk_template_implements_structure(self):
+    def test_cumcm_hsk_template_implements_structure_without_forcing_all_proofs_to_lists(self):
         tex = (ROOT / "templates/latex/cumcm/hsk/hsk_main.tex").read_text(encoding="utf-8")
         self.assertIn("\\section{模型假设}", tex)
         self.assertIn("\\section{符号说明}", tex)
@@ -44,11 +44,14 @@ class TestV743WritingStructureStyle(unittest.TestCase):
         self.assertNotIn("\\section{模型检验}", tex)
         self.assertNotIn("\\section{敏感性与鲁棒性分析}", tex)
         self.assertNotIn("breakable,", tex)
-        self.assertIn("\\begin{enumerate}[label=\\arabic*.,leftmargin=2.2em]", tex)
+        self.assertIn("短证明默认自然分段", tex)
+        self.assertNotIn("% \\begin{enumerate}[label=\\arabic*.,leftmargin=2.2em]", tex)
 
-    def test_proof_pack_requires_segmented_nonbreaking_proof(self):
+    def test_proof_pack_preserves_nonbreaking_proof_and_refines_visual_structure(self):
         proof = (ROOT / "packs/artifact/proposition_proof.md").read_text(encoding="utf-8")
-        self.assertIn("分段/分条关键证明链", proof)
+        self.assertIn("分段优先，分点按需", proof)
+        self.assertIn("正文 B 级证明的第一选择是**自然分段 + 必要公式**", proof)
+        self.assertIn("只有下列情形适合分点", proof)
         self.assertIn("命题框原则上不可分页", proof)
         self.assertIn("不通过缩小字号硬塞", proof)
 

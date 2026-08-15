@@ -1,6 +1,19 @@
 # Changelog
 
-## Current release: 7.4.3
+## Current release: 7.4.4
+
+- Reworked Chinese competition problem restatement into the default `问题背景 + 问题提出` structure. `问题提出` now restates each subproblem as `问题一：… / 问题二：…`, using the authors' own understanding of research object, key conditions and required output while excluding formal models, equations, algorithms and final results.
+- Added an affirmative-flow writing rule. Prose should directly state the object, mathematical treatment and result; high densities of `但/然而/不是/不能/只能/而不是` now trigger a real-conflict review instead of being treated as signs of rigor. The novice-academic style remains plain and earnest but must not become repetitive self-negation, self-defense or disclaimer-heavy writing.
+- Changed proposition proof presentation from uniformly segmented numbered chains to **paragraph-first, numbered-when-needed**. Continuous 3--8 line proofs use natural paragraphs and equations; 2--6 numbered steps are reserved for genuinely multi-stage arguments such as case analysis, existence/uniqueness or mapping-feasibility-objective proofs.
+- Standardized proposition display numbering to Arabic section/proposition form such as `命题 4.1` and `命题 6.2`; mixed forms such as `命题 六.1` are rejected.
+- Strengthened figure/table evidence closure: every core body figure and table requires an explicit nearby numbered reference plus interpretation of trend/key value and model/question meaning. Caption-only evidence is no longer sufficient, while the wording of figure/table references must still vary naturally rather than forming a new `由图可知/见表可知` phrase template.
+- Made `求解结果` the default per-question result subsection. Question-specific deep evidence follows under task-specific headings, and the final result/deep-analysis paragraph answers the current subproblem naturally. Fixed `小问结论` subsections are no longer part of the default skeleton.
+- Removed the standalone Chinese CUMCM `结论` chapter from the default paper skeleton. A separate conclusion is now added only when the current competition template, user or paper type explicitly requires it; this does not affect the internal project-memory heading used for cross-question synthesis.
+- Updated the CUMCM HSK template, DOCX rules/checklist, LaTeX artifact pack, final-review module, caption contract and model-paper framework memory so they implement the same authority rather than reintroducing older structures later in the workflow.
+- Audited active read paths and found the current Diangong template still carried a v6.2.2-era skeleton (`问题要求`, merged assumptions/symbols, fixed validation/sensitivity chapters and standalone conclusion). That active template was modernized to v7.4.4. Legacy archives and V622 compatibility pointers remain intentionally read-only and are not deleted merely because they contain historical wording.
+- Hardened lint/regression coverage so active CUMCM/Diangong templates cannot silently restore `问题要求`, merged assumption/symbol chapters, default standalone conclusions, stale v6 template markers, non-Arabic proposition numbering, or the old proof-listification behavior. Numerical, preprocessing, workbook, user-execution, MATLAB Figure Evidence and per-question five-file interfaces remain unchanged.
+
+## Previous release: 7.4.3
 
 - Reworked the CUMCM writing authority around actual reviewer reading order: problem background is normally one paragraph, problem analysis is organized question-by-question and excludes formal equations/final results, model assumptions and symbol definitions are separate top-level sections, and each question enters through “问题X模型建立及求解”.
 - Added a mandatory `核心模型汇总` between detailed derivation and numerical solving so the final variables, objective/equations, constraints and boundaries can be recovered without rereading the full derivation.

@@ -15,7 +15,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "7.4.3"
+PACKAGE_VERSION = "7.4.4"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",
@@ -32,7 +32,8 @@ REQUIRED = [
     "packs/artifact/proposition_proof.md", "templates/model/model_paper_framework.md",
     "templates/code/hsk_pipeline/result_io.py", "templates/code/hsk_pipeline/workbook_validation.py",
     "templates/code/hsk_pipeline/main_pipeline.py", "templates/matlab/q1_plot.m",
-    "templates/matlab/data_process.m",
+    "templates/matlab/data_process.m", "templates/latex/cumcm/hsk/hsk_main.tex",
+    "templates/latex/diangong/main.tex", "templates/writing/caption_explanation.md",
     "scripts/resolve_workflow.py", "scripts/validate_semantic_governance.py", "scripts/sync_project.py",
     "scripts/validate_code_delivery.py", "scripts/validate_user_execution.py",
     "scripts/validate_model_paper_framework.py", "scripts/validate_project_state.py",
@@ -573,24 +574,49 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("DOCX must remain explicit-only and not be a LaTeX prerequisite")
     writing_expectations = {
         "cumcm_problem_analysis_by_question": True,
+        "problem_statement_per_question_required": True,
+        "problem_statement_method_result_forbidden": True,
         "problem_analysis_formula_result_forbidden": True,
         "assumptions_symbols_separate_sections": True,
         "visible_assumption_contract_labels_forbidden": True,
         "core_model_summary_before_solve_required": True,
         "proposition_proof_segmented_steps": True,
+        "proof_numbered_steps_when_needed": True,
         "proposition_box_page_break_forbidden": True,
+        "figure_table_text_reference_required": True,
+        "figure_table_adjacent_explanation_required": True,
+        "affirmative_statement_preferred": True,
+        "negation_contrast_density_review": True,
+        "paragraph_logic_continuity_review": True,
         "table_caption_position": "above",
         "figure_caption_position": "below",
         "three_line_table_default_alignment": "center",
         "novice_academic_rewrite_after_cleanup": True,
+        "standalone_question_conclusion_default": False,
+        "standalone_paper_conclusion_default": False,
     }
     for key, expected in writing_expectations.items():
         if policy.get(key) != expected:
             errors.append(f"writing policy mismatch: {key} -> {policy.get(key)!r}")
+    if policy.get("problem_restatement_second_section") != "问题提出":
+        errors.append("writing policy must use 问题提出 as the default second restatement section")
     if policy.get("cumcm_question_model_section_name") != "问题X模型建立及求解":
         errors.append("writing policy must lock the CUMCM question-model section entry")
+    if policy.get("question_result_section_default") != "求解结果":
+        errors.append("writing policy must use 求解结果 as the default per-question result section")
+    if policy.get("proof_structure_default") != "paragraph_first":
+        errors.append("writing policy proof structure must be paragraph_first")
+    if policy.get("proposition_display_numbering") != "arabic_section_dot_arabic_proposition":
+        errors.append("writing policy must use Arabic proposition display numbering")
     if policy.get("default_model_evaluation_section") != "模型的评价与推广":
         errors.append("writing policy must use 模型的评价与推广 as the default evaluation section")
+    proposition = output.get("proposition_contract", {})
+    if proposition.get("main_text_default_structure") != "paragraph_first":
+        errors.append("proposition contract must default to paragraph-first proofs")
+    if proposition.get("numbered_steps_when_needed") is not True:
+        errors.append("proposition contract must number steps only when structurally needed")
+    if proposition.get("display_numbering") != "arabic_section_dot_arabic_proposition":
+        errors.append("proposition contract must use Arabic section.proposition numbering")
     result_policy = output.get("result_policy", {})
     if result_policy.get("primary_quality_gate_required") is not True:
         errors.append("primary result quality gate must be required")
@@ -768,9 +794,40 @@ def check_templates(errors: list[str]) -> None:
     if "冻结问题X求解.py" not in solve or "问题X结果深化分析.py" not in analysis:
         errors.append("solve/result-analysis modules must enforce frozen primary and separate analysis script")
     framework = read_text(ROOT / "templates/model/model_paper_framework.md")
-    for token in ("题意口径合同（Problem Contract）", "题面—数学—代码语义闭环", "复杂度合理性复审", "semantic revision"):
+    for token in ("题意口径合同（Problem Contract）", "题面—数学—代码语义闭环", "复杂度合理性复审", "semantic revision", "问题提出", "正文显式引用位置", "正向叙述策略"):
         if token not in framework:
-            errors.append(f"model framework lacks semantic governance token: {token}")
+            errors.append(f"model framework lacks current writing/semantic token: {token}")
+
+    latex_authority = read_text(ROOT / "modules/05_writing/latex.md")
+    cleanup = read_text(ROOT / "modules/05_writing/ai_cleanup.md")
+    proposition_pack = read_text(ROOT / "packs/artifact/proposition_proof.md")
+    caption_contract = read_text(ROOT / "templates/writing/caption_explanation.md")
+    cumcm = read_text(ROOT / "templates/latex/cumcm/hsk/hsk_main.tex")
+    diangong = read_text(ROOT / "templates/latex/diangong/main.tex")
+    for token in ("问题提出", "正向叙述", "求解结果", "分段优先，分点按需"):
+        if token not in latex_authority:
+            errors.append(f"LaTeX writing authority lacks v7.4.4 token: {token}")
+    for token in ("正向叙述优先", "否定—转折密度复查", "段落逻辑连续性检查", "核心图表显式引用"):
+        if token not in cleanup:
+            errors.append(f"AI cleanup lacks v7.4.4 token: {token}")
+    if "分段优先，分点按需" not in proposition_pack:
+        errors.append("proposition pack must be paragraph-first and number steps only when needed")
+    if "显式编号引用" not in caption_contract:
+        errors.append("caption contract must require explicit numbered body references")
+    for name, text in (("CUMCM HSK", cumcm), ("Diangong", diangong)):
+        if "\n\\section{结论}\n" in text:
+            errors.append(f"{name} active template must not contain a default standalone conclusion section")
+        if "\\subsection{问题要求}" in text:
+            errors.append(f"{name} active template must use 问题提出 instead of 问题要求")
+        if "\\subsection{问题提出}" not in text:
+            errors.append(f"{name} active template lacks 问题提出")
+        if "\\subsection{求解结果}" not in text:
+            errors.append(f"{name} active template lacks 求解结果")
+    if "\\renewcommand{\\theproposition}{\\arabic{section}.\\arabic{proposition}}" not in cumcm:
+        errors.append("CUMCM HSK template must force Arabic proposition numbering")
+    if "模板 v6.2.2" in diangong or "\\section{模型假设与符号说明}" in diangong:
+        errors.append("active Diangong template still contains stale v6 writing structure")
+
     for relative in ("SKILL.md", "README.md", "skills/mathmodel-skill/SKILL.md"):
         text = read_text(ROOT / relative)
         if "└─ 图表/" in text or "输出完整版代码、运行配置和说明" in text:
