@@ -1,4 +1,4 @@
-# HSK Core Policy v7.4.2
+# HSK Core Policy v7.4.3
 
 本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision`、条件式统一数据预处理、预处理论文数学证据与 `data_process.m` 图证据以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准。本文件不复制这些合同的完整字段。
 
@@ -133,8 +133,10 @@ project_level
 - Python 主求解：按 `preprocessing_decision` 读取原始数据或统一工作簿，完成模型求解、质量门和主工作簿；
 - Python 深化分析：继承同一数据事实源，读取已验收主结果与必要前问结果，完成题目专属深化分析；
 - MATLAB `qX_plot.m`：读取本问标准结果工作簿及必要数据事实源绘制各问结果图，不重新求解；绘图前按 `Core conclusion / Evidence level / Primary question` 动态选择单图、1×2、2×1、1×3、2×2或拆图，主结果允许中高饱和高对比配色，完整规则以 `modules/04_figure_evidence.md` 为准；
-- LaTeX：默认论文主链；若存在实质预处理，必须写入对应数学方法、验证和图表证据；
+- LaTeX：默认论文主链；若存在实质预处理，必须写入对应数学方法、验证和图表证据；正文结构与语言唯一权威为 `modules/05_writing/latex.md`；
 - DOCX：仅用户明确要求时加载，不是 LaTeX 前置。
+
+中文国赛写作必须遵守以下当前规则：问题分析按问分小节且不写公式/最终结果；模型假设与符号说明分章；各问使用“问题X模型建立及求解”；详细推导后、求解前设置“核心模型汇总”；命题短证明分步骤并原则上不跨页；三线表内容默认居中，表题在上、图题在下；模型评价采用“模型的评价与推广”或确有改进时采用“模型的改进、评价与推广”；AI 清理后执行略朴素、生涩但规范的科研初学者式学术重写。
 
 MATLAB 默认只保留图窗，不自动创建图表目录或批量导出正式图片。
 
