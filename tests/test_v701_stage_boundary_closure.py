@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import importlib.util
 import subprocess
 import sys
@@ -226,16 +227,10 @@ class TestV701StageBoundaryClosure(unittest.TestCase):
             self.assertEqual(issues, [])
             self.assertEqual(state["subproblems"]["Q1"]["primary_execution_status"], "accepted")
 
-    def test_resolver_docstring_uses_current_release(self):
+    def test_resolver_docstring_is_versionless_to_avoid_release_drift(self):
         text = (ROOT / "scripts/resolve_workflow.py").read_text(encoding="utf-8")
-        self.assertNotIn("v6.6.0 execution plan", text)
-        self.assertNotIn("v7.0.1 execution plan", text)
-        self.assertNotIn("v7.1.0 execution plan", text)
-        self.assertNotIn("v7.2.2 execution plan", text)
-        self.assertNotIn("v7.4.2 execution plan", text)
-        self.assertNotIn("v7.4.3 execution plan", text)
-        self.assertNotIn("v7.4.4 execution plan", text)
-        self.assertIn("v7.5.1 execution plan", text)
+        self.assertIn("ordered HSK execution plan", text)
+        self.assertIsNone(re.search(r"HSK v\d+\.\d+\.\d+ execution plan", text))
 
 
 if __name__ == "__main__":

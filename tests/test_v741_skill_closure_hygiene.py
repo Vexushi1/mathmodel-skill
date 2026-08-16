@@ -27,8 +27,9 @@ class TestV741SkillClosureHygiene(unittest.TestCase):
     def test_current_authorities_are_release_aligned(self):
         bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
         taxonomy = yaml.safe_load((ROOT / "core/task_taxonomy.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(bootstrap["skill_version"], "7.5.1")
-        self.assertEqual((ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8").splitlines()[0], "# HSK Core Policy v7.5.1")
+        current = str(bootstrap["skill_version"])
+        self.assertIn(f"version: {current}", (ROOT / "SKILL.md").read_text(encoding="utf-8"))
+        self.assertEqual((ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8").splitlines()[0], f"# HSK Core Policy v{current}")
         self.assertIn(">=6.3.1", taxonomy["skill_compatibility"])
         self.assertIn("<8.0.0", taxonomy["skill_compatibility"])
 

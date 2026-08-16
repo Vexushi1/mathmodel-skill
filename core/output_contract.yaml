@@ -1,4 +1,4 @@
-version: 7.5.1
+version: 7.5.2
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 user_execution_contract: core/user_execution_contract.yaml

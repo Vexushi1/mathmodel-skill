@@ -1,6 +1,13 @@
 # Changelog
 
-## Current release: 7.5.1
+## Current release: 7.5.2
+
+- Added an identical non-authoritative runtime-entry contract block to root `SKILL.md` and packaged `skills/mathmodel-skill/SKILL.md`. Both entrypoints now explicitly delegate to the same `core/bootstrap.yaml` → global policy → `scripts/resolve_workflow.py` → route-specific authority chain; neither entrypoint is allowed to become an independent domain-rule source.
+- Added static-lint and unit-test protection for dual-entrypoint semantic parity, bootstrap/plugin version parity, `./skills/` plugin discovery, required authority pointers and legacy/V622 default isolation. This closes the previous gap where only the two frontmatter version strings were compared.
+- Removed redundant current-version coupling from stable `scripts/README.md`, `legacy/README.md` and the resolver docstring, and converted older release-version tests to derive the active version from bootstrap rather than hard-coding every patch number. `README.md` release headings were corrected so v7.5.1 again denotes architecture slimming and v7.5.0 denotes the reasoning architecture.
+- No numerical model, preprocessing behavior, workbook schema, Python/MATLAB ownership, five-file question contract, LaTeX interface or v7.5.0 reasoning capability changed.
+
+## Previous release: 7.5.1
 
 - Slimmed `core/bootstrap.yaml` back to a true startup index: it now stores authority pointers and startup invariants rather than duplicating modeling, preprocessing, writing and validation contracts. The detailed v7.5.0 reasoning capabilities remain in `core/writing_reasoning_contract.yaml` and the global policy.
 - Kept model-design, LaTeX, AI-cleanup and framework consumers executable while removing duplicated semantic enumerations. Consumers now record/apply the current stage decision and explicitly defer cross-competition Source–Derivation–Destination, shared-foundation, progression, structure-before-algorithm and numerical-evidence definitions to the reasoning authority.
