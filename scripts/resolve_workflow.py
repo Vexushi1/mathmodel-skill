@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve one or more user intents into an ordered HSK v7.5.0 execution plan."""
+"""Resolve one or more user intents into an ordered HSK v7.5.1 execution plan."""
 from __future__ import annotations
 
 import argparse
@@ -352,7 +352,13 @@ def resolve_workflow(
     bootstrap = load_yaml(BOOTSTRAP_PATH)
     router = load_yaml(router_path)
     manifest = load_yaml(manifest_path)
-    taxonomy = load_yaml(taxonomy_path)
+    taxonomy: dict[str, Any] | None = None
+
+    def get_taxonomy() -> dict[str, Any]:
+        nonlocal taxonomy
+        if taxonomy is None:
+            taxonomy = load_yaml(taxonomy_path)
+        return taxonomy
 
     explicit_intents = [intents] if isinstance(intents, str) else list(intents or [])
     resolved_intents = unique(explicit_intents + infer_intents(request or "", router))
@@ -365,20 +371,30 @@ def resolve_workflow(
     if preprocessing_decision is not None and preprocessing_decision not in VALID_PREPROCESSING_DECISIONS:
         raise ValueError(f"unknown preprocessing decision: {preprocessing_decision}")
 
-    legacy_objective, legacy_structures, legacy_packs = legacy_to_axes(primary, secondary, taxonomy)
-    objective = objective or legacy_objective
-    structures = unique([*legacy_structures, *structures])
-    max_structures = int(taxonomy.get("classification_contract", {}).get("structures_max_items", 3))
-    if len(structures) > max_structures:
-        raise ValueError(f"at most {max_structures} structures are allowed")
-    allowed_capabilities = set(taxonomy.get("capabilities", {}))
-    capability_list = unique(capabilities)
-    unknown_capabilities = sorted(set(capability_list) - allowed_capabilities)
-    if unknown_capabilities:
-        raise ValueError(f"unknown capabilities: {unknown_capabilities}")
-    task_packs = unique([*legacy_packs, *axes_to_packs(objective, structures, taxonomy)])
-    if len(task_packs) > 3:
-        raise ValueError("resolved task packs exceed the one-primary/two-secondary loading budget")
+    secondary_list = list(secondary)
+    structure_inputs = list(structures)
+    capability_inputs = list(capabilities)
+    classification_requested = bool(primary or secondary_list or objective or structure_inputs or capability_inputs)
+    if classification_requested:
+        taxonomy_data = get_taxonomy()
+        legacy_objective, legacy_structures, legacy_packs = legacy_to_axes(primary, secondary_list, taxonomy_data)
+        objective = objective or legacy_objective
+        structures = unique([*legacy_structures, *structure_inputs])
+        max_structures = int(taxonomy_data.get("classification_contract", {}).get("structures_max_items", 3))
+        if len(structures) > max_structures:
+            raise ValueError(f"at most {max_structures} structures are allowed")
+        allowed_capabilities = set(taxonomy_data.get("capabilities", {}))
+        capability_list = unique(capability_inputs)
+        unknown_capabilities = sorted(set(capability_list) - allowed_capabilities)
+        if unknown_capabilities:
+            raise ValueError(f"unknown capabilities: {unknown_capabilities}")
+        task_packs = unique([*legacy_packs, *axes_to_packs(objective, structures, taxonomy_data)])
+        if len(task_packs) > 3:
+            raise ValueError("resolved task packs exceed the one-primary/two-secondary loading budget")
+    else:
+        structures = []
+        capability_list = []
+        task_packs = []
 
     available_set = set(available_artifacts or ())
     if "accepted_preprocessing_workbook" in available_set:

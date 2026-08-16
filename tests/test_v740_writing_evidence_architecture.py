@@ -40,7 +40,7 @@ class TestV740WritingEvidenceArchitecture(unittest.TestCase):
     def test_output_contract_freezes_validation_evaluation_split(self):
         data = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         policy = data["writing_policy"]
-        self.assertEqual(data["version"], "7.5.0")
+        self.assertEqual(data["version"], "7.5.1")
         self.assertTrue(policy["model_validation_precedes_evaluation"])
         self.assertFalse(policy["standalone_model_evaluation_required"])
         self.assertTrue(policy["assumption_scope_localization_required"])

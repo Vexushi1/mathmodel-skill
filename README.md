@@ -1,8 +1,8 @@
-# mathmodel-skill v7.5.0
+# mathmodel-skill v7.5.1
 
 当前工作流：**审题与 Problem Contract 冻结 → 通用数据审计与 `preprocessing_decision` → 题面—数学—代码语义闭环 → Complexity Sanity Check → semantic governance → 条件式项目级预处理（仅 `project_level`）→ 用户本地完整版 Python 主求解 → 主结果质量门 → 独立 Python 结果深化分析 → 稳定性验收 → MATLAB预处理/结果证据图 → 题型自适应 LaTeX 写作 → AI cleanup 与学术语言重写 → prose audit → 编译终审**。
 
-## v7.5.0：证明机器契约收口与成稿 prose audit
+## v7.5.1：证明机器契约收口与成稿 prose audit
 
 本次 patch 不改变 Problem Contract、数据预处理、Python 求解、工作簿 Schema、MATLAB Figure Evidence、五文件接口和“模型的评价与推广 / 模型的改进、评价与推广”两级策略，只处理 v7.4.4 写作链最后两个执行层尾项。
 
@@ -120,7 +120,7 @@ preprocessing_decision
 
 ## 写作阶段：按证据链写，不按句式模板写
 
-正文写作唯一权威仍位于 `modules/05_writing/latex.md`。v7.5.0 在 v7.4.4 自然论文流基础上增加机器审计闭环：
+正文写作唯一权威仍位于 `modules/05_writing/latex.md`。v7.5.1 在 v7.4.4 自然论文流基础上增加机器审计闭环：
 
 - 问题重述采用“问题背景 + 问题提出”，问题提出逐问写“问题X：”；
 - 问题分析按问分小节，不含正式公式与最终结果，并与问题提出明确分工；
