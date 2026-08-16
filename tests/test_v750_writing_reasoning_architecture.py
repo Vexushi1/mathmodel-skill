@@ -81,6 +81,16 @@ class TestV750WritingReasoningArchitecture(unittest.TestCase):
         self.assertIn("数值参数依据", framework)
         self.assertIn("不把内部合同表机械复制进正文", framework)
 
+    def test_reasoning_chain_is_registered_in_manifest_and_output_contract(self):
+        manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
+        output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["contracts"]["writing_reasoning"], "core/writing_reasoning_contract.yaml")
+        self.assertIn("formula_reasoning_chain", manifest["artifact_catalog"])
+        self.assertIn("formula_reasoning_chain", manifest["modules"]["model_design"]["outputs"])
+        self.assertIn("formula_reasoning_chain", manifest["workflow_profiles"]["design"]["terminal_outputs"])
+        self.assertEqual(output["writing_reasoning_contract"], "core/writing_reasoning_contract.yaml")
+        self.assertEqual(output["writing_policy"]["reasoning_contract"], "core/writing_reasoning_contract.yaml")
+
     def test_model_design_and_writing_consume_same_authority(self):
         for relative in (
             "modules/02_model_design.md",
