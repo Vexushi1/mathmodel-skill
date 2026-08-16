@@ -95,6 +95,13 @@ class ArchitectureSlimmingV751Tests(unittest.TestCase):
         self.assertEqual(model_design.count("### 4.3 数值参数证据计划"), 1)
         self.assertLess(model_design.index("### 4.3 数值参数证据计划"), model_design.index("## 5. 复杂度合理性复审"))
 
+    def test_one_shot_maintenance_files_do_not_leak_into_active_tree_or_manifest(self):
+        self.assertFalse((ROOT / "scripts/_v751_remove_duplicate.py").exists())
+        self.assertFalse((ROOT / ".github/workflows/v751-duplicate-cleanup.yml").exists())
+        manifest = (ROOT / "MANIFEST.sha256").read_text(encoding="utf-8")
+        self.assertNotIn("_v751_", manifest)
+        self.assertNotIn("v751-duplicate-cleanup", manifest)
+
     def test_minimal_router_default_load_remains_single_policy(self):
         router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8"))
         self.assertEqual(router["default_load"], ["core/hsk_core_policy.md"])
