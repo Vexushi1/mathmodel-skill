@@ -1,4 +1,4 @@
-version: 7.4.5
+version: 7.5.0
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -14,6 +14,7 @@ load_policy:
   - Load task_taxonomy only for classification/modeling/code-analysis routes that actually use objective/structure packs.
   - Load global_preprocessing_contract only when the route decides, executes or inherits preprocessing semantics.
   - Load user_execution_contract and code_quality_contract only for code-generation or returned-workbook execution boundaries.
+  - Load writing_reasoning_contract only for model-design/proposition/writing routes that create or revise mathematical reasoning; do not make it a global preload for figures, workbook validation or unrelated utilities.
   - Writing and figure routes inherit current project semantics from 模型论文框架.md and their stage authority; do not preload unrelated code/preprocessing contracts.
 
 project_memory_contract:
@@ -76,19 +77,19 @@ routing:
   new_problem_design:
     triggers: [新赛题, 建模方案, 建模思路, 全流程思路]
     infer_keywords: [新赛题, 建模方案, 建模思路, 审题并建模]
-    load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, modules/01_problem_audit.md, packs/task/classifier.md]
+    load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/writing_reasoning_contract.yaml, modules/01_problem_audit.md, packs/task/classifier.md]
     then: [modules/02_model_design.md]
     load_classified_task_packs: true
     load_competition_pack: true
-    terminal_outputs: [requirement_map, problem_contract, route_comparison, selected_models, locked_model_spec, preprocessing_decision, formula_closure, semantic_closure, complexity_sanity_check, validation_plan, model_paper_framework]
+    terminal_outputs: [requirement_map, problem_contract, route_comparison, selected_models, locked_model_spec, preprocessing_decision, formula_closure, semantic_closure, formula_reasoning_chain, complexity_sanity_check, validation_plan, model_paper_framework]
     formal_delivery: true
     delivery_scope: design
 
   framework_sync:
     triggers: [模型论文框架, 框架同步, 结果摘要, 模型变更同步, 参数变更同步, 约束变更同步]
     infer_keywords: [模型论文框架, 框架同步, 更新框架, 同步结果摘要]
-    load: [modules/02_model_design.md, templates/model/model_paper_framework.md]
-    terminal_outputs: [model_paper_framework, preprocessing_decision, semantic_closure, complexity_sanity_check]
+    load: [core/writing_reasoning_contract.yaml, modules/02_model_design.md, templates/model/model_paper_framework.md]
+    terminal_outputs: [model_paper_framework, preprocessing_decision, semantic_closure, formula_reasoning_chain, complexity_sanity_check]
     formal_delivery: true
     delivery_scope: design
 
@@ -102,9 +103,9 @@ routing:
   proposition_proof:
     triggers: [命题证明, 命题, 证明, 引理, 推论, 等价性证明, 可行性证明, 单调性证明, 误差界]
     infer_keywords: [命题证明, 等价性证明, 可行性证明, 单调性证明, 误差界, 引理, 推论]
-    load: [modules/02_model_design.md, templates/model/model_paper_framework.md]
+    load: [core/writing_reasoning_contract.yaml, modules/02_model_design.md, templates/model/model_paper_framework.md]
     load_proposition_pack: true
-    terminal_outputs: [formula_closure, semantic_closure, proposition_plan, model_paper_framework]
+    terminal_outputs: [formula_closure, semantic_closure, formula_reasoning_chain, proposition_plan, model_paper_framework]
     formal_delivery: true
     delivery_scope: design
 
@@ -123,7 +124,7 @@ routing:
   full_solution:
     triggers: [完整求解, 全部计算, 求出各问, 完成求解]
     infer_keywords: [完整求解, 全部计算, 求出各问, 完成求解]
-    load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/user_execution_contract.yaml, core/code_quality_contract.yaml, modules/01_problem_audit.md, packs/task/classifier.md]
+    load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/user_execution_contract.yaml, core/code_quality_contract.yaml, core/writing_reasoning_contract.yaml, modules/01_problem_audit.md, packs/task/classifier.md]
     then: [modules/02_model_design.md, modules/03_solve_validate.md, packs/artifact/code.md]
     load_classified_task_packs: true
     load_competition_pack: true
@@ -141,7 +142,7 @@ routing:
   full_workflow:
     triggers: [全流程, 完整论文, 全套成果, 完整交付]
     infer_keywords: [全流程, 完整论文, 全套成果, 完整交付]
-    load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/user_execution_contract.yaml, core/code_quality_contract.yaml, modules/01_problem_audit.md, packs/task/classifier.md]
+    load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/user_execution_contract.yaml, core/code_quality_contract.yaml, core/writing_reasoning_contract.yaml, modules/01_problem_audit.md, packs/task/classifier.md]
     then: [modules/02_model_design.md, modules/03_solve_validate.md, packs/artifact/code.md]
     load_classified_task_packs: true
     load_competition_pack: true
@@ -166,18 +167,18 @@ routing:
   model_selection:
     triggers: [模型比较, 建模路线, 变量, 假设, 公式, 目标函数, 约束]
     infer_keywords: [模型比较, 建模路线, 变量, 假设, 公式, 目标函数, 约束]
-    load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, modules/02_model_design.md, packs/task/classifier.md]
+    load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/writing_reasoning_contract.yaml, modules/02_model_design.md, packs/task/classifier.md]
     load_classified_task_packs: true
-    terminal_outputs: [route_comparison, selected_models, locked_model_spec, preprocessing_decision, formula_closure, semantic_closure, complexity_sanity_check, proposition_plan, validation_plan, model_paper_framework]
+    terminal_outputs: [route_comparison, selected_models, locked_model_spec, preprocessing_decision, formula_closure, semantic_closure, formula_reasoning_chain, complexity_sanity_check, proposition_plan, validation_plan, model_paper_framework]
     formal_delivery: true
     delivery_scope: design
 
   advanced_method:
     triggers: [高级模型, W-DRO, CVaR, MPEC, Stackelberg, ALNS, GNN, 空间杜宾, DML, 强化学习, 深度学习]
     infer_keywords: [W-DRO, CVaR, MPEC, Stackelberg, ALNS, GNN, 空间杜宾, DML, 强化学习, 深度学习]
-    load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, modules/02_model_design.md, packs/task/advanced_method_gate.md, packs/task/classifier.md]
+    load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/writing_reasoning_contract.yaml, modules/02_model_design.md, packs/task/advanced_method_gate.md, packs/task/classifier.md]
     load_classified_task_packs: true
-    terminal_outputs: [route_comparison, selected_models, locked_model_spec, preprocessing_decision, semantic_closure, complexity_sanity_check, validation_plan, proposition_plan, model_paper_framework]
+    terminal_outputs: [route_comparison, selected_models, locked_model_spec, preprocessing_decision, semantic_closure, formula_reasoning_chain, complexity_sanity_check, validation_plan, proposition_plan, model_paper_framework]
     formal_delivery: true
     delivery_scope: design
 
@@ -238,7 +239,7 @@ routing:
   docx:
     triggers: [DOCX, Word, 草稿论文]
     infer_keywords: [DOCX, Word, 草稿论文, 论文草稿]
-    load: [modules/05_writing/docx.md, packs/artifact/docx.md]
+    load: [core/writing_reasoning_contract.yaml, modules/05_writing/docx.md, packs/artifact/docx.md]
     terminal_outputs: [docx_draft, latex_migration_notes]
     formal_delivery: true
     delivery_scope: docx
@@ -246,7 +247,7 @@ routing:
   latex:
     triggers: [LaTeX, PDF终稿, cumcmthesis, 终稿论文]
     infer_keywords: [LaTeX, PDF终稿, cumcmthesis, 终稿论文, 编译论文]
-    load: [modules/05_writing/latex.md, modules/05_writing/ai_cleanup.md, modules/05_latex_compile_quality.md, packs/artifact/latex.md]
+    load: [core/writing_reasoning_contract.yaml, modules/05_writing/latex.md, modules/05_writing/ai_cleanup.md, modules/05_latex_compile_quality.md, packs/artifact/latex.md]
     load_competition_pack: true
     terminal_outputs: [latex_source, compiled_pdf, compile_report]
     formal_delivery: true

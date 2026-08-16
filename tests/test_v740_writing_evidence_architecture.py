@@ -24,15 +24,23 @@ class TestV740WritingEvidenceArchitecture(unittest.TestCase):
 
     def test_framework_remembers_evidence_placement_without_fixed_assumption_quota(self):
         text = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
-        self.assertIn("v0.5-evidence-architecture", text)
-        for token in ("对象恢复图", "假设组织", "局部证据闭环", "模型检验安排", "算法说明预算"):
+        self.assertIn("v0.6-reasoning-architecture", text)
+        for token in (
+            "对象恢复图",
+            "假设组织",
+            "局部证据闭环",
+            "模型检验安排",
+            "算法说明预算",
+            "核心公式链索引",
+            "跨问模型增量",
+        ):
             self.assertIn(token, text)
         self.assertNotIn("1. 假设一：原因、影响、失效偏差和检验方式", text)
 
     def test_output_contract_freezes_validation_evaluation_split(self):
         data = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         policy = data["writing_policy"]
-        self.assertEqual(data["version"], "7.4.5")
+        self.assertEqual(data["version"], "7.5.0")
         self.assertTrue(policy["model_validation_precedes_evaluation"])
         self.assertFalse(policy["standalone_model_evaluation_required"])
         self.assertTrue(policy["assumption_scope_localization_required"])

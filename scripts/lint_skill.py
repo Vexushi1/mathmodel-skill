@@ -15,7 +15,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "7.4.5"
+PACKAGE_VERSION = "7.5.0"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",
@@ -23,7 +23,7 @@ REQUIRED = [
     "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml",
     "core/global_preprocessing_contract.yaml", "core/workbook_schema.yaml",
     "core/project_state.schema.yaml", "core/compile_profiles.yaml",
-    "core/user_execution_contract.yaml", "core/code_quality_contract.yaml",
+    "core/user_execution_contract.yaml", "core/code_quality_contract.yaml", "core/writing_reasoning_contract.yaml",
     "modules/01_problem_audit.md", "modules/02_model_design.md", "modules/03_data_preprocessing.md",
     "modules/03_solve_validate.md", "modules/03_result_analysis.md", "modules/04_figure_evidence.md",
     "modules/05_latex_compile_quality.md", "modules/05_writing/docx.md", "modules/05_writing/latex.md",
@@ -557,6 +557,8 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("output contract must reference code-quality contract")
     if output.get("preprocessing_contract") != "core/global_preprocessing_contract.yaml":
         errors.append("output contract must reference preprocessing contract")
+    if output.get("writing_reasoning_contract") != "core/writing_reasoning_contract.yaml":
+        errors.append("output contract must reference writing-reasoning contract")
     semantic = output.get("semantic_governance", {})
     if semantic.get("script") != "scripts/validate_semantic_governance.py":
         errors.append("output contract must declare semantic governance script")
@@ -570,6 +572,8 @@ def check_contracts(errors: list[str]) -> None:
     if execution.get("shared_data_alone_does_not_require_preprocessing") is not True:
         errors.append("execution policy must not promote shared data to preprocessing automatically")
     policy = output.get("writing_policy", {})
+    if policy.get("reasoning_contract") != "core/writing_reasoning_contract.yaml":
+        errors.append("writing policy must reference writing-reasoning contract")
     if policy.get("default_mode") != "latex_first":
         errors.append("default writing mode must be latex_first")
     if policy.get("docx_mode") != "explicit_only_independent" or policy.get("docx_is_latex_prerequisite") is not False:

@@ -42,6 +42,7 @@ class TestReadPathSemanticClosure(unittest.TestCase):
         self.assertEqual(router["default_load"], ["core/hsk_core_policy.md"])
         self.assertEqual(router["load_policy"]["principle"], "minimal_route_specific")
         self.assertIn("core/module_manifest.yaml", router["load_policy"]["resolver_internal_only"])
+        self.assertNotIn("core/writing_reasoning_contract.yaml", router["default_load"])
 
     def test_figure_route_does_not_preload_unrelated_core_contracts(self):
         plan = self.resolve("figures")
@@ -53,26 +54,44 @@ class TestReadPathSemanticClosure(unittest.TestCase):
             "core/user_execution_contract.yaml",
             "core/global_preprocessing_contract.yaml",
             "core/code_quality_contract.yaml",
+            "core/writing_reasoning_contract.yaml",
         ):
             self.assertNotIn(path, contracts)
         self.assertIn("modules/04_figure_evidence.md", plan["modules"])
         self.assertIn("packs/artifact/figure.md", plan["packs"])
 
-    def test_latex_route_does_not_preload_code_or_preprocessing_contracts(self):
+    def test_latex_route_loads_reasoning_but_not_code_or_preprocessing_contracts(self):
         plan = self.resolve("latex")
         contracts = set(plan["contracts"])
-        self.assertEqual(contracts, {"core/bootstrap.yaml", "core/hsk_core_policy.md"})
+        self.assertEqual(
+            contracts,
+            {
+                "core/bootstrap.yaml",
+                "core/hsk_core_policy.md",
+                "core/writing_reasoning_contract.yaml",
+            },
+        )
         self.assertNotIn("core/user_execution_contract.yaml", contracts)
         self.assertNotIn("core/global_preprocessing_contract.yaml", contracts)
         self.assertNotIn("core/task_taxonomy.yaml", contracts)
 
-    def test_problem_analysis_loads_taxonomy_but_not_execution_contracts(self):
+    def test_model_selection_loads_reasoning_contract(self):
+        plan = self.resolve(
+            "model_selection",
+            objective="optimization",
+            structures=["stochastic"],
+        )
+        self.assertIn("core/writing_reasoning_contract.yaml", set(plan["contracts"]))
+        self.assertIn("modules/02_model_design.md", plan["modules"])
+
+    def test_problem_analysis_loads_taxonomy_but_not_execution_or_reasoning_contracts(self):
         plan = self.resolve("problem_analysis")
         contracts = set(plan["contracts"])
         self.assertIn("core/task_taxonomy.yaml", contracts)
         self.assertNotIn("core/user_execution_contract.yaml", contracts)
         self.assertNotIn("core/code_quality_contract.yaml", contracts)
         self.assertNotIn("core/global_preprocessing_contract.yaml", contracts)
+        self.assertNotIn("core/writing_reasoning_contract.yaml", contracts)
 
     def test_code_route_loads_required_contracts(self):
         plan = self.resolve(
@@ -111,6 +130,7 @@ class TestReadPathSemanticClosure(unittest.TestCase):
         self.assertNotIn("core/task_taxonomy.yaml", contracts)
         self.assertNotIn("core/global_preprocessing_contract.yaml", contracts)
         self.assertNotIn("core/code_quality_contract.yaml", contracts)
+        self.assertNotIn("core/writing_reasoning_contract.yaml", contracts)
 
     def test_figure_pack_cannot_reverse_authoritative_rules(self):
         text = (ROOT / "packs/artifact/figure.md").read_text(encoding="utf-8")
