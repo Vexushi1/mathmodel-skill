@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：7.5.1
+当前 Skill 版本：7.5.2
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -9,7 +9,6 @@
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
-- `.github/workflows/v752-entrypoint-parity-migration.yml`
 - `.gitignore`
 - `AGENTS.md`
 - `CHANGELOG.md`
@@ -95,7 +94,6 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
-- `scripts/_v752_entrypoint_parity_migration.py`
 - `scripts/audit_paper_prose.py`
 - `scripts/generate_indexes.py`
 - `scripts/hsk_pack_submission.py`
@@ -205,3 +203,4 @@
 - `tests/test_v745_prose_audit.py`
 - `tests/test_v750_writing_reasoning_architecture.py`
 - `tests/test_v751_architecture_slimming.py`
+- `tests/test_v752_entrypoint_parity.py`

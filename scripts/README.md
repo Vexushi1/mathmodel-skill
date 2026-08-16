@@ -1,4 +1,4 @@
-# Scripts v7.5.1
+# Scripts
 
 - `lint_skill.py`：检查活动版本、路由、语义治理、通用判定式条件数据预处理、产物闭环、五文件合同、代码质量合同、写作策略合同、Schema、兼容层隔离、仓库引用路径、本地 Markdown 链接、全路由 resolver smoke、活动写作模板旧结构残留、Python 语法和生成文件；
 - `resolve_workflow.py`：解析意图、`objective`、`structures`、`capabilities`、`preprocessing_decision` 与竞赛类型，返回确定性执行计划；只有 `project_level` 才插入项目级预处理阶段；
@@ -11,7 +11,11 @@
 - `generate_indexes.py`：重建活动索引与 `MANIFEST.sha256`；
 - `score_submission.py`、`hsk_pack_submission.py`、`render_paper.py`：评分、打包和 LaTeX 编译。
 
-v7.5.1 保留 v7.4.4 的自然论文流，并清理了证明机器契约的旧歧义：默认 `paragraph_first`，要求逻辑单元清晰，只有明显多阶段证明才使用 2--6 个编号步骤。新增 prose audit 检查高密度否定/转折、重复段首主语、重复固定图表句式及独立结论章、H1/A1、缺“问题提出”/“核心模型汇总”等结构回退；普通单次使用“但/然而”不判错。
+v7.5.2 新增根 `SKILL.md` 与 packaged `skills/mathmodel-skill/SKILL.md` 的运行时入口合同一致性检查；两入口都只委托 bootstrap/resolver/route authority，不各自建立第二套运行规则。版本一致性检查同时避免稳定工具说明、legacy 归档说明和 resolver docstring 成为无意义的 release carrier。
+
+v7.5.1 将 bootstrap 收回为最小启动索引，并把 taxonomy/reasoning 改为 route-specific lazy load；v7.5.0 建立跨比赛 Source→Derivation→Destination、共享基础、跨问增量、结构化简优先和数值参数证据。
+
+v7.4.5 保留 v7.4.4 的自然论文流，并清理证明机器契约歧义：默认 `paragraph_first`，要求逻辑单元清晰，只有明显多阶段证明才使用 2--6 个编号步骤。prose audit 检查高密度否定/转折、重复段首主语、重复固定图表句式及独立结论章、H1/A1、缺“问题提出”/“核心模型汇总”等结构回退；普通单次使用“但/然而”不判错。
 
 正文写作仍由 `modules/05_writing/latex.md` 唯一负责，`modules/05_writing/ai_cleanup.md` 执行模板化和自然度检查。`模型的评价与推广 / 模型的改进、评价与推广` 两级策略保持不变。v7.4.3 建立的假设/符号分章、自然假设编号、短上标优先、表上图下、三线表短内容居中和模型评价规范继续保持；v7.4.2 引入的 Figure Evidence 动态布局和高对比配色也继续保持。
 

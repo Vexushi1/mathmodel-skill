@@ -70,7 +70,8 @@ class TestSchemas(unittest.TestCase):
 
     def test_output_contract_defines_split_result_policy(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(contract["version"], "7.5.1")
+        current = str(yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))["skill_version"])
+        self.assertEqual(str(contract["version"]), current)
         self.assertEqual(contract["code_quality_contract"], "core/code_quality_contract.yaml")
         self.assertEqual(contract["preprocessing_contract"], "core/global_preprocessing_contract.yaml")
         self.assertEqual(contract["semantic_governance"]["script"], "scripts/validate_semantic_governance.py")

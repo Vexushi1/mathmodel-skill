@@ -1,6 +1,6 @@
 {
   "name": "mathmodel-skill",
-  "version": "7.5.1",
+  "version": "7.5.2",
   "description": "HSK lightweight-bootstrap mathematical-modeling workflow with Problem Contract freezing, semantic closure, evidence-driven conditional preprocessing, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, assistant-readable model-paper project memory, cross-competition formula reasoning chains, adaptive cross-question progression, evidence-driven undergraduate academic writing, paragraph-first proposition proofs, final prose audit, and LaTeX-first authoring.",
   "author": {
     "name": "HSK"
