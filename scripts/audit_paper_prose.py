@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Lightweight prose/structure audit for HSK LaTeX papers.
 
-The audit is intentionally conservative: it reports repeated/template-like prose and
-structural writing-contract violations, but never rewrites paper text. Ordinary uses
-of contrast words such as “但/然而” are not errors; only repeated/high-density patterns
-are flagged for review.
+The audit is intentionally conservative: it reports repeated/template-like prose,
+formula-chain presentation risks and structural writing-contract violations, but never
+rewrites paper text. Ordinary uses of contrast/derivation words are not errors; only
+repeated/high-density patterns are flagged for review. Semantic correctness of a
+formula, its true source, or parameter optimality cannot be inferred by regex.
 """
 from __future__ import annotations
 
@@ -22,6 +23,16 @@ QUESTION_SECTION_RE = re.compile(r"\\section\{问题[一二三四五六七八九
 SECTION_RE = re.compile(r"\\section\{([^{}]+)\}")
 LABEL_RE = re.compile(r"\\label\{((?:fig|tab):[^{}]+)\}")
 REF_TEMPLATE = r"\\(?:ref|autoref|cref|Cref)\{{{label}\}}"
+DERIVATION_STOCK_PATTERNS = ("进一步可得", "同理可得", "容易得到", "不难得到")
+META_NAV_PATTERNS = ("本节主要", "下面将", "下文将", "为了便于", "为了更好地")
+PARAM_ASSIGN_RE = re.compile(
+    r"(?:取|设置|设定|令)\s*(?:\\\([^\n]{0,60}?\\\)|[A-Za-z][A-Za-z0-9_{}^\\-]{0,30})\s*(?:=|为)\s*[-+]?\d+(?:\.\d+)?"
+)
+PARAM_EVIDENCE_HINT_RE = re.compile(r"题目|给定|规定|收敛|误差|稳定|验证|交叉验证|试验|敏感|置信|AIC|BIC|网格|步长|标准误|残差|依据|范围")
+FORMULA_BLOCK_RE = re.compile(
+    r"\\begin\{(?:equation|align|gather)\*?\}.*?\\end\{(?:equation|align|gather)\*?\}|\\\[.*?\\\]|\$\$.*?\$\$",
+    flags=re.S,
+)
 
 
 @dataclass(frozen=True)
@@ -94,6 +105,15 @@ def _section_content(body: str, title: str) -> str | None:
     return tail[: next_section.start()] if next_section else tail
 
 
+def _subsection_content(text: str, title: str) -> str | None:
+    marker = re.search(rf"\\subsection\{{{re.escape(title)}\}}", text)
+    if not marker:
+        return None
+    tail = text[marker.end():]
+    next_sub = re.search(r"\\subsection\{", tail)
+    return tail[: next_sub.start()] if next_sub else tail
+
+
 def _question_sections(body: str) -> Iterable[tuple[str, str]]:
     matches = list(QUESTION_SECTION_RE.finditer(body))
     for index, match in enumerate(matches):
@@ -102,6 +122,33 @@ def _question_sections(body: str) -> Iterable[tuple[str, str]]:
         if next_generic:
             end = next_generic.start()
         yield match.group(0), body[match.end():end]
+
+
+def _formula_run_warning(main: str) -> Finding | None:
+    """Detect 3+ displayed formula blocks separated only by very short prose.
+
+    This is deliberately presentation-only: a flagged run may still be mathematically
+    correct, so the result is a warning and requires human semantic review.
+    """
+    matches = list(FORMULA_BLOCK_RE.finditer(main))
+    if len(matches) < 3:
+        return None
+    run_start = 0
+    for i in range(1, len(matches)):
+        gap = main[matches[i - 1].end():matches[i].start()]
+        gap_plain = re.sub(r"\\[A-Za-z@]+\*?(?:\[[^\]]*\])?(?:\{[^{}]*\})?", " ", gap)
+        gap_plain = re.sub(r"\s+", "", gap_plain)
+        if len(gap_plain) > 45:
+            run_start = i
+        if i - run_start + 1 >= 3:
+            excerpt = re.sub(r"\s+", " ", main[matches[run_start].start():matches[i].end()])[:180]
+            return Finding(
+                "warning",
+                "dense_formula_run",
+                "检测到连续多个展示公式之间解释文字很少；请确认每个核心关系都有明确来源、关键推理和后续用途，而不是公式集合。",
+                excerpt,
+            )
+    return None
 
 
 def audit_text(text: str) -> list[Finding]:
@@ -125,6 +172,13 @@ def audit_text(text: str) -> list[Finding]:
             findings.append(Finding("review_required", "missing_problem_statement", "“问题重述”缺少“问题提出”小节。"))
         if "\\subsection{问题要求}" in restatement:
             findings.append(Finding("review_required", "legacy_problem_requirement", "中文国赛默认使用“问题提出”，不使用“问题要求”作为第二小节。"))
+        background = _subsection_content(restatement, "问题背景")
+        if background is not None:
+            bg_paragraphs = _plain_paragraphs(background)
+            if len(bg_paragraphs) > 2:
+                findings.append(Finding("warning", "long_problem_background", "“问题背景”超过 2 个自然段，请确认每段都在推进现实矛盾或具体研究对象，而不是扩写通用背景。", f"{len(bg_paragraphs)} paragraphs"))
+            if len(bg_paragraphs) >= 2 and re.search(r"全文|后文|章节|依次|本文结构|文章结构", bg_paragraphs[1]):
+                findings.append(Finding("warning", "background_management_paragraph", "问题背景第 2 段主要出现文章结构/后文安排信息；第 2 段只应在需要继续收束具体研究对象时保留。", bg_paragraphs[1][:120]))
 
     analysis = _section_content(main, "问题分析")
     if analysis is not None:
@@ -149,6 +203,32 @@ def audit_text(text: str) -> list[Finding]:
         if occurrences and refs == 0:
             kind = "图" if label.startswith("fig:") else "表"
             findings.append(Finding("warning", "unreferenced_figure_table", f"正文{kind}标签 {label} 没有显式交叉引用；核心图表应在邻近正文中被解释。", label))
+
+    # Formula-chain presentation checks.
+    formula_finding = _formula_run_warning(main)
+    if formula_finding:
+        findings.append(formula_finding)
+
+    prose_main = _remove_non_prose_blocks(main)
+    for phrase in DERIVATION_STOCK_PATTERNS:
+        count = prose_main.count(phrase)
+        limit = 3 if phrase == "进一步可得" else 2
+        if count > limit:
+            findings.append(Finding("warning", "repeated_derivation_connector", f"推导连接语“{phrase}”出现 {count} 次；请确认它没有代替公式来源、关键推理或后续用途说明。", phrase))
+            break
+
+    meta_count = sum(prose_main.count(phrase) for phrase in META_NAV_PATTERNS)
+    if meta_count >= 4:
+        findings.append(Finding("warning", "repeated_meta_navigation", "“本节主要/下面将/为了便于”等管理型元话语较多，建议直接进入对象、关系或证据。", f"{meta_count} occurrences"))
+
+    # Conservative numerical-parameter evidence heuristic. Warning only.
+    for match in PARAM_ASSIGN_RE.finditer(main):
+        left = max(0, match.start() - 180)
+        right = min(len(main), match.end() + 180)
+        context = _remove_non_prose_blocks(main[left:right])
+        if not PARAM_EVIDENCE_HINT_RE.search(context):
+            findings.append(Finding("warning", "numeric_parameter_evidence", "检测到疑似直接指定数值参数，但邻近正文未出现题面来源、收敛/误差/验证等依据；请人工确认该值是否有可复核来源。", re.sub(r"\s+", " ", match.group(0))[:100]))
+            break
 
     # Prose-density checks: warnings only, never hard word bans.
     paragraphs = _plain_paragraphs(main)

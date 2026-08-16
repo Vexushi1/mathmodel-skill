@@ -1,0 +1,193 @@
+schema_version: 1.0.0
+role: >-
+  跨数学建模竞赛的正文推理合同。约束核心公式的来源—推导—去向、共享基础模型、
+  跨问递进、结构化简、数值参数证据和证据驱动的本科生学术表达；不规定具体题型、算法或固定章节名。
+
+scope:
+  competitions: all
+  task_families:
+    - mechanism_geometry
+    - statistics_regression
+    - prediction_time_series
+    - optimization_operations_research
+    - network_graph
+    - simulation_dynamic_system
+    - machine_learning
+    - spatial_econometrics
+    - mixed_multi_question
+  anti_template_boundary:
+    - 不从单一优秀论文复制固定句式、算法名、章节编号或题目专属模型。
+    - 不要求所有论文设置“模型准备”、问题关系图、命题或统一敏感性章节。
+    - 规则只抽象可跨题型复用的推理结构，具体章节和证据按当前赛题决定。
+
+formula_reasoning_chain:
+  required_for: core_formula_or_relation
+  chain: [source, derivation, destination]
+  source_allowed:
+    - prompt_condition
+    - definition
+    - physical_or_geometric_mechanism
+    - statistical_or_probability_principle
+    - data_generation_mechanism
+    - decision_logic_or_resource_constraint
+    - state_transition
+    - prior_formula_or_proposition
+    - verified_standard_theorem
+    - inherited_shared_model
+  source_rule: 核心公式必须能指出题意、定义、机制、数据或已验证理论依据，禁止“根据相关理论可得”后直接悬空给式。
+  derivation_rule: >-
+    推导深度按题型自适应。需要说明从前一对象/条件到当前关系的关键理由；
+    纯代数展开可压缩，不能为了形式强迫所有题写长演算。
+  destination_allowed:
+    - define_state_or_parameter
+    - feed_next_formula
+    - build_objective
+    - build_constraint
+    - derive_decision_rule
+    - reduce_feasible_region_or_dimension
+    - construct_algorithm_evaluation
+    - determine_numerical_parameter
+    - generate_result_or_validation_evidence
+    - support_figure_table_or_answer
+  destination_rule: 核心公式必须说明后续用途；若既不改变模型也不支撑求解、验证或结论，应删除、压缩或移附录。
+  chain_quality_rules:
+    - 连续公式应形成逻辑链而非公式集合。
+    - “进一步可得、同理可得”只能连接确有直接数学关系的步骤，不能代替对象机制说明。
+    - 公式前解释为什么需要，公式后解释得到什么以及下一步如何使用。
+    - 核心模型汇总只呈现最终可计算模型，不重复完整推导。
+
+shared_foundation:
+  default: adaptive
+  activate_when_any:
+    - two_or_more_questions_share_core_state_equations
+    - two_or_more_questions_share_geometry_probability_network_or_transition_structure
+    - repeated_definition_would_make_question_one_bloated_and_later_questions_redundant
+  allowed_contents:
+    - shared_objects_and_coordinate_or_index_system
+    - shared_definitions_and_notation
+    - shared_mechanism_or_state_equations
+    - shared_probability_or_network_structure
+    - shared_decision_rule_or_evaluation_metric
+  forbidden_contents:
+    - question_specific_optimum_or_result
+    - question_specific_algorithm
+    - question_specific_decision_variable_unless_truly_shared
+    - later_question_specific_constraint_or_parameter
+  naming: dynamic
+  example_names: [模型准备, 基础模型建立, 共同机理模型, 统一概率模型, 共享状态方程, 网络基础结构]
+  rule: 章节是否独立以及名称均由当前题目决定；共享内容只定义一次，后问只写增量。
+
+cross_question_progression:
+  activate_when: actual_dependency_exists
+  paragraph_information_order:
+    - inherited_structure
+    - new_object_condition_or_requirement
+    - changed_modeling_difficulty
+    - model_and_solver_increment
+  rule: 后问不得把前问共享模型从头复制；若小问彼此独立，也不得虚构继承关系。
+  optional_relation_figure:
+    activate_when:
+      - at_least_three_questions
+      - dependency_is_substantial
+      - prose_only_dependency_map_is_inefficient
+    allowed_content: [inherited_object_or_model, new_condition, model_increment, downstream_input]
+    forbidden_content: generic_input_model_solve_plot_flowchart
+
+structure_before_algorithm:
+  principle: 高维、非线性或组合问题先检查可利用的数学结构，再决定是否需要高级优化算法。
+  check_order:
+    - exact_or_approximate_analytic_relation
+    - monotonicity_convexity_symmetry_or_invariance
+    - variable_elimination_or_dimension_reduction
+    - candidate_region_or_bound
+    - decomposition_or_hierarchical_structure
+    - combination_then_continuous_optimization
+    - prior_question_information_for_search_restriction
+    - final_solver_selection
+  writing_order: problem_structure -> simplification_or_decomposition -> effective_search_space -> algorithm
+  prohibition: 不以“变量多/问题复杂”为唯一理由直接调用GA、PSO、DE、ALNS、深度学习或其他高级方法。
+
+numerical_parameter_evidence:
+  applies_to:
+    - time_step
+    - spatial_grid
+    - discretization_points
+    - monte_carlo_samples
+    - bootstrap_repetitions
+    - truncation_order
+    - neighborhood_size
+    - lag_or_window
+    - optimization_tolerance
+    - search_resolution
+    - max_iterations
+  chain: candidate_range -> accuracy_convergence_or_validation_evidence -> selected_value
+  optional_second_check: selected_value -> main_result_stability
+  evidence_by_family:
+    numerical_discretization: grid_or_step_convergence
+    stochastic_simulation: standard_error_confidence_interval_or_replication_stability
+    statistics_time_series: information_criterion_cross_validation_residual_or_stability
+    machine_learning: validation_curve_cross_validation_or_learning_curve
+    optimization: objective_feasibility_multi_start_and_termination_evidence
+  prohibition: 禁止仅用“综合考虑精度与效率，取……”替代参数依据。
+
+multi_method_validation:
+  two_levels:
+    numerical_consistency: 目标值、误差、概率、预测值或主指标是否相近。
+    structural_consistency: >-
+      决策变量区间、活跃约束、变量排序、策略结构、重要性、系数方向、分群结构或关键结论是否一致。
+  rule: 只比较单个目标值不能自动推出模型可靠；第二层按题型选择，不要求所有模型拥有相同结构指标。
+
+proposition_downstream_consequence:
+  required_when_proposition_is_used_for_computation: true
+  allowed_consequences:
+    - reduce_dimension
+    - reduce_constraints
+    - restrict_candidate_region
+    - guarantee_feasibility
+    - justify_transformation
+    - provide_threshold_or_bound
+    - justify_model_necessity
+  rule: 证明后应说明它怎样改变后续模型或计算，而不是只写“命题得证”。
+
+prose_style:
+  name: evidence_driven_undergraduate_academic
+  target: 规范、朴素、略带科研训练初期的推理痕迹；技术含义稳定，不追求期刊式抽象包装。
+  preferred_sentence_flow:
+    - concrete_object_or_condition
+    - current_mathematical_difficulty
+    - mathematical_treatment
+    - obtained_information_or_next_use
+  allow_natural_connectors: [根据, 因此, 由此, 进一步, 从而, 此时, 结合, 从表中可以看出]
+  connector_policy: 这些词不是禁词；只在机械重复、无逻辑推进或句法同构时复查。
+  avoid:
+    - repeated_meta_navigation
+    - abstract_jargon_stacking_without_object_support
+    - frequent_self_negation_or_disclaimer
+    - deliberate_grammar_degradation
+    - mechanical_synonym_replacement
+  human_reasoning_trace:
+    allow:
+      - 指出当前还缺哪个量或条件
+      - 说明某关系为何能缩小搜索范围
+      - 说明两个区间、对象或约束为何需要进一步比较
+      - 说明由某一结果引出的下一步建模动作
+
+problem_background:
+  default: one_paragraph
+  allow_second_short_paragraph_when: reality_background_to_specific_research_object_needs_semantic_narrowing
+  second_paragraph_must: narrow_object_or_core_conflict
+  forbidden_second_paragraph: document_structure_or_chapter_management_only
+
+machine_audit_boundary:
+  report_only_for_semantic_style_risks: true
+  may_warn:
+    - dense_formula_blocks_with_little_prose
+    - repeated_further_obtain_or_similarly_obtain
+    - repeated_meta_navigation
+    - repeated_cross_question_redefinition
+    - unexplained_numeric_parameter_assignment
+    - repeated_identical_question_opening_pattern
+  must_not_claim:
+    - mathematical_correctness_from_regex
+    - formula_source_semantic_validity_from_keywords_only
+    - parameter_optimality_from_prose_only
