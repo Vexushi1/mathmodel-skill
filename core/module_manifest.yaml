@@ -22,6 +22,7 @@ contracts:
   project_state: core/project_state.schema.yaml
   user_execution: core/user_execution_contract.yaml
   code_quality: core/code_quality_contract.yaml
+  writing_reasoning: core/writing_reasoning_contract.yaml
   framework_template: templates/model/model_paper_framework.md
   compile_profiles: core/compile_profiles.yaml
 external_artifacts:
@@ -52,6 +53,7 @@ artifact_catalog:
   selected_models: 每问选定模型
   locked_model_spec: 已锁定变量、假设、公式、目标和约束
   formula_closure: 公式—代码—输出映射
+  formula_reasoning_chain: 核心公式Source—Derivation—Destination闭环；记录题意/定义/机制来源、关键推导与后续模型/求解/验证用途，不单独落盘
   semantic_closure: 题面对象与要求—数学层—Python层—输出证据三层闭环
   complexity_sanity_check: 对异常降维、解耦、条件闲置和异常容易求解的复审结论
   proposition_plan: 全文0--4个高价值命题规划
@@ -116,6 +118,7 @@ workflow_profiles:
     - locked_model_spec
     - preprocessing_decision
     - formula_closure
+    - formula_reasoning_chain
     - semantic_closure
     - complexity_sanity_check
     - validation_plan
@@ -131,6 +134,7 @@ workflow_profiles:
     - locked_model_spec
     - preprocessing_decision
     - formula_closure
+    - formula_reasoning_chain
     - semantic_closure
     - complexity_sanity_check
     - validation_plan
@@ -233,6 +237,7 @@ modules:
     - locked_model_spec
     - preprocessing_decision
     - formula_closure
+    - formula_reasoning_chain
     - semantic_closure
     - complexity_sanity_check
     - proposition_plan

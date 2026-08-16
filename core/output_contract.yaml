@@ -3,6 +3,7 @@ schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 user_execution_contract: core/user_execution_contract.yaml
 code_quality_contract: core/code_quality_contract.yaml
+writing_reasoning_contract: core/writing_reasoning_contract.yaml
 bootstrap: core/bootstrap.yaml
 taxonomy: core/task_taxonomy.yaml
 project_root:
@@ -25,6 +26,7 @@ writing_policy:
   docx_mode: explicit_only_independent
   docx_is_latex_prerequisite: false
   expression_authority: modules/05_writing/latex.md#正文表达与章节组织协议（写作权威）
+  reasoning_contract: core/writing_reasoning_contract.yaml
   adaptive_sectioning_by_task_type: true
   cumcm_problem_analysis_by_question: true
   problem_restatement_copy_forbidden: true
