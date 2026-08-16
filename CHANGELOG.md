@@ -1,6 +1,13 @@
 # Changelog
 
-## Current release: 7.5.0
+## Current release: 7.5.1
+
+- Slimmed `core/bootstrap.yaml` back to a true startup index: it now stores authority pointers and startup invariants rather than duplicating modeling, preprocessing, writing and validation contracts. The detailed v7.5.0 reasoning capabilities remain in `core/writing_reasoning_contract.yaml` and the global policy.
+- Kept model-design, LaTeX, AI-cleanup and framework consumers executable while removing duplicated semantic enumerations. Consumers now record/apply the current stage decision and explicitly defer cross-competition Source–Derivation–Destination, shared-foundation, progression, structure-before-algorithm and numerical-evidence definitions to the reasoning authority.
+- Made `scripts/resolve_workflow.py` load `core/task_taxonomy.yaml` internally only when classification axes must actually be interpreted or validated. Routes that need the taxonomy as downstream content still return it in `load_order`; figure/writing/workbook utilities no longer parse it internally without need.
+- Added v7.5.1 anti-regression tests for startup byte budget, exact route isolation, preserved v7.5.0 reasoning capabilities, consumer-authority linkage and taxonomy lazy loading. Numerical models, preprocessing semantics, workbook schemas, Python/MATLAB ownership, five-file question delivery and LaTeX output interfaces are unchanged.
+
+## Previous release: 7.5.0
 
 - Added a cross-competition writing-reasoning contract centered on **Source → Derivation → Destination**: every core formula must recover its problem/definition/mechanism/theory source, preserve the modeling-relevant derivation, and state its downstream use in state definition, objectives, constraints, decisions, reduction, validation or the final answer.
 - Added adaptive shared-foundation and cross-question progression rules. Shared equations/geometry/probability/network structure are defined once only when reuse is substantial; dependent questions explain inherited structure, new objects/conditions, changed difficulty and solver/model increments, while independent questions remain independent.
