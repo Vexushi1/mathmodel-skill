@@ -24,8 +24,16 @@ class TestV740WritingEvidenceArchitecture(unittest.TestCase):
 
     def test_framework_remembers_evidence_placement_without_fixed_assumption_quota(self):
         text = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
-        self.assertIn("v0.5-evidence-architecture", text)
-        for token in ("对象恢复图", "假设组织", "局部证据闭环", "模型检验安排", "算法说明预算"):
+        self.assertIn("v0.6-reasoning-architecture", text)
+        for token in (
+            "对象恢复图",
+            "假设组织",
+            "局部证据闭环",
+            "模型检验安排",
+            "算法说明预算",
+            "核心公式链索引",
+            "跨问模型增量",
+        ):
             self.assertIn(token, text)
         self.assertNotIn("1. 假设一：原因、影响、失效偏差和检验方式", text)
 
