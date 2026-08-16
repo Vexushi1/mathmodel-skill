@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.4.4
-summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, preprocessing paper/mathematical evidence, dedicated data_process MATLAB figures, dynamic evidence-driven MATLAB layouts and high-contrast scientific palettes, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, affirmative evidence-driven CUMCM writing, paragraph-first proposition proofs and LaTeX-first delivery.
+version: 7.4.5
+summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, preprocessing paper/mathematical evidence, dedicated data_process MATLAB figures, dynamic evidence-driven MATLAB layouts and high-contrast scientific palettes, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, affirmative evidence-driven CUMCM writing, paragraph-first proposition proofs, final prose audit and LaTeX-first delivery.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 数据预处理, 数据清洗, 主结果质量, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.4.4
+# HSK 数学建模模块化工作流 v7.4.5
 
 ## 默认执行
 
@@ -89,7 +89,7 @@ MATLAB 结果图不固定套用单图、`1×2` 或 `2×2`。生成代码前必�
 
 ### 写作阶段硬规则
 
-LaTeX 是默认论文主链，`modules/05_writing/latex.md` 的“正文表达与章节组织协议（写作权威）”统一约束 DOCX、LaTeX 与 AI-cleanup。v7.4.4 对中文国赛写作进一步锁定：
+LaTeX 是默认论文主链，`modules/05_writing/latex.md` 的“正文表达与章节组织协议（写作权威）”统一约束 DOCX、LaTeX 与 AI-cleanup。v7.4.5 延续 v7.4.4 的中文国赛正文结构，并增加成稿 prose audit：
 
 - 问题重述默认采用“问题背景 + 问题提出”；问题背景通常一个自然段，问题提出按“问题一：”“问题二：”逐问用自己的理解转述研究对象、关键条件和待求输出；
 - 问题分析按问题一、问题二……逐问分小节，只讲难点、对象关系、跨问依赖和建模抓手，禁止数学公式与最终结果；“问题提出”和“问题分析”不能换词重复；
@@ -99,10 +99,11 @@ LaTeX 是默认论文主链，`modules/05_writing/latex.md` 的“正文表达�
 - 每问详细推导后、数值求解前必须设置“核心模型汇总”，集中给出实际求解的目标、方程、约束和边界；
 - 每问主结果默认放在“求解结果”小节，深化证据按实际方法命名；默认不设置固定“小问结论”，最后一个结果/深化段自然回答当前设问；
 - 中文国赛默认不设置全文独立“结论”一级章；仅当届模板、用户或论文类型明确要求时增加；
-- 命题短证明采用“分段优先、分点按需”：连续推理使用自然段和必要公式，只有分情况、存在性/唯一性、多条件验证等明显多阶段结构才使用 2--6 个编号步骤；命题显示编号使用阿拉伯章节号；
+- 命题短证明采用“分段优先、分点按需”：连续推理使用自然段和必要公式，只有分情况、存在性/唯一性、多条件验证等明显多阶段结构才使用 2--6 个编号步骤；命题显示编号使用阿拉伯章节号；机器契约不再保留会误导为“所有证明必须分步”的 segmented 字段；
 - 表格严格“表上”，图片严格“图下”；三线表数值和短文本默认水平、垂直居中；每张正文核心图、核心表必须有邻近的显式编号引用和解释；
-- 默认评价章节使用“模型的评价与推广”，确有实质改进时可用“模型的改进、评价与推广”；优点多于缺点且优点不超过 4 条，改进/推广按证据选写；
-- AI 模板清理后再进行科研初学者式学术重写：语言略朴素、生涩、认真但保持规范书面语，以正向连续叙述为主；高密度“但/然而/不是/不能/只能”等结构必须复查真实冲突，不通过故意病句、口语化、频繁自我否定或机械同义词替换制造风格。
+- 默认评价章节使用“模型的评价与推广”，确有实质改进时可用“模型的改进、评价与推广”；这一两级策略保持不变；优点多于缺点且优点不超过 4 条，改进/推广按证据选写；
+- AI 模板清理后再进行科研初学者式学术重写：语言略朴素、生涩、认真但保持规范书面语，以正向连续叙述为主；高密度“但/然而/不是/不能/只能”等结构必须复查真实冲突，不通过故意病句、口语化、频繁自我否定或机械同义词替换制造风格；
+- 完成逐段清理后运行 `python scripts/audit_paper_prose.py final_latex/main.tex`。默认只报告 pass/warning/review_required；warning 只用于人工复查，不机械封禁单个转折词；最终编译前用 `--strict` 清除结构性 review_required。
 
 正文仍坚持本题对象和证据优先：问题重述不复制赛题；模型推导不写无关算法百科；结果解释必须把核心图表/关键数值、机制、题目回答和必要边界贴在一起；模型检验用量化证据，不能被万能优缺点替代。共享基础模型只定义一次，后续小问只写新增变量、目标、约束和证据。
 
@@ -121,7 +122,8 @@ DOCX 仅在用户显式要求时加载，不是 LaTeX 前置；其正文表达�
 → 主结果质量门 → 独立Python结果深化分析 → 深化代码质量门 → 用户完整运行
 → 稳定性验收/必要时回退重算
 → [project_level] data_process预处理证据图
-→ MATLAB各问结果图 → 题型自适应LaTeX直写 → AI-cleanup与语言重写 → 编译与终审
+→ MATLAB各问结果图 → 题型自适应LaTeX直写 → AI-cleanup与语言重写
+→ prose audit → 编译与终审
 ```
 
 题意解释、数据范围、变量、参数、假设、目标、约束、`preprocessing_decision`、实际预处理、算法语义或小问依赖变化时必须递增 `semantic_revision`；已验证语义变化先使受影响结果 stale，再按 `data / parameter / model / result` 依赖递归传播。接受新语义不恢复旧数值，仍须重新执行适用的数据处理、求解与验收。
