@@ -199,3 +199,4 @@
 - `tests/test_v742_dynamic_figure_layout.py`
 - `tests/test_v743_writing_structure_style.py`
 - `tests/test_v744_natural_paper_flow.py`
+- `tests/test_v745_prose_audit.py`
