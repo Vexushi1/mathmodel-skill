@@ -16,8 +16,9 @@ class TestV743WritingStructureStyle(unittest.TestCase):
             "问题一模型建立及求解",
             "模型的评价与推广",
             "证据驱动的本科生学术表达",
-            "Source–Derivation–Destination",
         ):
+            self.assertIn(token, latex)
+        for token in ("（Source）", "（Derivation）", "（Destination）"):
             self.assertIn(token, latex)
         self.assertIn("可增加第 2 个短段", latex)
         self.assertIn("不能只介绍全文结构和章节安排", latex)
