@@ -32,7 +32,7 @@ class TestV740WritingEvidenceArchitecture(unittest.TestCase):
     def test_output_contract_freezes_validation_evaluation_split(self):
         data = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         policy = data["writing_policy"]
-        self.assertEqual(data["version"], "7.4.4")
+        self.assertEqual(data["version"], "7.4.5")
         self.assertTrue(policy["model_validation_precedes_evaluation"])
         self.assertFalse(policy["standalone_model_evaluation_required"])
         self.assertTrue(policy["assumption_scope_localization_required"])
@@ -40,12 +40,14 @@ class TestV740WritingEvidenceArchitecture(unittest.TestCase):
         self.assertEqual(policy["generic_algorithm_background_budget"], "minimal_task_specific")
         self.assertTrue(policy["figure_table_text_reference_required"])
         self.assertTrue(policy["affirmative_statement_preferred"])
+        self.assertEqual(policy["default_model_evaluation_section"], "模型的评价与推广")
+        self.assertEqual(policy["prose_audit_script"], "scripts/audit_paper_prose.py")
 
     def test_cleanup_preserves_evidence_architecture_antipatterns(self):
         text = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
         for token in (
             "问题重述去复制化", "摘要第一段压缩", "假设去万能化",
-            "模型检验与模型评价分工明确", "证据邻近检查",
+            "模型检验与模型评价分工明确", "证据邻近检查", "成稿机器审计",
         ):
             self.assertIn(token, text)
 

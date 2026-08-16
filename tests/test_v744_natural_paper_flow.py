@@ -10,7 +10,7 @@ class NaturalPaperFlowV744Tests(unittest.TestCase):
     def test_writing_contract_freezes_natural_flow(self):
         data = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         policy = data["writing_policy"]
-        self.assertEqual(data["version"], "7.4.4")
+        self.assertEqual(data["version"], "7.4.5")
         self.assertEqual(policy["problem_restatement_second_section"], "问题提出")
         self.assertTrue(policy["problem_statement_per_question_required"])
         self.assertTrue(policy["problem_statement_method_result_forbidden"])
@@ -18,12 +18,15 @@ class NaturalPaperFlowV744Tests(unittest.TestCase):
         self.assertTrue(policy["negation_contrast_density_review"])
         self.assertTrue(policy["paragraph_logic_continuity_review"])
         self.assertEqual(policy["proof_structure_default"], "paragraph_first")
+        self.assertTrue(policy["proof_logical_units_required"])
         self.assertTrue(policy["proof_numbered_steps_when_needed"])
+        self.assertNotIn("proposition_proof_segmented_steps", policy)
         self.assertTrue(policy["figure_table_text_reference_required"])
         self.assertTrue(policy["figure_table_adjacent_explanation_required"])
         self.assertEqual(policy["question_result_section_default"], "求解结果")
         self.assertFalse(policy["standalone_question_conclusion_default"])
         self.assertFalse(policy["standalone_paper_conclusion_default"])
+        self.assertEqual(policy["prose_audit_script"], "scripts/audit_paper_prose.py")
 
     def test_cumcm_template_uses_problem_statement_and_local_results(self):
         text = (ROOT / "templates/latex/cumcm/hsk/hsk_main.tex").read_text(encoding="utf-8")
@@ -57,6 +60,7 @@ class NaturalPaperFlowV744Tests(unittest.TestCase):
             "段落逻辑连续性检查",
             "独立结论章检查",
             "证明结构默认自然分段",
+            "成稿机器审计",
         ):
             self.assertIn(token, text)
 
