@@ -13,11 +13,15 @@ class WritingExpressionProtocolV730Tests(unittest.TestCase):
         self.assertIn("正文表达与章节组织协议（写作权威）", latex)
         self.assertIn("问题重述：问题背景 + 问题提出", latex)
         self.assertIn("问题分析：国赛式逐问分析，不写公式和结果", latex)
-        self.assertIn("模型推导：从本题对象出发", latex)
+        self.assertIn("模型推导：核心公式必须有来源、推导和去向", latex)
+        self.assertIn("Source–Derivation–Destination", latex)
+        self.assertIn("共享基础模型：按需单列，后问写增量", latex)
+        self.assertIn("结构化简优先于算法升级", latex)
+        self.assertIn("数值参数必须有选择证据", latex)
         self.assertIn("核心模型汇总：推导后、求解前必须出现", latex)
         self.assertIn("求解结果：图表、数值、机制和题目回答就近闭环", latex)
         self.assertIn("模型的评价与推广", latex)
-        self.assertIn("科研初学者式学术表达", latex)
+        self.assertIn("证据驱动的本科生学术表达", latex)
         self.assertIn("分段优先，分点按需", latex)
 
     def test_docx_and_cleanup_reference_shared_authority(self):
@@ -32,10 +36,13 @@ class WritingExpressionProtocolV730Tests(unittest.TestCase):
         self.assertIn("问题分析禁公式结果", cleanup)
         self.assertIn("假设去万能化", cleanup)
         self.assertIn("推导去教科书化", cleanup)
+        self.assertIn("核心公式 Source 检查", cleanup)
+        self.assertIn("公式链检查", cleanup)
+        self.assertIn("数值参数依据检查", cleanup)
         self.assertIn("结果去报表化", cleanup)
         self.assertIn("评价去万能化", cleanup)
         self.assertIn("正向叙述优先", cleanup)
-        self.assertIn("科研初学者式学术表达", cleanup)
+        self.assertIn("证据驱动的本科生学术表达", cleanup)
         self.assertIn("成稿机器审计", cleanup)
         self.assertIn("audit_paper_prose.py", cleanup)
 
@@ -55,11 +62,29 @@ class WritingExpressionProtocolV730Tests(unittest.TestCase):
         self.assertIn("主写作类型", framework)
         self.assertIn("问题重述口径", framework)
         self.assertIn("问题分析安排", framework)
-        self.assertIn("全局共享内容", framework)
+        self.assertIn("共享基础模型", framework)
+        self.assertIn("跨问模型增量", framework)
+        self.assertIn("核心公式链索引", framework)
+        self.assertIn("数值参数依据", framework)
         self.assertIn("结果解释链", framework)
         self.assertIn("模型评价安排", framework)
         self.assertIn("正向叙述策略", framework)
         self.assertIn("写作组织策略已按当前题型和证据链确定", framework)
+
+    def test_writing_reasoning_contract_is_cross_competition_and_adaptive(self):
+        contract = yaml.safe_load(
+            (ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8")
+        )
+        self.assertEqual(contract["scope"]["competitions"], "all")
+        self.assertEqual(contract["formula_reasoning_chain"]["chain"], ["source", "derivation", "destination"])
+        self.assertEqual(contract["shared_foundation"]["default"], "adaptive")
+        self.assertEqual(
+            contract["cross_question_progression"]["activate_when"],
+            "actual_dependency_exists",
+        )
+        self.assertTrue(contract["proposition_downstream_consequence"]["required_when_proposition_is_used_for_computation"])
+        self.assertEqual(contract["prose_style"]["name"], "evidence_driven_undergraduate_academic")
+        self.assertTrue(contract["machine_audit_boundary"]["report_only_for_semantic_style_risks"])
 
     def test_output_contract_points_to_shared_authority(self):
         output = yaml.safe_load(
@@ -85,6 +110,14 @@ class WritingExpressionProtocolV730Tests(unittest.TestCase):
         self.assertTrue(policy["proof_numbered_steps_when_needed"])
         self.assertNotIn("proposition_proof_segmented_steps", policy)
         self.assertEqual(policy["prose_audit_script"], "scripts/audit_paper_prose.py")
+
+    def test_bootstrap_registers_reasoning_authority_without_global_preload(self):
+        bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
+        self.assertEqual(
+            bootstrap["authoritative_sources"]["writing_reasoning"],
+            "core/writing_reasoning_contract.yaml",
+        )
+        self.assertIn("Source—Derivation—Destination", "\n".join(bootstrap["hard_invariants"]))
 
     def test_release_versions_are_consistent(self):
         bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
