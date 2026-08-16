@@ -48,6 +48,7 @@ problem_audit
    └─ qX_plot.m / 机理图
 → writing_latex
 → ai_cleanup
+→ prose audit（scripts/audit_paper_prose.py）
 → latex_compile_quality
 → review_delivery
 ```
@@ -62,7 +63,7 @@ problem_audit
 
 `result_analysis` 可以独立路由，但前提是当前主工作簿已经 accepted 且主结果质量门通过。若分析给出 `redo_required`，按原因回到 `model_design`、条件式 `data_preprocessing` 或 `solve_validate`，并传播下游 stale。
 
-默认写作链在 `figure_evidence` 后进入 LaTeX。`writing_docx` 只由显式 DOCX/Word 请求加载，不是 LaTeX 前置。
+默认写作链在 `figure_evidence` 后进入 LaTeX。`writing_docx` 只由显式 DOCX/Word 请求加载，不是 LaTeX 前置。`prose audit` 不是独立写作权威或额外论文产物，而是 AI cleanup 后、最终编译前的非破坏性检查步骤：默认只报告 warning/review_required；`--strict` 仅阻断未处理的结构性 review_required。
 
 ## 示例
 
