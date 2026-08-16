@@ -1,8 +1,26 @@
-# mathmodel-skill v7.5.1
+# mathmodel-skill v7.5.2
 
 当前工作流：**审题与 Problem Contract 冻结 → 通用数据审计与 `preprocessing_decision` → 题面—数学—代码语义闭环 → Complexity Sanity Check → semantic governance → 条件式项目级预处理（仅 `project_level`）→ 用户本地完整版 Python 主求解 → 主结果质量门 → 独立 Python 结果深化分析 → 稳定性验收 → MATLAB预处理/结果证据图 → 题型自适应 LaTeX 写作 → AI cleanup 与学术语言重写 → prose audit → 编译终审**。
 
-## v7.5.1：证明机器契约收口与成稿 prose audit
+## v7.5.2：双 Skill 入口语义防漂移
+
+根目录 `SKILL.md` 与 Codex 插件目录 `skills/mathmodel-skill/SKILL.md` 继续同时保留，但两者新增完全一致的“运行时入口合同”摘要：统一委托 `core/bootstrap.yaml`，再由 `core/workflow_router.yaml` / `scripts/resolve_workflow.py` 解析最小 route-specific 加载链。详细模型、预处理、求解、绘图和写作规则仍只由 bootstrap 指向的权威源定义，两个入口不再各自承担独立规则权威。
+
+静态 lint 与 v7.5.2 回归测试同时检查两入口的合同块、版本、插件 `./skills/` 发现路径、核心 authority 指针以及 legacy/V622 默认隔离。稳定的 `scripts/README.md`、`legacy/README.md` 和 resolver docstring 改为 versionless，减少后续 patch 的无意义版本触点。数值模型、预处理、工作簿、Python/MATLAB、五文件合同、LaTeX 与 v7.5.0 writing-reasoning 能力均未改变。
+
+## v7.5.1：读取架构瘦身与单一事实源强化
+
+`core/bootstrap.yaml` 收回为真正的最小启动索引，只保留 authority 指针和启动不变量；详细 reasoning 继续由 `core/writing_reasoning_contract.yaml` 等权威源承担。resolver 对 taxonomy 改为按需解析，Figure、工作簿和无关 utility route 不再无需求加载 reasoning/taxonomy。
+
+v7.5.1 同时保留 v7.5.0 的 Source→Derivation→Destination、共享基础、跨问递进、结构化简优先、数值参数证据、多方法结构一致性与本科生证据驱动学术表达，并通过读取预算与 route-isolation 回归防止后续瘦身误删能力。
+
+## v7.5.0：跨比赛公式推理与证据驱动写作架构
+
+建立跨比赛 `Source → Derivation → Destination` 公式推理链；共享基础按实际复用程度启用，后问只写继承与增量；高维/非线性模型先检查解析关系、单调性、消元、降维、候选域和分解，再决定是否升级算法。步长、网格、Monte Carlo/Bootstrap 数量、窗口、滞后和优化容差等数值参数必须有收敛、验证或稳定性证据。
+
+多方法验证从单纯结果数值一致扩展到决策区间、活跃约束、策略结构、系数方向、排序、聚类或关键区域等任务相关结构一致性；正文语言采用 evidence-driven undergraduate academic prose，强调具体对象、当前数学困难、数学处理和所得信息的连续证据链。
+
+## v7.4.5：证明机器契约收口与成稿 prose audit
 
 本次 patch 不改变 Problem Contract、数据预处理、Python 求解、工作簿 Schema、MATLAB Figure Evidence、五文件接口和“模型的评价与推广 / 模型的改进、评价与推广”两级策略，只处理 v7.4.4 写作链最后两个执行层尾项。
 

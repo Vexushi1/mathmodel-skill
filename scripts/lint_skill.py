@@ -15,7 +15,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "7.5.1"
+PACKAGE_VERSION = "7.5.2"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",
@@ -51,7 +51,8 @@ COMPATIBILITY_POINTERS = {
 }
 REPO_PATH_PREFIXES = ("core/", "modules/", "packs/", "templates/", "scripts/", "config/", "state/", "assets/", "agents/", "skills/", ".github/", ".codex-plugin/")
 MARKDOWN_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
-VERSION_DOCS = ["SKILL.md", "README.md", "CHANGELOG.md", "scripts/README.md", "legacy/README.md", "core/hsk_core_policy.md"]
+# Stable utility/archive docs are intentionally versionless; only active release carriers are checked here.
+VERSION_DOCS = ["SKILL.md", "README.md", "CHANGELOG.md", "core/hsk_core_policy.md"]
 # Patch-level Skill releases only force the global release carriers to match. Domain
 # contracts retain their own schema/compatibility marker unless their behavior changes.
 VERSION_CONTRACTS = [
@@ -132,6 +133,76 @@ def _check_repo_reference(errors: list[str], value: object, origin: str, *, base
     if not candidate.exists():
         errors.append(f"repository reference missing: {origin} -> {token}")
 
+
+
+def check_skill_entrypoint_parity(errors: list[str]) -> None:
+    """Keep repository and packaged Skill entrypoints on one runtime authority chain."""
+    root_skill_path = ROOT / "SKILL.md"
+    packaged_skill_path = ROOT / "skills/mathmodel-skill/SKILL.md"
+    plugin_path = ROOT / ".codex-plugin/plugin.json"
+    bootstrap = load_structured(ROOT / "core/bootstrap.yaml") or {}
+    current = str(bootstrap.get("skill_version", ""))
+    start = "<!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->"
+    end = "<!-- HSK_RUNTIME_ENTRY_CONTRACT_END -->"
+
+    def frontmatter_version(text: str, origin: str) -> str | None:
+        match = re.search(r"^version:\s*([^\s]+)", text, flags=re.MULTILINE)
+        if not match:
+            errors.append(f"skill entrypoint version missing: {origin}")
+            return None
+        return match.group(1)
+
+    def contract_block(text: str, origin: str) -> str | None:
+        if text.count(start) != 1 or text.count(end) != 1:
+            errors.append(f"skill entrypoint runtime contract markers invalid: {origin}")
+            return None
+        return text.split(start, 1)[1].split(end, 1)[0].strip()
+
+    texts = {
+        "SKILL.md": read_text(root_skill_path),
+        "skills/mathmodel-skill/SKILL.md": read_text(packaged_skill_path),
+    }
+    blocks: dict[str, str | None] = {}
+    required_tokens = (
+        "core/bootstrap.yaml",
+        "core/workflow_router.yaml",
+        "core/hsk_core_policy.md",
+        "scripts/resolve_workflow.py",
+        "core/writing_reasoning_contract.yaml",
+        "模型论文框架.md",
+        "legacy/",
+    )
+    forbidden_tokens = (
+        "HSK_RUNTIME_ROUTER_V622.md",
+        "HSK_SKILL_FILE_INDEX_V622.md",
+        "HSK_TEMPLATE_INDEX_V622.md",
+        "PROJECT_INSTRUCTIONS_HSK_V622.md",
+    )
+    for origin, text_value in texts.items():
+        version = frontmatter_version(text_value, origin)
+        if version is not None and version != current:
+            errors.append(f"skill entrypoint version mismatch: {origin} -> {version}, bootstrap -> {current}")
+        block = contract_block(text_value, origin)
+        blocks[origin] = block
+        if block is None:
+            continue
+        for token in required_tokens:
+            if token not in block:
+                errors.append(f"skill entrypoint authority token missing: {origin} -> {token}")
+        for token in forbidden_tokens:
+            if token in block:
+                errors.append(f"skill entrypoint must not depend on compatibility pointer: {origin} -> {token}")
+
+    root_block = blocks.get("SKILL.md")
+    packaged_block = blocks.get("skills/mathmodel-skill/SKILL.md")
+    if root_block is not None and packaged_block is not None and root_block != packaged_block:
+        errors.append("root and packaged SKILL runtime-entry contracts drifted")
+
+    plugin = load_structured(plugin_path) or {}
+    if plugin.get("version") != current:
+        errors.append(f"plugin/bootstrap version mismatch: plugin -> {plugin.get('version')}, bootstrap -> {current}")
+    if plugin.get("skills") != "./skills/":
+        errors.append("plugin skill discovery path must remain ./skills/")
 
 def check_repository_references(errors: list[str]) -> None:
     bootstrap = load_structured(ROOT / "core/bootstrap.yaml") or {}
@@ -395,10 +466,10 @@ def check_router(errors: list[str]) -> None:
     for token in ("pre_delivery_gates", "available_after_modules", "available_after_plan", "gate_plan", "SEMANTIC_CODE_GATES", "SEMANTIC_SYNC_GATES", "apply_preprocessing_boundary", "preprocessing_decision"):
         if token not in resolver:
             errors.append(f"resolver lacks gate-closure token: {token}")
-    if f"HSK v{PACKAGE_VERSION} execution plan" not in resolver:
-        errors.append("resolver release marker mismatch")
-    if "HSK v7.0.1 execution plan" in resolver:
-        errors.append("resolver still contains obsolete v7.0.1 release marker")
+    if "ordered HSK execution plan" not in resolver:
+        errors.append("resolver must expose the versionless execution-plan docstring")
+    if re.search(r"HSK v\d+\.\d+\.\d+ execution plan", resolver):
+        errors.append("resolver execution-plan docstring must remain versionless")
 
 
 def check_manifest(errors: list[str]) -> None:
@@ -900,7 +971,7 @@ def main() -> int:
     args = parser.parse_args()
     errors: list[str] = []
     checks = (
-        check_required, check_compatibility_pointers, check_root_release_note_hygiene, check_versions, check_bootstrap_and_governance,
+        check_required, check_compatibility_pointers, check_skill_entrypoint_parity, check_root_release_note_hygiene, check_versions, check_bootstrap_and_governance,
         check_taxonomy, check_repository_references, check_router, check_manifest, check_resolver_smoke,
         check_contracts, check_project_state_and_framework, check_templates, check_syntax,
     )
