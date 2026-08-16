@@ -95,6 +95,7 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
+- `scripts/_v751_slim_finalizer.py`
 - `scripts/audit_paper_prose.py`
 - `scripts/generate_indexes.py`
 - `scripts/hsk_pack_submission.py`
