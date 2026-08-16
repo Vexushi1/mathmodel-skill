@@ -36,6 +36,8 @@ class WritingExpressionProtocolV730Tests(unittest.TestCase):
         self.assertIn("评价去万能化", cleanup)
         self.assertIn("正向叙述优先", cleanup)
         self.assertIn("科研初学者式学术表达", cleanup)
+        self.assertIn("成稿机器审计", cleanup)
+        self.assertIn("audit_paper_prose.py", cleanup)
 
     def test_latex_pack_enforces_non_template_writing(self):
         pack = (ROOT / "packs/artifact/latex.md").read_text(encoding="utf-8")
@@ -79,23 +81,27 @@ class WritingExpressionProtocolV730Tests(unittest.TestCase):
         self.assertTrue(policy["generic_model_evaluation_forbidden"])
         self.assertTrue(policy["affirmative_statement_preferred"])
         self.assertTrue(policy["novice_academic_rewrite_after_cleanup"])
+        self.assertEqual(policy["proof_structure_default"], "paragraph_first")
+        self.assertTrue(policy["proof_numbered_steps_when_needed"])
+        self.assertNotIn("proposition_proof_segmented_steps", policy)
+        self.assertEqual(policy["prose_audit_script"], "scripts/audit_paper_prose.py")
 
     def test_release_versions_are_consistent(self):
         bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
         manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
         output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(bootstrap["skill_version"], "7.4.4")
-        self.assertEqual(manifest["version"], "7.4.4")
-        self.assertEqual(output["version"], "7.4.4")
-        self.assertEqual(plugin["version"], "7.4.4")
-        self.assertIn("version: 7.4.4", (ROOT / "SKILL.md").read_text(encoding="utf-8"))
+        self.assertEqual(bootstrap["skill_version"], "7.4.5")
+        self.assertEqual(manifest["version"], "7.4.5")
+        self.assertEqual(output["version"], "7.4.5")
+        self.assertEqual(plugin["version"], "7.4.5")
+        self.assertIn("version: 7.4.5", (ROOT / "SKILL.md").read_text(encoding="utf-8"))
         self.assertIn(
-            "version: 7.4.4",
+            "version: 7.4.5",
             (ROOT / "skills/mathmodel-skill/SKILL.md").read_text(encoding="utf-8"),
         )
-        self.assertTrue((ROOT / "README.md").read_text(encoding="utf-8").startswith("# mathmodel-skill v7.4.4"))
-        self.assertIn("## Current release: 7.4.4", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
+        self.assertTrue((ROOT / "README.md").read_text(encoding="utf-8").startswith("# mathmodel-skill v7.4.5"))
+        self.assertIn("## Current release: 7.4.5", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
