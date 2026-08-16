@@ -1,6 +1,18 @@
 # Changelog
 
-## Current release: 7.4.5
+## Current release: 7.5.0
+
+- Added a cross-competition writing-reasoning contract centered on **Source → Derivation → Destination**: every core formula must recover its problem/definition/mechanism/theory source, preserve the modeling-relevant derivation, and state its downstream use in state definition, objectives, constraints, decisions, reduction, validation or the final answer.
+- Added adaptive shared-foundation and cross-question progression rules. Shared equations/geometry/probability/network structure are defined once only when reuse is substantial; dependent questions explain inherited structure, new objects/conditions, changed difficulty and solver/model increments, while independent questions remain independent.
+- Added a structure-before-algorithm gate for high-dimensional, nonlinear and combinatorial models: analytic relations, monotonicity/convexity/symmetry, elimination/dimension reduction, candidate bounds, decomposition/hierarchy and prior-question search restrictions are checked before selecting advanced metaheuristics or learning methods.
+- Added evidence requirements for numerical choices such as step size, grid resolution, discretization count, Monte Carlo/Bootstrap size, lag/window, search resolution and optimization tolerance. Parameter choices now require prompt provenance or convergence/validation/stability evidence rather than a generic “accuracy versus efficiency” sentence.
+- Extended multi-method validation from numerical agreement alone to task-appropriate structural agreement such as decision ranges, active constraints, strategy structure, coefficient direction, ranking, clustering or key regions.
+- Distilled the writing style into **evidence-driven undergraduate academic prose**: concrete objects and current mathematical difficulties lead into the mathematical treatment and its next use. Natural connectors such as “根据/因此/进一步/从而” remain legitimate and are reviewed only when mechanically repeated or logically empty.
+- Strengthened proposition governance so a proof states its downstream model/computational consequence instead of ending at “命题得证”. Paragraph-first proof organization from v7.4.5 remains unchanged.
+- Extended `scripts/audit_paper_prose.py` with conservative warning-only checks for dense formula runs, repeated derivation connectors, excessive meta-navigation, background-management paragraphs and suspicious unsupported numerical assignments. The audit explicitly does **not** infer mathematical correctness, true formula provenance or parameter optimality from regex.
+- Added v7.5.0 regression coverage for cross-competition applicability, route-specific loading, formula-chain closure, shared foundations, cross-question increments, numerical-parameter evidence, natural prose and machine-audit boundaries. Numerical models, preprocessing APIs, workbook schemas, Python/MATLAB ownership and per-question five-file interfaces remain unchanged.
+
+## Previous release: 7.4.5
 
 - Removed the ambiguous active proof-contract fields `proposition_proof_segmented_steps`, `segmented_steps_required` and `main_text_key_steps_*`. Proposition proof governance now has one machine-readable meaning: `paragraph_first` by default, distinguishable logical units required, and 2--6 numbered steps only when the proof genuinely has multiple independent stages.
 - Added `scripts/audit_paper_prose.py`, a non-destructive final-LaTeX prose/structure audit. It reports `pass`, `warning` or `review_required` and never rewrites paper text.
