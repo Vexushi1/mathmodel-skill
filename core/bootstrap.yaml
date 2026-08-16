@@ -1,6 +1,10 @@
-skill_version: 7.5.0
+skill_version: 7.5.1
 bootstrap_schema_version: 1.1.0
-purpose: Minimal startup contract for the HSK mathematical-modeling workflow. Read this file first, then use scripts/resolve_workflow.py to obtain the deterministic task-specific execution plan. Do not preload the whole repository.
+purpose: >-
+  Minimal startup index for the HSK mathematical-modeling workflow. Read this
+  file first, load the global policy through workflow_router.default_load, then
+  use scripts/resolve_workflow.py for the task-specific plan. Do not preload the
+  repository or duplicate domain contracts here.
 authoritative_sources:
   global_policy: core/hsk_core_policy.md
   routing: core/workflow_router.yaml
@@ -14,52 +18,22 @@ authoritative_sources:
   code_quality: core/code_quality_contract.yaml
   writing_reasoning: core/writing_reasoning_contract.yaml
   semantic_governance: scripts/validate_semantic_governance.py
+startup_contract:
+  principle: minimal_route_specific
+  default_policy_source: core/hsk_core_policy.md
+  resolver: scripts/resolve_workflow.py
+  rules:
+    - Bootstrap stores pointers and startup invariants only; global domain rules live in core/hsk_core_policy.md.
+    - Route-specific contracts are loaded only when the resolved task needs them.
+    - Resolver-internal manifests and taxonomies are not user-facing preload unless the route needs their content.
+    - Current project semantics are restored from current 模型论文框架.md when available; numerical facts still come from accepted workbooks and machine state from project_state.
 hard_invariants:
-- 题意正确优先于模型高级、代码复杂和排版炫技。
-- 每问先冻结Problem Contract，明确原始/派生对象、已知/可计算量、决策/状态/输出量、显式/隐含约束、禁止假设、数据角色和typed dependencies。
-- 题面对象与要求、数学变量/公式/目标/约束、Python变量/函数和工作簿输出必须形成三层语义闭环；存在关键gap时不得交付代码。
-- 核心公式必须形成Source—Derivation—Destination闭环：能回到题意/定义/机制/已核验理论，保留必要推理，并明确进入后续状态、目标、约束、判定、降维、算法、验证或题目答案；无来源或无去向的核心公式不得进入locked model。
-- 多问共享核心状态方程、几何/概率/网络结构或判定函数时先判断是否需要共享基础层；共享内容只定义一次，后问只写真实增量，不因追求连贯虚构依赖。
-- 有实际跨问依赖时，后问应能恢复“继承结构—新增对象/条件—新增数学结构/困难—求解变化”；独立小问明确保持独立。
-- 高维、非线性和组合问题在调用高级算法前先检查解析关系、单调性/凸性/对称性、消元/降维、候选区域、分解/分层和前问信息；“变量多/问题复杂”不能单独构成使用高级算法的理由。
-- 影响结果的步长、网格、离散点、样本量、窗口/滞后、搜索分辨率、容差等数值参数必须有题面来源或收敛/验证/稳定性证据，不允许只写“综合考虑精度与效率，取……”。
-- 多算法/多模型验证除数值一致性外，还应按题型比较适用的结构结论，如决策区间、活跃约束、策略结构、系数方向、排序、分群或关键区域；结构冲突时不得仅凭目标值接近宣称一致。
-- 复杂赛题出现异常降维、异常解耦、条件或附件大量闲置、关键约束长期不生效或计算异常容易时，必须完成Complexity Sanity Check；review_required禁止求解。
-- 所有数据题先进行非破坏性数据审计并锁定preprocessing_decision；共享原始数据、特定题型或过去赛题经验本身不能自动触发清洗、插值、预测填补、滤波或统一工作簿。
-- 数据预处理判断必须结合当前附件的完整性、一致性、有效性、重复身份、采样覆盖、测量质量、模型输入要求以及时间因果与信息泄漏风险；不存在“有缺失就插值”的默认规则。
-- preprocessing_decision=not_needed时直接使用原始数据；question_local时只允许本问有数学来源的局部变换；project_level时才创建数据预处理/并在验收后冻结公共数据口径。
-- 缺失填补、预测填补、异常删除、插值、平滑、滤波、去趋势、标准化、归一化和重采样等数据修改必须有数据、机理或模型必要性证据，不能作为模板默认步骤。
-- 预测填补只可用于恢复后续模型确实需要的缺测输入；赛题本身要求预测的未来值、类别、需求、风险或其他结果属于核心建模，不得提前包装成预处理。
-- 只要实际预处理改变后续模型输入，论文必须给出问题证据、数学公式或确定性映射、参数依据、合理性验证、处理前后证据和后续模型接口；不得用“完成清洗/插值”等一句话带过。
-- 形式证明只用于可证明的等价性、守恒性、单调性、误差界或可行性保持；经验型预处理使用统计、物理、人工掩蔽或留出验证，禁止编造证明。
-- preprocessing_decision=project_level时标准目录为数据预处理.py、数据预处理结果.xlsx和data_process.m；data_process.m只读取预处理工作簿中的Python底层证据绘图，不重新做预处理。
-- 项目级预处理至少形成一张真正支撑处理必要性或有效性的MATLAB图；正式导出基名使用data_process或data_process_<evidence>。
-- Figure Evidence阶段必须按Core conclusion、Evidence level、Primary question动态选择单图/1×2/2×1/1×3/2×2或拆图；不得固定套用某一种多面板版式。主结果配色允许中高饱和高对比，但必须保持对象语义稳定并对辅助元素降权。
-- 题意、数据口径、变量、参数、假设、目标、约束、preprocessing_decision、实际预处理、算法语义或小问依赖变化时必须递增semantic_revision，并按data/parameter/model/result依赖递归传播stale。
-- 先审题与锁定模型，再完整求解；不得用后续分析弥补主结果精度、收敛、可行性或语义不足。
-- 主求解必须通过独立质量门，随后才按题目风险选择敏感性、鲁棒性、多算法、结构、阈值、异质性或其他结果深化分析。
-- 结果深化分析发现主结论不可靠时，必须按原因回退模型设计、条件式预处理或主求解并传播stale。
-- 新项目默认由用户本地执行实际生成的项目级预处理、完整版主求解与结果深化代码；助手只生成代码、静态校验和验收返回工作簿，不得运行赛题代码。
-- 每问主求解与结果深化分析使用两个独立Python脚本；主工作簿accepted后冻结主求解脚本，深化分析不得覆盖改写它。
-- 禁止自动缩减数据、网格、时域、场景、重复次数、迭代或容差，禁止静默求解器fallback和轻量近似。
-- Python负责当前数据事实源检查、主求解、质量门与结果深化分析；项目级公共数据处理仅在project_level时由数据预处理.py执行；MATLAB只读真实工作簿证据绘图。
-- 实际生成的数据预处理脚本和两个正式问题脚本都必须通过core/code_quality_contract.yaml定义的代码工程质量门。
-- 默认写作链在结果与图表锁定后直接进入LaTeX；DOCX仅由用户显式请求触发，且不是LaTeX前置。
-- 论文正文的问题重述、问题分析、模型假设、符号说明、模型推导、核心模型汇总、求解结果、图表解释、模型评价和章节组织必须按modules/05_writing/latex.md执行；跨竞赛公式推理、共享基础、跨问递进、结构化简、数值参数证据和语言推进按core/writing_reasoning_contract.yaml执行。
-- 中文国赛问题重述默认采用“问题背景+问题提出”，问题提出按“问题一：”“问题二：”逐问转述；问题背景通常一段，确需从现实背景收束到具体研究对象时允许第二个短段；模型假设与符号说明分章；各问使用“问题X模型建立及求解”，详细推导后设置核心模型汇总，主结果放在“求解结果”中；默认不设固定“小问结论”和全文独立“结论”章。
-- 命题短证明分段优先、分点按需；连续推理用自然段和必要公式，多阶段证明才使用2--6个编号步骤；证明后必须说明下游模型/计算作用；命题显示编号使用阿拉伯章节号且原则上不跨页。
-- 正文核心图、核心表必须有邻近的显式编号引用和解释；图题在下、表题在上，题注不能替代正文证据解释。
-- 写作时共享假设与单问假设按作用域放置，局部结果与检验证据尽量就近闭环；模型检验负责量化可信度，模型评价只讨论结构取舍，不能以优缺点替代误差、可行性、外样本或敏感性证据。
-- AI模板清理后执行证据驱动的本科生学术重写：表达规范、朴素、略带科研训练初期推理痕迹；允许“根据/因此/进一步/从而”等自然连接词，但不机械重复，不通过故意语病、口语化、频繁自我否定或机械同义词替换制造风格。
-- AI模板清理后运行scripts/audit_paper_prose.py进行成稿审计；warning只要求人工复查且不得机械封禁单个转折词、连接词或公式，最终编译前--strict模式不得保留review_required结构问题。
-- locked_model_spec形成后维护项目根目录当前版模型论文框架.md；旧版本由Git历史保存。
-- 模型论文框架.md不仅是交付给用户的可读文档，也是助手跨阶段、跨聊天恢复当前项目上下文的首选语义记忆；只要框架存在且current，后续预处理、求解、深化分析、绘图、写作和终审都应在执行前按需读取相关段落，不得只依赖聊天记忆重建当前模型。
-- 模型论文框架.md保存当前有效语义、结果摘要和证据位置，但不替代数值事实源与机器状态：具体数值必须回到已验收工作簿复核，semantic revision、hash与stale以project state为准。
-- 正式模型/代码/返回工作簿/下游交付前先执行semantic_governance gate；正式产物交付再执行解析器返回的project_sync gate。
-- semantic_governance只允许接受当前语义哈希和设置/传播stale，不得恢复旧数值结果；project_sync只允许设置或保持产物stale。
-- 顶层subproblem.capabilities是唯一能力事实源；旧别名只能兼容读取且必须一致。
-- DOCX、LaTeX与提交scope必须检查真实交付文件，不得以框架或状态文件替代。
-- legacy目录不参与默认执行。
+  - Global modeling, preprocessing, solving, figure, writing and review rules are governed by their authoritative sources above; bootstrap must not restate those contracts in detail.
+  - Resolve the smallest task-specific load order and stop after the user-requested deliverable; do not preload unrelated contracts or modules.
+  - Formal model/code/downstream delivery must still pass the existing semantic-governance and project-sync gates required by the resolved route.
+  - Current 模型论文框架.md is the assistant-readable semantic memory; accepted workbooks are numerical fact sources and project state is the machine-state source.
+  - Task-specific preprocessing, solve and result-analysis code remains user-executed; the assistant generates, statically checks and validates returned artifacts under the existing execution contracts.
+  - legacy/ remains outside default execution; compatibility pointers are read-only bridges and may not become active dependencies.
 entrypoints:
   resolve: python scripts/resolve_workflow.py
   semantic_governance: python scripts/validate_semantic_governance.py
@@ -88,8 +62,8 @@ compatibility:
   v7_0_semantic_governance_fields_optional_for_read: true
   v6_6_single_script_question_folders_read_supported: true
   versionless_active_documents:
-  - PROJECT_INSTRUCTIONS.md
-  - RUNTIME_ROUTER.md
-  - SKILL_FILE_INDEX.md
-  - TEMPLATE_INDEX.md
+    - PROJECT_INSTRUCTIONS.md
+    - RUNTIME_ROUTER.md
+    - SKILL_FILE_INDEX.md
+    - TEMPLATE_INDEX.md
   legacy_document_pointers_supported: true
