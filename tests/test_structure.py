@@ -187,15 +187,14 @@ class TestStructure(unittest.TestCase):
 
     def test_active_documentation_matches_current_skill_version_and_taxonomy(self):
         bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
-        version = str(bootstrap["skill_version"])
         scripts_readme = (ROOT / "scripts/README.md").read_text(encoding="utf-8")
         legacy_readme = (ROOT / "legacy/README.md").read_text(encoding="utf-8")
 
-        self.assertEqual(scripts_readme.splitlines()[0], f"# Scripts v{version}")
+        self.assertEqual(scripts_readme.splitlines()[0], "# Scripts")
         for token in ("objective", "structures", "capabilities"):
             self.assertIn(token, scripts_readme)
         self.assertNotIn("主/次题型", scripts_readme)
-        self.assertIn(f"不属于 v{version} 默认运行链路", legacy_readme)
+        self.assertIn("不属于当前默认运行链路", legacy_readme)
 
 
 if __name__ == "__main__":

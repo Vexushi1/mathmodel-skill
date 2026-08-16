@@ -466,10 +466,10 @@ def check_router(errors: list[str]) -> None:
     for token in ("pre_delivery_gates", "available_after_modules", "available_after_plan", "gate_plan", "SEMANTIC_CODE_GATES", "SEMANTIC_SYNC_GATES", "apply_preprocessing_boundary", "preprocessing_decision"):
         if token not in resolver:
             errors.append(f"resolver lacks gate-closure token: {token}")
-    if f"HSK v{PACKAGE_VERSION} execution plan" not in resolver:
-        errors.append("resolver release marker mismatch")
-    if "HSK v7.0.1 execution plan" in resolver:
-        errors.append("resolver still contains obsolete v7.0.1 release marker")
+    if "ordered HSK execution plan" not in resolver:
+        errors.append("resolver must expose the versionless execution-plan docstring")
+    if re.search(r"HSK v\d+\.\d+\.\d+ execution plan", resolver):
+        errors.append("resolver execution-plan docstring must remain versionless")
 
 
 def check_manifest(errors: list[str]) -> None:

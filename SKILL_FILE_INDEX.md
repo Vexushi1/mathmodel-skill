@@ -9,7 +9,6 @@
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
-- `.github/workflows/v752-ci-hotfix.yml`
 - `.gitignore`
 - `AGENTS.md`
 - `CHANGELOG.md`
