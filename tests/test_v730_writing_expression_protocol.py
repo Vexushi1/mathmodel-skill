@@ -14,7 +14,8 @@ class WritingExpressionProtocolV730Tests(unittest.TestCase):
         self.assertIn("问题重述：问题背景 + 问题提出", latex)
         self.assertIn("问题分析：国赛式逐问分析，不写公式和结果", latex)
         self.assertIn("模型推导：核心公式必须有来源、推导和去向", latex)
-        self.assertIn("Source–Derivation–Destination", latex)
+        for token in ("（Source）", "（Derivation）", "（Destination）"):
+            self.assertIn(token, latex)
         self.assertIn("共享基础模型：按需单列，后问写增量", latex)
         self.assertIn("结构化简优先于算法升级", latex)
         self.assertIn("数值参数必须有选择证据", latex)
