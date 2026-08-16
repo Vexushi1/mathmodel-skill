@@ -9,7 +9,7 @@
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
-- `.github/workflows/v751-slim-finalizer.yml`
+- `.github/workflows/v751-duplicate-cleanup.yml`
 - `.gitignore`
 - `AGENTS.md`
 - `CHANGELOG.md`
@@ -95,7 +95,7 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
-- `scripts/_v751_slim_finalizer.py`
+- `scripts/_v751_remove_duplicate.py`
 - `scripts/audit_paper_prose.py`
 - `scripts/generate_indexes.py`
 - `scripts/hsk_pack_submission.py`
