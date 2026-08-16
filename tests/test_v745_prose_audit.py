@@ -138,6 +138,78 @@ H1. 数据满足要求。
         self.assertTrue(any(item.code == "unreferenced_figure_table" for item in findings), findings)
         self.assertEqual(self.audit.overall_status(findings), "warning")
 
+    def test_reasoning_audit_warns_on_dense_formula_run_but_does_not_claim_math_error(self):
+        tex = r"""
+\begin{document}
+由几何定义得到第一个关系。
+\begin{equation}a=b+c\end{equation}
+进一步可得
+\begin{equation}d=e+f\end{equation}
+同理可得
+\begin{equation}g=h+i\end{equation}
+\end{document}
+"""
+        findings = self.audit.audit_text(tex)
+        item = next((x for x in findings if x.code == "dense_formula_run"), None)
+        self.assertIsNotNone(item, findings)
+        self.assertEqual(item.severity, "warning")
+        self.assertNotIn("错误", item.message)
+
+    def test_numeric_parameter_assignment_without_nearby_evidence_is_warning_only(self):
+        tex = r"""
+\begin{document}
+为了进行后续计算，取 n=300，并据此完成全部离散计算。
+\end{document}
+"""
+        findings = self.audit.audit_text(tex)
+        item = next((x for x in findings if x.code == "numeric_parameter_evidence"), None)
+        self.assertIsNotNone(item, findings)
+        self.assertEqual(item.severity, "warning")
+        self.assertEqual(self.audit.overall_status(findings), "warning")
+
+    def test_numeric_parameter_with_explicit_convergence_evidence_is_not_flagged(self):
+        tex = r"""
+\begin{document}
+对候选离散点数进行网格收敛检验，误差在 n=300 后已经稳定，因此取 n=300 作为后续计算参数。
+\end{document}
+"""
+        findings = self.audit.audit_text(tex)
+        self.assertFalse(any(x.code == "numeric_parameter_evidence" for x in findings), findings)
+
+    def test_second_background_paragraph_is_allowed_when_it_narrows_object(self):
+        tex = r"""
+\begin{document}
+\section{问题重述}
+\subsection{问题背景}
+城市交通系统受需求波动和道路容量共同影响，拥堵状态具有明显的时空差异。
+
+本题进一步聚焦于给定路网中的高峰时段车辆分配，需要刻画有限容量下各路径的流量变化。
+
+\subsection{问题提出}
+问题一：确定给定需求下的路径流量分配结果。
+\end{document}
+"""
+        findings = self.audit.audit_text(tex)
+        codes = {x.code for x in findings}
+        self.assertNotIn("background_management_paragraph", codes)
+        self.assertNotIn("long_problem_background", codes)
+
+    def test_background_management_second_paragraph_is_warning(self):
+        tex = r"""
+\begin{document}
+\section{问题重述}
+\subsection{问题背景}
+城市交通系统受需求波动和道路容量共同影响，需要建立合理的分配模型。
+
+全文将依次研究三个问题，后文章节安排如下，并分别介绍模型和求解结果。
+
+\subsection{问题提出}
+问题一：确定路径流量分配结果。
+\end{document}
+"""
+        findings = self.audit.audit_text(tex)
+        self.assertTrue(any(x.code == "background_management_paragraph" for x in findings), findings)
+
     def test_strict_cli_blocks_only_review_required(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "main.tex"
