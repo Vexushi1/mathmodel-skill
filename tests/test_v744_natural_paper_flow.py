@@ -49,6 +49,7 @@ class NaturalPaperFlowV744Tests(unittest.TestCase):
         self.assertIn("2--6 个编号步骤", text)
         self.assertIn("命题 4.1", text)
         self.assertIn("默认短证明：自然分段", text)
+        self.assertIn("下游模型/计算作用", text)
 
     def test_cleanup_reviews_negation_density_and_body_references(self):
         text = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
@@ -60,6 +61,7 @@ class NaturalPaperFlowV744Tests(unittest.TestCase):
             "段落逻辑连续性检查",
             "独立结论章检查",
             "证明结构默认自然分段",
+            "核心公式 Source 检查",
             "成稿机器审计",
         ):
             self.assertIn(token, text)
@@ -91,8 +93,9 @@ class NaturalPaperFlowV744Tests(unittest.TestCase):
             "正向叙述策略",
             "求解结果",
             "正文显式引用位置",
-            "优先自然分段",
-            "只有存在明显独立阶段时",
+            "连续推理优先 3--8 行自然分段",
+            "核心公式链索引",
+            "跨问模型增量",
         ):
             self.assertIn(token, text)
         self.assertIn("独立“结论”一级章", text)
