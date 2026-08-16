@@ -1,4 +1,4 @@
-version: 7.4.4
+version: 7.4.5
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 user_execution_contract: core/user_execution_contract.yaml
@@ -57,14 +57,19 @@ writing_policy:
   model_validation_precedes_evaluation: true
   standalone_model_evaluation_required: false
   generic_algorithm_background_budget: minimal_task_specific
-  proposition_proof_segmented_steps: true
   proof_structure_default: paragraph_first
+  proof_logical_units_required: true
   proof_numbered_steps_when_needed: true
+  proof_numbered_steps_min: 2
+  proof_numbered_steps_max: 6
   proposition_display_numbering: arabic_section_dot_arabic_proposition
   proposition_box_page_break_forbidden: true
   affirmative_statement_preferred: true
   negation_contrast_density_review: true
   paragraph_logic_continuity_review: true
+  prose_audit_script: scripts/audit_paper_prose.py
+  prose_audit_default_mode: report_only
+  prose_audit_strict_blocks_on: review_required
   table_caption_position: above
   figure_caption_position: below
   three_line_table_default_alignment: center
@@ -453,7 +458,7 @@ project_sync:
     project_level_preprocessing: 数据预处理结果.xlsx -> data_process.m -> 预处理证据图 -> LaTeX正文结论
     per_question: 问题X标准工作簿 -> qX_plot.m -> 结果图 -> LaTeX正文结论
     legacy_read_compatibility: 结果数据表/问题X/figure_evidence.yaml
-    mtime_role: 仅作辅助警告，不作为主要判定
+    mtime_role: 仅作辅助警告
 classification_contract:
   taxonomy: core/task_taxonomy.yaml
   current_axes:
@@ -481,10 +486,10 @@ proposition_contract:
   latex_proof_environment: hskproof
   main_text_default_proof_level: outline
   main_text_default_structure: paragraph_first
-  main_text_key_steps_min: 2
-  main_text_key_steps_max: 6
+  logical_units_required: true
   numbered_steps_when_needed: true
-  segmented_steps_required: true
+  numbered_steps_min: 2
+  numbered_steps_max: 6
   display_numbering: arabic_section_dot_arabic_proposition
   outer_box_page_break_forbidden: true
   required_fields:
