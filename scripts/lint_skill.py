@@ -15,7 +15,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "7.4.4"
+PACKAGE_VERSION = "7.4.5"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",
@@ -35,7 +35,7 @@ REQUIRED = [
     "templates/matlab/data_process.m", "templates/latex/cumcm/hsk/hsk_main.tex",
     "templates/latex/diangong/main.tex", "templates/writing/caption_explanation.md",
     "scripts/resolve_workflow.py", "scripts/validate_semantic_governance.py", "scripts/sync_project.py",
-    "scripts/validate_code_delivery.py", "scripts/validate_user_execution.py",
+    "scripts/validate_code_delivery.py", "scripts/validate_user_execution.py", "scripts/audit_paper_prose.py",
     "scripts/validate_model_paper_framework.py", "scripts/validate_project_state.py",
     "scripts/score_submission.py", ".github/pull_request_template.md",
     ".github/workflows/ci.yml", ".github/workflows/refresh-generated.yml",
@@ -304,6 +304,8 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
         errors.append("bootstrap must expose validate_semantic_governance.py")
     if data.get("entrypoints", {}).get("sync") != "python scripts/sync_project.py":
         errors.append("bootstrap must expose sync_project.py")
+    if data.get("entrypoints", {}).get("audit_paper_prose") != "python scripts/audit_paper_prose.py":
+        errors.append("bootstrap must expose audit_paper_prose.py")
     maintenance = data.get("repository_maintenance", {})
     expected = {
         "governance": "SKILL_CHANGE_GOVERNANCE.md",
@@ -580,7 +582,7 @@ def check_contracts(errors: list[str]) -> None:
         "assumptions_symbols_separate_sections": True,
         "visible_assumption_contract_labels_forbidden": True,
         "core_model_summary_before_solve_required": True,
-        "proposition_proof_segmented_steps": True,
+        "proof_logical_units_required": True,
         "proof_numbered_steps_when_needed": True,
         "proposition_box_page_break_forbidden": True,
         "figure_table_text_reference_required": True,
@@ -588,6 +590,8 @@ def check_contracts(errors: list[str]) -> None:
         "affirmative_statement_preferred": True,
         "negation_contrast_density_review": True,
         "paragraph_logic_continuity_review": True,
+        "prose_audit_default_mode": "report_only",
+        "prose_audit_strict_blocks_on": "review_required",
         "table_caption_position": "above",
         "figure_caption_position": "below",
         "three_line_table_default_alignment": "center",
@@ -606,6 +610,12 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("writing policy must use 求解结果 as the default per-question result section")
     if policy.get("proof_structure_default") != "paragraph_first":
         errors.append("writing policy proof structure must be paragraph_first")
+    if policy.get("proof_numbered_steps_min") != 2 or policy.get("proof_numbered_steps_max") != 6:
+        errors.append("writing policy numbered proof steps must be limited to 2--6 when structurally needed")
+    if "proposition_proof_segmented_steps" in policy:
+        errors.append("writing policy must not retain the obsolete segmented-proof field")
+    if policy.get("prose_audit_script") != "scripts/audit_paper_prose.py":
+        errors.append("writing policy must register scripts/audit_paper_prose.py")
     if policy.get("proposition_display_numbering") != "arabic_section_dot_arabic_proposition":
         errors.append("writing policy must use Arabic proposition display numbering")
     if policy.get("default_model_evaluation_section") != "模型的评价与推广":
@@ -613,8 +623,15 @@ def check_contracts(errors: list[str]) -> None:
     proposition = output.get("proposition_contract", {})
     if proposition.get("main_text_default_structure") != "paragraph_first":
         errors.append("proposition contract must default to paragraph-first proofs")
+    if proposition.get("logical_units_required") is not True:
+        errors.append("proposition contract must require distinguishable logical units")
     if proposition.get("numbered_steps_when_needed") is not True:
         errors.append("proposition contract must number steps only when structurally needed")
+    if proposition.get("numbered_steps_min") != 2 or proposition.get("numbered_steps_max") != 6:
+        errors.append("proposition numbered steps must be limited to 2--6 when used")
+    for obsolete in ("segmented_steps_required", "main_text_key_steps_min", "main_text_key_steps_max"):
+        if obsolete in proposition:
+            errors.append(f"proposition contract retains obsolete field: {obsolete}")
     if proposition.get("display_numbering") != "arabic_section_dot_arabic_proposition":
         errors.append("proposition contract must use Arabic section.proposition numbering")
     result_policy = output.get("result_policy", {})
@@ -804,16 +821,20 @@ def check_templates(errors: list[str]) -> None:
     caption_contract = read_text(ROOT / "templates/writing/caption_explanation.md")
     cumcm = read_text(ROOT / "templates/latex/cumcm/hsk/hsk_main.tex")
     diangong = read_text(ROOT / "templates/latex/diangong/main.tex")
+    prose_audit = read_text(ROOT / "scripts/audit_paper_prose.py")
     for token in ("问题提出", "正向叙述", "求解结果", "分段优先，分点按需"):
         if token not in latex_authority:
-            errors.append(f"LaTeX writing authority lacks v7.4.4 token: {token}")
-    for token in ("正向叙述优先", "否定—转折密度复查", "段落逻辑连续性检查", "核心图表显式引用"):
+            errors.append(f"LaTeX writing authority lacks current writing token: {token}")
+    for token in ("正向叙述优先", "否定—转折密度复查", "段落逻辑连续性检查", "核心图表显式引用", "成稿机器审计"):
         if token not in cleanup:
-            errors.append(f"AI cleanup lacks v7.4.4 token: {token}")
+            errors.append(f"AI cleanup lacks current writing token: {token}")
     if "分段优先，分点按需" not in proposition_pack:
         errors.append("proposition pack must be paragraph-first and number steps only when needed")
     if "显式编号引用" not in caption_contract:
         errors.append("caption contract must require explicit numbered body references")
+    for token in ("review_required", "consecutive_contrast_paragraphs", "unreferenced_figure_table", "standalone_conclusion"):
+        if token not in prose_audit:
+            errors.append(f"paper prose audit lacks required token: {token}")
     for name, text in (("CUMCM HSK", cumcm), ("Diangong", diangong)):
         if "\n\\section{结论}\n" in text:
             errors.append(f"{name} active template must not contain a default standalone conclusion section")

@@ -1,6 +1,16 @@
-# mathmodel-skill v7.4.4
+# mathmodel-skill v7.4.5
 
-当前工作流：**审题与 Problem Contract 冻结 → 通用数据审计与 `preprocessing_decision` → 题面—数学—代码语义闭环 → Complexity Sanity Check → semantic governance → 条件式项目级预处理（仅 `project_level`）→ 用户本地完整版 Python 主求解 → 主结果质量门 → 独立 Python 结果深化分析 → 稳定性验收 → MATLAB预处理/结果证据图 → 题型自适应 LaTeX 写作 → AI cleanup 与学术语言重写 → 编译终审**。
+当前工作流：**审题与 Problem Contract 冻结 → 通用数据审计与 `preprocessing_decision` → 题面—数学—代码语义闭环 → Complexity Sanity Check → semantic governance → 条件式项目级预处理（仅 `project_level`）→ 用户本地完整版 Python 主求解 → 主结果质量门 → 独立 Python 结果深化分析 → 稳定性验收 → MATLAB预处理/结果证据图 → 题型自适应 LaTeX 写作 → AI cleanup 与学术语言重写 → prose audit → 编译终审**。
+
+## v7.4.5：证明机器契约收口与成稿 prose audit
+
+本次 patch 不改变 Problem Contract、数据预处理、Python 求解、工作簿 Schema、MATLAB Figure Evidence、五文件接口和“模型的评价与推广 / 模型的改进、评价与推广”两级策略，只处理 v7.4.4 写作链最后两个执行层尾项。
+
+命题证明的机器契约现在统一为 `paragraph_first + logical_units_required + numbered_steps_when_needed`。已经移除容易被误读为“所有证明必须编号分步”的 `proposition_proof_segmented_steps`、`segmented_steps_required` 和 `main_text_key_steps_*` 活动字段。连续短证明仍以自然段和必要公式为默认，多阶段证明才使用 2--6 个编号步骤。
+
+新增 `scripts/audit_paper_prose.py` 作为**非破坏性成稿审计器**。它读取最终 LaTeX 主文件，只报告 `pass / warning / review_required`，不会自动改写论文。普通单次使用“但、然而、不是”等词不会被判错；只有连续段落转折/否定过密、反复以“本文/本问/该模型”起句、重复“本文不是……而是……”或“由图可知/见表”等模板风险才给 warning。
+
+`review_required` 只用于明显的结构回退，例如默认独立“结论”章、可见 H1/A1、问题重述缺“问题提出”、模型假设与符号说明合章、问题分析包含正式公式、各问缺“核心模型汇总”等。默认运行只报告，最终编译前使用 `python scripts/audit_paper_prose.py final_latex/main.tex --strict`；只有 `review_required` 会阻断 strict，warning 保留给人工判断。
 
 ## v7.4.4：自然论文流、局部结果闭环与活动模板清理
 
@@ -110,7 +120,7 @@ preprocessing_decision
 
 ## 写作阶段：按证据链写，不按句式模板写
 
-正文写作唯一权威仍位于 `modules/05_writing/latex.md`。v7.4.4 在 v7.4.0--v7.4.3 的证据架构基础上进一步约束自然论文流：
+正文写作唯一权威仍位于 `modules/05_writing/latex.md`。v7.4.5 在 v7.4.4 自然论文流基础上增加机器审计闭环：
 
 - 问题重述采用“问题背景 + 问题提出”，问题提出逐问写“问题X：”；
 - 问题分析按问分小节，不含正式公式与最终结果，并与问题提出明确分工；
@@ -118,11 +128,12 @@ preprocessing_decision
 - 高频符号控制长下标，场景/模型信息可用简短上标；
 - 各问采用“问题X模型建立及求解”，详细推导后必须有“核心模型汇总”，主结果放“求解结果”；
 - 默认不机械设置“小问结论”和全文独立“结论”章；
-- 命题证明分段优先、分点按需，阿拉伯章节编号；
+- 命题证明分段优先、分点按需，机器契约只要求逻辑单元清晰，多阶段证明才使用编号步骤；
 - 核心图表必须有正文显式编号引用和邻近解释；
 - 检验尽量贴近对应小问结果，不机械设置统一“模型检验/敏感性与鲁棒性”章节；
-- 模型评价写当前模型真实结构取舍，不用万能优缺点；
-- AI cleanup 之后继续做科研初学者式自然重写，让语言正向、连贯、规范但不过度成熟和模板化。
+- 模型评价保留“模型的评价与推广 / 模型的改进、评价与推广”两级策略；
+- AI cleanup 之后继续做科研初学者式自然重写，让语言正向、连贯、规范但不过度成熟和模板化；
+- 成稿使用 `scripts/audit_paper_prose.py` 检查结构回退和高密度模板句法，warning 人工复核，`review_required` 在最终编译前清除或说明明确格式例外。
 
 结果正文优先形成“核心图表/关键数值显式引用 → 比较基准 → 机制解释 → 题目回答 → 必要边界”；真实反常结果、局部不稳定、阈值敏感和失效边界不得为了叙事顺滑被删除。
 
@@ -155,6 +166,7 @@ preprocessing_decision
 - `core/code_quality_contract.yaml`：实际生成的预处理/主求解/深化分析 Python 的代码工程质量；
 - `scripts/validate_code_delivery.py`：按 `preprocessing / primary / analysis` 阶段静态检查代码，不执行赛题；
 - `scripts/validate_user_execution.py`：验收适用工作簿、代码/数据哈希、预处理论文/绘图底层证据与质量门；
+- `scripts/audit_paper_prose.py`：对最终 LaTeX 正文做非破坏性结构/模板风险审计；
 - `scripts/sync_project.py`：正式交付前按 active data source 检查产物、哈希和 stale，并在 project-level 的 figures 及后续阶段要求 `data_process.m`。
 
 代码默认以 500 行以内为目标；501--700 行给 warning；超过 700 行默认拒绝，复杂题显式豁免最多到 900 行。单函数以 80 行以内为目标，超过 120 行拒绝；函数参数以 8 个以内为目标，超过 12 个拒绝。详细规则只在 `core/code_quality_contract.yaml` 定义。
@@ -166,6 +178,7 @@ python scripts/resolve_workflow.py full_solution --objective optimization --comp
 python scripts/resolve_workflow.py full_solution --objective optimization --competition CUMCM --preprocessing-decision project_level
 python scripts/validate_semantic_governance.py <project_root> --write --strict
 python scripts/validate_code_delivery.py <project_root> --write --strict
+python scripts/audit_paper_prose.py final_latex/main.tex
 python scripts/sync_project.py <project_root> --write --strict --delivery-scope figures
 ```
 

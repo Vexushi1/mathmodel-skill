@@ -1,6 +1,16 @@
 # Changelog
 
-## Current release: 7.4.4
+## Current release: 7.4.5
+
+- Removed the ambiguous active proof-contract fields `proposition_proof_segmented_steps`, `segmented_steps_required` and `main_text_key_steps_*`. Proposition proof governance now has one machine-readable meaning: `paragraph_first` by default, distinguishable logical units required, and 2--6 numbered steps only when the proof genuinely has multiple independent stages.
+- Added `scripts/audit_paper_prose.py`, a non-destructive final-LaTeX prose/structure audit. It reports `pass`, `warning` or `review_required` and never rewrites paper text.
+- Prose warnings cover repeated/high-density negation or contrast, repeated `本文/本问/该模型` paragraph starts, repeated `本文不是……而是……` / `不能……只能……` structures, and overused stock phrases such as `由图可知` or `见表`. A single legitimate `但/然而/不是` is not an error.
+- Structural `review_required` checks cover default standalone `结论` sections, visible H1/A1 assumption IDs, merged assumptions/symbols, missing `问题提出`, formulas inside `问题分析`, and missing per-question `核心模型汇总`; unreferenced main-text figure/table labels are warnings for evidence review rather than automatic hard failures.
+- The audit is report-only by default. Before final compilation, `python scripts/audit_paper_prose.py final_latex/main.tex --strict` blocks only unresolved `review_required` findings; warnings remain for human judgment.
+- Preserved the v7.4.4 paper structure and the two-level model-evaluation strategy: default `模型的评价与推广`, or `模型的改进、评价与推广` when substantive improvement content exists.
+- Numerical models, preprocessing, workbook schema, user-execution ownership, MATLAB Figure Evidence and per-question five-file interfaces are unchanged.
+
+## Previous release: 7.4.4
 
 - Reworked Chinese competition problem restatement into the default `问题背景 + 问题提出` structure. `问题提出` now restates each subproblem as `问题一：… / 问题二：…`, using the authors' own understanding of research object, key conditions and required output while excluding formal models, equations, algorithms and final results.
 - Added an affirmative-flow writing rule. Prose should directly state the object, mathematical treatment and result; high densities of `但/然而/不是/不能/只能/而不是` now trigger a real-conflict review instead of being treated as signs of rigor. The novice-academic style remains plain and earnest but must not become repetitive self-negation, self-defense or disclaimer-heavy writing.

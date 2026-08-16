@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：7.4.4
+当前 Skill 版本：7.4.5
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -93,6 +93,7 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
+- `scripts/audit_paper_prose.py`
 - `scripts/generate_indexes.py`
 - `scripts/hsk_pack_submission.py`
 - `scripts/lint_skill.py`
@@ -198,3 +199,4 @@
 - `tests/test_v742_dynamic_figure_layout.py`
 - `tests/test_v743_writing_structure_style.py`
 - `tests/test_v744_natural_paper_flow.py`
+- `tests/test_v745_prose_audit.py`
