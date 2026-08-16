@@ -88,6 +88,13 @@ class ArchitectureSlimmingV751Tests(unittest.TestCase):
         self.assertIn(resolver.TAXONOMY_PATH, calls)
         self.assertIn(REASONING, plan["load_order"])
 
+    def test_model_design_reasoning_sections_are_not_duplicated(self):
+        model_design = (ROOT / "modules/02_model_design.md").read_text(encoding="utf-8")
+        self.assertEqual(model_design.count("### 4.1 核心公式推理链"), 1)
+        self.assertEqual(model_design.count("### 4.2 共享基础与跨问模型增量"), 1)
+        self.assertEqual(model_design.count("### 4.3 数值参数证据计划"), 1)
+        self.assertLess(model_design.index("### 4.3 数值参数证据计划"), model_design.index("## 5. 复杂度合理性复审"))
+
     def test_minimal_router_default_load_remains_single_policy(self):
         router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8"))
         self.assertEqual(router["default_load"], ["core/hsk_core_policy.md"])
