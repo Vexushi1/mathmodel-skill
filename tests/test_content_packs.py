@@ -185,12 +185,15 @@ class TestContentPacks(unittest.TestCase):
         self.assertEqual(proposition["latex_outer_environment"], "hskproposition")
         self.assertEqual(proposition["main_text_default_proof_level"], "outline")
         self.assertEqual(proposition["main_text_default_structure"], "paragraph_first")
-        self.assertEqual(proposition["main_text_key_steps_min"], 2)
-        self.assertEqual(proposition["main_text_key_steps_max"], 6)
+        self.assertTrue(proposition["logical_units_required"])
         self.assertTrue(proposition["numbered_steps_when_needed"])
+        self.assertEqual(proposition["numbered_steps_min"], 2)
+        self.assertEqual(proposition["numbered_steps_max"], 6)
         self.assertEqual(proposition["display_numbering"], "arabic_section_dot_arabic_proposition")
         self.assertEqual(proposition["maximum_per_paper"], 4)
-        self.assertTrue(proposition["segmented_steps_required"])
+        self.assertNotIn("segmented_steps_required", proposition)
+        self.assertNotIn("main_text_key_steps_min", proposition)
+        self.assertNotIn("main_text_key_steps_max", proposition)
         self.assertTrue(proposition["outer_box_page_break_forbidden"])
 
     def test_caption_template_has_no_copyable_fixed_sentence_and_requires_body_reference(self):
