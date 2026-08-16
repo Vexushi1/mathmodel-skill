@@ -124,20 +124,20 @@ class WritingExpressionProtocolV730Tests(unittest.TestCase):
 
     def test_release_versions_are_consistent(self):
         bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
+        current = str(bootstrap["skill_version"])
         manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
         output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(bootstrap["skill_version"], "7.5.1")
-        self.assertEqual(manifest["version"], "7.5.1")
-        self.assertEqual(output["version"], "7.5.1")
-        self.assertEqual(plugin["version"], "7.5.1")
-        self.assertIn("version: 7.5.1", (ROOT / "SKILL.md").read_text(encoding="utf-8"))
+        self.assertEqual(str(manifest["version"]), current)
+        self.assertEqual(str(output["version"]), current)
+        self.assertEqual(str(plugin["version"]), current)
+        self.assertIn(f"version: {current}", (ROOT / "SKILL.md").read_text(encoding="utf-8"))
         self.assertIn(
-            "version: 7.5.1",
+            f"version: {current}",
             (ROOT / "skills/mathmodel-skill/SKILL.md").read_text(encoding="utf-8"),
         )
-        self.assertTrue((ROOT / "README.md").read_text(encoding="utf-8").startswith("# mathmodel-skill v7.5.1"))
-        self.assertIn("## Current release: 7.5.1", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
+        self.assertTrue((ROOT / "README.md").read_text(encoding="utf-8").startswith(f"# mathmodel-skill v{current}"))
+        self.assertIn(f"## Current release: {current}", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

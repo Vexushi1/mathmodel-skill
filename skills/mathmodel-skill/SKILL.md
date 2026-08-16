@@ -1,11 +1,26 @@
 ---
 name: mathmodel-skill
-version: 7.5.1
+version: 7.5.2
 summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, substantive preprocessing paper evidence, dedicated data_process MATLAB figures, dynamic evidence-driven MATLAB layouts and high-contrast scientific palettes, dependency-aware stale propagation, full-fidelity solving, separate primary/result-analysis Python stages, affirmative evidence-driven CUMCM writing, paragraph-first proposition proofs, final prose audit and LaTeX-first writing.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 数据预处理, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.5.1
+# HSK 数学建模模块化工作流 v7.5.2
+
+<!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
+## 运行时入口合同（非权威摘要）
+
+无论从根目录 `SKILL.md` 还是插件目录 `skills/mathmodel-skill/SKILL.md` 进入，运行语义都只服从同一仓库根目录权威链：
+
+1. 先读取 `core/bootstrap.yaml`；
+2. 默认全局规则由 `core/workflow_router.yaml` 的 `default_load` 指向 `core/hsk_core_policy.md`；
+3. 使用 `scripts/resolve_workflow.py` 按用户当前任务解析最小 `load_order`；
+4. 只加载 resolver 命中的 route-specific contracts、modules、packs 与 templates；建模/写作推理仅在对应 route 加载 `core/writing_reasoning_contract.yaml`；
+5. 已有 current `模型论文框架.md` 时按 `project_memory_contract` 恢复项目语义，具体数值仍以已验收工作簿为准；
+6. `legacy/` 与 V622 compatibility pointers 不进入默认执行链。
+
+本节只声明入口委托关系，不作为模型、预处理、求解、绘图或写作规则的独立权威；详细规则以 `core/bootstrap.yaml` 指向的当前权威源为准。
+<!-- HSK_RUNTIME_ENTRY_CONTRACT_END -->
 
 1. 从本目录定位仓库根目录 `../..`，读取 `../../core/bootstrap.yaml`；
 2. 使用 `../../scripts/resolve_workflow.py` 获取任务执行计划；

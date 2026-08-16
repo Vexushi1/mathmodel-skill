@@ -1,11 +1,26 @@
 ---
 name: mathmodel-skill
-version: 7.5.1
+version: 7.5.2
 summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, preprocessing paper/mathematical evidence, dedicated data_process MATLAB figures, dynamic evidence-driven MATLAB layouts and high-contrast scientific palettes, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, affirmative evidence-driven CUMCM writing, paragraph-first proposition proofs, final prose audit and LaTeX-first delivery.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 数据预处理, 数据清洗, 主结果质量, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.5.1
+# HSK 数学建模模块化工作流 v7.5.2
+
+<!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
+## 运行时入口合同（非权威摘要）
+
+无论从根目录 `SKILL.md` 还是插件目录 `skills/mathmodel-skill/SKILL.md` 进入，运行语义都只服从同一仓库根目录权威链：
+
+1. 先读取 `core/bootstrap.yaml`；
+2. 默认全局规则由 `core/workflow_router.yaml` 的 `default_load` 指向 `core/hsk_core_policy.md`；
+3. 使用 `scripts/resolve_workflow.py` 按用户当前任务解析最小 `load_order`；
+4. 只加载 resolver 命中的 route-specific contracts、modules、packs 与 templates；建模/写作推理仅在对应 route 加载 `core/writing_reasoning_contract.yaml`；
+5. 已有 current `模型论文框架.md` 时按 `project_memory_contract` 恢复项目语义，具体数值仍以已验收工作簿为准；
+6. `legacy/` 与 V622 compatibility pointers 不进入默认执行链。
+
+本节只声明入口委托关系，不作为模型、预处理、求解、绘图或写作规则的独立权威；详细规则以 `core/bootstrap.yaml` 指向的当前权威源为准。
+<!-- HSK_RUNTIME_ENTRY_CONTRACT_END -->
 
 ## 默认执行
 
@@ -89,7 +104,7 @@ MATLAB 结果图不固定套用单图、`1×2` 或 `2×2`。生成代码前必�
 
 ### 写作阶段硬规则
 
-LaTeX 是默认论文主链，`modules/05_writing/latex.md` 的“正文表达与章节组织协议（写作权威）”统一约束 DOCX、LaTeX 与 AI-cleanup。v7.5.1 延续 v7.4.4 的中文国赛正文结构，并增加成稿 prose audit：
+LaTeX 是默认论文主链，`modules/05_writing/latex.md` 的“正文表达与章节组织协议（写作权威）”统一约束 DOCX、LaTeX 与 AI-cleanup。v7.5.2 的入口防漂移不改变正文行为；当前写作结构继续执行 v7.4.5 的成稿 prose audit，并由 v7.5.0 reasoning contract 约束公式推理、共享基础、跨问递进与证据化表达：
 
 - 问题重述默认采用“问题背景 + 问题提出”；问题背景通常一个自然段，问题提出按“问题一：”“问题二：”逐问用自己的理解转述研究对象、关键条件和待求输出；
 - 问题分析按问题一、问题二……逐问分小节，只讲难点、对象关系、跨问依赖和建模抓手，禁止数学公式与最终结果；“问题提出”和“问题分析”不能换词重复；
