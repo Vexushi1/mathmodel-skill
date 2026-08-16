@@ -9,6 +9,7 @@
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
+- `.github/workflows/v751-compat-anchors.yml`
 - `.gitignore`
 - `AGENTS.md`
 - `CHANGELOG.md`
@@ -94,6 +95,7 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
+- `scripts/_v751_restore_anchors.py`
 - `scripts/audit_paper_prose.py`
 - `scripts/generate_indexes.py`
 - `scripts/hsk_pack_submission.py`
