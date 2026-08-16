@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.4.5
+version: 7.5.0
 summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, generalized evidence-driven conditional preprocessing, preprocessing paper/mathematical evidence, dedicated data_process MATLAB figures, dynamic evidence-driven MATLAB layouts and high-contrast scientific palettes, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, affirmative evidence-driven CUMCM writing, paragraph-first proposition proofs, final prose audit and LaTeX-first delivery.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 数据预处理, 数据清洗, 主结果质量, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.4.5
+# HSK 数学建模模块化工作流 v7.5.0
 
 ## 默认执行
 
@@ -89,7 +89,7 @@ MATLAB 结果图不固定套用单图、`1×2` 或 `2×2`。生成代码前必�
 
 ### 写作阶段硬规则
 
-LaTeX 是默认论文主链，`modules/05_writing/latex.md` 的“正文表达与章节组织协议（写作权威）”统一约束 DOCX、LaTeX 与 AI-cleanup。v7.4.5 延续 v7.4.4 的中文国赛正文结构，并增加成稿 prose audit：
+LaTeX 是默认论文主链，`modules/05_writing/latex.md` 的“正文表达与章节组织协议（写作权威）”统一约束 DOCX、LaTeX 与 AI-cleanup。v7.5.0 延续 v7.4.4 的中文国赛正文结构，并增加成稿 prose audit：
 
 - 问题重述默认采用“问题背景 + 问题提出”；问题背景通常一个自然段，问题提出按“问题一：”“问题二：”逐问用自己的理解转述研究对象、关键条件和待求输出；
 - 问题分析按问题一、问题二……逐问分小节，只讲难点、对象关系、跨问依赖和建模抓手，禁止数学公式与最终结果；“问题提出”和“问题分析”不能换词重复；

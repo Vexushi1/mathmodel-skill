@@ -10,7 +10,7 @@ class NaturalPaperFlowV744Tests(unittest.TestCase):
     def test_writing_contract_freezes_natural_flow(self):
         data = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         policy = data["writing_policy"]
-        self.assertEqual(data["version"], "7.4.5")
+        self.assertEqual(data["version"], "7.5.0")
         self.assertEqual(policy["problem_restatement_second_section"], "问题提出")
         self.assertTrue(policy["problem_statement_per_question_required"])
         self.assertTrue(policy["problem_statement_method_result_forbidden"])
