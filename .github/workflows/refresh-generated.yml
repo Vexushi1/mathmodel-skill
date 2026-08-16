@@ -31,19 +31,27 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Finalize v7.5.0 release markers
+        run: python scripts/_release_v750_once.py
+      - name: Restore normal workflow and remove one-shot helpers
+        run: |
+          git checkout origin/main -- .github/workflows/refresh-generated.yml
+          git rm -f scripts/_release_v750_once.py
+          rm -f .release-v750-trigger
       - name: Rebuild active indexes and manifest
         run: python scripts/generate_indexes.py
-      - name: Commit generated metadata when changed
+      - name: Commit finalized release
         run: |
-          if git diff --quiet -- SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256; then
-            echo "Generated metadata is current."
+          if git diff --quiet; then
+            echo "Release finalizer produced no changes."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
-          git commit -m "chore: refresh generated repository metadata"
+          git add -A
+          git commit -m "chore: finalize v7.5.0 release metadata"
           git push
