@@ -65,12 +65,33 @@ class TestV741SkillClosureHygiene(unittest.TestCase):
         self.assertNotIn("3--5 个关键假设", text)
         self.assertNotIn("不得超过 4 个", text)
 
-    def test_resolver_still_resolves_latex_and_figures_without_missing_files(self):
+    def test_resolver_respects_prerequisites_and_resolves_when_artifacts_exist(self):
         resolver = load_resolver()
-        latex = resolver.resolve_workflow("latex", competition="CUMCM")
-        figures = resolver.resolve_workflow("figures")
-        self.assertFalse(latex["missing_prerequisites"], latex)
-        self.assertFalse(figures["missing_prerequisites"], figures)
+        manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
+        available = set(manifest["external_artifacts"]) | set(manifest["artifact_catalog"])
+        for gate in manifest.get("utility_gates", {}).values():
+            available.update(gate.get("outputs", []))
+
+        latex_missing = resolver.resolve_workflow("latex", competition="CUMCM")
+        self.assertTrue(latex_missing["missing_prerequisites"])
+
+        latex = resolver.resolve_workflow(
+            "latex",
+            competition="CUMCM",
+            objective="optimization",
+            structures=["stochastic"],
+            available_artifacts=sorted(available),
+            preprocessing_decision="not_needed",
+        )
+        figures = resolver.resolve_workflow(
+            "figures",
+            objective="optimization",
+            structures=["stochastic"],
+            available_artifacts=sorted(available),
+            preprocessing_decision="not_needed",
+        )
+        self.assertEqual(latex["missing_prerequisites"], [], latex)
+        self.assertEqual(figures["missing_prerequisites"], [], figures)
         self.assertIn("modules/05_writing/latex.md", latex["load_order"])
         self.assertIn("modules/04_figure_evidence.md", figures["load_order"])
 
