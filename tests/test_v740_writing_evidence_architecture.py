@@ -25,14 +25,18 @@ class TestV740WritingEvidenceArchitecture(unittest.TestCase):
         text = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
         for token in (
             "核心结论至少能回到公式",
-            "模型评价不能替代模型检验",
+            "模型评价",
             "逐格复述表格",
             "核心图表",
             "算法百科",
-            "## 六、引用证据清理",
-            "writing_reasoning_contract.citation_evidence",
+            "## B. Evidence closure",
+            "Citation Evidence",
+            "Terminology Registry",
+            "Numeric Profile",
+            "Title Claim Gate",
         ):
             self.assertIn(token, text)
+        self.assertNotIn("## 六、引用证据清理", text)
 
     def test_framework_remembers_evidence_placement_without_copying_rules(self):
         text = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
@@ -44,6 +48,10 @@ class TestV740WritingEvidenceArchitecture(unittest.TestCase):
             "Citation Evidence",
             "正文章节与交付映射",
             "图表证据链",
+            "Terminology Registry",
+            "Numeric Profile",
+            "Title Claim Gate",
+            "正文局部状态映射",
         ):
             self.assertIn(token, text)
         self.assertNotIn("问题背景通常 1 个自然段", text)
