@@ -90,6 +90,14 @@ def infer_framework_version(text: str, state: Mapping[str, Any] | None) -> str:
     return match.group(1).strip() if match else ""
 
 
+def _uses_fragment_stale(version: str, state: Mapping[str, Any] | None) -> bool:
+    if version.startswith("v0.8"):
+        return True
+    if isinstance(state, Mapping):
+        return "paper_fragments" in (state.get("paper_framework", {}) or {})
+    return False
+
+
 def required_headings(mode: str) -> tuple[str, ...]:
     return COMPACT_HEADINGS if mode == "compact" else (*COMPACT_HEADINGS, *FULL_EXTRA_HEADINGS)
 
@@ -231,6 +239,7 @@ def validate_framework_text(
     except ValueError as exc:
         return [str(exc)]
     framework_version = infer_framework_version(text, state)
+    fragment_mode = _uses_fragment_stale(framework_version, state)
 
     headings = list(required_headings(resolved_mode))
     if framework_version.startswith("v0.8"):
@@ -284,8 +293,8 @@ def validate_framework_text(
     state_mode = str(framework.get("mode", resolved_mode))
     if state_mode != resolved_mode:
         issues.append(f"paper_framework.mode ({state_mode}) does not match validated mode ({resolved_mode})")
-    if framework.get("sync_status") != "current":
-        issues.append("paper_framework.sync_status must be current; local stale is tracked by paper_fragments")
+    if fragment_mode and framework.get("sync_status") != "current":
+        issues.append("paper_framework.sync_status must be current for v0.8+; local stale is tracked by paper_fragments")
     expected_hash = framework.get("sha256")
     if expected_hash and expected_hash.lower() != sha256_text(text):
         issues.append("paper_framework.sha256 does not match 模型论文框架.md")
