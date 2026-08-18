@@ -13,7 +13,8 @@ class TestSchemas(unittest.TestCase):
         example = yaml.safe_load((ROOT / "state/project_state.example.yaml").read_text(encoding="utf-8"))
         Draft202012Validator.check_schema(schema)
         self.assertEqual(list(Draft202012Validator(schema).iter_errors(example)), [])
-        self.assertEqual(example["semantic_governance_version"], "1.0.0")
+        self.assertEqual(example["semantic_governance_version"], "1.1.0")
+        self.assertIn("1.0.0", schema["properties"]["semantic_governance_version"]["enum"])
 
     def test_classification_has_single_capability_source_and_split_status(self):
         schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
@@ -23,6 +24,8 @@ class TestSchemas(unittest.TestCase):
         self.assertEqual(set(defs["dependency_kind"]["enum"]), {"data", "parameter", "model", "result"})
         self.assertEqual(set(defs["preprocessing_decision"]["enum"]), {"not_needed", "question_local", "project_level"})
         self.assertEqual(defs["proposition_entry"]["properties"]["id"]["pattern"], "^P[1-9][0-9]*$")
+        self.assertEqual(defs["analysis_evidence_entry"]["properties"]["id"]["pattern"], "^E[1-9][0-9]*$")
+        self.assertEqual(defs["paper_fragment_entry"]["properties"]["id"]["pattern"], "^PF[1-9][0-9]*$")
         subproblems = schema["properties"]["subproblems"]
         sub_required = set(subproblems["additionalProperties"]["required"])
         self.assertEqual(subproblems["minProperties"], 1)
@@ -33,7 +36,7 @@ class TestSchemas(unittest.TestCase):
             "code", "result_analysis_code", "primary_code_sha256", "analysis_code_sha256",
             "depends_on", "problem_contract_status", "semantic_closure_status",
             "complexity_sanity_status", "semantic_revision", "semantic_change_categories",
-            "semantic_hash", "validated_semantic_hash",
+            "semantic_hash", "validated_semantic_hash", "analysis_evidence",
         ):
             self.assertIn(name, fields)
         self.assertNotIn("maxItems", fields["proposition_refs"])
@@ -44,6 +47,7 @@ class TestSchemas(unittest.TestCase):
         self.assertIn("analyzed", statuses)
         self.assertIn("result_analysis_workbook", defs["artifact_hashes"]["properties"])
         self.assertIn("preprocessing", schema["properties"])
+        self.assertIn("paper_fragments", schema["properties"]["paper_framework"]["properties"])
 
     def test_workbook_schema_has_quality_gate_and_adaptive_analysis(self):
         schema = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_text(encoding="utf-8"))
@@ -92,14 +96,17 @@ class TestSchemas(unittest.TestCase):
                 "result_quality_status": "passed",
                 "result_analysis_status": "passed",
                 "downstream_artifacts_stale": False,
+                "critical_paper_fragments_stale": False,
             },
         )
         self.assertEqual(set(contract["model_paper_framework"]["modes"]), {"compact", "full"})
+        self.assertEqual(contract["model_paper_framework"]["current_template_version"], "v0.8-project-memory")
         policy = contract["result_policy"]
         self.assertTrue(policy["primary_quality_gate_required"])
         self.assertTrue(policy["failed_quality_evidence_persisted"])
         self.assertTrue(policy["downstream_admission_requires_quality_passed"])
         self.assertEqual(set(policy["result_analysis_outcomes"]), {"passed", "failed", "redo_required"})
+        self.assertEqual(policy["result_analysis_evidence_disposition"], ["support", "modify", "reject"])
         self.assertTrue(policy["fixed_perturbation_forbidden"])
         self.assertEqual(
             set(contract["project_sync"]["artifact_hash_layers"]),
@@ -136,6 +143,12 @@ class TestSchemas(unittest.TestCase):
         self.assertEqual(writing["expression_authority"], "modules/05_writing/latex.md")
         self.assertEqual(writing["reasoning_contract"], "core/writing_reasoning_contract.yaml")
         self.assertEqual(writing["rule_governance"], "core/writing_reasoning_contract.yaml#rule_governance")
+        self.assertEqual(writing["terminology_governance"], "core/writing_reasoning_contract.yaml#terminology_governance")
+        self.assertEqual(writing["numeric_style_contract"], "core/writing_reasoning_contract.yaml#numeric_style_contract")
+        self.assertEqual(writing["title_claim_gate"], "core/writing_reasoning_contract.yaml#title_claim_gate")
+        self.assertEqual(writing["analysis_evidence_disposition"], "core/writing_reasoning_contract.yaml#analysis_evidence_disposition")
+        self.assertEqual(writing["paragraph_necessity"], "core/writing_reasoning_contract.yaml#paragraph_necessity")
+        self.assertEqual(writing["paper_fragment_stale"], "core/writing_reasoning_contract.yaml#paper_fragment_stale")
         self.assertEqual(writing["citation_evidence_contract"], "core/writing_reasoning_contract.yaml#citation_evidence")
         self.assertEqual(writing["proposition_governance"], "core/writing_reasoning_contract.yaml#proposition_governance")
         self.assertEqual(writing["core_model_summary_policy"], "adaptive_required_inline_not_applicable")
