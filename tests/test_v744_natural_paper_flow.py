@@ -57,7 +57,7 @@ class NaturalPaperFlowV744Tests(unittest.TestCase):
         text = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
         for token in (
             "多次使用“本文不是……而是……”",
-            "连续多段无真实冲突的否定/转折",
+            "制造无必要冲突",
             "核心图表",
             "显式编号引用",
             "模板段与元话语清理",
