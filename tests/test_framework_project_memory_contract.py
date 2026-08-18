@@ -42,7 +42,7 @@ class FrameworkProjectMemoryContractTests(unittest.TestCase):
             "modules/03_solve_validate.md": "正式生成本问代码前必须先读取",
             "modules/03_result_analysis.md": "制定分析计划前先读取",
             "modules/04_figure_evidence.md": "进入本模块时先读取 current `模型论文框架.md`",
-            "modules/05_writing/latex.md": "必须读取完整 current `模型论文框架.md`",
+            "modules/05_writing/latex.md": "整篇写作必须先读取完整 current `模型论文框架.md`",
         }
         for relative, marker in checks.items():
             self.assertIn(marker, read(relative), relative)
@@ -56,12 +56,17 @@ class FrameworkProjectMemoryContractTests(unittest.TestCase):
         self.assertIn("工作簿是数值事实源", policy)
         self.assertIn("project state 是机器状态源", policy)
 
-    def test_framework_template_declares_memory_role_and_current_paths(self) -> None:
+    def test_framework_template_declares_project_memory_role_and_current_paths(self) -> None:
         template = read("templates/model/model_paper_framework.md")
-        self.assertIn("助手的项目级长期工作记忆", template)
+        self.assertIn("当前有效项目事实、选择、状态与证据位置", template)
+        self.assertIn("v0.7-project-memory", template)
+        self.assertIn("通用写作规则不在这里重复", template)
+        self.assertIn("具体数值必须回到已验收标准工作簿复核", template)
         self.assertIn("`问题一求解/q1_plot.m`", template)
         self.assertNotIn("`结果数据表/问题一/q1_plot.m`", template)
         self.assertIn("结果深化分析工作簿", template)
+        self.assertIn("### 核心公式 Trace", template)
+        self.assertIn("### Citation Evidence", template)
 
     def test_agent_entry_uses_framework_for_context_recovery(self) -> None:
         text = read("AGENTS.md")
