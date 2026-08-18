@@ -29,16 +29,20 @@ class TestV743WritingStructureStyle(unittest.TestCase):
         self.assertIn("modules/05_writing/latex.md", cleanup)
         self.assertIn("core/writing_reasoning_contract.yaml", cleanup)
         for token in (
-            "模板段与元话语清理",
-            "把对象名替换成另一赛题后仍完全成立的通用段落",
-            "连续展示公式之间几乎没有解释",
-            "数值参数直接赋值",
+            "## A. Integrity / Hard boundary",
+            "## B. Evidence closure",
+            "## C. Style & necessity",
+            "## D. Optional machine diagnostics",
+            "本文/本问/该模型",
+            "数值实验",
+            "算法百科",
             "逐格复述表格",
-            "证明循环论证",
-            "引用证据清理",
-            "机器审计",
+            "Citation Evidence",
+            "Paragraph Necessity Test",
+            "机器审计不得自动重写正文",
         ):
             self.assertIn(token, cleanup)
+        self.assertIn("Skill 负责原则，脚本负责穷举", cleanup)
 
     def test_cumcm_hsk_template_implements_adaptive_structure_without_forcing_all_proofs_to_lists(self):
         tex = (ROOT / "templates/latex/cumcm/hsk/hsk_main.tex").read_text(encoding="utf-8")
