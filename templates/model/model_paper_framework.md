@@ -6,7 +6,7 @@
 
 - 项目：`__PROJECT__`
 - 竞赛与题号：`__COMPETITION_AND_PROBLEM__`
-- 框架版本：`v0.7-project-memory`
+- 框架版本：`v0.8-project-memory`
 - 框架模式: full
 - 当前阶段：`审题 / 模型设计 / 求解 / 验证 / 绘图 / 写作 / 终审`
 - 最近同步：`__LAST_SYNC_SCOPE__`
@@ -23,6 +23,8 @@
 - 隐含约束：
 - 禁止假设：
 - 统一单位与精度：
+- 核心答案是否属于高精度评分项：`yes / no / unknown`
+- 若 yes，题目/评委/竞赛要求的小数位或有效位数：
 
 ### 全局数据协议
 
@@ -35,6 +37,29 @@
 | 符号/参数 | 类型 | 含义 | 单位 | 当前值/范围 | 来源与有效边界 |
 |---|---|---|---|---|---|
 |  |  |  |  |  |  |
+
+### Terminology Registry
+
+> 只登记本项目真正会反复使用、容易混淆或与符号强绑定的技术术语；不建立通用词典。
+
+| Term ID | 标准术语 | 定义 | 量纲/单位 | 允许简称 | 不建议别名 | 易混术语 | 对应符号 | 适用范围 | 状态 |
+|---|---|---|---|---|---|---|---|---|---|
+| T1 |  |  |  |  |  |  |  |  | current / stale |
+
+### Numeric Profile
+
+> 核心答案默认优先保留可评分的高精度。若小数后 6--7 位可能影响结果分，摘要、正文直接答案和关键结果表均保留相应精度，不因“摘要简洁”擅自降精度。
+
+| Metric ID | 标准指标 | 符号 | 单位 | 展示形式 | 摘要精度 | 正文精度 | 表格精度 | 提交/决策精度 | 评分精度依据 |
+|---|---|---|---|---|---|---|---|---|---|
+| N1 |  |  |  | decimal / percent / scientific / interval |  |  |  |  | prompt / official / reviewer / model_resolution |
+
+- 单位间距约定：
+- 百分比与百分点口径：
+- 科学计数法约定：
+- 均值 ± 标准差格式：
+- 置信区间格式：
+- 坐标/时间/优化变量高精度要求：
 
 ### 各问依赖关系
 
@@ -49,14 +74,25 @@
 1. 
 2. 
 
+- 选定题目：
+
+#### Title Claim Gate
+
+| Claim ID | 标题核心主张 | 类型 | 对应小问 | 正文锚点 | 结果证据 | 摘要位置 | 关键词链接 | 状态 |
+|---|---|---|---|---|---|---|---|---|
+| TC1 |  | research_object / main_method / core_mechanism / core_contribution |  |  |  |  |  | pending / current / stale |
+
 ### 摘要组织
 
 - 总述：研究对象、统一建模路线：
-- Q1：模型/关键结构—决定性数值—直接判断：
+- Q1：模型/关键结构—高精度决定性数值—直接判断：
 - Q2：
 - 其他小问：
 - 综合检验：
 - 每问摘要保留的决定性数值/区间/阈值：
+- 摘要核心答案是否按 Numeric Profile 保留评分所需精度：
+- 标题核心主张是否在摘要中得到真实反映：
+- 关键词是否与选定标题及正文主模型一致：
 
 ### 当前写作选择
 
@@ -68,7 +104,7 @@
 4. 公式推导重点与普通代数压缩范围：
 5. 各问核心模型收束状态：`required / inline / not_applicable`：
 6. 求解、结果、局部验证和深化证据布局：
-7. 命题/证明与 Citation Evidence 的使用位置：
+7. 命题/证明、Citation Evidence、Terminology 与 Numeric Profile 的使用位置：
 8. 特殊结构例外（独立结论、对象图、问题关系图等）及依据：
 
 ### 共享基础与跨问增量
@@ -122,6 +158,14 @@
 |---|---|---|---|---|---|---|---|---|
 |  |  |  |  |  |  |  |  |  |
 
+### Paper Fragment Dependency Map
+
+> 用于局部 stale 传播。`paper_framework.sync_status=current` 只表示本框架已同步记录当前状态，不代表下面所有 fragment 都 current。
+
+| Fragment ID | 类型 | 范围 | 依赖对象 | 正文/摘要锚点 | 状态 |
+|---|---|---|---|---|---|
+| paper.abstract.q1 | abstract_claim | Q1 | Q1.result_summary |  | current / stale / not_applicable |
+
 ## 各问模型与结果
 
 > 每个小问复制一份以下结构。`#### 当前模型口径` 到 `#### 结果摘要` 之间属于语义哈希区；题意、变量、参数、假设、目标、约束、预处理、算法语义或依赖变化时递增 `semantic_revision`。
@@ -141,6 +185,9 @@
 - 核心模型收束：`required / inline / not_applicable`
 - 关联命题：
 - 关联 Citation Claim：
+- 关联术语 Term ID：
+- 关联 Numeric Metric ID：
+- 关联 Paper Fragment：
 
 #### 当前模型口径
 
@@ -229,6 +276,14 @@ $$
 - 关键决策变量或主要分类结果：
 - 关键区间、拐点、排序或推荐方案：
 - 单位与数值精度：
+- 核心答案评分精度：`not_applicable / prompt_defined / official_defined / reviewer_defined / project_high_precision`
+- 摘要与正文直接答案应保留的小数位：
+
+**深化证据处置**
+
+| Evidence ID | 方法/来源 | 目标主张 | Disposition | 关键结论 | 后续动作 | 正文/图表锚点 |
+|---|---|---|---|---|---|---|
+| E1 |  |  | support / modify / reject |  |  |  |
 
 **验证与边界**
 
@@ -241,7 +296,7 @@ $$
 
 **可入文答案表述**
 
-用两至四句记录可直接进入摘要和本问结果末段的当前答案，包含决定性数值、判断和必要边界。
+用两至四句记录可直接进入摘要和本问结果末段的当前答案，包含高精度决定性数值、判断和必要边界。若评分可能核对小数后 6--7 位，应直接保留相应位数。
 
 **证据位置**
 
@@ -272,14 +327,31 @@ $$
 
 - 
 
-### 公式、参数、引用与共享基础复核
+### 深化证据处置总览
+
+| Evidence ID | 小问 | 目标主张 | Disposition | required_action | 下游 stale/更新范围 | 当前状态 |
+|---|---|---|---|---|---|---|
+|  |  |  | support / modify / reject |  |  | current / stale / resolved |
+
+### 公式、参数、引用、术语与数字复核
 
 - Formula Trace 是否仍有 `gap/stale`：
 - 是否存在无依据数值参数：
 - Citation Evidence 是否存在 pending/stale 的核心 claim：
+- Terminology Registry 是否存在 alias collision 或未处理易混术语：
+- Numeric Profile 是否覆盖核心答案及提交结果：
+- 摘要/正文/表格中的核心答案是否保留评分所需高精度：
 - 共享基础是否只定义一次：
 - 后问是否只写真实增量：
 - 结构化简是否先于高级算法：
+
+### 标题—摘要—关键词一致性
+
+- 选定标题的 Title Claim 是否全部 current：
+- 标题主方法是否至少服务一个核心问题：
+- 标题主方法是否有正文实质使用与结果证据：
+- 摘要是否真实反映标题主张：
+- 关键词是否与选定标题和正文实际主模型一致：
 
 ### 命题与理论边界复核
 
@@ -314,10 +386,16 @@ $$
 - [ ] 影响结论的数值参数有来源、收敛或验证依据；
 - [ ] 复杂度异常信号已经解释；
 - [ ] semantic revision 与 stale 传播正确；
+- [ ] Paper Fragment Dependency Map 只传播真实依赖，未把无关章节机械 stale；
 - [ ] 已求解小问均有 current 结果摘要，具体数值已回工作簿复核；
+- [ ] 核心答案按 Numeric Profile 保留评分所需高精度，摘要未因简洁而无依据降精度；
 - [ ] 多方法验证同时检查适用的数值与结构结论；
+- [ ] 每项深化分析已标记 support / modify / reject，并完成对应后续动作；
 - [ ] 核心图表映射到工作簿、MATLAB、正文引用和支撑判断；
 - [ ] 需要外部来源的核心 Citation Claim 均有 current citation key 与正文位置；
+- [ ] Terminology Registry 中标准术语、易混术语与符号含义一致；
+- [ ] Title Claim 与摘要、关键词、正文主模型及结果证据闭合；
 - [ ] 命题超过默认预算时已有必要性说明，不按数量自动否决；
+- [ ] Paragraph Necessity Test 已用于删除/合并无用途背景、算法百科、重复数字和重复总结；
 - [ ] 本文件只保存项目事实和当前选择，没有复制通用写作/排版规则；
 - [ ] 本次正式交付同时附带完整最新版 `模型论文框架.md`。

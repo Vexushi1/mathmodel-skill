@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate split result-quality/result-analysis state and artifact freshness."""
+"""Validate split result-quality/result-analysis state and paper semantic freshness."""
 from __future__ import annotations
 
 import argparse
@@ -33,6 +33,8 @@ ARTIFACT_LAYERS = {
     "data", "model", "solution_workbook", "result_analysis_workbook",
     "robustness_workbook", "matlab_script", "figure_bundle", "framework",
 }
+HIGH_PRECISION_BASES = {"prompt", "official", "reviewer", "project_high_precision"}
+AUXILIARY_REJECT_ACTION_MARKERS = ("remove", "rewrite", "drop", "delete", "删除", "重写", "撤回")
 
 
 def load_yaml(path: Path) -> Any:
@@ -46,6 +48,11 @@ def _artifact_exists(project_root: Path, value: Any) -> bool:
 def _sha256_text(path: Path) -> str:
     text = path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _uses_fragment_stale(framework: Mapping[str, Any]) -> bool:
+    version = str(framework.get("version", "")).strip()
+    return version.startswith("v0.8") or "paper_fragments" in framework
 
 
 def _validate_propositions(
@@ -98,9 +105,140 @@ def _validate_propositions(
         issues.append("paper_framework.proposition_status cannot be planned/current when proposition_count is 0")
     if isinstance(count, int) and count > 0 and status == "not_assessed":
         issues.append("paper_framework.proposition_status cannot be not_assessed when propositions exist")
-    if has_stale and framework_sync == "current":
-        issues.append("paper_framework.sync_status cannot remain current while proposition plan is stale")
     return issues, proposition_ids, has_stale
+
+
+def _validate_terminology(framework: Mapping[str, Any]) -> list[str]:
+    issues: list[str] = []
+    entries = framework.get("terminology_registry", []) or []
+    ids: list[str] = []
+    alias_owner: dict[str, str] = {}
+    canonical_terms: set[str] = set()
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, Mapping):
+            issues.append(f"paper_framework.terminology_registry[{index}] must be a mapping")
+            continue
+        term_id = str(entry.get("id", "")).strip()
+        canonical = str(entry.get("canonical_term", "")).strip()
+        ids.append(term_id)
+        if canonical:
+            if canonical in canonical_terms:
+                issues.append(f"duplicate canonical terminology term: {canonical}")
+            canonical_terms.add(canonical)
+        aliases = [
+            *(entry.get("allowed_aliases", []) or []),
+            *(entry.get("discouraged_aliases", []) or []),
+        ]
+        for raw_alias in aliases:
+            alias = str(raw_alias).strip()
+            if not alias:
+                continue
+            prior = alias_owner.get(alias)
+            if prior and prior != term_id:
+                issues.append(f"terminology alias maps to multiple canonical terms: {alias} -> {prior}, {term_id}")
+            alias_owner[alias] = term_id
+    if len(ids) != len(set(ids)):
+        issues.append("paper_framework.terminology_registry must use unique IDs")
+    return issues
+
+
+def _validate_numeric_profile(framework: Mapping[str, Any]) -> list[str]:
+    issues: list[str] = []
+    entries = framework.get("numeric_profile", []) or []
+    ids: list[str] = []
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, Mapping):
+            issues.append(f"paper_framework.numeric_profile[{index}] must be a mapping")
+            continue
+        metric_id = str(entry.get("id", "")).strip()
+        ids.append(metric_id)
+        basis = str(entry.get("precision_basis", "")).strip()
+        if basis in HIGH_PRECISION_BASES:
+            for field in ("abstract_decimals", "body_decimals", "table_decimals"):
+                value = entry.get(field)
+                if not isinstance(value, int):
+                    issues.append(f"{metric_id}.{field} is required for a scored/high-precision metric")
+            if basis in {"reviewer", "project_high_precision"}:
+                decimals = entry.get("abstract_decimals")
+                if isinstance(decimals, int) and decimals < 6:
+                    issues.append(
+                        f"{metric_id}.abstract_decimals={decimals} conflicts with the declared high-precision scoring profile; "
+                        "use at least 6 decimals or change precision_basis with evidence"
+                    )
+    if len(ids) != len(set(ids)):
+        issues.append("paper_framework.numeric_profile must use unique IDs")
+    return issues
+
+
+def _validate_title_claims(framework: Mapping[str, Any]) -> list[str]:
+    issues: list[str] = []
+    entries = framework.get("title_claims", []) or []
+    ids: list[str] = []
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, Mapping):
+            issues.append(f"paper_framework.title_claims[{index}] must be a mapping")
+            continue
+        claim_id = str(entry.get("id", "")).strip()
+        ids.append(claim_id)
+        if entry.get("status") == "current" and entry.get("claim_type") in {"main_method", "core_mechanism", "core_contribution"}:
+            for field in ("related_questions", "body_anchor", "result_evidence", "abstract_anchor", "keyword_link"):
+                value = entry.get(field)
+                if value in (None, "", []):
+                    issues.append(f"{claim_id}.{field} is required for a current substantive title claim")
+    if len(ids) != len(set(ids)):
+        issues.append("paper_framework.title_claims must use unique IDs")
+    return issues
+
+
+def _validate_paper_fragments(framework: Mapping[str, Any]) -> tuple[list[str], bool]:
+    issues: list[str] = []
+    entries = framework.get("paper_fragments", []) or []
+    ids: list[str] = []
+    by_id: dict[str, Mapping[str, Any]] = {}
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, Mapping):
+            issues.append(f"paper_framework.paper_fragments[{index}] must be a mapping")
+            continue
+        fragment_id = str(entry.get("id", "")).strip()
+        ids.append(fragment_id)
+        by_id[fragment_id] = entry
+    if len(ids) != len(set(ids)):
+        issues.append("paper_framework.paper_fragments must use unique IDs")
+    for fragment_id, entry in by_id.items():
+        for dependency in entry.get("depends_on", []) or []:
+            dep = str(dependency)
+            if dep.startswith("paper.") and dep not in by_id:
+                issues.append(f"{fragment_id}.depends_on references unknown paper fragment: {dep}")
+            if dep == fragment_id:
+                issues.append(f"{fragment_id} cannot depend on itself")
+    has_stale = any(str(entry.get("status", "")) == "stale" for entry in by_id.values())
+    return issues, has_stale
+
+
+def _validate_analysis_dispositions(name: str, state: Mapping[str, Any]) -> list[str]:
+    issues: list[str] = []
+    entries = state.get("analysis_evidence_dispositions", []) or []
+    ids: list[str] = []
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, Mapping):
+            issues.append(f"{name}.analysis_evidence_dispositions[{index}] must be a mapping")
+            continue
+        evidence_id = str(entry.get("id", "")).strip()
+        ids.append(evidence_id)
+        disposition = entry.get("disposition")
+        action = str(entry.get("required_action", "")).strip()
+        if disposition in {"modify", "reject"} and not action:
+            issues.append(f"{name}.{evidence_id}.required_action is required for {disposition}")
+        if disposition == "reject" and state.get("result_analysis_status") == "passed":
+            lowered = action.lower()
+            if not any(marker in lowered or marker in action for marker in AUXILIARY_REJECT_ACTION_MARKERS):
+                issues.append(
+                    f"{name}.{evidence_id} rejects a claim while result_analysis_status=passed; "
+                    "record an explicit remove/rewrite action or set redo_required for a rejected core claim"
+                )
+    if len(ids) != len(set(ids)):
+        issues.append(f"{name}.analysis_evidence_dispositions must use unique IDs")
+    return issues
 
 
 def _derived_legacy_packs(classification: Mapping[str, Any], taxonomy: Mapping[str, Any]) -> list[str]:
@@ -246,6 +384,7 @@ def validate_state_payload(
 
     project = payload.get("project", {}) or {}
     framework = payload.get("paper_framework", {}) or {}
+    fragment_mode = _uses_fragment_stale(framework)
     phase = str(project.get("current_phase", ""))
     framework_path = project_root / str(framework.get("path", "模型论文框架.md"))
     framework_sync = framework.get("sync_status")
@@ -258,8 +397,13 @@ def validate_state_payload(
         framework, framework_sync=framework_sync
     )
     issues.extend(proposition_issues)
-    any_stale = proposition_stale
+    issues.extend(_validate_terminology(framework))
+    issues.extend(_validate_numeric_profile(framework))
+    issues.extend(_validate_title_claims(framework))
+    fragment_issues, has_stale_fragments = _validate_paper_fragments(framework)
+    issues.extend(fragment_issues)
 
+    any_subproblem_stale = False
     for name, state in payload.get("subproblems", {}).items():
         if not isinstance(state, Mapping):
             continue
@@ -271,6 +415,7 @@ def validate_state_payload(
         analysis_status = state.get("result_analysis_status")
         issues.extend(_validate_classification_aliases(name, state, taxonomy))
         issues.extend(_validate_hashes(name, state, status))
+        issues.extend(_validate_analysis_dispositions(name, state))
         section_hash = (state.get("artifact_hashes", {}) or {}).get("framework")
         if section_hash and framework_path.is_file():
             actual_section_hash = _framework_section_hash(framework_path, framework_section)
@@ -305,7 +450,7 @@ def validate_state_payload(
             if phase not in {"model_design", "solve_validate"}:
                 issues.append(f"{name} redo_required must return project.current_phase to model_design or solve_validate")
         if state.get("artifacts_stale") is True:
-            any_stale = True
+            any_subproblem_stale = True
             if summary_status == "current":
                 issues.append(f"{name}.result_summary_status cannot be current while artifacts_stale is true")
             if proposition_refs:
@@ -331,11 +476,21 @@ def validate_state_payload(
             if paper and not _artifact_exists(project_root, paper):
                 issues.append(f"{name}.paper_source does not exist")
 
-    if phase in FRAMEWORK_REQUIRED_PHASES and framework_sync != "current" and not any_stale:
-        issues.append(f"paper_framework.sync_status must be current in phase {phase}")
-    if any_stale and framework_sync == "current":
-        issues.append("paper_framework.sync_status cannot remain current while a subproblem or proposition is stale")
+    if fragment_mode:
+        if phase in FRAMEWORK_REQUIRED_PHASES and framework_sync != "current":
+            issues.append(f"paper_framework.sync_status must be current in phase {phase}; local stale belongs in paper_framework.paper_fragments")
+        if phase in {"review_delivery", "completed"} and has_stale_fragments:
+            issues.append(f"paper_framework.paper_fragments contains stale items in phase {phase}")
+    else:
+        legacy_any_stale = any_subproblem_stale or proposition_stale
+        if phase in FRAMEWORK_REQUIRED_PHASES and framework_sync != "current" and not legacy_any_stale:
+            issues.append(f"paper_framework.sync_status must be current in phase {phase}")
+        if legacy_any_stale and framework_sync == "current":
+            issues.append("paper_framework.sync_status cannot remain current while a legacy subproblem or proposition is stale")
+
     if phase == "completed":
+        if any_subproblem_stale:
+            issues.append("completed project cannot retain stale subproblem artifacts")
         if pending:
             issues.append("completed project cannot retain pending requirements")
         if payload.get("next_gate", {}).get("module") != "completed":

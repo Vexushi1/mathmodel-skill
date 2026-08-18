@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：7.6.0
+当前 Skill 版本：7.7.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -205,3 +205,4 @@
 - `tests/test_v751_architecture_slimming.py`
 - `tests/test_v752_entrypoint_parity.py`
 - `tests/test_v760_writing_governance.py`
+- `tests/test_v770_paper_semantic_governance.py`

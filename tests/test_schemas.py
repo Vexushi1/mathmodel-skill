@@ -86,14 +86,11 @@ class TestSchemas(unittest.TestCase):
         )
         self.assertEqual(contract["project_sync"]["implicit_phase_sync_semantics"], "status_minimum_only")
         self.assertTrue(contract["project_sync"]["formal_scope_requires_explicit_flag"])
-        self.assertEqual(
-            contract["project_sync"]["formal_state_requirements"],
-            {
-                "result_quality_status": "passed",
-                "result_analysis_status": "passed",
-                "downstream_artifacts_stale": False,
-            },
-        )
+        formal = contract["project_sync"]["formal_state_requirements"]
+        self.assertEqual(formal["result_quality_status"], "passed")
+        self.assertEqual(formal["result_analysis_status"], "passed")
+        self.assertFalse(formal["downstream_artifacts_stale"])
+        self.assertFalse(formal["v0_8_delivery_paper_fragments_stale"])
         self.assertEqual(set(contract["model_paper_framework"]["modes"]), {"compact", "full"})
         policy = contract["result_policy"]
         self.assertTrue(policy["primary_quality_gate_required"])

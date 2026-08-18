@@ -69,7 +69,14 @@ class TestTooling(unittest.TestCase):
         self.assertEqual(module.validate_framework_file(template), [])
         text = template.read_text(encoding="utf-8")
         state = {
-            "paper_framework": {"sync_status": "current"},
+            "paper_framework": {
+                "version": "v0.8-project-memory",
+                "sync_status": "current",
+                "terminology_registry": [{"id": "T1"}],
+                "numeric_profile": [{"id": "N1"}],
+                "title_claims": [{"id": "TC1"}],
+                "paper_fragments": [{"id": "paper.abstract.q1"}],
+            },
             "subproblems": {
                 "Q1": {
                     "status": "solved",

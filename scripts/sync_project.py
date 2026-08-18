@@ -178,6 +178,57 @@ def preprocessing_decision(state: Mapping[str, Any]) -> str | None:
     return value if value in VALID_PREPROCESSING_DECISIONS else None
 
 
+def _uses_fragment_stale(framework: Mapping[str, Any]) -> bool:
+    version = str(framework.get("version", "")).strip()
+    return version.startswith("v0.8") or "paper_fragments" in framework
+
+
+def _dependency_hits_question(dependency: str, question: str) -> bool:
+    return dependency == question or dependency.startswith(f"{question}.") or dependency.startswith(f"{question}:")
+
+
+def _mark_paper_fragments_stale(framework: dict[str, Any], stale_questions: set[str]) -> list[str]:
+    fragments = framework.get("paper_fragments", []) or []
+    by_id = {
+        str(item.get("id")): item
+        for item in fragments
+        if isinstance(item, dict) and str(item.get("id", "")).strip()
+    }
+    stale_ids: set[str] = set()
+    for fragment_id, fragment in by_id.items():
+        scope = str(fragment.get("scope", ""))
+        dependencies = [str(item) for item in fragment.get("depends_on", []) or []]
+        if scope in stale_questions or any(
+            _dependency_hits_question(dep, question)
+            for dep in dependencies
+            for question in stale_questions
+        ):
+            stale_ids.add(fragment_id)
+
+    changed = True
+    while changed:
+        changed = False
+        for fragment_id, fragment in by_id.items():
+            if fragment_id in stale_ids:
+                continue
+            dependencies = {str(item) for item in fragment.get("depends_on", []) or []}
+            if dependencies & stale_ids:
+                stale_ids.add(fragment_id)
+                changed = True
+
+    for fragment_id in stale_ids:
+        by_id[fragment_id]["status"] = "stale"
+    return sorted(stale_ids)
+
+
+def _stale_paper_fragment_ids(framework: Mapping[str, Any]) -> list[str]:
+    return sorted(
+        str(item.get("id"))
+        for item in framework.get("paper_fragments", []) or []
+        if isinstance(item, Mapping) and item.get("status") == "stale" and item.get("id")
+    )
+
+
 def data_source_files(
     root: Path, state: Mapping[str, Any]
 ) -> tuple[list[Path], str, list[str], list[str]]:
@@ -716,6 +767,12 @@ def _formal_state_issues(required: set[str], state: Mapping[str, Any]) -> list[s
         if required.intersection({"approved_figures", "docx_draft", "latex_source", "compiled_pdf", "validated_submission_package"}):
             if entry.get("artifacts_stale") is True:
                 issues.append(f"{name}: 下游正式交付禁止使用 stale 结果")
+    if required.intersection({"docx_draft", "latex_source", "compiled_pdf", "validated_submission_package"}):
+        framework = state.get("paper_framework") or {}
+        if _uses_fragment_stale(framework):
+            stale = _stale_paper_fragment_ids(framework)
+            if stale:
+                issues.append(f"正式论文交付禁止使用 stale paper fragments: {stale}")
     return issues
 
 
@@ -872,6 +929,7 @@ def synchronize(
         issues.extend(_scope_artifact_issues(root, scope, state, snapshots, output_contract))
 
     stale_questions: list[str] = []
+    stale_fragments: list[str] = []
     if write and state_path.is_file():
         for snapshot in snapshots.values():
             stale = _apply_snapshot_to_state(root, state, snapshot)
@@ -883,10 +941,16 @@ def synchronize(
             if isinstance(entry, Mapping)
         )
         framework = state.setdefault("paper_framework", {})
-        framework["sync_status"] = "stale" if any_stale else "current"
+        if _uses_fragment_stale(framework):
+            stale_fragments = _mark_paper_fragments_stale(framework, set(stale_questions))
+            framework["sync_status"] = "current"
+            header_stale = False
+        else:
+            framework["sync_status"] = "stale" if any_stale else "current"
+            header_stale = any_stale
         framework["last_sync_scope"] = scope
         framework["last_synced_at"] = datetime.now(timezone.utc).isoformat()
-        _update_framework_header(framework_path, scope, any_stale)
+        _update_framework_header(framework_path, scope, header_stale)
         if framework_path.is_file():
             framework["sha256"] = sha256_file(framework_path)
         state.setdefault("artifacts", {})["sync_report"] = "sync_report.yaml"
@@ -903,6 +967,9 @@ def synchronize(
                 or analysis_changed
             ):
                 stale_questions.append(key)
+        framework = state.get("paper_framework") or {}
+        if _uses_fragment_stale(framework):
+            stale_fragments = _stale_paper_fragment_ids(framework)
 
     report = {
         "status": "passed" if not issues else "failed",
@@ -916,6 +983,7 @@ def synchronize(
         "framework_hash": sha256_file(framework_path) if framework_path.is_file() else None,
         "questions": snapshots,
         "stale_questions": sorted(set(stale_questions)),
+        "stale_paper_fragments": stale_fragments,
         "issues": sorted(set(issues)),
         "warnings": sorted(set(warnings)),
         "generated_at": datetime.now(timezone.utc).isoformat(),
