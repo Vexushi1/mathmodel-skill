@@ -1,6 +1,6 @@
-# HSK Core Policy v7.6.0
+# HSK Core Policy v7.7.0
 
-本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision`、条件式统一数据预处理、预处理论文数学证据与 `data_process.m` 图证据以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准；跨竞赛写作推理与证据治理以 `core/writing_reasoning_contract.yaml` 为准，正文结构与表达以 `modules/05_writing/latex.md` 为准。本文件不复制这些合同的完整字段。
+本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision`、条件式统一数据预处理、预处理论文数学证据与 `data_process.m` 图证据以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准；跨竞赛写作推理、术语、数值展示、标题主张与证据治理以 `core/writing_reasoning_contract.yaml` 为准，正文结构与表达以 `modules/05_writing/latex.md` 为准。本文件不复制这些合同的完整字段。
 
 ## 1. 总目标与优先级
 
@@ -38,7 +38,7 @@ $$
 
 题意解释、数据范围、变量、参数、假设、目标函数、约束、`preprocessing_decision`、实际预处理、算法语义或小问依赖发生变化时，必须递增当前小问 `semantic_revision` 并记录变更类别。`模型论文框架.md` 只保留当前有效版本，历史由 Git 保存。
 
-已验证语义发生变化时，先将受影响结果及下游标记 stale，再按 `depends_on` 的 `data / parameter / model / result` 依赖递归传播。不得因为项目存在共享数据，就无差别失效所有小问。
+已验证语义发生变化时，先将受影响结果及下游标记 stale，再按 `depends_on` 的 `data / parameter / model / result` 依赖递归传播。不得因为项目存在共享数据，就无差别失效所有小问。进入论文层后，正文片段只按显式 `source_questions/depends_on` 局部传播 stale，不得把无依赖背景和独立小问机械标旧。
 
 ### 2.4 Complexity Sanity Check
 
@@ -48,7 +48,7 @@ $$
 
 ### 2.5 项目工作记忆与上下文恢复
 
-`模型论文框架.md` 是当前项目的**助手可读工作记忆**，只保存当前题意口径、数据角色、`preprocessing_decision`、变量/参数/假设、核心 Formula Trace、数值参数证据、小问依赖、当前算法语义、命题、Citation Evidence、结果摘要、验证边界、图表证据位置和本项目论文组织选择。它不得重新复制跨项目写作、证明或排版手册。
+`模型论文框架.md` 是当前项目的**助手可读工作记忆**，只保存当前题意口径、数据角色、`preprocessing_decision`、变量/参数/假设、核心 Formula Trace、数值参数证据、Terminology Registry、Numeric Profile、小问依赖、当前算法语义、命题、Title Claim、Citation Evidence、paper-fragment 状态、结果摘要、验证边界、图表证据位置和本项目论文组织选择。它不得重新复制跨项目写作、证明或排版手册。
 
 执行现有项目时采用 **read-before-use / write-after-change**：
 
@@ -139,12 +139,13 @@ project_level
 写作阶段这里只保留 Hard 边界，Default 与 Recommendation 不在全局政策重复定义：
 
 1. 核心数值必须与当前已验收工作簿一致，stale 结果不得写成 current；
-2. 核心公式、命题、图表和结论必须能回到当前模型或证据链，不能以润色掩盖语义 gap；
-3. 有限数值实验、交叉验证、算法一致性或求解器状态不能替代数学证明，也不能无依据把局部/启发式结果写成全局最优；
-4. 外部经验参数、外部数据、领域事实、非显然标准定理和既有研究比较等需要外部来源的核心 claim，必须按 `writing_reasoning_contract.citation_evidence` 形成 Citation Evidence；本文自己的推导和工作簿结果不得用外部引用替代；
-5. 正式 LaTeX 中 citation key、label/ref、图表与文献引用必须可解析，结构性缺失在交付前修复；机器不得仅凭关键词或 citation 存在推断数学正确性、定理适用性或文献是否真正支持 claim；
-6. 命题 0--4 仅为默认正文阅读预算，不是 Hard 上限；优点与缺点无强制数量关系；核心模型收束按 `required / inline / not_applicable` 自适应，不能把这些经验规则升级为自动否决条件；
-7. AI cleanup 只清除模板化、空泛、重复和呈现风险，不建立第二套正文规则；成稿机器审计按 `blocking / review_required / warning` 分级，warning 不阻断交付。
+2. **已核验的题面、官方规则、官方评讲或评分口径要求的结果精度不得在摘要、正文或答案表中降低。** 对没有更具体评分口径的连续评分型结果，6--7 位小数属于 writing Authority 的默认高精度策略而非本全局 Hard；
+3. 核心公式、命题、图表和结论必须能回到当前模型或证据链，不能以润色掩盖语义 gap；
+4. 有限数值实验、交叉验证、算法一致性或求解器状态不能替代数学证明，也不能无依据把局部/启发式结果写成全局最优；
+5. 外部经验参数、外部数据、领域事实、非显然标准定理和既有研究比较等需要外部来源的核心 claim，必须按 `writing_reasoning_contract.citation_evidence` 形成 Citation Evidence；本文自己的推导和工作簿结果不得用外部引用替代；
+6. 正式 LaTeX 中 citation key、label/ref、图表与文献引用必须可解析，结构性缺失在交付前修复；机器不得仅凭关键词或 citation 存在推断数学正确性、定理适用性或文献是否真正支持 claim；
+7. 命题 0--4 仅为默认正文阅读预算，不是 Hard 上限；优点与缺点无强制数量关系；核心模型收束按 `required / inline / not_applicable` 自适应，不能把这些经验规则升级为自动否决条件；
+8. AI cleanup 只清除模板化、空泛、重复和呈现风险，不建立第二套正文规则；成稿机器审计按 `blocking / review_required / warning` 分级，warning 不阻断交付。
 
 MATLAB 默认只保留图窗，不自动创建图表目录或批量导出正式图片。
 
@@ -152,7 +153,7 @@ MATLAB 默认只保留图窗，不自动创建图表目录或批量导出正式�
 
 `run_info.json`、`result_manifest.yaml` 和 `matlab_figure_handoff.json` 只在用户明确要求完整复现包时生成，并放入项目级内部元数据目录，不得放入 `问题X求解/` 或 `数据预处理/`。
 
-v7.2.0--7.2.2 项目重新进入模型设计、预处理、绘图或写作时，应按当前规则补齐适用的论文证据与 `data_process.m` 图证据；不要求为已完成的只读历史交付反向生成新文件。v7.1.x 及更早项目继续只读兼容；重新进入当前流程时先审计数据并形成判定。
+v7.6 项目继续只读兼容；其 v0.7 项目框架与 semantic-governance 1.0.0 不要求为历史交付反向补字段，重新进入当前 writing/review 流程时再补充 v0.8 的 Terminology/Numeric/Title/Paper Fragment 语义。v7.2.0--7.2.2 项目重新进入模型设计、预处理、绘图或写作时，应按当前规则补齐适用的论文证据与 `data_process.m` 图证据；更早项目继续只读兼容，重新进入当前流程时先审计数据并形成判定。
 
 ## 8. 正式交付同步
 
