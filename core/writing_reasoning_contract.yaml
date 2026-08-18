@@ -1,8 +1,8 @@
-schema_version: 1.1.0
+schema_version: 1.2.0
 role: >-
   跨数学建模竞赛的正文推理与证据治理权威。约束核心公式的来源—推导—去向、共享基础模型、
-  跨问递进、结构化简、数值参数证据、命题预算、引用证据和证据驱动的本科生学术表达；
-  不规定具体题型、算法、固定章节名或载体排版细节。
+  跨问递进、结构化简、数值参数证据、命题预算、引用证据、自然语言术语、数值展示、标题主张、
+  深化证据用途、段落必要性和证据驱动的本科生学术表达；不规定具体题型、算法、固定章节名或载体排版细节。
 
 scope:
   competitions: all
@@ -37,6 +37,7 @@ rule_governance:
         - numerical_experiment_used_as_mathematical_proof
         - unresolved_citation_key
         - unbuildable_formal_latex
+        - scoring_result_precision_lost_against_verified_requirement
     default:
       meaning: 高质量数学建模论文的默认组织方式；题型、比赛模板、真实数学结构或用户明确要求可形成例外。
       action: review_required_unless_justified
@@ -46,6 +47,9 @@ rule_governance:
         - no_standalone_conclusion_by_default
         - local_result_evidence_loop
         - adaptive_core_model_summary
+        - title_claim_closure
+        - terminology_registry_for_ambiguous_core_terms
+        - numeric_profile_for_scoring_results
     recommendation:
       meaning: 经验性质量建议，不应作为否决条件。
       action: warning_only
@@ -53,8 +57,8 @@ rule_governance:
         - compact_problem_background
         - short_proof_length_budget
         - proposition_default_budget
-        - abstract_decisive_number_budget
         - model_strength_weakness_count_budget
+        - paragraph_necessity_review
   machine_mapping:
     hard: blocking
     default: review_required
@@ -197,12 +201,81 @@ numerical_parameter_evidence:
     optimization: objective_feasibility_multi_start_and_termination_evidence
   prohibition: 禁止仅用“综合考虑精度与效率，取……”替代参数依据。
 
+numeric_style_contract:
+  governance_level: default
+  principle: >-
+    论文展示精度必须服务题目评分、复核与数值可辨识性，不得为了“简洁”无依据降低核心结果精度。
+    计算内部可以保留更高精度；正文、表格和摘要的评分型连续数值应至少满足题面、官方评讲或已核验评分口径，
+    未给定口径时默认优先保留高精度结果，而不是主动压缩为少量小数。
+  scoring_result_precision:
+    verified_requirement_precedence: true
+    default_continuous_decimal_digits: [6, 7]
+    rule: >-
+      对决定答案、排名、阈值、最优值、时间、坐标、概率、误差等可能直接计分的连续数值，
+      默认在摘要和正文保留小数点后6--7位；若题面、官方规则、官方评讲或已核验评分标准指定精度，则严格按其要求。
+      整数、精确分数、离散编号和本身无更高分辨率的数据不机械补无意义小数。
+  summary_policy: >-
+    摘要必须保留评分所需的高精度核心答案，不能因为摘要篇幅而把6--7位结果擅自改写为1--4位；
+    可减少次要数字数量，但不得降低保留下来的决定性结果的必要精度。
+  consistency_rules:
+    - 同一指标在同一表达口径下不得出现无解释的不同数值或不同舍入结果。
+    - 正文、表格、摘要可以采用不同表示形式，但换算后必须对应同一高精度底层结果。
+    - 百分比与小数表示切换必须数值等价，并明确区分百分比变化与百分点变化。
+    - 单位换算后必须保持数值等价，不能通过换单位掩盖精度损失。
+    - 科学计数法的有效数字不得少于当前结果判分、比较或复核所需位数。
+  formatting_topics:
+    - unit_spacing_and_symbol
+    - percentage_and_percentage_point
+    - scientific_notation
+    - mean_plus_minus_standard_deviation
+    - confidence_interval
+    - significant_digits
+    - coordinate_precision
+    - optimization_variable_precision
+    - table_body_abstract_consistency
+  project_profile_fields:
+    - metric_id
+    - canonical_metric
+    - symbol
+    - unit
+    - representation
+    - required_decimal_digits
+    - workbook_precision
+    - body_precision
+    - abstract_precision
+    - source_or_scoring_basis
+  machine_audit_scope:
+    may_check:
+      - repeated_metric_with_conflicting_declared_precision
+      - obvious_percent_decimal_mismatch_when_metric_profile_exists
+      - scoring_result_displayed_below_declared_precision
+      - inconsistent_unit_format_when_unit_profile_exists
+      - anomalous_decimal_digits_relative_to_declared_profile
+    must_not_claim:
+      - numerical_wrongness_from_formatting_alone
+      - physical_unit_semantics_without_registry_or_profile
+      - optimal_required_precision_without_prompt_or_project_profile
+
 multi_method_validation:
   two_levels:
     numerical_consistency: 目标值、误差、概率、预测值或主指标是否相近。
     structural_consistency: >-
       决策变量区间、活跃约束、变量排序、策略结构、重要性、系数方向、分群结构或关键结论是否一致。
   rule: 只比较单个目标值不能自动推出模型可靠；第二层按题型选择，不要求所有模型拥有相同结构指标。
+
+analysis_evidence_disposition:
+  governance_level: default
+  values: [support, modify, reject]
+  required_fields: [evidence_id, question, target_claim, method_or_source, disposition, key_finding, required_action, paper_anchor]
+  meanings:
+    support: 核心主张保持，可作为增强证据进入正文、图表或答辩。
+    modify: 主体结论仍可保留，但区间、阈值、置信度、适用边界、措辞或推荐方案需要修正。
+    reject: 当前目标主张不能继续作为current事实使用；必须删除该claim或按影响范围回退模型/求解。
+  reject_scope_rule: >-
+    reject 不等于无条件重算整题。若被否决的是附加表述，删除或降级该claim即可；
+    若被否决的是核心答案、关键可行性、主要最优方案或模型结构，则必须触发redo_required并按依赖传播stale。
+  modify_rule: modify 必须把required_action写成可检查动作，并同步受影响的结果摘要、图表、正文和适用边界。
+  writing_rule: 每项深化分析进入论文前必须能回答“它支撑、修正还是否决了哪个具体主张”，不允许只罗列做过的检验。
 
 proposition_governance:
   default_budget: [0, 4]
@@ -283,6 +356,42 @@ citation_evidence:
       - semantic_support_of_claim_from_citation_presence_only
       - theorem_applicability_from_regex
 
+terminology_governance:
+  governance_level: default
+  principle: >-
+    核心自然语言术语与数学符号同样属于模型语义。论文应为容易混淆的对象、指标、样本单元、时间量、比例量、
+    场景和状态建立项目级标准术语，避免为了语言变化而引入概念漂移。
+  term_classes:
+    canonical_term: 当前项目对一个确定概念采用的标准名称。
+    allowed_alias: 确有必要且不会改变定义、量纲或样本单位的简称。
+    discouraged_alias: 指向同一概念但容易造成口径漂移的非标准称呼，正文应统一回canonical term。
+    confusable_term: 名称相近但实际定义、量纲、分母、时间范围、样本单位或统计口径不同的另一个概念。
+  registry_fields:
+    - term_id
+    - canonical_term
+    - definition
+    - dimension_or_unit
+    - allowed_aliases
+    - discouraged_aliases
+    - confusable_terms
+    - symbol
+    - scope
+  closure_rules:
+    - 同一canonical term在当前scope内只有一个定义。
+    - 同一alias不得同时指向两个不同canonical term。
+    - confusable term必须分别登记定义，不得仅靠上下文猜测。
+    - 术语与对应符号、单位、分母或样本单元发生变化时视为语义变化而不是文字润色。
+  machine_audit_scope:
+    may_check:
+      - registered_discouraged_alias_occurrence
+      - same_alias_mapped_to_multiple_terms
+      - local_alternation_of_registered_confusable_terms
+      - duplicate_term_id
+    must_not_claim:
+      - synonymy_of_unregistered_terms
+      - conceptual_equivalence_from_word_similarity_only
+      - mathematical_identity_from_language_only
+
 prose_style:
   name: evidence_driven_undergraduate_academic
   target: 规范、朴素、略带科研训练初期的推理痕迹；技术含义稳定，不追求期刊式抽象包装。
@@ -306,6 +415,30 @@ prose_style:
       - 说明两个区间、对象或约束为何需要进一步比较
       - 说明由某一结果引出的下一步建模动作
 
+paragraph_necessity:
+  governance_level: recommendation
+  principle: >-
+    正文每一节和较长段落都应承担可说明的下游功能。删除测试用于压缩冗余，不用于自动删文，也不能替代人工判断数学必要性。
+  retained_if_any:
+    - preserves_problem_requirement
+    - explains_mechanism_or_object_relation
+    - establishes_mathematical_relation
+    - provides_solver_or_parameter_basis
+    - provides_result_or_validation_evidence
+    - states_necessary_boundary_or_failure_condition
+    - closes_title_citation_or_cross_question_dependency
+  action_if_none: delete_merge_or_move_to_appendix
+  high_risk_content:
+    - generic_algorithm_history
+    - textbook_definition_without_downstream_use
+    - repeated_background
+    - repeated_model_advantage
+    - repeated_question_summary
+    - decorative_workflow_description
+    - repeated_number_without_new_comparison
+    - formula_explanation_without_destination
+  machine_role: 只允许warning级提示疑似冗余段落；不得自动删除或据此判断数学内容无效。
+
 problem_background:
   governance_level: recommendation
   default: one_paragraph
@@ -320,6 +453,52 @@ model_evaluation:
   count_relation_required: false
   rule: 优点有证据、缺点说明影响对象与边界；数量按实际模型决定，不检查“优点必须多于缺点”。
 
+title_claim_gate:
+  governance_level: default
+  principle: >-
+    标题中的研究对象、主方法、核心机制或核心贡献必须与摘要、关键词、正文主模型和结果证据形成闭环，
+    不能用只在末尾附带出现的方法包装全文。
+  claim_types: [research_object, main_method, core_mechanism, core_contribution]
+  required_fields: [claim_id, claim_text, claim_type, related_questions, paper_anchor, result_evidence, abstract_anchor, keyword, status]
+  closure_rules:
+    - selected_title_claim_serves_at_least_one_core_question
+    - substantive_method_claim_has_actual_model_derivation_or_material_algorithm_use
+    - claim_has_result_or_validation_evidence
+    - claim_is_reflected_in_abstract_without_overstatement
+    - keyword_does_not_promote_a_noncore_method_to_main_contribution
+  status_values: [pending, current, stale, rejected]
+  machine_audit_scope:
+    may_check:
+      - missing_required_title_claim_field
+      - duplicate_title_claim_id
+      - missing_declared_anchor
+      - stale_or_rejected_claim_used_for_selected_title
+    must_not_claim:
+      - whether_method_is_scientifically_core_from_term_frequency_only
+      - whether_title_is_good_from_keyword_matching_only
+
+paper_fragment_stale:
+  principle: >-
+    论文层失效应按真实依赖局部传播。小问语义或结果变化时，只标记依赖该小问的正文片段、摘要片段、图表解释、
+    模型评价主张和标题主张为stale；与其无依赖的问题背景、其他独立小问和无关引用保持current。
+  fragment_status_values: [pending, current, stale, not_applicable]
+  fragment_kinds:
+    - question_model
+    - question_result
+    - question_figure_evidence
+    - abstract_claim
+    - model_evaluation_claim
+    - title_claim
+    - cross_question_claim
+    - other
+  dependency_rule: >-
+    每个可局部失效片段通过source_questions或depends_on指向Q级语义/结果/图表节点；语义治理发生Q级变化时，
+    仅沿这些显式依赖传播stale。机器不得按章节距离猜测依赖。
+  framework_sync_semantics: >-
+    paper_framework.sync_status表示框架文件是否已经同步记录当前机器状态，不等同于所有paper fragment均current；
+    因此允许sync_status=current且部分paper_fragments=stale，只要这些stale已被框架明确记录并阻断正式交付。
+  delivery_rule: 正式completed/submission状态不得保留会影响当前答案或标题/摘要主张的stale paper fragment。
+
 machine_audit_boundary:
   report_only_for_semantic_style_risks: true
   may_warn:
@@ -330,15 +509,29 @@ machine_audit_boundary:
     - unexplained_numeric_parameter_assignment
     - repeated_identical_question_opening_pattern
     - unused_bibliography_entry
+    - registered_terminology_drift
+    - numeric_precision_anomaly_against_profile
+    - unused_label_or_equation_number
+    - unusual_figure_table_reference_distance
+    - overlong_caption
+    - possible_redundant_paragraph
   may_review:
     - default_structure_deviation_without_justification
+    - abstract_contains_figure_table_or_display_formula
+    - caption_position_against_active_template
+    - section_order_against_active_competition_profile
+    - title_claim_missing_closure
   may_block:
     - deterministic_structural_error_such_as_missing_citation_key_or_duplicate_label
+    - unresolved_ref_target
+    - scoring_result_precision_below_verified_requirement
   must_not_claim:
     - mathematical_correctness_from_regex
     - formula_source_semantic_validity_from_keywords_only
     - parameter_optimality_from_prose_only
     - citation_semantic_support_from_key_presence_only
+    - synonymy_from_term_similarity_only
+    - correct_physical_unit_without_project_profile
 
 authority_boundaries:
   reasoning_authority: core/writing_reasoning_contract.yaml
