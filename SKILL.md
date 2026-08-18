@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.6.0
-summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, evidence-driven conditional preprocessing, full-fidelity user execution, separate primary/result-analysis Python stages, project-memory model-paper framework, Source-Derivation-Destination formula traces, tiered writing governance, Citation Evidence, adaptive proposition/core-model-summary policies, MATLAB evidence figures, prose/BibTeX audit, and LaTeX-first delivery.
+version: 7.7.0
+summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, evidence-driven conditional preprocessing, full-fidelity user execution, separate primary/result-analysis Python stages, project-memory model-paper framework, Source-Derivation-Destination formula traces, tiered writing governance, Terminology Registry, high-precision Numeric Profile, Title Claim Gate, Citation Evidence, local paper-fragment stale propagation, MATLAB evidence figures, prose/BibTeX audit, and LaTeX-first delivery.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 数据预处理, 数据清洗, 主结果质量, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.6.0
+# HSK 数学建模模块化工作流 v7.7.0
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -28,9 +28,9 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 
 ### 项目工作记忆
 
-`locked_model_spec` 形成后，项目根目录 `模型论文框架.md` 是助手跨阶段、跨聊天恢复当前项目语义的首选入口。它只保存当前项目事实、选择、状态和证据位置，包括 Formula Trace、数值参数依据、命题、Citation Evidence、结果摘要与图表映射；不复制通用写作手册。
+`locked_model_spec` 形成后，项目根目录 `模型论文框架.md` 是助手跨阶段、跨聊天恢复当前项目语义的首选入口。它只保存当前项目事实、选择、状态和证据位置，包括 Formula Trace、数值参数依据、Terminology Registry、Numeric Profile、Title Claim Gate、命题、Citation Evidence、局部 paper-fragment 状态、结果摘要与图表映射；不复制通用写作手册。
 
-具体数值必须回到已验收工作簿复核，semantic revision、hash 和 stale 由 `state/project_state.yaml` 管理。模型、参数、约束、预处理或算法语义变化时先传播 stale，再同步受影响框架内容。
+具体数值必须回到已验收工作簿复核，semantic revision、hash 和 stale 由 `state/project_state.yaml` 管理。模型、参数、约束、预处理或算法语义变化时先按真实依赖传播 Q 级和 paper-fragment stale，再同步受影响框架内容。
 
 ### 数据与求解
 
@@ -65,7 +65,7 @@ preprocessing_decision
 └─ qX_plot.m
 ```
 
-主工作簿 accepted 后冻结 `问题X求解.py`，再独立生成 `问题X结果深化分析.py`；不得为深化分析覆盖改写主求解脚本。
+主工作簿 accepted 后冻结 `问题X求解.py`，再独立生成 `问题X结果深化分析.py`；不得为深化分析覆盖改写主求解脚本。深化证据必须说明其对具体主张的 `support / modify / reject` 作用；只有否决核心答案或模型结构时才触发相应回退和重算。
 
 ### Figure Evidence
 
@@ -75,13 +75,15 @@ MATLAB 图形布局、证据等级、配色和数据追溯统一由 `modules/04_
 
 LaTeX 是默认论文主链。写作阶段不在入口文件复制正文规则：
 
-- `core/writing_reasoning_contract.yaml`：跨竞赛推理、Hard / Default / Recommendation、命题预算、Citation Evidence；
+- `core/writing_reasoning_contract.yaml`：跨竞赛推理、Hard / Default / Recommendation、术语、数值展示、Title Claim、命题预算、Citation Evidence、Paragraph Necessity；
 - `modules/05_writing/latex.md`：正文结构与表达唯一权威；
-- `modules/05_writing/ai_cleanup.md`：只做模板化与空泛表达清理；
+- `modules/05_writing/ai_cleanup.md`：只做完整性、证据、风格与必要性清理，具体穷举交给审计脚本；
 - `modules/05_writing/docx.md`：只在用户显式要求时加载，负责 Word 载体差异；
 - `modules/06_review_delivery.md`：只检查和分级，不重新定义写作规则。
 
-核心模型收束按 `required / inline / not_applicable` 自适应；命题 0--4 是默认正文阅读预算而非 Hard 上限；优点与缺点没有强制数量关系。需要外部证据的核心 claim 通过 Citation Evidence 连接正文位置与 `references.bib`。成稿运行 `scripts/audit_paper_prose.py`，确定性 Hard 错误为 blocking，Default 偏离为 review_required，Recommendation/风格风险为 warning；机器不得从正则推断数学正确性或 citation 的语义支持关系。
+核心模型收束按 `required / inline / not_applicable` 自适应；命题 0--4 是默认正文阅读预算而非 Hard 上限；优点与缺点没有强制数量关系。需要外部证据的核心 claim 通过 Citation Evidence 连接正文位置与 `references.bib`。
+
+对可能直接计分的连续核心结果，题面、官方规则、官方评讲或已核验评分口径指定精度时严格按其要求；没有更具体口径时，摘要和正文默认优先保留小数点后 **6--7 位**，不得为了“简洁”擅自压缩决定性结果的小数位。成稿运行 `scripts/audit_paper_prose.py` 并可用 `--framework 模型论文框架.md` 检查已登记术语和 Numeric Profile；机器不得从正则推断数学正确性、未登记术语同义关系或 citation 的语义支持关系。
 
 ## 主链
 
@@ -93,9 +95,9 @@ LaTeX 是默认论文主链。写作阶段不在入口文件复制正文规则�
 → semantic governance gate
 → [仅project_level] 项目级预处理 → 预处理质量门
 → Python完整主求解 → 用户完整运行 → 主结果质量门
-→ 独立Python结果深化分析 → 用户完整运行 → 稳定性验收/必要时回退
+→ 独立Python结果深化分析 → support/modify/reject → 用户完整运行 → 稳定性验收/必要时回退
 → MATLAB证据图
-→ 题型自适应LaTeX直写 → AI-cleanup → prose/BibTeX audit
+→ 题型自适应LaTeX直写 → AI-cleanup → prose/structure/BibTeX audit
 → 编译与评委式终审
 ```
 
