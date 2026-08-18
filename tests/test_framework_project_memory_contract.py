@@ -35,6 +35,7 @@ class FrameworkProjectMemoryContractTests(unittest.TestCase):
         rules = "\n".join(str(item) for item in contract.get("rules", []))
         self.assertIn("Synchronize affected framework sections after semantic changes", rules)
         self.assertIn("accepted primary results, result analysis or figure evidence", rules)
+        self.assertIn("paper_framework.sync_status", rules)
 
     def test_downstream_modules_explicitly_read_framework(self) -> None:
         checks = {
@@ -56,10 +57,10 @@ class FrameworkProjectMemoryContractTests(unittest.TestCase):
         self.assertIn("工作簿是数值事实源", policy)
         self.assertIn("project state 是机器状态源", policy)
 
-    def test_framework_template_declares_project_memory_role_and_current_paths(self) -> None:
+    def test_framework_template_declares_v08_project_memory_role_and_semantic_profiles(self) -> None:
         template = read("templates/model/model_paper_framework.md")
         self.assertIn("当前有效项目事实、选择、状态与证据位置", template)
-        self.assertIn("v0.7-project-memory", template)
+        self.assertIn("v0.8-project-memory", template)
         self.assertIn("通用写作规则不在这里重复", template)
         self.assertIn("具体数值必须回到已验收标准工作簿复核", template)
         self.assertIn("`问题一求解/q1_plot.m`", template)
@@ -67,6 +68,12 @@ class FrameworkProjectMemoryContractTests(unittest.TestCase):
         self.assertIn("深化分析工作簿", template)
         self.assertIn("### 核心公式 Trace", template)
         self.assertIn("### Citation Evidence", template)
+        self.assertIn("### Terminology Registry", template)
+        self.assertIn("### Numeric Profile", template)
+        self.assertIn("### Title Claim Gate", template)
+        self.assertIn("### 正文局部状态映射", template)
+        self.assertIn("**深化证据处置**", template)
+        self.assertIn("6--7位", template)
 
     def test_agent_entry_uses_framework_for_context_recovery(self) -> None:
         text = read("AGENTS.md")
