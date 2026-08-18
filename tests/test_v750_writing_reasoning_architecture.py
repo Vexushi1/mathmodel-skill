@@ -33,7 +33,8 @@ class TestV750WritingReasoningArchitecture(unittest.TestCase):
         self.assertEqual(trace["status_values"], ["closed", "gap", "stale"])
         for field in ("formula_id", "question", "source", "derivation", "destination", "status"):
             self.assertIn(field, trace["required_fields"])
-        self.assertIn("不使用正则", trace["rule"])
+        self.assertIn("正则或关键词判断数学正确性", trace["rule"])
+        self.assertIn("正文不得机械显示内部合同列名", trace["rule"])
 
     def test_shared_foundation_and_progression_are_conditional(self):
         data = yaml.safe_load((ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8"))
