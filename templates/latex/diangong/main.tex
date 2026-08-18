@@ -1,4 +1,4 @@
-% HSK 电工杯 LaTeX 通用起稿模板 v7.4.4
+% HSK 电工杯 LaTeX 通用起稿模板 v7.6.0
 % 编译：python scripts/render_paper.py final_latex --profile diangong --clean
 % 当届规则、页数、封面和指定章节要求始终优先于本通用模板。
 \documentclass[12pt,a4paper]{ctexart}
@@ -79,7 +79,7 @@
 
 \section{问题分析}
 \subsection{问题一的分析}
-% 写工程难点、对象关系、关键约束和建模抓手，不写正式公式和最终结果。
+% 写工程难点、对象关系、关键约束和建模抓手；正式公式和最终结果默认留到模型/结果章节。
 
 \subsection{问题二的分析}
 % 按实际小问继续。跨问依赖可以说明，但不重复问题提出。
@@ -113,8 +113,9 @@
 \subsection{工程机制与模型建立}
 % 从本题工程对象和约束出发，定义变量并推导关键关系。
 
+% 核心模型收束按项目框架中的 required / inline / not_applicable 自适应。
+% 下面展示 required 示例；inline 时在上一小节末尾直接给最终关系并删除本小节；not_applicable 时直接删除。
 \subsection{核心模型汇总}
-% 推导完成、求解前集中给出求解器实际使用的目标/状态方程/约束/边界。
 \begin{equation}
 \left\{
 \begin{aligned}
@@ -138,16 +139,12 @@
 % \subsection{极端工况压力测试}
 % 最后一个结果/深化段自然回答本问，不默认建立“小问结论”。
 
-% 按实际题目继续：
-% \section{问题二模型建立及求解}
-%   \subsection{模型建立}
-%   \subsection{核心模型汇总}
-%   \subsection{模型求解}
-%   \subsection{求解结果}
+% 按实际题目继续问题二及后续；每问是否单列“核心模型汇总”由当前模型复杂度决定。
 
 \section{模型的评价与推广}
 % 确有工程改进内容时可改为“模型的改进、评价与推广”。
 \subsection{模型的优点}
+% 数量由实际模型决定；每条必须有结构或验证证据，不检查与缺点数量的大小关系。
 \begin{enumerate}
     \item ……。
     \item ……。
@@ -155,6 +152,7 @@
 \end{enumerate}
 
 \subsection{模型的缺点}
+% 数量由实际限制决定，并说明影响的结果、参数范围或适用边界。
 \begin{enumerate}
     \item ……。
     \item ……。
