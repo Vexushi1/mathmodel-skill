@@ -46,14 +46,19 @@ class TestV770PaperSemanticGovernance(unittest.TestCase):
 
     def test_high_precision_scoring_contract_does_not_downround_abstract(self):
         numeric = self.reasoning["numeric_style_contract"]
+        principle = numeric["principle"]
         self.assertEqual(numeric["high_precision_default"]["preferred_decimal_places_when_not_otherwise_specified"], [6, 7])
-        self.assertIn("不得为了摘要简洁", numeric["principle"])
+        self.assertIn("不得", principle)
+        self.assertIn("粗略舍入", principle)
+        self.assertIn("摘要", principle)
+        self.assertIn("6--7", principle)
         self.assertIn("高精度", numeric["display_profiles"]["abstract"])
         latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
         cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
         abstract_check = (ROOT / "templates/writing/abstract_result_check.md").read_text(encoding="utf-8")
         for text in (latex, cleanup, abstract_check):
             self.assertIn("6--7", text)
+        self.assertIn("核心答案的精度不得为了摘要简洁而擅自降低", latex)
         self.assertNotIn("摘要只写实际有意义的 3--4 位", latex)
         self.assertEqual(self.output["writing_policy"]["core_result_precision_priority"], "scoring_and_official_output_requirements")
 
@@ -68,7 +73,7 @@ class TestV770PaperSemanticGovernance(unittest.TestCase):
             "**深化证据处置**",
         ):
             self.assertIn(heading, text)
-        self.assertIn("若评分可能核对小数后 6--7 位", text)
+        self.assertIn("若小数后 6--7 位可能影响结果分", text)
 
     def test_project_state_schema_keeps_new_fields_optional_for_legacy_read(self):
         paper_props = self.schema["properties"]["paper_framework"]["properties"]
