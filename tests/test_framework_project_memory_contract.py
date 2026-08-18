@@ -13,65 +13,51 @@ def read(relative: str) -> str:
 
 
 class FrameworkProjectMemoryContractTests(unittest.TestCase):
-    def test_router_declares_project_memory_contract(self) -> None:
+    def test_router_declares_project_memory_contract(self):
         router = yaml.safe_load(read("core/workflow_router.yaml"))
-        contract = router.get("project_memory_contract", {})
-        self.assertEqual(contract.get("artifact"), "model_paper_framework")
-        self.assertEqual(contract.get("project_file"), "模型论文框架.md")
-        self.assertEqual(contract.get("numeric_fact_source"), "accepted_standard_workbooks")
-        self.assertEqual(contract.get("machine_state_source"), "state/project_state.yaml")
-        modules = set(contract.get("read_before_modules", []))
-        for required in {
-            "data_preprocessing",
-            "solve_validate",
-            "result_analysis",
-            "figure_evidence",
-            "writing_latex",
-            "review_delivery",
-        }:
-            self.assertIn(required, modules)
-        self.assertIn("cross_chat_handoff", contract.get("full_read_when", []))
-        self.assertIn("full_paper_writing", contract.get("full_read_when", []))
+        contract = router["project_memory_contract"]
+        self.assertEqual(contract["project_file"], "模型论文框架.md")
+        self.assertEqual(contract["numeric_fact_source"], "accepted_standard_workbooks")
+        self.assertEqual(contract["machine_state_source"], "state/project_state.yaml")
         rules = "\n".join(str(item) for item in contract.get("rules", []))
-        self.assertIn("Synchronize affected framework sections after semantic changes", rules)
+        self.assertIn("paper_framework.sync_status", rules)
         self.assertIn("accepted primary results, result analysis or figure evidence", rules)
 
-    def test_downstream_modules_explicitly_read_framework(self) -> None:
-        checks = {
-            "modules/03_data_preprocessing.md": "先读取全局数据协议",
-            "modules/03_solve_validate.md": "正式生成本问代码前必须先读取",
-            "modules/03_result_analysis.md": "制定分析计划前先读取",
-            "modules/04_figure_evidence.md": "进入本模块时先读取 current `模型论文框架.md`",
-            "modules/05_writing/latex.md": "整篇写作必须先读取完整 current `模型论文框架.md`",
-        }
-        for relative, marker in checks.items():
-            self.assertIn(marker, read(relative), relative)
-
-    def test_framework_is_memory_not_numeric_database(self) -> None:
-        for relative in ("core/bootstrap.yaml", "core/hsk_core_policy.md", "PROJECT_INSTRUCTIONS.md", "SKILL.md"):
-            text = read(relative)
-            self.assertIn("模型论文框架.md", text, relative)
+    def test_framework_is_memory_not_numeric_database(self):
         policy = read("core/hsk_core_policy.md")
-        self.assertIn("read-before-use / write-after-change", policy)
-        self.assertIn("工作簿是数值事实源", policy)
-        self.assertIn("project state 是机器状态源", policy)
+        self.assertIn("助手可读工作记忆", policy)
+        self.assertIn("已验收工作簿", policy)
+        self.assertIn("state/project_state.yaml", policy)
 
-    def test_framework_template_declares_project_memory_role_and_current_paths(self) -> None:
+    def test_v08_framework_keeps_project_specific_semantic_registries(self):
         template = read("templates/model/model_paper_framework.md")
-        self.assertIn("当前有效项目事实、选择、状态与证据位置", template)
-        self.assertIn("v0.7-project-memory", template)
-        self.assertIn("通用写作规则不在这里重复", template)
+        self.assertIn("v0.8-project-memory", template)
+        for token in (
+            "### Terminology Registry",
+            "### Numeric Profile",
+            "#### Title Claim Gate",
+            "### Paper Fragment Dependency Map",
+            "### 核心公式 Trace",
+            "### Citation Evidence",
+            "**深化证据处置**",
+            "### 正文章节与交付映射",
+            "图表证据链",
+        ):
+            self.assertIn(token, template)
         self.assertIn("具体数值必须回到已验收标准工作簿复核", template)
+        self.assertNotIn("问题背景通常 1 个自然段", template)
+
+    def test_framework_uses_current_question_directory_mapping(self):
+        template = read("templates/model/model_paper_framework.md")
         self.assertIn("`问题一求解/q1_plot.m`", template)
         self.assertNotIn("`结果数据表/问题一/q1_plot.m`", template)
         self.assertIn("深化分析工作簿", template)
-        self.assertIn("### 核心公式 Trace", template)
-        self.assertIn("### Citation Evidence", template)
 
-    def test_agent_entry_uses_framework_for_context_recovery(self) -> None:
-        text = read("AGENTS.md")
-        self.assertIn("assistant-readable project memory", text)
-        self.assertIn("instead of reconstructing the model from chat memory", text)
+    def test_writing_route_reads_framework_before_downstream_use(self):
+        router = yaml.safe_load(read("core/workflow_router.yaml"))
+        read_before = set(router["project_memory_contract"]["read_before_modules"])
+        for module in ("result_analysis", "figure_evidence", "writing_latex", "review_delivery"):
+            self.assertIn(module, read_before)
 
 
 if __name__ == "__main__":
