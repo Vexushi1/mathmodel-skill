@@ -25,6 +25,8 @@ FRAMEWORK_REQUIRED_PHASES = {
 }
 PROPOSITION_DEFAULT_BUDGET = 4
 PROPOSITION_ID_PATTERN = re.compile(r"^P[1-9][0-9]*$")
+PAPER_FRAGMENT_ID_PATTERN = re.compile(r"^PF[1-9][0-9]*$")
+ANALYSIS_EVIDENCE_ID_PATTERN = re.compile(r"^E[1-9][0-9]*$")
 CURRENT_PROPOSITION_REQUIRED_FIELDS = (
     "assumptions_and_domain", "conclusion", "modeling_effect",
     "failure_boundary", "framework_anchor",
@@ -98,9 +100,72 @@ def _validate_propositions(
         issues.append("paper_framework.proposition_status cannot be planned/current when proposition_count is 0")
     if isinstance(count, int) and count > 0 and status == "not_assessed":
         issues.append("paper_framework.proposition_status cannot be not_assessed when propositions exist")
-    if has_stale and framework_sync == "current":
-        issues.append("paper_framework.sync_status cannot remain current while proposition plan is stale")
+    # v7.7+: proposition stale is a local semantic state; a synchronized framework may record it explicitly.
+    _ = framework_sync
     return issues, proposition_ids, has_stale
+
+
+def _validate_paper_fragments(
+    framework: Mapping[str, Any], *, subproblem_ids: set[str]
+) -> tuple[list[str], bool, bool]:
+    issues: list[str] = []
+    entries = framework.get("paper_fragments", []) or []
+    ids: list[str] = []
+    has_stale = False
+    has_critical_stale = False
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, Mapping):
+            issues.append(f"paper_framework.paper_fragments[{index}] must be a mapping")
+            continue
+        fragment_id = str(entry.get("id", "")).strip()
+        ids.append(fragment_id)
+        if not PAPER_FRAGMENT_ID_PATTERN.fullmatch(fragment_id):
+            issues.append(f"invalid paper fragment id: {fragment_id or '<empty>'}; use PF1, PF2, ...")
+        sources = {str(item) for item in (entry.get("source_questions", []) or [])}
+        unknown = sorted(sources - subproblem_ids)
+        if unknown:
+            issues.append(f"{fragment_id}.source_questions contain unknown questions: {unknown}")
+        status = str(entry.get("status", ""))
+        if status == "stale":
+            has_stale = True
+            if entry.get("critical_for_delivery") is True:
+                has_critical_stale = True
+            if not str(entry.get("stale_reason", "")).strip():
+                issues.append(f"{fragment_id}.stale_reason is required while status is stale")
+            if not str(entry.get("required_action", "")).strip():
+                issues.append(f"{fragment_id}.required_action is required while status is stale")
+    if len(ids) != len(set(ids)):
+        issues.append("paper_framework.paper_fragments must use unique IDs")
+    return issues, has_stale, has_critical_stale
+
+
+def _validate_analysis_evidence(name: str, state: Mapping[str, Any]) -> list[str]:
+    issues: list[str] = []
+    entries = state.get("analysis_evidence", []) or []
+    ids: list[str] = []
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, Mapping):
+            issues.append(f"{name}.analysis_evidence[{index}] must be a mapping")
+            continue
+        evidence_id = str(entry.get("id", "")).strip()
+        ids.append(evidence_id)
+        if not ANALYSIS_EVIDENCE_ID_PATTERN.fullmatch(evidence_id):
+            issues.append(f"invalid analysis evidence id: {evidence_id or '<empty>'}; use E1, E2, ...")
+        disposition = str(entry.get("disposition", ""))
+        if disposition in {"modify", "reject"} and not str(entry.get("required_action", "")).strip():
+            issues.append(f"{name}.{evidence_id}.required_action is required for {disposition}")
+        if (
+            disposition == "reject"
+            and entry.get("rejects_core_answer") is True
+            and str(entry.get("status", "current")) != "resolved"
+            and state.get("result_analysis_status") != "redo_required"
+        ):
+            issues.append(
+                f"{name}.{evidence_id} rejects a core answer; result_analysis_status must be redo_required until resolved"
+            )
+    if len(ids) != len(set(ids)):
+        issues.append(f"{name}.analysis_evidence must use unique IDs")
+    return issues
 
 
 def _derived_legacy_packs(classification: Mapping[str, Any], taxonomy: Mapping[str, Any]) -> list[str]:
@@ -258,7 +323,12 @@ def validate_state_payload(
         framework, framework_sync=framework_sync
     )
     issues.extend(proposition_issues)
-    any_stale = proposition_stale
+    subproblem_ids = {str(key) for key in (payload.get("subproblems", {}) or {})}
+    fragment_issues, fragment_stale, critical_fragment_stale = _validate_paper_fragments(
+        framework, subproblem_ids=subproblem_ids
+    )
+    issues.extend(fragment_issues)
+    any_subproblem_stale = False
 
     for name, state in payload.get("subproblems", {}).items():
         if not isinstance(state, Mapping):
@@ -271,6 +341,7 @@ def validate_state_payload(
         analysis_status = state.get("result_analysis_status")
         issues.extend(_validate_classification_aliases(name, state, taxonomy))
         issues.extend(_validate_hashes(name, state, status))
+        issues.extend(_validate_analysis_evidence(name, state))
         section_hash = (state.get("artifact_hashes", {}) or {}).get("framework")
         if section_hash and framework_path.is_file():
             actual_section_hash = _framework_section_hash(framework_path, framework_section)
@@ -305,7 +376,7 @@ def validate_state_payload(
             if phase not in {"model_design", "solve_validate"}:
                 issues.append(f"{name} redo_required must return project.current_phase to model_design or solve_validate")
         if state.get("artifacts_stale") is True:
-            any_stale = True
+            any_subproblem_stale = True
             if summary_status == "current":
                 issues.append(f"{name}.result_summary_status cannot be current while artifacts_stale is true")
             if proposition_refs:
@@ -331,15 +402,19 @@ def validate_state_payload(
             if paper and not _artifact_exists(project_root, paper):
                 issues.append(f"{name}.paper_source does not exist")
 
-    if phase in FRAMEWORK_REQUIRED_PHASES and framework_sync != "current" and not any_stale:
+    # v7.7 semantics: sync_status describes whether the framework file mirrors machine state,
+    # not whether every question/proposition/paper fragment is current.
+    if phase in FRAMEWORK_REQUIRED_PHASES and framework_sync != "current":
         issues.append(f"paper_framework.sync_status must be current in phase {phase}")
-    if any_stale and framework_sync == "current":
-        issues.append("paper_framework.sync_status cannot remain current while a subproblem or proposition is stale")
     if phase == "completed":
         if pending:
             issues.append("completed project cannot retain pending requirements")
         if payload.get("next_gate", {}).get("module") != "completed":
             issues.append("completed project must set next_gate.module to completed")
+        if any_subproblem_stale or proposition_stale or fragment_stale:
+            issues.append("completed project cannot retain stale subproblems, propositions, or paper fragments")
+        if critical_fragment_stale:
+            issues.append("completed project cannot retain critical stale paper fragments")
     return issues
 
 
