@@ -2,7 +2,7 @@
 """Validate current-state 模型论文框架.md with mode-aware requirements.
 
 The validator checks deterministic project-memory structure. It does not infer mathematical
-correctness, citation semantics, or whether a Default/Recommendation writing choice is good.
+correctness, citation semantics, terminology equivalence, or whether a writing choice is good.
 """
 from __future__ import annotations
 
@@ -26,19 +26,28 @@ FULL_EXTRA_HEADINGS = (
     "### 命题与证明规划",
     "## 同步检查",
 )
+V08_FULL_HEADINGS = (
+    "### Terminology Registry",
+    "### Numeric Profile",
+    "### Title Claim Gate",
+    "### 正文局部状态映射",
+)
 CROSS_QUESTION_HEADING_ALIASES = (
     "## 综合检验与跨问结论",
     "## 综合检验与跨问判断",
 )
 VALID_MODES = {"compact", "full"}
-SOLVED_STATUSES = {"solved", "validated", "written", "completed"}
+SOLVED_STATUSES = {"solved", "analyzed", "validated", "written", "completed"}
 FRAMEWORK_REQUIRED_PHASES = {
-    "model_design", "solve_validate", "figure_evidence", "writing_docx",
-    "writing_latex", "ai_cleanup", "latex_compile_quality",
-    "review_delivery", "completed",
+    "model_design", "solve_validate", "result_analysis", "figure_evidence", "writing_docx",
+    "writing_latex", "ai_cleanup", "latex_compile_quality", "review_delivery", "completed",
 }
 PROPOSITION_DEFAULT_BUDGET = 4
 PROPOSITION_ID_PATTERN = re.compile(r"^P[1-9][0-9]*$")
+TERM_ID_PATTERN = re.compile(r"^T[1-9][0-9]*$")
+METRIC_ID_PATTERN = re.compile(r"^N[1-9][0-9]*$")
+TITLE_CLAIM_ID_PATTERN = re.compile(r"^TC[1-9][0-9]*$")
+PAPER_FRAGMENT_ID_PATTERN = re.compile(r"^PF[1-9][0-9]*$")
 PROPOSITION_STATE_FIELDS = {
     "proposition_limit", "proposition_default_budget", "proposition_count",
     "proposition_status", "proposition_budget_status", "propositions",
@@ -69,6 +78,11 @@ def infer_mode(text: str, state: Mapping[str, Any] | None, explicit: str | None)
     return mode
 
 
+def _framework_version(text: str) -> str:
+    match = re.search(r"(?mi)^-\s*框架版本\s*[:：]\s*`?([^`\n]+)`?\s*$", text)
+    return match.group(1).strip() if match else ""
+
+
 def required_headings(mode: str) -> tuple[str, ...]:
     return COMPACT_HEADINGS if mode == "compact" else (*COMPACT_HEADINGS, *FULL_EXTRA_HEADINGS)
 
@@ -83,14 +97,94 @@ def _extract_scalar(text: str, label: str) -> str | None:
     return match.group(1).strip() if match else None
 
 
-def _proposition_section(text: str) -> str:
-    heading = "### 命题与证明规划"
+def _section_after_heading(text: str, heading: str) -> str:
     start = text.find(heading)
     if start < 0:
         return ""
     tail = text[start + len(heading):]
-    next_heading = re.search(r"\n(?:##|###)\s+", tail)
-    return tail[:next_heading.start()] if next_heading else tail
+    current_level = len(heading) - len(heading.lstrip("#"))
+    match = re.search(r"(?m)^#{1,%d}\s+" % current_level, tail)
+    return tail[:match.start()] if match else tail
+
+
+def _table_rows(text: str, heading: str, id_pattern: re.Pattern[str]) -> list[list[str]]:
+    rows: list[list[str]] = []
+    for line in _section_after_heading(text, heading).splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if cells and id_pattern.fullmatch(cells[0]):
+            rows.append(cells)
+    return rows
+
+
+def _split_aliases(value: str) -> set[str]:
+    if not value.strip():
+        return set()
+    return {item.strip() for item in re.split(r"[/、,，;；]", value) if item.strip() and item.strip() not in {"无", "-", "—"}}
+
+
+def _validate_v08_project_memory(text: str, *, strict: bool) -> list[str]:
+    issues: list[str] = []
+    for heading in V08_FULL_HEADINGS:
+        if heading not in text:
+            issues.append(f"v0.8 full framework missing semantic-governance heading: {heading}")
+
+    term_rows = _table_rows(text, "### Terminology Registry", TERM_ID_PATTERN)
+    term_ids = [row[0] for row in term_rows]
+    if len(term_ids) != len(set(term_ids)):
+        issues.append("Terminology Registry contains duplicate Term IDs")
+    alias_owner: dict[str, str] = {}
+    for row in term_rows:
+        if len(row) < 9:
+            issues.append(f"{row[0]} terminology row must contain all nine project fields")
+            continue
+        canonical = row[1]
+        if strict and (not canonical or not row[2]):
+            issues.append(f"{row[0]} terminology row requires canonical term and definition in strict mode")
+        for alias in _split_aliases(row[4]) | _split_aliases(row[5]):
+            owner = alias_owner.get(alias)
+            if owner and owner != canonical:
+                issues.append(f"terminology alias {alias!r} maps to multiple canonical terms: {owner!r}, {canonical!r}")
+            alias_owner[alias] = canonical
+
+    metric_rows = _table_rows(text, "### Numeric Profile", METRIC_ID_PATTERN)
+    metric_ids = [row[0] for row in metric_rows]
+    if len(metric_ids) != len(set(metric_ids)):
+        issues.append("Numeric Profile contains duplicate Metric IDs")
+    for row in metric_rows:
+        if len(row) < 10:
+            issues.append(f"{row[0]} numeric row must contain all ten project fields")
+            continue
+        if strict and (not row[1] or not row[5] or not row[9]):
+            issues.append(f"{row[0]} numeric row requires metric, required precision and precision basis in strict mode")
+
+    title_rows = _table_rows(text, "### Title Claim Gate", TITLE_CLAIM_ID_PATTERN)
+    title_ids = [row[0] for row in title_rows]
+    if len(title_ids) != len(set(title_ids)):
+        issues.append("Title Claim Gate contains duplicate Claim IDs")
+    for row in title_rows:
+        if len(row) < 9:
+            issues.append(f"{row[0]} title claim row must contain all nine project fields")
+            continue
+        if strict and row[8] == "current" and any(not value for value in row[1:8]):
+            issues.append(f"{row[0]} current title claim has empty closure fields")
+
+    fragment_rows = _table_rows(text, "### 正文局部状态映射", PAPER_FRAGMENT_ID_PATTERN)
+    fragment_ids = [row[0] for row in fragment_rows]
+    if len(fragment_ids) != len(set(fragment_ids)):
+        issues.append("正文局部状态映射 contains duplicate Fragment IDs")
+    for row in fragment_rows:
+        if len(row) < 7:
+            issues.append(f"{row[0]} paper fragment row must contain all seven project fields")
+            continue
+        if row[5] == "stale" and strict and not row[6]:
+            issues.append(f"{row[0]} stale paper fragment requires stale reason / repair action")
+    return issues
+
+
+def _proposition_section(text: str) -> str:
+    return _section_after_heading(text, "### 命题与证明规划")
 
 
 def _proposition_rows(text: str) -> list[tuple[str, list[str]]]:
@@ -149,6 +243,14 @@ def _validate_proposition_plan(text: str, *, strict: bool) -> tuple[list[str], i
     return issues, declared_count, unique_ids
 
 
+def _framework_fragment_statuses(text: str) -> dict[str, str]:
+    statuses: dict[str, str] = {}
+    for row in _table_rows(text, "### 正文局部状态映射", PAPER_FRAGMENT_ID_PATTERN):
+        if len(row) >= 6:
+            statuses[row[0]] = row[5]
+    return statuses
+
+
 def validate_framework_text(
     text: str,
     *,
@@ -168,6 +270,10 @@ def validate_framework_text(
             issues.append(f"missing required heading for {resolved_mode}: {heading}")
         elif count > 1:
             issues.append(f"duplicate required heading: {heading}")
+
+    version = _framework_version(text)
+    if resolved_mode == "full" and version.startswith("v0.8"):
+        issues.extend(_validate_v08_project_memory(text, strict=strict))
 
     cross_heading_count = sum(text.count(heading) for heading in CROSS_QUESTION_HEADING_ALIASES)
     if resolved_mode == "full":
@@ -229,6 +335,20 @@ def validate_framework_text(
             issues.append("project-state proposition IDs do not match 模型论文框架.md")
         if not proposition_ids and state_ids and resolved_mode == "full":
             issues.append("project-state propositions exist but full framework has no proposition rows")
+
+    state_fragments = framework.get("paper_fragments", []) or []
+    if state_fragments:
+        text_statuses = _framework_fragment_statuses(text)
+        state_statuses = {
+            str(item.get("id", "")): str(item.get("status", ""))
+            for item in state_fragments if isinstance(item, Mapping) and item.get("id")
+        }
+        if set(text_statuses) != set(state_statuses):
+            issues.append("project-state paper fragment IDs do not match 正文局部状态映射")
+        else:
+            mismatched = sorted(key for key in state_statuses if text_statuses.get(key) != state_statuses[key])
+            if mismatched:
+                issues.append(f"paper fragment statuses differ between project-state and framework: {mismatched}")
 
     for name, subproblem in (state.get("subproblems", {}) or {}).items():
         if not isinstance(subproblem, Mapping):
