@@ -1,4 +1,4 @@
-version: 7.6.0
+version: 7.7.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 user_execution_contract: core/user_execution_contract.yaml
@@ -30,11 +30,20 @@ writing_policy:
   reasoning_contract: core/writing_reasoning_contract.yaml
   rule_governance: core/writing_reasoning_contract.yaml#rule_governance
   citation_evidence_contract: core/writing_reasoning_contract.yaml#citation_evidence
+  terminology_contract: core/writing_reasoning_contract.yaml#terminology_governance
+  numeric_style_contract: core/writing_reasoning_contract.yaml#numeric_style_contract
+  title_claim_contract: core/writing_reasoning_contract.yaml#title_claim_gate
+  analysis_evidence_disposition_contract: core/writing_reasoning_contract.yaml#analysis_evidence_disposition
+  paragraph_necessity_contract: core/writing_reasoning_contract.yaml#paragraph_necessity
+  paper_fragment_stale_contract: core/writing_reasoning_contract.yaml#paper_fragment_stale_governance
   proposition_governance: core/writing_reasoning_contract.yaml#proposition_governance
   core_model_summary_policy: adaptive_required_inline_not_applicable
   prose_audit_script: scripts/audit_paper_prose.py
+  prose_audit_framework_flag: --framework
   prose_audit_default_mode: report_only
   prose_audit_strict_blocks_on: [blocking, review_required]
+  core_result_precision_priority: scoring_and_official_output_requirements
+  high_precision_default_when_scoring_sensitive: 6--7_decimal_places_unless_more_specific_requirement
   carrier_specific:
     docx: modules/05_writing/docx.md
     latex: packs/artifact/latex.md
@@ -70,7 +79,7 @@ execution_policy:
 semantic_governance:
   version: 1.0.0
   script: scripts/validate_semantic_governance.py
-  role: 在模型设计、条件式统一数据预处理、代码交付、工作簿验收和正式下游交付前检查题意口径、三层语义闭环、复杂度合理性、preprocessing_decision与语义变更影响
+  role: 在模型设计、条件式统一数据预处理、代码交付、工作簿验收和正式下游交付前检查题意口径、三层语义闭环、复杂度合理性、preprocessing_decision、语义变更影响与v0.8论文局部stale依赖
   report_persistence: stdout_or_chat_only
   framework_scope: 每问#### 当前模型口径至#### 结果摘要之前的当前语义区
   required_for_designed_or_later:
@@ -123,13 +132,16 @@ semantic_governance:
   - 共享数据但decision=not_needed时，不得因为不存在统一工作簿而虚构preprocessing stale。
   - 已验证语义发生变化时，本问主结果及相关下游先标记stale。
   - 按depends_on递归传播到实际依赖的小问，不能无差别失效全部小问。
+  - v0.8项目继续按Paper Fragment Dependency Map传播到真实依赖的正文、摘要、模型评价、图表和Title Claim；无关问题和背景保持current。
+  - v0.8的paper_framework.sync_status表示框架已同步记录当前状态，不等于所有paper fragment均current。
   - 接受新的语义哈希不等于恢复旧数值；需要重新处理的数据、求解和验收完成后才能清除对应数值stale。
   - 模型论文框架只保存当前有效语义，历史由Git保存，不新增用户项目变更日志文件。
   legacy_compatibility:
+    v7_6_framework_v0_7_whole_framework_stale_semantics: read_only_compatible
     v7_2_0_projects_without_preprocessing_decision: read_only
     v7_1_projects_without_global_preprocessing: read_only
     v7_0_projects_without_fields: read_only
-    migration_trigger: 旧项目重新进入problem_audit、model_design或solve_validate时先补齐preprocessing_decision；只有判为project_level才迁移到统一预处理结构
+    migration_trigger: 旧项目重新进入当前写作/终审时迁移框架v0.8语义；重新进入problem_audit、model_design或solve_validate时先补齐preprocessing_decision，只有判为project_level才迁移到统一预处理结构
 result_policy:
   preprocessing_decision_role: 所有数据项目先判断原始数据是否可直接建模、是否仅需本问局部变换、或是否确需项目级公共处理
   preprocessing_role: 仅decision=project_level时一次性完成共享原始数据审计与有依据的公共处理，形成依赖小问的数据入口，并持久化论文数学方法、验证和data_process绘图底层证据
@@ -141,17 +153,20 @@ result_policy:
   downstream_admission_requires_quality_passed: true
   result_analysis_role: 在主结果通过质量门后解释形成机制、稳定范围、适用边界和算法或结构依赖
   result_analysis_method_selection: based_on_problem_model_data_result_and_reviewer_risk
+  result_analysis_dispositions: [support, modify, reject]
+  result_analysis_disposition_authority: core/writing_reasoning_contract.yaml#analysis_evidence_disposition
   result_analysis_outcomes:
   - passed
   - failed
   - redo_required
   fixed_perturbation_forbidden: true
-  feedback_loop: 深化分析发现主结果不可靠时，自动写入redo_required、标记下游stale并按原因回退模型设计、条件式统一数据预处理或主求解
+  feedback_loop: 深化分析发现主结果不可靠时，按target claim与disposition决定删除/改写局部主张或写入redo_required，并按真实依赖传播下游stale
 model_paper_framework:
   path: 模型论文框架.md
   template: templates/model/model_paper_framework.md
+  current_template_version: v0.8-project-memory
   create_after: locked_model_spec
-  role: 当前项目事实与工作记忆；保存题意口径、preprocessing_decision、模型语义、Formula Trace、参数证据、跨问依赖、写作选择、命题、Citation Evidence、逐问结果摘要和图表映射，不复制跨项目写作手册。
+  role: 当前项目事实与工作记忆；保存题意口径、preprocessing_decision、模型语义、Formula Trace、参数证据、跨问依赖、写作选择、命题、Citation Evidence、Terminology Registry、Numeric Profile、Title Claim、Paper Fragment、深化证据处置、逐问结果摘要和图表映射，不复制跨项目写作手册。
   project_memory_only: true
   modes:
     compact:
@@ -181,6 +196,7 @@ model_paper_framework:
   history_policy: 文件内部不累积旧版；旧版本由Git历史保存
   replacement_policy: 题意解释、模型、参数、约束、preprocessing_decision、数据处理、算法、主结果或深化分析变化时，删除受影响旧内容并完整替换
   formal_delivery_sync: true
+  local_fragment_stale_from: v0.8-project-memory
   result_summary_required_after: solved
   authoritative_boundaries:
     model_semantics_and_paper_structure: 模型论文框架.md
@@ -189,6 +205,7 @@ model_paper_framework:
     preprocessing_workbook_when_project_level: 数据预处理结果.xlsx
     preprocessing_figure_script_when_project_level: 数据预处理/data_process.m
     semantic_revision_dependency_hash_and_freshness: state/project_state.yaml
+    paper_fragment_dependency_and_freshness: state/project_state.yaml + 模型论文框架.md
     numerical_results: 主求解工作簿与结果深化分析工作簿
 project_sync:
   role: formal_pre_delivery_gate_after_semantic_governance
@@ -229,6 +246,7 @@ project_sync:
     result_quality_status: passed
     result_analysis_status: passed
     downstream_artifacts_stale: false
+    v0_8_delivery_paper_fragments_stale: false
   stage_requirements:
     design:
     - project_state
@@ -374,11 +392,14 @@ project_sync:
     - paper_figure_evidence
     figure_bundle:
     - paper_figure_evidence
+    paper_fragment_dependency:
+    - only_fragments_with_real_dependency
   write_order:
   - 读取preprocessing_decision并按当前数据事实源发现项目级可选预处理产物与每问产物
   - 执行工作簿与图表链检查
   - 计算当前分层哈希并比较已验证哈希、条件式预处理哈希、data_process哈希和两阶段小问代码哈希
-  - 传播stale并更新框架头部
+  - 按小问depends_on传播数值stale；v0.8再按Paper Fragment Dependency Map传播论文局部stale
+  - 更新框架同步头；v0.8框架current只表示状态已同步，局部stale保留在paper_fragments
   - 重新计算最终框架哈希
   - 写入project_state
   - 写入sync_report
@@ -391,18 +412,19 @@ project_sync:
   - 只有decision=project_level时检查依赖下游脚本不得再次直接读取对应共享原始数据源
   - 复用工作簿Schema检查工作表、字段、capability条件、主键、非有限数值和约束判定
   - 普通阶段同步按小问status检查最低产物；只有显式delivery scope执行正式交付全量门槛
-  - 正式交付按decision条件核对预处理质量，再核对主结果质量、分析状态为passed以及下游产物非stale
+  - 正式交付按decision条件核对预处理质量，再核对主结果质量、分析状态为passed以及下游数值产物和v0.8 paper fragments非stale
   - project_level进入figures及后续scope时必须核对data_process.m存在、引用数据预处理结果.xlsx且不重新执行预处理；question_local需要局部处理图时由qX_plot.m承接
   - 核对MATLAB只读取其实际需要的数据事实源和标准工作簿，不要求所有qX_plot.m强制引用统一预处理工作簿
   - project_level时统一预处理脚本/工作簿哈希绑定依赖数据链，data_process.m只影响预处理图表/论文层；not_needed/question_local时以原始数据哈希作为数据事实源
   - 主求解脚本哈希与本问主结果链绑定；深化分析脚本哈希只影响本问深化工作簿及其下游
   - 当已验证哈希变化时按实际依赖证据链传播stale
-  - 只允许设置或保持stale；清除stale必须由适用的数据质量门、主结果质量门或结果分析流程显式完成
+  - v0.8只把stale传播到依赖该小问/上游paper fragment的论文片段；不得因为单问变化使整篇无关章节stale
+  - 只允许设置或保持stale；清除stale必须由适用的数据质量门、主结果质量门、结果分析流程或对应论文片段重写复核显式完成
   - 对DOCX、LaTeX与提交scope检查真实文件、编译报告、图片引用和提交ZIP内容
   forbidden:
   - 自动生成模型语义或preprocessing_decision
   - 因共享数据自动把preprocessing_decision提升为project_level
-  - 自动清除artifacts_stale或stale_layers
+  - 自动清除artifacts_stale、stale_layers或paper fragment stale
   - 自动填写结果数值
   - 自动把preprocessing_quality_status、result_quality_status或result_analysis_status提升为passed
   - 以文件存在代替数据质量、可行性、精度、预处理验证或稳定性验证
@@ -576,6 +598,10 @@ rules:
 - 实际生成的项目级预处理脚本和两个正式小问Python脚本都必须通过静态工程质量检查且不得由助手执行；校验结果在聊天或标准输出中返回，不额外落盘。
 - 用户返回的适用预处理工作簿和小问工作簿均必须先通过对应质量门；代码交付本身不得把状态提升为solved或analyzed。
 - 同步器只做发现、校验、哈希和stale传播，不替代语义治理、条件式预处理质量门、主求解质量门与结果深化分析。
+- v7.7核心答案的展示精度优先服从题目、官方格式和评分精度；若后续小数位可能计分，不得为摘要简洁或版面美观擅自降低精度。
+- v7.7正文自然语言术语优先使用Terminology Registry中的canonical term；机器只对已登记别名/易混词做提示，不猜测数学语义。
+- v7.7深化分析每项证据必须指向target claim并记录support/modify/reject；reject核心答案必须回退，reject非核心评价可删除/重写。
+- v7.7框架v0.8使用局部paper fragment stale；v0.7及更早项目保持只读兼容，不强迫历史项目无条件迁移。
 - v7.2.0--v7.2.2旧项目重新进入模型设计、预处理、绘图或写作时继续沿用三态preprocessing_decision，并按当前通用审计与论文证据规则复核；只读历史交付不强制反向补文件。
 - v7.1.x及更早旧项目可只读；重新进入当前流程时先做数据审计和preprocessing_decision。
 - v7.0.x缺少语义治理字段的旧项目可只读；重新进入审题或模型设计时补齐当前语义字段。
