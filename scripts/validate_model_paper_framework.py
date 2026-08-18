@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Validate current-state 模型论文框架.md with mode-aware requirements."""
+"""Validate current-state 模型论文框架.md with mode-aware requirements.
+
+The validator checks deterministic project-memory structure. It does not infer mathematical
+correctness, citation semantics, or whether a Default/Recommendation writing choice is good.
+"""
 from __future__ import annotations
 
 import argparse
@@ -22,9 +26,6 @@ FULL_EXTRA_HEADINGS = (
     "### 命题与证明规划",
     "## 同步检查",
 )
-# “综合检验与跨问结论”是历史稳定的内部项目记忆标题，并非论文正文的
-# 独立“结论”章节。v7.4.4 允许新框架使用更中性的“跨问判断”，同时保留
-# 旧标题只读兼容，避免为了写作结构修正强迫旧项目迁移。
 CROSS_QUESTION_HEADING_ALIASES = (
     "## 综合检验与跨问结论",
     "## 综合检验与跨问判断",
@@ -36,10 +37,11 @@ FRAMEWORK_REQUIRED_PHASES = {
     "writing_latex", "ai_cleanup", "latex_compile_quality",
     "review_delivery", "completed",
 }
-PROPOSITION_LIMIT = 4
-PROPOSITION_ID_PATTERN = re.compile(r"^P([1-4])$")
+PROPOSITION_DEFAULT_BUDGET = 4
+PROPOSITION_ID_PATTERN = re.compile(r"^P[1-9][0-9]*$")
 PROPOSITION_STATE_FIELDS = {
-    "proposition_limit", "proposition_count", "proposition_status", "propositions",
+    "proposition_limit", "proposition_default_budget", "proposition_count",
+    "proposition_status", "proposition_budget_status", "propositions",
 }
 
 
@@ -72,8 +74,13 @@ def required_headings(mode: str) -> tuple[str, ...]:
 
 
 def _extract_int(text: str, label: str) -> int | None:
-    match = re.search(rf"{re.escape(label)}\s*[:：]\s*(\d+)", text)
+    match = re.search(rf"{re.escape(label)}\s*[:：]\s*`?(\d+)`?", text)
     return int(match.group(1)) if match else None
+
+
+def _extract_scalar(text: str, label: str) -> str | None:
+    match = re.search(rf"(?mi)^-?\s*{re.escape(label)}\s*[:：]\s*`?([^`\n]+?)`?\s*$", text)
+    return match.group(1).strip() if match else None
 
 
 def _proposition_section(text: str) -> str:
@@ -98,36 +105,45 @@ def _proposition_rows(text: str) -> list[tuple[str, list[str]]]:
 
 def _validate_proposition_plan(text: str, *, strict: bool) -> tuple[list[str], int | None, set[str]]:
     issues: list[str] = []
-    declared_limit = _extract_int(text, "全文命题上限")
     declared_count = _extract_int(text, "当前计划命题数")
     rows = _proposition_rows(text)
     row_ids = [item[0] for item in rows]
     unique_ids = set(row_ids)
-    if declared_limit is None:
-        issues.append("framework must declare 全文命题上限")
-    elif declared_limit != PROPOSITION_LIMIT:
-        issues.append(f"全文命题上限 must be {PROPOSITION_LIMIT}, got {declared_limit}")
+
     if declared_count is None:
         issues.append("framework must declare 当前计划命题数")
-    elif not 0 <= declared_count <= PROPOSITION_LIMIT:
-        issues.append(f"当前计划命题数 must be between 0 and {PROPOSITION_LIMIT}")
+    elif declared_count < 0:
+        issues.append("当前计划命题数 must be >= 0")
+
     invalid_ids = sorted({item for item in row_ids if not PROPOSITION_ID_PATTERN.fullmatch(item)})
     if invalid_ids:
-        issues.append(f"proposition IDs must be P1--P4: {invalid_ids}")
+        issues.append(f"proposition IDs must match P1, P2, ...: {invalid_ids}")
     if len(row_ids) != len(unique_ids):
         issues.append("duplicate proposition IDs in 命题与证明规划")
     if declared_count is not None and declared_count != len(unique_ids):
         issues.append(
             f"当前计划命题数 ({declared_count}) does not match proposition table rows ({len(unique_ids)})"
         )
+
+    if declared_count is not None and declared_count > PROPOSITION_DEFAULT_BUDGET:
+        budget_status = _extract_scalar(text, "超预算状态") or ""
+        reason = _extract_scalar(text, "超预算说明（若适用）") or _extract_scalar(text, "超预算说明") or ""
+        if budget_status not in {"justified", "已说明", "已论证"}:
+            issues.append(
+                f"proposition count {declared_count} exceeds default budget {PROPOSITION_DEFAULT_BUDGET}; "
+                "set 超预算状态=justified after necessity review"
+            )
+        if strict and not reason:
+            issues.append("over-budget proposition plan requires 超预算说明 in strict mode")
+
     for proposition_id, cells in rows:
         if len(cells) < 9:
-            issues.append(f"{proposition_id} proposition row must contain all nine contract fields")
+            issues.append(f"{proposition_id} proposition row must contain all nine project fields")
             continue
         if strict and cells[8].lower() == "current":
             missing = [index + 1 for index, value in enumerate(cells[:9]) if not value]
             if missing:
-                issues.append(f"{proposition_id} current proposition has empty contract fields: {missing}")
+                issues.append(f"{proposition_id} current proposition has empty project fields: {missing}")
             if cells[5] not in {"A", "B", "C"}:
                 issues.append(f"{proposition_id} proof level must be A, B or C")
     return issues, declared_count, unique_ids
@@ -145,6 +161,7 @@ def validate_framework_text(
         resolved_mode = infer_mode(text, state, mode)
     except ValueError as exc:
         return [str(exc)]
+
     for heading in required_headings(resolved_mode):
         count = text.count(heading)
         if count == 0:
@@ -164,13 +181,8 @@ def validate_framework_text(
     elif cross_heading_count > 1:
         issues.append("duplicate optional cross-question synthesis heading")
 
-    all_known_headings = set(COMPACT_HEADINGS + FULL_EXTRA_HEADINGS + CROSS_QUESTION_HEADING_ALIASES)
-    for heading in all_known_headings:
-        if heading not in required_headings(resolved_mode) and heading not in CROSS_QUESTION_HEADING_ALIASES:
-            if text.count(heading) > 1:
-                issues.append(f"duplicate optional heading: {heading}")
-    if "只保留当前有效" not in text and "当前有效版本" not in text:
-        issues.append("framework must state that only the current effective version is retained")
+    if "只保留" not in text or ("当前有效" not in text and "current" not in text):
+        issues.append("framework must state that only the current effective project state is retained")
 
     proposition_ids: set[str] = set()
     declared_count: int | None = None
@@ -184,6 +196,7 @@ def validate_framework_text(
         unresolved = sorted({token for token in text.split() if token.startswith("__") and token.endswith("__")})
         if unresolved:
             issues.append(f"unresolved framework placeholders: {unresolved}")
+
     if not isinstance(state, Mapping):
         return issues
 
@@ -204,13 +217,14 @@ def validate_framework_text(
             str(item.get("id", "")) for item in entries
             if isinstance(item, Mapping) and str(item.get("id", "")).strip()
         }
-        if framework.get("proposition_limit") != PROPOSITION_LIMIT:
-            issues.append(f"paper_framework.proposition_limit must be {PROPOSITION_LIMIT}")
         state_count = framework.get("proposition_count")
-        if declared_count is not None and state_count != declared_count:
+        if declared_count is not None and state_count is not None and state_count != declared_count:
             issues.append("paper_framework.proposition_count does not match 当前计划命题数")
         if isinstance(state_count, int) and state_count != len(entries):
             issues.append("paper_framework.proposition_count does not match propositions array length")
+        unknown_state_ids = sorted(item for item in state_ids if not PROPOSITION_ID_PATTERN.fullmatch(item))
+        if unknown_state_ids:
+            issues.append(f"project-state proposition IDs must match P1, P2, ...: {unknown_state_ids}")
         if proposition_ids and state_ids != proposition_ids:
             issues.append("project-state proposition IDs do not match 模型论文框架.md")
         if not proposition_ids and state_ids and resolved_mode == "full":
