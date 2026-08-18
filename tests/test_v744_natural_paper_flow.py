@@ -56,14 +56,15 @@ class NaturalPaperFlowV744Tests(unittest.TestCase):
     def test_cleanup_reviews_negation_density_evidence_and_body_references(self):
         text = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
         for token in (
-            "多次使用“本文不是……而是……”",
+            "本文不是……而是……",
             "制造无必要冲突",
             "核心图表",
-            "显式编号引用",
-            "模板段与元话语清理",
-            "证明循环论证",
-            "引用证据清理",
-            "机器审计",
+            "Citation Evidence",
+            "Paragraph Necessity Test",
+            "## B. Evidence closure",
+            "## C. Style & necessity",
+            "## D. Optional machine diagnostics",
+            "机器审计不得自动重写正文",
         ):
             self.assertIn(token, text)
 
@@ -91,7 +92,7 @@ class NaturalPaperFlowV744Tests(unittest.TestCase):
     def test_framework_remembers_current_project_writing_choices_without_copying_manual(self):
         text = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
         for token in (
-            "v0.7-project-memory",
+            "v0.8-project-memory",
             "### 当前写作选择",
             "正文总体结构",
             "共享基础与跨问递进",
@@ -100,6 +101,10 @@ class NaturalPaperFlowV744Tests(unittest.TestCase):
             "特殊结构例外",
             "### 核心公式 Trace",
             "### Citation Evidence",
+            "### Terminology Registry",
+            "### Numeric Profile",
+            "### Title Claim Gate",
+            "### 正文局部状态映射",
             "### 正文章节与交付映射",
         ):
             self.assertIn(token, text)
