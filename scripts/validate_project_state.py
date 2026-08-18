@@ -34,6 +34,7 @@ ARTIFACT_LAYERS = {
     "robustness_workbook", "matlab_script", "figure_bundle", "framework",
 }
 HIGH_PRECISION_BASES = {"prompt", "official", "reviewer", "project_high_precision"}
+AUXILIARY_REJECT_ACTION_MARKERS = ("remove", "rewrite", "drop", "delete", "删除", "重写", "撤回")
 
 
 def load_yaml(path: Path) -> Any:
@@ -47,6 +48,11 @@ def _artifact_exists(project_root: Path, value: Any) -> bool:
 def _sha256_text(path: Path) -> str:
     text = path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _uses_fragment_stale(framework: Mapping[str, Any]) -> bool:
+    version = str(framework.get("version", "")).strip()
+    return version.startswith("v0.8") or "paper_fragments" in framework
 
 
 def _validate_propositions(
@@ -223,11 +229,13 @@ def _validate_analysis_dispositions(name: str, state: Mapping[str, Any]) -> list
         action = str(entry.get("required_action", "")).strip()
         if disposition in {"modify", "reject"} and not action:
             issues.append(f"{name}.{evidence_id}.required_action is required for {disposition}")
-        if disposition == "reject" and state.get("result_analysis_status") == "passed" and "remove" not in action.lower() and "删除" not in action:
-            issues.append(
-                f"{name}.{evidence_id} rejects a claim while result_analysis_status=passed; "
-                "record an explicit remove/rewrite action or set redo_required for a rejected core claim"
-            )
+        if disposition == "reject" and state.get("result_analysis_status") == "passed":
+            lowered = action.lower()
+            if not any(marker in lowered or marker in action for marker in AUXILIARY_REJECT_ACTION_MARKERS):
+                issues.append(
+                    f"{name}.{evidence_id} rejects a claim while result_analysis_status=passed; "
+                    "record an explicit remove/rewrite action or set redo_required for a rejected core claim"
+                )
     if len(ids) != len(set(ids)):
         issues.append(f"{name}.analysis_evidence_dispositions must use unique IDs")
     return issues
@@ -376,6 +384,7 @@ def validate_state_payload(
 
     project = payload.get("project", {}) or {}
     framework = payload.get("paper_framework", {}) or {}
+    fragment_mode = _uses_fragment_stale(framework)
     phase = str(project.get("current_phase", ""))
     framework_path = project_root / str(framework.get("path", "模型论文框架.md"))
     framework_sync = framework.get("sync_status")
@@ -384,7 +393,7 @@ def validate_state_payload(
         if _sha256_text(framework_path).lower() != str(expected_framework_hash).lower():
             issues.append("paper_framework.sha256 does not match the current framework file")
 
-    proposition_issues, proposition_ids, _ = _validate_propositions(
+    proposition_issues, proposition_ids, proposition_stale = _validate_propositions(
         framework, framework_sync=framework_sync
     )
     issues.extend(proposition_issues)
@@ -467,10 +476,18 @@ def validate_state_payload(
             if paper and not _artifact_exists(project_root, paper):
                 issues.append(f"{name}.paper_source does not exist")
 
-    if phase in FRAMEWORK_REQUIRED_PHASES and framework_sync != "current":
-        issues.append(f"paper_framework.sync_status must be current in phase {phase}; local stale belongs in paper_framework.paper_fragments")
-    if phase in {"review_delivery", "completed"} and has_stale_fragments:
-        issues.append(f"paper_framework.paper_fragments contains stale items in phase {phase}")
+    if fragment_mode:
+        if phase in FRAMEWORK_REQUIRED_PHASES and framework_sync != "current":
+            issues.append(f"paper_framework.sync_status must be current in phase {phase}; local stale belongs in paper_framework.paper_fragments")
+        if phase in {"review_delivery", "completed"} and has_stale_fragments:
+            issues.append(f"paper_framework.paper_fragments contains stale items in phase {phase}")
+    else:
+        legacy_any_stale = any_subproblem_stale or proposition_stale
+        if phase in FRAMEWORK_REQUIRED_PHASES and framework_sync != "current" and not legacy_any_stale:
+            issues.append(f"paper_framework.sync_status must be current in phase {phase}")
+        if legacy_any_stale and framework_sync == "current":
+            issues.append("paper_framework.sync_status cannot remain current while a legacy subproblem or proposition is stale")
+
     if phase == "completed":
         if any_subproblem_stale:
             issues.append("completed project cannot retain stale subproblem artifacts")
