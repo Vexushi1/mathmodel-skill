@@ -140,4 +140,4 @@
 - 必需 citation key 不存在、外部核心数据/参数完全无来源；
 - LaTeX 无法编译或提交包缺核心文件。
 
-以下**不再自动列为 Blocking**：命题超过 4 个、优点没有多于缺点、简单问题没有独立“核心模型汇总”小节、短证明超过经验行数预算。它们按 Authority 对应 Default/Recommendation 处理。
+以下**不再自动列为 Blocking**：命题超过默认正文预算、优缺点条目数量关系、简单问题没有独立“核心模型汇总”小节、短证明超过经验行数预算。它们按 Authority 对应 Default/Recommendation 处理。
