@@ -1,7 +1,7 @@
 {
   "name": "mathmodel-skill",
-  "version": "7.6.0",
-  "description": "HSK lightweight-bootstrap mathematical-modeling workflow with Problem Contract freezing, semantic closure, evidence-driven conditional preprocessing, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, assistant-readable model-paper project memory, Source-Derivation-Destination formula traces, tiered writing governance, Citation Evidence, adaptive proposition/core-model-summary policies, final prose/BibTeX audit, and LaTeX-first authoring.",
+  "version": "7.7.0",
+  "description": "HSK lightweight-bootstrap mathematical-modeling workflow with Problem Contract freezing, semantic closure, evidence-driven conditional preprocessing, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, assistant-readable model-paper project memory, Source-Derivation-Destination formula traces, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware high-precision Numeric Profile, Title Claim Gate, support/modify/reject analysis evidence, local paper-fragment stale propagation, Paragraph Necessity, final prose/BibTeX audit, and LaTeX-first authoring.",
   "author": {
     "name": "HSK"
   },
@@ -18,12 +18,14 @@
     "result-analysis",
     "paper-writing",
     "citation-evidence",
+    "terminology-governance",
+    "numeric-style",
     "project-sync"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "HSK 数学建模 Skill",
-    "shortDescription": "题意冻结、条件式预处理、证据治理、双阶段Python、LaTeX终稿",
+    "shortDescription": "题意冻结、条件式预处理、高精度论文证据治理、双阶段Python、LaTeX终稿",
     "category": "Education",
     "capabilities": [
       "Interactive",
