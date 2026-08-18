@@ -12,20 +12,16 @@ class TestV750WritingReasoningArchitecture(unittest.TestCase):
         self.assertEqual(data["scope"]["competitions"], "all")
         families = set(data["scope"]["task_families"])
         for family in (
-            "mechanism_geometry",
-            "statistics_regression",
-            "prediction_time_series",
-            "optimization_operations_research",
-            "machine_learning",
-            "spatial_econometrics",
-            "mixed_multi_question",
+            "mechanism_geometry", "statistics_regression", "prediction_time_series",
+            "optimization_operations_research", "machine_learning",
+            "spatial_econometrics", "mixed_multi_question",
         ):
             self.assertIn(family, families)
         anti = "\n".join(data["scope"]["anti_template_boundary"])
         self.assertIn("不从单一优秀论文复制", anti)
         self.assertIn("不要求所有论文设置", anti)
 
-    def test_formula_chain_has_source_derivation_destination_and_adaptive_depth(self):
+    def test_formula_chain_has_source_derivation_destination_and_internal_trace(self):
         data = yaml.safe_load((ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8"))
         chain = data["formula_reasoning_chain"]
         self.assertEqual(chain["chain"], ["source", "derivation", "destination"])
@@ -33,6 +29,11 @@ class TestV750WritingReasoningArchitecture(unittest.TestCase):
         self.assertIn("build_constraint", chain["destination_allowed"])
         self.assertIn("按题型自适应", chain["derivation_rule"])
         self.assertIn("下一步如何使用", "\n".join(chain["chain_quality_rules"]))
+        trace = chain["internal_trace"]
+        self.assertEqual(trace["status_values"], ["closed", "gap", "stale"])
+        for field in ("formula_id", "question", "source", "derivation", "destination", "status"):
+            self.assertIn(field, trace["required_fields"])
+        self.assertIn("不使用正则", trace["rule"])
 
     def test_shared_foundation_and_progression_are_conditional(self):
         data = yaml.safe_load((ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8"))
@@ -45,10 +46,8 @@ class TestV750WritingReasoningArchitecture(unittest.TestCase):
         self.assertEqual(
             progression["paragraph_information_order"],
             [
-                "inherited_structure",
-                "new_object_condition_or_requirement",
-                "changed_modeling_difficulty",
-                "model_and_solver_increment",
+                "inherited_structure", "new_object_condition_or_requirement",
+                "changed_modeling_difficulty", "model_and_solver_increment",
             ],
         )
 
@@ -61,7 +60,9 @@ class TestV750WritingReasoningArchitecture(unittest.TestCase):
         self.assertIn("candidate_range", params["chain"])
         self.assertIn("selected_value", params["chain"])
         self.assertIn("optimization", params["evidence_by_family"])
-        self.assertIn("机器学习", (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8"))
+        latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
+        self.assertIn("高级算法前", latex)
+        self.assertIn("降维", latex)
 
     def test_multi_method_validation_has_numerical_and_structural_levels(self):
         data = yaml.safe_load((ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8"))
@@ -70,16 +71,16 @@ class TestV750WritingReasoningArchitecture(unittest.TestCase):
         self.assertIn("structural_consistency", two)
         latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
         self.assertIn("结构结论", latex)
-        self.assertIn("数值接近但结构判断冲突", latex)
+        self.assertIn("数值接近而结构判断冲突", latex)
 
-    def test_framework_records_reasoning_without_creating_user_sidecar_files(self):
+    def test_framework_records_project_reasoning_without_copying_manual(self):
         framework = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
-        self.assertIn("### 推理结构合同", framework)
-        self.assertIn("共享基础模型判断", framework)
-        self.assertIn("跨问模型增量", framework)
-        self.assertIn("核心公式链索引", framework)
-        self.assertIn("数值参数依据", framework)
-        self.assertIn("不把内部合同表机械复制进正文", framework)
+        self.assertIn("### 共享基础与跨问增量", framework)
+        self.assertIn("### 核心公式 Trace", framework)
+        self.assertIn("### 数值参数依据", framework)
+        self.assertIn("### Citation Evidence", framework)
+        self.assertIn("通用写作规则不在这里重复", framework)
+        self.assertNotIn("命题准入检查：", framework)
 
     def test_reasoning_chain_is_registered_in_manifest_and_output_contract(self):
         manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
@@ -115,6 +116,14 @@ class TestV750WritingReasoningArchitecture(unittest.TestCase):
         self.assertTrue(boundary["report_only_for_semantic_style_risks"])
         self.assertIn("mathematical_correctness_from_regex", boundary["must_not_claim"])
         self.assertIn("formula_source_semantic_validity_from_keywords_only", boundary["must_not_claim"])
+        self.assertIn("citation_semantic_support_from_key_presence_only", boundary["must_not_claim"])
+
+    def test_tiered_governance_and_citation_evidence_are_first_class(self):
+        data = yaml.safe_load((ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8"))
+        self.assertEqual(set(data["rule_governance"]["levels"]), {"hard", "default", "recommendation"})
+        self.assertIn("citation_evidence", data)
+        self.assertFalse(data["proposition_governance"]["automatic_rejection_over_budget"])
+        self.assertEqual(data["adaptive_core_model_summary"]["modes"], ["required", "inline", "not_applicable"])
 
 
 if __name__ == "__main__":
