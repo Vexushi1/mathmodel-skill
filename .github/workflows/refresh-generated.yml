@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - "codex/**"
+      - "feat/**"
       - "fix/**"
       - "refactor/**"
       - "upgrade/**"
