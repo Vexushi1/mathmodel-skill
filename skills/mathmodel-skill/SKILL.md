@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.6.0
-summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, evidence-driven conditional preprocessing, full-fidelity user execution, separate primary/result-analysis Python stages, project-memory model-paper framework, Source-Derivation-Destination formula traces, tiered writing governance, Citation Evidence, adaptive proposition/core-model-summary policies, MATLAB evidence figures, prose/BibTeX audit, and LaTeX-first delivery.
+version: 7.7.0
+summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, evidence-driven conditional preprocessing, full-fidelity user execution, separate primary/result-analysis Python stages, project-memory model-paper framework, Source-Derivation-Destination formula traces, tiered writing governance, Terminology Registry, high-precision Numeric Profile, Title Claim Gate, Citation Evidence, local paper-fragment stale propagation, MATLAB evidence figures, prose/BibTeX audit, and LaTeX-first delivery.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 数据预处理, 数据清洗, 主结果质量, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.6.0
+# HSK 数学建模模块化工作流 v7.7.0
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -30,7 +30,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 
 正式模型/代码前完成 Problem Contract、当前附件数据审计、`preprocessing_decision`、题面—数学—代码—输出语义闭环和 Complexity Sanity Check，并通过 `../../scripts/validate_semantic_governance.py`。
 
-`模型论文框架.md` 是当前项目事实与语义索引，只保存当前项目选择、Formula Trace、参数证据、命题、Citation Evidence、结果摘要和图表映射。数值事实来自已验收工作簿，semantic revision/hash/stale 来自 `state/project_state.yaml`。
+`模型论文框架.md` 是当前项目事实与语义索引，只保存当前项目选择、Formula Trace、参数证据、Terminology Registry、Numeric Profile、Title Claim Gate、命题、Citation Evidence、paper-fragment 状态、结果摘要和图表映射。数值事实来自已验收工作簿，semantic revision/hash/stale 来自 `state/project_state.yaml`。
 
 数据决策只有：
 
@@ -53,8 +53,8 @@ project_level
 └─ qX_plot.m
 ```
 
-题目专属 Python 由用户本地 full-fidelity 执行。主工作簿 accepted 后冻结主脚本，再独立生成结果深化分析脚本。
+题目专属 Python 由用户本地 full-fidelity 执行。主工作簿 accepted 后冻结主脚本，再独立生成结果深化分析脚本；深化证据通过 `support / modify / reject` 说明其对具体主张的作用。
 
-写作规则按单一 Authority 链加载：`core/writing_reasoning_contract.yaml` 管理 Hard / Default / Recommendation、命题预算和 Citation Evidence；`modules/05_writing/latex.md` 管正文结构与表达；AI-cleanup、DOCX、review 和 Artifact Packs 只消费这些 Authority。核心模型收束按 `required / inline / not_applicable` 自适应；命题 0--4 是默认阅读预算而非 Hard 上限；优缺点没有强制数量关系。
+写作规则按单一 Authority 链加载：`core/writing_reasoning_contract.yaml` 管理 Hard / Default / Recommendation、Terminology Registry、Numeric Profile、Title Claim、命题预算、Citation Evidence 和 Paragraph Necessity；`modules/05_writing/latex.md` 管正文结构与表达；AI-cleanup、DOCX、review 和 Artifact Packs 只消费这些 Authority。核心模型收束按 `required / inline / not_applicable` 自适应；命题 0--4 是默认阅读预算而非 Hard 上限；优缺点没有强制数量关系。
 
-正式 LaTeX 在 AI cleanup 后运行 prose/BibTeX audit，再进入编译和终审。目录、交付和同步门以 `core/output_contract.yaml` 为准。
+评分型连续核心结果若有题面/官方/已核验评分精度则严格服从；否则摘要和正文默认优先保留小数点后 **6--7 位**，不因篇幅擅自降低决定性结果精度。正式 LaTeX 在 AI cleanup 后运行 prose/structure/BibTeX audit，可通过 `--framework 模型论文框架.md` 联动术语和 Numeric Profile，再进入编译和终审。目录、交付和同步门以 `core/output_contract.yaml` 为准。
