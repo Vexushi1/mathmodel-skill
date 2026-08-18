@@ -4,8 +4,8 @@ project:
   problem: A
   current_phase: model_design
   objectives: [explanation, optimization]
-  version: v0.9-writing-governance
-  updated_at: '2026-08-18T02:39:00Z'
+  version: v1.0-paper-semantic-governance
+  updated_at: '2026-08-18T08:00:00Z'
 requirements:
   total: 5
   completed: [Q1]
@@ -84,6 +84,7 @@ subproblems:
     random_seed: 2026
     tolerance: 1.0e-8
     analysis_methods: []
+    analysis_evidence_dispositions: []
     evidence: []
 variables:
   locked: [x_i, t, v]
@@ -93,11 +94,15 @@ variables:
     v: 题目给定速度
 paper_framework:
   path: 模型论文框架.md
-  version: v0.7-project-memory
+  version: v0.8-project-memory
   mode: compact
   sync_status: current
-  last_synced_at: '2026-08-18T02:39:00Z'
+  last_synced_at: '2026-08-18T08:00:00Z'
   last_sync_scope: Q1 Problem Contract、语义闭环、复杂度复审与preprocessing_decision=not_needed已锁定，主求解待执行
+  terminology_registry: []
+  numeric_profile: []
+  title_claims: []
+  paper_fragments: []
   proposition_default_budget: 4
   proposition_budget_status: within_default_budget
   proposition_budget_reason: ''
