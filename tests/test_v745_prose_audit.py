@@ -69,7 +69,7 @@ class TestV745ProseAudit(unittest.TestCase):
         findings = self.audit.audit_text(tex)
         self.assertEqual(self.audit.overall_status(findings), "pass", findings)
 
-    def test_structural_regressions_require_review(self):
+    def test_default_structural_regressions_require_review_and_style_ids_warn(self):
         tex = r"""
 \begin{document}
 \section{问题重述}
@@ -89,13 +89,14 @@ H1. 数据满足要求。
 \end{document}
 """
         findings = self.audit.audit_text(tex)
-        codes = {item.code for item in findings if item.severity == "review_required"}
-        self.assertIn("missing_problem_statement", codes)
-        self.assertIn("legacy_problem_requirement", codes)
-        self.assertIn("merged_assumption_symbol_section", codes)
-        self.assertIn("visible_assumption_contract_id", codes)
-        self.assertIn("missing_core_model_summary", codes)
-        self.assertIn("standalone_conclusion", codes)
+        review_codes = {item.code for item in findings if item.severity == "review_required"}
+        warning_codes = {item.code for item in findings if item.severity == "warning"}
+        self.assertIn("missing_problem_statement", review_codes)
+        self.assertIn("legacy_problem_requirement", review_codes)
+        self.assertIn("merged_assumption_symbol_section", review_codes)
+        self.assertIn("standalone_conclusion", review_codes)
+        self.assertIn("visible_assumption_contract_id", warning_codes)
+        self.assertIn("no_named_core_model_summary", warning_codes)
         self.assertEqual(self.audit.overall_status(findings), "review_required")
 
     def test_repeated_negation_is_warning_not_word_ban(self):
@@ -210,38 +211,33 @@ H1. 数据满足要求。
         findings = self.audit.audit_text(tex)
         self.assertTrue(any(x.code == "background_management_paragraph" for x in findings), findings)
 
-    def test_strict_cli_blocks_only_review_required(self):
+    def test_strict_status_can_distinguish_warning_review_and_blocking(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "main.tex"
             path.write_text(r"\begin{document}\section{结论}重复总结。\end{document}", encoding="utf-8")
             findings = self.audit.audit_file(path)
             self.assertEqual(self.audit.overall_status(findings), "review_required")
 
-    def test_machine_contract_uses_paragraph_first_logical_units(self):
-        contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
-        policy = contract["writing_policy"]
-        proposition = contract["proposition_contract"]
+            duplicate = self.audit.audit_text(
+                r"\begin{document}\label{fig:x}\label{fig:x}\end{document}"
+            )
+            self.assertEqual(self.audit.overall_status(duplicate), "blocking")
 
-        self.assertEqual(policy["proof_structure_default"], "paragraph_first")
-        self.assertTrue(policy["proof_logical_units_required"])
-        self.assertTrue(policy["proof_numbered_steps_when_needed"])
-        self.assertNotIn("proposition_proof_segmented_steps", policy)
+    def test_machine_contract_delegates_proof_structure_to_reasoning_authority(self):
+        output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
+        proposition = output["proposition_contract"]
+        reasoning = yaml.safe_load((ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8"))
+        self.assertEqual(proposition["authority"], "core/writing_reasoning_contract.yaml#proposition_governance")
+        self.assertEqual(proposition["default_budget"], [0, 4])
+        self.assertFalse(proposition["automatic_rejection_over_budget"])
+        self.assertIn("proof_length_recommendation", reasoning["proposition_governance"])
 
-        self.assertEqual(proposition["main_text_default_structure"], "paragraph_first")
-        self.assertTrue(proposition["logical_units_required"])
-        self.assertTrue(proposition["numbered_steps_when_needed"])
-        self.assertEqual(proposition["numbered_steps_min"], 2)
-        self.assertEqual(proposition["numbered_steps_max"], 6)
-        self.assertNotIn("segmented_steps_required", proposition)
-        self.assertNotIn("main_text_key_steps_min", proposition)
-        self.assertNotIn("main_text_key_steps_max", proposition)
-
-    def test_writing_contract_exposes_prose_audit(self):
+    def test_writing_contract_exposes_tiered_prose_audit(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         policy = contract["writing_policy"]
         self.assertEqual(policy["prose_audit_script"], "scripts/audit_paper_prose.py")
         self.assertEqual(policy["prose_audit_default_mode"], "report_only")
-        self.assertEqual(policy["prose_audit_strict_blocks_on"], "review_required")
+        self.assertEqual(policy["prose_audit_strict_blocks_on"], ["blocking", "review_required"])
 
 
 if __name__ == "__main__":
