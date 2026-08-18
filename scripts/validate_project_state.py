@@ -23,8 +23,8 @@ FRAMEWORK_REQUIRED_PHASES = {
     "writing_docx", "writing_latex", "ai_cleanup", "latex_compile_quality",
     "review_delivery", "completed",
 }
-PROPOSITION_LIMIT = 4
-PROPOSITION_ID_PATTERN = re.compile(r"^P[1-4]$")
+PROPOSITION_DEFAULT_BUDGET = 4
+PROPOSITION_ID_PATTERN = re.compile(r"^P[1-9][0-9]*$")
 CURRENT_PROPOSITION_REQUIRED_FIELDS = (
     "assumptions_and_domain", "conclusion", "modeling_effect",
     "failure_boundary", "framework_anchor",
@@ -52,16 +52,28 @@ def _validate_propositions(
     framework: Mapping[str, Any], *, framework_sync: Any,
 ) -> tuple[list[str], set[str], bool]:
     issues: list[str] = []
-    limit = framework.get("proposition_limit")
     count = framework.get("proposition_count")
     status = framework.get("proposition_status")
     entries = framework.get("propositions", []) or []
-    if limit != PROPOSITION_LIMIT:
-        issues.append(f"paper_framework.proposition_limit must be {PROPOSITION_LIMIT}")
-    if not isinstance(count, int) or not 0 <= count <= PROPOSITION_LIMIT:
-        issues.append(f"paper_framework.proposition_count must be an integer in [0, {PROPOSITION_LIMIT}]")
+
+    if not isinstance(count, int) or count < 0:
+        issues.append("paper_framework.proposition_count must be a non-negative integer")
     if isinstance(count, int) and count != len(entries):
         issues.append("paper_framework.proposition_count must equal len(paper_framework.propositions)")
+
+    if isinstance(count, int) and count > PROPOSITION_DEFAULT_BUDGET:
+        budget_status = framework.get("proposition_budget_status")
+        reason = str(framework.get("proposition_budget_reason", "")).strip()
+        if budget_status != "justified":
+            issues.append(
+                f"paper_framework has {count} propositions, above default budget {PROPOSITION_DEFAULT_BUDGET}; "
+                "proposition_budget_status must be justified"
+            )
+        if not reason:
+            issues.append("paper_framework.proposition_budget_reason is required above the default proposition budget")
+    elif framework.get("proposition_budget_status") == "justification_required":
+        issues.append("paper_framework.proposition_budget_status cannot remain justification_required within default budget")
+
     ids: list[str] = []
     has_stale = status == "stale"
     for index, entry in enumerate(entries):
@@ -71,7 +83,7 @@ def _validate_propositions(
         proposition_id = str(entry.get("id", "")).strip()
         ids.append(proposition_id)
         if not PROPOSITION_ID_PATTERN.fullmatch(proposition_id):
-            issues.append(f"invalid proposition id: {proposition_id or '<empty>'}; use P1--P4")
+            issues.append(f"invalid proposition id: {proposition_id or '<empty>'}; use P1, P2, ...")
         entry_status = str(entry.get("status", ""))
         if entry_status == "stale":
             has_stale = True

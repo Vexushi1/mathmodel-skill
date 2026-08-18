@@ -36,20 +36,14 @@ class EntrypointParityV752Tests(unittest.TestCase):
     def test_runtime_contract_delegates_to_single_authority_chain(self):
         block = extract_contract(ROOT_SKILL)
         for token in (
-            "core/bootstrap.yaml",
-            "core/workflow_router.yaml",
-            "core/hsk_core_policy.md",
-            "scripts/resolve_workflow.py",
-            "core/writing_reasoning_contract.yaml",
-            "模型论文框架.md",
-            "legacy/",
+            "core/bootstrap.yaml", "core/workflow_router.yaml", "core/hsk_core_policy.md",
+            "scripts/resolve_workflow.py", "core/writing_reasoning_contract.yaml",
+            "模型论文框架.md", "legacy/",
         ):
             self.assertIn(token, block)
         for stale in (
-            "HSK_RUNTIME_ROUTER_V622.md",
-            "HSK_SKILL_FILE_INDEX_V622.md",
-            "HSK_TEMPLATE_INDEX_V622.md",
-            "PROJECT_INSTRUCTIONS_HSK_V622.md",
+            "HSK_RUNTIME_ROUTER_V622.md", "HSK_SKILL_FILE_INDEX_V622.md",
+            "HSK_TEMPLATE_INDEX_V622.md", "PROJECT_INSTRUCTIONS_HSK_V622.md",
         ):
             self.assertNotIn(stale, block)
         self.assertIn("不作为模型、预处理、求解、绘图或写作规则的独立权威", block)
@@ -72,12 +66,14 @@ class EntrypointParityV752Tests(unittest.TestCase):
 
     def test_readme_release_history_matches_current_architecture(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertTrue(readme.startswith("# mathmodel-skill v7.5.2"))
-        self.assertIn("## v7.5.2：双 Skill 入口语义防漂移", readme)
-        self.assertIn("## v7.5.1：读取架构瘦身与单一事实源强化", readme)
-        self.assertIn("## v7.5.0：跨比赛公式推理与证据驱动写作架构", readme)
-        self.assertIn("## v7.4.5：证明机器契约收口与成稿 prose audit", readme)
-        self.assertNotIn("## v7.5.1：证明机器契约收口与成稿 prose audit", readme)
+        self.assertTrue(readme.startswith("# mathmodel-skill v7.6.0"))
+        self.assertIn("## v7.6.0：写作治理收口与 Citation Evidence", readme)
+        self.assertIn("Hard / Default / Recommendation", readme)
+        self.assertIn("Citation Evidence", readme)
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertIn("## Current release: 7.6.0", changelog)
+        self.assertIn("## Previous release: 7.5.2", changelog)
+        self.assertIn("## Previous release: 7.5.0", changelog)
 
     def test_one_shot_v752_migration_files_are_absent(self):
         paths = (
