@@ -7,7 +7,8 @@ Severity follows writing governance:
 - warning: Recommendation/style risk.
 
 The audit never rewrites paper text and never infers mathematical correctness, formula
-source validity, parameter optimality, theorem applicability or citation semantics.
+source validity, parameter optimality, theorem applicability, citation semantics, or
+unregistered terminology equivalence.
 """
 from __future__ import annotations
 
@@ -25,9 +26,10 @@ QUESTION_SECTION_RE = re.compile(r"\\section\{问题[一二三四五六七八九
 SECTION_RE = re.compile(r"\\section\{([^{}]+)\}")
 LABEL_ANY_RE = re.compile(r"\\label\{([^{}]+)\}")
 FIGTAB_LABEL_RE = re.compile(r"\\label\{((?:fig|tab):[^{}]+)\}")
+REF_RE = re.compile(r"\\(?:ref|eqref|autoref|cref|Cref)\{([^{}]+)\}")
 CITE_RE = re.compile(r"\\(?:cite|citep|citet|parencite|textcite)\*?(?:\[[^\]]*\])?\{([^{}]+)\}")
 NOCITE_ALL_RE = re.compile(r"\\nocite\{\*\}")
-REF_TEMPLATE = r"\\(?:ref|autoref|cref|Cref)\{{{label}\}}"
+REF_TEMPLATE = r"\\(?:ref|eqref|autoref|cref|Cref)\{{{label}\}}"
 DERIVATION_STOCK_PATTERNS = ("进一步可得", "同理可得", "容易得到", "不难得到")
 META_NAV_PATTERNS = ("本节主要", "下面将", "下文将", "为了便于", "为了更好地")
 PARAM_ASSIGN_RE = re.compile(
@@ -39,6 +41,14 @@ FORMULA_BLOCK_RE = re.compile(
     flags=re.S,
 )
 BIB_ENTRY_RE = re.compile(r"(?ms)^\s*@([A-Za-z]+)\s*\{\s*([^,\s]+)\s*,")
+FIGURE_ENV_RE = re.compile(r"\\begin\{figure\*?\}(.*?)\\end\{figure\*?\}", flags=re.S)
+TABLE_ENV_RE = re.compile(r"\\begin\{table\*?\}(.*?)\\end\{table\*?\}", flags=re.S)
+CAPTION_RE = re.compile(r"\\caption(?:\[[^\]]*\])?\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}", flags=re.S)
+ABSTRACT_ENV_RE = re.compile(r"\\begin\{abstract\}(.*?)\\end\{abstract\}", flags=re.S)
+KEYWORDS_RE = re.compile(r"\\(?:keywords|keyword)\s*\{([^{}]+)\}", flags=re.I)
+DECIMAL_RE = re.compile(r"(?<![\w.])[-+]?\d+\.(\d+)(?!\w)")
+TERM_ID_RE = re.compile(r"^T[1-9][0-9]*$")
+METRIC_ID_RE = re.compile(r"^N[1-9][0-9]*$")
 
 
 @dataclass(frozen=True)
@@ -94,7 +104,7 @@ def _plain_paragraphs(body: str) -> list[str]:
     text = _remove_non_prose_blocks(body)
     text = re.sub(r"\\(?:section|subsection|subsubsection|paragraph)\*?\{[^{}]*\}", "\n\n", text)
     text = re.sub(r"\\(?:begin|end)\{[^{}]+\}", "\n", text)
-    text = re.sub(r"\\(?:label|ref|autoref|cref|Cref|cite|citep|citet|parencite|textcite)\{[^{}]*\}", " ", text)
+    text = re.sub(r"\\(?:label|ref|eqref|autoref|cref|Cref|cite|citep|citet|parencite|textcite)\{[^{}]*\}", " ", text)
     text = re.sub(r"\\[A-Za-z@]+\*?(?:\[[^\]]*\])?", " ", text)
     text = text.replace("{", " ").replace("}", " ")
     paragraphs = [re.sub(r"\s+", " ", p).strip() for p in re.split(r"\n\s*\n", text)]
@@ -147,10 +157,8 @@ def _formula_run_warning(main: str) -> Finding | None:
         if i - run_start + 1 >= 3:
             excerpt = re.sub(r"\s+", " ", main[matches[run_start].start():matches[i].end()])[:180]
             return Finding(
-                "warning",
-                "dense_formula_run",
-                "连续多个展示公式之间解释文字很少；请人工确认核心关系的来源、关键推理和后续用途。",
-                excerpt,
+                "warning", "dense_formula_run",
+                "连续多个展示公式之间解释文字很少；请人工确认核心关系的来源、关键推理和后续用途。", excerpt,
             )
     return None
 
@@ -160,6 +168,83 @@ def _citation_keys(tex: str) -> set[str]:
     for group in CITE_RE.findall(tex):
         keys.update(item.strip() for item in group.split(",") if item.strip())
     return keys
+
+
+def _markdown_table_rows(text: str, heading: str, id_pattern: re.Pattern[str]) -> list[list[str]]:
+    start = text.find(heading)
+    if start < 0:
+        return []
+    tail = text[start + len(heading):]
+    match = re.search(r"(?m)^#{1,3}\s+", tail)
+    block = tail[:match.start()] if match else tail
+    rows: list[list[str]] = []
+    for line in block.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if cells and id_pattern.fullmatch(cells[0]):
+            rows.append(cells)
+    return rows
+
+
+def _split_aliases(value: str) -> set[str]:
+    return {item.strip() for item in re.split(r"[/、,，;；]", value) if item.strip() and item.strip() not in {"无", "-", "—"}}
+
+
+def audit_framework_semantics(tex_text: str, framework_text: str | None) -> list[Finding]:
+    findings: list[Finding] = []
+    if framework_text is None:
+        return findings
+    prose = _remove_non_prose_blocks(_main_text_before_appendix(_document_body(tex_text)))
+
+    term_rows = _markdown_table_rows(framework_text, "### Terminology Registry", TERM_ID_RE)
+    alias_owner: dict[str, str] = {}
+    for row in term_rows:
+        if len(row) < 9:
+            continue
+        canonical = row[1]
+        discouraged = _split_aliases(row[5])
+        confusable = _split_aliases(row[6])
+        for alias in _split_aliases(row[4]) | discouraged:
+            owner = alias_owner.get(alias)
+            if owner and owner != canonical:
+                findings.append(Finding("blocking", "terminology_alias_collision", f"Terminology Registry 中别名“{alias}”同时映射到不同标准术语。", alias))
+            alias_owner[alias] = canonical
+        used_discouraged = sorted(alias for alias in discouraged if alias and alias in prose)
+        if used_discouraged:
+            findings.append(Finding("warning", "registered_terminology_drift", f"正文出现 {row[0]} 的不推荐别名，请统一回标准术语“{canonical}”。", ", ".join(used_discouraged[:6])))
+        if canonical and canonical in prose:
+            for other in confusable:
+                for match in re.finditer(re.escape(canonical), prose):
+                    window = prose[max(0, match.start() - 250): min(len(prose), match.end() + 250)]
+                    if other in window:
+                        findings.append(Finding("warning", "local_confusable_terms", f"标准术语“{canonical}”与易混术语“{other}”在局部同时出现，请确认定义、分母/单位或样本口径没有混用。", f"{canonical} / {other}"))
+                        break
+
+    metric_rows = _markdown_table_rows(framework_text, "### Numeric Profile", METRIC_ID_RE)
+    for row in metric_rows:
+        if len(row) < 10:
+            continue
+        metric = row[1]
+        required = row[5]
+        basis = row[9]
+        digits = [int(x) for x in re.findall(r"\d+", required)]
+        if not metric or not digits:
+            continue
+        min_digits = min(digits)
+        for match in re.finditer(re.escape(metric), prose):
+            window = prose[match.end(): min(len(prose), match.end() + 120)]
+            decimal = DECIMAL_RE.search(window)
+            if not decimal:
+                continue
+            actual = len(decimal.group(1))
+            if actual < min_digits:
+                verified = bool(re.search(r"已核验|官方|题面明确|评分口径", basis))
+                severity = "blocking" if verified else "warning"
+                code = "scoring_result_precision_loss" if verified else "numeric_precision_anomaly"
+                findings.append(Finding(severity, code, f"指标“{metric}”邻近数值仅保留 {actual} 位小数，低于 Numeric Profile 声明的至少 {min_digits} 位。", decimal.group(0)))
+                break
+    return findings
 
 
 def audit_bibliography(tex_text: str, bib_text: str | None) -> list[Finding]:
@@ -194,16 +279,79 @@ def audit_bibliography(tex_text: str, bib_text: str | None) -> list[Finding]:
     return findings
 
 
+def _audit_reference_closure(main: str) -> list[Finding]:
+    findings: list[Finding] = []
+    labels = LABEL_ANY_RE.findall(main)
+    label_set = set(labels)
+    duplicates = sorted({label for label in labels if labels.count(label) > 1})
+    for label in duplicates:
+        findings.append(Finding("blocking", "duplicate_label", f"正文存在重复 LaTeX label：{label}", label))
+
+    ref_targets = [target.strip() for target in REF_RE.findall(main)]
+    for target in sorted(set(ref_targets) - label_set):
+        findings.append(Finding("blocking", "missing_ref_target", f"正文交叉引用目标不存在：{target}", target))
+
+    for label in sorted(label_set):
+        refs = list(re.finditer(REF_TEMPLATE.format(label=re.escape(label)), main))
+        if not refs:
+            kind = "图/表" if label.startswith(("fig:", "tab:")) else "公式/章节/命题或其他对象"
+            findings.append(Finding("warning", "unused_label", f"{kind} label {label} 未被正文显式引用，请确认编号是否有必要。", label))
+            continue
+        label_match = re.search(rf"\\label\{{{re.escape(label)}\}}", main)
+        if label_match:
+            nearest = min(abs(ref.start() - label_match.start()) for ref in refs)
+            if label.startswith(("fig:", "tab:")) and nearest > 2500:
+                findings.append(Finding("warning", "distant_figure_table_reference", f"图表 {label} 的最近正文引用距离较远，请确认图表与解释仍形成局部证据闭环。", f"distance={nearest}"))
+    return findings
+
+
+def _audit_float_structure(main: str) -> list[Finding]:
+    findings: list[Finding] = []
+    for env in FIGURE_ENV_RE.findall(main):
+        caption = re.search(r"\\caption", env)
+        graphic = re.search(r"\\includegraphics", env)
+        if caption and graphic and caption.start() < graphic.start():
+            findings.append(Finding("review_required", "figure_caption_before_graphic", "检测到图题位于图片命令之前；当前论文规范默认图题置于图下。"))
+        for text in CAPTION_RE.findall(env):
+            plain = re.sub(r"\\[A-Za-z]+|[{}]", "", text).strip()
+            if len(plain) > 90:
+                findings.append(Finding("warning", "long_figure_caption", "图题较长，请确认没有把正文解释塞入 caption。", plain[:120]))
+    for env in TABLE_ENV_RE.findall(main):
+        caption = re.search(r"\\caption", env)
+        tabular = re.search(r"\\begin\{(?:tabular|tabularx|longtable)\}", env)
+        if caption and tabular and caption.start() > tabular.start():
+            findings.append(Finding("review_required", "table_caption_after_table", "检测到表题位于表格主体之后；当前论文规范默认表题置于表上。"))
+        for text in CAPTION_RE.findall(env):
+            plain = re.sub(r"\\[A-Za-z]+|[{}]", "", text).strip()
+            if len(plain) > 90:
+                findings.append(Finding("warning", "long_table_caption", "表题较长，请确认没有把结果解释塞入 caption。", plain[:120]))
+    return findings
+
+
+def _audit_abstract_and_keywords(main: str) -> list[Finding]:
+    findings: list[Finding] = []
+    abstract = ABSTRACT_ENV_RE.search(main)
+    if abstract:
+        content = abstract.group(1)
+        if re.search(r"\\begin\{(?:figure|table)\*?\}|\\includegraphics|\\\[|\$\$|\\begin\{(?:equation|align|gather)", content):
+            findings.append(Finding("review_required", "abstract_contains_float_or_display_formula", "摘要中检测到图、表、图片或展示公式；数学建模摘要默认只保留文字和必要行内符号。"))
+    keyword_match = KEYWORDS_RE.search(main)
+    if keyword_match:
+        raw = keyword_match.group(1)
+        keywords = [item.strip() for item in re.split(r"[,，;；、]", raw) if item.strip()]
+        if not 3 <= len(keywords) <= 6:
+            findings.append(Finding("review_required", "keyword_count", f"检测到关键词数量为 {len(keywords)}；当前默认范围为 3--6 个。", raw[:120]))
+    return findings
+
+
 def audit_text(text: str) -> list[Finding]:
     body = _document_body(text)
     main = _main_text_before_appendix(body)
     findings: list[Finding] = []
 
-    # Deterministic label failures are Hard.
-    labels = LABEL_ANY_RE.findall(main)
-    duplicates = sorted({label for label in labels if labels.count(label) > 1})
-    for label in duplicates:
-        findings.append(Finding("blocking", "duplicate_label", f"正文存在重复 LaTeX label：{label}", label))
+    findings.extend(_audit_reference_closure(main))
+    findings.extend(_audit_float_structure(main))
+    findings.extend(_audit_abstract_and_keywords(main))
 
     # Default structure checks: review_required, not absolute Hard failures.
     if re.search(r"\\section\{结论\}", main):
@@ -242,12 +390,6 @@ def audit_text(text: str) -> list[Finding]:
             findings.append(Finding("warning", "missing_solution_result_section", f"{heading} 未检测到默认“求解结果”小节，请确认是否为简单问题或题型特定结构。", heading))
     if QUESTION_SECTION_RE.search(main) and question_count == 0:
         findings.append(Finding("warning", "question_section_parse", "检测到问题模型章节但未能完成逐问结构解析。"))
-
-    for label in FIGTAB_LABEL_RE.findall(main):
-        refs = len(re.findall(REF_TEMPLATE.format(label=re.escape(label)), main))
-        if refs == 0:
-            kind = "图" if label.startswith("fig:") else "表"
-            findings.append(Finding("warning", "unreferenced_figure_table", f"正文{kind}标签 {label} 没有显式交叉引用；核心图表应在邻近正文中解释。", label))
 
     formula_finding = _formula_run_warning(main)
     if formula_finding:
@@ -310,21 +452,31 @@ def audit_text(text: str) -> list[Finding]:
         if count > limit:
             findings.append(Finding("warning", "repeated_stock_phrase", f"固定短语“{phrase}”出现 {count} 次，超过建议复查阈值 {limit}。", phrase))
 
+    # Paragraph Necessity is deliberately heuristic-only: flag generic material, never auto-delete.
+    generic_hits = sum(prose.count(phrase) for phrase in ("算法最早由", "广泛应用于", "具有收敛速度快", "具有较强鲁棒性", "具有重要意义"))
+    if generic_hits >= 3:
+        findings.append(Finding("warning", "possible_redundant_paragraph", "检测到较多算法百科/通用价值类表达；请执行 Paragraph Necessity Test，确认删除后是否真的损失题意、机制、数学关系、求解依据、结果证据或必要边界。", f"{generic_hits} generic phrases"))
+
     return findings
 
 
-def audit_file(path: Path, *, bib_path: Path | None = None) -> list[Finding]:
+def audit_file(
+    path: Path, *, bib_path: Path | None = None, framework_path: Path | None = None
+) -> list[Finding]:
     text = path.read_text(encoding="utf-8-sig", errors="strict")
     findings = audit_text(text)
     bib_text = None
     if bib_path is not None:
         if bib_path.is_file():
             bib_text = bib_path.read_text(encoding="utf-8-sig", errors="strict")
-        else:
-            bib_text = None
     elif (path.parent / "references.bib").is_file():
         bib_text = (path.parent / "references.bib").read_text(encoding="utf-8-sig", errors="strict")
     findings.extend(audit_bibliography(text, bib_text))
+
+    framework_text = None
+    if framework_path is not None and framework_path.is_file():
+        framework_text = framework_path.read_text(encoding="utf-8-sig", errors="strict")
+    findings.extend(audit_framework_semantics(text, framework_text))
     return findings
 
 
@@ -337,9 +489,10 @@ def overall_status(findings: Iterable[Finding]) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Audit final LaTeX prose, structure and BibTeX closure.")
+    parser = argparse.ArgumentParser(description="Audit final LaTeX prose, structure, project semantics and BibTeX closure.")
     parser.add_argument("tex", type=Path, help="LaTeX main file to audit")
     parser.add_argument("--bib", type=Path, help="Optional references.bib path; defaults to tex directory/references.bib when present")
+    parser.add_argument("--framework", type=Path, help="Optional 模型论文框架.md for Terminology/Numeric Profile checks")
     parser.add_argument("--strict", action="store_true", help="Return exit code 1 for blocking or review_required findings")
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     args = parser.parse_args()
@@ -347,7 +500,7 @@ def main() -> int:
     if not args.tex.is_file():
         raise SystemExit(f"LaTeX file not found: {args.tex}")
 
-    findings = audit_file(args.tex, bib_path=args.bib)
+    findings = audit_file(args.tex, bib_path=args.bib, framework_path=args.framework)
     status = overall_status(findings)
 
     if args.json:
