@@ -72,8 +72,13 @@ class ArchitectureSlimmingV751Tests(unittest.TestCase):
 
         latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
         for marker in (
-            "Source → Derivation → Destination", "高级算法前", "结构分析后的结果",
-            "required / inline / not_applicable", "Citation Evidence",
+            "Source → Derivation → Destination",
+            "高级算法前",
+            "结构分析后的结果",
+            "核心模型汇总：自适应而非机械必设",
+            "`required`",
+            "`inline`",
+            "`not_applicable`",
         ):
             self.assertIn(marker, latex)
 
