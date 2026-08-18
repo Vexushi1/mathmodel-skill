@@ -1,108 +1,112 @@
 # Module 02：模型设计、语义闭环、复杂度复审、命题规划与论文框架锁定
 
-本模块同时消费 `core/writing_reasoning_contract.yaml`。该合同不绑定具体比赛或题型，只把后续论文必须可恢复的推理结构提前锁定：核心公式来源—推导—去向、共享基础、跨问增量、结构化简和数值参数证据。
+本模块负责把审题结果转成可求解、可验证、可写作的当前模型语义。跨竞赛的公式推理、规则等级、命题预算和 Citation Evidence 由 `core/writing_reasoning_contract.yaml` 唯一定义；本模块只记录本题实际选择，不复制第二套写作规范。
 
 ## 0. 前置条件
 
-只接受 `problem_contract_status=frozen` 的小问。若题意对象、数据角色、约束来源或小问依赖仍存在会改变模型结论的歧义，必须退回 Module 01，不允许通过代码试错代替审题。
+只接受 `problem_contract_status=frozen` 的小问。若题意对象、数据角色、约束来源或小问依赖仍存在会改变答案的歧义，退回 Module 01；不得通过代码试错替代审题。
 
-## 1. 路线比较
+## 1. 模型路线比较
 
-每问至少构造两条实质路线：A 为经典稳健模型加本题修正，B 为高级创新或跨领域融合。比较核心原理、数学表达、适配性、创新点、精度优势、局限、误差、求解难度和推荐等级，并说明为什么不采用看似高级但不适合的方法。
+每问至少构造两条实质路线：
 
-高级模型执行必要性、变量闭环、数据支撑、计算可行、解释性、验证性和复现性七项准入。用户明确提出 W-DRO、CVaR、MPEC、Stackelberg、ALNS、GNN、空间杜宾、DML、强化学习或深度学习，或路线 B 准备作为主模型时，加载 `packs/task/advanced_method_gate.md`。未通过则降级为补充验证或否决。
+- 路线 A：经典稳健模型 + 本题修正；
+- 路线 B：高级创新或跨领域融合。
 
-**结构化简优先于算法升级。** 高维、非线性或组合问题在决定 GA、PSO、DE、ALNS、深度学习等高级方法前，依次检查：解析/近似解析关系、单调性/凸性/对称性、变量消元或降维、候选区域/上下界、分解/分层结构、组合决策与连续优化能否分开，以及前问结果能否限制搜索域。最终路线说明应形成“题目结构 → 数学化简/分解 → 有效搜索空间 → 算法”，而不是“问题复杂 → 直接上高级算法”。
+比较核心原理、数学表达、适配性、创新点、精度优势、局限、误差来源、求解难度和推荐等级，并说明为何否决看似高级但不适合的路线。
+
+高级模型执行必要性、变量闭环、数据支撑、计算可行、解释性、验证性和复现性七项准入。准备使用 W-DRO、CVaR、MPEC、Stackelberg、ALNS、GNN、空间杜宾、DML、强化学习、深度学习等时，按需加载 `packs/task/advanced_method_gate.md`。
+
+**结构化简优先于算法升级。** 高维、非线性或组合问题在决定 GA、PSO、DE、ALNS、深度学习等方法前，依次检查：解析/近似解析关系、单调性/凸性/对称性、变量消元或降维、候选区域/上下界、分解/分层结构、离散与连续决策能否分开，以及前问结果能否限制搜索域。最终路线应形成：
+
+```text
+题目结构 → 数学化简/分解 → 有效搜索空间 → 算法
+```
+
+而不是“问题复杂 → 直接上高级算法”。
 
 ## 2. 数据协议与预处理必要性判定
 
-在 Module 01 的 `data_schema` 上锁定字段—含义—单位—粒度—范围—关联键表，先做**非破坏性数据审计**：检查缺失、NaN/Inf、异常候选、重复、单位冲突、时间错位、空间坐标、主键与采样结构。检查本身不等于需要修改数据。
+在 Module 01 的数据结构基础上锁定字段—含义—单位—粒度—范围—关联键，并先完成**非破坏性数据审计**：缺失、NaN/Inf、异常候选、重复、单位冲突、时间错位、空间坐标、主键和采样结构。检查本身不等于需要修改数据。
 
-标准化、归一化、对数、Box-Cox、滞后、窗口、空间权重、插值、滤波、重采样、异常替换和编码等操作必须说明依据及边界。无真实数据时可模拟，但写明生成机制和参数来源。
+标准化、归一化、对数、Box-Cox、滞后、窗口、空间权重、插值、滤波、重采样、异常替换和编码等操作必须有对象和依据。无真实数据时可模拟，但必须记录生成机制、参数来源和随机种子。
 
-完成数据审计和模型路线选择后，必须锁定项目级 `preprocessing_decision`：
+完成审计和模型路线选择后，锁定项目级 `preprocessing_decision`：
 
 | 字段 | 取值/要求 |
 |---|---|
-| `decision` | `not_needed` / `question_local` / `project_level` |
-| `level` | `none` / `structural` / `transformative` |
-| `evidence` | 为什么原始数据可直接使用，或为什么必须处理 |
-| `operations` | 实际允许的数据变换列表；可为空 |
-| `forbidden_operations` | 会破坏题意、物理意义或后续解释的操作 |
-| `downstream_data_source` | `raw` 或 `preprocessed` |
+| `decision` | `not_needed / question_local / project_level` |
+| `level` | `none / structural / transformative` |
+| `evidence` | 原始数据可直接使用或必须处理的理由 |
+| `operations` | 实际允许的数据变换；可为空 |
+| `forbidden_operations` | 会破坏题意、物理意义或解释的操作 |
+| `downstream_data_source` | `raw / preprocessed` |
 
-判定规则：
+判定：
 
-1. **共享数据本身不是项目级预处理证据**。两个及以上小问读取同一原始数据，但数据已经满足模型要求时，必须判为 `not_needed`；
-2. **本问专属变换保持局部**。只有某一问需要对数、标准化、滞后、滑动窗口、模型专属编码或派生特征时，判为 `question_local`；
-3. **只有公共数据口径确需改变才进入项目级预处理**。例如多问共同需要单位换算、坐标统一、时间对齐、表关联、公共重采样、缺失处理、异常处理或滤波时，判为 `project_level`；
-4. 用户明确要求统一数据总表时，可以判为 `project_level`；若只是整理/对齐而不改变观测值，`level=structural`，不能包装成“清洗”；
-5. `NaN=0`、无坏道、采样规则、单位一致等审计证据出现时，对应的插值、坏道修复、重采样或单位修正不得继续保留；
-6. 统计极端值不等于错误数据。尖峰、边界、结构突变、稀有事件和地质界面必须先判断真实对象语义。
+1. 多问共享同一数据不等于需要项目级预处理；数据已满足模型要求时判 `not_needed`；
+2. 只有某问需要对数、标准化、滞后、窗口或模型专属编码时判 `question_local`；
+3. 多问共同需要单位换算、坐标统一、时间对齐、表关联、公共重采样、缺失/异常处理或滤波时判 `project_level`；
+4. 用户明确要求统一数据总表时可判 `project_level`；仅整理/对齐而不改观测值时标记 `structural`，不包装成“清洗”；
+5. 审计证明不存在的问题，对应处理不得继续保留；
+6. 统计极端值不自动等于错误数据，先判断尖峰、边界、结构突变、稀有事件等真实对象语义。
 
-对任何会改变数据的操作，还必须回答四个问题：问题是否真实存在；不处理会影响哪个模型环节；为什么选择当前方法和参数；操作是否可能破坏真实信息。四问无法闭合的处理应删除，而不是降级成“可选默认步骤”。
+任何会改变数据的操作必须回答：问题是否真实存在；不处理影响哪个模型环节；为何选择当前方法和参数；是否可能破坏真实信息。无法闭合则删除该处理。
 
-`preprocessing_decision` 是模型语义的一部分。任何数据角色、判定状态或预处理口径变化都必须更新 `semantic_revision` 与 `semantic_change_categories`，不能只改 Python。
+`preprocessing_decision` 属于模型语义。数据角色、判定状态或处理口径变化时同步更新 `semantic_revision` 与 `semantic_change_categories`。
 
 ## 3. 变量、假设与三轴分类
 
-区分决策、状态、中间、参数、目标、约束和评价指标。变量表含符号、名称、类型、单位、范围、现实含义和代码变量。
+区分决策变量、状态变量、中间变量、参数、目标、约束和评价指标。变量记录符号、名称、类型、单位、范围、现实含义和代码变量。
 
-模型假设按必要性而非数量配额保留。只有会实质改变变量、约束、目标、分布、状态转移、近似误差或适用边界的条件才作为假设；题面事实、数据事实、确定性定义和单位约定不得伪装成假设。影响两个及以上小问的共享假设进入全局层，只影响单问的假设在第一次使用前就近记录；不存在实质共享假设时允许不设置独立全局假设章。每条保留假设说明依据、与题意关系、对模型/结果的影响、失效偏差和可执行检验。假设不能替代可由数据、定义或约束直接表达的关系。
+假设按必要性而非数量保留。只有实质改变变量、约束、目标、分布、状态转移、近似误差或适用边界的条件才作为假设；题面事实、数据事实、确定性定义和单位约定不伪装成假设。共享假设与局部假设按实际作用分层。
 
-逐问锁定三个互不混用的维度：
+逐问锁定：
 
-1. `classification.objective`：该问最终直接交付目标，只保留一个；
+1. `classification.objective`：最终直接交付目标，只保留一个；
 2. `classification.structures`：真正改变变量、约束、验证或交付结构的特征，最多三个；
-3. 小问顶层 `capabilities`：必须执行的可行性、残差、外样本、不确定性、泄漏、校准或可识别性检查。
+3. 顶层 `capabilities`：必须执行的可行性、残差、外样本、不确定性、泄漏、校准或可识别性检查。
 
-`capabilities` 的唯一权威位置是小问顶层。`classification.capabilities` 仅作为兼容别名，存在时必须与顶层完全一致；`problem_types` 与 `legacy_task_packs` 只能由三轴分类派生，不得独立编辑。objective 决定主要结果类型，structures 决定结构专项，capabilities 决定强制验证工作表。不得因“机理、仿真、网络”等名称自动生成不适用表格。
+`capabilities` 的唯一权威位置是小问顶层。兼容别名存在时必须与顶层一致；旧 `problem_types/legacy_task_packs` 只能由三轴分类派生。
 
-## 4. 题面—数学—代码三层语义闭环
+## 4. 题面—数学—代码—输出语义闭环
 
-现有 `formula_closure` 必须升级为语义闭环，不只检查“公式是否有代码”。每个核心对象、条件、变量、约束和输出至少建立以下映射：
+每个核心对象、条件、变量、约束和输出至少建立：
 
-$$
-\boxed{
-\text{题面对象/要求}
-\Longrightarrow
-\text{数学变量、关系、目标或约束}
-\Longrightarrow
-\text{Python变量/函数}
-\Longrightarrow
-\text{工作簿输出或验证证据}
-}
-$$
-
-推荐表结构：
+```text
+题面对象/要求
+→ 数学变量、关系、目标或约束
+→ Python 变量/函数
+→ 工作簿输出或验证证据
+```
 
 | 题面来源 | 数学层 | 计算层 | 输出证据 | 状态 |
 |---|---|---|---|---|
-| 题目对象/条件/要求 | 符号、公式、目标、约束 | Python变量/函数 | 工作表/指标 | closed / gap |
-
-硬检查：
-
-1. **题目要求有、代码没有**：题目要求的输出或约束未进入计算，判为 gap；
-2. **代码有、论文没有**：核心变量、惩罚项、阈值、约束、预处理或状态转移没有数学来源，判为 gap；
-3. **论文有、题面推不出**：隐含约束、假设或变量变换没有题意/机理/统计依据，判为 gap；
-4. **同名不同义**：题面对象、数学符号和 Python 变量实际含义不同，判为 gap；
-5. **单位或粒度断裂**：三层中的单位、时间/空间粒度或索引集合不一致，判为 gap。
-
-只有全部关键项 closed 后，`semantic_closure_status` 才能置为 `passed`。否则保持 `pending` 或 `stale`。
-
-### 4.1 核心公式推理链
-
-`Source–Derivation–Destination` 的语义定义、允许来源/去向与删除边界由 `core/writing_reasoning_contract.yaml` 的 `formula_reasoning_chain` 唯一负责。本阶段只把已经选定模型的核心关系逐式登记并判定是否闭合：
-
-| 核心关系 | Source：题意/定义/机制/理论依据 | Derivation：关键推理 | Destination：后续用途 | 状态 |
-|---|---|---|---|---|
 |  |  |  |  | closed / gap |
 
-`closed` 要求三列均能由当前题意与 locked model 实际恢复；存在 gap 时不得用代码实现或论文润色补洞。这张表是内部模型/写作记忆，不原样进入正文。
+Hard gap 包括：
 
-### 4.2 共享基础与跨问模型增量
+- 题目要求有、代码没有；
+- 核心代码对象有、数学来源没有；
+- 论文隐含约束/变换无法由题意、数据或机制支持；
+- 同名不同义；
+- 单位、时间/空间粒度或索引断裂。
 
-是否启用共享基础层、允许/禁止内容及关系图准入以 `writing_reasoning_contract.shared_foundation` 和 `cross_question_progression` 为准。本阶段只记录本题实际选择；没有真实依赖的小问明确标记 `independent`。
+关键项全部 closed 后，`semantic_closure_status=passed`。
+
+### 4.1 核心 Formula Trace
+
+`Source–Derivation–Destination` 的语义由 reasoning contract 唯一定义。本阶段只登记当前模型的核心关系：
+
+| Formula ID | Source | Depends on | Derivation | Destination | 代码/证据锚点 | 状态 |
+|---|---|---|---|---|---|---|
+| F1 |  |  |  |  |  | closed / gap / stale |
+
+机器只核验来源、依赖、去向和锚点是否存在，不从正则判断数学正确性。存在 gap 时不得用代码实现或论文润色补洞。
+
+### 4.2 共享基础与跨问增量
+
+是否启用共享基础、允许内容和关系图准入服从 `writing_reasoning_contract.shared_foundation` 与 `cross_question_progression`。本阶段只记录本题实际选择；独立小问明确 `independent`。
 
 | 小问 | 继承结构 | 新增对象/条件 | 新增数学结构 | 困难变化 | 求解变化 |
 |---|---|---|---|---|---|
@@ -110,107 +114,111 @@ $$
 
 ### 4.3 数值参数证据计划
 
-数值参数的适用范围、题型证据族和禁止口径由 `writing_reasoning_contract.numerical_parameter_evidence` 唯一负责。本阶段只登记会影响结论的参数及其待验证证据；题面固定参数注明来源即可。
+对会影响结论的数值参数登记候选范围、证据方法和最终值状态；题面固定参数注明来源即可。
 
 | 参数 | 数学作用 | 候选范围 | 证据方法 | 通过标准 | 最终值状态 |
 |---|---|---|---|---|---|
 |  |  |  |  |  | pending |
 
-## 5. 复杂度合理性复审（Complexity Sanity Check）
+### 4.4 Citation Evidence 计划
 
-模型路线确定后、锁定模型并进入 Python 前，必须检查赛题复杂度是否被异常压扁。以下信号任一出现都要触发复审：
+只登记需要外部来源的核心 claim，例如外部经验参数、数据、领域事实、非显然标准定理、方法来源和既有研究比较。本文自己的推导和数值结果不需要外部文献代替证据。
 
-- `unused_problem_conditions`：题面专门给出的条件长期未进入模型；
-- `unused_attachment_fields`：大量附件或关键字段完全没有用途；
-- `unexpected_dimension_collapse`：原本多维/组合问题无充分证明地退化为极低维直接计算；
-- `unexpected_decoupling`：明显耦合的问题被无依据拆成互不影响的独立子问题；
-- `dynamic_to_static_collapse`：动态、路径或时序问题被无依据静态化；
-- `multi_agent_to_independent`：多主体/多资源问题被无依据逐主体独立求解；
-- `inactive_key_constraints`：题目强调的关键约束在合理解域内始终不生效；
-- `downstream_copy`：后续小问几乎直接复制前问结果，新增条件没有实质改变模型；
-- `implausibly_easy_computation`：题目结构复杂但模型异常容易、求解规模和题面复杂度明显不匹配。
+| Claim ID | 主张/来源对象 | 类型 | Citation Key | 预期正文位置 | 状态 |
+|---|---|---|---|---|---|
+| C1 |  | method / theorem / parameter / data / domain_fact / prior_comparison |  |  | pending / current / stale |
 
-出现 flag 不等于模型一定错误，但必须回答：
+设计阶段可以先标 pending；进入写作前需要外部来源的核心 claim 应闭合。
 
-1. 简化来自严格等价、可证明降维、主导机制，还是只是计算方便？
-2. 被删除的耦合、状态、边界和约束是否有数学依据？
-3. 未使用字段是否确实冗余，能否通过题面或命题证明？
-4. 极端情形、边界情形或小规模枚举是否支持该简化？
-5. 是否已经先利用可解释的结构化简，再决定最终算法？
+## 5. 复杂度合理性复审
 
-若无法解释，`complexity_sanity_status=review_required`，禁止进入求解。完成复审并记录 `complexity_sanity_note` 后才可置为 `passed`。
+模型路线锁定后、进入 Python 前检查题目复杂度是否被异常压扁。触发复审的典型 flag：
 
-## 6. 模型语义修订与跨小问失效传播
+- `unused_problem_conditions`；
+- `unused_attachment_fields`；
+- `unexpected_dimension_collapse`；
+- `unexpected_decoupling`；
+- `dynamic_to_static_collapse`；
+- `multi_agent_to_independent`；
+- `inactive_key_constraints`；
+- `downstream_copy`；
+- `implausibly_easy_computation`。
 
-`模型论文框架.md` 只保存当前有效模型，不建立第二份变更日志。Git 保存历史；`state/project_state.yaml` 只记录当前语义修订号、当前变更类别和依赖。
+出现 flag 不等于模型必错，但必须说明：简化是否来自严格等价/可证明降维/主导机制；删除的耦合、状态、边界和约束依据；未使用字段为何冗余；极端/边界/小规模复核是否支持；是否先利用可解释结构再选择算法。
 
-每问维护：
+无法解释则 `complexity_sanity_status=review_required`，禁止进入求解。
 
-- `semantic_revision`：初始设计为 1；模型语义变化时递增；
-- `semantic_change_categories`：当前修订涉及的类别；
-- `depends_on`：依赖前问的数据、参数、模型或结果；
-- `semantic_hash` / `validated_semantic_hash`：由语义治理门计算，不手工伪造。
+## 6. 模型语义修订与跨问失效传播
 
-下列任一变化都必须递增 `semantic_revision`：题意解释、数据范围、变量、参数、假设、目标函数、约束、预处理、算法语义或小问依赖。
+`模型论文框架.md` 只保存当前有效模型，不作为第二份变更日志。Git 保存历史；`state/project_state.yaml` 记录当前语义修订号、变更类别、依赖、哈希和 stale。
 
-若已验收语义哈希变化，`scripts/validate_semantic_governance.py` 必须先将本问主结果及下游标记 stale，再按 `depends_on` 递归传播到受影响后问。只有重新完成 Problem Contract、语义闭环和复杂度复审后，才接受新的语义哈希；旧结果仍保持 stale，直到重新求解和验收。
+题意解释、数据范围、变量、参数、假设、目标、约束、预处理、算法语义或小问依赖变化时递增 `semantic_revision`。
+
+若已验收语义哈希变化，`scripts/validate_semantic_governance.py` 先将本问及依赖后问相关产物标记 stale。重新完成 Problem Contract、语义闭环和复杂度复审后才能接受新语义哈希；旧结果在重新求解和验收前保持 stale。
 
 ## 7. 命题与证明规划
 
-命题规划是全文级决策，不按小问机械分配。论文可以不设命题，全文最终保留数量不得超过 4 个。先收集待证明对象，再按必要性筛选；候选数量可以临时多于 4，但写入终稿和 current 框架的命题最多 4 个。
+命题是全文级决策，不按小问机械分配。命题准入、证明作用和数量治理服从 `writing_reasoning_contract.proposition_governance`。
 
-命题必须实际完成下列至少一项：证明模型或变换等价、证明可行解存在或操作保持可行、识别单调性/阈值/凸性/候选集结构、严格降维或删减冗余约束、给出稳定性/误差界/性能界，或引用标准定理并核验本题条件。变量定义、直接代数变形、题目条件复述、单样本结果、交叉验证和模型准确率比较不得包装为命题。
+**0--4 是默认正文阅读预算，不是绝对上限。** 先收集真正需要证明的对象，再筛选：
 
-每个保留命题记录：P1--P4 编号、对应小问、命题类型、前提与定义域、结论、证明等级、模型作用、**下游模型/计算作用**、正文长度、可选数值复核、失效边界和状态。正文默认采用 B 级关键证明链：连续推理优先自然分段，只有确有多阶段逻辑时才使用 2--6 个编号步骤；数值复核不能替代证明。详细准入、排版和失效规则只在需要时加载 `packs/artifact/proposition_proof.md`。
+- 预算内：正常规划；
+- 超过 4 个：先合并同质命题、把技术引理移附录；
+- 仍需超过预算：记录 `proposition_budget_status=justified` 与 `proposition_budget_reason`，说明额外命题的不可替代建模作用。
 
-变量定义、参数范围、目标函数、约束、数据处理或算法变化时，逐个检查相关命题。条件或结论不再成立时标记 stale，删除旧证明并重写。
+命题 ID 使用 `P1, P2, ...` 作为内部稳定追踪编号，不限制为 P1--P4。正式论文仍按章节显示“命题 4.1、命题 6.2”等。
+
+每个保留命题记录前提/定义域、结论、证明等级、建模作用、下游计算作用、数值复核、失效边界和状态。数值复核不能替代证明。详细准入与排版只在需要时加载 `packs/artifact/proposition_proof.md`。
+
+模型、参数、约束或定义域变化时逐个复核相关命题，不再成立则 stale。
 
 ## 8. `模型论文框架.md`
 
-`locked_model_spec` 形成后，以 `templates/model/model_paper_framework.md` 为骨架在项目根目录创建 `模型论文框架.md`。它承担当前模型语义、Problem Contract、三层闭环、公式推理链、共享基础/跨问增量、数值参数证据、复杂度复审、论文组织、命题规划、逐问结果摘要和图表映射，不承担历史日志。除此之外，它还是助手的**项目级长期工作记忆**：把长上下文中最容易遗失、但后续求解与写作必须保持一致的当前信息压缩在一处，供后续阶段和新聊天再次读取。
+`locked_model_spec` 形成后，以 `templates/model/model_paper_framework.md` 为骨架在项目根目录创建 `模型论文框架.md`。
 
-框架分为两种模式：
+它只承担**项目级长期工作记忆**：当前题意口径、数据、变量、模型、Formula Trace、参数证据、跨问依赖、写作选择、命题、Citation Evidence、逐问结果摘要和图表映射。通用写作规则不得复制进去。
 
-- `compact`：日常迭代和单问交付，只强制当前有效口径、各问模型与结果、必要公式链、图表证据链、待办与缺口；
-- `full`：跨聊天交接、DOCX/LaTeX、终审和提交，增加论文整体框架、共享基础与跨问递进、命题与证明规划、综合检验与跨问结论、同步检查。
+框架支持：
+
+- `compact`：日常单问迭代，只保留当前有效口径、各问模型/结果、必要证据链和待办；
+- `full`：跨聊天交接、整篇 DOCX/LaTeX、终审和提交，增加论文整体结构、共享基础、命题、Citation Evidence 和跨问综合。
 
 读取规则：
 
-1. 已有项目且框架为 `current` 时，继续某一问前优先读取“当前有效口径”、该问的“当前模型口径/结果摘要”和必要 `data / parameter / model / result` 依赖；不得只凭聊天记忆复原当前模型；
-2. 普通单问迭代采用定向读取，不要求每次把整份大框架全部载入上下文；
-3. 新聊天接续、上下文过长需要恢复、跨问综合、DOCX/LaTeX 整篇写作和终审时读取完整 current 框架；
-4. 框架若为 `stale`，先依据 project state 与已验收产物修正，不能把 stale 内容继续当作当前语义；
-5. 具体数值回到标准工作簿核验，框架结果摘要用于上下文恢复、导航和写作组织，不替代数值事实源。
+1. 继续某一问前优先读取当前有效口径、该问当前模型/结果摘要和必要依赖；
+2. 普通单问迭代不强制加载整份大框架；
+3. 新聊天恢复、跨问综合、整篇写作和终审读取完整 current 框架；
+4. 框架 stale 时先依据 project state 与已验收产物修正；
+5. 具体数值回到标准工作簿核验，框架摘要不替代数值事实源。
 
 写入规则：
 
-1. 只保留当前有效的数据口径、`preprocessing_decision`、变量、假设、公式、目标、约束、算法、评价指标、命题、结果和依赖；
-2. 口径变化时删除受影响旧内容并完整重写，不长期堆叠“原方案—修正方案”；
-3. Git 保存历史；框架顶部只保留版本、模式、阶段、最近同步范围和同步状态；
-4. 设计阶段建立结果摘要区但标记 `pending`，不得填入未求解数字；
-5. 命题规划只有在 full 模式或命题数量非零时展开详细合同；
-6. `state/project_state.yaml` 记录模式、框架哈希、预处理判定、命题状态、每问引用、章节锚点、结果摘要状态和语义治理状态；
-7. 正式交付前先通过语义治理门，再由 `project_sync` 更新框架头部和产物哈希。
+- 只保留当前有效口径和项目选择；
+- 口径变化时替换受影响内容，不堆“旧方案—新方案”历史；
+- 设计阶段结果摘要为 pending，不填未求解数字；
+- 通用命题、证明、语言、排版规则不写入框架；
+- 正式交付前通过语义治理和框架验证。
 
-事实源边界：模型语义和论文组织以框架为准；语义修订、预处理判定、依赖、哈希与 stale 以项目状态为准；结果数值以标准工作簿为准。三者冲突时回到审题、模型或求解环节修正。
+事实源边界：模型语义与论文组织以框架为准；修订、依赖、哈希、stale 以项目状态为准；数值以标准工作簿为准。
 
 ## 9. 机理图合同
 
-早期只建立合同和占位，不立即追求最终美术。合同回答：解释对象、支撑公式/约束、必需变量、排除变量、评委应相信什么、无图时哪段说不清。分 S/A/B 级，S 级必须绑定核心公式、约束或命题。
+早期只建立合同和占位。合同说明解释对象、支撑公式/约束、必需变量、排除变量、评委需要从图中确认什么，以及无图时哪段机制难以恢复。S 级图必须绑定核心公式、约束或命题。
 
 ## 阶段门槛
 
-进入求解前必须同时满足：
+进入求解前必须满足：
 
 1. `problem_contract_status=frozen`；
-2. 每问数据口径、objective、structures、顶层 capabilities、变量维度、目标函数、约束、求解器候选、评价指标和验证方案已锁定；
-3. 数据审计完成且 `preprocessing_decision` 已锁定为 `not_needed`、`question_local` 或 `project_level`，不得以“共享数据”直接替代必要性判断；
-4. 三层题面—数学—代码映射无关键 gap，`semantic_closure_status=passed`；
-5. 核心公式 Source–Derivation–Destination 已闭环，影响结论的数值参数已有验证计划；
-6. 复杂度复审完成，`complexity_sanity_status=passed`，高级算法前已检查可解释的结构化简；
-7. `semantic_revision` 和 `semantic_change_categories` 与当前框架一致；
-8. 完成全文命题必要性初审并给出 0--4 个规划。
+2. 数据口径、objective、structures、capabilities、变量、目标、约束、求解器候选、评价指标和验证方案已锁定；
+3. `preprocessing_decision` 已锁定；
+4. 题面—数学—代码—输出无关键 gap，`semantic_closure_status=passed`；
+5. 核心 Formula Trace closed，影响结论的数值参数已有证据计划；
+6. `complexity_sanity_status=passed`；
+7. `semantic_revision` 与当前框架一致；
+8. 已完成命题必要性初审；若超过默认 0--4 预算，已记录 justification 状态和理由；
+9. 需要外部来源的核心 Citation Claim 已登记，进入写作前必须闭合。
 
-若 `preprocessing_decision=project_level`，下一阶段进入 Module 03P；若为 `not_needed` 或 `question_local`，跳过 Module 03P，直接进入主求解。
+若 `preprocessing_decision=project_level`，下一阶段进入 Module 03P；若为 `not_needed` 或 `question_local`，跳过 Module 03P 直接进入主求解。
 
-形成 `locked_model_spec`、`preprocessing_decision`、`formula_closure`、`semantic_closure`、`formula_reasoning_chain`、`complexity_sanity_check`、`proposition_plan`、`validation_plan` 与当前有效框架；未闭环不得以代码试错代替建模。
+形成 `locked_model_spec`、`preprocessing_decision`、`semantic_closure`、`formula_reasoning_chain`、`complexity_sanity_check`、`proposition_plan`、`citation_evidence_plan`、`validation_plan` 与 current 框架；未闭环不得以代码试错代替建模。
