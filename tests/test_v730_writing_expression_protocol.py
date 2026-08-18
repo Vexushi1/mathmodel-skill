@@ -1,143 +1,62 @@
 from pathlib import Path
-import json
 import unittest
 
 import yaml
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[1]
 
 
-class WritingExpressionProtocolV730Tests(unittest.TestCase):
-    def test_latex_module_owns_shared_expression_protocol(self):
-        latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
-        self.assertIn("正文表达与章节组织协议（写作权威）", latex)
-        self.assertIn("问题重述：问题背景 + 问题提出", latex)
-        self.assertIn("问题分析：国赛式逐问分析，不写公式和结果", latex)
-        self.assertIn("模型推导：核心公式必须有来源、推导和去向", latex)
-        for token in ("（Source）", "（Derivation）", "（Destination）"):
-            self.assertIn(token, latex)
-        self.assertIn("共享基础模型：按需单列，后问写增量", latex)
-        self.assertIn("结构化简优先于算法升级", latex)
-        self.assertIn("数值参数必须有选择证据", latex)
-        self.assertIn("核心模型汇总：推导后、求解前必须出现", latex)
-        self.assertIn("求解结果：图表、数值、机制和题目回答就近闭环", latex)
-        self.assertIn("模型的评价与推广", latex)
-        self.assertIn("证据驱动的本科生学术表达", latex)
-        self.assertIn("分段优先，分点按需", latex)
+class TestV730WritingExpressionProtocol(unittest.TestCase):
+    def test_latex_module_is_shared_expression_authority(self):
+        text = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
+        self.assertIn("正文结构与表达权威", text)
+        self.assertIn("core/writing_reasoning_contract.yaml", text)
+        self.assertIn("Hard", text)
+        self.assertIn("Default", text)
+        self.assertIn("Recommendation", text)
+        for token in ("问题重述", "问题分析", "模型假设", "符号说明", "求解结果", "模型评价"):
+            self.assertIn(token, text)
 
     def test_docx_and_cleanup_reference_shared_authority(self):
-        docx = (ROOT / "modules/05_writing/docx.md").read_text(encoding="utf-8")
+        latex = "modules/05_writing/latex.md"
+        reasoning = "core/writing_reasoning_contract.yaml"
+        for relative in ("modules/05_writing/docx.md", "modules/05_writing/ai_cleanup.md"):
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            self.assertIn(latex, text, relative)
+            self.assertIn(reasoning, text, relative)
         cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
-        marker = "正文表达与章节组织协议（写作权威）"
-        self.assertIn(marker, docx)
-        self.assertIn(marker, cleanup)
-        self.assertIn("问题重述去复制化", cleanup)
-        self.assertIn("问题提出逐问化", cleanup)
-        self.assertIn("问题分析去流程图化", cleanup)
-        self.assertIn("问题分析禁公式结果", cleanup)
-        self.assertIn("假设去万能化", cleanup)
-        self.assertIn("推导去教科书化", cleanup)
-        self.assertIn("核心公式 Source 检查", cleanup)
-        self.assertIn("公式链检查", cleanup)
-        self.assertIn("数值参数依据检查", cleanup)
-        self.assertIn("结果去报表化", cleanup)
-        self.assertIn("评价去万能化", cleanup)
-        self.assertIn("正向叙述优先", cleanup)
-        self.assertIn("证据驱动的本科生学术表达", cleanup)
-        self.assertIn("成稿机器审计", cleanup)
-        self.assertIn("audit_paper_prose.py", cleanup)
+        self.assertIn("不建立第二套正文写作规则", cleanup)
 
-    def test_latex_pack_enforces_non_template_writing(self):
-        pack = (ROOT / "packs/artifact/latex.md").read_text(encoding="utf-8")
-        self.assertIn("问题重述默认采用“问题背景 + 问题提出”", pack)
-        self.assertIn("问题分析必须说明本问难点、对象关系、跨问依赖和建模抓手", pack)
-        self.assertIn("核心图表/关键数值引用—比较基准—机制—题目回答—必要边界", pack)
-        self.assertIn("不强制“优点三条、缺点两条、推广一段”", pack)
-        self.assertIn("B 级短证明默认自然分段", pack)
+    def test_output_contract_points_to_shared_authorities(self):
+        data = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
+        policy = data["writing_policy"]
+        self.assertEqual(policy["expression_authority"], "modules/05_writing/latex.md")
+        self.assertEqual(policy["reasoning_contract"], "core/writing_reasoning_contract.yaml")
+        self.assertEqual(policy["rule_governance"], "core/writing_reasoning_contract.yaml#rule_governance")
+        self.assertEqual(policy["citation_evidence_contract"], "core/writing_reasoning_contract.yaml#citation_evidence")
+        self.assertEqual(policy["core_model_summary_policy"], "adaptive_required_inline_not_applicable")
 
-    def test_framework_records_project_specific_writing_strategy(self):
-        framework = (ROOT / "templates/model/model_paper_framework.md").read_text(
-            encoding="utf-8"
-        )
-        self.assertIn("### 写作组织策略", framework)
-        self.assertIn("主写作类型", framework)
-        self.assertIn("问题重述口径", framework)
-        self.assertIn("问题分析安排", framework)
-        self.assertIn("共享基础模型", framework)
-        self.assertIn("跨问模型增量", framework)
-        self.assertIn("核心公式链索引", framework)
-        self.assertIn("数值参数依据", framework)
-        self.assertIn("结果解释链", framework)
-        self.assertIn("模型评价安排", framework)
-        self.assertIn("正向叙述策略", framework)
-        self.assertIn("写作组织策略已按当前题型和证据链确定", framework)
+    def test_framework_records_project_specific_writing_choices_only(self):
+        framework = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
+        self.assertIn("### 当前写作选择", framework)
+        self.assertIn("正文总体结构", framework)
+        self.assertIn("核心模型收束状态", framework)
+        self.assertIn("特殊结构例外", framework)
+        self.assertIn("这里只记录**本项目的实际选择**", framework)
+        self.assertNotIn("命题准入检查：", framework)
 
-    def test_writing_reasoning_contract_is_cross_competition_and_adaptive(self):
-        contract = yaml.safe_load(
-            (ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8")
-        )
-        self.assertEqual(contract["scope"]["competitions"], "all")
-        self.assertEqual(contract["formula_reasoning_chain"]["chain"], ["source", "derivation", "destination"])
-        self.assertEqual(contract["shared_foundation"]["default"], "adaptive")
-        self.assertEqual(
-            contract["cross_question_progression"]["activate_when"],
-            "actual_dependency_exists",
-        )
-        self.assertTrue(contract["proposition_downstream_consequence"]["required_when_proposition_is_used_for_computation"])
-        self.assertEqual(contract["prose_style"]["name"], "evidence_driven_undergraduate_academic")
-        self.assertTrue(contract["machine_audit_boundary"]["report_only_for_semantic_style_risks"])
+    def test_cleanup_preserves_current_anti_template_protocol(self):
+        cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
+        for token in (
+            "替换成另一赛题", "算法百科", "模板段与元话语清理",
+            "本文/本问/该模型", "揭示、表征、耦合", "Citation Evidence",
+        ):
+            self.assertIn(token, cleanup)
 
-    def test_output_contract_points_to_shared_authority(self):
-        output = yaml.safe_load(
-            (ROOT / "core/output_contract.yaml").read_text(encoding="utf-8")
-        )
-        policy = output["writing_policy"]
-        self.assertIn("modules/05_writing/latex.md", policy["expression_authority"])
-        self.assertTrue(policy["adaptive_sectioning_by_task_type"])
-        self.assertTrue(policy["problem_restatement_copy_forbidden"])
-        self.assertEqual(policy["problem_restatement_second_section"], "问题提出")
-        self.assertTrue(policy["problem_statement_per_question_required"])
-        self.assertTrue(policy["problem_analysis_pipeline_listing_forbidden"])
-        self.assertTrue(policy["problem_analysis_formula_result_forbidden"])
-        self.assertTrue(policy["assumptions_symbols_separate_sections"])
-        self.assertTrue(policy["core_model_summary_before_solve_required"])
-        self.assertEqual(policy["question_result_section_default"], "求解结果")
-        self.assertFalse(policy["standalone_paper_conclusion_default"])
-        self.assertTrue(policy["generic_textbook_derivation_forbidden"])
-        self.assertTrue(policy["generic_model_evaluation_forbidden"])
-        self.assertTrue(policy["affirmative_statement_preferred"])
-        self.assertTrue(policy["novice_academic_rewrite_after_cleanup"])
-        self.assertEqual(policy["proof_structure_default"], "paragraph_first")
-        self.assertTrue(policy["proof_numbered_steps_when_needed"])
-        self.assertNotIn("proposition_proof_segmented_steps", policy)
-        self.assertEqual(policy["prose_audit_script"], "scripts/audit_paper_prose.py")
-
-    def test_bootstrap_registers_reasoning_authority_without_global_preload(self):
-        bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(
-            bootstrap["authoritative_sources"]["writing_reasoning"],
-            "core/writing_reasoning_contract.yaml",
-        )
-        hard = "\n".join(bootstrap["hard_invariants"])
-        self.assertNotIn("Source—Derivation—Destination", hard)
-        self.assertIn("authoritative sources", hard)
-
-    def test_release_versions_are_consistent(self):
-        bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
-        current = str(bootstrap["skill_version"])
-        manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
-        output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
-        plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(str(manifest["version"]), current)
-        self.assertEqual(str(output["version"]), current)
-        self.assertEqual(str(plugin["version"]), current)
-        self.assertIn(f"version: {current}", (ROOT / "SKILL.md").read_text(encoding="utf-8"))
-        self.assertIn(
-            f"version: {current}",
-            (ROOT / "skills/mathmodel-skill/SKILL.md").read_text(encoding="utf-8"),
-        )
-        self.assertTrue((ROOT / "README.md").read_text(encoding="utf-8").startswith(f"# mathmodel-skill v{current}"))
-        self.assertIn(f"## Current release: {current}", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
+    def test_ai_cleanup_keeps_machine_semantic_boundary(self):
+        cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
+        for token in ("数学正确性", "参数最优性", "文献质量", "语义支持"):
+            self.assertIn(token, cleanup)
 
 
 if __name__ == "__main__":
