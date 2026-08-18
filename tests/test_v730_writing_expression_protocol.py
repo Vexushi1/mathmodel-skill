@@ -48,8 +48,14 @@ class TestV730WritingExpressionProtocol(unittest.TestCase):
     def test_cleanup_preserves_current_anti_template_protocol(self):
         cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
         for token in (
-            "替换成另一赛题", "算法百科", "模板段与元话语清理",
-            "本文/本问/该模型", "揭示、表征、耦合", "Citation Evidence",
+            "把对象名替换成另一赛题后仍完全成立的通用段落",
+            "算法百科",
+            "模板段与元话语清理",
+            "本文/本问/该模型",
+            "揭示、表征、耦合",
+            "## 六、引用证据清理",
+            "writing_reasoning_contract.citation_evidence",
+            "BibTeX",
         ):
             self.assertIn(token, cleanup)
 
