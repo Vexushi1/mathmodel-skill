@@ -1,6 +1,19 @@
 # Changelog
 
-## Current release: 7.6.0
+## Current release: 7.7.0
+
+- Added project-level `Terminology Registry` governance for canonical terms, allowed aliases, discouraged aliases and confusable terms. Natural-language terminology is now treated as model semantics rather than free synonym variation; machine checks remain conservative and do not infer synonymy from word similarity.
+- Added a high-precision `Numeric Profile`. Verified prompt/official/scoring precision takes precedence; when no more specific requirement exists, scoring-critical continuous results such as optimum values, times, coordinates, probabilities, errors and thresholds default to 6--7 decimal places in the abstract and body. Abstract brevity may reduce the number of secondary values, but not the necessary precision of retained decisive answers.
+- Added `Title Claim Gate` so research objects, main methods, mechanisms and contribution claims in the selected title must connect to core questions, substantive model/algorithm use, result evidence, abstract text and keywords.
+- Added optional local paper-fragment dependency state. Q-level semantic changes can mark only explicitly dependent model/result/figure, abstract, evaluation and title fragments stale instead of invalidating unrelated background or independent questions. `paper_framework.sync_status` now means the framework mirrors machine state; it is no longer an alias for every paper fragment being current.
+- Added result-analysis `support / modify / reject` dispositions with explicit target claims and required actions. Rejecting a peripheral claim does not force a whole-question rerun; rejecting a core answer, feasibility result, main optimum or model structure does require `redo_required` and dependency-aware rollback.
+- Added `Paragraph Necessity Test` as a writing recommendation: paragraphs without a problem, mechanism, mathematical, solver, evidence, boundary or closure role should be deleted, merged or moved to an appendix. Machine audit may only warn; it never auto-deletes prose.
+- Refactored `modules/05_writing/ai_cleanup.md` into Integrity, Evidence, Style & Necessity and Optional Machine Diagnostics layers. The Skill keeps principles while `scripts/audit_paper_prose.py` carries deterministic and heuristic enumeration.
+- Extended prose/structure audit with missing `\ref` targets, unused labels/equation numbers, figure/table reference distance, figure/table caption placement, long captions, abstract float/display-formula checks, keyword-count checks, registered terminology drift and project-declared numeric-precision checks. It still does not infer mathematical correctness, unregistered synonymy, physical-unit semantics or citation support from regex.
+- Updated project-memory template to `v0.8-project-memory` and semantic-governance write version to `1.1.0`; v0.7/1.0.0 projects remain read-compatible and migrate when they re-enter current writing/review work.
+- Numerical modeling, conditional preprocessing semantics, workbook Schema, Python/MATLAB ownership, full-fidelity user execution and the per-question five-file interface remain unchanged.
+
+## Previous release: 7.6.0
 
 - Consolidated writing governance around two authorities: `core/writing_reasoning_contract.yaml` for cross-competition reasoning/evidence policy and `modules/05_writing/latex.md` for prose/section structure. `ai_cleanup.md`, DOCX/review modules, Artifact Packs and checklists now consume these authorities instead of maintaining parallel rule sets.
 - Added `Hard / Default / Recommendation` governance. Deterministic fact/math/reproducibility failures block delivery; default competition structures require review only when deviated from; experience-based style advice is warning-only.
