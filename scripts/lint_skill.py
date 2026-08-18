@@ -15,7 +15,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "7.6.0"
+PACKAGE_VERSION = "7.7.0"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",
@@ -51,7 +51,6 @@ COMPATIBILITY_POINTERS = {
 }
 REPO_PATH_PREFIXES = ("core/", "modules/", "packs/", "templates/", "scripts/", "config/", "state/", "assets/", "agents/", "skills/", ".github/", ".codex-plugin/")
 MARKDOWN_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
-# Stable utility/archive docs are intentionally versionless; only active release carriers are checked here.
 VERSION_DOCS = ["SKILL.md", "README.md", "CHANGELOG.md", "core/hsk_core_policy.md"]
 VERSION_CONTRACTS = [
     "core/bootstrap.yaml", "core/workflow_router.yaml", "core/module_manifest.yaml",
@@ -161,19 +160,13 @@ def check_skill_entrypoint_parity(errors: list[str]) -> None:
     }
     blocks: dict[str, str | None] = {}
     required_tokens = (
-        "core/bootstrap.yaml",
-        "core/workflow_router.yaml",
-        "core/hsk_core_policy.md",
-        "scripts/resolve_workflow.py",
-        "core/writing_reasoning_contract.yaml",
-        "模型论文框架.md",
-        "legacy/",
+        "core/bootstrap.yaml", "core/workflow_router.yaml", "core/hsk_core_policy.md",
+        "scripts/resolve_workflow.py", "core/writing_reasoning_contract.yaml",
+        "模型论文框架.md", "legacy/",
     )
     forbidden_tokens = (
-        "HSK_RUNTIME_ROUTER_V622.md",
-        "HSK_SKILL_FILE_INDEX_V622.md",
-        "HSK_TEMPLATE_INDEX_V622.md",
-        "PROJECT_INSTRUCTIONS_HSK_V622.md",
+        "HSK_RUNTIME_ROUTER_V622.md", "HSK_SKILL_FILE_INDEX_V622.md",
+        "HSK_TEMPLATE_INDEX_V622.md", "PROJECT_INSTRUCTIONS_HSK_V622.md",
     )
     for origin, text_value in texts.items():
         version = frontmatter_version(text_value, origin)
@@ -496,7 +489,7 @@ def check_manifest(errors: list[str]) -> None:
                 errors.append(f"module {name} has uncatalogued {field}: {sorted(unknown)}")
         for output in spec.get("outputs", []):
             producers.setdefault(output, []).append(name)
-    for gate_name, gate in (manifest.get("utility_gates", {}) or {}).items():
+    for gate_name, gate in (manifest.get("utility_gates") or {}).items():
         for output in gate.get("outputs", []):
             producers.setdefault(output, []).append(f"gate:{gate_name}")
     for name, spec in modules.items():
@@ -646,6 +639,12 @@ def check_contracts(errors: list[str]) -> None:
         "reasoning_contract": "core/writing_reasoning_contract.yaml",
         "expression_authority": "modules/05_writing/latex.md",
         "rule_governance": "core/writing_reasoning_contract.yaml#rule_governance",
+        "terminology_contract": "core/writing_reasoning_contract.yaml#terminology_governance",
+        "numeric_style_contract": "core/writing_reasoning_contract.yaml#numeric_style_contract",
+        "title_claim_contract": "core/writing_reasoning_contract.yaml#title_claim_gate",
+        "analysis_evidence_disposition_contract": "core/writing_reasoning_contract.yaml#analysis_evidence_disposition",
+        "paragraph_necessity_contract": "core/writing_reasoning_contract.yaml#paragraph_necessity",
+        "paper_fragment_stale_contract": "core/writing_reasoning_contract.yaml#paper_fragment_stale_governance",
         "citation_evidence_contract": "core/writing_reasoning_contract.yaml#citation_evidence",
         "proposition_governance": "core/writing_reasoning_contract.yaml#proposition_governance",
         "core_model_summary_policy": "adaptive_required_inline_not_applicable",
@@ -682,6 +681,10 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("primary result quality gate must be required")
     if result_policy.get("fixed_perturbation_forbidden") is not True:
         errors.append("fixed perturbation must be forbidden")
+    if result_policy.get("result_analysis_dispositions") != ["support", "modify", "reject"]:
+        errors.append("result-analysis paper evidence must expose support/modify/reject")
+    if result_policy.get("result_analysis_disposition_authority") != "core/writing_reasoning_contract.yaml#analysis_evidence_disposition":
+        errors.append("result-analysis dispositions must delegate to writing-reasoning authority")
     per_question = output.get("per_question", {}) or {}
     expected_files = [
         "问题{中文序号}求解.py", "问题{中文序号}求解结果.xlsx",
@@ -734,9 +737,9 @@ def check_contracts(errors: list[str]) -> None:
     if set(sync.get("artifact_hash_layers", [])) != expected_layers:
         errors.append("project_sync artifact hash layers are incomplete")
     sync_text = read_text(ROOT / "scripts/sync_project.py")
-    for token in ("stage_requirements(", "contract_preflight_issues", "_code_hash_mismatches", "analysis_code_sha256", "result_analysis_code", "active_data_hash", "preprocessing_decision"):
+    for token in ("stage_requirements(", "contract_preflight_issues", "_code_hash_mismatches", "analysis_code_sha256", "result_analysis_code", "active_data_hash", "preprocessing_decision", "_mark_paper_fragments_stale"):
         if token not in sync_text:
-            errors.append(f"sync_project lacks conditional/two-stage gate token: {token}")
+            errors.append(f"sync_project lacks conditional/two-stage/paper-fragment gate token: {token}")
     workbook = load_structured(ROOT / "core/workbook_schema.yaml") or {}
     runtime = workbook.get("runtime_enforcement", {}) or {}
     if "artifact_checker" in runtime:
@@ -783,8 +786,8 @@ def check_project_state_and_framework(errors: list[str]) -> None:
     }
     if semantic_fields - set(fields):
         errors.append(f"project state lacks semantic fields: {sorted(semantic_fields - set(fields))}")
-    if not {"code", "result_analysis_code", "primary_code_sha256", "analysis_code_sha256"}.issubset(fields):
-        errors.append("project state must expose both stage-specific code paths and hashes")
+    if not {"code", "result_analysis_code", "primary_code_sha256", "analysis_code_sha256", "analysis_evidence_dispositions"}.issubset(fields):
+        errors.append("project state must expose both stage-specific code paths/hashes and analysis_evidence_dispositions")
     phases = set(schema["properties"]["project"]["properties"]["current_phase"]["enum"])
     if "result_analysis" not in phases or "data_preprocessing" not in phases:
         errors.append("project state phases must include data_preprocessing and result_analysis")
@@ -799,8 +802,14 @@ def check_project_state_and_framework(errors: list[str]) -> None:
     proposition_count = schema["properties"]["paper_framework"]["properties"]["proposition_count"]
     if "maximum" in proposition_count:
         errors.append("project state proposition_count must not retain a hard maximum")
-    if "proposition_budget_status" not in schema["properties"]["paper_framework"]["properties"]:
+    framework_props = schema["properties"]["paper_framework"]["properties"]
+    if "proposition_budget_status" not in framework_props:
         errors.append("project state must expose proposition budget justification state")
+    for field in ("terminology_registry", "numeric_profile", "title_claims", "paper_fragments"):
+        if field not in framework_props:
+            errors.append(f"project state must expose optional v0.8 paper-framework field: {field}")
+    if "analysis_evidence_entry" not in schema.get("$defs", {}):
+        errors.append("project state must define support/modify/reject analysis evidence")
 
     state_validator = load_module("lint_state_validator", ROOT / "scripts/validate_project_state.py")
     for issue in state_validator.validate_state_payload(example, project_root=ROOT):
@@ -817,7 +826,7 @@ def check_project_state_and_framework(errors: list[str]) -> None:
     if framework_validator.validate_framework_text(compact, mode="compact"):
         errors.append("minimal compact framework must pass")
     if framework_validator.validate_framework_text(full_text, mode="full"):
-        errors.append("minimal full framework must pass")
+        errors.append("minimal legacy-compatible full framework must pass")
 
 
 def check_templates(errors: list[str]) -> None:
@@ -834,7 +843,7 @@ def check_templates(errors: list[str]) -> None:
         if token not in plot:
             errors.append(f"q1_plot.m lacks required token: {token}")
     semantic = read_text(ROOT / "scripts/validate_semantic_governance.py")
-    for token in ("problem_contract_status", "semantic_closure_status", "complexity_sanity_status", "semantic_revision", "depends_on", "_dependent_closure"):
+    for token in ("problem_contract_status", "semantic_closure_status", "complexity_sanity_status", "semantic_revision", "depends_on", "_dependent_closure", "_mark_paper_fragments_stale"):
         if token not in semantic:
             errors.append(f"semantic governance validator lacks token: {token}")
     validator = read_text(ROOT / "scripts/validate_code_delivery.py")
@@ -868,8 +877,15 @@ def check_templates(errors: list[str]) -> None:
         errors.append("solve module must require semantic governance")
     if "冻结问题X求解.py" not in solve or "问题X结果深化分析.py" not in analysis:
         errors.append("solve/result-analysis modules must enforce frozen primary and separate analysis script")
+    for token in ("support", "modify", "reject", "target claim"):
+        if token not in analysis:
+            errors.append(f"result-analysis module lacks evidence-disposition token: {token}")
     framework = read_text(ROOT / "templates/model/model_paper_framework.md")
-    for token in ("题意口径（Problem Contract）", "核心公式 Trace", "Citation Evidence", "核心模型收束", "semantic revision", "正文引用位置"):
+    for token in (
+        "题意口径（Problem Contract）", "核心公式 Trace", "Citation Evidence", "Terminology Registry",
+        "Numeric Profile", "Title Claim Gate", "Paper Fragment Dependency Map", "深化证据处置",
+        "核心模型收束", "semantic revision", "正文引用位置",
+    ):
         if token not in framework:
             errors.append(f"model framework lacks current project-memory token: {token}")
 
@@ -878,8 +894,15 @@ def check_templates(errors: list[str]) -> None:
         errors.append("writing reasoning contract must expose Hard/Default/Recommendation levels")
     if (reasoning.get("proposition_governance") or {}).get("automatic_rejection_over_budget") is not False:
         errors.append("writing reasoning contract must not hard-reject proposition count above default budget")
-    if "citation_evidence" not in reasoning:
-        errors.append("writing reasoning contract must expose Citation Evidence governance")
+    for key in (
+        "citation_evidence", "terminology_governance", "numeric_style_contract", "title_claim_gate",
+        "analysis_evidence_disposition", "paragraph_necessity", "paper_fragment_stale_governance",
+    ):
+        if key not in reasoning:
+            errors.append(f"writing reasoning contract lacks v7.7 governance authority: {key}")
+    digits = (((reasoning.get("numeric_style_contract") or {}).get("high_precision_default") or {}).get("preferred_decimal_places_when_not_otherwise_specified"))
+    if digits != [6, 7]:
+        errors.append("numeric style contract must default scoring-sensitive continuous results to 6--7 decimals when no more specific rule exists")
     if (reasoning.get("model_evaluation") or {}).get("count_relation_required") is not False:
         errors.append("writing reasoning contract must not require strengths to outnumber weaknesses")
 
@@ -892,17 +915,20 @@ def check_templates(errors: list[str]) -> None:
     prose_audit = read_text(ROOT / "scripts/audit_paper_prose.py")
     for token in ("核心模型汇总：自适应而非机械必设", "Citation Evidence", "不检查“优点必须多于缺点”", "Source → Derivation → Destination"):
         if token not in latex_authority:
-            errors.append(f"LaTeX writing authority lacks v7.6 governance token: {token}")
-    for token in ("模板段与元话语清理", "公式与求解呈现风险", "引用证据清理", "机器审计"):
+            errors.append(f"LaTeX writing authority lacks current governance token: {token}")
+    for token in ("Integrity / Hard boundary", "Evidence closure", "Style & Necessity", "Optional machine diagnostics", "Skill 负责原则，脚本负责穷举"):
         if token not in cleanup:
-            errors.append(f"AI cleanup lacks diagnostics-only token: {token}")
+            errors.append(f"AI cleanup lacks v7.7 layered-governance token: {token}")
     if "分段优先，分点按需" not in proposition_pack:
         errors.append("proposition pack must be paragraph-first and number steps only when needed")
     if "显式编号引用" not in caption_contract:
         errors.append("caption contract must require explicit numbered body references")
-    for token in ("blocking", "review_required", "missing_bib_key", "unused_bib_entries", "standalone_conclusion"):
+    for token in (
+        "blocking", "review_required", "missing_bib_key", "unused_bib_entries", "standalone_conclusion",
+        "missing_ref_label", "discouraged_terminology_alias", "numeric_precision_drift",
+    ):
         if token not in prose_audit:
-            errors.append(f"paper prose audit lacks tiered/BibTeX token: {token}")
+            errors.append(f"paper prose audit lacks v7.7 structural/semantic token: {token}")
     for name, text in (("CUMCM HSK", cumcm), ("Diangong", diangong)):
         if "\n\\section{结论}\n" in text:
             errors.append(f"{name} active template must not contain a default standalone conclusion section")

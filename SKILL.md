@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.6.0
-summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, evidence-driven conditional preprocessing, full-fidelity user execution, separate primary/result-analysis Python stages, project-memory model-paper framework, Source-Derivation-Destination formula traces, tiered writing governance, Citation Evidence, adaptive proposition/core-model-summary policies, MATLAB evidence figures, prose/BibTeX audit, and LaTeX-first delivery.
+version: 7.7.0
+summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, evidence-driven conditional preprocessing, full-fidelity user execution, separate primary/result-analysis Python stages, project-memory model-paper framework, Source-Derivation-Destination formula traces, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware high-precision Numeric Profile, Title Claim Gate, support/modify/reject analysis evidence, local paper-fragment stale propagation, Paragraph Necessity, MATLAB evidence figures, conservative prose/BibTeX audit, and LaTeX-first delivery.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 数据预处理, 数据清洗, 主结果质量, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.6.0
+# HSK 数学建模模块化工作流 v7.7.0
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -28,9 +28,9 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 
 ### 项目工作记忆
 
-`locked_model_spec` 形成后，项目根目录 `模型论文框架.md` 是助手跨阶段、跨聊天恢复当前项目语义的首选入口。它只保存当前项目事实、选择、状态和证据位置，包括 Formula Trace、数值参数依据、命题、Citation Evidence、结果摘要与图表映射；不复制通用写作手册。
+`locked_model_spec` 形成后，项目根目录 `模型论文框架.md` 是助手跨阶段、跨聊天恢复当前项目语义的首选入口。它只保存当前项目事实、选择、状态和证据位置，包括 Formula Trace、数值参数依据、命题、Citation Evidence、Terminology Registry、Numeric Profile、Title Claim、Paper Fragment Dependency Map、深化证据处置、结果摘要与图表映射；不复制通用写作手册。
 
-具体数值必须回到已验收工作簿复核，semantic revision、hash 和 stale 由 `state/project_state.yaml` 管理。模型、参数、约束、预处理或算法语义变化时先传播 stale，再同步受影响框架内容。
+具体数值必须回到已验收工作簿复核，semantic revision、hash 和 stale 由 `state/project_state.yaml` 管理。模型、参数、约束、预处理或算法语义变化时先传播数值 stale；v0.8 框架再按真实依赖只传播到相关正文、摘要、图表、模型评价与 Title Claim，不无差别失效整篇论文。
 
 ### 数据与求解
 
@@ -65,7 +65,7 @@ preprocessing_decision
 └─ qX_plot.m
 ```
 
-主工作簿 accepted 后冻结 `问题X求解.py`，再独立生成 `问题X结果深化分析.py`；不得为深化分析覆盖改写主求解脚本。
+主工作簿 accepted 后冻结 `问题X求解.py`，再独立生成 `问题X结果深化分析.py`；不得为深化分析覆盖改写主求解脚本。每项深化分析证据必须指向具体 target claim，并记录 `support / modify / reject` 与 required action；reject 核心答案才触发回退，reject 非核心评价可删除或重写。
 
 ### Figure Evidence
 
@@ -75,13 +75,17 @@ MATLAB 图形布局、证据等级、配色和数据追溯统一由 `modules/04_
 
 LaTeX 是默认论文主链。写作阶段不在入口文件复制正文规则：
 
-- `core/writing_reasoning_contract.yaml`：跨竞赛推理、Hard / Default / Recommendation、命题预算、Citation Evidence；
+- `core/writing_reasoning_contract.yaml`：跨竞赛推理、Hard / Default / Recommendation、命题预算、Citation Evidence、Terminology、Numeric Style、Title Claim、深化证据处置、Paragraph Necessity 与局部 stale；
 - `modules/05_writing/latex.md`：正文结构与表达唯一权威；
-- `modules/05_writing/ai_cleanup.md`：只做模板化与空泛表达清理；
+- `modules/05_writing/ai_cleanup.md`：按 Integrity / Evidence / Style & Necessity / Machine diagnostics 分层清理，不维护穷举式第二套规则；
 - `modules/05_writing/docx.md`：只在用户显式要求时加载，负责 Word 载体差异；
 - `modules/06_review_delivery.md`：只检查和分级，不重新定义写作规则。
 
-核心模型收束按 `required / inline / not_applicable` 自适应；命题 0--4 是默认正文阅读预算而非 Hard 上限；优点与缺点没有强制数量关系。需要外部证据的核心 claim 通过 Citation Evidence 连接正文位置与 `references.bib`。成稿运行 `scripts/audit_paper_prose.py`，确定性 Hard 错误为 blocking，Default 偏离为 review_required，Recommendation/风格风险为 warning；机器不得从正则推断数学正确性或 citation 的语义支持关系。
+核心模型收束按 `required / inline / not_applicable` 自适应；命题 0--4 是默认正文阅读预算而非 Hard 上限；优点与缺点没有强制数量关系。需要外部证据的核心 claim 通过 Citation Evidence 连接正文位置与 `references.bib`。
+
+**核心答案展示精度优先服从题目、官方格式与评分精度。** 若后续小数位可能计分，摘要、正文直接答案、关键结果表和提交结果文件不得为了简洁或美观擅自降精度；无更具体口径时，高精度评分场景通常保留小数后 6--7 位。自然语言技术术语按 Terminology Registry 保持 canonical term 稳定；标题中的实质方法/贡献通过 Title Claim Gate 与摘要、关键词、正文主模型和结果证据闭环。
+
+成稿运行 `scripts/audit_paper_prose.py`，可附 `--framework 模型论文框架.md` 做登记术语与 Numeric Profile 的保守检查。确定性 Hard 错误为 blocking，Default 偏离为 review_required，Recommendation/风格风险为 warning；机器不得从正则推断数学正确性、术语语义等价、物理/统计准确性或 citation 的语义支持关系。
 
 ## 主链
 
@@ -93,9 +97,10 @@ LaTeX 是默认论文主链。写作阶段不在入口文件复制正文规则�
 → semantic governance gate
 → [仅project_level] 项目级预处理 → 预处理质量门
 → Python完整主求解 → 用户完整运行 → 主结果质量门
-→ 独立Python结果深化分析 → 用户完整运行 → 稳定性验收/必要时回退
+→ 独立Python结果深化分析 → support/modify/reject → 必要时回退
 → MATLAB证据图
-→ 题型自适应LaTeX直写 → AI-cleanup → prose/BibTeX audit
+→ Terminology/Numeric/Title Claim/局部Paper Fragment同步
+→ 题型自适应LaTeX直写 → AI-cleanup → prose/BibTeX/framework audit
 → 编译与评委式终审
 ```
 

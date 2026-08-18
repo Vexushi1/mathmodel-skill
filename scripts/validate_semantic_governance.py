@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate problem-contract, semantic-closure and complexity gates without running task code."""
+"""Validate problem-contract, semantic-closure and local paper-stale gates without running task code."""
 from __future__ import annotations
 
 import argparse
@@ -104,6 +104,45 @@ def _mark_stale(entry: dict[str, Any]) -> None:
         entry["analysis_execution_status"] = "pending"
 
 
+def _dependency_hits_question(dependency: str, question: str) -> bool:
+    return dependency == question or dependency.startswith(f"{question}.") or dependency.startswith(f"{question}:")
+
+
+def _mark_paper_fragments_stale(framework: dict[str, Any], affected_questions: set[str]) -> list[str]:
+    """Mark only paper fragments that actually depend on affected questions/fragments."""
+    fragments = framework.get("paper_fragments", []) or []
+    by_id = {
+        str(item.get("id")): item
+        for item in fragments
+        if isinstance(item, dict) and str(item.get("id", "")).strip()
+    }
+    stale_ids: set[str] = set()
+    for fragment_id, fragment in by_id.items():
+        scope = str(fragment.get("scope", ""))
+        dependencies = [str(item) for item in fragment.get("depends_on", []) or []]
+        if scope in affected_questions or any(
+            _dependency_hits_question(dep, question)
+            for dep in dependencies
+            for question in affected_questions
+        ):
+            stale_ids.add(fragment_id)
+
+    changed = True
+    while changed:
+        changed = False
+        for fragment_id, fragment in by_id.items():
+            if fragment_id in stale_ids:
+                continue
+            dependencies = {str(item) for item in fragment.get("depends_on", []) or []}
+            if dependencies & stale_ids:
+                stale_ids.add(fragment_id)
+                changed = True
+
+    for fragment_id in stale_ids:
+        by_id[fragment_id]["status"] = "stale"
+    return sorted(stale_ids)
+
+
 def _gate_issues(key: str, entry: Mapping[str, Any]) -> list[str]:
     issues: list[str] = []
     status = str(entry.get("status", "pending"))
@@ -193,11 +232,16 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
                 issues.append(f"{key}: 语义变化必须记录具体semantic_change_categories")
 
     affected = _dependent_closure(subproblems, changed_sources)
+    stale_fragments: list[str] = []
     if write and changed_sources:
         for key in affected:
             entry = subproblems.get(key)
             if isinstance(entry, dict):
                 _mark_stale(entry)
+        paper_framework = state.setdefault("paper_framework", {})
+        stale_fragments = _mark_paper_fragments_stale(paper_framework, affected)
+        # sync_status means the framework/state record is synchronized, not that every fragment is current.
+        paper_framework["sync_status"] = "current"
 
     if write:
         for key, current_hash in semantic_hashes.items():
@@ -227,6 +271,7 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
         "semantic_hashes": semantic_hashes,
         "changed_sources": sorted(changed_sources),
         "affected_questions": sorted(affected),
+        "stale_paper_fragments": stale_fragments,
         "issues": sorted(set(issues)),
         "warnings": sorted(set(warnings)),
     }
