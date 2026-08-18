@@ -1,7 +1,8 @@
-schema_version: 1.0.0
+schema_version: 1.1.0
 role: >-
-  跨数学建模竞赛的正文推理合同。约束核心公式的来源—推导—去向、共享基础模型、
-  跨问递进、结构化简、数值参数证据和证据驱动的本科生学术表达；不规定具体题型、算法或固定章节名。
+  跨数学建模竞赛的正文推理与证据治理权威。约束核心公式的来源—推导—去向、共享基础模型、
+  跨问递进、结构化简、数值参数证据、命题预算、引用证据和证据驱动的本科生学术表达；
+  不规定具体题型、算法、固定章节名或载体排版细节。
 
 scope:
   competitions: all
@@ -17,8 +18,50 @@ scope:
     - mixed_multi_question
   anti_template_boundary:
     - 不从单一优秀论文复制固定句式、算法名、章节编号或题目专属模型。
-    - 不要求所有论文设置“模型准备”、问题关系图、命题或统一敏感性章节。
+    - 不要求所有论文设置“模型准备”、问题关系图、命题、核心模型汇总独立小节或统一敏感性章节。
     - 规则只抽象可跨题型复用的推理结构，具体章节和证据按当前赛题决定。
+
+rule_governance:
+  authority_principle: >-
+    同一规则只在其权威文件定义一次。consumer、artifact pack、checklist 与 review 模块只引用、执行或检查，
+    不复制为第二套正文规范。
+  levels:
+    hard:
+      meaning: 违反后会造成答案、数学语义、事实来源、可复现性或正式交付错误。
+      action: blocking
+      examples:
+        - accepted_workbook_number_mismatch
+        - stale_result_used_as_current
+        - missing_core_requirement
+        - unsupported_global_optimality_claim
+        - numerical_experiment_used_as_mathematical_proof
+        - unresolved_citation_key
+        - unbuildable_formal_latex
+    default:
+      meaning: 高质量数学建模论文的默认组织方式；题型、比赛模板、真实数学结构或用户明确要求可形成例外。
+      action: review_required_unless_justified
+      examples:
+        - cumcm_problem_restatement_background_plus_statement
+        - multi_question_analysis_by_question
+        - no_standalone_conclusion_by_default
+        - local_result_evidence_loop
+        - adaptive_core_model_summary
+    recommendation:
+      meaning: 经验性质量建议，不应作为否决条件。
+      action: warning_only
+      examples:
+        - compact_problem_background
+        - short_proof_length_budget
+        - proposition_default_budget
+        - abstract_decisive_number_budget
+        - model_strength_weakness_count_budget
+  machine_mapping:
+    hard: blocking
+    default: review_required
+    recommendation: warning
+  exception_rule: >-
+    Default 或 Recommendation 的偏离必须能够由当前赛题、模板、题型、证据或用户明确要求解释；
+    不能仅为版式整齐或套用旧模板而偏离。
 
 formula_reasoning_chain:
   required_for: core_formula_or_relation
@@ -55,6 +98,30 @@ formula_reasoning_chain:
     - “进一步可得、同理可得”只能连接确有直接数学关系的步骤，不能代替对象机制说明。
     - 公式前解释为什么需要，公式后解释得到什么以及下一步如何使用。
     - 核心模型汇总只呈现最终可计算模型，不重复完整推导。
+  internal_trace:
+    required_fields: [formula_id, question, source, derivation, destination, status]
+    optional_fields: [depends_on, code_anchor, workbook_evidence]
+    status_values: [closed, gap, stale]
+    rule: >-
+      内部 trace 只验证来源、依赖、去向和锚点是否存在，不用正则或关键词判断数学正确性；
+      正文不得机械显示内部合同列名。
+
+adaptive_core_model_summary:
+  governance_level: default
+  modes: [required, inline, not_applicable]
+  required_when_any:
+    - multiple_decision_or_state_variables
+    - multiple_core_equations_or_constraints
+    - optimization_or_complex_dynamic_system
+    - long_derivation_before_numerical_solver
+  inline_when:
+    - one_or_two_final_analytic_relations_are_sufficient
+    - final_decision_rule_can_close_the_derivation_without_a_separate_subsection
+  not_applicable_when:
+    - direct_readout_or_simple_calculation_without_new_model_structure
+    - later_question_fully_inherits_prior_model_and_adds_no_new_core_relation
+  rule: >-
+    目标是让评委快速恢复求解器实际消费的最终模型；不得为了章节整齐强制所有小问设置同名小节。
 
 shared_foundation:
   default: adaptive
@@ -137,6 +204,25 @@ multi_method_validation:
       决策变量区间、活跃约束、变量排序、策略结构、重要性、系数方向、分群结构或关键结论是否一致。
   rule: 只比较单个目标值不能自动推出模型可靠；第二层按题型选择，不要求所有模型拥有相同结构指标。
 
+proposition_governance:
+  default_budget: [0, 4]
+  governance_level: recommendation
+  over_budget_action: justification_required
+  automatic_rejection_over_budget: false
+  admission_effects:
+    - reduce_dimension
+    - reduce_constraints
+    - restrict_candidate_region
+    - guarantee_feasibility
+    - justify_transformation
+    - provide_threshold_or_bound
+    - justify_model_necessity
+    - establish_solution_structure
+  rule: >-
+    命题数量由实际数学作用决定，不按小问分配。0--4 是正文阅读预算而非数学硬上限；
+    超出默认预算时应先合并同质命题、把技术引理移附录，并说明保留额外命题的必要性。
+  proof_length_recommendation: 正文连续短证明通常用自然分段和必要公式，篇幅预算只作为写作建议，不作为数学有效性的判断。
+
 proposition_downstream_consequence:
   required_when_proposition_is_used_for_computation: true
   allowed_consequences:
@@ -148,6 +234,54 @@ proposition_downstream_consequence:
     - provide_threshold_or_bound
     - justify_model_necessity
   rule: 证明后应说明它怎样改变后续模型或计算，而不是只写“命题得证”。
+
+citation_evidence:
+  principle: >-
+    参考文献只支撑外部来源型主张，不替代本文自己的推导、工作簿结果和数值验证；
+    每个需要外部证据的核心 claim 应能回到实际 citation key 与使用位置。
+  claim_types:
+    prompt_or_attachment_fact:
+      citation: usually_not_required
+    own_derivation:
+      citation: not_required
+    own_numerical_result:
+      citation: not_required
+    standard_model_or_method_origin:
+      citation: required_or_recommended
+    nontrivial_standard_theorem:
+      citation: required_and_conditions_verified
+    external_empirical_parameter:
+      citation: required
+    external_dataset_or_domain_fact:
+      citation: required
+    algorithm_origin_when_material_to_method:
+      citation: required_or_recommended
+    comparison_with_prior_research:
+      citation: required
+  preferred_source_order:
+    - official_document_or_primary_dataset
+    - original_research_paper
+    - formal_standard_textbook_or_monograph
+    - high_quality_review
+    - secondary_source_when_no_better_source_exists
+  project_trace_fields: [claim_id, claim_or_source_object, claim_type, citation_key, paper_location, status]
+  status_values: [current, pending, stale, not_required]
+  closure_rules:
+    - required_claim_has_existing_bib_key
+    - citation_key_is_used_in_paper_or_explicitly_retained_for_documented_reason
+    - external_parameter_explains_how_source_value_is_adapted_to_current_problem
+    - cited_theorem_verifies_current_problem_conditions
+    - own_result_is_not_replaced_by_external_citation
+  machine_audit_scope:
+    may_check:
+      - missing_bib_key_for_existing_cite
+      - duplicate_bib_key
+      - unused_bib_entry_as_warning
+      - suspicious_nocite_all
+    must_not_claim:
+      - source_quality_from_domain_name_only
+      - semantic_support_of_claim_from_citation_presence_only
+      - theorem_applicability_from_regex
 
 prose_style:
   name: evidence_driven_undergraduate_academic
@@ -173,10 +307,18 @@ prose_style:
       - 说明由某一结果引出的下一步建模动作
 
 problem_background:
+  governance_level: recommendation
   default: one_paragraph
   allow_second_short_paragraph_when: reality_background_to_specific_research_object_needs_semantic_narrowing
   second_paragraph_must: narrow_object_or_core_conflict
   forbidden_second_paragraph: document_structure_or_chapter_management_only
+
+model_evaluation:
+  governance_level: recommendation
+  strengths_typical: [2, 4]
+  weaknesses_typical: [1, 2]
+  count_relation_required: false
+  rule: 优点有证据、缺点说明影响对象与边界；数量按实际模型决定，不检查“优点必须多于缺点”。
 
 machine_audit_boundary:
   report_only_for_semantic_style_risks: true
@@ -187,7 +329,22 @@ machine_audit_boundary:
     - repeated_cross_question_redefinition
     - unexplained_numeric_parameter_assignment
     - repeated_identical_question_opening_pattern
+    - unused_bibliography_entry
+  may_review:
+    - default_structure_deviation_without_justification
+  may_block:
+    - deterministic_structural_error_such_as_missing_citation_key_or_duplicate_label
   must_not_claim:
     - mathematical_correctness_from_regex
     - formula_source_semantic_validity_from_keywords_only
     - parameter_optimality_from_prose_only
+    - citation_semantic_support_from_key_presence_only
+
+authority_boundaries:
+  reasoning_authority: core/writing_reasoning_contract.yaml
+  prose_and_section_authority: modules/05_writing/latex.md
+  docx_role: 只定义 Word 审阅载体与排版差异，不复制正文规则。
+  ai_cleanup_role: 只识别模板化、空泛、重复、推理呈现风险，不建立第二套正文规则。
+  review_role: 只映射 Authority 到检查级别与交付判定，不重新定义写作规范。
+  artifact_pack_role: 只定义加载条件、输入、输出、编译或载体特有验收，不复制正文规范。
+  project_framework_role: 只保存当前项目事实、选择、状态和证据位置，不保存跨项目写作手册。
