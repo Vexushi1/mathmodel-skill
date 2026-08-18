@@ -107,7 +107,9 @@ class TestContentPacks(unittest.TestCase):
             self.assertIn("core/writing_reasoning_contract.yaml", text, str(path))
         latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
         self.assertIn("0--4 是**默认正文阅读预算**，不是绝对数学上限", latex)
-        self.assertIn("required / inline / not_applicable", latex)
+        self.assertIn("核心模型汇总：自适应而非机械必设", latex)
+        for mode in ("`required`", "`inline`", "`not_applicable`"):
+            self.assertIn(mode, latex)
 
     def test_docx_checklist_is_framework_aware_without_redefining_hard_rules(self):
         writing = ROOT / "templates/writing"
@@ -125,7 +127,7 @@ class TestContentPacks(unittest.TestCase):
         self.assertIn("Citation Evidence", checklist)
         self.assertIn("表题是否位于表格正上方", checklist)
         self.assertIn("图题位于图片正下方", checklist)
-        self.assertIn("优缺点数量是否由实际模型决定", checklist)
+        self.assertIn("优缺点条目数量是否由实际模型决定", checklist)
 
     def test_cumcm_hsk_template_has_budgeted_boxed_proposition_environment(self):
         text = (ROOT / "templates/latex/cumcm/hsk/hsk_main.tex").read_text(encoding="utf-8")
