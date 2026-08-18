@@ -1,120 +1,90 @@
-# mathmodel-skill v7.5.2
+# mathmodel-skill v7.6.0
 
-当前工作流：**审题与 Problem Contract 冻结 → 通用数据审计与 `preprocessing_decision` → 题面—数学—代码语义闭环 → Complexity Sanity Check → semantic governance → 条件式项目级预处理（仅 `project_level`）→ 用户本地完整版 Python 主求解 → 主结果质量门 → 独立 Python 结果深化分析 → 稳定性验收 → MATLAB预处理/结果证据图 → 题型自适应 LaTeX 写作 → AI cleanup 与学术语言重写 → prose audit → 编译终审**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 数据审计与 `preprocessing_decision` → 语义闭环与复杂度复审 → 条件式预处理 → 用户本地 full-fidelity Python 主求解 → 独立结果深化分析 → MATLAB 证据图 → LaTeX 终稿 → AI cleanup → prose/BibTeX audit → 编译终审**。
 
-## v7.5.2：双 Skill 入口语义防漂移
+## v7.6.0：写作治理收口与 Citation Evidence
 
-根目录 `SKILL.md` 与 Codex 插件目录 `skills/mathmodel-skill/SKILL.md` 继续同时保留，但两者新增完全一致的“运行时入口合同”摘要：统一委托 `core/bootstrap.yaml`，再由 `core/workflow_router.yaml` / `scripts/resolve_workflow.py` 解析最小 route-specific 加载链。详细模型、预处理、求解、绘图和写作规则仍只由 bootstrap 指向的权威源定义，两个入口不再各自承担独立规则权威。
+本版本集中修改论文写作架构，不改变数值求解、工作簿 Schema、MATLAB 结果计算职责或每问五文件接口。
 
-静态 lint 与 v7.5.2 回归测试同时检查两入口的合同块、版本、插件 `./skills/` 发现路径、核心 authority 指针以及 legacy/V622 默认隔离。稳定的 `scripts/README.md`、`legacy/README.md` 和 resolver docstring 改为 versionless，减少后续 patch 的无意义版本触点。数值模型、预处理、工作簿、Python/MATLAB、五文件合同、LaTeX 与 v7.5.0 writing-reasoning 能力均未改变。
+### 1. 单一写作权威
 
-## v7.5.1：读取架构瘦身与单一事实源强化
+写作规则不再在多个 active 文件重复定义：
 
-`core/bootstrap.yaml` 收回为真正的最小启动索引，只保留 authority 指针和启动不变量；详细 reasoning 继续由 `core/writing_reasoning_contract.yaml` 等权威源承担。resolver 对 taxonomy 改为按需解析，Figure、工作簿和无关 utility route 不再无需求加载 reasoning/taxonomy。
+```text
+core/writing_reasoning_contract.yaml
+├─ 跨竞赛推理与证据治理
+├─ Hard / Default / Recommendation
+├─ Source → Derivation → Destination
+├─ 命题预算与下游作用
+└─ Citation Evidence
 
-v7.5.1 同时保留 v7.5.0 的 Source→Derivation→Destination、共享基础、跨问递进、结构化简优先、数值参数证据、多方法结构一致性与本科生证据驱动学术表达，并通过读取预算与 route-isolation 回归防止后续瘦身误删能力。
+modules/05_writing/latex.md
+└─ 正文章节组织与表达权威
+```
 
-## v7.5.0：跨比赛公式推理与证据驱动写作架构
+`ai_cleanup.md`、`docx.md`、`review_delivery.md`、Artifact Packs 和检查表只消费这些 Authority：负责清理、载体差异、检查、编译或交付，不再复制第二套正文规范。
 
-建立跨比赛 `Source → Derivation → Destination` 公式推理链；共享基础按实际复用程度启用，后问只写继承与增量；高维/非线性模型先检查解析关系、单调性、消元、降维、候选域和分解，再决定是否升级算法。步长、网格、Monte Carlo/Bootstrap 数量、窗口、滞后和优化容差等数值参数必须有收敛、验证或稳定性证据。
+### 2. `模型论文框架.md` 回归项目记忆
 
-多方法验证从单纯结果数值一致扩展到决策区间、活跃约束、策略结构、系数方向、排序、聚类或关键区域等任务相关结构一致性；正文语言采用 evidence-driven undergraduate academic prose，强调具体对象、当前数学困难、数学处理和所得信息的连续证据链。
+框架只保存当前项目事实、选择、状态和证据位置，包括：
 
-## v7.4.5：证明机器契约收口与成稿 prose audit
+- 当前题意、数据、变量、参数和跨问依赖；
+- Formula Trace；
+- 数值参数依据；
+- 当前论文结构选择；
+- 命题与证明计划；
+- Citation Evidence；
+- 各问结果摘要；
+- Python / 工作簿 / MATLAB / 正文映射。
 
-本次 patch 不改变 Problem Contract、数据预处理、Python 求解、工作簿 Schema、MATLAB Figure Evidence、五文件接口和“模型的评价与推广 / 模型的改进、评价与推广”两级策略，只处理 v7.4.4 写作链最后两个执行层尾项。
+通用的“问题背景写几段、证明写几行、命题框如何排版”等规则不再复制进每个项目框架。具体数值仍回到已验收工作簿复核，semantic revision/hash/stale 仍由 `state/project_state.yaml` 管理。
 
-命题证明的机器契约现在统一为 `paragraph_first + logical_units_required + numbered_steps_when_needed`。已经移除容易被误读为“所有证明必须编号分步”的 `proposition_proof_segmented_steps`、`segmented_steps_required` 和 `main_text_key_steps_*` 活动字段。连续短证明仍以自然段和必要公式为默认，多阶段证明才使用 2--6 个编号步骤。
+### 3. Hard / Default / Recommendation
 
-新增 `scripts/audit_paper_prose.py` 作为**非破坏性成稿审计器**。它读取最终 LaTeX 主文件，只报告 `pass / warning / review_required`，不会自动改写论文。普通单次使用“但、然而、不是”等词不会被判错；只有连续段落转折/否定过密、反复以“本文/本问/该模型”起句、重复“本文不是……而是……”或“由图可知/见表”等模板风险才给 warning。
+写作规则现在分三级：
 
-`review_required` 只用于明显的结构回退，例如默认独立“结论”章、可见 H1/A1、问题重述缺“问题提出”、模型假设与符号说明合章、问题分析包含正式公式、各问缺“核心模型汇总”等。默认运行只报告，最终编译前使用 `python scripts/audit_paper_prose.py final_latex/main.tex --strict`；只有 `review_required` 会阻断 strict，warning 保留给人工判断。
+- **Hard**：会造成事实、数学语义、可复现性或正式交付错误；阻断交付；
+- **Default**：高质量竞赛论文默认组织方式，题型/模板/真实结构可合理偏离；
+- **Recommendation**：经验性质量建议，只给 warning。
 
-## v7.4.4：自然论文流、局部结果闭环与活动模板清理
+因此以下旧机械限制已调整：
 
-本次 patch 继续保持 Problem Contract、数据预处理、Python 求解、工作簿 Schema、MATLAB Figure Evidence 和每问五文件接口不变，集中修正写作自然度、命题证明形式、图表证据引用和活动模板残留。
+- 命题 `0--4` 是默认正文阅读预算，不是绝对上限；超过预算需说明不可合并/不可移附录的必要性；
+- 不再要求“优点必须多于缺点”；
+- 核心模型收束按 `required / inline / not_applicable` 自适应，不再机械要求所有小问拥有同名“核心模型汇总”小节；
+- 证明的行数和分步数量只作为 Recommendation，不作为数学有效性或交付否决条件。
 
-中文国赛“问题重述”现在默认采用“问题背景 + 问题提出”。问题背景通常一个自然段，由题面现实背景和领域矛盾自然引出待解决问题；问题提出按“问题一：”“问题二：”逐问用自己的理解转述研究对象、关键条件和待求输出，不提前写正式模型、公式、算法和结果。“问题提出”回答“要解决什么”，“问题分析”回答“难点在哪里、抓住什么关系解决”，两者不得换词重复。
+### 4. Citation Evidence
 
-正文新增**正向叙述优先**与否定—转折密度复查。能够直接说明对象、数学处理和结果时，优先正向陈述；只有真实存在方法取舍、异常、反例、限制或失效边界时才使用“但、然而、不是、不能、只能”等结构。科研初学者式学术表达继续保持略朴素、认真和愿意多解释一步，但不再把“生涩”理解成频繁自我否定、自我辩护或每个结论都附免责声明。
+新增轻量 claim-to-citation 闭环：
 
-命题证明从 v7.4.3 的统一分步进一步调整为**分段优先、分点按需**：连续推理通常使用 3--8 行自然分段和必要公式，只有分情况、存在性/唯一性、多条件验证、映射—可行域—目标保持等明显多阶段证明才使用 2--6 个编号步骤。命题显示编号统一为“命题 4.1、命题 6.2”等阿拉伯章节号，命题正文与短证明仍在同一不可分页外框中。
+```text
+外部核心 claim
+→ Citation Key
+→ references.bib
+→ 正文实际使用位置
+```
 
-各问主结果默认保留在“问题X模型建立及求解”的“求解结果”小节；深化证据继续按题目专属名称组织。默认不再机械设置“小问结论”，中文国赛也不再默认设置全文独立“结论”一级章，除非当届模板、用户或论文类型明确要求。最后一个结果/深化段直接回答当前设问，减少摘要—各问—全文结论三次重复。
+重点覆盖外部经验参数、外部数据、领域事实、非显然标准定理、方法来源和既有研究比较。本文自己的推导、工作簿结果和数值验证不靠外部文献替代证据。
 
-图表证据链进一步收紧：每张正文核心图、核心表都必须在邻近正文中出现一次显式编号引用，并解释关键趋势/数值以及模型或题目含义。引用可以写成“图 X 给出了……”“从图 X 的空间分布看……”“表 X 汇总了……”等自然形式，不建立新的“由图可知/见表可知”句式模板。
+`scripts/audit_paper_prose.py` 增加可靠的 BibTeX 静态检查：缺失 cite key、重复 bib key 为 blocking；未使用条目和 `\nocite{*}` 风险为 warning。机器不判断某篇文献是否真的语义支持某个 claim，也不从正则判断数学正确性。
 
-活动读取面审计同时发现 `templates/latex/diangong/main.tex` 仍停留在 v6.2.2 时代的旧写作骨架，并且会被当前电工杯竞赛适配器实际引用。该活动模板已重构为当前双阶段结果、假设/符号分章、核心模型汇总、求解结果和无默认独立结论的结构。legacy 历史文件和 V622 兼容指针仍保留只读兼容，不因包含旧术语被误删。
+## 当前数值工作流
 
-## v7.4.3：国赛正文结构与去模板化写作修正
+### 数据审计与三态预处理
 
-本次 patch 不改变 Problem Contract、数据预处理、Python 求解、工作簿 Schema、MATLAB 绘图和五文件接口，只修正论文写作行为与模板实现。
-
-中文国赛多问论文现在默认采用更接近实际评阅习惯的正文组织：问题背景通常只有一个自然段；“问题分析”按问题一、问题二……逐问设置小节，且禁止在分析阶段提前写数学公式、最终数值和经验阈值；“模型假设”和“符号说明”拆成两个独立一级章节；各问主章节统一使用“问题X模型建立及求解”，但内部小节仍按题型动态命名。
-
-每问详细推导完成、数值求解开始前新增强制性的“核心模型汇总”。它只集中展示求解器实际使用的变量、目标、关键方程、约束与边界，避免评委在长推导中反复寻找最终模型。命题证明也改为 2--6 个分段/分条关键步骤，常规短证明外框原则上不跨页；过长技术证明移附录，不通过缩小字号硬塞。
-
-AI cleanup 新增句法层去模板化与“科研初学者式学术表达”：减少连续以“本文/本问/该模型”起句，避免反复使用“由于……因此本文不能……”“本文不是……而是……”作为论证骨架；普通叙述允许调整语序、观点顺序和自然同义表达，但专业术语、变量和数学语义保持稳定。最终语言应略显朴素、生涩、认真，但仍是规范学术书面语，不故意制造病句、口语或散文化表达。
-
-表格与图片进一步锁定“表上图下”：三线表题在上、图片题在下，三线表数值和短文本默认水平/垂直居中；模型评价默认使用“模型的评价与推广”，确有实质改进时可写“模型的改进、评价与推广”，优点多于缺点且优点不超过 4 条，改进/推广按实际证据选写。
-
-## v7.4.2：Figure Evidence 动态布局与高对比配色
-
-MATLAB 绘图不再预设“核心结果就用 2×2”或“默认都用 1×2”。生成代码前先根据 `Core conclusion / Evidence level / Primary question` 判断单图能否闭合结论，再动态选择 `单图 / 1×2 / 2×1 / 1×3 / 2×2 / 拆成多张 Figure`。`2×2` 只有在四个 panel 同属一个核心结论、具有明确成对/交叉结构且拆图会损失直接比较效率时保留；否则优先拆分，避免主结果、异质性、稳健性和数值合法性证据混装后稀释结论。
-
-配色不再默认压成低饱和深色。白底和清晰轴线保持不变，但主比较对象允许使用中高饱和、高对比颜色，例如亮蓝 `#1478FF` 与鲜红 `#F04444`；亮绿、亮橙、亮紫可按改善、警告和第三对象等语义使用。主对象可以醒目，置信区间、背景带、参考网格和次要对象必须降权；同一对象的颜色语义在全文保持一致。完整规则以 `modules/04_figure_evidence.md` 为唯一权威。
-
-## 数据阶段：先判断，不默认清洗
-
-所有带数据的题都先做**非破坏性审计**，然后锁定：
+所有数据题都先做非破坏性审计，但不默认清洗：
 
 ```text
 preprocessing_decision
-├─ not_needed     → 不创建数据预处理/，各问直接读取原始数据
-├─ question_local → 不创建全局预处理目录，本问脚本内做有数学来源的局部变换
-└─ project_level  → 数据预处理/数据预处理.py
-                     ↓
-                    数据预处理结果.xlsx
-                     ↓
-                    依赖小问统一读取
+├─ not_needed
+├─ question_local
+└─ project_level
 ```
 
-判定不依赖某一种赛题经验，而取决于**当前题目、当前附件和当前模型要求**。至少检查完整性、一致性、有效性、重复身份、时间/空间采样与覆盖、测量质量、模型输入条件以及时间因果和信息泄漏风险。
+共享数据、缺失值或某类赛题的历史经验都不能单独推出 `project_level`。任何改变模型输入的数据处理必须有数据、机理或模型必要性、参数依据和验证证据。
 
-两个及以上小问共享同一原始数据，只说明需要统一审计口径，**不能单独推出需要清洗、插值、滤波、标准化或统一工作簿**。同样，存在缺失值也不能直接推出“必须插值”：必须先判断变量类型、缺失位置和缺口长度、是否存在连续机制、模型是否可原生处理，以及保持缺失、删除、插值、统计填补、模型填补或预测填补哪一种假设最弱且可验证。
-
-插值只在连续变量具有明确局部连续性、缺口长度和边界位置允许时考虑；类别、ID、标签、事件状态及无连续机制的变量不得机械数值插值。模型化或预测填补必须有独立恢复能力验证，时序任务还必须保持时间顺序，禁止使用未来信息。
-
-“预测填补”和“题目要求预测”严格分开：前者只是为了恢复后续模型确实需要的缺测输入，可能属于预处理；若赛题本身要求预测未来值、未知类别、需求、价格、风险、趋势或其他最终结果，则属于核心预测模型，不能提前包装成数据预处理。
-
-## 预处理一旦启用，论文不能敷衍
-
-只要实际数据变换参与后续模型，就必须形成：
-
-```text
-数据问题与必要性
-→ 方法选择与替代方案
-→ 数学公式/变换关系/目标函数
-→ 参数、阈值、窗口、频带或超参数来源
-→ 理论、统计或物理合理性验证
-→ 处理前后底层数据证据
-→ MATLAB证据图
-→ 后续模型输入接口
-```
-
-不同处理写作深度不同：
-
-- 单位换算、坐标修正、主键/时间对齐等确定性结构处理：给出映射关系和一致性条件；
-- 标准化、归一化、对数/Box-Cox 等：给出变换公式、参数估计口径和处理前后尺度/分布验证；
-- 插值、统计/模型/预测填补：给出公式或目标函数、边界条件/特征集合，并做人工掩蔽或留出恢复误差；
-- 滤波、平滑、去噪、重采样：给出核函数、频率响应或离散映射以及参数来源，并验证有效信息保留；
-- 异常识别、删除、修复：给出判定指标、阈值来源和保留/处理方案对照。
-
-形式证明只在确实存在等价性、守恒性、单调性、误差界或可行性保持等命题时使用。经验型清洗不能编造“证明”，应使用统计检验、物理约束、人工掩蔽、留出验证、残差、频谱、分布或处理前后对照。
-
-## 项目级预处理 MATLAB：`data_process.m`
-
-只有 `preprocessing_decision=project_level` 时额外存在：
+只有 `project_level` 创建：
 
 ```text
 数据预处理/
@@ -123,46 +93,7 @@ preprocessing_decision
 └─ data_process.m
 ```
 
-`数据预处理.py` 必须把论文和绘图真正需要的底层证据写入工作簿，包括：
-
-- `预处理方法证据`；
-- `处理前后对比`；
-- `绘图数据索引`；
-- 题目专属的处理前/后、诊断、人工掩蔽/留出验证等底层数据。
-
-`data_process.m` 只读取 `数据预处理结果.xlsx`，可以画处理前后时序/空间场/剖面、缺失与填补、分布、频谱、残差、真实值—恢复值、采样覆盖、异常阈值等图。**MATLAB 不重新清洗、插值、滤波、重采样、训练填补模型或重新确定参数。**
-
-每个 project-level 项目至少有一张预处理图真正回答“为什么需要处理”或“处理是否合理”，而不是只让曲线看起来更平滑。默认只保留图窗人工检查；需要正式导出时使用 `data_process` 或 `data_process_<evidence>` 作为 ASCII 图片基名。
-
-`question_local` 若存在实质数据变换，则在对应小问正文写公式、参数依据和验证；需要图时由该问 `qX_plot.m` 读取 Python 已输出的底层数据绘制。
-
-## 写作阶段：按证据链写，不按句式模板写
-
-正文写作唯一权威仍位于 `modules/05_writing/latex.md`。v7.5.1 在 v7.4.4 自然论文流基础上增加机器审计闭环：
-
-- 问题重述采用“问题背景 + 问题提出”，问题提出逐问写“问题X：”；
-- 问题分析按问分小节，不含正式公式与最终结果，并与问题提出明确分工；
-- 模型假设和符号说明分章；
-- 高频符号控制长下标，场景/模型信息可用简短上标；
-- 各问采用“问题X模型建立及求解”，详细推导后必须有“核心模型汇总”，主结果放“求解结果”；
-- 默认不机械设置“小问结论”和全文独立“结论”章；
-- 命题证明分段优先、分点按需，机器契约只要求逻辑单元清晰，多阶段证明才使用编号步骤；
-- 核心图表必须有正文显式编号引用和邻近解释；
-- 检验尽量贴近对应小问结果，不机械设置统一“模型检验/敏感性与鲁棒性”章节；
-- 模型评价保留“模型的评价与推广 / 模型的改进、评价与推广”两级策略；
-- AI cleanup 之后继续做科研初学者式自然重写，让语言正向、连贯、规范但不过度成熟和模板化；
-- 成稿使用 `scripts/audit_paper_prose.py` 检查结构回退和高密度模板句法，warning 人工复核，`review_required` 在最终编译前清除或说明明确格式例外。
-
-结果正文优先形成“核心图表/关键数值显式引用 → 比较基准 → 机制解释 → 题目回答 → 必要边界”；真实反常结果、局部不稳定、阈值敏感和失效边界不得为了叙事顺滑被删除。
-
-## 四个前置治理点
-
-- `Problem Contract`：冻结原始/派生对象、已知/可计算量、决策/状态/输出量、显式/隐含约束、禁止假设、数据角色和小问依赖；
-- `preprocessing_decision`：根据当前数据质量、结构、模型输入要求和泄漏风险判断“数据可直接用”“本问局部变换”“项目级公共处理”；
-- `semantic closure / revision`：题面对象与要求 → 数学变量/公式/目标/约束 → Python变量/函数 → 工作簿输出/验证证据；数据判定、处理口径、模型或依赖变化按 typed dependencies 传播 stale；
-- `complexity sanity`：复杂题异常降维、异常解耦、关键条件或附件闲置、关键约束长期不生效、后问复制前问或计算异常容易时强制复审。
-
-## 每问默认交付
+### 每问唯一五文件目录
 
 ```text
 问题X求解/
@@ -173,31 +104,52 @@ preprocessing_decision
 └─ qX_plot.m
 ```
 
-`data_process.m` 属于项目级预处理目录，不改变每问五文件合同。
+主求解与结果深化分析是两个独立 Python 阶段。主工作簿 accepted 后冻结主脚本，再生成深化分析脚本。赛题代码由用户本地 full-fidelity 执行，助手只生成、静态检查并验收返回工作簿。
 
-主工作簿 accepted 后冻结 `问题X求解.py`；随后单独生成 `问题X结果深化分析.py`。不默认生成独立运行配置、运行说明、校验报告、`图表/` 或额外元数据。
+### MATLAB Figure Evidence
 
-## 质量门
+MATLAB 只读取 Python 输出的数据和标准工作簿绘图，不重新求解。图形布局按核心结论、证据等级和主要问题动态选择；默认保留图窗供人工调整，不批量自动导出。
 
-- `scripts/validate_semantic_governance.py`：题意口径、语义闭环、复杂度复审、semantic revision 与跨小问 stale；
-- `core/global_preprocessing_contract.yaml`：通用数据审计、缺失/插值/预测填补边界、预处理必要性、论文数学证据与 `data_process` 图证据；
-- `core/code_quality_contract.yaml`：实际生成的预处理/主求解/深化分析 Python 的代码工程质量；
-- `scripts/validate_code_delivery.py`：按 `preprocessing / primary / analysis` 阶段静态检查代码，不执行赛题；
-- `scripts/validate_user_execution.py`：验收适用工作簿、代码/数据哈希、预处理论文/绘图底层证据与质量门；
-- `scripts/audit_paper_prose.py`：对最终 LaTeX 正文做非破坏性结构/模板风险审计；
-- `scripts/sync_project.py`：正式交付前按 active data source 检查产物、哈希和 stale，并在 project-level 的 figures 及后续阶段要求 `data_process.m`。
+## 运行时权威链
 
-代码默认以 500 行以内为目标；501--700 行给 warning；超过 700 行默认拒绝，复杂题显式豁免最多到 900 行。单函数以 80 行以内为目标，超过 120 行拒绝；函数参数以 8 个以内为目标，超过 12 个拒绝。详细规则只在 `core/code_quality_contract.yaml` 定义。
-
-## 启动与检查
-
-```bash
-python scripts/resolve_workflow.py full_solution --objective optimization --competition CUMCM --preprocessing-decision not_needed
-python scripts/resolve_workflow.py full_solution --objective optimization --competition CUMCM --preprocessing-decision project_level
-python scripts/validate_semantic_governance.py <project_root> --write --strict
-python scripts/validate_code_delivery.py <project_root> --write --strict
-python scripts/audit_paper_prose.py final_latex/main.tex
-python scripts/sync_project.py <project_root> --write --strict --delivery-scope figures
+```text
+SKILL.md / skills/mathmodel-skill/SKILL.md
+        ↓
+core/bootstrap.yaml
+        ↓
+core/workflow_router.yaml
+        ↓
+scripts/resolve_workflow.py
+        ↓
+route-specific contracts / modules / packs / templates
 ```
 
-仓库维护执行 `python scripts/lint_skill.py`、全量单元测试和生成索引检查。DOCX 是显式可选分支；v7.2.0--v7.2.2 项目重新进入设计、预处理、绘图或写作时继续沿用三态 `preprocessing_decision`，但按当前通用审计与论文证据规则复核；历史只读交付不强制反向补 `data_process.m`。
+全局硬规则：`core/hsk_core_policy.md`。
+
+主要合同：
+
+- `core/global_preprocessing_contract.yaml`：条件式数据预处理；
+- `core/code_quality_contract.yaml`：Python 工程质量；
+- `core/user_execution_contract.yaml`：用户本地执行与工作簿验收；
+- `core/writing_reasoning_contract.yaml`：写作推理、规则等级和 Citation Evidence；
+- `modules/05_writing/latex.md`：正文结构与表达；
+- `core/output_contract.yaml`：目录、产物和正式交付；
+- `core/project_state.schema.yaml`：机器状态；
+- `templates/model/model_paper_framework.md`：项目记忆模板。
+
+## 关键检查命令
+
+```bash
+python scripts/lint_skill.py
+python -m unittest discover -s tests
+python scripts/validate_model_paper_framework.py 模型论文框架.md --strict
+python scripts/audit_paper_prose.py final_latex/main.tex --bib final_latex/references.bib --strict
+```
+
+正式项目交付还按实际阶段执行 semantic governance、用户工作簿验收和 project sync。
+
+## 兼容与历史
+
+`legacy/` 只读，不进入默认执行链。旧版说明保留在 Git 历史和 `CHANGELOG.md`；README 不再重复维护每个历史版本的完整规则，以降低 active 读取面和版本漂移。
+
+许可证与第三方声明见 `LICENSE`、`THIRD_PARTY_NOTICES.md`。
