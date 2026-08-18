@@ -1,7 +1,7 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 7.5.3
+version: 7.7.0
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
@@ -136,11 +136,47 @@ $defs:
       failure_boundary: {type: string}
       framework_anchor: {type: string}
       budget_exception_reason: {type: string}
+  analysis_evidence_entry:
+    type: object
+    additionalProperties: false
+    required: [id, target_claim, disposition, required_action]
+    properties:
+      id: {type: string, pattern: '^E[1-9][0-9]*$'}
+      method_or_source: {type: string}
+      target_claim: {type: string, minLength: 1}
+      disposition: {type: string, enum: [support, modify, reject]}
+      key_finding: {type: string}
+      required_action: {type: string, minLength: 1}
+      paper_anchor: {type: string}
+      rejects_core_answer: {type: boolean, default: false}
+      status: {type: string, enum: [current, stale, resolved], default: current}
+  paper_fragment_entry:
+    type: object
+    additionalProperties: false
+    required: [id, kind, status]
+    properties:
+      id: {type: string, pattern: '^PF[1-9][0-9]*$'}
+      kind:
+        type: string
+        enum: [question_model, question_result, question_figure_evidence, abstract_claim, model_evaluation_claim, title_claim, cross_question_claim, other]
+      source_questions:
+        type: array
+        uniqueItems: true
+        items: {type: string, pattern: '^Q[1-9][0-9]*$'}
+      depends_on:
+        type: array
+        uniqueItems: true
+        items: {type: string, minLength: 1}
+      anchor: {type: string}
+      status: {type: string, enum: [pending, current, stale, not_applicable]}
+      critical_for_delivery: {type: boolean, default: false}
+      stale_reason: {type: string}
+      required_action: {type: string}
 properties:
   semantic_governance_version:
-    description: v7.1+语义治理门版本；旧项目可缺失，只读兼容，重新进入审题/模型设计时补齐
+    description: v7.1+语义治理门版本；1.0.0只读兼容，当前写入版本为1.1.0
     type: string
-    const: 1.0.0
+    enum: [1.0.0, 1.1.0]
   project:
     type: object
     additionalProperties: false
@@ -336,6 +372,9 @@ properties:
           type: array
           uniqueItems: true
           items: {type: string}
+        analysis_evidence:
+          type: array
+          items: {$ref: '#/$defs/analysis_evidence_entry'}
         evidence:
           type: array
           uniqueItems: true
@@ -355,7 +394,10 @@ properties:
       path: {type: string, const: 模型论文框架.md}
       version: {type: string, minLength: 1}
       mode: {type: string, enum: [compact, full], default: compact}
-      sync_status: {type: string, enum: [current, stale]}
+      sync_status:
+        description: 只表示框架文件是否已经同步记录当前机器状态；允许paper_fragments中存在显式stale。
+        type: string
+        enum: [current, stale]
       last_synced_at: {type: string, format: date-time}
       last_sync_scope: {type: string, minLength: 1}
       sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
@@ -373,6 +415,10 @@ properties:
       propositions:
         type: array
         items: {$ref: '#/$defs/proposition_entry'}
+      paper_fragments:
+        description: v7.7+可选局部论文依赖状态；旧项目缺失时保持兼容。
+        type: array
+        items: {$ref: '#/$defs/paper_fragment_entry'}
   execution:
     type: object
     additionalProperties: false
