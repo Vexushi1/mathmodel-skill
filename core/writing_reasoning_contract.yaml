@@ -1,8 +1,8 @@
-schema_version: 1.1.0
+schema_version: 1.2.0
 role: >-
   跨数学建模竞赛的正文推理与证据治理权威。约束核心公式的来源—推导—去向、共享基础模型、
-  跨问递进、结构化简、数值参数证据、命题预算、引用证据和证据驱动的本科生学术表达；
-  不规定具体题型、算法、固定章节名或载体排版细节。
+  跨问递进、结构化简、数值参数证据、命题预算、引用证据、术语一致性、数字与单位展示、
+  标题主张、深化证据处置和正文必要性；不规定具体题型、算法、固定章节名或载体排版细节。
 
 scope:
   competitions: all
@@ -36,6 +36,7 @@ rule_governance:
         - unsupported_global_optimality_claim
         - numerical_experiment_used_as_mathematical_proof
         - unresolved_citation_key
+        - unresolved_cross_reference
         - unbuildable_formal_latex
     default:
       meaning: 高质量数学建模论文的默认组织方式；题型、比赛模板、真实数学结构或用户明确要求可形成例外。
@@ -46,6 +47,8 @@ rule_governance:
         - no_standalone_conclusion_by_default
         - local_result_evidence_loop
         - adaptive_core_model_summary
+        - title_claim_closure
+        - abstract_without_figures_tables_or_display_math
     recommendation:
       meaning: 经验性质量建议，不应作为否决条件。
       action: warning_only
@@ -53,8 +56,9 @@ rule_governance:
         - compact_problem_background
         - short_proof_length_budget
         - proposition_default_budget
-        - abstract_decisive_number_budget
-        - model_strength_weakness_count_budget
+        - terminology_drift_check
+        - caption_length_check
+        - paragraph_necessity_check
   machine_mapping:
     hard: blocking
     default: review_required
@@ -197,12 +201,100 @@ numerical_parameter_evidence:
     optimization: objective_feasibility_multi_start_and_termination_evidence
   prohibition: 禁止仅用“综合考虑精度与效率，取……”替代参数依据。
 
+numeric_style_contract:
+  governance_level: default
+  principle: >-
+    数学建模竞赛中的核心答案数值必须按题目、官方格式、评分粒度和结果敏感性保持足够高的展示精度；
+    不得为了版面简洁或“可读性”擅自把已验收结果粗略舍入。若精确到小数后 6--7 位可能影响结果分，
+    摘要、正文直接答案和关键结果表必须保留相应高精度，并与标准工作簿同源。
+  high_precision_default:
+    applies_when_any:
+      - exact_numeric_answer_is_scored
+      - judging_may_compare_late_decimal_digits
+      - optimization_or_geometry_answer_requires_precise_coordinates_times_or_objective
+      - competition_or_user_requires_fixed_decimal_places
+    preferred_decimal_places_when_not_otherwise_specified: [6, 7]
+    rule: >-
+      6--7 位是高精度结果展示的常用默认区间而非无条件硬编码；若题目、模板、物理分辨率、统计不确定性或官方要求给出其他精度，以其为准。
+  consistency:
+    - 摘要、正文直接答案、核心结果表与提交结果文件的同一指标必须来自同一已验收数值事实源。
+    - 同一指标可因百分比/比例、科学计数法等表现形式不同而改变字符串，但不得改变数值含义或有效精度。
+    - 百分比与百分点必须区分；例如从 90% 升至 92% 是增加 2 个百分点，而不是增加 2%。
+    - 单位必须与数值间距、量纲和符号含义一致，避免 10m、10 m、10.00m 混用。
+    - 均值±标准差、置信区间和上下界必须说明统计含义，不把区间端点误写成点估计。
+  display_profiles:
+    abstract: 核心答案和决定性数值优先保留可评分的高精度；不得以摘要为理由强行降到 3--4 位。
+    body: 与工作簿和题目要求保持精度闭合；可在解释性非核心数字上按项目 profile 统一。
+    table: 核心结果列保留足以复核和评分的精度；同列通常统一小数位或科学计数法。
+    figure_axis: 坐标刻度以可读性为主，但关键点/阈值/标注数值不得因坐标轴格式丢失必要精度。
+    optimization_variable: 决策变量、坐标、时间、目标值按题目输出要求和评分敏感度保留高精度。
+  machine_audit_scope:
+    may_check:
+      - declared_metric_format_consistency
+      - unit_spacing_for_registered_units
+      - decimal_place_drift_for_registered_metrics
+      - ratio_percent_mixing_for_registered_metrics
+      - percentage_point_wording_pattern
+    must_not_claim:
+      - a_specific_precision_is_correct_without_profile_or_prompt_evidence
+      - statistical_significance_from_decimal_places
+      - physical_accuracy_from_display_precision
+
+terminology_governance:
+  governance_level: recommendation
+  principle: >-
+    自然语言技术术语应与符号治理同等级保持语义稳定。技术论文不以同义词丰富为目标；
+    同一量优先使用一个 canonical term，不同量即使语言相近也必须明确区分。
+  registry_fields:
+    - term_id
+    - canonical_term
+    - definition
+    - dimension_or_unit
+    - allowed_aliases
+    - discouraged_aliases
+    - confusable_terms
+    - linked_symbols
+    - scope
+    - status
+  rules:
+    - 同一 canonical term 的定义、量纲和 linked symbol 在当前语义 revision 内必须稳定。
+    - allowed alias 只能用于确有需要的简称，不能改变定义或量纲。
+    - discouraged alias 出现时只提示复查，不自动认定为数学错误。
+    - confusable terms 必须分别登记定义，避免“有效时长/总时长”“样本/场景”等近义词跨量混用。
+    - 一个 alias 不应同时映射到两个不同 canonical term；确有上下文区分时必须记录理由。
+  machine_audit_scope:
+    may_check:
+      - duplicate_term_id
+      - alias_collision
+      - discouraged_alias_occurrence
+      - local_confusable_term_interleaving
+      - undefined_registered_term_reference
+    must_not_claim:
+      - unseen_terms_are_synonyms
+      - semantic_equivalence_from_string_similarity_only
+
 multi_method_validation:
   two_levels:
     numerical_consistency: 目标值、误差、概率、预测值或主指标是否相近。
     structural_consistency: >-
       决策变量区间、活跃约束、变量排序、策略结构、重要性、系数方向、分群结构或关键结论是否一致。
   rule: 只比较单个目标值不能自动推出模型可靠；第二层按题型选择，不要求所有模型拥有相同结构指标。
+
+analysis_evidence_disposition:
+  governance_level: default
+  statuses: [support, modify, reject]
+  required_fields: [evidence_id, question, method_or_source, target_claim, disposition, key_finding, required_action, paper_or_figure_anchor]
+  semantics:
+    support: 目标主张在该检验下保持，可作为正文增强证据，不扩大原主张适用范围。
+    modify: 目标主张主体仍可使用，但区间、阈值、置信度、边界、排序或文字必须修改并同步下游。
+    reject: 目标主张在该证据下不能继续原样使用；应删除该 claim、回退模型/求解或重做验证，具体由 target_claim 的重要性决定。
+  propagation_rules:
+    - reject_core_answer_or_core_model_claim -> redo_required_or_model_redesign
+    - reject_auxiliary_style_or_strength_claim -> remove_or_rewrite_claim_without_forcing_full_resolve
+    - modify -> mark_dependent_paper_fragments_stale_until_updated
+    - support -> keep_target_current_only_if_upstream_model_and_result_are_current
+  rule: >-
+    深化分析不是“做过就算验证”。每项敏感性、鲁棒性、外样本、算法一致性或压力测试都必须说明它支持、修正还是否决哪个具体主张。
 
 proposition_governance:
   default_budget: [0, 4]
@@ -283,6 +375,80 @@ citation_evidence:
       - semantic_support_of_claim_from_citation_presence_only
       - theorem_applicability_from_regex
 
+title_claim_gate:
+  governance_level: default
+  principle: >-
+    标题中的研究对象、主方法、核心机制或贡献性表述必须与全文真实主线一致，禁止仅在末尾附加一次某方法却在标题中将其包装为全文核心。
+  claim_types: [research_object, main_method, core_mechanism, core_contribution]
+  required_fields: [title_claim_id, claim_text, claim_type, related_questions, body_anchor, result_evidence, abstract_anchor, keyword_link, status]
+  closure_rules:
+    - selected_title_has_registered_substantive_claims
+    - main_method_or_contribution_claim_serves_at_least_one_core_question
+    - main_method_or_contribution_claim_has_substantive_model_or_algorithm_use
+    - title_claim_has_result_evidence
+    - abstract_does_not_overstate_title_claim
+    - keyword_set_is_consistent_with_selected_title_and_actual_main_model
+  machine_audit_scope:
+    may_check:
+      - missing_title_claim_fields
+      - missing_declared_anchor
+      - title_keyword_registry_mismatch
+    must_not_claim:
+      - a_method_is_truly_the_main_contribution_from_word_frequency_only
+      - novelty_from_title_wording
+
+paragraph_necessity:
+  governance_level: recommendation
+  functions:
+    - problem_requirement
+    - mechanism
+    - mathematical_relation
+    - solver_basis
+    - result_evidence
+    - necessary_boundary
+  rule: >-
+    每一段正文至少承担一种不可替代的信息功能。若删去后不丢失题意、机制、数学关系、求解依据、结果证据或必要边界，
+    应优先删除、合并或移附录。该规则是 Formula Destination 在段落层的对应物。
+  common_removal_targets:
+    - generic_algorithm_history
+    - textbook_definition_without_current_use
+    - repeated_background
+    - repeated_model_strength
+    - repeated_question_summary
+    - decorative_process_description
+    - repeated_numbers_without_new_interpretation
+    - explanation_of_formula_with_no_downstream_use
+  machine_audit_scope:
+    may_warn:
+      - highly_similar_adjacent_paragraphs
+      - generic_algorithm_exposition_without_local_variable_or_constraint_terms
+      - repeated_result_number_sentence
+      - repeated_meta_summary
+    must_not_do:
+      - automatically_delete_text
+      - infer_paragraph_semantic_necessity_from_regex_only
+
+paper_fragment_stale_governance:
+  governance_level: hard
+  principle: >-
+    论文 stale 应按真实依赖局部传播。Q3 约束或结果变化时，只使依赖 Q3 的正文、图表、摘要片段、模型评价和标题主张 stale；
+    不把无依赖的背景、Q1、Q2 或其他参考文献机械判 stale。
+  fragment_kinds:
+    - paper_section
+    - question_model_text
+    - question_result_text
+    - figure_or_table_claim
+    - abstract_claim
+    - model_evaluation_claim
+    - title_claim
+    - keyword_claim
+  required_fields: [fragment_id, kind, scope, depends_on, anchor, status]
+  status_values: [current, stale, not_applicable]
+  propagation_rule: upstream_stale -> dependent_fragments_stale
+  framework_sync_semantics: >-
+    paper_framework.sync_status 只表示框架已经同步记录当前项目状态，不代表其中每个 paper fragment 都为 current；
+    允许框架 current 而某个依赖片段 stale，正式交付前必须消除交付范围内的 stale fragments。
+
 prose_style:
   name: evidence_driven_undergraduate_academic
   target: 规范、朴素、略带科研训练初期的推理痕迹；技术含义稳定，不追求期刊式抽象包装。
@@ -330,15 +496,25 @@ machine_audit_boundary:
     - unexplained_numeric_parameter_assignment
     - repeated_identical_question_opening_pattern
     - unused_bibliography_entry
+    - terminology_drift
+    - numeric_style_drift
+    - unreferenced_label_or_equation
+    - unusually_long_caption
+    - paragraph_redundancy_risk
   may_review:
     - default_structure_deviation_without_justification
+    - title_claim_without_complete_declared_evidence
+    - abstract_contains_figure_table_or_display_math_without_exception
   may_block:
     - deterministic_structural_error_such_as_missing_citation_key_or_duplicate_label
+    - unresolved_cross_reference
   must_not_claim:
     - mathematical_correctness_from_regex
     - formula_source_semantic_validity_from_keywords_only
     - parameter_optimality_from_prose_only
     - citation_semantic_support_from_key_presence_only
+    - terminology_equivalence_from_string_similarity_only
+    - physical_or_statistical_accuracy_from_decimal_places_only
 
 authority_boundaries:
   reasoning_authority: core/writing_reasoning_contract.yaml
