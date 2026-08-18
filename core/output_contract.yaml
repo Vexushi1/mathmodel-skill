@@ -1,4 +1,4 @@
-version: 7.5.2
+version: 7.6.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 user_execution_contract: core/user_execution_contract.yaml
@@ -17,6 +17,7 @@ project_root:
   submission: submission/
   per_question_outputs: 问题{中文序号}求解/
 writing_policy:
+  role: 写作契约只保存权威指针与运行时开关，不复制正文规则。
   default_mode: latex_first
   default_sequence:
   - figure_evidence
@@ -25,57 +26,20 @@ writing_policy:
   - latex_compile_quality
   docx_mode: explicit_only_independent
   docx_is_latex_prerequisite: false
-  expression_authority: modules/05_writing/latex.md#正文表达与章节组织协议（写作权威）
+  expression_authority: modules/05_writing/latex.md
   reasoning_contract: core/writing_reasoning_contract.yaml
-  adaptive_sectioning_by_task_type: true
-  cumcm_problem_analysis_by_question: true
-  problem_restatement_copy_forbidden: true
-  problem_restatement_second_section: 问题提出
-  problem_statement_per_question_required: true
-  problem_statement_method_result_forbidden: true
-  problem_analysis_pipeline_listing_forbidden: true
-  problem_analysis_formula_result_forbidden: true
-  assumptions_symbols_separate_sections: true
-  visible_assumption_contract_labels_forbidden: true
-  notation_long_subscript_avoidance_required: true
-  core_model_summary_before_solve_required: true
-  cumcm_question_model_section_name: 问题X模型建立及求解
-  question_result_section_default: 求解结果
-  standalone_question_conclusion_default: false
-  standalone_paper_conclusion_default: false
-  generic_textbook_derivation_forbidden: true
-  result_explanation_chain: 核心图表或关键数值显式引用 -> 比较基准 -> 机制解释 -> 题目回答 -> 必要边界
-  figure_table_text_reference_required: true
-  figure_table_adjacent_explanation_required: true
-  generic_model_evaluation_forbidden: true
-  default_model_evaluation_section: 模型的评价与推广
-  title_software_as_contribution_forbidden: true
-  abstract_implementation_detail_forbidden: true
-  abstract_first_paragraph_compact: true
-  abstract_affirmative_statement_preferred: true
-  object_restoration_figure_allowed_when_structurally_necessary: true
-  assumption_scope_localization_required: true
-  local_evidence_closure_preferred: true
-  model_validation_precedes_evaluation: true
-  standalone_model_evaluation_required: false
-  generic_algorithm_background_budget: minimal_task_specific
-  proof_structure_default: paragraph_first
-  proof_logical_units_required: true
-  proof_numbered_steps_when_needed: true
-  proof_numbered_steps_min: 2
-  proof_numbered_steps_max: 6
-  proposition_display_numbering: arabic_section_dot_arabic_proposition
-  proposition_box_page_break_forbidden: true
-  affirmative_statement_preferred: true
-  negation_contrast_density_review: true
-  paragraph_logic_continuity_review: true
+  rule_governance: core/writing_reasoning_contract.yaml#rule_governance
+  citation_evidence_contract: core/writing_reasoning_contract.yaml#citation_evidence
+  proposition_governance: core/writing_reasoning_contract.yaml#proposition_governance
+  core_model_summary_policy: adaptive_required_inline_not_applicable
   prose_audit_script: scripts/audit_paper_prose.py
   prose_audit_default_mode: report_only
-  prose_audit_strict_blocks_on: review_required
-  table_caption_position: above
-  figure_caption_position: below
-  three_line_table_default_alignment: center
-  novice_academic_rewrite_after_cleanup: true
+  prose_audit_strict_blocks_on: [blocking, review_required]
+  carrier_specific:
+    docx: modules/05_writing/docx.md
+    latex: packs/artifact/latex.md
+    proposition_proof: packs/artifact/proposition_proof.md
+  consumer_rule: modules、packs、checklists与review只引用Authority，不重新定义正文规则。
 execution_policy:
   default_owner: user
   default_profile: full_fidelity
@@ -187,7 +151,8 @@ model_paper_framework:
   path: 模型论文框架.md
   template: templates/model/model_paper_framework.md
   create_after: locked_model_spec
-  role: 当前有效题意口径、preprocessing_decision、数据事实源、预处理公式/验证/图证据、模型语义、三层闭环、复杂度复审、论文结构、命题规划、逐问主结果与深化分析摘要和图表映射
+  role: 当前项目事实与工作记忆；保存题意口径、preprocessing_decision、模型语义、Formula Trace、参数证据、跨问依赖、写作选择、命题、Citation Evidence、逐问结果摘要和图表映射，不复制跨项目写作手册。
+  project_memory_only: true
   modes:
     compact:
       use_when: 日常迭代、单问交付、普通聊天续作
@@ -203,7 +168,7 @@ model_paper_framework:
       - 论文整体框架
       - 命题与证明规划
       - 各问模型与结果
-      - 综合检验与跨问结论
+      - 综合检验与跨问判断
       - 图表证据链
       - 待办与缺口
       - 同步检查
@@ -219,6 +184,7 @@ model_paper_framework:
   result_summary_required_after: solved
   authoritative_boundaries:
     model_semantics_and_paper_structure: 模型论文框架.md
+    writing_rules: modules/05_writing/latex.md + core/writing_reasoning_contract.yaml
     preprocessing_decision_and_active_data_source: state/project_state.yaml + core/global_preprocessing_contract.yaml
     preprocessing_workbook_when_project_level: 数据预处理结果.xlsx
     preprocessing_figure_script_when_project_level: 数据预处理/data_process.m
@@ -478,36 +444,26 @@ classification_contract:
   legacy_task_labels_supported: true
 proposition_contract:
   optional: true
-  maximum_per_paper: 4
-  minimum_per_paper: 0
+  authority: core/writing_reasoning_contract.yaml#proposition_governance
+  default_budget: [0, 4]
+  over_budget_action: justification_required
+  automatic_rejection_over_budget: false
   detail_pack: packs/artifact/proposition_proof.md
   lazy_load_when:
   - explicit_proof_request
   - proposition_count_greater_than_zero
   latex_outer_environment: hskproposition
   latex_proof_environment: hskproof
-  main_text_default_proof_level: outline
-  main_text_default_structure: paragraph_first
-  logical_units_required: true
-  numbered_steps_when_needed: true
-  numbered_steps_min: 2
-  numbered_steps_max: 6
   display_numbering: arabic_section_dot_arabic_proposition
-  outer_box_page_break_forbidden: true
-  required_fields:
-  - proposition_id
-  - assumptions_and_domain
-  - conclusion
-  - proof_level
-  - modeling_effect
-  - failure_boundary
-  - status
-  hard_rules:
-  - 命题必须实际服务问题简化、模型必要性、关键点识别、降维、约束删减、可行性保持、预处理等价性/误差界或理论边界。
-  - 数值实验、准确率比较和求解器退出状态不能替代数学证明。
-  - 正文B级短证明分段优先、分点按需；连续推理采用自然段和必要公式，只有明显多阶段证明才使用2--6个编号步骤。
-  - 命题显示编号使用阿拉伯章节号；常规命题框原则上不跨页，超长技术证明移附录。
-  - 模型、预处理、参数、约束或定义域变化后必须重新检查相关证明。
+  state_fields:
+  - proposition_default_budget
+  - proposition_budget_status
+  - proposition_budget_reason
+  - proposition_count
+  - proposition_status
+  - propositions
+  compatibility:
+    proposition_limit: 旧项目只读兼容；不再作为Hard上限
 global_preprocessing:
   contract: core/global_preprocessing_contract.yaml
   activation: preprocessing_decision == project_level
@@ -615,7 +571,7 @@ rules:
 - project_level进入figure_evidence时必须生成data_process.m，并至少形成一张预处理必要性或有效性证据图；MATLAB不得重新执行预处理。
 - 新项目每问只创建一个问题X求解目录，默认最终恰好包含两个Python脚本、两个Excel工作簿和一个qX_plot.m。
 - Problem Contract、preprocessing_decision、语义闭环与复杂度复审先于正式模型和代码交付，不能用运行成功或结果合理替代语义正确性。
-- 主工作簿accepted后冻结问题X求解.py，并单独生成问题X结果深化分析.py；不得为深化分析覆盖更新主求解脚本。
+- 主工作簿accepted后冻结问题X求解.py，并单独生成问题X结果深化分析.py；不得为深化分析覆盖改写主求解脚本。
 - 默认不生成独立完整运行配置、运行说明、code_delivery_report、user_execution_validation_report、semantic_governance_report、figure_evidence或图表子目录。
 - 实际生成的项目级预处理脚本和两个正式小问Python脚本都必须通过静态工程质量检查且不得由助手执行；校验结果在聊天或标准输出中返回，不额外落盘。
 - 用户返回的适用预处理工作簿和小问工作簿均必须先通过对应质量门；代码交付本身不得把状态提升为solved或analyzed。
