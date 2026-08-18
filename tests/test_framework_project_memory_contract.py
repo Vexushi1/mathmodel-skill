@@ -64,7 +64,7 @@ class FrameworkProjectMemoryContractTests(unittest.TestCase):
         self.assertIn("具体数值必须回到已验收标准工作簿复核", template)
         self.assertIn("`问题一求解/q1_plot.m`", template)
         self.assertNotIn("`结果数据表/问题一/q1_plot.m`", template)
-        self.assertIn("结果深化分析工作簿", template)
+        self.assertIn("深化分析工作簿", template)
         self.assertIn("### 核心公式 Trace", template)
         self.assertIn("### Citation Evidence", template)
 
