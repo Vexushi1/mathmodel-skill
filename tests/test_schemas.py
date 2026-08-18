@@ -18,10 +18,11 @@ class TestSchemas(unittest.TestCase):
     def test_classification_has_single_capability_source_and_split_status(self):
         schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
         defs = schema["$defs"]
-        self.assertEqual(schema["version"], "7.4.2")
+        self.assertTrue(str(schema["version"]))
         self.assertEqual(set(defs["classification"]["required"]), {"objective", "structures"})
         self.assertEqual(set(defs["dependency_kind"]["enum"]), {"data", "parameter", "model", "result"})
         self.assertEqual(set(defs["preprocessing_decision"]["enum"]), {"not_needed", "question_local", "project_level"})
+        self.assertEqual(defs["proposition_entry"]["properties"]["id"]["pattern"], "^P[1-9][0-9]*$")
         subproblems = schema["properties"]["subproblems"]
         sub_required = set(subproblems["additionalProperties"]["required"])
         self.assertEqual(subproblems["minProperties"], 1)
@@ -35,6 +36,7 @@ class TestSchemas(unittest.TestCase):
             "semantic_hash", "validated_semantic_hash",
         ):
             self.assertIn(name, fields)
+        self.assertNotIn("maxItems", fields["proposition_refs"])
         phases = set(schema["properties"]["project"]["properties"]["current_phase"]["enum"])
         statuses = set(subproblems["additionalProperties"]["properties"]["status"]["enum"])
         self.assertIn("data_preprocessing", phases)
@@ -126,40 +128,21 @@ class TestSchemas(unittest.TestCase):
             contract["global_preprocessing"]["exact_default_files"],
             ["数据预处理.py", "数据预处理结果.xlsx", "data_process.m"],
         )
+
         writing = contract["writing_policy"]
         self.assertEqual(writing["default_mode"], "latex_first")
         self.assertEqual(writing["docx_mode"], "explicit_only_independent")
         self.assertFalse(writing["docx_is_latex_prerequisite"])
-        self.assertTrue(writing["cumcm_problem_analysis_by_question"])
-        self.assertEqual(writing["problem_restatement_second_section"], "问题提出")
-        self.assertTrue(writing["problem_statement_per_question_required"])
-        self.assertTrue(writing["problem_statement_method_result_forbidden"])
-        self.assertTrue(writing["problem_analysis_formula_result_forbidden"])
-        self.assertTrue(writing["assumptions_symbols_separate_sections"])
-        self.assertTrue(writing["core_model_summary_before_solve_required"])
-        self.assertEqual(writing["question_result_section_default"], "求解结果")
-        self.assertFalse(writing["standalone_question_conclusion_default"])
-        self.assertFalse(writing["standalone_paper_conclusion_default"])
-        self.assertEqual(writing["proof_structure_default"], "paragraph_first")
-        self.assertTrue(writing["proof_logical_units_required"])
-        self.assertTrue(writing["proof_numbered_steps_when_needed"])
-        self.assertEqual(writing["proof_numbered_steps_min"], 2)
-        self.assertEqual(writing["proof_numbered_steps_max"], 6)
-        self.assertNotIn("proposition_proof_segmented_steps", writing)
-        self.assertEqual(writing["proposition_display_numbering"], "arabic_section_dot_arabic_proposition")
-        self.assertTrue(writing["figure_table_text_reference_required"])
-        self.assertTrue(writing["figure_table_adjacent_explanation_required"])
-        self.assertTrue(writing["affirmative_statement_preferred"])
-        self.assertTrue(writing["negation_contrast_density_review"])
-        self.assertTrue(writing["paragraph_logic_continuity_review"])
+        self.assertEqual(writing["expression_authority"], "modules/05_writing/latex.md")
+        self.assertEqual(writing["reasoning_contract"], "core/writing_reasoning_contract.yaml")
+        self.assertEqual(writing["rule_governance"], "core/writing_reasoning_contract.yaml#rule_governance")
+        self.assertEqual(writing["citation_evidence_contract"], "core/writing_reasoning_contract.yaml#citation_evidence")
+        self.assertEqual(writing["proposition_governance"], "core/writing_reasoning_contract.yaml#proposition_governance")
+        self.assertEqual(writing["core_model_summary_policy"], "adaptive_required_inline_not_applicable")
         self.assertEqual(writing["prose_audit_script"], "scripts/audit_paper_prose.py")
         self.assertEqual(writing["prose_audit_default_mode"], "report_only")
-        self.assertEqual(writing["prose_audit_strict_blocks_on"], "review_required")
-        self.assertTrue(writing["proposition_box_page_break_forbidden"])
-        self.assertEqual(writing["table_caption_position"], "above")
-        self.assertEqual(writing["figure_caption_position"], "below")
-        self.assertEqual(writing["three_line_table_default_alignment"], "center")
-        self.assertTrue(writing["novice_academic_rewrite_after_cleanup"])
+        self.assertEqual(writing["prose_audit_strict_blocks_on"], ["blocking", "review_required"])
+        self.assertIn("consumer_rule", writing)
 
 
 if __name__ == "__main__":

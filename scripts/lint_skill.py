@@ -15,7 +15,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "7.5.2"
+PACKAGE_VERSION = "7.6.0"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",
@@ -53,8 +53,6 @@ REPO_PATH_PREFIXES = ("core/", "modules/", "packs/", "templates/", "scripts/", "
 MARKDOWN_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 # Stable utility/archive docs are intentionally versionless; only active release carriers are checked here.
 VERSION_DOCS = ["SKILL.md", "README.md", "CHANGELOG.md", "core/hsk_core_policy.md"]
-# Patch-level Skill releases only force the global release carriers to match. Domain
-# contracts retain their own schema/compatibility marker unless their behavior changes.
 VERSION_CONTRACTS = [
     "core/bootstrap.yaml", "core/workflow_router.yaml", "core/module_manifest.yaml",
     "core/output_contract.yaml",
@@ -134,7 +132,6 @@ def _check_repo_reference(errors: list[str], value: object, origin: str, *, base
         errors.append(f"repository reference missing: {origin} -> {token}")
 
 
-
 def check_skill_entrypoint_parity(errors: list[str]) -> None:
     """Keep repository and packaged Skill entrypoints on one runtime authority chain."""
     root_skill_path = ROOT / "SKILL.md"
@@ -203,6 +200,7 @@ def check_skill_entrypoint_parity(errors: list[str]) -> None:
         errors.append(f"plugin/bootstrap version mismatch: plugin -> {plugin.get('version')}, bootstrap -> {current}")
     if plugin.get("skills") != "./skills/":
         errors.append("plugin skill discovery path must remain ./skills/")
+
 
 def check_repository_references(errors: list[str]) -> None:
     bootstrap = load_structured(ROOT / "core/bootstrap.yaml") or {}
@@ -642,73 +640,43 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("execution policy must require preprocessing only for project_level")
     if execution.get("shared_data_alone_does_not_require_preprocessing") is not True:
         errors.append("execution policy must not promote shared data to preprocessing automatically")
+
     policy = output.get("writing_policy", {})
-    if policy.get("reasoning_contract") != "core/writing_reasoning_contract.yaml":
-        errors.append("writing policy must reference writing-reasoning contract")
+    expected_pointers = {
+        "reasoning_contract": "core/writing_reasoning_contract.yaml",
+        "expression_authority": "modules/05_writing/latex.md",
+        "rule_governance": "core/writing_reasoning_contract.yaml#rule_governance",
+        "citation_evidence_contract": "core/writing_reasoning_contract.yaml#citation_evidence",
+        "proposition_governance": "core/writing_reasoning_contract.yaml#proposition_governance",
+        "core_model_summary_policy": "adaptive_required_inline_not_applicable",
+        "prose_audit_script": "scripts/audit_paper_prose.py",
+    }
+    for key, expected in expected_pointers.items():
+        if policy.get(key) != expected:
+            errors.append(f"writing policy authority mismatch: {key} -> {policy.get(key)!r}")
     if policy.get("default_mode") != "latex_first":
         errors.append("default writing mode must be latex_first")
     if policy.get("docx_mode") != "explicit_only_independent" or policy.get("docx_is_latex_prerequisite") is not False:
         errors.append("DOCX must remain explicit-only and not be a LaTeX prerequisite")
-    writing_expectations = {
-        "cumcm_problem_analysis_by_question": True,
-        "problem_statement_per_question_required": True,
-        "problem_statement_method_result_forbidden": True,
-        "problem_analysis_formula_result_forbidden": True,
-        "assumptions_symbols_separate_sections": True,
-        "visible_assumption_contract_labels_forbidden": True,
-        "core_model_summary_before_solve_required": True,
-        "proof_logical_units_required": True,
-        "proof_numbered_steps_when_needed": True,
-        "proposition_box_page_break_forbidden": True,
-        "figure_table_text_reference_required": True,
-        "figure_table_adjacent_explanation_required": True,
-        "affirmative_statement_preferred": True,
-        "negation_contrast_density_review": True,
-        "paragraph_logic_continuity_review": True,
-        "prose_audit_default_mode": "report_only",
-        "prose_audit_strict_blocks_on": "review_required",
-        "table_caption_position": "above",
-        "figure_caption_position": "below",
-        "three_line_table_default_alignment": "center",
-        "novice_academic_rewrite_after_cleanup": True,
-        "standalone_question_conclusion_default": False,
-        "standalone_paper_conclusion_default": False,
-    }
-    for key, expected in writing_expectations.items():
-        if policy.get(key) != expected:
-            errors.append(f"writing policy mismatch: {key} -> {policy.get(key)!r}")
-    if policy.get("problem_restatement_second_section") != "问题提出":
-        errors.append("writing policy must use 问题提出 as the default second restatement section")
-    if policy.get("cumcm_question_model_section_name") != "问题X模型建立及求解":
-        errors.append("writing policy must lock the CUMCM question-model section entry")
-    if policy.get("question_result_section_default") != "求解结果":
-        errors.append("writing policy must use 求解结果 as the default per-question result section")
-    if policy.get("proof_structure_default") != "paragraph_first":
-        errors.append("writing policy proof structure must be paragraph_first")
-    if policy.get("proof_numbered_steps_min") != 2 or policy.get("proof_numbered_steps_max") != 6:
-        errors.append("writing policy numbered proof steps must be limited to 2--6 when structurally needed")
-    if "proposition_proof_segmented_steps" in policy:
-        errors.append("writing policy must not retain the obsolete segmented-proof field")
-    if policy.get("prose_audit_script") != "scripts/audit_paper_prose.py":
-        errors.append("writing policy must register scripts/audit_paper_prose.py")
-    if policy.get("proposition_display_numbering") != "arabic_section_dot_arabic_proposition":
-        errors.append("writing policy must use Arabic proposition display numbering")
-    if policy.get("default_model_evaluation_section") != "模型的评价与推广":
-        errors.append("writing policy must use 模型的评价与推广 as the default evaluation section")
+    if policy.get("prose_audit_strict_blocks_on") != ["blocking", "review_required"]:
+        errors.append("prose audit strict mode must block deterministic Hard failures and unresolved Default review")
+    if "Authority" not in str(policy.get("consumer_rule", "")):
+        errors.append("writing policy must declare Authority/consumer single-source boundary")
+
     proposition = output.get("proposition_contract", {})
-    if proposition.get("main_text_default_structure") != "paragraph_first":
-        errors.append("proposition contract must default to paragraph-first proofs")
-    if proposition.get("logical_units_required") is not True:
-        errors.append("proposition contract must require distinguishable logical units")
-    if proposition.get("numbered_steps_when_needed") is not True:
-        errors.append("proposition contract must number steps only when structurally needed")
-    if proposition.get("numbered_steps_min") != 2 or proposition.get("numbered_steps_max") != 6:
-        errors.append("proposition numbered steps must be limited to 2--6 when used")
-    for obsolete in ("segmented_steps_required", "main_text_key_steps_min", "main_text_key_steps_max"):
-        if obsolete in proposition:
-            errors.append(f"proposition contract retains obsolete field: {obsolete}")
+    if proposition.get("authority") != "core/writing_reasoning_contract.yaml#proposition_governance":
+        errors.append("proposition contract must delegate governance to writing reasoning authority")
+    if proposition.get("default_budget") != [0, 4]:
+        errors.append("proposition default reading budget must be [0, 4]")
+    if proposition.get("automatic_rejection_over_budget") is not False:
+        errors.append("proposition count above default budget must not be automatic rejection")
+    if proposition.get("over_budget_action") != "justification_required":
+        errors.append("proposition over-budget action must require justification")
     if proposition.get("display_numbering") != "arabic_section_dot_arabic_proposition":
         errors.append("proposition contract must use Arabic section.proposition numbering")
+    if "maximum_per_paper" in proposition:
+        errors.append("proposition contract must not retain a hard maximum_per_paper")
+
     result_policy = output.get("result_policy", {})
     if result_policy.get("primary_quality_gate_required") is not True:
         errors.append("primary result quality gate must be required")
@@ -825,12 +793,27 @@ def check_project_state_and_framework(errors: list[str]) -> None:
     decision_enum = set(schema["$defs"]["preprocessing_decision"]["enum"])
     if decision_enum != {"not_needed", "question_local", "project_level"}:
         errors.append("project state preprocessing decision enum mismatch")
+    proposition_id = schema["$defs"]["proposition_entry"]["properties"]["id"].get("pattern")
+    if proposition_id != "^P[1-9][0-9]*$":
+        errors.append("project state proposition IDs must support justified P5+ entries")
+    proposition_count = schema["properties"]["paper_framework"]["properties"]["proposition_count"]
+    if "maximum" in proposition_count:
+        errors.append("project state proposition_count must not retain a hard maximum")
+    if "proposition_budget_status" not in schema["properties"]["paper_framework"]["properties"]:
+        errors.append("project state must expose proposition budget justification state")
+
     state_validator = load_module("lint_state_validator", ROOT / "scripts/validate_project_state.py")
     for issue in state_validator.validate_state_payload(example, project_root=ROOT):
         errors.append(f"project state semantic violation: {issue}")
     framework_validator = load_module("lint_framework_validator", ROOT / "scripts/validate_model_paper_framework.py")
     compact = "# 模型论文框架\n只保留当前有效版本\n## 当前有效口径\n## 各问模型与结果\n## 图表证据链\n## 待办与缺口\n"
-    full_text = compact + "## 论文整体框架\n### 命题与证明规划\n全文命题上限：4\n当前计划命题数：0\n## 综合检验与跨问结论\n## 同步检查\n"
+    full_text = compact + (
+        "## 论文整体框架\n"
+        "### 命题与证明规划\n"
+        "当前计划命题数：0\n"
+        "## 综合检验与跨问判断\n"
+        "## 同步检查\n"
+    )
     if framework_validator.validate_framework_text(compact, mode="compact"):
         errors.append("minimal compact framework must pass")
     if framework_validator.validate_framework_text(full_text, mode="full"):
@@ -870,12 +853,12 @@ def check_templates(errors: list[str]) -> None:
     for token in ("Problem Contract", "禁止假设", "data", "parameter", "model", "result"):
         if token not in audit:
             errors.append(f"problem audit lacks semantic freeze token: {token}")
-    for token in ("题面—数学—代码三层语义闭环", "Complexity Sanity Check", "semantic_revision", "review_required", "preprocessing_decision"):
+    for token in ("题面—数学—代码—输出语义闭环", "复杂度合理性复审", "semantic_revision", "review_required", "preprocessing_decision", "Citation Evidence"):
         if token not in design:
-            errors.append(f"model design lacks semantic/preprocessing governance token: {token}")
+            errors.append(f"model design lacks semantic/writing governance token: {token}")
     if "3--5 个关键假设" in design or "3—5 个关键假设" in design:
         errors.append("model design must not restore a fixed assumption quota")
-    for token in ("按必要性而非数量配额", "共享假设", "单问"):
+    for token in ("按必要性而非数量保留", "共享假设", "局部假设"):
         if token not in design:
             errors.append(f"model design lacks scoped assumption token: {token}")
     for token in ("not_needed", "question_local", "project_level", "共享", "五问", "预测填补"):
@@ -886,9 +869,19 @@ def check_templates(errors: list[str]) -> None:
     if "冻结问题X求解.py" not in solve or "问题X结果深化分析.py" not in analysis:
         errors.append("solve/result-analysis modules must enforce frozen primary and separate analysis script")
     framework = read_text(ROOT / "templates/model/model_paper_framework.md")
-    for token in ("题意口径合同（Problem Contract）", "题面—数学—代码语义闭环", "复杂度合理性复审", "semantic revision", "问题提出", "正文显式引用位置", "正向叙述策略"):
+    for token in ("题意口径（Problem Contract）", "核心公式 Trace", "Citation Evidence", "核心模型收束", "semantic revision", "正文引用位置"):
         if token not in framework:
-            errors.append(f"model framework lacks current writing/semantic token: {token}")
+            errors.append(f"model framework lacks current project-memory token: {token}")
+
+    reasoning = load_structured(ROOT / "core/writing_reasoning_contract.yaml") or {}
+    if set((reasoning.get("rule_governance") or {}).get("levels", {})) != {"hard", "default", "recommendation"}:
+        errors.append("writing reasoning contract must expose Hard/Default/Recommendation levels")
+    if (reasoning.get("proposition_governance") or {}).get("automatic_rejection_over_budget") is not False:
+        errors.append("writing reasoning contract must not hard-reject proposition count above default budget")
+    if "citation_evidence" not in reasoning:
+        errors.append("writing reasoning contract must expose Citation Evidence governance")
+    if (reasoning.get("model_evaluation") or {}).get("count_relation_required") is not False:
+        errors.append("writing reasoning contract must not require strengths to outnumber weaknesses")
 
     latex_authority = read_text(ROOT / "modules/05_writing/latex.md")
     cleanup = read_text(ROOT / "modules/05_writing/ai_cleanup.md")
@@ -897,19 +890,19 @@ def check_templates(errors: list[str]) -> None:
     cumcm = read_text(ROOT / "templates/latex/cumcm/hsk/hsk_main.tex")
     diangong = read_text(ROOT / "templates/latex/diangong/main.tex")
     prose_audit = read_text(ROOT / "scripts/audit_paper_prose.py")
-    for token in ("问题提出", "正向叙述", "求解结果", "分段优先，分点按需"):
+    for token in ("核心模型汇总：自适应而非机械必设", "Citation Evidence", "不检查“优点必须多于缺点”", "Source → Derivation → Destination"):
         if token not in latex_authority:
-            errors.append(f"LaTeX writing authority lacks current writing token: {token}")
-    for token in ("正向叙述优先", "否定—转折密度复查", "段落逻辑连续性检查", "核心图表显式引用", "成稿机器审计"):
+            errors.append(f"LaTeX writing authority lacks v7.6 governance token: {token}")
+    for token in ("模板段与元话语清理", "公式与求解呈现风险", "引用证据清理", "机器审计"):
         if token not in cleanup:
-            errors.append(f"AI cleanup lacks current writing token: {token}")
+            errors.append(f"AI cleanup lacks diagnostics-only token: {token}")
     if "分段优先，分点按需" not in proposition_pack:
         errors.append("proposition pack must be paragraph-first and number steps only when needed")
     if "显式编号引用" not in caption_contract:
         errors.append("caption contract must require explicit numbered body references")
-    for token in ("review_required", "consecutive_contrast_paragraphs", "unreferenced_figure_table", "standalone_conclusion"):
+    for token in ("blocking", "review_required", "missing_bib_key", "unused_bib_entries", "standalone_conclusion"):
         if token not in prose_audit:
-            errors.append(f"paper prose audit lacks required token: {token}")
+            errors.append(f"paper prose audit lacks tiered/BibTeX token: {token}")
     for name, text in (("CUMCM HSK", cumcm), ("Diangong", diangong)):
         if "\n\\section{结论}\n" in text:
             errors.append(f"{name} active template must not contain a default standalone conclusion section")
