@@ -1,4 +1,4 @@
-version: 7.6.0
+version: 7.7.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 user_execution_contract: core/user_execution_contract.yaml
@@ -29,11 +29,18 @@ writing_policy:
   expression_authority: modules/05_writing/latex.md
   reasoning_contract: core/writing_reasoning_contract.yaml
   rule_governance: core/writing_reasoning_contract.yaml#rule_governance
+  terminology_governance: core/writing_reasoning_contract.yaml#terminology_governance
+  numeric_style_contract: core/writing_reasoning_contract.yaml#numeric_style_contract
+  title_claim_gate: core/writing_reasoning_contract.yaml#title_claim_gate
+  analysis_evidence_disposition: core/writing_reasoning_contract.yaml#analysis_evidence_disposition
+  paragraph_necessity: core/writing_reasoning_contract.yaml#paragraph_necessity
+  paper_fragment_stale: core/writing_reasoning_contract.yaml#paper_fragment_stale
   citation_evidence_contract: core/writing_reasoning_contract.yaml#citation_evidence
   proposition_governance: core/writing_reasoning_contract.yaml#proposition_governance
   core_model_summary_policy: adaptive_required_inline_not_applicable
   prose_audit_script: scripts/audit_paper_prose.py
   prose_audit_default_mode: report_only
+  prose_audit_framework_option: --framework 模型论文框架.md
   prose_audit_strict_blocks_on: [blocking, review_required]
   carrier_specific:
     docx: modules/05_writing/docx.md
@@ -68,9 +75,10 @@ execution_policy:
   - allow_relaxed_tolerance
   - allow_silent_solver_fallback
 semantic_governance:
-  version: 1.0.0
+  version: 1.1.0
+  readable_versions: [1.0.0, 1.1.0]
   script: scripts/validate_semantic_governance.py
-  role: 在模型设计、条件式统一数据预处理、代码交付、工作簿验收和正式下游交付前检查题意口径、三层语义闭环、复杂度合理性、preprocessing_decision与语义变更影响
+  role: 在模型设计、条件式统一数据预处理、代码交付、工作簿验收和正式下游交付前检查题意口径、三层语义闭环、复杂度合理性、preprocessing_decision、语义变更影响与显式paper-fragment局部依赖
   report_persistence: stdout_or_chat_only
   framework_scope: 每问#### 当前模型口径至#### 结果摘要之前的当前语义区
   required_for_designed_or_later:
@@ -123,13 +131,16 @@ semantic_governance:
   - 共享数据但decision=not_needed时，不得因为不存在统一工作簿而虚构preprocessing stale。
   - 已验证语义发生变化时，本问主结果及相关下游先标记stale。
   - 按depends_on递归传播到实际依赖的小问，不能无差别失效全部小问。
+  - 论文片段只按paper_fragments中的source_questions或depends_on显式传播stale，不按章节距离猜依赖。
   - 接受新的语义哈希不等于恢复旧数值；需要重新处理的数据、求解和验收完成后才能清除对应数值stale。
-  - 模型论文框架只保存当前有效语义，历史由Git保存，不新增用户项目变更日志文件。
+  - paper_framework.sync_status只表示框架是否同步记录机器状态；允许框架current同时显式记录局部stale paper fragment。
+  - 模型论文框架只保存当前有效语义和局部状态，历史由Git保存，不新增用户项目变更日志文件。
   legacy_compatibility:
+    v7_6_framework_v0_7_and_semantic_1_0: read_only
     v7_2_0_projects_without_preprocessing_decision: read_only
     v7_1_projects_without_global_preprocessing: read_only
     v7_0_projects_without_fields: read_only
-    migration_trigger: 旧项目重新进入problem_audit、model_design或solve_validate时先补齐preprocessing_decision；只有判为project_level才迁移到统一预处理结构
+    migration_trigger: 旧项目重新进入当前problem_audit/model_design/solve_validate按当前语义门迁移；重新进入writing/review时再补v0.8项目语义字段，不要求历史交付反向补写
 result_policy:
   preprocessing_decision_role: 所有数据项目先判断原始数据是否可直接建模、是否仅需本问局部变换、或是否确需项目级公共处理
   preprocessing_role: 仅decision=project_level时一次性完成共享原始数据审计与有依据的公共处理，形成依赖小问的数据入口，并持久化论文数学方法、验证和data_process绘图底层证据
@@ -141,17 +152,21 @@ result_policy:
   downstream_admission_requires_quality_passed: true
   result_analysis_role: 在主结果通过质量门后解释形成机制、稳定范围、适用边界和算法或结构依赖
   result_analysis_method_selection: based_on_problem_model_data_result_and_reviewer_risk
+  result_analysis_evidence_disposition: [support, modify, reject]
+  reject_core_claim_action: redo_required_and_dependency_aware_rollback
+  reject_noncore_claim_action: remove_downgrade_or_rewrite_claim
   result_analysis_outcomes:
   - passed
   - failed
   - redo_required
   fixed_perturbation_forbidden: true
-  feedback_loop: 深化分析发现主结果不可靠时，自动写入redo_required、标记下游stale并按原因回退模型设计、条件式统一数据预处理或主求解
+  feedback_loop: 深化分析发现主结果不可靠时，自动写入redo_required、标记下游stale并按原因回退模型设计、条件式统一数据预处理或主求解；非核心claim被否决时只修正该claim及其显式paper fragment依赖
 model_paper_framework:
   path: 模型论文框架.md
   template: templates/model/model_paper_framework.md
+  current_template_version: v0.8-project-memory
   create_after: locked_model_spec
-  role: 当前项目事实与工作记忆；保存题意口径、preprocessing_decision、模型语义、Formula Trace、参数证据、跨问依赖、写作选择、命题、Citation Evidence、逐问结果摘要和图表映射，不复制跨项目写作手册。
+  role: 当前项目事实与工作记忆；保存题意口径、preprocessing_decision、模型语义、Formula Trace、参数证据、Terminology Registry、Numeric Profile、Title Claim、跨问依赖、写作选择、命题、Citation Evidence、paper-fragment局部状态、逐问结果摘要、深化证据处置和图表映射，不复制跨项目写作手册。
   project_memory_only: true
   modes:
     compact:
@@ -179,12 +194,13 @@ model_paper_framework:
   - default
   default_mode: compact
   history_policy: 文件内部不累积旧版；旧版本由Git历史保存
-  replacement_policy: 题意解释、模型、参数、约束、preprocessing_decision、数据处理、算法、主结果或深化分析变化时，删除受影响旧内容并完整替换
+  replacement_policy: 题意解释、模型、参数、约束、preprocessing_decision、数据处理、算法、主结果或深化分析变化时，删除受影响旧内容并完整替换；论文层只同步真实依赖的paper fragment
   formal_delivery_sync: true
   result_summary_required_after: solved
   authoritative_boundaries:
     model_semantics_and_paper_structure: 模型论文框架.md
     writing_rules: modules/05_writing/latex.md + core/writing_reasoning_contract.yaml
+    terminology_numeric_title_and_paragraph_policy: core/writing_reasoning_contract.yaml
     preprocessing_decision_and_active_data_source: state/project_state.yaml + core/global_preprocessing_contract.yaml
     preprocessing_workbook_when_project_level: 数据预处理结果.xlsx
     preprocessing_figure_script_when_project_level: 数据预处理/data_process.m
@@ -229,6 +245,7 @@ project_sync:
     result_quality_status: passed
     result_analysis_status: passed
     downstream_artifacts_stale: false
+    critical_paper_fragments_stale: false
   stage_requirements:
     design:
     - project_state
@@ -374,35 +391,37 @@ project_sync:
     - paper_figure_evidence
     figure_bundle:
     - paper_figure_evidence
+    paper_fragment:
+    - only_explicit_dependents
   write_order:
   - 读取preprocessing_decision并按当前数据事实源发现项目级可选预处理产物与每问产物
   - 执行工作簿与图表链检查
   - 计算当前分层哈希并比较已验证哈希、条件式预处理哈希、data_process哈希和两阶段小问代码哈希
-  - 传播stale并更新框架头部
+  - 传播Q级与显式paper-fragment stale并更新框架同步状态
   - 重新计算最终框架哈希
   - 写入project_state
   - 写入sync_report
   - 执行写后哈希自检
   responsibilities:
-  - 正式交付前先由semantic_governance检查当前模型语义、preprocessing_decision和跨问失效传播
+  - 正式交付前先由semantic_governance检查当前模型语义、preprocessing_decision、跨问和paper-fragment失效传播
   - 进入产物同步前强制执行项目状态Schema/语义校验与模型论文框架校验
   - decision=project_level时发现数据预处理目录中的统一预处理Python、工作簿和图表阶段data_process.m；其他状态不得因缺少该目录报错
   - 发现每问问题X求解目录中的主求解Python、结果深化分析Python、两类工作簿和qX_plot.m
   - 只有decision=project_level时检查依赖下游脚本不得再次直接读取对应共享原始数据源
   - 复用工作簿Schema检查工作表、字段、capability条件、主键、非有限数值和约束判定
   - 普通阶段同步按小问status检查最低产物；只有显式delivery scope执行正式交付全量门槛
-  - 正式交付按decision条件核对预处理质量，再核对主结果质量、分析状态为passed以及下游产物非stale
+  - 正式交付按decision条件核对预处理质量，再核对主结果质量、分析状态为passed、下游数值产物非stale，并阻断影响当前答案/摘要/标题的关键stale paper fragment
   - project_level进入figures及后续scope时必须核对data_process.m存在、引用数据预处理结果.xlsx且不重新执行预处理；question_local需要局部处理图时由qX_plot.m承接
   - 核对MATLAB只读取其实际需要的数据事实源和标准工作簿，不要求所有qX_plot.m强制引用统一预处理工作簿
   - project_level时统一预处理脚本/工作簿哈希绑定依赖数据链，data_process.m只影响预处理图表/论文层；not_needed/question_local时以原始数据哈希作为数据事实源
   - 主求解脚本哈希与本问主结果链绑定；深化分析脚本哈希只影响本问深化工作簿及其下游
-  - 当已验证哈希变化时按实际依赖证据链传播stale
-  - 只允许设置或保持stale；清除stale必须由适用的数据质量门、主结果质量门或结果分析流程显式完成
+  - 当已验证哈希变化时按实际依赖证据链传播stale；论文片段只使用显式局部依赖，不因共享数据或章节邻近全局失效
+  - 只允许设置或保持stale；清除stale必须由适用的数据质量门、主结果质量门、结果分析或论文片段复核流程显式完成
   - 对DOCX、LaTeX与提交scope检查真实文件、编译报告、图片引用和提交ZIP内容
   forbidden:
   - 自动生成模型语义或preprocessing_decision
   - 因共享数据自动把preprocessing_decision提升为project_level
-  - 自动清除artifacts_stale或stale_layers
+  - 自动清除artifacts_stale、stale_layers或paper_fragments.stale
   - 自动填写结果数值
   - 自动把preprocessing_quality_status、result_quality_status或result_analysis_status提升为passed
   - 以文件存在代替数据质量、可行性、精度、预处理验证或稳定性验证
@@ -498,7 +517,7 @@ per_question:
   - q{阿拉伯序号}_plot.m
   two_python_stage_policy:
     primary: 主求解阶段交付问题X求解.py；数据入口由preprocessing_decision决定，主工作簿accepted后冻结该脚本。
-    result_analysis: 主工作簿accepted后单独生成问题X结果深化分析.py；该脚本继承同一preprocessing_decision与数据事实源并形成深化分析工作簿。
+    result_analysis: 主工作簿accepted后单独生成问题X结果深化分析.py；该脚本继承同一preprocessing_decision与数据事实源并形成深化分析工作簿，并登记support/modify/reject对目标claim的作用。
     no_backwrite: 深化分析不得通过改写问题X求解.py实现；若主模型确需修改，则明确回退solve_validate并重新验收主结果。
     raw_shared_data_read: 只有decision=project_level时禁止两个小问Python直接读取对应共享原始数据源。
   no_auxiliary_files_by_default: true
@@ -572,10 +591,16 @@ rules:
 - 新项目每问只创建一个问题X求解目录，默认最终恰好包含两个Python脚本、两个Excel工作簿和一个qX_plot.m。
 - Problem Contract、preprocessing_decision、语义闭环与复杂度复审先于正式模型和代码交付，不能用运行成功或结果合理替代语义正确性。
 - 主工作簿accepted后冻结问题X求解.py，并单独生成问题X结果深化分析.py；不得为深化分析覆盖改写主求解脚本。
+- 结果深化证据进入论文前必须能说明其对具体target claim的support/modify/reject；reject非核心claim不无条件触发整题重算，reject核心答案/可行性/主要最优方案/模型结构才触发redo_required和依赖回退。
+- 写作阶段按Terminology Registry保持核心自然语言术语与定义一致；机器不得从词形相似自动推断未登记术语同义。
+- 评分型连续核心结果若存在题面/官方/已核验评分精度则严格服从；否则摘要和正文默认优先保留6--7位小数。摘要可以减少次要数值数量，不得为了篇幅降低保留的决定性结果精度。
+- Title Claim必须能回到至少一个核心问题的实质模型/算法和结果证据；stale/rejected标题主张不得进入正式题目。
+- paper fragment只按显式依赖局部传播stale；正式提交前影响当前答案、摘要或标题的关键stale fragment必须清零。
 - 默认不生成独立完整运行配置、运行说明、code_delivery_report、user_execution_validation_report、semantic_governance_report、figure_evidence或图表子目录。
 - 实际生成的项目级预处理脚本和两个正式小问Python脚本都必须通过静态工程质量检查且不得由助手执行；校验结果在聊天或标准输出中返回，不额外落盘。
 - 用户返回的适用预处理工作簿和小问工作簿均必须先通过对应质量门；代码交付本身不得把状态提升为solved或analyzed。
 - 同步器只做发现、校验、哈希和stale传播，不替代语义治理、条件式预处理质量门、主求解质量门与结果深化分析。
+- v7.6项目的v0.7框架和semantic-governance 1.0.0保持只读兼容；重新进入当前writing/review流程时再补v0.8项目语义字段。
 - v7.2.0--v7.2.2旧项目重新进入模型设计、预处理、绘图或写作时继续沿用三态preprocessing_decision，并按当前通用审计与论文证据规则复核；只读历史交付不强制反向补文件。
 - v7.1.x及更早旧项目可只读；重新进入当前流程时先做数据审计和preprocessing_decision。
 - v7.0.x缺少语义治理字段的旧项目可只读；重新进入审题或模型设计时补齐当前语义字段。
