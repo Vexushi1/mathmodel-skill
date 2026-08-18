@@ -16,13 +16,14 @@
 
 ## 项目工作记忆
 
-`模型论文框架.md` 不是只给用户查看的输出文件。模型锁定后，它是助手恢复当前项目上下文的首选入口：保存当前题意口径、数据与预处理决策、变量/参数/假设、模型与约束、小问依赖、结果摘要、验证边界、图表映射和论文组织。
+`模型论文框架.md` 不是只给用户查看的输出文件。模型锁定后，它是助手恢复当前项目上下文的首选入口：保存当前题意口径、数据与预处理决策、变量/参数/假设、模型与约束、小问依赖、Formula Trace、数值参数证据、命题、Citation Evidence、结果摘要、验证边界、图表映射和本项目论文组织选择。
 
 - 普通单问继续：读取“当前有效口径”+对应 Q 区+必要依赖/结果摘要；
 - 参数、约束、模型、预处理或算法口径修改：先读当前相关段落，再修改并同步受影响内容；
 - 结果验收/深化分析/绘图完成：把 current 结果摘要与证据位置写回框架；
 - 新聊天接续、长上下文恢复、整篇论文写作和终审：读取完整 current 框架；
-- 具体数值必须再核对标准工作簿；semantic revision、hash 和 stale 以 `state/project_state.yaml` 为准。
+- 具体数值必须再核对标准工作簿；semantic revision、hash 和 stale 以 `state/project_state.yaml` 为准；
+- 通用写作规则不写入框架，统一读取 writing Authority。
 
 框架 stale 或与工作簿/状态冲突时，不得把聊天记忆当作仲裁依据，应回到对应上游阶段修正。
 
@@ -48,7 +49,7 @@ problem_audit
    └─ qX_plot.m / 机理图
 → writing_latex
 → ai_cleanup
-→ prose audit（scripts/audit_paper_prose.py）
+→ prose/BibTeX audit（scripts/audit_paper_prose.py）
 → latex_compile_quality
 → review_delivery
 ```
@@ -63,7 +64,19 @@ problem_audit
 
 `result_analysis` 可以独立路由，但前提是当前主工作簿已经 accepted 且主结果质量门通过。若分析给出 `redo_required`，按原因回到 `model_design`、条件式 `data_preprocessing` 或 `solve_validate`，并传播下游 stale。
 
-默认写作链在 `figure_evidence` 后进入 LaTeX。`writing_docx` 只由显式 DOCX/Word 请求加载，不是 LaTeX 前置。`prose audit` 不是独立写作权威或额外论文产物，而是 AI cleanup 后、最终编译前的非破坏性检查步骤：默认只报告 warning/review_required；`--strict` 仅阻断未处理的结构性 review_required。
+## 写作运行边界
+
+默认写作链在 `figure_evidence` 后进入 LaTeX。`writing_docx` 只由显式 DOCX/Word 请求加载，不是 LaTeX 前置。
+
+写作只加载当前 route 需要的 Authority：`core/writing_reasoning_contract.yaml` 管理跨竞赛推理、Hard / Default / Recommendation、命题预算和 Citation Evidence；`modules/05_writing/latex.md` 管正文结构与表达。AI cleanup、DOCX、review 与 Artifact Packs 是 consumer，不重新定义规则。
+
+`prose/BibTeX audit` 是 AI cleanup 后、最终编译前的非破坏性检查步骤：
+
+- `blocking`：确定性 Hard 结构错误；
+- `review_required`：Default 偏离，需要理由或修正；
+- `warning`：Recommendation/风格风险。
+
+默认只报告；`--strict` 阻断 `blocking` 和未处理的 `review_required`，warning 仍交给人工判断。机器不得从正则推断数学正确性、参数最优性或 citation 是否真正语义支持某个 claim。
 
 ## 示例
 
