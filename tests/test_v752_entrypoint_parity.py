@@ -29,7 +29,7 @@ def frontmatter_version(path: Path) -> str:
     return match.group(1)
 
 
-class EntrypointParityV752Tests(unittest.TestCase):
+class EntrypointParityTests(unittest.TestCase):
     def test_root_and_packaged_runtime_contracts_are_identical(self):
         self.assertEqual(extract_contract(ROOT_SKILL), extract_contract(PACKAGED_SKILL))
 
@@ -48,14 +48,24 @@ class EntrypointParityV752Tests(unittest.TestCase):
             self.assertNotIn(stale, block)
         self.assertIn("不作为模型、预处理、求解、绘图或写作规则的独立权威", block)
 
-    def test_skill_and_plugin_versions_follow_bootstrap(self):
-        bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
-        current = str(bootstrap["skill_version"])
+    def test_all_release_carriers_follow_bootstrap(self):
+        current = str(yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))["skill_version"])
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
         self.assertEqual(frontmatter_version(ROOT_SKILL), current)
         self.assertEqual(frontmatter_version(PACKAGED_SKILL), current)
         self.assertEqual(str(plugin["version"]), current)
         self.assertEqual(plugin["skills"], "./skills/")
+        self.assertTrue((ROOT / "README.md").read_text(encoding="utf-8").startswith(f"# mathmodel-skill v{current}"))
+        self.assertTrue((ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8").startswith(f"# HSK Core Policy v{current}"))
+        for relative in ("core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml"):
+            data = yaml.safe_load((ROOT / relative).read_text(encoding="utf-8"))
+            self.assertEqual(str(data["version"]), current, relative)
+
+    def test_current_changelog_matches_bootstrap(self):
+        current = str(yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))["skill_version"])
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertIn(f"## Current release: {current}", changelog)
+        self.assertIn("## Previous release: 7.6.0", changelog)
 
     def test_stable_docs_and_resolver_do_not_create_extra_release_carriers(self):
         self.assertEqual((ROOT / "scripts/README.md").read_text(encoding="utf-8").splitlines()[0], "# Scripts")
@@ -63,17 +73,6 @@ class EntrypointParityV752Tests(unittest.TestCase):
         self.assertIn("不属于当前默认运行链路", legacy)
         resolver = (ROOT / "scripts/resolve_workflow.py").read_text(encoding="utf-8")
         self.assertIsNone(re.search(r"HSK v\d+\.\d+\.\d+ execution plan", resolver))
-
-    def test_readme_release_history_matches_current_architecture(self):
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertTrue(readme.startswith("# mathmodel-skill v7.6.0"))
-        self.assertIn("## v7.6.0：写作治理收口与 Citation Evidence", readme)
-        self.assertIn("Hard / Default / Recommendation", readme)
-        self.assertIn("Citation Evidence", readme)
-        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        self.assertIn("## Current release: 7.6.0", changelog)
-        self.assertIn("## Previous release: 7.5.2", changelog)
-        self.assertIn("## Previous release: 7.5.0", changelog)
 
     def test_one_shot_v752_migration_files_are_absent(self):
         paths = (
