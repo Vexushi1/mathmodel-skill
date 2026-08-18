@@ -1,4 +1,4 @@
-version: 7.6.0
+version: 7.7.0
 workflow_order:
 - problem_audit
 - model_design
@@ -57,10 +57,10 @@ artifact_catalog:
   semantic_closure: 题面对象与要求—数学层—Python层—输出证据三层闭环
   complexity_sanity_check: 对异常降维、解耦、条件闲置和异常容易求解的复审结论
   proposition_plan: 全文高价值命题规划；0--4为默认正文阅读预算，超过预算时记录必要性说明而非自动否决
-  model_paper_framework: 助手可再次读取的当前项目语义记忆与论文骨架；只保存Problem Contract、预处理判定、模型语义、Formula Trace、参数证据、命题、Citation Evidence、逐问结果摘要和图表映射，通用写作规则由Authority管理，具体数值仍以已验收工作簿为准
+  model_paper_framework: 助手可再次读取的当前项目语义记忆与论文骨架；只保存Problem Contract、预处理判定、模型语义、Formula Trace、参数证据、Terminology Registry、Numeric Profile、Title Claim、命题、Citation Evidence、paper-fragment状态、逐问结果摘要和图表映射，通用写作规则由Authority管理，具体数值仍以已验收工作簿为准
   mechanism_contracts: 机理图合同
   validation_plan: 建模阶段识别的风险与候选验证方向
-  semantic_governance_report: 聊天或标准输出中的Problem Contract、语义闭环、复杂度复审、语义哈希和跨问stale校验结果
+  semantic_governance_report: 聊天或标准输出中的Problem Contract、语义闭环、复杂度复审、语义哈希、跨问和paper-fragment stale校验结果
   preprocessing_code: 仅decision=project_level时生成的数据预处理/数据预处理.py；共享原始数据唯一公共处理入口
   preprocessing_workbook: 仅decision=project_level时生成的数据预处理/数据预处理结果.xlsx；依赖小问的统一数值数据入口，同时保存论文方法验证和MATLAB绘图底层证据
   preprocessing_quality_report: 仅project_level时适用的统一工作簿预处理质量门及聊天/标准输出验收结论
@@ -68,7 +68,7 @@ artifact_catalog:
   preprocessing_figures: 由data_process.m形成并人工确认的预处理必要性/有效性证据图；默认不要求自动导出文件
   awaiting_user_preprocessing: decision=project_level且预处理代码已交付后等待用户本地运行的暂停状态
   python_code: 问题X求解/问题X求解.py；只负责主求解，主工作簿accepted后冻结
-  result_analysis_code: 问题X求解/问题X结果深化分析.py；主工作簿accepted后独立生成，只负责深化分析
+  result_analysis_code: 问题X求解/问题X结果深化分析.py；主工作簿accepted后独立生成，只负责深化分析并记录support/modify/reject对具体claim的作用
   stage_python_code: 当前代码交付阶段的题目专属Python文件；data_preprocessing仅在project_level时映射统一预处理脚本，solve_validate映射主求解脚本，result_analysis映射深化分析脚本
   full_run_config: 分别嵌入对应阶段Python和工作簸运行配置表的完整精度参数，不单独落盘
   execution_instructions: 聊天内给出的本地运行步骤，不单独落盘
@@ -81,7 +81,7 @@ artifact_catalog:
   constraint_checks: 约束、残差、守恒、离散或收敛检查
   result_analysis_plan: 基于主结果风险选择的深化分析计划
   result_analysis_workbook: 用户返回并验收的结果深化分析工作簿
-  result_analysis_report: 实际深化分析报告
+  result_analysis_report: 实际深化分析报告；入文证据需说明target claim及support/modify/reject处置
   validated_results: 通过结果深化分析且可用于写作的结果
   evidence_map: 结论到公式、代码、表和图的证据映射
   matlab_scripts: MATLAB绘图脚本集合；project_level包含data_process.m，每问包含qX_plot.m
@@ -401,6 +401,7 @@ utility_gates:
     - Hashes only each question's current model-scope section, not numerical result summaries.
     - Semantic changes require an incremented revision and explicit change categories.
     - Propagates stale recursively through typed cross-question dependencies before accepting a new semantic hash.
+    - Propagates paper-fragment stale only through explicit source_questions/depends_on links; unrelated background and independent questions remain current.
     - Changes to preprocessing_decision or actual project-level preprocessing are semantic changes and invalidate only dependent downstream question results.
     - Never runs task-specific Python and never clears numerical stale states.
   code_delivery:
