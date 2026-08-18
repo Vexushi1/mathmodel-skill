@@ -45,11 +45,19 @@ class TestV760WritingGovernance(unittest.TestCase):
             ROOT / "packs/artifact/docx.md",
             ROOT / "packs/artifact/proposition_proof.md",
             ROOT / "templates/writing/docx_check.md",
+            ROOT / "templates/latex/cumcm/hsk/hsk_main.tex",
+            ROOT / "templates/latex/diangong/main.tex",
         ]
         combined = "\n".join(path.read_text(encoding="utf-8") for path in files)
-        self.assertNotIn("优点必须多于缺点", combined)
+        self.assertNotIn("优点数必须大于缺点数", combined)
+        self.assertNotIn("优点数量必须大于缺点数量", combined)
         self.assertNotIn("全文最终保留数量不得超过 4 个", combined)
+        self.assertNotIn("全文命题不得超过 4 个", combined)
         self.assertIn("required / inline / not_applicable", combined)
+
+        latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
+        self.assertIn("优点和缺点的数量按模型实际决定", latex)
+        self.assertIn("不检查“优点必须多于缺点”", latex)
 
     def test_framework_template_is_project_memory_with_formula_and_citation_trace(self):
         text = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
