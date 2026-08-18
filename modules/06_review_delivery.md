@@ -4,7 +4,7 @@
 
 权威来源：
 
-- `core/writing_reasoning_contract.yaml`：推理、证据、规则等级、命题预算、引用证据；
+- `core/writing_reasoning_contract.yaml`：推理、证据、规则等级、术语、数值展示、Title Claim、命题预算、引用证据和 Paragraph Necessity；
 - `modules/05_writing/latex.md`：正文结构与表达；
 - 各 Artifact Pack：载体、编译和交付特有要求。
 
@@ -30,7 +30,9 @@
 - 只保留当前有效模型、参数、约束、命题、结果和图表映射；
 - 已求解小问有 current 结果摘要；
 - 具体数值回到已验收工作簿复核；
-- semantic revision、hash 与 stale 状态和 `state/project_state.yaml` 一致；
+- semantic revision、hash 与 Q级 stale 状态和 `state/project_state.yaml` 一致；
+- `Terminology Registry`、`Numeric Profile`、`Title Claim Gate` 和 `正文局部状态映射` 与当前项目一致；
+- `paper_framework.sync_status=current` 只表示框架已同步记录机器状态；若存在显式 stale paper fragment，必须确认它没有被正式论文继续当作 current；
 - 框架保存项目事实和当前选择，没有重新复制通用写作手册。
 
 模型设计层检查题型匹配、变量闭合、公式来源、假设、约束、高级模型必要性、内生性/共线性/过拟合/计算爆炸及解释边界。
@@ -54,7 +56,38 @@
 
 数值参数检查候选范围、收敛/验证依据、最终取值和必要的主结果稳定性，不能只接受“综合考虑精度与效率，取……”。
 
-## 四、正文结构与表达审查
+### 高精度结果展示
+
+按 `writing_reasoning_contract.numeric_style_contract` 检查：
+
+- 评分型连续核心结果在标准工作簿中保留足够高精度底层值；
+- 题面、官方规则、官方评讲或已核验评分口径指定小数位时，摘要、正文和答案表严格服从；
+- 未给出更具体评分口径时，决定答案、排名、阈值、最优值、时间、坐标、概率、误差等连续数值默认优先保留**小数点后6--7位**；
+- 摘要不因篇幅把核心答案擅自压缩为1--4位小数，可通过减少次要数字数量控制篇幅；
+- 同一指标在摘要、正文、表格中换算后必须对应同一高精度结果；
+- 百分比和百分点、科学计数法、单位换算不得造成口径或精度丢失；
+- 整数、精确离散量或本身无更高分辨率的数据不机械补无意义小数。
+
+已核验评分精度被降低属于 Hard；仅与项目默认 Numeric Profile 不一致但没有明确评分要求时先进入 review/warning，由人工复核。
+
+## 四、术语、标题与正文语义一致性
+
+按 `Terminology Registry` 检查自然语言概念：
+
+- 核心术语使用 canonical term，不为追求词汇变化机械换成不推荐别名；
+- 两个定义、量纲、分母、时间范围、样本单位不同的量即使名称相近也必须分开；
+- “样本/场景/仿真样本/Monte Carlo realization”等随机对象必须按当前项目登记口径使用；
+- 术语定义变化属于模型语义变化，不是普通润色。
+
+按 `Title Claim Gate` 检查当前选定题目：
+
+- 标题中的核心对象、主方法、机制或贡献至少服务一个核心问题；
+- 主方法在正文有完整推导或实质算法使用；
+- 有对应结果/验证证据；
+- 摘要和关键词没有放大次要方法；
+- stale/rejected Title Claim 不得继续进入正式标题。
+
+## 五、正文结构、Paragraph Necessity 与表达审查
 
 按 `modules/05_writing/latex.md` 检查，不重新发明规则。中文国赛重点看：
 
@@ -70,7 +103,19 @@
 
 不得因为某个小问没有名为“核心模型汇总”的独立小节就自动判错；应先检查框架中该问是 `required`、`inline` 还是 `not_applicable`。
 
-## 五、图表与结果证据审查
+执行 Paragraph Necessity Test：对每节和较长段落检查，删除后是否会丢失题意、机制、数学关系、求解依据、结果证据、必要边界或标题/Citation/跨问闭环。全部为否则删除、合并或移附录。机器只能提示疑似冗余，最终删除由人工完成。
+
+## 六、结果深化证据与局部 stale 审查
+
+每项深化分析必须有明确 `target_claim` 和 `support / modify / reject`：
+
+- `support`：说明增强了哪个主张；
+- `modify`：正文、摘要、图表或适用边界已经按 `required_action` 修正；
+- `reject`：目标主张已删除/降级，或核心结果触发 `redo_required` 并回退模型/求解。
+
+Q3 等某问发生语义变化时，只允许沿显式依赖使对应 Q 模型/结果/图、摘要该问片段、相关模型评价句和相关 Title Claim stale。与其无依赖的问题背景、Q1/Q2 和无关引用不得机械标 stale。正式提交不得保留仍影响答案、摘要或标题的 stale paper fragment。
+
+## 七、图表与结果证据审查
 
 检查每张正文核心图和核心表：
 
@@ -83,7 +128,7 @@
 
 真实存在的算法分歧、敏感边界、异常样本和约束失效不得被终稿静默删除。
 
-## 六、Citation Evidence 与参考文献审查
+## 八、Citation Evidence 与参考文献审查
 
 按 `writing_reasoning_contract.citation_evidence` 检查：
 
@@ -96,7 +141,20 @@
 
 机器可以检查 key、重复和未使用条目，但不能仅凭 citation 存在判断文献是否真的支持该 claim，也不能按域名自动判断文献质量。
 
-## 七、编译、复现与提交包
+## 九、机器 prose audit
+
+正式终审前运行：
+
+```bash
+python scripts/audit_paper_prose.py \
+  final_latex/main.tex \
+  --bib final_latex/references.bib \
+  --framework 模型论文框架.md
+```
+
+可靠结构检查包括：不存在的 `\ref`、重复 label、未引用 label、图表引用距离、BibTeX key、图题/表题相对位置、Abstract 图表/展示公式、可识别关键词数量、已登记术语漂移和 Numeric Profile 精度异常。机器不得判断数学正确性、未登记术语同义关系、物理单位语义或 citation 是否真正支撑主张。
+
+## 十、编译、复现与提交包
 
 检查输入数据、项目根目录 `模型论文框架.md`、Python 求解代码、环境说明、随机种子、每问标准工作簿、MATLAB 绘图脚本、正式图、可编辑机理图、DOCX（如需）、LaTeX 源码和 PDF。
 
@@ -108,22 +166,22 @@
 - PDF 逐页检查；
 - 提交包同时包含完整最新版框架，不只交 PDF。
 
-## 八、返修优先级
+## 十一、返修优先级
 
 返修按影响顺序：
 
 ```text
-会改变答案/数学语义/事实来源的问题
-→ 框架与 stale 冲突
+会改变答案/数学语义/事实来源/评分精度的问题
+→ Q级与Paper Fragment stale冲突
 → 模型、命题、代码、工作簿不一致
-→ 图表与 Citation Evidence 断链
+→ Title Claim、术语、图表与 Citation Evidence 断链
 → 正文 Default 偏离
 → 风格、排版和美观 warning
 ```
 
 不要先修漂亮再修会改变答案的问题。
 
-## 九、Blocking 条件
+## 十二、Blocking 条件
 
 以下属于典型 Hard 违规，必须修复后才能正式交付：
 
@@ -131,7 +189,8 @@
 - 关键变量、目标或约束缺失；
 - 数据处理改变结论但没有依据/验证；
 - 结果不可复现或与已验收工作簿冲突；
-- stale 模型、结果、命题或图表被当作 current 使用；
+- 已核验评分精度要求被正文或摘要降低，导致评分型核心数值丢失必要小数位；
+- stale 模型、结果、命题、图表或关键 paper fragment 被当作 current 使用；
 - 关键证明循环论证、缺少必要前提或与当前模型不一致；
 - 有限实验/求解器状态冒充严格证明；
 - 把局部/启发式结果无依据写成全局最优；
@@ -140,4 +199,4 @@
 - 必需 citation key 不存在、外部核心数据/参数完全无来源；
 - LaTeX 无法编译或提交包缺核心文件。
 
-以下**不再自动列为 Blocking**：命题超过默认正文预算、优缺点条目数量关系、简单问题没有独立“核心模型汇总”小节、短证明超过经验行数预算。它们按 Authority 对应 Default/Recommendation 处理。
+以下**不自动列为 Blocking**：命题超过默认正文预算、优缺点条目数量关系、简单问题没有独立“核心模型汇总”小节、短证明超过经验行数预算、未登记术语的机器疑似同义、没有明确评分要求时仅与默认6--7位 Numeric Profile 不一致。它们按 Authority 对应 Default/Recommendation 处理。
