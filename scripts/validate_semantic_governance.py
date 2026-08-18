@@ -10,7 +10,8 @@ from typing import Any, Mapping
 
 import yaml
 
-SEMANTIC_GOVERNANCE_VERSION = "1.0.0"
+SEMANTIC_GOVERNANCE_VERSION = "1.1.0"
+SUPPORTED_GOVERNANCE_VERSIONS = {"1.0.0", "1.1.0"}
 PRIMARY_STALE_LAYERS = {
     "model",
     "solution_workbook",
@@ -91,6 +92,46 @@ def _dependent_closure(subproblems: Mapping[str, Any], sources: set[str]) -> set
     return affected
 
 
+def _fragment_dependency_questions(fragment: Mapping[str, Any]) -> set[str]:
+    questions = {str(item) for item in (fragment.get("source_questions", []) or []) if str(item).strip()}
+    for item in fragment.get("depends_on", []) or []:
+        token = str(item).strip()
+        match = re.match(r"^(Q[1-9][0-9]*)(?:\.|$)", token)
+        if match:
+            questions.add(match.group(1))
+    return questions
+
+
+def _affected_paper_fragment_ids(framework: Mapping[str, Any], affected_questions: set[str]) -> set[str]:
+    affected_ids: set[str] = set()
+    for raw in framework.get("paper_fragments", []) or []:
+        if not isinstance(raw, Mapping):
+            continue
+        if _fragment_dependency_questions(raw) & affected_questions:
+            fragment_id = str(raw.get("id", "")).strip()
+            if fragment_id:
+                affected_ids.add(fragment_id)
+    return affected_ids
+
+
+def _mark_paper_fragments_stale(framework: dict[str, Any], affected_questions: set[str]) -> set[str]:
+    stale_ids: set[str] = set()
+    for raw in framework.get("paper_fragments", []) or []:
+        if not isinstance(raw, dict):
+            continue
+        dependencies = _fragment_dependency_questions(raw)
+        hit = sorted(dependencies & affected_questions)
+        if not hit or raw.get("status") == "not_applicable":
+            continue
+        raw["status"] = "stale"
+        raw.setdefault("stale_reason", f"source question changed: {', '.join(hit)}")
+        raw.setdefault("required_action", "revalidate this paper fragment against the current source question(s)")
+        fragment_id = str(raw.get("id", "")).strip()
+        if fragment_id:
+            stale_ids.add(fragment_id)
+    return stale_ids
+
+
 def _mark_stale(entry: dict[str, Any]) -> None:
     entry["artifacts_stale"] = True
     entry["stale_layers"] = sorted(set(entry.get("stale_layers", []) or []) | PRIMARY_STALE_LAYERS)
@@ -143,15 +184,19 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
     if not framework_path.is_file():
         issues.append("缺少 模型论文框架.md")
     governance_version = str(state.get("semantic_governance_version", "")).strip()
-    if governance_version != SEMANTIC_GOVERNANCE_VERSION:
+    if governance_version not in SUPPORTED_GOVERNANCE_VERSIONS:
         message = (
-            f"semantic_governance_version应为{SEMANTIC_GOVERNANCE_VERSION}；"
+            f"semantic_governance_version应为支持版本{sorted(SUPPORTED_GOVERNANCE_VERSIONS)}；"
             "旧项目在重新进入审题/模型设计时需要迁移当前语义门字段"
         )
         if strict:
             issues.append(message)
         else:
             warnings.append(message)
+    elif governance_version != SEMANTIC_GOVERNANCE_VERSION:
+        warnings.append(
+            f"semantic_governance_version={governance_version}为兼容读取版本；当前写入版本为{SEMANTIC_GOVERNANCE_VERSION}"
+        )
 
     subproblems = state.get("subproblems", {}) or {}
     if not isinstance(subproblems, Mapping) or not subproblems:
@@ -193,11 +238,20 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
                 issues.append(f"{key}: 语义变化必须记录具体semantic_change_categories")
 
     affected = _dependent_closure(subproblems, changed_sources)
+    framework_state = state.get("paper_framework", {}) or {}
+    predicted_fragments = _affected_paper_fragment_ids(framework_state, affected)
+    stale_paper_fragments: set[str] = set()
+
     if write and changed_sources:
         for key in affected:
             entry = subproblems.get(key)
             if isinstance(entry, dict):
                 _mark_stale(entry)
+        if isinstance(framework_state, dict):
+            stale_paper_fragments = _mark_paper_fragments_stale(framework_state, affected)
+            # State has changed before the human-readable framework table is resynchronized.
+            framework_state["sync_status"] = "stale"
+        state["semantic_governance_version"] = SEMANTIC_GOVERNANCE_VERSION
 
     if write:
         for key, current_hash in semantic_hashes.items():
@@ -224,9 +278,11 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
     return {
         "status": "passed" if not issues else "failed",
         "semantic_governance_version": governance_version or None,
+        "current_semantic_governance_version": SEMANTIC_GOVERNANCE_VERSION,
         "semantic_hashes": semantic_hashes,
         "changed_sources": sorted(changed_sources),
         "affected_questions": sorted(affected),
+        "affected_paper_fragments": sorted(stale_paper_fragments or predicted_fragments),
         "issues": sorted(set(issues)),
         "warnings": sorted(set(warnings)),
     }
