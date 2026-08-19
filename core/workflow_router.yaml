@@ -15,6 +15,7 @@ load_policy:
   - Load global_preprocessing_contract only when the route decides, executes or inherits preprocessing semantics.
   - Load user_execution_contract and code_quality_contract only for code-generation or returned-workbook execution boundaries.
   - Load writing_reasoning_contract only for model-design/proposition/algorithm-presentation/writing/review routes that create, revise or formally inspect mathematical reasoning; do not make it a global preload for figures, workbook validation or unrelated utilities.
+  - Writing and final-review routes that create or inspect prose load modules/05_writing/latex.md as the expression authority; figure and workbook routes do not preload it.
   - Writing and figure routes inherit current project semantics from 模型论文框架.md and their stage authority; do not preload unrelated code/preprocessing contracts.
 
 project_memory_contract:
@@ -248,7 +249,7 @@ routing:
   docx:
     triggers: [DOCX, Word, 草稿论文]
     infer_keywords: [DOCX, Word, 草稿论文, 论文草稿]
-    load: [core/writing_reasoning_contract.yaml, modules/05_writing/docx.md, packs/artifact/docx.md, packs/artifact/algorithm_flow.md]
+    load: [core/writing_reasoning_contract.yaml, modules/05_writing/latex.md, modules/05_writing/docx.md, packs/artifact/docx.md, packs/artifact/algorithm_flow.md]
     terminal_outputs: [docx_draft, latex_migration_notes]
     formal_delivery: true
     delivery_scope: docx
@@ -265,7 +266,7 @@ routing:
   full_submission:
     triggers: [复现包, 提交压缩包, 提交包]
     infer_keywords: [复现包, 提交压缩包, 提交包]
-    load: [core/writing_reasoning_contract.yaml, modules/06_review_delivery.md, packs/artifact/full_submission.md, packs/artifact/algorithm_flow.md]
+    load: [core/writing_reasoning_contract.yaml, modules/05_writing/latex.md, modules/06_review_delivery.md, packs/artifact/full_submission.md, packs/artifact/algorithm_flow.md]
     load_competition_pack: true
     terminal_outputs: [validated_submission_package]
     formal_delivery: true
@@ -274,6 +275,6 @@ routing:
   review:
     triggers: [评分, 审稿, 终审, 检查, 提交包检查]
     infer_keywords: [评分, 审稿, 终审, 提交包检查, 论文检查]
-    load: [core/writing_reasoning_contract.yaml, modules/06_review_delivery.md, packs/artifact/review.md, packs/artifact/algorithm_flow.md]
+    load: [core/writing_reasoning_contract.yaml, modules/05_writing/latex.md, modules/06_review_delivery.md, packs/artifact/review.md, packs/artifact/algorithm_flow.md]
     load_competition_pack: true
     terminal_outputs: [review_report]
