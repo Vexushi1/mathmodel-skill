@@ -1,6 +1,19 @@
-# mathmodel-skill v7.8.0
+# mathmodel-skill v7.8.1
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 数据审计与 `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → 条件式预处理 → 用户本地 full-fidelity Python 主求解 → 独立结果深化分析 → MATLAB 证据图 → LaTeX 终稿 → AI cleanup → prose/structure/BibTeX audit → 编译终审**。
+
+## v7.8.1：Algorithm Trace 闭环补强
+
+本补丁不改变模型、数值接口或项目结构，主要修复 v7.8.0 的最后一层读取与终审缺口：
+
+- `review / full_submission` 显式加载 `core/writing_reasoning_contract.yaml`，不再依赖模块内部二次跳转寻找写作 Authority；
+- `full_workflow / latex / docx / review / full_submission` 在需要整篇写作或终审时均可直接读取 `packs/artifact/algorithm_flow.md`；
+- `scripts/validate_model_paper_framework.py` 对 `stepwise/pseudocode` 的 Algorithm ID、必填字段、模式一致性、current 状态和已求解后的 Python 锚点做确定性校验，`not_needed` 不强制算法框；
+- 终审模块和审查 Pack 正式检查“模型/公式/命题/约束 → Algorithm Trace → 论文算法 → Python → 工作簿证据”是否闭合，同时保留机器不推断算法正确性或收敛性的边界；
+- 修复提交 Pack 中残留的“命题最多 4 个”旧规则，重新统一为 **0--4 只是默认正文阅读预算，P5+ 经必要性审查和 justification 后允许保留**；
+- 修复 framework validator 漏掉 `analyzed` 状态的 current 结果摘要检查。
+
+Workbook Schema、三态预处理、semantic-governance 1.0.0、Python/MATLAB 职责、用户 full-fidelity 执行、`v0.8-project-memory` 和每问五文件接口均保持不变。
 
 ## v7.8.0：Algorithm Trace 与自适应算法流程呈现
 
