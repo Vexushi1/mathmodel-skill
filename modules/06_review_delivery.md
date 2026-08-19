@@ -4,7 +4,7 @@
 
 权威来源：
 
-- `core/writing_reasoning_contract.yaml`：推理、证据、规则等级、命题预算、引用证据、术语、数字、标题主张、深化证据处置、Paragraph Necessity 与局部 stale；
+- `core/writing_reasoning_contract.yaml`：推理、证据、规则等级、Formula Trace、Algorithm Trace 与算法呈现、命题预算、引用证据、术语、数字、标题主张、深化证据处置、Paragraph Necessity 与局部 stale；
 - `modules/05_writing/latex.md`：正文结构与表达；
 - 各 Artifact Pack：载体、编译和交付特有要求。
 
@@ -27,8 +27,9 @@
 检查 `模型论文框架.md`：
 
 - 文件存在且 `paper_framework.sync_status=current`；
-- 只保留当前有效模型、参数、约束、命题、结果和图表映射；
+- 只保留当前有效模型、参数、约束、命题、算法呈现、结果和图表映射；
 - 已求解小问有 current 结果摘要；
+- `stepwise/pseudocode` 小问存在 current Algorithm Trace，`not_needed` 不残留装饰性算法框；
 - 具体数值回到已验收工作簿复核；
 - semantic revision、hash 与 stale 状态和 `state/project_state.yaml` 一致；
 - Terminology Registry、Numeric Profile、Title Claim Gate 和 Paper Fragment Dependency Map 与当前项目一致；
@@ -38,9 +39,21 @@
 
 模型设计层检查题型匹配、变量闭合、公式来源、假设、约束、高级模型必要性、内生性/共线性/过拟合/计算爆炸及解释边界。
 
-## 三、公式、命题与数值证据审查
+## 三、公式、算法、命题与数值证据审查
 
 对核心公式按 reasoning contract 检查 `Source → Derivation → Destination` 是否闭合。机器只能检查锚点和结构，人工作语义判断；不得把关键词匹配当数学正确性证明。
+
+对 Algorithm Trace 按 `writing_reasoning_contract.algorithm_presentation` 检查：
+
+- `not_needed / stepwise / pseudocode` 是否与真实求解复杂度一致，而不是为了版式整齐统一设置算法框；
+- `stepwise/pseudocode` 是否存在 current Algorithm ID，算法作用、输入/状态、核心操作、终止条件、输出和呈现模式是否完整；
+- Formula / Proposition / Constraint 锚点是否确实改变对应算法步骤，不能只在表中挂名；
+- 论文算法步骤能否追溯到真实 Python 实现，且输入、状态、分支/阶段、停止条件和输出没有被论文改写成另一套算法；
+- 已求解小问的算法输出能否继续落到标准工作簿结果或验证证据；
+- 伪代码没有混入 DataFrame、文件路径、日志、异常捕获、并行池等纯工程细节；
+- 算法语义变化后旧 Algorithm Trace、正文算法块和依赖 paper fragments 已 stale 或同步重写。
+
+机器可以检查 declared mode、ID、必填字段和确定性锚点存在性，但不得仅凭伪代码文字推断算法正确性、收敛性或与 Python 的数学等价性。
 
 对命题检查：前提、定义域、参数范围和结论完整；没有循环论证、隐藏条件、变量/定义域偷换；没有用有限实验、求解器状态或模型准确率代替数学证明；没有把局部性质写成全局性质；证明后说明对降维、约束、候选域、可行性、阈值、边界或模型必要性的实际作用；模型、参数、约束变化后旧命题已重新核验或 stale。
 
@@ -90,7 +103,7 @@ Title Claim Gate 检查选定标题中的研究对象、主方法、核心机制
 
 如果标题写“基于鲁棒优化”，但正文核心链实际上是 Monte Carlo + 贪心、鲁棒优化只在末尾做一次扰动，则应修改标题，不允许通过摘要包装来掩盖。
 
-按 `modules/05_writing/latex.md` 检查正文结构：问题重述能否恢复对象与要求；问题提出与问题分析分工；假设与符号清楚；共享基础真实共享；核心模型收束按 `required / inline / not_applicable` 自适应；求解段从模型结构解释算法；主结果形成图表/数值—比较—机制—回答闭环；独立结论等 Default 偏离有真实理由。
+按 `modules/05_writing/latex.md` 检查正文结构：问题重述能否恢复对象与要求；问题提出与问题分析分工；假设与符号清楚；共享基础真实共享；核心模型收束按 `required / inline / not_applicable` 自适应；算法流程按 `not_needed / stepwise / pseudocode` 自适应；求解段从模型结构解释算法；主结果形成图表/数值—比较—机制—回答闭环；独立结论等 Default 偏离有真实理由。
 
 对主要段落执行 Paragraph Necessity Test：删去后若不丢失题意、机制、数学关系、求解依据、结果证据或必要边界，则优先删、并或移附录。重点删除算法百科、重复背景、重复模型优点、重复小问总结、装饰流程和无用途公式。机器只给 warning，不能自动删文。
 
@@ -126,7 +139,7 @@ Title Claim Gate 检查选定标题中的研究对象、主方法、核心机制
 会改变答案/数学语义/事实来源的问题
 → 核心答案评分精度或工作簿一致性问题
 → subproblem / paper fragment stale 冲突
-→ 模型、命题、代码、工作簿不一致
+→ 模型、Algorithm Trace、命题、代码、工作簿不一致
 → 深化证据 unresolved modify/reject
 → Title Claim / Terminology / Citation Evidence 断链
 → 正文 Default 偏离
@@ -144,7 +157,8 @@ Title Claim Gate 检查选定标题中的研究对象、主方法、核心机制
 - 数据处理改变结论但没有依据/验证；
 - 结果不可复现或与已验收工作簿冲突；
 - 评分敏感的核心答案被无依据截断/舍入，导致与题目、官方、评委或已声明 Numeric Profile 不一致；
-- stale 模型、结果、命题、图表或交付范围 paper fragment 被当作 current 使用；
+- stale 模型、结果、Algorithm Trace、命题、图表或交付范围 paper fragment 被当作 current 使用；
+- `stepwise/pseudocode` 的论文算法与真实 Python 实现、当前约束/停止条件或工作簿结果存在会改变可复现性的实质冲突；
 - 关键证明循环论证、缺少必要前提或与当前模型不一致；
 - 有限实验/求解器状态冒充严格证明；
 - 把局部/启发式结果无依据写成全局最优；
@@ -154,4 +168,4 @@ Title Claim Gate 检查选定标题中的研究对象、主方法、核心机制
 - 必需 citation key 不存在、外部核心数据/参数完全无来源；
 - LaTeX 无法编译或提交包缺核心文件。
 
-以下**不再自动列为 Blocking**：命题超过默认正文预算、优缺点条目数量关系、简单问题没有独立“核心模型汇总”小节、短证明超过经验行数预算、仅由机器字符串相似度产生的术语提示、普通未引用公式的 warning。它们按 Authority 对应 Default/Recommendation 处理。
+以下**不再自动列为 Blocking**：命题超过默认正文预算、优缺点条目数量关系、简单问题没有独立“核心模型汇总”小节、`not_needed` 小问没有正式算法框、短证明超过经验行数预算、仅由机器字符串相似度产生的术语提示、普通未引用公式的 warning。它们按 Authority 对应 Default/Recommendation 处理。
