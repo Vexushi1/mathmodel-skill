@@ -1,6 +1,17 @@
 # Changelog
 
-## Current release: 7.7.0
+## Current release: 7.8.0
+
+- Added adaptive `Algorithm Trace` governance to close the chain from current model structure / formulas / propositions / constraints through paper algorithm presentation to the real Python implementation and accepted workbook result or validation evidence.
+- Added three algorithm-presentation modes: `not_needed / stepwise / pseudocode`. Direct or one-shot problems no longer receive decorative algorithm boxes; multi-stage mathematical pipelines use stepwise presentation, while material loops, branches, screening, repair, search and termination logic can use structured pseudocode.
+- Added the on-demand `packs/artifact/algorithm_flow.md` Pack with two paper styles: control-flow pseudocode and staged mathematical solution steps. The Pack explicitly forbids treating Python source code, DataFrame operations, file paths, logging, exception handling or parallel plumbing as paper pseudocode.
+- Connected proposition/formula/constraint anchors to Algorithm Trace so a proved dimension reduction, candidate restriction, feasibility property, threshold or stopping condition can be shown at the exact algorithm step it changes instead of remaining detached from computation.
+- Extended `模型论文框架.md` without a framework-version migration: `v0.8-project-memory` now stores only lightweight per-question algorithm-presentation choices and current Algorithm Trace records; no new mandatory `project_state` field or workflow stage was introduced.
+- Added a precise paper-algorithm route (`算法流程 / 伪代码 / 论文算法 / 算法步骤 / Algorithm 1 / 求解流程表`) without overloading the existing generic code/solver route for plain “算法”.
+- Reused the existing `semantic_change_categories=algorithm` stale mechanism for substantive algorithm changes; pure layout changes such as line numbers, indentation or wrapping do not trigger numerical recomputation.
+- Numerical modeling, conditional preprocessing, Workbook Schema, Python/MATLAB ownership, full-fidelity user execution, semantic-governance 1.0.0 and the per-question five-file interface remain unchanged.
+
+## Previous release: 7.7.0
 
 - Added `Terminology Registry` governance for natural-language technical terms. Current projects can register a canonical term, allowed/discouraged aliases, confusable terms, units/dimensions, linked symbols and scope; machines only check declared collisions/drift and never infer unseen synonymy from string similarity.
 - Added a scoring-aware `Numeric Style Contract` and per-project `Numeric Profile` for units, percentages versus percentage points, scientific notation, mean ± standard deviation, confidence intervals, coordinates, optimization variables and precision consistency.
