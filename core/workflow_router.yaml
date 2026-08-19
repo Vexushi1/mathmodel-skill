@@ -1,4 +1,4 @@
-version: 7.7.0
+version: 7.8.0
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -14,7 +14,7 @@ load_policy:
   - Load task_taxonomy only for classification/modeling/code-analysis routes that actually use objective/structure packs.
   - Load global_preprocessing_contract only when the route decides, executes or inherits preprocessing semantics.
   - Load user_execution_contract and code_quality_contract only for code-generation or returned-workbook execution boundaries.
-  - Load writing_reasoning_contract only for model-design/proposition/writing routes that create or revise mathematical reasoning; do not make it a global preload for figures, workbook validation or unrelated utilities.
+  - Load writing_reasoning_contract only for model-design/proposition/algorithm-presentation/writing routes that create or revise mathematical reasoning; do not make it a global preload for figures, workbook validation or unrelated utilities.
   - Writing and figure routes inherit current project semantics from 模型论文框架.md and their stage authority; do not preload unrelated code/preprocessing contracts.
 
 project_memory_contract:
@@ -23,7 +23,7 @@ project_memory_contract:
   activation: locked_model_spec exists and current framework is available
   purpose: assistant-readable current project semantic memory for context recovery across stages and chats
   read_before_modules: [data_preprocessing, solve_validate, result_analysis, figure_evidence, writing_docx, writing_latex, review_delivery]
-  targeted_read_sections: [当前有效口径, relevant_subproblem, required_dependencies, relevant_result_summary, Terminology Registry, Numeric Profile, 待办与缺口]
+  targeted_read_sections: [当前有效口径, relevant_subproblem, required_dependencies, relevant_result_summary, Algorithm Trace, Terminology Registry, Numeric Profile, 待办与缺口]
   full_read_when: [cross_chat_handoff, long_context_recovery, full_paper_writing, cross_question_synthesis, final_review]
   numeric_fact_source: accepted_standard_workbooks
   machine_state_source: state/project_state.yaml
@@ -107,6 +107,14 @@ routing:
     load: [core/writing_reasoning_contract.yaml, modules/02_model_design.md, templates/model/model_paper_framework.md]
     load_proposition_pack: true
     terminal_outputs: [formula_closure, semantic_closure, formula_reasoning_chain, proposition_plan, model_paper_framework]
+    formal_delivery: true
+    delivery_scope: design
+
+  algorithm_presentation:
+    triggers: [算法流程, 伪代码, 论文算法, 算法步骤, "Algorithm 1", 求解流程表]
+    infer_keywords: [算法流程, 伪代码, 论文算法, 算法步骤, "Algorithm 1", 求解流程表]
+    load: [core/writing_reasoning_contract.yaml, modules/02_model_design.md, modules/05_writing/latex.md, packs/artifact/algorithm_flow.md, templates/model/model_paper_framework.md]
+    terminal_outputs: [formula_closure, semantic_closure, formula_reasoning_chain, model_paper_framework]
     formal_delivery: true
     delivery_scope: design
 
