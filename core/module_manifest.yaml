@@ -1,4 +1,4 @@
-version: 7.8.0
+version: 7.8.1
 workflow_order:
 - problem_audit
 - model_design

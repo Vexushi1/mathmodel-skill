@@ -49,13 +49,13 @@ class ArchitectureSlimmingV751Tests(unittest.TestCase):
         router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8"))
         routes = router["routing"]
         for name in (
-            "new_problem_design", "framework_sync", "proposition_proof", "model_selection",
-            "advanced_method", "docx", "latex",
+            "new_problem_design", "framework_sync", "proposition_proof", "algorithm_presentation",
+            "model_selection", "advanced_method", "docx", "latex", "full_submission", "review",
         ):
             self.assertIn(REASONING, routes[name].get("load", []), name)
         for name in (
             "problem_analysis", "data_preprocessing", "code_and_solution", "result_analysis",
-            "returned_workbook_validation", "validation", "figures", "full_submission", "review",
+            "returned_workbook_validation", "validation", "figures",
         ):
             self.assertNotIn(REASONING, routes[name].get("load", []), name)
 

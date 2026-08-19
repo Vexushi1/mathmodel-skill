@@ -10,7 +10,9 @@ python scripts/validate_project_state.py state/project_state.yaml --project-root
 python scripts/sync_project.py . --write --strict --delivery-scope submission
 ```
 
-重点核对：当前模型口径、命题与证明、条件式预处理、主结果质量门、独立结果深化分析、代码—工作簿—MATLAB—正文证据链、LaTeX 编译和提交包内容。
+重点核对：当前模型口径、Formula Trace、Algorithm Trace 与 `not_needed / stepwise / pseudocode` 呈现选择、命题与证明、条件式预处理、主结果质量门、独立结果深化分析、代码—工作簿—MATLAB—正文证据链、LaTeX 编译和提交包内容。
+
+对 `stepwise/pseudocode` 小问，核对 current Algorithm ID、核心输入/状态、操作、停止条件和输出，并人工确认论文算法与真实 Python 实现、约束/命题锚点及工作簿结果一致；`not_needed` 小问不因缺少算法框扣分，也不应残留装饰性 Algorithm 1。机器只核确定性字段和锚点存在性，不从伪代码文字推断算法正确性或收敛性。
 
 新项目每问数值目录必须符合当前五文件合同：
 

@@ -2,7 +2,8 @@
 """Validate current-state 模型论文框架.md with mode-aware requirements.
 
 The validator checks deterministic project-memory structure. It does not infer mathematical
-correctness, citation semantics, terminology equivalence, or whether a displayed precision is scientifically correct.
+correctness, citation semantics, terminology equivalence, algorithm correctness, or whether a
+displayed precision is scientifically correct.
 """
 from __future__ import annotations
 
@@ -39,7 +40,7 @@ CROSS_QUESTION_HEADING_ALIASES = (
     "## 综合检验与跨问判断",
 )
 VALID_MODES = {"compact", "full"}
-SOLVED_STATUSES = {"solved", "validated", "written", "completed"}
+SOLVED_STATUSES = {"solved", "analyzed", "validated", "written", "completed"}
 FRAMEWORK_REQUIRED_PHASES = {
     "model_design", "solve_validate", "figure_evidence", "writing_docx",
     "writing_latex", "ai_cleanup", "latex_compile_quality",
@@ -55,6 +56,14 @@ TERM_ID_PATTERN = re.compile(r"^T[1-9][0-9]*$")
 NUMERIC_ID_PATTERN = re.compile(r"^N[1-9][0-9]*$")
 TITLE_CLAIM_ID_PATTERN = re.compile(r"^TC[1-9][0-9]*$")
 PAPER_FRAGMENT_ID_PATTERN = re.compile(r"^paper\.[A-Za-z0-9_.-]+$")
+ALGORITHM_ID_PATTERN = re.compile(r"^A[1-9][0-9]*$")
+ALGORITHM_PRESENTATION_MODES = {"not_needed", "stepwise", "pseudocode"}
+ALGORITHM_TRACE_MODES = {"stepwise", "pseudocode"}
+ALGORITHM_TRACE_STATUSES = {"current", "stale"}
+ALGORITHM_TEMPLATE_PRESENTATION = "not_needed / stepwise / pseudocode"
+ALGORITHM_TEMPLATE_TRACE_MODE = "stepwise / pseudocode"
+ALGORITHM_TEMPLATE_TRACE_STATUS = "current / stale"
+QUESTION_HEADING_RE = re.compile(r"^###\s+(Q\d+)[:：].*$", re.MULTILINE)
 
 
 def load_yaml(path: Path) -> Any:
@@ -108,7 +117,11 @@ def _extract_int(text: str, label: str) -> int | None:
 
 
 def _extract_scalar(text: str, label: str) -> str | None:
-    match = re.search(rf"(?mi)^-?\s*{re.escape(label)}\s*[:：]\s*`?([^`\n]+?)`?\s*$", text)
+    # Horizontal whitespace only: a blank field must never consume the next Markdown heading.
+    match = re.search(
+        rf"(?mi)^-?[ \t]*{re.escape(label)}[ \t]*[:：][ \t]*`?([^`\n]*?)`?[ \t]*$",
+        text,
+    )
     return match.group(1).strip() if match else None
 
 
@@ -119,6 +132,15 @@ def _section_between(text: str, heading: str) -> str:
     tail = text[start + len(heading):]
     next_heading = re.search(r"\n#{1,4}\s+", tail)
     return tail[:next_heading.start()] if next_heading else tail
+
+
+def _question_sections(text: str) -> dict[str, str]:
+    matches = list(QUESTION_HEADING_RE.finditer(text))
+    sections: dict[str, str] = {}
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        sections[match.group(1)] = text[match.start():end]
+    return sections
 
 
 def _proposition_section(text: str) -> str:
@@ -132,6 +154,27 @@ def _proposition_rows(text: str) -> list[tuple[str, list[str]]]:
         if match:
             cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
             rows.append((match.group(1), cells))
+    return rows
+
+
+def _algorithm_rows(text: str) -> list[tuple[str, list[str]]]:
+    rows: list[tuple[str, list[str]]] = []
+    for line in _section_between(text, "### Algorithm Trace").splitlines():
+        match = re.match(r"^\|\s*(A\d+)\s*\|", line)
+        if not match:
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if all(not value for value in cells[1:]):
+            continue
+        if (
+            len(cells) >= 12
+            and not any(cells[index] for index in range(1, 10))
+            and cells[10] == ALGORITHM_TEMPLATE_TRACE_MODE
+            and cells[11] == ALGORITHM_TEMPLATE_TRACE_STATUS
+        ):
+            # The repository template carries one visual A1 example row; it is not current project state.
+            continue
+        rows.append((match.group(1), cells))
     return rows
 
 
@@ -226,6 +269,96 @@ def _validate_proposition_plan(text: str, *, strict: bool) -> tuple[list[str], i
     return issues, declared_count, unique_ids
 
 
+def _validate_algorithm_trace(
+    text: str,
+    *,
+    state: Mapping[str, Any] | None,
+    strict: bool,
+) -> list[str]:
+    issues: list[str] = []
+    rows = _algorithm_rows(text)
+    row_ids = [algorithm_id for algorithm_id, _ in rows]
+    if len(row_ids) != len(set(row_ids)):
+        issues.append("duplicate Algorithm Trace IDs")
+
+    by_id: dict[str, list[str]] = {}
+    question_sections = _question_sections(text)
+    state_subproblems = (state.get("subproblems", {}) or {}) if isinstance(state, Mapping) else {}
+
+    for algorithm_id, cells in rows:
+        if not ALGORITHM_ID_PATTERN.fullmatch(algorithm_id):
+            issues.append(f"Algorithm Trace ID must match A1, A2, ...: {algorithm_id}")
+            continue
+        if len(cells) < 12:
+            issues.append(f"{algorithm_id} Algorithm Trace row must contain all twelve project fields")
+            continue
+        by_id[algorithm_id] = cells
+        required_indexes = {
+            1: "question",
+            2: "role",
+            3: "inputs/state",
+            4: "core operations",
+            7: "termination",
+            8: "outputs",
+            10: "presentation mode",
+            11: "status",
+        }
+        missing = [label for index, label in required_indexes.items() if not cells[index]]
+        if missing:
+            issues.append(f"{algorithm_id} Algorithm Trace missing required fields: {missing}")
+        if cells[10] and cells[10] not in ALGORITHM_TRACE_MODES:
+            issues.append(f"{algorithm_id} Algorithm Trace mode must be stepwise or pseudocode")
+        if cells[11] and cells[11] not in ALGORITHM_TRACE_STATUSES:
+            issues.append(f"{algorithm_id} Algorithm Trace status must be current or stale")
+        question = cells[1]
+        if question and question not in question_sections:
+            issues.append(f"{algorithm_id} references unknown question: {question}")
+        subproblem = state_subproblems.get(question, {}) if isinstance(state_subproblems, Mapping) else {}
+        status = str(subproblem.get("status", "")) if isinstance(subproblem, Mapping) else ""
+        if cells[11] == "current" and status in SOLVED_STATUSES and not cells[9]:
+            issues.append(f"{algorithm_id} current solved Algorithm Trace requires a Python code anchor")
+
+    for question, section in question_sections.items():
+        presentation = _extract_scalar(section, "算法流程呈现")
+        if presentation is None:
+            continue
+        linked_algorithm = _extract_scalar(section, "关联 Algorithm ID") or ""
+        if presentation == ALGORITHM_TEMPLATE_PRESENTATION:
+            if strict:
+                issues.append(f"{question}.算法流程呈现 is unresolved; choose not_needed, stepwise or pseudocode")
+            continue
+        if presentation not in ALGORITHM_PRESENTATION_MODES:
+            issues.append(
+                f"{question}.算法流程呈现 must resolve to one of not_needed/stepwise/pseudocode, got: {presentation}"
+            )
+            continue
+        if presentation == "not_needed":
+            if linked_algorithm:
+                issues.append(f"{question} is not_needed but still links Algorithm ID {linked_algorithm}")
+            continue
+        if not linked_algorithm:
+            issues.append(f"{question} uses {presentation} but has no 关联 Algorithm ID")
+            continue
+        if not ALGORITHM_ID_PATTERN.fullmatch(linked_algorithm):
+            issues.append(f"{question}.关联 Algorithm ID must match A1, A2, ...: {linked_algorithm}")
+            continue
+        trace = by_id.get(linked_algorithm)
+        if trace is None:
+            issues.append(f"{question} links missing Algorithm Trace: {linked_algorithm}")
+            continue
+        if len(trace) < 12:
+            continue
+        if trace[1] != question:
+            issues.append(f"{question} links {linked_algorithm}, but trace question is {trace[1] or 'empty'}")
+        if trace[10] != presentation:
+            issues.append(
+                f"{question} presentation mode {presentation} does not match {linked_algorithm} mode {trace[10] or 'empty'}"
+            )
+        if trace[11] != "current":
+            issues.append(f"{question} links non-current Algorithm Trace {linked_algorithm}: {trace[11] or 'empty'}")
+    return issues
+
+
 def validate_framework_text(
     text: str,
     *,
@@ -280,6 +413,8 @@ def validate_framework_text(
         issues.extend(proposition_issues)
     elif resolved_mode == "full":
         issues.append("full framework requires proposition planning section")
+
+    issues.extend(_validate_algorithm_trace(text, state=state, strict=strict))
 
     if strict:
         unresolved = sorted({token for token in text.split() if token.startswith("__") and token.endswith("__")})
