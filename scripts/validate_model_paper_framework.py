@@ -60,6 +60,9 @@ ALGORITHM_ID_PATTERN = re.compile(r"^A[1-9][0-9]*$")
 ALGORITHM_PRESENTATION_MODES = {"not_needed", "stepwise", "pseudocode"}
 ALGORITHM_TRACE_MODES = {"stepwise", "pseudocode"}
 ALGORITHM_TRACE_STATUSES = {"current", "stale"}
+ALGORITHM_TEMPLATE_PRESENTATION = "not_needed / stepwise / pseudocode"
+ALGORITHM_TEMPLATE_TRACE_MODE = "stepwise / pseudocode"
+ALGORITHM_TEMPLATE_TRACE_STATUS = "current / stale"
 QUESTION_HEADING_RE = re.compile(r"^###\s+(Q\d+)[:：].*$", re.MULTILINE)
 
 
@@ -114,7 +117,11 @@ def _extract_int(text: str, label: str) -> int | None:
 
 
 def _extract_scalar(text: str, label: str) -> str | None:
-    match = re.search(rf"(?mi)^-?\s*{re.escape(label)}\s*[:：]\s*`?([^`\n]+?)`?\s*$", text)
+    # Horizontal whitespace only: a blank field must never consume the next Markdown heading.
+    match = re.search(
+        rf"(?mi)^-?[ \t]*{re.escape(label)}[ \t]*[:：][ \t]*`?([^`\n]*?)`?[ \t]*$",
+        text,
+    )
     return match.group(1).strip() if match else None
 
 
@@ -158,6 +165,14 @@ def _algorithm_rows(text: str) -> list[tuple[str, list[str]]]:
             continue
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
         if all(not value for value in cells[1:]):
+            continue
+        if (
+            len(cells) >= 12
+            and not any(cells[index] for index in range(1, 10))
+            and cells[10] == ALGORITHM_TEMPLATE_TRACE_MODE
+            and cells[11] == ALGORITHM_TEMPLATE_TRACE_STATUS
+        ):
+            # The repository template carries one visual A1 example row; it is not current project state.
             continue
         rows.append((match.group(1), cells))
     return rows
@@ -258,6 +273,7 @@ def _validate_algorithm_trace(
     text: str,
     *,
     state: Mapping[str, Any] | None,
+    strict: bool,
 ) -> list[str]:
     issues: list[str] = []
     rows = _algorithm_rows(text)
@@ -307,6 +323,10 @@ def _validate_algorithm_trace(
         if presentation is None:
             continue
         linked_algorithm = _extract_scalar(section, "关联 Algorithm ID") or ""
+        if presentation == ALGORITHM_TEMPLATE_PRESENTATION:
+            if strict:
+                issues.append(f"{question}.算法流程呈现 is unresolved; choose not_needed, stepwise or pseudocode")
+            continue
         if presentation not in ALGORITHM_PRESENTATION_MODES:
             issues.append(
                 f"{question}.算法流程呈现 must resolve to one of not_needed/stepwise/pseudocode, got: {presentation}"
@@ -394,7 +414,7 @@ def validate_framework_text(
     elif resolved_mode == "full":
         issues.append("full framework requires proposition planning section")
 
-    issues.extend(_validate_algorithm_trace(text, state=state))
+    issues.extend(_validate_algorithm_trace(text, state=state, strict=strict))
 
     if strict:
         unresolved = sorted({token for token in text.split() if token.startswith("__") and token.endswith("__")})
