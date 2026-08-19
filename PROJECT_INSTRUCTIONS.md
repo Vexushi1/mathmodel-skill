@@ -34,7 +34,7 @@
 20. `project_sync` 只发现产物、校验 Schema、计算哈希和传播 stale，不生成模型语义、数值结果或 passed 状态；
 21. `run_info.json`、`result_manifest.yaml`、`matlab_figure_handoff.json` 只在用户明确要求完整复现包时生成，并放在项目级内部元数据目录，不得进入 `问题X求解/` 或 `数据预处理/`；
 22. 旧 `结果数据表/问题X/`、旧敏感性与鲁棒性工作簿以及 v6.6 单脚本四文件目录只作历史项目只读兼容，新项目不得按旧结构生成；
-23. 命题证明 Pack 仅在明确需要证明或当前命题规划非零时加载；算法流程 Pack 仅在明确算法流程请求或当前写作/终审需要消费 `stepwise/pseudocode` Algorithm Trace 时加载；
+23. 命题证明 Pack 仅在明确需要证明或当前命题规划非零时加载；算法流程 Pack 通常只在明确算法流程请求或当前写作/终审需要消费 `stepwise/pseudocode` Algorithm Trace 时加载；`full_workflow` 因代表完整论文/全套成果，可保留这个小型 Pack 跨用户执行边界，避免后续论文阶段漏读，普通 `full_solution / code_and_solution` 不预加载；
 24. 中文国赛终稿保留 `cumcmthesis`。
 
 活动入口使用稳定文件名：`PROJECT_INSTRUCTIONS.md`、`RUNTIME_ROUTER.md`、`SKILL_FILE_INDEX.md` 和 `TEMPLATE_INDEX.md`。旧版本化入口只保留兼容指针，不承载活动规则，也不进入 Active Skill Index/Active MANIFEST；默认 resolver 不加载它们。
