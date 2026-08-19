@@ -15,7 +15,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "7.7.0"
+PACKAGE_VERSION = "7.8.0"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",
@@ -29,7 +29,7 @@ REQUIRED = [
     "modules/05_latex_compile_quality.md", "modules/05_writing/docx.md", "modules/05_writing/latex.md",
     "modules/05_writing/ai_cleanup.md", "modules/06_review_delivery.md",
     "packs/task/classifier.md", "packs/task/advanced_method_gate.md",
-    "packs/artifact/proposition_proof.md", "templates/model/model_paper_framework.md",
+    "packs/artifact/proposition_proof.md", "packs/artifact/algorithm_flow.md", "templates/model/model_paper_framework.md",
     "templates/code/hsk_pipeline/result_io.py", "templates/code/hsk_pipeline/workbook_validation.py",
     "templates/code/hsk_pipeline/main_pipeline.py", "templates/matlab/q1_plot.m",
     "templates/matlab/data_process.m", "templates/latex/cumcm/hsk/hsk_main.tex",
@@ -450,6 +450,13 @@ def check_router(errors: list[str]) -> None:
     validation_route = routes.get("validation", {})
     if "modules/03_result_analysis.md" not in validation_route.get("load", []):
         errors.append("validation route must use result-analysis module")
+    algorithm_route = routes.get("algorithm_presentation", {})
+    if "packs/artifact/algorithm_flow.md" not in algorithm_route.get("load", []):
+        errors.append("algorithm_presentation route must load the dedicated algorithm-flow pack")
+    if "算法" in algorithm_route.get("infer_keywords", []):
+        errors.append("algorithm_presentation inference must use precise paper-algorithm triggers, not plain 算法")
+    if not {"算法流程", "伪代码", "论文算法"}.issubset(set(algorithm_route.get("infer_keywords", []))):
+        errors.append("algorithm_presentation route lacks precise pseudocode/algorithm-flow triggers")
     explicit_docx = routes.get("docx", {})
     if explicit_docx.get("delivery_scope") != "docx" or "modules/05_writing/docx.md" not in explicit_docx.get("load", []):
         errors.append("explicit DOCX route must remain available")
@@ -526,6 +533,8 @@ def check_manifest(errors: list[str]) -> None:
         errors.append("model_design must require frozen problem_contract")
     if "preprocessing_decision" not in set(modules.get("model_design", {}).get("outputs", [])):
         errors.append("model_design must produce preprocessing_decision")
+    if "Algorithm Trace" not in str(manifest.get("artifact_catalog", {}).get("model_paper_framework", "")):
+        errors.append("model-paper framework artifact description must expose Algorithm Trace project memory")
     profile_spec = manifest.get("workflow_profiles", {}).get("full_workflow", {})
     profile = profile_spec.get("modules", [])
     if profile != ["problem_audit", "model_design", "solve_validate"]:
@@ -647,6 +656,7 @@ def check_contracts(errors: list[str]) -> None:
         "paper_fragment_stale_contract": "core/writing_reasoning_contract.yaml#paper_fragment_stale_governance",
         "citation_evidence_contract": "core/writing_reasoning_contract.yaml#citation_evidence",
         "proposition_governance": "core/writing_reasoning_contract.yaml#proposition_governance",
+        "algorithm_presentation_contract": "core/writing_reasoning_contract.yaml#algorithm_presentation",
         "core_model_summary_policy": "adaptive_required_inline_not_applicable",
         "prose_audit_script": "scripts/audit_paper_prose.py",
     }
@@ -675,6 +685,15 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("proposition contract must use Arabic section.proposition numbering")
     if "maximum_per_paper" in proposition:
         errors.append("proposition contract must not retain a hard maximum_per_paper")
+    algorithm = output.get("algorithm_presentation_contract", {})
+    if algorithm.get("authority") != "core/writing_reasoning_contract.yaml#algorithm_presentation":
+        errors.append("algorithm presentation must delegate governance to writing reasoning authority")
+    if algorithm.get("modes") != ["not_needed", "stepwise", "pseudocode"]:
+        errors.append("algorithm presentation must expose adaptive not_needed/stepwise/pseudocode modes")
+    if algorithm.get("detail_pack") != "packs/artifact/algorithm_flow.md":
+        errors.append("algorithm presentation must use the on-demand algorithm-flow pack")
+    if algorithm.get("no_new_project_state_field_required") is not True:
+        errors.append("v7.8 algorithm presentation must not add a mandatory project-state field")
 
     result_policy = output.get("result_policy", {})
     if result_policy.get("primary_quality_gate_required") is not True:
@@ -796,6 +815,8 @@ def check_project_state_and_framework(errors: list[str]) -> None:
     decision_enum = set(schema["$defs"]["preprocessing_decision"]["enum"])
     if decision_enum != {"not_needed", "question_local", "project_level"}:
         errors.append("project state preprocessing decision enum mismatch")
+    if "algorithm" not in set(schema["$defs"]["semantic_change_category"]["enum"]):
+        errors.append("project state must preserve algorithm as an existing semantic-change category")
     proposition_id = schema["$defs"]["proposition_entry"]["properties"]["id"].get("pattern")
     if proposition_id != "^P[1-9][0-9]*$":
         errors.append("project state proposition IDs must support justified P5+ entries")
@@ -808,6 +829,8 @@ def check_project_state_and_framework(errors: list[str]) -> None:
     for field in ("terminology_registry", "numeric_profile", "title_claims", "paper_fragments"):
         if field not in framework_props:
             errors.append(f"project state must expose optional v0.8 paper-framework field: {field}")
+    if "algorithm_trace" in framework_props:
+        errors.append("v7.8 Algorithm Trace must stay in project memory without introducing a mandatory project-state schema field")
     if "analysis_evidence_entry" not in schema.get("$defs", {}):
         errors.append("project state must define support/modify/reject analysis evidence")
 
@@ -862,7 +885,7 @@ def check_templates(errors: list[str]) -> None:
     for token in ("Problem Contract", "禁止假设", "data", "parameter", "model", "result"):
         if token not in audit:
             errors.append(f"problem audit lacks semantic freeze token: {token}")
-    for token in ("题面—数学—代码—输出语义闭环", "复杂度合理性复审", "semantic_revision", "review_required", "preprocessing_decision", "Citation Evidence"):
+    for token in ("题面—数学—代码—输出语义闭环", "复杂度合理性复审", "semantic_revision", "review_required", "preprocessing_decision", "Citation Evidence", "Algorithm Trace"):
         if token not in design:
             errors.append(f"model design lacks semantic/writing governance token: {token}")
     if "3--5 个关键假设" in design or "3—5 个关键假设" in design:
@@ -882,9 +905,9 @@ def check_templates(errors: list[str]) -> None:
             errors.append(f"result-analysis module lacks evidence-disposition token: {token}")
     framework = read_text(ROOT / "templates/model/model_paper_framework.md")
     for token in (
-        "题意口径（Problem Contract）", "核心公式 Trace", "Citation Evidence", "Terminology Registry",
+        "题意口径（Problem Contract）", "核心公式 Trace", "Algorithm Trace", "Citation Evidence", "Terminology Registry",
         "Numeric Profile", "Title Claim Gate", "Paper Fragment Dependency Map", "深化证据处置",
-        "核心模型收束", "semantic revision", "正文引用位置",
+        "核心模型收束", "算法流程呈现", "semantic revision", "正文引用位置",
     ):
         if token not in framework:
             errors.append(f"model framework lacks current project-memory token: {token}")
@@ -896,10 +919,18 @@ def check_templates(errors: list[str]) -> None:
         errors.append("writing reasoning contract must not hard-reject proposition count above default budget")
     for key in (
         "citation_evidence", "terminology_governance", "numeric_style_contract", "title_claim_gate",
-        "analysis_evidence_disposition", "paragraph_necessity", "paper_fragment_stale_governance",
+        "analysis_evidence_disposition", "paragraph_necessity", "paper_fragment_stale_governance", "algorithm_presentation",
     ):
         if key not in reasoning:
-            errors.append(f"writing reasoning contract lacks v7.7 governance authority: {key}")
+            errors.append(f"writing reasoning contract lacks current governance authority: {key}")
+    algorithm_reasoning = reasoning.get("algorithm_presentation") or {}
+    if algorithm_reasoning.get("modes") != ["not_needed", "stepwise", "pseudocode"]:
+        errors.append("writing reasoning contract must expose adaptive algorithm-presentation modes")
+    if algorithm_reasoning.get("governance_level") != "default":
+        errors.append("algorithm presentation must remain Default, not a universal Hard requirement")
+    closure = algorithm_reasoning.get("closure_chain") or []
+    if closure != ["model_structure", "algorithm_trace", "paper_algorithm_presentation", "python_implementation", "workbook_result_or_validation"]:
+        errors.append("Algorithm Trace closure must connect model, paper algorithm, Python and workbook evidence")
     digits = (((reasoning.get("numeric_style_contract") or {}).get("high_precision_default") or {}).get("preferred_decimal_places_when_not_otherwise_specified"))
     if digits != [6, 7]:
         errors.append("numeric style contract must default scoring-sensitive continuous results to 6--7 decimals when no more specific rule exists")
@@ -909,13 +940,17 @@ def check_templates(errors: list[str]) -> None:
     latex_authority = read_text(ROOT / "modules/05_writing/latex.md")
     cleanup = read_text(ROOT / "modules/05_writing/ai_cleanup.md")
     proposition_pack = read_text(ROOT / "packs/artifact/proposition_proof.md")
+    algorithm_pack = read_text(ROOT / "packs/artifact/algorithm_flow.md")
     caption_contract = read_text(ROOT / "templates/writing/caption_explanation.md")
     cumcm = read_text(ROOT / "templates/latex/cumcm/hsk/hsk_main.tex")
     diangong = read_text(ROOT / "templates/latex/diangong/main.tex")
     prose_audit = read_text(ROOT / "scripts/audit_paper_prose.py")
-    for token in ("核心模型汇总：自适应而非机械必设", "Citation Evidence", "不检查“优点必须多于缺点”", "Source → Derivation → Destination"):
+    for token in ("核心模型汇总：自适应而非机械必设", "Citation Evidence", "不检查“优点必须多于缺点”", "Source → Derivation → Destination", "not_needed / stepwise / pseudocode", "packs/artifact/algorithm_flow.md"):
         if token not in latex_authority:
             errors.append(f"LaTeX writing authority lacks current governance token: {token}")
+    for token in ("not_needed", "stepwise", "pseudocode", "控制流伪代码版", "分阶段数学步骤版", "不把 Python 源码改写成缩进版论文", "Algorithm Trace 不替代 Formula Trace"):
+        if token not in algorithm_pack:
+            errors.append(f"algorithm-flow pack lacks adaptive presentation token: {token}")
     for token in ("Integrity / Hard boundary", "Evidence closure", "Style & Necessity", "Optional machine diagnostics", "Skill 负责原则，脚本负责穷举"):
         if token not in cleanup:
             errors.append(f"AI cleanup lacks v7.7 layered-governance token: {token}")
@@ -953,6 +988,8 @@ def check_templates(errors: list[str]) -> None:
             errors.append(f"active entry lacks semantic governance summary: {relative}")
         if "preprocessing_decision" not in text:
             errors.append(f"active entry lacks conditional preprocessing summary: {relative}")
+        if "Algorithm Trace" not in text:
+            errors.append(f"active entry lacks v7.8 Algorithm Trace summary: {relative}")
     removed_checker = "hsk_check_" + "artifact.py"
     lint_path = ROOT / "scripts/lint_skill.py"
     for path in active_files():
