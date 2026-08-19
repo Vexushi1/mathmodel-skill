@@ -1,6 +1,6 @@
-# Module 02：模型设计、语义闭环、复杂度复审、命题规划与论文框架锁定
+# Module 02：模型设计、语义闭环、复杂度复审、算法规划、命题规划与论文框架锁定
 
-本模块负责把审题结果转成可求解、可验证、可写作的当前模型语义。跨竞赛的公式推理、规则等级、命题预算和 Citation Evidence 由 `core/writing_reasoning_contract.yaml` 唯一定义；本模块只记录本题实际选择，不复制第二套写作规范。
+本模块负责把审题结果转成可求解、可验证、可写作的当前模型语义。跨竞赛的公式推理、Algorithm Trace、规则等级、命题预算和 Citation Evidence 由 `core/writing_reasoning_contract.yaml` 唯一定义；本模块只记录本题实际选择，不复制第二套写作规范。
 
 ## 0. 前置条件
 
@@ -130,6 +130,30 @@ Hard gap 包括：
 
 设计阶段可以先标 pending；进入写作前需要外部来源的核心 claim 应闭合。
 
+### 4.5 Algorithm Trace 与呈现模式
+
+算法选择完成后按 `writing_reasoning_contract.algorithm_presentation` 判断论文是否需要正式算法流程：
+
+```text
+not_needed → 相邻公式 + 简短求解说明即可
+stepwise   → 多阶段数学求解流程，控制流不是主要信息
+pseudocode → 循环/分支/候选筛选/修复/停止规则本身是方法信息
+```
+
+只有 `stepwise` 或 `pseudocode` 才建立 current Algorithm Trace；`not_needed` 不创建装饰性算法框。Trace 至少记录算法作用、输入、核心操作、终止条件、输出、呈现模式与状态，并按需要连接状态/决策变量、循环/分支、Formula、Proposition、Constraint、Python 代码和工作簿证据。
+
+内部闭环：
+
+```text
+模型结构/已证明性质
+→ Algorithm Trace
+→ 论文算法步骤
+→ Python真实实现
+→ 工作簿结果或验证证据
+```
+
+若命题证明了候选域缩减、可行保持、阈值或停止条件，应把命题锚点连接到真正受影响的算法步骤，而不是让命题与求解段彼此独立。详细的控制流伪代码与分阶段数学步骤只在需要时加载 `packs/artifact/algorithm_flow.md`。
+
 ## 5. 复杂度合理性复审
 
 模型路线锁定后、进入 Python 前检查题目复杂度是否被异常压扁。触发复审的典型 flag：
@@ -176,7 +200,7 @@ Hard gap 包括：
 
 `locked_model_spec` 形成后，以 `templates/model/model_paper_framework.md` 为骨架在项目根目录创建 `模型论文框架.md`。
 
-它只承担**项目级长期工作记忆**：当前题意口径、数据、变量、模型、Formula Trace、参数证据、跨问依赖、写作选择、命题、Citation Evidence、逐问结果摘要和图表映射。通用写作规则不得复制进去。
+它只承担**项目级长期工作记忆**：当前题意口径、数据、变量、模型、Formula Trace、Algorithm Trace、参数证据、跨问依赖、写作选择、命题、Citation Evidence、逐问结果摘要和图表映射。通用写作规则不得复制进去。
 
 框架支持：
 
@@ -196,6 +220,7 @@ Hard gap 包括：
 - 只保留当前有效口径和项目选择；
 - 口径变化时替换受影响内容，不堆“旧方案—新方案”历史；
 - 设计阶段结果摘要为 pending，不填未求解数字；
+- Algorithm Trace 只记录真实求解结构与锚点，不复制 Python 源码或通用算法定义；
 - 通用命题、证明、语言、排版规则不写入框架；
 - 正式交付前通过语义治理和框架验证。
 
@@ -214,11 +239,12 @@ Hard gap 包括：
 3. `preprocessing_decision` 已锁定；
 4. 题面—数学—代码—输出无关键 gap，`semantic_closure_status=passed`；
 5. 核心 Formula Trace closed，影响结论的数值参数已有证据计划；
-6. `complexity_sanity_status=passed`；
-7. `semantic_revision` 与当前框架一致；
-8. 已完成命题必要性初审；若超过默认 0--4 预算，已记录 justification 状态和理由；
-9. 需要外部来源的核心 Citation Claim 已登记，进入写作前必须闭合。
+6. 需要正式算法流程的问已确定 `stepwise/pseudocode` 并建立可追溯 Algorithm Trace；简单问题允许 `not_needed`；
+7. `complexity_sanity_status=passed`；
+8. `semantic_revision` 与当前框架一致；
+9. 已完成命题必要性初审；若超过默认 0--4 预算，已记录 justification 状态和理由；
+10. 需要外部来源的核心 Citation Claim 已登记，进入写作前必须闭合。
 
 若 `preprocessing_decision=project_level`，下一阶段进入 Module 03P；若为 `not_needed` 或 `question_local`，跳过 Module 03P 直接进入主求解。
 
-形成 `locked_model_spec`、`preprocessing_decision`、`semantic_closure`、`formula_reasoning_chain`、`complexity_sanity_check`、`proposition_plan`、`citation_evidence_plan`、`validation_plan` 与 current 框架；未闭环不得以代码试错代替建模。
+形成 `locked_model_spec`、`preprocessing_decision`、`semantic_closure`、`formula_reasoning_chain`、`complexity_sanity_check`、`proposition_plan`、`citation_evidence_plan`、`validation_plan` 与包含当前 Algorithm Trace 的 current 框架；未闭环不得以代码试错代替建模。
