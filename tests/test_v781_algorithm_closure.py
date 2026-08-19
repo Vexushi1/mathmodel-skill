@@ -125,13 +125,8 @@ class TestV781AlgorithmClosure(unittest.TestCase):
 
     def test_writing_and_review_routes_load_algorithm_pack_and_authority(self):
         routing = self.router["routing"]
-        for name in ("latex", "docx", "review", "full_submission"):
+        for name in ("latex", "docx", "full_workflow", "review", "full_submission"):
             self.assertIn("packs/artifact/algorithm_flow.md", routing[name]["load"], name)
-        self.assertNotIn(
-            "packs/artifact/algorithm_flow.md",
-            routing["full_workflow"]["load"],
-            "full_workflow must stop at the initial code/user-execution boundary without preloading a writing-only pack",
-        )
         for name in ("review", "full_submission"):
             self.assertIn("core/writing_reasoning_contract.yaml", routing[name]["load"], name)
 
