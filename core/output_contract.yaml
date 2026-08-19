@@ -1,4 +1,4 @@
-version: 7.7.0
+version: 7.8.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 user_execution_contract: core/user_execution_contract.yaml
@@ -37,6 +37,7 @@ writing_policy:
   paragraph_necessity_contract: core/writing_reasoning_contract.yaml#paragraph_necessity
   paper_fragment_stale_contract: core/writing_reasoning_contract.yaml#paper_fragment_stale_governance
   proposition_governance: core/writing_reasoning_contract.yaml#proposition_governance
+  algorithm_presentation_contract: core/writing_reasoning_contract.yaml#algorithm_presentation
   core_model_summary_policy: adaptive_required_inline_not_applicable
   prose_audit_script: scripts/audit_paper_prose.py
   prose_audit_framework_flag: --framework
@@ -48,6 +49,7 @@ writing_policy:
     docx: modules/05_writing/docx.md
     latex: packs/artifact/latex.md
     proposition_proof: packs/artifact/proposition_proof.md
+    algorithm_flow: packs/artifact/algorithm_flow.md
   consumer_rule: modules、packs、checklists与review只引用Authority，不重新定义正文规则。
 execution_policy:
   default_owner: user
@@ -166,7 +168,7 @@ model_paper_framework:
   template: templates/model/model_paper_framework.md
   current_template_version: v0.8-project-memory
   create_after: locked_model_spec
-  role: 当前项目事实与工作记忆；保存题意口径、preprocessing_decision、模型语义、Formula Trace、参数证据、跨问依赖、写作选择、命题、Citation Evidence、Terminology Registry、Numeric Profile、Title Claim、Paper Fragment、深化证据处置、逐问结果摘要和图表映射，不复制跨项目写作手册。
+  role: 当前项目事实与工作记忆；保存题意口径、preprocessing_decision、模型语义、Formula Trace、Algorithm Trace、参数证据、跨问依赖、写作选择、命题、Citation Evidence、Terminology Registry、Numeric Profile、Title Claim、Paper Fragment、深化证据处置、逐问结果摘要和图表映射，不复制跨项目写作手册。
   project_memory_only: true
   modes:
     compact:
@@ -486,6 +488,15 @@ proposition_contract:
   - propositions
   compatibility:
     proposition_limit: 旧项目只读兼容；不再作为Hard上限
+algorithm_presentation_contract:
+  optional: true
+  authority: core/writing_reasoning_contract.yaml#algorithm_presentation
+  detail_pack: packs/artifact/algorithm_flow.md
+  modes: [not_needed, stepwise, pseudocode]
+  project_memory: 模型论文框架.md#Algorithm Trace
+  no_new_project_state_field_required: true
+  semantic_change_category: algorithm
+  rule: 仅stepwise/pseudocode建立正式Algorithm Trace；not_needed不得为了排版完整机械生成伪代码。
 global_preprocessing:
   contract: core/global_preprocessing_contract.yaml
   activation: preprocessing_decision == project_level
@@ -598,6 +609,8 @@ rules:
 - 实际生成的项目级预处理脚本和两个正式小问Python脚本都必须通过静态工程质量检查且不得由助手执行；校验结果在聊天或标准输出中返回，不额外落盘。
 - 用户返回的适用预处理工作簿和小问工作簿均必须先通过对应质量门；代码交付本身不得把状态提升为solved或analyzed。
 - 同步器只做发现、校验、哈希和stale传播，不替代语义治理、条件式预处理质量门、主求解质量门与结果深化分析。
+- v7.8算法流程呈现按not_needed/stepwise/pseudocode自适应；只有真实多阶段或控制流有信息价值时单列，并由Algorithm Trace连接模型/命题、Python实现与工作簿结果。
+- v7.8不把Python源码压缩成论文伪代码，也不要求每问设置Algorithm 1；算法语义变化继续使用既有semantic_change_categories=algorithm传播stale。
 - v7.7核心答案的展示精度优先服从题目、官方格式和评分精度；若后续小数位可能计分，不得为摘要简洁或版面美观擅自降低精度。
 - v7.7正文自然语言术语优先使用Terminology Registry中的canonical term；机器只对已登记别名/易混词做提示，不猜测数学语义。
 - v7.7深化分析每项证据必须指向target claim并记录support/modify/reject；reject核心答案必须回退，reject非核心评价可删除/重写。
