@@ -15,7 +15,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "7.8.0"
+PACKAGE_VERSION = "7.8.1"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",
@@ -457,6 +457,12 @@ def check_router(errors: list[str]) -> None:
         errors.append("algorithm_presentation inference must use precise paper-algorithm triggers, not plain 算法")
     if not {"算法流程", "伪代码", "论文算法"}.issubset(set(algorithm_route.get("infer_keywords", []))):
         errors.append("algorithm_presentation route lacks precise pseudocode/algorithm-flow triggers")
+    for route_name in ("full_workflow", "docx", "latex", "review", "full_submission"):
+        if "packs/artifact/algorithm_flow.md" not in (routes.get(route_name, {}) or {}).get("load", []):
+            errors.append(f"{route_name} route must make algorithm-flow presentation rules directly available")
+    for route_name in ("review", "full_submission"):
+        if "core/writing_reasoning_contract.yaml" not in (routes.get(route_name, {}) or {}).get("load", []):
+            errors.append(f"{route_name} route must directly load writing-reasoning authority")
     explicit_docx = routes.get("docx", {})
     if explicit_docx.get("delivery_scope") != "docx" or "modules/05_writing/docx.md" not in explicit_docx.get("load", []):
         errors.append("explicit DOCX route must remain available")
@@ -941,6 +947,9 @@ def check_templates(errors: list[str]) -> None:
     cleanup = read_text(ROOT / "modules/05_writing/ai_cleanup.md")
     proposition_pack = read_text(ROOT / "packs/artifact/proposition_proof.md")
     algorithm_pack = read_text(ROOT / "packs/artifact/algorithm_flow.md")
+    review_module = read_text(ROOT / "modules/06_review_delivery.md")
+    review_pack = read_text(ROOT / "packs/artifact/review.md")
+    full_submission = read_text(ROOT / "packs/artifact/full_submission.md")
     caption_contract = read_text(ROOT / "templates/writing/caption_explanation.md")
     cumcm = read_text(ROOT / "templates/latex/cumcm/hsk/hsk_main.tex")
     diangong = read_text(ROOT / "templates/latex/diangong/main.tex")
@@ -951,6 +960,14 @@ def check_templates(errors: list[str]) -> None:
     for token in ("not_needed", "stepwise", "pseudocode", "控制流伪代码版", "分阶段数学步骤版", "不把 Python 源码改写成缩进版论文", "Algorithm Trace 不替代 Formula Trace"):
         if token not in algorithm_pack:
             errors.append(f"algorithm-flow pack lacks adaptive presentation token: {token}")
+    for text_name, text in (("review module", review_module), ("review pack", review_pack)):
+        for token in ("Algorithm Trace", "stepwise", "pseudocode"):
+            if token not in text:
+                errors.append(f"{text_name} lacks v7.8.1 Algorithm Trace review token: {token}")
+    if "命题数量允许为 0 且最多 4 个" in full_submission:
+        errors.append("full submission must not restore a hard four-proposition maximum")
+    if "0--4 仅是默认正文阅读预算" not in full_submission or "P5+" not in full_submission:
+        errors.append("full submission must preserve proposition default-budget/justification semantics")
     for token in ("Integrity / Hard boundary", "Evidence closure", "Style & Necessity", "Optional machine diagnostics", "Skill 负责原则，脚本负责穷举"):
         if token not in cleanup:
             errors.append(f"AI cleanup lacks v7.7 layered-governance token: {token}")
