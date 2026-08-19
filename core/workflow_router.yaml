@@ -1,4 +1,4 @@
-version: 7.8.0
+version: 7.8.1
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -14,7 +14,7 @@ load_policy:
   - Load task_taxonomy only for classification/modeling/code-analysis routes that actually use objective/structure packs.
   - Load global_preprocessing_contract only when the route decides, executes or inherits preprocessing semantics.
   - Load user_execution_contract and code_quality_contract only for code-generation or returned-workbook execution boundaries.
-  - Load writing_reasoning_contract only for model-design/proposition/algorithm-presentation/writing routes that create or revise mathematical reasoning; do not make it a global preload for figures, workbook validation or unrelated utilities.
+  - Load writing_reasoning_contract only for model-design/proposition/algorithm-presentation/writing/review routes that create, revise or formally inspect mathematical reasoning; do not make it a global preload for figures, workbook validation or unrelated utilities.
   - Writing and figure routes inherit current project semantics from 模型论文框架.md and their stage authority; do not preload unrelated code/preprocessing contracts.
 
 project_memory_contract:
@@ -151,7 +151,7 @@ routing:
   full_workflow:
     triggers: [全流程, 完整论文, 全套成果, 完整交付]
     infer_keywords: [全流程, 完整论文, 全套成果, 完整交付]
-    load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/user_execution_contract.yaml, core/code_quality_contract.yaml, core/writing_reasoning_contract.yaml, modules/01_problem_audit.md, packs/task/classifier.md]
+    load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/user_execution_contract.yaml, core/code_quality_contract.yaml, core/writing_reasoning_contract.yaml, modules/01_problem_audit.md, packs/task/classifier.md, packs/artifact/algorithm_flow.md]
     then: [modules/02_model_design.md, modules/03_solve_validate.md, packs/artifact/code.md]
     load_classified_task_packs: true
     load_competition_pack: true
@@ -248,7 +248,7 @@ routing:
   docx:
     triggers: [DOCX, Word, 草稿论文]
     infer_keywords: [DOCX, Word, 草稿论文, 论文草稿]
-    load: [core/writing_reasoning_contract.yaml, modules/05_writing/docx.md, packs/artifact/docx.md]
+    load: [core/writing_reasoning_contract.yaml, modules/05_writing/docx.md, packs/artifact/docx.md, packs/artifact/algorithm_flow.md]
     terminal_outputs: [docx_draft, latex_migration_notes]
     formal_delivery: true
     delivery_scope: docx
@@ -256,7 +256,7 @@ routing:
   latex:
     triggers: [LaTeX, PDF终稿, cumcmthesis, 终稿论文]
     infer_keywords: [LaTeX, PDF终稿, cumcmthesis, 终稿论文, 编译论文]
-    load: [core/writing_reasoning_contract.yaml, modules/05_writing/latex.md, modules/05_writing/ai_cleanup.md, modules/05_latex_compile_quality.md, packs/artifact/latex.md]
+    load: [core/writing_reasoning_contract.yaml, modules/05_writing/latex.md, modules/05_writing/ai_cleanup.md, modules/05_latex_compile_quality.md, packs/artifact/latex.md, packs/artifact/algorithm_flow.md]
     load_competition_pack: true
     terminal_outputs: [latex_source, compiled_pdf, compile_report]
     formal_delivery: true
@@ -265,7 +265,7 @@ routing:
   full_submission:
     triggers: [复现包, 提交压缩包, 提交包]
     infer_keywords: [复现包, 提交压缩包, 提交包]
-    load: [modules/06_review_delivery.md, packs/artifact/full_submission.md]
+    load: [core/writing_reasoning_contract.yaml, modules/06_review_delivery.md, packs/artifact/full_submission.md, packs/artifact/algorithm_flow.md]
     load_competition_pack: true
     terminal_outputs: [validated_submission_package]
     formal_delivery: true
@@ -274,6 +274,6 @@ routing:
   review:
     triggers: [评分, 审稿, 终审, 检查, 提交包检查]
     infer_keywords: [评分, 审稿, 终审, 提交包检查, 论文检查]
-    load: [modules/06_review_delivery.md, packs/artifact/review.md]
+    load: [core/writing_reasoning_contract.yaml, modules/06_review_delivery.md, packs/artifact/review.md, packs/artifact/algorithm_flow.md]
     load_competition_pack: true
     terminal_outputs: [review_report]
