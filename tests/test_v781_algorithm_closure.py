@@ -129,6 +129,8 @@ class TestV781AlgorithmClosure(unittest.TestCase):
             self.assertIn("packs/artifact/algorithm_flow.md", routing[name]["load"], name)
         for name in ("review", "full_submission"):
             self.assertIn("core/writing_reasoning_contract.yaml", routing[name]["load"], name)
+        for name in ("docx", "review", "full_submission"):
+            self.assertIn("modules/05_writing/latex.md", routing[name]["load"], name)
 
     def test_submission_no_longer_restores_hard_proposition_cap(self):
         self.assertNotIn("命题数量允许为 0 且最多 4 个", self.full_submission)
