@@ -1,6 +1,15 @@
 # Changelog
 
-## Current release: 7.8.0
+## Current release: 7.8.1
+
+- Closed the v7.8 Algorithm Trace delivery loop: final review and submission now explicitly consume the writing-reasoning Authority and the algorithm-flow Pack, and review checks the declared `not_needed / stepwise / pseudocode` mode against the current model, Python implementation and workbook evidence.
+- Added deterministic runtime validation for current Algorithm Trace records in `scripts/validate_model_paper_framework.py`. `stepwise/pseudocode` questions must link a current Algorithm ID with complete structural fields and matching mode; `not_needed` questions must not retain stale decorative links. Solved-or-later current traces require a Python code anchor.
+- Corrected an active submission residue that had accidentally restored a hard “at most four propositions” rule. `0--4` remains only the default body-reading budget; P5+ is allowed after necessity review and recorded justification.
+- Closed route-loading omissions so full-paper, LaTeX, DOCX, review and submission paths have the algorithm-flow presentation Pack available when Algorithm Trace must be rendered or audited. Review/submission routes now explicitly load `core/writing_reasoning_contract.yaml` instead of relying on a second-hop textual reference.
+- Fixed framework validation so the `analyzed` subproblem status is treated as a solved-or-later state for current result-summary checks.
+- Numerical modeling, preprocessing, Workbook Schema, semantic-governance 1.0.0, Python/MATLAB ownership, user full-fidelity execution, framework `v0.8-project-memory`, project-state schema and the per-question five-file interface remain unchanged.
+
+## Previous release: 7.8.0
 
 - Added adaptive `Algorithm Trace` governance to close the chain from current model structure / formulas / propositions / constraints through paper algorithm presentation to the real Python implementation and accepted workbook result or validation evidence.
 - Added three algorithm-presentation modes: `not_needed / stepwise / pseudocode`. Direct or one-shot problems no longer receive decorative algorithm boxes; multi-stage mathematical pipelines use stepwise presentation, while material loops, branches, screening, repair, search and termination logic can use structured pseudocode.
