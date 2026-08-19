@@ -208,3 +208,4 @@
 - `tests/test_v760_writing_governance.py`
 - `tests/test_v770_paper_semantic_governance.py`
 - `tests/test_v780_algorithm_presentation.py`
+- `tests/test_v781_algorithm_closure.py`
