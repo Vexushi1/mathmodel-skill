@@ -1,8 +1,9 @@
-schema_version: 1.2.0
+schema_version: 1.3.0
 role: >-
   跨数学建模竞赛的正文推理与证据治理权威。约束核心公式的来源—推导—去向、共享基础模型、
-  跨问递进、结构化简、数值参数证据、命题预算、引用证据、术语一致性、数字与单位展示、
-  标题主张、深化证据处置和正文必要性；不规定具体题型、算法、固定章节名或载体排版细节。
+  跨问递进、结构化简、Algorithm Trace 与算法流程呈现、数值参数证据、命题预算、引用证据、
+  术语一致性、数字与单位展示、标题主张、深化证据处置和正文必要性；不规定具体题型、固定算法、
+  固定章节名或载体排版细节。
 
 scope:
   competitions: all
@@ -18,7 +19,7 @@ scope:
     - mixed_multi_question
   anti_template_boundary:
     - 不从单一优秀论文复制固定句式、算法名、章节编号或题目专属模型。
-    - 不要求所有论文设置“模型准备”、问题关系图、命题、核心模型汇总独立小节或统一敏感性章节。
+    - 不要求所有论文设置“模型准备”、问题关系图、命题、核心模型汇总独立小节、正式算法框或统一敏感性章节。
     - 规则只抽象可跨题型复用的推理结构，具体章节和证据按当前赛题决定。
 
 rule_governance:
@@ -47,6 +48,7 @@ rule_governance:
         - no_standalone_conclusion_by_default
         - local_result_evidence_loop
         - adaptive_core_model_summary
+        - adaptive_algorithm_presentation
         - title_claim_closure
         - abstract_without_figures_tables_or_display_math
     recommendation:
@@ -177,6 +179,77 @@ structure_before_algorithm:
     - final_solver_selection
   writing_order: problem_structure -> simplification_or_decomposition -> effective_search_space -> algorithm
   prohibition: 不以“变量多/问题复杂”为唯一理由直接调用GA、PSO、DE、ALNS、深度学习或其他高级方法。
+
+algorithm_presentation:
+  governance_level: default
+  modes: [not_needed, stepwise, pseudocode]
+  principle: >-
+    算法流程用于恢复当前模型的真实计算逻辑，并连接数学结构、公式/命题、程序实现和结果证据；
+    不用于介绍通用算法百科，也不把 Python 源码压缩成论文伪代码。
+  closure_chain:
+    - model_structure
+    - algorithm_trace
+    - paper_algorithm_presentation
+    - python_implementation
+    - workbook_result_or_validation
+  mode_selection:
+    not_needed_when:
+      - direct_calculation_or_closed_form_solution
+      - one_shot_standard_solver_call_with_no_problem_specific_control_flow
+      - adjacent_formula_and_short_prose_already_restore_execution_logic
+    stepwise_when:
+      - multiple_mathematical_stages_exist_but_control_flow_is_not_the_main_information
+      - global_then_local_or_estimate_then_refine_pipeline
+      - calibration_inversion_postprocess_or_hierarchical_solution_pipeline
+    pseudocode_when_any:
+      - problem_specific_loop_or_branch_is_material
+      - candidate_generation_screening_or_repair_is_material
+      - graph_search_dynamic_programming_monte_carlo_or_event_iteration_requires_control_flow
+      - custom_accept_reject_neighborhood_or_termination_logic_changes_the_solution
+      - proposition_or_constraint_changes_the_candidate_set_or_branch_logic
+  admission_rule: >-
+    只有当算法块能比相邻正文更清楚地恢复真实求解链时才单列；不得为了每问结构整齐机械设置“算法1”。
+  internal_trace:
+    required_fields:
+      - algorithm_id
+      - question
+      - role
+      - inputs
+      - core_operations
+      - termination
+      - outputs
+      - presentation_mode
+      - status
+    optional_fields:
+      - state_or_decision_variables
+      - branch_or_iteration
+      - formula_anchors
+      - proposition_anchors
+      - constraint_anchors
+      - code_anchors
+      - workbook_evidence
+    status_values: [current, stale, not_applicable]
+    rule: >-
+      Trace 只记录当前真实求解结构与锚点，不把通用算法定义写入项目记忆；机器不得仅凭步骤文字判断算法数学正确性。
+  paper_rules:
+    - stepwise 每一步必须承担真实数学动作并说明向下一步传递的对象；纯“初始化/计算/输出”模板步骤应合并或删除。
+    - pseudocode 优先使用数学对象、集合、状态、判定量和约束，不写 range(len(...))、DataFrame、文件路径、日志、异常捕获等实现细节。
+    - 输入、输出、参数、终止条件必须与当前模型和真实程序一致。
+    - 若命题或公式实质改变搜索域、候选集、更新规则、分支或停止条件，应在 Algorithm Trace 中建立对应锚点。
+    - 完整 Python/MATLAB 代码仍放附录或附件，伪代码不是源码缩写。
+  semantic_change_rule: >-
+    状态定义、搜索域、更新规则、分支判据、修复策略、停止条件或模型—算法连接发生实质变化时属于 algorithm 语义变化；
+    仅字号、缩进、换行、行号等版式修改不触发数值 stale。
+  machine_audit_scope:
+    may_check:
+      - declared_presentation_mode
+      - missing_required_trace_fields_for_current_algorithm
+      - declared_formula_or_proposition_anchor_exists
+      - obvious_raw_python_syntax_in_declared_pseudocode_as_warning
+    must_not_claim:
+      - algorithm_correctness_from_step_text
+      - convergence_from_presence_of_termination_words
+      - equivalence_between_pseudocode_and_python_without_semantic_review
 
 numerical_parameter_evidence:
   applies_to:
@@ -501,10 +574,12 @@ machine_audit_boundary:
     - unreferenced_label_or_equation
     - unusually_long_caption
     - paragraph_redundancy_risk
+    - raw_python_like_pseudocode
   may_review:
     - default_structure_deviation_without_justification
     - title_claim_without_complete_declared_evidence
     - abstract_contains_figure_table_or_display_math_without_exception
+    - algorithm_presentation_mode_inconsistent_with_declared_trace
   may_block:
     - deterministic_structural_error_such_as_missing_citation_key_or_duplicate_label
     - unresolved_cross_reference
@@ -515,6 +590,7 @@ machine_audit_boundary:
     - citation_semantic_support_from_key_presence_only
     - terminology_equivalence_from_string_similarity_only
     - physical_or_statistical_accuracy_from_decimal_places_only
+    - algorithm_correctness_or_convergence_from_pseudocode_shape_only
 
 authority_boundaries:
   reasoning_authority: core/writing_reasoning_contract.yaml

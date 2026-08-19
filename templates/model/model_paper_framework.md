@@ -103,9 +103,10 @@
 3. 假设、数据说明与预处理位置：
 4. 公式推导重点与普通代数压缩范围：
 5. 各问核心模型收束状态：`required / inline / not_applicable`：
-6. 求解、结果、局部验证和深化证据布局：
-7. 命题/证明、Citation Evidence、Terminology 与 Numeric Profile 的使用位置：
-8. 特殊结构例外（独立结论、对象图、问题关系图等）及依据：
+6. 各问算法流程呈现状态：`not_needed / stepwise / pseudocode`：
+7. 求解、结果、局部验证和深化证据布局：
+8. 命题/证明、Citation Evidence、Terminology 与 Numeric Profile 的使用位置：
+9. 特殊结构例外（独立结论、对象图、问题关系图等）及依据：
 
 ### 共享基础与跨问增量
 
@@ -125,6 +126,14 @@
 | Formula ID | 对应小问 | Source | Depends on | Derivation | Destination | 代码/证据锚点 | 状态 |
 |---|---|---|---|---|---|---|---|
 | F1 |  |  |  |  |  |  | closed / gap / stale |
+
+### Algorithm Trace
+
+> 仅当某问 `algorithm_presentation=stepwise/pseudocode` 时登记。Trace 保存真实求解结构与锚点，不复制 Python 源码或通用算法知识。
+
+| Algorithm ID | 小问 | 作用 | 输入/状态 | 核心操作 | 循环/分支/阶段 | Formula/Proposition/Constraint 锚点 | 终止条件 | 输出 | Python 锚点 | 呈现模式 | 状态 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| A1 |  |  |  |  |  |  |  |  |  | stepwise / pseudocode | current / stale |
 
 ### 数值参数依据
 
@@ -154,9 +163,9 @@
 
 ### 正文章节与交付映射
 
-| 题目要求 | 论文位置 | 核心模型/公式 | 命题 | Python | 工作簿/工作表 | MATLAB 图表 | Citation | 本问答案 |
-|---|---|---|---|---|---|---|---|---|
-|  |  |  |  |  |  |  |  |  |
+| 题目要求 | 论文位置 | 核心模型/公式 | Algorithm | 命题 | Python | 工作簿/工作表 | MATLAB 图表 | Citation | 本问答案 |
+|---|---|---|---|---|---|---|---|---|---|
+|  |  |  |  |  |  |  |  |  |  |
 
 ### Paper Fragment Dependency Map
 
@@ -183,6 +192,8 @@
 - semantic revision：`1`
 - semantic change categories：`initial_design / problem_definition / data_scope / variable / parameter / assumption / objective / constraint / preprocessing / algorithm / dependency`
 - 核心模型收束：`required / inline / not_applicable`
+- 算法流程呈现：`not_needed / stepwise / pseudocode`
+- 关联 Algorithm ID：
 - 关联命题：
 - 关联 Citation Claim：
 - 关联术语 Term ID：
@@ -251,6 +262,13 @@ $$
 **求解与验证方案**
 
 - 主求解算法及模型适配理由：
+- 算法流程呈现：`not_needed / stepwise / pseudocode`
+- Algorithm ID（若适用）：
+- 输入、状态/决策变量与输出：
+- 核心操作及阶段传递：
+- 真实循环/分支/候选筛选/修复（若有）：
+- Formula / Proposition / Constraint 锚点：
+- Python 实现锚点：
 - 初始化/随机种子：
 - 容差与终止条件：
 - 必做检验：
@@ -269,6 +287,7 @@ $$
 
 - 当前有效模型/关键结构：
 - 主算法/求解方式：
+- 算法流程在正文的呈现方式与 Algorithm ID：
 
 **核心结果**
 
@@ -305,6 +324,7 @@ $$
 | Python |  |  |  |
 | 求解工作簿 |  |  |  |
 | 深化分析工作簿 |  |  |  |
+| Algorithm |  |  |  |
 | 命题 |  |  |  |
 | MATLAB 图 |  |  |  |
 | Citation |  |  |  |
@@ -333,9 +353,11 @@ $$
 |---|---|---|---|---|---|---|
 |  |  |  | support / modify / reject |  |  | current / stale / resolved |
 
-### 公式、参数、引用、术语与数字复核
+### 公式、算法、参数、引用、术语与数字复核
 
 - Formula Trace 是否仍有 `gap/stale`：
+- `stepwise/pseudocode` 的 Algorithm Trace 是否 current 且锚点闭合：
+- 是否有其实应为 `not_needed` 的装饰性算法流程：
 - 是否存在无依据数值参数：
 - Citation Evidence 是否存在 pending/stale 的核心 claim：
 - Terminology Registry 是否存在 alias collision 或未处理易混术语：
@@ -383,6 +405,8 @@ $$
 - [ ] 每个已进入模型设计的小问均已冻结 Problem Contract；
 - [ ] 题面—数学—代码—输出不存在关键 gap；
 - [ ] 核心 Formula Trace 均为 closed，或 gap 已阻断下游；
+- [ ] 需要正式算法流程的小问已选择 `stepwise/pseudocode` 并建立 current Algorithm Trace；简单问题明确 `not_needed`，未机械生成伪代码；
+- [ ] Algorithm Trace 中公式/命题/约束、Python 与输出锚点和当前求解链一致；
 - [ ] 影响结论的数值参数有来源、收敛或验证依据；
 - [ ] 复杂度异常信号已经解释；
 - [ ] semantic revision 与 stale 传播正确；
