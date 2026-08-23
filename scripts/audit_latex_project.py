@@ -265,13 +265,26 @@ def write_audit_report(
     report_path: Path | None = None,
     mode: str = "formal",
 ) -> dict[str, object]:
-    """Persist an audit attestation bound to the current source bundle/framework."""
+    """Persist an audit attestation, including a failed report for invalid source graphs."""
     main_file = main_file.resolve()
     project = main_file.parent.resolve()
-    snapshot = source_bundle_snapshot(main_file, bib_path=bib_path)
+    snapshot_error: str | None = None
+    try:
+        snapshot = source_bundle_snapshot(main_file, bib_path=bib_path)
+    except Exception as exc:  # noqa: BLE001 - persistence must survive malformed source graphs
+        snapshot_error = str(exc)
+        snapshot = {
+            "source_bundle_sha256": None,
+            "source_files": [],
+            "source_file_count": 0,
+        }
     framework_hash = sha256_file(framework_path) if framework_path is not None and framework_path.is_file() else None
     highest_severity = overall_status(findings)
-    rejected = highest_severity == "blocking" or (mode == "formal" and highest_severity == "review_required")
+    rejected = (
+        highest_severity == "blocking"
+        or (mode == "formal" and highest_severity == "review_required")
+        or snapshot_error is not None
+    )
     report = {
         "audit_schema_version": "1.0.0",
         "status": "failed" if rejected else "passed",
@@ -279,6 +292,7 @@ def write_audit_report(
         "mode": mode,
         "main": main_file.relative_to(project).as_posix(),
         **snapshot,
+        "source_snapshot_error": snapshot_error,
         "framework": str(framework_path) if framework_path is not None else None,
         "framework_sha256": framework_hash,
         "findings": [asdict(item) for item in findings],
