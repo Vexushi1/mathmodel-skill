@@ -4,7 +4,9 @@ import importlib.util
 import sys
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 
@@ -96,6 +98,22 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
             self.assertIsNone(report["source_bundle_sha256"])
             self.assertTrue(report["source_snapshot_error"])
 
+    def test_render_stops_when_persisted_audit_attestation_fails(self):
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp)
+            final = project / "final_latex"
+            final.mkdir()
+            main = final / "main.tex"
+            main.write_text("\\documentclass{article}\\begin{document}x\\end{document}", encoding="utf-8")
+            (project / "模型论文框架.md").write_text("# 模型论文框架\n", encoding="utf-8")
+            with patch.object(self.render, "audit_project", return_value=[]), patch.object(
+                self.render,
+                "write_audit_report",
+                return_value={"status": "failed", "highest_severity": "warning"},
+            ):
+                with self.assertRaises(SystemExit):
+                    self.render.create_audit_attestation(final, main, template_smoke=False)
+
     def test_formal_audit_blocks_missing_framework(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -107,6 +125,23 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
                 require_framework=True,
             )
             self.assertTrue(any(item.code == "latex_framework_missing" and item.severity == "blocking" for item in findings))
+
+    def test_source_bundle_ignores_literal_include_inside_verbatim(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            main = root / "main.tex"
+            main.write_text(
+                "\\documentclass{article}\n"
+                "\\begin{document}\n"
+                "\\begin{verbatim}\n"
+                "\\input{sections/missing}\n"
+                "\\end{verbatim}\n"
+                "正文。\n"
+                "\\end{document}\n",
+                encoding="utf-8",
+            )
+            snapshot = self.delivery.source_bundle_snapshot(main)
+            self.assertEqual([item["path"] for item in snapshot["source_files"]], ["main.tex"])
 
     def test_compile_report_without_log_cannot_pass(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -142,34 +177,94 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
             self.assertEqual(report["status"], "failed")
             self.assertFalse(report["log_present"])
 
-    def test_compile_report_detects_profile_drift(self):
+    def test_compile_verifier_detects_profile_definition_drift(self):
         with tempfile.TemporaryDirectory() as temp:
             project = Path(temp)
-            main = project / "main.tex"
-            pdf = project / "main.pdf"
+            final = project / "final_latex"
+            final.mkdir()
+            main = final / "main.tex"
+            pdf = final / "main.pdf"
+            framework = project / "模型论文框架.md"
             main.write_text("\\documentclass{article}\\begin{document}x\\end{document}", encoding="utf-8")
             pdf.write_bytes(b"pdf")
-            (project / "main.log").write_text("This is XeTeX\n", encoding="utf-8")
+            (final / "main.log").write_text("This is XeTeX\n", encoding="utf-8")
+            framework.write_text("# 模型论文框架\n", encoding="utf-8")
             snapshot = self.delivery.source_bundle_snapshot(main)["source_bundle_sha256"]
             audit_report = {
                 "audit_schema_version": "1.0.0",
                 "status": "passed",
                 "mode": "formal",
                 "source_bundle_sha256": snapshot,
-                "framework_sha256": None,
+                "framework_sha256": self.delivery.sha256_file(framework),
             }
-            (project / "latex_audit_report.yaml").write_text(yaml.safe_dump(audit_report), encoding="utf-8")
+            (final / "latex_audit_report.yaml").write_text(
+                yaml.safe_dump(audit_report, allow_unicode=True), encoding="utf-8"
+            )
+            profiles = yaml.safe_load((ROOT / "core/compile_profiles.yaml").read_text(encoding="utf-8"))
+            profile = profiles["profiles"]["cumcm"]
             report = self.delivery.write_compile_report(
-                project=project,
+                project=final,
                 main=main,
                 profile="cumcm",
                 engine="xelatex",
                 bibliography="biber",
-                sequence=["xelatex", "biber", "xelatex", "xelatex"],
-                profile_config={"engine": "xelatex", "bibliography": "biber", "sequence": ["xelatex"]},
-                attestation_mode="template_smoke",
+                sequence=profile["sequence"],
+                profile_config=profile,
             )
-            self.assertTrue(report["compile_profile_sha256"])
+            drifted = dict(profile)
+            drifted["sequence"] = ["xelatex", "xelatex"]
+            with patch.object(self.delivery, "current_profile_config", return_value=drifted):
+                issues = self.delivery.verify_compile_report(
+                    project=final,
+                    main=main,
+                    pdf=pdf,
+                    report=report,
+                )
+            self.assertTrue(any("编译profile定义已变化" in item for item in issues), issues)
+
+    def test_compile_verifier_detects_override_flag_tampering(self):
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp)
+            final = project / "final_latex"
+            final.mkdir()
+            main = final / "main.tex"
+            pdf = final / "main.pdf"
+            framework = project / "模型论文框架.md"
+            main.write_text("\\documentclass{article}\\begin{document}x\\end{document}", encoding="utf-8")
+            pdf.write_bytes(b"pdf")
+            (final / "main.log").write_text("This is XeTeX\n", encoding="utf-8")
+            framework.write_text("# 模型论文框架\n", encoding="utf-8")
+            snapshot = self.delivery.source_bundle_snapshot(main)["source_bundle_sha256"]
+            audit_report = {
+                "audit_schema_version": "1.0.0",
+                "status": "passed",
+                "mode": "formal",
+                "source_bundle_sha256": snapshot,
+                "framework_sha256": self.delivery.sha256_file(framework),
+            }
+            (final / "latex_audit_report.yaml").write_text(
+                yaml.safe_dump(audit_report, allow_unicode=True), encoding="utf-8"
+            )
+            profiles = yaml.safe_load((ROOT / "core/compile_profiles.yaml").read_text(encoding="utf-8"))
+            profile = profiles["profiles"]["cumcm"]
+            report = self.delivery.write_compile_report(
+                project=final,
+                main=main,
+                profile="cumcm",
+                engine="xelatex",
+                bibliography="biber",
+                sequence=profile["sequence"],
+                profile_config=profile,
+            )
+            tampered = dict(report)
+            tampered["profile_override_used"] = True
+            issues = self.delivery.verify_compile_report(
+                project=final,
+                main=main,
+                pdf=pdf,
+                report=tampered,
+            )
+            self.assertTrue(any("profile_override_used" in item for item in issues), issues)
 
     def test_render_materializes_cumcm_class_before_audit(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -186,6 +281,98 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
             root = Path(temp)
             with self.assertRaises(SystemExit):
                 self.pack.official_files(root, "CUMCM")
+
+    def test_official_package_positive_path_uses_verified_exact_allowlist(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            final = root / "final_latex"
+            final.mkdir()
+            pdf = final / "main.pdf"
+            pdf.write_bytes(b"official-pdf")
+            state_dir = root / "state"
+            state_dir.mkdir()
+            (state_dir / "project_state.yaml").write_text(
+                yaml.safe_dump({"artifacts": {"compiled_pdf": "final_latex/main.pdf"}}), encoding="utf-8"
+            )
+            profiles_path = root / "competition_profiles.yaml"
+            profiles_path.write_text(
+                yaml.safe_dump(
+                    {
+                        "profiles": {
+                            "demo": {
+                                "aliases": ["DEMO"],
+                                "edition_rules": {
+                                    "verification_status": "verified",
+                                    "verified_at": "2026-08-24",
+                                    "source": "official-demo-rule",
+                                    "submission_files": ["final_latex/main.pdf"],
+                                },
+                            }
+                        }
+                    },
+                    allow_unicode=True,
+                    sort_keys=False,
+                ),
+                encoding="utf-8",
+            )
+            package = root / "submission.zip"
+            with patch.object(self.pack, "COMPETITION_PROFILES", profiles_path), patch.object(
+                self.package_validator, "COMPETITION_PROFILES", profiles_path
+            ):
+                files, metadata = self.pack.official_files(root, "DEMO")
+                manifest = self.pack.build_manifest(root, files, kind="official", metadata=metadata)
+                with zipfile.ZipFile(package, "w", zipfile.ZIP_DEFLATED) as archive:
+                    for path in files:
+                        archive.write(path, path.relative_to(root).as_posix())
+                    archive.writestr("submission_manifest.yaml", yaml.safe_dump(manifest, allow_unicode=True))
+                report = self.package_validator.validate_package(root, package, competition="DEMO")
+            self.assertEqual(report["status"], "passed", report)
+
+    def test_declared_package_path_refuses_ambiguous_zip_selection(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            submission = root / "submission"
+            submission.mkdir()
+            (submission / "submission.zip").write_bytes(b"one")
+            (submission / "reproducibility.zip").write_bytes(b"two")
+            with self.assertRaises(SystemExit):
+                self.package_validator.declared_package_path(root, {})
+
+    def test_reproducibility_package_requires_framework(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            final = root / "final_latex"
+            final.mkdir()
+            pdf = final / "main.pdf"
+            pdf.write_bytes(b"pdf")
+            py_file = root / "q.py"
+            py_file.write_text("print(1)", encoding="utf-8")
+            workbook = root / "r.xlsx"
+            workbook.write_bytes(b"xlsx")
+            matlab = root / "q.m"
+            matlab.write_text("disp(1)", encoding="utf-8")
+            state_dir = root / "state"
+            state_dir.mkdir()
+            (state_dir / "project_state.yaml").write_text(
+                yaml.safe_dump({"artifacts": {"compiled_pdf": "final_latex/main.pdf"}}), encoding="utf-8"
+            )
+            files = [pdf, py_file, workbook, matlab]
+            metadata = {
+                "competition_profile": None,
+                "rule_verification_status": None,
+                "rule_verified_at": None,
+                "rule_source": None,
+                "submission_files_allowlist": None,
+            }
+            manifest = self.pack.build_manifest(root, files, kind="reproducibility", metadata=metadata)
+            package = root / "package.zip"
+            with zipfile.ZipFile(package, "w", zipfile.ZIP_DEFLATED) as archive:
+                for path in files:
+                    archive.write(path, path.relative_to(root).as_posix())
+                archive.writestr("submission_manifest.yaml", yaml.safe_dump(manifest, allow_unicode=True))
+            report = self.package_validator.validate_package(root, package)
+            self.assertEqual(report["status"], "failed")
+            self.assertTrue(any("模型论文框架.md" in item for item in report["issues"]), report)
 
     def test_reproducibility_manifest_detects_stale_packaged_pdf(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -211,7 +398,6 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
                 "rule_source": None,
                 "submission_files_allowlist": None,
             })
-            import zipfile
             with zipfile.ZipFile(package, "w", zipfile.ZIP_DEFLATED) as archive:
                 for path in files:
                     archive.write(path, path.relative_to(root).as_posix())
