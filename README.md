@@ -1,6 +1,19 @@
-# mathmodel-skill v7.8.1
+# mathmodel-skill v7.9.0
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 数据审计与 `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → 条件式预处理 → 用户本地 full-fidelity Python 主求解 → 独立结果深化分析 → MATLAB 证据图 → LaTeX 终稿 → AI cleanup → prose/structure/BibTeX audit → 编译终审**。
+
+## v7.9.0：模块化 LaTeX 运行时闭环
+
+本版本把 v7.8.1 之后已经进入模板/Artifact 层的模块化 LaTeX 能力正式闭合到运行时、编译报告和项目同步层，不改变数学模型、数值求解、工作簿 Schema、Python/MATLAB 职责或每问五文件接口。
+
+- 正式 LaTeX 审计统一从 `scripts/audit_latex_project.py` 进入：模块化工程递归展开 `\input/\include`，兼容单文件工程退化为单文件审计；`audit_paper_prose.py` 保留为底层 prose/BibTeX/framework 审查实现，不再作为活动 LaTeX 运行时的默认入口。
+- `full_workflow` 在跨过用户执行边界后显式补齐 Figure、LaTeX 和 Review Artifact Packs，避免“直接 latex route 能读规则、完整流程反而漏读 Pack”的分流。
+- CUMCM 当前项目模板统一指向 `templates/latex/cumcm/hsk/`；`cumcmthesis/` 仅保留上游 class/基础模板资源。
+- 新增 `scripts/latex_delivery.py`，对 active `.tex` 图、参考文献、本地 class/style 和正式图片建立 source bundle hash；`render_paper.py` 自动生成 `compile_report.yaml`，记录 source/PDF hash、实际编译序列和未解析引用。
+- `sync_project.py` 在 LaTeX/提交 scope 重新计算当前 source bundle，并要求与 `compile_report.compiled_from_source_sha256` 及 PDF hash 一致；任一 active 源文件或正式图片在编译后改变都会使旧 PDF 失效。
+- Paper Fragment 的 `source_file` 在项目审计时与真实 `final_latex/` 文件和当前 main include graph 做确定性闭环检查。
+- `full_workflow` 的最终 terminal outputs 补齐 `validated_submission_package`。
+- 增加跨层回归测试，覆盖 audit 入口、Pack closure、CUMCM 模板权威、fragment 物理映射、source/PDF freshness 与 compile report。
 
 ## v7.8.1：Algorithm Trace 闭环补强
 

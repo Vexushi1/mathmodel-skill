@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：7.8.1
+当前 Skill 版本：7.9.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -99,6 +99,7 @@
 - `scripts/audit_paper_prose.py`
 - `scripts/generate_indexes.py`
 - `scripts/hsk_pack_submission.py`
+- `scripts/latex_delivery.py`
 - `scripts/lint_skill.py`
 - `scripts/lint_skill_checks.py`
 - `scripts/prepare_cumcm_class.py`
@@ -224,3 +225,4 @@
 - `tests/test_v780_algorithm_presentation.py`
 - `tests/test_v781_algorithm_closure.py`
 - `tests/test_v790_modular_latex_source.py`
+- `tests/test_v790_runtime_closure.py`

@@ -1,4 +1,4 @@
-version: 7.8.1
+version: 7.9.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 user_execution_contract: core/user_execution_contract.yaml
@@ -40,6 +40,7 @@ writing_policy:
   algorithm_presentation_contract: core/writing_reasoning_contract.yaml#algorithm_presentation
   core_model_summary_policy: adaptive_required_inline_not_applicable
   prose_audit_script: scripts/audit_paper_prose.py
+  latex_audit_entrypoint: scripts/audit_latex_project.py
   latex_source_layout_default: modular
   latex_project_audit_script: scripts/audit_latex_project.py
   legacy_single_file_latex_supported: true
@@ -426,6 +427,7 @@ project_sync:
   - v0.8只把stale传播到依赖该小问/上游paper fragment的论文片段；不得因为单问变化使整篇无关章节stale
   - 只允许设置或保持stale；清除stale必须由适用的数据质量门、主结果质量门、结果分析流程或对应论文片段重写复核显式完成
   - 对DOCX、LaTeX与提交scope检查真实文件、编译报告、图片引用和提交ZIP内容
+  - LaTeX与提交scope重算当前active source bundle；必须与compile_report.compiled_from_source_sha256及PDF哈希一致，任一active .tex/.bib/.cls/.sty/正式图片变化后旧PDF均视为stale
   forbidden:
   - 自动生成模型语义或preprocessing_decision
   - 因共享数据自动把preprocessing_decision提升为project_level

@@ -170,13 +170,83 @@ def expand_project(main_file: Path) -> tuple[str, list[Finding], set[Path]]:
     return combined, findings, visited
 
 
+
+def audit_fragment_source_files(
+    main_file: Path,
+    framework_path: Path,
+    visited: set[Path],
+) -> list[Finding]:
+    """Validate declared current Paper Fragment -> physical LaTeX source mappings.
+
+    The framework stores project-root-relative paths such as
+    ``final_latex/sections/06_question1.tex``. A declared current mapping is only
+    useful when the file exists and is part of the active ``main.tex`` include
+    graph. Missing mappings remain allowed for legacy/single-file projects.
+    """
+    text = framework_path.read_text(encoding="utf-8-sig", errors="strict")
+    heading = "### Paper Fragment Dependency Map"
+    start = text.find(heading)
+    if start < 0:
+        return []
+    tail = text[start + len(heading):]
+    next_heading = re.search(r"\n#{1,3}\s+", tail)
+    section = tail[:next_heading.start()] if next_heading else tail
+    project_root = framework_path.parent.resolve()
+    final_root = main_file.parent.resolve()
+    findings: list[Finding] = []
+
+    for raw_line in section.splitlines():
+        line = raw_line.strip()
+        if not line.startswith("| paper."):
+            continue
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if len(cells) < 7:
+            continue
+        fragment_id, source_file, status = cells[0], cells[5].strip("` "), cells[6].strip("` ")
+        if not source_file or status != "current":
+            continue
+        candidate = (project_root / source_file).resolve()
+        try:
+            candidate.relative_to(project_root)
+            candidate.relative_to(final_root)
+        except ValueError:
+            findings.append(
+                Finding(
+                    "blocking",
+                    "paper_fragment_source_outside_latex",
+                    "current Paper Fragment 的 source_file 必须位于当前 final_latex 工程内。",
+                    f"{fragment_id}: {source_file}",
+                )
+            )
+            continue
+        if not candidate.is_file():
+            findings.append(
+                Finding(
+                    "blocking",
+                    "paper_fragment_source_missing",
+                    "current Paper Fragment 声明的 LaTeX source_file 不存在。",
+                    f"{fragment_id}: {source_file}",
+                )
+            )
+            continue
+        if candidate not in visited:
+            findings.append(
+                Finding(
+                    "blocking",
+                    "paper_fragment_source_not_in_active_graph",
+                    "current Paper Fragment 的 source_file 未进入 main.tex 当前 input/include 图。",
+                    f"{fragment_id}: {source_file}",
+                )
+            )
+    return findings
+
 def audit_project(
     main_file: Path,
     *,
     bib_path: Path | None = None,
     framework_path: Path | None = None,
 ) -> list[Finding]:
-    combined, project_findings, _ = expand_project(main_file)
+    combined, project_findings, visited = expand_project(main_file)
     findings = list(project_findings)
     findings.extend(audit_text(combined))
 
@@ -191,6 +261,7 @@ def audit_project(
     framework_text = None
     if framework_path is not None and framework_path.is_file():
         framework_text = framework_path.read_text(encoding="utf-8-sig", errors="strict")
+        findings.extend(audit_fragment_source_files(main_file, framework_path, visited))
     findings.extend(audit_framework_consistency(combined, framework_text))
     return findings
 

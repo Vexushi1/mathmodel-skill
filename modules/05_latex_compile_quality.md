@@ -1,13 +1,14 @@
 # Module 05D：LaTeX 编译质量检查
 
-本模块只编译 `ai_cleanup` 输出的已清理 `latex_source`，输出 `compiled_pdf` 与 `compile_report`。
+本模块只编译已经通过 `scripts/audit_latex_project.py` 的已清理 `latex_source`，输出 `compiled_pdf` 与机器生成的 `compile_report`。
 
 ## 工程与配置
 
 - Windows 工程放纯英文路径，项目主文件使用 Profile 的 `project_main`；
 - 图片文件名使用英文或拼音；
 - 编译链、仓库模板入口和最终项目入口以 `core/compile_profiles.yaml` 为唯一机器可读配置；
-- `scripts/render_paper.py --profile <name>` 必须与所用模板一致，不得手工混用引擎和文献工具。
+- `scripts/render_paper.py --profile <name>` 必须与所用模板一致，不得手工混用引擎和文献工具；成功编译后由脚本自动写入 `compile_report.yaml`，不得手工伪造 passed 状态。
+- `compile_report` 必须记录当前 active LaTeX source bundle hash、实际编译序列和 PDF hash；正式同步时重新计算 source bundle，若与编译时 hash 不一致则 PDF stale，必须重编译。
 
 ## 竞赛编译链
 

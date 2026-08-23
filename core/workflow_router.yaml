@@ -1,4 +1,4 @@
-version: 7.8.1
+version: 7.9.0
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
