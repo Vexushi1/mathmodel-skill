@@ -210,6 +210,7 @@
 - `tests/test_v700_two_stage_execution.py`
 - `tests/test_v700_two_stage_question_folder.py`
 - `tests/test_v701_stage_boundary_closure.py`
+- `tests/test_v7100_delivery_attestation.py`
 - `tests/test_v710_semantic_governance.py`
 - `tests/test_v730_writing_expression_protocol.py`
 - `tests/test_v740_writing_evidence_architecture.py`
