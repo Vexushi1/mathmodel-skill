@@ -1,0 +1,44 @@
+\section{问题一模型建立及求解}
+
+\subsection{模型建立}
+% 从本题对象和机制开始，详细推导关键关系。
+设……，得到
+\begin{equation}
+    F(x,\theta)=0,
+    \label{eq:q1-core-relation}
+\end{equation}
+式~\eqref{eq:q1-core-relation} 控制……，并用于下一步构造……。
+
+% 命题只在确实承担降维、等价变换、单调性、可行性等建模作用时使用。
+% \begin{hskproposition}{变换模型的等价性}
+% \label{prop:q1-equivalence}
+% 在条件……及参数范围……内，原模型与变换模型具有相同的可行解映射和最优目标值。
+% \begin{hskproof}
+% 由定义构造……，并验证约束与目标在映射前后保持一致，故命题得证。
+% \end{hskproof}
+% \end{hskproposition}
+
+% 核心模型收束按项目框架中的 required / inline / not_applicable 自适应。
+\subsection{核心模型汇总}
+\begin{equation}
+\left\{
+\begin{aligned}
+\min\quad & f(x) \\
+\text{s.t.}\quad & g_i(x)\le 0, \quad i=1,\ldots,m, \\
+& h_j(x)=0, \quad j=1,\ldots,n, \\
+& x\in\Omega .
+\end{aligned}
+\right.
+\label{eq:q1-model-summary}
+\end{equation}
+% 非优化题按本题结构改成“状态方程—观测关系—概率映射—边界/初值—输出量”的收束形式。
+
+\subsection{模型求解}
+% 写真实算法、初始化/参数、停止条件、可行性/收敛口径；不要只写“利用Python/MATLAB求解”。
+
+\subsection{求解结果}
+% 主结果、方案和核心数值放在这里。正文核心图/表必须有邻近的显式交叉引用。
+% 最后一个结果/深化段自然回答本问，不默认再建“问题一结论”。
+
+% 按实际题目复制本文件为 07_question2.tex、08_question3.tex 等，并只写各问新增结构。
+% 共享基础模型只完整定义一次，后问不从头复制。
