@@ -100,8 +100,9 @@ artifact_catalog:
   compiled_pdf: 最终PDF
   compile_report: 绑定LaTeX审计、编译profile、source bundle、日志与PDF哈希的编译证明
   review_report: 终审问题与评分报告
-  validated_submission_package: 经交付模块整理、等待正式package gate验证的提交包
+  submission_package: 已按official或reproducibility规则整理、尚待package provenance gate验证的提交ZIP
   submission_package_validation_report: 提交ZIP的kind、allowlist、manifest及当前项目哈希一致性验证报告
+  validated_submission_package: submission_package_validation gate通过后的正式可交付提交包
   project_state: 项目机器状态
   sync_report: 项目同步器生成的发现、Schema校验、分层哈希、stale和证据链报告
   figure_evidence: 由当前数据事实源、预处理/结果工作簿与对应MATLAB脚本形成的逻辑证据，不默认生成独立文件
@@ -388,7 +389,7 @@ modules:
     - compile_report
     outputs:
     - review_report
-    - validated_submission_package
+    - submission_package
 utility_gates:
   semantic_governance:
     path: scripts/validate_semantic_governance.py
@@ -471,9 +472,10 @@ utility_gates:
     inputs:
     - existing_project_state
     - discovered_artifacts
-    - validated_submission_package
+    - submission_package
     outputs:
     - submission_package_validation_report
+    - validated_submission_package
     rules:
     - Requires exactly one submission_manifest.yaml with per-file SHA-256 records.
     - Revalidates archived files against the current project and requires the packaged PDF to match the current compiled_pdf hash.
