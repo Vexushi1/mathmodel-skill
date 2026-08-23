@@ -100,6 +100,7 @@
 - `scripts/generate_indexes.py`
 - `scripts/hsk_pack_submission.py`
 - `scripts/lint_skill.py`
+- `scripts/lint_skill_checks.py`
 - `scripts/prepare_cumcm_class.py`
 - `scripts/render_paper.py`
 - `scripts/resolve_workflow.py`
