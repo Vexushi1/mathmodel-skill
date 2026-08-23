@@ -22,7 +22,7 @@
 - 当前模型、逐问结果摘要、图表映射、命题和 Citation Evidence 从 `模型论文框架.md` 恢复；
 - 摘要、正文、表格和附录的具体数值重新从工作簿复核。
 
-默认工程采用 **模块化 LaTeX 源码**。`main.tex` 只承担文档入口、全局配置加载、章节编排、参考文献与附录入口，不作为长正文容器。最低工程：
+新建且模板支持的工程默认采用 **模块化 LaTeX 源码**。`main.tex` 只承担文档入口、全局配置加载、章节编排、参考文献与附录入口，不作为长正文容器。最低工程：
 
 ```text
 项目根目录/
@@ -50,6 +50,8 @@
    ├─ 模板类/样式文件
    └─ 最终 PDF
 ```
+
+当前仓库的**首个完整模块化实现是 CUMCM HSK 模板**。MCM/ICM 与电工杯现有单文件模板在本次改造中保持兼容，不为统一形式强制同步重构；后续若分别迁移，应各自通过对应模板回归和编译 smoke build。`core/output_contract.yaml#writing_policy` 明确保留旧单文件 LaTeX 工程兼容入口。
 
 CUMCM 工程使用仓库旧版 `cumcmthesis.cls` 时，`scripts/render_paper.py` 只执行已审计、幂等的字体回退补丁，不改其他模板宏定义。
 
@@ -155,7 +157,7 @@ model_review  -> final_latex/sections/09_evaluation.tex
 
 ## 五、Citation Evidence 与模块化工程检查
 
-单文件旧项目可继续直接运行核心 prose audit：
+仍采用单文件模板的工程（包括尚未迁移的 MCM/ICM、电工杯模板与旧项目）可继续直接运行核心 prose audit：
 
 ```bash
 python scripts/audit_paper_prose.py final_latex/main.tex --bib final_latex/references.bib --strict
@@ -184,8 +186,8 @@ python scripts/audit_latex_project.py final_latex/main.tex --bib final_latex/ref
 
 ## 六、验收条件
 
-- `.tex` 模块、模板类/样式文件、图片、`.bib`、PDF 和完整最新版 `模型论文框架.md` 均交付；
-- `main.tex` 主要承担 orchestration，不回退成大段正文容器；
+- 模块化工程交付当前 `.tex` 模块、模板类/样式文件、图片、`.bib`、PDF 和完整最新版 `模型论文框架.md`；仍采用单文件模板的兼容工程交付完整主文件与同等依赖资源；
+- 模块化工程的 `main.tex` 主要承担 orchestration，不回退成大段正文容器；单文件兼容工程不因此被机械判错；
 - 框架通过 `scripts/validate_model_paper_framework.py`；
 - 模块化项目由 `audit_latex_project.py` 递归覆盖 `main.tex` 引用的全部当前 `.tex` fragment，且未留下 blocking，未解释的 review_required 已处理；
 - 正文核心图表有显式引用并与真实工作簿/MATLAB 来源一致；
