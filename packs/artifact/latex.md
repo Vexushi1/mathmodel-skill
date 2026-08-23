@@ -157,11 +157,19 @@ model_review  -> final_latex/sections/09_evaluation.tex
 
 ## 五、Citation Evidence 与模块化工程检查
 
-正式 LaTeX 审计无论模块化还是兼容单文件工程，都统一从项目包装器进入：
+正式 LaTeX 审计无论模块化还是兼容单文件工程，都统一从项目包装器进入，并持久化正式 attestation：
 
 ```bash
-python scripts/audit_latex_project.py final_latex/main.tex --bib final_latex/references.bib --framework 模型论文框架.md --strict
+python scripts/audit_latex_project.py final_latex/main.tex \
+  --bib final_latex/references.bib \
+  --framework 模型论文框架.md \
+  --mode formal \
+  --require-framework \
+  --write-report \
+  --strict
 ```
+
+显式提供的 `--framework` 若不存在必须直接 blocking；`--require-framework` 进一步保证 formal audit 在调用方没有提供 framework 时也不能退化为无框架审计。`--write-report` 生成的 `final_latex/latex_audit_report.yaml` 才是后续正式编译证明链使用的项目审计 attestation。
 
 模块化工程会递归展开项目内 `\input` / `\include`；兼容单文件工程会自然退化为单文件展开。`scripts/audit_paper_prose.py` 继续作为包装器内部的 prose/structure/BibTeX/framework 审查实现，可用于维护级单元测试，但不再作为活动 LaTeX route 的默认入口。
 
