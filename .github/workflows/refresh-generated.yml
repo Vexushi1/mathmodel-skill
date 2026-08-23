@@ -15,13 +15,14 @@ on:
       - HSK_SKILL_FILE_INDEX_V622.md
       - HSK_TEMPLATE_INDEX_V622.md
       - MANIFEST.sha256
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: refresh-generated-${{ github.ref }}
+  group: refresh-generated-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -31,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
