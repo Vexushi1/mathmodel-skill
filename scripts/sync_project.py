@@ -99,6 +99,9 @@ STATE_VALIDATION = _load_module(
 FRAMEWORK_VALIDATION = _load_module(
     "hsk_framework_validation", SKILL_ROOT / "scripts" / "validate_model_paper_framework.py"
 )
+LATEX_DELIVERY = _load_module(
+    "hsk_latex_delivery", SKILL_ROOT / "scripts" / "latex_delivery.py"
+)
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -726,6 +729,13 @@ def _compile_artifact_issues(root: Path, state: Mapping[str, Any]) -> list[str]:
             issues.append("compile_report 未通过")
         if int(report.get("unresolved_references", 0) or 0) != 0:
             issues.append("compile_report 存在未解析引用")
+        if int(report.get("unresolved_citations", 0) or 0) != 0:
+            issues.append("compile_report 存在未解析文献引用")
+        issues.extend(
+            LATEX_DELIVERY.verify_compile_report(
+                project=root, main=source, pdf=pdf, report=report
+            )
+        )
     return issues
 
 

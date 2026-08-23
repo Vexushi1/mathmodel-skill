@@ -1,6 +1,15 @@
 # Changelog
 
-## Current release: 7.8.1
+## Current release: 7.9.0
+
+- Closed modular-LaTeX runtime dispatch: `audit_latex_project.py` is now the public LaTeX audit entrypoint for modular and compatible single-file projects, delegating prose/BibTeX/framework checks to `audit_paper_prose.py`.
+- Closed `full_workflow` post-execution Pack loading so Figure, LaTeX and Review Artifact Packs are available after accepted primary/result-analysis workbooks, and added `validated_submission_package` to final workflow outputs.
+- Unified the current CUMCM project-template authority on `templates/latex/cumcm/hsk/`; the `cumcmthesis/` directory remains an upstream class/base-template resource rather than the active project template.
+- Added source-bundle/PDF freshness verification through deterministic compile reports. `render_paper.py` now writes `compile_report.yaml`; `sync_project.py` recomputes the current active source bundle before LaTeX/submission delivery.
+- Added deterministic Paper Fragment `source_file` checks against actual files and the active `main.tex` include graph.
+- Added regression coverage for the integration gaps above. Numerical modeling, preprocessing, Workbook Schema, Python/MATLAB ownership, user full-fidelity execution, framework `v0.8-project-memory`, semantic-governance 1.0.0 and the per-question five-file interface are unchanged.
+
+## Previous release: 7.8.1
 
 - Closed the v7.8 Algorithm Trace delivery loop: final review and submission now explicitly consume the writing-reasoning Authority and the algorithm-flow Pack, and review checks the declared `not_needed / stepwise / pseudocode` mode against the current model, Python implementation and workbook evidence.
 - Added deterministic runtime validation for current Algorithm Trace records in `scripts/validate_model_paper_framework.py`. `stepwise/pseudocode` questions must link a current Algorithm ID with complete structural fields and matching mode; `not_needed` questions must not retain stale decorative links. Solved-or-later current traces require a Python code anchor.

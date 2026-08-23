@@ -15,14 +15,13 @@ on:
       - HSK_SKILL_FILE_INDEX_V622.md
       - HSK_TEMPLATE_INDEX_V622.md
       - MANIFEST.sha256
-  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: refresh-generated-${{ github.head_ref || github.ref_name }}
+  group: refresh-generated-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -32,47 +31,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref || github.ref_name }}
+          ref: ${{ github.ref_name }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
-      - name: Install validation dependencies
-        run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
-      - name: Patch one-shot migration runner
-        run: |
-          git fetch --depth=1 origin main
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('scripts/_v790_runtime_closure_migration.py')
-          text = path.read_text(encoding='utf-8')
-          replacements = {
-              'updated, count = pattern.subn(replacement, text, count=1)': 'updated, count = pattern.subn(lambda _: replacement, text, count=1)',
-              '"HEAD^:.github/workflows/refresh-generated.yml"': '"origin/main:.github/workflows/refresh-generated.yml"',
-          }
-          for old, new in replacements.items():
-              if text.count(old) != 1:
-                  raise SystemExit(f'expected one migration patch target, found {text.count(old)}: {old}')
-              text = text.replace(old, new, 1)
-          path.write_text(text, encoding='utf-8')
-          PY
-      - name: Apply one-shot v7.9.0 runtime closure
-        run: python scripts/_v790_runtime_closure_migration.py
       - name: Rebuild active indexes and manifest
         run: python scripts/generate_indexes.py
-      - name: Validate migrated active tree
+      - name: Commit generated metadata when changed
         run: |
-          python scripts/lint_skill.py
-          python -m unittest discover -s tests -p "test_*.py"
-          python scripts/generate_indexes.py --check
-      - name: Commit validated v7.9.0 runtime closure
-        run: |
-          if git diff --quiet; then
-            echo "Migration produced no changes."
+          if git diff --quiet -- SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256; then
+            echo "Generated metadata is current."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "feat: v7.9.0 close modular LaTeX runtime"
+          git add SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
+          git commit -m "chore: refresh generated repository metadata"
           git push

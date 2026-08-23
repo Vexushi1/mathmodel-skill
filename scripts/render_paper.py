@@ -12,6 +12,7 @@ from typing import Any, Mapping
 import yaml
 
 from prepare_cumcm_class import patch_cumcm_class
+from latex_delivery import write_compile_report
 
 ROOT = Path(__file__).resolve().parent.parent
 PROFILE_FILE = ROOT / "core" / "compile_profiles.yaml"
@@ -160,7 +161,7 @@ def compile_project(
     engine_override: str | None,
     bibliography_override: str | None,
     runs_override: int | None,
-) -> None:
+) -> list[str]:
     engine = engine_override or str(config.get("engine", "xelatex"))
     bibliography = bibliography_override or str(config.get("bibliography", "none"))
     sequence = [str(step) for step in config.get("sequence", [])]
@@ -192,6 +193,7 @@ def compile_project(
     if not pdf.is_file():
         raise SystemExit("compile sequence finished but PDF is missing")
     print(pdf)
+    return sequence
 
 
 def main() -> int:
@@ -221,7 +223,16 @@ def main() -> int:
     bibliography = "bibtex" if args.bibtex else args.bibliography
     print(f"compile profile: {profile_name}")
     print(f"main tex: {main_tex.name}")
-    compile_project(project, main_tex, profiles[profile_name], args.engine, bibliography, args.runs)
+    sequence = compile_project(project, main_tex, profiles[profile_name], args.engine, bibliography, args.runs)
+    effective_engine = args.engine or str(profiles[profile_name].get("engine", "xelatex"))
+    effective_bibliography = bibliography or str(profiles[profile_name].get("bibliography", "none"))
+    report = write_compile_report(
+        project=project, main=main_tex, profile=profile_name, engine=effective_engine,
+        bibliography=effective_bibliography, sequence=sequence,
+    )
+    print(f"compile report: {project / 'compile_report.yaml'}")
+    if report["status"] != "passed":
+        raise SystemExit("compile finished but unresolved references/citations remain; see compile_report.yaml")
     return 0
 
 

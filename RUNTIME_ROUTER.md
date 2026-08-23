@@ -52,7 +52,7 @@ problem_audit
    └─ qX_plot.m / 机理图
 → writing_latex（按需消费 Algorithm Trace / algorithm_flow Pack）
 → ai_cleanup
-→ prose/BibTeX/framework audit（scripts/audit_paper_prose.py + framework validator）
+→ LaTeX project/prose/BibTeX/framework audit（scripts/audit_latex_project.py + framework validator）
 → latex_compile_quality
 → review_delivery
 ```
