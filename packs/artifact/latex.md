@@ -22,13 +22,29 @@
 - 当前模型、逐问结果摘要、图表映射、命题和 Citation Evidence 从 `模型论文框架.md` 恢复；
 - 摘要、正文、表格和附录的具体数值重新从工作簿复核。
 
-最低工程：
+默认工程采用 **模块化 LaTeX 源码**。`main.tex` 只承担文档入口、全局配置加载、章节编排、参考文献与附录入口，不作为长正文容器。最低工程：
 
 ```text
 项目根目录/
 ├─ 模型论文框架.md
 └─ final_latex/
    ├─ main.tex
+   ├─ config/
+   │  ├─ preamble.tex
+   │  ├─ commands.tex
+   │  └─ metadata.tex
+   ├─ frontmatter/
+   │  └─ abstract.tex
+   ├─ sections/
+   │  ├─ 01_problem_statement.tex
+   │  ├─ 02_problem_analysis.tex
+   │  ├─ 03_assumptions.tex
+   │  ├─ 04_symbols.tex
+   │  ├─ 05_data.tex              # 按 preprocessing_decision 决定是否存在
+   │  ├─ 06_question1.tex
+   │  └─ ...                      # 按实际小问与论文结构扩展
+   ├─ appendices/
+   │  └─ appendices.tex
    ├─ references.bib
    ├─ figures/
    ├─ 模板类/样式文件
@@ -37,6 +53,71 @@
 
 CUMCM 工程使用仓库旧版 `cumcmthesis.cls` 时，`scripts/render_paper.py` 只执行已审计、幂等的字体回退补丁，不改其他模板宏定义。
 
+### 2.1 Modular LaTeX Source Contract
+
+模块化源码是 **Default**，不是为了拆文件而拆文件。目标是让语义 fragment 与物理 `.tex` 文件尽量一一对应，使局部 stale 能落实为局部源码修改。
+
+#### `main.tex` 的职责
+
+`main.tex` 默认只包含：
+
+- `\documentclass`；
+- `\input{config/...}` 等全局配置入口；
+- `\begin{document}` / `\end{document}`；
+- `\maketitle`；
+- `\input{frontmatter/...}`、`\input{sections/...}`、`\input{appendices/...}`；
+- bibliography 入口及比赛模板要求的少量全局命令。
+
+`main.tex` 默认不直接保存：
+
+- 长正文自然段；
+- 具体模型推导；
+- 大段结果分析；
+- 长公式、表格、figure、算法主体；
+- 完整摘要正文。
+
+若比赛官方模板强制把特定内容写在主文件，或第三方类文件无法可靠拆分，可保留最小必要例外，并在项目框架中记录原因。
+
+#### 子文件职责
+
+- `config/preamble.tex`：宏包、全局环境、编译相关设置；
+- `config/commands.tex`：项目级可复用命令；
+- `config/metadata.tex`：题号、队号、标题、成员等元数据；
+- `frontmatter/abstract.tex`：摘要与关键词；
+- `sections/*.tex`：正文一级语义单元；默认粒度为“一章或一个完整小问一个文件”；
+- `appendices/*.tex`：附录与复现说明。
+
+正文子文件不得重新声明 `\documentclass`、`\begin{document}`、`\end{document}`，也不得重复加载全局宏包。跨文件的 equation/figure/table/proposition label 仍处于同一文档命名空间，必须保持全局唯一。
+
+#### 自适应拆分粒度
+
+默认一个一级章节或一个完整小问对应一个 `.tex` 文件，不把每个公式、表格、三级小节机械拆成独立文件。只有当某一小问本身明显过长，且其模型、算法、结果分别形成稳定语义单元时，才允许第二级目录，例如：
+
+```text
+sections/q3/
+├─ q3.tex
+├─ model.tex
+├─ algorithm.tex
+└─ results.tex
+```
+
+其中 `q3.tex` 仅负责编排该问内部子文件。禁止为了形式制造几十个难以维护的碎片文件。
+
+### 2.2 Paper Fragment 到物理文件映射
+
+当项目已启用 `Paper Fragment Dependency Map` 时，写作阶段应为可局部更新的正文 fragment 记录物理文件路径，例如：
+
+```text
+abstract      -> final_latex/frontmatter/abstract.tex
+q1_model      -> final_latex/sections/06_question1.tex
+q2_model      -> final_latex/sections/07_question2.tex
+model_review  -> final_latex/sections/09_evaluation.tex
+```
+
+模型、参数、约束、算法或结果变化时，先按 `core/writing_reasoning_contract.yaml#paper_fragment_stale_governance` 判断真实依赖，再只修改受影响的 `.tex` 文件。不得因为局部 stale 无差别重写 `main.tex` 或整篇论文。
+
+`abstract.tex` 是高依赖 fragment：它通常同时依赖各问主结果、Numeric Profile、Title Claim 与核心模型表述。任一直接答案变化时，应检查摘要对应句，但不自动判定全部正文 stale。
+
 ## 三、编译契约
 
 - CUMCM：XeLaTeX → Biber → XeLaTeX → XeLaTeX；
@@ -44,6 +125,20 @@ CUMCM 工程使用仓库旧版 `cumcmthesis.cls` 时，`scripts/render_paper.py`
 - 电工杯中文模板：XeLaTeX → Biber → XeLaTeX → XeLaTeX；
 - 未知工程无法可靠识别时显式指定 `--profile`；
 - 编译统一调用 `scripts/render_paper.py`，必要时先 `--clean`。
+
+模块化工程的 **正式验收始终以 `main.tex` 全量编译为准**。单纯使用 `\input`/`\include` 不应宣传为显著缩短完整编译时间；它的直接收益是源码隔离、局部修改安全、错误定位和 diff 可读性。
+
+允许按需建立局部 preview 工程以加快章节排版迭代，但 preview 只用于视觉与局部语法检查，不能替代正式编译，因为它可能无法覆盖全局编号、跨章节引用、bibliography、目录、浮动体位置和分页。
+
+推荐迭代链：
+
+```text
+局部修改 section/abstract
+→ 可选局部 preview
+→ main.tex 全量 prose/BibTeX audit
+→ main.tex 全量正式编译
+→ PDF 逐页检查
+```
 
 ## 四、LaTeX 特有排版要求
 
@@ -58,7 +153,7 @@ CUMCM 工程使用仓库旧版 `cumcmthesis.cls` 时，`scripts/render_paper.py`
 - 命题正文与短证明使用项目约定环境，呈现规则由 `packs/artifact/proposition_proof.md` 负责；
 - `references.bib` 中 citation key 与正文 `\cite{}` 闭合。
 
-## 五、Citation Evidence 的工程检查
+## 五、Citation Evidence 与模块化工程检查
 
 在编译前运行 prose audit，并对 BibTeX 做确定性检查：
 
@@ -66,15 +161,27 @@ CUMCM 工程使用仓库旧版 `cumcmthesis.cls` 时，`scripts/render_paper.py`
 python scripts/audit_paper_prose.py final_latex/main.tex --bib final_latex/references.bib --strict
 ```
 
-允许机器判断：缺失 cite key、重复 bib key、明显未使用 bib 条目、`\nocite{*}` 风险。
+当 `main.tex` 使用 `\input` / `\include` 时，audit 必须递归展开项目内被引用的 `.tex` 文件后再执行正文、label/ref/cite、摘要、Terminology 与 Numeric Profile 检查；不得只检查入口文件文本。
+
+模块化工程还应确定性检查：
+
+- `\input` / `\include` 指向的项目内 `.tex` 文件存在；
+- 不出现递归 include cycle；
+- 子文件不重复声明 `\documentclass` 或 document 环境；
+- 全工程不存在 duplicate label；
+- 正文 section 文件不是未被入口链引用的孤立文件；
+- 跨文件 cite/ref/label 在递归展开后闭合。
+
+允许机器判断：缺失 cite key、重复 bib key、明显未使用 bib 条目、`\nocite{*}` 风险，以及上述确定性模块化工程错误。
 
 禁止机器仅凭 key 存在判断文献是否真的支持某个 claim、标准定理是否适用或来源质量是否足够；这些由写作/终审语义审查完成。
 
 ## 六、验收条件
 
-- `.tex`、模板类/样式文件、图片、`.bib`、PDF 和完整最新版 `模型论文框架.md` 均交付；
+- `.tex` 模块、模板类/样式文件、图片、`.bib`、PDF 和完整最新版 `模型论文框架.md` 均交付；
+- `main.tex` 主要承担 orchestration，不回退成大段正文容器；
 - 框架通过 `scripts/validate_model_paper_framework.py`；
-- prose audit 未留下 blocking，未解释的 review_required 已处理；
+- prose audit 能递归覆盖 `main.tex` 引用的全部当前 `.tex` fragment，且未留下 blocking，未解释的 review_required 已处理；
 - 正文核心图表有显式引用并与真实工作簿/MATLAB 来源一致；
 - citation key 全部可解析，参考文献数据库无结构性冲突；
 - 编译日志无 Error、未定义引用、缺失文献、缺图、字体错误和不可接受的 Overfull box；
