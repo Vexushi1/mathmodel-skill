@@ -218,7 +218,7 @@ ANALYSIS_CODE_OUTPUTS = [
     "model_paper_framework",
 ]
 FINAL_WORKFLOW_OUTPUTS = [
-    "approved_figures", "latex_source", "compiled_pdf", "compile_report",
+    "approved_figures", "latex_source", "latex_audit_report", "compiled_pdf", "compile_report",
     "review_report", "validated_submission_package", "model_paper_framework",
 ]
 DOWNSTREAM_MODULES = {
@@ -229,6 +229,7 @@ DOWNSTREAM_MODULES = {
 }
 SEMANTIC_CODE_GATES = ["semantic_governance", "code_delivery"]
 SEMANTIC_SYNC_GATES = ["semantic_governance", "project_sync"]
+SUBMISSION_GATES = ["semantic_governance", "project_sync", "submission_package_validation"]
 
 
 def apply_preprocessing_boundary(
@@ -315,8 +316,9 @@ def apply_user_execution_boundary(
             "modules/05_writing/latex.md", "packs/artifact/latex.md",
             "modules/05_writing/ai_cleanup.md", "modules/05_latex_compile_quality.md",
             "modules/06_review_delivery.md", "packs/artifact/review.md",
+            "packs/artifact/full_submission.md",
         ])
-        return paths, FINAL_WORKFLOW_OUTPUTS.copy(), ["submission"], SEMANTIC_SYNC_GATES.copy(), True, False
+        return paths, FINAL_WORKFLOW_OUTPUTS.copy(), ["submission"], SUBMISSION_GATES.copy(), True, False
 
     if analysis_requested and not primary_accepted:
         paths = keep_before_analysis(paths)
@@ -426,6 +428,8 @@ def resolve_workflow(
             paths.extend(f"packs/task/{label}.md" for label in task_packs)
     if any(router["routing"][name].get("load_proposition_pack") for name in resolved_intents):
         paths.append("packs/artifact/proposition_proof.md")
+    if "full_submission" in resolved_intents:
+        explicit_gates.append("submission_package_validation")
 
     paths, module_terminal_outputs, route_scopes, explicit_gates, formal_delivery, pause_for_user_execution = apply_preprocessing_boundary(
         resolved_intents,
