@@ -103,6 +103,41 @@ class TestV790ModularLatexSource(unittest.TestCase):
             findings = self.audit.audit_project(root / "main.tex")
             self.assertTrue(any(x.code == "latex_child_declares_document" and x.severity == "blocking" for x in findings), findings)
 
+    def test_commented_child_document_declaration_is_not_blocking(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "sections").mkdir()
+            (root / "main.tex").write_text(
+                r"\documentclass{article}\begin{document}\input{sections/q1}\end{document}",
+                encoding="utf-8",
+            )
+            (root / "sections/q1.tex").write_text(
+                "% 示例：\\documentclass{article}\n当前正文。\n",
+                encoding="utf-8",
+            )
+            findings = self.audit.audit_project(root / "main.tex")
+            self.assertFalse(any(x.code == "latex_child_declares_document" for x in findings), findings)
+
+    def test_verbatim_child_document_declaration_is_not_blocking(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "sections").mkdir()
+            (root / "main.tex").write_text(
+                r"\documentclass{article}\begin{document}\input{sections/q1}\end{document}",
+                encoding="utf-8",
+            )
+            (root / "sections/q1.tex").write_text(
+                r"""\begin{verbatim}
+\begin{document}
+\end{document}
+\end{verbatim}
+当前正文。
+""",
+                encoding="utf-8",
+            )
+            findings = self.audit.audit_project(root / "main.tex")
+            self.assertFalse(any(x.code == "latex_child_declares_document" for x in findings), findings)
+
     def test_orphan_content_fragment_is_warning(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
