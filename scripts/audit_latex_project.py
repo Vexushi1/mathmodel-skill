@@ -72,6 +72,13 @@ def discover_tex_graph(main_file: Path) -> tuple[list[Path], list[Finding]]:
             findings.append(Finding("blocking", "latex_include_cycle", f"检测到 LaTeX include 循环：{cycle}", cycle))
             return
         if resolved in visited:
+            relative = resolved.relative_to(root).as_posix()
+            findings.append(Finding(
+                "review_required",
+                "latex_fragment_reincluded",
+                "同一 LaTeX fragment 被重复 input/include；请确认不是重复正文。",
+                relative,
+            ))
             return
         if not resolved.is_file():
             findings.append(Finding("blocking", "latex_source_missing", f"LaTeX 源文件不存在：{resolved}"))
