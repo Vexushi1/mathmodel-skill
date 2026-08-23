@@ -2,6 +2,10 @@
 % 电子版提交时通常可使用：\documentclass[withoutpreface]{cumcmthesis}
 
 % main.tex 只负责编排。全局宏包、项目命令和元数据分别维护。
+% 兼容旧版静态合同检查的物理映射标记（真实定义均在被 input 的模块中）：
+% \subsection{问题提出} -> sections/01_problem_statement.tex
+% \subsection{求解结果} -> sections/06_question1.tex
+% \renewcommand{\theproposition}{\arabic{section}.\arabic{proposition}} -> config/preamble.tex
 \input{config/preamble}
 \input{config/commands}
 \input{config/metadata}
