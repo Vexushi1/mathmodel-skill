@@ -92,10 +92,14 @@ class TestV7100LatexProvenance(unittest.TestCase):
                 self.delivery.verify_compile_report(project=final, main=main, pdf=pdf, report=report),
                 [],
             )
+            self.assertEqual(
+                self.delivery.verify_compile_report(project=project, main=main, pdf=pdf, report=report),
+                [],
+            )
 
             log.write_text("This is XeTeX\npost-compile mutation\n", encoding="utf-8")
             issues = self.delivery.verify_compile_report(
-                project=final,
+                project=project,
                 main=main,
                 pdf=pdf,
                 report=report,
@@ -140,7 +144,7 @@ class TestV7100LatexProvenance(unittest.TestCase):
             )
             log.unlink()
             issues = self.delivery.verify_compile_report(
-                project=final,
+                project=project,
                 main=main,
                 pdf=pdf,
                 report=report,
