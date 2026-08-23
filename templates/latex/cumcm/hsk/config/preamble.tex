@@ -15,6 +15,7 @@
 \addbibresource{references.bib}
 
 % 命题按阿拉伯章节号编号。0--4 是默认正文阅读预算，不是数学硬上限。
+% 短证明默认自然分段；只有明显多阶段证明才使用 enumerate。
 \newtheorem{proposition}{命题}[section]
 \renewcommand{\theproposition}{\arabic{section}.\arabic{proposition}}
 \newenvironment{hskproposition}[1]
