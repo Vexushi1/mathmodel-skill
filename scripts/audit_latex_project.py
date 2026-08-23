@@ -328,8 +328,9 @@ def main() -> int:
         require_framework=args.require_framework,
     )
     status = overall_status(findings)
+    report: dict[str, object] | None = None
     if args.report is not None or args.write_report:
-        write_audit_report(
+        report = write_audit_report(
             main_file=args.tex,
             findings=findings,
             framework_path=args.framework,
@@ -345,7 +346,10 @@ def main() -> int:
             suffix = f" | {item.evidence}" if item.evidence else ""
             print(f"- [{item.severity}] {item.code}: {item.message}{suffix}")
 
-    return 1 if args.strict and status in {"blocking", "review_required"} else 0
+    strict_failed = status in {"blocking", "review_required"}
+    if report is not None and str(report.get("status", "")).lower() != "passed":
+        strict_failed = True
+    return 1 if args.strict and strict_failed else 0
 
 
 if __name__ == "__main__":
