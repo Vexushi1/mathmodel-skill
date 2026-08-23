@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-"""Audit a modular LaTeX project by expanding project-local input/include files.
+"""Audit a modular LaTeX project and persist a deterministic attestation.
 
-This wrapper preserves ``audit_paper_prose.py`` as the prose/structure/BibTeX/framework
-authority. It adds deterministic project-graph checks, expands the active LaTeX source
-tree in document order, then delegates the combined text to the existing audit logic.
-
-It intentionally does not infer mathematical correctness or LaTeX search-path semantics
-outside the project root.
+The wrapper expands project-local input/include files, performs deterministic project-
+graph checks, delegates prose/structure/BibTeX/framework checks to
+``audit_paper_prose.py``, and can write a machine-readable audit report bound to the
+active LaTeX source bundle and model-paper framework.
 """
 from __future__ import annotations
 
@@ -14,7 +12,10 @@ import argparse
 import json
 import re
 from dataclasses import asdict
+from datetime import datetime, timezone
 from pathlib import Path
+
+import yaml
 
 from audit_paper_prose import (
     Finding,
@@ -23,6 +24,7 @@ from audit_paper_prose import (
     audit_text,
     overall_status,
 )
+from latex_delivery import sha256_file, source_bundle_snapshot
 
 INCLUDE_RE = re.compile(r"\\(?:input|include)\s*\{([^{}]+)\}")
 FORBIDDEN_CHILD_RE = re.compile(
@@ -46,12 +48,7 @@ def _split_code_comment(line: str) -> tuple[str, str]:
 
 
 def _executable_tex(text: str) -> str:
-    """Return code-like LaTeX text for deterministic structural checks.
-
-    Comments and verbatim-like environments are excluded because examples in comments,
-    appendices, or listings must not be interpreted as executable document declarations.
-    This is intentionally conservative; it is not a full TeX parser.
-    """
+    """Return code-like LaTeX text for deterministic structural checks."""
     uncommented = "".join(
         _split_code_comment(line)[0]
         for line in text.splitlines(keepends=True)
@@ -68,13 +65,7 @@ def _executable_tex(text: str) -> str:
 
 
 def _resolve_include(target: str, *, project_root: Path) -> Path | None:
-    """Resolve an input/include target exactly from the main-file project root.
-
-    The repository compiles LaTeX from ``main.tex``'s directory. Nested fragments must
-    therefore keep project-root-relative paths such as ``sections/q3/model`` rather than
-    relying on the including child file's directory. The audit must never accept a path
-    that the formal compile can reject.
-    """
+    """Resolve an input/include target exactly from the main-file project root."""
     raw = Path(target.strip())
     if raw.suffix == "":
         raw = raw.with_suffix(".tex")
@@ -102,7 +93,6 @@ def expand_project(main_file: Path) -> tuple[str, list[Finding], set[Path]]:
             findings.append(Finding("blocking", "latex_include_cycle", "LaTeX 模块存在递归 input/include 环。", cycle))
             return ""
         if resolved in visited:
-            # LaTeX 允许同一文件被多次 input，但论文 fragment 默认不应重复展开。
             findings.append(
                 Finding(
                     "review_required",
@@ -170,19 +160,12 @@ def expand_project(main_file: Path) -> tuple[str, list[Finding], set[Path]]:
     return combined, findings, visited
 
 
-
 def audit_fragment_source_files(
     main_file: Path,
     framework_path: Path,
     visited: set[Path],
 ) -> list[Finding]:
-    """Validate declared current Paper Fragment -> physical LaTeX source mappings.
-
-    The framework stores project-root-relative paths such as
-    ``final_latex/sections/06_question1.tex``. A declared current mapping is only
-    useful when the file exists and is part of the active ``main.tex`` include
-    graph. Missing mappings remain allowed for legacy/single-file projects.
-    """
+    """Validate declared current Paper Fragment -> physical LaTeX source mappings."""
     text = framework_path.read_text(encoding="utf-8-sig", errors="strict")
     heading = "### Paper Fragment Dependency Map"
     start = text.find(heading)
@@ -240,11 +223,13 @@ def audit_fragment_source_files(
             )
     return findings
 
+
 def audit_project(
     main_file: Path,
     *,
     bib_path: Path | None = None,
     framework_path: Path | None = None,
+    require_framework: bool = False,
 ) -> list[Finding]:
     combined, project_findings, visited = expand_project(main_file)
     findings = list(project_findings)
@@ -262,8 +247,47 @@ def audit_project(
     if framework_path is not None and framework_path.is_file():
         framework_text = framework_path.read_text(encoding="utf-8-sig", errors="strict")
         findings.extend(audit_fragment_source_files(main_file, framework_path, visited))
+    elif require_framework or framework_path is not None:
+        findings.append(
+            Finding(
+                "blocking",
+                "latex_framework_missing",
+                "正式 LaTeX 审计要求存在当前 模型论文框架.md。",
+                str(framework_path or "模型论文框架.md"),
+            )
+        )
     findings.extend(audit_framework_consistency(combined, framework_text))
     return findings
+
+
+def write_audit_report(
+    *,
+    main_file: Path,
+    findings: list[Finding],
+    framework_path: Path | None = None,
+    bib_path: Path | None = None,
+    report_path: Path | None = None,
+    mode: str = "formal",
+) -> dict[str, object]:
+    """Persist an audit attestation bound to the current source bundle/framework."""
+    main_file = main_file.resolve()
+    project = main_file.parent.resolve()
+    snapshot = source_bundle_snapshot(main_file, bib_path=bib_path)
+    framework_hash = sha256_file(framework_path) if framework_path is not None and framework_path.is_file() else None
+    report = {
+        "audit_schema_version": "1.0.0",
+        "status": overall_status(findings),
+        "mode": mode,
+        "main": main_file.relative_to(project).as_posix(),
+        **snapshot,
+        "framework": str(framework_path) if framework_path is not None else None,
+        "framework_sha256": framework_hash,
+        "findings": [asdict(item) for item in findings],
+        "audited_at": datetime.now(timezone.utc).isoformat(),
+    }
+    destination = (report_path or project / "latex_audit_report.yaml").resolve()
+    destination.write_text(yaml.safe_dump(report, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    return report
 
 
 def main() -> int:
@@ -273,6 +297,10 @@ def main() -> int:
     parser.add_argument("tex", type=Path, help="LaTeX main file to audit")
     parser.add_argument("--bib", type=Path, help="Optional references.bib path; defaults to main directory/references.bib")
     parser.add_argument("--framework", type=Path, help="Optional 模型论文框架.md for Terminology/Numeric Profile checks")
+    parser.add_argument("--require-framework", action="store_true", help="Block when the framework file is missing")
+    parser.add_argument("--report", type=Path, help="Write YAML audit attestation; defaults to final_latex/latex_audit_report.yaml when --write-report is used")
+    parser.add_argument("--write-report", action="store_true", help="Persist latex_audit_report.yaml next to the main file")
+    parser.add_argument("--mode", choices=["formal", "template_smoke"], default="formal")
     parser.add_argument("--strict", action="store_true", help="Return exit code 1 for blocking or review_required findings")
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     args = parser.parse_args()
@@ -280,8 +308,22 @@ def main() -> int:
     if not args.tex.is_file():
         raise SystemExit(f"LaTeX main file not found: {args.tex}")
 
-    findings = audit_project(args.tex, bib_path=args.bib, framework_path=args.framework)
+    findings = audit_project(
+        args.tex,
+        bib_path=args.bib,
+        framework_path=args.framework,
+        require_framework=args.require_framework,
+    )
     status = overall_status(findings)
+    if args.report is not None or args.write_report:
+        write_audit_report(
+            main_file=args.tex,
+            findings=findings,
+            framework_path=args.framework,
+            bib_path=args.bib,
+            report_path=args.report,
+            mode=args.mode,
+        )
     if args.json:
         print(json.dumps({"status": status, "findings": [asdict(item) for item in findings]}, ensure_ascii=False, indent=2))
     else:
