@@ -135,7 +135,7 @@ model_review  -> final_latex/sections/09_evaluation.tex
 ```text
 局部修改 section/abstract
 → 可选局部 preview
-→ main.tex 全量 prose/BibTeX audit
+→ main.tex 全量 project/prose/BibTeX audit
 → main.tex 全量正式编译
 → PDF 逐页检查
 ```
@@ -155,15 +155,21 @@ model_review  -> final_latex/sections/09_evaluation.tex
 
 ## 五、Citation Evidence 与模块化工程检查
 
-在编译前运行 prose audit，并对 BibTeX 做确定性检查：
+单文件旧项目可继续直接运行核心 prose audit：
 
 ```bash
 python scripts/audit_paper_prose.py final_latex/main.tex --bib final_latex/references.bib --strict
 ```
 
-当 `main.tex` 使用 `\input` / `\include` 时，audit 必须递归展开项目内被引用的 `.tex` 文件后再执行正文、label/ref/cite、摘要、Terminology 与 Numeric Profile 检查；不得只检查入口文件文本。
+模块化工程正式使用项目包装器：
 
-模块化工程还应确定性检查：
+```bash
+python scripts/audit_latex_project.py final_latex/main.tex --bib final_latex/references.bib --framework 模型论文框架.md --strict
+```
+
+`audit_latex_project.py` 负责递归展开项目内 `\input` / `\include`，执行确定性工程图检查，再把展开后的完整正文委托给 `audit_paper_prose.py` 的现有 prose/structure/BibTeX/framework 审查逻辑。它不是第二套写作规则。
+
+模块化工程应确定性检查：
 
 - `\input` / `\include` 指向的项目内 `.tex` 文件存在；
 - 不出现递归 include cycle；
@@ -181,7 +187,7 @@ python scripts/audit_paper_prose.py final_latex/main.tex --bib final_latex/refer
 - `.tex` 模块、模板类/样式文件、图片、`.bib`、PDF 和完整最新版 `模型论文框架.md` 均交付；
 - `main.tex` 主要承担 orchestration，不回退成大段正文容器；
 - 框架通过 `scripts/validate_model_paper_framework.py`；
-- prose audit 能递归覆盖 `main.tex` 引用的全部当前 `.tex` fragment，且未留下 blocking，未解释的 review_required 已处理；
+- 模块化项目由 `audit_latex_project.py` 递归覆盖 `main.tex` 引用的全部当前 `.tex` fragment，且未留下 blocking，未解释的 review_required 已处理；
 - 正文核心图表有显式引用并与真实工作簿/MATLAB 来源一致；
 - citation key 全部可解析，参考文献数据库无结构性冲突；
 - 编译日志无 Error、未定义引用、缺失文献、缺图、字体错误和不可接受的 Overfull box；
