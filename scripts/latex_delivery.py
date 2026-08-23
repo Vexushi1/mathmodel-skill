@@ -25,6 +25,10 @@ BIBLIOGRAPHY_RE = re.compile(r"\\bibliography\{([^{}]+)\}")
 GRAPHICS_RE = re.compile(r"\\includegraphics(?:\[[^\]]*\])?\{([^{}]+)\}")
 GRAPHICSPATH_RE = re.compile(r"\\graphicspath\s*\{((?:\{[^{}]*\}\s*)+)\}")
 GRAPHIC_DIR_RE = re.compile(r"\{([^{}]*)\}")
+VERBATIM_ENV_RE = re.compile(
+    r"\\begin\{(?:verbatim|Verbatim|lstlisting|minted)\}.*?\\end\{(?:verbatim|Verbatim|lstlisting|minted)\}",
+    re.S,
+)
 TEXT_SUFFIXES = {".tex", ".bib", ".cls", ".sty", ".cfg", ".def"}
 GRAPHIC_SUFFIXES = (".pdf", ".png", ".jpg", ".jpeg", ".eps", ".svg", ".tif", ".tiff")
 SKILL_ROOT = Path(__file__).resolve().parent.parent
@@ -44,6 +48,7 @@ def _split_code_comment(line: str) -> str:
 
 
 def executable_tex(text: str) -> str:
+    text = VERBATIM_ENV_RE.sub("\n", text)
     return "".join(_split_code_comment(line) for line in text.splitlines(keepends=True))
 
 
@@ -214,6 +219,25 @@ def current_profile_config(profile_name: str) -> Mapping[str, Any] | None:
     return profile if isinstance(profile, Mapping) else None
 
 
+def uses_profile_override(
+    profile_config: Mapping[str, Any] | None,
+    *,
+    engine: str,
+    bibliography: str,
+    sequence: Iterable[str],
+) -> bool:
+    if not profile_config:
+        return False
+    canonical_engine = str(profile_config.get("engine", ""))
+    canonical_bib = str(profile_config.get("bibliography", ""))
+    canonical_sequence = [str(item) for item in profile_config.get("sequence", [])]
+    return (
+        engine != canonical_engine
+        or bibliography != canonical_bib
+        or list(sequence) != canonical_sequence
+    )
+
+
 def inspect_log(log_path: Path) -> dict[str, Any]:
     if not log_path.is_file():
         return {
@@ -321,17 +345,12 @@ def write_compile_report(
 
     profile_config = profile_config or current_profile_config(profile)
     profile_hash = profile_fingerprint(profile_config) if profile_config is not None else None
-    canonical_engine = str(profile_config.get("engine", "")) if profile_config else ""
-    canonical_bib = str(profile_config.get("bibliography", "")) if profile_config else ""
-    canonical_sequence = [str(item) for item in profile_config.get("sequence", [])] if profile_config else []
     effective_sequence = list(sequence)
-    override_used = bool(
-        profile_config
-        and (
-            engine != canonical_engine
-            or bibliography != canonical_bib
-            or effective_sequence != canonical_sequence
-        )
+    override_used = uses_profile_override(
+        profile_config,
+        engine=engine,
+        bibliography=bibliography,
+        sequence=effective_sequence,
     )
     report = {
         "report_schema_version": "3.0.0",
@@ -395,6 +414,16 @@ def verify_compile_report(
         issues.append(f"compile_report引用未知编译profile: {profile_name}")
     elif not recorded_profile or recorded_profile != profile_fingerprint(current_profile):
         issues.append("编译profile定义已变化；当前PDF需要重新按当前profile编译")
+    else:
+        recorded_sequence = [str(item) for item in (report.get("sequence") or [])]
+        expected_override = uses_profile_override(
+            current_profile,
+            engine=str(report.get("engine", "")),
+            bibliography=str(report.get("bibliography", "")),
+            sequence=recorded_sequence,
+        )
+        if bool(report.get("profile_override_used")) != expected_override:
+            issues.append("compile_report的profile_override_used与实际engine/bibliography/sequence不一致")
 
     latex_project = main.parent.resolve()
     raw_audit = Path(str(report.get("latex_audit_report") or "latex_audit_report.yaml"))
