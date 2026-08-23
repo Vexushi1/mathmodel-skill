@@ -2,7 +2,7 @@
 """Audit a modular LaTeX project by expanding project-local input/include files.
 
 This wrapper preserves ``audit_paper_prose.py`` as the prose/structure/BibTeX/framework
-authority.  It adds deterministic project-graph checks, expands the active LaTeX source
+authority. It adds deterministic project-graph checks, expands the active LaTeX source
 tree in document order, then delegates the combined text to the existing audit logic.
 
 It intentionally does not infer mathematical correctness or LaTeX search-path semantics
@@ -29,6 +29,7 @@ FORBIDDEN_CHILD_RE = re.compile(
     r"\\documentclass(?:\[[^\]]*\])?\{|\\begin\{document\}|\\end\{document\}"
 )
 CONTENT_DIRS = ("frontmatter", "sections", "appendices")
+VERBATIM_LIKE_ENVS = ("verbatim", "lstlisting", "minted")
 
 
 def _split_code_comment(line: str) -> tuple[str, str]:
@@ -42,6 +43,28 @@ def _split_code_comment(line: str) -> tuple[str, str]:
             return line[:index], line[index:]
         backslashes = 0
     return line, ""
+
+
+def _executable_tex(text: str) -> str:
+    """Return code-like LaTeX text for deterministic structural checks.
+
+    Comments and verbatim-like environments are excluded because examples in comments,
+    appendices, or listings must not be interpreted as executable document declarations.
+    This is intentionally conservative; it is not a full TeX parser.
+    """
+    uncommented = "".join(
+        _split_code_comment(line)[0]
+        for line in text.splitlines(keepends=True)
+    )
+    executable = uncommented
+    for env in VERBATIM_LIKE_ENVS:
+        executable = re.sub(
+            rf"\\begin\{{{re.escape(env)}\}}.*?\\end\{{{re.escape(env)}\}}",
+            "\n",
+            executable,
+            flags=re.S,
+        )
+    return executable
 
 
 def _resolve_include(target: str, *, project_root: Path, including_file: Path) -> Path | None:
@@ -90,7 +113,7 @@ def expand_project(main_file: Path) -> tuple[str, list[Finding], set[Path]]:
         stack.append(resolved)
         text = resolved.read_text(encoding="utf-8-sig", errors="strict")
         if not is_main:
-            forbidden = FORBIDDEN_CHILD_RE.search(text)
+            forbidden = FORBIDDEN_CHILD_RE.search(_executable_tex(text))
             if forbidden:
                 findings.append(
                     Finding(
