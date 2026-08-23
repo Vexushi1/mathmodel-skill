@@ -4,6 +4,7 @@
 Official packages use only a verified competition-profile allowlist. Reproducibility
 packages preserve the historical broad backup behavior, but now include a deterministic
 manifest with per-file SHA-256 hashes. Neither mode may silently masquerade as the other.
+Legacy invocations that omit ``--mode`` retain the historical output-path semantics.
 """
 from __future__ import annotations
 
@@ -140,21 +141,30 @@ def build_manifest(root: Path, files: Iterable[Path], *, kind: str, metadata: di
     }
 
 
-def resolve_output(root: Path, requested: str | None, *, mode: str) -> Path:
+def resolve_output(
+    root: Path,
+    requested: str | None,
+    *,
+    mode: str,
+    legacy_compat: bool = False,
+) -> Path:
+    if legacy_compat:
+        return Path(requested or "hsk_submission_backup.zip").resolve()
+
     default_name = "submission/submission.zip" if mode == "official" else "submission/reproducibility.zip"
     raw = Path(requested or default_name)
     output = raw.resolve() if raw.is_absolute() else (root / raw).resolve()
     try:
         output.relative_to(root)
     except ValueError as exc:
-        raise SystemExit("package output must remain inside the project root") from exc
+        raise SystemExit("explicit --mode package output must remain inside the project root") from exc
     return output
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("project", nargs="?", default=".")
-    parser.add_argument("--mode", choices=["official", "reproducibility"], default="reproducibility")
+    parser.add_argument("--mode", choices=["official", "reproducibility"], default=None)
     parser.add_argument("--competition", help="required for official mode; profile name or alias")
     parser.add_argument("--output", default=None)
     args = parser.parse_args()
@@ -162,10 +172,12 @@ def main() -> int:
     root = Path(args.project).resolve()
     if not root.is_dir():
         raise SystemExit(f"project directory not found: {root}")
-    output = resolve_output(root, args.output, mode=args.mode)
+    mode = args.mode or "reproducibility"
+    legacy_compat = args.mode is None
+    output = resolve_output(root, args.output, mode=mode, legacy_compat=legacy_compat)
     output.parent.mkdir(parents=True, exist_ok=True)
 
-    if args.mode == "official":
+    if mode == "official":
         if not args.competition:
             raise SystemExit("--competition is required for --mode official")
         files, metadata = official_files(root, args.competition)
@@ -179,7 +191,7 @@ def main() -> int:
             "submission_files_allowlist": None,
         }
 
-    manifest = build_manifest(root, files, kind=args.mode, metadata=metadata)
+    manifest = build_manifest(root, files, kind=mode, metadata=metadata)
     manifest_bytes = yaml.safe_dump(manifest, allow_unicode=True, sort_keys=False).encode("utf-8")
     with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
         for path in files:
