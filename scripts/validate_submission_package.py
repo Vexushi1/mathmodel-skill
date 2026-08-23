@@ -69,10 +69,26 @@ def _current_compiled_pdf(root: Path, state: Mapping[str, Any]) -> Path:
 
 
 def declared_package_path(root: Path, state: Mapping[str, Any]) -> Path:
+    """Resolve the raw package without silently choosing between multiple candidates."""
     artifacts = state.get("artifacts") or {}
-    declared = str(artifacts.get("submission_package") or "submission/submission.zip")
-    candidate = Path(declared)
-    return candidate.resolve() if candidate.is_absolute() else (root / candidate).resolve()
+    declared = artifacts.get("submission_package")
+    if declared:
+        candidate = Path(str(declared))
+        return candidate.resolve() if candidate.is_absolute() else (root / candidate).resolve()
+
+    submission_dir = root / "submission"
+    canonical = submission_dir / "submission.zip"
+    if canonical.is_file():
+        return canonical.resolve()
+    candidates = sorted(path.resolve() for path in submission_dir.glob("*.zip") if path.is_file()) if submission_dir.is_dir() else []
+    if len(candidates) == 1:
+        return candidates[0]
+    if len(candidates) > 1:
+        names = ", ".join(path.name for path in candidates)
+        raise SystemExit(
+            "multiple submission ZIPs exist but state.artifacts.submission_package is not declared: " + names
+        )
+    return canonical.resolve()
 
 
 def _manifest_from_archive(archive: zipfile.ZipFile) -> tuple[dict[str, Any], list[str]]:
@@ -242,7 +258,7 @@ def validate_package(
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("project", nargs="?", default=".")
-    parser.add_argument("--package", default=None, help="package path; defaults to state.artifacts.submission_package")
+    parser.add_argument("--package", default=None, help="package path; defaults to state.artifacts.submission_package or the unique submission ZIP")
     parser.add_argument("--competition")
     parser.add_argument("--strict", action="store_true")
     parser.add_argument("--json", action="store_true")
