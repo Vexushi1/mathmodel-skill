@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Deterministic LaTeX source-bundle and compile-report utilities.
+"""Deterministic LaTeX source, audit, and compile-attestation utilities.
 
 The source bundle contains the active project-root-relative TeX include graph plus
 project-local bibliography, document class/style files and graphics referenced by
-that graph. It deliberately ignores system TeX packages and unrelated orphan files.
+that graph. Compile reports bind the PDF to that source bundle, the formal LaTeX
+audit attestation, and the selected compile-profile definition.
 """
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,6 +27,8 @@ GRAPHICSPATH_RE = re.compile(r"\\graphicspath\s*\{((?:\{[^{}]*\}\s*)+)\}")
 GRAPHIC_DIR_RE = re.compile(r"\{([^{}]*)\}")
 TEXT_SUFFIXES = {".tex", ".bib", ".cls", ".sty", ".cfg", ".def"}
 GRAPHIC_SUFFIXES = (".pdf", ".png", ".jpg", ".jpeg", ".eps", ".svg", ".tif", ".tiff")
+SKILL_ROOT = Path(__file__).resolve().parent.parent
+COMPILE_PROFILES_PATH = SKILL_ROOT / "core" / "compile_profiles.yaml"
 
 
 def _split_code_comment(line: str) -> str:
@@ -196,9 +200,29 @@ def source_bundle_snapshot(main: Path, bib_path: Path | None = None) -> dict[str
     }
 
 
-def inspect_log(log_path: Path) -> dict[str, int]:
+def profile_fingerprint(profile_config: Mapping[str, Any]) -> str:
+    """Hash the machine-readable profile definition without depending on YAML layout."""
+    payload = json.dumps(profile_config, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def current_profile_config(profile_name: str) -> Mapping[str, Any] | None:
+    if not COMPILE_PROFILES_PATH.is_file():
+        return None
+    payload = yaml.safe_load(COMPILE_PROFILES_PATH.read_text(encoding="utf-8")) or {}
+    profile = (payload.get("profiles") or {}).get(profile_name)
+    return profile if isinstance(profile, Mapping) else None
+
+
+def inspect_log(log_path: Path) -> dict[str, Any]:
     if not log_path.is_file():
-        return {"unresolved_references": 0, "unresolved_citations": 0, "overfull_boxes": 0}
+        return {
+            "log_present": False,
+            "fatal_errors": 1,
+            "unresolved_references": 0,
+            "unresolved_citations": 0,
+            "overfull_boxes": 0,
+        }
     text = log_path.read_text(encoding="utf-8", errors="ignore")
     ref_count = len(re.findall(r"LaTeX Warning: Reference .*? undefined", text))
     cite_count = len(re.findall(r"LaTeX Warning: Citation .*? undefined", text))
@@ -206,12 +230,48 @@ def inspect_log(log_path: Path) -> dict[str, int]:
         ref_count = 1
     if cite_count == 0 and "There were undefined citations." in text:
         cite_count = 1
+    fatal = len(re.findall(r"(?:LaTeX Error|Undefined control sequence|Fatal error occurred)", text))
     overfull = len(re.findall(r"Overfull \\[hv]box", text))
     return {
+        "log_present": True,
+        "fatal_errors": fatal,
         "unresolved_references": ref_count,
         "unresolved_citations": cite_count,
         "overfull_boxes": overfull,
     }
+
+
+def verify_audit_report(
+    *,
+    project: Path,
+    main: Path,
+    report: Mapping[str, Any],
+    framework_path: Path | None = None,
+    require_formal: bool = True,
+) -> list[str]:
+    """Verify that an audit attestation still describes the current source/framework."""
+    issues: list[str] = []
+    if str(report.get("audit_schema_version", "")) != "1.0.0":
+        return ["latex_audit_report缺少v1审计证明Schema；请重新运行当前项目审计"]
+    if str(report.get("status", "")).lower() != "passed":
+        issues.append("latex_audit_report未通过")
+    if require_formal and str(report.get("mode", "")) != "formal":
+        issues.append("正式交付不得使用template_smoke审计证明")
+    try:
+        current_source = source_bundle_snapshot(main)["source_bundle_sha256"]
+    except Exception as exc:  # noqa: BLE001
+        return [f"LaTeX source bundle无法重建: {exc}"]
+    if str(report.get("source_bundle_sha256", "")) != current_source:
+        issues.append("LaTeX源码在审计后发生变化；latex_audit_report stale")
+    if require_formal:
+        framework = framework_path or project.parent / "模型论文框架.md"
+        if not framework.is_file():
+            issues.append("正式LaTeX证明缺少模型论文框架.md")
+        else:
+            recorded = str(report.get("framework_sha256", ""))
+            if not recorded or recorded != sha256_file(framework):
+                issues.append("模型论文框架在审计后发生变化；latex_audit_report stale")
+    return issues
 
 
 def write_compile_report(
@@ -222,6 +282,9 @@ def write_compile_report(
     engine: str,
     bibliography: str,
     sequence: Iterable[str],
+    profile_config: Mapping[str, Any] | None = None,
+    audit_report_path: Path | None = None,
+    attestation_mode: str = "formal",
     bib_path: Path | None = None,
 ) -> dict[str, Any]:
     project = project.resolve()
@@ -231,17 +294,62 @@ def write_compile_report(
         raise FileNotFoundError(pdf)
     snapshot = source_bundle_snapshot(main, bib_path=bib_path)
     log_status = inspect_log(project / f"{main.stem}.log")
-    status = "passed" if not (log_status["unresolved_references"] or log_status["unresolved_citations"]) else "failed"
+
+    audit_path = (audit_report_path or project / "latex_audit_report.yaml").resolve()
+    audit_report: dict[str, Any] = {}
+    audit_issues: list[str] = []
+    if audit_path.is_file():
+        audit_report = yaml.safe_load(audit_path.read_text(encoding="utf-8")) or {}
+        audit_issues = verify_audit_report(
+            project=project,
+            main=main,
+            report=audit_report,
+            require_formal=attestation_mode == "formal",
+        )
+    elif attestation_mode == "formal":
+        audit_issues.append("正式编译缺少latex_audit_report.yaml")
+
+    status = "passed"
+    if (
+        not log_status["log_present"]
+        or log_status["fatal_errors"]
+        or log_status["unresolved_references"]
+        or log_status["unresolved_citations"]
+        or audit_issues
+    ):
+        status = "failed"
+
+    profile_config = profile_config or current_profile_config(profile)
+    profile_hash = profile_fingerprint(profile_config) if profile_config is not None else None
+    canonical_engine = str(profile_config.get("engine", "")) if profile_config else ""
+    canonical_bib = str(profile_config.get("bibliography", "")) if profile_config else ""
+    canonical_sequence = [str(item) for item in profile_config.get("sequence", [])] if profile_config else []
+    effective_sequence = list(sequence)
+    override_used = bool(
+        profile_config
+        and (
+            engine != canonical_engine
+            or bibliography != canonical_bib
+            or effective_sequence != canonical_sequence
+        )
+    )
     report = {
-        "report_schema_version": "2.0.0",
+        "report_schema_version": "3.0.0",
         "status": status,
+        "attestation_mode": attestation_mode,
         "profile": profile,
+        "compile_profile_sha256": profile_hash,
         "engine": engine,
         "bibliography": bibliography,
-        "sequence": list(sequence),
+        "sequence": effective_sequence,
+        "profile_override_used": override_used,
         "main": main.relative_to(project).as_posix(),
         **snapshot,
         "compiled_from_source_sha256": snapshot["source_bundle_sha256"],
+        "latex_audit_report": audit_path.relative_to(project).as_posix() if audit_path.is_relative_to(project) else str(audit_path),
+        "latex_audit_report_sha256": sha256_file(audit_path) if audit_path.is_file() else None,
+        "audit_status": str(audit_report.get("status", "missing")),
+        "audit_issues": audit_issues,
         "pdf": pdf.relative_to(project).as_posix(),
         "pdf_sha256": sha256_file(pdf),
         **log_status,
@@ -261,9 +369,13 @@ def verify_compile_report(
     report: Mapping[str, Any],
 ) -> list[str]:
     issues: list[str] = []
-    if str(report.get("report_schema_version", "")) != "2.0.0":
-        issues.append("compile_report缺少v2源码新鲜度Schema；请用当前render_paper.py重新编译")
+    if str(report.get("report_schema_version", "")) != "3.0.0":
+        issues.append("compile_report缺少v3交付证明Schema；请用当前render_paper.py重新编译")
         return issues
+    if str(report.get("status", "")).lower() != "passed":
+        issues.append("compile_report未通过")
+    if str(report.get("attestation_mode", "")) != "formal":
+        issues.append("正式交付不得使用template_smoke编译证明")
     try:
         snapshot = source_bundle_snapshot(main)
     except Exception as exc:  # noqa: BLE001
@@ -275,6 +387,32 @@ def verify_compile_report(
         issues.append("compile_report缺少source_bundle_sha256/compiled_from_source_sha256")
     elif current_source != recorded_source or current_source != compiled_source:
         issues.append("LaTeX source bundle已在编译后变化；当前PDF stale，必须重新编译")
+
+    profile_name = str(report.get("profile", ""))
+    current_profile = current_profile_config(profile_name)
+    recorded_profile = str(report.get("compile_profile_sha256", ""))
+    if current_profile is None:
+        issues.append(f"compile_report引用未知编译profile: {profile_name}")
+    elif not recorded_profile or recorded_profile != profile_fingerprint(current_profile):
+        issues.append("编译profile定义已变化；当前PDF需要重新按当前profile编译")
+
+    audit_path = project / str(report.get("latex_audit_report") or "latex_audit_report.yaml")
+    if not audit_path.is_file():
+        issues.append("compile_report绑定的latex_audit_report不存在")
+    else:
+        current_audit_hash = sha256_file(audit_path)
+        if current_audit_hash != str(report.get("latex_audit_report_sha256", "")):
+            issues.append("latex_audit_report与compile_report绑定哈希不一致")
+        audit_report = yaml.safe_load(audit_path.read_text(encoding="utf-8")) or {}
+        issues.extend(verify_audit_report(project=project, main=main, report=audit_report, require_formal=True))
+
+    if not bool(report.get("log_present")) or int(report.get("fatal_errors", 0) or 0) != 0:
+        issues.append("compile_report没有有效的正式编译日志证明")
+    if int(report.get("unresolved_references", 0) or 0) != 0:
+        issues.append("compile_report存在未解析引用")
+    if int(report.get("unresolved_citations", 0) or 0) != 0:
+        issues.append("compile_report存在未解析文献引用")
+
     if not pdf.is_file():
         issues.append(f"编译PDF不存在: {pdf}")
     else:
