@@ -47,11 +47,11 @@ final_latex/
 推荐从仓库根目录执行：
 
 ```bash
-python scripts/audit_paper_prose.py final_latex/main.tex --bib final_latex/references.bib --strict
+python scripts/audit_latex_project.py final_latex/main.tex --bib final_latex/references.bib --framework 模型论文框架.md --strict
 python scripts/render_paper.py final_latex --profile cumcm --clean
 ```
 
-`audit_paper_prose.py` 应递归展开 `main.tex` 引用的项目内 `.tex` 模块后审查全文。完整编译仍以 `main.tex` 为唯一正式入口；模块化的主要收益是局部修改安全、错误定位和 diff 可读性，不等同于完整编译必然显著提速。
+`audit_latex_project.py` 会递归展开 `main.tex` 引用的项目内 `.tex` 模块，检查缺失引用、循环引用、子文件非法 document 声明和孤立正文 fragment，再把完整正文委托给 `audit_paper_prose.py` 执行原有 prose/structure/BibTeX/framework 审查。完整编译仍以 `main.tex` 为唯一正式入口；模块化的主要收益是局部修改安全、错误定位和 diff 可读性，不等同于完整编译必然显著提速。
 
 实际编译顺序由 `core/compile_profiles.yaml` 控制：
 
