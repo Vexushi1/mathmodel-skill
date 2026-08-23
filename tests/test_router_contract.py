@@ -161,7 +161,7 @@ class TestRouterContract(unittest.TestCase):
         self.assertEqual(plan["delivery_scope"], "submission")
         self.assertEqual(
             [item["name"] for item in plan["pre_delivery_gates"]],
-            ["semantic_governance", "project_sync"],
+            ["semantic_governance", "project_sync", "submission_package_validation"],
         )
         self.assertFalse(plan["pause_for_user_execution"])
         self.assertTrue(plan["sync_required_before_delivery"])
