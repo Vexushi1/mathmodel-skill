@@ -270,7 +270,7 @@ routing:
     load: [core/writing_reasoning_contract.yaml, modules/05_writing/latex.md, modules/06_review_delivery.md, packs/artifact/full_submission.md, packs/artifact/algorithm_flow.md]
     load_competition_pack: true
     terminal_outputs: [validated_submission_package]
-    pre_delivery_gates: [submission_package_validation]
+    pre_delivery_gates: [semantic_governance, project_sync, submission_package_validation]
     formal_delivery: true
     delivery_scope: submission
 
