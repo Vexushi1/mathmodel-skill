@@ -206,6 +206,10 @@ $defs:
       scope: {type: string, minLength: 1}
       depends_on: {type: array, uniqueItems: true, items: {type: string, minLength: 1}}
       anchor: {type: string}
+      source_file:
+        description: 可选的物理LaTeX源码映射；使用时必须是项目根目录下final_latex/中的.tex文件，旧单文件项目可缺失。
+        type: string
+        pattern: '^final_latex/.+\.tex$'
       status: {type: string, enum: [current, stale, not_applicable]}
 properties:
   semantic_governance_version:
