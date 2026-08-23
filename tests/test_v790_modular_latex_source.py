@@ -140,6 +140,38 @@ class TestV790ModularLatexSource(unittest.TestCase):
             findings = self.audit.audit_project(root / "main.tex")
             self.assertFalse(any(x.code == "latex_child_declares_document" for x in findings), findings)
 
+    def test_nested_include_must_be_project_root_relative(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "sections/q3").mkdir(parents=True)
+            (root / "main.tex").write_text(
+                r"\documentclass{article}\begin{document}\input{sections/q3/q3}\end{document}",
+                encoding="utf-8",
+            )
+            (root / "sections/q3/q3.tex").write_text(r"\input{model}", encoding="utf-8")
+            (root / "sections/q3/model.tex").write_text("当前模型。", encoding="utf-8")
+            findings = self.audit.audit_project(root / "main.tex")
+            item = next((x for x in findings if x.code == "latex_include_missing"), None)
+            self.assertIsNotNone(item, findings)
+            self.assertEqual(item.severity, "blocking")
+            self.assertIn("sections/q3/q3.tex -> model", item.evidence)
+
+    def test_nested_project_root_relative_include_resolves(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "sections/q3").mkdir(parents=True)
+            (root / "main.tex").write_text(
+                r"\documentclass{article}\begin{document}\input{sections/q3/q3}\end{document}",
+                encoding="utf-8",
+            )
+            (root / "sections/q3/q3.tex").write_text(
+                r"\input{sections/q3/model}",
+                encoding="utf-8",
+            )
+            (root / "sections/q3/model.tex").write_text("当前模型。", encoding="utf-8")
+            findings = self.audit.audit_project(root / "main.tex")
+            self.assertFalse(any(x.code == "latex_include_missing" for x in findings), findings)
+
     def test_orphan_content_fragment_is_warning(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

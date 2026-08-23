@@ -103,7 +103,7 @@ sections/q3/
 └─ results.tex
 ```
 
-其中 `q3.tex` 仅负责编排该问内部子文件。禁止为了形式制造几十个难以维护的碎片文件。
+其中 `q3.tex` 仅负责编排该问内部子文件。**所有 `\input` / `\include` 路径统一以 `main.tex` 所在工程根目录为基准**，即 `q3.tex` 中应写 `\input{sections/q3/model}`，不得依赖 `\input{model}` 按当前子文件目录解析。`audit_latex_project.py` 与正式编译采用同一根目录相对路径口径，避免出现 audit 通过而 XeLaTeX/latexmk 找不到子文件的偏差。禁止为了形式制造几十个难以维护的碎片文件。
 
 ### 2.2 Paper Fragment 到物理文件映射
 
@@ -169,11 +169,11 @@ python scripts/audit_paper_prose.py final_latex/main.tex --bib final_latex/refer
 python scripts/audit_latex_project.py final_latex/main.tex --bib final_latex/references.bib --framework 模型论文框架.md --strict
 ```
 
-`audit_latex_project.py` 负责递归展开项目内 `\input` / `\include`，执行确定性工程图检查，再把展开后的完整正文委托给 `audit_paper_prose.py` 的现有 prose/structure/BibTeX/framework 审查逻辑。它不是第二套写作规则。
+`audit_latex_project.py` 负责按 `main.tex` 所在工程根目录解析并递归展开项目内 `\input` / `\include`，执行确定性工程图检查，再把展开后的完整正文委托给 `audit_paper_prose.py` 的现有 prose/structure/BibTeX/framework 审查逻辑。它不是第二套写作规则，也不会接受正式编译无法按同一工程根目录解析的“子文件目录相对路径”。
 
 模块化工程应确定性检查：
 
-- `\input` / `\include` 指向的项目内 `.tex` 文件存在；
+- `\input` / `\include` 使用 `main.tex` 工程根目录相对路径，且指向的项目内 `.tex` 文件存在；
 - 不出现递归 include cycle；
 - 子文件不重复声明 `\documentclass` 或 document 环境；
 - 全工程不存在 duplicate label；
