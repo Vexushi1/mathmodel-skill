@@ -1,0 +1,40 @@
+% 全局宏包与环境只在此处维护；正文 section 不重复加载宏包。
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{subcaption}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{cleveref}
+\usepackage[most]{tcolorbox}
+
+% cumcmthesis v2.6 自定义了旧版 \supercite；在加载 biblatex 前释放该命令。
+\let\supercite\relax
+\usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
+\addbibresource{references.bib}
+
+% 命题按阿拉伯章节号编号。0--4 是默认正文阅读预算，不是数学硬上限。
+% 短证明默认自然分段；只有明显多阶段证明才使用 enumerate。
+\newtheorem{proposition}{命题}[section]
+\renewcommand{\theproposition}{\arabic{section}.\arabic{proposition}}
+\newenvironment{hskproposition}[1]
+  {\begin{tcolorbox}[
+      colback=white,
+      colframe=black!72,
+      boxrule=0.65pt,
+      arc=1mm,
+      outer arc=1mm,
+      left=8pt,
+      right=8pt,
+      top=7pt,
+      bottom=7pt,
+      before skip=8pt,
+      after skip=8pt,
+      boxsep=0pt
+    ]
+    \begin{proposition}[#1]}
+  {\end{proposition}\end{tcolorbox}}
+\newenvironment{hskproof}
+  {\par\smallskip\noindent\textbf{证明：}\par\nopagebreak\smallskip}
+  {\hfill$\square$\par}

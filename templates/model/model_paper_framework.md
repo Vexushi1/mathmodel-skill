@@ -169,11 +169,11 @@
 
 ### Paper Fragment Dependency Map
 
-> 用于局部 stale 传播。`paper_framework.sync_status=current` 只表示本框架已同步记录当前状态，不代表下面所有 fragment 都 current。
+> 用于局部 stale 传播。`paper_framework.sync_status=current` 只表示本框架已同步记录当前状态，不代表下面所有 fragment 都 current。进入模块化 LaTeX 写作后，可为 fragment 记录对应物理源码文件；旧单文件项目或尚未进入 LaTeX 阶段时允许留空。
 
-| Fragment ID | 类型 | 范围 | 依赖对象 | 正文/摘要锚点 | 状态 |
-|---|---|---|---|---|---|
-| paper.abstract.q1 | abstract_claim | Q1 | Q1.result_summary |  | current / stale / not_applicable |
+| Fragment ID | 类型 | 范围 | 依赖对象 | 正文/摘要锚点 | LaTeX 源码文件（可选） | 状态 |
+|---|---|---|---|---|---|---|
+| paper.abstract.q1 | abstract_claim | Q1 | Q1.result_summary |  | `final_latex/frontmatter/abstract.tex` | current / stale / not_applicable |
 
 ## 各问模型与结果
 
@@ -410,7 +410,7 @@ $$
 - [ ] 影响结论的数值参数有来源、收敛或验证依据；
 - [ ] 复杂度异常信号已经解释；
 - [ ] semantic revision 与 stale 传播正确；
-- [ ] Paper Fragment Dependency Map 只传播真实依赖，未把无关章节机械 stale；
+- [ ] Paper Fragment Dependency Map 只传播真实依赖，未把无关章节机械 stale；模块化 LaTeX 项目中的 current/stale fragment 已记录可追踪的源码文件；
 - [ ] 已求解小问均有 current 结果摘要，具体数值已回工作簿复核；
 - [ ] 核心答案按 Numeric Profile 保留评分所需高精度，摘要未因简洁而无依据降精度；
 - [ ] 多方法验证同时检查适用的数值与结构结论；
