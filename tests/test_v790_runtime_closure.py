@@ -151,6 +151,12 @@ class TestV790RuntimeClosure(unittest.TestCase):
             issues = self.sync._compile_artifact_issues(project, state)
             self.assertTrue(any("source bundle" in item and "stale" in item for item in issues), issues)
 
+    def test_one_shot_migration_artifacts_are_absent(self):
+        self.assertFalse((ROOT / "scripts/_v790_runtime_closure_migration.py").exists())
+        refresh = (ROOT / ".github/workflows/refresh-generated.yml").read_text(encoding="utf-8")
+        self.assertNotIn("Apply one-shot v7.9.0 runtime closure", refresh)
+        self.assertNotIn("Patch one-shot migration runner", refresh)
+
     def test_render_paper_is_the_compile_report_producer(self):
         text = (ROOT / "scripts/render_paper.py").read_text(encoding="utf-8")
         self.assertIn("write_compile_report", text)
