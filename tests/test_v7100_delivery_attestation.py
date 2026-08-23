@@ -58,6 +58,22 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
             self.assertEqual(report["source_bundle_sha256"], self.delivery.source_bundle_snapshot(main)["source_bundle_sha256"])
             self.assertEqual(report["framework_sha256"], self.delivery.sha256_file(framework))
 
+    def test_audit_attestation_separates_gate_status_from_highest_severity(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            main = root / "main.tex"
+            main.write_text("\\documentclass{article}\\begin{document}x\\end{document}", encoding="utf-8")
+            warning = [self.audit.Finding("warning", "w", "warning-only")]
+            formal_warning = self.audit.write_audit_report(main_file=main, findings=warning, mode="formal")
+            self.assertEqual(formal_warning["status"], "passed")
+            self.assertEqual(formal_warning["highest_severity"], "warning")
+            review = [self.audit.Finding("review_required", "r", "needs review")]
+            formal_review = self.audit.write_audit_report(main_file=main, findings=review, mode="formal")
+            self.assertEqual(formal_review["status"], "failed")
+            smoke_review = self.audit.write_audit_report(main_file=main, findings=review, mode="template_smoke")
+            self.assertEqual(smoke_review["status"], "passed")
+            self.assertEqual(smoke_review["highest_severity"], "review_required")
+
     def test_formal_audit_blocks_missing_framework(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
