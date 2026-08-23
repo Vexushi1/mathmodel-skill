@@ -68,8 +68,14 @@ def _current_compiled_pdf(root: Path, state: Mapping[str, Any]) -> Path:
     return root / str(declared or "final_latex/main.pdf")
 
 
+def declared_package_path(root: Path, state: Mapping[str, Any]) -> Path:
+    artifacts = state.get("artifacts") or {}
+    declared = str(artifacts.get("submission_package") or "submission/submission.zip")
+    candidate = Path(declared)
+    return candidate.resolve() if candidate.is_absolute() else (root / candidate).resolve()
+
+
 def _manifest_from_archive(archive: zipfile.ZipFile) -> tuple[dict[str, Any], list[str]]:
-    issues: list[str] = []
     names = archive.namelist()
     if names.count(MANIFEST_NAME) != 1:
         return {}, ["提交包必须且只能包含一个submission_manifest.yaml"]
@@ -78,9 +84,8 @@ def _manifest_from_archive(archive: zipfile.ZipFile) -> tuple[dict[str, Any], li
     except Exception as exc:  # noqa: BLE001
         return {}, [f"无法解析submission_manifest.yaml: {exc}"]
     if not isinstance(payload, dict):
-        issues.append("submission_manifest.yaml必须是映射结构")
-        return {}, issues
-    return payload, issues
+        return {}, ["submission_manifest.yaml必须是映射结构"]
+    return payload, []
 
 
 def validate_package(
@@ -95,13 +100,19 @@ def validate_package(
     warnings: list[str] = []
     state = load_yaml(root / "state/project_state.yaml")
 
+    try:
+        package.relative_to(root)
+    except ValueError:
+        issues.append("正式提交包必须位于当前项目目录内")
+
     if not package.is_file():
-        return {"status": "failed", "kind": None, "issues": [f"提交包不存在: {package}"], "warnings": []}
+        return {"status": "failed", "kind": None, "issues": sorted(set([*issues, f"提交包不存在: {package}"])), "warnings": []}
     try:
         archive = zipfile.ZipFile(package)
     except Exception as exc:  # noqa: BLE001
-        return {"status": "failed", "kind": None, "issues": [f"无法打开提交ZIP: {exc}"], "warnings": []}
+        return {"status": "failed", "kind": None, "issues": sorted(set([*issues, f"无法打开提交ZIP: {exc}"])), "warnings": []}
 
+    manifest: dict[str, Any] = {}
     with archive:
         names = [name for name in archive.namelist() if not name.endswith("/")]
         duplicates = sorted({name for name in names if names.count(name) > 1})
@@ -132,6 +143,8 @@ def validate_package(
             if relative == MANIFEST_NAME:
                 issues.append("submission_manifest不得把自身列入files")
                 continue
+            if relative in declared_paths:
+                issues.append(f"submission_manifest重复声明文件: {relative}")
             declared_paths.append(relative)
             if relative not in names:
                 issues.append(f"manifest声明文件未进入ZIP: {relative}")
@@ -145,7 +158,9 @@ def validate_package(
             except ValueError:
                 issues.append(f"manifest路径越出项目根目录: {relative}")
                 continue
-            if current.is_file() and sha256_file(current) != archived_hash:
+            if not current.is_file():
+                issues.append(f"manifest声明的项目文件当前不存在: {relative}")
+            elif sha256_file(current) != archived_hash:
                 issues.append(f"提交包文件不是当前项目版本: {relative}")
 
         archived_payload = set(names) - {MANIFEST_NAME}
@@ -185,11 +200,15 @@ def validate_package(
                     rules = profile.get("edition_rules") or {}
                     if rules.get("verification_status") != "verified":
                         issues.append(f"{profile_name}当届提交规则尚未verified，不能验证official package")
+                    if not rules.get("verified_at") or not rules.get("source"):
+                        issues.append(f"{profile_name} verified规则缺少verified_at/source证据")
                     patterns = [str(item) for item in (rules.get("submission_files") or [])]
                     if not patterns:
                         issues.append(f"{profile_name} verified submission_files allowlist为空")
                     expected = expand_allowlist(root, patterns)
-                    if expected and archived_payload != expected:
+                    if patterns and not expected:
+                        issues.append(f"{profile_name} submission_files allowlist未解析到任何当前项目文件")
+                    if archived_payload != expected:
                         issues.append(
                             "official package内容与当前verified submission_files allowlist不一致: "
                             f"expected={sorted(expected)}, actual={sorted(archived_payload)}"
@@ -198,8 +217,12 @@ def validate_package(
                         issues.append("official package manifest的competition_profile与当前profile不一致")
                     if manifest.get("rule_verification_status") != "verified":
                         issues.append("official package manifest未记录verified规则状态")
+                    if manifest.get("rule_verified_at") != rules.get("verified_at"):
+                        issues.append("official package manifest的rule_verified_at与当前规则不一致")
                     if manifest.get("rule_source") != rules.get("source"):
                         issues.append("official package manifest的rule_source与当前规则来源不一致")
+                    if manifest.get("submission_files_allowlist") != patterns:
+                        issues.append("official package manifest记录的submission_files allowlist与当前规则不一致")
         elif kind == "reproducibility":
             lowered = [name.lower() for name in archived_payload]
             for suffix, label in ((".pdf", "PDF"), (".py", "Python代码"), (".xlsx", "结果工作簿"), (".m", "MATLAB脚本")):
@@ -210,7 +233,7 @@ def validate_package(
 
     return {
         "status": "passed" if not issues else "failed",
-        "kind": str(manifest.get("kind", "")) if 'manifest' in locals() else None,
+        "kind": str(manifest.get("kind", "")) if manifest else None,
         "issues": sorted(set(issues)),
         "warnings": sorted(set(warnings)),
     }
@@ -219,17 +242,20 @@ def validate_package(
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("project", nargs="?", default=".")
-    parser.add_argument("--package", default="submission/submission.zip")
+    parser.add_argument("--package", default=None, help="package path; defaults to state.artifacts.submission_package")
     parser.add_argument("--competition")
     parser.add_argument("--strict", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
-    report = validate_package(
-        Path(args.project),
-        Path(args.project) / args.package if not Path(args.package).is_absolute() else Path(args.package),
-        competition=args.competition,
-    )
+    root = Path(args.project).resolve()
+    state = load_yaml(root / "state/project_state.yaml")
+    if args.package:
+        raw_package = Path(args.package)
+        package = raw_package.resolve() if raw_package.is_absolute() else (root / raw_package).resolve()
+    else:
+        package = declared_package_path(root, state)
+    report = validate_package(root, package, competition=args.competition)
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
     else:
