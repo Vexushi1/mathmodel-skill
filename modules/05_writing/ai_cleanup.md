@@ -9,7 +9,7 @@
 
 ## A. Integrity / Hard boundary
 
-本层只确认不可被润色掩盖的事实与结构边界，具体确定性检查交给 `scripts/audit_paper_prose.py`、project-state/framework validators 和 LaTeX 编译链：
+本层只确认不可被润色掩盖的事实与结构边界。正式 LaTeX 工程的确定性检查统一从 `scripts/audit_latex_project.py` 进入；该入口再委托 `scripts/audit_paper_prose.py` 完成 prose/BibTeX/framework 检查，并与 project-state/framework validators、LaTeX 编译链共同闭环：
 
 - 摘要、正文、表格、提交结果文件中的核心数值必须回到同一已验收工作簿事实源；
 - stale 模型、结果、命题、图表、paper fragment 或 Title Claim 不得写成 current；
@@ -66,7 +66,7 @@ AI Cleanup 不重新判断数学正确性，也不修改模型事实来让文章
 - Title Claim 中的主方法、机制或贡献必须在正文实质使用，并有结果证据；
 - 标题—摘要—关键词—正文主模型之间不能出现“标题高级、正文实际没用”的包装漂移。
 
-BibTeX key、重复条目、未使用条目等确定性结构问题交给 `scripts/audit_paper_prose.py`。
+BibTeX key、重复条目、未使用条目等确定性结构问题由 `scripts/audit_latex_project.py` 的底层 prose/BibTeX 审计处理。
 
 ## C. Style & Necessity
 
@@ -128,7 +128,7 @@ BibTeX key、重复条目、未使用条目等确定性结构问题交给 `scrip
 清理完成后运行：
 
 ```bash
-python scripts/audit_paper_prose.py final_latex/main.tex \
+python scripts/audit_latex_project.py final_latex/main.tex \
   --bib final_latex/references.bib \
   --framework 模型论文框架.md
 ```

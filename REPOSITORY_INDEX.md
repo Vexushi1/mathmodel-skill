@@ -78,7 +78,8 @@
 - `scripts/sync_project.py`：阶段产物发现、工作簿Schema、图表链、分层哈希和stale；
 - `scripts/validate_project_state.py`：分类兼容、哈希与状态语义；
 - `scripts/validate_model_paper_framework.py`：compact/full 模式、Algorithm Trace 与项目记忆确定性校验；
-- `scripts/audit_paper_prose.py`：成稿结构、引用、登记术语/Numeric Profile 的保守审查；
+- `scripts/audit_latex_project.py`：正式 LaTeX 项目审计入口，递归覆盖模块化源码并委托 prose/BibTeX/framework 检查；
+- `scripts/audit_paper_prose.py`：上述入口使用的底层成稿结构、引用、登记术语/Numeric Profile 保守审查实现；
 - `scripts/lint_skill.py`：版本、路径、生产者—消费者、route load、gate和语义闭环；
 - `scripts/score_submission.py`：评委式评分。
 

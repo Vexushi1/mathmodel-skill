@@ -219,7 +219,7 @@ ANALYSIS_CODE_OUTPUTS = [
 ]
 FINAL_WORKFLOW_OUTPUTS = [
     "approved_figures", "latex_source", "compiled_pdf", "compile_report",
-    "review_report", "model_paper_framework",
+    "review_report", "validated_submission_package", "model_paper_framework",
 ]
 DOWNSTREAM_MODULES = {
     "modules/03_result_analysis.md", "modules/04_figure_evidence.md",
@@ -311,9 +311,10 @@ def apply_user_execution_boundary(
             return paths, ANALYSIS_CODE_OUTPUTS.copy(), ["code"], SEMANTIC_CODE_GATES.copy(), False, True
         paths = [item for item in paths if item not in {"modules/03_solve_validate.md", "modules/03_result_analysis.md"}]
         paths.extend([
-            "modules/04_figure_evidence.md", "modules/05_writing/latex.md",
+            "modules/04_figure_evidence.md", "packs/artifact/figure.md",
+            "modules/05_writing/latex.md", "packs/artifact/latex.md",
             "modules/05_writing/ai_cleanup.md", "modules/05_latex_compile_quality.md",
-            "modules/06_review_delivery.md",
+            "modules/06_review_delivery.md", "packs/artifact/review.md",
         ])
         return paths, FINAL_WORKFLOW_OUTPUTS.copy(), ["submission"], SEMANTIC_SYNC_GATES.copy(), True, False
 

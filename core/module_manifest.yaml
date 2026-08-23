@@ -1,4 +1,4 @@
-version: 7.8.1
+version: 7.9.0
 workflow_order:
 - problem_audit
 - model_design
@@ -97,7 +97,7 @@ artifact_catalog:
   cleaned_paper_text: 已清理论文正文
   unsupported_claims: 缺乏证据的结论清单
   compiled_pdf: 最终PDF
-  compile_report: 编译引擎、日志和警告检查
+  compile_report: 编译引擎、日志、source bundle/PDF哈希新鲜度与警告检查
   review_report: 终审问题与评分报告
   validated_submission_package: 通过交付检查的提交包
   project_state: 项目机器状态

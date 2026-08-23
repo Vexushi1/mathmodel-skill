@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.8.1
+version: 7.9.0
 summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, evidence-driven conditional preprocessing, full-fidelity user execution, separate primary/result-analysis Python stages, project-memory model-paper framework, Source-Derivation-Destination formula traces, adaptive Algorithm Trace with stepwise/pseudocode presentation, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware high-precision Numeric Profile, Title Claim Gate, support/modify/reject analysis evidence, local paper-fragment stale propagation, Paragraph Necessity, MATLAB evidence figures, conservative prose/BibTeX audit, and LaTeX-first delivery.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.8.1
+# HSK 数学建模模块化工作流 v7.9.0
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -108,7 +108,7 @@ LaTeX 是默认论文主链。写作阶段不在入口文件复制正文规则�
 
 **核心答案展示精度优先服从题目、官方格式与评分精度。** 若后续小数位可能计分，摘要、正文直接答案、关键结果表和提交结果文件不得为了简洁或美观擅自降精度；无更具体口径时，高精度评分场景通常保留小数后 6--7 位。自然语言技术术语按 Terminology Registry 保持 canonical term 稳定；标题中的实质方法/贡献通过 Title Claim Gate 与摘要、关键词、正文主模型和结果证据闭环。
 
-成稿运行 `scripts/audit_paper_prose.py`，可附 `--framework 模型论文框架.md` 做登记术语与 Numeric Profile 的保守检查。确定性 Hard 错误为 blocking，Default 偏离为 review_required，Recommendation/风格风险为 warning；机器不得从正则推断数学正确性、算法正确性、术语语义等价、物理/统计准确性或 citation 的语义支持关系。
+正式 LaTeX 成稿统一运行 `scripts/audit_latex_project.py`；模块化工程递归展开全部 active fragment，兼容单文件工程自然退化为单文件审计，随后由底层 `audit_paper_prose.py` 执行 prose/BibTeX/framework 检查。确定性 Hard 错误为 blocking，Default 偏离为 review_required，Recommendation/风格风险为 warning；机器不得从正则推断数学正确性、算法正确性、术语语义等价、物理/统计准确性或 citation 的语义支持关系。
 
 ## 主链
 
