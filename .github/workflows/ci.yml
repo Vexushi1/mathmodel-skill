@@ -236,9 +236,17 @@ jobs:
         with:
           name: regenerated-repository-metadata
           path: |
+            SKILL_FILE_INDEX.md
+            TEMPLATE_INDEX.md
             HSK_SKILL_FILE_INDEX_V622.md
             HSK_TEMPLATE_INDEX_V622.md
             MANIFEST.sha256
       - name: Reject stale generated files
         shell: bash
-        run: git diff --exit-code -- HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
+        run: |
+          git diff --exit-code -- \
+            SKILL_FILE_INDEX.md \
+            TEMPLATE_INDEX.md \
+            HSK_SKILL_FILE_INDEX_V622.md \
+            HSK_TEMPLATE_INDEX_V622.md \
+            MANIFEST.sha256
