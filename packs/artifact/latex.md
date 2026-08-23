@@ -157,17 +157,13 @@ model_review  -> final_latex/sections/09_evaluation.tex
 
 ## 五、Citation Evidence 与模块化工程检查
 
-仍采用单文件模板的工程（包括尚未迁移的 MCM/ICM、电工杯模板与旧项目）可继续直接运行核心 prose audit：
-
-```bash
-python scripts/audit_paper_prose.py final_latex/main.tex --bib final_latex/references.bib --strict
-```
-
-模块化工程正式使用项目包装器：
+正式 LaTeX 审计无论模块化还是兼容单文件工程，都统一从项目包装器进入：
 
 ```bash
 python scripts/audit_latex_project.py final_latex/main.tex --bib final_latex/references.bib --framework 模型论文框架.md --strict
 ```
+
+模块化工程会递归展开项目内 `\input` / `\include`；兼容单文件工程会自然退化为单文件展开。`scripts/audit_paper_prose.py` 继续作为包装器内部的 prose/structure/BibTeX/framework 审查实现，可用于维护级单元测试，但不再作为活动 LaTeX route 的默认入口。
 
 `audit_latex_project.py` 负责按 `main.tex` 所在工程根目录解析并递归展开项目内 `\input` / `\include`，执行确定性工程图检查，再把展开后的完整正文委托给 `audit_paper_prose.py` 的现有 prose/structure/BibTeX/framework 审查逻辑。它不是第二套写作规则，也不会接受正式编译无法按同一工程根目录解析的“子文件目录相对路径”。
 
@@ -192,6 +188,7 @@ python scripts/audit_latex_project.py final_latex/main.tex --bib final_latex/ref
 - 模块化项目由 `audit_latex_project.py` 递归覆盖 `main.tex` 引用的全部当前 `.tex` fragment，且未留下 blocking，未解释的 review_required 已处理；
 - 正文核心图表有显式引用并与真实工作簿/MATLAB 来源一致；
 - citation key 全部可解析，参考文献数据库无结构性冲突；
+- `scripts/render_paper.py` 自动生成的 `compile_report.yaml` 为 passed，当前 source bundle/PDF hash 与编译时记录一致；
 - 编译日志无 Error、未定义引用、缺失文献、缺图、字体错误和不可接受的 Overfull box；
 - 目录、页码、摘要、命题、图表和附录编号正确；
 - CUMCM、MCM/ICM、电工杯模板通过仓库 CI smoke build；

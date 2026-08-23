@@ -15,7 +15,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_VERSION = "7.8.1"
+PACKAGE_VERSION = "7.9.0"
 REQUIRED = [
     "SKILL.md", "README.md", "REPOSITORY_INDEX.md", "SKILL_CHANGE_GOVERNANCE.md", "CHANGELOG.md",
     "PROJECT_INSTRUCTIONS.md", "RUNTIME_ROUTER.md", "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md",
@@ -35,7 +35,8 @@ REQUIRED = [
     "templates/matlab/data_process.m", "templates/latex/cumcm/hsk/hsk_main.tex",
     "templates/latex/diangong/main.tex", "templates/writing/caption_explanation.md",
     "scripts/resolve_workflow.py", "scripts/validate_semantic_governance.py", "scripts/sync_project.py",
-    "scripts/validate_code_delivery.py", "scripts/validate_user_execution.py", "scripts/audit_paper_prose.py",
+    "scripts/validate_code_delivery.py", "scripts/validate_user_execution.py", "scripts/audit_latex_project.py",
+    "scripts/audit_paper_prose.py", "scripts/latex_delivery.py",
     "scripts/validate_model_paper_framework.py", "scripts/validate_project_state.py",
     "scripts/score_submission.py", ".github/pull_request_template.md",
     ".github/workflows/ci.yml", ".github/workflows/refresh-generated.yml",

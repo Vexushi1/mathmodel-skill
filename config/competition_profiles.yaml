@@ -14,7 +14,7 @@ profiles:
     aliases: [国赛, CUMCM, cumcm]
     stable:
       competition_pack: packs/competition/cumcm.md
-      latex_template: templates/latex/cumcm/cumcmthesis/
+      latex_template: templates/latex/cumcm/hsk/
       compile_profile: cumcm
       language: zh-CN
     edition_rules:

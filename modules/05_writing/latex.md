@@ -1,6 +1,6 @@
 # Module 05B：LaTeX 终稿写作
 
-论文从首个正文版本开始直接使用 LaTeX，并在源码中持续修改至终稿。中文国赛默认基于 `templates/latex/cumcm/cumcmthesis/`。DOCX 不是进入本模块的前置条件；显式 DOCX 审阅件也不得成为模型或数值事实源。
+论文从首个正文版本开始直接使用 LaTeX，并在源码中持续修改至终稿。中文国赛默认基于 `templates/latex/cumcm/hsk/` 模块化工程；`templates/latex/cumcm/cumcmthesis/` 只提供上游 class/基础模板资源。DOCX 不是进入本模块的前置条件；显式 DOCX 审阅件也不得成为模型或数值事实源。
 
 本模块是**正文结构与表达权威**；跨竞赛推理、证据层级、命题预算、Algorithm Trace 与算法流程呈现、引用证据、术语一致性、数字展示、标题主张、深化证据处置和局部 stale 治理由 `core/writing_reasoning_contract.yaml` 唯一定义。本模块只把这些规则落到论文正文，不复制第二套推理合同。
 
@@ -302,6 +302,6 @@ GA、PSO、DE、K-means、XGBoost、动态规划等通用算法只写与本题�
 
 ## 九、输出
 
-本模块输出 `latex_source_draft` 与可审查 `paper_text`。随后执行 `modules/05_writing/ai_cleanup.md`，再运行 `scripts/audit_paper_prose.py` 做非破坏性检查；清理后的 `latex_source` 才进入编译模块。
+本模块输出 `latex_source_draft` 与可审查 `paper_text`。随后执行 `modules/05_writing/ai_cleanup.md`，正式 LaTeX 审计统一运行 `scripts/audit_latex_project.py`；该入口递归覆盖模块化源码，并把展开后的完整正文委托给 `scripts/audit_paper_prose.py`。清理后的 `latex_source` 通过项目审计后才进入编译模块。
 
 正式 LaTeX/PDF 交付同时附带最新版 `模型论文框架.md`。Artifact Pack 与终审只消费本模块和 reasoning contract，不得重新定义正文规则。

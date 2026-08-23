@@ -1,4 +1,4 @@
-skill_version: 7.8.1
+skill_version: 7.9.0
 bootstrap_schema_version: 1.1.0
 purpose: >-
   Minimal startup index for the HSK mathematical-modeling workflow. Read this
@@ -43,6 +43,7 @@ entrypoints:
   review: python scripts/score_submission.py
   validate_code_delivery: python scripts/validate_code_delivery.py
   validate_user_execution: python scripts/validate_user_execution.py
+  audit_latex_project: python scripts/audit_latex_project.py
   audit_paper_prose: python scripts/audit_paper_prose.py
 repository_maintenance:
   governance: SKILL_CHANGE_GOVERNANCE.md
