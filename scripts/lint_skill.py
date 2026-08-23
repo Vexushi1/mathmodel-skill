@@ -13,6 +13,8 @@ from pathlib import Path
 import lint_skill_checks as checks
 
 ROOT = checks.ROOT
+_BOOTSTRAP = checks.load_structured(ROOT / "core/bootstrap.yaml") or {}
+checks.PACKAGE_VERSION = str(_BOOTSTRAP.get("skill_version", checks.PACKAGE_VERSION))
 _ORIGINAL_READ_TEXT = checks.read_text
 _CUMCM_ROOT = ROOT / "templates/latex/cumcm/hsk"
 _CUMCM_MAIN = (_CUMCM_ROOT / "hsk_main.tex").resolve()
