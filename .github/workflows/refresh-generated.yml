@@ -41,15 +41,20 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
       - name: Patch one-shot migration runner
         run: |
+          git fetch --depth=1 origin main
           python - <<'PY'
           from pathlib import Path
           path = Path('scripts/_v790_runtime_closure_migration.py')
           text = path.read_text(encoding='utf-8')
-          old = 'updated, count = pattern.subn(replacement, text, count=1)'
-          new = 'updated, count = pattern.subn(lambda _: replacement, text, count=1)'
-          if text.count(old) != 1:
-              raise SystemExit(f'expected one migration patch target, found {text.count(old)}')
-          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          replacements = {
+              'updated, count = pattern.subn(replacement, text, count=1)': 'updated, count = pattern.subn(lambda _: replacement, text, count=1)',
+              '"HEAD^:.github/workflows/refresh-generated.yml"': '"origin/main:.github/workflows/refresh-generated.yml"',
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f'expected one migration patch target, found {text.count(old)}: {old}')
+              text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
           PY
       - name: Apply one-shot v7.9.0 runtime closure
         run: python scripts/_v790_runtime_closure_migration.py
