@@ -318,7 +318,7 @@ project_sync:
     - result_quality_report
     - result_analysis_report
     - compiled_pdf
-    - validated_submission_package
+    - submission_package
   conditional_stage_requirements:
     preprocessing_decision_project_level:
       condition: preprocessing_decision == project_level
