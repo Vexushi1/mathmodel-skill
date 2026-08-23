@@ -2,9 +2,10 @@
 """Deterministic LaTeX source, audit, and compile-attestation utilities.
 
 The source bundle contains the active project-root-relative TeX include graph plus
-project-local bibliography, document class/style files and graphics referenced by
-that graph. Compile reports bind the PDF to that source bundle, the formal LaTeX
-audit attestation, and the selected compile-profile definition.
+project-local bibliography, recursively referenced class/style/support files, and
+graphics referenced by that graph. Compile reports bind the PDF to that source bundle,
+the formal LaTeX audit attestation, the selected compile-profile definition, and the
+actual compilation log.
 """
 from __future__ import annotations
 
@@ -19,7 +20,9 @@ import yaml
 
 INCLUDE_RE = re.compile(r"\\(?:input|include)\s*\{([^{}]+)\}")
 DOCUMENTCLASS_RE = re.compile(r"\\documentclass(?:\[[^\]]*\])?\{([^{}]+)\}")
+LOADCLASS_RE = re.compile(r"\\LoadClass(?:\[[^\]]*\])?\{([^{}]+)\}")
 USEPACKAGE_RE = re.compile(r"\\usepackage(?:\[[^\]]*\])?\{([^{}]+)\}")
+REQUIREPACKAGE_RE = re.compile(r"\\RequirePackage(?:\[[^\]]*\])?\{([^{}]+)\}")
 ADDBIB_RE = re.compile(r"\\addbibresource(?:\[[^\]]*\])?\{([^{}]+)\}")
 BIBLIOGRAPHY_RE = re.compile(r"\\bibliography\{([^{}]+)\}")
 GRAPHICS_RE = re.compile(r"\\includegraphics(?:\[[^\]]*\])?\{([^{}]+)\}")
@@ -30,6 +33,7 @@ VERBATIM_ENV_RE = re.compile(
     re.S,
 )
 TEXT_SUFFIXES = {".tex", ".bib", ".cls", ".sty", ".cfg", ".def"}
+SUPPORT_INPUT_SUFFIXES = (".tex", ".cfg", ".def", ".sty", ".cls")
 GRAPHIC_SUFFIXES = (".pdf", ".png", ".jpg", ".jpeg", ".eps", ".svg", ".tif", ".tiff")
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 COMPILE_PROFILES_PATH = SKILL_ROOT / "core" / "compile_profiles.yaml"
@@ -98,6 +102,55 @@ def _discover_tex_graph(main: Path) -> tuple[set[Path], str]:
     return visited, "\n".join(texts)
 
 
+def _declared_support_files(root: Path, text: str) -> list[Path]:
+    candidates: list[Path] = []
+    for pattern, suffix in (
+        (DOCUMENTCLASS_RE, ".cls"),
+        (LOADCLASS_RE, ".cls"),
+        (USEPACKAGE_RE, ".sty"),
+        (REQUIREPACKAGE_RE, ".sty"),
+    ):
+        for raw_names in pattern.findall(text):
+            for name in raw_names.split(","):
+                candidate = _safe_project_path(root, name.strip(), suffix)
+                if candidate is not None and candidate.is_file():
+                    candidates.append(candidate)
+    return candidates
+
+
+def _resolve_support_input(root: Path, token: str) -> Path | None:
+    raw = Path(token.strip())
+    if raw.suffix:
+        candidate = _safe_project_path(root, token)
+        return candidate if candidate is not None and candidate.is_file() else None
+    for suffix in SUPPORT_INPUT_SUFFIXES:
+        candidate = _safe_project_path(root, token, suffix)
+        if candidate is not None and candidate.is_file():
+            return candidate
+    return None
+
+
+def _discover_local_support_files(root: Path, seed_text: str) -> tuple[set[Path], str]:
+    discovered: set[Path] = set()
+    queue = list(_declared_support_files(root, seed_text))
+    texts: list[str] = []
+    while queue:
+        path = queue.pop(0).resolve()
+        if path in discovered:
+            continue
+        discovered.add(path)
+        code = executable_tex(path.read_text(encoding="utf-8-sig", errors="strict"))
+        texts.append(code)
+        for candidate in _declared_support_files(root, code):
+            if candidate.resolve() not in discovered:
+                queue.append(candidate)
+        for target in INCLUDE_RE.findall(code):
+            candidate = _resolve_support_input(root, target)
+            if candidate is not None and candidate.resolve() not in discovered:
+                queue.append(candidate)
+    return discovered, "\n".join(texts)
+
+
 def _graphic_dirs(root: Path, combined: str) -> list[Path]:
     directories = [root]
     for block in GRAPHICSPATH_RE.findall(combined):
@@ -131,26 +184,18 @@ def source_bundle_files(main: Path, bib_path: Path | None = None) -> list[Path]:
     root = main.parent.resolve()
     visited, combined = _discover_tex_graph(main)
     files = set(visited)
-
-    for raw_name in DOCUMENTCLASS_RE.findall(combined):
-        for name in raw_name.split(","):
-            candidate = _safe_project_path(root, name.strip(), ".cls")
-            if candidate is not None and candidate.is_file():
-                files.add(candidate)
-    for raw_names in USEPACKAGE_RE.findall(combined):
-        for name in raw_names.split(","):
-            candidate = _safe_project_path(root, name.strip(), ".sty")
-            if candidate is not None and candidate.is_file():
-                files.add(candidate)
+    support_files, support_text = _discover_local_support_files(root, combined)
+    files.update(support_files)
+    all_text = "\n".join(item for item in (combined, support_text) if item)
 
     bib_candidates: list[Path] = []
     if bib_path is not None:
         bib_candidates.append(bib_path.resolve())
-    for token in ADDBIB_RE.findall(combined):
+    for token in ADDBIB_RE.findall(all_text):
         candidate = _safe_project_path(root, token, ".bib")
         if candidate is not None:
             bib_candidates.append(candidate)
-    for block in BIBLIOGRAPHY_RE.findall(combined):
+    for block in BIBLIOGRAPHY_RE.findall(all_text):
         for token in block.split(","):
             candidate = _safe_project_path(root, token.strip(), ".bib")
             if candidate is not None:
@@ -166,8 +211,8 @@ def source_bundle_files(main: Path, bib_path: Path | None = None) -> list[Path]:
         if candidate.is_file():
             files.add(candidate)
 
-    directories = _graphic_dirs(root, combined)
-    for token in GRAPHICS_RE.findall(combined):
+    directories = _graphic_dirs(root, all_text)
+    for token in GRAPHICS_RE.findall(all_text):
         graphic = _resolve_graphic(root, token, directories)
         if graphic is not None:
             files.add(graphic)
@@ -317,7 +362,8 @@ def write_compile_report(
     if not pdf.is_file():
         raise FileNotFoundError(pdf)
     snapshot = source_bundle_snapshot(main, bib_path=bib_path)
-    log_status = inspect_log(project / f"{main.stem}.log")
+    log_path = project / f"{main.stem}.log"
+    log_status = inspect_log(log_path)
 
     audit_path = (audit_report_path or project / "latex_audit_report.yaml").resolve()
     audit_report: dict[str, Any] = {}
@@ -369,6 +415,8 @@ def write_compile_report(
         "latex_audit_report_sha256": sha256_file(audit_path) if audit_path.is_file() else None,
         "audit_status": str(audit_report.get("status", "missing")),
         "audit_issues": audit_issues,
+        "log": log_path.relative_to(project).as_posix(),
+        "log_sha256": sha256_file(log_path) if log_path.is_file() else None,
         "pdf": pdf.relative_to(project).as_posix(),
         "pdf_sha256": sha256_file(pdf),
         **log_status,
@@ -448,6 +496,26 @@ def verify_compile_report(
                     require_formal=True,
                 )
             )
+
+    raw_log = Path(str(report.get("log") or f"{main.stem}.log"))
+    log_path = raw_log.resolve() if raw_log.is_absolute() else (project / raw_log).resolve()
+    try:
+        log_path.relative_to(project.resolve())
+    except ValueError:
+        issues.append("compile_report绑定的编译日志越出当前LaTeX工程")
+    else:
+        current_log = inspect_log(log_path)
+        recorded_log_hash = str(report.get("log_sha256", ""))
+        if not log_path.is_file():
+            issues.append("compile_report绑定的正式编译日志不存在")
+        else:
+            if not recorded_log_hash or sha256_file(log_path) != recorded_log_hash:
+                issues.append("正式编译日志与compile_report绑定哈希不一致")
+            for field in ("log_present", "fatal_errors", "unresolved_references", "unresolved_citations", "overfull_boxes"):
+                if report.get(field) != current_log.get(field):
+                    issues.append(f"compile_report记录的{field}与当前编译日志不一致")
+            if current_log["fatal_errors"] or current_log["unresolved_references"] or current_log["unresolved_citations"]:
+                issues.append("当前正式编译日志存在fatal error或未解析引用")
 
     if not bool(report.get("log_present")) or int(report.get("fatal_errors", 0) or 0) != 0:
         issues.append("compile_report没有有效的正式编译日志证明")
