@@ -73,7 +73,13 @@ python scripts/validate_submission_package.py . --strict
 
 ## 4. 元数据边界
 
-`run_info.json`、`result_manifest.yaml`、`matlab_figure_handoff.json` 不是每问默认产物。只有用户明确要求完整复现包且确有必要时才生成，并统一放在项目级内部元数据目录；不得破坏每问五文件合同或项目级预处理三文件合同。
+`run_info.json`、`result_manifest.yaml`、`matlab_figure_handoff.json` 不是每问默认产物。只有用户明确要求完整复现包且确有必要时才生成，并统一放在项目级内部元数据目录：
+
+```text
+internal_metadata/
+```
+
+不得把这些文件塞入 `问题X求解/` 或 `数据预处理/`，也不得破坏每问五文件合同或项目级预处理三文件合同。
 
 `latex_audit_report.yaml`、`compile_report.yaml` 和 `submission_manifest.yaml` 属于正式交付证明链的机器元数据；它们用于审计和当前性验证，不机械写进论文正文，也不自动进入只允许 PDF 的官方提交包。
 
@@ -84,6 +90,8 @@ python scripts/validate_submission_package.py . --strict
 3. 正式 LaTeX 已形成 current `latex_audit_report.yaml + compile_report.yaml + compiled_pdf` 证明链；
 4. `project_sync --delivery-scope submission` 通过；
 5. 官方包按当前 verified rules 裁剪，复现包保持内部完整性；
-6. `validate_submission_package.py --strict` 对实际准备交付的 ZIP 通过。
+6. `validate_submission_package.py --strict` 对实际准备交付的 ZIP 通过；
+7. `Algorithm Trace` 与论文算法呈现闭合：`stepwise/pseudocode` 可追溯到当前模型/公式/命题/约束、真实 Python 实现和工作簿结果或验证证据；`not_needed` 不保留装饰性算法框；
+8. 命题 0--4 仅是默认正文阅读预算；P5+ 若保留，已完成必要性审查并记录 justification，不把默认预算恢复成 Hard 上限。
 
 新项目不得创建 `结果数据表/`、`Python求解/`、`MATLAB绘图/` 等平行数值目录；每问只保留一个 `问题X求解/`。内部检查表和复现元数据不得机械进入论文正文。
