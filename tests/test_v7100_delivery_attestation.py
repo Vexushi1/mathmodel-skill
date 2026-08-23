@@ -74,6 +74,28 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
             self.assertEqual(smoke_review["status"], "passed")
             self.assertEqual(smoke_review["highest_severity"], "review_required")
 
+    def test_failed_audit_report_is_persisted_for_invalid_source_graph(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            main = root / "main.tex"
+            main.write_text(
+                r"\documentclass{article}\begin{document}\input{sections/missing}\end{document}",
+                encoding="utf-8",
+            )
+            findings = self.audit.audit_project(main)
+            self.assertTrue(any(item.code == "latex_include_missing" for item in findings), findings)
+            report_path = root / "latex_audit_report.yaml"
+            report = self.audit.write_audit_report(
+                main_file=main,
+                findings=findings,
+                report_path=report_path,
+                mode="formal",
+            )
+            self.assertTrue(report_path.is_file())
+            self.assertEqual(report["status"], "failed")
+            self.assertIsNone(report["source_bundle_sha256"])
+            self.assertTrue(report["source_snapshot_error"])
+
     def test_formal_audit_blocks_missing_framework(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
