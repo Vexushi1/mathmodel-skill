@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
 
@@ -155,12 +157,29 @@ class TestV790ModularLatexSource(unittest.TestCase):
         template = ROOT / "templates/latex/cumcm/hsk"
         main = (template / "hsk_main.tex").read_text(encoding="utf-8")
         self.assertNotIn("\\section{", main)
+        self.assertNotIn("兼容旧版静态合同检查", main)
         self.assertIn("\\input{frontmatter/abstract}", main)
         self.assertIn("\\input{sections/06_question1}", main)
         self.assertTrue((template / "config/preamble.tex").is_file())
         self.assertTrue((template / "frontmatter/abstract.tex").is_file())
         self.assertTrue((template / "sections/01_problem_statement.tex").is_file())
         self.assertTrue((template / "appendices/appendices.tex").is_file())
+
+    def test_runtime_contract_and_framework_expose_physical_fragment_mapping(self):
+        output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
+        policy = output["writing_policy"]
+        self.assertEqual(policy["latex_source_layout_default"], "modular")
+        self.assertEqual(policy["latex_project_audit_script"], "scripts/audit_latex_project.py")
+        self.assertTrue(policy["legacy_single_file_latex_supported"])
+
+        schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
+        fragment = schema["$defs"]["paper_fragment_entry"]
+        self.assertNotIn("source_file", fragment["required"])
+        self.assertEqual(fragment["properties"]["source_file"]["type"], "string")
+
+        framework = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
+        self.assertIn("LaTeX 源码文件（可选）", framework)
+        self.assertIn("final_latex/frontmatter/abstract.tex", framework)
 
 
 if __name__ == "__main__":
