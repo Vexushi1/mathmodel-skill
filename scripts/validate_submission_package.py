@@ -77,9 +77,6 @@ def declared_package_path(root: Path, state: Mapping[str, Any]) -> Path:
         return candidate.resolve() if candidate.is_absolute() else (root / candidate).resolve()
 
     submission_dir = root / "submission"
-    canonical = submission_dir / "submission.zip"
-    if canonical.is_file():
-        return canonical.resolve()
     candidates = sorted(path.resolve() for path in submission_dir.glob("*.zip") if path.is_file()) if submission_dir.is_dir() else []
     if len(candidates) == 1:
         return candidates[0]
@@ -88,7 +85,7 @@ def declared_package_path(root: Path, state: Mapping[str, Any]) -> Path:
         raise SystemExit(
             "multiple submission ZIPs exist but state.artifacts.submission_package is not declared: " + names
         )
-    return canonical.resolve()
+    return (submission_dir / "submission.zip").resolve()
 
 
 def _manifest_from_archive(archive: zipfile.ZipFile) -> tuple[dict[str, Any], list[str]]:
@@ -245,7 +242,7 @@ def validate_package(
                 if not any(name.endswith(suffix) for name in lowered):
                     issues.append(f"完整复现包缺少{label}")
             if "模型论文框架.md" not in archived_payload:
-                warnings.append("完整复现包未包含模型论文框架.md")
+                issues.append("完整复现包缺少模型论文框架.md")
 
     return {
         "status": "passed" if not issues else "failed",
