@@ -127,6 +127,100 @@ jobs:
           name: latex-diagnostics-${{ matrix.name }}
           path: latex-diagnostics.txt
 
+  production-latex-attestation:
+    name: Production LaTeX attestation
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install validation dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
+      - name: Install production TeX tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends texlive-xetex texlive-latex-extra biber
+      - name: Build minimal formal project fixture
+        shell: bash
+        run: |
+          project="$RUNNER_TEMP/hsk-formal-project"
+          mkdir -p "$project/final_latex"
+          cat > "$project/模型论文框架.md" <<'EOF'
+          # 模型论文框架
+
+          当前文件仅用于 CI 验证正式 LaTeX 审计、编译与哈希证明链。
+          EOF
+          cat > "$project/final_latex/main.tex" <<'EOF'
+          \documentclass{article}
+          \usepackage[backend=biber]{biblatex}
+          \addbibresource{references.bib}
+          \begin{document}
+          This synthetic paper validates the formal HSK LaTeX delivery path. Its only citation uses the current bibliography interface~\cite{ci}, and the generated PDF is bound to the audited source and compile profile.
+          \printbibliography
+          \end{document}
+          EOF
+          cat > "$project/final_latex/references.bib" <<'EOF'
+          @book{ci,
+            author = {HSK CI},
+            title = {Formal Delivery Attestation Fixture},
+            year = {2026}
+          }
+          EOF
+          echo "HSK_FORMAL_PROJECT=$project" >> "$GITHUB_ENV"
+      - name: Run formal audit and profile-bound compilation
+        run: python scripts/render_paper.py "$HSK_FORMAL_PROJECT/final_latex" --profile cumcm --main main.tex
+      - name: Verify formal attestation chain
+        shell: bash
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          import yaml
+
+          root = Path.cwd()
+          sys.path.insert(0, str(root / "scripts"))
+          import latex_delivery
+
+          project = Path(__import__("os").environ["HSK_FORMAL_PROJECT"]) / "final_latex"
+          audit = yaml.safe_load((project / "latex_audit_report.yaml").read_text(encoding="utf-8"))
+          report = yaml.safe_load((project / "compile_report.yaml").read_text(encoding="utf-8"))
+          assert audit["status"] == "passed", audit
+          assert audit["mode"] == "formal", audit
+          assert report["report_schema_version"] == "3.0.0", report
+          assert report["status"] == "passed", report
+          assert report["attestation_mode"] == "formal", report
+          assert report["profile"] == "cumcm", report
+          assert report["log_present"] is True, report
+          assert report["profile_override_used"] is False, report
+          assert (project / "cumcmthesis.cls").is_file()
+          issues = latex_delivery.verify_compile_report(
+              project=project,
+              main=project / "main.tex",
+              pdf=project / "main.pdf",
+              report=report,
+          )
+          assert issues == [], issues
+          PY
+      - name: Collect production attestation diagnostics
+        if: failure()
+        shell: bash
+        run: |
+          mkdir -p production-attestation-diagnostics
+          if test -n "${HSK_FORMAL_PROJECT:-}" && test -d "$HSK_FORMAL_PROJECT/final_latex"; then
+            cp -f "$HSK_FORMAL_PROJECT/final_latex/latex_audit_report.yaml" production-attestation-diagnostics/ 2>/dev/null || true
+            cp -f "$HSK_FORMAL_PROJECT/final_latex/compile_report.yaml" production-attestation-diagnostics/ 2>/dev/null || true
+            cp -f "$HSK_FORMAL_PROJECT/final_latex/main.log" production-attestation-diagnostics/ 2>/dev/null || true
+          fi
+      - name: Upload production attestation diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-latex-attestation-diagnostics
+          path: production-attestation-diagnostics
+
   generated-files:
     name: Generated file contract
     runs-on: ubuntu-latest
