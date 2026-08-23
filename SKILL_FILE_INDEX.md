@@ -111,6 +111,7 @@
 - `scripts/validate_model_paper_framework.py`
 - `scripts/validate_project_state.py`
 - `scripts/validate_semantic_governance.py`
+- `scripts/validate_submission_package.py`
 - `scripts/validate_user_execution.py`
 - `skills/mathmodel-skill/SKILL.md`
 - `state/project_state.example.yaml`
