@@ -232,8 +232,16 @@ def audit_project(
     bib_text = effective_bib.read_text(encoding="utf-8-sig", errors="strict") if effective_bib and effective_bib.is_file() else None
     findings.extend(audit_bibliography(flattened, bib_text))
 
-    if require_framework and (framework_path is None or not framework_path.is_file()):
-        findings.append(Finding("blocking", "latex_framework_missing", "正式 LaTeX 审计要求当前 模型论文框架.md，但未找到该文件。"))
+    explicit_framework_missing = framework_path is not None and not framework_path.is_file()
+    required_framework_missing = require_framework and framework_path is None
+    if explicit_framework_missing or required_framework_missing:
+        detail = str(framework_path) if framework_path is not None else "<未提供>"
+        findings.append(Finding(
+            "blocking",
+            "latex_framework_missing",
+            f"正式 LaTeX 审计要求可读取的当前 模型论文框架.md：{detail}",
+            detail,
+        ))
     framework_text = None
     if framework_path is not None and framework_path.is_file():
         framework_text = framework_path.read_text(encoding="utf-8-sig", errors="strict")
