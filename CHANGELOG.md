@@ -1,6 +1,18 @@
 # Changelog
 
-## Current release: 7.9.0
+## Current release: 7.10.0
+
+- Added a persistent formal LaTeX audit attestation (`latex_audit_report.yaml`) bound to the active source bundle and current `模型论文框架.md`; formal compile delivery can no longer rely on prose-only audit invocation without a machine-readable proof artifact.
+- Upgraded compile evidence to v3: `compile_report.yaml` now binds source bundle hash, audit-report hash, compile-profile fingerprint, actual engine/bibliography/sequence, PDF hash and a real compilation log. Missing logs no longer default to `passed`.
+- Made `scripts/render_paper.py` the formal production path for audit → profile-bound compile → compile attestation, while keeping template smoke builds explicitly separate from formal delivery evidence.
+- Added CUMCM class materialization to the controlled compile path so production compilation does not depend on an undocumented manual copy step.
+- Closed `full_workflow` submission loading with `packs/artifact/full_submission.md` plus a `submission_package_validation` gate; `validated_submission_package` is now a gate result rather than a synonym for “ZIP exists”.
+- Split package generation into explicit `official` and `reproducibility` semantics. Official packages require current verified competition `edition_rules.submission_files`; unverified edition rules block automatic official packaging instead of falling back to historical guesses.
+- Added deterministic `submission_manifest.yaml` provenance with per-file SHA-256 and `scripts/validate_submission_package.py` checks against the archive, current project files and current compiled PDF. Stale PDFs/code/workbooks cannot pass merely because filenames match.
+- Preserved legacy no-`--mode` packaging as reproducibility behavior and legacy v2 compile reports as read-compatible only; current formal delivery requires regenerated v3 attestations.
+- Numerical models, preprocessing semantics, Workbook Schema, Python/MATLAB responsibilities, full-fidelity user execution, semantic-governance 1.0.0, framework `v0.8-project-memory` and the per-question five-file interface remain unchanged.
+
+## Previous release: 7.9.0
 
 - Closed modular-LaTeX runtime dispatch: `audit_latex_project.py` is now the public LaTeX audit entrypoint for modular and compatible single-file projects, delegating prose/BibTeX/framework checks to `audit_paper_prose.py`.
 - Closed `full_workflow` post-execution Pack loading so Figure, LaTeX and Review Artifact Packs are available after accepted primary/result-analysis workbooks, and added `validated_submission_package` to final workflow outputs.
