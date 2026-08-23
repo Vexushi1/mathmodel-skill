@@ -98,7 +98,11 @@ def official_files(root: Path, competition: str) -> tuple[list[Path], dict[str, 
             f"official package refused: {name} edition rules are not verified; "
             "verify the current competition rules before packaging"
         )
-    patterns = rules.get("submission_files") or []
+    if not rules.get("verified_at") or not rules.get("source"):
+        raise SystemExit(
+            f"official package refused: {name} verified edition rules must record verified_at and source"
+        )
+    patterns = [str(item) for item in (rules.get("submission_files") or [])]
     if not patterns:
         raise SystemExit(f"official package refused: {name} submission_files allowlist is empty")
     files = _expand_allowlist(root, patterns)
@@ -106,10 +110,10 @@ def official_files(root: Path, competition: str) -> tuple[list[Path], dict[str, 
         raise SystemExit(f"official package refused: verified allowlist resolved to no project files: {patterns}")
     metadata = {
         "competition_profile": name,
-        "rule_verification_status": rules.get("verification_status"),
+        "rule_verification_status": "verified",
         "rule_verified_at": rules.get("verified_at"),
         "rule_source": rules.get("source"),
-        "submission_files_allowlist": [str(item) for item in patterns],
+        "submission_files_allowlist": patterns,
     }
     return files, metadata
 
@@ -136,6 +140,17 @@ def build_manifest(root: Path, files: Iterable[Path], *, kind: str, metadata: di
     }
 
 
+def resolve_output(root: Path, requested: str | None, *, mode: str) -> Path:
+    default_name = "submission/submission.zip" if mode == "official" else "submission/reproducibility.zip"
+    raw = Path(requested or default_name)
+    output = raw.resolve() if raw.is_absolute() else (root / raw).resolve()
+    try:
+        output.relative_to(root)
+    except ValueError as exc:
+        raise SystemExit("package output must remain inside the project root") from exc
+    return output
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("project", nargs="?", default=".")
@@ -147,8 +162,7 @@ def main() -> int:
     root = Path(args.project).resolve()
     if not root.is_dir():
         raise SystemExit(f"project directory not found: {root}")
-    default_name = "official_submission.zip" if args.mode == "official" else "hsk_submission_backup.zip"
-    output = Path(args.output or default_name).resolve()
+    output = resolve_output(root, args.output, mode=args.mode)
     output.parent.mkdir(parents=True, exist_ok=True)
 
     if args.mode == "official":
