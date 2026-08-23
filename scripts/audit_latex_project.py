@@ -93,11 +93,12 @@ def discover_tex_graph(main_file: Path) -> tuple[list[Path], list[Finding]]:
             child = resolve_include(root, target)
             if child is None:
                 relative = resolved.relative_to(root).as_posix()
+                evidence = f"{relative} -> {target}"
                 findings.append(Finding(
                     "blocking",
                     "latex_include_missing",
                     f"{relative} 引用了不存在或越出工程根目录的文件：{target}",
-                    target,
+                    evidence,
                 ))
                 continue
             walk(child)
