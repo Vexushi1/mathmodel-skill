@@ -1,222 +1,31 @@
 \documentclass{cumcmthesis}
 % 电子版提交时通常可使用：\documentclass[withoutpreface]{cumcmthesis}
 
-\usepackage{booktabs}
-\usepackage{amsmath,amssymb,bm}
-\usepackage{subcaption}
-\usepackage{graphicx}
-\usepackage{float}
-\usepackage{algorithm}
-\usepackage{algorithmic}
-\usepackage{cleveref}
-\usepackage[most]{tcolorbox}
-% cumcmthesis v2.6 自定义了旧版 \supercite；在加载 biblatex 前释放该命令。
-\let\supercite\relax
-\usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
-\addbibresource{references.bib}
-
-% 命题按阿拉伯章节号编号。0--4 是默认正文阅读预算，不是数学硬上限；超预算时应有实际建模作用与必要性说明。
-% 短证明与命题正文放在同一不可分页外框；技术细节过长时移到附录。
-\newtheorem{proposition}{命题}[section]
-\renewcommand{\theproposition}{\arabic{section}.\arabic{proposition}}
-\newenvironment{hskproposition}[1]
-  {\begin{tcolorbox}[
-      colback=white,
-      colframe=black!72,
-      boxrule=0.65pt,
-      arc=1mm,
-      outer arc=1mm,
-      left=8pt,
-      right=8pt,
-      top=7pt,
-      bottom=7pt,
-      before skip=8pt,
-      after skip=8pt,
-      boxsep=0pt
-    ]
-    \begin{proposition}[#1]}
-  {\end{proposition}\end{tcolorbox}}
-\newenvironment{hskproof}
-  {\par\smallskip\noindent\textbf{证明：}\par\nopagebreak\smallskip}
-  {\hfill$\square$\par}
-
-% 按当届题面和队伍信息修改，不在模板中固定年份、题号和小问数。
-\newcommand{\HSKProblemCode}{A}
-\newcommand{\HSKTeamNumber}{0000}
-\newcommand{\HSKContestYear}{YYYY}
-\newcommand{\HSKContestMonth}{9}
-\newcommand{\HSKContestDay}{1}
-
-\title{XXX问题的XXX建模与分析}
-\tihao{\HSKProblemCode}
-\baominghao{\HSKTeamNumber}
-\schoolname{学校名称}
-\membera{成员A}
-\memberb{成员B}
-\memberc{成员C}
-\supervisor{}
-\yearinput{\HSKContestYear}
-\monthinput{\HSKContestMonth}
-\dayinput{\HSKContestDay}
+% main.tex 只负责编排。全局宏包、项目命令和元数据分别维护。
+\input{config/preamble}
+\input{config/commands}
+\input{config/metadata}
 
 \begin{document}
 \maketitle
 
-\begin{abstract}
-% 第一段通常 2--3 句：研究对象 + 核心矛盾 + 全文统一路线。不要在第一段堆全部小问方法清单。
-……
+\input{frontmatter/abstract}
 
-% 随后按问写“模型/机制 + 决定性数值 + 直接结论”，避免每段都复制“针对问题X，本文……”。
-% 优先正向陈述“建立了什么—得到什么—说明什么”，真实边界按需补充。
-……
+\input{sections/01_problem_statement}
+\input{sections/02_problem_analysis}
+\input{sections/03_assumptions}
+\input{sections/04_symbols}
 
-\keywords{关键词1\quad 关键词2\quad 关键词3\quad 关键词4}
-\end{abstract}
+% preprocessing_decision=project_level 时保留；not_needed 时删除；question_local 时通常删除并将变换写入对应问题。
+\input{sections/05_data}
 
-\section{问题重述}
-\subsection{问题背景}
-% 默认一个自然段。优先利用题目给出的现实背景和领域矛盾，自然收束到待解决的问题。
-% 不另起一段介绍“全文结构”“后文安排”，也不机械堆宏大时事背景。
+% 按实际小问复制/新增 07_question2.tex、08_question3.tex 等，并在此按论文顺序调用。
+\input{sections/06_question1}
 
-\subsection{问题提出}
-% 用自己的理解逐问转述“研究对象 + 关键条件 + 待求输出”，不提前写模型名、公式、算法和结果。
-\noindent\textbf{问题一：}……
-
-\noindent\textbf{问题二：}……
-
-% 按题目实际小问继续，不固定五问。
-
-\section{问题分析}
-\subsection{问题一的分析}
-% 通常一个自然段：难点、对象关系、跨问依赖、建模抓手。正式公式和最终结果默认留到模型/结果章节。
-
-\subsection{问题二的分析}
-% 按实际小问继续；不要写“先清洗、再建模、再求解、再画图”的流水线。
-
-\section{模型假设}
-% 正文只使用自然序号，不显示 H1/H2、A1/A2 等内部合同编号。
-\begin{enumerate}
-    \item ……。
-    \item ……。
-    \item ……。
-\end{enumerate}
-
-\section{符号说明}
-% 只列全文高频符号。场景/模型/方案等优先考虑短上标，避免长文本和多层下标。
-\begin{table}[H]
-    \centering
-    \caption{主要符号说明}
-    \label{tab:symbols}
-    \begin{tabular}{cccc}
-        \toprule
-        符号 & 含义 & 单位 & 类型 \\
-        \midrule
-        $x_i$ & 元素/位置索引示例 & -- & 变量 \\
-        $I^{(s)}$ & 第 $s$ 个模型对应结果 & -- & 状态量 \\
-        $\theta$ & 参数示例 & -- & 参数 \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-% preprocessing_decision=not_needed 时删除本章，只在数据说明中简洁交代数据审计结论。
-% question_local 时把必要变换放入对应问题；project_level 时才保留实质数据预处理章节。
-\section{数据预处理}
-\subsection{数据问题与处理必要性}
-% 说明真实数据问题；不得为了形式完整编造清洗、插值、标准化。
-
-\subsection{处理方法与验证}
-% project_level 时给公式、参数依据、验证、处理前后证据和后续模型接口。
-
-\section{问题一模型建立及求解}
-\subsection{模型建立}
-% 从本题对象和机制开始，详细推导关键关系。
-设……，得到
-\begin{equation}
-    F(x,\theta)=0,
-    \label{eq:q1-core-relation}
-\end{equation}
-式~\eqref{eq:q1-core-relation} 控制……，并用于下一步构造……。
-
-% 命题只在确实承担降维、等价变换、单调性、可行性等建模作用时使用。
-% 短证明默认自然分段；只有明显多阶段证明才使用 enumerate。
-% \begin{hskproposition}{变换模型的等价性}
-% \label{prop:q1-equivalence}
-% 在条件……及参数范围……内，原模型与变换模型具有相同的可行解映射和最优目标值。
-% \begin{hskproof}
-% 由定义构造……，在当前定义域内该映射一一对应。又因为……，约束在映射前后保持一致。
-%
-% 进一步比较目标函数可得……，故两个模型的最优值与最优解映射一致，命题得证。
-% \end{hskproof}
-% \end{hskproposition}
-% 框后另起段说明命题对当前模型的实际作用和失效边界。
-
-% 核心模型收束按项目框架中的 required / inline / not_applicable 自适应。
-% 当前示例展示 required 形态；若为 inline，则把最终一两个计算/判定关系留在模型建立末尾并删除本小节；
-% 若为 not_applicable（直接计算、结果读取或完全继承且无新增模型），删除本小节。
-\subsection{核心模型汇总}
-\begin{equation}
-\left\{
-\begin{aligned}
-\min\quad & f(x) \\
-\text{s.t.}\quad & g_i(x)\le 0, \quad i=1,\ldots,m, \\
-& h_j(x)=0, \quad j=1,\ldots,n, \\
-& x\in\Omega .
-\end{aligned}
-\right.
-\label{eq:q1-model-summary}
-\end{equation}
-% 非优化题按本题结构改成“状态方程—观测关系—概率映射—边界/初值—输出量”的收束形式。
-
-\subsection{模型求解}
-% 写实际算法、初始化/参数、停止条件、可行性/收敛口径；不要只写“利用Python/MATLAB求解”。
-
-\subsection{求解结果}
-% 主结果、方案和核心数值放在这里。正文核心图/表必须有邻近的显式交叉引用，例如：
-% 图~\ref{fig:q1-main} 给出了……；从图中的……可以看到……，这与式~\eqref{eq:q1-core-relation}中的……一致。
-% 表~\ref{tab:q1-main} 汇总了……；关键差异主要集中在……。
-% 引用方式要自然变化，不要每段都写“由图可知”。
-
-% 若存在实质深化证据，按题目专属名称继续设置小节，例如：
-% \subsection{阈值与失效边界}
-% \subsection{结构稳健性}
-% 最后一个结果/深化段自然回答本问，不默认再建“问题一结论”。
-
-% 按实际题目继续设置问题二及后续；每问的核心模型收束状态都由当前模型复杂度决定，不机械复制同名小节。
-% 共享基础模型只完整定义一次，后问只写新增变量、目标、约束和证据。
-
-\section{模型的评价与推广}
-% 若确有实质“改进”内容，可改名为“模型的改进、评价与推广”。
-% “模型的改进”和“模型的推广”均为选写，只保留确实有内容的部分。
-\subsection{模型的优点}
-% 数量由实际模型决定；每条必须对应模型结构、结果或验证证据，不设置优缺点条目的机械数量关系。
-\begin{enumerate}
-    \item ……。
-    \item ……。
-    \item ……。
-\end{enumerate}
-
-\subsection{模型的缺点}
-% 数量由实际限制决定；写清限制会影响哪个结果、参数范围或适用边界。
-\begin{enumerate}
-    \item ……。
-    \item ……。
-\end{enumerate}
-
-\subsection{模型的推广}
-% 选写。简要说明可迁移对象、需要替换的参数/边界和不能直接迁移的条件。
-
-% 中文国赛默认不设置独立“结论”一级章。各问直接答案留在对应“求解结果”及深化分析中。
-% 只有当届模板、用户或论文类型明确要求时才新增结论章。
+\input{sections/09_evaluation}
 
 \printbibliography[title={参考文献}]
 
-\begin{appendices}
-\section{核心代码与复现说明}
-% 正文只保留必要伪代码；完整代码可放附录或独立附件，并说明输入、功能和输出。
-
-\section{补充推导与图表}
-% 技术证明超过正文安全长度时放在此处；正文命题框只保留关键证明链。
-% 仅放正文不宜展开但仍有证据价值的图表。
-\end{appendices}
+\input{appendices/appendices}
 
 \end{document}

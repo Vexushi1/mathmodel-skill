@@ -40,6 +40,9 @@ writing_policy:
   algorithm_presentation_contract: core/writing_reasoning_contract.yaml#algorithm_presentation
   core_model_summary_policy: adaptive_required_inline_not_applicable
   prose_audit_script: scripts/audit_paper_prose.py
+  latex_source_layout_default: modular
+  latex_project_audit_script: scripts/audit_latex_project.py
+  legacy_single_file_latex_supported: true
   prose_audit_framework_flag: --framework
   prose_audit_default_mode: report_only
   prose_audit_strict_blocks_on: [blocking, review_required]
