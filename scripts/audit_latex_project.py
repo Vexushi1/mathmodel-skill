@@ -67,23 +67,26 @@ def _executable_tex(text: str) -> str:
     return executable
 
 
-def _resolve_include(target: str, *, project_root: Path, including_file: Path) -> Path | None:
+def _resolve_include(target: str, *, project_root: Path) -> Path | None:
+    """Resolve an input/include target exactly from the main-file project root.
+
+    The repository compiles LaTeX from ``main.tex``'s directory. Nested fragments must
+    therefore keep project-root-relative paths such as ``sections/q3/model`` rather than
+    relying on the including child file's directory. The audit must never accept a path
+    that the formal compile can reject.
+    """
     raw = Path(target.strip())
     if raw.suffix == "":
         raw = raw.with_suffix(".tex")
     if raw.is_absolute():
         return None
 
-    candidates = [project_root / raw, including_file.parent / raw]
-    for candidate in candidates:
-        resolved = candidate.resolve()
-        try:
-            resolved.relative_to(project_root)
-        except ValueError:
-            continue
-        if resolved.is_file():
-            return resolved
-    return None
+    resolved = (project_root / raw).resolve()
+    try:
+        resolved.relative_to(project_root)
+    except ValueError:
+        return None
+    return resolved if resolved.is_file() else None
 
 
 def expand_project(main_file: Path) -> tuple[str, list[Finding], set[Path]]:
@@ -130,13 +133,13 @@ def expand_project(main_file: Path) -> tuple[str, list[Finding], set[Path]]:
 
             def replace(match: re.Match[str]) -> str:
                 target = match.group(1).strip()
-                child = _resolve_include(target, project_root=project_root, including_file=resolved)
+                child = _resolve_include(target, project_root=project_root)
                 if child is None:
                     findings.append(
                         Finding(
                             "blocking",
                             "latex_include_missing",
-                            "LaTeX input/include 指向不存在、绝对路径或项目根目录之外的文件。",
+                            "LaTeX input/include 必须使用 main.tex 所在工程根目录的相对路径，且目标文件必须存在于项目根目录内。",
                             f"{resolved.relative_to(project_root).as_posix()} -> {target}",
                         )
                     )

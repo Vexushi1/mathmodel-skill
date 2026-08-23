@@ -42,6 +42,8 @@ final_latex/
 
 正文子文件不得声明 `\documentclass`、`\begin{document}` 或 `\end{document}`，也不得重复加载全局宏包。公式、图、表、命题的 label 在整个工程内必须唯一，跨文件 `\ref` / `\eqref` / `\cite` 按同一文档处理。
 
+**所有 `\input` / `\include` 路径统一相对于 `main.tex` 所在工程根目录书写。** 例如 `sections/q3/q3.tex` 引用同目录模型文件时，应写 `\input{sections/q3/model}`，不要写 `\input{model}`。审计器与正式编译使用同一根目录口径，避免 audit 能找到文件而 XeLaTeX/latexmk 实际找不到。
+
 项目路径、主文件名和图片名使用 ASCII，并确保 `cumcmthesis.cls` 位于可搜索路径。
 
 推荐从仓库根目录执行：
@@ -51,7 +53,7 @@ python scripts/audit_latex_project.py final_latex/main.tex --bib final_latex/ref
 python scripts/render_paper.py final_latex --profile cumcm --clean
 ```
 
-`audit_latex_project.py` 会递归展开 `main.tex` 引用的项目内 `.tex` 模块，检查缺失引用、循环引用、子文件非法 document 声明和孤立正文 fragment，再把完整正文委托给 `audit_paper_prose.py` 执行原有 prose/structure/BibTeX/framework 审查。完整编译仍以 `main.tex` 为唯一正式入口；模块化的主要收益是局部修改安全、错误定位和 diff 可读性，不等同于完整编译必然显著提速。
+`audit_latex_project.py` 会从 `main.tex` 所在工程根目录解析并递归展开项目内 `.tex` 模块，检查缺失引用、循环引用、子文件非法 document 声明和孤立正文 fragment，再把完整正文委托给 `audit_paper_prose.py` 执行原有 prose/structure/BibTeX/framework 审查。完整编译仍以 `main.tex` 为唯一正式入口；模块化的主要收益是局部修改安全、错误定位和 diff 可读性，不等同于完整编译必然显著提速。
 
 实际编译顺序由 `core/compile_profiles.yaml` 控制：
 
