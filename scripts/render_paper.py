@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Compile an existing LaTeX project using repository compile profiles."""
+"""Compile an existing LaTeX project using repository compile profiles.
+
+Formal compilation first creates a strict project audit attestation, then compiles with
+the selected profile and binds the resulting PDF to the audit, source bundle and profile
+fingerprint in compile_report.yaml. Template smoke mode is explicit and cannot satisfy
+formal delivery verification.
+"""
 from __future__ import annotations
 
 import argparse
@@ -11,11 +17,14 @@ from typing import Any, Mapping
 
 import yaml
 
-from prepare_cumcm_class import patch_cumcm_class
+from audit_latex_project import audit_project, write_audit_report
+from audit_paper_prose import overall_status
 from latex_delivery import write_compile_report
+from prepare_cumcm_class import patch_cumcm_class
 
 ROOT = Path(__file__).resolve().parent.parent
 PROFILE_FILE = ROOT / "core" / "compile_profiles.yaml"
+CUMCM_CLASS_SOURCE = ROOT / "templates" / "latex" / "cumcm" / "cumcmthesis" / "cumcmthesis.cls"
 AUX_SUFFIXES = (
     ".aux", ".bcf", ".bbl", ".blg", ".run.xml", ".out", ".toc",
     ".lof", ".lot", ".log", ".synctex.gz", ".fdb_latexmk", ".fls",
@@ -132,14 +141,18 @@ def infer_profile(main: Path, profiles: dict[str, dict[str, Any]]) -> str:
 
 
 def prepare_profile_files(project: Path, profile_name: str) -> None:
-    """Apply audited, idempotent local compatibility patches before compilation."""
+    """Materialize audited local template dependencies and apply narrow patches."""
     if profile_name != "cumcm":
         return
     class_file = project / "cumcmthesis.cls"
-    if class_file.is_file():
-        changed = patch_cumcm_class(class_file)
-        if changed:
-            print(f"patched CUMCM font fallback: {class_file}")
+    if not class_file.is_file():
+        if not CUMCM_CLASS_SOURCE.is_file():
+            raise SystemExit(f"CUMCM class source missing: {CUMCM_CLASS_SOURCE}")
+        shutil.copyfile(CUMCM_CLASS_SOURCE, class_file)
+        print(f"materialized CUMCM class: {class_file}")
+    changed = patch_cumcm_class(class_file)
+    if changed:
+        print(f"patched CUMCM font fallback: {class_file}")
 
 
 def clean_auxiliary(project: Path, stem: str) -> None:
@@ -196,6 +209,29 @@ def compile_project(
     return sequence
 
 
+def create_audit_attestation(project: Path, main_tex: Path, *, template_smoke: bool) -> Path:
+    framework = None if template_smoke else project.parent / "模型论文框架.md"
+    if not template_smoke and not framework.is_file():
+        raise SystemExit(f"formal LaTeX compile requires current framework: {framework}")
+    findings = audit_project(
+        main_tex,
+        framework_path=framework,
+        require_framework=not template_smoke,
+    )
+    status = overall_status(findings)
+    report_path = project / "latex_audit_report.yaml"
+    write_audit_report(
+        main_file=main_tex,
+        findings=findings,
+        framework_path=framework,
+        report_path=report_path,
+        mode="template_smoke" if template_smoke else "formal",
+    )
+    if status == "blocking" or (not template_smoke and status == "review_required"):
+        raise SystemExit(f"LaTeX project audit failed with status={status}; see {report_path}")
+    return report_path
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("project", nargs="?", default="final_latex")
@@ -207,7 +243,20 @@ def main() -> int:
     parser.add_argument("--bibtex", action="store_true", help="compatibility flag; use BibTeX")
     parser.add_argument("--runs", type=int, default=None, help="override with repeated engine runs")
     parser.add_argument("--clean", action="store_true", help="remove auxiliary files before compiling")
+    parser.add_argument(
+        "--template-smoke",
+        action="store_true",
+        help="repository template CI mode; does not produce a formal-delivery attestation",
+    )
+    parser.add_argument(
+        "--attest-existing",
+        action="store_true",
+        help="template-smoke only: attest PDF/log produced by an external compile action",
+    )
     args = parser.parse_args()
+
+    if args.attest_existing and not args.template_smoke:
+        raise SystemExit("--attest-existing is restricted to --template-smoke and cannot certify formal delivery")
 
     project = Path(args.project).resolve()
     if not project.is_dir():
@@ -217,22 +266,37 @@ def main() -> int:
     profile_name = resolve_profile_name(requested, profiles)
     main_tex = resolve_main(project, args.main, profiles.get(profile_name) if profile_name else None)
     profile_name = profile_name or infer_profile(main_tex, profiles)
+    profile_config = profiles[profile_name]
     prepare_profile_files(project, profile_name)
-    if args.clean:
+    if args.clean and not args.attest_existing:
         clean_auxiliary(project, main_tex.stem)
+
+    audit_report = create_audit_attestation(project, main_tex, template_smoke=args.template_smoke)
     bibliography = "bibtex" if args.bibtex else args.bibliography
+    effective_engine = args.engine or str(profile_config.get("engine", "xelatex"))
+    effective_bibliography = bibliography or str(profile_config.get("bibliography", "none"))
     print(f"compile profile: {profile_name}")
     print(f"main tex: {main_tex.name}")
-    sequence = compile_project(project, main_tex, profiles[profile_name], args.engine, bibliography, args.runs)
-    effective_engine = args.engine or str(profiles[profile_name].get("engine", "xelatex"))
-    effective_bibliography = bibliography or str(profiles[profile_name].get("bibliography", "none"))
+
+    if args.attest_existing:
+        sequence = [str(step) for step in profile_config.get("sequence", [])]
+    else:
+        sequence = compile_project(project, main_tex, profile_config, args.engine, bibliography, args.runs)
+
     report = write_compile_report(
-        project=project, main=main_tex, profile=profile_name, engine=effective_engine,
-        bibliography=effective_bibliography, sequence=sequence,
+        project=project,
+        main=main_tex,
+        profile=profile_name,
+        engine=effective_engine,
+        bibliography=effective_bibliography,
+        sequence=sequence,
+        profile_config=profile_config,
+        audit_report_path=audit_report,
+        attestation_mode="template_smoke" if args.template_smoke else "formal",
     )
     print(f"compile report: {project / 'compile_report.yaml'}")
     if report["status"] != "passed":
-        raise SystemExit("compile finished but unresolved references/citations remain; see compile_report.yaml")
+        raise SystemExit("compile attestation failed; see compile_report.yaml")
     return 0
 
 
