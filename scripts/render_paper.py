@@ -18,7 +18,6 @@ from typing import Any, Mapping
 import yaml
 
 from audit_latex_project import audit_project, write_audit_report
-from audit_paper_prose import overall_status
 from latex_delivery import write_compile_report
 from prepare_cumcm_class import patch_cumcm_class
 
@@ -218,17 +217,17 @@ def create_audit_attestation(project: Path, main_tex: Path, *, template_smoke: b
         framework_path=framework,
         require_framework=not template_smoke,
     )
-    status = overall_status(findings)
     report_path = project / "latex_audit_report.yaml"
-    write_audit_report(
+    report = write_audit_report(
         main_file=main_tex,
         findings=findings,
         framework_path=framework,
         report_path=report_path,
         mode="template_smoke" if template_smoke else "formal",
     )
-    if status == "blocking" or (not template_smoke and status == "review_required"):
-        raise SystemExit(f"LaTeX project audit failed with status={status}; see {report_path}")
+    if str(report.get("status", "")).lower() != "passed":
+        severity = report.get("highest_severity", "unknown")
+        raise SystemExit(f"LaTeX project audit failed with status={severity}; see {report_path}")
     return report_path
 
 
