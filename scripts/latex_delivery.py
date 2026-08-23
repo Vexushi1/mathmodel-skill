@@ -498,9 +498,9 @@ def verify_compile_report(
             )
 
     raw_log = Path(str(report.get("log") or f"{main.stem}.log"))
-    log_path = raw_log.resolve() if raw_log.is_absolute() else (project / raw_log).resolve()
+    log_path = raw_log.resolve() if raw_log.is_absolute() else (latex_project / raw_log).resolve()
     try:
-        log_path.relative_to(project.resolve())
+        log_path.relative_to(latex_project)
     except ValueError:
         issues.append("compile_report绑定的编译日志越出当前LaTeX工程")
     else:
