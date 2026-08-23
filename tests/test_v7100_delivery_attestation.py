@@ -184,6 +184,19 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
             self.assertEqual(report["status"], "failed")
             self.assertTrue(any("compiled_pdf" in item or "当前项目版本" in item for item in report["issues"]), report)
 
+    def test_submission_package_is_promoted_only_after_validation_gate(self):
+        manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
+        output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
+        review_outputs = manifest["modules"]["review_delivery"]["outputs"]
+        gate = manifest["utility_gates"]["submission_package_validation"]
+        submission_requirements = output["project_sync"]["stage_requirements"]["submission"]
+        self.assertIn("submission_package", review_outputs)
+        self.assertNotIn("validated_submission_package", review_outputs)
+        self.assertIn("submission_package", gate["inputs"])
+        self.assertIn("validated_submission_package", gate["outputs"])
+        self.assertIn("submission_package", submission_requirements)
+        self.assertNotIn("validated_submission_package", submission_requirements)
+
 
 if __name__ == "__main__":
     unittest.main()
