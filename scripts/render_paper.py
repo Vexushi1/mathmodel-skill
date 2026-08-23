@@ -24,6 +24,7 @@ from prepare_cumcm_class import patch_cumcm_class
 ROOT = Path(__file__).resolve().parent.parent
 PROFILE_FILE = ROOT / "core" / "compile_profiles.yaml"
 CUMCM_CLASS_SOURCE = ROOT / "templates" / "latex" / "cumcm" / "cumcmthesis" / "cumcmthesis.cls"
+DOCUMENTCLASS_RE = re.compile(r"\\documentclass(?:\[[^\]]*\])?\s*\{([^{}]+)\}")
 AUX_SUFFIXES = (
     ".aux", ".bcf", ".bbl", ".blg", ".run.xml", ".out", ".toc",
     ".lof", ".lot", ".log", ".synctex.gz", ".fdb_latexmk", ".fls",
@@ -108,6 +109,29 @@ def detect_tex_requirements(main: Path) -> dict[str, bool]:
         "uses_biber": "addbibresource" in lowered or "usepackage{biblatex}" in lowered,
         "uses_bibtex": "\\bibliography{" in lowered or "usepackage{natbib}" in lowered,
     }
+
+
+def validate_profile_identity(main: Path, profile_name: str, profile_config: Mapping[str, Any]) -> None:
+    """Reject known-profile/template mismatches before materialization or compilation.
+
+    Identity checks are declared by ``core/compile_profiles.yaml``. Profiles without a
+    declared identity remain compatibility profiles; profiles with an identity must match
+    the actual main document rather than only sharing an engine/bibliography sequence.
+    """
+    identity = profile_config.get("identity") or {}
+    if not isinstance(identity, Mapping):
+        raise SystemExit(f"compile profile {profile_name} has invalid identity metadata")
+    expected_class = str(identity.get("documentclass") or "").strip()
+    if not expected_class:
+        return
+    text = _strip_tex_comments(main.read_text(encoding="utf-8", errors="ignore"))
+    match = DOCUMENTCLASS_RE.search(text)
+    actual_class = match.group(1).strip() if match else None
+    if actual_class != expected_class:
+        raise SystemExit(
+            f"compile profile {profile_name} requires documentclass {expected_class}, "
+            f"but {main.name} declares {actual_class or '<missing>'}; choose the matching profile/template"
+        )
 
 
 def infer_profile(main: Path, profiles: dict[str, dict[str, Any]]) -> str:
@@ -266,6 +290,7 @@ def main() -> int:
     main_tex = resolve_main(project, args.main, profiles.get(profile_name) if profile_name else None)
     profile_name = profile_name or infer_profile(main_tex, profiles)
     profile_config = profiles[profile_name]
+    validate_profile_identity(main_tex, profile_name, profile_config)
     prepare_profile_files(project, profile_name)
     if args.clean and not args.attest_existing:
         clean_auxiliary(project, main_tex.stem)
