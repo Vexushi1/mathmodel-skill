@@ -396,15 +396,29 @@ def verify_compile_report(
     elif not recorded_profile or recorded_profile != profile_fingerprint(current_profile):
         issues.append("编译profile定义已变化；当前PDF需要重新按当前profile编译")
 
-    audit_path = project / str(report.get("latex_audit_report") or "latex_audit_report.yaml")
-    if not audit_path.is_file():
-        issues.append("compile_report绑定的latex_audit_report不存在")
+    latex_project = main.parent.resolve()
+    raw_audit = Path(str(report.get("latex_audit_report") or "latex_audit_report.yaml"))
+    audit_path = raw_audit.resolve() if raw_audit.is_absolute() else (latex_project / raw_audit).resolve()
+    try:
+        audit_path.relative_to(latex_project)
+    except ValueError:
+        issues.append("compile_report绑定的latex_audit_report越出当前LaTeX工程")
     else:
-        current_audit_hash = sha256_file(audit_path)
-        if current_audit_hash != str(report.get("latex_audit_report_sha256", "")):
-            issues.append("latex_audit_report与compile_report绑定哈希不一致")
-        audit_report = yaml.safe_load(audit_path.read_text(encoding="utf-8")) or {}
-        issues.extend(verify_audit_report(project=project, main=main, report=audit_report, require_formal=True))
+        if not audit_path.is_file():
+            issues.append("compile_report绑定的latex_audit_report不存在")
+        else:
+            current_audit_hash = sha256_file(audit_path)
+            if current_audit_hash != str(report.get("latex_audit_report_sha256", "")):
+                issues.append("latex_audit_report与compile_report绑定哈希不一致")
+            audit_report = yaml.safe_load(audit_path.read_text(encoding="utf-8")) or {}
+            issues.extend(
+                verify_audit_report(
+                    project=latex_project,
+                    main=main,
+                    report=audit_report,
+                    require_formal=True,
+                )
+            )
 
     if not bool(report.get("log_present")) or int(report.get("fatal_errors", 0) or 0) != 0:
         issues.append("compile_report没有有效的正式编译日志证明")
