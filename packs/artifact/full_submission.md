@@ -59,7 +59,7 @@ python scripts/hsk_pack_submission.py . \
 python scripts/validate_submission_package.py . --strict
 ```
 
-默认读取 `state/project_state.yaml -> artifacts.submission_package`；未声明时才回退 `submission/submission.zip`。验证器要求：
+验证器优先读取 `state/project_state.yaml -> artifacts.submission_package`。若 state 未声明，则只在 `submission/` 中**恰好存在一个 ZIP**时自动选取该唯一候选；若存在多个 ZIP，必须阻断并要求显式声明，不能猜测要验证哪个包；若没有候选 ZIP，才使用默认路径 `submission/submission.zip` 并据此报告缺失。验证器要求：
 
 - ZIP 中恰好一个 `submission_manifest.yaml`；
 - manifest 与 ZIP 文件集合完全一致，不允许未声明文件或重复路径；
