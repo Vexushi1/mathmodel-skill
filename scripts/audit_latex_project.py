@@ -263,9 +263,10 @@ def write_audit_report(
     snapshot = source_bundle_snapshot(main_file, bib_path=bib_path)
     framework_hash = sha256_file(framework_path) if framework_path is not None and framework_path.is_file() else None
     highest_severity = overall_status(findings)
+    rejected = highest_severity == "blocking" or (mode == "formal" and highest_severity == "review_required")
     report = {
         "audit_schema_version": "1.0.0",
-        "status": "passed" if highest_severity in {"pass", "warning"} else "failed",
+        "status": "failed" if rejected else "passed",
         "highest_severity": highest_severity,
         "mode": mode,
         "main": main_file.relative_to(project).as_posix(),
