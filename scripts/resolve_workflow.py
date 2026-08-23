@@ -219,7 +219,7 @@ ANALYSIS_CODE_OUTPUTS = [
 ]
 FINAL_WORKFLOW_OUTPUTS = [
     "approved_figures", "latex_source", "latex_audit_report", "compiled_pdf", "compile_report",
-    "review_report", "validated_submission_package", "model_paper_framework",
+    "review_report", "submission_package", "model_paper_framework",
 ]
 DOWNSTREAM_MODULES = {
     "modules/03_result_analysis.md", "modules/04_figure_evidence.md",
