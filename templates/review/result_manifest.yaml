@@ -1,5 +1,5 @@
 # 仅在用户明确要求完整复现包、跨聊天交接或终稿审查时生成。
-# 实际文件应放在项目级 metadata/，不得放入问题X求解/。
+# 实际文件应放在项目级 internal_metadata/，不得放入问题X求解/。
 project:
   competition: "CUMCM / MCM / Diangong / 认证杯"
   problem: "A"
