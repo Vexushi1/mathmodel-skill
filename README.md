@@ -1,6 +1,17 @@
-# mathmodel-skill v7.10.0
+# mathmodel-skill v7.10.1
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 数据审计与 `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → 条件式预处理 → 用户本地 full-fidelity Python 主求解 → 独立结果深化分析 → MATLAB 证据图 → LaTeX 终稿 → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → submission package validation → 编译终审**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 数据审计与 `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → 条件式预处理 → 用户本地 full-fidelity Python 主求解 → 独立结果深化分析 → MATLAB 证据图 → LaTeX 终稿 → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v7.10.1：Read-Path & Gate Dispatch Closure
+
+本补丁不改变数学模型、数值求解、Workbook Schema、Python/MATLAB 职责、LaTeX attestation v3、submission validator 语义或每问五文件接口；只修复 v7.10.0 后的读取路径、入口说明和维护版本源漂移。
+
+- Agent、Bootstrap 与项目入口统一把 resolver 返回的 `pre_delivery_gates` 视为**完整且有序的唯一 gate 列表**，不再维护容易漏掉新 gate 的固定枚举。
+- Root Skill、Runtime Router 与 Project Instructions 统一终端顺序：正式编译证明 → 评委式终审 → 生成 official/reproducibility package → 执行 resolver gates → `validated_submission_package`。
+- `REPOSITORY_INDEX.md` 与 `scripts/README.md` 补齐 formal delivery、package generation 与 package validation 的活动工具导航。
+- `templates/review/result_manifest.yaml` 的内部复现元数据位置统一为项目级 `internal_metadata/`。
+- `scripts/lint_skill_checks.py` 的 release version 直接读取 `core/bootstrap.yaml`，直接运行后端也不会停留在旧版本常量。
+- 新增跨层 regression，锁定 gate dispatch、导航、内部元数据路径与 lint version source，降低后续 release 再次漂移的概率。
 
 ## v7.10.0：Delivery Attestation & Submission Closure
 

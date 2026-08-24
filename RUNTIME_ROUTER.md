@@ -55,6 +55,9 @@ problem_audit
 → LaTeX project/prose/BibTeX/framework audit（scripts/audit_latex_project.py + framework validator）
 → latex_compile_quality
 → review_delivery
+→ 生成 official / reproducibility submission package（按当前请求与竞赛规则）
+→ 按 resolver 返回顺序执行全部 pre_delivery_gates
+→ validated_submission_package
 ```
 
 `data_preprocessing` 是条件阶段，不因“多问共享数据”自动启用。`not_needed` 直接使用原始数据；`question_local` 仅允许相关小问 Python 执行当前数学层已经定义的局部变换；只有 `project_level` 才在主求解前暂停，等待统一预处理工作簿通过质量门。
@@ -118,6 +121,6 @@ python scripts/resolve_workflow.py algorithm_presentation \
   --preprocessing-decision not_needed
 ```
 
-解析结果返回 `module_terminal_outputs`、`pre_delivery_gates` 和 `terminal_outputs`。`semantic_governance` 在正式模型、代码、返回工作簿和下游交付前检查当前题意口径、语义闭环、复杂度复审和跨问 stale；`project_sync` 在正式产物交付时按 exact scope 检查产物、工作簿、图表链和哈希，不自动把质量门或分析状态提升为 passed。
+解析结果返回 `module_terminal_outputs`、`pre_delivery_gates` 和 `terminal_outputs`。正式交付必须把 resolver 返回的 `pre_delivery_gates` 视为完整且有序的执行序列，不在入口文档维护第二套固定列表。`semantic_governance` 负责当前题意口径、语义闭环、复杂度复审和跨问 stale；`project_sync` 按 exact scope 检查产物、工作簿、图表链和哈希且不自动提升质量状态；`submission_package_validation` 在返回时负责最终 submission manifest、归档内容与绑定哈希验证。
 
 赛题 Python 的执行权、full-fidelity 配置和禁止降采样/粗网格/短时域/少重复/宽容差/静默 solver fallback 等规则，以 `core/user_execution_contract.yaml` 为唯一事实源。

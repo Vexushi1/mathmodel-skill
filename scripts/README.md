@@ -26,10 +26,12 @@
 
 ## LaTeX、评分与打包
 
-- `render_paper.py`：按 `core/compile_profiles.yaml` 编译 CUMCM、MCM/ICM、电工杯等活动 LaTeX 工程并检查日志。
+- `latex_delivery.py`：计算并核验 formal source bundle、audit report、compile profile、编译日志与 PDF 的证明链哈希；供正式编译和同步门复用。
+- `render_paper.py`：按 `core/compile_profiles.yaml` 执行正式 LaTeX audit → compile → compile-report 链；模板 smoke build 不等价于正式交付证明。
 - `prepare_cumcm_class.py`：为 CUMCM CI/编译准备 class 依赖。
 - `score_submission.py`：按 `config/review_weights.json` 执行评委式评分；Hard 否决不能被总分掩盖。
-- `hsk_pack_submission.py`：按当前竞赛 profile 和提交边界整理提交物；内部项目记忆/检查材料不得因为 Skill 存在就自动进入官方提交包。
+- `hsk_pack_submission.py`：按当前竞赛 profile 和提交边界生成 official / reproducibility 提交包及 `submission_manifest.yaml`；内部项目记忆/检查材料不得因为 Skill 存在就自动进入官方提交包。
+- `validate_submission_package.py`：对 manifest、ZIP 实际内容、当前项目同路径文件与 compiled PDF 哈希做最终包级验证；ZIP 存在本身不等价于 `validated_submission_package`。
 
 ## 仓库维护
 

@@ -80,6 +80,10 @@
 - `scripts/validate_model_paper_framework.py`：compact/full 模式、Algorithm Trace 与项目记忆确定性校验；
 - `scripts/audit_latex_project.py`：正式 LaTeX 项目审计入口，递归覆盖模块化源码并委托 prose/BibTeX/framework 检查；
 - `scripts/audit_paper_prose.py`：上述入口使用的底层成稿结构、引用、登记术语/Numeric Profile 保守审查实现；
+- `scripts/latex_delivery.py`：维护 formal source/audit/profile/log/PDF attestation 的哈希与新鲜度验证；
+- `scripts/render_paper.py`：按活动 compile profile 执行正式 audit → compile → compile-report 交付链；
+- `scripts/hsk_pack_submission.py`：按 competition profile 生成 official 或 reproducibility submission package 与 manifest；
+- `scripts/validate_submission_package.py`：验证 submission manifest、归档实际内容及其与当前项目/PDF 的绑定哈希；
 - `scripts/lint_skill.py`：版本、路径、生产者—消费者、route load、gate和语义闭环；
 - `scripts/score_submission.py`：评委式评分。
 
