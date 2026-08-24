@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.10.0
+version: 7.10.1
 summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, evidence-driven conditional preprocessing, full-fidelity user execution, separate primary/result-analysis Python stages, project-memory model-paper framework, Source-Derivation-Destination formula traces, adaptive Algorithm Trace with stepwise/pseudocode presentation, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware high-precision Numeric Profile, Title Claim Gate, support/modify/reject analysis evidence, local paper-fragment stale propagation, Paragraph Necessity, MATLAB evidence figures, formal LaTeX audit/compile attestation, and validated submission-package provenance.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 建模论文, 模型论文框架, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX]
 ---
 
-# HSK 数学建模模块化工作流 v7.10.0
+# HSK 数学建模模块化工作流 v7.10.1
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -126,7 +126,9 @@ LaTeX 是默认论文主链。写作阶段不在入口文件复制正文规则�
 → Terminology/Numeric/Title Claim/局部Paper Fragment同步
 → 题型自适应LaTeX直写（含按需算法流程） → AI-cleanup
 → LaTeX project audit attestation → profile-bound compile attestation
-→ submission package validation → 编译与评委式终审
+→ 评委式终审 → 生成 official / reproducibility submission package
+→ 按 resolver 返回顺序执行全部 pre_delivery_gates
+→ validated_submission_package
 ```
 
 目录、正式交付和同步门以 `core/output_contract.yaml` 为准；代码工程质量以 `core/code_quality_contract.yaml` 为准；返回工作簿以 `scripts/validate_user_execution.py` 验收。legacy 项目保持只读兼容，重新进入当前流程时按当前语义与数据决策规则迁移。

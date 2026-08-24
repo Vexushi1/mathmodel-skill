@@ -1,4 +1,4 @@
-skill_version: 7.10.0
+skill_version: 7.10.1
 bootstrap_schema_version: 1.1.0
 purpose: >-
   Minimal startup index for the HSK mathematical-modeling workflow. Read this
@@ -30,7 +30,7 @@ startup_contract:
 hard_invariants:
   - Global modeling, preprocessing, solving, figure, writing and review rules are governed by their authoritative sources above; bootstrap must not restate those contracts in detail.
   - Resolve the smallest task-specific load order and stop after the user-requested deliverable; do not preload unrelated contracts or modules.
-  - Formal model/code/downstream delivery must still pass the existing semantic-governance and project-sync gates required by the resolved route.
+  - Formal delivery must execute every `pre_delivery_gates` entry returned by the resolver, in resolver order; stage-specific gates such as semantic governance, project sync, and submission-package validation are examples, not a separately maintained fixed list.
   - Current 模型论文框架.md is the assistant-readable semantic memory; accepted workbooks are numerical fact sources and project state is the machine-state source.
   - Task-specific preprocessing, solve and result-analysis code remains user-executed; the assistant generates, statically checks and validates returned artifacts under the existing execution contracts.
   - legacy/ remains outside default execution; compatibility pointers are read-only bridges and may not become active dependencies.

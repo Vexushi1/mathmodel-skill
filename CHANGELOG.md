@@ -1,6 +1,15 @@
 # Changelog
 
-## Current release: 7.10.0
+## Current release: 7.10.1
+
+- Made resolver-returned `pre_delivery_gates` the complete ordered execution list for Agent/Bootstrap/entry consumers; removed the stale four-gate consumer enumeration that could omit `submission_package_validation`.
+- Aligned the human-readable terminal chain to review → package generation → resolver gates → `validated_submission_package`, without changing the existing router or validator semantics.
+- Added missing repository/script navigation for `render_paper.py`, `latex_delivery.py`, `hsk_pack_submission.py` and `validate_submission_package.py`.
+- Standardized reproducibility metadata guidance on project-level `internal_metadata/` and removed the active `metadata/` path residue.
+- Derived the lint backend release version directly from `core/bootstrap.yaml` so direct backend execution cannot silently retain an older hard-coded release.
+- Added v7.10.1 read-path regression coverage; numerical models, preprocessing, user execution, workbook interfaces, LaTeX attestation v3 and submission validation behavior remain unchanged.
+
+## Previous release: 7.10.0
 
 - Added a persistent formal LaTeX audit attestation (`latex_audit_report.yaml`) bound to the active source bundle and current `模型论文框架.md`; formal compile delivery can no longer rely on prose-only audit invocation without a machine-readable proof artifact.
 - Upgraded compile evidence to v3: `compile_report.yaml` now binds source bundle hash, audit-report hash, compile-profile fingerprint, actual engine/bibliography/sequence, PDF hash and a real compilation log. Missing logs no longer default to `passed`.
@@ -12,7 +21,7 @@
 - Preserved legacy no-`--mode` packaging as reproducibility behavior and legacy v2 compile reports as read-compatible only; current formal delivery requires regenerated v3 attestations.
 - Numerical models, preprocessing semantics, Workbook Schema, Python/MATLAB responsibilities, full-fidelity user execution, semantic-governance 1.0.0, framework `v0.8-project-memory` and the per-question five-file interface remain unchanged.
 
-## Previous release: 7.9.0
+## Earlier release: 7.9.0
 
 - Closed modular-LaTeX runtime dispatch: `audit_latex_project.py` is now the public LaTeX audit entrypoint for modular and compatible single-file projects, delegating prose/BibTeX/framework checks to `audit_paper_prose.py`.
 - Closed `full_workflow` post-execution Pack loading so Figure, LaTeX and Review Artifact Packs are available after accepted primary/result-analysis workbooks, and added `validated_submission_package` to final workflow outputs.
