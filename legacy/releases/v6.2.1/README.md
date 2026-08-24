@@ -16,4 +16,4 @@ Historical files:
 - `HSK_TEMPLATE_INDEX_V621.md`
 - `PROJECT_INSTRUCTIONS_HSK_V621.md`
 
-Do not copy these files back into the active root. Current execution uses the v6.2.2 entries named in `REPOSITORY_INDEX.md` and `AGENTS.md`.
+Do not copy these files back into the active root. For current execution, begin with the repository's current `core/bootstrap.yaml` and follow the active root entries and resolver referenced there. This file is a historical pointer only and does not define the current Skill version or runtime contract.
