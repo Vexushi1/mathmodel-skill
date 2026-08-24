@@ -1,50 +1,27 @@
-# 论文资料库 (papers)
+# 论文资料库（legacy/papers）
 
-> 本目录是**辅助参考资料**, skill 主体不依赖这里的内容运行。`references/winning_patterns.md` 已经从公开渠道一次性提炼了一等奖共性, 写入静态知识。
+> 本目录是历史资料获取记录与人工维护区，**不属于 Skill 默认运行链**。当前活动 Router、写作模块和评分流程不依赖这里存在 PDF 才能运行。
 
-## 当前内容
+## 当前仓库状态
 
-可能包含通过 git clone 拉取的开源仓库:
-- `MathModel/` (zhanwen): 历年题目分类 + 算法资料
-- `Math_Model_repo/` (personqianduixue): LaTeX 模板 + 算法仓 (论文在百度云,GitHub 仅索引)
+当前受版本控制的该目录主要保留本说明与 `_DOWNLOAD_REPORT.md`。历史论文批量下载、抽取和统计过程已经归档；论文 PDF 本身不应被重新当作活动 Skill 依赖。
 
-## 如何手动补充
+`_DOWNLOAD_REPORT.md` 记录过往 CUMCM 论文获取与抽检情况。相关一次性维护脚本已经移动到 `legacy/tools/`，仅用于人工复现或历史核对。
 
-直接下载渠道有限, 优先级如下:
+## 如需人工补充历史论文
 
-### 1. 教育部"中国大学生在线"展厅 (官方公开)
-- URL: https://dxs.moe.gov.cn/zx/hd/sxjm/sxjmlw/
-- 操作: 浏览器手动进入 → 选年份 → 选题号 → 下载 PDF → 投放到本目录
-- 优势: 官方权威, 都是真实一等奖
-- 限制: 每年仅展出极少 (3-5 篇/题)
+若维护者明确需要重建历史资料集：
 
-### 2. GitHub 公开 repo
-搜索 keyword:
-- "CUMCM" / "数学建模" / "国一"
-- "national first prize" math modeling
-- 历年获奖学校的个人 repo (如中山大学、清华、上交)
+1. 将人工确认来源的 PDF 放入 `legacy/papers/` 的适当子目录；
+2. 需要离线统计时，可显式运行归档脚本：
+   ```bash
+   python legacy/tools/ingest_papers.py --papers-dir legacy/papers/
+   ```
+3. 该脚本是历史维护工具，不是当前写作或评分 Authority；其输出只能作为人工参考，不能直接覆盖当前 `core/`、`modules/` 或 `packs/` 中的活动规则；
+4. 如需修改当前写作阈值、评分规则或论文结构，应回到当前活动 Authority 按 `SKILL_CHANGE_GOVERNANCE.md` 单独修改，不能从 legacy 资料自动反推并写回。
 
-### 3. CSDN / 知乎 / B 站
-质量参差, 但有汇总贴。例:
-- https://blog.csdn.net/qq_37345758/article/details/134295998 (2023 国赛)
-- https://blog.csdn.net/2401_86936045/article/details/141719882 (历年汇总, 国一学长整理)
+## 来源与使用边界
 
-CSDN 会要求注册或下载券, 注意辨别真伪。
+可人工查找公开来源，包括官方公开展厅、公开 GitHub 仓库或其他可验证来源；来源真实性、年份、题号和奖项等级必须由维护者自行核对。历史第三方索引和社区汇总只能作为线索，不能自动视为权威。
 
-### 4. 数模社 / 数模君 / 数学建模交流群
-非官方, 但可能有更多。需付费或加群。
-
-## 使用方法
-
-收集到 PDF 后:
-1. 投放到本目录 (任意子目录)
-2. 跑 `python scripts/ingest_papers.py --papers-dir references/papers/`
-3. 脚本会输出: 字数 / 章节数 / 图表 / 公式 / 摘要含定量结果比例 等统计
-4. 把统计结果与 `references/winning_patterns.md` 中的预设阈值对照
-5. 若实测显著不同, 手动更新 `winning_patterns.md`
-
-## 重要提示
-
-skill 运行时**不读**这里的 PDF (避免污染上下文 + token 浪费)。
-本目录内容只在你想**手动补充/更新模式**时使用。
-即使本目录为空, skill 仍可完整运行。
+Skill 运行时禁止默认扫描或加载本目录中的 PDF，以避免把历史语料、旧规则或未经核验的外部材料混入当前项目语义。即使本目录没有任何 PDF，当前 Skill 仍应完整运行。
