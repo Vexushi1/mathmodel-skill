@@ -47,9 +47,17 @@ class TestV790RuntimeClosure(unittest.TestCase):
                 "result_analysis_workbook", "accepted_result_analysis_workbook", "validated_results",
             ],
         )
-        for pack in ("packs/artifact/figure.md", "packs/artifact/latex.md", "packs/artifact/review.md"):
+        for pack in (
+            "packs/artifact/figure.md",
+            "packs/artifact/latex.md",
+            "packs/artifact/review.md",
+            "packs/artifact/full_submission.md",
+        ):
             self.assertIn(pack, plan["packs"])
         self.assertIn("validated_submission_package", plan["terminal_outputs"])
+        self.assertIn("submission_package_validation_report", plan["terminal_outputs"])
+        gate_names = {item["name"] for item in plan["pre_delivery_gates"]}
+        self.assertIn("submission_package_validation", gate_names)
 
     def test_cumcm_current_project_template_authority_is_hsk(self):
         compile_profiles = yaml.safe_load((ROOT / "core/compile_profiles.yaml").read_text(encoding="utf-8"))
@@ -131,12 +139,33 @@ class TestV790RuntimeClosure(unittest.TestCase):
             main = final / "main.tex"
             child = final / "sections/q1.tex"
             pdf = final / "main.pdf"
+            framework = project / "模型论文框架.md"
             main.write_text(r"\documentclass{article}\begin{document}\input{sections/q1}\end{document}", encoding="utf-8")
             child.write_text("v1", encoding="utf-8")
             pdf.write_bytes(b"pdf-v1")
+            framework.write_text("framework", encoding="utf-8")
+            (final / "main.log").write_text("This is XeTeX\n", encoding="utf-8")
+            source_hash = self.delivery.source_bundle_snapshot(main)["source_bundle_sha256"]
+            audit_report = {
+                "audit_schema_version": "1.0.0",
+                "status": "passed",
+                "mode": "formal",
+                "source_bundle_sha256": source_hash,
+                "framework_sha256": self.delivery.sha256_file(framework),
+            }
+            (final / "latex_audit_report.yaml").write_text(
+                yaml.safe_dump(audit_report, allow_unicode=True), encoding="utf-8"
+            )
+            profiles = yaml.safe_load((ROOT / "core/compile_profiles.yaml").read_text(encoding="utf-8"))
+            cumcm_profile = profiles["profiles"]["cumcm"]
             report = self.delivery.write_compile_report(
-                project=final, main=main, profile="test", engine="xelatex",
-                bibliography="none", sequence=["xelatex"],
+                project=final,
+                main=main,
+                profile="cumcm",
+                engine="xelatex",
+                bibliography="biber",
+                sequence=cumcm_profile["sequence"],
+                profile_config=cumcm_profile,
             )
             self.assertEqual(report["status"], "passed")
             state = {
@@ -161,6 +190,7 @@ class TestV790RuntimeClosure(unittest.TestCase):
         text = (ROOT / "scripts/render_paper.py").read_text(encoding="utf-8")
         self.assertIn("write_compile_report", text)
         self.assertIn("compile_report.yaml", text)
+        self.assertIn("create_audit_attestation", text)
 
 
 if __name__ == "__main__":

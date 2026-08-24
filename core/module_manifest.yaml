@@ -1,4 +1,4 @@
-version: 7.9.0
+version: 7.10.0
 workflow_order:
 - problem_audit
 - model_design
@@ -96,10 +96,13 @@ artifact_catalog:
   latex_source: 已清理待编译LaTeX源码
   cleaned_paper_text: 已清理论文正文
   unsupported_claims: 缺乏证据的结论清单
+  latex_audit_report: 绑定当前LaTeX source bundle与模型论文框架哈希的正式项目审计证明
   compiled_pdf: 最终PDF
-  compile_report: 编译引擎、日志、source bundle/PDF哈希新鲜度与警告检查
+  compile_report: 绑定LaTeX审计、编译profile、source bundle、日志与PDF哈希的编译证明
   review_report: 终审问题与评分报告
-  validated_submission_package: 通过交付检查的提交包
+  submission_package: 已按official或reproducibility规则整理、尚待package provenance gate验证的提交ZIP
+  submission_package_validation_report: 提交ZIP的kind、allowlist、manifest及当前项目哈希一致性验证报告
+  validated_submission_package: submission_package_validation gate通过后的正式可交付提交包
   project_state: 项目机器状态
   sync_report: 项目同步器生成的发现、Schema校验、分层哈希、stale和证据链报告
   figure_evidence: 由当前数据事实源、预处理/结果工作簿与对应MATLAB脚本形成的逻辑证据，不默认生成独立文件
@@ -371,6 +374,7 @@ modules:
     - latex_source
     - compile_profile
     outputs:
+    - latex_audit_report
     - compiled_pdf
     - compile_report
   review_delivery:
@@ -385,7 +389,7 @@ modules:
     - compile_report
     outputs:
     - review_report
-    - validated_submission_package
+    - submission_package
 utility_gates:
   semantic_governance:
     path: scripts/validate_semantic_governance.py
@@ -462,3 +466,18 @@ utility_gates:
     - Propagates stale from the active data source, preprocessing figure script, primary code, analysis code, workbooks, MATLAB scripts and figure bundles without clearing it.
     - Required before formal model, workbooks, figures, DOCX, LaTeX or submission delivery.
     - Code delivery uses the dedicated non-executing code_delivery gate.
+  submission_package_validation:
+    path: scripts/validate_submission_package.py
+    command: python scripts/validate_submission_package.py <project_root> --strict
+    inputs:
+    - existing_project_state
+    - discovered_artifacts
+    - submission_package
+    outputs:
+    - submission_package_validation_report
+    - validated_submission_package
+    rules:
+    - Requires exactly one submission_manifest.yaml with per-file SHA-256 records.
+    - Revalidates archived files against the current project and requires the packaged PDF to match the current compiled_pdf hash.
+    - Official packages require current verified competition edition_rules and must match the verified submission_files allowlist exactly.
+    - Reproducibility packages keep the broader internal material boundary and must include PDF, Python, result workbook and MATLAB evidence files.

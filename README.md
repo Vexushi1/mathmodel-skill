@@ -1,6 +1,19 @@
-# mathmodel-skill v7.9.0
+# mathmodel-skill v7.10.0
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 数据审计与 `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → 条件式预处理 → 用户本地 full-fidelity Python 主求解 → 独立结果深化分析 → MATLAB 证据图 → LaTeX 终稿 → AI cleanup → prose/structure/BibTeX audit → 编译终审**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 数据审计与 `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → 条件式预处理 → 用户本地 full-fidelity Python 主求解 → 独立结果深化分析 → MATLAB 证据图 → LaTeX 终稿 → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → submission package validation → 编译终审**。
+
+## v7.10.0：Delivery Attestation & Submission Closure
+
+本版本继续收口 v7.9.0 之后的终稿交付证明链，不改变数学模型、数值求解、Workbook Schema、Python/MATLAB 职责、用户 full-fidelity 执行、framework `v0.8-project-memory` 或每问五文件接口。
+
+- 正式 LaTeX 审计现在可持久化 `latex_audit_report.yaml`，并同时绑定 active source bundle 与当前 `模型论文框架.md`；正式编译不得跳过该证明。
+- `compile_report.yaml` 升级为 v3 attestation：除 source/PDF hash 外，继续绑定 audit-report hash、compile-profile fingerprint、实际 engine/bibliography/sequence 与有效编译日志；缺失 log 不再默认视为 passed。
+- `scripts/render_paper.py` 的 formal 模式负责“先审计、再按 profile 编译、再写 compile report”；template smoke 与正式交付证明显式分离。
+- CUMCM class materialization 由正式编译链统一处理，不再依赖调用者手工复制 class 才能跑通。
+- `full_workflow` 在进入 submission scope 后同时加载 `packs/artifact/full_submission.md`，并增加 `submission_package_validation` gate；`validated_submission_package` 只有在包级 provenance 验证成功后才成立。
+- `hsk_pack_submission.py` 显式区分 `official` 与 `reproducibility`。official 模式只接受当前 competition profile 中**已核验**的 `edition_rules.submission_files` allowlist；规则未核验时拒绝自动猜测提交物。
+- ZIP 自动携带 `submission_manifest.yaml` 与逐文件 SHA-256；`validate_submission_package.py` 会核对 manifest、ZIP 实际内容、当前项目同路径文件以及当前 `compiled_pdf` 哈希，旧 PDF/旧代码/旧工作簿即使文件名正确也不能通过。
+- 旧无 `--mode` 的打包调用继续按 reproducibility 语义兼容；旧 v2 compile report 可读，但正式交付要求重新生成 v3 attestation。
 
 ## v7.9.0：模块化 LaTeX 运行时闭环
 
@@ -247,13 +260,15 @@ route-specific contracts / modules / packs / templates
 python scripts/lint_skill.py
 python -m unittest discover -s tests
 python scripts/validate_model_paper_framework.py 模型论文框架.md --strict
-python scripts/audit_paper_prose.py final_latex/main.tex --bib final_latex/references.bib --framework 模型论文框架.md --strict
+python scripts/audit_latex_project.py final_latex/main.tex --bib final_latex/references.bib --framework 模型论文框架.md --require-framework --write-report --strict
+python scripts/render_paper.py final_latex --profile <profile>
+python scripts/validate_submission_package.py . --strict
 ```
 
 正式项目交付还按实际阶段执行 semantic governance、用户工作簿验收和 project sync。
 
 ## 兼容与历史
 
-`legacy/` 只读，不进入默认执行链。v7.7 及更早项目保持只读兼容；Algorithm Trace 为可选写作能力，不要求历史项目反向补写。历史版本说明保留在 Git 历史和 `CHANGELOG.md`。
+`legacy/` 只读，不进入默认执行链。v7.9 及更早项目保持只读兼容；Algorithm Trace 为可选写作能力，不要求历史项目反向补写。历史版本说明保留在 Git 历史和 `CHANGELOG.md`。
 
 许可证与第三方声明见 `LICENSE`、`THIRD_PARTY_NOTICES.md`。

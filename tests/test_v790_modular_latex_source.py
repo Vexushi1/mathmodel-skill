@@ -91,6 +91,21 @@ class TestV790ModularLatexSource(unittest.TestCase):
             findings = self.audit.audit_project(root / "main.tex")
             self.assertTrue(any(x.code == "latex_include_cycle" and x.severity == "blocking" for x in findings), findings)
 
+    def test_reincluded_fragment_requires_review(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "sections").mkdir()
+            (root / "main.tex").write_text(
+                r"\documentclass{article}\begin{document}\input{sections/q1}\input{sections/q1}\end{document}",
+                encoding="utf-8",
+            )
+            (root / "sections/q1.tex").write_text("重复正文。", encoding="utf-8")
+            findings = self.audit.audit_project(root / "main.tex")
+            item = next((x for x in findings if x.code == "latex_fragment_reincluded"), None)
+            self.assertIsNotNone(item, findings)
+            self.assertEqual(item.severity, "review_required")
+            self.assertIn("sections/q1.tex", item.evidence)
+
     def test_child_document_declaration_is_blocking(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
