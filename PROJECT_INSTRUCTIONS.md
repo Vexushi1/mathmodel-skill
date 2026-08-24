@@ -30,7 +30,7 @@
 16. Algorithm Trace 仅在 `stepwise/pseudocode` 时建立，闭合“模型结构/公式/命题/约束 → 论文算法流程 → 真实 Python 实现 → 工作簿结果或验证证据”；`not_needed` 不为版式完整生成装饰性 Algorithm 1；
 17. 核心模型收束按 `required / inline / not_applicable` 自适应；命题 0--4 是默认正文阅读预算而非 Hard 上限，P5+ 可在必要性审查和 justification 后保留；优点和缺点没有强制数量关系；需要外部证据的核心 claim 通过 Citation Evidence 连接正文位置与 `references.bib`；
 18. AI cleanup 后正式 LaTeX 审计统一运行 `scripts/audit_latex_project.py`；它递归展开模块化源码并委托 `audit_paper_prose.py` 做 prose/BibTeX/framework 检查。确定性 Hard 错误为 blocking，Default 偏离为 review_required，Recommendation/风格风险为 warning；机器不得从正则判断数学/算法正确性、参数最优性、术语语义等价或 citation 的语义支持关系；
-19. 正式模型、代码、返回工作簿和下游交付先执行 `scripts/validate_semantic_governance.py`；正式产物交付再按解析器返回的 scope 执行 `scripts/sync_project.py <project_root> --write --strict --delivery-scope <scope>`；LaTeX/提交 scope 会重算当前 source bundle 并核对 `compile_report` 与 PDF hash；
+19. 正式交付统一执行 resolver 当前返回的全部 `pre_delivery_gates`，并严格保持返回顺序；不得在入口文档维护第二套 gate 固定清单。`semantic_governance`、`project_sync`、`submission_package_validation` 等 gate 只有在当前 plan 返回时才执行；其中 `project_sync` 按 resolved scope 重算/同步当前产物，LaTeX/提交 scope 会核对 source bundle、`compile_report` 与 PDF hash，`submission_package_validation` 对当前 submission manifest、ZIP 内容与绑定哈希做最终包级验证；
 20. `project_sync` 只发现产物、校验 Schema、计算哈希和传播 stale，不生成模型语义、数值结果或 passed 状态；
 21. `run_info.json`、`result_manifest.yaml`、`matlab_figure_handoff.json` 只在用户明确要求完整复现包时生成，并放在项目级内部元数据目录，不得进入 `问题X求解/` 或 `数据预处理/`；
 22. 旧 `结果数据表/问题X/`、旧敏感性与鲁棒性工作簿以及 v6.6 单脚本四文件目录只作历史项目只读兼容，新项目不得按旧结构生成；
