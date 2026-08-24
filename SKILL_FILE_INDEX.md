@@ -9,6 +9,7 @@
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
+- `.github/workflows/v7101-read-path-migration.yml`
 - `.gitignore`
 - `AGENTS.md`
 - `CHANGELOG.md`
