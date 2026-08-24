@@ -51,6 +51,10 @@ class TestLegacyArchiveHygiene(unittest.TestCase):
         self.assertNotIn("`legacy/papers/README.md`", index)
         self.assertNotIn("`legacy/releases/v6.2.1/README.md`", index)
 
+    def test_docs_branches_can_refresh_generated_metadata(self) -> None:
+        workflow = (ROOT / ".github/workflows/refresh-generated.yml").read_text(encoding="utf-8")
+        self.assertIn('- "docs/**"', workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
