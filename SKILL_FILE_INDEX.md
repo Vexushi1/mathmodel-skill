@@ -189,6 +189,7 @@
 - `tests/test_contract_closure.py`
 - `tests/test_framework_project_memory_contract.py`
 - `tests/test_latex_first_versionless_docs.py`
+- `tests/test_legacy_archive_hygiene.py`
 - `tests/test_no_active_old_stage.py`
 - `tests/test_preprocessing_decision_contract.py`
 - `tests/test_python_matlab_ownership.py`
