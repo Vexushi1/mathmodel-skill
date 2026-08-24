@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：7.10.0
+当前 Skill 版本：7.10.1
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
