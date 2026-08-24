@@ -1,4 +1,4 @@
-version: 7.9.0
+version: 7.10.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 user_execution_contract: core/user_execution_contract.yaml
@@ -43,6 +43,11 @@ writing_policy:
   latex_audit_entrypoint: scripts/audit_latex_project.py
   latex_source_layout_default: modular
   latex_project_audit_script: scripts/audit_latex_project.py
+  latex_audit_report: final_latex/latex_audit_report.yaml
+  latex_audit_report_schema: 1.0.0
+  formal_render_script: scripts/render_paper.py
+  compile_report_schema: 3.0.0
+  submission_package_validator: scripts/validate_submission_package.py
   legacy_single_file_latex_supported: true
   prose_audit_framework_flag: --framework
   prose_audit_default_mode: report_only
@@ -55,6 +60,16 @@ writing_policy:
     proposition_proof: packs/artifact/proposition_proof.md
     algorithm_flow: packs/artifact/algorithm_flow.md
   consumer_rule: modules、packs、checklists与review只引用Authority，不重新定义正文规则。
+delivery_attestation:
+  latex_audit_role: 正式LaTeX项目审计证明必须绑定当前active source bundle与当前模型论文框架哈希；template_smoke证明不得用于正式项目交付。
+  compile_role: v3 compile_report绑定正式审计报告哈希、当前compile-profile fingerprint、实际编译序列、有效日志、source bundle与PDF哈希。
+  missing_log_policy: failed
+  profile_drift_policy: stale_recompile_required
+  official_package_policy: 只有当届edition_rules=verified且verified_at/source/submission_files完整时才允许自动生成official package；内容必须精确等于verified allowlist。
+  reproducibility_package_policy: 与官方包显式分流；允许包含项目内部复现材料，但仍须通过manifest和当前产物哈希验证。
+  package_manifest: submission_manifest.yaml
+  package_validator: scripts/validate_submission_package.py
+  validated_submission_semantics: ZIP生成本身不代表validated；submission_package_validation gate通过后才可正式交付。
 execution_policy:
   default_owner: user
   default_profile: full_fidelity
@@ -294,6 +309,7 @@ project_sync:
     - result_analysis_report
     - approved_figures
     - latex_source
+    - latex_audit_report
     - compiled_pdf
     - compile_report
     submission:
@@ -302,7 +318,7 @@ project_sync:
     - result_quality_report
     - result_analysis_report
     - compiled_pdf
-    - validated_submission_package
+    - submission_package
   conditional_stage_requirements:
     preprocessing_decision_project_level:
       condition: preprocessing_decision == project_level
@@ -427,14 +443,15 @@ project_sync:
   - v0.8只把stale传播到依赖该小问/上游paper fragment的论文片段；不得因为单问变化使整篇无关章节stale
   - 只允许设置或保持stale；清除stale必须由适用的数据质量门、主结果质量门、结果分析流程或对应论文片段重写复核显式完成
   - 对DOCX、LaTeX与提交scope检查真实文件、编译报告、图片引用和提交ZIP内容
-  - LaTeX与提交scope重算当前active source bundle；必须与compile_report.compiled_from_source_sha256及PDF哈希一致，任一active .tex/.bib/.cls/.sty/正式图片变化后旧PDF均视为stale
+  - LaTeX与提交scope重算当前active source bundle；必须与正式latex_audit_report、compile_report.compiled_from_source_sha256及PDF哈希一致；任一active .tex/.bib/.cls/.sty/正式图片、模型论文框架或compile profile变化后旧证明链均须重新生成
+  - submission scope的project_sync只检查项目内正式产物与ZIP存在/基础状态；ZIP内容与当前项目/竞赛allowlist的最终证明由submission_package_validation gate负责
   forbidden:
   - 自动生成模型语义或preprocessing_decision
   - 因共享数据自动把preprocessing_decision提升为project_level
   - 自动清除artifacts_stale、stale_layers或paper fragment stale
   - 自动填写结果数值
   - 自动把preprocessing_quality_status、result_quality_status或result_analysis_status提升为passed
-  - 以文件存在代替数据质量、可行性、精度、预处理验证或稳定性验证
+  - 以文件存在代替数据质量、可行性、精度、预处理验证、编译证明或提交包当前性验证
   artifact_hash_semantics:
     global_framework: paper_framework.sha256记录完整模型论文框架文件哈希
     preprocessing_decision: 项目级预处理判定本身属于数据/模型语义层
@@ -614,6 +631,8 @@ rules:
 - 实际生成的项目级预处理脚本和两个正式小问Python脚本都必须通过静态工程质量检查且不得由助手执行；校验结果在聊天或标准输出中返回，不额外落盘。
 - 用户返回的适用预处理工作簿和小问工作簿均必须先通过对应质量门；代码交付本身不得把状态提升为solved或analyzed。
 - 同步器只做发现、校验、哈希和stale传播，不替代语义治理、条件式预处理质量门、主求解质量门与结果深化分析。
+- v7.10正式LaTeX交付必须形成current的latex_audit_report + v3 compile_report + PDF证明链；缺日志、审计过期、profile变化或源码/框架变化均不得继续复用旧passed状态。
+- v7.10提交包显式分为official/reproducibility；official必须来自已核验当届allowlist，任一包都必须由submission_manifest和当前项目哈希验证后才可视为validated。
 - v7.8算法流程呈现按not_needed/stepwise/pseudocode自适应；只有真实多阶段或控制流有信息价值时单列，并由Algorithm Trace连接模型/命题、Python实现与工作簿结果。
 - v7.8不把Python源码压缩成论文伪代码，也不要求每问设置Algorithm 1；算法语义变化继续使用既有semantic_change_categories=algorithm传播stale。
 - v7.7核心答案的展示精度优先服从题目、官方格式和评分精度；若后续小数位可能计分，不得为摘要简洁或版面美观擅自降低精度。

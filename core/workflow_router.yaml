@@ -1,4 +1,4 @@
-version: 7.9.0
+version: 7.10.0
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -73,7 +73,8 @@ execution_contract:
   - Merge multiple intents in workflow order and remove duplicate modules, packs and outputs.
   - Reuse current project state, framework and artifacts before recomputing; when a current 模型论文框架.md exists, apply project_memory_contract and read the relevant sections before downstream work.
   - A gate output is available only after the gate executes successfully.
-  - Compile only the LaTeX source produced after AI cleanup.
+  - Compile only the LaTeX source produced after AI cleanup; formal compile attestation must bind the current project audit, compile profile, source bundle and PDF.
+  - Submission scope additionally validates the packaged ZIP against its manifest, the current compiled PDF and verified competition rules when official mode is used.
 
 routing:
   new_problem_design:
@@ -259,7 +260,7 @@ routing:
     infer_keywords: [LaTeX, PDF终稿, cumcmthesis, 终稿论文, 编译论文]
     load: [core/writing_reasoning_contract.yaml, modules/05_writing/latex.md, modules/05_writing/ai_cleanup.md, modules/05_latex_compile_quality.md, packs/artifact/latex.md, packs/artifact/algorithm_flow.md]
     load_competition_pack: true
-    terminal_outputs: [latex_source, compiled_pdf, compile_report]
+    terminal_outputs: [latex_source, latex_audit_report, compiled_pdf, compile_report]
     formal_delivery: true
     delivery_scope: latex
 
@@ -269,6 +270,7 @@ routing:
     load: [core/writing_reasoning_contract.yaml, modules/05_writing/latex.md, modules/06_review_delivery.md, packs/artifact/full_submission.md, packs/artifact/algorithm_flow.md]
     load_competition_pack: true
     terminal_outputs: [validated_submission_package]
+    pre_delivery_gates: [semantic_governance, project_sync, submission_package_validation]
     formal_delivery: true
     delivery_scope: submission
 

@@ -129,7 +129,15 @@ Title Claim Gate 检查选定标题中的研究对象、主方法、核心机制
 
 检查输入数据、项目根目录 `模型论文框架.md`、Python 求解代码、环境说明、随机种子、每问标准工作簿、MATLAB 绘图脚本、正式图、可编辑机理图、DOCX（如需）、LaTeX 源码和 PDF。
 
-正式 LaTeX 交付要求：编译引擎和模板 profile 正确；无 Error、未定义引用、缺失文献、缺图、字体错误和不可接受的 Overfull；目录、页码、摘要、图表、命题和附录编号正确；PDF 逐页检查；提交包同时包含完整最新版框架，不只交 PDF。
+正式 LaTeX 交付要求：编译引擎和模板 profile 正确；`latex_audit_report.yaml` 与 v3 `compile_report.yaml` 均为 current；无 Error、未定义引用、缺失文献、缺图、字体错误和不可接受的 Overfull；目录、页码、摘要、图表、命题和附录编号正确；PDF 逐页检查。
+
+提交包按 `packs/artifact/full_submission.md` 分流：
+
+- **official**：只包含当届已核验 `edition_rules.submission_files` 允许/要求的文件。若赛事只要求 PDF，就只提交该 PDF；不得为了“复现完整”擅自塞入框架、代码、工作簿或内部元数据；
+- **reproducibility**：仅在用户明确要求全套成果/内部归档时包含框架、源码、代码、工作簿、MATLAB 等复现材料；
+- 两类 ZIP 都必须先形成 `submission_manifest.yaml`，再通过 `submission_package_validation`；ZIP 存在不等于 `validated_submission_package`。
+
+终审不得再使用“提交包必须包含完整框架，不只交 PDF”这类跨赛事固定规则。
 
 ## 九、返修优先级
 
@@ -166,6 +174,6 @@ Title Claim Gate 检查选定标题中的研究对象、主方法、核心机制
 - 核心深化证据 `reject` 仍未处理却继续交付原主张；
 - 核心图表与正文结论冲突或关键引用不存在；
 - 必需 citation key 不存在、外部核心数据/参数完全无来源；
-- LaTeX 无法编译或提交包缺核心文件。
+- 正式 LaTeX 审计/编译证明失效，或提交包缺少**当前已核验赛事规则/所选复现模式真正要求的文件**，或 package provenance 验证失败。
 
 以下**不再自动列为 Blocking**：命题超过默认正文预算、优缺点条目数量关系、简单问题没有独立“核心模型汇总”小节、`not_needed` 小问没有正式算法框、短证明超过经验行数预算、仅由机器字符串相似度产生的术语提示、普通未引用公式的 warning。它们按 Authority 对应 Default/Recommendation 处理。

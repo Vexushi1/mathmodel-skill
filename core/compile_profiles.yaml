@@ -9,6 +9,8 @@ profiles:
     template_main: hsk_main.tex
     project_main: main.tex
     main_aliases: [paper.tex]
+    identity:
+      documentclass: cumcmthesis
   mcm_icm:
     aliases: [MCM, ICM, mcm, icm, mcm_icm]
     engine: pdflatex
@@ -30,6 +32,7 @@ profiles:
 rules:
   - The profile sequence is the source of truth for compilation.
   - project_main is the expected filename in final_latex; template_main is the repository smoke-test entry.
+  - Profiles may declare a machine-readable identity signature; when present, render_paper must reject a document whose actual template identity does not match that profile.
   - CUMCM and Chinese engineering papers use ASCII project paths and XeLaTeX.
   - Biber and BibTeX are not interchangeable; follow the selected profile.
   - A custom profile may override engine and bibliography only when the user explicitly requests it.

@@ -161,10 +161,20 @@ class TestRouterContract(unittest.TestCase):
         self.assertEqual(plan["delivery_scope"], "submission")
         self.assertEqual(
             [item["name"] for item in plan["pre_delivery_gates"]],
-            ["semantic_governance", "project_sync"],
+            ["semantic_governance", "project_sync", "submission_package_validation"],
         )
         self.assertFalse(plan["pause_for_user_execution"])
         self.assertTrue(plan["sync_required_before_delivery"])
+
+    def test_direct_full_submission_runs_provenance_gate_last(self):
+        plan = self.resolver.resolve_workflow("full_submission", competition="CUMCM")
+        self.assertEqual(plan["delivery_scope"], "submission")
+        self.assertEqual(
+            [item["name"] for item in plan["pre_delivery_gates"]],
+            ["semantic_governance", "project_sync", "submission_package_validation"],
+        )
+        self.assertTrue(plan["sync_required_before_delivery"])
+        self.assertIn("validated_submission_package", plan["terminal_outputs"])
 
     def test_legacy_labels_remain_compatible(self):
         plan = self.resolver.resolve_workflow(
