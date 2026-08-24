@@ -214,6 +214,7 @@
 - `tests/test_v7100_delivery_compatibility.py`
 - `tests/test_v7100_final_closure.py`
 - `tests/test_v7100_latex_provenance.py`
+- `tests/test_v7101_read_path_closure.py`
 - `tests/test_v710_semantic_governance.py`
 - `tests/test_v730_writing_expression_protocol.py`
 - `tests/test_v740_writing_evidence_architecture.py`
