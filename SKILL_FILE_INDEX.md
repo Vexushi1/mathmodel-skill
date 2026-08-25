@@ -57,6 +57,7 @@
 - `core/workbook_schema.yaml`
 - `core/workflow_router.yaml`
 - `core/writing_reasoning_contract.yaml`
+- `docs/architecture/authority_duplication_matrix_v7.11.1.md`
 - `legacy/README.md`
 - `modules/01_problem_audit.md`
 - `modules/02_model_design.md`
