@@ -32,17 +32,16 @@ class LatexFirstVersionlessDocsTests(unittest.TestCase):
         self.assertIn("modules/05_writing/docx.md", docx["load"])
 
     def test_manifest_and_output_contract_are_latex_first(self):
-        manifest = yaml.safe_load(
-            (ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8")
-        )
-        profile = manifest["workflow_profiles"]["full_workflow"]["modules"]
-        self.assertNotIn("writing_docx", profile)
-        self.assertNotIn("writing_latex", profile)
+        manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
+        router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8"))
+        full = router["routing"]["full_workflow"]
+        loaded = list(full.get("load", [])) + list(full.get("then", []))
+        self.assertNotIn("modules/05_writing/docx.md", loaded)
+        self.assertNotIn("modules/05_writing/latex.md", loaded)
         self.assertIn("writing_docx", manifest["modules"])
         self.assertIn("writing_latex", manifest["modules"])
-        output = yaml.safe_load(
-            (ROOT / "core/output_contract.yaml").read_text(encoding="utf-8")
-        )
+        self.assertNotIn("workflow_profiles", manifest)
+        output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         policy = output["writing_policy"]
         self.assertEqual(policy["default_mode"], "latex_first")
         self.assertEqual(policy["docx_mode"], "explicit_only_independent")

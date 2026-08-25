@@ -1,6 +1,10 @@
-# mathmodel-skill v7.11.0
+# mathmodel-skill v7.11.1
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 数据审计与 `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → 用户本地 full-fidelity Python 主求解 → 独立结果深化分析 → MATLAB 证据图 → LaTeX 终稿 → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v7.11.1：Single-Authority Stabilization
+
+本补丁不新增建模功能，重点收口 v7.11.0 之后暴露出的第二事实源和失效测试：Router 负责多意图路由、加载顺序与运行边界声明；Manifest 只保存模块/产物/Gate 图；Resolver 只解释声明并生成 plan。Model Approval 的字段级规则继续只由 `core/model_approval_contract.yaml` 定义，Output Contract 只保留交付集成所需的 authority pointer 与运行开关。CLI、项目状态 Schema、Workbook Schema、每问五文件接口、Python/MATLAB 分工、full-fidelity 用户执行和 LaTeX/submission provenance 均保持不变。
 
 ## v7.11.0：Model Challenge & Human Approval Closure
 
