@@ -48,6 +48,7 @@
 - `core/compile_profiles.yaml`
 - `core/global_preprocessing_contract.yaml`
 - `core/hsk_core_policy.md`
+- `core/model_approval_contract.yaml`
 - `core/module_manifest.yaml`
 - `core/output_contract.yaml`
 - `core/project_state.schema.yaml`
