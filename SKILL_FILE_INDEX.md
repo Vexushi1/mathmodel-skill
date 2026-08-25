@@ -98,6 +98,7 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
+- `scripts/_tmp_v7111_repair.py`
 - `scripts/_tmp_v7111_stabilize.py`
 - `scripts/audit_latex_project.py`
 - `scripts/audit_paper_prose.py`
