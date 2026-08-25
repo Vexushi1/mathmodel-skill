@@ -108,6 +108,7 @@
 - `scripts/prepare_cumcm_class.py`
 - `scripts/render_paper.py`
 - `scripts/resolve_workflow.py`
+- `scripts/runtime_assurance.py`
 - `scripts/score_submission.py`
 - `scripts/sync_project.py`
 - `scripts/validate_code_delivery.py`
