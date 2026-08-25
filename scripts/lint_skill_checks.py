@@ -188,6 +188,8 @@ def check_skill_entrypoint_parity(errors: list[str]) -> None:
     packaged_block = blocks.get("skills/mathmodel-skill/SKILL.md")
     if root_block is not None and packaged_block is not None and root_block != packaged_block:
         errors.append("root and packaged SKILL runtime-entry contracts drifted")
+    if texts["SKILL.md"] != texts["skills/mathmodel-skill/SKILL.md"]:
+        errors.append("root and packaged SKILL files drifted")
 
     plugin = load_structured(plugin_path) or {}
     if plugin.get("version") != current:
@@ -391,6 +393,19 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
             errors.append(f"governance document lacks section: {token}")
     if "<8.0.0" not in governance:
         errors.append("governance applicability must include v7")
+    for relative in (
+        "core/global_preprocessing_contract.yaml",
+        "core/user_execution_contract.yaml",
+        "core/code_quality_contract.yaml",
+    ):
+        contract = load_structured(ROOT / relative) or {}
+        if "skill_version" in contract:
+            errors.append(f"subordinate contract must not declare current-release skill_version: {relative}")
+        if not contract.get("introduced_in_skill_version"):
+            errors.append(f"subordinate contract introduction version missing: {relative}")
+        compatibility = str(contract.get("skill_compatibility", ""))
+        if "<8.0.0" not in compatibility:
+            errors.append(f"subordinate contract compatibility must cover active v7 line: {relative}")
 
 
 def check_taxonomy(errors: list[str]) -> None:

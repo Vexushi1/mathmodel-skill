@@ -34,9 +34,11 @@
 ```text
 problem_audit
 → model_design
+   ├─ 非破坏性数据审计 + 两条模型路线/数据需求比较
+   ├─ preprocessing_decision
    ├─ Formula Trace / 结构化简
    ├─ Algorithm Trace：not_needed / stepwise / pseudocode
-   ├─ Complexity Sanity
+   ├─ Semantic Closure / Complexity Sanity
    └─ proposed_model_spec
 → Model Reviewer
 → Devil's Advocate
@@ -45,7 +47,7 @@ problem_audit
 → awaiting_model_approval
 → 用户明确批准当前 semantic revision/hash
 → locked_model_spec
-→ preprocessing_decision
+→ 按 preprocessing_decision 分流
    ├─ not_needed     ───────────────────────────────┐
    ├─ question_local ───────────────────────────────┤
    └─ project_level → data_preprocessing            │

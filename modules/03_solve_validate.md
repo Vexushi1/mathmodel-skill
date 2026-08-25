@@ -43,16 +43,18 @@
 
 ```text
 题意口径冻结
+→ 非破坏性数据审计 + 模型路线/输入需求比较
+→ preprocessing_decision
 → 题面—数学—代码语义闭环
 → 复杂度合理性复审
 → Independent Model Challenge
 → Human Model Approval（绑定 current semantic revision/hash）
+→ semantic governance gate
 → model approval gate
-→ preprocessing_decision
+→ 按 preprocessing_decision 分流
    ├─ not_needed     → 原始数据
    ├─ question_local → 原始数据 + 本问局部变换
    └─ project_level  → Module 03P → 统一工作簿质量门
-→ semantic governance gate
 → 生成问题X求解.py
 → validate_code_delivery.py：执行配置 + 代码工程质量门
 → 用户本地full_fidelity运行
