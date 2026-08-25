@@ -33,7 +33,7 @@ jobs:
           rm -f scripts/_tmp_v7111_stabilize.py
           rm -f scripts/_tmp_v7111_repair.py
           rm -f .github/workflows/tmp-v7111-stabilize.yml
-      - name: Refresh generated repository metadata
+      - name: Refresh generated repository metadata for validation
         run: python scripts/generate_indexes.py
       - name: Validate lint, resolver and unit suite
         shell: bash
@@ -42,14 +42,16 @@ jobs:
           python scripts/resolve_workflow.py full_solution --primary mechanism --secondary optimization --competition CUMCM
           python -m unittest discover -s tests -p "test_*.py"
           python scripts/generate_indexes.py --check
-      - name: Commit source and generated stabilization changes
+      - name: Commit source stabilization changes
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Generated metadata is intentionally left to refresh-generated.yml after the source commit.
+          git restore --source=HEAD -- SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
           git add -A
           git commit -m "fix: stabilize v7.11.1 single-authority runtime"
-      - name: Rebase onto latest branch and push
+      - name: Rebase source changes onto latest branch and push
         shell: bash
         run: |
           git fetch origin "${GITHUB_REF_NAME}"
