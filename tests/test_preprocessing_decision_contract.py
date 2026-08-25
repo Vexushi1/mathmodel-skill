@@ -145,7 +145,8 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
         self.assertIn("data_preprocessing", self.router["execution_contract"]["conditional_modules"])
 
     def test_manifest_makes_preprocessing_conditional(self):
-        self.assertIn("data_preprocessing", self.manifest["conditional_modules"])
+        self.assertNotIn("conditional_modules", self.manifest)
+        self.assertIn("data_preprocessing", self.router["execution_contract"]["conditional_modules"])
         pre = self.manifest["modules"]["data_preprocessing"]
         self.assertTrue(pre["conditional"])
         self.assertEqual(pre["activation"], "preprocessing_decision == project_level")

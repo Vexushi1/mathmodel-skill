@@ -218,8 +218,14 @@ def check_repository_references(errors: list[str]) -> None:
                 _check_repo_reference(errors, value, f"router.{route_name}.{field}[{index}]")
         conditional = route.get("conditional_stage") or {}
         _check_repo_reference(errors, conditional.get("module"), f"router.{route_name}.conditional_stage.module")
+    for segment_name, segment in (router.get("runtime_segments") or {}).items():
+        for field in ("required_load", "final_load"):
+            for index, value in enumerate(segment.get(field, [])):
+                _check_repo_reference(errors, value, f"router.runtime_segments.{segment_name}.{field}[{index}]")
 
     manifest = load_structured(ROOT / "core/module_manifest.yaml") or {}
+    _check_repo_reference(errors, manifest.get("routing_authority"), "manifest.routing_authority")
+    _check_repo_reference(errors, (manifest.get("workflow_profile_compatibility") or {}).get("authority"), "manifest.workflow_profile_compatibility.authority")
     for key, value in (manifest.get("contracts") or {}).items():
         _check_repo_reference(errors, value, f"manifest.contracts.{key}")
     for name, spec in (manifest.get("modules") or {}).items():
@@ -417,10 +423,30 @@ def check_router(errors: list[str]) -> None:
         errors.append("data_preprocessing must be declared conditional")
     if execution.get("formal_delivery_gates") != ["semantic_governance", "project_sync"]:
         errors.append("formal delivery must declare semantic_governance then project_sync")
-    if execution.get("code_stage_gates") != ["semantic_governance", "model_approval", "code_delivery"]:
-        errors.append("code stages must declare semantic_governance before code_delivery")
     if execution.get("task_code_execution_allowed") is not False:
         errors.append("router must forbid assistant task-code execution")
+    segments = router.get("runtime_segments", {}) or {}
+    for name in ("model_approval_pending", "preprocessing", "primary_execution", "analysis_execution", "full_workflow_resume"):
+        if name not in segments:
+            errors.append(f"router runtime segment missing: {name}")
+    expected_roles = {
+        "new_problem_design": {"model_approval"},
+        "model_selection": {"model_approval"},
+        "advanced_method": {"model_approval"},
+        "data_preprocessing": {"model_approval", "preprocessing"},
+        "full_solution": {"model_approval", "preprocessing", "primary_execution"},
+        "full_workflow": {"model_approval", "preprocessing", "primary_execution", "full_workflow_resume"},
+        "code_and_solution": {"model_approval", "preprocessing", "primary_execution"},
+        "result_analysis": {"model_approval", "analysis_execution"},
+        "validation": {"model_approval", "analysis_execution"},
+    }
+    for route_name, expected in expected_roles.items():
+        if set((routes.get(route_name, {}) or {}).get("boundary_roles", [])) != expected:
+            errors.append(f"router boundary roles drifted: {route_name}")
+    for segment_name in ("preprocessing", "primary_execution", "analysis_execution"):
+        canonical = (segments.get(segment_name, {}) or {}).get("canonical_route")
+        if canonical not in routes:
+            errors.append(f"runtime segment canonical route missing: {segment_name} -> {canonical}")
     full = routes.get("full_workflow", {})
     loaded = list(full.get("load", [])) + list(full.get("then", []))
     if full.get("pause_for_user_execution") is not True:
@@ -468,9 +494,16 @@ def check_router(errors: list[str]) -> None:
     if explicit_docx.get("delivery_scope") != "docx" or "modules/05_writing/docx.md" not in explicit_docx.get("load", []):
         errors.append("explicit DOCX route must remain available")
     resolver = read_text(ROOT / "scripts/resolve_workflow.py")
-    for token in ("pre_delivery_gates", "available_after_modules", "available_after_plan", "gate_plan", "SEMANTIC_CODE_GATES", "SEMANTIC_SYNC_GATES", "apply_preprocessing_boundary", "preprocessing_decision"):
+    for token in ("pre_delivery_gates", "available_after_modules", "available_after_plan", "gate_plan", "runtime_segment", "route_boundary_roles", "apply_preprocessing_boundary", "preprocessing_decision"):
         if token not in resolver:
-            errors.append(f"resolver lacks gate-closure token: {token}")
+            errors.append(f"resolver lacks declarative gate-closure token: {token}")
+    for forbidden in (
+        "PRIMARY_CODE_GATES", "ANALYSIS_CODE_GATES", "SEMANTIC_CODE_GATES", "SEMANTIC_SYNC_GATES",
+        "SUBMISSION_GATES", "MODEL_APPROVAL_OUTPUTS", "PREPROCESSING_OUTPUTS", "PRIMARY_CODE_OUTPUTS",
+        "ANALYSIS_CODE_OUTPUTS", "FINAL_WORKFLOW_OUTPUTS", "DOWNSTREAM_MODULES", "MODEL_APPROVAL_REQUIRED_INTENTS",
+    ):
+        if forbidden in resolver:
+            errors.append(f"resolver must not embed workflow policy constant: {forbidden}")
     if "ordered HSK execution plan" not in resolver:
         errors.append("resolver must expose the versionless execution-plan docstring")
     if re.search(r"HSK v\d+\.\d+\.\d+ execution plan", resolver):
@@ -490,8 +523,14 @@ def check_manifest(errors: list[str]) -> None:
         if token not in catalog:
             errors.append(f"manifest lacks semantic artifact: {token}")
     modules = manifest.get("modules", {})
-    order = manifest.get("workflow_order", [])
+    router = load_structured(ROOT / "core/workflow_router.yaml") or {}
+    order = (router.get("execution_contract") or {}).get("workflow_order", [])
     rank = {name: index for index, name in enumerate(order)}
+    if "workflow_order" in manifest or "workflow_profiles" in manifest:
+        errors.append("manifest must not duplicate router workflow order/profile semantics")
+    compat = manifest.get("workflow_profile_compatibility", {}) or {}
+    if compat.get("authority") != "core/workflow_router.yaml" or compat.get("runtime_consumed") is not False:
+        errors.append("manifest workflow-profile compatibility must be a non-runtime router alias view")
     producers: dict[str, list[str]] = {}
     for name, spec in modules.items():
         path = spec.get("path")
@@ -542,14 +581,6 @@ def check_manifest(errors: list[str]) -> None:
         errors.append("model_design must produce preprocessing_decision")
     if "Algorithm Trace" not in str(manifest.get("artifact_catalog", {}).get("model_paper_framework", "")):
         errors.append("model-paper framework artifact description must expose Algorithm Trace project memory")
-    profile_spec = manifest.get("workflow_profiles", {}).get("full_workflow", {})
-    profile = profile_spec.get("modules", [])
-    if profile != ["problem_audit", "model_design", "solve_validate"]:
-        errors.append("full_workflow initial manifest profile must stop at solve_validate")
-    if (profile_spec.get("conditional_modules") or {}).get("data_preprocessing", {}).get("when") != "preprocessing_decision == project_level":
-        errors.append("full_workflow manifest profile must condition data_preprocessing")
-    if profile_spec.get("pre_delivery_gates") != ["semantic_governance", "model_approval", "code_delivery"]:
-        errors.append("full_workflow initial manifest profile must use semantic and code delivery")
     semantic_gate = manifest.get("utility_gates", {}).get("semantic_governance", {})
     if semantic_gate.get("path") != "scripts/validate_semantic_governance.py":
         errors.append("manifest must register semantic governance gate")
@@ -638,17 +669,21 @@ def check_contracts(errors: list[str]) -> None:
     if output.get("writing_reasoning_contract") != "core/writing_reasoning_contract.yaml":
         errors.append("output contract must reference writing-reasoning contract")
     semantic = output.get("semantic_governance", {})
-    if semantic.get("script") != "scripts/validate_semantic_governance.py":
-        errors.append("output contract must declare semantic governance script")
-    if semantic.get("dependency_kinds") != ["data", "parameter", "model", "result"]:
-        errors.append("semantic governance must define typed dependency kinds")
+    if semantic.get("authority") != "scripts/validate_semantic_governance.py":
+        errors.append("output contract must delegate semantic governance to its authority")
+    if semantic.get("dependency_kind_authority") != "core/project_state.schema.yaml#/$defs/dependency_kind":
+        errors.append("output contract must point dependency kinds to project-state schema")
     execution = output.get("execution_policy", {})
-    if execution.get("semantic_governance_gate") != "scripts/validate_semantic_governance.py":
-        errors.append("execution policy must require semantic governance")
-    if execution.get("preprocessing_required_before_solve_when_decision") != "project_level":
-        errors.append("execution policy must require preprocessing only for project_level")
-    if execution.get("shared_data_alone_does_not_require_preprocessing") is not True:
-        errors.append("execution policy must not promote shared data to preprocessing automatically")
+    expected_execution_authorities = {
+        "user_execution_authority": "core/user_execution_contract.yaml",
+        "preprocessing_authority": "core/global_preprocessing_contract.yaml",
+        "model_approval_authority": "core/model_approval_contract.yaml",
+        "semantic_governance_authority": "scripts/validate_semantic_governance.py",
+        "code_quality_authority": "core/code_quality_contract.yaml",
+    }
+    for key, expected in expected_execution_authorities.items():
+        if execution.get(key) != expected:
+            errors.append(f"execution policy authority mismatch: {key}")
 
     policy = output.get("writing_policy", {})
     expected_pointers = {

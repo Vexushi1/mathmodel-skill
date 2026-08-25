@@ -1,18 +1,12 @@
-version: 7.11.0
-workflow_order:
-- problem_audit
-- model_design
-- data_preprocessing
-- solve_validate
-- result_analysis
-- figure_evidence
-- writing_latex
-- ai_cleanup
-- latex_compile_quality
-- review_delivery
-- writing_docx
-conditional_modules:
-- data_preprocessing
+version: 7.11.1
+routing_authority: core/workflow_router.yaml
+workflow_profile_compatibility:
+  authority: core/workflow_router.yaml
+  runtime_consumed: false
+  aliases:
+    design: new_problem_design
+    full_solution: full_solution
+    full_workflow: full_workflow
 contracts:
   bootstrap: core/bootstrap.yaml
   taxonomy: core/task_taxonomy.yaml
@@ -115,121 +109,6 @@ artifact_catalog:
   figure_evidence: 由当前数据事实源、预处理/结果工作簿与对应MATLAB脚本形成的逻辑证据，不默认生成独立文件
   accepted_solution_workbook: 通过运行配置、哈希和主结果质量门验收的主工作簿
   accepted_result_analysis_workbook: 通过运行配置和结论稳定性验收的结果深化工作簿
-workflow_profiles:
-  design:
-    modules:
-    - problem_audit
-    - model_design
-    module_terminal_outputs:
-    - requirement_map
-    - problem_contract
-    - route_comparison
-    - selected_models
-    - proposed_model_spec
-    - model_challenge
-    - model_approval_brief
-    - awaiting_model_approval
-    - locked_model_spec
-    - preprocessing_decision
-    - formula_closure
-    - formula_reasoning_chain
-    - semantic_closure
-    - complexity_sanity_check
-    - validation_plan
-    - model_paper_framework
-    pre_delivery_gates:
-    - semantic_governance
-    - project_sync
-    terminal_outputs:
-    - requirement_map
-    - problem_contract
-    - route_comparison
-    - selected_models
-    - proposed_model_spec
-    - model_challenge
-    - model_approval_brief
-    - awaiting_model_approval
-    - locked_model_spec
-    - preprocessing_decision
-    - formula_closure
-    - formula_reasoning_chain
-    - semantic_closure
-    - complexity_sanity_check
-    - validation_plan
-    - model_paper_framework
-    - semantic_governance_report
-    - project_state
-    - sync_report
-  full_solution:
-    modules:
-    - problem_audit
-    - model_design
-    - solve_validate
-    conditional_modules:
-      data_preprocessing:
-        when: preprocessing_decision == project_level
-        before: solve_validate
-    module_terminal_outputs:
-    - preprocessing_decision
-    - python_code
-    - stage_python_code
-    - full_run_config
-    - execution_instructions
-    - code_delivery_report
-    - awaiting_user_execution
-    - proposition_plan
-    - model_paper_framework
-    pre_delivery_gates:
-    - semantic_governance
-    - model_approval
-    - code_delivery
-    terminal_outputs:
-    - preprocessing_decision
-    - python_code
-    - stage_python_code
-    - full_run_config
-    - execution_instructions
-    - code_delivery_report
-    - awaiting_user_execution
-    - proposition_plan
-    - model_paper_framework
-    - semantic_governance_report
-    - model_approval_validation_report
-    - project_state
-  full_workflow:
-    modules:
-    - problem_audit
-    - model_design
-    - solve_validate
-    conditional_modules:
-      data_preprocessing:
-        when: preprocessing_decision == project_level
-        before: solve_validate
-    module_terminal_outputs:
-    - preprocessing_decision
-    - python_code
-    - stage_python_code
-    - full_run_config
-    - execution_instructions
-    - code_delivery_report
-    - awaiting_user_execution
-    - model_paper_framework
-    pre_delivery_gates:
-    - semantic_governance
-    - model_approval
-    - code_delivery
-    terminal_outputs:
-    - preprocessing_decision
-    - python_code
-    - stage_python_code
-    - full_run_config
-    - execution_instructions
-    - code_delivery_report
-    - awaiting_user_execution
-    - model_paper_framework
-    - semantic_governance_report
-    - model_approval_validation_report
-    - project_state
 modules:
   problem_audit:
     path: modules/01_problem_audit.md

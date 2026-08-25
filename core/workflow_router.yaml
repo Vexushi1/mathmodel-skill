@@ -1,4 +1,4 @@
-version: 7.11.0
+version: 7.11.1
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -51,8 +51,6 @@ execution_contract:
   workflow_order: [problem_audit, model_design, data_preprocessing, solve_validate, result_analysis, figure_evidence, writing_latex, ai_cleanup, latex_compile_quality, review_delivery, writing_docx]
   conditional_modules: [data_preprocessing]
   formal_delivery_gates: [semantic_governance, project_sync]
-  code_stage_gates: [semantic_governance, model_approval, code_delivery]
-  returned_workbook_gates: [semantic_governance, user_execution_receipt]
   task_code_execution_allowed: false
   rules:
   - Stop after the last module required by the user deliverable.
@@ -77,8 +75,63 @@ execution_contract:
   - Compile only the LaTeX source produced after AI cleanup; formal compile attestation must bind the current project audit, compile profile, source bundle and PDF.
   - Submission scope additionally validates the packaged ZIP against its manifest, the current compiled PDF and verified competition rules when official mode is used.
 
+runtime_segments:
+  model_approval_pending:
+    role: model_approval
+    satisfied_when:
+      any: [locked_model_spec, accepted_solution_workbook]
+      all_groups:
+      - [solution_workbook, result_quality_report]
+      - [solved_results, result_quality_report]
+    stop_before_module: data_preprocessing
+    required_load: [core/model_approval_contract.yaml, core/writing_reasoning_contract.yaml, modules/01_problem_audit.md, modules/02_model_design.md]
+    terminal_outputs: [route_comparison, selected_models, proposed_model_spec, model_challenge, model_approval_brief, awaiting_model_approval, preprocessing_decision, formula_closure, formula_reasoning_chain, semantic_closure, complexity_sanity_check, validation_plan, model_paper_framework]
+    delivery_scope: design
+    pre_delivery_gates: [semantic_governance]
+    formal_delivery: false
+    pause_state: awaiting_model_approval
+
+  preprocessing:
+    role: preprocessing
+    canonical_route: data_preprocessing
+    stage_module: data_preprocessing
+    stop_before_module: solve_validate
+    satisfied_when:
+      any: [accepted_preprocessing_workbook, preprocessing_workbook]
+
+  primary_execution:
+    role: primary_execution
+    canonical_route: code_and_solution
+    stage_module: solve_validate
+    stop_before_module: result_analysis
+    satisfied_when:
+      any: [accepted_solution_workbook]
+      all_groups:
+      - [solution_workbook, result_quality_report]
+      - [solved_results, result_quality_report]
+
+  analysis_execution:
+    role: analysis_execution
+    canonical_route: result_analysis
+    pre_delivery_gates: [semantic_governance, code_delivery]
+    stage_module: result_analysis
+    reset_from_module: solve_validate
+    satisfied_when:
+      any: [accepted_result_analysis_workbook]
+      all_groups:
+      - [result_analysis_workbook, validated_results]
+
+  full_workflow_resume:
+    role: full_workflow_resume
+    final_load: [modules/04_figure_evidence.md, packs/artifact/figure.md, modules/05_writing/latex.md, packs/artifact/latex.md, modules/05_writing/ai_cleanup.md, modules/05_latex_compile_quality.md, modules/06_review_delivery.md, packs/artifact/review.md, packs/artifact/full_submission.md]
+    terminal_outputs: [approved_figures, latex_source, latex_audit_report, compiled_pdf, compile_report, review_report, submission_package, model_paper_framework]
+    delivery_scope: submission
+    pre_delivery_gates: [semantic_governance, project_sync, submission_package_validation]
+    formal_delivery: true
+
 routing:
   new_problem_design:
+    boundary_roles: [model_approval]
     triggers: [新赛题, 建模方案, 建模思路, 全流程思路]
     infer_keywords: [新赛题, 建模方案, 建模思路, 审题并建模]
     load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/model_approval_contract.yaml, core/writing_reasoning_contract.yaml, modules/01_problem_audit.md, packs/task/classifier.md]
@@ -122,6 +175,7 @@ routing:
     delivery_scope: design
 
   data_preprocessing:
+    boundary_roles: [model_approval, preprocessing]
     triggers: [数据预处理, 数据清洗, 统一预处理, 数据总表, 统一数据表, 预处理结果]
     infer_keywords: [数据预处理, 数据清洗, 统一预处理, 数据总表, 统一数据表, 预处理结果]
     load: [core/global_preprocessing_contract.yaml, core/model_approval_contract.yaml, core/user_execution_contract.yaml, core/code_quality_contract.yaml, modules/03_data_preprocessing.md, packs/artifact/code.md]
@@ -134,6 +188,7 @@ routing:
     pause_for_user_execution: true
 
   full_solution:
+    boundary_roles: [model_approval, preprocessing, primary_execution]
     triggers: [完整求解, 全部计算, 求出各问, 完成求解]
     infer_keywords: [完整求解, 全部计算, 求出各问, 完成求解]
     load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/model_approval_contract.yaml, core/user_execution_contract.yaml, core/code_quality_contract.yaml, core/writing_reasoning_contract.yaml, modules/01_problem_audit.md, packs/task/classifier.md]
@@ -152,6 +207,7 @@ routing:
     pause_for_user_execution: true
 
   full_workflow:
+    boundary_roles: [model_approval, preprocessing, primary_execution, full_workflow_resume]
     triggers: [全流程, 完整论文, 全套成果, 完整交付]
     infer_keywords: [全流程, 完整论文, 全套成果, 完整交付]
     load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/user_execution_contract.yaml, core/code_quality_contract.yaml, core/writing_reasoning_contract.yaml, modules/01_problem_audit.md, packs/task/classifier.md, packs/artifact/algorithm_flow.md]
@@ -177,6 +233,7 @@ routing:
     formal_delivery: false
 
   model_selection:
+    boundary_roles: [model_approval]
     triggers: [模型比较, 建模路线, 变量, 假设, 公式, 目标函数, 约束]
     infer_keywords: [模型比较, 建模路线, 变量, 假设, 公式, 目标函数, 约束]
     load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/model_approval_contract.yaml, core/writing_reasoning_contract.yaml, modules/02_model_design.md, packs/task/classifier.md]
@@ -186,6 +243,7 @@ routing:
     delivery_scope: design
 
   advanced_method:
+    boundary_roles: [model_approval]
     triggers: [高级模型, W-DRO, CVaR, MPEC, Stackelberg, ALNS, GNN, 空间杜宾, DML, 强化学习, 深度学习]
     infer_keywords: [W-DRO, CVaR, MPEC, Stackelberg, ALNS, GNN, 空间杜宾, DML, 强化学习, 深度学习]
     load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/model_approval_contract.yaml, core/writing_reasoning_contract.yaml, modules/02_model_design.md, packs/task/advanced_method_gate.md, packs/task/classifier.md]
@@ -195,6 +253,7 @@ routing:
     delivery_scope: design
 
   code_and_solution:
+    boundary_roles: [model_approval, preprocessing, primary_execution]
     triggers: [代码, Python, 求解, 算法, 最优解]
     infer_keywords: [Python代码, 求解代码, 开始求解, 求解, 继续求解, 重新求解, 重算, 算法实现, 最优解]
     load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/model_approval_contract.yaml, core/user_execution_contract.yaml, core/code_quality_contract.yaml, modules/03_solve_validate.md, packs/artifact/code.md, packs/task/classifier.md]
@@ -211,6 +270,7 @@ routing:
     pause_for_user_execution: true
 
   result_analysis:
+    boundary_roles: [model_approval, analysis_execution]
     triggers: [结果分析, 深化分析, 敏感性, 鲁棒性, 多算法, 稳健性, 阈值分析, 结构稳健性, 异质性]
     infer_keywords: [结果分析, 敏感性分析, 鲁棒性分析, 多算法验证, 稳健性分析, 阈值分析, 结构稳健性, 异质性分析]
     load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/user_execution_contract.yaml, core/code_quality_contract.yaml, modules/03_result_analysis.md, packs/artifact/code.md, packs/task/classifier.md]
@@ -230,6 +290,7 @@ routing:
     formal_delivery: false
 
   validation:
+    boundary_roles: [model_approval, analysis_execution]
     triggers: [检验, 多算法, 全局最优, 敏感性, 鲁棒性, 误差, 稳健性]
     infer_keywords: [多算法, 全局最优, 敏感性, 鲁棒性, 稳健性, 误差分析, 模型检验]
     load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/user_execution_contract.yaml, core/code_quality_contract.yaml, modules/03_result_analysis.md, packs/task/classifier.md]
