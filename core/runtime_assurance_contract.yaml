@@ -45,7 +45,8 @@ runtime_context:
 intent_resolution:
   explicit_intent_priority: true
   inference_source: core/workflow_router.yaml:routing.*.infer_keywords
-  score_meaning: deterministic_keyword_match_score_not_probability
+  score_meaning: sum_of_matched_keyword_character_lengths_not_probability
+  selection_rule: explicit_intents_else_top_specificity_candidates
   confidence_bands:
     explicit: high
     unique_multi_match: high
@@ -61,13 +62,16 @@ intent_resolution:
   - ambiguity
   - selection_reason
   rules:
-  - Inference is deterministic and explainable; every inferred candidate records matched keywords and score.
-  - full_workflow retains the existing dominance rule when inferred.
-  - Ambiguity is diagnostic by default; routes that require information not available after hydration may still fail closed through the existing resolver prerequisite logic.
+  - Inference is deterministic and explainable; every inferred candidate records matched keywords, matched keyword count, and specificity score.
+  - When explicit intents exist, inferred keyword matches remain provenance only and cannot silently add routes.
+  - Without explicit intent, only the highest-specificity candidate or tied highest-specificity candidates are selected; lower-scoring matches remain diagnostics only.
+  - full_workflow retains dominance when it is among the selected top inferred candidates.
+  - Ambiguity means multiple inferred candidates share the selected top specificity score; routes that still lack required classification after hydration fail closed through the existing resolver prerequisite logic.
 
 artifact_assurance:
   legacy_name_only_input: available_artifacts
   legacy_status: declared_unverified
+  project_path_boundary: artifact paths hydrated from project state must resolve inside project_root
   verified_state_sources:
     locked_model_spec:
       kind: semantic_state
@@ -80,6 +84,7 @@ artifact_assurance:
       kind: file_backed
       requires:
       - preprocessing.status == accepted
+      - workbook path resolves inside project_root
       - workbook path exists
       - expected sha256 exists
       - actual sha256 == expected sha256
@@ -88,6 +93,7 @@ artifact_assurance:
       requires:
       - primary_execution_status == accepted
       - result_quality_status == passed
+      - workbook path resolves inside project_root
       - workbook path exists
       - validated or current workbook sha256 exists
       - actual sha256 == expected sha256
@@ -96,13 +102,14 @@ artifact_assurance:
       requires:
       - analysis_execution_status == accepted
       - result_analysis_status == passed
+      - workbook path resolves inside project_root
       - workbook path exists
       - validated or current workbook sha256 exists
       - actual sha256 == expected sha256
   scope_rules:
   - With --question Qn, semantic and workbook evidence is evaluated for that question.
   - Without a question scope, generic accepted_solution_workbook or accepted_result_analysis_workbook is promoted only when every scoped subproblem satisfies the corresponding condition.
-  - A known stale, rejected, hash-mismatched, or missing file-backed artifact must not be promoted merely because its legacy name appears in available_artifacts.
+  - A known stale, rejected, hash-mismatched, missing, or outside-project-root file-backed artifact must not be promoted merely because its legacy name appears in available_artifacts.
   required_evidence_fields:
   - artifact
   - source
