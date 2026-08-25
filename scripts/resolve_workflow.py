@@ -204,6 +204,12 @@ def gate_plan(
     return plans
 
 
+MODEL_APPROVAL_OUTPUTS = [
+    "route_comparison", "selected_models", "proposed_model_spec", "model_challenge",
+    "model_approval_brief", "awaiting_model_approval", "preprocessing_decision",
+    "formula_closure", "formula_reasoning_chain", "semantic_closure",
+    "complexity_sanity_check", "validation_plan", "model_paper_framework",
+]
 PREPROCESSING_OUTPUTS = [
     "preprocessing_decision", "preprocessing_code", "preprocessing_workbook",
     "preprocessing_quality_report", "awaiting_user_preprocessing", "model_paper_framework",
@@ -230,6 +236,49 @@ DOWNSTREAM_MODULES = {
 SEMANTIC_CODE_GATES = ["semantic_governance", "code_delivery"]
 SEMANTIC_SYNC_GATES = ["semantic_governance", "project_sync"]
 SUBMISSION_GATES = ["semantic_governance", "project_sync", "submission_package_validation"]
+MODEL_APPROVAL_REQUIRED_INTENTS = {
+    "new_problem_design", "model_selection", "advanced_method", "full_solution",
+    "full_workflow", "code_and_solution", "data_preprocessing",
+}
+
+
+def apply_model_approval_boundary(
+    intents: list[str],
+    paths: list[str],
+    outputs: list[str],
+    scopes: list[str],
+    gates: list[str],
+    formal_delivery: bool,
+    pause: bool,
+    available: set[str],
+) -> tuple[list[str], list[str], list[str], list[str], bool, bool, bool]:
+    """Stop before task code until the current model has explicit user approval."""
+    if "locked_model_spec" in available:
+        return paths, outputs, scopes, gates, formal_delivery, pause, False
+    if not set(intents).intersection(MODEL_APPROVAL_REQUIRED_INTENTS):
+        return paths, outputs, scopes, gates, formal_delivery, pause, False
+
+    blocked = set(DOWNSTREAM_MODULES) | {
+        "modules/03_data_preprocessing.md", "modules/03_solve_validate.md",
+    }
+    paths = [item for item in paths if item not in blocked]
+    for required in [
+        "core/model_approval_contract.yaml",
+        "core/writing_reasoning_contract.yaml",
+        "modules/01_problem_audit.md",
+        "modules/02_model_design.md",
+    ]:
+        if required not in paths:
+            paths.append(required)
+    return (
+        paths,
+        MODEL_APPROVAL_OUTPUTS.copy(),
+        ["design"],
+        ["semantic_governance"],
+        False,
+        True,
+        True,
+    )
 
 
 def apply_preprocessing_boundary(
@@ -431,7 +480,15 @@ def resolve_workflow(
     if "full_submission" in resolved_intents:
         explicit_gates.append("submission_package_validation")
 
-    paths, module_terminal_outputs, route_scopes, explicit_gates, formal_delivery, pause_for_user_execution = apply_preprocessing_boundary(
+    (
+        paths,
+        module_terminal_outputs,
+        route_scopes,
+        explicit_gates,
+        formal_delivery,
+        pause_for_user_execution,
+        model_approval_pause,
+    ) = apply_model_approval_boundary(
         resolved_intents,
         paths,
         module_terminal_outputs,
@@ -440,15 +497,11 @@ def resolve_workflow(
         formal_delivery,
         pause_for_user_execution,
         available_set,
-        preprocessing_decision,
     )
-    preprocessing_pause = (
-        preprocessing_decision == "project_level"
-        and "modules/03_data_preprocessing.md" in paths
-        and not {"accepted_preprocessing_workbook", "preprocessing_workbook"}.intersection(available_set)
-    )
-    if not preprocessing_pause:
-        paths, module_terminal_outputs, route_scopes, explicit_gates, formal_delivery, pause_for_user_execution = apply_user_execution_boundary(
+
+    preprocessing_pause = False
+    if not model_approval_pause:
+        paths, module_terminal_outputs, route_scopes, explicit_gates, formal_delivery, pause_for_user_execution = apply_preprocessing_boundary(
             resolved_intents,
             paths,
             module_terminal_outputs,
@@ -457,7 +510,24 @@ def resolve_workflow(
             formal_delivery,
             pause_for_user_execution,
             available_set,
+            preprocessing_decision,
         )
+        preprocessing_pause = (
+            preprocessing_decision == "project_level"
+            and "modules/03_data_preprocessing.md" in paths
+            and not {"accepted_preprocessing_workbook", "preprocessing_workbook"}.intersection(available_set)
+        )
+        if not preprocessing_pause:
+            paths, module_terminal_outputs, route_scopes, explicit_gates, formal_delivery, pause_for_user_execution = apply_user_execution_boundary(
+                resolved_intents,
+                paths,
+                module_terminal_outputs,
+                route_scopes,
+                explicit_gates,
+                formal_delivery,
+                pause_for_user_execution,
+                available_set,
+            )
     module_paths = ordered_modules(paths, manifest)
     dependency_closure_applied = available_artifacts is not None
     if dependency_closure_applied:
@@ -483,8 +553,16 @@ def resolve_workflow(
         available_after_plan.update(gate["outputs"])
         terminal_outputs.extend(gate["outputs"])
 
+    pause_state = None
+    if model_approval_pause:
+        pause_state = "awaiting_model_approval"
+    elif preprocessing_pause:
+        pause_state = "awaiting_user_preprocessing"
+    elif pause_for_user_execution:
+        pause_state = "awaiting_user_execution"
+
     return {
-        "version": router.get("version", bootstrap.get("skill_version")),
+        "version": bootstrap.get("skill_version", router.get("version")),
         "intents": resolved_intents,
         "preprocessing_decision": preprocessing_decision,
         "classification": {
@@ -508,7 +586,9 @@ def resolve_workflow(
         "available_after_modules": produced_after_modules,
         "available_after_plan": sorted(available_after_plan),
         "sync_required_before_delivery": any(gate["name"] == "project_sync" for gate in gates),
+        "pause_for_model_approval": model_approval_pause,
         "pause_for_user_execution": pause_for_user_execution,
+        "pause_state": pause_state,
         "task_code_execution_allowed": False,
     }
 
