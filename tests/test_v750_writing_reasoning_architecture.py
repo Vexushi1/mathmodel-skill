@@ -89,7 +89,8 @@ class TestV750WritingReasoningArchitecture(unittest.TestCase):
         self.assertEqual(manifest["contracts"]["writing_reasoning"], "core/writing_reasoning_contract.yaml")
         self.assertIn("formula_reasoning_chain", manifest["artifact_catalog"])
         self.assertIn("formula_reasoning_chain", manifest["modules"]["model_design"]["outputs"])
-        self.assertIn("formula_reasoning_chain", manifest["workflow_profiles"]["design"]["terminal_outputs"])
+        router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8"))
+        self.assertIn("formula_reasoning_chain", router["routing"]["new_problem_design"]["terminal_outputs"])
         self.assertEqual(output["writing_reasoning_contract"], "core/writing_reasoning_contract.yaml")
         self.assertEqual(output["writing_policy"]["reasoning_contract"], "core/writing_reasoning_contract.yaml")
 

@@ -43,9 +43,11 @@ class ModelApprovalContractTests(unittest.TestCase):
     def test_solve_module_requires_model_approval_validator(self):
         text = (ROOT / "modules" / "03_solve_validate.md").read_text(encoding="utf-8")
         self.assertIn("scripts/validate_model_approval.py", text)
-        self.assertIn("model_challenge_status=passed", text)
-        self.assertIn("human_model_approval_status=approved", text)
+        self.assertIn("core/model_approval_contract.yaml", text)
+        self.assertIn("不复制第二套检查清单", text)
         self.assertIn("awaiting_model_approval", text)
+        self.assertNotIn("model_challenge_status=passed", text)
+        self.assertNotIn("human_model_approval_status=approved", text)
 
     def test_model_design_distinguishes_proposed_and_locked_specs(self):
         text = (ROOT / "modules" / "02_model_design.md").read_text(encoding="utf-8")

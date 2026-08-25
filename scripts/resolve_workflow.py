@@ -96,8 +96,8 @@ def axes_to_packs(
     return unique(packs)
 
 
-def ordered_modules(paths: Iterable[str], manifest: dict[str, Any]) -> list[str]:
-    order = manifest.get("workflow_order") or manifest.get("workflow_profiles", {}).get("full_workflow", {}).get("modules", [])
+def ordered_modules(paths: Iterable[str], manifest: dict[str, Any], workflow_order: Iterable[str]) -> list[str]:
+    order = list(workflow_order)
     rank = {name: index for index, name in enumerate(order)}
     module_to_path = {
         name: spec.get("path") for name, spec in manifest.get("modules", {}).items() if isinstance(spec, dict)
@@ -111,6 +111,7 @@ def close_module_dependencies(
     modules: Iterable[str],
     available_artifacts: set[str],
     manifest: dict[str, Any],
+    workflow_order: Iterable[str],
 ) -> list[str]:
     """Add unique unconditional upstream producers when current artifact state is supplied."""
     module_specs = manifest.get("modules", {})
@@ -128,7 +129,7 @@ def close_module_dependencies(
     while True:
         produced = set(available_artifacts)
         changed = False
-        for path in ordered_modules(selected, manifest):
+        for path in ordered_modules(selected, manifest, workflow_order):
             name = path_to_name.get(path)
             if not name:
                 continue
@@ -145,7 +146,7 @@ def close_module_dependencies(
                     changed = True
             produced.update(spec.get("outputs", []))
         if not changed:
-            return ordered_modules(selected, manifest)
+            return ordered_modules(selected, manifest, workflow_order)
 
 
 def prerequisite_report(
@@ -204,46 +205,83 @@ def gate_plan(
     return plans
 
 
-MODEL_APPROVAL_OUTPUTS = [
-    "route_comparison", "selected_models", "proposed_model_spec", "model_challenge",
-    "model_approval_brief", "awaiting_model_approval", "preprocessing_decision",
-    "formula_closure", "formula_reasoning_chain", "semantic_closure",
-    "complexity_sanity_check", "validation_plan", "model_paper_framework",
-]
-PREPROCESSING_OUTPUTS = [
-    "preprocessing_decision", "preprocessing_code", "preprocessing_workbook",
-    "preprocessing_quality_report", "awaiting_user_preprocessing", "model_paper_framework",
-]
-PRIMARY_CODE_OUTPUTS = [
-    "preprocessing_decision", "python_code", "full_run_config", "execution_instructions",
-    "code_delivery_report", "awaiting_user_execution", "model_paper_framework",
-]
-ANALYSIS_CODE_OUTPUTS = [
-    "result_analysis_plan", "result_analysis_code", "full_run_config",
-    "execution_instructions", "code_delivery_report", "awaiting_user_execution",
-    "model_paper_framework",
-]
-FINAL_WORKFLOW_OUTPUTS = [
-    "approved_figures", "latex_source", "latex_audit_report", "compiled_pdf", "compile_report",
-    "review_report", "submission_package", "model_paper_framework",
-]
-DOWNSTREAM_MODULES = {
-    "modules/03_result_analysis.md", "modules/04_figure_evidence.md",
-    "modules/05_writing/docx.md", "modules/05_writing/latex.md",
-    "modules/05_writing/ai_cleanup.md", "modules/05_latex_compile_quality.md",
-    "modules/06_review_delivery.md",
-}
-PRIMARY_CODE_GATES = ["semantic_governance", "model_approval", "code_delivery"]
-ANALYSIS_CODE_GATES = ["semantic_governance", "code_delivery"]
-# Compatibility alias for static read-path checks retained from pre-v7.11 naming.
-# Runtime branches use PRIMARY_CODE_GATES / ANALYSIS_CODE_GATES explicitly.
-SEMANTIC_CODE_GATES = PRIMARY_CODE_GATES
-SEMANTIC_SYNC_GATES = ["semantic_governance", "project_sync"]
-SUBMISSION_GATES = ["semantic_governance", "project_sync", "submission_package_validation"]
-MODEL_APPROVAL_REQUIRED_INTENTS = {
-    "new_problem_design", "model_selection", "advanced_method", "full_solution",
-    "full_workflow", "code_and_solution", "data_preprocessing", "result_analysis", "validation",
-}
+
+def route_boundary_roles(intents: Iterable[str], router: dict[str, Any]) -> set[str]:
+    roles: set[str] = set()
+    for intent in intents:
+        roles.update(str(item) for item in (router.get("routing", {}).get(intent, {}) or {}).get("boundary_roles", []))
+    return roles
+
+
+def artifact_condition_met(available: set[str], condition: dict[str, Any] | None) -> bool:
+    condition = condition or {}
+    if set(condition.get("any", [])) & available:
+        return True
+    return any(set(group).issubset(available) for group in condition.get("all_groups", []))
+
+
+def module_path(manifest: dict[str, Any], module_name: str) -> str:
+    spec = manifest.get("modules", {}).get(module_name)
+    if not isinstance(spec, dict) or not spec.get("path"):
+        raise ValueError(f"unknown module in runtime segment: {module_name}")
+    return str(spec["path"])
+
+
+def strip_modules_at_or_after(
+    paths: Iterable[str],
+    manifest: dict[str, Any],
+    workflow_order: Iterable[str],
+    start_module: str,
+) -> list[str]:
+    order = list(workflow_order)
+    if start_module not in order:
+        raise ValueError(f"runtime segment start module is not in workflow order: {start_module}")
+    rank = {name: index for index, name in enumerate(order)}
+    path_to_name = {
+        str(spec.get("path")): name
+        for name, spec in manifest.get("modules", {}).items()
+        if isinstance(spec, dict) and spec.get("path")
+    }
+    start_rank = rank[start_module]
+    return [
+        item for item in paths
+        if item not in path_to_name or rank.get(path_to_name[item], 10_000) < start_rank
+    ]
+
+
+def remove_named_modules(paths: Iterable[str], manifest: dict[str, Any], names: Iterable[str]) -> list[str]:
+    blocked = {module_path(manifest, name) for name in names}
+    return [item for item in paths if item not in blocked]
+
+
+def runtime_segment(name: str, router: dict[str, Any]) -> dict[str, Any]:
+    segment = dict((router.get("runtime_segments", {}) or {}).get(name, {}) or {})
+    if not segment:
+        raise ValueError(f"missing runtime segment: {name}")
+    canonical = segment.get("canonical_route")
+    if canonical:
+        route = (router.get("routing", {}) or {}).get(canonical)
+        if not isinstance(route, dict):
+            raise ValueError(f"runtime segment canonical route missing: {name} -> {canonical}")
+        for key in ("terminal_outputs", "pre_delivery_gates", "delivery_scope", "formal_delivery", "pause_for_user_execution"):
+            if key not in segment and key in route:
+                segment[key] = route[key]
+    return segment
+
+
+def segment_result(
+    segment: dict[str, Any],
+    paths: list[str],
+) -> tuple[list[str], list[str], list[str], list[str], bool, bool]:
+    scope = segment.get("delivery_scope")
+    return (
+        paths,
+        list(segment.get("terminal_outputs", [])),
+        [str(scope)] if scope else [],
+        list(segment.get("pre_delivery_gates", [])),
+        bool(segment.get("formal_delivery", False)),
+        bool(segment.get("pause_for_user_execution", False) or segment.get("pause_state")),
+    )
 
 
 def apply_model_approval_boundary(
@@ -255,39 +293,24 @@ def apply_model_approval_boundary(
     formal_delivery: bool,
     pause: bool,
     available: set[str],
+    router: dict[str, Any],
+    manifest: dict[str, Any],
+    workflow_order: Iterable[str],
 ) -> tuple[list[str], list[str], list[str], list[str], bool, bool, bool]:
-    """Stop before task code until the current model has explicit user approval."""
-    primary_accepted = bool(
-        "accepted_solution_workbook" in available
-        or {"solution_workbook", "result_quality_report"}.issubset(available)
-        or {"solved_results", "result_quality_report"}.issubset(available)
+    """Stop before task code until the declarative Model Approval segment is satisfied."""
+    if "model_approval" not in route_boundary_roles(intents, router):
+        return paths, outputs, scopes, gates, formal_delivery, pause, False
+    segment = runtime_segment("model_approval_pending", router)
+    if artifact_condition_met(available, segment.get("satisfied_when")):
+        return paths, outputs, scopes, gates, formal_delivery, pause, False
+    paths = strip_modules_at_or_after(
+        paths, manifest, workflow_order, str(segment["stop_before_module"])
     )
-    if "locked_model_spec" in available or primary_accepted:
-        return paths, outputs, scopes, gates, formal_delivery, pause, False
-    if not set(intents).intersection(MODEL_APPROVAL_REQUIRED_INTENTS):
-        return paths, outputs, scopes, gates, formal_delivery, pause, False
-
-    blocked = set(DOWNSTREAM_MODULES) | {
-        "modules/03_data_preprocessing.md", "modules/03_solve_validate.md",
-    }
-    paths = [item for item in paths if item not in blocked]
-    for required in [
-        "core/model_approval_contract.yaml",
-        "core/writing_reasoning_contract.yaml",
-        "modules/01_problem_audit.md",
-        "modules/02_model_design.md",
-    ]:
+    for required in segment.get("required_load", []):
         if required not in paths:
-            paths.append(required)
-    return (
-        paths,
-        MODEL_APPROVAL_OUTPUTS.copy(),
-        ["design"],
-        ["semantic_governance"],
-        False,
-        True,
-        True,
-    )
+            paths.append(str(required))
+    paths, outputs, scopes, gates, formal_delivery, pause = segment_result(segment, paths)
+    return paths, outputs, scopes, gates, formal_delivery, pause, True
 
 
 def apply_preprocessing_boundary(
@@ -300,35 +323,27 @@ def apply_preprocessing_boundary(
     pause: bool,
     available: set[str],
     decision: str | None,
+    router: dict[str, Any],
+    manifest: dict[str, Any],
+    workflow_order: Iterable[str],
 ) -> tuple[list[str], list[str], list[str], list[str], bool, bool]:
-    """Insert or skip project-level preprocessing without treating shared raw data as sufficient evidence."""
+    """Apply the declarative project-level preprocessing execution boundary."""
     if decision is not None and decision not in VALID_PREPROCESSING_DECISIONS:
         raise ValueError(f"unknown preprocessing decision: {decision}")
+    segment = runtime_segment("preprocessing", router)
+    stage_path = module_path(manifest, str(segment["stage_module"]))
     if decision in {"not_needed", "question_local"}:
-        return (
-            [item for item in paths if item != "modules/03_data_preprocessing.md"],
-            outputs, scopes, gates, formal_delivery, pause,
-        )
-    if decision != "project_level":
+        return [item for item in paths if item != stage_path], outputs, scopes, gates, formal_delivery, pause
+    if decision != "project_level" or "preprocessing" not in route_boundary_roles(intents, router):
         return paths, outputs, scopes, gates, formal_delivery, pause
-
-    preprocessing_accepted = bool(
-        {"accepted_preprocessing_workbook", "preprocessing_workbook"}.intersection(available)
+    if artifact_condition_met(available, segment.get("satisfied_when")):
+        return [item for item in paths if item != stage_path], outputs, scopes, gates, formal_delivery, pause
+    paths = strip_modules_at_or_after(
+        paths, manifest, workflow_order, str(segment["stop_before_module"])
     )
-    if preprocessing_accepted:
-        return (
-            [item for item in paths if item != "modules/03_data_preprocessing.md"],
-            outputs, scopes, gates, formal_delivery, pause,
-        )
-
-    relevant_intents = {"full_solution", "full_workflow", "code_and_solution", "data_preprocessing"}
-    if not set(intents).intersection(relevant_intents):
-        return paths, outputs, scopes, gates, formal_delivery, pause
-    blocked = set(DOWNSTREAM_MODULES) | {"modules/03_solve_validate.md"}
-    paths = [item for item in paths if item not in blocked]
-    if "modules/03_data_preprocessing.md" not in paths:
-        paths.append("modules/03_data_preprocessing.md")
-    return paths, PREPROCESSING_OUTPUTS.copy(), ["code"], PRIMARY_CODE_GATES.copy(), False, True
+    if stage_path not in paths:
+        paths.append(stage_path)
+    return segment_result(segment, paths)
 
 
 def apply_user_execution_boundary(
@@ -340,56 +355,52 @@ def apply_user_execution_boundary(
     formal_delivery: bool,
     pause: bool,
     available: set[str],
+    router: dict[str, Any],
+    manifest: dict[str, Any],
+    workflow_order: Iterable[str],
 ) -> tuple[list[str], list[str], list[str], list[str], bool, bool]:
-    """Select the next executable segment without crossing a user execution gate."""
-    primary_accepted = (
-        "accepted_solution_workbook" in available
-        or {"solution_workbook", "result_quality_report"}.issubset(available)
-        or {"solved_results", "result_quality_report"}.issubset(available)
-    )
-    analysis_accepted = (
-        "accepted_result_analysis_workbook" in available
-        or {"result_analysis_workbook", "validated_results"}.issubset(available)
-    )
-    intent_set = set(intents)
-    analysis_requested = bool(intent_set & {"result_analysis", "validation"})
-    code_requested = bool(intent_set & {"full_solution", "code_and_solution"})
+    """Select the next declarative user-executed segment without crossing its boundary."""
+    roles = route_boundary_roles(intents, router)
+    primary = runtime_segment("primary_execution", router)
+    analysis = runtime_segment("analysis_execution", router)
+    final = runtime_segment("full_workflow_resume", router)
+    primary_accepted = artifact_condition_met(available, primary.get("satisfied_when"))
+    analysis_accepted = artifact_condition_met(available, analysis.get("satisfied_when"))
+    solve_path = module_path(manifest, str(primary["stage_module"]))
+    analysis_path = module_path(manifest, str(analysis["stage_module"]))
 
-    def keep_before_analysis(items: list[str]) -> list[str]:
-        return [item for item in items if item not in DOWNSTREAM_MODULES]
+    def primary_segment(current: list[str]):
+        current = strip_modules_at_or_after(
+            current, manifest, workflow_order, str(primary["stop_before_module"])
+        )
+        if solve_path not in current:
+            current.append(solve_path)
+        return segment_result(primary, current)
 
-    if "full_workflow" in intent_set:
+    def analysis_segment(current: list[str]):
+        current = strip_modules_at_or_after(
+            current, manifest, workflow_order, str(analysis["reset_from_module"])
+        )
+        if analysis_path not in current:
+            current.append(analysis_path)
+        return segment_result(analysis, current)
+
+    if "full_workflow_resume" in roles:
         if not primary_accepted:
-            paths = keep_before_analysis(paths)
-            if "modules/03_solve_validate.md" not in paths:
-                paths.append("modules/03_solve_validate.md")
-            return paths, PRIMARY_CODE_OUTPUTS.copy(), ["code"], PRIMARY_CODE_GATES.copy(), False, True
+            return primary_segment(paths)
         if not analysis_accepted:
-            paths = [item for item in paths if item != "modules/03_solve_validate.md" and item not in DOWNSTREAM_MODULES]
-            paths.append("modules/03_result_analysis.md")
-            return paths, ANALYSIS_CODE_OUTPUTS.copy(), ["code"], ANALYSIS_CODE_GATES.copy(), False, True
-        paths = [item for item in paths if item not in {"modules/03_solve_validate.md", "modules/03_result_analysis.md"}]
-        paths.extend([
-            "modules/04_figure_evidence.md", "packs/artifact/figure.md",
-            "modules/05_writing/latex.md", "packs/artifact/latex.md",
-            "modules/05_writing/ai_cleanup.md", "modules/05_latex_compile_quality.md",
-            "modules/06_review_delivery.md", "packs/artifact/review.md",
-            "packs/artifact/full_submission.md",
-        ])
-        return paths, FINAL_WORKFLOW_OUTPUTS.copy(), ["submission"], SUBMISSION_GATES.copy(), True, False
+            return analysis_segment(paths)
+        paths = strip_modules_at_or_after(paths, manifest, workflow_order, "solve_validate")
+        paths.extend(str(item) for item in final.get("final_load", []))
+        return segment_result(final, paths)
 
-    if analysis_requested and not primary_accepted:
-        paths = keep_before_analysis(paths)
-        if "modules/03_solve_validate.md" not in paths:
-            paths.append("modules/03_solve_validate.md")
-        return paths, PRIMARY_CODE_OUTPUTS.copy(), ["code"], PRIMARY_CODE_GATES.copy(), False, True
-    if analysis_requested and primary_accepted and not analysis_accepted:
-        paths = [item for item in paths if item != "modules/03_solve_validate.md" and item not in DOWNSTREAM_MODULES]
-        paths.append("modules/03_result_analysis.md")
-        return paths, ANALYSIS_CODE_OUTPUTS.copy(), ["code"], ANALYSIS_CODE_GATES.copy(), False, True
-    if code_requested and not primary_accepted:
-        paths = keep_before_analysis(paths)
-        return paths, PRIMARY_CODE_OUTPUTS.copy(), ["code"], PRIMARY_CODE_GATES.copy(), False, True
+    if "analysis_execution" in roles:
+        if not primary_accepted:
+            return primary_segment(paths)
+        if not analysis_accepted:
+            return analysis_segment(paths)
+    if "primary_execution" in roles and not primary_accepted:
+        return primary_segment(paths)
     return paths, outputs, scopes, gates, formal_delivery, pause
 
 
@@ -413,6 +424,9 @@ def resolve_workflow(
     bootstrap = load_yaml(BOOTSTRAP_PATH)
     router = load_yaml(router_path)
     manifest = load_yaml(manifest_path)
+    workflow_order = list((router.get("execution_contract", {}) or {}).get("workflow_order", []))
+    if not workflow_order:
+        raise ValueError("router execution_contract.workflow_order is required")
     taxonomy: dict[str, Any] | None = None
 
     def get_taxonomy() -> dict[str, Any]:
@@ -506,6 +520,9 @@ def resolve_workflow(
         formal_delivery,
         pause_for_user_execution,
         available_set,
+        router,
+        manifest,
+        workflow_order,
     )
 
     preprocessing_pause = False
@@ -520,6 +537,9 @@ def resolve_workflow(
             pause_for_user_execution,
             available_set,
             preprocessing_decision,
+            router,
+            manifest,
+            workflow_order,
         )
         preprocessing_pause = (
             preprocessing_decision == "project_level"
@@ -536,11 +556,14 @@ def resolve_workflow(
                 formal_delivery,
                 pause_for_user_execution,
                 available_set,
+                router,
+                manifest,
+                workflow_order,
             )
-    module_paths = ordered_modules(paths, manifest)
+    module_paths = ordered_modules(paths, manifest, workflow_order)
     dependency_closure_applied = available_artifacts is not None
     if dependency_closure_applied:
-        module_paths = close_module_dependencies(module_paths, available_set, manifest)
+        module_paths = close_module_dependencies(module_paths, available_set, manifest, workflow_order)
         paths.extend(module_paths)
     non_modules = [path for path in unique(paths) if not path.startswith("modules/")]
     ordered = unique([*non_modules, *module_paths])

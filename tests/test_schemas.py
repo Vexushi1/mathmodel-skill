@@ -76,8 +76,8 @@ class TestSchemas(unittest.TestCase):
         self.assertEqual(str(contract["version"]), current)
         self.assertEqual(contract["code_quality_contract"], "core/code_quality_contract.yaml")
         self.assertEqual(contract["preprocessing_contract"], "core/global_preprocessing_contract.yaml")
-        self.assertEqual(contract["semantic_governance"]["script"], "scripts/validate_semantic_governance.py")
-        self.assertEqual(contract["semantic_governance"]["dependency_kinds"], ["data", "parameter", "model", "result"])
+        self.assertEqual(contract["semantic_governance"]["authority"], "scripts/validate_semantic_governance.py")
+        self.assertEqual(contract["semantic_governance"]["dependency_kind_authority"], "core/project_state.schema.yaml#/$defs/dependency_kind")
         self.assertEqual(contract["project_sync"]["role"], "formal_pre_delivery_gate_after_semantic_governance")
         self.assertEqual(contract["project_sync"]["stage_requirements_semantics"], "exact_scope")
         self.assertEqual(

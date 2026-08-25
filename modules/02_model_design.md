@@ -306,24 +306,11 @@ selected_models
 
 ## 阶段门槛
 
-进入项目级预处理或主求解前必须满足：
+进入项目级预处理或主求解前分两层闭合：
 
-1. `problem_contract_status=frozen`；
-2. 数据口径、objective、structures、capabilities、变量、目标、约束、求解器候选、评价指标和验证方案已锁定；
-3. `preprocessing_decision` 已锁定；
-4. 题面—数学—代码—输出无关键 gap，`semantic_closure_status=passed`；
-5. 核心 Formula Trace closed，影响结论的数值参数已有证据计划；
-6. 需要正式算法流程的问已确定 `stepwise/pseudocode` 并建立可追溯 Algorithm Trace；简单问题允许 `not_needed`；
-7. `complexity_sanity_status=passed`；
-8. `semantic_revision` 与当前框架一致；
-9. `model_challenge_status=passed`，且不存在未处理 blocking/review_required；
-10. `human_model_approval_status=approved`；
-11. `approved_semantic_revision=current semantic_revision` 且 `approved_semantic_hash=current semantic_hash`；
-12. 已完成命题必要性初审；若超过默认 0--4 预算，已记录 justification 状态和理由；
-13. 需要外部来源的核心 Citation Claim 已登记，进入写作前必须闭合。
+1. **设计完整性**：Problem Contract 已冻结；数据口径、三轴分类、变量/目标/约束、`preprocessing_decision`、语义闭环、核心 Formula Trace、必要 Algorithm Trace、Complexity Sanity、当前 semantic revision、命题必要性与 Citation Evidence 计划均达到本模块要求；
+2. **审批完整性**：调用 `scripts/validate_model_approval.py` 检查 current Challenge/Approval。审批状态、用户显式批准、revision/hash 绑定、blocking/review_required 处置及 stale 规则只由 `core/model_approval_contract.yaml` 定义，本模块不再复制字段级判定表。
 
-若 1--9 已满足但尚未取得用户批准，形成 `proposed_model_spec`、Model Approval Brief、`awaiting_model_approval` 与 current 框架，然后停止。不得把“用户未反对”解释为 approval。
-
-用户明确批准当前 revision/hash 后，形成 `locked_model_spec`。若 `preprocessing_decision=project_level`，下一阶段进入 Module 03P；若为 `not_needed` 或 `question_local`，跳过 Module 03P 直接进入主求解。
+若设计完整性已经满足但 Model Approval gate 尚未通过，形成 `proposed_model_spec`、Model Approval Brief、`awaiting_model_approval` 与 current 框架后停止；不得把“用户未反对”解释为 approval。Gate 通过后才形成 current `locked_model_spec`。若 `preprocessing_decision=project_level`，下一阶段进入 Module 03P；否则直接进入主求解。
 
 最终 current 设计链至少形成 `proposed_model_spec`、`model_challenge`、`human_model_approval`、`locked_model_spec`、`preprocessing_decision`、`semantic_closure`、`formula_reasoning_chain`、`complexity_sanity_check`、`proposition_plan`、`citation_evidence_plan`、`validation_plan` 与包含当前 Algorithm Trace/Challenge/Approval 状态的 current 框架；未闭环不得以代码试错代替建模。

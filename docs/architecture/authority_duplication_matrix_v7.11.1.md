@@ -9,7 +9,7 @@ Phase 1 focuses on authority convergence. This document records the current owne
 | Workflow routing rules | core/workflow_router.yaml | Low | core/workflow_router.yaml | Keep as router authority |
 | Workflow order | workflow_router execution_contract + module_manifest workflow_order | Medium | core/workflow_router.yaml | Manifest becomes derived reference |
 | Module graph | module_manifest modules section | Low | core/module_manifest.yaml | Keep module ownership here; resolver must not redefine |
-| workflow_profiles | core/module_manifest.yaml | Medium | Compatibility view only | Retain for backward compatibility; prohibit new semantics |
+| workflow_profiles | core/module_manifest.yaml | Medium | core/workflow_router.yaml | Remove semantic profile copies; retain only a lightweight non-runtime alias map |
 | PRIMARY_CODE_GATES | scripts/resolve_workflow.py | High | core/workflow_router.yaml | Move declaration into YAML |
 | ANALYSIS_CODE_GATES | scripts/resolve_workflow.py | High | core/workflow_router.yaml | Move declaration into YAML |
 | SEMANTIC_SYNC_GATES | scripts/resolve_workflow.py | High | core/workflow_router.yaml | Move declaration into YAML |
