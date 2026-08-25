@@ -65,7 +65,9 @@ class EntrypointParityTests(unittest.TestCase):
         current = str(yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))["skill_version"])
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         self.assertIn(f"## Current release: {current}", changelog)
-        self.assertIn("## Previous release: 7.6.0", changelog)
+        history = re.findall(r"## Previous release: ([0-9.]+)", changelog)
+        self.assertTrue(history)
+        self.assertNotEqual(history[0], current)
 
     def test_stable_docs_and_resolver_do_not_create_extra_release_carriers(self):
         self.assertEqual((ROOT / "scripts/README.md").read_text(encoding="utf-8").splitlines()[0], "# Scripts")
