@@ -9,7 +9,6 @@
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
-- `.github/workflows/tmp-v711-active-template-residue.yml`
 - `.gitignore`
 - `AGENTS.md`
 - `CHANGELOG.md`
@@ -109,7 +108,6 @@
 - `scripts/resolve_workflow.py`
 - `scripts/score_submission.py`
 - `scripts/sync_project.py`
-- `scripts/tmp_apply_v711_active_template_residue.py`
 - `scripts/validate_code_delivery.py`
 - `scripts/validate_model_approval.py`
 - `scripts/validate_model_paper_framework.py`
@@ -189,6 +187,7 @@
 - `tests/test_active_consistency_cleanup.py`
 - `tests/test_active_output_contract_cleanup.py`
 - `tests/test_active_residue_cleanup.py`
+- `tests/test_active_template_version_hygiene.py`
 - `tests/test_code_quality_contract.py`
 - `tests/test_content_packs.py`
 - `tests/test_contract_closure.py`
