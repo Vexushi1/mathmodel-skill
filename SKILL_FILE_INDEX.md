@@ -9,6 +9,7 @@
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
+- `.github/workflows/tmp-v7111-stabilize.yml`
 - `.gitignore`
 - `AGENTS.md`
 - `CHANGELOG.md`
