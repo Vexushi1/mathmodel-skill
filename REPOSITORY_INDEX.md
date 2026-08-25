@@ -42,6 +42,7 @@
 |---|---|
 | 新赛题与审题 | `modules/01_problem_audit.md` |
 | 模型路线、变量、假设、公式、约束 | `modules/02_model_design.md` |
+| Model Challenge、Model Approval Brief 与人工锁模 | `modules/02_model_design.md` + `core/model_approval_contract.yaml`；正式代码前由 `scripts/validate_model_approval.py` 校验 |
 | 论文算法流程、Algorithm Trace、伪代码/Step 流程 | `core/writing_reasoning_contract.yaml` + `packs/artifact/algorithm_flow.md`，按需加载 |
 | Python主求解与题目专属结果深化分析 | `modules/03_solve_validate.md`、`modules/03_result_analysis.md` |
 | Python题型 starter | `templates/code/starter/` + `templates/code/hsk_pipeline/` |
@@ -62,17 +63,19 @@
 | `core/workflow_router.yaml` | 多意图路由、交付scope与显式同步门槛 |
 | `core/module_manifest.yaml` | 模块输入输出、utility gate及terminal output闭环 |
 | `core/output_contract.yaml` | 目录、写作策略、分层哈希、阶段产物与MATLAB证据链 |
+| `core/model_approval_contract.yaml` | `proposed_model_spec → Model Challenge → Human Model Approval → locked_model_spec` 的唯一行为合同，以及 current semantic revision/hash 绑定与 stale 规则 |
 | `core/writing_reasoning_contract.yaml` | Formula/Algorithm Trace、规则等级、命题、术语、数值、Title Claim、深化证据、Paragraph Necessity、局部 stale 与 Citation Evidence |
 | `core/global_preprocessing_contract.yaml` | 三态预处理判定、处理证据和 `data_process.m` 边界 |
 | `core/user_execution_contract.yaml` | 用户 full-fidelity 执行与返回工作簿验收 |
 | `core/code_quality_contract.yaml` | 题目专属 Python 工程质量 |
 | `core/workbook_schema.yaml` | objective/structure/capability工作簿条件与精确表头交接 |
-| `core/project_state.schema.yaml` | 单一capability事实源、分层哈希、stale和框架状态 |
+| `core/project_state.schema.yaml` | 单一capability事实源、semantic revision/hash、challenge/approval、分层哈希、stale和框架状态 |
 
 ## 工具
 
-- `scripts/resolve_workflow.py`：多意图合并、模块排序、前置缺口与 `pre_delivery_gates`；
+- `scripts/resolve_workflow.py`：多意图合并、模块排序、人工锁模/用户执行暂停边界、前置缺口与 `pre_delivery_gates`；
 - `scripts/validate_semantic_governance.py`：题意口径、语义闭环、复杂度复审、semantic revision 与跨问 stale 门；
+- `scripts/validate_model_approval.py`：项目级预处理或主求解代码前，检查 current Model Challenge、Human Model Approval 与当前 semantic revision/hash 是否完全一致；
 - `scripts/validate_code_delivery.py`：分别静态校验每问主求解与结果深化分析两个 Python 脚本；
 - `scripts/validate_user_execution.py`：验收两个标准工作簿及运行配置、哈希和质量门；
 - `scripts/sync_project.py`：阶段产物发现、工作簿Schema、图表链、分层哈希和stale；
