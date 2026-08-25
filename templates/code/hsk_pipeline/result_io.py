@@ -167,7 +167,7 @@ def legacy_result_data_dir(project_root: Path, problem_name: str) -> Path:
 
 
 def figure_dir(project_root: Path, problem_name: str) -> Path:
-    # v6.6.0默认不创建图表子目录；MATLAB脚本只打开图窗，用户按需导出。
+    # 当前活动规则默认不创建图表子目录；MATLAB脚本只打开图窗，用户按需导出。
     return result_data_dir(project_root, problem_name)
 
 
