@@ -78,7 +78,7 @@ Problem Contract 冻结、Semantic Closure 通过和 Complexity Sanity 通过都
 
 `solve_validate` 表示主求解代码交付与主结果质量门；`result_analysis` 表示在已验收主工作簿上单独生成 `问题X结果深化分析.py` 并选择题目专属深化分析。二者不得倒序，也不得用覆盖修改 `问题X求解.py` 的方式合并。已有 accepted 主工作簿的历史项目进入独立 `result_analysis` 时，不要求为了分析阶段追溯补做当时不存在的 Human Model Approval；只有重新进入当前模型设计、项目级预处理、主求解或语义变化后的重算才迁入该门。
 
-解析器的 `full_solution` / `full_workflow` 初始计划不会跨越用户边界：未完成人工锁模时先停在 `awaiting_model_approval`；已锁模后若 `project_level` 则停在 `awaiting_user_preprocessing`，否则交付当前主求解 Python 并停在 `awaiting_user_execution`。用户返回对应工作簿并通过验收后，再继续后续模块。概念上的完整链与单次 resolver 输出不要混为一谈。
+解析器的 `full_solution` / `full_workflow` 初始计划不会跨越用户执行边界：未完成人工锁模时先停在 `awaiting_model_approval`；已锁模后若 `project_level` 则停在 `awaiting_user_preprocessing`，否则交付当前主求解 Python 并停在 `awaiting_user_execution`。用户返回对应工作簿并通过验收后，再继续后续模块。概念上的完整链与单次 resolver 输出不要混为一谈。
 
 `result_analysis` 可以独立路由，但前提是当前主工作簿已经 accepted 且主结果质量门通过。若分析给出 `redo_required`，按原因回到 `model_design`、条件式 `data_preprocessing` 或 `solve_validate`，并传播下游 stale；若回到模型设计或需要重算主结果，则再次遵守 current Model Challenge/Human Approval 边界。
 
