@@ -1,6 +1,6 @@
 # mathmodel-skill v7.11.0
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 数据审计与 `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → 条件式预处理 → 用户本地 full-fidelity Python 主求解 → 独立结果深化分析 → MATLAB 证据图 → LaTeX 终稿 → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 数据审计与 `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → 用户本地 full-fidelity Python 主求解 → 独立结果深化分析 → MATLAB 证据图 → LaTeX 终稿 → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
 
 ## v7.11.0：Model Challenge & Human Approval Closure
 
@@ -210,9 +210,21 @@ packs/artifact/algorithm_flow.md
 
 ## 当前数值工作流
 
-### 数据审计与三态预处理
+### 数据审计、人工锁模与三态预处理
 
-所有数据题都先做非破坏性审计，但不默认清洗：
+所有数据题都先做非破坏性审计，但不默认清洗。数据审计与 `preprocessing_decision` 属于模型设计语义；在项目级预处理或主求解代码前，还必须完成 current Model Challenge 与 Human Model Approval：
+
+```text
+proposed_model_spec
+→ Model Reviewer + Devil's Advocate
+→ Model Approval Brief
+→ awaiting_model_approval
+→ explicit approval(current semantic revision/hash)
+→ locked_model_spec
+→ preprocessing_decision 对应执行路径
+```
+
+三态预处理为：
 
 ```text
 preprocessing_decision
@@ -267,6 +279,7 @@ route-specific contracts / modules / packs / templates
 
 主要合同：
 
+- `core/model_approval_contract.yaml`：独立 Model Challenge、Model Approval Brief、Human Model Approval 与 current revision/hash 绑定；
 - `core/global_preprocessing_contract.yaml`：条件式数据预处理；
 - `core/code_quality_contract.yaml`：Python 工程质量；
 - `core/user_execution_contract.yaml`：用户本地执行与工作簿验收；
@@ -281,16 +294,17 @@ route-specific contracts / modules / packs / templates
 ```bash
 python scripts/lint_skill.py
 python -m unittest discover -s tests
+python scripts/validate_model_approval.py <project_root> --strict
 python scripts/validate_model_paper_framework.py 模型论文框架.md --strict
 python scripts/audit_latex_project.py final_latex/main.tex --bib final_latex/references.bib --framework 模型论文框架.md --require-framework --write-report --strict
 python scripts/render_paper.py final_latex --profile <profile>
 python scripts/validate_submission_package.py . --strict
 ```
 
-正式项目交付还按实际阶段执行 semantic governance、用户工作簿验收和 project sync。
+正式项目交付还按实际阶段执行 resolver 返回的完整 `pre_delivery_gates`；项目级预处理或主求解代码阶段包含 `semantic_governance → model_approval → code_delivery`，已有 accepted 主结果的独立结果深化分析不要求历史追溯审批。
 
 ## 兼容与历史
 
-`legacy/` 只读，不进入默认执行链。v7.9 及更早项目保持只读兼容；Algorithm Trace 为可选写作能力，不要求历史项目反向补写。历史版本说明保留在 Git 历史和 `CHANGELOG.md`。
+`legacy/` 只读，不进入默认执行链。v7.9 及更早项目保持只读兼容；Algorithm Trace 为可选写作能力，不要求历史项目反向补写。Model Approval 同样不要求历史项目倒填，只有重新进入当前模型设计、项目级预处理、主求解或语义变化后的重算时迁入新门。历史版本说明保留在 Git 历史和 `CHANGELOG.md`。
 
 许可证与第三方声明见 `LICENSE`、`THIRD_PARTY_NOTICES.md`。

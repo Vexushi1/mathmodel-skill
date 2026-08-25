@@ -4,8 +4,9 @@
 
 ## 运行时入口与治理
 
-- `resolve_workflow.py`：解析一个或多个用户意图、`objective`、`structures`、`capabilities`、`preprocessing_decision` 与竞赛类型，返回最小确定性 `load_order`、模块计划、暂停边界与 `pre_delivery_gates`；只有 `project_level` 才插入项目级数据预处理阶段。
+- `resolve_workflow.py`：解析一个或多个用户意图、`objective`、`structures`、`capabilities`、`preprocessing_decision` 与竞赛类型，返回最小确定性 `load_order`、模块计划、Model Approval/用户执行暂停边界与 `pre_delivery_gates`；只有 `project_level` 才插入项目级数据预处理阶段。
 - `validate_semantic_governance.py`：检查 Problem Contract、题面—数学—代码—输出语义闭环、Complexity Sanity Check、semantic revision、跨问 typed dependency 与 paper-fragment stale；不运行赛题代码，也不恢复数值有效性。
+- `validate_model_approval.py`：在项目级预处理或主求解代码交付前，检查 `model_challenge_status=passed`、`human_model_approval_status=approved`，并要求 approved semantic revision/hash 与当前 semantic revision/hash 完全一致；旧 approved 记录发生语义漂移后只能作为 provenance，不能继续授权新主求解。
 - `sync_project.py`：按当前 data source 和显式 delivery scope 发现产物、校验 Schema、计算分层哈希并传播 stale；不自动生成模型语义、数值结果或 `passed` 状态。
 
 ## 代码与用户执行
@@ -13,7 +14,7 @@
 - `validate_code_delivery.py`：按 `preprocessing / primary / analysis` 阶段静态校验题目专属 Python 的完整运行配置、代码质量和阶段边界；不执行赛题代码。
 - `validate_user_execution.py`：按当前 `preprocessing_decision` 验收适用的预处理工作簿、主求解工作簿与结果深化分析工作簿，并核对运行配置、代码/数据哈希和对应质量门。
 
-赛题专属预处理、主求解和结果深化分析仍由用户本地以 full-fidelity 执行；脚本工具不得通过降采样、粗网格、缩短时域、减少重复、放宽容差或静默 solver fallback 改变正式求解口径。
+赛题专属预处理、主求解和结果深化分析仍由用户本地以 full-fidelity 执行；脚本工具不得通过降采样、粗网格、缩短时域、减少重复、放宽容差或静默 solver fallback 改变正式求解口径。项目级预处理和主求解属于 current 人工锁模后的代码阶段，不能只凭 Problem Contract 冻结或 Model Challenge 通过绕过 `validate_model_approval.py`。
 
 ## 项目记忆与论文检查
 
