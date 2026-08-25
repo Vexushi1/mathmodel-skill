@@ -2,16 +2,22 @@
 
 本模块在 `问题X求解/` 中生成 `问题X求解.py`。助手只生成和静态检查，不运行赛题代码。
 
-若项目根目录已有 current `模型论文框架.md`，正式生成本问代码前必须先读取“当前有效口径”、本问“当前模型口径/求解与验证方案”以及必要前问依赖，用它恢复当前模型语义；不得仅凭聊天记忆重建变量、参数、目标或约束。具体输入数值和已验收结果仍回到当前数据事实源/标准工作簿核验。
+若项目根目录已有 current `模型论文框架.md`，正式生成本问代码前必须先读取“当前有效口径”、本问“当前模型口径/求解与验证方案/模型挑战与人工锁模”以及必要前问依赖，用它恢复当前模型语义；不得仅凭聊天记忆重建变量、参数、目标或约束。具体输入数值和已验收结果仍回到当前数据事实源/标准工作簿核验。
 
-进入本模块前，当前小问必须先通过 `scripts/validate_semantic_governance.py`：
+进入本模块前，当前小问必须先通过 `scripts/validate_semantic_governance.py`，并随后通过 `scripts/validate_model_approval.py`：
 
 - `problem_contract_status=frozen`；
 - `semantic_closure_status=passed`；
 - `complexity_sanity_status=passed`；
 - 当前 `semantic_revision` 已被语义治理门接受；
 - `preprocessing_decision` 已锁定；
-- 若已有历史结果且模型语义发生变化，本问及依赖后问已按 `depends_on` 正确标记 stale。
+- `model_challenge_status=passed`；
+- `human_model_approval_status=approved`；
+- `approved_semantic_revision=current semantic_revision`；
+- `approved_semantic_hash=current semantic_hash`；
+- 若已有历史结果且模型语义发生变化，本问及依赖后问已按 `depends_on` 正确标记 stale，同时旧 challenge/approval/locked model 已失效并完成重新审查与批准。
+
+Problem Contract、Semantic Closure 或 Complexity Sanity 均不能替代 Model Challenge 与 Human Approval。用户未明确批准当前 semantic revision/hash 时，必须停在 `awaiting_model_approval`，不得生成正式主求解代码。
 
 ## 数据事实源分流
 
@@ -35,6 +41,7 @@
 
 必须先完成项目级统一数据预处理：
 
+- 当前模型已通过 Model Challenge 与 Human Approval；
 - `数据预处理/数据预处理.py` 已生成并静态检查；
 - 用户已本地 full-fidelity 运行；
 - `数据预处理/数据预处理结果.xlsx` 的 `预处理质量门` 已通过；
@@ -49,6 +56,9 @@
 题意口径冻结
 → 题面—数学—代码语义闭环
 → 复杂度合理性复审
+→ Independent Model Challenge
+→ Human Model Approval（绑定 current semantic revision/hash）
+→ model approval gate
 → preprocessing_decision
    ├─ not_needed     → 原始数据
    ├─ question_local → 原始数据 + 本问局部变换
@@ -70,6 +80,6 @@
 - `question_local`：只允许当前小问有数学来源的局部变换；
 - `not_needed`：默认保持原始数据，不为“规范化流程”虚构处理步骤。
 
-若实现过程中发现必须新增核心变量、修改目标函数/约束、改变 `preprocessing_decision`、公共数据处理或算法语义，应停止代码交付，递增 `semantic_revision`，更新 `semantic_change_categories`，必要时回退 Module 03P 或 Module 02，重新闭环并运行语义治理门。
+若实现过程中发现必须新增核心变量、修改目标函数/约束、改变 `preprocessing_decision`、公共数据处理或算法语义，应停止代码交付，递增 `semantic_revision`，更新 `semantic_change_categories`，把旧 `model_challenge_status`、`human_model_approval_status` 和 `locked_model_spec` 标记 stale，必要时回退 Module 03P 或 Module 02，重新闭环、重新 Challenge、重新取得用户 Approval，并再次运行两个治理门。
 
-完整运行配置嵌入 `FULL_FIDELITY_CONFIG` 并写入主工作簿，不生成独立 YAML、运行说明或校验报告。主工作簿 accepted 后不得为了结果深化分析覆盖更新 `问题X求解.py`；深化分析进入 Module 03B，并生成独立 `问题X结果深化分析.py`。若后续发现主模型必须修改，应显式回退 Module 02/本模块，先传播 stale，再重新验收主结果。
+完整运行配置嵌入 `FULL_FIDELITY_CONFIG` 并写入主工作簿，不生成独立 YAML、运行说明或校验报告。主工作簿 accepted 后不得为了结果深化分析覆盖更新 `问题X求解.py`；深化分析进入 Module 03B，并生成独立 `问题X结果深化分析.py`。若后续发现主模型必须修改，应显式回退 Module 02/本模块，先传播 stale，再重新审查、批准并验收主结果。
