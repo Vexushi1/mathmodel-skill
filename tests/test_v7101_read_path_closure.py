@@ -17,13 +17,12 @@ def read(relative: str) -> str:
 class TestV7101ReadPathClosure(unittest.TestCase):
     def test_patch_release_carriers_match_bootstrap(self) -> None:
         version = str(yaml.safe_load(read("core/bootstrap.yaml"))["skill_version"])
-        self.assertEqual(version, "7.10.1")
-        self.assertIn("version: 7.10.1", read("SKILL.md"))
-        self.assertIn("version: 7.10.1", read("skills/mathmodel-skill/SKILL.md"))
+        self.assertIn(f"version: {version}", read("SKILL.md"))
+        self.assertIn(f"version: {version}", read("skills/mathmodel-skill/SKILL.md"))
         self.assertEqual(json.loads(read(".codex-plugin/plugin.json"))["version"], version)
-        self.assertTrue(read("README.md").startswith("# mathmodel-skill v7.10.1"))
-        self.assertIn("## Current release: 7.10.1", read("CHANGELOG.md"))
-        self.assertIn("# HSK Core Policy v7.10.1", read("core/hsk_core_policy.md"))
+        self.assertTrue(read("README.md").startswith(f"# mathmodel-skill v{version}"))
+        self.assertIn(f"## Current release: {version}", read("CHANGELOG.md"))
+        self.assertIn(f"# HSK Core Policy v{version}", read("core/hsk_core_policy.md"))
         for relative in ("core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml"):
             self.assertEqual(str(yaml.safe_load(read(relative))["version"]), version, relative)
 
@@ -77,8 +76,9 @@ class TestV7101ReadPathClosure(unittest.TestCase):
     def test_router_semantics_are_not_rewritten(self) -> None:
         router_text = read("core/workflow_router.yaml")
         router = yaml.safe_load(router_text)
+        version = str(yaml.safe_load(read("core/bootstrap.yaml"))["skill_version"])
         self.assertIn("submission_package_validation", router_text)
-        self.assertEqual(str(router["version"]), "7.10.1")
+        self.assertEqual(str(router["version"]), version)
 
 
 if __name__ == "__main__":

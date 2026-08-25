@@ -1,10 +1,12 @@
-# Module 02：模型设计、语义闭环、复杂度复审、算法规划、命题规划与论文框架锁定
+# Module 02：模型设计、语义闭环、复杂度复审、独立挑战、人工锁模与论文框架
 
-本模块负责把审题结果转成可求解、可验证、可写作的当前模型语义。跨竞赛的公式推理、Algorithm Trace、规则等级、命题预算和 Citation Evidence 由 `core/writing_reasoning_contract.yaml` 唯一定义；本模块只记录本题实际选择，不复制第二套写作规范。
+本模块负责把审题结果转成可求解、可验证、可写作的当前模型语义。跨竞赛的公式推理、Algorithm Trace、规则等级、命题预算和 Citation Evidence 由 `core/writing_reasoning_contract.yaml` 唯一定义；Model Challenge 与 Human Model Approval 的唯一行为合同为 `core/model_approval_contract.yaml`。本模块只记录本题实际选择，不复制第二套写作或审批规范。
 
 ## 0. 前置条件
 
 只接受 `problem_contract_status=frozen` 的小问。若题意对象、数据角色、约束来源或小问依赖仍存在会改变答案的歧义，退回 Module 01；不得通过代码试错替代审题。
+
+Problem Contract 冻结只回答“题目是什么意思”，不等于模型已获准进入代码阶段。正式任务代码前还必须依次完成当前模型语义闭环、Complexity Sanity、独立 Model Challenge 和用户 Human Model Approval。
 
 ## 1. 模型路线比较
 
@@ -156,7 +158,7 @@ pseudocode → 循环/分支/候选筛选/修复/停止规则本身是方法信�
 
 ## 5. 复杂度合理性复审
 
-模型路线锁定后、进入 Python 前检查题目复杂度是否被异常压扁。触发复审的典型 flag：
+模型路线形成后、进入 Model Challenge 前检查题目复杂度是否被异常压扁。触发复审的典型 flag：
 
 - `unused_problem_conditions`；
 - `unused_attachment_fields`；
@@ -170,17 +172,88 @@ pseudocode → 循环/分支/候选筛选/修复/停止规则本身是方法信�
 
 出现 flag 不等于模型必错，但必须说明：简化是否来自严格等价/可证明降维/主导机制；删除的耦合、状态、边界和约束依据；未使用字段为何冗余；极端/边界/小规模复核是否支持；是否先利用可解释结构再选择算法。
 
-无法解释则 `complexity_sanity_status=review_required`，禁止进入求解。
+无法解释则 `complexity_sanity_status=review_required`，不得进入 Model Challenge，更不得进入求解。
 
-## 6. 模型语义修订与跨问失效传播
+## 6. Independent Model Challenge
 
-`模型论文框架.md` 只保存当前有效模型，不作为第二份变更日志。Git 保存历史；`state/project_state.yaml` 记录当前语义修订号、变更类别、依赖、哈希和 stale。
+当 Problem Contract、语义闭环、Formula Trace、`preprocessing_decision` 与 Complexity Sanity 已达到当前设计要求后，形成 `proposed_model_spec`，然后按 `core/model_approval_contract.yaml` 执行两次独立审查。两次审查不创建 `MODEL_REVIEW_AI.md`、`HUMAN_MODEL_REVIEW.md` 或 `AGENT_RUNS.md`，当前结论写入 `模型论文框架.md`，机器状态只写入 `state/project_state.yaml`。
+
+### 6.1 Model Reviewer
+
+Model Reviewer 是正向适配审查，至少检查：
+
+- 当前路线是否真正回答冻结后的 Problem Contract；
+- selected model 是否比被否决路线更适配当前数据、约束和交付；
+- 变量、目标函数、约束、Formula Trace 与 `preprocessing_decision` 是否闭合；
+- 是否先利用结构化简，再选择求解器/算法；
+- full-fidelity 计算是否可实施；
+- 验证方案能否对核心结论形成有效证据；
+- 模型是否能够自然、准确地进入论文，而不是靠术语包装。
+
+### 6.2 Devil's Advocate
+
+Devil's Advocate 是反方挑战，至少检查：
+
+- 是否存在另一种会改变答案的合理题意解释；
+- 是否为了求解方便引入题目不允许的假设；
+- 是否闲置关键题面条件或附件字段；
+- 预处理是否改变真实对象语义或造成泄漏；
+- 是否错误解耦、错误静态化或把多主体问题压成独立单体；
+- 核心约束是否长期不生效；
+- 是否把局部性质写成全局性质；
+- 是否存在明显更简单的 baseline 已足以回答题目，使当前高级模型缺乏必要性；
+- 是否反向出现“题目本来复杂但模型异常容易”的过度简化。
+
+两次审查必须独立形成结论。若运行环境支持独立子 Agent，可并行；不支持时执行两个分离 review pass，第二次不得以第一次 verdict 为起点。
+
+### 6.3 Challenge Gate
+
+严重度复用现有治理：
+
+- `blocking`：必须回到当前 Module 02 修复，用户不能用“直接批准”绕过；
+- `review_required`：必须修复或给出具体、可验证的 justification 后才能继续；
+- `warning`：允许保留，但必须进入 Model Approval Brief 的 residual warnings。
+
+只有无 blocking 且所有 `review_required` 已处理后，`model_challenge_status=passed`。否则为 `revision_required`；当当前模型语义变化时旧 challenge 变 `stale`。
+
+## 7. Human Model Approval 与正式锁模
+
+`model_challenge_status=passed` 后，不直接进入 Python。先向用户提供简洁但完整的 Model Approval Brief，至少包含：研究对象、selected model、核心变量、目标、关键约束、`preprocessing_decision`、结构化简、求解方式、Algorithm presentation、主要被否决路线理由、residual warnings 与下一阶段实际实现范围。
+
+用户必须明确批准当前模型。自然语言如“OK，就按这个模型求解”“这个框架可以，进入主求解”“Q1-Q3 全部冻结”可视为批准；“我看看”“继续说”“还有别的方案吗”“这个模型怎么样”以及用户沉默不得推断为批准。
+
+批准时在 machine state 中绑定：
+
+```text
+human_model_approval_status = approved
+approved_semantic_revision = current semantic_revision
+approved_semantic_hash = current semantic_hash
+```
+
+语义关系严格区分：
+
+```text
+selected_models
+→ proposed_model_spec
+→ Model Challenge passed
+→ awaiting_model_approval
+→ explicit Human Model Approval
+→ locked_model_spec
+```
+
+因此 `locked_model_spec` 只能在 challenge passed 且用户明确批准当前 `semantic_revision/hash` 后成为 current。未批准时，本模块必须停在 `awaiting_model_approval`，不得交付正式预处理代码或主求解代码。
+
+## 8. 模型语义修订、审批失效与跨问传播
+
+`模型论文框架.md` 只保存当前有效模型，不作为第二份变更日志。Git 保存历史；`state/project_state.yaml` 记录当前语义修订号、变更类别、依赖、哈希、challenge/approval 状态和 stale。
 
 题意解释、数据范围、变量、参数、假设、目标、约束、预处理、算法语义或小问依赖变化时递增 `semantic_revision`。
 
-若已验收语义哈希变化，`scripts/validate_semantic_governance.py` 先将本问及依赖后问相关产物标记 stale。重新完成 Problem Contract、语义闭环和复杂度复审后才能接受新语义哈希；旧结果在重新求解和验收前保持 stale。
+当前 `semantic_revision` 或 `semantic_hash` 改变时，旧 `model_challenge_status`、`human_model_approval_status` 与 `locked_model_spec` 同时变 stale；必须重新完成必要的语义闭环、Complexity Sanity、Model Challenge 和 Human Approval。Markdown 排版、纯措辞、图注、公式编号或不改变语义的 LaTeX 文件拆分不触发重新审批。
 
-## 7. 命题与证明规划
+若已验收语义哈希变化，`scripts/validate_semantic_governance.py` 先将本问及依赖后问相关产物标记 stale。旧结果在重新求解和验收前保持 stale。代码前再由 `scripts/validate_model_approval.py` 核验 challenge/approval 与当前 revision/hash 的绑定关系。
+
+## 9. 命题与证明规划
 
 命题是全文级决策，不按小问机械分配。命题准入、证明作用和数量治理服从 `writing_reasoning_contract.proposition_governance`。
 
@@ -196,11 +269,11 @@ pseudocode → 循环/分支/候选筛选/修复/停止规则本身是方法信�
 
 模型、参数、约束或定义域变化时逐个复核相关命题，不再成立则 stale。
 
-## 8. `模型论文框架.md`
+## 10. `模型论文框架.md`
 
-`locked_model_spec` 形成后，以 `templates/model/model_paper_framework.md` 为骨架在项目根目录创建 `模型论文框架.md`。
+`proposed_model_spec` 形成后即可按 `templates/model/model_paper_framework.md` 建立或更新项目根目录 `模型论文框架.md`，用于承载当前模型口径、Model Challenge 和 Approval Brief；用户批准后再把当前模型状态提升为 `locked_model_spec`。框架不是批准本身，批准事实以 machine state 中绑定的当前 revision/hash 为准。
 
-它只承担**项目级长期工作记忆**：当前题意口径、数据、变量、模型、Formula Trace、Algorithm Trace、参数证据、跨问依赖、写作选择、命题、Citation Evidence、逐问结果摘要和图表映射。通用写作规则不得复制进去。
+它只承担**项目级长期工作记忆**：当前题意口径、数据、变量、模型、Formula Trace、Algorithm Trace、参数证据、跨问依赖、Model Challenge、Human Approval 当前状态、写作选择、命题、Citation Evidence、逐问结果摘要和图表映射。通用写作规则不得复制进去。
 
 框架支持：
 
@@ -209,7 +282,7 @@ pseudocode → 循环/分支/候选筛选/修复/停止规则本身是方法信�
 
 读取规则：
 
-1. 继续某一问前优先读取当前有效口径、该问当前模型/结果摘要和必要依赖；
+1. 继续某一问前优先读取当前有效口径、该问当前模型/结果摘要、Challenge/Approval 状态和必要依赖；
 2. 普通单问迭代不强制加载整份大框架；
 3. 新聊天恢复、跨问综合、整篇写作和终审读取完整 current 框架；
 4. 框架 stale 时先依据 project state 与已验收产物修正；
@@ -219,20 +292,21 @@ pseudocode → 循环/分支/候选筛选/修复/停止规则本身是方法信�
 
 - 只保留当前有效口径和项目选择；
 - 口径变化时替换受影响内容，不堆“旧方案—新方案”历史；
+- Model Reviewer/Devil's Advocate 只保存当前 verdict、required actions 与 residual warnings，不保存长篇历史对话；
 - 设计阶段结果摘要为 pending，不填未求解数字；
 - Algorithm Trace 只记录真实求解结构与锚点，不复制 Python 源码或通用算法定义；
 - 通用命题、证明、语言、排版规则不写入框架；
-- 正式交付前通过语义治理和框架验证。
+- 正式交付前通过语义治理、Model Approval 验证和框架验证。
 
-事实源边界：模型语义与论文组织以框架为准；修订、依赖、哈希、stale 以项目状态为准；数值以标准工作簿为准。
+事实源边界：模型语义与论文组织以框架为准；修订、依赖、哈希、Challenge/Approval 状态与 stale 以项目状态为准；数值以标准工作簿为准。
 
-## 9. 机理图合同
+## 11. 机理图合同
 
 早期只建立合同和占位。合同说明解释对象、支撑公式/约束、必需变量、排除变量、评委需要从图中确认什么，以及无图时哪段机制难以恢复。S 级图必须绑定核心公式、约束或命题。
 
 ## 阶段门槛
 
-进入求解前必须满足：
+进入项目级预处理或主求解前必须满足：
 
 1. `problem_contract_status=frozen`；
 2. 数据口径、objective、structures、capabilities、变量、目标、约束、求解器候选、评价指标和验证方案已锁定；
@@ -242,9 +316,14 @@ pseudocode → 循环/分支/候选筛选/修复/停止规则本身是方法信�
 6. 需要正式算法流程的问已确定 `stepwise/pseudocode` 并建立可追溯 Algorithm Trace；简单问题允许 `not_needed`；
 7. `complexity_sanity_status=passed`；
 8. `semantic_revision` 与当前框架一致；
-9. 已完成命题必要性初审；若超过默认 0--4 预算，已记录 justification 状态和理由；
-10. 需要外部来源的核心 Citation Claim 已登记，进入写作前必须闭合。
+9. `model_challenge_status=passed`，且不存在未处理 blocking/review_required；
+10. `human_model_approval_status=approved`；
+11. `approved_semantic_revision=current semantic_revision` 且 `approved_semantic_hash=current semantic_hash`；
+12. 已完成命题必要性初审；若超过默认 0--4 预算，已记录 justification 状态和理由；
+13. 需要外部来源的核心 Citation Claim 已登记，进入写作前必须闭合。
 
-若 `preprocessing_decision=project_level`，下一阶段进入 Module 03P；若为 `not_needed` 或 `question_local`，跳过 Module 03P 直接进入主求解。
+若 1--9 已满足但尚未取得用户批准，形成 `proposed_model_spec`、Model Approval Brief、`awaiting_model_approval` 与 current 框架，然后停止。不得把“用户未反对”解释为 approval。
 
-形成 `locked_model_spec`、`preprocessing_decision`、`semantic_closure`、`formula_reasoning_chain`、`complexity_sanity_check`、`proposition_plan`、`citation_evidence_plan`、`validation_plan` 与包含当前 Algorithm Trace 的 current 框架；未闭环不得以代码试错代替建模。
+用户明确批准当前 revision/hash 后，形成 `locked_model_spec`。若 `preprocessing_decision=project_level`，下一阶段进入 Module 03P；若为 `not_needed` 或 `question_local`，跳过 Module 03P 直接进入主求解。
+
+最终 current 设计链至少形成 `proposed_model_spec`、`model_challenge`、`human_model_approval`、`locked_model_spec`、`preprocessing_decision`、`semantic_closure`、`formula_reasoning_chain`、`complexity_sanity_check`、`proposition_plan`、`citation_evidence_plan`、`validation_plan` 与包含当前 Algorithm Trace/Challenge/Approval 状态的 current 框架；未闭环不得以代码试错代替建模。

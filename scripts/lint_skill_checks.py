@@ -23,7 +23,7 @@ REQUIRED = [
     "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml",
     "core/global_preprocessing_contract.yaml", "core/workbook_schema.yaml",
     "core/project_state.schema.yaml", "core/compile_profiles.yaml",
-    "core/user_execution_contract.yaml", "core/code_quality_contract.yaml", "core/writing_reasoning_contract.yaml",
+    "core/model_approval_contract.yaml", "core/user_execution_contract.yaml", "core/code_quality_contract.yaml", "core/writing_reasoning_contract.yaml",
     "modules/01_problem_audit.md", "modules/02_model_design.md", "modules/03_data_preprocessing.md",
     "modules/03_solve_validate.md", "modules/03_result_analysis.md", "modules/04_figure_evidence.md",
     "modules/05_latex_compile_quality.md", "modules/05_writing/docx.md", "modules/05_writing/latex.md",
@@ -34,7 +34,7 @@ REQUIRED = [
     "templates/code/hsk_pipeline/main_pipeline.py", "templates/matlab/q1_plot.m",
     "templates/matlab/data_process.m", "templates/latex/cumcm/hsk/hsk_main.tex",
     "templates/latex/diangong/main.tex", "templates/writing/caption_explanation.md",
-    "scripts/resolve_workflow.py", "scripts/validate_semantic_governance.py", "scripts/sync_project.py",
+    "scripts/resolve_workflow.py", "scripts/validate_semantic_governance.py", "scripts/validate_model_approval.py", "scripts/sync_project.py",
     "scripts/validate_code_delivery.py", "scripts/validate_user_execution.py", "scripts/audit_latex_project.py",
     "scripts/audit_paper_prose.py", "scripts/latex_delivery.py",
     "scripts/validate_model_paper_framework.py", "scripts/validate_project_state.py",
@@ -417,7 +417,7 @@ def check_router(errors: list[str]) -> None:
         errors.append("data_preprocessing must be declared conditional")
     if execution.get("formal_delivery_gates") != ["semantic_governance", "project_sync"]:
         errors.append("formal delivery must declare semantic_governance then project_sync")
-    if execution.get("code_stage_gates") != ["semantic_governance", "code_delivery"]:
+    if execution.get("code_stage_gates") != ["semantic_governance", "model_approval", "code_delivery"]:
         errors.append("code stages must declare semantic_governance before code_delivery")
     if execution.get("task_code_execution_allowed") is not False:
         errors.append("router must forbid assistant task-code execution")
@@ -425,7 +425,7 @@ def check_router(errors: list[str]) -> None:
     loaded = list(full.get("load", [])) + list(full.get("then", []))
     if full.get("pause_for_user_execution") is not True:
         errors.append("full_workflow must pause at the user execution gate")
-    if full.get("delivery_scope") != "code" or full.get("pre_delivery_gates") != ["semantic_governance", "code_delivery"]:
+    if full.get("delivery_scope") != "code" or full.get("pre_delivery_gates") != ["semantic_governance", "model_approval", "code_delivery"]:
         errors.append("full_workflow initial segment must use semantic and code-delivery gates")
     if "modules/03_solve_validate.md" not in loaded:
         errors.append("full_workflow initial segment must load primary solve code generation")
@@ -443,7 +443,7 @@ def check_router(errors: list[str]) -> None:
         errors.append("result_analysis route must load the dedicated module")
     if "result_analysis_code" not in analysis_route.get("terminal_outputs", []):
         errors.append("result_analysis route must deliver independent result_analysis_code")
-    if analysis_route.get("pre_delivery_gates") != ["semantic_governance", "code_delivery"]:
+    if analysis_route.get("pre_delivery_gates") != ["semantic_governance", "model_approval", "code_delivery"]:
         errors.append("result_analysis must pass semantic governance before code delivery")
     returned = routes.get("returned_workbook_validation", {})
     if returned.get("pre_delivery_gates") != ["semantic_governance", "user_execution_receipt"]:
@@ -548,7 +548,7 @@ def check_manifest(errors: list[str]) -> None:
         errors.append("full_workflow initial manifest profile must stop at solve_validate")
     if (profile_spec.get("conditional_modules") or {}).get("data_preprocessing", {}).get("when") != "preprocessing_decision == project_level":
         errors.append("full_workflow manifest profile must condition data_preprocessing")
-    if profile_spec.get("pre_delivery_gates") != ["semantic_governance", "code_delivery"]:
+    if profile_spec.get("pre_delivery_gates") != ["semantic_governance", "model_approval", "code_delivery"]:
         errors.append("full_workflow initial manifest profile must use semantic and code delivery")
     semantic_gate = manifest.get("utility_gates", {}).get("semantic_governance", {})
     if semantic_gate.get("path") != "scripts/validate_semantic_governance.py":
