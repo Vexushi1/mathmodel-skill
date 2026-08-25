@@ -1,4 +1,4 @@
-version: 7.10.1
+version: 7.11.0
 workflow_order:
 - problem_audit
 - model_design
@@ -19,6 +19,7 @@ contracts:
   output: core/output_contract.yaml
   workbook: core/workbook_schema.yaml
   preprocessing: core/global_preprocessing_contract.yaml
+  model_approval: core/model_approval_contract.yaml
   project_state: core/project_state.schema.yaml
   user_execution: core/user_execution_contract.yaml
   code_quality: core/code_quality_contract.yaml
@@ -51,13 +52,19 @@ artifact_catalog:
   risks: 审题、数据、模型和交付风险
   route_comparison: 每问模型路线比较
   selected_models: 每问选定模型
-  locked_model_spec: 已锁定变量、假设、公式、目标和约束
+  proposed_model_spec: 已完成语义闭环、Complexity Sanity并等待Model Challenge/Human Approval锁定的当前候选模型
+  model_challenge: 当前Model Reviewer与Devil's Advocate两次独立审查结论、required actions和residual warnings；不单独落盘
+  model_approval_brief: 提交给用户确认的当前模型摘要；绑定当前semantic revision/hash，不单独落盘
+  awaiting_model_approval: Model Challenge已可进入人工确认但用户尚未明确批准当前revision/hash的暂停状态
+  human_model_approval: 用户对当前semantic revision/hash的明确批准状态；机器绑定记录在project_state中
+  locked_model_spec: 仅在Model Challenge passed且Human Model Approval绑定当前semantic revision/hash后成立的已锁定变量、假设、公式、目标和约束
+  model_approval_validation_report: scripts/validate_model_approval.py输出的challenge/approval与current revision/hash一致性检查结论
   formula_closure: 公式—代码—输出映射
   formula_reasoning_chain: 核心公式Source—Derivation—Destination闭环；记录题意/定义/机制来源、关键推导与后续模型/求解/验证用途，不单独落盘
   semantic_closure: 题面对象与要求—数学层—Python层—输出证据三层闭环
   complexity_sanity_check: 对异常降维、解耦、条件闲置和异常容易求解的复审结论
   proposition_plan: 全文高价值命题规划；0--4为默认正文阅读预算，超过预算时记录必要性说明而非自动否决
-  model_paper_framework: 助手可再次读取的当前项目语义记忆与论文骨架；只保存Problem Contract、预处理判定、模型语义、Formula Trace、Algorithm Trace、参数证据、Terminology Registry、Numeric Profile、Title Claim、命题、Citation Evidence、paper-fragment状态、逐问结果摘要和图表映射，通用写作规则由Authority管理，具体数值仍以已验收工作簿为准
+  model_paper_framework: 助手可再次读取的当前项目语义记忆与论文骨架；只保存Problem Contract、预处理判定、模型语义、Formula Trace、Algorithm Trace、Model Challenge/Human Approval当前状态、参数证据、Terminology Registry、Numeric Profile、Title Claim、命题、Citation Evidence、paper-fragment状态、逐问结果摘要和图表映射，通用写作规则由Authority管理，具体数值仍以已验收工作簿为准
   mechanism_contracts: 机理图合同
   validation_plan: 建模阶段识别的风险与候选验证方向
   semantic_governance_report: 聊天或标准输出中的Problem Contract、语义闭环、复杂度复审、语义哈希、跨问和paper-fragment stale校验结果
@@ -118,6 +125,10 @@ workflow_profiles:
     - problem_contract
     - route_comparison
     - selected_models
+    - proposed_model_spec
+    - model_challenge
+    - model_approval_brief
+    - awaiting_model_approval
     - locked_model_spec
     - preprocessing_decision
     - formula_closure
@@ -134,6 +145,10 @@ workflow_profiles:
     - problem_contract
     - route_comparison
     - selected_models
+    - proposed_model_spec
+    - model_challenge
+    - model_approval_brief
+    - awaiting_model_approval
     - locked_model_spec
     - preprocessing_decision
     - formula_closure
@@ -166,6 +181,7 @@ workflow_profiles:
     - model_paper_framework
     pre_delivery_gates:
     - semantic_governance
+    - model_approval
     - code_delivery
     terminal_outputs:
     - preprocessing_decision
@@ -178,6 +194,7 @@ workflow_profiles:
     - proposition_plan
     - model_paper_framework
     - semantic_governance_report
+    - model_approval_validation_report
     - project_state
   full_workflow:
     modules:
@@ -199,6 +216,7 @@ workflow_profiles:
     - model_paper_framework
     pre_delivery_gates:
     - semantic_governance
+    - model_approval
     - code_delivery
     terminal_outputs:
     - preprocessing_decision
@@ -210,6 +228,7 @@ workflow_profiles:
     - awaiting_user_execution
     - model_paper_framework
     - semantic_governance_report
+    - model_approval_validation_report
     - project_state
 modules:
   problem_audit:
@@ -237,6 +256,11 @@ modules:
     outputs:
     - route_comparison
     - selected_models
+    - proposed_model_spec
+    - model_challenge
+    - model_approval_brief
+    - awaiting_model_approval
+    - human_model_approval
     - locked_model_spec
     - preprocessing_decision
     - formula_closure
@@ -408,6 +432,21 @@ utility_gates:
     - Propagates paper-fragment stale only through explicit source_questions/depends_on links; unrelated background and independent questions remain current.
     - Changes to preprocessing_decision or actual project-level preprocessing are semantic changes and invalidate only dependent downstream question results.
     - Never runs task-specific Python and never clears numerical stale states.
+  model_approval:
+    path: scripts/validate_model_approval.py
+    command: python scripts/validate_model_approval.py <project_root> --strict
+    inputs:
+    - existing_project_state
+    - existing_model_paper_framework
+    outputs:
+    - model_approval_validation_report
+    - project_state
+    rules:
+    - Requires model_challenge_status=passed and human_model_approval_status=approved for the current question set before project-level preprocessing or primary solve code delivery.
+    - Requires approved_semantic_revision and approved_semantic_hash to match the current semantic_revision and semantic_hash exactly.
+    - User silence or vague continuation is never approval, and user approval cannot waive a blocking Model Challenge issue.
+    - Semantic revision/hash drift makes previous challenge, approval and locked_model_spec stale until re-reviewed and explicitly re-approved.
+    - Never runs task-specific Python and never changes numerical validity.
   code_delivery:
     path: scripts/validate_code_delivery.py
     command: python scripts/validate_code_delivery.py <project_root> --write --strict
