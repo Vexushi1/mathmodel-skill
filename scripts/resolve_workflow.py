@@ -233,12 +233,12 @@ DOWNSTREAM_MODULES = {
     "modules/05_writing/ai_cleanup.md", "modules/05_latex_compile_quality.md",
     "modules/06_review_delivery.md",
 }
-SEMANTIC_CODE_GATES = ["semantic_governance", "code_delivery"]
+SEMANTIC_CODE_GATES = ["semantic_governance", "model_approval", "code_delivery"]
 SEMANTIC_SYNC_GATES = ["semantic_governance", "project_sync"]
 SUBMISSION_GATES = ["semantic_governance", "project_sync", "submission_package_validation"]
 MODEL_APPROVAL_REQUIRED_INTENTS = {
     "new_problem_design", "model_selection", "advanced_method", "full_solution",
-    "full_workflow", "code_and_solution", "data_preprocessing",
+    "full_workflow", "code_and_solution", "data_preprocessing", "result_analysis", "validation",
 }
 
 
@@ -253,7 +253,12 @@ def apply_model_approval_boundary(
     available: set[str],
 ) -> tuple[list[str], list[str], list[str], list[str], bool, bool, bool]:
     """Stop before task code until the current model has explicit user approval."""
-    if "locked_model_spec" in available:
+    primary_accepted = bool(
+        "accepted_solution_workbook" in available
+        or {"solution_workbook", "result_quality_report"}.issubset(available)
+        or {"solved_results", "result_quality_report"}.issubset(available)
+    )
+    if "locked_model_spec" in available or primary_accepted:
         return paths, outputs, scopes, gates, formal_delivery, pause, False
     if not set(intents).intersection(MODEL_APPROVAL_REQUIRED_INTENTS):
         return paths, outputs, scopes, gates, formal_delivery, pause, False

@@ -189,6 +189,10 @@
 - 语义闭环：`pending / passed / stale`
 - 公式推理链：`pending / passed / stale`
 - 复杂度复审：`pending / passed / review_required`
+- Model Challenge：`pending / passed / revision_required / stale`
+- Human Model Approval：`pending / approved / revision_required / stale`
+- Approved semantic revision：
+- Approved semantic hash：
 - semantic revision：`1`
 - semantic change categories：`initial_design / problem_definition / data_scope / variable / parameter / assumption / objective / constraint / preprocessing / algorithm / dependency`
 - 核心模型收束：`required / inline / not_applicable`
@@ -252,6 +256,14 @@ $$
 - 高级算法前利用的结构：
 - 极端/边界/小规模复核：
 - 复审结论：`passed / review_required`
+
+**模型挑战与人工锁模**
+
+- Model Reviewer verdict 与 required actions：
+- Devil's Advocate verdict、核心反例/风险与 required actions：
+- Residual warnings：
+- Model Approval Brief：研究对象、selected model、核心变量、objective、关键约束、preprocessing_decision、结构化简、求解方式、algorithm presentation、被否决路线理由、下一阶段实现范围。
+- 当前模型状态：`proposed_model_spec / locked_model_spec / stale`
 
 **数值参数证据**
 
