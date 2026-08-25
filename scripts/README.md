@@ -4,7 +4,8 @@
 
 ## 运行时入口与治理
 
-- `resolve_workflow.py`：解析一个或多个用户意图、`objective`、`structures`、`capabilities`、`preprocessing_decision` 与竞赛类型，返回最小确定性 `load_order`、模块计划、Model Approval/用户执行暂停边界与 `pre_delivery_gates`；只有 `project_level` 才插入项目级数据预处理阶段。
+- `resolve_runtime.py`：默认 assured runtime 入口。在兼容旧 plan 字段及 `objective / structures / capabilities` 分类轴的基础上，可选读取 `--project-root` / `--question` 恢复 current project state，验证 artifact hash，输出 intent provenance、ambiguity、declarative contract closure、authority fingerprint 与 `runtime_plan/assurance`。
+- `resolve_workflow.py`：保留的无状态兼容 resolver；仍可直接解析显式 intent/classification/artifact-name 输入，但不负责 project-state hydration 或 artifact hash assurance。
 - `validate_semantic_governance.py`：检查 Problem Contract、题面—数学—代码—输出语义闭环、Complexity Sanity Check、semantic revision、跨问 typed dependency 与 paper-fragment stale；不运行赛题代码，也不恢复数值有效性。
 - `validate_model_approval.py`：在项目级预处理或主求解代码交付前，检查 `model_challenge_status=passed`、`human_model_approval_status=approved`，并要求 approved semantic revision/hash 与当前 semantic revision/hash 完全一致；旧 approved 记录发生语义漂移后只能作为 provenance，不能继续授权新主求解。
 - `sync_project.py`：按当前 data source 和显式 delivery scope 发现产物、校验 Schema、计算分层哈希并传播 stale；不自动生成模型语义、数值结果或 `passed` 状态。

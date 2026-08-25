@@ -1,9 +1,9 @@
-skill_version: 7.11.2
+skill_version: 7.12.0
 bootstrap_schema_version: 1.1.0
 purpose: >-
   Minimal startup index for the HSK mathematical-modeling workflow. Read this
   file first, load the global policy through workflow_router.default_load, then
-  use scripts/resolve_workflow.py for the task-specific plan. Do not preload the
+  use scripts/resolve_runtime.py for the assured task-specific plan. Do not preload the
   repository or duplicate domain contracts here.
 authoritative_sources:
   global_policy: core/hsk_core_policy.md
@@ -19,13 +19,15 @@ authoritative_sources:
   code_quality: core/code_quality_contract.yaml
   writing_reasoning: core/writing_reasoning_contract.yaml
   semantic_governance: scripts/validate_semantic_governance.py
+  runtime_assurance: core/runtime_assurance_contract.yaml
 startup_contract:
   principle: minimal_route_specific
   default_policy_source: core/hsk_core_policy.md
-  resolver: scripts/resolve_workflow.py
+  resolver: scripts/resolve_runtime.py
   rules:
     - Bootstrap stores pointers and startup invariants only; global domain rules live in core/hsk_core_policy.md.
     - Route-specific contracts are loaded only when the resolved task needs them.
+    - Runtime context hydration, intent provenance, artifact assurance and declarative contract dependency closure are governed by core/runtime_assurance_contract.yaml.
     - Resolver-internal manifests and taxonomies are not user-facing preload unless the route needs their content.
     - Current project semantics are restored from current 模型论文框架.md when available; numerical facts still come from accepted workbooks and machine state from project_state.
 hard_invariants:
@@ -37,7 +39,8 @@ hard_invariants:
   - Task-specific preprocessing, solve and result-analysis code remains user-executed; the assistant generates, statically checks and validates returned artifacts under the existing execution contracts.
   - legacy/ remains outside default execution; compatibility pointers are read-only bridges and may not become active dependencies.
 entrypoints:
-  resolve: python scripts/resolve_workflow.py
+  resolve: python scripts/resolve_runtime.py
+  resolve_legacy: python scripts/resolve_workflow.py
   semantic_governance: python scripts/validate_semantic_governance.py
   model_approval: python scripts/validate_model_approval.py
   sync: python scripts/sync_project.py
