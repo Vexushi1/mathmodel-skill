@@ -22,7 +22,7 @@ REQUIRED = [
     "core/bootstrap.yaml", "core/hsk_core_policy.md", "core/task_taxonomy.yaml",
     "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml",
     "core/global_preprocessing_contract.yaml", "core/workbook_schema.yaml",
-    "core/project_state.schema.yaml", "core/compile_profiles.yaml",
+    "core/project_state.schema.yaml", "core/compile_profiles.yaml", "core/runtime_assurance_contract.yaml",
     "core/model_approval_contract.yaml", "core/user_execution_contract.yaml", "core/code_quality_contract.yaml", "core/writing_reasoning_contract.yaml",
     "modules/01_problem_audit.md", "modules/02_model_design.md", "modules/03_data_preprocessing.md",
     "modules/03_solve_validate.md", "modules/03_result_analysis.md", "modules/04_figure_evidence.md",
@@ -34,7 +34,7 @@ REQUIRED = [
     "templates/code/hsk_pipeline/main_pipeline.py", "templates/matlab/q1_plot.m",
     "templates/matlab/data_process.m", "templates/latex/cumcm/hsk/hsk_main.tex",
     "templates/latex/diangong/main.tex", "templates/writing/caption_explanation.md",
-    "scripts/resolve_workflow.py", "scripts/validate_semantic_governance.py", "scripts/validate_model_approval.py", "scripts/sync_project.py",
+    "scripts/resolve_runtime.py", "scripts/runtime_assurance.py", "scripts/resolve_workflow.py", "scripts/validate_semantic_governance.py", "scripts/validate_model_approval.py", "scripts/sync_project.py",
     "scripts/validate_code_delivery.py", "scripts/validate_user_execution.py", "scripts/audit_latex_project.py",
     "scripts/audit_paper_prose.py", "scripts/latex_delivery.py",
     "scripts/validate_model_paper_framework.py", "scripts/validate_project_state.py",
@@ -160,9 +160,17 @@ def check_skill_entrypoint_parity(errors: list[str]) -> None:
         "skills/mathmodel-skill/SKILL.md": read_text(packaged_skill_path),
     }
     blocks: dict[str, str | None] = {}
+    startup = bootstrap.get("startup_contract", {}) or {}
+    runtime_resolver = str(startup.get("resolver", "")).strip()
+    entrypoints = bootstrap.get("entrypoints", {}) or {}
+    legacy_command = str(entrypoints.get("resolve_legacy", "")).strip()
+    legacy_parts = legacy_command.split()
+    legacy_resolver = legacy_parts[1] if len(legacy_parts) >= 2 else ""
+    if not runtime_resolver:
+        errors.append("bootstrap startup_contract.resolver is required")
     required_tokens = (
         "core/bootstrap.yaml", "core/workflow_router.yaml", "core/hsk_core_policy.md",
-        "scripts/resolve_workflow.py", "core/writing_reasoning_contract.yaml",
+        runtime_resolver, "core/writing_reasoning_contract.yaml",
         "模型论文框架.md", "legacy/",
     )
     forbidden_tokens = (
@@ -183,6 +191,8 @@ def check_skill_entrypoint_parity(errors: list[str]) -> None:
         for token in forbidden_tokens:
             if token in block:
                 errors.append(f"skill entrypoint must not depend on compatibility pointer: {origin} -> {token}")
+        if legacy_resolver and legacy_resolver not in text_value:
+            errors.append(f"skill entrypoint legacy resolver pointer missing: {origin} -> {legacy_resolver}")
 
     root_block = blocks.get("SKILL.md")
     packaged_block = blocks.get("skills/mathmodel-skill/SKILL.md")

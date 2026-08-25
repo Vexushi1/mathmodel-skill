@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：7.11.2
+当前 Skill 版本：7.12.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -52,6 +52,7 @@
 - `core/module_manifest.yaml`
 - `core/output_contract.yaml`
 - `core/project_state.schema.yaml`
+- `core/runtime_assurance_contract.yaml`
 - `core/task_taxonomy.yaml`
 - `core/user_execution_contract.yaml`
 - `core/workbook_schema.yaml`
@@ -106,7 +107,9 @@
 - `scripts/lint_skill_checks.py`
 - `scripts/prepare_cumcm_class.py`
 - `scripts/render_paper.py`
+- `scripts/resolve_runtime.py`
 - `scripts/resolve_workflow.py`
+- `scripts/runtime_assurance.py`
 - `scripts/score_submission.py`
 - `scripts/sync_project.py`
 - `scripts/validate_code_delivery.py`
@@ -225,6 +228,7 @@
 - `tests/test_v7101_read_path_closure.py`
 - `tests/test_v710_semantic_governance.py`
 - `tests/test_v711_model_approval_gate.py`
+- `tests/test_v712_runtime_assurance.py`
 - `tests/test_v730_writing_expression_protocol.py`
 - `tests/test_v740_writing_evidence_architecture.py`
 - `tests/test_v741_skill_closure_hygiene.py`
