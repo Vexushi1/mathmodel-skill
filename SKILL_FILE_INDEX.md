@@ -171,6 +171,7 @@
 - `templates/model/assumption_audit.md`
 - `templates/model/constraint_violation.md`
 - `templates/model/formula_code_closure.md`
+- `templates/model/model_approval_section.md`
 - `templates/model/model_paper_framework.md`
 - `templates/model/variable_table.md`
 - `templates/problem/data_schema_audit.md`
