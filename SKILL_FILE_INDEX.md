@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：7.11.1
+当前 Skill 版本：7.11.2
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -205,6 +205,7 @@
 - `tests/test_result_io.py`
 - `tests/test_result_state_semantics.py`
 - `tests/test_router_contract.py`
+- `tests/test_runtime_health_coherence.py`
 - `tests/test_schemas.py`
 - `tests/test_split_pipeline_runtime.py`
 - `tests/test_starter_templates.py`
