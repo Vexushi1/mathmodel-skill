@@ -36,18 +36,43 @@ class TestRouterContract(unittest.TestCase):
         )
         self.assertEqual(
             self.router["execution_contract"]["code_stage_gates"],
-            ["semantic_governance", "code_delivery"],
+            ["semantic_governance", "model_approval", "code_delivery"],
         )
         self.assertFalse(
             self.router["execution_contract"]["task_code_execution_allowed"]
         )
 
-    def test_code_plus_figures_stops_at_primary_user_gate(self):
+    def test_code_plus_figures_without_lock_stops_at_model_approval(self):
         plan = self.resolver.resolve_workflow(
             ["code_and_solution", "figures"],
             objective="optimization",
             structures=["stochastic"],
             competition="CUMCM",
+        )
+        self.assertIn("modules/02_model_design.md", plan["modules"])
+        self.assertNotIn("modules/03_solve_validate.md", plan["modules"])
+        self.assertNotIn("modules/03_result_analysis.md", plan["modules"])
+        self.assertNotIn("modules/04_figure_evidence.md", plan["modules"])
+        self.assertEqual(plan["delivery_scope"], "design")
+        self.assertEqual(
+            [item["name"] for item in plan["pre_delivery_gates"]],
+            ["semantic_governance"],
+        )
+        self.assertNotIn("python_code", plan["terminal_outputs"])
+        self.assertIn("proposed_model_spec", plan["terminal_outputs"])
+        self.assertIn("model_approval_brief", plan["terminal_outputs"])
+        self.assertIn("awaiting_model_approval", plan["terminal_outputs"])
+        self.assertTrue(plan["pause_for_model_approval"])
+        self.assertEqual(plan["pause_state"], "awaiting_model_approval")
+        self.assertFalse(plan["task_code_execution_allowed"])
+
+    def test_code_plus_figures_with_locked_model_stops_at_primary_user_gate(self):
+        plan = self.resolver.resolve_workflow(
+            ["code_and_solution", "figures"],
+            objective="optimization",
+            structures=["stochastic"],
+            competition="CUMCM",
+            available_artifacts=["locked_model_spec"],
         )
         self.assertIn("modules/03_solve_validate.md", plan["modules"])
         self.assertNotIn("modules/03_result_analysis.md", plan["modules"])
@@ -55,14 +80,13 @@ class TestRouterContract(unittest.TestCase):
         self.assertEqual(plan["delivery_scope"], "code")
         self.assertEqual(
             [item["name"] for item in plan["pre_delivery_gates"]],
-            ["semantic_governance", "code_delivery"],
+            ["semantic_governance", "model_approval", "code_delivery"],
         )
         self.assertIn("python_code", plan["terminal_outputs"])
-        self.assertIn("semantic_governance_report", plan["terminal_outputs"])
         self.assertIn("awaiting_user_execution", plan["terminal_outputs"])
-        self.assertNotIn("sync_report", plan["terminal_outputs"])
+        self.assertFalse(plan["pause_for_model_approval"])
         self.assertTrue(plan["pause_for_user_execution"])
-        self.assertFalse(plan["task_code_execution_allowed"])
+        self.assertEqual(plan["pause_state"], "awaiting_user_execution")
 
     def test_nonformal_route_has_no_gate(self):
         plan = self.resolver.resolve_workflow("problem_analysis")
@@ -70,11 +94,12 @@ class TestRouterContract(unittest.TestCase):
         self.assertFalse(plan["sync_required_before_delivery"])
         self.assertNotIn("sync_report", plan["available_after_plan"])
 
-    def test_request_inference_respects_primary_gate(self):
+    def test_request_inference_respects_primary_gate_after_lock(self):
         plan = self.resolver.resolve_workflow(
             request="继续求解问题三并生成MATLAB敏感性图",
             objective="optimization",
             structures=["stochastic"],
+            available_artifacts=["locked_model_spec"],
         )
         self.assertIn("modules/03_solve_validate.md", plan["modules"])
         self.assertNotIn("modules/03_result_analysis.md", plan["modules"])
@@ -82,35 +107,38 @@ class TestRouterContract(unittest.TestCase):
         self.assertTrue(plan["pause_for_user_execution"])
         self.assertEqual(
             [item["name"] for item in plan["pre_delivery_gates"]],
-            ["semantic_governance", "code_delivery"],
+            ["semantic_governance", "model_approval", "code_delivery"],
         )
 
-    def test_result_analysis_without_accepted_primary_returns_primary_code(self):
+    def test_result_analysis_without_primary_or_lock_stops_at_model_approval(self):
         plan = self.resolver.resolve_workflow(
             "result_analysis", objective="prediction", structures=["temporal"]
         )
         self.assertFalse(plan["dependency_closure_applied"])
-        self.assertIn("modules/03_solve_validate.md", plan["modules"])
+        self.assertIn("modules/02_model_design.md", plan["modules"])
+        self.assertNotIn("modules/03_solve_validate.md", plan["modules"])
         self.assertNotIn("modules/03_result_analysis.md", plan["modules"])
-        self.assertIn("python_code", plan["module_terminal_outputs"])
-        self.assertTrue(plan["pause_for_user_execution"])
-        self.assertEqual(
-            [item["name"] for item in plan["pre_delivery_gates"]],
-            ["semantic_governance", "code_delivery"],
-        )
+        self.assertNotIn("python_code", plan["module_terminal_outputs"])
+        self.assertTrue(plan["pause_for_model_approval"])
+        self.assertEqual(plan["pause_state"], "awaiting_model_approval")
 
-    def test_result_analysis_empty_state_returns_primary_code(self):
+    def test_result_analysis_with_lock_but_no_primary_returns_primary_code(self):
         plan = self.resolver.resolve_workflow(
             "result_analysis",
             objective="prediction",
             structures=["temporal"],
-            available_artifacts=[],
+            available_artifacts=["locked_model_spec"],
         )
         self.assertTrue(plan["dependency_closure_applied"])
         self.assertIn("modules/03_solve_validate.md", plan["modules"])
         self.assertNotIn("modules/03_result_analysis.md", plan["modules"])
+        self.assertIn("python_code", plan["module_terminal_outputs"])
+        self.assertEqual(
+            [item["name"] for item in plan["pre_delivery_gates"]],
+            ["semantic_governance", "model_approval", "code_delivery"],
+        )
 
-    def test_result_analysis_reuses_accepted_primary_workbook(self):
+    def test_result_analysis_reuses_accepted_primary_workbook_without_retroactive_approval(self):
         plan = self.resolver.resolve_workflow(
             "result_analysis",
             objective="prediction",
@@ -193,8 +221,9 @@ class TestRouterContract(unittest.TestCase):
         self.assertIn("packs/artifact/proposition_proof.md", proof["packs"])
         self.assertEqual(
             [item["name"] for item in ordinary["pre_delivery_gates"]],
-            ["semantic_governance", "project_sync"],
+            ["semantic_governance"],
         )
+        self.assertTrue(ordinary["pause_for_model_approval"])
 
 
 if __name__ == "__main__":
