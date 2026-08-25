@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：7.11.0
+当前 Skill 版本：7.11.1
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -57,6 +57,7 @@
 - `core/workbook_schema.yaml`
 - `core/workflow_router.yaml`
 - `core/writing_reasoning_contract.yaml`
+- `docs/architecture/authority_duplication_matrix_v7.11.1.md`
 - `legacy/README.md`
 - `modules/01_problem_audit.md`
 - `modules/02_model_design.md`
@@ -188,6 +189,7 @@
 - `tests/test_active_output_contract_cleanup.py`
 - `tests/test_active_residue_cleanup.py`
 - `tests/test_active_template_version_hygiene.py`
+- `tests/test_authority_single_source.py`
 - `tests/test_code_quality_contract.py`
 - `tests/test_content_packs.py`
 - `tests/test_contract_closure.py`

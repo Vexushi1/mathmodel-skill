@@ -34,8 +34,9 @@ class TestRouterContract(unittest.TestCase):
             self.router["execution_contract"]["formal_delivery_gates"],
             ["semantic_governance", "project_sync"],
         )
+        self.assertNotIn("code_stage_gates", self.router["execution_contract"])
         self.assertEqual(
-            self.router["execution_contract"]["code_stage_gates"],
+            self.router["routing"]["full_solution"]["pre_delivery_gates"],
             ["semantic_governance", "model_approval", "code_delivery"],
         )
         self.assertFalse(

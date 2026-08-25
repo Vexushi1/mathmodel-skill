@@ -1,4 +1,4 @@
-version: 7.11.0
+version: 7.11.1
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -7,6 +7,19 @@ code_quality_contract: core/code_quality_contract.yaml
 writing_reasoning_contract: core/writing_reasoning_contract.yaml
 bootstrap: core/bootstrap.yaml
 taxonomy: core/task_taxonomy.yaml
+scope_boundary:
+  owns: [project_layout, delivery_attestation, project_sync_stage_requirements, per_question_delivery_layout, global_preprocessing_delivery_layout, framework_modes]
+  delegates:
+    semantic_governance: scripts/validate_semantic_governance.py
+    project_state_and_stale: core/project_state.schema.yaml
+    model_approval: core/model_approval_contract.yaml
+    preprocessing_semantics: core/global_preprocessing_contract.yaml
+    user_execution: core/user_execution_contract.yaml
+    result_workbook_and_quality: core/workbook_schema.yaml
+    code_quality: core/code_quality_contract.yaml
+    writing_reasoning: core/writing_reasoning_contract.yaml
+    prose_structure: modules/05_writing/latex.md
+  rule: Delegated sections below are integration pointers/switches only; they must not become parallel policy authorities.
 project_root:
   problem_and_attachments: 赛题、附件数据表和说明文件直接放在项目根目录
   preprocessing_outputs: 仅preprocessing_decision=project_level时创建数据预处理/；最终包含数据预处理.py、数据预处理结果.xlsx和data_process.m
@@ -72,120 +85,35 @@ delivery_attestation:
   package_validator: scripts/validate_submission_package.py
   validated_submission_semantics: ZIP生成本身不代表validated；submission_package_validation gate通过后才可正式交付。
 execution_policy:
+  role: delivery_integration_only
+  user_execution_authority: core/user_execution_contract.yaml
+  preprocessing_authority: core/global_preprocessing_contract.yaml
+  model_approval_authority: core/model_approval_contract.yaml
+  semantic_governance_authority: scripts/validate_semantic_governance.py
+  code_quality_authority: core/code_quality_contract.yaml
   default_owner: user
   default_profile: full_fidelity
   assistant_task_code_execution_allowed: false
-  semantic_governance_gate: scripts/validate_semantic_governance.py
-  model_approval_gate: scripts/validate_model_approval.py
-  code_delivery_gate: scripts/validate_code_delivery.py
-  code_quality_contract: core/code_quality_contract.yaml
-  returned_workbook_gate: scripts/validate_user_execution.py
-  pause_states:
-  - awaiting_model_approval
-  - awaiting_user_preprocessing
-  - awaiting_user_execution
-  code_delivery_does_not_promote_result_status: true
-  model_approval_required_before_project_preprocessing_or_primary_solve: true
-  preprocessing_decision_required_before_solve: true
-  preprocessing_required_before_solve_when_decision: project_level
-  shared_data_alone_does_not_require_preprocessing: true
-  preprocessing_paper_evidence_required_when_operations_nonempty: true
-  preprocessing_matlab_required_for_project_level_figures: true
-  preprocessing_matlab_filename: data_process.m
-  analysis_code_requires_primary_workbook_accepted: true
-  primary_code_freezes_after_acceptance: true
-  full_fidelity_flags_must_be_false:
-  - allow_reduced_data
-  - allow_coarser_grid
-  - allow_shorter_horizon
-  - allow_fewer_repetitions
-  - allow_relaxed_tolerance
-  - allow_silent_solver_fallback
+  pause_states: [awaiting_model_approval, awaiting_user_preprocessing, awaiting_user_execution]
 semantic_governance:
   version: 1.0.0
-  script: scripts/validate_semantic_governance.py
-  role: 在模型设计、条件式统一数据预处理、代码交付、工作簿验收和正式下游交付前检查题意口径、三层语义闭环、复杂度合理性、preprocessing_decision、语义变更影响与v0.8论文局部stale依赖
+  authority: scripts/validate_semantic_governance.py
+  state_schema_authority: core/project_state.schema.yaml
+  dependency_kind_authority: core/project_state.schema.yaml#/$defs/dependency_kind
+  role: pre_delivery_integrity_gate_pointer_only
   report_persistence: stdout_or_chat_only
-  framework_scope: 每问#### 当前模型口径至#### 结果摘要之前的当前语义区
-  required_for_designed_or_later:
-    problem_contract_status: frozen
-    semantic_closure_status: passed
-    complexity_sanity_status: passed
-    preprocessing_decision_status: locked
-    semantic_revision_min: 1
-    semantic_change_categories_nonempty: true
-  problem_contract_required_fields:
-  - research_object
-  - original_objects
-  - derived_objects
-  - known_quantities
-  - computable_quantities
-  - decision_variables
-  - state_variables
-  - outputs
-  - explicit_constraints
-  - implicit_constraints
-  - forbidden_assumptions
-  - data_roles
-  - typed_dependencies
-  semantic_closure_chain: 题面对象与要求 -> 数学变量/公式/目标/约束 -> Python变量/函数 -> 工作簿输出或验证证据
-  semantic_change_categories:
-  - problem_definition
-  - data_scope
-  - variable
-  - parameter
-  - assumption
-  - objective
-  - constraint
-  - preprocessing
-  - algorithm
-  - dependency
-  complexity_sanity_flags:
-  - unused_problem_conditions
-  - unused_attachment_fields
-  - unexpected_dimension_collapse
-  - unexpected_decoupling
-  - dynamic_to_static_collapse
-  - multi_agent_to_independent
-  - inactive_key_constraints
-  - downstream_copy
-  - implausibly_easy_computation
-  dependency_kinds: [data, parameter, model, result]
-  change_policy:
-  - 语义变化必须递增semantic_revision并记录具体semantic_change_categories。
-  - preprocessing_decision、实际公共预处理的源数据、参数、脚本或输出口径变化属于preprocessing语义变化。
-  - 共享数据但decision=not_needed时，不得因为不存在统一工作簿而虚构preprocessing stale。
-  - 已验证语义发生变化时，本问主结果及相关下游先标记stale。
-  - 按depends_on递归传播到实际依赖的小问，不能无差别失效全部小问。
-  - v0.8项目继续按Paper Fragment Dependency Map传播到真实依赖的正文、摘要、模型评价、图表和Title Claim；无关问题和背景保持current。
-  - v0.8的paper_framework.sync_status表示框架已同步记录当前状态，不等于所有paper fragment均current。
-  - 接受新的语义哈希不等于恢复旧数值；需要重新处理的数据、求解和验收完成后才能清除对应数值stale。
-  - 模型论文框架只保存当前有效语义，历史由Git保存，不新增用户项目变更日志文件。
-  legacy_compatibility:
-    v7_6_framework_v0_7_whole_framework_stale_semantics: read_only_compatible
-    v7_2_0_projects_without_preprocessing_decision: read_only
-    v7_1_projects_without_global_preprocessing: read_only
-    v7_0_projects_without_fields: read_only
-    migration_trigger: 旧项目重新进入当前写作/终审时迁移框架v0.8语义；重新进入problem_audit、model_design或solve_validate时先补齐preprocessing_decision，只有判为project_level才迁移到统一预处理结构
 result_policy:
-  preprocessing_decision_role: 所有数据项目先判断原始数据是否可直接建模、是否仅需本问局部变换、或是否确需项目级公共处理
-  preprocessing_role: 仅decision=project_level时一次性完成共享原始数据审计与有依据的公共处理，形成依赖小问的数据入口，并持久化论文数学方法、验证和data_process绘图底层证据
-  preprocessing_quality_gate_required_when: preprocessing_decision == project_level
-  preprocessing_paper_chain: 问题证据 -> 数学公式/定义 -> 参数依据 -> 方法验证 -> 处理前后证据 -> data_process或qX_plot图 -> 后续模型接口
-  primary_solve_role: 在当前题意、当前数据事实源和模型口径下得到高精度、可行、收敛且可复算的主结果
+  role: delivery_admission_summary_only
+  workbook_authority: core/workbook_schema.yaml
+  preprocessing_authority: core/global_preprocessing_contract.yaml
+  result_analysis_disposition_authority: core/writing_reasoning_contract.yaml#analysis_evidence_disposition
   primary_quality_gate_required: true
   failed_quality_evidence_persisted: true
   downstream_admission_requires_quality_passed: true
-  result_analysis_role: 在主结果通过质量门后解释形成机制、稳定范围、适用边界和算法或结构依赖
-  result_analysis_method_selection: based_on_problem_model_data_result_and_reviewer_risk
+  result_analysis_outcomes: [passed, failed, redo_required]
   result_analysis_dispositions: [support, modify, reject]
-  result_analysis_disposition_authority: core/writing_reasoning_contract.yaml#analysis_evidence_disposition
-  result_analysis_outcomes:
-  - passed
-  - failed
-  - redo_required
   fixed_perturbation_forbidden: true
-  feedback_loop: 深化分析发现主结果不可靠时，按target claim与disposition决定删除/改写局部主张或写入redo_required，并按真实依赖传播下游stale
+  feedback_loop: Deep analysis may require redo/rewrite, but the detailed disposition semantics live in writing_reasoning_contract.
 model_paper_framework:
   path: 模型论文框架.md
   template: templates/model/model_paper_framework.md

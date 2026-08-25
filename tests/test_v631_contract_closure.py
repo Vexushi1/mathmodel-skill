@@ -41,7 +41,7 @@ class TestV631ContractClosure(unittest.TestCase):
 
     def test_compact_and_full_framework_modes(self):
         compact = "# 模型论文框架\n只保留当前有效版本\n## 当前有效口径\n## 各问模型与结果\n## 图表证据链\n## 待办与缺口\n"
-        full = compact + "## 论文整体框架\n### 命题与证明规划\n全文命题上限：4\n当前计划命题数：0\n## 综合检验与跨问结论\n## 同步检查\n"
+        full = compact + "## 论文整体框架\n### 命题与证明规划\n- 当前计划命题数：0\n- 默认正文预算：0--4\n- 超预算状态：`within_default_budget`\n- 当前命题状态：`planned`\n## 综合检验与跨问结论\n## 同步检查\n"
         self.assertEqual(self.framework.validate_framework_text(compact, mode="compact"), [])
         self.assertTrue(self.framework.validate_framework_text(compact, mode="full"))
         self.assertEqual(self.framework.validate_framework_text(full, mode="full"), [])

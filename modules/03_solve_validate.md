@@ -4,20 +4,9 @@
 
 若项目根目录已有 current `模型论文框架.md`，正式生成本问代码前必须先读取“当前有效口径”、本问“当前模型口径/求解与验证方案/模型挑战与人工锁模”以及必要前问依赖，用它恢复当前模型语义；不得仅凭聊天记忆重建变量、参数、目标或约束。具体输入数值和已验收结果仍回到当前数据事实源/标准工作簿核验。
 
-进入本模块前，当前小问必须先通过 `scripts/validate_semantic_governance.py`，并随后通过 `scripts/validate_model_approval.py`：
+进入本模块前，当前小问必须依次通过 `scripts/validate_semantic_governance.py` 与 `scripts/validate_model_approval.py`。前者负责当前题意/语义/复杂度与 stale 一致性，后者是 Challenge/Human Approval 的唯一字段级运行门；具体批准状态、revision/hash 绑定与失效条件只服从 `core/model_approval_contract.yaml`，本模块不复制第二套检查清单。
 
-- `problem_contract_status=frozen`；
-- `semantic_closure_status=passed`；
-- `complexity_sanity_status=passed`；
-- 当前 `semantic_revision` 已被语义治理门接受；
-- `preprocessing_decision` 已锁定；
-- `model_challenge_status=passed`；
-- `human_model_approval_status=approved`；
-- `approved_semantic_revision=current semantic_revision`；
-- `approved_semantic_hash=current semantic_hash`；
-- 若已有历史结果且模型语义发生变化，本问及依赖后问已按 `depends_on` 正确标记 stale，同时旧 challenge/approval/locked model 已失效并完成重新审查与批准。
-
-Problem Contract、Semantic Closure 或 Complexity Sanity 均不能替代 Model Challenge 与 Human Approval。用户未明确批准当前 semantic revision/hash 时，必须停在 `awaiting_model_approval`，不得生成正式主求解代码。
+任一 gate 未通过都不得生成正式主求解代码；Model Approval 未通过时返回 Module 02，并停在 `awaiting_model_approval`。
 
 ## 数据事实源分流
 

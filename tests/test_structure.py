@@ -174,12 +174,11 @@ class TestStructure(unittest.TestCase):
     def test_result_analysis_is_registered_after_primary_solve(self):
         router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8"))
         manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
-        for order in (
-            router["execution_contract"]["workflow_order"],
-            manifest["workflow_order"],
-        ):
-            self.assertLess(order.index("solve_validate"), order.index("result_analysis"))
-            self.assertLess(order.index("result_analysis"), order.index("figure_evidence"))
+        order = router["execution_contract"]["workflow_order"]
+        self.assertLess(order.index("solve_validate"), order.index("result_analysis"))
+        self.assertLess(order.index("result_analysis"), order.index("figure_evidence"))
+        self.assertNotIn("workflow_order", manifest)
+        self.assertNotIn("workflow_profiles", manifest)
         self.assertEqual(
             manifest["modules"]["result_analysis"]["path"],
             "modules/03_result_analysis.md",

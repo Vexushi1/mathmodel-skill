@@ -1,6 +1,15 @@
 # Changelog
 
-## Current release: 7.11.0
+## Current release: 7.11.1
+
+- Consolidated workflow authority so `core/workflow_router.yaml` owns route ordering and runtime boundary declarations, while `core/module_manifest.yaml` is limited to module/artifact/gate graph semantics.
+- Removed resolver-embedded `*_GATES`, `*_OUTPUTS`, `DOWNSTREAM_MODULES`, and `MODEL_APPROVAL_REQUIRED_INTENTS` policy constants; `scripts/resolve_workflow.py` now executes declarative router segments and derives module ordering from the router authority.
+- Reduced Model Approval duplication in Modules 02/03: field-level challenge/approval binding remains defined only by `core/model_approval_contract.yaml` and enforced by `scripts/validate_model_approval.py`.
+- Narrowed `core/output_contract.yaml` semantic/execution/result sections to authority pointers plus delivery-integration switches instead of parallel policy copies.
+- Repaired stale release/proposition fixtures and added invariant-focused tests for single authority, boundary dispatch, manifest scope, and resolver policy hygiene.
+- Preserved CLI, project-state schema, Workbook Schema, per-question five-file interface, Python/MATLAB ownership, full-fidelity user execution, LaTeX attestation v3, and submission provenance.
+
+## Previous release: 7.11.0
 
 - Added independent Model Reviewer and Devil's Advocate challenge passes after semantic closure and Complexity Sanity, before the model can be locked.
 - Added explicit Human Model Approval bound to the current semantic revision/hash; silence or vague continuation is not approval, and blocking challenge findings cannot be waived.
