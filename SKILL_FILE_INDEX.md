@@ -219,6 +219,7 @@
 - `tests/test_v7100_latex_provenance.py`
 - `tests/test_v7101_read_path_closure.py`
 - `tests/test_v710_semantic_governance.py`
+- `tests/test_v711_model_approval_gate.py`
 - `tests/test_v730_writing_expression_protocol.py`
 - `tests/test_v740_writing_evidence_architecture.py`
 - `tests/test_v741_skill_closure_hygiene.py`
