@@ -102,6 +102,16 @@ def _mark_stale(entry: dict[str, Any]) -> None:
         entry["primary_execution_status"] = "pending"
     if "analysis_execution_status" in entry:
         entry["analysis_execution_status"] = "pending"
+    # v7.11+: a semantic dependency change invalidates any approval that was
+    # bound to the previous model semantics. Keep the historical approved
+    # revision/hash for provenance, but make the current challenge/approval
+    # unusable until the affected question is challenged and explicitly
+    # approved again. Old projects that never had approval fields remain
+    # read-only compatible and are not backfilled here.
+    if "model_challenge_status" in entry:
+        entry["model_challenge_status"] = "stale"
+    if "human_model_approval_status" in entry:
+        entry["human_model_approval_status"] = "stale"
 
 
 def _dependency_hits_question(dependency: str, question: str) -> bool:

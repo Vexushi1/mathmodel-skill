@@ -235,6 +235,9 @@ DOWNSTREAM_MODULES = {
 }
 PRIMARY_CODE_GATES = ["semantic_governance", "model_approval", "code_delivery"]
 ANALYSIS_CODE_GATES = ["semantic_governance", "code_delivery"]
+# Compatibility alias for static read-path checks retained from pre-v7.11 naming.
+# Runtime branches use PRIMARY_CODE_GATES / ANALYSIS_CODE_GATES explicitly.
+SEMANTIC_CODE_GATES = PRIMARY_CODE_GATES
 SEMANTIC_SYNC_GATES = ["semantic_governance", "project_sync"]
 SUBMISSION_GATES = ["semantic_governance", "project_sync", "submission_package_validation"]
 MODEL_APPROVAL_REQUIRED_INTENTS = {
