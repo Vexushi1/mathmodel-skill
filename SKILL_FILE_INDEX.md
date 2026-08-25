@@ -109,6 +109,7 @@
 - `scripts/resolve_workflow.py`
 - `scripts/score_submission.py`
 - `scripts/sync_project.py`
+- `scripts/tmp_apply_v711_active_template_residue.py`
 - `scripts/validate_code_delivery.py`
 - `scripts/validate_model_approval.py`
 - `scripts/validate_model_paper_framework.py`
