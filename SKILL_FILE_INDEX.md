@@ -101,6 +101,7 @@
 - `scripts/README.md`
 - `scripts/_v712_lint_migration.py`
 - `scripts/_v712_runtime_assurance_migration.py`
+- `scripts/_v712_test_migration.py`
 - `scripts/audit_latex_project.py`
 - `scripts/audit_paper_prose.py`
 - `scripts/generate_indexes.py`
