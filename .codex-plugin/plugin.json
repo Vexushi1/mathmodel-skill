@@ -1,7 +1,7 @@
 {
   "name": "mathmodel-skill",
-  "version": "7.10.1",
-  "description": "HSK lightweight-bootstrap mathematical-modeling workflow with Problem Contract freezing, semantic closure, evidence-driven conditional preprocessing, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, assistant-readable model-paper project memory, Source-Derivation-Destination formula traces, adaptive Algorithm Trace, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware Numeric Profile, Title Claim Gate, MATLAB evidence figures, modular LaTeX source delivery, formal LaTeX audit attestation, compile-profile/source/PDF provenance, and validated official/reproducibility submission packages.",
+  "version": "7.11.0",
+  "description": "HSK lightweight-bootstrap mathematical-modeling workflow with Problem Contract freezing, semantic closure, independent Model Challenge review, explicit Human Model Approval bound to the current semantic revision/hash, evidence-driven conditional preprocessing, dependency-aware stale propagation, full-fidelity user execution, separate primary/result-analysis Python stages, assistant-readable model-paper project memory, Source-Derivation-Destination formula traces, adaptive Algorithm Trace, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware Numeric Profile, Title Claim Gate, MATLAB evidence figures, modular LaTeX source delivery, formal LaTeX audit attestation, compile-profile/source/PDF provenance, and validated official/reproducibility submission packages.",
   "author": {
     "name": "HSK"
   },
@@ -13,6 +13,8 @@
     "icm",
     "matlab",
     "semantic-governance",
+    "model-approval",
+    "adversarial-review",
     "data-preprocessing",
     "code-quality",
     "result-analysis",
@@ -27,7 +29,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "HSK 数学建模 Skill",
-    "shortDescription": "题意冻结、算法闭环、双阶段Python、模块化LaTeX与交付证明链",
+    "shortDescription": "题意冻结、独立模型挑战、人工锁模、双阶段Python与交付证明链",
     "category": "Education",
     "capabilities": [
       "Interactive",
