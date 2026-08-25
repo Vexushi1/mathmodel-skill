@@ -1,5 +1,6 @@
 version: 1.3.0
-skill_version: 7.4.2
+introduced_in_skill_version: 7.4.2
+skill_compatibility: '>=7.4.2,<8.0.0'
 purpose: 规定跨赛题通用的数据质量审计、预处理必要性判定、项目级统一预处理、论文数学证据、MATLAB预处理图证据与下游读取边界。任何数据题都先判断原始数据能否正确、充分且无信息泄漏地支撑当前模型；只有真实数据问题或模型输入要求提供证据时才修改数据。共享数据、特定题型或某一次赛题经验都不能单独触发清洗、插值、预测填补、滤波或统一工作簿。
 
 decision_gate:
@@ -80,10 +81,12 @@ activation:
   - 某一类赛题过去通常采用某种数据处理方法
 
 workflow_position:
-  decision_after: model_design
-  project_level_stage_after: preprocessing_decision
+  decision_stage: model_design
+  decision_after: data_audit_and_model_route_selection
+  decision_before: proposed_model_spec_and_model_challenge
+  project_level_stage_after: human_model_approval
   before: solve_validate
-  rationale: 模型设计先锁定数据需求并形成preprocessing_decision；只有decision=project_level才执行数据预处理模块，否则直接进入主求解。
+  rationale: 模型设计先审计数据并比较模型路线/输入需求，再锁定preprocessing_decision；该判定进入当前模型语义并先于proposed_model_spec与Model Challenge。只有decision=project_level且当前模型已通过Human Model Approval后才执行数据预处理模块，否则进入主求解前的数据源分流。
 
 project_directory:
   create_only_when: preprocessing_decision.decision == project_level

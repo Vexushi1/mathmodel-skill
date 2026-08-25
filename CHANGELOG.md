@@ -1,6 +1,16 @@
 # Changelog
 
-## Current release: 7.11.1
+## Current release: 7.11.2
+
+- Ran a runtime-health audit before v7.12 planning and kept the repair scope to invocation/read-path/lifecycle coherence rather than new modeling capabilities.
+- Expanded high-frequency Skill discovery triggers for problem audit, model design, full solving, result analysis, final review and submission-package requests while keeping root and packaged Skill entrypoints identical.
+- Aligned `preprocessing_decision` lifecycle across the preprocessing authority, Skill summary, Runtime Router and primary-solve module: audit + model-route/data-requirement comparison → decision → proposed model/challenge → explicit approval → conditional project-level preprocessing.
+- Corrected the Module 03A pre-code sequence to the Router-authoritative `semantic_governance → model_approval → code_delivery` order.
+- Reclassified legacy `skill_version: 7.4.2` metadata in preprocessing/user-execution/code-quality contracts as introduction/compatibility metadata, without changing their contract versions or runtime semantics.
+- Added runtime-health regression coverage for full root/packaged Skill parity, discovery triggers, lifecycle ordering and subordinate-contract version-carrier hygiene.
+- Preserved CLI, Project State Schema, Workbook Schema, per-question five-file interface, Python/MATLAB ownership, full-fidelity user execution, LaTeX attestation v3 and submission provenance.
+
+## Previous release: 7.11.1
 
 - Consolidated workflow authority so `core/workflow_router.yaml` owns route ordering and runtime boundary declarations, while `core/module_manifest.yaml` is limited to module/artifact/gate graph semantics.
 - Removed resolver-embedded `*_GATES`, `*_OUTPUTS`, `DOWNSTREAM_MODULES`, and `MODEL_APPROVAL_REQUIRED_INTENTS` policy constants; `scripts/resolve_workflow.py` now executes declarative router segments and derives module ordering from the router authority.
