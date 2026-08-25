@@ -187,6 +187,7 @@
 - `tests/test_active_consistency_cleanup.py`
 - `tests/test_active_output_contract_cleanup.py`
 - `tests/test_active_residue_cleanup.py`
+- `tests/test_active_template_version_hygiene.py`
 - `tests/test_code_quality_contract.py`
 - `tests/test_content_packs.py`
 - `tests/test_contract_closure.py`
