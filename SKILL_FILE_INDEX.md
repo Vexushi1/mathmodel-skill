@@ -9,6 +9,7 @@
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
+- `.github/workflows/v711-model-approval-migration.yml`
 - `.gitignore`
 - `AGENTS.md`
 - `CHANGELOG.md`
@@ -96,6 +97,7 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
+- `scripts/_v711_model_approval_migration.py`
 - `scripts/audit_latex_project.py`
 - `scripts/audit_paper_prose.py`
 - `scripts/generate_indexes.py`
