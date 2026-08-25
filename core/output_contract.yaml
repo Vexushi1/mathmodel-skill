@@ -1,6 +1,7 @@
-version: 7.10.1
+version: 7.11.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
+model_approval_contract: core/model_approval_contract.yaml
 user_execution_contract: core/user_execution_contract.yaml
 code_quality_contract: core/code_quality_contract.yaml
 writing_reasoning_contract: core/writing_reasoning_contract.yaml
@@ -75,13 +76,16 @@ execution_policy:
   default_profile: full_fidelity
   assistant_task_code_execution_allowed: false
   semantic_governance_gate: scripts/validate_semantic_governance.py
+  model_approval_gate: scripts/validate_model_approval.py
   code_delivery_gate: scripts/validate_code_delivery.py
   code_quality_contract: core/code_quality_contract.yaml
   returned_workbook_gate: scripts/validate_user_execution.py
   pause_states:
+  - awaiting_model_approval
   - awaiting_user_preprocessing
   - awaiting_user_execution
   code_delivery_does_not_promote_result_status: true
+  model_approval_required_before_project_preprocessing_or_primary_solve: true
   preprocessing_decision_required_before_solve: true
   preprocessing_required_before_solve_when_decision: project_level
   shared_data_alone_does_not_require_preprocessing: true
@@ -186,7 +190,7 @@ model_paper_framework:
   path: 模型论文框架.md
   template: templates/model/model_paper_framework.md
   current_template_version: v0.8-project-memory
-  create_after: locked_model_spec
+  create_after: proposed_model_spec
   role: 当前项目事实与工作记忆；保存题意口径、preprocessing_decision、模型语义、Formula Trace、Algorithm Trace、参数证据、跨问依赖、写作选择、命题、Citation Evidence、Terminology Registry、Numeric Profile、Title Claim、Paper Fragment、深化证据处置、逐问结果摘要和图表映射，不复制跨项目写作手册。
   project_memory_only: true
   modes:

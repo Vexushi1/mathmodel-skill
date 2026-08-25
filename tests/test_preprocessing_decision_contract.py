@@ -169,7 +169,10 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
 
     def test_resolver_skips_preprocessing_for_clean_shared_data_decision(self):
         plan = self.resolver.resolve_workflow(
-            "full_solution", objective="optimization", preprocessing_decision="not_needed",
+            "full_solution",
+            objective="optimization",
+            preprocessing_decision="not_needed",
+            available_artifacts=["locked_model_spec"],
         )
         self.assertNotIn("modules/03_data_preprocessing.md", plan["modules"])
         self.assertIn("modules/03_solve_validate.md", plan["modules"])
@@ -178,8 +181,10 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
 
     def test_resolver_pauses_at_project_level_preprocessing(self):
         plan = self.resolver.resolve_workflow(
-            "full_solution", objective="optimization",
-            preprocessing_decision="project_level", available_artifacts=[],
+            "full_solution",
+            objective="optimization",
+            preprocessing_decision="project_level",
+            available_artifacts=["locked_model_spec"],
         )
         self.assertIn("modules/03_data_preprocessing.md", plan["modules"])
         self.assertNotIn("modules/03_solve_validate.md", plan["modules"])
@@ -189,8 +194,10 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
 
     def test_resolver_continues_after_project_level_workbook_is_accepted(self):
         plan = self.resolver.resolve_workflow(
-            "full_solution", objective="optimization", preprocessing_decision="project_level",
-            available_artifacts=["accepted_preprocessing_workbook"],
+            "full_solution",
+            objective="optimization",
+            preprocessing_decision="project_level",
+            available_artifacts=["locked_model_spec", "accepted_preprocessing_workbook"],
         )
         self.assertNotIn("modules/03_data_preprocessing.md", plan["modules"])
         self.assertIn("modules/03_solve_validate.md", plan["modules"])

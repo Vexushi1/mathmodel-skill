@@ -1,7 +1,7 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 7.7.0
+version: 7.11.0
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
@@ -32,6 +32,12 @@ $defs:
   complexity_sanity_flag:
     type: string
     enum: [unused_problem_conditions, unused_attachment_fields, unexpected_dimension_collapse, unexpected_decoupling, dynamic_to_static_collapse, multi_agent_to_independent, inactive_key_constraints, downstream_copy, implausibly_easy_computation]
+  model_challenge_status:
+    type: string
+    enum: [pending, passed, revision_required, stale]
+  human_model_approval_status:
+    type: string
+    enum: [pending, approved, revision_required, stale]
   preprocessing_decision:
     type: string
     enum: [not_needed, question_local, project_level]
@@ -199,7 +205,7 @@ $defs:
     additionalProperties: false
     required: [id, kind, scope, depends_on, anchor, status]
     properties:
-      id: {type: string, pattern: '^paper\.[A-Za-z0-9_.-]+$'}
+      id: {type: string, pattern: '^paper\\.[A-Za-z0-9_.-]+$'}
       kind:
         type: string
         enum: [paper_section, question_model_text, question_result_text, figure_or_table_claim, abstract_claim, model_evaluation_claim, title_claim, keyword_claim]
@@ -209,7 +215,7 @@ $defs:
       source_file:
         description: 可选的物理LaTeX源码映射；使用时必须是项目根目录下final_latex/中的.tex文件，旧单文件项目可缺失。
         type: string
-        pattern: '^final_latex/.+\.tex$'
+        pattern: '^final_latex/.+\\.tex$'
       status: {type: string, enum: [current, stale, not_applicable]}
 properties:
   semantic_governance_version:
@@ -355,6 +361,10 @@ properties:
           uniqueItems: true
           items: {$ref: '#/$defs/complexity_sanity_flag'}
         complexity_sanity_note: {type: string}
+        model_challenge_status: {$ref: '#/$defs/model_challenge_status'}
+        human_model_approval_status: {$ref: '#/$defs/human_model_approval_status'}
+        approved_semantic_revision: {type: integer, minimum: 1}
+        approved_semantic_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         semantic_revision: {type: integer, minimum: 1}
         validated_semantic_revision: {type: integer, minimum: 1}
         semantic_change_categories:
