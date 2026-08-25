@@ -37,6 +37,7 @@ jobs:
         run: |
           python scripts/_v712_runtime_assurance_migration.py
           python scripts/_v712_lint_migration.py
+          python scripts/_v712_test_migration.py
       - name: Refresh generated repository metadata
         run: python scripts/generate_indexes.py
       - name: Validate runtime assurance migration
@@ -46,7 +47,7 @@ jobs:
           python -m unittest discover -s tests -p "test_*.py"
           python scripts/generate_indexes.py --check
           python scripts/resolve_runtime.py full_solution --primary mechanism --secondary optimization --competition CUMCM
-          python scripts/resolve_runtime.py --request "请审题并建模"
+          python scripts/resolve_runtime.py --request "请审题并建模" --objective optimization
       - name: Commit runtime assurance migration
         shell: bash
         run: |
