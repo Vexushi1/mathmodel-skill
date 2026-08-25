@@ -1,0 +1,167 @@
+version: 1.0.0
+status: active
+purpose: >-
+  Define the pre-code Model Challenge and explicit Human Model Approval gate.
+  This contract complements Problem Contract, semantic closure and complexity sanity;
+  it does not replace them and does not create a second model-history system.
+authority:
+  model_semantics: 模型论文框架.md
+  machine_state: state/project_state.yaml
+  semantic_change_detection: scripts/validate_semantic_governance.py
+  approval_validation: scripts/validate_model_approval.py
+
+scope:
+  applies_before:
+  - data_preprocessing
+  - solve_validate
+  - regenerated_primary_code_after_semantic_change
+  applies_to:
+  - new_problem_design
+  - full_solution
+  - full_workflow
+  - model_selection
+  - advanced_method
+  - code_and_solution_when_current_locked_model_is_missing_or_stale
+
+states:
+  model_challenge_status: [pending, passed, revision_required, stale]
+  human_model_approval_status: [pending, approved, revision_required, stale]
+  pause_state: awaiting_model_approval
+
+model_challenge:
+  principle: independent_two_pass_review
+  reviewer_pass:
+    role: positive_fitness_review
+    must_check:
+    - problem_contract_fit
+    - route_selection_fit
+    - variable_and_constraint_closure
+    - objective_alignment
+    - formula_trace_closure
+    - preprocessing_fit
+    - structure_before_algorithm
+    - full_fidelity_computability
+    - validation_plan_adequacy
+    - paper_explainability
+  devils_advocate_pass:
+    role: adversarial_model_challenge
+    must_check:
+    - alternative_problem_interpretation
+    - forbidden_or_convenience_assumptions
+    - unused_problem_conditions_or_attachment_fields
+    - semantic_damage_from_preprocessing
+    - hidden_coupling_or_invalid_decoupling
+    - dynamic_to_static_or_multi_agent_collapse
+    - inactive_key_constraints
+    - local_property_misstated_as_global
+    - simpler_baseline_may_be_sufficient
+    - problem_may_have_been_implausibly_over_simplified
+  independence_rule: >-
+    The reviewer and devil's-advocate passes must form conclusions independently.
+    When native parallel agents are available they may run in parallel; otherwise run
+    two separate review passes and do not use the first verdict as the starting point
+    of the second.
+  severity_policy:
+    blocking: repair_in_model_design_before_approval
+    review_required: repair_or_record_specific_justification_before_pass
+    warning: may_remain_but_must_be_exposed_in_approval_brief
+  pass_rule: >-
+    model_challenge_status may become passed only when no blocking item remains and
+    every review_required item has been repaired or explicitly justified.
+  no_user_override_of_blocker: true
+
+human_approval:
+  owner: user
+  explicit_only: true
+  silence_is_not_approval: true
+  approval_examples:
+  - OK，就按这个模型求解
+  - 这个框架可以，进入主求解
+  - Q1-Q3全部冻结
+  non_approval_examples:
+  - 我看看
+  - 继续说
+  - 还有别的方案吗
+  - 这个模型怎么样
+  prerequisite: model_challenge_status == passed
+  approval_brief_required: true
+  approval_brief_fields:
+  - research_object
+  - selected_model
+  - core_variables
+  - objective
+  - key_constraints
+  - preprocessing_decision
+  - structural_simplification
+  - solver_or_algorithm
+  - algorithm_presentation
+  - rejected_route_reason
+  - residual_warnings
+  - next_stage_implementation_scope
+  binding:
+    semantic_revision: required
+    semantic_hash: required
+  approved_state_fields:
+  - human_model_approval_status
+  - approved_semantic_revision
+  - approved_semantic_hash
+
+lock_semantics:
+  before_approval: proposed_model_spec
+  after_approval: locked_model_spec
+  rule: >-
+    selected_models and semantic closure do not by themselves create a locked_model_spec.
+    locked_model_spec is current only after Model Challenge passes and the user explicitly
+    approves the current semantic revision/hash.
+
+stale_policy:
+  semantic_change_categories:
+  - problem_definition
+  - data_scope
+  - variable
+  - parameter
+  - assumption
+  - objective
+  - constraint
+  - preprocessing
+  - algorithm
+  - dependency
+  on_semantic_revision_or_hash_change:
+    model_challenge_status: stale
+    human_model_approval_status: stale
+    locked_model_spec: stale
+  does_not_invalidate_approval:
+  - markdown_formatting
+  - wording_only_change
+  - caption_only_change
+  - formula_numbering_only_change
+  - latex_file_split_without_semantic_change
+
+persistence:
+  framework:
+    stores:
+    - current_reviewer_verdict
+    - current_devils_advocate_verdict
+    - required_actions
+    - residual_warnings
+    - approval_brief_summary
+    - approval_status
+    history_policy: current_only_git_keeps_history
+  project_state:
+    stores:
+    - model_challenge_status
+    - human_model_approval_status
+    - approved_semantic_revision
+    - approved_semantic_hash
+  forbidden_new_project_reports:
+  - HUMAN_MODEL_REVIEW.md
+  - MODEL_REVIEW_AI.md
+  - AGENT_RUNS.md
+
+compatibility:
+  old_projects_without_fields: read_only_compatible
+  migration_trigger: >-
+    When an old project re-enters model_design, data_preprocessing, solve_validate,
+    or regenerates primary code after a semantic change, establish the current
+    challenge/approval state before code generation.
+  historical_results_do_not_require_retroactive_approval_for_read_only_review: true
