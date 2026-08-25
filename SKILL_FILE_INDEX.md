@@ -109,6 +109,7 @@
 - `scripts/score_submission.py`
 - `scripts/sync_project.py`
 - `scripts/validate_code_delivery.py`
+- `scripts/validate_model_approval.py`
 - `scripts/validate_model_paper_framework.py`
 - `scripts/validate_project_state.py`
 - `scripts/validate_semantic_governance.py`
