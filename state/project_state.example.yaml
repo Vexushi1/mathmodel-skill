@@ -68,6 +68,8 @@ subproblems:
     complexity_sanity_status: passed
     complexity_sanity_flags: []
     complexity_sanity_note: 题面对象、附件字段、变量维度与当前模型结构一致，未发现异常简化信号。
+    model_challenge_status: passed
+    human_model_approval_status: pending
     semantic_revision: 1
     semantic_change_categories: [initial_design]
     artifact_hashes: {}
@@ -98,7 +100,7 @@ paper_framework:
   mode: compact
   sync_status: current
   last_synced_at: '2026-08-18T08:00:00Z'
-  last_sync_scope: Q1 Problem Contract、语义闭环、复杂度复审与preprocessing_decision=not_needed已锁定，主求解待执行
+  last_sync_scope: Q1 Problem Contract、语义闭环、Complexity Sanity与preprocessing_decision=not_needed已锁定，Model Challenge已通过，当前停在awaiting_model_approval，尚未形成current locked_model_spec
   terminology_registry: []
   numeric_profile: []
   title_claims: []
@@ -121,5 +123,5 @@ artifacts:
   sync_report: sync_report.yaml
 risks: []
 next_gate:
-  module: solve_validate
-  condition: problem_contract=frozen、semantic_closure=passed、complexity_sanity=passed、preprocessing_decision已锁定为not_needed，且objective、structures、capabilities、变量、目标函数、约束和求解器候选已锁定
+  module: model_design
+  condition: model_challenge_status=passed且human_model_approval_status=pending，停在awaiting_model_approval；只有用户明确批准当前semantic_revision/hash后才形成current locked_model_spec并允许进入project-level preprocessing或solve_validate
