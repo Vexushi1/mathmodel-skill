@@ -1,6 +1,17 @@
-# mathmodel-skill v7.11.2
+# mathmodel-skill v7.12.0
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → 用户本地 full-fidelity Python 主求解 → 独立结果深化分析 → MATLAB 证据图 → LaTeX 终稿 → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v7.12.0：Declarative Runtime & Assurance
+
+本版本把 v7.11.2 体检中确认的运行时设计债务收口为一个可解释、可验证且向后兼容的 assurance layer；不改变数学模型、Project State Schema、Workbook Schema、每问五文件、Python/MATLAB 职责或 LaTeX/submission provenance。
+
+- 新增默认入口 `scripts/resolve_runtime.py`，旧 `scripts/resolve_workflow.py` 保留为兼容 resolver；Bootstrap 只指向新的 assured runtime。
+- 可选 `--project-root` / `--question` 从 current `state/project_state.yaml` 恢复 competition、preprocessing decision、单问 classification 与 verified artifact availability，显式 CLI/API 参数优先且冲突进入 assurance diagnostics。
+- intent 推断现在记录 matched keywords、deterministic score、confidence band、ambiguity 与 selection reason，不再只返回不可解释的 route 名称。
+- project-state artifact assurance 对 locked model 使用 challenge/approval 与 semantic revision/hash 绑定，对工作簿使用 accepted status + 路径 + SHA-256 闭环；已知 stale/hash mismatch 不能被 legacy name-only artifact 声明静默覆盖。
+- 新增 `core/runtime_assurance_contract.yaml`，声明 selected modules/gates 所需 contract dependencies；runtime 自动补齐缺失 contract，Router 的显式 core loads 只作为兼容提示而不是正确性前提。
+- resolver 输出保留全部旧顶层字段，并增量增加 `runtime_plan` 与 `assurance`，其中 authority fingerprint 绑定 Bootstrap、Router、Manifest 与 Runtime Assurance Contract。
 
 ## v7.11.2：Runtime Health & Semantic Coherence
 

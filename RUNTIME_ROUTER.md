@@ -6,13 +6,18 @@
 
 ```text
 读取 core/bootstrap.yaml
-→ 调用 scripts/resolve_workflow.py
-→ 合并多个意图
+→ 调用 scripts/resolve_runtime.py
+→ [可选] 从 current project state 恢复缺失上下文与 verified artifacts
+→ 合并显式/推断意图并记录 route provenance / confidence / ambiguity
 → 确定 objective / structures / 顶层 capabilities
-→ 加载必要模块、Pack、模板
+→ 按 selected module/gate 声明补齐必要 contracts，再加载模块、Pack、模板
 → 到当前用户执行边界或所需模块产物停止
 → 执行解析结果中的 pre_delivery_gates
 ```
+
+## Runtime Assurance
+
+`core/runtime_assurance_contract.yaml` 只管理运行时证明层，不重新定义 Router、Manifest、Model Approval、Workbook 或 User Execution 的业务语义。默认 resolver 保留旧 plan 字段，同时输出 `runtime_plan` 与 `assurance`：context 说明字段来自 explicit input 还是 project state；intent resolution 给出关键词证据与歧义；artifact assurance 记录 scope、accepted/stale 状态、路径和 SHA-256；dependency closure 记录由选中 module/gate 自动补入的 contracts；authority fingerprint 绑定本次计划所依据的四个 Authority 文件。旧 `scripts/resolve_workflow.py` 继续用于无状态兼容调用。
 
 ## 项目工作记忆
 

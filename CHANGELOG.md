@@ -1,6 +1,16 @@
 # Changelog
 
-## Current release: 7.11.2
+## Current release: 7.12.0
+
+- Added `core/runtime_assurance_contract.yaml` as the single authority for runtime context precedence, intent provenance, artifact assurance, declarative contract dependency closure and authority fingerprinting.
+- Added default state-aware resolver `scripts/resolve_runtime.py`; preserved `scripts/resolve_workflow.py` as the legacy stateless compatibility entrypoint.
+- Added optional project-state hydration for competition, preprocessing decision, scoped classification and verified artifacts without changing Project State Schema or legacy CLI arguments.
+- Added deterministic intent diagnostics with matched keywords, score, confidence band, ambiguity and selection reason.
+- Added file-backed artifact assurance requiring accepted state, existing path and matching SHA-256; stale/hash-mismatched current-state evidence blocks legacy name-only promotion.
+- Added additive `runtime_plan` and `assurance` envelopes while preserving the existing resolver plan fields and task-code execution boundary.
+- Added declarative module/gate contract dependency closure and authority fingerprinting across Bootstrap, Router, Manifest and Runtime Assurance Contract.
+
+## Previous release: 7.11.2
 
 - Ran a runtime-health audit before v7.12 planning and kept the repair scope to invocation/read-path/lifecycle coherence rather than new modeling capabilities.
 - Expanded high-frequency Skill discovery triggers for problem audit, model design, full solving, result analysis, final review and submission-package requests while keeping root and packaged Skill entrypoints identical.

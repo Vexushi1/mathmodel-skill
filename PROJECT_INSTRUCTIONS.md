@@ -3,7 +3,7 @@
 当前活动规则以 `core/bootstrap.yaml` 指向的权威文件为准。本文件只提供调用顺序和稳定摘要，不复制各合同的完整字段。
 
 1. 首先读取 `core/bootstrap.yaml`；
-2. 使用 `scripts/resolve_workflow.py` 解析一个或多个意图，只加载命中的模块、Pack 和模板；
+2. 使用 `scripts/resolve_runtime.py` 解析一个或多个意图；已有项目优先传入 project root，使 runtime 从 current project state 恢复缺失上下文、验证 artifact 并输出 assurance；旧 `scripts/resolve_workflow.py` 仅作无状态兼容入口；只加载命中的合同、模块、Pack 和模板；
 3. 每问按 `classification.objective`、`classification.structures` 和顶层 `capabilities` 分类；
 4. Module 01 先冻结 Problem Contract；Module 02 再完成模型路线选择、语义闭环、Complexity Sanity 与 `preprocessing_decision`，形成 `proposed_model_spec` 后执行相互独立的 Model Reviewer 与 Devil's Advocate。Challenge 通过后生成 Model Approval Brief，并停在 `awaiting_model_approval`；只有用户明确批准当前 `semantic_revision/hash` 后才形成 current `locked_model_spec`，不得把 Problem Contract 冻结、Challenge 通过或用户未反对等价为已锁模；
 5. `proposed_model_spec` 形成后即可维护项目根目录 `模型论文框架.md`。框架只保留当前项目事实与选择，包括 Formula Trace、Algorithm Trace、Model Challenge/Human Approval 当前状态、参数证据、Terminology Registry、Numeric Profile、Title Claim、命题、Citation Evidence、Paper Fragment Dependency Map、深化证据处置、结果摘要与图表映射；历史由 Git 保存。已有 current 框架时，继续预处理、求解、深化分析、绘图和写作前优先按需读取相关段落；跨聊天/整篇写作/终审读取完整框架；具体数值回到已验收工作簿复核，semantic revision/hash、challenge/approval 与 stale 以 project state 为准；

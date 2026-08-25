@@ -35,12 +35,19 @@ class EntrypointParityTests(unittest.TestCase):
 
     def test_runtime_contract_delegates_to_single_authority_chain(self):
         block = extract_contract(ROOT_SKILL)
+        bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
+        runtime_resolver = bootstrap["startup_contract"]["resolver"]
         for token in (
             "core/bootstrap.yaml", "core/workflow_router.yaml", "core/hsk_core_policy.md",
-            "scripts/resolve_workflow.py", "core/writing_reasoning_contract.yaml",
+            runtime_resolver, "core/writing_reasoning_contract.yaml",
             "模型论文框架.md", "legacy/",
         ):
             self.assertIn(token, block)
+        legacy_command = (bootstrap.get("entrypoints") or {}).get("resolve_legacy")
+        if legacy_command:
+            legacy_resolver = legacy_command.split()[1]
+            self.assertIn(legacy_resolver, ROOT_SKILL.read_text(encoding="utf-8"))
+            self.assertIn(legacy_resolver, PACKAGED_SKILL.read_text(encoding="utf-8"))
         for stale in (
             "HSK_RUNTIME_ROUTER_V622.md", "HSK_SKILL_FILE_INDEX_V622.md",
             "HSK_TEMPLATE_INDEX_V622.md", "PROJECT_INSTRUCTIONS_HSK_V622.md",

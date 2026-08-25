@@ -91,7 +91,7 @@ class TestV712RuntimeAssurance(unittest.TestCase):
         )
 
     def test_inferred_intent_provenance_reports_ambiguity(self):
-        plan = self.runtime.resolve_runtime(request="请审题并建模")
+        plan = self.runtime.resolve_runtime(request="请审题并建模", objective="optimization")
         intent = plan["assurance"]["intent_resolution"]
         self.assertTrue(intent["inferred_candidates"])
         self.assertTrue(intent["ambiguity"])
