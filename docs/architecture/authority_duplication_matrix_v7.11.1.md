@@ -2,7 +2,7 @@
 
 ## Scope
 
-Phase 1 focuses on authority convergence. This document records the current ownership of workflow semantics before migration.
+Phase 1 focuses on authority convergence. This document records the pre-migration duplication points, their target authority, and the acceptance criteria used to verify the post-migration state. Generated repository metadata is intentionally refreshed only after the final source state is committed, so temporary migration helpers must never remain in the active index or manifest.
 
 | Field / Concept | Current Location | Duplication Risk | Target Authority | Migration Strategy |
 |---|---|---|---|---|
