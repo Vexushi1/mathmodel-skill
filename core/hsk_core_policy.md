@@ -1,6 +1,6 @@
-# HSK Core Policy v7.10.1
+# HSK Core Policy v7.11.0
 
-本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision`、条件式统一数据预处理、预处理论文数学证据与 `data_process.m` 图证据以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准；跨竞赛写作推理、Algorithm Trace、术语、数值展示、标题主张与证据治理以 `core/writing_reasoning_contract.yaml` 为准，正文结构与表达以 `modules/05_writing/latex.md` 为准。本文件不复制这些合同的完整字段。
+本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 与 `scripts/validate_model_approval.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision`、条件式统一数据预处理、预处理论文数学证据与 `data_process.m` 图证据以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准；跨竞赛写作推理、Algorithm Trace、术语、数值展示、标题主张与证据治理以 `core/writing_reasoning_contract.yaml` 为准，正文结构与表达以 `modules/05_writing/latex.md` 为准。本文件不复制这些合同的完整字段。
 
 ## 1. 总目标与优先级
 
@@ -46,7 +46,13 @@ $$
 
 上述语义治理由 `scripts/validate_semantic_governance.py` 在正式模型、代码、返回工作簿和下游交付前执行。该门不运行赛题代码、不生成数值结果，也不清除数值 stale。
 
-### 2.5 项目工作记忆与上下文恢复
+### 2.5 Model Challenge 与 Human Model Approval
+
+Problem Contract 冻结只回答“题目是什么意思”，Semantic Closure 与 Complexity Sanity 只回答“当前数学语义是否闭合、简化是否合理”，三者都不能替代正式锁模。进入项目级预处理或主求解代码前，必须按 `core/model_approval_contract.yaml` 完成相互独立的 Model Reviewer 与 Devil's Advocate 两次挑战审查；blocking 必须先修复，`review_required` 必须修复或给出具体、可验证的 justification。
+
+Challenge passed 后必须向用户提供 Model Approval Brief，并停在 `awaiting_model_approval`。只有用户明确批准当前 `semantic_revision` 与 `semantic_hash` 后，`locked_model_spec` 才成为 current；用户沉默、模糊继续或未反对不得推断为批准。语义 revision/hash 改变时旧 challenge、approval 与 locked model 同时 stale；纯排版、措辞、caption、公式编号或不改变语义的 LaTeX 文件拆分不触发重新审批。
+
+### 2.6 项目工作记忆与上下文恢复
 
 `模型论文框架.md` 是当前项目的**助手可读工作记忆**，只保存当前题意口径、数据角色、`preprocessing_decision`、变量/参数/假设、核心 Formula Trace、Algorithm Trace、数值参数证据、Terminology Registry、Numeric Profile、小问依赖、当前算法语义、命题、Title Claim、Citation Evidence、paper-fragment 状态、结果摘要、验证边界、图表证据位置和本项目论文组织选择。它不得重新复制跨项目写作、证明或排版手册。
 
@@ -117,7 +123,7 @@ project_level
 
 ## 5. 用户执行与质量门
 
-实际生成的 `数据预处理.py`、`问题X求解.py` 与 `问题X结果深化分析.py` 均由助手生成和静态检查、由用户本地 full-fidelity 执行。
+实际生成的 `数据预处理.py`、`问题X求解.py` 与 `问题X结果深化分析.py` 均由助手生成和静态检查、由用户本地 full-fidelity 执行。正式项目级预处理或主求解代码前，当前模型必须同时通过 semantic governance 与 model approval gate；旧审批不得覆盖新的 semantic revision/hash。
 
 - `project_level`：预处理工作簿 accepted 且 `预处理质量门` passed 后才能进入依赖主求解；工作簿还必须持久化论文方法证据、处理前后对比和 `data_process.m` 绘图底层数据；
 - `not_needed/question_local`：没有统一预处理工作簿门槛；

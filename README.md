@@ -1,6 +1,17 @@
-# mathmodel-skill v7.10.1
+# mathmodel-skill v7.11.0
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 数据审计与 `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → 条件式预处理 → 用户本地 full-fidelity Python 主求解 → 独立结果深化分析 → MATLAB 证据图 → LaTeX 终稿 → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v7.11.0：Model Challenge & Human Approval Closure
+
+本版本在 Problem Contract、Semantic Closure 与 Complexity Sanity 之后增加两层正式锁模治理，不改变数值模型接口、Workbook Schema、Python/MATLAB 职责、用户 full-fidelity 执行、LaTeX attestation v3、submission provenance 或每问五文件合同。
+
+- Module 02 在 `locked_model_spec` 前新增 `proposed_model_spec`，并执行相互独立的 Model Reviewer 与 Devil's Advocate 两次挑战审查；blocking 不能由用户批准绕过。
+- Challenge passed 后生成 Model Approval Brief，并停在 `awaiting_model_approval`；只有用户明确批准当前 `semantic_revision/hash` 后，`locked_model_spec` 才成为 current。
+- 新增 `core/model_approval_contract.yaml` 与 `scripts/validate_model_approval.py`；项目级预处理和主求解代码交付前必须验证 challenge/approval 与当前 revision/hash 完全一致。
+- 语义 revision/hash 变化会使旧 challenge、approval 与 locked model stale；纯排版、措辞、caption、公式编号或不改变语义的 LaTeX 文件拆分不触发重新审批。
+- 旧项目保持只读兼容；只有重新进入模型设计、项目级预处理、主求解或语义变化后的重算时才迁入新 approval gate。
+- 不迁移旧 V2 的 `HUMAN_MODEL_REVIEW.md`、`MODEL_REVIEW_AI.md`、`AGENT_RUNS.md` 等 reports 文件体系，也不绑定特定 multi-agent runtime。
 
 ## v7.10.1：Read-Path & Gate Dispatch Closure
 
