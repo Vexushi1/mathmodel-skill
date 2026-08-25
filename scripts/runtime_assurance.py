@@ -47,19 +47,20 @@ def resolve_intent_assurance(
                 candidates.append(
                     {
                         "intent": str(name),
-                        "score": len(matched),
+                        "score": sum(max(1, len(word.strip())) for word in matched),
+                        "matched_keyword_count": len(matched),
                         "matched_keywords": matched,
                     }
                 )
     candidates.sort(key=lambda item: (-int(item["score"]), str(item["intent"])))
-    inferred = [str(item["intent"]) for item in candidates]
+    top_score = int(candidates[0]["score"]) if candidates else 0
+    top = [item for item in candidates if int(item["score"]) == top_score]
+    inferred = [str(item["intent"]) for item in top]
     if "full_workflow" in inferred:
         inferred = ["full_workflow"]
 
-    selected = _unique([*explicit, *inferred])
-    top_score = int(candidates[0]["score"]) if candidates else 0
-    top = [item for item in candidates if int(item["score"]) == top_score]
-    ambiguity = bool(not explicit and len(top) > 1 and "full_workflow" not in inferred)
+    selected = explicit if explicit else inferred
+    ambiguity = bool(not explicit and len(inferred) > 1)
 
     if explicit:
         confidence_band = "high"
@@ -75,17 +76,17 @@ def resolve_intent_assurance(
         confidence_band = "low"
         confidence_score = 0.35
         mode = "inferred"
-        reason = "multiple inferred intents share the top deterministic match score"
-    elif top_score >= 2:
+        reason = "multiple inferred intents share the top deterministic specificity score"
+    elif int(top[0].get("matched_keyword_count", 0)) >= 2:
         confidence_band = "high"
         confidence_score = 0.8
         mode = "inferred"
-        reason = "one route has multiple deterministic keyword matches"
+        reason = "the selected route has multiple deterministic keyword matches"
     else:
         confidence_band = "medium"
         confidence_score = 0.6
         mode = "inferred"
-        reason = "route inference is based on a single deterministic keyword match"
+        reason = "the selected route has the highest deterministic keyword-specificity score"
 
     return selected, {
         "mode": mode,
@@ -167,6 +168,21 @@ def _semantic_lock_evidence(question: str, item: dict[str, Any]) -> dict[str, An
     }
 
 
+def _project_artifact_path(
+    project_root: Path, relative_path: str | None
+) -> tuple[Path | None, str | None]:
+    if not relative_path:
+        return None, None
+    root = project_root.resolve()
+    raw = Path(relative_path).expanduser()
+    candidate = raw.resolve() if raw.is_absolute() else (root / raw).resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        return None, "artifact path resolves outside project root"
+    return candidate, None
+
+
 def _file_evidence(
     project_root: Path,
     *,
@@ -177,7 +193,7 @@ def _file_evidence(
     accepted: bool,
     accepted_reason: str,
 ) -> dict[str, Any]:
-    path = project_root / relative_path if relative_path else None
+    path, path_error = _project_artifact_path(project_root, relative_path)
     actual = sha256_file(path) if path else None
     if not accepted:
         status = "not_accepted"
@@ -185,6 +201,9 @@ def _file_evidence(
     elif not relative_path:
         status = "missing"
         reason = "accepted state has no artifact path"
+    elif path_error:
+        status = "outside_project_root"
+        reason = path_error
     elif not path or not path.is_file():
         status = "missing"
         reason = "artifact path does not exist"
