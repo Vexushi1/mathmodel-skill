@@ -1,0 +1,86 @@
+version: 7.11.1
+
+# Runtime boundary declarations.
+# Resolver should consume these declarations instead of maintaining duplicated policy constants.
+
+boundaries:
+  model_approval:
+    required_intents:
+    - new_problem_design
+    - model_selection
+    - advanced_method
+    - full_solution
+    - full_workflow
+    - code_and_solution
+    - data_preprocessing
+    - result_analysis
+    - validation
+    outputs:
+    - route_comparison
+    - selected_models
+    - proposed_model_spec
+    - model_challenge
+    - model_approval_brief
+    - awaiting_model_approval
+    - preprocessing_decision
+    - formula_closure
+    - formula_reasoning_chain
+    - semantic_closure
+    - complexity_sanity_check
+    - validation_plan
+    - model_paper_framework
+    gates:
+    - semantic_governance
+
+  preprocessing:
+    outputs:
+    - preprocessing_decision
+    - preprocessing_code
+    - preprocessing_workbook
+    - preprocessing_quality_report
+    - awaiting_user_preprocessing
+    - model_paper_framework
+    gates:
+    - semantic_governance
+    - model_approval
+    - code_delivery
+
+  user_execution:
+    primary_outputs:
+    - preprocessing_decision
+    - python_code
+    - full_run_config
+    - execution_instructions
+    - code_delivery_report
+    - awaiting_user_execution
+    - model_paper_framework
+    primary_gates:
+    - semantic_governance
+    - model_approval
+    - code_delivery
+    analysis_outputs:
+    - result_analysis_plan
+    - result_analysis_code
+    - full_run_config
+    - execution_instructions
+    - code_delivery_report
+    - awaiting_user_execution
+    - model_paper_framework
+    analysis_gates:
+    - semantic_governance
+    - code_delivery
+
+  final_workflow:
+    outputs:
+    - approved_figures
+    - latex_source
+    - latex_audit_report
+    - compiled_pdf
+    - compile_report
+    - review_report
+    - submission_package
+    - model_paper_framework
+    gates:
+    - semantic_governance
+    - project_sync
+    - submission_package_validation
