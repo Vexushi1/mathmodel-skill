@@ -90,13 +90,41 @@ class TestV712RuntimeAssurance(unittest.TestCase):
             plan["assurance"]["intent_resolution"]["mode"], "explicit"
         )
 
-    def test_inferred_intent_provenance_reports_ambiguity(self):
-        plan = self.runtime.resolve_runtime(request="请审题并建模", objective="optimization")
+    def test_explicit_intent_is_authoritative_over_request_keywords(self):
+        plan = self.runtime.resolve_runtime(
+            "problem_analysis", request="请给出完整求解"
+        )
         intent = plan["assurance"]["intent_resolution"]
+        self.assertEqual(intent["selected_intents"], ["problem_analysis"])
         self.assertTrue(intent["inferred_candidates"])
-        self.assertTrue(intent["ambiguity"])
-        self.assertEqual(intent["confidence_band"], "low")
-        self.assertEqual(plan["assurance"]["status"], "review_required")
+        self.assertEqual(plan["intents"], ["problem_analysis"])
+
+    def test_inferred_intent_prefers_specific_keyword_phrase(self):
+        plan = self.runtime.resolve_runtime(
+            request="请审题并建模", objective="optimization"
+        )
+        intent = plan["assurance"]["intent_resolution"]
+        self.assertEqual(intent["selected_intents"], ["new_problem_design"])
+        self.assertFalse(intent["ambiguity"])
+        candidates = {item["intent"]: item for item in intent["inferred_candidates"]}
+        self.assertGreater(
+            candidates["new_problem_design"]["score"],
+            candidates["problem_analysis"]["score"],
+        )
+
+    def test_intent_provenance_reports_true_top_score_ambiguity(self):
+        router = {
+            "routing": {
+                "route_a": {"infer_keywords": ["同词"]},
+                "route_b": {"infer_keywords": ["同词"]},
+            }
+        }
+        selected, diagnostics = self.runtime.resolve_intent_assurance(
+            [], "同词", router
+        )
+        self.assertEqual(selected, ["route_a", "route_b"])
+        self.assertTrue(diagnostics["ambiguity"])
+        self.assertEqual(diagnostics["confidence_band"], "low")
 
     def test_module_contract_dependency_closure_is_additive(self):
         plan = self.runtime.resolve_runtime("figures")
@@ -181,6 +209,42 @@ class TestV712RuntimeAssurance(unittest.TestCase):
         self.assertNotIn(
             "accepted_solution_workbook",
             assurance["artifact_assurance"]["effective_artifacts"],
+        )
+        self.assertIn("modules/03_solve_validate.md", plan["modules"])
+
+    def test_artifact_path_outside_project_root_is_never_verified(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "project"
+            root.mkdir()
+            outside = base / "outside.xlsx"
+            outside.write_bytes(b"outside")
+            digest = hashlib.sha256(outside.read_bytes()).hexdigest()
+            state = self._base_state()
+            q1 = state["subproblems"]["Q1"]
+            q1.update(
+                {
+                    "primary_execution_status": "accepted",
+                    "result_quality_status": "passed",
+                    "solution_workbook": "../outside.xlsx",
+                    "artifact_hashes": {"solution_workbook": digest},
+                }
+            )
+            self._write_state(root, state)
+            plan = self.runtime.resolve_runtime(
+                "result_analysis", project_root=root, question="Q1"
+            )
+        evidence = plan["assurance"]["artifact_assurance"]["evidence"]
+        row = next(
+            item
+            for item in evidence
+            if item["artifact"] == "accepted_solution_workbook"
+            and item["scope"] == "Q1"
+        )
+        self.assertEqual(row["status"], "outside_project_root")
+        self.assertNotIn(
+            "accepted_solution_workbook",
+            plan["assurance"]["artifact_assurance"]["effective_artifacts"],
         )
         self.assertIn("modules/03_solve_validate.md", plan["modules"])
 
