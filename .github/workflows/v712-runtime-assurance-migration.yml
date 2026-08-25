@@ -34,7 +34,9 @@ jobs:
           git fetch origin upgrade/v7.12.0-declarative-runtime-assurance
           git reset --hard origin/upgrade/v7.12.0-declarative-runtime-assurance
       - name: Apply v7.12 runtime assurance migration
-        run: python scripts/_v712_runtime_assurance_migration.py
+        run: |
+          python scripts/_v712_runtime_assurance_migration.py
+          python scripts/_v712_lint_migration.py
       - name: Refresh generated repository metadata
         run: python scripts/generate_indexes.py
       - name: Validate runtime assurance migration
