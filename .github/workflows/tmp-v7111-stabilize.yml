@@ -25,6 +25,19 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
       - name: Apply stabilization migration
         run: python scripts/_tmp_v7111_stabilize.py
+      - name: Repair compatibility pointer name in output summary
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('core/output_contract.yaml')
+          text = p.read_text(encoding='utf-8')
+          old = '  analysis_evidence_authority: core/writing_reasoning_contract.yaml#analysis_evidence_disposition\n'
+          new = '  result_analysis_disposition_authority: core/writing_reasoning_contract.yaml#analysis_evidence_disposition\n'
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one result-policy pointer to rename, found {text.count(old)}')
+          p.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
       - name: Remove one-shot migration files
         shell: bash
         run: |
