@@ -107,6 +107,7 @@
 - `scripts/lint_skill_checks.py`
 - `scripts/prepare_cumcm_class.py`
 - `scripts/render_paper.py`
+- `scripts/resolve_runtime.py`
 - `scripts/resolve_workflow.py`
 - `scripts/runtime_assurance.py`
 - `scripts/score_submission.py`
