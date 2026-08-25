@@ -62,6 +62,39 @@ class TestV7101ReadPathClosure(unittest.TestCase):
             self.assertIn(token, repository_index, token)
             self.assertIn(token.removeprefix("scripts/"), scripts_readme, token)
 
+    def test_model_approval_read_path_is_closed(self) -> None:
+        project = read("PROJECT_INSTRUCTIONS.md")
+        runtime = read("RUNTIME_ROUTER.md")
+        repository_index = read("REPOSITORY_INDEX.md")
+        scripts_readme = read("scripts/README.md")
+        readme_summary = read("README.md").splitlines()[2]
+
+        for token in ("proposed_model_spec", "Model Reviewer", "Devil's Advocate", "awaiting_model_approval", "locked_model_spec"):
+            self.assertIn(token, project, token)
+            self.assertIn(token, runtime, token)
+        self.assertLess(runtime.index("Model Reviewer"), runtime.index("Devil's Advocate"))
+        self.assertLess(runtime.index("Devil's Advocate"), runtime.index("awaiting_model_approval"))
+        self.assertLess(runtime.index("awaiting_model_approval"), runtime.index("locked_model_spec"))
+        self.assertLess(runtime.index("locked_model_spec"), runtime.index("solve_validate"))
+
+        self.assertIn("core/model_approval_contract.yaml", repository_index)
+        self.assertIn("scripts/validate_model_approval.py", repository_index)
+        self.assertIn("validate_model_approval.py", scripts_readme)
+        self.assertIn("Model Reviewer", readme_summary)
+        self.assertIn("awaiting_model_approval", readme_summary)
+        self.assertIn("locked_model_spec", readme_summary)
+
+    def test_project_state_example_waits_for_explicit_model_approval(self) -> None:
+        example = yaml.safe_load(read("state/project_state.example.yaml"))
+        q1 = example["subproblems"]["Q1"]
+        self.assertEqual(q1["model_challenge_status"], "passed")
+        self.assertEqual(q1["human_model_approval_status"], "pending")
+        self.assertNotIn("approved_semantic_revision", q1)
+        self.assertNotIn("approved_semantic_hash", q1)
+        self.assertEqual(example["next_gate"]["module"], "model_design")
+        self.assertIn("awaiting_model_approval", example["next_gate"]["condition"])
+        self.assertIn("locked_model_spec", example["next_gate"]["condition"])
+
     def test_result_manifest_uses_internal_metadata(self) -> None:
         text = read("templates/review/result_manifest.yaml")
         self.assertIn("项目级 internal_metadata/", text)

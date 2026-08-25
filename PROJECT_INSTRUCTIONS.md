@@ -5,10 +5,10 @@
 1. 首先读取 `core/bootstrap.yaml`；
 2. 使用 `scripts/resolve_workflow.py` 解析一个或多个意图，只加载命中的模块、Pack 和模板；
 3. 每问按 `classification.objective`、`classification.structures` 和顶层 `capabilities` 分类；
-4. Module 01 先冻结 Problem Contract，Module 02 再锁定模型语义、复杂度复审和 `preprocessing_decision`；
-5. `locked_model_spec` 形成后维护项目根目录 `模型论文框架.md`。框架只保留当前项目事实与选择，包括 Formula Trace、Algorithm Trace、参数证据、Terminology Registry、Numeric Profile、Title Claim、命题、Citation Evidence、Paper Fragment Dependency Map、深化证据处置、结果摘要与图表映射；历史由 Git 保存。已有 current 框架时，继续预处理、求解、深化分析、绘图和写作前优先按需读取相关段落；跨聊天/整篇写作/终审读取完整框架；具体数值回到已验收工作簿复核，hash/stale 以 project state 为准；
+4. Module 01 先冻结 Problem Contract；Module 02 再完成模型路线选择、语义闭环、Complexity Sanity 与 `preprocessing_decision`，形成 `proposed_model_spec` 后执行相互独立的 Model Reviewer 与 Devil's Advocate。Challenge 通过后生成 Model Approval Brief，并停在 `awaiting_model_approval`；只有用户明确批准当前 `semantic_revision/hash` 后才形成 current `locked_model_spec`，不得把 Problem Contract 冻结、Challenge 通过或用户未反对等价为已锁模；
+5. `proposed_model_spec` 形成后即可维护项目根目录 `模型论文框架.md`。框架只保留当前项目事实与选择，包括 Formula Trace、Algorithm Trace、Model Challenge/Human Approval 当前状态、参数证据、Terminology Registry、Numeric Profile、Title Claim、命题、Citation Evidence、Paper Fragment Dependency Map、深化证据处置、结果摘要与图表映射；历史由 Git 保存。已有 current 框架时，继续预处理、求解、深化分析、绘图和写作前优先按需读取相关段落；跨聊天/整篇写作/终审读取完整框架；具体数值回到已验收工作簿复核，semantic revision/hash、challenge/approval 与 stale 以 project state 为准；
 6. 所有数据题都先做非破坏性审计，但只有 `preprocessing_decision=project_level` 时创建 `数据预处理/`；`not_needed` 直接使用原始数据，`question_local` 仅在对应小问 Python 中执行有数学来源的局部变换；
-7. `project_level` 时先交付并由用户本地 full-fidelity 运行 `数据预处理/数据预处理.py`，验收 `数据预处理结果.xlsx` 后才进入依赖主求解；`data_process.m` 在后续 Figure Evidence 阶段生成，不是主求解前置；
+7. `project_level` 时，只有 current Model Challenge passed 且 Human Model Approval 与当前 `semantic_revision/hash` 完全一致后，才允许交付并由用户本地 full-fidelity 运行 `数据预处理/数据预处理.py`；验收 `数据预处理结果.xlsx` 后才进入依赖主求解。主求解代码同样不得绕过 `scripts/validate_semantic_governance.py` 与 `scripts/validate_model_approval.py`；`data_process.m` 在后续 Figure Evidence 阶段生成，不是主求解前置；
 8. 每问数值阶段最终默认恰好保留五个文件：
 
 ```text
@@ -30,7 +30,7 @@
 16. Algorithm Trace 仅在 `stepwise/pseudocode` 时建立，闭合“模型结构/公式/命题/约束 → 论文算法流程 → 真实 Python 实现 → 工作簿结果或验证证据”；`not_needed` 不为版式完整生成装饰性 Algorithm 1；
 17. 核心模型收束按 `required / inline / not_applicable` 自适应；命题 0--4 是默认正文阅读预算而非 Hard 上限，P5+ 可在必要性审查和 justification 后保留；优点和缺点没有强制数量关系；需要外部证据的核心 claim 通过 Citation Evidence 连接正文位置与 `references.bib`；
 18. AI cleanup 后正式 LaTeX 审计统一运行 `scripts/audit_latex_project.py`；它递归展开模块化源码并委托 `audit_paper_prose.py` 做 prose/BibTeX/framework 检查。确定性 Hard 错误为 blocking，Default 偏离为 review_required，Recommendation/风格风险为 warning；机器不得从正则判断数学/算法正确性、参数最优性、术语语义等价或 citation 的语义支持关系；
-19. 正式交付统一执行 resolver 当前返回的全部 `pre_delivery_gates`，并严格保持返回顺序；不得在入口文档维护第二套 gate 固定清单。`semantic_governance`、`project_sync`、`submission_package_validation` 等 gate 只有在当前 plan 返回时才执行；其中 `project_sync` 按 resolved scope 重算/同步当前产物，LaTeX/提交 scope 会核对 source bundle、`compile_report` 与 PDF hash，`submission_package_validation` 对当前 submission manifest、ZIP 内容与绑定哈希做最终包级验证；
+19. 正式交付统一执行 resolver 当前返回的全部 `pre_delivery_gates`，并严格保持返回顺序；不得在入口文档维护第二套 gate 固定清单。`semantic_governance`、`model_approval`、`project_sync`、`submission_package_validation` 等 gate 只有在当前 plan 返回时才执行；其中 `model_approval` 只在项目级预处理或主求解等需 current 人工锁模的阶段出现，`project_sync` 按 resolved scope 重算/同步当前产物，LaTeX/提交 scope 会核对 source bundle、`compile_report` 与 PDF hash，`submission_package_validation` 对当前 submission manifest、ZIP 内容与绑定哈希做最终包级验证；
 20. `project_sync` 只发现产物、校验 Schema、计算哈希和传播 stale，不生成模型语义、数值结果或 passed 状态；
 21. `run_info.json`、`result_manifest.yaml`、`matlab_figure_handoff.json` 只在用户明确要求完整复现包时生成，并放在项目级内部元数据目录，不得进入 `问题X求解/` 或 `数据预处理/`；
 22. 旧 `结果数据表/问题X/`、旧敏感性与鲁棒性工作簿以及 v6.6 单脚本四文件目录只作历史项目只读兼容，新项目不得按旧结构生成；
