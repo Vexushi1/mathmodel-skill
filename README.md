@@ -1,6 +1,17 @@
-# mathmodel-skill v7.12.0
+# mathmodel-skill v7.13.0
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → 用户本地 full-fidelity Python 主求解 → 独立结果深化分析 → MATLAB 证据图 → LaTeX 终稿 → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → 用户本地 full-fidelity Python 主求解 → 独立结果深化分析 → MATLAB Figure Evidence + 按需 Figure Enhancement → LaTeX 终稿 → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v7.13.0：Evidence-driven Figure Enhancement
+
+本版本在现有 Figure Layout Gate 后增加一层**按证据问题触发、默认关闭**的 Figure Enhancement，不改变 Workbook Schema、Project State Schema、Python/MATLAB 职责、每问五文件接口或 LaTeX/submission provenance。
+
+- `modules/04_figure_evidence.md` 继续作为唯一绘图决策 Authority；新增 Figure Enhancement Gate，按需选择 Local Zoom、Small Multiples、Focus Highlighting、Semantic Background、Composite Diagnostic 与 Conditional 3D，默认 `none`。
+- 新增 `templates/figure/figure_enhancement_patterns.md`，集中保存 embedded/detached zoom、selective detail、overview + detail、stacked strips、联合预测诊断、语义背景带和条件式 3D 等实现模式，不建立第二套规则源。
+- Figure Contract 只增加可选 `Enhancement` 与 `Enhancement rationale`，QA 增加 ROI、跨面板尺度、视觉主次、语义背景和 3D/联合诊断的信息效率检查，不把 inset 坐标、透明度等实现参数塞进合同。
+- 加入数据诚实边界：离散实验点、独立场景点、参数扫描点和迭代记录不得仅为美观使用 spline 等平滑制造新峰谷或拐点；局部放大必须保留全局上下文并明确 ROI。
+- 多对象限制改为“同一视觉层级中同时竞争注意力的主要对象通常不超过 2--3 个”；结构化 small multiples / matrix 可以超过 4 个 axes，只要共享一个 Primary question 和稳定视觉语法。
+- `figures` route 与 `full_workflow_resume` 现在显式加载 enhancement patterns，确保局部放大、分面与联合诊断在实际绘图阶段可被调用。
 
 ## v7.12.0：Declarative Runtime & Assurance
 
@@ -286,7 +297,7 @@ preprocessing_decision
 
 ### MATLAB Figure Evidence
 
-MATLAB 只读取 Python 输出的数据和标准工作簿绘图，不重新求解。图形布局按核心结论、证据等级和主要问题动态选择；默认保留图窗供人工调整，不批量自动导出。
+MATLAB 只读取 Python 输出的数据和标准工作簿绘图，不重新求解。图形布局按核心结论、证据等级和主要问题动态选择；基础布局后再通过 Figure Enhancement Gate 判断是否需要局部放大、分面、焦点高亮、语义背景、联合诊断或条件式 3D；默认保留图窗供人工调整，不批量自动导出。
 
 ## 运行时权威链
 
@@ -297,7 +308,7 @@ core/bootstrap.yaml
         ↓
 core/workflow_router.yaml
         ↓
-scripts/resolve_workflow.py
+scripts/resolve_runtime.py
         ↓
 route-specific contracts / modules / packs / templates
 ```
@@ -332,6 +343,6 @@ python scripts/validate_submission_package.py . --strict
 
 ## 兼容与历史
 
-`legacy/` 只读，不进入默认执行链。v7.9 及更早项目保持只读兼容；Algorithm Trace 为可选写作能力，不要求历史项目反向补写。Model Approval 同样不要求历史项目倒填，只有重新进入当前模型设计、项目级预处理、主求解或语义变化后的重算时迁入新门。历史版本说明保留在 Git 历史和 `CHANGELOG.md`。
+`legacy/` 只读，不进入默认执行链。v7.12 及更早项目保持只读兼容；Figure Enhancement 与 Algorithm Trace 都是按需能力，不要求历史项目反向补写。Model Approval 同样不要求历史项目倒填，只有重新进入当前模型设计、项目级预处理、主求解或语义变化后的重算时迁入新门。历史版本说明保留在 Git 历史和 `CHANGELOG.md`。
 
 许可证与第三方声明见 `LICENSE`、`THIRD_PARTY_NOTICES.md`。
