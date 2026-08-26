@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import re
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -118,6 +119,12 @@ def _row_residual_metric(
         actual = _as_bool(record.get("是否满足"))
         if value is None or tolerance is None:
             issues.append(f"{sheet}第{index}行{value_column}/容差必须为有限数值")
+            continue
+        if tolerance < 0:
+            issues.append(f"{sheet}第{index}行容差不得为负数")
+            continue
+        if value_column == "违反量" and value < 0:
+            issues.append(f"{sheet}第{index}行违反量不得为负数")
             continue
         expected = abs(value) <= tolerance
         if actual is None or actual != expected:
@@ -252,6 +259,9 @@ def validate_primary_numerical_evidence(
             return not issues, list(dict.fromkeys(issues)), report
 
         strict_contract = contract.get("strict_v714_trace") or {}
+        specification = contract.get("primary_quality_specification") or {}
+        id_pattern = str(specification.get("id_pattern", r"^PQ-Q[1-9][0-9]*-[0-9]{2,}$"))
+        threshold_sources = {str(item) for item in specification.get("threshold_sources", [])}
         required_columns = [str(item) for item in strict_contract.get("required_columns_when_active", [])]
         issues.extend(_require_columns("主结果质量门", quality_headers, required_columns))
         if issues:
@@ -295,8 +305,8 @@ def validate_primary_numerical_evidence(
             if not verification_id:
                 issues.append(f"主结果质量门第{row_number}行缺少Verification ID")
                 continue
-            if not verification_id.startswith("PQ-"):
-                issues.append(f"主结果质量门第{row_number}行Verification ID必须以PQ-开头")
+            if re.fullmatch(id_pattern, verification_id) is None:
+                issues.append(f"主结果质量门第{row_number}行Verification ID不符合PQS格式: {verification_id}")
             if verification_id in seen_ids:
                 issues.append(f"主结果质量门Verification ID重复: {verification_id}")
             seen_ids.add(verification_id)
@@ -313,8 +323,11 @@ def validate_primary_numerical_evidence(
                     issues.append(f"{verification_id}引用的证据工作表无实质数据: {evidence_sheet}")
                 referenced_sheets.add(evidence_sheet)
 
-            if not str(row.get("阈值来源", "")).strip():
+            threshold_source = str(row.get("阈值来源", "")).strip()
+            if not threshold_source:
                 issues.append(f"{verification_id}缺少阈值来源")
+            elif threshold_sources and threshold_source not in threshold_sources:
+                issues.append(f"{verification_id}使用未登记阈值来源: {threshold_source}")
 
             relation = str(row.get("判定关系", "")).strip()
             if relation not in allowed_relations:
