@@ -1,18 +1,20 @@
-schema_version: 2.2.1
+schema_version: 2.3.0
 skill_compatibility: '>=6.3.2,<8.0.0'
 purpose: 约束主求解工作簿与按需结果深化分析工作簿的工作表、字段、三轴条件、非空规则和MATLAB交接。
 runtime_enforcement:
   writer: templates/code/hsk_pipeline/result_io.py
   code_delivery_checker: scripts/validate_code_delivery.py
   returned_workbook_checker: scripts/validate_user_execution.py
+  numerical_evidence_checker: scripts/validate_numerical_evidence.py
+  numerical_evidence_authority: core/numerical_verification_contract.yaml
   project_sync: scripts/sync_project.py
   shared_validator: templates/code/hsk_pipeline/workbook_validation.py
   matlab_reader: 每问同目录q{x}_plot.m的精确表头唯一匹配逻辑
   rules:
   - 主求解工作簿必须先通过结构Schema并持久化主结果质量报告；质量门允许记录未通过项。
-  - 只有主结果质量门全部通过，才允许进入结果深化分析或正式results交付。
-  - 结果深化分析只在主结果质量门通过后执行。
-  - 主结果质量报告必须写入求解工作簿的主结果质量门工作表。
+  - 只有主结果质量门全部通过且适用的主数值证据复核通过，才允许进入结果深化分析或正式results交付。
+  - 结果深化分析只在主工作簿accepted后执行；参数敏感性、压力场景、替代算法/结构、异质性等不得被主质量门提前吸收。
+  - 主结果质量报告必须写入求解工作簿的主结果质量门工作表；v7.14严格轨迹通过Verification ID、证据工作表、判定关系和阈值来源追到底层证据。
   - 结果分析计划与结论必须分别写入分析设计和结论稳定性汇总工作表。
   - 写入器、代码交付检查器、返回工作簿检查器和项目同步器复用同一事实源。
   - MATLAB代码生成前必须读取实际工作簿并确认真实工作表与真实表头。
@@ -64,7 +66,7 @@ capability_contract:
     required_sheets: [约束违反检查]
 solution_workbook:
   filename: 问题{中文序号}求解结果.xlsx
-  role: 保存主结果、基础正确性证据和主结果质量门；质量门失败时保留失败证据但不得进入下游
+  role: 保存主结果、当前locked model与声明数值方法下的内在正确性证据和主结果质量门；质量门失败时保留失败证据但不得进入下游，不承担结果深化分析
   common_required_sheets:
     运行配置:
       required_columns: [项目, 值]
@@ -75,7 +77,7 @@ solution_workbook:
       required_columns: [等级, 检查项, 信息, 处理方式]
     主结果质量门:
       required_columns: [检查项, 是否通过, 证据]
-      optional_columns: [阈值或容差, 实际值, 说明]
+      optional_columns: [Verification ID, 判定关系, 阈值或容差, 实际值, 证据工作表, 阈值来源, 说明]
   common_recommended_sheets:
     推荐方案:
       required_columns: [方案]
@@ -92,8 +94,10 @@ solution_workbook:
       required_columns: [守恒量, 残差, 容差, 是否满足]
     离散精度:
       required_columns: [离散参数, 取值, 目标指标, 相对变化]
+      optional_columns: [验证组, 用于主判定, 说明]
     收敛诊断:
       required_columns: [迭代或样本数, 指标, 数值, 判定]
+      optional_columns: [用于主判定, 容差, 说明]
     外样本验证:
       required_columns: [划分或窗口, 指标, 数值]
       optional_columns: [样本数, 时间范围, 基准模型, 说明]
@@ -198,7 +202,7 @@ solution_workbook:
     graph_network: {required_any: [节点结果, 边结果, 路径或流结果]}
 result_analysis_workbook:
   filename: 问题{中文序号}结果深化分析.xlsx
-  role: 在主结果质量门通过后，保存按题目风险选择的结果解释、稳定性和适用边界证据
+  role: 在主工作簿accepted后，保存按真实主结果风险选择的参数敏感性、阈值/失效边界、压力场景、替代算法/结构、异质性、误差分解或外样本稳定性证据；不承担主计算基本数值有效性验收
   common_required_sheets:
     运行配置:
       required_columns: [项目, 值]
