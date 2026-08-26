@@ -45,8 +45,11 @@ class TestV713FigureEnhancement(unittest.TestCase):
         router = yaml.safe_load(
             (ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8")
         )
+        current_version = yaml.safe_load(
+            (ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8")
+        )["skill_version"]
         pattern = "templates/figure/figure_enhancement_patterns.md"
-        self.assertEqual(router["version"], "7.13.0")
+        self.assertEqual(router["version"], current_version)
         self.assertIn(pattern, router["routing"]["figures"]["load"])
         self.assertIn(pattern, router["runtime_segments"]["full_workflow_resume"]["final_load"])
 
@@ -68,7 +71,7 @@ class TestV713FigureEnhancement(unittest.TestCase):
         ):
             self.assertIn(token, qa)
 
-    def test_pack_delegates_and_chart_index_exposes_problems(self):
+    def test_pack_delegates_and_chart_index_stays_an_index(self):
         pack = (ROOT / "packs/artifact/figure.md").read_text(encoding="utf-8")
         chart = (ROOT / "templates/figure/chart_selection.md").read_text(encoding="utf-8")
         self.assertIn("唯一权威为 `modules/04_figure_evidence.md`", pack)
@@ -77,6 +80,27 @@ class TestV713FigureEnhancement(unittest.TestCase):
         self.assertIn("全局尺度压缩关键差异", chart)
         self.assertIn("多条曲线大量交叉", chart)
         self.assertIn("第三维具有真实结构", chart)
+        self.assertIn("## 权威边界", chart)
+        self.assertIn("只负责候选图型与视觉问题索引", chart)
+        self.assertNotIn("## 图标题与图注", chart)
+        self.assertNotIn("## 配色规则", chart)
+        self.assertNotIn("## 多面板规则", chart)
+
+    def test_active_matlab_guides_point_to_enhancement_gate(self):
+        readme = (ROOT / "templates/matlab/README.md").read_text(encoding="utf-8")
+        q1 = (ROOT / "templates/matlab/q1_plot.m").read_text(encoding="utf-8")
+        data_process = (ROOT / "templates/matlab/data_process.m").read_text(encoding="utf-8")
+        for text in (readme, q1, data_process):
+            self.assertIn("Figure Enhancement Gate", text)
+            self.assertIn("modules/04_figure_evidence.md", text)
+        self.assertIn("Enhancement / Enhancement rationale", readme)
+
+    def test_ci_smoke_uses_assured_runtime_as_default(self):
+        ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertIn("Resolve representative assured workflow", ci)
+        self.assertIn("python scripts/resolve_runtime.py full_solution", ci)
+        self.assertIn("Legacy resolver compatibility smoke", ci)
+        self.assertIn("python scripts/resolve_workflow.py problem_analysis", ci)
 
 
 if __name__ == "__main__":
