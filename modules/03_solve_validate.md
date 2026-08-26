@@ -41,11 +41,31 @@
 
 任何一项真正适用的前置条件不满足，都不得生成正式主求解代码。尤其禁止出现“模型尚未闭环，先写 Python 看结果再决定题意”，也禁止在 `project_level` 已冻结后各问重新自行清洗。
 
+## 主求解质量检查：只判断当前主计算是否可接受
+
+主求解质量检查的唯一数值规则 Authority 为 `core/numerical_verification_contract.yaml`。它只回答：**在当前 locked model 与声明的 numerical method 下，本次主计算是否具有足够的内在数值有效性，可以成为 accepted solution workbook。**
+
+因此 `问题X求解.py` 只实现 Module 02 已登记的 Primary Quality Specification（PQS）中真正适用的最低检查，例如当前解的约束违反、等式/均衡/守恒残差、必要的离散精度、必要的迭代/仿真收敛、当前求解器的 bound/gap/termination 证据，以及 capability 明确要求的主预测外样本、泄漏、校准、可识别性或最低不确定性精度。
+
+**不得把参数敏感性、现实参数扰动、阈值/失效边界扩展搜索、场景压力测试、替代算法比较、替代结构/模型比较、多随机种子或多初值稳健性、异质性、误差分解、广义外样本稳定性等结果深化分析内容写入主求解质量门。** 这些内容只能在主工作簿 accepted 后进入 Module 03B。若某一主算法按数学定义本身需要多起点/多随机种子才能构成一次完整求解，这些运行可以作为主算法内部步骤，但不得据此在 03A 中生成“跨算法稳健性”或“结论稳定性”分析。
+
+容易混淆的边界统一如下：
+
+- 数值步长、网格、分辨率是否足以支撑**当前答案** → 主求解质量检查；物理/模型参数变化后结论是否改变 → Module 03B；
+- Monte Carlo 样本量是否足以让**当前估计**达到声明精度 → 主求解质量检查；多 seed 下策略/排名是否稳定 → Module 03B；
+- 当前精确/松弛求解器的 stop status、bound、gap → 主求解质量检查；MILP 与 ALNS/GA/greedy 等替代算法比较 → Module 03B；
+- 预测主结果所必需的一次合法 OOS 验证 → 主求解质量检查；跨窗口、跨年份、跨地区或迁移场景稳定性 → Module 03B。
+
+v7.14 新生成的严格主质量轨迹应在 `运行配置` 中写入 `primary_quality_protocol_version=1.0.0`，并在 `主结果质量门` 中使用 `Verification ID / 判定关系 / 阈值或容差 / 实际值 / 证据工作表 / 阈值来源` 追溯到底层证据。`离散精度` 与 `收敛诊断` 若由机器重算主判据，应使用 `用于主判定` 标记真正决定当前主结果是否可接受的证据行，避免把探索性粗网格或过程记录误当最终门槛。
+
+返回工作簿时 `scripts/validate_user_execution.py` 先核验执行所有权、full-fidelity 配置和代码/数据哈希，再调用 `scripts/validate_numerical_evidence.py` 独立复核适用主数值证据；工作簿自行写出的“是否通过”不能替代机器可重算的证据一致性。v7.13 历史工作簿保持只读兼容；旧项目重新进入当前主求解时应按 v7.14 轨迹生成本问新工作簿。
+
 ```text
 题意口径冻结
 → 非破坏性数据审计 + 模型路线/输入需求比较
 → preprocessing_decision
 → 题面—数学—代码语义闭环
+→ Primary Quality Specification（只含当前主计算最低数值有效性）
 → 复杂度合理性复审
 → Independent Model Challenge
 → Human Model Approval（绑定 current semantic revision/hash）
@@ -59,11 +79,12 @@
 → validate_code_delivery.py：执行配置 + 代码工程质量门
 → 用户本地full_fidelity运行
 → 问题X求解结果.xlsx
-→ validate_user_execution.py验收运行配置、哈希与主结果质量门
+→ validate_user_execution.py：运行配置/哈希 + 主结果质量门 + numerical evidence独立复核
 → accepted后冻结问题X求解.py
+→ 才允许建立result_analysis_plan并进入Module 03B
 ```
 
-脚本必须保留与当前数据事实源对应的读取与字段检查、模型与求解器、目标/约束或题型核心检查、停止条件、约束/残差/收敛或外样本证据、结果整理、中文工作簿输出和主入口。代码规模、函数规模、参数数量、复杂度与反模式以 `core/code_quality_contract.yaml` 为唯一事实源。
+脚本必须保留与当前数据事实源对应的读取与字段检查、模型与求解器、目标/约束或题型核心检查、停止条件、PQS 要求的约束/残差/离散/收敛/主预测有效性证据、结果整理、中文工作簿输出和主入口。代码规模、函数规模、参数数量、复杂度与反模式以 `core/code_quality_contract.yaml` 为唯一事实源。
 
 代码实现必须服从 Module 02 的三层语义闭环：核心 Python 变量、函数、目标项、约束、阈值、预处理和输出都必须能够回溯到当前数学层；不得在代码阶段静默新增模型语义。
 
