@@ -194,7 +194,7 @@ numeric_consistency:
   - Tolerances must be non-negative; explicit violation magnitudes must also be non-negative.
   - For violation and residual rows, row Boolean must equal the value-versus-tolerance result.
   - For strict max-violation/max-residual/marked-relative-change protocols, quality-gate 实际值 must numerically match the recomputed evidence metric within comparison tolerance.
-  - `time_limit` or `max_iter` text in 运行配置 must never be interpreted by infrastructure as converged or globally optimal without separate admissibility evidence.
+  - '`time_limit` or `max_iter` text in 运行配置 must never be interpreted by infrastructure as converged or globally optimal without separate admissibility evidence.'
 
 legacy_compatibility:
   v7_13_workbook_without_verification_id: readable
