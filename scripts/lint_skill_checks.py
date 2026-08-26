@@ -23,7 +23,8 @@ REQUIRED = [
     "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml",
     "core/global_preprocessing_contract.yaml", "core/workbook_schema.yaml",
     "core/project_state.schema.yaml", "core/compile_profiles.yaml", "core/runtime_assurance_contract.yaml",
-    "core/model_approval_contract.yaml", "core/user_execution_contract.yaml", "core/code_quality_contract.yaml", "core/writing_reasoning_contract.yaml",
+    "core/model_approval_contract.yaml", "core/user_execution_contract.yaml", "core/code_quality_contract.yaml",
+    "core/numerical_verification_contract.yaml", "core/writing_reasoning_contract.yaml",
     "modules/01_problem_audit.md", "modules/02_model_design.md", "modules/03_data_preprocessing.md",
     "modules/03_solve_validate.md", "modules/03_result_analysis.md", "modules/04_figure_evidence.md",
     "modules/05_latex_compile_quality.md", "modules/05_writing/docx.md", "modules/05_writing/latex.md",
@@ -35,7 +36,7 @@ REQUIRED = [
     "templates/matlab/data_process.m", "templates/latex/cumcm/hsk/hsk_main.tex",
     "templates/latex/diangong/main.tex", "templates/writing/caption_explanation.md",
     "scripts/resolve_runtime.py", "scripts/runtime_assurance.py", "scripts/resolve_workflow.py", "scripts/validate_semantic_governance.py", "scripts/validate_model_approval.py", "scripts/sync_project.py",
-    "scripts/validate_code_delivery.py", "scripts/validate_user_execution.py", "scripts/audit_latex_project.py",
+    "scripts/validate_code_delivery.py", "scripts/validate_user_execution.py", "scripts/validate_numerical_evidence.py", "scripts/audit_latex_project.py",
     "scripts/audit_paper_prose.py", "scripts/latex_delivery.py",
     "scripts/validate_model_paper_framework.py", "scripts/validate_project_state.py",
     "scripts/score_submission.py", ".github/pull_request_template.md",
@@ -170,7 +171,7 @@ def check_skill_entrypoint_parity(errors: list[str]) -> None:
         errors.append("bootstrap startup_contract.resolver is required")
     required_tokens = (
         "core/bootstrap.yaml", "core/workflow_router.yaml", "core/hsk_core_policy.md",
-        runtime_resolver, "core/writing_reasoning_contract.yaml",
+        runtime_resolver, "core/writing_reasoning_contract.yaml", "core/numerical_verification_contract.yaml",
         "模型论文框架.md", "legacy/",
     )
     forbidden_tokens = (
@@ -363,8 +364,8 @@ def check_versions(errors: list[str]) -> None:
     if f"version: {PACKAGE_VERSION}" not in packaged:
         errors.append("packaged skill version mismatch")
     workbook = load_structured(ROOT / "core/workbook_schema.yaml") or {}
-    if workbook.get("schema_version") != "2.2.1":
-        errors.append("workbook schema version must be 2.2.1")
+    if workbook.get("schema_version") != "2.3.0":
+        errors.append("workbook schema version must be 2.3.0")
     compatibility = str(workbook.get("skill_compatibility", ""))
     if ">=6.3.2" not in compatibility or "<8.0.0" not in compatibility:
         errors.append("workbook schema compatibility must cover 6.3.2 through v7")
@@ -379,10 +380,14 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
         errors.append("bootstrap must declare code-quality authority")
     if data.get("authoritative_sources", {}).get("preprocessing") != "core/global_preprocessing_contract.yaml":
         errors.append("bootstrap must declare conditional preprocessing authority")
+    if data.get("authoritative_sources", {}).get("numerical_verification") != "core/numerical_verification_contract.yaml":
+        errors.append("bootstrap must declare primary numerical-verification authority")
     if data.get("authoritative_sources", {}).get("semantic_governance") != "scripts/validate_semantic_governance.py":
         errors.append("bootstrap must declare semantic-governance authority")
     if data.get("entrypoints", {}).get("semantic_governance") != "python scripts/validate_semantic_governance.py":
         errors.append("bootstrap must expose validate_semantic_governance.py")
+    if data.get("entrypoints", {}).get("validate_numerical_evidence") != "python scripts/validate_numerical_evidence.py":
+        errors.append("bootstrap must expose validate_numerical_evidence.py")
     if data.get("entrypoints", {}).get("sync") != "python scripts/sync_project.py":
         errors.append("bootstrap must expose sync_project.py")
     if data.get("entrypoints", {}).get("audit_paper_prose") != "python scripts/audit_paper_prose.py":
@@ -407,6 +412,7 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
         "core/global_preprocessing_contract.yaml",
         "core/user_execution_contract.yaml",
         "core/code_quality_contract.yaml",
+        "core/numerical_verification_contract.yaml",
     ):
         contract = load_structured(ROOT / relative) or {}
         if "skill_version" in contract:
@@ -544,6 +550,8 @@ def check_manifest(errors: list[str]) -> None:
         errors.append("manifest must register code-quality contract")
     if manifest.get("contracts", {}).get("preprocessing") != "core/global_preprocessing_contract.yaml":
         errors.append("manifest must register preprocessing contract")
+    if manifest.get("contracts", {}).get("numerical_verification") != "core/numerical_verification_contract.yaml":
+        errors.append("manifest must register primary numerical-verification contract")
     for token in ("problem_contract", "preprocessing_decision", "semantic_closure", "complexity_sanity_check", "semantic_governance_report"):
         if token not in catalog:
             errors.append(f"manifest lacks semantic artifact: {token}")
@@ -615,6 +623,9 @@ def check_manifest(errors: list[str]) -> None:
     code_gate = manifest.get("utility_gates", {}).get("code_delivery", {})
     if "code_quality_contract" not in code_gate.get("inputs", []):
         errors.append("code-delivery gate must consume code-quality contract")
+    receipt_gate = manifest.get("utility_gates", {}).get("user_execution_receipt", {})
+    if "numerical_verification" not in str(receipt_gate.get("rules", [])):
+        errors.append("user-execution receipt must declare numerical-verification recheck delegation")
 
 
 def check_contracts(errors: list[str]) -> None:
@@ -622,6 +633,7 @@ def check_contracts(errors: list[str]) -> None:
     quality = load_structured(ROOT / "core/code_quality_contract.yaml") or {}
     user_execution = load_structured(ROOT / "core/user_execution_contract.yaml") or {}
     preprocessing = load_structured(ROOT / "core/global_preprocessing_contract.yaml") or {}
+    numerical = load_structured(ROOT / "core/numerical_verification_contract.yaml") or {}
     decision_values = ((preprocessing.get("decision_gate") or {}).get("decision_values") or [])
     if decision_values != ["not_needed", "question_local", "project_level"]:
         errors.append("preprocessing contract must expose the three-state decision")
@@ -691,6 +703,8 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("output contract must reference code-quality contract")
     if output.get("preprocessing_contract") != "core/global_preprocessing_contract.yaml":
         errors.append("output contract must reference preprocessing contract")
+    if output.get("numerical_verification_contract") != "core/numerical_verification_contract.yaml":
+        errors.append("output contract must reference numerical-verification contract")
     if output.get("writing_reasoning_contract") != "core/writing_reasoning_contract.yaml":
         errors.append("output contract must reference writing-reasoning contract")
     semantic = output.get("semantic_governance", {})
@@ -705,10 +719,20 @@ def check_contracts(errors: list[str]) -> None:
         "model_approval_authority": "core/model_approval_contract.yaml",
         "semantic_governance_authority": "scripts/validate_semantic_governance.py",
         "code_quality_authority": "core/code_quality_contract.yaml",
+        "numerical_verification_authority": "core/numerical_verification_contract.yaml",
     }
     for key, expected in expected_execution_authorities.items():
         if execution.get(key) != expected:
             errors.append(f"execution policy authority mismatch: {key}")
+
+    primary_rule = str((numerical.get("authority_boundary") or {}).get("primary_rule", ""))
+    for token in ("alternative algorithms", "result analysis after the primary workbook is accepted"):
+        if token not in primary_rule:
+            errors.append(f"numerical verification authority lacks primary/result-analysis boundary token: {token}")
+    forbidden_primary = set((numerical.get("scope") or {}).get("forbidden_as_primary_quality", []))
+    for token in ("parameter_sensitivity", "scenario_stress_testing", "alternative_algorithm_comparison", "heterogeneity_analysis"):
+        if token not in forbidden_primary:
+            errors.append(f"numerical verification authority must keep post-acceptance work out of primary: {token}")
 
     policy = output.get("writing_policy", {})
     expected_pointers = {
@@ -765,6 +789,10 @@ def check_contracts(errors: list[str]) -> None:
     result_policy = output.get("result_policy", {})
     if result_policy.get("primary_quality_gate_required") is not True:
         errors.append("primary result quality gate must be required")
+    if result_policy.get("primary_numerical_validity_authority") != "core/numerical_verification_contract.yaml":
+        errors.append("result policy must delegate primary numerical validity to numerical-verification authority")
+    if result_policy.get("primary_numerical_recheck_required_for_v714_trace") is not True:
+        errors.append("v7.14 result policy must require independent numerical recheck for strict trace")
     if result_policy.get("fixed_perturbation_forbidden") is not True:
         errors.append("fixed perturbation must be forbidden")
     if result_policy.get("result_analysis_dispositions") != ["support", "modify", "reject"]:
@@ -793,13 +821,17 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("user execution contract must expose conditional preprocessing_script separately")
     if delivery.get("semantic_governance_required") is not True:
         errors.append("user execution code delivery must require semantic governance")
+    if delivery.get("primary_quality_protocol_version") != "1.0.0":
+        errors.append("v7.14 primary code delivery must bind primary_quality_protocol_version=1.0.0")
+    if "已交付主求解代码" not in str(delivery.get("primary_quality_protocol_binding", "")):
+        errors.append("v7.14 receipt protocol must bind to the actually delivered primary code")
     forbidden = set(delivery.get("standalone_files_forbidden_by_default") or [])
     if "问题X结果深化分析.py" in forbidden:
         errors.append("analysis script must not be forbidden")
     acceptance_rules = "\n".join((user_execution.get("returned_workbook") or {}).get("acceptance_rules", []))
-    for token in ("实际路径", "标准文件名", "problem_name", "stage"):
+    for token in ("实际路径", "标准文件名", "problem_name", "stage", "不得通过省略"):
         if token not in acceptance_rules:
-            errors.append(f"returned-workbook contract lacks identity binding token: {token}")
+            errors.append(f"returned-workbook contract lacks identity/protocol binding token: {token}")
     sync = output.get("project_sync", {})
     expected_scopes = {"design", "code", "results", "figures", "docx", "latex", "submission"}
     requirements = sync.get("stage_requirements", {}) or {}
@@ -830,10 +862,10 @@ def check_contracts(errors: list[str]) -> None:
     runtime = workbook.get("runtime_enforcement", {}) or {}
     if "artifact_checker" in runtime:
         errors.append("workbook schema still references removed artifact_checker")
-    for key in ("code_delivery_checker", "returned_workbook_checker", "project_sync", "shared_validator"):
+    for key in ("code_delivery_checker", "returned_workbook_checker", "numerical_evidence_checker", "numerical_evidence_authority", "project_sync", "shared_validator"):
         value = runtime.get(key)
         if not value or not (ROOT / value).is_file():
-            errors.append(f"workbook runtime checker missing: {key} -> {value}")
+            errors.append(f"workbook runtime checker/authority missing: {key} -> {value}")
     handoff = workbook.get("matlab_handoff", {}).get("evidence_chain", {}) or {}
     if handoff.get("declared_export_must_exist") is not False:
         errors.append("workbook MATLAB handoff must not require exported figures by default")
@@ -845,6 +877,9 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("workbook schema must forbid empty worksheets")
     if "主结果质量门" not in workbook.get("solution_workbook", {}).get("common_required_sheets", {}):
         errors.append("solution workbook must persist the quality gate")
+    quality_spec = workbook.get("solution_workbook", {}).get("common_required_sheets", {}).get("主结果质量门", {}) or {}
+    if not {"Verification ID", "判定关系", "证据工作表", "阈值来源"}.issubset(set(quality_spec.get("optional_columns", []))):
+        errors.append("v7.14 quality gate schema must expose additive strict trace fields")
     analysis = workbook.get("result_analysis_workbook", {})
     if not {"分析设计", "结论稳定性汇总"}.issubset(analysis.get("common_required_sheets", {})):
         errors.append("result-analysis workbook lacks required plan/report sheets")
@@ -874,6 +909,8 @@ def check_project_state_and_framework(errors: list[str]) -> None:
         errors.append(f"project state lacks semantic fields: {sorted(semantic_fields - set(fields))}")
     if not {"code", "result_analysis_code", "primary_code_sha256", "analysis_code_sha256", "analysis_evidence_dispositions"}.issubset(fields):
         errors.append("project state must expose both stage-specific code paths/hashes and analysis_evidence_dispositions")
+    if "primary_quality_protocol_version" in fields:
+        errors.append("v7.14 protocol binding must not add a long-lived project-state schema field")
     phases = set(schema["properties"]["project"]["properties"]["current_phase"]["enum"])
     if "result_analysis" not in phases or "data_preprocessing" not in phases:
         errors.append("project state phases must include data_preprocessing and result_analysis")
@@ -937,13 +974,17 @@ def check_templates(errors: list[str]) -> None:
         if token not in semantic:
             errors.append(f"semantic governance validator lacks token: {token}")
     validator = read_text(ROOT / "scripts/validate_code_delivery.py")
-    for token in ("QUALITY_CONTRACT", "code_quality_findings", "nonblank_lines", "forbidden_import_roots", "结果深化分析.py", "result_analysis_code", "unchanged_accepted", "preprocessing", "数据预处理.py"):
+    for token in ("QUALITY_CONTRACT", "code_quality_findings", "nonblank_lines", "forbidden_import_roots", "结果深化分析.py", "result_analysis_code", "unchanged_accepted", "preprocessing", "数据预处理.py", "primary_quality_protocol_version"):
         if token not in validator:
             errors.append(f"code delivery validator lacks quality/conditional-stage token: {token}")
     receipt = read_text(ROOT / "scripts/validate_user_execution.py")
-    for token in ("workbook_identity", "工作簿文件名对应", "problem_name与工作簿目录/文件名不一致", "预处理质量门", "project_level"):
+    for token in ("workbook_identity", "工作簿文件名对应", "problem_name与工作簿目录/文件名不一致", "预处理质量门", "project_level", "validate_primary_numerical_evidence", "delivered_primary_protocol"):
         if token not in receipt:
-            errors.append(f"returned-workbook validator lacks conditional identity-binding token: {token}")
+            errors.append(f"returned-workbook validator lacks conditional identity/numerical-binding token: {token}")
+    numerical_validator = read_text(ROOT / "scripts/validate_numerical_evidence.py")
+    for token in ("Verification ID", "阈值来源", "marked_relative_change", "marked_boolean", "task_code_executed"):
+        if token not in numerical_validator:
+            errors.append(f"numerical evidence validator lacks strict v7.14 token: {token}")
     audit = read_text(ROOT / "modules/01_problem_audit.md")
     design = read_text(ROOT / "modules/02_model_design.md")
     preprocessing = read_text(ROOT / "modules/03_data_preprocessing.md")
@@ -952,9 +993,9 @@ def check_templates(errors: list[str]) -> None:
     for token in ("Problem Contract", "禁止假设", "data", "parameter", "model", "result"):
         if token not in audit:
             errors.append(f"problem audit lacks semantic freeze token: {token}")
-    for token in ("题面—数学—代码—输出语义闭环", "复杂度合理性复审", "semantic_revision", "review_required", "preprocessing_decision", "Citation Evidence", "Algorithm Trace"):
+    for token in ("题面—数学—代码—输出语义闭环", "复杂度合理性复审", "semantic_revision", "review_required", "preprocessing_decision", "Citation Evidence", "Algorithm Trace", "Primary Quality Specification"):
         if token not in design:
-            errors.append(f"model design lacks semantic/writing governance token: {token}")
+            errors.append(f"model design lacks semantic/writing/numerical governance token: {token}")
     if "3--5 个关键假设" in design or "3—5 个关键假设" in design:
         errors.append("model design must not restore a fixed assumption quota")
     for token in ("按必要性而非数量保留", "共享假设", "局部假设"):
@@ -967,6 +1008,8 @@ def check_templates(errors: list[str]) -> None:
         errors.append("solve module must require semantic governance")
     if "冻结问题X求解.py" not in solve or "问题X结果深化分析.py" not in analysis:
         errors.append("solve/result-analysis modules must enforce frozen primary and separate analysis script")
+    if "不得把参数敏感性" not in solve or "不得被主求解质量门提前吸收" not in analysis:
+        errors.append("v7.14 must preserve the primary-quality/result-analysis boundary")
     for token in ("support", "modify", "reject", "target claim"):
         if token not in analysis:
             errors.append(f"result-analysis module lacks evidence-disposition token: {token}")
@@ -1068,6 +1111,8 @@ def check_templates(errors: list[str]) -> None:
             errors.append(f"active entry lacks conditional preprocessing summary: {relative}")
         if "Algorithm Trace" not in text:
             errors.append(f"active entry lacks v7.8 Algorithm Trace summary: {relative}")
+        if "core/numerical_verification_contract.yaml" not in text:
+            errors.append(f"active entry lacks v7.14 primary numerical-verification authority pointer: {relative}")
     removed_checker = "hsk_check_" + "artifact.py"
     lint_path = ROOT / "scripts/lint_skill.py"
     for path in active_files():

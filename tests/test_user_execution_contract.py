@@ -61,13 +61,16 @@ class UserExecutionContractTests(unittest.TestCase):
         return code
 
     def config(self, stage: str, workbook: str) -> dict:
-        return {
+        config = {
             "execution_owner": "user", "execution_profile": "full_fidelity", "stage": stage,
             "problem_name": "问题一", "data_paths": ["data.csv"], "data_sha256": "a" * 64,
             "solver": "test", "solver_version": "1", "random_seed": 2026, "tolerance": 1e-8,
             "iteration_or_time_limit": "full", "expected_workbook": workbook,
             **{flag: False for flag in FALSE_FLAGS},
         }
+        if stage == "primary":
+            config["primary_quality_protocol_version"] = "1.0.0"
+        return config
 
     def write_code(self, path: Path, config: dict, marker: int = 0) -> None:
         path.write_text(
@@ -94,8 +97,17 @@ class UserExecutionContractTests(unittest.TestCase):
         for key, value in items.items():
             sheet.append([key, value])
         quality = book.create_sheet("主结果质量门")
-        quality.append(["检查项", "是否通过", "证据"])
-        quality.append(["完整运行", True, "ok"])
+        quality.append([
+            "Verification ID", "检查项", "是否通过", "证据", "判定关系",
+            "阈值或容差", "实际值", "证据工作表", "阈值来源",
+        ])
+        quality.append([
+            "PQ-Q1-01", "完整主计算", True, "基础证据", "bool_true",
+            True, True, "基础数值证据", "solver_tolerance",
+        ])
+        evidence = book.create_sheet("基础数值证据")
+        evidence.append(["检查项", "数值"])
+        evidence.append(["full_fidelity", 1])
         book.save(workbook)
         return workbook
 
@@ -120,7 +132,7 @@ class UserExecutionContractTests(unittest.TestCase):
         return workbook
 
     def runtime_items(self, stage: str, code: Path, data_hash: str) -> dict:
-        return {
+        items = {
             "execution_owner": "user", "execution_profile": "full_fidelity", "stage": stage,
             "problem_name": "问题一", "code_sha256": hashlib.sha256(code.read_bytes()).hexdigest(),
             "data_sha256": data_hash, "solver": "test", "solver_version": "1", "tolerance": 1e-8,
@@ -128,6 +140,9 @@ class UserExecutionContractTests(unittest.TestCase):
             "repetitions_or_scenarios": 100, "grid_or_time_range": "full", "fallback_used": False,
             "platform": "test", **{flag: False for flag in FALSE_FLAGS},
         }
+        if stage == "primary":
+            items["primary_quality_protocol_version"] = "1.0.0"
+        return items
 
     def accept_primary(self, root: Path, code: Path) -> dict:
         _, config = CODE.validate_script(root, code, "primary")
@@ -164,6 +179,20 @@ class UserExecutionContractTests(unittest.TestCase):
             code.write_text(text, encoding="utf-8")
             issues, _ = CODE.validate_script(root, code, "primary")
             self.assertTrue(any("allow_reduced_data" in item for item in issues))
+
+    def test_primary_protocol_marker_is_required_only_for_primary(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            primary = self.make_project(root)
+            text = primary.read_text(encoding="utf-8").replace(
+                ", 'primary_quality_protocol_version': '1.0.0'", ""
+            )
+            primary.write_text(text, encoding="utf-8")
+            issues, _ = CODE.validate_script(root, primary, "primary")
+            self.assertTrue(any("primary_quality_protocol_version" in item for item in issues))
+            analysis = self.make_analysis_code(root)
+            analysis_issues, _ = CODE.validate_script(root, analysis, "analysis")
+            self.assertFalse(any("primary_quality_protocol_version" in item for item in analysis_issues))
 
     def test_primary_workbook_acceptance_marks_solved(self):
         with tempfile.TemporaryDirectory() as temp:

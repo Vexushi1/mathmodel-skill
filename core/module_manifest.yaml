@@ -1,4 +1,4 @@
-version: 7.13.0
+version: 7.14.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -18,6 +18,7 @@ contracts:
   user_execution: core/user_execution_contract.yaml
   code_quality: core/code_quality_contract.yaml
   writing_reasoning: core/writing_reasoning_contract.yaml
+  numerical_verification: core/numerical_verification_contract.yaml
   framework_template: templates/model/model_paper_framework.md
   compile_profiles: core/compile_profiles.yaml
 external_artifacts:
@@ -60,7 +61,7 @@ artifact_catalog:
   proposition_plan: 全文高价值命题规划；0--4为默认正文阅读预算，超过预算时记录必要性说明而非自动否决
   model_paper_framework: 助手可再次读取的当前项目语义记忆与论文骨架；只保存Problem Contract、预处理判定、模型语义、Formula Trace、Algorithm Trace、Model Challenge/Human Approval当前状态、参数证据、Terminology Registry、Numeric Profile、Title Claim、命题、Citation Evidence、paper-fragment状态、逐问结果摘要和图表映射，通用写作规则由Authority管理，具体数值仍以已验收工作簿为准
   mechanism_contracts: 机理图合同
-  validation_plan: 建模阶段识别的风险与候选验证方向
+  validation_plan: 建模阶段的验证规划；其中Primary Quality Specification只定义当前主计算的最低数值有效性要求，参数敏感性、压力场景、替代算法/结构、异质性等仅作为下游风险提示，正式result_analysis_plan必须等主工作簿accepted后再建立
   semantic_governance_report: 聊天或标准输出中的Problem Contract、语义闭环、复杂度复审、语义哈希、跨问和paper-fragment stale校验结果
   preprocessing_code: 仅decision=project_level时生成的数据预处理/数据预处理.py；共享原始数据唯一公共处理入口
   preprocessing_workbook: 仅decision=project_level时生成的数据预处理/数据预处理结果.xlsx；依赖小问的统一数值数据入口，同时保存论文方法验证和MATLAB绘图底层证据
@@ -68,19 +69,19 @@ artifact_catalog:
   preprocessing_matlab_script: 仅project_level在figure_evidence阶段生成的数据预处理/data_process.m；只读预处理工作簿绘制处理前后与验证证据
   preprocessing_figures: 由data_process.m形成并人工确认的预处理必要性/有效性证据图；默认不要求自动导出文件
   awaiting_user_preprocessing: decision=project_level且预处理代码已交付后等待用户本地运行的暂停状态
-  python_code: 问题X求解/问题X求解.py；只负责主求解，主工作簿accepted后冻结
-  result_analysis_code: 问题X求解/问题X结果深化分析.py；主工作簿accepted后独立生成，只负责深化分析并记录support/modify/reject对具体claim的作用
+  python_code: 问题X求解/问题X求解.py；只负责主求解与当前主计算必需的内在数值有效性检查，主工作簿accepted后冻结
+  result_analysis_code: 问题X求解/问题X结果深化分析.py；主工作簿accepted后独立生成，只负责敏感性、稳健性、替代方法/结构、阈值、异质性等深化分析并记录support/modify/reject对具体claim的作用
   stage_python_code: 当前代码交付阶段的题目专属Python文件；data_preprocessing仅在project_level时映射统一预处理脚本，solve_validate映射主求解脚本，result_analysis映射深化分析脚本
   full_run_config: 分别嵌入对应阶段Python和工作簸运行配置表的完整精度参数，不单独落盘
   execution_instructions: 聊天内给出的本地运行步骤，不单独落盘
   code_delivery_report: 聊天或标准输出中的静态交付检查结果，不单独落盘
   awaiting_user_execution: 等待用户本地运行并返回工作簿的暂停状态
-  user_execution_validation_report: 用户返回工作簿的运行配置、哈希和质量门验收报告
+  user_execution_validation_report: 用户返回工作簿的运行配置、哈希、主质量门与v7.14主数值证据独立复核报告；结果深化分析仍按独立analysis验收语义处理
   solution_workbook: 用户返回并验收的主求解结果工作簿
-  result_quality_report: 主结果精度、收敛、可行性和基础正确性报告
-  solved_results: 已通过主结果质量门的结果
-  constraint_checks: 约束、残差、守恒、离散或收敛检查
-  result_analysis_plan: 基于主结果风险选择的深化分析计划
+  result_quality_report: 当前locked model与声明数值方法下，本次主计算的精度、收敛、可行性、残差等内在数值有效性报告；不包含参数敏感性、压力场景或替代方法稳健性
+  solved_results: 已通过主结果质量门与适用主数值证据复核的结果
+  constraint_checks: 约束、残差、守恒、离散或收敛等主计算内在正确性检查
+  result_analysis_plan: 主工作簿accepted后，基于真实主结果风险选择的参数敏感性、场景压力、替代算法/结构、阈值、异质性、误差分解或外样本稳定性计划
   result_analysis_workbook: 用户返回并验收的结果深化分析工作簿
   result_analysis_report: 实际深化分析报告；入文证据需说明target claim及support/modify/reject处置
   validated_results: 通过结果深化分析且可用于写作的结果
@@ -107,7 +108,7 @@ artifact_catalog:
   project_state: 项目机器状态
   sync_report: 项目同步器生成的发现、Schema校验、分层哈希、stale和证据链报告
   figure_evidence: 由当前数据事实源、预处理/结果工作簿与对应MATLAB脚本形成的逻辑证据，不默认生成独立文件
-  accepted_solution_workbook: 通过运行配置、哈希和主结果质量门验收的主工作簿
+  accepted_solution_workbook: 通过运行配置、哈希、主结果质量门以及适用v7.14主数值证据独立复核的主工作簿
   accepted_result_analysis_workbook: 通过运行配置和结论稳定性验收的结果深化工作簿
 modules:
   problem_audit:
@@ -176,6 +177,7 @@ modules:
     - semantic_closure
     - complexity_sanity_check
     - proposition_plan
+    - validation_plan
     - model_paper_framework
     - data_schema
     - data
@@ -354,6 +356,10 @@ utility_gates:
     - result_analysis_workbook
     - accepted_result_analysis_workbook
     - validated_results
+    rules:
+    - Primary workbook acceptance first validates execution provenance and the Boolean quality gate, then independently rechecks applicable intrinsic numerical evidence through core/numerical_verification_contract.yaml and scripts/validate_numerical_evidence.py.
+    - The numerical recheck never runs task-specific code and never performs parameter sensitivity, stress scenarios, alternative-method comparison or other result-analysis work.
+    - Result-analysis workbook acceptance remains governed by its own analysis-design and conclusion-stability semantics after the primary workbook is accepted.
   project_sync:
     path: scripts/sync_project.py
     command: python scripts/sync_project.py <project_root> --write --strict --delivery-scope <delivery_scope>
