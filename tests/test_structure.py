@@ -25,11 +25,12 @@ OBSOLETE_ROOT_ARTIFACTS = (
     "HSK_TEMPLATE_INDEX_V621.md",
     "PROJECT_INSTRUCTIONS_HSK_V621.md",
 )
-OLD_TITLE_PHRASES = (
-    "图内不重复总标题",
-    "图内不重复放总标题",
-    "图题由 LaTeX 图注承担",
-    "图内是否没有重复总标题",
+OBSOLETE_EMBEDDED_TITLE_PHRASES = (
+    "单图使用简洁 `title`，多面板使用一个整体 `sgtitle`",
+    "单图使用 `title`，多面板使用一个 `sgtitle`",
+    "MATLAB正式图缺少title或sgtitle",
+    "data_process.m缺少title或sgtitle",
+    "MATLAB 图内可保留简洁 `title/sgtitle`",
 )
 
 
@@ -77,8 +78,10 @@ class TestStructure(unittest.TestCase):
             "core/output_contract.yaml",
             "core/workbook_schema.yaml",
             "core/project_state.schema.yaml",
+            "core/numerical_verification_contract.yaml",
             "templates/model/model_paper_framework.md",
             "scripts/validate_model_paper_framework.py",
+            "scripts/validate_numerical_evidence.py",
         ]:
             self.assertTrue((ROOT / relative).is_file(), relative)
 
@@ -136,7 +139,7 @@ class TestStructure(unittest.TestCase):
                         violations.append(path.relative_to(ROOT).as_posix())
         self.assertEqual(violations, [])
 
-    def test_active_files_do_not_keep_old_no_title_rules(self):
+    def test_active_files_do_not_require_embedded_formal_titles(self):
         violations = []
         skipped = {
             Path(__file__).resolve(),
@@ -152,10 +155,18 @@ class TestStructure(unittest.TestCase):
                 if path.resolve() in skipped:
                     continue
                 text = path.read_text(encoding="utf-8-sig", errors="strict")
-                for phrase in OLD_TITLE_PHRASES:
+                for phrase in OBSOLETE_EMBEDDED_TITLE_PHRASES:
                     if phrase in text:
                         violations.append(f"{path.relative_to(ROOT).as_posix()}: {phrase}")
         self.assertEqual(violations, [])
+
+    def test_formal_matlab_templates_have_no_executable_overall_title(self):
+        for relative in ("templates/matlab/q1_plot.m", "templates/matlab/data_process.m"):
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            code_lines = [line.split("%", 1)[0] for line in text.splitlines()]
+            code = "\n".join(code_lines)
+            self.assertIsNone(re.search(r"\btitle\s*\(", code, flags=re.IGNORECASE), relative)
+            self.assertIsNone(re.search(r"\bsgtitle\s*\(", code, flags=re.IGNORECASE), relative)
 
     def test_gitattributes_forces_lf(self):
         attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
