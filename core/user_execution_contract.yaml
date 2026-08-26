@@ -1,7 +1,8 @@
-version: 2.2.0
+version: 2.3.0
 introduced_in_skill_version: 7.4.2
 skill_compatibility: '>=7.4.2,<8.0.0'
-purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界，每问主求解与结果深化分析继续使用两个独立Python脚本。project_level工作簿还必须保存论文数学方法、验证和data_process.m绘图所需证据。
+purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界，每问主求解与结果深化分析继续使用两个独立Python脚本。v7.14起新生成主求解还绑定Primary Quality Specification与主数值证据独立复核，但不得把结果深化分析提前塞进主求解。
+numerical_verification_authority: core/numerical_verification_contract.yaml
 default_mode:
   execution_owner: user
   execution_profile: full_fidelity
@@ -14,10 +15,11 @@ assistant_policy:
   - 在完整版失败后静默切换轻量模型、替代求解器、粗粒度近似或演示结果
   - 用户未返回相应工作簿前声称已完成项目级预处理、已求解、已分析或已得到正式数值
   - 因多问共享同一原始数据、检测到缺失值或某类赛题通常采用某处理方法而自动生成或强制执行项目级预处理
+  - 为了让主工作簿看起来“验证充分”而把参数敏感性、压力场景、替代算法/结构、多seed稳健性、异质性或广义外样本稳定性提前写入问题X求解.py
   allowed:
-  - 审题、通用数据审计、preprocessing_decision、模型设计、公式闭环和完整版代码生成
+  - 审题、通用数据审计、preprocessing_decision、模型设计、公式闭环、Primary Quality Specification和完整版代码生成
   - 不导入赛题脚本的静态代码、依赖、语法和工程质量检查
-  - 读取用户返回的工作簿并执行Schema、哈希、质量门和证据一致性校验
+  - 读取用户返回的工作簿并执行Schema、哈希、质量门和主数值证据一致性校验
   - 在预处理工作簿accepted、主求解与结果深化分析完成后，于Figure Evidence阶段生成data_process.m；该MATLAB脚本只读工作簿绘图，不执行数值预处理
   - 运行本Skill仓库自身的lint、单元测试、索引生成和LaTeX模板CI
 full_fidelity_flags:
@@ -85,6 +87,11 @@ code_delivery:
   - allow_fewer_repetitions
   - allow_relaxed_tolerance
   - allow_silent_solver_fallback
+  stage_required_config_fields:
+    primary:
+    - primary_quality_protocol_version
+  primary_quality_protocol_version: 1.0.0
+  primary_quality_protocol_marker_scope: primary_only
   no_placeholder_markers:
   - TODO
   - FIXME
@@ -96,13 +103,14 @@ three_stage_policy:
     role: 读取需要统一处理的共享原始数据，冻结covered_raw_sources，执行通用审计和已批准公共处理，输出数据预处理结果.xlsx；同时保存论文公式/方法证据、处理前后对比、验证和data_process绘图底层数据
     freeze_after: preprocessing_workbook_accepted
   primary:
-    role: 首次交付问题X求解.py，只负责主求解并输出问题X求解结果.xlsx；主工作簿accepted后该脚本冻结，不为结果深化分析改写。
+    role: 首次交付问题X求解.py，只负责主求解与PQS要求的当前主计算内在数值有效性检查并输出问题X求解结果.xlsx；主工作簿accepted后该脚本冻结，不为结果深化分析改写。
     input_by_decision:
       not_needed: 原始数据
       question_local: 原始数据 + 本问语义中已定义的局部变换
       project_level: 已验收数据预处理结果.xlsx
+    primary_quality_boundary: 参数敏感性、压力场景、替代算法/结构、多seed/多初值结论稳定性、异质性、误差分解和广义外样本稳定性不属于本阶段
   analysis:
-    role: 主工作簿accepted后新建问题X结果深化分析.py，继承同一preprocessing_decision与数据事实源，输出问题X结果深化分析.xlsx。
+    role: 主工作簿accepted后新建问题X结果深化分析.py，继承同一preprocessing_decision与数据事实源，依据真实主结果执行敏感性、稳健性、阈值、替代方法/结构、异质性等深化分析，输出问题X结果深化分析.xlsx。
   isolation: 修改深化分析脚本不得改变主求解代码哈希、主工作簿或主结果质量状态；修改主求解脚本则主结果及其全部下游重新进入待验收状态；修改project_level预处理则依赖该数据口径的小问进入stale；修改data_process.m只影响预处理图表/论文层。
 execution_states:
   preprocessing:
@@ -132,11 +140,12 @@ execution_states:
   - preprocessing_decision=not_needed或question_local时，preprocessing状态应为not_applicable或不生成该阶段，不得阻塞primary。
   - preprocessing_decision=project_level时，preprocessing=accepted且预处理质量门通过后才能进入primary。
   - 代码交付不得把小问status提升为solved或analyzed。
-  - primary_execution_status=accepted且主结果质量门通过后，status才可进入solved。
+  - primary_execution_status=accepted且主结果质量门及适用主数值证据复核通过后，status才可进入solved。
   - analysis_execution_status=accepted且结论稳定性校验通过后，status才可进入analyzed。
   - 主工作簿未验收前不得生成最终结果深化分析脚本；只能形成候选分析方向。
 returned_workbook:
   semantic_governance_required: true
+  numerical_evidence_checker: scripts/validate_numerical_evidence.py
   required_sheet: 运行配置
   required_columns:
   - 项目
@@ -164,6 +173,9 @@ returned_workbook:
   - allow_fewer_repetitions
   - allow_relaxed_tolerance
   - allow_silent_solver_fallback
+  stage_required_items:
+    primary_v714_writer:
+    - primary_quality_protocol_version
   preprocessing_required_sheets_when_project_level:
   - 运行配置
   - 数据审计
@@ -182,7 +194,9 @@ returned_workbook:
   - 主/深化工作簿实际路径与标准文件名必须解析出唯一problem_name和stage，再与运行配置完全一致；当前项目只接受问题X求解/中的两个标准工作簿，旧结果数据表/问题X/仅作只读兼容。
   - preprocessing工作簿code_sha256必须与已交付数据预处理.py一致；主工作簿与深化工作簿分别绑定两阶段小问Python哈希。
   - data_sha256必须与对应阶段代码交付时锁定的数据哈希完全一致。
-  - preprocessing工作簿必须通过预处理质量门，并包含预处理方法证据、处理前后对比、绘图数据索引以及供data_process.m使用的真实底层数据；主结果工作簿必须通过主结果质量门；结果深化分析工作簿必须包含分析设计和结论稳定性汇总。
+  - preprocessing工作簿必须通过预处理质量门，并包含预处理方法证据、处理前后对比、绘图数据索引以及供data_process.m使用的真实底层数据。
+  - 主结果工作簿必须通过主结果质量门；当运行配置声明primary_quality_protocol_version或主结果质量门出现Verification ID时，还必须按core/numerical_verification_contract.yaml独立复核适用底层数值证据，不能只相信工作簿自报Boolean。
+  - 结果深化分析工作簿必须在主工作簿accepted后验收，并包含分析设计和结论稳定性汇总；其参数敏感性、压力场景、替代方法/结构、多seed/多初值、异质性等证据不得被主结果质量门替代或提前吸收。
   - 插值、填补、预测修复、滤波、异常处理等实质操作的验证结论必须与预处理质量门一致；不得只提供摘要数字而缺少可绘图/可复核底层证据。
 filenames:
   preprocessing_directory: 数据预处理/
@@ -198,7 +212,8 @@ filenames:
   legacy_result_directory: 结果数据表/问题X/
   validation_reports: 仅在聊天或标准输出返回，不写入用户项目
 legacy_compatibility:
+  v7_13_primary_workbook_without_verification_id: read_only_supported
   v7_2_0_preprocessing_without_decision: read_only_until_redesign
   v7_0_semantic_governance_fields: read_only_until_redesign
   v6_6_single_evolving_script: read_only
-  rule: 旧项目可继续读取已有产物；v7.2.0--v7.2.2项目重新进入模型设计/预处理/绘图/写作时沿用三态decision并按当前通用审计与证据规则复核；只读历史交付不强制反向补data_process.m；更早项目重新进入当前流程时先补齐preprocessing_decision，只有project_level才要求统一预处理；重新深化分析时使用独立问题X结果深化分析.py。
+  rule: 旧项目可继续读取已有产物；v7.13及更早主工作簿只读时不强制反向补Verification ID；重新进入当前主求解时该问按v7.14主数值质量轨迹重新生成。v7.2.0--v7.2.2项目重新进入模型设计/预处理/绘图/写作时沿用三态decision并按当前通用审计与证据规则复核；只读历史交付不强制反向补data_process.m；更早项目重新进入当前流程时先补齐preprocessing_decision，只有project_level才要求统一预处理；重新深化分析时使用独立问题X结果深化分析.py。
