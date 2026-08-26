@@ -59,6 +59,11 @@ class V714NumericalVerificationTests(unittest.TestCase):
             "heterogeneity_analysis",
         ):
             self.assertIn(token, forbidden)
+        pqs = contract["primary_quality_specification"]
+        self.assertIn("threshold_source", pqs["required_item_fields"])
+        trace = contract["strict_v714_trace"]
+        self.assertTrue(trace["force_strict_when_delivered_protocol_bound"])
+        self.assertTrue(trace["legacy_when_absent_only_without_current_protocol_binding"])
 
     def test_feasibility_contradiction_is_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
