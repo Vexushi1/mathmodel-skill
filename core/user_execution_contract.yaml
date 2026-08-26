@@ -92,6 +92,7 @@ code_delivery:
     - primary_quality_protocol_version
   primary_quality_protocol_version: 1.0.0
   primary_quality_protocol_marker_scope: primary_only
+  primary_quality_protocol_binding: 已交付主求解代码FULL_FIDELITY_CONFIG + 返回主工作簸运行配置；receipt静态读取已交付代码并核对代码SHA，不新增project_state字段
   no_placeholder_markers:
   - TODO
   - FIXME
@@ -195,7 +196,8 @@ returned_workbook:
   - preprocessing工作簿code_sha256必须与已交付数据预处理.py一致；主工作簿与深化工作簿分别绑定两阶段小问Python哈希。
   - data_sha256必须与对应阶段代码交付时锁定的数据哈希完全一致。
   - preprocessing工作簿必须通过预处理质量门，并包含预处理方法证据、处理前后对比、绘图数据索引以及供data_process.m使用的真实底层数据。
-  - 主结果工作簿必须通过主结果质量门；当运行配置声明primary_quality_protocol_version或主结果质量门出现Verification ID时，还必须按core/numerical_verification_contract.yaml独立复核适用底层数值证据，不能只相信工作簿自报Boolean。
+  - 新v7.14主求解验收时，receipt必须静态读取项目状态登记的已交付主求解代码，先核对其实际SHA-256与primary_code_sha256，再从该代码FULL_FIDELITY_CONFIG读取primary_quality_protocol_version；返回主工作簿必须携带同一协议版本。不得通过省略工作簿协议标记或Verification ID降级为legacy质量门。
+  - 主结果工作簿必须通过主结果质量门；当已交付代码绑定v7.14协议、运行配置声明primary_quality_protocol_version或主结果质量门出现Verification ID时，还必须按core/numerical_verification_contract.yaml独立复核适用底层数值证据，不能只相信工作簿自报Boolean。
   - 结果深化分析工作簿必须在主工作簿accepted后验收，并包含分析设计和结论稳定性汇总；其参数敏感性、压力场景、替代方法/结构、多seed/多初值、异质性等证据不得被主结果质量门替代或提前吸收。
   - 插值、填补、预测修复、滤波、异常处理等实质操作的验证结论必须与预处理质量门一致；不得只提供摘要数字而缺少可绘图/可复核底层证据。
 filenames:
