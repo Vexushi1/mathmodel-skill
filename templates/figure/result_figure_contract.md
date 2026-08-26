@@ -5,8 +5,8 @@
 | Figure ID | 图 X |
 | Core conclusion | 一句话核心结论 |
 | Figure role | 趋势 / 分布 / 诊断 / 敏感性 / 鲁棒性 / Pareto / 空间 / 网络 / 构成 / 多维画像 |
-| MATLAB title | 单图 `title` 或多面板 `sgtitle` 的简洁中文标题 |
-| DOCX/LaTeX caption | 图下题注，补充样本、统计口径、时间范围和误差，不与 MATLAB title 逐字重复 |
+| DOCX/LaTeX caption | 正式图号与图名；必要时补充样本、统计口径、时间范围和误差 |
+| In-figure title | 正式论文图固定为 `none`；不设置整体 `title` / `sgtitle`，多面板按需只保留 a/b/c/d 等 panel label |
 | Chart type | 折线图 / 条形图 / 散点图 / 区间图 / 热力图 / Pareto / 网络图 / 其他 |
 | Efficiency rationale | 相较替代图如何提高可验证信息密度 |
 | Enhancement | 可选：none / Local Zoom / Small Multiples / Focus Highlighting / Semantic Background / Composite Diagnostic / Conditional 3D；可合理组合 |
