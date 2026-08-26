@@ -79,7 +79,10 @@ class TestV712RuntimeAssurance(unittest.TestCase):
 
     def test_default_runtime_adds_assurance_without_breaking_legacy_plan(self):
         plan = self.runtime.resolve_runtime("problem_analysis")
-        self.assertEqual(plan["version"], "7.12.0")
+        current_version = yaml.safe_load(
+            (ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8")
+        )["skill_version"]
+        self.assertEqual(plan["version"], current_version)
         self.assertIn("runtime_plan", plan)
         self.assertIn("assurance", plan)
         self.assertEqual(plan["assurance"]["status"], "pass")
