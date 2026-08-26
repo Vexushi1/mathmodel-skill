@@ -24,7 +24,7 @@ CODE = load_module("validate_code_delivery_v700", ROOT / "scripts/validate_code_
 
 class V700TwoStageExecutionTests(unittest.TestCase):
     def config(self, problem: str, stage: str, workbook: str) -> dict:
-        return {
+        cfg = {
             "execution_owner": "user",
             "execution_profile": "full_fidelity",
             "stage": stage,
@@ -44,6 +44,9 @@ class V700TwoStageExecutionTests(unittest.TestCase):
             "allow_relaxed_tolerance": False,
             "allow_silent_solver_fallback": False,
         }
+        if stage == "primary":
+            cfg["primary_quality_protocol_version"] = "1.0.0"
+        return cfg
 
     def write_code(self, path: Path, cfg: dict, marker: int = 0) -> None:
         path.write_text(
