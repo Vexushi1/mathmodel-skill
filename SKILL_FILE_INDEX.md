@@ -50,6 +50,7 @@
 - `core/hsk_core_policy.md`
 - `core/model_approval_contract.yaml`
 - `core/module_manifest.yaml`
+- `core/numerical_verification_contract.yaml`
 - `core/output_contract.yaml`
 - `core/project_state.schema.yaml`
 - `core/runtime_assurance_contract.yaml`
