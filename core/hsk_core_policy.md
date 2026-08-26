@@ -1,6 +1,6 @@
-# HSK Core Policy v7.13.0
+# HSK Core Policy v7.14.0
 
-本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 与 `scripts/validate_model_approval.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision`、条件式统一数据预处理、预处理论文数学证据与 `data_process.m` 图证据以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准；跨竞赛写作推理、Algorithm Trace、术语、数值展示、标题主张与证据治理以 `core/writing_reasoning_contract.yaml` 为准，正文结构与表达以 `modules/05_writing/latex.md` 为准。本文件不复制这些合同的完整字段。
+本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 与 `scripts/validate_model_approval.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision`、条件式统一数据预处理、预处理论文数学证据与 `data_process.m` 图证据以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；主求解数值有效性与底层证据独立复核以 `core/numerical_verification_contract.yaml` 与 `scripts/validate_numerical_evidence.py` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准；跨竞赛写作推理、Algorithm Trace、术语、数值展示、标题主张与证据治理以 `core/writing_reasoning_contract.yaml` 为准，正文结构与表达以 `modules/05_writing/latex.md` 为准。本文件不复制这些合同的完整字段。
 
 ## 1. 总目标与优先级
 
@@ -54,7 +54,7 @@ Challenge passed 后必须向用户提供 Model Approval Brief，并停在 `awai
 
 ### 2.6 项目工作记忆与上下文恢复
 
-`模型论文框架.md` 是当前项目的**助手可读工作记忆**，只保存当前题意口径、数据角色、`preprocessing_decision`、变量/参数/假设、核心 Formula Trace、Algorithm Trace、数值参数证据、Terminology Registry、Numeric Profile、小问依赖、当前算法语义、命题、Title Claim、Citation Evidence、paper-fragment 状态、结果摘要、验证边界、图表证据位置和本项目论文组织选择。它不得重新复制跨项目写作、证明或排版手册。
+`模型论文框架.md` 是当前项目的**助手可读工作记忆**，只保存当前题意口径、数据角色、`preprocessing_decision`、变量/参数/假设、核心 Formula Trace、Algorithm Trace、Primary Quality Specification、数值参数证据、Terminology Registry、Numeric Profile、小问依赖、当前算法语义、命题、Title Claim、Citation Evidence、paper-fragment 状态、结果摘要、验证边界、图表证据位置和本项目论文组织选择。它不得重新复制跨项目写作、证明或排版手册。
 
 执行现有项目时采用 **read-before-use / write-after-change**：
 
@@ -117,7 +117,7 @@ project_level
 └─ qX_plot.m
 ```
 
-两个 Python 文件职责分离。`问题X求解.py` 只负责主求解；主工作簿 accepted 后冻结。随后单独生成 `问题X结果深化分析.py`，继承当前 `preprocessing_decision` 与数据事实源，完成题目专属深化分析。不得为了深化分析覆盖改写主求解脚本，也不得在该目录增加独立配置、运行说明、校验报告、图表目录或元数据文件。
+两个 Python 文件职责分离。`问题X求解.py` 只负责主求解与当前计算 accepted 所需的内在数值有效性证据；主工作簿 accepted 后冻结。随后单独生成 `问题X结果深化分析.py`，继承当前 `preprocessing_decision` 与数据事实源，完成题目专属深化分析。不得为了深化分析覆盖改写主求解脚本，也不得在该目录增加独立配置、运行说明、校验报告、图表目录或元数据文件。
 
 `data_process.m` 属于项目级预处理目录，不计入每问五文件合同。
 
@@ -127,7 +127,8 @@ project_level
 
 - `project_level`：预处理工作簿 accepted 且 `预处理质量门` passed 后才能进入依赖主求解；工作簿还必须持久化论文方法证据、处理前后对比和 `data_process.m` 绘图底层数据；
 - `not_needed/question_local`：没有统一预处理工作簿门槛；
-- 主工作簿通过当前语义、运行配置、代码/数据哈希与 `主结果质量门` 后才进入 `solved`；
+- 主工作簿只有在当前语义、运行配置、代码/数据哈希、`主结果质量门` 与适用的独立数值证据复核均通过后才进入 `solved`；v7.14 新主求解通过 Verification ID、证据工作表、阈值来源和机器可复算关系把质量摘要追到底层证据；
+- 主求解质量检查只判断当前 locked model 与当前数值方法下本次主计算能否 accepted。参数敏感性、压力场景、替代算法/结构、多 seed/多初值结论稳定性、异质性、误差分解和更广泛外样本稳定性不属于主质量门，必须在主工作簿 accepted 后进入独立结果深化分析；
 - 深化工作簿通过运行配置、代码/数据哈希、`分析设计` 与 `结论稳定性汇总` 后才进入 `analyzed`。
 
 助手不得运行、导入或间接执行题目专属预处理、主求解或深化分析脚本，不得自动缩减数据、网格、时域、场景、重复次数、迭代次数或放宽容差，也不得静默切换求解器或轻量近似。
@@ -136,8 +137,8 @@ project_level
 
 - Python 条件式项目级预处理：仅 `project_level` 时读取共享原始数据，执行已批准公共处理，输出 `数据预处理结果.xlsx`，同时保存论文公式参数、方法验证和 MATLAB 绘图底层证据；
 - MATLAB `data_process.m`：仅 `project_level` 时读取 `数据预处理结果.xlsx` 绘制预处理证据图，不重新处理数据；
-- Python 主求解：按 `preprocessing_decision` 读取原始数据或统一工作簿，完成模型求解、质量门和主工作簿；
-- Python 深化分析：继承同一数据事实源，读取已验收主结果与必要前问结果，完成题目专属深化分析；
+- Python 主求解：按 `preprocessing_decision` 读取原始数据或统一工作簿，完成模型求解、Primary Quality Specification 要求的内在数值有效性证据、主质量门和主工作簿；不得提前承担结果深化分析；
+- Python 深化分析：继承同一数据事实源，读取已验收主结果与必要前问结果，完成题目专属敏感性、鲁棒性、边界、替代算法/结构或其他结论稳定性分析；
 - MATLAB `qX_plot.m`：读取本问标准结果工作簿及必要数据事实源绘制各问结果图，不重新求解；完整图形规则以 `modules/04_figure_evidence.md` 为准；
 - LaTeX：默认论文主链；正文结构与表达唯一权威为 `modules/05_writing/latex.md`；
 - DOCX：仅用户明确要求时加载，不是 LaTeX 前置。
@@ -159,14 +160,14 @@ MATLAB 默认只保留图窗，不自动创建图表目录或批量导出正式�
 
 `run_info.json`、`result_manifest.yaml` 和 `matlab_figure_handoff.json` 只在用户明确要求完整复现包时生成，并放入项目级内部元数据目录，不得放入 `问题X求解/` 或 `数据预处理/`。
 
-v7.7 及更早项目继续只读兼容；Algorithm Trace 与算法流程呈现是可选写作能力，不要求历史交付反向补写。v7.6 的 `v0.7-project-memory` 和 semantic-governance 1.0.0 仍保持只读兼容；项目重新进入当前 writing/review 流程时再按 current 框架补充需要的 Terminology/Numeric/Title/Paper Fragment/Algorithm Trace 信息。v7.2.0--7.2.2 项目重新进入模型设计、预处理、绘图或写作时，应按当前规则补齐适用的论文证据与 `data_process.m` 图证据；更早项目继续只读兼容，重新进入当前流程时先审计数据并形成判定。
+v7.13 及更早项目继续只读兼容；历史已 accepted 主工作簿不要求批量补 Verification ID。旧项目若重新进入当前小问主求解，则该问按 v7.14 主数值证据语义迁移，仍不把结果深化分析并入主求解。Algorithm Trace 与算法流程呈现是可选写作能力，不要求历史交付反向补写。v7.6 的 `v0.7-project-memory` 和 semantic-governance 1.0.0 仍保持只读兼容；项目重新进入当前 writing/review 流程时再按 current 框架补充需要的 Terminology/Numeric/Title/Paper Fragment/Algorithm Trace 信息。v7.2.0--7.2.2 项目重新进入模型设计、预处理、绘图或写作时，应按当前规则补齐适用的论文证据与 `data_process.m` 图证据；更早项目继续只读兼容，重新进入当前流程时先审计数据并形成判定。
 
 ## 8. 正式交付同步
 
 - 语义治理：`scripts/validate_semantic_governance.py`；
 - 条件式项目级数据预处理：`modules/03_data_preprocessing.md` + `core/global_preprocessing_contract.yaml`；
 - 代码交付：`scripts/validate_code_delivery.py`；
-- 用户返回工作簿：`scripts/validate_user_execution.py`；
+- 用户返回工作簿：`scripts/validate_user_execution.py`；其中主工作簿数值证据复核委托 `scripts/validate_numerical_evidence.py`；
 - 图表、论文和提交包：`scripts/sync_project.py`。
 
 同步器必须根据 `preprocessing_decision` 判断数据事实源和条件产物：`project_level` 才要求预处理脚本/工作簿/`data_process.m`；`not_needed/question_local` 不得因不存在预处理目录而失败。同步器只做发现、校验、哈希与 stale 传播，不自动生成模型语义、数据处理决策、数值结果或 passed 状态。

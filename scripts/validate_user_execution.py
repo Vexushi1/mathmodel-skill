@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
+import importlib.util
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +19,7 @@ FALSE_FLAGS = (
     "allow_silent_solver_fallback",
 )
 VALID_DECISIONS = {"not_needed", "question_local", "project_level"}
+CONFIG_NAMES = {"FULL_FIDELITY_CONFIG", "FULL_RUN_CONFIG", "RUN_CONFIG"}
 PREPROCESSING_EVIDENCE_SHEETS = {
     "运行配置": ("项目", "值"),
     "数据审计": ("数据源", "检查项", "结论", "处理方式"),
@@ -25,6 +29,19 @@ PREPROCESSING_EVIDENCE_SHEETS = {
     "绘图数据索引": ("图组", "图作用", "源工作表"),
     "预处理质量门": ("检查项", "是否通过", "证据"),
 }
+
+
+def _load_numerical_validator():
+    path = Path(__file__).resolve().with_name("validate_numerical_evidence.py")
+    spec = importlib.util.spec_from_file_location("hsk_validate_numerical_evidence", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+NUMERICAL_VALIDATION = _load_numerical_validator()
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -115,6 +132,49 @@ def workbook_identity(root: Path, workbook: Path) -> tuple[str, str, list[str]]:
             f"工作簿名必须为{problem}求解结果.xlsx或{problem}结果深化分析.xlsx"
         ]
     return problem, stage, []
+
+
+def _embedded_config(text: str) -> dict[str, Any]:
+    tree = ast.parse(text)
+    for node in tree.body:
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+            continue
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+        if any(isinstance(target, ast.Name) and target.id in CONFIG_NAMES for target in targets):
+            value = ast.literal_eval(node.value)
+            if isinstance(value, dict):
+                return value
+            raise ValueError("已交付主求解代码中的FULL_FIDELITY_CONFIG必须为字典常量")
+    raise ValueError("已交付主求解代码缺少FULL_FIDELITY_CONFIG字典常量")
+
+
+def delivered_primary_protocol(root: Path, entry: dict[str, Any]) -> tuple[str | None, list[str]]:
+    """Bind v7.14 strict receipt semantics to the already delivered primary code.
+
+    Historical states may not have a code path; those remain legacy-readable. For a
+    current delivered code path, the file is read statically, never imported or run.
+    """
+    relative = str(entry.get("code", "")).strip()
+    if not relative:
+        return None, []
+    root = root.resolve()
+    code = (root / relative).resolve()
+    try:
+        code.relative_to(root)
+    except ValueError:
+        return None, ["项目状态中的主求解代码路径越出项目根目录"]
+    if not code.is_file():
+        return None, ["项目状态登记的已交付主求解代码不存在"]
+    expected_hash = str(entry.get("primary_code_sha256", "")).lower()
+    actual_hash = file_hash(code).lower()
+    if expected_hash and actual_hash != expected_hash:
+        return None, ["已交付主求解代码实际SHA-256与项目状态不一致"]
+    try:
+        delivered_config = _embedded_config(code.read_text(encoding="utf-8", errors="strict"))
+    except (SyntaxError, ValueError) as exc:
+        return None, [str(exc)]
+    protocol = str(delivered_config.get("primary_quality_protocol_version", "")).strip()
+    return (protocol or None), []
 
 
 def _boolean_gate(workbook: Path, sheet: str, column: str) -> tuple[bool, list[str]]:
@@ -293,6 +353,22 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
     if stage == "primary":
         passed, quality_issues = quality_passed(workbook)
         issues.extend(quality_issues)
+        expected_protocol, protocol_issues = delivered_primary_protocol(root, entry)
+        issues.extend(protocol_issues)
+        workbook_protocol = str(config.get("primary_quality_protocol_version", "")).strip()
+        if expected_protocol and workbook_protocol != expected_protocol:
+            issues.append(
+                "主工作簿primary_quality_protocol_version与已交付主求解代码不一致；"
+                "不得通过省略标记降级为legacy质量门"
+            )
+        force_strict = True if expected_protocol or workbook_protocol else None
+        numerical_passed, numerical_issues, _ = NUMERICAL_VALIDATION.validate_primary_numerical_evidence(
+            workbook,
+            entry.get("capabilities") or {},
+            force_strict=force_strict,
+        )
+        issues.extend(numerical_issues)
+        passed = passed and numerical_passed
         if write:
             entry["primary_execution_status"] = "accepted" if not issues and passed else "rejected"
             entry["result_quality_status"] = "passed" if not issues and passed else "failed"

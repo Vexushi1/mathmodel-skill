@@ -1,6 +1,6 @@
 # Module 02：模型设计、语义闭环、复杂度复审、独立挑战、人工锁模与论文框架
 
-本模块负责把审题结果转成可求解、可验证、可写作的当前模型语义。跨竞赛的公式推理、Algorithm Trace、规则等级、命题预算和 Citation Evidence 由 `core/writing_reasoning_contract.yaml` 唯一定义；Model Challenge 与 Human Model Approval 的唯一行为合同为 `core/model_approval_contract.yaml`。本模块只记录本题实际选择，不复制第二套写作或审批规范。
+本模块负责把审题结果转成可求解、可验证、可写作的当前模型语义。跨竞赛的公式推理、Algorithm Trace、规则等级、命题预算和 Citation Evidence 由 `core/writing_reasoning_contract.yaml` 唯一定义；Model Challenge 与 Human Model Approval 的唯一行为合同为 `core/model_approval_contract.yaml`；主求解内在数值有效性的字段级规则由 `core/numerical_verification_contract.yaml` 唯一定义。本模块只记录本题实际选择，不复制第二套写作、审批或数值验证规范。
 
 ## 0. 前置条件
 
@@ -122,7 +122,42 @@ Hard gap 包括：
 |---|---|---|---|---|---|
 |  |  |  |  |  | pending |
 
-### 4.4 Citation Evidence 计划
+### 4.4 Primary Quality Specification（PQS）
+
+模型设计阶段必须把“当前主计算本身是否有资格被接受”与“结果 accepted 后结论是否稳健”分开。前者依据当前小问顶层 `capabilities` 和 `core/numerical_verification_contract.yaml`，在现有 `validation_plan` / 当前模型论文框架中登记 **Primary Quality Specification**；后者只记录为 downstream risk hints，不能在本阶段提前生成 `result_analysis_plan`。
+
+PQS 只允许描述当前 locked model 与声明数值方法的最低内在有效性要求，例如：当前解的可行性/约束违反、等式/均衡/守恒残差、必要的网格或时间步精度、必要的迭代/仿真收敛、当前求解器 bound/gap/termination 的可解释等级，以及 capability 明确要求且失败会使主结果无效的一次主 OOS、泄漏、校准、可识别性或最低不确定性精度。
+
+每项至少记录：
+
+```text
+PQS ID
+→ capability
+→ protocol
+→ target
+→ metric
+→ criterion / threshold
+→ threshold source
+→ evidence worksheet
+→ blocking
+```
+
+阈值必须在主求解代码生成前有来源，可来自题目/官方精度、数学定义、locked model tolerance、solver tolerance、数值方法精度目标或明确论证的项目标准。禁止先看结果再挑一个刚好能“通过”的阈值。
+
+PQS **不得包含**参数敏感性、现实参数扰动、场景压力、替代算法/结构、多 seed / 多初值结论稳定性、异质性、误差分解、广义外样本稳定性或消融。这些只作为候选风险记录，必须等 `accepted_solution_workbook` 后由 Module 03B 根据真实主结果决定是否进入正式 `result_analysis_plan`。
+
+因此设计阶段的验证规划分成两个不同层次：
+
+```text
+Primary Quality Specification
+→ 决定本次主计算能否 accepted
+
+Downstream risk hints
+→ 仅提示 accepted 后可能需要哪些深化分析
+→ 不提前执行、不提前写入问题X求解.py
+```
+
+### 4.5 Citation Evidence 计划
 
 只登记需要外部来源的核心 claim，例如外部经验参数、数据、领域事实、非显然标准定理、方法来源和既有研究比较。本文自己的推导和数值结果不需要外部文献代替证据。
 
@@ -132,7 +167,7 @@ Hard gap 包括：
 
 设计阶段可以先标 pending；进入写作前需要外部来源的核心 claim 应闭合。
 
-### 4.5 Algorithm Trace 与呈现模式
+### 4.6 Algorithm Trace 与呈现模式
 
 算法选择完成后按 `writing_reasoning_contract.algorithm_presentation` 判断论文是否需要正式算法流程：
 
@@ -187,7 +222,8 @@ Model Reviewer 是正向适配审查，至少检查：
 - 变量、目标函数、约束、Formula Trace 与 `preprocessing_decision` 是否闭合；
 - 是否先利用结构化简，再选择求解器/算法；
 - full-fidelity 计算是否可实施；
-- 验证方案能否对核心结论形成有效证据；
+- PQS 是否足以判断主计算的内在数值有效性，且没有把结果深化分析伪装成主质量门；
+- accepted 后的候选深化风险是否与核心结论有关，而不是为了形式完整机械堆敏感性/鲁棒性图；
 - 模型是否能够自然、准确地进入论文，而不是靠术语包装。
 
 ### 6.2 Devil's Advocate
@@ -202,7 +238,8 @@ Devil's Advocate 是反方挑战，至少检查：
 - 核心约束是否长期不生效；
 - 是否把局部性质写成全局性质；
 - 是否存在明显更简单的 baseline 已足以回答题目，使当前高级模型缺乏必要性；
-- 是否反向出现“题目本来复杂但模型异常容易”的过度简化。
+- 是否反向出现“题目本来复杂但模型异常容易”的过度简化；
+- 是否用 post-hoc 阈值让主质量门看起来通过，或把参数敏感性/替代算法等 03B 工作提前塞进 03A 掩盖主计算本身的质量问题。
 
 两次审查必须独立形成结论。若运行环境支持独立子 Agent，可并行；不支持时执行两个分离 review pass，第二次不得以第一次 verdict 为起点。
 
@@ -218,7 +255,7 @@ Devil's Advocate 是反方挑战，至少检查：
 
 ## 7. Human Model Approval 与正式锁模
 
-`model_challenge_status=passed` 后，不直接进入 Python。先向用户提供简洁但完整的 Model Approval Brief，至少包含：研究对象、selected model、核心变量、目标、关键约束、`preprocessing_decision`、结构化简、求解方式、Algorithm presentation、主要被否决路线理由、residual warnings 与下一阶段实际实现范围。
+`model_challenge_status=passed` 后，不直接进入 Python。先向用户提供简洁但完整的 Model Approval Brief，至少包含：研究对象、selected model、核心变量、目标、关键约束、`preprocessing_decision`、结构化简、求解方式、Algorithm presentation、主求解 PQS 的关键门槛、主要被否决路线理由、residual warnings 与下一阶段实际实现范围。
 
 用户必须明确批准当前模型。自然语言如“OK，就按这个模型求解”“这个框架可以，进入主求解”“Q1-Q3 全部冻结”可视为批准；“我看看”“继续说”“还有别的方案吗”“这个模型怎么样”以及用户沉默不得推断为批准。
 
@@ -273,7 +310,7 @@ selected_models
 
 `proposed_model_spec` 形成后即可按 `templates/model/model_paper_framework.md` 建立或更新项目根目录 `模型论文框架.md`，用于承载当前模型口径、Model Challenge 和 Approval Brief；用户批准后再把当前模型状态提升为 `locked_model_spec`。框架不是批准本身，批准事实以 machine state 中绑定的当前 revision/hash 为准。
 
-它只承担**项目级长期工作记忆**：当前题意口径、数据、变量、模型、Formula Trace、Algorithm Trace、参数证据、跨问依赖、Model Challenge、Human Approval 当前状态、写作选择、命题、Citation Evidence、逐问结果摘要和图表映射。通用写作规则不得复制进去。
+它只承担**项目级长期工作记忆**：当前题意口径、数据、变量、模型、Formula Trace、Algorithm Trace、参数证据、Primary Quality Specification、accepted 后候选深化风险、跨问依赖、Model Challenge、Human Approval 当前状态、写作选择、命题、Citation Evidence、逐问结果摘要和图表映射。通用写作规则不得复制进去。
 
 框架支持：
 
@@ -295,6 +332,8 @@ selected_models
 - Model Reviewer/Devil's Advocate 只保存当前 verdict、required actions 与 residual warnings，不保存长篇历史对话；
 - 设计阶段结果摘要为 pending，不填未求解数字；
 - Algorithm Trace 只记录真实求解结构与锚点，不复制 Python 源码或通用算法定义；
+- PQS 只保存本题选择的主数值有效性规格和阈值来源，不复制 `core/numerical_verification_contract.yaml` 的通用规则；
+- accepted 后候选深化风险只作导航，不在主求解前生成具体分析结果；
 - 通用命题、证明、语言、排版规则不写入框架；
 - 正式交付前通过语义治理、Model Approval 验证和框架验证。
 
@@ -308,9 +347,9 @@ selected_models
 
 进入项目级预处理或主求解前分两层闭合：
 
-1. **设计完整性**：Problem Contract 已冻结；数据口径、三轴分类、变量/目标/约束、`preprocessing_decision`、语义闭环、核心 Formula Trace、必要 Algorithm Trace、Complexity Sanity、当前 semantic revision、命题必要性与 Citation Evidence 计划均达到本模块要求；
+1. **设计完整性**：Problem Contract 已冻结；数据口径、三轴分类、变量/目标/约束、`preprocessing_decision`、语义闭环、核心 Formula Trace、必要 Algorithm Trace、Primary Quality Specification、Complexity Sanity、当前 semantic revision、命题必要性与 Citation Evidence 计划均达到本模块要求；
 2. **审批完整性**：调用 `scripts/validate_model_approval.py` 检查 current Challenge/Approval。审批状态、用户显式批准、revision/hash 绑定、blocking/review_required 处置及 stale 规则只由 `core/model_approval_contract.yaml` 定义，本模块不再复制字段级判定表。
 
 若设计完整性已经满足但 Model Approval gate 尚未通过，形成 `proposed_model_spec`、Model Approval Brief、`awaiting_model_approval` 与 current 框架后停止；不得把“用户未反对”解释为 approval。Gate 通过后才形成 current `locked_model_spec`。若 `preprocessing_decision=project_level`，下一阶段进入 Module 03P；否则直接进入主求解。
 
-最终 current 设计链至少形成 `proposed_model_spec`、`model_challenge`、`human_model_approval`、`locked_model_spec`、`preprocessing_decision`、`semantic_closure`、`formula_reasoning_chain`、`complexity_sanity_check`、`proposition_plan`、`citation_evidence_plan`、`validation_plan` 与包含当前 Algorithm Trace/Challenge/Approval 状态的 current 框架；未闭环不得以代码试错代替建模。
+最终 current 设计链至少形成 `proposed_model_spec`、`model_challenge`、`human_model_approval`、`locked_model_spec`、`preprocessing_decision`、`semantic_closure`、`formula_reasoning_chain`、`complexity_sanity_check`、`proposition_plan`、`citation_evidence_plan`、含 PQS 与 downstream risk hints 的 `validation_plan`，以及包含当前 Algorithm Trace/Challenge/Approval 状态的 current 框架；未闭环不得以代码试错代替建模。

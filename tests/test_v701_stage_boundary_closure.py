@@ -21,7 +21,7 @@ FALSE_FLAGS = (
 
 def load_receipt():
     spec = importlib.util.spec_from_file_location(
-        "validate_user_execution_v701", ROOT / "scripts/validate_user_execution.py"
+        "validate_user_execution_v701", ROOT / "scripts" / "validate_user_execution.py"
     )
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
@@ -30,7 +30,7 @@ def load_receipt():
 
 
 def config(stage: str, workbook: str, problem: str = "问题一") -> dict:
-    return {
+    cfg = {
         "execution_owner": "user",
         "execution_profile": "full_fidelity",
         "stage": stage,
@@ -45,6 +45,9 @@ def config(stage: str, workbook: str, problem: str = "问题一") -> dict:
         "expected_workbook": workbook,
         **{flag: False for flag in FALSE_FLAGS},
     }
+    if stage == "primary":
+        cfg["primary_quality_protocol_version"] = "1.0.0"
+    return cfg
 
 
 def write_code(path: Path, cfg: dict, marker: int = 0) -> None:
@@ -221,6 +224,10 @@ class TestV701StageBoundaryClosure(unittest.TestCase):
             root = Path(temp)
             primary_hash = "c" * 64
             state = state_payload(primary_hash)
+            # Historical compatibility state may retain the delivered-code hash while
+            # no longer retaining the old code path itself. That is the read-only
+            # legacy case; current delivered v7.14 code must never use this bypass.
+            state["subproblems"]["Q1"].pop("code", None)
             workbook = root / "结果数据表/问题一/问题一求解结果.xlsx"
             write_workbook(workbook, "primary", "问题一", primary_hash)
             issues = receipt.validate_one(root, workbook, state, True)

@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.13.0
-summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, independent Model Reviewer plus Devil's Advocate challenge, explicit Human Model Approval bound to the current semantic revision/hash, evidence-driven conditional preprocessing, full-fidelity user execution, separate primary/result-analysis Python stages, project-memory model-paper framework, Source-Derivation-Destination formula traces, adaptive Algorithm Trace with stepwise/pseudocode presentation, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware high-precision Numeric Profile, Title Claim Gate, support/modify/reject analysis evidence, local paper-fragment stale propagation, Paragraph Necessity, MATLAB evidence figures with evidence-driven Figure Enhancement, formal LaTeX audit/compile attestation, and validated submission-package provenance.
-triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 结果分析, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX, 终审, 提交包]
+version: 7.14.0
+summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, independent Model Reviewer plus Devil's Advocate challenge, explicit Human Model Approval bound to the current semantic revision/hash, evidence-driven conditional preprocessing, full-fidelity user execution, capability-driven primary numerical validity with independent evidence recheck, separate primary/result-analysis Python stages, project-memory model-paper framework, Source-Derivation-Destination formula traces, adaptive Algorithm Trace with stepwise/pseudocode presentation, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware high-precision Numeric Profile, Title Claim Gate, support/modify/reject analysis evidence, local paper-fragment stale propagation, Paragraph Necessity, MATLAB evidence figures with evidence-driven Figure Enhancement, formal LaTeX audit/compile attestation, and validated submission-package provenance.
+triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX, 终审, 提交包]
 ---
 
-# HSK 数学建模模块化工作流 v7.13.0
+# HSK 数学建模模块化工作流 v7.14.0
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -15,7 +15,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 1. 先读取 `core/bootstrap.yaml`；
 2. 默认全局规则由 `core/workflow_router.yaml` 的 `default_load` 指向 `core/hsk_core_policy.md`；
 3. 使用 `scripts/resolve_runtime.py` 按用户当前任务解析最小 `load_order`；
-4. 只加载 resolver 命中的 route-specific contracts、modules、packs 与 templates；建模/写作推理仅在对应 route 加载 `core/writing_reasoning_contract.yaml`；模型锁定与人工批准按需加载 `core/model_approval_contract.yaml`；
+4. 只加载 resolver 命中的 route-specific contracts、modules、packs 与 templates；建模/写作推理仅在对应 route 加载 `core/writing_reasoning_contract.yaml`；模型锁定与人工批准按需加载 `core/model_approval_contract.yaml`；主求解设计、主求解与主工作簿验收按需加载 `core/numerical_verification_contract.yaml`，结果深化分析不把该合同扩张为稳健性规则；
 5. 已有 current `模型论文框架.md` 时按 `project_memory_contract` 恢复项目语义，具体数值仍以已验收工作簿为准；
 6. `legacy/` 与 V622 compatibility pointers 不进入默认执行链。
 
@@ -24,7 +24,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 
 ### Declarative Runtime & Assurance
 
-默认运行时入口升级为 `scripts/resolve_runtime.py`。它在不改变旧 plan 顶层字段的前提下增加 `runtime_plan` 与 `assurance`：可从 current `state/project_state.yaml` 按需恢复 competition、preprocessing decision、单问 classification 与已验证 artifact；所有推断都输出 intent provenance、confidence/ambiguity 诊断，文件型 artifact 只有 accepted 状态、路径和 SHA-256 同时闭合时才可由 project state 自动放行。选中 module/gate 后，再按 `core/runtime_assurance_contract.yaml` 声明补齐必需 contract；`scripts/resolve_workflow.py` 保留为无状态兼容入口。
+默认运行时入口为 `scripts/resolve_runtime.py`。它在不改变旧 plan 顶层字段的前提下增加 `runtime_plan` 与 `assurance`：可从 current `state/project_state.yaml` 按需恢复 competition、preprocessing decision、单问 classification 与已验证 artifact；所有推断都输出 intent provenance、confidence/ambiguity 诊断，文件型 artifact 只有 accepted 状态、路径和 SHA-256 同时闭合时才可由 project state 自动放行。选中 module/gate 后，再按 `core/runtime_assurance_contract.yaml` 声明补齐必需 contract；`scripts/resolve_workflow.py` 保留为无状态兼容入口。
 
 ## 默认执行
 
@@ -32,7 +32,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 
 ### 项目工作记忆
 
-`proposed_model_spec` 形成后即可建立或更新项目根目录 `模型论文框架.md`，用于保存当前模型口径、Challenge 与 Approval Brief；用户批准后当前模型才提升为 `locked_model_spec`。框架是助手跨阶段、跨聊天恢复当前项目语义的首选入口，只保存当前项目事实、选择、状态和证据位置，包括 Formula Trace、Algorithm Trace、Model Challenge/Human Approval 当前状态、数值参数依据、命题、Citation Evidence、Terminology Registry、Numeric Profile、Title Claim、Paper Fragment Dependency Map、深化证据处置、结果摘要与图表映射；不复制通用写作手册。
+`proposed_model_spec` 形成后即可建立或更新项目根目录 `模型论文框架.md`，用于保存当前模型口径、Challenge 与 Approval Brief；用户批准后当前模型才提升为 `locked_model_spec`。框架是助手跨阶段、跨聊天恢复当前项目语义的首选入口，只保存当前项目事实、选择、状态和证据位置，包括 Formula Trace、Algorithm Trace、Model Challenge/Human Approval 当前状态、Primary Quality Specification、数值参数依据、命题、Citation Evidence、Terminology Registry、Numeric Profile、Title Claim、Paper Fragment Dependency Map、深化证据处置、结果摘要与图表映射；不复制通用写作手册。
 
 具体数值必须回到已验收工作簿复核，semantic revision、hash、challenge/approval 和 stale 由 `state/project_state.yaml` 管理。模型、参数、约束、预处理或算法语义变化时旧 challenge、approval 与 locked model 同步 stale，并传播数值 stale；v0.8 框架再按真实依赖只传播到相关正文、摘要、图表、模型评价与 Title Claim，不无差别失效整篇论文。纯排版、措辞、caption、公式编号或不改变语义的 LaTeX 文件拆分不触发重新审批。
 
@@ -57,6 +57,10 @@ preprocessing_decision
 ```
 
 无论哪种预处理状态，都不能绕过 Model Challenge 与 Human Approval 直接生成正式任务代码。赛题数值代码由用户本地以 `full_fidelity` 执行；助手生成并静态检查，不运行题目专属预处理、求解或深化分析代码，不自动降采样、放宽容差或静默切换求解器。
+
+v7.14 将主求解质量检查限定为**当前 locked model + 当前声明数值方法下，本次主计算是否具备 accepted 资格**。Module 02 在正式主求解代码前形成 Primary Quality Specification；`问题X求解.py` 只输出适用 capability 所要求的可行性、残差、离散、收敛、最低采样精度或其他内在数值有效性证据。`scripts/validate_numerical_evidence.py` 在返回工作簿验收时独立复核底层证据与 `主结果质量门` 的 Verification ID、实际值、阈值、判定关系和证据工作表，不能只相信工作簿自报“通过”。完整规则只由 `core/numerical_verification_contract.yaml` 定义。
+
+主质量门**不负责**参数敏感性、压力场景、替代算法/结构、多 seed 或多初值结论稳定性、异质性、误差分解和更广泛外样本稳定性；这些只在主工作簿 accepted 后进入独立结果深化分析。数值步长/网格是否足以支撑当前答案属于主质量，现实/模型参数变化是否改变结论属于深化分析。
 
 每问默认唯一数值目录：
 
@@ -130,7 +134,8 @@ LaTeX 是默认论文主链。写作阶段不在入口文件复制正文规则�
 → 用户明确批准 current semantic revision/hash → locked_model_spec
 → semantic governance + model approval gate
 → [仅project_level] 项目级预处理 → 预处理质量门
-→ Python完整主求解 → 用户完整运行 → 主结果质量门
+→ Primary Quality Specification → Python完整主求解 → 用户完整运行
+→ 主结果质量门 + 独立 numerical evidence recheck → accepted solution workbook
 → 独立Python结果深化分析 → support/modify/reject → 必要时回退
 → MATLAB证据图
 → Terminology/Numeric/Title Claim/局部Paper Fragment同步
@@ -141,4 +146,4 @@ LaTeX 是默认论文主链。写作阶段不在入口文件复制正文规则�
 → validated_submission_package
 ```
 
-目录、正式交付和同步门以 `core/output_contract.yaml` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 为准；代码工程质量以 `core/code_quality_contract.yaml` 为准；返回工作簿以 `scripts/validate_user_execution.py` 验收。legacy 项目保持只读兼容，重新进入当前模型设计/预处理/主求解时按当前 challenge/approval、语义与数据决策规则迁移。
+目录、正式交付和同步门以 `core/output_contract.yaml` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 为准；主求解数值有效性以 `core/numerical_verification_contract.yaml` 为准；代码工程质量以 `core/code_quality_contract.yaml` 为准；返回工作簿以 `scripts/validate_user_execution.py` 验收。legacy 项目保持只读兼容，重新进入当前模型设计/预处理/主求解时按当前 challenge/approval、语义、数据决策与 v7.14 主数值证据规则迁移。

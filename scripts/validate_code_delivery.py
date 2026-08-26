@@ -23,6 +23,8 @@ REQUIRED_FIELDS = {
     "data_sha256", "solver", "solver_version", "random_seed", "tolerance",
     "iteration_or_time_limit", "expected_workbook", *FALSE_FLAGS,
 }
+PRIMARY_QUALITY_PROTOCOL_VERSION = "1.0.0"
+PRIMARY_REQUIRED_FIELDS = {"primary_quality_protocol_version"}
 ANALYSIS_STALE_LAYERS = {
     "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
 }
@@ -342,6 +344,14 @@ def validate_script(
     stage = str(config.get("stage", ""))
     if stage not in {"preprocessing", "primary", "analysis"}:
         issues.append("stage必须为preprocessing、primary或analysis")
+    if stage == "primary":
+        for field in sorted(PRIMARY_REQUIRED_FIELDS):
+            if field not in config or config[field] in (None, "", []):
+                issues.append(f"primary嵌入运行配置缺少字段: {field}")
+        if config.get("primary_quality_protocol_version") not in (None, "", PRIMARY_QUALITY_PROTOCOL_VERSION):
+            issues.append(f"primary_quality_protocol_version必须为{PRIMARY_QUALITY_PROTOCOL_VERSION}")
+    elif config.get("primary_quality_protocol_version") not in (None, ""):
+        issues.append("primary_quality_protocol_version只允许出现在primary阶段运行配置")
     if stage and stage != filename_stage:
         issues.append(f"脚本文件名对应{filename_stage}阶段，但FULL_FIDELITY_CONFIG.stage={stage}")
     if expected_stage and stage != expected_stage:

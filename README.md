@@ -1,6 +1,17 @@
-# mathmodel-skill v7.13.0
+# mathmodel-skill v7.14.0
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → 用户本地 full-fidelity Python 主求解 → 独立结果深化分析 → MATLAB Figure Evidence + 按需 Figure Enhancement → LaTeX 终稿 → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 → MATLAB Figure Evidence + 按需 Figure Enhancement → LaTeX 终稿 → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v7.14.0：Primary Numerical Validity & Quality Gate
+
+本版本把主求解阶段从“工作簿自报质量门通过”升级为**capability-driven 的主数值有效性规格 + 返回工作簿底层证据独立复核**，同时明确保护结果深化分析的独立职责。目录结构、用户 full-fidelity 执行所有权、每问五文件、MATLAB 只绘图、LaTeX/submission provenance 均保持兼容。
+
+- 新增 `core/numerical_verification_contract.yaml`，作为主求解数值有效性的唯一字段级 Authority。它只回答：在当前 locked model 与当前声明 numerical method 下，这一次主计算是否有资格成为 accepted solution workbook。
+- Module 02 在正式主求解代码前形成 **Primary Quality Specification (PQS)**，按当前 capability 选择可行性、均衡/守恒残差、离散精度、收敛、最低不确定性精度、主 OOS、泄漏、校准或可识别性等必要证据；阈值必须有题面、数学定义、模型/求解器容差、数值精度目标或明确项目依据。
+- 新增 `scripts/validate_numerical_evidence.py`。`validate_user_execution.py` 在主工作簿验收时调用它，独立复算 `违反量/残差/容差/是否满足`、离散与收敛主判定行，并核对 `Verification ID → 实际值 → 阈值 → 判定关系 → 证据工作表 → 阈值来源`，不能只相信 Excel 中写了“通过”。
+- `问题X求解.py` 仍只负责主求解及**当前结果 accepted 所必需的内在数值正确性**。参数敏感性、压力场景、替代算法/结构、多 seed/多初值结论稳定性、异质性、误差分解和更广泛外样本稳定性明确保留给主工作簿 accepted 后的 `问题X结果深化分析.py`。
+- 数值步长/网格是否足以支撑当前答案属于主质量；现实/模型参数变化是否改变结论属于深化分析。当前 solver 的 stop reason、bound/gap 可作为主求解状态证据；MILP vs ALNS/GA/greedy 等跨算法一致性仍属于深化分析。
+- v7.13 及更早工作簿继续只读兼容；历史 accepted 工作簿不批量迁移。旧项目只有在重新进入当前小问主求解时，才把该问迁入 v7.14 Verification ID 严格轨迹。
 
 ## v7.13.0：Evidence-driven Figure Enhancement
 
@@ -282,6 +293,23 @@ preprocessing_decision
 └─ data_process.m
 ```
 
+### 主求解数值有效性与结果深化分析
+
+每问正式主求解前形成 PQS。主求解阶段只做当前计算 accepted 所必需的内在数值质量证据；返回主工作簿后由独立 validator 复核。主质量门通过后才进入结果深化分析：
+
+```text
+locked model + declared numerical method
+→ Primary Quality Specification
+→ 问题X求解.py
+→ 主结果底层证据 + 主结果质量门
+→ validate_numerical_evidence.py 独立复核
+→ accepted solution workbook
+→ 问题X结果深化分析.py
+→ sensitivity / stress / alternatives / robustness / boundaries
+```
+
+主质量与深化分析不互相替代。离散步长、网格、残差、当前 solver gap/termination 等“本次计算能否接受”的问题属于主质量；参数敏感性、替代算法、压力场景和结论稳定性属于深化分析。
+
 ### 每问唯一五文件目录
 
 ```text
@@ -319,6 +347,7 @@ route-specific contracts / modules / packs / templates
 
 - `core/model_approval_contract.yaml`：独立 Model Challenge、Model Approval Brief、Human Model Approval 与 current revision/hash 绑定；
 - `core/global_preprocessing_contract.yaml`：条件式数据预处理；
+- `core/numerical_verification_contract.yaml`：主求解数值有效性、PQS 映射与 strict Verification ID 证据复核；
 - `core/code_quality_contract.yaml`：Python 工程质量；
 - `core/user_execution_contract.yaml`：用户本地执行与工作簿验收；
 - `core/writing_reasoning_contract.yaml`：推理、Algorithm Trace、术语、数值、Title Claim、规则等级和 Citation Evidence；
@@ -333,6 +362,7 @@ route-specific contracts / modules / packs / templates
 python scripts/lint_skill.py
 python -m unittest discover -s tests
 python scripts/validate_model_approval.py <project_root> --strict
+python scripts/validate_numerical_evidence.py <primary_workbook> --strict
 python scripts/validate_model_paper_framework.py 模型论文框架.md --strict
 python scripts/audit_latex_project.py final_latex/main.tex --bib final_latex/references.bib --framework 模型论文框架.md --require-framework --write-report --strict
 python scripts/render_paper.py final_latex --profile <profile>
@@ -343,6 +373,6 @@ python scripts/validate_submission_package.py . --strict
 
 ## 兼容与历史
 
-`legacy/` 只读，不进入默认执行链。v7.12 及更早项目保持只读兼容；Figure Enhancement 与 Algorithm Trace 都是按需能力，不要求历史项目反向补写。Model Approval 同样不要求历史项目倒填，只有重新进入当前模型设计、项目级预处理、主求解或语义变化后的重算时迁入新门。历史版本说明保留在 Git 历史和 `CHANGELOG.md`。
+`legacy/` 只读，不进入默认执行链。v7.13 及更早项目保持只读兼容；历史 accepted 主工作簿不要求反向补 Verification ID，重新进入当前小问主求解时才迁移该问。Figure Enhancement 与 Algorithm Trace 都是按需能力，不要求历史项目反向补写。Model Approval 同样不要求历史项目倒填，只有重新进入当前模型设计、项目级预处理、主求解或语义变化后的重算时迁入新门。历史版本说明保留在 Git 历史和 `CHANGELOG.md`。
 
 许可证与第三方声明见 `LICENSE`、`THIRD_PARTY_NOTICES.md`。
