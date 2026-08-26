@@ -33,8 +33,10 @@ jobs:
         with:
           name: static-lint-diagnostics
           path: static-lint.log
-      - name: Resolve representative workflow
-        run: python scripts/resolve_workflow.py full_solution --primary mechanism --secondary optimization --competition CUMCM
+      - name: Resolve representative assured workflow
+        run: python scripts/resolve_runtime.py full_solution --primary mechanism --secondary optimization --competition CUMCM
+      - name: Legacy resolver compatibility smoke
+        run: python scripts/resolve_workflow.py problem_analysis --primary mechanism --competition CUMCM
 
   unit-matrix:
     name: Python ${{ matrix.python-version }}
