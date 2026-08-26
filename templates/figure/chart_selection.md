@@ -1,6 +1,6 @@
 # 结果图型选择索引
 
-图型由“要证明的结论”、底层数据结构和信息展示效率共同决定，不按软件默认、图型新奇度或固定禁用清单选择。每张图先填写结果图 Figure Contract，确定 MATLAB 图标题与 DOCX/LaTeX 图注，再查本表。
+图型由“要证明的结论”、底层数据结构和信息展示效率共同决定，不按软件默认、图型新奇度或固定禁用清单选择。每张图先填写结果图 Figure Contract，确定 DOCX/LaTeX 正式图注及其证据职责，再查本表；正式论文图不设置冗余整体 `title` / `sgtitle`。
 
 ## 可选视觉参考
 
@@ -44,6 +44,6 @@ Enhancement 默认是 `none`。若增强后不能增加可验证信息、降低�
 
 ## 权威边界
 
-本文件只负责候选图型与视觉问题索引，不维护通用绘图政策。通用信息效率判定、Evidence level、Primary question、Figure Layout Gate、Figure Enhancement Gate、视觉注意力预算、MATLAB 标题/`sgtitle` 与论文图注、配色、数据诚实、多面板准入、删除规则和入文闭环统一服从 `modules/04_figure_evidence.md`；Enhancement 的 MATLAB 实现模式只参考 `templates/figure/figure_enhancement_patterns.md`。
+本文件只负责候选图型与视觉问题索引，不维护通用绘图政策。通用信息效率判定、Evidence level、Primary question、Figure Layout Gate、Figure Enhancement Gate、视觉注意力预算、正式图内标题策略、论文 caption、配色、数据诚实、多面板准入、删除规则和入文闭环统一服从 `modules/04_figure_evidence.md`；Enhancement 的 MATLAB 实现模式只参考 `templates/figure/figure_enhancement_patterns.md`。
 
 表格中的“主要准入条件与风险控制”只用于提示某类候选图型的局部风险，不构成第二套通用规则。若本文件与 Module 04 存在任何不一致，以 Module 04 为准。
