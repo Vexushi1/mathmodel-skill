@@ -3,6 +3,8 @@
 % 只读取“数据预处理结果.xlsx”中 Python 已输出的处理前/后与验证底层数据。
 % 禁止在 MATLAB 中重新清洗、插值、滤波、重采样、训练填补模型或重新选择参数。
 % 版式同样服从 modules/04_figure_evidence.md 的 Figure Layout Gate，不默认多面板。
+% 基础布局确定后继续执行同一模块的 Figure Enhancement Gate；默认不增强，只有证据需要时才使用局部放大、分面、焦点高亮、语义背景、联合诊断或条件式3D。
+% Enhancement 的实现模式参考 templates/figure/figure_enhancement_patterns.md，不得在本模板建立第二套绘图决策规则。
 
 clearvars;
 clc;
@@ -57,6 +59,7 @@ after = after(order);
 
 %% 3. 处理前后证据图
 % “处理前”作为参考对象降权，“处理后”作为主比较对象使用高对比主色。
+% 若 Figure Enhancement Gate 判定需要增强，应按已登记的 Enhancement / Enhancement rationale 实例化对应模式，并保持底层数据不变。
 fig = figure("Color", "w", "Position", [100, 100, 960, 620]);
 ax = axes(fig);
 hold(ax, "on");
