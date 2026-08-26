@@ -28,7 +28,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 
 ## 默认执行
 
-先读 `core/bootstrap.yaml`，再由 `scripts/resolve_workflow.py` 按任务加载最小模块集。Problem Contract 冻结后先完成非破坏性数据审计与模型路线/数据需求比较，随后锁定 `preprocessing_decision`，再完成题面—数学—代码—输出语义闭环和 Complexity Sanity Check；达到设计完整性后形成 `proposed_model_spec`，再执行独立 Model Reviewer 与 Devil's Advocate 两次 Model Challenge。Challenge 通过后生成 Model Approval Brief，并停在 `awaiting_model_approval`；只有用户明确批准当前 `semantic_revision/hash` 后才形成 current `locked_model_spec`。正式项目级预处理或主求解代码前还必须按 resolver 返回顺序通过 `scripts/validate_semantic_governance.py` 与 `scripts/validate_model_approval.py`。
+先读 `core/bootstrap.yaml`，再由 `scripts/resolve_runtime.py` 按任务加载最小模块集；只有显式 legacy 兼容调用才直接使用 `scripts/resolve_workflow.py`。Problem Contract 冻结后先完成非破坏性数据审计与模型路线/数据需求比较，随后锁定 `preprocessing_decision`，再完成题面—数学—代码—输出语义闭环和 Complexity Sanity Check；达到设计完整性后形成 `proposed_model_spec`，再执行独立 Model Reviewer 与 Devil's Advocate 两次 Model Challenge。Challenge 通过后生成 Model Approval Brief，并停在 `awaiting_model_approval`；只有用户明确批准当前 `semantic_revision/hash` 后才形成 current `locked_model_spec`。正式项目级预处理或主求解代码前还必须按 resolver 返回顺序通过 `scripts/validate_semantic_governance.py` 与 `scripts/validate_model_approval.py`。
 
 ### 项目工作记忆
 
