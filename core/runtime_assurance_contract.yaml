@@ -6,7 +6,7 @@ purpose: >-
   resolver plan: context hydration, intent provenance, artifact assurance,
   declarative contract dependency closure, and authority fingerprinting. This
   contract does not redefine modeling, workbook, approval, execution, writing,
-  or submission semantics owned by their existing authorities.
+  numerical-verification, or submission semantics owned by their existing authorities.
 
 authority_boundary:
   owns:
@@ -25,6 +25,7 @@ authority_boundary:
     user_execution: core/user_execution_contract.yaml
     code_quality: core/code_quality_contract.yaml
     workbook: core/workbook_schema.yaml
+    numerical_verification: core/numerical_verification_contract.yaml
 
 runtime_context:
   optional_project_root: true
@@ -128,9 +129,9 @@ contract_dependency_closure:
     readable as compatibility hints but are not required for correctness.
   contract_dependencies:
     modules/01_problem_audit.md: [taxonomy]
-    modules/02_model_design.md: [taxonomy, preprocessing, model_approval, writing_reasoning]
+    modules/02_model_design.md: [taxonomy, preprocessing, model_approval, writing_reasoning, numerical_verification]
     modules/03_data_preprocessing.md: [preprocessing, model_approval, user_execution, code_quality]
-    modules/03_solve_validate.md: [preprocessing, model_approval, user_execution, code_quality, workbook]
+    modules/03_solve_validate.md: [preprocessing, model_approval, user_execution, code_quality, workbook, numerical_verification]
     modules/03_result_analysis.md: [taxonomy, preprocessing, user_execution, code_quality, workbook]
     modules/04_figure_evidence.md: [workbook]
     modules/05_writing/docx.md: [writing_reasoning]
@@ -141,7 +142,7 @@ contract_dependency_closure:
     gate:semantic_governance: [project_state]
     gate:model_approval: [project_state, model_approval]
     gate:code_delivery: [code_quality]
-    gate:user_execution_receipt: [user_execution, workbook]
+    gate:user_execution_receipt: [user_execution, workbook, numerical_verification]
     gate:project_sync: [project_state, output]
     gate:submission_package_validation: [output]
   rules:
