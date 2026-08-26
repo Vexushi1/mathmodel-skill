@@ -4,6 +4,7 @@
 % 版式不预设，必须先按 modules/04_figure_evidence.md 的 Figure Layout Gate 动态判断。
 % 基础布局确定后继续执行同一模块的 Figure Enhancement Gate；默认不增强，只有证据需要时才使用局部放大、分面、焦点高亮、语义背景、联合诊断或条件式3D。
 % Enhancement 的实现模式参考 templates/figure/figure_enhancement_patterns.md，不得在本模板建立第二套绘图决策规则。
+% 正式论文图不设置整体 title/sgtitle；正式图题由 LaTeX/DOCX caption 承担，多面板按需只保留 a/b/c/d 等 panel label。
 
 clearvars;
 clc;
@@ -28,13 +29,11 @@ xHeader = "__ACTUAL_X_HEADER__";
 yHeader = "__ACTUAL_Y_HEADER__";
 expectedXColumn = NaN;  % 可选，仅作结构漂移警告
 expectedYColumn = NaN;
-figureTitle = "__ACTUAL_FIGURE_TITLE__";
 xLabelText = "__ACTUAL_X_LABEL_WITH_UNIT__";
 yLabelText = "__ACTUAL_Y_LABEL_WITH_UNIT__";
 
-placeholders = [sourceSheet, xHeader, yHeader, figureTitle, xLabelText, yLabelText];
+placeholders = [sourceSheet, xHeader, yHeader, xLabelText, yLabelText];
 assert(~any(startsWith(placeholders, "__ACTUAL_")), "模板尚未实例化");
-assert(strlength(strtrim(figureTitle)) <= 30, "图标题过长");
 
 availableSheets = string(sheetnames(sourceBook));
 assert(any(availableSheets == sourceSheet), "缺少工作表: %s", sourceSheet);
@@ -61,10 +60,9 @@ y = y(order);
 % 若 Figure Enhancement Gate 判定需要增强，应按已登记的 Enhancement / Enhancement rationale 实例化对应模式，并保持底层数据不变。
 fig = figure("Color", "w", "Position", [100, 100, 900, 620]);
 ax = axes(fig);
-plot(ax, x, y, "LineWidth", 2.2, "Color", [20, 120, 255] / 255);  % #1478FF 亮蓝
+plot(ax, x, y, "LineWidth", 2.2, "Color", [23, 59, 94] / 255);  % #173B5E 深蓝
 xlabel(ax, xLabelText);
 ylabel(ax, yLabelText);
-title(ax, figureTitle, "FontWeight", "normal");
 grid(ax, "off");
 box(ax, "on");
 apply_scientific_style(fig);
