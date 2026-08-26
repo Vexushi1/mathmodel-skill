@@ -1,6 +1,15 @@
 # Changelog
 
-## Current release: 7.12.0
+## Current release: 7.13.0
+
+- Added an evidence-driven Figure Enhancement Gate after Figure Layout Gate, with default `none` and conditional Local Zoom, Small Multiples, Focus Highlighting, Semantic Background, Composite Diagnostic, and Conditional 3D.
+- Added `templates/figure/figure_enhancement_patterns.md` for reusable enhancement implementations while keeping `modules/04_figure_evidence.md` the sole plotting decision authority.
+- Added explicit data-honesty rules: local zoom must retain global context and traceable ROI; small multiples must use comparable scales or disclose scale differences; semantic backgrounds require real thresholds/states/stages; discrete evidence may not be spline-smoothed merely for appearance.
+- Extended Figure Contract, QA and chart selection with Enhancement/rationale, embedded/detached zoom, overview + detail, structured small multiples, joint prediction diagnostics and conditional 3D admission.
+- Updated the `figures` route and full-workflow resume load so enhancement patterns are available at the actual Figure Evidence stage.
+- Preserved Workbook Schema, Project State Schema, Python/MATLAB ownership, per-question five-file layout, user full-fidelity execution, LaTeX attestation and legacy read compatibility.
+
+## Previous release: 7.12.0
 
 - Added `core/runtime_assurance_contract.yaml` as the single authority for runtime context precedence, intent provenance, artifact assurance, declarative contract dependency closure and authority fingerprinting.
 - Added default state-aware resolver `scripts/resolve_runtime.py`; preserved `scripts/resolve_workflow.py` as the legacy stateless compatibility entrypoint.
