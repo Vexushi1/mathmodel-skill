@@ -1,6 +1,17 @@
 # Changelog
 
-## Current release: 7.13.0
+## Current release: 7.14.0
+
+- Added `core/numerical_verification_contract.yaml` as the single field-level authority for intrinsic primary numerical validity before a solution workbook may be accepted.
+- Added a Primary Quality Specification (PQS) design step so active capabilities determine only the minimum feasibility/residual/discretization/convergence/primary-OOS/uncertainty/leakage/calibration/identifiability evidence required for the current primary computation.
+- Added `scripts/validate_numerical_evidence.py` and integrated it into returned-workbook validation so v7.14 quality-gate rows are independently rechecked through `Verification ID → actual value → threshold → relation → evidence sheet → threshold source`; self-declared Boolean pass values are no longer sufficient for new primary runs.
+- Strengthened row-level consistency checks for constraint violations and equilibrium/conservation residuals and added strict trace support for marked discretization/convergence evidence without forcing a universal convergence-order formula.
+- Preserved the two-stage Python boundary: parameter sensitivity, stress scenarios, alternative algorithms/structures, multi-seed or multi-start claim stability, heterogeneity, error decomposition and broader out-of-sample stability remain exclusively post-acceptance result analysis.
+- Added `primary_quality_protocol_version=1.0.0` to newly delivered primary full-fidelity configurations so current primary runs cannot silently fall back to legacy Boolean-only quality semantics; preprocessing and analysis stages do not carry that field.
+- Preserved read compatibility for v7.13 and older historical workbooks without Verification IDs; migration is per-question only when an old project re-enters current primary solving.
+- Preserved project layout, Project State Schema, user-owned full-fidelity execution, MATLAB plotting ownership, Figure/LaTeX/submission behavior and legacy read paths.
+
+## Previous release: 7.13.0
 
 - Added an evidence-driven Figure Enhancement Gate after Figure Layout Gate, with default `none` and conditional Local Zoom, Small Multiples, Focus Highlighting, Semantic Background, Composite Diagnostic, and Conditional 3D.
 - Added `templates/figure/figure_enhancement_patterns.md` for reusable enhancement implementations while keeping `modules/04_figure_evidence.md` the sole plotting decision authority.
