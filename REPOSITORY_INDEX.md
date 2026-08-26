@@ -3,7 +3,7 @@
 ## 启动
 
 1. `core/bootstrap.yaml`：最小启动契约；
-2. `scripts/resolve_workflow.py`：一个或多个意图的确定性执行计划；
+2. `scripts/resolve_runtime.py`：默认 assured runtime；按一个或多个意图生成计划，并可从 current project state 恢复上下文、验证 artifact 与补齐 contract dependency；`scripts/resolve_workflow.py` 仅保留无状态兼容；
 3. `core/hsk_core_policy.md`：全局硬规则；
 4. `core/task_taxonomy.yaml`：objective、structures、capabilities；
 5. `core/module_manifest.yaml`：模块与 utility gate 产物闭环；
@@ -59,6 +59,7 @@
 | 文件 | 作用 |
 |---|---|
 | `core/bootstrap.yaml` | 最小入口、权威源指针与仓库维护入口 |
+| `core/runtime_assurance_contract.yaml` | Runtime context precedence、intent provenance、artifact assurance、module/gate contract dependency closure 与 authority fingerprint 的唯一运行时证明合同 |
 | `core/task_taxonomy.yaml` | 正交分类与旧Pack映射 |
 | `core/workflow_router.yaml` | 多意图路由、交付scope与显式同步门槛 |
 | `core/module_manifest.yaml` | 模块输入输出、utility gate及terminal output闭环 |
@@ -73,7 +74,8 @@
 
 ## 工具
 
-- `scripts/resolve_workflow.py`：多意图合并、模块排序、人工锁模/用户执行暂停边界、前置缺口与 `pre_delivery_gates`；
+- `scripts/resolve_runtime.py`：默认 assured resolver；在旧 plan 字段之外提供 project-state hydration、intent diagnostics、artifact assurance、declarative contract closure、authority fingerprint 以及 `runtime_plan/assurance`；
+- `scripts/resolve_workflow.py`：无状态兼容 resolver；保留旧 CLI/显式 artifact-name 调用，不作为默认入口；
 - `scripts/validate_semantic_governance.py`：题意口径、语义闭环、复杂度复审、semantic revision 与跨问 stale 门；
 - `scripts/validate_model_approval.py`：项目级预处理或主求解代码前，检查 current Model Challenge、Human Model Approval 与当前 semantic revision/hash 是否完全一致；
 - `scripts/validate_code_delivery.py`：分别静态校验每问主求解与结果深化分析两个 Python 脚本；
