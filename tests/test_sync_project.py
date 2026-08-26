@@ -169,7 +169,7 @@ class TestSyncProject(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             result = setup_project(root)
-            (result / "q1_plot.m").write_text('title(gca, "结果");', encoding="utf-8")
+            (result / "q1_plot.m").write_text('readcell("问题一求解结果.xlsx");', encoding="utf-8")
             report = syncer.synchronize(root, write=True, delivery_scope="design")
             self.assertIn("Q1", report["questions"])
             self.assertTrue((root / "sync_report.yaml").is_file())
@@ -292,13 +292,49 @@ class TestSyncProject(unittest.TestCase):
             self.assertIn("result_analysis_workbook", updated["stale_layers"])
             self.assertNotIn("solution_workbook", updated["stale_layers"])
 
+    def test_figure_scope_accepts_caption_owned_title_policy(self):
+        syncer = load_syncer()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            result = setup_project(root, status="analyzed", phase="figure_evidence")
+            (result / "q1_plot.m").write_text('readcell("问题一求解结果.xlsx");', encoding="utf-8")
+            report = syncer.synchronize(root, write=False, delivery_scope="figures")
+            self.assertFalse(any("title或sgtitle" in issue for issue in report["issues"]), report)
+            self.assertFalse(report["questions"]["Q1"]["matlab_has_title"])
+
+    def test_figure_scope_rejects_embedded_total_title(self):
+        syncer = load_syncer()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            result = setup_project(root, status="analyzed", phase="figure_evidence")
+            (result / "q1_plot.m").write_text(
+                'readcell("问题一求解结果.xlsx"); title(gca, "结果");',
+                encoding="utf-8",
+            )
+            report = syncer.synchronize(root, write=False, delivery_scope="figures")
+            self.assertTrue(any("不得设置整体title或sgtitle" in issue for issue in report["issues"]), report)
+            self.assertTrue(report["questions"]["Q1"]["matlab_has_title"])
+
+    def test_matlab_title_in_comment_is_not_executable_title(self):
+        syncer = load_syncer()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            result = setup_project(root, status="analyzed", phase="figure_evidence")
+            (result / "q1_plot.m").write_text(
+                '% title(gca, "仅注释示例");\nreadcell("问题一求解结果.xlsx");',
+                encoding="utf-8",
+            )
+            report = syncer.synchronize(root, write=False, delivery_scope="figures")
+            self.assertFalse(report["questions"]["Q1"]["matlab_has_title"])
+            self.assertFalse(any("不得设置整体title或sgtitle" in issue for issue in report["issues"]), report)
+
     def test_figure_scope_checks_declared_export(self):
         syncer = load_syncer()
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             result = setup_project(root, status="analyzed", phase="figure_evidence")
             (result / "q1_plot.m").write_text(
-                'readcell("问题一求解结果.xlsx"); title(gca, "结果"); exportgraphics(gca, "图表/missing.png");',
+                'readcell("问题一求解结果.xlsx"); exportgraphics(gca, "图表/missing.png");',
                 encoding="utf-8",
             )
             report = syncer.synchronize(root, write=False, delivery_scope="figures")
