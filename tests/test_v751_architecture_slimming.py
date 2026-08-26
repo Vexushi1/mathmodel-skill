@@ -1,5 +1,6 @@
 from pathlib import Path
 import importlib.util
+import re
 import sys
 import unittest
 
@@ -109,9 +110,10 @@ class ArchitectureSlimmingV751Tests(unittest.TestCase):
         self.assertEqual(model_design.count("### 4.1 核心 Formula Trace"), 1)
         self.assertEqual(model_design.count("### 4.2 共享基础与跨问增量"), 1)
         self.assertEqual(model_design.count("### 4.3 数值参数证据计划"), 1)
-        self.assertEqual(model_design.count("### 4.4 Citation Evidence 计划"), 1)
+        citation_headings = re.findall(r"^### 4\.\d+ Citation Evidence 计划$", model_design, flags=re.MULTILINE)
+        self.assertEqual(len(citation_headings), 1)
         self.assertLess(
-            model_design.index("### 4.4 Citation Evidence 计划"),
+            model_design.index(citation_headings[0]),
             model_design.index("## 5. 复杂度合理性复审"),
         )
 
