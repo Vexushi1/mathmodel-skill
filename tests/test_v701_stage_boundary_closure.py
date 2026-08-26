@@ -21,7 +21,7 @@ FALSE_FLAGS = (
 
 def load_receipt():
     spec = importlib.util.spec_from_file_location(
-        "validate_user_execution_v701", ROOT / "scripts/validate_user_execution.py"
+        "validate_user_execution_v701", ROOT / "scripts" / "validate_user_execution.py"
     )
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
@@ -30,7 +30,7 @@ def load_receipt():
 
 
 def config(stage: str, workbook: str, problem: str = "问题一") -> dict:
-    return {
+    cfg = {
         "execution_owner": "user",
         "execution_profile": "full_fidelity",
         "stage": stage,
@@ -45,6 +45,9 @@ def config(stage: str, workbook: str, problem: str = "问题一") -> dict:
         "expected_workbook": workbook,
         **{flag: False for flag in FALSE_FLAGS},
     }
+    if stage == "primary":
+        cfg["primary_quality_protocol_version"] = "1.0.0"
+    return cfg
 
 
 def write_code(path: Path, cfg: dict, marker: int = 0) -> None:
