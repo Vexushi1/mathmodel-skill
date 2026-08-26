@@ -4,6 +4,7 @@
 
 ## 顶层归档导航
 
+- `architecture/`：已经完成使命的一次性架构迁移矩阵、版本实施计划和维护施工计划；只保存 provenance，不作为 Runtime Authority；
 - `stage_v616/`：旧 Stage 00--12 文件；
 - `old_stage_0_9/`：更早的评分、反馈层和状态系统；
 - `v616_sources/`：v6.1.6 入口文件快照；
@@ -21,6 +22,8 @@
 ## 使用边界
 
 旧项目重新进入当前流程时，迁移目标、执行边界和文件接口以当前 `core/bootstrap.yaml`、`core/user_execution_contract.yaml` 与 `core/output_contract.yaml` 为准；本目录中的历史规则、旧模板版本号、旧命题格式、旧“问题要求”或旧“结论”不得覆盖当前 Authority。
+
+`architecture/` 中的文件只用于追溯某次架构迁移、解释历史设计取舍或恢复维护上下文；若历史计划与当前实现不同，以当前 Authority、current project state 和当前测试为准。
 
 `matlab_compat/` 仅用于仍依赖旧共享函数、旧 `结果数据表/问题X/` 或自动导出目录的历史项目。v6.6 单脚本项目和更早结构继续只读兼容；一旦重新进入当前设计、求解、深化分析、绘图或终稿流程，应按当前合同完成所需迁移，而不是把旧目录结构重新引入新项目。
 
