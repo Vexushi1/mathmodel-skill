@@ -120,22 +120,22 @@ pseudocode → 循环、分支、筛选、修复、接受/拒绝或终止逻辑�
 ## 示例
 
 ```bash
-python scripts/resolve_workflow.py code_and_solution \
+python scripts/resolve_runtime.py code_and_solution \
   --objective optimization \
   --structures stochastic \
   --competition CUMCM \
   --preprocessing-decision not_needed
 
-python scripts/resolve_workflow.py code_and_solution \
+python scripts/resolve_runtime.py code_and_solution \
   --objective optimization \
   --competition CUMCM \
   --preprocessing-decision project_level
 
-python scripts/resolve_workflow.py result_analysis \
+python scripts/resolve_runtime.py result_analysis \
   --objective prediction \
   --structures temporal
 
-python scripts/resolve_workflow.py algorithm_presentation \
+python scripts/resolve_runtime.py algorithm_presentation \
   --objective optimization \
   --preprocessing-decision not_needed
 ```
