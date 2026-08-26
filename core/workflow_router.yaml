@@ -1,4 +1,4 @@
-version: 7.12.0
+version: 7.13.0
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -123,7 +123,7 @@ runtime_segments:
 
   full_workflow_resume:
     role: full_workflow_resume
-    final_load: [modules/04_figure_evidence.md, packs/artifact/figure.md, modules/05_writing/latex.md, packs/artifact/latex.md, modules/05_writing/ai_cleanup.md, modules/05_latex_compile_quality.md, modules/06_review_delivery.md, packs/artifact/review.md, packs/artifact/full_submission.md]
+    final_load: [modules/04_figure_evidence.md, packs/artifact/figure.md, templates/figure/chart_selection.md, templates/figure/figure_enhancement_patterns.md, modules/05_writing/latex.md, packs/artifact/latex.md, modules/05_writing/ai_cleanup.md, modules/05_latex_compile_quality.md, modules/06_review_delivery.md, packs/artifact/review.md, packs/artifact/full_submission.md]
     terminal_outputs: [approved_figures, latex_source, latex_audit_report, compiled_pdf, compile_report, review_report, submission_package, model_paper_framework]
     delivery_scope: submission
     pre_delivery_gates: [semantic_governance, project_sync, submission_package_validation]
@@ -302,9 +302,9 @@ routing:
     pause_for_user_execution: true
 
   figures:
-    triggers: [图表, 可视化, 机理图, 推导图, Nature, SCI, MATLAB图标题, 数据预处理图, 处理前后对比图]
-    infer_keywords: [MATLAB绘图, MATLAB, 结果图, 敏感性图, 鲁棒性图, 机理图, 推导图, 可视化, 图表, data_process, 预处理图]
-    load: [modules/04_figure_evidence.md, packs/artifact/figure.md, templates/figure/chart_selection.md]
+    triggers: [图表, 可视化, 机理图, 推导图, Nature, SCI, MATLAB图标题, 数据预处理图, 处理前后对比图, 局部放大, 分面图, 联合诊断图]
+    infer_keywords: [MATLAB绘图, MATLAB, 结果图, 敏感性图, 鲁棒性图, 机理图, 推导图, 可视化, 图表, data_process, 预处理图, 局部放大, inset, small multiples, 分面图, 联合诊断]
+    load: [modules/04_figure_evidence.md, packs/artifact/figure.md, templates/figure/chart_selection.md, templates/figure/figure_enhancement_patterns.md]
     terminal_outputs: [preprocessing_matlab_script, preprocessing_figures, matlab_scripts, figure_contracts, approved_figures, model_paper_framework]
     formal_delivery: true
     delivery_scope: figures
