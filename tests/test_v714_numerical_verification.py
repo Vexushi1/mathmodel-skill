@@ -142,6 +142,38 @@ class V714NumericalVerificationTests(unittest.TestCase):
             self.assertFalse(passed)
             self.assertTrue(any("不存在" in item or "需要工作表" in item for item in issues))
 
+    def test_invalid_verification_id_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "问题一求解结果.xlsx"
+            self.make_book(
+                path,
+                ["PQ-Q1-X", "离散精度", True, "rows", "<=", 1e-3, 5e-4, "离散精度", "numerical_method_accuracy_target"],
+                "离散精度",
+                ["离散参数", "取值", "目标指标", "相对变化", "用于主判定"],
+                ["dt", 0.01, "J", 5e-4, True],
+            )
+            passed, issues, _ = NUMERICAL.validate_primary_numerical_evidence(
+                path, {"requires_discretization_check": True}
+            )
+            self.assertFalse(passed)
+            self.assertTrue(any("PQS格式" in item for item in issues))
+
+    def test_unregistered_threshold_source_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "问题一求解结果.xlsx"
+            self.make_book(
+                path,
+                ["PQ-Q1-01", "离散精度", True, "rows", "<=", 1e-3, 5e-4, "离散精度", "looks_good_after_run"],
+                "离散精度",
+                ["离散参数", "取值", "目标指标", "相对变化", "用于主判定"],
+                ["dt", 0.01, "J", 5e-4, True],
+            )
+            passed, issues, _ = NUMERICAL.validate_primary_numerical_evidence(
+                path, {"requires_discretization_check": True}
+            )
+            self.assertFalse(passed)
+            self.assertTrue(any("未登记阈值来源" in item for item in issues))
+
     def test_v713_boolean_gate_remains_legacy_read_compatible(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "legacy.xlsx"
@@ -175,6 +207,7 @@ class V714NumericalVerificationTests(unittest.TestCase):
             assurance["contract_dependency_closure"]["contract_dependencies"]["modules/03_solve_validate.md"],
         )
         self.assertIn("validate_primary_numerical_evidence", receipt)
+        self.assertIn("delivered_primary_protocol", receipt)
 
     def test_primary_and_analysis_modules_keep_stage_ownership(self):
         solve = (ROOT / "modules/03_solve_validate.md").read_text(encoding="utf-8")
