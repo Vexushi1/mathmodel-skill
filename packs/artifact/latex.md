@@ -150,7 +150,7 @@ model_review  -> final_latex/sections/09_evaluation.tex
 - 公式、命题、图、表和文献使用可维护的 label/ref/cite 体系；
 - 三线表不使用 `resizebox` 粗暴缩小整表字号；
 - 图题在下、表题在上；
-- MATLAB 图内可保留简洁 `title/sgtitle`，LaTeX `\caption` 负责正式编号和论文语义；
+- 正式论文图不设置重复的整体 MATLAB `title/sgtitle`；LaTeX `\caption` 负责正式编号和图名，多面板按需仅保留 panel label；
 - 正文不放完整代码，完整 Python/MATLAB 放附录或附件；
 - 命题正文与短证明使用项目约定环境，呈现规则由 `packs/artifact/proposition_proof.md` 负责；
 - `references.bib` 中 citation key 与正文 `\cite{}` 闭合。
