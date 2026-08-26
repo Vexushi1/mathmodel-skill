@@ -1,0 +1,210 @@
+contract_version: 1.0.0
+introduced_in_skill_version: 7.14.0
+skill_compatibility: '>=7.14.0,<8.0.0'
+purpose: >-
+  Define the single field-level authority for intrinsic numerical validity of one
+  primary computation before its solution workbook may be accepted. This contract
+  strengthens evidence checking without moving post-acceptance sensitivity,
+  robustness, alternative-method comparison, or claim-stability analysis into the
+  primary solve stage.
+
+authority_boundary:
+  owns:
+  - primary_quality_scope
+  - capability_to_primary_protocol
+  - strict_v714_quality_trace
+  - deterministic_evidence_recheck
+  - threshold_provenance_requirement
+  - legacy_primary_quality_read_compatibility
+  delegates:
+    capability_definition: core/task_taxonomy.yaml
+    workbook_sheet_and_column_schema: core/workbook_schema.yaml
+    primary_solve_stage: modules/03_solve_validate.md
+    result_analysis_stage: modules/03_result_analysis.md
+    returned_workbook_provenance: core/user_execution_contract.yaml
+  primary_rule: >-
+    Primary quality checks shall only test whether the current primary computation
+    is numerically admissible under the locked model and declared numerical method.
+    They shall not evaluate sensitivity to model parameters, alternative structures,
+    alternative algorithms, stress scenarios, heterogeneous groups, or broader claim
+    stability; those belong exclusively to result analysis after the primary workbook
+    is accepted.
+
+scope:
+  question: Is this specific primary computation numerically admissible enough to become an accepted solution workbook?
+  allowed:
+  - execution-intrinsic feasibility and residual checks
+  - equilibrium or conservation residuals required by the locked model
+  - discretization adequacy required by the declared numerical method
+  - convergence adequacy required by the declared iterative/simulation method
+  - one primary out-of-sample validity design when the main prediction itself requires it
+  - minimum uncertainty/sampling precision required for the reported primary estimate
+  - leakage, calibration or identifiability checks when the active capability makes failure invalidate the primary result
+  forbidden_as_primary_quality:
+  - parameter_sensitivity
+  - threshold_or_failure_boundary_exploration_beyond_minimum_numerical_admissibility
+  - scenario_stress_testing
+  - alternative_algorithm_comparison
+  - alternative_model_or_structure_comparison
+  - multi_seed_or_multi_start_robustness_for_claim_stability
+  - structural_robustness
+  - heterogeneity_analysis
+  - error_decomposition_for_claim_stability
+  - broad_multi_window_or_multi_domain_out_of_sample_stability
+  - ablation_analysis
+  result_analysis_authority: modules/03_result_analysis.md
+
+primary_quality_specification:
+  artifact_role: existing validation_plan/model_paper_framework semantic section; no standalone project file by default
+  fixed_before_primary_code: true
+  required_item_fields:
+  - id
+  - capability
+  - protocol
+  - target
+  - metric
+  - criterion
+  - evidence_sheet
+  - blocking
+  id_pattern: '^PQ-Q[1-9][0-9]*-[0-9]{2,}$'
+  threshold_sources:
+  - problem_or_official_requirement
+  - mathematical_definition
+  - locked_model_tolerance
+  - solver_tolerance
+  - numerical_method_accuracy_target
+  - justified_project_criterion
+  rules:
+  - Thresholds may not be invented after observing favorable primary results.
+  - The specification defines minimum intrinsic admissibility only; it must not precompute a result_analysis_plan.
+  - Candidate post-acceptance risks may be recorded separately as downstream risk hints.
+
+strict_v714_trace:
+  activation:
+    any:
+    - 主结果质量门 contains a non-empty Verification ID
+  legacy_when_absent: true
+  quality_gate_sheet: 主结果质量门
+  required_columns_when_active:
+  - Verification ID
+  - 检查项
+  - 是否通过
+  - 证据
+  - 判定关系
+  - 阈值或容差
+  - 实际值
+  - 证据工作表
+  - 阈值来源
+  allowed_relations: ['<=', '>=', 'abs<=', '==', bool_true]
+  rules:
+  - Verification ID must be unique and begin with PQ-.
+  - Evidence sheet must exist and contain at least one substantive data row.
+  - Threshold source must be non-empty for every strict v7.14 verification row.
+  - Machine-verifiable relations are recomputed by the validator; the workbook Boolean is not trusted by itself.
+  - Every active capability protocol with an evidence sheet must be covered by at least one strict quality-gate row referencing that sheet.
+
+capability_protocols:
+  has_explicit_constraints:
+    protocol: feasibility
+    evidence_sheet: 约束违反检查
+    recheck_mode: max_violation
+  requires_feasibility_check:
+    protocol: feasibility
+    evidence_sheet: 约束违反检查
+    recheck_mode: max_violation
+  requires_equilibrium_residual:
+    protocol: equilibrium_residual
+    evidence_sheet: 均衡残差
+    recheck_mode: max_abs_residual
+  requires_conservation_residual:
+    protocol: conservation_residual
+    evidence_sheet: 守恒残差
+    recheck_mode: max_abs_residual
+  requires_discretization_check:
+    protocol: discretization_adequacy
+    evidence_sheet: 离散精度
+    recheck_mode: marked_relative_change
+  requires_convergence_diagnostic:
+    protocol: convergence_adequacy
+    evidence_sheet: 收敛诊断
+    recheck_mode: marked_boolean
+  requires_out_of_sample_validation:
+    protocol: out_of_sample_primary_validity
+    evidence_sheet: 外样本验证
+    recheck_mode: summary_criterion
+  requires_uncertainty_quantification:
+    protocol: uncertainty_precision
+    evidence_sheet: 不确定性区间
+    recheck_mode: summary_criterion
+  requires_leakage_check:
+    protocol: leakage_primary_validity
+    evidence_sheet: 泄漏检查
+    recheck_mode: all_boolean
+  requires_calibration_check:
+    protocol: calibration_primary_validity
+    evidence_sheet: 校准结果
+    recheck_mode: summary_criterion
+  requires_identifiability_check:
+    protocol: identifiability_primary_validity
+    evidence_sheet: 可识别性检查
+    recheck_mode: summary_criterion
+
+recheck_modes:
+  max_violation:
+    source_columns: [违反量, 容差, 是否满足]
+    computed_metric: max_abs_value
+    quality_actual_must_match_computed: true
+  max_abs_residual:
+    source_columns: [残差, 容差, 是否满足]
+    computed_metric: max_abs_value
+    quality_actual_must_match_computed: true
+  marked_relative_change:
+    source_columns: [相对变化]
+    marker_column: 用于主判定
+    marker_required_in_strict_mode: true
+    computed_metric: max_abs_marked_relative_change
+    quality_actual_must_match_computed: true
+    note: >-
+      The marker prevents coarse exploratory refinement rows from being mistaken for the
+      final admissibility criterion and allows multiple target quantities in one sheet.
+  marked_boolean:
+    source_columns: [判定]
+    marker_column: 用于主判定
+    marker_required_in_strict_mode: true
+    computed_metric: all_marked_true
+    quality_relation: bool_true
+  all_boolean:
+    source_columns: [是否通过]
+    computed_metric: all_true
+    quality_relation: bool_true
+  summary_criterion:
+    computed_metric: declared_quality_summary_only
+    note: >-
+      Generic infrastructure may recompute the quality-gate relation and verify the
+      linked evidence exists, but it must not invent domain-specific metrics from an
+      underspecified worksheet.
+
+numeric_consistency:
+  comparison_tolerance:
+    absolute: 1.0e-12
+    relative: 1.0e-9
+  rules:
+  - Non-finite numeric values are invalid.
+  - For violation and residual rows, row Boolean must equal the value-versus-tolerance result.
+  - For strict max-violation/max-residual/marked-relative-change protocols, quality-gate 实际值 must numerically match the recomputed evidence metric within comparison tolerance.
+  - `time_limit` or `max_iter` text in 运行配置 must never be interpreted by infrastructure as converged or globally optimal without separate admissibility evidence.
+
+legacy_compatibility:
+  v7_13_workbook_without_verification_id: readable
+  legacy_boolean_gate_semantics: preserved_for_read
+  strict_recheck_required_when_v714_trace_present: true
+  migration: >-
+    Historical accepted workbooks are not batch-migrated. When an old project re-enters
+    current primary solving, that question should emit the v7.14 strict trace. Result
+    analysis remains post-acceptance and is not pulled into migration.
+
+implementation:
+  validator: scripts/validate_numerical_evidence.py
+  receipt_integration: scripts/validate_user_execution.py
+  report_persistence: stdout_or_chat_only
+  task_specific_code_execution: false
