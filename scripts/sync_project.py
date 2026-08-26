@@ -498,7 +498,12 @@ def _parse_matlab(script: Path) -> tuple[bool, list[str], list[str]]:
     if not script.is_file():
         return False, [], []
     text = script.read_text(encoding="utf-8", errors="ignore")
-    return bool(MATLAB_TITLE_RE.search(text)), WORKBOOK_REF_RE.findall(text), EXPORT_RE.findall(text)
+    code_text = _matlab_executable_text(text)
+    return (
+        bool(MATLAB_TITLE_RE.search(code_text)),
+        WORKBOOK_REF_RE.findall(code_text),
+        EXPORT_RE.findall(code_text),
+    )
 
 
 def _snapshot_question(
@@ -558,8 +563,8 @@ def _snapshot_question(
         if not matlab.is_file():
             issues.append("图表交付缺少MATLAB脚本")
         else:
-            if not matlab_has_title:
-                issues.append("MATLAB正式图缺少title或sgtitle")
+            if matlab_has_title:
+                issues.append("MATLAB正式论文图不得设置整体title或sgtitle；正式图名由LaTeX/DOCX caption承担")
             standard = {
                 f"{chinese_name}求解结果.xlsx",
                 f"{chinese_name}结果深化分析.xlsx",
@@ -810,8 +815,8 @@ def _preprocessing_artifact_issues(
             issues.append("project_level图表及论文交付缺少数据预处理/data_process.m")
         else:
             has_title, workbook_refs, exports = _parse_matlab(matlab)
-            if not has_title:
-                issues.append("data_process.m缺少title或sgtitle")
+            if has_title:
+                issues.append("data_process.m正式论文图不得设置整体title或sgtitle；正式图名由LaTeX/DOCX caption承担")
             if "数据预处理结果.xlsx" not in {Path(item).name for item in workbook_refs}:
                 issues.append("data_process.m必须读取数据预处理结果.xlsx")
             text = matlab.read_text(encoding="utf-8", errors="ignore")
