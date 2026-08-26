@@ -17,6 +17,7 @@
 - `templates/code/starter/prediction.py`
 - `templates/code/starter/simulation.py`
 - `templates/figure/chart_selection.md`
+- `templates/figure/figure_enhancement_patterns.md`
 - `templates/figure/figure_paper_closure.md`
 - `templates/figure/figure_plan.md`
 - `templates/figure/mechanism_contract.md`
