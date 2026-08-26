@@ -77,6 +77,22 @@ class V714NumericalVerificationTests(unittest.TestCase):
             self.assertTrue(any("是否满足" in item for item in issues))
             self.assertTrue(any("是否通过" in item for item in issues))
 
+    def test_consistent_failed_residual_row_cannot_be_hidden_by_lax_summary_threshold(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "问题一求解结果.xlsx"
+            self.make_book(
+                path,
+                ["PQ-Q1-01", "守恒", True, "rows", "<=", 1.0, 1e-2, "守恒残差", "locked_model_tolerance"],
+                "守恒残差",
+                ["守恒量", "残差", "容差", "是否满足"],
+                ["质量", 1e-2, 1e-6, False],
+            )
+            passed, issues, _ = NUMERICAL.validate_primary_numerical_evidence(
+                path, {"requires_conservation_residual": True}
+            )
+            self.assertFalse(passed)
+            self.assertTrue(any("未满足容差" in item for item in issues), issues)
+
     def test_residual_actual_is_recomputed_from_bottom_level_evidence(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "问题一求解结果.xlsx"
@@ -109,6 +125,22 @@ class V714NumericalVerificationTests(unittest.TestCase):
             self.assertTrue(passed, issues)
             self.assertTrue(report["strict"])
 
+    def test_failed_quality_relation_is_blocking_even_when_declared_false(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "问题一求解结果.xlsx"
+            self.make_book(
+                path,
+                ["PQ-Q1-01", "离散精度", False, "rows", "<=", 1e-4, 5e-4, "离散精度", "numerical_method_accuracy_target"],
+                "离散精度",
+                ["离散参数", "取值", "目标指标", "相对变化", "用于主判定"],
+                ["dt", 0.01, "J", 5e-4, True],
+            )
+            passed, issues, _ = NUMERICAL.validate_primary_numerical_evidence(
+                path, {"requires_discretization_check": True}
+            )
+            self.assertFalse(passed)
+            self.assertTrue(any("未达到主质量判据" in item for item in issues), issues)
+
     def test_convergence_marker_is_not_result_analysis(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "问题一求解结果.xlsx"
@@ -123,6 +155,20 @@ class V714NumericalVerificationTests(unittest.TestCase):
                 path, {"requires_convergence_diagnostic": True}
             )
             self.assertTrue(passed, issues)
+
+    def test_strict_quality_gate_cannot_be_empty(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "问题一求解结果.xlsx"
+            book = openpyxl.Workbook()
+            quality = book.active
+            quality.title = "主结果质量门"
+            quality.append(QUALITY_COLUMNS)
+            book.save(path)
+            passed, issues, _ = NUMERICAL.validate_primary_numerical_evidence(
+                path, {}, force_strict=True
+            )
+            self.assertFalse(passed)
+            self.assertTrue(any("至少需要一行严格Verification证据" in item for item in issues), issues)
 
     def test_missing_evidence_sheet_breaks_strict_trace(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -173,6 +219,22 @@ class V714NumericalVerificationTests(unittest.TestCase):
             )
             self.assertFalse(passed)
             self.assertTrue(any("未登记阈值来源" in item for item in issues))
+
+    def test_negative_abs_tolerance_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "问题一求解结果.xlsx"
+            self.make_book(
+                path,
+                ["PQ-Q1-01", "离散精度", True, "rows", "abs<=", -1e-3, 5e-4, "离散精度", "numerical_method_accuracy_target"],
+                "离散精度",
+                ["离散参数", "取值", "目标指标", "相对变化", "用于主判定"],
+                ["dt", 0.01, "J", 5e-4, True],
+            )
+            passed, issues, _ = NUMERICAL.validate_primary_numerical_evidence(
+                path, {"requires_discretization_check": True}
+            )
+            self.assertFalse(passed)
+            self.assertTrue(any("不得为负数" in item for item in issues), issues)
 
     def test_v713_boolean_gate_remains_legacy_read_compatible(self):
         with tempfile.TemporaryDirectory() as temp:
