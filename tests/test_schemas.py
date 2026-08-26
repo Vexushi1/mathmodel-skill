@@ -47,7 +47,7 @@ class TestSchemas(unittest.TestCase):
 
     def test_workbook_schema_has_quality_gate_and_adaptive_analysis(self):
         schema = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(schema["schema_version"], "2.2.1")
+        self.assertEqual(schema["schema_version"], "2.3.0")
         self.assertIn(">=6.3.2", schema["skill_compatibility"])
         self.assertIn("<8.0.0", schema["skill_compatibility"])
         self.assertEqual(schema["classification_contract"]["capabilities_source"], "subproblem.capabilities")
@@ -55,13 +55,19 @@ class TestSchemas(unittest.TestCase):
         self.assertNotIn("artifact_checker", runtime)
         self.assertEqual(runtime["code_delivery_checker"], "scripts/validate_code_delivery.py")
         self.assertEqual(runtime["returned_workbook_checker"], "scripts/validate_user_execution.py")
+        self.assertEqual(runtime["numerical_evidence_checker"], "scripts/validate_numerical_evidence.py")
+        self.assertEqual(runtime["numerical_evidence_authority"], "core/numerical_verification_contract.yaml")
         self.assertIn("objective_profiles", schema["solution_workbook"])
         self.assertIn("structure_profiles", schema["solution_workbook"])
         self.assertIn("主结果质量门", schema["solution_workbook"]["common_required_sheets"])
         self.assertIn("运行配置", schema["solution_workbook"]["common_required_sheets"])
+        quality = schema["solution_workbook"]["common_required_sheets"]["主结果质量门"]
+        self.assertIn("Verification ID", quality["optional_columns"])
+        self.assertIn("阈值来源", quality["optional_columns"])
         rules = "\n".join(runtime["rules"])
         self.assertIn("质量门允许记录未通过项", rules)
-        self.assertIn("只有主结果质量门全部通过", rules)
+        self.assertIn("适用的主数值证据复核通过", rules)
+        self.assertIn("不得被主质量门提前吸收", rules)
         self.assertIn("不得进入下游", schema["solution_workbook"]["role"])
         analysis = schema["result_analysis_workbook"]
         self.assertEqual(set(analysis["common_required_sheets"]), {"运行配置", "分析设计", "结论稳定性汇总"})
@@ -76,6 +82,7 @@ class TestSchemas(unittest.TestCase):
         self.assertEqual(str(contract["version"]), current)
         self.assertEqual(contract["code_quality_contract"], "core/code_quality_contract.yaml")
         self.assertEqual(contract["preprocessing_contract"], "core/global_preprocessing_contract.yaml")
+        self.assertEqual(contract["numerical_verification_contract"], "core/numerical_verification_contract.yaml")
         self.assertEqual(contract["semantic_governance"]["authority"], "scripts/validate_semantic_governance.py")
         self.assertEqual(contract["semantic_governance"]["dependency_kind_authority"], "core/project_state.schema.yaml#/$defs/dependency_kind")
         self.assertEqual(contract["project_sync"]["role"], "formal_pre_delivery_gate_after_semantic_governance")
@@ -96,6 +103,7 @@ class TestSchemas(unittest.TestCase):
         self.assertTrue(policy["primary_quality_gate_required"])
         self.assertTrue(policy["failed_quality_evidence_persisted"])
         self.assertTrue(policy["downstream_admission_requires_quality_passed"])
+        self.assertEqual(policy["primary_numerical_validity_authority"], "core/numerical_verification_contract.yaml")
         self.assertEqual(set(policy["result_analysis_outcomes"]), {"passed", "failed", "redo_required"})
         self.assertTrue(policy["fixed_perturbation_forbidden"])
         self.assertEqual(
