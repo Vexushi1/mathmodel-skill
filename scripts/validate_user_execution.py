@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +27,19 @@ PREPROCESSING_EVIDENCE_SHEETS = {
     "绘图数据索引": ("图组", "图作用", "源工作表"),
     "预处理质量门": ("检查项", "是否通过", "证据"),
 }
+
+
+def _load_numerical_validator():
+    path = Path(__file__).resolve().with_name("validate_numerical_evidence.py")
+    spec = importlib.util.spec_from_file_location("hsk_validate_numerical_evidence", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+NUMERICAL_VALIDATION = _load_numerical_validator()
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -293,6 +308,14 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
     if stage == "primary":
         passed, quality_issues = quality_passed(workbook)
         issues.extend(quality_issues)
+        force_strict = True if str(config.get("primary_quality_protocol_version", "")).strip() else None
+        numerical_passed, numerical_issues, _ = NUMERICAL_VALIDATION.validate_primary_numerical_evidence(
+            workbook,
+            entry.get("capabilities") or {},
+            force_strict=force_strict,
+        )
+        issues.extend(numerical_issues)
+        passed = passed and numerical_passed
         if write:
             entry["primary_execution_status"] = "accepted" if not issues and passed else "rejected"
             entry["result_quality_status"] = "passed" if not issues and passed else "failed"
