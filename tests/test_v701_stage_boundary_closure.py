@@ -224,6 +224,10 @@ class TestV701StageBoundaryClosure(unittest.TestCase):
             root = Path(temp)
             primary_hash = "c" * 64
             state = state_payload(primary_hash)
+            # Historical compatibility state may retain the delivered-code hash while
+            # no longer retaining the old code path itself. That is the read-only
+            # legacy case; current delivered v7.14 code must never use this bypass.
+            state["subproblems"]["Q1"].pop("code", None)
             workbook = root / "结果数据表/问题一/问题一求解结果.xlsx"
             write_workbook(workbook, "primary", "问题一", primary_hash)
             issues = receipt.validate_one(root, workbook, state, True)
