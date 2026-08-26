@@ -39,17 +39,18 @@ resultAnalysisBook = fullfile(resultDir, "问题一结果深化分析.xlsx");
 
 具体 MATLAB 实现只参考 `templates/figure/figure_enhancement_patterns.md`，该模板不拥有独立决策权。Figure Contract 只登记 `Enhancement / Enhancement rationale`，不把 inset 坐标、透明度等实现参数写进项目语义合同。
 
-## 图标题与风格
+## 图题与风格
 
-- 单图使用简洁 `title`，多面板使用一个整体 `sgtitle`；
-- 图注补充统计口径、时间范围和误差，不与标题逐字重复；
+- 正式论文图不调用 `title` 或 `sgtitle` 设置整体图内标题；LaTeX/DOCX `caption` 承担正式图号和图名，多面板按需只保留 a/b/c/d 等 panel label；
+- 本地探索阶段若临时使用调试标题，进入正式 `figures` 交付前必须移除，避免与论文 caption 重复；
 - 白底、清晰细轴、中文坐标轴和单位，默认字号 18；
-- 主比较允许中高饱和、高对比颜色，优先让评委第一眼识别比较对象和差异；亮蓝、鲜红、亮绿、亮橙、亮紫均可作为主色；
-- 辅助对象、置信区间、背景带和参考元素使用浅色、灰色或透明度降权，避免整张图所有元素同时高饱和；
+- 主色默认采用实体、低饱和、可区分的科研配色，例如深蓝 `#173B5E`、中蓝 `#375C87`、青绿 `#1E756B`、砖红 `#9A3838`、紫色 `#5D4B86`、棕灰 `#A98F70`；
+- 辅助对象、置信区间、背景带和参考元素使用浅灰 `#D9DAD7`、深灰 `#20262E` 或透明度降权，不能让辅助元素压过主证据；
 - 同一对象/语义在全文保持颜色一致；禁止彩虹色和无序多色轮换，热图按连续变量语义选择连续或发散色图；
+- 默认 `grid off`；确需网格时保持浅、稀且位于数据后方；
 - 默认保留可见图窗，不自动关闭，不创建图表子目录，不批量导出；
 - 论文阶段人工确认后，按需导出到项目级 `figures/`。
 
-每张图的源工作簿、工作表、真实表头、脚本、图注、Evidence level、Primary question、Layout decision、Split decision、Enhancement / Enhancement rationale 和正文位置同步登记到 `模型论文框架.md`；默认不生成独立 `figure_evidence` 文件。
+每张图的源工作簿、工作表、真实表头、脚本、论文 caption、Evidence level、Primary question、Layout decision、Split decision、Enhancement / Enhancement rationale 和正文位置同步登记到 `模型论文框架.md`；默认不生成独立 `figure_evidence` 文件。
 
-图表交付前执行 `python scripts/sync_project.py <project_root> --write --strict --delivery-scope figures`。同步器检查两个工作簿、`qX_plot.m` 的真实引用、标题和证据链；默认不要求导出图片已经存在。
+图表交付前执行 `python scripts/sync_project.py <project_root> --write --strict --delivery-scope figures`。同步器检查两个工作簿、`qX_plot.m` 的真实引用、正式图内无整体 `title/sgtitle` 和证据链；默认不要求导出图片已经存在。
