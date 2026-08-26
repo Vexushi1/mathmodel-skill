@@ -1,4 +1,4 @@
-version: 7.13.0
+version: 7.14.0
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -15,6 +15,7 @@ load_policy:
   - Load global_preprocessing_contract only when the route decides, executes or inherits preprocessing semantics.
   - Load model_approval_contract for model-design routes that can propose/lock a model and for task-code routes that must verify current Human Model Approval.
   - Load user_execution_contract and code_quality_contract only for code-generation or returned-workbook execution boundaries.
+  - Primary numerical-verification rules are loaded declaratively through runtime-assurance dependency closure only for model design, primary solve, or primary workbook receipt; result-analysis, figure and writing routes do not preload them without need.
   - Load writing_reasoning_contract only for model-design/proposition/algorithm-presentation/writing/review routes that create, revise or formally inspect mathematical reasoning; do not make it a global preload for figures, workbook validation or unrelated utilities.
   - Writing and final-review routes that create or inspect prose load modules/05_writing/latex.md as the expression authority; figure and workbook routes do not preload it.
   - Writing and figure routes inherit current project semantics from 模型论文框架.md and their stage authority; do not preload unrelated code/preprocessing contracts.
