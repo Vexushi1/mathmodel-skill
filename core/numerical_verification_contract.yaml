@@ -99,10 +99,13 @@ strict_v714_trace:
   allowed_relations: ['<=', '>=', 'abs<=', '==', bool_true]
   rules:
   - Verification ID must be unique and match primary_quality_specification.id_pattern.
+  - Strict mode requires at least one substantive verification row; a header-only quality gate cannot pass.
   - Evidence sheet must exist and contain at least one substantive data row.
   - Threshold source must be one canonical tag declared by primary_quality_specification.threshold_sources for every strict v7.14 verification row.
   - Machine-verifiable relations are recomputed by the validator; the workbook Boolean is not trusted by itself.
+  - A strict verification row whose recomputed criterion is false is blocking even when the workbook Boolean consistently reports false.
   - Every active capability protocol with an evidence sheet must be covered by at least one strict quality-gate row referencing that sheet.
+  - For active feasibility/equilibrium/conservation protocols, any bottom-level row that fails its declared tolerance blocks primary acceptance; a looser summary threshold cannot override failed intrinsic evidence.
 
 capability_protocols:
   has_explicit_constraints:
@@ -155,10 +158,12 @@ recheck_modes:
     source_columns: [违反量, 容差, 是否满足]
     computed_metric: max_abs_value
     quality_actual_must_match_computed: true
+    failed_row_blocks_acceptance: true
   max_abs_residual:
     source_columns: [残差, 容差, 是否满足]
     computed_metric: max_abs_value
     quality_actual_must_match_computed: true
+    failed_row_blocks_acceptance: true
   marked_relative_change:
     source_columns: [相对变化]
     marker_column: 用于主判定
