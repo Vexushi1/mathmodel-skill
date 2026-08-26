@@ -12,7 +12,7 @@
 6. 为各问结果图先写 Core conclusion、Evidence level 和 Primary question，再通过 Figure Layout Gate 动态选择单图、1×2、2×1、1×3、2×2 或拆分为多张 Figure；不得先决定版式再硬塞证据；
 7. 基础布局确定后执行 Figure Enhancement Gate；仅在局部差异、曲线遮挡、视觉主次、阈值区域、联合诊断或真实双因素结构确实需要时增加增强表达；
 8. 生成 MATLAB 代码前实际读取工作簿，锁定工作簿名、工作表名、真实表头、单位和数据类型；
-9. 设置简洁 `title` 或一个整体 `sgtitle`，拟定不逐字重复的论文图注；
+9. 拟定 DOCX/LaTeX 正式 caption；正式论文图不设置整体 `title` / `sgtitle`，多面板按需只保留 a/b/c/d 等 panel label；
 10. 将各问 `q{x}_plot.m` 与两类 Python 脚本、两类结果工作簿放在同一 `问题X求解/`；项目级预处理图脚本固定为 `数据预处理/data_process.m`；
 11. 检查核心结论是否有图或表证据，并同步 `模型论文框架.md`；
 12. 默认只保留图窗供人工检查，不自动创建图表子目录或批量导出图片。
@@ -56,7 +56,7 @@
 - 重采样前后的网格/采样间隔/覆盖图；
 - 异常阈值边界与保留/处理样本图。
 
-`data_process.m` 的 Figure Contract 必须记录：Core conclusion、Evidence level、Primary question、Figure role、MATLAB title、论文 caption、Source workbook=`数据预处理结果.xlsx`、Worksheet、Required headers、Panel map、Layout decision、Split decision、Statistics/error、Paper location。
+`data_process.m` 的 Figure Contract 必须记录：Core conclusion、Evidence level、Primary question、Figure role、In-figure title=`none`、论文 caption、Source workbook=`数据预处理结果.xlsx`、Worksheet、Required headers、Panel map、Layout decision、Split decision、Statistics/error、Paper location。
 
 若需要正式导出，文件基名固定为：
 
@@ -70,7 +70,7 @@ data_process_<evidence>
 
 ## C 类：各问结果图合同
 
-每张结果图记录：Core conclusion、Evidence level、Primary question、Figure role、MATLAB title、论文 caption、Panel map、Layout decision、Split decision、Panel necessity、Enhancement、Enhancement rationale、Source workbook、Worksheet、Required headers、Expected positions（可选）、MATLAB script、Export files、Statistics/error、Reviewer risk、Paper location 和 Caption duty。
+每张结果图记录：Core conclusion、Evidence level、Primary question、Figure role、In-figure title=`none`、论文 caption、Panel map、Layout decision、Split decision、Panel necessity、Enhancement、Enhancement rationale、Source workbook、Worksheet、Required headers、Expected positions（可选）、MATLAB script、Export files、Statistics/error、Reviewer risk、Paper location 和 Caption duty。
 
 结果证据优先来自本问主求解工作簿或结果深化分析工作簿：
 
@@ -195,7 +195,7 @@ Figure Enhancement 发生在基础图型和布局确定之后，目的不是增�
 
 ### 3. Focus Highlighting
 
-当对象很多但核心判断只依赖 1--2 个对象时，保留上下文但降低次要对象权重：核心对象使用高对比主色和主要线宽，基准或背景对象使用灰色、浅色、细线或透明度。不得通过完全隐藏不利对象制造选择性呈现。
+当对象很多但核心判断只依赖 1--2 个对象时，保留上下文但降低次要对象权重：核心对象使用较深实体主色和主要线宽，基准或背景对象使用灰色、浅色、细线或透明度。不得通过完全隐藏不利对象制造选择性呈现。
 
 ### 4. Semantic Background
 
@@ -250,31 +250,32 @@ if isfinite(expectedXColumn) && xColumn ~= expectedXColumn
 end
 ```
 
-## 图标题、配色与风格
+## 图题、配色与风格
 
-单图使用 `title`，多面板使用一个 `sgtitle`。标题只说明研究对象、指标关系和必要方法，不写结论长句。默认白底、清晰细轴、中文坐标轴和单位、字号 18，网格关闭或极浅。**主结果允许并鼓励使用中高饱和、高对比、抓眼球的科研配色**；不再以“低饱和深色”为默认目标。数学建模竞赛图表应让评委快速识别对象和差异，只要语义层级清楚，就不必为了“期刊感”把主色压得过暗。
+正式论文图不设置整体 `title` 或 `sgtitle`。DOCX/LaTeX caption 承担正式图号、图名与必要统计口径；多面板按需只保留 a/b/c/d 等 panel label，坐标轴、单位、图例、阈值线和必要直接标注用于读图。若本地探索阶段临时加调试标题，进入正式 `figures` 交付前必须移除。
 
-推荐主色仅作为起点，不是固定模板：
+默认白底、清晰细轴、中文坐标轴和单位、字号 18，网格关闭；确需网格时必须浅、稀并置于数据后方。主色默认采用**实体、深色、低饱和且可区分**的科研配色，不使用彩虹色、高饱和渐变或无序多色轮换。推荐主色仅作为起点，不是固定模板：
 
 ```text
-亮蓝   #1478FF   RGB [20,120,255]
-鲜红   #F04444   RGB [240,68,68]
-亮绿   #16B364   RGB [22,179,100]
-亮橙   #F79009   RGB [247,144,9]
-亮紫   #7A5AF8   RGB [122,90,248]
-深灰   #252B37
-浅灰   #E9EAEB
+深蓝   #173B5E   RGB [23,59,94]
+中蓝   #375C87   RGB [55,92,135]
+青绿   #1E756B   RGB [30,117,107]
+砖红   #9A3838   RGB [154,56,56]
+紫色   #5D4B86   RGB [93,75,134]
+棕灰   #A98F70   RGB [169,143,112]
+深灰   #20262E   RGB [32,38,46]
+浅灰   #D9DAD7   RGB [217,218,215]
 ```
 
 配色动态规则：
 
-- 两对象强比较优先使用高对比双色，例如亮蓝 vs 鲜红；
-- 正向改善/可行可使用亮绿，风险/恶化可使用鲜红，警告/临界可使用亮橙，基准/参考可使用深灰；
+- 两对象强比较优先选择两种实体、低饱和且明度/色相可区分的颜色，例如深蓝 vs 砖红；
+- 正向改善/可行可使用青绿，风险/恶化可使用砖红，基准/参考优先使用深灰或棕灰；
 - 同一对象和同一语义一旦在全文建立颜色映射，后续图保持一致；
-- 主线、主柱、关键区域可以鲜艳；置信区间、背景带、参考网格、次要对象必须通过浅色、灰色或透明度降权；
-- 允许高饱和，不允许“所有元素都高饱和”：如果颜色过多导致读者不知道先看哪里，说明视觉层级失败；
+- 主线、主柱、关键区域保持实体清楚；置信区间、背景带、参考元素和次要对象通过浅色、灰色或透明度降权；
+- 禁止所有元素同时争夺注意力；若颜色数量使读者不知道先看哪里，说明视觉层级失败；
 - 禁止彩虹色、无序多色轮换、红绿单独承担唯一语义；必要时同时使用线型、标记或明暗确保可辨识；
-- 热图/连续场使用与物理量语义匹配的连续或发散色图，不把分类高对比色硬套到连续变量。
+- 热图/连续场使用与物理量语义匹配的连续或发散色图，不把分类主色硬套到连续变量。
 
 图窗默认可见，不批量自动导出。
 
