@@ -121,6 +121,18 @@ class V714ReceiptFailClosedTests(unittest.TestCase):
             self.assertTrue(any("不得通过省略标记降级" in item for item in issues))
             self.assertTrue(any("Verification ID" in item for item in issues))
 
+    def test_current_v714_code_cannot_downgrade_via_legacy_result_directory(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            code, state = self.make_project(root, protocol="1.0.0")
+            workbook = self.make_workbook(root, code, protocol=None, strict_trace=False)
+            legacy = root / "结果数据表" / "问题一" / "问题一求解结果.xlsx"
+            legacy.parent.mkdir(parents=True)
+            workbook.replace(legacy)
+            issues = RECEIPT.validate_one(root, legacy, state, False)
+            self.assertTrue(any("不得通过省略标记降级" in item for item in issues), issues)
+            self.assertTrue(any("Verification ID" in item for item in issues), issues)
+
     def test_v714_matching_code_and_workbook_protocol_uses_strict_trace(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
