@@ -91,7 +91,9 @@ def _relation_result(relation: str, actual: Any, threshold: Any) -> tuple[bool |
     if relation == ">=":
         return actual_number >= threshold_number, None
     if relation == "abs<=":
-        return abs(actual_number) <= abs(threshold_number), None
+        if threshold_number < 0:
+            return None, "abs<=阈值/容差不得为负数"
+        return abs(actual_number) <= threshold_number, None
     if relation == "==":
         return actual_number == threshold_number, None
     return None, f"未知判定关系: {relation}"
@@ -264,6 +266,8 @@ def validate_primary_numerical_evidence(
         threshold_sources = {str(item) for item in specification.get("threshold_sources", [])}
         required_columns = [str(item) for item in strict_contract.get("required_columns_when_active", [])]
         issues.extend(_require_columns("主结果质量门", quality_headers, required_columns))
+        if not quality_rows:
+            issues.append("主结果质量门至少需要一行严格Verification证据")
         if issues:
             return False, list(dict.fromkeys(issues)), {
                 "mode": "v7.14_strict", "strict": True, "active_capabilities": active_capabilities,
@@ -298,6 +302,13 @@ def validate_primary_numerical_evidence(
             computed, evidence_issues = _recheck_evidence(mode, sheet, headers, records)
             computed_by_sheet[sheet] = computed
             issues.extend(evidence_issues)
+            if mode in {"max_violation", "max_abs_residual"}:
+                failed_rows = [
+                    index for index, record in enumerate(records, start=2)
+                    if _as_bool(record.get("是否满足")) is False
+                ]
+                if failed_rows:
+                    issues.append(f"{sheet}存在未满足容差的主数值证据行: {failed_rows}")
 
         checked_ids: list[str] = []
         for row_number, row in enumerate(quality_rows, start=2):
@@ -342,6 +353,8 @@ def validate_primary_numerical_evidence(
             declared_pass = _as_bool(row.get("是否通过"))
             if declared_pass is None or declared_pass != expected_pass:
                 issues.append(f"{verification_id}的是否通过与实际值/阈值/判定关系不一致")
+            if expected_pass is not True:
+                issues.append(f"{verification_id}未达到主质量判据")
 
             if evidence_sheet in computed_by_sheet and computed_by_sheet[evidence_sheet] is not None:
                 computed = computed_by_sheet[evidence_sheet]
