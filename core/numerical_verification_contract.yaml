@@ -76,6 +76,7 @@ primary_quality_specification:
   - justified_project_criterion
   rules:
   - Thresholds may not be invented after observing favorable primary results.
+  - Each strict quality row uses exactly one canonical threshold-source tag from threshold_sources; explanatory detail belongs in 证据 or 说明 rather than inventing a new source label.
   - The specification defines minimum intrinsic admissibility only; it must not precompute a result_analysis_plan.
   - Candidate post-acceptance risks may be recorded separately as downstream risk hints.
 
@@ -97,9 +98,9 @@ strict_v714_trace:
   - 阈值来源
   allowed_relations: ['<=', '>=', 'abs<=', '==', bool_true]
   rules:
-  - Verification ID must be unique and begin with PQ-.
+  - Verification ID must be unique and match primary_quality_specification.id_pattern.
   - Evidence sheet must exist and contain at least one substantive data row.
-  - Threshold source must be non-empty for every strict v7.14 verification row.
+  - Threshold source must be one canonical tag declared by primary_quality_specification.threshold_sources for every strict v7.14 verification row.
   - Machine-verifiable relations are recomputed by the validator; the workbook Boolean is not trusted by itself.
   - Every active capability protocol with an evidence sheet must be covered by at least one strict quality-gate row referencing that sheet.
 
@@ -190,6 +191,7 @@ numeric_consistency:
     relative: 1.0e-9
   rules:
   - Non-finite numeric values are invalid.
+  - Tolerances must be non-negative; explicit violation magnitudes must also be non-negative.
   - For violation and residual rows, row Boolean must equal the value-versus-tolerance result.
   - For strict max-violation/max-residual/marked-relative-change protocols, quality-gate 实际值 must numerically match the recomputed evidence metric within comparison tolerance.
   - `time_limit` or `max_iter` text in 运行配置 must never be interpreted by infrastructure as converged or globally optimal without separate admissibility evidence.
