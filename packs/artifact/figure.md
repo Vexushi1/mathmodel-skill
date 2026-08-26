@@ -4,7 +4,7 @@
 
 用户要求结果图、敏感性图、鲁棒性图、多算法图、机理图或 MATLAB 代码时加载。图表必须服务明确结论，不以复杂图型、固定版式或面板数量替代证据。
 
-本 Pack 只做阶段摘要，不重新定义 Figure Evidence 规则。布局、证据层级、数据事实源、配色和 Figure Contract 的唯一权威为 `modules/04_figure_evidence.md`；若本文件与该模块不一致，以后者为准。
+本 Pack 只做阶段摘要，不重新定义 Figure Evidence 规则。布局、证据层级、数据事实源、Figure Enhancement Gate、配色和 Figure Contract 的唯一权威为 `modules/04_figure_evidence.md`；若本文件与该模块不一致，以后者为准。高级增强的实现模式集中在 `templates/figure/figure_enhancement_patterns.md`，该模板只提供实现参考，不拥有独立决策权。
 
 ## 数据前置条件
 
@@ -28,18 +28,19 @@
 - 字段定位采用精确表头唯一匹配，列号只作结构漂移警告；
 - 禁止模糊匹配、别名猜测、自动回退和在 MATLAB 中重新求解；
 - 布局必须通过 `modules/04_figure_evidence.md` 的 Figure Layout Gate 动态选择单图、1×2、2×1、1×3、2×2或拆图，不存在固定默认版式；
-- 一张 Figure 原则上只承担一个一级 Core conclusion；不同 Evidence level 默认不混装；
+- 基础布局后按 Figure Enhancement Gate 判断是否需要 Local Zoom、Small Multiples、Focus Highlighting、Semantic Background、Composite Diagnostic 或 Conditional 3D；默认不增强；
+- 一张 Figure 原则上只承担一个一级 Core conclusion / 一级阅读任务；不同 Evidence level 默认不混装，联合诊断等必要例外仍须共享同一 Primary question；
 - 主比较允许中高饱和、高对比颜色，优先使用亮蓝、鲜红、亮绿、亮橙、亮紫等抓眼主色；辅助对象、置信区间、背景和参考元素降饱和或降低透明度；
 - 同一对象和方向性语义在全文保持同色；禁止彩虹色和无序多色轮换；
 - 默认白底、清晰细轴、字号 18，网格关闭或极浅；
 - 单图使用简洁 `title`，多面板使用一个整体 `sgtitle`；
 - 默认只保留图窗，不创建图表子目录，不自动批量导出。
 
-进入论文阶段后，人工确认并按需导出的正式图片放在项目级 `figures/`。每张图的结论、Evidence level、Primary question、布局判定、源工作簿、工作表、真实表头、脚本、图注和正文位置登记在 `模型论文框架.md`，不额外生成证据 YAML。
+进入论文阶段后，人工确认并按需导出的正式图片放在项目级 `figures/`。每张图的结论、Evidence level、Primary question、布局判定、Enhancement 及理由、源工作簿、工作表、真实表头、脚本、图注和正文位置登记在 `模型论文框架.md`，不额外生成证据 YAML。
 
 ## 信息效率与删除规则
 
-优先使用直接、低维和可比较的二维图。饼图、雷达图、3D 曲面和复杂网络图必须通过高级图表准入检查，并提供额外可验证信息，否则降级或删除。统一扰动模板、无通过标准、只说明“变化不大”、从摘要手工录入数据或无法支持正文判断的图全部删除。
+优先使用直接、低维和可比较的二维图。局部放大、分面、联合诊断和 3D 等增强只有在增加可验证信息、降低视觉搜索成本或强化关键证据时才保留。饼图、雷达图、3D 曲面和复杂网络图必须通过高级图表准入检查，并提供额外可验证信息，否则降级或删除。统一扰动模板、无通过标准、只说明“变化不大”、从摘要手工录入数据或无法支持正文判断的图全部删除。
 
 ## 机理图
 

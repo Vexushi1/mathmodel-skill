@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：7.12.0
+当前 Skill 版本：7.13.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -134,6 +134,7 @@
 - `templates/code/starter/prediction.py`
 - `templates/code/starter/simulation.py`
 - `templates/figure/chart_selection.md`
+- `templates/figure/figure_enhancement_patterns.md`
 - `templates/figure/figure_paper_closure.md`
 - `templates/figure/figure_plan.md`
 - `templates/figure/mechanism_contract.md`
@@ -230,6 +231,7 @@
 - `tests/test_v711_model_approval_gate.py`
 - `tests/test_v712_default_runtime_read_path.py`
 - `tests/test_v712_runtime_assurance.py`
+- `tests/test_v713_figure_enhancement.py`
 - `tests/test_v730_writing_expression_protocol.py`
 - `tests/test_v740_writing_evidence_architecture.py`
 - `tests/test_v741_skill_closure_hygiene.py`

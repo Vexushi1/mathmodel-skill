@@ -1,6 +1,6 @@
 # HSK Active Template Index
 
-当前 Skill 版本：7.12.0
+当前 Skill 版本：7.13.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -17,6 +17,7 @@
 - `templates/code/starter/prediction.py`
 - `templates/code/starter/simulation.py`
 - `templates/figure/chart_selection.md`
+- `templates/figure/figure_enhancement_patterns.md`
 - `templates/figure/figure_paper_closure.md`
 - `templates/figure/figure_plan.md`
 - `templates/figure/mechanism_contract.md`
