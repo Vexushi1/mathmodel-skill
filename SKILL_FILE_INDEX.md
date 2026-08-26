@@ -231,6 +231,7 @@
 - `tests/test_v711_model_approval_gate.py`
 - `tests/test_v712_default_runtime_read_path.py`
 - `tests/test_v712_runtime_assurance.py`
+- `tests/test_v713_figure_enhancement.py`
 - `tests/test_v730_writing_expression_protocol.py`
 - `tests/test_v740_writing_evidence_architecture.py`
 - `tests/test_v741_skill_closure_hygiene.py`
