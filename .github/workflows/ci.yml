@@ -2,7 +2,7 @@ name: HSK Skill CI
 
 on:
   push:
-    branches: [main, "refactor/**"]
+    branches: [main, "refactor/**", "upgrade/**"]
   pull_request:
 
 permissions:
