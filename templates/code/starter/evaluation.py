@@ -60,7 +60,11 @@ def build_features(clean_data: dict[str, pd.DataFrame], config: PipelineConfig) 
 
 
 def solve_model(features: dict[str, Any], config: PipelineConfig) -> dict[str, Any]:
-    raise NotImplementedError("请计算主评价结果并输出综合评分、排序结果和必要权重明细")
+    raise NotImplementedError(
+        "请计算主评价结果，并按 Primary Evidence Capture 保留逐对象综合评分、排名、指标贡献/权重作用、"
+        "当前运行已经形成的明细评分矩阵或分组结果；不要只保留最终名次，也不得提前执行权重扰动、"
+        "替代评价方法或场景稳健性分析"
+    )
 
 
 def check_constraints(solution: dict[str, Any], config: PipelineConfig) -> pd.DataFrame | None:
@@ -78,7 +82,7 @@ def evaluate_primary_quality(
 
 
 def sync_primary_framework(primary: PrimarySolveResult) -> None:
-    raise NotImplementedError("回写主评价模型、评分与排名、质量门结论和证据")
+    raise NotImplementedError("回写主评价模型、评分与排名、逐对象/指标贡献证据位置、质量门结论和证据")
 
 
 def main() -> None:
