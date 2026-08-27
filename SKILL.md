@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.14.1
-summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, independent Model Reviewer plus Devil's Advocate challenge, explicit Human Model Approval bound to the current semantic revision/hash, evidence-driven conditional preprocessing, full-fidelity user execution, capability-driven primary numerical validity with independent evidence recheck, separate primary/result-analysis Python stages, project-memory model-paper framework, Source-Derivation-Destination formula traces, adaptive Algorithm Trace with stepwise/pseudocode presentation, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware high-precision Numeric Profile, Title Claim Gate, support/modify/reject analysis evidence, local paper-fragment stale propagation, Paragraph Necessity, MATLAB evidence figures with caption-owned formal titles and evidence-driven Figure Enhancement, formal LaTeX audit/compile attestation, and validated submission-package provenance.
+version: 7.15.0
+summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, independent Model Reviewer plus Devil's Advocate challenge, explicit Human Model Approval bound to the current semantic revision/hash, evidence-driven conditional preprocessing, full-fidelity user execution, capability-driven primary numerical validity with independent evidence recheck, evidence-ready Primary Evidence Capture, separate primary/result-analysis Python stages, fine-grained Analysis Evidence Capture, project-memory model-paper framework, Source-Derivation-Destination formula traces, adaptive Algorithm Trace with stepwise/pseudocode presentation, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware high-precision Numeric Profile, Title Claim Gate, support/modify/reject analysis evidence, local paper-fragment stale propagation, Paragraph Necessity, MATLAB Scientific Figure Synthesis with caption-owned formal titles, high-contrast composite visualization and evidence-driven Figure Enhancement, formal LaTeX audit/compile attestation, and validated submission-package provenance.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX, 终审, 提交包]
 ---
 
-# HSK 数学建模模块化工作流 v7.14.1
+# HSK 数学建模模块化工作流 v7.15.0
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -60,7 +60,9 @@ preprocessing_decision
 
 v7.14 将主求解质量检查限定为**当前 locked model + 当前声明数值方法下，本次主计算是否具备 accepted 资格**。Module 02 在正式主求解代码前形成 Primary Quality Specification；`问题X求解.py` 只输出适用 capability 所要求的可行性、残差、离散、收敛、最低采样精度或其他内在数值有效性证据。`scripts/validate_numerical_evidence.py` 在返回工作簿验收时独立复核底层证据与 `主结果质量门` 的 Verification ID、实际值、阈值、判定关系和证据工作表，不能只相信工作簿自报“通过”。完整规则只由 `core/numerical_verification_contract.yaml` 定义。
 
-主质量门**不负责**参数敏感性、压力场景、替代算法/结构、多 seed 或多初值结论稳定性、异质性、误差分解和更广泛外样本稳定性；这些只在主工作簿 accepted 后进入独立结果深化分析。数值步长/网格是否足以支撑当前答案属于主质量，现实/模型参数变化是否改变结论属于深化分析。
+v7.15 在不改变上述 PQS / Verification ID 语义的前提下，把主求解输出升级为 **evidence-ready**：除最终答案外，`问题X求解.py` 还应按模型 capability 保留本次主计算已经真实产生、且对解释模型、科研绘图、验证或避免昂贵重算有价值的状态、过程与结构数据。判界只看是否需要改变当前输入、参数、场景、seed、初值、算法、模型结构或验证窗口去重新运行新的计算世界；若需要，仍只能进入主工作簿 accepted 后的结果深化分析。
+
+主质量门**不负责**参数敏感性、压力场景、替代算法/结构、多 seed 或多初值结论稳定性、异质性、误差分解和更广泛外样本稳定性；这些只在主工作簿 accepted 后进入独立结果深化分析。数值步长/网格是否足以支撑当前答案属于主质量，现实/模型参数变化是否改变结论属于深化分析。03B 产生的新分析证据也应保留参数/场景/算法/seed/阈值/对象等细粒度底表，而不是只留下“稳定”等摘要判断。
 
 每问默认唯一数值目录：
 
@@ -99,7 +101,9 @@ pseudocode → 循环、分支、筛选、修复、接受/拒绝或终止逻辑�
 
 ### Figure Evidence
 
-MATLAB 图形布局、证据等级、配色、数据追溯和 Figure Enhancement Gate 统一由 `modules/04_figure_evidence.md` 管理。正式论文图不设置整体 `title` / `sgtitle`，DOCX/LaTeX caption 承担正式图号与图名；多面板按需只保留 panel label，坐标轴、单位、图例和必要直接标注继续服务证据读取。基础布局后只在局部差异、曲线遮挡、焦点对象、阈值区域、联合诊断或真实三维结构需要时启用 Local Zoom、Small Multiples、Focus Highlighting、Semantic Background、Composite Diagnostic 或 Conditional 3D；具体实现模式由 `templates/figure/figure_enhancement_patterns.md` 提供参考，不建立第二套绘图权威。`data_process.m` 和 `qX_plot.m` 只读取 Python 已输出的数据/工作簿，不重新执行核心计算；默认保留图窗供人工检查，不批量自动导出。
+MATLAB 的唯一绘图决策 Authority 仍为 `modules/04_figure_evidence.md`。v7.15 在原有 Figure Layout / Enhancement 之上增加 **Scientific Figure Synthesis、Basic-form Challenge、Composite Encoding Preference、Scientific Rendering Profiles 与论文级 Figure Portfolio Scientific Quality Gate**：核心图优先把 accepted 工作簿中的时间、空间、状态、分布、约束、边界、不确定性、多目标和异质性结构直接编码成科研证据，而不是把丰富底层数据重新压成 plain bar / plain line / plain scatter。箱线+原始散点、小提琴+散点、折线+区间、scatter+fit/CI、heatmap+contour、Pareto+推荐点+Local Zoom、trajectory+field+boundary 等组合仅在真实证据支持且提高信息效率时采用；高级不等于复杂。
+
+正式论文图继续不设置整体 `title` / `sgtitle`，DOCX/LaTeX caption 承担正式图号与图名；多面板按需只保留 panel label，坐标轴、单位、图例和必要直接标注继续服务证据读取。主证据恢复高对比亮蓝/鲜红等颜色，辅助对象、背景和区间仍用灰色/透明度降权；默认 `grid off`。`data_process.m` 和 `qX_plot.m` 只读取 Python 已输出的数据/工作簿，不重新执行核心计算；默认保留图窗供人工检查，不批量自动导出。
 
 ### 写作治理
 
@@ -134,10 +138,10 @@ LaTeX 是默认论文主链。写作阶段不在入口文件复制正文规则�
 → 用户明确批准 current semantic revision/hash → locked_model_spec
 → semantic governance + model approval gate
 → [仅project_level] 项目级预处理 → 预处理质量门
-→ Primary Quality Specification → Python完整主求解 → 用户完整运行
+→ Primary Quality Specification → Python完整主求解 + Primary Evidence Capture → 用户完整运行
 → 主结果质量门 + 独立 numerical evidence recheck → accepted solution workbook
-→ 独立Python结果深化分析 → support/modify/reject → 必要时回退
-→ MATLAB证据图
+→ 独立Python结果深化分析 + Analysis Evidence Capture → support/modify/reject → 必要时回退
+→ MATLAB Scientific Figure Synthesis / Composite / Enhancement → Portfolio Review
 → Terminology/Numeric/Title Claim/局部Paper Fragment同步
 → 题型自适应LaTeX直写（含按需算法流程） → AI-cleanup
 → LaTeX project audit attestation → profile-bound compile attestation
@@ -146,4 +150,4 @@ LaTeX 是默认论文主链。写作阶段不在入口文件复制正文规则�
 → validated_submission_package
 ```
 
-目录、正式交付和同步门以 `core/output_contract.yaml` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 为准；主求解数值有效性以 `core/numerical_verification_contract.yaml` 为准；代码工程质量以 `core/code_quality_contract.yaml` 为准；返回工作簿以 `scripts/validate_user_execution.py` 验收。legacy 项目保持只读兼容，重新进入当前模型设计/预处理/主求解时按当前 challenge/approval、语义、数据决策与 v7.14 主数值证据规则迁移。
+目录、正式交付和同步门以 `core/output_contract.yaml` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 为准；主求解数值有效性以 `core/numerical_verification_contract.yaml` 为准；代码工程质量以 `core/code_quality_contract.yaml` 为准；返回工作簿以 `scripts/validate_user_execution.py` 验收。legacy 项目保持只读兼容，重新进入当前模型设计/预处理/主求解时按当前 challenge/approval、语义、数据决策、v7.14 主数值证据与 v7.15 Evidence Capture 规则迁移。

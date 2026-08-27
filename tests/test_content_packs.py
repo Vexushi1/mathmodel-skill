@@ -44,13 +44,14 @@ class TestContentPacks(unittest.TestCase):
     def test_chart_selection_is_evidence_driven_and_caption_owned(self):
         text = (ROOT / "templates/figure/chart_selection.md").read_text(encoding="utf-8")
         for token in (
-            "参数敏感性", "多算法比较", "多目标权衡", "删除规则", "信息效率",
-            "饼图", "雷达图", "3D 曲面", "q{x}_plot.m", "DOCX/LaTeX 正式图注",
-            "模型论文框架.md",
+            "参数敏感性", "多算法比较", "多目标权衡", "信息效率",
+            "雷达图", "3D surface", "q{x}_plot.m", "DOCX/LaTeX 正式图注",
+            "模型论文框架.md", "Evidence Structure", "Composite Encoding",
         ):
             self.assertIn(token, text)
         self.assertIn("工作簿", text)
         self.assertIn("正式论文图不设置冗余整体", text)
+        self.assertIn("基础图退化检查", text)
         self.assertNotIn("MATLAB 标题", text)
 
     def test_figure_pack_uses_adaptive_analysis_and_standard_script_name(self):
@@ -67,10 +68,14 @@ class TestContentPacks(unittest.TestCase):
             self.assertIn("问题X求解结果.xlsx", text)
             self.assertIn("问题X结果深化分析.xlsx", text)
             self.assertIn("阈值", text)
-            self.assertIn("结构稳健性", text)
+            self.assertIn("结构", text)
         self.assertIn("高级图表准入检查", pack)
-        self.assertIn("低饱和", module)
-        self.assertIn("#173B5E", module)
+        self.assertIn("高对比、中高饱和", module)
+        self.assertIn("#1478FF", module)
+        self.assertIn("#F04444", module)
+        self.assertIn("Scientific Figure Synthesis", module)
+        self.assertIn("Composite Encoding Preference", module)
+        self.assertIn("Figure Portfolio Scientific Quality Gate", module)
         self.assertIn("不设置整体", module)
         self.assertIn("不设置整体", pack)
         self.assertIn("q1_plot.m", matlab_readme)

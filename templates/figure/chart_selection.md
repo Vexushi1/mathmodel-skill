@@ -2,48 +2,105 @@
 
 图型由“要证明的结论”、底层数据结构和信息展示效率共同决定，不按软件默认、图型新奇度或固定禁用清单选择。每张图先填写结果图 Figure Contract，确定 DOCX/LaTeX 正式图注及其证据职责，再查本表；正式论文图不设置冗余整体 `title` / `sgtitle`。
 
+本索引的第一层不是 bar / line / scatter，而是 **Evidence Structure → Scientific Visual Structure**。如果 accepted 工作簿已经保存时间、空间、分布、约束、状态、不确定性、多目标或阈值等结构，不应先把它压成几个汇总数字再画基础图。
+
 ## 可选视觉参考
 
 只有图型选择或多面板布局需要外部视觉对照时，才按 `assets/figure_assets.yaml` 加载对应资产。图集不提供数据、结论或固定配色，不能替代工作簿、Figure Contract、`模型论文框架.md` 和 `q{x}_plot.m`。
 
+## Scientific Figure Synthesis 快速索引
+
+| Evidence Structure | 优先科学视觉结构 | 常见基础退化 | 需要检查的底层数据 |
+|---|---|---|---|
+| 简单离散比较 | interval dot / sorted dot / bar+error+benchmark | plain bar | 对象、指标、误差/区间、基准 |
+| 分布 | box+raw scatter、violin+scatter+median、ECDF+quantile | 均值柱状、plain box | 逐样本值、组别、样本量、分位数 |
+| 时间演化 | line+interval+event、state trajectory、overview+detail | plain line | 时间、状态、区间、事件、阶段 |
+| 空间结构 | spatial field+path+boundary、节点/流量高亮 | 区域均值柱状 | 坐标、节点/网格值、路径、边界 |
+| 机制关系 | trajectory+critical state、phase/response relation | 指标柱状 | 机制变量、状态量、临界点/边界 |
+| 约束/可行域 | feasible region+boundary+recommended point、violation structure | 可行/不可行数量柱状 | 约束值、容差、变量、可行状态 |
+| 参数响应 | curve+stable/risk band、heatmap+contour+operating point | 多组柱状 | 参数网格、响应、阈值、可行状态 |
+| 不确定性 | interval+raw points、ECDF、quantile band | 均值±单数字 | 重复/场景结果、分位数、失败标记 |
+| 多目标权衡 | Pareto+feasible state+knee+zoom | 各目标分开柱状 | 全部候选方案、各目标、推荐点 |
+| 稳定/失效区域 | response+semantic background+threshold | “变化不大”折线 | 扫描点、状态/策略、失效标记 |
+| 网络/流 | network+weighted flow+focus highlighting | 节点分数柱状 | 节点、边、权重、流量、路径 |
+| 调度/资源 | Gantt+resource utilization+conflict context | 完工时间柱状 | 作业、资源、起止、占用/冲突 |
+| 预测/诊断 | observed-vs-predicted+CI+residual/marginal | 模型指标柱状 | 逐样本真实/预测/残差/区间 |
+| 全局—局部 | global view + Local Zoom / detached detail | 单图截轴 | 全局序列、ROI、临界/局部状态 |
+
+## Composite Encoding 快速索引
+
+当多个编码共享同一证据空间并共同回答一个 Primary question 时，优先考虑组合，而不是拆成多个普通单图：
+
+- `box + raw scatter`；
+- `violin + raw scatter + median/quartile`；
+- `line + CI / prediction interval`；
+- `scatter + fit/identity + CI`；
+- `scatter + marginal histogram/KDE`；
+- `bar + errorbar + benchmark`；
+- `bar + line`（仅在联合语义明确且双轴不会误导时）；
+- `heatmap + annotation / contour / feasible boundary`；
+- `Pareto + recommendation + Local Zoom`；
+- `trajectory + field + boundary`；
+- `3D surface + 2D contour projection`（仅第三维真实且 2D 损失结构时）。
+
+组合图的目标是同时保留真实样本、统计结构、阈值/边界或模型关系，不是增加装饰数量。
+
+## Scientific Rendering Profile 快速索引
+
+| Profile | 核心元素 | 典型用途 |
+|---|---|---|
+| Distribution | raw points + box/violin/ECDF + median/quantile | 分组、鲁棒性、重复试验 |
+| Regression / Prediction | scatter + identity/fit + CI + residual/marginal | 预测、拟合、分类概率诊断 |
+| Dynamic | trajectory + interval + event/threshold + zoom | 时序、状态演化、控制过程 |
+| Parameter Surface | heatmap + contour + point + feasible boundary | 参数敏感性、双因素响应 |
+| Spatial | field + path/flow + node + boundary + colorbar | 选址、路径、覆盖、空间残差 |
+| Optimization / Pareto | candidates + Pareto + feasible state + knee/recommendation | 单/多目标优化、方案选择 |
+| High-density Scatter | alpha scatter / binned density / 2D density contour | 大样本仿真、预测、候选解云 |
+
 ## Figure Enhancement 快速索引
 
-基础图型和布局确定后，按 `modules/04_figure_evidence.md` 的 Figure Enhancement Gate 判断是否需要增强；具体实现模式见 `templates/figure/figure_enhancement_patterns.md`。
+基础科学视觉结构和布局确定后，按 `modules/04_figure_evidence.md` 的 Figure Enhancement Gate 判断是否需要增强；具体实现模式见 `templates/figure/figure_enhancement_patterns.md`。
 
 | 当前视觉问题 | 优先增强 | 典型用途 |
 |---|---|---|
 | 全局尺度压缩关键差异、交点或阈值 | Local Zoom | 临界点、Pareto 膝点、局部误差、关键时间窗 |
 | 多条曲线大量交叉、遮挡、图例搜索成本高 | Small Multiples | 多算法、多区域、多对象时序、参数组曲线 |
 | 对象很多但核心判断只依赖少量对象 | Focus Highlighting | 推荐方案 vs 基准、关键站点、代表性样本 |
-| 存在稳定区、风险区、可行区、阶段区间 | Semantic Background | 敏感性、鲁棒性、阈值、状态分类 |
+| 存在稳定区、风险区、可行区、阶段区间 | Semantic Background | 参数敏感性、鲁棒性、阈值、状态分类 |
 | 中心关系、边际分布和残差共同回答可信度 | Composite Diagnostic | 回归、预测、分类、聚类、优化诊断 |
 | 第三维具有真实结构且二维会损失信息 | Conditional 3D | 双因素响应、三目标 Pareto、空间场、约束曲面 |
 
 Enhancement 默认是 `none`。若增强后不能增加可验证信息、降低视觉搜索成本或强化关键证据，则不使用。
 
-## 图型选择表
+## 题型候选索引
 
-| 证据任务 | 常规优先图型 | 可选高级图型 | 必需底层数据 | 主要准入条件与风险控制 |
-|---|---|---|---|---|
-| 方案/类别数值比较 | 排序条形图、点图、带区间点图 | 饼图、环形图、3D 柱状图、华夫图 | 对象、指标、误差/区间、排序或占比 | 饼图仅用于少量类别和明确整体占比；3D 柱状图仅在双分类结构有额外价值时使用，并处理遮挡 |
-| 时间趋势与预测 | 折线 + 区间、真实—预测对照、残差时序 | Small Multiples、Local Zoom、流图、河流图、面积堆叠、三维时间曲面 | 时间、真实值、预测值、上下界、分组 | 多线遮挡优先分面；关键窗口被全局尺度压缩时可放大；三维或堆叠表达必须保持时间顺序清晰，不能用平滑或透视掩盖误差 |
-| 参数敏感性 | 参数—响应曲线、龙卷风图、局部热图 | Local Zoom、Semantic Background、3D 响应曲面、等高线、平行坐标、交互式参数面板 | 参数值、响应、基准点、可行状态 | 稳定/风险/失效区可用真实阈值背景带；3D 曲面要求规则或可解释网格，并附色条、单位及必要的等高线/二维投影 |
-| 鲁棒性与扰动 | 区间图、箱线 + 散点、ECDF、场景分位数图 | Small Multiples、Semantic Background、密度脊线图、雨云图、三维场景曲面 | 逐次扰动结果、分位数、失败标记 | 必须展示尾部、失败场景或原始点，不能只展示均值或光滑表面 |
-| 多算法比较 | 性能剖面、误差—时间散点、带区间点图 | Small Multiples、Focus Highlighting、雷达图、平行坐标、气泡图、三维性能面 | 算法、实例/重复、目标、时间、可行性 | 多算法曲线拥挤时优先分面；核心算法可突出但不得隐藏其他算法；雷达图指标需同向并标准化、算法数量受控；三维性能面必须避免遮挡和尺度混淆 |
-| 排名稳定性 | 名次热图、slopegraph、Top-k 重合率曲线 | Focus Highlighting、雷达图、弦图、排名流图 | 对象、扰动场景、名次/得分 | 雷达图只比较少量对象；弦图或流图必须控制连线数量并明确方向和权重 |
-| 分布差异 | ECDF、箱线/小提琴 + 原始点、直方/密度 | Composite Diagnostic、雨云图、密度脊线图、三维密度曲面 | 逐样本值、组别、统计量 | 高级分布图必须保留样本量、原始点或可核对统计量，不能用平滑掩盖小样本 |
-| 相关性与变量结构 | 相关矩阵、散点矩阵、载荷图 | Composite Diagnostic、雷达图、弦图、网络图、3D 散点/曲面 | 配对样本、相关/载荷、显著性 | 不得由相关直接宣称因果；三维图需控制视角并提供二维补充视图 |
-| 空间分布 | 分级设色图、局部统计量图、空间残差图 | Focus Highlighting、3D 地形/曲面、体素图、流线图、空间动画 | 空间键、几何、数值、缺失状态 | 投影、坐标和单位正确；3D 高度或颜色映射必须有明确物理含义 |
-| 路径与网络 | 简化网络图、路径高亮、流量宽度图、邻接热图 | Focus Highlighting、桑基图、弦图、3D 网络、流向动画 | 节点、边、权重、路径/流 | 控制节点和边数量，宽度、方向、颜色和层级含义必须明确，避免毛线团 |
-| 调度与资源占用 | 甘特图、资源占用阶梯图、冲突矩阵 | Semantic Background、3D 甘特图、桑基图、资源流图、动画 | 作业、资源、开始/结束、状态 | 高级图只在同时表达多资源或流转关系时采用，不能替代可行性检查 |
-| 多目标权衡 | Pareto 前沿、平行坐标、目标空间散点 | Local Zoom、Focus Highlighting、雷达图、3D Pareto 曲面、交互式目标空间 | 可行方案、各目标、推荐点 | 推荐点或膝点可局部放大；目标需同向化或明确方向；3D 只适用于三目标且需提供二维投影或切片 |
-| 约束与可行域 | 可行域图、违反量点图、临界边界图 | Local Zoom、Semantic Background、3D 可行域、约束曲面、体积切片 | 约束值、容差、变量/场景 | 临界边界可局部放大或背景高亮；三维可行域必须标明边界和可行侧，必要时提供截面图，不得替代约束检查表 |
-| 模型拟合与诊断 | 真实—拟合散点、残差图、QQ 图、校准图 | Composite Diagnostic、Local Zoom、3D 残差曲面、联合密度图、交互诊断面板 | 真实值、拟合值、残差、概率 | 预测可信度可将中心关系、边际分布和残差组织为一个联合诊断 Figure；高级图必须提升异质性或局部结构识别，不得只报 $R^2$ 或准确率 |
-| 构成比例与层级 | 排序条形图、堆叠条形图、矩形树图 | 饼图、环形图、旭日图、华夫图、桑基图 | 类别、数值、总量、层级或流向 | 饼图/环形图类别少且总量口径一致；层级数据优先旭日图或矩形树图 |
-| 多指标画像 | 平行坐标、标准化点图、热图 | Focus Highlighting、雷达图、星形坐标、glyph 图 | 对象、指标、方向、标准化值 | 雷达图指标应同向、标准化方法透明、对象数量受控，避免面积错觉 |
+| 证据任务 | 常规科研候选 | 进阶候选 | 主要准入条件与风险控制 |
+|---|---|---|---|
+| 方案/类别数值比较 | interval dot、排序点图、bar+error+benchmark | dumbbell、slopegraph、少量类别比例图 | 只有真正一维比较才保留 plain bar；成对变化优先直接表达变化方向 |
+| 时间趋势与预测 | line+interval、真实—预测、残差时序 | Small Multiples、Local Zoom、状态阶段背景 | 多线遮挡优先分面；不能用平滑掩盖误差 |
+| 参数敏感性 | 参数—响应+基准/阈值、tornado、heatmap+contour | Local Zoom、Semantic Background、3D response surface | 参数敏感性必须展示稳定/风险/失效结构，而非只报变化率 |
+| 鲁棒性与扰动 | box/violin+raw points、ECDF、quantile interval | raincloud、Small Multiples、threshold background | 必须展示尾部、失败场景或原始点，不能只展示均值 |
+| 多算法比较 | performance profile、error-time scatter、interval dot | Small Multiples、Focus Highlighting、parallel coordinates | 算法柱状图不能成为默认；需保留实例/重复、时间、可行性 |
+| 排名稳定性 | rank heatmap、slopegraph、Top-k overlap | Focus Highlighting、ranking flow | 不把名次变化压成平均名次柱状 |
+| 分布差异 | ECDF、box/violin+raw points | Composite Diagnostic、ridge/raincloud | 高级分布图必须保留样本量与可核对统计量 |
+| 相关性与变量结构 | correlation matrix、scatter matrix、loadings | Composite Diagnostic、network | 不得由相关直接宣称因果 |
+| 空间分布 | spatial field、local statistic、spatial residual | Focus Highlighting、3D surface/flow field | 投影、坐标、单位和 colorbar 正确 |
+| 路径与网络 | path highlight、weighted flow、adjacency heatmap | Focus Highlighting、Sankey/3D network | 控制节点和边数量，避免毛线团 |
+| 调度与资源占用 | Gantt+resource step、conflict matrix | Semantic Background、resource flow | 高级图不能替代可行性检查 |
+| 多目标权衡 | Pareto+recommendation、parallel coordinates | Local Zoom、3D Pareto | 推荐点/膝点可局部放大；三目标才考虑 3D |
+| 约束与可行域 | feasible region、critical boundary、violation points | Local Zoom、Semantic Background、3D feasible surface | 必须标明边界和可行侧，不替代约束检查表 |
+| 模型拟合与诊断 | observed-vs-fit+identity、residual、calibration | Composite Diagnostic、Local Zoom | 高级图必须提升异质性/局部结构识别，不只报 $R^2$ |
+| 构成比例与层级 | sorted/stacked bar、treemap | sunburst、Sankey | 饼图仅少量类别且整体口径明确 |
+| 多指标画像 | parallel coordinates、standardized dot、heatmap | Focus Highlighting、radar | 雷达图仅少量同向标准化指标 |
+
+## 基础图退化检查
+
+如果正文核心 Figure 出现连续多个 plain bar / plain line / plain scatter，不要机械换成另一种基础图。先回到 `问题X求解结果.xlsx` / `问题X结果深化分析.xlsx` 检查是否已经存在状态、时间、空间、分布、阈值、不确定性、多目标、候选解或逐样本证据；若存在，回到 Scientific Figure Synthesis，而不是“柱状图换点图”结束。
+
+如果工作簿本身只剩汇总值，应检查 Python 是否遗漏了本次运行真实产生的 Evidence Capture；但不得让 MATLAB 自己重算或伪造底层序列。
 
 ## 权威边界
 
-本文件只负责候选图型与视觉问题索引，不维护通用绘图政策。通用信息效率判定、Evidence level、Primary question、Figure Layout Gate、Figure Enhancement Gate、视觉注意力预算、正式图内标题策略、论文 caption、配色、数据诚实、多面板准入、删除规则和入文闭环统一服从 `modules/04_figure_evidence.md`；Enhancement 的 MATLAB 实现模式只参考 `templates/figure/figure_enhancement_patterns.md`。
+本文件只负责候选图型与视觉问题索引；在当前版本中同时给出 Evidence Structure 与 Scientific Rendering Profile 的候选映射，但不维护通用绘图政策。通用信息效率判定、Evidence level、Primary question、Scientific Figure Synthesis Gate、Basic-form Challenge、Composite Encoding Preference、Figure Layout Gate、Figure Enhancement Gate、视觉注意力预算、正式图内标题策略、论文 caption、配色、数据诚实、Portfolio Gate、删除规则和入文闭环统一服从 `modules/04_figure_evidence.md`；Enhancement 的 MATLAB 实现模式只参考 `templates/figure/figure_enhancement_patterns.md`。
 
-表格中的“主要准入条件与风险控制”只用于提示某类候选图型的局部风险，不构成第二套通用规则。若本文件与 Module 04 存在任何不一致，以 Module 04 为准。
+表格中的准入条件只用于提示某类候选视觉结构的局部风险，不构成第二套通用规则。若本文件与 Module 04 存在任何不一致，以 Module 04 为准。

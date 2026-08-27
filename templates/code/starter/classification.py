@@ -63,7 +63,11 @@ def build_features(clean_data: dict[str, pd.DataFrame], config: PipelineConfig) 
 
 
 def solve_model(features: dict[str, Any], config: PipelineConfig) -> dict[str, Any]:
-    raise NotImplementedError("请训练主分类模型并输出模型指标、分类结果、外样本验证和泄漏检查")
+    raise NotImplementedError(
+        "请训练主分类模型并输出模型指标，同时按 Primary Evidence Capture 保留逐样本真实标签、预测标签、"
+        "预测概率/得分、数据划分、分组键和当前运行已经产生的必要诊断明细；"
+        "不得为了绘图提前执行替代模型、跨seed稳定性或额外场景分析"
+    )
 
 
 def check_constraints(solution: dict[str, Any], config: PipelineConfig) -> pd.DataFrame | None:
@@ -81,7 +85,7 @@ def evaluate_primary_quality(
 
 
 def sync_primary_framework(primary: PrimarySolveResult) -> None:
-    raise NotImplementedError("回写主分类结果、基础外样本精度、质量门结论和证据")
+    raise NotImplementedError("回写主分类结果、逐样本概率/标签证据位置、基础外样本精度、质量门结论和证据")
 
 
 def main() -> None:
