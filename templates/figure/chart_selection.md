@@ -101,6 +101,6 @@ Enhancement 默认是 `none`。若增强后不能增加可验证信息、降低�
 
 ## 权威边界
 
-本文件只负责候选图型、Evidence Structure、Rendering Profile 和视觉问题索引，不维护通用绘图政策。通用信息效率判定、Evidence level、Primary question、Scientific Figure Synthesis Gate、Basic-form Challenge、Composite Encoding Preference、Figure Layout Gate、Figure Enhancement Gate、视觉注意力预算、正式图内标题策略、论文 caption、配色、数据诚实、Portfolio Gate、删除规则和入文闭环统一服从 `modules/04_figure_evidence.md`；Enhancement 的 MATLAB 实现模式只参考 `templates/figure/figure_enhancement_patterns.md`。
+本文件只负责候选图型与视觉问题索引；在当前版本中同时给出 Evidence Structure 与 Scientific Rendering Profile 的候选映射，但不维护通用绘图政策。通用信息效率判定、Evidence level、Primary question、Scientific Figure Synthesis Gate、Basic-form Challenge、Composite Encoding Preference、Figure Layout Gate、Figure Enhancement Gate、视觉注意力预算、正式图内标题策略、论文 caption、配色、数据诚实、Portfolio Gate、删除规则和入文闭环统一服从 `modules/04_figure_evidence.md`；Enhancement 的 MATLAB 实现模式只参考 `templates/figure/figure_enhancement_patterns.md`。
 
 表格中的准入条件只用于提示某类候选视觉结构的局部风险，不构成第二套通用规则。若本文件与 Module 04 存在任何不一致，以 Module 04 为准。
