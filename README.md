@@ -1,6 +1,17 @@
-# mathmodel-skill v7.14.0
+# mathmodel-skill v7.14.1
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 → MATLAB Figure Evidence + 按需 Figure Enhancement → LaTeX 终稿 → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v7.14.1：Skill Health & Semantic Hygiene
+
+本补丁不新增模型、求解器或数值协议，重点清理 v7.14.0 后暴露的活动语义漂移和维护噪声，同时保持主求解数值有效性与 accepted 后结果深化分析的边界不变。
+
+- 正式 MATLAB 论文图统一采用 **caption-owned formal title**：`qX_plot.m` 与 `data_process.m` 不再设置整体 `title/sgtitle`，DOCX/LaTeX caption 承担正式图号与图名；多面板按需保留 panel label，坐标轴、单位、图例和必要直接标注继续服务证据读取。
+- `scripts/sync_project.py --delivery-scope figures` 的严格规则同步反转：保留 `matlab_has_title` 报告字段用于兼容读取，但正式 Figure delivery 会拒绝实际可执行的整体 `title/sgtitle`，而不是要求它存在；MATLAB 注释中的同名文本不会误触发。
+- Module 04 与 MATLAB 模板恢复白底、实体、深色、低饱和的科研默认风格，默认 `grid off`；预处理合同只引用 Figure Evidence Authority，不再维护第二套高饱和配色规则。
+- `PROJECT_INSTRUCTIONS.md` 和 `REPOSITORY_INDEX.md` 补齐 v7.14 主数值有效性语义与 `core/numerical_verification_contract.yaml` / `scripts/validate_numerical_evidence.py` 导航。
+- 一次性架构/施工记录从活动 `docs/architecture/` 移入 `legacy/architecture/`，保留 provenance 但退出 Active Skill Index、默认 Router load 和正式交付依赖。
+- 增加回归约束，锁定 root/package Skill 一致性、正式 MATLAB 模板无整体标题、caption-owned Figure 语义、归档边界和 v7.14 primary/result-analysis 分工。
 
 ## v7.14.0：Primary Numerical Validity & Quality Gate
 
@@ -325,7 +336,7 @@ locked model + declared numerical method
 
 ### MATLAB Figure Evidence
 
-MATLAB 只读取 Python 输出的数据和标准工作簿绘图，不重新求解。图形布局按核心结论、证据等级和主要问题动态选择；基础布局后再通过 Figure Enhancement Gate 判断是否需要局部放大、分面、焦点高亮、语义背景、联合诊断或条件式 3D；默认保留图窗供人工调整，不批量自动导出。
+MATLAB 只读取 Python 输出的数据和标准工作簿绘图，不重新求解。正式论文图不设置整体 `title/sgtitle`，由 DOCX/LaTeX caption 承担正式图号和图名；多面板按需只保留 panel label。图形布局按核心结论、证据等级和主要问题动态选择；基础布局后再通过 Figure Enhancement Gate 判断是否需要局部放大、分面、焦点高亮、语义背景、联合诊断或条件式 3D；默认白底、实体深色低饱和、`grid off`，并保留图窗供人工调整，不批量自动导出。
 
 ## 运行时权威链
 
