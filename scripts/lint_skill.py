@@ -3,11 +3,11 @@
 
 The large cross-contract checks live in ``lint_skill_checks.py``.  This entrypoint adds
 current-source adapters that require repository-wide context, most notably the modular
-CUMCM LaTeX template whose semantic tokens now live in child ``.tex`` files instead of
-being duplicated in ``hsk_main.tex`` comments.
+CUMCM LaTeX template and current formal MATLAB figure semantics.
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import lint_skill_checks as checks
@@ -79,13 +79,41 @@ checks.check_project_state_and_framework = _check_project_state_and_framework
 _original_check_templates = checks.check_templates
 
 
+def _matlab_executable_code(text: str) -> str:
+    """Strip ordinary MATLAB comments before checking executable title calls."""
+    return "\n".join(line.split("%", 1)[0] for line in text.splitlines())
+
+
 def _check_templates(errors: list[str]) -> None:
     main_text = _ORIGINAL_READ_TEXT(_CUMCM_ROOT / "hsk_main.tex")
     if "兼容旧版静态合同检查" in main_text:
         errors.append("CUMCM main must not carry comment-only compatibility markers for lint")
     if "\\subsection{问题提出}" in main_text or "\\subsection{求解结果}" in main_text:
         errors.append("CUMCM main must remain orchestration-only; semantic section tokens belong in child modules")
+
     _original_check_templates(errors)
+
+    # lint_skill_checks.py keeps a historical v7.4-era positive-title token for
+    # compatibility. Current v7.14.1 formal Figure semantics intentionally replace
+    # that requirement with a stronger executable-code prohibition.
+    obsolete = "q1_plot.m lacks required token: title(ax, figureTitle"
+    errors[:] = [item for item in errors if item != obsolete]
+
+    plotting = _ORIGINAL_READ_TEXT(ROOT / "templates/matlab/q1_plot.m")
+    code = _matlab_executable_code(plotting)
+    if re.search(r"\b(?:title|sgtitle)\s*\(", code, flags=re.IGNORECASE):
+        errors.append("q1_plot.m formal template must not contain executable overall title/sgtitle")
+    for token in ("LaTeX/DOCX caption", "[23, 59, 94] / 255", 'grid(ax, "off")'):
+        if token not in plotting:
+            errors.append(f"q1_plot.m lacks current v7.14.1 Figure semantic token: {token}")
+
+    data_process = _ORIGINAL_READ_TEXT(ROOT / "templates/matlab/data_process.m")
+    process_code = _matlab_executable_code(data_process)
+    if re.search(r"\b(?:title|sgtitle)\s*\(", process_code, flags=re.IGNORECASE):
+        errors.append("data_process.m formal template must not contain executable overall title/sgtitle")
+    for token in ("LaTeX/DOCX caption", "[154, 56, 56] / 255", 'grid(ax, "off")'):
+        if token not in data_process:
+            errors.append(f"data_process.m lacks current v7.14.1 Figure semantic token: {token}")
 
 
 checks.check_templates = _check_templates
