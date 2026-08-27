@@ -1,4 +1,4 @@
-version: 7.14.0
+version: 7.14.1
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -505,9 +505,12 @@ per_question:
     v7_13_primary_without_verification_id: read_only
     mode: read_only
 matlab_figure_contract:
-  title_required: true
-  single_panel_title: title
-  multi_panel_title: sgtitle
+  title_required: false
+  embedded_overall_title_forbidden: true
+  formal_title_owner: DOCX_or_LaTeX_caption
+  single_panel_title: none
+  multi_panel_title: panel_labels_only
+  panel_labels_allowed: true
   field_resolution: exact_header_unique_match
   expected_column_position: optional_drift_check
   fuzzy_matching_forbidden: true
@@ -515,13 +518,13 @@ matlab_figure_contract:
   workbook_reference_scope: current_data_source_when_needed_and_same_question_standard_workbooks
   declared_export_must_exist: false
   formal_figure_must_not_predate_sources: false
-  keep_title_in_export_by_default: true
-  caption_role: DOCX/LaTeX图注补充统计口径、数据范围和解释，不与图内标题逐字重复
-  title_registry: 模型论文框架.md与Figure Contract
+  keep_title_in_export_by_default: false
+  caption_role: DOCX/LaTeX图注承担正式图号、图名及必要统计口径；MATLAB正式图内不重复整体title/sgtitle，panel label、坐标轴、单位、图例和必要直接标注按证据需要保留
+  title_registry: 模型论文框架.md与Figure Contract中的DOCX/LaTeX caption字段
   workbook_reference_required: true
   preprocessing_script: 数据预处理/data_process.m
   preprocessing_export_stem: data_process
-  preprocessing_source_workbook: 数据预处理/data_pre处理结果.xlsx
+  preprocessing_source_workbook: 数据预处理/数据预处理结果.xlsx
   preprocessing_matlab_must_not_reprocess: true
   handoff_alternative: matlab_figure_handoff.json/yaml
   provenance_record: null
