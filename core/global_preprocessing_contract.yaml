@@ -209,7 +209,7 @@ preprocessing_figure_contract:
   - 人工掩蔽或留出样本的真实值—恢复值对比与误差分布
   - 重采样前后网格/采样间隔/覆盖变化
   - 异常判定边界与保留/处理样本对比
-  style: 服从modules/04_figure_evidence.md的MATLAB科研绘图总规范；版式动态选择单图/多面板，主比较允许中高饱和高对比色，辅助元素降权，标题简洁，默认不自动导出。
+  style: 完全服从modules/04_figure_evidence.md的MATLAB科研绘图总规范；本合同不另定义配色、整体标题或网格规则。正式data_process论文图采用caption-owned的正式图名语义，MATLAB图内不设置整体title/sgtitle；默认不自动导出。
   filename_rule: MATLAB脚本固定为data_process.m；需要导出正式图片时文件基名使用data_process或data_process_<evidence>，不得使用中文文件名。
 
 source_policy:
