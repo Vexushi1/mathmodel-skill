@@ -36,9 +36,10 @@ class CurrentSkillHealthTests(unittest.TestCase):
             figure.get("preprocessing_source_workbook"),
             "数据预处理/数据预处理结果.xlsx",
         )
-        self.assertTrue(figure.get("scientific_figure_synthesis_required_for_core_figures"))
+        self.assertTrue(figure.get("scientific_synthesis_required_for_core_figures"))
         self.assertTrue(figure.get("basic_form_challenge_required_for_core_figures"))
-        self.assertTrue(figure.get("figure_portfolio_scientific_quality_review_required"))
+        self.assertTrue(figure.get("portfolio_scientific_quality_review_required"))
+        self.assertTrue(figure.get("high_contrast_primary_palette_required"))
 
     def test_preprocessing_contract_delegates_figure_style(self):
         text = (ROOT / "core/global_preprocessing_contract.yaml").read_text(encoding="utf-8")
