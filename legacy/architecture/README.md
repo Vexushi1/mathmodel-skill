@@ -5,7 +5,7 @@
 使用边界：
 
 - 当前行为始终以 `core/bootstrap.yaml` 指向的活动 Authority、modules、packs 和 scripts 为准；
-- 本目录文件不得进入默认 Router load、Active Skill Index 或正式交付依赖；
+- 本目录文件不得进入默认 Router load、Active Skill Index、Active MANIFEST 或正式交付依赖；`scripts/generate_indexes.py` 只保留 `legacy/README.md` 作为历史导航入口，不索引本目录正文；
 - 若历史计划与当前实现不一致，以当前 Authority 和当前测试为准；
 - 只有在追溯某次架构迁移、解释历史设计取舍或维护旧项目时才人工读取。
 
