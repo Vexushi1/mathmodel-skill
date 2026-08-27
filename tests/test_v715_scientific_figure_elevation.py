@@ -16,7 +16,7 @@ class TestV715ScientificFigureElevation(unittest.TestCase):
             "状态",
             "逐时刻",
             "候选可行解",
-            "求解轨迹",
+            "收敛 trace",
         ):
             self.assertIn(token, primary)
         self.assertIn("是否需要改变当前主计算", primary)
