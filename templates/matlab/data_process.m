@@ -2,8 +2,9 @@
 % 仅 preprocessing_decision=project_level 时实例化并放入“数据预处理/”。
 % 只读取“数据预处理结果.xlsx”中 Python 已输出的处理前/后与验证底层数据。
 % 禁止在 MATLAB 中重新清洗、插值、滤波、重采样、训练填补模型或重新选择参数。
-% 版式同样服从 modules/04_figure_evidence.md 的 Figure Layout Gate，不默认多面板。
-% 基础布局确定后继续执行同一模块的 Figure Enhancement Gate；默认不增强，只有证据需要时才使用局部放大、分面、焦点高亮、语义背景、联合诊断或条件式3D。
+% 先执行 modules/04_figure_evidence.md 的 Scientific Figure Synthesis Gate；预处理图也不能因为“前后对比”就默认退化成普通柱状/折线。
+% 若同一证据空间能同时展示原始点、处理结果、误差/区间或阈值边界，优先 Composite Encoding。
+% 选定视觉结构后进入对应 Scientific Rendering Profile，再通过 Figure Layout Gate 与 Figure Enhancement Gate。
 % Enhancement 的实现模式参考 templates/figure/figure_enhancement_patterns.md，不得在本模板建立第二套绘图决策规则。
 % 正式论文图不设置整体 title/sgtitle；正式图题由 LaTeX/DOCX caption 承担，多面板按需只保留 a/b/c/d 等 panel label。
 
@@ -56,14 +57,18 @@ assert(~isempty(x), "没有可绘制的预处理底层数据");
 before = before(order);
 after = after(order);
 
-%% 3. 处理前后证据图
-% “处理前”作为参考对象降权，“处理后”作为主比较对象使用实体低饱和主色。
-% 若 Figure Enhancement Gate 判定需要增强，应按已登记的 Enhancement / Enhancement rationale 实例化对应模式，并保持底层数据不变。
+%% 3. 处理前后结构读取示例——正式实例化时按 Evidence Structure 升级
+% 若 x 具有时间/空间顺序，可使用前后曲线 + 原始点/关键事件/误差；若属于分布证据，
+% 应改成 box/violin + raw scatter / ECDF；若属于二维参数/空间证据，应改用 heatmap/field + contour/boundary。
 fig = figure("Color", "w", "Position", [100, 100, 960, 620]);
 ax = axes(fig);
 hold(ax, "on");
-plot(ax, x, before, "LineWidth", 1.8, "Color", [32, 38, 46] / 255, "DisplayName", "处理前"); % #20262E
-plot(ax, x, after, "LineWidth", 2.2, "Color", [154, 56, 56] / 255, "DisplayName", "处理后"); % #9A3838
+plot(ax, x, before, "LineWidth", 1.9, "Color", [20, 120, 255] / 255, ...
+    "DisplayName", "处理前");  % #1478FF 亮蓝
+plot(ax, x, after, "LineWidth", 2.3, "Color", [240, 68, 68] / 255, ...
+    "DisplayName", "处理后");  % #F04444 鲜红
+scatter(ax, x, after, 26, [240, 68, 68] / 255, "filled", ...
+    "MarkerFaceAlpha", 0.65, "HandleVisibility", "off");
 xlabel(ax, xLabelText);
 ylabel(ax, yLabelText);
 legend(ax, "Location", "best");
@@ -71,7 +76,14 @@ grid(ax, "off");
 box(ax, "on");
 apply_scientific_style(fig);
 
-%% 4. 可选：按“绘图数据索引”继续实例化掩蔽恢复、误差分布、频谱或覆盖证据
+%% 4. 可选：按 Figure Contract 继续实例化真正需要的科研证据
+% 推荐优先级：
+% - before/after + raw points + error/threshold；
+% - missing/recovery + true-vs-recovered + residual distribution；
+% - frequency/spectrum before vs after；
+% - resampling coverage / grid alignment；
+% - heatmap/field + contour/boundary；
+% - Local Zoom / overview+detail（仅关键差异被全局尺度压缩时）。
 % 每个面板必须直接对应一个预处理必要性/有效性判断。
 % 所有数值必须来自数据预处理结果.xlsx；不得从摘要数字反推序列。
 % 若两个或更多证据并不回答同一个 Primary question，应拆为多张 Figure。
