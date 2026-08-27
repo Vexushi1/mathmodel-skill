@@ -63,7 +63,11 @@ def build_features(clean_data: dict[str, pd.DataFrame], config: PipelineConfig) 
 
 
 def solve_model(features: dict[str, Any], config: PipelineConfig) -> dict[str, Any]:
-    raise NotImplementedError("请训练主预测模型并输出预测明细、误差指标、外样本验证和泄漏检查")
+    raise NotImplementedError(
+        "请训练主预测模型并输出核心指标，同时按 Primary Evidence Capture 保留逐样本/逐时刻真实值、预测值、残差、"
+        "合法上下界、数据划分、分组/区域键、必要状态序列和当前运行已经生成的诊断底表；"
+        "不得为了绘图提前执行跨窗口/跨年份/跨地区稳定性或替代模型比较"
+    )
 
 
 def check_constraints(solution: dict[str, Any], config: PipelineConfig) -> pd.DataFrame | None:
@@ -81,7 +85,7 @@ def evaluate_primary_quality(
 
 
 def sync_primary_framework(primary: PrimarySolveResult) -> None:
-    raise NotImplementedError("回写主预测结果、基础外样本精度、质量门结论和证据")
+    raise NotImplementedError("回写主预测结果、逐样本/逐时刻证据位置、基础外样本精度、质量门结论和证据")
 
 
 def main() -> None:
