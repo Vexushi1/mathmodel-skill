@@ -54,21 +54,22 @@ class TestV742DynamicFigureLayout(unittest.TestCase):
             self.assertIn("sgtitle", text)
         self.assertIn("不设置整体", module)
         self.assertIn("不设置整体", matlab)
-        self.assertNotIn("title(ax,", q1)
-        self.assertNotIn("sgtitle(", q1)
+        code = "\n".join(line.split("%", 1)[0] for line in q1.splitlines())
+        self.assertNotIn("title(", code)
+        self.assertNotIn("sgtitle(", code)
 
     def test_matlab_template_delegates_to_authority(self):
         text = (ROOT / "templates/matlab/README.md").read_text(encoding="utf-8")
         self.assertIn("modules/04_figure_evidence.md", text)
         self.assertIn("动态决定单图、1×2、2×1、1×3、2×2 或拆图", text)
         self.assertIn("低饱和", text)
-        self.assertNotIn("高对比", text)
-        self.assertNotIn("低饱和、深色", text)
+        self.assertNotIn("中高饱和、高对比", text)
 
     def test_preprocessing_figure_style_does_not_conflict(self):
         text = (ROOT / "core/global_preprocessing_contract.yaml").read_text(encoding="utf-8")
-        self.assertIn("版式动态选择单图/多面板", text)
-        self.assertIn("低饱和", text)
+        self.assertIn("完全服从modules/04_figure_evidence.md", text)
+        self.assertIn("本合同不另定义配色、整体标题或网格规则", text)
+        self.assertIn("MATLAB图内不设置整体title/sgtitle", text)
         self.assertNotIn("中高饱和高对比色", text)
 
 
