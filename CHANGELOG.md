@@ -1,6 +1,18 @@
 # Changelog
 
-## Current release: 7.14.1
+## Current release: 7.15.0
+
+- Added capability-driven **Primary Evidence Capture** to the primary-solve stage: current-run decision/state/process/structure evidence that is already produced by the locked computation may be retained in the accepted-candidate workbook instead of being collapsed to final-answer-only summaries.
+- Preserved the v7.14 primary/result-analysis semantic boundary: any evidence that requires changing parameters, scenarios, seeds, initial values, algorithms, model structure or validation windows and re-running an alternative world remains exclusively in post-acceptance result analysis.
+- Added **Analysis Evidence Capture** so sensitivity, robustness, threshold, scenario, algorithm, seed and heterogeneity studies retain fine-grained evidence tables rather than only summary judgments.
+- Upgraded Module 04 with **Scientific Figure Synthesis**, **Basic-form Challenge**, **Composite Encoding Preference**, **Scientific Rendering Profiles**, Missing Scientific Evidence review and a paper-level **Figure Portfolio Scientific Quality Gate**. Core figures are now selected from evidence structure and model-specific scientific content rather than from a basic chart-type default.
+- Restored a high-contrast scientific palette for primary evidence (`#1478FF`, `#F04444`, `#16B364`, `#F79009`, `#7A5AF8`) while keeping auxiliary elements visually deweighted, white backgrounds, `grid off` by default and semantic consistency across figures.
+- Updated MATLAB templates, figure contracts/QA, chart-selection guidance and starter Python templates so rich accepted evidence can support distributions, uncertainty bands, feasible boundaries, Pareto structure, spatial fields, trajectories, local zoom and other evidence-driven composite expressions without MATLAB recomputation.
+- Preserved caption-owned formal titles: formal MATLAB figures still omit overall `title`/`sgtitle`; DOCX/LaTeX captions own the formal figure number/name, and panel labels/axes/units/legends/direct annotations remain evidence-driven.
+- Preserved Workbook Schema 2.3.0, Project State Schema, v7.14 numerical-verification/PQS/Verification-ID semantics, the per-question five-file layout, user-owned full-fidelity execution, LaTeX attestation/submission provenance, V622 read-only compatibility pointers and `assets/nature_figure/**`.
+- Archived the completed implementation plan under `legacy/architecture/v7.15_scientific_figure_elevation_plan.md` so the active runtime depends only on the current authorities, contracts, modules, templates and tests.
+
+## Previous release: 7.14.1
 
 - Aligned formal Figure Evidence semantics across Module 04, MATLAB templates, writing/review consumers and `core/output_contract.yaml`: formal paper figures no longer embed a redundant overall `title`/`sgtitle`; DOCX/LaTeX captions own the formal figure number/name while panel labels, axes, units, legends and necessary direct annotations remain available.
 - Reversed strict figure synchronization accordingly: `scripts/sync_project.py --delivery-scope figures` now rejects executable overall MATLAB titles instead of requiring them, while preserving the existing `matlab_has_title` report field for backward report compatibility and ignoring comment-only title text.
