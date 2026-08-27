@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.14.0
-summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, independent Model Reviewer plus Devil's Advocate challenge, explicit Human Model Approval bound to the current semantic revision/hash, evidence-driven conditional preprocessing, full-fidelity user execution, capability-driven primary numerical validity with independent evidence recheck, separate primary/result-analysis Python stages, project-memory model-paper framework, Source-Derivation-Destination formula traces, adaptive Algorithm Trace with stepwise/pseudocode presentation, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware high-precision Numeric Profile, Title Claim Gate, support/modify/reject analysis evidence, local paper-fragment stale propagation, Paragraph Necessity, MATLAB evidence figures with evidence-driven Figure Enhancement, formal LaTeX audit/compile attestation, and validated submission-package provenance.
+version: 7.14.1
+summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, independent Model Reviewer plus Devil's Advocate challenge, explicit Human Model Approval bound to the current semantic revision/hash, evidence-driven conditional preprocessing, full-fidelity user execution, capability-driven primary numerical validity with independent evidence recheck, separate primary/result-analysis Python stages, project-memory model-paper framework, Source-Derivation-Destination formula traces, adaptive Algorithm Trace with stepwise/pseudocode presentation, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware high-precision Numeric Profile, Title Claim Gate, support/modify/reject analysis evidence, local paper-fragment stale propagation, Paragraph Necessity, MATLAB evidence figures with caption-owned formal titles and evidence-driven Figure Enhancement, formal LaTeX audit/compile attestation, and validated submission-package provenance.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX, 终审, 提交包]
 ---
 
-# HSK 数学建模模块化工作流 v7.14.0
+# HSK 数学建模模块化工作流 v7.14.1
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -99,7 +99,7 @@ pseudocode → 循环、分支、筛选、修复、接受/拒绝或终止逻辑�
 
 ### Figure Evidence
 
-MATLAB 图形布局、证据等级、配色、数据追溯和 Figure Enhancement Gate 统一由 `modules/04_figure_evidence.md` 管理。基础布局后只在局部差异、曲线遮挡、焦点对象、阈值区域、联合诊断或真实三维结构需要时启用 Local Zoom、Small Multiples、Focus Highlighting、Semantic Background、Composite Diagnostic 或 Conditional 3D；具体实现模式由 `templates/figure/figure_enhancement_patterns.md` 提供参考，不建立第二套绘图权威。`data_process.m` 和 `qX_plot.m` 只读取 Python 已输出的数据/工作簿，不重新执行核心计算；默认保留图窗供人工检查，不批量自动导出。
+MATLAB 图形布局、证据等级、配色、数据追溯和 Figure Enhancement Gate 统一由 `modules/04_figure_evidence.md` 管理。正式论文图不设置整体 `title` / `sgtitle`，DOCX/LaTeX caption 承担正式图号与图名；多面板按需只保留 panel label，坐标轴、单位、图例和必要直接标注继续服务证据读取。基础布局后只在局部差异、曲线遮挡、焦点对象、阈值区域、联合诊断或真实三维结构需要时启用 Local Zoom、Small Multiples、Focus Highlighting、Semantic Background、Composite Diagnostic 或 Conditional 3D；具体实现模式由 `templates/figure/figure_enhancement_patterns.md` 提供参考，不建立第二套绘图权威。`data_process.m` 和 `qX_plot.m` 只读取 Python 已输出的数据/工作簿，不重新执行核心计算；默认保留图窗供人工检查，不批量自动导出。
 
 ### 写作治理
 
