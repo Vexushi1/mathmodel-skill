@@ -20,10 +20,10 @@
 └─ qX_plot.m
 ```
 
-9. `问题X求解.py` 只负责主求解；用户返回的主工作簿 accepted 后冻结该脚本；
+9. `问题X求解.py` 负责主求解，以及当前主结果获得 accepted 资格所必需的内在数值有效性证据；不在主脚本中吸收参数敏感性、压力场景、替代算法/结构或更广泛的结论稳定性分析。用户返回的主工作簿 accepted 后冻结该脚本；
 10. 主工作簿通过质量门后，单独生成 `问题X结果深化分析.py`，读取当前数据事实源和已验收主结果，输出 `问题X结果深化分析.xlsx`；不得为了深化分析覆盖改写主求解脚本；
 11. 实际赛题的预处理、主求解和深化分析 Python 默认由用户本地 full-fidelity 运行；助手只生成、静态检查并验收返回工作簿，不自动降采样、粗网格、缩短时域、减少重复、放宽容差或静默切换求解器；
-12. Python 不生成论文结果图；MATLAB 在 Figure Evidence 阶段读取真实工作簿和精确表头绘图，不重新预处理或求解；
+12. Python 不生成论文结果图；MATLAB 在 Figure Evidence 阶段读取真实工作簿和精确表头绘图，不重新预处理或求解；正式论文图不嵌入重复的整体 `title`/`sgtitle`，正式图名由 LaTeX/DOCX caption 承担；
 13. `project_level` 的公共预处理证据图脚本固定为 `数据预处理/data_process.m`；各问结果图脚本固定为同目录 `qX_plot.m`；默认只保留可见图窗，不自动创建图表子目录或批量导出；
 14. 默认写作链为 Figure Evidence → LaTeX → AI cleanup → prose/BibTeX/framework audit → 编译质量检查；DOCX 仅在用户明确要求 Word 审阅、批注、协作或特定提交格式时加载，不是 LaTeX 前置；
 15. 写作治理以两个 Authority 收口：`core/writing_reasoning_contract.yaml` 管理 Formula Trace、Algorithm Trace 与 `not_needed / stepwise / pseudocode`、Hard / Default / Recommendation、命题预算、Terminology、Numeric Style、Title Claim、深化证据处置、Paragraph Necessity、Paper Fragment stale 与 Citation Evidence；`modules/05_writing/latex.md` 管理正文结构与表达。`packs/artifact/algorithm_flow.md` 和命题 Pack 只提供按需呈现细则，DOCX、AI cleanup、review、Artifact Packs 和检查表只消费 Authority，不得重新定义第二套正文规则；

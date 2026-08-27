@@ -5,6 +5,7 @@
 % 版式同样服从 modules/04_figure_evidence.md 的 Figure Layout Gate，不默认多面板。
 % 基础布局确定后继续执行同一模块的 Figure Enhancement Gate；默认不增强，只有证据需要时才使用局部放大、分面、焦点高亮、语义背景、联合诊断或条件式3D。
 % Enhancement 的实现模式参考 templates/figure/figure_enhancement_patterns.md，不得在本模板建立第二套绘图决策规则。
+% 正式论文图不设置整体 title/sgtitle；正式图题由 LaTeX/DOCX caption 承担，多面板按需只保留 a/b/c/d 等 panel label。
 
 clearvars;
 clc;
@@ -21,16 +22,14 @@ sourceSheet = "__ACTUAL_SOURCE_SHEET__";
 xHeader = "__ACTUAL_X_HEADER__";
 beforeHeader = "__ACTUAL_BEFORE_HEADER__";
 afterHeader = "__ACTUAL_AFTER_HEADER__";
-figureTitle = "__ACTUAL_PREPROCESSING_FIGURE_TITLE__";
 xLabelText = "__ACTUAL_X_LABEL_WITH_UNIT__";
 yLabelText = "__ACTUAL_Y_LABEL_WITH_UNIT__";
 expectedXColumn = NaN;
 expectedBeforeColumn = NaN;
 expectedAfterColumn = NaN;
 
-placeholders = [sourceSheet, xHeader, beforeHeader, afterHeader, figureTitle, xLabelText, yLabelText];
+placeholders = [sourceSheet, xHeader, beforeHeader, afterHeader, xLabelText, yLabelText];
 assert(~any(startsWith(placeholders, "__ACTUAL_")), "data_process模板尚未实例化");
-assert(strlength(strtrim(figureTitle)) <= 30, "图标题过长");
 
 availableSheets = string(sheetnames(processBook));
 assert(any(availableSheets == sourceSheet), "缺少工作表: %s", sourceSheet);
@@ -58,16 +57,15 @@ before = before(order);
 after = after(order);
 
 %% 3. 处理前后证据图
-% “处理前”作为参考对象降权，“处理后”作为主比较对象使用高对比主色。
+% “处理前”作为参考对象降权，“处理后”作为主比较对象使用实体低饱和主色。
 % 若 Figure Enhancement Gate 判定需要增强，应按已登记的 Enhancement / Enhancement rationale 实例化对应模式，并保持底层数据不变。
 fig = figure("Color", "w", "Position", [100, 100, 960, 620]);
 ax = axes(fig);
 hold(ax, "on");
-plot(ax, x, before, "LineWidth", 1.8, "Color", [37, 43, 55] / 255, "DisplayName", "处理前");
-plot(ax, x, after, "LineWidth", 2.2, "Color", [240, 68, 68] / 255, "DisplayName", "处理后"); % #F04444
+plot(ax, x, before, "LineWidth", 1.8, "Color", [32, 38, 46] / 255, "DisplayName", "处理前"); % #20262E
+plot(ax, x, after, "LineWidth", 2.2, "Color", [154, 56, 56] / 255, "DisplayName", "处理后"); % #9A3838
 xlabel(ax, xLabelText);
 ylabel(ax, yLabelText);
-title(ax, figureTitle, "FontWeight", "normal");
 legend(ax, "Location", "best");
 grid(ax, "off");
 box(ax, "on");
