@@ -1,6 +1,16 @@
 # Changelog
 
-## Current release: 7.14.0
+## Current release: 7.14.1
+
+- Aligned formal Figure Evidence semantics across Module 04, MATLAB templates, writing/review consumers and `core/output_contract.yaml`: formal paper figures no longer embed a redundant overall `title`/`sgtitle`; DOCX/LaTeX captions own the formal figure number/name while panel labels, axes, units, legends and necessary direct annotations remain available.
+- Reversed strict figure synchronization accordingly: `scripts/sync_project.py --delivery-scope figures` now rejects executable overall MATLAB titles instead of requiring them, while preserving the existing `matlab_has_title` report field for backward report compatibility and ignoring comment-only title text.
+- Restored the restrained scientific plotting defaults used by the current paper workflow: white background, solid dark/low-saturation primary colors and `grid off` by default; preprocessing figure guidance delegates style to `modules/04_figure_evidence.md` instead of maintaining a second high-saturation rule.
+- Repaired active navigation lag so `PROJECT_INSTRUCTIONS.md` describes primary solve as primary computation plus only the intrinsic numerical-validity evidence needed for acceptance, and `REPOSITORY_INDEX.md` explicitly lists `core/numerical_verification_contract.yaml` and `scripts/validate_numerical_evidence.py`.
+- Moved completed one-shot architecture/implementation notes from active `docs/architecture/` into `legacy/architecture/`, preserving provenance while removing them from the active Skill surface and generated metadata.
+- Added/updated regressions for root/package Skill parity, formal MATLAB no-title semantics, strict figure-sync behavior, archive hygiene and the unchanged v7.14 primary-quality/result-analysis boundary.
+- Preserved Workbook Schema, Project State Schema, numerical-verification protocol semantics, per-question five-file layout, user-owned full-fidelity execution, LaTeX attestation/submission provenance and V622 read-only compatibility pointers.
+
+## Previous release: 7.14.0
 
 - Added `core/numerical_verification_contract.yaml` as the single field-level authority for intrinsic primary numerical validity before a solution workbook may be accepted.
 - Added a Primary Quality Specification (PQS) design step so active capabilities determine only the minimum feasibility/residual/discretization/convergence/primary-OOS/uncertainty/leakage/calibration/identifiability evidence required for the current primary computation.
