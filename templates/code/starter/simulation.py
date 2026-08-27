@@ -63,7 +63,11 @@ def build_features(clean_data: dict[str, pd.DataFrame], config: PipelineConfig) 
 
 
 def solve_model(features: dict[str, Any], config: PipelineConfig) -> dict[str, Any]:
-    raise NotImplementedError("请完成主仿真并输出底层明细、重复试验、收敛诊断和不确定性区间")
+    raise NotImplementedError(
+        "请完成主仿真，并按 Primary Evidence Capture 输出逐次/逐时刻状态、关键事件、重复试验结果、"
+        "分位数/区间、当前运行已经产生的收敛trace与必要状态边界证据；"
+        "不要只保留最终均值，也不得提前执行属于03B的参数扰动、替代结构或跨seed结论稳定性分析"
+    )
 
 
 def check_constraints(solution: dict[str, Any], config: PipelineConfig) -> pd.DataFrame | None:
@@ -81,7 +85,7 @@ def evaluate_primary_quality(
 
 
 def sync_primary_framework(primary: PrimarySolveResult) -> None:
-    raise NotImplementedError("回写主仿真结果、收敛与区间证据和质量门结论")
+    raise NotImplementedError("回写主仿真结果、逐时刻/逐次状态证据、收敛与区间证据和质量门结论")
 
 
 def main() -> None:

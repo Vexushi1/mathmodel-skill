@@ -1,21 +1,29 @@
 # Module 04：MATLAB 结果图、预处理图证据与机理图精修
 
+本模块是当前 Figure Evidence 的单一通用 Authority。`packs/artifact/figure.md`、`templates/figure/*.md` 与 MATLAB 模板只能引用或实现这里的规则，不得建立第二套绘图决策权威。
+
 ## 正确顺序
 
 进入本模块时先读取 current `模型论文框架.md` 中的当前有效口径、相关小问结果摘要、待办缺口和既有图表映射，用于确定“哪些结论需要图证据”；随后再从真实工作簿读取具体数值和底层序列。不得仅凭聊天记忆或框架摘要数字反推图数据。
 
-1. 继承已经锁定的 `preprocessing_decision`；若为 `project_level`，确认 `数据预处理结果.xlsx` 已 accepted 且预处理质量门通过，但此时不要求先生成 `data_process.m`；
-2. Python 完成完整主求解并通过主结果质量门；
-3. Python 基于题目风险完成实际需要的结果深化分析，并验收 `问题X求解/` 中两个标准工作簿；
-4. 只有上述数值阶段完成后才进入 Figure Evidence；先明确每张图读取原始数据、统一预处理工作簿或结果工作簿中的哪一种事实源；
+1. 继承已经锁定的 `preprocessing_decision`；若为 `project_level`，确认 `数据预处理结果.xlsx` 已 accepted 且预处理质量门通过；
+2. Python 完成完整主求解并通过主结果质量门；03A 应已经保存本次主计算真实产生且具有解释/绘图/验证价值的状态、过程与结构证据；
+3. Python 基于题目风险完成实际需要的结果深化分析，并验收 `问题X求解/` 中两个标准工作簿；03B 应保存参数、场景、阈值、算法、结构、异质性等分析的细粒度底层证据；
+4. 只有上述数值阶段完成后才进入 Figure Evidence；先明确每张图读取原始数据、统一预处理工作簿或两个标准结果工作簿中的哪一种事实源；
 5. 若为 `project_level`，此时生成并人工检查 `数据预处理/data_process.m`，只把已验收预处理工作簿中的底层证据转成图；
-6. 为各问结果图先写 Core conclusion、Evidence level 和 Primary question，再通过 Figure Layout Gate 动态选择单图、1×2、2×1、1×3、2×2 或拆分为多张 Figure；不得先决定版式再硬塞证据；
-7. 基础布局确定后执行 Figure Enhancement Gate；仅在局部差异、曲线遮挡、视觉主次、阈值区域、联合诊断或真实双因素结构确实需要时增加增强表达；
-8. 生成 MATLAB 代码前实际读取工作簿，锁定工作簿名、工作表名、真实表头、单位和数据类型；
-9. 拟定 DOCX/LaTeX 正式 caption；正式论文图不设置整体 `title` / `sgtitle`，多面板按需只保留 a/b/c/d 等 panel label；
-10. 将各问 `q{x}_plot.m` 与两类 Python 脚本、两类结果工作簿放在同一 `问题X求解/`；项目级预处理图脚本固定为 `数据预处理/data_process.m`；
-11. 检查核心结论是否有图或表证据，并同步 `模型论文框架.md`；
-12. 默认只保留图窗供人工检查，不自动创建图表子目录或批量导出图片。
+6. 为每个候选 Figure 先写 Core conclusion、Evidence level、Primary question、Available evidence dimensions；
+7. 先执行 **Scientific Figure Synthesis Gate**，识别证据结构并设计候选视觉结构；不得先问“bar 还是 line”；
+8. 若候选核心图退化为 plain bar / plain line / plain scatter / plain box / plain histogram，执行 **Basic-form Challenge**；
+9. 若多个视觉编码能在同一证据空间互补表达，执行 **Composite Encoding Preference**；
+10. 选定视觉结构后进入对应 **Scientific Rendering Profile**；
+11. 再通过 Figure Layout Gate 动态选择单图、1×2、2×1、1×3、2×2 或拆分为多张 Figure；不得先决定版式再硬塞证据；
+12. 基础布局确定后执行 Figure Enhancement Gate；只有在增加可验证信息、降低视觉搜索成本或强化关键证据时增加 Local Zoom、Small Multiples、Focus Highlighting、Semantic Background、Composite Diagnostic 或 Conditional 3D；
+13. 生成 MATLAB 代码前实际读取工作簿，锁定工作簿名、工作表名、真实表头、单位和数据类型；
+14. 拟定 DOCX/LaTeX 正式 caption；正式论文图不设置整体 `title` / `sgtitle`，多面板按需只保留 a/b/c/d 等 panel label；
+15. 将各问 `q{x}_plot.m` 与两类 Python 脚本、两类结果工作簿放在同一 `问题X求解/`；项目级预处理图脚本固定为 `数据预处理/data_process.m`；
+16. 完成单图 QA 后执行 **Figure Portfolio Scientific Quality Gate**，检查整篇核心图是否出现基础图型退化；
+17. 检查核心结论是否有图或表证据，并同步 `模型论文框架.md`；
+18. 默认只保留图窗供人工检查，不自动创建图表子目录或批量导出图片。
 
 ## A 类：机理与推导图
 
@@ -23,73 +31,30 @@
 
 ## B 类：项目级预处理证据图
 
-当 `preprocessing_decision=project_level` 时，必须生成独立 MATLAB 脚本：
+当 `preprocessing_decision=project_level` 时，必须生成独立 MATLAB 脚本 `数据预处理/data_process.m`，只读取 `数据预处理/数据预处理结果.xlsx`。其职责是把 Python 已经保存的处理前/后、诊断和验证底层数据转成论文证据图。MATLAB 不允许重新清洗、插值、滤波、重采样、预测填补、训练模型或重新确定参数。
 
-```text
-数据预处理/data_process.m
-```
+至少有一张图直接回答下列问题之一：为什么原始数据需要处理；当前处理是否解决已审计问题；插值/填补恢复误差是否可接受；滤波是否保留所需信息；重采样/时间/空间对齐是否满足模型输入；异常处理是否有清晰边界并避免误删真实结构。
 
-它只读取：
-
-```text
-数据预处理/数据预处理结果.xlsx
-```
-
-其职责是把 Python 已经保存的处理前/后、诊断和验证底层数据转成论文证据图。MATLAB 不允许重新清洗、插值、滤波、重采样、预测填补、训练模型或重新确定参数。
-
-至少有一张图直接回答下列问题之一：
-
-- 为什么原始数据需要处理；
-- 当前处理是否解决了已审计问题；
-- 插值/填补恢复误差是否可接受；
-- 滤波/平滑是否保留所需信息；
-- 重采样/时间对齐/空间对齐是否满足模型输入要求；
-- 异常处理是否有清晰边界并避免误删真实结构。
-
-优先图型包括：
-
-- 处理前后时序、轨迹、空间场或剖面对比；
-- 缺失位置/覆盖与填补结果图；
-- 分布、箱线、QQ、残差、尺度变化图；
-- 频谱/功率谱/频率响应处理前后对比；
-- 人工掩蔽或留出样本的真实值—恢复值图及误差分布；
-- 重采样前后的网格/采样间隔/覆盖图；
-- 异常阈值边界与保留/处理样本图。
-
-`data_process.m` 的 Figure Contract 必须记录：Core conclusion、Evidence level、Primary question、Figure role、In-figure title=`none`、论文 caption、Source workbook=`数据预处理结果.xlsx`、Worksheet、Required headers、Panel map、Layout decision、Split decision、Statistics/error、Paper location。
-
-若需要正式导出，文件基名固定为：
-
-```text
-data_process
-或
-data_process_<evidence>
-```
-
-默认仍不自动导出，先保留图窗人工调整。
+优先考虑处理前后时序/轨迹/空间场、缺失与恢复、分布 + 原始点、真实值—恢复值 + 误差、频谱、重采样覆盖、阈值边界等证据。正式图同样执行 Synthesis、Basic-form Challenge、Rendering Profile、Layout 与 Enhancement；不能因为是预处理图就默认画两根柱或两条普通折线。
 
 ## C 类：各问结果图合同
 
-每张结果图记录：Core conclusion、Evidence level、Primary question、Figure role、In-figure title=`none`、论文 caption、Panel map、Layout decision、Split decision、Panel necessity、Enhancement、Enhancement rationale、Source workbook、Worksheet、Required headers、Expected positions（可选）、MATLAB script、Export files、Statistics/error、Reviewer risk、Paper location 和 Caption duty。
+每张结果图至少记录：Core conclusion、Evidence level、Primary question、Figure role、Available evidence dimensions、Evidence structure、Figure level、Candidate visual structures、Selected visual structure、Basic-form challenge、Composite encoding、Scientific Rendering Profile、In-figure title=`none`、论文 caption、Panel map、Layout decision、Split decision、Enhancement、Enhancement rationale、Source workbook、Worksheet、Required headers、Expected positions（可选）、MATLAB script、Statistics/error、Reviewer risk、Paper location 和 Caption duty。
 
-结果证据优先来自本问主求解工作簿或结果深化分析工作簿：
+结果证据优先来自本问标准工作簿：
 
-- 主结果、决策变量、预测明细、基础误差和质量门证据来自 `问题X求解结果.xlsx`；
+- 主结果、决策变量、状态轨迹、空间/网络状态、预测明细、基础误差和主质量证据来自 `问题X求解结果.xlsx`；
 - 参数、场景、算法、结构、阈值、异质性和稳定范围证据来自 `问题X结果深化分析.xlsx`。
 
 只有图本身确实需要底层数据时，才按 `preprocessing_decision` 追加数据事实源：
 
 - `not_needed`：允许读取必要原始数据；
-- `question_local`：允许读取必要原始数据，但不得在 MATLAB 中重新构造模型变换；若该局部处理需要论文图证据，应由 Python 将处理前后底层数据写入本问工作簿，再由 `qX_plot.m` 绘制；
-- `project_level`：各问需要底层公共数据时读取 `数据预处理结果.xlsx`，不得绕回共享原始附件；公共预处理本身的前后对比优先集中在 `data_process.m`。
+- `question_local`：允许读取必要原始数据，但不得在 MATLAB 中重新构造模型变换；若局部处理需要图证据，应由 Python 将处理前后底层数据写入本问工作簿；
+- `project_level`：各问需要底层公共数据时读取 `数据预处理结果.xlsx`，不得绕回共享原始附件。
 
-不得为了统一脚本结构而强制所有 `qX_plot.m` 读取 `数据预处理结果.xlsx`。若图只依赖标准结果工作簿，则不额外加载任何原始或预处理数据。
-
-不得在 MATLAB 中重新求解，不得从摘要数字反推绘图序列。图型必须提高信息展示或比较效率，否则降级为更直接的二维图。
+不得为了统一脚本结构而强制所有 `q{x}_plot.m` 读取统一预处理工作簿。不得在 MATLAB 中重新求解、重新做敏感性/统计分析或从摘要数字反推绘图序列。
 
 ## Figure Evidence 层级
-
-为避免把主结果、机制解释、稳健性和数值合法性一股脑塞进同一张图，绘图前给每个证据单元标记层级：
 
 ```text
 L1 主结果证据       → 直接回答本问主要数值/结构结论
@@ -98,59 +63,130 @@ L3 稳健性证据       → 敏感性、阈值、场景、多算法、结构稳
 L4 数值合法性证据   → 收敛、频带、残差、可行性、预处理有效性等方法后盾
 ```
 
-同一 Figure 可以包含多个 panel，但默认应属于同一 Evidence level 并共同回答一个 Primary question。跨层级合图只有在“必须同屏直接比较”或多个统计视角共同完成同一可信度判断、且拆分会明显损失证据关系时才允许，并须在 Figure Contract 中写明原因。
+同一 Figure 可以包含多个 panel，但默认应属于同一 Evidence level 并共同回答一个 Primary question。跨层级合图只有在必须同屏直接比较、或多个统计视角共同完成同一可信度判断且拆分会明显损失证据关系时才允许，并须在 Figure Contract 中说明原因。
+
+## Scientific Figure Synthesis Gate：从证据结构设计 Figure
+
+正式绘图前先识别 Evidence Structure，而不是从软件默认函数反推图型。至少检查：
+
+- 简单离散比较；
+- 分布；
+- 时间演化；
+- 空间结构；
+- 机制关系；
+- 约束边界 / 可行域；
+- 参数响应 / 参数交互；
+- 不确定性；
+- 多目标权衡；
+- 稳定 / 风险 / 失效区域；
+- 网络流；
+- 调度与资源占用；
+- 模型诊断；
+- 全局—局部结构。
+
+每个候选核心图至少比较两种合理视觉结构，选择依据是：能否揭示模型结构、是否保留真实数据粒度、是否提高可验证信息密度、是否降低评委搜索成本、是否更直接支撑当前 Core conclusion。高级不是复杂；若一个直接二维图已经完整表达本题结构，不能为了“高级感”强行 3D 或堆编码。
+
+## Basic-form Challenge：基础图只在信息结构确实简单时保留
+
+plain bar / barh、plain line、plain scatter、plain boxplot、plain histogram 允许使用，但默认属于 F1 基础表达。若它们准备进入正文核心 Figure，必须检查当前 accepted 数据是否还包含：
+
+- 时间或空间结构；
+- 原始样本分布；
+- 不确定性/误差；
+- 约束、可行域或临界边界；
+- 机制变量；
+- 参数交互；
+- 多目标关系；
+- 全局—局部差异；
+- 关键事件、阈值或策略切换。
+
+只要存在这些结构且能提高可验证信息密度，就优先升级表达。**不禁止柱状图，但禁止明明有更丰富证据，却只用一个普通柱状图结束核心结论。**
+
+### Figure 表达等级
+
+- **F1 基础表达**：普通柱状、条形、折线、散点、箱线、直方；适合真正的一维简单事实、辅助图和附录；
+- **F2 增强科研表达**：box + raw scatter、violin + raw scatter + median/quartile、line + uncertainty band、scatter + fit/identity + CI、scatter + marginal histogram/KDE、bar + errorbar + benchmark、heatmap + contour、ECDF + quantile、Gantt + resource utilization、network + weighted flow、Pareto + highlighted recommendation；
+- **F3 核心科学综合图**：spatial field + trajectory + boundary + critical state；Pareto + feasible/infeasible + knee + recommendation + zoom；response surface + contour + stable/failure region + current point；prediction relation + uncertainty + residual/marginal diagnostic；candidate cloud + constraint structure + recommendation。
+
+F2/F3 的“高级”来自证据结构和联合解释，不来自装饰数量。
+
+## Composite Encoding Preference：同一证据空间优先融合互补编码
+
+若多种视觉编码共同回答同一个 Primary question，且共享同一坐标/统计语义，优先融合，而不是拆成多个低信息密度单图。重点支持：
+
+```text
+箱线 + 原始散点
+小提琴 + 原始散点 + 中位数/四分位
+折线 + CI/预测区间
+散点 + 拟合/1:1线 + CI
+散点 + 边际直方图/KDE
+柱状 + 误差棒 + 基准线
+柱状 + 折线（只有联合语义清楚时）
+热力图 + 等高线
+热力图 + 阈值/可行边界
+3D surface + 2D contour projection
+Pareto + 推荐点 + Local Zoom
+轨迹 + 空间场 + 边界
+真实—预测 + 区间 + 残差/边际结构
+```
+
+柱状 + 折线、双 Y 轴等组合只有在指标关系明确、量纲和阅读任务清楚时才允许；不得为了“显得高级”把互不相关指标强行叠加。
+
+## Scientific Rendering Profiles：选定视觉结构后的专属科研表达
+
+### Distribution Profile
+
+优先让 raw samples 可见；根据样本量和分布目标选择 box/violin + scatter、ECDF + quantile 或 histogram/density + raw context。KDE 样本不足或带宽会误导时改用 ECDF、直方或原始点。
+
+### Regression / Prediction Profile
+
+优先组合 observed-vs-predicted / scatter、identity 或合法 fit line、CI/prediction interval、residual 或 marginal 结构。训练/测试可用颜色 + marker/linestyle 联合编码；只保留直接支撑可信度判断的少量统计量。
+
+### Dynamic Profile
+
+优先 trajectory/state curve + uncertainty（真实存在时）+ event/threshold + critical point；关键窗口被全局尺度压缩时使用 Local Zoom / Global–Detail；阶段背景只有真实状态/阈值语义时才使用。
+
+### Parameter Surface Profile
+
+双参数有完整响应网格时优先 heatmap + contour + current/recommended point + feasible boundary。只有第三维确有数学/物理意义且二维投影会丢失关键结构时，才使用 3D surface + contour projection + colorbar。
+
+### Spatial Profile
+
+优先 spatial field + path/flow + critical nodes + boundary + colorbar；关键对象可以 Focus Highlighting，但不得隐藏不利区域。
+
+### Optimization / Pareto Profile
+
+优先 candidate solutions + Pareto set/front + feasible/infeasible state + recommendation + knee/threshold + global/detail。只画“算法 A/B/C 三根柱”通常不足以承担优化核心证据。
+
+### High-density Scatter Profile
+
+点严重遮挡时按真实数据规模考虑 alpha scatter、binned/hexbin density、2D histogram、density contour；不得让大样本散点退化成不可读色块。
 
 ## Figure Layout Gate：单图 / 1×2 / 2×2 动态判断
 
-**不存在固定默认版式。** MATLAB 代码生成前必须先做布局判定，布局由证据关系决定，而不是由“有几个结果表”决定。
+**不存在固定默认版式。** 先做 Scientific Figure Synthesis，再根据证据关系决定布局。
 
 ### 1. 单图
 
-优先使用单图，当满足任一条件：
-
-- 一个二维图已经完整回答 Primary question；
-- 第二个 panel 只是重复同一趋势、换一种图型复述同一数字；
-- 增加 panel 不会改变结论强度、适用边界或机制解释；
-- 单图配合正文一句解释比多面板更清楚。
-
-单图不是“信息少”，而是证据闭环已经足够紧凑。
+优先使用单图，当满足任一条件：一个二维/组合图已经完整回答 Primary question；第二 panel 只是重复趋势；增加 panel 不改变结论强度、边界或机制解释；单图配合正文一句解释更清楚。
 
 ### 2. 1×2 或 2×1
 
-当两个证据单元存在强配对、互补或前后关系时使用双面板。典型情况：
-
-- 方法 A vs 方法 B 的直接并列成像/空间场；
-- 主结果 vs 对应误差/残差；
-- 连续逐点变化 vs 分组统计总结；
-- 处理前 vs 处理后；
-- 稳健性趋势 vs 失效边界。
-
-横向比较优先 `1×2`；若纵轴较长、图例/标签横向拥挤或论文栏宽更适合纵向阅读，可使用 `2×1`。双面板应能用一句 Core conclusion 统领，而不是两个互不相关的小结论。
+两个证据单元强配对、互补或前后关系时使用，例如 A vs B、主结果 vs 残差、连续变化 vs 分布总结、处理前 vs 后、全局 vs 局部。横向比较优先 1×2；长 y 标签或栏宽限制时可 2×1。
 
 ### 3. 1×3
 
-只有三个 panel 形成不可拆的同一序列时使用，例如三阶段演化、三种必须同屏比较的方案或“基准—改进—误差”三联证据。若第三个 panel 属于不同证据层级或需要独立解释，应拆图，不为了凑满版面使用 1×3。
+只有三个 panel 形成不可拆同一序列时使用，例如三阶段演化、基准—改进—误差。第三 panel 属于不同证据层级或可独立解释时应拆图。
 
 ### 4. 2×2
 
-`2×2` 不是默认“高级版式”，只有同时满足以下条件才保留：
-
-1. 四个 panel 共同服务**一个**一级 Core conclusion；
-2. panel 之间具有清楚的 2×2 对称、交叉或成对结构，而不是四个独立指标并排；
-3. 主要视觉编码种类原则上不超过 2 类；
-4. 拆成两个 1×2 会显著损失直接比较效率或读者需要来回翻图；
-5. 每个 panel 都是不可替代证据，删去任一个都会损失结论闭环；
-6. 图注能够用一个主句解释四个 panel，而不需要写四段互不相干的说明。
-
-任一条件不满足，优先拆为两张 1×2、单图 + 1×2 或其他更轻的结构。
+只有同时满足以下条件才保留：四个 panel 服务一个 Core conclusion；存在清楚的 2×2 对称/交叉/配对结构；主要视觉编码原则上不超过 2 类；拆成两个 1×2 会显著损失直接比较；每个 panel 不可替代；一个主 caption 句可以统领全部 panel。**任一条件不满足，优先拆成两个 1×2**、单图 + 1×2 或其他更轻结构。
 
 ### 5. 超过 4 个 panel
 
-正文核心 Figure 原则上不超过 4 个 panel。若底层证据超过 4 个，先按 Primary question / Evidence level / 机制链拆分；只有地图阵列、参数矩阵、时序快照、共享坐标语义的 small multiples 等“多 panel 本身就是研究对象或比较矩阵”的情形可以例外。例外必须说明为何矩阵式浏览或分面比较比拆图更有效，并保持统一视觉语法、共享尺度或清晰说明尺度差异。
+正文核心 Figure 原则上不超过 4 个 panel。只有地图阵列、参数矩阵、时序快照、共享坐标 small multiples 等“多 panel 本身就是研究对象/比较矩阵”的情形可以例外，并保持统一视觉语法和尺度规则。
 
 ### 6. 动态判定顺序
-
-生成代码前按以下顺序判断：
 
 ```text
 先问：单图能否闭合核心结论？
@@ -170,63 +206,47 @@ L4 数值合法性证据   → 收敛、频带、残差、可行性、预处理�
   └─ 否 → 按 Primary question / Evidence level 拆成多张 Figure
 ```
 
-不能为了“核心结果看起来丰富”把所有可画指标都放入同一 Figure。评委阅读效率优先：**每张 Figure 应让读者在数秒内知道比较对象、主要差异和下一步该看哪里。**
+评委阅读效率优先：每张 Figure 应让读者在数秒内知道比较对象、主要差异和下一步该看哪里。
 
 ## Figure Enhancement Gate：焦点—上下文信息增强
 
-Figure Enhancement 发生在基础图型和布局确定之后，目的不是增加装饰，而是解决“重要信息存在但当前视觉结构难以判别”的问题。默认状态为 `none`；只有增强后能增加可验证信息、降低视觉搜索成本或强化关键证据时才启用。具体实现模式参考 `templates/figure/figure_enhancement_patterns.md`。
+Figure Enhancement 发生在 Synthesis、Rendering Profile 和基础布局确定之后。默认状态为 `none`；只有增强后能增加可验证信息、降低视觉搜索成本或强化关键证据时才启用。具体实现模式参考 `templates/figure/figure_enhancement_patterns.md`。
 
 ### 1. Local Zoom
 
-当关键差异、交点、临界阈值、Pareto 膝点、残差尾部或局部波动被全局尺度压缩时，可使用局部放大。主图必须保留全局上下文，放大区必须能追溯到主图中的 ROI；优先使用区域框、半透明区域、连接线或箭头建立对应关系。
-
-- `Embedded inset`：局部内容简单、内嵌后不遮挡核心证据；
-- `Detached zoom`：局部信息复杂、需要更大面积或完整坐标轴；
-- `Selective detail`：总览比较多个对象，但局部只分析承担核心结论的代表对象；
-- `ROI + semantic zoom`：放大区同时包含阈值、风险区、稳定区等真实语义。
-
-若局部放大后不产生新的可判别信息，只是重复主图趋势，则删除。局部坐标范围不得通过任意截轴夸大微小差异，图注需使读者能够识别其尺度口径。
+关键差异、交点、临界阈值、Pareto 膝点、残差尾部或局部波动被全局尺度压缩时可使用。主图必须保留全局上下文，ROI 与 zoom 必须可追溯；可使用 Embedded inset、Detached zoom、Selective detail 或 ROI + semantic zoom。不得通过任意截轴夸大差异。
 
 ### 2. Small Multiples
 
-当同一坐标轴中多条曲线大量交叉、遮挡或产生明显 legend 搜索成本，而每条序列自身结构又重要时，优先分面展示。若跨面板需要比较幅度，保持统一 `xlim/ylim`；只有明确只研究各序列自身形态时才允许自由纵轴，并在图注说明。
-
-对象数量可以超过 2--3 个，但不应让它们在同一视觉层级同时争夺注意力。纵向 stacked strips 应共享横轴语义，减少重复轴标题，并优先使用 panel 内 direct label 代替重复大图例。必要时采用 `overview + detail`：总览保留跨对象关系，分面负责个体结构。
+多条曲线大量交叉、遮挡或 legend 搜索成本过高时优先分面。跨 panel 比较幅度时保持统一 `xlim/ylim`；只比较各自形态才允许自由 y 轴，并在 caption 说明。必要时采用 overview + detail。
 
 ### 3. Focus Highlighting
 
-当对象很多但核心判断只依赖 1--2 个对象时，保留上下文但降低次要对象权重：核心对象使用较深实体主色和主要线宽，基准或背景对象使用灰色、浅色、细线或透明度。不得通过完全隐藏不利对象制造选择性呈现。
+对象很多但核心判断只依赖少量对象时，核心对象用高对比主色和主线宽，基准/上下文对象用灰色、浅色、细线或透明度降权；不得选择性隐藏不利对象。
 
 ### 4. Semantic Background
 
-稳定区、风险区、可行区、临界区、政策阶段或时间阶段可以使用浅色背景带或 panel tint 提高识别效率。背景色必须对应真实数学阈值、题面定义、状态分类或可解释阶段；纯装饰性色块禁止进入论文核心图。背景不得压过主曲线、误差线和标注。
+稳定区、风险区、可行区、临界区或阶段区间可以使用浅色背景，但必须对应真实数学阈值、题面状态或可解释阶段；纯装饰背景禁止。
 
 ### 5. Composite Diagnostic
 
-当多个 axes 从中心关系、边际结构和诊断结构共同回答同一个 Primary question 时，允许非规则 Figure geometry，而不强制塞入 2×2。例如预测模型可信度可组合：真实—预测散点、边际分布、训练/测试分层和残差结构。
-
-一张 Figure 可以包含多个 axes，但原则上只能承担一个一级阅读任务。Composite Diagnostic 若跨 Evidence level，必须是为了共同完成同一可信度或机制判断，而不是把主结果、敏感性、收敛和残差机械拼接。
+多个 axes 从中心关系、边际结构与诊断结构共同回答同一 Primary question 时允许非规则 Figure geometry。例如真实—预测散点 + 边际分布 + residual。**一张 Figure 可以包含多个 axes**，但只能承担一个一级阅读任务。
 
 ### 6. Conditional 3D
 
-3D 柱、曲面、可行域和空间场只有在第三维具有真实数学或物理意义，且二维投影会损失关键结构时才准入。普通分类比较不得为了“高级感”立体化。3D 透视造成遮挡、尺度误判或精确比较困难时，优先降级为热力图、等高线、二维切片或排序图；必要时把二维投影作为补充证据。
+3D 曲面、可行域、空间场只有在第三维具有真实数学/物理意义且二维投影损失关键结构时才准入。普通分类比较不得为了高级感立体化。3D 造成遮挡、尺度误判或精确比较困难时优先降级为 heatmap、contour、2D slices 或排序图。
 
 ### 7. 数据诚实与增强边界
 
-Figure Enhancement 不得改变底层结果。对离散实验点、独立场景点、参数扫描点或迭代记录，不得仅为了美观使用 spline 等平滑方法制造新的峰值、谷值或拐点；只有对象本身为连续函数、模型已定义连续响应或 Python 已输出连续预测网格时才可绘制连续平滑响应。
-
-关键数值标注应服从视觉预算，通常只标极值、交点、阈值、推荐点等 3--5 个不可替代位置。任何 inset、背景带、分面或联合诊断都必须从当前 Figure Contract 所登记的真实数据源重绘。
+对离散实验点、独立场景点、参数扫描点或迭代记录，**不得仅为了美观使用 spline**、Bezier 等平滑制造新的峰值、谷值或拐点；只有对象本身是连续函数、模型定义连续响应或 Python 已输出连续预测网格时才允许连续平滑。关键标注通常只保留极值、交点、阈值、推荐点等 3--5 个不可替代位置。
 
 ## 视觉注意力预算
 
-布局与 Enhancement 确定后继续检查视觉负荷：
-
 - 一张 Figure 原则上只有 1 个一级 Core conclusion / 一级阅读任务；
-- 同一视觉层级中同时竞争注意力的主要对象通常不超过 2--3 个；对象更多时优先分组、small multiples、focus highlighting 或另图，而不是堆图例；
-- 主要视觉编码（如热图、折线、柱图、箱线）原则上不超过 2 类；Composite Diagnostic 的多 axes 允许复用多个统计视角，但必须共享一个 Primary question；
-- 主结果颜色语义通常不超过 3 个，辅助对象使用灰、浅色或透明度降权；
-- panel 数量少但视觉编码冲突严重时仍应拆图；panel 数量多但本身构成规则矩阵或 small-multiple 结构时可保留；
-- 信息密度可以高，但读者不应为理解不同 panel 反复学习新的颜色、线型和指标语法。
+- **同一视觉层级中同时竞争注意力的主要对象通常不超过 2--3 个**；对象更多时优先分组、small multiples、focus highlighting 或拆图；
+- 主要视觉编码原则上不超过 2 类；Composite Diagnostic 可有多个 axes，但共享同一 Primary question；
+- 主色可以高对比、中高饱和，但真正竞争注意力的主对象通常不超过 2--3 个；辅助对象必须灰化、浅化或透明；
+- 信息密度可以高，但读者不应在不同 panel 反复学习新的颜色、线型和指标语法。
 
 ## 实表读取规则
 
@@ -254,41 +274,51 @@ end
 
 正式论文图不设置整体 `title` 或 `sgtitle`。DOCX/LaTeX caption 承担正式图号、图名与必要统计口径；多面板按需只保留 a/b/c/d 等 panel label，坐标轴、单位、图例、阈值线和必要直接标注用于读图。若本地探索阶段临时加调试标题，进入正式 `figures` 交付前必须移除。
 
-默认白底、清晰细轴、中文坐标轴和单位、字号 18，网格关闭；确需网格时必须浅、稀并置于数据后方。主色默认采用**实体、深色、低饱和且可区分**的科研配色，不使用彩虹色、高饱和渐变或无序多色轮换。推荐主色仅作为起点，不是固定模板：
+默认白底、清晰细轴、中文坐标轴和单位、字号 18，网格关闭；确需网格时必须浅、稀并置于数据后方。主结果恢复**高对比、中高饱和**科研主色，优先让评委第一眼识别关键对象；辅助元素保持克制。
 
 ```text
-深蓝   #173B5E   RGB [23,59,94]
-中蓝   #375C87   RGB [55,92,135]
-青绿   #1E756B   RGB [30,117,107]
-砖红   #9A3838   RGB [154,56,56]
-紫色   #5D4B86   RGB [93,75,134]
-棕灰   #A98F70   RGB [169,143,112]
-深灰   #20262E   RGB [32,38,46]
-浅灰   #D9DAD7   RGB [217,218,215]
+亮蓝   #1478FF   RGB [20,120,255]
+鲜红   #F04444   RGB [240,68,68]
+亮绿   #16B364   RGB [22,179,100]
+亮橙   #F79009   RGB [247,144,9]
+亮紫   #7A5AF8   RGB [122,90,248]
+深灰   #252B37   RGB [37,43,55]
+浅灰   #E9EAEB   RGB [233,234,235]
 ```
 
 配色动态规则：
 
-- 两对象强比较优先选择两种实体、低饱和且明度/色相可区分的颜色，例如深蓝 vs 砖红；
-- 正向改善/可行可使用青绿，风险/恶化可使用砖红，基准/参考优先使用深灰或棕灰；
-- 同一对象和同一语义一旦在全文建立颜色映射，后续图保持一致；
-- 主线、主柱、关键区域保持实体清楚；置信区间、背景带、参考元素和次要对象通过浅色、灰色或透明度降权；
-- 禁止所有元素同时争夺注意力；若颜色数量使读者不知道先看哪里，说明视觉层级失败；
-- 禁止彩虹色、无序多色轮换、红绿单独承担唯一语义；必要时同时使用线型、标记或明暗确保可辨识；
-- 热图/连续场使用与物理量语义匹配的连续或发散色图，不把分类主色硬套到连续变量。
+- 两对象强比较优先 **亮蓝 vs 鲜红**；
+- 正向/改善/可行可使用亮绿，风险/恶化优先鲜红；第三、第四主对象可使用亮橙、亮紫；
+- 主结果、推荐方案、关键曲线和临界点可以使用高对比实体色；背景、参考线、CI、次要对象和上下文用深灰/浅灰/透明度降权；
+- 同一对象和同一语义一旦建立颜色映射，全文保持一致；
+- 红绿不得承担唯一语义，需配合 marker、linestyle、shape 或明暗；
+- 禁止 rainbow、jet、HSV 无序彩虹和无语义的高饱和渐变；
+- 连续场使用与物理量语义匹配的 sequential colormap，正负偏差/相对基准使用 diverging colormap，并保留完整 colorbar 与单位；
+- 高对比 ≠ 全图所有元素都鲜艳。若所有元素同时争夺注意力，说明视觉层级失败。
 
 图窗默认可见，不批量自动导出。
 
+## Figure Portfolio Scientific Quality Gate
+
+进入 DOCX/LaTeX 前，对正文核心 Figure 集合做论文级复审。如果出现大量 plain bar / plain line / plain scatter / plain box 等，即使每张单独没有技术错误，也必须检查：
+
+1. Python 主求解是否只输出摘要而丢失本次运行已经产生的状态、轨迹、空间、约束或逐样本证据；
+2. 03B 是否只输出“稳定”等摘要而未保留参数/场景/seed/算法/阈值底层记录；
+3. 是否存在时间、空间、分布、边界、机制、不确定性或多目标结构却被压成一维比较；
+4. 是否跳过 Scientific Figure Synthesis / Basic-form Challenge / Rendering Profile；
+5. 是否可以通过 Composite Encoding、Global–Detail、Local Zoom 或合理拆图提高证据表达；
+6. 是否有核心机制、空间、动态、阈值或不确定性结论只有文字/表格而缺直接 Figure 证据。
+
+不得设置“必须有 N 种图型”的机械多样性指标。多张基础图只有在数据结构本身确实都是简单一维比较时才合理；不能为了多样性强行雷达图、桑基图或 3D。
+
+## Missing Scientific Evidence Check
+
+不按章节字数或图文比例机械补图，而按核心结论检查：核心机制是否无图；空间结构是否只有汇总数；动态过程是否被压成最终值；关键阈值/边界是否无直接视觉证据；重要分布/不确定性是否只报均值；主结果是否只有表格而明显存在更有效的科研图表达。只有存在真实证据源时才补图，不编造数据。
+
 ## 分析图准入
 
-结果深化分析不是每种方法都要画图。只有满足以下条件时才入图：
-
-- 分析方法与风险来源匹配；
-- 图能展示稳定范围、阈值、算法一致性、结构稳健性、结构差异或异质性；
-- 图的底层数据已完整写入分析工作簿；
-- 图能直接支撑正文中的一个核心判断。
-
-统一扰动曲线、无解释的算法柱状图和只展示“结果变化不大”的装饰图删除。
+结果深化分析不是每种方法都要画图。只有分析方法与风险来源匹配、图能展示稳定范围/阈值/算法一致性/结构差异/异质性、底层数据完整写入分析工作簿且图能支撑正文核心判断时才入图。统一扰动曲线、无解释的算法柱状图和只展示“结果变化不大”的装饰图删除。
 
 ## 入文闭环
 

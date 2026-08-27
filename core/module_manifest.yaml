@@ -1,4 +1,4 @@
-version: 7.14.1
+version: 7.15.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -69,7 +69,7 @@ artifact_catalog:
   preprocessing_matlab_script: 仅project_level在figure_evidence阶段生成的数据预处理/data_process.m；只读预处理工作簿绘制处理前后与验证证据
   preprocessing_figures: 由data_process.m形成并人工确认的预处理必要性/有效性证据图；默认不要求自动导出文件
   awaiting_user_preprocessing: decision=project_level且预处理代码已交付后等待用户本地运行的暂停状态
-  python_code: 问题X求解/问题X求解.py；只负责主求解与当前主计算必需的内在数值有效性检查，主工作簿accepted后冻结
+  python_code: 问题X求解/问题X求解.py；负责主求解、当前主计算必需的内在数值有效性检查以及不改变当前计算世界的Primary Evidence Capture；主工作簿accepted后冻结
   result_analysis_code: 问题X求解/问题X结果深化分析.py；主工作簿accepted后独立生成，只负责敏感性、稳健性、替代方法/结构、阈值、异质性等深化分析并记录support/modify/reject对具体claim的作用
   stage_python_code: 当前代码交付阶段的题目专属Python文件；data_preprocessing仅在project_level时映射统一预处理脚本，solve_validate映射主求解脚本，result_analysis映射深化分析脚本
   full_run_config: 分别嵌入对应阶段Python和工作簸运行配置表的完整精度参数，不单独落盘
@@ -77,17 +77,17 @@ artifact_catalog:
   code_delivery_report: 聊天或标准输出中的静态交付检查结果，不单独落盘
   awaiting_user_execution: 等待用户本地运行并返回工作簿的暂停状态
   user_execution_validation_report: 用户返回工作簿的运行配置、哈希、主质量门与v7.14主数值证据独立复核报告；结果深化分析仍按独立analysis验收语义处理
-  solution_workbook: 用户返回并验收的主求解结果工作簿
+  solution_workbook: 用户返回并验收的主求解结果工作簿；除最终结果外按模型能力保留当前运行真实产生且有解释/绘图/验证价值的状态、过程与结构证据
   result_quality_report: 当前locked model与声明数值方法下，本次主计算的精度、收敛、可行性、残差等内在数值有效性报告；不包含参数敏感性、压力场景或替代方法稳健性
   solved_results: 已通过主结果质量门与适用主数值证据复核的结果
   constraint_checks: 约束、残差、守恒、离散或收敛等主计算内在正确性检查
   result_analysis_plan: 主工作簿accepted后，基于真实主结果风险选择的参数敏感性、场景压力、替代算法/结构、阈值、异质性、误差分解或外样本稳定性计划
-  result_analysis_workbook: 用户返回并验收的结果深化分析工作簿
+  result_analysis_workbook: 用户返回并验收的结果深化分析工作簿；保留参数/场景/算法/seed/阈值/对象等细粒度后置分析证据而非仅汇总结论
   result_analysis_report: 实际深化分析报告；入文证据需说明target claim及support/modify/reject处置
   validated_results: 通过结果深化分析且可用于写作的结果
   evidence_map: 结论到公式、代码、表和图的证据映射
   matlab_scripts: MATLAB绘图脚本集合；project_level包含data_process.m，每问包含qX_plot.m
-  result_figures: 工作簿驱动、正式图名由DOCX/LaTeX caption承担且不嵌入重复整体title/sgtitle的正式结果图
+  result_figures: 工作簿驱动、经Scientific Figure Synthesis/基础图挑战/组合与全局—局部表达选择形成，正式图名由DOCX/LaTeX caption承担且不嵌入重复整体title/sgtitle的正式结果图
   refined_mechanism_figures: 精修后的S/A级机理图
   figure_contracts: 预处理图、结果图和机理图合同
   approved_figures: 已确认可入文的图

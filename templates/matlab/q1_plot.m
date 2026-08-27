@@ -1,8 +1,11 @@
 %% q1_plot：问题一结果绘图入口（当前活动模板）
 % 放在“问题一求解/”，与主求解Python、深化分析Python和两个标准工作簿同目录。
 % 字段使用精确表头唯一匹配；期望列号仅用于结构漂移警告。
-% 版式不预设，必须先按 modules/04_figure_evidence.md 的 Figure Layout Gate 动态判断。
-% 基础布局确定后继续执行同一模块的 Figure Enhancement Gate；默认不增强，只有证据需要时才使用局部放大、分面、焦点高亮、语义背景、联合诊断或条件式3D。
+% 先执行 modules/04_figure_evidence.md 的 Scientific Figure Synthesis Gate，识别 Evidence Structure；不要从本模板的示例函数反推最终图型。
+% 正文核心图若只是 plain bar/line/scatter/box/histogram，必须执行 Basic-form Challenge。
+% 同一证据空间有互补编码时优先 Composite Encoding，例如 box+scatter、violin+scatter、line+interval、scatter+fit+CI、heatmap+contour、trajectory+boundary。
+% 选定视觉结构后进入 Scientific Rendering Profile，再通过 Figure Layout Gate 动态判断单图、1×2、2×1、1×3、2×2 或拆图。
+% 基础布局确定后执行 Figure Enhancement Gate；按需使用 Local Zoom、Small Multiples、Focus Highlighting、Semantic Background、Composite Diagnostic 或 Conditional 3D。
 % Enhancement 的实现模式参考 templates/figure/figure_enhancement_patterns.md，不得在本模板建立第二套绘图决策规则。
 % 正式论文图不设置整体 title/sgtitle；正式图题由 LaTeX/DOCX caption 承担，多面板按需只保留 a/b/c/d 等 panel label。
 
@@ -19,7 +22,7 @@ assert(isfile(solutionBook), "缺少工作簿: %s", solutionBook);
 assert(isfile(resultAnalysisBook), "缺少工作簿: %s", resultAnalysisBook);
 
 %% 2. 实际结构锁定
-% 图型选择以 Core conclusion / Evidence level / Primary question 和信息效率为准。
+% 图型选择以 Core conclusion / Evidence level / Primary question / Evidence structure 和信息效率为准。
 % 兼容检查标记：xColumn = NaN；actualXHeader == xHeader。
 % 主结果图优先使用solutionBook；稳定性、阈值、算法或结构图优先使用resultAnalysisBook。
 % 若图确实需要底层事实源，必须继承当前 preprocessing_decision；MATLAB 不重建模型变换。
@@ -55,14 +58,23 @@ assert(~isempty(x), "没有可绘制的真实数据");
 [x, order] = sort(x);
 y = y(order);
 
-%% 3. 正式结果图
-% 这里只给单图骨架；若 Figure Layout Gate 判定为多面板，应实例化 tiledlayout，而不是机械沿用本段。
-% 若 Figure Enhancement Gate 判定需要增强，应按已登记的 Enhancement / Enhancement rationale 实例化对应模式，并保持底层数据不变。
-fig = figure("Color", "w", "Position", [100, 100, 900, 620]);
+%% 3. 结构读取示例——正式实例化时必须由 Scientific Figure Synthesis 结果替换/扩展
+% 本段只证明“真实字段读取 → 可见图窗 → caption-owned title → high-contrast style”链路可用，
+% 不是“所有题都画折线”的默认 Figure。若 Evidence Structure 是分布/空间/参数面/Pareto/诊断等，
+% 应按对应 Scientific Rendering Profile 改写本段，而不是机械沿用。
+fig = figure("Color", "w", "Position", [100, 100, 960, 620]);
 ax = axes(fig);
-plot(ax, x, y, "LineWidth", 2.2, "Color", [23, 59, 94] / 255);  % #173B5E 深蓝
+hold(ax, "on");
+
+% 示例采用“真实样本点 + 连续/顺序关系线”的轻量组合；若 x 不是有序连续语义，应删除连接线。
+plot(ax, x, y, "LineWidth", 2.2, "Color", [20, 120, 255] / 255, ...
+    "DisplayName", "主结果");  % #1478FF 亮蓝
+scatter(ax, x, y, 32, [240, 68, 68] / 255, "filled", ...
+    "MarkerFaceAlpha", 0.85, "DisplayName", "真实点");  % #F04444 鲜红
+
 xlabel(ax, xLabelText);
 ylabel(ax, yLabelText);
+legend(ax, "Location", "best");
 grid(ax, "off");
 box(ax, "on");
 apply_scientific_style(fig);

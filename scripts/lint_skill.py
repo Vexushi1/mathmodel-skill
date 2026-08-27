@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Module-aware entrypoint for the HSK repository lint suite.
 
-The large cross-contract checks live in ``lint_skill_checks.py``.  This entrypoint adds
+The large cross-contract checks live in ``lint_skill_checks.py``. This entrypoint adds
 current-source adapters that require repository-wide context, most notably the modular
 CUMCM LaTeX template and current formal MATLAB figure semantics.
 """
@@ -29,7 +29,7 @@ _CUMCM_LINT_PARTS = (
 def _module_aware_read_text(path: Path) -> str:
     """Present the active CUMCM template as one virtual document to legacy checks.
 
-    The returned text is assembled from actual source modules.  No semantic marker is
+    The returned text is assembled from actual source modules. No semantic marker is
     injected and no comment-only compatibility token is accepted as evidence.
     """
     resolved = Path(path).resolve()
@@ -94,8 +94,8 @@ def _check_templates(errors: list[str]) -> None:
     _original_check_templates(errors)
 
     # lint_skill_checks.py keeps a historical v7.4-era positive-title token for
-    # compatibility. Current v7.14.1 formal Figure semantics intentionally replace
-    # that requirement with a stronger executable-code prohibition.
+    # compatibility. Current formal Figure semantics intentionally replace that
+    # requirement with a stronger executable-code prohibition.
     obsolete = "q1_plot.m lacks required token: title(ax, figureTitle"
     errors[:] = [item for item in errors if item != obsolete]
 
@@ -103,17 +103,39 @@ def _check_templates(errors: list[str]) -> None:
     code = _matlab_executable_code(plotting)
     if re.search(r"\b(?:title|sgtitle)\s*\(", code, flags=re.IGNORECASE):
         errors.append("q1_plot.m formal template must not contain executable overall title/sgtitle")
-    for token in ("LaTeX/DOCX caption", "[23, 59, 94] / 255", 'grid(ax, "off")'):
+    for token in (
+        "LaTeX/DOCX caption",
+        "Scientific Figure Synthesis Gate",
+        "[20, 120, 255] / 255",
+        "[240, 68, 68] / 255",
+        'grid(ax, "off")',
+    ):
         if token not in plotting:
-            errors.append(f"q1_plot.m lacks current v7.14.1 Figure semantic token: {token}")
+            errors.append(f"q1_plot.m lacks current scientific Figure semantic token: {token}")
 
     data_process = _ORIGINAL_READ_TEXT(ROOT / "templates/matlab/data_process.m")
     process_code = _matlab_executable_code(data_process)
     if re.search(r"\b(?:title|sgtitle)\s*\(", process_code, flags=re.IGNORECASE):
         errors.append("data_process.m formal template must not contain executable overall title/sgtitle")
-    for token in ("LaTeX/DOCX caption", "[154, 56, 56] / 255", 'grid(ax, "off")'):
+    for token in (
+        "LaTeX/DOCX caption",
+        "Scientific Figure Synthesis Gate",
+        "[20, 120, 255] / 255",
+        "[240, 68, 68] / 255",
+        'grid(ax, "off")',
+    ):
         if token not in data_process:
-            errors.append(f"data_process.m lacks current v7.14.1 Figure semantic token: {token}")
+            errors.append(f"data_process.m lacks current scientific Figure semantic token: {token}")
+
+    style = _ORIGINAL_READ_TEXT(ROOT / "templates/matlab/hsk_apply_scientific_style.m")
+    for token in (
+        "palette.brightBlue = [20, 120, 255] / 255",
+        "palette.vividRed = [240, 68, 68] / 255",
+        "palette.brightGreen = [22, 179, 100] / 255",
+        "高对比、中高饱和",
+    ):
+        if token not in style:
+            errors.append(f"scientific style helper lacks current high-contrast token: {token}")
 
 
 checks.check_templates = _check_templates
