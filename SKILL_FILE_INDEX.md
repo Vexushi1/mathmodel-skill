@@ -233,6 +233,7 @@
 - `tests/test_v712_default_runtime_read_path.py`
 - `tests/test_v712_runtime_assurance.py`
 - `tests/test_v713_figure_enhancement.py`
+- `tests/test_v7141_skill_health.py`
 - `tests/test_v714_numerical_verification.py`
 - `tests/test_v714_receipt_fail_closed.py`
 - `tests/test_v730_writing_expression_protocol.py`
