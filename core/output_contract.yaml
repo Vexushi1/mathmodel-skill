@@ -1,4 +1,4 @@
-version: 7.14.1
+version: 7.15.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -113,7 +113,7 @@ result_policy:
   result_analysis_disposition_authority: core/writing_reasoning_contract.yaml#analysis_evidence_disposition
   primary_quality_gate_required: true
   primary_numerical_recheck_required_for_v714_trace: true
-  primary_scope: 当前locked model与声明数值方法下本次主计算的内在数值有效性；不包含参数敏感性、压力场景、替代算法/结构、多seed稳健性、异质性或广义结论稳定性
+  primary_scope: 当前locked model与声明数值方法下本次主计算的内在数值有效性及不改变当前计算世界的Primary Evidence Capture；不包含参数敏感性、压力场景、替代算法/结构、多seed稳健性、异质性或广义结论稳定性
   result_analysis_scope: 主工作簿accepted后的敏感性、稳健性、阈值、替代方法/结构、异质性与claim stability
   failed_quality_evidence_persisted: true
   downstream_admission_requires_quality_passed: true
@@ -493,7 +493,7 @@ per_question:
   - 问题{中文序号}结果深化分析.xlsx
   - q{阿拉伯序号}_plot.m
   two_python_stage_policy:
-    primary: 主求解阶段交付问题X求解.py；数据入口由preprocessing_decision决定，只做主求解与PQS要求的内在数值有效性检查，主工作簿accepted后冻结该脚本。
+    primary: 主求解阶段交付问题X求解.py；数据入口由preprocessing_decision决定，只做主求解、PQS要求的内在数值有效性检查和不改变当前计算世界的Primary Evidence Capture，主工作簿accepted后冻结该脚本。
     result_analysis: 主工作簿accepted后单独生成问题X结果深化分析.py；该脚本继承同一preprocessing_decision与数据事实源并形成敏感性/稳健性/边界/替代方法等深化分析工作簿。
     no_backwrite: 深化分析不得通过改写问题X求解.py实现；若主模型确需修改，则明确回退solve_validate并重新验收主结果。
     raw_shared_data_read: 只有decision=project_level时禁止两个小问Python直接读取对应共享原始数据源。
@@ -505,12 +505,19 @@ per_question:
     v7_13_primary_without_verification_id: read_only
     mode: read_only
 matlab_figure_contract:
+  authority: modules/04_figure_evidence.md
   title_required: false
   embedded_overall_title_forbidden: true
   formal_title_owner: DOCX_or_LaTeX_caption
   single_panel_title: none
   multi_panel_title: panel_labels_only
   panel_labels_allowed: true
+  scientific_synthesis_required_for_core_figures: true
+  basic_form_challenge_required_for_core_figures: true
+  composite_encoding_preferred_when_shared_evidence_space: true
+  portfolio_scientific_quality_review_required: true
+  high_contrast_primary_palette_required: true
+  auxiliary_visual_deweighting_required: true
   field_resolution: exact_header_unique_match
   expected_column_position: optional_drift_check
   fuzzy_matching_forbidden: true
@@ -533,8 +540,8 @@ matlab_figure_contract:
 ownership:
   Python_preprocessing: 仅preprocessing_decision=project_level时生成；负责共享原始数据的公共审计与已批准处理、论文方法/验证证据和绘图底层数据并输出统一工作簿，不求解小问核心模型。
   MATLAB_preprocessing: 仅project_level时由data_process.m读取统一工作簿绘制处理前后与验证证据；不重新清洗、插值、滤波、重采样或估计参数。
-  Python: 每问维护同目录两个题目专属脚本；not_needed/question_local可读取原始数据，project_level读取统一工作簿。问题X求解.py负责主求解与当前主计算最低数值有效性检查；问题X结果深化分析.py只在主工作簿accepted后负责敏感性、稳健性、边界、替代方法/结构等独立深化分析。
-  MATLAB: 同目录qX_plot.m精确读取本问两个标准工作簿，并仅在图确实需要底层数据时按preprocessing_decision读取原始数据或统一预处理工作簿；不重新计算核心结果，默认不自动导出图片
+  Python: 每问维护同目录两个题目专属脚本；not_needed/question_local可读取原始数据，project_level读取统一工作簿。问题X求解.py负责主求解、当前主计算最低数值有效性检查及不改变当前计算世界的高价值状态/过程/结构Evidence Capture；问题X结果深化分析.py只在主工作簿accepted后负责敏感性、稳健性、边界、替代方法/结构等独立深化分析并保留细粒度底层证据。
+  MATLAB: 同目录qX_plot.m精确读取本问两个标准工作簿，并仅在图确实需要底层数据时按preprocessing_decision读取原始数据或统一预处理工作簿；按modules/04_figure_evidence.md执行Scientific Evidence Visualization、组合编码和全局—局部组织，不重新计算核心结果，默认不自动导出图片
   other_figure_tools: GeoGebra、PPT、draw.io、SVG、TikZ可用于非数据驱动机理图
 filenames:
   preprocessing_script: 数据预处理/数据预处理.py（仅project_level）
@@ -572,6 +579,8 @@ rules:
 - 新项目每问只创建一个问题X求解目录，默认最终恰好包含两个Python脚本、两个Excel工作簿和一个qX_plot.m。
 - Problem Contract、preprocessing_decision、语义闭环与复杂度复审先于正式模型和代码交付，不能用运行成功或结果合理替代语义正确性。
 - v7.14新生成主求解在代码前冻结PQS；问题X求解.py只实现当前主计算最低数值有效性检查，主工作簿返回后由独立数值证据校验器复核，不能只相信自报Boolean。
+- v7.15主求解在不改变当前计算世界的前提下同步保留解释/绘图/验证有价值的current-run状态、过程与结构证据；改变参数、场景、seed、算法、模型或验证窗口后的新运行仍只属于accepted后的结果深化分析。
+- v7.15正式核心Figure先执行Scientific Figure Synthesis与Basic-form Challenge；同一证据空间存在互补信息时优先考虑组合编码，并在论文级执行Portfolio Scientific Quality Review；详细配色和图型规则只由modules/04_figure_evidence.md定义。
 - 主工作簿accepted后冻结问题X求解.py，并单独生成问题X结果深化分析.py；参数敏感性、压力场景、替代算法/结构、多seed稳健性、异质性、误差分解和广义外样本稳定性只属于该后置阶段，不得为深化分析覆盖改写主求解脚本。
 - 默认不生成独立完整运行配置、运行说明、code_delivery_report、user_execution_validation_report、semantic_governance_report、figure_evidence或图表子目录。
 - 实际生成的项目级预处理脚本和两个正式小问Python脚本都必须通过静态工程质量检查且不得由助手执行；校验结果在聊天或标准输出中返回，不额外落盘。
