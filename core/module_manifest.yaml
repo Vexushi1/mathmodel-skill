@@ -1,4 +1,4 @@
-version: 7.14.0
+version: 7.14.1
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -87,7 +87,7 @@ artifact_catalog:
   validated_results: 通过结果深化分析且可用于写作的结果
   evidence_map: 结论到公式、代码、表和图的证据映射
   matlab_scripts: MATLAB绘图脚本集合；project_level包含data_process.m，每问包含qX_plot.m
-  result_figures: 工作簿驱动且包含简洁标题的正式结果图
+  result_figures: 工作簿驱动、正式图名由DOCX/LaTeX caption承担且不嵌入重复整体title/sgtitle的正式结果图
   refined_mechanism_figures: 精修后的S/A级机理图
   figure_contracts: 预处理图、结果图和机理图合同
   approved_figures: 已确认可入文的图

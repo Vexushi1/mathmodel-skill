@@ -30,13 +30,13 @@
 - 布局必须通过 `modules/04_figure_evidence.md` 的 Figure Layout Gate 动态选择单图、1×2、2×1、1×3、2×2或拆图，不存在固定默认版式；
 - 基础布局后按 Figure Enhancement Gate 判断是否需要 Local Zoom、Small Multiples、Focus Highlighting、Semantic Background、Composite Diagnostic 或 Conditional 3D；默认不增强；
 - 一张 Figure 原则上只承担一个一级 Core conclusion / 一级阅读任务；不同 Evidence level 默认不混装，联合诊断等必要例外仍须共享同一 Primary question；
-- 主比较允许中高饱和、高对比颜色，优先使用亮蓝、鲜红、亮绿、亮橙、亮紫等抓眼主色；辅助对象、置信区间、背景和参考元素降饱和或降低透明度；
-- 同一对象和方向性语义在全文保持同色；禁止彩虹色和无序多色轮换；
-- 默认白底、清晰细轴、字号 18，网格关闭或极浅；
-- 单图使用简洁 `title`，多面板使用一个整体 `sgtitle`；
+- 正式论文图不设置整体 `title` / `sgtitle`；DOCX/LaTeX caption 承担正式图号和图名，多面板按需只保留 a/b/c/d 等 panel label；
+- 主比较默认使用实体、深色、低饱和且可区分的颜色；辅助对象、置信区间、背景和参考元素用灰色、浅色或透明度降权；
+- 同一对象和方向性语义在全文保持同色；禁止彩虹色、高饱和渐变和无序多色轮换；
+- 默认白底、清晰细轴、字号 18，`grid off`；确需网格时保持浅、稀且位于数据后方；
 - 默认只保留图窗，不创建图表子目录，不自动批量导出。
 
-进入论文阶段后，人工确认并按需导出的正式图片放在项目级 `figures/`。每张图的结论、Evidence level、Primary question、布局判定、Enhancement 及理由、源工作簿、工作表、真实表头、脚本、图注和正文位置登记在 `模型论文框架.md`，不额外生成证据 YAML。
+进入论文阶段后，人工确认并按需导出的正式图片放在项目级 `figures/`。每张图的结论、Evidence level、Primary question、布局判定、Enhancement 及理由、源工作簿、工作表、真实表头、脚本、论文 caption 和正文位置登记在 `模型论文框架.md`，不额外生成证据 YAML。
 
 ## 信息效率与删除规则
 

@@ -41,16 +41,17 @@ class TestContentPacks(unittest.TestCase):
             self.assertIn(token, text)
         self.assertNotIn("覆盖更新同一文件", text)
 
-    def test_chart_selection_is_evidence_driven_and_titled(self):
+    def test_chart_selection_is_evidence_driven_and_caption_owned(self):
         text = (ROOT / "templates/figure/chart_selection.md").read_text(encoding="utf-8")
         for token in (
             "参数敏感性", "多算法比较", "多目标权衡", "删除规则", "信息效率",
-            "饼图", "雷达图", "3D 曲面", "q{x}_plot.m", "MATLAB 标题", "sgtitle",
+            "饼图", "雷达图", "3D 曲面", "q{x}_plot.m", "DOCX/LaTeX 正式图注",
             "模型论文框架.md",
         ):
             self.assertIn(token, text)
         self.assertIn("工作簿", text)
-        self.assertNotIn("图内不重复总标题", text)
+        self.assertIn("正式论文图不设置冗余整体", text)
+        self.assertNotIn("MATLAB 标题", text)
 
     def test_figure_pack_uses_adaptive_analysis_and_standard_script_name(self):
         pack = (ROOT / "packs/artifact/figure.md").read_text(encoding="utf-8")
@@ -58,19 +59,22 @@ class TestContentPacks(unittest.TestCase):
         matlab_readme = (ROOT / "templates/matlab/README.md").read_text(encoding="utf-8")
         for text in (pack, module, matlab_readme):
             self.assertIn("q{x}_plot.m", text)
+            self.assertIn("模型论文框架.md", text)
+            self.assertIn("caption", text)
             self.assertIn("title", text)
             self.assertIn("sgtitle", text)
-            self.assertIn("模型论文框架.md", text)
         for text in (pack, module):
             self.assertIn("问题X求解结果.xlsx", text)
             self.assertIn("问题X结果深化分析.xlsx", text)
             self.assertIn("阈值", text)
             self.assertIn("结构稳健性", text)
         self.assertIn("高级图表准入检查", pack)
-        self.assertIn("推荐主色仅作为起点，不是固定模板", module)
-        self.assertIn("中高饱和、高对比", module)
+        self.assertIn("低饱和", module)
+        self.assertIn("#173B5E", module)
+        self.assertIn("不设置整体", module)
+        self.assertIn("不设置整体", pack)
         self.assertIn("q1_plot.m", matlab_readme)
-        self.assertIn("q1_polt.m", matlab_readme)
+        self.assertNotIn("q1_polt.m", matlab_readme)
 
     def test_model_paper_framework_is_project_memory_not_second_manual(self):
         text = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
@@ -79,12 +83,13 @@ class TestContentPacks(unittest.TestCase):
             "## 当前有效口径", "## 论文整体框架", "### 命题与证明规划",
             "当前计划命题数：0", "默认正文预算：0--4", "### 核心公式 Trace",
             "### Citation Evidence", "## 各问模型与结果", "#### 当前模型口径",
-            "#### 结果摘要", "MATLAB 图标题", "## 图表证据链", "正文引用位置",
+            "#### 结果摘要", "DOCX/LaTeX 图注", "Figure role", "## 图表证据链", "正文引用位置",
             "## 同步检查",
         ):
             self.assertIn(token, text)
         self.assertIn("Git", text)
         self.assertIn("stale", text)
+        self.assertNotIn("MATLAB 图标题", text)
         self.assertNotIn("命题准入检查：", text)
         self.assertNotIn("正文证明默认：", text)
 
@@ -120,7 +125,7 @@ class TestContentPacks(unittest.TestCase):
         checklist = (writing / "docx_check.md").read_text(encoding="utf-8")
         self.assertIn("templates/writing/docx_check.md", module)
         self.assertIn("模型论文框架.md", module)
-        self.assertIn("sgtitle", checklist)
+        self.assertIn("未设置整体 `title`/`sgtitle`", checklist)
         self.assertIn("## 3. Algorithm Trace、命题与证明", checklist)
         self.assertIn("默认 0--4 预算", checklist)
         self.assertIn("required / inline / not_applicable", checklist)

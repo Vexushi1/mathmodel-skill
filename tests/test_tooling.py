@@ -157,7 +157,7 @@ class TestTooling(unittest.TestCase):
             self.assertTrue(patched.endswith(suffix))
             self.assertFalse(module.patch_cumcm_class(target))
 
-    def test_matlab_templates_use_real_headers_fixed_columns_and_titles(self):
+    def test_matlab_templates_use_real_headers_fixed_columns_and_caption_owned_titles(self):
         plotting = (ROOT / "templates/matlab/q1_plot.m").read_text(encoding="utf-8")
         style = (ROOT / "templates/matlab/hsk_apply_scientific_style.m").read_text(encoding="utf-8")
         reader = (ROOT / "templates/matlab/hsk_read_result_workbooks.m").read_text(encoding="utf-8")
@@ -173,12 +173,15 @@ class TestTooling(unittest.TestCase):
         self.assertIn("xColumn = NaN", plotting)
         self.assertIn("actualXHeader == xHeader", plotting)
         self.assertNotIn("readtable(", plotting)
-        self.assertIn('figureTitle = "__ACTUAL_FIGURE_TITLE__"', plotting)
-        self.assertIn("title(ax, figureTitle", plotting)
-        self.assertIn("FontWeight", plotting)
+        code = "\n".join(line.split("%", 1)[0] for line in plotting.splitlines())
+        self.assertNotIn("title(", code)
+        self.assertNotIn("sgtitle(", code)
+        self.assertIn("LaTeX/DOCX caption", plotting)
+        self.assertIn("[23, 59, 94] / 255", plotting)
+        self.assertIn('grid(ax, "off")', plotting)
         self.assertIn("listfonts", style)
         self.assertIn("Noto Sans CJK SC", style)
-        self.assertIn("ax.Title", style)
+        self.assertNotIn("ax.Title", style)
         self.assertIn("结果深化分析.xlsx", reader)
         self.assertIn("books.analysis", reader)
         self.assertIn("readcell", reader)
