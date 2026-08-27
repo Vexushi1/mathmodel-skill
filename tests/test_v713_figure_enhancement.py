@@ -81,7 +81,7 @@ class TestV713FigureEnhancement(unittest.TestCase):
         self.assertIn("多条曲线大量交叉", chart)
         self.assertIn("第三维具有真实结构", chart)
         self.assertIn("## 权威边界", chart)
-        self.assertIn("只负责候选图型与视觉问题索引", chart)
+        self.assertIn("只负责候选图型、Evidence Structure、Rendering Profile 和视觉问题索引", chart)
         self.assertNotIn("## 图标题与图注", chart)
         self.assertNotIn("## 配色规则", chart)
         self.assertNotIn("## 多面板规则", chart)
