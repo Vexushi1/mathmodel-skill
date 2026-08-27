@@ -136,8 +136,9 @@ class TestReadPathSemanticClosure(unittest.TestCase):
         text = (ROOT / "packs/artifact/figure.md").read_text(encoding="utf-8")
         self.assertIn("唯一权威为 `modules/04_figure_evidence.md`", text)
         self.assertIn("preprocessing_decision", text)
-        self.assertIn("中高饱和、高对比", text)
-        self.assertNotIn("默认白底、细轴、低饱和深色", text)
+        self.assertIn("低饱和", text)
+        self.assertIn("不设置整体 `title` / `sgtitle`", text)
+        self.assertNotIn("中高饱和、高对比", text)
         self.assertNotIn("正式结果图只读取本问", text)
 
     def test_code_pack_inherits_preprocessing_source(self):
@@ -146,16 +147,19 @@ class TestReadPathSemanticClosure(unittest.TestCase):
         self.assertIn("禁止再次直接读取对应共享原始数据", text)
         self.assertNotIn("已验收主工作簿和必要原始数据", text)
 
-    def test_active_matlab_templates_do_not_reintroduce_old_palette(self):
+    def test_active_matlab_templates_use_restrained_palette(self):
         q1 = (ROOT / "templates/matlab/q1_plot.m").read_text(encoding="utf-8")
         process = (ROOT / "templates/matlab/data_process.m").read_text(encoding="utf-8")
         style = (ROOT / "templates/matlab/hsk_apply_scientific_style.m").read_text(encoding="utf-8")
-        self.assertIn("[20, 120, 255] / 255", q1)
-        self.assertIn("[240, 68, 68] / 255", process)
+        self.assertIn("[23, 59, 94] / 255", q1)
+        self.assertIn("[32, 38, 46] / 255", process)
+        self.assertIn("[154, 56, 56] / 255", process)
+        self.assertNotIn("[20, 120, 255] / 255", q1)
+        self.assertNotIn("[240, 68, 68] / 255", process)
         for token in ("brightBlue", "vividRed", "brightGreen", "brightOrange", "brightPurple"):
             self.assertIn(token, style)
-        self.assertNotIn("[23, 59, 94] / 255", q1)
-        self.assertNotIn("[23, 59, 94] / 255", process)
+        self.assertIn("palette.brightBlue = palette.deepBlue", style)
+        self.assertIn("palette.vividRed = palette.brickRed", style)
         self.assertNotIn("唯一Python脚本", q1)
 
     def test_figure_assets_cover_active_v7_line(self):
