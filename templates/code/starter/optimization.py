@@ -84,12 +84,15 @@ def build_features(clean_data: dict[str, pd.DataFrame], config: PipelineConfig) 
 
 def solve_model(features: dict[str, Any], config: PipelineConfig) -> dict[str, Any]:
     raise NotImplementedError(
-        "请完整求解主模型，输出核心指标、推荐方案、决策变量明细，并按完整运行配置与实际终止信息生成运行配置表"
+        "请完整求解主模型，并按 Primary Evidence Capture 保留本次运行已经真实产生且有解释/绘图价值的数据："
+        "核心指标、推荐方案、决策变量、目标分项、逐对象/逐时刻状态、候选可行解或Pareto candidate、"
+        "路径/资源占用、求解轨迹等按实际存在输出；不得为了绘图额外执行参数敏感性、替代算法、场景压力或多seed稳定性。"
+        "同时按完整运行配置与实际终止信息生成运行配置表"
     )
 
 
 def check_constraints(solution: dict[str, Any], config: PipelineConfig) -> pd.DataFrame | None:
-    raise NotImplementedError("请按约束编号输出违反量、容差和是否满足")
+    raise NotImplementedError("请按约束编号输出违反量、容差、是否满足，并尽量保留实际值、裕量、active/binding状态和最坏位置")
 
 
 def evaluate_primary_quality(
@@ -103,7 +106,7 @@ def evaluate_primary_quality(
 
 
 def sync_primary_framework(primary: PrimarySolveResult) -> None:
-    raise NotImplementedError("回写当前主模型、核心结果、质量门结论和求解工作簿证据")
+    raise NotImplementedError("回写当前主模型、核心结果、Primary Evidence Capture位置、质量门结论和求解工作簿证据")
 
 
 def main() -> None:
