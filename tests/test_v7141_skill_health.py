@@ -6,24 +6,26 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 
 
-class V7141SkillHealthTests(unittest.TestCase):
+class CurrentSkillHealthTests(unittest.TestCase):
     def test_release_carriers_and_skill_entrypoints_match(self):
         bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8")) or {}
         plugin = yaml.safe_load((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")) or {}
         root_skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         packaged_skill = (ROOT / "skills/mathmodel-skill/SKILL.md").read_text(encoding="utf-8")
 
-        self.assertEqual(bootstrap.get("skill_version"), "7.14.1")
-        self.assertEqual(str(plugin.get("version")), "7.14.1")
+        self.assertEqual(bootstrap.get("skill_version"), "7.15.0")
+        self.assertEqual(str(plugin.get("version")), "7.15.0")
         self.assertEqual(root_skill, packaged_skill)
-        self.assertIn("version: 7.14.1", root_skill)
-        self.assertIn("# HSK 数学建模模块化工作流 v7.14.1", root_skill)
+        self.assertIn("version: 7.15.0", root_skill)
+        self.assertIn("# HSK 数学建模模块化工作流 v7.15.0", root_skill)
+        self.assertIn("Primary Evidence Capture", root_skill)
+        self.assertIn("Scientific Figure Synthesis", root_skill)
 
-    def test_output_contract_uses_caption_owned_formal_titles(self):
+    def test_output_contract_preserves_caption_owned_titles_and_adds_scientific_synthesis(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8")) or {}
         figure = contract.get("matlab_figure_contract", {})
 
-        self.assertEqual(str(contract.get("version")), "7.14.1")
+        self.assertEqual(str(contract.get("version")), "7.15.0")
         self.assertFalse(figure.get("title_required"))
         self.assertTrue(figure.get("embedded_overall_title_forbidden"))
         self.assertEqual(figure.get("formal_title_owner"), "DOCX_or_LaTeX_caption")
@@ -34,6 +36,9 @@ class V7141SkillHealthTests(unittest.TestCase):
             figure.get("preprocessing_source_workbook"),
             "数据预处理/数据预处理结果.xlsx",
         )
+        self.assertTrue(figure.get("scientific_figure_synthesis_required_for_core_figures"))
+        self.assertTrue(figure.get("basic_form_challenge_required_for_core_figures"))
+        self.assertTrue(figure.get("figure_portfolio_scientific_quality_review_required"))
 
     def test_preprocessing_contract_delegates_figure_style(self):
         text = (ROOT / "core/global_preprocessing_contract.yaml").read_text(encoding="utf-8")
@@ -46,11 +51,12 @@ class V7141SkillHealthTests(unittest.TestCase):
             "authority_duplication_matrix_v7.11.1.md",
             "v7.14_primary_numerical_validity_plan.md",
             "v7.14.1_skill_health_hygiene_plan.md",
+            "v7.15_scientific_figure_elevation_plan.md",
         )
         for name in archived:
             self.assertTrue((ROOT / "legacy/architecture" / name).is_file(), name)
-            self.assertFalse((ROOT / "docs/architecture" / name).exists(), name)
 
+        self.assertFalse((ROOT / "V7_15_0_SCIENTIFIC_FIGURE_ELEVATION_PLAN.md").exists())
         legacy_readme = (ROOT / "legacy/README.md").read_text(encoding="utf-8")
         self.assertIn("architecture/", legacy_readme)
 
@@ -68,6 +74,7 @@ class V7141SkillHealthTests(unittest.TestCase):
         analysis = (ROOT / "modules/03_result_analysis.md").read_text(encoding="utf-8")
 
         self.assertIn("Primary Quality Specification", primary)
+        self.assertIn("Primary Evidence Capture", primary)
         self.assertIn("主工作簿 accepted", analysis)
         for token in ("参数敏感性", "压力场景", "替代算法"):
             self.assertIn(token, analysis)
