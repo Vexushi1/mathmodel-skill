@@ -1,4 +1,4 @@
-# 题型 Starter 使用说明 v7.14.1
+# 题型 Starter 使用说明 v7.15.0
 
 本目录中的 `classification.py`、`evaluation.py`、`optimization.py`、`prediction.py` 和 `simulation.py` 只用于生成主求解脚本 `问题X求解.py`。主工作簿验收后，不覆盖主脚本；根据真实主结果单独生成 `问题X结果深化分析.py`。
 
