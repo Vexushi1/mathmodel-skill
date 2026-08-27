@@ -30,10 +30,11 @@ class TestV715ScientificFigureElevation(unittest.TestCase):
         for name in ("optimization.py", "prediction.py", "simulation.py", "classification.py", "evaluation.py"):
             text = (starter_dir / name).read_text(encoding="utf-8")
             self.assertIn("Primary Evidence Capture", text, name)
-            self.assertNotIn("提前执行参数敏感性", text if name == "optimization.py" else "", name) if False else None
         readme = (starter_dir / "README.md").read_text(encoding="utf-8")
         self.assertIn("是否改变当前主计算条件并重新运行", readme)
         self.assertIn("Scientific Figure Synthesis", readme)
+        self.assertIn("参数敏感性", readme)
+        self.assertIn("主工作簿 accepted 后进入 03B", readme)
 
     def test_figure_authority_has_synthesis_basic_form_composite_rendering_and_portfolio_gates(self):
         module = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
