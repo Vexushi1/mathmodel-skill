@@ -20,7 +20,7 @@ class TestV715ScientificFigureElevation(unittest.TestCase):
         ):
             self.assertIn(token, primary)
         self.assertIn("是否需要改变当前主计算", primary)
-        for token in ("参数敏感性", "压力场景", "替代算法", "多 seed"):
+        for token in ("参数敏感性", "压力场景", "替代算法", "多随机种子"):
             self.assertIn(token, analysis)
         self.assertIn("Analysis Evidence Capture", analysis)
         self.assertIn("细粒度", analysis)
