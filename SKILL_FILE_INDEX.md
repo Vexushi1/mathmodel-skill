@@ -23,7 +23,6 @@
 - `SKILL_FILE_INDEX.md`
 - `TEMPLATE_INDEX.md`
 - `THIRD_PARTY_NOTICES.md`
-- `V7_15_0_SCIENTIFIC_FIGURE_ELEVATION_PLAN.md`
 - `agents/openai.yaml`
 - `assets/figure_assets.yaml`
 - `assets/nature_figure/README.md`
