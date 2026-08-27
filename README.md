@@ -1,6 +1,18 @@
-# mathmodel-skill v7.14.1
+# mathmodel-skill v7.15.0
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 → MATLAB Figure Evidence + 按需 Figure Enhancement → LaTeX 终稿 → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement → Figure Portfolio Review → LaTeX 终稿 → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v7.15.0：Scientific Evidence Capture & Figure Synthesis
+
+本版本解决“主求解只留下最终数字、MATLAB 因证据不足而退化为基础图”的双端信息损失，同时保持 v7.14 主数值有效性协议和 03A/03B 边界不变。
+
+- 主求解新增 **Primary Evidence Capture**：在当前 locked model + 当前声明数值方法的一次正式运行中已经真实产生的决策变量、状态、逐对象/逐时刻/空间结果、约束裕量、候选解、求解轨迹、逐样本预测/残差/区间和关键事件等，可按 capability 保留为 evidence-ready 工作簿底表，而不是只输出最终汇总数字。
+- 03A/03B 判界继续按“是否需要改变参数、场景、seed、初值、算法、模型结构或验证窗口并重新运行新的计算世界”判断；需要重新运行 alternative world 的敏感性、压力场景、替代算法/结构、多 seed/多初值稳定性、异质性、阈值搜索和广义 OOS 仍只属于 accepted 后的 03B。
+- 03B 同步升级为 **Analysis Evidence Capture**，保留逐参数、逐场景、逐算法、逐 seed、逐区域、逐阈值等细粒度证据，避免只输出“稳定”“变化不大”等摘要。
+- Module 04 新增 **Scientific Figure Synthesis Gate、Basic-form Challenge、Composite Encoding Preference、Scientific Rendering Profiles、Missing Scientific Evidence Check 与 Figure Portfolio Scientific Quality Gate**。核心图从证据结构出发选择表达，不再把丰富问题默认压成 plain bar / plain line / plain scatter。
+- 主证据恢复高对比亮蓝/鲜红等中高饱和主色，辅助元素继续降权；正式图仍为白底、`grid off`、caption-owned title，不恢复 MATLAB 整体 `title/sgtitle`。
+- MATLAB 仍只读 Python 已验收工作簿，不重新求解、不重做分析、不从摘要数字反推数据；组合图、局部放大、全局—局部、Pareto/边界/轨迹/场/分布/不确定性等表达只有在真实证据支持时才使用。
+- Workbook Schema 2.3.0、Project State Schema、v7.14 PQS/Verification ID/独立数值证据复核、每问五文件、用户 full-fidelity 执行、LaTeX attestation/submission provenance、V622 兼容指针均保持兼容。
 
 ## v7.14.1：Skill Health & Semantic Hygiene
 
@@ -304,22 +316,22 @@ preprocessing_decision
 └─ data_process.m
 ```
 
-### 主求解数值有效性与结果深化分析
+### 主求解数值有效性、Evidence Capture 与结果深化分析
 
-每问正式主求解前形成 PQS。主求解阶段只做当前计算 accepted 所必需的内在数值质量证据；返回主工作簿后由独立 validator 复核。主质量门通过后才进入结果深化分析：
+每问正式主求解前形成 PQS。主求解阶段只做当前计算 accepted 所必需的内在数值质量证据，同时把本次运行已经产生且对解释/绘图/验证有价值的 current-run 状态保存为 Primary Evidence Capture；返回主工作簿后由独立 validator 复核。主质量门通过后才进入结果深化分析：
 
 ```text
 locked model + declared numerical method
 → Primary Quality Specification
-→ 问题X求解.py
+→ 问题X求解.py + Primary Evidence Capture
 → 主结果底层证据 + 主结果质量门
 → validate_numerical_evidence.py 独立复核
 → accepted solution workbook
-→ 问题X结果深化分析.py
+→ 问题X结果深化分析.py + Analysis Evidence Capture
 → sensitivity / stress / alternatives / robustness / boundaries
 ```
 
-主质量与深化分析不互相替代。离散步长、网格、残差、当前 solver gap/termination 等“本次计算能否接受”的问题属于主质量；参数敏感性、替代算法、压力场景和结论稳定性属于深化分析。
+主质量与深化分析不互相替代。离散步长、网格、残差、当前 solver gap/termination 等“本次计算能否接受”的问题属于主质量；参数敏感性、替代算法、压力场景和结论稳定性属于深化分析。Primary Evidence Capture 不允许通过新参数/新场景/新 seed 等另起一次 alternative-world 计算来扩张 03A。
 
 ### 每问唯一五文件目录
 
@@ -334,9 +346,9 @@ locked model + declared numerical method
 
 主求解与结果深化分析是两个独立 Python 阶段。主工作簿 accepted 后冻结主脚本，再生成深化分析脚本。赛题代码由用户本地 full-fidelity 执行，助手只生成、静态检查并验收返回工作簿。
 
-### MATLAB Figure Evidence
+### MATLAB Scientific Figure Evidence
 
-MATLAB 只读取 Python 输出的数据和标准工作簿绘图，不重新求解。正式论文图不设置整体 `title/sgtitle`，由 DOCX/LaTeX caption 承担正式图号和图名；多面板按需只保留 panel label。图形布局按核心结论、证据等级和主要问题动态选择；基础布局后再通过 Figure Enhancement Gate 判断是否需要局部放大、分面、焦点高亮、语义背景、联合诊断或条件式 3D；默认白底、实体深色低饱和、`grid off`，并保留图窗供人工调整，不批量自动导出。
+MATLAB 只读取 Python 输出的数据和标准工作簿绘图，不重新求解或重新分析。正式论文图不设置整体 `title/sgtitle`，由 DOCX/LaTeX caption 承担正式图号和图名；多面板按需只保留 panel label。核心图先识别 Evidence Structure，再通过 Scientific Figure Synthesis / Basic-form Challenge 决定单图、组合编码、多面板、局部放大和 Rendering Profile；只有真实证据支持时才使用 uncertainty band、distribution + raw samples、heatmap + contour、Pareto + recommendation、trajectory + field + boundary 等科研表达。主证据采用高对比亮蓝/鲜红等颜色，辅助元素降权，默认白底与 `grid off`，并保留图窗供人工调整，不批量自动导出。整篇论文在写作前还执行 Figure Portfolio Scientific Quality Review，避免所有核心图即使技术正确也共同退化成低信息密度基础图。
 
 ## 运行时权威链
 
@@ -372,6 +384,7 @@ route-specific contracts / modules / packs / templates
 ```bash
 python scripts/lint_skill.py
 python -m unittest discover -s tests
+python scripts/generate_indexes.py --check
 python scripts/validate_model_approval.py <project_root> --strict
 python scripts/validate_numerical_evidence.py <primary_workbook> --strict
 python scripts/validate_model_paper_framework.py 模型论文框架.md --strict
@@ -384,6 +397,6 @@ python scripts/validate_submission_package.py . --strict
 
 ## 兼容与历史
 
-`legacy/` 只读，不进入默认执行链。v7.13 及更早项目保持只读兼容；历史 accepted 主工作簿不要求反向补 Verification ID，重新进入当前小问主求解时才迁移该问。Figure Enhancement 与 Algorithm Trace 都是按需能力，不要求历史项目反向补写。Model Approval 同样不要求历史项目倒填，只有重新进入当前模型设计、项目级预处理、主求解或语义变化后的重算时迁入新门。历史版本说明保留在 Git 历史和 `CHANGELOG.md`。
+`legacy/` 只读，不进入默认执行链。v7.14.x 及更早项目保持只读兼容；历史 accepted 主工作簿不要求反向补 Evidence Capture 或 Verification ID，重新进入当前小问主求解时才按 current 规则迁移该问。Figure Enhancement、Scientific Figure Synthesis 与 Algorithm Trace 都按需应用，不要求历史项目反向补写。Model Approval 同样不要求历史项目倒填，只有重新进入当前模型设计、项目级预处理、主求解或语义变化后的重算时迁入新门。历史版本说明保留在 Git 历史和 `CHANGELOG.md`。
 
 许可证与第三方声明见 `LICENSE`、`THIRD_PARTY_NOTICES.md`。
