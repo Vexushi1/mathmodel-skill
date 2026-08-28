@@ -59,6 +59,7 @@
 - `core/workbook_schema.yaml`
 - `core/workflow_router.yaml`
 - `core/writing_reasoning_contract.yaml`
+- `docs/main-branch-protection-hardening-plan.md`
 - `docs/paper-writing-skill-rollback-and-optimization-plan.md`
 - `legacy/README.md`
 - `modules/01_problem_audit.md`
