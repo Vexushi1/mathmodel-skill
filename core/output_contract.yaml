@@ -130,7 +130,7 @@ result_policy:
 model_paper_framework:
   path: 模型论文框架.md
   template: templates/model/model_paper_framework.md
-  current_template_version: v0.9-project-memory
+  current_template_version: v0.8-project-memory
   create_after: proposed_model_spec
   role: 当前项目事实与工作记忆；保存题意口径、preprocessing_decision、标准模型类型与正式模型名称、Model/Solver/Validator角色、优化目标摘要口径、Formula Trace、Algorithm Trace、参数证据、Primary Quality Specification、accepted后候选深化风险、跨问依赖、写作选择、小节颗粒度、命题、Citation Evidence、Terminology Registry、Numeric Profile、Title Claim、Claim Evidence Level/Scope、Paper Fragment、深化证据处置、逐问结果摘要和图表映射，不复制跨项目写作手册。
   project_memory_only: true
