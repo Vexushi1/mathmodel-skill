@@ -1,41 +1,42 @@
-name: v7.16 release hygiene autofix
+name: V716 Release Hygiene
 
 on:
   push:
     branches:
-      - upgrade/v7.16.0-paper-writing-spec
+      - "upgrade/v7.16.0-paper-writing-spec"
 
 permissions:
   contents: write
 
 jobs:
-  release-hygiene:
-    if: github.event.head_commit.message != 'chore: release hygiene autofix'
+  fix:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Repair release hygiene
+      - name: Apply release hygiene fixes
         shell: bash
         run: |
+          set -euo pipefail
+          if [ "$(git log -1 --pretty=%s)" = "chore: release hygiene autofix" ]; then
+            echo "cleanup commit already applied"
+            exit 0
+          fi
           python - <<'PY'
           from pathlib import Path
           import subprocess
 
           BASE = "6827cb781bf34ad4c15c6714e376d810a52a7b9a"
 
-          # Root/package Skill must stay byte-identical and keep the existing v0.8 project-memory interface.
           root = Path("SKILL.md")
-          text = root.read_text(encoding="utf-8")
-          text = text.replace("v0.9 框架", "v0.8 框架")
-          text = text.replace("`v0.9-project-memory`", "`v0.8-project-memory`")
-          root.write_text(text, encoding="utf-8")
-          Path("skills/mathmodel-skill/SKILL.md").write_text(text, encoding="utf-8")
+          skill = root.read_text(encoding="utf-8")
+          skill = skill.replace("v0.9 框架", "v0.8 框架")
+          skill = skill.replace("`v0.9-project-memory`", "`v0.8-project-memory`")
+          root.write_text(skill, encoding="utf-8")
+          Path("skills/mathmodel-skill/SKILL.md").write_text(skill, encoding="utf-8")
 
-          # README: keep the v7.16 user-facing section, but remove accidental historical edits
-          # and correct the project-memory version wording.
           readme_path = Path("README.md")
           readme = readme_path.read_text(encoding="utf-8")
           readme = readme.replace("`v0.9-project-memory`", "`v0.8-project-memory`")
@@ -45,8 +46,6 @@ jobs:
           readme = readme.replace(accidental, "")
           readme_path.write_text(readme, encoding="utf-8")
 
-          # CHANGELOG: preserve the v7.16 block, restore the complete v7.15-and-earlier history
-          # from the PR base, and correct the framework-version wording.
           current = Path("CHANGELOG.md").read_text(encoding="utf-8")
           marker = "## Previous release: 7.15.0"
           if marker not in current:
@@ -54,34 +53,28 @@ jobs:
           top = current.split(marker, 1)[0].rstrip() + "\n\n"
           top = top.replace("`v0.9-project-memory`", "`v0.8-project-memory`")
           top = top.replace("升级为 `v0.8-project-memory`", "继续沿用 `v0.8-project-memory`")
-          base = subprocess.check_output(
-              ["git", "show", f"{BASE}:CHANGELOG.md"], text=True, encoding="utf-8"
-          )
+          base = subprocess.check_output(["git", "show", f"{BASE}:CHANGELOG.md"], text=True, encoding="utf-8")
           if base.startswith("# Changelog\n\n"):
               base = base[len("# Changelog\n\n"):]
           base = base.replace("## Current release: 7.15.0", "## Previous release: 7.15.0", 1)
           Path("CHANGELOG.md").write_text(top + base, encoding="utf-8")
 
-          # The temporary workflow must not remain in the feature diff.
           Path(".github/workflows/v716_release_hygiene.yml").unlink()
           PY
 
           python scripts/generate_indexes.py
           python scripts/generate_indexes.py --check
+          ! grep -nE 'v0\.9(-project-memory| 框架)' SKILL.md skills/mathmodel-skill/SKILL.md README.md CHANGELOG.md
 
-          if grep -nE 'v0\.9(-project-memory| 框架)' SKILL.md skills/mathmodel-skill/SKILL.md README.md CHANGELOG.md; then
-            echo 'stale v0.9 wording remains' >&2
-            exit 1
-          fi
-
-      - name: Commit cleanup
+      - name: Commit and push cleanup
         shell: bash
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           if git diff --cached --quiet; then
-            echo "No hygiene changes required."
+            echo "No changes"
             exit 0
           fi
           git commit -m "chore: release hygiene autofix"
