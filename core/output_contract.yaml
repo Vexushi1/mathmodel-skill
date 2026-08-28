@@ -1,4 +1,4 @@
-version: 7.15.0
+version: 7.16.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -45,6 +45,12 @@ writing_policy:
   expression_authority: modules/05_writing/latex.md
   reasoning_contract: core/writing_reasoning_contract.yaml
   rule_governance: core/writing_reasoning_contract.yaml#rule_governance
+  model_role_contract: core/writing_reasoning_contract.yaml#model_solver_validator_roles
+  model_naming_contract: core/writing_reasoning_contract.yaml#model_naming
+  optimization_expression_contract: core/writing_reasoning_contract.yaml#optimization_model_expression
+  solver_justification_contract: core/writing_reasoning_contract.yaml#solver_justification
+  subsection_granularity_contract: core/writing_reasoning_contract.yaml#subsection_granularity
+  claim_strength_contract: core/writing_reasoning_contract.yaml#claim_strength_calibration
   citation_evidence_contract: core/writing_reasoning_contract.yaml#citation_evidence
   terminology_contract: core/writing_reasoning_contract.yaml#terminology_governance
   numeric_style_contract: core/writing_reasoning_contract.yaml#numeric_style_contract
@@ -124,9 +130,9 @@ result_policy:
 model_paper_framework:
   path: 模型论文框架.md
   template: templates/model/model_paper_framework.md
-  current_template_version: v0.8-project-memory
+  current_template_version: v0.9-project-memory
   create_after: proposed_model_spec
-  role: 当前项目事实与工作记忆；保存题意口径、preprocessing_decision、模型语义、Formula Trace、Algorithm Trace、参数证据、Primary Quality Specification、accepted后候选深化风险、跨问依赖、写作选择、命题、Citation Evidence、Terminology Registry、Numeric Profile、Title Claim、Paper Fragment、深化证据处置、逐问结果摘要和图表映射，不复制跨项目写作手册。
+  role: 当前项目事实与工作记忆；保存题意口径、preprocessing_decision、标准模型类型与正式模型名称、Model/Solver/Validator角色、优化目标摘要口径、Formula Trace、Algorithm Trace、参数证据、Primary Quality Specification、accepted后候选深化风险、跨问依赖、写作选择、小节颗粒度、命题、Citation Evidence、Terminology Registry、Numeric Profile、Title Claim、Claim Evidence Level/Scope、Paper Fragment、深化证据处置、逐问结果摘要和图表映射，不复制跨项目写作手册。
   project_memory_only: true
   modes:
     compact:
@@ -578,6 +584,10 @@ rules:
 - project_level进入figure_evidence时必须生成data_process.m，并至少形成一张预处理必要性或有效性证据图；MATLAB不得重新执行预处理。
 - 新项目每问只创建一个问题X求解目录，默认最终恰好包含两个Python脚本、两个Excel工作簿和一个qX_plot.m。
 - Problem Contract、preprocessing_decision、语义闭环与复杂度复审先于正式模型和代码交付，不能用运行成功或结果合理替代语义正确性。
+- v7.16模型设计与写作必须区分Model/Solver/Validator；优化题正文和摘要明确标准模型类型、决策对象、objective及约束后再介绍solver，题目专属模型名不能遮蔽标准数学类型。
+- v7.16 solver首次使用需给出本题结构理由，跨问沿用/更换说明继承或结构增量；另用算法只有存在真实artifact和baseline/alternative/validator角色时进入正文。
+- v7.16问题章节内部二级小节按真实论证单元保持紧凑；约3--4个为默认阅读颗粒度而非Hard上限，不限制一级章节数量。
+- v7.16摘要和正文强主张按PROVEN/VERIFIED_NUMERIC/COMPARATIVE/OBSERVED/HEURISTIC校准；有限数值验证、多启动或独立算法未发现更优不得升级成全局最优证明。
 - v7.14新生成主求解在代码前冻结PQS；问题X求解.py只实现当前主计算最低数值有效性检查，主工作簿返回后由独立数值证据校验器复核，不能只相信自报Boolean。
 - v7.15主求解在不改变当前计算世界的前提下同步保留解释/绘图/验证有价值的current-run状态、过程与结构证据；改变参数、场景、seed、算法、模型或验证窗口后的新运行仍只属于accepted后的结果深化分析。
 - v7.15正式核心Figure先执行Scientific Figure Synthesis与Basic-form Challenge；同一证据空间存在互补信息时优先考虑组合编码，并在论文级执行Portfolio Scientific Quality Review；详细配色和图型规则只由modules/04_figure_evidence.md定义。
