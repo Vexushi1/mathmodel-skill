@@ -96,7 +96,7 @@ H1. 数据满足要求。
         self.assertIn("merged_assumption_symbol_section", review_codes)
         self.assertIn("standalone_conclusion", review_codes)
         self.assertIn("visible_assumption_contract_id", warning_codes)
-        self.assertIn("no_named_core_model_summary", warning_codes)
+        self.assertNotIn("no_named_core_model_summary", warning_codes)
         self.assertEqual(self.audit.overall_status(findings), "review_required")
 
     def test_repeated_negation_is_warning_not_word_ban(self):
