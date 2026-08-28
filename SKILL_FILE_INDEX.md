@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：7.15.0
+当前 Skill 版本：7.16.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -59,6 +59,7 @@
 - `core/workbook_schema.yaml`
 - `core/workflow_router.yaml`
 - `core/writing_reasoning_contract.yaml`
+- `docs/paper-writing-skill-rollback-and-optimization-plan.md`
 - `legacy/README.md`
 - `modules/01_problem_audit.md`
 - `modules/02_model_design.md`
@@ -237,6 +238,7 @@
 - `tests/test_v714_numerical_verification.py`
 - `tests/test_v714_receipt_fail_closed.py`
 - `tests/test_v715_scientific_figure_elevation.py`
+- `tests/test_v716_paper_writing_spec.py`
 - `tests/test_v730_writing_expression_protocol.py`
 - `tests/test_v740_writing_evidence_architecture.py`
 - `tests/test_v741_skill_closure_hygiene.py`
