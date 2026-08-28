@@ -1,6 +1,22 @@
-# mathmodel-skill v7.15.0
+# mathmodel-skill v7.16.0
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环与复杂度复审 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement → Figure Portfolio Review → LaTeX 终稿 → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环与复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement → Figure Portfolio Review → LaTeX 终稿（优化模型表达/算法理由/小节颗粒度/Claim Strength）→ AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v7.16.0：Paper Writing Specification & Model Expression Closure
+
+本版本针对实际教师评阅暴露出的论文表达缺口，在不改变数值求解、Workbook Schema、Figure Evidence、用户 full-fidelity 执行和 v7.15 Evidence Capture 的前提下，恢复并强化“评委如何快速读懂数学模型”的写作闭环。
+
+- `core/writing_reasoning_contract.yaml` 新增 **Model / Solver / Validator** 角色分离：模型回答“数学上求什么”，solver 回答“怎样求”，validator 回答“怎样独立检查”；求解器、软件或验证算法不再允许冒充标准模型类型。
+- 新增 **Model Naming** 规则：题目专属模型名可以保留，但首次正式出现必须邻近给出标准数学类型，例如连续优化、非线性/非光滑优化、混合整数优化、微分方程、回归、时间序列、图模型或仿真系统等。
+- 优化、调度、路径、分配和控制类正文默认按“**标准模型类型与现实目标 → 决策变量/决策对象 → 目标函数 → 目标含义 → 约束来源 → 核心模型汇总 → solver/validator**”展开；核心模型汇总仍保留，但作为 recap，不替代变量、目标和约束解释。
+- 优化类摘要新增 objective closure：至少交代标准模型类型、主要决策变量/对象、**优化什么**、主求解方式、headline result 和对设问的直接回答；只写“若干变量 + 某算法”而不说明目标函数含义不再视为模型信息闭合。
+- 新增 **Solver Justification**：主 solver 第一次出现必须从本题数学结构解释适配性；跨问复用只说明继承结构和新增变化；更换 solver 说明新增离散性、非光滑、规模、不确定性或分解结构；“另用某算法”只有实际运行并有 artifact、角色和可比指标时才能进入正文。
+- 新增 **Subsection Granularity**：只治理每个问题章节内部的二级小节，不限制全文一级章节数量。约 3--4 个主要小节是默认阅读颗粒度而不是 Hard 上限；变量/目标/约束/汇总、或多个同类验证若属于同一论证链，优先合并而不是机械切标题。
+- 新增 **Claim Strength Calibration**：`PROVEN / VERIFIED_NUMERIC / COMPARATIVE / OBSERVED / HEURISTIC` 五级证据范围控制摘要和正文措辞。独立算法未发现更优、多启动一致或有限扰动稳定不得自动升级为“证明全局最优”“鲁棒性很强”等超范围结论。
+- `模型论文框架.md` 升级为 `v0.9-project-memory`，新增标准模型类型、正式模型名称、Model/Solver/Validator、优化 objective 摘要口径、算法角色/evidence anchor、问题章节小节规划以及 headline claim Evidence Level/Scope，避免跨聊天写作时重新从记忆猜模型。
+- `scripts/audit_paper_prose.py` 增加保守的 subsection granularity、framework objective status 和 claim-scope 检查；纯关键词只能触发 warning/review，机器仍不得从算法名、标题数或正则推断数学模型类型、正确性或全局最优性。
+- 问题重述、问题分析、共享基础、Formula Trace、Algorithm Trace、Citation Evidence、Terminology、Numeric Profile、Title Claim、AI Cleanup、caption-owned figure、LaTeX attestation 与 submission provenance 继续沿用现行 Authority；不恢复旧版全自动写作或文件数量主义。
+- v7.15.x 及更早项目继续只读兼容；历史 accepted 数值结果不因本次写作升级强制重算。旧项目重新进入当前模型设计/写作/终审时，只按需补齐模型类型、角色、objective、claim scope 和小节规划。
 
 ## v7.15.0：Scientific Evidence Capture & Figure Synthesis
 
@@ -66,13 +82,20 @@ HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性
 - 统一 `preprocessing_decision` 生命周期：先做非破坏性数据审计并比较模型路线/输入需求，在 Module 02 内锁定判定，再完成 current proposed model、Model Challenge 与 Human Approval；不再在 Runtime Router 中把该判定误写成锁模后的步骤。
 - 修复 Module 03A 的示意链，使正式主求解代码前的 gate 顺序与 Router 一致：`semantic_governance → model_approval → code_delivery`，并保持 project-level 预处理位于人工锁模之后、主求解之前。
 - 将三个 v7.4.2 引入的长期合同中的旧 `skill_version` 元数据改为 `introduced_in_skill_version + skill_compatibility`，避免把合同引入版本误读为当前 Skill 版本；合同自身 version、Schema、CLI 与执行语义不变。
-- 增加 runtime-health 回归，锁定 root/packaged Skill 全文件一致、常用触发面、预处理生命周期与主求解 gate 顺序，防止后续声明式运行时重构再次产生入口/语义漂移。
+- 增加 runtime-health 回归，锁定 root/package Skill 全文件一致、常用触发面、预处理生命周期与主求解 gate 顺序，防止后续声明式运行时重构再次产生入口/语义漂移。
 
 本补丁明确不实现 state-aware resolver hydration、artifact project/hash binding、intent confidence/ambiguity diagnostics 或新的 runtime assurance schema；这些进入 v7.12.0 规划。
 
 ## v7.11.1：Single-Authority Stabilization
 
 本补丁不新增建模功能，重点收口 v7.11.0 之后暴露出的第二事实源和失效测试：Router 负责多意图路由、加载顺序与运行边界声明；Manifest 只保存模块/产物/Gate 图；Resolver 只解释声明并生成 plan。Model Approval 的字段级规则继续只由 `core/model_approval_contract.yaml` 定义，Output Contract 只保留交付集成所需的 authority pointer 与运行开关。CLI、项目状态 Schema、Workbook Schema、每问五文件接口、Python/MATLAB 分工、full-fidelity 用户执行和 LaTeX/submission provenance 均保持不变。
+
+- 删除 `core/module_manifest.yaml` 中与 Router 重复的 top-level `workflow_profiles`；运行时 profile 顺序只从 Router 解析，Manifest 只保留模块、产物和 Gate 图。
+- `scripts/resolve_workflow.py` 删除硬编码 `MODULE_ORDER`、`DOWNSTREAM_MODULES`、`*_GATES`、`*_OUTPUTS`、`MODEL_APPROVAL_REQUIRED_INTENTS` 等平行策略表，统一解释 Router 的 `runtime_segments`、route `boundary_roles`、`stop_before_module`、`terminal_outputs` 与 `pre_delivery_gates`。
+- Module 02/03 的 Model Approval 细节统一改为“引用 `core/model_approval_contract.yaml` + 调用 validator”，不再维护第二套字段级通过条件。
+- `core/output_contract.yaml` 的 semantic/execution/result policy 收缩为 authority pointers 与交付级开关；不再重复 challenge/approval、返回工作簿状态机和结果分析的完整规范。
+- 新增 single-authority regressions，检查 Router/Manifest/Resolver 的职责边界、Model Approval consumer delegation、Output Contract 集成边界与多意图 boundary dispatch。
+- 修复测试 fixture 中仍把 `proposition_limit` 当当前硬字段的漂移；当前命题规则继续为 0--4 默认阅读预算 + 超预算 justification。
 
 ## v7.11.0：Model Challenge & Human Approval Closure
 
@@ -373,7 +396,7 @@ route-specific contracts / modules / packs / templates
 - `core/numerical_verification_contract.yaml`：主求解数值有效性、PQS 映射与 strict Verification ID 证据复核；
 - `core/code_quality_contract.yaml`：Python 工程质量；
 - `core/user_execution_contract.yaml`：用户本地执行与工作簿验收；
-- `core/writing_reasoning_contract.yaml`：推理、Algorithm Trace、术语、数值、Title Claim、规则等级和 Citation Evidence；
+- `core/writing_reasoning_contract.yaml`：推理、Model/Solver/Validator、优化模型表达、Algorithm Trace、术语、数值、Title Claim、Claim Strength、问题章节小节颗粒度、规则等级和 Citation Evidence；
 - `modules/05_writing/latex.md`：正文结构与表达；
 - `core/output_contract.yaml`：目录、产物和正式交付；
 - `core/project_state.schema.yaml`：机器状态；
@@ -397,6 +420,6 @@ python scripts/validate_submission_package.py . --strict
 
 ## 兼容与历史
 
-`legacy/` 只读，不进入默认执行链。v7.14.x 及更早项目保持只读兼容；历史 accepted 主工作簿不要求反向补 Evidence Capture 或 Verification ID，重新进入当前小问主求解时才按 current 规则迁移该问。Figure Enhancement、Scientific Figure Synthesis 与 Algorithm Trace 都按需应用，不要求历史项目反向补写。Model Approval 同样不要求历史项目倒填，只有重新进入当前模型设计、项目级预处理、主求解或语义变化后的重算时迁入新门。历史版本说明保留在 Git 历史和 `CHANGELOG.md`。
+`legacy/` 只读，不进入默认执行链。v7.15.x 及更早项目保持只读兼容；历史 accepted 主工作簿不要求反向补 Evidence Capture、Verification ID 或 v7.16 写作身份字段，重新进入当前小问主求解或写作/终审时才按 current 规则按需迁移。Figure Enhancement、Scientific Figure Synthesis 与 Algorithm Trace 都按需应用，不要求历史项目反向补写。Model Approval 同样不要求历史项目倒填，只有重新进入当前模型设计、项目级预处理、主求解或语义变化后的重算时迁入新门。历史版本说明保留在 Git 历史和 `CHANGELOG.md`。
 
 许可证与第三方声明见 `LICENSE`、`THIRD_PARTY_NOTICES.md`。
