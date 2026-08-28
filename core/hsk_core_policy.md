@@ -1,6 +1,6 @@
-# HSK Core Policy v7.15.0
+# HSK Core Policy v7.16.0
 
-本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 与 `scripts/validate_model_approval.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision`、条件式统一数据预处理、预处理论文数学证据与 `data_process.m` 图证据以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；主求解数值有效性与底层证据独立复核以 `core/numerical_verification_contract.yaml` 与 `scripts/validate_numerical_evidence.py` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准；跨竞赛写作推理、Algorithm Trace、术语、数值展示、标题主张与证据治理以 `core/writing_reasoning_contract.yaml` 为准，正文结构与表达以 `modules/05_writing/latex.md` 为准。本文件不复制这些合同的完整字段。
+本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 与 `scripts/validate_model_approval.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision`、条件式统一数据预处理、预处理论文数学证据与 `data_process.m` 图证据以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；主求解数值有效性与底层证据独立复核以 `core/numerical_verification_contract.yaml` 与 `scripts/validate_numerical_evidence.py` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准；跨竞赛写作推理、Model/Solver/Validator 角色、优化模型表达、Algorithm Trace、术语、数值展示、标题主张、claim strength 与证据治理以 `core/writing_reasoning_contract.yaml` 为准，正文结构与表达以 `modules/05_writing/latex.md` 为准。本文件不复制这些合同的完整字段。
 
 ## 1. 总目标与优先级
 
@@ -54,7 +54,7 @@ Challenge passed 后必须向用户提供 Model Approval Brief，并停在 `awai
 
 ### 2.6 项目工作记忆与上下文恢复
 
-`模型论文框架.md` 是当前项目的**助手可读工作记忆**，只保存当前题意口径、数据角色、`preprocessing_decision`、变量/参数/假设、核心 Formula Trace、Algorithm Trace、Primary Quality Specification、数值参数证据、Terminology Registry、Numeric Profile、小问依赖、当前算法语义、命题、Title Claim、Citation Evidence、paper-fragment 状态、结果摘要、验证边界、图表证据位置和本项目论文组织选择。它不得重新复制跨项目写作、证明或排版手册。
+`模型论文框架.md` 是当前项目的**助手可读工作记忆**，只保存当前题意口径、数据角色、`preprocessing_decision`、变量/参数/假设、标准模型类型与正式模型名称、Model/Solver/Validator 角色、核心 Formula Trace、Algorithm Trace、Primary Quality Specification、数值参数证据、Terminology Registry、Numeric Profile、小问依赖、当前算法语义、命题、Title Claim、Citation Evidence、claim Evidence Level/Scope、问题章节小节规划、paper-fragment 状态、结果摘要、验证边界、图表证据位置和本项目论文组织选择。它不得重新复制跨项目写作、证明或排版手册。
 
 执行现有项目时采用 **read-before-use / write-after-change**：
 
@@ -155,13 +155,15 @@ project_level
 7. 命题 0--4 仅为默认正文阅读预算，不是 Hard 上限；优点与缺点无强制数量关系；核心模型收束按 `required / inline / not_applicable` 自适应，不能把这些经验规则升级为自动否决条件；
 8. AI cleanup 只清除模板化、空泛、重复和呈现风险，不建立第二套正文规则；成稿机器审计按 `blocking / review_required / warning` 分级，warning 不阻断交付。
 
+v7.16 新增的模型命名、优化模型信息顺序、solver justification、问题章节小节颗粒度和 claim strength 分级均由 writing Authority 管理。它们不能被 consumer 复制成第二套规则；其中 subsection 颗粒度属于 Default，不得因二级小节数量本身自动阻断交付。
+
 MATLAB 默认只保留图窗，不自动创建图表目录或批量导出正式图片。
 
 ## 7. 元数据与兼容边界
 
 `run_info.json`、`result_manifest.yaml` 和 `matlab_figure_handoff.json` 只在用户明确要求完整复现包时生成，并放入项目级内部元数据目录，不得放入 `问题X求解/` 或 `数据预处理/`。
 
-v7.14.x 及更早项目继续只读兼容；历史已 accepted 主工作簿不要求批量补 Evidence Capture 或 Verification ID。旧项目若重新进入当前小问主求解，则该问按当前 v7.15 主求解轨迹生成 evidence-ready 工作簿，仍不把结果深化分析并入主求解。Algorithm Trace 与算法流程呈现是可选写作能力，不要求历史交付反向补写。v7.6 的 `v0.7-project-memory` 和 semantic-governance 1.0.0 仍保持只读兼容；项目重新进入当前 writing/review 流程时再按 current 框架补充需要的 Terminology/Numeric/Title/Paper Fragment/Algorithm Trace 信息。v7.2.0--7.2.2 项目重新进入模型设计、预处理、绘图或写作时，应按当前规则补齐适用的论文证据与 `data_process.m` 图证据；更早项目继续只读兼容，重新进入当前流程时先审计数据并形成判定。
+v7.15.x 及更早项目继续只读兼容；历史已 accepted 主工作簿不要求批量补 Evidence Capture、Verification ID 或 v7.16 写作身份字段。旧项目若重新进入当前小问主求解，则该问按当前 v7.15 主求解轨迹生成 evidence-ready 工作簿；旧项目若重新进入当前模型设计/写作/终审，则按需补齐标准模型类型、Model/Solver/Validator、优化 objective、claim Evidence Level/Scope 与小节规划，不倒逼已验收数值重算。Algorithm Trace 与算法流程呈现是可选写作能力，不要求历史交付反向补写。v7.6 的 `v0.7-project-memory` 和 semantic-governance 1.0.0 仍保持只读兼容；项目重新进入当前 writing/review 流程时再按 current 框架补充需要的 Terminology/Numeric/Title/Paper Fragment/Algorithm Trace 信息。v7.2.0--7.2.2 项目重新进入模型设计、预处理、绘图或写作时，应按当前规则补齐适用的论文证据与 `data_process.m` 图证据；更早项目继续只读兼容，重新进入当前流程时先审计数据并形成判定。
 
 ## 8. 正式交付同步
 
