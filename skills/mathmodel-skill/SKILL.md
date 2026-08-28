@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.15.0
-summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, independent Model Reviewer plus Devil's Advocate challenge, explicit Human Model Approval bound to the current semantic revision/hash, evidence-driven conditional preprocessing, full-fidelity user execution, capability-driven primary numerical validity with independent evidence recheck, evidence-ready Primary Evidence Capture, separate primary/result-analysis Python stages, fine-grained Analysis Evidence Capture, project-memory model-paper framework, Source-Derivation-Destination formula traces, adaptive Algorithm Trace with stepwise/pseudocode presentation, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware high-precision Numeric Profile, Title Claim Gate, support/modify/reject analysis evidence, local paper-fragment stale propagation, Paragraph Necessity, MATLAB Scientific Figure Synthesis with caption-owned formal titles, high-contrast composite visualization and evidence-driven Figure Enhancement, formal LaTeX audit/compile attestation, and validated submission-package provenance.
+version: 7.16.0
+summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, independent Model Reviewer plus Devil's Advocate challenge, explicit Human Model Approval bound to the current semantic revision/hash, evidence-driven conditional preprocessing, full-fidelity user execution, capability-driven primary numerical validity with independent evidence recheck, evidence-ready Primary Evidence Capture, separate primary/result-analysis Python stages, fine-grained Analysis Evidence Capture, project-memory model-paper framework, Source-Derivation-Destination formula traces, explicit Model/Solver/Validator roles, optimization model expression closure, adaptive Algorithm Trace with stepwise/pseudocode presentation, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware high-precision Numeric Profile, Title Claim Gate, evidence-level claim calibration, question-subsection granularity review, support/modify/reject analysis evidence, local paper-fragment stale propagation, Paragraph Necessity, MATLAB Scientific Figure Synthesis with caption-owned formal titles, high-contrast composite visualization and evidence-driven Figure Enhancement, formal LaTeX audit/compile attestation, and validated submission-package provenance.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX, 终审, 提交包]
 ---
 
-# HSK 数学建模模块化工作流 v7.15.0
+# HSK 数学建模模块化工作流 v7.16.0
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -32,9 +32,9 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 
 ### 项目工作记忆
 
-`proposed_model_spec` 形成后即可建立或更新项目根目录 `模型论文框架.md`，用于保存当前模型口径、Challenge 与 Approval Brief；用户批准后当前模型才提升为 `locked_model_spec`。框架是助手跨阶段、跨聊天恢复当前项目语义的首选入口，只保存当前项目事实、选择、状态和证据位置，包括 Formula Trace、Algorithm Trace、Model Challenge/Human Approval 当前状态、Primary Quality Specification、数值参数依据、命题、Citation Evidence、Terminology Registry、Numeric Profile、Title Claim、Paper Fragment Dependency Map、深化证据处置、结果摘要与图表映射；不复制通用写作手册。
+`proposed_model_spec` 形成后即可建立或更新项目根目录 `模型论文框架.md`，用于保存当前模型口径、Challenge 与 Approval Brief；用户批准后当前模型才提升为 `locked_model_spec`。框架是助手跨阶段、跨聊天恢复当前项目语义的首选入口，只保存当前项目事实、选择、状态和证据位置，包括标准模型类型与正式模型名称、Model/Solver/Validator 角色、Formula Trace、Algorithm Trace、Model Challenge/Human Approval 当前状态、Primary Quality Specification、数值参数依据、命题、Citation Evidence、Terminology Registry、Numeric Profile、Title Claim、Paper Fragment Dependency Map、深化证据处置、Headline Claim Evidence Level/Scope、问题章节小节规划、结果摘要与图表映射；不复制通用写作手册。
 
-具体数值必须回到已验收工作簿复核，semantic revision、hash、challenge/approval 和 stale 由 `state/project_state.yaml` 管理。模型、参数、约束、预处理或算法语义变化时旧 challenge、approval 与 locked model 同步 stale，并传播数值 stale；v0.8 框架再按真实依赖只传播到相关正文、摘要、图表、模型评价与 Title Claim，不无差别失效整篇论文。纯排版、措辞、caption、公式编号或不改变语义的 LaTeX 文件拆分不触发重新审批。
+具体数值必须回到已验收工作簿复核，semantic revision、hash、challenge/approval 和 stale 由 `state/project_state.yaml` 管理。模型、参数、约束、预处理或算法语义变化时旧 challenge、approval 与 locked model 同步 stale，并传播数值 stale；v0.9 框架再按真实依赖只传播到相关正文、摘要、图表、模型评价与 Title Claim，不无差别失效整篇论文。纯排版、措辞、caption、公式编号或不改变语义的 LaTeX 文件拆分不触发重新审批。
 
 ### 数据与求解
 
@@ -109,13 +109,15 @@ MATLAB 的唯一绘图决策 Authority 仍为 `modules/04_figure_evidence.md`。
 
 LaTeX 是默认论文主链。写作阶段不在入口文件复制正文规则：
 
-- `core/writing_reasoning_contract.yaml`：跨竞赛推理、Hard / Default / Recommendation、Formula Trace、Algorithm Trace 与算法呈现、命题预算、Citation Evidence、Terminology、Numeric Style、Title Claim、深化证据处置、Paragraph Necessity 与局部 stale；
+- `core/writing_reasoning_contract.yaml`：跨竞赛推理、Hard / Default / Recommendation、Model/Solver/Validator、优化模型表达、Formula Trace、Algorithm Trace 与算法呈现、solver justification、命题预算、Citation Evidence、Terminology、Numeric Style、Title Claim、Claim Strength Calibration、问题章节小节颗粒度、深化证据处置、Paragraph Necessity 与局部 stale；
 - `core/model_approval_contract.yaml`：Model Reviewer、Devil's Advocate、Model Approval Brief、显式 Human Approval 与 revision/hash 绑定；
 - `modules/05_writing/latex.md`：正文结构与表达唯一权威；
 - `packs/artifact/algorithm_flow.md`：按需提供控制流伪代码与分阶段数学步骤的载体细则，不建立第二套算法规则；
 - `modules/05_writing/ai_cleanup.md`：按 Integrity / Evidence / Style & Necessity / Machine diagnostics 分层清理，不维护穷举式第二套规则；
 - `modules/05_writing/docx.md`：只在用户显式要求时加载，负责 Word 载体差异；
 - `modules/06_review_delivery.md`：只检查和分级，不重新定义写作规则。
+
+v7.16 进一步要求论文先恢复**数学模型本体**，再介绍 solver/validator：优化题默认按“标准模型类型与现实目标 → 决策变量/对象 → objective → objective 含义 → 约束 → 核心模型汇总 → solver/validator”组织；优化类摘要至少明确“优化什么”。题目专属模型名可以保留，但首次出现要能识别标准数学类型。solver 第一次使用说明本题结构理由，跨问复用/更换说明继承或结构增量；另用算法只有存在真实 artifact 时才写成 baseline/alternative/validator。问题章节内部二级小节默认保持紧凑连续，超过约 3--4 个只触发 review，不限制一级章节数量。摘要和正文的强 claim 按 `PROVEN / VERIFIED_NUMERIC / COMPARATIVE / OBSERVED / HEURISTIC` 校准，有限数值验证不得升级成全局最优证明。
 
 核心模型收束按 `required / inline / not_applicable` 自适应；算法流程按 `not_needed / stepwise / pseudocode` 自适应；命题 0--4 是默认正文阅读预算而非 Hard 上限；优点与缺点没有强制数量关系。需要外部证据的核心 claim 通过 Citation Evidence 连接正文位置与 `references.bib`。
 
@@ -129,7 +131,7 @@ LaTeX 是默认论文主链。写作阶段不在入口文件复制正文规则�
 逐字审题 → Problem Contract冻结
 → 通用数据审计 → 两条模型路线与数据需求比较
 → preprocessing_decision
-→ 变量/假设/公式/约束闭合 → 结构化简
+→ 变量/假设/公式/约束闭合 → 标准模型类型与Model/Solver/Validator身份 → 结构化简
 → Algorithm Trace/呈现模式按需确定
 → 题面—数学—代码—输出语义闭环 → Complexity Sanity Check
 → proposed_model_spec
@@ -142,7 +144,7 @@ LaTeX 是默认论文主链。写作阶段不在入口文件复制正文规则�
 → 主结果质量门 + 独立 numerical evidence recheck → accepted solution workbook
 → 独立Python结果深化分析 + Analysis Evidence Capture → support/modify/reject → 必要时回退
 → MATLAB Scientific Figure Synthesis / Composite / Enhancement → Portfolio Review
-→ Terminology/Numeric/Title Claim/局部Paper Fragment同步
+→ Terminology/Numeric/Title Claim/Claim Scope/局部Paper Fragment同步
 → 题型自适应LaTeX直写（含按需算法流程） → AI-cleanup
 → LaTeX project audit attestation → profile-bound compile attestation
 → 评委式终审 → 生成 official / reproducibility submission package
@@ -150,4 +152,4 @@ LaTeX 是默认论文主链。写作阶段不在入口文件复制正文规则�
 → validated_submission_package
 ```
 
-目录、正式交付和同步门以 `core/output_contract.yaml` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 为准；主求解数值有效性以 `core/numerical_verification_contract.yaml` 为准；代码工程质量以 `core/code_quality_contract.yaml` 为准；返回工作簿以 `scripts/validate_user_execution.py` 验收。legacy 项目保持只读兼容，重新进入当前模型设计/预处理/主求解时按当前 challenge/approval、语义、数据决策、v7.14 主数值证据与 v7.15 Evidence Capture 规则迁移。
+目录、正式交付和同步门以 `core/output_contract.yaml` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 为准；主求解数值有效性以 `core/numerical_verification_contract.yaml` 为准；代码工程质量以 `core/code_quality_contract.yaml` 为准；返回工作簿以 `scripts/validate_user_execution.py` 验收。legacy 项目保持只读兼容，重新进入当前模型设计/预处理/主求解时按当前 challenge/approval、语义、数据决策、v7.14 主数值证据、v7.15 Evidence Capture 与 v7.16 写作身份/claim-scope 规则迁移。
