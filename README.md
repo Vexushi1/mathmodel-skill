@@ -13,7 +13,7 @@ HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性
 - 新增 **Solver Justification**：主 solver 第一次出现必须从本题数学结构解释适配性；跨问复用只说明继承结构和新增变化；更换 solver 说明新增离散性、非光滑、规模、不确定性或分解结构；“另用某算法”只有实际运行并有 artifact、角色和可比指标时才能进入正文。
 - 新增 **Subsection Granularity**：只治理每个问题章节内部的二级小节，不限制全文一级章节数量。约 3--4 个主要小节是默认阅读颗粒度而不是 Hard 上限；变量/目标/约束/汇总、或多个同类验证若属于同一论证链，优先合并而不是机械切标题。
 - 新增 **Claim Strength Calibration**：`PROVEN / VERIFIED_NUMERIC / COMPARATIVE / OBSERVED / HEURISTIC` 五级证据范围控制摘要和正文措辞。独立算法未发现更优、多启动一致或有限扰动稳定不得自动升级为“证明全局最优”“鲁棒性很强”等超范围结论。
-- `模型论文框架.md` 升级为 `v0.9-project-memory`，新增标准模型类型、正式模型名称、Model/Solver/Validator、优化 objective 摘要口径、算法角色/evidence anchor、问题章节小节规划以及 headline claim Evidence Level/Scope，避免跨聊天写作时重新从记忆猜模型。
+- `模型论文框架.md` 继续沿用 `v0.8-project-memory`，新增标准模型类型、正式模型名称、Model/Solver/Validator、优化 objective 摘要口径、算法角色/evidence anchor、问题章节小节规划以及 headline claim Evidence Level/Scope，避免跨聊天写作时重新从记忆猜模型。
 - `scripts/audit_paper_prose.py` 增加保守的 subsection granularity、framework objective status 和 claim-scope 检查；纯关键词只能触发 warning/review，机器仍不得从算法名、标题数或正则推断数学模型类型、正确性或全局最优性。
 - 问题重述、问题分析、共享基础、Formula Trace、Algorithm Trace、Citation Evidence、Terminology、Numeric Profile、Title Claim、AI Cleanup、caption-owned figure、LaTeX attestation 与 submission provenance 继续沿用现行 Authority；不恢复旧版全自动写作或文件数量主义。
 - v7.15.x 及更早项目继续只读兼容；历史 accepted 数值结果不因本次写作升级强制重算。旧项目重新进入当前模型设计/写作/终审时，只按需补齐模型类型、角色、objective、claim scope 和小节规划。
@@ -82,20 +82,13 @@ HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性
 - 统一 `preprocessing_decision` 生命周期：先做非破坏性数据审计并比较模型路线/输入需求，在 Module 02 内锁定判定，再完成 current proposed model、Model Challenge 与 Human Approval；不再在 Runtime Router 中把该判定误写成锁模后的步骤。
 - 修复 Module 03A 的示意链，使正式主求解代码前的 gate 顺序与 Router 一致：`semantic_governance → model_approval → code_delivery`，并保持 project-level 预处理位于人工锁模之后、主求解之前。
 - 将三个 v7.4.2 引入的长期合同中的旧 `skill_version` 元数据改为 `introduced_in_skill_version + skill_compatibility`，避免把合同引入版本误读为当前 Skill 版本；合同自身 version、Schema、CLI 与执行语义不变。
-- 增加 runtime-health 回归，锁定 root/package Skill 全文件一致、常用触发面、预处理生命周期与主求解 gate 顺序，防止后续声明式运行时重构再次产生入口/语义漂移。
+- 增加 runtime-health 回归，锁定 root/packaged Skill 全文件一致、常用触发面、预处理生命周期与主求解 gate 顺序，防止后续声明式运行时重构再次产生入口/语义漂移。
 
 本补丁明确不实现 state-aware resolver hydration、artifact project/hash binding、intent confidence/ambiguity diagnostics 或新的 runtime assurance schema；这些进入 v7.12.0 规划。
 
 ## v7.11.1：Single-Authority Stabilization
 
 本补丁不新增建模功能，重点收口 v7.11.0 之后暴露出的第二事实源和失效测试：Router 负责多意图路由、加载顺序与运行边界声明；Manifest 只保存模块/产物/Gate 图；Resolver 只解释声明并生成 plan。Model Approval 的字段级规则继续只由 `core/model_approval_contract.yaml` 定义，Output Contract 只保留交付集成所需的 authority pointer 与运行开关。CLI、项目状态 Schema、Workbook Schema、每问五文件接口、Python/MATLAB 分工、full-fidelity 用户执行和 LaTeX/submission provenance 均保持不变。
-
-- 删除 `core/module_manifest.yaml` 中与 Router 重复的 top-level `workflow_profiles`；运行时 profile 顺序只从 Router 解析，Manifest 只保留模块、产物和 Gate 图。
-- `scripts/resolve_workflow.py` 删除硬编码 `MODULE_ORDER`、`DOWNSTREAM_MODULES`、`*_GATES`、`*_OUTPUTS`、`MODEL_APPROVAL_REQUIRED_INTENTS` 等平行策略表，统一解释 Router 的 `runtime_segments`、route `boundary_roles`、`stop_before_module`、`terminal_outputs` 与 `pre_delivery_gates`。
-- Module 02/03 的 Model Approval 细节统一改为“引用 `core/model_approval_contract.yaml` + 调用 validator”，不再维护第二套字段级通过条件。
-- `core/output_contract.yaml` 的 semantic/execution/result policy 收缩为 authority pointers 与交付级开关；不再重复 challenge/approval、返回工作簿状态机和结果分析的完整规范。
-- 新增 single-authority regressions，检查 Router/Manifest/Resolver 的职责边界、Model Approval consumer delegation、Output Contract 集成边界与多意图 boundary dispatch。
-- 修复测试 fixture 中仍把 `proposition_limit` 当当前硬字段的漂移；当前命题规则继续为 0--4 默认阅读预算 + 超预算 justification。
 
 ## v7.11.0：Model Challenge & Human Approval Closure
 
