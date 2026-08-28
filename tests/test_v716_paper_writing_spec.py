@@ -1,9 +1,23 @@
+import importlib.util
+import sys
 import unittest
 from pathlib import Path
 
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def load_module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+AUDIT = load_module("audit_v716", ROOT / "scripts/audit_paper_prose.py")
 
 
 class TestV716PaperWritingSpec(unittest.TestCase):
@@ -106,6 +120,83 @@ class TestV716PaperWritingSpec(unittest.TestCase):
         self.assertIn("本规则只检查**问题章节内部二级小节**", self.review)
         self.assertIn("超过该颗粒度不自动失败", self.review)
         self.assertIn("以下**不再自动列为 Blocking**：问题章节内部二级小节超过默认 3--4 个", self.review)
+
+    def test_prose_audit_reviews_more_than_four_question_subsections_only(self):
+        tex = r"""
+\begin{document}
+\section{问题一模型建立及求解}
+\subsection{模型建立}模型。
+\subsection{核心模型汇总}汇总。
+\subsection{模型求解}求解。
+\subsection{结果分析}结果。
+\subsection{独立验证}验证。
+\end{document}
+"""
+        findings = AUDIT.audit_text(tex)
+        item = next((x for x in findings if x.code == "question_subsection_granularity"), None)
+        self.assertIsNotNone(item, findings)
+        self.assertEqual(item.severity, "review_required")
+        self.assertIn("不代表结构自动错误", item.message)
+
+        compact = r"""
+\begin{document}
+\section{问题一模型建立及求解}
+\subsection{模型建立}变量、目标、约束和核心模型汇总在本节连续说明。
+\subsection{模型求解}求解。
+\subsection{结果分析}结果。
+\subsection{模型检验}检验。
+\end{document}
+"""
+        compact_findings = AUDIT.audit_text(compact)
+        self.assertFalse(any(x.code == "question_subsection_granularity" for x in compact_findings), compact_findings)
+
+    def test_core_model_summary_need_not_be_a_named_subsection(self):
+        tex = r"""
+\begin{document}
+\section{问题一模型建立及求解}
+\subsection{模型建立}
+先定义决策变量，再给出目标函数和约束，最后在同一节末尾汇总最终优化模型。
+\subsection{模型求解}采用当前结构匹配的求解器。
+\subsection{结果分析}给出关键结果和解释。
+\end{document}
+"""
+        findings = AUDIT.audit_text(tex)
+        codes = {x.code for x in findings}
+        self.assertNotIn("no_named_core_model_summary", codes)
+        self.assertNotIn("missing_solution_result_section", codes)
+
+    def test_framework_pending_objective_and_granularity_require_review(self):
+        framework = """
+### Q1：测试
+- 优化目标摘要闭合：`pending`
+- 小节颗粒度：`review_required`
+"""
+        findings = AUDIT.audit_framework_consistency("\\begin{document}正文\\end{document}", framework)
+        codes = {x.code: x.severity for x in findings}
+        self.assertEqual(codes["optimization_abstract_objective_pending"], "review_required")
+        self.assertEqual(codes["framework_subsection_granularity_pending"], "review_required")
+
+    def test_framework_blocks_explicit_heuristic_global_optimum_scope_conflict(self):
+        framework = """
+### Q1：测试
+- Headline Claim Evidence Level：`HEURISTIC`
+- 可入文答案：证明达到全局最优。
+"""
+        findings = AUDIT.audit_framework_consistency("\\begin{document}正文\\end{document}", framework)
+        item = next((x for x in findings if x.code == "heuristic_global_optimum_scope_conflict"), None)
+        self.assertIsNotNone(item, findings)
+        self.assertEqual(item.severity, "blocking")
+
+    def test_raw_strong_claim_wording_is_warning_not_automatic_semantic_failure(self):
+        tex = r"""
+\begin{document}
+当前方案达到全局最优，并显著提高了目标值。
+\end{document}
+"""
+        findings = AUDIT.audit_text(tex)
+        relevant = [x for x in findings if x.code in {"global_optimum_wording", "significance_wording"}]
+        self.assertTrue(relevant, findings)
+        self.assertTrue(all(x.severity == "warning" for x in relevant), relevant)
 
 
 if __name__ == "__main__":
