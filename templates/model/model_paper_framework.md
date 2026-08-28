@@ -6,7 +6,7 @@
 
 - 项目：`__PROJECT__`
 - 竞赛与题号：`__COMPETITION_AND_PROBLEM__`
-- 框架版本：`v0.9-project-memory`
+- 框架版本：`v0.8-project-memory`
 - 框架模式: full
 - 当前阶段：`审题 / 模型设计 / 求解 / 验证 / 绘图 / 写作 / 终审`
 - 最近同步：`__LAST_SYNC_SCOPE__`
@@ -138,11 +138,11 @@
 
 ### Algorithm Trace
 
-> 仅当某问 `algorithm_presentation=stepwise/pseudocode` 时登记。Trace 保存真实求解结构与锚点，不复制 Python 源码或通用算法知识。角色需与 Model / Solver / Validator 分离保持一致。
+> 仅当某问 `algorithm_presentation=stepwise/pseudocode` 时登记。Trace 保存真实求解结构与锚点，不复制 Python 源码或通用算法知识。角色需与 Model / Solver / Validator 分离保持一致。`角色`填写 `solver / validator / baseline / alternative` 中与本项目真实用途一致者。
 
-| Algorithm ID | 小问 | 角色 | 作用 | 输入/状态 | 核心操作 | 循环/分支/阶段 | Formula/Proposition/Constraint 锚点 | 终止条件 | 输出 | Python 锚点 | 呈现模式 | 状态 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| A1 |  | solver / validator / baseline / alternative |  |  |  |  |  |  |  |  | stepwise / pseudocode | current / stale |
+| Algorithm ID | 小问 | 角色 | 输入/状态 | 核心操作 | 循环/分支/阶段 | Formula/Proposition/Constraint 锚点 | 终止条件 | 输出 | Python 锚点 | 呈现模式 | 状态 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| A1 |  |  |  |  |  |  |  |  |  | stepwise / pseudocode | current / stale |
 
 ### 数值参数依据
 
