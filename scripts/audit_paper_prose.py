@@ -8,7 +8,8 @@ Severity follows writing governance:
 
 The audit never rewrites paper text and never infers mathematical correctness, formula
 source validity, parameter optimality, theorem applicability, terminology equivalence,
-physical/statistical accuracy from decimal places, or citation semantics.
+physical/statistical accuracy from decimal places, model type from algorithm names,
+or citation semantics.
 """
 from __future__ import annotations
 
@@ -24,6 +25,7 @@ CONTRAST_RE = re.compile(r"但(?:是)?|然而|不过|并非|不是|不能|只能
 PARAGRAPH_START_RE = re.compile(r"^(?:本文|本问|该模型)(?:认为|采用|建立|使用|通过|将|对|在|根据|从|以|中|所)?")
 QUESTION_SECTION_RE = re.compile(r"\\section\{问题[一二三四五六七八九十百0-9]+模型建立及求解\}")
 SECTION_RE = re.compile(r"\\section\{([^{}]+)\}")
+SUBSECTION_RE = re.compile(r"\\subsection\{([^{}]+)\}")
 LABEL_ANY_RE = re.compile(r"\\label\{([^{}]+)\}")
 FIGTAB_LABEL_RE = re.compile(r"\\label\{((?:fig|tab):[^{}]+)\}")
 REF_RE = re.compile(r"\\(?:ref|autoref|cref|Cref|eqref)\{([^{}]+)\}")
@@ -32,6 +34,12 @@ NOCITE_ALL_RE = re.compile(r"\\nocite\{\*\}")
 REF_TEMPLATE = r"\\(?:ref|autoref|cref|Cref|eqref)\{{{label}\}}"
 DERIVATION_STOCK_PATTERNS = ("进一步可得", "同理可得", "容易得到", "不难得到")
 META_NAV_PATTERNS = ("本节主要", "下面将", "下文将", "为了便于", "为了更好地")
+STRONG_CLAIM_PATTERNS = {
+    "global_optimum_wording": re.compile(r"全局最优"),
+    "significance_wording": re.compile(r"显著(?:提高|降低|改善|优于|提升|下降)"),
+    "strong_robustness_wording": re.compile(r"(?:鲁棒性|稳定性)(?:很强|很好|较强|较好)"),
+    "proof_effectiveness_wording": re.compile(r"证明(?:了)?[^。；;]{0,40}?(?:模型|方案)[^。；;]{0,30}?(?:有效|最优)"),
+}
 PARAM_ASSIGN_RE = re.compile(
     r"(?:取|设置|设定|令)\s*(?:\\\([^\n]{0,60}?\\\)|[A-Za-z][A-Za-z0-9_{}^\\-]{0,30})\s*(?:=|为)\s*[-+]?\d+(?:\.\d+)?"
 )
@@ -401,7 +409,36 @@ def _audit_numeric_profile(tex_text: str, framework_text: str) -> list[Finding]:
             match = compact_pattern.search(plain_body)
             if match:
                 findings.append(Finding("warning", "unit_spacing", f"检测到数值与登记单位“{unit}”直接相连；请按项目单位格式检查是否需要空格。", match.group(0)))
-        _ = expected_body, expected_table  # retained for future profile-aware checks without semantic guessing
+        _ = expected_body, expected_table
+    return findings
+
+
+def _audit_writing_status_from_framework(framework_text: str) -> list[Finding]:
+    findings: list[Finding] = []
+    objective_pending = re.findall(r"优化目标摘要闭合：`?(pending|review_required)`?", framework_text)
+    if objective_pending:
+        findings.append(Finding(
+            "review_required",
+            "optimization_abstract_objective_pending",
+            "模型论文框架中仍有优化类小问的摘要 objective 口径未闭合；正式摘要前应明确‘优化什么’。",
+            f"{len(objective_pending)} unresolved entry/entries",
+        ))
+
+    granularity_pending = re.findall(r"小节颗粒度：`?(review_required)`?", framework_text)
+    if granularity_pending:
+        findings.append(Finding(
+            "review_required",
+            "framework_subsection_granularity_pending",
+            "模型论文框架仍标记问题章节小节颗粒度需复核；请确认是否存在同一论证链被机械拆分。",
+            f"{len(granularity_pending)} entry/entries",
+        ))
+
+    if re.search(r"Headline Claim Evidence Level：`?HEURISTIC`?", framework_text) and re.search(r"全局最优", framework_text):
+        findings.append(Finding(
+            "blocking",
+            "heuristic_global_optimum_scope_conflict",
+            "框架同时登记 HEURISTIC headline evidence 与‘全局最优’主张；除非补充严格全局证据，否则 claim scope 冲突。",
+        ))
     return findings
 
 
@@ -410,6 +447,7 @@ def audit_framework_consistency(tex_text: str, framework_text: str | None) -> li
         return []
     findings = _audit_terminology_from_framework(tex_text, framework_text)
     findings.extend(_audit_numeric_profile(tex_text, framework_text))
+    findings.extend(_audit_writing_status_from_framework(framework_text))
     return findings
 
 
@@ -457,10 +495,27 @@ def audit_text(text: str) -> list[Finding]:
     question_count = 0
     for heading, content in _question_sections(main):
         question_count += 1
-        if not re.search(r"\\subsection\{核心模型汇总\}", content):
-            findings.append(Finding("warning", "no_named_core_model_summary", f"{heading} 未检测到名为“核心模型汇总”的小节；该问可能为 inline/not_applicable，请与框架中的自适应状态核对。", heading))
-        if not re.search(r"\\subsection\{求解结果\}", content):
-            findings.append(Finding("warning", "missing_solution_result_section", f"{heading} 未检测到默认“求解结果”小节，请确认是否为简单问题或题型特定结构。", heading))
+        subsection_titles = SUBSECTION_RE.findall(content)
+        if len(subsection_titles) > 4:
+            findings.append(Finding(
+                "review_required",
+                "question_subsection_granularity",
+                f"{heading} 检测到 {len(subsection_titles)} 个二级小节；超过默认阅读颗粒度仅触发人工复核，不代表结构自动错误。请检查同一论证链是否被机械拆分。",
+                " / ".join(subsection_titles[:8]),
+            ))
+        split_markers = sum(
+            any(key in title for key in ("决策变量", "目标函数", "约束条件", "约束", "核心模型汇总"))
+            for title in subsection_titles
+        )
+        if split_markers >= 3:
+            findings.append(Finding(
+                "warning",
+                "possible_mechanical_model_subsection_split",
+                f"{heading} 的变量/目标/约束/核心模型汇总被拆为多个二级标题；请确认是否应在‘模型建立’中连续表达。",
+                " / ".join(subsection_titles),
+            ))
+        if subsection_titles and not any("结果" in title for title in subsection_titles):
+            findings.append(Finding("warning", "missing_solution_result_section", f"{heading} 未检测到标题中含“结果”的二级小节，请确认结果是否已在当前问形成清晰、可引用的证据闭环。", heading))
     if QUESTION_SECTION_RE.search(main) and question_count == 0:
         findings.append(Finding("warning", "question_section_parse", "检测到问题模型章节但未能完成逐问结构解析。"))
 
@@ -485,6 +540,16 @@ def audit_text(text: str) -> list[Finding]:
     meta_count = sum(prose_main.count(phrase) for phrase in META_NAV_PATTERNS)
     if meta_count >= 4:
         findings.append(Finding("warning", "repeated_meta_navigation", "“本节主要/下面将/为了便于”等管理型元话语较多，建议直接进入对象、关系或证据。", f"{meta_count} occurrences"))
+
+    for code, pattern in STRONG_CLAIM_PATTERNS.items():
+        match = pattern.search(prose_main)
+        if match:
+            findings.append(Finding(
+                "warning",
+                code,
+                "检测到高强度主张措辞；机器不据此判断错误，请对照 Claim Evidence Level、检验范围和实际证据决定是否保留或降级。",
+                match.group(0),
+            ))
 
     for match in PARAM_ASSIGN_RE.finditer(main):
         left = max(0, match.start() - 180)
@@ -579,7 +644,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Audit final LaTeX prose, structure, BibTeX and registered paper semantics.")
     parser.add_argument("tex", type=Path, help="LaTeX main file to audit")
     parser.add_argument("--bib", type=Path, help="Optional references.bib path; defaults to tex directory/references.bib when present")
-    parser.add_argument("--framework", type=Path, help="Optional 模型论文框架.md for Terminology/Numeric Profile checks")
+    parser.add_argument("--framework", type=Path, help="Optional 模型论文框架.md for Terminology/Numeric Profile/writing-status checks")
     parser.add_argument("--strict", action="store_true", help="Return exit code 1 for blocking or review_required findings")
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     args = parser.parse_args()

@@ -1,6 +1,23 @@
 # Changelog
 
-## Current release: 7.15.0
+## Current release: 7.16.0
+
+- Restored and strengthened the paper-writing specification without reviving the legacy full-auto architecture. Existing single-authority governance remains centered on `core/writing_reasoning_contract.yaml`, `modules/05_writing/latex.md`, project memory and accepted workbooks.
+- Added explicit **Model / Solver / Validator** role separation so mathematical model identity cannot be replaced by solver names, validation algorithms, software or implementation architecture.
+- Added **Model Naming** governance: project-specific model names remain allowed, but first formal use must expose the standard mathematical model type and the load-bearing problem structure.
+- Added **Optimization Model Expression** closure for optimization/scheduling/routing/allocation/control problems: standard model type and real objective → decision variables/objects → objective function and interpretation → constraints by source → adaptive core-model summary → solver/validation.
+- Upgraded optimization abstracts so they must communicate what is being optimized; listing decision variables and an algorithm without objective semantics is no longer considered model-information closure.
+- Added **Solver Justification** for first use, cross-question reuse, solver changes and alternative-method evidence. Alternative algorithms enter the paper only when actually run and traceable as baseline, alternative or validator with comparable evidence.
+- Added **Subsection Granularity** governance focused only on second-level subsections inside question chapters. About 3–4 major units is a default reading structure, not a hard count; top-level chapter count is not restricted, and count alone cannot decide section quality.
+- Added five-level **Claim Strength Calibration** (`PROVEN`, `VERIFIED_NUMERIC`, `COMPARATIVE`, `OBSERVED`, `HEURISTIC`) to stop numerical/heuristic evidence from being polished into unsupported proof, global-optimality, universal-comparison or strong-robustness claims. Abstract wording receives the strictest scope review.
+- Extended the existing `v0.8-project-memory` model-paper framework with standard model type, formal model name, Model/Solver/Validator roles, optimization-objective abstract closure, solver evidence roles, subsection planning, and headline claim Evidence Level/Scope, without a framework schema-version migration.
+- Extended model design and final review so paper-ready model identity and algorithm rationale are captured upstream rather than reconstructed during writing from chat memory.
+- Extended `scripts/audit_paper_prose.py` conservatively: question-subsection fragmentation and unresolved framework objective/granularity states produce review findings; explicit `HEURISTIC + global optimum` framework conflicts block delivery; raw strong wording remains a warning unless registered semantics establish a deterministic contradiction.
+- Removed the obsolete expectation that every complex question must have a standalone `核心模型汇总` subsection. Core-model summary remains adaptive (`required / inline / not_applicable`) and may close the model-construction subsection directly.
+- Added v7.16 regression coverage for model identity, optimization abstract/objective closure, model-before-solver order, algorithm justification, subsection scope, claim calibration, framework storage and prose-audit behavior.
+- Preserved v7.15 Primary/Analysis Evidence Capture, Scientific Figure Synthesis, v7.14 PQS/Verification-ID semantics, Workbook and Project State schemas, the per-question five-file layout, user-owned full-fidelity execution, caption-owned formal figure titles, LaTeX attestation/submission provenance and legacy read compatibility. Historical accepted numerical results are not forced to rerun solely for the writing upgrade.
+
+## Previous release: 7.15.0
 
 - Added capability-driven **Primary Evidence Capture** to the primary-solve stage: current-run decision/state/process/structure evidence that is already produced by the locked computation may be retained in the accepted-candidate workbook instead of being collapsed to final-answer-only summaries.
 - Preserved the v7.14 primary/result-analysis semantic boundary: any evidence that requires changing parameters, scenarios, seeds, initial values, algorithms, model structure or validation windows and re-running an alternative world remains exclusively in post-acceptance result analysis.

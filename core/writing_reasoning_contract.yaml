@@ -1,9 +1,9 @@
 schema_version: 1.3.0
 role: >-
   跨数学建模竞赛的正文推理与证据治理权威。约束核心公式的来源—推导—去向、共享基础模型、
-  跨问递进、结构化简、Algorithm Trace 与算法流程呈现、数值参数证据、命题预算、引用证据、
-  术语一致性、数字与单位展示、标题主张、深化证据处置和正文必要性；不规定具体题型、固定算法、
-  固定章节名或载体排版细节。
+  跨问递进、结构化简、模型/求解器/验证器角色、优化模型表达、算法说明、数值参数证据、命题预算、
+  引用证据、术语一致性、数字与单位展示、标题主张、深化证据处置和正文必要性；不规定具体题型、
+  固定算法、固定章节名或载体排版细节。
 
 scope:
   competitions: all
@@ -20,6 +20,7 @@ scope:
   anti_template_boundary:
     - 不从单一优秀论文复制固定句式、算法名、章节编号或题目专属模型。
     - 不要求所有论文设置“模型准备”、问题关系图、命题、核心模型汇总独立小节、正式算法框或统一敏感性章节。
+    - 不按固定标题数量判定论文质量；章节层级由当前论证链和真实数学结构决定。
     - 规则只抽象可跨题型复用的推理结构，具体章节和证据按当前赛题决定。
 
 rule_governance:
@@ -49,6 +50,10 @@ rule_governance:
         - local_result_evidence_loop
         - adaptive_core_model_summary
         - adaptive_algorithm_presentation
+        - optimization_model_expression
+        - model_solver_validator_role_separation
+        - first_use_solver_justification
+        - subsection_granularity
         - title_claim_closure
         - abstract_without_figures_tables_or_display_math
     recommendation:
@@ -179,6 +184,153 @@ structure_before_algorithm:
     - final_solver_selection
   writing_order: problem_structure -> simplification_or_decomposition -> effective_search_space -> algorithm
   prohibition: 不以“变量多/问题复杂”为唯一理由直接调用GA、PSO、DE、ALNS、深度学习或其他高级方法。
+
+model_solver_validator_roles:
+  governance_level: default
+  definitions:
+    model: 数学上求什么；由状态/决策变量、关系、目标、约束、初边值或概率结构等构成。
+    solver: 如何求解或估计既定模型；包括精确求解器、数值算法、启发式、分解与局部精修。
+    validator: 如何独立检查求解结果或主张；包括替代算法、重复运行、网格/边界检查、上下界、残差或外样本验证。
+  rules:
+    - 首次正式介绍方法时必须能区分 model、solver 与 validator；不得把软件、求解器或验证算法直接写成模型类型。
+    - “计划库—主问题—连续精修”“全局搜索—局部精修”等属于求解架构，只有其本身改变数学问题定义时才可进入模型名称。
+    - 摘要、标题和问题分析若提到算法，必须保留模型本体的主位；算法数量不能替代模型信息完整性。
+    - 同一方法若兼具 solver 与 validator 角色，必须按具体实验分别说明，不能用一个名称模糊两种证据职责。
+  machine_audit_scope:
+    may_review:
+      - declared_model_type_is_only_solver_name
+      - validator_described_as_primary_model_without_model_context
+    must_not_claim:
+      - semantic_role_from_method_name_only
+      - model_type_correctness_from_keywords_only
+
+model_naming:
+  governance_level: default
+  principle: >-
+    题目专属名称可以保留，但首次正式出现时必须让评委识别其标准数学类型以及真正的核心结构；
+    专属机制用于增加辨识度，不能替代“优化、微分、回归、时间序列、图、仿真”等数学类型信息。
+  preferred_pattern:
+    - domain_mechanism_plus_standard_model_type
+    - standard_model_type_plus_domain_mechanism
+  standard_type_examples:
+    - continuous_optimization
+    - nonlinear_optimization
+    - nonsmooth_optimization
+    - mixed_integer_optimization
+    - multiobjective_optimization
+    - differential_equation
+    - regression
+    - time_series
+    - graph_network
+    - simulation_dynamic_system
+    - probabilistic_model
+  rules:
+    - 自定义模型名首次出现时，邻近文本至少一次给出标准模型类型。
+    - 模型名不应只描述结果对象或集合运算而完全看不出数学模型类别。
+    - 后文可使用简化专属名称，但必须与首次定义保持同一语义。
+  machine_audit_scope:
+    may_review:
+      - registered_model_name_missing_standard_type
+    must_not_claim:
+      - standard_model_type_from_surface_wording_without_project_semantics
+
+optimization_model_expression:
+  governance_level: default
+  applies_when_any:
+    - optimization_objective_exists
+    - scheduling_routing_allocation_control_problem
+    - decision_variables_and_feasible_region_define_solution
+  paper_information_order:
+    - standard_model_type_and_real_objective
+    - decision_variables
+    - objective_function
+    - objective_interpretation
+    - constraints_grouped_by_source
+    - adaptive_core_model_summary
+    - solver_and_validation
+  decision_variable_rule: >-
+    决策变量必须说明现实含义、单位/定义域和连续/离散属性；辅助变量可在约束附近定义，但不能让主决策变量藏在算法段。
+  objective_rule: >-
+    目标函数必须显式展示，并解释其为何等价或近似对应题目要求。多目标时必须说明量纲处理、优先级、权重或 Pareto 规则。
+  constraint_groups:
+    - physical_or_mechanism
+    - temporal
+    - resource
+    - logical_or_assignment
+    - boundary_or_feasible_domain
+    - service_risk_or_quality
+  constraint_rule: 核心约束按现实来源或数学作用组织并解释，不把一长串公式留给评委自行猜测含义。
+  summary_rule: >-
+    复杂优化模型通常在解释完变量、目标和约束后用 objective + s.t. 汇总最终可计算模型；该汇总是 recap，不能替代前述解释。
+  solver_order_rule: solver 和 validator 在模型语义闭合之后出现，不用“采用某算法”代替目标函数或约束定义。
+  abstract_minimum:
+    required_semantics:
+      - standard_model_type
+      - major_decision_variables_or_decision_object
+      - objective_function_meaning
+      - main_solver_or_solution_structure
+      - headline_result
+      - direct_answer
+    key_constraints: include_when_decisive_or_space_allows
+    rule: >-
+      优化类摘要若缺失目标函数含义，视为模型信息不闭合；不要求在摘要写完整公式，但必须让读者知道“优化什么”。
+  machine_audit_scope:
+    may_review:
+      - optimization_summary_declared_but_objective_semantics_missing
+      - solver_appears_before_declared_model_semantics_in_registered_outline
+    must_not_claim:
+      - objective_correctness_from_prose_pattern
+      - constraint_completeness_from_formula_count
+
+solver_justification:
+  governance_level: default
+  first_use_chain:
+    - current_mathematical_structure_or_difficulty
+    - reason_solver_family_fits_or_direct_method_is_insufficient
+    - solver_role_in_current_question
+  repeated_use_rule: >-
+    同一算法在后问沿用时不重复算法百科；说明继承了哪些结构，因此该算法仍适用，并只写新增编码、约束或搜索变化。
+  changed_solver_rule: >-
+    更换求解器时说明新增的离散性、非光滑、规模、不确定性、分解结构或可证明性质怎样改变了求解需求。
+  alternative_method_rule: >-
+    正文写“同时采用/另用某算法”时，该方法必须实际运行且有 artifact；必须标明 baseline、alternative 或 validator 角色，
+    给出对应指标、误差、结构结论或未发现更优的范围，禁止为增加工作量观感而堆算法名。
+  failure_rule: 仅以“算法先进、收敛快、应用广泛”作为选择理由不合格，必须回到本题模型结构。
+  machine_audit_scope:
+    may_review:
+      - first_use_solver_without_declared_local_reason
+      - alternative_algorithm_without_declared_role_or_evidence_anchor
+    must_not_claim:
+      - solver_is_best_from_justification_text
+      - convergence_or_global_optimality_from_algorithm_name
+
+subsection_granularity:
+  governance_level: default
+  scope: within_question_sections_only
+  principle: >-
+    控制问题章节内部二级小节的逻辑颗粒度，不限制一级章节数量。减少标题数量的目标是保持连续论证，不是删减技术内容。
+  preferred_question_section_shape:
+    - model_construction
+    - model_solution
+    - result_analysis
+    - optional_validation_sensitivity_or_robustness
+  review_triggers:
+    - more_than_four_second_level_subsections_without_independent_argument_need
+    - subsection_contains_only_one_formula_table_or_figure
+    - adjacent_subsections_form_one_unbroken_argument_chain
+    - decision_variables_objective_constraints_summary_split_mechanically
+    - boundary_ablation_independent_challenge_each_split_despite_same_validation_role
+  merge_preferences:
+    - decision_variables_objective_constraints_and_summary -> model_construction
+    - active_boundary_and_solver_refinement -> model_solution_or_validation
+    - ablation_independent_algorithm_challenge_local_neighborhood -> result_analysis_or_validation_when_same_claim
+  hard_count_limit: false
+  machine_audit_scope:
+    may_review:
+      - declared_question_subsection_count_risk
+    must_not_claim:
+      - subsection_should_merge_from_count_only
+      - section_quality_from_heading_density_only
 
 algorithm_presentation:
   governance_level: default
@@ -352,6 +504,51 @@ multi_method_validation:
     structural_consistency: >-
       决策变量区间、活跃约束、变量排序、策略结构、重要性、系数方向、分群结构或关键结论是否一致。
   rule: 只比较单个目标值不能自动推出模型可靠；第二层按题型选择，不要求所有模型拥有相同结构指标。
+
+claim_strength_calibration:
+  governance_level: hard_for_false_scope_default_for_wording
+  principle: >-
+    主张强度不得超过证据强度。严格证明、数值验证、基线比较、样本观察和启发式搜索具有不同证据边界；
+    摘要因信息密度高且最容易放大措辞，执行最严格的范围校准。
+  evidence_levels:
+    PROVEN:
+      evidence: rigorous_mathematical_proof
+      allowed_claims: [proves, establishes_under_stated_conditions, necessary_or_sufficient_when_proved]
+    VERIFIED_NUMERIC:
+      evidence: independent_numerical_recheck_multistart_resolution_or_boundary_validation
+      allowed_claims: [supports_within_tested_range, no_better_solution_found_in_checked_scope, numerically_consistent]
+    COMPARATIVE:
+      evidence: actually_run_baseline_or_alternative_with_comparable_metric
+      allowed_claims: [improves_by_reported_amount_against_named_baseline, performs_better_on_tested_metric]
+    OBSERVED:
+      evidence: current_sample_scenario_or_solution_observation
+      allowed_claims: [observed_in_current_case, indicates_or_suggests_with_scope]
+    HEURISTIC:
+      evidence: heuristic_or_local_search_solution_without_global_certificate
+      allowed_claims: [best_found_solution, current_certified_or_verified_solution_when_certificate_is_defined]
+  prohibited_upgrades:
+    - HEURISTIC_or_VERIFIED_NUMERIC -> global_optimum_without_certificate
+    - OBSERVED -> universal_law
+    - COMPARATIVE -> better_than_all_existing_methods
+    - numerical_consistency -> mathematical_proof
+    - untested_robustness -> strong_robustness_claim
+  chinese_wording_rules:
+    - “显著提高/显著降低”只有在统计显著性或项目已定义的显著阈值成立时使用；否则报告具体变化量或比例。
+    - “证明模型有效/证明方案最优”只有对应严格证明时使用；数值证据改写为“支持、验证、在所检验范围内保持”。
+    - “鲁棒性很强/稳定性很好”必须改写为具体扰动范围、独立挑战范围以及保持不变的主张。
+    - “全局最优”必须有严格证明、可验证全局最优性证书或与项目一致的等价证据；启发式、多启动或独立算法未发现更优不自动构成证明。
+  machine_audit_scope:
+    may_block:
+      - registered_evidence_level_conflicts_with_global_optimality_claim
+      - numerical_experiment_explicitly_called_mathematical_proof
+    may_review:
+      - strong_robustness_wording_without_declared_range_anchor
+      - significance_wording_without_declared_significance_evidence
+      - universal_comparison_without_declared_comparison_scope
+    must_not_claim:
+      - evidence_level_from_adjective_alone
+      - proof_validity_from_presence_of_proof_words
+      - statistical_significance_without_test_metadata
 
 analysis_evidence_disposition:
   governance_level: default
@@ -538,6 +735,7 @@ prose_style:
     - frequent_self_negation_or_disclaimer
     - deliberate_grammar_degradation
     - mechanical_synonym_replacement
+    - unsupported_boastful_claim_strength
   human_reasoning_trace:
     allow:
       - 指出当前还缺哪个量或条件
@@ -580,9 +778,15 @@ machine_audit_boundary:
     - title_claim_without_complete_declared_evidence
     - abstract_contains_figure_table_or_display_math_without_exception
     - algorithm_presentation_mode_inconsistent_with_declared_trace
+    - optimization_abstract_missing_objective_semantics
+    - optimization_section_role_or_order_risk
+    - solver_first_use_without_local_justification
+    - question_subsection_fragmentation_risk
+    - strong_claim_without_declared_evidence_scope
   may_block:
     - deterministic_structural_error_such_as_missing_citation_key_or_duplicate_label
     - unresolved_cross_reference
+    - registered_evidence_scope_conflicts_with_global_optimality_claim
   must_not_claim:
     - mathematical_correctness_from_regex
     - formula_source_semantic_validity_from_keywords_only
@@ -591,6 +795,8 @@ machine_audit_boundary:
     - terminology_equivalence_from_string_similarity_only
     - physical_or_statistical_accuracy_from_decimal_places_only
     - algorithm_correctness_or_convergence_from_pseudocode_shape_only
+    - model_type_correctness_from_method_name_only
+    - subsection_quality_from_heading_count_only
 
 authority_boundaries:
   reasoning_authority: core/writing_reasoning_contract.yaml
