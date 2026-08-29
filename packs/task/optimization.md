@@ -118,6 +118,8 @@ VALIDATOR  = 怎样独立检查当前求解结果或主张
 - 使用 surrogate / decomposition 时，保存最终推荐方案在 original objective / constraints 下的回算结果；
 - 工作簿保留推荐方案、决策变量明细、约束实际值/裕量、当前算法自然产生的候选与必要 convergence/gap trace，以及本次主计算已真实执行的原模型回算证据。
 
+上述 probe、弃置域检查和 original-model reevaluation 只说明当前 solver/候选方案的真实求解语义与证据边界；**它们是否成为 blocking PQS 项仍完全服从 `core/numerical_verification_contract.yaml` 与当前 locked model 的既有 capability，不因本 Pack 自动新增主质量门。**
+
 ### 03B：accepted 后的结论深化
 
 替代算法比较、参数扰动、压力场景、多 seed / 多初值**结论稳定性**、结构替换、广义鲁棒性与更多 failure-boundary 搜索属于 accepted 后的 Module 03B。多算法验证除主指标外，应按题型比较决策变量区间、活跃约束、策略结构等结构一致性；只比较一个目标值不能自动推出模型可靠。
