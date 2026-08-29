@@ -69,7 +69,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
             ["need", "basis", "formula", "meaning", "consequence"],
         )
         self.assertIn("符号已经定义后", formula["meaning_priority"])
-        self.assertIn("公式后的结构作用", self.latex)
+        self.assertIn("公式后优先说明它如何改变判据、可行域、目标、候选域或计算结构", self.latex)
         self.assertNotIn("Need：", self.latex)
         self.assertNotIn("Basis：", self.latex)
 
@@ -124,7 +124,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         self.assertLess(order.index("current_model_structure_or_computational_difficulty"), order.index("solver_family_fit"))
         self.assertLess(order.index("exploitable_property_or_completed_simplification"), order.index("solver_family_fit"))
         self.assertTrue(bridge["generic_algorithm_praise_is_insufficient"])
-        self.assertIn("不使用“下面进行模型求解”作为唯一过渡", self.latex)
+        self.assertIn("不用“下面进行模型求解”作为唯一过渡", self.latex)
         self.assertIn("求解段一开始就是算法名或算法优点", self.cleanup)
 
     def test_result_adjacent_interpretation_has_three_adaptive_profiles(self):
