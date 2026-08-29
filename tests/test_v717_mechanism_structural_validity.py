@@ -28,6 +28,7 @@ class TestV717MechanismStructuralValidity(unittest.TestCase):
             "heuristic",
             "solver applicability probe",
             "Multi-resource Composition",
+            "exists-forall",
             "Surrogate / Decomposition",
             "original-model reevaluation",
             "数值一致不能替代等价性证明",

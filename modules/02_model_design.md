@@ -285,7 +285,7 @@ dimension
 single-evaluation cost
 ```
 
-该 probe 是 solver 适配诊断，不是主结果，也不是 03B 的参数敏感性。审批前只能定义 protocol、阈值来源、solver 分支与 fallback，不能由助手执行题目专属数值试跑。若用户批准的是“probe 判据 → solver A/B 分支”的完整条件式策略，则用户本地 full-fidelity 执行可按该已批准策略选择分支；若实际 probe 触发了未在批准语义内的新算法、搜索域或模型修改，则现有 semantic governance 使旧 approval stale，并回到本模块重新审查。
+该 probe 是 solver 适配诊断，不是主结果，也不是 03B 的参数敏感性。审批前只能定义 protocol、阈值来源、solver 分支与 fallback，不能由助手执行题目专属数值试跑。若用户批准的是“probe 判据 → solver A/B 分支”的完整条件式策略，则用户本地 full_fidelity 执行可按该已批准策略选择分支；若实际 probe 触发了未在批准语义内的新算法、搜索域或模型修改，则现有 semantic governance 使旧 approval stale，并回到本模块重新审查。
 
 当有效目标区域和局部变化区域极稀疏、有限差分长期近零或事件判据造成明显跳变时，局部梯度法不得作为唯一主 solver；应优先考虑进一步结构缩域、候选生成、全局/无导数搜索、分解或“全局粗搜 + 局部精修”。
 
@@ -294,7 +294,7 @@ single-evaluation cost
 多个资源共同作用时，必须明确真实组合语义，例如：
 
 ```text
-sum / union / intersection / max / min / forall-exists / custom
+sum / union / intersection / max / min / forall-exists / exists-forall / custom
 ```
 
 并写出相应数学关系、重叠/互补/同步/共享约束和量词顺序。时长相加不自动等于区间并集；单资源独立最优不自动等于联合最优；存在合作覆盖时不得把多资源问题静默解耦为多个独立单体。
