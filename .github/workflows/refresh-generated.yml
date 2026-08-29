@@ -36,37 +36,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Apply v7.17 release carriers
-        run: python scripts/_release_v717_temp.py
       - name: Rebuild active indexes and manifest
         run: python scripts/generate_indexes.py
-      - name: Commit v7.17 release and generated metadata
+      - name: Commit generated metadata when changed
         run: |
-          paths=(
-            SKILL.md
-            skills/mathmodel-skill/SKILL.md
-            README.md
-            CHANGELOG.md
-            .codex-plugin/plugin.json
-            core/bootstrap.yaml
-            core/output_contract.yaml
-            core/module_manifest.yaml
-            core/workflow_router.yaml
-            core/hsk_core_policy.md
-            docs/mechanism-structural-validity-hardening-plan.md
-            tests/test_v7141_skill_health.py
-            SKILL_FILE_INDEX.md
-            TEMPLATE_INDEX.md
-            HSK_SKILL_FILE_INDEX_V622.md
-            HSK_TEMPLATE_INDEX_V622.md
-            MANIFEST.sha256
-          )
-          if git diff --quiet -- "${paths[@]}"; then
-            echo "Release carriers and generated metadata are current."
+          if git diff --quiet -- SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256; then
+            echo "Generated metadata is current."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "${paths[@]}"
-          git commit -m "chore: release v7.17.0"
+          git add SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
+          git commit -m "chore: refresh generated repository metadata"
           git push
