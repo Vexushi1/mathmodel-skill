@@ -83,8 +83,8 @@
   - core/numerical_verification_contract.yaml（第一轮冻结）
   - core/workbook_schema.yaml
   - core/project_state.schema.yaml
-  - core/workflow_router.yaml
-  - core/module_manifest.yaml
+  - core/workflow_router.yaml（语义冻结；Phase 6 仅允许顶层 version carrier 从 7.16.0 同步为 7.17.0）
+  - core/module_manifest.yaml（语义冻结；Phase 6 仅允许顶层 version carrier 从 7.16.0 同步为 7.17.0）
   - Python/MATLAB/LaTeX 题目模板（除非实施中出现被现有测试证明的真实闭环缺口，并需单独评估是否拆 PR）
 兼容性要求：
   - 旧项目继续可读、可运行；

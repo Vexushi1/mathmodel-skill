@@ -1,6 +1,20 @@
-# mathmodel-skill v7.16.0
+# mathmodel-skill v7.17.0
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环与复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement → Figure Portfolio Review → LaTeX 终稿（优化模型表达/算法理由/小节颗粒度/Claim Strength）→ AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement → Figure Portfolio Review → LaTeX 终稿（优化模型表达/算法理由/小节颗粒度/Claim Strength）→ AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v7.17.0：Mechanism Structural Validity Hardening
+
+本版本面向机理、几何、连续事件与混合优化题补强 Solver 之前最容易被忽略的结构层，同时保持现有 Problem Contract、Model Challenge、Human Approval、03A/03B、Workbook Schema、Project State 和用户 full-fidelity 执行边界不变。
+
+- Module 02 新增按需 **Predicate Closure**：明确 physical event、object domain / active-visible subset、reference frame、exact predicate、quantifier order，以及 line/ray/segment/surface/volume 的真实语义；独立等价判据可用于实现交叉复核，但数值一致不能替代数学等价证明。
+- 新增 **Event Topology / Boundary** 协议：连续事件允许由多个区间组成；二分、牛顿或局部搜索必须给出有效 bracket、局部结构、端点更新、容差与 fallback，禁止把全局 `0→1→0` 事件直接当成单调区间二分。
+- 新增 **Reduction Provenance**：结构缩域明确区分 `exact / proven_sufficient / heuristic`。heuristic 缩域必须记录弃置域检查与真实 claim scope，有限采样未发现反例不能升级成全域证明。
+- 新增 **Solver Applicability / Objective Landscape**：先从平滑性、凸性、可行域稀疏、平台、事件跳变、维数和单次评价成本解释 Solver 适配；必要的 empirical probe 必须作为 Human Approval 后的预先定义条件分支，禁止跨赛题固定阈值和 post-hoc 判据。
+- 新增 **Multi-resource Composition**：显式区分 `sum / union / intersection / max / min / forall-exists / exists-forall / custom`，避免把并集写成简单时长相加、把 `∀x∃i` 错写成 `∃i∀x` 或把真实协同错误解耦。
+- 新增 **Surrogate / Decomposition → Original Model Reevaluation**：由 surrogate、pairwise capability、relaxation 或分解得到的最终候选必须回到原始目标函数和全部原始硬约束重新计算，surrogate score 不得冒充 headline result。
+- mechanism / optimization Task Pack 明确 03A 只承担当前 locked model 的内在有效性；参数敏感性、压力场景、替代模型/算法、多 seed / 多初值 claim stability 与更广失效边界继续属于 accepted 后的 03B。
+- `模型论文框架.md` 继续使用 `v0.8-project-memory`，只增加按需结构有效性事实与 evidence anchor，不新增 Schema、Gate、项目级报告或 taxonomy capability。
+- 新增 v7.17 回归测试，锁定 Shared Foundation、Model Approval、Numerical Verification、PQS 和 03A/03B 单一 Authority 边界，防止后续 architecture creep。
 
 ## v7.16.0：Paper Writing Specification & Model Expression Closure
 

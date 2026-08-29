@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.16.0
-summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, independent Model Reviewer plus Devil's Advocate challenge, explicit Human Model Approval bound to the current semantic revision/hash, evidence-driven conditional preprocessing, full-fidelity user execution, capability-driven primary numerical validity with independent evidence recheck, evidence-ready Primary Evidence Capture, separate primary/result-analysis Python stages, fine-grained Analysis Evidence Capture, project-memory model-paper framework, Source-Derivation-Destination formula traces, explicit Model/Solver/Validator roles, optimization model expression closure, adaptive Algorithm Trace with stepwise/pseudocode presentation, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware high-precision Numeric Profile, Title Claim Gate, evidence-level claim calibration, question-subsection granularity review, support/modify/reject analysis evidence, local paper-fragment stale propagation, Paragraph Necessity, MATLAB Scientific Figure Synthesis with caption-owned formal titles, high-contrast composite visualization and evidence-driven Figure Enhancement, formal LaTeX audit/compile attestation, and validated submission-package provenance.
+version: 7.17.0
+summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, independent Model Reviewer plus Devil's Advocate challenge, explicit Human Model Approval bound to the current semantic revision/hash, mechanism/geometry structural-validity closure with Predicate Closure, Event Topology, Reduction Provenance, Solver Applicability, multi-resource composition and original-model reevaluation, evidence-driven conditional preprocessing, full-fidelity user execution, capability-driven primary numerical validity with independent evidence recheck, evidence-ready Primary Evidence Capture, separate primary/result-analysis Python stages, fine-grained Analysis Evidence Capture, project-memory model-paper framework, Source-Derivation-Destination formula traces, explicit Model/Solver/Validator roles, optimization model expression closure, adaptive Algorithm Trace with stepwise/pseudocode presentation, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware high-precision Numeric Profile, Title Claim Gate, evidence-level claim calibration, question-subsection granularity review, support/modify/reject analysis evidence, local paper-fragment stale propagation, Paragraph Necessity, MATLAB Scientific Figure Synthesis with caption-owned formal titles, high-contrast composite visualization and evidence-driven Figure Enhancement, formal LaTeX audit/compile attestation, and validated submission-package provenance.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX, 终审, 提交包]
 ---
 
-# HSK 数学建模模块化工作流 v7.16.0
+# HSK 数学建模模块化工作流 v7.17.0
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -28,7 +28,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 
 ## 默认执行
 
-先读 `core/bootstrap.yaml`，再由 `scripts/resolve_runtime.py` 按任务加载最小模块集；只有显式 legacy 兼容调用才直接使用 `scripts/resolve_workflow.py`。Problem Contract 冻结后先完成非破坏性数据审计与模型路线/数据需求比较，随后锁定 `preprocessing_decision`，再完成题面—数学—代码—输出语义闭环和 Complexity Sanity Check；达到设计完整性后形成 `proposed_model_spec`，再执行独立 Model Reviewer 与 Devil's Advocate 两次 Model Challenge。Challenge 通过后生成 Model Approval Brief，并停在 `awaiting_model_approval`；只有用户明确批准当前 `semantic_revision/hash` 后才形成 current `locked_model_spec`。正式项目级预处理或主求解代码前还必须按 resolver 返回顺序通过 `scripts/validate_semantic_governance.py` 与 `scripts/validate_model_approval.py`。
+先读 `core/bootstrap.yaml`，再由 `scripts/resolve_runtime.py` 按任务加载最小模块集；只有显式 legacy 兼容调用才直接使用 `scripts/resolve_workflow.py`。Problem Contract 冻结后先完成非破坏性数据审计与模型路线/数据需求比较，随后锁定 `preprocessing_decision`，再完成题面—数学—代码—输出语义闭环，并按需完成机理/几何结构有效性闭合和 Complexity Sanity Check；达到设计完整性后形成 `proposed_model_spec`，再执行独立 Model Reviewer 与 Devil's Advocate 两次 Model Challenge。Challenge 通过后生成 Model Approval Brief，并停在 `awaiting_model_approval`；只有用户明确批准当前 `semantic_revision/hash` 后才形成 current `locked_model_spec`。正式项目级预处理或主求解代码前还必须按 resolver 返回顺序通过 `scripts/validate_semantic_governance.py` 与 `scripts/validate_model_approval.py`。
 
 ### 项目工作记忆
 
