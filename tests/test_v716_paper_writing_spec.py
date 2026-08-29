@@ -113,7 +113,7 @@ class TestV716PaperWritingSpec(unittest.TestCase):
         self.assertIn("不建立第二套正文写作规则", self.cleanup)
         self.assertIn("优化类模型先出现 DE、GA、PSO、ALNS、Dual Annealing", self.cleanup)
         self.assertIn("自定义模型名", self.cleanup)
-        self.assertIn("一个二级小节只有一个公式、一张表或一幅图", self.cleanup)
+        self.assertIn("一个二级或三级小节只有一个公式、一张表或一幅图", self.cleanup)
         self.assertIn("摘要中用“先进、高效、精确、最优、显著、强鲁棒”", self.cleanup)
 
     def test_review_keeps_granularity_default_not_blocking(self):
