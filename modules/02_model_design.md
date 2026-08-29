@@ -294,7 +294,7 @@ single-evaluation cost
 多个资源共同作用时，必须明确真实组合语义，例如：
 
 ```text
-sum / union / intersection / max / min / forall-exists / custom
+sum / union / intersection / max / min / forall-exists / exists-forall / custom
 ```
 
 并写出相应数学关系、重叠/互补/同步/共享约束和量词顺序。时长相加不自动等于区间并集；单资源独立最优不自动等于联合最优；存在合作覆盖时不得把多资源问题静默解耦为多个独立单体。

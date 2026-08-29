@@ -64,11 +64,19 @@ class CurrentSkillHealthTests(unittest.TestCase):
             "v7.14_primary_numerical_validity_plan.md",
             "v7.14.1_skill_health_hygiene_plan.md",
             "v7.15_scientific_figure_elevation_plan.md",
+            "v7.16_paper_writing_skill_rollback_and_optimization_plan.md",
+            "v7.17_mechanism_structural_validity_hardening_plan.md",
         )
         for name in archived:
             self.assertTrue((ROOT / "legacy/architecture" / name).is_file(), name)
 
-        self.assertFalse((ROOT / "V7_15_0_SCIENTIFIC_FIGURE_ELEVATION_PLAN.md").exists())
+        for relative in (
+            "V7_15_0_SCIENTIFIC_FIGURE_ELEVATION_PLAN.md",
+            "docs/paper-writing-skill-rollback-and-optimization-plan.md",
+            "docs/mechanism-structural-validity-hardening-plan.md",
+        ):
+            self.assertFalse((ROOT / relative).exists(), relative)
+
         legacy_readme = (ROOT / "legacy/README.md").read_text(encoding="utf-8")
         self.assertIn("architecture/", legacy_readme)
 
