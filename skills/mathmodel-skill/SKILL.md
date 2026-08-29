@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.17.0
-summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, independent Model Reviewer plus Devil's Advocate challenge, explicit Human Model Approval bound to the current semantic revision/hash, mechanism/geometry structural-validity closure with Predicate Closure, Event Topology, Reduction Provenance, Solver Applicability, multi-resource composition and original-model reevaluation, evidence-driven conditional preprocessing, full-fidelity user execution, capability-driven primary numerical validity with independent evidence recheck, evidence-ready Primary Evidence Capture, separate primary/result-analysis Python stages, fine-grained Analysis Evidence Capture, project-memory model-paper framework, Source-Derivation-Destination formula traces, explicit Model/Solver/Validator roles, optimization model expression closure, adaptive Algorithm Trace with stepwise/pseudocode presentation, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware high-precision Numeric Profile, Title Claim Gate, evidence-level claim calibration, question-subsection granularity review, support/modify/reject analysis evidence, local paper-fragment stale propagation, Paragraph Necessity, MATLAB Scientific Figure Synthesis with caption-owned formal titles, high-contrast composite visualization and evidence-driven Figure Enhancement, formal LaTeX audit/compile attestation, and validated submission-package provenance.
+version: 7.18.0
+summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, independent Model Reviewer plus Devil's Advocate challenge, explicit Human Model Approval bound to the current semantic revision/hash, mechanism/geometry structural-validity closure with Predicate Closure, Event Topology, Reduction Provenance, Solver Applicability, multi-resource composition and original-model reevaluation, evidence-driven conditional preprocessing, full-fidelity user execution, capability-driven primary numerical validity with independent evidence recheck, evidence-ready Primary Evidence Capture, separate primary/result-analysis Python stages, fine-grained Analysis Evidence Capture, project-memory model-paper framework, Source-Derivation-Destination formula traces, explicit Model/Solver/Validator roles, optimization model expression closure, continuous model-establishment/solution narrative with functional transitions, professional heading semantics and result-adjacent interpretation, adaptive Algorithm Trace with stepwise/pseudocode presentation, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware high-precision Numeric Profile, Title Claim Gate, evidence-level claim calibration, question-subsection granularity review, support/modify/reject analysis evidence, local paper-fragment stale propagation, Paragraph Necessity, MATLAB Scientific Figure Synthesis with caption-owned formal titles, high-contrast composite visualization and evidence-driven Figure Enhancement, formal LaTeX audit/compile attestation, and validated submission-package provenance.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX, 终审, 提交包]
 ---
 
-# HSK 数学建模模块化工作流 v7.17.0
+# HSK 数学建模模块化工作流 v7.18.0
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -118,6 +118,8 @@ LaTeX 是默认论文主链。写作阶段不在入口文件复制正文规则�
 - `modules/06_review_delivery.md`：只检查和分级，不重新定义写作规则。
 
 v7.16 进一步要求论文先恢复**数学模型本体**，再介绍 solver/validator：优化题默认按“标准模型类型与现实目标 → 决策变量/对象 → objective → objective 含义 → 约束 → 核心模型汇总 → solver/validator”组织；优化类摘要至少明确“优化什么”。题目专属模型名可以保留，但首次出现要能识别标准数学类型。solver 第一次使用说明本题结构理由，跨问复用/更换说明继承或结构增量；另用算法只有存在真实 artifact 时才写成 baseline/alternative/validator。问题章节内部二级小节默认保持紧凑连续，超过约 3--4 个只触发 review，不限制一级章节数量。摘要和正文的强 claim 按 `PROVEN / VERIFIED_NUMERIC / COMPARATIVE / OBSERVED / HEURISTIC` 校准，有限数值验证不得升级成全局最优证明。
+
+v7.18 进一步强化**模型建立—模型求解—结果解释的连续数学叙事**：进入具体小问后不重复问题分析、模型假设和题面；核心关系围绕“当前还缺什么量/判据 → 为什么这样建式 → 关系带来什么结构变化 → 下一步如何使用”自然推进；solver 必须由真实模型结构、计算困难或已完成的化简自然引出，而不是先写算法百科；小节标题优先对应对象与独立数学任务，不按决策变量/目标/约束等合同字段机械拆分；关键最优值、曲线和验证证据在邻近位置解释其决策含义、形成机制和设问结论。这些规则只约束写作组织，不改变已批准模型、数值事实、Model Approval、03A/03B 或 Workbook/Project State 语义。
 
 核心模型收束按 `required / inline / not_applicable` 自适应；算法流程按 `not_needed / stepwise / pseudocode` 自适应；命题 0--4 是默认正文阅读预算而非 Hard 上限；优点与缺点没有强制数量关系。需要外部证据的核心 claim 通过 Citation Evidence 连接正文位置与 `references.bib`。
 

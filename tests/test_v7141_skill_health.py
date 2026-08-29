@@ -13,22 +13,23 @@ class CurrentSkillHealthTests(unittest.TestCase):
         root_skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         packaged_skill = (ROOT / "skills/mathmodel-skill/SKILL.md").read_text(encoding="utf-8")
 
-        self.assertEqual(bootstrap.get("skill_version"), "7.17.0")
-        self.assertEqual(str(plugin.get("version")), "7.17.0")
+        self.assertEqual(bootstrap.get("skill_version"), "7.18.0")
+        self.assertEqual(str(plugin.get("version")), "7.18.0")
         self.assertEqual(root_skill, packaged_skill)
-        self.assertIn("version: 7.17.0", root_skill)
-        self.assertIn("# HSK 数学建模模块化工作流 v7.17.0", root_skill)
+        self.assertIn("version: 7.18.0", root_skill)
+        self.assertIn("# HSK 数学建模模块化工作流 v7.18.0", root_skill)
         self.assertIn("Primary Evidence Capture", root_skill)
         self.assertIn("Scientific Figure Synthesis", root_skill)
         self.assertIn("Model/Solver/Validator", root_skill)
         self.assertIn("Claim Strength Calibration", root_skill)
+        self.assertIn("continuous model-establishment/solution narrative", root_skill)
 
     def test_output_contract_preserves_caption_owned_titles_and_adds_scientific_synthesis(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8")) or {}
         figure = contract.get("matlab_figure_contract", {})
         writing = contract.get("writing_policy", {})
 
-        self.assertEqual(str(contract.get("version")), "7.17.0")
+        self.assertEqual(str(contract.get("version")), "7.18.0")
         self.assertFalse(figure.get("title_required"))
         self.assertTrue(figure.get("embedded_overall_title_forbidden"))
         self.assertEqual(figure.get("formal_title_owner"), "DOCX_or_LaTeX_caption")
@@ -51,6 +52,10 @@ class CurrentSkillHealthTests(unittest.TestCase):
             writing.get("claim_strength_contract"),
             "core/writing_reasoning_contract.yaml#claim_strength_calibration",
         )
+        self.assertEqual(
+            writing.get("model_solution_narrative_contract"),
+            "core/writing_reasoning_contract.yaml#model_establishment_solution_narrative",
+        )
 
     def test_preprocessing_contract_delegates_figure_style(self):
         text = (ROOT / "core/global_preprocessing_contract.yaml").read_text(encoding="utf-8")
@@ -66,6 +71,7 @@ class CurrentSkillHealthTests(unittest.TestCase):
             "v7.15_scientific_figure_elevation_plan.md",
             "v7.16_paper_writing_skill_rollback_and_optimization_plan.md",
             "v7.17_mechanism_structural_validity_hardening_plan.md",
+            "v7.18_model_establishment_solution_writing_style_hardening_plan.md",
         )
         for name in archived:
             self.assertTrue((ROOT / "legacy/architecture" / name).is_file(), name)
@@ -74,11 +80,14 @@ class CurrentSkillHealthTests(unittest.TestCase):
             "V7_15_0_SCIENTIFIC_FIGURE_ELEVATION_PLAN.md",
             "docs/paper-writing-skill-rollback-and-optimization-plan.md",
             "docs/mechanism-structural-validity-hardening-plan.md",
+            "docs/model-establishment-solution-writing-style-hardening-plan.md",
         ):
             self.assertFalse((ROOT / relative).exists(), relative)
 
         legacy_readme = (ROOT / "legacy/README.md").read_text(encoding="utf-8")
         self.assertIn("architecture/", legacy_readme)
+        architecture_readme = (ROOT / "legacy/architecture/README.md").read_text(encoding="utf-8")
+        self.assertIn("v7.18_model_establishment_solution_writing_style_hardening_plan.md", architecture_readme)
 
     def test_v622_compatibility_pointers_are_retained(self):
         for relative in (

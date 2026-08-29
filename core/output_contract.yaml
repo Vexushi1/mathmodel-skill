@@ -1,4 +1,4 @@
-version: 7.17.0
+version: 7.18.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -49,6 +49,7 @@ writing_policy:
   model_naming_contract: core/writing_reasoning_contract.yaml#model_naming
   optimization_expression_contract: core/writing_reasoning_contract.yaml#optimization_model_expression
   solver_justification_contract: core/writing_reasoning_contract.yaml#solver_justification
+  model_solution_narrative_contract: core/writing_reasoning_contract.yaml#model_establishment_solution_narrative
   subsection_granularity_contract: core/writing_reasoning_contract.yaml#subsection_granularity
   claim_strength_contract: core/writing_reasoning_contract.yaml#claim_strength_calibration
   citation_evidence_contract: core/writing_reasoning_contract.yaml#citation_evidence

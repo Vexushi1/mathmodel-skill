@@ -1,6 +1,19 @@
-# mathmodel-skill v7.17.0
+# mathmodel-skill v7.18.0
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement → Figure Portfolio Review → LaTeX 终稿（优化模型表达/算法理由/小节颗粒度/Claim Strength）→ AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement → Figure Portfolio Review → LaTeX 终稿（优化模型表达/连续模型建立与求解叙事/专业标题/结果邻接解释/算法理由/小节颗粒度/Claim Strength）→ AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v7.18.0：Model Establishment & Solution Writing Style Hardening
+
+本版本只强化“模型建立—模型求解—结果解释”的论文叙事和表达，不改变模型数学语义、求解所有权、Model Approval、03A/03B、Workbook Schema、Project State 或运行时 Gate。
+
+- 新增 **Continuous Mathematical Narrative**：模型建立围绕当前对象、下一数学需要、建式依据、关系后果和下游用途连续推进，避免“建立 A 模型—建立 B 模型—采用 C 算法”的报告式拼接。
+- 新增 **Formula Prose Rhythm**：核心公式正文按 `Need / Basis / Formula / Meaning / Consequence` 的信息功能闭合，但不要求固定五句话；已定义符号后优先解释公式带来的判据、可行域、目标或计算结构变化。
+- 新增 **Transition Function Governance**：衔接句按 `inherit / gap / introduce / transform / solve_entry / result_entry / interpret / increment` 的逻辑功能判断，不维护“首先—其次—因此”连接词模板。
+- 新增 **Professional Heading Semantics**：标题按独立数学任务组织，优先恢复“处理哪个对象、完成什么关系/计算动作”；不强制“XX 的 XX”语法，也不把决策变量、目标函数、约束和模型汇总机械拆成多个小节。
+- 新增 **Model-to-Solver Bridge**：solver 首次出现前先说明真实模型结构、计算困难、已完成化简或搜索对象，再写本题编码、约束处理、参数/精度/终止条件；算法通用优点不能替代本题理由。
+- 新增 **Result-adjacent Interpretation**：单点最优、曲线/图像、算法/精度验证分别使用自适应解释功能，关键结果出现后就近说明决策含义、形成机制、可行性和对设问的回答，不把图表集中堆放后统一“由图可知”。
+- 明确模型建立部分默认不重新完整复述问题分析、模型假设或题面，后问只恢复真实继承与新增结构；AI Cleanup 只审计表现风险，不成为第二写作 Authority。
+- 规则来源主要抽象自优秀国赛论文的连续论证方法，但 runtime 不包含参考论文名称、固定句式、具体算法、题目专属对象或章节模板。
 
 ## v7.17.0：Mechanism Structural Validity Hardening
 
