@@ -15,6 +15,7 @@ class TestV717MechanismStructuralValidity(unittest.TestCase):
         cls.framework = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
         cls.taxonomy = (ROOT / "core/task_taxonomy.yaml").read_text(encoding="utf-8")
         cls.numerical = (ROOT / "core/numerical_verification_contract.yaml").read_text(encoding="utf-8")
+        cls.approval = (ROOT / "core/model_approval_contract.yaml").read_text(encoding="utf-8")
 
     def test_module02_owns_conditional_structural_validity_without_new_gate(self):
         for token in (
@@ -35,6 +36,14 @@ class TestV717MechanismStructuralValidity(unittest.TestCase):
         self.assertIn("本节不是新的生命周期 Gate", self.module)
         self.assertNotIn("G1.5", self.module)
         self.assertNotIn("Mechanism Gate", self.module)
+
+    def test_existing_shared_foundation_remains_the_cross_question_authority(self):
+        self.assertIn("### 4.2 共享基础与跨问增量", self.module)
+        self.assertIn("writing_reasoning_contract.shared_foundation", self.module)
+        self.assertIn("cross_question_progression", self.module)
+        self.assertNotIn("mechanism shared kernel gate", self.module.lower())
+        self.assertFalse((ROOT / "packs/task/mechanism_shared_kernel.md").exists())
+        self.assertFalse((ROOT / "modules/mechanism_shared_kernel.md").exists())
 
     def test_mechanism_pack_closes_predicates_events_reduction_and_stage_boundary(self):
         for token in (
@@ -58,6 +67,8 @@ class TestV717MechanismStructuralValidity(unittest.TestCase):
         self.assertIn("参数敏感性", self.mechanism)
         self.assertIn("只在主工作簿 accepted 后进入 Module 03B", self.mechanism)
         self.assertIn("不能把 heuristic 提升为证明", self.mechanism)
+        self.assertIn("与当前 locked model 同语义下", self.mechanism)
+        self.assertIn("不得在 03A 借此引入替代模型/结构比较", self.mechanism)
 
     def test_optimization_pack_tracks_reduction_solver_and_original_model(self):
         for token in (
@@ -78,6 +89,22 @@ class TestV717MechanismStructuralValidity(unittest.TestCase):
         self.assertIn("不能把 surrogate objective 直接当作原问题最终目标值", self.optimization)
         self.assertIn("不得设置跨赛题通用的固定比例、维数或目标阈值", self.optimization)
         self.assertIn("post-hoc 调整判据", self.optimization)
+        self.assertIn("不因本 Pack 自动新增主质量门", self.optimization)
+
+    def test_authority_boundaries_are_consumed_not_redefined(self):
+        self.assertIn("explicit Human Model Approval gate", self.approval)
+        self.assertIn("hidden_coupling_or_invalid_decoupling", self.approval)
+        self.assertIn("local_property_misstated_as_global", self.approval)
+        self.assertIn("single field-level authority for intrinsic numerical validity", self.numerical)
+        self.assertIn("result analysis after the primary workbook is accepted", self.numerical)
+        for token in (
+            "requires_equivalent_predicate_check",
+            "requires_event_topology_check",
+            "requires_objective_landscape_probe",
+        ):
+            self.assertNotIn(token, self.taxonomy)
+            self.assertNotIn(token, self.numerical)
+            self.assertNotIn(token, self.approval)
 
     def test_algorithm_flow_consumes_but_does_not_redefine_model_authority(self):
         self.assertIn("modules/02_model_design.md", self.algorithm)
