@@ -2,6 +2,8 @@
 
 本 Pack 只负责把**已经确定的数学模型与真实求解逻辑**转成论文可读的算法流程。跨竞赛的准入、三态选择、Algorithm Trace 与证据闭环服从 `core/writing_reasoning_contract.yaml#algorithm_presentation`；正文位置与表达服从 `modules/05_writing/latex.md`。本文件不得把通用算法百科、Python 源码或题目专属实现复制成第二套模型规则。
 
+机理/几何题中的精确事件判据、Event Topology、Reduction Provenance、Multi-resource Composition 和 Solver Applicability 由 `modules/02_model_design.md` 与对应 Task Pack 在模型设计阶段确定；本 Pack 只消费 current 语义并把真实控制逻辑呈现出来，不重新定义第二套结构有效性规则。
+
 ## 一、加载条件
 
 仅在以下情况按需加载：
@@ -101,6 +103,15 @@ Trace 的目标闭环为：
 
 Algorithm Trace 不替代 Formula Trace。公式回答“关系为何成立以及去哪里”，算法 Trace 回答“这些关系以什么顺序、状态和判定被计算”。
 
+当 current 模型包含需要进入算法控制流的结构有效性语义时，Trace 只记录与真实控制流相关的已批准信息：
+
+- 候选域缩减若改变算法搜索范围，记录其 `exact / proven_sufficient / heuristic` 状态与命题/验证锚点；
+- 连续事件若需要先粗定位再局部求根，记录 bracket 产生方式、局部相位/符号条件、端点更新和停止条件；
+- 条件式 solver applicability probe 若决定 solver A/B 分支，记录 probe 输入、判据、分支和 fallback；
+- surrogate / decomposition 若需最终 original-model reevaluation，记录从代理决策恢复完整决策并回算原目标/约束的步骤。
+
+这些字段只在真实算法需要时出现；若当前模型不适用，不创建空壳步骤。
+
 ## 四、与公式、命题和约束的连接
 
 高价值算法流程应能回答至少一项：
@@ -110,6 +121,10 @@ Algorithm Trace 不替代 Formula Trace。公式回答“关系为何成立以�
 - 哪个题面约束决定分支、修复、接受/拒绝或终止；
 - 哪个前问结果成为当前算法输入或搜索边界；
 - 哪个输出进入工作簿核心结果、质量门或深化分析。
+
+对事件边界算法，若当前模型不是全局单调，流程必须体现“候选事件/粗区间定位 → 局部 bracket → 边界精修”，不得把 current 模型中的 `0→1→0`、多区间或其他切换结构抹成一个通用“二分直到收敛”。
+
+对 heuristic 候选域，流程不得把“只搜索缩减域”呈现成已证明的全域穷尽；应保留已批准的弃置域检查或有限搜索范围锚点。对 surrogate / decomposition，若论文给出最终方案，算法流程应连接 original-model reevaluation，而不是在 surrogate objective 处提前结束。
 
 如果算法框完全可以替换成“初始化→迭代→判断→输出”而仍适用于任何赛题，应重写或改为 `not_needed`。
 
@@ -125,6 +140,8 @@ Algorithm Trace 不替代 Formula Trace。公式回答“关系为何成立以�
 - 候选集合耗尽；
 - 达到经证据确定的最大迭代/采样预算。
 
+连续事件根定位若依赖 bracket，还应在 current Trace 中恢复：当前 bracket 的形成条件、左右端点真实更新规则、时间/状态容差和多事件区间的退出/继续条件。仅写“误差小于阈值”不能弥补错误的区间更新逻辑。
+
 不得在论文中写一个程序实际不存在的“收敛判据”来美化算法。
 
 ## 六、两类推荐版式
@@ -139,7 +156,7 @@ Algorithm Trace 不替代 Formula Trace。公式回答“关系为何成立以�
 
 适合 `stepwise`。使用 `Step 1`、`Step 2` 等阶段标题，每一步可直接嵌入本题公式、参数范围和停止条件。阶段数量由真实求解链决定，不固定为 4、5 或 6 步。
 
-该形式尤其适合“全局搜索 + 局部精修”“标定 + 反演 + 后处理”“分层优化”“训练 + 校准 + 决策”等多阶段过程。
+该形式尤其适合“全局搜索 + 局部精修”“标定 + 反演 + 后处理”“分层优化”“训练 + 校准 + 决策”“候选事件定位 + 局部边界精修”“代理分配 + 原模型回算”等多阶段过程。
 
 ## 七、LaTeX 与模板安全
 

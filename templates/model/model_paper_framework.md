@@ -277,12 +277,38 @@ $$
 - 极端/边界/小规模复核：
 - 复审结论：`passed / review_required`
 
+**机理/几何结构有效性（按需；不适用时写 not_applicable）**
+
+- 适用状态：`not_applicable / applicable`
+- Physical event / 成功失败事件：
+- Object domain 与 active / visible subset：
+- Reference frame：
+- 精确数学判据与 Formula ID：
+- 量词顺序：
+- 几何对象语义：`line / ray / segment / boundary / surface / volume / custom`
+- 判据状态：`exact / approximate`；若 approximate，近似来源与误差边界：
+- 等价实现交叉检查（若有）：主判据 / 独立判据 / 证据锚点：
+- Event function / indicator（若有）：
+- Event topology：`single_interval / multi_interval / unknown_before_localization / not_applicable`
+- 临界事件 bracket / 局部结构 / 左右更新 / 容差（若有）：
+- Reduction provenance：`exact / proven_sufficient / heuristic / not_applicable`
+- 缩域/活动边界依据与 Proposition / Formula anchor：
+- heuristic 弃置域与反例检查 protocol（若有）：
+- Multi-resource composition：`sum / union / intersection / max / min / forall-exists / custom / not_applicable`
+- 重叠、互补、同步、共享约束与量词说明：
+- Solver applicability：解析结构结论 / 关键风险：
+- 条件式 solver probe（若需要）：`protocol → criterion → solver branch → fallback`：
+- Surrogate / decomposition：`not_applicable / applicable`
+- surrogate/subproblem objective 与 original objective 的区别：
+- full decision 恢复与 original-model reevaluation 要求：
+- 当前结构有效性证据锚点：
+
 **模型挑战与人工锁模**
 
 - Model Reviewer verdict 与 required actions：
 - Devil's Advocate verdict、核心反例/风险与 required actions：
 - Residual warnings：
-- Model Approval Brief：研究对象、selected model、标准模型类型、核心变量、objective、关键约束、preprocessing_decision、结构化简、solver/validator 角色、algorithm presentation、被否决路线理由、下一阶段实现范围。
+- Model Approval Brief：研究对象、selected model、标准模型类型、核心变量、objective、关键约束、preprocessing_decision、结构化简、solver/validator 角色、algorithm presentation、被否决路线理由、下一阶段实现范围；若机理/几何结构有效性适用，摘要暴露真正改变求解语义的判据、事件边界、缩域 evidence level、组合算子、条件式 solver 分支和 original-model 回算要求。
 - 当前模型状态：`proposed_model_spec / locked_model_spec / stale`
 
 **数值参数证据**
@@ -295,6 +321,7 @@ $$
 
 - Solver（主求解算法/分解求解结构）：
 - Solver 首次使用的本题适配理由：
+- Solver applicability 的解析/条件式 probe 依据（若适用）：
 - 若沿用前问算法，继承结构与新增变化：
 - 若更换算法，改变求解需求的结构增量：
 - Validator / baseline / alternative：
@@ -304,11 +331,15 @@ $$
 - 输入、状态/决策变量与输出：
 - 核心操作及阶段传递：
 - 真实循环/分支/候选筛选/修复（若有）：
+- Event bracket / 更新规则 / 多区间定位步骤（若适用）：
+- heuristic 缩域的弃置域检查步骤（若适用）：
+- surrogate→original reevaluation 步骤（若适用）：
 - Formula / Proposition / Constraint 锚点：
 - Python 实现锚点：
 - 初始化/随机种子：
 - 容差与终止条件：
-- 必做检验：
+- 03A 当前主计算必须闭合的检验：
+- 03B accepted 后才执行的候选深化风险：
 - 多方法数值一致性指标：
 - 多方法结构一致性指标：
 
@@ -353,6 +384,7 @@ $$
 - 结构结论一致性：
 - 数值参数稳定性：
 - 敏感区间/失效阈值：
+- heuristic 缩域/事件定位/原模型回算的实际验证范围（若适用）：
 - “未发现更优”等数值结论的实际搜索/验证范围：
 
 **可入文答案表述**
@@ -415,6 +447,12 @@ $$
 - 共享基础是否只定义一次：
 - 后问是否只写真实增量：
 - 结构化简是否先于高级算法：
+- 适用的精确事件/几何判据是否闭合到对象域、量词和 line/ray/segment 等真实语义：
+- 连续事件是否先确认局部 bracket/多区间结构，再使用根定位方法：
+- 缩域是否标明 `exact / proven_sufficient / heuristic`，heuristic 是否保留弃置域和 claim scope：
+- 多资源是否使用真实组合算子而非无依据求和/解耦：
+- solver 是否与目标平台、稀疏可行域、非光滑/跳变等实际结构相容：
+- surrogate / decomposition 的最终方案是否回到 original model/objective/constraints 复算或明确无法回算的边界：
 
 ### 标题—摘要—关键词一致性
 
@@ -457,6 +495,12 @@ $$
 - [ ] 每问标准模型类型、正式模型名称及 Model / Solver / Validator 角色已记录；
 - [ ] 优化类小问的决策变量/对象、目标函数含义、约束与摘要 objective 口径闭合；
 - [ ] solver 第一次使用的本题适配理由、沿用/更换算法的结构依据和 alternative/validator evidence 已按实际情况记录；
+- [ ] 适用的机理/几何判据已经闭合 object domain、量词顺序、line/ray/segment/边界/实体语义及代码/证据锚点；
+- [ ] 连续事件的区间拓扑、局部 bracket、端点更新与容差已按实际求解需要记录，没有把非单调事件伪装成全局二分；
+- [ ] 候选域/活动边界/分解缩减已区分 `exact / proven_sufficient / heuristic`；heuristic 已声明弃置域、反例检查和有限 claim scope；
+- [ ] 多资源组合算子、重叠/协同/同步/共享约束及 `forall/exists` 量词按真实机制记录；
+- [ ] solver applicability 已由解析结构或已批准的条件式 probe 说明；若 probe 触发未批准的新算法语义，已回到 Module 02 重新审批；
+- [ ] surrogate / decomposition 的推荐方案已计划/完成 original-model reevaluation，或明确无法完整回算的残余近似；
 - [ ] 需要正式算法流程的小问已选择 `stepwise/pseudocode` 并建立 current Algorithm Trace；简单问题明确 `not_needed`，未机械生成伪代码；
 - [ ] Algorithm Trace 中公式/命题/约束、Python 与输出锚点和当前求解链一致；
 - [ ] 问题章节内部小节规划已检查颗粒度，没有把同一论证链机械切成大量二级标题；

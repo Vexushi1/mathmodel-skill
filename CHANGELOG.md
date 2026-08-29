@@ -1,6 +1,19 @@
 # Changelog
 
-## Current release: 7.16.0
+## Current release: 7.17.0
+
+- Added conditional **Mechanism / Geometry Structural Validity** closure inside Module 02 without introducing a new lifecycle gate, project-state field or task-taxonomy capability.
+- Added **Predicate Closure** for object domain, active/visible subset, reference frame, exact predicate, quantifier order and line/ray/segment/surface/volume semantics; independent equivalent predicates may cross-check implementations but do not replace proof.
+- Added **Event Topology / Boundary** requirements for multi-interval events, valid local brackets, endpoint update rules, tolerances and fallback logic; global bisection is rejected when event state can follow `0→1→0` or otherwise switch non-monotonically.
+- Added **Reduction Provenance** with `exact / proven_sufficient / heuristic`. Heuristic reductions must retain discarded-domain audit evidence and calibrated claim scope instead of being presented as full-domain proof.
+- Added **Solver Applicability / Objective Landscape** reasoning and approval-bound conditional probes. Solver families must be justified from actual mathematical/landscape structure; cross-problem fixed numeric switch thresholds and post-hoc criteria are forbidden.
+- Added explicit **Multi-resource Composition** semantics, including `forall-exists` versus `exists-forall`, to prevent invalid simple summation, overlap handling and hidden-coupling removal.
+- Added **Surrogate / Decomposition → Original Model Reevaluation** so final candidates return to the original objective and all original hard constraints before headline results are accepted.
+- Clarified the mechanism/optimization 03A/03B boundary: current locked-model intrinsic validity remains in 03A, while parameter sensitivity, stress scenarios, alternative models/algorithms, multi-seed or multi-initial-value claim stability and broader failure-boundary exploration remain post-acceptance 03B.
+- Extended the existing `v0.8-project-memory` framework with optional structural-validity facts and evidence anchors only; no framework schema migration, new project report, workbook migration or CLI migration was introduced.
+- Added v7.17 regression coverage for structural validity and authority boundaries while preserving the existing Problem Contract, Model Challenge/Human Approval, Numerical Verification/PQS authority, Project State, Workbook Schema, per-question five-file layout and user-owned full-fidelity execution.
+
+## Previous release: 7.16.0
 
 - Restored and strengthened the paper-writing specification without reviving the legacy full-auto architecture. Existing single-authority governance remains centered on `core/writing_reasoning_contract.yaml`, `modules/05_writing/latex.md`, project memory and accepted workbooks.
 - Added explicit **Model / Solver / Validator** role separation so mathematical model identity cannot be replaced by solver names, validation algorithms, software or implementation architecture.
