@@ -36,21 +36,28 @@ class TestV717MechanismStructuralValidity(unittest.TestCase):
         self.assertNotIn("G1.5", self.module)
         self.assertNotIn("Mechanism Gate", self.module)
 
-    def test_mechanism_pack_closes_predicates_events_and_stage_boundary(self):
+    def test_mechanism_pack_closes_predicates_events_reduction_and_stage_boundary(self):
         for token in (
             "精确物理/几何判据闭合",
             "line / ray / segment",
             "量词顺序",
             "active or visible",
+            "### 活动边界、临界集合与缩域依据",
+            "exact",
+            "proven_sufficient",
+            "heuristic",
+            "弃置域",
             "0→1→0",
             "bracket",
             "forall-exists",
+            "exists-forall",
             "### 03A：当前主计算的内在有效性",
             "### 03B：accepted 后的结论深化",
         ):
             self.assertIn(token, self.mechanism)
         self.assertIn("参数敏感性", self.mechanism)
         self.assertIn("只在主工作簿 accepted 后进入 Module 03B", self.mechanism)
+        self.assertIn("不能把 heuristic 提升为证明", self.mechanism)
 
     def test_optimization_pack_tracks_reduction_solver_and_original_model(self):
         for token in (
@@ -69,6 +76,8 @@ class TestV717MechanismStructuralValidity(unittest.TestCase):
             self.assertIn(token, self.optimization)
         self.assertIn("不得在 Human Approval 前由助手运行题目专属代码", self.optimization)
         self.assertIn("不能把 surrogate objective 直接当作原问题最终目标值", self.optimization)
+        self.assertIn("不得设置跨赛题通用的固定比例、维数或目标阈值", self.optimization)
+        self.assertIn("post-hoc 调整判据", self.optimization)
 
     def test_algorithm_flow_consumes_but_does_not_redefine_model_authority(self):
         self.assertIn("modules/02_model_design.md", self.algorithm)
