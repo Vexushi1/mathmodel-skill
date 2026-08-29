@@ -95,8 +95,15 @@ class TestV717MechanismStructuralValidity(unittest.TestCase):
         self.assertIn("explicit Human Model Approval gate", self.approval)
         self.assertIn("hidden_coupling_or_invalid_decoupling", self.approval)
         self.assertIn("local_property_misstated_as_global", self.approval)
-        self.assertIn("single field-level authority for intrinsic numerical validity", self.numerical)
-        self.assertIn("result analysis after the primary workbook is accepted", self.numerical)
+        normalized_numerical = " ".join(self.numerical.split())
+        self.assertIn(
+            "single field-level authority for intrinsic numerical validity",
+            normalized_numerical,
+        )
+        self.assertIn(
+            "result analysis after the primary workbook is accepted",
+            normalized_numerical,
+        )
         for token in (
             "requires_equivalent_predicate_check",
             "requires_event_topology_check",
