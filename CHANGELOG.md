@@ -1,6 +1,19 @@
 # Changelog
 
-## Current release: 7.17.0
+## Current release: 7.18.0
+
+- Added a single `model_establishment_solution_narrative` writing authority for continuous model-establishment, solution and result-interpretation prose without changing modeling, solver, validator or numerical semantics.
+- Added **Continuous Mathematical Narrative** and **Formula Prose Rhythm** so core relations are introduced from the current mathematical need, connected to their basis, and followed by the structural or downstream consequence instead of being presented as disconnected formula blocks.
+- Added **Transition Function Governance** based on logical roles (`inherit / gap / introduce / transform / solve_entry / result_entry / interpret / increment`) rather than a connector-word phrase bank.
+- Added **Professional Heading Semantics** so question subsections are organized by independent mathematical tasks; generic headings are review risks, while no hard “XX 的 XX” or heading-grammar template is introduced.
+- Added **Model-to-Solver Bridge** rules requiring solver choice to emerge from actual model structure, computational difficulty or completed simplification, with problem-specific encoding, constraints, accuracy and termination stated before generic algorithm exposition.
+- Added adaptive **Result-adjacent Interpretation** profiles for point optima/parameter sets, curves/figures and algorithm/accuracy/validation evidence; key results should be interpreted near the evidence rather than detached into a final generic paragraph.
+- Clarified that model-establishment sections do not repeat full problem analysis, model-assumption lists or prompt restatement, and that later questions write inherited structure plus genuine mathematical/solver increments only.
+- Extended AI Cleanup to review report-like model listing, formula-without-purpose, solver-first narrative, generic-heading density, management-only transitions and detached result interpretation while explicitly forbidding keyword-only judgments of mathematical correctness or narrative quality.
+- Added v7.18 regression coverage and six-family human prose smoke for mechanism/geometry, continuous optimization, statistics/regression, simple analytic, multi-question progression and result-dense writing.
+- Preserved Model Challenge/Human Approval, Numerical Verification/PQS, 03A/03B, Workbook Schema, Project State, runtime routing, user-owned full-fidelity execution and all existing numerical/figure/LaTeX provenance semantics.
+
+## Previous release: 7.17.0
 
 - Added conditional **Mechanism / Geometry Structural Validity** closure inside Module 02 without introducing a new lifecycle gate, project-state field or task-taxonomy capability.
 - Added **Predicate Closure** for object domain, active/visible subset, reference frame, exact predicate, quantifier order and line/ray/segment/surface/volume semantics; independent equivalent predicates may cross-check implementations but do not replace proof.
