@@ -241,6 +241,7 @@
 - `tests/test_v714_receipt_fail_closed.py`
 - `tests/test_v715_scientific_figure_elevation.py`
 - `tests/test_v716_paper_writing_spec.py`
+- `tests/test_v717_mechanism_structural_validity.py`
 - `tests/test_v730_writing_expression_protocol.py`
 - `tests/test_v740_writing_evidence_architecture.py`
 - `tests/test_v741_skill_closure_hygiene.py`
