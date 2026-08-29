@@ -107,12 +107,28 @@ class TestV717MechanismStructuralValidity(unittest.TestCase):
             self.assertNotIn(token, self.taxonomy)
             self.assertNotIn(token, self.numerical)
 
-    def test_no_new_standalone_mechanism_reports_are_introduced(self):
+    def test_solver_probe_has_no_universal_numeric_switch_thresholds(self):
+        combined = self.module + "\n" + self.optimization
+        for forbidden in (
+            "rho_plus <",
+            "rho+ <",
+            "rho_g <",
+            "维数 > 20",
+            "0.05 → DE",
+            "0.10 → GA",
+        ):
+            self.assertNotIn(forbidden, combined)
+        self.assertIn("不能只因为决策变量连续就默认局部梯度 NLP 适用", self.module)
+        self.assertIn("不得在 Human Approval 前由助手运行题目专属代码", self.optimization)
+
+    def test_no_new_standalone_mechanism_architecture_is_introduced(self):
         for relative in (
             "MECHANISM_REVIEW.md",
             "MECHANISM_STRUCTURE.md",
             "mechanism_structure.yaml",
             "state/mechanism_structure.yaml",
+            "packs/task/mechanism_structure_reducer.md",
+            "modules/mechanism_structure_reducer.md",
         ):
             self.assertFalse((ROOT / relative).exists(), relative)
 
