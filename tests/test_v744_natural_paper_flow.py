@@ -9,7 +9,7 @@ class TestNaturalPaperFlow(unittest.TestCase):
         text = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
         for token in (
             "本文不是……而是……", "制造无必要冲突", "核心图表",
-            "Citation Evidence", "Paragraph Necessity Test",
+            "Citation Evidence", "Paragraph Necessity 与 Detail Allocation",
             "## B. Evidence closure", "## C. Style & Necessity", "## D. Optional machine diagnostics",
         ):
             self.assertIn(token, text)

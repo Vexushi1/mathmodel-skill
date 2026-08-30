@@ -78,7 +78,7 @@ class TestV716PaperWritingSpec(unittest.TestCase):
         self.assertEqual(granularity["scope"], "within_question_sections_only")
         self.assertFalse(granularity["hard_count_limit"])
         self.assertIn("不限制全文一级章节数量", self.latex)
-        self.assertIn("不限制一级章节数量", self.cleanup)
+        self.assertIn("不限制也不重排一级章节", self.cleanup)
         self.assertIn("问题章节内部二级小节超过默认 3--4 个", self.review)
         combined = "\n".join([self.latex, self.cleanup, self.review])
         self.assertNotIn("一级章节最多", combined)
@@ -113,7 +113,7 @@ class TestV716PaperWritingSpec(unittest.TestCase):
         self.assertIn("不建立第二套正文写作规则", self.cleanup)
         self.assertIn("优化类模型先出现 DE、GA、PSO、ALNS、Dual Annealing", self.cleanup)
         self.assertIn("自定义模型名", self.cleanup)
-        self.assertIn("一个二级或三级小节只有一个公式、一张表或一幅图", self.cleanup)
+        self.assertIn("一个二级或三级小节只有一个公式、一张表或一幅普通图", self.cleanup)
         self.assertIn("摘要中用“先进、高效、精确、最优、显著、强鲁棒”", self.cleanup)
 
     def test_review_keeps_granularity_default_not_blocking(self):
