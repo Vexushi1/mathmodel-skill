@@ -24,7 +24,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         cls.router = (ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8")
 
     def test_single_narrative_authority_exists(self):
-        self.assertEqual(self.contract["schema_version"], "1.4.0")
+        self.assertEqual(self.contract["schema_version"], "1.5.0")
         self.assertIn("model_establishment_solution_narrative", self.contract)
         self.assertEqual(
             self.contract["model_establishment_solution_narrative"]["governance_level"],
@@ -138,7 +138,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         self.assertIn("support_modify_or_reject_target_claim", result_rule["profiles"]["algorithm_accuracy_or_validation"]["preferred_progression"])
         self.assertIn("关键结果出现后，在邻近位置完成", self.latex)
         self.assertIn("核心结果远离所有解释", self.cleanup)
-        self.assertIn("不要求每张图、每张表固定使用同一组句式", self.cleanup)
+        self.assertIn("不要求每张图固定使用相同句数、句序和词语", self.cleanup)
 
     def test_cross_question_language_keeps_incremental_writing(self):
         rule = self.contract["model_establishment_solution_narrative"]["cross_question_language"]
@@ -161,7 +161,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         review_or_warn = set(audit["may_review"]) | set(audit["may_warn"])
         self.assertTrue(narrative_risks <= review_or_warn)
         self.assertTrue(narrative_risks.isdisjoint(set(audit["may_block"])))
-        self.assertIn("不得仅凭连接词、标题语法、算法名、段落距离或小节数量判断叙事质量", self.cleanup)
+        self.assertIn("不得仅凭连接词、标题语法、算法名、段落距离、小节数量、字数、公式数、图引用关键词或表面顺序判断叙事/详略质量", self.cleanup)
         self.assertIn("narrative_quality_from_connector_words_only", audit["must_not_claim"])
 
     def test_reference_papers_do_not_become_runtime_templates(self):
