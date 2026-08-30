@@ -118,7 +118,7 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
             self.assertIn(token, detail["compress_when_any"])
         self.assertTrue(detail["no_word_count_rule"])
         self.assertTrue(detail["simple_problem_anti_bloat"])
-        self.assertIn("详写的标准是信息链完整，不是字数更多", detail["principle"])
+        self.assertIn("详写意味着关键信息链完整，不等于字数更长", detail["principle"])
         self.assertIn("简单解析或直接计算问题执行 anti-bloat", self.latex)
         self.assertIn("不得以字数、句数、公式数", self.cleanup)
 
