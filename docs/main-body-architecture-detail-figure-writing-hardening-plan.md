@@ -1,33 +1,42 @@
-# v7.19.0 Main-Body Writing Closure 详细修改计划
+# v7.19.0 Intra-Question Writing Closure 详细修改计划
 
 > 状态：**PLANNING ONLY / 待用户审查**  
 > 当前正式基线：HSK Skill `v7.18.0`  
 > 基线 `main`：`3209f884cc965791ae32b183bf5b37c7be38e075`  
 > 计划分支：`upgrade/v7.19.0-main-body-writing-closure`  
-> 暂定目标版本：`v7.19.0`（仅在正式实现、人工写作 smoke、完整 CI 全部通过后升级）  
-> 修改主题：**符号说明之后的正文宏观编排、详略分配、图结果叙事闭环**
+> 暂定目标版本：`v7.19.0`（仅在用户批准、正式实现、人工 prose smoke、完整 CI 全部通过后升级）  
+> 修改主题：**在既定论文大框架不变的前提下，规范各大章节内部的小节求解顺序、详略分配与图结果叙事**
 
 ---
 
-## 0. 修改简报
+# 0. 修改简报
 
 ```text
-修改主题：Main-Body Writing Closure
+修改主题：Intra-Question Writing Closure
 当前版本：7.18.0
 目标版本：暂定 7.19.0
-变更等级：minor（新增向后兼容的论文写作能力，不改变数值/模型/runtime 接口）
+变更等级：minor（新增向后兼容的论文写作能力，不改变模型/数值/runtime 接口）
+
 直接目标：
-1. 让符号说明之后的正文顺序优先服从真实求解依赖与数学推进，而不是固定论文模板；
-2. 建立“详写什么、略写什么”的技术信息分配规则，保证模型建立与求解详略得当；
-3. 完善图结果叙事，使图的身份、关键特征、决定性数值、设问含义、形成原因和必要收束形成局部闭环；
-4. 增加整篇 main body 的宏观闭环检查，确认每个章节都在推进问题答案。
+1. 冻结现有论文大章节骨架，不允许本轮规则重新排序、替换或破坏既定框架；
+2. 只在“数据说明/必要数据预处理”“共享基础模型/模型准备”“问题X模型建立及求解”等大章节内部，
+   依据真实局部求解依赖规范二级/三级小节的顺序与粒度；
+3. 建立 Detail Allocation Governance，明确关键推导、求解依据、结果解释应详写，
+   普通代数、重复定义、标准算法百科、未变化继承内容应压缩；
+4. 完善 Figure Result Narrative，使图片结果形成“图的身份/关系—关键特征—必要数值—设问含义—原因—必要收束”的局部证据闭环；
+5. 增加 Question-Section Narrative Closure Review，检查每个“问题X模型建立及求解”内部是否真正按求解过程推进并回答该问。
 
 明确不做：
-- 不修改模型数学语义、模型设计 Gate、Human Model Approval、03A/03B；
+- 不改变现有大章节骨架；
+- 不调整“符号说明 → 数据说明/必要数据预处理 → 共享基础模型/模型准备 → 问题一 → 问题二 → ……”的顺序；
+- 不按求解依赖重排问题一、问题二、问题三等大章节；
+- 不把后问提前到前问之前；
+- 不把问题专属内容移动成新的一级大章节；
+- 不修改模型数学语义、Human Model Approval、03A/03B；
 - 不修改 Numerical Verification/PQS、Workbook Schema、Project State Schema、Task Taxonomy；
 - 不改变 Python/MATLAB 职责；
-- 不增加固定章节模板、固定标题数量、固定句式、连接词词库或图分析“六句话模板”；
-- 不把任何单篇优秀论文的章节顺序或句子作为 runtime 模板；
+- 不新增 runtime Gate、固定小节数量、固定句式、连接词词库或图分析“六句话模板”；
+- 不把任何单篇优秀论文的章节顺序、句子或算法固化为 runtime 模板；
 - 不为“写得更顺”删除真实边界、异常、失效条件或必要数学步骤。
 
 权威事实源：
@@ -40,7 +49,7 @@
 - modules/05_writing/latex.md
 - modules/05_writing/ai_cleanup.md
 - PROJECT_INSTRUCTIONS.md（仅入口摘要，必要时）
-- tests/test_v719_main_body_writing_closure.py
+- tests/test_v719_intra_question_writing_closure.py
 - README.md / CHANGELOG.md / version carriers（仅正式发布阶段）
 - generated indexes / MANIFEST（仅通过 generator 产生）
 
@@ -56,8 +65,9 @@
 兼容性要求：
 - 旧项目、旧模型论文框架、旧工作簿无需迁移；
 - 新规则均为 Writing Default / Review guidance，不新增 runtime Gate；
-- 旧论文若已有合理章节顺序，不因未显式登记新内部字段而 stale；
-- 不引入新的必填 Schema 字段或 CLI 参数。
+- 旧论文若已有合理的小节顺序，不因未显式登记新内部结构而 stale；
+- 不引入新的必填 Schema 字段或 CLI 参数；
+- 现有中文国赛大章节结构保持原样。
 
 迁移要求：无 Schema/CLI/目录迁移。
 
@@ -66,20 +76,64 @@
 - 全量 unittest；
 - generated-file contract；
 - v7.19 writing regression；
-- 六类以上人工 prose smoke；
+- 八类人工 prose smoke；
+- 大框架不变 regression；
 - 三套 LaTeX + Production LaTeX attestation；
 - merge 后 main CI 全绿。
 
 回滚方式：
-- 若新写作规则造成模板化或误伤合理结构，回滚本次 writing authority/consumer/test 变更即可；
+- 若新写作规则造成小节模板化、正文膨胀或图表分析机械化，回滚本次 writing authority/consumer/test 变更即可；
 - 因无 Schema/CLI/模型语义变化，不需要项目数据迁移或兼容脚本。
 ```
 
 ---
 
-# 1. 问题重新定义
+# 1. 本轮最重要的边界修正：冻结论文大章节骨架
 
-v7.18.0 已经解决了“小问内部模型建立—模型求解—结果解释怎样连续写”的主要问题，当前已有：
+本轮正式确认：**v7.19 不再讨论“符号说明之后的大章节宏观重排”。**
+
+当前中文国赛论文的大框架已经在 v7.18 中确定，本轮不得以“求解依赖”“阅读顺序”或“宏观闭环”为理由破坏它。
+
+符号说明之后的默认大章节顺序继续保持：
+
+```text
+符号说明
+→ 数据说明 / 必要数据预处理（按既有 preprocessing_decision 决定是否启用）
+→ 共享基础模型 / 模型准备（按既有 shared_foundation 规则决定是否启用）
+→ 问题一模型建立及求解
+→ 问题二模型建立及求解
+→ 问题三模型建立及求解
+→ ……
+→ 模型的评价与推广
+→ 参考文献
+→ 附录
+```
+
+本轮新增规则必须满足以下四条硬边界：
+
+1. **不重排大章节。** 问题一、问题二、问题三仍按题目顺序写；真实求解中即便做过交叉计算，也不能据此打乱论文大章节顺序。
+2. **不改变可选章节的既有激活逻辑。** “数据说明/必要数据预处理”和“共享基础模型/模型准备”是否出现，仍由现有 Authority 决定；本轮只规范它们一旦出现后，内部小节怎样组织。
+3. **不新造大章节。** 本轮新增的 Architecture、Detail Allocation、Figure Narrative 都是写作治理规则，不成为论文中的一级章节名称。
+4. **不把局部求解顺序升级为全文排序权。** “符合求解顺序”只约束当前大章节内部的小节、段落、公式、算法和结果出现顺序。
+
+因此，本计划原来的 **Post-Notation Main-Body Architecture** 不再作为正式能力名称。正式实现拟改为：
+
+> **Within-Question Subsection Architecture / 问题章节内部小节架构**
+
+它的作用域是：
+
+- `数据说明/必要数据预处理` 大章节内部；
+- `共享基础模型/模型准备` 大章节内部；
+- 每个 `问题X模型建立及求解` 大章节内部；
+- 必要的 `模型检验/敏感性/鲁棒性` 局部子节内部。
+
+它**没有权限**改变这些大章节本身的相对顺序。
+
+---
+
+# 2. 问题重新定义
+
+v7.18.0 已经解决“小问内部模型建立—模型求解—结果解释怎样连续写”的主要语言问题，当前已有：
 
 - Continuous Mathematical Narrative；
 - Formula Prose Rhythm；
@@ -88,69 +142,75 @@ v7.18.0 已经解决了“小问内部模型建立—模型求解—结果解释
 - Model-to-Solver Bridge；
 - Result-adjacent Interpretation；
 - Cross-question incremental writing；
-- Paragraph Necessity 与 subsection granularity。
+- Paragraph Necessity；
+- Subsection Granularity。
 
-本轮不是推翻 v7.18，而是在其上补齐**整篇正文尺度的写作闭环**。
+本轮不是推翻 v7.18，而是补齐三个**大章节内部**仍不够实质化的写作问题。
 
-当前剩余问题主要有三类。
+## 2.1 缺口一：问题章节内部的小节顺序仍缺少“局部求解依赖”规范
 
-## 1.1 宏观正文顺序仍偏“章节骨架”，未充分服从真实求解依赖
+现有规则能够保证公式前后连续，也能保证模型自然进入 solver，但一个复杂问题内部仍可能出现：
 
-当前论文骨架能告诉 Agent 常见章节有哪些，也能告诉后问只写增量，但还没有明确要求：
+- 先写优化模型，后补其依赖的判据；
+- 先给结果图，后解释结果所依赖的计算量；
+- 把“变量、目标函数、约束、算法、结果”按论文组件机械拆节，而不是按真正求解任务拆节；
+- 同一问题的局部求解链被打散到多个互不承接的小节；
+- 一个本应先完成的降维/边界定位被放到 solver 之后；
+- 结果分析与当前模型步骤距离过远。
 
-> **从“符号说明”之后开始，正文各章节、各问题、共享基础、模型建立、求解与结果的顺序，应优先映射真实的数学依赖与求解顺序。**
+本轮要解决的是：
 
-因此仍可能出现：
+> **在“问题X模型建立及求解”这个大章节已经固定的前提下，其内部二级/三级小节怎样按真实数学任务和局部求解顺序组织。**
 
-- 论文按“模板顺序”排，而实际求解先后不同；
-- 某个后续章节真正依赖的结构在很后面才解释；
-- 某个结果被提前使用，证据来源却晚于它出现；
-- 多问之间存在真实输入输出依赖，但正文没有体现；
-- 本应作为共享基础的内容重复散落在多个问题内；
-- 正确的技术内容存在，但章节之间没有形成“前一节产出 → 后一节消费”的主线。
+## 2.2 缺口二：已有“删冗余”，但缺“详写/略写”的明确分配标准
 
-本轮拟把这一问题实质化为 **Post-Notation Main-Body Architecture**。
+Paragraph Necessity 可以判断一段是否有必要，Subsection Granularity 可以判断是否过碎，但不能完整回答：
 
-## 1.2 当前会“删冗余”，但还没有明确“哪里应该详、哪里应该略”
+> **必要内容到底应该写到什么深度。**
 
-Paragraph Necessity 可以回答“该段是否必要”，subsection granularity 可以回答“是否拆得过碎”，但不能完全回答：
+当前仍可能出现两种相反问题：
 
-> **必要内容应该写到什么深度？**
+- 决定模型结构的推导写得过短，评委无法恢复思路；
+- 普通代数、重复符号、标准算法原理写得过长，真正重要的机制和结果反而被淹没。
 
-当前可能出现两种相反风险：
+本轮拟新增 **Detail Allocation Governance**。
 
-- 核心推导过于压缩，评委无法恢复思路；
-- 普通代数、标准算法、重复符号、继承关系写得过细，挤占真正关键的模型机制和结果解释。
+## 2.3 缺口三：图结果已有趋势—原因—结论，但图的入口与收束仍可更专业
 
-本轮拟新增 **Detail Allocation Governance**，把“详略得当”从经验描述变成可执行的写作判断。
+v7.18 已要求图表就近解释，但仍可进一步明确：
 
-## 1.3 当前图表 profile 已有“趋势—数值—原因—结论”，但图的叙事入口与收束仍可更完整
+- 图第一次进入正文时，应用一句简洁语言说明它展示了什么关系，而不是只写“如图 X 所示”；
+- 分析只抓决定结论的特征，不逐点读图；
+- 特征要回到当前问题所求，而不是停留在视觉描述；
+- 关键数值应放在最能支撑判断的位置；
+- 原因解释只能来自模型结构、约束、机制或数据规律；
+- 若该图是本问关键证据，应有一句简短收束，把图的证据返回到当前答案或下一步求解。
 
-v7.18 已要求关键结果邻接解释，但对于图像结果，仍可进一步明确：
-
-- 图第一次出现时应让评委立即知道“这张图展示哪两个/哪几类量之间的关系”；
-- 分析只抓决定结论的特征，而不是逐点读图；
-- 特征必须回到当前问题，而不是停留在视觉描述；
-- 原因解释应来自模型结构、约束、机制或数据规律；
-- 若该图承担当前小问的关键证据，应有一句极简收束，把图证据返回到答案或后续求解步骤。
-
-本轮拟把该逻辑固化为 **Figure Result Narrative**。
+本轮拟把这一逻辑固化为 **Figure Result Narrative**。
 
 ---
 
-# 2. 总体设计原则
+# 3. 总体设计原则
 
-## 2.1 单一 Authority，不新增第二套写作系统
+## 3.1 大框架冻结，小节内部自适应
 
-本轮所有新增跨题型写作规则仍放在：
+本轮的核心边界写成一句话：
+
+> **大章节结构服从现有论文框架；大章节内部的小节顺序服从当前问题的真实数学任务与求解依赖。**
+
+不得把这两层混淆。
+
+## 3.2 单一 Authority，不新增第二套写作系统
+
+所有新增跨题型规则仍放在：
 
 `core/writing_reasoning_contract.yaml`
 
-拟优先扩展现有：
+优先扩展现有：
 
 `model_establishment_solution_narrative`
 
-而不是新增：
+不新增：
 
 - `main_body_writing_contract.yaml`；
 - `figure_narrative_contract.yaml`；
@@ -158,990 +218,1079 @@ v7.18 已要求关键结果邻接解释，但对于图像结果，仍可进一�
 - 新 Module；
 - 新 runtime Gate。
 
-`latex.md` 只负责正文落地，`ai_cleanup.md` 只负责表现层复查，不重复定义第二套规则。
+`latex.md` 只把 Authority 落到论文正文；`ai_cleanup.md` 只检查表现层风险，不复制第二套规范。
 
-## 2.2 逻辑功能优先，不做固定模板
+## 3.3 逻辑功能优先，不建立固定模板
 
-所有新增规则必须表达“功能顺序”，不能变成：
+所有新增规则表达的是“信息功能与依赖”，不能变成：
 
-- 固定章节数量；
-- 固定章节名称；
-- 固定六句图表分析；
-- 固定“先模型准备，再问题一……”；
-- 固定“本文首先、其次、最后”；
-- 固定“XX 的 XX”标题语法。
+- 每问固定 4 个小节；
+- 每个模型固定先变量、再目标、再约束、再算法；
+- 每张图固定 6 句话；
+- 每个三级标题固定“XX 的 XX”；
+- 每段固定出现“因此/进一步/由此”；
+- 每个小问固定一张流程图。
 
-## 2.3 求解事实优先于写作美观
+## 3.4 求解事实优先于文字流畅
 
-正文顺序可以为了阅读做局部前置说明，但不得：
+小节顺序优化不得：
 
-- 改变真实模型依赖；
-- 把结果当成前提；
-- 删除约束/边界；
-- 为顺畅而跳过关键推导；
-- 把验证结果提前包装成模型假设；
-- 把图上的数值现象改写成理论证明。
-
-## 2.4 不改变模型层与数值层
-
-本轮只调整**已批准模型和已验收结果如何进入论文**。
-
-不改变：
-
-- 数学模型是什么；
-- solver 如何运行；
-- validator 如何判定；
-- 工作簿怎样存结果；
-- MATLAB 如何读取 Python 输出；
-- Human Approval 与 03A/03B 责任边界。
+- 改写已批准模型；
+- 把结果倒灌成前提；
+- 删除边界和异常；
+- 隐去求解失败或限制；
+- 把数值现象写成理论证明；
+- 因追求短句而省略决定性推导。
 
 ---
 
-# 3. 新增能力一：Post-Notation Main-Body Architecture
+# 4. 新增能力一：Within-Question Subsection Architecture
 
-## 3.1 目标
+## 4.1 作用域
 
-让“符号说明”之后的正文顺序优先映射：
+该能力只管理**固定大章节内部**的局部结构。
 
-> **实际求解依赖 + 数学对象依赖 + 小问输入输出依赖 + 证据出现顺序。**
+优先作用于：
 
-不是先选一个漂亮论文目录，再把技术内容塞进去。
+```text
+问题X模型建立及求解
+├─ 模型建立相关小节
+├─ 模型求解相关小节
+├─ 结果分析相关小节
+└─ 模型检验/敏感性/鲁棒性（确有需要时）
+```
 
-## 3.2 拟新增 Authority 结构
+也可用于：
 
-拟在 `model_establishment_solution_narrative` 下增加：
+- 数据说明/必要数据预处理内部的小节顺序；
+- 共享基础模型/模型准备内部的公共对象与关系顺序。
+
+但它不管理这些大章节相互之间的顺序。
+
+## 4.2 局部排序的第一原则：真实数学依赖
+
+在同一大章节内，如果局部任务 B 依赖局部任务 A，则默认先写 A 再写 B。
+
+例如机理/几何问题内部可能是：
+
+```text
+运动状态的确定
+→ 几何判据的构造
+→ 临界时刻的定位
+→ 有效时长的计算
+→ 优化目标的形成
+→ 参数的数值求解
+→ 最优方案的解释
+```
+
+这不是机理题固定模板，而只是说明：**局部小节顺序应能恢复真实数学依赖。**
+
+统计问题可能是：
+
+```text
+变量关系的构造
+→ 参数估计
+→ 显著性/残差诊断
+→ 结果解释
+```
+
+预测问题可能是：
+
+```text
+序列结构识别
+→ 模型方程建立
+→ 参数估计
+→ 滚动预测
+→ 误差分析
+```
+
+不同题型允许完全不同的小节顺序，只要顺序对应当前问题的真实求解过程。
+
+## 4.3 局部排序的第二原则：模型先闭合，solver 后出现
+
+在一个问题大章节内部：
+
+- solver 不应早于其所消费的核心模型结构；
+- 结果不应早于其计算依据；
+- 验证不应早于被验证的主结果；
+- 关键边界、判据或候选域若决定 solver，应在 solver 前交代。
+
+继续消费 v7.18 的 `model_to_solver_bridge`，本轮不重复定义第二套算法顺序。
+
+## 4.4 局部排序的第三原则：按数学任务分小节，不按合同字段分小节
+
+优先标题：
+
+```text
+有效遮蔽判据的构造
+临界边界时刻的求解
+投放参数的联合优化
+预测误差的滚动检验
+资源配置结果的可行性验证
+```
+
+避免机械拆成：
+
+```text
+决策变量
+目标函数
+约束条件
+算法设计
+结果说明
+```
+
+如果“决策变量—目标—约束”共同完成同一个优化模型任务，应在同一小节连续展开。
+
+## 4.5 二级/三级标题的层级判断
+
+拟新增如下判断：
+
+### 二级小节适合承载
+
+- 一个独立模型任务；
+- 一个独立求解阶段；
+- 一个独立结果/验证证据组；
+- 若不拆开会使较长论证难以恢复的数学阶段。
+
+### 三级标题只在以下情况启用
+
+- 一个二级小节内部存在两个以上真正独立的数学任务；
+- 独立命题/关键算法/关键图需要清晰锚点；
+- 不分三级标题会造成长推导难以定位。
+
+### 不足以单独成标题的内容
+
+- 单一公式；
+- 一个参数值；
+- 一张普通图；
+- 一张普通表；
+- 一个符号定义；
+- 标准算法的一条参数设置；
+- 一句“模型汇总”。
+
+## 4.6 “符合求解顺序”不是“照抄 Python 执行日志”
+
+必须明确：论文内部的求解顺序指**数学认知顺序**，不是程序运行顺序。
+
+例如程序可能：
+
+```text
+读取数据 → 构造缓存 → 并行搜索 → 保存 Excel
+```
+
+论文不能据此设置：
+
+```text
+缓存构造
+并行计算
+文件保存
+```
+
+正确的论文顺序应恢复：
+
+```text
+数学对象 → 计算目标 → 可利用结构 → 求解方法 → 数值结果
+```
+
+## 4.7 多问递进只影响“承接内容”，不改变大章节顺序
+
+问题二真实依赖问题一时，只在问题二开头用短句恢复：
+
+- 继承的模型/参数/阈值；
+- 本问新增条件；
+- 本问新增数学任务。
+
+不得因为问题二使用问题一结果，就把问题二的某些大段提前到问题一章节。
+
+如果问题之间独立，不虚构递进。
+
+## 4.8 数据说明/必要数据预处理章节内部
+
+该大章节一旦由既有规则激活，本轮只规范其内部顺序：
+
+```text
+当前模型真正需要的数据对象/字段
+→ 必要的数据质量处理
+→ 必要变换或构造量
+→ 对后续模型产生的直接输入
+```
+
+不写与后续模型无关的数据分析，不因“完整”而加入装饰性 EDA。
+
+## 4.9 共享基础模型/模型准备章节内部
+
+该大章节一旦由既有 `shared_foundation` 规则激活，内部优先：
+
+```text
+共享对象/坐标/索引
+→ 共享定义
+→ 共享核心关系
+→ 后续各问实际消费的公共输出
+```
+
+不得塞入问题一专属最优值、问题二专属约束或后问 solver。
+
+## 4.10 拟新增 Authority 结构
 
 ```yaml
-post_notation_main_body_architecture:
+within_question_subsection_architecture:
   governance_level: default
-  principle: ...
+  scope_boundary:
+    preserves_top_level_paper_skeleton: true
+    may_reorder_top_level_sections: false
+    may_reorder_question_sections: false
+    applies_inside:
+      - data_or_preprocessing_section_when_active
+      - shared_foundation_section_when_active
+      - question_model_establishment_solution_section
+      - local_validation_section_when_active
   ordering_basis:
-    - mathematical_dependency
-    - actual_solution_sequence
-    - shared_foundation_dependency
-    - cross_question_input_output_dependency
-    - evidence_before_claim
-  preferred_progression:
-    - recover_shared_or_local_prerequisite
-    - establish_relation_needed_downstream
-    - solve_current_mathematical_task
-    - present_and_interpret_current_evidence
-    - pass_only_needed_output_to_next_task
-  architecture_checks:
-    - prerequisite_before_use
-    - result_not_used_before_evidence
-    - shared_structure_not_repeated_without_need
-    - later_question_consumes_declared_prior_output
-    - independent_questions_not_forced_into_false_dependency
-    - section_has_downstream_role_or_direct_answer_role
-  hard_count_limit: false
+    - local_mathematical_dependency
+    - local_solution_reasoning_sequence
+    - model_before_solver
+    - evidence_before_local_conclusion
+  heading_basis:
+    - independent_mathematical_task
+    - independent_solution_stage
+    - independent_result_or_validation_role
+  rules:
+    - do_not_follow_python_execution_log_as_paper_structure
+    - do_not_split_by_contract_fields_when_one_argument_chain
+    - do_not_move_question_specific_content_across_top_level_question_sections
+    - cross_question_dependency_changes_inheritance_prose_not_top_level_order
 ```
 
-名称最终可微调，但语义保持上述范围。
-
-## 3.3 正文排序的优先级
-
-拟明确以下优先级：
-
-### A. 真实数学依赖优先
-
-如果 B 的定义或求解依赖 A，则默认 A 在 B 之前出现。
-
-例如：
-
-```text
-轨迹关系
-→ 几何判据
-→ 临界时刻
-→ 有效时长
-→ 优化目标
-→ 参数搜索
-```
-
-不能为了章节对称把“优化模型”提前，再回头补判据来源。
-
-### B. 共享基础优先于重复恢复
-
-若多个小问共同依赖：
-
-- 坐标系；
-- 状态方程；
-- 公共概率关系；
-- 网络结构；
-- 统一评价指标；
-
-且单独列共享基础能够明显减少重复，则在第一个消费问题之前集中建立。
-
-若共享内容很短，则不强制单列“模型准备”。
-
-### C. 多问题目的真实输入输出依赖要在行文中可恢复
-
-例如：
-
-```text
-问题一输出阈值 T*
-→ 问题二以 T* 限定搜索域
-→ 问题二输出资源配置
-→ 问题三在该配置下做动态调整
-```
-
-正文必须让评委知道“前问的哪个输出被后问使用”，而不是只写“基于问题一结果”。
-
-### D. 独立小问不得虚构递进
-
-如果问题二与问题一实际上独立，就不为了“文章连贯”强行写成继承关系。
-
-### E. Evidence Before Claim
-
-任何定量结论、趋势、最优参数或稳定性主张，原则上在相应工作簿/图表/验证证据已经被引入后再正式提出。
-
-## 3.4 符号说明之后的正文组织检查
-
-在整篇正文初稿生成前，内部建立一个**轻量 Main-Body Dependency Map**，只记录：
-
-```text
-section_or_task
-→ prerequisite
-→ produces
-→ consumed_by
-→ evidence_anchor
-```
-
-注意：
-
-- 这是内部写作辅助，不新增 Project State Schema；
-- 不要求进入论文正文；
-- 不要求旧项目持久化；
-- 不作为 runtime Gate；
-- 可以从当前 `模型论文框架.md` 的已有 dependency 信息推导，不新建重型 artifact。
-
-## 3.5 宏观闭环检查
-
-写完整篇正文后增加 Main-Body Narrative Closure Review：
-
-逐个检查符号说明后的核心章节：
-
-1. 为什么它在这里出现？
-2. 它消费了什么已建立对象/结果？
-3. 它产出了什么关系、参数、证据或结论？
-4. 这个产出被后面哪里使用，或是否直接回答设问？
-5. 若删除该章节，是否会破坏求解主线？
-6. 是否存在“正确但不服务任何后续任务/答案”的孤立技术块？
-7. 是否存在结果先出现、依据后补的逆序？
-
-这套检查是 review/default，不通过关键词自动 block。
+名称和字段可在正式实现时微调，但语义边界不得改变。
 
 ---
 
-# 4. 新增能力二：Detail Allocation Governance
+# 5. 新增能力二：Detail Allocation Governance
 
-## 4.1 目标
+## 5.1 目标
 
-把“详略得当”实质化为：
+把“详略得当”从模糊要求转成一个可执行的判断：
 
-> **写作篇幅和推导深度应与该内容对最终模型、求解、证据和答案的重要性匹配。**
+> **篇幅优先分配给决定模型成立、决定求解方法、决定结果可信和决定最终答案的内容。**
 
-不是“越详细越好”，也不是“越短越高级”。
+不是平均分配篇幅，也不是所有公式都同等解释。
 
-## 4.2 拟新增 Authority 结构
+## 5.2 详写级别：Decisive / 关键决定性内容
+
+满足下列任一条件时应优先展开：
+
+- 决定核心模型结构；
+- 决定关键判据是否成立；
+- 决定可行域、边界或约束；
+- 完成非显然降维、等价转化或分解；
+- 解释为什么当前 solver 适配；
+- 决定最终答案或关键策略；
+- 决定结果为何可信；
+- 存在容易被评委质疑的非显然步骤。
+
+正文通常需要让评委恢复：
+
+```text
+为什么需要
+→ 依据是什么
+→ 怎么得到
+→ 得到后改变什么
+```
+
+## 5.3 正常级别：Supporting / 必要支撑内容
+
+包括：
+
+- 主变量首次定义；
+- 必要参数来源；
+- 一般约束说明；
+- 求解器本题化编码；
+- 终止条件；
+- 必要精度说明；
+- 关键图表的基本解释。
+
+要求信息完整，但不做无必要长推导。
+
+## 5.4 压缩级别：Routine / 常规可压缩内容
+
+默认压缩：
+
+- 纯代数展开；
+- 教科书级标准公式的重复证明；
+- 已在符号说明定义过的符号逐项翻译；
+- 未变化的前问共享关系；
+- 标准算法历史与通用优点；
+- 简单单位换算；
+- 与当前答案无关的中间变量；
+- 图表中非决定性的普通点值。
+
+压缩不是删除。若这些内容是理解核心关系的必要桥梁，仍保留最短有效表述。
+
+## 5.5 附录/省略级别：Implementation / 非正文信息
+
+优先移附录或不进入正文：
+
+- 完整 Python/MATLAB 代码；
+- 文件路径；
+- DataFrame 操作；
+- 调试日志；
+- 全部参数扫描记录；
+- 全部候选解明细；
+- 无独立证据作用的重复图；
+- 软件安装或运行环境细节（除非影响复现/性能结论）。
+
+## 5.6 公式详略规则
+
+### 核心公式
+
+必须保留必要来源、关键推导和下游作用。
+
+### 中间公式
+
+若仅用于代数传递，可合并或压缩。
+
+### 最终模型
+
+必须让评委恢复求解器真正消费的目标、关系、约束或状态方程。
+
+### 已知标准关系
+
+只说明本题为什么适用和怎样进入当前模型，不写教科书式长介绍。
+
+## 5.7 Solver 详略规则
+
+详写：
+
+- 当前模型为何需要该 solver；
+- 变量/状态怎样编码；
+- 目标怎样评价；
+- 约束怎样处理；
+- 关键参数、初值、精度与停止条件；
+- solver 输出怎样映射回模型变量。
+
+略写：
+
+- 算法历史；
+- 通用优点；
+- 与本题无关的标准更新公式；
+- 没有修改过的标准算子细节。
+
+## 5.8 结果详略规则
+
+详写：
+
+- 决定答案的数值；
+- 决定策略的趋势/阈值/拐点；
+- 关键约束的活跃状态；
+- 结果形成的机制；
+- 结果对设问的直接含义；
+- 关键验证是否改变结论。
+
+略写：
+
+- 表格逐格复述；
+- 曲线逐点复述；
+- 与答案无关的辅助指标；
+- 已经在图表中清楚展示且没有额外解释价值的数字。
+
+## 5.9 “详写”不等于“写长”
+
+本轮必须明确：
+
+> 详写的标准是**信息链完整**，不是字数多。
+
+一个关键推导可能只需要 3 句 + 1 个公式，也可能需要命题 + 证明。不能设置统一字数、句数或公式数。
+
+## 5.10 简单问题防膨胀
+
+如果一个问题只有一个直接解析关系或简单计算：
+
+- 不强制设置多个小节；
+- 不强制算法段；
+- 不强制模型汇总；
+- 不强制图表；
+- 不因为 Detail Allocation 增加本来不存在的复杂性。
+
+## 5.11 拟新增 Authority 结构
 
 ```yaml
 detail_allocation_governance:
   governance_level: default
-  principle: ...
-  expand_when:
-    - relation_changes_model_structure
-    - criterion_or_boundary_is_decisive
-    - derivation_reduces_dimension_or_feasible_region
-    - parameter_or_constraint_source_is_nonobvious_and_decisive
-    - solver_choice_depends_on_local_structure
-    - result_is_headline_answer_or_changes_decision
-    - exception_or_failure_boundary_changes_claim
-  compress_when:
+  principle: allocate_detail_by_decisiveness_not_uniformity
+  expand_when_any:
+    - determines_model_structure
+    - determines_predicate_or_boundary
+    - nontrivial_reduction_or_transformation
+    - determines_solver_fit
+    - determines_answer
+    - determines_validation_claim
+    - likely_reviewer_challenge
+  compress_when_any:
     - routine_algebra
-    - already_defined_symbol_translation
-    - standard_algorithm_history_or_generic_advantage
-    - inherited_relation_without_change
-    - intermediate_quantity_without_independent_role
-    - repeated_table_or_curve_readout
-    - implementation_detail_better_suited_for_appendix
-  preserve_even_if_long_when:
-    - omission_breaks_semantic_closure
-    - omission_hides_decisive_constraint
-    - omission_prevents_reproducible_solution_logic
-    - omission_hides_exception_or_failure_boundary
-  rule: ...
-```
-
-## 4.3 应详写的内容
-
-### A. 决定模型成立的关键关系
-
-例如：
-
-- 精确几何判据；
-- 状态转移方程；
-- 关键概率结构；
-- 目标函数从题意到数学量的转换；
-- 关键资源/时序/边界约束来源。
-
-### B. 使问题发生结构变化的推导
-
-例如：
-
-- 连续判定转化为临界边界搜索；
-- 高维优化降维；
-- 候选域缩减；
-- 原始组合问题分解；
-- 单调性/凸性/对称性带来的简化；
-- 前问结论对后问搜索空间的限制。
-
-### C. 直接决定 solver 选择的结构
-
-不是详写算法历史，而是详写：
-
-- 为什么可导/不可导；
-- 为什么是混合离散—连续；
-- 为什么存在多个局部区间；
-- 为什么可做分解；
-- 为什么需要全局搜索 + 局部精化；
-- 为什么直接解析法已经足够。
-
-### D. 直接决定答案的结果与边界
-
-例如：
-
-- 最优参数；
-- 临界阈值；
-- 决策转折点；
-- 决定结论的敏感参数；
-- 会使主结论失效的异常或边界。
-
-## 4.4 应压缩的内容
-
-### A. 普通代数
-
-若只是从式（10）代入式（11）整理得到式（12），且没有新的结构信息，可压缩为一句或附录。
-
-### B. 重复符号解释
-
-符号首次定义后，不在每个公式后逐项翻译。
-
-### C. 标准算法百科
-
-算法未修改时，正文只保留本题：
-
-- 编码/变量；
-- 目标/适应度；
-- 约束处理；
-- 关键参数；
-- 初值；
-- 精度与终止；
-- 输出映射。
-
-### D. 后问完全继承的关系
-
-只用短承接恢复，不重新推导。
-
-### E. 没有独立作用的中间量
-
-若某中间量只在一个式子里短暂出现，可就地定义，不单独建表或小节。
-
-### F. 图表逐格/逐点复述
-
-只抓决定结论的趋势、区间、极值、拐点和关键数值。
-
-## 4.5 详略判断的四级证据权重
-
-为了让 Agent 真正可执行，拟增加内部写作判断：
-
-```text
-Tier S：直接决定模型结构或最终答案 → 必须清楚展开
-Tier A：决定 solver、关键参数、边界或验证结论 → 适度展开
-Tier B：辅助解释、次要中间关系 → 压缩表达
-Tier C：重复、百科、实现细节、无下游作用 → 删除/附录
-```
-
-注意：
-
-- 这是写作信息预算，不是数学重要性评分 Schema；
-- 不进入正文；
-- 不要求 YAML 项目持久化；
-- 不允许机器仅凭公式数量自动判层级；
-- 由当前模型依赖和答案证据确定。
-
-## 4.6 与 Paragraph Necessity 的关系
-
-现有 Paragraph Necessity 解决：
-
-> “这段要不要存在？”
-
-新增 Detail Allocation 解决：
-
-> “这段既然要存在，应写到多深？”
-
-两者不得重复定义。
-
-建议执行顺序：
-
-```text
-Need?（Paragraph Necessity）
-→ Important how much?（Detail Allocation）
-→ Place where?（Main-Body Architecture）
-→ Write how?（Continuous Narrative / Formula Rhythm）
+    - repeated_symbol_translation
+    - unchanged_inherited_relation
+    - generic_algorithm_background
+    - nondecisive_intermediate_value
+    - table_or_curve_repetition
+  move_to_appendix_when_any:
+    - implementation_detail
+    - exhaustive_candidate_log
+    - full_code
+    - nonessential_parameter_sweep
+  no_word_count_rule: true
+  simple_problem_anti_bloat: true
 ```
 
 ---
 
-# 5. 新增能力三：Figure Result Narrative
+# 6. 新增能力三：Figure Result Narrative
 
-## 5.1 目标
+## 6.1 目标
 
-对承担正文证据作用的结果图，使文字分析形成：
+使结果图的正文分析既完整又简洁，能够自然完成：
 
-> **图的身份 → 关键特征 → 决定性数值 → 当前设问含义 → 形成原因 → 必要收束**
+> **告诉评委这是什么关系 → 看出什么关键特征 → 关键数值是什么 → 这对当前问题意味着什么 → 为什么会这样 → 必要时一句收束。**
 
-但明确这是**信息功能顺序**，不是六句固定模板。
+这是功能链，不是固定六句话。
 
-## 5.2 拟扩展现有 `result_adjacent_interpretation.curve_or_figure`
+## 6.2 Figure Identity / 图的身份说明
 
-优先不新增平行 authority，而是在现有 profile 中补充：
+图第一次进入当前结果段时，邻近正文应让评委知道：
 
-```yaml
-curve_or_figure:
-  preferred_progression:
-    - figure_identity_or_displayed_relation
-    - key_trend_extremum_turning_point_or_interval
-    - decisive_value_when_needed
-    - implication_for_current_question
-    - mechanism_or_model_reason_for_pattern
-    - concise_closure_when_figure_is_decisive
-```
+- 图展示哪些变量/对象之间的关系；
+- 这张图为什么出现在当前问题这里。
 
-并增加：
+例如功能上应达到：
 
-```yaml
-figure_identity_rule: ...
-feature_selection_rule: ...
-question_link_rule: ...
-mechanism_explanation_rule: ...
-closure_rule: ...
-anti_repetition_rule: ...
-```
+> “图 X 展示参数 A 变化时指标 B 的响应关系，用于确定本问的可行参数区间。”
 
-## 5.3 Figure Identity Sentence
+但不固定使用“图 X 展示……”这一句式。
 
-图第一次进入正文时，邻近文字应让评委快速知道：
+不得只写：
 
-- 图展示什么对象；
-- 哪些量之间的关系；
-- 为什么这张图在当前步骤出现。
+> “结果如图 X 所示。”
 
-例如功能上类似：
+也不重复完整图题。
 
-> “图 8 给出了不同起爆延迟下有效遮蔽时长随投放时刻的变化关系。”
+## 6.3 Characterize / 关键特征识别
 
-但规则不要求固定写“图 X 给出了……”。
-
-避免两种问题：
-
-- 只写“结果如图 8 所示”，看不出图为何出现；
-- 把完整题注重新抄进正文。
-
-## 5.4 数据特征只选择与当前答案有关的内容
-
-不逐点、逐线、逐柱描述。
-
-优先选择：
+只提与当前答案有关的特征，例如：
 
 - 单调趋势；
-- 极值；
+- 峰值/谷值；
 - 拐点；
-- 平台区；
+- 稳定区间；
+- 临界区间；
+- 分组差异；
+- 收敛区间；
+- 异常/反转。
+
+不逐点读图，不把全部视觉变化都写进正文。
+
+## 6.4 Quantify / 必要数值定位
+
+只有决定判断的数值才进入正文：
+
 - 阈值；
-- 交叉点；
-- 明显分组差异；
-- 不确定区间变化；
-- 异常/边界失效。
+- 极值；
+- 最优点；
+- 关键区间；
+- 误差；
+- 相对变化量；
+- 关键时间/坐标。
 
-若图中有很多现象，只保留**真正推动当前问题答案**的 1–3 个特征。
+精度继续服从 Numeric Profile，不因正文简洁擅自降位。
 
-## 5.5 特征必须回到当前设问
+## 6.5 Answer Link / 回到当前设问
 
-图分析不能停在：
+图分析不能停在“曲线先升后降”。必须说明：
 
-> “曲线先上升后下降。”
+- 这一特征如何缩小参数范围；
+- 如何选择策略；
+- 如何判断是否满足要求；
+- 如何支持当前小问的最终答案；
+- 或如何为下一局部求解步骤提供依据。
 
-而要说明这意味着：
+这一步是图结果叙事的核心。
 
-- 搜索域如何缩小；
-- 最优参数落在哪个区间；
-- 哪个策略更优；
-- 某阈值是否满足；
-- 某变量是否敏感；
-- 主结论是否稳定；
-- 后续模型应该使用哪个参数/候选方案。
-
-## 5.6 形成原因必须来自模型或数据结构
+## 6.6 Cause / 简洁解释形成原因
 
 原因优先来自：
 
-- 目标函数结构；
-- 约束激活；
-- 几何/物理机制；
-- 状态转移；
-- 概率/统计关系；
+- 当前模型方程；
+- 约束变活跃/失活；
+- 物理/几何机制；
+- 统计结构；
 - 资源竞争；
-- 边际收益递减；
-- 数据分布；
-- 模型已证明/已验证的结构。
+- 边界效应；
+- 数据本身的已证实规律。
 
-禁止空泛原因：
+禁止为了“有分析”编造没有模型证据支持的原因。
 
-- “说明模型合理”；
-- “符合实际情况”；
-- “算法具有较好性能”；
-- “由于因素共同作用”。
+如果无法从现有模型/证据解释原因，则只描述可确认现象和问题含义，不强行补机制。
 
-## 5.7 必要时一句收束
+## 6.7 Closure / 必要时简短收束
 
-当该图是当前阶段的关键证据时，分析末尾用一句极简结论将其返回：
+当该图承担当前局部任务的关键证据时，可以用一句很短的话收回：
 
-- 当前问题直接答案；
-- 下一步搜索域；
-- 下一问输入；
-- 当前 claim 的支持/修改/否决。
+- 当前结论；
+- 最终参数区间；
+- 当前问题答案；
+- 下一步求解输入。
 
-若前文已经自然完成该作用，不强制额外总结句。
+如果前一句已经完成 answer link，就不重复总结。
 
-## 5.8 图与数值排版的叙事位置
+## 6.8 图、数值与正文的位置关系
 
-拟在 `latex.md` 明确：
+拟明确：
 
 ```text
-引出当前结果关系
-→ 图/表（尽量靠近首次分析处）
-→ 邻接分析
-→ 必要关键数值/局部结果表
-→ 下一求解步骤或小问答案
+引出图及其作用
+→ 图
+→ 紧邻的关键特征/数值/设问含义/原因解释
+→ 下一局部任务
 ```
 
-避免：
+或在版式需要时：
 
-- 连续堆 4–5 张图后才分析；
-- 先长篇分析后图隔两页出现；
-- 图题承担全部解释，正文不引用；
-- 同一关键数字在正文、表格、图注连续重复三遍。
+```text
+短引出
+→ 关键数值句
+→ 图
+→ 解释与收束
+```
 
-这里不改变 LaTeX 浮动体技术规则，只规定正文证据的逻辑邻近性。
+不允许：
+
+```text
+图1
+图2
+图3
+表4
+……
+很后面才统一分析所有结果
+```
+
+## 6.9 多面板图
+
+多面板图不要求每个 panel 各写一段。
+
+正文应：
+
+- 先说明整张图的共同问题；
+- 再只分析各 panel 对结论有独立贡献的差异；
+- 若多个 panel 只重复同一趋势，用一句综合解释即可。
+
+## 6.10 不同图类型的自适应
+
+### 参数响应/敏感性图
+
+关注：趋势、阈值、稳定区间、结论是否改变。
+
+### 优化收敛图
+
+关注：目标变化、稳定位置、是否支持终止/精度，不用它证明全局最优。
+
+### 预测/拟合图
+
+关注：主趋势、关键偏差、异常区间，并与误差指标结合。
+
+### 空间/网络图
+
+关注：结构位置、聚集/连通/路径特征与决策含义，不机械谈“上升下降”。
+
+### 机制/几何结果图
+
+关注：临界状态、相对位置、边界关系和模型判据。
+
+## 6.11 与现有 Result-adjacent Interpretation 的关系
+
+本轮不另建第二套图表 Authority。
+
+拟将 Figure Result Narrative 作为：
+
+`model_establishment_solution_narrative.result_adjacent_interpretation.curve_or_figure`
+
+的细化，或作为同一 Authority 下的 `figure_result_narrative` consumer 结构。
+
+不得与现有 point optimum / algorithm accuracy / validation profile 冲突。
+
+## 6.12 拟新增 Authority 结构
+
+```yaml
+figure_result_narrative:
+  governance_level: default
+  functional_sequence:
+    - identify_relation_and_local_role
+    - characterize_decisive_feature
+    - quantify_decisive_value_when_needed
+    - connect_feature_to_current_question
+    - explain_supported_reason_when_available
+    - close_to_answer_or_next_step_when_needed
+  rules:
+    - not_caption_repetition
+    - not_point_by_point_reading
+    - not_fixed_sentence_count
+    - not_same_pattern_for_every_figure
+    - reason_must_be_supported_by_model_or_evidence
+    - interpretation_stays_adjacent_to_figure
+  numeric_source: numeric_style_contract
+  claim_source: claim_strength_calibration
+```
 
 ---
 
-# 6. 三项能力如何组合成完整正文写作链
+# 7. Question-Section Narrative Closure Review
 
-本轮最终希望形成一个统一但不模板化的写作判断链：
+原计划中的 “Main-Body Narrative Closure Review” 范围过大，容易误导为重排全文大章节。
+
+本轮改成：
+
+> **Question-Section Narrative Closure Review / 问题章节内部闭环检查**
+
+对每个 `问题X模型建立及求解` 大章节，在初稿完成后检查：
 
 ```text
-符号说明结束
-↓
-先恢复真实求解依赖与跨问依赖
-↓
-确定正文主线与共享基础位置
-↓
-对每个技术块判断是否必要
-↓
-对必要内容判断详写/略写级别
-↓
-按当前数学任务连续建立模型
-↓
-由模型结构自然进入求解
-↓
-结果出现后就近解释
-↓
-图像证据按“关系—特征—数值—设问—原因—收束”组织
-↓
-当前小问直接回答
-↓
-仅把后问真正需要的输出传递下去
-↓
-全文 Main-Body Narrative Closure Review
+1. 本问真正需要回答什么？
+2. 第一个局部小节是否直接进入解决该问所需的数学对象/关系？
+3. 各小节的先后是否符合局部数学依赖？
+4. 是否出现“后定义的量被前面先用”的倒置？
+5. 模型是否在 solver 之前达到可计算状态？
+6. solver 是否由模型结构自然引出？
+7. 关键结果是否在邻近位置解释？
+8. 图表是否真正服务当前问题而非装饰？
+9. 本问决定性推导是否写得足够，普通内容是否压缩？
+10. 最终是否在本章节内直接回答该问？
+11. 若后问需要本问输出，是否只明确传递必要量而不提前展开后问？
 ```
 
-这条链的核心不是“所有论文都长这样”，而是：
+这不是新 Gate，而是 Writing Default 的 reviewer checklist。
 
-> **论文阅读顺序应尽可能恢复作者真实解决问题的思维顺序。**
+整篇终审只额外确认一件事：
+
+> **既定大章节骨架是否仍保持原顺序。**
+
+它不重新决定全文章节排序。
 
 ---
 
-# 7. `latex.md` 的拟修改范围
+# 8. `latex.md` 拟修改内容
 
-本轮预计只在现有结构中增加或强化以下位置，不重写整份文件。
+正式实施时只在现有写作章节中增加/修订以下内容。
 
-## 7.1 在“终稿总体结构”后增加宏观正文排序说明
-
-说明默认章节骨架只是可用结构，不凌驾于实际求解依赖。
+## 8.1 在总体结构处增加“冻结边界”说明
 
 明确：
 
-> 符号说明之后的正文顺序应由共享基础、数学依赖、小问输入输出和证据链共同决定。
+- v7.19 新增规则不改变 3.2 的中文国赛大章节骨架；
+- 可选章节是否启用仍按既有规则；
+- 新规则仅约束大章节内部小节。
 
-## 7.2 在模型推导/章节组织部分增加 Main-Body Architecture 落地
+## 8.2 在问题章节内部小节颗粒度处扩展
 
-增加：
+将当前 `subsection_granularity` 从“防止小节过碎”扩展为：
 
-- 前置依赖必须先说明；
-- 后续章节消费前问结果时应指出具体输出；
-- 独立问题不伪造继承；
-- 共享基础按复用强度决定是否独立。
+```text
+防碎片化
++
+局部求解依赖排序
++
+数学任务型标题
++
+大章节边界保护
+```
 
-## 7.3 在 Paragraph Necessity 后补 Detail Allocation
+## 8.3 在模型建立/模型求解处补 Detail Allocation
 
-不另设庞大一级章节，避免模块膨胀。
+不新增独立论文章节，只在写作说明里明确：
 
-重点写：
+- 关键推导详写；
+- 普通过程压缩；
+- 标准算法只写本题化部分；
+- 决定性结果与解释保留足够篇幅。
 
-- 决定结构/答案的内容详写；
-- 普通代数/百科/重复定义压缩；
-- 详略来自下游作用而不是篇幅美感。
+## 8.4 在结果图表达处补 Figure Result Narrative
 
-## 7.4 在“求解结果：局部证据闭环”中扩展 Figure Result Narrative
-
-补充：
-
-- 图身份句；
-- 关键特征选择；
-- 当前设问链接；
-- 模型原因；
-- 必要收束。
-
-## 7.5 在终审前增加 Main-Body Narrative Closure
-
-不新增独立正式论文章节，而是写作/终审动作。
+把图表结果写法明确为功能链，但不提供固定句式模板。
 
 ---
 
-# 8. `ai_cleanup.md` 的拟修改范围
+# 9. `ai_cleanup.md` 拟新增检查
 
-AI Cleanup 只增加表现风险，不重新定义 Authority。
+AI Cleanup 只做表现层复查，不判断数学正确性。
 
 拟新增 review risks：
 
-```text
-solution_order_mismatch
-prerequisite_after_use
-orphan_technical_block
-main_body_template_order_overrides_dependency
-critical_derivation_overcompressed
-routine_detail_overexpanded
-figure_without_identity
-figure_feature_without_question_link
-figure_reason_without_model_basis
-decisive_figure_without_local_closure
-```
+- `subsection_order_breaks_local_dependency`
+- `top_level_framework_reordered_by_writing_rule`
+- `decisive_derivation_overcompressed`
+- `routine_content_overexpanded`
+- `figure_without_identity_or_local_role`
+- `figure_feature_without_question_link`
+- `unsupported_figure_cause`
+- `detached_figure_summary`
 
-并明确机器限制：
+其中：
 
-- 不凭章节号判断顺序错误；
-- 不凭段落长度判断详略错误；
-- 不凭图后距离判断解释是否缺失；
-- 不凭“因此/由图可知”等词判断叙事质量；
-- 不自动重排章节；
-- 不自动删除长推导；
-- 不改变数学事实。
+`top_level_framework_reordered_by_writing_rule`
 
----
+用于保护本轮最重要的边界：任何新增写作规则不得破坏既定大章节骨架。
 
-# 9. 测试设计
+机器审计仍不得：
 
-计划新增：
-
-`tests/test_v719_main_body_writing_closure.py`
-
-## 9.1 Authority 单一性
-
-断言：
-
-- 新规则仍位于 `writing_reasoning_contract.yaml`；
-- 不出现新的平行 writing contract；
-- latex / cleanup 只消费，不复制第二套 Authority。
-
-## 9.2 Main-Body Architecture
-
-断言：
-
-- 存在 `post_notation_main_body_architecture`；
-- ordering basis 包含 mathematical dependency / actual solution sequence / cross-question input-output / evidence-before-claim；
-- 明确 independent questions 不虚构 dependency；
-- 没有固定章节数量或固定章节名。
-
-## 9.3 Detail Allocation
-
-断言：
-
-- expand_when 包含 structural change / decisive boundary / solver fit / headline result；
-- compress_when 包含 routine algebra / repeated symbol / standard algorithm history / inherited unchanged relation；
-- 规则与 Paragraph Necessity 明确分工；
-- 不使用 paragraph length 作为机器硬判据。
-
-## 9.4 Figure Narrative
-
-断言：
-
-`curve_or_figure` 至少包含：
-
-- identity/relation；
-- key feature；
-- decisive value when needed；
-- implication for current question；
-- mechanism/model reason；
-- concise closure when decisive。
-
-并断言：
-
-- 不固定六句话；
-- 不要求每张图都完整重复同一流程。
-
-## 9.5 No Architecture Creep
-
-断言以下文件不出现新字段/新 Gate：
-
-- task taxonomy；
-- numerical verification；
-- model approval；
-- workbook schema；
-- project state；
-- workflow router；
-- Module 02。
-
-## 9.6 Anti-template
-
-断言：
-
-- 不新增固定连接词词库；
-- 不强制“XX 的 XX”；
-- 不强制“图 X 给出了”；
-- 不强制固定章节“共享基础模型”；
-- 不把任何单个算法、题型或参考论文作为默认顺序。
+- 从字数判断是否“详略得当”；
+- 从公式数判断推导是否完整；
+- 从标题语法判断标题是否专业；
+- 从“图 X”关键词判断图分析是否合格；
+- 从段落距离判断数学逻辑正确；
+- 自动重排大章节。
 
 ---
 
-# 10. 人工 Prose Smoke 计划
+# 10. 回归测试设计
 
-机器测试只能确认规则存在与架构没有越界，无法证明文章真正“顺”。因此本轮必须做人工写作 smoke。
+拟新增：
 
-## Smoke A：机理/几何多问题
+`tests/test_v719_intra_question_writing_closure.py`
 
-检查：
+## 10.1 大框架冻结测试
 
-- 共享运动关系是否放在真正被消费的位置；
-- 判据 → 边界 → 时长 → 优化是否顺序自然；
-- 图是否从轨迹/判据特征自然导向答案。
+至少断言：
 
-## Smoke B：连续优化题
+- `within_question_subsection_architecture.scope_boundary.preserves_top_level_paper_skeleton == true`；
+- `may_reorder_top_level_sections == false`；
+- `may_reorder_question_sections == false`；
+- `latex.md` 仍保留既定中文国赛骨架；
+- v7.19 Authority 不出现“按求解依赖重排问题章节”的语义。
 
-检查：
+## 10.2 小节顺序测试
 
-- 决策变量、目标、约束是否在同一建立链内；
-- 关键降维详写，普通代数压缩；
-- 目标函数形态 → solver 选择是否自然；
-- 最优参数图是否就近解释。
+断言局部排序依据包含：
 
-## Smoke C：统计/回归题
+- local mathematical dependency；
+- local solution reasoning sequence；
+- model before solver；
+- evidence before local conclusion。
 
-检查：
+## 10.3 详略分配测试
 
-- 数据处理、变量关系、模型估计、诊断与预测顺序是否与实际分析过程一致；
-- 不把优化类顺序强套进统计题；
-- 残差图/系数图是否围绕当前统计问题解释。
+断言：
 
-## Smoke D：时间序列/预测题
+- 有 expand/compress/appendix 三类判断；
+- 不存在固定字数；
+- simple_problem_anti_bloat 为真；
+- routine algebra 和 algorithm background 明确可压缩。
 
-检查：
+## 10.4 Figure Narrative 测试
 
-- 趋势/季节性识别是否在模型选择前；
-- 训练/验证顺序与证据一致；
-- 预测图说明“预测关系—误差—结论”，不只描述曲线。
+断言功能链包含：
 
-## Smoke E：网络/调度或组合题
+- identity/local role；
+- decisive feature；
+- key value when needed；
+- question link；
+- supported reason；
+- optional closure。
 
-检查：
+同时断言：
 
-- 网络基础结构、组合约束、分解、候选域、求解顺序是否一致；
-- 复杂 solver 之前是否先解释结构；
-- 结果图是否返回资源/路径/调度决策。
+- not fixed sentence count；
+- not caption repetition；
+- not point-by-point reading。
 
-## Smoke F：简单解析题
+## 10.5 Authority 边界测试
 
-检查：
+继续断言：
 
-- Detail Allocation 不会把简单题强行写长；
-- 不强制设置模型求解、算法流程或单独结果分析；
-- 一两个关键公式即可完成闭环时允许 inline。
-
-## Smoke G：多问递进题
-
-检查：
-
-- 问题一结果是否具体传递到问题二；
-- 问题二新增内容详写、继承内容压缩；
-- 问题三若依赖失效，是否明确指出而不是“同理”。
-
-## Smoke H：图表密集题
-
-检查：
-
-- 图不会连续堆积后统一分析；
-- 每张关键图有身份和问题角色；
-- 只分析决定结论的特征；
-- 图分析结尾能自然进入下一步或答案。
+- 不新增 runtime Gate；
+- 不修改 Module 02；
+- 不修改 Numerical Verification/PQS；
+- 不修改 Workbook/Project State/Taxonomy；
+- 不新增第二套 writing contract 文件。
 
 ---
 
-# 11. 验收标准
+# 11. 人工 prose smoke 设计
 
-只有全部满足才进入版本发布。
+正式实现后至少做 8 类人工样例。
 
-## 11.1 内容验收
+## A. 机理/几何题
 
-- [ ] 符号说明之后的正文顺序明确服从实际求解依赖，而不是只给固定骨架；
-- [ ] 多问输入输出依赖可以被评委恢复；
-- [ ] 独立小问不会被强行串联；
-- [ ] “详略得当”已有明确 expand/compress 规则；
-- [ ] 核心推导不会因追求简洁被过度压缩；
-- [ ] 标准算法百科、普通代数和重复定义可被系统压缩；
-- [ ] 图像结果有 identity / feature / value / question implication / reason / optional closure；
-- [ ] 图分析不是固定句式；
-- [ ] 全文存在 main-body closure review；
-- [ ] 所有规则均保持 Default/Review 性质，不改变数学模型事实。
+检查：
 
-## 11.2 兼容验收
+- 局部小节是否按“关系依赖”排列；
+- 判据/临界边界是否比普通代数写得更充分；
+- 结果图是否围绕临界关系解释。
 
-- [ ] Model Approval 无变化；
-- [ ] 03A/03B 无变化；
-- [ ] Numerical Verification/PQS 无变化；
-- [ ] Workbook Schema 无变化；
-- [ ] Project State Schema 无变化；
-- [ ] Task Taxonomy 无变化；
-- [ ] workflow runtime 无新 Gate；
-- [ ] 旧项目无需迁移。
+## B. 连续优化题
 
-## 11.3 测试验收
+检查：
 
-- [ ] v7.19 regression 全绿；
-- [ ] 全量 Python tests 全绿；
-- [ ] Static contract lint 全绿；
-- [ ] Generated file contract 全绿；
-- [ ] 人工 prose smoke A–H 通过；
-- [ ] LaTeX CUMCM 全绿；
-- [ ] LaTeX MCM-ICM 全绿；
-- [ ] LaTeX Diangong 全绿；
-- [ ] Production LaTeX attestation 全绿；
-- [ ] merge 后 main CI 再次全绿。
+- 变量/目标/约束不机械拆成多个小节；
+- solver 在模型闭合后出现；
+- 最优参数图/曲线能直接回到决策答案。
+
+## C. 统计回归题
+
+检查：
+
+- 不强套机理题小节结构；
+- 参数估计、诊断、结果解释顺序自然；
+- 诊断图不写成优化结果图。
+
+## D. 时间序列题
+
+检查：
+
+- 序列结构、建模、预测、误差分析在问题章节内部顺序合理；
+- 标准模型背景被压缩。
+
+## E. 网络/调度题
+
+检查：
+
+- 网络对象/资源关系先于算法；
+- 路径/调度结果图有明确问题含义。
+
+## F. 简单解析题
+
+检查：
+
+- 不被 v7.19 强行拆成 3--4 个小节；
+- 不因为“详写”产生无必要算法和图表。
+
+## G. 多问递进题
+
+检查：
+
+- 问题一、二、三大章节顺序完全不变；
+- 后问只短承接前问必要输出；
+- 不把后问内容提前到前问。
+
+## H. 图表密集题
+
+检查：
+
+- 图不连续裸堆；
+- 每张关键图有身份、特征、问题链接；
+- 不形成“六句话模板”；
+- 多面板图能综合解释。
 
 ---
 
-# 12. 实施阶段
+# 12. 正式实施阶段
 
-## Phase 0 — 用户审查本计划
+## Phase 0：计划审查
 
-当前阶段只创建本计划，不修改正式 Skill 语义。
+当前阶段。
 
-用户审查重点：
+完成条件：用户明确批准本修订版计划。
 
-- 三个能力方向是否准确；
-- Detail Allocation 是否符合“详略得当”的预期；
-- Figure Result Narrative 是否过度模板化；
-- Main-Body Architecture 是否真正体现求解顺序；
-- 是否存在不希望加入 Skill 的要求。
-
-未经批准，不进入 Phase 1。
-
-## Phase 1 — Writing Authority
+## Phase 1：Authority 实现
 
 修改：
 
 `core/writing_reasoning_contract.yaml`
 
-预计：
+拟新增/扩展：
 
-- schema `1.4.0 -> 1.5.0`（仅 writing contract 自身语义版本）；
-- 扩展 `model_establishment_solution_narrative`；
-- 加入三项能力与 machine audit boundary；
-- 不新增 runtime/schema gate。
+- `within_question_subsection_architecture`
+- `detail_allocation_governance`
+- `figure_result_narrative`
+- `question_section_narrative_closure`
 
-## Phase 2 — LaTeX 正文落地
+并明确 top-level skeleton preservation。
+
+## Phase 2：LaTeX consumer 落地
 
 修改：
 
 `modules/05_writing/latex.md`
 
-将 Authority 转为自然语言执行规则，重点处理：
+只把 Authority 转换成自然正文写作规则，不复制第二套完整合同。
 
-- 符号说明后的宏观排序；
-- 详略判断；
-- 图结果段；
-- 全文 main-body closure review。
-
-## Phase 3 — AI Cleanup 消费
+## Phase 3：AI Cleanup
 
 修改：
 
 `modules/05_writing/ai_cleanup.md`
 
-只加入表现风险与复查方式，不重复 Authority。
+增加局部顺序、详略和图结果表现风险。
 
-## Phase 4 — Regression
+## Phase 4：Regression
 
 新增：
 
-`tests/test_v719_main_body_writing_closure.py`
+`tests/test_v719_intra_question_writing_closure.py`
 
-并仅在旧测试与新合法语义冲突时进行最小兼容修正。
+并检查旧 v7.18 回归继续通过。
 
-## Phase 5 — 人工 prose smoke
+## Phase 5：人工 prose smoke
 
-执行 A–H 八类写作样例。
+执行第 11 节的 8 类样例。
 
-若出现：
+如果出现下列任一问题，回到 Authority 修改：
 
-- 过度模板化；
-- 简单题被强行写长；
-- 图分析机械六句式；
-- 章节顺序被过度强制；
+- 大章节被重排；
+- 简单题被写复杂；
+- 图结果变成固定模板；
+- 关键推导仍过短；
+- 标准算法仍过长；
+- 小节顺序与实际局部求解过程不一致。
 
-则优先修改 Authority，不用测试例外掩盖。
+## Phase 6：入口摘要
 
-## Phase 6 — 入口摘要
+必要时轻量修改 `PROJECT_INSTRUCTIONS.md`，只加入一句：
 
-若规则足够稳定，再在 `PROJECT_INSTRUCTIONS.md` / `SKILL.md` 等入口文件做轻量摘要。
+> 既定论文大框架不变，各问题章节内部按真实数学任务与求解依赖组织小节，并按决定性分配详略、就近闭合图结果证据。
 
-入口只写能力存在，不复制完整规则。
+不得复制完整规则。
 
-## Phase 7 — Release Candidate
+## Phase 7：版本与 Changelog
 
-若 Phase 1–6 全通过：
+只有 Phase 1--6 全部通过后：
 
-- 暂定升级 Skill `7.18.0 -> 7.19.0`；
-- 更新 CHANGELOG / README / version carriers；
-- 根 SKILL 与 packaged SKILL 保持一致；
-- 归档本实施计划到 `legacy/architecture/`；
-- generated metadata 仅由 generator 刷新。
+- Skill `7.18.0 → 7.19.0`；
+- writing reasoning schema `1.4.0 → 1.5.0`（暂定）；
+- 同步 version carriers；
+- 更新 CHANGELOG；
+- 更新 README 简短能力说明。
 
-## Phase 8 — Full CI / PR Acceptance
+## Phase 8：Generated metadata
 
-要求完整 HSK Skill CI 11 项全绿。
+运行 generator，刷新：
 
-## Phase 9 — Squash Merge / Main Verification
+- `SKILL_FILE_INDEX.md`
+- `TEMPLATE_INDEX.md`
+- `MANIFEST.sha256`
 
+生成文件不得手工修改。
+
+## Phase 9：完整 CI
+
+必须通过：
+
+- Static contract lint；
+- Generated file contract；
+- Python 3.10--3.14；
+- LaTeX CUMCM；
+- LaTeX MCM-ICM；
+- LaTeX Diangong；
+- Production LaTeX attestation。
+
+## Phase 10：Release / Merge
+
+只有全部通过后：
+
+- PR Ready；
 - squash merge；
-- 回读 main bootstrap 与 SKILL；
-- 验证版本；
-- 等待 merge 后 main CI 全绿；
-- 确认 generated metadata 没有漂移。
+- main 回读版本；
+- main 合并后完整 CI；
+- 将本计划归档到 `legacy/architecture/`。
 
 ---
 
-# 13. 风险与防护
+# 13. 兼容性与明确非目标
 
-## 风险 A：把“按求解顺序写”误解为“代码执行日志顺序”
+## 13.1 向后兼容
 
-防护：正文服从**数学依赖与论证顺序**，不是 Python print 顺序、调参顺序或实验时间线。
+本轮不新增：
 
-## 风险 B：详略规则导致长文膨胀
+- Project State 字段；
+- Workbook 字段；
+- CLI 参数；
+- Runtime Gate；
+- 模型审批状态；
+- 题型 taxonomy 字段。
 
-防护：Detail Allocation 必须与 Paragraph Necessity 联用；只有决定结构/答案的内容才展开。
+因此旧项目无需迁移。
 
-## 风险 C：图分析变成新的固定六句模板
+## 13.2 不改变 v7.18 已有能力
 
-防护：规则明确 functional checklist，不规定句数、不规定词语；功能可合并，可省略不适用项。
+继续保留：
 
-## 风险 D：为了“原因分析”强行编造机制
+- Continuous Mathematical Narrative；
+- Formula Prose Rhythm；
+- Model-to-Solver Bridge；
+- Professional Heading Semantics；
+- Result-adjacent Interpretation；
+- Cross-question incremental writing。
 
-防护：原因必须能回到已批准模型、约束、数据规律或验证证据；无法支持时只陈述观察，不杜撰原因。
+v7.19 是在其上补充“局部小节架构 + 详略分配 + 图结果叙事”，不是替换。
 
-## 风险 E：Main-Body Architecture 过度约束不同题型
+## 13.3 不改变论文大框架
 
-防护：仅规定 dependency-first，不规定具体章节名；统计、预测、网络、机理、优化各自保持题型自然顺序。
+这是本计划的**最高优先级边界**。
 
-## 风险 F：新增规则侵入模型/数值 Authority
-
-防护：回归锁定 protected files 不出现新 writing gate/field。
-
----
-
-# 14. 预期修改后的写作效果
-
-本轮完成后，符号说明之后的正文应更接近以下阅读体验：
+正式实现和测试必须保证：
 
 ```text
-为什么先处理这一对象
-→ 这一关系为后面解决什么问题
-→ 当前关键推导展开到足够深度
-→ 普通步骤适度压缩
-→ 最终模型自然进入数值求解
-→ 图/表一出现就知道它展示什么
-→ 只分析真正决定答案的特征
-→ 用模型结构解释趋势
-→ 返回当前设问
-→ 将必要输出交给下一问
+符号说明
+→ 数据说明/必要数据预处理
+→ 共享基础模型/模型准备
+→ 问题一模型建立及求解
+→ 问题二模型建立及求解
+→ ……
 ```
 
-评委阅读时应该能够清楚恢复：
+仍是既定顺序。
 
-1. 作者实际是怎样一步一步解决问题的；
-2. 哪些步骤是关键数学贡献，哪些只是常规计算；
-3. 每张核心图为什么出现、说明了什么；
-4. 前后小问之间到底传递了什么；
-5. 最终答案怎样由前述模型、求解与证据逐步推出。
+其中可选章节是否出现仍由现有规则决定，但一旦出现不得被本轮规则重新排序。
 
 ---
 
-# 15. 本轮明确不会做的“伪优化”
+# 14. 最终验收标准
 
-以下内容即使看起来能让规则更“完整”，本轮也不加入：
+只有同时满足下列条件，v7.19 才可以发布：
 
-- “每个问题必须 4 个二级标题”；
-- “每个图必须写 5 句分析”；
-- “图后必须有综上所述”；
-- “模型建立必须先变量再公式再算法”；
-- “所有标题必须名词+动词”；
-- “所有论文必须有共享基础模型”；
-- “结果分析必须统一放每问最后”；
-- “所有关键推导必须完整证明”；
-- “所有标准算法必须介绍原理”；
-- “为了论文连贯，所有小问都必须存在继承关系”。
-
----
-
-# 16. 用户审查清单
-
-在批准实施前，请重点审查以下 8 项：
-
-1. **正文顺序**：是否同意“符号说明后优先服从真实数学依赖和实际求解顺序”？
-2. **共享基础**：是否同意仅在多个问题真实共享且能减少重复时单列？
-3. **详写范围**：是否同意关键机理、判据、降维、边界、solver 依据、决定性结果应详写？
-4. **略写范围**：是否同意普通代数、重复符号、算法百科、继承未变化部分、逐点读图应压缩？
-5. **图结果链**：是否同意“图身份/关系 → 关键特征 → 决定性数值 → 设问含义 → 原因 → 必要收束”？
-6. **反模板**：是否同意上述仅是功能链，不固定句数和词语？
-7. **宏观闭环**：是否同意终稿增加一次 main-body narrative closure review？
-8. **版本策略**：若正式实现通过，是否同意作为向后兼容的新写作能力升级到 `v7.19.0`？
+1. 既定大章节框架未变化；
+2. 每个问题大章节内部的小节顺序能恢复真实局部求解思路；
+3. 小节按数学任务划分，不按合同字段机械拆分；
+4. 关键推导、关键边界、solver 依据、决定性结果得到足够篇幅；
+5. 普通代数、重复定义、标准算法背景明显压缩；
+6. 简单题不被写复杂；
+7. 结果图能够说明“是什么关系—有什么关键特征—对当前问题意味着什么—为什么—必要时如何收束”；
+8. 图分析不逐点复述、不复制图题、不形成固定句式；
+9. 每个问题大章节最终都直接回答本问；
+10. 后问只承接必要输出，不改变问题章节顺序；
+11. v7.18 全部旧回归继续通过；
+12. 8 类 prose smoke 通过；
+13. 完整 CI 通过；
+14. merge 后 main CI 再次通过。
 
 ---
 
-# 17. 后续聊天 / Agent 上下文恢复说明
+# 15. 后续聊天 / Agent 上下文恢复说明
 
-若后续聊天上下文丢失，实施前必须重新读取：
+如果后续聊天上下文丢失，重新读取本文件后必须恢复以下事实：
 
-1. 当前 `main` 的 `core/bootstrap.yaml`；
-2. `SKILL_CHANGE_GOVERNANCE.md`；
-3. 本计划文件；
-4. 当前 `core/writing_reasoning_contract.yaml`；
-5. 当前 `modules/05_writing/latex.md`；
-6. 当前 `modules/05_writing/ai_cleanup.md`；
-7. 当前分支/PR 与 main 差异。
+1. 当前正式基线是 `v7.18.0`，本计划只是 `v7.19.0` 候选实施合同；
+2. 用户明确要求**不能破坏既定论文大框架**；
+3. 本轮所谓“符合求解顺序”只针对**大章节内部的小节、段落、公式、算法和结果顺序**；
+4. 大框架继续固定为：
+   `符号说明 → 数据说明/必要数据预处理 → 共享基础模型/模型准备 → 问题一 → 问题二 → ……`；
+5. 本轮三项正式目标是：
+   - Within-Question Subsection Architecture；
+   - Detail Allocation Governance；
+   - Figure Result Narrative；
+6. 结果图分析强调：图身份/关系 → 关键特征 → 必要数值 → 当前设问含义 → 支持的原因 → 必要收束；
+7. 三项规则都只抽象逻辑功能，不固定句数、标题数量或连接词；
+8. 不改变模型、solver、validator、数值验证、Python/MATLAB、Schema 和 runtime；
+9. 用户批准前不得开始正式 Skill 实现；
+10. 正式实现后必须做大框架冻结回归、8 类 prose smoke 和完整 CI。
 
-恢复后必须牢记本轮核心目标：
+---
 
-> **这次不是修模型数学正确性，而是让符号说明之后的整篇正文更忠实地恢复真实求解顺序；让技术内容详略得当；让结果图从“图是什么”到“为什么这样、对问题意味着什么”形成精炼、专业、邻接的论证闭环。**
+# 16. 当前停点
 
-未经用户批准，不得从 PLANNING ONLY 进入正式 Skill 语义修改。
+当前仅完成计划修订：
+
+- 已根据用户审查意见冻结大章节边界；
+- 已将原 “Post-Notation Main-Body Architecture” 收缩为 “Within-Question Subsection Architecture”；
+- 已把“全文宏观闭环”收缩为“Question-Section Narrative Closure”；
+- 已保留 Detail Allocation 与 Figure Result Narrative 两项能力；
+- 尚未修改 `core/writing_reasoning_contract.yaml`；
+- 尚未修改 `latex.md` / `ai_cleanup.md`；
+- 尚未升级 Skill 版本；
+- 尚未进入正式实现。
+
+下一步：等待用户审查本修订版计划。
