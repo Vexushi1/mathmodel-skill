@@ -242,6 +242,7 @@
 - `tests/test_v716_paper_writing_spec.py`
 - `tests/test_v717_mechanism_structural_validity.py`
 - `tests/test_v718_model_solution_writing_style.py`
+- `tests/test_v719_intra_question_writing_closure.py`
 - `tests/test_v730_writing_expression_protocol.py`
 - `tests/test_v740_writing_evidence_architecture.py`
 - `tests/test_v741_skill_closure_hygiene.py`
