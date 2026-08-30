@@ -1,6 +1,20 @@
-# mathmodel-skill v7.18.0
+# mathmodel-skill v7.19.0
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement → Figure Portfolio Review → LaTeX 终稿（优化模型表达/连续模型建立与求解叙事/专业标题/结果邻接解释/算法理由/小节颗粒度/Claim Strength）→ AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement → Figure Portfolio Review → 固定一级大框架内按局部数学依赖、决定性详略与 Figure Result Narrative 完成 LaTeX 终稿 → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v7.19.0：Intra-Question Writing Closure
+
+本版本在 v7.18.0 连续“模型建立 → 模型求解 → 结果解释”叙事基础上，进一步治理**既定一级论文骨架内部**的小节顺序、详略分配和图结果表达；不改变模型数学语义、Human Model Approval、03A/03B、Workbook/Project State Schema、Python/MATLAB 分工或运行时 Gate。
+
+- 新增 **Within-Question Subsection Architecture**：中文国赛既定“符号说明 → 数据说明/必要数据预处理 → 共享基础模型/模型准备 → 问题一 → 问题二 → ……”一级骨架和问题顺序保持不变；新规则只在当前大章节内部按真实局部数学依赖与求解认知顺序安排二级/三级小节、公式、solver、结果与验证。
+- 数据说明/必要数据预处理与共享基础模型一旦启用，只规范各自**内部**的依赖顺序；不得因为后续求解依赖而重排一级章节，也不得把后问专属内容提前到前问章节。
+- 新增 **Detail Allocation Governance**：正文篇幅按内容对模型结构、判据/边界、可行域、solver 适配、最终答案和验证 claim 的决定性分配；关键推导保留完整信息链，Routine algebra、重复符号、算法百科、未变化继承关系和无新解释价值的数字优先压缩。
+- Detail Allocation 同步约束 solver 段：重点写当前模型为何需要该 solver、本题变量/状态怎样编码、目标怎样评价、约束怎样处理、关键参数/精度/终止条件及输出怎样回到模型变量；算法历史、通用优点和未修改标准算子不占正文主体。
+- 对简单解析或直接计算问题执行 **simple-problem anti-bloat**：不强制多个小节、算法段、核心模型汇总、图表或额外验证；“详写”指决定性信息链完整，不等于统一增加字数、公式数或标题数。
+- 新增 **Figure Result Narrative**：核心结果图在邻近正文中自适应完成“图展示什么关系及当前作用 → 决定性特征 → 必要关键数值 → 与当前设问的联系 → 有证据支持时解释原因 → 必要收束”；它是信息功能链，不是固定六句话或统一曲线模板。
+- 图的原因解释只能来自当前模型方程、约束活跃性、物理/几何机制、统计结构或已证实数据规律；证据不足时只描述可确认现象和设问含义，不为了“分析充分”编造机制。多面板图先说明共同问题，只展开对结论有独立贡献的 panel 差异。
+- 新增 **Question-Section Narrative Closure**：每个“问题X模型建立及求解”结束前，应能从本章内部恢复“局部任务 → 模型闭合 → solver 消费 → 结果解释 → 直接回答本问”；若最后一个结果段已经完成 answer link，不机械追加固定“小问结论”。
+- 新规则只进入 `core/writing_reasoning_contract.yaml` 及其 LaTeX/AI-cleanup consumers；不新增第二套 writing contract、runtime Gate、CLI、项目必填字段或数值迁移。历史 accepted 结果不因本次写作升级自动 stale。
 
 ## v7.18.0：Model Establishment & Solution Writing Style Hardening
 
@@ -309,6 +323,9 @@ v7.7.0 继续收紧长论文写作语义，但不改变数值求解、工作簿 
 core/writing_reasoning_contract.yaml
 ├─ Source → Derivation → Destination
 ├─ Algorithm Trace / adaptive algorithm presentation
+├─ Model/Solver/Validator / optimization expression
+├─ Continuous narrative / within-question local dependency
+├─ Detail Allocation / Figure Result Narrative / question-section closure
 ├─ Hard / Default / Recommendation
 ├─ Terminology / Numeric / Title Claim
 ├─ 命题、深化证据、Paragraph Necessity
@@ -416,7 +433,7 @@ route-specific contracts / modules / packs / templates
 - `core/numerical_verification_contract.yaml`：主求解数值有效性、PQS 映射与 strict Verification ID 证据复核；
 - `core/code_quality_contract.yaml`：Python 工程质量；
 - `core/user_execution_contract.yaml`：用户本地执行与工作簿验收；
-- `core/writing_reasoning_contract.yaml`：推理、Model/Solver/Validator、优化模型表达、Algorithm Trace、术语、数值、Title Claim、Claim Strength、问题章节小节颗粒度、规则等级和 Citation Evidence；
+- `core/writing_reasoning_contract.yaml`：推理、Model/Solver/Validator、优化模型表达、Algorithm Trace、连续模型建立/求解叙事、问题章节内部局部依赖、详略分配、Figure Result Narrative、问题章节闭环、术语、数值、Title Claim、Claim Strength、规则等级和 Citation Evidence；
 - `modules/05_writing/latex.md`：正文结构与表达；
 - `core/output_contract.yaml`：目录、产物和正式交付；
 - `core/project_state.schema.yaml`：机器状态；
@@ -440,6 +457,6 @@ python scripts/validate_submission_package.py . --strict
 
 ## 兼容与历史
 
-`legacy/` 只读，不进入默认执行链。v7.15.x 及更早项目保持只读兼容；历史 accepted 主工作簿不要求反向补 Evidence Capture、Verification ID 或 v7.16 写作身份字段，重新进入当前小问主求解或写作/终审时才按 current 规则按需迁移。Figure Enhancement、Scientific Figure Synthesis 与 Algorithm Trace 都按需应用，不要求历史项目反向补写。Model Approval 同样不要求历史项目倒填，只有重新进入当前模型设计、项目级预处理、主求解或语义变化后的重算时迁入新门。历史版本说明保留在 Git 历史和 `CHANGELOG.md`。
+`legacy/` 只读，不进入默认执行链。v7.18.x 及更早项目保持只读兼容；历史 accepted 主工作簿不要求反向补 Evidence Capture、Verification ID 或 v7.19 写作治理字段，重新进入当前小问主求解或写作/终审时才按 current 规则按需迁移。Figure Enhancement、Scientific Figure Synthesis、Algorithm Trace、Within-Question Subsection Architecture、Detail Allocation 与 Figure Result Narrative 都按需应用，不要求历史项目反向补写。Model Approval 同样不要求历史项目倒填，只有重新进入当前模型设计、项目级预处理、主求解或语义变化后的重算时迁入新门。历史版本说明保留在 Git 历史和 `CHANGELOG.md`。
 
 许可证与第三方声明见 `LICENSE`、`THIRD_PARTY_NOTICES.md`。
