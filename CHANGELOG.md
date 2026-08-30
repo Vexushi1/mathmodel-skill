@@ -1,6 +1,21 @@
 # Changelog
 
-## Current release: 7.18.0
+## Current release: 7.19.0
+
+- Added **Within-Question Subsection Architecture** under the existing `model_establishment_solution_narrative` authority so second/third-level subsections, formulas, solver discussion, results and local validation follow real local mathematical dependency and solution reasoning while the established top-level paper skeleton and Question 1/2/3 order remain frozen.
+- Added explicit top-level guards: `preserves_top_level_paper_skeleton=true`, `may_reorder_top_level_sections=false`, and `may_reorder_question_sections=false`. Data/preprocessing and shared-foundation rules may organize only their own internal content and cannot gain authority to reorder question chapters.
+- Added **Detail Allocation Governance** based on decisiveness rather than uniform section length. Derivations that determine model structure, predicates/boundaries, feasible regions, solver fit, headline answers or validation claims are expanded to a complete information chain; routine algebra, repeated symbol translation, unchanged inherited relations, generic algorithm background and point-by-point table/curve repetition are compressed.
+- Added problem-specific solver detail rules: explain solver fit, encoding, objective evaluation, constraint handling, key parameters/accuracy/termination and output mapping, while algorithm history, generic advantages and unchanged standard operators remain compact.
+- Added `simple_problem_anti_bloat=true`, preventing direct analytic/simple-calculation questions from being forced into extra subsections, algorithm blocks, core-model summaries, figures or validation solely for structural symmetry.
+- Added adaptive **Figure Result Narrative** with functional roles for relation/local purpose, decisive feature, necessary key value, current-question link, evidence-supported reason and optional closure. The rule explicitly forbids fixed sentence counts, caption repetition, point-by-point reading and unsupported causal explanation.
+- Added adaptive profiles for parameter/sensitivity, optimization convergence, prediction/fit, spatial/network and mechanism/geometry figures, plus multi-panel guidance that explains the common question first and only expands panel differences that independently affect the conclusion.
+- Added **Question-Section Narrative Closure** so each `问题X模型建立及求解` chapter locally closes `task → model semantics → solver consumption → result interpretation → direct answer` without adding a new runtime gate or a mandatory “小问结论” sentence.
+- Extended `modules/05_writing/latex.md`, `modules/05_writing/ai_cleanup.md`, `PROJECT_INSTRUCTIONS.md` and regression coverage as consumers of the single writing authority. AI Cleanup may review local-order/detail/figure risks but cannot infer mathematical correctness, causal validity or detail quality from word counts, formula counts, heading syntax or figure-reference keywords.
+- Upgraded `core/writing_reasoning_contract.yaml` schema from 1.4.0 to 1.5.0 while preserving model mathematics, Human Model Approval, Numerical Verification/PQS, 03A/03B, Workbook Schema, Project State Schema, Task Taxonomy, Python/MATLAB ownership, CLI and runtime-gate semantics.
+- Added eight-family human prose smoke coverage for mechanism/geometry, continuous optimization, statistics/regression, time series, network/scheduling, simple analytic, multi-question progression and figure-dense/multi-panel writing.
+- Archived the completed v7.19 implementation plan under `legacy/architecture/v7.19_main_body_architecture_detail_figure_writing_hardening_plan.md`; active runtime and generated indexes depend only on current authorities, consumers and tests.
+
+## Previous release: 7.18.0
 
 - Added a single `model_establishment_solution_narrative` writing authority for continuous model-establishment, solution and result-interpretation prose without changing modeling, solver, validator or numerical semantics.
 - Added **Continuous Mathematical Narrative** and **Formula Prose Rhythm** so core relations are introduced from the current mathematical need, connected to their basis, and followed by the structural or downstream consequence instead of being presented as disconnected formula blocks.
@@ -196,7 +211,7 @@
 - Slimmed `templates/model/model_paper_framework.md` into project memory rather than a second writing manual. It keeps current problem/data/model facts, writing choices, Formula Trace, numerical-parameter evidence, proposition plan, Citation Evidence, result summaries and code/workbook/MATLAB/paper mappings.
 - Added structured Formula Trace fields to the framework while preserving the semantic boundary: tools can verify IDs/sources/dependencies/destinations/anchors exist, but they do not infer mathematical correctness from regex.
 - Added Citation Evidence governance for external empirical parameters, external data/domain facts, nontrivial theorems, material method origins and prior-research comparisons. Own derivations and workbook results remain grounded in the current model/evidence chain rather than external citations.
-- Extended `scripts/audit_paper_prose.py` to `blocking / review_required / warning`, with deterministic BibTeX checks for missing/duplicate keys and warning-only checks for unused entries and `\\nocite{*}`. The audit explicitly does not infer citation semantic support, theorem applicability, source quality or mathematical correctness.
+- Extended `scripts/audit_paper_prose.py` to `blocking / review_required / warning`, with deterministic BibTeX checks for missing/duplicate keys and warning-only checks for unused entries and `\nocite{*}`. The audit explicitly does not infer citation semantic support, theorem applicability, source quality or mathematical correctness.
 - Updated `core/project_state.schema.yaml`, project-state/framework validators, output contract and regression tests so proposition budget exceptions and adaptive writing states are machine-checkable without restoring old hard limits.
 - Numerical modeling, conditional preprocessing semantics, workbook Schema, Python/MATLAB ownership, user full-fidelity execution and the per-question five-file interface are intentionally unchanged.
 
