@@ -1,7 +1,11 @@
 \section{问题一模型建立及求解}
 
+% v8.0.0：一级标题由 Template Authority 固定；以下二级标题只是复杂问题的默认占位，
+% 可依据当前数学对象改成更专业的题目专属标题。MODEL / SOLVE / RESULT / VALIDATE
+% 是功能槽，不是必须逐字出现的固定小节名。简单解析题可合并或省略非必要槽位。
+
 \subsection{模型建立}
-% 从本题对象和机制开始，详细推导关键关系。
+% 从本题对象和机制开始，详细推导关键关系。核心公式应说明来源、推导关键理由和后续用途。
 设……，得到
 \begin{equation}
     F(x,\theta)=0,
@@ -18,27 +22,40 @@
 % \end{hskproof}
 % \end{hskproposition}
 
-% 核心模型收束按项目框架中的 required / inline / not_applicable 自适应。
-\subsection{核心模型汇总}
+% 核心模型收束是 rendering mode，不默认建立“核心模型汇总”独立二级标题。
+% 对复杂优化模型，在模型建立末尾先单独展示 objective，再单独展示 constraints；
+% 目标函数不得放入约束大括号。简单解析问题可只在正文中收束最终关系，不强制展示本段。
 \begin{equation}
+    \min_{\mathbf{x}} f(\mathbf{x})
+    \label{eq:q1-objective}
+\end{equation}
+
+\begin{equation}
+\text{s.t.}\quad
 \left\{
 \begin{aligned}
-\min\quad & f(x) \\
-\text{s.t.}\quad & g_i(x)\le 0, \quad i=1,\ldots,m, \\
-& h_j(x)=0, \quad j=1,\ldots,n, \\
-& x\in\Omega .
+    g_i(\mathbf{x}) &\le 0, \quad i=1,\ldots,m, \\
+    h_j(\mathbf{x}) &= 0, \quad j=1,\ldots,n, \\
+    \mathbf{x} &\in \Omega .
 \end{aligned}
 \right.
-\label{eq:q1-model-summary}
+\label{eq:q1-constraints}
 \end{equation}
-% 非优化题按本题结构改成“状态方程—观测关系—概率映射—边界/初值—输出量”的收束形式。
+% 非优化题按真实结构改成状态方程、观测关系、概率映射、边界/初值或最终解析关系；
+% 不为了模板对称保留无意义的 objective / s.t. 示例。
 
 \subsection{模型求解}
-% 写真实算法、初始化/参数、停止条件、可行性/收敛口径；不要只写“利用Python/MATLAB求解”。
+% 先说明最终模型被化成什么可计算问题以及剩余困难，再说明 solver 为什么适配；
+% 写真实初始化/参数、精度或停止条件和输出映射，不要只写“利用 Python/MATLAB 求解”。
 
 \subsection{求解结果}
-% 主结果、方案和核心数值放在这里。正文核心图/表必须有邻近的显式交叉引用。
-% 最后一个结果/深化段自然回答本问，不默认再建“问题一结论”。
+% 主结果、方案和核心数值放在这里。正文核心图/表必须有邻近的显式交叉引用和本问解释。
+% 最后一个结果段自然回答本问，不默认再建“问题一结论”。
+
+% 当存在实质敏感性、鲁棒性、多初值/多 seed、边界扰动、替代模型/算法、残差/区间或外样本证据时，
+% 可启用下列功能槽；若只是简单解析或直接计算，不为结构对称强制增加。
+% \subsection{结果的分析与验证}
+% 先说明需要检查的风险，再说明扰动/比较方式、评价指标、结果变化以及主结论可支持到什么范围。
 
 % 按实际题目复制本文件为 07_question2.tex、08_question3.tex 等，并只写各问新增结构。
 % 共享基础模型只完整定义一次，后问不从头复制。
