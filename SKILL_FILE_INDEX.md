@@ -170,6 +170,7 @@
 - `templates/latex/cumcm/hsk/sections/03_assumptions.tex`
 - `templates/latex/cumcm/hsk/sections/04_symbols.tex`
 - `templates/latex/cumcm/hsk/sections/05_data.tex`
+- `templates/latex/cumcm/hsk/sections/05_model_preparation.tex`
 - `templates/latex/cumcm/hsk/sections/06_question1.tex`
 - `templates/latex/cumcm/hsk/sections/09_evaluation.tex`
 - `templates/latex/cumcm/hsk/template_manifest.yaml`
