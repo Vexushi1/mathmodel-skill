@@ -62,6 +62,7 @@
 - `core/writing_reasoning_contract.yaml`
 - `core/writing_runtime_contract.yaml`
 - `docs/main-branch-protection-hardening-plan.md`
+- `docs/v8_writing_capability_inventory.md`
 - `legacy/README.md`
 - `modules/01_problem_audit.md`
 - `modules/02_model_design.md`
