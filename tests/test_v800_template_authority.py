@@ -62,7 +62,7 @@ class TestV800TemplateAuthority(unittest.TestCase):
         self.assertIn(r"\input{sections/05_model_preparation}", self.main)
         for heading in ("模型建立", "模型求解", "求解结果", "结果的分析与验证"):
             self.assertIn(rf"\subsection{{{heading}}}", self.question)
-        self.assertIn(r"\section{模型的评价与改进}", self.evaluation)
+        self.assertIn(r"\section{模型的评价与推广}", self.evaluation)
 
     def test_core_model_summary_is_rendering_mode_not_named_subsection(self):
         rendering = self.manifest["core_model_summary_rendering"]
