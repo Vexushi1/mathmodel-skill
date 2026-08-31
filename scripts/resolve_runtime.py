@@ -60,8 +60,6 @@ def _apply_v8_writing_runtime(plan: dict[str, Any]) -> dict[str, Any]:
         item for item in plan.get("load_order", []) if item != old_authority
     ]
 
-    # Keep bootstrap/global policy first; add the compact runtime and template contract
-    # before the existing writing carrier/cleanup modules.
     insertion_point = len(load_order)
     for index, item in enumerate(load_order):
         if item.startswith("modules/05_writing/"):
@@ -77,8 +75,6 @@ def _apply_v8_writing_runtime(plan: dict[str, Any]) -> dict[str, Any]:
     plan["templates"] = [
         item for item in load_order if item.startswith("templates/")
     ]
-    # paper_writing_protocol is intentionally a runtime writing module even though it
-    # is not a lifecycle producer in module_manifest.yaml.
     plan["writing_runtime"] = {
         "mode": "compact",
         "contract": "core/writing_runtime_contract.yaml",
@@ -197,8 +193,11 @@ def resolve_runtime(
         available_artifacts=base_available,
         preprocessing_decision=preprocessing_decision,
     )
-    plan = _apply_v8_writing_runtime(plan)
     dependency = apply_contract_dependency_closure(plan, manifest, assurance_contract)
+    # Assurance closure may legitimately add the full writing reasoning contract because
+    # old module dependencies still know the v7 authority graph. Apply the v8 compact
+    # projection afterwards so pure prose-generation routes do not preload that file.
+    plan = _apply_v8_writing_runtime(plan)
 
     fingerprint_sources = (
         assurance_contract.get("authority_fingerprint", {}) or {}
