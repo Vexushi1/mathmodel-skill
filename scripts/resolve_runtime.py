@@ -22,6 +22,16 @@ BOOTSTRAP_PATH = ROOT / "core" / "bootstrap.yaml"
 ROUTER_PATH = ROOT / "core" / "workflow_router.yaml"
 MANIFEST_PATH = ROOT / "core" / "module_manifest.yaml"
 ASSURANCE_PATH = ROOT / "core" / "runtime_assurance_contract.yaml"
+WRITING_RUNTIME_PATH = ROOT / "core" / "writing_runtime_contract.yaml"
+
+# v8 keeps the full reasoning authority available, but ordinary prose-generation routes
+# do not preload it. Complex semantic adjudication and final review continue to load it.
+PURE_WRITING_INTENTS = {"latex", "docx"}
+V8_WRITING_RUNTIME_FILES = [
+    "core/writing_runtime_contract.yaml",
+    "templates/latex/cumcm/hsk/template_manifest.yaml",
+    "modules/05_writing/paper_writing_protocol.md",
+]
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -32,6 +42,59 @@ def load_yaml(path: Path) -> dict[str, Any]:
 
 def _unique(items: Iterable[str | None]) -> list[str]:
     return list(dict.fromkeys(str(item) for item in items if item and str(item).strip()))
+
+
+def _apply_v8_writing_runtime(plan: dict[str, Any]) -> dict[str, Any]:
+    """Replace full reasoning preload with the compact v8 writing runtime for pure writing.
+
+    This is a loading-policy transformation only. It does not alter project facts,
+    numerical evidence, model semantics, module outputs, or the full reasoning authority.
+    """
+    intents = set(str(item) for item in plan.get("intents", []))
+    if not intents or not intents.issubset(PURE_WRITING_INTENTS):
+        return plan
+
+    runtime = load_yaml(WRITING_RUNTIME_PATH)
+    old_authority = "core/writing_reasoning_contract.yaml"
+    load_order = [
+        item for item in plan.get("load_order", []) if item != old_authority
+    ]
+
+    # Keep bootstrap/global policy first; add the compact runtime and template contract
+    # before the existing writing carrier/cleanup modules.
+    insertion_point = len(load_order)
+    for index, item in enumerate(load_order):
+        if item.startswith("modules/05_writing/"):
+            insertion_point = index
+            break
+    load_order[insertion_point:insertion_point] = V8_WRITING_RUNTIME_FILES
+    load_order = _unique(load_order)
+
+    plan["load_order"] = load_order
+    plan["contracts"] = [
+        item for item in load_order if item.startswith("core/")
+    ]
+    plan["templates"] = [
+        item for item in load_order if item.startswith("templates/")
+    ]
+    # paper_writing_protocol is intentionally a runtime writing module even though it
+    # is not a lifecycle producer in module_manifest.yaml.
+    plan["writing_runtime"] = {
+        "mode": "compact",
+        "contract": "core/writing_runtime_contract.yaml",
+        "protocol": "modules/05_writing/paper_writing_protocol.md",
+        "template_manifest": "templates/latex/cumcm/hsk/template_manifest.yaml",
+        "full_reasoning_authority_preloaded": False,
+        "full_reasoning_authority_fallback": runtime.get("full_authority_fallback", {}).get(
+            "authority", old_authority
+        ),
+        "fallback_triggers": list(
+            runtime.get("semantic_capabilities", {}).get(
+                "load_full_reasoning_authority_when_any", []
+            )
+        ),
+    }
+    return plan
 
 
 def resolve_runtime(
@@ -134,6 +197,7 @@ def resolve_runtime(
         available_artifacts=base_available,
         preprocessing_decision=preprocessing_decision,
     )
+    plan = _apply_v8_writing_runtime(plan)
     dependency = apply_contract_dependency_closure(plan, manifest, assurance_contract)
 
     fingerprint_sources = (
@@ -162,6 +226,7 @@ def resolve_runtime(
             item.get("name") for item in plan.get("pre_delivery_gates", [])
         ],
         "terminal_outputs": list(plan.get("terminal_outputs", [])),
+        "writing_runtime": plan.get("writing_runtime"),
     }
     plan["assurance"] = {
         "schema_version": assurance_contract.get("version", "1.0.0"),
