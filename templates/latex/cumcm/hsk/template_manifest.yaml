@@ -100,7 +100,7 @@ paper_skeleton:
     - id: evaluation
       source: sections/09_evaluation.tex
       required: true
-      default_title: 模型的评价与改进
+      default_title: 模型的评价与推广
     - id: references
       source: references.bib
       required: true
@@ -171,7 +171,7 @@ fixed_template_checks:
     - "\\input{sections/05_model_preparation}"
     - "\\input{sections/06_question1}"
     - "\\input{sections/09_evaluation}"
-  required_evaluation_token: "\\section{模型的评价与改进}"
+  required_evaluation_token: "\\section{模型的评价与推广}"
 
 runtime_contract:
   prose_writer_may_change:
