@@ -1,0 +1,112 @@
+version: 8.0.0-draft
+role: >-
+  v8 写作阶段的最小运行时映射。它不建立第二套数学写作 Authority，只声明普通论文写作真正需要加载的
+  模板、项目事实、证据和 writing_reasoning_contract 中的语义能力，从而避免每次写作预载完整建模、数值与项目治理上下文。
+
+principles:
+  - Template 决定论文固定骨架与 LaTeX 渲染结构。
+  - paper_writing_protocol 决定普通正文怎样组织数学叙事与结果解释。
+  - writing_reasoning_contract 保留完整跨题型 Authority，但普通写作只按需消费声明的语义能力。
+  - 模型论文框架只提供当前项目事实和证据位置，不复制通用写作手册。
+  - 数值事实必须回到当前有效工作簿或等价证据源；Compact Runtime 不改变事实来源。
+  - 内部状态治理词只用于上游状态判断，不作为正文语言输入。
+
+required_runtime_inputs:
+  - current_model_paper_framework
+  - active_template_manifest
+  - relevant_numeric_evidence
+  - relevant_figure_map
+  - bibliography_when_needed
+
+canonical_template:
+  manifest: templates/latex/cumcm/hsk/template_manifest.yaml
+  executable_entry: templates/latex/cumcm/hsk/hsk_main.tex
+  single_file_reference_status: pending_import
+
+writing_module:
+  protocol: modules/05_writing/paper_writing_protocol.md
+  latex_adapter: modules/05_writing/latex.md
+  cleanup: modules/05_writing/ai_cleanup.md
+
+semantic_capabilities:
+  ordinary_writing:
+    - formula_reasoning_chain
+    - model_solver_validator_roles
+    - model_naming
+    - optimization_model_expression
+    - solver_justification
+    - cross_question_progression
+    - detail_allocation_governance
+    - figure_result_narrative
+    - paragraph_necessity
+    - claim_strength_calibration
+    - numeric_style_contract
+    - terminology_governance
+  local_narrative:
+    - local_narrative_chain
+    - paragraph_handoff_test
+    - result_validation_governance
+  load_full_reasoning_authority_when_any:
+    - proposition_or_proof_is_being_created_or_revised
+    - algorithm_trace_semantics_are_being_created_or_revised
+    - model_solver_validator_role_is_ambiguous
+    - optimization_semantics_are_in_dispute
+    - cross_question_dependency_is_in_dispute
+    - title_claim_or_claim_strength_requires_semantic_adjudication
+    - final_review_requires_full_authority
+
+ordinary_writing_load_order:
+  - core/hsk_core_policy.md
+  - core/writing_runtime_contract.yaml
+  - templates/latex/cumcm/hsk/template_manifest.yaml
+  - modules/05_writing/paper_writing_protocol.md
+  - modules/05_writing/latex.md
+
+runtime_vocabulary_firewall:
+  purpose: 避免项目治理语言直接进入正文生成上下文。
+  do_not_surface_as_paper_vocabulary:
+    - 主工作簿
+    - 已验收工作簿
+    - 主结果质量门
+    - 质量门
+    - 深化分析
+    - 03A
+    - 03B
+    - support
+    - modify
+    - reject
+    - accepted
+    - stale
+    - semantic revision
+    - semantic hash
+    - full_fidelity
+    - Evidence ID
+    - 主求解脚本冻结
+  rule: >-
+    若这些状态背后存在真实数学动作，正文写真实动作，例如参数敏感性、边界扰动、多初值一致性、残差分析、
+    Bootstrap 区间或替代算法比较；若只是内部项目状态，则不进入论文。
+
+excluded_from_ordinary_writing_preload:
+  - core/numerical_verification_contract.yaml
+  - core/model_approval_contract.yaml
+  - core/user_execution_contract.yaml
+  - core/code_quality_contract.yaml
+  - full_model_approval_history
+  - full_stale_propagation_history
+  - raw_support_modify_reject_tracking
+
+full_authority_fallback:
+  authority: core/writing_reasoning_contract.yaml
+  rule: >-
+    Compact Runtime 只是加载策略，不覆盖或削弱完整 Authority；需要复杂语义裁决时按 semantic_capabilities 中的触发条件补读完整 Authority。
+
+machine_boundary:
+  may_check:
+    - required_runtime_file_exists
+    - ordinary_writing_load_order_contains_template_manifest
+    - ordinary_writing_load_order_contains_paper_writing_protocol
+    - ordinary_writing_route_avoids_unneeded_full_reasoning_preload
+  must_not_claim:
+    - mathematical_correctness_from_compact_context
+    - evidence_sufficiency_from_file_presence
+    - prose_quality_from_runtime_size
