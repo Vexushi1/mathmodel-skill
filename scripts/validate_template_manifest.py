@@ -34,16 +34,26 @@ def validate_template_manifest(path: str | Path) -> list[str]:
     template_root = manifest_path.parent
 
     if manifest.get("schema_version") != "1.0.0":
-        errors.append("schema_version must be 1.0.0 for v8 Phase 1")
+        errors.append("schema_version must be 1.0.0 for v8")
 
     canonical = manifest.get("canonical_template", {})
     entry = canonical.get("entry")
+    entry_path: Path | None = None
     if not entry:
         errors.append("canonical_template.entry is required")
     else:
         entry_path = template_root / entry
         if not entry_path.exists():
             errors.append(f"canonical template entry missing: {entry}")
+
+    for key in ("external_reference_exemplar", "framework_reference"):
+        reference = canonical.get(key)
+        status = canonical.get(key.replace("exemplar", "status")) if key == "external_reference_exemplar" else canonical.get("framework_reference_status")
+        if status == "imported_verified":
+            if not reference:
+                errors.append(f"{key} must be declared when status is imported_verified")
+            elif not (template_root / reference).exists():
+                errors.append(f"imported reference missing: {reference}")
 
     skeleton = manifest.get("paper_skeleton", {}).get("ordered_slots", [])
     for slot in skeleton:
@@ -94,6 +104,24 @@ def validate_template_manifest(path: str | Path) -> list[str]:
             errors.append("objective/constraints/brace structure is incomplete")
         elif not (objective < constraints < brace):
             errors.append("objective must remain outside the constraints brace")
+
+    if entry_path and entry_path.exists():
+        main_text = entry_path.read_text(encoding="utf-8")
+        for token in checks.get("required_main_tokens", []):
+            if token not in main_text:
+                errors.append(f"required main template token missing: {token}")
+
+    evaluation_slot = next(
+        (slot for slot in skeleton if slot.get("id") == "evaluation" and slot.get("source")),
+        None,
+    )
+    required_evaluation_token = checks.get("required_evaluation_token")
+    if evaluation_slot and required_evaluation_token:
+        evaluation_path = _tex_path(template_root, evaluation_slot["source"])
+        if not evaluation_path.exists():
+            errors.append(f"evaluation source missing: {evaluation_slot['source']}")
+        elif required_evaluation_token not in evaluation_path.read_text(encoding="utf-8"):
+            errors.append(f"required evaluation token missing: {required_evaluation_token}")
 
     title_pattern = manifest.get("cumcm_question_section", {}).get("title_pattern")
     if title_pattern != "问题{N}模型建立及求解":
