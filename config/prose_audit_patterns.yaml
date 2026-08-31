@@ -1,0 +1,65 @@
+version: 8.0.0-draft
+purpose: >-
+  v8 写作表面风险词表。仅用于确定性定位工作流术语泄漏、装饰性引号和概念连接符链；
+  不作为数学正确性、模型适配性或因果解释的判断依据。
+
+workflow_vocabulary:
+  severity: warning
+  terms:
+    - 主工作簿
+    - 已验收工作簿
+    - 主结果质量门
+    - 质量门
+    - 深化分析
+    - 03A
+    - 03B
+    - support
+    - modify
+    - reject
+    - accepted
+    - stale
+    - semantic revision
+    - semantic hash
+    - full_fidelity
+    - Evidence ID
+    - 主求解脚本冻结
+  exclusions:
+    - code_block
+    - comment
+    - bibliography
+    - file_name_when_explicitly_discussed
+  message: 正文出现内部项目治理词；请确认是否应改写为真实数学动作或直接删除内部状态表述。
+
+decorative_chinese_quotes:
+  severity: warning
+  min_occurrences: 3
+  rule: >-
+    普通概念在同一段高密度使用中文引号时提示复查；题面原文、正式名称、引用文本、文件名和代码不据此判错。
+
+concept_chain:
+  severity: warning
+  min_links: 3
+  separators: ["-", "–", "—"]
+  rule: >-
+    A-B-C-D 或 A—B—C—D 式概念标签链只提示 AI 包装风险；数学区间、负号、文件名、编号和公式应排除。
+
+narrative_jump:
+  severity: review_required
+  patterns:
+    - result_to_validation_without_risk_bridge
+  rule: >-
+    机器只能定位“主结果后紧接敏感性/鲁棒性等验证标题且邻近缺少风险说明”的可疑位置，不能据此断言逻辑错误。
+
+machine_boundary:
+  may_report:
+    - workflow_vocabulary_leak
+    - decorative_quote_density
+    - concept_chain_density
+    - result_validation_bridge_risk
+  must_not_claim:
+    - mathematical_correctness
+    - model_validity
+    - causal_validity
+    - solver_optimality
+    - evidence_sufficiency
+    - prose_quality_from_token_count_only
