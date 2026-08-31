@@ -104,6 +104,7 @@
 - `scripts/README.md`
 - `scripts/audit_latex_project.py`
 - `scripts/audit_paper_prose.py`
+- `scripts/audit_v8_writing_surface.py`
 - `scripts/generate_indexes.py`
 - `scripts/hsk_pack_submission.py`
 - `scripts/latex_delivery.py`
