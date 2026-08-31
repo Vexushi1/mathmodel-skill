@@ -162,6 +162,7 @@
 - `templates/latex/cumcm/hsk/config/preamble.tex`
 - `templates/latex/cumcm/hsk/frontmatter/abstract.tex`
 - `templates/latex/cumcm/hsk/hsk_main.tex`
+- `templates/latex/cumcm/hsk/reference/a196_framework_notes.md`
 - `templates/latex/cumcm/hsk/reference/example_mm_r1.tex`
 - `templates/latex/cumcm/hsk/references.bib`
 - `templates/latex/cumcm/hsk/sections/01_problem_statement.tex`
