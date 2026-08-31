@@ -27,6 +27,9 @@ writing_module:
   protocol: modules/05_writing/paper_writing_protocol.md
   latex_adapter: modules/05_writing/latex.md
   cleanup: modules/05_writing/ai_cleanup.md
+  legacy_prose_audit: scripts/audit_paper_prose.py
+  v8_surface_audit: scripts/audit_v8_writing_surface.py
+  surface_pattern_config: config/prose_audit_patterns.yaml
 
 semantic_capabilities:
   ordinary_writing:
@@ -106,7 +109,12 @@ machine_boundary:
     - ordinary_writing_load_order_contains_template_manifest
     - ordinary_writing_load_order_contains_paper_writing_protocol
     - ordinary_writing_route_avoids_unneeded_full_reasoning_preload
+    - workflow_vocabulary_leak
+    - decorative_quote_density
+    - concept_chain_density
+    - result_validation_bridge_risk
   must_not_claim:
     - mathematical_correctness_from_compact_context
     - evidence_sufficiency_from_file_presence
     - prose_quality_from_runtime_size
+    - prose_quality_from_surface_token_count_only
