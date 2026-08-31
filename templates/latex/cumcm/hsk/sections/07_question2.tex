@@ -1,0 +1,45 @@
+\section{问题二模型建立及求解}
+
+% 这是复杂优化类问题的第二个示例章节，可按当前题目直接复制修改。
+% 若问题二只是问题一的解析延伸，应删减不必要的小节，不为了模板对称强行保留完整四段。
+
+\subsection{优化模型建立}
+
+% 可按需设置三级标题，例如：
+% \subsubsection{决策变量定义}
+% \subsubsection{目标函数设置}
+% \subsubsection{约束条件分析}
+% \subsubsection{模型收束}
+% 三级标题必须服务真实数学对象，不要求固定名称或固定数量。
+
+设决策向量为 $\mathbf{x}$，目标函数为 $f(\mathbf{x})$。则本问优化目标写为
+\begin{equation}
+    \max_{\mathbf{x}} f(\mathbf{x}).
+    \label{eq:q2-objective}
+\end{equation}
+
+约束条件统一写为
+\begin{equation}
+\text{s.t.}\quad
+\left\{
+\begin{aligned}
+    g_i(\mathbf{x}) &\le 0, \quad i=1,\ldots,m,\\
+    h_j(\mathbf{x}) &= 0, \quad j=1,\ldots,n,\\
+    \mathbf{x} &\in \Omega.
+\end{aligned}
+\right.
+\label{eq:q2-constraints}
+\end{equation}
+
+% 正式项目必须用真实公式替换示例；目标函数保持在约束大括号外。
+
+\subsection{优化模型求解}
+% 说明模型结构、搜索空间/非凸性/离散性/耦合约束等实际困难，随后解释 solver 或启发式为何适配。
+% 多阶段算法应说明每一步输入、输出及其如何进入下一步；不写通用算法百科。
+
+\subsection{求解结果}
+% 给出最优/推荐方案、核心变量、目标值和必要图表，并紧邻解释其对问题二的含义。
+
+\subsection{结果的分析与验证}
+% 根据本问真实风险设置敏感性、鲁棒性、替代算法、边界扰动、局部邻域、最优性间隙或多启动一致性等验证。
+% 验证的目标是界定当前结论的可信范围，而不是形式化补一个“敏感性分析”小节。
