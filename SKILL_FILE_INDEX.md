@@ -264,5 +264,6 @@
 - `tests/test_v781_algorithm_closure.py`
 - `tests/test_v790_modular_latex_source.py`
 - `tests/test_v790_runtime_closure.py`
+- `tests/test_v800_surface_audit.py`
 - `tests/test_v800_template_authority.py`
 - `tests/test_v800_writing_runtime.py`
