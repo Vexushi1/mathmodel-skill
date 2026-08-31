@@ -266,4 +266,5 @@
 - `tests/test_v790_runtime_closure.py`
 - `tests/test_v800_surface_audit.py`
 - `tests/test_v800_template_authority.py`
+- `tests/test_v800_v720_regression.py`
 - `tests/test_v800_writing_runtime.py`
