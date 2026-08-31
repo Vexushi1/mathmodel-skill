@@ -60,7 +60,7 @@ final_latex/
 MODEL → SOLVE → RESULT → VALIDATE
 ```
 
-它们是认知功能，不是强制标题。专业标题优先对应**独立数学任务**，不强制所有标题使用“XX 的 XX”。简单解析或直接计算问题执行 anti-bloat，不为了结构对称增加算法、核心模型汇总、结果图或验证。
+它们是认知功能，不是强制标题。**标题应对应独立数学任务**，不强制所有标题使用“XX 的 XX”。简单解析或直接计算问题执行 anti-bloat，不为了结构对称增加算法、核心模型汇总、结果图或验证。
 
 进入模型建立后，默认不重新写一遍问题分析、模型假设和题目要求，只承接当前对象或上一关系，说明为什么此时出现新的量、关系或约束，以及出现后下一步怎样变化。
 
@@ -68,7 +68,7 @@ MODEL → SOLVE → RESULT → VALIDATE
 
 ## 4. 公式写入
 
-公式的数学来源、推导与去向服从 `formula_reasoning_chain`。本模块只负责 LaTeX 环境和引用。
+公式的数学来源、推导与去向服从 `formula_reasoning_chain`，即 **Source → Derivation → Destination**。本模块只负责 LaTeX 环境和引用。
 
 ```latex
 \begin{equation}
@@ -81,7 +81,7 @@ MODEL → SOLVE → RESULT → VALIDATE
 
 ### 4.1 核心模型收束
 
-v7.x 的 `required / inline / not_applicable` 语义在 v8 中由 Template/Protocol 解释为 `displayed / inline / omitted` rendering。核心模型汇总仍然是重要能力，但**默认不是固定二级标题**。
+**核心模型汇总：自适应而非机械必设。** v7.x 的 `required / inline / not_applicable` 语义在 v8 中由 Template/Protocol 解释为 `displayed / inline / omitted` rendering。核心模型汇总仍然是重要能力，但默认不是固定二级标题。
 
 复杂优化模型应先显示目标函数：
 
@@ -126,9 +126,11 @@ v7.x 的 `required / inline / not_applicable` 语义在 v8 中由 Template/Proto
 
 第一次作为主求解器出现时，必须先说明当前模型结构或困难；后问沿用同一算法时只写继承结构和新增变化；更换算法时说明新增离散性、非光滑、规模或其他结构变化；另用方法时明确 `baseline / alternative / validator` 角色。
 
-不用“下面进行模型求解”作为唯一过渡。求解段一开始先恢复最终可计算结构、搜索对象、目标评价或约束处理，再介绍 solver。
+不用“下面进行模型求解”作为唯一过渡。求解段一开始先恢复最终可计算结构、搜索对象、目标评价或约束处理，再介绍 solver。**高级算法前**应先检查解析关系、单调性/凸性、降维、候选域、界或分解结构；不能仅因变量多就跳到启发式算法。
 
 ## 6. Algorithm / Stepwise / Pseudocode
+
+算法呈现模式保持 **not_needed / stepwise / pseudocode** 自适应。详细规则按需读取 `packs/artifact/algorithm_flow.md`。
 
 只有真实多阶段数学传递、循环、分支、筛选、修复、接受/拒绝或终止逻辑需要展示时，才设置 stepwise 或 pseudocode。
 
@@ -136,10 +138,10 @@ v7.x 的 `required / inline / not_applicable` 语义在 v8 中由 Template/Proto
 
 ## 7. 结果与图表写入
 
-关键结果出现后，在邻近位置完成：
+关键结果出现后，在邻近位置完成**局部证据闭环**：
 
 ```text
-决定性数值/图表
+高精度关键数值/图表
 → 决定性趋势、阈值、区间或结构
 → 当前问题含义
 → 有证据支持时解释原因
@@ -148,13 +150,15 @@ v7.x 的 `required / inline / not_applicable` 语义在 v8 中由 Template/Proto
 
 Figure Result Narrative 是信息功能链，不是固定六句话。多面板图先说明整张图共同回答的问题，再只展开真正改变结论的 panel 差异。
 
-正文核心图/表必须显式 `\ref`，不要只写“结果如图所示”。最后一个结果段已经直接回答本问时，**不机械追加“小问结论”**。
+正文核心图/表必须有**显式编号引用** `\ref`，不要只写“结果如图所示”。最后一个结果段已经直接回答本问时，**不机械追加“小问结论”**。
 
 ## 8. 结果与验证接口
 
 结果段先闭合主结果。若后续确有参数、边界、seed/初值、残差、替代算法、替代模型、Bootstrap、外样本等风险，再进入 VALIDATE。
 
 结果到验证之间要说明当前已经回答什么、仍可能受什么影响、下一步检验什么。验证不是为了增加工作量，而是限定主张可以成立到什么范围。
+
+验证同时关注数值一致性和**结构结论**。若多方法数值接近而结构判断冲突，不能仅凭目标值接近宣称模型稳定，应回到判据、边界、约束活跃性或解结构继续检查。
 
 `support / modify / reject` 只属于内部证据状态；正式正文写真实数学动作和结论变化，不显示内部状态词。
 
@@ -172,13 +176,13 @@ Figure Result Narrative 是信息功能链，不是固定六句话。多面板�
 
 共同轨迹、共同概率关系或共同网络结构不从头复制；后问只写真实新增部分。“同理”只能用于确实没有结构变化的推导。
 
-## 11. Detail Allocation
+## 11. Detail Allocation 与模型评价
 
 详写的标准是信息链完整，不是字数更多。决定模型结构、判据/边界、可行域、solver 适配、核心答案和验证主张的步骤应完整；普通代数、重复符号、算法百科、重复图表读数应压缩。
 
 Detail Allocation 在 solver 段同样适用：展开本题 solver fit、problem-specific encoding、objective evaluation、constraint handling、关键参数/精度/终止条件和 output mapping；压缩算法历史、通用优点和无关标准更新式。
 
-0--4 是**默认正文阅读预算**，只适用于命题规划的阅读负担，不是硬上限。
+0--4 是**默认正文阅读预算**，不是绝对数学上限；它只用于命题规划的阅读负担。模型评价中**优点和缺点的数量按模型实际决定**，本 Adapter **不检查“优点必须多于缺点”**。
 
 ## 12. 自然叙事
 
@@ -188,11 +192,11 @@ Detail Allocation 在 solver 段同样适用：展开本题 solver fit、problem
 
 普通概念不要加装饰性中文引号；不要堆叠 A-B-C-D / A—B—C—D 式概念链。工作流内部词不得进入正式正文。
 
-## 13. 摘要与精度
+## 13. 摘要、Citation Evidence 与精度
 
-摘要按问写“模型/关键结构 → 求解方法 → 核心结果 → 直接结论”。优化类必须让读者知道“优化什么”。
+摘要按问写“模型/关键结构 → 求解方法 → 核心结果 → 直接结论”。优化类必须让读者知道“优化什么”。外部经验参数、外部数据事实和非显然标准理论按 **Citation Evidence** 规则提供真实引用；内部推导与工作簿结果不靠文献替代自身证据链。
 
-**核心答案的精度不得为了摘要简洁而擅自降低。** 若题目或评分可能核对后续小数位，摘要、正文直接答案和核心表格保持同一事实源和足够精度；高精度评分场景常见为 6--7 位，但以题目、物理分辨率和 Numeric Profile 为准。
+**核心答案的精度不得为了摘要简洁而擅自降低。** 若题目或评分可能核对后续小数位，摘要、正文直接答案和核心表格保持同一事实源和足够精度；高精度评分场景常见为 6--7 位，但以题目、物理分辨率和 **Numeric Style Contract** / Numeric Profile 为准。
 
 独立算法未发现更优不自动等于全局最优；Claim Strength 继续服从完整 reasoning Authority。
 
@@ -204,6 +208,7 @@ Detail Allocation 在 solver 段同样适用：展开本题 solver fit、problem
 - 图片名和正式工程路径使用 ASCII；
 - 图题在图下，表题在表上；
 - 参考文献使用当前模板提供的 biblatex/Biber 接口；
+- 正式项目统一从 `scripts/audit_latex_project.py` 执行 LaTeX 项目审计，再进入 compile profile；
 - 完整编译与正式审计仍由 `modules/05_latex_compile_quality.md`、`core/compile_profiles.yaml` 和相应脚本治理。
 
 ## 15. Runtime 与完整 Authority
@@ -220,3 +225,12 @@ core/writing_runtime_contract.yaml
 不需要每次预载完整 `core/writing_reasoning_contract.yaml`。出现复杂语义裁决时再按需补读完整 Authority。
 
 本 Adapter 不允许通过改写模板来掩盖数学错误，也不允许为了叙事流畅改变模型、参数、结果或证据。
+
+## 16. v7.x 兼容语义索引（非 Authority）
+
+为避免 v8 重构期间历史回归测试把“文件换位”误判成“语义删除”，本节仅保留旧 consumer 可识别的术语索引；它不恢复旧职责。
+
+- v7.x 曾把本文件称为“**正文结构与表达权威**”；v8 的正文写作主入口已经迁移到 `paper_writing_protocol.md`，固定结构迁移到 Template Authority。
+- 历史 Hard / Default / Recommendation 分级仍由 `core/writing_reasoning_contract.yaml#rule_governance` 定义。
+- “问题重述”“问题分析”“求解结果”等结构名称由当前模板与 Protocol 消费，本文件不再单独定义其章节逻辑。
+- 历史关键词仅用于兼容检查，不构成第二套写作手册。
