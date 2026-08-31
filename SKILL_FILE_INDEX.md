@@ -42,6 +42,7 @@
 - `assets/nature_figure/gallery/fig4-single-cell-systems-rich.png`
 - `assets/nature_figure/gallery/fig5-validation-perturbation-rich.png`
 - `config/competition_profiles.yaml`
+- `config/prose_audit_patterns.yaml`
 - `config/review_weights.json`
 - `core/bootstrap.yaml`
 - `core/code_quality_contract.yaml`
