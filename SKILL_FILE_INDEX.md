@@ -72,6 +72,7 @@
 - `modules/05_writing/ai_cleanup.md`
 - `modules/05_writing/docx.md`
 - `modules/05_writing/latex.md`
+- `modules/05_writing/paper_writing_protocol.md`
 - `modules/06_review_delivery.md`
 - `packs/artifact/algorithm_flow.md`
 - `packs/artifact/code.md`
