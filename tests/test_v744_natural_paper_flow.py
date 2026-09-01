@@ -25,14 +25,14 @@ class TestNaturalPaperFlow(unittest.TestCase):
         ):
             self.assertIn(token, text)
 
-    def test_latex_prefers_positive_natural_progression(self):
-        text = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
+    def test_protocol_prefers_positive_natural_progression(self):
+        text = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
         self.assertIn("优先正向叙述", text)
         self.assertIn("科研训练初期", text)
         self.assertIn("不追求成熟期刊式概念包装", text)
 
     def test_result_precision_is_not_reduced_for_abstract_brevity(self):
-        text = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
+        text = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
         self.assertIn("核心答案的精度不得为了摘要简洁而擅自降低", text)
         self.assertIn("6--7", text)
 

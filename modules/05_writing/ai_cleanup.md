@@ -2,14 +2,16 @@
 
 本模块只负责**清除模板化、空泛化、机械重复和推理呈现风险**，不建立第二套正文写作规则。
 
-正文结构、章节组织和表达权威：`modules/05_writing/latex.md`。
+固定骨架与一级顺序权威：`templates/latex/cumcm/hsk/template_manifest.yaml`。
+普通正文组织和表达权威：`modules/05_writing/paper_writing_protocol.md`。
+LaTeX 载体接口：`modules/05_writing/latex.md`。
 跨竞赛推理、规则等级、模型/求解器/验证器角色、优化模型表达、模型建立—求解—结果解释叙事、问题章节内部小节架构、详略分配、图结果叙事、命题预算、引用证据、术语、数字、Title Claim、深化证据处置、Paragraph Necessity 与局部 stale 治理：`core/writing_reasoning_contract.yaml`。
 
 若本模块与上述 Authority 出现冲突，以 Authority 为准；本模块不得把 Recommendation 重新写成 Hard。**Skill 负责原则，脚本负责穷举。** 本文件不继续按“发现一个问题再加一个编号”的方式增长。
 
 ## A. Integrity / Hard boundary
 
-本层只确认不可被润色掩盖的事实与结构边界。正式 LaTeX 工程的确定性检查统一从 `scripts/audit_latex_project.py` 进入；该入口再委托 `scripts/audit_paper_prose.py` 完成 prose/BibTeX/framework 检查，并与 project-state/framework validators、LaTeX 编译链共同闭环：
+本层只确认不可被润色掩盖的事实与结构边界。正式 LaTeX 工程的确定性检查统一从 `scripts/audit_latex_project.py` 进入；该入口再委托 `scripts/audit_paper_prose.py` 完成 prose/BibTeX/framework 检查，并由后者消费 `scripts/audit_v8_writing_surface.py` 的 v8 表面风险诊断，再与 project-state/framework validators、LaTeX 编译链共同闭环：
 
 - 摘要、正文、表格、提交结果文件中的核心数值必须回到同一已验收工作簿事实源；
 - stale 模型、结果、命题、图表、paper fragment 或 Title Claim 不得写成 current；

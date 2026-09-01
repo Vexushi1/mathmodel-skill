@@ -4,8 +4,10 @@ DOCX 仅在用户明确要求 Word 审阅、批注、协作或特定提交格式
 
 正文的**问题重述、问题分析、模型假设、符号说明、模型推导、核心模型收束、求解、结果解释、命题、模型评价、引用证据和语言风格**统一服从：
 
-- `modules/05_writing/latex.md`：正文结构与表达权威；
+- `modules/05_writing/paper_writing_protocol.md`：普通正文组织与表达权威；
 - `core/writing_reasoning_contract.yaml`：跨竞赛推理、规则等级、命题预算和 Citation Evidence 权威。
+
+`modules/05_writing/latex.md` 仅提供从 DOCX 迁移到正式 LaTeX 时的载体接口，不再是正文写作 Authority。
 
 本模块只规定 Word 审阅载体、排版和迁移差异，不复制第二套正文规则。
 

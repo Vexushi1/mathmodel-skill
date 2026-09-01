@@ -1,6 +1,6 @@
 version: 2.3.0
 introduced_in_skill_version: 7.4.2
-skill_compatibility: '>=7.4.2,<8.0.0'
+skill_compatibility: '>=7.4.2,<9.0.0'
 purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界，每问主求解与结果深化分析继续使用两个独立Python脚本。v7.14起新生成主求解还绑定Primary Quality Specification与主数值证据独立复核，但不得把结果深化分析提前塞进主求解。
 numerical_verification_authority: core/numerical_verification_contract.yaml
 default_mode:

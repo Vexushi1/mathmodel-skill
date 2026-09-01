@@ -1,6 +1,6 @@
 # HSK Active Template Index
 
-当前 Skill 版本：7.19.0
+当前 Skill 版本：8.0.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -38,14 +38,19 @@
 - `templates/latex/cumcm/hsk/config/preamble.tex`
 - `templates/latex/cumcm/hsk/frontmatter/abstract.tex`
 - `templates/latex/cumcm/hsk/hsk_main.tex`
+- `templates/latex/cumcm/hsk/reference/a196_framework_notes.md`
+- `templates/latex/cumcm/hsk/reference/example_mm_r1.tex`
 - `templates/latex/cumcm/hsk/references.bib`
 - `templates/latex/cumcm/hsk/sections/01_problem_statement.tex`
 - `templates/latex/cumcm/hsk/sections/02_problem_analysis.tex`
 - `templates/latex/cumcm/hsk/sections/03_assumptions.tex`
 - `templates/latex/cumcm/hsk/sections/04_symbols.tex`
 - `templates/latex/cumcm/hsk/sections/05_data.tex`
+- `templates/latex/cumcm/hsk/sections/05_model_preparation.tex`
 - `templates/latex/cumcm/hsk/sections/06_question1.tex`
+- `templates/latex/cumcm/hsk/sections/07_question2.tex`
 - `templates/latex/cumcm/hsk/sections/09_evaluation.tex`
+- `templates/latex/cumcm/hsk/template_manifest.yaml`
 - `templates/latex/diangong/main.tex`
 - `templates/latex/diangong/references.bib`
 - `templates/latex/mcm/main.tex`

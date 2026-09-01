@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：7.19.0
+当前 Skill 版本：8.0.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -42,6 +42,7 @@
 - `assets/nature_figure/gallery/fig4-single-cell-systems-rich.png`
 - `assets/nature_figure/gallery/fig5-validation-perturbation-rich.png`
 - `config/competition_profiles.yaml`
+- `config/prose_audit_patterns.yaml`
 - `config/review_weights.json`
 - `core/bootstrap.yaml`
 - `core/code_quality_contract.yaml`
@@ -59,7 +60,10 @@
 - `core/workbook_schema.yaml`
 - `core/workflow_router.yaml`
 - `core/writing_reasoning_contract.yaml`
+- `core/writing_runtime_contract.yaml`
 - `docs/main-branch-protection-hardening-plan.md`
+- `docs/v8_writing_capability_inventory.md`
+- `docs/v8_writing_migration.md`
 - `legacy/README.md`
 - `modules/01_problem_audit.md`
 - `modules/02_model_design.md`
@@ -71,6 +75,7 @@
 - `modules/05_writing/ai_cleanup.md`
 - `modules/05_writing/docx.md`
 - `modules/05_writing/latex.md`
+- `modules/05_writing/paper_writing_protocol.md`
 - `modules/06_review_delivery.md`
 - `packs/artifact/algorithm_flow.md`
 - `packs/artifact/code.md`
@@ -101,6 +106,7 @@
 - `scripts/README.md`
 - `scripts/audit_latex_project.py`
 - `scripts/audit_paper_prose.py`
+- `scripts/audit_v8_writing_surface.py`
 - `scripts/generate_indexes.py`
 - `scripts/hsk_pack_submission.py`
 - `scripts/latex_delivery.py`
@@ -120,6 +126,7 @@
 - `scripts/validate_project_state.py`
 - `scripts/validate_semantic_governance.py`
 - `scripts/validate_submission_package.py`
+- `scripts/validate_template_manifest.py`
 - `scripts/validate_user_execution.py`
 - `skills/mathmodel-skill/SKILL.md`
 - `state/project_state.example.yaml`
@@ -157,14 +164,19 @@
 - `templates/latex/cumcm/hsk/config/preamble.tex`
 - `templates/latex/cumcm/hsk/frontmatter/abstract.tex`
 - `templates/latex/cumcm/hsk/hsk_main.tex`
+- `templates/latex/cumcm/hsk/reference/a196_framework_notes.md`
+- `templates/latex/cumcm/hsk/reference/example_mm_r1.tex`
 - `templates/latex/cumcm/hsk/references.bib`
 - `templates/latex/cumcm/hsk/sections/01_problem_statement.tex`
 - `templates/latex/cumcm/hsk/sections/02_problem_analysis.tex`
 - `templates/latex/cumcm/hsk/sections/03_assumptions.tex`
 - `templates/latex/cumcm/hsk/sections/04_symbols.tex`
 - `templates/latex/cumcm/hsk/sections/05_data.tex`
+- `templates/latex/cumcm/hsk/sections/05_model_preparation.tex`
 - `templates/latex/cumcm/hsk/sections/06_question1.tex`
+- `templates/latex/cumcm/hsk/sections/07_question2.tex`
 - `templates/latex/cumcm/hsk/sections/09_evaluation.tex`
+- `templates/latex/cumcm/hsk/template_manifest.yaml`
 - `templates/latex/diangong/main.tex`
 - `templates/latex/diangong/references.bib`
 - `templates/latex/mcm/main.tex`
@@ -258,3 +270,9 @@
 - `tests/test_v781_algorithm_closure.py`
 - `tests/test_v790_modular_latex_source.py`
 - `tests/test_v790_runtime_closure.py`
+- `tests/test_v800_chapter_content_preservation.py`
+- `tests/test_v800_cross_chat_minimal_context.py`
+- `tests/test_v800_surface_audit.py`
+- `tests/test_v800_template_authority.py`
+- `tests/test_v800_v720_regression.py`
+- `tests/test_v800_writing_runtime.py`

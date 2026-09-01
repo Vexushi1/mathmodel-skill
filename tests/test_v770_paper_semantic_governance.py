@@ -53,13 +53,13 @@ class TestV770PaperSemanticGovernance(unittest.TestCase):
         self.assertIn("摘要", principle)
         self.assertIn("6--7", principle)
         self.assertIn("高精度", numeric["display_profiles"]["abstract"])
-        latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
+        protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
         cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
         abstract_check = (ROOT / "templates/writing/abstract_result_check.md").read_text(encoding="utf-8")
-        for text in (latex, cleanup, abstract_check):
+        for text in (protocol, cleanup, abstract_check):
             self.assertIn("6--7", text)
-        self.assertIn("核心答案的精度不得为了摘要简洁而擅自降低", latex)
-        self.assertNotIn("摘要只写实际有意义的 3--4 位", latex)
+        self.assertIn("核心答案的精度不得为了摘要简洁而擅自降低", protocol)
+        self.assertNotIn("摘要只写实际有意义的 3--4 位", protocol)
         self.assertEqual(self.output["writing_policy"]["core_result_precision_priority"], "scoring_and_official_output_requirements")
 
     def test_framework_v08_contains_project_memory_registries(self):

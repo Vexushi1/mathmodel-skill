@@ -1,0 +1,234 @@
+schema_version: 1.0.0
+template_id: hsk_cumcm_v8
+role: >-
+  CUMCM HSK 论文模板结构与 LaTeX 渲染的唯一 Template Authority。
+  本文件只规定论文固定骨架、模板入口、可选插槽、问题章节一级标题和确定性渲染边界；
+  不规定模型选择、数学推导、solver、validator、结果解释、验证方法或学术论证内容。
+
+canonical_template:
+  entry: hsk_main.tex
+  format: modular_latex
+  external_reference_exemplar: reference/example_mm_r1.tex
+  external_reference_status: adapted_verified
+  framework_reference: reference/a196_framework_notes.md
+  framework_reference_status: imported_verified
+  framework_profile: a196_inspired_question_local_closure
+  note: >-
+    v8.0.0 以仓库模块化 HSK CUMCM 工程作为 executable canonical template。
+    用户提供的 example_mm_r1.tex 用于版式、标题层级、摘要、表格、代码与附录等参考；
+    用户提供的优秀论文 A196 只用于提炼章节组织，不复制其正文、公式、图表或题目专属内容。
+    正式 CUMCM 问题章节保持“问题X模型建立及求解”，不沿用 reference exemplar 中
+    “模型的建立与求解”统一一级章的旧组织。
+
+reference_provenance:
+  user_template_source:
+    original_name: example_mm_r1.tex
+    source_sha256: 3d94e9679814c1888f73b075e8de143ab3976162bfda3604cfd2c7990a79f193
+    stored_adaptation: reference/example_mm_r1.tex
+    stored_sha256: 58e852add7ad04924d5dcad77948044331c3a0d5d0b7ac5ddfdcf608db2538f1
+    use_boundary: visual_and_latex_infrastructure_only
+  framework_source:
+    original_name: A196.pdf
+    source_sha256: c2c656954b60381a0eb9f923cbe8bd7b0fab5a9c2fe9527b02451787a8d0ed0a
+    stored_notes: reference/a196_framework_notes.md
+    stored_sha256: 2c29e9005f646a6382aabbfa8cc21cd351c71e6a4ad707871e5e33536f659cbe
+    use_boundary: chapter_topology_only
+
+authority_boundary:
+  template_owns:
+    - documentclass_and_global_layout
+    - top_level_paper_skeleton
+    - top_level_section_order
+    - cumcm_question_section_title_pattern
+    - latex_file_composition
+    - figure_table_equation_proposition_algorithm_environments
+    - bibliography_and_appendix_placement
+    - deterministic_rendering_examples
+  writing_skill_owns:
+    - mathematical_narrative
+    - paragraph_handoff
+    - formula_source_derivation_destination
+    - model_solver_validator_explanation
+    - solver_justification
+    - result_interpretation
+    - validation_reasoning
+    - professional_internal_headings
+    - claim_calibration
+  project_facts_own:
+    - current_model
+    - current_parameters
+    - current_results
+    - current_figures
+    - current_validation_evidence
+  forbidden_template_authority:
+    - choose_model
+    - choose_solver
+    - choose_validator
+    - invent_formula
+    - invent_result
+    - force_internal_subsection_names
+    - force_validation_for_simple_question
+    - force_page_count_by_content_inflation
+
+paper_skeleton:
+  architecture_reference: a196_inspired
+  ordered_slots:
+    - id: abstract
+      source: frontmatter/abstract.tex
+      required: true
+      default_active: true
+    - id: problem_statement
+      source: sections/01_problem_statement.tex
+      required: true
+      default_active: true
+      default_internal_roles:
+        - problem_background
+        - problem_statement_by_question
+    - id: problem_analysis
+      source: sections/02_problem_analysis.tex
+      required: true
+      default_active: true
+      default_internal_roles:
+        - per_question_analysis
+    - id: assumptions
+      source: sections/03_assumptions.tex
+      required: true
+      default_active: true
+    - id: symbols
+      source: sections/04_symbols.tex
+      required: true
+      default_active: true
+    - id: data
+      source: sections/05_data.tex
+      required: false
+      default_active: false
+      activation: preprocessing_decision_project_level_or_real_shared_data_method_need
+      note: 默认主模板不启用；确有共享数据方法时插入，避免与模型准备混淆。
+    - id: model_preparation
+      source: sections/05_model_preparation.tex
+      required: false
+      default_active: false
+      activation: two_or_more_questions_share_substantial_mechanism_geometry_state_or_predicate
+      insertion_after: data_or_symbols_when_data_absent
+      insertion_before: question_sections
+      role: >-
+        统一定义跨问共享的机理、轨迹、几何关系、状态方程、公共判定式或变量来源，
+        避免各问题重复推导；没有实质共享结构时必须删除或合并。
+    - id: question_sections
+      repeatable: true
+      required: true
+      source_pattern: sections/*_question*.tex
+      default_minimum_active: 1
+    - id: evaluation
+      source: sections/09_evaluation.tex
+      required: true
+      default_active: true
+      default_title: 模型的评价与推广
+    - id: references
+      source: references.bib
+      required: true
+      default_active: true
+    - id: appendix
+      source: appendices/appendices.tex
+      required: true
+      default_active: true
+
+cumcm_question_section:
+  title_pattern: "问题{N}模型建立及求解"
+  title_locked: true
+  internal_structure: adaptive
+  architecture_reference: a196_question_local_closure
+  functional_slots:
+    - model
+    - solve
+    - result
+    - validate
+  default_complex_question_headings:
+    - 模型建立
+    - 模型求解
+    - 求解结果
+    - 结果的分析与验证
+  common_model_subroles_for_optimization:
+    - decision_variables
+    - objective
+    - constraints
+    - model_summary
+  rules:
+    - MODEL_SOLVE_RESULT_VALIDATE are functional roles, not mandatory literal subsection titles.
+    - Complex questions normally realize model -> solve -> result -> optional validate in mathematical dependency order.
+    - Simple analytic or direct-calculation questions may merge or omit nonessential internal slots.
+    - Professional problem-specific subsection titles are preferred when they better expose the mathematical object or mechanism.
+    - Shared foundations defined in 模型准备 are referenced rather than copied into every question.
+    - Main results and their validation stay local to the corresponding question instead of being deferred to one global results chapter.
+
+core_model_summary_rendering:
+  modes:
+    - displayed
+    - inline
+    - omitted
+  displayed_use_when:
+    - optimization_or_complex_dynamic_system
+    - multiple_core_equations_or_constraints
+    - long_derivation_before_numerical_solver
+  optimization_example:
+    objective_separate_display: true
+    constraints_separate_display: true
+    objective_inside_constraint_brace: false
+    constraint_brace_contains_only_constraints: true
+  independent_named_subsection_default: false
+  simple_problem_anti_bloat: true
+
+fixed_template_checks:
+  question_example: sections/06_question1.tex
+  required_question_tokens:
+    - "\\section{问题一模型建立及求解}"
+    - "\\subsection{模型建立}"
+    - "\\subsection{模型求解}"
+    - "\\subsection{求解结果}"
+    - "\\subsection{结果的分析与验证}"
+    - "\\min_{\\mathbf{x}}"
+    - "\\text{s.t.}\\quad"
+  forbidden_question_tokens:
+    - "\\subsection{核心模型汇总}"
+  objective_before_constraints: true
+  objective_outside_constraint_brace: true
+  optimization_examples:
+    - source: sections/06_question1.tex
+      objective_token: "\\min_{\\mathbf{x}}"
+    - source: sections/07_question2.tex
+      objective_token: "\\max_{\\mathbf{x}}"
+  required_main_tokens:
+    - "\\input{sections/05_model_preparation}"
+    - "\\input{sections/06_question1}"
+    - "\\input{sections/09_evaluation}"
+  optional_default_inactive_tokens:
+    - "\\input{sections/05_data}"
+    - "\\input{sections/05_model_preparation}"
+    - "\\input{sections/07_question2}"
+  active_main_order:
+    - "\\input{frontmatter/abstract}"
+    - "\\input{sections/01_problem_statement}"
+    - "\\input{sections/02_problem_analysis}"
+    - "\\input{sections/03_assumptions}"
+    - "\\input{sections/04_symbols}"
+    - "\\input{sections/06_question1}"
+    - "\\input{sections/09_evaluation}"
+    - "\\printbibliography"
+    - "\\input{appendices/appendices}"
+  required_evaluation_token: "\\section{模型的评价与推广}"
+
+runtime_contract:
+  prose_writer_may_change:
+    - subsection_titles_inside_question_sections
+    - paragraph_content
+    - formulas_and_explanations_from_current_project_facts
+    - figures_tables_and_local_evidence
+    - optional_validation_subsection
+    - activate_or_remove_model_preparation_based_on_real_shared_structure
+    - activate_or_remove_data_section_based_on_real_data_method_need
+  prose_writer_may_not_change_without_template_or_competition_switch:
+    - documentclass
+    - top_level_section_order
+    - cumcm_question_section_title_pattern
+    - bibliography_position
+    - appendix_position

@@ -1,4 +1,4 @@
-schema_version: 1.5.0
+schema_version: 1.6.0
 role: >-
   跨数学建模竞赛的正文推理与证据治理权威。约束核心公式的来源—推导—去向、共享基础模型、
   跨问递进、结构化简、模型/求解器/验证器角色、优化模型表达、模型建立—求解—结果解释的连续叙事、
@@ -1210,9 +1210,33 @@ machine_audit_boundary:
 
 authority_boundaries:
   reasoning_authority: core/writing_reasoning_contract.yaml
-  prose_and_section_authority: modules/05_writing/latex.md
+  template_structure_authority: templates/latex/cumcm/hsk/template_manifest.yaml
+  prose_and_section_authority: modules/05_writing/paper_writing_protocol.md
+  latex_adapter: modules/05_writing/latex.md
+  compact_runtime: core/writing_runtime_contract.yaml
   docx_role: 只定义 Word 审阅载体与排版差异，不复制正文规则。
   ai_cleanup_role: 只识别模板化、空泛、重复、推理呈现风险，不建立第二套正文规则。
   review_role: 只映射 Authority 到检查级别与交付判定，不重新定义写作规范。
   artifact_pack_role: 只定义加载条件、输入、输出、编译或载体特有验收，不复制正文规范。
   project_framework_role: 只保存当前项目事实、选择、状态和证据位置，不保存跨项目写作手册。
+
+v8_compatibility:
+  legacy_latex_structure_authority:
+    status: deprecated_read_only
+    old_pointer: modules/05_writing/latex.md
+    replacements:
+      fixed_structure: templates/latex/cumcm/hsk/template_manifest.yaml
+      ordinary_prose: modules/05_writing/paper_writing_protocol.md
+      latex_rendering: modules/05_writing/latex.md
+    removal_not_before_skill_version: 9.0.0
+  adaptive_core_model_summary:
+    status: readable_compatibility_mapping
+    old_to_new_modes:
+      required: displayed
+      inline: inline
+      not_applicable: omitted
+    authority: templates/latex/cumcm/hsk/template_manifest.yaml#core_model_summary_rendering
+  project_migration:
+    automatic_rewrite: false
+    overwrite_filled_body: false
+    guide: docs/v8_writing_migration.md

@@ -7,26 +7,31 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class TestWritingExpressionProtocol(unittest.TestCase):
-    def test_latex_module_is_shared_expression_authority(self):
-        text = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
-        self.assertIn("正文结构与表达权威", text)
-        self.assertIn("core/writing_reasoning_contract.yaml", text)
-        for token in ("Hard", "Default", "Recommendation", "问题重述", "问题分析", "求解结果", "Numeric Style Contract"):
-            self.assertIn(token, text)
+    def test_protocol_is_expression_authority_and_latex_is_adapter(self):
+        protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
+        adapter = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
+        self.assertIn("core/writing_reasoning_contract.yaml", protocol)
+        for token in ("问题分析", "模型建立", "求解结果", "Local Narrative Chain", "Numeric Profile"):
+            self.assertIn(token, protocol)
+        self.assertIn("LaTeX Adapter", adapter)
+        self.assertIn("本文件不再拥有正文结构或表达规则", adapter)
 
     def test_docx_and_cleanup_reference_shared_authorities(self):
-        latex = "modules/05_writing/latex.md"
+        protocol = "modules/05_writing/paper_writing_protocol.md"
         reasoning = "core/writing_reasoning_contract.yaml"
         for relative in ("modules/05_writing/docx.md", "modules/05_writing/ai_cleanup.md"):
             text = (ROOT / relative).read_text(encoding="utf-8")
-            self.assertIn(latex, text, relative)
+            self.assertIn(protocol, text, relative)
             self.assertIn(reasoning, text, relative)
         cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
         self.assertIn("不建立第二套正文写作规则", cleanup)
 
     def test_output_contract_points_to_shared_authorities(self):
         policy = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))["writing_policy"]
-        self.assertEqual(policy["expression_authority"], "modules/05_writing/latex.md")
+        self.assertEqual(policy["expression_authority"], "modules/05_writing/paper_writing_protocol.md")
+        self.assertEqual(policy["template_authority"], "templates/latex/cumcm/hsk/template_manifest.yaml")
+        self.assertEqual(policy["latex_adapter"], "modules/05_writing/latex.md")
+        self.assertEqual(policy["compact_runtime_contract"], "core/writing_runtime_contract.yaml")
         self.assertEqual(policy["reasoning_contract"], "core/writing_reasoning_contract.yaml")
         self.assertEqual(policy["rule_governance"], "core/writing_reasoning_contract.yaml#rule_governance")
         self.assertEqual(policy["citation_evidence_contract"], "core/writing_reasoning_contract.yaml#citation_evidence")

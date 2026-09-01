@@ -1,5 +1,5 @@
 schema_version: 1.0.0
-skill_compatibility: ">=7.4.2,<8.0.0"
+skill_compatibility: ">=7.4.2,<9.0.0"
 purpose: 将 Nature 风格图集作为按需视觉参考接入图型选择；资产不提供数据、结论、固定配色或固定面板数量。
 default_load: false
 rules:

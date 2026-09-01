@@ -25,6 +25,7 @@ REQUIRED = [
     "core/project_state.schema.yaml", "core/compile_profiles.yaml", "core/runtime_assurance_contract.yaml",
     "core/model_approval_contract.yaml", "core/user_execution_contract.yaml", "core/code_quality_contract.yaml",
     "core/numerical_verification_contract.yaml", "core/writing_reasoning_contract.yaml",
+    "core/writing_runtime_contract.yaml", "modules/05_writing/paper_writing_protocol.md",
     "modules/01_problem_audit.md", "modules/02_model_design.md", "modules/03_data_preprocessing.md",
     "modules/03_solve_validate.md", "modules/03_result_analysis.md", "modules/04_figure_evidence.md",
     "modules/05_latex_compile_quality.md", "modules/05_writing/docx.md", "modules/05_writing/latex.md",
@@ -37,7 +38,7 @@ REQUIRED = [
     "templates/latex/diangong/main.tex", "templates/writing/caption_explanation.md",
     "scripts/resolve_runtime.py", "scripts/runtime_assurance.py", "scripts/resolve_workflow.py", "scripts/validate_semantic_governance.py", "scripts/validate_model_approval.py", "scripts/sync_project.py",
     "scripts/validate_code_delivery.py", "scripts/validate_user_execution.py", "scripts/validate_numerical_evidence.py", "scripts/audit_latex_project.py",
-    "scripts/audit_paper_prose.py", "scripts/latex_delivery.py",
+    "scripts/audit_paper_prose.py", "scripts/audit_v8_writing_surface.py", "scripts/validate_template_manifest.py", "scripts/latex_delivery.py",
     "scripts/validate_model_paper_framework.py", "scripts/validate_project_state.py",
     "scripts/score_submission.py", ".github/pull_request_template.md",
     ".github/workflows/ci.yml", ".github/workflows/refresh-generated.yml",
@@ -367,8 +368,8 @@ def check_versions(errors: list[str]) -> None:
     if workbook.get("schema_version") != "2.3.0":
         errors.append("workbook schema version must be 2.3.0")
     compatibility = str(workbook.get("skill_compatibility", ""))
-    if ">=6.3.2" not in compatibility or "<8.0.0" not in compatibility:
-        errors.append("workbook schema compatibility must cover 6.3.2 through v7")
+    if ">=6.3.2" not in compatibility or "<9.0.0" not in compatibility:
+        errors.append("workbook schema compatibility must cover 6.3.2 through v8")
 
 
 def check_bootstrap_and_governance(errors: list[str]) -> None:
@@ -406,8 +407,8 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
     for token in ("每个新聊天的强制启动顺序", "修改简报", "单一事实源", "一次聊天一个分支", "一个 PR 一个主题", "禁止直接写 main", "生成文件规则", "测试与验收", "完成报告"):
         if token not in governance:
             errors.append(f"governance document lacks section: {token}")
-    if "<8.0.0" not in governance:
-        errors.append("governance applicability must include v7")
+    if "<9.0.0" not in governance:
+        errors.append("governance applicability must include v8")
     for relative in (
         "core/global_preprocessing_contract.yaml",
         "core/user_execution_contract.yaml",
@@ -420,8 +421,8 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
         if not contract.get("introduced_in_skill_version"):
             errors.append(f"subordinate contract introduction version missing: {relative}")
         compatibility = str(contract.get("skill_compatibility", ""))
-        if "<8.0.0" not in compatibility:
-            errors.append(f"subordinate contract compatibility must cover active v7 line: {relative}")
+        if "<9.0.0" not in compatibility:
+            errors.append(f"subordinate contract compatibility must cover active v8 line: {relative}")
 
 
 def check_taxonomy(errors: list[str]) -> None:
@@ -435,8 +436,8 @@ def check_taxonomy(errors: list[str]) -> None:
     if data.get("classification_contract", {}).get("authoritative_locations", {}).get("capabilities") != "subproblem.capabilities":
         errors.append("taxonomy must declare top-level capabilities as authoritative")
     compatibility = str(data.get("skill_compatibility", ""))
-    if ">=6.3.1" not in compatibility or "<8.0.0" not in compatibility:
-        errors.append("task taxonomy compatibility must cover the active v7 line")
+    if ">=6.3.1" not in compatibility or "<9.0.0" not in compatibility:
+        errors.append("task taxonomy compatibility must cover the active v8 line")
 
 
 def check_router(errors: list[str]) -> None:
@@ -737,7 +738,10 @@ def check_contracts(errors: list[str]) -> None:
     policy = output.get("writing_policy", {})
     expected_pointers = {
         "reasoning_contract": "core/writing_reasoning_contract.yaml",
-        "expression_authority": "modules/05_writing/latex.md",
+        "template_authority": "templates/latex/cumcm/hsk/template_manifest.yaml",
+        "expression_authority": "modules/05_writing/paper_writing_protocol.md",
+        "latex_adapter": "modules/05_writing/latex.md",
+        "compact_runtime_contract": "core/writing_runtime_contract.yaml",
         "rule_governance": "core/writing_reasoning_contract.yaml#rule_governance",
         "terminology_contract": "core/writing_reasoning_contract.yaml#terminology_governance",
         "numeric_style_contract": "core/writing_reasoning_contract.yaml#numeric_style_contract",
@@ -1047,7 +1051,8 @@ def check_templates(errors: list[str]) -> None:
     if (reasoning.get("model_evaluation") or {}).get("count_relation_required") is not False:
         errors.append("writing reasoning contract must not require strengths to outnumber weaknesses")
 
-    latex_authority = read_text(ROOT / "modules/05_writing/latex.md")
+    writing_protocol = read_text(ROOT / "modules/05_writing/paper_writing_protocol.md")
+    latex_adapter = read_text(ROOT / "modules/05_writing/latex.md")
     cleanup = read_text(ROOT / "modules/05_writing/ai_cleanup.md")
     proposition_pack = read_text(ROOT / "packs/artifact/proposition_proof.md")
     algorithm_pack = read_text(ROOT / "packs/artifact/algorithm_flow.md")
@@ -1058,9 +1063,12 @@ def check_templates(errors: list[str]) -> None:
     cumcm = read_text(ROOT / "templates/latex/cumcm/hsk/hsk_main.tex")
     diangong = read_text(ROOT / "templates/latex/diangong/main.tex")
     prose_audit = read_text(ROOT / "scripts/audit_paper_prose.py")
-    for token in ("核心模型汇总：自适应而非机械必设", "Citation Evidence", "不检查“优点必须多于缺点”", "Source → Derivation → Destination", "not_needed / stepwise / pseudocode", "packs/artifact/algorithm_flow.md"):
-        if token not in latex_authority:
-            errors.append(f"LaTeX writing authority lacks current governance token: {token}")
+    for token in ("MODEL → SOLVE → RESULT → VALIDATE", "Source → Derivation → Destination", "not_needed / stepwise / pseudocode", "Result → Validation Bridge", "页数只作为覆盖度诊断"):
+        if token not in writing_protocol:
+            errors.append(f"paper writing protocol lacks current governance token: {token}")
+    for token in ("LaTeX Adapter", "template_manifest.yaml", "paper_writing_protocol.md", "目标函数不得为了大括号整齐而塞进约束系统", "audit_latex_project.py"):
+        if token not in latex_adapter:
+            errors.append(f"LaTeX adapter lacks current rendering token: {token}")
     for token in ("not_needed", "stepwise", "pseudocode", "控制流伪代码版", "分阶段数学步骤版", "不把 Python 源码改写成缩进版论文", "Algorithm Trace 不替代 Formula Trace"):
         if token not in algorithm_pack:
             errors.append(f"algorithm-flow pack lacks adaptive presentation token: {token}")

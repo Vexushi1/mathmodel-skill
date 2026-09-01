@@ -71,17 +71,19 @@ class ArchitectureSlimmingV751Tests(unittest.TestCase):
         self.assertIn("core/writing_reasoning_contract.yaml", framework)
         self.assertIn("不在这里重复", framework)
 
-        latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
+        protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
         for marker in (
             "Source → Derivation → Destination",
             "高级算法前",
-            "结构分析后的结果",
-            "核心模型汇总：自适应而非机械必设",
-            "`required`",
-            "`inline`",
-            "`not_applicable`",
+            "最终可计算结构",
+            "核心模型汇总应当自适应而非机械必设",
+            "required / inline / not_applicable",
         ):
-            self.assertIn(marker, latex)
+            self.assertIn(marker, protocol)
+
+        adapter = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
+        self.assertIn("LaTeX Adapter", adapter)
+        self.assertIn("目标函数不得为了大括号整齐而塞进约束系统", adapter)
 
     def test_taxonomy_is_lazy_for_nonclassification_routes(self):
         resolver = load_resolver()

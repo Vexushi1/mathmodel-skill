@@ -71,7 +71,7 @@ class TestV780AlgorithmPresentation(unittest.TestCase):
             self.assertIn("pseudocode", text)
             self.assertIn("Algorithm Trace", text)
             self.assertIn("packs/artifact/algorithm_flow.md", text)
-        self.assertIn("伪代码写数学对象与控制逻辑", self.latex)
+        self.assertIn("伪代码环境只呈现数学对象和控制逻辑", self.latex)
 
     def test_pack_supports_both_requested_styles_without_raw_python(self):
         self.assertIn("控制流伪代码版", self.pack)

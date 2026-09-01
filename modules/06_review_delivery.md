@@ -4,8 +4,10 @@
 
 权威来源：
 
+- `templates/latex/cumcm/hsk/template_manifest.yaml`：CUMCM 固定骨架、一级顺序和问题一级标题；
+- `modules/05_writing/paper_writing_protocol.md`：普通正文组织、局部叙事、结果解释与验证承接；
 - `core/writing_reasoning_contract.yaml`：推理、证据、规则等级、Model/Solver/Validator、优化模型表达、Formula Trace、Algorithm Trace 与算法呈现、命题预算、引用证据、术语、数字、标题主张、claim strength、深化证据处置、Paragraph Necessity 与局部 stale；
-- `modules/05_writing/latex.md`：正文结构与表达；
+- `modules/05_writing/latex.md`：LaTeX 载体、环境、引用、审计与编译接口；
 - 各 Artifact Pack：载体、编译和交付特有要求。
 
 若本模块与 Authority 文案不同，以 Authority 为准。
@@ -132,7 +134,7 @@ Title Claim Gate 检查选定标题中的研究对象、主方法、核心机制
 
 如果标题写“基于鲁棒优化”，但正文核心链实际上是 Monte Carlo + 贪心、鲁棒优化只在末尾做一次扰动，则应修改标题，不允许通过摘要包装来掩盖。
 
-按 `modules/05_writing/latex.md` 检查正文结构：问题重述能否恢复对象与要求；问题提出与问题分析分工；假设与符号清楚；共享基础真实共享；核心模型收束按 `required / inline / not_applicable` 自适应；算法流程按 `not_needed / stepwise / pseudocode` 自适应；求解段从模型结构解释算法；主结果形成图表/数值—比较—机制—回答闭环；独立结论等 Default 偏离有真实理由。
+按 Template Manifest 检查固定一级骨架，按 `paper_writing_protocol.md` 检查正文内容：摘要逐问覆盖“任务—模型—目标/关键条件或约束—算法/方法—结果—真实检验证据（若有）—结论”，且没有虚构敏感性或鲁棒性；问题重述能否在不照抄原题的前提下准确恢复对象、条件、范围、量词和输出；问题分析是否以连续自然段形成“对象/条件—困难—数学抓手—建模转化—准备建立的结构—跨问关系”，而非散乱清单或软件流水线；假设是否说明来源/必要性与失效影响，符号是否跨公式/代码/结果一致；共享基础真实共享；核心模型收束按当前 rendering mode 自适应；算法流程按 `not_needed / stepwise / pseudocode` 自适应；求解段从模型结构解释算法；主结果形成图表/数值—比较—机制—回答闭环；模型评价、逐问结论与附录均不新增未经证明的主张。
 
 对每个问题章节执行 `subsection_granularity`：本规则只检查**问题章节内部二级小节**，不限制一级章节数量。默认优先形成“模型建立—模型求解—结果分析—必要检验”约 3--4 个主要单元；超过该颗粒度不自动失败，但需要确认是否存在一个公式/一张表一个小节、变量/目标/约束/汇总机械拆分，或多个同类验证各自单开标题等碎片化。减少标题数量不等于删除技术内容。
 

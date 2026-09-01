@@ -25,7 +25,7 @@
 
 默认完整流程在求解、验证和图表锁定后直接进入 LaTeX。`modules/05_writing/docx.md` 与 `docx` delivery scope 保留，但仅在用户明确要求 Word 审阅、批注、协作或特定提交格式时加载；DOCX 不是 LaTeX 前置。
 
-跨竞赛正文推理只认 `core/writing_reasoning_contract.yaml`，正文结构与表达只认 `modules/05_writing/latex.md`。Algorithm Trace 的 `not_needed / stepwise / pseudocode` 三态由前者治理；`packs/artifact/algorithm_flow.md` 仅在算法流程写作或终审需要时提供控制流伪代码和分阶段数学步骤的载体细则，不建立第二套算法规则。
+CUMCM 固定一级结构只认 `templates/latex/cumcm/hsk/template_manifest.yaml`，普通正文组织只认 `modules/05_writing/paper_writing_protocol.md`，跨竞赛复杂语义与证据只认 `core/writing_reasoning_contract.yaml`；`modules/05_writing/latex.md` 只承担 LaTeX Adapter。Algorithm Trace 的 `not_needed / stepwise / pseudocode` 三态由 reasoning Authority 治理；`packs/artifact/algorithm_flow.md` 仅在算法流程写作或终审需要时提供控制流伪代码和分阶段数学步骤的载体细则，不建立第二套算法规则。
 
 ## 仓库修改
 
@@ -48,7 +48,7 @@
 | Python主求解与题目专属结果深化分析 | `modules/03_solve_validate.md`、`modules/03_result_analysis.md` |
 | Python题型 starter | `templates/code/starter/` + `templates/code/hsk_pipeline/` |
 | MATLAB结果图与机理图 | `modules/04_figure_evidence.md` |
-| 默认 LaTeX 写作 | `modules/05_writing/latex.md` |
+| 默认 CUMCM LaTeX 写作 | `template_manifest.yaml` + `core/writing_runtime_contract.yaml` + `paper_writing_protocol.md` + `modules/05_writing/latex.md` Adapter |
 | 可选 DOCX 审阅 | `modules/05_writing/docx.md` |
 | 终审与提交包 | `modules/06_review_delivery.md` |
 | 命题证明 | `packs/artifact/proposition_proof.md`，仅按需加载 |
@@ -68,6 +68,9 @@
 | `core/model_approval_contract.yaml` | `proposed_model_spec → Model Challenge → Human Model Approval → locked_model_spec` 的唯一行为合同，以及 current semantic revision/hash 绑定与 stale 规则 |
 | `core/numerical_verification_contract.yaml` | 主求解 Primary Quality Specification、Verification ID、阈值来源、底层证据与 accepted 判定的唯一字段级数值有效性合同 |
 | `core/writing_reasoning_contract.yaml` | Formula/Algorithm Trace、规则等级、命题、术语、数值、Title Claim、深化证据、Paragraph Necessity、局部 stale 与 Citation Evidence |
+| `core/writing_runtime_contract.yaml` | CUMCM 普通写作最小加载、篇幅 profile、模板 override provenance 与完整 reasoning 回退条件 |
+| `templates/latex/cumcm/hsk/template_manifest.yaml` | CUMCM 固定一级骨架、问题标题、required/conditional/repeatable 槽位与模板文件组合 |
+| `modules/05_writing/paper_writing_protocol.md` | 普通正文 Local Narrative、Paragraph Handoff、MODEL/SOLVE/RESULT/VALIDATE 与结果—验证承接 |
 | `core/global_preprocessing_contract.yaml` | 三态预处理判定、处理证据和 `data_process.m` 边界 |
 | `core/user_execution_contract.yaml` | 用户 full-fidelity 执行与返回工作簿验收 |
 | `core/code_quality_contract.yaml` | 题目专属 Python 工程质量 |

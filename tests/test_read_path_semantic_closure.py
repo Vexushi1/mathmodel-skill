@@ -19,6 +19,19 @@ def load_resolver():
     return module
 
 
+def load_runtime_resolver():
+    scripts = ROOT / "scripts"
+    if str(scripts) not in sys.path:
+        sys.path.insert(0, str(scripts))
+    path = scripts / "resolve_runtime.py"
+    spec = importlib.util.spec_from_file_location("read_path_runtime_resolver", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 class TestReadPathSemanticClosure(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -60,17 +73,14 @@ class TestReadPathSemanticClosure(unittest.TestCase):
         self.assertIn("modules/04_figure_evidence.md", plan["modules"])
         self.assertIn("packs/artifact/figure.md", plan["packs"])
 
-    def test_latex_route_loads_reasoning_but_not_code_or_preprocessing_contracts(self):
-        plan = self.resolve("latex")
+    def test_cumcm_latex_route_loads_compact_writing_contracts_only(self):
+        plan = load_runtime_resolver().resolve_runtime("latex", competition="CUMCM")
         contracts = set(plan["contracts"])
-        self.assertEqual(
-            contracts,
-            {
-                "core/bootstrap.yaml",
-                "core/hsk_core_policy.md",
-                "core/writing_reasoning_contract.yaml",
-            },
-        )
+        self.assertIn("core/writing_runtime_contract.yaml", contracts)
+        self.assertIn("core/hsk_core_policy.md", contracts)
+        self.assertNotIn("core/writing_reasoning_contract.yaml", contracts)
+        self.assertIn("templates/latex/cumcm/hsk/template_manifest.yaml", plan["templates"])
+        self.assertIn("modules/05_writing/paper_writing_protocol.md", plan["modules"])
         self.assertNotIn("core/user_execution_contract.yaml", contracts)
         self.assertNotIn("core/global_preprocessing_contract.yaml", contracts)
         self.assertNotIn("core/task_taxonomy.yaml", contracts)
@@ -164,7 +174,7 @@ class TestReadPathSemanticClosure(unittest.TestCase):
 
     def test_figure_assets_cover_active_v7_line(self):
         assets = yaml.safe_load((ROOT / "assets/figure_assets.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(assets["skill_compatibility"], ">=7.4.2,<8.0.0")
+        self.assertEqual(assets["skill_compatibility"], ">=7.4.2,<9.0.0")
         self.assertFalse(assets["default_load"])
         self.assertIn("不得改变模型结果", "".join(assets["rules"]))
 

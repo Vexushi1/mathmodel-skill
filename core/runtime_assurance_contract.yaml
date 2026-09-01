@@ -1,6 +1,6 @@
-version: 1.0.0
+version: 1.1.0
 introduced_in_skill_version: 7.12.0
-skill_compatibility: '>=7.12.0,<8.0.0'
+skill_compatibility: '>=7.12.0,<9.0.0'
 purpose: >-
   Define the machine-readable runtime assurance layer that sits above the legacy
   resolver plan: context hydration, intent provenance, artifact assurance,
@@ -26,6 +26,10 @@ authority_boundary:
     code_quality: core/code_quality_contract.yaml
     workbook: core/workbook_schema.yaml
     numerical_verification: core/numerical_verification_contract.yaml
+    writing_reasoning: core/writing_reasoning_contract.yaml
+    writing_runtime: core/writing_runtime_contract.yaml
+    writing_protocol: modules/05_writing/paper_writing_protocol.md
+    cumcm_template: templates/latex/cumcm/hsk/template_manifest.yaml
 
 runtime_context:
   optional_project_root: true
@@ -134,9 +138,9 @@ contract_dependency_closure:
     modules/03_solve_validate.md: [preprocessing, model_approval, user_execution, code_quality, workbook, numerical_verification]
     modules/03_result_analysis.md: [taxonomy, preprocessing, user_execution, code_quality, workbook]
     modules/04_figure_evidence.md: [workbook]
-    modules/05_writing/docx.md: [writing_reasoning]
-    modules/05_writing/latex.md: [writing_reasoning]
-    modules/05_writing/ai_cleanup.md: [writing_reasoning]
+    modules/05_writing/docx.md: [writing_reasoning, writing_protocol]
+    modules/05_writing/latex.md: [writing_runtime, writing_protocol]
+    modules/05_writing/ai_cleanup.md: [writing_runtime, writing_protocol]
     modules/05_latex_compile_quality.md: [compile_profiles]
     modules/06_review_delivery.md: [writing_reasoning, output, workbook]
     gate:semantic_governance: [project_state]
@@ -182,7 +186,11 @@ authority_fingerprint:
   - core/workflow_router.yaml
   - core/module_manifest.yaml
   - core/runtime_assurance_contract.yaml
-  purpose: Bind one runtime plan to the authority files that produced its routing and assurance semantics.
+  - core/writing_reasoning_contract.yaml
+  - core/writing_runtime_contract.yaml
+  - templates/latex/cumcm/hsk/template_manifest.yaml
+  - modules/05_writing/paper_writing_protocol.md
+  purpose: Bind one runtime plan to the authority files that produced its routing, writing package, and assurance semantics.
 
 compatibility:
   legacy_resolver_entrypoint: scripts/resolve_workflow.py

@@ -14,7 +14,7 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
         cls.contract_text = cls.contract_path.read_text(encoding="utf-8")
         cls.contract = yaml.safe_load(cls.contract_text)
         cls.narrative = cls.contract["model_establishment_solution_narrative"]
-        cls.latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
+        cls.protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
         cls.cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
         cls.project_instructions = (ROOT / "PROJECT_INSTRUCTIONS.md").read_text(encoding="utf-8")
         cls.module02 = (ROOT / "modules/02_model_design.md").read_text(encoding="utf-8")
@@ -26,7 +26,7 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
         cls.router = (ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8")
 
     def test_reasoning_schema_and_single_authority(self):
-        self.assertEqual(self.contract["schema_version"], "1.5.0")
+        self.assertEqual(self.contract["schema_version"], "1.6.0")
         for key in (
             "within_question_subsection_architecture",
             "detail_allocation_governance",
@@ -53,8 +53,8 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
         self.assertIn("符号说明", architecture["top_level_skeleton_rule"])
         self.assertIn("问题一", architecture["top_level_skeleton_rule"])
         self.assertIn("问题二", architecture["top_level_skeleton_rule"])
-        self.assertIn("没有权限重排上述一级大章节", self.latex)
-        self.assertIn("不改变问题章节顺序", self.latex)
+        self.assertIn("没有权限重排上述一级大章节", self.protocol)
+        self.assertIn("不改变问题章节顺序", self.protocol)
         self.assertIn("写作顺序优化也没有权限重排既定一级大章节", self.cleanup)
         self.assertIn("既定论文大章节骨架保持不变", self.project_instructions)
 
@@ -71,7 +71,7 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
         )
         self.assertIn("solver 不早于", architecture["local_dependency_rule"])
         self.assertIn("数学认知顺序", architecture["python_log_rule"])
-        self.assertIn("局部数学依赖与求解认知顺序", self.latex)
+        self.assertIn("局部数学依赖与求解认知顺序", self.protocol)
         self.assertIn("程序执行步骤直接变成论文小节", self.cleanup)
 
     def test_data_and_shared_sections_are_internal_only(self):
@@ -94,8 +94,7 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
                 "common_output_actually_consumed_by_later_questions",
             ],
         )
-        self.assertIn("这是数据预处理大章节**内部**的组织顺序", self.latex)
-        self.assertIn("这只是章节内部的依赖顺序", self.latex)
+        self.assertIn("只是大章节**内部**的组织顺序", self.protocol)
 
     def test_detail_allocation_is_decisiveness_based(self):
         detail = self.narrative["detail_allocation_governance"]
@@ -119,7 +118,7 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
         self.assertTrue(detail["no_word_count_rule"])
         self.assertTrue(detail["simple_problem_anti_bloat"])
         self.assertIn("详写意味着关键信息链完整，不等于字数更长", detail["principle"])
-        self.assertIn("简单解析或直接计算问题执行 anti-bloat", self.latex)
+        self.assertIn("简单解析或直接计算问题执行 anti-bloat", self.protocol)
         self.assertIn("不得以字数、句数、公式数", self.cleanup)
 
     def test_solver_detail_is_problem_specific(self):
@@ -140,7 +139,7 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
             "unchanged_standard_operator_detail",
         ):
             self.assertIn(token, detail["compress"])
-        self.assertIn("Detail Allocation 在 solver 段同样适用", self.latex)
+        self.assertIn("Detail Allocation 在 solver 段同样适用", self.protocol)
 
     def test_figure_result_narrative_has_adaptive_function_chain(self):
         figure = self.narrative["figure_result_narrative"]
@@ -165,7 +164,7 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
             self.assertIn(token, figure["rules"])
         self.assertIn("不得只写“结果如图X所示”", figure["identity_rule"])
         self.assertIn("不为“分析充分”编造机制", figure["cause_rule"])
-        self.assertIn("Figure Result Narrative 是信息功能链，不是固定六句话", self.latex)
+        self.assertIn("Figure Result Narrative 是信息功能链，不是固定六句话", self.protocol)
         self.assertIn("为什么此时需要这张图", self.cleanup)
 
     def test_figure_profiles_are_not_curve_only(self):
@@ -180,7 +179,7 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
                 "mechanism_or_geometry",
             },
         )
-        self.assertIn("多面板图先说明整张图共同回答的问题", self.latex)
+        self.assertIn("多面板图先说明整张图共同回答的问题", self.protocol)
         self.assertIn("空间/网络图", self.cleanup)
         self.assertIn("机理/几何图", self.cleanup)
 
@@ -196,7 +195,7 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
         ):
             self.assertIn(token, closure["closure_checks"])
         self.assertIn("没有权限重排全文大章节", closure["principle"])
-        self.assertIn("不机械追加“小问结论”", self.latex)
+        self.assertIn("不机械追加“小问结论”", self.protocol)
 
     def test_new_risks_are_review_only_not_blocking(self):
         audit = self.contract["machine_audit_boundary"]

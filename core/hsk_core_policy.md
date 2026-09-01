@@ -1,6 +1,6 @@
-# HSK Core Policy v7.19.0
+# HSK Core Policy v8.0.0
 
-本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 与 `scripts/validate_model_approval.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision`、条件式统一数据预处理、预处理论文数学证据与 `data_process.m` 图证据以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；主求解数值有效性与底层证据独立复核以 `core/numerical_verification_contract.yaml` 与 `scripts/validate_numerical_evidence.py` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准；跨竞赛写作推理、Model/Solver/Validator 角色、优化模型表达、Algorithm Trace、术语、数值展示、标题主张、claim strength 与证据治理以 `core/writing_reasoning_contract.yaml` 为准，正文结构与表达以 `modules/05_writing/latex.md` 为准。本文件不复制这些合同的完整字段。
+本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 与 `scripts/validate_model_approval.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision`、条件式统一数据预处理、预处理论文数学证据与 `data_process.m` 图证据以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；主求解数值有效性与底层证据独立复核以 `core/numerical_verification_contract.yaml` 与 `scripts/validate_numerical_evidence.py` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准；跨竞赛复杂写作语义与证据治理以 `core/writing_reasoning_contract.yaml` 为准，普通正文组织以 `modules/05_writing/paper_writing_protocol.md` 为准，CUMCM 固定结构以 `templates/latex/cumcm/hsk/template_manifest.yaml` 为准，`modules/05_writing/latex.md` 只负责 LaTeX Adapter。本文件不复制这些合同的完整字段。
 
 ## 1. 总目标与优先级
 
@@ -141,7 +141,7 @@ project_level
 - Python 主求解：按 `preprocessing_decision` 读取原始数据或统一工作簿，完成模型求解、Primary Quality Specification 要求的内在数值有效性证据、主质量门，并保留当前运行真实产生的状态/过程/结构 Evidence Capture；不得提前承担结果深化分析；
 - Python 深化分析：继承同一数据事实源，读取已验收主结果与必要前问结果，完成题目专属敏感性、鲁棒性、边界、替代算法/结构或其他结论稳定性分析，并输出参数/场景/seed/算法/阈值等细粒度证据；
 - MATLAB `qX_plot.m`：读取本问标准结果工作簿及必要数据事实源进行 **Scientific Evidence Visualization**，优先在真实证据支持下使用结构表达、组合编码、局部—全局组织与其他高信息密度科研图，而不是把丰富状态数据重新压成基础柱状/折线图；不重新求解或制造数据，完整图形规则以 `modules/04_figure_evidence.md` 为准；
-- LaTeX：默认论文主链；正文结构与表达唯一权威为 `modules/05_writing/latex.md`；
+- LaTeX：默认论文主链；CUMCM 固定结构以 `templates/latex/cumcm/hsk/template_manifest.yaml` 为唯一 Template Authority，普通正文组织以 `modules/05_writing/paper_writing_protocol.md` 为准，复杂语义以 `core/writing_reasoning_contract.yaml` 为准，`modules/05_writing/latex.md` 仅为载体 Adapter；
 - DOCX：仅用户明确要求时加载，不是 LaTeX 前置。
 
 写作阶段这里只保留 Hard 边界，Default 与 Recommendation 不在全局政策重复定义：

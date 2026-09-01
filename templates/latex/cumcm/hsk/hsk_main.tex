@@ -1,7 +1,8 @@
 \documentclass{cumcmthesis}
 % 电子版提交时通常可使用：\documentclass[withoutpreface]{cumcmthesis}
 
-% main.tex 只负责编排。全局宏包、项目命令和元数据分别维护。
+% v8.0.0 A196-inspired canonical template:
+% main.tex 只负责编排；固定一级骨架由 template_manifest.yaml 管理。
 \input{config/preamble}
 \input{config/commands}
 \input{config/metadata}
@@ -16,11 +17,20 @@
 \input{sections/03_assumptions}
 \input{sections/04_symbols}
 
-% preprocessing_decision=project_level 时保留；not_needed 时删除；question_local 时通常删除并将变换写入对应问题。
-\input{sections/05_data}
+% 数据说明/项目级预处理是条件章节。仅当确有共享数据方法需要时取消下一行注释。
+% \input{sections/05_data}
 
-% 按实际小问复制/新增 07_question2.tex、08_question3.tex 等，并在此按论文顺序调用。
+% 参考优秀论文的章节逻辑：若两问及以上共享实质机理、轨迹、几何关系、公共判定式或状态方程，
+% 在正式进入问题一前统一写“模型准备”；仅满足该条件时取消下一行注释。
+% \input{sections/05_model_preparation}
+
+% 每个问题独立一级章，统一采用“问题X模型建立及求解”。
 \input{sections/06_question1}
+% 按实际小问数量复制/启用：
+% \input{sections/07_question2}
+% \input{sections/08_question3}
+% \input{sections/09_question4}
+% \input{sections/10_question5}
 
 \input{sections/09_evaluation}
 

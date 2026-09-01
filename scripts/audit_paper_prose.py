@@ -16,9 +16,16 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from audit_v8_writing_surface import audit_text as audit_v8_surface_text
 
 SEVERITY_ORDER = {"pass": 0, "warning": 1, "review_required": 2, "blocking": 3}
 CONTRAST_RE = re.compile(r"但(?:是)?|然而|不过|并非|不是|不能|只能|而不是|却")
@@ -603,6 +610,9 @@ def audit_text(text: str) -> list[Finding]:
         if union and len(left_tokens & right_tokens) / len(union) >= 0.72 and min(len(paragraphs[i]), len(paragraphs[i + 1])) >= 70:
             findings.append(Finding("warning", "possible_redundant_paragraph", "相邻段落词项高度重复；请执行 Paragraph Necessity Test，确认是否可删除、合并或移附录。", paragraphs[i][:90]))
             break
+
+    for item in audit_v8_surface_text(main):
+        findings.append(Finding(item.severity, item.code, item.message, item.evidence))
 
     return findings
 

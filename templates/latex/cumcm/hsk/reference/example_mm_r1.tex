@@ -1,0 +1,140 @@
+\documentclass[12pt,a4paper]{article}
+
+% User-provided visual/layout reference imported for v8.0.0 Template Authority.
+% This file is a reference exemplar only; executable competition output continues to use cumcmthesis.
+
+\usepackage{geometry}
+\geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm,a4paper}
+\usepackage[UTF8]{ctex}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{parskip}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{appendix}
+\usepackage{listings}
+
+\lstset{
+  language=Python,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue}\bfseries,
+  stringstyle=\color{red},
+  commentstyle=\color{green!40!black},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  numbersep=5pt,
+  showspaces=false,
+  showstringspaces=false,
+  showtabs=false,
+  frame=single,
+  tabsize=4,
+  captionpos=b,
+  breaklines=true,
+  breakatwhitespace=true
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0pt}
+\renewcommand{\baselinestretch}{1.25}
+
+\titleformat{\section}{\centering\bfseries\Large}{\chinese{section}、}{0em}{}
+\titleformat{\subsection}{\bfseries\large}{\arabic{section}.\arabic{subsection}}{1em}{}
+\titleformat{\subsubsection}{\bfseries\normalsize}{\arabic{section}.\arabic{subsection}.\arabic{subsubsection}}{1em}{}
+\titlespacing{\section}{0pt}{0pt}{20pt}
+\titlespacing{\subsection}{0pt}{10pt}{10pt}
+\titlespacing{\subsubsection}{0pt}{8pt}{8pt}
+
+\captionsetup{labelsep=space,font=normalsize,labelfont=bf}
+\hypersetup{colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black}
+
+\title{\textbf{数学建模论文版式参考模板}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{center}
+{\Large\textbf{摘要}}
+\end{center}
+
+% 摘要正文占位。
+
+\textbf{关键词：}关键词一；关键词二；关键词三
+
+\newpage
+\setcounter{page}{1}
+\pagestyle{fancy}
+
+\section{问题重述}
+\subsection{问题背景}
+\subsection{问题提出}
+
+\section{问题分析}
+\subsection{问题一的分析}
+\subsection{问题二的分析}
+
+\section{模型假设}
+\begin{enumerate}[leftmargin=2em]
+  \item 假设一；
+  \item 假设二；
+  \item 假设三。
+\end{enumerate}
+
+\section{符号说明}
+\begin{table}[H]
+\centering
+\caption{主要符号说明}
+\begin{tabular}{ccl}
+\toprule
+\textbf{符号} & \textbf{含义} & \textbf{单位/说明}\\
+\midrule
+$x$ & 示例变量 & --\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% 原始参考文件在此之后采用“模型的建立与求解”统一一级章。
+% v8.0.0 CUMCM 正式模板不沿用该章节组织，而改为每个问题独立一级章：
+% “问题X模型建立及求解”。这一文件仅保留版式、编号、摘要、表格、代码和附录等视觉参考。
+
+\section{模型的建立与求解}
+\subsection{问题一的模型}
+\subsubsection{模型建立}
+\subsubsection{模型求解}
+\subsection{问题二的模型}
+\subsubsection{模型建立}
+\subsubsection{模型求解}
+
+\section{结果分析与验证}
+
+\section{模型的评价与改进}
+\subsection{模型的优点}
+\subsection{模型的不足与改进方向}
+
+\section*{参考文献}
+
+\newpage
+\appendix
+\titleformat{\section}{\centering\bfseries\Large}{附录\Alph{section}}{1em}{}
+\titleformat{\subsection}{\bfseries\large}{\Alph{section}.\arabic{subsection}}{1em}{}
+\section{支撑材料列表}
+\section{程序代码}
+
+\end{document}

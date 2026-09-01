@@ -39,6 +39,8 @@ class TestTooling(unittest.TestCase):
             template = ROOT / profile["template_directory"] / profile["template_main"]
             self.assertTrue(template.is_file(), template)
         self.assertIn("biber", payload["profiles"]["cumcm"]["sequence"])
+        mcm = (ROOT / "templates/latex/mcm/main.tex").read_text(encoding="utf-8")
+        self.assertIn(r"\nocite{example_reference}", mcm)
 
     def test_competition_profiles_separate_stable_and_edition_rules(self):
         payload = yaml.safe_load((ROOT / "config/competition_profiles.yaml").read_text(encoding="utf-8"))
@@ -119,6 +121,7 @@ class TestTooling(unittest.TestCase):
         active = {path.as_posix() for path in module.iter_files()}
         self.assertIn("legacy/README.md", active)
         self.assertFalse(any(path.startswith("legacy/") and path != "legacy/README.md" for path in active))
+        self.assertFalse(module.is_active_path(Path(".tmp_unittest.log")))
 
     def test_render_paper_refuses_ambiguous_profile_and_uses_profile_main(self):
         module = load_module("render_paper", ROOT / "scripts/render_paper.py")

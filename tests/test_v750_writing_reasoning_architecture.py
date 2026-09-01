@@ -61,18 +61,18 @@ class TestV750WritingReasoningArchitecture(unittest.TestCase):
         self.assertIn("candidate_range", params["chain"])
         self.assertIn("selected_value", params["chain"])
         self.assertIn("optimization", params["evidence_by_family"])
-        latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
-        self.assertIn("高级算法前", latex)
-        self.assertIn("降维", latex)
+        protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
+        self.assertIn("高级算法前", protocol)
+        self.assertIn("降维", protocol)
 
     def test_multi_method_validation_has_numerical_and_structural_levels(self):
         data = yaml.safe_load((ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8"))
         two = data["multi_method_validation"]["two_levels"]
         self.assertIn("numerical_consistency", two)
         self.assertIn("structural_consistency", two)
-        latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
-        self.assertIn("结构结论", latex)
-        self.assertIn("数值接近而结构判断冲突", latex)
+        protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
+        self.assertIn("结构结论", protocol)
+        self.assertIn("数值接近而结构判断冲突", protocol)
 
     def test_framework_records_project_reasoning_without_copying_manual(self):
         framework = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
