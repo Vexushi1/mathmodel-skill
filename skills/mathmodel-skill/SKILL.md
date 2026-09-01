@@ -110,7 +110,7 @@ MATLAB 的唯一绘图决策 Authority 仍为 `modules/04_figure_evidence.md`。
 LaTeX 是默认论文主链。写作阶段不在入口文件复制正文规则：
 
 - `templates/latex/cumcm/hsk/template_manifest.yaml`：CUMCM 固定一级骨架、问题一级标题、模板槽位与 LaTeX 文件组合的唯一 Template Authority；
-- `modules/05_writing/paper_writing_protocol.md`：普通正文数学叙事、Local Narrative Chain、Paragraph Handoff、solver、结果解释与 Result → Validation Bridge；
+- `modules/05_writing/paper_writing_protocol.md`：摘要、问题重述、问题分析、假设与符号、普通正文数学叙事、Local Narrative Chain、Paragraph Handoff、solver、结果解释、验证承接、模型评价及结论/附录边界；
 - `core/writing_reasoning_contract.yaml`：跨竞赛复杂语义、Hard / Default / Recommendation、Model/Solver/Validator、优化模型表达、Formula Trace、Algorithm Trace 与算法呈现、命题预算、Citation Evidence、Terminology、Numeric Style、Title Claim、Claim Strength Calibration、深化证据处置、Paragraph Necessity 与局部 stale；
 - `core/writing_runtime_contract.yaml`：普通 CUMCM LaTeX 的最小加载与完整 reasoning 回退条件；
 - `core/model_approval_contract.yaml`：Model Reviewer、Devil's Advocate、Model Approval Brief、显式 Human Approval 与 revision/hash 绑定；

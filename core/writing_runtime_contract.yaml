@@ -72,6 +72,15 @@ writing_module:
   surface_pattern_config: config/prose_audit_patterns.yaml
 
 semantic_capabilities:
+  chapter_content_from_protocol:
+    - abstract_per_question_information_closure
+    - problem_restatement_without_prompt_copying
+    - coherent_problem_analysis
+    - assumption_rationale_and_failure_impact
+    - symbol_cross_artifact_consistency
+    - model_evaluation_evidence_boundary
+    - direct_answer_conclusion_boundary
+    - appendix_body_boundary
   ordinary_writing:
     - formula_reasoning_chain
     - model_solver_validator_roles

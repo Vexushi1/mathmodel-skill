@@ -87,9 +87,9 @@
 - 总述：研究对象、统一建模路线：
 - 每问摘要信息闭合：
 
-| 小问 | 标准模型类型/关键结构 | 决策变量或核心对象 | 目标函数含义（优化题） | 主 solver / solution structure | validator/证据角色 | 决定性数值/区间 | 直接判断 | Claim Evidence Level |
+| 小问 | 任务/对象 | 标准模型类型/正式模型 | 目标或决定性条件/核心约束 | 主 solver / solution structure | validator/真实检验证据及边界 | 决定性数值/区间 | 直接判断 | Claim Evidence Level |
 |---|---|---|---|---|---|---|---|---|
-| Q1 |  |  | not_applicable /  |  |  |  |  | PROVEN / VERIFIED_NUMERIC / COMPARATIVE / OBSERVED / HEURISTIC |
+| Q1 |  |  |  |  | not_applicable /  |  |  | PROVEN / VERIFIED_NUMERIC / COMPARATIVE / OBSERVED / HEURISTIC |
 
 - 综合检验：
 - 每问摘要保留的决定性数值/区间/阈值：
