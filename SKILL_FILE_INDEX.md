@@ -72,6 +72,7 @@
 - `modules/04_figure_evidence.md`
 - `modules/05_latex_compile_quality.md`
 - `modules/05_writing/ai_cleanup.md`
+- `modules/05_writing/chapter_rules/README.md`
 - `modules/05_writing/docx.md`
 - `modules/05_writing/latex.md`
 - `modules/05_writing/paper_writing_protocol.md`
