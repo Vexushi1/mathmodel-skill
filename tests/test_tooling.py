@@ -121,6 +121,7 @@ class TestTooling(unittest.TestCase):
         active = {path.as_posix() for path in module.iter_files()}
         self.assertIn("legacy/README.md", active)
         self.assertFalse(any(path.startswith("legacy/") and path != "legacy/README.md" for path in active))
+        self.assertFalse(module.is_active_path(Path(".tmp_unittest.log")))
 
     def test_render_paper_refuses_ambiguous_profile_and_uses_profile_main(self):
         module = load_module("render_paper", ROOT / "scripts/render_paper.py")

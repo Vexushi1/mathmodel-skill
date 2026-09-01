@@ -14,6 +14,7 @@ LEGACY_SKILL_INDEX = ROOT / "HSK_SKILL_FILE_INDEX_V622.md"
 LEGACY_TEMPLATE_INDEX = ROOT / "HSK_TEMPLATE_INDEX_V622.md"
 MANIFEST = ROOT / "MANIFEST.sha256"
 EXCLUDED_DIRS = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".venv", "venv"}
+EXCLUDED_FILE_SUFFIXES = {".log"}
 ACTIVE_ARCHIVE_POINTERS = {Path("legacy/README.md")}
 BINARY_SUFFIXES = {
     ".7z", ".doc", ".docx", ".gif", ".gz", ".ico", ".jpeg", ".jpg", ".mat", ".npy",
@@ -48,6 +49,10 @@ def current_skill_version() -> str:
 
 
 def is_active_path(relative: Path) -> bool:
+    # Runtime/test logs are ignored delivery artifacts and must not make an
+    # index depend on a maintainer's local execution history.
+    if relative.suffix.lower() in EXCLUDED_FILE_SUFFIXES:
+        return False
     if relative in COMPATIBILITY_POINTERS:
         return False
     if relative.parts and relative.parts[0] == "legacy":
