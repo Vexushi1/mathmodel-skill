@@ -1,4 +1,4 @@
-version: 8.0.0
+version: 8.0.1
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -256,6 +256,7 @@ modules:
     - latex_migration_notes
   writing_latex:
     path: modules/05_writing/latex.md
+    execution_contract: core/writing_runtime_contract.yaml#template_first_progressive_authoring
     inputs:
     - model_paper_framework
     - proposition_plan
@@ -266,6 +267,11 @@ modules:
     outputs:
     - latex_source_draft
     - paper_text
+    rules:
+    - CUMCM 新论文先检查 Template Manifest 和 main 编排，只确定骨架，不在模板检查阶段生成正文。
+    - 正文按 problem_restatement、problem_analysis、assumptions_symbols_and_preparation、逐问 model/solve/result/validate、评价/引用/附录、最后摘要的 read_now → write_now → gate 顺序推进。
+    - 命题证明与 stepwise/pseudocode 分别按条件读取 proposition_proof 与 algorithm_flow pack；不得遗忘，也不得在 not_needed 时强制生成。
+    - draft semantic review 先于 AI Cleanup；Adapter 装配、审计和编译后再执行 final review。
   ai_cleanup:
     path: modules/05_writing/ai_cleanup.md
     inputs:

@@ -1,10 +1,10 @@
-# mathmodel-skill v8.0.0
+# mathmodel-skill v8.0.1
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement → Figure Portfolio Review → Template Manifest + Paper Writing Protocol 完成 LaTeX 终稿 → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → 评委式终审 → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement → Figure Portfolio Review → Template-First 逐章读取/写入 → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → final review → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
 
-## v8.0.0：Template-First Writing Architecture
+## v8.0.1：Chapter Capability Preservation
 
-写作模块已拆分为 CUMCM Template Manifest、Paper Writing Protocol、完整 Semantic Reasoning Authority、LaTeX Adapter 与项目事实/审计消费者。CUMCM 新模板使用用户提供 A196 的章节拓扑和 `example_mm_r1.tex` 的可兼容版式意图；模型准备与数据章均按需启用。普通 CUMCM LaTeX 路由使用 compact runtime，复杂裁决和终审再加载完整 reasoning。旧 v7 项目只读兼容且不会自动覆盖正文，迁移见 `docs/v8_writing_migration.md`。
+在 v8.0.0 Template-First 架构上完成 v7.19 章节写法与 v7.20 R1 的逐项能力保全：普通 CUMCM 路由保留标题/摘要、问题重述与分析、假设/符号、数据与共享基础、模型建立、模型求解、数值/术语、结果/验证、图叙事、评价、引用、结论/附录和篇幅诊断的详细规则。默认运行时先读模板但不生成正文，随后按“读当前章节规则 → 写当前章节 → gate”逐章推进；模型建立及求解中的命题/证明与 stepwise/pseudocode 均有显式条件加载分支。另新增 Q3 后问模板、v7.20 终审清单和功能次序/solver-first/连续图裸堆行为审计。迁移矩阵见 `docs/v801_chapter_capability_preservation_audit.md`，旧 v8.0.0 项目不自动改写。
 
 ## v7.19.0：Intra-Question Writing Closure
 

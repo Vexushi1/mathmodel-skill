@@ -18,7 +18,9 @@
 - 附录：`appendices/`
 - 参考文献库：`references.bib`
 
-## 1. v8.0.0 推荐章节框架
+运行时第一次读取本目录时只检查 `template_manifest.yaml`、`hsk_main.tex`、active/conditional slot 和目标子文件，不直接照着注释生成正文。实际作者顺序由 `core/writing_runtime_contract.yaml#template_first_progressive_authoring` 管理：先逐章写问题重述、问题分析、假设/符号/准备和各问题，再写评价/引用/附录，最后根据 current 结果回写摘要、标题和关键词；随后依次执行初稿语义审查、去 AI、装配/编译和最终终审。
+
+## 1. v8 推荐章节框架
 
 新模板参考优秀论文 A196 的整体组织，但保持 HSK 的自适应规则：
 
@@ -133,8 +135,9 @@ final_latex/
 │  ├─ 05_data.tex                    # 条件章节
 │  ├─ 05_model_preparation.tex       # 共享基础模型，按需
 │  ├─ 06_question1.tex
-│  ├─ 07_question2.tex               # 优化类问题示例，可复制
-│  └─ ...
+│  ├─ 07_question2.tex               # 复杂优化类问题示例
+│  ├─ 08_question3.tex               # 后问继承与扩展示例
+│  └─ ...                            # Q4+ 可复制 Q3 后按题目改写
 ├─ appendices/
 │  └─ appendices.tex
 └─ references.bib

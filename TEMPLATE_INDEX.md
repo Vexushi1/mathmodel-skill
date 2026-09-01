@@ -1,6 +1,6 @@
 # HSK Active Template Index
 
-当前 Skill 版本：8.0.0
+当前 Skill 版本：8.0.1
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -49,6 +49,7 @@
 - `templates/latex/cumcm/hsk/sections/05_model_preparation.tex`
 - `templates/latex/cumcm/hsk/sections/06_question1.tex`
 - `templates/latex/cumcm/hsk/sections/07_question2.tex`
+- `templates/latex/cumcm/hsk/sections/08_question3.tex`
 - `templates/latex/cumcm/hsk/sections/09_evaluation.tex`
 - `templates/latex/cumcm/hsk/template_manifest.yaml`
 - `templates/latex/diangong/main.tex`

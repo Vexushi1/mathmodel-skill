@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 8.0.0
+version: 8.0.1
 summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, independent Model Reviewer plus Devil's Advocate challenge, explicit Human Model Approval bound to the current semantic revision/hash, mechanism/geometry structural-validity closure with Predicate Closure, Event Topology, Reduction Provenance, Solver Applicability, multi-resource composition and original-model reevaluation, evidence-driven conditional preprocessing, full-fidelity user execution, capability-driven primary numerical validity with independent evidence recheck, evidence-ready Primary Evidence Capture, separate primary/result-analysis Python stages, fine-grained Analysis Evidence Capture, project-memory model-paper framework, Source-Derivation-Destination formula traces, explicit Model/Solver/Validator roles, optimization model expression closure, continuous model-establishment/solution narrative with functional transitions, professional heading semantics and result-adjacent interpretation, within-question local dependency architecture, decisiveness-based detail allocation, adaptive figure-result narrative and local question-section closure, adaptive Algorithm Trace with stepwise/pseudocode presentation, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware high-precision Numeric Profile, Title Claim Gate, evidence-level claim calibration, question-subsection granularity review, support/modify/reject analysis evidence, local paper-fragment stale propagation, Paragraph Necessity, MATLAB Scientific Figure Synthesis with caption-owned formal titles, high-contrast composite visualization and evidence-driven Figure Enhancement, formal LaTeX audit/compile attestation, and validated submission-package provenance.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX, 终审, 提交包]
 ---
 
-# HSK 数学建模模块化工作流 v8.0.0
+# HSK 数学建模模块化工作流 v8.0.1
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -112,9 +112,10 @@ LaTeX 是默认论文主链。写作阶段不在入口文件复制正文规则�
 - `templates/latex/cumcm/hsk/template_manifest.yaml`：CUMCM 固定一级骨架、问题一级标题、模板槽位与 LaTeX 文件组合的唯一 Template Authority；
 - `modules/05_writing/paper_writing_protocol.md`：摘要、问题重述、问题分析、假设与符号、普通正文数学叙事、Local Narrative Chain、Paragraph Handoff、solver、结果解释、验证承接、模型评价及结论/附录边界；
 - `core/writing_reasoning_contract.yaml`：跨竞赛复杂语义、Hard / Default / Recommendation、Model/Solver/Validator、优化模型表达、Formula Trace、Algorithm Trace 与算法呈现、命题预算、Citation Evidence、Terminology、Numeric Style、Title Claim、Claim Strength Calibration、深化证据处置、Paragraph Necessity 与局部 stale；
-- `core/writing_runtime_contract.yaml`：普通 CUMCM LaTeX 的最小加载与完整 reasoning 回退条件；
+- `core/writing_runtime_contract.yaml`：普通 CUMCM LaTeX 的 Template-First 逐章读取/写入状态机、最小资源清单与完整 reasoning 回退条件；
 - `core/model_approval_contract.yaml`：Model Reviewer、Devil's Advocate、Model Approval Brief、显式 Human Approval 与 revision/hash 绑定；
 - `modules/05_writing/latex.md`：只负责 LaTeX 环境、文件、引用、审计与编译接口的 Adapter；
+- `packs/artifact/proposition_proof.md`：命题、引理、推论和证明出现时按条件读取，保存前提—结论—证明—下游作用闭环；
 - `packs/artifact/algorithm_flow.md`：按需提供控制流伪代码与分阶段数学步骤的载体细则，不建立第二套算法规则；
 - `modules/05_writing/ai_cleanup.md`：按 Integrity / Evidence / Style & Necessity / Machine diagnostics 分层清理，不维护穷举式第二套规则；
 - `modules/05_writing/docx.md`：只在用户显式要求时加载，负责 Word 载体差异；
@@ -127,6 +128,8 @@ v7.18 进一步强化**模型建立—模型求解—结果解释的连续数学
 v7.19 在保持既定一级论文骨架和问题顺序不变的前提下，将写作治理进一步收缩到**问题章节内部**：二级/三级小节按真实局部数学依赖与求解认知顺序组织，solver 不早于其消费的模型结构，验证不早于主结果；正文篇幅按“是否决定模型结构、关键边界、solver 适配、最终答案或验证 claim”分配，关键链完整展开、普通代数/算法百科/重复数字压缩，并对简单解析题执行 anti-bloat；结果图按局部作用、决定性特征、必要数值、当前设问链接和有证据支持的原因自适应解释，不固化固定句数或曲线模板。每个问题章节在内部完成“局部任务 → 模型闭合 → solver → 结果解释 → 直接回答本问”的闭环，但该规则无权重排符号说明、数据说明、共享基础或问题一/二/三等一级章节。
 
 v8.0.0 将模板从写作方法中彻底分离：CUMCM 新项目以 A196 的章节拓扑为参考，采用“问题重述 → 问题分析 → 模型假设 → 符号说明 → 条件式模型准备 → 各问题独立建立及求解 → 模型评价与推广 → 参考文献 → 附录”的 manifest 骨架；用户提供的 `example_mm_r1.tex` 只贡献与官方 `cumcmthesis` 兼容的版式和 LaTeX 基础设施。普通 CUMCM LaTeX 写作不再预载完整 reasoning Authority，MCM/ICM、电工杯、DOCX、复杂裁决和终审仍使用完整回退。v7 项目在 v8.x 中只读兼容，不自动重排或覆盖已填写正文。
+
+v8.0.1 完成 v7.19 章节写法与 v7.20 R1 的逐项保全：普通 Paper Writing Protocol 继续提供摘要、问题重述与分析、假设/符号、数据与共享基础、模型建立、模型求解、数值/术语、结果/验证、图叙事、评价、引用、结论/附录和篇幅诊断所需的详细规则；运行时先读模板，只确定骨架，再执行“读取当前章节规则 → 写当前章节 → 章节 gate”的渐进状态机，不一次性预读后续模块。命题/证明与 stepwise/pseudocode 在问题章节内通过完整 reasoning Authority 和对应 artifact pack 条件加载。LaTeX Adapter 不重新膨胀；CUMCM 维护 Q1/Q2/Q3 三类问题示例，终审与 surface audit 消费可可靠检查的章节闭环风险。
 
 核心模型收束按 `required / inline / not_applicable` 自适应；算法流程按 `not_needed / stepwise / pseudocode` 自适应；命题 0--4 是默认正文阅读预算而非 Hard 上限；优点与缺点没有强制数量关系。需要外部证据的核心 claim 通过 Citation Evidence 连接正文位置与 `references.bib`。
 
@@ -154,9 +157,14 @@ v8.0.0 将模板从写作方法中彻底分离：CUMCM 新项目以 A196 的章�
 → 独立Python结果深化分析 + Analysis Evidence Capture → support/modify/reject → 必要时回退
 → MATLAB Scientific Figure Synthesis / Composite / Enhancement → Portfolio Review
 → Terminology/Numeric/Title Claim/Claim Scope/局部Paper Fragment同步
-→ Template Manifest 固定骨架内按 Paper Writing Protocol 完成 LaTeX 直写（含按需算法流程） → AI-cleanup
-→ LaTeX project audit attestation → profile-bound compile attestation
-→ 评委式终审 → 生成 official / reproducibility submission package
+→ 先读 Template Manifest 与主文件，只确定骨架、条件槽和目标 section，不生成正文
+→ 读问题重述规则 → 写问题重述 → gate；读问题分析规则 → 写问题分析 → gate
+→ 读假设/符号/条件式数据与共享基础规则 → 写对应章节 → gate
+→ 按问题顺序逐问读取模型建立/求解/结果/验证规则并写当前问题；命题证明与 stepwise/pseudocode 按条件加载对应 pack
+→ 写评价/引用/结论/附录；最后基于 current 逐问答案写摘要、标题与关键词
+→ draft semantic review → AI-cleanup → LaTeX Adapter 装配
+→ LaTeX project audit attestation → profile-bound compile attestation → final review
+→ 生成 official / reproducibility submission package
 → 按 resolver 返回顺序执行全部 pre_delivery_gates
 → validated_submission_package
 ```

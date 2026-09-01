@@ -1,4 +1,4 @@
-version: 8.0.0
+version: 8.0.1
 purpose: >-
   v8 写作表面风险词表。仅用于确定性定位工作流术语泄漏、装饰性引号和概念连接符链；
   不作为数学正确性、模型适配性或因果解释的判断依据。
@@ -50,12 +50,40 @@ narrative_jump:
   rule: >-
     机器只能定位“主结果后紧接敏感性/鲁棒性等验证标题且邻近缺少风险说明”的可疑位置，不能据此断言逻辑错误。
 
+question_stage_order:
+  severity: review_required
+  ordered_roles: [model, solve, result, validate]
+  markers:
+    model: [模型建立, 模型构建, 模型的建立]
+    solve: [模型求解, 数值求解, 优化求解, 求解方法]
+    result: [求解结果, 计算结果, 主要结果]
+    validate: [结果的分析与验证, 结果分析与验证, 敏感性分析, 鲁棒性分析, 模型检验, 结果验证]
+  rule: >-
+    只在标题明确暴露两个及以上功能角色且次序倒置时提示；专业化标题无法可靠语义映射时不机械判缺失，交给人工闭环审查。
+
+solver_entry:
+  severity: review_required
+  subsection_markers: [模型求解, 数值求解, 优化求解, 求解方法]
+  algorithm_markers: [遗传算法, 粒子群, 差分进化, 模拟退火, Dual Annealing, PSO, GA, DE, XGBoost, K-means]
+  structure_hints: [目标函数, 约束, 可行域, 离散, 连续, 非凸, 不可导, 单调, 降维, 候选域, 边界, 状态方程, 计算结构, 搜索空间, 决策变量]
+  rule: >-
+    求解小节首段若直接以算法或通用优点开场，且没有当前模型结构、计算困难或搜索对象提示，则要求人工补回 model-to-solver bridge。
+
+figure_adjacency:
+  severity: warning
+  minimum_explanatory_characters: 24
+  rule: >-
+    两个连续 figure 环境之间若几乎没有自然语言，只提示核心图可能裸堆；caption、label、引用命令和标题本身不算邻近解释。
+
 machine_boundary:
   may_report:
     - workflow_vocabulary_leak
     - decorative_quote_density
     - concept_chain_density
     - result_validation_bridge_risk
+    - question_stage_order_risk
+    - solver_first_narrative
+    - consecutive_figures_without_local_interpretation
   must_not_claim:
     - mathematical_correctness
     - model_validity

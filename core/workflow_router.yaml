@@ -1,4 +1,4 @@
-version: 8.0.0
+version: 8.0.1
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -216,6 +216,7 @@ routing:
     load_classified_task_packs: true
     load_competition_pack: true
     terminal_outputs: [preprocessing_decision, python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
+    writing_execution_sequence: core/writing_runtime_contract.yaml#template_first_progressive_authoring
     conditional_stage:
       when: preprocessing_decision == project_level
       insert_before: modules/03_solve_validate.md
@@ -322,6 +323,8 @@ routing:
     triggers: [LaTeX, PDF终稿, cumcmthesis, 终稿论文]
     infer_keywords: [LaTeX, PDF终稿, cumcmthesis, 终稿论文, 编译论文]
     load: [core/writing_reasoning_contract.yaml, core/writing_runtime_contract.yaml, modules/05_writing/paper_writing_protocol.md, modules/05_writing/latex.md, modules/05_writing/ai_cleanup.md, modules/05_latex_compile_quality.md, packs/artifact/latex.md, packs/artifact/algorithm_flow.md]
+    load_semantics: resource_availability_only
+    execution_sequence: core/writing_runtime_contract.yaml#template_first_progressive_authoring
     load_competition_pack: true
     terminal_outputs: [latex_source, latex_audit_report, compiled_pdf, compile_report]
     formal_delivery: true

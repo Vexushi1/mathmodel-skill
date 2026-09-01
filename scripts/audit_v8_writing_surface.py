@@ -18,6 +18,9 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 PATTERN_PATH = ROOT / "config" / "prose_audit_patterns.yaml"
+QUESTION_SECTION_RE = re.compile(r"\\section\{(问题[一二三四五六七八九十百0-9]+模型建立及求解)\}")
+SUBSECTION_RE = re.compile(r"\\subsection\{([^{}]+)\}")
+FIGURE_ENV_RE = re.compile(r"\\begin\{figure\*?\}.*?\\end\{figure\*?\}", flags=re.S)
 
 
 @dataclass(frozen=True)
@@ -61,6 +64,24 @@ def plain_paragraphs(text: str) -> list[str]:
     prose = re.sub(r"\\(?:label|ref|eqref|cite|citep|citet|parencite|textcite)\*?(?:\[[^\]]*\])?\{[^{}]*\}", " ", prose)
     prose = re.sub(r"\\[A-Za-z@]+\*?(?:\[[^\]]*\])?", " ", prose)
     return [re.sub(r"\s+", " ", p).strip() for p in re.split(r"\n\s*\n", prose) if p.strip()]
+
+
+def question_sections(text: str) -> list[tuple[str, str]]:
+    matches = list(QUESTION_SECTION_RE.finditer(text))
+    sections = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        sections.append((match.group(1), text[match.end():end]))
+    return sections
+
+
+def subsection_blocks(text: str) -> list[tuple[str, str]]:
+    matches = list(SUBSECTION_RE.finditer(text))
+    blocks = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        blocks.append((match.group(1), text[match.end():end]))
+    return blocks
 
 
 def audit_workflow_vocabulary(text: str, policy: dict) -> list[Finding]:
@@ -132,6 +153,91 @@ def audit_result_validation_bridge(text: str, policy: dict) -> list[Finding]:
     return findings
 
 
+def audit_question_stage_order(text: str, policy: dict) -> list[Finding]:
+    settings = policy.get("question_stage_order", {}) or {}
+    ordered_roles = list(settings.get("ordered_roles", ["model", "solve", "result", "validate"]))
+    rank = {role: index for index, role in enumerate(ordered_roles)}
+    markers = settings.get("markers", {}) or {}
+    findings = []
+    for heading, body in question_sections(text):
+        observed = []
+        for title, _ in subsection_blocks(body):
+            role = None
+            # Validation titles often contain the word “result”, so classify the more specific role first.
+            for candidate in ("validate", "solve", "model", "result"):
+                if any(str(marker) in title for marker in markers.get(candidate, [])):
+                    role = candidate
+                    break
+            if role in rank:
+                observed.append((rank[role], role, title))
+        if len(observed) < 2:
+            continue
+        for previous, current in zip(observed, observed[1:]):
+            if current[0] < previous[0]:
+                findings.append(Finding(
+                    settings.get("severity", "review_required"),
+                    "question_stage_order_risk",
+                    "问题章节中可确定识别的 MODEL/SOLVE/RESULT/VALIDATE 功能次序发生倒置；请按真实数学依赖人工复核。",
+                    f"{heading}: {previous[2]} -> {current[2]}",
+                ))
+                break
+    return findings
+
+
+def audit_solver_entry(text: str, policy: dict) -> list[Finding]:
+    settings = policy.get("solver_entry", {}) or {}
+    subsection_markers = [str(item) for item in settings.get("subsection_markers", [])]
+    algorithm_markers = [str(item) for item in settings.get("algorithm_markers", [])]
+    structure_hints = [str(item) for item in settings.get("structure_hints", [])]
+    findings = []
+    for heading, body in question_sections(text):
+        for title, content in subsection_blocks(body):
+            if not any(marker in title for marker in subsection_markers):
+                continue
+            paragraphs = plain_paragraphs(content)
+            if not paragraphs:
+                continue
+            first = paragraphs[0]
+            direct_algorithm_opening = any(marker.lower() in first.lower() for marker in algorithm_markers)
+            direct_algorithm_opening = direct_algorithm_opening or bool(
+                re.match(r"^(?:本文|本问|该模型|我们)?(?:采用|使用|选用).{0,24}(?:算法|求解器|法)", first)
+            )
+            has_structure = any(hint in first for hint in structure_hints)
+            if direct_algorithm_opening and not has_structure:
+                findings.append(Finding(
+                    settings.get("severity", "review_required"),
+                    "solver_first_narrative",
+                    "求解小节首段直接进入算法，但未明显交代当前模型结构、计算困难或搜索对象；请人工复核 solver 入口。",
+                    f"{heading}/{title}: {first[:160]}",
+                ))
+    return findings
+
+
+def audit_consecutive_figures(text: str, policy: dict) -> list[Finding]:
+    settings = policy.get("figure_adjacency", {}) or {}
+    threshold = int(settings.get("minimum_explanatory_characters", 24))
+    findings = []
+    scoped_bodies = [body for _, body in question_sections(text)] or [text]
+    for body in scoped_bodies:
+        figures = list(FIGURE_ENV_RE.finditer(body))
+        for left, right in zip(figures, figures[1:]):
+            gap = body[left.end():right.start()]
+            gap = re.sub(r"%[^\n]*", " ", gap)
+            gap = re.sub(r"\\(?:section|subsection|subsubsection|paragraph)\*?\{[^{}]*\}", " ", gap)
+            gap = re.sub(r"\\(?:label|ref|eqref|cite|citep|citet|parencite|textcite)\*?(?:\[[^\]]*\])?\{[^{}]*\}", " ", gap)
+            gap = re.sub(r"\\[A-Za-z@]+\*?(?:\[[^\]]*\])?", " ", gap)
+            explanatory = re.sub(r"[^A-Za-z\u4e00-\u9fff]", "", gap)
+            if len(explanatory) < threshold:
+                findings.append(Finding(
+                    settings.get("severity", "warning"),
+                    "consecutive_figures_without_local_interpretation",
+                    "检测到同一问题章节内连续图环境之间几乎没有自然语言；请确认核心图是否缺少邻近作用、特征和设问含义解释。",
+                    re.sub(r"\s+", " ", gap)[:120],
+                ))
+                return findings
+    return findings
+
+
 def audit_text(text: str, policy: dict | None = None) -> list[Finding]:
     policy = policy or load_policy()
     findings = []
@@ -139,6 +245,9 @@ def audit_text(text: str, policy: dict | None = None) -> list[Finding]:
     findings.extend(audit_decorative_quotes(text, policy))
     findings.extend(audit_concept_chains(text, policy))
     findings.extend(audit_result_validation_bridge(text, policy))
+    findings.extend(audit_question_stage_order(text, policy))
+    findings.extend(audit_solver_entry(text, policy))
+    findings.extend(audit_consecutive_figures(text, policy))
     return findings
 
 

@@ -1,6 +1,19 @@
 # Changelog
 
-## Current release: 8.0.0
+## Current release: 8.0.1
+
+- Completed a three-way chapter-capability audit against the v7.19 writing authority, the user-approved v7.20 R1 plan and the v8.0.0 compact runtime; added `docs/v801_chapter_capability_preservation_audit.md` as a non-authoritative migration/evidence matrix.
+- Restored ordinary-route detail for title/keywords, data/preprocessing, shared foundations, optimization variables/domains/units, objective meaning, constraint sources, non-optimization summaries, proposition boundaries, solver encoding/parameters/termination/output mapping, numerical style, terminology, citations, role-specific figure interpretation and evaluation boundaries.
+- Preserved the full `model_establishment_solution_narrative` reasoning Authority unchanged while keeping `latex.md` a carrier-only Adapter; complex Terminology/Numeric/Citation disputes now explicitly trigger the full-authority fallback.
+- Added a maintained Q3 later-question inheritance/extension template so Q1, Q2 and Q3 all carry the adaptive MODEL → SOLVE → RESULT → VALIDATE writing contract without forcing simple questions into four literal headings.
+- Extended the conservative surface audit with explicit-stage order reversal, solver-first narrative and consecutive-figure adjacency findings, including negative tests for professional headings and structure-led solver introductions.
+- Added an explicit v7.20/v8.0.1 final-review consumer checklist for detailed model establishment/solution content, objective/constraint rendering, result-validation bridging, surface findings and Document Length Profile handling.
+- Clarified which AI Cleanup risks are implemented machine findings and which remain human/semantic review categories; the audit no longer implies that undeveloped regex checks already exist.
+- Added v8.0.1 chapter-preservation and v7.20 execution-closure regression coverage while retaining v8.0.0 project read compatibility and the no-automatic-body-rewrite migration boundary.
+- Replaced eager ordinary-writing consumption with an explicit Template-First progressive authoring sequence: inspect the manifest without drafting, then read/write/gate problem restatement, problem analysis, assumptions/symbols/preparation, each question's model/solve/result/validate chain, evaluation/references/appendix and finally the evidence-backed abstract; draft semantic review now precedes AI Cleanup, compile and final review.
+- Made proposition/proof and stepwise/pseudocode reachable conditional branches inside each question-writing stage, loading the full reasoning Authority plus `proposition_proof.md` or `algorithm_flow.md` before the relevant passage instead of relying on implicit recall.
+
+## Previous release: 8.0.0
 
 - Replaced the former LaTeX-centered writing authority with a five-layer Template-First architecture: CUMCM Template Manifest, Paper Writing Protocol, full semantic reasoning Authority, LaTeX Adapter, and project-facts/audit consumers.
 - Added `templates/latex/cumcm/hsk/template_manifest.yaml` as the machine-readable CUMCM structure authority. The canonical topology follows the user-provided A196 paper only at chapter level; no paper body, formulas, figures, data, algorithms or results are copied.
