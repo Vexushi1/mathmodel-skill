@@ -43,12 +43,14 @@ def _unique(items: Iterable[str | None]) -> list[str]:
 
 
 def _apply_v8_writing_runtime(plan: dict[str, Any]) -> dict[str, Any]:
-    """Attach the CUMCM Template-First package and compact ordinary LaTeX writing.
+    """Attach the CUMCM Template-First package and progressive LaTeX writing.
 
-    CUMCM routes that actually consume the LaTeX adapter receive the manifest, protocol,
-    runtime contract, and adapter as one package. Only a pure ``latex`` route removes the
-    full reasoning authority from preload; review/submission/full-workflow routes keep it.
-    This changes loading policy only, never project facts or mathematical semantics.
+    ``load_order`` records the available resource package, not permission to consume every
+    writing file eagerly. ``template_first_progressive_authoring.stages`` is the execution
+    authority for read-now/write-now timing. Only a pure ``latex`` route removes the full
+    reasoning authority from preload; semantic-review and conditional proposition/algorithm
+    stages load it when required. This changes loading policy only, never project facts or
+    mathematical semantics.
     """
     intents = set(str(item) for item in plan.get("intents", []))
     competition = str(plan.get("competition") or "").strip().lower()
@@ -65,7 +67,7 @@ def _apply_v8_writing_runtime(plan: dict[str, Any]) -> dict[str, Any]:
 
     runtime = load_yaml(WRITING_RUNTIME_PATH)
     old_authority = "core/writing_reasoning_contract.yaml"
-    runtime_order = _unique(runtime.get("ordinary_writing_load_order", []))
+    runtime_order = _unique(runtime.get("ordinary_writing_resource_order", []))
     default_policy = "core/hsk_core_policy.md"
     if default_policy in runtime_order:
         runtime_order.remove(default_policy)
@@ -88,10 +90,20 @@ def _apply_v8_writing_runtime(plan: dict[str, Any]) -> dict[str, Any]:
     ]
     plan["writing_runtime"] = {
         "mode": "compact" if compact else "full_authority",
+        "execution_mode": "template_first_progressive_authoring",
         "competition": "CUMCM",
         "contract": "core/writing_runtime_contract.yaml",
         "protocol": "modules/05_writing/paper_writing_protocol.md",
         "template_manifest": "templates/latex/cumcm/hsk/template_manifest.yaml",
+        "resource_order_semantics": runtime.get("template_first_progressive_authoring", {}).get(
+            "resource_order_semantics"
+        ),
+        "initial_read_order": list(
+            runtime.get("template_first_progressive_authoring", {}).get("initial_read_order", [])
+        ),
+        "authoring_sequence": list(
+            runtime.get("template_first_progressive_authoring", {}).get("stages", [])
+        ),
         "full_reasoning_authority_preloaded": old_authority in load_order,
         "full_reasoning_authority_fallback": runtime.get("full_authority_fallback", {}).get(
             "authority", old_authority

@@ -4,6 +4,7 @@ role: >-
   CUMCM HSK 论文模板结构与 LaTeX 渲染的唯一 Template Authority。
   本文件只规定论文固定骨架、模板入口、可选插槽、问题章节一级标题和确定性渲染边界；
   不规定模型选择、数学推导、solver、validator、结果解释、验证方法或学术论证内容。
+authoring_execution_pointer: core/writing_runtime_contract.yaml#template_first_progressive_authoring
 
 canonical_template:
   entry: hsk_main.tex
@@ -69,6 +70,8 @@ authority_boundary:
     - force_internal_subsection_names
     - force_validation_for_simple_question
     - force_page_count_by_content_inflation
+    - generate_body_during_template_inspection
+    - replace_progressive_chapter_authoring_order
 
 paper_skeleton:
   architecture_reference: a196_inspired
@@ -143,6 +146,16 @@ cumcm_question_section:
     - solve
     - result
     - validate
+  maintained_examples:
+    - source: sections/06_question1.tex
+      question_number: 一
+      profile: generic_model_and_optimization_rendering
+    - source: sections/07_question2.tex
+      question_number: 二
+      profile: complex_optimization
+    - source: sections/08_question3.tex
+      question_number: 三
+      profile: later_question_inheritance_and_extension
   default_complex_question_headings:
     - 模型建立
     - 模型求解
@@ -205,6 +218,7 @@ fixed_template_checks:
     - "\\input{sections/05_data}"
     - "\\input{sections/05_model_preparation}"
     - "\\input{sections/07_question2}"
+    - "\\input{sections/08_question3}"
   active_main_order:
     - "\\input{frontmatter/abstract}"
     - "\\input{sections/01_problem_statement}"

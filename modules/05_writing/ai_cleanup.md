@@ -22,6 +22,8 @@ LaTeX 载体接口：`modules/05_writing/latex.md`。
 
 AI Cleanup 不重新判断数学正确性，也不修改模型事实来让文章“更顺”。流畅性优化只能改变组织和表达，不得新增不存在的机制、删除真实边界、改变 solver 角色或把数值现象升级成证明。**写作顺序优化也没有权限重排既定一级大章节或问题一、问题二、问题三的顺序。**
 
+AI Cleanup 只在 `draft_semantic_review` 已完成且相关 finding 已处置后运行。已经由当前模型与 Algorithm Trace 证明为必要的命题、引理、证明、分阶段算法或伪代码，不得仅因“篇幅较长”“像模板”或“可以一句话概括”而删除；只能压缩无下游作用的重复说明，且仍须保留前提—结论—证明边界—下游作用，以及算法块前的结构理由/输入和算法块后的输出映射。
+
 ## B. Evidence closure
 
 ### B1. 公式、模型、算法、结果与深化证据
@@ -234,7 +236,9 @@ python scripts/audit_latex_project.py final_latex/main.tex \
 - 已登记 Numeric Profile 的单位、百分比和小数位漂移；
 - 元话语、连续公式、重复段落等保守启发式；
 - 可从项目已登记语义可靠判断时，提示 optimization abstract 缺 objective、Model/Solver/Validator 角色漂移、solver 首次使用缺本题理由、小节碎片化或强 claim 超出已登记证据范围；
-- 对模型建立与求解只允许保守提示 `report_like_model_listing`、`formula_without_need_or_consequence`、`solver_first_narrative`、`generic_heading_density`、`management_transition`、`detached_result_interpretation`、`repeated_problem_analysis_in_model_section`、`subsection_order_breaks_local_dependency`、`top_level_framework_reordered_by_writing_rule`、`decisive_derivation_overcompressed`、`routine_content_overexpanded`、`figure_without_identity_or_local_role`、`figure_feature_without_question_link`、`unsupported_figure_cause`、`detached_figure_summary`、`local_question_section_not_closed_to_answer` 等表现风险。
+- v8 surface audit 当前确定性实现 `workflow_vocabulary_leak`、`decorative_quote_density`、`concept_chain_density`、`result_validation_bridge_risk`、`question_stage_order_risk`、`solver_first_narrative` 与 `consecutive_figures_without_local_interpretation`；这些结果仍只是 warning/review，不是数学正确性判断。
+
+`report_like_model_listing`、`formula_without_need_or_consequence`、`generic_heading_density`、`management_transition`、`detached_result_interpretation`、`repeated_problem_analysis_in_model_section`、`subsection_order_breaks_local_dependency`、`top_level_framework_reordered_by_writing_rule`、`decisive_derivation_overcompressed`、`routine_content_overexpanded`、`figure_without_identity_or_local_role`、`figure_feature_without_question_link`、`unsupported_figure_cause`、`detached_figure_summary`、`local_question_section_not_closed_to_answer` 等属于 Authority 的人工/语义审查类别；除非脚本确有可靠输入和实现，不得在报告中伪称已经自动检测。
 
 等级仍为：
 

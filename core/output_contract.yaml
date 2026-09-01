@@ -1,4 +1,4 @@
-version: 8.0.0
+version: 8.0.1
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -49,6 +49,10 @@ writing_policy:
   docx_is_latex_prerequisite: false
   template_authority: templates/latex/cumcm/hsk/template_manifest.yaml
   expression_authority: modules/05_writing/paper_writing_protocol.md
+  progressive_authoring_sequence: core/writing_runtime_contract.yaml#template_first_progressive_authoring
+  writing_latex_internal_rule: >-
+    writing_latex 内部先模板检查，再逐章 read_now → write_now → gate，并在退出该模块、进入 ai_cleanup 前完成 draft_semantic_review；
+    命题证明与 stepwise/pseudocode 服从该序列的条件读取分支。高层 default_sequence 只表示模块边界，不得解释为一次性预读所有写作资源。
   latex_adapter: modules/05_writing/latex.md
   compact_runtime_contract: core/writing_runtime_contract.yaml
   reasoning_contract: core/writing_reasoning_contract.yaml

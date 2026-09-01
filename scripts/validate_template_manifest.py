@@ -61,6 +61,19 @@ def validate_template_manifest(path: str | Path) -> list[str]:
 
     if manifest.get("schema_version") != "1.0.0":
         errors.append("schema_version must be 1.0.0 for v8")
+    if manifest.get("authoring_execution_pointer") != (
+        "core/writing_runtime_contract.yaml#template_first_progressive_authoring"
+    ):
+        errors.append("template must delegate authoring timing to template_first_progressive_authoring")
+    forbidden_template_authority = set(
+        (manifest.get("authority_boundary", {}) or {}).get("forbidden_template_authority", [])
+    )
+    for forbidden in (
+        "generate_body_during_template_inspection",
+        "replace_progressive_chapter_authoring_order",
+    ):
+        if forbidden not in forbidden_template_authority:
+            errors.append(f"template authority boundary missing: {forbidden}")
 
     canonical = manifest.get("canonical_template", {})
     entry = canonical.get("entry")
@@ -153,6 +166,25 @@ def validate_template_manifest(path: str | Path) -> list[str]:
         if brace < 0 or not (objective < constraints < brace):
             errors.append(f"objective must remain outside the constraints brace: {source}")
 
+    question_contract = manifest.get("cumcm_question_section", {}) or {}
+    maintained_examples = question_contract.get("maintained_examples", []) or []
+    if len(maintained_examples) < 3:
+        errors.append("cumcm_question_section must maintain Q1/Q2/Q3 examples")
+    for example_spec in maintained_examples:
+        source = str(example_spec.get("source", ""))
+        number = str(example_spec.get("question_number", ""))
+        example_path = template_root / source
+        if not source or not example_path.is_file():
+            errors.append(f"maintained question example missing: {source}")
+            continue
+        example_text = example_path.read_text(encoding="utf-8")
+        expected_title = rf"\section{{问题{number}模型建立及求解}}"
+        if not number or expected_title not in example_text:
+            errors.append(f"maintained question title drifted: {source}")
+        for functional_token in ("模型建立", "模型求解", "求解结果", "结果的分析与验证"):
+            if functional_token not in example_text:
+                errors.append(f"maintained question capability missing {functional_token}: {source}")
+
     if entry_path and entry_path.exists():
         main_text = entry_path.read_text(encoding="utf-8")
         for token in checks.get("required_main_tokens", []):
@@ -184,7 +216,7 @@ def validate_template_manifest(path: str | Path) -> list[str]:
         elif required_evaluation_token not in evaluation_path.read_text(encoding="utf-8"):
             errors.append(f"required evaluation token missing: {required_evaluation_token}")
 
-    title_pattern = manifest.get("cumcm_question_section", {}).get("title_pattern")
+    title_pattern = question_contract.get("title_pattern")
     if title_pattern != "问题{N}模型建立及求解":
         errors.append("CUMCM question title pattern drifted from 问题{N}模型建立及求解")
 
