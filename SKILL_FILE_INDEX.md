@@ -10,7 +10,6 @@
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
-- `.tmp_unittest.log`
 - `AGENTS.md`
 - `CHANGELOG.md`
 - `LICENSE`
