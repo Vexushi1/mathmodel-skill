@@ -1,8 +1,10 @@
-# v8.0.0 Writing Capability Inventory Baseline
+# v8.0.0 Writing Capability Inventory Baseline（非 Authority）
 
 ## Purpose
 
 v8.0.0 重构前能力冻结。目标不是删除章节级写作规则，而是在 Template Authority 与 Writing Skill 解耦后明确能力归属。
+
+本文件只记录迁移盘点，不参与运行时加载。当前普通写作规则以 `modules/05_writing/paper_writing_protocol.md` 为准，复杂语义以 `core/writing_reasoning_contract.yaml` 为准。
 
 原则：
 

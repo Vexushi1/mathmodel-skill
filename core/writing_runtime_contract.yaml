@@ -1,4 +1,4 @@
-version: 8.0.0-draft
+version: 8.0.0
 role: >-
   v8 写作阶段的最小运行时映射。它不建立第二套数学写作 Authority，只声明普通论文写作真正需要加载的
   模板、项目事实、证据和 writing_reasoning_contract 中的语义能力，从而避免每次写作预载完整建模、数值与项目治理上下文。
@@ -18,10 +18,50 @@ required_runtime_inputs:
   - relevant_figure_map
   - bibliography_when_needed
 
+document_length_profile:
+  default: adaptive_coverage_diagnostic
+  user_configurable_fields:
+    - competition_or_school_page_limit
+    - optional_target_range
+    - appendix_inclusion_policy
+  rules:
+    - 页数目标只能用于检查是否遗漏关键技术链，不能按页数反向生成背景、算法百科、重复结果或伪验证。
+    - 官方页数限制优先于用户偏好；没有明确限制时不设置跨竞赛统一页数目标。
+    - 篇幅调整不得改变模型、参数、数值精度、证据范围或 Claim Strength。
+
+template_override_provenance:
+  default: none
+  record_in: 模型论文框架.md#当前写作选择
+  required_fields:
+    - template_id
+    - instruction_source
+    - override_scope
+    - affected_files
+    - reason
+    - official_compliance_impact
+    - status
+  status_values: [proposed, approved, rejected]
+  rules:
+    - 只有用户明确要求的模板偏离才可记录为 proposed；未经用户确认不得应用会改变一级结构或官方格式的 override。
+    - override 不得创造或修改模型事实、数值结果、证据、引用支持或数学语义。
+    - 与当届官方格式冲突的 override 必须 rejected，除非用户明确说明当前交付不受该官方格式约束。
+
 canonical_template:
   manifest: templates/latex/cumcm/hsk/template_manifest.yaml
   executable_entry: templates/latex/cumcm/hsk/hsk_main.tex
-  single_file_reference_status: pending_import
+  competition: CUMCM
+  single_file_reference_status: adapted_verified
+
+applicability:
+  compact_runtime_intents:
+    - latex
+  compact_runtime_competitions:
+    - CUMCM
+  fallback_for_other_competitions: core/writing_reasoning_contract.yaml
+  rule: >-
+    只有具备当前 Template Manifest 的 CUMCM LaTeX 路由移除完整 reasoning 预载；
+    DOCX、MCM/ICM、电工杯及其他尚无独立 manifest 的载体继续加载完整 Authority，
+    不得错误套用 CUMCM 一级骨架。
 
 writing_module:
   protocol: modules/05_writing/paper_writing_protocol.md
@@ -113,6 +153,7 @@ machine_boundary:
     - decorative_quote_density
     - concept_chain_density
     - result_validation_bridge_risk
+    - template_override_provenance_completeness
   must_not_claim:
     - mathematical_correctness_from_compact_context
     - evidence_sufficiency_from_file_presence

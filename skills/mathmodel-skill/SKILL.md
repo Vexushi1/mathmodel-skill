@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 7.19.0
+version: 8.0.0
 summary: HSK mathematical-modeling workflow with Problem Contract freezing, semantic closure, independent Model Reviewer plus Devil's Advocate challenge, explicit Human Model Approval bound to the current semantic revision/hash, mechanism/geometry structural-validity closure with Predicate Closure, Event Topology, Reduction Provenance, Solver Applicability, multi-resource composition and original-model reevaluation, evidence-driven conditional preprocessing, full-fidelity user execution, capability-driven primary numerical validity with independent evidence recheck, evidence-ready Primary Evidence Capture, separate primary/result-analysis Python stages, fine-grained Analysis Evidence Capture, project-memory model-paper framework, Source-Derivation-Destination formula traces, explicit Model/Solver/Validator roles, optimization model expression closure, continuous model-establishment/solution narrative with functional transitions, professional heading semantics and result-adjacent interpretation, within-question local dependency architecture, decisiveness-based detail allocation, adaptive figure-result narrative and local question-section closure, adaptive Algorithm Trace with stepwise/pseudocode presentation, tiered writing governance, Citation Evidence, Terminology Registry, scoring-aware high-precision Numeric Profile, Title Claim Gate, evidence-level claim calibration, question-subsection granularity review, support/modify/reject analysis evidence, local paper-fragment stale propagation, Paragraph Necessity, MATLAB Scientific Figure Synthesis with caption-owned formal titles, high-contrast composite visualization and evidence-driven Figure Enhancement, formal LaTeX audit/compile attestation, and validated submission-package provenance.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX, 终审, 提交包]
 ---
 
-# HSK 数学建模模块化工作流 v7.19.0
+# HSK 数学建模模块化工作流 v8.0.0
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -15,7 +15,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 1. 先读取 `core/bootstrap.yaml`；
 2. 默认全局规则由 `core/workflow_router.yaml` 的 `default_load` 指向 `core/hsk_core_policy.md`；
 3. 使用 `scripts/resolve_runtime.py` 按用户当前任务解析最小 `load_order`；
-4. 只加载 resolver 命中的 route-specific contracts、modules、packs 与 templates；建模/写作推理仅在对应 route 加载 `core/writing_reasoning_contract.yaml`；模型锁定与人工批准按需加载 `core/model_approval_contract.yaml`；主求解设计、主求解与主工作簿验收按需加载 `core/numerical_verification_contract.yaml`，结果深化分析不把该合同扩张为稳健性规则；
+4. 只加载 resolver 命中的 route-specific contracts、modules、packs 与 templates；普通 CUMCM LaTeX 写作加载 Template Manifest、compact writing runtime、Paper Writing Protocol 与 LaTeX Adapter，复杂语义裁决和终审才补读完整 `core/writing_reasoning_contract.yaml`；模型锁定与人工批准按需加载 `core/model_approval_contract.yaml`；主求解设计、主求解与主工作簿验收按需加载 `core/numerical_verification_contract.yaml`，结果深化分析不把该合同扩张为稳健性规则；
 5. 已有 current `模型论文框架.md` 时按 `project_memory_contract` 恢复项目语义，具体数值仍以已验收工作簿为准；
 6. `legacy/` 与 V622 compatibility pointers 不进入默认执行链。
 
@@ -109,9 +109,12 @@ MATLAB 的唯一绘图决策 Authority 仍为 `modules/04_figure_evidence.md`。
 
 LaTeX 是默认论文主链。写作阶段不在入口文件复制正文规则：
 
-- `core/writing_reasoning_contract.yaml`：跨竞赛推理、Hard / Default / Recommendation、Model/Solver/Validator、优化模型表达、Formula Trace、Algorithm Trace 与算法呈现、solver justification、模型建立—求解—结果解释连续叙事、问题章节内部小节架构、详略分配、Figure Result Narrative、问题章节闭环、命题预算、Citation Evidence、Terminology、Numeric Style、Title Claim、Claim Strength Calibration、深化证据处置、Paragraph Necessity 与局部 stale；
+- `templates/latex/cumcm/hsk/template_manifest.yaml`：CUMCM 固定一级骨架、问题一级标题、模板槽位与 LaTeX 文件组合的唯一 Template Authority；
+- `modules/05_writing/paper_writing_protocol.md`：普通正文数学叙事、Local Narrative Chain、Paragraph Handoff、solver、结果解释与 Result → Validation Bridge；
+- `core/writing_reasoning_contract.yaml`：跨竞赛复杂语义、Hard / Default / Recommendation、Model/Solver/Validator、优化模型表达、Formula Trace、Algorithm Trace 与算法呈现、命题预算、Citation Evidence、Terminology、Numeric Style、Title Claim、Claim Strength Calibration、深化证据处置、Paragraph Necessity 与局部 stale；
+- `core/writing_runtime_contract.yaml`：普通 CUMCM LaTeX 的最小加载与完整 reasoning 回退条件；
 - `core/model_approval_contract.yaml`：Model Reviewer、Devil's Advocate、Model Approval Brief、显式 Human Approval 与 revision/hash 绑定；
-- `modules/05_writing/latex.md`：正文结构与表达唯一权威；
+- `modules/05_writing/latex.md`：只负责 LaTeX 环境、文件、引用、审计与编译接口的 Adapter；
 - `packs/artifact/algorithm_flow.md`：按需提供控制流伪代码与分阶段数学步骤的载体细则，不建立第二套算法规则；
 - `modules/05_writing/ai_cleanup.md`：按 Integrity / Evidence / Style & Necessity / Machine diagnostics 分层清理，不维护穷举式第二套规则；
 - `modules/05_writing/docx.md`：只在用户显式要求时加载，负责 Word 载体差异；
@@ -123,11 +126,13 @@ v7.18 进一步强化**模型建立—模型求解—结果解释的连续数学
 
 v7.19 在保持既定一级论文骨架和问题顺序不变的前提下，将写作治理进一步收缩到**问题章节内部**：二级/三级小节按真实局部数学依赖与求解认知顺序组织，solver 不早于其消费的模型结构，验证不早于主结果；正文篇幅按“是否决定模型结构、关键边界、solver 适配、最终答案或验证 claim”分配，关键链完整展开、普通代数/算法百科/重复数字压缩，并对简单解析题执行 anti-bloat；结果图按局部作用、决定性特征、必要数值、当前设问链接和有证据支持的原因自适应解释，不固化固定句数或曲线模板。每个问题章节在内部完成“局部任务 → 模型闭合 → solver → 结果解释 → 直接回答本问”的闭环，但该规则无权重排符号说明、数据说明、共享基础或问题一/二/三等一级章节。
 
+v8.0.0 将模板从写作方法中彻底分离：CUMCM 新项目以 A196 的章节拓扑为参考，采用“问题重述 → 问题分析 → 模型假设 → 符号说明 → 条件式模型准备 → 各问题独立建立及求解 → 模型评价与推广 → 参考文献 → 附录”的 manifest 骨架；用户提供的 `example_mm_r1.tex` 只贡献与官方 `cumcmthesis` 兼容的版式和 LaTeX 基础设施。普通 CUMCM LaTeX 写作不再预载完整 reasoning Authority，MCM/ICM、电工杯、DOCX、复杂裁决和终审仍使用完整回退。v7 项目在 v8.x 中只读兼容，不自动重排或覆盖已填写正文。
+
 核心模型收束按 `required / inline / not_applicable` 自适应；算法流程按 `not_needed / stepwise / pseudocode` 自适应；命题 0--4 是默认正文阅读预算而非 Hard 上限；优点与缺点没有强制数量关系。需要外部证据的核心 claim 通过 Citation Evidence 连接正文位置与 `references.bib`。
 
 **核心答案展示精度优先服从题目、官方格式与评分精度。** 若后续小数位可能计分，摘要、正文直接答案、关键结果表和提交结果文件不得为了简洁或美观擅自降精度；无更具体口径时，高精度评分场景通常保留小数后 6--7 位。自然语言技术术语按 Terminology Registry 保持 canonical term 稳定；标题中的实质方法/贡献通过 Title Claim Gate 与摘要、关键词、正文主模型和结果证据闭环。
 
-正式 LaTeX 成稿统一运行 `scripts/audit_latex_project.py` 并持久化 `latex_audit_report.yaml`；正式编译由 `scripts/render_paper.py` 生成绑定 source bundle、audit report、compile profile 与 PDF 哈希的 `compile_report.yaml`。模块化工程递归展开全部 active fragment，兼容单文件工程自然退化为单文件审计，底层 `audit_paper_prose.py` 继续执行 prose/BibTeX/framework 检查。最终提交包必须经过 `scripts/validate_submission_package.py`，official 与 reproducibility 两种 package 语义不得混用。
+正式 LaTeX 成稿统一运行 `scripts/audit_latex_project.py` 并持久化 `latex_audit_report.yaml`；正式编译由 `scripts/render_paper.py` 生成绑定 source bundle、audit report、compile profile 与 PDF 哈希的 `compile_report.yaml`。模块化工程递归展开全部 active fragment，兼容单文件工程自然退化为单文件审计，底层 `audit_paper_prose.py` 同时执行 prose/BibTeX/framework 检查与 v8 surface audit。最终提交包必须经过 `scripts/validate_submission_package.py`，official 与 reproducibility 两种 package 语义不得混用。
 
 ## 主链
 
@@ -149,11 +154,11 @@ v7.19 在保持既定一级论文骨架和问题顺序不变的前提下，将�
 → 独立Python结果深化分析 + Analysis Evidence Capture → support/modify/reject → 必要时回退
 → MATLAB Scientific Figure Synthesis / Composite / Enhancement → Portfolio Review
 → Terminology/Numeric/Title Claim/Claim Scope/局部Paper Fragment同步
-→ 固定大框架内按局部数学依赖、决定性详略和Figure Result Narrative完成LaTeX直写（含按需算法流程） → AI-cleanup
+→ Template Manifest 固定骨架内按 Paper Writing Protocol 完成 LaTeX 直写（含按需算法流程） → AI-cleanup
 → LaTeX project audit attestation → profile-bound compile attestation
 → 评委式终审 → 生成 official / reproducibility submission package
 → 按 resolver 返回顺序执行全部 pre_delivery_gates
 → validated_submission_package
 ```
 
-目录、正式交付和同步门以 `core/output_contract.yaml` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 为准；主求解数值有效性以 `core/numerical_verification_contract.yaml` 为准；代码工程质量以 `core/code_quality_contract.yaml` 为准；返回工作簿以 `scripts/validate_user_execution.py` 验收。legacy 项目保持只读兼容，重新进入当前模型设计/预处理/主求解时按当前 challenge/approval、语义、数据决策、v7.14 主数值证据、v7.15 Evidence Capture、v7.16 模型表达/claim-scope、v7.18 连续数学叙事与 v7.19 问题章节内部写作闭环规则迁移。
+目录、正式交付和同步门以 `core/output_contract.yaml` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 为准；主求解数值有效性以 `core/numerical_verification_contract.yaml` 为准；代码工程质量以 `core/code_quality_contract.yaml` 为准；返回工作簿以 `scripts/validate_user_execution.py` 验收。legacy 项目保持只读兼容；v7 论文进入 v8 时按 `docs/v8_writing_migration.md` 先做人工 dry-run，禁止自动覆盖正文。

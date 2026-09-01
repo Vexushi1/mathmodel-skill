@@ -13,7 +13,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         cls.contract_path = ROOT / "core/writing_reasoning_contract.yaml"
         cls.contract_text = cls.contract_path.read_text(encoding="utf-8")
         cls.contract = yaml.safe_load(cls.contract_text)
-        cls.latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
+        cls.protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
         cls.cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
         cls.module02 = (ROOT / "modules/02_model_design.md").read_text(encoding="utf-8")
         cls.taxonomy = (ROOT / "core/task_taxonomy.yaml").read_text(encoding="utf-8")
@@ -24,13 +24,13 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         cls.router = (ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8")
 
     def test_single_narrative_authority_exists(self):
-        self.assertEqual(self.contract["schema_version"], "1.5.0")
+        self.assertEqual(self.contract["schema_version"], "1.6.0")
         self.assertIn("model_establishment_solution_narrative", self.contract)
         self.assertEqual(
             self.contract["model_establishment_solution_narrative"]["governance_level"],
             "default",
         )
-        self.assertIn("model_establishment_solution_narrative", self.latex)
+        self.assertIn("core/writing_reasoning_contract.yaml", self.protocol)
         self.assertIn("model_establishment_solution_narrative", self.cleanup)
         for relative in (
             "core/model_solution_writing_contract.yaml",
@@ -56,9 +56,9 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         )
         combined_rules = "\n".join(rule["continuous_mathematical_narrative"]["rules"])
         self.assertIn("报告式罗列", combined_rules)
-        self.assertIn("承接当前对象或上一关系", self.latex)
-        self.assertIn("为什么此时出现", self.latex)
-        self.assertIn("出现后下一步怎样变化", self.latex)
+        self.assertIn("承接当前对象或上一关系", self.protocol)
+        self.assertIn("为什么此时出现", self.protocol)
+        self.assertIn("出现后下一步怎样变化", self.protocol)
 
     def test_formula_prose_rhythm_consumes_existing_formula_authority(self):
         narrative = self.contract["model_establishment_solution_narrative"]
@@ -69,16 +69,16 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
             ["need", "basis", "formula", "meaning", "consequence"],
         )
         self.assertIn("符号已经定义后", formula["meaning_priority"])
-        self.assertIn("公式后优先说明它如何改变判据、可行域、目标、候选域或计算结构", self.latex)
-        self.assertNotIn("Need：", self.latex)
-        self.assertNotIn("Basis：", self.latex)
+        self.assertIn("公式后优先说明它如何改变判据、可行域、目标、候选域或计算结构", self.protocol)
+        self.assertNotIn("Need：", self.protocol)
+        self.assertNotIn("Basis：", self.protocol)
 
     def test_model_section_does_not_repeat_problem_analysis_or_assumption_lists(self):
         separation = self.contract["model_establishment_solution_narrative"]["stage_separation"]
         self.assertIn("不重新完整复述问题分析", separation["rule"])
         self.assertIn("repeated_problem_analysis_in_model_section", separation["review_risks"])
         self.assertIn("repeated_assumption_list_in_model_section", separation["review_risks"])
-        self.assertIn("默认不重新写一遍问题分析、模型假设和题目要求", self.latex)
+        self.assertIn("默认不重新写一遍问题分析、模型假设和题目要求", self.protocol)
         self.assertIn("模型建立开头重新完整复述题目、问题分析或模型假设", self.cleanup)
 
     def test_transition_functions_are_roles_not_phrase_bank(self):
@@ -99,7 +99,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
             ],
         )
         self.assertTrue(transitions["phrase_bank_forbidden"])
-        self.assertIn("不建立推荐连接词词库", self.latex)
+        self.assertIn("不建立推荐连接词词库", self.protocol)
         self.assertIn("判断标准是逻辑功能，不是连接词词表", self.cleanup)
 
     def test_heading_semantics_use_independent_mathematical_tasks(self):
@@ -110,8 +110,8 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         self.assertFalse(headings["hard_grammar_rule"])
         self.assertIn("模型处理", headings["generic_heading_review_examples"])
         self.assertIn("结果说明", headings["generic_heading_review_examples"])
-        self.assertIn("标题应对应**独立数学任务**", self.latex)
-        self.assertIn("不强制所有标题使用“XX 的 XX”", self.latex)
+        self.assertIn("标题应对应**独立数学任务**", self.protocol)
+        self.assertIn("不强制所有标题使用“XX 的 XX”", self.protocol)
         self.assertIn("泛化标题", self.cleanup)
 
     def test_solver_narrative_is_structure_before_algorithm(self):
@@ -124,7 +124,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         self.assertLess(order.index("current_model_structure_or_computational_difficulty"), order.index("solver_family_fit"))
         self.assertLess(order.index("exploitable_property_or_completed_simplification"), order.index("solver_family_fit"))
         self.assertTrue(bridge["generic_algorithm_praise_is_insufficient"])
-        self.assertIn("不用“下面进行模型求解”作为唯一过渡", self.latex)
+        self.assertIn("不用“下面进行模型求解”作为唯一过渡", self.protocol)
         self.assertIn("求解段一开始就是算法名或算法优点", self.cleanup)
 
     def test_result_adjacent_interpretation_has_three_adaptive_profiles(self):
@@ -136,7 +136,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
             {"point_optimum_or_parameter", "curve_or_figure", "algorithm_accuracy_or_validation"},
         )
         self.assertIn("support_modify_or_reject_target_claim", result_rule["profiles"]["algorithm_accuracy_or_validation"]["preferred_progression"])
-        self.assertIn("关键结果出现后，在邻近位置完成", self.latex)
+        self.assertIn("关键结果出现后要在邻近位置完成", self.protocol)
         self.assertIn("核心结果远离所有解释", self.cleanup)
         self.assertIn("不要求每张图固定使用相同句数、句序和词语", self.cleanup)
 
@@ -144,8 +144,8 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         rule = self.contract["model_establishment_solution_narrative"]["cross_question_language"]
         self.assertEqual(rule["consumes"], "cross_question_progression")
         self.assertIn("只展开新增数学关系与求解变化", rule["rule"])
-        self.assertIn("共同轨迹、共同概率关系或共同网络结构不从头复制", self.latex)
-        self.assertIn("同理", self.latex)
+        self.assertIn("共同轨迹、共同概率关系或共同网络结构不从头复制", self.protocol)
+        self.assertIn("同理", self.protocol)
 
     def test_cleanup_risks_are_review_or_warning_not_new_blocking_semantics(self):
         audit = self.contract["machine_audit_boundary"]
@@ -171,7 +171,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         for token in ("PSO", "GA", "DE", "二分法", "坐标搜索"):
             self.assertIn(token, anti_template)
         self.assertIn("不复制任何优秀论文的固定句子", anti_template)
-        combined = self.contract_text + "\n" + self.latex + "\n" + self.cleanup
+        combined = self.contract_text + "\n" + self.protocol + "\n" + self.cleanup
         self.assertNotIn("A066", combined)
         self.assertNotIn("A196", combined)
 

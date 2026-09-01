@@ -116,6 +116,7 @@
 9. 求解、结果、局部验证和深化证据布局：
 10. 命题/证明、Citation Evidence、Terminology 与 Numeric Profile 的使用位置：
 11. 特殊结构例外（独立结论、对象图、问题关系图等）及依据：
+12. Template Override（无则写 `none`）：`template_id / instruction_source / override_scope / affected_files / reason / official_compliance_impact / status`：
 
 ### 共享基础与跨问增量
 

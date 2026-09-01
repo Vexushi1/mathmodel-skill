@@ -1,6 +1,6 @@
 # HSK DOCX 草稿统一检查表
 
-本表是执行检查单，不是规则权威。正文逻辑以 `modules/05_writing/latex.md` 和 `core/writing_reasoning_contract.yaml` 为准；Word 排版以 `modules/05_writing/docx.md` 为准。
+本表是执行检查单，不是规则权威。普通正文组织以 `modules/05_writing/paper_writing_protocol.md` 为准，复杂语义以 `core/writing_reasoning_contract.yaml` 为准；Word 排版以 `modules/05_writing/docx.md` 为准，`modules/05_writing/latex.md` 仅供迁移时消费载体接口。
 
 检查结果只用于内部修改，不机械进入终稿正文。
 

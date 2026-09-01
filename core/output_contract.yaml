@@ -1,10 +1,13 @@
-version: 7.19.0
+version: 8.0.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
 user_execution_contract: core/user_execution_contract.yaml
 code_quality_contract: core/code_quality_contract.yaml
 writing_reasoning_contract: core/writing_reasoning_contract.yaml
+writing_runtime_contract: core/writing_runtime_contract.yaml
+writing_protocol: modules/05_writing/paper_writing_protocol.md
+cumcm_template_manifest: templates/latex/cumcm/hsk/template_manifest.yaml
 numerical_verification_contract: core/numerical_verification_contract.yaml
 bootstrap: core/bootstrap.yaml
 taxonomy: core/task_taxonomy.yaml
@@ -20,7 +23,9 @@ scope_boundary:
     numerical_verification: core/numerical_verification_contract.yaml
     code_quality: core/code_quality_contract.yaml
     writing_reasoning: core/writing_reasoning_contract.yaml
-    prose_structure: modules/05_writing/latex.md
+    template_structure: templates/latex/cumcm/hsk/template_manifest.yaml
+    ordinary_prose: modules/05_writing/paper_writing_protocol.md
+    latex_rendering: modules/05_writing/latex.md
   rule: Delegated sections below are integration pointers/switches only; they must not become parallel policy authorities.
 project_root:
   problem_and_attachments: 赛题、附件数据表和说明文件直接放在项目根目录
@@ -42,7 +47,10 @@ writing_policy:
   - latex_compile_quality
   docx_mode: explicit_only_independent
   docx_is_latex_prerequisite: false
-  expression_authority: modules/05_writing/latex.md
+  template_authority: templates/latex/cumcm/hsk/template_manifest.yaml
+  expression_authority: modules/05_writing/paper_writing_protocol.md
+  latex_adapter: modules/05_writing/latex.md
+  compact_runtime_contract: core/writing_runtime_contract.yaml
   reasoning_contract: core/writing_reasoning_contract.yaml
   rule_governance: core/writing_reasoning_contract.yaml#rule_governance
   model_role_contract: core/writing_reasoning_contract.yaml#model_solver_validator_roles
@@ -62,7 +70,10 @@ writing_policy:
   proposition_governance: core/writing_reasoning_contract.yaml#proposition_governance
   algorithm_presentation_contract: core/writing_reasoning_contract.yaml#algorithm_presentation
   core_model_summary_policy: adaptive_required_inline_not_applicable
+  core_model_summary_policy_status: deprecated_v7_read_compatibility
+  core_model_summary_rendering_authority: templates/latex/cumcm/hsk/template_manifest.yaml#core_model_summary_rendering
   prose_audit_script: scripts/audit_paper_prose.py
+  surface_audit_script: scripts/audit_v8_writing_surface.py
   latex_audit_entrypoint: scripts/audit_latex_project.py
   latex_source_layout_default: modular
   latex_project_audit_script: scripts/audit_latex_project.py
@@ -166,8 +177,10 @@ model_paper_framework:
   local_fragment_stale_from: v0.8-project-memory
   result_summary_required_after: solved
   authoritative_boundaries:
-    model_semantics_and_paper_structure: 模型论文框架.md
-    writing_rules: modules/05_writing/latex.md + core/writing_reasoning_contract.yaml
+    model_semantics_and_project_specific_writing_choices: 模型论文框架.md
+    template_structure: templates/latex/cumcm/hsk/template_manifest.yaml
+    writing_rules: modules/05_writing/paper_writing_protocol.md + core/writing_reasoning_contract.yaml
+    latex_rendering: modules/05_writing/latex.md
     preprocessing_decision_and_active_data_source: state/project_state.yaml + core/global_preprocessing_contract.yaml
     preprocessing_workbook_when_project_level: 数据预处理结果.xlsx
     preprocessing_figure_script_when_project_level: 数据预处理/data_process.m

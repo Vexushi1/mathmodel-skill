@@ -9,7 +9,7 @@ canonical_template:
   entry: hsk_main.tex
   format: modular_latex
   external_reference_exemplar: reference/example_mm_r1.tex
-  external_reference_status: imported_verified
+  external_reference_status: adapted_verified
   framework_reference: reference/a196_framework_notes.md
   framework_reference_status: imported_verified
   framework_profile: a196_inspired_question_local_closure
@@ -19,6 +19,20 @@ canonical_template:
     用户提供的优秀论文 A196 只用于提炼章节组织，不复制其正文、公式、图表或题目专属内容。
     正式 CUMCM 问题章节保持“问题X模型建立及求解”，不沿用 reference exemplar 中
     “模型的建立与求解”统一一级章的旧组织。
+
+reference_provenance:
+  user_template_source:
+    original_name: example_mm_r1.tex
+    source_sha256: 3d94e9679814c1888f73b075e8de143ab3976162bfda3604cfd2c7990a79f193
+    stored_adaptation: reference/example_mm_r1.tex
+    stored_sha256: 58e852add7ad04924d5dcad77948044331c3a0d5d0b7ac5ddfdcf608db2538f1
+    use_boundary: visual_and_latex_infrastructure_only
+  framework_source:
+    original_name: A196.pdf
+    source_sha256: c2c656954b60381a0eb9f923cbe8bd7b0fab5a9c2fe9527b02451787a8d0ed0a
+    stored_notes: reference/a196_framework_notes.md
+    stored_sha256: 2c29e9005f646a6382aabbfa8cc21cd351c71e6a4ad707871e5e33536f659cbe
+    use_boundary: chapter_topology_only
 
 authority_boundary:
   template_owns:
@@ -62,31 +76,38 @@ paper_skeleton:
     - id: abstract
       source: frontmatter/abstract.tex
       required: true
+      default_active: true
     - id: problem_statement
       source: sections/01_problem_statement.tex
       required: true
+      default_active: true
       default_internal_roles:
         - problem_background
         - problem_statement_by_question
     - id: problem_analysis
       source: sections/02_problem_analysis.tex
       required: true
+      default_active: true
       default_internal_roles:
         - per_question_analysis
     - id: assumptions
       source: sections/03_assumptions.tex
       required: true
+      default_active: true
     - id: symbols
       source: sections/04_symbols.tex
       required: true
+      default_active: true
     - id: data
       source: sections/05_data.tex
       required: false
+      default_active: false
       activation: preprocessing_decision_project_level_or_real_shared_data_method_need
       note: 默认主模板不启用；确有共享数据方法时插入，避免与模型准备混淆。
     - id: model_preparation
       source: sections/05_model_preparation.tex
       required: false
+      default_active: false
       activation: two_or_more_questions_share_substantial_mechanism_geometry_state_or_predicate
       insertion_after: data_or_symbols_when_data_absent
       insertion_before: question_sections
@@ -97,16 +118,20 @@ paper_skeleton:
       repeatable: true
       required: true
       source_pattern: sections/*_question*.tex
+      default_minimum_active: 1
     - id: evaluation
       source: sections/09_evaluation.tex
       required: true
+      default_active: true
       default_title: 模型的评价与推广
     - id: references
       source: references.bib
       required: true
+      default_active: true
     - id: appendix
       source: appendices/appendices.tex
       required: true
+      default_active: true
 
 cumcm_question_section:
   title_pattern: "问题{N}模型建立及求解"
@@ -167,10 +192,29 @@ fixed_template_checks:
     - "\\subsection{核心模型汇总}"
   objective_before_constraints: true
   objective_outside_constraint_brace: true
+  optimization_examples:
+    - source: sections/06_question1.tex
+      objective_token: "\\min_{\\mathbf{x}}"
+    - source: sections/07_question2.tex
+      objective_token: "\\max_{\\mathbf{x}}"
   required_main_tokens:
     - "\\input{sections/05_model_preparation}"
     - "\\input{sections/06_question1}"
     - "\\input{sections/09_evaluation}"
+  optional_default_inactive_tokens:
+    - "\\input{sections/05_data}"
+    - "\\input{sections/05_model_preparation}"
+    - "\\input{sections/07_question2}"
+  active_main_order:
+    - "\\input{frontmatter/abstract}"
+    - "\\input{sections/01_problem_statement}"
+    - "\\input{sections/02_problem_analysis}"
+    - "\\input{sections/03_assumptions}"
+    - "\\input{sections/04_symbols}"
+    - "\\input{sections/06_question1}"
+    - "\\input{sections/09_evaluation}"
+    - "\\printbibliography"
+    - "\\input{appendices/appendices}"
   required_evaluation_token: "\\section{模型的评价与推广}"
 
 runtime_contract:

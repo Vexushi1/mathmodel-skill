@@ -49,7 +49,7 @@ class TestV661CodeQualityClosure(unittest.TestCase):
         # release parity is carried globally, while this file records introduction
         # and compatible Skill lines explicitly.
         self.assertEqual(str(data["introduced_in_skill_version"]), "7.4.2")
-        self.assertEqual(str(data["skill_compatibility"]), ">=7.4.2,<8.0.0")
+        self.assertEqual(str(data["skill_compatibility"]), ">=7.4.2,<9.0.0")
         self.assertNotIn("skill_version", data)
         self.assertEqual(data["line_count"]["target_max"], 500)
         self.assertEqual(data["line_count"]["hard_max"], 700)

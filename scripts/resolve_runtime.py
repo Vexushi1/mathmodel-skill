@@ -24,14 +24,12 @@ MANIFEST_PATH = ROOT / "core" / "module_manifest.yaml"
 ASSURANCE_PATH = ROOT / "core" / "runtime_assurance_contract.yaml"
 WRITING_RUNTIME_PATH = ROOT / "core" / "writing_runtime_contract.yaml"
 
-# v8 keeps the full reasoning authority available, but ordinary prose-generation routes
-# do not preload it. Complex semantic adjudication and final review continue to load it.
-PURE_WRITING_INTENTS = {"latex", "docx"}
-V8_WRITING_RUNTIME_FILES = [
-    "core/writing_runtime_contract.yaml",
-    "templates/latex/cumcm/hsk/template_manifest.yaml",
-    "modules/05_writing/paper_writing_protocol.md",
-]
+# v8 keeps the full reasoning authority available, but ordinary CUMCM LaTeX writing
+# uses the compact Template-First package. Other competitions remain on the full
+# semantic fallback until they own a competition-specific Template Manifest.
+COMPACT_WRITING_INTENTS = {"latex"}
+COMPACT_WRITING_COMPETITIONS = {"cumcm"}
+CUMCM_WRITING_PACKAGE_INTENTS = {"latex", "review", "full_submission", "full_workflow"}
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -45,27 +43,40 @@ def _unique(items: Iterable[str | None]) -> list[str]:
 
 
 def _apply_v8_writing_runtime(plan: dict[str, Any]) -> dict[str, Any]:
-    """Replace full reasoning preload with the compact v8 writing runtime for pure writing.
+    """Attach the CUMCM Template-First package and compact ordinary LaTeX writing.
 
-    This is a loading-policy transformation only. It does not alter project facts,
-    numerical evidence, model semantics, module outputs, or the full reasoning authority.
+    CUMCM routes that actually consume the LaTeX adapter receive the manifest, protocol,
+    runtime contract, and adapter as one package. Only a pure ``latex`` route removes the
+    full reasoning authority from preload; review/submission/full-workflow routes keep it.
+    This changes loading policy only, never project facts or mathematical semantics.
     """
     intents = set(str(item) for item in plan.get("intents", []))
-    if not intents or not intents.issubset(PURE_WRITING_INTENTS):
+    competition = str(plan.get("competition") or "").strip().lower()
+    load_order = list(plan.get("load_order", []))
+    adapter = "modules/05_writing/latex.md"
+    uses_cumcm_writing_package = bool(
+        intents
+        and competition in COMPACT_WRITING_COMPETITIONS
+        and intents.intersection(CUMCM_WRITING_PACKAGE_INTENTS)
+        and adapter in load_order
+    )
+    if not uses_cumcm_writing_package:
         return plan
 
     runtime = load_yaml(WRITING_RUNTIME_PATH)
     old_authority = "core/writing_reasoning_contract.yaml"
-    load_order = [
-        item for item in plan.get("load_order", []) if item != old_authority
-    ]
+    runtime_order = _unique(runtime.get("ordinary_writing_load_order", []))
+    default_policy = "core/hsk_core_policy.md"
+    if default_policy in runtime_order:
+        runtime_order.remove(default_policy)
+    compact = intents.issubset(COMPACT_WRITING_INTENTS)
+    managed = set(runtime_order)
+    if compact:
+        managed.add(old_authority)
+    load_order = [item for item in load_order if item not in managed]
 
-    insertion_point = len(load_order)
-    for index, item in enumerate(load_order):
-        if item.startswith("modules/05_writing/"):
-            insertion_point = index
-            break
-    load_order[insertion_point:insertion_point] = V8_WRITING_RUNTIME_FILES
+    insertion_point = load_order.index(default_policy) + 1 if default_policy in load_order else 0
+    load_order[insertion_point:insertion_point] = runtime_order
     load_order = _unique(load_order)
 
     plan["load_order"] = load_order
@@ -76,11 +87,12 @@ def _apply_v8_writing_runtime(plan: dict[str, Any]) -> dict[str, Any]:
         item for item in load_order if item.startswith("templates/")
     ]
     plan["writing_runtime"] = {
-        "mode": "compact",
+        "mode": "compact" if compact else "full_authority",
+        "competition": "CUMCM",
         "contract": "core/writing_runtime_contract.yaml",
         "protocol": "modules/05_writing/paper_writing_protocol.md",
         "template_manifest": "templates/latex/cumcm/hsk/template_manifest.yaml",
-        "full_reasoning_authority_preloaded": False,
+        "full_reasoning_authority_preloaded": old_authority in load_order,
         "full_reasoning_authority_fallback": runtime.get("full_authority_fallback", {}).get(
             "authority", old_authority
         ),

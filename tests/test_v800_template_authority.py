@@ -63,6 +63,8 @@ class TestV800TemplateAuthority(unittest.TestCase):
         for heading in ("模型建立", "模型求解", "求解结果", "结果的分析与验证"):
             self.assertIn(rf"\subsection{{{heading}}}", self.question)
         self.assertIn(r"\section{模型的评价与推广}", self.evaluation)
+        self.assertFalse(slots["model_preparation"]["default_active"])
+        self.assertIn("% \\input{sections/05_model_preparation}", self.main)
 
     def test_core_model_summary_is_rendering_mode_not_named_subsection(self):
         rendering = self.manifest["core_model_summary_rendering"]
@@ -85,12 +87,16 @@ class TestV800TemplateAuthority(unittest.TestCase):
 
     def test_reference_exemplars_are_imported_and_present(self):
         canonical = self.manifest["canonical_template"]
-        self.assertEqual(canonical["external_reference_status"], "imported_verified")
+        self.assertEqual(canonical["external_reference_status"], "adapted_verified")
         self.assertEqual(canonical["framework_reference_status"], "imported_verified")
         external = ROOT / "templates/latex/cumcm/hsk" / canonical["external_reference_exemplar"]
         framework = ROOT / "templates/latex/cumcm/hsk" / canonical["framework_reference"]
         self.assertTrue(external.is_file())
         self.assertTrue(framework.is_file())
+        provenance = self.manifest["reference_provenance"]
+        for key in ("source_sha256", "stored_sha256"):
+            self.assertRegex(provenance["user_template_source"][key], r"^[0-9a-f]{64}$")
+            self.assertRegex(provenance["framework_source"][key], r"^[0-9a-f]{64}$")
 
 
 if __name__ == "__main__":

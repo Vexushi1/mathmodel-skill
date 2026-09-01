@@ -1,6 +1,6 @@
 contract_version: 1.0.0
 introduced_in_skill_version: 7.14.0
-skill_compatibility: '>=7.14.0,<8.0.0'
+skill_compatibility: '>=7.14.0,<9.0.0'
 purpose: >-
   Define the single field-level authority for intrinsic numerical validity of one
   primary computation before its solution workbook may be accepted. This contract

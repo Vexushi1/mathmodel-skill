@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 from pathlib import Path
 
 import yaml
@@ -21,6 +22,31 @@ def _tex_path(template_root: Path, source: str) -> Path:
     if path.suffix:
         return path
     return path.with_suffix(".tex")
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _strip_tex_comments(text: str) -> str:
+    active_lines: list[str] = []
+    for line in text.splitlines():
+        out: list[str] = []
+        escaped = False
+        for char in line:
+            if char == "%" and not escaped:
+                break
+            out.append(char)
+            if char == "\\":
+                escaped = not escaped
+            else:
+                escaped = False
+        active_lines.append("".join(out))
+    return "\n".join(active_lines)
 
 
 def validate_template_manifest(path: str | Path) -> list[str]:
@@ -49,15 +75,36 @@ def validate_template_manifest(path: str | Path) -> list[str]:
     for key in ("external_reference_exemplar", "framework_reference"):
         reference = canonical.get(key)
         status = canonical.get(key.replace("exemplar", "status")) if key == "external_reference_exemplar" else canonical.get("framework_reference_status")
-        if status == "imported_verified":
+        if status in {"imported_verified", "adapted_verified"}:
             if not reference:
-                errors.append(f"{key} must be declared when status is imported_verified")
+                errors.append(f"{key} must be declared when status is {status}")
             elif not (template_root / reference).exists():
-                errors.append(f"imported reference missing: {reference}")
+                errors.append(f"verified reference missing: {reference}")
+
+    provenance = manifest.get("reference_provenance", {}) or {}
+    for record_name, path_key in (
+        ("user_template_source", "stored_adaptation"),
+        ("framework_source", "stored_notes"),
+    ):
+        record = provenance.get(record_name, {}) or {}
+        relative = record.get(path_key)
+        expected = str(record.get("stored_sha256", "")).lower()
+        if not relative or not expected:
+            errors.append(f"reference_provenance.{record_name} requires {path_key} and stored_sha256")
+            continue
+        stored = template_root / relative
+        if not stored.is_file():
+            errors.append(f"stored reference missing: {relative}")
+        elif _sha256(stored) != expected:
+            errors.append(f"stored reference sha256 mismatch: {relative}")
 
     skeleton = manifest.get("paper_skeleton", {}).get("ordered_slots", [])
     for slot in skeleton:
-        if not slot.get("required"):
+        pattern = slot.get("source_pattern")
+        if pattern:
+            matches = sorted(template_root.glob(pattern))
+            if slot.get("required") and not matches:
+                errors.append(f"required repeatable template source missing: {pattern}")
             continue
         source = slot.get("source")
         if not source:
@@ -68,7 +115,7 @@ def validate_template_manifest(path: str | Path) -> list[str]:
         else:
             resolved = _tex_path(template_root, source)
         if not resolved.exists():
-            errors.append(f"required template source missing: {source}")
+            errors.append(f"declared template source missing: {source}")
 
     checks = manifest.get("fixed_template_checks", {})
     example = checks.get("question_example")
@@ -90,26 +137,40 @@ def validate_template_manifest(path: str | Path) -> list[str]:
         if token in text:
             errors.append(f"forbidden question token present: {token}")
 
-    if checks.get("objective_before_constraints"):
-        objective = text.find(r"\min_{\mathbf{x}}")
-        constraints = text.find(r"\text{s.t.}\quad")
+    for example_spec in checks.get("optimization_examples", []):
+        source = example_spec.get("source")
+        token = example_spec.get("objective_token")
+        example_path = template_root / str(source or "")
+        if not source or not example_path.is_file():
+            errors.append(f"optimization example missing: {source}")
+            continue
+        example_text = example_path.read_text(encoding="utf-8")
+        objective = example_text.find(str(token or ""))
+        constraints = example_text.find(r"\text{s.t.}\quad")
+        brace = example_text.find(r"\left\{", constraints if constraints >= 0 else 0)
         if objective < 0 or constraints < 0 or objective >= constraints:
-            errors.append("objective must appear before constraints in the question template")
-
-    if checks.get("objective_outside_constraint_brace"):
-        objective = text.find(r"\min_{\mathbf{x}}")
-        constraints = text.find(r"\text{s.t.}\quad")
-        brace = text.find(r"\left\{", constraints if constraints >= 0 else 0)
-        if objective < 0 or constraints < 0 or brace < 0:
-            errors.append("objective/constraints/brace structure is incomplete")
-        elif not (objective < constraints < brace):
-            errors.append("objective must remain outside the constraints brace")
+            errors.append(f"objective must appear before constraints: {source}")
+        if brace < 0 or not (objective < constraints < brace):
+            errors.append(f"objective must remain outside the constraints brace: {source}")
 
     if entry_path and entry_path.exists():
         main_text = entry_path.read_text(encoding="utf-8")
         for token in checks.get("required_main_tokens", []):
             if token not in main_text:
                 errors.append(f"required main template token missing: {token}")
+        active_main = _strip_tex_comments(main_text)
+        for token in checks.get("optional_default_inactive_tokens", []):
+            if token in active_main:
+                errors.append(f"optional template slot must be inactive by default: {token}")
+        last_position = -1
+        for token in checks.get("active_main_order", []):
+            position = active_main.find(token)
+            if position < 0:
+                errors.append(f"active main template token missing: {token}")
+            elif position <= last_position:
+                errors.append(f"active main template order drifted at: {token}")
+            else:
+                last_position = position
 
     evaluation_slot = next(
         (slot for slot in skeleton if slot.get("id") == "evaluation" and slot.get("source")),

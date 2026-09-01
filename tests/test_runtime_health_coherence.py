@@ -48,7 +48,7 @@ class RuntimeHealthCoherenceTests(unittest.TestCase):
             data = yaml.safe_load(read(relative)) or {}
             self.assertNotIn("skill_version", data, relative)
             self.assertEqual(str(data.get("introduced_in_skill_version")), "7.4.2", relative)
-            self.assertEqual(str(data.get("skill_compatibility")), ">=7.4.2,<8.0.0", relative)
+            self.assertEqual(str(data.get("skill_compatibility")), ">=7.4.2,<9.0.0", relative)
 
     def test_preprocessing_lifecycle_authority_is_explicit(self):
         data = yaml.safe_load(read("core/global_preprocessing_contract.yaml")) or {}

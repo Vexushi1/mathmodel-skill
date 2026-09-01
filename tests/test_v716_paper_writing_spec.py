@@ -25,7 +25,7 @@ class TestV716PaperWritingSpec(unittest.TestCase):
         self.contract = yaml.safe_load(
             (ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8")
         )
-        self.latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
+        self.protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
         self.cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
         self.framework = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
         self.optimization = (ROOT / "packs/task/optimization.md").read_text(encoding="utf-8")
@@ -38,12 +38,12 @@ class TestV716PaperWritingSpec(unittest.TestCase):
         self.assertIn("solver", roles["definitions"])
         self.assertIn("validator", roles["definitions"])
         self.assertIn("MODEL      = 数学上求什么", self.optimization)
-        self.assertIn("solver / validator", self.latex)
+        self.assertIn("solver / validator", self.protocol)
 
     def test_optimization_abstract_requires_objective_semantics(self):
         abstract = self.contract["optimization_model_expression"]["abstract_minimum"]
         self.assertIn("objective_function_meaning", abstract["required_semantics"])
-        self.assertIn("优化类摘要如果只列决策变量和算法，却没有说明目标函数含义", self.latex)
+        self.assertIn("优化类摘要如果只列决策变量和算法，却没有说明目标函数含义", self.protocol)
         self.assertIn("优化类小问的摘要是否明确“优化什么”", self.framework)
 
     def test_optimization_paper_order_puts_model_before_solver(self):
@@ -51,8 +51,8 @@ class TestV716PaperWritingSpec(unittest.TestCase):
         self.assertLess(order.index("decision_variables"), order.index("solver_and_validation"))
         self.assertLess(order.index("objective_function"), order.index("solver_and_validation"))
         self.assertLess(order.index("constraints_grouped_by_source"), order.index("solver_and_validation"))
-        self.assertIn("标准模型类型与现实优化目标", self.latex)
-        self.assertIn("核心模型汇总", self.latex)
+        self.assertIn("标准模型类型与现实优化目标", self.protocol)
+        self.assertIn("核心模型汇总", self.protocol)
 
     def test_model_naming_requires_standard_mathematical_type(self):
         naming = self.contract["model_naming"]
@@ -60,7 +60,7 @@ class TestV716PaperWritingSpec(unittest.TestCase):
         self.assertIn("continuous_optimization", naming["standard_type_examples"])
         self.assertIn("mixed_integer_optimization", naming["standard_type_examples"])
         self.assertIn("标准模型类型", self.framework)
-        self.assertIn("题目专属名称可以保留", self.latex)
+        self.assertIn("题目专属名称可以保留", self.protocol)
 
     def test_solver_justification_covers_first_repeated_changed_and_alternative(self):
         rule = self.contract["solver_justification"]
@@ -68,19 +68,19 @@ class TestV716PaperWritingSpec(unittest.TestCase):
         self.assertIn("repeated_use_rule", rule)
         self.assertIn("changed_solver_rule", rule)
         self.assertIn("alternative_method_rule", rule)
-        self.assertIn("第一次作为主求解器出现", self.latex)
-        self.assertIn("后问沿用同一算法", self.latex)
-        self.assertIn("更换算法", self.latex)
-        self.assertIn("baseline / alternative / validator", self.latex)
+        self.assertIn("第一次作为主求解器出现", self.protocol)
+        self.assertIn("后问沿用同一 solver", self.protocol)
+        self.assertIn("更换 solver", self.protocol)
+        self.assertIn("baseline / alternative / validator", self.protocol)
 
     def test_subsection_rule_targets_question_subsections_not_top_level_sections(self):
         granularity = self.contract["subsection_granularity"]
         self.assertEqual(granularity["scope"], "within_question_sections_only")
         self.assertFalse(granularity["hard_count_limit"])
-        self.assertIn("不限制全文一级章节数量", self.latex)
+        self.assertIn("不限制全文一级章节数量", self.protocol)
         self.assertIn("不限制也不重排一级章节", self.cleanup)
         self.assertIn("问题章节内部二级小节超过默认 3--4 个", self.review)
-        combined = "\n".join([self.latex, self.cleanup, self.review])
+        combined = "\n".join([self.protocol, self.cleanup, self.review])
         self.assertNotIn("一级章节最多", combined)
         self.assertNotIn("一级章节不得超过", combined)
 
@@ -92,7 +92,7 @@ class TestV716PaperWritingSpec(unittest.TestCase):
         )
         prohibited = "\n".join(calibration["prohibited_upgrades"])
         self.assertIn("global_optimum", prohibited)
-        self.assertIn("独立算法未发现更优", self.latex)
+        self.assertIn("独立算法未发现更优", self.protocol)
         self.assertIn("全局最优", self.cleanup)
         self.assertIn("Headline Claim Evidence Level", self.framework)
 

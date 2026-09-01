@@ -6,9 +6,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def load_module():
-    path = ROOT / "scripts/audit_v8_writing_surface.py"
-    spec = importlib.util.spec_from_file_location("audit_v8_writing_surface_test", path)
+def load_module(name="audit_v8_writing_surface_test", script="audit_v8_writing_surface.py"):
+    path = ROOT / "scripts" / script
+    spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     sys.modules[spec.name] = module
@@ -64,6 +64,13 @@ status = "accepted"
 """
         findings = self.audit.audit_text(tex)
         self.assertFalse(any(x.code == "result_validation_bridge_risk" for x in findings), findings)
+
+    def test_surface_findings_are_integrated_into_formal_prose_audit(self):
+        formal = load_module("audit_paper_prose_v800_integration", "audit_paper_prose.py")
+        findings = formal.audit_text("主工作簿 accepted 后进入深化分析，并记录 support。")
+        item = next((x for x in findings if x.code == "workflow_vocabulary_leak"), None)
+        self.assertIsNotNone(item, findings)
+        self.assertEqual(item.severity, "warning")
 
 
 if __name__ == "__main__":

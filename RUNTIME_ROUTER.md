@@ -107,7 +107,7 @@ pseudocode → 循环、分支、筛选、修复、接受/拒绝或终止逻辑�
 
 默认写作链在 `figure_evidence` 后进入 LaTeX。`writing_docx` 只由显式 DOCX/Word 请求加载，不是 LaTeX 前置。
 
-写作只加载当前 route 需要的 Authority：`core/writing_reasoning_contract.yaml` 管理 Formula Trace、Algorithm Trace、自适应算法呈现、Hard / Default / Recommendation、命题预算、Terminology、Numeric Style、Title Claim、深化证据处置、Paragraph Necessity、Paper Fragment stale 和 Citation Evidence；`modules/05_writing/latex.md` 管正文结构与表达。`packs/artifact/algorithm_flow.md` 与命题 Pack 仅承担按需呈现细则；AI cleanup、DOCX、review 与其他 Artifact Packs 是 consumer，不重新定义规则。
+普通 CUMCM LaTeX 路由加载 `templates/latex/cumcm/hsk/template_manifest.yaml`、`core/writing_runtime_contract.yaml`、`modules/05_writing/paper_writing_protocol.md` 与 `modules/05_writing/latex.md` Adapter，不预载完整 reasoning。命题、复杂 Algorithm Trace、Model/Solver/Validator、优化语义、跨问依赖、Claim Strength 冲突或终审再补读 `core/writing_reasoning_contract.yaml`；MCM/ICM、电工杯与 DOCX 在拥有各自 Template Manifest 前继续使用完整 Authority 回退。`packs/artifact/algorithm_flow.md` 与命题 Pack 仅承担按需呈现细则；AI cleanup、DOCX、review 与其他 Artifact Packs 是 consumer，不重新定义规则。
 
 `prose/BibTeX/framework audit` 是 AI cleanup 后、最终编译前的非破坏性检查步骤：
 

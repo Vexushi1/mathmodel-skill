@@ -24,8 +24,8 @@ class TestWritingEvidenceArchitecture(unittest.TestCase):
             self.assertIn(token, text)
         self.assertNotIn("问题背景通常 1 个自然段", text)
 
-    def test_latex_authority_closes_local_result_evidence(self):
-        text = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
+    def test_protocol_closes_local_result_evidence(self):
+        text = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
         for token in ("局部证据闭环", "高精度关键数值", "显式编号引用", "support", "modify", "reject"):
             self.assertIn(token, text)
 

@@ -1,4 +1,4 @@
-version: 7.19.0
+version: 8.0.0
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -16,8 +16,8 @@ load_policy:
   - Load model_approval_contract for model-design routes that can propose/lock a model and for task-code routes that must verify current Human Model Approval.
   - Load user_execution_contract and code_quality_contract only for code-generation or returned-workbook execution boundaries.
   - Primary numerical-verification rules are loaded declaratively through runtime-assurance dependency closure only for model design, primary solve, or primary workbook receipt; result-analysis, figure and writing routes do not preload them without need.
-  - Load writing_reasoning_contract only for model-design/proposition/algorithm-presentation/writing/review routes that create, revise or formally inspect mathematical reasoning; do not make it a global preload for figures, workbook validation or unrelated utilities.
-  - Writing and final-review routes that create or inspect prose load modules/05_writing/latex.md as the expression authority; figure and workbook routes do not preload it.
+  - Load writing_reasoning_contract for model-design, proposition, algorithm-presentation, non-CUMCM writing fallback and final-review routes that create, revise or formally inspect complex mathematical semantics; ordinary CUMCM LaTeX writing uses the compact writing runtime and loads the full authority only when a declared fallback trigger occurs.
+  - Ordinary CUMCM LaTeX writing consumes paper_writing_protocol as the prose authority, template_manifest as the structural authority and modules/05_writing/latex.md only as the adapter; figure and workbook routes do not preload them.
   - Writing and figure routes inherit current project semantics from 模型论文框架.md and their stage authority; do not preload unrelated code/preprocessing contracts.
 
 project_memory_contract:
@@ -313,7 +313,7 @@ routing:
   docx:
     triggers: [DOCX, Word, 草稿论文]
     infer_keywords: [DOCX, Word, 草稿论文, 论文草稿]
-    load: [core/writing_reasoning_contract.yaml, modules/05_writing/latex.md, modules/05_writing/docx.md, packs/artifact/docx.md, packs/artifact/algorithm_flow.md]
+    load: [core/writing_reasoning_contract.yaml, modules/05_writing/paper_writing_protocol.md, modules/05_writing/latex.md, modules/05_writing/docx.md, packs/artifact/docx.md, packs/artifact/algorithm_flow.md]
     terminal_outputs: [docx_draft, latex_migration_notes]
     formal_delivery: true
     delivery_scope: docx
@@ -321,7 +321,7 @@ routing:
   latex:
     triggers: [LaTeX, PDF终稿, cumcmthesis, 终稿论文]
     infer_keywords: [LaTeX, PDF终稿, cumcmthesis, 终稿论文, 编译论文]
-    load: [core/writing_reasoning_contract.yaml, modules/05_writing/latex.md, modules/05_writing/ai_cleanup.md, modules/05_latex_compile_quality.md, packs/artifact/latex.md, packs/artifact/algorithm_flow.md]
+    load: [core/writing_reasoning_contract.yaml, core/writing_runtime_contract.yaml, modules/05_writing/paper_writing_protocol.md, modules/05_writing/latex.md, modules/05_writing/ai_cleanup.md, modules/05_latex_compile_quality.md, packs/artifact/latex.md, packs/artifact/algorithm_flow.md]
     load_competition_pack: true
     terminal_outputs: [latex_source, latex_audit_report, compiled_pdf, compile_report]
     formal_delivery: true

@@ -115,11 +115,10 @@ class TestContentPacks(unittest.TestCase):
         for path in paths:
             text = path.read_text(encoding="utf-8")
             self.assertIn("core/writing_reasoning_contract.yaml", text, str(path))
-        latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
-        self.assertIn("0--4 是**默认正文阅读预算**，不是绝对数学上限", latex)
-        self.assertIn("核心模型汇总：自适应而非机械必设", latex)
-        for mode in ("`required`", "`inline`", "`not_applicable`"):
-            self.assertIn(mode, latex)
+        adapter = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
+        self.assertIn("命题治理", adapter)
+        self.assertIn("Adapter 不强制独立“核心模型汇总”标题", adapter)
+        self.assertEqual(reasoning["adaptive_core_model_summary"]["modes"], ["required", "inline", "not_applicable"])
 
     def test_docx_checklist_is_framework_aware_without_redefining_hard_rules(self):
         writing = ROOT / "templates/writing"

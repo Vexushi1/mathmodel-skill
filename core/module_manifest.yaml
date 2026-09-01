@@ -1,4 +1,4 @@
-version: 7.19.0
+version: 8.0.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -18,6 +18,9 @@ contracts:
   user_execution: core/user_execution_contract.yaml
   code_quality: core/code_quality_contract.yaml
   writing_reasoning: core/writing_reasoning_contract.yaml
+  writing_runtime: core/writing_runtime_contract.yaml
+  writing_protocol: modules/05_writing/paper_writing_protocol.md
+  cumcm_template_manifest: templates/latex/cumcm/hsk/template_manifest.yaml
   numerical_verification: core/numerical_verification_contract.yaml
   framework_template: templates/model/model_paper_framework.md
   compile_profiles: core/compile_profiles.yaml

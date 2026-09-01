@@ -39,6 +39,8 @@ class TestTooling(unittest.TestCase):
             template = ROOT / profile["template_directory"] / profile["template_main"]
             self.assertTrue(template.is_file(), template)
         self.assertIn("biber", payload["profiles"]["cumcm"]["sequence"])
+        mcm = (ROOT / "templates/latex/mcm/main.tex").read_text(encoding="utf-8")
+        self.assertIn(r"\nocite{example_reference}", mcm)
 
     def test_competition_profiles_separate_stable_and_edition_rules(self):
         payload = yaml.safe_load((ROOT / "config/competition_profiles.yaml").read_text(encoding="utf-8"))

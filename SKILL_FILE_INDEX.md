@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：7.19.0
+当前 Skill 版本：8.0.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -10,6 +10,7 @@
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
+- `.tmp_unittest.log`
 - `AGENTS.md`
 - `CHANGELOG.md`
 - `LICENSE`
@@ -63,6 +64,7 @@
 - `core/writing_runtime_contract.yaml`
 - `docs/main-branch-protection-hardening-plan.md`
 - `docs/v8_writing_capability_inventory.md`
+- `docs/v8_writing_migration.md`
 - `legacy/README.md`
 - `modules/01_problem_audit.md`
 - `modules/02_model_design.md`
@@ -72,7 +74,6 @@
 - `modules/04_figure_evidence.md`
 - `modules/05_latex_compile_quality.md`
 - `modules/05_writing/ai_cleanup.md`
-- `modules/05_writing/chapter_rules/README.md`
 - `modules/05_writing/docx.md`
 - `modules/05_writing/latex.md`
 - `modules/05_writing/paper_writing_protocol.md`

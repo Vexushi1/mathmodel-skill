@@ -20,11 +20,13 @@ class TestWritingStructureStyle(unittest.TestCase):
             self.assertIn(token, cleanup)
         self.assertIn("Skill 负责原则，脚本负责穷举", cleanup)
 
-    def test_latex_keeps_adaptive_core_model_summary(self):
-        latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
-        for token in ("required", "inline", "not_applicable", "核心模型汇总"):
-            self.assertIn(token, latex)
-        self.assertIn("0--4 是**默认正文阅读预算**", latex)
+    def test_reasoning_keeps_adaptive_core_model_summary(self):
+        import yaml
+        reasoning = yaml.safe_load((ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8"))
+        self.assertEqual(reasoning["adaptive_core_model_summary"]["modes"], ["required", "inline", "not_applicable"])
+        self.assertEqual(reasoning["proposition_governance"]["default_budget"], [0, 4])
+        protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
+        self.assertIn("displayed / inline / omitted", protocol)
 
     def test_proposition_pack_remains_optional(self):
         text = (ROOT / "packs/artifact/proposition_proof.md").read_text(encoding="utf-8")

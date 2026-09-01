@@ -1,6 +1,19 @@
 # Changelog
 
-## Current release: 7.19.0
+## Current release: 8.0.0
+
+- Replaced the former LaTeX-centered writing authority with a five-layer Template-First architecture: CUMCM Template Manifest, Paper Writing Protocol, full semantic reasoning Authority, LaTeX Adapter, and project-facts/audit consumers.
+- Added `templates/latex/cumcm/hsk/template_manifest.yaml` as the machine-readable CUMCM structure authority. The canonical topology follows the user-provided A196 paper only at chapter level; no paper body, formulas, figures, data, algorithms or results are copied.
+- Adapted the user-provided `example_mm_r1.tex` as a provenance-checked layout reference while retaining official `cumcmthesis` compliance. Compatible table, code-listing and appendix infrastructure is exposed without overriding official page or title rules.
+- Made project-level data and shared model preparation conditional, inactive-by-default slots. Each enabled question remains an independent `问题X模型建立及求解` top-level section with adaptive `MODEL → SOLVE → RESULT → VALIDATE` functionality inside it.
+- Added `core/writing_runtime_contract.yaml` and declarative runtime dependencies. Ordinary CUMCM LaTeX writing uses the compact manifest/protocol/adapter package; DOCX and competitions without their own Template Manifest retain the complete reasoning fallback, and final review always loads the full Authority.
+- Slimmed `modules/05_writing/latex.md` to a carrier Adapter. Ordinary mathematical narrative now lives in `paper_writing_protocol.md`; complex cross-task semantics remain in `writing_reasoning_contract.yaml`; consumers and review modules point to those authorities instead of copying them.
+- Integrated the v8 surface audit into the formal `audit_paper_prose.py` / `audit_latex_project.py` chain for workflow-vocabulary leakage, decorative quote density, concept-label chains and Result-to-Validation bridge risk. These checks remain conservative and do not infer mathematical correctness.
+- Added explicit v7 read-only compatibility and a manual dry-run migration guide. Existing filled LaTeX bodies are never automatically renamed, split, reordered or overwritten; compatibility mappings remain available throughout v8.x and are not removed before v9.0.0.
+- Extended active subordinate-contract compatibility metadata through v8.x, recorded user-requested template overrides with official-format impact, and kept the MCM/ICM empty-skeleton bibliography compile smoke deterministic via an explicit removable example-reference marker.
+- Preserved model mathematics, Human Model Approval, Primary Numerical Verification/PQS, Workbook Schema, Project State Schema, Task Taxonomy, Python/MATLAB ownership, result-analysis semantics and the user-execution boundary.
+
+## Previous release: 7.19.0
 
 - Added **Within-Question Subsection Architecture** under the existing `model_establishment_solution_narrative` authority so second/third-level subsections, formulas, solver discussion, results and local validation follow real local mathematical dependency and solution reasoning while the established top-level paper skeleton and Question 1/2/3 order remain frozen.
 - Added explicit top-level guards: `preserves_top_level_paper_skeleton=true`, `may_reorder_top_level_sections=false`, and `may_reorder_question_sections=false`. Data/preprocessing and shared-foundation rules may organize only their own internal content and cannot gain authority to reorder question chapters.

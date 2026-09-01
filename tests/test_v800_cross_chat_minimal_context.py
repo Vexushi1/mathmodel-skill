@@ -48,7 +48,18 @@ class TestV800CrossChatMinimalContext(unittest.TestCase):
     def test_final_review_keeps_full_authority(self):
         plan = self.runtime.resolve_runtime("review", competition="CUMCM")
         self.assertIn("core/writing_reasoning_contract.yaml", plan["load_order"])
-        self.assertNotIn("writing_runtime", plan)
+        self.assertEqual(plan["writing_runtime"]["mode"], "full_authority")
+        self.assertTrue(plan["writing_runtime"]["full_reasoning_authority_preloaded"])
+
+    def test_non_cumcm_latex_keeps_full_authority_without_cumcm_manifest(self):
+        plan = self.runtime.resolve_runtime("latex", competition="MCM")
+        self.assertIn("core/writing_reasoning_contract.yaml", plan["load_order"])
+        self.assertNotIn("templates/latex/cumcm/hsk/template_manifest.yaml", plan["load_order"])
+
+    def test_docx_keeps_full_authority_without_cumcm_template_projection(self):
+        plan = self.runtime.resolve_runtime("docx", competition="CUMCM")
+        self.assertIn("core/writing_reasoning_contract.yaml", plan["load_order"])
+        self.assertNotIn("templates/latex/cumcm/hsk/template_manifest.yaml", plan["load_order"])
 
 
 if __name__ == "__main__":

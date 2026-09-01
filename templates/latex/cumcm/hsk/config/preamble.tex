@@ -6,8 +6,26 @@
 \usepackage{float}
 \usepackage{algorithm}
 \usepackage{algorithmic}
+\usepackage{xcolor}
+\usepackage{listings}
 \usepackage{cleveref}
 \usepackage[most]{tcolorbox}
+
+% 保留用户参考模板中与官方 cumcmthesis 兼容的代码附录能力；不覆盖官方页面与标题格式。
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue!70!black}\bfseries,
+  stringstyle=\color{red!65!black},
+  commentstyle=\color{green!45!black},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  numbersep=6pt,
+  frame=single,
+  tabsize=4,
+  captionpos=b,
+  showstringspaces=false,
+  breaklines=true
+}
 
 % cumcmthesis v2.6 自定义了旧版 \supercite；在加载 biblatex 前释放该命令。
 \let\supercite\relax
