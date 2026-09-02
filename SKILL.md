@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 8.0.2
+version: 8.0.3
 summary: HSK mathematical-modeling workflow with bootstrap-first task routing, Problem Contract freezing, independent Model Challenge, explicit Human Model Approval bound to the current semantic revision/hash, user-owned full-fidelity numerical execution, evidence-checked workbooks, MATLAB evidence visualization, Template-First paper authoring, formal LaTeX attestation, and validated delivery provenance.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX, 终审, 提交包]
 ---
 
-# HSK 数学建模模块化工作流 v8.0.2
+# HSK 数学建模模块化工作流 v8.0.3
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）

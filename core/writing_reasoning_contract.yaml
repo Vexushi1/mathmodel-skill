@@ -122,7 +122,14 @@ formula_reasoning_chain:
 
 adaptive_core_model_summary:
   governance_level: default
+  semantic_summary_mode:
+    field_role: mathematical_narrative_need
+    values: [required, inline, not_applicable]
   modes: [required, inline, not_applicable]
+  legacy_modes_field:
+    status: deprecated_read_only_alias
+    canonical_field: semantic_summary_mode.values
+    removal_not_before_skill_version: 9.0.0
   required_when_any:
     - multiple_decision_or_state_variables
     - multiple_core_equations_or_constraints
@@ -1231,10 +1238,21 @@ v8_compatibility:
     removal_not_before_skill_version: 9.0.0
   adaptive_core_model_summary:
     status: readable_compatibility_mapping
+    semantic_summary_mode_field: adaptive_core_model_summary.semantic_summary_mode.values
+    legacy_semantic_alias_field: adaptive_core_model_summary.modes
+    rendering_mode_field: templates/latex/cumcm/hsk/template_manifest.yaml#core_model_summary_rendering.rendering_mode.values
+    semantic_to_rendering_mode:
+      required: displayed
+      inline: inline
+      not_applicable: omitted
     old_to_new_modes:
       required: displayed
       inline: inline
       not_applicable: omitted
+    legacy_mapping_field:
+      status: deprecated_read_only_alias
+      canonical_field: semantic_to_rendering_mode
+      removal_not_before_skill_version: 9.0.0
     authority: templates/latex/cumcm/hsk/template_manifest.yaml#core_model_summary_rendering
   project_migration:
     automatic_rewrite: false

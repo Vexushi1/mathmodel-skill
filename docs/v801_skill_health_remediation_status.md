@@ -1,8 +1,8 @@
 # v8.0.1 Skill Health Remediation Status
 
 > 这是 `docs/v801_skill_health_remediation_plan.md` 的当前实施状态摘要，不替代任何 Runtime Authority。  
-> 当前 Skill：`8.0.1`  
-> 当前实施基线 `main`：`de8c7d152b8cc4bbe31fe2558dd4b00981a56823`  
+> 当前 Skill：`8.0.3`  
+> 当前实施基线：Phase 4 merge 后以对应 `main` merge commit 为准；本文件不作为 SHA Authority  
 > 最后状态更新：2026-09-02
 
 ## 执行决定
@@ -19,8 +19,8 @@
 | Phase 1A | complete | PR #91 已使 generated metadata 在 feature branch 闭环，main 只做 `--check` |
 | Phase 1B | deferred | Branch Protection 因当前账号权限不足延期；Issue #92 保留为平台治理债务 |
 | Phase 2 | complete | 旧 v7.16 Branch Protection 施工计划已归档，active path 只保留 current pointer |
-| Phase 3 | in_progress | Active Entrypoint Surface Slimming；目标 patch `8.0.2` |
-| Phase 4 | pending | Core Model Summary Vocabulary Clarification |
+| Phase 3 | complete | PR #94 已发布 `8.0.2`，入口已收缩为最小导航/硬边界/Authority pointers |
+| Phase 4 | complete | `8.0.3` 明确 semantic_summary_mode / rendering_mode 两层并保留 v8.x 只读兼容 alias |
 | Phase 5 | pending | GitHub Actions Runtime Modernization |
 | Phase 6 | pending | Low-priority Hygiene / Release Provenance |
 

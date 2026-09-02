@@ -1,6 +1,13 @@
 # Changelog
 
-## Current release: 8.0.2
+## Current release: 8.0.3
+
+- Clarified Core Model Summary as two explicit concepts: `semantic_summary_mode` (`required / inline / not_applicable`) for mathematical narrative need, and CUMCM `rendering_mode` (`displayed / inline / omitted`) for presentation.
+- Kept the former `modes` and `old_to_new_modes` fields as deprecated read-only aliases through v8.x, with a single canonical semantic-to-rendering mapping in `core/writing_reasoning_contract.yaml`.
+- Preserved CUMCM rendering, simple-problem anti-bloat, historical-paper ordering, Template-First authoring, Model Approval, numerical verification, user execution and all project schemas unchanged.
+- Added regression coverage for the two-layer vocabulary and compatibility aliases.
+
+## Previous release: 8.0.2
 
 - Slimmed `SKILL.md` and packaged `skills/mathmodel-skill/SKILL.md` to discovery, startup delegation, stable hard boundaries and Authority pointers instead of duplicating detailed domain contracts and release-history rulebooks.
 - Slimmed `PROJECT_INSTRUCTIONS.md` to project startup/recovery, execution ownership, writing/delivery delegation and repository-maintenance procedure; detailed preprocessing, 03A/03B, figure, algorithm and writing semantics remain in their single Authorities.

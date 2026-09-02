@@ -23,7 +23,10 @@ class TestWritingStructureStyle(unittest.TestCase):
     def test_reasoning_keeps_adaptive_core_model_summary(self):
         import yaml
         reasoning = yaml.safe_load((ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(reasoning["adaptive_core_model_summary"]["modes"], ["required", "inline", "not_applicable"])
+        summary = reasoning["adaptive_core_model_summary"]
+        self.assertEqual(summary["semantic_summary_mode"]["values"], ["required", "inline", "not_applicable"])
+        self.assertEqual(summary["modes"], ["required", "inline", "not_applicable"])
+        self.assertEqual(summary["legacy_modes_field"]["canonical_field"], "semantic_summary_mode.values")
         self.assertEqual(reasoning["proposition_governance"]["default_budget"], [0, 4])
         protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
         self.assertIn("displayed / inline / omitted", protocol)

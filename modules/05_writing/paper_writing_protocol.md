@@ -181,7 +181,7 @@ s.t. constraints
 
 核心模型汇总只负责让评委快速恢复 solver 实际消费的最终模型，不能替代前面对变量、目标函数现实含义、约束来源和关键推导的说明。
 
-核心模型汇总应当自适应而非机械必设；v7 的 `required / inline / not_applicable` 只读语义在 v8 分别迁移为 `displayed / inline / omitted`，具体载体选择由 Template Manifest 与当前项目事实确定。
+核心模型汇总应当自适应而非机械必设。先由 Writing Reasoning Authority 的 `semantic_summary_mode` 判断数学叙事上是 `required / inline / not_applicable`，再由 CUMCM Template Manifest 的 `rendering_mode` 决定最终呈现为 `displayed / inline / omitted`；两层只通过 Authority 中的唯一映射连接。旧 `modes` 与 `old_to_new_modes` 仅作 v8.x 只读兼容，不应被 consumer 当作新的独立规则。
 
 ### 7.2 非优化模型
 
