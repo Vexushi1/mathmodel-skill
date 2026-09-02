@@ -1,6 +1,13 @@
 # Changelog
 
-## Current release: 8.1.0
+## Current release: 8.1.1
+
+- Repaired the active `SKILL.md` Authority navigation so project memory points to the existing `templates/model/model_paper_framework.md` instead of the nonexistent `core/project_memory_contract.yaml`.
+- Kept root and packaged Skill entrypoints byte-identical and synchronized all explicit current-release carriers to v8.1.1.
+- Added a deterministic health regression that extracts repository-relative paths from the active Authority navigation, rejects the obsolete pointer and verifies that every target is readable.
+- Preserved all protected model, numerical, workbook, project-state, 03A/03B, figure, Template Manifest, Writing Reasoning, Paper Writing Protocol and Cross-File Chapter Handoff semantics.
+
+## Previous release: 8.1.0
 
 - Added **Cross-File Chapter Handoff** as a final-assembly continuity capability for modular CUMCM LaTeX papers, so actual adjacent active physical files preserve objects, symbols/terms, dependencies, claims, non-duplication and only necessary semantic bridges.
 - Kept ordinary prose semantics in `modules/05_writing/paper_writing_protocol.md`; `core/writing_runtime_contract.yaml` only resolves final-order adjacency and read/write/gate timing, `模型论文框架.md#Chapter Handoff Map` stores optional writing-only project facts, and final review consumes the Authority through an assembled seam sweep.

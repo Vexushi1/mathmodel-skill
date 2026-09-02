@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 8.1.0
+version: 8.1.1
 summary: HSK mathematical-modeling workflow with bootstrap-first task routing, Problem Contract freezing, independent Model Challenge, explicit Human Model Approval bound to the current semantic revision/hash, user-owned full-fidelity numerical execution, evidence-checked workbooks, MATLAB evidence visualization, Template-First paper authoring with final-order Cross-File Chapter Handoff, formal LaTeX attestation, and validated delivery provenance.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX, 终审, 提交包]
 ---
 
-# HSK 数学建模模块化工作流 v8.1.0
+# HSK 数学建模模块化工作流 v8.1.1
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -63,7 +63,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 | 模块输入输出 | `core/module_manifest.yaml` |
 | 目录与正式交付 | `core/output_contract.yaml` |
 | 项目状态与 stale | `core/project_state.schema.yaml` |
-| 项目工作记忆 | `core/project_memory_contract.yaml` |
+| 项目工作记忆 | `templates/model/model_paper_framework.md` |
 | 模型 Challenge / Human Approval | `core/model_approval_contract.yaml` |
 | 数据审计与条件式预处理 | `core/global_preprocessing_contract.yaml` |
 | 用户执行所有权 | `core/user_execution_contract.yaml` |

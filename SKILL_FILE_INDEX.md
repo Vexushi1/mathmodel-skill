@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：8.1.0
+当前 Skill 版本：8.1.1
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -66,6 +66,7 @@
 - `docs/v801_skill_health_remediation_plan.md`
 - `docs/v801_skill_health_remediation_status.md`
 - `docs/v810_cross_file_chapter_handoff_plan.md`
+- `docs/v811_skill_authority_pointer_health_repair_plan.md`
 - `docs/v8_writing_capability_inventory.md`
 - `docs/v8_writing_migration.md`
 - `legacy/README.md`

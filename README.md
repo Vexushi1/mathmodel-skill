@@ -1,6 +1,12 @@
-# mathmodel-skill v8.1.0
+# mathmodel-skill v8.1.1
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement → Figure Portfolio Review → Template-First 逐章读取/写入 → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → final review → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v8.1.1：Skill Authority Pointer Health Repair
+
+本补丁修复两份正式 `SKILL.md` 在 Authority 导航中指向不存在的 `core/project_memory_contract.yaml` 的失效链接，统一改为真实存在且负责项目记忆结构的 `templates/model/model_paper_framework.md`。同时新增确定性健康检查，逐一验证 Authority 导航中的仓库相对路径均可读取，并继续保证 root/package Skill 字节级一致。
+
+该补丁只修复入口可读性、发布版本载体和回归保护；不改变模型语义、数值验证、Workbook/Project State Schema、03A/03B、Figure Evidence、Template Manifest、Writing Reasoning、Paper Writing Protocol、Cross-File Chapter Handoff 或装配顺序语义。
 
 ## v8.1.0：Cross-File Chapter Handoff
 

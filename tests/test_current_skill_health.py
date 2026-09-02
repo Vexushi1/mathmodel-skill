@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 import yaml
@@ -13,11 +14,11 @@ class CurrentSkillHealthTests(unittest.TestCase):
         root_skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         packaged_skill = (ROOT / "skills/mathmodel-skill/SKILL.md").read_text(encoding="utf-8")
 
-        self.assertEqual(bootstrap.get("skill_version"), "8.1.0")
-        self.assertEqual(str(plugin.get("version")), "8.1.0")
+        self.assertEqual(bootstrap.get("skill_version"), "8.1.1")
+        self.assertEqual(str(plugin.get("version")), "8.1.1")
         self.assertEqual(root_skill, packaged_skill)
-        self.assertIn("version: 8.1.0", root_skill)
-        self.assertIn("# HSK 数学建模模块化工作流 v8.1.0", root_skill)
+        self.assertIn("version: 8.1.1", root_skill)
+        self.assertIn("# HSK 数学建模模块化工作流 v8.1.1", root_skill)
         self.assertIn("Template Manifest", root_skill)
         self.assertIn("Paper Writing Protocol", root_skill)
         self.assertIn("Cross-File Chapter Handoff", root_skill)
@@ -29,12 +30,26 @@ class CurrentSkillHealthTests(unittest.TestCase):
         self.assertIn("decisiveness-based detail allocation", root_skill)
         self.assertIn("adaptive figure-result narrative", root_skill)
 
+    def test_active_skill_authority_targets_exist(self):
+        root_skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        authority = root_skill.split("## Authority 导航", 1)[1].split("\n## ", 1)[0]
+        targets = re.findall(
+            r"`((?:core|modules|templates|scripts|config|packs)/[^`]+)`",
+            authority,
+        )
+
+        self.assertIn("templates/model/model_paper_framework.md", targets)
+        self.assertNotIn("core/project_memory_contract.yaml", targets)
+        self.assertTrue(targets)
+        for relative in targets:
+            self.assertTrue((ROOT / relative).is_file(), relative)
+
     def test_output_contract_preserves_caption_owned_titles_and_adds_scientific_synthesis(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8")) or {}
         figure = contract.get("matlab_figure_contract", {})
         writing = contract.get("writing_policy", {})
 
-        self.assertEqual(str(contract.get("version")), "8.1.0")
+        self.assertEqual(str(contract.get("version")), "8.1.1")
         self.assertFalse(figure.get("title_required"))
         self.assertTrue(figure.get("embedded_overall_title_forbidden"))
         self.assertEqual(figure.get("formal_title_owner"), "DOCX_or_LaTeX_caption")
