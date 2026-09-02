@@ -63,6 +63,7 @@
 - `core/writing_runtime_contract.yaml`
 - `docs/main-branch-protection-hardening-plan.md`
 - `docs/v801_chapter_capability_preservation_audit.md`
+- `docs/v801_skill_health_remediation_plan.md`
 - `docs/v8_writing_capability_inventory.md`
 - `docs/v8_writing_migration.md`
 - `legacy/README.md`
