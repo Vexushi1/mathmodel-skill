@@ -1,6 +1,16 @@
 # Changelog
 
-## Current release: 8.0.3
+## Current release: 8.1.0
+
+- Added **Cross-File Chapter Handoff** as a final-assembly continuity capability for modular CUMCM LaTeX papers, so actual adjacent active physical files preserve objects, symbols/terms, dependencies, claims, non-duplication and only necessary semantic bridges.
+- Kept ordinary prose semantics in `modules/05_writing/paper_writing_protocol.md`; `core/writing_runtime_contract.yaml` only resolves final-order adjacency and read/write/gate timing, `模型论文框架.md#Chapter Handoff Map` stores optional writing-only project facts, and final review consumes the Authority through an assembled seam sweep.
+- Reused `template_manifest.yaml#paper_skeleton.ordered_slots + activation` instead of adding a second assembly-order schema; inactive data/model-preparation/question files cannot create false current seams.
+- Preserved `cross_question_progression.activate_when=actual_dependency_exists`, existing Terminology/Numeric/Claim/Paper Fragment capabilities, and the no-forced-transition boundary.
+- Kept Chapter Handoff outside the model semantic hash: pure handoff wording/status changes do not bump `semantic_revision`, stale `locked_model_spec`, trigger Model Approval or rerun 03A.
+- Preserved old-framework readability, single-file `not_applicable` behavior, full-authority fallback for non-CUMCM/missing-manifest routes, and all protected model/numerical/workbook/project-state/03A/03B/figure semantics.
+- Added v8.1.0 regression coverage for Authority separation, minimal/conditional assembly order, Q1→Q2→Q3 adjacency, abstract final-reading order, optional project memory, semantic-state isolation and connector-frequency false positives.
+
+## Previous release: 8.0.3
 
 - Clarified Core Model Summary as two explicit concepts: `semantic_summary_mode` (`required / inline / not_applicable`) for mathematical narrative need, and CUMCM `rendering_mode` (`displayed / inline / omitted`) for presentation.
 - Kept the former `modes` and `old_to_new_modes` fields as deprecated read-only aliases through v8.x, with a single canonical semantic-to-rendering mapping in `core/writing_reasoning_contract.yaml`.
