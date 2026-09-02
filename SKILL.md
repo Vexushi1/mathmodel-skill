@@ -1,11 +1,11 @@
 ---
 name: mathmodel-skill
-version: 8.0.3
-summary: HSK mathematical-modeling workflow with bootstrap-first task routing, Problem Contract freezing, independent Model Challenge, explicit Human Model Approval bound to the current semantic revision/hash, user-owned full-fidelity numerical execution, evidence-checked workbooks, MATLAB evidence visualization, Template-First paper authoring, formal LaTeX attestation, and validated delivery provenance.
+version: 8.1.0
+summary: HSK mathematical-modeling workflow with bootstrap-first task routing, Problem Contract freezing, independent Model Challenge, explicit Human Model Approval bound to the current semantic revision/hash, user-owned full-fidelity numerical execution, evidence-checked workbooks, MATLAB evidence visualization, Template-First paper authoring with final-order Cross-File Chapter Handoff, formal LaTeX attestation, and validated delivery provenance.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB绘图, LaTeX, DOCX, 终审, 提交包]
 ---
 
-# HSK 数学建模模块化工作流 v8.0.3
+# HSK 数学建模模块化工作流 v8.1.0
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -17,7 +17,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 3. 使用 `scripts/resolve_runtime.py` 根据当前意图、竞赛和项目状态解析最小 `load_order`、运行时 assurance 与 `pre_delivery_gates`；模型批准、条件式预处理与主数值验证分别委托 `core/model_approval_contract.yaml`、`core/global_preprocessing_contract.yaml`、`core/numerical_verification_contract.yaml`；
 4. 只加载 resolver 命中的 contracts、modules、packs 和 templates，不预载整个仓库；
 5. 需要项目语义时读取 current `模型论文框架.md`，生命周期 revision/hash/stale 服从 `state/project_state.yaml`，具体数值回到 accepted workbook；
-6. 普通写作由 Template Manifest、Paper Writing Protocol 和 compact writing runtime 渐进加载；复杂数学/证据裁决及终审按 resolver 补读 `core/writing_reasoning_contract.yaml`；
+6. 普通写作由 Template Manifest、Paper Writing Protocol 和 compact writing runtime 渐进加载，并按最终 active assembly 执行 Cross-File Chapter Handoff；复杂数学/证据裁决及终审按 resolver 补读 `core/writing_reasoning_contract.yaml`；
 7. `legacy/` 不进入默认执行链，旧 `scripts/resolve_workflow.py` 只保留无状态/兼容入口。
 
 本节只声明入口委托关系，**不作为模型、预处理、求解、绘图或写作规则的独立权威**；任何冲突都以 `core/bootstrap.yaml` 指向的 current Authority 与 resolver 输出为准。
@@ -82,7 +82,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 
 ## 能力发现标签
 
-以下名称仅用于能力发现与回归，不在本入口重复定义规则：**Template Manifest、Paper Writing Protocol、Primary Evidence Capture、Scientific Figure Synthesis、Model/Solver/Validator、Claim Strength Calibration、within-question local dependency architecture、decisiveness-based detail allocation、adaptive figure-result narrative**。具体定义只读取上表 Authority。
+以下名称仅用于能力发现与回归，不在本入口重复定义规则：**Template Manifest、Paper Writing Protocol、Cross-File Chapter Handoff、Primary Evidence Capture、Scientific Figure Synthesis、Model/Solver/Validator、Claim Strength Calibration、within-question local dependency architecture、decisiveness-based detail allocation、adaptive figure-result narrative**。具体定义只读取上表 Authority。
 
 兼容发现 token 仅保留名称：`preprocessing_decision`、`问题X结果深化分析.py`、**Algorithm Trace**。它们用于 lint/路由与 artifact 导航，不在入口重新定义预处理枚举、结果分析流程或算法呈现规则。
 
