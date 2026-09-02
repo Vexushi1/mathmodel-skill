@@ -216,6 +216,7 @@
 - `tests/test_code_quality_contract.py`
 - `tests/test_content_packs.py`
 - `tests/test_contract_closure.py`
+- `tests/test_current_skill_health.py`
 - `tests/test_framework_project_memory_contract.py`
 - `tests/test_generated_workflow_hardening.py`
 - `tests/test_latex_first_versionless_docs.py`
@@ -252,7 +253,6 @@
 - `tests/test_v712_default_runtime_read_path.py`
 - `tests/test_v712_runtime_assurance.py`
 - `tests/test_v713_figure_enhancement.py`
-- `tests/test_v7141_skill_health.py`
 - `tests/test_v714_numerical_verification.py`
 - `tests/test_v714_receipt_fail_closed.py`
 - `tests/test_v715_scientific_figure_elevation.py`
