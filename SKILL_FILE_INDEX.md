@@ -66,6 +66,7 @@
 - `docs/v801_skill_health_remediation_plan.md`
 - `docs/v801_skill_health_remediation_status.md`
 - `docs/v810_cross_file_chapter_handoff_plan.md`
+- `docs/v811_skill_authority_pointer_health_repair_plan.md`
 - `docs/v8_writing_capability_inventory.md`
 - `docs/v8_writing_migration.md`
 - `legacy/README.md`
