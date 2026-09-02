@@ -16,6 +16,7 @@
 - `v7.14.1_skill_health_hygiene_plan.md`：v7.14.1 Skill health / semantic hygiene 维护计划；
 - `v7.15_scientific_figure_elevation_plan.md`：v7.15.0 Scientific Evidence Capture & Figure Synthesis 的实施计划；
 - `v7.16_paper_writing_skill_rollback_and_optimization_plan.md`：v7.16.0 Paper Writing Specification & Model Expression Closure 的实施计划；
+- `v7.16_main_branch_protection_hardening_plan.md`：v7.16.0 时期的 main Branch Protection 一次性施工计划；后续因仓库可见性、版本和权限事实变化而从 active surface 归档；
 - `v7.17_mechanism_structural_validity_hardening_plan.md`：v7.17.0 Mechanism Structural Validity Hardening 的实施计划；
 - `v7.18_model_establishment_solution_writing_style_hardening_plan.md`：v7.18.0 Model Establishment & Solution Writing Style Hardening 的实施计划；
 - `v7.19_main_body_architecture_detail_figure_writing_hardening_plan.md`：v7.19.0 Intra-Question Writing Closure 的实施计划。
