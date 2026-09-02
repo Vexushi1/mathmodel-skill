@@ -10,14 +10,15 @@
 
 ## 执行硬边界
 
-- Problem Contract、Model Challenge passed 或用户未反对都不能替代显式 Human Model Approval。正式项目级预处理或主求解代码前，current `semantic_revision/hash` 必须与 current `locked_model_spec` 的批准状态闭合，并执行 resolver 返回的语义/模型批准 gate。
+- Problem Contract 冻结后形成 `proposed_model_spec`，依次经过独立 `Model Reviewer` 与 `Devil's Advocate`；challenge passed 后进入 `awaiting_model_approval`，只有用户显式批准 current `semantic_revision/hash` 才形成 current `locked_model_spec`。正式项目级预处理或主求解代码前仍必须执行 resolver 返回的语义/模型批准 gate。
 - 题目专属预处理、主求解和结果深化 Python 默认由用户本地 full-fidelity 执行。助手生成并静态检查代码、验收返回工作簿；不得为了省时静默改变采样、精度、时域、重复次数、容差或求解器。
+- Artifact 名称只作导航：每问最终默认恰好包含五个文件；两段题目专属 Python 入口为 `问题X求解.py` 与 `问题X结果深化分析.py`。具体五文件字段、目录和交付规则只服从 `core/output_contract.yaml`。
 - 主求解 accepted 资格只服从 `core/numerical_verification_contract.yaml`；accepted 后的深化分析由 `modules/03_result_analysis.md` 及 resolver 选中的合同管理。
 - MATLAB 只读取已验收数据和工作簿进行 Figure Evidence，不重新执行核心计算；绘图规则只服从 `modules/04_figure_evidence.md` 与相关输出契约。
 
 ## 写作与交付
 
-- LaTeX 为默认主链。CUMCM 先读 `templates/latex/cumcm/hsk/template_manifest.yaml` 确定固定骨架，再按 `core/writing_runtime_contract.yaml` 的 progressive authoring 顺序读取 `modules/05_writing/paper_writing_protocol.md`；复杂数学/证据语义由 `core/writing_reasoning_contract.yaml` 裁决，`modules/05_writing/latex.md` 只负责载体适配。
+- LaTeX 为默认主链。CUMCM 先读 `templates/latex/cumcm/hsk/template_manifest.yaml` 确定固定骨架，再按 `core/writing_runtime_contract.yaml` 的 progressive authoring 顺序读取 `modules/05_writing/paper_writing_protocol.md`；复杂数学/证据语义由 `core/writing_reasoning_contract.yaml` 裁决，`modules/05_writing/latex.md` 只负责载体适配。 `既定论文大章节骨架保持不变`；公开 LaTeX 项目审计统一从 `scripts/audit_latex_project.py` 进入。
 - DOCX 仅在用户明确要求 Word 审阅、批注、协作或指定提交格式时加载。
 - 正式交付严格执行 resolver 当前返回的全部 `pre_delivery_gates` 且保持返回顺序；本文件不维护固定 gate 清单。
 

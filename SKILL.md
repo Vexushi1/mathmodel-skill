@@ -23,6 +23,24 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 本节只声明入口委托关系，**不作为模型、预处理、求解、绘图或写作规则的独立权威**；任何冲突都以 `core/bootstrap.yaml` 指向的 current Authority 与 resolver 输出为准。
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_END -->
 
+## 默认执行
+
+默认入口始终是 `scripts/resolve_runtime.py`；`scripts/resolve_workflow.py` 只作为 legacy / 无状态兼容 resolver，不参与默认 assured read path。
+
+### 项目工作记忆
+
+项目语义继续由 `模型论文框架.md`、`state/project_state.yaml` 与 accepted workbook 分层恢复；本节只保留稳定导航标题，不复制 Project Memory 合同字段。
+
+## 主链
+
+为兼容活动导航与健康检查，只列出主链语义节点，不在入口重新定义其业务规则：
+
+`通用数据审计` → `两条模型路线与数据需求比较` → `preprocessing_decision` → `proposed_model_spec` → `Model Reviewer + Devil's Advocate` → `awaiting_model_approval` → explicit Human Model Approval → `locked_model_spec` → resolver-selected preprocessing / solve / analysis stages。
+
+## 目录、正式交付
+
+目录与 artifact 数量只服从 `core/output_contract.yaml`。LaTeX 公共审计入口是 `scripts/audit_latex_project.py`；提交包在 resolver 返回的全部 gate 完成后才可成为 `validated_submission_package`。
+
 ## 稳定硬边界
 
 - Problem Contract 冻结不等于模型已批准。形成 `proposed_model_spec` 后，必须完成独立 Model Reviewer 与 Devil's Advocate challenge；正式项目级预处理或主求解代码只有在用户明确批准 current `semantic_revision/hash`、形成 current `locked_model_spec` 后才允许进入对应 gate。

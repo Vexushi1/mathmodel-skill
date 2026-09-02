@@ -66,9 +66,10 @@ class TestV802EntrypointSurfaceSlimming(unittest.TestCase):
             "SKILL_CHANGE_GOVERNANCE.md",
         ):
             self.assertIn(required, self.instructions)
+        for artifact in ("问题X求解.py", "问题X结果深化分析.py"):
+            self.assertIn(artifact, self.instructions)
         for duplicated in (
-            "问题X求解.py",
-            "问题X结果深化分析.py",
+            "├─",
             "required / inline / not_applicable",
             "命题 0--4",
             "主比较允许中高饱和",
