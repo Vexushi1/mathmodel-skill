@@ -1,11 +1,11 @@
 # v8.1.0 Cross-File Chapter Handoff 修改计划
 
-> 状态：**PLANNING ONLY / 等待用户审批**  
+> 状态：**APPROVED / IMPLEMENTATION AUTHORIZED**  
 > 当前 Skill：`8.0.3`  
 > 计划目标版本：`8.1.0`（候选，原因见“版本策略”）  
 > 计划基线：`main@9c28c17d4ce1f2c7b896c1aca5450c709f0ffc4e`  
 > 计划分支：`docs/v810-cross-file-chapter-handoff-plan`  
-> 本文件只定义后续修改方案，**不改变当前 Runtime Authority、写作行为、项目 Schema、模板输出或版本载体**。
+> 用户已于 2026-09-02 明确批准完整计划；本文件记录已批准实施边界。计划 PR 本身仍只承载上下文，不在本分支实施 Runtime Authority、写作行为、项目 Schema、模板输出或版本载体修改。
 
 ---
 
@@ -995,14 +995,4 @@ python scripts/generate_indexes.py --check
 
 ## 22. 审批边界
 
-本计划等待用户审批。
-
-审批可以采用：
-
-- `批准完整计划`；
-- `批准，但版本保持 patch`（此时实施前必须重新论证变更等级）；
-- `批准，但不持久化 Chapter Handoff Map`；
-- `批准，但第一版不做某个 seam profile`；
-- 或逐项提出修改。
-
-**在收到明确审批前，不实施上述 Skill / Runtime / Framework / Template / Review / Version 修改。**
+用户已于 2026-09-02 明确回复“批准完整计划”。因此后续实施可按本文件全部范围执行，无需再次审批；若实施时必须修改第 14 节列出的禁止触碰文件/语义，或扩大为新的独立 Authority / Schema / 正式交付物，则必须停止并重新取得用户批准。
