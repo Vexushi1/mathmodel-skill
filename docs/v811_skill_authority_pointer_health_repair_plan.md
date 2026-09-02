@@ -252,3 +252,18 @@ The patch is complete only when:
 ## 12. Rollback
 
 If the regression or release update creates unexpected behavior, revert the single repair PR. No project state, workbook, solve result, approval record or LaTeX project migration is required.
+
+## 13. Post-merge EOF newline hygiene remediation
+
+The post-merge audit of PR #102 found a formatting-only regression in the files updated through the GitHub contents API: thirteen pre-existing text files lost their final LF byte and their commits report `No newline at end of file`.
+
+This does not change Skill behavior or any protected semantics, but it violates the no-new-regression acceptance intent. Remediation is therefore part of closing this plan:
+
+1. create `fix/v811-eof-newline-hygiene` from merge commit `76bf73a3dca54d1df2d2908accf4b65d09a7fe82`;
+2. restore exactly one terminal LF to the thirteen affected files, with no content change;
+3. let the existing generator refresh `MANIFEST.sha256`;
+4. rerun all eleven CI jobs;
+5. reconfirm the protected semantic blob SHAs and merge through a separate PR.
+
+This hygiene follow-up must not bump the Skill version or alter the v8.1.1 release text.
+
