@@ -21,7 +21,7 @@
 | Phase 2 | complete | 旧 v7.16 Branch Protection 施工计划已归档，active path 只保留 current pointer |
 | Phase 3 | complete | PR #94 已发布 `8.0.2`，入口已收缩为最小导航/硬边界/Authority pointers |
 | Phase 4 | complete | `8.0.3` 明确 semantic_summary_mode / rendering_mode 两层并保留 v8.x 只读兼容 alias |
-| Phase 5 | pending | GitHub Actions Runtime Modernization |
+| Phase 5 | complete | 官方 Actions runtime 已升级到 Node-24-native v7 majors；CI job 名称与执行语义保持不变 |
 | Phase 6 | pending | Low-priority Hygiene / Release Provenance |
 
 ## 已验证事实

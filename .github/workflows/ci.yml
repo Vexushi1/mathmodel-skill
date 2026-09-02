@@ -17,8 +17,8 @@ jobs:
     name: Static contract lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -29,7 +29,7 @@ jobs:
         run: python scripts/lint_skill.py --skip-generated > static-lint.log 2>&1
       - name: Upload static lint diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: static-lint-diagnostics
           path: static-lint.log
@@ -46,8 +46,8 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -58,7 +58,7 @@ jobs:
         run: python -m unittest discover -s tests -p "test_*.py" > unittest.log 2>&1
       - name: Upload unit test diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: unittest-diagnostics-${{ matrix.python-version }}
           path: unittest.log
@@ -83,8 +83,8 @@ jobs:
             root_file: main.tex
             xelatex: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Prepare CUMCM class
@@ -124,7 +124,7 @@ jobs:
           } > latex-diagnostics.txt
       - name: Upload LaTeX diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: latex-diagnostics-${{ matrix.name }}
           path: latex-diagnostics.txt
@@ -134,8 +134,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -222,7 +222,7 @@ jobs:
           fi
       - name: Upload production attestation diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: production-latex-attestation-diagnostics
           path: production-attestation-diagnostics
@@ -231,14 +231,14 @@ jobs:
     name: Generated file contract
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Rebuild generated indexes and active manifest
         run: python scripts/generate_indexes.py
       - name: Upload regenerated metadata
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: regenerated-repository-metadata
           path: |
