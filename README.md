@@ -1,6 +1,10 @@
-# mathmodel-skill v8.0.1
+# mathmodel-skill v8.0.2
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement → Figure Portfolio Review → Template-First 逐章读取/写入 → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → final review → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v8.0.2：Entrypoint Surface Slimming
+
+本补丁不改变数学建模 runtime、Model Approval、03A/03B、Workbook/Project State、Python/MATLAB/LaTeX ownership 或写作 Authority。它把 `SKILL.md` 与 `PROJECT_INSTRUCTIONS.md` 收缩为启动程序、稳定硬边界和 Authority 指针，删除此前复制在入口中的版本演进、数值阶段、Figure 与逐章写作细则；root/package Skill 继续完全一致，resolver 仍决定最小 route-specific load。历史 v8.0.1 能力保全说明保留在下方和对应审计文档中。
 
 ## v8.0.1：Chapter Capability Preservation
 
