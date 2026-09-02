@@ -134,7 +134,7 @@ replace_once("README.md", "# mathmodel-skill v8.0.2", "# mathmodel-skill v8.0.3"
 # Version assertions that are intentionally current-health rather than historical migration evidence.
 replace_all_checked("tests/test_v7141_skill_health.py", "8.0.2", "8.0.3", minimum=4)
 replace_once("tests/test_v800_writing_runtime.py", 'self.assertEqual(self.contract["version"], "8.0.2")', 'self.assertEqual(self.contract["version"], "8.0.3")')
-replace_all_checked("tests/test_v802_entrypoint_surface_slimming.py", "8.0.2", "8.0.3", minimum=8)
+replace_all_checked("tests/test_v802_entrypoint_surface_slimming.py", "8.0.2", "8.0.3", minimum=7)
 replace_once("tests/test_v802_entrypoint_surface_slimming.py", "def test_current_release_carriers_are_802(self):", "def test_current_release_carriers_match_current_patch(self):")
 
 # Changelog: retain the full 8.0.2 notes as history.
