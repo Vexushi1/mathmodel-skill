@@ -68,7 +68,9 @@ class TestV800TemplateAuthority(unittest.TestCase):
 
     def test_core_model_summary_is_rendering_mode_not_named_subsection(self):
         rendering = self.manifest["core_model_summary_rendering"]
+        self.assertEqual(rendering["rendering_mode"]["values"], ["displayed", "inline", "omitted"])
         self.assertEqual(rendering["modes"], ["displayed", "inline", "omitted"])
+        self.assertEqual(rendering["legacy_modes_field"]["canonical_field"], "rendering_mode.values")
         self.assertFalse(rendering["independent_named_subsection_default"])
         self.assertTrue(rendering["simple_problem_anti_bloat"])
         self.assertNotIn(r"\subsection{核心模型汇总}", self.question)

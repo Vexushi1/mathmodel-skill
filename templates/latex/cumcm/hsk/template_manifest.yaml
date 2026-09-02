@@ -175,10 +175,18 @@ cumcm_question_section:
     - Main results and their validation stay local to the corresponding question instead of being deferred to one global results chapter.
 
 core_model_summary_rendering:
+  rendering_mode:
+    field_role: cumcm_presentation
+    values: [displayed, inline, omitted]
   modes:
     - displayed
     - inline
     - omitted
+  legacy_modes_field:
+    status: deprecated_read_only_alias
+    canonical_field: rendering_mode.values
+    removal_not_before_skill_version: 9.0.0
+  semantic_mapping_authority: core/writing_reasoning_contract.yaml#v8_compatibility.adaptive_core_model_summary.semantic_to_rendering_mode
   displayed_use_when:
     - optimization_or_complex_dynamic_system
     - multiple_core_equations_or_constraints
