@@ -19,16 +19,18 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: refresh-generated-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  refresh:
-    if: github.actor != 'github-actions[bot]'
+  refresh-feature-branch:
+    if: github.actor != 'github-actions[bot]' && github.ref_name != 'main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -49,3 +51,16 @@ jobs:
           git add SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
           git commit -m "chore: refresh generated repository metadata"
           git push
+
+  verify-main:
+    if: github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify generated metadata is already current
+        run: python scripts/generate_indexes.py --check
