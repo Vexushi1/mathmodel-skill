@@ -114,6 +114,10 @@ class CurrentSkillHealthTests(unittest.TestCase):
         for token in ("参数敏感性", "压力场景", "替代算法"):
             self.assertIn(token, analysis)
 
+    def test_current_health_suite_uses_unversioned_filename(self):
+        self.assertTrue((ROOT / "tests/test_current_skill_health.py").is_file())
+        self.assertFalse((ROOT / "tests/test_v7141_skill_health.py").exists())
+
 
 if __name__ == "__main__":
     unittest.main()
