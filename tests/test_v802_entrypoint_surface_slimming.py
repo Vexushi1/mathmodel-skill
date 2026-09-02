@@ -81,11 +81,11 @@ class TestV802EntrypointSurfaceSlimming(unittest.TestCase):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
         self.assertEqual(str(bootstrap["skill_version"]), "8.1.0")
         self.assertEqual(str(plugin["version"]), "8.1.0")
-        self.assertIn("version: 8.0.3", self.root_skill)
+        self.assertIn("version: 8.1.0", self.root_skill)
         self.assertTrue((ROOT / "README.md").read_text(encoding="utf-8").startswith("# mathmodel-skill v8.1.0"))
         self.assertTrue((ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8").startswith("# HSK Core Policy v8.1.0"))
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        self.assertTrue(changelog.startswith("# Changelog\n\n## Current release: 8.0.3"))
+        self.assertTrue(changelog.startswith("# Changelog\n\n## Current release: 8.1.0"))
         for relative in (
             "core/workflow_router.yaml",
             "core/module_manifest.yaml",
