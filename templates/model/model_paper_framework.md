@@ -185,6 +185,20 @@
 |---|---|---|---|---|---|---|
 | paper.abstract.q1 | abstract_claim | Q1 | Q1.result_summary |  | `final_latex/frontmatter/abstract.tex` | current / stale / not_applicable |
 
+### Chapter Handoff Map
+
+> 可选的 **writing-only** 项目记忆，只保存最终装配顺序中实际相邻 active physical files 的承接事实；不复制通用规则，不取代 Paper Fragment Dependency Map，**不属于模型语义哈希区**。旧项目缺少本节时仍可读取，在下一次模块化 LaTeX 写作路由中按 active slots 增量初始化；单文件论文可记为 `not_applicable`。
+
+| Seam ID | Profile | Source File | Target File | Source Closure | Carry Forward | Open Gap / Entry Reason | Consistency Anchors | Bridge Need | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| seam.abstract_problem_statement | frontmatter_consistency | `final_latex/frontmatter/abstract.tex` | `final_latex/sections/01_problem_statement.tex` |  |  |  | Term / Formula / Result / Claim / Paper Fragment IDs | required / optional / not_needed | current / stale / not_applicable |
+
+- 顺序来源：当前 Template Manifest 的 `paper_skeleton.ordered_slots + activation`。
+- 仅登记 actual active adjacency；inactive conditional file 不得出现在 current map。
+- `cross_question_increment` 只在真实 dependency 存在时使用；独立小问使用普通 `narrative` 或记录无继承。
+- 纯 handoff wording、桥接句、术语统一、重复删除和 seam status 更新不递增 `semantic_revision`，不使 `locked_model_spec` stale，也不触发 Model Approval 或 03A 重算。
+- 上游模型、结果或依赖真实变化时，只将引用相关锚点的 seam 与 paper fragment 标为 stale，不机械使全文 stale。
+
 ## 各问模型与结果
 
 > 每个小问复制一份以下结构。`#### 当前模型口径` 到 `#### 结果摘要` 之间属于语义哈希区；题意、变量、参数、假设、目标、约束、预处理、算法语义或依赖变化时递增 `semantic_revision`。

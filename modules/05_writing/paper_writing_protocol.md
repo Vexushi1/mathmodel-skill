@@ -1,4 +1,4 @@
-# Module 05A：Paper Writing Protocol（v8.0.1）
+# Module 05A：Paper Writing Protocol（v8.1.0）
 
 本模块只回答一个问题：**已经有当前模型、结果、图表和模板后，正文应该怎样写得数学上连续、证据上闭合、语言上自然。**
 
@@ -74,6 +74,51 @@ previous_output
 3. 闭合当前局部任务，并说明为什么可以转向求解、结果或验证。
 
 若删去一段既不损失题意、机制、数学关系、solver 依据、结果证据，也不损失必要边界，则优先删除、合并或移入附录。
+
+## 5A. Cross-File Chapter Handoff
+
+本节是 **Cross-File Chapter Handoff 的普通正文语义 Authority**。它检查最终装配后相邻 physical LaTeX 文件之间是否继续同一条数学论证链；Runtime 只决定何时读取、更新和 gate，项目框架只保存当前项目记录，Review 只消费本节，不得另建平行 prose 规则。
+
+Cross-File seam 以 Template Manifest 解析出的**最终实际活动文件顺序**为准，而不是写作顺序。摘要即使最后生成，仍只检查
+`frontmatter/abstract.tex → sections/01_problem_statement.tex`；不得把评价章到摘要的 authoring 邻接当作成品 seam。条件章节关闭后，只检查剩余 active source files 的真实邻接，不为 inactive 文件创建虚假记录。单文件论文为 `not_applicable`。
+
+每个 actual seam 的项目记录只保留推动相邻文件衔接所需的事实：
+
+```text
+source_closure
+→ carry_forward
+→ open_gap_or_entry_reason
+→ consistency_anchors
+→ bridge_need
+→ status
+```
+
+这些字段写入 `模型论文框架.md#Chapter Handoff Map`，不得原样打印进论文。它们可引用已有 Term ID、Formula ID、Result ID、Claim ID 或 Paper Fragment ID，但不复制 Paper Fragment Dependency Map。
+
+### Seam profiles
+
+- `narrative`：用于问题重述→问题分析、共享准备→Q1、最后一问→模型评价等需要恢复对象、gap、结构增量或结论延续的边界。
+- `registry_or_definition`：用于假设→符号、符号→数据/模型准备等定义型边界，重点检查符号、单位、术语和假设作用域；默认不需要管理型过渡句。
+- `frontmatter_consistency`：用于摘要→问题重述，检查对象、模型名称、结果、验证边界和关键词与正文一致，不要求摘要末句显式引出问题重述。
+- `structural_terminal`：用于模型评价→参考文献、参考文献→附录，只检查结构、引用和附录边界，不制造语义桥。
+- `cross_question_increment`：是 `narrative` 的跨问子型，继续服从 `cross_question_progression.activate_when=actual_dependency_exists`；独立小问不得虚构继承。
+
+### Six seam checks
+
+对 relevant seam 按以下六项作语义判断：
+
+1. `object_continuity`：研究对象、状态空间、时间/空间范围无解释突变；
+2. `symbol_term_continuity`：符号、单位、canonical term 与模型称谓不漂移；
+3. `dependency_continuity`：真实依赖消费 current 前问结果或共享关系，不遗漏依赖，也不继续使用 stale 锚点；
+4. `claim_continuity`：结论与证据边界被正确沿用，不在下一章或摘要中无依据升级；
+5. `duplication_control`：不重复抄写问题分析、假设、共享基础、前问完整模型或已解释公式；必要 recap 必须服务当前新任务；
+6. `transition_necessity`：只在缺少语义桥会造成对象、任务或证据跳跃时要求桥接。
+
+`bridge_need` 使用 `required / optional / not_needed`。即使为 `required`，也只要求真实语义承接，不要求单独设置过渡段；可以由上一段收束句、下一段进入句或同一段中的关系完成。**不建立连接词词库，不要求每个 physical-file seam 都出现正文过渡句**，也不得按“因此、下面、接下来”等词的出现频率判定连续性。
+
+写当前文件前，优先读取 relevant assembled predecessor handoff、当前项目事实及必要的 fragment/result anchors；信息不足或冲突时，定点回读 source 文件尾部与 target 文件开头，不预载整篇论文。写完后更新 incoming seam 状态和面向 assembled successor 的 outgoing handoff；若上游真实模型、结果或依赖变化，只标记实际受影响的 handoff/fragment stale。
+
+Chapter Handoff Map 属于 writing-only 项目记忆，不属于模型语义哈希区。桥接措辞、handoff wording、纯术语统一、边界重复删除或 seam status 更新不得递增 `semantic_revision`，不得使 `locked_model_spec` stale，也不得触发 Model Approval、03A 重算或新的数值验收；上游真实语义变化仍按既有状态机制向相关 handoff 传播 stale。
 
 ## 6. 前置章节内容
 

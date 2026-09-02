@@ -1,4 +1,4 @@
-version: 8.0.3
+version: 8.1.0
 role: >-
   v8 写作阶段的最小运行时映射。它不建立第二套数学写作 Authority，只声明普通论文写作真正需要加载的
   模板、项目事实、证据和 writing_reasoning_contract 中的语义能力，从而避免每次写作预载完整建模、数值与项目治理上下文。
@@ -13,6 +13,7 @@ principles:
 
 required_runtime_inputs:
   - current_model_paper_framework
+  - current_chapter_handoff_map_when_available
   - active_template_manifest
   - relevant_numeric_evidence
   - relevant_figure_map
@@ -93,12 +94,118 @@ template_first_progressive_authoring:
     - 摘要虽然位于成品前部，但在逐问结果、评价和结论口径稳定后再写，避免从计划或旧结果虚构摘要。
     - draft_semantic_review 必须早于 ai_cleanup；AI Cleanup 只能修改表达和必要性，不能替代章节完整性、数学语义或证据审查。
     - LaTeX Adapter 只在内容进入模板槽和正式审计/编译时读取，不参与前置章节的内容决策。
+    - Cross-File Chapter Handoff 只对最终装配顺序中的 actual active physical files 生效；authoring order 不得替代 assembled order。
+    - Chapter Handoff Map 是 writing-only 项目记忆；纯 handoff 修改不得递增模型 semantic revision、使 locked model stale 或触发 Model Approval/primary solve。
+
+  cross_file_chapter_handoff:
+    authority: modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff
+    project_memory: templates/model/model_paper_framework.md#Chapter-Handoff-Map
+    role: >-
+      解析最终 active physical-file adjacency，按阶段读取和更新项目 handoff 记录，并把 seam gate 接入 draft/final review；
+      不在 Runtime 复制 prose 规则，不建立第二套正文 Authority。
+    activation:
+      requires: modular_latex_with_multiple_active_physical_files
+      single_file: not_applicable
+      non_cumcm_or_missing_manifest: full_reasoning_fallback
+    order:
+      authoring_order_source: stages
+      assembled_order_source: templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton.ordered_slots+activation
+      seam_gate_uses: [assembled_predecessor, assembled_successor]
+      rules:
+        - 只为最终顺序中相邻的 active source files 建立 seam。
+        - data 或 model_preparation 未激活时直接连接其前后实际文件，不保留虚假中间 seam。
+        - question_sections 按当前实际问题数量展开，保持 Q1 → Q2 → Q3 的物理顺序。
+    profiles:
+      narrative:
+        bridge_default: optional
+      registry_or_definition:
+        bridge_default: not_needed
+      frontmatter_consistency:
+        bridge_default: not_needed
+      structural_terminal:
+        bridge_default: not_needed
+      cross_question_increment:
+        parent: narrative
+        activate_when: actual_dependency_exists
+        delegates_to: cross_question_progression
+    record:
+      fields:
+        - seam_id
+        - profile
+        - source_file
+        - target_file
+        - source_closure
+        - carry_forward
+        - open_gap_or_entry_reason
+        - consistency_anchors
+        - bridge_need
+        - status
+      bridge_need_values: [required, optional, not_needed]
+      status_values: [current, stale, not_applicable]
+      anchor_reuse:
+        - terminology_registry
+        - formula_trace
+        - numeric_profile
+        - claim_strength
+        - paper_fragment_dependency_map
+      prohibition: 不复制 source/target 全文，不建立平行正文依赖图，不把内部字段机械打印进论文。
+    relevant_authoring_stages:
+      - problem_restatement
+      - problem_analysis
+      - assumptions_symbols_and_preparation
+      - question_model_solution_result_validation
+      - evaluation_references_conclusion_appendix
+      - abstract_title_and_keywords
+    timing:
+      before_write:
+        - read_current_project_facts
+        - read_relevant_assembled_predecessor_handoff
+        - read_relevant_cross_question_or_shared_dependency
+        - point_read_source_tail_and_target_head_only_when_record_is_missing_or_conflicted
+      after_write:
+        - update_current_incoming_seam_status
+        - update_outgoing_handoff_for_assembled_successor
+        - update_reused_fragment_or_result_anchors
+        - stale_only_real_downstream_dependencies
+      stage_gate:
+        - required_handoff_record_exists_or_seam_is_not_applicable
+        - bridge_need_is_semantically_adjudicated
+        - object_symbol_term_dependency_claim_and_duplication_continuity_are_reviewed
+      draft_semantic_review: assembled_seam_sweep_in_final_active_order
+      final_review: repeat_assembled_seam_sweep_after_cleanup_and_latex_assembly
+    abstract_special_case:
+      authoring_position: after_current_question_answers_and_evaluation_are_stable
+      final_reading_position: first_active_slot
+      required_final_seam: frontmatter/abstract.tex -> sections/01_problem_statement.tex
+      forbidden_authoring_seam: sections/09_evaluation.tex -> frontmatter/abstract.tex
+      required_consistency:
+        - current_question_answers
+        - terminology_and_numeric_profile
+        - title_claim_and_claim_strength
+        - validation_boundaries
+    semantic_boundary:
+      writing_only: true
+      included_in_model_semantic_hash: false
+      pure_handoff_semantic_revision_bump: false
+      invalidates_locked_model_spec: false
+      triggers_model_approval: false
+      triggers_primary_solve: false
+      rule: 上游真实模型、结果或依赖变化仍按既有机制使相关 fragment 与 seam stale；纯措辞变化不得反向污染模型状态。
+    compatibility:
+      missing_map: initialize_incrementally_on_next_writing_route
+      rewrite_existing_body: false
+      require_model_redesign_or_resolve: false
+      inactive_conditional_slots_in_current_map: forbidden
+
   stages:
     - id: template_inspection
       read_now:
         - templates/latex/cumcm/hsk/template_manifest.yaml
         - templates/latex/cumcm/hsk/hsk_main.tex
         - current_model_paper_framework#当前写作选择
+        - current_model_paper_framework#Chapter-Handoff-Map when available
+      run_now:
+        - resolve_active_final_assembly_and_actual_seams
       write_now: []
       gate: 固定一级骨架、条件槽、问题数量、目标 section 文件和任何已批准 override 均已确定；不得生成正文。
     - id: problem_restatement
@@ -186,9 +293,13 @@ template_first_progressive_authoring:
     - id: draft_semantic_review
       read_now:
         - core/writing_reasoning_contract.yaml
+        - modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff
+        - current_model_paper_framework#Chapter-Handoff-Map
+        - modules/06_review_delivery.md#Cross-File-Assembled-Seam-Sweep
         - modules/06_review_delivery.md#五-Title-Claim-正文结构与-Paragraph-Necessity
         - modules/06_review_delivery.md#v7.20-v8.0.1-章节能力保全检查
       run_now:
+        - assembled_seam_sweep
         - scripts/audit_v8_writing_surface.py
       write_now:
         - draft_review_findings
@@ -257,6 +368,7 @@ semantic_capabilities:
   local_narrative:
     - local_narrative_chain
     - paragraph_handoff_test
+    - cross_file_chapter_handoff
     - result_validation_governance
   load_full_reasoning_authority_when_any:
     - proposition_or_proof_is_being_created_or_revised
@@ -330,8 +442,15 @@ machine_boundary:
     - concept_chain_density
     - result_validation_bridge_risk
     - template_override_provenance_completeness
+    - active_final_assembly_adjacency_matches_manifest_activation
+    - required_handoff_record_presence
+    - inactive_conditional_slot_absent_from_current_handoff_map
+    - stale_anchor_current_status_conflict
   must_not_claim:
     - mathematical_correctness_from_compact_context
     - evidence_sufficiency_from_file_presence
     - prose_quality_from_runtime_size
     - prose_quality_from_surface_token_count_only
+    - semantic_continuity_from_transition_words
+    - bridge_necessity_from_connector_frequency
+    - mathematical_dependency_from_physical_adjacency_only

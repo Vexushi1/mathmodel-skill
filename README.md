@@ -1,6 +1,12 @@
-# mathmodel-skill v8.0.3
+# mathmodel-skill v8.1.0
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement → Figure Portfolio Review → Template-First 逐章读取/写入 → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → final review → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement → Figure Portfolio Review → Template-First 逐章读取/写入 → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → final review → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v8.1.0：Cross-File Chapter Handoff
+
+本版本为模块化 CUMCM LaTeX 增加最终装配顺序的章节文件承接能力。Paper Writing Protocol 是唯一普通正文语义 Authority；Runtime 从现有 Template Manifest 的 `ordered_slots + activation` 恢复 actual active adjacency，并在逐章写作前后读取、更新和 gate；`模型论文框架.md#Chapter Handoff Map` 只保存 writing-only 项目事实；Review 对装配全文执行 assembled seam sweep。
+
+该能力检查对象、符号/术语、真实依赖、claim、重复和桥接必要性，但不强制每个文件边界生成过渡段，也不按连接词频率判断连贯。摘要按最终阅读顺序检查 `abstract → problem_statement`，条件章节关闭后不生成虚假 seam。纯 handoff wording/status 不进入模型语义哈希，不触发 Model Approval 或 03A；旧 framework 继续可读，单文件论文保持 `not_applicable`。
 
 ## v8.0.2：Entrypoint Surface Slimming
 

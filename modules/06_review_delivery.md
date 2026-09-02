@@ -12,7 +12,7 @@ AI Cleanup 不能替代前一种语义审查，文本变得更流畅也不能让
 权威来源：
 
 - `templates/latex/cumcm/hsk/template_manifest.yaml`：CUMCM 固定骨架、一级顺序和问题一级标题；
-- `modules/05_writing/paper_writing_protocol.md`：普通正文组织、局部叙事、结果解释与验证承接；
+- `modules/05_writing/paper_writing_protocol.md`：普通正文组织、局部叙事、跨文件章节承接、结果解释与验证承接；
 - `core/writing_reasoning_contract.yaml`：推理、证据、规则等级、Model/Solver/Validator、优化模型表达、Formula Trace、Algorithm Trace 与算法呈现、命题预算、引用证据、术语、数字、标题主张、claim strength、深化证据处置、Paragraph Necessity 与局部 stale；
 - `modules/05_writing/latex.md`：LaTeX 载体、环境、引用、审计与编译接口；
 - 各 Artifact Pack：载体、编译和交付特有要求。
@@ -50,6 +50,22 @@ AI Cleanup 不能替代前一种语义审查，文本变得更流畅也不能让
 - 框架保存项目事实和当前选择，没有重新复制通用写作手册。
 
 `paper_framework.sync_status=current` 只表示框架已同步记录当前项目状态，**不代表所有正文片段都 current**。正式交付前检查交付范围内 `paper_fragments` 无 stale。若 Q3 变化，只应使真实依赖 Q3 的正文、图表、摘要 Q3 段、相关模型评价和 Title Claim stale；Q1/Q2/无关背景不得因“整篇保险起见”被机械判 stale。
+
+### Cross-File Assembled Seam Sweep
+
+本检查只消费 `paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff`、Template Manifest、当前 Chapter Handoff Map 与已有 Terminology/Numeric/Claim/Paper Fragment 锚点，不复制另一套 handoff Authority。
+
+在 `draft_semantic_review` 与最终装配后各执行一次 **assembled seam sweep**：
+
+- 按 Manifest 的 `paper_skeleton.ordered_slots + activation` 展开最终 active physical files，逐对核对 actual adjacency；inactive data/model-preparation/question file 不得残留在 current map；
+- 摘要只检查 `abstract.tex → 01_problem_statement.tex` 的 final-reading consistency，不检查评价章→摘要的写作顺序；
+- 对每个 relevant seam 读取 profile、source closure、carry forward、entry reason、anchors、bridge need 与 status，再按 Protocol 审查对象、符号/术语、依赖、claim、重复和桥接必要性；
+- `cross_question_increment` 只在真实前问依赖存在时成立；独立小问不得为了连贯虚构继承；
+- `bridge_need=required` 时确认真实语义桥存在，但不要求独立过渡段；`not_needed` seam 出现“下面给出参考文献”等管理型句子时列为 cleanup/review risk；
+- 旧 framework 缺少 Map 时，在当前多文件写作路由中增量初始化，不要求重做模型或自动改写旧正文；
+- 纯 handoff wording、术语统一、重复删除和 status 更新不触发模型 semantic revision、Model Approval 或 03A；上游真实变化只使引用相关锚点的 seam stale。
+
+机器可检查文件存在、active adjacency、record/status 和确定性 stale 冲突；seam 是否真正连续、是否需要桥接仍由语义 review 判断。物理相邻、连接词出现或表面 token 相似均不能证明数学连续。
 
 模型设计层检查题型匹配、变量闭合、公式来源、假设、约束、高级模型必要性、内生性/共线性/过拟合/计算爆炸及解释边界。
 
@@ -218,7 +234,8 @@ Title Claim Gate 检查选定标题中的研究对象、主方法、核心机制
 - 数据处理改变结论但没有依据/验证；
 - 结果不可复现或与已验收工作簿冲突；
 - 评分敏感的核心答案被无依据截断/舍入，导致与题目、官方、评委或已声明 Numeric Profile 不一致；
-- stale 模型、结果、Algorithm Trace、命题、图表或交付范围 paper fragment 被当作 current 使用；
+- stale 模型、结果、Algorithm Trace、命题、图表、Chapter Handoff seam 或交付范围 paper fragment 被当作 current 使用；
+- 最终装配 seam 出现会改变研究对象、符号/单位、真实依赖或 claim 边界的实质冲突，仍未修复却继续交付；
 - `stepwise/pseudocode` 的论文算法与真实 Python 实现、当前约束/停止条件或工作簿结果存在会改变可复现性的实质冲突；
 - 关键证明循环论证、缺少必要前提或与当前模型不一致；
 - 有限实验/求解器状态冒充严格证明；
