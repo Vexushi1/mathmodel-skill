@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 import yaml
@@ -28,6 +29,20 @@ class CurrentSkillHealthTests(unittest.TestCase):
         self.assertIn("within-question local dependency architecture", root_skill)
         self.assertIn("decisiveness-based detail allocation", root_skill)
         self.assertIn("adaptive figure-result narrative", root_skill)
+
+    def test_active_skill_authority_targets_exist(self):
+        root_skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        authority = root_skill.split("## Authority 导航", 1)[1].split("\n## ", 1)[0]
+        targets = re.findall(
+            r"`((?:core|modules|templates|scripts|config|packs)/[^`]+)`",
+            authority,
+        )
+
+        self.assertIn("templates/model/model_paper_framework.md", targets)
+        self.assertNotIn("core/project_memory_contract.yaml", targets)
+        self.assertTrue(targets)
+        for relative in targets:
+            self.assertTrue((ROOT / relative).is_file(), relative)
 
     def test_output_contract_preserves_caption_owned_titles_and_adds_scientific_synthesis(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8")) or {}
