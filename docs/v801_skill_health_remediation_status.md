@@ -18,8 +18,8 @@
 | Phase 0 | complete | 详细 remediation plan 已通过 PR #90 纳入 main |
 | Phase 1A | complete | PR #91 已使 generated metadata 在 feature branch 闭环，main 只做 `--check` |
 | Phase 1B | deferred | Branch Protection 因当前账号权限不足延期；Issue #92 保留为平台治理债务 |
-| Phase 2 | in_progress | 归档已发生事实漂移的 v7.16 Branch Protection 施工计划 |
-| Phase 3 | pending | Active Entrypoint Surface Slimming |
+| Phase 2 | complete | 旧 v7.16 Branch Protection 施工计划已归档，active path 只保留 current pointer |
+| Phase 3 | in_progress | Active Entrypoint Surface Slimming；目标 patch `8.0.2` |
 | Phase 4 | pending | Core Model Summary Vocabulary Clarification |
 | Phase 5 | pending | GitHub Actions Runtime Modernization |
 | Phase 6 | pending | Low-priority Hygiene / Release Provenance |

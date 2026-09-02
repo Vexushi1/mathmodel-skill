@@ -1,6 +1,13 @@
 # Changelog
 
-## Current release: 8.0.1
+## Current release: 8.0.2
+
+- Slimmed `SKILL.md` and packaged `skills/mathmodel-skill/SKILL.md` to discovery, startup delegation, stable hard boundaries and Authority pointers instead of duplicating detailed domain contracts and release-history rulebooks.
+- Slimmed `PROJECT_INSTRUCTIONS.md` to project startup/recovery, execution ownership, writing/delivery delegation and repository-maintenance procedure; detailed preprocessing, 03A/03B, figure, algorithm and writing semantics remain in their single Authorities.
+- Preserved exact root/package Skill parity, bootstrap-first `resolve_runtime.py` routing, Human Model Approval, user-owned full-fidelity execution, accepted-workbook numeric facts, MATLAB non-recomputation, Template-First writing, legacy isolation and resolver-returned pre-delivery gates.
+- Added regression coverage that prevents versioned business rulebooks from regrowing inside the entrypoints while keeping the v8.0.1 chapter-capability audit explicitly historical.
+
+## Previous release: 8.0.1
 
 - Completed a three-way chapter-capability audit against the v7.19 writing authority, the user-approved v7.20 R1 plan and the v8.0.0 compact runtime; added `docs/v801_chapter_capability_preservation_audit.md` as a non-authoritative migration/evidence matrix.
 - Restored ordinary-route detail for title/keywords, data/preprocessing, shared foundations, optimization variables/domains/units, objective meaning, constraint sources, non-optimization summaries, proposition boundaries, solver encoding/parameters/termination/output mapping, numerical style, terminology, citations, role-specific figure interpretation and evaluation boundaries.

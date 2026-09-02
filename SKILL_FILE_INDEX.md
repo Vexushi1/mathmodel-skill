@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：8.0.1
+当前 Skill 版本：8.0.2
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -282,3 +282,4 @@
 - `tests/test_v800_v720_regression.py`
 - `tests/test_v800_writing_runtime.py`
 - `tests/test_v801_chapter_capability_preservation.py`
+- `tests/test_v802_entrypoint_surface_slimming.py`
