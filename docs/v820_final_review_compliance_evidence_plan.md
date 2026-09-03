@@ -1,10 +1,11 @@
 # v8.2.0 Final Review Compliance & Evidence Sweep 修改计划
 
-> 状态：**DRAFT / AWAITING USER APPROVAL**  
+> 状态：**APPROVED / IMPLEMENTATION AUTHORIZED**
 > 当前 Skill：`8.1.1`  
 > 计划目标版本：`8.2.0`（候选，新增向后兼容的终审能力）  
 > 计划基线：`main@d30b861f55e78d7ca8a4e991034a6019f560b5c6`  
 > 计划分支：`docs/v820-final-review-compliance-plan`  
+> 批准记录：计划 PR `#104` 已合并为 `main@1776e0b53fa91398763d8b60cb1b5fb4407170f9`；功能实施分支为 `upgrade/v8.2.0-final-review-compliance`。
 > 本计划 PR 只承载实施上下文，不修改终审 Authority、评分器、模板、版本载体或运行时行为。用户批准且计划进入 `main` 后，实施必须从当时最新、干净的 `main` 重新冻结基线并建立独立功能分支。
 
 ---

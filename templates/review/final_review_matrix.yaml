@@ -1,0 +1,67 @@
+review_schema_version: 1.0.0
+review_context:
+  skill_version: 8.2.0
+  competition_profile: null
+  edition: null
+  rule_verification_status: unverified
+  rule_verified_at: null
+  rule_source: null
+  delivery_mode: null
+  source_bundle_sha256: null
+  compiled_pdf_sha256: null
+
+coverage:
+  - check_family: edition_compliance
+    applicability: applicable
+    verification_mode: hybrid
+    status: unverifiable
+    rule_source: config/competition_profiles.yaml#profiles.<name>.edition_rules
+    evidence: "TODO: record the verified rule source or the missing verification input."
+  - check_family: anonymity_and_metadata
+    applicability: applicable
+    verification_mode: hybrid
+    status: unverifiable
+    rule_source: modules/06_review_delivery.md#Final-Submission-Compliance-Evidence-Sweep
+    evidence: "TODO: record the PDF/source metadata and visible identity inspection."
+  - check_family: ai_disclosure
+    applicability: applicable
+    verification_mode: manual
+    status: unverifiable
+    rule_source: config/competition_profiles.yaml#profiles.<name>.edition_rules.ai_disclosure
+    evidence: "TODO: reconcile the current rule, disclosure, supporting material, and actual use."
+  - check_family: citation_entity_integrity
+    applicability: applicable
+    verification_mode: hybrid
+    status: unverifiable
+    rule_source: core/writing_reasoning_contract.yaml#citation_evidence
+    evidence: "TODO: record entity verification and claim-support evidence."
+  - check_family: rendered_page_surface
+    applicability: applicable
+    verification_mode: manual
+    status: unverifiable
+    rule_source: modules/06_review_delivery.md#Final-Submission-Compliance-Evidence-Sweep
+    evidence: "TODO: record the page-by-page final PDF inspection."
+  - check_family: figure_table_information_value
+    applicability: applicable
+    verification_mode: manual
+    status: unverifiable
+    rule_source: modules/06_review_delivery.md#Final-Submission-Compliance-Evidence-Sweep
+    evidence: "TODO: record redundancy and independent information-value findings."
+  - check_family: reproducibility_and_package
+    applicability: applicable
+    verification_mode: hybrid
+    status: unverifiable
+    rule_source: packs/artifact/full_submission.md
+    evidence: "TODO: record audit, compile, manifest, and package validation evidence."
+  - check_family: cross_question_dynamic_coverage
+    applicability: applicable
+    verification_mode: hybrid
+    status: unverifiable
+    rule_source: modules/06_review_delivery.md#Final-Submission-Compliance-Evidence-Sweep
+    evidence: "TODO: record actual question/model/dependency coverage or a not-applicable reason."
+
+findings: []
+
+scores: {}
+hard_fail: []
+evidence: {}

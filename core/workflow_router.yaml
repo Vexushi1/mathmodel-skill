@@ -1,4 +1,4 @@
-version: 8.1.1
+version: 8.2.0
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -124,7 +124,7 @@ runtime_segments:
 
   full_workflow_resume:
     role: full_workflow_resume
-    final_load: [modules/04_figure_evidence.md, packs/artifact/figure.md, templates/figure/chart_selection.md, templates/figure/figure_enhancement_patterns.md, modules/05_writing/latex.md, packs/artifact/latex.md, modules/05_writing/ai_cleanup.md, modules/05_latex_compile_quality.md, modules/06_review_delivery.md, packs/artifact/review.md, packs/artifact/full_submission.md]
+    final_load: [modules/04_figure_evidence.md, packs/artifact/figure.md, templates/figure/chart_selection.md, templates/figure/figure_enhancement_patterns.md, modules/05_writing/latex.md, packs/artifact/latex.md, modules/05_writing/ai_cleanup.md, modules/05_latex_compile_quality.md, modules/06_review_delivery.md, packs/artifact/review.md, templates/review/final_review_matrix.yaml, packs/artifact/full_submission.md]
     terminal_outputs: [approved_figures, latex_source, latex_audit_report, compiled_pdf, compile_report, review_report, submission_package, model_paper_framework]
     delivery_scope: submission
     pre_delivery_gates: [semantic_governance, project_sync, submission_package_validation]
@@ -343,6 +343,6 @@ routing:
   review:
     triggers: [评分, 审稿, 终审, 检查, 提交包检查]
     infer_keywords: [评分, 审稿, 终审, 提交包检查, 论文检查]
-    load: [core/writing_reasoning_contract.yaml, modules/05_writing/latex.md, modules/06_review_delivery.md, packs/artifact/review.md, packs/artifact/algorithm_flow.md]
+    load: [core/writing_reasoning_contract.yaml, modules/05_writing/latex.md, modules/06_review_delivery.md, packs/artifact/review.md, templates/review/final_review_matrix.yaml, packs/artifact/algorithm_flow.md]
     load_competition_pack: true
     terminal_outputs: [review_report]

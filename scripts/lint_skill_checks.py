@@ -9,7 +9,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 import yaml
 from jsonschema import Draft202012Validator
@@ -32,6 +32,7 @@ REQUIRED = [
     "modules/05_writing/ai_cleanup.md", "modules/06_review_delivery.md",
     "packs/task/classifier.md", "packs/task/advanced_method_gate.md",
     "packs/artifact/proposition_proof.md", "packs/artifact/algorithm_flow.md", "templates/model/model_paper_framework.md",
+    "templates/review/final_review_matrix.yaml",
     "templates/code/hsk_pipeline/result_io.py", "templates/code/hsk_pipeline/workbook_validation.py",
     "templates/code/hsk_pipeline/main_pipeline.py", "templates/matlab/q1_plot.m",
     "templates/matlab/data_process.m", "templates/latex/cumcm/hsk/hsk_main.tex",
@@ -1130,6 +1131,93 @@ def check_templates(errors: list[str]) -> None:
             errors.append(f"active file references removed artifact checker: {path.relative_to(ROOT)}")
 
 
+def check_final_review_compliance(errors: list[str]) -> None:
+    """Keep the v8.2 final-review matrix on one authority chain."""
+    families = {
+        "edition_compliance",
+        "anonymity_and_metadata",
+        "ai_disclosure",
+        "citation_entity_integrity",
+        "rendered_page_surface",
+        "figure_table_information_value",
+        "reproducibility_and_package",
+        "cross_question_dynamic_coverage",
+    }
+    module = read_text(ROOT / "modules/06_review_delivery.md")
+    pack = read_text(ROOT / "packs/artifact/review.md")
+    template_path = ROOT / "templates/review/final_review_matrix.yaml"
+    template_text = read_text(template_path)
+    template = load_structured(template_path) or {}
+    scorer = read_text(ROOT / "scripts/score_submission.py")
+
+    for token in (
+        "Final Submission Compliance & Evidence Sweep",
+        "verification_status=verified",
+        "unverified / expired",
+        "verified_official_rule_violation",
+        "machine / manual / hybrid",
+        "不进入 Project State",
+        "不得自动加入 official package",
+    ):
+        if token not in module:
+            errors.append(f"review authority lacks v8.2 final-review token: {token}")
+    for family in families:
+        if family not in module:
+            errors.append(f"review authority lacks final-review family: {family}")
+    for token in (
+        "modules/06_review_delivery.md#Final-Submission-Compliance-Evidence-Sweep",
+        "templates/review/final_review_matrix.yaml",
+        "不按 finding 数量自动扣分",
+        "不自动进入 official package",
+    ):
+        if token not in pack:
+            errors.append(f"review pack lacks v8.2 adapter token: {token}")
+
+    if str(template.get("review_schema_version")) != "1.0.0":
+        errors.append("final review matrix must use review_schema_version 1.0.0")
+    coverage = template.get("coverage") or []
+    template_families = [entry.get("check_family") for entry in coverage if isinstance(entry, Mapping)]
+    if set(template_families) != families or len(template_families) != len(families):
+        errors.append("final review matrix must contain each stable check family exactly once")
+    for forbidden in ("287", "扣 1", "扣 2", "问题五", "5 问"):
+        if forbidden in template_text:
+            errors.append(f"final review matrix contains fixed-checklist residue: {forbidden}")
+
+    weights = load_structured(ROOT / "config/review_weights.json") or {}
+    if "verified_official_rule_violation" not in set(weights.get("hard_fail", [])):
+        errors.append("review weights must allow verified_official_rule_violation")
+    if abs(sum(float(item.get("weight", 0)) for item in (weights.get("dimensions") or {}).values()) - 1.0) > 1e-9:
+        errors.append("review dimension weights must remain normalized")
+    for token in ("REVIEW_SCHEMA_VERSION", "CHECK_FAMILIES", "review_status", "missing dimension evidence"):
+        if token not in scorer:
+            errors.append(f"score_submission lacks v8.2 matrix validation token: {token}")
+
+    router = load_structured(ROOT / "core/workflow_router.yaml") or {}
+    review_load = ((router.get("routing") or {}).get("review") or {}).get("load", [])
+    if "templates/review/final_review_matrix.yaml" not in review_load:
+        errors.append("review route must load the final review matrix template")
+    runtime = read_text(ROOT / "core/writing_runtime_contract.yaml")
+    if "templates/review/final_review_matrix.yaml" not in runtime:
+        errors.append("writing runtime final review must read the final review matrix template")
+
+    for relative in (
+        "modules/05_writing/ai_cleanup.md",
+        "modules/05_writing/paper_writing_protocol.md",
+        "core/writing_reasoning_contract.yaml",
+    ):
+        text = read_text(ROOT / relative)
+        for forbidden in ("final_review_matrix.yaml", "verified_official_rule_violation"):
+            if forbidden in text:
+                errors.append(f"final-review contract leaked into writing authority: {relative} -> {forbidden}")
+
+    competitions = load_structured(ROOT / "config/competition_profiles.yaml") or {}
+    for name, profile in (competitions.get("profiles") or {}).items():
+        submission_files = ((profile.get("edition_rules") or {}).get("submission_files") or [])
+        serialized = "\n".join(str(item).lower() for item in submission_files)
+        if "final_review_matrix" in serialized or "review_report" in serialized:
+            errors.append(f"internal final-review artifact leaked into official allowlist: {name}")
+
+
 def check_syntax(errors: list[str]) -> None:
     for path in active_files():
         try:
@@ -1160,7 +1248,7 @@ def main() -> int:
     checks = (
         check_required, check_compatibility_pointers, check_skill_entrypoint_parity, check_root_release_note_hygiene, check_versions, check_bootstrap_and_governance,
         check_taxonomy, check_repository_references, check_router, check_manifest, check_resolver_smoke,
-        check_contracts, check_project_state_and_framework, check_templates, check_syntax,
+        check_contracts, check_project_state_and_framework, check_templates, check_final_review_compliance, check_syntax,
     )
     for check in checks:
         try:

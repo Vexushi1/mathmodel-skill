@@ -1,5 +1,5 @@
 {
-  "version": "6.2.3",
+  "version": "6.3.0",
   "status": "active",
   "scale": 100,
   "principle": "题意与机制、数学闭环、数据验证、结果证据、写作排版、复现交付优先于模型名称和形式创新。",
@@ -22,6 +22,7 @@
     "local_optimum_claimed_as_global",
     "figure_contradicts_result",
     "latex_compile_failure",
-    "missing_core_submission_artifact"
+    "missing_core_submission_artifact",
+    "verified_official_rule_violation"
   ]
 }

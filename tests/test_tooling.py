@@ -142,6 +142,8 @@ class TestTooling(unittest.TestCase):
         report = {"scores": {name: 80 for name in config["dimensions"]}, "hard_fail": []}
         result = module.score_submission(config, report)
         self.assertEqual(result["total"], 80.0)
+        self.assertNotIn("review_status", result)
+        self.assertIn("verified_official_rule_violation", config["hard_fail"])
         report["hard_fail"] = ["latex_compile_failure"]
         self.assertEqual(module.score_submission(config, report)["status"], "reject_or_major_rework")
 

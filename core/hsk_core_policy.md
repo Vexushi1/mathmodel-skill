@@ -1,6 +1,6 @@
-# HSK Core Policy v8.1.1
+# HSK Core Policy v8.2.0
 
-本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 与 `scripts/validate_model_approval.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision`、条件式统一数据预处理、预处理论文数学证据与 `data_process.m` 图证据以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；主求解数值有效性与底层证据独立复核以 `core/numerical_verification_contract.yaml` 与 `scripts/validate_numerical_evidence.py` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准；跨竞赛复杂写作语义与证据治理以 `core/writing_reasoning_contract.yaml` 为准，普通正文组织以 `modules/05_writing/paper_writing_protocol.md` 为准，CUMCM 固定结构以 `templates/latex/cumcm/hsk/template_manifest.yaml` 为准，逐章读取/写入时机以 `core/writing_runtime_contract.yaml#template_first_progressive_authoring` 为准，`modules/05_writing/latex.md` 只负责 LaTeX Adapter。本文件不复制这些合同的完整字段。
+本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 与 `scripts/validate_model_approval.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision`、条件式统一数据预处理、预处理论文数学证据与 `data_process.m` 图证据以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；主求解数值有效性与底层证据独立复核以 `core/numerical_verification_contract.yaml` 与 `scripts/validate_numerical_evidence.py` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准；跨竞赛复杂写作语义与证据治理以 `core/writing_reasoning_contract.yaml` 为准，普通正文组织以 `modules/05_writing/paper_writing_protocol.md` 为准，CUMCM 固定结构以 `templates/latex/cumcm/hsk/template_manifest.yaml` 为准，逐章读取/写入时机以 `core/writing_runtime_contract.yaml#template_first_progressive_authoring` 为准，`modules/05_writing/latex.md` 只负责 LaTeX Adapter；最终提交合规与证据扫描以 `modules/06_review_delivery.md` 为唯一终审语义 Authority，报告结构以 `templates/review/final_review_matrix.yaml` 为准。本文件不复制这些合同的完整字段。
 
 ## 1. 总目标与优先级
 
@@ -172,5 +172,6 @@ v7.15.x 及更早项目继续只读兼容；历史已 accepted 主工作簿不�
 - 代码交付：`scripts/validate_code_delivery.py`；
 - 用户返回工作簿：`scripts/validate_user_execution.py`；其中主工作簿数值证据复核委托 `scripts/validate_numerical_evidence.py`；
 - 图表、论文和提交包：`scripts/sync_project.py`。
+- 最终审查：`modules/06_review_delivery.md` 消费当前已核验赛事规则与 audit/compile/package 证据，`scripts/score_submission.py` 只校验终审矩阵结构并执行六维评分，不联网推断事实。
 
 同步器必须根据 `preprocessing_decision` 判断数据事实源和条件产物：`project_level` 才要求预处理脚本/工作簿/`data_process.m`；`not_needed/question_local` 不得因不存在预处理目录而失败。同步器只做发现、校验、哈希与 stale 传播，不自动生成模型语义、数据处理决策、数值结果或 passed 状态。
