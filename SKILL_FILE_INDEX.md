@@ -68,6 +68,7 @@
 - `docs/v810_cross_file_chapter_handoff_plan.md`
 - `docs/v811_skill_authority_pointer_health_repair_plan.md`
 - `docs/v820_final_review_compliance_evidence_plan.md`
+- `docs/v830_editable_mechanism_diagram_plan.md`
 - `docs/v8_writing_capability_inventory.md`
 - `docs/v8_writing_migration.md`
 - `legacy/README.md`
