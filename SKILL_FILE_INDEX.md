@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：8.2.0
+当前 Skill 版本：8.3.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -115,6 +115,7 @@
 - `scripts/audit_paper_prose.py`
 - `scripts/audit_v8_writing_surface.py`
 - `scripts/generate_indexes.py`
+- `scripts/generate_mechanism_drawio.py`
 - `scripts/hsk_pack_submission.py`
 - `scripts/latex_delivery.py`
 - `scripts/lint_skill.py`
@@ -127,6 +128,7 @@
 - `scripts/score_submission.py`
 - `scripts/sync_project.py`
 - `scripts/validate_code_delivery.py`
+- `scripts/validate_drawio_figure.py`
 - `scripts/validate_model_approval.py`
 - `scripts/validate_model_paper_framework.py`
 - `scripts/validate_numerical_evidence.py`
@@ -154,6 +156,8 @@
 - `templates/figure/figure_paper_closure.md`
 - `templates/figure/figure_plan.md`
 - `templates/figure/mechanism_contract.md`
+- `templates/figure/mechanism_drawio_patterns.md`
+- `templates/figure/mechanism_drawio_spec.yaml`
 - `templates/figure/mechanism_placeholder.md`
 - `templates/figure/mechanism_practical_check.md`
 - `templates/figure/mechanism_qa.md`
@@ -292,3 +296,4 @@
 - `tests/test_v803_core_model_summary_vocabulary.py`
 - `tests/test_v810_cross_file_chapter_handoff.py`
 - `tests/test_v820_final_review_compliance.py`
+- `tests/test_v830_editable_mechanism_diagram.py`

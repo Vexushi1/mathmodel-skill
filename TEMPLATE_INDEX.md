@@ -1,6 +1,6 @@
 # HSK Active Template Index
 
-当前 Skill 版本：8.2.0
+当前 Skill 版本：8.3.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -21,6 +21,8 @@
 - `templates/figure/figure_paper_closure.md`
 - `templates/figure/figure_plan.md`
 - `templates/figure/mechanism_contract.md`
+- `templates/figure/mechanism_drawio_patterns.md`
+- `templates/figure/mechanism_drawio_spec.yaml`
 - `templates/figure/mechanism_placeholder.md`
 - `templates/figure/mechanism_practical_check.md`
 - `templates/figure/mechanism_qa.md`

@@ -1,4 +1,4 @@
-version: 8.2.0
+version: 8.3.0
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -308,6 +308,14 @@ routing:
     infer_keywords: [MATLAB绘图, MATLAB, 结果图, 敏感性图, 鲁棒性图, 机理图, 推导图, 可视化, 图表, data_process, 预处理图, 局部放大, inset, small multiples, 分面图, 联合诊断]
     load: [modules/04_figure_evidence.md, packs/artifact/figure.md, templates/figure/chart_selection.md, templates/figure/figure_enhancement_patterns.md]
     terminal_outputs: [preprocessing_matlab_script, preprocessing_figures, matlab_scripts, figure_contracts, approved_figures, model_paper_framework]
+    formal_delivery: true
+    delivery_scope: figures
+
+  editable_mechanism_diagram:
+    triggers: [draw.io, drawio, 可编辑机理图, 约束关系图, 临界状态图]
+    infer_keywords: [draw.io机理图, drawio机理图, 可编辑机理图, draw.io约束关系图, draw.io临界状态图]
+    load: [modules/04_figure_evidence.md, packs/artifact/figure.md, templates/figure/mechanism_contract.md, templates/figure/mechanism_drawio_spec.yaml, templates/figure/mechanism_drawio_patterns.md, templates/figure/mechanism_qa.md]
+    terminal_outputs: [mechanism_diagram_spec, editable_mechanism_source, mechanism_preview, mechanism_exports, figure_contracts, approved_figures, model_paper_framework]
     formal_delivery: true
     delivery_scope: figures
 

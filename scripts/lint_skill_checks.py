@@ -35,11 +35,13 @@ REQUIRED = [
     "templates/review/final_review_matrix.yaml",
     "templates/code/hsk_pipeline/result_io.py", "templates/code/hsk_pipeline/workbook_validation.py",
     "templates/code/hsk_pipeline/main_pipeline.py", "templates/matlab/q1_plot.m",
+    "templates/figure/mechanism_drawio_spec.yaml", "templates/figure/mechanism_drawio_patterns.md",
     "templates/matlab/data_process.m", "templates/latex/cumcm/hsk/hsk_main.tex",
     "templates/latex/diangong/main.tex", "templates/writing/caption_explanation.md",
     "scripts/resolve_runtime.py", "scripts/runtime_assurance.py", "scripts/resolve_workflow.py", "scripts/validate_semantic_governance.py", "scripts/validate_model_approval.py", "scripts/sync_project.py",
     "scripts/validate_code_delivery.py", "scripts/validate_user_execution.py", "scripts/validate_numerical_evidence.py", "scripts/audit_latex_project.py",
     "scripts/audit_paper_prose.py", "scripts/audit_v8_writing_surface.py", "scripts/validate_template_manifest.py", "scripts/latex_delivery.py",
+    "scripts/generate_mechanism_drawio.py", "scripts/validate_drawio_figure.py",
     "scripts/validate_model_paper_framework.py", "scripts/validate_project_state.py",
     "scripts/score_submission.py", ".github/pull_request_template.md",
     ".github/workflows/ci.yml", ".github/workflows/refresh-generated.yml",
@@ -1218,6 +1220,94 @@ def check_final_review_compliance(errors: list[str]) -> None:
             errors.append(f"internal final-review artifact leaked into official allowlist: {name}")
 
 
+def check_editable_mechanism_diagrams(errors: list[str]) -> None:
+    """Keep the v8.3 editable-mechanism path on the Figure Authority chain."""
+    module = read_text(ROOT / "modules/04_figure_evidence.md")
+    pack = read_text(ROOT / "packs/artifact/figure.md")
+    patterns = read_text(ROOT / "templates/figure/mechanism_drawio_patterns.md")
+    spec = load_structured(ROOT / "templates/figure/mechanism_drawio_spec.yaml") or {}
+    generator = read_text(ROOT / "scripts/generate_mechanism_drawio.py")
+    validator = read_text(ROOT / "scripts/validate_drawio_figure.py")
+
+    for token in (
+        "Mechanism Diagram Backend Selection Gate",
+        "structure_checked",
+        "approved_for_paper",
+        "不判断箭头方向是否符合真实机制",
+        "纯视觉/交付修改",
+        "Spec 只是渲染输入，不是模型或数值事实源",
+    ):
+        if token not in module:
+            errors.append(f"figure authority lacks v8.3 mechanism token: {token}")
+    for token in (
+        "modules/04_figure_evidence.md",
+        "templates/figure/mechanism_drawio_spec.yaml",
+        "templates/figure/mechanism_drawio_patterns.md",
+        "没有查看最新渲染预览",
+    ):
+        if token not in pack:
+            errors.append(f"figure pack lacks v8.3 adapter token: {token}")
+    if "不是第二套 Figure Authority" not in patterns:
+        errors.append("mechanism patterns must delegate decisions to Module 04")
+
+    if str(spec.get("spec_version")) != "1.0.0" or spec.get("backend") != "drawio":
+        errors.append("mechanism draw.io template must use v1 drawio spec")
+    serialized_spec = json.dumps(spec, ensure_ascii=False).lower()
+    for placeholder in ("输入", "输出", '"label": "模型"'):
+        if placeholder.lower() in serialized_spec:
+            errors.append(f"mechanism draw.io template contains generic placeholder: {placeholder}")
+
+    router = load_structured(ROOT / "core/workflow_router.yaml") or {}
+    routes = router.get("routing") or {}
+    general_load = ((routes.get("figures") or {}).get("load") or [])
+    precise = routes.get("editable_mechanism_diagram") or {}
+    if "templates/figure/mechanism_drawio_patterns.md" in general_load:
+        errors.append("ordinary figure route must not preload draw.io implementation patterns")
+    for token in ("draw.io", "drawio", "可编辑机理图"):
+        if token not in set(precise.get("triggers") or []):
+            errors.append(f"editable mechanism route lacks precise trigger: {token}")
+    for relative in (
+        "modules/04_figure_evidence.md",
+        "templates/figure/mechanism_drawio_spec.yaml",
+        "templates/figure/mechanism_drawio_patterns.md",
+    ):
+        if relative not in set(precise.get("load") or []):
+            errors.append(f"editable mechanism route lacks load pointer: {relative}")
+
+    manifest = load_structured(ROOT / "core/module_manifest.yaml") or {}
+    catalog = manifest.get("artifact_catalog") or {}
+    figure_outputs = set((((manifest.get("modules") or {}).get("figure_evidence") or {}).get("outputs") or []))
+    for artifact in ("mechanism_diagram_spec", "editable_mechanism_source", "mechanism_preview", "mechanism_exports"):
+        if artifact not in catalog or artifact not in figure_outputs:
+            errors.append(f"manifest lacks optional mechanism artifact: {artifact}")
+
+    output = load_structured(ROOT / "core/output_contract.yaml") or {}
+    mechanism = output.get("mechanism_drawio_contract") or {}
+    if mechanism.get("authority") != "modules/04_figure_evidence.md#Mechanism-Diagram-Backend-Selection-Gate":
+        errors.append("output contract must delegate mechanism decisions to Module 04")
+    if mechanism.get("preview_required_for_approved_figures") is not True:
+        errors.append("output contract must require preview before figure approval")
+    if mechanism.get("per_question_five_file_layout_unchanged") is not True:
+        errors.append("draw.io integration must preserve the per-question five-file layout")
+    if "工作簿驱动结果图继续归MATLAB" not in str((output.get("ownership") or {}).get("other_figure_tools", "")):
+        errors.append("draw.io integration must preserve MATLAB data-figure ownership")
+
+    for origin, text in (("generator", generator), ("validator", validator)):
+        for forbidden in ("matplotlib", "pandas", "read_excel", "read_csv", "requests", "selenium"):
+            if forbidden in text.lower():
+                errors.append(f"mechanism {origin} contains forbidden data/network dependency: {forbidden}")
+    for path in active_files():
+        if path == ROOT / "scripts/lint_skill_checks.py":
+            continue
+        lowered = read_text(path).lower()
+        for forbidden in ("sci-box", "scibox", "jihe520"):
+            if forbidden in lowered:
+                errors.append(f"external mechanism implementation leaked into active files: {path.relative_to(ROOT)} -> {forbidden}")
+    for token in ("semantic validation: not performed", "structure_and_geometry_only"):
+        if token not in validator:
+            errors.append(f"draw.io validator lacks machine/manual boundary token: {token}")
+
+
 def check_syntax(errors: list[str]) -> None:
     for path in active_files():
         try:
@@ -1248,7 +1338,7 @@ def main() -> int:
     checks = (
         check_required, check_compatibility_pointers, check_skill_entrypoint_parity, check_root_release_note_hygiene, check_versions, check_bootstrap_and_governance,
         check_taxonomy, check_repository_references, check_router, check_manifest, check_resolver_smoke,
-        check_contracts, check_project_state_and_framework, check_templates, check_final_review_compliance, check_syntax,
+        check_contracts, check_project_state_and_framework, check_templates, check_final_review_compliance, check_editable_mechanism_diagrams, check_syntax,
     )
     for check in checks:
         try:
