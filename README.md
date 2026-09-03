@@ -1,6 +1,14 @@
-# mathmodel-skill v8.1.1
+# mathmodel-skill v8.2.0
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement → Figure Portfolio Review → Template-First 逐章读取/写入 → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → final review → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement → Figure Portfolio Review → Template-First 逐章读取/写入 → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v8.2.0：Final Review Compliance & Evidence Sweep
+
+本版本把终稿中容易遗漏、但会直接影响资格、可审查性和交付可信度的检查收束到统一 Final Review Authority：按当前 competition profile 与当届规则核验状态，动态检查 edition compliance、匿名与元数据、AI 披露一致性、文献实体与 claim 支持、最终 PDF 页面、图表信息价值、复现/提交包和跨问题覆盖。
+
+新增 `templates/review/final_review_matrix.yaml` 作为正式终审报告 v1 的结构载体，记录八类 coverage、原子 finding、规则来源、验证方式、位置、证据和修复动作。`scripts/score_submission.py` 对新矩阵执行确定性结构校验，并保持旧 `scores + hard_fail + evidence` 报告兼容；finding 数量不自动扣分，未解决 Hard 仍不能被六维加权总分抵消。
+
+只有已核验且有来源、日期的当前官方规则才能映射 `verified_official_rule_violation`。PDF 可见身份、真实 AI 使用、文献支持和图表语义等继续由人工或可用工具核验，无法证明时标记 `unverifiable`。本版本不新增 PDF/网络依赖、Project State 字段或 pre-delivery gate，也不改变模型、数值、工作簿、03A/03B、Figure Evidence、AI Cleanup 和 Writing Authority。
 
 ## v8.1.1：Skill Authority Pointer Health Repair
 

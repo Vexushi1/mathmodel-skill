@@ -11,10 +11,12 @@ AI Cleanup 不能替代前一种语义审查，文本变得更流畅也不能让
 
 权威来源：
 
+- `config/competition_profiles.yaml` 与当前 competition Pack：当届页数、匿名、提交文件和 AI 披露规则；只有 `edition_rules.verification_status=verified` 且具有来源与核验日期时，才可作为当届官方 Hard 判定依据；
 - `templates/latex/cumcm/hsk/template_manifest.yaml`：CUMCM 固定骨架、一级顺序和问题一级标题；
 - `modules/05_writing/paper_writing_protocol.md`：普通正文组织、局部叙事、跨文件章节承接、结果解释与验证承接；
 - `core/writing_reasoning_contract.yaml`：推理、证据、规则等级、Model/Solver/Validator、优化模型表达、Formula Trace、Algorithm Trace 与算法呈现、命题预算、引用证据、术语、数字、标题主张、claim strength、深化证据处置、Paragraph Necessity 与局部 stale；
 - `modules/05_writing/latex.md`：LaTeX 载体、环境、引用、审计与编译接口；
+- `templates/review/final_review_matrix.yaml`：正式终审报告 v1 的机器可读字段与稳定枚举；
 - 各 Artifact Pack：载体、编译和交付特有要求。
 
 若本模块与 Authority 文案不同，以 Authority 为准。
@@ -207,12 +209,58 @@ Title Claim Gate 检查选定标题中的研究对象、主方法、核心机制
 
 终审不得再使用“提交包必须包含完整框架，不只交 PDF”这类跨赛事固定规则。
 
-## 九、返修优先级
+## 九、Final Submission Compliance & Evidence Sweep
+
+本节是最终提交合规与证据扫描的唯一语义 Authority。它只在 `final_review_and_delivery` 中、AI Cleanup 与当前 LaTeX audit/compile attestation 完成后执行；`draft_semantic_review` 不要求尚未生成的 PDF、compile report 或提交包证据。
+
+### 1. 恢复终审上下文
+
+开始扫描前必须恢复并在 `review_context` 记录：当前 Skill 版本、competition profile、edition、`edition_rules.verification_status / verified_at / source`、delivery mode、当前 source bundle SHA-256 与 compiled PDF SHA-256。缺少的信息保持可见，不能靠赛事名称、往届经验、自查表或模型猜测补成已核验事实。
+
+规则来源优先级为：当届已核验官方规则或题面 → 当前 competition Pack 的稳定模板约束 → Template Manifest → Writing / Reasoning Authority → 本模块默认审查规则 → 经验建议。低层规则不得覆盖高层规则，经验建议不得伪装成官方要求。
+
+### 2. 动态检查族
+
+按当前论文、实际问题数量、模型数量、交付模式和适用规则动态覆盖以下八族，不展开固定问题数或固定行数清单：
+
+1. `edition_compliance`：消费当前 profile 中页数、匿名、提交文件和 AI 披露等当届规则；
+2. `anonymity_and_metadata`：检查最终 PDF 可见内容与作者/公司/标题等元数据，以及图片、代码截图、路径、账户、批注或修订记录中的身份泄露；
+3. `ai_disclosure`：核对当届规则、论文声明、独立支撑材料与用户确认的真实使用事实是否一致；
+4. `citation_entity_integrity`：在既有 citation key 闭环之外，核对作者、题名、年份、期刊、DOI/URL/访问日期及来源对对应 claim 的真实支持；
+5. `rendered_page_surface`：逐页检查孤行、标题悬空、对象裁切、横向溢出、跨页表头、无意义大空白和打印可辨识性；
+6. `figure_table_information_value`：检查图与表是否重复承担同一信息任务，以及保留对象是否对结论具有独立信息价值；
+7. `reproducibility_and_package`：核对 audit/compile 证明链、manifest、交付模式与当前 package validation；
+8. `cross_question_dynamic_coverage`：按实际问题、模型和跨问依赖检查题意—方法—结果—验证—交付覆盖，不预置五问、固定模型数或固定图表数。
+
+每族在 `coverage` 中记录 `check_family / applicability / verification_mode / status / rule_source / evidence`。`applicability` 只能为 `applicable / not_applicable`；`verification_mode` 只能为 `machine / manual / hybrid`；`status` 只能为 `passed / findings_present / unverifiable / not_applicable`。`not_applicable` 必须写明理由，`unverifiable` 必须写明缺失的证据或输入，二者都不能伪装为 `passed`。
+
+### 3. 原子 finding 与评分关系
+
+每个问题使用唯一 `check_id`，并记录 `check_family / dimension / severity / status / hard_fail_code / rule_source / verification_mode / location / evidence / action`。严重级只允许 `blocking / review_required / warning`，处置状态只允许 `open / resolved / accepted_exception`；非 `resolved` finding 必须有具体位置、证据和可执行动作。
+
+`scores` 继续由六维评委式判断形成，且每个维度必须能指向报告 evidence。不得按 finding 数量固定扣 1 分或 2 分，也不得以字符串命中推断数学正确性、身份泄露、AI 使用事实、文献真实性或图表语义重复。
+
+### 4. 已核验规则与 Hard Fail
+
+- `verification_status=verified` 且 `verified_at + source` 完整时，当前适用且强制的官方规则可作为 Hard 判定；
+- `unverified / expired` 时，不得声称页数、匿名、AI 披露或提交文件已经满足当届官方要求；official package 是否阻断继续服从现有 package validator；
+- 未解决的已核验官方规则违规使用 `verified_official_rule_violation`，前提是没有更具体的现有 Hard Fail code；
+- `blocking + open` 必须映射允许的 Hard Fail code，并独立于加权总分触发 `reject_or_major_rework`；
+- `accepted_exception` 不得绕过已核验且适用的强制官方规则。
+
+### 5. 机器与人工边界
+
+机器继续负责已有的 label/citation key/结构审计、edition verification 字段读取、source/PDF hash、compile attestation 和 package allowlist；PDF 可见身份、真实 AI 使用、文献实体与 claim 支持、图表信息冗余及页面视觉缺陷由人工或当前可用工具核对并记录验证方式。无法证明时标记 `unverifiable`，不得引入隐藏联网依赖或以字符串规则制造确定结论。
+
+正式 v1 报告以 `templates/review/final_review_matrix.yaml` 为结构载体，并由 `scripts/score_submission.py` 校验。Matrix 是 Review artifact，不是赛事规则 Authority，不进入 Project State、模型 semantic hash、Model Approval、03A/03B 或 Figure Evidence stale 传播，也不得自动加入 official package。
+
+## 十、返修优先级
 
 返修按影响顺序：
 
 ```text
 会改变答案/数学语义/事实来源的问题
+→ 已核验官方规则或匿名性违规
 → 核心答案评分精度或工作簿一致性问题
 → subproblem / paper fragment stale 冲突
 → 模型类型、Model/Solver/Validator、目标函数或约束断链
@@ -225,7 +273,7 @@ Title Claim Gate 检查选定标题中的研究对象、主方法、核心机制
 
 不要先修漂亮再修会改变答案的问题。
 
-## 十、Blocking 条件
+## 十一、Blocking 条件
 
 以下属于典型 Hard 违规，必须修复后才能正式交付：
 
@@ -245,5 +293,6 @@ Title Claim Gate 检查选定标题中的研究对象、主方法、核心机制
 - 核心图表与正文结论冲突或关键引用不存在；
 - 必需 citation key 不存在、外部核心数据/参数完全无来源；
 - 正式 LaTeX 审计/编译证明失效，或提交包缺少**当前已核验赛事规则/所选复现模式真正要求的文件**，或 package provenance 验证失败。
+- 当前适用、强制且已核验的官方页数、匿名、AI 披露或提交文件规则存在明确未解决违规。
 
 以下**不再自动列为 Blocking**：问题章节内部二级小节超过默认 3--4 个、命题超过默认正文预算、优缺点条目数量关系、简单问题没有独立“核心模型汇总”小节、`not_needed` 小问没有正式算法框、短证明超过经验行数预算、仅由机器字符串相似度产生的术语提示、普通未引用公式的 warning。它们按 Authority 对应 Default/Recommendation 处理。

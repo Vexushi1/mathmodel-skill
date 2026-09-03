@@ -1,4 +1,4 @@
-version: 8.1.1
+version: 8.2.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -20,6 +20,8 @@ contracts:
   writing_reasoning: core/writing_reasoning_contract.yaml
   writing_runtime: core/writing_runtime_contract.yaml
   writing_protocol: modules/05_writing/paper_writing_protocol.md
+  review_delivery: modules/06_review_delivery.md
+  final_review_matrix: templates/review/final_review_matrix.yaml
   cumcm_template_manifest: templates/latex/cumcm/hsk/template_manifest.yaml
   numerical_verification: core/numerical_verification_contract.yaml
   framework_template: templates/model/model_paper_framework.md
@@ -104,7 +106,7 @@ artifact_catalog:
   latex_audit_report: 绑定当前LaTeX source bundle与模型论文框架哈希的正式项目审计证明
   compiled_pdf: 最终PDF
   compile_report: 绑定LaTeX审计、编译profile、source bundle、日志与PDF哈希的编译证明
-  review_report: 终审问题与评分报告
+  review_report: 终审问题、八类动态coverage、原子finding与六维评分报告；正式v1结构来自templates/review/final_review_matrix.yaml，且不进入official package或模型语义状态
   submission_package: 已按official或reproducibility规则整理、尚待package provenance gate验证的提交ZIP
   submission_package_validation_report: 提交ZIP的kind、allowlist、manifest及当前项目哈希一致性验证报告
   validated_submission_package: submission_package_validation gate通过后的正式可交付提交包

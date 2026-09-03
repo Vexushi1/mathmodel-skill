@@ -1,6 +1,15 @@
 # Changelog
 
-## Current release: 8.1.1
+## Current release: 8.2.0
+
+- Added **Final Review Compliance & Evidence Sweep** as the single final-submission review authority for verified edition rules, anonymity/metadata, AI disclosure consistency, citation entity integrity, rendered-page defects, figure/table information value, package evidence and dynamic cross-question coverage.
+- Added `templates/review/final_review_matrix.yaml` with eight stable coverage families and atomic findings carrying source, verification mode, location, evidence, severity, status and corrective action.
+- Extended `scripts/score_submission.py` with optional v1 matrix validation while preserving the exact legacy report output path; explicit scores remain authoritative and finding counts never create fixed deductions.
+- Added `verified_official_rule_violation`, usable only with a current verified rule source/date and an unresolved blocking finding; Hard Fail remains independent of the weighted score.
+- Kept the matrix outside Project State, model semantic hashes, Model Approval, 03A/03B, Figure Evidence and official package allowlists; added no PDF parser, network dependency, report-schema migration or pre-delivery gate.
+- Added dedicated regression and static-contract coverage for enum/schema failures, evidence completeness, official-rule provenance, version parity, Authority isolation and protected-file drift.
+
+## Previous release: 8.1.1
 
 - Repaired the active `SKILL.md` Authority navigation so project memory points to the existing `templates/model/model_paper_framework.md` instead of the nonexistent `core/project_memory_contract.yaml`.
 - Kept root and packaged Skill entrypoints byte-identical and synchronized all explicit current-release carriers to v8.1.1.

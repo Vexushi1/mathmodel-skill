@@ -1,4 +1,4 @@
-version: 8.1.1
+version: 8.2.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -26,6 +26,8 @@ scope_boundary:
     template_structure: templates/latex/cumcm/hsk/template_manifest.yaml
     ordinary_prose: modules/05_writing/paper_writing_protocol.md
     latex_rendering: modules/05_writing/latex.md
+    final_review: modules/06_review_delivery.md
+    final_review_matrix: templates/review/final_review_matrix.yaml
   rule: Delegated sections below are integration pointers/switches only; they must not become parallel policy authorities.
 project_root:
   problem_and_attachments: 赛题、附件数据表和说明文件直接放在项目根目录

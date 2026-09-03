@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：8.1.1
+当前 Skill 版本：8.2.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -204,6 +204,7 @@
 - `templates/problem/model_route_compare.md`
 - `templates/problem/requirement_coverage.md`
 - `templates/review/code_slimming.md`
+- `templates/review/final_review_matrix.yaml`
 - `templates/review/result_analysis_check.md`
 - `templates/review/result_manifest.yaml`
 - `templates/writing/abstract_result_check.md`
@@ -289,3 +290,4 @@
 - `tests/test_v802_entrypoint_surface_slimming.py`
 - `tests/test_v803_core_model_summary_vocabulary.py`
 - `tests/test_v810_cross_file_chapter_handoff.py`
+- `tests/test_v820_final_review_compliance.py`
