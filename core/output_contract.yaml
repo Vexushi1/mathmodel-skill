@@ -1,4 +1,4 @@
-version: 8.2.0
+version: 8.3.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -38,6 +38,7 @@ project_root:
   draft_docx: draft_docx/
   final_latex: final_latex/
   submission: submission/
+  figures: figures/（仅在实际有正式图片或选择draw.io机理图路径时创建）
   per_question_outputs: 问题{中文序号}求解/
 writing_policy:
   role: 写作契约只保存权威指针与运行时开关，不复制正文规则。
@@ -563,12 +564,33 @@ matlab_figure_contract:
   provenance_record: null
   mtime_role: 仅作辅助警告
   default_output: 每问交付同目录qX_plot.m；project_level另交付数据预处理/data_process.m；图窗由用户人工检查和按需导出
+mechanism_drawio_contract:
+  authority: modules/04_figure_evidence.md#Mechanism-Diagram-Backend-Selection-Gate
+  activation: 用户明确需要draw.io/可编辑机理图，且后端选择门确认属于非数据驱动题目专属关系图
+  spec_template: templates/figure/mechanism_drawio_spec.yaml
+  implementation_reference: templates/figure/mechanism_drawio_patterns.md
+  generator: scripts/generate_mechanism_drawio.py
+  validator: scripts/validate_drawio_figure.py
+  editable_source: figures/source/qX_<slug>.drawio
+  spec_source: figures/source/qX_<slug>.mechanism.yaml
+  rendered_preview: figures/preview/qX_<slug>.png
+  formal_exports: [figures/qX_<slug>.pdf, figures/qX_<slug>.svg, figures/qX_<slug>.png]
+  source_format: uncompressed_drawio_xml_v1
+  generator_role: 将已确认Spec确定性转换为可编辑XML；不得推断语义、读取工作簿、计算模型或生成数值
+  validator_role: 只检查结构、几何、安全与hash current状态；不判断数学、箭头语义、证据充分性或审美
+  approval_sequence: [spec_draft, drawio_generated, structure_checked, preview_rendered, visual_reviewed, approved_for_paper]
+  preview_required_for_approved_figures: true
+  no_preview_status: draft_only_await_user_render
+  pure_visual_change_model_semantics: unchanged
+  semantic_change_adjudication: 对照current模型论文框架与现有模型Authority；工具不得自行裁决
+  official_package_default: excluded
+  per_question_five_file_layout_unchanged: true
 ownership:
   Python_preprocessing: 仅preprocessing_decision=project_level时生成；负责共享原始数据的公共审计与已批准处理、论文方法/验证证据和绘图底层数据并输出统一工作簿，不求解小问核心模型。
   MATLAB_preprocessing: 仅project_level时由data_process.m读取统一工作簿绘制处理前后与验证证据；不重新清洗、插值、滤波、重采样或估计参数。
   Python: 每问维护同目录两个题目专属脚本；not_needed/question_local可读取原始数据，project_level读取统一工作簿。问题X求解.py负责主求解、当前主计算最低数值有效性检查及不改变当前计算世界的高价值状态/过程/结构Evidence Capture；问题X结果深化分析.py只在主工作簿accepted后负责敏感性、稳健性、边界、替代方法/结构等独立深化分析并保留细粒度底层证据。
   MATLAB: 同目录qX_plot.m精确读取本问两个标准工作簿，并仅在图确实需要底层数据时按preprocessing_decision读取原始数据或统一预处理工作簿；按modules/04_figure_evidence.md执行Scientific Evidence Visualization、组合编码和全局—局部组织，不重新计算核心结果，默认不自动导出图片
-  other_figure_tools: GeoGebra、PPT、draw.io、SVG、TikZ可用于非数据驱动机理图
+  other_figure_tools: GeoGebra、PPT、draw.io、SVG、TikZ可用于非数据驱动机理图；draw.io仅按mechanism_drawio_contract选择，工作簿驱动结果图继续归MATLAB
 filenames:
   preprocessing_script: 数据预处理/数据预处理.py（仅project_level）
   preprocessing_workbook: 数据预处理/数据预处理结果.xlsx（仅project_level）
@@ -583,6 +605,8 @@ filenames:
   workbooks: 中文固定名称
   worksheets: 中文描述性名称，最长31字符
   figures: ASCII英文或拼音；预处理图基名data_process或data_process_<evidence>
+  mechanism_drawio_internal: figures/source/qX_<slug>.mechanism.yaml、figures/source/qX_<slug>.drawio、figures/preview/qX_<slug>.png
+  mechanism_drawio_formal: figures/qX_<slug>.pdf|svg|png
 optional_metadata:
   default_generation: forbidden
   explicit_request_only:

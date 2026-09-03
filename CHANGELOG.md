@@ -1,6 +1,15 @@
 # Changelog
 
-## Current release: 8.2.0
+## Current release: 8.3.0
+
+- Added **Editable Mechanism Diagram Production & Visual QA** under the existing Figure Evidence Authority for problem-specific, non-data-driven draw.io mechanism figures.
+- Added an optional v1 Mechanism Diagram Spec, deterministic uncompressed `.drawio` generation, and structure/geometry/safety validation with human-readable and JSON output.
+- Added precise routing for draw.io/editable mechanism requests while keeping ordinary result-figure routes free of draw.io implementation resources.
+- Required a current rendered preview and manual semantic/visual review before `approved_for_paper`; machine validation explicitly does not judge arrow semantics, mathematics, missing mechanisms, aesthetics, or claim support.
+- Preserved MATLAB ownership for workbook-driven figures, the per-question five-file layout, Project State and Model Approval schemas, numerical/writing/review Authorities, and official package allowlists.
+- Added v8.3 regression coverage for deterministic output, invalid specs, geometry/security failures, approval-state boundaries, version parity, and protected semantic-file drift.
+
+## Previous release: 8.2.0
 
 - Added **Final Review Compliance & Evidence Sweep** as the single final-submission review authority for verified edition rules, anonymity/metadata, AI disclosure consistency, citation entity integrity, rendered-page defects, figure/table information value, package evidence and dynamic cross-question coverage.
 - Added `templates/review/final_review_matrix.yaml` with eight stable coverage families and atomic findings carrying source, verification mode, location, evidence, severity, status and corrective action.

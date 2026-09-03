@@ -1,11 +1,13 @@
 # v8.3.0 Editable Mechanism Diagram Production & Visual QA 修改计划
 
-> 状态：**DRAFT / AWAITING USER APPROVAL**  
+> 状态：**APPROVED / PLAN MERGED**
 > 当前 Skill：`8.2.0`  
 > 计划目标版本：`8.3.0`（候选，新增向后兼容的机理图生产与校验能力）  
 > 计划基线：`main@aa7347116a970675b6c8a416898559cef8dbf7aa`  
 > 计划分支：`docs/v830-editable-mechanism-diagram-plan`  
-> 本计划 PR 只保存实施上下文，不修改 Figure Evidence Authority、路由、Schema、脚本、模板输出、版本载体或正式运行行为。用户批准且计划进入 `main` 后，实施必须从当时最新、干净的 `main` 重新冻结基线并建立独立功能分支。
+> 计划 PR：`#106`，已合并为 `6420817474d830d530833d2e56e97a419c83923e`
+> 实施分支：`upgrade/v8.3.0-editable-mechanism-diagrams`，从上述干净 `main` 建立。
+> 本计划 PR 只保存实施上下文；正式能力只有在独立功能 PR 完成全量验证并合并后才进入运行链。
 
 ---
 

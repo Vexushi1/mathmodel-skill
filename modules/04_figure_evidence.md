@@ -29,6 +29,61 @@
 
 优先表达公式来源、约束来源、临界状态和策略机制。图内只放对象、变量、方向、边界、距离、角度、流向和临界状态，完整推导留在正文。禁止用通用“输入—模型—输出”流程图替代题目专属机理图。
 
+### Mechanism Diagram Backend Selection Gate
+
+机理图先根据证据结构选后端，不按“哪个工具显得高级”选后端：
+
+| 证据结构 | 首选后端 | 准入理由 |
+|---|---|---|
+| 题目对象关系、机制作用链、反馈、状态切换、约束来源，且赛中需要快速修改对象/箭头/文字 | draw.io | 离散关系适合可编辑矢量图元 |
+| 工作簿驱动的主结果、分布、误差、敏感性、空间场、Pareto 或网络权重 | MATLAB | 数值、坐标、统计量和区间必须来自已验收事实源 |
+| 精确二维几何、连续函数、切线、坐标变换或按比例边界 | MATLAB / TikZ / GeoGebra | 需要解析或坐标精度 |
+| 简短公式依赖且必须与 LaTeX 字体一致 | TikZ | 直接服从论文公式环境 |
+| 临时讨论草图 | PPT / 手绘 | 只能作为草案，入文前转为正式后端 |
+
+draw.io 仅适用于**非数据驱动、题目专属且能绑定模型/公式/约束/判定条件**的机理图。只有通用研究阶段、算法名称或“输入—处理—输出”盒子的图不得作为核心机理图。一个直接二维图已经能更准确证明结论时，应否决 draw.io。
+
+### Editable draw.io 生产链
+
+draw.io 路径按以下状态推进：
+
+```text
+current Framework + Mechanism Contract
+→ backend selected
+→ mechanism_drawio_spec v1
+→ deterministic uncompressed .drawio
+→ structure_checked
+→ preview_rendered
+→ visual_reviewed
+→ approved_for_paper
+→ formal PDF/SVG/PNG + Framework登记
+```
+
+执行要求：
+
+1. 先读取 current `模型论文框架.md` 与 `templates/figure/mechanism_contract.md`，恢复题目对象、符号、公式、约束、判断条件和 Core conclusion；具体数值仍只能来自 accepted workbook；
+2. 复制 `templates/figure/mechanism_drawio_spec.yaml` 到项目 `figures/source/`，所有节点、边和语义锚点必须题目专属；Spec 只是渲染输入，不是模型或数值事实源；
+3. 使用 `scripts/generate_mechanism_drawio.py` 生成确定性的未压缩 XML；生成器不得发明对象、关系、公式、阈值或结论，也不得读取工作簿和求解模型；
+4. 使用 `scripts/validate_drawio_figure.py` 检查结构、几何、安全与 hash current 状态；检查结果只表示 `structure_checked`；
+5. 打开最新 `.drawio` 或预览图，先执行语义真实性复核，再执行版式复核；未查看最新渲染预览时不得进入 `approved_for_paper` 或 `approved_figures`；
+6. 人工通过后按需导出 `figures/qX_<slug>.pdf|svg|png`，同步 Mechanism Contract 与 Framework 图表登记。
+
+项目级建议路径为：`figures/source/qX_<slug>.mechanism.yaml`、`figures/source/qX_<slug>.drawio`、`figures/preview/qX_<slug>.png` 和 `figures/qX_<slug>.pdf|svg|png`。这些路径只在实际选择 draw.io 时创建，不改变每问两个 Python、两个工作簿和一个 `qX_plot.m` 的五文件结构。Spec、`.drawio` 与 preview 默认是内部编辑/复核材料，不自动加入 official package。
+
+### 机器检查与人工审查边界
+
+静态校验器可以检查唯一未压缩 `mxGraphModel`、ID、端点、画布、越界、文字确定性溢出、普通实体实质重叠、明确连线穿盒、外部/位图资源、声明路径与 hash。它**不判断箭头方向是否符合真实机制**，不判断变量、公式、约束、阈值或数学结论是否正确，也不判断是否遗漏关键对象、图是否美观或能否支撑正文 claim。
+
+人工复核必须先确认对象、端点、方向、符号、单位、临界侧、反馈、公式/约束锚点和数值事实源，再确认缩放后的文字、留白、对齐、颜色、端点、交叉和视觉层级。`structure_checked` 绝不等同于 `approved_for_paper`。无法渲染时可以交付 `.drawio` 草稿与结构检查结果，但必须明确等待用户预览，不得宣称机理图已经完成。
+
+### 视觉修改与语义修改分流
+
+移动节点、调整画布/间距/颜色/字体/线宽/圆角、只改变换行、改变不影响端点的连线路径、caption/编号/文件名或导出设置，属于纯视觉/交付修改：不递增模型 `semantic_revision`，不使 `locked_model_spec` stale，也不触发重新 Model Approval、03A 或 03B 重算；但正式图、Framework 登记和引用 hash 仍应刷新。
+
+新增、删除或替换对象/状态/变量，改变边的 source、target、direction、relation type，改变公式、约束、假设、阈值、判定条件、反馈或可行侧，必须与 current Framework 和模型 Authority 比较。若 Framework 正确而图画错，只修图并刷新 Figure Evidence；若图暴露模型/Framework 冲突，则按现有 semantic change category 回退模型设计或求解。draw.io 工具不得自行裁决数学语义。
+
+具体字段、基础图元和 CLI 参考 `templates/figure/mechanism_drawio_spec.yaml` 与 `templates/figure/mechanism_drawio_patterns.md`；它们只实现本节，不拥有独立 Figure 决策权。
+
 ## B 类：项目级预处理证据图
 
 当 `preprocessing_decision=project_level` 时，必须生成独立 MATLAB 脚本 `数据预处理/data_process.m`，只读取 `数据预处理/数据预处理结果.xlsx`。其职责是把 Python 已经保存的处理前/后、诊断和验证底层数据转成论文证据图。MATLAB 不允许重新清洗、插值、滤波、重采样、预测填补、训练模型或重新确定参数。

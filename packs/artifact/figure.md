@@ -54,3 +54,7 @@
 ## 机理图
 
 机理图服务公式来源、约束来源、对象关系、临界状态和策略机制。图中只保留对象、变量、方向、边界、距离、角度和临界状态，完整解释放正文。禁止通用“输入—模型—输出”流程图替代题目专属图。
+
+需要可编辑的非数据驱动对象关系、约束关系、反馈或临界状态图时，先按 `modules/04_figure_evidence.md` 的 Mechanism Diagram Backend Selection Gate 判断是否进入 draw.io 路径。选中后读取 `templates/figure/mechanism_contract.md` 与 `templates/figure/mechanism_drawio_spec.yaml`；只有实际生成或返修 draw.io 时再读取 `templates/figure/mechanism_drawio_patterns.md`。数据、坐标、误差、区间与工作簿结果仍由 MATLAB 路径负责。
+
+draw.io 的 `Spec → generate → validate → preview → semantic/visual QA → export` 只是一条实现链。静态检查通过不表示箭头、公式或机制正确；没有查看最新渲染预览时不得把图登记为 `approved_figures`。

@@ -1,6 +1,14 @@
-# mathmodel-skill v8.2.0
+# mathmodel-skill v8.3.0
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement → Figure Portfolio Review → Template-First 逐章读取/写入 → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v8.3.0：Editable Mechanism Diagram Production & Visual QA
+
+- 为非数据驱动、题目专属的对象关系、约束关系、反馈与临界状态图增加 draw.io 后端选择门；工作簿驱动结果图仍由 MATLAB 负责。
+- 新增 v1 Mechanism Diagram Spec、确定性未压缩 `.drawio` 生成器和低依赖结构/几何/安全校验器。
+- 新增 `Spec → generate → validate → preview → semantic/visual QA → export` 闭环；静态检查不判断箭头语义、数学正确性或审美，没有最新渲染预览不得批准入文。
+- 纯布局/样式/导出修改不触发 Model Approval 或数值重算；节点、端点、方向、变量、公式、约束和阈值变化必须回查 current Authority。
+- 不复制或依赖外部绘图库代码/资产，不新增数据绘图后端、Project State 字段、official package 文件或每问目录文件。
 
 ## v8.2.0：Final Review Compliance & Evidence Sweep
 

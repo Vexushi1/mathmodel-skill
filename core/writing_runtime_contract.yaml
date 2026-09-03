@@ -1,4 +1,4 @@
-version: 8.2.0
+version: 8.3.0
 role: >-
   v8 写作阶段的最小运行时映射。它不建立第二套数学写作 Authority，只声明普通论文写作真正需要加载的
   模板、项目事实、证据和 writing_reasoning_contract 中的语义能力，从而避免每次写作预载完整建模、数值与项目治理上下文。

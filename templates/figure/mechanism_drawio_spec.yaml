@@ -1,0 +1,42 @@
+# Copy this draft to figures/source/qX_<slug>.mechanism.yaml and replace every
+# REPLACE_* value before generation. The generator intentionally rejects this
+# untouched skeleton; it must not invent problem objects or semantic relations.
+spec_version: 1.0.0
+figure_id: REPLACE_FIGURE_ID
+question_id: REPLACE_QUESTION_ID
+diagram_type: mechanism_relation
+core_question: REPLACE_WITH_THE_EXACT_PROBLEM_SPECIFIC_QUESTION
+core_conclusion: REPLACE_WITH_ONE_EVIDENCE_CALIBRATED_CONCLUSION
+framework_anchor: REPLACE_WITH_CURRENT_FRAMEWORK_SECTION
+backend: drawio
+layout_mode: explicit
+
+semantic_anchors:
+  model: []
+  formulas: []
+  constraints: []
+  assumptions: []
+  code: []
+  result_evidence: []
+
+canvas:
+  width: 1000
+  height: 700
+  orientation: landscape
+  target_use: paper
+  target_width_mm: 150
+
+groups: []
+nodes: []
+edges: []
+
+artifact:
+  spec_source: figures/source/REPLACE_STEM.mechanism.yaml
+  editable_source: figures/source/REPLACE_STEM.drawio
+  preview: null
+  final_exports: []
+  spec_sha256: null
+  drawio_sha256: null
+  preview_sha256: null
+  validation_status: pending
+  visual_review_status: pending

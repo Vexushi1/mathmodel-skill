@@ -1,4 +1,4 @@
-version: 8.2.0
+version: 8.3.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -66,6 +66,10 @@ artifact_catalog:
   proposition_plan: 全文高价值命题规划；0--4为默认正文阅读预算，超过预算时记录必要性说明而非自动否决
   model_paper_framework: 助手可再次读取的当前项目语义记忆与论文骨架；只保存Problem Contract、预处理判定、标准模型类型与正式模型名称、Model/Solver/Validator角色、优化目标摘要口径、Formula Trace、Algorithm Trace、Model Challenge/Human Approval当前状态、参数证据、Terminology Registry、Numeric Profile、Title Claim、Claim Evidence Level/Scope、问题章节小节规划、命题、Citation Evidence、paper-fragment状态、逐问结果摘要和图表映射，通用写作规则由Authority管理，具体数值仍以已验收工作簿为准
   mechanism_contracts: 机理图合同
+  mechanism_diagram_spec: 可选的v1 draw.io渲染规格；只引用current Framework/Contract，不是模型或数值事实源
+  editable_mechanism_source: 由确定性生成器产生并通过结构检查的未压缩可编辑.drawio源；不能替代渲染预览和人工语义QA
+  mechanism_preview: 与当前draw.io hash绑定、供人工语义与版式复核的渲染预览；没有预览不得批准入文
+  mechanism_exports: 人工复核后从可编辑源导出的项目级PDF/SVG/PNG正式机理图
   validation_plan: 建模阶段的验证规划；其中Primary Quality Specification只定义当前主计算的最低数值有效性要求，参数敏感性、压力场景、替代算法/结构、异质性等仅作为下游风险提示，正式result_analysis_plan必须等主工作簿accepted后再建立
   semantic_governance_report: 聊天或标准输出中的Problem Contract、语义闭环、复杂度复审、语义哈希、跨问和paper-fragment stale校验结果
   preprocessing_code: 仅decision=project_level时生成的数据预处理/数据预处理.py；共享原始数据唯一公共处理入口
@@ -241,6 +245,10 @@ modules:
     - matlab_scripts
     - result_figures
     - refined_mechanism_figures
+    - mechanism_diagram_spec
+    - editable_mechanism_source
+    - mechanism_preview
+    - mechanism_exports
     - figure_contracts
     - approved_figures
     - evidence_map
