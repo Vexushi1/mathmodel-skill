@@ -80,7 +80,7 @@ class TestV861ActiveConsistencySemanticDrift(unittest.TestCase):
         self.assertEqual(question["internal_structure"], "adaptive")
         self.assertEqual(question["default_complex_question_headings_role"], "maintained_example_profile_only")
         adaptive = self.reasoning["model_establishment_solution_narrative"]["within_question_subsection_architecture"]["adaptive_separation"]
-        self.assertIn("thin_variable_objective_constraint_fragments", adaptive["merge_when_any"])
+        self.assertIn("each_candidate_heading_has_little_independent_content", adaptive["keep_continuous_when_all"])
         self.assertIn("independent_structural_reduction", adaptive["separate_when_any"])
 
     def test_a196_is_provenance_not_runtime_model_or_solver_authority(self):

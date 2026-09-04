@@ -261,7 +261,7 @@
 - Preserved legacy no-`--mode` packaging as reproducibility behavior and legacy v2 compile reports as read-compatible only; current formal delivery requires regenerated v3 attestations.
 - Numerical models, preprocessing semantics, Workbook Schema, Python/MATLAB responsibilities, full-fidelity user execution, semantic-governance 1.0.0, framework `v0.8-project-memory` and the per-question five-file interface remain unchanged.
 
-## Earlier release: 7.9.0
+## Previous release: 7.9.0
 
 - Closed modular-LaTeX runtime dispatch: `audit_latex_project.py` is now the public LaTeX audit entrypoint for modular and compatible single-file projects, delegating prose/BibTeX/framework checks to `audit_paper_prose.py`.
 - Closed `full_workflow` post-execution Pack loading so Figure, LaTeX and Review Artifact Packs are available after accepted primary/result-analysis workbooks, and added `validated_submission_package` to final workflow outputs.
