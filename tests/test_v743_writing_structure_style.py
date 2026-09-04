@@ -15,7 +15,7 @@ class TestWritingStructureStyle(unittest.TestCase):
             "## C. Style & Necessity",
             "## D. Optional machine diagnostics",
             "数值实验", "算法百科", "逐格复述表格", "Citation Evidence",
-            "Paragraph Necessity 与 Detail Allocation", "机器审计不得自动重写正文",
+            "Paragraph Necessity、Model Rationale 与 Detail Allocation", "机器审计不得自动重写正文",
         ):
             self.assertIn(token, cleanup)
         self.assertIn("Skill 负责原则，脚本负责穷举", cleanup)
