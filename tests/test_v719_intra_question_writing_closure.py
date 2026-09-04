@@ -26,7 +26,7 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
         cls.router = (ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8")
 
     def test_reasoning_schema_and_single_authority(self):
-        self.assertEqual(self.contract["schema_version"], "1.7.0")
+        self.assertEqual(self.contract["schema_version"], "1.8.0")
         for key in (
             "within_question_subsection_architecture",
             "detail_allocation_governance",
@@ -73,6 +73,15 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
         self.assertIn("数学认知顺序", architecture["python_log_rule"])
         self.assertIn("局部数学依赖与求解认知顺序", self.protocol)
         self.assertIn("程序执行步骤直接变成论文小节", self.cleanup)
+
+    def test_adaptive_separation_protects_navigation_without_reordering(self):
+        architecture = self.narrative["within_question_subsection_architecture"]
+        adaptive = architecture["adaptive_separation"]
+        self.assertIn("independent_structural_reduction", adaptive["separate_when_any"])
+        self.assertIn("independent_numerical_parameter_evidence", adaptive["separate_when_any"])
+        self.assertIn("same_argument_chain", adaptive["keep_continuous_when_all"])
+        self.assertIn("Adaptive Subsection Separation", self.protocol)
+        self.assertIn("Split 不能由字数触发，Merge 不能由标题数量触发", self.cleanup)
 
     def test_data_and_shared_sections_are_internal_only(self):
         architecture = self.narrative["within_question_subsection_architecture"]
@@ -187,7 +196,9 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
         closure = self.narrative["question_section_narrative_closure"]
         for token in (
             "local_prerequisite_before_use",
+            "model_rationale_recoverable_when_nontrivial",
             "model_semantics_closed_before_solver",
+            "solver_preconditions_closed_when_material",
             "solver_output_mapped_to_model_variable_or_answer",
             "decisive_result_has_nearby_interpretation",
             "current_question_directly_answered",
@@ -201,6 +212,8 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
         audit = self.contract["machine_audit_boundary"]
         new_risks = {
             "subsection_order_breaks_local_dependency",
+            "subsection_overmerged_despite_independent_tasks",
+            "subsection_fragmented_without_independent_task",
             "top_level_framework_reordered_by_writing_rule",
             "decisive_derivation_overcompressed",
             "routine_content_overexpanded",
@@ -214,8 +227,9 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
         self.assertTrue(new_risks.isdisjoint(set(audit["may_block"])))
         self.assertIn("detail_quality_from_word_count_only", audit["must_not_claim"])
         self.assertIn("top_level_reordering_permission_from_local_dependency_only", audit["must_not_claim"])
+        self.assertIn("subsection_quality_from_heading_length_only", audit["must_not_claim"])
 
-    def test_no_runtime_or_modeling_schema_expansion(self):
+    def test_no_runtime_or_modeling_gate_schema_expansion(self):
         forbidden_tokens = (
             "within_question_subsection_gate",
             "detail_allocation_gate",
@@ -235,9 +249,9 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
         )
         for token in forbidden_tokens:
             self.assertNotIn(token, protected)
-        self.assertNotIn("within_question_subsection_architecture", self.module02)
-        self.assertNotIn("detail_allocation_governance", self.module02)
-        self.assertNotIn("figure_result_narrative", self.module02)
+        self.assertNotIn("within_question_subsection_architecture:", self.module02)
+        self.assertNotIn("detail_allocation_governance:", self.module02)
+        self.assertNotIn("figure_result_narrative:", self.module02)
         self.assertIn("Human Model Approval", self.module02)
 
 
