@@ -121,7 +121,6 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
-- `scripts/apply_v870_writing_capability_phase2.py`
 - `scripts/audit_latex_project.py`
 - `scripts/audit_paper_prose.py`
 - `scripts/audit_v8_writing_surface.py`
