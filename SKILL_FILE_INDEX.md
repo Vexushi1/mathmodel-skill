@@ -76,6 +76,7 @@
 - `docs/v860_model_construction_solution_rationale_plan.md`
 - `docs/v861_active_consistency_semantic_drift_hardening_plan.md`
 - `docs/v861_postmerge_delivery_verification.md`
+- `docs/v870_question_writing_capability_preflight_plan.md`
 - `docs/v8_writing_capability_inventory.md`
 - `docs/v8_writing_migration.md`
 - `legacy/README.md`
