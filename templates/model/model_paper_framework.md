@@ -1,7 +1,7 @@
 # 模型论文框架
 
 > 本文件只保留**当前有效项目事实、选择、状态与证据位置**。历史由 Git 保存。
-> 通用写作规则不在这里重复：推理与证据治理见 `core/writing_reasoning_contract.yaml`，正文结构与表达见 `modules/05_writing/latex.md`。
+> 通用写作规则不在这里重复：推理与证据治理见 `core/writing_reasoning_contract.yaml`，正文结构与表达见 `modules/05_writing/paper_writing_protocol.md`，LaTeX 载体接口见 `modules/05_writing/latex.md`。
 > 具体数值必须回到已验收标准工作簿复核；semantic revision、hash 与 stale 以 `state/project_state.yaml` 为准。
 
 - 项目：`__PROJECT__`
@@ -63,9 +63,9 @@
 
 ### 各问依赖关系
 
-| 小问 | 直接目标 | 隐含目标 | 依赖前问 | 依赖类型 | 输出交付 | 当前状态 |
-|---|---|---|---|---|---|---|
-| Q1 |  |  |  | data / parameter / model / result / independent |  |  |
+| 小问 | 直接目标 | 隐含目标 | 依赖前问 | 依赖类型 | 新增结构/困难 | 原 solver 是否仍适用及理由 | 输出交付 | 当前状态 |
+|---|---|---|---|---|---|---|---|---|
+| Q1 |  |  |  | data / parameter / model / result / independent |  | not_applicable / remains_sufficient / becomes_insufficient |  |  |
 
 ## 论文整体框架
 
@@ -109,14 +109,15 @@
 2. 共享基础与跨问递进：
 3. 假设、数据说明与预处理位置：
 4. 公式推导重点与普通代数压缩范围：
-5. 各问核心模型收束状态：`required / inline / not_applicable`：
-6. 各问算法流程呈现状态：`not_needed / stepwise / pseudocode`：
-7. 各问 Model / Solver / Validator 角色与首次算法说明位置：
-8. 各问题章节二级小节规划与颗粒度例外：
-9. 求解、结果、局部验证和深化证据布局：
-10. 命题/证明、Citation Evidence、Terminology 与 Numeric Profile 的使用位置：
-11. 特殊结构例外（独立结论、对象图、问题关系图等）及依据：
-12. Template Override（无则写 `none`）：`template_id / instruction_source / override_scope / affected_files / reason / official_compliance_impact / status`：
+5. 各问 Model Construction Rationale / applicability 的实际落点：
+6. 各问核心模型收束状态：`required / inline / not_applicable`：
+7. 各问算法流程呈现状态：`not_needed / stepwise / pseudocode`：
+8. 各问 Model / Solver / Validator 角色、关键 solver preconditions 与首次算法说明位置：
+9. 各问题章节二级/三级小节规划、标题压缩与颗粒度例外：
+10. 求解、结果、局部验证和深化证据布局：
+11. 命题/证明、Citation Evidence、Terminology 与 Numeric Profile 的使用位置：
+12. 特殊结构例外（独立结论、对象图、问题关系图等）及依据：
+13. Template Override（无则写 `none`）：`template_id / instruction_source / override_scope / affected_files / reason / official_compliance_impact / status`：
 
 ### 共享基础与跨问增量
 
@@ -125,9 +126,9 @@
 - 真正共享的对象/状态/方程/概率或网络结构：
 - 最终章节名与位置（若单列）：
 
-| 小问 | 继承结构 | 新增对象/条件 | 新增数学结构 | 困难变化 | 求解变化 |
-|---|---|---|---|---|---|
-| Q1 | independent / shared foundation |  |  |  |  |
+| 小问 | 继承结构 | 新增对象/条件 | 新增数学结构 | 困难变化 | 求解变化 | 原 solver 继续/更换理由 |
+|---|---|---|---|---|---|---|
+| Q1 | independent / shared foundation |  |  |  |  |  |
 
 ### 核心公式 Trace
 
@@ -147,9 +148,9 @@
 
 ### 数值参数依据
 
-| 参数 | 对应小问 | 数学作用 | 候选范围 | 选择证据 | 最终取值 | 主结果稳定性 |
-|---|---|---|---|---|---|---|
-|  |  |  |  |  | pending | pending |
+| 参数 | 对应小问 | 数学/数值作用 | 候选范围/来源 | 证据指标 | 选择规则 | 最终取值 | 对主结论影响（若相关） |
+|---|---|---|---|---|---|---|---|
+|  |  |  |  |  |  | pending | pending / not_applicable |
 
 ### Citation Evidence
 
@@ -214,6 +215,7 @@
 - Problem Contract：`pending / frozen / stale`
 - 语义闭环：`pending / passed / stale`
 - 公式推理链：`pending / passed / stale`
+- Model Construction Rationale：`not_applicable / pending / passed / stale`
 - 复杂度复审：`pending / passed / review_required`
 - Model Challenge：`pending / passed / revision_required / stale`
 - Human Model Approval：`pending / approved / revision_required / stale`
@@ -225,8 +227,9 @@
 - 算法流程呈现：`not_needed / stepwise / pseudocode`
 - 主要 Model / Solver / Validator 角色：
 - 优化目标摘要闭合：`not_applicable / pending / passed`
-- 问题章节二级小节计划：
+- 问题章节二级/三级小节计划：
 - 小节颗粒度：`pending / compact / justified_expanded / review_required`
+- 标题压缩复核：`not_needed / pending / passed / review_required`
 - 关联 Algorithm ID：
 - 关联命题：
 - 关联 Citation Claim：
@@ -269,6 +272,18 @@
 - 当前目标/评价指标：
 - 目标函数现实含义（优化题）：
 - 当前约束与边界：
+
+**Model Construction Rationale（非平凡选择按需；简单直接计算可 not_applicable）**
+
+- Current structure：当前已经掌握的对象、关系或条件：
+- Modeling gap：当前仍不能判断/表达/优化什么：
+- Chosen structure：为闭合 gap 引入的模型、判据、状态关系或近似：
+- Why this structure：为什么它能闭合当前 gap：
+- Applicability conditions：当前结构成立的题意、机制、数据、数学性质、尺度/维度或近似条件：
+- Limitations / failure boundary：在哪些条件变化下需要重建或降级 claim：
+- Downstream role：进入哪个公式、目标、约束、solver、结果或验证：
+- Reduction provenance（若有）：`exact / proven_sufficient / heuristic / not_applicable`
+- Reduction proof/evidence anchor 与弃置域风险（若适用）：
 
 $$
 \text{在此写入当前有效模型。}
@@ -323,22 +338,23 @@ $$
 - Model Reviewer verdict 与 required actions：
 - Devil's Advocate verdict、核心反例/风险与 required actions：
 - Residual warnings：
-- Model Approval Brief：研究对象、selected model、标准模型类型、核心变量、objective、关键约束、preprocessing_decision、结构化简、solver/validator 角色、algorithm presentation、被否决路线理由、下一阶段实现范围；若机理/几何结构有效性适用，摘要暴露真正改变求解语义的判据、事件边界、缩域 evidence level、组合算子、条件式 solver 分支和 original-model 回算要求。
+- Model Approval Brief：研究对象、selected model、标准模型类型、核心变量、objective、关键约束、Model Construction Rationale、applicability boundary、preprocessing_decision、结构化简与 provenance、solver/validator 角色、solver preconditions、algorithm presentation、关键数值参数证据、被否决路线理由、下一阶段实现范围；若机理/几何结构有效性适用，摘要暴露真正改变求解语义的判据、事件边界、缩域 evidence level、组合算子、条件式 solver 分支和 original-model 回算要求。
 - 当前模型状态：`proposed_model_spec / locked_model_spec / stale`
 
 **数值参数证据**
 
-| 参数 | 数学作用 | 候选范围 | 证据方法 | 最终值 | 主结果稳定性 |
-|---|---|---|---|---|---|
-|  |  |  |  | pending | pending |
+| 参数 | 数学/数值作用 | 候选范围/来源 | 证据指标 | 选择规则 | 最终值 | 主结论影响（若相关） |
+|---|---|---|---|---|---|---|
+|  |  |  |  |  | pending | pending / not_applicable |
 
 **求解与验证方案**
 
 - Solver（主求解算法/分解求解结构）：
 - Solver 首次使用的本题适配理由：
+- Solver preconditions：`required property → current evidence → local/global scope → invocation`：
 - Solver applicability 的解析/条件式 probe 依据（若适用）：
-- 若沿用前问算法，继承结构与新增变化：
-- 若更换算法，改变求解需求的结构增量：
+- 若沿用前问算法，继承结构与为什么仍然足够：
+- 若更换算法，改变求解需求的结构增量与为什么前问算法不再足够：
 - Validator / baseline / alternative：
 - 各验证算法的角色与 evidence anchor：
 - 算法流程呈现：`not_needed / stepwise / pseudocode`
@@ -358,6 +374,16 @@ $$
 - 多方法数值一致性指标：
 - 多方法结构一致性指标：
 
+**本问问题章节导航计划**
+
+| Heading | Role | Independent task | Depends on | Reason to separate | Formula / Evidence anchor | Downstream use |
+|---|---|---|---|---|---|---|
+|  | model / solve / result / validation |  |  |  |  |  |
+
+- Heading Compression：父标题已提供的背景/“模型建立及求解”等信息是否已删除：
+- 是否存在应合并的薄小节：
+- 是否存在因过度合并而需要拆出的独立证明/结构化简/参数证据/solver stage：
+
 **本问理论与引用证据**
 
 - 命题及下游作用：
@@ -370,7 +396,9 @@ $$
 
 - 当前有效标准模型类型：
 - 当前有效模型/关键结构：
+- Model Construction Rationale 与适用边界的一句项目事实摘要（若适用）：
 - 主 Solver / 求解方式：
+- Solver preconditions / 适配范围摘要：
 - Validator / baseline / alternative：
 - 算法流程在正文的呈现方式与 Algorithm ID：
 
@@ -446,21 +474,24 @@ $$
 
 - Formula Trace 是否仍有 `gap/stale`：
 - 每问是否能识别标准数学模型类型：
+- 重要模型选择是否能恢复 Modeling gap / Why this structure / Applicability conditions / Downstream role：
+- 结构化简的 `exact / proven_sufficient / heuristic` 与正文措辞是否一致：
 - Model / Solver / Validator 是否职责清楚，solver/validator 未冒充模型本体：
 - 优化类摘要是否已闭合“决策对象 + 优化目标 + 主求解方式 + 结果 + 回答”：
-- solver 第一次使用是否有本题结构理由；沿用/更换算法是否解释结构继承/变化：
+- solver 第一次使用是否有本题结构理由及关键 preconditions；沿用/更换算法是否解释结构继承/变化：
 - 另用算法是否有 baseline / alternative / validator 角色和真实 evidence anchor：
 - `stepwise/pseudocode` 的 Algorithm Trace 是否 current 且锚点闭合：
 - 是否有其实应为 `not_needed` 的装饰性算法流程：
-- 问题章节内部小节是否存在无必要碎片化；超过默认颗粒度是否有独立论证理由：
-- 是否存在无依据数值参数：
+- 问题章节内部小节是否同时避免机械切碎与过度合并；独立证明/结构化简/参数证据/solver stage 是否得到必要导航：
+- 子标题是否通过 Heading Compression Test，且没有以固定字数/数量替代语义判断：
+- 是否存在无依据数值参数；关键参数是否有作用、候选范围/来源、证据指标和选择规则：
 - Citation Evidence 是否存在 pending/stale 的核心 claim：
 - Terminology Registry 是否存在 alias collision 或未处理易混术语：
 - Numeric Profile 是否覆盖核心答案及提交结果：
 - 摘要/正文/表格中的核心答案是否保留评分所需高精度：
 - Headline Claim Evidence Level 与正文措辞是否一致：
 - 共享基础是否只定义一次：
-- 后问是否只写真实增量：
+- 后问是否只写真实增量；solver 沿用/更换是否说明为什么仍足够/不再足够：
 - 结构化简是否先于高级算法：
 - 适用的精确事件/几何判据是否闭合到对象域、量词和 line/ray/segment 等真实语义：
 - 连续事件是否先确认局部 bracket/多区间结构，再使用根定位方法：
@@ -508,8 +539,10 @@ $$
 - [ ] 题面—数学—代码—输出不存在关键 gap；
 - [ ] 核心 Formula Trace 均为 closed，或 gap 已阻断下游；
 - [ ] 每问标准模型类型、正式模型名称及 Model / Solver / Validator 角色已记录；
+- [ ] 非平凡模型选择已记录当前结构、Modeling gap、Why this structure、适用条件/失效边界与 Downstream role；简单直接计算可标 `not_applicable`；
+- [ ] 结构缩减已区分 `exact / proven_sufficient / heuristic`，并与证明/evidence/claim scope 一致；
 - [ ] 优化类小问的决策变量/对象、目标函数含义、约束与摘要 objective 口径闭合；
-- [ ] solver 第一次使用的本题适配理由、沿用/更换算法的结构依据和 alternative/validator evidence 已按实际情况记录；
+- [ ] solver 第一次使用的本题适配理由、关键 preconditions、沿用/更换算法的结构依据和 alternative/validator evidence 已按实际情况记录；
 - [ ] 适用的机理/几何判据已经闭合 object domain、量词顺序、line/ray/segment/边界/实体语义及代码/证据锚点；
 - [ ] 连续事件的区间拓扑、局部 bracket、端点更新与容差已按实际求解需要记录，没有把非单调事件伪装成全局二分；
 - [ ] 候选域/活动边界/分解缩减已区分 `exact / proven_sufficient / heuristic`；heuristic 已声明弃置域、反例检查和有限 claim scope；
@@ -518,8 +551,8 @@ $$
 - [ ] surrogate / decomposition 的推荐方案已计划/完成 original-model reevaluation，或明确无法完整回算的残余近似；
 - [ ] 需要正式算法流程的小问已选择 `stepwise/pseudocode` 并建立 current Algorithm Trace；简单问题明确 `not_needed`，未机械生成伪代码；
 - [ ] Algorithm Trace 中公式/命题/约束、Python 与输出锚点和当前求解链一致；
-- [ ] 问题章节内部小节规划已检查颗粒度，没有把同一论证链机械切成大量二级标题；
-- [ ] 影响结论的数值参数有来源、收敛或验证依据；
+- [ ] 问题章节内部小节规划已同时检查碎片化与过度合并；标题服务独立数学任务且不存在机械字数/数量门槛；
+- [ ] 影响结论的数值参数有作用说明、候选范围/来源、精度/收敛/验证证据和选择规则；
 - [ ] 复杂度异常信号已经解释；
 - [ ] semantic revision 与 stale 传播正确；
 - [ ] Paper Fragment Dependency Map 只传播真实依赖，未把无关章节机械 stale；模块化 LaTeX 项目中的 current/stale fragment 已记录可追踪的源码文件；
@@ -534,6 +567,6 @@ $$
 - [ ] Terminology Registry 中标准术语、易混术语与符号含义一致；
 - [ ] Title Claim 与摘要、关键词、正文主模型及结果证据闭合；
 - [ ] 命题超过默认预算时已有必要性说明，不按数量自动否决；
-- [ ] Paragraph Necessity Test 已用于删除/合并无用途背景、算法百科、重复数字和重复总结；
+- [ ] Paragraph Necessity Test 已用于删除/合并无用途背景、算法百科、空泛适用性、重复数字和重复总结；
 - [ ] 本文件只保存项目事实和当前选择，没有复制通用写作/排版规则；
 - [ ] 本次正式交付同时附带完整最新版 `模型论文框架.md`。
