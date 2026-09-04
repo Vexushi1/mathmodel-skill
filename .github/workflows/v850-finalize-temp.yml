@@ -29,7 +29,14 @@ jobs:
       - name: Static contract lint
         run: python scripts/lint_skill.py --skip-generated
       - name: Unit regression suite
-        run: python -m unittest discover -s tests -p "test_*.py"
+        shell: bash
+        run: python -m unittest discover -s tests -p "test_*.py" > v850-finalizer-unittest.log 2>&1
+      - name: Upload finalizer unit diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: v850-finalizer-unittest-diagnostics
+          path: v850-finalizer-unittest.log
       - name: Generated file contract
         run: python scripts/generate_indexes.py --check
       - name: Commit finalized release candidate
