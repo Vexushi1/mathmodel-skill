@@ -415,7 +415,7 @@ class ContractAndDriftTests(unittest.TestCase):
         "core/writing_reasoning_contract.yaml": "04ae1a4745d3614c7c01ab97e2f9fbe028b262e1",
         "modules/03_solve_validate.md": "f49480d96e6a491255010868e409b2d64d620f5e",
         "modules/03_result_analysis.md": "f43d21dc99d71e6b19baeec7af66cbf334da13a7",
-        "modules/05_writing/paper_writing_protocol.md": "15c29e1ef8a4e8413b2daacfa6860877f31efa15",
+        "modules/05_writing/paper_writing_protocol.md": "be7f0b7232677fd565502465f657014ab28128c2",
         "modules/05_writing/ai_cleanup.md": "f6d2d5d6d70972ca09ff00975aa85e8044daa366",
         "modules/06_review_delivery.md": "c74f57dea33496ca35e8585d0d4d08981022ed69",
         "config/competition_profiles.yaml": "fcddec42a30ad4d4bc760dc8322cc13a998a6ebd",

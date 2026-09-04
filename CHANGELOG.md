@@ -1,6 +1,15 @@
 # Changelog
 
-## Current release: 8.6.1
+## Current release: 8.7.0
+
+- Added mandatory **Per-Question Writing Capability Preflight** for CUMCM Template-First writing so current Formula Roles, Core Model Summary, Proposition/Proof and Algorithm Presentation states are consumed before each question body without relying on repeated user keywords.
+- Added `final_model_relation / key_bridge_relation / supporting_derivation / routine_algebra` Formula Roles; necessary bridge relations survive derivation/cleanup while summaries remain Final-first and avoid formula dumps.
+- Added state-driven Proposition and Algorithm activation: planned/current proof work and stepwise/pseudocode load their conditional resources; candidate proposition signals review only, `not_needed` stays compact, and missing/stale states fail closed.
+- Exposed current Formula Role, Core Model Summary and per-question preflight pointers through Output Contract and persisted only compact project-specific activation state in `模型论文框架.md`.
+- Expanded behavior fixtures, resolver projection coverage and six fixed writing-surface trials while preserving v8.5 Author Reasoning Voice, v8.6 Model Construction Rationale, simple-problem anti-bloat and Compact Runtime conditional loading.
+- Preserved Model Approval, 03A/03B, user execution, Workbook/Project State, numerical verification, Figure Evidence and formal LaTeX delivery semantics.
+
+## Previous release: 8.6.1
 
 - Closed v8.6 release-state drift by separating final merged/post-merge-CI facts from preserved candidate-stage evaluation history; older v8.4/v8.5 evaluation documents are explicitly historical non-Authority records.
 - Clarified that CUMCM fixed four-heading checks are maintained example/compile smoke only; runtime subsection structure remains adaptive and has no fixed heading count or title-length rule.
