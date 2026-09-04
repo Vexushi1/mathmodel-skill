@@ -59,7 +59,7 @@ class AuthorReasoningVoiceTests(unittest.TestCase):
         self.assertIn("不是删除第一人称本身", cleanup)
         self.assertIn("不替作者编造理由", cleanup)
         self.assertIn("公式来源、推导、命题证明、伪代码及求解细节", cleanup)
-        self.assertEqual(self.reasoning["schema_version"], "1.7.0")
+        self.assertEqual(self.reasoning["schema_version"], "1.8.0")
         trace = self.reasoning["prose_style"]["human_reasoning_trace"]
         self.assertEqual(trace["subject_roles"]["quota"], "none")
         self.assertIn("pronoun_frequency_target", trace["prohibit"])
