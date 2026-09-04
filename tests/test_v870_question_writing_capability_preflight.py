@@ -6,18 +6,34 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = ROOT / "core" / "writing_runtime_contract.yaml"
+REASONING = ROOT / "core" / "writing_reasoning_contract.yaml"
+OUTPUT = ROOT / "core" / "output_contract.yaml"
 FIXTURE = ROOT / "tests" / "fixtures" / "writing_capability_preflight_cases.yaml"
+PROTOCOL = ROOT / "modules" / "05_writing" / "paper_writing_protocol.md"
+CLEANUP = ROOT / "modules" / "05_writing" / "ai_cleanup.md"
+REVIEW = ROOT / "modules" / "06_review_delivery.md"
+FRAMEWORK = ROOT / "templates" / "model" / "model_paper_framework.md"
 
 
 def load_yaml(path: Path):
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
+def read(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
 class TestV870QuestionWritingCapabilityPreflight(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.runtime = load_yaml(RUNTIME)
+        cls.reasoning = load_yaml(REASONING)
+        cls.output = load_yaml(OUTPUT)
         cls.cases = load_yaml(FIXTURE)["cases"]
+        cls.protocol = read(PROTOCOL)
+        cls.cleanup = read(CLEANUP)
+        cls.review = read(REVIEW)
+        cls.framework = read(FRAMEWORK)
         cls.preflight = cls.runtime["per_question_writing_capability_preflight"]
         cls.activation = cls.preflight["activation"]
 
@@ -147,6 +163,78 @@ class TestV870QuestionWritingCapabilityPreflight(unittest.TestCase):
         self.assertTrue(not_assessed["high_signal_review_when_any"])
         self.assertEqual("semantic_proposition_necessity_review_only", not_assessed["high_signal_action"])
         self.assertIn("must_not_auto_create", not_assessed["prohibition"])
+
+    def test_formula_role_taxonomy_is_authoritative_and_traceable(self):
+        chain = self.reasoning["formula_reasoning_chain"]
+        taxonomy = chain["formula_role_taxonomy"]
+        self.assertEqual(
+            [
+                "final_model_relation",
+                "key_bridge_relation",
+                "supporting_derivation",
+                "routine_algebra",
+            ],
+            taxonomy["values"],
+        )
+        self.assertIn("role", chain["internal_trace"]["required_fields"])
+        self.assertEqual("normally_not_registered", taxonomy["roles"]["routine_algebra"]["trace_policy"])
+        self.assertIn("不是最终 solver 方程", taxonomy["bridge_preservation_rule"])
+        self.assertIn("must_not_claim", taxonomy["machine_boundary"])
+
+    def test_summary_uses_final_relations_and_only_needed_bridges(self):
+        summary = self.reasoning["adaptive_core_model_summary"]
+        content = summary["summary_content"]
+        self.assertEqual(["final_model_relation"], content["include_by_default"])
+        self.assertEqual(["key_bridge_relation"], content["include_when_recoverability_requires"])
+        self.assertEqual(["supporting_derivation", "routine_algebra"], content["exclude_by_default"])
+        self.assertTrue(content["no_formula_dump_rule"])
+        self.assertIn("final_model_relation", self.protocol)
+        self.assertIn("key_bridge_relation", self.protocol)
+        self.assertIn("公式大全", self.protocol)
+
+    def test_protocol_requires_preflight_without_prompt_keyword(self):
+        self.assertIn("### 1.1 Per-Question Writing Capability Preflight", self.protocol)
+        self.assertIn("用户未再次提醒", self.protocol)
+        self.assertIn("missing", self.protocol)
+        self.assertIn("stale", self.protocol)
+        self.assertIn("求解段开始前再次消费本问 Preflight", self.protocol)
+
+    def test_cleanup_preserves_final_and_bridge_relations(self):
+        self.assertIn("final_model_relation", self.cleanup)
+        self.assertIn("key_bridge_relation", self.cleanup)
+        self.assertIn("routine_algebra", self.cleanup)
+        self.assertIn("不能仅因“不是最终模型公式”删除", self.cleanup)
+        self.assertIn("用户本轮没有再次提到这些能力", self.cleanup)
+
+    def test_review_checks_state_to_activation_instead_of_keywords(self):
+        self.assertIn("### Question Writing Capability Activation Review", self.review)
+        self.assertIn("项目状态是否在该出现时真的激活了相应能力", self.review)
+        self.assertIn("planned/current", self.review)
+        self.assertIn("stepwise/pseudocode", self.review)
+        self.assertIn("Compact Runtime Boundary", self.review)
+
+    def test_output_contract_exposes_current_pointers_without_deleting_v7_alias(self):
+        policy = self.output["writing_policy"]
+        self.assertEqual(
+            "core/writing_reasoning_contract.yaml#formula_reasoning_chain.formula_role_taxonomy",
+            policy["formula_role_contract"],
+        )
+        self.assertEqual(
+            "core/writing_reasoning_contract.yaml#adaptive_core_model_summary",
+            policy["core_model_summary_contract"],
+        )
+        self.assertEqual(
+            "core/writing_runtime_contract.yaml#per_question_writing_capability_preflight",
+            policy["per_question_writing_preflight_contract"],
+        )
+        self.assertEqual("deprecated_v7_read_compatibility", policy["core_model_summary_policy_status"])
+
+    def test_framework_records_preflight_and_formula_roles_as_project_facts(self):
+        self.assertIn("### 逐问写作能力预检", self.framework)
+        self.assertIn("Formula Roles", self.framework)
+        self.assertIn("Writing Capability Preflight", self.framework)
+        self.assertIn("final_model_relation / key_bridge_relation / supporting_derivation", self.framework)
+        self.assertIn("不依赖用户再次提醒", self.framework)
 
 
 if __name__ == "__main__":
