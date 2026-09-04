@@ -27,7 +27,7 @@ concurrency:
 
 jobs:
   refresh-feature-branch:
-    if: github.actor != 'github-actions[bot]' && github.ref_name != 'main'
+    if: github.actor != 'github-actions[bot]' && github.ref_name != 'main' && github.ref_name != 'upgrade/v8.5.0-author-reasoning-voice'
     runs-on: ubuntu-latest
     permissions:
       contents: write
