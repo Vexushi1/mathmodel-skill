@@ -79,7 +79,7 @@ class TestV716PaperWritingSpec(unittest.TestCase):
         self.assertFalse(granularity["hard_count_limit"])
         self.assertIn("不限制全文一级章节数量", self.protocol)
         self.assertIn("不限制也不重排一级章节", self.cleanup)
-        self.assertIn("问题章节内部二级小节超过默认 3--4 个", self.review)
+        self.assertIn("问题章节内部二级/三级小节", self.review)
         combined = "\n".join([self.protocol, self.cleanup, self.review])
         self.assertNotIn("一级章节最多", combined)
         self.assertNotIn("一级章节不得超过", combined)
@@ -102,7 +102,7 @@ class TestV716PaperWritingSpec(unittest.TestCase):
             "正式模型名称（可含题目专属机制）",
             "主要 Model / Solver / Validator 角色",
             "优化目标摘要闭合",
-            "问题章节二级小节计划",
+            "问题章节二级/三级小节计划",
             "Headline Claim Evidence Level",
             "Headline Claim Scope",
         ]
@@ -117,9 +117,9 @@ class TestV716PaperWritingSpec(unittest.TestCase):
         self.assertIn("摘要中用“先进、高效、精确、最优、显著、强鲁棒”", self.cleanup)
 
     def test_review_keeps_granularity_default_not_blocking(self):
-        self.assertIn("本规则只检查**问题章节内部二级小节**", self.review)
-        self.assertIn("超过该颗粒度不自动失败", self.review)
-        self.assertIn("以下**不再自动列为 Blocking**：问题章节内部二级小节超过默认 3--4 个", self.review)
+        self.assertIn("本规则只检查**问题章节内部二级/三级小节**", self.review)
+        self.assertIn("这不是硬计数", self.review)
+        self.assertIn("以下**不再自动列为 Blocking**：问题章节内部二级/三级小节超过经验数量", self.review)
 
     def test_prose_audit_reviews_more_than_four_question_subsections_only(self):
         tex = r"""
