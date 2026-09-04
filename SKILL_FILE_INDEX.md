@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：8.3.1
+当前 Skill 版本：8.4.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -69,6 +69,7 @@
 - `docs/v811_skill_authority_pointer_health_repair_plan.md`
 - `docs/v820_final_review_compliance_evidence_plan.md`
 - `docs/v830_editable_mechanism_diagram_plan.md`
+- `docs/v840_author_reasoning_evaluation.md`
 - `docs/v8_writing_capability_inventory.md`
 - `docs/v8_writing_migration.md`
 - `legacy/README.md`
@@ -83,6 +84,7 @@
 - `modules/05_writing/docx.md`
 - `modules/05_writing/latex.md`
 - `modules/05_writing/paper_writing_protocol.md`
+- `modules/05_writing/references/model_solution_reasoning_examples.md`
 - `modules/06_review_delivery.md`
 - `packs/artifact/algorithm_flow.md`
 - `packs/artifact/code.md`
@@ -216,6 +218,7 @@
 - `templates/writing/caption_explanation.md`
 - `templates/writing/code_appendix_description.md`
 - `templates/writing/docx_check.md`
+- `tests/fixtures/writing_reasoning_cases.yaml`
 - `tests/test_actions_runtime_modernization.py`
 - `tests/test_active_consistency_cleanup.py`
 - `tests/test_active_output_contract_cleanup.py`
@@ -298,3 +301,4 @@
 - `tests/test_v820_final_review_compliance.py`
 - `tests/test_v830_editable_mechanism_diagram.py`
 - `tests/test_v831_author_reasoning_voice.py`
+- `tests/test_v840_author_reasoning_writing.py`
