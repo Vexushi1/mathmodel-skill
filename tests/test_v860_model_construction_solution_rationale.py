@@ -146,7 +146,7 @@ class ModelConstructionRationaleContractTests(unittest.TestCase):
             self.assertIn(phrase, self.examples)
 
     def test_cleanup_and_review_reject_regex_style_scoring(self):
-        self.assertIn("不得由“,""因为/因此""", self.cleanup)
+        self.assertIn("不得由“因为/因此”判定模型理由完整", self.cleanup)
         self.assertIn("标题字符数", self.cleanup)
         self.assertIn("不得由“因为/因此”等连接词判断", self.review)
         self.assertIn("不能仅因标题较长", self.review)
