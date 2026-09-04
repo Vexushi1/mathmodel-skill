@@ -24,7 +24,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         cls.router = (ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8")
 
     def test_single_narrative_authority_exists(self):
-        self.assertEqual(self.contract["schema_version"], "1.6.0")
+        self.assertEqual(self.contract["schema_version"], "1.7.0")
         self.assertIn("model_establishment_solution_narrative", self.contract)
         self.assertEqual(
             self.contract["model_establishment_solution_narrative"]["governance_level"],
