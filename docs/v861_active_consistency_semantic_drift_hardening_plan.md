@@ -1,10 +1,10 @@
 # v8.6.1 Active Consistency & Semantic Drift Hardening Plan
 
-> 状态：实现与版本同步完成 / final release CI pending  
+> 状态：实现与版本同步完成；最终 PR-head CI 必须全绿后才可 Ready/merge  
 > 基线：`main@41373e1a0ce3472df2c5afc15a3f4c0b9db379fa`（v8.6.0）  
 > 计划分支：`fix/v8.6.1-active-consistency-semantic-drift`  
-> 当前文件只作为后续实施上下文与 Scope Contract；除本计划文档外，本轮尚未修改任何 active runtime / Authority / template / test。  
-> 目标版本：若用户批准实施，预计发布为 **v8.6.1 patch**；在正式实施前仍保持仓库 release carriers 为 v8.6.0。
+> 本文件保留为本轮 Scope Contract；F1–F7 已在独立分支实施，未越过既定 non-goal 与 runtime 行为边界。  
+> 目标版本：**v8.6.1 patch**；当前分支 release carriers 已统一为 v8.6.1，尚未合并 `main`。
 
 ---
 
@@ -784,7 +784,7 @@ baseline_skill = 8.6.0
 implementation_started = true
 semantic_patch_ci = HSK Skill CI #2411 success
 release_sync = complete
-final_release_ci = pending
+final_release_ci = must_be_green_on_current_pr_head_before_ready_or_merge
 runtime_behavior_changed = false
 target_patch = 8.6.1
 scope = active consistency + semantic drift hardening
