@@ -38,34 +38,18 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Apply approved v8.7 release-carrier sync
-        run: python scripts/apply_v870_release_sync.py
       - name: Rebuild active indexes and manifest
         run: python scripts/generate_indexes.py
-      - name: Commit v8.7 release sync and generated metadata when changed
+      - name: Commit generated metadata when changed
         run: |
-          if git diff --quiet; then
-            echo "v8.7 release carriers and generated metadata are current."
+          if git diff --quiet -- SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256; then
+            echo "Generated metadata is current."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            core/bootstrap.yaml \
-            core/workflow_router.yaml \
-            core/module_manifest.yaml \
-            core/output_contract.yaml \
-            core/writing_runtime_contract.yaml \
-            config/prose_audit_patterns.yaml \
-            .codex-plugin/plugin.json \
-            SKILL.md skills/mathmodel-skill/SKILL.md \
-            README.md CHANGELOG.md core/hsk_core_policy.md \
-            modules/05_writing/paper_writing_protocol.md \
-            tests/test_current_skill_health.py \
-            tests/test_v840_author_reasoning_writing.py \
-            tests/test_v830_editable_mechanism_diagram.py \
-            SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
-          git commit -m "release: synchronize v8.7.0 carriers"
+          git add SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
+          git commit -m "chore: refresh generated repository metadata"
           git push
 
   verify-main:
