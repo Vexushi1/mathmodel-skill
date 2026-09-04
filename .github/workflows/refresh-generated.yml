@@ -38,18 +38,20 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+      - name: Finalize v8.6.1 plan status
+        run: python scripts/_v861_finalize_plan.py
       - name: Rebuild active indexes and manifest
         run: python scripts/generate_indexes.py
-      - name: Commit generated metadata when changed
+      - name: Commit plan status and generated metadata when changed
         run: |
-          if git diff --quiet -- SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256; then
-            echo "Generated metadata is current."
+          if git diff --quiet; then
+            echo "Plan status and generated metadata are current."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
-          git commit -m "chore: refresh generated repository metadata"
+          git add docs/v861_active_consistency_semantic_drift_hardening_plan.md SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
+          git commit -m "docs: finalize v8.6.1 PR-head verification status"
           git push
 
   verify-main:
