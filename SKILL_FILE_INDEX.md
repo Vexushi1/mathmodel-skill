@@ -219,6 +219,7 @@
 - `templates/writing/code_appendix_description.md`
 - `templates/writing/docx_check.md`
 - `tests/fixtures/writing_reasoning_cases.yaml`
+- `tests/fixtures/writing_reasoning_voice_cases.yaml`
 - `tests/test_actions_runtime_modernization.py`
 - `tests/test_active_consistency_cleanup.py`
 - `tests/test_active_output_contract_cleanup.py`
