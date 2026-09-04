@@ -221,6 +221,7 @@
 - `templates/writing/caption_explanation.md`
 - `templates/writing/code_appendix_description.md`
 - `templates/writing/docx_check.md`
+- `tests/fixtures/model_construction_solution_cases.yaml`
 - `tests/fixtures/writing_reasoning_cases.yaml`
 - `tests/fixtures/writing_reasoning_voice_cases.yaml`
 - `tests/test_actions_runtime_modernization.py`
