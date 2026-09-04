@@ -2,13 +2,25 @@
 
 日期：2026-09-04。
 
-本文是 v8.6.0 候选分支的非运行时验收记录，不是新的数学建模 Authority，不是论文句式模板，也不用于作者身份或 AI 使用判断。正式规则仍由 `core/writing_reasoning_contract.yaml`、`modules/02_model_design.md`、`modules/05_writing/paper_writing_protocol.md` 及其既有 consumers 承担。
+本文保存 v8.6.0 从候选分支到正式 release 的实现/验收证据，不是新的数学建模 Authority，不是论文句式模板，也不用于作者身份或 AI 使用判断。正式规则仍由 `core/writing_reasoning_contract.yaml`、`modules/02_model_design.md`、`modules/05_writing/paper_writing_protocol.md` 及其既有 consumers 承担。候选阶段的失败与待办继续保留为历史快照，但不能覆盖下述 Final Release Status。
+
+## 0. Final Release Status
+
+- Document role：v8.6.0 implementation/evaluation record；runtime authority = none。
+- Release version：`8.6.0`。
+- Merged PR：#110。
+- Merge commit：`41373e1a0ce3472df2c5afc15a3f4c0b9db379fa`。
+- Final PR validation：HSK Skill CI #2383 全矩阵通过后进入合并。
+- Post-merge validation：`main` 上 HSK Skill CI #2384 对 merge commit 完成并 `success`；generated-metadata verification 同步完成。
+- Release carriers：正式合并时已同步到 `8.6.0`。
+- Current verdict for v8.6.0：`released / merged / superseded only by a later release`。
+- 下文 #2348 等失败记录属于 candidate-stage historical observations，不应解释为当前仓库仍处于 Draft、pending 或未发布状态。
 
 ## 1. 基线、候选与评估范围
 
 - 发布基线：`main@6951b8f5d7526332abc821bcb6d1ef8f6f8bc3af`（v8.5.0）。
 - 候选分支：`upgrade/v8.6.0-model-construction-solution-rationale`。
-- PR：#110，当前保持 Draft；在全量 CI 与 release-carrier synchronization 完成前不进入合并判定。
+- Candidate-stage PR：#110；在本评估快照形成时仍为 Draft，当时要求全量 CI 与 release-carrier synchronization 完成后才进入合并判定。
 - 参考材料只用于抽象跨题型写作/建模结构；不复制 A196 的题目对象、算法、标题、章节编号或固定句式。
 - 固定语义案例：`tests/fixtures/model_construction_solution_cases.yaml`，共 12 组，覆盖事件判据、局部边界定位、严格/启发式缩域、离散参数证据、solver fit/escalation、标题拆分/压缩与简单解析 anti-bloat。
 
@@ -97,7 +109,7 @@ v8.6 明确修复单侧“只减少标题”的风险。
 
 如果 solver 前提实际不成立并导致主计算无效，或 heuristic 缩域被当成严格等价并改变答案，Blocking 仍来自既有数学/证据错误本身，而不是文风触发器。
 
-## 7. 当前 CI 观察
+## 7. Candidate-stage CI 历史观察
 
 在候选 head `94f42f2136fa7d6eb96ea5d08d108bde4e4bf955` 的 GitHub Actions `HSK Skill CI` run #2348 中：
 
@@ -109,11 +121,11 @@ v8.6 明确修复单侧“只减少标题”的风险。
 - Python 3.12：执行 703 项测试，仅剩 2 项失败；两项均为 **release version carrier 不同步**：`core/writing_runtime_contract.yaml=8.6.0`，而 `core/bootstrap.yaml=8.5.0`。未出现新的模型/写作语义断言失败。
 - Python 3.10/3.11/3.13/3.14 在该 run 的 unit-test job 同样处于 failure；正式 release 前仍须以同步版本载体后的新 head 重新跑完整矩阵，不能用本记录替代最终绿色 CI。
 
-因此当前状态是：**v8.6 语义/回归问题已从前一轮 16 个失败收敛到 release-carrier synchronization；尚不能宣称 full CI green。**
+因此在该候选 head 当时的状态是：**v8.6 语义/回归问题已从前一轮 16 个失败收敛到 release-carrier synchronization；当时尚不能宣称 full CI green。** 该结论只描述 #2348 候选快照；最终 release 状态以第 0 节为准。
 
-## 8. 当前未完成项
+## 8. Candidate-stage 当时未完成项
 
-正式把 PR #110 从 Draft 推到 Ready for Review 前仍需：
+在该候选阶段，把 PR #110 从 Draft 推到 Ready for Review 前当时仍需：
 
 1. 将 current Skill release carriers 统一同步到 `8.6.0`，包括 bootstrap、plugin、双份 Skill 入口、README/CHANGELOG、Core Policy 以及现有 release-version contracts；
 2. 重新生成 `SKILL_FILE_INDEX.md` / `TEMPLATE_INDEX.md` / `MANIFEST.sha256` 等 generated metadata；
@@ -121,7 +133,7 @@ v8.6 明确修复单侧“只减少标题”的风险。
 4. 所有 required CI 为 green 后更新本评估记录的最终 CI head/result；
 5. 最后再更新 PR 描述并决定是否转 Ready for Review；在此之前不合并。
 
-## 9. 当前结论
+## 9. Candidate-stage 当时结论与最终收口
 
 就 v8.6 本轮目标而言，已经形成了单一 Authority 下的完整能力链：
 
@@ -138,11 +150,21 @@ current problem structure
 
 并且目前回归结果没有显示 v8.5 Author Reasoning Voice、Claim Strength、Model Approval、03A/03B、Workbook、Figure Evidence 或 LaTeX 载体被本轮语义扩展破坏。
 
-但 release-carrier synchronization 与最终全绿 CI 尚未完成，所以当前 verdict 只能是：
+但在该候选快照形成时，release-carrier synchronization 与最终全绿 CI 尚未完成，所以**当时的 candidate verdict** 只能是：
 
 ```text
 implementation_semantics = ready_for_release_sync
 release_status = pending
 pr_status = draft
 merge_status = forbidden_until_final_green_ci
+```
+
+该历史 verdict 后续已被第 0 节记录的最终事实闭合。v8.6.0 的 release closure 为：
+
+```text
+implementation_semantics = released
+release_status = released
+pr_status = merged
+merge_commit = 41373e1a0ce3472df2c5afc15a3f4c0b9db379fa
+post_merge_ci = HSK Skill CI #2384 success
 ```

@@ -35,6 +35,15 @@ reference_provenance:
     stored_sha256: 2c29e9005f646a6382aabbfa8cc21cd351c71e6a4ad707871e5e33536f659cbe
     use_boundary: chapter_topology_only
 
+reference_semantic_isolation:
+  a196_role: provenance_and_chapter_topology_only
+  runtime_writing_semantic_authority: false
+  runtime_internal_subsection_authority: false
+  model_or_solver_selection_authority: false
+  rule: >-
+    A196/reference materials may explain provenance and chapter topology, but runtime subsection decisions,
+    model/solver selection and prose semantics remain owned by the active Template/Writing Authorities.
+
 authority_boundary:
   template_owns:
     - documentclass_and_global_layout
@@ -161,6 +170,8 @@ cumcm_question_section:
     - 模型求解
     - 求解结果
     - 结果的分析与验证
+  default_complex_question_headings_role: maintained_example_profile_only
+  runtime_internal_heading_policy_authority: core/writing_reasoning_contract.yaml#model_establishment_solution_narrative
   common_model_subroles_for_optimization:
     - decision_variables
     - objective
@@ -200,6 +211,10 @@ core_model_summary_rendering:
   simple_problem_anti_bloat: true
 
 fixed_template_checks:
+  role: maintained_example_smoke_only
+  runtime_semantic_authority: false
+  literal_subsection_tokens_apply_to: sections/06_question1.tex
+  must_not_infer: [runtime_required_headings, fixed_runtime_subsection_count, model_or_solver_choice]
   question_example: sections/06_question1.tex
   required_question_tokens:
     - "\\section{问题一模型建立及求解}"

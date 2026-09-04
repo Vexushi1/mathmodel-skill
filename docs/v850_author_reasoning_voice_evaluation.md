@@ -1,5 +1,10 @@
 # v8.5.0 Author Reasoning Voice Evaluation
 
+> Document role：historical implementation/evaluation record；runtime authority = none。  
+> Evaluated release：v8.5.0。  
+> Snapshot status：下方 checklist 与 release-decision 文案保留当时验收语境，不代表当前 `main` 仍未发布 v8.5.0。  
+> Current repository status：v8.5.0 已发布，随后由 v8.6.0 及后续版本取代；当前规则以 active Authority 为准。
+
 ## Scope
 
 本评估用于验证 v8.5.0 Author Reasoning Voice 升级是否保持数学建模论文写作边界，并检查作者声音增强是否转化为可验证的数学叙事能力。
@@ -25,4 +30,4 @@
 
 ## Release Decision
 
-最终发布需要结合自动测试、语义审查和 PR review 共同确认。
+历史快照中的最终发布判定需要结合当时的自动测试、语义审查和 PR review 共同确认；该句不表示当前仓库仍在等待 v8.5.0 发布。

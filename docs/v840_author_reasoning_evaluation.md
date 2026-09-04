@@ -1,5 +1,10 @@
 # v8.4 建模求解叙事：实现、保全与试写记录
 
+> Document role：historical implementation/evaluation record；runtime authority = none。  
+> Evaluated release：v8.4.0。  
+> Snapshot status：本文中的候选 head、当时 CI 与未完成验证只描述 v8.4 发布过程中的历史状态。  
+> Current repository status：v8.4.0 已发布并已被后续 release 取代；当前规则以 active Authority 为准。
+
 日期：2026-09-04。本文是 PR #108 的非运行时验收记录，不是新的写作 Authority，也不是论文作者身份或 AI 检测报告。
 
 ## 范围与基线

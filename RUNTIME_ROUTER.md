@@ -2,6 +2,12 @@
 
 机器路由以 `core/workflow_router.yaml` 为唯一事实源。本文件只解释运行时顺序，不复制完整路由表。
 
+## Declarative candidate surface 与 effective resolved plan
+
+`core/workflow_router.yaml` 的 route `terminal_outputs` 与 `core/module_manifest.yaml` 的 module outputs 描述的是**边界解析前的候选能力/可能产物表面**，不能单独解释为本次调用已经获得这些 current artifacts，更不能据此跳过 Model Approval、条件式预处理或用户执行边界。
+
+`scripts/resolve_runtime.py`（兼容层为 `scripts/resolve_workflow.py`）返回的 `modules`、`module_terminal_outputs`、`terminal_outputs`、`pause_state` 与 `pre_delivery_gates` 才是当前调用经过 Model Approval / preprocessing / user-execution boundary 后的 **effective plan**。未完成人工锁模时，effective plan 必须停在 `awaiting_model_approval`，raw manifest 中即使列有 `locked_model_spec` 也不构成 current locked artifact 或执行授权。正式 consumer 应消费 resolver 返回计划，而不是直接把 raw route/module output 列表当成已批准结果。
+
 ## 启动
 
 ```text

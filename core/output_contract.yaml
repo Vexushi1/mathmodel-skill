@@ -63,6 +63,8 @@ writing_policy:
   model_role_contract: core/writing_reasoning_contract.yaml#model_solver_validator_roles
   model_naming_contract: core/writing_reasoning_contract.yaml#model_naming
   optimization_expression_contract: core/writing_reasoning_contract.yaml#optimization_model_expression
+  model_construction_rationale_contract: core/writing_reasoning_contract.yaml#model_construction_rationale
+  numerical_parameter_evidence_contract: core/writing_reasoning_contract.yaml#numerical_parameter_evidence
   solver_justification_contract: core/writing_reasoning_contract.yaml#solver_justification
   model_solution_narrative_contract: core/writing_reasoning_contract.yaml#model_establishment_solution_narrative
   subsection_granularity_contract: core/writing_reasoning_contract.yaml#subsection_granularity

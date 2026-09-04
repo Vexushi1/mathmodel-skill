@@ -9,7 +9,7 @@
 - Added Section Title Minimality and Adaptive Subsection Separation so complex independent tasks may keep short navigation headings while simple argument chains remain compact; no title-count or character Hard Rule was introduced.
 - Preserved v8.5 Author Reasoning Voice, Claim Strength, Model Approval, numerical/workbook, Figure Evidence and LaTeX/template boundaries; added 12 fixed semantic cases and v8.6 regression coverage.
 
-## 8.5.0
+## Previous release: 8.5.0
 
 - Deepened **Model/Solution Author Reasoning Voice** into 11 evidence-bound reasoning acts rather than a pronoun or style-frequency rule.
 - Added Question Closure, Claim Strength Alignment, Reasoning Necessity and Problem-Specificity so natural questions, judgments, simplifications and interpretations must have real mathematical destinations and evidence boundaries.
@@ -17,7 +17,7 @@
 - Expanded the optional reasoning examples, AI Cleanup and final semantic review while keeping examples conditional and preserving the single Paper Writing Protocol authority.
 - Added v8.5 fixed voice cases and regression coverage; existing Formula/Proof/Algorithm/Citation/Numerical/Global-Optimum gates remain authoritative, and simple direct problems retain an explicit no-bloat/no-change path.
 
-## 8.4.0
+## Previous release: 8.4.0
 
 - Incorporated the unreleased v8.3.1 work from PR #108 into a compatible **Model/Solution Reasoning and Author Voice** enhancement, not a separate historical release.
 - Strengthened the actual model, solver and result instructions in Paper Writing Protocol §7–9: task-to-objective rationale, non-obvious variables, constraint consequences, approximation boundaries, structure-led computation, implementation choices, proof-to-algorithm consequences and evidence-backed interpretation.
