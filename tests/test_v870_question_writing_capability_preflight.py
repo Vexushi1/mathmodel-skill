@@ -1,3 +1,5 @@
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -13,6 +15,7 @@ PROTOCOL = ROOT / "modules" / "05_writing" / "paper_writing_protocol.md"
 CLEANUP = ROOT / "modules" / "05_writing" / "ai_cleanup.md"
 REVIEW = ROOT / "modules" / "06_review_delivery.md"
 FRAMEWORK = ROOT / "templates" / "model" / "model_paper_framework.md"
+RESOLVER = ROOT / "scripts" / "resolve_runtime.py"
 
 
 def load_yaml(path: Path):
@@ -36,6 +39,9 @@ class TestV870QuestionWritingCapabilityPreflight(unittest.TestCase):
         cls.framework = read(FRAMEWORK)
         cls.preflight = cls.runtime["per_question_writing_capability_preflight"]
         cls.activation = cls.preflight["activation"]
+
+    def case(self, case_id):
+        return next(case for case in self.cases if case["id"] == case_id)
 
     def activation_for(self, case):
         state = case["project_state"]
@@ -121,6 +127,11 @@ class TestV870QuestionWritingCapabilityPreflight(unittest.TestCase):
             "adaptive_core_model_summary",
             summary["rules"]["required"]["activate"],
         )
+        self.assertIn(
+            "adaptive_core_model_summary",
+            summary["rules"]["inline"]["activate"],
+        )
+        self.assertEqual([], summary["rules"]["not_applicable"]["activate"])
 
     def test_project_state_activates_capabilities_without_user_keywords(self):
         for case in self.cases:
@@ -136,7 +147,7 @@ class TestV870QuestionWritingCapabilityPreflight(unittest.TestCase):
                     self.assertFalse(case["user_prompt_mentions_capability"])
 
     def test_missing_state_is_not_silently_defaulted(self):
-        missing = next(case for case in self.cases if case["id"] == "missing_states_require_adjudication")
+        missing = self.case("missing_states_require_adjudication")
         status, _ = self.activation_for(missing)
         self.assertEqual("needs_adjudication", status)
         for family in ("core_model_summary", "proposition_proof", "algorithm_presentation"):
@@ -150,6 +161,17 @@ class TestV870QuestionWritingCapabilityPreflight(unittest.TestCase):
         self.assertEqual("stale_proposition_must_not_surface_as_current", stale["prohibition"])
         self.assertIn("packs/artifact/proposition_proof.md", stale["activate"])
 
+    def test_candidate_proposition_triggers_review_but_not_pack(self):
+        candidate = self.activation["proposition_proof"]["rules"]["candidate"]
+        self.assertEqual("semantic_proposition_necessity_review", candidate["action"])
+        self.assertIn("core/writing_reasoning_contract.yaml", candidate["activate"])
+        self.assertNotIn("packs/artifact/proposition_proof.md", candidate["activate"])
+        self.assertIn("must_not_auto_create", candidate["prohibition"])
+        case = self.case("proposition_candidate_reviews_without_auto_creation")
+        status, active = self.activation_for(case)
+        self.assertEqual("current", status)
+        self.assertNotIn("packs/artifact/proposition_proof.md", active)
+
     def test_algorithm_not_needed_keeps_compact_runtime(self):
         self.assertEqual([], self.activation["algorithm_presentation"]["rules"]["not_needed"]["activate"])
         preload = self.runtime["ordinary_writing_resource_order"]
@@ -158,11 +180,34 @@ class TestV870QuestionWritingCapabilityPreflight(unittest.TestCase):
         self.assertNotIn("packs/artifact/algorithm_flow.md", preload)
         self.assertFalse(self.preflight["compact_runtime_boundary"]["full_reasoning_authority_eager_preload"])
 
+    def test_stepwise_and_pseudocode_have_different_rendering_activation(self):
+        stepwise = self.activation["algorithm_presentation"]["rules"]["stepwise"]["activate"]
+        pseudocode = self.activation["algorithm_presentation"]["rules"]["pseudocode"]["activate"]
+        latex_anchor = "modules/05_writing/latex.md#5-图表命题和算法环境"
+        self.assertNotIn(latex_anchor, stepwise)
+        self.assertIn(latex_anchor, pseudocode)
+        self.assertIn("packs/artifact/algorithm_flow.md", stepwise)
+        self.assertIn("packs/artifact/algorithm_flow.md", pseudocode)
+
     def test_high_signal_proposition_review_does_not_auto_create(self):
         not_assessed = self.activation["proposition_proof"]["rules"]["not_assessed"]
         self.assertTrue(not_assessed["high_signal_review_when_any"])
         self.assertEqual("semantic_proposition_necessity_review_only", not_assessed["high_signal_action"])
         self.assertIn("must_not_auto_create", not_assessed["prohibition"])
+
+    def test_explicit_user_proof_request_remains_a_supported_conditional_trigger(self):
+        stages = {
+            stage["id"]: stage
+            for stage in self.runtime["template_first_progressive_authoring"]["stages"]
+        }
+        question = stages["question_model_solution_result_validation"]
+        branch = question["conditional_reads_before_relevant_passage"]["proposition_or_proof"]
+        self.assertIn("用户明确要求", branch["when"])
+        self.assertIn("core/writing_reasoning_contract.yaml", branch["read"])
+        self.assertIn("packs/artifact/proposition_proof.md", branch["read"])
+        case = self.case("explicit_proof_request_remains_compatible")
+        self.assertTrue(case["user_prompt_mentions_capability"])
+        self.assertEqual("proof", case["explicit_request"])
 
     def test_formula_role_taxonomy_is_authoritative_and_traceable(self):
         chain = self.reasoning["formula_reasoning_chain"]
@@ -191,6 +236,22 @@ class TestV870QuestionWritingCapabilityPreflight(unittest.TestCase):
         self.assertIn("final_model_relation", self.protocol)
         self.assertIn("key_bridge_relation", self.protocol)
         self.assertIn("公式大全", self.protocol)
+
+    def test_direct_readout_and_full_inheritance_can_keep_summary_off(self):
+        summary = self.reasoning["adaptive_core_model_summary"]
+        not_applicable = summary["not_applicable_when"]
+        self.assertIn("direct_readout_or_simple_calculation_without_new_model_structure", not_applicable)
+        self.assertIn("later_question_fully_inherits_prior_model_and_adds_no_new_core_relation", not_applicable)
+        self.assertEqual([], self.activation["core_model_summary"]["rules"]["not_applicable"]["activate"])
+
+    def test_cross_question_increment_preserves_new_bridge_without_repeating_parent_model(self):
+        case = self.case("inherited_question_compact_with_incremental_bridge")
+        roles = {item["formula_id"]: item["role"] for item in case["project_state"]["formula_roles"]}
+        self.assertEqual("key_bridge_relation", roles[case["expect"]["must_preserve_increment_formula_id"]])
+        self.assertTrue(case["expect"]["must_not_repeat_entire_parent_model"])
+        progression = self.reasoning["cross_question_progression"]
+        self.assertIn("increment", str(progression).lower())
+        self.assertIn("不从头复制", self.protocol)
 
     def test_protocol_requires_preflight_without_prompt_keyword(self):
         self.assertIn("### 1.1 Per-Question Writing Capability Preflight", self.protocol)
@@ -235,6 +296,26 @@ class TestV870QuestionWritingCapabilityPreflight(unittest.TestCase):
         self.assertIn("Writing Capability Preflight", self.framework)
         self.assertIn("final_model_relation / key_bridge_relation / supporting_derivation", self.framework)
         self.assertIn("不依赖用户再次提醒", self.framework)
+
+    def test_resolver_projects_question_preflight_without_eager_full_authority(self):
+        result = subprocess.run(
+            [sys.executable, str(RESOLVER), "latex", "--competition", "CUMCM"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+        )
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        plan = yaml.safe_load(result.stdout)
+        writing = plan["writing_runtime"]
+        self.assertEqual("template_first_progressive_authoring", writing["execution_mode"])
+        self.assertFalse(writing["full_reasoning_authority_preloaded"])
+        stages = {stage["id"]: stage for stage in writing["authoring_sequence"]}
+        question = stages["question_model_solution_result_validation"]
+        self.assertTrue(question["before_write_preflight"]["required_before_write_now"])
+        self.assertEqual(
+            "core/writing_runtime_contract.yaml#per_question_writing_capability_preflight",
+            question["before_write_preflight"]["contract"],
+        )
 
 
 if __name__ == "__main__":
