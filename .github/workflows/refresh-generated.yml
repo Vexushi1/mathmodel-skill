@@ -38,31 +38,18 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Apply approved v8.6.1 consistency patch
-        run: python scripts/_v861_apply_active_consistency_patch.py
       - name: Rebuild active indexes and manifest
         run: python scripts/generate_indexes.py
-      - name: Commit approved patch and generated metadata when changed
+      - name: Commit generated metadata when changed
         run: |
-          if git diff --quiet; then
-            echo "Approved patch and generated metadata are current."
+          if git diff --quiet -- SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256; then
+            echo "Generated metadata is current."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            docs/v860_model_construction_solution_rationale_evaluation.md \
-            docs/v850_author_reasoning_voice_evaluation.md \
-            docs/v840_author_reasoning_evaluation.md \
-            docs/v861_active_consistency_semantic_drift_hardening_plan.md \
-            templates/latex/cumcm/hsk/template_manifest.yaml \
-            templates/latex/cumcm/hsk/README.md \
-            core/output_contract.yaml \
-            RUNTIME_ROUTER.md \
-            CHANGELOG.md \
-            tests/test_v861_active_consistency_semantic_drift.py \
-            SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
-          git commit -m "fix: harden v8.6 active consistency and semantic boundaries"
+          git add SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
+          git commit -m "chore: refresh generated repository metadata"
           git push
 
   verify-main:
