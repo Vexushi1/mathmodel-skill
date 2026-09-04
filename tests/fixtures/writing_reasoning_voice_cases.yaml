@@ -1,0 +1,91 @@
+schema_version: 1.0.0
+purpose: >-
+  v8.5 Author Reasoning Voice 的固定语义情境。这里只保存输入事实与允许的证据边界，
+  不保存期望句式、第一人称频率或“像人”分数。
+
+cases:
+  - id: proven_monotonicity
+    speech_act_focus: mathematical_fact
+    facts:
+      domain: [0.0, 2.0]
+      derivative_lower_bound: 2.0
+      proven: true
+    expected_boundary:
+      - direct_fact_statement_is_valid
+      - subjective_hedging_is_not_required
+      - proof_strength_must_not_be_reduced_to_opinion
+
+  - id: finite_candidate_enumeration
+    speech_act_focus: reduction_choice
+    facts:
+      candidate_count: 9
+      candidate_domain_complete: true
+      feasible_candidate_count: 1
+    expected_boundary:
+      - solver_reason_must_recover_candidate_completeness
+      - generic_algorithm_praise_is_insufficient
+
+  - id: local_prediction_error
+    speech_act_focus: observation_inquiry_validation
+    facts:
+      test_prediction: [7, 9, 11]
+      test_observation: [7, 12, 11]
+      residual: [0, 3, 0]
+      mae: 1.0
+      max_absolute_error: 3.0
+      max_error_index: 1
+    expected_boundary:
+      - global_average_does_not_erase_local_error
+      - inquiry_can_target_peak_or_local_error
+      - reliability_claim_requires_matching_evidence
+
+  - id: heuristic_best_found
+    speech_act_focus: judgment_qualification
+    facts:
+      evidence_level: HEURISTIC
+      multistart_checked: true
+      global_certificate: false
+    expected_boundary:
+      - best_found_is_allowed
+      - global_optimum_is_not_allowed
+      - adding_we_think_does_not_lower_required_evidence
+
+  - id: spatial_co_location
+    speech_act_focus: observation_hypothesis
+    facts:
+      visual_cluster_near_nodes: true
+      causal_identification: false
+      explanatory_covariates_available: false
+    expected_boundary:
+      - co_location_can_motivate_followup
+      - causal_language_is_not_supported
+
+  - id: period_specific_supply
+    speech_act_focus: open_question_introduction
+    facts:
+      interperiod_transfer_allowed: false
+      batch_size: 3
+      demands: [4, 4]
+    expected_boundary:
+      - period_constraints_are_required
+      - total_supply_constraint_alone_is_insufficient
+
+  - id: direct_heat_balance
+    speech_act_focus: anti_bloat
+    facts:
+      direct_relation_sufficient: true
+      solver_needed: false
+      extra_validation_needed: false
+    expected_boundary:
+      - no_forced_first_person
+      - no_forced_question
+      - unchanged_concise_prose_is_valid
+
+  - id: unrecorded_team_history
+    speech_act_focus: provenance_boundary
+    facts:
+      team_consensus_recorded: false
+      failed_trial_history_recorded: false
+    expected_boundary:
+      - fabricated_consensus_is_forbidden
+      - fabricated_trial_history_is_forbidden
