@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：8.3.0
+当前 Skill 版本：8.3.1
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -297,3 +297,4 @@
 - `tests/test_v810_cross_file_chapter_handoff.py`
 - `tests/test_v820_final_review_compliance.py`
 - `tests/test_v830_editable_mechanism_diagram.py`
+- `tests/test_v831_author_reasoning_voice.py`
