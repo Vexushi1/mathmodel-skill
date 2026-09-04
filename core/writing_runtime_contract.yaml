@@ -76,6 +76,141 @@ writing_module:
   v8_surface_audit: scripts/audit_v8_writing_surface.py
   surface_pattern_config: config/prose_audit_patterns.yaml
 
+current_question_evidence_bundle:
+  role: project_fact_composition_only
+  legacy_token: current_question_model_formula_algorithm_result_and_figure_evidence
+  status: current_composition_authority
+  includes:
+    - current_question_model_facts
+    - current_question_formula_trace
+    - current_question_core_model_summary_state
+    - current_question_proposition_plan
+    - current_question_algorithm_trace
+    - current_question_numeric_result_evidence
+    - current_question_validation_evidence
+    - current_question_figure_map
+  rules:
+    - 本 bundle 只定义逐问写作必须主动检查的项目事实组成，不复制这些事实本身，也不创造新的数学 Authority。
+    - 任一 required 子状态缺失时不得静默按 not_applicable 或 not_needed 处理；先进入逐问能力预检的 needs_adjudication。
+    - stale 项目事实不得因为进入写作阶段而自动恢复为 current。
+
+per_question_writing_capability_preflight:
+  mode: mandatory_before_each_question_write
+  role: >-
+    在每一问正文写入前，消费 current_question_evidence_bundle 中的项目状态，明确本问需要激活的写作能力、
+    完整 Authority 或条件 Pack。Preflight 只做 capability dispatch，不重新定义数学语义，不自动制造命题、公式或算法。
+  project_memory: templates/model/model_paper_framework.md#逐问写作能力预检
+  inspect:
+    - formula_roles
+    - core_model_summary_state
+    - proposition_proof_state
+    - algorithm_presentation_state
+    - model_construction_rationale_state
+    - solver_precondition_state
+    - result_validation_state
+    - figure_evidence_state
+  status_values: [current, needs_adjudication, review_required, stale, not_applicable]
+  formula_roles:
+    known_roles:
+      - final_model_relation
+      - key_bridge_relation
+      - supporting_derivation
+    routine_algebra_policy: normally_not_registered_in_core_formula_trace
+    missing_role: needs_adjudication
+    rule: >-
+      Preflight 只消费 Formula Trace 中已经登记的角色；公式角色本身的定义与正文取舍仍由 writing_reasoning_contract / Paper Writing Protocol 负责。
+  activation:
+    core_model_summary:
+      authority: core/writing_reasoning_contract.yaml#adaptive_core_model_summary
+      state_source: current_question_core_model_summary_state
+      rules:
+        required:
+          activate:
+            - adaptive_core_model_summary
+          gate: final_model_relations_must_be_recoverably_closed_before_solver
+        inline:
+          activate:
+            - adaptive_core_model_summary
+          gate: final_relation_or_decision_rule_must_close_in_adjacent_model_prose
+        not_applicable:
+          activate: []
+          gate: explicit_not_applicable_adjudication_required
+        missing:
+          status: needs_adjudication
+          prohibition: do_not_silently_default_to_not_applicable
+    proposition_proof:
+      authority: core/writing_reasoning_contract.yaml#proposition_governance
+      pack: packs/artifact/proposition_proof.md
+      state_source: current_question_proposition_plan
+      rules:
+        planned:
+          activate:
+            - core/writing_reasoning_contract.yaml
+            - packs/artifact/proposition_proof.md
+        current:
+          activate:
+            - core/writing_reasoning_contract.yaml
+            - packs/artifact/proposition_proof.md
+        candidate:
+          activate:
+            - core/writing_reasoning_contract.yaml
+          action: semantic_proposition_necessity_review
+          prohibition: candidate_signal_must_not_auto_create_a_proposition
+        stale:
+          activate:
+            - core/writing_reasoning_contract.yaml
+            - packs/artifact/proposition_proof.md
+          status: review_required
+          prohibition: stale_proposition_must_not_surface_as_current
+        removed:
+          activate: []
+        not_assessed:
+          activate: []
+          high_signal_review_when_any:
+            - equivalence_or_reduction_depends_on_a_property
+            - monotonicity_or_uniqueness_changes_search_or_interpretation
+            - feasibility_or_boundary_claim_controls_candidate_region
+            - error_bound_or_solver_precondition_requires_math_property
+          high_signal_action: semantic_proposition_necessity_review_only
+          prohibition: high_signal_structure_must_not_auto_create_a_proposition
+        missing:
+          status: needs_adjudication
+          prohibition: do_not_silently_treat_as_no_proposition_need
+    algorithm_presentation:
+      authority: core/writing_reasoning_contract.yaml#algorithm_presentation
+      pack: packs/artifact/algorithm_flow.md
+      state_source: current_question_algorithm_trace
+      rules:
+        not_needed:
+          activate: []
+        stepwise:
+          activate:
+            - core/writing_reasoning_contract.yaml
+            - packs/artifact/algorithm_flow.md
+          gate: current_algorithm_trace_required_before_writing_steps
+        pseudocode:
+          activate:
+            - core/writing_reasoning_contract.yaml
+            - packs/artifact/algorithm_flow.md
+            - modules/05_writing/latex.md#5-图表命题和算法环境
+          gate: current_algorithm_trace_required_before_writing_pseudocode
+        missing:
+          status: needs_adjudication
+          prohibition: do_not_silently_default_to_not_needed
+  before_write_gate:
+    - current_question_evidence_bundle_has_been_inspected
+    - formula_roles_are_adjudicated_or_explicitly_not_applicable
+    - core_model_summary_state_is_adjudicated
+    - proposition_proof_state_is_adjudicated
+    - algorithm_presentation_state_is_adjudicated
+    - required_conditional_resources_are_resolved
+    - stale_project_facts_are_not_rendered_as_current
+  compact_runtime_boundary:
+    full_reasoning_authority_eager_preload: false
+    proposition_pack_eager_preload: false
+    algorithm_pack_eager_preload: false
+    rule: 先读逐问状态，再按 activation 读取；不得通过本 Preflight 恢复开篇全量 preload。
+
 template_first_progressive_authoring:
   mode: mandatory
   sequence_authority: this_section
@@ -90,6 +225,7 @@ template_first_progressive_authoring:
   hard_rules:
     - 每次新论文或结构性重写都先读取 active Template Manifest、main 编排文件和 active slot 列表，只确定固定骨架、条件槽与目标文件；此时不生成正文。
     - 每个正文阶段必须执行 read_now → write_now → gate，不得只凭模板注释、旧聊天记忆或后续章节规则提前生成当前章节。
+    - 每写一问前必须先执行本问 capability preflight；缺失状态必须裁决，不能因为用户未提醒“汇总/命题/伪代码”而跳过已有项目状态。
     - 问题章节按问题顺序逐问执行；一问未完成模型—求解—结果—验证的真实闭环前，不预写下一问正文。
     - 摘要虽然位于成品前部，但在逐问结果、评价和结论口径稳定后再写，避免从计划或旧结果虚构摘要。
     - draft_semantic_review 必须早于 ai_cleanup；AI Cleanup 只能修改表达和必要性，不能替代章节完整性、数学语义或证据审查。
@@ -238,6 +374,16 @@ template_first_progressive_authoring:
       gate: 假设、符号、数据处理和共享关系均有真实依据；未激活的条件章节保持关闭。
     - id: question_model_solution_result_validation
       repeat_for_each_question_in_template_order: true
+      before_write_preflight:
+        contract: core/writing_runtime_contract.yaml#per_question_writing_capability_preflight
+        read_now:
+          - current_question_evidence_bundle
+          - current_model_paper_framework#逐问写作能力预检
+        dispatch_from_project_state: true
+        required_before_write_now: true
+        gate: >-
+          本问 Formula roles、Core Model Summary、Proposition / Proof、Algorithm presentation 以及所需条件资源均已显式裁决；
+          missing/stale 不得静默降级，也不得依赖用户再次提醒能力名称。
       read_now:
         - modules/05_writing/paper_writing_protocol.md#1-写作输入
         - modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽
@@ -256,20 +402,24 @@ template_first_progressive_authoring:
         - current_question_section_file
       conditional_reads_before_relevant_passage:
         proposition_or_proof:
-          when: 当前问题需要创建、修改或审查命题、引理、推论、等价性/可行性/单调性证明或误差界。
+          when: >-
+            当前问 preflight 的 proposition_proof state 为 planned/current，或 candidate/stale 需要语义裁决，
+            或用户明确要求创建/修改/审查命题、引理、推论、等价性/可行性/单调性证明或误差界。
           read:
             - core/writing_reasoning_contract.yaml
             - packs/artifact/proposition_proof.md
           required_outcome: 命题具有真实下游作用，前提、结论、证明边界和对后续变量/约束/solver/解释的作用闭合；数值实验不得冒充证明。
         stepwise_or_pseudocode:
-          when: current Algorithm Trace 的 presentation_mode 为 stepwise 或 pseudocode，而不是 not_needed。
+          when: >-
+            当前问 preflight 已裁决 Algorithm Trace presentation_mode 为 stepwise 或 pseudocode，而不是 not_needed；
+            mode 来自项目状态即可触发，不要求用户 prompt 再出现“伪代码/算法流程”。
           read:
             - core/writing_reasoning_contract.yaml
             - packs/artifact/algorithm_flow.md
             - modules/05_writing/latex.md#5-图表命题和算法环境
           required_outcome: 算法块前说明本题需要与输入，块内只写数学对象和控制逻辑，块后说明输出怎样进入结果或下一阶段，并与真实实现及证据一致。
         complex_semantic_dispute:
-          when: Model/Solver/Validator、优化语义、跨问依赖、术语数值、Model Construction Rationale、Reduction Provenance、solver precondition 或 Claim Strength 存在争议。
+          when: Model/Solver/Validator、优化语义、跨问依赖、术语数值、Model Construction Rationale、Reduction Provenance、solver precondition、Preflight 缺失状态或 Claim Strength 存在争议。
           read:
             - core/writing_reasoning_contract.yaml
         reasoning_example:
@@ -282,7 +432,7 @@ template_first_progressive_authoring:
           read:
             - modules/05_writing/references/model_construction_solution_rationale_examples.md
           required_outcome: 只提取“gap—结构—适用边界—solver/参数—导航”的功能，不复制示例标题、算法、对象或数值作为当前项目事实。
-      gate: 当前问题完成模型建立理由/适用边界 → 模型闭合 → solver 前提与适配 → 求解结果 → 真实验证/边界 → 直接回答的局部闭环；简单题可合并标题并省略不适用项，但不得删掉必要功能。
+      gate: 当前问题已通过 capability preflight，并完成模型建立理由/适用边界 → 模型闭合 → solver 前提与适配 → 求解结果 → 真实验证/边界 → 直接回答的局部闭环；简单题可合并标题并省略已明确裁决为不适用的功能，但不得因未读取而删掉必要功能。
     - id: evaluation_references_conclusion_appendix
       read_now:
         - modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录
@@ -374,6 +524,7 @@ semantic_capabilities:
     - appendix_body_boundary
   ordinary_writing:
     - formula_reasoning_chain
+    - adaptive_core_model_summary
     - model_solver_validator_roles
     - model_naming
     - optimization_model_expression
@@ -395,6 +546,7 @@ semantic_capabilities:
   load_full_reasoning_authority_when_any:
     - proposition_or_proof_is_being_created_or_revised
     - algorithm_trace_semantics_are_being_created_or_revised
+    - question_preflight_requires_semantic_adjudication
     - model_construction_rationale_or_applicability_is_in_dispute
     - reduction_provenance_is_in_dispute
     - solver_precondition_or_fit_is_in_dispute
@@ -458,6 +610,9 @@ machine_boundary:
     - ordinary_writing_resource_order_contains_template_manifest
     - template_inspection_is_first_and_writes_no_body
     - chapter_read_write_gate_order_is_explicit
+    - per_question_preflight_exists_before_question_write
+    - project_state_to_conditional_resource_mapping_is_declared
+    - missing_preflight_state_is_not_silently_defaulted
     - proposition_and_pseudocode_branches_are_reachable
     - draft_review_precedes_ai_cleanup
     - ai_cleanup_precedes_latex_compile
@@ -481,3 +636,5 @@ machine_boundary:
     - mathematical_dependency_from_physical_adjacency_only
     - model_rationale_quality_from_conditional_example_presence
     - heading_quality_from_title_length_or_count
+    - proposition_necessity_from_high_signal_keyword_or_structure_alone
+    - formula_role_correctness_from_machine_label_alone
