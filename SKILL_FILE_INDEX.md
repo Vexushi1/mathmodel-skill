@@ -119,7 +119,6 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
-- `scripts/_v861_apply_active_consistency_patch.py`
 - `scripts/audit_latex_project.py`
 - `scripts/audit_paper_prose.py`
 - `scripts/audit_v8_writing_surface.py`
