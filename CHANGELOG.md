@@ -1,6 +1,14 @@
 # Changelog
 
-## Current release: 8.4.0
+## Current release: 8.5.0
+
+- Deepened **Model/Solution Author Reasoning Voice** into 11 evidence-bound reasoning acts rather than a pronoun or style-frequency rule.
+- Added Question Closure, Claim Strength Alignment, Reasoning Necessity and Problem-Specificity so natural questions, judgments, simplifications and interpretations must have real mathematical destinations and evidence boundaries.
+- Clarified the semantic roles of “我们”, “本文” and mathematical/object subjects without quotas, bulk replacement, authorship inference or fabricated team history.
+- Expanded the optional reasoning examples, AI Cleanup and final semantic review while keeping examples conditional and preserving the single Paper Writing Protocol authority.
+- Added v8.5 fixed voice cases and regression coverage; existing Formula/Proof/Algorithm/Citation/Numerical/Global-Optimum gates remain authoritative, and simple direct problems retain an explicit no-bloat/no-change path.
+
+## 8.4.0
 
 - Incorporated the unreleased v8.3.1 work from PR #108 into a compatible **Model/Solution Reasoning and Author Voice** enhancement, not a separate historical release.
 - Strengthened the actual model, solver and result instructions in Paper Writing Protocol §7–9: task-to-objective rationale, non-obvious variables, constraint consequences, approximation boundaries, structure-led computation, implementation choices, proof-to-algorithm consequences and evidence-backed interpretation.
