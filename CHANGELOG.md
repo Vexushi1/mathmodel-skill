@@ -1,6 +1,15 @@
 # Changelog
 
-## Current release: 8.6.0
+## Current release: 8.6.1
+
+- Closed v8.6 release-state drift by separating final merged/post-merge-CI facts from preserved candidate-stage evaluation history; older v8.4/v8.5 evaluation documents are explicitly historical non-Authority records.
+- Clarified that CUMCM fixed four-heading checks are maintained example/compile smoke only; runtime subsection structure remains adaptive and has no fixed heading count or title-length rule.
+- Isolated A196/reference provenance from runtime writing semantics, internal subsection decisions and model/solver selection while retaining chapter-topology provenance.
+- Added named `output_contract` pointers for Model Construction Rationale and Numerical Parameter Evidence without duplicating their reasoning rules.
+- Clarified raw declarative route/module output surfaces versus resolver-returned effective plans, preserving all existing Model Approval, preprocessing and user-execution boundaries.
+- Normalized historical release headings and added regression coverage; no model mathematics, 03A/03B, workbook/project-state schema, figure ownership, CLI or public runtime field was changed.
+
+## Previous release: 8.6.0
 
 - Added **Model Construction Rationale** so non-trivial model choices recover current structure, modeling gap, chosen mathematical structure, why it closes the gap, applicability conditions and downstream role.
 - Added local applicability and explicit solver-precondition evidence without fixed applicability sections, algorithm-name inference or generic algorithm praise.
@@ -9,7 +18,7 @@
 - Added Section Title Minimality and Adaptive Subsection Separation so complex independent tasks may keep short navigation headings while simple argument chains remain compact; no title-count or character Hard Rule was introduced.
 - Preserved v8.5 Author Reasoning Voice, Claim Strength, Model Approval, numerical/workbook, Figure Evidence and LaTeX/template boundaries; added 12 fixed semantic cases and v8.6 regression coverage.
 
-## 8.5.0
+## Previous release: 8.5.0
 
 - Deepened **Model/Solution Author Reasoning Voice** into 11 evidence-bound reasoning acts rather than a pronoun or style-frequency rule.
 - Added Question Closure, Claim Strength Alignment, Reasoning Necessity and Problem-Specificity so natural questions, judgments, simplifications and interpretations must have real mathematical destinations and evidence boundaries.
@@ -17,7 +26,7 @@
 - Expanded the optional reasoning examples, AI Cleanup and final semantic review while keeping examples conditional and preserving the single Paper Writing Protocol authority.
 - Added v8.5 fixed voice cases and regression coverage; existing Formula/Proof/Algorithm/Citation/Numerical/Global-Optimum gates remain authoritative, and simple direct problems retain an explicit no-bloat/no-change path.
 
-## 8.4.0
+## Previous release: 8.4.0
 
 - Incorporated the unreleased v8.3.1 work from PR #108 into a compatible **Model/Solution Reasoning and Author Voice** enhancement, not a separate historical release.
 - Strengthened the actual model, solver and result instructions in Paper Writing Protocol §7–9: task-to-objective rationale, non-obvious variables, constraint consequences, approximation boundaries, structure-led computation, implementation choices, proof-to-algorithm consequences and evidence-backed interpretation.
@@ -261,7 +270,7 @@
 - Preserved legacy no-`--mode` packaging as reproducibility behavior and legacy v2 compile reports as read-compatible only; current formal delivery requires regenerated v3 attestations.
 - Numerical models, preprocessing semantics, Workbook Schema, Python/MATLAB responsibilities, full-fidelity user execution, semantic-governance 1.0.0, framework `v0.8-project-memory` and the per-question five-file interface remain unchanged.
 
-## Earlier release: 7.9.0
+## Previous release: 7.9.0
 
 - Closed modular-LaTeX runtime dispatch: `audit_latex_project.py` is now the public LaTeX audit entrypoint for modular and compatible single-file projects, delegating prose/BibTeX/framework checks to `audit_paper_prose.py`.
 - Closed `full_workflow` post-execution Pack loading so Figure, LaTeX and Review Artifact Packs are available after accepted primary/result-analysis workbooks, and added `validated_submission_package` to final workflow outputs.

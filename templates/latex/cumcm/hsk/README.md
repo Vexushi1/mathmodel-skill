@@ -7,7 +7,7 @@
 - `reference/example_mm_r1.tex`：由用户提供的 LaTeX 文件去除题目专属正文后形成的版式适配参考，主要吸收页面、标题层级、摘要、三线表、代码和附录组织；其来源与存储校验和记录在 manifest；
 - `reference/a196_framework_notes.md`：用户提供优秀论文 A196 的章节框架提炼，主要吸收“问题重述 → 问题分析 → 模型假设 → 符号说明 → 模型准备 → 各问题独立建立与求解 → 模型评价 → 参考文献 → 附录”的论文组织。
 
-只吸收结构和表达组织，不复制参考论文的正文、公式、图表、算法、参数或结果。
+只吸收结构和表达组织，不复制参考论文的正文、公式、图表、算法、参数或结果。A196 及其他 reference 文件只承担 provenance / chapter-topology 参考，不是当前写作语义、模型/solver 选择或问题内部标题的运行时 Authority；相关决策必须回到 active Template Manifest、Writing Reasoning 与 Paper Writing Protocol。
 
 - Template Manifest：`template_manifest.yaml`
 - HSK 主入口：`hsk_main.tex`
@@ -67,7 +67,7 @@
 问题X模型建立及求解
 ```
 
-复杂问题默认形成：
+canonical complex-question smoke 示例目前展示：
 
 ```text
 模型建立
@@ -76,7 +76,7 @@
 → 结果的分析与验证
 ```
 
-这四个名称是 canonical example，不是 Hard 的逐字标题。若题目对象更适合专业标题，例如“遮蔽几何关系建立”“多目标优化求解”“轨迹参数与有效时长结果”“离散精度与参数扰动检验”，可直接替换二级标题。
+这四个名称只属于 maintained example / LaTeX smoke profile，不是 runtime 的逐字标题要求，也不构成固定四小节数量。真正的小节拆分服从 Adaptive Subsection Separation：若题目对象更适合专业标题，例如“遮蔽几何关系建立”“多目标优化求解”“轨迹参数与有效时长结果”“离散精度与参数扰动检验”，可直接替换、合并或增加真实独立任务对应的二/三级标题。
 
 简单解析题、直接计算题可以合并或删除不必要的小节，不为模板对称强行保留四段。
 

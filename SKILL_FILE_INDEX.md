@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：8.6.0
+当前 Skill 版本：8.6.1
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -74,6 +74,7 @@
 - `docs/v850_author_reasoning_voice_plan.md`
 - `docs/v860_model_construction_solution_rationale_evaluation.md`
 - `docs/v860_model_construction_solution_rationale_plan.md`
+- `docs/v861_active_consistency_semantic_drift_hardening_plan.md`
 - `docs/v8_writing_capability_inventory.md`
 - `docs/v8_writing_migration.md`
 - `legacy/README.md`
@@ -311,3 +312,4 @@
 - `tests/test_v840_author_reasoning_writing.py`
 - `tests/test_v850_author_reasoning_speech_acts.py`
 - `tests/test_v860_model_construction_solution_rationale.py`
+- `tests/test_v861_active_consistency_semantic_drift.py`

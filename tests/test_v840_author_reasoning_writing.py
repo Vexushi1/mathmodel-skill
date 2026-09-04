@@ -49,7 +49,6 @@ class WritingReasoningScopeTests(unittest.TestCase):
             "packs/artifact/proposition_proof.md": "312fe5648c498831eef148505b65b074a8fbfee3",
             "packs/artifact/algorithm_flow.md": "dbd06aacd7216c654789a9002ce682a2065ec0bd",
             "modules/05_writing/latex.md": "98f90f8caa6c3072316dd8e620add05722abfa4b",
-            "templates/latex/cumcm/hsk/template_manifest.yaml": "32402842ea88c2a4ce3df052f6c01534b357549f",
             "templates/latex/cumcm/hsk/hsk_main.tex": "789437316271430dee2c5a7ebbdd803f4698ca63",
         }
         for path, digest in expected.items():
@@ -57,6 +56,22 @@ class WritingReasoningScopeTests(unittest.TestCase):
                 data = read(path).encode()
                 blob = b"blob " + str(len(data)).encode() + b"\0" + data
                 self.assertEqual(hashlib.sha1(blob).hexdigest(), digest)
+
+        manifest = yaml.safe_load(read("templates/latex/cumcm/hsk/template_manifest.yaml"))
+        self.assertEqual(manifest["schema_version"], "1.0.0")
+        self.assertEqual(manifest["template_id"], "hsk_cumcm_v8")
+        question = manifest["cumcm_question_section"]
+        self.assertEqual(question["title_pattern"], "问题{N}模型建立及求解")
+        self.assertTrue(question["title_locked"])
+        self.assertEqual(question["internal_structure"], "adaptive")
+        self.assertEqual(question["functional_slots"], ["model", "solve", "result", "validate"])
+        rendering = manifest["core_model_summary_rendering"]
+        self.assertFalse(rendering["independent_named_subsection_default"])
+        self.assertTrue(rendering["simple_problem_anti_bloat"])
+        fixed = manifest["fixed_template_checks"]
+        self.assertTrue(fixed["objective_before_constraints"])
+        self.assertTrue(fixed["objective_outside_constraint_brace"])
+        self.assertFalse(fixed["runtime_semantic_authority"])
 
     def test_v85_author_reasoning_voice_semantics_remain_pinned(self):
         contract = yaml.safe_load(read("core/writing_reasoning_contract.yaml"))
@@ -119,7 +134,7 @@ class WritingReasoningScopeTests(unittest.TestCase):
 
     def test_runtime_keeps_same_stage_topology_and_conditional_examples_only(self):
         runtime = yaml.safe_load(read("core/writing_runtime_contract.yaml"))
-        self.assertEqual(runtime["version"], "8.6.0")
+        self.assertEqual(runtime["version"], "8.6.1")
         progressive = runtime["template_first_progressive_authoring"]
         stage_ids = [stage["id"] for stage in progressive["stages"]]
         self.assertEqual(
