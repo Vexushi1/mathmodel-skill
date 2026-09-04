@@ -70,6 +70,7 @@
 - `docs/v820_final_review_compliance_evidence_plan.md`
 - `docs/v830_editable_mechanism_diagram_plan.md`
 - `docs/v840_author_reasoning_evaluation.md`
+- `docs/v850_author_reasoning_voice_plan.md`
 - `docs/v8_writing_capability_inventory.md`
 - `docs/v8_writing_migration.md`
 - `legacy/README.md`
