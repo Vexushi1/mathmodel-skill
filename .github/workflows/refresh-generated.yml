@@ -38,18 +38,41 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+      - name: Apply v8.6.1 release synchronization
+        run: python scripts/_v861_release_sync.py
       - name: Rebuild active indexes and manifest
         run: python scripts/generate_indexes.py
-      - name: Commit generated metadata when changed
+      - name: Commit v8.6.1 release synchronization and generated metadata
         run: |
-          if git diff --quiet -- SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256; then
-            echo "Generated metadata is current."
+          if git diff --quiet; then
+            echo "Release synchronization and generated metadata are current."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
-          git commit -m "chore: refresh generated repository metadata"
+          git add \
+            .codex-plugin/plugin.json \
+            CHANGELOG.md \
+            README.md \
+            SKILL.md \
+            skills/mathmodel-skill/SKILL.md \
+            config/prose_audit_patterns.yaml \
+            core/bootstrap.yaml \
+            core/hsk_core_policy.md \
+            core/module_manifest.yaml \
+            core/output_contract.yaml \
+            core/workflow_router.yaml \
+            core/writing_runtime_contract.yaml \
+            modules/05_writing/paper_writing_protocol.md \
+            docs/v861_active_consistency_semantic_drift_hardening_plan.md \
+            tests/test_current_skill_health.py \
+            tests/test_v840_author_reasoning_writing.py \
+            SKILL_FILE_INDEX.md \
+            TEMPLATE_INDEX.md \
+            HSK_SKILL_FILE_INDEX_V622.md \
+            HSK_TEMPLATE_INDEX_V622.md \
+            MANIFEST.sha256
+          git commit -m "chore(release): synchronize v8.6.1 release carriers"
           git push
 
   verify-main:
