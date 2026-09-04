@@ -74,6 +74,7 @@
 - `docs/v850_author_reasoning_voice_plan.md`
 - `docs/v860_model_construction_solution_rationale_evaluation.md`
 - `docs/v860_model_construction_solution_rationale_plan.md`
+- `docs/v861_active_consistency_semantic_drift_hardening_plan.md`
 - `docs/v8_writing_capability_inventory.md`
 - `docs/v8_writing_migration.md`
 - `legacy/README.md`
