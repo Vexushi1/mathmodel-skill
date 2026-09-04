@@ -79,13 +79,13 @@ class TestV802EntrypointSurfaceSlimming(unittest.TestCase):
     def test_current_release_carriers_match_current_patch(self):
         bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(str(bootstrap["skill_version"]), "8.3.1")
-        self.assertEqual(str(plugin["version"]), "8.3.1")
-        self.assertIn("version: 8.3.1", self.root_skill)
-        self.assertTrue((ROOT / "README.md").read_text(encoding="utf-8").startswith("# mathmodel-skill v8.3.1"))
-        self.assertTrue((ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8").startswith("# HSK Core Policy v8.3.1"))
+        self.assertEqual(str(bootstrap["skill_version"]), "8.4.0")
+        self.assertEqual(str(plugin["version"]), "8.4.0")
+        self.assertIn("version: 8.4.0", self.root_skill)
+        self.assertTrue((ROOT / "README.md").read_text(encoding="utf-8").startswith("# mathmodel-skill v8.4.0"))
+        self.assertTrue((ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8").startswith("# HSK Core Policy v8.4.0"))
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        self.assertTrue(changelog.startswith("# Changelog\n\n## Current release: 8.3.1"))
+        self.assertTrue(changelog.startswith("# Changelog\n\n## Current release: 8.4.0"))
         for relative in (
             "core/workflow_router.yaml",
             "core/module_manifest.yaml",
@@ -94,7 +94,7 @@ class TestV802EntrypointSurfaceSlimming(unittest.TestCase):
             "config/prose_audit_patterns.yaml",
         ):
             data = yaml.safe_load((ROOT / relative).read_text(encoding="utf-8"))
-            self.assertEqual(str(data["version"]), "8.3.1", relative)
+            self.assertEqual(str(data["version"]), "8.4.0", relative)
 
     def test_historical_801_audit_remains_historical(self):
         audit = (ROOT / "docs/v801_chapter_capability_preservation_audit.md").read_text(encoding="utf-8")

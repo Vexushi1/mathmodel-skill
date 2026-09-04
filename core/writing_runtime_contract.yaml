@@ -1,4 +1,4 @@
-version: 8.3.1
+version: 8.4.0
 role: >-
   v8 写作阶段的最小运行时映射。它不建立第二套数学写作 Authority，只声明普通论文写作真正需要加载的
   模板、项目事实、证据和 writing_reasoning_contract 中的语义能力，从而避免每次写作预载完整建模、数值与项目治理上下文。
@@ -239,6 +239,7 @@ template_first_progressive_authoring:
     - id: question_model_solution_result_validation
       repeat_for_each_question_in_template_order: true
       read_now:
+        - modules/05_writing/paper_writing_protocol.md#1-写作输入
         - modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽
         - modules/05_writing/paper_writing_protocol.md#4-Local-Narrative-Chain
         - modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test
@@ -271,6 +272,11 @@ template_first_progressive_authoring:
           when: Model/Solver/Validator、优化语义、跨问依赖、术语数值或 Claim Strength 存在争议。
           read:
             - core/writing_reasoning_contract.yaml
+        reasoning_example:
+          when: 当前段落需要改写示范，或难以区分有效建模解释与空泛铺垫；只读取相关案例，不作为开篇预读。
+          read:
+            - modules/05_writing/references/model_solution_reasoning_examples.md
+          required_outcome: 理解解释的作用后回到当前项目事实写作，不套用示例中的题目对象、数值、算法或句式。
       gate: 当前问题完成模型建立 → 模型求解 → 求解结果 → 真实验证/边界 → 直接回答的局部闭环；简单题可合并标题但不得删掉必要功能。
     - id: evaluation_references_conclusion_appendix
       read_now:
@@ -294,6 +300,9 @@ template_first_progressive_authoring:
     - id: draft_semantic_review
       read_now:
         - core/writing_reasoning_contract.yaml
+        - modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test
+        - modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释
+        - modules/06_review_delivery.md#三-公式模型角色算法命题与数值证据审查
         - modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff
         - current_model_paper_framework#Chapter-Handoff-Map
         - modules/06_review_delivery.md#Cross-File-Assembled-Seam-Sweep
@@ -308,6 +317,8 @@ template_first_progressive_authoring:
     - id: ai_cleanup
       read_now:
         - modules/05_writing/ai_cleanup.md
+        - modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test
+        - modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释
         - resolved_draft_review_findings
       write_now:
         - cleaned_paper_text

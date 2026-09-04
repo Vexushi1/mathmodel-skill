@@ -1,12 +1,14 @@
-# mathmodel-skill v8.3.1
+# mathmodel-skill v8.4.0
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
 
-## v8.3.1：作者视角与建模解释
+## v8.4.0：建模求解叙事与作者表达强化
 
-模型建立与求解在原有详细写法上补足关键选择的理由、具体数学处理及结果用途；允许有依据、有信息的适度作者视角，不要求增加第一人称或固定句式。Paper Writing Protocol §7.3 是普通正文唯一细则，逐问 runtime 显式读取，AI Cleanup 和终审只消费并保留其有效信息。
+本次向后兼容增强吸收 PR #108 中尚未发布的 v8.3.1 补丁，将解释要求落实到 Paper Writing Protocol §7—9 的实际章节写法：指标与目标的依据、变量和核心约束的作用、假设近似的边界、求解结构与实现选择、命题对计算的作用，以及结果中事实、解释和猜想的区分。§7.3 统一作者声音边界；自然发问、有依据的“我们认为”等表达正常可用，不要求增加第一人称、套用句式或复述虚构思考经历。
 
-本补丁收窄的是空泛步骤宣告与自然表达之间的清理边界，不降低公式来源、关键推导、命题证明、伪代码、求解细节或证据要求，不虚构团队经历、不用文风推断作者身份，也不改变真实 AI 使用披露。模板、章节顺序、模型审批、数值与工作簿契约保持不变；旧项目无需迁移，不自动改写已有正文。
+Paragraph Necessity 与 AI Cleanup 不再把“没有新增公式或数值”当作删除理由，保留解释选择、排除误解和交代数学作用的必要文字，仍清理空话、重复、过度口语及证据越界。逐章写作、语义审查和清理按需读取同一 Authority；仅有一个可选示例页，不增加开篇预读、项目记录或运行阶段。
+
+保留 v7.20/v8 章节细则、模板顺序、命题证明与伪代码格式、模型/数值/工作簿契约、真实 AI 使用披露；旧项目无需迁移，不自动改写已有正文。固定案例、保全回归及完整小节试写的观察和局限见 [v8.4 评估记录](docs/v840_author_reasoning_evaluation.md)；不以代词计数或脚本通过声称文风必然改善。
 
 ## v8.3.0：Editable Mechanism Diagram Production & Visual QA
 

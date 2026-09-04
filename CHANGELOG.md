@@ -1,12 +1,14 @@
 # Changelog
 
-## Current release: 8.3.1
+## Current release: 8.4.0
 
-- Clarified evidence-backed author reasoning in Paper Writing Protocol §7.3: expose the current gap, choice basis, mathematical treatment and consequence where needed, without fixed sentences or first-person quotas.
-- Preserved moderate, informative author voice during AI cleanup and review; empty step announcements, excessive colloquialism, fabricated team histories and unsupported claims remain out of bounds.
-- Routed per-question authoring explicitly to the shared prose authority, retaining model/solver detail, proof and pseudocode requirements and actual AI-use disclosure.
-- Added behavioral audit regressions for voice-neutral acceptance, unsupported solver openings and evidence checks, plus routing and preservation coverage.
-- Kept templates, chapter order, numerical/model/workbook contracts, schemas and runtime gates unchanged; existing projects require no migration or automatic prose rewrite.
+- Incorporated the unreleased v8.3.1 work from PR #108 into a compatible **Model/Solution Reasoning and Author Voice** enhancement, not a separate historical release.
+- Strengthened the actual model, solver and result instructions in Paper Writing Protocol §7–9: task-to-objective rationale, non-obvious variables, constraint consequences, approximation boundaries, structure-led computation, implementation choices, proof-to-algorithm consequences and evidence-backed interpretation.
+- Made informative author judgments and natural questions normal prose choices under §7.3, without pronoun quotas, fixed narrative sentences, invented consensus/experiments, authorship inference or changes to real AI-use disclosure.
+- Clarified Paragraph Necessity and AI Cleanup so irreplaceable choice reasons, mathematical roles and conditions survive cleanup even without new formulas or data; empty announcements, repetition, excessive colloquialism and unsupported claims still require revision.
+- Kept a single prose authority, routed the relevant existing writing/review/cleanup stages to it, and added one conditional examples page without new default preload, project fields, runtime stages or gates.
+- Added four fixed synthetic writing inputs, scope-preservation regressions and an explicitly non-blind complete-section writing/cleanup review; retained audit behavior tests without claiming that token checks establish prose quality.
+- Preserved v7.20/v8 chapter detail, template order, proof/pseudocode forms, cross-file handoff and numerical/model/workbook contracts; existing projects require no migration or automatic prose rewrite.
 
 ## Previous release: 8.3.0
 

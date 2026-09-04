@@ -404,19 +404,20 @@ class DrawioValidatorTests(unittest.TestCase):
 
 
 class ContractAndDriftTests(unittest.TestCase):
-    # v8.3.1 intentionally updates four writing authorities; all other snapshots
-    # remain pinned. Author-voice behavior is covered by test_v831_author_reasoning_voice.
+    # v8.4.0 intentionally updates four writing authorities; all other snapshots
+    # remain pinned. v831 tests cover diagnostics; v840 tests pin unaffected chapter,
+    # full reasoning/runtime semantics and template/proof/algorithm preservation.
     PROTECTED = {
         "core/model_approval_contract.yaml": "7d97255dde9cf780755bab896964e905066bf4b8",
         "core/numerical_verification_contract.yaml": "b901923edf38112cbc922f51d1157265fe1931bd",
         "core/workbook_schema.yaml": "2422bbfa8cb3fad3b5b04c12de21c954ec8b3723",
         "core/project_state.schema.yaml": "fa12de39d7bbdc2e014b2912a186834b941b28d4",
-        "core/writing_reasoning_contract.yaml": "4cdeacc0f97a36a2ce2dc0444d300d31683c6ea8",
+        "core/writing_reasoning_contract.yaml": "2eaae65a802bfd256641fea29ac608558c9c99a0",
         "modules/03_solve_validate.md": "f49480d96e6a491255010868e409b2d64d620f5e",
         "modules/03_result_analysis.md": "f43d21dc99d71e6b19baeec7af66cbf334da13a7",
-        "modules/05_writing/paper_writing_protocol.md": "a30ff3c7b5b96fb245c9e5d1b97548d788fc8b3a",
-        "modules/05_writing/ai_cleanup.md": "bf3fa76edcd5e5164463bf8e608fdb02aa25c792",
-        "modules/06_review_delivery.md": "e5c6f603766d024d9da4a10d255e638171c33b69",
+        "modules/05_writing/paper_writing_protocol.md": "c312c3264a9b59c627b0140d83a52056843b9662",
+        "modules/05_writing/ai_cleanup.md": "8d61a85d7bba797cd51bc370cbd1216109643468",
+        "modules/06_review_delivery.md": "3ee13844d3503ba94850c82a4288c04f973be404",
         "config/competition_profiles.yaml": "fcddec42a30ad4d4bc760dc8322cc13a998a6ebd",
         "scripts/validate_semantic_governance.py": "481199d1d0b541eacd0ddd3b3794c301aac6e690",
         "scripts/validate_submission_package.py": "47bd01db5f45dd8c902418be62f494419a03c676",
@@ -477,8 +478,8 @@ class ContractAndDriftTests(unittest.TestCase):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
         root_skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         packaged = (ROOT / "skills/mathmodel-skill/SKILL.md").read_text(encoding="utf-8")
-        self.assertEqual(bootstrap["skill_version"], "8.3.1")
-        self.assertEqual(plugin["version"], "8.3.1")
+        self.assertEqual(bootstrap["skill_version"], "8.4.0")
+        self.assertEqual(plugin["version"], "8.4.0")
         self.assertEqual(root_skill, packaged)
         self.assertIn("Editable Mechanism Diagram", root_skill)
 
