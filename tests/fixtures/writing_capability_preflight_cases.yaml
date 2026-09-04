@@ -1,0 +1,126 @@
+schema_version: 1.0.0
+purpose: >-
+  Fixed project-state fixtures for v8.7.0 per-question writing capability preflight.
+  These cases test state-to-activation behavior; they do not judge mathematical truth.
+
+cases:
+  - id: summary_required_complex_optimization
+    question: Q1
+    user_prompt_mentions_capability: false
+    project_state:
+      formula_roles:
+        - formula_id: F1
+          role: final_model_relation
+        - formula_id: F2
+          role: key_bridge_relation
+      core_model_summary: required
+      proposition_proof: not_assessed
+      algorithm_presentation: not_needed
+    expect:
+      status: current
+      activate:
+        - adaptive_core_model_summary
+      do_not_activate:
+        - packs/artifact/proposition_proof.md
+        - packs/artifact/algorithm_flow.md
+
+  - id: proposition_planned_without_user_keyword
+    question: Q2
+    user_prompt_mentions_capability: false
+    project_state:
+      formula_roles:
+        - formula_id: F3
+          role: final_model_relation
+      core_model_summary: inline
+      proposition_proof: planned
+      algorithm_presentation: not_needed
+    expect:
+      status: current
+      activate:
+        - core/writing_reasoning_contract.yaml
+        - packs/artifact/proposition_proof.md
+      do_not_activate:
+        - packs/artifact/algorithm_flow.md
+
+  - id: pseudocode_without_user_keyword
+    question: Q3
+    user_prompt_mentions_capability: false
+    project_state:
+      formula_roles:
+        - formula_id: F4
+          role: final_model_relation
+      core_model_summary: required
+      proposition_proof: not_assessed
+      algorithm_presentation: pseudocode
+    expect:
+      status: current
+      activate:
+        - adaptive_core_model_summary
+        - core/writing_reasoning_contract.yaml
+        - packs/artifact/algorithm_flow.md
+        - modules/05_writing/latex.md#5-图表命题和算法环境
+
+  - id: stepwise_without_user_keyword
+    question: Q4
+    user_prompt_mentions_capability: false
+    project_state:
+      formula_roles:
+        - formula_id: F5
+          role: key_bridge_relation
+        - formula_id: F6
+          role: final_model_relation
+      core_model_summary: inline
+      proposition_proof: not_assessed
+      algorithm_presentation: stepwise
+    expect:
+      status: current
+      activate:
+        - core/writing_reasoning_contract.yaml
+        - packs/artifact/algorithm_flow.md
+
+  - id: algorithm_not_needed_keeps_compact_runtime
+    question: Q5
+    user_prompt_mentions_capability: false
+    project_state:
+      formula_roles:
+        - formula_id: F7
+          role: final_model_relation
+      core_model_summary: inline
+      proposition_proof: not_assessed
+      algorithm_presentation: not_needed
+    expect:
+      status: current
+      do_not_activate:
+        - packs/artifact/proposition_proof.md
+        - packs/artifact/algorithm_flow.md
+
+  - id: missing_states_require_adjudication
+    question: Q6
+    user_prompt_mentions_capability: false
+    project_state:
+      formula_roles: []
+      core_model_summary: missing
+      proposition_proof: missing
+      algorithm_presentation: missing
+    expect:
+      status: needs_adjudication
+      must_not_silently_default_to:
+        - not_applicable
+        - not_needed
+
+  - id: stale_proposition_cannot_be_written_current
+    question: Q7
+    user_prompt_mentions_capability: false
+    project_state:
+      formula_roles:
+        - formula_id: F8
+          role: final_model_relation
+      core_model_summary: inline
+      proposition_proof: stale
+      algorithm_presentation: not_needed
+    expect:
+      status: review_required
+      activate:
+        - core/writing_reasoning_contract.yaml
+        - packs/artifact/proposition_proof.md
+      prohibition: stale_proposition_must_not_surface_as_current
