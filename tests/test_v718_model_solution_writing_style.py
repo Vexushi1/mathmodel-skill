@@ -24,7 +24,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         cls.router = (ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8")
 
     def test_single_narrative_authority_exists(self):
-        self.assertEqual(self.contract["schema_version"], "1.7.0")
+        self.assertEqual(self.contract["schema_version"], "1.8.0")
         self.assertIn("model_establishment_solution_narrative", self.contract)
         self.assertEqual(
             self.contract["model_establishment_solution_narrative"]["governance_level"],
@@ -56,6 +56,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         )
         combined_rules = "\n".join(rule["continuous_mathematical_narrative"]["rules"])
         self.assertIn("报告式罗列", combined_rules)
+        self.assertIn("连续叙事不是“越少标题越好”", combined_rules)
         self.assertIn("承接当前对象或上一关系", self.protocol)
         self.assertIn("为什么此时出现", self.protocol)
         self.assertIn("出现后下一步怎样变化", self.protocol)
@@ -108,21 +109,29 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         ]
         self.assertEqual(headings["preferred_pattern"], "object_plus_mathematical_task")
         self.assertFalse(headings["hard_grammar_rule"])
+        self.assertFalse(headings["title_minimality"]["hard_character_limit"])
         self.assertIn("模型处理", headings["generic_heading_review_examples"])
         self.assertIn("结果说明", headings["generic_heading_review_examples"])
         self.assertIn("标题应对应**独立数学任务**", self.protocol)
         self.assertIn("不强制所有标题使用“XX 的 XX”", self.protocol)
         self.assertIn("泛化标题", self.cleanup)
+        self.assertIn("Heading Compression Test", self.cleanup)
 
     def test_solver_narrative_is_structure_before_algorithm(self):
         bridge = self.contract["model_establishment_solution_narrative"]["model_to_solver_bridge"]
         self.assertEqual(
             bridge["consumes"],
-            ["structure_before_algorithm", "solver_justification", "model_solver_validator_roles"],
+            [
+                "structure_before_algorithm",
+                "model_construction_rationale",
+                "solver_justification",
+                "model_solver_validator_roles",
+            ],
         )
         order = bridge["first_use_progression"]
         self.assertLess(order.index("current_model_structure_or_computational_difficulty"), order.index("solver_family_fit"))
         self.assertLess(order.index("exploitable_property_or_completed_simplification"), order.index("solver_family_fit"))
+        self.assertLess(order.index("solver_required_property_and_current_scope"), order.index("solver_family_fit"))
         self.assertTrue(bridge["generic_algorithm_praise_is_insufficient"])
         self.assertIn("不用“下面进行模型求解”作为唯一过渡", self.protocol)
         self.assertIn("求解段一开始就是算法名或算法优点", self.cleanup)
@@ -144,6 +153,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         rule = self.contract["model_establishment_solution_narrative"]["cross_question_language"]
         self.assertEqual(rule["consumes"], "cross_question_progression")
         self.assertIn("只展开新增数学关系与求解变化", rule["rule"])
+        self.assertIn("如果 solver 更换", rule["rule"])
         self.assertIn("共同轨迹、共同概率关系或共同网络结构不从头复制", self.protocol)
         self.assertIn("同理", self.protocol)
 
@@ -157,12 +167,15 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
             "management_transition",
             "detached_result_interpretation",
             "repeated_problem_analysis_in_model_section",
+            "model_construction_rationale_missing",
+            "solver_precondition_missing_for_declared_dependency",
         }
         review_or_warn = set(audit["may_review"]) | set(audit["may_warn"])
         self.assertTrue(narrative_risks <= review_or_warn)
         self.assertTrue(narrative_risks.isdisjoint(set(audit["may_block"])))
-        self.assertIn("不得仅凭连接词、标题语法、算法名、段落距离、小节数量、字数、公式数、图引用关键词或表面顺序判断叙事/详略质量", self.cleanup)
+        self.assertIn("不得仅凭连接词、标题语法、算法名、段落距离、小节数量、标题字数、正文长度、公式数、图引用关键词或表面顺序判断叙事/详略质量", self.cleanup)
         self.assertIn("narrative_quality_from_connector_words_only", audit["must_not_claim"])
+        self.assertIn("heading_quality_from_character_count_only", audit["must_not_claim"])
 
     def test_reference_papers_do_not_become_runtime_templates(self):
         anti_template = "\n".join(
@@ -197,7 +210,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
             self.assertNotIn(token, protected)
         self.assertIn("Human Model Approval", self.module02)
         self.assertIn("semantic_closure_status=passed", self.module02)
-        self.assertNotIn("model_establishment_solution_narrative", self.module02)
+        self.assertNotIn("model_establishment_solution_narrative:", self.module02)
 
 
 if __name__ == "__main__":
