@@ -1,6 +1,14 @@
-# mathmodel-skill v8.6.1
+# mathmodel-skill v8.7.0
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v8.7.0：Per-Question Writing Capability Preflight
+
+本版本把逐问写作从“能力存在但需要用户再次提醒”推进到 **capability discovery + state-driven activation**。每写 Qx 前，CUMCM Compact Runtime 先读取当前项目事实并裁决 Formula Roles、Core Model Summary、Proposition / Proof 与 Algorithm Presentation；`required / planned / current / stepwise / pseudocode` 即使未在本轮 prompt 再次出现，也必须按状态激活对应能力。`missing` 不得静默降级为 `not_applicable / not_needed`，`stale` 不得直接写成 current。
+
+Formula Trace 新增 `final_model_relation / key_bridge_relation / supporting_derivation / routine_algebra` 四级角色。最终模型汇总以 Final Relations 为主体，只在恢复最终关系、关键边界、降维或 solver precondition 确有需要时纳入少量 Key Bridge Relations；因此既防止把必要中间式压没，也不把 summary 退化成公式大全。planned/current 命题自动读取证明 Pack，candidate 只触发必要性审查；stepwise/pseudocode 自动读取 Algorithm Pack，而 `not_needed` 保持关闭。完整 reasoning Authority 与深层 Packs 仍不在普通 CUMCM 写作开篇 eager preload。
+
+本次升级不强制每问设置“核心模型汇总”小节、不强制命题或伪代码，也不改变 Model Approval、03A/03B、用户执行、Workbook、Primary Numerical Verification、Figure Evidence 或正式 LaTeX delivery 边界。实现与固定行为试验见 [v8.7 评估记录](docs/v870_question_writing_capability_preflight_evaluation.md)。
 
 ## v8.6.1：Active Consistency & Semantic Drift Hardening
 

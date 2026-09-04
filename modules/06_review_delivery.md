@@ -90,6 +90,21 @@ AI Cleanup 不能替代前一种语义审查，文本变得更流畅也不能让
 
 按既有等级记录具体缺口和证据，不新增“人工感”分数、词频门槛或 Hard Fail。若发现数学内容本身有误，回到既有语义/证据流程；风格润色不能代替修复。
 
+### Question Writing Capability Activation Review
+
+本检查消费 `core/writing_runtime_contract.yaml#per_question_writing_capability_preflight`、当前 `模型论文框架.md#逐问写作能力预检` 与既有 Writing Reasoning Authority，不建立第二套数学写作规则。其目标不是判断“有没有提到关键词”，而是验证**项目状态是否在该出现时真的激活了相应能力**。
+
+逐问检查：
+
+1. **Formula Roles**：`final_model_relation`、`key_bridge_relation`、`supporting_derivation` 是否按下游作用登记；关键桥接式不能仅因不直接进入 solver 被删除，routine algebra 也不能因新 taxonomy 被机械扩写。
+2. **Core Model Summary Activation**：`required` 是否在模型建立结束前形成可恢复的最终模型；`inline/not_applicable` 是否来自显式裁决而非遗漏。summary 以 Final 为主体，Key Bridge 只在恢复边界/充分性/precondition 真正需要时进入。
+3. **Proposition / Proof Activation**：planned/current 命题是否自动进入对应写作分支；candidate/high-signal 只触发必要性审查，不自动造命题；stale 命题不能写成 current。
+4. **Algorithm Presentation Activation**：`stepwise/pseudocode` 是否即使用户 prompt 未出现“伪代码/算法流程”也自动读取 Algorithm Flow 并消费 current Algorithm Trace；`not_needed` 不产生装饰算法框。
+5. **Missing / Stale Gate**：Preflight 关键状态缺失时是否进入 `needs_adjudication`，而不是静默设为 `not_applicable/not_needed`；stale 是否阻止旧命题、旧算法或旧公式角色直接进入正文。
+6. **Compact Runtime Boundary**：完整 reasoning Authority、Proposition Pack、Algorithm Pack 仍按状态条件加载，不得因为本轮增强恢复开篇全量 preload。
+
+上述 activation 缺口默认属于 `review_required`；只有其同时造成既有 Hard 事实/数学/证据错误时才 blocking，例如 stale 证明支撑 current claim、必要 solver 前提被遗漏导致主计算无效、或数值实验冒充严格证明。机器可以核对 declared state→resource mapping 和锚点存在，不能由公式位置、关键词、算法名或命题标题判断数学必要性和正确性。
+
 ### Author Reasoning Semantic Review
 
 本检查只消费 `paper_writing_protocol.md#7.3-作者视角与建模解释` 与 `writing_reasoning_contract.prose_style.human_reasoning_trace`，不建立第二套 Author Voice 规范。它审查的是作者认知动作是否与数学任务和证据闭合，不审查“像不像人”。

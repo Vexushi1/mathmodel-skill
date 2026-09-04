@@ -1,4 +1,4 @@
-# Module 05A：Paper Writing Protocol（v8.6.1）
+# Module 05A：Paper Writing Protocol（v8.7.0）
 
 本模块只回答一个问题：**已经有当前模型、结果、图表和模板后，正文应该怎样写得数学上连续、证据上闭合、语言上自然。**
 
@@ -21,6 +21,13 @@
 写作前先明确当前段落所处的问题、当前数学对象和直接下游任务。若只写单问，不需要为了“完整感”重新加载无关问题的全部推导和内部治理历史。
 
 写模型建立与求解前，从当前模型方案、Model Construction Rationale、Formula/Algorithm Trace、已知条件和结果中恢复关键选择的依据。可由现有关系推出的理由应解释清楚；需要新增数据、实验或团队经历才能成立的理由不能补造，缺口交回语义审查或请求事实。无需新建思考日志或项目必填表。仅润色局部时保留原有范围、术语、公式和数值；理由充分且表达自然的原文可以不改。
+
+### 1.1 Per-Question Writing Capability Preflight：先判定本问需要什么，再写
+
+进入任何“问题X模型建立及求解”正文前，必须先消费 `core/writing_runtime_contract.yaml#per_question_writing_capability_preflight` 与当前 `模型论文框架.md#逐问写作能力预检`。预检至少明确本问 Formula Roles、Core Model Summary、Proposition / Proof、Algorithm Presentation，以及当前需要条件加载的 Authority / Pack。
+
+`required / planned / current / stepwise / pseudocode` 等已记录项目状态必须在用户未再次提醒“公式汇总、命题、伪代码”时仍然生效。`missing` 不能静默改成 `not_applicable / not_needed`；`stale` 不能直接写成 current。若状态尚未裁决，先完成语义裁决，再生成该问正文。Preflight 只调度已有能力，不自动创造命题、算法或额外公式。
+
 
 ## 2. 模板与写作职责
 
@@ -268,6 +275,19 @@ Source → Derivation → Destination
 
 假设或近似只有在影响当前推导时局部解释：保留什么、忽略什么、简化了什么，以及支持其使用的已知条件和影响边界。不重新列整章假设。只有前提而无误差实验时，如实按前提展开，不虚构对照精度；若解释需要改变当前已确定模型，应先回模型治理，不能借补写理由偷偷改式子。
 
+### 7.0 Formula Roles：区分最终模型、关键桥接与可压缩推导
+
+Core Formula Trace 不再只用“核心公式/普通代数”二分。正文按 Writing Reasoning Authority 中的角色判断：
+
+- **Final Model Relation** (`final_model_relation`)：最终模型、solver、validator、决策规则或直接答案实际消费，原则上保留；
+- **Key Bridge Relation** (`key_bridge_relation`)：不一定直接进入 solver，但连接机理、定义、证明、变换、判据、边界或降维。若删除会让“为什么能得到最终模型”断裂，就不能当作普通中间式压掉；
+- **Supporting Derivation** (`supporting_derivation`)：有助于理解但不承担独立接口，可按篇幅和难度压缩；
+- **Routine Algebra** (`routine_algebra`)：机械展开、重复代换等普通代数，优先省略，通常不登记进 Core Formula Trace。
+
+角色取决于**下游数学作用**，不是公式在正文中的位置。某个距离式、判别式或变换式即使最终不出现在 solver 输入中，只要后续关键判据、缩域、命题或边界依赖它，就可能是 Key Bridge Relation。反之，推导很长也不自动意味着每一步都应保留。
+
+正文推导通常保留 Final + Key Bridge + 必要 Supporting；核心模型汇总以 Final 为主体，只在缺少某个 Key Bridge 会使最终模型来源、边界或 solver 前提不可恢复时带入该桥接式。禁止把前文所有公式复制成“公式大全”。
+
 ### 7.0.1 Structural Reduction：为什么可以简化必须与证据等级一致
 
 凡简化会改变候选域、活动边界、维度、状态或分解范围，正文措辞必须服从当前 Reduction Provenance：
@@ -316,11 +336,13 @@ s.t. constraints
 
 核心模型汇总只负责让评委快速恢复 solver 实际消费的最终模型，不能替代前面对变量、目标函数现实含义、约束来源和关键推导的说明。
 
+汇总内容以 `final_model_relation` 为主体；如果某个 `key_bridge_relation` 不出现就无法恢复关键边界、充分性、变量消元或 solver precondition，可在 recap 中保留它。`supporting_derivation` 与 `routine_algebra` 默认不重复进入汇总。这样既避免“把所有中间式再抄一遍”，也避免把真正承担逻辑桥梁的公式收束得过狠。
+
 核心模型汇总应当自适应而非机械必设。先由 Writing Reasoning Authority 的 `semantic_summary_mode` 判断数学叙事上是 `required / inline / not_applicable`，再由 CUMCM Template Manifest 的 `rendering_mode` 决定最终呈现为 `displayed / inline / omitted`；两层只通过 Authority 中的唯一映射连接。旧 `modes` 与 `old_to_new_modes` 仅作 v8.x 只读兼容，不应被 consumer 当作新的独立规则。
 
 ### 7.2 非优化模型
 
-动力系统、概率、回归、网络、仿真等模型按真实结构汇总最终可计算关系，可包含状态方程、观测/概率关系、初始与边界条件、判据和输出映射，不强行套用优化模型的 `s.t.`。若只有一两个解析关系，直接在相邻正文中收束，不新增形式化总结块。
+动力系统、概率、回归、网络、仿真等模型按真实结构汇总最终可计算关系，可包含状态方程、观测/概率关系、初始与边界条件、判据和输出映射，不强行套用优化模型的 `s.t.`。若状态方程到观测关系、几何量到判据、转移关系到决策规则之间存在不可替代的 `key_bridge_relation`，应保留其关键来源与推导，不能因为它不是最终输出方程而跳过。若只有一两个解析关系，直接在相邻正文中收束，不新增形式化总结块。
 
 解释重点随结构变化，并把真正决定**当前适用性**的条件与模型首次使用邻近说明：
 
@@ -419,6 +441,8 @@ Question
 本节主要用于模型建立、模型求解及紧邻的结果解释，不把摘要、问题重述、命题陈述或伪代码改成讨论口吻。命题前后可以解释动机和作用，证明本体仍须完整严谨，作者判断**不能代替证明**，伪代码仍只表达数学对象与控制逻辑；**环境与格式不变**。**简单解析或直接计算问题**只补足真正缺失的理由，不增加无必要的小节、算法、追问或长段落；原文已经紧凑正确时，不改也是合法结果。
 
 ## 8. 模型求解
+
+求解段开始前再次消费本问 Preflight 已裁决状态：`Core Model Summary=required` 时先确认最终模型已经可恢复；planned/current 命题若承担 solver 前提或缩域依据，先完成对应证明/引用；`Algorithm Presentation=stepwise/pseudocode` 时按项目状态自动加载 Algorithm Flow，而不是等待用户再次提醒。`missing/stale` 状态不得跨过此处直接进入算法叙述。
 
 求解段必须从“模型现在变成了什么计算问题”开始，而不是从算法名开始。不用“下面进行模型求解”作为唯一过渡。
 

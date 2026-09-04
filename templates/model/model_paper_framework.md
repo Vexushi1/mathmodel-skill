@@ -118,6 +118,7 @@
 11. 命题/证明、Citation Evidence、Terminology 与 Numeric Profile 的使用位置：
 12. 特殊结构例外（独立结论、对象图、问题关系图等）及依据：
 13. Template Override（无则写 `none`）：`template_id / instruction_source / override_scope / affected_files / reason / official_compliance_impact / status`：
+14. 各问 Writing Capability Preflight 的最近裁决与待补状态：
 
 ### 共享基础与跨问增量
 
@@ -130,13 +131,21 @@
 |---|---|---|---|---|---|---|
 | Q1 | independent / shared foundation |  |  |  |  |  |
 
+### 逐问写作能力预检
+
+> 只记录本项目每一问在正式写正文前的能力裁决与激活结果，不复制通用规则。`missing` 不得静默解释为 `not_applicable/not_needed`；若上游事实变化，应将受影响预检状态标为 `stale` 并重新裁决。
+
+| 小问 | Formula Roles | Core Model Summary | Proposition / Proof | Algorithm Presentation | 需加载的条件资源 | Full Reasoning | Preflight Status |
+|---|---|---|---|---|---|---|---|
+| Q1 | F1 final; F2 bridge | required / inline / not_applicable / missing | not_assessed / candidate / planned / current / stale / removed / missing | not_needed / stepwise / pseudocode / missing |  | yes / no / adjudicate | current / needs_adjudication / review_required / stale / not_applicable |
+
 ### 核心公式 Trace
 
-> 只记录决定模型结构、约束、判定、参数或结论的核心关系；普通代数中间式不登记。
+> 只登记对模型结构、约束、判定、参数、证明、降维或结论具有独立作用的关系。`final_model_relation` 是最终模型/solver/validator/决策规则直接消费的关系；`key_bridge_relation` 是删除后会造成推导、判据、降维或边界来源断裂的关键桥接式；`supporting_derivation` 可按必要性压缩；普通 `routine_algebra` 默认不登记。
 
-| Formula ID | 对应小问 | Source | Depends on | Derivation | Destination | 代码/证据锚点 | 状态 |
-|---|---|---|---|---|---|---|---|
-| F1 |  |  |  |  |  |  | closed / gap / stale |
+| Formula ID | 对应小问 | Role | Source | Depends on | Derivation | Destination | 代码/证据锚点 | 状态 |
+|---|---|---|---|---|---|---|---|---|
+| F1 |  | final_model_relation / key_bridge_relation / supporting_derivation |  |  |  |  |  | closed / gap / stale |
 
 ### Algorithm Trace
 
@@ -225,6 +234,7 @@
 - semantic change categories：`initial_design / problem_definition / data_scope / variable / parameter / assumption / objective / constraint / preprocessing / algorithm / dependency`
 - 核心模型收束：`required / inline / not_applicable`
 - 算法流程呈现：`not_needed / stepwise / pseudocode`
+- Writing Capability Preflight：`pending / current / needs_adjudication / review_required / stale / not_applicable`
 - 主要 Model / Solver / Validator 角色：
 - 优化目标摘要闭合：`not_applicable / pending / passed`
 - 问题章节二级/三级小节计划：
@@ -289,9 +299,9 @@ $$
 \text{在此写入当前有效模型。}
 $$
 
-| Formula ID | Source | Depends on | Derivation | Destination | 状态 |
-|---|---|---|---|---|---|
-|  |  |  |  |  | closed / gap |
+| Formula ID | Role | Source | Depends on | Derivation | Destination | 状态 |
+|---|---|---|---|---|---|---|
+|  | final_model_relation / key_bridge_relation / supporting_derivation |  |  |  |  | closed / gap |
 
 **题面—数学—代码—输出闭环**
 
@@ -473,6 +483,11 @@ $$
 ### 公式、模型角色、算法、参数、引用、术语与数字复核
 
 - Formula Trace 是否仍有 `gap/stale`：
+- `final_model_relation / key_bridge_relation / supporting_derivation` 是否已按实际下游作用登记，关键 bridge 未因“不是最终 solver 公式”而被压掉：
+- 每问 Writing Capability Preflight 是否为 current/not_applicable，是否仍有 `needs_adjudication/review_required/stale`：
+- 每问 `required` Core Model Summary 是否已真正呈现最终可计算模型，`inline/not_applicable` 是否来自显式裁决：
+- planned/current Proposition 是否已进入正文/附录规划；stale Proposition 是否未被误写为 current：
+- `stepwise/pseudocode` 是否由项目状态自动激活相应写作资源，而不是依赖用户再次提醒：
 - 每问是否能识别标准数学模型类型：
 - 重要模型选择是否能恢复 Modeling gap / Why this structure / Applicability conditions / Downstream role：
 - 结构化简的 `exact / proven_sufficient / heuristic` 与正文措辞是否一致：
@@ -538,6 +553,9 @@ $$
 - [ ] 每个已进入模型设计的小问均已冻结 Problem Contract；
 - [ ] 题面—数学—代码—输出不存在关键 gap；
 - [ ] 核心 Formula Trace 均为 closed，或 gap 已阻断下游；
+- [ ] Formula Trace 已区分 `final_model_relation / key_bridge_relation / supporting_derivation`，关键 bridge 未被误当普通代数删除；
+- [ ] 每问 Writing Capability Preflight 已显式裁决 Formula roles、Core Model Summary、Proposition / Proof、Algorithm Presentation 和条件资源；缺失状态没有静默降级；
+- [ ] `required` summary、planned/current Proposition、stepwise/pseudocode Algorithm 已按项目状态自动激活对应写作能力；不依赖用户再次提醒；
 - [ ] 每问标准模型类型、正式模型名称及 Model / Solver / Validator 角色已记录；
 - [ ] 非平凡模型选择已记录当前结构、Modeling gap、Why this structure、适用条件/失效边界与 Downstream role；简单直接计算可标 `not_applicable`；
 - [ ] 结构缩减已区分 `exact / proven_sufficient / heuristic`，并与证明/evidence/claim scope 一致；

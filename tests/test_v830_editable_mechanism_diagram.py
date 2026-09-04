@@ -404,20 +404,20 @@ class DrawioValidatorTests(unittest.TestCase):
 
 
 class ContractAndDriftTests(unittest.TestCase):
-    # v8.6.0 intentionally updates the four writing authorities below for Model
-    # Construction & Solution Rationale. Unrelated numerical, model-approval,
-    # workbook, project-state, plotting and delivery snapshots remain pinned.
+    # v8.7.0 intentionally updates the four writing authorities below for per-question
+    # capability preflight, Formula Roles and state-driven activation. Unrelated numerical,
+    # model-approval, workbook, project-state, plotting and delivery snapshots remain pinned.
     PROTECTED = {
         "core/model_approval_contract.yaml": "7d97255dde9cf780755bab896964e905066bf4b8",
         "core/numerical_verification_contract.yaml": "b901923edf38112cbc922f51d1157265fe1931bd",
         "core/workbook_schema.yaml": "2422bbfa8cb3fad3b5b04c12de21c954ec8b3723",
         "core/project_state.schema.yaml": "fa12de39d7bbdc2e014b2912a186834b941b28d4",
-        "core/writing_reasoning_contract.yaml": "38f01590b24d8cca5384f6a5668b8a1f0e2a2008",
+        "core/writing_reasoning_contract.yaml": "04ae1a4745d3614c7c01ab97e2f9fbe028b262e1",
         "modules/03_solve_validate.md": "f49480d96e6a491255010868e409b2d64d620f5e",
         "modules/03_result_analysis.md": "f43d21dc99d71e6b19baeec7af66cbf334da13a7",
-        "modules/05_writing/paper_writing_protocol.md": "5a798e024009bf3c38f786b5bfc3c9f9ed1ddfcb",
-        "modules/05_writing/ai_cleanup.md": "cd2b825814916311ec5f1d41e46307132ed760a9",
-        "modules/06_review_delivery.md": "38ba825323122ecba5f962566e18e7d0d53c8a3c",
+        "modules/05_writing/paper_writing_protocol.md": "be7f0b7232677fd565502465f657014ab28128c2",
+        "modules/05_writing/ai_cleanup.md": "f6d2d5d6d70972ca09ff00975aa85e8044daa366",
+        "modules/06_review_delivery.md": "c74f57dea33496ca35e8585d0d4d08981022ed69",
         "config/competition_profiles.yaml": "fcddec42a30ad4d4bc760dc8322cc13a998a6ebd",
         "scripts/validate_semantic_governance.py": "481199d1d0b541eacd0ddd3b3794c301aac6e690",
         "scripts/validate_submission_package.py": "47bd01db5f45dd8c902418be62f494419a03c676",

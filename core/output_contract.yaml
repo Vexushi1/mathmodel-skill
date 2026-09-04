@@ -1,4 +1,4 @@
-version: 8.6.1
+version: 8.7.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -78,6 +78,9 @@ writing_policy:
   paper_fragment_stale_contract: core/writing_reasoning_contract.yaml#paper_fragment_stale_governance
   proposition_governance: core/writing_reasoning_contract.yaml#proposition_governance
   algorithm_presentation_contract: core/writing_reasoning_contract.yaml#algorithm_presentation
+  formula_role_contract: core/writing_reasoning_contract.yaml#formula_reasoning_chain.formula_role_taxonomy
+  core_model_summary_contract: core/writing_reasoning_contract.yaml#adaptive_core_model_summary
+  per_question_writing_preflight_contract: core/writing_runtime_contract.yaml#per_question_writing_capability_preflight
   core_model_summary_policy: adaptive_required_inline_not_applicable
   core_model_summary_policy_status: deprecated_v7_read_compatibility
   core_model_summary_rendering_authority: templates/latex/cumcm/hsk/template_manifest.yaml#core_model_summary_rendering

@@ -30,6 +30,16 @@ AI Cleanup 只在 `draft_semantic_review` 已完成且相关 finding 已处置�
 
 按 reasoning contract 检查表现层风险：
 
+先读取本问 Formula Role 与 Writing Capability Preflight：
+
+- `final_model_relation`：原则上 **Keep**；清理不得让最终 solver/validator/决策规则失去可恢复模型；
+- `key_bridge_relation`：若删除会断开机理、证明、判据、边界、降维或 solver precondition，必须 **Keep / Compress without breaking the bridge**；不能仅因“不是最终模型公式”删除；
+- `supporting_derivation`：可按 Detail Allocation **Compress / Re-locate**，但若当前读者无法恢复关键跳步则不能过度压缩；
+- `routine_algebra`：优先 **Compress / Delete**，默认不因 v8.7 新角色增加正文公式数量；
+- Preflight 已裁决 `Core Model Summary=required`、Proposition `planned/current`、Algorithm `stepwise/pseudocode` 时，Cleanup 只能优化表达与载体，不能因为用户本轮没有再次提到这些能力就删掉；
+- `missing/stale/review_required` 必须回到裁决或修复，不能通过润色伪装成 current。
+
+
 - 连续展示公式之间几乎没有解释；
 - “进一步可得、同理可得、容易得到、不难得到”反复替代关键推理；
 - 核心公式前只有“根据相关理论可得”等空来源，公式后又只重复符号定义，看不出为什么此时需要该式以及该式下一步做什么；
