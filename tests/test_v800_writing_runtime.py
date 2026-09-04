@@ -22,6 +22,7 @@ class TestV800WritingRuntime(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.runtime = load_runtime_module()
+        cls.bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
         cls.contract = yaml.safe_load(
             (ROOT / "core/writing_runtime_contract.yaml").read_text(encoding="utf-8")
         )
@@ -31,7 +32,7 @@ class TestV800WritingRuntime(unittest.TestCase):
         cls.adapter = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
 
     def test_contract_declares_template_first_runtime(self):
-        self.assertEqual(self.contract["version"], "8.5.0")
+        self.assertEqual(str(self.contract["version"]), str(self.bootstrap["skill_version"]))
         self.assertEqual(
             self.contract["canonical_template"]["manifest"],
             "templates/latex/cumcm/hsk/template_manifest.yaml",
