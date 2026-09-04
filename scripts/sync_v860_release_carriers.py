@@ -11,8 +11,6 @@ import json
 import re
 from pathlib import Path
 
-import yaml
-
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = "8.6.0"
 PREVIOUS = "8.5.0"
@@ -110,8 +108,8 @@ def sync_changelog() -> None:
 
 
 def main() -> None:
-    bootstrap = yaml.safe_load(read("core/bootstrap.yaml")) or {}
-    if str(bootstrap.get("skill_version")) != TARGET:
+    bootstrap_text = read("core/bootstrap.yaml")
+    if re.search(rf"(?m)^skill_version:\s*{re.escape(TARGET)}\s*$", bootstrap_text) is None:
         raise RuntimeError(f"bootstrap must already be {TARGET}")
 
     sync_plugin()
