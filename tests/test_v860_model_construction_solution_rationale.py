@@ -87,7 +87,14 @@ class ModelConstructionRationaleContractTests(unittest.TestCase):
         self.assertIn("root_or_boundary_search", solver["precondition_profiles"])
         self.assertIn("enumeration", solver["precondition_profiles"])
         self.assertIn("decomposition", solver["precondition_profiles"])
-        self.assertIn("solver_precondition_satisfaction_from_algorithm_name_only", solver["machine_audit_scope"]["must_not_claim"])
+        self.assertIn(
+            "precondition_satisfaction_from_method_name_or_keywords_only",
+            solver["machine_audit_scope"]["must_not_claim"],
+        )
+        self.assertIn(
+            "solver_precondition_satisfaction_from_algorithm_name_only",
+            self.contract["machine_audit_boundary"]["must_not_claim"],
+        )
         self.assertIn("Solver Preconditions", self.protocol)
 
     def test_numerical_parameter_rationale_is_not_forced_robustness(self):
@@ -146,7 +153,7 @@ class ModelConstructionRationaleContractTests(unittest.TestCase):
             self.assertIn(phrase, self.examples)
 
     def test_cleanup_and_review_reject_regex_style_scoring(self):
-        self.assertIn("不得由“因为/因此”判定模型理由完整", self.cleanup)
+        self.assertIn("机器不能由“因为/因此”判定模型理由完整", self.cleanup)
         self.assertIn("标题字符数", self.cleanup)
         self.assertIn("不得由“因为/因此”等连接词判断", self.review)
         self.assertIn("不能仅因标题较长", self.review)
