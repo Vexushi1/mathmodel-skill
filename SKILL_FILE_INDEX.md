@@ -134,6 +134,7 @@
 - `scripts/runtime_assurance.py`
 - `scripts/score_submission.py`
 - `scripts/sync_project.py`
+- `scripts/sync_v860_release_carriers.py`
 - `scripts/validate_code_delivery.py`
 - `scripts/validate_drawio_figure.py`
 - `scripts/validate_model_approval.py`
