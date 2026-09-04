@@ -1,6 +1,12 @@
-# mathmodel-skill v8.5.0
+# mathmodel-skill v8.6.0
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v8.6.0：Model Construction & Solution Rationale
+
+本次升级在 v8.5 Author Reasoning Voice 基础上，继续强化“为什么这样建模、为什么这样简化、当前结构何时成立、为什么该 solver 在这里适用、关键数值参数为什么这样选”。新增 Model Construction Rationale、Local Applicability、Solver Preconditions、Reduction Provenance-aware prose、Numerical Parameter Rationale、Section Title Minimality 与 Adaptive Subsection Separation。
+
+复杂模型允许保留真正有导航价值的短二级/三级标题，简单模型则继续执行 anti-bloat；不设置标题字符数/数量 Hard Rule，不固定“模型适用性分析”小节，不把 A196 的算法、标题或句式变成模板。v8.5 的 Question Closure、Reasoning Necessity、Problem-Specificity、Claim Strength、无代词配额和不推断作者身份边界保持不变。实现与回归记录见 [v8.6 评估记录](docs/v860_model_construction_solution_rationale_evaluation.md)。
 
 ## v8.5.0：Author Reasoning Voice 细化
 
