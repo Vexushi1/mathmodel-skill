@@ -1,7 +1,8 @@
 """Protect scope and fixed trial facts, not a prose-quality or authorship score.
 
 Snapshots come from PR #108 head 1895fb8 before the approved v8.4 changes.
-Only explicitly authorized prose fields/reads are excluded from preservation.
+v8.5 explicitly authorizes the Author Reasoning Voice schema extension while
+keeping unrelated reasoning semantics, templates, proofs and runtime topology pinned.
 Actual complete-section writing and cleanup need semantic review, not token tests.
 """
 import copy
@@ -17,6 +18,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 PROTOCOL = "modules/05_writing/paper_writing_protocol.md"
 EXAMPLES = "modules/05_writing/references/model_solution_reasoning_examples.md"
+AUTHORITY = PROTOCOL + "#7.3-作者视角与建模解释"
 
 
 def read(path):
@@ -61,12 +63,32 @@ class WritingReasoningScopeTests(unittest.TestCase):
                 blob = b"blob " + str(len(data)).encode() + b"\0" + data
                 self.assertEqual(hashlib.sha1(blob).hexdigest(), digest)
 
-    def test_complete_reasoning_semantics_except_two_approved_prose_fields(self):
+    def test_complete_reasoning_semantics_except_authorized_v85_voice_fields(self):
         contract = yaml.safe_load(read("core/writing_reasoning_contract.yaml"))
-        # Everything else, including schemas, modeling depth, algorithm presentation,
-        # proofs, numerical style, citations and claim calibration, remains pinned.
+        # Restore only the explicitly authorized v8.5 Author Reasoning extension to
+        # its v8.4 representation, then compare the same protected semantic digest.
+        # This prevents a broad hash refresh from hiding unrelated changes.
+        self.assertEqual(contract["schema_version"], "1.7.0")
+        contract["schema_version"] = "1.6.0"
         contract["paragraph_necessity"].pop("rule")
         contract["prose_style"].pop("target")
+        contract["prose_style"]["human_reasoning_trace"] = {
+            "prose_authority": AUTHORITY,
+            "allow": [
+                "指出当前还缺哪个量或条件",
+                "说明某关系为何能缩小搜索范围",
+                "说明两个区间、对象或约束为何需要进一步比较",
+                "说明由某一结果引出的下一步建模动作",
+            ],
+        }
+        audit_boundary = contract["machine_audit_boundary"]["must_not_claim"]
+        for item in (
+            "author_reasoning_quality_from_pronoun_frequency_or_question_marks",
+            "authorship_or_ai_usage_from_author_voice_style",
+            "question_closure_from_surface_phrase_presence_only",
+            "problem_specificity_from_object_name_overlap_only",
+        ):
+            audit_boundary.remove(item)
         self.assertEqual(semantic_digest(contract),
                          "ae7e0f37fb4a5eeab1ef66fedbe68e2f4b22ff4356165b33ffa1e8e65485a23e")
 
@@ -82,7 +104,7 @@ class WritingReasoningScopeTests(unittest.TestCase):
         for stage_id in ("draft_semantic_review", "ai_cleanup"):
             reads = stages[stage_id]["read_now"]
             reads.remove(PROTOCOL + "#5-Paragraph-Handoff-Test")
-            reads.remove(PROTOCOL + "#7.3-作者视角与建模解释")
+            reads.remove(AUTHORITY)
         stages["draft_semantic_review"]["read_now"].remove(
             "modules/06_review_delivery.md#三-公式模型角色算法命题与数值证据审查"
         )
