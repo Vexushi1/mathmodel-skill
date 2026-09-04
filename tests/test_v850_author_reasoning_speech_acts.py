@@ -86,16 +86,26 @@ class AuthorReasoningContractTests(unittest.TestCase):
         ):
             self.assertIn(phrase, section)
 
-    def test_cleanup_and_review_consume_authority_without_voice_scoring(self):
+    def test_cleanup_and_review_consume_authority_and_explicitly_reject_voice_scoring(self):
         for text in (self.cleanup, self.review):
             self.assertIn("paper_writing_protocol.md#7.3-作者视角与建模解释", text)
-            self.assertNotIn("first_person_ratio", text)
-            self.assertNotIn("human_like_score", text)
-            self.assertNotIn("AI_like_score", text)
+            # These strings are present only to make the prohibited diagnostics explicit;
+            # their presence is not an implementation of a score.
+            self.assertIn("first_person_ratio", text)
+            self.assertIn("human_like_score", text)
+            self.assertIn("AI_like_score", text)
+            self.assertIn("不得", text)
         for phrase in ("Keep / Compress / Re-subject / Delete", "Problem-Specificity"):
             self.assertIn(phrase, self.cleanup)
         for phrase in ("Author Reasoning Semantic Review", "Question Closure"):
             self.assertIn(phrase, self.review)
+
+    def test_machine_boundary_denies_pronoun_or_authorship_inference(self):
+        boundary = set(self.reasoning["machine_audit_boundary"]["must_not_claim"])
+        self.assertIn("author_reasoning_quality_from_pronoun_frequency_or_question_marks", boundary)
+        self.assertIn("authorship_or_ai_usage_from_author_voice_style", boundary)
+        self.assertIn("question_closure_from_surface_phrase_presence_only", boundary)
+        self.assertIn("problem_specificity_from_object_name_overlap_only", boundary)
 
     def test_examples_include_positive_negative_and_no_change_cases(self):
         for phrase in (
