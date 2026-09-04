@@ -86,6 +86,7 @@
 - `modules/05_writing/docx.md`
 - `modules/05_writing/latex.md`
 - `modules/05_writing/paper_writing_protocol.md`
+- `modules/05_writing/references/model_construction_solution_rationale_examples.md`
 - `modules/05_writing/references/model_solution_reasoning_examples.md`
 - `modules/06_review_delivery.md`
 - `packs/artifact/algorithm_flow.md`
