@@ -1,14 +1,14 @@
-"""Protect scope and fixed trial facts, not a prose-quality or authorship score.
+"""Protect v8.4/v8.5 writing invariants while allowing the approved v8.6 scope.
 
-Snapshots come from PR #108 head 1895fb8 before the approved v8.4 changes.
-v8.5 explicitly authorizes the Author Reasoning Voice schema extension while
-keeping unrelated reasoning semantics, templates, proofs and runtime topology pinned.
-Actual complete-section writing and cleanup need semantic review, not token tests.
+Snapshots come from PR #108 head 1895fb8 for sections that v8.6 did not
+intentionally reopen. v8.5 Author Reasoning Voice remains semantically pinned;
+v8.6 may extend model-construction rationale, solver preconditions, parameter
+rationale and adaptive subsection/title governance only.
+
+These are scope/regression tests, not prose-quality or authorship scores.
 """
-import copy
 import hashlib
 import itertools
-import json
 import re
 import unittest
 from pathlib import Path
@@ -18,6 +18,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 PROTOCOL = "modules/05_writing/paper_writing_protocol.md"
 EXAMPLES = "modules/05_writing/references/model_solution_reasoning_examples.md"
+RATIONALE_EXAMPLES = "modules/05_writing/references/model_construction_solution_rationale_examples.md"
 AUTHORITY = PROTOCOL + "#7.3-作者视角与建模解释"
 
 
@@ -25,22 +26,16 @@ def read(path):
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def semantic_digest(value):
-    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-
-
 class WritingReasoningScopeTests(unittest.TestCase):
-    def test_unchanged_chapter_detail_and_handoff_snapshots(self):
+    def test_unreopened_chapter_snapshots_remain_pinned(self):
+        # v8.6 intentionally changes §§2, 3, 7, 8, 12, 15, 18 and related text.
+        # These sections were not reopened and stay pinned to the prior snapshots.
         expected = {
-            "2. 模板与写作职责": "590972187ff6e0ee280b4fc1f59ed18f951a6daec96e1d701e0355e671904112",
-            "3. 每问的四个功能槽": "203bc95ade0b0f8c4f8df7096c61b100db487cf9a24ee60b5a01c78368c292c8",
             "4. Local Narrative Chain": "a32d8bce3e0805bdac4bce0105a7fa715473c28fc6392f701ffcd0a320b949b2",
             "5A. Cross-File Chapter Handoff": "77a8b8b8f7301544343a9e867380637ece97705022fc0c0e5a3eee0e009b2f19",
             "6. 前置章节内容": "540c70cf9833269ae02a138d03ab224f0f1c5e40e104dab33df4f84624607e84",
             "10. 结果与验证的分层": "21b6d5111705b6645c4bd90f1a1393d624797d71ece18254ff0ecca81e559872",
-            "12. 跨问递进": "d448a67403c3b867ab7f8f7ec91e04b9cf5179e045e16d433e33657ff2ae2de8",
             "14. 摘要": "8c2cbf13c739b273f4f3331819b0c0bedcac11df5e7103b6e2ea0a109a540271",
-            "15. 模型评价、逐问结论与附录": "0bdb266fd63a0776b36decca4dc5d21434f63b809a7f4981c676cc3be80cc0e6",
         }
         sections = {m[1]: m[0] for m in re.finditer(
             r"^## ([^\n]+)\n(.*?)(?=^## |\Z)", read(PROTOCOL), re.M | re.S
@@ -63,59 +58,96 @@ class WritingReasoningScopeTests(unittest.TestCase):
                 blob = b"blob " + str(len(data)).encode() + b"\0" + data
                 self.assertEqual(hashlib.sha1(blob).hexdigest(), digest)
 
-    def test_complete_reasoning_semantics_except_authorized_v85_voice_fields(self):
+    def test_v85_author_reasoning_voice_semantics_remain_pinned(self):
         contract = yaml.safe_load(read("core/writing_reasoning_contract.yaml"))
-        # Restore only the explicitly authorized v8.5 Author Reasoning extension to
-        # its v8.4 representation, then compare the same protected semantic digest.
-        # This prevents a broad hash refresh from hiding unrelated changes.
-        self.assertEqual(contract["schema_version"], "1.7.0")
-        contract["schema_version"] = "1.6.0"
-        contract["paragraph_necessity"].pop("rule")
-        contract["prose_style"].pop("target")
-        contract["prose_style"]["human_reasoning_trace"] = {
-            "prose_authority": AUTHORITY,
-            "allow": [
-                "指出当前还缺哪个量或条件",
-                "说明某关系为何能缩小搜索范围",
-                "说明两个区间、对象或约束为何需要进一步比较",
-                "说明由某一结果引出的下一步建模动作",
+        self.assertEqual(contract["schema_version"], "1.8.0")
+        trace = contract["prose_style"]["human_reasoning_trace"]
+        self.assertEqual(trace["prose_authority"], AUTHORITY)
+        self.assertEqual(
+            trace["speech_acts"],
+            [
+                "observation", "open_question", "inquiry", "judgment", "choice",
+                "reduction", "introduction", "derivation", "interpretation",
+                "validation", "qualification",
             ],
-        }
-        audit_boundary = contract["machine_audit_boundary"]["must_not_claim"]
-        for item in (
-            "author_reasoning_quality_from_pronoun_frequency_or_question_marks",
-            "authorship_or_ai_usage_from_author_voice_style",
-            "question_closure_from_surface_phrase_presence_only",
-            "problem_specificity_from_object_name_overlap_only",
-        ):
-            audit_boundary.remove(item)
-        self.assertEqual(semantic_digest(contract),
-                         "ae7e0f37fb4a5eeab1ef66fedbe68e2f4b22ff4356165b33ffa1e8e65485a23e")
-
-    def test_runtime_only_adds_relevant_reads_and_one_optional_example(self):
-        runtime = yaml.safe_load(read("core/writing_runtime_contract.yaml"))
-        preserved = copy.deepcopy(runtime)
-        preserved.pop("version")
-        stages = {stage["id"]: stage for stage in preserved["template_first_progressive_authoring"]["stages"]}
-        question = stages["question_model_solution_result_validation"]
-        question["read_now"].remove(PROTOCOL + "#1-写作输入")
-        example = question["conditional_reads_before_relevant_passage"].pop("reasoning_example")
-        self.assertEqual(example["read"], [EXAMPLES])
-        for stage_id in ("draft_semantic_review", "ai_cleanup"):
-            reads = stages[stage_id]["read_now"]
-            reads.remove(PROTOCOL + "#5-Paragraph-Handoff-Test")
-            reads.remove(AUTHORITY)
-        stages["draft_semantic_review"]["read_now"].remove(
-            "modules/06_review_delivery.md#三-公式模型角色算法命题与数值证据审查"
         )
-        self.assertEqual(semantic_digest(preserved),
-                         "40d5464f48eb1c821de378332da9b022694763b58bec5847da5b0aa06697e978")
-        self.assertTrue((ROOT / EXAMPLES).is_file())
+        self.assertEqual(
+            trace["question_closure"]["allowed_outcomes"],
+            [
+                "answered_by_downstream_operation",
+                "explicitly_deferred_to_named_validation",
+                "retained_as_unverified_hypothesis",
+            ],
+        )
+        self.assertEqual(trace["subject_roles"]["quota"], "none")
+        self.assertEqual(
+            trace["claim_strength_alignment"]["rule"],
+            "prose_claim_strength_must_not_exceed_evidence_strength",
+        )
+        self.assertEqual(
+            trace["necessity_tests"],
+            ["reasoning_necessity", "problem_specificity"],
+        )
+        for item in (
+            "pronoun_frequency_target",
+            "authorship_inference_from_voice",
+            "fabricated_team_consensus",
+            "fabricated_trial_and_error_history",
+            "rhetorical_question_without_followup",
+            "causal_upgrade_from_visual_pattern_only",
+            "heuristic_to_global_optimum_upgrade",
+            "forced_first_person_in_simple_problem",
+            "fixed_phrase_rotation_for_human_impression",
+        ):
+            self.assertIn(item, trace["prohibit"])
+
+    def test_v86_scope_is_additive_not_a_parallel_authority(self):
+        contract = yaml.safe_load(read("core/writing_reasoning_contract.yaml"))
+        self.assertIn("model_construction_rationale", contract)
+        self.assertIn("precondition_chain", contract["solver_justification"])
+        self.assertIn("adaptive_separation", contract["model_establishment_solution_narrative"]["within_question_subsection_architecture"])
+        self.assertIn("title_minimality", contract["model_establishment_solution_narrative"]["professional_heading_semantics"])
+        self.assertFalse(contract["subsection_granularity"]["hard_count_limit"])
+        self.assertFalse(contract["subsection_granularity"]["hard_title_length_limit"])
+        for relative in (
+            "core/model_construction_rationale_contract.yaml",
+            "core/model_applicability_contract.yaml",
+            "core/heading_quality_contract.yaml",
+            "modules/model_construction_rationale.md",
+        ):
+            self.assertFalse((ROOT / relative).exists(), relative)
+
+    def test_runtime_keeps_same_stage_topology_and_conditional_examples_only(self):
+        runtime = yaml.safe_load(read("core/writing_runtime_contract.yaml"))
+        self.assertEqual(runtime["version"], "8.6.0")
         progressive = runtime["template_first_progressive_authoring"]
-        self.assertNotIn(EXAMPLES, progressive["initial_read_order"])
-        self.assertNotIn(EXAMPLES, runtime["ordinary_writing_resource_order"])
-        for stage in progressive["stages"]:
-            self.assertNotIn(EXAMPLES, stage["read_now"])
+        stage_ids = [stage["id"] for stage in progressive["stages"]]
+        self.assertEqual(
+            stage_ids,
+            [
+                "template_inspection",
+                "problem_restatement",
+                "problem_analysis",
+                "assumptions_symbols_and_preparation",
+                "question_model_solution_result_validation",
+                "evaluation_references_conclusion_appendix",
+                "abstract_title_and_keywords",
+                "draft_semantic_review",
+                "ai_cleanup",
+                "latex_assembly_audit_and_compile",
+                "final_review_and_delivery",
+            ],
+        )
+        stages = {stage["id"]: stage for stage in progressive["stages"]}
+        conditional = stages["question_model_solution_result_validation"]["conditional_reads_before_relevant_passage"]
+        self.assertEqual(conditional["reasoning_example"]["read"], [EXAMPLES])
+        self.assertEqual(conditional["model_construction_solution_example"]["read"], [RATIONALE_EXAMPLES])
+        for example in (EXAMPLES, RATIONALE_EXAMPLES):
+            self.assertTrue((ROOT / example).is_file())
+            self.assertNotIn(example, progressive["initial_read_order"])
+            self.assertNotIn(example, runtime["ordinary_writing_resource_order"])
+            for stage in progressive["stages"]:
+                self.assertNotIn(example, stage.get("read_now", []))
 
 
 class FixedWritingTrialFactsTests(unittest.TestCase):
@@ -164,12 +196,12 @@ class FixedWritingTrialFactsTests(unittest.TestCase):
         f = lambda x: x * x + 2 * x
         self.assertLess(f(a), facts["target"])
         self.assertGreater(f(b), facts["target"])
-        self.assertGreater(2 * a + 2, 0)  # derivative minimum on the whole interval
+        self.assertGreater(2 * a + 2, 0)
         m = (a + b) / 2
         self.assertEqual(m, 1)
         self.assertEqual(f(m), facts["target"])
         self.assertLess((b - a) / (2 ** 22), 1e-6)
-        self.assertLess(21 + 1, 30)  # tolerance is checked before each interval update
+        self.assertLess(21 + 1, 30)
 
 
 if __name__ == "__main__":
