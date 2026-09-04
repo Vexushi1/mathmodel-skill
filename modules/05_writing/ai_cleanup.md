@@ -215,11 +215,29 @@ BibTeX key、重复条目、未使用条目等确定性结构问题由 `scripts/
 
 最终文本保持规范、朴素、技术含义稳定，并保留真实推理痕迹。模型建立与求解的作者视角边界消费 `paper_writing_protocol.md#7.3-作者视角与建模解释`，不另设句式模板。可以让当前对象、关系、条件、结果或数学任务承担句子主位，也可以保留有依据、有信息的“我们需要判断”“我们引入”等表达；减少的是连续使用“本文/本问/该模型/我们”空泛宣布工作步骤，不是删除第一人称本身。
 
+v8.5 对 Author Reasoning Voice 的清理按 **Keep / Compress / Re-subject / Delete** 四种动作判断，动作依据是语义功能而不是代词本身：
+
+- **Keep**：句子确实承担当前缺口、选择依据、结构简化、数学作用、验证动机或结论边界。例如“总量约束仍会允许局部缺货，因此我们需要逐期检查”中的局部遗漏不能因没有新公式而删除。
+- **Compress**：句子有有效理由，但混入“说白了、我们觉得、其实、还是得看看”等聊天式语气时，压缩闲聊和重复，保留问题、依据、数学对象和下一步。例如把“总量够了是不是就行了呢？我们觉得还是得看看每一期”压缩为“总量充足是否足以满足各期需求？由于不能跨期调剂，我们需要分别检查各期约束”。
+- **Re-subject**：句子报告已经证明的数学事实或 current 数据事实时，可以让对象/结果承担主语，避免把客观事实写成主观判断。例如严格得到 $f'(x)>0$ 后优先写“$f(x)$ 在该区间严格单调递增”，而不是“我们认为 $f(x)$ 单调递增”。这不是第一人称禁令，只是避免降低证据强度。
+- **Delete**：句子只宣布管理动作且没有本题特异信息，如“为了更好地解决该问题，我们建立数学模型进行分析”，删除后不损失题意、数学关系、solver 依据、结果证据或边界时直接删除。
+
+每次对作者声音做实质改写前，执行两个语义测试：
+
+1. **Reasoning Necessity**：删掉该句后，是否会失去“为什么这样定义/建式/计算/验证”、当前还缺什么、某式有什么作用或某结论的证据边界？如果会失去，则必须保留这些信息，措辞可以压缩。
+2. **Problem-Specificity**：替换研究对象名称后，该句是否仍能原样用于任意赛题？若是，优先怀疑为模板化空话；应回到本题的对象、机制、数据结构、约束或评价指标重写。
+
 必要的衔接句应能完成 `inherit / gap / introduce / transform / solve_entry / result_entry / interpret / increment` 中至少一种逻辑功能。允许适度解释为什么建立下一关系、某条件怎样缩小搜索范围、某结果为什么需要继续比较；不建立“首先—其次—因此”的推荐词库，也不把优秀论文中的具体句式当作模板。
+
+自然发问按 Protocol §7.3 的 **Question Closure** 处理：问题若用于推动正文，必须进入相邻推导、真实验证、后续明确任务或“现有材料尚不能回答”的边界。清理不能保留“我们希望知道模型是否稳定”这种悬空愿望后又直接写“模型稳定”；已经有验证结果时写实际答案，没有结果时不得补造闭环。
+
+作者判断继续服从 Claim Strength。`HEURISTIC / OBSERVED / COMPARATIVE / VERIFIED_NUMERIC` 不会因为加上“我们认为”就降低全局最优、因果、普遍规律或严格证明所需的证据。图像直觉可以引出可检验猜想，但不能从空间接近、曲线相似或视觉拐点直接写成因果、鲁棒性或数学性质。
+
+“我们”“本文”和对象主语都可以合法存在：局部判断、取舍、探究可自然使用“我们”；研究范围、论文整体方法或贡献可使用“本文”；已经证明/核验的数学与数据事实通常优先让对象或结果承担主语。这里不设置任何代词配额，不批量执行“我们→本文”或“无人称→我们”。
 
 清理前先辨认句子的判断、依据、处理或解释功能。若确实说明当前缺口、选择理由或下游用途，应保留这些信息，只修改空泛宣告、机械重复、语气赘词和过度口语化；不能把有理由的段落压回“建立模型—进行求解”。必要依据缺失时回到语义审查或请求补充事实，不替作者编造理由。
 
-清理后对照当前事实检查被实质改写的段落：理由、关键关系、条件、算法与实现对应、结果含义和未决边界是否仍在。无缺陷原文可不改；过度口语化只修语气，不连带删除作者视角。该检查不要求新增日志或逐段表格，用户仅要求局部润色时也不扩大为整章改写。
+清理后对照当前事实检查被实质改写的段落：理由、关键关系、条件、算法与实现对应、结果含义和未决边界是否仍在。无缺陷原文可不改；简单解析或直接计算已经紧凑、准确时，**不改也是合法结果**。过度口语化只修语气，不连带删除作者视角。该检查不要求新增日志或逐段表格，用户仅要求局部润色时也不扩大为整章改写。
 
 不通过故意病句、刻意或过度口语化、机械同义词替换或频繁自我否定来制造“人工感”。适度自然表达按上述 Protocol 保留，不虚构团队共识、试错经历或检验；不以文风判断作者身份或替代真实 AI 使用披露。固定专业术语、数学对象和变量含义必须保持一致，已有公式来源、推导、命题证明、伪代码及求解细节不得因这次表达调整而缩减。
 
@@ -249,6 +267,8 @@ python scripts/audit_latex_project.py final_latex/main.tex \
 - v8 surface audit 当前确定性实现 `workflow_vocabulary_leak`、`decorative_quote_density`、`concept_chain_density`、`result_validation_bridge_risk`、`question_stage_order_risk`、`solver_first_narrative` 与 `consecutive_figures_without_local_interpretation`；这些结果仍只是 warning/review，不是数学正确性判断。
 
 `report_like_model_listing`、`formula_without_need_or_consequence`、`generic_heading_density`、`management_transition`、`detached_result_interpretation`、`repeated_problem_analysis_in_model_section`、`subsection_order_breaks_local_dependency`、`top_level_framework_reordered_by_writing_rule`、`decisive_derivation_overcompressed`、`routine_content_overexpanded`、`figure_without_identity_or_local_role`、`figure_feature_without_question_link`、`unsupported_figure_cause`、`detached_figure_summary`、`local_question_section_not_closed_to_answer` 等属于 Authority 的人工/语义审查类别；除非脚本确有可靠输入和实现，不得在报告中伪称已经自动检测。
+
+Author Reasoning Voice 新增的 `Question Closure`、`Reasoning Necessity`、`Problem-Specificity`、主语角色选择及判断强度也属于人工/语义审查；**不得**通过 `count("我们")`、`count("本文")`、`first_person_ratio`、`human_like_score` 或 `AI_like_score` 实现。机器可以检查 Authority 指针和项目已登记的 claim 冲突，但不能由作者代词、问句标点或固定短语判断文章是否“像人”、问题是否真正闭合或判断是否合理。
 
 等级仍为：
 

@@ -1,6 +1,12 @@
-# mathmodel-skill v8.4.0
+# mathmodel-skill v8.5.0
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v8.5.0：Author Reasoning Voice 细化
+
+本次升级把 v8.4 已允许的作者声音进一步细化为证据约束下的建模认知行为：Observation、Open Question、Inquiry、Judgment、Choice、Reduction、Introduction、Derivation、Interpretation、Validation 与 Qualification。重点不是增加“我们/本文”的出现次数，而是让关键观察、发问、选择、简化、解释和检验具有可恢复的数学去向。
+
+新增 Question Closure、Claim Strength Alignment、Reasoning Necessity 与 Problem-Specificity；“我们”“本文”和数学对象主语按语义功能自然选择，不设置代词配额，不做作者身份或 AI 风格推断，不编造团队共识和试错经历。AI Cleanup 采用 Keep / Compress / Re-subject / Delete 的语义决策，并继续保护 Formula、Proof、Algorithm Trace、Citation、Numerical Evidence 与全局最优主张边界。简单解析或直接计算问题仍允许保持紧凑原文，不为展示探究感强行扩写。
 
 ## v8.4.0：建模求解叙事与作者表达强化
 

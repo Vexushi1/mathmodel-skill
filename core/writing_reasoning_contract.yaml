@@ -1,4 +1,4 @@
-schema_version: 1.6.0
+schema_version: 1.7.0
 role: >-
   跨数学建模竞赛的正文推理与证据治理权威。约束核心公式的来源—推导—去向、共享基础模型、
   跨问递进、结构化简、模型/求解器/验证器角色、优化模型表达、模型建立—求解—结果解释的连续叙事、
@@ -1120,7 +1120,9 @@ paper_fragment_stale_governance:
 
 prose_style:
   name: evidence_driven_undergraduate_academic
-  target: 规范、朴素、技术含义稳定；有依据的作者判断与自然发问正常可用，不追求期刊式抽象包装。
+  target: >-
+    规范、朴素、技术含义稳定；允许有依据的观察、发问、判断、取舍、简化、引入、解释与验证，
+    不追求期刊式抽象包装，也不通过聊天化或代词频率制造“人工感”。
   preferred_sentence_flow:
     - concrete_object_or_condition
     - current_mathematical_difficulty
@@ -1137,11 +1139,73 @@ prose_style:
     - unsupported_boastful_claim_strength
   human_reasoning_trace:
     prose_authority: modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释
+    principle: >-
+      作者声音用于显式呈现可核查的建模认知动作，而不是增加第一人称频率、模拟聊天语气、
+      暗示作者身份或替代公式、数据、证明与验证证据。
+    speech_acts:
+      - observation
+      - open_question
+      - inquiry
+      - judgment
+      - choice
+      - reduction
+      - introduction
+      - derivation
+      - interpretation
+      - validation
+      - qualification
     allow:
-      - 指出当前还缺哪个量或条件
-      - 说明某关系为何能缩小搜索范围
-      - 说明两个区间、对象或约束为何需要进一步比较
-      - 说明由某一结果引出的下一步建模动作
+      - 指出当前还缺哪个量、条件、判据或证据
+      - 说明某关系为何能缩小搜索范围或改变可行域
+      - 说明两个区间、对象、方案或约束为何需要进一步比较
+      - 说明由某一结果引出的下一步建模、求解或验证动作
+      - 解释非显然变量、指标、近似、solver 或约束的当前选择依据
+      - 区分已证事实、数据事实、有依据判断、解释性推测与待验证猜想
+    question_closure:
+      allowed_outcomes:
+        - answered_by_downstream_operation
+        - explicitly_deferred_to_named_validation
+        - retained_as_unverified_hypothesis
+      prohibition:
+        - rhetorical_question_without_mathematical_destination
+      rule: >-
+        自然发问必须进入相邻推导、真实检验、明确后续任务，或清楚保留为当前未验证问题；
+        不得以问句制造探究感后在缺少证据时直接宣布答案。
+    subject_roles:
+      author_we: local_reasoning_action
+      paper_this_work: paper_scope_or_contribution
+      object_subject: established_mathematical_or_empirical_fact
+      quota: none
+      rule: >-
+        “我们”“本文”与对象/结果主语都可合法使用；按当前语义功能自然选择，
+        不批量互换，也不因正式性偏好统一成某一主语。
+    claim_strength_alignment:
+      levels:
+        - mathematical_fact
+        - empirical_fact
+        - evidence_supported_judgment
+        - interpretive_hypothesis
+        - unverified_conjecture
+      rule: prose_claim_strength_must_not_exceed_evidence_strength
+      boundary: >-
+        已证明数学事实和已核验数值通常直接陈述；“我们认为”适合有依据的建模取舍与评价，
+        不能把启发式解、图像共现或有限样本观察升级为全局最优、因果、普遍规律或严格证明。
+    necessity_tests:
+      - reasoning_necessity
+      - problem_specificity
+    necessity_rule: >-
+      删除作者声音句后若不丢失选择理由、当前缺口、数学作用、验证目标或结论边界，应压缩、换主语或删除；
+      若替换研究对象后句子仍可原样用于任意赛题，应优先回到当前机制、数据、约束或评价目标重写。
+    prohibit:
+      - pronoun_frequency_target
+      - authorship_inference_from_voice
+      - fabricated_team_consensus
+      - fabricated_trial_and_error_history
+      - rhetorical_question_without_followup
+      - causal_upgrade_from_visual_pattern_only
+      - heuristic_to_global_optimum_upgrade
+      - forced_first_person_in_simple_problem
+      - fixed_phrase_rotation_for_human_impression
 
 problem_background:
   governance_level: recommendation
@@ -1219,6 +1283,10 @@ machine_audit_boundary:
     - figure_narrative_quality_from_figure_reference_only
     - local_dependency_from_surface_order_only
     - top_level_reordering_permission_from_local_dependency_only
+    - author_reasoning_quality_from_pronoun_frequency_or_question_marks
+    - authorship_or_ai_usage_from_author_voice_style
+    - question_closure_from_surface_phrase_presence_only
+    - problem_specificity_from_object_name_overlap_only
 
 authority_boundaries:
   reasoning_authority: core/writing_reasoning_contract.yaml

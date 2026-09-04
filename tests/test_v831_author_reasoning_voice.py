@@ -59,7 +59,11 @@ class AuthorReasoningVoiceTests(unittest.TestCase):
         self.assertIn("不是删除第一人称本身", cleanup)
         self.assertIn("不替作者编造理由", cleanup)
         self.assertIn("公式来源、推导、命题证明、伪代码及求解细节", cleanup)
-        self.assertEqual(self.reasoning["schema_version"], "1.6.0")
+        self.assertEqual(self.reasoning["schema_version"], "1.7.0")
+        trace = self.reasoning["prose_style"]["human_reasoning_trace"]
+        self.assertEqual(trace["subject_roles"]["quota"], "none")
+        self.assertIn("pronoun_frequency_target", trace["prohibit"])
+        self.assertIn("authorship_inference_from_voice", trace["prohibit"])
 
     def test_explanatory_voice_variants_have_identical_clean_diagnostics(self):
         # Finite candidate enumeration is illustrative, not a current paper result.

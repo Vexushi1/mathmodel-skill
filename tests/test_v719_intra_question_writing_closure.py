@@ -26,7 +26,7 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
         cls.router = (ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8")
 
     def test_reasoning_schema_and_single_authority(self):
-        self.assertEqual(self.contract["schema_version"], "1.6.0")
+        self.assertEqual(self.contract["schema_version"], "1.7.0")
         for key in (
             "within_question_subsection_architecture",
             "detail_allocation_governance",
