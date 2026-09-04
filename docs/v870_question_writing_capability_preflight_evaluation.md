@@ -1,6 +1,6 @@
 # v8.7.0 Per-Question Writing Capability Preflight — Evaluation
 
-> Status: **pre-release implementation evaluation**.  This file records fixed behavioral trials and regression evidence for the approved v8.7.0 scope.  It is not a new writing Authority and must not override `core/writing_reasoning_contract.yaml`, `core/writing_runtime_contract.yaml`, `modules/05_writing/paper_writing_protocol.md`, or the current project framework.
+> Status: **release-candidate semantic evaluation complete; pre-merge**. This file records fixed behavioral trials, regression evidence and the first stable-head release-candidate CI for the approved v8.7.0 scope. It is not a new writing Authority and must not override `core/writing_reasoning_contract.yaml`, `core/writing_runtime_contract.yaml`, `modules/05_writing/paper_writing_protocol.md`, or the current project framework.
 
 ## 1. Evaluation target
 
@@ -31,7 +31,7 @@ Current implementation adds or integrates:
 
 ## 3. Fixed writing trials
 
-These are fixed **paper-surface behavior trials**, not numerical model benchmarks.  The question state is fixed first; then the expected writing behavior is checked against Runtime + Reasoning + Protocol + Cleanup + Review.  The purpose is to detect over-activation, silent omission, or formula over-compression.
+These are fixed **paper-surface behavior trials**, not numerical model benchmarks. The question state is fixed first; then the expected writing behavior is checked against Runtime + Reasoning + Protocol + Cleanup + Review. The purpose is to detect over-activation, silent omission, or formula over-compression.
 
 ### Trial A — simple analytic question
 
@@ -52,7 +52,7 @@ Expected paper surface:
 - no algorithm steps or pseudocode;
 - full reasoning Authority and Algorithm/Proposition Packs are not eagerly preloaded.
 
-Result: **PASS by contract + fixture**.  `summary_inline_simple_analytic` activates only adaptive summary semantics and keeps the optional deep Packs closed.
+Result: **PASS by contract + fixture**. `summary_inline_simple_analytic` activates only adaptive summary semantics and keeps the optional deep Packs closed.
 
 ### Trial B — complex optimization model
 
@@ -72,7 +72,7 @@ Expected paper surface:
 - supporting derivation and routine algebra are not copied into the recap by default;
 - no algorithm block is manufactured merely because the model is complex.
 
-Result: **PASS by contract + fixture**.  `summary_required_complex_optimization` and `bridge_relation_preserved_without_formula_dump` cover the activation and formula-role split.
+Result: **PASS by contract + fixture**. `summary_required_complex_optimization` and `bridge_relation_preserved_without_formula_dump` cover the activation and formula-role split.
 
 ### Trial C — geometric / mechanism predicate with bridge equations
 
@@ -113,7 +113,7 @@ proposition = planned/current
 
 Expected behavior: activate full reasoning Authority + `packs/artifact/proposition_proof.md`, then preserve the property’s downstream effect on candidate region, reduction, boundary, or solver precondition.
 
-Result: **PASS by fixture + Runtime assertions**.  Candidate and planned/current paths are explicitly different.
+Result: **PASS by fixture + Runtime assertions**. Candidate and planned/current paths are explicitly different.
 
 ### Trial E — black-box optimization with real pseudocode need
 
@@ -165,13 +165,13 @@ Status: **PASS**.
 
 ### Stale proposition
 
-A stale proposition cannot surface as current prose.  It activates review and the proposition resources needed to resolve the stale state.
+A stale proposition cannot surface as current prose. It activates review and the proposition resources needed to resolve the stale state.
 
 Status: **PASS**.
 
 ### Explicit user request compatibility
 
-State-driven activation is additive.  An explicit request to create/review a proof still enters the proposition/proof conditional branch even when the current project state was previously `not_assessed`.
+State-driven activation is additive. An explicit request to create/review a proof still enters the proposition/proof conditional branch even when the current project state was previously `not_assessed`.
 
 Status: **PASS**.
 
@@ -194,7 +194,7 @@ Result: **PASS in current unit-test runs**.
 
 ## 6. Regression boundaries
 
-The implementation intentionally changes writing runtime / reasoning / protocol / cleanup / review and the project-memory template.  It does **not** change the semantics of:
+The implementation intentionally changes writing runtime / reasoning / protocol / cleanup / review and the project-memory template. It does **not** change the semantics of:
 
 - Model Approval;
 - Primary Numerical Verification / PQS;
@@ -206,7 +206,7 @@ The implementation intentionally changes writing runtime / reasoning / protocol 
 - figure ownership / draw.io mechanism semantics;
 - formal LaTeX compilation and production attestation.
 
-Protected drift tests continue pinning those unrelated Authorities.  The four v8.7 writing Authorities have updated protected snapshots so the protection test describes intentional release scope rather than treating approved writing changes as unrelated drift.
+Protected drift tests continue pinning those unrelated Authorities. The v8.7 writing Authorities have updated protected snapshots only where the approved writing scope changed; unrelated numerical, model-approval, workbook, project-state, plotting and delivery snapshots remain pinned.
 
 ## 7. Compatibility checks
 
@@ -219,28 +219,57 @@ Current assertions explicitly preserve:
 - Model / Solver / Validator separation;
 - claim-strength and proof/evidence boundaries.
 
-## 8. CI evidence before release sync
+## 8. Release-carrier sync and stable-head CI evidence
 
-During implementation, an earlier v8.7 candidate reached green Python test jobs and green static / LaTeX / production-attestation jobs; the only transient failure on a user commit was the generated-file freshness gate while the normal metadata workflow was creating its follow-up metadata commit.  The branch then moved to the generated-metadata commit, as designed.
+Release carriers were synchronized from `8.6.1` to `8.7.0` only after the semantic implementation and expanded behavior fixtures were already passing. The sync covers the active bootstrap/plugin/Skill/README/CHANGELOG/core-version carriers, compact writing runtime and current health assertions; root and packaged `SKILL.md` remain byte-identical. Historical v8.6.1 release records were not mass-rewritten.
 
-After expanded activation fixtures and resolver tests, current Python jobs are again passing on the user commit while generated metadata is refreshed by the normal workflow.  **This section is intentionally not the final release attestation.**  A stable-head full matrix must still be run after release-carrier sync.
+The temporary one-shot release-sync helper and temporary workflow hook were removed before candidate validation. The normal generated-metadata workflow then refreshed the active indexes/manifest, producing metadata head:
+
+```text
+metadata_head = 60cdb10c9de24cbe38472bf81f7a253d8f62b50b
+```
+
+An empty user-authored commit with the **same tree** was then created specifically to validate a stable tree whose generated metadata was already current:
+
+```text
+release_candidate_validation_head = a47dd7c553b9becd1bcfd5e3d5ccbb687d0a8761
+HSK Skill CI run = #2495
+run_id = 33895569951
+result = success
+```
+
+All 11 jobs passed on that stable candidate tree:
+
+- Generated file contract ✅
+- Static contract lint ✅
+- Python 3.10 ✅
+- Python 3.11 ✅
+- Python 3.12 ✅
+- Python 3.13 ✅
+- Python 3.14 ✅
+- LaTeX CUMCM ✅
+- LaTeX MCM-ICM ✅
+- LaTeX Diangong ✅
+- Production LaTeX attestation ✅
+
+This is **pre-merge release-candidate evidence**, not a post-merge release attestation. The evaluation-document closure in this commit is documentation-only; after its normal generated-metadata refresh, one final stable-head matrix should be used as the PR-ready check. Exact final PR head/run can be recorded in the PR body without turning this evaluation file into a moving live-state pointer.
 
 ## 9. Known limitations / deliberate boundaries
 
-1. Preflight dispatch does not decide mathematical truth.  It cannot prove that a bridge relation is genuinely necessary, that a proposition is correct, or that a solver precondition is satisfied.
+1. Preflight dispatch does not decide mathematical truth. It cannot prove that a bridge relation is genuinely necessary, that a proposition is correct, or that a solver precondition is satisfied.
 2. Candidate proposition signals trigger semantic review, not automatic proposition creation.
 3. `required` summary means semantic recoverability, not a mandatory same-named subsection.
 4. Formula Role classification is project/model reasoning work; machine checks may validate declared enums and anchors but cannot infer roles from regex or equation position.
 5. Other competitions without the dedicated CUMCM Template Manifest continue using the full-Authority fallback; v8.7 does not silently project the CUMCM compact runtime onto them.
 
-## 10. Pre-release verdict
+## 10. Release-candidate verdict
 
-Current implementation satisfies the intended **capability discovery + state-driven activation** architecture and the fixed behavior trials above.  Remaining release work is procedural rather than a change of semantic design:
+The semantic implementation satisfies the intended **capability discovery + state-driven activation** architecture, the six fixed writing-surface trials and the fail-closed cases. Release carriers are synchronized to `8.7.0`, temporary implementation helpers are removed, generated metadata has been refreshed, and a stable candidate tree has passed the complete 11-job CI matrix.
 
-- synchronize version carriers from 8.6.1 to 8.7.0;
-- refresh generated metadata;
-- run one stable-head full CI matrix;
-- record the final candidate SHA and CI run in this evaluation;
-- update the PR from implementation status to review-ready status.
+Remaining pre-merge work is limited to repository-state closure:
 
-Until those steps are complete, PR #114 remains Draft and `main` remains unchanged.
+- refresh generated metadata for this evaluation-document update;
+- run one final stable-head full CI matrix on the resulting tree;
+- update PR #114 with the final candidate head/run and mark it review-ready.
+
+`main` remains unchanged. This evaluation does not authorize merge; merge remains a separate explicit user decision.
