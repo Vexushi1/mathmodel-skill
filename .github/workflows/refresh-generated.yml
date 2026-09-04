@@ -38,45 +38,18 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Refresh intentional v8.7 protected writing snapshots
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('tests/test_v830_editable_mechanism_diagram.py')
-          text = path.read_text(encoding='utf-8')
-          replacements = {
-              '# v8.6.0 intentionally updates the four writing authorities below for Model\n    # Construction & Solution Rationale. Unrelated numerical, model-approval,\n    # workbook, project-state, plotting and delivery snapshots remain pinned.':
-              '# v8.7.0 intentionally updates the four writing authorities below for per-question\n    # capability preflight, Formula Roles and state-driven activation. Unrelated numerical,\n    # model-approval, workbook, project-state, plotting and delivery snapshots remain pinned.',
-              '"core/writing_reasoning_contract.yaml": "38f01590b24d8cca5384f6a5668b8a1f0e2a2008"':
-              '"core/writing_reasoning_contract.yaml": "04ae1a4745d3614c7c01ab97e2f9fbe028b262e1"',
-              '"modules/05_writing/paper_writing_protocol.md": "5a798e024009bf3c38f786b5bfc3c9f9ed1ddfcb"':
-              '"modules/05_writing/paper_writing_protocol.md": "15c29e1ef8a4e8413b2daacfa6860877f31efa15"',
-              '"modules/05_writing/ai_cleanup.md": "cd2b825814916311ec5f1d41e46307132ed760a9"':
-              '"modules/05_writing/ai_cleanup.md": "f6d2d5d6d70972ca09ff00975aa85e8044daa366"',
-              '"modules/06_review_delivery.md": "38ba825323122ecba5f962566e18e7d0d53c8a3c"':
-              '"modules/06_review_delivery.md": "c74f57dea33496ca35e8585d0d4d08981022ed69"',
-          }
-          for old, new in replacements.items():
-              if new in text:
-                  continue
-              if old not in text:
-                  raise SystemExit(f'missing expected snapshot anchor: {old[:80]}')
-              text = text.replace(old, new, 1)
-          path.write_text(text, encoding='utf-8')
-          PY
       - name: Rebuild active indexes and manifest
         run: python scripts/generate_indexes.py
-      - name: Commit intentional snapshot refresh and generated metadata
+      - name: Commit generated metadata when changed
         run: |
-          if git diff --quiet; then
-            echo "Snapshots and generated metadata are current."
+          if git diff --quiet -- SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256; then
+            echo "Generated metadata is current."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tests/test_v830_editable_mechanism_diagram.py \
-            SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
-          git commit -m "test: refresh intentional v8.7 writing authority snapshots"
+          git add SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
+          git commit -m "chore: refresh generated repository metadata"
           git push
 
   verify-main:
