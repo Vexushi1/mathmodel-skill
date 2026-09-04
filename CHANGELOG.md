@@ -1,6 +1,14 @@
 # Changelog
 
-## Current release: 8.3.0
+## Current release: 8.3.1
+
+- Clarified evidence-backed author reasoning in Paper Writing Protocol §7.3: expose the current gap, choice basis, mathematical treatment and consequence where needed, without fixed sentences or first-person quotas.
+- Preserved moderate, informative author voice during AI cleanup and review; empty step announcements, excessive colloquialism, fabricated team histories and unsupported claims remain out of bounds.
+- Routed per-question authoring explicitly to the shared prose authority, retaining model/solver detail, proof and pseudocode requirements and actual AI-use disclosure.
+- Added behavioral audit regressions for voice-neutral acceptance, unsupported solver openings and evidence checks, plus routing and preservation coverage.
+- Kept templates, chapter order, numerical/model/workbook contracts, schemas and runtime gates unchanged; existing projects require no migration or automatic prose rewrite.
+
+## Previous release: 8.3.0
 
 - Added **Editable Mechanism Diagram Production & Visual QA** under the existing Figure Evidence Authority for problem-specific, non-data-driven draw.io mechanism figures.
 - Added an optional v1 Mechanism Diagram Spec, deterministic uncompressed `.drawio` generation, and structure/geometry/safety validation with human-readable and JSON output.

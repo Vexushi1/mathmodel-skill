@@ -663,6 +663,8 @@ model_establishment_solution_narrative:
     rule: >-
       正文语言保持规范、朴素、具体和专业；“适当分析”必须增加数学、求解或证据信息，
       “结果较好、模型有效、算法性能优异、符合实际”若没有具体机制、基线或范围，不构成有效分析。
+      reduce_repeated_subjects 只针对机械重复的步骤宣告，不是第一人称禁令；
+      有信息的作者视角及其表达边界按 Paper Writing Protocol §7.3 执行。
   anti_template_boundary:
     - 不复制任何优秀论文的固定句子、章节编号、算法或题目专属建模顺序。
     - 不要求每个公式前出现同一承接词，不要求每段固定使用“因此/进一步/从而”。
@@ -1132,6 +1134,7 @@ prose_style:
     - mechanical_synonym_replacement
     - unsupported_boastful_claim_strength
   human_reasoning_trace:
+    prose_authority: modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释
     allow:
       - 指出当前还缺哪个量或条件
       - 说明某关系为何能缩小搜索范围

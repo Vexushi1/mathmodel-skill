@@ -1,4 +1,4 @@
-version: 8.3.0
+version: 8.3.1
 role: >-
   v8 写作阶段的最小运行时映射。它不建立第二套数学写作 Authority，只声明普通论文写作真正需要加载的
   模板、项目事实、证据和 writing_reasoning_contract 中的语义能力，从而避免每次写作预载完整建模、数值与项目治理上下文。
@@ -243,6 +243,7 @@ template_first_progressive_authoring:
         - modules/05_writing/paper_writing_protocol.md#4-Local-Narrative-Chain
         - modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test
         - modules/05_writing/paper_writing_protocol.md#7-模型建立
+        - modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释
         - modules/05_writing/paper_writing_protocol.md#8-模型求解
         - modules/05_writing/paper_writing_protocol.md#9-求解结果数值与术语
         - modules/05_writing/paper_writing_protocol.md#10-结果与验证的分层
