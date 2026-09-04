@@ -13,8 +13,8 @@ AI Cleanup 不能替代前一种语义审查，文本变得更流畅也不能让
 
 - `config/competition_profiles.yaml` 与当前 competition Pack：当届页数、匿名、提交文件和 AI 披露规则；只有 `edition_rules.verification_status=verified` 且具有来源与核验日期时，才可作为当届官方 Hard 判定依据；
 - `templates/latex/cumcm/hsk/template_manifest.yaml`：CUMCM 固定骨架、一级顺序和问题一级标题；
-- `modules/05_writing/paper_writing_protocol.md`：普通正文组织、局部叙事、跨文件章节承接、结果解释与验证承接；
-- `core/writing_reasoning_contract.yaml`：推理、证据、规则等级、Model/Solver/Validator、优化模型表达、Formula Trace、Algorithm Trace 与算法呈现、命题预算、引用证据、术语、数字、标题主张、claim strength、深化证据处置、Paragraph Necessity 与局部 stale；
+- `modules/05_writing/paper_writing_protocol.md`：普通正文组织、Model Construction Rationale 的落地表达、局部叙事、小节标题与颗粒度、跨文件章节承接、结果解释与验证承接；
+- `core/writing_reasoning_contract.yaml`：推理、证据、规则等级、Model Construction Rationale、Model/Solver/Validator、优化模型表达、solver preconditions、Formula Trace、Algorithm Trace 与算法呈现、命题预算、数值参数证据、引用证据、术语、数字、标题主张、claim strength、深化证据处置、Paragraph Necessity 与局部 stale；
 - `modules/05_writing/latex.md`：LaTeX 载体、环境、引用、审计与编译接口；
 - `templates/review/final_review_matrix.yaml`：正式终审报告 v1 的机器可读字段与稳定枚举；
 - 各 Artifact Pack：载体、编译和交付特有要求。
@@ -41,9 +41,12 @@ AI Cleanup 不能替代前一种语义审查，文本变得更流畅也不能让
 - 只保留当前有效模型、参数、约束、命题、算法呈现、结果和图表映射；
 - 已求解小问有 current 结果摘要；
 - 每问能够恢复标准模型类型、正式模型名称以及 Model / Solver / Validator 角色；
+- 对非平凡模型选择能够恢复 `current structure → modeling gap → chosen structure → why-this-structure → applicability condition/boundary → downstream role`，简单解析题可为 `not_applicable`；
+- 若发生结构缩减/缩域，Reduction Provenance 与正文 claim scope 一致；
 - 优化类小问能够恢复主决策变量/对象、objective 现实含义、核心约束与摘要 objective 口径；
-- solver 首次使用、后问沿用/更换以及 alternative/validator 的角色和 evidence anchor 已按实际情况记录；
-- 问题章节内部小节规划已检查颗粒度，必要扩展有独立论证理由；
+- solver 首次使用的本题理由与关键 preconditions、后问沿用/更换以及 alternative/validator 的角色和 evidence anchor 已按实际情况记录；
+- 会影响当前主计算精度的关键离散点、网格、步长、搜索分辨率或容差存在来源/候选范围/证据指标/选择规则；
+- 问题章节内部小节规划同时检查碎片化与过度合并，必要拆分和合并都有独立数学任务依据；
 - headline claim 的 Evidence Level / Scope 与当前结果和深化证据一致；
 - `stepwise/pseudocode` 小问存在 current Algorithm Trace，`not_needed` 不残留装饰性算法框；
 - 具体数值回到已验收工作簿复核；
@@ -106,6 +109,30 @@ AI Cleanup 不能替代前一种语义审查，文本变得更流畅也不能让
 
 不得实现或引用 `count("我们")`、`count("本文")`、`first_person_ratio`、`human_like_score`、`AI_like_score`，也不按问号、固定短语、代词数量自动判断 Question Closure、作者身份或文风质量。机器只可核对 Authority 指针、已有 claim/evidence 冲突和确定性结构；其余由语义 review 完成。
 
+### Model Construction & Solution Rationale Review
+
+本检查只消费 `writing_reasoning_contract.model_construction_rationale / solver_justification / numerical_parameter_evidence / model_establishment_solution_narrative` 与 Paper Writing Protocol §2/7/8。它不建立第二套“优秀论文模板”，也不要求模仿任何参考论文的具体算法、编号或标题。
+
+定位每个重要模型与 solver 的第一次实质出现后，按语义检查：
+
+1. **Modeling Gap**：模型不是只被“宣布”；当前已有关系还不能判断、表达、预测或优化什么，是否可恢复。
+2. **Why This Structure**：为什么当前数学结构能够闭合上述 gap；理由是否来自题意、机制、数据结构、数学性质、尺度/维度或已验证近似，而不是模型名本身。
+3. **Local Applicability**：是否说明当前条件下为什么适用以及必要范围；“适用性强、精度高、结构合理”若没有本题结构或证据不构成有效说明。默认不要求独立“模型适用性分析”小节。
+4. **Reduction Provenance**：结构化简/缩域是否正确区分 `exact / proven_sufficient / heuristic`；正文“等价、只需、必然保留”等措辞是否与真实证据等级一致。
+5. **Solver Preconditions**：当前 solver 真正依赖的关键性质是否已经建立，例如局部 bracket/事件结构、候选完整性、可用局部变化、分解到原模型映射、搜索域/邻域和 claim scope；不要求复述算法教材全部条件。
+6. **Solver Fit**：算法选择是否回到当前模型结构，而不是“先进、收敛快、应用广泛”；只局部满足的前提不能支持全局 claim。
+7. **Cross-question Escalation**：后问沿用 solver 时，决定其适用性的结构是否仍保持；更换 solver 时，新增维度、离散性、耦合、非光滑、不确定性或规模是否解释了为什么前问 solver 不再足够。
+8. **Numerical Parameter Rationale**：影响主计算的离散点、网格、步长、搜索分辨率、窗口或容差是否有参数作用、候选范围/来源、证据指标和选择规则；题面固定参数不机械比较。
+9. **03A / 03B Boundary**：离散/精度参数的主计算质量证据没有被包装成现实参数鲁棒性；accepted 后结论稳健性仍由 03B 负责。
+10. **Section Title Minimality**：小节标题是否指向当前数学对象与任务，并避免重复父标题已经给出的“问题X/模型建立及求解”等上下文；不因“更学术”堆“基于……视角下……研究”。
+11. **Adaptive Separation**：简单模型没有被“决策变量/目标/约束/汇总”机械切碎；复杂模型中独立证明、关键约束、结构化简、参数证据或 solver stage 也没有为了减少标题被强行塞入一个难以导航的长段。
+12. **Anti-bloat**：直接解析/简单计算不因本轮规则被强行添加 model rationale 长段、适用性小节、solver 或额外验证。
+13. **Validation Target**：若模型含关键近似、heuristic 缩域或 solver 风险，后续验证是否真正挑战对应 claim，而不是做与核心结论无关的装饰检验。
+
+上述缺口默认映射为 `review_required` 或 `warning`。只有它同时造成已有 Hard 违规时才 blocking，例如无依据的近似改变答案、启发式缩域被当成严格等价、solver 前提错误导致主计算无效、关键 PQS 参数不满足或无证书结果被写成全局最优。**不能仅因标题较长、模型理由少写一句或小节数量偏多而 blocking。**
+
+机器可以检查 Authority 字段、已登记 provenance/precondition/parameter 状态和确定性锚点，但不得由“因为/因此”等连接词判断建模理由充分，不得由模型名判断适用性，不得由算法名判断 precondition 已满足，也不得由标题字符数、标题数量、是否包含“基于”自动决定标题好坏、拆分或合并。
+
 先检查 Model / Solver / Validator 是否被正文和摘要正确区分：
 
 - 模型名称首次出现时能否识别标准数学类型；
@@ -117,6 +144,7 @@ AI Cleanup 不能替代前一种语义审查，文本变得更流畅也不能让
 对 solver 与 Algorithm Trace 按 `writing_reasoning_contract.solver_justification` 和 `algorithm_presentation` 检查：
 
 - 主 solver 第一次使用时是否有本题结构理由，而不是“先进、快速、应用广泛”；
+- 当前求解真正依赖的 precondition 是否已经建立及限定作用范围；
 - 后问沿用同一 solver 时是否说明继承结构和新增变化；
 - 更换 solver 时是否说明新增离散性、非光滑、规模、不确定性或分解结构如何改变求解需求；
 - 另用算法是否有实际 artifact，并明确 baseline / alternative / validator 角色及可比指标；
@@ -136,7 +164,7 @@ AI Cleanup 不能替代前一种语义审查，文本变得更流畅也不能让
 
 证明的“3--8 行”“2--6 步”等只属于 Recommendation，不作为否决条件。重点是推理完整、阅读连续和技术细节位置合理。
 
-数值参数检查候选范围、收敛/验证依据、最终取值和必要的主结果稳定性，不能只接受“综合考虑精度与效率，取……”。
+数值参数检查候选范围、证据指标、选择规则、最终取值和必要的主结果稳定性，不能只接受“综合考虑精度与效率，取……”。
 
 ## 四、Terminology、Numeric Style 与 Claim Strength 审查
 
@@ -190,23 +218,25 @@ Title Claim Gate 检查选定标题中的研究对象、主方法、核心机制
 
 如果标题写“基于鲁棒优化”，但正文核心链实际上是 Monte Carlo + 贪心、鲁棒优化只在末尾做一次扰动，则应修改标题，不允许通过摘要包装来掩盖。
 
-按 Template Manifest 检查固定一级骨架，按 `paper_writing_protocol.md` 检查正文内容：摘要逐问覆盖“任务—模型—目标/关键条件或约束—算法/方法—结果—真实检验证据（若有）—结论”，且没有虚构敏感性或鲁棒性；问题重述能否在不照抄原题的前提下准确恢复对象、条件、范围、量词和输出；问题分析是否以连续自然段形成“对象/条件—困难—数学抓手—建模转化—准备建立的结构—跨问关系”，而非散乱清单或软件流水线；假设是否说明来源/必要性与失效影响，符号是否跨公式/代码/结果一致；共享基础真实共享；核心模型收束按当前 rendering mode 自适应；算法流程按 `not_needed / stepwise / pseudocode` 自适应；求解段从模型结构解释算法；主结果形成图表/数值—比较—机制—回答闭环；模型评价、逐问结论与附录均不新增未经证明的主张。
+按 Template Manifest 检查固定一级骨架，按 `paper_writing_protocol.md` 检查正文内容：摘要逐问覆盖“任务—模型—目标/关键条件或约束—算法/方法—结果—真实检验证据（若有）—结论”，且没有虚构敏感性或鲁棒性；问题重述能否在不照抄原题的前提下准确恢复对象、条件、范围、量词和输出；问题分析是否以连续自然段形成“对象/条件—困难—数学抓手—建模转化—准备建立的结构—跨问关系”，而非散乱清单或软件流水线；假设是否说明来源/必要性与失效影响，符号是否跨公式/代码/结果一致；共享基础真实共享；重要模型建立是否说明 gap/why/applicability；核心模型收束按当前 rendering mode 自适应；算法流程按 `not_needed / stepwise / pseudocode` 自适应；求解段从模型结构和关键 preconditions 解释算法；主结果形成图表/数值—比较—机制—回答闭环；模型评价、逐问结论与附录均不新增未经证明的主张。
 
-对每个问题章节执行 `subsection_granularity`：本规则只检查**问题章节内部二级小节**，不限制一级章节数量。默认优先形成“模型建立—模型求解—结果分析—必要检验”约 3--4 个主要单元；超过该颗粒度不自动失败，但需要确认是否存在一个公式/一张表一个小节、变量/目标/约束/汇总机械拆分，或多个同类验证各自单开标题等碎片化。减少标题数量不等于删除技术内容。
+对每个问题章节执行 `subsection_granularity`：本规则只检查**问题章节内部二级/三级小节**，不限制一级章节数量。复杂问题通常围绕“模型建立—模型求解—结果分析—必要检验”形成主要单元，但这不是硬计数；既检查一个公式/一张表一个小节、变量/目标/约束机械切碎等碎片化，也检查复杂模型中独立证明、结构化简、参数证据、solver stage 被全部塞入一个难以导航的大段。短标题若对应真实独立任务可以保留。
 
-对主要段落执行 Paragraph Necessity Test：删去后若不丢失题意、机制、数学关系、求解依据、结果证据或必要边界，则优先删、并或移附录。重点删除算法百科、重复背景、重复模型优点、重复小问总结、装饰流程和无用途公式。机器只给 warning，不能自动删文。
+对局部标题执行 Heading Compression Test：父标题已给出的“问题X、模型建立及求解”等上下文不必反复写入子标题；“基于……视角下……研究”等包装若删除后数学任务仍完整，可压缩。**不设置标题字符数或固定标题数量门槛。**
+
+对主要段落执行 Paragraph Necessity Test：删去后若不丢失题意、机制、数学关系、Model Construction Rationale、求解依据、结果证据或必要边界，则优先删、并或移附录。重点删除算法百科、重复背景、重复模型优点、空泛适用性、重复小问总结、装饰流程和无用途公式。机器只给 warning，不能自动删文。
 
 ### v7.20/v8.0.1 章节能力保全检查
 
 本检查只消费 Template Manifest、Paper Writing Protocol、reasoning Authority 和正式审计报告，不复制第二套写作规则：
 
-- 中文国赛问题一级标题仍为“问题X模型建立及求解”；专业化二级标题允许，但评委必须能恢复 MODEL → SOLVE → RESULT → 按需 VALIDATE 的真实依赖链；
-- 模型建立应保留决策变量/对象、定义域与现实含义、目标函数含义、关键约束来源、核心推导和最终可计算模型，不得因减少标题而删除技术内容；
-- 模型求解应从计算结构/困难进入 solver，说明本题化编码、约束处理、初值/参数/精度/终止条件和输出映射；算法名或通用优点不能代替这些信息；
+- 中文国赛问题一级标题仍为“问题X模型建立及求解”；专业化二级/三级标题允许，但评委必须能恢复 MODEL → SOLVE → RESULT → 按需 VALIDATE 的真实依赖链；
+- 模型建立应保留决策变量/对象、定义域与现实含义、目标函数含义、关键约束来源、核心推导和最终可计算模型，并在非平凡选择处保留 modeling gap、why-this-structure 与适用边界；不得因减少标题而删除技术内容；
+- 模型求解应从计算结构/困难进入 solver，说明关键 preconditions、本题化编码、约束处理、初值/参数/精度/终止条件和输出映射；算法名或通用优点不能代替这些信息；
 - 求解结果应给出 current 高精度答案、邻近图表解释和直接回答；独立验证前存在 Result → Validation Bridge，且验证写出风险、扰动、指标、变化范围与结论边界；
 - 优化模型渲染复核目标函数位于约束大括号外；非优化多方程模型和简单解析模型使用各自适合的汇总方式；
 - 读取 prose/surface audit 的装饰性引号、概念连接符链、内部工作流词汇、功能次序、solver 入口和连续图裸堆 finding；warning 不自动阻断，但终审必须记录人工处置；
-- 读取项目 Document Length Profile。篇幅偏短时只定位缺失的推导、约束来源、solver 适配、参数依据、结果解释、验证、适用边界或复现说明，不按页数扩写背景、算法百科或伪检验。
+- 读取项目 Document Length Profile。篇幅偏短时只定位缺失的建模理由/适用条件、推导、约束来源、solver 前提与适配、参数依据、结果解释、验证、适用边界或复现说明，不按页数扩写背景、算法百科或伪检验。
 
 ## 六、深化分析、图表与结果证据审查
 
@@ -294,11 +324,11 @@ Title Claim Gate 检查选定标题中的研究对象、主方法、核心机制
 → 已核验官方规则或匿名性违规
 → 核心答案评分精度或工作簿一致性问题
 → subproblem / paper fragment stale 冲突
-→ 模型类型、Model/Solver/Validator、目标函数或约束断链
-→ 模型、Algorithm Trace、命题、代码、工作簿不一致
+→ 模型理由/适用边界、模型类型、Model/Solver/Validator、目标函数或约束断链
+→ solver preconditions、Algorithm Trace、命题、代码、工作簿不一致
 → 深化证据 unresolved modify/reject 或 claim strength 越界
 → Title Claim / Terminology / Citation Evidence 断链
-→ 正文 Default 偏离（含小节过度碎片化）
+→ 正文 Default 偏离（含小节碎片化、过度合并或标题导航问题）
 → 风格、排版和美观 warning
 ```
 
@@ -311,6 +341,8 @@ Title Claim Gate 检查选定标题中的研究对象、主方法、核心机制
 - 漏答核心题目要求；
 - 关键变量、目标或约束缺失；
 - 数据处理改变结论但没有依据/验证；
+- **关键近似/缩域改变原问题却没有合法 provenance，或 heuristic 被当作严格等价/充分条件使用并影响答案；**
+- **主 solver 所依赖的关键前提实际不成立或未处理，导致当前计算无效；**
 - 结果不可复现或与已验收工作簿冲突；
 - 评分敏感的核心答案被无依据截断/舍入，导致与题目、官方、评委或已声明 Numeric Profile 不一致；
 - stale 模型、结果、Algorithm Trace、命题、图表、Chapter Handoff seam 或交付范围 paper fragment 被当作 current 使用；
@@ -323,7 +355,7 @@ Title Claim Gate 检查选定标题中的研究对象、主方法、核心机制
 - 核心深化证据 `reject` 仍未处理却继续交付原主张；
 - 核心图表与正文结论冲突或关键引用不存在；
 - 必需 citation key 不存在、外部核心数据/参数完全无来源；
-- 正式 LaTeX 审计/编译证明失效，或提交包缺少**当前已核验赛事规则/所选复现模式真正要求的文件**，或 package provenance 验证失败。
+- 正式 LaTeX 审计/编译证明失效，或提交包缺少**当前已核验赛事规则/所选复现模式真正要求的文件**，或 package provenance 验证失败；
 - 当前适用、强制且已核验的官方页数、匿名、AI 披露或提交文件规则存在明确未解决违规。
 
-以下**不再自动列为 Blocking**：问题章节内部二级小节超过默认 3--4 个、命题超过默认正文预算、优缺点条目数量关系、简单问题没有独立“核心模型汇总”小节、`not_needed` 小问没有正式算法框、短证明超过经验行数预算、仅由机器字符串相似度产生的术语提示、普通未引用公式的 warning。它们按 Authority 对应 Default/Recommendation 处理。
+以下**不再自动列为 Blocking**：问题章节内部二级/三级小节超过经验数量、标题较长、标题含“基于”、复杂模型保留“决策变量/目标函数/关键约束/模型汇总”等清晰短标题、命题超过默认正文预算、优缺点条目数量关系、简单问题没有独立“核心模型汇总/模型适用性”小节、`not_needed` 小问没有正式算法框、短证明超过经验行数预算、仅由机器字符串相似度产生的术语提示、普通未引用公式的 warning。它们按 Authority 对应 Default/Recommendation 处理。

@@ -1,0 +1,141 @@
+cases:
+  - id: event_predicate_gap
+    family: mechanism_geometry
+    facts:
+      trajectories_known: true
+      event_predicate_known: false
+      event_duration_requested: true
+    expected:
+      requires_modeling_gap: true
+      next_structure: event_predicate
+      solver_before_predicate: false
+
+  - id: boundary_search_precondition
+    family: mechanism_geometry
+    facts:
+      global_state_pattern: [0, 1, 0]
+      local_brackets:
+        - [1.2, 1.4]
+        - [3.7, 3.9]
+      one_transition_per_bracket: true
+    expected:
+      requires_local_bracket: true
+      whole_domain_bisection_without_segmentation: false
+      claim_scope: local_boundary_location
+
+  - id: proven_reduction
+    family: optimization_operations_research
+    facts:
+      original_candidate_count: 1000
+      reduced_candidate_count: 24
+      provenance: proven_sufficient
+      proof_anchor_exists: true
+    expected:
+      strict_reduction_wording_allowed: true
+      global_claim_still_requires_certificate: true
+
+  - id: heuristic_reduction
+    family: optimization_operations_research
+    facts:
+      provenance: heuristic
+      discarded_domain_checked: true
+      global_certificate: false
+    expected:
+      exact_wording_allowed: false
+      claim_scope: checked_search_scope
+      global_optimum_allowed: false
+
+  - id: discretization_selection
+    family: simulation_dynamic_system
+    facts:
+      candidates: [100, 200, 300, 500]
+      headline_values: [1.2871, 1.3068, 1.39164, 1.391643]
+      tolerance: 0.00001
+      selected: 300
+    expected:
+      evidence_metric: headline_value_change
+      selected_from_plateau: true
+      is_real_world_robustness: false
+
+  - id: low_dim_black_box
+    family: optimization_operations_research
+    facts:
+      dimension: 4
+      objective_evaluable: true
+      analytic_gradient_available: false
+      event_switching_present: true
+      multistart_used: true
+      global_certificate: false
+    expected:
+      derivative_free_fit_reason: true
+      multistart_addresses_local_risk: true
+      global_optimum_allowed: false
+
+  - id: solver_escalation
+    family: mixed_multi_question
+    facts:
+      previous_dimension: 4
+      current_dimension: 18
+      new_discrete_assignment: true
+      new_cross_agent_coupling: true
+      previous_solver: local_multistart_search
+      current_solver: decomposition_plus_continuous_search
+    expected:
+      solver_change_requires_structural_delta: true
+      generic_advanced_reason_sufficient: false
+
+  - id: complex_heading_profile
+    family: optimization_operations_research
+    facts:
+      variable_block_has_independent_formulas: true
+      objective_block_has_nontrivial_interpretation: true
+      constraints_include_independent_coupling_proof: true
+      downstream_references_sections: true
+    expected:
+      short_subheadings_allowed: true
+      forced_merge: false
+
+  - id: simple_heading_profile
+    family: optimization_operations_research
+    facts:
+      variable_definition_lines: 2
+      objective_definition_lines: 2
+      constraint_definition_lines: 2
+      independent_proof: false
+      downstream_section_reference: false
+    expected:
+      continuous_model_construction_preferred: true
+      fixed_four_subheadings_required: false
+
+  - id: heading_compression
+    family: mixed_multi_question
+    facts:
+      parent_heading: 问题四模型建立及求解
+      verbose_heading: 基于预测拦截点思想的多主体协同投放优化策略研究
+      compressed_heading: 拦截点预测与搜索域缩减
+      task_semantics_preserved: true
+    expected:
+      compression_review: true
+      hard_character_limit: false
+
+  - id: generic_applicability
+    family: statistics_regression
+    facts:
+      sentence: 该模型结构合理、精度较高、适用性强，能够很好地解决问题。
+      local_structure_basis_present: false
+      evidence_anchor_present: false
+    expected:
+      acceptable_as_applicability: false
+      cleanup_action: delete_or_specificize
+
+  - id: direct_analytic_anti_bloat
+    family: mechanism_geometry
+    facts:
+      direct_relation_sufficient: true
+      new_model_choice_exists: false
+      solver_needed: false
+      extra_validation_needed: false
+    expected:
+      long_rationale_required: false
+      standalone_applicability_section_required: false
+      multiple_subheadings_required: false

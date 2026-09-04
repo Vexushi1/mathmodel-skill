@@ -1,4 +1,4 @@
-version: 8.5.0
+version: 8.6.0
 role: >-
   v8 写作阶段的最小运行时映射。它不建立第二套数学写作 Authority，只声明普通论文写作真正需要加载的
   模板、项目事实、证据和 writing_reasoning_contract 中的语义能力，从而避免每次写作预载完整建模、数值与项目治理上下文。
@@ -269,7 +269,7 @@ template_first_progressive_authoring:
             - modules/05_writing/latex.md#5-图表命题和算法环境
           required_outcome: 算法块前说明本题需要与输入，块内只写数学对象和控制逻辑，块后说明输出怎样进入结果或下一阶段，并与真实实现及证据一致。
         complex_semantic_dispute:
-          when: Model/Solver/Validator、优化语义、跨问依赖、术语数值或 Claim Strength 存在争议。
+          when: Model/Solver/Validator、优化语义、跨问依赖、术语数值、Model Construction Rationale、Reduction Provenance、solver precondition 或 Claim Strength 存在争议。
           read:
             - core/writing_reasoning_contract.yaml
         reasoning_example:
@@ -277,7 +277,12 @@ template_first_progressive_authoring:
           read:
             - modules/05_writing/references/model_solution_reasoning_examples.md
           required_outcome: 理解解释的作用后回到当前项目事实写作，不套用示例中的题目对象、数值、算法或句式。
-      gate: 当前问题完成模型建立 → 模型求解 → 求解结果 → 真实验证/边界 → 直接回答的局部闭环；简单题可合并标题但不得删掉必要功能。
+        model_construction_solution_example:
+          when: 当前段落难以说明为什么建立该模型、为什么结构化简成立、solver 前提/适用性、关键数值参数依据，或小节标题拆分/压缩存在争议；只读取相关案例。
+          read:
+            - modules/05_writing/references/model_construction_solution_rationale_examples.md
+          required_outcome: 只提取“gap—结构—适用边界—solver/参数—导航”的功能，不复制示例标题、算法、对象或数值作为当前项目事实。
+      gate: 当前问题完成模型建立理由/适用边界 → 模型闭合 → solver 前提与适配 → 求解结果 → 真实验证/边界 → 直接回答的局部闭环；简单题可合并标题并省略不适用项，但不得删掉必要功能。
     - id: evaluation_references_conclusion_appendix
       read_now:
         - modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录
@@ -313,7 +318,7 @@ template_first_progressive_authoring:
         - scripts/audit_v8_writing_surface.py
       write_now:
         - draft_review_findings
-      gate: 逐章详细内容、命题/算法、数值、引用、图叙事和 Result → Validation Bridge 均已审查；blocking/review_required 项先处理。
+      gate: 逐章详细内容、Model Construction Rationale、solver preconditions、标题/小节导航、命题/算法、数值、引用、图叙事和 Result → Validation Bridge 均已审查；blocking/review_required 项先处理。
     - id: ai_cleanup
       read_now:
         - modules/05_writing/ai_cleanup.md
@@ -322,7 +327,7 @@ template_first_progressive_authoring:
         - resolved_draft_review_findings
       write_now:
         - cleaned_paper_text
-      gate: 只清除模板感、空话、机械重复和证据越界，不删除章节必要推导、约束、solver、命题、伪代码、结果或验证内容。
+      gate: 只清除模板感、空话、机械重复和证据越界，不删除章节必要建模理由/适用边界、推导、约束、solver 前提、命题、伪代码、结果或验证内容，也不按标题数量/字数机械合并或拆分。
     - id: latex_assembly_audit_and_compile
       read_now:
         - modules/05_writing/latex.md
@@ -357,8 +362,10 @@ semantic_capabilities:
     - assumption_rationale_and_failure_impact
     - symbol_cross_artifact_consistency
     - data_preprocessing_and_shared_foundation_boundary
+    - model_construction_rationale_and_local_applicability
     - model_establishment_detail_preservation
-    - solver_detail_preservation
+    - solver_precondition_and_detail_preservation
+    - adaptive_subsection_separation_and_title_minimality
     - numeric_and_terminology_consistency
     - citation_use_boundary
     - figure_role_specific_interpretation
@@ -370,10 +377,12 @@ semantic_capabilities:
     - model_solver_validator_roles
     - model_naming
     - optimization_model_expression
+    - model_construction_rationale
     - solver_justification
     - cross_question_progression
     - detail_allocation_governance
     - figure_result_narrative
+    - numerical_parameter_evidence
     - paragraph_necessity
     - claim_strength_calibration
     - numeric_style_contract
@@ -386,6 +395,9 @@ semantic_capabilities:
   load_full_reasoning_authority_when_any:
     - proposition_or_proof_is_being_created_or_revised
     - algorithm_trace_semantics_are_being_created_or_revised
+    - model_construction_rationale_or_applicability_is_in_dispute
+    - reduction_provenance_is_in_dispute
+    - solver_precondition_or_fit_is_in_dispute
     - model_solver_validator_role_is_ambiguous
     - optimization_semantics_are_in_dispute
     - cross_question_dependency_is_in_dispute
@@ -467,3 +479,5 @@ machine_boundary:
     - semantic_continuity_from_transition_words
     - bridge_necessity_from_connector_frequency
     - mathematical_dependency_from_physical_adjacency_only
+    - model_rationale_quality_from_conditional_example_presence
+    - heading_quality_from_title_length_or_count

@@ -74,8 +74,10 @@ class TestV801ChapterCapabilityPreservation(unittest.TestCase):
             "assumption_rationale_and_failure_impact",
             "symbol_cross_artifact_consistency",
             "data_preprocessing_and_shared_foundation_boundary",
+            "model_construction_rationale_and_local_applicability",
             "model_establishment_detail_preservation",
-            "solver_detail_preservation",
+            "solver_precondition_and_detail_preservation",
+            "adaptive_subsection_separation_and_title_minimality",
             "numeric_and_terminology_consistency",
             "citation_use_boundary",
             "figure_role_specific_interpretation",
@@ -155,6 +157,10 @@ class TestV801ChapterCapabilityPreservation(unittest.TestCase):
         )
         self.assertIn("packs/artifact/algorithm_flow.md", branches["stepwise_or_pseudocode"]["read"])
         self.assertIn("not_needed", branches["stepwise_or_pseudocode"]["when"])
+        self.assertIn(
+            "modules/05_writing/references/model_construction_solution_rationale_examples.md",
+            branches["model_construction_solution_example"]["read"],
+        )
 
     def test_review_cleanup_compile_and_final_review_order_is_locked(self):
         stage_ids = [

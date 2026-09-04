@@ -10,7 +10,7 @@ class TestWritingEvidenceArchitecture(unittest.TestCase):
         for token in (
             "核心数值", "逐格复述表格", "核心图表", "算法百科",
             "## B. Evidence closure", "Citation Evidence", "Terminology Registry",
-            "Numeric Profile", "Title Claim", "Paragraph Necessity 与 Detail Allocation",
+            "Numeric Profile", "Title Claim", "Paragraph Necessity、Model Rationale 与 Detail Allocation",
         ):
             self.assertIn(token, text)
         self.assertNotIn("## 六、引用证据清理", text)

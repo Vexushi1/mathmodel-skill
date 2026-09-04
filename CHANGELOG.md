@@ -1,6 +1,15 @@
 # Changelog
 
-## Current release: 8.5.0
+## Current release: 8.6.0
+
+- Added **Model Construction Rationale** so non-trivial model choices recover current structure, modeling gap, chosen mathematical structure, why it closes the gap, applicability conditions and downstream role.
+- Added local applicability and explicit solver-precondition evidence without fixed applicability sections, algorithm-name inference or generic algorithm praise.
+- Strengthened `exact / proven_sufficient / heuristic` reduction provenance and evidence-bound language; heuristic scope cannot be promoted to strict equivalence or global optimality.
+- Added Numerical Parameter Rationale for grid/discretization/step/tolerance choices while preserving the 03A/PQS versus accepted-after-03B boundary.
+- Added Section Title Minimality and Adaptive Subsection Separation so complex independent tasks may keep short navigation headings while simple argument chains remain compact; no title-count or character Hard Rule was introduced.
+- Preserved v8.5 Author Reasoning Voice, Claim Strength, Model Approval, numerical/workbook, Figure Evidence and LaTeX/template boundaries; added 12 fixed semantic cases and v8.6 regression coverage.
+
+## 8.5.0
 
 - Deepened **Model/Solution Author Reasoning Voice** into 11 evidence-bound reasoning acts rather than a pronoun or style-frequency rule.
 - Added Question Closure, Claim Strength Alignment, Reasoning Necessity and Problem-Specificity so natural questions, judgments, simplifications and interpretations must have real mathematical destinations and evidence boundaries.

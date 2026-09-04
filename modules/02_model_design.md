@@ -1,6 +1,6 @@
 # Module 02：模型设计、语义闭环、复杂度复审、独立挑战、人工锁模与论文框架
 
-本模块负责把审题结果转成可求解、可验证、可写作的当前模型语义。跨竞赛的公式推理、Model/Solver/Validator 角色、优化模型表达、Algorithm Trace、规则等级、命题预算和 Citation Evidence 由 `core/writing_reasoning_contract.yaml` 唯一定义；Model Challenge 与 Human Model Approval 的唯一行为合同为 `core/model_approval_contract.yaml`；主求解内在数值有效性的字段级规则由 `core/numerical_verification_contract.yaml` 唯一定义。本模块只记录本题实际选择，不复制第二套写作、审批或数值验证规范。
+本模块负责把审题结果转成可求解、可验证、可写作的当前模型语义。跨竞赛的公式推理、Model/Solver/Validator 角色、优化模型表达、**Model Construction Rationale**、Algorithm Trace、规则等级、命题预算和 Citation Evidence 由 `core/writing_reasoning_contract.yaml` 唯一定义；Model Challenge 与 Human Model Approval 的唯一行为合同为 `core/model_approval_contract.yaml`；主求解内在数值有效性的字段级规则由 `core/numerical_verification_contract.yaml` 唯一定义。本模块只记录本题实际选择，不复制第二套写作、审批或数值验证规范。
 
 ## 0. 前置条件
 
@@ -26,6 +26,8 @@ Problem Contract 冻结只回答“题目是什么意思”，不等于模型已
 ```
 
 而不是“问题复杂 → 直接上高级算法”。
+
+路线选定后，除“选了什么模型”外，还要为写作登记该模型的**局部建模理由**：当前问题结构已经提供什么、仍缺哪个判据/关系/状态/决策结构、为什么当前数学结构能闭合该缺口、在哪些条件或近似范围内成立，以及该结构后续进入哪个目标、约束、判据或 solver。这里记录项目事实，不写通用“模型适用性强”。
 
 ## 2. 数据协议与预处理必要性判定
 
@@ -116,13 +118,27 @@ Hard gap 包括：
 |---|---|---|---|---|---|
 |  |  |  |  |  |  |
 
+若后问沿用同一 solver，补记“哪些决定适用性的结构仍然保持”；若更换 solver，补记“哪一项新增维度、离散性、耦合、非光滑、不确定性或规模使前问 solver 不再足够”。这一信息用于后续跨问正文的短承接，不把算法百科重复写进框架。
+
 ### 4.3 数值参数证据计划
 
-对会影响结论的数值参数登记候选范围、证据方法和最终值状态；题面固定参数注明来源即可。
+对会影响当前主计算精度、离散近似、搜索分辨率或 solver 停止的数值参数，按 `writing_reasoning_contract.numerical_parameter_evidence` 登记；题面固定参数只注明来源，不机械比较。
 
-| 参数 | 数学作用 | 候选范围 | 证据方法 | 通过标准 | 最终值状态 |
+| 参数 | 数学作用 | 候选范围/来源 | 证据指标 | 选择规则 | 最终值状态 |
 |---|---|---|---|---|---|
 |  |  |  |  |  | pending |
+
+需要恢复的链条是：
+
+```text
+参数在当前模型中控制什么
+→ 候选范围/来源
+→ 用什么精度、收敛、误差、可行性或计算代价证据比较
+→ 依据什么规则选最终值
+→ 必要时说明是否改变主结论
+```
+
+当前主计算正确性所需的网格/步长/容差证据属于 03A/PQS；accepted 后现实参数扰动、场景压力和结论稳健性仍属于 03B。不能因为比较了多个离散值，就把参数选取包装成鲁棒性分析。
 
 ### 4.4 Primary Quality Specification（PQS）
 
@@ -193,9 +209,9 @@ pseudocode → 循环/分支/候选筛选/修复/停止规则本身是方法信�
 
 若命题证明了候选域缩减、可行保持、阈值或停止条件，应把命题锚点连接到真正受影响的算法步骤，而不是让命题与求解段彼此独立。详细的控制流伪代码与分阶段数学步骤只在需要时加载 `packs/artifact/algorithm_flow.md`。
 
-### 4.7 Model / Solver / Validator 与论文身份字段
+### 4.7 Model / Solver / Validator、建模理由与论文身份字段
 
-按 `writing_reasoning_contract.model_solver_validator_roles`、`model_naming`、`optimization_model_expression` 和 `solver_justification` 登记当前小问的论文身份信息。这里只记录本题事实，不复制通用规则。
+按 `writing_reasoning_contract.model_solver_validator_roles`、`model_naming`、`optimization_model_expression`、`model_construction_rationale` 和 `solver_justification` 登记当前小问的论文身份信息。这里只记录本题事实，不复制通用规则。
 
 每问至少能恢复：
 
@@ -203,7 +219,13 @@ pseudocode → 循环/分支/候选筛选/修复/停止规则本身是方法信�
 标准模型类型
 正式模型名称
 Model：数学上求什么
+Modeling gap：现有关系还不能判断/表达/优化什么
+Model choice rationale：为什么当前数学结构能闭合该 gap
+Applicability conditions：当前结构在哪些条件/范围内成立
+Key exploitable structure：真正可利用的单调、凸性、对称、边界、分解、低维、可枚举等性质
+Reduction provenance：exact / proven_sufficient / heuristic（若发生缩域/降维）
 Solver：主求解器/分解求解结构及本题适配理由
+Solver preconditions：当前求解真正依赖的结构条件及其作用范围
 Validator / baseline / alternative：独立验证角色及 evidence anchor
 ```
 
@@ -216,9 +238,45 @@ Validator / baseline / alternative：独立验证角色及 evidence anchor
 → 核心模型收束状态
 ```
 
-如果 solver 后问沿用，记录继承结构与新增变化；如果更换 solver，记录改变求解需求的结构增量。若正文计划写“另用某算法”，必须在这里给出 `baseline / alternative / validator` 角色和实际 evidence anchor，否则写作阶段不得凭空补出对照结果。
+如果 solver 后问沿用，记录继承结构与新增变化，并说明为什么原 solver 仍然足够；如果更换 solver，记录改变求解需求的结构增量以及为什么原 solver 不再足够。若正文计划写“另用某算法”，必须在这里给出 `baseline / alternative / validator` 角色和实际 evidence anchor，否则写作阶段不得凭空补出对照结果。
 
-同时给每问记录论文二级小节规划与 `subsection_granularity` 状态。这个字段只用于避免“决策变量/目标/约束/汇总/算法/验证”被机械拆成过多标题，不限制全文一级章节数量。
+#### 4.7.1 Construction Rationale 记录
+
+对非平凡模型选择、判据、近似、surrogate、结构缩减或后问模型增量，建议在当前 `模型论文框架.md` 中保存以下事实：
+
+```text
+current_structure:
+modeling_gap:
+chosen_structure:
+why_this_structure:
+applicability_conditions:
+limitations_or_failure_boundary:
+downstream_role:
+```
+
+这些字段是写作事实源，不要求逐字段原样进入论文。简单解析题或直接计算若不存在实质 model choice，可标记 `not_applicable`，不得为填字段制造理由。
+
+#### 4.7.2 Solver Preconditions 与求解递进
+
+solver 第一次使用时只登记当前真正依赖的前提，例如根定位的局部 bracket/事件结构、枚举的候选完整性、梯度法的可用局部变化、分解的原模型映射、局部搜索的初值/邻域范围或启发式的搜索域与 claim scope。不要复制算法全部理论条件。
+
+若这些前提只能在局部区域成立，则 solver 与最终 claim 的适用范围也只能保持局部；不得把局部搜索或 heuristic 结果升级为全局性质。
+
+#### 4.7.3 问题章节小节规划
+
+同时给每问记录论文小节规划与 `subsection_granularity` 状态。小节规划既防止机械切碎，也防止复杂模型过度合并。对拟设置的局部标题至少能恢复：
+
+```text
+heading
+role
+independent_task
+depends_on
+reason_to_separate
+main_formula_or_evidence
+downstream_use
+```
+
+简单优化中“决策变量—目标—约束—汇总”内容很薄时可连续组织；若各自存在独立公式组、关键约束证明、结构化简、参数证据或后文需要明确回指，则允许使用短而清楚的三级标题。标题数量和字数都不是质量指标。
 
 ### 4.8 机理/几何结构有效性（按需）
 
@@ -351,17 +409,20 @@ Model Reviewer 是正向适配审查，至少检查：
 - 当前路线是否真正回答冻结后的 Problem Contract；
 - selected model 是否比被否决路线更适配当前数据、约束和交付；
 - 变量、目标函数、约束、Formula Trace 与 `preprocessing_decision` 是否闭合；
+- 重要模型结构能否恢复 `current structure → modeling gap → chosen structure → why it closes the gap → applicability → downstream role`，而不是只登记模型名；
+- 非平凡近似、surrogate 或结构化简的 applicability / failure boundary 与 Reduction Provenance 是否清楚；
 - 标准模型类型和正式模型名称是否与真实数学结构一致，题目专属名称是否没有掩盖模型类型；
 - Model / Solver / Validator 角色是否分离，算法没有替代模型本体；
 - 优化类模型是否能直接恢复决策变量/对象、objective、核心约束和最终可计算模型；
-- solver 第一次使用、后问沿用或更换时是否有本题结构依据；
+- solver 第一次使用时当前真正依赖的前提是否闭合，后问沿用或更换时是否有本题结构依据；
 - 是否先利用结构化简，再选择求解器/算法；
+- 关键网格、步长、离散点、搜索分辨率或容差是否有参数角色、候选范围与选择证据，而不是事后拍值；
 - 适用时精确物理/几何判据、事件 bracket/拓扑、缩域 evidence level、多资源组合语义、solver applicability 与 surrogate→original reevaluation 是否闭合；
 - full-fidelity 计算是否可实施；
 - PQS 是否足以判断主计算的内在数值有效性，且没有把结果深化分析伪装成主质量门；
 - accepted 后的候选深化风险是否与核心结论有关，而不是为了形式完整机械堆敏感性/鲁棒性图；
 - 模型是否能够自然、准确地进入论文，而不是靠术语包装；
-- 当前问题章节计划是否把同一论证链机械切成过多二级小节。
+- 当前问题章节计划是否同时避免机械切碎与过度合并；复杂模型的独立证明、结构化简、参数证据或 solver stage 若需要导航，是否保留了清晰短标题。
 
 ### 6.2 Devil's Advocate
 
@@ -400,7 +461,7 @@ Devil's Advocate 是反方挑战，至少检查：
 
 ## 7. Human Model Approval 与正式锁模
 
-`model_challenge_status=passed` 后，不直接进入 Python。先向用户提供简洁但完整的 Model Approval Brief，至少包含：研究对象、selected model、标准模型类型、核心变量、目标、关键约束、`preprocessing_decision`、结构化简、Solver/Validator 角色与算法适配理由、Algorithm presentation、主求解 PQS 的关键门槛、主要被否决路线理由、residual warnings 与下一阶段实际实现范围。若 4.8 适用，Brief 还应简要暴露真正会改变求解语义的精确判据、事件边界策略、缩域 evidence level、组合算子、条件式 solver probe/分支以及 surrogate→original 回算要求；不适用项不机械列空字段。
+`model_challenge_status=passed` 后，不直接进入 Python。先向用户提供简洁但完整的 Model Approval Brief，至少包含：研究对象、selected model、标准模型类型、核心变量、目标、关键约束、**modeling gap 与 why-this-structure**、关键适用条件/失效边界、`preprocessing_decision`、结构化简及其 provenance、Solver/Validator 角色与算法适配理由、关键 solver preconditions、Algorithm presentation、关键数值建模参数的证据计划、主求解 PQS 的关键门槛、主要被否决路线理由、residual warnings 与下一阶段实际实现范围。若 4.8 适用，Brief 还应简要暴露真正会改变求解语义的精确判据、事件边界策略、缩域 evidence level、组合算子、条件式 solver probe/分支以及 surrogate→original 回算要求；不适用项不机械列空字段。
 
 用户必须明确批准当前模型。自然语言如“OK，就按这个模型求解”“这个框架可以，进入主求解”“Q1-Q3 全部冻结”可视为批准；“我看看”“继续说”“还有别的方案吗”“这个模型怎么样”以及用户沉默不得推断为批准。
 
@@ -431,7 +492,7 @@ selected_models
 
 题意解释、数据范围、变量、参数、假设、目标、约束、预处理、算法语义或小问依赖变化时递增 `semantic_revision`。对 4.8 适用的问题，精确判据、事件拓扑、候选域/缩域依据、组合算子、solver 条件分支或 original-model 回算语义发生实质变化时，应归入现有最贴近的 `constraint / assumption / algorithm / dependency / objective` 等变更类别，而不是为 v7.17 新造 Project State 枚举。
 
-当前 `semantic_revision` 或 `semantic_hash` 改变时，旧 `model_challenge_status`、`human_model_approval_status` 与 `locked_model_spec` 同时变 stale；必须重新完成必要的语义闭环、Complexity Sanity、Model Challenge 和 Human Approval。Markdown 排版、纯措辞、图注、公式编号或不改变语义的 LaTeX 文件拆分不触发重新审批。
+当前 `semantic_revision` 或 `semantic_hash` 改变时，旧 `model_challenge_status`、`human_model_approval_status` 与 `locked_model_spec` 同时变 stale；必须重新完成必要的语义闭环、Complexity Sanity、Model Challenge 和 Human Approval。Markdown 排版、纯措辞、图注、公式编号、小节标题压缩或不改变语义的 LaTeX 文件拆分不触发重新审批。
 
 若已验收语义哈希变化，`scripts/validate_semantic_governance.py` 先将本问及依赖后问相关产物标记 stale。旧结果在重新求解和验收前保持 stale。代码前再由 `scripts/validate_model_approval.py` 核验 challenge/approval 与当前 revision/hash 的绑定关系。
 
@@ -455,7 +516,7 @@ selected_models
 
 `proposed_model_spec` 形成后即可按 `templates/model/model_paper_framework.md` 建立或更新项目根目录 `模型论文框架.md`，用于承载当前模型口径、Model Challenge 和 Approval Brief；用户批准后再把当前模型状态提升为 `locked_model_spec`。框架不是批准本身，批准事实以 machine state 中绑定的当前 revision/hash 为准。
 
-它只承担**项目级长期工作记忆**：当前题意口径、数据、变量、标准模型类型与正式模型名称、Model/Solver/Validator 角色、Formula Trace、Algorithm Trace、参数证据、Primary Quality Specification、accepted 后候选深化风险、跨问依赖、Model Challenge、Human Approval 当前状态、写作选择、小节颗粒度、命题、Citation Evidence、逐问结果摘要与 claim evidence level/scope、图表映射；对适用问题额外保存当前精确判据/事件结构、缩域 evidence level、组合语义、solver applicability 结论和 surrogate→original 回算口径。通用写作规则不得复制进去。
+它只承担**项目级长期工作记忆**：当前题意口径、数据、变量、标准模型类型与正式模型名称、**Model Construction Rationale 与 applicability boundary**、Model/Solver/Validator 角色、Formula Trace、Algorithm Trace、参数证据、Primary Quality Specification、accepted 后候选深化风险、跨问依赖、Model Challenge、Human Approval 当前状态、写作选择、小节颗粒度与标题规划、命题、Citation Evidence、逐问结果摘要与 claim evidence level/scope、图表映射；对适用问题额外保存当前精确判据/事件结构、缩域 evidence level、组合语义、solver applicability 结论和 surrogate→original 回算口径。通用写作规则不得复制进去。
 
 框架支持：
 
@@ -476,8 +537,10 @@ selected_models
 - 口径变化时替换受影响内容，不堆“旧方案—新方案”历史；
 - Model Reviewer/Devil's Advocate 只保存当前 verdict、required actions 与 residual warnings，不保存长篇历史对话；
 - 设计阶段结果摘要为 pending，不填未求解数字；
+- Model Construction Rationale 只保存当前结构、gap、选择理由、适用条件/边界和下游作用，不复制通用“为什么建模”写作手册；
 - Algorithm Trace 只记录真实求解结构、角色与锚点，不复制 Python 源码或通用算法定义；
 - 优化题保存 objective 现实含义与主决策对象，使摘要和正文无需从聊天记忆重建“优化什么”；
+- 小节规划保存真实独立任务、依赖和拆分理由，不保存“每问固定四个小节”之类模板；
 - 对 4.8 适用的问题，只保存本题实际采用的判据、事件/缩域/组合/solver 适配/原模型回算语义及证据锚点，不复制本模块的通用检查清单；
 - baseline / alternative / validator 只有存在真实 artifact 时才进入框架；
 - PQS 只保存本题选择的主数值有效性规格和阈值来源，不复制 `core/numerical_verification_contract.yaml` 的通用规则；
@@ -495,9 +558,9 @@ selected_models
 
 进入项目级预处理或主求解前分两层闭合：
 
-1. **设计完整性**：Problem Contract 已冻结；数据口径、三轴分类、标准模型类型与正式模型名称、变量/目标/约束、Model/Solver/Validator 角色、`preprocessing_decision`、语义闭环、核心 Formula Trace、必要 Algorithm Trace、Primary Quality Specification、Complexity Sanity、当前 semantic revision、命题必要性与 Citation Evidence 计划均达到本模块要求；对适用问题，4.8 的精确判据、事件结构、缩域 evidence level、组合语义、solver applicability 与 original-model reevaluation 也已进入现有闭环或明确 `not_applicable`；
+1. **设计完整性**：Problem Contract 已冻结；数据口径、三轴分类、标准模型类型与正式模型名称、变量/目标/约束、**重要 Model Construction Rationale 与 applicability conditions**、Model/Solver/Validator 角色、`preprocessing_decision`、语义闭环、核心 Formula Trace、必要 Algorithm Trace、关键数值建模参数证据计划、Primary Quality Specification、Complexity Sanity、当前 semantic revision、命题必要性与 Citation Evidence 计划均达到本模块要求；对适用问题，4.8 的精确判据、事件结构、缩域 evidence level、组合语义、solver applicability 与 original-model reevaluation 也已进入现有闭环或明确 `not_applicable`；
 2. **审批完整性**：调用 `scripts/validate_model_approval.py` 检查 current Challenge/Approval。审批状态、用户显式批准、revision/hash 绑定、blocking/review_required 处置及 stale 规则只由 `core/model_approval_contract.yaml` 定义，本模块不再复制字段级判定表。
 
 若设计完整性已经满足但 Model Approval gate 尚未通过，形成 `proposed_model_spec`、Model Approval Brief、`awaiting_model_approval` 与 current 框架后停止；不得把“用户未反对”解释为 approval。Gate 通过后才形成 current `locked_model_spec`。若 `preprocessing_decision=project_level`，下一阶段进入 Module 03P；否则直接进入主求解。
 
-最终 current 设计链至少形成 `proposed_model_spec`、`model_challenge`、`human_model_approval`、`locked_model_spec`、`preprocessing_decision`、`semantic_closure`、`formula_reasoning_chain`、`complexity_sanity_check`、`proposition_plan`、`citation_evidence_plan`、含 PQS 与 downstream risk hints 的 `validation_plan`，以及包含标准模型类型、Model/Solver/Validator、当前 Algorithm Trace/Challenge/Approval 状态的 current 框架；未闭环不得以代码试错代替建模。
+最终 current 设计链至少形成 `proposed_model_spec`、`model_challenge`、`human_model_approval`、`locked_model_spec`、`preprocessing_decision`、`semantic_closure`、`formula_reasoning_chain`、`complexity_sanity_check`、`proposition_plan`、`citation_evidence_plan`、含 PQS 与 downstream risk hints 的 `validation_plan`，以及包含标准模型类型、Model Construction Rationale、Model/Solver/Validator、当前 Algorithm Trace/Challenge/Approval 状态、小节规划的 current 框架；未闭环不得以代码试错代替建模。

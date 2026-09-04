@@ -34,7 +34,7 @@ class AuthorReasoningContractTests(unittest.TestCase):
         cls.trace = cls.reasoning["prose_style"]["human_reasoning_trace"]
 
     def test_schema_and_single_prose_authority(self):
-        self.assertEqual(self.reasoning["schema_version"], "1.7.0")
+        self.assertEqual(self.reasoning["schema_version"], "1.8.0")
         self.assertEqual(self.trace["prose_authority"], AUTHORITY)
         self.assertIn("### 7.3 作者视角与建模解释", self.protocol)
         self.assertIn("本文件不新增规定", self.examples)
