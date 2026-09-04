@@ -94,7 +94,7 @@ changelog_section = """## Current release: 8.6.1
 replace_once("CHANGELOG.md", changelog_marker, changelog_section)
 
 # Current-release tests and one release-carrier assertion.
-replace_all_checked("tests/test_current_skill_health.py", "8.6.0", "8.6.1", 6)
+replace_all_checked("tests/test_current_skill_health.py", "8.6.0", "8.6.1", 5)
 replace_once(
     "tests/test_v840_author_reasoning_writing.py",
     'self.assertEqual(runtime["version"], "8.6.0")',
