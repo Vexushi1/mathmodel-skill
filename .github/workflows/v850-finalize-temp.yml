@@ -24,6 +24,9 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
       - name: Finalize v8.5.0 release carriers
         run: python scripts/_finalize_v850_tmp.py
+      - name: Align v8.0 runtime release regression
+        shell: bash
+        run: sed -i 's/self.assertEqual(self.contract\["version"\], "8.4.0")/self.assertEqual(self.contract["version"], "8.5.0")/' tests/test_v800_writing_runtime.py
       - name: Regenerate active indexes and manifest
         run: python scripts/generate_indexes.py
       - name: Static contract lint
