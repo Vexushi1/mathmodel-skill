@@ -1,0 +1,76 @@
+# Synthetic facts fixed before v8.4 writing-rule edits; not user competition results.
+# No desired prose, pronoun quota or reference answer paragraph is an input.
+schema_version: 1
+prompt: 根据当前事实写出完整的模型建立、求解和结果解释小节；只覆盖此案例，按实际需要合并小节。不得新增实验或更换模型。
+cases:
+  - id: direct_mixing
+    family: direct_calculation
+    facts:
+      task: 求达到目标温度所需加入的热水质量。
+      cold_mass_kg: 2
+      cold_temperature_c: 20
+      hot_temperature_c: 80
+      target_temperature_c: 40
+      assumptions: 两份水比热相同且为正常数；无相变、无散热，容器吸热忽略。
+      unknown: 热水质量 m，单位 kg，m >= 0。
+      relation: 2*c*(40-20) = m*c*(80-40)
+      calculation: 消去相同比热，40 = 40*m。
+      result_mass_kg: 1
+      verification: 代回后放热与吸热均为 40*c；目标温度位于两份水初温之间。
+      evidence_limit: 未提供散热或比热变化的实验。
+  - id: integer_supply
+    family: optimization
+    facts:
+      task: 两期需求必须各自满足，在给定整批供给规则下最小化总成本。
+      demand: [4, 4]
+      batch_size: 3
+      batch_capacity_each_period: 2
+      cost_per_batch: [2, 3]
+      assumptions: 不允许跨期储存或调剂；允许供给超过当期需求。
+      variables: x_1, x_2 为各期批数，均为 0、1、2 中的整数。
+      objective: min 2*x_1 + 3*x_2
+      constraints: 3*x_t >= 4 for t in {1,2}
+      solver: 对 {0,1,2}^2 的全部 9 个候选逐一检查两期需求，再比较可行候选成本；无随机初始化或数值容差，遍历结束即停止。
+      result_batches: [2, 2]
+      result_supply: [6, 6]
+      result_cost: 10
+      feasible_candidate_count: 1
+      verification: 每一期整数批数至少为 ceil(4/3)=2，结合容量上限，两期都只能取2。
+      evidence_limit: 未做需求扰动、容量扩展或其他算法实验。
+  - id: linear_prediction
+    family: non_optimization_prediction
+    facts:
+      task: 说明已拟合直线在给定留出样本上的预测误差，不重新选择模型。
+      model: y_hat(t) = a*t + b
+      training_t: [0, 1, 2]
+      training_y: [1, 3, 5]
+      estimation: 以训练样本最小二乘估计 a,b；解为 a=2,b=1，训练残差为0。留出样本未参与参数估计。
+      test_t: [3, 4, 5]
+      test_y: [7, 12, 11]
+      test_prediction: [7, 9, 11]
+      residual_definition: y - y_hat
+      test_residual: [0, 3, 0]
+      test_mae: 1
+      largest_error_t: 4
+      largest_absolute_error: 3
+      evidence_limit: 只有三个留出点；没有原因变量、其他样本或鲁棒性检验。
+  - id: monotone_inverse
+    family: proposition_and_algorithm
+    facts:
+      task: 在 [0,2] 上求 f(x)=3 的解，展示已指定的单调性证明与二分计算。
+      model: f(x) = x^2 + 2*x
+      domain: [0, 2]
+      target: 3
+      proposition: f 在 [0,2] 连续且严格递增，f(0)=0 < 3 < 8=f(2)，故方程存在唯一解。
+      proof: f'(x)=2*x+2 > 0 on [0,2]；连续性和介值定理给出存在性，严格递增给出唯一性。
+      algorithm: |
+        输入 f、目标3、[a,b]=[0,2]、位置误差界 epsilon=1e-6、最大迭代次数30。
+        每次令 m=(a+b)/2，评价 f(m)。
+        若 f(m)=3 则返回精确命中 m。
+        否则若 (b-a)/2 <= epsilon 则返回 m 及位置误差界。
+        若 f(m)<3 则令 a=m，否则令 b=m。
+        30 次内仍未满足停止条件则报告未达精度，不默认为成功。
+      parameter_basis: 无精确命中时连续二分21次后的区间半宽为2^-21，小于1e-6；30次上限留有余量。
+      actual_trace: 初始中点 m=1，f(1)=3，首次评价即精确命中。
+      result: x=1，残差为0。
+      evidence_limit: 严格单调结论仅针对给定区间；不声称所有输入只需一次二分，也无额外算法比较。

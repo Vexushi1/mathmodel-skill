@@ -31,7 +31,7 @@ class TestV800WritingRuntime(unittest.TestCase):
         cls.adapter = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
 
     def test_contract_declares_template_first_runtime(self):
-        self.assertEqual(self.contract["version"], "8.3.0")
+        self.assertEqual(self.contract["version"], "8.4.0")
         self.assertEqual(
             self.contract["canonical_template"]["manifest"],
             "templates/latex/cumcm/hsk/template_manifest.yaml",

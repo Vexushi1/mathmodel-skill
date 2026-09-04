@@ -404,17 +404,20 @@ class DrawioValidatorTests(unittest.TestCase):
 
 
 class ContractAndDriftTests(unittest.TestCase):
+    # v8.4.0 intentionally updates four writing authorities; all other snapshots
+    # remain pinned. v831 tests cover diagnostics; v840 tests pin unaffected chapter,
+    # full reasoning/runtime semantics and template/proof/algorithm preservation.
     PROTECTED = {
         "core/model_approval_contract.yaml": "7d97255dde9cf780755bab896964e905066bf4b8",
         "core/numerical_verification_contract.yaml": "b901923edf38112cbc922f51d1157265fe1931bd",
         "core/workbook_schema.yaml": "2422bbfa8cb3fad3b5b04c12de21c954ec8b3723",
         "core/project_state.schema.yaml": "fa12de39d7bbdc2e014b2912a186834b941b28d4",
-        "core/writing_reasoning_contract.yaml": "adb962b3b764c08f78fdb002b97401adde693856",
+        "core/writing_reasoning_contract.yaml": "2eaae65a802bfd256641fea29ac608558c9c99a0",
         "modules/03_solve_validate.md": "f49480d96e6a491255010868e409b2d64d620f5e",
         "modules/03_result_analysis.md": "f43d21dc99d71e6b19baeec7af66cbf334da13a7",
-        "modules/05_writing/paper_writing_protocol.md": "5404b1dc891227249644b040c40482bd6065b81a",
-        "modules/05_writing/ai_cleanup.md": "c5200f4f1513c6770952284ac2d49e3db7bef273",
-        "modules/06_review_delivery.md": "845350d958628e69d8d779f7d92542756a6da8e6",
+        "modules/05_writing/paper_writing_protocol.md": "c312c3264a9b59c627b0140d83a52056843b9662",
+        "modules/05_writing/ai_cleanup.md": "8d61a85d7bba797cd51bc370cbd1216109643468",
+        "modules/06_review_delivery.md": "3ee13844d3503ba94850c82a4288c04f973be404",
         "config/competition_profiles.yaml": "fcddec42a30ad4d4bc760dc8322cc13a998a6ebd",
         "scripts/validate_semantic_governance.py": "481199d1d0b541eacd0ddd3b3794c301aac6e690",
         "scripts/validate_submission_package.py": "47bd01db5f45dd8c902418be62f494419a03c676",
@@ -470,13 +473,13 @@ class ContractAndDriftTests(unittest.TestCase):
         self.assertIn(resource, editable["load_order"])
         self.assertNotIn(resource, ordinary["load_order"])
 
-    def test_release_carriers_are_830_and_skill_entrypoints_match(self):
+    def test_current_release_carriers_and_skill_entrypoints_match(self):
         bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
         root_skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         packaged = (ROOT / "skills/mathmodel-skill/SKILL.md").read_text(encoding="utf-8")
-        self.assertEqual(bootstrap["skill_version"], "8.3.0")
-        self.assertEqual(plugin["version"], "8.3.0")
+        self.assertEqual(bootstrap["skill_version"], "8.4.0")
+        self.assertEqual(plugin["version"], "8.4.0")
         self.assertEqual(root_skill, packaged)
         self.assertIn("Editable Mechanism Diagram", root_skill)
 

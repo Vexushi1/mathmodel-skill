@@ -1,6 +1,16 @@
 # Changelog
 
-## Current release: 8.3.0
+## Current release: 8.4.0
+
+- Incorporated the unreleased v8.3.1 work from PR #108 into a compatible **Model/Solution Reasoning and Author Voice** enhancement, not a separate historical release.
+- Strengthened the actual model, solver and result instructions in Paper Writing Protocol §7–9: task-to-objective rationale, non-obvious variables, constraint consequences, approximation boundaries, structure-led computation, implementation choices, proof-to-algorithm consequences and evidence-backed interpretation.
+- Made informative author judgments and natural questions normal prose choices under §7.3, without pronoun quotas, fixed narrative sentences, invented consensus/experiments, authorship inference or changes to real AI-use disclosure.
+- Clarified Paragraph Necessity and AI Cleanup so irreplaceable choice reasons, mathematical roles and conditions survive cleanup even without new formulas or data; empty announcements, repetition, excessive colloquialism and unsupported claims still require revision.
+- Kept a single prose authority, routed the relevant existing writing/review/cleanup stages to it, and added one conditional examples page without new default preload, project fields, runtime stages or gates.
+- Added four fixed synthetic writing inputs, scope-preservation regressions and an explicitly non-blind complete-section writing/cleanup review; retained audit behavior tests without claiming that token checks establish prose quality.
+- Preserved v7.20/v8 chapter detail, template order, proof/pseudocode forms, cross-file handoff and numerical/model/workbook contracts; existing projects require no migration or automatic prose rewrite.
+
+## Previous release: 8.3.0
 
 - Added **Editable Mechanism Diagram Production & Visual QA** under the existing Figure Evidence Authority for problem-specific, non-data-driven draw.io mechanism figures.
 - Added an optional v1 Mechanism Diagram Spec, deterministic uncompressed `.drawio` generation, and structure/geometry/safety validation with human-readable and JSON output.

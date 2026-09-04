@@ -663,6 +663,8 @@ model_establishment_solution_narrative:
     rule: >-
       正文语言保持规范、朴素、具体和专业；“适当分析”必须增加数学、求解或证据信息，
       “结果较好、模型有效、算法性能优异、符合实际”若没有具体机制、基线或范围，不构成有效分析。
+      reduce_repeated_subjects 只针对机械重复的步骤宣告，不是第一人称禁令；
+      有信息的作者视角及其表达边界按 Paper Writing Protocol §7.3 执行。
   anti_template_boundary:
     - 不复制任何优秀论文的固定句子、章节编号、算法或题目专属建模顺序。
     - 不要求每个公式前出现同一承接词，不要求每段固定使用“因此/进一步/从而”。
@@ -1074,6 +1076,8 @@ paragraph_necessity:
   rule: >-
     每一段正文至少承担一种不可替代的信息功能。若删去后不丢失题意、机制、数学关系、求解依据、结果证据或必要边界，
     应优先删除、合并或移附录。该规则是 Formula Destination 在段落层的对应物。
+    建模选择、取舍及数学作用的解释按 Paper Writing Protocol §5/7--9 纳入这些信息功能；
+    没有新增公式或数值不等于冗余，清理后仍须能恢复选择理由和成立边界。不新增项目必填记录。
   common_removal_targets:
     - generic_algorithm_history
     - textbook_definition_without_current_use
@@ -1116,7 +1120,7 @@ paper_fragment_stale_governance:
 
 prose_style:
   name: evidence_driven_undergraduate_academic
-  target: 规范、朴素、略带科研训练初期的推理痕迹；技术含义稳定，不追求期刊式抽象包装。
+  target: 规范、朴素、技术含义稳定；有依据的作者判断与自然发问正常可用，不追求期刊式抽象包装。
   preferred_sentence_flow:
     - concrete_object_or_condition
     - current_mathematical_difficulty
@@ -1132,6 +1136,7 @@ prose_style:
     - mechanical_synonym_replacement
     - unsupported_boastful_claim_strength
   human_reasoning_trace:
+    prose_authority: modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释
     allow:
       - 指出当前还缺哪个量或条件
       - 说明某关系为何能缩小搜索范围
