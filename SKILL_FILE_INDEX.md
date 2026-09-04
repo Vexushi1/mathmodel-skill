@@ -316,3 +316,4 @@
 - `tests/test_v850_author_reasoning_speech_acts.py`
 - `tests/test_v860_model_construction_solution_rationale.py`
 - `tests/test_v861_active_consistency_semantic_drift.py`
+- `tests/test_v870_question_writing_capability_preflight.py`
