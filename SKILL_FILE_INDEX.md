@@ -308,3 +308,4 @@
 - `tests/test_v831_author_reasoning_voice.py`
 - `tests/test_v840_author_reasoning_writing.py`
 - `tests/test_v850_author_reasoning_speech_acts.py`
+- `tests/test_v860_model_construction_solution_rationale.py`
