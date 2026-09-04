@@ -5,7 +5,7 @@
 固定骨架与一级顺序权威：`templates/latex/cumcm/hsk/template_manifest.yaml`。
 普通正文组织和表达权威：`modules/05_writing/paper_writing_protocol.md`。
 LaTeX 载体接口：`modules/05_writing/latex.md`。
-跨竞赛推理、规则等级、模型/求解器/验证器角色、优化模型表达、模型建立—求解—结果解释叙事、问题章节内部小节架构、详略分配、图结果叙事、命题预算、引用证据、术语、数字、Title Claim、深化证据处置、Paragraph Necessity 与局部 stale 治理：`core/writing_reasoning_contract.yaml`。
+跨竞赛推理、规则等级、模型/求解器/验证器角色、优化模型表达、Model Construction Rationale、模型建立—求解—结果解释叙事、问题章节内部小节架构、详略分配、图结果叙事、命题预算、引用证据、术语、数字、Title Claim、深化证据处置、Paragraph Necessity 与局部 stale 治理：`core/writing_reasoning_contract.yaml`。
 
 若本模块与上述 Authority 出现冲突，以 Authority 为准；本模块不得把 Recommendation 重新写成 Hard。**Skill 负责原则，脚本负责穷举。** 本文件不继续按“发现一个问题再加一个编号”的方式增长。
 
@@ -20,7 +20,7 @@ LaTeX 载体接口：`modules/05_writing/latex.md`。
 - 局部/启发式结果不得通过语言润色扩大成无依据的全局最优或必然结论；
 - 深化分析若对核心答案给出 unresolved `reject`，不得通过删掉异常段落继续交付。
 
-AI Cleanup 不重新判断数学正确性，也不修改模型事实来让文章“更顺”。流畅性优化只能改变组织和表达，不得新增不存在的机制、删除真实边界、改变 solver 角色或把数值现象升级成证明。**写作顺序优化也没有权限重排既定一级大章节或问题一、问题二、问题三的顺序。**
+AI Cleanup 不重新判断数学正确性，也不修改模型事实来让文章“更顺”。流畅性优化只能改变组织和表达，不得新增不存在的机制、删除真实边界、改变 solver 角色、修改 Reduction Provenance，或把数值现象升级成证明。**写作顺序优化也没有权限重排既定一级大章节或问题一、问题二、问题三的顺序。**
 
 AI Cleanup 只在 `draft_semantic_review` 已完成且相关 finding 已处置后运行。已经由当前模型与 Algorithm Trace 证明为必要的命题、引理、证明、分阶段算法或伪代码，不得仅因“篇幅较长”“像模板”或“可以一句话概括”而删除；只能压缩无下游作用的重复说明，且仍须保留前提—结论—证明边界—下游作用，以及算法块前的结构理由/输入和算法块后的输出映射。
 
@@ -33,6 +33,9 @@ AI Cleanup 只在 `draft_semantic_review` 已完成且相关 finding 已处置�
 - 连续展示公式之间几乎没有解释；
 - “进一步可得、同理可得、容易得到、不难得到”反复替代关键推理；
 - 核心公式前只有“根据相关理论可得”等空来源，公式后又只重复符号定义，看不出为什么此时需要该式以及该式下一步做什么；
+- **重要模型第一次出现时只有“建立 XX 模型”或模型名，没有恢复当前结构、modeling gap、why-this-structure、适用条件和下游作用；**
+- **用“模型科学、适用性广、精度高、简单有效”等泛化评价代替当前问题结构与适用范围；**
+- **exact / proven_sufficient / heuristic 的缩减依据与正文措辞冲突，例如启发式缩域被清理成“只需考察”或“等价转化”；**
 - 模型建立连续写成“建立 A 模型—建立 B 模型—采用 C 算法”，但 A、B、C 之间没有对象、判据、目标或计算结构的承接；
 - 模型建立开头重新完整复述题目、问题分析或模型假设，而不是直接承接已经批准的数学抓手；
 - 同一问题大章节内部，依赖前一判据/边界/降维结果的后续任务被提前，造成小节顺序打断真实局部数学依赖；
@@ -40,14 +43,15 @@ AI Cleanup 只在 `draft_semantic_review` 已完成且相关 finding 已处置�
 - 为追求“全文更顺”而调换问题一、问题二、问题三，或把后问专属内容提前进前问大章节；
 - 决定核心模型、关键边界、可行域、solver 适配或最终答案的推导被压成无依据的一句“可得”；
 - 普通代数、重复符号、算法历史、通用优点或未变化的继承关系反而占据大段正文；
-- 数值参数直接赋值但邻近没有题面来源、收敛、误差、验证或稳定性依据；
+- 数值参数直接赋值但邻近没有题面来源、候选范围、收敛、误差、可行性或选择规则；
 - 优化类模型先出现 DE、GA、PSO、ALNS、Dual Annealing 等 solver 名称，却迟迟看不到决策变量、目标函数和约束；
 - 求解段一开始就是算法名或算法优点，但没有先交代当前模型的可计算结构、真实困难、已完成的化简或搜索对象；
+- **当前 solver 明显依赖 bracket、候选完整性、可用局部变化、分解映射、邻域/搜索域等条件，但正文没有说明这些前提怎样在本题成立或只在哪个范围成立；**
 - 优化类摘要列出了决策变量和算法，但读者仍不知道“到底优化什么”；
 - 自定义模型名只描述“协同、覆盖、时域并集、计划库”等题目专属机制，看不出标准数学模型类型；
 - solver、validator、软件或求解架构被写成模型本体；
 - 算法段只介绍软件或通用算法优点，没有当前变量、目标、约束、参数和终止条件；
-- 第一次使用算法时没有说明它为什么适配当前数学结构；后问沿用/更换算法时没有说明结构继承或变化；
+- 第一次使用算法时没有说明它为什么适配当前数学结构；后问沿用/更换算法时没有说明结构继承或变化，尤其没有解释为什么前问 solver 仍足够或已经不足；
 - “同时采用/另用某算法”却没有实际 artifact、角色和可比指标；
 - 高级算法前完全看不到解析关系、降维、候选域、界或分解等结构检查；
 - 核心最优值、图表或验证结果出现后，邻近位置没有说明决策含义、关键趋势、模型原因或它怎样回答设问，解释全部被推迟到章节末尾；
@@ -57,7 +61,7 @@ AI Cleanup 只在 `draft_semantic_review` 已完成且相关 finding 已处置�
 - 图 1、图 2、图 3 连续裸堆，关键解释和局部收束被拖到很后面的统一总结段；
 - 做了敏感性、鲁棒性、外样本或多算法验证，却没有说明每项证据具体 `support / modify / reject` 哪个 claim。
 
-上述模型建立—求解—结果解释的连续性只服从 `writing_reasoning_contract.model_establishment_solution_narrative`。优化模型的表达顺序、模型命名以及 Model/Solver/Validator 的判定仍只服从 `optimization_model_expression`、`model_naming` 与 `model_solver_validator_roles`。AI Cleanup 只发现表现风险，不根据算法名、连接词、标题语法、字数、公式数、图引用关键词或段落距离猜测真实模型类型、数学正确性、详略质量和因果解释是否成立。
+上述模型建立—求解—结果解释的连续性只服从 `writing_reasoning_contract.model_establishment_solution_narrative`。建模理由与局部适用性只服从 `model_construction_rationale`；优化模型的表达顺序、模型命名以及 Model/Solver/Validator 的判定仍只服从 `optimization_model_expression`、`model_naming` 与 `model_solver_validator_roles`。AI Cleanup 只发现表现风险，不根据模型名、算法名、连接词、标题语法、标题字数、公式数、图引用关键词或段落距离猜测真实模型类型、适用性、数学正确性、详略质量和因果解释是否成立。
 
 `modify` 必须同步修改边界、阈值、置信度或正文；`reject` 必须记录删除/重写 claim 或回退模型/求解的动作。机器不能由关键词判断“证据是否真的足够”。
 
@@ -116,7 +120,7 @@ BibTeX key、重复条目、未使用条目等确定性结构问题由 `scripts/
 - 把对象名替换成另一赛题后仍完全成立的通用段落；
 - 与本题无直接作用的模型史、算法百科、通用优点和大段教科书定义；
 - “揭示、表征、耦合、驱动机制、内在关联、理论框架、多尺度”等抽象词无对象支撑地连续堆叠；
-- “具有重要意义、提供参考价值、较好地解决、效果优异、结构稳定性很好、鲁棒性很强”等没有紧邻证据的评价词；
+- “具有重要意义、提供参考价值、较好地解决、效果优异、结构稳定性很好、鲁棒性很强、模型适用性强”等没有紧邻证据或具体范围的评价词；
 - 摘要中用“先进、高效、精确、最优、显著、强鲁棒”等形容词替代真实模型类型、目标函数或关键数值。
 
 清理目标不是禁词，而是恢复自然的：
@@ -129,7 +133,7 @@ BibTeX key、重复条目、未使用条目等确定性结构问题由 `scripts/
 
 判断、发问和取舍按 Protocol §7.3 正常保留，不先统一改成无人称句再决定是否放行。检测到某连接词或代词时，先读它实际承载的信息，不用替换词制造新的机械句式。
 
-### C2. Paragraph Necessity 与 Detail Allocation
+### C2. Paragraph Necessity、Model Rationale 与 Detail Allocation
 
 对每个正文段落执行一次删除测试：
 
@@ -138,14 +142,24 @@ BibTeX key、重复条目、未使用条目等确定性结构问题由 `scripts/
 → 是否丢失题意？
 → 是否丢失机制？
 → 是否丢失数学关系？
-→ 是否丢失求解依据？
+→ 是否丢失为什么选择当前模型/适用条件？
+→ 是否丢失求解依据或 solver 前提？
 → 是否丢失结果证据？
 → 是否丢失必要边界？
 ```
 
-如果全部为否，优先删除、合并或移附录。特别清理：重复背景、算法百科、教科书定义、重复模型优点、重复小问总结、装饰性流程描述、重复数字和无下游用途公式。
+如果全部为否，优先删除、合并或移附录。特别清理：重复背景、算法百科、教科书定义、重复模型优点、空泛“模型适用性”段、重复小问总结、装饰性流程描述、重复数字和无下游用途公式。
 
-这里的信息功能包含 Protocol §5 所规定的选择依据、取舍与数学作用；没有新公式或数值的解释段不据此判冗余。实质改写后按同一删除测试复核选择理由、成立条件和结论边界，不得将其压缩为只剩动作与答案。重复已知理由仍可合并，不为解释段设置全面豁免。
+这里的信息功能包含 Protocol §5/7 所规定的选择依据、取舍、Model Construction Rationale 与数学作用；没有新公式或数值的解释段不据此判冗余。实质改写后按同一删除测试复核选择理由、成立条件和结论边界，不得将其压缩为只剩动作与答案。重复已知理由仍可合并，不为解释段设置全面豁免。
+
+对建模理由本身使用四类清理动作：
+
+- **Keep**：当前结构、modeling gap、why-this-structure、适用条件或下游作用确实不可替代；
+- **Compress**：理由真实但混入模型百科、通用优点或重复问题分析，只保留本题结构匹配；
+- **Re-locate**：理由被集中堆在模型末尾“合理性分析”中，而实际应贴近对应模型/近似/solver 首次出现处时，移到局部位置；
+- **Delete**：只有“模型科学、适用性广、精度高、易求解”等泛化评价，删除后不损失本题语义。
+
+对关键数值建模参数同样保护 `parameter role → candidate/source → evidence metric → selection rule → final value`。清理不能把一段真实的网格/步长依据压回“综合考虑精度与效率，取……”，也不能把主计算精度证据误写成现实参数鲁棒性。
 
 对“必要但篇幅是否合适”的内容继续执行 `detail_allocation_governance`：
 
@@ -154,7 +168,7 @@ BibTeX key、重复条目、未使用条目等确定性结构问题由 `scripts/
 - 纯代数展开、重复符号翻译、未变化继承关系、标准算法历史/通用优点、非决定性中间量和逐格/逐点复述应优先压缩；
 - 完整代码、文件路径、调试日志、穷举候选记录和无独立证据作用的参数扫描应移附录或不进正文。
 
-**不得以字数、句数、公式数或小节长度直接判定“详略得当”。** 一个关键推导可能只需数句和一个公式；简单解析题也不能因为新规则被强行增加算法段、结果图或多个小节。
+**不得以字数、句数、公式数或小节长度直接判定“详略得当”。** 一个关键推导可能只需数句和一个公式；简单解析题也不能因为新规则被强行增加算法段、适用性段、结果图或多个小节。
 
 机器只能报告 `possible_redundant_paragraph`、`decisive_derivation_overcompressed`、`routine_content_overexpanded` 一类 warning/review，禁止自动删除、扩写或按字数配额重写。
 
@@ -181,7 +195,7 @@ BibTeX key、重复条目、未使用条目等确定性结构问题由 `scripts/
 
 对图像想法和作者判断按 Protocol §9/11/13 区分现象、支持的解释与猜想。已有答案的发问要落到实际答案，尚未回答的疑问保留真实边界；不补造检验，也不把有充分证据的结论一律改成“可能”。
 
-### C4. 问题章节内部小节架构、颗粒度与大框架保护
+### C4. 问题章节内部小节架构、标题最小化与大框架保护
 
 问题章节内部执行 `writing_reasoning_contract.subsection_granularity`、`model_establishment_solution_narrative.professional_heading_semantics` 与 `within_question_subsection_architecture`。这里**不限制也不重排一级章节**。
 
@@ -198,24 +212,37 @@ BibTeX key、重复条目、未使用条目等确定性结构问题由 `scripts/
 
 可选章节是否出现继续由原有 Authority 决定；AI Cleanup 不因“求解依赖”把问题二提前到问题一之前，也不把问题专属内容拆成新的一级大章节。
 
-在每个固定大章节**内部**，重点复查：
+在每个固定大章节**内部**，执行四类标题动作：
+
+- **Keep**：标题短而明确，且对应独立数学任务、独立求解 stage 或独立验证角色；
+- **Compress**：删除父标题已经提供的“问题X、模型建立及求解、优化模型”等上下文，以及无新增信息的“基于……”“视角下……”“……研究”等包装，前提是当前数学对象/任务仍完整；
+- **Merge**：相邻标题本质属于同一连续论证链，每个小节只有很薄内容，合并后不损失回指与导航；
+- **Split**：一个过长小节内部确有两个以上独立公式组、关键证明/判据、结构化简、参数证据或 solver stage，且拆分能明显提高恢复性。
+
+**Split 不能由字数触发，Merge 不能由标题数量触发。** 标题没有硬字符数，短标题也不自动更好。
+
+重点复查两侧风险：
 
 - 后一小节依赖的判据、边界、可行域、目标或降维关系尚未建立，却先进入 solver/结果；
 - solver 早于其消费的模型结构，结果早于计算依据，验证早于主结果；
 - 一个二级或三级小节只有一个公式、一张表或一幅普通图；
-- “决策变量、目标函数、约束、核心模型汇总”分别机械拆成多个小节；
+- “决策变量、目标函数、约束、核心模型汇总”在内容很薄时分别机械拆成多个小节；
+- **相反，复杂模型中决策变量、目标、关键约束、证明、结构化简或参数依据各自有独立内容，却为了“减少标题”全部塞进一个难以导航的长段；**
 - “活跃边界、删除消融、独立算法挑战、局部邻域”都服务同一结果可信性，却各自单开标题；
 - 一个问题内部标题数量明显大于真实独立论证单元，正文被切成技术报告式碎片；
 - 大量使用“模型分析、模型处理、参数处理、算法设计、结果说明”等无法恢复具体数学任务的泛化标题；
+- 标题重复父标题和论文式包装，例如“基于……视角下的……模型构建与优化求解方法研究”，但删除包装后仍可清楚表达当前任务；
 - 把读取数据、构造缓存、并行搜索、保存 Excel 等程序执行步骤直接变成论文小节。
 
-能合并时优先形成连续的真实数学任务链。标题更适合对应对象的确定、判据的构造、边界的求解、参数的优化、误差的验证等独立数学任务，而不是对应一个合同字段。减少标题数量不删除技术内容；机器只给 review/warning，不能仅凭“小节 > 4”、是否包含“的”、字数或标题语法自动合并、重命名或判错。
+能合并时优先形成连续真实数学任务链；需要导航时保留清晰短标题。复杂优化模型中，“决策变量 / 目标函数 / 关键约束 / 模型汇总”只要确有独立公式组、非平凡定义、后文回指或较长论证，均可合法保留；不应因为旧规则强调“避免机械拆分”而一律合并。
+
+执行 **Heading Compression Test** 时，只判断删去父标题上下文和装饰包装后任务是否仍完整；机器只给 review/warning，不能仅凭“小节 > 4”、是否包含“的/基于”、标题字数或标题语法自动合并、拆分、重命名或判错。
 
 ### C5. 科研初学者式自然重写
 
 最终文本保持规范、朴素、技术含义稳定，并保留真实推理痕迹。模型建立与求解的作者视角边界消费 `paper_writing_protocol.md#7.3-作者视角与建模解释`，不另设句式模板。可以让当前对象、关系、条件、结果或数学任务承担句子主位，也可以保留有依据、有信息的“我们需要判断”“我们引入”等表达；减少的是连续使用“本文/本问/该模型/我们”空泛宣布工作步骤，不是删除第一人称本身。
 
-v8.5 对 Author Reasoning Voice 的清理按 **Keep / Compress / Re-subject / Delete** 四种动作判断，动作依据是语义功能而不是代词本身：
+Author Reasoning Voice 的清理按 **Keep / Compress / Re-subject / Delete** 四种动作判断，动作依据是语义功能而不是代词本身：
 
 - **Keep**：句子确实承担当前缺口、选择依据、结构简化、数学作用、验证动机或结论边界。例如“总量约束仍会允许局部缺货，因此我们需要逐期检查”中的局部遗漏不能因没有新公式而删除。
 - **Compress**：句子有有效理由，但混入“说白了、我们觉得、其实、还是得看看”等聊天式语气时，压缩闲聊和重复，保留问题、依据、数学对象和下一步。例如把“总量够了是不是就行了呢？我们觉得还是得看看每一期”压缩为“总量充足是否足以满足各期需求？由于不能跨期调剂，我们需要分别检查各期约束”。
@@ -266,9 +293,11 @@ python scripts/audit_latex_project.py final_latex/main.tex \
 - 可从项目已登记语义可靠判断时，提示 optimization abstract 缺 objective、Model/Solver/Validator 角色漂移、solver 首次使用缺本题理由、小节碎片化或强 claim 超出已登记证据范围；
 - v8 surface audit 当前确定性实现 `workflow_vocabulary_leak`、`decorative_quote_density`、`concept_chain_density`、`result_validation_bridge_risk`、`question_stage_order_risk`、`solver_first_narrative` 与 `consecutive_figures_without_local_interpretation`；这些结果仍只是 warning/review，不是数学正确性判断。
 
-`report_like_model_listing`、`formula_without_need_or_consequence`、`generic_heading_density`、`management_transition`、`detached_result_interpretation`、`repeated_problem_analysis_in_model_section`、`subsection_order_breaks_local_dependency`、`top_level_framework_reordered_by_writing_rule`、`decisive_derivation_overcompressed`、`routine_content_overexpanded`、`figure_without_identity_or_local_role`、`figure_feature_without_question_link`、`unsupported_figure_cause`、`detached_figure_summary`、`local_question_section_not_closed_to_answer` 等属于 Authority 的人工/语义审查类别；除非脚本确有可靠输入和实现，不得在报告中伪称已经自动检测。
+`model_choice_without_recoverable_gap_or_rationale`、`applicability_claim_without_local_basis`、`reduction_provenance_wording_conflict`、`solver_precondition_missing_for_declared_dependency`、`heading_parent_context_repetition`、`heading_overframed_without_navigation_gain`、`subsection_overmerged_despite_independent_tasks`、`subsection_fragmented_without_independent_task`，以及既有 `report_like_model_listing`、`formula_without_need_or_consequence`、`generic_heading_density`、`management_transition`、`detached_result_interpretation`、`repeated_problem_analysis_in_model_section`、`subsection_order_breaks_local_dependency`、`top_level_framework_reordered_by_writing_rule`、`decisive_derivation_overcompressed`、`routine_content_overexpanded`、`figure_without_identity_or_local_role`、`figure_feature_without_question_link`、`unsupported_figure_cause`、`detached_figure_summary`、`local_question_section_not_closed_to_answer` 等属于 Authority 的人工/语义审查类别；除非脚本确有可靠输入和实现，不得在报告中伪称已经自动检测。
 
-Author Reasoning Voice 新增的 `Question Closure`、`Reasoning Necessity`、`Problem-Specificity`、主语角色选择及判断强度也属于人工/语义审查；**不得**通过 `count("我们")`、`count("本文")`、`first_person_ratio`、`human_like_score` 或 `AI_like_score` 实现。机器可以检查 Authority 指针和项目已登记的 claim 冲突，但不能由作者代词、问句标点或固定短语判断文章是否“像人”、问题是否真正闭合或判断是否合理。
+Author Reasoning Voice 的 `Question Closure`、`Reasoning Necessity`、`Problem-Specificity`、主语角色选择及判断强度也属于人工/语义审查；**不得**通过 `count("我们")`、`count("本文")`、`first_person_ratio`、`human_like_score` 或 `AI_like_score` 实现。机器可以检查 Authority 指针和项目已登记的 claim 冲突，但不能由作者代词、问句标点或固定短语判断文章是否“像人”、问题是否真正闭合或判断是否合理。
+
+v8.6 的 Model Construction Rationale、Local Applicability、Heading Compression 与 Adaptive Subsection Separation 同样不得被降格为 regex 评分器：机器不能由“因为/因此”判定模型理由完整，不能由模型名判定适用性，不能由算法名判定 solver 前提，也不能由标题字符数、标题数量或是否含“基于”自动决定合并/拆分。
 
 等级仍为：
 
@@ -278,4 +307,4 @@ Author Reasoning Voice 新增的 `Question Closure`、`Reasoning Necessity`、`P
 
 `--strict` 只阻断 blocking 或未解释的 review_required；warning 不阻断编译。
 
-机器审计不得自动重写正文，也不得从正则推断数学正确性、公式真实来源、参数最优性、术语语义等价、模型标准类型、物理/统计准确性、文献质量、引用是否真正语义支持某个 claim；不得仅凭连接词、标题语法、算法名、段落距离、小节数量、字数、公式数、图引用关键词或表面顺序判断叙事/详略质量，也不得自动重排一级大章节。
+机器审计不得自动重写正文，也不得从正则推断数学正确性、公式真实来源、参数最优性、术语语义等价、模型标准类型、模型适用性、solver 前提是否成立、物理/统计准确性、文献质量、引用是否真正语义支持某个 claim；不得仅凭连接词、标题语法、算法名、段落距离、小节数量、标题字数、正文长度、公式数、图引用关键词或表面顺序判断叙事/详略质量，也不得自动重排一级大章节。
