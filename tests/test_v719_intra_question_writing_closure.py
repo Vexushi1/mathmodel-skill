@@ -212,8 +212,8 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
         audit = self.contract["machine_audit_boundary"]
         new_risks = {
             "subsection_order_breaks_local_dependency",
-            "subsection_overmerged_despite_independent_tasks",
-            "subsection_fragmented_without_independent_task",
+            "question_subsection_overmerge_risk",
+            "question_subsection_fragmentation_risk",
             "top_level_framework_reordered_by_writing_rule",
             "decisive_derivation_overcompressed",
             "routine_content_overexpanded",
