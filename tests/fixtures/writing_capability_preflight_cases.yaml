@@ -1,4 +1,4 @@
-schema_version: 1.0.0
+schema_version: 1.1.0
 purpose: >-
   Fixed project-state fixtures for v8.7.0 per-question writing capability preflight.
   These cases test state-to-activation behavior; they do not judge mathematical truth.
@@ -24,6 +24,46 @@ cases:
         - packs/artifact/proposition_proof.md
         - packs/artifact/algorithm_flow.md
 
+  - id: summary_inline_simple_analytic
+    question: Q1b
+    user_prompt_mentions_capability: false
+    project_state:
+      formula_roles:
+        - formula_id: F2A
+          role: final_model_relation
+      core_model_summary: inline
+      proposition_proof: not_assessed
+      algorithm_presentation: not_needed
+    expect:
+      status: current
+      activate:
+        - adaptive_core_model_summary
+      do_not_activate:
+        - packs/artifact/proposition_proof.md
+        - packs/artifact/algorithm_flow.md
+
+  - id: bridge_relation_preserved_without_formula_dump
+    question: Q1c
+    user_prompt_mentions_capability: false
+    project_state:
+      formula_roles:
+        - formula_id: FB1
+          role: key_bridge_relation
+        - formula_id: FB2
+          role: final_model_relation
+        - formula_id: FB3
+          role: supporting_derivation
+      core_model_summary: required
+      proposition_proof: not_assessed
+      algorithm_presentation: not_needed
+    expect:
+      status: current
+      activate:
+        - adaptive_core_model_summary
+      bridge_formula_id: FB1
+      final_formula_id: FB2
+      supporting_formula_id: FB3
+
   - id: proposition_planned_without_user_keyword
     question: Q2
     user_prompt_mentions_capability: false
@@ -37,10 +77,52 @@ cases:
     expect:
       status: current
       activate:
+        - adaptive_core_model_summary
         - core/writing_reasoning_contract.yaml
         - packs/artifact/proposition_proof.md
       do_not_activate:
         - packs/artifact/algorithm_flow.md
+
+  - id: proposition_candidate_reviews_without_auto_creation
+    question: Q2b
+    user_prompt_mentions_capability: false
+    project_state:
+      formula_roles:
+        - formula_id: F3B
+          role: key_bridge_relation
+        - formula_id: F3C
+          role: final_model_relation
+      core_model_summary: inline
+      proposition_proof: candidate
+      algorithm_presentation: not_needed
+    expect:
+      status: current
+      activate:
+        - adaptive_core_model_summary
+        - core/writing_reasoning_contract.yaml
+      do_not_activate:
+        - packs/artifact/proposition_proof.md
+        - packs/artifact/algorithm_flow.md
+      action: semantic_proposition_necessity_review
+
+  - id: explicit_proof_request_remains_compatible
+    question: Q2c
+    user_prompt_mentions_capability: true
+    explicit_request: proof
+    project_state:
+      formula_roles:
+        - formula_id: F3D
+          role: final_model_relation
+      core_model_summary: inline
+      proposition_proof: not_assessed
+      algorithm_presentation: not_needed
+    expect:
+      status: current
+      activate:
+        - adaptive_core_model_summary
+      conditional_user_request_must_allow:
+        - core/writing_reasoning_contract.yaml
+        - packs/artifact/proposition_proof.md
 
   - id: pseudocode_without_user_keyword
     question: Q3
@@ -75,8 +157,11 @@ cases:
     expect:
       status: current
       activate:
+        - adaptive_core_model_summary
         - core/writing_reasoning_contract.yaml
         - packs/artifact/algorithm_flow.md
+      do_not_activate:
+        - modules/05_writing/latex.md#5-图表命题和算法环境
 
   - id: algorithm_not_needed_keeps_compact_runtime
     question: Q5
@@ -90,7 +175,10 @@ cases:
       algorithm_presentation: not_needed
     expect:
       status: current
+      activate:
+        - adaptive_core_model_summary
       do_not_activate:
+        - core/writing_reasoning_contract.yaml
         - packs/artifact/proposition_proof.md
         - packs/artifact/algorithm_flow.md
 
@@ -121,6 +209,30 @@ cases:
     expect:
       status: review_required
       activate:
+        - adaptive_core_model_summary
         - core/writing_reasoning_contract.yaml
         - packs/artifact/proposition_proof.md
       prohibition: stale_proposition_must_not_surface_as_current
+
+  - id: inherited_question_compact_with_incremental_bridge
+    question: Q8
+    user_prompt_mentions_capability: false
+    project_state:
+      inherited_from: Q1
+      formula_roles:
+        - formula_id: F9
+          role: key_bridge_relation
+        - formula_id: F10
+          role: final_model_relation
+      core_model_summary: inline
+      proposition_proof: removed
+      algorithm_presentation: not_needed
+    expect:
+      status: current
+      activate:
+        - adaptive_core_model_summary
+      do_not_activate:
+        - packs/artifact/proposition_proof.md
+        - packs/artifact/algorithm_flow.md
+      must_preserve_increment_formula_id: F9
+      must_not_repeat_entire_parent_model: true
