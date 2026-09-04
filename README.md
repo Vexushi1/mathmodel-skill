@@ -1,6 +1,12 @@
-# mathmodel-skill v8.6.0
+# mathmodel-skill v8.6.1
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v8.6.1：Active Consistency & Semantic Drift Hardening
+
+本补丁不新增模型、solver、数值或论文写作能力，而是收口 v8.6.0 合并后通读发现的 current-state 与语义漂移风险：v8.6 evaluation 现在同时保留候选阶段失败记录与最终 merged/released/post-merge-CI 状态，v8.4/v8.5 evaluation 明确标记为历史非 Authority 快照；CHANGELOG release heading 统一为可机读格式。
+
+CUMCM canonical example 中的四个常见问题内标题现在明确只是 maintained LaTeX smoke/profile，不是 runtime 固定标题或固定小节数量；A196 继续保留 provenance 与 chapter-topology 参考，但显式隔离于当前写作语义、模型/solver 选择和问题内标题 Authority。`core/output_contract.yaml` 补齐 v8.6 reasoning capability 的命名指针，`RUNTIME_ROUTER.md` 明确 raw declarative candidate surface 与 resolver effective plan 的区别。Model Approval、03A/03B、Workbook、Project State、用户执行、Figure Evidence、LaTeX 编译职责和 v8.6 建模写作语义均保持不变。
 
 ## v8.6.0：Model Construction & Solution Rationale
 

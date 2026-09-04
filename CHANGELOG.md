@@ -1,6 +1,15 @@
 # Changelog
 
-## Current release: 8.6.0
+## Current release: 8.6.1
+
+- Closed v8.6 release-state drift by separating final merged/post-merge-CI facts from preserved candidate-stage evaluation history; older v8.4/v8.5 evaluation documents are explicitly historical non-Authority records.
+- Clarified that CUMCM fixed four-heading checks are maintained example/compile smoke only; runtime subsection structure remains adaptive and has no fixed heading count or title-length rule.
+- Isolated A196/reference provenance from runtime writing semantics, internal subsection decisions and model/solver selection while retaining chapter-topology provenance.
+- Added named `output_contract` pointers for Model Construction Rationale and Numerical Parameter Evidence without duplicating their reasoning rules.
+- Clarified raw declarative route/module output surfaces versus resolver-returned effective plans, preserving all existing Model Approval, preprocessing and user-execution boundaries.
+- Normalized historical release headings and added regression coverage; no model mathematics, 03A/03B, workbook/project-state schema, figure ownership, CLI or public runtime field was changed.
+
+## Previous release: 8.6.0
 
 - Added **Model Construction Rationale** so non-trivial model choices recover current structure, modeling gap, chosen mathematical structure, why it closes the gap, applicability conditions and downstream role.
 - Added local applicability and explicit solver-precondition evidence without fixed applicability sections, algorithm-name inference or generic algorithm praise.

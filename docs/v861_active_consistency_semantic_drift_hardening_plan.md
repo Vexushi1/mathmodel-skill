@@ -1,6 +1,6 @@
 # v8.6.1 Active Consistency & Semantic Drift Hardening Plan
 
-> 状态：用户已批准实施 / implementation in progress  
+> 状态：实现与版本同步完成 / final release CI pending  
 > 基线：`main@41373e1a0ce3472df2c5afc15a3f4c0b9db379fa`（v8.6.0）  
 > 计划分支：`fix/v8.6.1-active-consistency-semantic-drift`  
 > 当前文件只作为后续实施上下文与 Scope Contract；除本计划文档外，本轮尚未修改任何 active runtime / Authority / template / test。  
@@ -782,6 +782,9 @@ named pointer 缺失 → 被误判为 capability 未正式集成
 ```text
 baseline_skill = 8.6.0
 implementation_started = true
+semantic_patch_ci = HSK Skill CI #2411 success
+release_sync = complete
+final_release_ci = pending
 runtime_behavior_changed = false
 target_patch = 8.6.1
 scope = active consistency + semantic drift hardening
