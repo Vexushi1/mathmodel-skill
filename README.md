@@ -1,6 +1,12 @@
-# mathmodel-skill v8.7.2
+# mathmodel-skill v8.7.3
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v8.7.3：Mechanism Diagram Monochrome & Geometry Rollback
+
+本补丁把正式机理/推导图从 v8.3 以来 draw.io 生成器中的蓝/绿/红语义填充回退为 **monochrome-first**：白底、黑/深灰轮廓与文字、灰度降权，优先通过几何形状、线型、线宽、边界和留白表达结构。颜色不再是默认语义载体；只有黑白编码不足且确有证据收益时才允许 1 个强调色，极少数复杂图最多 2 个，并要求黑白打印仍可辨识。
+
+可编辑 draw.io 图元在保持原有矩形、圆角矩形、椭圆、菱形和六边形兼容的基础上，新增圆/球体轮廓、三角形、四边形与圆柱投影等规则几何表达。球体、圆柱等三维对象只允许使用可解释的二维投影轮廓和必要辅助线，不使用渐变、拟物阴影、装饰性 3D 或高饱和色块。MATLAB 数据驱动结果 Figure 的高对比科研配色保持不变；本次回退只作用于正式机理/推导图视觉语法，不改变 Mechanism Spec v1、CLI、artifact lifecycle、Model Approval、03A/03B 或数值事实源。
 
 ## v8.7.2：Active Template / Read-Path / Release Consistency Hardening
 
@@ -490,7 +496,7 @@ locked model + declared numerical method
 
 ### MATLAB Scientific Figure Evidence
 
-MATLAB 只读取 Python 输出的数据和标准工作簿绘图，不重新求解或重新分析。正式论文图不设置整体 `title/sgtitle`，由 DOCX/LaTeX caption 承担正式图号和图名；多面板按需只保留 panel label。核心图先识别 Evidence Structure，再通过 Scientific Figure Synthesis / Basic-form Challenge 决定单图、组合编码、多面板、局部放大和 Rendering Profile；只有真实证据支持时才使用 uncertainty band、distribution + raw samples、heatmap + contour、Pareto + recommendation、trajectory + field + boundary 等科研表达。主证据采用高对比亮蓝/鲜红等颜色，辅助元素降权，默认白底与 `grid off`，并保留图窗供人工调整，不批量自动导出。整篇论文在写作前还执行 Figure Portfolio Scientific Quality Review，避免所有核心图即使技术正确也共同退化成低信息密度基础图。
+MATLAB 只读取 Python 输出的数据和标准工作簿绘图，不重新求解或重新分析。正式论文图不设置整体 `title/sgtitle`，由 DOCX/LaTeX caption 承担正式图号和图名；多面板按需只保留 panel label。核心图先识别 Evidence Structure，再通过 Scientific Figure Synthesis / Basic-form Challenge 决定单图、组合编码、多面板、局部放大和 Rendering Profile；只有真实证据支持时才使用 uncertainty band、distribution + raw samples、heatmap + contour、Pareto + recommendation、trajectory + field + boundary 等科研表达。主证据采用高对比亮蓝/鲜红等颜色，辅助元素降权，默认白底与 `grid off`，并保留图窗供人工调整，不批量自动导出。**这一高对比科研配色只针对数据驱动结果 Figure；正式机理/推导图按 v8.7.3 monochrome-first 规则使用黑白灰线稿与规则几何图形。**整篇论文在写作前还执行 Figure Portfolio Scientific Quality Review，避免所有核心图即使技术正确也共同退化成低信息密度基础图。
 
 ## 运行时权威链
 

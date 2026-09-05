@@ -1,4 +1,4 @@
-# HSK Core Policy v8.7.2
+# HSK Core Policy v8.7.3
 
 本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 与 `scripts/validate_model_approval.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision`、条件式统一数据预处理、预处理论文数学证据与 `data_process.m` 图证据以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；主求解数值有效性与底层证据独立复核以 `core/numerical_verification_contract.yaml` 与 `scripts/validate_numerical_evidence.py` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准；科研图证据与可编辑机理图准入以 `modules/04_figure_evidence.md` 为准；跨竞赛复杂写作语义与证据治理以 `core/writing_reasoning_contract.yaml` 为准，普通正文组织以 `modules/05_writing/paper_writing_protocol.md` 为准，CUMCM 固定结构以 `templates/latex/cumcm/hsk/template_manifest.yaml` 为准，逐章读取/写入时机及逐问 Writing Capability Preflight 以 `core/writing_runtime_contract.yaml` 为准，`modules/05_writing/latex.md` 只负责 LaTeX Adapter；最终提交合规与证据扫描以 `modules/06_review_delivery.md` 为唯一终审语义 Authority，报告结构以 `templates/review/final_review_matrix.yaml` 为准。本文件不复制这些合同的完整字段。
 
