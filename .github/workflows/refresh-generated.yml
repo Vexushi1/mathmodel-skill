@@ -38,18 +38,30 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+      - name: Run one-shot v8.7.1 release carrier sync
+        run: python scripts/_v871_release_sync.py
       - name: Rebuild active indexes and manifest
         run: python scripts/generate_indexes.py
-      - name: Commit generated metadata when changed
+      - name: Commit v8.7.1 release carriers and generated metadata
         run: |
-          if git diff --quiet -- SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256; then
-            echo "Generated metadata is current."
+          if git diff --quiet; then
+            echo "Release carriers and generated metadata are current."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
-          git commit -m "chore: refresh generated repository metadata"
+          git add \
+            .codex-plugin/plugin.json \
+            CHANGELOG.md README.md SKILL.md \
+            config/prose_audit_patterns.yaml \
+            core/bootstrap.yaml core/hsk_core_policy.md core/module_manifest.yaml \
+            core/output_contract.yaml core/workflow_router.yaml core/writing_runtime_contract.yaml \
+            docs/v871_readpath_semantic_state_consistency_hardening_plan.md \
+            modules/05_writing/paper_writing_protocol.md \
+            skills/mathmodel-skill/SKILL.md \
+            tests/test_current_skill_health.py tests/test_v840_author_reasoning_writing.py \
+            SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
+          git commit -m "chore(release): synchronize v8.7.1 release carriers"
           git push
 
   verify-main:
