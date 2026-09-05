@@ -102,13 +102,13 @@ Hard gap 包括：
 
 ### 4.1 核心 Formula Trace
 
-`Source–Derivation–Destination` 的语义由 reasoning contract 唯一定义。本阶段只登记当前模型的核心关系：
+`Source–Derivation–Destination` 与 Formula Role 的语义由 `core/writing_reasoning_contract.yaml#formula_reasoning_chain` 唯一定义。本阶段只登记当前模型需要进入 Core Formula Trace 的项目事实；普通 `routine_algebra` 按 Authority 默认不登记，不因补齐字段扩大公式数量。
 
-| Formula ID | Source | Depends on | Derivation | Destination | 代码/证据锚点 | 状态 |
-|---|---|---|---|---|---|---|
-| F1 |  |  |  |  |  | closed / gap / stale |
+| Formula ID | 对应小问 | Role | Source | Depends on | Derivation | Destination | 代码/证据锚点 | 状态 |
+|---|---|---|---|---|---|---|---|---|
+| F1 | Q1 |  |  |  |  |  |  | closed / gap / stale |
 
-机器只核验来源、依赖、去向和锚点是否存在，不从正则判断数学正确性。存在 gap 时不得用代码实现或论文润色补洞。
+`对应小问` 与 `Role` 必须在模型设计阶段显式登记，使后续 `模型论文框架.md#逐问写作能力预检` 可以直接消费当前 Formula Trace；不得把缺失角色拖到写作阶段再凭上下文猜测。机器只核验字段、来源、依赖、去向和锚点是否存在，不从正则判断数学角色或公式正确性。存在 gap 时不得用代码实现或论文润色补洞。
 
 ### 4.2 共享基础与跨问增量
 
