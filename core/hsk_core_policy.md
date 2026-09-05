@@ -1,4 +1,4 @@
-# HSK Core Policy v8.7.1
+# HSK Core Policy v8.7.2
 
 本文件只保存全局硬规则。题意口径、语义闭环和语义变更状态以 `模型论文框架.md`、`core/project_state.schema.yaml` 与 `scripts/validate_semantic_governance.py` 为准；模型挑战与人工锁模以 `core/model_approval_contract.yaml` 与 `scripts/validate_model_approval.py` 为准；目录与交付文件以 `core/output_contract.yaml` 为准；数据审计、`preprocessing_decision`、条件式统一数据预处理、预处理论文数学证据与 `data_process.m` 图证据以 `core/global_preprocessing_contract.yaml` 为准；用户本地执行与工作簿验收以 `core/user_execution_contract.yaml` 为准；主求解数值有效性与底层证据独立复核以 `core/numerical_verification_contract.yaml` 与 `scripts/validate_numerical_evidence.py` 为准；题目专属 Python 工程质量以 `core/code_quality_contract.yaml` 为准；科研图证据与可编辑机理图准入以 `modules/04_figure_evidence.md` 为准；跨竞赛复杂写作语义与证据治理以 `core/writing_reasoning_contract.yaml` 为准，普通正文组织以 `modules/05_writing/paper_writing_protocol.md` 为准，CUMCM 固定结构以 `templates/latex/cumcm/hsk/template_manifest.yaml` 为准，逐章读取/写入时机及逐问 Writing Capability Preflight 以 `core/writing_runtime_contract.yaml` 为准，`modules/05_writing/latex.md` 只负责 LaTeX Adapter；最终提交合规与证据扫描以 `modules/06_review_delivery.md` 为唯一终审语义 Authority，报告结构以 `templates/review/final_review_matrix.yaml` 为准。本文件不复制这些合同的完整字段。
 
@@ -163,7 +163,7 @@ MATLAB 默认只保留图窗，不自动创建图表目录或批量导出正式�
 
 `run_info.json`、`result_manifest.yaml` 和 `matlab_figure_handoff.json` 只在用户明确要求完整复现包时生成，并放入项目级内部元数据目录，不得放入 `问题X求解/` 或 `数据预处理/`。
 
-v7.15.x 及更早项目继续只读兼容；历史已 accepted 主工作簿不要求批量补 Evidence Capture、Verification ID 或 v7.16 写作身份字段。旧项目若重新进入当前小问主求解，则该问按当前 v7.15 主求解轨迹生成 evidence-ready 工作簿；旧项目若重新进入当前模型设计/写作/终审，则按需补齐标准模型类型、Model/Solver/Validator、优化 objective、claim Evidence Level/Scope 与小节规划，不倒逼已验收数值重算。Algorithm Trace 与算法流程呈现是可选写作能力，不要求历史交付反向补写。v7.6 的 `v0.7-project-memory` 和 semantic-governance 1.0.0 仍保持只读兼容；项目重新进入当前 writing/review 流程时再按 current 框架补充需要的 Terminology/Numeric/Title/Paper Fragment/Algorithm Trace 信息。v7.2.0--7.2.2 项目重新进入模型设计、预处理、绘图或写作时，应按当前规则补齐适用的论文证据与 `data_process.m` 图证据；更早项目继续只读兼容，重新进入当前流程时先审计数据并形成判定。
+v7.15.x 及更早项目继续只读兼容；历史已 accepted 主工作簿不要求批量补 Evidence Capture、Verification ID 或 v7.16 写作身份字段。旧项目若重新进入当前小问主求解，则该问按当前 v7.15 主求解轨迹生成 evidence-ready 工作簿；旧项目若重新进入当前模型设计/写作/终审，则按需补齐标准模型类型、Model/Solver/Validator、优化 objective、claim Evidence Level/Scope 与小节规划，不倒逼已验收数值重算。Algorithm Trace 与算法流程呈现是可选写作能力，不要求历史交付反向补写。v7.6 的 `v0.7-project-memory` 和 semantic-governance 1.0.0 仍保持只读兼容；项目重新进入 current writing/review 流程时再按 current 框架补充需要的 Terminology/Numeric/Title/Paper Fragment/Algorithm Trace 信息。v7.2.0--7.2.2 项目重新进入模型设计、预处理、绘图或写作时，应按当前规则补齐适用的论文证据与 `data_process.m` 图证据；更早项目继续只读兼容，重新进入当前流程时先审计数据并形成判定。
 
 ## 8. 正式交付同步
 
