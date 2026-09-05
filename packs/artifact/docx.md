@@ -1,10 +1,10 @@
 # Artifact Pack：DOCX 草稿
 
-本 Pack 只负责 **Word/DOCX 载体、可编辑性交付与迁移**。正文结构与表达服从 `modules/05_writing/latex.md`，跨竞赛推理、规则等级、命题预算和 Citation Evidence 服从 `core/writing_reasoning_contract.yaml`，Word 专属排版服从 `modules/05_writing/docx.md`。
+本 Pack 只负责 **Word/DOCX 载体、可编辑性交付与迁移**。普通正文结构与表达服从 `modules/05_writing/paper_writing_protocol.md`，跨竞赛推理、规则等级、命题预算和 Citation Evidence 服从 `core/writing_reasoning_contract.yaml`，Word 专属排版服从 `modules/05_writing/docx.md`；`modules/05_writing/latex.md` 仅在迁移到正式 LaTeX 时作为载体 Adapter。
 
 ## 一、进入条件
 
-用户要求 Word/DOCX 草稿、基于现有底稿修改、批注版论文或 LaTeX 前置审稿稿时加载。
+用户要求 Word/DOCX 草稿、基于现有底稿修改、批注版论文，或明确要求在 LaTeX 之前进行 Word 审稿时加载。
 
 - 用户已上传并人工修改 DOCX 时，以最后版本为唯一底稿；
 - `模型论文框架.md` 必须存在且为 current；
