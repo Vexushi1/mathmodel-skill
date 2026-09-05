@@ -262,6 +262,7 @@
 - `tests/test_starter_templates.py`
 - `tests/test_structure.py`
 - `tests/test_sync_project.py`
+- `tests/test_template_index_exclusions.py`
 - `tests/test_tooling.py`
 - `tests/test_user_execution_contract.py`
 - `tests/test_v631_contract_closure.py`
