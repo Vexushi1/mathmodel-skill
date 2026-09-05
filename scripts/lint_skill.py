@@ -77,25 +77,94 @@ def _markdown_fragment_exists(path: Path, fragment: str) -> bool:
     return False
 
 
-def _yaml_fragment_exists(path: Path, fragment: str) -> bool:
-    data = checks.load_structured(path)
-    parts = [part for part in fragment.split(".") if part]
+def _resolve_yaml_dotted_nodes(node: object, expression: str) -> list[object]:
+    """Resolve a dotted YAML path, expanding ``<placeholder>`` over mapping values."""
+    parts = [part for part in expression.split(".") if part]
     if not parts:
+        return []
+    nodes: list[object] = [node]
+    for part in parts:
+        next_nodes: list[object] = []
+        for current in nodes:
+            if part.startswith("<") and part.endswith(">"):
+                if isinstance(current, Mapping):
+                    next_nodes.extend(current.values())
+                continue
+            if isinstance(current, Mapping) and part in current:
+                next_nodes.append(current[part])
+        nodes = next_nodes
+        if not nodes:
+            return []
+    return nodes
+
+
+def _yaml_json_pointer_exists(node: object, fragment: str) -> bool:
+    """Resolve the JSON-Pointer form already used by JSON-schema-style YAML contracts."""
+    if not fragment.startswith("/"):
         return False
-
-    def descend(node: object, index: int) -> bool:
-        if index >= len(parts):
-            return True
-        part = parts[index]
-        if part.startswith("<") and part.endswith(">"):
-            if not isinstance(node, Mapping) or not node:
+    current = node
+    for raw_part in fragment[1:].split("/"):
+        part = raw_part.replace("~1", "/").replace("~0", "~")
+        if isinstance(current, Mapping):
+            if part not in current:
                 return False
-            return any(descend(value, index + 1) for value in node.values())
-        if not isinstance(node, Mapping) or part not in node:
-            return False
-        return descend(node[part], index + 1)
+            current = current[part]
+            continue
+        if isinstance(current, list) and part.isdigit():
+            index = int(part)
+            if index >= len(current):
+                return False
+            current = current[index]
+            continue
+        return False
+    return True
 
-    return descend(data, 0)
+
+def _yaml_descendant_expression_exists(node: object, expression: str) -> bool:
+    """Find a dotted expression at or below a previously resolved YAML subtree."""
+    if _resolve_yaml_dotted_nodes(node, expression):
+        return True
+    if isinstance(node, Mapping):
+        return any(_yaml_descendant_expression_exists(value, expression) for value in node.values())
+    if isinstance(node, list):
+        return any(_yaml_descendant_expression_exists(value, expression) for value in node)
+    return False
+
+
+def _yaml_fragment_exists(path: Path, fragment: str) -> bool:
+    """Validate active YAML fragments without inventing a second pointer language.
+
+    Supported forms mirror syntax already present in active contracts:
+
+    - ``#top.child`` for an exact dotted path;
+    - ``#profiles.<name>.edition_rules`` for a declared dynamic mapping branch;
+    - ``#/$defs/dependency_kind`` for JSON Pointer used by schema references;
+    - ``#paper_skeleton.ordered_slots+activation`` for a composite semantic pointer,
+      meaning that the base subtree exists and the named field is present somewhere
+      within that subtree.
+    """
+    data = checks.load_structured(path)
+    raw_fragment = fragment.strip()
+    if not raw_fragment:
+        return False
+    if raw_fragment.startswith("/"):
+        return _yaml_json_pointer_exists(data, raw_fragment)
+
+    expressions = [item.strip() for item in raw_fragment.split("+")]
+    if not expressions or not expressions[0]:
+        return False
+    base_nodes = _resolve_yaml_dotted_nodes(data, expressions[0])
+    if not base_nodes:
+        return False
+    for required_descendant in expressions[1:]:
+        if not required_descendant:
+            return False
+        if not any(
+            _yaml_descendant_expression_exists(base_node, required_descendant)
+            for base_node in base_nodes
+        ):
+            return False
+    return True
 
 
 def _critical_fragment_exists(reference: str) -> bool:
