@@ -1,6 +1,5 @@
 function fig = draw_mechanism_structure(nodes, edges, positions)
-% 题目专属结构图骨架。正式机理图采用 monochrome-first；调用者必须提供真实对象、关系和坐标。
-% hsk_apply_scientific_style 这里只统一字体/画布，不表示继承数据结果图的彩色 palette。
+% 题目专属结构图骨架。调用者必须提供真实对象、关系和坐标；无通用默认节点。
 arguments
     nodes (1,:) string
     edges (:,2) double
