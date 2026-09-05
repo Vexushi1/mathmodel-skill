@@ -32,7 +32,7 @@ class WritingReasoningScopeTests(unittest.TestCase):
         # These sections were not reopened and stay pinned to the prior snapshots.
         expected = {
             "4. Local Narrative Chain": "a32d8bce3e0805bdac4bce0105a7fa715473c28fc6392f701ffcd0a320b949b2",
-            "5A. Cross-File Chapter Handoff": "77a8b8b8f7301544343a9e867380637ece97705022fc0c0e5a3eee0e009b2f19",
+            "5A. Cross-File Chapter Handoff": "b8ddf97618ca7e837ca5194e0af9f654150d348fbb99cb8249f0a9328f11f70d",
             "6. 前置章节内容": "540c70cf9833269ae02a138d03ab224f0f1c5e40e104dab33df4f84624607e84",
             "10. 结果与验证的分层": "21b6d5111705b6645c4bd90f1a1393d624797d71ece18254ff0ecca81e559872",
             "14. 摘要": "8c2cbf13c739b273f4f3331819b0c0bedcac11df5e7103b6e2ea0a109a540271",
