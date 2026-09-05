@@ -50,6 +50,9 @@ class TestV871ReadPathSemanticStateConsistency(unittest.TestCase):
         cls.framework = read(FRAMEWORK)
         cls.review_template = load_yaml(FINAL_REVIEW_TEMPLATE)
         cls.scorer = load_module("score_submission_v871", ROOT / "scripts" / "score_submission.py")
+        cls.framework_validator = load_module(
+            "validate_model_paper_framework_v871", ROOT / "scripts" / "validate_model_paper_framework.py"
+        )
         cls.review_config = json.loads((ROOT / "config" / "review_weights.json").read_text(encoding="utf-8"))
 
     def _hydrated_review_report(self) -> dict:
@@ -72,6 +75,88 @@ class TestV871ReadPathSemanticStateConsistency(unittest.TestCase):
         report["scores"] = {name: 80 for name in self.review_config["dimensions"]}
         report["evidence"] = {name: f"evidence:{name}" for name in self.review_config["dimensions"]}
         return report
+
+    @staticmethod
+    def _v08_framework(
+        *,
+        formula_roles: str = "F1 final",
+        summary: str = "inline",
+        proposition: str = "not_assessed",
+        algorithm: str = "not_needed",
+        reasoning: str = "no",
+        preflight_status: str = "current",
+        include_preflight: bool = True,
+        formula_role: str = "final_model_relation",
+        formula_status: str = "closed",
+    ) -> str:
+        preflight = ""
+        if include_preflight:
+            preflight = f"""
+### 逐问写作能力预检
+
+| 小问 | Formula Roles | Core Model Summary | Proposition / Proof | Algorithm Presentation | 需加载的条件资源 | Full Reasoning | Preflight Status |
+|---|---|---|---|---|---|---|---|
+| Q1 | {formula_roles} | {summary} | {proposition} | {algorithm} |  | {reasoning} | {preflight_status} |
+"""
+        algorithm_trace = ""
+        if algorithm in {"stepwise", "pseudocode"}:
+            algorithm_trace = """
+### Algorithm Trace
+
+| Algorithm ID | 小问 | 角色 | 输入/状态 | 核心操作 | 循环/分支/阶段 | Formula/Proposition/Constraint 锚点 | 终止条件 | 输出 | Python 锚点 | 呈现模式 | 状态 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+"""
+        return f"""# 模型论文框架
+
+> 本文件只保留当前有效项目事实。
+- 框架版本：v0.8-project-memory
+- 框架模式: compact
+- 当前状态: current
+
+## 当前有效口径
+
+- 核心答案是否属于高精度评分项：no
+
+### Terminology Registry
+
+### Numeric Profile
+{preflight}
+### 核心公式 Trace
+
+| Formula ID | 对应小问 | Role | Source | Depends on | Derivation | Destination | 代码/证据锚点 | 状态 |
+|---|---|---|---|---|---|---|---|---|
+| F1 | Q1 | {formula_role} | prompt |  | direct derivation | solver |  | {formula_status} |
+{algorithm_trace}
+## 各问模型与结果
+
+### Q1：测试问题
+
+- 核心模型收束：{summary}
+- 算法流程呈现：{algorithm}
+- 关联 Algorithm ID：
+
+#### 当前模型口径
+模型。
+
+#### 结果摘要
+pending
+
+## 图表证据链
+
+## 待办与缺口
+"""
+
+    @staticmethod
+    def _v08_state(*, proposition_status: str = "not_assessed", propositions=None) -> dict:
+        return {
+            "paper_framework": {
+                "version": "v0.8-project-memory",
+                "mode": "compact",
+                "sync_status": "current",
+                "proposition_status": proposition_status,
+                "propositions": list(propositions or []),
+            }
+        }
 
     def test_active_review_template_does_not_pin_historical_skill_release(self):
         self.assertIsNone(self.review_template["review_context"]["skill_version"])
@@ -165,6 +250,67 @@ class TestV871ReadPathSemanticStateConsistency(unittest.TestCase):
         self.assertIn("planned", derivation["projection_status_values"])
         self.assertIn("removed", derivation["projection_status_values"])
         self.assertIn("missing", derivation["projection_status_values"])
+
+    def test_v08_strict_framework_accepts_closed_preflight(self):
+        issues = self.framework_validator.validate_framework_text(
+            self._v08_framework(), state=self._v08_state(), strict=True, mode="compact"
+        )
+        self.assertEqual([], issues)
+
+    def test_v08_strict_framework_requires_preflight_row(self):
+        issues = self.framework_validator.validate_framework_text(
+            self._v08_framework(include_preflight=False), state=self._v08_state(), strict=True, mode="compact"
+        )
+        self.assertTrue(any("逐问写作能力预检" in issue for issue in issues))
+
+    def test_preflight_formula_roles_must_match_formula_trace(self):
+        issues = self.framework_validator.validate_framework_text(
+            self._v08_framework(formula_roles="F1 bridge"), state=self._v08_state(), strict=True, mode="compact"
+        )
+        self.assertTrue(any("Formula Roles do not match current Formula Trace" in issue for issue in issues))
+
+    def test_preflight_proposition_state_is_derived_per_question(self):
+        state = self._v08_state(
+            proposition_status="current",
+            propositions=[{
+                "id": "P1", "related_question": "Q1", "status": "candidate",
+            }],
+        )
+        issues = self.framework_validator.validate_framework_text(
+            self._v08_framework(proposition="not_assessed"), state=state, strict=True, mode="compact"
+        )
+        self.assertTrue(any("question-scoped project state (candidate)" in issue for issue in issues))
+
+    def test_preflight_stale_proposition_cannot_be_current(self):
+        state = self._v08_state(
+            proposition_status="stale",
+            propositions=[{
+                "id": "P1", "related_question": "Q1", "status": "stale",
+            }],
+        )
+        issues = self.framework_validator.validate_framework_text(
+            self._v08_framework(proposition="stale", preflight_status="current"),
+            state=state,
+            strict=True,
+            mode="compact",
+        )
+        self.assertTrue(any("stale Proposition / Proof cannot use preflight status current" in issue for issue in issues))
+
+    def test_preflight_stepwise_requires_current_matching_algorithm_trace(self):
+        issues = self.framework_validator.validate_framework_text(
+            self._v08_framework(algorithm="stepwise"), state=self._v08_state(), strict=True, mode="compact"
+        )
+        self.assertTrue(any("no current matching Algorithm Trace exists" in issue for issue in issues))
+
+    def test_legacy_framework_without_v08_marker_keeps_read_compatibility(self):
+        text = """# 模型论文框架
+只保留当前有效版本
+## 当前有效口径
+## 各问模型与结果
+## 图表证据链
+## 待办与缺口
+"""
+        self.assertEqual([], self.framework_validator.validate_framework_text(text, mode="compact"))
 
 
 if __name__ == "__main__":
