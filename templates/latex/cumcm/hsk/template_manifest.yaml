@@ -26,7 +26,7 @@ reference_provenance:
     original_name: example_mm_r1.tex
     source_sha256: 3d94e9679814c1888f73b075e8de143ab3976162bfda3604cfd2c7990a79f193
     stored_adaptation: reference/example_mm_r1.tex
-    stored_sha256: 58e852add7ad04924d5dcad77948044331c3a0d5d0b7ac5ddfdcf608db2538f1
+    stored_sha256: 4e08a89d089d3ad5baffd9344092455beedeeed63f75b48ec0cf336d0837d6cd
     use_boundary: visual_and_latex_infrastructure_only
   framework_source:
     original_name: A196.pdf
