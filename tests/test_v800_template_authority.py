@@ -13,6 +13,7 @@ MANIFEST_PATH = ROOT / "templates/latex/cumcm/hsk/template_manifest.yaml"
 QUESTION_PATH = ROOT / "templates/latex/cumcm/hsk/sections/06_question1.tex"
 MAIN_PATH = ROOT / "templates/latex/cumcm/hsk/hsk_main.tex"
 EVALUATION_PATH = ROOT / "templates/latex/cumcm/hsk/sections/09_evaluation.tex"
+AI_STATEMENT_PATH = ROOT / "templates/latex/cumcm/hsk/sections/10_ai_tool_statement.tex"
 
 
 def load_validator_module():
@@ -32,6 +33,7 @@ class TestV800TemplateAuthority(unittest.TestCase):
         cls.question = QUESTION_PATH.read_text(encoding="utf-8")
         cls.main = MAIN_PATH.read_text(encoding="utf-8")
         cls.evaluation = EVALUATION_PATH.read_text(encoding="utf-8")
+        cls.ai_statement = AI_STATEMENT_PATH.read_text(encoding="utf-8")
         cls.validator = load_validator_module()
 
     def test_manifest_is_template_authority_not_writing_authority(self):
@@ -41,9 +43,11 @@ class TestV800TemplateAuthority(unittest.TestCase):
         forbidden = set(self.manifest["authority_boundary"]["forbidden_template_authority"])
         self.assertIn("top_level_paper_skeleton", owned)
         self.assertIn("cumcm_question_section_title_pattern", owned)
+        self.assertIn("ai_disclosure_slot_placement", owned)
         self.assertIn("choose_model", forbidden)
         self.assertIn("choose_solver", forbidden)
         self.assertIn("force_internal_subsection_names", forbidden)
+        self.assertIn("invent_ai_use_fact", forbidden)
 
     def test_cumcm_question_title_is_locked_but_internal_structure_is_adaptive(self):
         question = self.manifest["cumcm_question_section"]
@@ -65,6 +69,21 @@ class TestV800TemplateAuthority(unittest.TestCase):
         self.assertIn(r"\section{模型的评价与推广}", self.evaluation)
         self.assertFalse(slots["model_preparation"]["default_active"])
         self.assertIn("% \\input{sections/05_model_preparation}", self.main)
+
+    def test_ai_disclosure_is_conditional_truth_bound_slot_before_references(self):
+        ordered = self.manifest["paper_skeleton"]["ordered_slots"]
+        ids = [slot["id"] for slot in ordered]
+        self.assertLess(ids.index("evaluation"), ids.index("ai_disclosure"))
+        self.assertLess(ids.index("ai_disclosure"), ids.index("references"))
+        slot = next(slot for slot in ordered if slot["id"] == "ai_disclosure")
+        self.assertEqual(slot["source"], "sections/10_ai_tool_statement.tex")
+        self.assertFalse(slot["required"])
+        self.assertFalse(slot["default_active"])
+        self.assertIn("verified_current_edition_rule", slot["activation"])
+        self.assertIn("confirmed_actual_use_facts", slot["activation"])
+        self.assertIn("% \\input{sections/10_ai_tool_statement}", self.main)
+        self.assertNotIn("本参赛队在论文撰写、程序开发与结果整理过程中合理使用了 AI", self.ai_statement)
+        self.assertIn("不陈述任何具体参赛队的 AI 使用事实", self.ai_statement)
 
     def test_core_model_summary_is_rendering_mode_not_named_subsection(self):
         rendering = self.manifest["core_model_summary_rendering"]
@@ -95,6 +114,7 @@ class TestV800TemplateAuthority(unittest.TestCase):
         framework = ROOT / "templates/latex/cumcm/hsk" / canonical["framework_reference"]
         self.assertTrue(external.is_file())
         self.assertTrue(framework.is_file())
+        self.assertNotIn("AI工具使用声明", external.read_text(encoding="utf-8"))
         provenance = self.manifest["reference_provenance"]
         for key in ("source_sha256", "stored_sha256"):
             self.assertRegex(provenance["user_template_source"][key], r"^[0-9a-f]{64}$")
