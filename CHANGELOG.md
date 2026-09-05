@@ -1,6 +1,16 @@
 # Changelog
 
-## Current release: 8.7.1
+## Current release: 8.7.2
+
+- Closed CUMCM Template Manifest ↔ canonical LaTeX assembly drift by declaring the AI-disclosure slot in the manifest, keeping it conditional by default, and validating canonical body composition against manifest-declared active/default slots.
+- Replaced reusable-template AI-use assertions with truth-bound disclosure scaffolding: generic CUMCM and Diangong templates no longer invent team AI usage, while final disclosure remains governed by verified current-edition rules plus project-confirmed actual-use facts.
+- Synchronized Cross-File Chapter Handoff terminal seams with the actual final assembly for both AI-disclosure-active and inactive cases, without adding a second prose or compliance Authority.
+- Restored the CUMCM reference exemplar to provenance-only semantics and kept its source/adaptation checksum boundary independent from active-template policy changes.
+- Hardened active-template release-label hygiene for CUMCM, MCM/ICM and Diangong while preserving `version: 6.2.3` profile/config lineage as a subordinate compatibility version rather than a Skill release carrier.
+- Extended repository-reference health conservatively so real active Markdown links validate local/cross-file heading fragments without promoting free prose or legacy examples into runtime pointers.
+- Preserved model mathematics, Problem Contract/Model Approval, 03A/03B user execution, Workbook and Project State schemas, Figure/MATLAB ownership, public CLI and per-question project layout.
+
+## Previous release: 8.7.1
 
 - Removed historical Skill-version pinning from the active final-review template; completed matrices hydrate the current version from Bootstrap while unhydrated templates still fail closed in the scorer.
 - Closed the Module 02 Formula Trace producer/consumer gap by carrying explicit question and Formula Role fields into the current framework without duplicating the role taxonomy.
@@ -291,7 +301,7 @@
 
 ## Previous release: 7.9.0
 
-- Closed modular-LaTeX runtime dispatch: `audit_latex_project.py` is now the public LaTeX audit entrypoint for modular and compatible single-file projects, delegating prose/BibTeX/framework checks to `audit_paper_prose.py`.
+- Closed modular-LaTeX runtime dispatch: `audit_latex_project.py` is the public LaTeX audit entrypoint for modular and compatible single-file projects, delegating prose/BibTeX/framework checks to `audit_paper_prose.py`.
 - Closed `full_workflow` post-execution Pack loading so Figure, LaTeX and Review Artifact Packs are available after accepted primary/result-analysis workbooks, and added `validated_submission_package` to final workflow outputs.
 - Unified the current CUMCM project-template authority on `templates/latex/cumcm/hsk/`; the `cumcmthesis/` directory remains an upstream class/base-template resource rather than the active project template.
 - Added source-bundle/PDF freshness verification through deterministic compile reports. `render_paper.py` now writes `compile_report.yaml`; `sync_project.py` recomputes the current active source bundle before LaTeX/submission delivery.
