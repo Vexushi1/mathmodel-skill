@@ -1,4 +1,5 @@
 version: 6.2.3
+# 该 version 是 compile-profile 配置格式沿革，不是当前 Skill release；当前 Skill 版本由 core/bootstrap.yaml 等 release carriers 声明。
 profiles:
   cumcm:
     aliases: [国赛, CUMCM, cumcm]
