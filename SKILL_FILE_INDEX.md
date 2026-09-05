@@ -313,3 +313,4 @@
 - `tests/test_v871_readpath_semantic_state_consistency.py`
 - `tests/test_v871_writing_reasoning_schema_policy.py`
 - `tests/test_v872_template_assembly_consistency.py`
+- `tests/test_v873_mechanism_monochrome_geometry.py`
