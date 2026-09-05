@@ -27,6 +27,12 @@ COMPATIBILITY_POINTERS = {
     Path("HSK_SKILL_FILE_INDEX_V622.md"),
     Path("HSK_TEMPLATE_INDEX_V622.md"),
 }
+# This fragment is part of the active CUMCM assembly and remains in the Active
+# Skill Index / MANIFEST. It is intentionally omitted only from the template
+# discovery index so it is not advertised as a standalone reusable template.
+TEMPLATE_INDEX_EXCLUDED_PATHS = {
+    Path("templates/latex/cumcm/hsk/sections/10_ai_tool_statement.tex"),
+}
 GENERATED_RELATIVE = {
     SKILL_INDEX.relative_to(ROOT),
     TEMPLATE_INDEX.relative_to(ROOT),
@@ -72,6 +78,17 @@ def iter_files() -> list[Path]:
             continue
         files.add(relative)
     return sorted(files, key=lambda item: item.as_posix())
+
+
+def template_index_files(files: list[Path]) -> list[Path]:
+    """Return active template-discovery entries, excluding internal fragments."""
+    return [
+        path
+        for path in files
+        if path.parts
+        and path.parts[0] == "templates"
+        and path not in TEMPLATE_INDEX_EXCLUDED_PATHS
+    ]
 
 
 def index_text(title: str, files: list[Path], version: str) -> str:
@@ -133,7 +150,7 @@ def manifest_text(files: list[Path], overrides: dict[Path, str]) -> str:
 def generated_payloads() -> dict[Path, str]:
     version = current_skill_version()
     files = iter_files()
-    template_files = [path for path in files if path.parts and path.parts[0] == "templates"]
+    template_files = template_index_files(files)
     skill_payload = index_text("HSK Active Skill File Index", files, version)
     template_payload = index_text("HSK Active Template Index", template_files, version)
     legacy_skill_payload = compatibility_pointer(SKILL_INDEX.name)
