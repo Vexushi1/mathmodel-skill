@@ -1,16 +1,15 @@
 name: Apply v8.7.3 mechanism monochrome migration
 
 on:
-  push:
-    branches:
-      - refactor/v8.7.3-mechanism-monochrome
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: github.actor != 'github-actions[bot]'
+    if: github.event.pull_request.head.ref == 'refactor/v8.7.3-mechanism-monochrome'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -36,7 +35,6 @@ jobs:
                   raise SystemExit(f'{path}: expected exactly one match, found {count}')
               p.write_text(text.replace(old, new, 1), encoding='utf-8')
 
-          # Figure Evidence Authority: formal mechanism diagrams return to monochrome-first line art.
           replace_once(
               'modules/04_figure_evidence.md',
               '## A 类：机理与推导图\n\n优先表达公式来源、约束来源、临界状态和策略机制。图内只放对象、变量、方向、边界、距离、角度、流向和临界状态，完整推导留在正文。禁止用通用“输入—模型—输出”流程图替代题目专属机理图。\n\n### Mechanism Diagram Backend Selection Gate',
@@ -53,7 +51,6 @@ jobs:
 ### Mechanism Diagram Backend Selection Gate'''
           )
 
-          # Artifact pack summary follows the authority without creating a second palette.
           replace_once(
               'packs/artifact/figure.md',
               '## 机理图\n\n机理图服务公式来源、约束来源、对象关系、临界状态和策略机制。图中只保留对象、变量、方向、边界、距离、角度和临界状态，完整解释放正文。禁止通用“输入—模型—输出”流程图替代题目专属图。\n\n需要可编辑的非数据驱动对象关系、约束关系、反馈或临界状态图时，先按 `modules/04_figure_evidence.md` 的 Mechanism Diagram Backend Selection Gate 判断是否进入 draw.io 路径。选中后读取 `templates/figure/mechanism_contract.md` 与 `templates/figure/mechanism_drawio_spec.yaml`；只有实际生成或返修 draw.io 时再读取 `templates/figure/mechanism_drawio_patterns.md`。数据、坐标、误差、区间与工作簿结果仍由 MATLAB 路径负责。',
@@ -66,7 +63,6 @@ jobs:
 需要可编辑的非数据驱动对象关系、约束关系、反馈或临界状态图时，先按 `modules/04_figure_evidence.md` 的 Mechanism Diagram Backend Selection Gate 判断是否进入 draw.io 路径。选中后读取 `templates/figure/mechanism_contract.md` 与 `templates/figure/mechanism_drawio_spec.yaml`；只有实际生成或返修 draw.io 时再读取 `templates/figure/mechanism_drawio_patterns.md`。数据、坐标、误差、区间与工作簿结果仍由 MATLAB 路径负责。'''
           )
 
-          # draw.io implementation reference.
           replace_once(
               'templates/figure/mechanism_drawio_patterns.md',
               '- 同一语义角色在同一图中保持形状和颜色一致。',
@@ -100,7 +96,6 @@ jobs:
 禁止 rainbow/jet、渐变装饰、拟物阴影、大面积高饱和底色、外部图标和装饰性 3D。正式论文缩放后必须保持文字、箭头、变量、虚实线和边界可读。'''
           )
 
-          # Generator: keep Spec v1 compatible while extending shape vocabulary and reverting palette.
           replace_once(
               'scripts/generate_mechanism_drawio.py',
               'SHAPES = {"rounded_rect", "rect", "ellipse", "diamond", "hexagon"}',
@@ -165,7 +160,6 @@ jobs:
               '"style": "swimlane;container=1;collapsible=0;rounded=0;html=0;fillColor=#FFFFFF;strokeColor=#D1D5DB;fontColor=#374151;fontFamily=Arial;fontSize=13;strokeWidth=1.0;",'
           )
 
-          # QA now checks grayscale survival and geometry-first rendering.
           qa = ROOT / 'templates/figure/mechanism_qa.md'
           qa_text = qa.read_text(encoding='utf-8')
           anchor = '| 若节点/边/公式/阈值发生语义变化，是否已与 current Framework 和模型 Authority 比较并正确分流 |  |  |'
@@ -178,7 +172,6 @@ jobs:
           )
           qa.write_text(qa_text, encoding='utf-8')
 
-          # Patch release carriers to 8.7.3. Generated indexes/manifest are rebuilt below.
           version_replacements = {
               'core/bootstrap.yaml': ('skill_version: 8.7.2', 'skill_version: 8.7.3'),
               '.codex-plugin/plugin.json': ('"version": "8.7.2"', '"version": "8.7.3"'),
@@ -255,62 +248,14 @@ def base_spec(shape: str = "rect") -> dict:
             "code": [],
             "result_evidence": [],
         },
-        "canvas": {
-            "width": 800,
-            "height": 500,
-            "orientation": "landscape",
-            "target_use": "paper",
-            "target_width_mm": 150,
-        },
+        "canvas": {"width": 800, "height": 500, "orientation": "landscape", "target_use": "paper", "target_width_mm": 150},
         "groups": [],
         "nodes": [
-            {
-                "id": "n1",
-                "label": "对象 A",
-                "semantic_role": "object",
-                "symbol_refs": ["A"],
-                "source_anchor": "模型论文框架.md#Q1-A",
-                "group_id": None,
-                "shape": shape,
-                "emphasis": "primary",
-                "geometry": {"x": 80, "y": 120, "width": 160, "height": 100},
-            },
-            {
-                "id": "n2",
-                "label": "边界 B",
-                "semantic_role": "boundary",
-                "symbol_refs": ["B"],
-                "source_anchor": "模型论文框架.md#Q1-B",
-                "group_id": None,
-                "shape": "circle",
-                "emphasis": "risk",
-                "geometry": {"x": 480, "y": 120, "width": 120, "height": 120},
-            },
+            {"id": "n1", "label": "对象 A", "semantic_role": "object", "symbol_refs": ["A"], "source_anchor": "模型论文框架.md#Q1-A", "group_id": None, "shape": shape, "emphasis": "primary", "geometry": {"x": 80, "y": 120, "width": 160, "height": 100}},
+            {"id": "n2", "label": "边界 B", "semantic_role": "boundary", "symbol_refs": ["B"], "source_anchor": "模型论文框架.md#Q1-B", "group_id": None, "shape": "circle", "emphasis": "risk", "geometry": {"x": 480, "y": 120, "width": 120, "height": 120}},
         ],
-        "edges": [
-            {
-                "id": "e1",
-                "source": "n1",
-                "target": "n2",
-                "relation_type": "constrains",
-                "direction": "forward",
-                "label": "约束",
-                "source_anchor": "模型论文框架.md#C1",
-                "formula_refs": [],
-                "waypoints": [],
-            }
-        ],
-        "artifact": {
-            "spec_source": "figures/source/q1_geometry.mechanism.yaml",
-            "editable_source": "figures/source/q1_geometry.drawio",
-            "preview": None,
-            "final_exports": [],
-            "spec_sha256": None,
-            "drawio_sha256": None,
-            "preview_sha256": None,
-            "validation_status": "pending",
-            "visual_review_status": "pending",
-        },
+        "edges": [{"id": "e1", "source": "n1", "target": "n2", "relation_type": "constrains", "direction": "forward", "label": "约束", "source_anchor": "模型论文框架.md#C1", "formula_refs": [], "waypoints": []}],
+        "artifact": {"spec_source": "figures/source/q1_geometry.mechanism.yaml", "editable_source": "figures/source/q1_geometry.drawio", "preview": None, "final_exports": [], "spec_sha256": None, "drawio_sha256": None, "preview_sha256": None, "validation_status": "pending", "visual_review_status": "pending"},
     }
 
 
@@ -346,7 +291,6 @@ if __name__ == "__main__":
     unittest.main()
 ''', encoding='utf-8')
 
-          # Remove this one-shot migration workflow before generated metadata is rebuilt.
           workflow = ROOT / '.github/workflows/apply-v873-mechanism-monochrome.yml'
           if workflow.exists():
               workflow.unlink()
@@ -362,6 +306,7 @@ if __name__ == "__main__":
       - name: Commit migration
         shell: bash
         run: |
+          git pull --rebase origin refactor/v8.7.3-mechanism-monochrome
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
