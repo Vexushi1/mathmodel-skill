@@ -1,12 +1,12 @@
 # v8.7.1 Active Read-Path, Semantic State & Version Consistency Hardening Plan
 
-> 状态：**审批前 / Plan Only / Implementation Not Started**  
+> 状态：**APPROVED / Implementation Complete / Release Candidate Validation**  
 > 基线：`main@fb1d14f98572237da937c4e3bf978ec8ecb793e0`  
 > 当前 Skill：**v8.7.0**  
 > 建议目标版本：**v8.7.1 patch**  
 > 实施分支：`fix/v8.7.1-readpath-semantic-state-consistency`  
 > 本文件角色：本轮维护的 Scope Contract / 审批依据，不是 runtime Authority。  
-> 当前阶段禁止：修改实际 runtime 语义、升级 release carriers、修改 generated hashes、合并 PR。
+> 当前阶段边界：runtime implementation 已完成并通过 pre-release 11-job CI；release carriers 可按本 Scope Contract 同步；generated hashes 仍只由 generator 管理；PR 合并仍需用户单独明确批准。
 
 ---
 

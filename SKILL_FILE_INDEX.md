@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：8.7.0
+当前 Skill 版本：8.7.1
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -125,6 +125,7 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
+- `scripts/_v871_release_sync.py`
 - `scripts/audit_latex_project.py`
 - `scripts/audit_paper_prose.py`
 - `scripts/audit_v8_writing_surface.py`
