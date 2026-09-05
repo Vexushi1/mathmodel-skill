@@ -45,17 +45,63 @@ class WritingReasoningScopeTests(unittest.TestCase):
                 self.assertEqual(hashlib.sha256(sections[heading].encode()).hexdigest(), digest)
 
     def test_template_adapter_and_proof_algorithm_forms_unchanged(self):
-        expected = {
+        # Earlier v8.4 snapshots still protect the substantive proof/algorithm forms.
+        frozen = {
             "packs/artifact/proposition_proof.md": "312fe5648c498831eef148505b65b074a8fbfee3",
             "packs/artifact/algorithm_flow.md": "dbd06aacd7216c654789a9002ce682a2065ec0bd",
-            "modules/05_writing/latex.md": "98f90f8caa6c3072316dd8e620add05722abfa4b",
-            "templates/latex/cumcm/hsk/hsk_main.tex": "789437316271430dee2c5a7ebbdd803f4698ca63",
         }
-        for path, digest in expected.items():
+
+        def git_blob_sha1(text: str) -> str:
+            data = text.encode()
+            blob = b"blob " + str(len(data)).encode() + b"\0" + data
+            return hashlib.sha1(blob).hexdigest()
+
+        for path, digest in frozen.items():
             with self.subTest(path=path):
-                data = read(path).encode()
-                blob = b"blob " + str(len(data)).encode() + b"\0" + data
-                self.assertEqual(hashlib.sha1(blob).hexdigest(), digest)
+                self.assertEqual(git_blob_sha1(read(path)), digest)
+
+        # v8.7.1 R6 intentionally reopens only active release-label/provenance lines.
+        # Normalize those exact lines back to the pre-R6 representation, then keep the
+        # old whole-file snapshot as a guard against unrelated Adapter/template drift.
+        adapter = read("modules/05_writing/latex.md")
+        self.assertTrue(adapter.startswith("# Module 05B：LaTeX Adapter\n"))
+        self.assertIn("Template-First adapter architecture introduced in v8.0.1", adapter)
+        self.assertIn("当前 Skill release 版本只由活动 release carriers", adapter)
+        adapter_current = (
+            "本模块只负责把已经确定的论文内容放入当前 LaTeX 载体。"
+            "**Template-First adapter architecture introduced in v8.0.1**；"
+            "当前 Skill release 版本只由活动 release carriers（如 `core/bootstrap.yaml`）声明，"
+            "本标题不再携带历史 release 号。本文件不再拥有正文结构或表达规则。"
+        )
+        adapter_legacy = (
+            "本模块只负责把已经确定的论文内容放入当前 LaTeX 载体。"
+            "v8.0.0 采用 **Template-First** 架构，本文件不再拥有正文结构或表达规则。"
+        )
+        normalized_adapter = adapter.replace(
+            "# Module 05B：LaTeX Adapter\n",
+            "# Module 05B：LaTeX Adapter（v8.0.1）\n",
+            1,
+        ).replace(adapter_current, adapter_legacy, 1)
+        self.assertEqual(
+            git_blob_sha1(normalized_adapter),
+            "98f90f8caa6c3072316dd8e620add05722abfa4b",
+        )
+
+        main = read("templates/latex/cumcm/hsk/hsk_main.tex")
+        provenance = (
+            "% Template-First canonical layout lineage: introduced in v8.0.1 from the A196-inspired template work.\n"
+            "% This comment records provenance only; the current Skill release is declared by active release carriers."
+        )
+        self.assertIn(provenance, main)
+        normalized_main = main.replace(
+            provenance,
+            "% v8.0.1 A196-inspired canonical template:",
+            1,
+        )
+        self.assertEqual(
+            git_blob_sha1(normalized_main),
+            "789437316271430dee2c5a7ebbdd803f4698ca63",
+        )
 
         manifest = yaml.safe_load(read("templates/latex/cumcm/hsk/template_manifest.yaml"))
         self.assertEqual(manifest["schema_version"], "1.0.0")
