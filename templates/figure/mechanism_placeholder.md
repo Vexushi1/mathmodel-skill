@@ -10,4 +10,4 @@
 - 仅当 Backend Selection Gate 选择 draw.io 时，使用 `templates/figure/mechanism_drawio_spec.yaml`，实际生成或返修时再读取 `templates/figure/mechanism_drawio_patterns.md`；
 - DOCX / LaTeX 的最终载体与题注、编号、排版分别服从当前对应 Artifact Pack / Adapter，不由本文件定义。
 
-旧 v6.2.1 时期的图位占位格式和早期后端列表已经保存在 `legacy/v616_sources/HSK_COMMON_TEMPLATES_V616.md` 与 `legacy/stage_v616/` 中，仅供历史追溯；当前运行不得从 legacy 恢复旧规则覆盖现行 Authority。
+旧图位占位格式和早期后端列表已经保存在 `legacy/v616_sources/HSK_COMMON_TEMPLATES_V616.md` 与 `legacy/stage_v616/` 中，仅供历史追溯；当前运行不得从 legacy 恢复旧规则覆盖现行 Authority。
