@@ -27,7 +27,9 @@ class ActiveAuthorityHygieneTests(unittest.TestCase):
             with self.subTest(relative=relative):
                 self.assertIn("modules/05_writing/paper_writing_protocol.md", text)
                 self.assertNotIn("正文结构与表达服从 `modules/05_writing/latex.md`", text)
-        self.assertIn("LaTeX Adapter", read("packs/artifact/docx.md"))
+        docx = read("packs/artifact/docx.md")
+        self.assertIn("modules/05_writing/latex.md", docx)
+        self.assertIn("载体 Adapter", docx)
         self.assertIn("只负责 LaTeX 载体", read("packs/artifact/latex.md"))
 
     def test_readme_authority_map_matches_template_first_architecture(self):
@@ -41,7 +43,8 @@ class ActiveAuthorityHygieneTests(unittest.TestCase):
         mechanism = read("templates/matlab/draw_mechanism_structure.m")
         self.assertIn("数据驱动主结果图", readme)
         self.assertIn("正式机理/推导图不继承该调色板", readme)
-        self.assertIn("monochrome-first", mechanism)
+        for grayscale_token in ("[0.15,0.15,0.15]", "[0.95,0.95,0.95]", "[0.1,0.1,0.1]"):
+            self.assertIn(grayscale_token, mechanism)
         for forbidden in ("#1478FF", "#F04444", "#16B364", "#F79009", "#7A5AF8"):
             self.assertNotIn(forbidden, mechanism)
 
