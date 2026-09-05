@@ -1,4 +1,4 @@
-# Module 05A：Paper Writing Protocol（v8.7.1）
+# Module 05A：Paper Writing Protocol（v8.7.2）
 
 本模块只回答一个问题：**已经有当前模型、结果、图表和模板后，正文应该怎样写得数学上连续、证据上闭合、语言上自然。**
 
@@ -8,7 +8,7 @@
 
 本文件是普通正文内容 Authority，但**不是开篇一次性预读的长提示词**。每次新论文或结构性重写必须服从 `core/writing_runtime_contract.yaml#template_first_progressive_authoring`：先读 Template Manifest 与主文件，只确定骨架和目标槽；随后按“读取当前章节规则 → 写当前章节 → 通过当前 gate → 再读取下一章节规则”推进。
 
-默认作者执行顺序为：问题重述 → 问题分析 → 假设/符号/条件式数据与共享基础 → 按问题顺序逐问完成模型建立、模型求解、结果与验证 → 模型评价、引用、结论与附录 → 最后根据 current 结果写摘要、标题和关键词 → draft semantic review → AI Cleanup → LaTeX 装配/审计/编译 → final review。成品中的摘要仍位于正文前部，但写作时不得早于 current 逐问答案和验证边界稳定。
+默认作者执行顺序为：问题重述 → 问题分析 → 假设/符号/条件式数据与共享基础 → 按问题顺序逐问完成模型建立、模型求解、结果与验证 → 模型评价、按适用规则处理条件式披露、引用、结论与附录 → 最后根据 current 结果写摘要、标题和关键词 → draft semantic review → AI Cleanup → LaTeX 装配/审计/编译 → final review。成品中的摘要仍位于正文前部，但写作时不得早于 current 逐问答案和验证边界稳定。
 
 在某一问题章节内需要命题、引理、推论或证明时，写相关段落前条件加载完整 `core/writing_reasoning_contract.yaml` 与 `packs/artifact/proposition_proof.md`；Algorithm Trace 的呈现模式为 `stepwise` 或 `pseudocode` 时，写相关段落前条件加载完整 reasoning Authority、`packs/artifact/algorithm_flow.md` 与 LaTeX Adapter 的算法环境。`not_needed` 时不为展示复杂度强行生成伪代码。命题证明和伪代码都属于问题章节的受控分支，不能被 AI Cleanup 删除为“过细”，也不能只凭模板注释生成。
 
@@ -154,7 +154,7 @@ source_closure
 - `narrative`：用于问题重述→问题分析、共享准备→Q1、最后一问→模型评价等需要恢复对象、gap、结构增量或结论延续的边界。
 - `registry_or_definition`：用于假设→符号、符号→数据/模型准备等定义型边界，重点检查符号、单位、术语和假设作用域；默认不需要管理型过渡句。
 - `frontmatter_consistency`：用于摘要→问题重述，检查对象、模型名称、结果、验证边界和关键词与正文一致，不要求摘要末句显式引出问题重述。
-- `structural_terminal`：用于模型评价→参考文献、参考文献→附录，只检查结构、引用和附录边界，不制造语义桥。
+- `structural_terminal`：用于最终结构尾部边界；AI disclosure 不启用时检查模型评价→参考文献→附录，启用时检查模型评价→AI工具使用声明→参考文献→附录。这里只检查结构、披露/引用和附录边界，不制造语义桥。
 - `cross_question_increment`：是 `narrative` 的跨问子型，继续服从 `cross_question_progression.activate_when=actual_dependency_exists`；独立小问不得虚构继承。
 
 ### Six seam checks
