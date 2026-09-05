@@ -55,6 +55,8 @@
 
 机理图服务公式来源、约束来源、对象关系、临界状态和策略机制。图中只保留对象、变量、方向、边界、距离、角度和临界状态，完整解释放正文。禁止通用“输入—模型—输出”流程图替代题目专属图。
 
+正式机理图服从 Module 04 的 **monochrome-first** 规则：白底、黑/深灰线条和文字为主，灰度、线型、线宽与规则几何形状承担主要区分；默认不使用蓝/绿/红多色语义填充。只有确有证据增益时才允许 1 个强调色，极少数复杂图最多 2 个，并须保证黑白打印仍可辨识。对象优先画成圆/椭圆、矩形、三角形、四边形/多边形、圆柱投影、球体轮廓等题意一致的规则几何图形，禁止渐变、拟物阴影和装饰性 3D。
+
 需要可编辑的非数据驱动对象关系、约束关系、反馈或临界状态图时，先按 `modules/04_figure_evidence.md` 的 Mechanism Diagram Backend Selection Gate 判断是否进入 draw.io 路径。选中后读取 `templates/figure/mechanism_contract.md` 与 `templates/figure/mechanism_drawio_spec.yaml`；只有实际生成或返修 draw.io 时再读取 `templates/figure/mechanism_drawio_patterns.md`。数据、坐标、误差、区间与工作簿结果仍由 MATLAB 路径负责。
 
 draw.io 的 `Spec → generate → validate → preview → semantic/visual QA → export` 只是一条实现链。静态检查通过不表示箭头、公式或机制正确；没有查看最新渲染预览时不得把图登记为 `approved_figures`。
