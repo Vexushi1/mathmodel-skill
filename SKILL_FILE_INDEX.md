@@ -202,6 +202,7 @@
 - `templates/latex/cumcm/hsk/sections/07_question2.tex`
 - `templates/latex/cumcm/hsk/sections/08_question3.tex`
 - `templates/latex/cumcm/hsk/sections/09_evaluation.tex`
+- `templates/latex/cumcm/hsk/sections/10_ai_tool_statement.tex`
 - `templates/latex/cumcm/hsk/template_manifest.yaml`
 - `templates/latex/diangong/main.tex`
 - `templates/latex/diangong/references.bib`
