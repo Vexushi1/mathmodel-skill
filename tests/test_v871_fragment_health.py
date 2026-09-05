@@ -60,6 +60,30 @@ class TestV871CriticalFragmentHealth(unittest.TestCase):
             )
         )
 
+    def test_json_pointer_yaml_fragment_passes(self):
+        self.assertTrue(
+            LINT._critical_fragment_exists(
+                "core/project_state.schema.yaml#/$defs/dependency_kind"
+            )
+        )
+        self.assertFalse(
+            LINT._critical_fragment_exists(
+                "core/project_state.schema.yaml#/$defs/definitely_missing_v871"
+            )
+        )
+
+    def test_composite_yaml_fragment_requires_descendant_field(self):
+        self.assertTrue(
+            LINT._critical_fragment_exists(
+                "templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton.ordered_slots+activation"
+            )
+        )
+        self.assertFalse(
+            LINT._critical_fragment_exists(
+                "templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton.ordered_slots+definitely_missing_v871"
+            )
+        )
+
     def test_missing_file_fails(self):
         self.assertFalse(
             LINT._critical_fragment_exists(
