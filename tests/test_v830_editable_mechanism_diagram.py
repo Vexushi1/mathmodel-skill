@@ -404,9 +404,9 @@ class DrawioValidatorTests(unittest.TestCase):
 
 
 class ContractAndDriftTests(unittest.TestCase):
-    # v8.7.0 intentionally updates the four writing authorities below for per-question
-    # capability preflight, Formula Roles and state-driven activation. Unrelated numerical,
-    # model-approval, workbook, project-state, plotting and delivery snapshots remain pinned.
+    # v8.7.0 intentionally updated the writing-authority baseline below for per-question
+    # capability preflight. The v8.7.1 release sync changes only the Paper Writing Protocol
+    # release-carrier header, so that single header is normalized before the v8.7.0 body snapshot check.
     PROTECTED = {
         "core/model_approval_contract.yaml": "7d97255dde9cf780755bab896964e905066bf4b8",
         "core/numerical_verification_contract.yaml": "b901923edf38112cbc922f51d1157265fe1931bd",
@@ -429,9 +429,22 @@ class ContractAndDriftTests(unittest.TestCase):
     }
 
     def test_protected_authorities_have_not_drifted(self):
+        protocol = "modules/05_writing/paper_writing_protocol.md"
+        current_header = "# Module 05A：Paper Writing Protocol（v8.7.1）"
+        baseline_header = "# Module 05A：Paper Writing Protocol（v8.7.0）"
         for relative, expected in self.PROTECTED.items():
             with self.subTest(relative=relative):
-                self.assertEqual(git_blob_sha(ROOT / relative), expected)
+                path = ROOT / relative
+                if relative == protocol:
+                    text = path.read_text(encoding="utf-8")
+                    self.assertEqual(text.count(current_header), 1)
+                    data = text.replace(current_header, baseline_header, 1).encode("utf-8")
+                    actual = hashlib.sha1(
+                        b"blob " + str(len(data)).encode("ascii") + b"\0" + data
+                    ).hexdigest()
+                else:
+                    actual = git_blob_sha(path)
+                self.assertEqual(actual, expected)
 
     def test_matlab_ownership_and_per_question_layout_remain_unchanged(self):
         output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))

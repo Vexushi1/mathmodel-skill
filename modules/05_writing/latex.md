@@ -1,6 +1,6 @@
-# Module 05B：LaTeX Adapter（v8.0.1）
+# Module 05B：LaTeX Adapter
 
-本模块只负责把已经确定的论文内容放入当前 LaTeX 载体。v8.0.0 采用 **Template-First** 架构，本文件不再拥有正文结构或表达规则。
+本模块只负责把已经确定的论文内容放入当前 LaTeX 载体。**Template-First adapter architecture introduced in v8.0.1**；当前 Skill release 版本只由活动 release carriers（如 `core/bootstrap.yaml`）声明，本标题不再携带历史 release 号。本文件不再拥有正文结构或表达规则。
 
 Template-First 不等于一开始就读取本 Adapter 并生成全文。普通 CUMCM 新论文先按 `core/writing_runtime_contract.yaml#template_first_progressive_authoring` 检查 manifest/main，再逐章读取 Writing Protocol 并完成内容；本 Adapter 到命题/伪代码的载体需要或 `latex_assembly_audit_and_compile` 阶段才读取。AI Cleanup 和编译规则也不得提前支配问题重述、问题分析或模型建立及求解的内容取舍。
 

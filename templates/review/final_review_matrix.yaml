@@ -1,6 +1,8 @@
 review_schema_version: 1.0.0
 review_context:
-  skill_version: 8.3.0
+  # Active template only: hydrate from core/bootstrap.yaml#skill_version when creating the current final-review artifact.
+  # Historical completed review artifacts retain the Skill version recorded at their own review time.
+  skill_version: null
   competition_profile: null
   edition: null
   rule_verification_status: unverified

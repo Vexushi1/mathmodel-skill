@@ -1,6 +1,12 @@
-# mathmodel-skill v8.7.0
+# mathmodel-skill v8.7.1
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v8.7.1：Read-Path & Semantic-State Consistency Hardening
+
+本补丁不新增模型、solver、数值或论文写作能力，而是收口 v8.7.0 已发布能力的读取路径与状态一致性：终审模板版本改为从 current Bootstrap hydration；Module 02 Formula Trace 显式生产 `对应小问 + Role`；Proposition / Proof 增加 question-scoped 确定性状态派生；逐问 Writing Capability Preflight 获得行为级 framework validator 强制。
+
+同时，critical active Authority pointer lint 已从“只检查文件存在”升级为 fragment-level health，兼容 Markdown heading、YAML dotted/dynamic path、JSON Pointer 与现有 composite semantic pointer；LaTeX Adapter/模板中的旧 release 号改为明确 provenance；Writing Reasoning `schema_version: 1.8.0` 被正式定义为 parser/migration compatibility family，纯 additive semantic nodes 不机械 bump。本补丁不修改 Project State Schema、Model Approval、03A/03B、Workbook、Figure、MATLAB、目录或公共 CLI 语义。
 
 ## v8.7.0：Per-Question Writing Capability Preflight
 

@@ -1,6 +1,16 @@
 # Changelog
 
-## Current release: 8.7.0
+## Current release: 8.7.1
+
+- Removed historical Skill-version pinning from the active final-review template; completed matrices hydrate the current version from Bootstrap while unhydrated templates still fail closed in the scorer.
+- Closed the Module 02 Formula Trace producer/consumer gap by carrying explicit question and Formula Role fields into the current framework without duplicating the role taxonomy.
+- Defined deterministic question-scoped Proposition / Proof derivation across global plan, proposition items and framework preflight, preserving missing/stale/review-required semantics without changing Project State Schema.
+- Added behavior-level framework validation for mandatory Per-Question Writing Capability Preflight, including Formula Role/Trace consistency and current Algorithm Trace requirements.
+- Added fragment-level health validation for critical active Authority pointers, covering Markdown headings, YAML dotted/dynamic paths, JSON Pointer and existing composite semantic pointers.
+- Clarified active old-release labels as architecture provenance rather than current-version carriers and preserved protected Adapter/template semantics through normalization-based regression tests.
+- Kept `writing_reasoning_contract.yaml` at schema family `1.8.0` and documented that additive semantic nodes do not bump parser/migration compatibility versions.
+
+## Previous release: 8.7.0
 
 - Added mandatory **Per-Question Writing Capability Preflight** for CUMCM Template-First writing so current Formula Roles, Core Model Summary, Proposition/Proof and Algorithm Presentation states are consumed before each question body without relying on repeated user keywords.
 - Added `final_model_relation / key_bridge_relation / supporting_derivation / routine_algebra` Formula Roles; necessary bridge relations survive derivation/cleanup while summaries remain Final-first and avoid formula dumps.

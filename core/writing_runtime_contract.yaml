@@ -1,4 +1,4 @@
-version: 8.7.0
+version: 8.7.1
 role: >-
   v8 写作阶段的最小运行时映射。它不建立第二套数学写作 Authority，只声明普通论文写作真正需要加载的
   模板、项目事实、证据和 writing_reasoning_contract 中的语义能力，从而避免每次写作预载完整建模、数值与项目治理上下文。
@@ -18,7 +18,6 @@ required_runtime_inputs:
   - relevant_numeric_evidence
   - relevant_figure_map
   - bibliography_when_needed
-
 document_length_profile:
   default: adaptive_coverage_diagnostic
   user_configurable_fields:
@@ -91,6 +90,7 @@ current_question_evidence_bundle:
     - current_question_figure_map
   rules:
     - 本 bundle 只定义逐问写作必须主动检查的项目事实组成，不复制这些事实本身，也不创造新的数学 Authority。
+    - "`current_question_proposition_plan` 是由全局 proposition plan、按 `related_question` 过滤的命题项以及当前 framework preflight 记录派生的逐问视图，不是第四套独立状态事实源。"
     - 任一 required 子状态缺失时不得静默按 not_applicable 或 not_needed 处理；先进入逐问能力预检的 needs_adjudication。
     - stale 项目事实不得因为进入写作阶段而自动恢复为 current。
 
@@ -141,7 +141,25 @@ per_question_writing_capability_preflight:
     proposition_proof:
       authority: core/writing_reasoning_contract.yaml#proposition_governance
       pack: packs/artifact/proposition_proof.md
-      state_source: current_question_proposition_plan
+      state_source: derived_current_question_proposition_state
+      state_derivation:
+        global_plan_source: state/project_state.yaml#paper_framework.proposition_status
+        item_source: state/project_state.yaml#paper_framework.propositions filtered by related_question=current_question
+        framework_projection_source: current_model_paper_framework#逐问写作能力预检.Proposition / Proof
+        output: current_question_proposition_plan
+        item_status_values: [candidate, current, stale, removed]
+        global_plan_status_values: [not_assessed, planned, current, stale]
+        projection_status_values: [not_assessed, candidate, planned, current, stale, removed, missing]
+        rules:
+          - 缺少全局 plan 字段、命题数组或当前 v0.8 项目的逐问 preflight 记录时，派生为 missing；missing 必须进入 needs_adjudication，不能推成 not_assessed。
+          - 先按 related_question 过滤命题项；其他小问的 candidate/current/stale 不得把本问自动激活或标 stale。
+          - 当前问存在 stale 命题项，或当前问 framework projection 已明确 stale 时，派生 stale；不得被全局 current/planned 覆盖。
+          - 当前问存在 current 命题项时，至少激活 current proof branch；若同时存在 candidate 项，还要追加 semantic proposition necessity review，不能因已有 current 命题吞掉新增 candidate。
+          - 全局 plan=planned 且当前问仅有 candidate 命题项时，这些 candidate 作为已纳入当前 plan 的 planned 命题派生为 planned；未进入 planned 全局计划的 candidate 仍只触发必要性审查。
+          - 当前问只有 candidate 命题项且未满足 planned 条件时，派生 candidate；candidate 只触发 semantic necessity review，不自动创建正文命题。
+          - 当前问没有 candidate/current/stale 命题项时，显式 removed projection 可派生 removed；否则派生 not_assessed，即使其他问题使全局 plan 为 planned/current/stale。
+          - framework projection 是缓存的逐问裁决而不是新的 Authority；若其与上述全局 plan + question-scoped items 派生结果冲突，Preflight 状态升级为 review_required 并重新同步，不选择任一方静默覆盖。
+          - 用户显式要求证明可以触发证明分支，但不能覆盖 stale/missing/review_required 的项目事实冲突。
       rules:
         planned:
           activate:
@@ -403,8 +421,8 @@ template_first_progressive_authoring:
       conditional_reads_before_relevant_passage:
         proposition_or_proof:
           when: >-
-            当前问 preflight 的 proposition_proof state 为 planned/current，或 candidate/stale 需要语义裁决，
-            或用户明确要求创建/修改/审查命题、引理、推论、等价性/可行性/单调性证明或误差界。
+            当前问 preflight 的 derived proposition_proof state 为 planned/current，或 candidate/stale/missing/review_required 需要语义裁决，
+            或用户明确要求创建/修改/审查命题、引理、推论、等价性/可行性/单调性证明或误差界；显式请求不得覆盖 stale/missing 冲突。
           read:
             - core/writing_reasoning_contract.yaml
             - packs/artifact/proposition_proof.md
