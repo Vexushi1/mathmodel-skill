@@ -80,6 +80,7 @@
 - `docs/v870_question_writing_capability_preflight_evaluation.md`
 - `docs/v870_question_writing_capability_preflight_plan.md`
 - `docs/v871_readpath_semantic_state_consistency_hardening_plan.md`
+- `docs/v871_writing_reasoning_schema_version_policy.md`
 - `docs/v8_writing_capability_inventory.md`
 - `docs/v8_writing_migration.md`
 - `legacy/README.md`
