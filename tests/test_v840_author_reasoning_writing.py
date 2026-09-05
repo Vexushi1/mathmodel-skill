@@ -32,7 +32,7 @@ class WritingReasoningScopeTests(unittest.TestCase):
         # These sections were not reopened and stay pinned to the prior snapshots.
         expected = {
             "4. Local Narrative Chain": "a32d8bce3e0805bdac4bce0105a7fa715473c28fc6392f701ffcd0a320b949b2",
-            "5A. Cross-File Chapter Handoff": "77a8b8b8f7301544343a9e867380637ece97705022fc0c0e5a3eee0e009b2f19",
+            "5A. Cross-File Chapter Handoff": "b8ddf97618ca7e837ca5194e0af9f654150d348fbb99cb8249f0a9328f11f70d",
             "6. 前置章节内容": "540c70cf9833269ae02a138d03ab224f0f1c5e40e104dab33df4f84624607e84",
             "10. 结果与验证的分层": "21b6d5111705b6645c4bd90f1a1393d624797d71ece18254ff0ecca81e559872",
             "14. 摘要": "8c2cbf13c739b273f4f3331819b0c0bedcac11df5e7103b6e2ea0a109a540271",
@@ -87,16 +87,18 @@ class WritingReasoningScopeTests(unittest.TestCase):
             "98f90f8caa6c3072316dd8e620add05722abfa4b",
         )
 
-        # The CUMCM main template now intentionally includes the AI-tool declaration
-        # immediately before the bibliography. Keep the exact current form pinned so
-        # unrelated orchestration drift still fails closed.
+        # v8.7.2 keeps the CUMCM AI-disclosure source in the canonical project but
+        # makes its input conditional/truth-bound by default. Keep the exact current
+        # orchestration pinned so an unconditional reactivation or unrelated drift fails closed.
         main = read("templates/latex/cumcm/hsk/hsk_main.tex")
         provenance = (
             "% Template-First canonical layout lineage: introduced in v8.0.1 from the A196-inspired template work.\n"
             "% This comment records provenance only; the current Skill release is declared by active release carriers."
         )
         self.assertIn(provenance, main)
-        self.assertIn(r"\input{sections/10_ai_tool_statement}", main)
+        self.assertIn(r"% \input{sections/10_ai_tool_statement}", main)
+        active_main = "\n".join(line.split("%", 1)[0] for line in main.splitlines())
+        self.assertNotIn(r"\input{sections/10_ai_tool_statement}", active_main)
         normalized_main = main.replace(
             provenance,
             "% v8.0.1 A196-inspired canonical template:",
@@ -104,7 +106,7 @@ class WritingReasoningScopeTests(unittest.TestCase):
         )
         self.assertEqual(
             git_blob_sha1(normalized_main),
-            "dc944d3f2e74182666aca8672109ce60cdd67d0f",
+            "0552dc0d86c71c69e40d4693d5af564deb26feeb",
         )
 
         manifest = yaml.safe_load(read("templates/latex/cumcm/hsk/template_manifest.yaml"))
@@ -184,7 +186,7 @@ class WritingReasoningScopeTests(unittest.TestCase):
 
     def test_runtime_keeps_same_stage_topology_and_conditional_examples_only(self):
         runtime = yaml.safe_load(read("core/writing_runtime_contract.yaml"))
-        self.assertEqual(runtime["version"], "8.7.1")
+        self.assertEqual(runtime["version"], "8.7.2")
         progressive = runtime["template_first_progressive_authoring"]
         stage_ids = [stage["id"] for stage in progressive["stages"]]
         self.assertEqual(

@@ -1,4 +1,5 @@
-% HSK 电工杯 LaTeX 通用起稿模板 v7.6.0
+% HSK 电工杯 LaTeX 通用起稿模板
+% Template lineage/history is not the current Skill release; current release is declared by core/bootstrap.yaml and release carriers.
 % 编译：python scripts/render_paper.py final_latex --profile diangong --clean
 % 当届规则、页数、封面和指定章节要求始终优先于本通用模板。
 \documentclass[12pt,a4paper]{ctexart}
@@ -79,11 +80,12 @@
 \section{模型的评价与推广}
 % 在此基于实际证据评价模型优缺点、适用范围与可推广方向。
 
-\section*{AI工具使用声明}
-
-本参赛队在论文撰写、程序开发与结果整理过程中合理使用了 AI 辅助工具。AI 工具主要用于语言润色、代码调试、格式检查、资料整理与思路辅助等环节。所有模型假设、数学推导、算法设计、数据处理方案及最终结论均由参赛队成员独立分析、验证并负责。
-
-AI 工具的具体使用情况、交互记录及辅助内容说明将按照竞赛要求整理于支撑材料中。
+% AI 工具使用声明是条件合规位置，固定放在参考文献之前，但默认不生成可见声明。
+% 只有 config/competition_profiles.yaml 中当前电工杯当届 ai_disclosure 规则已核验、
+% 且参赛队已确认当前项目真实 AI 使用事实并判定披露适用时，才取消下面示意注释并据实填写。
+% 不得把模板示意原样提交，也不得默认声称参赛队使用了 AI。
+% \section*{AI工具使用声明}
+% <仅填写已核验规则要求/允许披露且参赛队确认属实的工具、用途、范围与责任说明。>
 
 \printbibliography[title={参考文献}]
 

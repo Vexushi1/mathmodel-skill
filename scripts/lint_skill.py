@@ -3,13 +3,15 @@
 
 The large cross-contract checks live in ``lint_skill_checks.py``. This entrypoint adds
 current-source adapters that require repository-wide context, most notably the modular
-CUMCM LaTeX template, critical Authority-fragment health, and current formal MATLAB figure semantics.
+CUMCM LaTeX template, critical Authority-fragment health, active Markdown-link fragment
+health, and current formal MATLAB figure semantics.
 """
 from __future__ import annotations
 
 import re
 from collections.abc import Mapping
 from pathlib import Path
+from urllib.parse import unquote
 
 import lint_skill_checks as checks
 
@@ -31,6 +33,14 @@ _CRITICAL_POINTER_REGISTRIES = (
     ROOT / "core/writing_runtime_contract.yaml",
     ROOT / "templates/latex/cumcm/hsk/template_manifest.yaml",
     ROOT / "templates/review/final_review_matrix.yaml",
+)
+_ROOT_ACTIVE_MARKDOWN = (
+    ROOT / "SKILL.md",
+    ROOT / "README.md",
+    ROOT / "REPOSITORY_INDEX.md",
+    ROOT / "PROJECT_INSTRUCTIONS.md",
+    ROOT / "RUNTIME_ROUTER.md",
+    ROOT / "SKILL_CHANGE_GOVERNANCE.md",
 )
 _REPO_POINTER_RE = re.compile(
     r"^(?:core|modules|templates|config|packs|scripts)/[^#\s]+#[^\s]+$"
@@ -59,7 +69,7 @@ def _normalize_heading_fragment(value: str) -> str:
 
 def _markdown_fragment_exists(path: Path, fragment: str) -> bool:
     text = _ORIGINAL_READ_TEXT(path)
-    raw_fragment = fragment.strip()
+    raw_fragment = unquote(fragment.strip())
     if not raw_fragment:
         return False
     escaped = re.escape(raw_fragment)
@@ -75,6 +85,77 @@ def _markdown_fragment_exists(path: Path, fragment: str) -> bool:
         if heading == target or heading.endswith(target):
             return True
     return False
+
+
+def _active_markdown_surfaces() -> list[Path]:
+    paths = {path.resolve() for path in _ROOT_ACTIVE_MARKDOWN if path.is_file()}
+    paths.update(path.resolve() for path in checks.active_files() if path.suffix.lower() == ".md")
+    return sorted(paths)
+
+
+def _markdown_link_target(origin: Path, target: str) -> tuple[Path, str] | None:
+    token = target.strip()
+    if token.startswith("<") and token.endswith(">"):
+        token = token[1:-1].strip()
+    if not token or token.startswith(("http://", "https://", "mailto:", "plugin://")):
+        return None
+    if " " in token and not token.startswith("#"):
+        token = token.split(" ", 1)[0].strip()
+    if "#" not in token:
+        return None
+    path_token, fragment = token.split("#", 1)
+    fragment = unquote(fragment.strip())
+    if not fragment:
+        return None
+    if not path_token:
+        candidate = origin
+    else:
+        path_token = unquote(path_token.strip())
+        if path_token.startswith("/"):
+            candidate = ROOT / path_token.lstrip("/")
+        elif path_token.startswith(checks.REPO_PATH_PREFIXES):
+            candidate = ROOT / path_token
+        else:
+            candidate = origin.parent / path_token
+    candidate = candidate.resolve()
+    try:
+        candidate.relative_to(ROOT.resolve())
+    except ValueError:
+        return None
+    return candidate, fragment
+
+
+def _check_active_markdown_link_fragments(errors: list[str]) -> None:
+    """Validate fragments in real Markdown links on active runtime surfaces.
+
+    Critical machine registries retain their stricter pointer scan. This layer only
+    promotes actual Markdown link syntax to fragment validation; inline-code examples
+    and free prose containing ``#`` are intentionally ignored.
+    """
+    for origin in _active_markdown_surfaces():
+        text = _ORIGINAL_READ_TEXT(origin)
+        for match in checks.MARKDOWN_LINK_RE.finditer(text):
+            resolved = _markdown_link_target(origin, match.group(1))
+            if resolved is None:
+                continue
+            target_path, fragment = resolved
+            relative_origin = origin.relative_to(ROOT)
+            if not target_path.is_file():
+                errors.append(
+                    f"markdown link target missing: {relative_origin} -> {match.group(1)}"
+                )
+                continue
+            suffix = target_path.suffix.lower()
+            if suffix == ".md":
+                exists = _markdown_fragment_exists(target_path, fragment)
+            elif suffix in {".yaml", ".yml"}:
+                exists = _yaml_fragment_exists(target_path, fragment)
+            else:
+                continue
+            if not exists:
+                errors.append(
+                    f"markdown link fragment missing: {relative_origin} -> {match.group(1)}"
+                )
 
 
 def _resolve_yaml_dotted_nodes(node: object, expression: str) -> list[object]:
@@ -233,6 +314,7 @@ def _check_contracts(errors: list[str]) -> None:
         if policy.get(key) != value:
             errors.append(f"writing policy modular-LaTeX contract mismatch: {key} -> {policy.get(key)!r}")
     _check_critical_pointer_fragments(errors)
+    _check_active_markdown_link_fragments(errors)
 
 
 checks.check_contracts = _check_contracts
@@ -259,6 +341,11 @@ _original_check_templates = checks.check_templates
 
 def _matlab_executable_code(text: str) -> str:
     """Strip ordinary MATLAB comments before checking executable title calls."""
+    return "\n".join(line.split("%", 1)[0] for line in text.splitlines())
+
+
+def _latex_executable_code(text: str) -> str:
+    """Strip ordinary LaTeX comments for current active-template safety checks."""
     return "\n".join(line.split("%", 1)[0] for line in text.splitlines())
 
 
@@ -314,6 +401,30 @@ def _check_templates(errors: list[str]) -> None:
     ):
         if token not in style:
             errors.append(f"scientific style helper lacks current high-contrast token: {token}")
+
+    for name, relative in (
+        ("Diangong", "templates/latex/diangong/main.tex"),
+        ("MCM/ICM", "templates/latex/mcm/main.tex"),
+    ):
+        text = _ORIGINAL_READ_TEXT(ROOT / relative)
+        first_line = text.splitlines()[0] if text.splitlines() else ""
+        if re.search(r"\bv\d+\.\d+(?:\.\d+)?\b", first_line, flags=re.IGNORECASE):
+            errors.append(f"active {name} template header ambiguously carries an old release label")
+        if "current Skill release" not in text or "core/bootstrap.yaml" not in text:
+            errors.append(f"active {name} template must distinguish template lineage from current Skill release")
+
+    diangong = _ORIGINAL_READ_TEXT(ROOT / "templates/latex/diangong/main.tex")
+    active_diangong = _latex_executable_code(diangong)
+    if r"\section*{AI工具使用声明}" in active_diangong:
+        errors.append("Diangong generic template must not emit an unconditional AI-use disclosure")
+    if "本参赛队在论文撰写、程序开发与结果整理过程中合理使用了 AI" in active_diangong:
+        errors.append("Diangong generic template must not fabricate project AI-use facts")
+
+    ai_scaffold = _ORIGINAL_READ_TEXT(_CUMCM_ROOT / "sections/10_ai_tool_statement.tex")
+    if "本参赛队在论文撰写、程序开发与结果整理过程中合理使用了 AI" in ai_scaffold:
+        errors.append("CUMCM AI-disclosure scaffold must not fabricate project AI-use facts")
+    if r"\input{sections/10_ai_tool_statement}" in _latex_executable_code(main_text):
+        errors.append("CUMCM generic main must keep the AI-disclosure slot inactive by default")
 
 
 checks.check_templates = _check_templates

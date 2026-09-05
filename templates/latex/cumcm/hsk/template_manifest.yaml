@@ -26,7 +26,7 @@ reference_provenance:
     original_name: example_mm_r1.tex
     source_sha256: 3d94e9679814c1888f73b075e8de143ab3976162bfda3604cfd2c7990a79f193
     stored_adaptation: reference/example_mm_r1.tex
-    stored_sha256: 4e08a89d089d3ad5baffd9344092455beedeeed63f75b48ec0cf336d0837d6cd
+    stored_sha256: 58e852add7ad04924d5dcad77948044331c3a0d5d0b7ac5ddfdcf608db2538f1
     use_boundary: visual_and_latex_infrastructure_only
   framework_source:
     original_name: A196.pdf
@@ -53,6 +53,7 @@ authority_boundary:
     - latex_file_composition
     - figure_table_equation_proposition_algorithm_environments
     - bibliography_and_appendix_placement
+    - ai_disclosure_slot_placement
     - deterministic_rendering_examples
   writing_skill_owns:
     - mathematical_narrative
@@ -70,12 +71,14 @@ authority_boundary:
     - current_results
     - current_figures
     - current_validation_evidence
+    - current_ai_use_facts
   forbidden_template_authority:
     - choose_model
     - choose_solver
     - choose_validator
     - invent_formula
     - invent_result
+    - invent_ai_use_fact
     - force_internal_subsection_names
     - force_validation_for_simple_question
     - force_page_count_by_content_inflation
@@ -136,6 +139,15 @@ paper_skeleton:
       required: true
       default_active: true
       default_title: 模型的评价与推广
+    - id: ai_disclosure
+      source: sections/10_ai_tool_statement.tex
+      required: false
+      default_active: false
+      activation: verified_current_edition_rule_and_confirmed_actual_use_facts_make_disclosure_applicable
+      role: competition_compliance_disclosure
+      note: >-
+        仅在当届 AI 披露规则已核验、当前项目真实 AI 使用事实已确认且披露对当前项目适用时启用；
+        模板文件只提供非事实性填写边界，不得默认声称参赛队使用了 AI。
     - id: references
       source: references.bib
       required: true
@@ -237,11 +249,13 @@ fixed_template_checks:
     - "\\input{sections/05_model_preparation}"
     - "\\input{sections/06_question1}"
     - "\\input{sections/09_evaluation}"
+    - "\\input{sections/10_ai_tool_statement}"
   optional_default_inactive_tokens:
     - "\\input{sections/05_data}"
     - "\\input{sections/05_model_preparation}"
     - "\\input{sections/07_question2}"
     - "\\input{sections/08_question3}"
+    - "\\input{sections/10_ai_tool_statement}"
   active_main_order:
     - "\\input{frontmatter/abstract}"
     - "\\input{sections/01_problem_statement}"
@@ -263,6 +277,7 @@ runtime_contract:
     - optional_validation_subsection
     - activate_or_remove_model_preparation_based_on_real_shared_structure
     - activate_or_remove_data_section_based_on_real_data_method_need
+    - activate_or_remove_ai_disclosure_based_on_verified_rule_and_confirmed_actual_use_facts
   prose_writer_may_not_change_without_template_or_competition_switch:
     - documentclass
     - top_level_section_order

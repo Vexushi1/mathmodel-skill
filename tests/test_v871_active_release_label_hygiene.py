@@ -8,6 +8,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 LATEX_ADAPTER = ROOT / "modules" / "05_writing" / "latex.md"
 CUMCM_MAIN = ROOT / "templates" / "latex" / "cumcm" / "hsk" / "hsk_main.tex"
+DIANGONG_MAIN = ROOT / "templates" / "latex" / "diangong" / "main.tex"
+MCM_MAIN = ROOT / "templates" / "latex" / "mcm" / "main.tex"
 
 
 class TestV871ActiveReleaseLabelHygiene(unittest.TestCase):
@@ -27,6 +29,21 @@ class TestV871ActiveReleaseLabelHygiene(unittest.TestCase):
         self.assertIn("layout lineage: introduced in v8.0.1", text)
         self.assertIn("provenance only", text)
         self.assertIn("current Skill release is declared by active release carriers", text)
+
+    def test_other_active_template_headers_are_release_neutral(self):
+        for path in (DIANGONG_MAIN, MCM_MAIN):
+            text = path.read_text(encoding="utf-8")
+            first_line = text.splitlines()[0]
+            self.assertIsNone(re.search(r"\bv\d+\.\d+(?:\.\d+)?\b", first_line, flags=re.I), path)
+            self.assertIn("current Skill release", text)
+            self.assertIn("core/bootstrap.yaml", text)
+
+    def test_diangong_generic_template_does_not_assert_ai_use(self):
+        text = DIANGONG_MAIN.read_text(encoding="utf-8")
+        active = "\n".join(line.split("%", 1)[0] for line in text.splitlines())
+        self.assertNotIn(r"\section*{AI工具使用声明}", active)
+        self.assertNotIn("本参赛队在论文撰写、程序开发与结果整理过程中合理使用了 AI", active)
+        self.assertIn("条件合规位置", text)
 
 
 if __name__ == "__main__":

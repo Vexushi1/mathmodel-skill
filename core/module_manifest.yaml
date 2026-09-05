@@ -1,4 +1,4 @@
-version: 8.7.1
+version: 8.7.2
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -56,8 +56,8 @@ artifact_catalog:
   model_challenge: 当前Model Reviewer与Devil's Advocate两次独立审查结论、required actions和residual warnings；不单独落盘
   model_approval_brief: 提交给用户确认的当前模型摘要；绑定当前semantic revision/hash，不单独落盘
   awaiting_model_approval: Model Challenge已可进入人工确认但用户尚未明确批准当前revision/hash的暂停状态
-  human_model_approval: 用户对当前semantic revision/hash的明确批准状态；机器绑定记录在project_state中
-  locked_model_spec: 仅在Model Challenge passed且Human Model Approval绑定当前semantic revision/hash后成立的已锁定变量、假设、公式、目标和约束
+  human_model_approval: 用户对当前semantic_revision/hash的明确批准状态；机器绑定记录在project_state中
+  locked_model_spec: 仅在Model Challenge passed且Human Model Approval绑定当前semantic_revision/hash后成立的已锁定变量、假设、公式、目标和约束
   model_approval_validation_report: scripts/validate_model_approval.py输出的challenge/approval与current revision/hash一致性检查结论
   formula_closure: 公式—代码—输出映射
   formula_reasoning_chain: 核心公式Source—Derivation—Destination闭环；记录题意/定义/机制来源、关键推导与后续模型/求解/验证用途，不单独落盘
@@ -68,7 +68,7 @@ artifact_catalog:
   mechanism_contracts: 机理图合同
   mechanism_diagram_spec: 可选的v1 draw.io渲染规格；只引用current Framework/Contract，不是模型或数值事实源
   editable_mechanism_source: 由确定性生成器产生并通过结构检查的未压缩可编辑.drawio源；不能替代渲染预览和人工语义QA
-  mechanism_preview: 与当前draw.io hash绑定、供人工语义与版式复核的渲染预览；没有预览不得批准入文
+  mechanism_preview: 与当前drawio hash绑定、供人工语义与版式复核的渲染预览；没有预览不得批准入文
   mechanism_exports: 人工复核后从可编辑源导出的项目级PDF/SVG/PNG正式机理图
   validation_plan: 建模阶段的验证规划；其中Primary Quality Specification只定义当前主计算的最低数值有效性要求，参数敏感性、压力场景、替代算法/结构、异质性等仅作为下游风险提示，正式result_analysis_plan必须等主工作簿accepted后再建立
   semantic_governance_report: 聊天或标准输出中的Problem Contract、语义闭环、复杂度复审、语义哈希、跨问和paper-fragment stale校验结果

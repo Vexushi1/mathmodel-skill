@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：8.7.1
+当前 Skill 版本：8.7.2
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -81,6 +81,7 @@
 - `docs/v870_question_writing_capability_preflight_plan.md`
 - `docs/v871_readpath_semantic_state_consistency_hardening_plan.md`
 - `docs/v871_writing_reasoning_schema_version_policy.md`
+- `docs/v872_template_readpath_release_consistency_plan.md`
 - `docs/v8_writing_capability_inventory.md`
 - `docs/v8_writing_migration.md`
 - `legacy/README.md`
@@ -327,3 +328,4 @@
 - `tests/test_v871_fragment_health.py`
 - `tests/test_v871_readpath_semantic_state_consistency.py`
 - `tests/test_v871_writing_reasoning_schema_policy.py`
+- `tests/test_v872_template_assembly_consistency.py`

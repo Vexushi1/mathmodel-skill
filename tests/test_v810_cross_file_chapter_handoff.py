@@ -17,7 +17,14 @@ def load_yaml(relative: str):
     return yaml.safe_load(read(relative))
 
 
-def active_sources(manifest: dict, *, data: bool, model_preparation: bool, questions: int) -> list[str]:
+def active_sources(
+    manifest: dict,
+    *,
+    data: bool,
+    model_preparation: bool,
+    ai_disclosure: bool,
+    questions: int,
+) -> list[str]:
     """Resolve final physical sources from the existing ordered_slots + activation facts."""
     examples = manifest["cumcm_question_section"]["maintained_examples"][:questions]
     result: list[str] = []
@@ -30,6 +37,9 @@ def active_sources(manifest: dict, *, data: bool, model_preparation: bool, quest
                 result.append(slot["source"])
         elif slot_id == "model_preparation":
             if model_preparation:
+                result.append(slot["source"])
+        elif slot_id == "ai_disclosure":
+            if ai_disclosure:
                 result.append(slot["source"])
         elif slot.get("required") or slot.get("default_active"):
             result.append(slot["source"])
@@ -78,6 +88,7 @@ class TestV810CrossFileChapterHandoff(unittest.TestCase):
             self.manifest,
             data=False,
             model_preparation=False,
+            ai_disclosure=False,
             questions=1,
         )
         self.assertEqual(
@@ -100,24 +111,28 @@ class TestV810CrossFileChapterHandoff(unittest.TestCase):
             self.manifest,
             data=False,
             model_preparation=False,
+            ai_disclosure=False,
             questions=1,
         )
         data_only = active_sources(
             self.manifest,
             data=True,
             model_preparation=False,
+            ai_disclosure=False,
             questions=1,
         )
         preparation_only = active_sources(
             self.manifest,
             data=False,
             model_preparation=True,
+            ai_disclosure=False,
             questions=1,
         )
         both = active_sources(
             self.manifest,
             data=True,
             model_preparation=True,
+            ai_disclosure=False,
             questions=1,
         )
 
@@ -138,11 +153,34 @@ class TestV810CrossFileChapterHandoff(unittest.TestCase):
             q1,
         )
 
+    def test_ai_disclosure_changes_terminal_adjacency_only_when_active(self):
+        inactive = active_sources(
+            self.manifest,
+            data=False,
+            model_preparation=False,
+            ai_disclosure=False,
+            questions=1,
+        )
+        active = active_sources(
+            self.manifest,
+            data=False,
+            model_preparation=False,
+            ai_disclosure=True,
+            questions=1,
+        )
+        evaluation = "sections/09_evaluation.tex"
+        disclosure = "sections/10_ai_tool_statement.tex"
+        references = "references.bib"
+        self.assertEqual(inactive[inactive.index(evaluation) + 1], references)
+        self.assertEqual(active[active.index(evaluation) + 1], disclosure)
+        self.assertEqual(active[active.index(disclosure) + 1], references)
+
     def test_q1_q2_q3_keep_final_adjacency_without_forced_dependency(self):
         sources = active_sources(
             self.manifest,
             data=False,
             model_preparation=False,
+            ai_disclosure=False,
             questions=3,
         )
         question_sources = [source for source in sources if "_question" in source]
