@@ -1,6 +1,14 @@
 # Changelog
 
-## Current release: 8.7.2
+## Current release: 8.7.3
+
+- Restored formal mechanism/derivation diagrams to a **monochrome-first** visual grammar: white background, black/dark-gray outlines and text, grayscale de-emphasis, and structure conveyed primarily through geometry, line style, line weight, boundary and spacing rather than semantic blue/green/red fills.
+- Extended the existing Mechanism Spec v1 shape vocabulary compatibly with `circle`, `sphere`, `triangle`, `quadrilateral`, and `cylinder` while preserving `rounded_rect`, `rect`, `ellipse`, `diamond`, and `hexagon`; sphere/cylinder semantics remain simple 2D outline/projection primitives rather than decorative 3D rendering.
+- Removed default red constraint/switch edges from the draw.io generator and kept color as an exceptional secondary cue only when monochrome encoding is insufficient; black-and-white print distinguishability remains mandatory.
+- Kept MATLAB workbook-driven scientific result figures on the existing high-contrast research palette; the rollback applies only to formal mechanism/derivation diagrams and does not change Mechanism Spec fields, CLI, artifact lifecycle, Model Approval, 03A/03B, numerical fact sources, or per-question layout.
+- Added focused v8.7.3 regression coverage for monochrome generator output, regular-geometry mappings, Authority/QA wording, and backward-compatible shape support.
+
+## Previous release: 8.7.2
 
 - Closed CUMCM Template Manifest ↔ canonical LaTeX assembly drift by declaring the AI-disclosure slot in the manifest, keeping it conditional by default, and validating canonical body composition against manifest-declared active/default slots.
 - Replaced reusable-template AI-use assertions with truth-bound disclosure scaffolding: generic CUMCM and Diangong templates no longer invent team AI usage, while final disclosure remains governed by verified current-edition rules plus project-confirmed actual-use facts.
@@ -16,7 +24,7 @@
 - Closed the Module 02 Formula Trace producer/consumer gap by carrying explicit question and Formula Role fields into the current framework without duplicating the role taxonomy.
 - Defined deterministic question-scoped Proposition / Proof derivation across global plan, proposition items and framework preflight, preserving missing/stale/review-required semantics without changing Project State Schema.
 - Added behavior-level framework validation for mandatory Per-Question Writing Capability Preflight, including Formula Role/Trace consistency and current Algorithm Trace requirements.
-- Added fragment-level health validation for critical active Authority pointers, covering Markdown headings, YAML dotted/dynamic paths, JSON Pointer and existing composite semantic pointers.
+- Added fragment-level health validation for critical active Authority pointers, covering Markdown heading, YAML dotted/dynamic paths, JSON Pointer and existing composite semantic pointers.
 - Clarified active old-release labels as architecture provenance rather than current-version carriers and preserved protected Adapter/template semantics through normalization-based regression tests.
 - Kept `writing_reasoning_contract.yaml` at schema family `1.8.0` and documented that additive semantic nodes do not bump parser/migration compatibility versions.
 
