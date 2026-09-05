@@ -3,6 +3,8 @@ import sys
 import unittest
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = Path("templates/latex/cumcm/hsk/sections/10_ai_tool_statement.tex")
 
@@ -36,7 +38,21 @@ class TestTemplateIndexExclusions(unittest.TestCase):
         self.assertIn(f"  {TARGET.as_posix()}", manifest)
 
         main_tex = (ROOT / "templates/latex/cumcm/hsk/hsk_main.tex").read_text(encoding="utf-8")
-        self.assertIn(r"\input{sections/10_ai_tool_statement}", main_tex)
+        self.assertIn(r"% \input{sections/10_ai_tool_statement}", main_tex)
+        active_main = "\n".join(line.split("%", 1)[0] for line in main_tex.splitlines())
+        self.assertNotIn(r"\input{sections/10_ai_tool_statement}", active_main)
+
+        template_manifest = yaml.safe_load(
+            (ROOT / "templates/latex/cumcm/hsk/template_manifest.yaml").read_text(encoding="utf-8")
+        )
+        ai_slot = next(
+            slot
+            for slot in template_manifest["paper_skeleton"]["ordered_slots"]
+            if slot["id"] == "ai_disclosure"
+        )
+        self.assertEqual(ai_slot["source"], TARGET.relative_to("templates/latex/cumcm/hsk").as_posix())
+        self.assertFalse(ai_slot["required"])
+        self.assertFalse(ai_slot["default_active"])
 
 
 if __name__ == "__main__":
