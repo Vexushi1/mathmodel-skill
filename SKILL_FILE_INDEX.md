@@ -234,6 +234,7 @@
 - `tests/test_generated_workflow_hardening.py`
 - `tests/test_latex_first_versionless_docs.py`
 - `tests/test_legacy_archive_hygiene.py`
+- `tests/test_mechanism_template_compat_hygiene.py`
 - `tests/test_preprocessing_decision_contract.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_read_path_semantic_closure.py`

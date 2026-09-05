@@ -1,35 +1,13 @@
-# HSK 机理图合同与占位模板
+# HSK 机理图占位兼容指针
 
-## 1. 机理图合同表
+> 状态：deprecated compatibility pointer。该路径仅用于旧项目、旧人工链接和历史维护脚本的路径兼容，不属于当前 Figure Authority，也不应进入默认运行链。
 
-| 图号 | 图名 | 对应问题 | 图的作用 | 图中对象 | 支撑公式/约束 | 评委质疑点 | 图等级 | 后期处理方式 |
-|---|---|---|---|---|---|---|---|---|
-| 图 X |  | 问题一 / 问题二 | mechanism / derivation / boundary / validation |  |  | 若无该图，评委可能质疑…… | S / A / B | SVG / PPT / GeoGebra / Python / 不画 |
+当前流程不再维护独立的“机理图合同 + DOCX/LaTeX 占位模板”规则。新项目或重新进入当前流程的旧项目应按以下职责读取：
 
-## 2. DOCX 图位占坑模板
+- 是否需要机理图、图应回答什么问题、选择何种后端：`modules/04_figure_evidence.md`；
+- 单张机理/推导图的当前合同：`templates/figure/mechanism_contract.md`；
+- 每问图证据与论文位置规划：登记在项目根目录 `模型论文框架.md`，不再维护第二份独立规划表；
+- 仅当 Backend Selection Gate 选择 draw.io 时，使用 `templates/figure/mechanism_drawio_spec.yaml`，实际生成或返修时再读取 `templates/figure/mechanism_drawio_patterns.md`；
+- DOCX / LaTeX 的最终载体与题注、编号、排版分别服从当前对应 Artifact Pack / Adapter，不由本文件定义。
 
-```text
-【图 X 占位：图名】
-对应问题：
-图的作用：
-图中对象：
-支撑公式/约束：
-Reviewer risk：
-后期处理方式：
-```
-
-## 3. LaTeX 图位占坑模板
-
-```latex
-\begin{figure}[htbp]
-\centering
-\fbox{\parbox{0.82\textwidth}{\centering
-图 X 占位：图名\\
-作用：说明……机制\\
-支撑公式：$...$\\
-后期处理：SVG/PPT/GeoGebra 精修后替换
-}}
-\caption{图题}
-\label{fig:placeholder_x}
-\end{figure}
-```
+旧图位占位格式和早期后端列表已经保存在 `legacy/v616_sources/HSK_COMMON_TEMPLATES_V616.md` 与 `legacy/stage_v616/` 中，仅供历史追溯；当前运行不得从 legacy 恢复旧规则覆盖现行 Authority。
