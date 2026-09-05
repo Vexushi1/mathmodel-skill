@@ -7,7 +7,6 @@
 - `.codex-plugin/plugin.json`
 - `.gitattributes`
 - `.github/pull_request_template.md`
-- `.github/workflows/apply-v873-mechanism-monochrome.yml`
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
