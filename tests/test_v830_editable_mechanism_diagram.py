@@ -404,9 +404,10 @@ class DrawioValidatorTests(unittest.TestCase):
 
 
 class ContractAndDriftTests(unittest.TestCase):
-    # v8.7.0 intentionally updated the writing-authority baseline below for per-question
-    # capability preflight. The v8.7.1 release sync changes only the Paper Writing Protocol
-    # release-carrier header, so that single header is normalized before the v8.7.0 body snapshot check.
+    # v8.7.0 established the body baseline below. v8.7.2 intentionally reopens only
+    # two Paper Writing Protocol seam sentences plus its release header, and one
+    # competition-profile lineage comment. Normalize exactly those approved deltas so
+    # the older protected hashes continue to guard every unrelated semantic byte.
     PROTECTED = {
         "core/model_approval_contract.yaml": "7d97255dde9cf780755bab896964e905066bf4b8",
         "core/numerical_verification_contract.yaml": "b901923edf38112cbc922f51d1157265fe1931bd",
@@ -430,15 +431,40 @@ class ContractAndDriftTests(unittest.TestCase):
 
     def test_protected_authorities_have_not_drifted(self):
         protocol = "modules/05_writing/paper_writing_protocol.md"
-        current_header = "# Module 05A：Paper Writing Protocol（v8.7.1）"
-        baseline_header = "# Module 05A：Paper Writing Protocol（v8.7.0）"
+        competition_profiles = "config/competition_profiles.yaml"
+        protocol_rewrites = (
+            (
+                "# Module 05A：Paper Writing Protocol（v8.7.2）",
+                "# Module 05A：Paper Writing Protocol（v8.7.0）",
+            ),
+            (
+                "默认作者执行顺序为：问题重述 → 问题分析 → 假设/符号/条件式数据与共享基础 → 按问题顺序逐问完成模型建立、模型求解、结果与验证 → 模型评价、按适用规则处理条件式披露、引用、结论与附录 → 最后根据 current 结果写摘要、标题和关键词 → draft semantic review → AI Cleanup → LaTeX 装配/审计/编译 → final review。成品中的摘要仍位于正文前部，但写作时不得早于 current 逐问答案和验证边界稳定。",
+                "默认作者执行顺序为：问题重述 → 问题分析 → 假设/符号/条件式数据与共享基础 → 按问题顺序逐问完成模型建立、模型求解、结果与验证 → 模型评价、引用、结论与附录 → 最后根据 current 结果写摘要、标题和关键词 → draft semantic review → AI Cleanup → LaTeX 装配/审计/编译 → final review。成品中的摘要仍位于正文前部，但写作时不得早于 current 逐问答案和验证边界稳定。",
+            ),
+            (
+                "- `structural_terminal`：用于最终结构尾部边界；AI disclosure 不启用时检查模型评价→参考文献→附录，启用时检查模型评价→AI工具使用声明→参考文献→附录。这里只检查结构、披露/引用和附录边界，不制造语义桥。",
+                "- `structural_terminal`：用于模型评价→参考文献、参考文献→附录，只检查结构、引用和附录边界，不制造语义桥。",
+            ),
+        )
+        competition_lineage_comment = (
+            "# 该 version 是 competition-profile 配置格式沿革，不是当前 Skill release；当前 Skill 版本由 core/bootstrap.yaml 等 release carriers 声明。\n"
+        )
         for relative, expected in self.PROTECTED.items():
             with self.subTest(relative=relative):
                 path = ROOT / relative
                 if relative == protocol:
                     text = path.read_text(encoding="utf-8")
-                    self.assertEqual(text.count(current_header), 1)
-                    data = text.replace(current_header, baseline_header, 1).encode("utf-8")
+                    for current, baseline in protocol_rewrites:
+                        self.assertEqual(text.count(current), 1, current)
+                        text = text.replace(current, baseline, 1)
+                    data = text.encode("utf-8")
+                    actual = hashlib.sha1(
+                        b"blob " + str(len(data)).encode("ascii") + b"\0" + data
+                    ).hexdigest()
+                elif relative == competition_profiles:
+                    text = path.read_text(encoding="utf-8")
+                    self.assertEqual(text.count(competition_lineage_comment), 1)
+                    data = text.replace(competition_lineage_comment, "", 1).encode("utf-8")
                     actual = hashlib.sha1(
                         b"blob " + str(len(data)).encode("ascii") + b"\0" + data
                     ).hexdigest()
