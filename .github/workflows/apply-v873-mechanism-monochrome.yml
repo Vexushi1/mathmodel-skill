@@ -1,0 +1,370 @@
+name: Apply v8.7.3 mechanism monochrome migration
+
+on:
+  push:
+    branches:
+      - refactor/v8.7.3-mechanism-monochrome
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: refactor/v8.7.3-mechanism-monochrome
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Apply source changes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          ROOT = Path('.')
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = ROOT / path
+              text = p.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one match, found {count}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          # Figure Evidence Authority: formal mechanism diagrams return to monochrome-first line art.
+          replace_once(
+              'modules/04_figure_evidence.md',
+              '## A 类：机理与推导图\n\n优先表达公式来源、约束来源、临界状态和策略机制。图内只放对象、变量、方向、边界、距离、角度、流向和临界状态，完整推导留在正文。禁止用通用“输入—模型—输出”流程图替代题目专属机理图。\n\n### Mechanism Diagram Backend Selection Gate',
+              '''## A 类：机理与推导图
+
+优先表达公式来源、约束来源、临界状态和策略机制。图内只放对象、变量、方向、边界、距离、角度、流向和临界状态，完整推导留在正文。禁止用通用“输入—模型—输出”流程图替代题目专属机理图。
+
+正式机理/推导图采用 **monochrome-first（黑白线稿优先）** 视觉语法：默认白底、黑色或深灰轮廓/箭头/文字，次级结构仅用灰度、线宽、虚实、形状和留白降权；不得用蓝/绿/红等多色填充替代语义结构。只有黑白线型与形状仍不足以区分且确有论证收益时，才允许加入 1 个强调色；极少数复杂图最多 2 个强调色，并必须保证转灰度或黑白打印后仍能无损辨识。
+
+对象表达优先使用与题意实体一致的规则几何图元：圆/椭圆、矩形、三角形、四边形/多边形、圆柱投影、球体的圆形/椭圆轮廓等；几何精度要求高时继续交给 MATLAB / TikZ / GeoGebra。禁止用渐变、阴影、拟物 3D、高饱和色块或无来源图标制造“立体感”；球体、圆柱等三维对象在机理图中优先用可解释的二维投影轮廓和必要辅助线表达。
+
+视觉层级的优先顺序为 `shape / geometry → line style / line width → grayscale → optional accent color`。同一对象和同一机制在全文保持一致的形状与线型；颜色不是默认语义载体。
+
+### Mechanism Diagram Backend Selection Gate'''
+          )
+
+          # Artifact pack summary follows the authority without creating a second palette.
+          replace_once(
+              'packs/artifact/figure.md',
+              '## 机理图\n\n机理图服务公式来源、约束来源、对象关系、临界状态和策略机制。图中只保留对象、变量、方向、边界、距离、角度和临界状态，完整解释放正文。禁止通用“输入—模型—输出”流程图替代题目专属图。\n\n需要可编辑的非数据驱动对象关系、约束关系、反馈或临界状态图时，先按 `modules/04_figure_evidence.md` 的 Mechanism Diagram Backend Selection Gate 判断是否进入 draw.io 路径。选中后读取 `templates/figure/mechanism_contract.md` 与 `templates/figure/mechanism_drawio_spec.yaml`；只有实际生成或返修 draw.io 时再读取 `templates/figure/mechanism_drawio_patterns.md`。数据、坐标、误差、区间与工作簿结果仍由 MATLAB 路径负责。',
+              '''## 机理图
+
+机理图服务公式来源、约束来源、对象关系、临界状态和策略机制。图中只保留对象、变量、方向、边界、距离、角度和临界状态，完整解释放正文。禁止通用“输入—模型—输出”流程图替代题目专属图。
+
+正式机理图服从 Module 04 的 **monochrome-first** 规则：白底、黑/深灰线条和文字为主，灰度、线型、线宽与规则几何形状承担主要区分；默认不使用蓝/绿/红多色语义填充。只有确有证据增益时才允许 1 个强调色，极少数复杂图最多 2 个，并须保证黑白打印仍可辨识。对象优先画成圆/椭圆、矩形、三角形、四边形/多边形、圆柱投影、球体轮廓等题意一致的规则几何图形，禁止渐变、拟物阴影和装饰性 3D。
+
+需要可编辑的非数据驱动对象关系、约束关系、反馈或临界状态图时，先按 `modules/04_figure_evidence.md` 的 Mechanism Diagram Backend Selection Gate 判断是否进入 draw.io 路径。选中后读取 `templates/figure/mechanism_contract.md` 与 `templates/figure/mechanism_drawio_spec.yaml`；只有实际生成或返修 draw.io 时再读取 `templates/figure/mechanism_drawio_patterns.md`。数据、坐标、误差、区间与工作簿结果仍由 MATLAB 路径负责。'''
+          )
+
+          # draw.io implementation reference.
+          replace_once(
+              'templates/figure/mechanism_drawio_patterns.md',
+              '- 同一语义角色在同一图中保持形状和颜色一致。',
+              '- 同一语义角色在同一图中优先保持形状、轮廓和线型一致；颜色不是默认语义编码。'
+          )
+          replace_once(
+              'templates/figure/mechanism_drawio_patterns.md',
+              '''## 7. 视觉语法
+
+生成器只内置一套克制的基础样式：
+
+- `primary`：亮蓝边框与浅蓝底；
+- `secondary`：绿色边框与浅绿底；
+- `risk`：红色边框与浅红底；
+- `context`：灰色边框与浅灰底。
+
+颜色不能单独承担含义；同时使用 label、形状或线型。禁止 rainbow/jet、渐变装饰、拟物阴影、大面积高饱和底色和外部图标。正式论文缩放后必须保持文字、箭头和变量可读。''',
+              '''## 7. 视觉语法
+
+正式 draw.io 机理图默认使用 **黑白线稿 + 灰度层级**，不再按 `primary / secondary / risk` 自动分配蓝、绿、红色。
+
+- `primary`：白底、黑/深灰主轮廓，适度加粗；
+- `secondary`：白底、中深灰轮廓，常规线宽；
+- `risk`：浅灰或白底、深色加粗轮廓，必要时结合线型/边界符号，而不是红色填充；
+- `context`：极浅灰底与浅灰轮廓，主动降权。
+
+视觉区分优先级为 `shape / geometry → line style / line width → grayscale → optional accent color`。默认输出不得包含蓝/绿/红多色语义填充；若人工精修确需强调色，应先证明黑白编码不足，通常只允许 1 个强调色，极少数复杂图最多 2 个，并保证黑白打印仍可辨识。
+
+节点优先使用与题意实体一致的规则几何图形。稳定图元包括矩形/圆角矩形、圆/椭圆、三角形、菱形、四边形、六边形、圆柱投影，以及用圆形/椭圆轮廓表达的球体。不要把所有对象退化成圆角矩形盒子。精确几何比例、切线、曲线和坐标边界仍应转 MATLAB / TikZ / GeoGebra。
+
+禁止 rainbow/jet、渐变装饰、拟物阴影、大面积高饱和底色、外部图标和装饰性 3D。正式论文缩放后必须保持文字、箭头、变量、虚实线和边界可读。'''
+          )
+
+          # Generator: keep Spec v1 compatible while extending shape vocabulary and reverting palette.
+          replace_once(
+              'scripts/generate_mechanism_drawio.py',
+              'SHAPES = {"rounded_rect", "rect", "ellipse", "diamond", "hexagon"}',
+              'SHAPES = {"rounded_rect", "rect", "ellipse", "circle", "sphere", "triangle", "diamond", "quadrilateral", "hexagon", "cylinder"}'
+          )
+          replace_once(
+              'scripts/generate_mechanism_drawio.py',
+              '''def _node_style(node: Mapping[str, Any]) -> str:
+    palettes = {
+        "primary": ("#E8F1FF", "#1478FF", "#0B3B75"),
+        "secondary": ("#EAF8F1", "#16B364", "#065F46"),
+        "context": ("#F4F5F7", "#98A2B3", "#344054"),
+        "risk": ("#FFF1F0", "#F04444", "#912018"),
+    }
+    fill, stroke, font = palettes[str(node["emphasis"])]
+    shape_style = {
+        "rounded_rect": "rounded=1;arcSize=14;",
+        "rect": "rounded=0;",
+        "ellipse": "ellipse;",
+        "diamond": "rhombus;",
+        "hexagon": "shape=hexagon;perimeter=hexagonPerimeter2;fixedSize=1;",
+    }[str(node["shape"])]
+    return (
+        f"{shape_style}whiteSpace=wrap;html=0;fillColor={fill};strokeColor={stroke};"
+        f"fontColor={font};fontFamily=Arial;fontSize=14;strokeWidth=1.6;align=center;verticalAlign=middle;"
+    )''',
+              '''def _node_style(node: Mapping[str, Any]) -> str:
+    # Formal mechanism figures are monochrome-first. Emphasis is encoded by
+    # grayscale, outline weight and geometry rather than blue/green/red fills.
+    palettes = {
+        "primary": ("#FFFFFF", "#111827", "#111827", "2.0"),
+        "secondary": ("#FFFFFF", "#4B5563", "#1F2937", "1.5"),
+        "context": ("#F9FAFB", "#9CA3AF", "#4B5563", "1.1"),
+        "risk": ("#F3F4F6", "#111827", "#111827", "2.0"),
+    }
+    fill, stroke, font, stroke_width = palettes[str(node["emphasis"])]
+    shape_style = {
+        "rounded_rect": "rounded=1;arcSize=10;",
+        "rect": "rounded=0;",
+        "ellipse": "ellipse;",
+        "circle": "ellipse;aspect=fixed;",
+        "sphere": "ellipse;aspect=fixed;",
+        "triangle": "triangle;direction=north;",
+        "diamond": "rhombus;",
+        "quadrilateral": "shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;",
+        "hexagon": "shape=hexagon;perimeter=hexagonPerimeter2;fixedSize=1;",
+        "cylinder": "shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;",
+    }[str(node["shape"])]
+    return (
+        f"{shape_style}whiteSpace=wrap;html=0;fillColor={fill};strokeColor={stroke};"
+        f"fontColor={font};fontFamily=Arial;fontSize=14;strokeWidth={stroke_width};align=center;verticalAlign=middle;"
+    )'''
+          )
+          replace_once(
+              'scripts/generate_mechanism_drawio.py',
+              '    color = "#F04444" if edge["relation_type"] in {"constrains", "switches_to"} else "#475467"\n    dashed = "dashed=1;dashPattern=6 4;" if edge["relation_type"] in {"depends_on", "compares_with", "feedback"} else "dashed=0;"\n    return (\n        "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;"\n        f"{arrows}{dashed}strokeColor={color};fontColor=#344054;fontFamily=Arial;fontSize=12;strokeWidth=1.5;"\n    )',
+              '    color = "#1F2937"\n    dashed = "dashed=1;dashPattern=6 4;" if edge["relation_type"] in {"depends_on", "compares_with", "feedback"} else "dashed=0;"\n    stroke_width = "1.8" if edge["relation_type"] in {"constrains", "switches_to"} else "1.4"\n    return (\n        "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;"\n        f"{arrows}{dashed}strokeColor={color};fontColor=#374151;fontFamily=Arial;fontSize=12;strokeWidth={stroke_width};"\n    )'
+          )
+          replace_once(
+              'scripts/generate_mechanism_drawio.py',
+              '"style": "swimlane;container=1;collapsible=0;rounded=1;html=0;fillColor=#F9FAFB;strokeColor=#D0D5DD;fontColor=#344054;fontFamily=Arial;fontSize=13;strokeWidth=1.2;",',
+              '"style": "swimlane;container=1;collapsible=0;rounded=0;html=0;fillColor=#FFFFFF;strokeColor=#D1D5DB;fontColor=#374151;fontFamily=Arial;fontSize=13;strokeWidth=1.0;",'
+          )
+
+          # QA now checks grayscale survival and geometry-first rendering.
+          qa = ROOT / 'templates/figure/mechanism_qa.md'
+          qa_text = qa.read_text(encoding='utf-8')
+          anchor = '| 若节点/边/公式/阈值发生语义变化，是否已与 current Framework 和模型 Authority 比较并正确分流 |  |  |'
+          if qa_text.count(anchor) != 1:
+              raise SystemExit('mechanism_qa.md: anchor mismatch')
+          qa_text = qa_text.replace(
+              anchor,
+              anchor + '\n| 正式机理图是否以白底、黑/深灰线条与灰度层级为默认，而非蓝/绿/红多色填充 |  |  |\n| 即使转灰度或黑白打印，形状、线型、线宽、箭头和边界是否仍能无损辨识 |  |  |\n| 对象是否优先使用题意一致的规则几何图元（圆/椭圆、矩形、三角形、四边形、圆柱投影、球体轮廓等），并避免无必要的盒箭化 |  |  |\n| 若使用强调色，是否有黑白编码不足的明确理由，且通常不超过 1 色、极少数复杂图不超过 2 色 |  |  |',
+              1,
+          )
+          qa.write_text(qa_text, encoding='utf-8')
+
+          # Patch release carriers to 8.7.3. Generated indexes/manifest are rebuilt below.
+          version_replacements = {
+              'core/bootstrap.yaml': ('skill_version: 8.7.2', 'skill_version: 8.7.3'),
+              '.codex-plugin/plugin.json': ('"version": "8.7.2"', '"version": "8.7.3"'),
+              'SKILL.md': ('version: 8.7.2', 'version: 8.7.3'),
+              'skills/mathmodel-skill/SKILL.md': ('version: 8.7.2', 'version: 8.7.3'),
+              'README.md': ('# mathmodel-skill v8.7.2', '# mathmodel-skill v8.7.3'),
+              'core/hsk_core_policy.md': ('# HSK Core Policy v8.7.2', '# HSK Core Policy v8.7.3'),
+              'core/module_manifest.yaml': ('version: 8.7.2', 'version: 8.7.3'),
+              'core/workflow_router.yaml': ('version: 8.7.2', 'version: 8.7.3'),
+              'core/output_contract.yaml': ('version: 8.7.2', 'version: 8.7.3'),
+              'core/writing_runtime_contract.yaml': ('version: 8.7.2', 'version: 8.7.3'),
+              'config/prose_audit_patterns.yaml': ('version: 8.7.2', 'version: 8.7.3'),
+          }
+          for path, (old, new) in version_replacements.items():
+              replace_once(path, old, new)
+
+          replace_once(
+              'CHANGELOG.md',
+              '## Current release: 8.7.2\n\n',
+              '''## Current release: 8.7.3
+
+- Reverted formal mechanism-diagram rendering to a **monochrome-first** paper style: white background, black/dark-gray outlines and text, grayscale de-emphasis, and no default blue/green/red semantic fills.
+- Made geometry and line grammar the primary visual encoding; added backward-compatible draw.io shapes for circle, sphere projection, triangle, quadrilateral and cylinder while preserving existing rect/ellipse/diamond/hexagon forms.
+- Kept optional color as an evidence-justified exception only: normally one accent color, at most two for rare complex diagrams, with mandatory grayscale/black-and-white readability.
+- Added regression coverage for monochrome output and regular geometric primitives without changing Mechanism Spec v1 fields, CLI, artifact lifecycle, numerical ownership or MATLAB result-figure palette.
+
+## Previous release: 8.7.2
+
+'''
+          )
+
+          test_path = ROOT / 'tests/test_v873_mechanism_monochrome_geometry.py'
+          test_path.write_text('''from __future__ import annotations
+
+import importlib.util
+import sys
+import unittest
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def load_generator():
+    spec = importlib.util.spec_from_file_location(
+        "hsk_generate_mechanism_drawio_v873", ROOT / "scripts/generate_mechanism_drawio.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+GENERATOR = load_generator()
+
+
+def base_spec(shape: str = "rect") -> dict:
+    return {
+        "spec_version": "1.0.0",
+        "figure_id": "MF-Q1-873",
+        "question_id": "Q1",
+        "diagram_type": "object_relation",
+        "core_question": "规则几何对象如何构成约束关系？",
+        "core_conclusion": "对象几何与约束方向可由黑白线稿直接表达。",
+        "framework_anchor": "模型论文框架.md#Q1-机理图",
+        "backend": "drawio",
+        "layout_mode": "explicit",
+        "semantic_anchors": {
+            "model": ["模型论文框架.md#Q1-模型"],
+            "formulas": [],
+            "constraints": ["C1"],
+            "assumptions": [],
+            "code": [],
+            "result_evidence": [],
+        },
+        "canvas": {
+            "width": 800,
+            "height": 500,
+            "orientation": "landscape",
+            "target_use": "paper",
+            "target_width_mm": 150,
+        },
+        "groups": [],
+        "nodes": [
+            {
+                "id": "n1",
+                "label": "对象 A",
+                "semantic_role": "object",
+                "symbol_refs": ["A"],
+                "source_anchor": "模型论文框架.md#Q1-A",
+                "group_id": None,
+                "shape": shape,
+                "emphasis": "primary",
+                "geometry": {"x": 80, "y": 120, "width": 160, "height": 100},
+            },
+            {
+                "id": "n2",
+                "label": "边界 B",
+                "semantic_role": "boundary",
+                "symbol_refs": ["B"],
+                "source_anchor": "模型论文框架.md#Q1-B",
+                "group_id": None,
+                "shape": "circle",
+                "emphasis": "risk",
+                "geometry": {"x": 480, "y": 120, "width": 120, "height": 120},
+            },
+        ],
+        "edges": [
+            {
+                "id": "e1",
+                "source": "n1",
+                "target": "n2",
+                "relation_type": "constrains",
+                "direction": "forward",
+                "label": "约束",
+                "source_anchor": "模型论文框架.md#C1",
+                "formula_refs": [],
+                "waypoints": [],
+            }
+        ],
+        "artifact": {
+            "spec_source": "figures/source/q1_geometry.mechanism.yaml",
+            "editable_source": "figures/source/q1_geometry.drawio",
+            "preview": None,
+            "final_exports": [],
+            "spec_sha256": None,
+            "drawio_sha256": None,
+            "preview_sha256": None,
+            "validation_status": "pending",
+            "visual_review_status": "pending",
+        },
+    }
+
+
+class MechanismMonochromeGeometryTests(unittest.TestCase):
+    def test_new_regular_geometry_shapes_are_supported(self):
+        required = {"circle", "sphere", "triangle", "quadrilateral", "cylinder"}
+        self.assertTrue(required.issubset(GENERATOR.SHAPES))
+        for shape in sorted(required):
+            with self.subTest(shape=shape):
+                root = ET.fromstring(GENERATOR.generate_drawio(base_spec(shape)))
+                node = next(cell for cell in root.iter("mxCell") if cell.attrib.get("id") == "n1")
+                self.assertIn("strokeColor=", node.attrib["style"])
+
+    def test_default_generator_has_no_semantic_blue_green_red_palette(self):
+        xml_text = GENERATOR.generate_drawio(base_spec()).decode("utf-8")
+        for forbidden in ("#1478FF", "#F04444", "#16B364", "#F79009", "#7A5AF8"):
+            self.assertNotIn(forbidden, xml_text)
+        self.assertIn("fillColor=#FFFFFF", xml_text)
+        self.assertIn("strokeColor=#111827", xml_text)
+        self.assertIn("strokeColor=#1F2937", xml_text)
+
+    def test_authority_and_implementation_reference_monochrome_first(self):
+        authority = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
+        patterns = (ROOT / "templates/figure/mechanism_drawio_patterns.md").read_text(encoding="utf-8")
+        qa = (ROOT / "templates/figure/mechanism_qa.md").read_text(encoding="utf-8")
+        self.assertIn("monochrome-first", authority)
+        self.assertIn("黑白线稿", authority)
+        self.assertIn("规则几何", patterns)
+        self.assertIn("黑白打印", qa)
+
+
+if __name__ == "__main__":
+    unittest.main()
+''', encoding='utf-8')
+
+          # Remove this one-shot migration workflow before generated metadata is rebuilt.
+          workflow = ROOT / '.github/workflows/apply-v873-mechanism-monochrome.yml'
+          if workflow.exists():
+              workflow.unlink()
+          PY
+      - name: Rebuild generated indexes and active manifest
+        run: python scripts/generate_indexes.py
+      - name: Run targeted tests and static lint
+        shell: bash
+        run: |
+          python -m unittest tests.test_v830_editable_mechanism_diagram tests.test_v873_mechanism_monochrome_geometry
+          python scripts/lint_skill.py
+          python scripts/generate_indexes.py --check
+      - name: Commit migration
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix: restore monochrome mechanism diagram style"
+          git push origin HEAD:refactor/v8.7.3-mechanism-monochrome
