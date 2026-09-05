@@ -87,16 +87,18 @@ class WritingReasoningScopeTests(unittest.TestCase):
             "98f90f8caa6c3072316dd8e620add05722abfa4b",
         )
 
-        # The CUMCM main template now intentionally includes the AI-tool declaration
-        # immediately before the bibliography. Keep the exact current form pinned so
-        # unrelated orchestration drift still fails closed.
+        # v8.7.2 keeps the CUMCM AI-disclosure source in the canonical project but
+        # makes its input conditional/truth-bound by default. Keep the exact current
+        # orchestration pinned so an unconditional reactivation or unrelated drift fails closed.
         main = read("templates/latex/cumcm/hsk/hsk_main.tex")
         provenance = (
             "% Template-First canonical layout lineage: introduced in v8.0.1 from the A196-inspired template work.\n"
             "% This comment records provenance only; the current Skill release is declared by active release carriers."
         )
         self.assertIn(provenance, main)
-        self.assertIn(r"\input{sections/10_ai_tool_statement}", main)
+        self.assertIn(r"% \input{sections/10_ai_tool_statement}", main)
+        active_main = "\n".join(line.split("%", 1)[0] for line in main.splitlines())
+        self.assertNotIn(r"\input{sections/10_ai_tool_statement}", active_main)
         normalized_main = main.replace(
             provenance,
             "% v8.0.1 A196-inspired canonical template:",
@@ -104,7 +106,7 @@ class WritingReasoningScopeTests(unittest.TestCase):
         )
         self.assertEqual(
             git_blob_sha1(normalized_main),
-            "dc944d3f2e74182666aca8672109ce60cdd67d0f",
+            "0552dc0d86c71c69e40d4693d5af564deb26feeb",
         )
 
         manifest = yaml.safe_load(read("templates/latex/cumcm/hsk/template_manifest.yaml"))
