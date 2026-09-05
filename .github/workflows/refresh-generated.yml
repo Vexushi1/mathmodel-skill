@@ -38,9 +38,6 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Apply one-time v8.7.4 active-authority hygiene migration
-        if: github.ref_name == 'fix/v8.7.4-active-authority-hygiene'
-        run: python .github/migrate_v874_active_authority_hygiene.py
       - name: Rebuild active indexes and manifest
         run: python scripts/generate_indexes.py
       - name: Commit generated metadata when changed
