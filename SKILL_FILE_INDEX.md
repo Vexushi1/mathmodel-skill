@@ -324,3 +324,4 @@
 - `tests/test_v871_active_release_label_hygiene.py`
 - `tests/test_v871_fragment_health.py`
 - `tests/test_v871_readpath_semantic_state_consistency.py`
+- `tests/test_v871_writing_reasoning_schema_policy.py`
