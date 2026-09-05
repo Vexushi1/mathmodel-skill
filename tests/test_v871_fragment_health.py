@@ -96,6 +96,56 @@ class TestV871CriticalFragmentHealth(unittest.TestCase):
         LINT._check_critical_pointer_fragments(errors)
         self.assertEqual([], errors)
 
+    def test_same_file_markdown_link_fragment_resolves(self):
+        origin = ROOT / "modules/05_writing/paper_writing_protocol.md"
+        resolved = LINT._markdown_link_target(origin, "#5A-Cross-File-Chapter-Handoff")
+        self.assertIsNotNone(resolved)
+        path, fragment = resolved
+        self.assertEqual(origin.resolve(), path)
+        self.assertTrue(LINT._markdown_fragment_exists(path, fragment))
+
+    def test_relative_cross_file_markdown_link_fragment_resolves(self):
+        origin = ROOT / "modules/05_writing/latex.md"
+        resolved = LINT._markdown_link_target(
+            origin,
+            "../../templates/model/model_paper_framework.md#逐问写作能力预检",
+        )
+        self.assertIsNotNone(resolved)
+        path, fragment = resolved
+        self.assertEqual((ROOT / "templates/model/model_paper_framework.md").resolve(), path)
+        self.assertTrue(LINT._markdown_fragment_exists(path, fragment))
+
+    def test_missing_markdown_link_fragment_is_detectable(self):
+        origin = ROOT / "modules/05_writing/latex.md"
+        resolved = LINT._markdown_link_target(
+            origin,
+            "../../templates/model/model_paper_framework.md#definitely-missing-v872",
+        )
+        self.assertIsNotNone(resolved)
+        path, fragment = resolved
+        self.assertFalse(LINT._markdown_fragment_exists(path, fragment))
+
+    def test_missing_markdown_link_file_is_detectable(self):
+        origin = ROOT / "modules/05_writing/latex.md"
+        resolved = LINT._markdown_link_target(origin, "../../templates/definitely-missing-v872.md#x")
+        self.assertIsNotNone(resolved)
+        path, _ = resolved
+        self.assertFalse(path.is_file())
+
+    def test_external_markdown_fragment_is_ignored(self):
+        origin = ROOT / "README.md"
+        self.assertIsNone(LINT._markdown_link_target(origin, "https://example.com/page#fragment"))
+
+    def test_legacy_history_is_outside_active_markdown_scan(self):
+        surfaces = [path.relative_to(ROOT).as_posix() for path in LINT._active_markdown_surfaces()]
+        self.assertFalse(any(path.startswith("legacy/") for path in surfaces))
+        self.assertFalse(any(path.startswith("docs/") for path in surfaces))
+
+    def test_real_active_markdown_link_fragment_scan_is_clean(self):
+        errors: list[str] = []
+        LINT._check_active_markdown_link_fragments(errors)
+        self.assertEqual([], errors)
+
 
 if __name__ == "__main__":
     unittest.main()
