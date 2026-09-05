@@ -7,7 +7,7 @@
 - `reference/example_mm_r1.tex`：由用户提供的 LaTeX 文件去除题目专属正文后形成的版式适配参考，主要吸收页面、标题层级、摘要、三线表、代码和附录组织；其来源与存储校验和记录在 manifest；
 - `reference/a196_framework_notes.md`：用户提供优秀论文 A196 的章节框架提炼，主要吸收“问题重述 → 问题分析 → 模型假设 → 符号说明 → 模型准备 → 各问题独立建立与求解 → 模型评价 → 参考文献 → 附录”的论文组织。
 
-只吸收结构和表达组织，不复制参考论文的正文、公式、图表、算法、参数或结果。A196 及其他 reference 文件只承担 provenance / chapter-topology 参考，不是当前写作语义、模型/solver 选择或问题内部标题的运行时 Authority；相关决策必须回到 active Template Manifest、Writing Reasoning 与 Paper Writing Protocol。
+只吸收结构和表达组织，不复制参考论文的正文、公式、图表、算法、参数或结果。A196 及其他 reference 文件只承担 provenance / chapter-topology 参考，不是当前写作语义、模型/solver 选择、AI 披露事实或问题内部标题的运行时 Authority；相关决策必须回到 active Template Manifest、Competition Profile、Writing Reasoning、Paper Writing Protocol 与 Final Review Authority。
 
 - Template Manifest：`template_manifest.yaml`
 - HSK 主入口：`hsk_main.tex`
@@ -18,7 +18,7 @@
 - 附录：`appendices/`
 - 参考文献库：`references.bib`
 
-运行时第一次读取本目录时只检查 `template_manifest.yaml`、`hsk_main.tex`、active/conditional slot 和目标子文件，不直接照着注释生成正文。实际作者顺序由 `core/writing_runtime_contract.yaml#template_first_progressive_authoring` 管理：先逐章写问题重述、问题分析、假设/符号/准备和各问题，再写评价/引用/附录，最后根据 current 结果回写摘要、标题和关键词；随后依次执行初稿语义审查、去 AI、装配/编译和最终终审。
+运行时第一次读取本目录时只检查 `template_manifest.yaml`、`hsk_main.tex`、active/conditional slot 和目标子文件，不直接照着注释生成正文。实际作者顺序由 `core/writing_runtime_contract.yaml#template_first_progressive_authoring` 管理：先逐章写问题重述、问题分析、假设/符号/准备和各问题，再写模型评价并按核验后的竞赛规则与真实项目事实处理条件式 AI disclosure、引用和附录，最后根据 current 结果回写摘要、标题和关键词；随后依次执行初稿语义审查、去 AI、装配/编译和最终终审。
 
 ## 1. v8 推荐章节框架
 
@@ -41,11 +41,14 @@
 八、问题三模型建立及求解
 ...                               [按实际小问数量]
 模型的评价与推广
+AI工具使用声明                    [条件合规槽位：按已核验当届规则 + 已确认真实使用事实启用]
 参考文献
 附录
 ```
 
 若确有项目级共享数据处理，可在“符号说明”之后、“模型准备”之前插入 `05_data.tex`。它是条件章节，默认 `hsk_main.tex` 不启用。
+
+`AI工具使用声明` 同样是条件槽位，固定位置位于模型评价之后、参考文献之前，但默认不启用。只有当届 `ai_disclosure` 规则已经核验、当前项目真实 AI 使用事实已经由参赛队确认，并且披露对当前项目适用时，才据实填写 `sections/10_ai_tool_statement.tex` 并取消主文件中的对应 `\input` 注释。模板不得替参赛队预先声称“使用过 AI”或预设具体用途；最终一致性由 `modules/06_review_delivery.md` 的 `ai_disclosure` 检查族核对。
 
 ### 模型准备的职责
 
@@ -99,6 +102,7 @@ Template Authority 可以规定：
 - 一级论文骨架和一级章节顺序；
 - CUMCM 问题章节一级标题 `问题X模型建立及求解`；
 - `main.tex` 的编排与正文子文件位置；
+- AI disclosure 条件槽位在最终装配中的结构位置；
 - 图、表、公式、命题、算法、参考文献和附录的渲染接口；
 - 复杂优化模型中 objective 与 constraints 的确定性展示示例。
 
@@ -106,11 +110,12 @@ Template Authority **不可以**规定：
 
 - 当前题目采用什么模型、solver 或 validator；
 - 当前公式、参数、结果和验证证据；
+- 当前参赛队是否使用 AI、使用了什么工具或用途；
 - 每个问题必须使用哪些固定二级标题；
 - 简单问题必须设置算法、核心模型汇总或验证小节；
 - 为达到目标页数而增加无技术作用的正文。
 
-Writing Skill 负责数学论证和段落组织，项目事实继续由当前 `模型论文框架.md`、真实工作簿和图表证据提供。
+Writing Skill 负责数学论证和段落组织，项目事实继续由当前 `模型论文框架.md`、真实工作簿、图表证据和用户确认事实提供；当届竞赛规则由 `config/competition_profiles.yaml` 的 verified edition rule 提供。
 
 ## 4. 模块化源码约定
 
@@ -137,13 +142,14 @@ final_latex/
 │  ├─ 06_question1.tex
 │  ├─ 07_question2.tex               # 复杂优化类问题示例
 │  ├─ 08_question3.tex               # 后问继承与扩展示例
+│  ├─ 10_ai_tool_statement.tex       # 条件合规槽位，默认不启用且不得预填虚构事实
 │  └─ ...                            # Q4+ 可复制 Q3 后按题目改写
 ├─ appendices/
 │  └─ appendices.tex
 └─ references.bib
 ```
 
-每个一级章节或完整小问默认对应一个 `.tex` 文件；只有单问确实很长时再二级拆分，避免碎片化。
+每个一级章节或完整小问默认对应一个 `.tex` 文件；只有单问确实很长时再二级拆分，避免碎片化。AI disclosure 文件属于条件合规载体，不计入数学建模问题章节数量。
 
 ## 5. 核心模型收束的模板语义
 
@@ -212,6 +218,6 @@ python scripts/render_paper.py final_latex --profile cumcm --clean
 XeLaTeX → Biber → XeLaTeX → XeLaTeX
 ```
 
-模板中的题号、队伍编号、年份和具体小问数量必须按当届题面修改；内部覆盖表、项目状态术语和 QA 检查不得进入终稿。
+模板中的题号、队伍编号、年份和具体小问数量必须按当届题面修改；内部覆盖表、项目状态术语、未核验合规声明和 QA 检查不得进入终稿。
 
 已有 v7 项目默认不自动重排或覆盖正文，迁移边界与人工 dry-run 清单见 `docs/v8_writing_migration.md`。
