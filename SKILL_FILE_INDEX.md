@@ -320,3 +320,4 @@
 - `tests/test_v860_model_construction_solution_rationale.py`
 - `tests/test_v861_active_consistency_semantic_drift.py`
 - `tests/test_v870_question_writing_capability_preflight.py`
+- `tests/test_v871_readpath_semantic_state_consistency.py`
