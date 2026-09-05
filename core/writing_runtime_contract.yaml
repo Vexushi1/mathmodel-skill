@@ -90,7 +90,7 @@ current_question_evidence_bundle:
     - current_question_figure_map
   rules:
     - 本 bundle 只定义逐问写作必须主动检查的项目事实组成，不复制这些事实本身，也不创造新的数学 Authority。
-    - `current_question_proposition_plan` 是由全局 proposition plan、按 `related_question` 过滤的命题项以及当前 framework preflight 记录派生的逐问视图，不是第四套独立状态事实源。
+    - "`current_question_proposition_plan` 是由全局 proposition plan、按 `related_question` 过滤的命题项以及当前 framework preflight 记录派生的逐问视图，不是第四套独立状态事实源。"
     - 任一 required 子状态缺失时不得静默按 not_applicable 或 not_needed 处理；先进入逐问能力预检的 needs_adjudication。
     - stale 项目事实不得因为进入写作阶段而自动恢复为 current。
 
