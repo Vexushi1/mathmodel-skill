@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import re
 from pathlib import Path
 
 import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
+_INPUT_RE = re.compile(r"\\(?:input|include)\{([^}]+)\}")
 
 
 def _resolve_manifest_path(path: str | Path) -> Path:
@@ -22,6 +24,13 @@ def _tex_path(template_root: Path, source: str) -> Path:
     if path.suffix:
         return path
     return path.with_suffix(".tex")
+
+
+def _normalize_tex_source(source: str) -> str:
+    path = Path(source.strip())
+    if not path.suffix:
+        path = path.with_suffix(".tex")
+    return path.as_posix()
 
 
 def _sha256(path: Path) -> str:
@@ -47,6 +56,77 @@ def _strip_tex_comments(text: str) -> str:
                 escaped = False
         active_lines.append("".join(out))
     return "\n".join(active_lines)
+
+
+def _document_body(text: str) -> str:
+    active = _strip_tex_comments(text)
+    begin = active.find(r"\begin{document}")
+    end = active.rfind(r"\end{document}")
+    if begin < 0 or end < 0 or end <= begin:
+        return active
+    return active[begin + len(r"\begin{document}") : end]
+
+
+def _extract_active_body_inputs(text: str) -> list[str]:
+    """Return active body-level input/include sources, normalized to explicit .tex paths."""
+    return [_normalize_tex_source(match.group(1)) for match in _INPUT_RE.finditer(_document_body(text))]
+
+
+def _declared_body_source(source: str, skeleton: list[dict], template_root: Path) -> bool:
+    normalized = _normalize_tex_source(source)
+    for slot in skeleton:
+        pattern = slot.get("source_pattern")
+        if pattern:
+            if Path(normalized).match(str(pattern)):
+                return True
+            continue
+        declared = slot.get("source")
+        if not declared or str(declared).endswith(".bib"):
+            continue
+        if _normalize_tex_source(str(declared)) == normalized:
+            return True
+    return False
+
+
+def _input_token_position(text: str, source: str) -> int:
+    normalized = _normalize_tex_source(source)
+    without_suffix = normalized[:-4] if normalized.endswith(".tex") else normalized
+    positions = [
+        position
+        for token in (
+            rf"\input{{{without_suffix}}}",
+            rf"\input{{{normalized}}}",
+            rf"\include{{{without_suffix}}}",
+            rf"\include{{{normalized}}}",
+        )
+        if (position := text.find(token)) >= 0
+    ]
+    return min(positions) if positions else -1
+
+
+def _declared_slot_positions(manifest: dict, template_root: Path, main_text: str) -> list[tuple[int, str]]:
+    """Recover manifest-declared source positions from canonical main without duplicating slot order."""
+    positions: list[tuple[int, str]] = []
+    skeleton = manifest.get("paper_skeleton", {}).get("ordered_slots", []) or []
+    for slot in skeleton:
+        pattern = slot.get("source_pattern")
+        if pattern:
+            for path in sorted(template_root.glob(str(pattern))):
+                source = path.relative_to(template_root).as_posix()
+                position = _input_token_position(main_text, source)
+                if position >= 0:
+                    positions.append((position, source))
+            continue
+        source = str(slot.get("source") or "")
+        if not source:
+            continue
+        if source.endswith(".bib"):
+            position = main_text.find(r"\printbibliography")
+        else:
+            position = _input_token_position(main_text, source)
+        if position >= 0:
+            positions.append((position, source))
+    return positions
 
 
 def validate_template_manifest(path: str | Path) -> list[str]:
@@ -111,7 +191,7 @@ def validate_template_manifest(path: str | Path) -> list[str]:
         elif _sha256(stored) != expected:
             errors.append(f"stored reference sha256 mismatch: {relative}")
 
-    skeleton = manifest.get("paper_skeleton", {}).get("ordered_slots", [])
+    skeleton = manifest.get("paper_skeleton", {}).get("ordered_slots", []) or []
     for slot in skeleton:
         pattern = slot.get("source_pattern")
         if pattern:
@@ -203,6 +283,24 @@ def validate_template_manifest(path: str | Path) -> list[str]:
                 errors.append(f"active main template order drifted at: {token}")
             else:
                 last_position = position
+
+        for source in _extract_active_body_inputs(main_text):
+            source_path = template_root / source
+            if not source_path.is_file():
+                errors.append(f"active body input missing: {source}")
+            elif not _declared_body_source(source, skeleton, template_root):
+                errors.append(f"undeclared active body input: {source}")
+
+        declared_positions = _declared_slot_positions(manifest, template_root, main_text)
+        previous_position = -1
+        previous_source: str | None = None
+        for position, source in declared_positions:
+            if position <= previous_position:
+                errors.append(
+                    f"manifest-declared main source order drifted: {previous_source} -> {source}"
+                )
+            previous_position = position
+            previous_source = source
 
     evaluation_slot = next(
         (slot for slot in skeleton if slot.get("id") == "evaluation" and slot.get("source")),
