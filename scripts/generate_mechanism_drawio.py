@@ -49,7 +49,18 @@ RELATION_TYPES = {
     "custom",
 }
 DIRECTIONS = {"forward", "backward", "bidirectional", "none"}
-SHAPES = {"rounded_rect", "rect", "ellipse", "diamond", "hexagon"}
+SHAPES = {
+    "rounded_rect",
+    "rect",
+    "ellipse",
+    "circle",
+    "sphere",
+    "triangle",
+    "diamond",
+    "quadrilateral",
+    "hexagon",
+    "cylinder",
+}
 EMPHASIS_LEVELS = {"primary", "secondary", "context", "risk"}
 VALIDATION_STATUSES = {"pending", "passed", "failed", "review_required"}
 VISUAL_REVIEW_STATUSES = {
@@ -524,23 +535,30 @@ def _format_number(value: float) -> str:
 
 
 def _node_style(node: Mapping[str, Any]) -> str:
+    # Formal mechanism figures are monochrome-first. Emphasis is encoded by
+    # grayscale, outline weight and geometry rather than blue/green/red fills.
     palettes = {
-        "primary": ("#E8F1FF", "#1478FF", "#0B3B75"),
-        "secondary": ("#EAF8F1", "#16B364", "#065F46"),
-        "context": ("#F4F5F7", "#98A2B3", "#344054"),
-        "risk": ("#FFF1F0", "#F04444", "#912018"),
+        "primary": ("#FFFFFF", "#111827", "#111827", "2.0"),
+        "secondary": ("#FFFFFF", "#4B5563", "#1F2937", "1.5"),
+        "context": ("#F9FAFB", "#9CA3AF", "#4B5563", "1.1"),
+        "risk": ("#F3F4F6", "#111827", "#111827", "2.0"),
     }
-    fill, stroke, font = palettes[str(node["emphasis"])]
+    fill, stroke, font, stroke_width = palettes[str(node["emphasis"])]
     shape_style = {
-        "rounded_rect": "rounded=1;arcSize=14;",
+        "rounded_rect": "rounded=1;arcSize=10;",
         "rect": "rounded=0;",
         "ellipse": "ellipse;",
+        "circle": "ellipse;aspect=fixed;",
+        "sphere": "ellipse;aspect=fixed;",
+        "triangle": "triangle;direction=north;",
         "diamond": "rhombus;",
+        "quadrilateral": "shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;",
         "hexagon": "shape=hexagon;perimeter=hexagonPerimeter2;fixedSize=1;",
+        "cylinder": "shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;",
     }[str(node["shape"])]
     return (
         f"{shape_style}whiteSpace=wrap;html=0;fillColor={fill};strokeColor={stroke};"
-        f"fontColor={font};fontFamily=Arial;fontSize=14;strokeWidth=1.6;align=center;verticalAlign=middle;"
+        f"fontColor={font};fontFamily=Arial;fontSize=14;strokeWidth={stroke_width};align=center;verticalAlign=middle;"
     )
 
 
@@ -552,11 +570,12 @@ def _edge_style(edge: Mapping[str, Any]) -> str:
         "bidirectional": "startArrow=block;startFill=1;endArrow=block;endFill=1;",
         "none": "startArrow=none;endArrow=none;",
     }[direction]
-    color = "#F04444" if edge["relation_type"] in {"constrains", "switches_to"} else "#475467"
+    color = "#1F2937"
     dashed = "dashed=1;dashPattern=6 4;" if edge["relation_type"] in {"depends_on", "compares_with", "feedback"} else "dashed=0;"
+    stroke_width = "1.8" if edge["relation_type"] in {"constrains", "switches_to"} else "1.4"
     return (
         "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;"
-        f"{arrows}{dashed}strokeColor={color};fontColor=#344054;fontFamily=Arial;fontSize=12;strokeWidth=1.5;"
+        f"{arrows}{dashed}strokeColor={color};fontColor=#374151;fontFamily=Arial;fontSize=12;strokeWidth={stroke_width};"
     )
 
 
@@ -595,7 +614,7 @@ def generate_drawio(spec: Mapping[str, Any]) -> bytes:
         cell = ET.SubElement(root, "mxCell", {
             "id": group["id"],
             "value": group["label"],
-            "style": "swimlane;container=1;collapsible=0;rounded=1;html=0;fillColor=#F9FAFB;strokeColor=#D0D5DD;fontColor=#344054;fontFamily=Arial;fontSize=13;strokeWidth=1.2;",
+            "style": "swimlane;container=1;collapsible=0;rounded=0;html=0;fillColor=#FFFFFF;strokeColor=#D1D5DB;fontColor=#374151;fontFamily=Arial;fontSize=13;strokeWidth=1.0;",
             "vertex": "1",
             "parent": "1",
             "hskKind": "group",
