@@ -1,6 +1,12 @@
-# mathmodel-skill v8.7.3
+# mathmodel-skill v8.7.4
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v8.7.4：Active Authority / Read-Path Hygiene
+
+本补丁修复仓库级健康审计发现的活动读取与 Authority 漂移，不改变模型、求解、Schema、CLI、目录或写作规则内容。Paper Writing Protocol 的活动标题改为 release-neutral，避免后续 patch 再产生标题版本漂移；README、DOCX/LaTeX Artifact Packs 统一把普通正文结构与表达指向 `modules/05_writing/paper_writing_protocol.md`，并继续把 `modules/05_writing/latex.md` 限定为 LaTeX Adapter。
+
+MATLAB 绘图说明同步明确：高对比蓝/红/绿/橙/紫调色板只服务数据驱动结果 Figure，正式机理/推导图继续服从 Module 04 的 monochrome-first 规则；`draw_mechanism_structure.m` 只使用黑白灰结构编码。兼容 V622、legacy、旧工作簿/旧目录的只读路径保持不变。
 
 ## v8.7.3：Mechanism Diagram Monochrome & Geometry Rollback
 
@@ -522,7 +528,8 @@ route-specific contracts / modules / packs / templates
 - `core/code_quality_contract.yaml`：Python 工程质量；
 - `core/user_execution_contract.yaml`：用户本地执行与工作簿验收；
 - `core/writing_reasoning_contract.yaml`：推理、Model/Solver/Validator、优化模型表达、Algorithm Trace、连续模型建立/求解叙事、问题章节内部局部依赖、详略分配、Figure Result Narrative、问题章节闭环、术语、数值、Title Claim、Claim Strength、规则等级和 Citation Evidence；
-- `modules/05_writing/latex.md`：正文结构与表达；
+- `modules/05_writing/paper_writing_protocol.md`：普通正文结构与表达；
+- `modules/05_writing/latex.md`：LaTeX Adapter 与载体接口；
 - `core/output_contract.yaml`：目录、产物和正式交付；
 - `core/project_state.schema.yaml`：机器状态；
 - `templates/model/model_paper_framework.md`：项目记忆模板。

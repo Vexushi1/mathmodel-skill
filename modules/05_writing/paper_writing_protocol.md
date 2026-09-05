@@ -1,4 +1,4 @@
-# Module 05A：Paper Writing Protocol（v8.7.2）
+# Module 05A：Paper Writing Protocol
 
 本模块只回答一个问题：**已经有当前模型、结果、图表和模板后，正文应该怎样写得数学上连续、证据上闭合、语言上自然。**
 

@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：8.7.3
+当前 Skill 版本：8.7.4
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -314,3 +314,4 @@
 - `tests/test_v871_writing_reasoning_schema_policy.py`
 - `tests/test_v872_template_assembly_consistency.py`
 - `tests/test_v873_mechanism_monochrome_geometry.py`
+- `tests/test_v874_active_authority_hygiene.py`

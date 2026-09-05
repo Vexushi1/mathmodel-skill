@@ -1,4 +1,4 @@
-version: 8.7.3
+version: 8.7.4
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml

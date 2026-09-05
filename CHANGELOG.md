@@ -1,6 +1,13 @@
 # Changelog
 
-## Current release: 8.7.3
+## Current release: 8.7.4
+
+- Repaired active writing Authority/read-path drift: ordinary body structure and expression now consistently point to `modules/05_writing/paper_writing_protocol.md`, while `modules/05_writing/latex.md` remains a carrier-only LaTeX Adapter.
+- Removed stale release branding from the active Paper Writing Protocol title and separated the optional DOCX branch display label from the ordinary-writing Module 05A label.
+- Clarified MATLAB figure guidance so the high-contrast scientific palette applies to data-driven result figures only; formal mechanism/derivation figures continue to use the Module 04 monochrome-first visual grammar.
+- Added focused active-authority hygiene regression coverage while preserving model mathematics, Model Approval, 03A/03B, Workbook/Project State schemas, CLI, project layout, legacy/V622 read compatibility, and the v8.7.3 mechanism rendering behavior.
+
+## Previous release: 8.7.3
 
 - Restored formal mechanism/derivation diagrams to a **monochrome-first** visual grammar: white background, black/dark-gray outlines and text, grayscale de-emphasis, and structure conveyed primarily through geometry, line style, line weight, boundary and spacing rather than semantic blue/green/red fills.
 - Extended the existing Mechanism Spec v1 shape vocabulary compatibly with `circle`, `sphere`, `triangle`, `quadrilateral`, and `cylinder` while preserving `rounded_rect`, `rect`, `ellipse`, `diamond`, and `hexagon`; sphere/cylinder semantics remain simple 2D outline/projection primitives rather than decorative 3D rendering.

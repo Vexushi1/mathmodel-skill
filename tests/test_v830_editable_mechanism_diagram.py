@@ -434,7 +434,7 @@ class ContractAndDriftTests(unittest.TestCase):
         competition_profiles = "config/competition_profiles.yaml"
         protocol_rewrites = (
             (
-                "# Module 05A：Paper Writing Protocol（v8.7.2）",
+                "# Module 05A：Paper Writing Protocol",
                 "# Module 05A：Paper Writing Protocol（v8.7.0）",
             ),
             (

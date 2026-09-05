@@ -96,7 +96,7 @@ Figure Contract 记录 `Enhancement / Enhancement rationale`，不把 inset 坐�
 - 正式论文图不设置整体 `title` 或 `sgtitle`；LaTeX/DOCX `caption` 承担正式图号和图名，多面板按需只保留 a/b/c/d 等 panel label；
 - 本地探索阶段若临时使用调试标题，进入正式 `figures` 交付前必须移除；
 - 白底、清晰细轴、中文坐标轴和单位，默认字号 18；
-- 主结果恢复高对比、中高饱和科研主色：亮蓝 `#1478FF`、鲜红 `#F04444`、亮绿 `#16B364`、亮橙 `#F79009`、亮紫 `#7A5AF8`；强比较优先亮蓝 vs 鲜红；
+- 数据驱动主结果图恢复高对比、中高饱和科研主色：亮蓝 `#1478FF`、鲜红 `#F04444`、亮绿 `#16B364`、亮橙 `#F79009`、亮紫 `#7A5AF8`；强比较优先亮蓝 vs 鲜红；正式机理/推导图不继承该调色板，统一服从 Module 04 的 monochrome-first 黑白灰线稿规则；
 - 辅助对象、置信区间、背景带和参考元素使用深灰 `#252B37`、浅灰 `#E9EAEB` 或透明度降权；高对比不等于全图所有元素都鲜艳；
 - 同一对象/语义在全文保持颜色一致；红绿不能承担唯一语义，需要 marker/linestyle/shape；
 - 禁止 rainbow/jet 和无序彩虹；热图按连续变量语义选择 sequential/diverging colormap，并保留 colorbar 与单位；

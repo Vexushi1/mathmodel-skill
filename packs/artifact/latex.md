@@ -1,6 +1,6 @@
 # Artifact Pack：LaTeX 终稿
 
-本 Pack 只负责 **LaTeX 工程、编译和交付**。正文结构与表达服从 `modules/05_writing/latex.md`，跨竞赛推理、规则等级、命题预算和 Citation Evidence 服从 `core/writing_reasoning_contract.yaml`。本文件不得复制第二套正文规范。
+本 Pack 只负责 **LaTeX 工程、编译和交付**。普通正文结构与表达服从 `modules/05_writing/paper_writing_protocol.md`，跨竞赛推理、规则等级、命题预算和 Citation Evidence 服从 `core/writing_reasoning_contract.yaml`；`modules/05_writing/latex.md` 只负责 LaTeX 载体、环境、引用、审计与编译接口。本文件不得复制第二套正文规范。
 
 ## 一、进入条件
 
