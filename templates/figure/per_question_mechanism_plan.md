@@ -9,4 +9,4 @@
 - 是否需要该图、应使用 MATLAB / TikZ / GeoGebra / PPT / draw.io / manual 中哪一类后端，以及图能否进入论文，由 `modules/04_figure_evidence.md` 决定；
 - draw.io 仅在 Backend Selection Gate 选中后进入对应 Spec / generate / validate / preview / semantic & visual QA 链。
 
-旧 v6.2.1 的独立逐问规划表已经保存在 `legacy/v616_sources/HSK_COMMON_TEMPLATES_V616.md`，仅供历史追溯。当前流程不得同时维护该旧表与 `模型论文框架.md`，以免出现重复事实源和版本漂移。
+旧版独立逐问规划表已经保存在 `legacy/v616_sources/HSK_COMMON_TEMPLATES_V616.md`，仅供历史追溯。当前流程不得同时维护该旧表与 `模型论文框架.md`，以免出现重复事实源和版本漂移。
