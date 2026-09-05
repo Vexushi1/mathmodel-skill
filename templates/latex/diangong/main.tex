@@ -56,119 +56,18 @@
 \end{center}
 \end{titlepage}
 
-\section*{摘要}
-% 第一段简要交代工程对象、核心矛盾和统一路线；随后按实际小问写模型/机制、决定性数值和直接结论。
-% 优先正向说明“建立什么—得到什么—说明什么”，不罗列程序和工作簿。
-填写摘要正文。
+% 正文内容省略模板占位部分
 
-\noindent\textbf{关键词：}关键词1；关键词2；关键词3；关键词4
+\section*{AI工具使用声明}
 
-\newpage
-\tableofcontents
-\newpage
+本参赛队在论文撰写、程序开发与结果整理过程中合理使用了 AI 辅助工具。AI 工具主要用于语言润色、代码调试、格式检查、资料整理与思路辅助等环节。所有模型假设、数学推导、算法设计、数据处理方案及最终结论均由参赛队成员独立分析、验证并负责。
 
-\section{问题重述}
-\subsection{问题背景}
-% 通常一个自然段。由题面工程背景和真实工程矛盾自然引出待解决问题。
-
-\subsection{问题提出}
-\noindent\textbf{问题一：}……
-
-\noindent\textbf{问题二：}……
-% 按实际小问继续；只转述对象、条件和输出，不提前写公式、算法和结果。
-
-\section{问题分析}
-\subsection{问题一的分析}
-% 写工程难点、对象关系、关键约束和建模抓手；正式公式和最终结果默认留到模型/结果章节。
-
-\subsection{问题二的分析}
-% 按实际小问继续。跨问依赖可以说明，但不重复问题提出。
-
-\section{模型假设}
-\begin{enumerate}
-    \item ……。
-    \item ……。
-\end{enumerate}
-
-\section{符号说明}
-\begin{table}[H]
-    \centering
-    \caption{主要符号说明}
-    \begin{tabular}{cccc}
-        \toprule
-        符号 & 含义 & 单位 & 类型 \\
-        \midrule
-        $x_i$ & 示例变量 & -- & 变量 \\
-        $p^{(s)}$ & 第 $s$ 个场景参数 & -- & 参数 \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-% preprocessing_decision=not_needed 时删除本章；question_local 放到对应问题；project_level 才保留项目级预处理。
-\section{数据预处理}
-\subsection{数据问题与处理必要性}
-\subsection{处理方法与验证}
-
-\section{问题一模型建立及求解}
-\subsection{工程机制与模型建立}
-% 从本题工程对象和约束出发，定义变量并推导关键关系。
-
-% 核心模型收束按项目框架中的 required / inline / not_applicable 自适应。
-% 下面展示 required 示例；inline 时在上一小节末尾直接给最终关系并删除本小节；not_applicable 时直接删除。
-\subsection{核心模型汇总}
-\begin{equation}
-\left\{
-\begin{aligned}
-\min\quad & f(x) \\
-\text{s.t.}\quad & g_i(x)\le 0,\\
-& h_j(x)=0,\\
-& x\in\Omega .
-\end{aligned}
-\right.
-\end{equation}
-
-\subsection{模型求解}
-% 写实际算法、初始化/参数、终止条件、工程可行性和收敛口径。
-
-\subsection{求解结果}
-% 主结果留在本问。核心图表必须在邻近正文显式引用编号，并解释工程量级、约束和机制。
-% 例如：图~\ref{fig:q1-main} 给出了……；表~\ref{tab:q1-main} 汇总了……。
-
-% 若存在实质结果深化，使用题目专属标题，例如：
-% \subsection{参数扰动下的工程稳定区间}
-% \subsection{极端工况压力测试}
-% 最后一个结果/深化段自然回答本问，不默认建立“小问结论”。
-
-% 按实际题目继续问题二及后续；每问是否单列“核心模型汇总”由当前模型复杂度决定。
-
-\section{模型的评价与推广}
-% 确有工程改进内容时可改为“模型的改进、评价与推广”。
-\subsection{模型的优点}
-% 数量由实际模型决定；每条必须有结构或验证证据，不检查与缺点数量的大小关系。
-\begin{enumerate}
-    \item ……。
-    \item ……。
-    \item ……。
-\end{enumerate}
-
-\subsection{模型的缺点}
-% 数量由实际限制决定，并说明影响的结果、参数范围或适用边界。
-\begin{enumerate}
-    \item ……。
-    \item ……。
-\end{enumerate}
-
-\subsection{模型的推广}
-% 选写：说明可迁移工程对象、需替换参数/边界和不可直接迁移条件。
-
-% 默认不设置独立“结论”章；各问直接答案已经在对应“求解结果”中闭环。
-% 当届电工杯规则若明确要求总结/结论章节，则按当届规则增加。
+AI 工具的具体使用情况、交互记录及辅助内容说明将按照竞赛要求整理于支撑材料中。
 
 \printbibliography[title={参考文献}]
 
 \appendix
 \section{主要算法与复现说明}
 \section{补充推导与图表}
-% 完整代码可独立提交；附录说明输入、功能、输出和复现顺序。
 
 \end{document}
