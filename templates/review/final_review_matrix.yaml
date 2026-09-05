@@ -1,6 +1,6 @@
 review_schema_version: 1.0.0
 review_context:
-  skill_version: 8.3.0
+  skill_version: null
   competition_profile: null
   edition: null
   rule_verification_status: unverified
