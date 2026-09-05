@@ -1,6 +1,12 @@
-# mathmodel-skill v8.7.1
+# mathmodel-skill v8.7.2
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v8.7.2：Active Template / Read-Path / Release Consistency Hardening
+
+本补丁修复 v8.7.1 之后暴露出的模板装配、AI disclosure 和 release/read-path 一致性问题，不新增数学建模或数值能力。CUMCM `template_manifest.yaml` 现在显式声明位于模型评价与参考文献之间的条件式 AI disclosure slot；canonical `hsk_main.tex` 默认不激活该 slot，只有当届规则已经核验且当前项目真实 AI 使用事实已经确认后，才生成项目特定声明。电工杯模板同步移除默认“本队已经使用 AI”的事实性正文，MCM/ICM 不因 CUMCM 行为被机械添加声明。
+
+Template validator 现在会从 Manifest 的 `ordered_slots + activation` 推导默认 body assembly，并拒绝未声明的 active `\\input/\\include`；Cross-File Chapter Handoff 同时覆盖 AI disclosure active/inactive 两种真实 final-order seam。CUMCM reference exemplar 恢复为 provenance-only 内容，MCM/ICM 与电工杯活动模板清理容易误读为 current Skill release 的旧版本品牌；真实 Markdown link 的本地/跨文件 heading fragment 也进入保守健康检查。`compile_profiles.yaml` / `competition_profiles.yaml` 的 `version: 6.2.3` 仍作为独立配置 lineage 保留，不跟随 Skill release bump。本补丁不修改 Model Approval、03A/03B、Workbook/Project State Schema、Figure/MATLAB ownership、公共 CLI 或每问五文件布局。
 
 ## v8.7.1：Read-Path & Semantic-State Consistency Hardening
 
@@ -199,7 +205,7 @@ Paragraph Necessity 与 AI Cleanup 不再把“没有新增公式或数值”当
 - 统一 `preprocessing_decision` 生命周期：先做非破坏性数据审计并比较模型路线/输入需求，在 Module 02 内锁定判定，再完成 current proposed model、Model Challenge 与 Human Approval；不再在 Runtime Router 中把该判定误写成锁模后的步骤。
 - 修复 Module 03A 的示意链，使正式主求解代码前的 gate 顺序与 Router 一致：`semantic_governance → model_approval → code_delivery`，并保持 project-level 预处理位于人工锁模之后、主求解之前。
 - 将三个 v7.4.2 引入的长期合同中的旧 `skill_version` 元数据改为 `introduced_in_skill_version + skill_compatibility`，避免把合同引入版本误读为当前 Skill 版本；合同自身 version、Schema、CLI 与执行语义不变。
-- 增加 runtime-health 回归，锁定 root/packaged Skill 全文件一致、常用触发面、预处理生命周期与主求解 gate 顺序，防止后续声明式运行时重构再次产生入口/语义漂移。
+- 增加 runtime-health 回归，锁定 root/package Skill 全文件一致、常用触发面、预处理生命周期与主求解 gate 顺序，防止后续声明式运行时重构再次产生入口/语义漂移。
 
 本补丁明确不实现 state-aware resolver hydration、artifact project/hash binding、intent confidence/ambiguity diagnostics 或新的 runtime assurance schema；这些进入 v7.12.0 规划。
 
@@ -234,7 +240,7 @@ Paragraph Necessity 与 AI Cleanup 不再把“没有新增公式或数值”当
 本版本继续收口 v7.9.0 之后的终稿交付证明链，不改变数学模型、数值求解、Workbook Schema、Python/MATLAB 职责、用户 full-fidelity 执行、framework `v0.8-project-memory` 或每问五文件接口。
 
 - 正式 LaTeX 审计现在可持久化 `latex_audit_report.yaml`，并同时绑定 active source bundle 与当前 `模型论文框架.md`；正式编译不得跳过该证明。
-- `compile_report.yaml` 升级为 v3 attestation：除 source/PDF hash 外，继续绑定 audit-report hash、compile-profile fingerprint、实际 engine/bibliography/sequence 与有效编译日志；缺失 log 不再默认视为 passed。
+- `compile_report.yaml` 升级为 v3 attestation：除 source/PDF hash 外，继续绑定 audit-report hash、compile-profile fingerprint、实际 engine/bibliography/sequence 与有效日志；缺失 log 不再默认视为 passed。
 - `scripts/render_paper.py` 的 formal 模式负责“先审计、再按 profile 编译、再写 compile report”；template smoke 与正式交付证明显式分离。
 - CUMCM class materialization 由正式编译链统一处理，不再依赖调用者手工复制 class 才能跑通。
 - `full_workflow` 在进入 submission scope 后同时加载 `packs/artifact/full_submission.md`，并增加 `submission_package_validation` gate；`validated_submission_package` 只有在包级 provenance 验证成功后才成立。
