@@ -3,11 +3,12 @@
 
 The large cross-contract checks live in ``lint_skill_checks.py``. This entrypoint adds
 current-source adapters that require repository-wide context, most notably the modular
-CUMCM LaTeX template and current formal MATLAB figure semantics.
+CUMCM LaTeX template, critical Authority-fragment health, and current formal MATLAB figure semantics.
 """
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from pathlib import Path
 
 import lint_skill_checks as checks
@@ -23,6 +24,16 @@ _CUMCM_LINT_PARTS = (
     _CUMCM_ROOT / "config/preamble.tex",
     _CUMCM_ROOT / "sections/01_problem_statement.tex",
     _CUMCM_ROOT / "sections/06_question1.tex",
+)
+_CRITICAL_POINTER_REGISTRIES = (
+    ROOT / "core/bootstrap.yaml",
+    ROOT / "core/output_contract.yaml",
+    ROOT / "core/writing_runtime_contract.yaml",
+    ROOT / "templates/latex/cumcm/hsk/template_manifest.yaml",
+    ROOT / "templates/review/final_review_matrix.yaml",
+)
+_REPO_POINTER_RE = re.compile(
+    r"^(?:core|modules|templates|config|packs|scripts)/[^#\s]+#[^\s]+$"
 )
 
 
@@ -40,6 +51,103 @@ def _module_aware_read_text(path: Path) -> str:
 
 checks.read_text = _module_aware_read_text
 
+
+def _normalize_heading_fragment(value: str) -> str:
+    value = re.sub(r"`([^`]*)`", r"\1", value.strip().lower())
+    return "".join(char for char in value if char.isalnum() or "\u4e00" <= char <= "\u9fff")
+
+
+def _markdown_fragment_exists(path: Path, fragment: str) -> bool:
+    text = _ORIGINAL_READ_TEXT(path)
+    raw_fragment = fragment.strip()
+    if not raw_fragment:
+        return False
+    escaped = re.escape(raw_fragment)
+    if re.search(rf"<(?:a|span)\b[^>]*(?:id|name)=[\"']{escaped}[\"'][^>]*>", text, flags=re.IGNORECASE):
+        return True
+    if re.search(rf"\{{#{escaped}\}}", text):
+        return True
+    target = _normalize_heading_fragment(raw_fragment)
+    if not target:
+        return False
+    for match in re.finditer(r"(?m)^#{1,6}\s+(.+?)\s*#*\s*$", text):
+        heading = _normalize_heading_fragment(match.group(1))
+        if heading == target or heading.endswith(target):
+            return True
+    return False
+
+
+def _yaml_fragment_exists(path: Path, fragment: str) -> bool:
+    data = checks.load_structured(path)
+    parts = [part for part in fragment.split(".") if part]
+    if not parts:
+        return False
+
+    def descend(node: object, index: int) -> bool:
+        if index >= len(parts):
+            return True
+        part = parts[index]
+        if part.startswith("<") and part.endswith(">"):
+            if not isinstance(node, Mapping) or not node:
+                return False
+            return any(descend(value, index + 1) for value in node.values())
+        if not isinstance(node, Mapping) or part not in node:
+            return False
+        return descend(node[part], index + 1)
+
+    return descend(data, 0)
+
+
+def _critical_fragment_exists(reference: str) -> bool:
+    token = reference.strip().strip("`<>")
+    if "#" not in token:
+        return False
+    path_token, fragment = token.split("#", 1)
+    path = ROOT / path_token
+    if not path.is_file() or not fragment:
+        return False
+    if path.suffix.lower() == ".md":
+        return _markdown_fragment_exists(path, fragment)
+    if path.suffix.lower() in {".yaml", ".yml"}:
+        return _yaml_fragment_exists(path, fragment)
+    return False
+
+
+def _iter_critical_pointer_strings(value: object):
+    if isinstance(value, Mapping):
+        for child in value.values():
+            yield from _iter_critical_pointer_strings(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _iter_critical_pointer_strings(child)
+    elif isinstance(value, str):
+        token = value.strip().strip("`<>")
+        if _REPO_POINTER_RE.fullmatch(token):
+            yield token
+
+
+def _check_critical_pointer_fragments(errors: list[str]) -> None:
+    """Validate fragments only on active machine-like pointer registries.
+
+    This intentionally does not scan legacy/history prose. Dynamic YAML placeholders such as
+    ``profiles.<name>.edition_rules`` still validate the static prefix and at least one matching
+    dynamic branch instead of bypassing fragment checks altogether.
+    """
+    for registry in _CRITICAL_POINTER_REGISTRIES:
+        data = checks.load_structured(registry) or {}
+        for reference in _iter_critical_pointer_strings(data):
+            path_token, fragment = reference.split("#", 1)
+            path = ROOT / path_token
+            origin = registry.relative_to(ROOT)
+            if not path.is_file():
+                errors.append(f"critical repository reference missing: {origin} -> {path_token}")
+                continue
+            if path.suffix.lower() not in {".md", ".yaml", ".yml"}:
+                continue
+            if not _critical_fragment_exists(reference):
+                errors.append(f"critical repository fragment missing: {origin} -> {reference}")
+
+
 _original_check_contracts = checks.check_contracts
 
 
@@ -55,6 +163,7 @@ def _check_contracts(errors: list[str]) -> None:
     for key, value in expected.items():
         if policy.get(key) != value:
             errors.append(f"writing policy modular-LaTeX contract mismatch: {key} -> {policy.get(key)!r}")
+    _check_critical_pointer_fragments(errors)
 
 
 checks.check_contracts = _check_contracts
