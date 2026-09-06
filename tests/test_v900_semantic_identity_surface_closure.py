@@ -46,6 +46,7 @@ class PhaseCSemanticIdentitySurfaceClosureTests(unittest.TestCase):
             "Human Model Approval（绑定 current semantic revision/hash）",
             "challenge/approval 与当前 revision/hash 完全一致",
             "current semantic revision/hash",
+            "Semantic governance may accept the current semantic hash",
         ]
         for relative in paths:
             text = (ROOT / relative).read_text(encoding="utf-8")
@@ -57,12 +58,15 @@ class PhaseCSemanticIdentitySurfaceClosureTests(unittest.TestCase):
         bootstrap = (ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8")
         policy = (ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8")
         module03 = (ROOT / "modules/03_solve_validate.md").read_text(encoding="utf-8")
+        agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
         for text in (manifest, bootstrap, policy, module03):
             self.assertIn("semantic_identity_hash", text)
         self.assertIn("approved_semantic_identity_hash", manifest)
         self.assertIn("legacy semantic_hash", manifest.lower())
         self.assertIn("legacy", policy)
         self.assertIn("legacy", module03)
+        self.assertIn("legacy text-hash provenance", agents)
+        self.assertIn("never authorize new project-level preprocessing or primary solve code", agents)
 
     def test_root_and_packaged_skill_remain_byte_identical(self):
         self.assertEqual(
