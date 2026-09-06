@@ -328,6 +328,10 @@ properties:
       anyOf:
       - required: [classification]
       - required: [problem_types]
+      dependentRequired:
+        semantic_identity_hash: [semantic_identity_schema_version, semantic_text_hash]
+        validated_semantic_identity_hash: [semantic_identity_schema_version, semantic_identity_hash]
+        approved_semantic_identity_hash: [semantic_identity_schema_version, semantic_identity_hash]
       properties:
         status:
           type: string
@@ -364,15 +368,44 @@ properties:
         model_challenge_status: {$ref: '#/$defs/model_challenge_status'}
         human_model_approval_status: {$ref: '#/$defs/human_model_approval_status'}
         approved_semantic_revision: {type: integer, minimum: 1}
-        approved_semantic_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+        approved_semantic_hash:
+          description: v8 legacy Markdown semantic-scope approval hash；C3迁移窗口内只读兼容。
+          type: string
+          pattern: '^[0-9a-fA-F]{64}$'
         semantic_revision: {type: integer, minimum: 1}
         validated_semantic_revision: {type: integer, minimum: 1}
         semantic_change_categories:
           type: array
           uniqueItems: true
           items: {$ref: '#/$defs/semantic_change_category'}
-        semantic_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
-        validated_semantic_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+        semantic_hash:
+          description: v8 legacy Markdown semantic-scope hash；无SIB项目继续兼容读取/写入。
+          type: string
+          pattern: '^[0-9a-fA-F]{64}$'
+        validated_semantic_hash:
+          description: v8 legacy validated Markdown semantic-scope hash；无SIB项目继续兼容读取/写入。
+          type: string
+          pattern: '^[0-9a-fA-F]{64}$'
+        semantic_identity_schema_version:
+          description: SIB canonical identity schema；仅structured semantic identity项目存在。
+          type: string
+          const: 1.0.0
+        semantic_identity_hash:
+          description: 当前SIB canonical数学语义身份hash；不包含Markdown纯措辞表现。
+          type: string
+          pattern: '^[0-9a-fA-F]{64}$'
+        validated_semantic_identity_hash:
+          description: 最近通过semantic governance验证的SIB canonical identity hash。
+          type: string
+          pattern: '^[0-9a-fA-F]{64}$'
+        approved_semantic_identity_hash:
+          description: 预留给C3 Model Approval绑定的SIB canonical identity hash；C2不写入该字段。
+          type: string
+          pattern: '^[0-9a-fA-F]{64}$'
+        semantic_text_hash:
+          description: 当前#### 当前模型口径Markdown文本hash，仅作provenance/wording-change检测，不作为模型身份。
+          type: string
+          pattern: '^[0-9a-fA-F]{64}$'
         artifact_hashes: {$ref: '#/$defs/artifact_hashes'}
         validated_artifact_hashes: {$ref: '#/$defs/artifact_hashes'}
         stale_layers:
