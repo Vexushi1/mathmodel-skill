@@ -412,7 +412,7 @@ class ContractAndDriftTests(unittest.TestCase):
         "core/model_approval_contract.yaml": "b86a18b4b0e160e837186ac4273bd06f0426d0f4",
         "core/numerical_verification_contract.yaml": "b901923edf38112cbc922f51d1157265fe1931bd",
         "core/workbook_schema.yaml": "2422bbfa8cb3fad3b5b04c12de21c954ec8b3723",
-        "core/project_state.schema.yaml": "1f323643d440ebb4e81a6bfe7051bfeae0ee21d2",
+        "core/project_state.schema.yaml": "68665864ba7361317ef90a69023109df72219497",
         "core/writing_reasoning_contract.yaml": "04ae1a4745d3614c7c01ab97e2f9fbe028b262e1",
         "modules/03_solve_validate.md": "8817f50af1610fe89d05321e9c9a4d148a34a301",
         "modules/03_result_analysis.md": "f43d21dc99d71e6b19baeec7af66cbf334da13a7",
@@ -420,13 +420,13 @@ class ContractAndDriftTests(unittest.TestCase):
         "modules/05_writing/ai_cleanup.md": "f6d2d5d6d70972ca09ff00975aa85e8044daa366",
         "modules/06_review_delivery.md": "c74f57dea33496ca35e8585d0d4d08981022ed69",
         "config/competition_profiles.yaml": "fcddec42a30ad4d4bc760dc8322cc13a998a6ebd",
-        "scripts/validate_semantic_governance.py": "41e5bc5112c61ae31420a6d447fe352f9f3728a9",
+        "scripts/validate_semantic_governance.py": "a905249e709250420a13c5406027d3c0eacbe815",
         "scripts/validate_submission_package.py": "47bd01db5f45dd8c902418be62f494419a03c676",
         "templates/matlab/q1_plot.m": "b9e67798051b1a130d2df11bca20e3976de0a6c2",
         "templates/matlab/draw_mechanism_structure.m": "65ba4a3b3462a565f86880c49af0959edd21f9a4",
         "templates/figure/chart_selection.md": "ba293a44f3ce4e0162c22e224ba33fd0ec94c048",
         "templates/figure/figure_enhancement_patterns.md": "d2fb8bc7b1d61556b9453682c4102b0e08ea246a",
-        "scripts/validate_code_delivery.py": "b4c9ab05631702f7466dcb56d2fdda626a3530f8",
+        "scripts/validate_code_delivery.py": "96760ff12591daa5f08b22ff766872d09acfb783",
     }
 
     def test_protected_authorities_have_not_drifted(self):

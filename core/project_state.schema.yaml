@@ -237,6 +237,11 @@ properties:
       current_phase:
         type: string
         enum: [problem_audit, model_design, data_preprocessing, solve_validate, result_analysis, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery, completed]
+      state_generation:
+        description: Phase F optimistic project-write generation；legacy v8 projects may omit and are read as generation 0.
+        type: integer
+        minimum: 0
+        default: 0
       problem_types:
         type: array
         uniqueItems: true
