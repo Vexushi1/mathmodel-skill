@@ -112,22 +112,23 @@ human_approval:
       validated_semantic_identity_hash_must_equal_current: true
       approved_semantic_identity_hash_must_equal_current: true
     legacy_compatibility:
-      semantic_hash: required
-      approved_semantic_hash_must_equal_current: true
+      semantic_hash: historical_read_only
+      approved_semantic_hash: historical_read_only
       allowed_only_when_structured_identity_absent: true
+      pre_code_gate_must_require_sib_migration: true
   approved_state_fields:
     common:
     - human_model_approval_status
     - approved_semantic_revision
     structured:
     - approved_semantic_identity_hash
-    legacy:
+    legacy_read_only:
     - approved_semantic_hash
   approval_write_rule: >-
     Explicit approval copies the current structured semantic_identity_hash into
-    approved_semantic_identity_hash when structured identity is present. It copies
-    legacy semantic_hash into approved_semantic_hash only for a question with no
-    semantic_identity_* fields. Migration or validation code must never synthesize
+    approved_semantic_identity_hash when structured identity is present. After the
+    Phase C migration boundary, pre-code approval must not newly write or refresh
+    legacy approved_semantic_hash. Migration or validation code must never synthesize
     human approval.
 
 lock_semantics:
@@ -136,8 +137,9 @@ lock_semantics:
   rule: >-
     selected_models and semantic closure do not by themselves create a locked_model_spec.
     locked_model_spec is current only after Model Challenge passes and the user explicitly
-    approves the current semantic revision and the current identity selected by the
-    structured-preferred compatibility rule.
+    approves the current semantic revision and current structured semantic identity.
+    Legacy semantic_hash approval remains readable historical provenance but cannot
+    authorize new preprocessing or primary-solve code after Phase C migration applies.
 
 stale_policy:
   semantic_change_categories:
@@ -179,7 +181,7 @@ persistence:
     - human_model_approval_status
     - approved_semantic_revision
     - approved_semantic_identity_hash_for_structured_identity
-    - approved_semantic_hash_for_legacy_compatibility_only
+    - approved_semantic_hash_for_legacy_read_only_compatibility
   forbidden_new_project_reports:
   - HUMAN_MODEL_REVIEW.md
   - MODEL_REVIEW_AI.md
@@ -188,13 +190,13 @@ persistence:
 compatibility:
   old_projects_without_fields: read_only_compatible
   dual_read_rule: >-
-    Questions with no semantic_identity_* fields retain the v8 semantic_hash approval
-    path. Presence of any structured identity field disables legacy fallback for that
-    question so partial or stale structured state fails closed.
+    Questions with no semantic_identity_* fields may still be read and audited through
+    their v8 semantic_hash provenance. Presence of any structured identity field disables
+    legacy fallback for that question so partial or stale structured state fails closed.
   migration_trigger: >-
     When an old project re-enters model_design, data_preprocessing, solve_validate,
-    or regenerates primary code after a semantic change, establish the current
-    challenge/approval state before code generation. If SIB has been introduced,
-    semantic governance must establish the validated identity baseline and the user
-    must explicitly approve that current identity before code delivery.
+    or regenerates primary code after a semantic change, establish a complete current
+    SIB, pass semantic governance to create the validated identity baseline, rerun the
+    required Model Challenge, and obtain explicit Human Approval of the current identity
+    before code generation. Do not infer a verified SIB automatically from old prose.
   historical_results_do_not_require_retroactive_approval_for_read_only_review: true
