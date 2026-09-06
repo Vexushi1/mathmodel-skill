@@ -16,6 +16,7 @@ SCRIPT_DIR = str(Path(__file__).resolve().parent)
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 import state_transitions as STATE_TRANSITIONS  # noqa: E402
+import artifact_identity as ARTIFACT_IDENTITY  # noqa: E402
 STATE_TRANSITION_CONTRACT = yaml.safe_load(
     (SKILL_ROOT / "core" / "state_transition_contract.yaml").read_text(encoding="utf-8")
 ) or {}
@@ -445,6 +446,10 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path) -> li
 
     key = _question_key(problem)
     entry = state.setdefault("subproblems", {}).setdefault(key, {})
+    try:
+        ARTIFACT_IDENTITY.canonicalize_entry_hashes(entry)
+    except ARTIFACT_IDENTITY.ArtifactIdentityError as exc:
+        raise ValueError(f"artifact identity alias conflict: {exc}") from exc
     entry["data_hash"] = str(config["data_sha256"]).lower()
 
     if stage == "primary":
@@ -456,6 +461,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path) -> li
             raise ValueError("主求解脚本已accepted并冻结；如需修改必须先显式回退solve_validate")
         entry["code"] = relative
         entry["primary_code_sha256"] = new_hash
+        entry.setdefault("artifact_hashes", {})["primary_code"] = new_hash
         entry.setdefault("analysis_execution_status", "pending")
         if not unchanged_accepted:
             entry["primary_execution_status"] = "awaiting_user_execution"
@@ -476,6 +482,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path) -> li
         old_hash = entry.get("analysis_code_sha256")
         entry["result_analysis_code"] = relative
         entry["analysis_code_sha256"] = new_hash
+        entry.setdefault("artifact_hashes", {})["analysis_code"] = new_hash
         if old_hash != new_hash:
             transition_reports.append(
                 STATE_TRANSITIONS.apply_transition(

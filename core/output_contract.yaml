@@ -310,7 +310,8 @@ project_sync:
   - preprocessing_code
   - preprocessing_workbook
   - preprocessing_matlab_script
-  - model
+  - primary_code
+  - analysis_code
   - solution_workbook
   - result_analysis_workbook
   - matlab_script

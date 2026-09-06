@@ -63,6 +63,7 @@
 - `core/writing_reasoning_contract.yaml`
 - `core/writing_runtime_contract.yaml`
 - `docs/main-branch-protection-hardening-plan.md`
+- `docs/phase_e_artifact_identity_inventory.md`
 - `docs/semantic_state_runtime_refactor_plan.md`
 - `docs/v801_chapter_capability_preservation_audit.md`
 - `docs/v801_skill_health_remediation_plan.md`
@@ -116,6 +117,7 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
+- `scripts/artifact_identity.py`
 - `scripts/audit_latex_project.py`
 - `scripts/audit_paper_prose.py`
 - `scripts/audit_v8_writing_surface.py`
@@ -320,6 +322,7 @@
 - `tests/test_v872_template_assembly_consistency.py`
 - `tests/test_v873_mechanism_monochrome_geometry.py`
 - `tests/test_v874_active_authority_hygiene.py`
+- `tests/test_v900_artifact_identity.py`
 - `tests/test_v900_refactor_characterization.py`
 - `tests/test_v900_semantic_governance.py`
 - `tests/test_v900_semantic_identity.py`

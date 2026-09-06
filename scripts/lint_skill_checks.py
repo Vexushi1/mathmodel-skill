@@ -857,7 +857,7 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("project_sync must define additive conditional preprocessing semantics separately")
     expected_layers = {
         "raw_data", "preprocessing_decision", "preprocessing_code", "preprocessing_workbook",
-        "preprocessing_matlab_script", "model", "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
+        "preprocessing_matlab_script", "primary_code", "analysis_code", "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
     }
     if set(sync.get("artifact_hash_layers", [])) != expected_layers:
         errors.append("project_sync artifact hash layers are incomplete")
