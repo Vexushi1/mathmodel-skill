@@ -62,6 +62,7 @@
 - `core/writing_reasoning_contract.yaml`
 - `core/writing_runtime_contract.yaml`
 - `docs/main-branch-protection-hardening-plan.md`
+- `docs/semantic_state_runtime_refactor_plan.md`
 - `docs/v801_chapter_capability_preservation_audit.md`
 - `docs/v801_skill_health_remediation_plan.md`
 - `docs/v801_skill_health_remediation_status.md`
