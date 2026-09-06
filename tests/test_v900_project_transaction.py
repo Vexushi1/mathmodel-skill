@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import tempfile
+import threading
+import time
 import unittest
 from pathlib import Path
 
@@ -63,6 +65,65 @@ class ProjectTransactionTests(unittest.TestCase):
             stale["project"]["current_phase"] = "result_analysis"
             with self.assertRaisesRegex(TX.GenerationConflictError, "stale project writer"):
                 TX.commit_project_state(root, stale, expected_generation=stale_generation)
+            live = self.read_state(root)
+            self.assertEqual(live["project"]["state_generation"], 1)
+            self.assertEqual(live["project"]["current_phase"], "solve_validate")
+
+
+    def test_concurrent_same_generation_writer_is_rejected_after_lock_handoff(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_project(root, generation=0)
+            _, first, first_generation = TX.load_state_for_update(root)
+            _, second, second_generation = TX.load_state_for_update(root)
+            first["project"]["current_phase"] = "solve_validate"
+            second["project"]["current_phase"] = "result_analysis"
+
+            first_inside_commit = threading.Event()
+            release_first = threading.Event()
+            outcomes: dict[str, object] = {}
+
+            def pause_first(point: str) -> None:
+                if point == "after_generation_check":
+                    first_inside_commit.set()
+                    if not release_first.wait(timeout=5):
+                        raise RuntimeError("timed out waiting to release first writer")
+
+            def run_first() -> None:
+                try:
+                    outcomes["first"] = TX.commit_project_state(
+                        root,
+                        first,
+                        expected_generation=first_generation,
+                        failure_hook=pause_first,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    outcomes["first"] = exc
+
+            def run_second() -> None:
+                try:
+                    outcomes["second"] = TX.commit_project_state(
+                        root,
+                        second,
+                        expected_generation=second_generation,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    outcomes["second"] = exc
+
+            thread_one = threading.Thread(target=run_first, daemon=True)
+            thread_two = threading.Thread(target=run_second, daemon=True)
+            thread_one.start()
+            self.assertTrue(first_inside_commit.wait(timeout=5))
+            thread_two.start()
+            time.sleep(0.1)
+            self.assertTrue(thread_two.is_alive(), "second writer should wait for the project lock")
+            release_first.set()
+            thread_one.join(timeout=5)
+            thread_two.join(timeout=5)
+            self.assertFalse(thread_one.is_alive())
+            self.assertFalse(thread_two.is_alive())
+            self.assertIsInstance(outcomes.get("first"), dict)
+            self.assertIsInstance(outcomes.get("second"), TX.GenerationConflictError)
             live = self.read_state(root)
             self.assertEqual(live["project"]["state_generation"], 1)
             self.assertEqual(live["project"]["current_phase"], "solve_validate")

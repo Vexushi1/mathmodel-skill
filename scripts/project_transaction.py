@@ -7,9 +7,12 @@ stale, workbook, competition, or resolver policy.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
+from contextlib import contextmanager
 from copy import deepcopy
+from functools import wraps
 import hashlib
 import os
+import threading
 from pathlib import Path
 import shutil
 import tempfile
@@ -20,6 +23,7 @@ import yaml
 
 STATE_RELATIVE_PATH = "state/project_state.yaml"
 JOURNAL_RELATIVE_PATH = "state/.project_transaction.yaml"
+LOCK_RELATIVE_PATH = "state/.project_transaction.lock"
 JOURNAL_VERSION = 1
 
 
@@ -37,6 +41,66 @@ class TransactionRecoveryError(ProjectTransactionError):
 
 FailureHook = Callable[[str], None]
 StagedValidator = Callable[[Mapping[str, Path]], None]
+
+
+_THREAD_LOCKS_GUARD = threading.Lock()
+_THREAD_LOCKS: dict[str, threading.Lock] = {}
+
+
+def _thread_lock_for(root: Path) -> threading.Lock:
+    key = str(root.resolve())
+    with _THREAD_LOCKS_GUARD:
+        return _THREAD_LOCKS.setdefault(key, threading.Lock())
+
+
+@contextmanager
+def _project_lock(project_root: Path):
+    """Serialize control-plane writers locally while generation still detects stale callers.
+
+    The lock is project-local and advisory; it is not an external lock service. A
+    process waiting for the lock keeps its originally-read expected generation, so
+    once the preceding writer commits it is rejected by the generation check rather
+    than silently rebasing its stale in-memory state.
+    """
+    root = Path(project_root).resolve()
+    lock_path = _resolve_inside(root, LOCK_RELATIVE_PATH)
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    local_lock = _thread_lock_for(root)
+    with local_lock:
+        with lock_path.open("a+b") as handle:
+            if os.name == "nt":
+                import msvcrt
+
+                handle.seek(0, os.SEEK_END)
+                if handle.tell() == 0:
+                    handle.write(b"\0")
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+                try:
+                    yield
+                finally:
+                    handle.seek(0)
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+                try:
+                    yield
+                finally:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+def _with_project_lock(function):
+    @wraps(function)
+    def wrapped(project_root: Path, *args, **kwargs):
+        root = Path(project_root).resolve()
+        with _project_lock(root):
+            return function(root, *args, **kwargs)
+
+    return wrapped
 
 
 def sha256_file(path: Path) -> str:
@@ -162,7 +226,7 @@ def _remove_journal(root: Path) -> None:
         _fsync_directory(journal.parent)
 
 
-def recover_project_transaction(project_root: Path) -> dict[str, Any]:
+def _recover_project_transaction_locked(project_root: Path) -> dict[str, Any]:
     """Roll a prepared transaction forward to its declared new hashes.
 
     Recovery never guesses. Every target must still match either the journal's old hash
@@ -249,6 +313,12 @@ def recover_project_transaction(project_root: Path) -> dict[str, Any]:
     }
 
 
+@_with_project_lock
+def recover_project_transaction(project_root: Path) -> dict[str, Any]:
+    """Recover one prepared journal while holding the project-local writer lock."""
+    return _recover_project_transaction_locked(Path(project_root).resolve())
+
+
 def load_state_for_update(
     project_root: Path,
     *,
@@ -301,6 +371,7 @@ def _stage_transaction_files(
     return entries, staged_map
 
 
+@_with_project_lock
 def commit_project_state(
     project_root: Path,
     state: Mapping[str, Any],
@@ -317,7 +388,7 @@ def commit_project_state(
     Existing projects without a generation are treated as generation zero.
     """
     root = Path(project_root).resolve()
-    recover_project_transaction(root)
+    _recover_project_transaction_locked(root)
     live_generation = _live_generation(root)
     if live_generation != expected_generation:
         raise GenerationConflictError(

@@ -32,6 +32,10 @@ Direct `write_text(yaml.safe_dump(...))` calls under `tests/` are fixture constr
 - The Schema exposes `state_generation` additively and does not require it for legacy reads.
 - A prepared journal may roll forward only when live generation is either the journal base generation or target generation; any third generation blocks recovery.
 
+## Writer serialization and stale rejection
+
+Control-plane commits also take a project-local advisory lock at `state/.project_transaction.lock`. The lock only serializes the short recover/check/journal/replace critical section; it does not replace optimistic generation control and is not an external lock service. A writer keeps the generation captured when it loaded state. If another writer commits while it waits for the lock, the waiting writer sees the advanced live generation after lock handoff and fails with `GenerationConflictError` instead of overwriting current state. The lock file may remain as an empty hidden coordination file; journal/stage/backup files are still cleaned after a successful commit.
+
 ## Journal and recovery direction
 
 Phase F uses deterministic roll-forward recovery. The journal records each target's old/new SHA-256, staged path, backup path, and base/target generation. On recovery, every live target must match either its recorded old hash or new hash. Unknown content is never overwritten or guessed.
