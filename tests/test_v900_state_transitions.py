@@ -26,6 +26,7 @@ def load_module(name: str, relative: str):
 
 
 TRANSITIONS = load_module("v900_state_transitions", "scripts/state_transitions.py")
+CODE_DELIVERY = load_module("v900_code_delivery_transition_contract", "scripts/validate_code_delivery.py")
 CONTRACT = yaml.safe_load((ROOT / "core/state_transition_contract.yaml").read_text(encoding="utf-8"))
 
 
@@ -54,6 +55,22 @@ def state_with_dependency(kind: str | None) -> dict:
             "Q2": entry(depends_on=[dependency]),
         }
     }
+
+
+class CodeDeliveryTransitionContractTests(unittest.TestCase):
+    def test_missing_project_state_returns_empty_transition_list(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            script = root / "问题一求解.py"
+            script.write_text("print('placeholder')\n", encoding="utf-8")
+            result = CODE_DELIVERY.update_state(
+                root,
+                {"stage": "primary", "problem": "问题一"},
+                script,
+            )
+        self.assertEqual(result, [])
 
 
 class StateTransitionAuthorityTests(unittest.TestCase):

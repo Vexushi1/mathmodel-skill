@@ -393,7 +393,7 @@ def _question_key(problem: str) -> str:
 def update_state(project_root: Path, config: dict[str, Any], script: Path) -> list[dict[str, Any]]:
     state_path = project_root / "state" / "project_state.yaml"
     if not state_path.is_file():
-        return
+        return []
     state = load_yaml(state_path)
     problem = str(config["problem_name"])
     stage = str(config["stage"])

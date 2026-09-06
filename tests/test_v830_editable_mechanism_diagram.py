@@ -426,7 +426,7 @@ class ContractAndDriftTests(unittest.TestCase):
         "templates/matlab/draw_mechanism_structure.m": "65ba4a3b3462a565f86880c49af0959edd21f9a4",
         "templates/figure/chart_selection.md": "ba293a44f3ce4e0162c22e224ba33fd0ec94c048",
         "templates/figure/figure_enhancement_patterns.md": "d2fb8bc7b1d61556b9453682c4102b0e08ea246a",
-        "scripts/validate_code_delivery.py": "5d7af7a22f0226c841d823e06a44f1a2a2ba9715",
+        "scripts/validate_code_delivery.py": "d66e3e3a314c1f7b3a4b6d8956574e62be3a5177",
     }
 
     def test_protected_authorities_have_not_drifted(self):
