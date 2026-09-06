@@ -1,4 +1,4 @@
-version: 1.1.1
+version: 1.2.0
 introduced_in_skill_version: 7.12.0
 skill_compatibility: '>=7.12.0,<9.0.0'
 purpose: >-
@@ -21,6 +21,7 @@ authority_boundary:
     module_artifact_graph: core/module_manifest.yaml
     project_state_schema: core/project_state.schema.yaml
     model_approval: core/model_approval_contract.yaml
+    semantic_identity_implementation: scripts/semantic_identity.py
     preprocessing: core/global_preprocessing_contract.yaml
     user_execution: core/user_execution_contract.yaml
     code_quality: core/code_quality_contract.yaml
@@ -77,16 +78,31 @@ artifact_assurance:
   legacy_name_only_input: available_artifacts
   legacy_status: declared_unverified
   project_path_boundary: artifact paths hydrated from project state must resolve inside project_root
+  semantic_identity_mode_selection:
+    principle: structured_identity_preferred_legacy_only_when_absent
+    structured_state_when: any semantic_identity_* field is present for the current question
+    structured_framework_when: current question contains a complete valid HSK Semantic Identity Block
+    legacy_when: both state has no semantic_identity_* fields and framework has no SIB markers
+    partial_or_mode_mismatch_fails_closed: true
   verified_state_sources:
     locked_model_spec:
       kind: semantic_file_backed
-      requires:
+      common_requires:
       - model_challenge_status == passed
       - human_model_approval_status == approved
       - approved_semantic_revision == semantic_revision
-      - approved_semantic_hash == semantic_hash
       - current 模型论文框架.md exists
       - current question semantic scope exists in 模型论文框架.md
+      structured_requires:
+      - semantic_identity_schema_version == current supported SIB schema version
+      - current framework SIB parses and validates
+      - hash(current canonical SIB) == semantic_identity_hash
+      - semantic_identity_hash == validated_semantic_identity_hash
+      - validated_semantic_identity_hash == approved_semantic_identity_hash
+      legacy_requires:
+      - no semantic_identity_* state fields exist
+      - current framework semantic scope contains no SIB markers
+      - approved_semantic_hash == semantic_hash
       - sha256(current framework semantic scope) == semantic_hash
     preprocessing_workbook:
       kind: file_backed
@@ -116,10 +132,11 @@ artifact_assurance:
       - actual sha256 == expected sha256
   scope_rules:
   - With --question Qn, semantic and workbook evidence is evaluated for that question.
-  - Without a question scope, generic locked_model_spec is promoted only when every scoped question has current framework semantic evidence matching its approved semantic hash.
+  - Without a question scope, generic locked_model_spec is promoted only when every scoped question passes the current structured-or-legacy evidence chain selected independently for that question.
   - Without a question scope, generic accepted_solution_workbook or accepted_result_analysis_workbook is promoted only when every scoped subproblem satisfies the corresponding condition.
-  - A known stale, rejected, hash-mismatched, missing, malformed, or outside-project-root artifact must not be promoted merely because its legacy name appears in available_artifacts.
-  - Runtime assurance recomputes the current legacy semantic-scope hash from 模型论文框架.md; project-state equality alone cannot self-attest locked_model_spec.
+  - A known stale, rejected, hash-mismatched, missing, malformed, identity-mode-mismatched, or outside-project-root artifact must not be promoted merely because its legacy name appears in available_artifacts.
+  - Runtime assurance recomputes current semantic evidence from 模型论文框架.md. Project-state equality alone cannot self-attest locked_model_spec.
+  - In structured mode, wording-only prose outside the SIB may change semantic_text_hash without invalidating locked_model_spec when the canonical SIB identity and all approval bindings remain current.
   required_evidence_fields:
   - artifact
   - source
@@ -129,6 +146,9 @@ artifact_assurance:
   - path
   - expected_sha256
   - actual_sha256
+  optional_semantic_evidence_fields:
+  - identity_mode
+  - identity_schema_version
 
 contract_dependency_closure:
   source: core/runtime_assurance_contract.yaml:contract_dependencies
@@ -202,6 +222,8 @@ compatibility:
   legacy_cli_supported: true
   new_default_entrypoint: scripts/resolve_runtime.py
   old_projects_without_state: supported_via_legacy_arguments
-  project_state_schema_change_required: false
+  legacy_semantic_hash_read_supported: true
+  structured_identity_is_new_write_path: true
+  project_state_schema_change_required: already_introduced_in_phase_c2
   workbook_schema_change_required: false
   task_code_interface_change_required: false
