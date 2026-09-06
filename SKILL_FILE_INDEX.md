@@ -8,6 +8,7 @@
 - `.gitattributes`
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
+- `.github/workflows/phase-c-surface-hotfix-once.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
 - `AGENTS.md`
