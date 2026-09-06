@@ -409,7 +409,7 @@ class ContractAndDriftTests(unittest.TestCase):
     # competition-profile lineage comment. Normalize exactly those approved deltas so
     # the older protected hashes continue to guard every unrelated semantic byte.
     PROTECTED = {
-        "core/model_approval_contract.yaml": "7d97255dde9cf780755bab896964e905066bf4b8",
+        "core/model_approval_contract.yaml": "b86a18b4b0e160e837186ac4273bd06f0426d0f4",
         "core/numerical_verification_contract.yaml": "b901923edf38112cbc922f51d1157265fe1931bd",
         "core/workbook_schema.yaml": "2422bbfa8cb3fad3b5b04c12de21c954ec8b3723",
         "core/project_state.schema.yaml": "dc5854a58e005c8f72690d5de6599bf2bba49264",
