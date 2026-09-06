@@ -1,0 +1,252 @@
+name: Phase C surface closure one-shot
+
+on:
+  push:
+    branches:
+      - fix/v900-semantic-identity-surface-closure
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fix/v900-semantic-identity-surface-closure
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Apply exact Phase C surface closure
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          import subprocess
+
+          ROOT = Path('.')
+
+          def replace(path: str, old: str, new: str, *, expected: int | None = None) -> None:
+              file = ROOT / path
+              text = file.read_text(encoding='utf-8')
+              count = text.count(old)
+              if expected is not None and count != expected:
+                  raise SystemExit(f'{path}: expected {expected} occurrences, found {count}: {old!r}')
+              if count == 0:
+                  raise SystemExit(f'{path}: missing expected text: {old!r}')
+              file.write_text(text.replace(old, new), encoding='utf-8')
+
+          # Manifest is the active artifact/gate graph. Its descriptive rules must match
+          # the current Model Approval Authority, even though the executable gate itself
+          # is scripts/validate_model_approval.py.
+          manifest = 'core/module_manifest.yaml'
+          replace(manifest,
+              'model_approval_brief: 提交给用户确认的当前模型摘要；绑定当前semantic revision/hash，不单独落盘',
+              'model_approval_brief: 提交给用户确认的当前模型摘要；绑定当前semantic revision与validated structured identity，不单独落盘', expected=1)
+          replace(manifest,
+              'awaiting_model_approval: Model Challenge已可进入人工确认但用户尚未明确批准当前revision/hash的暂停状态',
+              'awaiting_model_approval: Model Challenge已可进入人工确认但用户尚未明确批准当前semantic_revision与validated semantic_identity_hash的暂停状态', expected=1)
+          replace(manifest,
+              'human_model_approval: 用户对当前semantic_revision/hash的明确批准状态；机器绑定记录在project_state中',
+              'human_model_approval: 用户对当前semantic_revision与validated semantic_identity_hash的明确批准状态；机器绑定记录在project_state中', expected=1)
+          replace(manifest,
+              'locked_model_spec: 仅在Model Challenge passed且Human Model Approval绑定当前semantic_revision/hash后成立的已锁定变量、假设、公式、目标和约束',
+              'locked_model_spec: 仅在Model Challenge passed且Human Model Approval绑定当前semantic_revision与validated semantic_identity_hash后成立的已锁定变量、假设、公式、目标和约束', expected=1)
+          replace(manifest,
+              'model_approval_validation_report: scripts/validate_model_approval.py输出的challenge/approval与current revision/hash一致性检查结论',
+              'model_approval_validation_report: scripts/validate_model_approval.py输出的challenge/approval与current revision/structured identity一致性检查结论', expected=1)
+          replace(manifest,
+              'semantic_governance_report: 聊天或标准输出中的Problem Contract、语义闭环、复杂度复审、语义哈希、跨问和paper-fragment stale校验结果',
+              'semantic_governance_report: 聊天或标准输出中的Problem Contract、语义闭环、复杂度复审、structured identity/text provenance、跨问和paper-fragment stale校验结果', expected=1)
+          replace(manifest,
+              "    - Hashes only each question's current model-scope section, not numerical result summaries.\n    - Semantic changes require an incremented revision and explicit change categories.\n    - Propagates stale recursively through typed cross-question dependencies before accepting a new semantic hash.",
+              "    - Validates the current canonical SIB identity when present; legacy model-scope text hashes remain read-only compatibility provenance, and numerical result summaries remain outside model identity.\n    - Structured identity changes require an incremented revision and explicit change categories; wording-only text-provenance changes do not.\n    - Propagates stale recursively through typed cross-question dependencies before accepting a new semantic identity.", expected=1)
+          replace(manifest,
+              '    - Requires approved_semantic_revision and approved_semantic_hash to match the current semantic_revision and semantic_hash exactly.\n    - User silence or vague continuation is never approval, and user approval cannot waive a blocking Model Challenge issue.\n    - Semantic revision/hash drift makes previous challenge, approval and locked_model_spec stale until re-reviewed and explicitly re-approved.',
+              '    - Requires approved_semantic_revision == semantic_revision and a complete supported structured identity with semantic_identity_hash == validated_semantic_identity_hash == approved_semantic_identity_hash.\n    - Any partial structured identity state fails closed and never falls back to legacy hash authorization.\n    - Legacy semantic_hash / approved_semantic_hash are historical read-only provenance only and cannot authorize new project-level preprocessing or primary solve code.\n    - User silence or vague continuation is never approval, and user approval cannot waive a blocking Model Challenge issue.\n    - Semantic revision or structured identity drift makes previous challenge, approval and locked_model_spec stale until re-reviewed and explicitly re-approved.', expected=1)
+
+          # Startup and active instruction surfaces: keep summaries concise but make the
+          # new-write/current-lock path unambiguous.
+          replace('core/bootstrap.yaml',
+              '  - Problem Contract freezing does not authorize task code by itself; before current model code is generated, the Model Challenge must pass and the user must explicitly approve the current semantic revision/hash under core/model_approval_contract.yaml.',
+              '  - Problem Contract freezing does not authorize task code by itself; before current model code is generated, the Model Challenge must pass and the user must explicitly approve the current semantic_revision and validated semantic_identity_hash under core/model_approval_contract.yaml; legacy semantic_hash approval is read-only provenance only.', expected=1)
+
+          replace('core/workflow_router.yaml',
+              '  - Problem Contract, semantic closure and complexity sanity must pass before Model Challenge; project-level preprocessing or primary solve code additionally requires challenge passed plus explicit Human Model Approval bound to the current semantic revision/hash.',
+              '  - Problem Contract, semantic closure and complexity sanity must pass before Model Challenge; project-level preprocessing or primary solve code additionally requires challenge passed plus explicit Human Model Approval bound to the current semantic_revision and validated semantic_identity_hash under core/model_approval_contract.yaml; legacy hash provenance cannot authorize new task code.', expected=1)
+
+          replace('core/hsk_core_policy.md',
+              'Challenge passed 后必须向用户提供 Model Approval Brief，并停在 `awaiting_model_approval`。只有用户明确批准当前 `semantic_revision` 与 `semantic_hash` 后，`locked_model_spec` 才成为 current；用户沉默、模糊继续或未反对不得推断为批准。语义 revision/hash 改变时旧 challenge、approval 与 locked model 同时 stale；纯排版、措辞、caption、公式编号或不改变语义的 LaTeX 文件拆分不触发重新审批。',
+              'Challenge passed 后必须向用户提供 Model Approval Brief，并停在 `awaiting_model_approval`。只有用户明确批准当前 `semantic_revision` 与已验证的 `semantic_identity_hash`，且 `semantic_identity_hash = validated_semantic_identity_hash = approved_semantic_identity_hash` 后，`locked_model_spec` 才成为 current；用户沉默、模糊继续或未反对不得推断为批准。legacy `semantic_hash / approved_semantic_hash` 仅为历史只读 provenance，不能授权新的项目级预处理或主求解代码。semantic revision 或 structured identity 改变时旧 challenge、approval 与 locked model 同时 stale；纯排版、SIB 外纯措辞、caption、公式编号或不改变 structured identity 的 LaTeX 文件拆分只影响 text provenance，不触发重新审批。', expected=1)
+          replace('core/hsk_core_policy.md',
+              '具体数值必须回到已验收标准工作簿复核；`state/project_state.yaml` 负责 semantic revision、hash、依赖和 stale。',
+              '具体数值必须回到已验收标准工作簿复核；`state/project_state.yaml` 负责 semantic revision、structured identity/text provenance、依赖和 stale。', expected=1)
+          replace('core/hsk_core_policy.md',
+              '正式项目级预处理或主求解代码前，当前模型必须同时通过 semantic governance 与 model approval gate；旧审批不得覆盖新的 semantic revision/hash。',
+              '正式项目级预处理或主求解代码前，当前模型必须同时通过 semantic governance 与 model approval gate；旧 legacy hash 审批不得覆盖新的 semantic revision / structured identity。', expected=1)
+
+          for skill in ('SKILL.md', 'skills/mathmodel-skill/SKILL.md'):
+              replace(skill,
+                  'explicit Human Model Approval bound to the current semantic revision/hash',
+                  'explicit Human Model Approval bound to the current semantic revision and validated structured identity', expected=1)
+              replace(skill,
+                  '生命周期 revision/hash/stale 服从 `state/project_state.yaml`',
+                  '生命周期 revision/structured identity/text provenance/stale 服从 `state/project_state.yaml`', expected=1)
+
+          replace('AGENTS.md',
+              'until the user explicitly approves the current semantic revision/hash.',
+              'until the user explicitly approves the current semantic_revision and validated semantic_identity_hash.', expected=1)
+          replace('AGENTS.md',
+              'while project state owns revision/hash/approval/stale status.',
+              'while project state owns revision/structured-identity/text-provenance/approval/stale status.', expected=1)
+          replace('AGENTS.md',
+              'A semantic revision/hash change invalidates the previous challenge, approval and locked model until re-reviewed and explicitly re-approved.',
+              'A semantic revision or structured identity change invalidates the previous challenge, approval and locked model until re-reviewed and explicitly re-approved; legacy semantic_hash approval is read-only provenance only.', expected=1)
+
+          replace('PROJECT_INSTRUCTIONS.md',
+              'revision/hash/stale 以 `state/project_state.yaml` 为准',
+              'revision/structured identity/text provenance/stale 以 `state/project_state.yaml` 为准', expected=1)
+          replace('PROJECT_INSTRUCTIONS.md',
+              '只有用户显式批准 current `semantic_revision/hash` 才形成 current `locked_model_spec`。',
+              '只有用户显式批准 current `semantic_revision` 与 validated `semantic_identity_hash`，并由 Model Approval gate 确认 current = validated = approved identity 后，才形成 current `locked_model_spec`；legacy hash 只读兼容不能授权新代码。', expected=1)
+
+          replace('RUNTIME_ROUTER.md',
+              'Model Challenge/Human Approval 阶段：读取 current proposed model、semantic revision/hash、challenge 结论与 Approval Brief；用户只批准与当前 revision/hash 完全一致的模型语义；',
+              'Model Challenge/Human Approval 阶段：读取 current proposed model、semantic revision、validated structured identity、challenge 结论与 Approval Brief；用户只批准与当前 validated `semantic_identity_hash` 完全一致的模型语义；legacy hash 仅作只读 provenance；', expected=1)
+          replace('RUNTIME_ROUTER.md',
+              '具体数值必须再核对标准工作簿；semantic revision、hash、challenge/approval 和 stale 以 `state/project_state.yaml` 为准；',
+              '具体数值必须再核对标准工作簿；semantic revision、structured identity/text provenance、challenge/approval 和 stale 以 `state/project_state.yaml` 为准；', expected=1)
+          replace('RUNTIME_ROUTER.md',
+              '→ 用户明确批准当前 semantic revision/hash',
+              '→ 用户明确批准当前 semantic_revision + validated semantic_identity_hash', expected=1)
+          replace('RUNTIME_ROUTER.md',
+              '只有 Model Challenge passed 且 Human Model Approval 绑定当前 `semantic_revision/hash` 后，`locked_model_spec` 才成为 current；语义 revision/hash 漂移会使旧 challenge、approval 与 locked model stale，并在重新进入主求解前要求重新 challenge + approval。',
+              '只有 Model Challenge passed 且 Human Model Approval 绑定当前 `semantic_revision` 与 validated `semantic_identity_hash`，并满足 current = validated = approved identity 后，`locked_model_spec` 才成为 current；legacy hash 仅为只读 provenance。semantic revision 或 structured identity 漂移会使旧 challenge、approval 与 locked model stale，并在重新进入主求解前要求重新 challenge + approval。', expected=1)
+
+          replace('modules/03_solve_validate.md',
+              '具体批准状态、revision/hash 绑定与失效条件只服从 `core/model_approval_contract.yaml`',
+              '具体批准状态、revision/structured identity 绑定与失效条件只服从 `core/model_approval_contract.yaml`', expected=1)
+          replace('modules/03_solve_validate.md',
+              '→ Human Model Approval（绑定 current semantic revision/hash）',
+              '→ Human Model Approval（绑定 current semantic_revision + validated semantic_identity_hash；legacy hash 只读兼容）', expected=1)
+
+          replace('.codex-plugin/plugin.json',
+              'explicit Human Model Approval bound to the current semantic revision/hash',
+              'explicit Human Model Approval bound to the current semantic revision and validated structured identity', expected=1)
+
+          # User-facing current documentation. Historical changelog/legacy records are
+          # intentionally not rewritten.
+          current_docs = ['README.md', 'scripts/README.md', 'REPOSITORY_INDEX.md']
+          for path in current_docs:
+              file = ROOT / path
+              text = file.read_text(encoding='utf-8')
+              text = text.replace('semantic revision/hash', 'semantic revision / structured identity')
+              text = text.replace('semantic_revision/hash', 'semantic_revision / semantic_identity_hash')
+              text = text.replace('current revision/hash', 'current semantic revision / validated structured identity')
+              file.write_text(text, encoding='utf-8')
+
+          # Current staged changelog note; keep Current release: 8.7.4 as the release carrier.
+          replace('CHANGELOG.md',
+              '### Unreleased v9.0.0 staged refactor — Phase C\n\n',
+              '### Unreleased v9.0.0 staged refactor — Phase C\n\n- Post-merge acceptance closed remaining active-surface drift: Module Manifest, Bootstrap/Router/Core Policy, Agent/Skill entrypoints and solve-stage guidance now describe the structured SIB identity binding consistently; legacy semantic hashes remain read-only provenance only.\n', expected=1)
+
+          # Protected authority baseline: only Module 03A is intentionally changed here.
+          module03_sha = subprocess.check_output(
+              ['git', 'hash-object', 'modules/03_solve_validate.md'], text=True
+          ).strip()
+          protected = 'tests/test_v830_editable_mechanism_diagram.py'
+          replace(protected,
+              '"modules/03_solve_validate.md": "f49480d96e6a491255010868e409b2d64d620f5e",',
+              f'"modules/03_solve_validate.md": "{module03_sha}",', expected=1)
+
+          test = r'''from __future__ import annotations
+
+import unittest
+from pathlib import Path
+
+import yaml
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class PhaseCSemanticIdentitySurfaceClosureTests(unittest.TestCase):
+    def test_manifest_model_approval_declares_structured_current_binding(self):
+        manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
+        gate = manifest["utility_gates"]["model_approval"]
+        rules = "\n".join(gate.get("rules", []))
+        self.assertIn("semantic_identity_hash == validated_semantic_identity_hash == approved_semantic_identity_hash", rules)
+        self.assertIn("partial structured identity state fails closed", rules)
+        self.assertIn("historical read-only provenance", rules)
+        self.assertNotIn("Requires approved_semantic_revision and approved_semantic_hash", rules)
+        catalog = manifest["artifact_catalog"]
+        self.assertIn("validated semantic_identity_hash", catalog["human_model_approval"])
+        self.assertIn("validated semantic_identity_hash", catalog["locked_model_spec"])
+
+    def test_critical_active_surfaces_do_not_restate_legacy_current_approval(self):
+        paths = [
+            "core/bootstrap.yaml",
+            "core/workflow_router.yaml",
+            "core/module_manifest.yaml",
+            "core/hsk_core_policy.md",
+            "SKILL.md",
+            "skills/mathmodel-skill/SKILL.md",
+            "AGENTS.md",
+            "PROJECT_INSTRUCTIONS.md",
+            "RUNTIME_ROUTER.md",
+            "modules/03_solve_validate.md",
+            ".codex-plugin/plugin.json",
+        ]
+        forbidden = [
+            "semantic revision/hash",
+            "semantic_revision/hash",
+            "approved_semantic_revision and approved_semantic_hash to match",
+            "批准当前 `semantic_revision` 与 `semantic_hash`",
+            "Human Model Approval（绑定 current semantic revision/hash）",
+        ]
+        for relative in paths:
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            for phrase in forbidden:
+                self.assertNotIn(phrase, text, f"{relative} retains legacy current-approval wording: {phrase}")
+
+    def test_current_surfaces_point_to_structured_identity_and_legacy_read_only_boundary(self):
+        manifest = (ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8")
+        bootstrap = (ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8")
+        policy = (ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8")
+        module03 = (ROOT / "modules/03_solve_validate.md").read_text(encoding="utf-8")
+        for text in (manifest, bootstrap, policy, module03):
+            self.assertIn("semantic_identity_hash", text)
+        self.assertIn("approved_semantic_identity_hash", manifest)
+        self.assertIn("legacy semantic_hash", manifest)
+        self.assertIn("legacy", policy)
+        self.assertIn("legacy", module03)
+
+    def test_root_and_packaged_skill_remain_byte_identical(self):
+        self.assertEqual(
+            (ROOT / "SKILL.md").read_bytes(),
+            (ROOT / "skills/mathmodel-skill/SKILL.md").read_bytes(),
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
+'''
+          (ROOT / 'tests/test_v900_semantic_identity_surface_closure.py').write_text(test, encoding='utf-8')
+          PY
+
+          git rm .github/workflows/phase-c-surface-hotfix-once.yml
+          python scripts/generate_indexes.py
+          python -m unittest tests.test_v900_semantic_identity_surface_closure tests.test_v900_semantic_identity_binding tests.test_v711_model_approval_gate tests.test_v712_runtime_assurance
+          python scripts/lint_skill.py
+
+      - name: Commit exact closure
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix: close Phase C semantic identity surfaces"
+          git push
