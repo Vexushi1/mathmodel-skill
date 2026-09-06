@@ -1,0 +1,43 @@
+name: Phase C README closure one-shot
+
+on:
+  push:
+    branches:
+      - "fix/v900-semantic-identity-surface-closure"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fix/v900-semantic-identity-surface-closure
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install repository dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
+      - name: Apply exact README closure
+        run: python scripts/_phase_c_surface_readme_closure_once.py
+      - name: Remove temporary helpers
+        run: git rm scripts/_phase_c_surface_readme_closure_once.py .github/workflows/phase-c-readme-closure-once.yml
+      - name: Refresh generated metadata
+        run: python scripts/generate_indexes.py
+      - name: Run focused acceptance
+        run: |
+          python -m unittest tests.test_v900_semantic_identity_surface_closure tests.test_v900_semantic_identity_binding tests.test_v711_model_approval_gate tests.test_v712_runtime_assurance
+          python scripts/lint_skill.py
+          python scripts/generate_indexes.py --check
+          git diff --check
+      - name: Commit closure
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix: close remaining Phase C README drift"
+          git push
