@@ -23,13 +23,7 @@ ROUTER_PATH = ROOT / "core" / "workflow_router.yaml"
 MANIFEST_PATH = ROOT / "core" / "module_manifest.yaml"
 ASSURANCE_PATH = ROOT / "core" / "runtime_assurance_contract.yaml"
 WRITING_RUNTIME_PATH = ROOT / "core" / "writing_runtime_contract.yaml"
-
-# v8 keeps the full reasoning authority available, but ordinary CUMCM LaTeX writing
-# uses the compact Template-First package. Other competitions remain on the full
-# semantic fallback until they own a competition-specific Template Manifest.
-COMPACT_WRITING_INTENTS = {"latex"}
-COMPACT_WRITING_COMPETITIONS = {"cumcm"}
-CUMCM_WRITING_PACKAGE_INTENTS = {"latex", "review", "full_submission", "full_workflow"}
+COMPETITION_PROFILES_PATH = ROOT / "config" / "competition_profiles.yaml"
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -42,59 +36,120 @@ def _unique(items: Iterable[str | None]) -> list[str]:
     return list(dict.fromkeys(str(item) for item in items if item and str(item).strip()))
 
 
-def _apply_v8_writing_runtime(plan: dict[str, Any]) -> dict[str, Any]:
-    """Attach the CUMCM Template-First package and progressive LaTeX writing.
+def _resolve_competition_profile(
+    token: str, profiles: dict[str, Any]
+) -> tuple[str, dict[str, Any], dict[str, Any]]:
+    normalized = token.strip().lower()
+    for name, config in (profiles.get("profiles", {}) or {}).items():
+        aliases = [name, *(config.get("aliases", []) or [])]
+        if normalized not in {str(item).strip().lower() for item in aliases}:
+            continue
+        stable = config.get("stable", {}) or {}
+        runtime_profile = stable.get("writing_runtime")
+        if not isinstance(runtime_profile, dict):
+            raise ValueError(
+                f"competition profile {name} lacks stable.writing_runtime; "
+                "declare template_first_progressive or full_reasoning_fallback"
+            )
+        return str(name), config, runtime_profile
+    raise ValueError(f"unknown competition profile for writing runtime: {token}")
 
-    ``load_order`` records the available resource package, not permission to consume every
-    writing file eagerly. ``template_first_progressive_authoring.stages`` is the execution
-    authority for read-now/write-now timing. Only a pure ``latex`` route removes the full
-    reasoning authority from preload; semantic-review and conditional proposition/algorithm
-    stages load it when required. This changes loading policy only, never project facts or
-    mathematical semantics.
+
+def _apply_profile_writing_runtime(
+    plan: dict[str, Any], *, profiles: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """Apply competition writing-runtime policy without competition-specific Python branches.
+
+    Competition profiles select whether a route uses Template-First progressive writing or
+    retains the full reasoning authority. The writing runtime contract still owns the common
+    writing capabilities and fallback semantics; this function only assembles the resources
+    declared by the active competition profile.
     """
     intents = set(str(item) for item in plan.get("intents", []))
-    competition = str(plan.get("competition") or "").strip().lower()
-    load_order = list(plan.get("load_order", []))
-    adapter = "modules/05_writing/latex.md"
-    uses_cumcm_writing_package = bool(
-        intents
-        and competition in COMPACT_WRITING_COMPETITIONS
-        and intents.intersection(CUMCM_WRITING_PACKAGE_INTENTS)
-        and adapter in load_order
+    competition = str(plan.get("competition") or "").strip()
+    if not intents or not competition:
+        return plan
+
+    profile_payload = profiles if profiles is not None else load_yaml(COMPETITION_PROFILES_PATH)
+    profile_name, _profile, runtime_profile = _resolve_competition_profile(
+        competition, profile_payload
     )
-    if not uses_cumcm_writing_package:
+    mode = str(runtime_profile.get("mode") or "").strip()
+    if mode == "full_reasoning_fallback":
+        return plan
+    if mode != "template_first_progressive":
+        raise ValueError(
+            f"competition profile {profile_name} has unsupported writing_runtime.mode: {mode!r}"
+        )
+
+    supported = {str(item) for item in runtime_profile.get("supported_intents", [])}
+    compact_intents = {str(item) for item in runtime_profile.get("compact_intents", [])}
+    if not supported:
+        raise ValueError(f"competition profile {profile_name} has no supported writing intents")
+    if not compact_intents.issubset(supported):
+        raise ValueError(
+            f"competition profile {profile_name} compact_intents must be a subset of supported_intents"
+        )
+    if not intents.intersection(supported):
         return plan
 
     runtime = load_yaml(WRITING_RUNTIME_PATH)
-    old_authority = "core/writing_reasoning_contract.yaml"
+    writing_module = runtime.get("writing_module", {}) or {}
+    adapter = str(writing_module.get("latex_adapter") or "")
+    load_order = list(plan.get("load_order", []))
+    if not adapter or adapter not in load_order:
+        return plan
+
+    template_manifest = str(runtime_profile.get("template_manifest") or "").strip()
+    if not template_manifest:
+        raise ValueError(
+            f"competition profile {profile_name} template_first_progressive mode requires template_manifest"
+        )
+    if not (ROOT / template_manifest).is_file():
+        raise ValueError(
+            f"competition profile {profile_name} template manifest does not exist: {template_manifest}"
+        )
+
+    old_authority = str(
+        (runtime.get("full_authority_fallback", {}) or {}).get(
+            "authority", "core/writing_reasoning_contract.yaml"
+        )
+    )
     runtime_order = _unique(runtime.get("ordinary_writing_resource_order", []))
     default_policy = "core/hsk_core_policy.md"
     if default_policy in runtime_order:
         runtime_order.remove(default_policy)
-    compact = intents.issubset(COMPACT_WRITING_INTENTS)
+
+    canonical_manifest = str(
+        (runtime.get("canonical_template", {}) or {}).get("manifest") or ""
+    )
+    if canonical_manifest and canonical_manifest in runtime_order:
+        runtime_order = [
+            template_manifest if item == canonical_manifest else item for item in runtime_order
+        ]
+    elif template_manifest not in runtime_order:
+        runtime_order.append(template_manifest)
+    runtime_order = _unique(runtime_order)
+
+    compact = intents.issubset(compact_intents)
     managed = set(runtime_order)
     if compact:
         managed.add(old_authority)
     load_order = [item for item in load_order if item not in managed]
-
     insertion_point = load_order.index(default_policy) + 1 if default_policy in load_order else 0
     load_order[insertion_point:insertion_point] = runtime_order
     load_order = _unique(load_order)
 
     plan["load_order"] = load_order
-    plan["contracts"] = [
-        item for item in load_order if item.startswith("core/")
-    ]
-    plan["templates"] = [
-        item for item in load_order if item.startswith("templates/")
-    ]
+    plan["contracts"] = [item for item in load_order if item.startswith("core/")]
+    plan["templates"] = [item for item in load_order if item.startswith("templates/")]
     plan["writing_runtime"] = {
         "mode": "compact" if compact else "full_authority",
         "execution_mode": "template_first_progressive_authoring",
-        "competition": "CUMCM",
+        "competition": str(runtime_profile.get("competition_label") or profile_name),
         "contract": "core/writing_runtime_contract.yaml",
-        "protocol": "modules/05_writing/paper_writing_protocol.md",
-        "template_manifest": "templates/latex/cumcm/hsk/template_manifest.yaml",
+        "protocol": str(writing_module.get("protocol") or "modules/05_writing/paper_writing_protocol.md"),
+        "template_manifest": template_manifest,
         "resource_order_semantics": runtime.get("template_first_progressive_authoring", {}).get(
             "resource_order_semantics"
         ),
@@ -105,9 +160,7 @@ def _apply_v8_writing_runtime(plan: dict[str, Any]) -> dict[str, Any]:
             runtime.get("template_first_progressive_authoring", {}).get("stages", [])
         ),
         "full_reasoning_authority_preloaded": old_authority in load_order,
-        "full_reasoning_authority_fallback": runtime.get("full_authority_fallback", {}).get(
-            "authority", old_authority
-        ),
+        "full_reasoning_authority_fallback": old_authority,
         "fallback_triggers": list(
             runtime.get("semantic_capabilities", {}).get(
                 "load_full_reasoning_authority_when_any", []
@@ -115,7 +168,6 @@ def _apply_v8_writing_runtime(plan: dict[str, Any]) -> dict[str, Any]:
         ),
     }
     return plan
-
 
 def resolve_runtime(
     intents: str | Iterable[str] | None = None,
@@ -221,7 +273,7 @@ def resolve_runtime(
     # Assurance closure may legitimately add the full writing reasoning contract because
     # old module dependencies still know the v7 authority graph. Apply the v8 compact
     # projection afterwards so pure prose-generation routes do not preload that file.
-    plan = _apply_v8_writing_runtime(plan)
+    plan = _apply_profile_writing_runtime(plan)
 
     fingerprint_sources = (
         assurance_contract.get("authority_fingerprint", {}) or {}

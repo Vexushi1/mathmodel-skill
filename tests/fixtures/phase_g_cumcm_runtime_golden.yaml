@@ -1,0 +1,733 @@
+schema_version: 1.0.0
+competition: CUMCM
+routes:
+  latex:
+    load_order:
+    - core/bootstrap.yaml
+    - core/hsk_core_policy.md
+    - core/writing_runtime_contract.yaml
+    - templates/latex/cumcm/hsk/template_manifest.yaml
+    - templates/latex/cumcm/hsk/hsk_main.tex
+    - modules/05_writing/paper_writing_protocol.md
+    - modules/05_writing/latex.md
+    - packs/artifact/latex.md
+    - packs/artifact/algorithm_flow.md
+    - packs/competition/cumcm.md
+    - core/compile_profiles.yaml
+    - core/project_state.schema.yaml
+    - core/state_transition_contract.yaml
+    - core/output_contract.yaml
+    - modules/05_writing/ai_cleanup.md
+    - modules/05_latex_compile_quality.md
+    contracts:
+    - core/bootstrap.yaml
+    - core/hsk_core_policy.md
+    - core/writing_runtime_contract.yaml
+    - core/compile_profiles.yaml
+    - core/project_state.schema.yaml
+    - core/state_transition_contract.yaml
+    - core/output_contract.yaml
+    templates:
+    - templates/latex/cumcm/hsk/template_manifest.yaml
+    - templates/latex/cumcm/hsk/hsk_main.tex
+    writing_runtime:
+      mode: compact
+      execution_mode: template_first_progressive_authoring
+      competition: CUMCM
+      contract: core/writing_runtime_contract.yaml
+      protocol: modules/05_writing/paper_writing_protocol.md
+      template_manifest: templates/latex/cumcm/hsk/template_manifest.yaml
+      resource_order_semantics: ordinary_writing_resource_order 只声明本次任务可用资源及稳定解析顺序，不表示可以在开篇一次性预读全部写作、去
+        AI、编译和终审模块。 实际读取时机只能服从 stages；完成当前阶段写入与 gate 后，才读取下一阶段资源。
+      initial_read_order:
+      - core/hsk_core_policy.md
+      - core/writing_runtime_contract.yaml
+      - templates/latex/cumcm/hsk/template_manifest.yaml
+      - templates/latex/cumcm/hsk/hsk_main.tex
+      authoring_sequence:
+      - id: template_inspection
+        read_now:
+        - templates/latex/cumcm/hsk/template_manifest.yaml
+        - templates/latex/cumcm/hsk/hsk_main.tex
+        - current_model_paper_framework#当前写作选择
+        - current_model_paper_framework#Chapter-Handoff-Map when available
+        run_now:
+        - resolve_active_final_assembly_and_actual_seams
+        write_now: []
+        gate: 固定一级骨架、条件槽、问题数量、目标 section 文件和任何已批准 override 均已确定；不得生成正文。
+      - id: problem_restatement
+        read_now:
+        - modules/05_writing/paper_writing_protocol.md#6.1-问题重述
+        - current_problem_contract
+        - original_problem_text
+        write_now:
+        - templates/latex/cumcm/hsk/sections/01_problem_statement.tex
+        gate: 不照抄或逐句同义替换原题，同时完整保留对象、条件、量词、单位、边界和所求输出，且不提前写模型、算法或结果。
+      - id: problem_analysis
+        read_now:
+        - modules/05_writing/paper_writing_protocol.md#6.2-问题分析
+        - current_problem_contract
+        - current_classification_and_cross_question_dependencies
+        write_now:
+        - templates/latex/cumcm/hsk/sections/02_problem_analysis.tex
+        gate: 形成对象/条件 → 困难 → 数学抓手 → 建模转化 → 准备建立的结构 → 跨问关系的连续论证，不得写成散乱清单或软件流水线。
+      - id: assumptions_symbols_and_preparation
+        read_now:
+        - modules/05_writing/paper_writing_protocol.md#6.3-模型假设与符号说明
+        - modules/05_writing/paper_writing_protocol.md#6.4-数据说明与必要预处理
+        - modules/05_writing/paper_writing_protocol.md#6.5-共享基础与模型准备
+        - current_model_paper_framework#预处理判定与共享关系
+        write_now:
+        - templates/latex/cumcm/hsk/sections/03_assumptions.tex
+        - templates/latex/cumcm/hsk/sections/04_symbols.tex
+        - templates/latex/cumcm/hsk/sections/05_data.tex when project facts activate
+          it
+        - templates/latex/cumcm/hsk/sections/05_model_preparation.tex when project
+          facts activate it
+        gate: 假设、符号、数据处理和共享关系均有真实依据；未激活的条件章节保持关闭。
+      - id: question_model_solution_result_validation
+        repeat_for_each_question_in_template_order: true
+        before_write_preflight:
+          contract: core/writing_runtime_contract.yaml#per_question_writing_capability_preflight
+          read_now:
+          - current_question_evidence_bundle
+          - current_model_paper_framework#逐问写作能力预检
+          dispatch_from_project_state: true
+          required_before_write_now: true
+          gate: 本问 Formula roles、Core Model Summary、Proposition / Proof、Algorithm
+            presentation 以及所需条件资源均已显式裁决； missing/stale 不得静默降级，也不得依赖用户再次提醒能力名称。
+        read_now:
+        - modules/05_writing/paper_writing_protocol.md#1-写作输入
+        - modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽
+        - modules/05_writing/paper_writing_protocol.md#4-Local-Narrative-Chain
+        - modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test
+        - modules/05_writing/paper_writing_protocol.md#7-模型建立
+        - modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释
+        - modules/05_writing/paper_writing_protocol.md#8-模型求解
+        - modules/05_writing/paper_writing_protocol.md#9-求解结果数值与术语
+        - modules/05_writing/paper_writing_protocol.md#10-结果与验证的分层
+        - modules/05_writing/paper_writing_protocol.md#11-Result-Validation-Bridge
+        - modules/05_writing/paper_writing_protocol.md#12-跨问递进
+        - modules/05_writing/paper_writing_protocol.md#13-图结果叙事
+        - current_question_model_formula_algorithm_result_and_figure_evidence
+        write_now:
+        - current_question_section_file
+        conditional_reads_before_relevant_passage:
+          proposition_or_proof:
+            when: 当前问 preflight 的 derived proposition_proof state 为 planned/current，或
+              candidate/stale/missing/review_required 需要语义裁决， 或用户明确要求创建/修改/审查命题、引理、推论、等价性/可行性/单调性证明或误差界；显式请求不得覆盖
+              stale/missing 冲突。
+            read:
+            - core/writing_reasoning_contract.yaml
+            - packs/artifact/proposition_proof.md
+            required_outcome: 命题具有真实下游作用，前提、结论、证明边界和对后续变量/约束/solver/解释的作用闭合；数值实验不得冒充证明。
+          stepwise_or_pseudocode:
+            when: 当前问 preflight 已裁决 Algorithm Trace presentation_mode 为 stepwise 或
+              pseudocode，而不是 not_needed； mode 来自项目状态即可触发，不要求用户 prompt 再出现“伪代码/算法流程”。
+            read:
+            - core/writing_reasoning_contract.yaml
+            - packs/artifact/algorithm_flow.md
+            - modules/05_writing/latex.md#5-图表命题和算法环境
+            required_outcome: 算法块前说明本题需要与输入，块内只写数学对象和控制逻辑，块后说明输出怎样进入结果或下一阶段，并与真实实现及证据一致。
+          complex_semantic_dispute:
+            when: Model/Solver/Validator、优化语义、跨问依赖、术语数值、Model Construction Rationale、Reduction
+              Provenance、solver precondition、Preflight 缺失状态或 Claim Strength 存在争议。
+            read:
+            - core/writing_reasoning_contract.yaml
+          reasoning_example:
+            when: 当前段落需要改写示范，或难以区分有效建模解释与空泛铺垫；只读取相关案例，不作为开篇预读。
+            read:
+            - modules/05_writing/references/model_solution_reasoning_examples.md
+            required_outcome: 理解解释的作用后回到当前项目事实写作，不套用示例中的题目对象、数值、算法或句式。
+          model_construction_solution_example:
+            when: 当前段落难以说明为什么建立该模型、为什么结构化简成立、solver 前提/适用性、关键数值参数依据，或小节标题拆分/压缩存在争议；只读取相关案例。
+            read:
+            - modules/05_writing/references/model_construction_solution_rationale_examples.md
+            required_outcome: 只提取“gap—结构—适用边界—solver/参数—导航”的功能，不复制示例标题、算法、对象或数值作为当前项目事实。
+        gate: 当前问题已通过 capability preflight，并完成模型建立理由/适用边界 → 模型闭合 → solver 前提与适配 →
+          求解结果 → 真实验证/边界 → 直接回答的局部闭环；简单题可合并标题并省略已明确裁决为不适用的功能，但不得因未读取而删掉必要功能。
+      - id: evaluation_references_conclusion_appendix
+        read_now:
+        - modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录
+        - modules/05_writing/paper_writing_protocol.md#16-引用与正文语言
+        - current_citation_evidence_and_final_question_answers
+        write_now:
+        - templates/latex/cumcm/hsk/sections/09_evaluation.tex
+        - templates/latex/cumcm/hsk/references.bib
+        - templates/latex/cumcm/hsk/appendices/appendices.tex when needed
+        gate: 评价不替代验证，结论不新增主张，外部事实有真实 citation key，正文论证主体未被移入附录。
+      - id: abstract_title_and_keywords
+        read_now:
+        - modules/05_writing/paper_writing_protocol.md#2-模板与写作职责
+        - modules/05_writing/paper_writing_protocol.md#14-摘要
+        - current_final_question_answers_and_validation_boundaries
+        write_now:
+        - templates/latex/cumcm/hsk/frontmatter/abstract.tex
+        - current_template_metadata_title_and_keywords
+        gate: 摘要逐问闭合任务—模型—目标/条件—方法—结果—真实检验—结论，标题和关键词均有正文及结果证据，不虚构敏感性或鲁棒性。
+      - id: draft_semantic_review
+        read_now:
+        - core/writing_reasoning_contract.yaml
+        - modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test
+        - modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释
+        - modules/06_review_delivery.md#三-公式模型角色算法命题与数值证据审查
+        - modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff
+        - current_model_paper_framework#Chapter-Handoff-Map
+        - modules/06_review_delivery.md#Cross-File-Assembled-Seam-Sweep
+        - modules/06_review_delivery.md#五-Title-Claim-正文结构与-Paragraph-Necessity
+        - modules/06_review_delivery.md#v7.20-v8.0.1-章节能力保全检查
+        run_now:
+        - assembled_seam_sweep
+        - scripts/audit_v8_writing_surface.py
+        write_now:
+        - draft_review_findings
+        gate: 逐章详细内容、Model Construction Rationale、solver preconditions、标题/小节导航、命题/算法、数值、引用、图叙事和
+          Result → Validation Bridge 均已审查；blocking/review_required 项先处理。
+      - id: ai_cleanup
+        read_now:
+        - modules/05_writing/ai_cleanup.md
+        - modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test
+        - modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释
+        - resolved_draft_review_findings
+        write_now:
+        - cleaned_paper_text
+        gate: 只清除模板感、空话、机械重复和证据越界，不删除章节必要建模理由/适用边界、推导、约束、solver 前提、命题、伪代码、结果或验证内容，也不按标题数量/字数机械合并或拆分。
+      - id: latex_assembly_audit_and_compile
+        read_now:
+        - modules/05_writing/latex.md
+        - modules/05_latex_compile_quality.md
+        - packs/artifact/latex.md
+        run_now:
+        - scripts/validate_template_manifest.py
+        - scripts/audit_latex_project.py
+        - scripts/render_paper.py
+        write_now:
+        - latex_source
+        - latex_audit_report
+        - compiled_pdf
+        - compile_report
+        gate: 模板、引用、公式/图表/命题/算法环境、编译日志和 PDF 全部通过正式门禁。
+      - id: final_review_and_delivery
+        read_now:
+        - core/writing_reasoning_contract.yaml
+        - modules/06_review_delivery.md
+        - templates/review/final_review_matrix.yaml
+        - current_latex_audit_and_compile_reports
+        write_now:
+        - review_report
+        gate: 最终终审完成八类动态 coverage、原子 finding、规则核验与证据扫描后，才允许交付或进入 submission package；review
+          matrix 不进入 official package。
+      full_reasoning_authority_preloaded: false
+      full_reasoning_authority_fallback: core/writing_reasoning_contract.yaml
+      fallback_triggers:
+      - proposition_or_proof_is_being_created_or_revised
+      - algorithm_trace_semantics_are_being_created_or_revised
+      - question_preflight_requires_semantic_adjudication
+      - model_construction_rationale_or_applicability_is_in_dispute
+      - reduction_provenance_is_in_dispute
+      - solver_precondition_or_fit_is_in_dispute
+      - model_solver_validator_role_is_ambiguous
+      - optimization_semantics_are_in_dispute
+      - cross_question_dependency_is_in_dispute
+      - terminology_or_numeric_profile_semantics_are_in_dispute
+      - citation_evidence_scope_is_in_dispute
+      - title_claim_or_claim_strength_requires_semantic_adjudication
+      - final_review_requires_full_authority
+  review:
+    load_order:
+    - core/bootstrap.yaml
+    - core/hsk_core_policy.md
+    - core/writing_runtime_contract.yaml
+    - templates/latex/cumcm/hsk/template_manifest.yaml
+    - templates/latex/cumcm/hsk/hsk_main.tex
+    - modules/05_writing/paper_writing_protocol.md
+    - modules/05_writing/latex.md
+    - core/writing_reasoning_contract.yaml
+    - packs/artifact/review.md
+    - templates/review/final_review_matrix.yaml
+    - packs/artifact/algorithm_flow.md
+    - packs/competition/cumcm.md
+    - core/output_contract.yaml
+    - core/workbook_schema.yaml
+    - modules/06_review_delivery.md
+    contracts:
+    - core/bootstrap.yaml
+    - core/hsk_core_policy.md
+    - core/writing_runtime_contract.yaml
+    - core/writing_reasoning_contract.yaml
+    - core/output_contract.yaml
+    - core/workbook_schema.yaml
+    templates:
+    - templates/latex/cumcm/hsk/template_manifest.yaml
+    - templates/latex/cumcm/hsk/hsk_main.tex
+    - templates/review/final_review_matrix.yaml
+    writing_runtime:
+      mode: full_authority
+      execution_mode: template_first_progressive_authoring
+      competition: CUMCM
+      contract: core/writing_runtime_contract.yaml
+      protocol: modules/05_writing/paper_writing_protocol.md
+      template_manifest: templates/latex/cumcm/hsk/template_manifest.yaml
+      resource_order_semantics: ordinary_writing_resource_order 只声明本次任务可用资源及稳定解析顺序，不表示可以在开篇一次性预读全部写作、去
+        AI、编译和终审模块。 实际读取时机只能服从 stages；完成当前阶段写入与 gate 后，才读取下一阶段资源。
+      initial_read_order:
+      - core/hsk_core_policy.md
+      - core/writing_runtime_contract.yaml
+      - templates/latex/cumcm/hsk/template_manifest.yaml
+      - templates/latex/cumcm/hsk/hsk_main.tex
+      authoring_sequence:
+      - id: template_inspection
+        read_now:
+        - templates/latex/cumcm/hsk/template_manifest.yaml
+        - templates/latex/cumcm/hsk/hsk_main.tex
+        - current_model_paper_framework#当前写作选择
+        - current_model_paper_framework#Chapter-Handoff-Map when available
+        run_now:
+        - resolve_active_final_assembly_and_actual_seams
+        write_now: []
+        gate: 固定一级骨架、条件槽、问题数量、目标 section 文件和任何已批准 override 均已确定；不得生成正文。
+      - id: problem_restatement
+        read_now:
+        - modules/05_writing/paper_writing_protocol.md#6.1-问题重述
+        - current_problem_contract
+        - original_problem_text
+        write_now:
+        - templates/latex/cumcm/hsk/sections/01_problem_statement.tex
+        gate: 不照抄或逐句同义替换原题，同时完整保留对象、条件、量词、单位、边界和所求输出，且不提前写模型、算法或结果。
+      - id: problem_analysis
+        read_now:
+        - modules/05_writing/paper_writing_protocol.md#6.2-问题分析
+        - current_problem_contract
+        - current_classification_and_cross_question_dependencies
+        write_now:
+        - templates/latex/cumcm/hsk/sections/02_problem_analysis.tex
+        gate: 形成对象/条件 → 困难 → 数学抓手 → 建模转化 → 准备建立的结构 → 跨问关系的连续论证，不得写成散乱清单或软件流水线。
+      - id: assumptions_symbols_and_preparation
+        read_now:
+        - modules/05_writing/paper_writing_protocol.md#6.3-模型假设与符号说明
+        - modules/05_writing/paper_writing_protocol.md#6.4-数据说明与必要预处理
+        - modules/05_writing/paper_writing_protocol.md#6.5-共享基础与模型准备
+        - current_model_paper_framework#预处理判定与共享关系
+        write_now:
+        - templates/latex/cumcm/hsk/sections/03_assumptions.tex
+        - templates/latex/cumcm/hsk/sections/04_symbols.tex
+        - templates/latex/cumcm/hsk/sections/05_data.tex when project facts activate
+          it
+        - templates/latex/cumcm/hsk/sections/05_model_preparation.tex when project
+          facts activate it
+        gate: 假设、符号、数据处理和共享关系均有真实依据；未激活的条件章节保持关闭。
+      - id: question_model_solution_result_validation
+        repeat_for_each_question_in_template_order: true
+        before_write_preflight:
+          contract: core/writing_runtime_contract.yaml#per_question_writing_capability_preflight
+          read_now:
+          - current_question_evidence_bundle
+          - current_model_paper_framework#逐问写作能力预检
+          dispatch_from_project_state: true
+          required_before_write_now: true
+          gate: 本问 Formula roles、Core Model Summary、Proposition / Proof、Algorithm
+            presentation 以及所需条件资源均已显式裁决； missing/stale 不得静默降级，也不得依赖用户再次提醒能力名称。
+        read_now:
+        - modules/05_writing/paper_writing_protocol.md#1-写作输入
+        - modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽
+        - modules/05_writing/paper_writing_protocol.md#4-Local-Narrative-Chain
+        - modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test
+        - modules/05_writing/paper_writing_protocol.md#7-模型建立
+        - modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释
+        - modules/05_writing/paper_writing_protocol.md#8-模型求解
+        - modules/05_writing/paper_writing_protocol.md#9-求解结果数值与术语
+        - modules/05_writing/paper_writing_protocol.md#10-结果与验证的分层
+        - modules/05_writing/paper_writing_protocol.md#11-Result-Validation-Bridge
+        - modules/05_writing/paper_writing_protocol.md#12-跨问递进
+        - modules/05_writing/paper_writing_protocol.md#13-图结果叙事
+        - current_question_model_formula_algorithm_result_and_figure_evidence
+        write_now:
+        - current_question_section_file
+        conditional_reads_before_relevant_passage:
+          proposition_or_proof:
+            when: 当前问 preflight 的 derived proposition_proof state 为 planned/current，或
+              candidate/stale/missing/review_required 需要语义裁决， 或用户明确要求创建/修改/审查命题、引理、推论、等价性/可行性/单调性证明或误差界；显式请求不得覆盖
+              stale/missing 冲突。
+            read:
+            - core/writing_reasoning_contract.yaml
+            - packs/artifact/proposition_proof.md
+            required_outcome: 命题具有真实下游作用，前提、结论、证明边界和对后续变量/约束/solver/解释的作用闭合；数值实验不得冒充证明。
+          stepwise_or_pseudocode:
+            when: 当前问 preflight 已裁决 Algorithm Trace presentation_mode 为 stepwise 或
+              pseudocode，而不是 not_needed； mode 来自项目状态即可触发，不要求用户 prompt 再出现“伪代码/算法流程”。
+            read:
+            - core/writing_reasoning_contract.yaml
+            - packs/artifact/algorithm_flow.md
+            - modules/05_writing/latex.md#5-图表命题和算法环境
+            required_outcome: 算法块前说明本题需要与输入，块内只写数学对象和控制逻辑，块后说明输出怎样进入结果或下一阶段，并与真实实现及证据一致。
+          complex_semantic_dispute:
+            when: Model/Solver/Validator、优化语义、跨问依赖、术语数值、Model Construction Rationale、Reduction
+              Provenance、solver precondition、Preflight 缺失状态或 Claim Strength 存在争议。
+            read:
+            - core/writing_reasoning_contract.yaml
+          reasoning_example:
+            when: 当前段落需要改写示范，或难以区分有效建模解释与空泛铺垫；只读取相关案例，不作为开篇预读。
+            read:
+            - modules/05_writing/references/model_solution_reasoning_examples.md
+            required_outcome: 理解解释的作用后回到当前项目事实写作，不套用示例中的题目对象、数值、算法或句式。
+          model_construction_solution_example:
+            when: 当前段落难以说明为什么建立该模型、为什么结构化简成立、solver 前提/适用性、关键数值参数依据，或小节标题拆分/压缩存在争议；只读取相关案例。
+            read:
+            - modules/05_writing/references/model_construction_solution_rationale_examples.md
+            required_outcome: 只提取“gap—结构—适用边界—solver/参数—导航”的功能，不复制示例标题、算法、对象或数值作为当前项目事实。
+        gate: 当前问题已通过 capability preflight，并完成模型建立理由/适用边界 → 模型闭合 → solver 前提与适配 →
+          求解结果 → 真实验证/边界 → 直接回答的局部闭环；简单题可合并标题并省略已明确裁决为不适用的功能，但不得因未读取而删掉必要功能。
+      - id: evaluation_references_conclusion_appendix
+        read_now:
+        - modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录
+        - modules/05_writing/paper_writing_protocol.md#16-引用与正文语言
+        - current_citation_evidence_and_final_question_answers
+        write_now:
+        - templates/latex/cumcm/hsk/sections/09_evaluation.tex
+        - templates/latex/cumcm/hsk/references.bib
+        - templates/latex/cumcm/hsk/appendices/appendices.tex when needed
+        gate: 评价不替代验证，结论不新增主张，外部事实有真实 citation key，正文论证主体未被移入附录。
+      - id: abstract_title_and_keywords
+        read_now:
+        - modules/05_writing/paper_writing_protocol.md#2-模板与写作职责
+        - modules/05_writing/paper_writing_protocol.md#14-摘要
+        - current_final_question_answers_and_validation_boundaries
+        write_now:
+        - templates/latex/cumcm/hsk/frontmatter/abstract.tex
+        - current_template_metadata_title_and_keywords
+        gate: 摘要逐问闭合任务—模型—目标/条件—方法—结果—真实检验—结论，标题和关键词均有正文及结果证据，不虚构敏感性或鲁棒性。
+      - id: draft_semantic_review
+        read_now:
+        - core/writing_reasoning_contract.yaml
+        - modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test
+        - modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释
+        - modules/06_review_delivery.md#三-公式模型角色算法命题与数值证据审查
+        - modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff
+        - current_model_paper_framework#Chapter-Handoff-Map
+        - modules/06_review_delivery.md#Cross-File-Assembled-Seam-Sweep
+        - modules/06_review_delivery.md#五-Title-Claim-正文结构与-Paragraph-Necessity
+        - modules/06_review_delivery.md#v7.20-v8.0.1-章节能力保全检查
+        run_now:
+        - assembled_seam_sweep
+        - scripts/audit_v8_writing_surface.py
+        write_now:
+        - draft_review_findings
+        gate: 逐章详细内容、Model Construction Rationale、solver preconditions、标题/小节导航、命题/算法、数值、引用、图叙事和
+          Result → Validation Bridge 均已审查；blocking/review_required 项先处理。
+      - id: ai_cleanup
+        read_now:
+        - modules/05_writing/ai_cleanup.md
+        - modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test
+        - modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释
+        - resolved_draft_review_findings
+        write_now:
+        - cleaned_paper_text
+        gate: 只清除模板感、空话、机械重复和证据越界，不删除章节必要建模理由/适用边界、推导、约束、solver 前提、命题、伪代码、结果或验证内容，也不按标题数量/字数机械合并或拆分。
+      - id: latex_assembly_audit_and_compile
+        read_now:
+        - modules/05_writing/latex.md
+        - modules/05_latex_compile_quality.md
+        - packs/artifact/latex.md
+        run_now:
+        - scripts/validate_template_manifest.py
+        - scripts/audit_latex_project.py
+        - scripts/render_paper.py
+        write_now:
+        - latex_source
+        - latex_audit_report
+        - compiled_pdf
+        - compile_report
+        gate: 模板、引用、公式/图表/命题/算法环境、编译日志和 PDF 全部通过正式门禁。
+      - id: final_review_and_delivery
+        read_now:
+        - core/writing_reasoning_contract.yaml
+        - modules/06_review_delivery.md
+        - templates/review/final_review_matrix.yaml
+        - current_latex_audit_and_compile_reports
+        write_now:
+        - review_report
+        gate: 最终终审完成八类动态 coverage、原子 finding、规则核验与证据扫描后，才允许交付或进入 submission package；review
+          matrix 不进入 official package。
+      full_reasoning_authority_preloaded: true
+      full_reasoning_authority_fallback: core/writing_reasoning_contract.yaml
+      fallback_triggers:
+      - proposition_or_proof_is_being_created_or_revised
+      - algorithm_trace_semantics_are_being_created_or_revised
+      - question_preflight_requires_semantic_adjudication
+      - model_construction_rationale_or_applicability_is_in_dispute
+      - reduction_provenance_is_in_dispute
+      - solver_precondition_or_fit_is_in_dispute
+      - model_solver_validator_role_is_ambiguous
+      - optimization_semantics_are_in_dispute
+      - cross_question_dependency_is_in_dispute
+      - terminology_or_numeric_profile_semantics_are_in_dispute
+      - citation_evidence_scope_is_in_dispute
+      - title_claim_or_claim_strength_requires_semantic_adjudication
+      - final_review_requires_full_authority
+  full_submission:
+    load_order:
+    - core/bootstrap.yaml
+    - core/hsk_core_policy.md
+    - core/writing_runtime_contract.yaml
+    - templates/latex/cumcm/hsk/template_manifest.yaml
+    - templates/latex/cumcm/hsk/hsk_main.tex
+    - modules/05_writing/paper_writing_protocol.md
+    - modules/05_writing/latex.md
+    - core/writing_reasoning_contract.yaml
+    - packs/artifact/full_submission.md
+    - packs/artifact/algorithm_flow.md
+    - packs/competition/cumcm.md
+    - core/output_contract.yaml
+    - core/workbook_schema.yaml
+    - core/project_state.schema.yaml
+    - core/state_transition_contract.yaml
+    - modules/06_review_delivery.md
+    contracts:
+    - core/bootstrap.yaml
+    - core/hsk_core_policy.md
+    - core/writing_runtime_contract.yaml
+    - core/writing_reasoning_contract.yaml
+    - core/output_contract.yaml
+    - core/workbook_schema.yaml
+    - core/project_state.schema.yaml
+    - core/state_transition_contract.yaml
+    templates:
+    - templates/latex/cumcm/hsk/template_manifest.yaml
+    - templates/latex/cumcm/hsk/hsk_main.tex
+    writing_runtime:
+      mode: full_authority
+      execution_mode: template_first_progressive_authoring
+      competition: CUMCM
+      contract: core/writing_runtime_contract.yaml
+      protocol: modules/05_writing/paper_writing_protocol.md
+      template_manifest: templates/latex/cumcm/hsk/template_manifest.yaml
+      resource_order_semantics: ordinary_writing_resource_order 只声明本次任务可用资源及稳定解析顺序，不表示可以在开篇一次性预读全部写作、去
+        AI、编译和终审模块。 实际读取时机只能服从 stages；完成当前阶段写入与 gate 后，才读取下一阶段资源。
+      initial_read_order:
+      - core/hsk_core_policy.md
+      - core/writing_runtime_contract.yaml
+      - templates/latex/cumcm/hsk/template_manifest.yaml
+      - templates/latex/cumcm/hsk/hsk_main.tex
+      authoring_sequence:
+      - id: template_inspection
+        read_now:
+        - templates/latex/cumcm/hsk/template_manifest.yaml
+        - templates/latex/cumcm/hsk/hsk_main.tex
+        - current_model_paper_framework#当前写作选择
+        - current_model_paper_framework#Chapter-Handoff-Map when available
+        run_now:
+        - resolve_active_final_assembly_and_actual_seams
+        write_now: []
+        gate: 固定一级骨架、条件槽、问题数量、目标 section 文件和任何已批准 override 均已确定；不得生成正文。
+      - id: problem_restatement
+        read_now:
+        - modules/05_writing/paper_writing_protocol.md#6.1-问题重述
+        - current_problem_contract
+        - original_problem_text
+        write_now:
+        - templates/latex/cumcm/hsk/sections/01_problem_statement.tex
+        gate: 不照抄或逐句同义替换原题，同时完整保留对象、条件、量词、单位、边界和所求输出，且不提前写模型、算法或结果。
+      - id: problem_analysis
+        read_now:
+        - modules/05_writing/paper_writing_protocol.md#6.2-问题分析
+        - current_problem_contract
+        - current_classification_and_cross_question_dependencies
+        write_now:
+        - templates/latex/cumcm/hsk/sections/02_problem_analysis.tex
+        gate: 形成对象/条件 → 困难 → 数学抓手 → 建模转化 → 准备建立的结构 → 跨问关系的连续论证，不得写成散乱清单或软件流水线。
+      - id: assumptions_symbols_and_preparation
+        read_now:
+        - modules/05_writing/paper_writing_protocol.md#6.3-模型假设与符号说明
+        - modules/05_writing/paper_writing_protocol.md#6.4-数据说明与必要预处理
+        - modules/05_writing/paper_writing_protocol.md#6.5-共享基础与模型准备
+        - current_model_paper_framework#预处理判定与共享关系
+        write_now:
+        - templates/latex/cumcm/hsk/sections/03_assumptions.tex
+        - templates/latex/cumcm/hsk/sections/04_symbols.tex
+        - templates/latex/cumcm/hsk/sections/05_data.tex when project facts activate
+          it
+        - templates/latex/cumcm/hsk/sections/05_model_preparation.tex when project
+          facts activate it
+        gate: 假设、符号、数据处理和共享关系均有真实依据；未激活的条件章节保持关闭。
+      - id: question_model_solution_result_validation
+        repeat_for_each_question_in_template_order: true
+        before_write_preflight:
+          contract: core/writing_runtime_contract.yaml#per_question_writing_capability_preflight
+          read_now:
+          - current_question_evidence_bundle
+          - current_model_paper_framework#逐问写作能力预检
+          dispatch_from_project_state: true
+          required_before_write_now: true
+          gate: 本问 Formula roles、Core Model Summary、Proposition / Proof、Algorithm
+            presentation 以及所需条件资源均已显式裁决； missing/stale 不得静默降级，也不得依赖用户再次提醒能力名称。
+        read_now:
+        - modules/05_writing/paper_writing_protocol.md#1-写作输入
+        - modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽
+        - modules/05_writing/paper_writing_protocol.md#4-Local-Narrative-Chain
+        - modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test
+        - modules/05_writing/paper_writing_protocol.md#7-模型建立
+        - modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释
+        - modules/05_writing/paper_writing_protocol.md#8-模型求解
+        - modules/05_writing/paper_writing_protocol.md#9-求解结果数值与术语
+        - modules/05_writing/paper_writing_protocol.md#10-结果与验证的分层
+        - modules/05_writing/paper_writing_protocol.md#11-Result-Validation-Bridge
+        - modules/05_writing/paper_writing_protocol.md#12-跨问递进
+        - modules/05_writing/paper_writing_protocol.md#13-图结果叙事
+        - current_question_model_formula_algorithm_result_and_figure_evidence
+        write_now:
+        - current_question_section_file
+        conditional_reads_before_relevant_passage:
+          proposition_or_proof:
+            when: 当前问 preflight 的 derived proposition_proof state 为 planned/current，或
+              candidate/stale/missing/review_required 需要语义裁决， 或用户明确要求创建/修改/审查命题、引理、推论、等价性/可行性/单调性证明或误差界；显式请求不得覆盖
+              stale/missing 冲突。
+            read:
+            - core/writing_reasoning_contract.yaml
+            - packs/artifact/proposition_proof.md
+            required_outcome: 命题具有真实下游作用，前提、结论、证明边界和对后续变量/约束/solver/解释的作用闭合；数值实验不得冒充证明。
+          stepwise_or_pseudocode:
+            when: 当前问 preflight 已裁决 Algorithm Trace presentation_mode 为 stepwise 或
+              pseudocode，而不是 not_needed； mode 来自项目状态即可触发，不要求用户 prompt 再出现“伪代码/算法流程”。
+            read:
+            - core/writing_reasoning_contract.yaml
+            - packs/artifact/algorithm_flow.md
+            - modules/05_writing/latex.md#5-图表命题和算法环境
+            required_outcome: 算法块前说明本题需要与输入，块内只写数学对象和控制逻辑，块后说明输出怎样进入结果或下一阶段，并与真实实现及证据一致。
+          complex_semantic_dispute:
+            when: Model/Solver/Validator、优化语义、跨问依赖、术语数值、Model Construction Rationale、Reduction
+              Provenance、solver precondition、Preflight 缺失状态或 Claim Strength 存在争议。
+            read:
+            - core/writing_reasoning_contract.yaml
+          reasoning_example:
+            when: 当前段落需要改写示范，或难以区分有效建模解释与空泛铺垫；只读取相关案例，不作为开篇预读。
+            read:
+            - modules/05_writing/references/model_solution_reasoning_examples.md
+            required_outcome: 理解解释的作用后回到当前项目事实写作，不套用示例中的题目对象、数值、算法或句式。
+          model_construction_solution_example:
+            when: 当前段落难以说明为什么建立该模型、为什么结构化简成立、solver 前提/适用性、关键数值参数依据，或小节标题拆分/压缩存在争议；只读取相关案例。
+            read:
+            - modules/05_writing/references/model_construction_solution_rationale_examples.md
+            required_outcome: 只提取“gap—结构—适用边界—solver/参数—导航”的功能，不复制示例标题、算法、对象或数值作为当前项目事实。
+        gate: 当前问题已通过 capability preflight，并完成模型建立理由/适用边界 → 模型闭合 → solver 前提与适配 →
+          求解结果 → 真实验证/边界 → 直接回答的局部闭环；简单题可合并标题并省略已明确裁决为不适用的功能，但不得因未读取而删掉必要功能。
+      - id: evaluation_references_conclusion_appendix
+        read_now:
+        - modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录
+        - modules/05_writing/paper_writing_protocol.md#16-引用与正文语言
+        - current_citation_evidence_and_final_question_answers
+        write_now:
+        - templates/latex/cumcm/hsk/sections/09_evaluation.tex
+        - templates/latex/cumcm/hsk/references.bib
+        - templates/latex/cumcm/hsk/appendices/appendices.tex when needed
+        gate: 评价不替代验证，结论不新增主张，外部事实有真实 citation key，正文论证主体未被移入附录。
+      - id: abstract_title_and_keywords
+        read_now:
+        - modules/05_writing/paper_writing_protocol.md#2-模板与写作职责
+        - modules/05_writing/paper_writing_protocol.md#14-摘要
+        - current_final_question_answers_and_validation_boundaries
+        write_now:
+        - templates/latex/cumcm/hsk/frontmatter/abstract.tex
+        - current_template_metadata_title_and_keywords
+        gate: 摘要逐问闭合任务—模型—目标/条件—方法—结果—真实检验—结论，标题和关键词均有正文及结果证据，不虚构敏感性或鲁棒性。
+      - id: draft_semantic_review
+        read_now:
+        - core/writing_reasoning_contract.yaml
+        - modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test
+        - modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释
+        - modules/06_review_delivery.md#三-公式模型角色算法命题与数值证据审查
+        - modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff
+        - current_model_paper_framework#Chapter-Handoff-Map
+        - modules/06_review_delivery.md#Cross-File-Assembled-Seam-Sweep
+        - modules/06_review_delivery.md#五-Title-Claim-正文结构与-Paragraph-Necessity
+        - modules/06_review_delivery.md#v7.20-v8.0.1-章节能力保全检查
+        run_now:
+        - assembled_seam_sweep
+        - scripts/audit_v8_writing_surface.py
+        write_now:
+        - draft_review_findings
+        gate: 逐章详细内容、Model Construction Rationale、solver preconditions、标题/小节导航、命题/算法、数值、引用、图叙事和
+          Result → Validation Bridge 均已审查；blocking/review_required 项先处理。
+      - id: ai_cleanup
+        read_now:
+        - modules/05_writing/ai_cleanup.md
+        - modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test
+        - modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释
+        - resolved_draft_review_findings
+        write_now:
+        - cleaned_paper_text
+        gate: 只清除模板感、空话、机械重复和证据越界，不删除章节必要建模理由/适用边界、推导、约束、solver 前提、命题、伪代码、结果或验证内容，也不按标题数量/字数机械合并或拆分。
+      - id: latex_assembly_audit_and_compile
+        read_now:
+        - modules/05_writing/latex.md
+        - modules/05_latex_compile_quality.md
+        - packs/artifact/latex.md
+        run_now:
+        - scripts/validate_template_manifest.py
+        - scripts/audit_latex_project.py
+        - scripts/render_paper.py
+        write_now:
+        - latex_source
+        - latex_audit_report
+        - compiled_pdf
+        - compile_report
+        gate: 模板、引用、公式/图表/命题/算法环境、编译日志和 PDF 全部通过正式门禁。
+      - id: final_review_and_delivery
+        read_now:
+        - core/writing_reasoning_contract.yaml
+        - modules/06_review_delivery.md
+        - templates/review/final_review_matrix.yaml
+        - current_latex_audit_and_compile_reports
+        write_now:
+        - review_report
+        gate: 最终终审完成八类动态 coverage、原子 finding、规则核验与证据扫描后，才允许交付或进入 submission package；review
+          matrix 不进入 official package。
+      full_reasoning_authority_preloaded: true
+      full_reasoning_authority_fallback: core/writing_reasoning_contract.yaml
+      fallback_triggers:
+      - proposition_or_proof_is_being_created_or_revised
+      - algorithm_trace_semantics_are_being_created_or_revised
+      - question_preflight_requires_semantic_adjudication
+      - model_construction_rationale_or_applicability_is_in_dispute
+      - reduction_provenance_is_in_dispute
+      - solver_precondition_or_fit_is_in_dispute
+      - model_solver_validator_role_is_ambiguous
+      - optimization_semantics_are_in_dispute
+      - cross_question_dependency_is_in_dispute
+      - terminology_or_numeric_profile_semantics_are_in_dispute
+      - citation_evidence_scope_is_in_dispute
+      - title_claim_or_claim_strength_requires_semantic_adjudication
+      - final_review_requires_full_authority
+  full_workflow:
+    load_order:
+    - core/bootstrap.yaml
+    - core/hsk_core_policy.md
+    - core/task_taxonomy.yaml
+    - core/global_preprocessing_contract.yaml
+    - core/user_execution_contract.yaml
+    - core/code_quality_contract.yaml
+    - core/writing_reasoning_contract.yaml
+    - packs/task/classifier.md
+    - packs/artifact/algorithm_flow.md
+    - packs/artifact/code.md
+    - packs/competition/cumcm.md
+    - packs/task/mechanism.md
+    - core/model_approval_contract.yaml
+    - core/numerical_verification_contract.yaml
+    - core/project_state.schema.yaml
+    - core/state_transition_contract.yaml
+    - modules/01_problem_audit.md
+    - modules/02_model_design.md
+    contracts:
+    - core/bootstrap.yaml
+    - core/hsk_core_policy.md
+    - core/task_taxonomy.yaml
+    - core/global_preprocessing_contract.yaml
+    - core/user_execution_contract.yaml
+    - core/code_quality_contract.yaml
+    - core/writing_reasoning_contract.yaml
+    - core/model_approval_contract.yaml
+    - core/numerical_verification_contract.yaml
+    - core/project_state.schema.yaml
+    - core/state_transition_contract.yaml
+    templates: []
+    writing_runtime: null

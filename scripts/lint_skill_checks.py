@@ -963,6 +963,41 @@ def check_project_state_and_framework(errors: list[str]) -> None:
         errors.append("minimal legacy-compatible full framework must pass")
 
 
+def check_competition_writing_runtime(errors: list[str]) -> None:
+    payload = load_structured(ROOT / "config/competition_profiles.yaml") or {}
+    allowed_modes = {"template_first_progressive", "full_reasoning_fallback"}
+    for name, profile in (payload.get("profiles", {}) or {}).items():
+        stable = (profile or {}).get("stable", {}) or {}
+        runtime = stable.get("writing_runtime")
+        if not isinstance(runtime, dict):
+            errors.append(f"competition profile {name} must declare stable.writing_runtime")
+            continue
+        mode = runtime.get("mode")
+        if mode not in allowed_modes:
+            errors.append(f"competition profile {name} has unsupported writing_runtime mode: {mode!r}")
+            continue
+        if mode == "template_first_progressive":
+            manifest = str(runtime.get("template_manifest") or "")
+            supported = [str(item) for item in runtime.get("supported_intents", [])]
+            compact = [str(item) for item in runtime.get("compact_intents", [])]
+            if not manifest:
+                errors.append(f"competition profile {name} Template-First runtime lacks template_manifest")
+            elif not (ROOT / manifest).is_file():
+                errors.append(f"competition profile {name} Template-First manifest is missing: {manifest}")
+            if not supported:
+                errors.append(f"competition profile {name} Template-First runtime lacks supported_intents")
+            if not set(compact).issubset(set(supported)):
+                errors.append(f"competition profile {name} compact_intents must be a subset of supported_intents")
+
+    resolver = read_text(ROOT / "scripts/resolve_runtime.py")
+    for forbidden in ("COMPACT_WRITING_COMPETITIONS", "CUMCM_WRITING_PACKAGE_INTENTS"):
+        if forbidden in resolver:
+            errors.append(f"runtime resolver must not retain competition-specific writing constant: {forbidden}")
+    for required in ("COMPETITION_PROFILES_PATH", "_apply_profile_writing_runtime", "full_reasoning_fallback"):
+        if required not in resolver:
+            errors.append(f"runtime resolver lacks profile-driven writing-runtime token: {required}")
+
+
 def check_templates(errors: list[str]) -> None:
     pipeline = read_text(ROOT / "templates/code/hsk_pipeline/main_pipeline.py")
     for token in ("def run_primary_pipeline(", "def run_result_analysis_pipeline(", "assert_primary_quality", "主结果质量门", "分析设计", "结论稳定性汇总"):
@@ -1349,7 +1384,7 @@ def main() -> int:
     checks = (
         check_required, check_compatibility_pointers, check_skill_entrypoint_parity, check_root_release_note_hygiene, check_versions, check_bootstrap_and_governance,
         check_taxonomy, check_repository_references, check_router, check_manifest, check_resolver_smoke,
-        check_contracts, check_project_state_and_framework, check_templates, check_final_review_compliance, check_editable_mechanism_diagrams, check_syntax,
+        check_contracts, check_project_state_and_framework, check_competition_writing_runtime, check_templates, check_final_review_compliance, check_editable_mechanism_diagrams, check_syntax,
     )
     for check in checks:
         try:
