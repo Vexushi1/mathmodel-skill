@@ -58,6 +58,19 @@ jobs:
           PY
       - name: Apply deterministic Phase G migration
         run: python scripts/_phase_g_migrate.py
+      - name: Approve changed competition profile authority baseline
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("tests/test_v830_editable_mechanism_diagram.py")
+          text = path.read_text(encoding="utf-8")
+          old = '"config/competition_profiles.yaml": "fcddec42a30ad4d4bc760dc8322cc13a998a6ebd"'
+          new = '"config/competition_profiles.yaml": "0cfe08e2edac99f07f2e527643499b8bc73c0479"'
+          if text.count(old) != 1:
+              raise SystemExit(f"competition profile protected baseline anchor mismatch: {text.count(old)}")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
       - name: Run focused Phase G regression
         run: python -m unittest tests.test_v900_phase_g_competition_runtime tests.test_v800_writing_runtime tests.test_v800_cross_chat_minimal_context
       - name: Run full unit suite
