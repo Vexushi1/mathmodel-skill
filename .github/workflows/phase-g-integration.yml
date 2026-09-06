@@ -24,23 +24,31 @@ jobs:
           cache: pip
       - name: Install test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
-      - name: Fix full-workflow golden invocation
+      - name: Fix deterministic migration anchors
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
           path = Path("scripts/_phase_g_migrate.py")
           text = path.read_text(encoding="utf-8")
+
           old = '        plan = runtime.resolve_runtime(intent, competition="CUMCM")\n'
           new = '        kwargs = {"primary": "mechanism"} if intent == "full_workflow" else {}\n        plan = runtime.resolve_runtime(intent, competition="CUMCM", **kwargs)\n'
           if text.count(old) != 1:
               raise SystemExit(f"golden capture anchor mismatch: {text.count(old)}")
           text = text.replace(old, new, 1)
+
           old_test = '                actual = self.runtime.resolve_runtime(intent, competition="CUMCM")\\n'
           new_test = '                kwargs = {"primary": "mechanism"} if intent == "full_workflow" else {}\\n                actual = self.runtime.resolve_runtime(intent, competition="CUMCM", **kwargs)\\n'
           if text.count(old_test) != 1:
               raise SystemExit(f"permanent test anchor mismatch: {text.count(old_test)}")
-          path.write_text(text.replace(old_test, new_test, 1), encoding="utf-8")
+          text = text.replace(old_test, new_test, 1)
+
+          start = text.index("def patch_profiles() -> None:\n")
+          end = text.index("\ndef patch_resolver() -> None:\n", start)
+          replacement = '''def patch_profiles() -> None:\n    path = ROOT / "config" / "competition_profiles.yaml"\n    text = path.read_text(encoding="utf-8")\n    replacements = [\n        (\n            "  cumcm:\\n"\n            "    aliases: [国赛, CUMCM, cumcm]\\n"\n            "    stable:\\n"\n            "      competition_pack: packs/competition/cumcm.md\\n"\n            "      latex_template: templates/latex/cumcm/hsk/\\n"\n            "      compile_profile: cumcm\\n"\n            "      language: zh-CN\\n"\n            "    edition_rules:\\n",\n            "  cumcm:\\n"\n            "    aliases: [国赛, CUMCM, cumcm]\\n"\n            "    stable:\\n"\n            "      competition_pack: packs/competition/cumcm.md\\n"\n            "      latex_template: templates/latex/cumcm/hsk/\\n"\n            "      compile_profile: cumcm\\n"\n            "      language: zh-CN\\n"\n            "      writing_runtime:\\n"\n            "        mode: template_first_progressive\\n"\n            "        competition_label: CUMCM\\n"\n            "        template_manifest: templates/latex/cumcm/hsk/template_manifest.yaml\\n"\n            "        supported_intents: [latex, review, full_submission, full_workflow]\\n"\n            "        compact_intents: [latex]\\n"\n            "    edition_rules:\\n",\n            "cumcm writing_runtime",\n        ),\n        (\n            "  mcm_icm:\\n"\n            "    aliases: [MCM, ICM, mcm, icm]\\n"\n            "    stable:\\n"\n            "      competition_pack: packs/competition/mcm_icm.md\\n"\n            "      latex_template: templates/latex/mcm/\\n"\n            "      compile_profile: mcm_icm\\n"\n            "      language: en\\n"\n            "    edition_rules:\\n",\n            "  mcm_icm:\\n"\n            "    aliases: [MCM, ICM, mcm, icm]\\n"\n            "    stable:\\n"\n            "      competition_pack: packs/competition/mcm_icm.md\\n"\n            "      latex_template: templates/latex/mcm/\\n"\n            "      compile_profile: mcm_icm\\n"\n            "      language: en\\n"\n            "      writing_runtime:\\n"\n            "        mode: full_reasoning_fallback\\n"\n            "    edition_rules:\\n",\n            "mcm writing_runtime",\n        ),\n        (\n            "  diangong:\\n"\n            "    aliases: [电工杯, diangong]\\n"\n            "    stable:\\n"\n            "      competition_pack: packs/competition/diangong.md\\n"\n            "      latex_template: templates/latex/diangong/\\n"\n            "      compile_profile: diangong\\n"\n            "      language: zh-CN\\n"\n            "    edition_rules:\\n",\n            "  diangong:\\n"\n            "    aliases: [电工杯, diangong]\\n"\n            "    stable:\\n"\n            "      competition_pack: packs/competition/diangong.md\\n"\n            "      latex_template: templates/latex/diangong/\\n"\n            "      compile_profile: diangong\\n"\n            "      language: zh-CN\\n"\n            "      writing_runtime:\\n"\n            "        mode: full_reasoning_fallback\\n"\n            "    edition_rules:\\n",\n            "diangong writing_runtime",\n        ),\n        (\n            "  certification_cup:\\n"\n            "    aliases: [认证杯, certification cup]\\n"\n            "    stable:\\n"\n            "      competition_pack: packs/competition/certification_cup.md\\n"\n            "      latex_template: null\\n"\n            "      compile_profile: null\\n"\n            "      language: zh-CN\\n"\n            "    edition_rules:\\n",\n            "  certification_cup:\\n"\n            "    aliases: [认证杯, certification cup]\\n"\n            "    stable:\\n"\n            "      competition_pack: packs/competition/certification_cup.md\\n"\n            "      latex_template: null\\n"\n            "      compile_profile: null\\n"\n            "      language: zh-CN\\n"\n            "      writing_runtime:\\n"\n            "        mode: full_reasoning_fallback\\n"\n            "    edition_rules:\\n",\n            "certification writing_runtime",\n        ),\n    ]\n    for old, new, label in replacements:\n        text = replace_once(text, old, new, label)\n    write(path, text)\n\n'''
+          text = text[:start] + replacement + text[end + 1:]
+          path.write_text(text, encoding="utf-8")
           PY
       - name: Apply deterministic Phase G migration
         run: python scripts/_phase_g_migrate.py
