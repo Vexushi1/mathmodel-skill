@@ -55,6 +55,7 @@
 - `core/output_contract.yaml`
 - `core/project_state.schema.yaml`
 - `core/runtime_assurance_contract.yaml`
+- `core/state_transition_contract.yaml`
 - `core/task_taxonomy.yaml`
 - `core/user_execution_contract.yaml`
 - `core/workbook_schema.yaml`
