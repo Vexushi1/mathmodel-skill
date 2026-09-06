@@ -319,4 +319,5 @@
 - `tests/test_v873_mechanism_monochrome_geometry.py`
 - `tests/test_v874_active_authority_hygiene.py`
 - `tests/test_v900_refactor_characterization.py`
+- `tests/test_v900_semantic_governance.py`
 - `tests/test_v900_semantic_identity.py`
