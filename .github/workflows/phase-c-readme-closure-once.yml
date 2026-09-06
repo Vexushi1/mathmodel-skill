@@ -40,4 +40,6 @@ jobs:
           git add -A
           git diff --cached --check
           git commit -m "fix: close remaining Phase C README drift"
-          git push
+          git fetch origin fix/v900-semantic-identity-surface-closure
+          git rebase origin/fix/v900-semantic-identity-surface-closure
+          git push origin HEAD:fix/v900-semantic-identity-surface-closure
