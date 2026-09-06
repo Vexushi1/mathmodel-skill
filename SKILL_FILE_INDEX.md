@@ -321,3 +321,4 @@
 - `tests/test_v900_refactor_characterization.py`
 - `tests/test_v900_semantic_governance.py`
 - `tests/test_v900_semantic_identity.py`
+- `tests/test_v900_semantic_identity_binding.py`
