@@ -325,3 +325,4 @@
 - `tests/test_v900_semantic_identity.py`
 - `tests/test_v900_semantic_identity_binding.py`
 - `tests/test_v900_semantic_identity_surface_closure.py`
+- `tests/test_v900_state_transitions.py`
