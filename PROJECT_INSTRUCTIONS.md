@@ -5,12 +5,12 @@
 ## 启动与恢复
 
 1. 先读 `core/bootstrap.yaml`，再运行 `scripts/resolve_runtime.py` 解析当前意图；只加载 resolver 命中的 contracts、modules、packs 和 templates。`scripts/resolve_workflow.py` 仅作无状态兼容入口。
-2. 已有项目时把 project root 交给 runtime resolver。当前语义与证据位置优先从 `模型论文框架.md` 恢复；revision/hash/stale 以 `state/project_state.yaml` 为准；具体数值必须回到 accepted workbook 核对。
+2. 已有项目时把 project root 交给 runtime resolver。当前语义与证据位置优先从 `模型论文框架.md` 恢复；revision/structured identity/text provenance/stale 以 `state/project_state.yaml` 为准；具体数值必须回到 accepted workbook 核对。
 3. 不依据旧聊天、历史计划或 `legacy/` 猜测 current 规则；legacy 只用于追溯和兼容。
 
 ## 执行硬边界
 
-- Problem Contract 冻结后形成 `proposed_model_spec`，依次经过独立 `Model Reviewer` 与 `Devil's Advocate`；challenge passed 后进入 `awaiting_model_approval`，只有用户显式批准 current `semantic_revision/hash` 才形成 current `locked_model_spec`。正式项目级预处理或主求解代码前仍必须执行 resolver 返回的语义/模型批准 gate。
+- Problem Contract 冻结后形成 `proposed_model_spec`，依次经过独立 `Model Reviewer` 与 `Devil's Advocate`；challenge passed 后进入 `awaiting_model_approval`，只有用户显式批准 current `semantic_revision` 与 validated `semantic_identity_hash`，并由 Model Approval gate 确认 current = validated = approved identity 后，才形成 current `locked_model_spec`；legacy hash 只读兼容不能授权新代码。正式项目级预处理或主求解代码前仍必须执行 resolver 返回的语义/模型批准 gate。
 - 题目专属预处理、主求解和结果深化 Python 默认由用户本地 full-fidelity 执行。助手生成并静态检查代码、验收返回工作簿；不得为了省时静默改变采样、精度、时域、重复次数、容差或求解器。
 - Artifact 名称只作导航：每问最终默认恰好包含五个文件；两段题目专属 Python 入口为 `问题X求解.py` 与 `问题X结果深化分析.py`。具体五文件字段、目录和交付规则只服从 `core/output_contract.yaml`。
 - 主求解 accepted 资格只服从 `core/numerical_verification_contract.yaml`；accepted 后的深化分析由 `modules/03_result_analysis.md` 及 resolver 选中的合同管理。

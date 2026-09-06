@@ -41,7 +41,7 @@ hard_invariants:
   - Resolve the smallest task-specific load order and stop after the user-requested deliverable; do not preload unrelated contracts or modules.
   - Formal delivery must execute every `pre_delivery_gates` entry returned by the resolver, in resolver order; stage-specific gates such as semantic governance, project sync, and submission-package validation are examples, not a separately maintained fixed list.
   - Current 模型论文框架.md is the assistant-readable semantic memory; accepted workbooks are numerical fact sources and project state is the machine-state source.
-  - Problem Contract freezing does not authorize task code by itself; before current model code is generated, the Model Challenge must pass and the user must explicitly approve the current semantic revision/hash under core/model_approval_contract.yaml.
+  - Problem Contract freezing does not authorize task code by itself; before current model code is generated, the Model Challenge must pass and the user must explicitly approve the current semantic_revision and validated semantic_identity_hash under core/model_approval_contract.yaml; legacy semantic_hash approval is read-only provenance only.
   - Task-specific preprocessing, solve and result-analysis code remains user-executed; the assistant generates, statically checks and validates returned artifacts under the existing execution contracts.
   - legacy/ remains outside default execution; compatibility pointers are read-only bridges and may not become active dependencies.
 entrypoints:

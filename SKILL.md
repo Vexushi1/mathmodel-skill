@@ -1,7 +1,7 @@
 ---
 name: mathmodel-skill
 version: 8.7.4
-summary: HSK mathematical-modeling workflow with bootstrap-first task routing, Problem Contract freezing, independent Model Challenge, explicit Human Model Approval bound to the current semantic revision/hash, user-owned full-fidelity numerical execution, evidence-checked workbooks, MATLAB evidence visualization, editable draw.io mechanism diagrams with deterministic structural checks and required rendered review, model-construction rationale with solver-precondition evidence, Template-First paper authoring with state-driven per-question writing capability preflight and final-order Cross-File Chapter Handoff, formal LaTeX attestation, evidence-traceable final review compliance, and validated delivery provenance.
+summary: HSK mathematical-modeling workflow with bootstrap-first task routing, Problem Contract freezing, independent Model Challenge, explicit Human Model Approval bound to the current semantic revision and validated structured identity, user-owned full-fidelity numerical execution, evidence-checked workbooks, MATLAB evidence visualization, editable draw.io mechanism diagrams with deterministic structural checks and required rendered review, model-construction rationale with solver-precondition evidence, Template-First paper authoring with state-driven per-question writing capability preflight and final-order Cross-File Chapter Handoff, formal LaTeX attestation, evidence-traceable final review compliance, and validated delivery provenance.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB绘图, 可编辑机理图, draw.io, drawio, LaTeX, DOCX, 终审, 提交包]
 ---
 
@@ -16,7 +16,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 2. 由 `core/workflow_router.yaml` 的 `default_load` 加载 `core/hsk_core_policy.md`；
 3. 使用 `scripts/resolve_runtime.py` 根据当前意图、竞赛和项目状态解析最小 `load_order`、运行时 assurance 与 `pre_delivery_gates`；模型批准、条件式预处理与主数值验证分别委托 `core/model_approval_contract.yaml`、`core/global_preprocessing_contract.yaml`、`core/numerical_verification_contract.yaml`；
 4. 只加载 resolver 命中的 contracts、modules、packs 和 templates，不预载整个仓库；
-5. 需要项目语义时读取 current `模型论文框架.md`，生命周期 revision/hash/stale 服从 `state/project_state.yaml`，具体数值回到 accepted workbook；
+5. 需要项目语义时读取 current `模型论文框架.md`，生命周期 revision/structured identity/text provenance/stale 服从 `state/project_state.yaml`，具体数值回到 accepted workbook；
 6. 普通写作由 Template Manifest、Paper Writing Protocol 和 compact writing runtime 渐进加载，并按最终 active assembly 执行 Cross-File Chapter Handoff；复杂数学/证据裁决按 resolver 补读 `core/writing_reasoning_contract.yaml`，终审再读取 `modules/06_review_delivery.md` 与 `templates/review/final_review_matrix.yaml`；
 7. `legacy/` 不进入默认执行链，旧 `scripts/resolve_workflow.py` 只保留无状态/兼容入口。
 
@@ -43,9 +43,9 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 
 ## 稳定硬边界
 
-- Problem Contract 冻结不等于模型已批准。形成 `proposed_model_spec` 后，必须完成独立 Model Reviewer 与 Devil's Advocate challenge；正式项目级预处理或主求解代码只有在用户明确批准 current `semantic_revision/hash`、形成 current `locked_model_spec` 后才允许进入对应 gate。
+- Problem Contract 冻结不等于模型已批准。形成 `proposed_model_spec` 后，必须完成独立 Model Reviewer 与 Devil's Advocate challenge；正式项目级预处理或主求解代码只有在用户明确批准 current `semantic_revision` 与 validated `semantic_identity_hash`、并由 Model Approval gate 确认 current = validated = approved identity 后才允许进入对应 gate；legacy hash 只读兼容不能授权新代码。
 - 题目专属预处理、主求解与结果深化 Python 由用户本地按 `full_fidelity` 执行；助手负责生成、静态检查和验收返回 artifact，不得静默降采样、放宽容差、缩短时域或切换求解器。
-- `模型论文框架.md` 保存当前项目语义与证据位置；`state/project_state.yaml` 管 revision/hash/stale；accepted workbook 是具体数值事实源。三者职责不得互相替代。
+- `模型论文框架.md` 保存当前项目语义与证据位置；`state/project_state.yaml` 管 revision/structured identity/text provenance/stale；accepted workbook 是具体数值事实源。三者职责不得互相替代。
 - 主求解数值有效性与 accepted 资格服从 `core/numerical_verification_contract.yaml`；accepted 后的替代世界/敏感性/稳健性分析服从 resolver 命中的结果分析模块，不反向扩张主质量门。
 - MATLAB 只消费 Python 已输出且已验收的数据/工作簿进行 Figure Evidence，不重新预处理或求解；正式图名由 LaTeX/DOCX caption 承担。
 - 可编辑 draw.io 只服务后端选择门确认的非数据驱动题目专属机理图；确定性结构检查不替代渲染预览、箭头语义或数学正确性人工复核。

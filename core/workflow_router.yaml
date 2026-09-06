@@ -56,7 +56,7 @@ execution_contract:
   rules:
   - Stop after the last module required by the user deliverable.
   - Never manufacture downstream artifacts when gate inputs are missing.
-  - Problem Contract, semantic closure and complexity sanity must pass before Model Challenge; project-level preprocessing or primary solve code additionally requires challenge passed plus explicit Human Model Approval bound to the current semantic revision/hash.
+  - Problem Contract, semantic closure and complexity sanity must pass before Model Challenge; project-level preprocessing or primary solve code additionally requires challenge passed plus explicit Human Model Approval bound to the current semantic_revision and validated semantic_identity_hash under core/model_approval_contract.yaml; legacy hash provenance cannot authorize new task code.
   - Every data project audits the current attachments and freezes preprocessing_decision in model_design before code generation.
   - Preprocessing judgment must use the current data's completeness, consistency, validity, sampling/coverage, measurement quality, model-readiness and leakage risks; no competition type or previous dataset supplies a default cleaning recipe.
   - Shared raw data alone never makes data_preprocessing mandatory.

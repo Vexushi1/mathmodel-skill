@@ -54,11 +54,11 @@ artifact_catalog:
   selected_models: 每问选定模型
   proposed_model_spec: 已完成语义闭环、Complexity Sanity并等待Model Challenge/Human Approval锁定的当前候选模型
   model_challenge: 当前Model Reviewer与Devil's Advocate两次独立审查结论、required actions和residual warnings；不单独落盘
-  model_approval_brief: 提交给用户确认的当前模型摘要；绑定当前semantic revision/hash，不单独落盘
-  awaiting_model_approval: Model Challenge已可进入人工确认但用户尚未明确批准当前revision/hash的暂停状态
-  human_model_approval: 用户对当前semantic_revision/hash的明确批准状态；机器绑定记录在project_state中
-  locked_model_spec: 仅在Model Challenge passed且Human Model Approval绑定当前semantic_revision/hash后成立的已锁定变量、假设、公式、目标和约束
-  model_approval_validation_report: scripts/validate_model_approval.py输出的challenge/approval与current revision/hash一致性检查结论
+  model_approval_brief: 提交给用户确认的当前模型摘要；绑定当前semantic revision与validated structured identity，不单独落盘
+  awaiting_model_approval: Model Challenge已可进入人工确认但用户尚未明确批准当前semantic_revision与validated semantic_identity_hash的暂停状态
+  human_model_approval: 用户对当前semantic_revision与validated semantic_identity_hash的明确批准状态；机器绑定记录在project_state中
+  locked_model_spec: 仅在Model Challenge passed且Human Model Approval绑定当前semantic_revision与validated semantic_identity_hash后成立的已锁定变量、假设、公式、目标和约束
+  model_approval_validation_report: scripts/validate_model_approval.py输出的challenge/approval与current revision/structured identity一致性检查结论
   formula_closure: 公式—代码—输出映射
   formula_reasoning_chain: 核心公式Source—Derivation—Destination闭环；记录题意/定义/机制来源、关键推导与后续模型/求解/验证用途，不单独落盘
   semantic_closure: 题面对象与要求—数学层—Python层—输出证据三层闭环
@@ -71,7 +71,7 @@ artifact_catalog:
   mechanism_preview: 与当前drawio hash绑定、供人工语义与版式复核的渲染预览；没有预览不得批准入文
   mechanism_exports: 人工复核后从可编辑源导出的项目级PDF/SVG/PNG正式机理图
   validation_plan: 建模阶段的验证规划；其中Primary Quality Specification只定义当前主计算的最低数值有效性要求，参数敏感性、压力场景、替代算法/结构、异质性等仅作为下游风险提示，正式result_analysis_plan必须等主工作簿accepted后再建立
-  semantic_governance_report: 聊天或标准输出中的Problem Contract、语义闭环、复杂度复审、语义哈希、跨问和paper-fragment stale校验结果
+  semantic_governance_report: 聊天或标准输出中的Problem Contract、语义闭环、复杂度复审、structured identity/text provenance、跨问和paper-fragment stale校验结果
   preprocessing_code: 仅decision=project_level时生成的数据预处理/数据预处理.py；共享原始数据唯一公共处理入口
   preprocessing_workbook: 仅decision=project_level时生成的数据预处理/数据预处理结果.xlsx；依赖小问的统一数值数据入口，同时保存论文方法验证和MATLAB绘图底层证据
   preprocessing_quality_report: 仅project_level时适用的统一工作簿预处理质量门及聊天/标准输出验收结论
@@ -326,9 +326,9 @@ utility_gates:
     - project_state
     rules:
     - Requires frozen Problem Contract, passed semantic closure, passed complexity sanity and a locked preprocessing_decision for designed-or-later subproblems.
-    - Hashes only each question's current model-scope section, not numerical result summaries.
-    - Semantic changes require an incremented revision and explicit change categories.
-    - Propagates stale recursively through typed cross-question dependencies before accepting a new semantic hash.
+    - Validates the current canonical SIB identity when present; legacy model-scope text hashes remain read-only compatibility provenance, and numerical result summaries remain outside model identity.
+    - Structured identity changes require an incremented revision and explicit change categories; wording-only text-provenance changes do not.
+    - Propagates stale recursively through typed cross-question dependencies before accepting a new semantic identity.
     - Propagates paper-fragment stale only through explicit source_questions/depends_on links; unrelated background and independent questions remain current.
     - Changes to preprocessing_decision or actual project-level preprocessing are semantic changes and invalidate only dependent downstream question results.
     - Never runs task-specific Python and never clears numerical stale states.
@@ -343,9 +343,11 @@ utility_gates:
     - project_state
     rules:
     - Requires model_challenge_status=passed and human_model_approval_status=approved for the current question set before project-level preprocessing or primary solve code delivery.
-    - Requires approved_semantic_revision and approved_semantic_hash to match the current semantic_revision and semantic_hash exactly.
+    - Requires approved_semantic_revision == semantic_revision and a complete supported structured identity with semantic_identity_hash == validated_semantic_identity_hash == approved_semantic_identity_hash.
+    - Any partial structured identity state fails closed and never falls back to legacy hash authorization.
+    - Legacy semantic_hash / approved_semantic_hash are historical read-only provenance only and cannot authorize new project-level preprocessing or primary solve code.
     - User silence or vague continuation is never approval, and user approval cannot waive a blocking Model Challenge issue.
-    - Semantic revision/hash drift makes previous challenge, approval and locked_model_spec stale until re-reviewed and explicitly re-approved.
+    - Semantic revision or structured identity drift makes previous challenge, approval and locked_model_spec stale until re-reviewed and explicitly re-approved.
     - Never runs task-specific Python and never changes numerical validity.
   code_delivery:
     path: scripts/validate_code_delivery.py

@@ -50,7 +50,7 @@ $$
 
 Problem Contract 冻结只回答“题目是什么意思”，Semantic Closure 与 Complexity Sanity 只回答“当前数学语义是否闭合、简化是否合理”，三者都不能替代正式锁模。进入项目级预处理或主求解代码前，必须按 `core/model_approval_contract.yaml` 完成相互独立的 Model Reviewer 与 Devil's Advocate 两次挑战审查；blocking 必须先修复，`review_required` 必须修复或给出具体、可验证的 justification。
 
-Challenge passed 后必须向用户提供 Model Approval Brief，并停在 `awaiting_model_approval`。只有用户明确批准当前 `semantic_revision` 与 `semantic_hash` 后，`locked_model_spec` 才成为 current；用户沉默、模糊继续或未反对不得推断为批准。语义 revision/hash 改变时旧 challenge、approval 与 locked model 同时 stale；纯排版、措辞、caption、公式编号或不改变语义的 LaTeX 文件拆分不触发重新审批。
+Challenge passed 后必须向用户提供 Model Approval Brief，并停在 `awaiting_model_approval`。只有用户明确批准当前 `semantic_revision` 与已验证的 `semantic_identity_hash`，且 `semantic_identity_hash = validated_semantic_identity_hash = approved_semantic_identity_hash` 后，`locked_model_spec` 才成为 current；用户沉默、模糊继续或未反对不得推断为批准。legacy `semantic_hash / approved_semantic_hash` 仅为历史只读 provenance，不能授权新的项目级预处理或主求解代码。semantic revision 或 structured identity 改变时旧 challenge、approval 与 locked model 同时 stale；纯排版、SIB 外纯措辞、caption、公式编号或不改变 structured identity 的 LaTeX 文件拆分只影响 text provenance，不触发重新审批。
 
 ### 2.6 项目工作记忆与上下文恢复
 
@@ -62,7 +62,7 @@ Challenge passed 后必须向用户提供 Model Approval Brief，并停在 `awai
 2. 新聊天接续、长上下文恢复、整篇 DOCX/LaTeX 写作、跨问综合和终审时读取完整 current 框架；日常单问工作允许定向读取相关段落；
 3. 题意、数据口径、参数、假设、目标、约束、预处理、算法语义或依赖变化后，先按 semantic governance 处理 stale，再重写受影响当前内容；主结果、深化结果或图表验收后同步结果摘要和证据位置；
 4. 框架只保留当前有效版本，历史由 Git 保存；
-5. 具体数值必须回到已验收标准工作簿复核；`state/project_state.yaml` 负责 semantic revision、hash、依赖和 stale。
+5. 具体数值必须回到已验收标准工作簿复核；`state/project_state.yaml` 负责 semantic revision、structured identity/text provenance、依赖和 stale。
 
 因此，框架是“当前项目事实与语义索引”，工作簿是数值事实源，project state 是机器状态源，写作规则由 writing Authority 管理；四者不得互相替代。
 
@@ -123,7 +123,7 @@ project_level
 
 ## 5. 用户执行与质量门
 
-实际生成的 `数据预处理.py`、`问题X求解.py` 与 `问题X结果深化分析.py` 均由助手生成和静态检查、由用户本地 full-fidelity 执行。正式项目级预处理或主求解代码前，当前模型必须同时通过 semantic governance 与 model approval gate；旧审批不得覆盖新的 semantic revision/hash。
+实际生成的 `数据预处理.py`、`问题X求解.py` 与 `问题X结果深化分析.py` 均由助手生成和静态检查、由用户本地 full-fidelity 执行。正式项目级预处理或主求解代码前，当前模型必须同时通过 semantic governance 与 model approval gate；旧 legacy hash 审批不得覆盖新的 semantic revision / structured identity。
 
 - `project_level`：预处理工作簿 accepted 且 `预处理质量门` passed 后才能进入依赖主求解；工作簿还必须持久化论文方法证据、处理前后对比和 `data_process.m` 绘图底层数据；
 - `not_needed/question_local`：没有统一预处理工作簿门槛；

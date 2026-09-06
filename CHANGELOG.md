@@ -9,6 +9,7 @@
 
 ### Unreleased v9.0.0 staged refactor — Phase C
 
+- Post-merge acceptance closed remaining active-surface drift: Module Manifest, Bootstrap/Router/Core Policy, Agent/Skill entrypoints and solve-stage guidance now describe the structured SIB identity binding consistently; legacy semantic hashes remain read-only provenance only.
 - Bound the current per-question Semantic Identity Block (SIB) to Model Approval and Runtime Assurance while keeping `模型论文框架.md` the model-semantics source and reusing the shared `scripts/semantic_identity.py` parser/canonicalizer instead of introducing a second identity implementation.
 - Human Model Approval now binds the current `semantic_revision` and structured `semantic_identity_hash`; partial structured state fails closed, while legacy `semantic_hash / approved_semantic_hash` remain historical read-only compatibility only.
 - Runtime Assurance now recomputes the current framework SIB and promotes `locked_model_spec=verified` only when current, validated and approved identity hashes match and the current challenge/approval/revision binding is valid; stale, unapproved, malformed and legacy-review-required evidence is not promoted.
