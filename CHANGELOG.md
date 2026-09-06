@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased v9.0.0 staged refactor — Phase C
+
+- Bound the current per-question Semantic Identity Block (SIB) to Model Approval and Runtime Assurance while keeping `模型论文框架.md` the model-semantics source and reusing the shared `scripts/semantic_identity.py` parser/canonicalizer instead of introducing a second identity implementation.
+- Human Model Approval now binds the current `semantic_revision` and structured `semantic_identity_hash`; partial structured state fails closed, while legacy `semantic_hash / approved_semantic_hash` remain historical read-only compatibility only.
+- Runtime Assurance now recomputes the current framework SIB and promotes `locked_model_spec=verified` only when current, validated and approved identity hashes match and the current challenge/approval/revision binding is valid; stale, unapproved, malformed and legacy-review-required evidence is not promoted.
+- Preserved read-only access to old projects without a SIB, but re-entry into model design, project-level preprocessing, primary solve, or regenerated primary code requires a complete current SIB, semantic validation, renewed Model Challenge and explicit Human Approval; legacy prose is never auto-promoted to a verified SIB.
+- Added Phase C regression/migration coverage, updated the protected Model Approval Authority baseline only for the approved contract change, and retained the v8.7.4 release carriers. State-transition unification, typed dependency propagation, artifact-identity renaming, transactional writes, competition-runtime de-hardcoding and other later v9 phases remain out of scope.
+
 ## Current release: 8.7.4
 
 - Repaired active writing Authority/read-path drift: ordinary body structure and expression now consistently point to `modules/05_writing/paper_writing_protocol.md`, while `modules/05_writing/latex.md` remains a carrier-only LaTeX Adapter.
