@@ -99,11 +99,13 @@ artifact_assurance:
       - hash(current canonical SIB) == semantic_identity_hash
       - semantic_identity_hash == validated_semantic_identity_hash
       - validated_semantic_identity_hash == approved_semantic_identity_hash
-      legacy_requires:
+      legacy_read_only_evidence:
       - no semantic_identity_* state fields exist
       - current framework semantic scope contains no SIB markers
       - approved_semantic_hash == semantic_hash
       - sha256(current framework semantic scope) == semantic_hash
+      - status is legacy_review_required, never verified
+      - migration to a current validated and explicitly approved SIB is required before new preprocessing or primary-solve code delivery
     preprocessing_workbook:
       kind: file_backed
       requires:
@@ -132,9 +134,9 @@ artifact_assurance:
       - actual sha256 == expected sha256
   scope_rules:
   - With --question Qn, semantic and workbook evidence is evaluated for that question.
-  - Without a question scope, generic locked_model_spec is promoted only when every scoped question passes the current structured-or-legacy evidence chain selected independently for that question.
+  - Without a question scope, generic locked_model_spec is promoted only when every scoped question passes the structured identity evidence chain; legacy questions remain readable provenance but are not promoted as verified locked_model_spec.
   - Without a question scope, generic accepted_solution_workbook or accepted_result_analysis_workbook is promoted only when every scoped subproblem satisfies the corresponding condition.
-  - A known stale, rejected, hash-mismatched, missing, malformed, identity-mode-mismatched, or outside-project-root artifact must not be promoted merely because its legacy name appears in available_artifacts.
+  - A known stale, rejected, hash-mismatched, missing, malformed, identity-mode-mismatched, legacy-review-required, or outside-project-root artifact must not be promoted merely because its legacy name appears in available_artifacts.
   - Runtime assurance recomputes current semantic evidence from 模型论文框架.md. Project-state equality alone cannot self-attest locked_model_spec.
   - In structured mode, wording-only prose outside the SIB may change semantic_text_hash without invalidating locked_model_spec when the canonical SIB identity and all approval bindings remain current.
   required_evidence_fields:
@@ -203,6 +205,7 @@ assurance_envelope:
   - intent ambiguity remains unresolved
   - explicit input conflicts with current project state
   - a legacy artifact declaration conflicts with known stale or invalid current-state evidence
+  - current model evidence is legacy_review_required and the selected route requires a locked_model_spec
 
 authority_fingerprint:
   algorithm: sha256
@@ -223,7 +226,8 @@ compatibility:
   new_default_entrypoint: scripts/resolve_runtime.py
   old_projects_without_state: supported_via_legacy_arguments
   legacy_semantic_hash_read_supported: true
-  structured_identity_is_new_write_path: true
+  legacy_semantic_hash_is_read_only_provenance: true
+  structured_identity_is_new_write_and_lock_path: true
   project_state_schema_change_required: already_introduced_in_phase_c2
   workbook_schema_change_required: false
   task_code_interface_change_required: false
