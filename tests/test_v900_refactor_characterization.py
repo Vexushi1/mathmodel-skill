@@ -1,3 +1,9 @@
+"""Characterize v8.7.4 boundaries before the staged v9.0.0 runtime/state refactor.
+
+These tests intentionally preserve current behavior, including known deficiencies,
+so later phases must change expectations explicitly rather than accidentally.
+"""
+
 from __future__ import annotations
 
 import importlib.util
