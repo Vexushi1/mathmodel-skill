@@ -50,7 +50,12 @@ def _uses_structured_identity(spec: dict[str, Any]) -> bool:
     return any(name in spec for name in STRUCTURED_IDENTITY_FIELDS)
 
 
-def validate_question(question: str, spec: dict[str, Any]) -> list[str]:
+def validate_question(
+    question: str,
+    spec: dict[str, Any],
+    *,
+    allow_legacy_read_only: bool = False,
+) -> list[str]:
     errors: list[str] = []
     challenge = spec.get("model_challenge_status")
     approval = spec.get("human_model_approval_status")
@@ -111,10 +116,19 @@ def validate_question(question: str, spec: dict[str, Any]) -> list[str]:
         errors.append(f"{question}: approved_semantic_hash must be a 64-character SHA256 hex string")
     elif _is_sha256(current_hash) and approved_hash != current_hash:
         errors.append(f"{question}: approved_semantic_hash does not match current semantic_hash")
+    if not allow_legacy_read_only:
+        errors.append(
+            f"{question}: legacy semantic_hash approval is read-only compatibility; establish and validate a current SIB, rerun Model Challenge, and explicitly approve semantic_identity_hash before task-code delivery"
+        )
     return errors
 
 
-def validate_state(path: Path, questions: Iterable[str]) -> list[str]:
+def validate_state(
+    path: Path,
+    questions: Iterable[str],
+    *,
+    allow_legacy_read_only: bool = False,
+) -> list[str]:
     state = load_yaml(path)
     subproblems = state.get("subproblems", {})
     errors: list[str] = []
@@ -123,7 +137,13 @@ def validate_state(path: Path, questions: Iterable[str]) -> list[str]:
         if not isinstance(spec, dict):
             errors.append(f"{question}: subproblem state must be a mapping")
             continue
-        errors.extend(validate_question(question, spec))
+        errors.extend(
+            validate_question(
+                question,
+                spec,
+                allow_legacy_read_only=allow_legacy_read_only,
+            )
+        )
     return errors
 
 
@@ -156,7 +176,7 @@ def main() -> int:
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="accepted for gate CLI parity; approval mismatches are always hard failures",
+        help="accepted for gate CLI parity; approval mismatches and legacy migration requirements are always hard failures",
     )
     args = parser.parse_args()
 
