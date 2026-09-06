@@ -40,6 +40,12 @@ SYNC = load_module("v900_sync_project_characterization", "scripts/sync_project.p
 CODE_DELIVERY = load_module(
     "v900_code_delivery_characterization", "scripts/validate_code_delivery.py"
 )
+STATE_TRANSITIONS = load_module(
+    "v900_state_transitions_characterization", "scripts/state_transitions.py"
+)
+STATE_TRANSITION_CONTRACT = yaml.safe_load(
+    (ROOT / "core/state_transition_contract.yaml").read_text(encoding="utf-8")
+)
 
 
 FRAMEWORK = """# 模型论文框架
@@ -73,6 +79,8 @@ def semantic_subproblem() -> dict:
         "semantic_revision": 1,
         "semantic_change_categories": ["initial_design"],
         "depends_on": [],
+        "model_challenge_status": "passed",
+        "human_model_approval_status": "approved",
         "result_quality_status": "passed",
         "result_analysis_status": "passed",
         "validation_status": "passed",
@@ -185,28 +193,41 @@ class TestV900RefactorCharacterization(unittest.TestCase):
             report,
         )
 
-    def test_dependency_kind_currently_does_not_change_question_closure(self):
-        for kind in ("data", "parameter", "model", "result"):
-            entry = {"depends_on": [{"question": "Q1", "kind": kind}]}
-            self.assertEqual(SEMANTIC._dependency_questions(entry), {"Q1"})
-
-        graph = {
-            "Q1": {},
-            "Q2": {"depends_on": [{"question": "Q1", "kind": "result"}]},
-            "Q3": {"depends_on": [{"question": "Q1", "kind": "model"}]},
-            "Q4": {"depends_on": [{"question": "Q2", "kind": "data"}]},
+    def test_dependency_kind_now_controls_transition_propagation(self):
+        state = {
+            "subproblems": {
+                "Q1": semantic_subproblem(),
+                "Q2": {**semantic_subproblem(), "depends_on": [{"question": "Q1", "kind": "result"}]},
+                "Q3": {**semantic_subproblem(), "depends_on": [{"question": "Q1", "kind": "model"}]},
+                "Q4": {**semantic_subproblem(), "depends_on": [{"question": "Q2", "kind": "data"}]},
+            }
         }
-        self.assertEqual(
-            SEMANTIC._dependent_closure(graph, {"Q1"}),
-            {"Q1", "Q2", "Q3", "Q4"},
+        report = STATE_TRANSITIONS.apply_transition(
+            state,
+            event="semantic_identity_changed",
+            source_question="Q1",
+            contract=STATE_TRANSITION_CONTRACT,
+            context={"semantic_change_categories": ["objective"]},
         )
+        self.assertEqual(report["affected_questions"], ["Q1", "Q2", "Q3"])
+        self.assertNotIn("Q4", report["affected_questions"])
+        self.assertEqual(state["subproblems"]["Q2"]["human_model_approval_status"], "approved")
+        self.assertEqual(state["subproblems"]["Q3"]["human_model_approval_status"], "stale")
 
-    def test_primary_stale_rules_are_currently_duplicated_and_not_identical(self):
-        self.assertEqual(SEMANTIC.PRIMARY_STALE_LAYERS, SYNC.PRIMARY_STALE_LAYERS)
-        self.assertNotEqual(SYNC.PRIMARY_STALE_LAYERS, CODE_DELIVERY.PRIMARY_STALE_LAYERS)
-        self.assertIn("model", SEMANTIC.PRIMARY_STALE_LAYERS)
-        self.assertIn("model", SYNC.PRIMARY_STALE_LAYERS)
-        self.assertNotIn("model", CODE_DELIVERY.PRIMARY_STALE_LAYERS)
+    def test_stale_rules_now_have_one_shared_engine(self):
+        for module in (SEMANTIC, SYNC, CODE_DELIVERY):
+            self.assertFalse(hasattr(module, "PRIMARY_STALE_LAYERS"))
+            self.assertFalse(hasattr(module, "ANALYSIS_STALE_LAYERS"))
+        for relative in (
+            "scripts/validate_semantic_governance.py",
+            "scripts/sync_project.py",
+            "scripts/validate_code_delivery.py",
+        ):
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            self.assertIn("STATE_TRANSITIONS", text)
+        contract = (ROOT / "core/state_transition_contract.yaml").read_text(encoding="utf-8")
+        self.assertIn("semantic_identity_changed", contract)
+        self.assertIn("legacy_untyped", contract)
 
     def test_artifact_hash_model_currently_means_primary_python_code(self):
         with tempfile.TemporaryDirectory() as temp:

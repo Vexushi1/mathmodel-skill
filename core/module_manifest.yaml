@@ -15,6 +15,7 @@ contracts:
   preprocessing: core/global_preprocessing_contract.yaml
   model_approval: core/model_approval_contract.yaml
   project_state: core/project_state.schema.yaml
+  state_transition: core/state_transition_contract.yaml
   user_execution: core/user_execution_contract.yaml
   code_quality: core/code_quality_contract.yaml
   writing_reasoning: core/writing_reasoning_contract.yaml
@@ -328,7 +329,7 @@ utility_gates:
     - Requires frozen Problem Contract, passed semantic closure, passed complexity sanity and a locked preprocessing_decision for designed-or-later subproblems.
     - Validates the current canonical SIB identity when present; legacy model-scope text hashes remain read-only compatibility provenance, and numerical result summaries remain outside model identity.
     - Structured identity changes require an incremented revision and explicit change categories; wording-only text-provenance changes do not.
-    - Propagates stale recursively through typed cross-question dependencies before accepting a new semantic identity.
+    - Propagates stale recursively through typed cross-question dependencies using the single Authority `core/state_transition_contract.yaml` before accepting a new semantic identity.
     - Propagates paper-fragment stale only through explicit source_questions/depends_on links; unrelated background and independent questions remain current.
     - Changes to preprocessing_decision or actual project-level preprocessing are semantic changes and invalidate only dependent downstream question results.
     - Never runs task-specific Python and never clears numerical stale states.

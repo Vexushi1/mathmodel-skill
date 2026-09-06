@@ -55,6 +55,7 @@
 - `core/output_contract.yaml`
 - `core/project_state.schema.yaml`
 - `core/runtime_assurance_contract.yaml`
+- `core/state_transition_contract.yaml`
 - `core/task_taxonomy.yaml`
 - `core/user_execution_contract.yaml`
 - `core/workbook_schema.yaml`
@@ -131,6 +132,7 @@
 - `scripts/runtime_assurance.py`
 - `scripts/score_submission.py`
 - `scripts/semantic_identity.py`
+- `scripts/state_transitions.py`
 - `scripts/sync_project.py`
 - `scripts/validate_code_delivery.py`
 - `scripts/validate_drawio_figure.py`
@@ -323,3 +325,4 @@
 - `tests/test_v900_semantic_identity.py`
 - `tests/test_v900_semantic_identity_binding.py`
 - `tests/test_v900_semantic_identity_surface_closure.py`
+- `tests/test_v900_state_transitions.py`

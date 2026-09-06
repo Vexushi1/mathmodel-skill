@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import hashlib
 import importlib.util
 import json
@@ -41,13 +42,6 @@ HASH_KEYS = (
 )
 SOLVED_STATUSES = {"solved", "analyzed", "validated", "written", "completed"}
 ANALYZED_STATUSES = {"analyzed", "validated", "written", "completed"}
-PRIMARY_STALE_LAYERS = {
-    "model", "solution_workbook", "result_analysis_workbook",
-    "matlab_script", "figure_bundle", "framework",
-}
-ANALYSIS_STALE_LAYERS = {
-    "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
-}
 VALID_PREPROCESSING_DECISIONS = {"not_needed", "question_local", "project_level"}
 MATLAB_PREPROCESSING_FORBIDDEN_FUNCTIONS = (
     "interp1", "interp2", "interp3", "interpn", "griddedInterpolant", "scatteredInterpolant",
@@ -102,6 +96,12 @@ FRAMEWORK_VALIDATION = _load_module(
 LATEX_DELIVERY = _load_module(
     "hsk_latex_delivery", SKILL_ROOT / "scripts" / "latex_delivery.py"
 )
+STATE_TRANSITIONS = _load_module(
+    "hsk_state_transitions", SKILL_ROOT / "scripts" / "state_transitions.py"
+)
+STATE_TRANSITION_CONTRACT = yaml.safe_load(
+    (SKILL_ROOT / "core" / "state_transition_contract.yaml").read_text(encoding="utf-8")
+) or {}
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -641,31 +641,49 @@ def _code_hash_mismatches(entry: Mapping[str, Any], snapshot: Mapping[str, Any])
     return primary_changed, analysis_changed
 
 
-def _apply_snapshot_to_state(root: Path, state: dict[str, Any], snapshot: Mapping[str, Any]) -> set[str]:
-    entry = state.setdefault("subproblems", {}).setdefault(str(snapshot["key"]), {})
+LAYER_TRANSITION_EVENTS = {
+    "data": "data_changed",
+    "model": "primary_code_changed",
+    "solution_workbook": "solution_workbook_changed",
+    "result_analysis_workbook": "analysis_workbook_changed",
+    "matlab_script": "matlab_script_changed",
+    "figure_bundle": "figure_bundle_changed",
+    "framework": "paper_fragment_changed",
+}
+
+
+def _snapshot_transition_events(entry: Mapping[str, Any], snapshot: Mapping[str, Any]) -> list[str]:
     current = dict(snapshot.get("artifact_hashes", {}))
-    mismatched = _mismatched_layers(entry, current)
     primary_changed, analysis_changed = _code_hash_mismatches(entry, snapshot)
-    stale_layers = set(entry.get("stale_layers", []) or []) | mismatched
-
+    events: list[str] = []
     if primary_changed:
-        stale_layers |= PRIMARY_STALE_LAYERS
-        entry["result_quality_status"] = "pending"
-        entry["result_analysis_status"] = "pending"
-        entry["analysis_execution_status"] = "pending"
-        entry["result_summary_status"] = "stale"
-    elif analysis_changed:
-        stale_layers |= ANALYSIS_STALE_LAYERS
-        entry["result_analysis_status"] = "pending"
-        entry["analysis_execution_status"] = "pending"
-        entry["result_summary_status"] = "stale"
+        events.append("primary_code_changed")
+    if analysis_changed:
+        events.append("analysis_code_changed")
+    for layer in sorted(_mismatched_layers(entry, current)):
+        event = LAYER_TRANSITION_EVENTS.get(layer)
+        if event and event not in events:
+            events.append(event)
+    return events
 
-    if mismatched.intersection({"data", "model", "solution_workbook"}):
-        entry["result_quality_status"] = "pending"
-        entry["result_analysis_status"] = "pending"
-    elif "result_analysis_workbook" in mismatched:
-        entry["result_analysis_status"] = "pending"
 
+def _apply_snapshot_to_state(
+    root: Path, state: dict[str, Any], snapshot: Mapping[str, Any]
+) -> tuple[set[str], list[dict[str, Any]]]:
+    key = str(snapshot["key"])
+    entry = state.setdefault("subproblems", {}).setdefault(key, {})
+    current = dict(snapshot.get("artifact_hashes", {}))
+    transition_reports: list[dict[str, Any]] = []
+    for event in _snapshot_transition_events(entry, snapshot):
+        transition_reports.append(
+            STATE_TRANSITIONS.apply_transition(
+                state,
+                event=event,
+                source_question=key,
+                contract=STATE_TRANSITION_CONTRACT,
+            )
+        )
+    entry = state.setdefault("subproblems", {}).setdefault(key, {})
     entry["artifact_hashes"] = current
     if snapshot.get("primary_code"):
         entry["code"] = snapshot["primary_code"]
@@ -675,11 +693,7 @@ def _apply_snapshot_to_state(root: Path, state: dict[str, Any], snapshot: Mappin
         if snapshot.get(field):
             entry[field] = snapshot[field]
 
-    if stale_layers:
-        entry["artifacts_stale"] = True
-        entry["stale_layers"] = sorted(stale_layers)
-        entry["result_summary_status"] = "stale"
-        entry["validation_status"] = "pending"
+    stale_layers = set(entry.get("stale_layers", []) or [])
     evidence = _question_dir(root, str(snapshot["chinese_name"])) / "figure_evidence.yaml"
     if evidence.is_file():
         relative = evidence.relative_to(root).as_posix()
@@ -687,7 +701,7 @@ def _apply_snapshot_to_state(root: Path, state: dict[str, Any], snapshot: Mappin
         if relative not in values:
             values.append(relative)
         entry["evidence"] = values
-    return stale_layers
+    return stale_layers, transition_reports
 
 
 def _replace_or_prepend(lines: list[str], prefix: str, replacement: str) -> list[str]:
@@ -945,11 +959,26 @@ def synchronize(
 
     stale_questions: list[str] = []
     stale_fragments: list[str] = []
-    if write and state_path.is_file():
+    transition_reports: list[dict[str, Any]] = []
+    transition_state = state if write else deepcopy(state)
+    if state_path.is_file():
         for snapshot in snapshots.values():
-            stale = _apply_snapshot_to_state(root, state, snapshot)
+            stale, reports = _apply_snapshot_to_state(root, transition_state, snapshot)
+            transition_reports.extend(reports)
             if stale:
                 stale_questions.append(str(snapshot["key"]))
+        merged_transitions = STATE_TRANSITIONS.merge_transition_reports(transition_reports)
+        stale_questions.extend(merged_transitions["affected_questions"])
+        dependency_cycles = (
+            merged_transitions["dependency_cycles"]
+            or STATE_TRANSITIONS.dependency_cycles(transition_state.get("subproblems", {}) or {})
+        )
+        if dependency_cycles:
+            warnings.append("检测到跨问依赖环: " + "; ".join(dependency_cycles))
+    else:
+        dependency_cycles = []
+
+    if write and state_path.is_file():
         any_stale = any(
             bool(entry.get("artifacts_stale"))
             for entry in (state.get("subproblems") or {}).values()
@@ -972,16 +1001,9 @@ def synchronize(
         state.setdefault("execution", {})["last_sync_report"] = "sync_report.yaml"
         state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
     else:
-        for key, snapshot in snapshots.items():
-            entry = subproblems.get(key) or subproblems.get(snapshot["chinese_name"]) or {}
-            primary_changed, analysis_changed = _code_hash_mismatches(entry, snapshot)
-            if (
-                entry.get("artifacts_stale")
-                or _mismatched_layers(entry, snapshot.get("artifact_hashes", {}))
-                or primary_changed
-                or analysis_changed
-            ):
-                stale_questions.append(key)
+        for key, entry in (transition_state.get("subproblems", {}) or {}).items():
+            if isinstance(entry, Mapping) and entry.get("artifacts_stale"):
+                stale_questions.append(str(key))
         framework = state.get("paper_framework") or {}
         if _uses_fragment_stale(framework):
             stale_fragments = _stale_paper_fragment_ids(framework)
@@ -999,6 +1021,8 @@ def synchronize(
         "questions": snapshots,
         "stale_questions": sorted(set(stale_questions)),
         "stale_paper_fragments": stale_fragments,
+        "state_transitions": transition_reports,
+        "dependency_cycles": dependency_cycles,
         "issues": sorted(set(issues)),
         "warnings": sorted(set(warnings)),
         "generated_at": datetime.now(timezone.utc).isoformat(),

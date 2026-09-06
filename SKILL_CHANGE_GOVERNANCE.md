@@ -82,6 +82,7 @@ status: active
 | 目录、正式交付与框架模式 | `core/output_contract.yaml` |
 | 工作簿结构、字段与 MATLAB 交接 | `core/workbook_schema.yaml` |
 | 项目状态、哈希与 stale | `core/project_state.schema.yaml` |
+| 项目状态转换、stale 传播与依赖失效 | `core/state_transition_contract.yaml` |
 | 竞赛差异 | `config/competition_profiles.yaml` 与 `packs/competition/` |
 | 命题证明细则 | `packs/artifact/proposition_proof.md` |
 | 活动版本变更说明 | 当前版本 Changelog |

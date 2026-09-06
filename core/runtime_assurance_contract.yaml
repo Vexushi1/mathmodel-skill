@@ -170,11 +170,11 @@ contract_dependency_closure:
     modules/05_writing/ai_cleanup.md: [writing_runtime, writing_protocol]
     modules/05_latex_compile_quality.md: [compile_profiles]
     modules/06_review_delivery.md: [writing_reasoning, output, workbook]
-    gate:semantic_governance: [project_state]
+    gate:semantic_governance: [project_state, state_transition]
     gate:model_approval: [project_state, model_approval]
-    gate:code_delivery: [code_quality]
+    gate:code_delivery: [code_quality, state_transition]
     gate:user_execution_receipt: [user_execution, workbook, numerical_verification]
-    gate:project_sync: [project_state, output]
+    gate:project_sync: [project_state, output, state_transition]
     gate:submission_package_validation: [output]
   rules:
   - Dependency aliases resolve through core/module_manifest.yaml:contracts.

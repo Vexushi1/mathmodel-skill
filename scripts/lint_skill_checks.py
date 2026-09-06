@@ -977,9 +977,20 @@ def check_templates(errors: list[str]) -> None:
         if token not in plot:
             errors.append(f"q1_plot.m lacks required token: {token}")
     semantic = read_text(ROOT / "scripts/validate_semantic_governance.py")
-    for token in ("problem_contract_status", "semantic_closure_status", "complexity_sanity_status", "semantic_revision", "depends_on", "_dependent_closure", "_mark_paper_fragments_stale"):
+    for token in ("problem_contract_status", "semantic_closure_status", "complexity_sanity_status", "semantic_revision", "depends_on", "STATE_TRANSITIONS", "STATE_TRANSITION_CONTRACT", "_mark_paper_fragments_stale"):
         if token not in semantic:
             errors.append(f"semantic governance validator lacks token: {token}")
+    transition_engine = read_text(ROOT / "scripts/state_transitions.py")
+    for token in ("apply_transition", "apply_local_event", "dependency_cycles", "LEGACY_DEPENDENCY_KIND"):
+        if token not in transition_engine:
+            errors.append(f"state transition engine lacks token: {token}")
+    transition_contract = load_structured(ROOT / "core/state_transition_contract.yaml") or {}
+    if transition_contract.get("status") != "active":
+        errors.append("state transition contract must be active")
+    dependency_rules = transition_contract.get("dependency_rules", {}) or {}
+    for kind in ("data", "parameter", "model", "result", "legacy_untyped"):
+        if kind not in dependency_rules:
+            errors.append(f"state transition contract lacks dependency rule: {kind}")
     validator = read_text(ROOT / "scripts/validate_code_delivery.py")
     for token in ("QUALITY_CONTRACT", "code_quality_findings", "nonblank_lines", "forbidden_import_roots", "结果深化分析.py", "result_analysis_code", "unchanged_accepted", "preprocessing", "数据预处理.py", "primary_quality_protocol_version"):
         if token not in validator:

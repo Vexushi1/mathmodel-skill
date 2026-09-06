@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import sys
 from pathlib import Path
 from typing import Any, Mapping
@@ -20,16 +21,10 @@ from semantic_identity import (  # noqa: E402
     semantic_scope as _semantic_scope,
     sha256_text,
 )
+import state_transitions as STATE_TRANSITIONS  # noqa: E402
 
 SEMANTIC_GOVERNANCE_VERSION = "1.0.0"
-PRIMARY_STALE_LAYERS = {
-    "model",
-    "solution_workbook",
-    "result_analysis_workbook",
-    "matlab_script",
-    "figure_bundle",
-    "framework",
-}
+STATE_TRANSITION_CONTRACT_PATH = Path(__file__).resolve().parents[1] / "core" / "state_transition_contract.yaml"
 DESIGNED_OR_LATER = {"designed", "solved", "analyzed", "validated", "written", "completed"}
 CHANGE_CATEGORIES = {
     "initial_design",
@@ -52,51 +47,14 @@ def load_yaml(path: Path) -> dict[str, Any]:
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
-def _dependency_questions(entry: Mapping[str, Any]) -> set[str]:
-    values: set[str] = set()
-    for item in entry.get("depends_on", []) or []:
-        if isinstance(item, str):
-            values.add(item)
-        elif isinstance(item, Mapping) and item.get("question"):
-            values.add(str(item["question"]))
-    return values
-
-
-def _dependent_closure(subproblems: Mapping[str, Any], sources: set[str]) -> set[str]:
-    affected = set(sources)
-    changed = True
-    while changed:
-        changed = False
-        for key, entry in subproblems.items():
-            if key in affected or not isinstance(entry, Mapping):
-                continue
-            if _dependency_questions(entry) & affected:
-                affected.add(str(key))
-                changed = True
-    return affected
+STATE_TRANSITION_CONTRACT = load_yaml(STATE_TRANSITION_CONTRACT_PATH)
 
 
 def _mark_stale(entry: dict[str, Any]) -> None:
-    entry["artifacts_stale"] = True
-    entry["stale_layers"] = sorted(set(entry.get("stale_layers", []) or []) | PRIMARY_STALE_LAYERS)
-    entry["result_quality_status"] = "pending"
-    entry["result_analysis_status"] = "pending"
-    entry["validation_status"] = "pending"
-    entry["result_summary_status"] = "stale"
-    if "primary_execution_status" in entry:
-        entry["primary_execution_status"] = "pending"
-    if "analysis_execution_status" in entry:
-        entry["analysis_execution_status"] = "pending"
-    # v7.11+: a semantic dependency change invalidates any approval that was
-    # bound to the previous model semantics. Keep the historical approved
-    # revision/hash for provenance, but make the current challenge/approval
-    # unusable until the affected question is challenged and explicitly
-    # approved again. Old projects that never had approval fields remain
-    # read-only compatible and are not backfilled here.
-    if "model_challenge_status" in entry:
-        entry["model_challenge_status"] = "stale"
-    if "human_model_approval_status" in entry:
-        entry["human_model_approval_status"] = "stale"
+    """Compatibility helper; the transition policy itself lives in the shared Authority."""
+    STATE_TRANSITIONS.apply_local_event(
+        entry, "semantic_identity_changed", STATE_TRANSITION_CONTRACT
+    )
 
 
 def _dependency_hits_question(dependency: str, question: str) -> bool:
@@ -280,13 +238,34 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
                 changed_sources.add(question)
         issues.extend(_revision_change_issues(question, entry, changed=changed))
 
-    affected = _dependent_closure(subproblems, changed_sources)
+    transition_state = state if write else deepcopy(state)
+    transition_reports: list[dict[str, Any]] = []
+    for key in sorted(changed_sources):
+        transition_entry = ((transition_state.get("subproblems") or {}).get(key) or {})
+        transition_reports.append(
+            STATE_TRANSITIONS.apply_transition(
+                transition_state,
+                event="semantic_identity_changed",
+                source_question=key,
+                contract=STATE_TRANSITION_CONTRACT,
+                context={
+                    "semantic_change_categories": list(
+                        transition_entry.get("semantic_change_categories", []) or []
+                    )
+                },
+            )
+        )
+    merged_transitions = STATE_TRANSITIONS.merge_transition_reports(transition_reports)
+    affected = set(merged_transitions["affected_questions"])
+    dependency_cycles = (
+        merged_transitions["dependency_cycles"]
+        or STATE_TRANSITIONS.dependency_cycles(subproblems)
+    )
+    if dependency_cycles:
+        warnings.append("检测到跨问依赖环: " + "; ".join(dependency_cycles))
+
     stale_fragments: list[str] = []
     if write and changed_sources:
-        for key in affected:
-            entry = subproblems.get(key)
-            if isinstance(entry, dict):
-                _mark_stale(entry)
         paper_framework = state.setdefault("paper_framework", {})
         stale_fragments = _mark_paper_fragments_stale(paper_framework, affected)
         # sync_status means the framework/state record is synchronized, not that every fragment is current.
@@ -352,6 +331,8 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
         "changed_sources": sorted(changed_sources),
         "affected_questions": sorted(affected),
         "stale_paper_fragments": stale_fragments,
+        "state_transitions": transition_reports,
+        "dependency_cycles": dependency_cycles,
         "issues": sorted(set(issues)),
         "warnings": sorted(set(warnings)),
     }
