@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
-import re
 from pathlib import Path
 from typing import Any, Mapping
 
 import yaml
+
+from semantic_identity import (
+    SemanticIdentityError,
+    inspect_question_semantics,
+    question_sections as _question_sections,
+    semantic_scope as _semantic_scope,
+    sha256_text,
+)
 
 SEMANTIC_GOVERNANCE_VERSION = "1.0.0"
 PRIMARY_STALE_LAYERS = {
@@ -20,7 +26,6 @@ PRIMARY_STALE_LAYERS = {
     "framework",
 }
 DESIGNED_OR_LATER = {"designed", "solved", "analyzed", "validated", "written", "completed"}
-Q_HEADING_RE = re.compile(r"^###\s+(Q\d+)[:：].*$", re.MULTILINE)
 CHANGE_CATEGORIES = {
     "initial_design",
     "problem_definition",
@@ -40,31 +45,6 @@ def load_yaml(path: Path) -> dict[str, Any]:
     if not path.is_file():
         return {}
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-
-
-def sha256_text(text: str) -> str:
-    normalized = text.replace("\r\n", "\n").replace("\r", "\n").strip() + "\n"
-    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
-
-
-def _question_sections(text: str) -> dict[str, str]:
-    matches = list(Q_HEADING_RE.finditer(text))
-    sections: dict[str, str] = {}
-    for index, match in enumerate(matches):
-        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
-        sections[match.group(1)] = text[match.start():end]
-    return sections
-
-
-def _semantic_scope(section: str) -> str | None:
-    marker = "#### 当前模型口径"
-    start = section.find(marker)
-    if start < 0:
-        return None
-    end = section.find("#### 结果摘要", start + len(marker))
-    if end < 0:
-        end = len(section)
-    return section[start:end].strip()
 
 
 def _dependency_questions(entry: Mapping[str, Any]) -> set[str]:
@@ -180,6 +160,25 @@ def _gate_issues(key: str, entry: Mapping[str, Any]) -> list[str]:
     return issues
 
 
+def _revision_change_issues(
+    key: str,
+    entry: Mapping[str, Any],
+    *,
+    changed: bool,
+) -> list[str]:
+    if not changed:
+        return []
+    issues: list[str] = []
+    revision = entry.get("semantic_revision")
+    validated_revision = entry.get("validated_semantic_revision")
+    if not isinstance(validated_revision, int) or not isinstance(revision, int) or revision <= validated_revision:
+        issues.append(f"{key}: 语义身份已变化，但semantic_revision未递增")
+    categories = set(entry.get("semantic_change_categories", []) or [])
+    if not categories or categories == {"initial_design"}:
+        issues.append(f"{key}: 语义变化必须记录具体semantic_change_categories")
+    return issues
+
+
 def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]:
     state_path = root / "state" / "project_state.yaml"
     framework_path = root / "模型论文框架.md"
@@ -210,36 +209,71 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
     framework_text = framework_path.read_text(encoding="utf-8") if framework_path.is_file() else ""
     sections = _question_sections(framework_text)
     semantic_hashes: dict[str, str] = {}
+    semantic_identity_hashes: dict[str, str] = {}
+    semantic_text_hashes: dict[str, str] = {}
+    identity_modes: dict[str, str] = {}
     changed_sources: set[str] = set()
+    text_changed_sources: set[str] = set()
+    migration_sources: set[str] = set()
+    inspections: dict[str, dict[str, Any]] = {}
 
     for key, raw_entry in subproblems.items():
         if not isinstance(raw_entry, Mapping):
             issues.append(f"{key}: subproblem必须为mapping")
             continue
         entry = raw_entry
-        issues.extend(_gate_issues(str(key), entry))
+        question = str(key)
+        issues.extend(_gate_issues(question, entry))
         if str(entry.get("status", "pending")) not in DESIGNED_OR_LATER:
             continue
-        section = sections.get(str(key))
+        section = sections.get(question)
         if section is None:
             issues.append(f"{key}: 模型论文框架缺少对应### {key}章节")
             continue
-        semantic_text = _semantic_scope(section)
-        if not semantic_text:
-            issues.append(f"{key}: 框架缺少#### 当前模型口径语义区")
+        try:
+            inspection = inspect_question_semantics(section, question)
+        except SemanticIdentityError as exc:
+            issues.append(f"{key}: {exc}")
             continue
-        current_hash = sha256_text(semantic_text)
-        semantic_hashes[str(key)] = current_hash
-        validated_hash = str(entry.get("validated_semantic_hash", "")).strip()
-        revision = entry.get("semantic_revision")
-        validated_revision = entry.get("validated_semantic_revision")
-        if validated_hash and validated_hash != current_hash:
-            changed_sources.add(str(key))
-            if not isinstance(validated_revision, int) or not isinstance(revision, int) or revision <= validated_revision:
-                issues.append(f"{key}: 语义内容已变化，但semantic_revision未递增")
-            categories = set(entry.get("semantic_change_categories", []) or [])
-            if not categories or categories == {"initial_design"}:
-                issues.append(f"{key}: 语义变化必须记录具体semantic_change_categories")
+        inspections[question] = inspection
+        mode = str(inspection["mode"])
+        identity_modes[question] = mode
+        text_hash = str(inspection["semantic_text_hash"])
+        semantic_text_hashes[question] = text_hash
+
+        if mode == "legacy_text_hash":
+            # Preserve the v8 contract exactly for framework sections without SIB.
+            semantic_hashes[question] = text_hash
+            validated_hash = str(entry.get("validated_semantic_hash", "")).strip()
+            changed = bool(validated_hash) and validated_hash != text_hash
+            if changed:
+                changed_sources.add(question)
+            issues.extend(_revision_change_issues(question, entry, changed=changed))
+            continue
+
+        current_identity_hash = str(inspection["semantic_identity_hash"])
+        semantic_identity_hashes[question] = current_identity_hash
+        previous_text_hash = str(entry.get("semantic_text_hash", "")).strip()
+        if previous_text_hash and previous_text_hash != text_hash:
+            text_changed_sources.add(question)
+
+        validated_identity_hash = str(entry.get("validated_semantic_identity_hash", "")).strip()
+        if not validated_identity_hash:
+            migration_sources.add(question)
+            message = (
+                f"{question}: structured semantic identity尚未建立validated baseline；"
+                "使用--write初始化后，C3再完成Model Approval新hash绑定"
+            )
+            if strict and not write:
+                issues.append(message)
+            else:
+                warnings.append(message)
+            changed = False
+        else:
+            changed = validated_identity_hash != current_identity_hash
+            if changed:
+                changed_sources.add(question)
+        issues.extend(_revision_change_issues(question, entry, changed=changed))
 
     affected = _dependent_closure(subproblems, changed_sources)
     stale_fragments: list[str] = []
@@ -254,15 +288,41 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
         paper_framework["sync_status"] = "current"
 
     if write:
-        for key, current_hash in semantic_hashes.items():
+        for key, inspection in inspections.items():
             entry = subproblems.get(key)
             if not isinstance(entry, dict):
                 continue
-            entry["semantic_hash"] = current_hash
+            mode = str(inspection["mode"])
+            text_hash = str(inspection["semantic_text_hash"])
+            if mode == "legacy_text_hash":
+                entry["semantic_hash"] = text_hash
+                current_hash = text_hash
+                prior_validated = str(entry.get("validated_semantic_hash", "")).strip()
+                hash_changed = bool(prior_validated) and prior_validated != current_hash
+                if not _gate_issues(key, entry):
+                    revision = entry.get("semantic_revision")
+                    validated_revision = entry.get("validated_semantic_revision")
+                    revision_ok = not hash_changed or (
+                        isinstance(revision, int)
+                        and (not isinstance(validated_revision, int) or revision > validated_revision)
+                    )
+                    categories = set(entry.get("semantic_change_categories", []) or [])
+                    category_ok = not hash_changed or bool(categories - {"initial_design"})
+                    if revision_ok and category_ok:
+                        entry["validated_semantic_hash"] = current_hash
+                        entry["validated_semantic_revision"] = revision
+                continue
+
+            current_identity_hash = str(inspection["semantic_identity_hash"])
+            schema_version = str(inspection["semantic_identity_schema_version"])
+            prior_validated = str(entry.get("validated_semantic_identity_hash", "")).strip()
+            hash_changed = bool(prior_validated) and prior_validated != current_identity_hash
+            entry["semantic_identity_schema_version"] = schema_version
+            entry["semantic_identity_hash"] = current_identity_hash
+            entry["semantic_text_hash"] = text_hash
             if not _gate_issues(key, entry):
                 revision = entry.get("semantic_revision")
                 validated_revision = entry.get("validated_semantic_revision")
-                hash_changed = bool(entry.get("validated_semantic_hash")) and entry.get("validated_semantic_hash") != current_hash
                 revision_ok = not hash_changed or (
                     isinstance(revision, int)
                     and (not isinstance(validated_revision, int) or revision > validated_revision)
@@ -270,7 +330,7 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
                 categories = set(entry.get("semantic_change_categories", []) or [])
                 category_ok = not hash_changed or bool(categories - {"initial_design"})
                 if revision_ok and category_ok:
-                    entry["validated_semantic_hash"] = current_hash
+                    entry["validated_semantic_identity_hash"] = current_identity_hash
                     entry["validated_semantic_revision"] = revision
         if state_path.is_file():
             state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
@@ -278,7 +338,12 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
     return {
         "status": "passed" if not issues else "failed",
         "semantic_governance_version": governance_version or None,
+        "identity_modes": identity_modes,
         "semantic_hashes": semantic_hashes,
+        "semantic_identity_hashes": semantic_identity_hashes,
+        "semantic_text_hashes": semantic_text_hashes,
+        "migration_sources": sorted(migration_sources),
+        "text_changed_sources": sorted(text_changed_sources),
         "changed_sources": sorted(changed_sources),
         "affected_questions": sorted(affected),
         "stale_paper_fragments": stale_fragments,
