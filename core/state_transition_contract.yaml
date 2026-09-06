@@ -1,0 +1,189 @@
+version: 1.0.0
+status: active
+introduced_in_staged_version: 9.0.0
+purpose: >-
+  Own deterministic project-state invalidation and typed cross-question stale propagation.
+  This contract defines how current semantic/data/code/result changes invalidate lifecycle
+  state. It does not redefine project-state field shape, artifact naming, numerical
+  acceptance, Model Approval semantics, or project-file transaction behavior.
+
+authority_boundary:
+  owns:
+  - transition_events
+  - stale_layer_profiles
+  - lifecycle_status_updates
+  - typed_dependency_propagation
+  - legacy_untyped_dependency_fallback
+  - dependency_cycle_reporting
+  - transition_report_semantics
+  delegates:
+    project_state_shape: core/project_state.schema.yaml
+    model_approval: core/model_approval_contract.yaml
+    semantic_identity: scripts/semantic_identity.py
+    numerical_acceptance: core/numerical_verification_contract.yaml
+    artifact_naming_migration: docs/semantic_state_runtime_refactor_plan.md#phase-e-artifact-naming-migration
+    transactional_writes: docs/semantic_state_runtime_refactor_plan.md#phase-f-transactional-project-writes
+
+compatibility:
+  current_artifact_layer_names_are_v8_compatible: true
+  model_layer_note: >-
+    During Phase D, stale layer `model` remains the existing v8 artifact-layer name.
+    Phase E owns migration to explicit primary_code/analysis_code identity names.
+  legacy_string_dependency_read_supported: true
+  legacy_string_dependency_policy: conservative_full_invalidation
+  unknown_dependency_kind_policy: blocking_or_conservative_full_invalidation
+
+profiles:
+  semantic:
+    stale_layers: [model, solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, framework]
+    set:
+      result_quality_status: pending
+      result_analysis_status: pending
+      validation_status: pending
+      result_summary_status: stale
+    set_if_present:
+      primary_execution_status: pending
+      analysis_execution_status: pending
+      model_challenge_status: stale
+      human_model_approval_status: stale
+  primary_result:
+    stale_layers: [solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, framework]
+    set:
+      result_quality_status: pending
+      result_analysis_status: pending
+      validation_status: pending
+      result_summary_status: stale
+    set_if_present:
+      analysis_execution_status: pending
+  dependent_result:
+    stale_layers: [solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, framework]
+    set:
+      result_quality_status: pending
+      result_analysis_status: pending
+      validation_status: pending
+      result_summary_status: stale
+    set_if_present:
+      primary_execution_status: pending
+      analysis_execution_status: pending
+  analysis_result:
+    stale_layers: [result_analysis_workbook, matlab_script, figure_bundle, framework]
+    set:
+      result_analysis_status: pending
+      validation_status: pending
+      result_summary_status: stale
+    set_if_present:
+      analysis_execution_status: pending
+  data_result:
+    stale_layers: [data, solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, framework]
+    set:
+      result_quality_status: pending
+      result_analysis_status: pending
+      validation_status: pending
+      result_summary_status: stale
+    set_if_present:
+      primary_execution_status: pending
+      analysis_execution_status: pending
+  matlab:
+    stale_layers: [matlab_script, figure_bundle, framework]
+    set:
+      validation_status: pending
+      result_summary_status: stale
+  figure:
+    stale_layers: [figure_bundle, framework]
+    set:
+      result_summary_status: stale
+  paper:
+    stale_layers: [framework]
+    set:
+      result_summary_status: stale
+
+transition_events:
+  semantic_identity_changed:
+    own_profile: semantic
+    emitted_impacts: [model, result]
+    category_impacts:
+      parameter: [parameter]
+      data_scope: [data]
+      preprocessing: [data]
+  primary_code_changed:
+    own_profile: primary_result
+    emitted_impacts: [result]
+  analysis_code_changed:
+    own_profile: analysis_result
+    emitted_impacts: []
+  data_changed:
+    own_profile: data_result
+    emitted_impacts: [data, parameter, result]
+  solution_workbook_changed:
+    own_profile: dependent_result
+    emitted_impacts: [result]
+  analysis_workbook_changed:
+    own_profile: analysis_result
+    emitted_impacts: []
+  matlab_script_changed:
+    own_profile: matlab
+    emitted_impacts: []
+  figure_bundle_changed:
+    own_profile: figure
+    emitted_impacts: []
+  paper_fragment_changed:
+    own_profile: paper
+    emitted_impacts: []
+
+dependency_rules:
+  model:
+    trigger_impacts: [model]
+    target_profile: semantic
+    emitted_impacts: [model, result]
+    reason: downstream model semantics depend on changed upstream model semantics
+  result:
+    trigger_impacts: [result]
+    target_profile: dependent_result
+    emitted_impacts: [result]
+    reason: downstream execution consumes an upstream result that is no longer current
+  parameter:
+    trigger_impacts: [parameter]
+    target_profile: dependent_result
+    emitted_impacts: [parameter, result]
+    reason: downstream execution consumes an upstream parameter that must be re-established
+  data:
+    trigger_impacts: [data]
+    target_profile: data_result
+    emitted_impacts: [data, result]
+    reason: downstream execution consumes upstream data whose identity is no longer current
+  legacy_untyped:
+    trigger_impacts: ['*']
+    target_profile: semantic
+    emitted_impacts: [model, result, parameter, data]
+    reason: legacy dependency has no kind, so invalidate conservatively rather than under-invalidate
+
+cycle_policy:
+  detect_before_propagation: true
+  ordering: lexical_deterministic
+  behavior: report_and_terminate_by_visited_transition
+  note: >-
+    Cycles are reported deterministically and propagation uses visited (question, impact)
+    state so a cycle can never loop indefinitely. Callers may escalate reported cycles
+    according to their gate severity; the transition engine itself remains deterministic.
+
+transition_report:
+  required_fields: [event, source, affected_questions, transitions, dependency_cycles]
+  transition_fields:
+  - question
+  - scope
+  - source
+  - dependency_kind
+  - profile
+  - stale_layers
+  - status_updates
+  - emitted_impacts
+  - reason
+  scope_values: [own, downstream]
+
+invariants:
+- Applying the same transition to an already-transitioned state is idempotent.
+- Model Approval is invalidated only by semantic-profile transitions, not by ordinary primary-code or analysis-code freshness changes.
+- Typed result/parameter/data dependencies invalidate execution/evidence without automatically invalidating downstream mathematical approval.
+- Unknown or legacy untyped dependencies must never be treated as no-impact.
+- State transition logic must not read or write project files; callers own persistence.
+- The three active stale-producing entrypoints must consume this Authority through scripts/state_transitions.py rather than maintain private stale-layer sets.
