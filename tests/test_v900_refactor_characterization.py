@@ -1,7 +1,7 @@
 """Characterize v8.7.4 boundaries before the staged v9.0.0 runtime/state refactor.
 
-These tests intentionally preserve current behavior, including known deficiencies,
-so later phases must change expectations explicitly rather than accidentally.
+Tests that still describe known deficiencies remain characterization coverage; fixed
+boundaries are converted in place to regression expectations as each phase lands.
 """
 
 from __future__ import annotations
@@ -85,9 +85,9 @@ def semantic_subproblem() -> dict:
 
 
 class TestV900RefactorCharacterization(unittest.TestCase):
-    """Freeze v8.7.4 behavior that the staged v9 refactor is expected to change."""
+    """Track v8.7.4 boundaries as the staged v9 refactor replaces them."""
 
-    def test_locked_model_assurance_currently_self_attests_from_state(self):
+    def test_locked_model_assurance_rejects_state_only_hash(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root / "state").mkdir()
@@ -136,11 +136,13 @@ class TestV900RefactorCharacterization(unittest.TestCase):
                 if item["artifact"] == "locked_model_spec"
             )
 
-        self.assertIn("locked_model_spec", hydrated["verified_artifacts"])
-        self.assertEqual(row["status"], "verified")
-        self.assertIsNone(row["path"])
+        self.assertNotIn("locked_model_spec", hydrated["verified_artifacts"])
+        self.assertEqual(row["status"], "hash_mismatch")
+        self.assertEqual(row["source"], "framework+project_state")
+        self.assertEqual(row["path"], "模型论文框架.md")
         self.assertEqual(row["expected_sha256"], state_hash)
-        self.assertEqual(row["actual_sha256"], state_hash)
+        self.assertIsNotNone(row["actual_sha256"])
+        self.assertNotEqual(row["actual_sha256"], state_hash)
 
     def test_wording_only_framework_edit_currently_changes_semantic_identity(self):
         with tempfile.TemporaryDirectory() as temp:
