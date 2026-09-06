@@ -17,6 +17,7 @@ if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 import state_transitions as STATE_TRANSITIONS  # noqa: E402
 import artifact_identity as ARTIFACT_IDENTITY  # noqa: E402
+import project_transaction as PROJECT_TX  # noqa: E402
 STATE_TRANSITION_CONTRACT = yaml.safe_load(
     (SKILL_ROOT / "core" / "state_transition_contract.yaml").read_text(encoding="utf-8")
 ) or {}
@@ -395,7 +396,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path) -> li
     state_path = project_root / "state" / "project_state.yaml"
     if not state_path.is_file():
         return []
-    state = load_yaml(state_path)
+    _, state, base_generation = PROJECT_TX.load_state_for_update(project_root)
     problem = str(config["problem_name"])
     stage = str(config["stage"])
     new_hash = sha256(script)
@@ -441,7 +442,9 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path) -> li
                         "reason": "project-level preprocessing code changed",
                     }],
                 })
-        state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        PROJECT_TX.commit_project_state(
+            project_root, state, expected_generation=base_generation
+        )
         return transition_reports
 
     key = _question_key(problem)
@@ -496,7 +499,9 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path) -> li
             state.setdefault("project", {})["current_phase"] = "result_analysis"
         entry["analysis_execution_status"] = "awaiting_user_execution"
 
-    state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    PROJECT_TX.commit_project_state(
+        project_root, state, expected_generation=base_generation
+    )
     return transition_reports
 
 

@@ -64,6 +64,7 @@
 - `core/writing_runtime_contract.yaml`
 - `docs/main-branch-protection-hardening-plan.md`
 - `docs/phase_e_artifact_identity_inventory.md`
+- `docs/phase_f_transaction_writer_inventory.md`
 - `docs/semantic_state_runtime_refactor_plan.md`
 - `docs/v801_chapter_capability_preservation_audit.md`
 - `docs/v801_skill_health_remediation_plan.md`
@@ -128,6 +129,7 @@
 - `scripts/lint_skill.py`
 - `scripts/lint_skill_checks.py`
 - `scripts/prepare_cumcm_class.py`
+- `scripts/project_transaction.py`
 - `scripts/render_paper.py`
 - `scripts/resolve_runtime.py`
 - `scripts/resolve_workflow.py`
@@ -323,9 +325,11 @@
 - `tests/test_v873_mechanism_monochrome_geometry.py`
 - `tests/test_v874_active_authority_hygiene.py`
 - `tests/test_v900_artifact_identity.py`
+- `tests/test_v900_project_transaction.py`
 - `tests/test_v900_refactor_characterization.py`
 - `tests/test_v900_semantic_governance.py`
 - `tests/test_v900_semantic_identity.py`
 - `tests/test_v900_semantic_identity_binding.py`
 - `tests/test_v900_semantic_identity_surface_closure.py`
 - `tests/test_v900_state_transitions.py`
+- `tests/test_v900_transactional_writers.py`

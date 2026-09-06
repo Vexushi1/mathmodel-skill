@@ -17,6 +17,7 @@ SCRIPT_DIR = str(Path(__file__).resolve().parent)
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 import artifact_identity as ARTIFACT_IDENTITY  # noqa: E402
+import project_transaction as PROJECT_TX  # noqa: E402
 
 FALSE_FLAGS = (
     "allow_reduced_data", "allow_coarser_grid", "allow_shorter_horizon",
@@ -445,7 +446,11 @@ def main() -> int:
     state_path = root / "state" / "project_state.yaml"
     if not state_path.is_file():
         raise SystemExit("缺少state/project_state.yaml")
-    state = load_yaml(state_path)
+    if args.write:
+        _, state, base_generation = PROJECT_TX.load_state_for_update(root)
+    else:
+        state = load_yaml(state_path)
+        base_generation = PROJECT_TX.state_generation(state)
     workbooks = (
         [args.workbook if args.workbook.is_absolute() else root / args.workbook]
         if args.workbook else discover(root)
@@ -457,8 +462,8 @@ def main() -> int:
         all_issues.extend(f"{workbook.name}: {item}" for item in issues)
         checked.append(workbook.relative_to(root).as_posix())
     if args.write:
-        state_path.write_text(
-            yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8"
+        PROJECT_TX.commit_project_state(
+            root, state, expected_generation=base_generation
         )
     report = {
         "status": "passed" if not all_issues else "failed",

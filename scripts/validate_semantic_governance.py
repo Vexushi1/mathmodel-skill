@@ -22,6 +22,7 @@ from semantic_identity import (  # noqa: E402
     sha256_text,
 )
 import state_transitions as STATE_TRANSITIONS  # noqa: E402
+import project_transaction as PROJECT_TX  # noqa: E402
 
 SEMANTIC_GOVERNANCE_VERSION = "1.0.0"
 STATE_TRANSITION_CONTRACT_PATH = Path(__file__).resolve().parents[1] / "core" / "state_transition_contract.yaml"
@@ -145,7 +146,11 @@ def _revision_change_issues(
 def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]:
     state_path = root / "state" / "project_state.yaml"
     framework_path = root / "模型论文框架.md"
-    state = load_yaml(state_path)
+    if write and state_path.is_file():
+        _, state, base_generation = PROJECT_TX.load_state_for_update(root)
+    else:
+        state = load_yaml(state_path)
+        base_generation = PROJECT_TX.state_generation(state)
     issues: list[str] = []
     warnings: list[str] = []
 
@@ -317,7 +322,9 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
                     entry["validated_semantic_identity_hash"] = current_identity_hash
                     entry["validated_semantic_revision"] = revision
         if state_path.is_file():
-            state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
+            PROJECT_TX.commit_project_state(
+                root, state, expected_generation=base_generation
+            )
 
     return {
         "status": "passed" if not issues else "failed",

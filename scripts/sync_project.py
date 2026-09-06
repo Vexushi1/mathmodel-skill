@@ -21,6 +21,7 @@ SCRIPT_DIR = str(SKILL_ROOT / "scripts")
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 import artifact_identity as ARTIFACT_IDENTITY  # noqa: E402
+import project_transaction as PROJECT_TX  # noqa: E402
 DEFAULT_SCHEMA_PATH = SKILL_ROOT / "core" / "workbook_schema.yaml"
 DEFAULT_OUTPUT_CONTRACT_PATH = SKILL_ROOT / "core" / "output_contract.yaml"
 QUESTION_RE = re.compile(r"问题([一二三四五六七八九十百]+)")
@@ -722,15 +723,16 @@ def _replace_or_prepend(lines: list[str], prefix: str, replacement: str) -> list
     return [replacement, *lines]
 
 
-def _update_framework_header(path: Path, scope: str, stale: bool) -> None:
+def _framework_header_text(path: Path, scope: str, stale: bool) -> str | None:
+    """Return the next framework text without mutating the live project."""
     if not path.is_file():
-        return
+        return None
     lines = path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n").splitlines()
     timestamp = datetime.now(timezone.utc).isoformat()
     lines = _replace_or_prepend(lines, "- 最近同步：", f"- 最近同步：`{scope}`")
     lines = _replace_or_prepend(lines, "- 最近同步时间：", f"- 最近同步时间：`{timestamp}`")
     lines = _replace_or_prepend(lines, "- 当前状态：", f"- 当前状态：`{'stale' if stale else 'current'}`")
-    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return "\n".join(lines).rstrip() + "\n"
 
 
 def _approved_figure_issues(root: Path, state: Mapping[str, Any]) -> list[str]:
@@ -929,7 +931,11 @@ def synchronize(
     root = Path(project_root).resolve()
     state_path = root / "state/project_state.yaml"
     framework_path = root / "模型论文框架.md"
-    state = load_yaml(state_path)
+    if write and state_path.is_file():
+        _, state, base_generation = PROJECT_TX.load_state_for_update(root)
+    else:
+        state = load_yaml(state_path)
+        base_generation = PROJECT_TX.state_generation(state)
     schema = load_yaml(Path(schema_path))
     output_contract = load_yaml(Path(output_contract_path))
     phase = str((state.get("project") or {}).get("current_phase", "model_design"))
@@ -988,6 +994,7 @@ def synchronize(
     else:
         dependency_cycles = []
 
+    framework_text_for_write: str | None = None
     if write and state_path.is_file():
         any_stale = any(
             bool(entry.get("artifacts_stale"))
@@ -1004,12 +1011,11 @@ def synchronize(
             header_stale = any_stale
         framework["last_sync_scope"] = scope
         framework["last_synced_at"] = datetime.now(timezone.utc).isoformat()
-        _update_framework_header(framework_path, scope, header_stale)
-        if framework_path.is_file():
-            framework["sha256"] = sha256_file(framework_path)
+        framework_text_for_write = _framework_header_text(framework_path, scope, header_stale)
+        if framework_text_for_write is not None:
+            framework["sha256"] = hashlib.sha256(framework_text_for_write.encode("utf-8")).hexdigest()
         state.setdefault("artifacts", {})["sync_report"] = "sync_report.yaml"
         state.setdefault("execution", {})["last_sync_report"] = "sync_report.yaml"
-        state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
     else:
         for key, entry in (transition_state.get("subproblems", {}) or {}).items():
             if isinstance(entry, Mapping) and entry.get("artifacts_stale"):
@@ -1027,7 +1033,11 @@ def synchronize(
         "preprocessing_decision": decision,
         "data_hash_mode": data_mode,
         "data_hash": data_hash,
-        "framework_hash": sha256_file(framework_path) if framework_path.is_file() else None,
+        "framework_hash": (
+            hashlib.sha256(framework_text_for_write.encode("utf-8")).hexdigest()
+            if framework_text_for_write is not None
+            else sha256_file(framework_path) if framework_path.is_file() else None
+        ),
         "questions": snapshots,
         "stale_questions": sorted(set(stale_questions)),
         "stale_paper_fragments": stale_fragments,
@@ -1038,15 +1048,36 @@ def synchronize(
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
     if write:
-        report_path = root / "sync_report.yaml"
-        report_path.write_text(yaml.safe_dump(report, allow_unicode=True, sort_keys=False), encoding="utf-8")
-        if state_path.is_file() and framework_path.is_file():
-            expected = ((load_yaml(state_path).get("paper_framework") or {}).get("sha256"))
-            actual = sha256_file(framework_path)
-            if expected != actual:
-                report["issues"].append("写后哈希自检失败: paper_framework.sha256不一致")
-                report["status"] = "failed"
-                report_path.write_text(yaml.safe_dump(report, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        report_text = yaml.safe_dump(report, allow_unicode=True, sort_keys=False)
+        if state_path.is_file():
+            before_state = (
+                [("模型论文框架.md", framework_text_for_write)]
+                if framework_text_for_write is not None
+                else []
+            )
+
+            def _validate_staged_sync(staged: Mapping[str, Path]) -> None:
+                staged_state = load_yaml(staged[PROJECT_TX.STATE_RELATIVE_PATH])
+                if framework_text_for_write is not None:
+                    staged_framework = staged["模型论文框架.md"]
+                    expected = ((staged_state.get("paper_framework") or {}).get("sha256"))
+                    actual = sha256_file(staged_framework)
+                    if expected != actual:
+                        raise ValueError("staged paper_framework.sha256 self-check failed")
+                staged_report = load_yaml(staged["sync_report.yaml"])
+                if staged_report.get("framework_hash") != report.get("framework_hash"):
+                    raise ValueError("staged sync report framework hash self-check failed")
+
+            PROJECT_TX.commit_project_state(
+                root,
+                state,
+                expected_generation=base_generation,
+                writes_before_state=before_state,
+                writes_after_state=[("sync_report.yaml", report_text)],
+                validators=[_validate_staged_sync],
+            )
+        else:
+            PROJECT_TX.atomic_write_text(root / "sync_report.yaml", report_text)
     return report
 
 
