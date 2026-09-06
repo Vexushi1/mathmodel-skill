@@ -1,4 +1,4 @@
-version: 1.1.0
+version: 1.1.1
 introduced_in_skill_version: 7.12.0
 skill_compatibility: '>=7.12.0,<9.0.0'
 purpose: >-
@@ -79,12 +79,15 @@ artifact_assurance:
   project_path_boundary: artifact paths hydrated from project state must resolve inside project_root
   verified_state_sources:
     locked_model_spec:
-      kind: semantic_state
+      kind: semantic_file_backed
       requires:
       - model_challenge_status == passed
       - human_model_approval_status == approved
       - approved_semantic_revision == semantic_revision
       - approved_semantic_hash == semantic_hash
+      - current 模型论文框架.md exists
+      - current question semantic scope exists in 模型论文框架.md
+      - sha256(current framework semantic scope) == semantic_hash
     preprocessing_workbook:
       kind: file_backed
       requires:
@@ -113,8 +116,10 @@ artifact_assurance:
       - actual sha256 == expected sha256
   scope_rules:
   - With --question Qn, semantic and workbook evidence is evaluated for that question.
+  - Without a question scope, generic locked_model_spec is promoted only when every scoped question has current framework semantic evidence matching its approved semantic hash.
   - Without a question scope, generic accepted_solution_workbook or accepted_result_analysis_workbook is promoted only when every scoped subproblem satisfies the corresponding condition.
-  - A known stale, rejected, hash-mismatched, missing, or outside-project-root file-backed artifact must not be promoted merely because its legacy name appears in available_artifacts.
+  - A known stale, rejected, hash-mismatched, missing, malformed, or outside-project-root artifact must not be promoted merely because its legacy name appears in available_artifacts.
+  - Runtime assurance recomputes the current legacy semantic-scope hash from 模型论文框架.md; project-state equality alone cannot self-attest locked_model_spec.
   required_evidence_fields:
   - artifact
   - source

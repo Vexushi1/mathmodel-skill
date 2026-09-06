@@ -8,6 +8,10 @@ from typing import Any, Iterable
 
 import yaml
 
+from validate_semantic_governance import _question_sections, _semantic_scope, sha256_text
+
+FRAMEWORK_RELATIVE_PATH = "模型论文框架.md"
+
 
 def _unique(items: Iterable[str | None]) -> list[str]:
     return list(dict.fromkeys(str(item) for item in items if item and str(item).strip()))
@@ -139,12 +143,31 @@ def _classification_for_scope(
     }, []
 
 
-def _semantic_lock_evidence(question: str, item: dict[str, Any]) -> dict[str, Any]:
+def _framework_semantic_hashes(framework_path: Path) -> tuple[dict[str, str], str | None]:
+    """Return current legacy semantic-scope hashes from the framework without inventing a second parser."""
+    if not framework_path.is_file():
+        return {}, "current model framework is missing"
+    text = framework_path.read_text(encoding="utf-8")
+    hashes: dict[str, str] = {}
+    for question, section in _question_sections(text).items():
+        scope = _semantic_scope(section)
+        if scope is not None:
+            hashes[question] = sha256_text(scope)
+    return hashes, None
+
+
+def _semantic_lock_evidence(
+    question: str,
+    item: dict[str, Any],
+    *,
+    current_semantic_hash: str | None,
+    framework_error: str | None,
+) -> dict[str, Any]:
     revision = item.get("semantic_revision")
     semantic_hash = item.get("semantic_hash")
     approved_revision = item.get("approved_semantic_revision")
     approved_hash = item.get("approved_semantic_hash")
-    ok = (
+    state_binding_ok = (
         item.get("model_challenge_status") == "passed"
         and item.get("human_model_approval_status") == "approved"
         and revision is not None
@@ -152,19 +175,32 @@ def _semantic_lock_evidence(question: str, item: dict[str, Any]) -> dict[str, An
         and approved_revision == revision
         and approved_hash == semantic_hash
     )
+
+    if not state_binding_ok:
+        status = "stale_or_unapproved"
+        reason = "challenge/approval is missing, stale, or not bound to the current semantic revision/hash"
+    elif framework_error:
+        status = "missing"
+        reason = framework_error
+    elif current_semantic_hash is None:
+        status = "semantic_scope_missing"
+        reason = f"current framework has no semantic scope for {question}"
+    elif current_semantic_hash != semantic_hash:
+        status = "hash_mismatch"
+        reason = "current framework semantic hash does not match the approved project-state semantic hash"
+    else:
+        status = "verified"
+        reason = "challenge and explicit approval bind to the semantic hash recomputed from the current framework"
+
     return {
         "artifact": "locked_model_spec",
-        "source": "project_state",
+        "source": "framework+project_state",
         "scope": question,
-        "status": "verified" if ok else "stale_or_unapproved",
-        "reason": (
-            "challenge and explicit approval bind to the current semantic revision/hash"
-            if ok
-            else "challenge/approval is missing, stale, or not bound to the current semantic revision/hash"
-        ),
-        "path": None,
-        "expected_sha256": semantic_hash if ok else None,
-        "actual_sha256": semantic_hash if ok else None,
+        "status": status,
+        "reason": reason,
+        "path": FRAMEWORK_RELATIVE_PATH,
+        "expected_sha256": semantic_hash,
+        "actual_sha256": current_semantic_hash,
     }
 
 
@@ -261,8 +297,15 @@ def hydrate_project_context(project_root: str | Path, question: str | None = Non
     evidence: list[dict[str, Any]] = []
     verified: set[str] = set()
 
+    framework_path = root / FRAMEWORK_RELATIVE_PATH
+    semantic_hashes, framework_error = _framework_semantic_hashes(framework_path)
     semantic_rows = [
-        _semantic_lock_evidence(q, (state.get("subproblems", {}) or {}).get(q, {}) or {})
+        _semantic_lock_evidence(
+            q,
+            (state.get("subproblems", {}) or {}).get(q, {}) or {},
+            current_semantic_hash=semantic_hashes.get(q),
+            framework_error=framework_error,
+        )
         for q in questions
     ]
     evidence.extend(semantic_rows)
