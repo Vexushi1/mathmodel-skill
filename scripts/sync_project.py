@@ -17,6 +17,10 @@ from typing import Any, Iterable, Mapping
 import yaml
 
 SKILL_ROOT = Path(__file__).resolve().parent.parent
+SCRIPT_DIR = str(SKILL_ROOT / "scripts")
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
+import artifact_identity as ARTIFACT_IDENTITY  # noqa: E402
 DEFAULT_SCHEMA_PATH = SKILL_ROOT / "core" / "workbook_schema.yaml"
 DEFAULT_OUTPUT_CONTRACT_PATH = SKILL_ROOT / "core" / "output_contract.yaml"
 QUESTION_RE = re.compile(r"问题([一二三四五六七八九十百]+)")
@@ -37,7 +41,7 @@ PHASE_SCOPE = {
     "completed": "submission",
 }
 HASH_KEYS = (
-    "data", "model", "solution_workbook", "result_analysis_workbook",
+    "data", "primary_code", "analysis_code", "solution_workbook", "result_analysis_workbook",
     "matlab_script", "figure_bundle", "framework",
 )
 SOLVED_STATUSES = {"solved", "analyzed", "validated", "written", "completed"}
@@ -581,7 +585,8 @@ def _snapshot_question(
     framework = root / "模型论文框架.md"
     hashes = {
         "data": data_hash,
-        "model": sha256_file(primary_code) if primary_code else None,
+        "primary_code": sha256_file(primary_code) if primary_code else None,
+        "analysis_code": sha256_file(analysis_code) if analysis_code else None,
         "solution_workbook": sha256_file(solution) if solution.is_file() else None,
         "result_analysis_workbook": sha256_file(analysis_workbook) if analysis_workbook.is_file() else None,
         "matlab_script": sha256_file(matlab) if matlab.is_file() else None,
@@ -618,7 +623,10 @@ def _snapshot_question(
 
 
 def _normalized_validated_hashes(entry: Mapping[str, Any]) -> dict[str, str]:
-    validated = dict(entry.get("validated_artifact_hashes", {}) or {})
+    validated = ARTIFACT_IDENTITY.normalize_artifact_hashes(
+        entry.get("validated_artifact_hashes"),
+        legacy_primary_fallback=entry.get("validated_model_hash"),
+    )
     if "result_analysis_workbook" not in validated and "robustness_workbook" in validated:
         validated["result_analysis_workbook"] = validated["robustness_workbook"]
     return {key: value for key, value in validated.items() if key in HASH_KEYS}
@@ -643,7 +651,8 @@ def _code_hash_mismatches(entry: Mapping[str, Any], snapshot: Mapping[str, Any])
 
 LAYER_TRANSITION_EVENTS = {
     "data": "data_changed",
-    "model": "primary_code_changed",
+    "primary_code": "primary_code_changed",
+    "analysis_code": "analysis_code_changed",
     "solution_workbook": "solution_workbook_changed",
     "result_analysis_workbook": "analysis_workbook_changed",
     "matlab_script": "matlab_script_changed",
@@ -672,6 +681,7 @@ def _apply_snapshot_to_state(
 ) -> tuple[set[str], list[dict[str, Any]]]:
     key = str(snapshot["key"])
     entry = state.setdefault("subproblems", {}).setdefault(key, {})
+    ARTIFACT_IDENTITY.canonicalize_entry_hashes(entry)
     current = dict(snapshot.get("artifact_hashes", {}))
     transition_reports: list[dict[str, Any]] = []
     for event in _snapshot_transition_events(entry, snapshot):

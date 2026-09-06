@@ -43,6 +43,9 @@ class TestSchemas(unittest.TestCase):
         self.assertIn("result_analysis", phases)
         self.assertIn("analyzed", statuses)
         self.assertIn("result_analysis_workbook", defs["artifact_hashes"]["properties"])
+        self.assertIn("primary_code", defs["artifact_hashes"]["properties"])
+        self.assertIn("analysis_code", defs["artifact_hashes"]["properties"])
+        self.assertIn("model", defs["artifact_hashes"]["properties"])  # v8 read compatibility
         self.assertIn("preprocessing", schema["properties"])
 
     def test_workbook_schema_has_quality_gate_and_adaptive_analysis(self):
@@ -110,8 +113,8 @@ class TestSchemas(unittest.TestCase):
             set(contract["project_sync"]["artifact_hash_layers"]),
             {
                 "raw_data", "preprocessing_decision", "preprocessing_code", "preprocessing_workbook",
-                "preprocessing_matlab_script", "model", "solution_workbook", "result_analysis_workbook",
-                "matlab_script", "figure_bundle", "framework",
+                "preprocessing_matlab_script", "primary_code", "analysis_code", "solution_workbook",
+                "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
             },
         )
         conditional = contract["project_sync"]["conditional_stage_requirements"]

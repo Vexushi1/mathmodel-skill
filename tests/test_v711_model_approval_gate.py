@@ -181,7 +181,7 @@ class ModelApprovalSemanticInvalidationTests(unittest.TestCase):
             self.assertEqual(q1["human_model_approval_status"], "stale")
             self.assertEqual(q1["approved_semantic_revision"], 1)
             self.assertEqual(q1["approved_semantic_hash"], old_hash)
-            self.assertIn("model", q1["stale_layers"])
+            self.assertIn("primary_code", q1["stale_layers"])
             self.assertTrue(q1["artifacts_stale"])
 
     def test_old_project_without_approval_fields_is_not_backfilled(self):
@@ -194,7 +194,7 @@ class ModelApprovalSemanticInvalidationTests(unittest.TestCase):
         self.semantic._mark_stale(entry)
         self.assertNotIn("model_challenge_status", entry)
         self.assertNotIn("human_model_approval_status", entry)
-        self.assertIn("model", entry["stale_layers"])
+        self.assertIn("primary_code", entry["stale_layers"])
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-version: 1.0.0
+version: 1.1.0
 status: active
 introduced_in_staged_version: 9.0.0
 purpose: >-
@@ -25,17 +25,21 @@ authority_boundary:
     transactional_writes: docs/semantic_state_runtime_refactor_plan.md#phase-f-transactional-project-writes
 
 compatibility:
-  current_artifact_layer_names_are_v8_compatible: true
+  canonical_artifact_layer_names_use_explicit_implementation_identity: true
+  legacy_model_artifact_layer_read_supported: true
+  legacy_model_artifact_layer_maps_to: primary_code
+  legacy_model_artifact_layer_write_supported: false
   model_layer_note: >-
-    During Phase D, stale layer `model` remains the existing v8 artifact-layer name.
-    Phase E owns migration to explicit primary_code/analysis_code identity names.
+    Phase E canonicalizes the v8 implementation layer `model` to `primary_code`.
+    The legacy name remains read-compatible only; mathematical model identity is owned by
+    semantic_identity_hash and must never be inferred from an implementation artifact hash.
   legacy_string_dependency_read_supported: true
   legacy_string_dependency_policy: conservative_full_invalidation
   unknown_dependency_kind_policy: blocking_or_conservative_full_invalidation
 
 profiles:
   semantic:
-    stale_layers: [model, solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, framework]
+    stale_layers: [primary_code, solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, framework]
     set:
       result_quality_status: pending
       result_analysis_status: pending
@@ -47,7 +51,7 @@ profiles:
       model_challenge_status: stale
       human_model_approval_status: stale
   primary_result:
-    stale_layers: [solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, framework]
+    stale_layers: [primary_code, solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, framework]
     set:
       result_quality_status: pending
       result_analysis_status: pending
@@ -66,7 +70,7 @@ profiles:
       primary_execution_status: pending
       analysis_execution_status: pending
   analysis_result:
-    stale_layers: [result_analysis_workbook, matlab_script, figure_bundle, framework]
+    stale_layers: [analysis_code, result_analysis_workbook, matlab_script, figure_bundle, framework]
     set:
       result_analysis_status: pending
       validation_status: pending
@@ -187,3 +191,4 @@ invariants:
 - Unknown or legacy untyped dependencies must never be treated as no-impact.
 - State transition logic must not read or write project files; callers own persistence.
 - The three active stale-producing entrypoints must consume this Authority through scripts/state_transitions.py rather than maintain private stale-layer sets.
+- New transitions must never emit the legacy `model` artifact layer; Phase E canonical implementation layers are `primary_code` and `analysis_code`.

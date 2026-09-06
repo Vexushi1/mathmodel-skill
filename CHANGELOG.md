@@ -23,6 +23,14 @@
 - `depends_on.kind` now changes propagation behavior: model dependencies invalidate downstream semantic approval, while result/parameter/data dependencies invalidate only the execution/evidence layers appropriate to their declared type; legacy untyped dependencies remain conservative.
 - Added deterministic transition evidence, cycle/idempotence regression coverage and Authority-closure tests. Phase E artifact naming and Phase F transactional writes remain intentionally out of scope, and the release carriers remain 8.7.4 until the staged v9.0.0 program completes.
 
+### Unreleased v9.0.0 staged refactor — Phase E
+
+- Migrated implementation artifact identity from ambiguous `artifact_hashes.model` to explicit `artifact_hashes.primary_code` and `artifact_hashes.analysis_code` while retaining v8 read compatibility only.
+- Added deterministic alias handling: legacy `model` maps to `primary_code` only when the canonical field is absent or equal; conflicting old/new values are blocking and no active writer dual-writes the two names.
+- Aligned Project State Schema, State Transition Authority, project sync, code delivery, user-execution receipts, Runtime Assurance integration pointers, Output Contract and health lint around the canonical implementation names without changing mathematical Semantic Identity or Model Approval semantics.
+- Audited `model_hash / validated_model_hash` across the active repository and confirmed they have no active writer and only serve legacy primary-code fallback reads; they remain compatibility fields until the Phase I v9 removal gate.
+- Added Phase E migration/alias regressions and retained the 8.7.4 release carrier. Phase F transactional writes and all later staged phases remain out of scope.
+
 ## Previous release: 8.7.3
 
 - Restored formal mechanism/derivation diagrams to a **monochrome-first** visual grammar: white background, black/dark-gray outlines and text, grayscale de-emphasis, and structure conveyed primarily through geometry, line style, line weight, boundary and spacing rather than semantic blue/green/red fills.

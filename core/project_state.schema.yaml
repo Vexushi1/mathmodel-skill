@@ -110,7 +110,12 @@ $defs:
     additionalProperties: false
     properties:
       data: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
-      model: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      model:
+        description: v8 legacy primary-code artifact hash alias；Phase E仅兼容读取，新写入必须使用primary_code。
+        type: string
+        pattern: '^[0-9a-fA-F]{64}$'
+      primary_code: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      analysis_code: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
       solution_workbook: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
       result_analysis_workbook: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
       robustness_workbook:
@@ -122,7 +127,7 @@ $defs:
       framework: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
   artifact_layer:
     type: string
-    enum: [data, model, solution_workbook, result_analysis_workbook, robustness_workbook, matlab_script, figure_bundle, framework]
+    enum: [data, model, primary_code, analysis_code, solution_workbook, result_analysis_workbook, robustness_workbook, matlab_script, figure_bundle, framework]
   proposition_entry:
     type: object
     additionalProperties: false
@@ -414,8 +419,14 @@ properties:
           items: {$ref: '#/$defs/artifact_layer'}
         data_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         validated_data_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
-        model_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
-        validated_model_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+        model_hash:
+          description: v8 legacy primary-code hash fallback；活动代码无writer，Phase E保留只读兼容并映射到artifact_hashes.primary_code。
+          type: string
+          pattern: '^[0-9a-fA-F]{64}$'
+        validated_model_hash:
+          description: v8 legacy validated primary-code hash fallback；活动代码无writer，Phase E保留只读兼容并映射到validated_artifact_hashes.primary_code。
+          type: string
+          pattern: '^[0-9a-fA-F]{64}$'
         artifacts_stale: {type: boolean, default: false}
         code: {type: string, description: 主求解脚本路径}
         result_analysis_code: {type: string, description: 独立结果深化分析脚本路径}

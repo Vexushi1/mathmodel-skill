@@ -11,6 +11,8 @@ from typing import Any, Mapping
 import yaml
 from jsonschema import Draft202012Validator
 
+import artifact_identity as ARTIFACT_IDENTITY
+
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = ROOT / "core/project_state.schema.yaml"
 TAXONOMY_PATH = ROOT / "core/task_taxonomy.yaml"
@@ -30,8 +32,9 @@ CURRENT_PROPOSITION_REQUIRED_FIELDS = (
     "failure_boundary", "framework_anchor",
 )
 ARTIFACT_LAYERS = {
-    "data", "model", "solution_workbook", "result_analysis_workbook",
-    "robustness_workbook", "matlab_script", "figure_bundle", "framework",
+    "data", "model", "primary_code", "analysis_code", "solution_workbook",
+    "result_analysis_workbook", "robustness_workbook", "matlab_script",
+    "figure_bundle", "framework",
 }
 HIGH_PRECISION_BASES = {"prompt", "official", "reviewer", "project_high_precision"}
 AUXILIARY_REJECT_ACTION_MARKERS = ("remove", "rewrite", "drop", "delete", "删除", "重写", "撤回")
@@ -302,31 +305,39 @@ def _framework_section_hash(path: Path, anchor: str) -> str | None:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def _normalized_hashes(state: Mapping[str, Any]) -> tuple[dict[str, str], dict[str, str]]:
-    current = dict(state.get("artifact_hashes", {}) or {})
-    validated = dict(state.get("validated_artifact_hashes", {}) or {})
+def _normalized_hashes(state: Mapping[str, Any]) -> tuple[dict[str, str], dict[str, str], list[str]]:
+    issues = ARTIFACT_IDENTITY.entry_alias_issues(state)
+    try:
+        current = ARTIFACT_IDENTITY.normalize_artifact_hashes(
+            state.get("artifact_hashes"), legacy_primary_fallback=state.get("model_hash")
+        )
+        validated = ARTIFACT_IDENTITY.normalize_artifact_hashes(
+            state.get("validated_artifact_hashes"),
+            legacy_primary_fallback=state.get("validated_model_hash"),
+        )
+    except ARTIFACT_IDENTITY.ArtifactIdentityError:
+        # The detailed issue is already recorded. Keep deterministic partial maps so the
+        # caller can report other state problems without silently selecting a winner.
+        current = {key: value for key, value in dict(state.get("artifact_hashes", {}) or {}).items() if key != "model"}
+        validated = {key: value for key, value in dict(state.get("validated_artifact_hashes", {}) or {}).items() if key != "model"}
     if "result_analysis_workbook" not in current and "robustness_workbook" in current:
         current["result_analysis_workbook"] = current["robustness_workbook"]
     if "result_analysis_workbook" not in validated and "robustness_workbook" in validated:
         validated["result_analysis_workbook"] = validated["robustness_workbook"]
-    if not current:
-        if state.get("data_hash"):
-            current["data"] = state["data_hash"]
-        if state.get("model_hash"):
-            current["model"] = state["model_hash"]
-    if not validated:
-        if state.get("validated_data_hash"):
-            validated["data"] = state["validated_data_hash"]
-        if state.get("validated_model_hash"):
-            validated["model"] = state["validated_model_hash"]
-    return current, validated
+    if "data" not in current and state.get("data_hash"):
+        current["data"] = state["data_hash"]
+    if "data" not in validated and state.get("validated_data_hash"):
+        validated["data"] = state["validated_data_hash"]
+    return current, validated, issues
 
 
 def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[str]:
     issues: list[str] = []
-    current, validated = _normalized_hashes(state)
-    stale_layers = set(state.get("stale_layers", []) or [])
-    invalid_layers = stale_layers - ARTIFACT_LAYERS
+    current, validated, alias_issues = _normalized_hashes(state)
+    issues.extend(f"{name}.{item}" for item in alias_issues)
+    raw_stale_layers = set(state.get("stale_layers", []) or [])
+    invalid_layers = raw_stale_layers - ARTIFACT_LAYERS
+    stale_layers = set(ARTIFACT_IDENTITY.normalize_stale_layers(raw_stale_layers))
     if invalid_layers:
         issues.append(f"{name}.stale_layers contains invalid layers: {sorted(invalid_layers)}")
     mismatched = {key for key, value in validated.items() if current.get(key) != value}
@@ -348,7 +359,7 @@ def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[s
     if not stale_flag and stale_layers:
         issues.append(f"{name}.stale_layers must be empty while artifacts_stale is false")
     if status in SOLVED_STATUSES:
-        required = {"data", "model", "solution_workbook", "framework"}
+        required = {"data", "primary_code", "solution_workbook", "framework"}
         missing = sorted(key for key in required if key not in current or key not in validated)
         if missing:
             issues.append(f"{name} solved status requires current and validated hashes for: {missing}")

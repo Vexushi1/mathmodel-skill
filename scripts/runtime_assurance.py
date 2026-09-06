@@ -14,6 +14,7 @@ from semantic_identity import (
     inspect_question_semantics,
     question_sections,
 )
+import artifact_identity as ARTIFACT_IDENTITY
 
 FRAMEWORK_RELATIVE_PATH = "模型论文框架.md"
 STRUCTURED_IDENTITY_FIELDS = {
@@ -370,8 +371,16 @@ def _file_evidence(
 
 
 def _expected_hash(item: dict[str, Any], layer: str) -> str | None:
-    validated = item.get("validated_artifact_hashes", {}) or {}
-    current = item.get("artifact_hashes", {}) or {}
+    try:
+        validated = ARTIFACT_IDENTITY.normalize_artifact_hashes(
+            item.get("validated_artifact_hashes"),
+            legacy_primary_fallback=item.get("validated_model_hash"),
+        )
+        current = ARTIFACT_IDENTITY.normalize_artifact_hashes(
+            item.get("artifact_hashes"), legacy_primary_fallback=item.get("model_hash")
+        )
+    except ARTIFACT_IDENTITY.ArtifactIdentityError:
+        return None
     return validated.get(layer) or current.get(layer)
 
 
@@ -401,6 +410,7 @@ def hydrate_project_context(project_root: str | Path, question: str | None = Non
     preprocessing = state.get("preprocessing", {}) or {}
     evidence: list[dict[str, Any]] = []
     verified: set[str] = set()
+    conflicts: list[str] = []
 
     framework_path = root / FRAMEWORK_RELATIVE_PATH
     semantic_evidence, framework_error = _framework_semantic_evidence(framework_path)
@@ -441,6 +451,7 @@ def hydrate_project_context(project_root: str | Path, question: str | None = Non
     subproblems = state.get("subproblems", {}) or {}
     for q in questions:
         item = subproblems.get(q, {}) or {}
+        conflicts.extend(ARTIFACT_IDENTITY.entry_alias_issues(item, scope=q))
         primary_ok = (
             item.get("primary_execution_status") == "accepted"
             and item.get("result_quality_status") == "passed"
@@ -502,7 +513,7 @@ def hydrate_project_context(project_root: str | Path, question: str | None = Non
         "classification": classification,
         "verified_artifacts": sorted(verified),
         "artifact_evidence": evidence,
-        "conflicts": [],
+        "conflicts": conflicts,
         "ambiguities": ambiguities,
     }
 

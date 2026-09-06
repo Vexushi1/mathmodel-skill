@@ -13,6 +13,11 @@ from typing import Any
 import openpyxl
 import yaml
 
+SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
+import artifact_identity as ARTIFACT_IDENTITY  # noqa: E402
+
 FALSE_FLAGS = (
     "allow_reduced_data", "allow_coarser_grid", "allow_shorter_horizon",
     "allow_fewer_repetitions", "allow_relaxed_tolerance",
@@ -333,6 +338,11 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
 
     key = question_key(problem)
     entry = {} if stage == "preprocessing" else (state.get("subproblems") or {}).get(key, {})
+    if stage != "preprocessing":
+        try:
+            ARTIFACT_IDENTITY.canonicalize_entry_hashes(entry)
+        except ARTIFACT_IDENTITY.ArtifactIdentityError as exc:
+            issues.append(f"artifact identity alias conflict: {exc}")
     issues.extend(validate_execution_evidence(config, state, entry, stage))
 
     if stage == "preprocessing":
@@ -375,7 +385,9 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
             entry["solution_workbook"] = workbook.relative_to(root).as_posix()
             entry.setdefault("artifact_hashes", {})["solution_workbook"] = file_hash(workbook)
             if not issues and passed:
-                entry.setdefault("validated_artifact_hashes", {})["solution_workbook"] = file_hash(workbook)
+                validated_hashes = entry.setdefault("validated_artifact_hashes", {})
+                validated_hashes["primary_code"] = str(entry.get("primary_code_sha256", "")).lower()
+                validated_hashes["solution_workbook"] = file_hash(workbook)
                 entry["status"] = "solved"
     else:
         passed, result_status, analysis_issues = analysis_passed(workbook)
@@ -390,7 +402,9 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
             entry["result_analysis_workbook"] = workbook.relative_to(root).as_posix()
             entry.setdefault("artifact_hashes", {})["result_analysis_workbook"] = file_hash(workbook)
             if not issues and passed:
-                entry.setdefault("validated_artifact_hashes", {})["result_analysis_workbook"] = file_hash(workbook)
+                validated_hashes = entry.setdefault("validated_artifact_hashes", {})
+                validated_hashes["analysis_code"] = str(entry.get("analysis_code_sha256", "")).lower()
+                validated_hashes["result_analysis_workbook"] = file_hash(workbook)
                 entry["status"] = "analyzed"
             elif result_status == "redo_required":
                 entry["artifacts_stale"] = True

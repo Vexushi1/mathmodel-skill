@@ -286,7 +286,7 @@ class TestSyncProject(unittest.TestCase):
             write_code(result / "问题一结果深化分析.py", marker=9)
             report = syncer.synchronize(root, write=True)
             updated = yaml.safe_load(state_path.read_text(encoding="utf-8"))["subproblems"]["Q1"]
-            self.assertEqual(report["questions"]["Q1"]["artifact_hashes"]["model"], snapshot["artifact_hashes"]["model"])
+            self.assertEqual(report["questions"]["Q1"]["artifact_hashes"]["primary_code"], snapshot["artifact_hashes"]["primary_code"])
             self.assertEqual(updated["result_quality_status"], "passed")
             self.assertEqual(updated["result_analysis_status"], "pending")
             self.assertIn("result_analysis_workbook", updated["stale_layers"])

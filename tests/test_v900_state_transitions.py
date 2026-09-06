@@ -75,7 +75,7 @@ class CodeDeliveryTransitionContractTests(unittest.TestCase):
 
 class StateTransitionAuthorityTests(unittest.TestCase):
     def test_contract_owns_phase_d_rules(self):
-        self.assertEqual(CONTRACT["version"], "1.0.0")
+        self.assertEqual(CONTRACT["version"], "1.1.0")
         self.assertIn("semantic_identity_changed", CONTRACT["transition_events"])
         self.assertEqual(
             set(CONTRACT["dependency_rules"]),
@@ -197,7 +197,8 @@ class TypedPropagationTests(unittest.TestCase):
         q2 = state["subproblems"]["Q2"]
         self.assertEqual(q2["model_challenge_status"], "stale")
         self.assertEqual(q2["human_model_approval_status"], "stale")
-        self.assertIn("model", q2["stale_layers"])
+        self.assertIn("primary_code", q2["stale_layers"])
+        self.assertNotIn("model", q2["stale_layers"])
 
 
 class DeterminismTests(unittest.TestCase):

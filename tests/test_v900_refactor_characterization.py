@@ -229,7 +229,7 @@ class TestV900RefactorCharacterization(unittest.TestCase):
         self.assertIn("semantic_identity_changed", contract)
         self.assertIn("legacy_untyped", contract)
 
-    def test_artifact_hash_model_currently_means_primary_python_code(self):
+    def test_artifact_hash_primary_code_now_has_explicit_implementation_identity(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             result_dir = root / "问题一求解"
@@ -254,9 +254,9 @@ class TestV900RefactorCharacterization(unittest.TestCase):
             )
 
         self.assertEqual(
-            snapshot["artifact_hashes"]["model"], snapshot["primary_code_sha256"]
+            snapshot["artifact_hashes"]["primary_code"], snapshot["primary_code_sha256"]
         )
-        self.assertNotIn("primary_code", snapshot["artifact_hashes"])
+        self.assertNotIn("model", snapshot["artifact_hashes"])
 
 
 if __name__ == "__main__":
