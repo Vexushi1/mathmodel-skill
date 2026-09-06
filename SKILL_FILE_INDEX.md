@@ -116,6 +116,7 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
+- `scripts/_phase_c_surface_hotfix_delta3_once.py`
 - `scripts/_phase_c_surface_hotfix_delta_once.py`
 - `scripts/_phase_c_surface_hotfix_once.py`
 - `scripts/audit_latex_project.py`
