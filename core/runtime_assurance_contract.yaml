@@ -213,6 +213,7 @@ authority_fingerprint:
   - core/bootstrap.yaml
   - core/workflow_router.yaml
   - core/module_manifest.yaml
+  - config/competition_profiles.yaml
   - core/runtime_assurance_contract.yaml
   - core/writing_reasoning_contract.yaml
   - core/writing_runtime_contract.yaml

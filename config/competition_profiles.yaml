@@ -18,6 +18,12 @@ profiles:
       latex_template: templates/latex/cumcm/hsk/
       compile_profile: cumcm
       language: zh-CN
+      writing_runtime:
+        mode: template_first_progressive
+        competition_label: CUMCM
+        template_manifest: templates/latex/cumcm/hsk/template_manifest.yaml
+        supported_intents: [latex, review, full_submission, full_workflow]
+        compact_intents: [latex]
     edition_rules:
       edition: current
       verification_status: unverified
@@ -35,6 +41,8 @@ profiles:
       latex_template: templates/latex/mcm/
       compile_profile: mcm_icm
       language: en
+      writing_runtime:
+        mode: full_reasoning_fallback
     edition_rules:
       edition: current
       verification_status: unverified
@@ -52,6 +60,8 @@ profiles:
       latex_template: templates/latex/diangong/
       compile_profile: diangong
       language: zh-CN
+      writing_runtime:
+        mode: full_reasoning_fallback
     edition_rules:
       edition: current
       verification_status: unverified
@@ -69,6 +79,8 @@ profiles:
       latex_template: null
       compile_profile: null
       language: zh-CN
+      writing_runtime:
+        mode: full_reasoning_fallback
     edition_rules:
       edition: current
       verification_status: unverified
