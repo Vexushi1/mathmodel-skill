@@ -317,3 +317,4 @@
 - `tests/test_v872_template_assembly_consistency.py`
 - `tests/test_v873_mechanism_monochrome_geometry.py`
 - `tests/test_v874_active_authority_hygiene.py`
+- `tests/test_v900_refactor_characterization.py`
