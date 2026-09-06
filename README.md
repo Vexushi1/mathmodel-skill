@@ -231,8 +231,8 @@ Paragraph Necessity 与 AI Cleanup 不再把“没有新增公式或数值”当
 
 - Module 02 在 `locked_model_spec` 前新增 `proposed_model_spec`，并执行相互独立的 Model Reviewer 与 Devil's Advocate 两次挑战审查；blocking 不能由用户批准绕过。
 - Challenge passed 后生成 Model Approval Brief，并停在 `awaiting_model_approval`；只有用户明确批准当前 `semantic_revision / semantic_identity_hash` 后，`locked_model_spec` 才成为 current。
-- 新增 `core/model_approval_contract.yaml` 与 `scripts/validate_model_approval.py`；项目级预处理和主求解代码交付前必须验证 challenge/approval 与当前 revision/hash 完全一致。
-- 语义 revision/hash 变化会使旧 challenge、approval 与 locked model stale；纯排版、措辞、caption、公式编号或不改变语义的 LaTeX 文件拆分不触发重新审批。
+- 新增 `core/model_approval_contract.yaml` 与 `scripts/validate_model_approval.py`；项目级预处理和主求解代码交付前必须验证 challenge/approval 与当前 `semantic_revision` / validated `semantic_identity_hash` 完全一致；legacy hash 只保留历史只读 provenance。
+- semantic revision 或 structured identity 变化会使旧 challenge、approval 与 locked model stale；纯排版、SIB 外纯措辞、caption、公式编号或不改变 structured identity 的 LaTeX 文件拆分只影响 text provenance，不触发重新审批。
 - 旧项目保持只读兼容；只有重新进入模型设计、项目级预处理、主求解或语义变化后的重算时才迁入新 approval gate。
 - 不迁移旧 V2 的 `HUMAN_MODEL_REVIEW.md`、`MODEL_REVIEW_AI.md`、`AGENT_RUNS.md` 等 reports 文件体系，也不绑定特定 multi-agent runtime。
 

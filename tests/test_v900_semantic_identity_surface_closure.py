@@ -34,6 +34,9 @@ class PhaseCSemanticIdentitySurfaceClosureTests(unittest.TestCase):
             "RUNTIME_ROUTER.md",
             "modules/03_solve_validate.md",
             ".codex-plugin/plugin.json",
+            "README.md",
+            "scripts/README.md",
+            "REPOSITORY_INDEX.md",
         ]
         forbidden = [
             "semantic revision/hash",
@@ -41,6 +44,8 @@ class PhaseCSemanticIdentitySurfaceClosureTests(unittest.TestCase):
             "approved_semantic_revision and approved_semantic_hash to match",
             "批准当前 `semantic_revision` 与 `semantic_hash`",
             "Human Model Approval（绑定 current semantic revision/hash）",
+            "challenge/approval 与当前 revision/hash 完全一致",
+            "current semantic revision/hash",
         ]
         for relative in paths:
             text = (ROOT / relative).read_text(encoding="utf-8")
