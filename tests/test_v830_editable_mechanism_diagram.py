@@ -420,13 +420,13 @@ class ContractAndDriftTests(unittest.TestCase):
         "modules/05_writing/ai_cleanup.md": "f6d2d5d6d70972ca09ff00975aa85e8044daa366",
         "modules/06_review_delivery.md": "c74f57dea33496ca35e8585d0d4d08981022ed69",
         "config/competition_profiles.yaml": "fcddec42a30ad4d4bc760dc8322cc13a998a6ebd",
-        "scripts/validate_semantic_governance.py": "64d7a07c0d0eabf254c7b6f0a22d05c581559431",
+        "scripts/validate_semantic_governance.py": "41e5bc5112c61ae31420a6d447fe352f9f3728a9",
         "scripts/validate_submission_package.py": "47bd01db5f45dd8c902418be62f494419a03c676",
         "templates/matlab/q1_plot.m": "b9e67798051b1a130d2df11bca20e3976de0a6c2",
         "templates/matlab/draw_mechanism_structure.m": "65ba4a3b3462a565f86880c49af0959edd21f9a4",
         "templates/figure/chart_selection.md": "ba293a44f3ce4e0162c22e224ba33fd0ec94c048",
         "templates/figure/figure_enhancement_patterns.md": "d2fb8bc7b1d61556b9453682c4102b0e08ea246a",
-        "scripts/validate_code_delivery.py": "d7b2593a72d6ab4f9a297e46f77f1922c405c128",
+        "scripts/validate_code_delivery.py": "5d7af7a22f0226c841d823e06a44f1a2a2ba9715",
     }
 
     def test_protected_authorities_have_not_drifted(self):

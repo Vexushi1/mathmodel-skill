@@ -83,6 +83,31 @@ class TestAuthoritySingleSource(unittest.TestCase):
         self.assertIn("modules/03_solve_validate.md", primary["modules"])
         self.assertEqual([g["name"] for g in primary["pre_delivery_gates"]], ["semantic_governance", "model_approval", "code_delivery"])
 
+    def test_state_transition_authority_is_single_and_declarative(self):
+        bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
+        self.assertEqual(
+            bootstrap["authoritative_sources"]["state_transitions"],
+            "core/state_transition_contract.yaml",
+        )
+        self.assertEqual(
+            self.manifest["contracts"]["state_transition"],
+            "core/state_transition_contract.yaml",
+        )
+        governance = (ROOT / "SKILL_CHANGE_GOVERNANCE.md").read_text(encoding="utf-8")
+        self.assertIn("| 项目状态转换、stale 传播与依赖失效 | `core/state_transition_contract.yaml` |", governance)
+        assurance = yaml.safe_load((ROOT / "core/runtime_assurance_contract.yaml").read_text(encoding="utf-8"))
+        dependencies = assurance["contract_dependency_closure"]["contract_dependencies"]
+        for gate in ("gate:semantic_governance", "gate:code_delivery", "gate:project_sync"):
+            self.assertIn("state_transition", dependencies[gate], gate)
+        for relative in (
+            "scripts/validate_semantic_governance.py",
+            "scripts/sync_project.py",
+            "scripts/validate_code_delivery.py",
+        ):
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            self.assertNotIn("PRIMARY_STALE_LAYERS =", text)
+            self.assertNotIn("ANALYSIS_STALE_LAYERS =", text)
+
     def test_full_workflow_resumes_analysis_then_submission_from_router_segments(self):
         all_artifacts = set(self.manifest["artifact_catalog"])
         analysis_pending = all_artifacts - {"accepted_result_analysis_workbook", "result_analysis_workbook", "validated_results"}

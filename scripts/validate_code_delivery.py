@@ -5,12 +5,20 @@ from __future__ import annotations
 import argparse
 import ast
 import hashlib
+import sys
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
+SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
+import state_transitions as STATE_TRANSITIONS  # noqa: E402
+STATE_TRANSITION_CONTRACT = yaml.safe_load(
+    (SKILL_ROOT / "core" / "state_transition_contract.yaml").read_text(encoding="utf-8")
+) or {}
 QUALITY_CONTRACT = SKILL_ROOT / "core" / "code_quality_contract.yaml"
 FALSE_FLAGS = (
     "allow_reduced_data", "allow_coarser_grid", "allow_shorter_horizon",
@@ -25,15 +33,6 @@ REQUIRED_FIELDS = {
 }
 PRIMARY_QUALITY_PROTOCOL_VERSION = "1.0.0"
 PRIMARY_REQUIRED_FIELDS = {"primary_quality_protocol_version"}
-ANALYSIS_STALE_LAYERS = {
-    "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
-}
-PRIMARY_STALE_LAYERS = {
-    "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
-}
-ALL_RESULT_STALE_LAYERS = {
-    "data", "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
-}
 VALID_PREPROCESSING_DECISIONS = {"not_needed", "question_local", "project_level"}
 DATA_READER_NAMES = {
     "open", "ExcelFile", "read_csv", "read_excel", "read_table", "read_fwf",
@@ -391,7 +390,7 @@ def _question_key(problem: str) -> str:
     return f"Q{order.index(suffix) + 1}" if suffix in order else problem
 
 
-def update_state(project_root: Path, config: dict[str, Any], script: Path) -> None:
+def update_state(project_root: Path, config: dict[str, Any], script: Path) -> list[dict[str, Any]]:
     state_path = project_root / "state" / "project_state.yaml"
     if not state_path.is_file():
         return
@@ -400,6 +399,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path) -> No
     stage = str(config["stage"])
     new_hash = sha256(script)
     relative = script.relative_to(project_root).as_posix()
+    transition_reports: list[dict[str, Any]] = []
 
     if stage == "preprocessing":
         preprocessing = state.setdefault("preprocessing", {})
@@ -417,16 +417,31 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path) -> No
         if old_hash and old_hash != new_hash:
             preprocessing["workbook"] = ""
             preprocessing["workbook_sha256"] = ""
-            for entry in (state.get("subproblems") or {}).values():
+            for key, entry in (state.get("subproblems") or {}).items():
                 if not isinstance(entry, dict):
                     continue
-                entry["result_quality_status"] = "pending"
-                entry["result_analysis_status"] = "pending"
-                entry["result_summary_status"] = "stale"
-                entry["artifacts_stale"] = True
-                entry["stale_layers"] = sorted(set(entry.get("stale_layers", [])) | ALL_RESULT_STALE_LAYERS)
+                local = STATE_TRANSITIONS.apply_local_event(
+                    entry, "data_changed", STATE_TRANSITION_CONTRACT
+                )
+                transition_reports.append({
+                    "event": "data_changed",
+                    "source": "project.preprocessing",
+                    "affected_questions": [str(key)],
+                    "dependency_cycles": [],
+                    "transitions": [{
+                        "question": str(key),
+                        "scope": "own",
+                        "source": "project.preprocessing",
+                        "dependency_kind": "data",
+                        "profile": local["profile"],
+                        "stale_layers": local["stale_layers"],
+                        "status_updates": local["status_updates"],
+                        "emitted_impacts": local["emitted_impacts"],
+                        "reason": "project-level preprocessing code changed",
+                    }],
+                })
         state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
-        return
+        return transition_reports
 
     key = _question_key(problem)
     entry = state.setdefault("subproblems", {}).setdefault(key, {})
@@ -445,29 +460,37 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path) -> No
         if not unchanged_accepted:
             entry["primary_execution_status"] = "awaiting_user_execution"
         if old_hash and old_hash != new_hash:
+            transition_reports.append(
+                STATE_TRANSITIONS.apply_transition(
+                    state,
+                    event="primary_code_changed",
+                    source_question=key,
+                    contract=STATE_TRANSITION_CONTRACT,
+                )
+            )
             entry["status"] = "designed"
-            entry["result_quality_status"] = "pending"
-            entry["result_analysis_status"] = "pending"
-            entry["analysis_execution_status"] = "pending"
-            entry["result_summary_status"] = "stale"
-            entry["artifacts_stale"] = True
-            entry["stale_layers"] = sorted(set(entry.get("stale_layers", [])) | PRIMARY_STALE_LAYERS)
+            entry["primary_execution_status"] = "awaiting_user_execution"
     else:
         if entry.get("primary_execution_status") != "accepted":
             raise ValueError("主工作簿未accepted，禁止交付最终结果深化分析脚本")
         old_hash = entry.get("analysis_code_sha256")
         entry["result_analysis_code"] = relative
         entry["analysis_code_sha256"] = new_hash
-        entry["analysis_execution_status"] = "awaiting_user_execution"
         if old_hash != new_hash:
+            transition_reports.append(
+                STATE_TRANSITIONS.apply_transition(
+                    state,
+                    event="analysis_code_changed",
+                    source_question=key,
+                    contract=STATE_TRANSITION_CONTRACT,
+                )
+            )
             entry["status"] = "solved"
-            entry["result_analysis_status"] = "pending"
-            entry["result_summary_status"] = "stale"
-            entry["artifacts_stale"] = True
-            entry["stale_layers"] = sorted(set(entry.get("stale_layers", [])) | ANALYSIS_STALE_LAYERS)
             state.setdefault("project", {})["current_phase"] = "result_analysis"
+        entry["analysis_execution_status"] = "awaiting_user_execution"
 
     state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    return transition_reports
 
 
 def discover_scripts(root: Path) -> list[Path]:
@@ -496,6 +519,7 @@ def main() -> int:
     warnings: list[str] = []
     metrics: dict[str, Any] = {}
     checked: list[str] = []
+    transition_reports: list[dict[str, Any]] = []
     for script in scripts:
         item_issues, config = validate_script(root, script, args.stage)
         issues.extend(f"{script.name}: {item}" for item in item_issues)
@@ -507,7 +531,7 @@ def main() -> int:
         checked.append(script.relative_to(root).as_posix())
         if args.write and not item_issues:
             try:
-                update_state(root, config, script)
+                transition_reports.extend(update_state(root, config, script))
             except ValueError as exc:
                 issues.append(f"{script.name}: {exc}")
 
@@ -517,6 +541,7 @@ def main() -> int:
         "issues": issues,
         "warnings": warnings,
         "code_quality_metrics": metrics,
+        "state_transitions": transition_reports,
         "task_code_executed": False,
         "report_persisted": False,
     }

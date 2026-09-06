@@ -11,6 +11,7 @@ authoritative_sources:
   artifact_graph: core/module_manifest.yaml
   task_taxonomy: core/task_taxonomy.yaml
   project_state: core/project_state.schema.yaml
+  state_transitions: core/state_transition_contract.yaml
   workbook: core/workbook_schema.yaml
   output: core/output_contract.yaml
   preprocessing: core/global_preprocessing_contract.yaml

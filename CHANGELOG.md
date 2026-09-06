@@ -16,6 +16,13 @@
 - Preserved read-only access to old projects without a SIB, but re-entry into model design, project-level preprocessing, primary solve, or regenerated primary code requires a complete current SIB, semantic validation, renewed Model Challenge and explicit Human Approval; legacy prose is never auto-promoted to a verified SIB.
 - Added Phase C regression/migration coverage, updated the protected Model Approval Authority baseline only for the approved contract change, and retained the v8.7.4 release carriers. State-transition unification, typed dependency propagation, artifact-identity renaming, transactional writes, competition-runtime de-hardcoding and other later v9 phases remain out of scope.
 
+### Unreleased v9.0.0 staged refactor — Phase D
+
+- Added `core/state_transition_contract.yaml` as the single Authority for stale-layer transitions, lifecycle status invalidation, typed cross-question propagation, legacy-untyped fallback and deterministic cycle reporting.
+- Added the pure `scripts/state_transitions.py` engine and routed semantic governance, project sync and code-delivery state invalidation through it; the three entrypoints no longer maintain private primary/analysis stale-layer sets.
+- `depends_on.kind` now changes propagation behavior: model dependencies invalidate downstream semantic approval, while result/parameter/data dependencies invalidate only the execution/evidence layers appropriate to their declared type; legacy untyped dependencies remain conservative.
+- Added deterministic transition evidence, cycle/idempotence regression coverage and Authority-closure tests. Phase E artifact naming and Phase F transactional writes remain intentionally out of scope, and the release carriers remain 8.7.4 until the staged v9.0.0 program completes.
+
 ## Previous release: 8.7.3
 
 - Restored formal mechanism/derivation diagrams to a **monochrome-first** visual grammar: white background, black/dark-gray outlines and text, grayscale de-emphasis, and structure conveyed primarily through geometry, line style, line weight, boundary and spacing rather than semantic blue/green/red fills.
