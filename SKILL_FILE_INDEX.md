@@ -8,7 +8,6 @@
 - `.gitattributes`
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
-- `.github/workflows/phase-c-surface-hotfix-once.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
 - `AGENTS.md`
@@ -116,9 +115,6 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
-- `scripts/_phase_c_surface_hotfix_delta3_once.py`
-- `scripts/_phase_c_surface_hotfix_delta_once.py`
-- `scripts/_phase_c_surface_hotfix_once.py`
 - `scripts/audit_latex_project.py`
 - `scripts/audit_paper_prose.py`
 - `scripts/audit_v8_writing_surface.py`
@@ -326,3 +322,4 @@
 - `tests/test_v900_semantic_governance.py`
 - `tests/test_v900_semantic_identity.py`
 - `tests/test_v900_semantic_identity_binding.py`
+- `tests/test_v900_semantic_identity_surface_closure.py`

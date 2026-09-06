@@ -414,7 +414,7 @@ class ContractAndDriftTests(unittest.TestCase):
         "core/workbook_schema.yaml": "2422bbfa8cb3fad3b5b04c12de21c954ec8b3723",
         "core/project_state.schema.yaml": "dc5854a58e005c8f72690d5de6599bf2bba49264",
         "core/writing_reasoning_contract.yaml": "04ae1a4745d3614c7c01ab97e2f9fbe028b262e1",
-        "modules/03_solve_validate.md": "f49480d96e6a491255010868e409b2d64d620f5e",
+        "modules/03_solve_validate.md": "8817f50af1610fe89d05321e9c9a4d148a34a301",
         "modules/03_result_analysis.md": "f43d21dc99d71e6b19baeec7af66cbf334da13a7",
         "modules/05_writing/paper_writing_protocol.md": "be7f0b7232677fd565502465f657014ab28128c2",
         "modules/05_writing/ai_cleanup.md": "f6d2d5d6d70972ca09ff00975aa85e8044daa366",

@@ -1,6 +1,6 @@
 # mathmodel-skill v8.7.4
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision/hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision / semantic_identity_hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
 
 ## v8.7.4：Active Authority / Read-Path Hygiene
 
@@ -205,7 +205,7 @@ Paragraph Necessity 与 AI Cleanup 不再把“没有新增公式或数值”当
 - 新增默认入口 `scripts/resolve_runtime.py`，旧 `scripts/resolve_workflow.py` 保留为兼容 resolver；Bootstrap 只指向新的 assured runtime。
 - 可选 `--project-root` / `--question` 从 current `state/project_state.yaml` 恢复 competition、preprocessing decision、单问 classification 与 verified artifact availability，显式 CLI/API 参数优先且冲突进入 assurance diagnostics。
 - intent 推断现在记录 matched keywords、deterministic score、confidence band、ambiguity 与 selection reason，不再只返回不可解释的 route 名称。
-- project-state artifact assurance 对 locked model 使用 challenge/approval 与 semantic revision/hash 绑定，对工作簿使用 accepted status + 路径 + SHA-256 闭环；已知 stale/hash mismatch 不能被 legacy name-only artifact 声明静默覆盖。
+- project-state artifact assurance 对 locked model 使用 challenge/approval 与 semantic revision / structured identity 绑定，对工作簿使用 accepted status + 路径 + SHA-256 闭环；已知 stale/hash mismatch 不能被 legacy name-only artifact 声明静默覆盖。
 - 新增 `core/runtime_assurance_contract.yaml`，声明 selected modules/gates 所需 contract dependencies；runtime 自动补齐缺失 contract，Router 的显式 core loads 只作为兼容提示而不是正确性前提。
 - resolver 输出保留全部旧顶层字段，并增量增加 `runtime_plan` 与 `assurance`，其中 authority fingerprint 绑定 Bootstrap、Router、Manifest 与 Runtime Assurance Contract。
 
@@ -230,7 +230,7 @@ Paragraph Necessity 与 AI Cleanup 不再把“没有新增公式或数值”当
 本版本在 Problem Contract、Semantic Closure 与 Complexity Sanity 之后增加两层正式锁模治理，不改变数值模型接口、Workbook Schema、Python/MATLAB 职责、用户 full-fidelity 执行、LaTeX attestation v3、submission provenance 或每问五文件合同。
 
 - Module 02 在 `locked_model_spec` 前新增 `proposed_model_spec`，并执行相互独立的 Model Reviewer 与 Devil's Advocate 两次挑战审查；blocking 不能由用户批准绕过。
-- Challenge passed 后生成 Model Approval Brief，并停在 `awaiting_model_approval`；只有用户明确批准当前 `semantic_revision/hash` 后，`locked_model_spec` 才成为 current。
+- Challenge passed 后生成 Model Approval Brief，并停在 `awaiting_model_approval`；只有用户明确批准当前 `semantic_revision / semantic_identity_hash` 后，`locked_model_spec` 才成为 current。
 - 新增 `core/model_approval_contract.yaml` 与 `scripts/validate_model_approval.py`；项目级预处理和主求解代码交付前必须验证 challenge/approval 与当前 revision/hash 完全一致。
 - 语义 revision/hash 变化会使旧 challenge、approval 与 locked model stale；纯排版、措辞、caption、公式编号或不改变语义的 LaTeX 文件拆分不触发重新审批。
 - 旧项目保持只读兼容；只有重新进入模型设计、项目级预处理、主求解或语义变化后的重算时才迁入新 approval gate。
@@ -445,7 +445,7 @@ proposed_model_spec
 → Model Reviewer + Devil's Advocate
 → Model Approval Brief
 → awaiting_model_approval
-→ explicit approval(current semantic revision/hash)
+→ explicit approval(current semantic revision / structured identity)
 → locked_model_spec
 → preprocessing_decision 对应执行路径
 ```
@@ -522,7 +522,7 @@ route-specific contracts / modules / packs / templates
 
 主要合同：
 
-- `core/model_approval_contract.yaml`：独立 Model Challenge、Model Approval Brief、Human Model Approval 与 current revision/hash 绑定；
+- `core/model_approval_contract.yaml`：独立 Model Challenge、Model Approval Brief、Human Model Approval 与 current semantic revision / validated structured identity 绑定；
 - `core/global_preprocessing_contract.yaml`：条件式数据预处理；
 - `core/numerical_verification_contract.yaml`：主求解数值有效性、PQS 映射与 strict Verification ID 证据复核；
 - `core/code_quality_contract.yaml`：Python 工程质量；

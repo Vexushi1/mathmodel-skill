@@ -31,11 +31,11 @@
 
 - 普通单问继续：读取“当前有效口径”+对应 Q 区+必要依赖/结果摘要；
 - 参数、约束、模型、预处理或算法口径修改：先读当前相关段落，再修改并同步受影响内容；
-- Model Challenge/Human Approval 阶段：读取 current proposed model、semantic revision/hash、challenge 结论与 Approval Brief；用户只批准与当前 revision/hash 完全一致的模型语义；
+- Model Challenge/Human Approval 阶段：读取 current proposed model、semantic revision、validated structured identity、challenge 结论与 Approval Brief；用户只批准与当前 validated `semantic_identity_hash` 完全一致的模型语义；legacy hash 仅作只读 provenance；
 - 结果验收/深化分析/绘图完成：把 current 结果摘要与证据位置写回框架；
 - 进入算法流程写作时：读取目标问的算法呈现状态和关联 Algorithm Trace；`stepwise/pseudocode` 再按需加载 `packs/artifact/algorithm_flow.md`；
 - 新聊天接续、长上下文恢复、整篇论文写作和终审：读取完整 current 框架；
-- 具体数值必须再核对标准工作簿；semantic revision、hash、challenge/approval 和 stale 以 `state/project_state.yaml` 为准；
+- 具体数值必须再核对标准工作簿；semantic revision、structured identity/text provenance、challenge/approval 和 stale 以 `state/project_state.yaml` 为准；
 - 通用写作规则不写入框架，统一读取 writing Authority。
 
 框架 stale 或与工作簿/状态冲突时，不得把聊天记忆当作仲裁依据，应回到对应上游阶段修正。
@@ -56,7 +56,7 @@ problem_audit
 → Model Challenge passed
 → Model Approval Brief
 → awaiting_model_approval
-→ 用户明确批准当前 semantic revision/hash
+→ 用户明确批准当前 semantic_revision + validated semantic_identity_hash
 → locked_model_spec
 → 按 preprocessing_decision 分流
    ├─ not_needed     ───────────────────────────────┐
@@ -83,7 +83,7 @@ problem_audit
 → validated_submission_package
 ```
 
-Problem Contract 冻结、Semantic Closure 通过和 Complexity Sanity 通过都不能单独授权项目级预处理或主求解代码。只有 Model Challenge passed 且 Human Model Approval 绑定当前 `semantic_revision/hash` 后，`locked_model_spec` 才成为 current；语义 revision/hash 漂移会使旧 challenge、approval 与 locked model stale，并在重新进入主求解前要求重新 challenge + approval。
+Problem Contract 冻结、Semantic Closure 通过和 Complexity Sanity 通过都不能单独授权项目级预处理或主求解代码。只有 Model Challenge passed 且 Human Model Approval 绑定当前 `semantic_revision` 与 validated `semantic_identity_hash`，并满足 current = validated = approved identity 后，`locked_model_spec` 才成为 current；legacy hash 仅为只读 provenance。semantic revision 或 structured identity 漂移会使旧 challenge、approval 与 locked model stale，并在重新进入主求解前要求重新 challenge + approval。
 
 `data_preprocessing` 是条件阶段，不因“多问共享数据”自动启用。`not_needed` 直接使用原始数据；`question_local` 仅允许相关小问 Python 执行当前数学层已经定义的局部变换；只有 `project_level` 才在主求解前暂停，等待统一预处理工作簿通过质量门。
 
@@ -146,6 +146,6 @@ python scripts/resolve_runtime.py algorithm_presentation \
   --preprocessing-decision not_needed
 ```
 
-解析结果返回 `module_terminal_outputs`、`pre_delivery_gates` 和 `terminal_outputs`。正式交付必须把 resolver 返回的 `pre_delivery_gates` 视为完整且有序的执行序列，不在入口文档维护第二套固定列表。`semantic_governance` 负责当前题意口径、语义闭环、复杂度复审和跨问 stale；`model_approval` 在当前代码阶段被返回时验证 Challenge/Human Approval 与 current semantic revision/hash；`project_sync` 按 exact scope 检查产物、工作簿、图表链和哈希且不自动提升质量状态；`submission_package_validation` 在返回时负责最终 submission manifest、归档内容与绑定哈希验证。
+解析结果返回 `module_terminal_outputs`、`pre_delivery_gates` 和 `terminal_outputs`。正式交付必须把 resolver 返回的 `pre_delivery_gates` 视为完整且有序的执行序列，不在入口文档维护第二套固定列表。`semantic_governance` 负责当前题意口径、语义闭环、复杂度复审和跨问 stale；`model_approval` 在当前代码阶段被返回时验证 Challenge/Human Approval 与 current `semantic_revision` / validated `semantic_identity_hash`；legacy hash 仅保留只读 provenance；`project_sync` 按 exact scope 检查产物、工作簿、图表链和哈希且不自动提升质量状态；`submission_package_validation` 在返回时负责最终 submission manifest、归档内容与绑定哈希验证。
 
 赛题 Python 的执行权、full-fidelity 配置和禁止降采样/粗网格/短时域/少重复/宽容差/静默 solver fallback 等规则，以 `core/user_execution_contract.yaml` 为唯一事实源。
