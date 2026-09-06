@@ -8,6 +8,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 
 
+# Final-tree CI attestation marker; no runtime or contract semantics.
 class PhaseCSemanticIdentitySurfaceClosureTests(unittest.TestCase):
     def test_manifest_model_approval_declares_structured_current_binding(self):
         manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
