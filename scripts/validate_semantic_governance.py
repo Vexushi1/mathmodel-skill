@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 from typing import Any, Mapping
 
 import yaml
 
-from semantic_identity import (
+SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
+
+from semantic_identity import (  # noqa: E402
     SemanticIdentityError,
     inspect_question_semantics,
     question_sections as _question_sections,
