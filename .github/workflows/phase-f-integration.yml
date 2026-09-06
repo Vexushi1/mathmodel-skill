@@ -27,10 +27,11 @@ jobs:
       - name: Install test dependencies
         run: python -m pip install -r requirements-dev.txt
       - name: Apply Phase F writer integration
-        run: python scripts/_phase_f_apply.py
+        run: python scripts/_phase_f_apply_wrapper.py
       - name: Remove one-shot integration files
         run: |
           rm scripts/_phase_f_apply.py
+          rm scripts/_phase_f_apply_wrapper.py
           rm .github/workflows/phase-f-integration.yml
       - name: Rebuild generated metadata
         run: python scripts/generate_indexes.py
