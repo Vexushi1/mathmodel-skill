@@ -363,6 +363,7 @@ $$
 |  |  |  |  |  | pending | pending / not_applicable |
 
 **求解与验证方案**
+
 - Solver（主求解算法/分解求解结构）：
 - Solver 首次使用的本题适配理由：
 - Solver preconditions：`required property → current evidence → local/global scope → invocation`：
