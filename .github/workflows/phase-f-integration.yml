@@ -1,0 +1,22 @@
+name: Phase F transactional project writes integration
+
+on:
+  push:
+    branches:
+      - phase-f/transactional-project-writes
+  workflow_dispatch:
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Run transaction primitive tests
+        run: python -m unittest tests.test_v900_project_transaction
+      - name: Reject whitespace errors
+        run: git diff --check HEAD^ HEAD
