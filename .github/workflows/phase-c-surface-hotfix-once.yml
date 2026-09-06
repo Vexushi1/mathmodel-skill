@@ -24,8 +24,9 @@ jobs:
         run: |
           python scripts/_phase_c_surface_hotfix_once.py
           python scripts/_phase_c_surface_hotfix_delta_once.py
+          python scripts/_phase_c_surface_hotfix_delta3_once.py
       - name: Remove temporary helpers
-        run: git rm scripts/_phase_c_surface_hotfix_once.py scripts/_phase_c_surface_hotfix_delta_once.py .github/workflows/phase-c-surface-hotfix-once.yml
+        run: git rm scripts/_phase_c_surface_hotfix_once.py scripts/_phase_c_surface_hotfix_delta_once.py scripts/_phase_c_surface_hotfix_delta3_once.py .github/workflows/phase-c-surface-hotfix-once.yml
       - name: Refresh generated metadata
         run: python scripts/generate_indexes.py
       - name: Run focused acceptance
