@@ -30,12 +30,14 @@ jobs:
         run: python scripts/_phase_d_apply.py
       - name: Repair approval-preservation characterization fixture
         run: python scripts/_phase_d_fix_fixture.py
+      - name: Migrate active skill lint to shared transition Authority
+        run: python scripts/_phase_d_fix_lint.py
       - name: Run full unit test suite
         run: python -m unittest discover -s tests -p "test_*.py"
+      - name: Rebuild generated metadata before lint
+        run: python scripts/generate_indexes.py
       - name: Run active-skill lint
         run: python scripts/lint_skill.py
-      - name: Rebuild generated metadata
-        run: python scripts/generate_indexes.py
       - name: Verify generated metadata
         run: python scripts/generate_indexes.py --check
       - name: Reject whitespace errors
@@ -44,11 +46,13 @@ jobs:
         run: |
           rm scripts/_phase_d_apply.py
           rm scripts/_phase_d_fix_fixture.py
+          rm scripts/_phase_d_fix_lint.py
           rm .github/workflows/phase-d-apply.yml
-      - name: Rebuild metadata after helper removal
+      - name: Rebuild and revalidate final metadata
         run: |
           python scripts/generate_indexes.py
           python scripts/generate_indexes.py --check
+          python scripts/lint_skill.py
           git diff --check
       - name: Commit final Phase D integration
         run: |
