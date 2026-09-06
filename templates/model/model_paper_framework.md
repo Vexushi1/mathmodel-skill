@@ -2,7 +2,7 @@
 
 > 本文件只保留**当前有效项目事实、选择、状态与证据位置**。历史由 Git 保存。
 > 通用写作规则不在这里重复：推理与证据治理见 `core/writing_reasoning_contract.yaml`，正文结构与表达见 `modules/05_writing/paper_writing_protocol.md`，LaTeX 载体接口见 `modules/05_writing/latex.md`。
-> 具体数值必须回到已验收标准工作簿复核；semantic revision、hash 与 stale 以 `state/project_state.yaml` 为准。
+> 具体数值必须回到已验收标准工作簿复核；semantic revision、semantic identity/text provenance 与 stale 以 `state/project_state.yaml` 为准。
 
 - 项目：`__PROJECT__`
 - 竞赛与题号：`__COMPETITION_AND_PROBLEM__`
@@ -229,7 +229,10 @@
 - Model Challenge：`pending / passed / revision_required / stale`
 - Human Model Approval：`pending / approved / revision_required / stale`
 - Approved semantic revision：
-- Approved semantic hash：
+- Semantic identity schema version：`pending / 1.0.0`
+- Semantic identity status：`pending / current / stale`
+- Approved semantic identity hash：
+- Legacy approved semantic hash（只读兼容）：
 - semantic revision：`1`
 - semantic change categories：`initial_design / problem_definition / data_scope / variable / parameter / assumption / objective / constraint / preprocessing / algorithm / dependency`
 - 核心模型收束：`required / inline / not_applicable`
@@ -248,6 +251,8 @@
 - 关联 Paper Fragment：
 
 #### 当前模型口径
+
+<!-- SIB SLOT：进入当前模型的正式 Semantic Identity Block 槽位。模型设计阶段必须先完整填充并通过 `scripts/semantic_identity.py` 校验，再把完整 SIB 写入此处；模板本身不得放置带占位符或半成品 marker 的 live SIB。旧项目只读时可暂时没有 SIB，但重新进入 model_design / data_preprocessing / solve_validate 或重新生成主代码前必须完成迁移。 -->
 
 **题意口径（Problem Contract）**
 
@@ -573,6 +578,7 @@ $$
 - [ ] 影响结论的数值参数有作用说明、候选范围/来源、精度/收敛/验证证据和选择规则；
 - [ ] 复杂度异常信号已经解释；
 - [ ] semantic revision 与 stale 传播正确；
+- [ ] 需要进入新预处理/主求解代码交付的小问均已有完整 current Semantic Identity Block，`semantic_identity_hash = validated_semantic_identity_hash = approved_semantic_identity_hash`；legacy hash 只保留历史只读兼容；
 - [ ] Paper Fragment Dependency Map 只传播真实依赖，未把无关章节机械 stale；模块化 LaTeX 项目中的 current/stale fragment 已记录可追踪的源码文件；
 - [ ] 已求解小问均有 current 结果摘要，具体数值已回工作簿复核；
 - [ ] Headline Claim Evidence Level / Scope 与摘要和正文措辞一致；

@@ -169,11 +169,13 @@ class TestV712RuntimeAssurance(unittest.TestCase):
         self.assertEqual(plan["preprocessing_decision"], "not_needed")
         self.assertEqual(plan["classification"]["objective"], "optimization")
         self.assertIn("packs/task/optimization.md", plan["packs"])
-        self.assertFalse(plan["pause_for_model_approval"])
-        self.assertEqual(plan["pause_state"], "awaiting_user_execution")
+        self.assertTrue(plan["pause_for_model_approval"])
+        self.assertEqual(plan["pause_state"], "awaiting_model_approval")
+        self.assertIn("modules/02_model_design.md", plan["modules"])
+        self.assertNotIn("modules/03_solve_validate.md", plan["modules"])
         assurance = plan["assurance"]
         self.assertTrue(assurance["context"]["project_state_loaded"])
-        self.assertIn(
+        self.assertNotIn(
             "locked_model_spec",
             assurance["artifact_assurance"]["effective_artifacts"],
         )
@@ -182,7 +184,7 @@ class TestV712RuntimeAssurance(unittest.TestCase):
             for item in assurance["artifact_assurance"]["evidence"]
             if item["artifact"] == "locked_model_spec"
         )
-        self.assertEqual(row["status"], "verified")
+        self.assertEqual(row["status"], "legacy_review_required")
         self.assertEqual(row["source"], "framework+project_state")
         self.assertEqual(row["path"], "模型论文框架.md")
         self.assertEqual(row["expected_sha256"], semantic_hash())
@@ -264,7 +266,9 @@ class TestV712RuntimeAssurance(unittest.TestCase):
             "accepted_solution_workbook",
             assurance["artifact_assurance"]["effective_artifacts"],
         )
-        self.assertIn("modules/03_solve_validate.md", plan["modules"])
+        self.assertIn("modules/02_model_design.md", plan["modules"])
+        self.assertNotIn("modules/03_solve_validate.md", plan["modules"])
+        self.assertEqual(plan["pause_state"], "awaiting_model_approval")
 
     def test_artifact_path_outside_project_root_is_never_verified(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -300,7 +304,9 @@ class TestV712RuntimeAssurance(unittest.TestCase):
             "accepted_solution_workbook",
             plan["assurance"]["artifact_assurance"]["effective_artifacts"],
         )
-        self.assertIn("modules/03_solve_validate.md", plan["modules"])
+        self.assertIn("modules/02_model_design.md", plan["modules"])
+        self.assertNotIn("modules/03_solve_validate.md", plan["modules"])
+        self.assertEqual(plan["pause_state"], "awaiting_model_approval")
 
 
 if __name__ == "__main__":

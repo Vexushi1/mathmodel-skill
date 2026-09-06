@@ -137,7 +137,7 @@ class TestV900RefactorCharacterization(unittest.TestCase):
             )
 
         self.assertNotIn("locked_model_spec", hydrated["verified_artifacts"])
-        self.assertEqual(row["status"], "hash_mismatch")
+        self.assertEqual(row["status"], "stale")
         self.assertEqual(row["source"], "framework+project_state")
         self.assertEqual(row["path"], "模型论文框架.md")
         self.assertEqual(row["expected_sha256"], state_hash)

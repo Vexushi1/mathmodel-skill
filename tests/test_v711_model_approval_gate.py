@@ -69,7 +69,7 @@ class ModelApprovalValidatorTests(unittest.TestCase):
             yaml.safe_dump({"subproblems": {"Q1": subproblem}}, temp, allow_unicode=True, sort_keys=False)
         return Path(temp.name)
 
-    def test_approved_matching_revision_and_hash_passes(self):
+    def test_approved_matching_legacy_revision_and_hash_is_read_only_compatible(self):
         path = self.write_state({
             "model_challenge_status": "passed",
             "human_model_approval_status": "approved",
@@ -79,7 +79,12 @@ class ModelApprovalValidatorTests(unittest.TestCase):
             "approved_semantic_hash": self.hash_value,
         })
         try:
-            self.assertEqual(self.validator.validate_state(path, ["Q1"]), [])
+            errors = self.validator.validate_state(path, ["Q1"])
+            self.assertTrue(any("read-only compatibility" in item for item in errors))
+            self.assertEqual(
+                self.validator.validate_state(path, ["Q1"], allow_legacy_read_only=True),
+                [],
+            )
         finally:
             path.unlink(missing_ok=True)
 

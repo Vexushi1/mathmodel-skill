@@ -1,4 +1,4 @@
-version: 1.0.0
+version: 1.1.0
 status: active
 purpose: >-
   Define the pre-code Model Challenge and explicit Human Model Approval gate.
@@ -8,6 +8,7 @@ authority:
   model_semantics: 模型论文框架.md
   machine_state: state/project_state.yaml
   semantic_change_detection: scripts/validate_semantic_governance.py
+  semantic_identity_implementation: scripts/semantic_identity.py
   approval_validation: scripts/validate_model_approval.py
 
 scope:
@@ -98,13 +99,37 @@ human_approval:
   - rejected_route_reason
   - residual_warnings
   - next_stage_implementation_scope
+  identity_mode_selection:
+    principle: structured_identity_preferred_legacy_only_when_absent
+    structured_when: any semantic_identity_* field is present for the current question
+    legacy_when: no semantic_identity_* field is present for the current question
+    no_partial_fallback: true
   binding:
     semantic_revision: required
-    semantic_hash: required
+    structured_identity:
+      semantic_identity_schema_version: required
+      semantic_identity_hash: required
+      validated_semantic_identity_hash_must_equal_current: true
+      approved_semantic_identity_hash_must_equal_current: true
+    legacy_compatibility:
+      semantic_hash: historical_read_only
+      approved_semantic_hash: historical_read_only
+      allowed_only_when_structured_identity_absent: true
+      pre_code_gate_must_require_sib_migration: true
   approved_state_fields:
-  - human_model_approval_status
-  - approved_semantic_revision
-  - approved_semantic_hash
+    common:
+    - human_model_approval_status
+    - approved_semantic_revision
+    structured:
+    - approved_semantic_identity_hash
+    legacy_read_only:
+    - approved_semantic_hash
+  approval_write_rule: >-
+    Explicit approval copies the current structured semantic_identity_hash into
+    approved_semantic_identity_hash when structured identity is present. After the
+    Phase C migration boundary, pre-code approval must not newly write or refresh
+    legacy approved_semantic_hash. Migration or validation code must never synthesize
+    human approval.
 
 lock_semantics:
   before_approval: proposed_model_spec
@@ -112,7 +137,9 @@ lock_semantics:
   rule: >-
     selected_models and semantic closure do not by themselves create a locked_model_spec.
     locked_model_spec is current only after Model Challenge passes and the user explicitly
-    approves the current semantic revision/hash.
+    approves the current semantic revision and current structured semantic identity.
+    Legacy semantic_hash approval remains readable historical provenance but cannot
+    authorize new preprocessing or primary-solve code after Phase C migration applies.
 
 stale_policy:
   semantic_change_categories:
@@ -126,7 +153,7 @@ stale_policy:
   - preprocessing
   - algorithm
   - dependency
-  on_semantic_revision_or_hash_change:
+  on_semantic_revision_or_identity_change:
     model_challenge_status: stale
     human_model_approval_status: stale
     locked_model_spec: stale
@@ -140,6 +167,7 @@ stale_policy:
 persistence:
   framework:
     stores:
+    - current_semantic_identity_block_when_available
     - current_reviewer_verdict
     - current_devils_advocate_verdict
     - required_actions
@@ -152,7 +180,8 @@ persistence:
     - model_challenge_status
     - human_model_approval_status
     - approved_semantic_revision
-    - approved_semantic_hash
+    - approved_semantic_identity_hash_for_structured_identity
+    - approved_semantic_hash_for_legacy_read_only_compatibility
   forbidden_new_project_reports:
   - HUMAN_MODEL_REVIEW.md
   - MODEL_REVIEW_AI.md
@@ -160,8 +189,14 @@ persistence:
 
 compatibility:
   old_projects_without_fields: read_only_compatible
+  dual_read_rule: >-
+    Questions with no semantic_identity_* fields may still be read and audited through
+    their v8 semantic_hash provenance. Presence of any structured identity field disables
+    legacy fallback for that question so partial or stale structured state fails closed.
   migration_trigger: >-
     When an old project re-enters model_design, data_preprocessing, solve_validate,
-    or regenerates primary code after a semantic change, establish the current
-    challenge/approval state before code generation.
+    or regenerates primary code after a semantic change, establish a complete current
+    SIB, pass semantic governance to create the validated identity baseline, rerun the
+    required Model Challenge, and obtain explicit Human Approval of the current identity
+    before code generation. Do not infer a verified SIB automatically from old prose.
   historical_results_do_not_require_retroactive_approval_for_read_only_review: true

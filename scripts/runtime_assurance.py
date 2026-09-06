@@ -8,9 +8,21 @@ from typing import Any, Iterable
 
 import yaml
 
-from validate_semantic_governance import _question_sections, _semantic_scope, sha256_text
+from semantic_identity import (
+    SEMANTIC_IDENTITY_SCHEMA_VERSION,
+    SemanticIdentityError,
+    inspect_question_semantics,
+    question_sections,
+)
 
 FRAMEWORK_RELATIVE_PATH = "模型论文框架.md"
+STRUCTURED_IDENTITY_FIELDS = {
+    "semantic_identity_schema_version",
+    "semantic_identity_hash",
+    "validated_semantic_identity_hash",
+    "approved_semantic_identity_hash",
+    "semantic_text_hash",
+}
 
 
 def _unique(items: Iterable[str | None]) -> list[str]:
@@ -143,54 +155,145 @@ def _classification_for_scope(
     }, []
 
 
-def _framework_semantic_hashes(framework_path: Path) -> tuple[dict[str, str], str | None]:
-    """Return current legacy semantic-scope hashes from the framework without inventing a second parser."""
+def _framework_semantic_evidence(
+    framework_path: Path,
+) -> tuple[dict[str, dict[str, Any]], str | None]:
+    """Parse current per-question semantic evidence using the shared canonical implementation."""
     if not framework_path.is_file():
         return {}, "current model framework is missing"
     text = framework_path.read_text(encoding="utf-8")
-    hashes: dict[str, str] = {}
-    for question, section in _question_sections(text).items():
-        scope = _semantic_scope(section)
-        if scope is not None:
-            hashes[question] = sha256_text(scope)
-    return hashes, None
+    rows: dict[str, dict[str, Any]] = {}
+    for question, section in question_sections(text).items():
+        try:
+            rows[question] = inspect_question_semantics(section, question)
+        except SemanticIdentityError as exc:
+            rows[question] = {
+                "mode": "malformed",
+                "error": str(exc),
+                "semantic_text_hash": None,
+                "semantic_identity_hash": None,
+                "semantic_identity_schema_version": None,
+            }
+    return rows, None
+
+
+def _uses_structured_identity(item: dict[str, Any]) -> bool:
+    return any(name in item for name in STRUCTURED_IDENTITY_FIELDS)
+
+
+def _is_sha256(value: object) -> bool:
+    if not isinstance(value, str) or len(value) != 64:
+        return False
+    return all(character in "0123456789abcdefABCDEF" for character in value)
 
 
 def _semantic_lock_evidence(
     question: str,
     item: dict[str, Any],
     *,
-    current_semantic_hash: str | None,
+    current_semantics: dict[str, Any] | None,
     framework_error: str | None,
 ) -> dict[str, Any]:
     revision = item.get("semantic_revision")
-    semantic_hash = item.get("semantic_hash")
     approved_revision = item.get("approved_semantic_revision")
-    approved_hash = item.get("approved_semantic_hash")
-    state_binding_ok = (
+    approval_current = (
         item.get("model_challenge_status") == "passed"
         and item.get("human_model_approval_status") == "approved"
-        and revision is not None
-        and semantic_hash
+        and isinstance(revision, int)
+        and revision >= 1
         and approved_revision == revision
-        and approved_hash == semantic_hash
     )
+    structured_state = _uses_structured_identity(item)
 
-    if not state_binding_ok:
-        status = "stale_or_unapproved"
-        reason = "challenge/approval is missing, stale, or not bound to the current semantic revision/hash"
-    elif framework_error:
+    if structured_state:
+        identity_mode = "semantic_identity_v1"
+        schema_version = item.get("semantic_identity_schema_version")
+        current_hash = item.get("semantic_identity_hash")
+        validated_hash = item.get("validated_semantic_identity_hash")
+        approved_hash = item.get("approved_semantic_identity_hash")
+        structured_state_complete = (
+            schema_version == SEMANTIC_IDENTITY_SCHEMA_VERSION
+            and _is_sha256(current_hash)
+            and _is_sha256(validated_hash)
+            and _is_sha256(approved_hash)
+        )
+        state_identity_current = (
+            structured_state_complete
+            and validated_hash == current_hash
+            and approved_hash == current_hash
+        )
+        expected_hash = approved_hash if _is_sha256(approved_hash) else None
+    else:
+        identity_mode = "legacy_text_hash"
+        schema_version = None
+        current_hash = item.get("semantic_hash")
+        approved_hash = item.get("approved_semantic_hash")
+        structured_state_complete = False
+        state_identity_current = _is_sha256(current_hash) and _is_sha256(approved_hash) and approved_hash == current_hash
+        expected_hash = approved_hash if _is_sha256(approved_hash) else None
+
+    actual_hash: str | None = None
+    framework_mode: str | None = None
+    framework_schema_version: str | None = None
+    if current_semantics:
+        framework_mode = str(current_semantics.get("mode") or "")
+        if framework_mode == "semantic_identity_v1":
+            value = current_semantics.get("semantic_identity_hash")
+            framework_schema_version = current_semantics.get("semantic_identity_schema_version")
+        elif framework_mode == "legacy_text_hash":
+            value = current_semantics.get("semantic_text_hash")
+        else:
+            value = None
+        actual_hash = value if isinstance(value, str) else None
+
+    if framework_error:
         status = "missing"
         reason = framework_error
-    elif current_semantic_hash is None:
-        status = "semantic_scope_missing"
+    elif current_semantics is None:
+        status = "malformed"
         reason = f"current framework has no semantic scope for {question}"
-    elif current_semantic_hash != semantic_hash:
-        status = "hash_mismatch"
-        reason = "current framework semantic hash does not match the approved project-state semantic hash"
+    elif framework_mode == "malformed":
+        status = "malformed"
+        reason = str(current_semantics.get("error") or "current semantic evidence is malformed")
+    elif structured_state:
+        if not approval_current:
+            status = "unapproved"
+            reason = "Model Challenge/Human Approval or semantic revision binding is not current"
+        elif not structured_state_complete:
+            status = "malformed"
+            reason = "structured semantic identity state is partial, invalid, or uses an unsupported schema version"
+        elif not state_identity_current:
+            status = "stale"
+            reason = "current, validated and approved semantic identity hashes are not identical"
+        elif framework_mode != "semantic_identity_v1":
+            status = "malformed"
+            reason = "project state uses structured semantic identity but current framework has no valid SIB"
+        elif framework_schema_version != schema_version:
+            status = "malformed"
+            reason = "current framework SIB schema version does not match project-state identity schema version"
+        elif actual_hash != current_hash:
+            status = "stale"
+            reason = "current framework semantic identity does not match project-state semantic identity"
+        else:
+            status = "verified"
+            reason = "current framework SIB, current state, validated state and explicit approval share one semantic identity"
     else:
-        status = "verified"
-        reason = "challenge and explicit approval bind to the semantic hash recomputed from the current framework"
+        if framework_mode == "semantic_identity_v1":
+            status = "legacy_review_required"
+            reason = "current framework has a SIB but project state has not established structured validation and approval binding"
+            schema_version = framework_schema_version
+        elif not approval_current:
+            status = "unapproved"
+            reason = "legacy approval provenance is missing or not current; a current SIB must be established before new task-code delivery"
+        elif not state_identity_current:
+            status = "stale"
+            reason = "legacy semantic_hash approval provenance is internally stale or malformed"
+        elif actual_hash != current_hash:
+            status = "stale"
+            reason = "current framework legacy semantic hash does not match project-state provenance"
+        else:
+            status = "legacy_review_required"
+            reason = "legacy semantic_hash provenance matches the current framework but is read-only compatibility; migrate to a validated and explicitly approved SIB before new task-code delivery"
 
     return {
         "artifact": "locked_model_spec",
@@ -199,8 +302,10 @@ def _semantic_lock_evidence(
         "status": status,
         "reason": reason,
         "path": FRAMEWORK_RELATIVE_PATH,
-        "expected_sha256": semantic_hash,
-        "actual_sha256": current_semantic_hash,
+        "expected_sha256": expected_hash,
+        "actual_sha256": actual_hash,
+        "identity_mode": identity_mode,
+        "identity_schema_version": schema_version,
     }
 
 
@@ -298,12 +403,12 @@ def hydrate_project_context(project_root: str | Path, question: str | None = Non
     verified: set[str] = set()
 
     framework_path = root / FRAMEWORK_RELATIVE_PATH
-    semantic_hashes, framework_error = _framework_semantic_hashes(framework_path)
+    semantic_evidence, framework_error = _framework_semantic_evidence(framework_path)
     semantic_rows = [
         _semantic_lock_evidence(
             q,
             (state.get("subproblems", {}) or {}).get(q, {}) or {},
-            current_semantic_hash=semantic_hashes.get(q),
+            current_semantics=semantic_evidence.get(q),
             framework_error=framework_error,
         )
         for q in questions

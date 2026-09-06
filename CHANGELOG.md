@@ -7,6 +7,14 @@
 - Clarified MATLAB figure guidance so the high-contrast scientific palette applies to data-driven result figures only; formal mechanism/derivation figures continue to use the Module 04 monochrome-first visual grammar.
 - Added focused active-authority hygiene regression coverage while preserving model mathematics, Model Approval, 03A/03B, Workbook/Project State schemas, CLI, project layout, legacy/V622 read compatibility, and the v8.7.3 mechanism rendering behavior.
 
+### Unreleased v9.0.0 staged refactor — Phase C
+
+- Bound the current per-question Semantic Identity Block (SIB) to Model Approval and Runtime Assurance while keeping `模型论文框架.md` the model-semantics source and reusing the shared `scripts/semantic_identity.py` parser/canonicalizer instead of introducing a second identity implementation.
+- Human Model Approval now binds the current `semantic_revision` and structured `semantic_identity_hash`; partial structured state fails closed, while legacy `semantic_hash / approved_semantic_hash` remain historical read-only compatibility only.
+- Runtime Assurance now recomputes the current framework SIB and promotes `locked_model_spec=verified` only when current, validated and approved identity hashes match and the current challenge/approval/revision binding is valid; stale, unapproved, malformed and legacy-review-required evidence is not promoted.
+- Preserved read-only access to old projects without a SIB, but re-entry into model design, project-level preprocessing, primary solve, or regenerated primary code requires a complete current SIB, semantic validation, renewed Model Challenge and explicit Human Approval; legacy prose is never auto-promoted to a verified SIB.
+- Added Phase C regression/migration coverage, updated the protected Model Approval Authority baseline only for the approved contract change, and retained the v8.7.4 release carriers. State-transition unification, typed dependency propagation, artifact-identity renaming, transactional writes, competition-runtime de-hardcoding and other later v9 phases remain out of scope.
+
 ## Previous release: 8.7.3
 
 - Restored formal mechanism/derivation diagrams to a **monochrome-first** visual grammar: white background, black/dark-gray outlines and text, grayscale de-emphasis, and structure conveyed primarily through geometry, line style, line weight, boundary and spacing rather than semantic blue/green/red fills.
