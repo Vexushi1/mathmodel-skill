@@ -24,6 +24,24 @@ jobs:
           cache: pip
       - name: Install test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
+      - name: Fix full-workflow golden invocation
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("scripts/_phase_g_migrate.py")
+          text = path.read_text(encoding="utf-8")
+          old = '        plan = runtime.resolve_runtime(intent, competition="CUMCM")\n'
+          new = '        kwargs = {"primary": "mechanism"} if intent == "full_workflow" else {}\n        plan = runtime.resolve_runtime(intent, competition="CUMCM", **kwargs)\n'
+          if text.count(old) != 1:
+              raise SystemExit(f"golden capture anchor mismatch: {text.count(old)}")
+          text = text.replace(old, new, 1)
+          old_test = '                actual = self.runtime.resolve_runtime(intent, competition="CUMCM")\\n'
+          new_test = '                kwargs = {"primary": "mechanism"} if intent == "full_workflow" else {}\\n                actual = self.runtime.resolve_runtime(intent, competition="CUMCM", **kwargs)\\n'
+          if text.count(old_test) != 1:
+              raise SystemExit(f"permanent test anchor mismatch: {text.count(old_test)}")
+          path.write_text(text.replace(old_test, new_test, 1), encoding="utf-8")
+          PY
       - name: Apply deterministic Phase G migration
         run: python scripts/_phase_g_migrate.py
       - name: Run focused Phase G regression
