@@ -130,6 +130,7 @@
 - `scripts/resolve_workflow.py`
 - `scripts/runtime_assurance.py`
 - `scripts/score_submission.py`
+- `scripts/semantic_identity.py`
 - `scripts/sync_project.py`
 - `scripts/validate_code_delivery.py`
 - `scripts/validate_drawio_figure.py`
