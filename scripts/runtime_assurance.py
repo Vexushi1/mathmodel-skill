@@ -8,9 +8,21 @@ from typing import Any, Iterable
 
 import yaml
 
-from validate_semantic_governance import _question_sections, _semantic_scope, sha256_text
+from semantic_identity import (
+    SEMANTIC_IDENTITY_SCHEMA_VERSION,
+    SemanticIdentityError,
+    inspect_question_semantics,
+    question_sections,
+)
 
 FRAMEWORK_RELATIVE_PATH = "模型论文框架.md"
+STRUCTURED_IDENTITY_FIELDS = {
+    "semantic_identity_schema_version",
+    "semantic_identity_hash",
+    "validated_semantic_identity_hash",
+    "approved_semantic_identity_hash",
+    "semantic_text_hash",
+}
 
 
 def _unique(items: Iterable[str | None]) -> list[str]:
@@ -143,54 +155,124 @@ def _classification_for_scope(
     }, []
 
 
-def _framework_semantic_hashes(framework_path: Path) -> tuple[dict[str, str], str | None]:
-    """Return current legacy semantic-scope hashes from the framework without inventing a second parser."""
+def _framework_semantic_evidence(
+    framework_path: Path,
+) -> tuple[dict[str, dict[str, Any]], str | None]:
+    """Parse current per-question semantic evidence using the shared canonical implementation."""
     if not framework_path.is_file():
         return {}, "current model framework is missing"
     text = framework_path.read_text(encoding="utf-8")
-    hashes: dict[str, str] = {}
-    for question, section in _question_sections(text).items():
-        scope = _semantic_scope(section)
-        if scope is not None:
-            hashes[question] = sha256_text(scope)
-    return hashes, None
+    rows: dict[str, dict[str, Any]] = {}
+    for question, section in question_sections(text).items():
+        try:
+            rows[question] = inspect_question_semantics(section, question)
+        except SemanticIdentityError as exc:
+            rows[question] = {
+                "mode": "malformed",
+                "error": str(exc),
+                "semantic_text_hash": None,
+                "semantic_identity_hash": None,
+                "semantic_identity_schema_version": None,
+            }
+    return rows, None
+
+
+def _uses_structured_identity(item: dict[str, Any]) -> bool:
+    return any(name in item for name in STRUCTURED_IDENTITY_FIELDS)
 
 
 def _semantic_lock_evidence(
     question: str,
     item: dict[str, Any],
     *,
-    current_semantic_hash: str | None,
+    current_semantics: dict[str, Any] | None,
     framework_error: str | None,
 ) -> dict[str, Any]:
     revision = item.get("semantic_revision")
-    semantic_hash = item.get("semantic_hash")
     approved_revision = item.get("approved_semantic_revision")
-    approved_hash = item.get("approved_semantic_hash")
-    state_binding_ok = (
+    common_binding_ok = (
         item.get("model_challenge_status") == "passed"
         and item.get("human_model_approval_status") == "approved"
-        and revision is not None
-        and semantic_hash
+        and isinstance(revision, int)
+        and revision >= 1
         and approved_revision == revision
-        and approved_hash == semantic_hash
     )
+    structured_state = _uses_structured_identity(item)
+
+    if structured_state:
+        identity_mode = "semantic_identity_v1"
+        schema_version = item.get("semantic_identity_schema_version")
+        current_hash = item.get("semantic_identity_hash")
+        validated_hash = item.get("validated_semantic_identity_hash")
+        approved_hash = item.get("approved_semantic_identity_hash")
+        state_binding_ok = (
+            common_binding_ok
+            and schema_version == SEMANTIC_IDENTITY_SCHEMA_VERSION
+            and isinstance(current_hash, str)
+            and bool(current_hash)
+            and validated_hash == current_hash
+            and approved_hash == current_hash
+        )
+        expected_hash = approved_hash if isinstance(approved_hash, str) else current_hash
+    else:
+        identity_mode = "legacy_text_hash"
+        schema_version = None
+        current_hash = item.get("semantic_hash")
+        approved_hash = item.get("approved_semantic_hash")
+        state_binding_ok = (
+            common_binding_ok
+            and isinstance(current_hash, str)
+            and bool(current_hash)
+            and approved_hash == current_hash
+        )
+        expected_hash = approved_hash if isinstance(approved_hash, str) else current_hash
+
+    actual_hash: str | None = None
+    if current_semantics:
+        if structured_state:
+            value = current_semantics.get("semantic_identity_hash")
+        else:
+            value = current_semantics.get("semantic_text_hash")
+        actual_hash = value if isinstance(value, str) else None
 
     if not state_binding_ok:
         status = "stale_or_unapproved"
-        reason = "challenge/approval is missing, stale, or not bound to the current semantic revision/hash"
+        reason = (
+            "challenge/approval or semantic validation is missing, stale, or not bound "
+            "to the current semantic revision/identity"
+        )
     elif framework_error:
         status = "missing"
         reason = framework_error
-    elif current_semantic_hash is None:
+    elif current_semantics is None:
         status = "semantic_scope_missing"
         reason = f"current framework has no semantic scope for {question}"
-    elif current_semantic_hash != semantic_hash:
+    elif current_semantics.get("mode") == "malformed":
+        status = "malformed"
+        reason = str(current_semantics.get("error") or "current semantic evidence is malformed")
+    elif structured_state and current_semantics.get("mode") != "semantic_identity_v1":
+        status = "identity_mode_mismatch"
+        reason = "project state uses structured semantic identity but current framework has no valid SIB"
+    elif not structured_state and current_semantics.get("mode") != "legacy_text_hash":
+        status = "identity_mode_mismatch"
+        reason = "current framework uses SIB but project state has not established structured approval binding"
+    elif structured_state and current_semantics.get("semantic_identity_schema_version") != schema_version:
+        status = "identity_mode_mismatch"
+        reason = "current framework SIB schema version does not match project-state identity schema version"
+    elif actual_hash != current_hash:
         status = "hash_mismatch"
-        reason = "current framework semantic hash does not match the approved project-state semantic hash"
+        reason = (
+            "current framework semantic identity does not match project-state semantic identity"
+            if structured_state
+            else "current framework semantic hash does not match the approved project-state semantic hash"
+        )
     else:
         status = "verified"
-        reason = "challenge and explicit approval bind to the semantic hash recomputed from the current framework"
+        reason = (
+            "current framework SIB, current state, validated state and explicit approval share one semantic identity"
+            if structured_state
+            else "challenge and explicit approval bind to the legacy semantic hash recomputed from the current framework"
+        )
 
     return {
         "artifact": "locked_model_spec",
@@ -199,8 +281,10 @@ def _semantic_lock_evidence(
         "status": status,
         "reason": reason,
         "path": FRAMEWORK_RELATIVE_PATH,
-        "expected_sha256": semantic_hash,
-        "actual_sha256": current_semantic_hash,
+        "expected_sha256": expected_hash,
+        "actual_sha256": actual_hash,
+        "identity_mode": identity_mode,
+        "identity_schema_version": schema_version,
     }
 
 
@@ -298,12 +382,12 @@ def hydrate_project_context(project_root: str | Path, question: str | None = Non
     verified: set[str] = set()
 
     framework_path = root / FRAMEWORK_RELATIVE_PATH
-    semantic_hashes, framework_error = _framework_semantic_hashes(framework_path)
+    semantic_evidence, framework_error = _framework_semantic_evidence(framework_path)
     semantic_rows = [
         _semantic_lock_evidence(
             q,
             (state.get("subproblems", {}) or {}).get(q, {}) or {},
-            current_semantic_hash=semantic_hashes.get(q),
+            current_semantics=semantic_evidence.get(q),
             framework_error=framework_error,
         )
         for q in questions
