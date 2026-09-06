@@ -35,6 +35,15 @@ if text.count(old) != 1:
 helper.write_text(text.replace(old, new, 1), encoding="utf-8")
 runpy.run_path(str(helper), run_name="__main__")
 
+# Normalize the audit record so staged git diff --check remains strict.
+inventory = ROOT / "docs/phase_e_artifact_identity_inventory.md"
+text = inventory.read_text(encoding="utf-8")
+old = "Baseline: `main@5ec9974bfcf87075d509da9fcced69541013877d`  \n"
+new = "Baseline: `main@5ec9974bfcf87075d509da9fcced69541013877d`\n"
+if text.count(old) != 1:
+    raise RuntimeError(f"Phase E inventory whitespace anchor count={text.count(old)}")
+inventory.write_text(text.replace(old, new, 1), encoding="utf-8")
+
 # The second v7.11 assertion has class-level indentation and is patched separately.
 target = ROOT / "tests/test_v711_model_approval_gate.py"
 text = target.read_text(encoding="utf-8")
