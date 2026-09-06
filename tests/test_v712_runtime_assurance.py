@@ -9,6 +9,26 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 
+SEMANTIC_SCOPE = """#### 当前模型口径
+**题意口径合同（Problem Contract）**
+- 原始对象：A
+- 目标：min f(x)
+"""
+FRAMEWORK = f"""# 模型论文框架
+## 当前有效口径
+## 各问模型与结果
+### Q1：第一问
+{SEMANTIC_SCOPE}#### 结果摘要
+待求解。
+## 图表证据链
+## 待办与缺口
+"""
+
+
+def semantic_hash() -> str:
+    normalized = SEMANTIC_SCOPE.replace("\r\n", "\n").replace("\r", "\n").strip() + "\n"
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
 
 def load_runtime():
     scripts = str(ROOT / "scripts")
@@ -35,9 +55,10 @@ class TestV712RuntimeAssurance(unittest.TestCase):
             yaml.safe_dump(state, allow_unicode=True, sort_keys=False),
             encoding="utf-8",
         )
+        (root / "模型论文框架.md").write_text(FRAMEWORK, encoding="utf-8")
 
     def _base_state(self) -> dict:
-        semantic_hash = "a" * 64
+        current_semantic_hash = semantic_hash()
         return {
             "project": {
                 "competition": "CUMCM",
@@ -66,9 +87,9 @@ class TestV712RuntimeAssurance(unittest.TestCase):
                     "model_challenge_status": "passed",
                     "human_model_approval_status": "approved",
                     "semantic_revision": 3,
-                    "semantic_hash": semantic_hash,
+                    "semantic_hash": current_semantic_hash,
                     "approved_semantic_revision": 3,
-                    "approved_semantic_hash": semantic_hash,
+                    "approved_semantic_hash": current_semantic_hash,
                     "primary_execution_status": "pending",
                     "analysis_execution_status": "pending",
                     "result_quality_status": "pending",
@@ -153,6 +174,36 @@ class TestV712RuntimeAssurance(unittest.TestCase):
         assurance = plan["assurance"]
         self.assertTrue(assurance["context"]["project_state_loaded"])
         self.assertIn(
+            "locked_model_spec",
+            assurance["artifact_assurance"]["effective_artifacts"],
+        )
+        row = next(
+            item
+            for item in assurance["artifact_assurance"]["evidence"]
+            if item["artifact"] == "locked_model_spec"
+        )
+        self.assertEqual(row["status"], "verified")
+        self.assertEqual(row["source"], "framework+project_state")
+        self.assertEqual(row["path"], "模型论文框架.md")
+        self.assertEqual(row["expected_sha256"], semantic_hash())
+        self.assertEqual(row["actual_sha256"], semantic_hash())
+
+    def test_missing_current_framework_never_verifies_locked_model(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_state(root, self._base_state())
+            (root / "模型论文框架.md").unlink()
+            plan = self.runtime.resolve_runtime(
+                "full_solution", project_root=root, question="Q1"
+            )
+        assurance = plan["assurance"]
+        row = next(
+            item
+            for item in assurance["artifact_assurance"]["evidence"]
+            if item["artifact"] == "locked_model_spec"
+        )
+        self.assertEqual(row["status"], "missing")
+        self.assertNotIn(
             "locked_model_spec",
             assurance["artifact_assurance"]["effective_artifacts"],
         )
