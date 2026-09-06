@@ -465,36 +465,39 @@ Devil's Advocate 是反方挑战，至少检查：
 
 用户必须明确批准当前模型。自然语言如“OK，就按这个模型求解”“这个框架可以，进入主求解”“Q1-Q3 全部冻结”可视为批准；“我看看”“继续说”“还有别的方案吗”“这个模型怎么样”以及用户沉默不得推断为批准。
 
-批准时在 machine state 中绑定：
+批准时在 machine state 中绑定当前结构化语义身份：
 
 ```text
 human_model_approval_status = approved
 approved_semantic_revision = current semantic_revision
-approved_semantic_hash = current semantic_hash
+approved_semantic_identity_hash = current semantic_identity_hash
 ```
+
+这里的 `semantic_identity_hash` 必须来自当前 `模型论文框架.md` 中完整、可解析且已通过 `scripts/semantic_identity.py` canonicalization 的 SIB，并先由 semantic governance 建立 `validated_semantic_identity_hash`。legacy `semantic_hash / approved_semantic_hash` 只保留旧项目历史只读 provenance；旧项目重新进入 `model_design / data_preprocessing / solve_validate` 或重新生成主代码前，必须先建立 current SIB、重新完成必要的 Challenge 与 Human Approval。**不得根据旧 prose 自动推断完整 SIB 并声称 verified。**
 
 语义关系严格区分：
 
 ```text
 selected_models
 → proposed_model_spec
+→ current validated SIB
 → Model Challenge passed
 → awaiting_model_approval
 → explicit Human Model Approval
 → locked_model_spec
 ```
 
-因此 `locked_model_spec` 只能在 challenge passed 且用户明确批准当前 `semantic_revision/hash` 后成为 current。未批准时，本模块必须停在 `awaiting_model_approval`，不得交付正式预处理代码或主求解代码。
+因此 `locked_model_spec` 只能在 challenge passed 且用户明确批准当前 `semantic_revision / semantic_identity_hash` 后成为 current。未批准或仍只有 legacy approval provenance 时，本模块必须停在 `awaiting_model_approval`，不得交付正式预处理代码或主求解代码。
 
 ## 8. 模型语义修订、审批失效与跨问传播
 
-`模型论文框架.md` 只保存当前有效模型，不作为第二份变更日志。Git 保存历史；`state/project_state.yaml` 记录当前语义修订号、变更类别、依赖、哈希、challenge/approval 状态和 stale。
+`模型论文框架.md` 只保存当前有效模型，不作为第二份变更日志。Git 保存历史；`state/project_state.yaml` 记录当前语义修订号、变更类别、依赖、structured identity/text provenance、challenge/approval 状态和 stale。
 
 题意解释、数据范围、变量、参数、假设、目标、约束、预处理、算法语义或小问依赖变化时递增 `semantic_revision`。对 4.8 适用的问题，精确判据、事件拓扑、候选域/缩域依据、组合算子、solver 条件分支或 original-model 回算语义发生实质变化时，应归入现有最贴近的 `constraint / assumption / algorithm / dependency / objective` 等变更类别，而不是为 v7.17 新造 Project State 枚举。
 
-当前 `semantic_revision` 或 `semantic_hash` 改变时，旧 `model_challenge_status`、`human_model_approval_status` 与 `locked_model_spec` 同时变 stale；必须重新完成必要的语义闭环、Complexity Sanity、Model Challenge 和 Human Approval。Markdown 排版、纯措辞、图注、公式编号、小节标题压缩或不改变语义的 LaTeX 文件拆分不触发重新审批。
+当前 `semantic_revision` 或 structured `semantic_identity_hash` 改变时，旧 `model_challenge_status`、`human_model_approval_status` 与 `locked_model_spec` 同时变 stale；必须重新完成必要的语义闭环、Complexity Sanity、Model Challenge 和 Human Approval。Markdown 排版、纯措辞、图注、公式编号、小节标题压缩或不改变 SIB identity 的 LaTeX 文件拆分只更新 text provenance，不触发重新审批。无 SIB 的 legacy `semantic_hash` 仅用于迁移期只读兼容。
 
-若已验收语义哈希变化，`scripts/validate_semantic_governance.py` 先将本问及依赖后问相关产物标记 stale。旧结果在重新求解和验收前保持 stale。代码前再由 `scripts/validate_model_approval.py` 核验 challenge/approval 与当前 revision/hash 的绑定关系。
+若已验收 structured identity 变化，`scripts/validate_semantic_governance.py` 先将本问及依赖后问相关产物标记 stale。旧结果在重新求解和验收前保持 stale。代码前再由 `scripts/validate_model_approval.py` 核验 challenge/approval 与当前 revision/identity 的绑定关系。
 
 ## 9. 命题与证明规划
 
@@ -514,9 +517,9 @@ selected_models
 
 ## 10. `模型论文框架.md`
 
-`proposed_model_spec` 形成后即可按 `templates/model/model_paper_framework.md` 建立或更新项目根目录 `模型论文框架.md`，用于承载当前模型口径、Model Challenge 和 Approval Brief；用户批准后再把当前模型状态提升为 `locked_model_spec`。框架不是批准本身，批准事实以 machine state 中绑定的当前 revision/hash 为准。
+`proposed_model_spec` 形成后即可按 `templates/model/model_paper_framework.md` 建立或更新项目根目录 `模型论文框架.md`，用于承载当前模型口径、Semantic Identity Block、Model Challenge 和 Approval Brief；用户批准后再把当前模型状态提升为 `locked_model_spec`。框架不是批准本身，批准事实以 machine state 中绑定的当前 revision/identity 为准。SIB 仍内嵌在 framework 中，不建立第二份模型真相；解析与 canonicalization 只复用 `scripts/semantic_identity.py`，本模块不得复制另一套 parser/canonical 规则。
 
-它只承担**项目级长期工作记忆**：当前题意口径、数据、变量、标准模型类型与正式模型名称、**Model Construction Rationale 与 applicability boundary**、Model/Solver/Validator 角色、Formula Trace、Algorithm Trace、参数证据、Primary Quality Specification、accepted 后候选深化风险、跨问依赖、Model Challenge、Human Approval 当前状态、写作选择、小节颗粒度与标题规划、命题、Citation Evidence、逐问结果摘要与 claim evidence level/scope、图表映射；对适用问题额外保存当前精确判据/事件结构、缩域 evidence level、组合语义、solver applicability 结论和 surrogate→original 回算口径。通用写作规则不得复制进去。
+它只承担**项目级长期工作记忆**：当前题意口径、当前 SIB、数据、变量、标准模型类型与正式模型名称、**Model Construction Rationale 与 applicability boundary**、Model/Solver/Validator 角色、Formula Trace、Algorithm Trace、参数证据、Primary Quality Specification、accepted 后候选深化风险、跨问依赖、Model Challenge、Human Approval 当前状态、写作选择、小节颗粒度与标题规划、命题、Citation Evidence、逐问结果摘要与 claim evidence level/scope、图表映射；对适用问题额外保存当前精确判据/事件结构、缩域 evidence level、组合语义、solver applicability 结论和 surrogate→original 回算口径。通用写作规则不得复制进去。
 
 框架支持：
 
@@ -534,6 +537,7 @@ selected_models
 写入规则：
 
 - 只保留当前有效口径和项目选择；
+- 进入 structured identity 路径时，先完整填充当前问 SIB 并通过共享 parser/canonicalizer 校验，再原子写入 framework；不得把带 placeholder 或半成品 marker 的 live SIB 当作当前身份；
 - 口径变化时替换受影响内容，不堆“旧方案—新方案”历史；
 - Model Reviewer/Devil's Advocate 只保存当前 verdict、required actions 与 residual warnings，不保存长篇历史对话；
 - 设计阶段结果摘要为 pending，不填未求解数字；
@@ -548,7 +552,7 @@ selected_models
 - 通用命题、证明、语言、排版规则不写入框架；
 - 正式交付前通过语义治理、Model Approval 验证和框架验证。
 
-事实源边界：模型语义与论文组织以框架为准；修订、依赖、哈希、Challenge/Approval 状态与 stale 以项目状态为准；数值以标准工作簿为准。
+事实源边界：模型语义与论文组织仍以 framework 为准，其中 SIB 只提供稳定机器身份；修订、依赖、identity/text provenance、Challenge/Approval 状态与 stale 以项目状态为准；数值以标准工作簿为准。
 
 ## 11. 机理图合同
 
@@ -559,7 +563,7 @@ selected_models
 进入项目级预处理或主求解前分两层闭合：
 
 1. **设计完整性**：Problem Contract 已冻结；数据口径、三轴分类、标准模型类型与正式模型名称、变量/目标/约束、**重要 Model Construction Rationale 与 applicability conditions**、Model/Solver/Validator 角色、`preprocessing_decision`、语义闭环、核心 Formula Trace、必要 Algorithm Trace、关键数值建模参数证据计划、Primary Quality Specification、Complexity Sanity、当前 semantic revision、命题必要性与 Citation Evidence 计划均达到本模块要求；对适用问题，4.8 的精确判据、事件结构、缩域 evidence level、组合语义、solver applicability 与 original-model reevaluation 也已进入现有闭环或明确 `not_applicable`；
-2. **审批完整性**：调用 `scripts/validate_model_approval.py` 检查 current Challenge/Approval。审批状态、用户显式批准、revision/hash 绑定、blocking/review_required 处置及 stale 规则只由 `core/model_approval_contract.yaml` 定义，本模块不再复制字段级判定表。
+2. **审批完整性**：调用 `scripts/validate_model_approval.py` 检查 current Challenge/Approval。审批状态、用户显式批准、revision/identity 绑定、blocking/review_required 处置及 stale 规则只由 `core/model_approval_contract.yaml` 定义，本模块不再复制字段级判定表。
 
 若设计完整性已经满足但 Model Approval gate 尚未通过，形成 `proposed_model_spec`、Model Approval Brief、`awaiting_model_approval` 与 current 框架后停止；不得把“用户未反对”解释为 approval。Gate 通过后才形成 current `locked_model_spec`。若 `preprocessing_decision=project_level`，下一阶段进入 Module 03P；否则直接进入主求解。
 
