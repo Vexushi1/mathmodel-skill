@@ -67,6 +67,7 @@
 - `docs/phase_f_transaction_writer_inventory.md`
 - `docs/phase_i_compatibility_inventory.md`
 - `docs/phase_i_compatibility_removal_readiness.md`
+- `docs/phase_i_legacy_writer_retirement_readiness.md`
 - `docs/semantic_state_runtime_refactor_plan.md`
 - `docs/v801_chapter_capability_preservation_audit.md`
 - `docs/v801_skill_health_remediation_plan.md`
@@ -237,6 +238,7 @@
 - `tests/fixtures/phase_g_cumcm_runtime_golden.yaml`
 - `tests/fixtures/v900_phase_h_empty_sync_golden.yaml`
 - `tests/fixtures/v900_phase_i_migration_matrix.yaml`
+- `tests/fixtures/v900_phase_i_writer_retirement_inventory.yaml`
 - `tests/fixtures/writing_capability_preflight_cases.yaml`
 - `tests/fixtures/writing_reasoning_cases.yaml`
 - `tests/fixtures/writing_reasoning_voice_cases.yaml`
@@ -336,6 +338,7 @@
 - `tests/test_v900_phase_g_competition_runtime.py`
 - `tests/test_v900_phase_h_sync_split.py`
 - `tests/test_v900_phase_i_migration_matrix.py`
+- `tests/test_v900_phase_i_writer_retirement_readiness.py`
 - `tests/test_v900_project_transaction.py`
 - `tests/test_v900_refactor_characterization.py`
 - `tests/test_v900_semantic_governance.py`
