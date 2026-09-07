@@ -252,7 +252,7 @@ class MigrationContractPolicyTests(unittest.TestCase):
         )
         self.assertIn("L0 — Historical read-only legacy project", MIGRATION_CONTRACT)
         self.assertIn("L1 — Legacy project re-entering active modeling / code workflow", MIGRATION_CONTRACT)
-        self.assertIn("initial v9.0.0 不要求", MIGRATION_CONTRACT)
+        self.assertIn("初始 v9.0.0 不要求", MIGRATION_CONTRACT)
         self.assertIn("historical reader 的彻底删除", MIGRATION_CONTRACT)
 
 
