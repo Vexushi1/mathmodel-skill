@@ -65,6 +65,7 @@
 - `docs/main-branch-protection-hardening-plan.md`
 - `docs/phase_e_artifact_identity_inventory.md`
 - `docs/phase_f_transaction_writer_inventory.md`
+- `docs/phase_i_compatibility_removal_readiness.md`
 - `docs/semantic_state_runtime_refactor_plan.md`
 - `docs/v801_chapter_capability_preservation_audit.md`
 - `docs/v801_skill_health_remediation_plan.md`
