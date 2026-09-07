@@ -201,14 +201,16 @@ class PhaseIPlanBindingTests(unittest.TestCase):
         self.assertTrue(gates["all_legacy_writers_stopped"])
         self.assertTrue(gates["user_approved_end_v8_write_compatibility"])
         self.assertTrue(gates["artifact_active_schema_aliases_removed"])
-        self.assertFalse(gates["final_migration_document_complete"])
+        self.assertTrue(gates["final_migration_document_complete"])
+        self.assertTrue(gates["release_carrier_v900_active"])
+        self.assertTrue(gates["i5_release_closure_documented"])
 
-    def test_i1_contract_remains_non_runtime_historical_baseline(self):
+    def test_final_contract_closes_release_without_becoming_runtime_authority(self):
         self.assertIn("runtime_authority: false", MIGRATION_CONTRACT)
-        self.assertIn("destructive_compatibility_removal_authorized: false", MIGRATION_CONTRACT)
-        self.assertIn("不执行项目文件写入", MIGRATION_CONTRACT)
-        self.assertIn("不新增自动迁移 CLI", MIGRATION_CONTRACT)
-        self.assertIn("Skill release carrier 继续为 `8.9.0`", MIGRATION_CONTRACT)
+        self.assertIn("destructive_compatibility_removal_authorized: true", MIGRATION_CONTRACT)
+        self.assertIn("current_skill_version: 9.0.0", MIGRATION_CONTRACT)
+        self.assertIn("phase_i_release_documentation_complete: true", MIGRATION_CONTRACT)
+        self.assertIn("I5 本身不执行真实用户项目的批量迁移", MIGRATION_CONTRACT)
 
 
 class MigrationContractPolicyTests(unittest.TestCase):

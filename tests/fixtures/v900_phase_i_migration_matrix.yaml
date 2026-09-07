@@ -1,8 +1,10 @@
-schema_version: 1.2.0
+schema_version: 1.3.0
 baseline_skill_version: 8.9.0
+current_skill_version: 9.0.0
 baseline_main_commit: e7a5f45fe5bbd96db03b49c6e993b26af10f55ae
 parent_plan: docs/semantic_state_runtime_refactor_plan.md
 migration_contract_document: docs/v900_migration_contract.md
+release_closure_document: docs/phase_i_v9_release_closure.md
 
 cases:
   L0_historical_read_only:
@@ -11,7 +13,6 @@ cases:
     locked_model_promoted: false
     legacy_approval_read_only_allowed: true
     pre_code_authorized: false
-
   L1_legacy_reenter_full_solution:
     identity_mode: legacy_text_hash
     intent: full_solution
@@ -20,7 +21,6 @@ cases:
     required_module: modules/02_model_design.md
     forbidden_module: modules/03_solve_validate.md
     locked_model_promoted: false
-
   L2_structured_current:
     identity_mode: semantic_identity_v1
     runtime_locked_model_status: verified
@@ -40,7 +40,7 @@ artifact_compatibility:
   migration_scope: pre_schema_historical_audit_or_migration_only
 
 migration_contract:
-  status: phase_i_i3b_artifact_state_surface_removal
+  status: phase_i_i5_final_v900_release_closure
   historical_read_only_supported: true
   legacy_reentry_requires_structured_identity: true
   legacy_reentry_requires_explicit_human_approval: true
@@ -69,4 +69,6 @@ phase_i_gates:
   all_legacy_writers_stopped: true
   user_approved_end_v8_write_compatibility: true
   artifact_active_schema_aliases_removed: true
-  final_migration_document_complete: false
+  final_migration_document_complete: true
+  release_carrier_v900_active: true
+  i5_release_closure_documented: true

@@ -44,11 +44,17 @@ class PhaseIV9ApplicabilityTests(unittest.TestCase):
         historical = (
             "docs/v801_skill_health_remediation_plan.md",
             "docs/phase_i_compatibility_removal_readiness.md",
-            "docs/v900_migration_contract.md",
         )
         for relative in historical:
             with self.subTest(relative=relative):
                 self.assertIn("<9.0.0", (ROOT / relative).read_text(encoding="utf-8"))
+
+    def test_i5_migration_contract_is_current_v9_closure_not_pre_i4_history(self):
+        migration = (ROOT / "docs/v900_migration_contract.md").read_text(encoding="utf-8")
+        self.assertIn("status: final_v900_release_contract", migration)
+        self.assertIn("current_skill_version: 9.0.0", migration)
+        self.assertIn("phase_i_release_documentation_complete: true", migration)
+        self.assertNotIn("destructive_compatibility_removal_authorized: false", migration)
 
 
 if __name__ == "__main__":

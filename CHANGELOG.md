@@ -6,7 +6,8 @@
 - Preserved the intentionally narrow initial-v9 historical readers for L0/read-only projects; retired legacy fields and aliases are not restored as active write or authorization surfaces.
 - Kept Project State, State Transition, Resolver, transaction, numerical verification, writing runtime and Model Approval behavior unchanged in this carrier-only transition.
 - Kept historical Phase-I baselines, migration fixtures and implementation records pinned to the v8.9 compatibility window instead of rewriting their provenance.
-- GitHub tag/release creation plus final migration/release documentation closure remain Phase I I5 work.
+- Phase I I5 closes the final migration/release documentation and release-validation record; all six Phase I gates now have explicit satisfied dispositions for repository release `9.0.0`.
+- No GitHub Release/tag object is created by I5 because current repository governance does not require one; active release carriers, Changelog, migration contract and validated `main` history remain the release evidence.
 
 ## Previous release: 8.9.0
 

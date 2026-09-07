@@ -1,274 +1,190 @@
 ---
-status: phase_i_i1_draft_pre_destructive
+status: final_v900_release_contract
 baseline_skill_version: 8.9.0
 baseline_main_commit: c8687dd89d3b90fd288d9d375c0341e2750cf510
+current_skill_version: 9.0.0
+release_main_commit: f6b506212cf466add0e55f175527651a18ae9fe2
 parent_plan: docs/semantic_state_runtime_refactor_plan.md
 inventory: docs/phase_i_compatibility_inventory.md
-candidate_final_version: 9.0.0
+i2_record: docs/phase_i_legacy_writer_retirement.md
+i3a_record: docs/phase_i_artifact_alias_retirement.md
+i3b_record: docs/phase_i_artifact_state_surface_removal.md
+i4a_record: docs/phase_i_v9_applicability_renewal.md
+i4b_record: docs/phase_i_v9_release_carrier_transition.md
+i5_record: docs/phase_i_v9_release_closure.md
 runtime_authority: false
-destructive_compatibility_removal_authorized: false
+destructive_compatibility_removal_authorized: true
+phase_i_release_documentation_complete: true
 ---
 
-# Phase I I1 — v8.9.0 → v9.0.0 Migration Contract
+# v8.9.0 → v9.0.0 Migration Contract — Final Release Contract
 
-> 本文件是 v9 迁移契约草案与验收基线，不是 Runtime Authority。它不能覆盖 `core/project_state.schema.yaml`、`core/model_approval_contract.yaml`、`core/runtime_assurance_contract.yaml`、`core/state_transition_contract.yaml` 或当前脚本行为。真正停止 legacy write、删除 Schema 字段或删除 compatibility reader 时，仍必须在独立 PR 中修改对应 Authority/实现并重新通过完整测试。
+> 本文件是 v9.0.0 的最终迁移与兼容边界说明，不是 Runtime Authority。实际 Project State、Model Approval、Runtime Assurance、State Transition 与脚本行为继续以 `core/` Authority 和活动实现为准。
 
-## 1. 目的与当前边界
+## 1. 最终发布状态
 
-`8.9.0` 已作为稳定 v8.x compatibility checkpoint 合并到 `main`，因此原计划 Phase I Gate 1“至少一个稳定版本已写新字段”已经满足。
+`8.9.0` 是最后一个稳定 v8.x compatibility checkpoint；活动 Skill release carrier 已在 I4b 切换为 `9.0.0`。Phase I I2/I3 已完成被批准的 legacy writer / active implementation alias retirement，I4a 已续期 v9 applicability；I5 只闭合 migration/release documentation 与 release validation，不再扩大 Runtime 行为范围。
 
-I1 的目标不是执行迁移，而是固定 **迁移允许做什么、禁止做什么、何时必须重新 Human Approval、发生冲突时如何 fail closed**。本阶段只更新 docs / fixtures / acceptance tests。
+Phase I 六个 gate 在 I5 均有明确 disposition：
 
-I1 明确不做：
+1. stable v8.x compatibility window：**satisfied** — `8.9.0` 已作为稳定 checkpoint；
+2. migration fixtures：**satisfied** — L0/L1/L2 acceptance matrix 保留并持续回归；
+3. active code no longer writes targeted old fields：**satisfied** — I2 已停止 legacy semantic writes，I3a 已停止 active implementation alias canonicalization；
+4. targeted old fields only remain in intended historical reader/docs：**satisfied** — I3b 已删除 active Schema/Transition implementation aliases，L0 historical reader 明确保留；
+5. explicit user authorization：**satisfied** — I2 implementation record 已保存结束 v8 project write compatibility 的显式授权；
+6. Changelog + migration documentation：**satisfied by I5** — 本合同、I5 closure record、migration matrix 与 current Changelog 共同闭环。
 
-- 不停止无 SIB legacy 项目的 `semantic_hash / validated_semantic_hash` write path；
-- 不删除 `artifact_hashes.model`、`model_hash / validated_model_hash`、legacy stale `model` layer 或任何 Schema property；
-- 不把 legacy `semantic_hash` 复制为 `semantic_identity_hash`；
-- 不把 legacy `approved_semantic_hash` 复制为 `approved_semantic_identity_hash`；
-- 不自动生成、自动验证或自动批准 Semantic Identity Block（SIB）；
-- 不改变 Model Challenge / Human Model Approval 状态；
-- 不修改任何 `<9.0.0` compatibility boundary；
-- 不执行项目文件写入，也不新增自动迁移 CLI；
-- 不把本轮“继续修改”解释为用户已经授权结束 v8 project write compatibility。
-
-## 2. 迁移对象分类
+## 2. 项目分类与 v9 行为
 
 ### L0 — Historical read-only legacy project
 
-特征：
+Framework 无 SIB、仍带 legacy semantic/approval provenance 且只用于历史查看、复核或审计时：
 
-- Framework 无 SIB；
-- legacy semantic hash / approval provenance 存在；
-- 项目只用于查看历史结果、复核或审计。
-
-v9 初始版本目标行为：
-
-- 保留窄的 historical read adapter；
-- legacy approval 仅作为 historical provenance 读取；
-- `locked_model_spec` 不得被提升为 current `verified`；
-- 不要求为了只读审计而强制构造 SIB；
-- 一旦重新进入模型设计、预处理、主求解或新代码生成，立即转为 L1。
+- 保留窄的 historical read-only adapter；
+- legacy approval 只能作为 historical provenance；
+- `locked_model_spec` 不得因此提升为 current `verified`；
+- 只读审计不强制构造 SIB；
+- 一旦重新进入模型设计、预处理、主求解或新代码生成，立即按 L1 处理。
 
 ### L1 — Legacy project re-entering active modeling / code workflow
 
-特征：
+必须按以下顺序迁移：
 
-- 起点与 L0 相同；
-- 用户要求重新进入 `model_design / data_preprocessing / solve_validate`，或需要生成新的主代码。
+1. 以最后稳定 v8.x（`8.9.0`）状态保留可恢复快照；
+2. 通过模型设计流程形成 candidate SIB，禁止从旧 prose 静默推断成 verified identity；
+3. semantic governance 对 current Framework SIB 做 canonical validation，得到 current `semantic_identity_hash`；
+4. Model Challenge 对 current structured semantics 通过；
+5. 用户对 current `semantic_revision` 与 validated structured identity **必须显式 Human Approval**；
+6. 仅在上述证据全部 current 后，才允许新的 task-code / solve workflow。
 
-迁移顺序必须为：
-
-1. 在最后稳定 v8.x（`8.9.0`）状态下保留项目快照/备份；
-2. 由模型设计流程形成 **candidate SIB**，不得从旧 prose 静默推断成“已验证身份”；
-3. semantic governance 对 current Framework 中的 SIB 做 canonical validation，并得到 current `semantic_identity_hash`；
-4. Model Challenge 对当前 structured semantics 通过；
-5. 用户对当前 semantic revision 与 current validated structured identity 做 **显式 Human Approval**；
-6. 只有上述条件全部满足后，才允许进入新的主代码生成 / solve workflow。
-
-legacy `semantic_hash / approved_semantic_hash` 可以作为历史证据保留，但不能授权第 6 步。
+legacy `semantic_hash / approved_semantic_hash` 可作为历史证据，但不能授权第 6 步。
 
 ### L2 — Current structured project
 
-特征：
+- 版本升级本身不自动使 current structured approval stale；
+- Runtime Assurance 仍必须从当前 Framework 重新计算 structured identity；
+- current / validated / approved identity 或 revision/challenge/approval 不一致时继续 fail closed；
+- implementation identity 只接受 current active Schema 的 canonical names。
 
-- Framework 中存在完整可解析的 SIB；
-- current / validated / approved structured identity 一致；
-- current revision、Model Challenge 与 Human Approval 一致。
+## 3. Implementation alias 的最终边界
 
-迁移原则：
-
-- 不因为“升级版本号”本身使 current structured Human Approval stale；
-- Runtime Assurance 仍必须重新从当前 Framework 计算 structured identity，而不是相信 state 自证；
-- 若 current / validated / approved identity 不一致，按现有 Authority fail closed；
-- implementation artifact 的 legacy alias 仅允许按 §3 做机械归一化。
-
-## 3. 允许的机械迁移
-
-只有 **身份含义完全确定且冲突可检测** 的 implementation/stale alias 可以机械归一化。
-
-### 3.1 Artifact implementation identity
-
-当前共享 helper `scripts/artifact_identity.py` 已定义安全映射：
+v9 active Project State 已不再接受：
 
 ```text
 artifact_hashes.model
-  -> artifact_hashes.primary_code
-
 validated_artifact_hashes.model
-  -> validated_artifact_hashes.primary_code
-```
-
-当 canonical key 缺失时，还允许将：
-
-```text
 model_hash
-  -> artifact_hashes.primary_code fallback
-
 validated_model_hash
-  -> validated_artifact_hashes.primary_code fallback
-```
-
-但这些 fallback 只用于保留已知的 **primary implementation identity**，不能解释为数学模型语义身份。
-
-### 3.2 Stale layer alias
-
-```text
 stale_layers: model
-  -> stale_layers: primary_code
 ```
 
-这个映射只表示 v8 implementation layer 命名迁移，不触发 mathematical semantic approval stale。
-
-### 3.3 冲突规则
-
-若 legacy 与 canonical 值同时存在且不一致：
+`scripts/artifact_identity.py` 仍可在 **Schema 之外**对历史 v8 文件做只读审计或显式 pre-schema migration normalization：
 
 ```text
-blocking inconsistency
+artifact_hashes.model -> artifact_hashes.primary_code
+validated_artifact_hashes.model -> validated_artifact_hashes.primary_code
+model_hash -> primary_code fallback
+validated_model_hash -> validated primary_code fallback
+stale model layer -> primary_code
 ```
 
-禁止：
+这些映射只表示 primary implementation identity。若 legacy 与 canonical 值同时存在且不一致，必须返回 `blocking inconsistency`。禁止任选一边继续，禁止以“新字段优先”静默覆盖，也禁止以“兼容”为理由静默回退。
 
-- 任选一个值继续；
-- 以“新字段优先”为理由静默覆盖；
-- 以“旧字段兼容”为理由静默回退；
-- 在不知道来源的情况下重新计算一个值并覆盖两者。
+`dependency_kind: model` 继续保留，因为它表示数学模型语义依赖，不是已退休的 implementation artifact alias。
 
-必须先人工/确定性地解释冲突来源，再继续迁移。
+## 4. 禁止自动迁移的 semantic identity / approval
 
-## 4. 禁止的自动语义迁移
-
-以下转换在 v9 migration 中 **明确禁止自动执行**：
+以下转换明确禁止：
 
 ```text
-semantic_hash
-  -X-> semantic_identity_hash
-
-validated_semantic_hash
-  -X-> validated_semantic_identity_hash
-
-approved_semantic_hash
-  -X-> approved_semantic_identity_hash
+semantic_hash -X-> semantic_identity_hash
+validated_semantic_hash -X-> validated_semantic_identity_hash
+approved_semantic_hash -X-> approved_semantic_identity_hash
 ```
 
-原因：legacy semantic hash 是 Markdown semantic-scope text hash；structured identity 是 canonical SIB 的数学语义身份。二者不是同一种证据，不能通过字段复制、重命名或 hash 重用建立等价关系。
+legacy text hash 与 structured SIB identity 不是同一种证据。禁止从 legacy prose 自动生成 SIB 后直接标记 validated，禁止从 legacy approval 自动继承 current structured approval，也禁止自动把 challenge/approval 状态改成 passed/approved。
 
-同样禁止：
+**partial structured state 必须 fail closed**，不得回退 legacy approval 继续求解。
 
-- 从 legacy prose 自动生成 SIB 后直接标记 validated；
-- 从 legacy approval 推导 current structured Human Approval；
-- 自动把 `model_challenge_status` 改为 `passed`；
-- 自动把 `human_model_approval_status` 改为 `approved`；
-- structured identity 只存在一部分时回退 legacy approval 继续求解。
-
-partial structured state 必须 fail closed，而不是混用两套 identity。
-
-## 5. 数值事实与论文内容不参与身份偷换
-
-迁移不得改变仓库现有三类事实边界：
+## 5. 三类事实源继续分离
 
 - `模型论文框架.md`：当前模型语义与论文结构记忆；
-- `state/project_state.yaml`：机器生命周期/状态；
-- accepted workbooks：数值事实源。
+- `state/project_state.yaml`：机器生命周期与状态；
+- accepted workbooks：具体数值事实源。
 
-因此：
+workbook 数值、Markdown result summary 或可复现实验均不能替代 structured semantic approval。
 
-- 不能从 workbook 数值结果反推出“模型已被批准”；
-- 不能从 Markdown result summary 代替 accepted workbook；
-- 不能因为旧 workbook 仍可复现，就自动继承旧 semantic approval 到新的 structured identity。
+## 6. v8.7.x / v8.9.0 → v9.0.0 升级路径
 
-## 6. v8.7.x / v8.9.0 项目升级路径
-
-### 6.1 只读历史项目
+只读历史项目：
 
 ```text
-v8.x project
--> classify as L0
--> keep historical read adapter
--> no forced SIB write
--> no new solve/code authorization
+v8.x project -> L0 -> historical read-only adapter
+-> no forced SIB write -> no new solve/code authorization
 ```
 
-### 6.2 重新进入建模/求解的旧项目
+重新进入建模/求解：
 
 ```text
-v8.x project
--> classify as L1
--> snapshot under v8.9.0 compatibility checkpoint
--> build candidate SIB through model-design flow
--> semantic validation
--> Model Challenge
--> explicit Human Approval
--> current structured identity becomes authoritative for new code
+v8.x project -> snapshot under v8.9.0 -> L1
+-> candidate SIB -> semantic validation -> Model Challenge
+-> explicit Human Approval -> current structured identity authorizes new code
 ```
 
-### 6.3 已采用 structured identity 的项目
+已采用 structured identity：
 
 ```text
-current structured project
--> classify as L2
--> re-verify current Framework identity
--> preserve current approval only when all structured evidence remains current
--> mechanically normalize implementation aliases when safe
+current structured project -> L2 -> re-verify current Framework identity
+-> preserve approval only while all structured evidence remains current
 ```
 
-## 7. 自动迁移与人工确认矩阵
+## 7. 自动迁移 / 人工确认矩阵
 
 | Surface / 状态 | 自动迁移 | 人工确认 | 冲突处理 |
 |---|---|---|---|
-| `artifact_hashes.model` → `primary_code` | 允许 | 通常不需要 | 新旧不同则 blocking |
-| `validated_artifact_hashes.model` → `primary_code` | 允许 | 通常不需要 | 新旧不同则 blocking |
-| `model_hash` / `validated_model_hash` fallback | 允许作为 implementation fallback | 冲突时需要 | 不得解释为 semantic identity |
-| stale `model` → `primary_code` | 允许 | 不需要 | 未知 layer 继续按 Authority 处理 |
-| `semantic_hash` → structured identity | **禁止** | 必须重新建立 SIB | 不可复制 hash |
+| historical `artifact_hashes.model` → `primary_code` | 仅 pre-schema adapter 可机械归一化 | 通常不需要 | 新旧不同则 blocking |
+| historical validated `model` → `primary_code` | 仅 pre-schema adapter 可机械归一化 | 通常不需要 | 新旧不同则 blocking |
+| `model_hash / validated_model_hash` fallback | 仅 historical implementation fallback | 冲突时需要 | 不得解释为 semantic identity |
+| stale `model` → `primary_code` | 仅 historical pre-schema adapter | 不需要 | unknown layer 按 Authority 处理 |
+| `semantic_hash` → structured identity | **禁止** | 必须建立/验证 SIB | 不可复制 hash |
 | legacy approval → structured approval | **禁止** | **必须显式 Human Approval** | 不可自动继承 |
-| partial structured identity | 禁止 legacy fallback | 需要修复/重新验证 | fail closed |
-| L0 只读历史项目 | 不强制迁移 | 无新求解时不需要 | 只读 adapter |
+| partial structured identity | 禁止 legacy fallback | 修复并重新验证 | fail closed |
+| L0 只读历史项目 | 不强制迁移 | 无新求解时不需要 | read-only adapter |
 | L1 重新求解 | 不自动批准 | 必须 | 未批准不得进主求解 |
 | L2 current structured | 不做无意义重建 | 仅证据变化时重新审批 | mismatch fail closed |
 
 ## 8. 回滚契约
 
-I1 本身不执行项目写入，因此没有项目数据层面的不可逆副作用。
+最后稳定 v8.x 基线是 `8.9.0`。代码级回滚应 revert 对应 v9 PR 或恢复到明确记录的 v8.9.0 checkpoint；不得用盲目版本字符串替换回滚。
 
-未来 destructive migration PR 必须满足：
+若真实 project state 已在 v9 下被显式迁移/修改：
 
-1. 迁移前保留可恢复的 project-state / framework 快照；
-2. migration 失败时不得留下“部分 canonical、部分 legacy”的已接受状态；
-3. 若需要回滚代码，最后稳定 v8.x 基线为 `8.9.0`；
-4. 若项目文件已经由未来 migration writer 修改，必须使用该 PR 明确提供的 rollback path / backup，而不能只降级 Skill 代码后假定旧 state 自动兼容。
+1. 必须使用迁移前 snapshot/backup；
+2. 不能只降级 Skill 代码后假设 current state 自动重新兼容 v8；
+3. 不得留下“部分 canonical、部分 legacy”的 accepted state；
+4. 冲突状态必须先解释来源再继续。
 
-## 9. Compatibility reader 的退出策略
+I5 本身不执行真实用户项目的批量迁移，也不新增自动迁移 CLI。
 
-原计划要求 major 前停止旧写，并由 code search 证明旧字段只剩 compatibility reader / docs。由此可见，**初始 v9.0.0 不要求为了“清理彻底”而删除所有 historical reader**。
+## 9. Compatibility reader 退出策略
 
-v9.0.0 的目标是：
+**初始 v9.0.0 不要求**为了“清理彻底”而删除所有 historical reader。当前保留：
 
-- 停止被批准删除对象的 legacy write；
-- 删除无必要的 active Schema/write aliases；
-- 对 L0 保留明确、窄、read-only 的 historical adapter；
-- L1 不允许借 historical adapter 绕过 structured migration/approval。
+- L0 明确、窄、read-only historical semantic adapter；
+- historical implementation aliases 的 pre-schema audit/migration helper。
 
-historical reader 的彻底删除应作为 v9.0.0 之后的独立兼容性决策，至少需要真实迁移采用证据、无 active dependency 的 code search 以及独立 release/migration 说明，不能塞进 Phase I 的最后清理中顺手删除。
+L1 不得借 historical adapter 绕过 SIB / challenge / Human Approval。
 
-## 10. 当前 Phase I Gate 快照（I1）
+**historical reader 的彻底删除**必须作为 v9.0.0 之后的独立兼容性决策，需要真实迁移采用证据、无 active dependency 的 code search、单独 release/migration 说明与完整 CI；不得在 I5 顺手删除。
 
-| Gate | I1 状态 | 证据 / 说明 |
-|---|---|---|
-| 1. 至少一个稳定版本已写新字段 | **satisfied** | `8.9.0` stable compatibility checkpoint 已合并到 `main@c8687dd8...`，PR head 与 post-merge main 均执行完整 CI |
-| 2. migration fixtures 全绿 | **satisfied as current baseline** | I0 L0/L1/L2 matrix 已在 8.9.0 release CI 中通过；任何后续 destructive PR 必须再次全绿 |
-| 3. 活动代码不再写旧字段 | **false** | no-SIB legacy semantic governance 仍写 `semantic_hash / validated_semantic_hash` |
-| 4. code search 只剩 compatibility reader/docs | **partial** | artifact identity 接近目标；semantic legacy 仍有 writer/Schema/reader |
-| 5. 用户确认结束 v8 project write compatibility | **false / not inferred** | “继续修改”不等同于 destructive-boundary approval |
-| 6. Changelog + migration doc 完整 | **partial** | 本文件固定迁移契约，但真正停止旧写/删除字段后的最终字段清单与 release migration notes 尚未完成 |
+## 10. v9.0.0 最终 release contract
 
-因此 I1 合并后仍不得直接执行 destructive compatibility removal。
+当前 release carrier：`9.0.0`。
 
-## 11. I1 退出条件
+当前 Phase I 状态：**closed for v9.0.0 repository release**。
 
-- migration contract 与当前 8.9.0 行为一致；
-- migration matrix 把 stable compatibility window 记录为 closed；
-- acceptance tests 明确保护：mechanical alias migration 可做、semantic identity / approval 不得自动合成、冲突必须 blocking；
-- 全量 unit、lint、generated check 与标准 CI 继续全绿；
-- PR diff 不包含任何 Runtime Authority、Schema 或 runtime implementation 修改；
-- Skill release carrier 继续为 `8.9.0`。
+已退休的 active 面：legacy semantic new writes、implementation artifact legacy aliases/fields/stale layer。
+
+保留的兼容面：L0 semantic historical read-only path、pre-schema implementation audit/migration helper，以及与本次 Phase-I target 无关的独立 compatibility。
+
+`9.0.0` 之后若继续删除 historical readers，必须开启新的独立治理变更。
