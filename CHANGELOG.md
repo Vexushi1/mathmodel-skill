@@ -1,35 +1,55 @@
 # Changelog
 
-## Current release: 8.7.4
+## Current release: 8.9.0
 
-- Repaired active writing Authority/read-path drift: ordinary body structure and expression now consistently point to `modules/05_writing/paper_writing_protocol.md`, while `modules/05_writing/latex.md` remains a carrier-only LaTeX Adapter.
+- Published the Phase C–H staged refactor as the final stable v8.x compatibility checkpoint before Phase I destructive removal; release carriers now identify `8.9.0` while the final program target remains `9.0.0`.
+- Preserved the existing v8 compatibility window: no-SIB projects still retain the current legacy semantic-hash write path, artifact/stale aliases remain readable, and no Phase I field/reader removal is performed by this release.
+- Retained the Phase I I0 compatibility inventory and L0/L1/L2 migration acceptance matrix as executable evidence for the later v9 removal gates.
+- Preserved Python primary solve, accepted-after-primary result analysis, MATLAB workbook-driven figure ownership, and accepted workbooks as the numerical source of truth.
+
+### v9 staged refactor compatibility window — Phase C
+
+- Bound the current per-question Semantic Identity Block (SIB) to Model Approval and Runtime Assurance while keeping `模型论文框架.md` the model-semantics source and reusing the shared `scripts/semantic_identity.py` parser/canonicalizer.
+- Human Model Approval binds the current `semantic_revision` and structured `semantic_identity_hash`; partial structured state fails closed and legacy semantic hashes cannot authorize new project-level preprocessing or primary solve code.
+- Runtime Assurance recomputes the current framework SIB and promotes `locked_model_spec=verified` only when current, validated and approved identity hashes plus challenge/approval/revision evidence agree.
+- Old projects without a SIB remain readable; re-entry into model design, project-level preprocessing, primary solve or regenerated primary code requires current structured identity validation and renewed explicit Human Approval.
+
+### v9 staged refactor compatibility window — Phase D
+
+- Added `core/state_transition_contract.yaml` as the single Authority for stale transitions, lifecycle invalidation, typed cross-question propagation, conservative legacy fallback and deterministic cycle reporting.
+- Routed semantic governance, project sync and code delivery through the shared pure `scripts/state_transitions.py` engine; `depends_on.kind` now controls model/result/parameter/data propagation without conflating implementation freshness with mathematical approval.
+
+### v9 staged refactor compatibility window — Phase E
+
+- Migrated implementation artifact identity to canonical `artifact_hashes.primary_code` and `artifact_hashes.analysis_code`; legacy `artifact_hashes.model` remains read-compatible only and conflicting old/new identities stay blocking.
+- Confirmed `model_hash / validated_model_hash` have no active writer and only serve legacy primary-code fallback reads; they remain present until the Phase I removal gate.
+
+### v9 staged refactor compatibility window — Phase F
+
+- Added transactional project writes with `project.state_generation`, staged validation, transaction journal/recovery, optimistic generation checks and shared writer integration.
+- Project-state persistence remains file-based and preserves existing semantic, workbook and stale Authorities rather than introducing a database or second state truth.
+
+### v9 staged refactor compatibility window — Phase G
+
+- Moved competition writing-runtime selection into `config/competition_profiles.yaml#profiles.*.stable.writing_runtime`; the Resolver is a generic consumer instead of accumulating CUMCM-specific Python constants.
+- Preserved CUMCM Template-First progressive behavior and explicit full-reasoning fallback for MCM/ICM, Diangong and Certification Cup.
+
+### v9 staged refactor compatibility window — Phase H
+
+- Mechanically extracted project snapshot and artifact fingerprint helpers from `scripts/sync_project.py` while keeping orchestration, CLI, stale semantics, hashes, transaction behavior and Resolver behavior unchanged.
+- Phase H parity was validated by the full HSK Skill CI matrix before merge.
+
+### Phase I preparation — I0 baseline
+
+- Added an exact compatibility-surface inventory plus L0/L1/L2 migration acceptance fixtures/tests.
+- I0 intentionally does not stop legacy writes, remove fields/aliases/readers, widen `<9.0.0` compatibility ranges or publish `9.0.0`; the original Phase I six-gate entry contract remains authoritative.
+
+## Previous release: 8.7.4
+
+- Repaired active writing Authority/read-path drift: ordinary body structure and expression consistently point to `modules/05_writing/paper_writing_protocol.md`, while `modules/05_writing/latex.md` remains a carrier-only LaTeX Adapter.
 - Removed stale release branding from the active Paper Writing Protocol title and separated the optional DOCX branch display label from the ordinary-writing Module 05A label.
 - Clarified MATLAB figure guidance so the high-contrast scientific palette applies to data-driven result figures only; formal mechanism/derivation figures continue to use the Module 04 monochrome-first visual grammar.
 - Added focused active-authority hygiene regression coverage while preserving model mathematics, Model Approval, 03A/03B, Workbook/Project State schemas, CLI, project layout, legacy/V622 read compatibility, and the v8.7.3 mechanism rendering behavior.
-
-### Unreleased v9.0.0 staged refactor — Phase C
-
-- Post-merge acceptance closed remaining active-surface drift: Module Manifest, Bootstrap/Router/Core Policy, Agent/Skill entrypoints and solve-stage guidance now describe the structured SIB identity binding consistently; legacy semantic hashes remain read-only provenance only.
-- Bound the current per-question Semantic Identity Block (SIB) to Model Approval and Runtime Assurance while keeping `模型论文框架.md` the model-semantics source and reusing the shared `scripts/semantic_identity.py` parser/canonicalizer instead of introducing a second identity implementation.
-- Human Model Approval now binds the current `semantic_revision` and structured `semantic_identity_hash`; partial structured state fails closed, while legacy `semantic_hash / approved_semantic_hash` remain historical read-only compatibility only.
-- Runtime Assurance now recomputes the current framework SIB and promotes `locked_model_spec=verified` only when current, validated and approved identity hashes match and the current challenge/approval/revision binding is valid; stale, unapproved, malformed and legacy-review-required evidence is not promoted.
-- Preserved read-only access to old projects without a SIB, but re-entry into model design, project-level preprocessing, primary solve, or regenerated primary code requires a complete current SIB, semantic validation, renewed Model Challenge and explicit Human Approval; legacy prose is never auto-promoted to a verified SIB.
-- Added Phase C regression/migration coverage, updated the protected Model Approval Authority baseline only for the approved contract change, and retained the v8.7.4 release carriers. State-transition unification, typed dependency propagation, artifact-identity renaming, transactional writes, competition-runtime de-hardcoding and other later v9 phases remain out of scope.
-
-### Unreleased v9.0.0 staged refactor — Phase D
-
-- Added `core/state_transition_contract.yaml` as the single Authority for stale-layer transitions, lifecycle status invalidation, typed cross-question propagation, legacy-untyped fallback and deterministic cycle reporting.
-- Added the pure `scripts/state_transitions.py` engine and routed semantic governance, project sync and code-delivery state invalidation through it; the three entrypoints no longer maintain private primary/analysis stale-layer sets.
-- `depends_on.kind` now changes propagation behavior: model dependencies invalidate downstream semantic approval, while result/parameter/data dependencies invalidate only the execution/evidence layers appropriate to their declared type; legacy untyped dependencies remain conservative.
-- Added deterministic transition evidence, cycle/idempotence regression coverage and Authority-closure tests. Phase E artifact naming and Phase F transactional writes remain intentionally out of scope, and the release carriers remain 8.7.4 until the staged v9.0.0 program completes.
-
-### Unreleased v9.0.0 staged refactor — Phase E
-
-- Migrated implementation artifact identity from ambiguous `artifact_hashes.model` to explicit `artifact_hashes.primary_code` and `artifact_hashes.analysis_code` while retaining v8 read compatibility only.
-- Added deterministic alias handling: legacy `model` maps to `primary_code` only when the canonical field is absent or equal; conflicting old/new values are blocking and no active writer dual-writes the two names.
-- Aligned Project State Schema, State Transition Authority, project sync, code delivery, user-execution receipts, Runtime Assurance integration pointers, Output Contract and health lint around the canonical implementation names without changing mathematical Semantic Identity or Model Approval semantics.
-- Audited `model_hash / validated_model_hash` across the active repository and confirmed they have no active writer and only serve legacy primary-code fallback reads; they remain compatibility fields until the Phase I v9 removal gate.
-- Added Phase E migration/alias regressions and retained the 8.7.4 release carrier. Phase F transactional writes and all later staged phases remain out of scope.
 
 ## Previous release: 8.7.3
 
