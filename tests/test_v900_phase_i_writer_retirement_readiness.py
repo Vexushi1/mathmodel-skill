@@ -118,6 +118,7 @@ class PhaseII2WriterRetirementTests(unittest.TestCase):
 
     def test_schema_and_historical_reader_boundaries_match_post_i2_inventory(self):
         schema_text = SCHEMA_PATH.read_text(encoding="utf-8")
+        schema = yaml.safe_load(schema_text)
         schema_contract = INVENTORY["current_schema_contract"]
         for key in (
             "semantic_hash_description_contains",
@@ -125,10 +126,12 @@ class PhaseII2WriterRetirementTests(unittest.TestCase):
             "semantic_hash_description_forbids_active_writer",
             "validated_semantic_hash_description_forbids_active_writer",
             "approved_semantic_hash_description_contains",
-            "model_hash_description_contains",
-            "validated_model_hash_description_contains",
         ):
             self.assertIn(schema_contract[key], schema_text)
+
+        subproblem_fields = schema["properties"]["subproblems"]["additionalProperties"]["properties"]
+        self.assertNotIn("model_hash", subproblem_fields)
+        self.assertNotIn("validated_model_hash", subproblem_fields)
 
         approval_text = MODEL_APPROVAL_PATH.read_text(encoding="utf-8")
         self.assertIn("allow_legacy_read_only", approval_text)
