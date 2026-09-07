@@ -1,6 +1,12 @@
-# mathmodel-skill v8.7.4
+# mathmodel-skill v8.9.0
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision / semantic_identity_hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v8.9.0：Stable Compatibility Checkpoint for v9 Migration
+
+v8.9.0 将已经在主干分阶段完成的 Phase C–H 作为最后一个稳定 v8.x 兼容窗口正式发布。它包含 structured SIB identity 与 Model Approval / Runtime Assurance 绑定、单一 State Transition Authority 与 typed stale propagation、`primary_code / analysis_code` artifact identity、事务化 Project State 写入、competition writing runtime profile 解耦，以及 `sync_project.py` 的机械职责拆分。Phase I I0 migration matrix 随版本保留为后续 v9 删除的回归基线。
+
+本版本**不执行 Phase I 的破坏性兼容删除**：无 SIB 的 legacy 项目仍保留现有 `semantic_hash / validated_semantic_hash` 兼容写路径；`artifact_hashes.model`、`model_hash / validated_model_hash` 与 stale `model` alias 仍按当前 v8 规则读取。Python 主求解、结果深化分析、MATLAB 正式绘图与 accepted workbook 数值事实边界不变。真正停止 v8 write compatibility 仍需满足 `docs/semantic_state_runtime_refactor_plan.md` 的全部 Phase I gate。
 
 ## v8.7.4：Active Authority / Read-Path Hygiene
 
