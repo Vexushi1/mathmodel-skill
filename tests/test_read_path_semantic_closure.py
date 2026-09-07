@@ -174,7 +174,7 @@ class TestReadPathSemanticClosure(unittest.TestCase):
 
     def test_figure_assets_cover_active_v7_line(self):
         assets = yaml.safe_load((ROOT / "assets/figure_assets.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(assets["skill_compatibility"], ">=7.4.2,<9.0.0")
+        self.assertEqual(assets["skill_compatibility"], ">=7.4.2,<10.0.0")
         self.assertFalse(assets["default_load"])
         self.assertIn("不得改变模型结果", "".join(assets["rules"]))
 

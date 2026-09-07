@@ -1,6 +1,6 @@
 version: 1.2.0
 introduced_in_skill_version: 7.12.0
-skill_compatibility: '>=7.12.0,<9.0.0'
+skill_compatibility: '>=7.12.0,<10.0.0'
 purpose: >-
   Define the machine-readable runtime assurance layer that sits above the legacy
   resolver plan: context hydration, intent provenance, artifact assurance,
