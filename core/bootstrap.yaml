@@ -36,7 +36,7 @@ startup_contract:
     - Runtime context hydration, intent provenance, artifact assurance and declarative contract dependency closure are governed by core/runtime_assurance_contract.yaml.
     - Resolver-internal manifests and taxonomies are not user-facing preload unless the route needs their content.
     - Current project semantics are restored from current 模型论文框架.md when available; numerical facts still come from accepted workbooks and machine state from project_state.
-    - v8 pure paper-writing routes use core/writing_runtime_contract.yaml plus the active template manifest and compact paper_writing_protocol; full core/writing_reasoning_contract.yaml remains the semantic fallback for complex adjudication and final review.
+    - Pure paper-writing routes use core/writing_runtime_contract.yaml plus the active template manifest and compact paper_writing_protocol; full core/writing_reasoning_contract.yaml remains the semantic fallback for complex adjudication and final review.
 hard_invariants:
   - Global modeling, preprocessing, solving, figure, writing and review rules are governed by their authoritative sources above; bootstrap must not restate those contracts in detail.
   - Resolve the smallest task-specific load order and stop after the user-requested deliverable; do not preload unrelated contracts or modules.

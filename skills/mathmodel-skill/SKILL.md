@@ -91,6 +91,6 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 
 ## 兼容与版本信息
 
-- v7 项目在 v8.x 内保持只读兼容，不自动重排或覆盖既有论文正文；迁移说明见 `docs/v8_writing_migration.md`。
+- 历史 v7 项目继续保持只读兼容，不自动重排或覆盖既有论文正文；迁移说明见 `docs/v8_writing_migration.md`。
 - 历史版本能力与实施记录统一见 `CHANGELOG.md`、`README.md` 和 `legacy/README.md`；入口不再复制 v7.14--v8.0.1 的版本演进正文。
 - 活动文件导航使用 `PROJECT_INSTRUCTIONS.md`、`RUNTIME_ROUTER.md`、`SKILL_FILE_INDEX.md`、`TEMPLATE_INDEX.md`。
