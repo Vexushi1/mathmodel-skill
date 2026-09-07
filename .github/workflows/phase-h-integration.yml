@@ -11,6 +11,7 @@ concurrency:
   group: phase-h-integration-${{ github.ref }}
   cancel-in-progress: true
 
+# One-shot verifier for the mechanical extraction; this file deletes itself on success.
 jobs:
   integrate:
     runs-on: ubuntu-latest
