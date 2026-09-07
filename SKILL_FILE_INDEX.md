@@ -67,6 +67,7 @@
 - `docs/phase_f_transaction_writer_inventory.md`
 - `docs/phase_i_compatibility_inventory.md`
 - `docs/phase_i_compatibility_removal_readiness.md`
+- `docs/phase_i_legacy_writer_retirement.md`
 - `docs/phase_i_legacy_writer_retirement_readiness.md`
 - `docs/semantic_state_runtime_refactor_plan.md`
 - `docs/v801_chapter_capability_preservation_audit.md`
@@ -335,6 +336,7 @@
 - `tests/test_v873_mechanism_monochrome_geometry.py`
 - `tests/test_v874_active_authority_hygiene.py`
 - `tests/test_v900_artifact_identity.py`
+- `tests/test_v900_i2_legacy_writer_retirement.py`
 - `tests/test_v900_phase_g_competition_runtime.py`
 - `tests/test_v900_phase_h_sync_split.py`
 - `tests/test_v900_phase_i_migration_matrix.py`
