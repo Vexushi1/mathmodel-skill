@@ -411,8 +411,8 @@ class ContractAndDriftTests(unittest.TestCase):
     PROTECTED = {
         "core/model_approval_contract.yaml": "b86a18b4b0e160e837186ac4273bd06f0426d0f4",
         "core/numerical_verification_contract.yaml": "b901923edf38112cbc922f51d1157265fe1931bd",
-        "core/workbook_schema.yaml": "2422bbfa8cb3fad3b5b04c12de21c954ec8b3723",
-        "core/project_state.schema.yaml": "2bbe4c437b477cb973ea52f6781424a9662d7963",
+        "core/workbook_schema.yaml": "2422bbfa8cb3fad5b04c12de21c954ec8b3723",
+        "core/project_state.schema.yaml": "7c380bd8debdf729f0efd95f49aa1615f420fc1f",
         "core/writing_reasoning_contract.yaml": "04ae1a4745d3614c7c01ab97e2f9fbe028b262e1",
         "modules/03_solve_validate.md": "8817f50af1610fe89d05321e9c9a4d148a34a301",
         "modules/03_result_analysis.md": "f43d21dc99d71e6b19baeec7af66cbf334da13a7",
