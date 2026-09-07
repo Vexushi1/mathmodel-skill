@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：8.9.0
+当前 Skill 版本：9.0.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -72,6 +72,7 @@
 - `docs/phase_i_legacy_writer_retirement.md`
 - `docs/phase_i_legacy_writer_retirement_readiness.md`
 - `docs/phase_i_v9_applicability_renewal.md`
+- `docs/phase_i_v9_release_carrier_transition.md`
 - `docs/semantic_state_runtime_refactor_plan.md`
 - `docs/v801_chapter_capability_preservation_audit.md`
 - `docs/v801_skill_health_remediation_plan.md`
@@ -343,6 +344,7 @@
 - `tests/test_v900_phase_g_competition_runtime.py`
 - `tests/test_v900_phase_h_sync_split.py`
 - `tests/test_v900_phase_i_migration_matrix.py`
+- `tests/test_v900_phase_i_release_carriers.py`
 - `tests/test_v900_phase_i_v9_applicability.py`
 - `tests/test_v900_phase_i_writer_retirement_readiness.py`
 - `tests/test_v900_project_transaction.py`
