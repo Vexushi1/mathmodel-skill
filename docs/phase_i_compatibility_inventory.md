@@ -138,4 +138,8 @@ I0 可以合并的条件：
 - 不出现任何 Runtime Authority 或行为 diff；
 - PR 仍保持 8.7.4 release carrier。
 
+### Generated metadata branch contract
+
+I0 以及后续 Phase I 实现分支必须使用仓库 `refresh-generated.yml` 已监听的分支前缀（例如 `refactor/**`、`fix/**`、`upgrade/**`），或者通过等价的受支持流程触发 generator。`SKILL_FILE_INDEX.md`、`TEMPLATE_INDEX.md`、`HSK_*INDEX*` 与 `MANIFEST.sha256` 只能由 `scripts/generate_indexes.py` / 仓库自动工作流维护，禁止为了让 CI 通过而手工修改哈希或索引内容。
+
 I0 合并后仍**不允许**直接执行 destructive compatibility removal。下一步必须重新从最新 `main` 读取原计划，再决定 stable compatibility-window policy 与后续 I1/I2 的单主题边界。
