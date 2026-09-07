@@ -186,7 +186,8 @@ class WritingReasoningScopeTests(unittest.TestCase):
 
     def test_runtime_keeps_same_stage_topology_and_conditional_examples_only(self):
         runtime = yaml.safe_load(read("core/writing_runtime_contract.yaml"))
-        self.assertEqual(runtime["version"], "8.7.4")
+        bootstrap = yaml.safe_load(read("core/bootstrap.yaml"))
+        self.assertEqual(runtime["version"], bootstrap["skill_version"])
         progressive = runtime["template_first_progressive_authoring"]
         stage_ids = [stage["id"] for stage in progressive["stages"]]
         self.assertEqual(
