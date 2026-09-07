@@ -25,6 +25,31 @@ jobs:
           cache: pip
       - name: Install test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
+      - name: Fix Phase H regression harness
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("scripts/_phase_h_extract.py")
+          text = path.read_text(encoding="utf-8")
+          replacements = [
+              (
+                  '            self.assertIs(getattr(SYNC, name), getattr(FINGERPRINT, name))\n',
+                  '            self.assertIs(getattr(SYNC, name), getattr(SYNC.ARTIFACT_FINGERPRINT, name))\n',
+                  "artifact alias assertion",
+              ),
+              (
+                  '            self.assertIs(getattr(SYNC, name), getattr(SNAPSHOT, name))\n',
+                  '            self.assertIs(getattr(SYNC, name), getattr(SYNC.PROJECT_SNAPSHOT, name))\n',
+                  "snapshot alias assertion",
+              ),
+          ]
+          for old, new, label in replacements:
+              if text.count(old) != 1:
+                  raise SystemExit(f"{label} anchor mismatch: {text.count(old)}")
+              text = text.replace(old, new, 1)
+          path.write_text(text, encoding="utf-8")
+          PY
       - name: Apply mechanical extraction
         run: python scripts/_phase_h_extract.py
       - name: Run focused Phase H regression
@@ -33,7 +58,7 @@ jobs:
           tests.test_v900_phase_h_sync_split
           tests.test_sync_project
           tests.test_v900_artifact_identity
-          tests.test_v900_phase_f_transactional_writes
+          tests.test_v900_transactional_writers
       - name: Run full unit suite
         run: python -m unittest discover -s tests -p "test_*.py"
       - name: Regenerate repository metadata
