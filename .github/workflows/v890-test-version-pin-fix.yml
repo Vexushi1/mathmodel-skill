@@ -1,0 +1,44 @@
+name: v8.9.0 test version pin fix
+
+on:
+  push:
+    branches:
+      - upgrade/v890-stable-compat-checkpoint
+    paths:
+      - .github/workflows/v890-test-version-pin-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix-test-version-pin:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Replace stale current-release hardcode
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("tests/test_v840_author_reasoning_writing.py")
+          text = path.read_text(encoding="utf-8")
+          old = '        self.assertEqual(runtime["version"], "8.7.4")\n'
+          new = '        bootstrap = yaml.safe_load(read("core/bootstrap.yaml"))\n        self.assertEqual(runtime["version"], bootstrap["skill_version"])\n'
+          if text.count(old) != 1:
+              raise SystemExit(f"expected one stale release pin, found {text.count(old)}")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
+      - name: Commit test pin fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/test_v840_author_reasoning_writing.py
+          git commit -m "test: bind writing runtime version to current bootstrap"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin HEAD:"${GITHUB_REF_NAME}"
