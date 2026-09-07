@@ -89,7 +89,7 @@ class TestSchemas(unittest.TestCase):
         schema = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_text(encoding="utf-8"))
         self.assertEqual(schema["schema_version"], "2.3.0")
         self.assertIn(">=6.3.2", schema["skill_compatibility"])
-        self.assertIn("<9.0.0", schema["skill_compatibility"])
+        self.assertIn("<10.0.0", schema["skill_compatibility"])
         self.assertEqual(schema["classification_contract"]["capabilities_source"], "subproblem.capabilities")
         runtime = schema["runtime_enforcement"]
         self.assertNotIn("artifact_checker", runtime)

@@ -371,8 +371,8 @@ def check_versions(errors: list[str]) -> None:
     if workbook.get("schema_version") != "2.3.0":
         errors.append("workbook schema version must be 2.3.0")
     compatibility = str(workbook.get("skill_compatibility", ""))
-    if ">=6.3.2" not in compatibility or "<9.0.0" not in compatibility:
-        errors.append("workbook schema compatibility must cover 6.3.2 through v8")
+    if ">=6.3.2" not in compatibility or "<10.0.0" not in compatibility:
+        errors.append("workbook schema compatibility must cover 6.3.2 through v9")
 
 
 def check_bootstrap_and_governance(errors: list[str]) -> None:
@@ -410,8 +410,8 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
     for token in ("每个新聊天的强制启动顺序", "修改简报", "单一事实源", "一次聊天一个分支", "一个 PR 一个主题", "禁止直接写 main", "生成文件规则", "测试与验收", "完成报告"):
         if token not in governance:
             errors.append(f"governance document lacks section: {token}")
-    if "<9.0.0" not in governance:
-        errors.append("governance applicability must include v8")
+    if "<10.0.0" not in governance:
+        errors.append("governance applicability must include v9")
     for relative in (
         "core/global_preprocessing_contract.yaml",
         "core/user_execution_contract.yaml",
@@ -424,8 +424,8 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
         if not contract.get("introduced_in_skill_version"):
             errors.append(f"subordinate contract introduction version missing: {relative}")
         compatibility = str(contract.get("skill_compatibility", ""))
-        if "<9.0.0" not in compatibility:
-            errors.append(f"subordinate contract compatibility must cover active v8 line: {relative}")
+        if "<10.0.0" not in compatibility:
+            errors.append(f"subordinate contract compatibility must cover active v9 line: {relative}")
 
 
 def check_taxonomy(errors: list[str]) -> None:
@@ -439,8 +439,8 @@ def check_taxonomy(errors: list[str]) -> None:
     if data.get("classification_contract", {}).get("authoritative_locations", {}).get("capabilities") != "subproblem.capabilities":
         errors.append("taxonomy must declare top-level capabilities as authoritative")
     compatibility = str(data.get("skill_compatibility", ""))
-    if ">=6.3.1" not in compatibility or "<9.0.0" not in compatibility:
-        errors.append("task taxonomy compatibility must cover the active v8 line")
+    if ">=6.3.1" not in compatibility or "<10.0.0" not in compatibility:
+        errors.append("task taxonomy compatibility must cover the active v9 line")
 
 
 def check_router(errors: list[str]) -> None:
