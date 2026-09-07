@@ -1,5 +1,5 @@
 schema_version: 1.0.0
-baseline_skill_version: 8.7.4
+baseline_skill_version: 8.9.0
 baseline_main_commit: 9530b0d47946ffe2ae85d814ba398527d65c1c5f
 parent_plan: docs/semantic_state_runtime_refactor_plan.md
 
