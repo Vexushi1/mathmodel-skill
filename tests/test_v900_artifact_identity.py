@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import importlib.util
 import sys
@@ -34,14 +35,14 @@ TRANSITIONS = load_module("v900_phase_e_transitions", "scripts/state_transitions
 CONTRACT = yaml.safe_load((ROOT / "core/state_transition_contract.yaml").read_text(encoding="utf-8"))
 
 
-class ArtifactAliasTests(unittest.TestCase):
-    def test_legacy_model_alias_reads_as_primary_code(self):
+class ArtifactAliasReadOnlyTests(unittest.TestCase):
+    def test_legacy_model_alias_reads_as_primary_code_for_historical_audit(self):
         digest = "a" * 64
         normalized = ARTIFACT_IDENTITY.normalize_artifact_hashes({"model": digest})
         self.assertEqual(normalized["primary_code"], digest)
         self.assertNotIn("model", normalized)
 
-    def test_equal_old_and_new_alias_is_readable_but_canonicalized(self):
+    def test_equal_old_and_new_alias_is_readable_but_canonicalized_for_audit(self):
         digest = "a" * 64
         normalized = ARTIFACT_IDENTITY.normalize_artifact_hashes(
             {"model": digest.upper(), "primary_code": digest}
@@ -49,13 +50,13 @@ class ArtifactAliasTests(unittest.TestCase):
         self.assertEqual(normalized["primary_code"], digest)
         self.assertNotIn("model", normalized)
 
-    def test_conflicting_old_and_new_alias_blocks(self):
+    def test_conflicting_old_and_new_alias_blocks_even_read_only_migration(self):
         with self.assertRaisesRegex(ARTIFACT_IDENTITY.ArtifactIdentityError, "conflicts"):
             ARTIFACT_IDENTITY.normalize_artifact_hashes(
                 {"model": "a" * 64, "primary_code": "b" * 64}
             )
 
-    def test_model_hash_is_read_only_primary_code_fallback(self):
+    def test_model_hash_remains_read_only_primary_code_fallback_before_i3b_field_removal(self):
         digest = "c" * 64
         current, validated, issues = STATE_VALIDATION._normalized_hashes(
             {"model_hash": digest, "validated_model_hash": digest}
@@ -64,6 +65,106 @@ class ArtifactAliasTests(unittest.TestCase):
         self.assertEqual(current["primary_code"], digest)
         self.assertEqual(validated["primary_code"], digest)
         self.assertNotIn("model", current)
+
+    def test_stale_model_layer_can_still_be_read_for_migration_diagnostics(self):
+        self.assertEqual(
+            ARTIFACT_IDENTITY.normalize_stale_layers(["model", "framework"]),
+            ["framework", "primary_code"],
+        )
+
+
+class ActiveAliasRetirementTests(unittest.TestCase):
+    def test_active_canonicalization_rejects_legacy_model_alias_even_when_equal(self):
+        digest = "a" * 64
+        entry = {
+            "artifact_hashes": {"model": digest, "primary_code": digest},
+            "validated_artifact_hashes": {"primary_code": digest},
+        }
+        before = copy.deepcopy(entry)
+        with self.assertRaisesRegex(
+            ARTIFACT_IDENTITY.ArtifactIdentityError,
+            "active project write requires canonical artifact identity",
+        ):
+            ARTIFACT_IDENTITY.canonicalize_entry_hashes(entry)
+        self.assertEqual(entry, before)
+
+    def test_active_canonicalization_rejects_legacy_hash_fallbacks(self):
+        digest = "b" * 64
+        for field in ("model_hash", "validated_model_hash"):
+            with self.subTest(field=field):
+                entry = {field: digest}
+                before = copy.deepcopy(entry)
+                with self.assertRaisesRegex(
+                    ARTIFACT_IDENTITY.ArtifactIdentityError,
+                    "historical read-only compatibility",
+                ):
+                    ARTIFACT_IDENTITY.canonicalize_entry_hashes(entry)
+                self.assertEqual(entry, before)
+
+    def test_active_canonicalization_rejects_legacy_stale_model_layer(self):
+        entry = {"stale_layers": ["model", "framework"]}
+        before = copy.deepcopy(entry)
+        with self.assertRaisesRegex(
+            ARTIFACT_IDENTITY.ArtifactIdentityError,
+            "migrate it to 'primary_code'",
+        ):
+            ARTIFACT_IDENTITY.canonicalize_entry_hashes(entry)
+        self.assertEqual(entry, before)
+
+    def test_active_canonicalization_accepts_already_canonical_state(self):
+        digest = "d" * 64
+        entry = {
+            "artifact_hashes": {"primary_code": digest},
+            "validated_artifact_hashes": {"primary_code": digest},
+            "stale_layers": ["framework", "primary_code"],
+        }
+        ARTIFACT_IDENTITY.canonicalize_entry_hashes(entry)
+        self.assertEqual(entry["artifact_hashes"], {"primary_code": digest})
+        self.assertEqual(entry["validated_artifact_hashes"], {"primary_code": digest})
+        self.assertEqual(entry["stale_layers"], ["framework", "primary_code"])
+
+    def test_sync_write_path_rejects_legacy_alias_before_state_mutation(self):
+        digest = "a" * 64
+        state = {"subproblems": {"Q1": {"artifact_hashes": {"model": digest}}}}
+        before = copy.deepcopy(state)
+        snapshot = {"key": "Q1", "artifact_hashes": {"primary_code": digest}}
+        with self.assertRaisesRegex(
+            ARTIFACT_IDENTITY.ArtifactIdentityError,
+            "active project write requires canonical artifact identity",
+        ):
+            SYNC._apply_snapshot_to_state(Path("."), state, snapshot)
+        self.assertEqual(state, before)
+
+    def test_code_delivery_rejects_legacy_alias_without_rewriting_project_state(self):
+        digest = "a" * 64
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "state").mkdir()
+            folder = root / "问题一求解"
+            folder.mkdir()
+            script = folder / "问题一求解.py"
+            script.write_text("print('primary')\n", encoding="utf-8")
+            state = {
+                "project": {"current_phase": "solve_validate"},
+                "subproblems": {
+                    "Q1": {
+                        "status": "designed",
+                        "artifact_hashes": {"model": digest},
+                    }
+                },
+            }
+            state_path = root / "state" / "project_state.yaml"
+            state_path.write_text(
+                yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8"
+            )
+            before = state_path.read_text(encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "artifact identity alias conflict"):
+                CODE.update_state(
+                    root,
+                    {"problem_name": "问题一", "stage": "primary", "data_sha256": digest},
+                    script,
+                )
+            self.assertEqual(state_path.read_text(encoding="utf-8"), before)
 
 
 class CanonicalWriteTests(unittest.TestCase):
