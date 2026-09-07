@@ -9,6 +9,7 @@
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/i5-finalize-release-closure-v2.yml`
+- `.github/workflows/i5-finalize-release-closure-v3.yml`
 - `.github/workflows/i5-finalize-release-closure.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
