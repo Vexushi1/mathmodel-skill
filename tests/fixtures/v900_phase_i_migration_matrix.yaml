@@ -1,7 +1,8 @@
-schema_version: 1.0.0
+schema_version: 1.1.0
 baseline_skill_version: 8.9.0
-baseline_main_commit: 9530b0d47946ffe2ae85d814ba398527d65c1c5f
+baseline_main_commit: c8687dd89d3b90fd288d9d375c0341e2750cf510
 parent_plan: docs/semantic_state_runtime_refactor_plan.md
+migration_contract_document: docs/v900_migration_contract.md
 
 cases:
   L0_historical_read_only:
@@ -34,9 +35,32 @@ artifact_compatibility:
   alias_conflict_policy: blocking
   legacy_new_write_supported: false
 
+migration_contract:
+  status: draft_pre_destructive
+  historical_read_only_supported: true
+  legacy_reentry_requires_structured_identity: true
+  legacy_reentry_requires_explicit_human_approval: true
+  structured_current_approval_preserved_when_evidence_current: true
+  automatic_migrations:
+    artifact_hashes_model_to_primary_code: allowed_when_nonconflicting
+    validated_artifact_hashes_model_to_primary_code: allowed_when_nonconflicting
+    model_hash_to_primary_code_fallback: allowed_when_canonical_missing
+    validated_model_hash_to_primary_code_fallback: allowed_when_canonical_missing
+    stale_model_layer_to_primary_code: allowed
+  forbidden_automatic_migrations:
+    semantic_hash_to_semantic_identity_hash: true
+    validated_semantic_hash_to_validated_semantic_identity_hash: true
+    approved_semantic_hash_to_approved_semantic_identity_hash: true
+    synthesize_verified_sib_from_legacy_prose: true
+    synthesize_human_approval: true
+    legacy_fallback_when_structured_identity_partial: true
+  initial_v9_historical_reader_policy: narrow_read_only_adapter
+  destructive_legacy_write_retirement_authorized: false
+
 phase_i_gates:
-  stable_compatibility_window_closed: false
+  stable_compatibility_window_closed: true
   migration_fixture_baseline_present: true
+  migration_fixtures_green_on_v890_baseline: true
   all_legacy_writers_stopped: false
   user_approved_end_v8_write_compatibility: false
   final_migration_document_complete: false

@@ -35,6 +35,7 @@ ARTIFACT_IDENTITY = importlib.import_module("artifact_identity")
 MATRIX = yaml.safe_load(
     (ROOT / "tests/fixtures/v900_phase_i_migration_matrix.yaml").read_text(encoding="utf-8")
 )
+MIGRATION_CONTRACT = (ROOT / MATRIX["migration_contract_document"]).read_text(encoding="utf-8")
 
 
 def capabilities() -> dict:
@@ -188,9 +189,71 @@ class PhaseIPlanBindingTests(unittest.TestCase):
             self.assertIn(token, plan)
 
         gates = MATRIX["phase_i_gates"]
-        self.assertFalse(gates["stable_compatibility_window_closed"])
+        self.assertTrue(gates["stable_compatibility_window_closed"])
+        self.assertTrue(gates["migration_fixture_baseline_present"])
+        self.assertTrue(gates["migration_fixtures_green_on_v890_baseline"])
         self.assertFalse(gates["all_legacy_writers_stopped"])
         self.assertFalse(gates["user_approved_end_v8_write_compatibility"])
+        self.assertFalse(gates["final_migration_document_complete"])
+
+    def test_i1_contract_is_explicitly_non_runtime_and_non_destructive(self):
+        self.assertIn("runtime_authority: false", MIGRATION_CONTRACT)
+        self.assertIn("destructive_compatibility_removal_authorized: false", MIGRATION_CONTRACT)
+        self.assertIn("不执行项目文件写入", MIGRATION_CONTRACT)
+        self.assertIn("不新增自动迁移 CLI", MIGRATION_CONTRACT)
+        self.assertIn("Skill release carrier 继续为 `8.9.0`", MIGRATION_CONTRACT)
+
+
+class MigrationContractPolicyTests(unittest.TestCase):
+    def test_only_mechanical_implementation_aliases_are_auto_migratable(self):
+        policy = MATRIX["migration_contract"]
+        automatic = policy["automatic_migrations"]
+        for key in (
+            "artifact_hashes_model_to_primary_code",
+            "validated_artifact_hashes_model_to_primary_code",
+            "model_hash_to_primary_code_fallback",
+            "validated_model_hash_to_primary_code_fallback",
+            "stale_model_layer_to_primary_code",
+        ):
+            self.assertIn(key, automatic)
+            self.assertNotEqual(automatic[key], "forbidden")
+
+        self.assertEqual(
+            MATRIX["artifact_compatibility"]["alias_conflict_policy"], "blocking"
+        )
+        self.assertIn("blocking inconsistency", MIGRATION_CONTRACT)
+        self.assertIn("禁止", MIGRATION_CONTRACT)
+        self.assertIn("静默覆盖", MIGRATION_CONTRACT)
+
+    def test_semantic_identity_and_human_approval_are_never_synthesized(self):
+        policy = MATRIX["migration_contract"]
+        forbidden = policy["forbidden_automatic_migrations"]
+        for key in (
+            "semantic_hash_to_semantic_identity_hash",
+            "validated_semantic_hash_to_validated_semantic_identity_hash",
+            "approved_semantic_hash_to_approved_semantic_identity_hash",
+            "synthesize_verified_sib_from_legacy_prose",
+            "synthesize_human_approval",
+            "legacy_fallback_when_structured_identity_partial",
+        ):
+            self.assertTrue(forbidden[key], key)
+
+        self.assertTrue(policy["legacy_reentry_requires_structured_identity"])
+        self.assertTrue(policy["legacy_reentry_requires_explicit_human_approval"])
+        self.assertFalse(policy["destructive_legacy_write_retirement_authorized"])
+        self.assertIn("必须显式 Human Approval", MIGRATION_CONTRACT)
+        self.assertIn("partial structured state 必须 fail closed", MIGRATION_CONTRACT)
+
+    def test_initial_v9_keeps_narrow_historical_read_only_adapter(self):
+        policy = MATRIX["migration_contract"]
+        self.assertTrue(policy["historical_read_only_supported"])
+        self.assertEqual(
+            policy["initial_v9_historical_reader_policy"], "narrow_read_only_adapter"
+        )
+        self.assertIn("L0 — Historical read-only legacy project", MIGRATION_CONTRACT)
+        self.assertIn("L1 — Legacy project re-entering active modeling / code workflow", MIGRATION_CONTRACT)
+        self.assertIn("初始 v9.0.0 不要求", MIGRATION_CONTRACT)
+        self.assertIn("historical reader 的彻底删除", MIGRATION_CONTRACT)
 
 
 class LegacyMigrationAcceptanceTests(unittest.TestCase):
