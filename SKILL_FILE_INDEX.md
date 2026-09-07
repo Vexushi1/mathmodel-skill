@@ -72,6 +72,7 @@
 - `docs/phase_i_compatibility_removal_readiness.md`
 - `docs/phase_i_legacy_writer_retirement.md`
 - `docs/phase_i_legacy_writer_retirement_readiness.md`
+- `docs/phase_i_v9_applicability_renewal.md`
 - `docs/semantic_state_runtime_refactor_plan.md`
 - `docs/v801_chapter_capability_preservation_audit.md`
 - `docs/v801_skill_health_remediation_plan.md`
@@ -344,6 +345,7 @@
 - `tests/test_v900_phase_g_competition_runtime.py`
 - `tests/test_v900_phase_h_sync_split.py`
 - `tests/test_v900_phase_i_migration_matrix.py`
+- `tests/test_v900_phase_i_v9_applicability.py`
 - `tests/test_v900_phase_i_writer_retirement_readiness.py`
 - `tests/test_v900_project_transaction.py`
 - `tests/test_v900_refactor_characterization.py`
