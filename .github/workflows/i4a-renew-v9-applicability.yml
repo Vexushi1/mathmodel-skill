@@ -1,0 +1,33 @@
+name: I4a exact applicability renewal
+
+on:
+  push:
+    branches:
+      - "refactor/v900-phase-i-i4a-v9-applicability"
+
+permissions:
+  contents: read
+
+jobs:
+  renew:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Apply exact protected baseline patch
+        run: python scripts/_i4a_rebaseline_protected.py
+      - name: Commit characterization update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/test_v830_editable_mechanism_diagram.py
+          git diff --cached --quiet && { echo "No changes produced"; exit 1; }
+          git commit -m "test: rebaseline v9 applicability authority hashes"
+          git push
