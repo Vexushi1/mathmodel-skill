@@ -1,6 +1,6 @@
-schema_version: 1.1.0
+schema_version: 1.2.0
 baseline_skill_version: 8.9.0
-baseline_main_commit: c8687dd89d3b90fd288d9d375c0341e2750cf510
+baseline_main_commit: e7a5f45fe5bbd96db03b49c6e993b26af10f55ae
 parent_plan: docs/semantic_state_runtime_refactor_plan.md
 migration_contract_document: docs/v900_migration_contract.md
 
@@ -34,9 +34,13 @@ artifact_compatibility:
   legacy_validated_hash_fallback: validated_model_hash
   alias_conflict_policy: blocking
   legacy_new_write_supported: false
+  active_state_schema_accepts_legacy_aliases: false
+  historical_adapter_supported: true
+  historical_adapter: scripts/artifact_identity.py
+  migration_scope: pre_schema_historical_audit_or_migration_only
 
 migration_contract:
-  status: draft_pre_destructive
+  status: phase_i_i3b_artifact_state_surface_removal
   historical_read_only_supported: true
   legacy_reentry_requires_structured_identity: true
   legacy_reentry_requires_explicit_human_approval: true
@@ -47,6 +51,7 @@ migration_contract:
     model_hash_to_primary_code_fallback: allowed_when_canonical_missing
     validated_model_hash_to_primary_code_fallback: allowed_when_canonical_missing
     stale_model_layer_to_primary_code: allowed
+  automatic_migration_scope: pre_schema_historical_adapter_only
   forbidden_automatic_migrations:
     semantic_hash_to_semantic_identity_hash: true
     validated_semantic_hash_to_validated_semantic_identity_hash: true
@@ -55,12 +60,13 @@ migration_contract:
     synthesize_human_approval: true
     legacy_fallback_when_structured_identity_partial: true
   initial_v9_historical_reader_policy: narrow_read_only_adapter
-  destructive_legacy_write_retirement_authorized: false
+  destructive_legacy_write_retirement_authorized: true
 
 phase_i_gates:
   stable_compatibility_window_closed: true
   migration_fixture_baseline_present: true
   migration_fixtures_green_on_v890_baseline: true
-  all_legacy_writers_stopped: false
-  user_approved_end_v8_write_compatibility: false
+  all_legacy_writers_stopped: true
+  user_approved_end_v8_write_compatibility: true
+  artifact_active_schema_aliases_removed: true
   final_migration_document_complete: false
