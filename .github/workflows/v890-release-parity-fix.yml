@@ -1,0 +1,51 @@
+name: v8.9.0 release parity fix
+
+on:
+  push:
+    branches:
+      - upgrade/v890-stable-compat-checkpoint
+    paths:
+      - .github/workflows/v890-release-parity-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix-release-parity:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Patch omitted release-bound version fields
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          runtime = Path("core/writing_runtime_contract.yaml")
+          text = runtime.read_text(encoding="utf-8")
+          old = "version: 8.7.4\n"
+          if text.count(old) != 1 or not text.startswith(old):
+              raise SystemExit("writing_runtime current-version assertion failed")
+          runtime.write_text(text.replace(old, "version: 8.9.0\n", 1), encoding="utf-8")
+
+          fixture = Path("tests/fixtures/v900_phase_i_migration_matrix.yaml")
+          text = fixture.read_text(encoding="utf-8")
+          old = "baseline_skill_version: 8.7.4\n"
+          if text.count(old) != 1:
+              raise SystemExit("Phase I fixture baseline assertion failed")
+          fixture.write_text(text.replace(old, "baseline_skill_version: 8.9.0\n", 1), encoding="utf-8")
+          PY
+      - name: Commit parity fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add core/writing_runtime_contract.yaml tests/fixtures/v900_phase_i_migration_matrix.yaml
+          git commit -m "release: align v8.9.0 runtime and migration baselines"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin HEAD:"${GITHUB_REF_NAME}"
