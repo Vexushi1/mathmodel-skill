@@ -98,7 +98,7 @@ class TestSchemas(unittest.TestCase):
         self.assertEqual(runtime["numerical_evidence_checker"], "scripts/validate_numerical_evidence.py")
         self.assertEqual(runtime["numerical_evidence_authority"], "core/numerical_verification_contract.yaml")
         self.assertIn("objective_profiles", schema["solution_workbook"])
-        self.assertIn("structure_profiles", schema["result_analysis_workbook"])
+        self.assertIn("structure_profiles", schema["solution_workbook"])
         self.assertIn("主结果质量门", schema["solution_workbook"]["common_required_sheets"])
         self.assertIn("运行配置", schema["solution_workbook"]["common_required_sheets"])
         quality = schema["solution_workbook"]["common_required_sheets"]["主结果质量门"]
