@@ -1,0 +1,19 @@
+status: failed
+delivery_scope: design
+formal_delivery_scope: false
+write: false
+strict: false
+preprocessing_decision: null
+data_hash_mode: fallback_scan
+data_hash: null
+framework_hash: null
+questions: {}
+stale_questions: []
+stale_paper_fragments: []
+state_transitions: []
+dependency_cycles: []
+issues:
+- '模型论文框架校验: 缺少 模型论文框架.md'
+- '项目状态校验: 缺少 state/project_state.yaml'
+warnings:
+- 项目状态未声明data.sources；data hash使用受限根目录数据文件回退扫描
