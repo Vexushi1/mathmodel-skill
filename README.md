@@ -6,7 +6,7 @@ HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性
 
 v9.0.0 将 Phase I 已完成的兼容清理正式收口到活动 release carrier：I2 已停止 legacy `semantic_hash / validated_semantic_hash` 新写，I3 已移除活动 artifact/state alias 与无独立意义的旧实现字段，I4a 已把仍有效的 governance / subordinate-contract applicability 续期到 v9。L0 历史项目的窄只读 reader 继续保留，不能授权新的模型设计、预处理或主求解代码。
 
-本次 I4b 只把活动 release carrier 从 `8.9.0` 切换为 `9.0.0`，不再改变 Project State、State Transition、Resolver、transaction、数值验证、写作运行时或模型审批语义，也不创建 GitHub tag/release。最终 migration/release documentation closure 与最终 release validation 继续由 Phase I I5 完成。
+本次 I4b 只把活动 release carrier 从 `8.9.0` 切换为 `9.0.0`，不再改变 Project State、State Transition、Resolver、transaction、数值验证、写作运行时或模型审批语义。Phase I I5 已完成最终 migration/release documentation closure 与 release validation 记录；当前仓库治理未将 GitHub tag/release 规定为发布必要条件，因此本次 closure 不创建外部 release object。
 
 ## v8.9.0：Stable Compatibility Checkpoint for v9 Migration
 
