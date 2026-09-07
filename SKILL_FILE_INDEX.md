@@ -126,6 +126,7 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
+- `scripts/_i4a_rebaseline_protected.py`
 - `scripts/artifact_fingerprint.py`
 - `scripts/artifact_identity.py`
 - `scripts/audit_latex_project.py`
