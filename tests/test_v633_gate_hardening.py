@@ -101,10 +101,10 @@ def write_state(root: Path, *, status="designed", phase="model_design", stale=Fa
                 "result_summary_status": "stale" if stale else "current" if solved else "pending",
                 "result_summary_anchor": "### Q1" if solved else "",
                 "artifacts_stale": stale,
-                "stale_layers": ["model"] if stale else [],
+                "stale_layers": ["primary_code"] if stale else [],
                 "analysis_methods": ["算法一致性"] if analyzed else [],
-                "artifact_hashes": {"model": "a" * 64} if stale else {},
-                "validated_artifact_hashes": {"model": "b" * 64} if stale else {},
+                "artifact_hashes": {"primary_code": "a" * 64} if stale else {},
+                "validated_artifact_hashes": {"primary_code": "b" * 64} if stale else {},
                 "evidence": ["evidence"] if status in {"validated", "written", "completed"} else [],
                 "optimality_claim": "none",
             }
