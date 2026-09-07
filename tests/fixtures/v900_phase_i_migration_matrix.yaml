@@ -1,0 +1,42 @@
+schema_version: 1.0.0
+baseline_skill_version: 8.7.4
+baseline_main_commit: 9530b0d47946ffe2ae85d814ba398527d65c1c5f
+parent_plan: docs/semantic_state_runtime_refactor_plan.md
+
+cases:
+  L0_historical_read_only:
+    identity_mode: legacy_text_hash
+    runtime_locked_model_status: legacy_review_required
+    locked_model_promoted: false
+    legacy_approval_read_only_allowed: true
+    pre_code_authorized: false
+
+  L1_legacy_reenter_full_solution:
+    identity_mode: legacy_text_hash
+    intent: full_solution
+    expected_pause_state: awaiting_model_approval
+    expected_pause_for_model_approval: true
+    required_module: modules/02_model_design.md
+    forbidden_module: modules/03_solve_validate.md
+    locked_model_promoted: false
+
+  L2_structured_current:
+    identity_mode: semantic_identity_v1
+    runtime_locked_model_status: verified
+    locked_model_promoted: true
+    structured_approval_error_count: 0
+
+artifact_compatibility:
+  legacy_artifact_key: model
+  canonical_artifact_key: primary_code
+  legacy_hash_fallback: model_hash
+  legacy_validated_hash_fallback: validated_model_hash
+  alias_conflict_policy: blocking
+  legacy_new_write_supported: false
+
+phase_i_gates:
+  stable_compatibility_window_closed: false
+  migration_fixture_baseline_present: true
+  all_legacy_writers_stopped: false
+  user_approved_end_v8_write_compatibility: false
+  final_migration_document_complete: false
