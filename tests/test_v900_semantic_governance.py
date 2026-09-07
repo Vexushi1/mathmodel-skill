@@ -150,7 +150,7 @@ class TestV900SemanticGovernance(unittest.TestCase):
         partial["subproblems"]["Q1"]["semantic_identity_hash"] = "b" * 64
         self.assertTrue(list(validator.iter_errors(partial)))
 
-    def test_legacy_framework_keeps_v8_hash_write_path(self):
+    def test_legacy_framework_is_read_only_and_write_requires_sib(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             state = base_state()
@@ -164,12 +164,23 @@ class TestV900SemanticGovernance(unittest.TestCase):
             ):
                 q1.pop(name, None)
             state_path = write_project(root, state, framework(None))
-            report = SEMANTIC.validate_project(root, write=True, strict=True)
-            saved = yaml.safe_load(state_path.read_text(encoding="utf-8"))["subproblems"]["Q1"]
+            before_text = state_path.read_text(encoding="utf-8")
 
-        self.assertEqual(report["status"], "passed", report)
+            historical = SEMANTIC.validate_project(root, write=False, strict=True)
+            report = SEMANTIC.validate_project(root, write=True, strict=True)
+            after_text = state_path.read_text(encoding="utf-8")
+            saved = yaml.safe_load(after_text)["subproblems"]["Q1"]
+
+        self.assertEqual(historical["identity_modes"], {"Q1": "legacy_text_hash"})
+        self.assertEqual(historical["status"], "passed", historical)
+        self.assertEqual(report["status"], "failed", report)
         self.assertEqual(report["identity_modes"], {"Q1": "legacy_text_hash"})
-        self.assertEqual(saved["semantic_hash"], saved["validated_semantic_hash"])
+        self.assertEqual(report["migration_sources"], ["Q1"])
+        self.assertEqual(report["legacy_write_blocked_sources"], ["Q1"])
+        self.assertTrue(any("历史只读兼容" in item and "有效SIB" in item for item in report["issues"]), report)
+        self.assertEqual(before_text, after_text)
+        self.assertNotIn("semantic_hash", saved)
+        self.assertNotIn("validated_semantic_hash", saved)
         self.assertNotIn("semantic_identity_hash", saved)
         self.assertNotIn("semantic_text_hash", saved)
 
@@ -189,6 +200,7 @@ class TestV900SemanticGovernance(unittest.TestCase):
 
         self.assertEqual(migrated["status"], "passed", migrated)
         self.assertEqual(migrated["identity_modes"], {"Q1": "semantic_identity_v1"})
+        self.assertEqual(migrated["legacy_write_blocked_sources"], [])
         self.assertEqual(saved["semantic_identity_schema_version"], "1.0.0")
         self.assertEqual(saved["semantic_identity_hash"], saved["validated_semantic_identity_hash"])
         self.assertEqual(saved["semantic_identity_hash"], migrated["semantic_identity_hashes"]["Q1"])

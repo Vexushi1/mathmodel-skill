@@ -143,6 +143,14 @@ def _revision_change_issues(
     return issues
 
 
+def _legacy_write_issue(question: str) -> str:
+    return (
+        f"{question}: legacy semantic_hash / validated_semantic_hash 已转为历史只读兼容；"
+        "--write 需要当前模型框架提供有效SIB。不得刷新legacy semantic hash；"
+        "建立structured identity后，新的task-code delivery仍必须重新通过Model Challenge与显式Human Approval"
+    )
+
+
 def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]:
     state_path = root / "state" / "project_state.yaml"
     framework_path = root / "模型论文框架.md"
@@ -183,6 +191,7 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
     changed_sources: set[str] = set()
     text_changed_sources: set[str] = set()
     migration_sources: set[str] = set()
+    legacy_write_blocked_sources: set[str] = set()
     inspections: dict[str, dict[str, Any]] = {}
 
     for key, raw_entry in subproblems.items():
@@ -210,13 +219,18 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
         semantic_text_hashes[question] = text_hash
 
         if mode == "legacy_text_hash":
-            # Preserve the v8 contract exactly for framework sections without SIB.
+            # Legacy Markdown hashes remain historical provenance only. Read/diagnose them,
+            # but active writes must migrate to a current SIB first.
             semantic_hashes[question] = text_hash
             validated_hash = str(entry.get("validated_semantic_hash", "")).strip()
             changed = bool(validated_hash) and validated_hash != text_hash
             if changed:
                 changed_sources.add(question)
             issues.extend(_revision_change_issues(question, entry, changed=changed))
+            if write:
+                legacy_write_blocked_sources.add(question)
+                migration_sources.add(question)
+                issues.append(_legacy_write_issue(question))
             continue
 
         current_identity_hash = str(inspection["semantic_identity_hash"])
@@ -243,7 +257,10 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
                 changed_sources.add(question)
         issues.extend(_revision_change_issues(question, entry, changed=changed))
 
-    transition_state = state if write else deepcopy(state)
+    # A legacy/no-SIB question blocks the entire write transaction. Transition
+    # diagnostics still run on a copy so mixed projects cannot be half-migrated.
+    write_allowed = write and not legacy_write_blocked_sources
+    transition_state = state if write_allowed else deepcopy(state)
     transition_reports: list[dict[str, Any]] = []
     for key in sorted(changed_sources):
         transition_entry = ((transition_state.get("subproblems") or {}).get(key) or {})
@@ -270,13 +287,13 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
         warnings.append("检测到跨问依赖环: " + "; ".join(dependency_cycles))
 
     stale_fragments: list[str] = []
-    if write and changed_sources:
+    if write_allowed and changed_sources:
         paper_framework = state.setdefault("paper_framework", {})
         stale_fragments = _mark_paper_fragments_stale(paper_framework, affected)
         # sync_status means the framework/state record is synchronized, not that every fragment is current.
         paper_framework["sync_status"] = "current"
 
-    if write:
+    if write_allowed:
         for key, inspection in inspections.items():
             entry = subproblems.get(key)
             if not isinstance(entry, dict):
@@ -284,22 +301,7 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
             mode = str(inspection["mode"])
             text_hash = str(inspection["semantic_text_hash"])
             if mode == "legacy_text_hash":
-                entry["semantic_hash"] = text_hash
-                current_hash = text_hash
-                prior_validated = str(entry.get("validated_semantic_hash", "")).strip()
-                hash_changed = bool(prior_validated) and prior_validated != current_hash
-                if not _gate_issues(key, entry):
-                    revision = entry.get("semantic_revision")
-                    validated_revision = entry.get("validated_semantic_revision")
-                    revision_ok = not hash_changed or (
-                        isinstance(revision, int)
-                        and (not isinstance(validated_revision, int) or revision > validated_revision)
-                    )
-                    categories = set(entry.get("semantic_change_categories", []) or [])
-                    category_ok = not hash_changed or bool(categories - {"initial_design"})
-                    if revision_ok and category_ok:
-                        entry["validated_semantic_hash"] = current_hash
-                        entry["validated_semantic_revision"] = revision
+                # write_allowed guarantees this branch is unreachable for active legacy state.
                 continue
 
             current_identity_hash = str(inspection["semantic_identity_hash"])
@@ -334,6 +336,7 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
         "semantic_identity_hashes": semantic_identity_hashes,
         "semantic_text_hashes": semantic_text_hashes,
         "migration_sources": sorted(migration_sources),
+        "legacy_write_blocked_sources": sorted(legacy_write_blocked_sources),
         "text_changed_sources": sorted(text_changed_sources),
         "changed_sources": sorted(changed_sources),
         "affected_questions": sorted(affected),

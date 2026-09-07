@@ -7,6 +7,8 @@ from pathlib import Path
 
 import yaml
 
+from tests.test_v900_semantic_governance import framework, identity_payload
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -124,15 +126,11 @@ class ModelApprovalSemanticInvalidationTests(unittest.TestCase):
     def setUp(self):
         self.semantic = load_semantic_governance()
 
-    def test_semantic_change_marks_challenge_and_human_approval_stale(self):
+    def test_structured_semantic_change_marks_challenge_and_human_approval_stale(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root / "state").mkdir()
-
-            old_scope = "#### 当前模型口径\n\n目标：旧目标"
-            new_scope = "#### 当前模型口径\n\n目标：新目标"
-            old_hash = self.semantic.sha256_text(old_scope)
-
+            state_path = root / "state" / "project_state.yaml"
             state = {
                 "semantic_governance_version": "1.0.0",
                 "subproblems": {
@@ -142,32 +140,45 @@ class ModelApprovalSemanticInvalidationTests(unittest.TestCase):
                         "semantic_closure_status": "passed",
                         "complexity_sanity_status": "passed",
                         "complexity_sanity_flags": [],
-                        "semantic_revision": 2,
-                        "validated_semantic_revision": 1,
-                        "semantic_change_categories": ["objective"],
-                        "semantic_hash": old_hash,
-                        "validated_semantic_hash": old_hash,
+                        "semantic_revision": 1,
+                        "semantic_change_categories": ["initial_design"],
                         "model_challenge_status": "passed",
                         "human_model_approval_status": "approved",
                         "approved_semantic_revision": 1,
-                        "approved_semantic_hash": old_hash,
                         "result_quality_status": "passed",
                         "result_analysis_status": "passed",
                         "validation_status": "passed",
                         "result_summary_status": "current",
                         "depends_on": [],
+                        "artifacts_stale": False,
+                        "stale_layers": [],
                     }
                 },
                 "paper_framework": {"paper_fragments": [], "sync_status": "current"},
             }
-            (root / "state" / "project_state.yaml").write_text(
-                yaml.safe_dump(state, allow_unicode=True, sort_keys=False),
-                encoding="utf-8",
+            state_path.write_text(
+                yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8"
             )
             (root / "模型论文框架.md").write_text(
-                "# 模型论文框架\n\n### Q1：测试\n\n"
-                + new_scope
-                + "\n\n#### 结果摘要\n\n待更新\n",
+                framework(identity_payload()), encoding="utf-8"
+            )
+
+            first = self.semantic.validate_project(root, write=True, strict=True)
+            self.assertEqual(first["status"], "passed", first)
+            state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+            q1 = state["subproblems"]["Q1"]
+            old_identity = q1["semantic_identity_hash"]
+            q1["approved_semantic_identity_hash"] = old_identity
+            q1["approved_semantic_revision"] = 1
+            q1["model_challenge_status"] = "passed"
+            q1["human_model_approval_status"] = "approved"
+            q1["semantic_revision"] = 2
+            q1["semantic_change_categories"] = ["objective"]
+            state_path.write_text(
+                yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8"
+            )
+            (root / "模型论文框架.md").write_text(
+                framework(identity_payload(objective_expression="sum_i (c_i + 1) * x_i")),
                 encoding="utf-8",
             )
 
@@ -175,12 +186,13 @@ class ModelApprovalSemanticInvalidationTests(unittest.TestCase):
             self.assertEqual(report["status"], "passed", report)
             self.assertEqual(report["changed_sources"], ["Q1"])
 
-            updated = yaml.safe_load((root / "state" / "project_state.yaml").read_text(encoding="utf-8"))
+            updated = yaml.safe_load(state_path.read_text(encoding="utf-8"))
             q1 = updated["subproblems"]["Q1"]
             self.assertEqual(q1["model_challenge_status"], "stale")
             self.assertEqual(q1["human_model_approval_status"], "stale")
             self.assertEqual(q1["approved_semantic_revision"], 1)
-            self.assertEqual(q1["approved_semantic_hash"], old_hash)
+            self.assertEqual(q1["approved_semantic_identity_hash"], old_identity)
+            self.assertNotEqual(q1["semantic_identity_hash"], old_identity)
             self.assertIn("primary_code", q1["stale_layers"])
             self.assertTrue(q1["artifacts_stale"])
 

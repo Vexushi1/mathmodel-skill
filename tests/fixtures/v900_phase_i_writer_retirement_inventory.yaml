@@ -1,38 +1,40 @@
-schema_version: 1.0.0
+schema_version: 1.1.0
 baseline_skill_version: 8.9.0
-baseline_main_commit: c2da692299e01463f3a2a657c25d9bc9c69dca90
+baseline_main_commit: f4b5bff59f77c45d53b1199e3b5d8f9b4d5620ce
 parent_plan: docs/semantic_state_runtime_refactor_plan.md
 migration_contract: docs/v900_migration_contract.md
 readiness_document: docs/phase_i_legacy_writer_retirement_readiness.md
+implementation_document: docs/phase_i_legacy_writer_retirement.md
 
 scope:
-  phase: I2_readiness
-  runtime_change_authorized: false
-  destructive_compatibility_removal_authorized: false
+  phase: I2_writer_retirement
+  runtime_change_authorized: true
+  legacy_writer_retirement_authorized: true
   gate5_explicit_user_confirmation_required: true
+  gate5_explicit_user_confirmation_recorded: true
+  delete_legacy_fields: false
+  artifact_alias_cleanup_in_scope: false
+  bump_skill_version: false
 
 legacy_semantic_fields:
   semantic_hash:
     role: legacy_current_markdown_semantic_scope_hash
-    active_writer: true
-    writer_file: scripts/validate_semantic_governance.py
-    writer_function: validate_project
-    writer_identity_mode: legacy_text_hash
-    writer_requires_write_true: true
-    retirement_target: stop_active_write_keep_historical_read
-    schema_current_mode: read_write_for_no_sib
+    active_writer: false
+    historical_read: true
+    retired_writer_file: scripts/validate_semantic_governance.py
+    retirement_behavior: write_true_requires_current_sib
+    schema_current_mode: historical_read_only
   validated_semantic_hash:
     role: legacy_validated_markdown_semantic_scope_hash
-    active_writer: true
-    writer_file: scripts/validate_semantic_governance.py
-    writer_function: validate_project
-    writer_identity_mode: legacy_text_hash
-    writer_requires_write_true: true
-    retirement_target: stop_active_write_keep_historical_read
-    schema_current_mode: read_write_for_no_sib
+    active_writer: false
+    historical_read: true
+    retired_writer_file: scripts/validate_semantic_governance.py
+    retirement_behavior: write_true_requires_current_sib
+    schema_current_mode: historical_read_only
   approved_semantic_hash:
     role: legacy_human_approval_provenance
     active_writer: false
+    historical_read: true
     retirement_target: keep_narrow_historical_read
     schema_current_mode: read_only_compatibility
 
@@ -63,37 +65,48 @@ historical_readers_to_preserve_through_initial_v9:
 
 current_schema_contract:
   file: core/project_state.schema.yaml
-  semantic_hash_description_contains: 无SIB项目继续兼容读取/写入
-  validated_semantic_hash_description_contains: 无SIB项目继续兼容读取/写入
+  semantic_hash_description_contains: 仅历史只读兼容
+  validated_semantic_hash_description_contains: 仅历史只读兼容
+  semantic_hash_description_forbids_active_writer: 活动代码不得写入
+  validated_semantic_hash_description_forbids_active_writer: 活动代码不得写入
   approved_semantic_hash_description_contains: 只读兼容
   model_hash_description_contains: 活动代码无writer
   validated_model_hash_description_contains: 活动代码无writer
 
-future_i2_implementation_sequence:
-  - add_pre_change_characterization_for_no_sib_write_mode
-  - require_explicit_gate5_user_confirmation
-  - stop_semantic_hash_and_validated_semantic_hash_active_writes
-  - update_schema_from_no_sib_read_write_to_historical_read_only_or_remove_active_property_as_decided
-  - preserve_l0_historical_read_adapter
-  - keep_l1_reentry_fail_closed_until_structured_identity_and_explicit_approval
-  - rerun_code_search_and_prove_no_active_legacy_semantic_writer
-  - update_migration_notes_and_gate_snapshot
+runtime_behavior:
+  historical_read:
+    write: false
+    legacy_identity_mode_allowed: true
+    state_mutation: false
+  active_legacy_write:
+    write: true
+    legacy_identity_mode_allowed: false
+    fail_closed: true
+    required_migration: current_valid_sib
+    entire_semantic_transaction_blocked: true
+    auto_create_sib: false
+    auto_copy_legacy_hash_to_structured: false
+    auto_inherit_human_approval: false
+  structured_write:
+    write: true
+    semantic_identity_mode: semantic_identity_v1
+    remains_supported: true
 
-forbidden_in_readiness_pr:
-  - modify_scripts
-  - modify_core_authority
-  - modify_project_state_schema
-  - stop_legacy_writer
+forbidden_in_i2_implementation_pr:
   - delete_legacy_field
   - remove_historical_reader
+  - delete_model_hash_aliases
+  - delete_artifact_hashes_model
+  - delete_stale_model_alias
   - modify_compatibility_range
-  - infer_gate5_from_continue_instruction
   - bump_skill_version
+  - auto_create_sib
+  - auto_inherit_human_approval
 
-phase_i_gates_after_readiness:
+phase_i_gates_after_i2:
   stable_compatibility_window_closed: true
   migration_fixture_baseline_present: true
-  all_legacy_writers_stopped: false
-  code_search_old_refs_only_readers_docs: false
-  user_approved_end_v8_write_compatibility: false
+  all_targeted_legacy_semantic_writers_stopped: true
+  code_search_old_refs_only_intended_readers_validators_tests_docs: true
+  user_approved_end_v8_write_compatibility: true
   final_migration_document_complete: false

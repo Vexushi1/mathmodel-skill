@@ -152,14 +152,23 @@ class TestV900RefactorCharacterization(unittest.TestCase):
         self.assertIsNotNone(row["actual_sha256"])
         self.assertNotEqual(row["actual_sha256"], state_hash)
 
-    def test_wording_only_framework_edit_currently_changes_semantic_identity(self):
+    def test_legacy_wording_only_framework_edit_still_changes_historical_text_hash(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root / "state").mkdir()
             (root / "模型论文框架.md").write_text(FRAMEWORK, encoding="utf-8")
+            section = SEMANTIC._semantic_scope(
+                SEMANTIC._question_sections(FRAMEWORK)["Q1"]
+            )
+            assert section is not None
+            before = SEMANTIC.sha256_text(section)
+            entry = semantic_subproblem()
+            entry["semantic_hash"] = before
+            entry["validated_semantic_hash"] = before
+            entry["validated_semantic_revision"] = 1
             state = {
                 "semantic_governance_version": "1.0.0",
-                "subproblems": {"Q1": semantic_subproblem()},
+                "subproblems": {"Q1": entry},
             }
             state_path = root / "state" / "project_state.yaml"
             state_path.write_text(
@@ -167,23 +176,17 @@ class TestV900RefactorCharacterization(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            first = SEMANTIC.validate_project(root, write=True, strict=True)
-            self.assertEqual(first["status"], "passed", first)
-            before = yaml.safe_load(state_path.read_text(encoding="utf-8"))["subproblems"]["Q1"][
-                "validated_semantic_hash"
-            ]
-
-            # Punctuation-only prose change inside the current semantic scope.
+            # Punctuation-only prose change inside the current legacy semantic scope.
             changed = (root / "模型论文框架.md").read_text(encoding="utf-8").replace(
                 "- 复审结论：passed", "- 复审结论：passed。"
             )
             (root / "模型论文框架.md").write_text(changed, encoding="utf-8")
             report = SEMANTIC.validate_project(root, write=False, strict=True)
-            section = SEMANTIC._semantic_scope(
+            changed_section = SEMANTIC._semantic_scope(
                 SEMANTIC._question_sections(changed)["Q1"]
             )
-            assert section is not None
-            after = SEMANTIC.sha256_text(section)
+            assert changed_section is not None
+            after = SEMANTIC.sha256_text(changed_section)
 
         self.assertNotEqual(before, after)
         self.assertEqual(report["changed_sources"], ["Q1"])
