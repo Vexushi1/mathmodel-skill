@@ -153,7 +153,7 @@ class PhaseII2WriterRetirementTests(unittest.TestCase):
         self.assertIn("legacy_writer_retirement_authorized: true", IMPLEMENTATION)
         self.assertIn("artifact_alias_removal_in_scope: false", IMPLEMENTATION)
         self.assertIn("legacy_field_deletion_in_scope: false", IMPLEMENTATION)
-        self.assertIn("整个 semantic-governance state write 都不提交", IMPLEMENTATION)
+        self.assertIn("entire semantic-governance state commit = blocked", IMPLEMENTATION)
 
     def test_i2_forbidden_scope_remains_outside_writer_retirement(self):
         forbidden = set(INVENTORY["forbidden_in_i2_implementation_pr"])
