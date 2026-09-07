@@ -66,6 +66,7 @@
 - `docs/phase_e_artifact_identity_inventory.md`
 - `docs/phase_f_transaction_writer_inventory.md`
 - `docs/phase_i_artifact_alias_retirement.md`
+- `docs/phase_i_artifact_state_surface_removal.md`
 - `docs/phase_i_compatibility_inventory.md`
 - `docs/phase_i_compatibility_removal_readiness.md`
 - `docs/phase_i_legacy_writer_retirement.md`
