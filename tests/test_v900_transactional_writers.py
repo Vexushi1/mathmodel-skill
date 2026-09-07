@@ -18,6 +18,7 @@ import project_transaction as TX
 import validate_code_delivery as CODE
 import validate_semantic_governance as SEMANTIC
 from tests.test_sync_project import load_syncer, setup_project
+from tests.test_v900_semantic_governance import framework, identity_payload
 
 
 class TransactionalWriterContractTests(unittest.TestCase):
@@ -80,12 +81,10 @@ class TransactionalWriterContractTests(unittest.TestCase):
             )
             self.assertFalse((root / TX.JOURNAL_RELATIVE_PATH).exists())
 
-    def test_semantic_governance_write_advances_generation(self):
+    def test_semantic_governance_structured_write_advances_generation(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "state").mkdir()
-            scope = "#### 当前模型口径\n\n目标：保持当前模型"
-            digest = SEMANTIC.sha256_text(scope)
             state = {
                 "semantic_governance_version": "1.0.0",
                 "project": {
@@ -101,10 +100,7 @@ class TransactionalWriterContractTests(unittest.TestCase):
                         "complexity_sanity_status": "passed",
                         "complexity_sanity_flags": [],
                         "semantic_revision": 1,
-                        "validated_semantic_revision": 1,
                         "semantic_change_categories": ["initial_design"],
-                        "semantic_hash": digest,
-                        "validated_semantic_hash": digest,
                         "result_quality_status": "pending",
                         "result_analysis_status": "pending",
                         "result_summary_status": "pending",
@@ -117,13 +113,15 @@ class TransactionalWriterContractTests(unittest.TestCase):
                 yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8"
             )
             (root / "模型论文框架.md").write_text(
-                "# 模型论文框架\n\n### Q1：测试\n\n" + scope + "\n",
-                encoding="utf-8",
+                framework(identity_payload()), encoding="utf-8"
             )
             report = SEMANTIC.validate_project(root, write=True, strict=True)
             self.assertEqual(report["status"], "passed", report)
+            self.assertEqual(report["legacy_write_blocked_sources"], [])
             updated = yaml.safe_load((root / "state/project_state.yaml").read_text(encoding="utf-8"))
             self.assertEqual(updated["project"]["state_generation"], 1)
+            self.assertIn("semantic_identity_hash", updated["subproblems"]["Q1"])
+            self.assertNotIn("semantic_hash", updated["subproblems"]["Q1"])
             self.assertFalse((root / TX.JOURNAL_RELATIVE_PATH).exists())
 
     def test_repeated_sync_is_transition_idempotent_and_generation_monotonic(self):

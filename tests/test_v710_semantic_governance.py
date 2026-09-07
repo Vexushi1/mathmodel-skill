@@ -103,6 +103,25 @@ class SemanticGovernanceTests(unittest.TestCase):
     def read_state(self, root: Path):
         return yaml.safe_load((root / "state" / "project_state.yaml").read_text(encoding="utf-8"))
 
+    def seed_legacy_hashes(self, root: Path) -> dict[str, str]:
+        state = self.read_state(root)
+        framework_text = (root / "模型论文框架.md").read_text(encoding="utf-8")
+        sections = SEMANTIC._question_sections(framework_text)
+        hashes: dict[str, str] = {}
+        for key in ("Q1", "Q2", "Q3"):
+            scope = SEMANTIC._semantic_scope(sections[key])
+            assert scope is not None
+            digest = SEMANTIC.sha256_text(scope)
+            hashes[key] = digest
+            entry = state["subproblems"][key]
+            entry["semantic_hash"] = digest
+            entry["validated_semantic_hash"] = digest
+            entry["validated_semantic_revision"] = entry["semantic_revision"]
+        (root / "state" / "project_state.yaml").write_text(
+            yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8"
+        )
+        return hashes
+
     def test_missing_problem_freeze_blocks_gate(self):
         temp, root = self.make_project()
         self.addCleanup(temp.cleanup)
@@ -128,21 +147,30 @@ class SemanticGovernanceTests(unittest.TestCase):
         self.assertEqual(report["status"], "failed")
         self.assertTrue(any("complexity_sanity_status" in item for item in report["issues"]))
 
-    def test_first_valid_run_accepts_semantic_hashes(self):
+    def test_first_valid_legacy_write_requires_sib_and_does_not_backfill_hashes(self):
         temp, root = self.make_project()
         self.addCleanup(temp.cleanup)
+        state_path = root / "state" / "project_state.yaml"
+        before = state_path.read_text(encoding="utf-8")
+        historical = SEMANTIC.validate_project(root, write=False, strict=True)
         report = SEMANTIC.validate_project(root, write=True, strict=True)
-        self.assertEqual(report["status"], "passed")
+        after = state_path.read_text(encoding="utf-8")
+
+        self.assertEqual(historical["status"], "passed", historical)
+        self.assertEqual(report["status"], "failed", report)
+        self.assertEqual(report["legacy_write_blocked_sources"], ["Q1", "Q2", "Q3"])
+        self.assertEqual(report["migration_sources"], ["Q1", "Q2", "Q3"])
+        self.assertTrue(any("有效SIB" in item for item in report["issues"]), report)
+        self.assertEqual(before, after)
         state = self.read_state(root)
         for key in ("Q1", "Q2", "Q3"):
-            self.assertEqual(len(state["subproblems"][key]["validated_semantic_hash"]), 64)
-            self.assertEqual(state["subproblems"][key]["validated_semantic_revision"], 1)
+            self.assertNotIn("semantic_hash", state["subproblems"][key])
+            self.assertNotIn("validated_semantic_hash", state["subproblems"][key])
 
-    def test_semantic_change_propagates_stale_through_dependency_chain(self):
+    def test_semantic_change_reports_dependency_stale_but_legacy_write_is_transactionally_blocked(self):
         temp, root = self.make_project()
         self.addCleanup(temp.cleanup)
-        first = SEMANTIC.validate_project(root, write=True, strict=True)
-        self.assertEqual(first["status"], "passed")
+        self.seed_legacy_hashes(root)
 
         framework = (root / "模型论文框架.md").read_text(encoding="utf-8")
         framework = framework.replace("- 目标：min f(x)", "- 目标：min f(x)+lambda*r(x)")
@@ -153,25 +181,33 @@ class SemanticGovernanceTests(unittest.TestCase):
         (root / "state" / "project_state.yaml").write_text(
             yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8"
         )
+        state_path = root / "state" / "project_state.yaml"
+        before_write = state_path.read_text(encoding="utf-8")
 
-        report = SEMANTIC.validate_project(root, write=True, strict=True)
-        self.assertEqual(report["status"], "passed")
-        self.assertEqual(report["changed_sources"], ["Q1"])
-        self.assertEqual(report["affected_questions"], ["Q1", "Q2", "Q3"])
+        diagnostic = SEMANTIC.validate_project(root, write=False, strict=True)
+        blocked = SEMANTIC.validate_project(root, write=True, strict=True)
+        after_write = state_path.read_text(encoding="utf-8")
 
-        state = self.read_state(root)
+        self.assertEqual(diagnostic["status"], "passed", diagnostic)
+        self.assertEqual(diagnostic["changed_sources"], ["Q1"])
+        self.assertEqual(diagnostic["affected_questions"], ["Q1", "Q2", "Q3"])
+        self.assertEqual(blocked["status"], "failed", blocked)
+        self.assertEqual(blocked["legacy_write_blocked_sources"], ["Q1", "Q2", "Q3"])
+        self.assertEqual(before_write, after_write)
+
+        persisted = self.read_state(root)
         for key in ("Q1", "Q2", "Q3"):
-            entry = state["subproblems"][key]
-            self.assertTrue(entry["artifacts_stale"])
-            self.assertEqual(entry["result_quality_status"], "pending")
-            self.assertEqual(entry["result_analysis_status"], "pending")
-            self.assertEqual(entry["result_summary_status"], "stale")
-        self.assertEqual(state["subproblems"]["Q1"]["validated_semantic_revision"], 2)
+            entry = persisted["subproblems"][key]
+            self.assertFalse(entry["artifacts_stale"])
+            self.assertEqual(entry["result_quality_status"], "passed")
+            self.assertEqual(entry["result_analysis_status"], "passed")
+            self.assertEqual(entry["result_summary_status"], "current")
+        self.assertEqual(persisted["subproblems"]["Q1"]["validated_semantic_revision"], 1)
 
     def test_semantic_change_without_revision_increment_fails(self):
         temp, root = self.make_project()
         self.addCleanup(temp.cleanup)
-        self.assertEqual(SEMANTIC.validate_project(root, write=True, strict=True)["status"], "passed")
+        self.seed_legacy_hashes(root)
         framework = (root / "模型论文框架.md").read_text(encoding="utf-8")
         framework = framework.replace("- 目标：min f(x)", "- 目标：max f(x)")
         (root / "模型论文框架.md").write_text(framework, encoding="utf-8")
