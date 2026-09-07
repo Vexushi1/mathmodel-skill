@@ -118,6 +118,7 @@
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
+- `scripts/artifact_fingerprint.py`
 - `scripts/artifact_identity.py`
 - `scripts/audit_latex_project.py`
 - `scripts/audit_paper_prose.py`
@@ -129,6 +130,7 @@
 - `scripts/lint_skill.py`
 - `scripts/lint_skill_checks.py`
 - `scripts/prepare_cumcm_class.py`
+- `scripts/project_snapshot.py`
 - `scripts/project_transaction.py`
 - `scripts/render_paper.py`
 - `scripts/resolve_runtime.py`
@@ -230,6 +232,7 @@
 - `templates/writing/docx_check.md`
 - `tests/fixtures/model_construction_solution_cases.yaml`
 - `tests/fixtures/phase_g_cumcm_runtime_golden.yaml`
+- `tests/fixtures/v900_phase_h_empty_sync_golden.yaml`
 - `tests/fixtures/writing_capability_preflight_cases.yaml`
 - `tests/fixtures/writing_reasoning_cases.yaml`
 - `tests/fixtures/writing_reasoning_voice_cases.yaml`
@@ -327,6 +330,7 @@
 - `tests/test_v874_active_authority_hygiene.py`
 - `tests/test_v900_artifact_identity.py`
 - `tests/test_v900_phase_g_competition_runtime.py`
+- `tests/test_v900_phase_h_sync_split.py`
 - `tests/test_v900_project_transaction.py`
 - `tests/test_v900_refactor_characterization.py`
 - `tests/test_v900_semantic_governance.py`
