@@ -78,6 +78,7 @@
 - `docs/v871_writing_reasoning_schema_version_policy.md`
 - `docs/v8_writing_capability_inventory.md`
 - `docs/v8_writing_migration.md`
+- `docs/v900_migration_contract.md`
 - `legacy/README.md`
 - `modules/01_problem_audit.md`
 - `modules/02_model_design.md`
