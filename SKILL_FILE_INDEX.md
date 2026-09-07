@@ -237,6 +237,7 @@
 - `tests/fixtures/phase_g_cumcm_runtime_golden.yaml`
 - `tests/fixtures/v900_phase_h_empty_sync_golden.yaml`
 - `tests/fixtures/v900_phase_i_migration_matrix.yaml`
+- `tests/fixtures/v900_phase_i_writer_retirement_inventory.yaml`
 - `tests/fixtures/writing_capability_preflight_cases.yaml`
 - `tests/fixtures/writing_reasoning_cases.yaml`
 - `tests/fixtures/writing_reasoning_voice_cases.yaml`
