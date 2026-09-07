@@ -26,13 +26,14 @@ authority_boundary:
 
 compatibility:
   canonical_artifact_layer_names_use_explicit_implementation_identity: true
-  legacy_model_artifact_layer_read_supported: true
-  legacy_model_artifact_layer_maps_to: primary_code
-  legacy_model_artifact_layer_write_supported: false
+  obsolete_implementation_artifact_aliases_in_active_state_supported: false
+  historical_implementation_alias_adapter: scripts/artifact_identity.py
+  historical_implementation_alias_adapter_scope: read_only_audit_or_pre_schema_migration
   model_layer_note: >-
-    Phase E canonicalizes the v8 implementation layer `model` to `primary_code`.
-    The legacy name remains read-compatible only; mathematical model identity is owned by
-    semantic_identity_hash and must never be inferred from an implementation artifact hash.
+    Phase I I3b retires the v8 implementation artifact layer `model` from active Project
+    State and State Transition Authority. Historical files may still be inspected or
+    mechanically normalized before active-state validation through scripts/artifact_identity.py;
+    mathematical model dependency kind `model` remains a distinct semantic dependency type.
   legacy_string_dependency_read_supported: true
   legacy_string_dependency_policy: conservative_full_invalidation
   unknown_dependency_kind_policy: blocking_or_conservative_full_invalidation
@@ -191,4 +192,4 @@ invariants:
 - Unknown or legacy untyped dependencies must never be treated as no-impact.
 - State transition logic must not read or write project files; callers own persistence.
 - The three active stale-producing entrypoints must consume this Authority through scripts/state_transitions.py rather than maintain private stale-layer sets.
-- New transitions must never emit the legacy `model` artifact layer; Phase E canonical implementation layers are `primary_code` and `analysis_code`.
+- New transitions must emit only active Project State artifact layers; implementation layers are `primary_code` and `analysis_code`, never the retired v8 `model` alias.
