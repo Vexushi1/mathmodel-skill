@@ -57,10 +57,11 @@ def _direct_subscript_assignments(path: Path) -> set[str]:
 
 
 class PhaseII2WriterRetirementTests(unittest.TestCase):
-    def test_inventory_is_bound_to_current_stable_release_and_explicit_authorization(self):
+    def test_inventory_remains_bound_to_v890_stable_checkpoint_after_v9_release(self):
         bootstrap = yaml.safe_load(BOOTSTRAP_PATH.read_text(encoding="utf-8"))
-        self.assertEqual(INVENTORY["baseline_skill_version"], bootstrap["skill_version"])
-        self.assertEqual(bootstrap["skill_version"], "8.9.0")
+        self.assertEqual(INVENTORY["baseline_skill_version"], "8.9.0")
+        self.assertEqual(bootstrap["skill_version"], "9.0.0")
+        self.assertNotEqual(INVENTORY["baseline_skill_version"], bootstrap["skill_version"])
 
         scope = INVENTORY["scope"]
         self.assertEqual(scope["phase"], "I2_writer_retirement")

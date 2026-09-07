@@ -33,9 +33,12 @@ class PhaseIV9ApplicabilityTests(unittest.TestCase):
                 self.assertEqual(str(data["skill_compatibility"]), compatibility)
                 self.assertNotIn("<9.0.0", str(data["skill_compatibility"]))
 
-    def test_i4a_does_not_publish_v9_release_carrier(self):
+    def test_i4b_publishes_v9_after_i4a_applicability_renewal(self):
         bootstrap = self.load("core/bootstrap.yaml")
-        self.assertEqual(str(bootstrap["skill_version"]), "8.9.0")
+        self.assertEqual(str(bootstrap["skill_version"]), "9.0.0")
+        i4a_record = (ROOT / "docs/phase_i_v9_applicability_renewal.md").read_text(encoding="utf-8")
+        self.assertIn("当前 Skill release carrier 仍为 `8.9.0`", i4a_record)
+        self.assertIn("I4b 才处理 current release carriers 从 `8.9.0` 到 `9.0.0`", i4a_record)
 
     def test_historical_pre_i4_records_are_not_rewritten(self):
         historical = (

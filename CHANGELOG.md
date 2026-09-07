@@ -1,6 +1,14 @@
 # Changelog
 
-## Current release: 8.9.0
+## Current release: 9.0.0
+
+- Advanced the formal active release carriers from `8.9.0` to `9.0.0` after the Phase I I2/I3 compatibility-removal work and I4a v9 applicability renewal were merged and validated on `main`.
+- Preserved the intentionally narrow initial-v9 historical readers for L0/read-only projects; retired legacy fields and aliases are not restored as active write or authorization surfaces.
+- Kept Project State, State Transition, Resolver, transaction, numerical verification, writing runtime and Model Approval behavior unchanged in this carrier-only transition.
+- Kept historical Phase-I baselines, migration fixtures and implementation records pinned to the v8.9 compatibility window instead of rewriting their provenance.
+- GitHub tag/release creation plus final migration/release documentation closure remain Phase I I5 work.
+
+## Previous release: 8.9.0
 
 - Published the Phase C–H staged refactor as the final stable v8.x compatibility checkpoint before Phase I destructive removal; release carriers now identify `8.9.0` while the final program target remains `9.0.0`.
 - Preserved the existing v8 compatibility window: no-SIB projects still retain the current legacy semantic-hash write path, artifact/stale aliases remain readable, and no Phase I field/reader removal is performed by this release.
