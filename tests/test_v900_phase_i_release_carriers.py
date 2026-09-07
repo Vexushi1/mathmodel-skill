@@ -21,9 +21,8 @@ class PhaseII4bReleaseCarrierTests(unittest.TestCase):
         self.assertIn(f"# HSK 数学建模模块化工作流 v{EXPECTED}", root_skill)
         self.assertTrue((ROOT / "README.md").read_text(encoding="utf-8").startswith(f"# mathmodel-skill v{EXPECTED}"))
         self.assertTrue((ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8").startswith(f"# HSK Core Policy v{EXPECTED}"))
-        self.assertTrue((ROOT / "CHANGELOG.md").read_text(encoding="utf-8").startswith(f"# Changelog
-
-## Current release: {EXPECTED}"))
+        changelog_lines = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8").splitlines()
+        self.assertEqual(changelog_lines[:3], ["# Changelog", "", f"## Current release: {EXPECTED}"])
         for relative in (
             "core/workflow_router.yaml",
             "core/module_manifest.yaml",
