@@ -1,3 +1,4 @@
+import copy
 import unittest
 from pathlib import Path
 
@@ -42,11 +43,47 @@ class TestSchemas(unittest.TestCase):
         self.assertIn("data_preprocessing", phases)
         self.assertIn("result_analysis", phases)
         self.assertIn("analyzed", statuses)
-        self.assertIn("result_analysis_workbook", defs["artifact_hashes"]["properties"])
-        self.assertIn("primary_code", defs["artifact_hashes"]["properties"])
-        self.assertIn("analysis_code", defs["artifact_hashes"]["properties"])
-        self.assertIn("model", defs["artifact_hashes"]["properties"])  # v8 read compatibility
+        artifact_hash_properties = defs["artifact_hashes"]["properties"]
+        self.assertIn("result_analysis_workbook", artifact_hash_properties)
+        self.assertIn("primary_code", artifact_hash_properties)
+        self.assertIn("analysis_code", artifact_hash_properties)
+        self.assertNotIn("model", artifact_hash_properties)
+        self.assertNotIn("model_hash", fields)
+        self.assertNotIn("validated_model_hash", fields)
+        self.assertNotIn("model", defs["artifact_layer"]["enum"])
         self.assertIn("preprocessing", schema["properties"])
+
+    def test_project_state_rejects_retired_implementation_aliases(self):
+        schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
+        example = yaml.safe_load((ROOT / "state/project_state.example.yaml").read_text(encoding="utf-8"))
+        validator = Draft202012Validator(schema)
+        digest = "a" * 64
+
+        mutations = []
+
+        with_artifact_alias = copy.deepcopy(example)
+        with_artifact_alias["subproblems"]["Q1"]["artifact_hashes"]["model"] = digest
+        mutations.append(with_artifact_alias)
+
+        with_validated_alias = copy.deepcopy(example)
+        with_validated_alias["subproblems"]["Q1"]["validated_artifact_hashes"]["model"] = digest
+        mutations.append(with_validated_alias)
+
+        with_model_hash = copy.deepcopy(example)
+        with_model_hash["subproblems"]["Q1"]["model_hash"] = digest
+        mutations.append(with_model_hash)
+
+        with_validated_model_hash = copy.deepcopy(example)
+        with_validated_model_hash["subproblems"]["Q1"]["validated_model_hash"] = digest
+        mutations.append(with_validated_model_hash)
+
+        with_stale_alias = copy.deepcopy(example)
+        with_stale_alias["subproblems"]["Q1"]["stale_layers"] = ["model"]
+        mutations.append(with_stale_alias)
+
+        for candidate in mutations:
+            with self.subTest(candidate=candidate["subproblems"]["Q1"]):
+                self.assertTrue(list(validator.iter_errors(candidate)))
 
     def test_workbook_schema_has_quality_gate_and_adaptive_analysis(self):
         schema = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_text(encoding="utf-8"))

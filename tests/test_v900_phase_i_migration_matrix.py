@@ -177,6 +177,10 @@ class PhaseIPlanBindingTests(unittest.TestCase):
     def test_fixture_is_bound_to_current_staged_release_and_plan(self):
         bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
         self.assertEqual(MATRIX["baseline_skill_version"], bootstrap["skill_version"])
+        self.assertEqual(
+            MATRIX["baseline_main_commit"],
+            "e7a5f45fe5bbd96db03b49c6e993b26af10f55ae",
+        )
 
         plan = (ROOT / "docs/semantic_state_runtime_refactor_plan.md").read_text(encoding="utf-8")
         self.assertIn("## Phase I — v9.0.0 Compatibility Removal", plan)
@@ -192,11 +196,12 @@ class PhaseIPlanBindingTests(unittest.TestCase):
         self.assertTrue(gates["stable_compatibility_window_closed"])
         self.assertTrue(gates["migration_fixture_baseline_present"])
         self.assertTrue(gates["migration_fixtures_green_on_v890_baseline"])
-        self.assertFalse(gates["all_legacy_writers_stopped"])
-        self.assertFalse(gates["user_approved_end_v8_write_compatibility"])
+        self.assertTrue(gates["all_legacy_writers_stopped"])
+        self.assertTrue(gates["user_approved_end_v8_write_compatibility"])
+        self.assertTrue(gates["artifact_active_schema_aliases_removed"])
         self.assertFalse(gates["final_migration_document_complete"])
 
-    def test_i1_contract_is_explicitly_non_runtime_and_non_destructive(self):
+    def test_i1_contract_remains_non_runtime_historical_baseline(self):
         self.assertIn("runtime_authority: false", MIGRATION_CONTRACT)
         self.assertIn("destructive_compatibility_removal_authorized: false", MIGRATION_CONTRACT)
         self.assertIn("不执行项目文件写入", MIGRATION_CONTRACT)
@@ -219,6 +224,10 @@ class MigrationContractPolicyTests(unittest.TestCase):
             self.assertNotEqual(automatic[key], "forbidden")
 
         self.assertEqual(
+            policy["automatic_migration_scope"],
+            "pre_schema_historical_adapter_only",
+        )
+        self.assertEqual(
             MATRIX["artifact_compatibility"]["alias_conflict_policy"], "blocking"
         )
         self.assertIn("blocking inconsistency", MIGRATION_CONTRACT)
@@ -240,7 +249,7 @@ class MigrationContractPolicyTests(unittest.TestCase):
 
         self.assertTrue(policy["legacy_reentry_requires_structured_identity"])
         self.assertTrue(policy["legacy_reentry_requires_explicit_human_approval"])
-        self.assertFalse(policy["destructive_legacy_write_retirement_authorized"])
+        self.assertTrue(policy["destructive_legacy_write_retirement_authorized"])
         self.assertIn("必须显式 Human Approval", MIGRATION_CONTRACT)
         self.assertIn("partial structured state 必须 fail closed", MIGRATION_CONTRACT)
 
@@ -322,9 +331,13 @@ class LegacyMigrationAcceptanceTests(unittest.TestCase):
 
 
 class ArtifactCompatibilityAcceptanceTests(unittest.TestCase):
-    def test_legacy_artifact_names_are_read_only_aliases(self):
+    def test_legacy_artifact_names_are_pre_schema_read_only_aliases(self):
         config = MATRIX["artifact_compatibility"]
         digest = "a" * 64
+
+        self.assertFalse(config["active_state_schema_accepts_legacy_aliases"])
+        self.assertTrue(config["historical_adapter_supported"])
+        self.assertEqual(config["historical_adapter"], "scripts/artifact_identity.py")
 
         normalized = ARTIFACT_IDENTITY.normalize_artifact_hashes(
             {config["legacy_artifact_key"]: digest}
@@ -345,17 +358,31 @@ class ArtifactCompatibilityAcceptanceTests(unittest.TestCase):
                 }
             )
 
-    def test_stale_model_layer_is_read_only_compatibility(self):
+    def test_state_transition_authority_retires_stale_model_alias(self):
         contract = yaml.safe_load(
             (ROOT / "core/state_transition_contract.yaml").read_text(encoding="utf-8")
         )
         compatibility = contract["compatibility"]
-        self.assertTrue(compatibility["legacy_model_artifact_layer_read_supported"])
-        self.assertEqual(
-            compatibility["legacy_model_artifact_layer_maps_to"],
-            MATRIX["artifact_compatibility"]["canonical_artifact_key"],
+        self.assertFalse(
+            compatibility["obsolete_implementation_artifact_aliases_in_active_state_supported"]
         )
-        self.assertFalse(compatibility["legacy_model_artifact_layer_write_supported"])
+        self.assertEqual(
+            compatibility["historical_implementation_alias_adapter"],
+            MATRIX["artifact_compatibility"]["historical_adapter"],
+        )
+        self.assertEqual(
+            compatibility["historical_implementation_alias_adapter_scope"],
+            "read_only_audit_or_pre_schema_migration",
+        )
+        self.assertNotIn("legacy_model_artifact_layer_read_supported", compatibility)
+        self.assertNotIn("legacy_model_artifact_layer_maps_to", compatibility)
+        self.assertNotIn("legacy_model_artifact_layer_write_supported", compatibility)
+
+        schema = yaml.safe_load(
+            (ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8")
+        )
+        self.assertNotIn("model", schema["$defs"]["artifact_layer"]["enum"])
+        self.assertIn("model", schema["$defs"]["dependency_kind"]["enum"])
 
 
 if __name__ == "__main__":
