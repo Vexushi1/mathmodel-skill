@@ -1,0 +1,213 @@
+name: Retry v9.1 release carriers
+
+on:
+  push:
+    branches:
+      - docs/v9.1-matlab-publication-rendering-plan
+    paths:
+      - .github/workflows/v91-release-carrier-retry.yml
+
+permissions:
+  contents: write
+
+jobs:
+  release-carriers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: docs/v9.1-matlab-publication-rendering-plan
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install validation dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Wait for generated metadata from retry staging commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="docs/v9.1-matlab-publication-rendering-plan"
+          initial="$GITHUB_SHA"
+          for _ in $(seq 1 60); do
+            git fetch origin "$branch"
+            remote="$(git rev-parse "origin/$branch")"
+            if [ "$remote" != "$initial" ]; then
+              echo "Observed refreshed branch head: $remote"
+              git reset --hard "origin/$branch"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Generated metadata refresh did not advance the branch" >&2
+          exit 1
+      - name: Apply deterministic 9.1.0 carrier transition
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(relative: str, old: str, new: str) -> None:
+              path = Path(relative)
+              text = path.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{relative}: expected one anchor, found {count}: {old!r}")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          replace_once("core/bootstrap.yaml", "skill_version: 9.0.0", "skill_version: 9.1.0")
+          replace_once(".codex-plugin/plugin.json", '"version": "9.0.0"', '"version": "9.1.0"')
+          for relative in ("SKILL.md", "skills/mathmodel-skill/SKILL.md"):
+              replace_once(relative, "version: 9.0.0", "version: 9.1.0")
+              replace_once(relative, "# HSK 数学建模模块化工作流 v9.0.0", "# HSK 数学建模模块化工作流 v9.1.0")
+          replace_once("core/hsk_core_policy.md", "# HSK Core Policy v9.0.0", "# HSK Core Policy v9.1.0")
+          for relative in (
+              "core/workflow_router.yaml",
+              "core/module_manifest.yaml",
+              "core/output_contract.yaml",
+              "core/writing_runtime_contract.yaml",
+              "config/prose_audit_patterns.yaml",
+          ):
+              replace_once(relative, "version: 9.0.0", "version: 9.1.0")
+
+          readme = Path("README.md")
+          text = readme.read_text(encoding="utf-8")
+          if not text.startswith("# mathmodel-skill v9.0.0\n"):
+              raise SystemExit("README current-version heading drifted")
+          text = text.replace("# mathmodel-skill v9.0.0\n", "# mathmodel-skill v9.1.0\n", 1)
+          anchor = "## v9.0.0：Phase I Compatibility Removal & Release Carrier Transition\n"
+          section = """## v9.1.0：MATLAB Publication Rendering\n\nv9.1.0 在不改变 Model Approval、Runtime Assurance、Project State、Workbook、03A/03B 用户执行边界和每问五文件接口的前提下，把 Figure 层升级为更稳定的 publication rendering 实现。`modules/04_figure_evidence.md` 继续是唯一 Figure Authority；新增 Publication Rendering Grammar 只负责选定科学证据结构之后的渲染，不反向决定图型或制造证据。\n\nMATLAB 共享 style kernel 现在提供 `competition_high_contrast`、`journal_balanced`、`monochrome_print` 三个 profile，并统一 open-axis frame、字体层级和语义 palette，同时保留旧 `hsk_apply_scientific_style(fig)` 调用及旧 palette aliases。Figure pattern 库新增 C9--C16 与 Dedicated Legend Tile / Adaptive Canvas / Open-axis 实现模式；`q1_plot.m` 与 `data_process.m` 优先复用共享 helper，同时保留独立运行 fallback，不新增项目级迁移，也不会仅因版本升级把旧 Figure 自动标 stale。\n\nPhase A--F 在 release carrier 切换前已通过完整 Python 3.10--3.14、Static lint、Generated-file contract、三套 LaTeX smoke 与 production LaTeX attestation。CI 不含 MATLAB，因此真实 MATLAB visual smoke 仍属于人工 rendering 验收，不能由静态检查替代。\n\n"""
+          if text.count(anchor) != 1:
+              raise SystemExit("README v9.0 section anchor drifted")
+          readme.write_text(text.replace(anchor, section + anchor, 1), encoding="utf-8")
+
+          changelog = Path("CHANGELOG.md")
+          text = changelog.read_text(encoding="utf-8")
+          old_head = "# Changelog\n\n## Current release: 9.0.0\n\n"
+          new_head = """# Changelog\n\n## Current release: 9.1.0\n\n- Added a Module-04-owned Publication Rendering Grammar for palette profile selection, open-axis publication frames, adaptive canvas/panel geometry, legend strategy, axis/baseline honesty and explicit export policy without creating a second Figure Authority.\n- Extended `hsk_apply_scientific_style.m` with `competition_high_contrast`, `journal_balanced` and `monochrome_print` profiles, semantic palette fields, typography hierarchy and backward-compatible legacy palette aliases.\n- Added C9--C16 publication patterns: Multi-Metric Comparison Strip, Ordered Ablation Ladder, Composition/Decomposition, Evidence Matrix, Milestone-aware Trend, normalized multi-criteria radar, Density/State-Space Evidence and Comparative Performance Matrix, plus Dedicated Legend Tile / Adaptive Canvas / Open-axis implementation references.\n- Consolidated `q1_plot.m` and `data_process.m` around the shared style kernel while retaining a minimal standalone fallback so the existing per-question five-file interface does not gain a hidden sixth-file requirement.\n- Preserved Model Approval, Semantic Governance, Runtime Assurance, Project State/Transaction, Workbook Schema, Numerical Verification, Python 03A/03B boundaries and accepted-workbook numerical truth; pure rendering changes do not create a project migration or automatically stale existing Figures.\n- Passed the complete Phase A--F regression gate before this carrier transition: Generated-file contract, Static contract lint, Python 3.10--3.14, CUMCM/MCM-ICM/Diangong LaTeX smoke and production LaTeX attestation. MATLAB visual smoke remains an explicit manual rendering check when MATLAB is absent from CI.\n- No GitHub Release/tag object is required by current repository governance; release evidence remains the active carriers, Changelog, PR history and validated CI.\n\n## Previous release: 9.0.0\n\n"""
+          if text.count(old_head) != 1:
+              raise SystemExit("CHANGELOG current-release anchor drifted")
+          changelog.write_text(text.replace(old_head, new_head, 1), encoding="utf-8")
+
+          path = Path("tests/test_current_skill_health.py")
+          text = path.read_text(encoding="utf-8")
+          old = '''        self.assertEqual(bootstrap.get("skill_version"), "9.0.0")\n        self.assertEqual(str(plugin.get("version")), "9.0.0")\n        self.assertEqual(root_skill, packaged_skill)\n        self.assertIn("version: 9.0.0", root_skill)\n        self.assertIn("# HSK 数学建模模块化工作流 v9.0.0", root_skill)\n'''
+          new = '''        current = str(bootstrap.get("skill_version"))\n        self.assertEqual(str(plugin.get("version")), current)\n        self.assertEqual(root_skill, packaged_skill)\n        self.assertIn(f"version: {current}", root_skill)\n        self.assertIn(f"# HSK 数学建模模块化工作流 v{current}", root_skill)\n'''
+          if text.count(old) != 1:
+              raise SystemExit("current skill health carrier block drifted")
+          text = text.replace(old, new, 1)
+          old = '        self.assertEqual(str(contract.get("version")), "9.0.0")\n'
+          new = '        current = str(yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))["skill_version"])\n        self.assertEqual(str(contract.get("version")), current)\n'
+          if text.count(old) != 1:
+              raise SystemExit("current skill health output-version assertion drifted")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          path = Path("tests/test_v900_phase_i_release_carriers.py")
+          text = path.read_text(encoding="utf-8")
+          old = 'EXPECTED = "9.0.0"\n'
+          new = 'EXPECTED = str(yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))["skill_version"])\nHISTORICAL_RELEASE = "9.0.0"\n'
+          if text.count(old) != 1:
+              raise SystemExit("v900 release carrier EXPECTED anchor drifted")
+          text = text.replace(old, new, 1)
+          old = '        self.assertIn("runtime_authority: false", record)\n'
+          new = '        self.assertIn("runtime_authority: false", record)\n        self.assertIn(f"target_skill_version: {HISTORICAL_RELEASE}", record)\n'
+          if text.count(old) != 1:
+              raise SystemExit("v900 release record anchor drifted")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          for relative in (
+              "tests/test_v900_phase_i_v9_applicability.py",
+              "tests/test_v900_phase_i_release_closure.py",
+              "tests/test_v900_phase_i_migration_matrix.py",
+              "tests/test_v900_phase_i_writer_retirement_readiness.py",
+          ):
+              path = Path(relative)
+              text = path.read_text(encoding="utf-8")
+              candidates = (
+                  '        self.assertEqual(str(bootstrap["skill_version"]), "9.0.0")\n',
+                  '        self.assertEqual(bootstrap["skill_version"], "9.0.0")\n',
+              )
+              hits = [(old, text.count(old)) for old in candidates if text.count(old)]
+              if len(hits) != 1 or hits[0][1] != 1:
+                  raise SystemExit(f"{relative}: expected exactly one current-bootstrap v9.0 assertion, got {hits}")
+              old = hits[0][0]
+              new = '        self.assertTrue(str(bootstrap["skill_version"]).startswith("9."))\n'
+              path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          path = Path("tests/test_v910_publication_rendering.py")
+          text = path.read_text(encoding="utf-8")
+          anchor = "class TestV910PublicationRendering(unittest.TestCase):\n"
+          method = '''class TestV910PublicationRendering(unittest.TestCase):\n    def test_v910_release_carrier_is_current(self):\n        bootstrap = (ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8")\n        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")\n        self.assertIn("skill_version: 9.1.0", bootstrap)\n        self.assertTrue(changelog.startswith("# Changelog\\n\\n## Current release: 9.1.0\\n"))\n\n'''
+          if text.count(anchor) != 1:
+              raise SystemExit("v910 test class anchor drifted")
+          path.write_text(text.replace(anchor, method, 1), encoding="utf-8")
+          PY
+      - name: Validate carrier tests before metadata regeneration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest \
+            tests.test_v7101_read_path_closure \
+            tests.test_v752_entrypoint_parity \
+            tests.test_current_skill_health \
+            tests.test_v800_writing_runtime \
+            tests.test_v840_author_reasoning_writing \
+            tests.test_v900_phase_i_release_carriers \
+            tests.test_v900_phase_i_v9_applicability \
+            tests.test_v900_phase_i_release_closure \
+            tests.test_v900_phase_i_migration_matrix \
+            tests.test_v900_phase_i_writer_retirement_readiness \
+            tests.test_v910_publication_rendering
+      - name: Remove both temporary maintenance workflows
+        run: |
+          rm .github/workflows/v91-release-carrier.yml
+          rm .github/workflows/v91-release-carrier-retry.yml
+      - name: Regenerate indexes and manifest after self-clean
+        run: python scripts/generate_indexes.py
+      - name: Run lint after generated metadata is current
+        run: python scripts/lint_skill.py
+      - name: Guard scope, commit and push
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import subprocess
+          allowed = {
+              ".codex-plugin/plugin.json",
+              ".github/workflows/v91-release-carrier.yml",
+              ".github/workflows/v91-release-carrier-retry.yml",
+              "CHANGELOG.md", "README.md", "SKILL.md", "skills/mathmodel-skill/SKILL.md",
+              "core/bootstrap.yaml", "core/hsk_core_policy.md", "core/workflow_router.yaml",
+              "core/module_manifest.yaml", "core/output_contract.yaml", "core/writing_runtime_contract.yaml",
+              "config/prose_audit_patterns.yaml",
+              "tests/test_current_skill_health.py", "tests/test_v900_phase_i_release_carriers.py",
+              "tests/test_v900_phase_i_v9_applicability.py", "tests/test_v900_phase_i_release_closure.py",
+              "tests/test_v900_phase_i_migration_matrix.py", "tests/test_v900_phase_i_writer_retirement_readiness.py",
+              "tests/test_v910_publication_rendering.py",
+              "SKILL_FILE_INDEX.md", "TEMPLATE_INDEX.md", "HSK_SKILL_FILE_INDEX_V622.md",
+              "HSK_TEMPLATE_INDEX_V622.md", "MANIFEST.sha256",
+          }
+          changed = set(subprocess.check_output(["git", "diff", "--name-only"], text=True).splitlines())
+          unexpected = sorted(changed - allowed)
+          if unexpected:
+              raise SystemExit(f"unexpected Phase G files: {unexpected}")
+          required = {
+              "core/bootstrap.yaml", "SKILL.md", "skills/mathmodel-skill/SKILL.md",
+              ".codex-plugin/plugin.json", "README.md", "CHANGELOG.md", "core/hsk_core_policy.md",
+              "core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml",
+              "core/writing_runtime_contract.yaml", "config/prose_audit_patterns.yaml",
+          }
+          missing = sorted(required - changed)
+          if missing:
+              raise SystemExit(f"missing Phase G carrier changes: {missing}")
+          print("Phase G changed files:")
+          for item in sorted(changed):
+              print(item)
+          PY
+          python scripts/generate_indexes.py --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "release: publish v9.1.0 MATLAB publication rendering"
+          git push origin HEAD:docs/v9.1-matlab-publication-rendering-plan
