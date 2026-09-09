@@ -30,6 +30,15 @@
 | 红绿等颜色是否未承担唯一语义，并辅以 marker/linestyle/shape |  |  |
 | 是否避免 rainbow/jet 与无序彩虹色图 |  |  |
 | 网格是否默认关闭；确需网格时是否足够浅、稀且位于数据后方 |  |  |
+| Publication palette profile 是否与对象数量、图型密度和输出介质匹配，而非所有图机械使用同一色盘 |  |  |
+| 普通二维数据图是否采用清爽 open-axis / frameless legend；heatmap/3D/polar 等保留 frame 是否有结构理由 |  |  |
+| multi-panel 是否保持同一对象颜色/marker/字号语义一致 |  |  |
+| legend 是否遮挡核心证据；复杂共享 legend 是否评估 shared / dedicated legend tile |  |  |
+| Adaptive Canvas / panel spacing 是否足够容纳标签、legend、annotation、colorbar，且未靠缩小字号硬塞 |  |  |
+| bar / stacked bar 的零基线与 y-range 是否诚实；局部差异是否优先用 dot/zoom/detail 而非误导性截轴 |  |  |
+| heatmap / performance matrix 的 normalization 与 colorbar 是否真实可比较；列内标准化是否明确标注 |  |  |
+| radar 若使用，指标方向、归一化、轴数和对象数是否通过严格准入，且未用 polygon area 作定量结论 |  |  |
+| 需要黑白打印/色觉安全时是否有 marker/linestyle/edge/hatch 等次级编码，红绿未承担唯一语义 |  |  |
 | caption—工作簿—脚本—结论是否已同步到 `模型论文框架.md` |  |  |
 | 是否能绑定正文结论 |  |  |
 | Figure Portfolio Gate 是否检查整篇核心图是否大量退化为基础图型 |  |  |

@@ -177,7 +177,7 @@ class PhaseIPlanBindingTests(unittest.TestCase):
     def test_fixture_remains_bound_to_v890_staging_baseline_after_v9_release(self):
         bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
         self.assertEqual(MATRIX["baseline_skill_version"], "8.9.0")
-        self.assertEqual(bootstrap["skill_version"], "9.0.0")
+        self.assertTrue(str(bootstrap["skill_version"]).startswith("9."))
         self.assertNotEqual(MATRIX["baseline_skill_version"], bootstrap["skill_version"])
         self.assertEqual(
             MATRIX["baseline_main_commit"],

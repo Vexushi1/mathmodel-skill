@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：9.0.0
+当前 Skill 版本：9.1.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -63,6 +63,7 @@
 - `core/writing_reasoning_contract.yaml`
 - `core/writing_runtime_contract.yaml`
 - `docs/main-branch-protection-hardening-plan.md`
+- `docs/matlab_publication_rendering_v91_plan.md`
 - `docs/phase_e_artifact_identity_inventory.md`
 - `docs/phase_f_transaction_writer_inventory.md`
 - `docs/phase_i_artifact_alias_retirement.md`
@@ -357,3 +358,4 @@
 - `tests/test_v900_semantic_identity_surface_closure.py`
 - `tests/test_v900_state_transitions.py`
 - `tests/test_v900_transactional_writers.py`
+- `tests/test_v910_publication_rendering.py`

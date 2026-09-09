@@ -34,9 +34,9 @@
 - 基础布局后按 Figure Enhancement Gate 判断是否需要 Local Zoom、Small Multiples、Focus Highlighting、Semantic Background、Composite Diagnostic 或 Conditional 3D；默认不增强；
 - 一张 Figure 原则上只承担一个一级 Core conclusion / 一级阅读任务；不同 Evidence level 默认不混装，必要联合诊断仍须共享同一 Primary question；
 - 正式论文图不设置整体 `title` / `sgtitle`；DOCX/LaTeX caption 承担正式图号和图名，多面板按需只保留 a/b/c/d 等 panel label；
-- 主结果恢复高对比、中高饱和主色，强比较优先亮蓝 `#1478FF` 与鲜红 `#F04444`；亮绿 `#16B364`、亮橙 `#F79009`、亮紫 `#7A5AF8` 用于实际需要的第三/第四主语义；辅助对象、CI、背景和参考元素使用深灰/浅灰或透明度降权；
+- 数据驱动结果 Figure 的 palette profile、open-axis、legend 与 adaptive canvas 只服从 Module 04 的 Publication Rendering Grammar：少量核心对象默认高对比、中高饱和的 `competition_high_contrast`，密集多方法/多 panel 可用 `journal_balanced`，黑白/色觉安全场景可用 `monochrome_print`；辅助对象、CI、背景和参考元素始终降权；
 - 同一对象和方向性语义在全文保持同色；禁止 rainbow/jet、无序彩虹和所有元素同时高饱和争夺注意力；
-- 默认白底、清晰细轴、字号 18，`grid off`；确需网格时保持浅、稀且位于数据后方；
+- 默认白底、清晰细轴、tick 16 / axis label 18 的层级字号，`grid off`；确需网格时保持浅、稀且位于数据后方；
 - 默认只保留图窗，不创建图表子目录，不自动批量导出。
 
 进入论文阶段后，人工确认并按需导出的正式图片放在项目级 `figures/`。每张图的结论、Evidence level、Primary question、Evidence structure、Figure level、Selected visual structure、Composite encoding、Rendering Profile、布局、Enhancement、源工作簿、工作表、真实表头、脚本、论文 caption 和正文位置登记在 `模型论文框架.md`，不额外生成证据 YAML。

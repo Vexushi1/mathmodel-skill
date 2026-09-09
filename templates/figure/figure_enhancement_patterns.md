@@ -194,6 +194,122 @@ Composite Diagnostic 用多个 axes 围绕同一个统计对象组织证据，�
 - 双 Y 轴默认谨慎，必须在 Figure Contract 说明量纲与为什么单轴/分图更差；
 - 不能用组合柱图掩盖本来存在的时间、分布、空间或多目标结构。
 
+## 6A. Publication Rendering Pattern Library（C9--C16）
+
+本节补充成熟论文图的**实现模式**，不改变 Module 04 的 Figure 决策权。所有 pattern 都必须先通过 Scientific Figure Synthesis、对应 Rendering Profile、Layout 与 Data Honesty Gate。
+
+### C9 Multi-Metric Comparison Strip
+
+适用：同一组方法/方案在 3 个及以上指标上比较，且指标单位或合理量程不同。
+
+```text
+Metric A │ Metric B │ Metric C │ Legend-only tile
+```
+
+实现要点：
+
+- `tiledlayout(1, M + legendTile)`，每个 metric 独立 axes；
+- 所有 panel 使用同一对象顺序、颜色、marker/hatch 语义；
+- x/category label 若完全重复，可只在必要位置显示，不能靠缩小字号硬塞；
+- 每个 y 轴保留真实单位，不使用多重 y-axis 把不同指标挤进一个 panel；
+- shared/dedicated legend 只出现一次；
+- 指标数量过多时优先拆 Figure 或 Evidence Matrix，不无限横向延伸。
+
+### C10 Ordered Ablation Ladder
+
+适用：模型/组件形成真实的有序嵌套序列，例如 baseline → +mechanism → +constraint → full model。
+
+- 采用单 hue 的 lightness/saturation progression 表示递进关系；
+- 误差/区间存在时必须保留 errorbar；
+- 可以 horizontal bar / interval dot；
+- 若候选方法并非嵌套，禁止用深浅暗示“完整度/等级”，改用普通 categorical palette。
+
+### C11 Composition / Decomposition + Print-safe Encoding
+
+适用：份额、概率、成本、能源、资源、流量来源等真实可加和构成。
+
+- 绝对构成使用 stacked bar/area 时保留总量语义；百分比构成仅在分母明确时使用 100% stack；
+- 颜色最多承担一级类别；hatch/edge/linestyle 仅在黑白打印或第二离散语义确有必要时加入；
+- legend 应拆成“颜色语义”和“pattern 语义”两组或 dedicated tile，不做不可读的笛卡尔组合 legend；
+- 分类过多时优先聚合有业务意义的尾部或使用 composition heatmap，不能随机分配十几种颜色。
+
+### C12 Evidence Matrix + Marginal Context
+
+适用：规则二维证据矩阵。
+
+- `imagesc`/`heatmap` 负责连续或标准化主值；
+- cell annotation 只在不会遮挡色块结构且精确值有阅读价值时显示；
+- row/column 的 `n=`、total、baseline 只能来自工作簿真实字段；
+- diverging 数据中心点必须有真实语义（0、基线差、目标差等）；
+- 每列独立标准化时，在 caption/annotation 明确 `within-column normalized`，不能共享一个暗示跨列可比的 colorbar。
+
+### C13 Milestone-aware Trend
+
+适用：时序/连续参数中存在真实事件、阶段或关键里程碑。
+
+推荐层级：
+
+```text
+context trajectory
++ primary line / interval
++ semantic phase band (optional)
++ event/milestone marker
++ 3--5 个关键 annotation
++ Local Zoom (only if needed)
+```
+
+事件线、箭头和阶段背景的时间/阈值必须绑定真实证据；普通采样点不得全部标注。
+
+### C14 Normalized Multi-Criteria Radar
+
+仅作为少量同向标准化指标的辅助综合画像，不是多指标比较默认图。
+
+准入：
+
+- 指标先统一“越大越好/越小越好”的方向；
+- 半径使用清楚定义的 dimensionless normalized score；
+- 通常 5--8 axes、比较对象不超过约 3 个；
+- 原始指标值仍由表格、direct label 或正文提供；
+- 不用多边形面积作为“综合性能更大”的定量证明；
+- 轴多、对象多或精确比较优先 standardized dot / parallel coordinates / heatmap。
+
+MATLAB 可用 `polaraxes` + 闭合曲线实现；若目标 MATLAB 版本/字体支持不足，必须可降级为 standardized dot/heatmap，而不是建立新硬依赖。
+
+### C15 Density / Manifold / State-Space Evidence
+
+适用：Monte Carlo、候选解云、嵌入、状态空间、粒子/轨迹分布。
+
+- 原始/上下文样本以低视觉权重保留；
+- 密度可由 `histcounts2` + `imagesc/pcolor/contour` 等可复现方法表达；
+- 主轨迹/推荐路径/临界状态使用独立高对比语义；
+- density normalization 与 bandwidth/binning 不得改变结论；
+- 点数不高时不要为了“高级”画 density，直接 raw scatter 更诚实。
+
+### C16 Comparative Performance Matrix
+
+适用：method × metric benchmark，同时需要展示原始值与相对 baseline 改善。
+
+推荐：
+
+- 主矩阵显示原始数值或统一可比较的 dimensionless score；
+- best baseline / recommended method 用 edge/marker/annotation，而不是再叠一套高饱和颜色；
+- improvement row/column 使用明确公式（如 relative improvement），并注明 higher/lower-is-better；
+- 不同 metric 若独立归一化，颜色只表达列内排名/相对位置；原始数值文本负责精确比较。
+
+## 6B. Publication Layout Patterns（L1--L3）
+
+### L1 Dedicated Legend Tile
+
+使用 `tiledlayout` 保留一个 `nexttile` 仅承载 legend，`axis off`。适用于共享 legend 很长、双重编码、或 legend 会显著压缩数据 axes 的场景。若 legend ≤3 项且 outside legend 已足够，不使用该模式。
+
+### L2 Adaptive Canvas
+
+画布尺寸由 panel 数、标签长度、legend 复杂度和目标宽高比决定。实现时可以在创建 `figure('Position',...)` 前根据这些离散结构参数选一个有限 profile（single / paired / metric-strip / matrix），不要根据数据值自动无限放大。
+
+### L3 Open-axis Publication Frame
+
+普通二维数据 axes：`Box='off'`、`TickDir='out'`、白底、frameless legend、`grid off`。heatmap/3D/polar/边界图按证据结构保留必要 frame。该模式只控制渲染，不更改 x/y limit 与数据范围。
+
 ## 7. Conditional 3D
 
 3D 仅在第三维有真实含义时使用。

@@ -301,6 +301,76 @@ Figure Enhancement 发生在 Synthesis、Rendering Profile 和基础布局确定
 
 对离散实验点、独立场景点、参数扫描点或迭代记录，**不得仅为了美观使用 spline**、Bezier 等平滑制造新的峰值、谷值或拐点；只有对象本身是连续函数、模型定义连续响应或 Python 已输出连续预测网格时才允许连续平滑。关键标注通常只保留极值、交点、阈值、推荐点等 3--5 个不可替代位置。
 
+## Publication Rendering Grammar：成熟论文图实现层
+
+Scientific Figure Synthesis、Scientific Rendering Profile、Figure Layout 与 Figure Enhancement 决定“应该表达什么”；**Publication Rendering Grammar 只决定选定结构以后怎样稳定渲染成成熟论文图**。它不得反向创造证据、改变 Figure Contract 的 Primary question，也不得成为第二套图型 Authority。
+
+### 1. Palette Profile Selection
+
+数据驱动正式 Figure 在完成对象/语义映射后，从下列 profile 中选择一个起点；profile 是渲染默认值，不是固定主题：
+
+- `competition_high_contrast`：默认 profile。适合 1--3 个核心对象、强对比、评委快速阅读；保留亮蓝 `#1478FF`、鲜红 `#F04444`、亮绿 `#16B364`、亮橙 `#F79009`、亮紫 `#7A5AF8`。真正竞争注意力的高饱和对象仍通常不超过 2--3 个。
+- `journal_balanced`：适合 4--8 个方法、多 panel、多指标、长图例或密集 benchmark。优先使用 navy `#0F4D92`、blue `#3775BA`、green `#8BCF8B`、soft green `#AADCA9`、muted red `#B64342`、soft red `#E9A6A1`、teal `#42949E`、violet `#9A4D8E`、neutral `#CFCECE`，必要焦点可用 `#FFD700`；低权重对象继续灰化/透明化。
+- `monochrome_print`：当黑白打印、色觉安全或投稿格式要求高于彩色区分时使用。主要通过灰阶、marker、linestyle、edge/hatch 与 line weight 区分，颜色不得成为唯一语义。
+
+Profile 选择服从“对象数量 + 语义角色 + 图型密度 + 最终输出介质”，而不是竞赛名称机械绑定。同一 Figure 内不得混用两套互相冲突的 palette grammar；同一对象跨 panel、跨 Figure 的语义颜色必须保持稳定。
+
+### 2. Publication Frame / Typography
+
+普通二维 Cartesian 数据图默认采用 **open-axis publication frame**：白底、上/右边框弱化或隐藏、刻度朝外、轴线清楚但不厚重、无边框 legend、默认 `grid off`。以下情况可保留完整 frame：heatmap / image-like matrix、3D/polar、边界本身具有解释意义、或完整 frame 明显提高坐标判读。
+
+字号采用层级而不是所有文字同大：axis labels > tick labels，legend 与 colorbar 不应比 axis label 更抢眼；panel label 只承担 a/b/c/d 导航。中文字体执行稳定 fallback，不把特定本机字体作为唯一依赖。
+
+### 3. Adaptive Canvas / Panel Geometry
+
+Figure 尺寸由 panel 数量、label 长度、legend 复杂度、metric 数量和阅读方向驱动，不固定为单一 `960×620`：
+
+- 单 panel 保持紧凑标准比例；
+- 2 个强配对 panel 按比较方向扩展宽/高；
+- 3--5 个 metric strip 优先横向扩展；
+- category label 很长时优先增加画布/边距或改横向编码，而不是把字号压到不可读；
+- panel spacing 应紧凑但不得裁剪 tick label、legend、annotation 或 colorbar；
+- ultra-wide 只在同一比较任务确实包含多个并列 metric 时使用，不把不相关图拼成长条。
+
+### 4. Legend Strategy
+
+Legend 先判断搜索成本，再决定位置：
+
+1. 条目少、不会遮挡证据：in-axis / outside legend；
+2. 多 panel 共用对象语义：shared figure legend；
+3. 条目多、双重编码或 legend 会挤压数据区：**Dedicated Legend Tile**，把一个 tile 专门用于方法/状态/marker 语义；
+4. 每个 panel 只有一条主对象曲线且末端空间足够：可使用 direct label，减少反复查 legend。
+
+Dedicated Legend Tile 只解决共享语义与空间冲突，不得成为装饰性空白 panel；若它不能降低视觉搜索成本，应回退 shared legend。
+
+### 5. Publication-ready Chart-family Gates
+
+以下结构进入 MATLAB pattern 时必须同时满足科学含义与渲染准入：
+
+- **Multi-Metric Comparison Strip**：多个指标比较同一组对象、各指标量纲或合理 y-range 不一致；每个 metric 一个 panel，共享对象顺序/颜色，可附 dedicated legend tile。禁止把本应联合成一个量纲的指标无故拆 panel。
+- **Ordered Ablation Ladder**：仅用于真实嵌套/递进模型 $M_0\subset M_1\subset\cdots$；同 hue 的明暗表示“逐步加入”，不能用于彼此独立的方法。
+- **Composition / Decomposition**：stack 必须具有可加和整体；100% composition 应明确总和口径。颜色承担一级类别，hatch/edge 最多再承担一个 print-safe 次级语义。
+- **Evidence Matrix**：适用于对象×指标、场景×方法、阶段×状态等规则矩阵；cell value、row/column sample size 或 margin total 只有来自真实证据时才显示。
+- **Milestone-aware Trend**：event / milestone / phase band 必须来自题面、模型状态或 accepted evidence；不能为叙事效果虚构事件。
+- **Normalized Multi-Criteria Radar**：只允许方向已统一、归一化定义明确的 dimensionless 指标；通常 5--8 轴、少量对象。多对象/多指标时优先 heatmap、standardized dot 或 parallel coordinates；polygon area 不作为定量结论。
+- **Density / State-space Evidence**：context samples、density、trajectory、critical state 必须来自同一状态空间/嵌入空间；density 只辅助揭示结构，不覆盖真实样本与关键状态。
+- **Comparative Performance Matrix**：原始值、best baseline 与 improvement 可以同屏，但若每列独立 normalization，必须明确“颜色只在列内可比”，不得用一个统一 colorbar 暗示跨列绝对可比。
+
+### 6. Axis Range / Baseline Honesty
+
+“成熟”不得通过夸大差异获得：
+
+- bar / stacked bar 的长度承担绝对量比较时，默认保留零基线；若零基线压缩差异，优先 interval dot、slope/dumbbell、Global+Detail 或直接表格，而不是悄悄截断柱形；
+- line / scatter / dot 可以根据真实数据局部范围缩放，但刻度与 caption 必须让尺度透明，必要时保留 overview；
+- 离散实验/场景/扫描点仍不得为美观使用 spline / Bezier 制造新结构；
+- heatmap、radar、density 的 normalization / bandwidth 必须可解释并与 Figure Contract 的统计口径一致。
+
+### 7. Explicit Export Profile
+
+默认行为仍是保留可见图窗、不自动导出。只有用户明确要求正式导出时，优先 vector-first（PDF/SVG/EPS，视 MATLAB/目标格式支持情况），PNG 用于预览或明确要求；普通 raster 以约 300 DPI 为起点，极密集 matrix/bar/scatter 在确有需要时可提高到 600 DPI。导出前必须检查 legend、annotation、tick label 与 colorbar 未被裁剪，不批量生成无用途格式。
+
+具体 MATLAB pattern 与 API 只放在 `templates/figure/figure_enhancement_patterns.md` / `templates/matlab/`；本节只拥有高层渲染准入与诚实性规则。
+
 ## 视觉注意力预算
 
 - 一张 Figure 原则上只有 1 个一级 Core conclusion / 一级阅读任务；
@@ -335,7 +405,7 @@ end
 
 正式论文图不设置整体 `title` 或 `sgtitle`。DOCX/LaTeX caption 承担正式图号、图名与必要统计口径；多面板按需只保留 a/b/c/d 等 panel label，坐标轴、单位、图例、阈值线和必要直接标注用于读图。若本地探索阶段临时加调试标题，进入正式 `figures` 交付前必须移除。
 
-默认白底、清晰细轴、中文坐标轴和单位、字号 18，网格关闭；确需网格时必须浅、稀并置于数据后方。主结果恢复**高对比、中高饱和**科研主色，优先让评委第一眼识别关键对象；辅助元素保持克制。此处高对比科研配色针对数据驱动结果 Figure；A 类正式机理/推导图优先遵循前述 monochrome-first 规则，不自动继承蓝/红/绿/橙/紫主色。
+默认白底、清晰细轴、中文坐标轴和单位；普通二维图采用层级字号，默认 tick label 16、axis label 18，legend / colorbar 14，网格关闭；确需网格时必须浅、稀并置于数据后方。主结果恢复**高对比、中高饱和**科研主色，优先让评委第一眼识别关键对象；辅助元素保持克制。此处高对比科研配色针对数据驱动结果 Figure；A 类正式机理/推导图优先遵循前述 monochrome-first 规则，不自动继承蓝/红/绿/橙/紫主色。
 
 ```text
 亮蓝   #1478FF   RGB [20,120,255]

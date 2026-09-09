@@ -69,6 +69,32 @@ surface + contour projection（第三维真实时）
 
 具体实现参考 `templates/figure/figure_enhancement_patterns.md`；该模板不拥有独立决策权。
 
+## Publication Rendering Grammar 快速参考
+
+`modules/04_figure_evidence.md` 决定“是否应该使用某种结构”；本目录只实现渲染。共享 style kernel：
+
+```matlab
+palette = hsk_apply_scientific_style(fig);  % 默认 competition_high_contrast
+palette = hsk_apply_scientific_style(fig, "journal_balanced");
+palette = hsk_apply_scientific_style(fig, "monochrome_print");
+```
+
+新脚本优先使用 semantic roles：`palette.primary / comparison / positive / accent / secondary / focus / context / neutral`；旧 `brightBlue / vividRed / ...` 字段继续兼容，但不应作为新图的唯一设计接口。
+
+选择建议：
+
+- `competition_high_contrast`：1--3 个主要对象、强比较、竞赛快速阅读；
+- `journal_balanced`：4--8 个对象、多 panel、多指标、长 legend；
+- `monochrome_print`：黑白打印或颜色不能承担唯一语义。
+
+共享 helper 只做 white background、font fallback、open-axis ordinary Cartesian frame、frameless legend、colorbar typography 与 palette；**不自动决定图型、ylim、x ticks、legend tile、数据字段或导出**。heatmap、3D、polar 等若需要完整 frame，可在 helper 之后按 Figure Contract 明确覆盖。
+
+高价值 publication patterns：Multi-Metric Comparison Strip、Dedicated Legend Tile、Ordered Ablation Ladder、Composition/Decomposition、Evidence Matrix、Milestone-aware Trend、Normalized Radar（严格准入）、Density/State-Space、Comparative Performance Matrix。实现边界见 `templates/figure/figure_enhancement_patterns.md`。
+
+### Standalone project compatibility
+
+项目正式接口仍保持每问五文件，不新增“必须复制一个 style helper”的第六文件。仓库模板在 HSK Skill/MATLAB template 路径可见时优先调用共享 `hsk_apply_scientific_style.m`；若用户只把单个 `qX_plot.m` / `data_process.m` 带到独立项目目录，入口脚本保留最小 local fallback，仅保证默认高对比 palette 与基础 frame，不复制 profile 决策或图型 Authority。
+
 ## Figure Layout Gate
 
 正式绘图前按 `modules/04_figure_evidence.md` 的 Figure Layout Gate 动态决定单图、1×2、2×1、1×3、2×2 或拆图，禁止把某一种版式写成所有赛题的默认模板。

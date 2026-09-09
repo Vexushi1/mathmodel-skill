@@ -57,6 +57,23 @@
 | Optimization / Pareto | candidates + Pareto + feasible state + knee/recommendation | 单/多目标优化、方案选择 |
 | High-density Scatter | alpha scatter / binned density / 2D density contour | 大样本仿真、预测、候选解云 |
 
+## Publication Rendering 候选补充
+
+在 `Evidence Structure → Scientific Visual Structure` 已确定后，可按下列结构进入 publication rendering pattern；这些是候选索引，不建立新 Authority。
+
+| 证据结构 | 新候选结构 | 关键准入条件 |
+|---|---|---|
+| 同对象多指标 benchmark | Multi-Metric Comparison Strip + shared/dedicated legend | 指标量纲/量程不同但对象集合一致；跨 panel 保持对象语义 |
+| 有序组件增量 | Ordered Ablation Ladder | 必须是真实嵌套/递进，不得给独立方法制造等级感 |
+| 可加和构成 | Composition / Decomposition + print-safe encoding | 总量/分母定义清楚，颜色与 hatch 不过载 |
+| 规则二维矩阵 | Evidence Matrix + marginal context | cell/marginal 值来自真实证据；normalization 可解释 |
+| 带真实事件的动态过程 | Milestone-aware Trend | event/phase/milestone 有题面或工作簿事实来源 |
+| 少量标准化多指标画像 | Normalized Multi-Criteria Radar | 方向统一、归一化明确、通常 5--8 轴且对象很少 |
+| 状态空间/候选解云 | Density / Manifold / State-Space | density 只辅助，不隐藏原始样本/关键状态 |
+| method × metric performance | Comparative Performance Matrix | 原始值与相对改善语义分离，列独立 normalization 不伪装跨列可比 |
+
+`Palette profile / open-axis / adaptive canvas / legend strategy` 属于渲染实现层；图型选择仍以 Module 04 的 Core conclusion 与 Evidence Structure 为先。
+
 ## Figure Enhancement 快速索引
 
 基础科学视觉结构和布局确定后，按 `modules/04_figure_evidence.md` 的 Figure Enhancement Gate 判断是否需要增强；具体实现模式见 `templates/figure/figure_enhancement_patterns.md`。

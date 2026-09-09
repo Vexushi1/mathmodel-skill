@@ -5,7 +5,8 @@ import unittest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED = "9.0.0"
+EXPECTED = str(yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))["skill_version"])
+HISTORICAL_RELEASE = "9.0.0"
 
 
 class PhaseII4bReleaseCarrierTests(unittest.TestCase):
@@ -51,6 +52,7 @@ class PhaseII4bReleaseCarrierTests(unittest.TestCase):
         record = (ROOT / "docs/phase_i_v9_release_carrier_transition.md").read_text(encoding="utf-8")
         self.assertIn('applies_to_skill: ">=6.3.0,<10.0.0"', governance)
         self.assertIn("runtime_authority: false", record)
+        self.assertIn(f"target_skill_version: {HISTORICAL_RELEASE}", record)
         self.assertIn("github_release_or_tag_created: false", record)
         self.assertIn("不创建 GitHub tag 或 GitHub Release", record)
         self.assertIn("Phase I I5", record)
