@@ -63,6 +63,7 @@
 - `core/writing_reasoning_contract.yaml`
 - `core/writing_runtime_contract.yaml`
 - `docs/main-branch-protection-hardening-plan.md`
+- `docs/matlab_publication_rendering_v91_plan.md`
 - `docs/phase_e_artifact_identity_inventory.md`
 - `docs/phase_f_transaction_writer_inventory.md`
 - `docs/phase_i_artifact_alias_retirement.md`
