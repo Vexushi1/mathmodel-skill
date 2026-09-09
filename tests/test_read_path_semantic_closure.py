@@ -161,15 +161,19 @@ class TestReadPathSemanticClosure(unittest.TestCase):
         q1 = (ROOT / "templates/matlab/q1_plot.m").read_text(encoding="utf-8")
         process = (ROOT / "templates/matlab/data_process.m").read_text(encoding="utf-8")
         style = (ROOT / "templates/matlab/hsk_apply_scientific_style.m").read_text(encoding="utf-8")
-        self.assertIn("[20, 120, 255] / 255", q1)
-        self.assertIn("[240, 68, 68] / 255", q1)
-        self.assertIn("[20, 120, 255] / 255", process)
-        self.assertIn("[240, 68, 68] / 255", process)
+        self.assertIn("palette.primary", q1)
+        self.assertIn("palette.comparison", q1)
+        self.assertIn("palette.primary", process)
+        self.assertIn("palette.comparison", process)
+        self.assertIn('apply_publication_style(fig, "competition_high_contrast")', q1)
+        self.assertIn('apply_publication_style(fig, "competition_high_contrast")', process)
         for token in ("brightBlue", "vividRed", "brightGreen", "brightOrange", "brightPurple"):
             self.assertIn(token, style)
         self.assertIn("palette.deepBlue = palette.brightBlue", style)
         self.assertIn("palette.darkRed = palette.vividRed", style)
         self.assertIn("高对比、中高饱和", style)
+        self.assertIn('case "journal_balanced"', style)
+        self.assertIn('case "monochrome_print"', style)
         self.assertNotIn("唯一Python脚本", q1)
 
     def test_figure_assets_cover_active_v7_line(self):

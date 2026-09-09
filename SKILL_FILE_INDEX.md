@@ -359,3 +359,4 @@
 - `tests/test_v900_semantic_identity_surface_closure.py`
 - `tests/test_v900_state_transitions.py`
 - `tests/test_v900_transactional_writers.py`
+- `tests/test_v910_publication_rendering.py`

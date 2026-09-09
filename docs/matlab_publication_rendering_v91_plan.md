@@ -805,6 +805,19 @@ helper **不负责**：
 
 注意：这只是样式实现去重，不改变数据处理边界。
 
+## 17.3 实施修正：共享 helper 与五文件接口兼容
+
+正式实施核对发现：当前项目级稳定接口只保证每问两个 Python、两个工作簿和一个 `qX_plot.m`；仓库没有把 `templates/matlab/hsk_apply_scientific_style.m` 复制为每个项目的第六个必需文件。因此不能机械删除入口脚本的全部 local style 能力，否则用户把单个 `qX_plot.m` 带到独立项目目录时可能因 MATLAB path 中不存在共享 helper 而失败。
+
+实施采用兼容方案：
+
+1. HSK Skill/template 路径可见时，入口优先调用共享 `hsk_apply_scientific_style(fig, profile)`；
+2. 单文件独立运行时，入口保留**最小 local fallback**，只提供默认 `competition_high_contrast` palette、字体 fallback 和基础 open-axis frame；
+3. local fallback 不实现 `journal_balanced / monochrome_print` 的完整策略，不复制 C9--C16，也不拥有图型/legend/ylim 决策权；
+4. 不新增项目必需 helper 文件，不改变每问五文件目录接口。
+
+因此 Phase D 的“删除本地 style duplicate”调整为“删除完整重复 Authority/多 profile 实现，只保留 standalone fallback”。这属于兼容性修正，不扩大本计划的 Figure 语义范围。
+
 ---
 
 # 18. Figure Authority / reference 文件修改范围

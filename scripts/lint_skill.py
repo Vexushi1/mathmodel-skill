@@ -371,8 +371,10 @@ def _check_templates(errors: list[str]) -> None:
     for token in (
         "LaTeX/DOCX caption",
         "Scientific Figure Synthesis Gate",
-        "[20, 120, 255] / 255",
-        "[240, 68, 68] / 255",
+        "Publication Rendering Grammar",
+        'palette.primary',
+        'palette.comparison',
+        'apply_publication_style(fig, "competition_high_contrast")',
         'grid(ax, "off")',
     ):
         if token not in plotting:
@@ -385,8 +387,10 @@ def _check_templates(errors: list[str]) -> None:
     for token in (
         "LaTeX/DOCX caption",
         "Scientific Figure Synthesis Gate",
-        "[20, 120, 255] / 255",
-        "[240, 68, 68] / 255",
+        "Publication Rendering Grammar",
+        'palette.primary',
+        'palette.comparison',
+        'apply_publication_style(fig, "competition_high_contrast")',
         'grid(ax, "off")',
     ):
         if token not in data_process:
@@ -397,6 +401,11 @@ def _check_templates(errors: list[str]) -> None:
         "palette.brightBlue = [20, 120, 255] / 255",
         "palette.vividRed = [240, 68, 68] / 255",
         "palette.brightGreen = [22, 179, 100] / 255",
+        'case "competition_high_contrast"',
+        'case "journal_balanced"',
+        'case "monochrome_print"',
+        "palette.primary",
+        "palette.series",
         "高对比、中高饱和",
     ):
         if token not in style:

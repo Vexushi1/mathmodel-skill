@@ -5,6 +5,7 @@
 % 先执行 modules/04_figure_evidence.md 的 Scientific Figure Synthesis Gate；预处理图也不能因为“前后对比”就默认退化成普通柱状/折线。
 % 若同一证据空间能同时展示原始点、处理结果、误差/区间或阈值边界，优先 Composite Encoding。
 % 选定视觉结构后进入对应 Scientific Rendering Profile，再通过 Figure Layout Gate 与 Figure Enhancement Gate。
+% 视觉结构确定后再进入 Publication Rendering Grammar：palette profile / open-axis / adaptive canvas / legend strategy；样式不得改变预处理证据语义。
 % Enhancement 的实现模式参考 templates/figure/figure_enhancement_patterns.md，不得在本模板建立第二套绘图决策规则。
 % 正式论文图不设置整体 title/sgtitle；正式图题由 LaTeX/DOCX caption 承担，多面板按需只保留 a/b/c/d 等 panel label。
 
@@ -63,18 +64,18 @@ after = after(order);
 fig = figure("Color", "w", "Position", [100, 100, 960, 620]);
 ax = axes(fig);
 hold(ax, "on");
-plot(ax, x, before, "LineWidth", 1.9, "Color", [20, 120, 255] / 255, ...
-    "DisplayName", "处理前");  % #1478FF 亮蓝
-plot(ax, x, after, "LineWidth", 2.3, "Color", [240, 68, 68] / 255, ...
-    "DisplayName", "处理后");  % #F04444 鲜红
-scatter(ax, x, after, 26, [240, 68, 68] / 255, "filled", ...
+palette = apply_publication_style(fig, "competition_high_contrast");
+plot(ax, x, before, "LineWidth", 1.9, "Color", palette.primary, ...
+    "DisplayName", "处理前");
+plot(ax, x, after, "LineWidth", 2.3, "Color", palette.comparison, ...
+    "DisplayName", "处理后");
+scatter(ax, x, after, 26, palette.comparison, "filled", ...
     "MarkerFaceAlpha", 0.65, "HandleVisibility", "off");
 xlabel(ax, xLabelText);
 ylabel(ax, yLabelText);
 legend(ax, "Location", "best");
 grid(ax, "off");
-box(ax, "on");
-apply_scientific_style(fig);
+apply_publication_style(fig, "competition_high_contrast");
 
 %% 4. 可选：按 Figure Contract 继续实例化真正需要的科研证据
 % 推荐优先级：
@@ -116,19 +117,37 @@ for i = 1:size(column, 1)
 end
 end
 
-function apply_scientific_style(fig)
-fontName = select_font();
+function palette = apply_publication_style(fig, profile)
+% 优先使用仓库共享 style kernel；单文件独立运行时保留最小 fallback，不新增必需项目文件。
+if exist("hsk_apply_scientific_style", "file") == 2
+    palette = hsk_apply_scientific_style(fig, profile);
+    return;
+end
+palette = local_publication_palette(profile);
+fontName = local_select_font();
 set(fig, "Color", "w");
 for ax = reshape(findall(fig, "Type", "axes"), 1, [])
-    set(ax, "FontName", fontName, "FontSize", 18, "LineWidth", 1.4, "Box", "on", "Layer", "top");
+    set(ax, "FontName", fontName, "FontSize", 16, "LineWidth", 1.15, ...
+        "Box", "off", "Layer", "top", "TickDir", "out");
     grid(ax, "off");
 end
 for lgd = reshape(findall(fig, "Type", "legend"), 1, [])
-    set(lgd, "FontName", fontName, "FontSize", 16, "Box", "off");
+    set(lgd, "FontName", fontName, "FontSize", 14, "Box", "off");
 end
 end
 
-function fontName = select_font()
+function palette = local_publication_palette(profile)
+assert(profile == "competition_high_contrast", ...
+    "独立单文件 fallback 只提供 competition_high_contrast；其他 profile 请让共享 hsk_apply_scientific_style.m 位于 MATLAB path");
+palette.primary = [20, 120, 255] / 255;
+palette.comparison = [240, 68, 68] / 255;
+palette.positive = [22, 179, 100] / 255;
+palette.accent = [247, 144, 9] / 255;
+palette.secondary = [122, 90, 248] / 255;
+palette.context = [154, 164, 178] / 255;
+end
+
+function fontName = local_select_font()
 preferred = ["Microsoft YaHei", "SimHei", "Noto Sans CJK SC", "Arial Unicode MS", "Helvetica", "Arial"];
 available = string(listfonts);
 fontName = "Helvetica";
