@@ -408,6 +408,8 @@ class ContractAndDriftTests(unittest.TestCase):
     # two Paper Writing Protocol seam sentences plus its release header, and one
     # competition-profile lineage comment. Normalize exactly those approved deltas so
     # the older protected hashes continue to guard every unrelated semantic byte.
+    # v9.1.0 deliberately rebaselines only q1_plot/chart_selection/figure patterns because
+    # those three Figure implementation surfaces are explicit scope of publication rendering.
     PROTECTED = {
         "core/model_approval_contract.yaml": "b86a18b4b0e160e837186ac4273bd06f0426d0f4",
         "core/numerical_verification_contract.yaml": "f7e1921ec4945cb5e87984ccb8946302d854143f",
@@ -422,10 +424,10 @@ class ContractAndDriftTests(unittest.TestCase):
         "config/competition_profiles.yaml": "0cfe08e2edac99f07f2e527643499b8bc73c0479",
         "scripts/validate_semantic_governance.py": "9bd3fe2d6704accab2635b0c691caaeca6fea977",
         "scripts/validate_submission_package.py": "47bd01db5f45dd8c902418be62f494419a03c676",
-        "templates/matlab/q1_plot.m": "b9e67798051b1a130d2df11bca20e3976de0a6c2",
+        "templates/matlab/q1_plot.m": "b703a6345591c846ed1498fed2449ba73cbf1adf",
         "templates/matlab/draw_mechanism_structure.m": "65ba4a3b3462a565f86880c49af0959edd21f9a4",
-        "templates/figure/chart_selection.md": "ba293a44f3ce4e0162c22e224ba33fd0ec94c048",
-        "templates/figure/figure_enhancement_patterns.md": "d2fb8bc7b1d61556b9453682c4102b0e08ea246a",
+        "templates/figure/chart_selection.md": "87930a49bad06777ac8a42af254b71a11ba1bf22",
+        "templates/figure/figure_enhancement_patterns.md": "823550db7331a720ba32f2bc756fcdaaea12888d",
         "scripts/validate_code_delivery.py": "96760ff12591daa5f08b22ff766872d09acfb783",
     }
 
