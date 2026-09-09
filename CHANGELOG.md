@@ -1,6 +1,16 @@
 # Changelog
 
-## Current release: 9.0.0
+## Current release: 9.1.0
+
+- Added a Module-04-owned Publication Rendering Grammar for palette profile selection, open-axis publication frames, adaptive canvas/panel geometry, legend strategy, axis/baseline honesty and explicit export policy without creating a second Figure Authority.
+- Extended `hsk_apply_scientific_style.m` with `competition_high_contrast`, `journal_balanced` and `monochrome_print` profiles, semantic palette fields, typography hierarchy and backward-compatible legacy palette aliases.
+- Added C9--C16 publication patterns: Multi-Metric Comparison Strip, Ordered Ablation Ladder, Composition/Decomposition, Evidence Matrix, Milestone-aware Trend, normalized multi-criteria radar, Density/State-Space Evidence and Comparative Performance Matrix, plus Dedicated Legend Tile / Adaptive Canvas / Open-axis implementation references.
+- Consolidated `q1_plot.m` and `data_process.m` around the shared style kernel while retaining a minimal standalone fallback so the existing per-question five-file interface does not gain a hidden sixth-file requirement.
+- Preserved Model Approval, Semantic Governance, Runtime Assurance, Project State/Transaction, Workbook Schema, Numerical Verification, Python 03A/03B boundaries and accepted-workbook numerical truth; pure rendering changes do not create a project migration or automatically stale existing Figures.
+- Passed the complete Phase A--F regression gate before this carrier transition: Generated-file contract, Static contract lint, Python 3.10--3.14, CUMCM/MCM-ICM/Diangong LaTeX smoke and production LaTeX attestation. MATLAB visual smoke remains an explicit manual rendering check when MATLAB is absent from CI.
+- No GitHub Release/tag object is required by current repository governance; release evidence remains the active carriers, Changelog, PR history and validated CI.
+
+## Previous release: 9.0.0
 
 - Advanced the formal active release carriers from `8.9.0` to `9.0.0` after the Phase I I2/I3 compatibility-removal work and I4a v9 applicability renewal were merged and validated on `main`.
 - Preserved the intentionally narrow initial-v9 historical readers for L0/read-only projects; retired legacy fields and aliases are not restored as active write or authorization surfaces.

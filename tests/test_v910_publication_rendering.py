@@ -5,6 +5,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class TestV910PublicationRendering(unittest.TestCase):
+    def test_v910_release_carrier_is_current(self):
+        bootstrap = (ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8")
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertIn("skill_version: 9.1.0", bootstrap)
+        self.assertTrue(changelog.startswith("# Changelog\n\n## Current release: 9.1.0\n"))
+
     def test_figure_authority_owns_publication_rendering_grammar(self):
         module = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
         for token in (

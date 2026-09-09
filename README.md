@@ -1,6 +1,14 @@
-# mathmodel-skill v9.0.0
+# mathmodel-skill v9.1.0
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision / semantic_identity_hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v9.1.0：MATLAB Publication Rendering
+
+v9.1.0 在不改变 Model Approval、Runtime Assurance、Project State、Workbook、03A/03B 用户执行边界和每问五文件接口的前提下，把 Figure 层升级为更稳定的 publication rendering 实现。`modules/04_figure_evidence.md` 继续是唯一 Figure Authority；新增 Publication Rendering Grammar 只负责选定科学证据结构之后的渲染，不反向决定图型或制造证据。
+
+MATLAB 共享 style kernel 现在提供 `competition_high_contrast`、`journal_balanced`、`monochrome_print` 三个 profile，并统一 open-axis frame、字体层级和语义 palette，同时保留旧 `hsk_apply_scientific_style(fig)` 调用及旧 palette aliases。Figure pattern 库新增 C9--C16 与 Dedicated Legend Tile / Adaptive Canvas / Open-axis 实现模式；`q1_plot.m` 与 `data_process.m` 优先复用共享 helper，同时保留独立运行 fallback，不新增项目级迁移，也不会仅因版本升级把旧 Figure 自动标 stale。
+
+Phase A--F 在 release carrier 切换前已通过完整 Python 3.10--3.14、Static lint、Generated-file contract、三套 LaTeX smoke 与 production LaTeX attestation。CI 不含 MATLAB，因此真实 MATLAB visual smoke 仍属于人工 rendering 验收，不能由静态检查替代。
 
 ## v9.0.0：Phase I Compatibility Removal & Release Carrier Transition
 

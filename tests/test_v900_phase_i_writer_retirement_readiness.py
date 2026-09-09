@@ -60,7 +60,7 @@ class PhaseII2WriterRetirementTests(unittest.TestCase):
     def test_inventory_remains_bound_to_v890_stable_checkpoint_after_v9_release(self):
         bootstrap = yaml.safe_load(BOOTSTRAP_PATH.read_text(encoding="utf-8"))
         self.assertEqual(INVENTORY["baseline_skill_version"], "8.9.0")
-        self.assertEqual(bootstrap["skill_version"], "9.0.0")
+        self.assertTrue(str(bootstrap["skill_version"]).startswith("9."))
         self.assertNotEqual(INVENTORY["baseline_skill_version"], bootstrap["skill_version"])
 
         scope = INVENTORY["scope"]

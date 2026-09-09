@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：9.0.0
+当前 Skill 版本：9.1.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -9,8 +9,6 @@
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/refresh-generated.yml`
-- `.github/workflows/v91-release-carrier-retry.yml`
-- `.github/workflows/v91-release-carrier.yml`
 - `.gitignore`
 - `AGENTS.md`
 - `CHANGELOG.md`
