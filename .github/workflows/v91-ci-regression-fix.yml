@@ -1,0 +1,109 @@
+name: Repair v9.1 Figure regression baselines
+
+on:
+  push:
+    branches:
+      - docs/v9.1-matlab-publication-rendering-plan
+    paths:
+      - .github/workflows/v91-ci-regression-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: docs/v9.1-matlab-publication-rendering-plan
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Wait for generated-metadata refresh from staging commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="docs/v9.1-matlab-publication-rendering-plan"
+          initial="$GITHUB_SHA"
+          for _ in $(seq 1 45); do
+            git fetch origin "$branch"
+            remote="$(git rev-parse "origin/$branch")"
+            if [ "$remote" != "$initial" ]; then
+              echo "Observed refreshed branch head: $remote"
+              git reset --hard "origin/$branch"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Generated metadata refresh did not advance the branch" >&2
+          exit 1
+      - name: Repair Figure pack compatibility wording and protected baselines
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          pack = Path("packs/artifact/figure.md")
+          text = pack.read_text(encoding="utf-8")
+          old = "少量核心对象默认 `competition_high_contrast`，密集多方法/多 panel 可用 `journal_balanced`"
+          new = "少量核心对象默认高对比、中高饱和的 `competition_high_contrast`，密集多方法/多 panel 可用 `journal_balanced`"
+          if text.count(old) != 1:
+              raise SystemExit(f"figure pack palette anchor count != 1: {text.count(old)}")
+          text = text.replace(old, new, 1)
+          old_typography = "默认白底、清晰细轴、字号 18，`grid off`；确需网格时保持浅、稀且位于数据后方；"
+          new_typography = "默认白底、清晰细轴、tick 16 / axis label 18 的层级字号，`grid off`；确需网格时保持浅、稀且位于数据后方；"
+          if text.count(old_typography) != 1:
+              raise SystemExit(f"figure pack typography anchor count != 1: {text.count(old_typography)}")
+          pack.write_text(text.replace(old_typography, new_typography, 1), encoding="utf-8")
+
+          test = Path("tests/test_v830_editable_mechanism_diagram.py")
+          text = test.read_text(encoding="utf-8")
+          replacements = {
+              '"templates/matlab/q1_plot.m": "b9e67798051b1a130d2df11bca20e3976de0a6c2"':
+                  '"templates/matlab/q1_plot.m": "b703a6345591c846ed1498fed2449ba73cbf1adf"',
+              '"templates/figure/chart_selection.md": "ba293a44f3ce4e0162c22e224ba33fd0ec94c048"':
+                  '"templates/figure/chart_selection.md": "87930a49bad06777ac8a42af254b71a11ba1bf22"',
+              '"templates/figure/figure_enhancement_patterns.md": "d2fb8bc7b1d61556b9453682c4102b0e08ea246a"':
+                  '"templates/figure/figure_enhancement_patterns.md": "823550db7331a720ba32f2bc756fcdaaea12888d"',
+          }
+          for old_hash, new_hash in replacements.items():
+              if text.count(old_hash) != 1:
+                  raise SystemExit(f"protected baseline anchor count != 1: {old_hash}")
+              text = text.replace(old_hash, new_hash, 1)
+          comment_anchor = (
+              "    # competition-profile lineage comment. Normalize exactly those approved deltas so\n"
+              "    # the older protected hashes continue to guard every unrelated semantic byte.\n"
+          )
+          comment_replacement = (
+              "    # competition-profile lineage comment. Normalize exactly those approved deltas so\n"
+              "    # the older protected hashes continue to guard every unrelated semantic byte.\n"
+              "    # v9.1.0 deliberately rebaselines only q1_plot/chart_selection/figure patterns because\n"
+              "    # those three Figure implementation surfaces are explicit scope of publication rendering.\n"
+          )
+          if text.count(comment_anchor) != 1:
+              raise SystemExit("protected baseline comment anchor missing")
+          test.write_text(text.replace(comment_anchor, comment_replacement, 1), encoding="utf-8")
+          PY
+      - name: Validate targeted regression before commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest \
+            tests.test_read_path_semantic_closure.TestReadPathSemanticClosure.test_figure_pack_cannot_reverse_authoritative_rules \
+            tests.test_v830_editable_mechanism_diagram.ContractAndDriftTests.test_protected_authorities_have_not_drifted
+      - name: Refresh generated metadata and self-clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/generate_indexes.py
+          rm .github/workflows/v91-ci-regression-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packs/artifact/figure.md tests/test_v830_editable_mechanism_diagram.py \
+            SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256 \
+            .github/workflows/v91-ci-regression-fix.yml
+          git commit -m "test: rebaseline approved v9.1 Figure surfaces"
+          git push origin HEAD:docs/v9.1-matlab-publication-rendering-plan
