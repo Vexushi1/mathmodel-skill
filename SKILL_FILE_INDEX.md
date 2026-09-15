@@ -63,6 +63,7 @@
 - `core/workflow_router.yaml`
 - `core/writing_reasoning_contract.yaml`
 - `core/writing_runtime_contract.yaml`
+- `docs/.ci-noop-placeholder`
 - `docs/main-branch-protection-hardening-plan.md`
 - `docs/matlab_publication_rendering_v91_plan.md`
 - `docs/p3a_global_policy_source_map.md`
