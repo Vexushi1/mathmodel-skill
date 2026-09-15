@@ -3,6 +3,16 @@ name: Optimization baseline evidence
 on:
   pull_request:
     paths:
+      - core/bootstrap.yaml
+      - core/workflow_router.yaml
+      - core/runtime_assurance_contract.yaml
+      - scripts/resolve_runtime.py
+      - scripts/reading_plan.py
+      - scripts/README.md
+      - RUNTIME_ROUTER.md
+      - tests/reading_plan_cases.py
+      - tests/reading_plan_evidence.py
+      - tests/test_reading_plan.py
       - tests/optimization_baseline.py
       - tests/test_optimization_baseline.py
       - tests/fixtures/skill_optimization_cases.yaml
@@ -60,6 +70,8 @@ jobs:
           baseline=$(python -c 'import yaml; print(yaml.safe_load(open("tests/fixtures/skill_optimization_cases.yaml"))["baseline_commit"])')
           test "$baseline" = 8a92a7924e950939dc77b15d3bb1a88400c09979
           git worktree add --detach "$RUNNER_TEMP/hsk-approved-baseline" "$baseline"
+          git worktree add --detach "$RUNNER_TEMP/hsk-p1-baseline" 0eecaf929c83f19555402564ea0b14743d9bcf7d
+          echo "OPT_P1=$RUNNER_TEMP/hsk-p1-baseline" >> "$GITHUB_ENV"
           mkdir -p "$RUNNER_TEMP/optimization-evidence"
           echo "OPT_BASELINE=$RUNNER_TEMP/hsk-approved-baseline" >> "$GITHUB_ENV"
           echo "OPT_REPORTS=$RUNNER_TEMP/optimization-evidence" >> "$GITHUB_ENV"
@@ -72,12 +84,12 @@ jobs:
           python scripts/generate_indexes.py --check > "$OPT_REPORTS/baseline-generated.log" 2>&1
       - name: Run measurement and boundary regression tests
         run: python -m unittest discover -s tests -p test_optimization_baseline.py
-      - name: Measure real plans from baseline and candidate
+      - name: Preserve the immutable P1 characterization as a control
         shell: bash
         run: |
-          python tests/optimization_baseline.py --repo-root "$OPT_BASELINE" --output "$OPT_REPORTS/baseline.json"
-          python tests/optimization_baseline.py --repo-root "$PWD" --output "$OPT_REPORTS/candidate.json"
-          python tests/optimization_baseline.py --compare "$OPT_REPORTS/baseline.json" "$OPT_REPORTS/candidate.json" --output "$OPT_REPORTS/comparison.json"
+          python "$OPT_P1/tests/optimization_baseline.py" --repo-root "$OPT_BASELINE" --output "$OPT_REPORTS/baseline.json"
+          python "$OPT_P1/tests/optimization_baseline.py" --repo-root "$OPT_P1" --output "$OPT_REPORTS/candidate.json"
+          python "$OPT_P1/tests/optimization_baseline.py" --compare "$OPT_REPORTS/baseline.json" "$OPT_REPORTS/candidate.json" --output "$OPT_REPORTS/comparison.json"
           python - <<'PY'
           import json, os
           from pathlib import Path
@@ -89,10 +101,15 @@ jobs:
               rows.append(f'| {row["id"]} | {row["baseline_declared_bytes"]} | {row["candidate_declared_bytes"]} | {row["behavior_equal"]} |')
           Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text("\n".join(rows) + "\n")
           PY
+      - name: Validate reading scopes and compare P2 legacy behavior
+        shell: bash
+        run: |
+          python -m unittest discover -s tests -p test_reading_plan.py
+          python tests/reading_plan_evidence.py --baseline "$OPT_P1" --candidate "$PWD" --candidate-ref "$(git rev-parse HEAD)" --output "$OPT_REPORTS"
       - name: Upload real measurement evidence even on failure
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: optimization-p1-evidence
+          name: optimization-p2-evidence
           path: ${{ runner.temp }}/optimization-evidence
           if-no-files-found: warn

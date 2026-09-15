@@ -23,7 +23,19 @@
 
 ## Runtime Assurance
 
-`core/runtime_assurance_contract.yaml` 只管理运行时证明层，不重新定义 Router、Manifest、Model Approval、Workbook 或 User Execution 的业务语义。默认 resolver 保留旧 plan 字段，同时输出 `runtime_plan` 与 `assurance`：context 说明字段来自 explicit input 还是 project state；intent resolution 给出关键词证据与歧义；artifact assurance 记录 scope、accepted/stale 状态、路径和 SHA-256；dependency closure 记录由选中 module/gate 自动补入的 contracts；authority fingerprint 绑定本次计划所依据的四个 Authority 文件。旧 `scripts/resolve_workflow.py` 继续用于无状态兼容调用。
+`core/runtime_assurance_contract.yaml` 只管理运行时证明层，不重新定义 Router、Manifest、Model Approval、Workbook 或 User Execution 的业务语义。默认 resolver 保留旧 plan 字段，同时输出 `runtime_plan` 与 `assurance`：context 说明字段来自 explicit input 还是 project state；intent resolution 给出关键词证据与歧义；artifact assurance 记录 scope、accepted/stale 状态、路径和 SHA-256；dependency closure 记录由选中 module/gate 自动补入的 contracts；authority fingerprint 绑定本次计划所依据的配置所列 Authority 文件。旧 `scripts/resolve_workflow.py` 继续用于无状态兼容调用。
+
+## 按任务读取与工具资源
+
+默认 resolver 另返回 `reading_plan`，语义由 `core/runtime_assurance_contract.yaml#reading_plan` 管理，选择配置只在 `core/workflow_router.yaml#reading_policy`。它是读取安排，不是执行批准，也不替代现有 module/gate/output 计划。
+
+先按 `read_now` 的路径、SHA-256 和行范围读取；进入后续工作前评估 `conditional` 中与实际阶段相关的条件，条件成立就读取相应资源。工具只需先读取接口、实际执行并检查报告；只有失败排查或显式源码审查才读取实现。`tool_interfaces` 保留全部现有校验门，不能用“未读工具源码”作为不执行检查的理由。
+
+片段范围只对声明的完整文件 SHA 有效，文件变化后重新解析。标题或 YAML 路径缺失、重复、别名等无法安全定位时，读取完整存在的源文件；源文件本身缺失则报错，不返回空规则。
+
+`framework_sync` 只有在请求明确限于结果摘要、当前框架已绑定、模型与主结果已验证且依赖可恢复时，才启用事实同步读取。模型变更、语义风险、混合意图或缺证据回退完整路径；事实同步不得修改 SIB、参数、假设、审批或自动消除下游 stale。纯图样式返修还必须具有现有图审批登记、脚本和图束哈希；否则不启用样式快捷路径。
+
+普通 CUMCM 写作直接委托现有 progressive authoring 和逐问 preflight，不再定义章节顺序。旧 CLI 与 `load_order`、依赖闭包、校验门、暂停点均保持兼容。`planned_*_bytes` 只是计划初始读取量，不包含后续条件读取，不代表实际 token、运行耗时或整任务节省。
 
 ## 项目工作记忆
 
