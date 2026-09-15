@@ -2,15 +2,9 @@
 
 ## 已批准范围与基线
 
-2026-09-15，用户在审阅《Mathmodel Skill 全面优化计划》后明确表示“全部都批准，考虑开始进入优化部分”。本记录落实该批准，不重新定义业务 Authority。
+2026-09-15，用户审阅并批准《Mathmodel Skill 全面优化计划》全部范围，随后要求持续自动推进。批准文稿 SHA-256：`05808d566177dd44b3bbf924db43fad5a239c6b5d599b5faa9cc0f65af8fd365`。全面优化起点为 Skill v9.1.0 / `8a92a7924e950939dc77b15d3bb1a88400c09979`。
 
-- 批准文稿：`mathmodel_skill_optimization_plan.md`，80,455 bytes。
-- 原文 SHA-256：`05808d566177dd44b3bbf924db43fad5a239c6b5d599b5faa9cc0f65af8fd365`。
-- 设计与实施起点：`8a92a7924e950939dc77b15d3bb1a88400c09979`，Skill v9.1.0。
-- 实施前已重读 main 的 `core/bootstrap.yaml`、`SKILL_CHANGE_GOVERNANCE.md`、`AGENTS.md`，开放 PR 查询为空。
-- 完整设计稿仍以用户批准的上述文稿为准；本文是实施登记，不声称是该 20 节文稿的全文副本。
-
-批准覆盖基础优化、配置/回执分离、论文参考驱动绘图、条件式分析和附录方案。批准不撤销各项前提：基础设施仍需测量证据；非 MATLAB 后端仍非本轮必要前置；精度与官方 Adapter 仍独立迭代；最终版本依据实际兼容性在发布时裁决。默认不删旧 reader、不修改旧项目、不直接写 main。
+本记录是实施证据，不建立新的业务 Authority。每一阶段仍遵守 `SKILL_CHANGE_GOVERNANCE.md`：从最新 main 建独立分支、单主题 PR、真实测试全绿后合并；默认不改用户项目、不跳过审批/identity/stale、数值/工作簿和交付门。
 
 ## 分阶段执行
 
@@ -20,58 +14,92 @@
 | P1 | 可重算的读取与行为基线 | 已合并，PR #152，`0eecaf929c83f19555402564ea0b14743d9bcf7d` |
 | P2 | 读取范围、事实同步和工具调用分流 | 已合并，PR #153，`2a9cb227067d58d52471f164d317be3b4be330fe` |
 | P3a | 全局政策去重与来源映射 | 已合并，PR #154，`9cb5005b780c278953463d1ebeb891928974bb1f` |
-| P3b | 逐章/局部写作读取与 Cleanup/Review 职责收束 | 最终 CI 已通过，PR #155 待合并 |
-| P4 | compact framework 实例化与渐进登记 | 未开始 |
+| P3b | 逐章/局部写作读取与 Cleanup/Review 职责收束 | 已合并，PR #155，`541cd398f5d4dfb9b0137437263747e9d55a6ca8` |
+| P4 | compact framework 实例化与渐进登记 | PR #156 实施；业务实现首轮完整 CI 已通过，待最终记录提交复验 |
 | P5a/P5b | RUN_CONFIG 命名、版本化回执 | 未开始 |
 | P6a/P6b | 论文图例索引、独立 MATLAB profile、真实预览 | 未开始 |
 | P7 | 条件式分析与附录 | 已获范围批准，尚未实现 |
 | P8 | 有测量依据的基础设施整理 | 未开始 |
 | P9 | 综合回归、兼容与发布 | 未开始 |
 
-## P1 修改简报
+## 已合并阶段摘要
 
-P1 固定代表请求并建立真实 resolver 的只读、可重算资源与行为基线。该阶段不改变业务 Authority，完整证据见 PR #152；P1 的零差值只表示基线建立成功，不是优化收益。
+### P1
 
-## P2 修改简报与结果
+建立固定代表请求、真实 assured resolver 的资源/行为基线与审批/identity 边界回归。P1 的零差值只表示基线可重算，不宣称优化收益。
 
-P2 在不删除旧 `load_order`、machine dependency closure、审批/identity/stale/gate 的前提下，新增 additive `reading_plan`，将当前必读、条件资料与工具接口分开。事实同步、纯样式返修均要求现有 file-backed evidence；缺证据、歧义、语义变更、mixed intent 均完整回退。P2 已合并，PR #153，合并提交 `2a9cb227067d58d52471f164d317be3b4be330fe`。
+### P2
 
-## P3a 修改简报与结果
+新增 additive `reading_plan`，把 `read_now / conditional / tool_interfaces` 与完整兼容 `load_order` 分开。事实同步/纯样式快捷读取只在 file-backed evidence current 时启用；混合意图、歧义、语义变化和 stale 均完整回退。旧 gate、pause、machine dependency closure 与 CLI 不变。
 
-P3a 收束默认必读 `core/hsk_core_policy.md`，从 20,016 bytes 降至 10,788 bytes，约减少 46%；只保留真正跨阶段 Hard，将目录、工作簿、预处理、Figure、普通写作和兼容细节回指唯一 Authority。新增 source map 和回归，旧测试由 Core Policy 文本耦合改为验证真实 Authority。最终 head CI 全绿后合并，PR #154，合并提交 `9cb5005b780c278953463d1ebeb891928974bb1f`。
+### P3a
 
-## P3b 修改简报、实现与最终验收
+默认必读 `core/hsk_core_policy.md` 从 20,016 bytes 收束至 10,788 bytes，约减少 46%。目录、工作簿、预处理、绘图、普通写作及兼容细节回指现有唯一 Authority，跨阶段 Hard 保留。
 
-**分支/PR：** `refactor/optimization-p3b-writing-roles`，PR #155。
+### P3b
 
-**等级/版本：** minor-compatible / semantic-preserving refactor；Skill release carrier 保持 9.1.0，本阶段不发布新版本。
+把写作链职责拆清：Runtime 管阶段/读取/Capability；Protocol 管普通正文叙事；Cleanup 只管表现层清理与必要推理保护；Review 只管检查/分级/返修/交付。局部编辑默认不扩大成全文工作。最终 head 通过 Python 3.10--3.14、Static lint、Generated contract、三类 LaTeX 和 Production attestation，并通过 Optimization baseline evidence 后合并为 `541cd398...`。
 
-**直接目标：** 把普通写作链明确拆成：Runtime 调度读取与 capability；Protocol 管普通正文数学叙事；Cleanup 只做表现层清理与必要推理保护；Review 只做检查、分级、返修和交付。局部写作/清理默认保持局部，不因为“完整”机械读取或重写全文。
+## P4：Compact Framework 实例化与渐进登记
 
-**唯一 Authority：** `core/writing_reasoning_contract.yaml` 继续负责复杂数学语义，`paper_writing_protocol.md` 负责正文组织，`writing_runtime_contract.yaml` 负责写作时序/Preflight/activation，Template Manifest 负责一级骨架。Cleanup/Review 是 consumer，不建立平行正文规则。
+### 修改主题与 Authority 边界
 
-**保护边界：** 不修改 Model Approval、structured identity、typed stale、工作簿、数值验证、03A/03B、五文件、赛题 Python/MATLAB、CUMCM 一级骨架、赛事规则或 release carriers；无用户项目迁移。
+P4 修复一个已经存在但没有真正进入创建路径的闭环：`core/output_contract.yaml#model_paper_framework.default_mode` 已是 `compact`，但 canonical `templates/model/model_paper_framework.md` 是 full superset，直接复制会在 model-design 阶段过早带入题目候选、摘要、Paper Fragment、Chapter Handoff、跨问综合等 full-only 写作登记。
 
-### P3b 实施
+P4 不创建第二套 framework Authority：
 
-- Runtime 增加 explicit operation scope / expansion triggers，继续保留 Template-First progressive authoring、per-question capability preflight、MCM/DOCX full-authority fallback。
-- Paper Protocol 继续作为普通正文 Authority，并明确 local-edit boundary：局部编辑只读取目标 fragment 和真实依赖；Title/Abstract、跨问依赖、assembled seam、全篇术语/数值冲突等才扩大范围。
-- `ai_cleanup.md` 从约 33 KB 收束为约 13 KB 级别的 consumer：保留 Integrity、Formula/bridge protection、Terminology/Numeric/Citation/Claim、Keep/Compress/Re-subject/Delete、Paragraph Necessity、Figure Result Narrative、Heading Compression、machine diagnostic boundary；删除对上游 Authority 的大段复述。
-- `modules/06_review_delivery.md` 从约 39 KB 收束为约 15 KB 级别的 review consumer：保留 draft/final 两时机、full coverage、check families、blocking/review_required/warning、machine/manual boundary、final submission evidence sweep；不复制正文写作手册。
-- 新增 `docs/p3b_writing_role_source_map.md`、fixture/test，保护 FW05--FW09 能力和边界，确保必要 bridge derivation 不被 Cleanup 破坏，full-paper review 不能抽样代替完整覆盖。
+- mode/use_when/required_sections 仍由 `core/output_contract.yaml#model_paper_framework` 定义；
+- canonical template 仍是唯一结构 superset；
+- `scripts/validate_model_paper_framework.py` 仍是确定性 live framework validator；
+- `state/project_state.yaml` 仍保存 mode/hash/sync/stale；
+- SIB、Model Approval、semantic revision/identity 和 typed stale 完全不由 P4 helper 改写。
 
-### P3b CI 诊断与修复
+### 实现
 
-第一次真实 CI 暴露两类维护耦合：旧保护测试把 `paper_writing_protocol.md`、`ai_cleanup.md`、`review_delivery.md` 的历史 blob SHA 固定为不可变；`lint_skill_checks.py` 又要求 Review 文件继续重复完整 final-review token/family 定义。修复时没有删除规则，而是把保护改为：复杂数学 Authority 继续锁定，Cleanup/Review/Protocol 的职责能力由 P3b source-map + behavior tests 守护；final-review stable families 继续由 `templates/review/final_review_matrix.yaml` 和 scorer 验证，Review module 只需消费/覆盖而不复制完整矩阵。
+新增 `scripts/instantiate_model_paper_framework.py`：
 
-最终业务修复 head 经过生成器刷新，再使用 same-tree 用户身份空提交触发完整 CI；该动作不改变文件内容，不跳过任何检查。
+1. `new` 默认直接读取 Output Contract 的 `default_mode`，因此新 scaffold 真正以 compact 投影创建；也可显式 `--mode full`。
+2. compact 只保留 canonical template 中 `当前有效口径 / 各问模型与结果 / 图表证据链 / 待办与缺口` 四个顶层块，不复制 full-only 顶层内容。
+3. `expand` 允许 compact → full 无损扩展：已有 common 顶层块逐字节保留，只按 canonical 顺序插入缺失 full-only 顶层块，并把 mode header 改为 full。
+4. full → compact 自动转换直接拒绝，避免静默删除已有 title/abstract/proposition/paper-fragment/handoff 等项目事实。
+5. 重复/未知顶层标题、compact 中已混入 full-only 顶层块、路径越界/缺失 template 等均 fail closed。
+6. helper 不写 project state、不创建 approval、不修改 SIB/工作簿/数值 artifact；同 mode transition 幂等。
+7. `core/bootstrap.yaml` 增加稳定 `instantiate_framework` 入口并明确 raw full-superset template 不是 live-project 默认复制路径；Framework mode 语义仍回指 Output Contract。
 
-### P3b 最终验收
+未修改 `core/output_contract.yaml` 的既有 mode 定义，也未重写 canonical 大模板：当前 Authority 已足够，P4 只补缺失的执行投影层，避免为了“实现计划”重复新增字段。
 
-最终 head：`6aea56326d6d78cfdf9a7ea399331ba5c1cd82e3`。
+### 渐进登记
 
-- HSK Skill CI run `34979879324`：completed / success；Python 3.10、3.11、3.12、3.13、3.14，Static contract lint，Generated file contract，CUMCM/MCM-ICM/Diangong LaTeX 与 Production LaTeX attestation 全部通过。
-- Optimization baseline evidence run `34979879072`：completed / success。
-- 最终生成文件已 current；没有通过删测试、降断言、绕过 gate 或关闭 CI 达成全绿。
+- `proposed_model_spec` / 日常单问设计：compact；记录 current scope、Q 级模型/SIB/Challenge/Approval、必要 Formula/Algorithm/PQS、结果/证据与待办。
+- accepted primary/result analysis：继续 compact，只更新对应 Q 结果摘要、证据、claim/boundary。
+- figure evidence：继续 compact，只更新 Figure evidence/map。
+- 跨聊天完整交接、整篇 DOCX/LaTeX、跨问综合、终审：先 lossless compact → full，再登记 overall/title/abstract/preflight/fragments/handoff/cross-question/sync。
+- 局部修改本身不触发 full；可由现有 current facts 派生的写作视图延迟到 full 阶段生成，不在 compact 阶段重复手填。
 
-P3b 合并后，P4 必须从新的 `main` 独立建分支，处理 compact framework 的真实实例化、渐进登记与可派生视图，不能在 P3b 分支继续叠加。
+详见非 Authority 维护证据 `docs/p4_compact_framework_progression.md`。
+
+### 测量与测试
+
+在完整 candidate source snapshot 上实测 canonical projection：
+
+- full scaffold：32,941 UTF-8 bytes；
+- compact scaffold：15,425 UTF-8 bytes；
+- 初始 project-memory scaffold 减少 17,516 bytes，约 **53.2%**。
+
+这只是 framework scaffold 体量差，不是实际 token 或整任务耗时节省。
+
+P4 新增 10 个专项测试，覆盖：default compact、compact 顶层精确投影、full validator 闭环、compact→full common sections byte-for-byte 保留、幂等、full→compact 拒绝、未知/重复/full-only 混入 fail-closed、fenced fake heading、防止 project state 隐式写入、Bootstrap entrypoint。
+
+本地/隔离 candidate snapshot：
+
+- `python -m unittest tests.test_p4_compact_framework -v`：10/10 通过；
+- `python scripts/lint_skill.py`：通过；
+- `python scripts/generate_indexes.py --check`：通过；
+- 单进程全量 unittest 在当前容器 300 s 工具时限内未结束，超时前无失败；最终完整回归以 GitHub matrix 为准。
+
+业务实现 head `e7b733fb464773a52380707c59aa39bf2130b031`：
+
+- HSK Skill CI run `34982570889`：Python 3.10/3.11/3.12/3.13/3.14、Static contract lint、Generated file contract、CUMCM/MCM-ICM/Diangong LaTeX、Production LaTeX attestation 全部 job success，workflow completed/success；
+- Optimization baseline evidence run `34982570910`：completed/success。
+
+本状态文件的更新会再次触发 generated metadata 与最终 head CI；只有最终 head 再次全绿后才 mark ready/merge PR #156。P5 不在 P4 PR 内叠加。

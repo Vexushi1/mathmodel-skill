@@ -67,6 +67,7 @@
 - `docs/matlab_publication_rendering_v91_plan.md`
 - `docs/p3a_global_policy_source_map.md`
 - `docs/p3b_writing_role_source_map.md`
+- `docs/p4_compact_framework_progression.md`
 - `docs/phase_e_artifact_identity_inventory.md`
 - `docs/phase_f_transaction_writer_inventory.md`
 - `docs/phase_i_artifact_alias_retirement.md`
@@ -141,6 +142,7 @@
 - `scripts/generate_indexes.py`
 - `scripts/generate_mechanism_drawio.py`
 - `scripts/hsk_pack_submission.py`
+- `scripts/instantiate_model_paper_framework.py`
 - `scripts/latex_delivery.py`
 - `scripts/lint_skill.py`
 - `scripts/lint_skill_checks.py`
@@ -274,6 +276,7 @@
 - `tests/test_optimization_baseline.py`
 - `tests/test_p3a_core_policy.py`
 - `tests/test_p3b_writing_roles.py`
+- `tests/test_p4_compact_framework.py`
 - `tests/test_preprocessing_decision_contract.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_read_path_semantic_closure.py`
