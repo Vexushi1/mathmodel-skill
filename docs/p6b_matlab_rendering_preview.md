@@ -26,7 +26,7 @@ GitHub 对 pull request 中**首次新增且 base 分支尚不存在**的独立 
 
 ## 真实预览口径
 
-代表性 preview 使用确定性合成数据，只验证 publication rendering implementation，不验证任何比赛结论。每个 preview 必须满足：
+代表性 preview 使用确定性 synthetic 合成数据，只验证 publication rendering implementation，不验证任何比赛结论。每个 preview 必须满足：
 
 1. 在真实 MATLAB batch session 中创建不可见 figure；
 2. 调用 `hsk_publication_profile` 与 `hsk_apply_scientific_style`，而不是复制 palette/profile 定义；
