@@ -1,320 +1,102 @@
 # Module 05C：AI 模板感清除
 
-本模块只负责**清除模板化、空泛化、机械重复和推理呈现风险**，不建立第二套正文写作规则。
+本模块只负责**清除模板化、空泛化、机械重复与表现层风险**，不建立第二套正文写作规则。普通正文如何组织由 `modules/05_writing/paper_writing_protocol.md` 决定；作者声音与建模解释直接消费 `paper_writing_protocol.md#7.3-作者视角与建模解释`；复杂数学语义、Formula / Algorithm / Proposition、Model/Solver/Validator、Claim Strength、Citation Evidence 与数值口径只服从 `core/writing_reasoning_contract.yaml`；LaTeX 载体只服从 `modules/05_writing/latex.md`。若本文与 Authority 冲突，以 Authority 为准。**Skill 负责原则，脚本负责穷举。**
 
-固定骨架与一级顺序权威：`templates/latex/cumcm/hsk/template_manifest.yaml`。
-普通正文组织和表达权威：`modules/05_writing/paper_writing_protocol.md`。
-LaTeX 载体接口：`modules/05_writing/latex.md`。
-跨竞赛推理、规则等级、模型/求解器/验证器角色、优化模型表达、Model Construction Rationale、模型建立—求解—结果解释叙事、问题章节内部小节架构、详略分配、图结果叙事、命题预算、引用证据、术语、数字、Title Claim、深化证据处置、Paragraph Necessity 与局部 stale 治理：`core/writing_reasoning_contract.yaml`。
-
-若本模块与上述 Authority 出现冲突，以 Authority 为准；本模块不得把 Recommendation 重新写成 Hard。**Skill 负责原则，脚本负责穷举。** 本文件不继续按“发现一个问题再加一个编号”的方式增长。
+Cleanup 只在 `draft_semantic_review` 的 blocking / review_required finding 已处理后执行。它可以改表达，不能改模型事实、数值、证据范围、一级章节顺序或问题顺序；**写作顺序优化也没有权限重排既定一级大章节**。局部修改默认只读当前目标 fragment、其真实依赖和已登记 Terminology/Numeric/Claim 锚点；只有跨问依赖、Title/Abstract、assembled seam、全篇术语/数值冲突或 final review 明确需要时才扩大范围，不能因为“顺便润色”重写无关章节。
 
 ## A. Integrity / Hard boundary
 
-本层只确认不可被润色掩盖的事实与结构边界。正式 LaTeX 工程的确定性检查统一从 `scripts/audit_latex_project.py` 进入；该入口再委托 `scripts/audit_paper_prose.py` 完成 prose/BibTeX/framework 检查，并由后者消费 `scripts/audit_v8_writing_surface.py` 的 v8 表面风险诊断，再与 project-state/framework validators、LaTeX 编译链共同闭环：
+Cleanup 前后都必须保持以下不变量：
 
-- 摘要、正文、表格、提交结果文件中的核心数值必须回到同一已验收工作簿事实源；
-- stale 模型、结果、命题、图表、paper fragment 或 Title Claim 不得写成 current；
-- `\ref` / `\cite` 等正式引用目标必须存在，重复 label/key 必须修复；
-- 数值实验、求解器状态、准确率或经验现象不得改写成严格数学证明；
-- 局部/启发式结果不得通过语言润色扩大成无依据的全局最优或必然结论；
-- 深化分析若对核心答案给出 unresolved `reject`，不得通过删掉异常段落继续交付。
+- 核心数值、单位、精度、引用键、公式/图表锚点与 current 事实源一致；stale 不得润色成 current；
+- 数值实验、solver 状态或经验现象不得改写成严格证明；局部/启发式结果不得润色成无依据的全局最优；
+- `Reduction Provenance`、solver precondition、约束方向、边界、变量含义和 claim scope 不得被改写；
+- 当前 Preflight 已激活的 Core Model Summary、planned/current Proposition、stepwise/pseudocode Algorithm Trace 不得因篇幅或模板感被删除；
+- 需要外部来源的 claim 不得为了行文流畅移除 Citation Evidence；内部推导和工作簿结果也不得用外引替代；
+- 未解决的深化证据 `reject`、语义争议或验证边界不能靠删除异常描述继续交付。
 
-AI Cleanup 不重新判断数学正确性，也不修改模型事实来让文章“更顺”。流畅性优化只能改变组织和表达，不得新增不存在的机制、删除真实边界、改变 solver 角色、修改 Reduction Provenance，或把数值现象升级成证明。**写作顺序优化也没有权限重排既定一级大章节或问题一、问题二、问题三的顺序。**
-
-AI Cleanup 只在 `draft_semantic_review` 已完成且相关 finding 已处置后运行。已经由当前模型与 Algorithm Trace 证明为必要的命题、引理、证明、分阶段算法或伪代码，不得仅因“篇幅较长”“像模板”或“可以一句话概括”而删除；只能压缩无下游作用的重复说明，且仍须保留前提—结论—证明边界—下游作用，以及算法块前的结构理由/输入和算法块后的输出映射。
+Cleanup 不重新判断数学正确性、参数最优性、术语语义等价、物理/统计准确性，也不因 citation 存在就声称文献对 claim 形成语义支持。它不替作者编造理由，不从模型名、算法名、标题、连接词或图形外观猜测机制。**公式来源、推导、命题证明、伪代码及求解细节**若是当前证据链所需内容，必须保留其可恢复性。
 
 ## B. Evidence closure
 
 ### B1. 公式、模型、算法、结果与深化证据
 
-按 reasoning contract 检查表现层风险：
+先消费本问 Formula Roles 与 Writing Capability Preflight，再决定 Keep / Compress / Re-locate / Delete：
 
-先读取本问 Formula Role 与 Writing Capability Preflight：
+- `final_model_relation`：Keep；清理后 solver / validator / 决策规则仍可恢复。
+- `key_bridge_relation`：若承担机理、判据、证明、边界、降维、候选域或 solver precondition，Keep 或只压缩解释；**不能仅因“不是最终模型公式”删除**。
+- `supporting_derivation`：可压缩或移位，但关键跳步仍应可恢复。
+- `routine_algebra`：优先压缩或删除，不因角色 taxonomy 增加正文公式。
+- Preflight 为 `required / planned / current / stepwise / pseudocode` 时，即使**用户本轮没有再次提到这些能力**也照常保留；`missing/stale/review_required` 必须回到裁决，不能靠润色伪装通过。
 
-- `final_model_relation`：原则上 **Keep**；清理不得让最终 solver/validator/决策规则失去可恢复模型；
-- `key_bridge_relation`：若删除会断开机理、证明、判据、边界、降维或 solver precondition，必须 **Keep / Compress without breaking the bridge**；不能仅因“不是最终模型公式”删除；
-- `supporting_derivation`：可按 Detail Allocation **Compress / Re-locate**，但若当前读者无法恢复关键跳步则不能过度压缩；
-- `routine_algebra`：优先 **Compress / Delete**，默认不因 v8.7 新角色增加正文公式数量；
-- Preflight 已裁决 `Core Model Summary=required`、Proposition `planned/current`、Algorithm `stepwise/pseudocode` 时，Cleanup 只能优化表达与载体，不能因为用户本轮没有再次提到这些能力就删掉；
-- `missing/stale/review_required` 必须回到裁决或修复，不能通过润色伪装成 current。
+模型建立—求解—结果连续性只消费 `model_establishment_solution_narrative`、Model Construction Rationale 与相关 reasoning Authority。Cleanup 只处理表现风险，例如：
 
+- 模型建立开头重新完整复述题目、问题分析或模型假设，而没有新增数学作用；
+- **优化类模型先出现 DE、GA、PSO、ALNS、Dual Annealing** 等 solver，决策变量、目标、约束与可计算结构尚未出现；
+- 求解段一开始就是算法名或算法优点，未说明当前结构、剩余困难和适配条件；
+- solver / validator / 软件被误写成模型本体，或**自定义模型名**掩盖标准数学模型类型；
+- 关键参数给出数值却没有题面来源、候选范围、收敛/误差/可行性或选择依据；
+- 核心结果远离所有解释，或图表只剩“如图所示”而不回答当前设问；
+- 独立算法未发现更优被润色成“证明全局最优”；
+- `support / modify / reject` 的真实深化证据没有映射到具体 claim。
 
-- 连续展示公式之间几乎没有解释；
-- “进一步可得、同理可得、容易得到、不难得到”反复替代关键推理；
-- 核心公式前只有“根据相关理论可得”等空来源，公式后又只重复符号定义，看不出为什么此时需要该式以及该式下一步做什么；
-- **重要模型第一次出现时只有“建立 XX 模型”或模型名，没有恢复当前结构、modeling gap、why-this-structure、适用条件和下游作用；**
-- **用“模型科学、适用性广、精度高、简单有效”等泛化评价代替当前问题结构与适用范围；**
-- **exact / proven_sufficient / heuristic 的缩减依据与正文措辞冲突，例如启发式缩域被清理成“只需考察”或“等价转化”；**
-- 模型建立连续写成“建立 A 模型—建立 B 模型—采用 C 算法”，但 A、B、C 之间没有对象、判据、目标或计算结构的承接；
-- 模型建立开头重新完整复述题目、问题分析或模型假设，而不是直接承接已经批准的数学抓手；
-- 同一问题大章节内部，依赖前一判据/边界/降维结果的后续任务被提前，造成小节顺序打断真实局部数学依赖；
-- 把 Python 的读取、缓存、并行、保存等执行顺序误当成论文的数学求解顺序；
-- 为追求“全文更顺”而调换问题一、问题二、问题三，或把后问专属内容提前进前问大章节；
-- 决定核心模型、关键边界、可行域、solver 适配或最终答案的推导被压成无依据的一句“可得”；
-- 普通代数、重复符号、算法历史、通用优点或未变化的继承关系反而占据大段正文；
-- 数值参数直接赋值但邻近没有题面来源、候选范围、收敛、误差、可行性或选择规则；
-- 优化类模型先出现 DE、GA、PSO、ALNS、Dual Annealing 等 solver 名称，却迟迟看不到决策变量、目标函数和约束；
-- 求解段一开始就是算法名或算法优点，但没有先交代当前模型的可计算结构、真实困难、已完成的化简或搜索对象；
-- **当前 solver 明显依赖 bracket、候选完整性、可用局部变化、分解映射、邻域/搜索域等条件，但正文没有说明这些前提怎样在本题成立或只在哪个范围成立；**
-- 优化类摘要列出了决策变量和算法，但读者仍不知道“到底优化什么”；
-- 自定义模型名只描述“协同、覆盖、时域并集、计划库”等题目专属机制，看不出标准数学模型类型；
-- solver、validator、软件或求解架构被写成模型本体；
-- 算法段只介绍软件或通用算法优点，没有当前变量、目标、约束、参数和终止条件；
-- 第一次使用算法时没有说明它为什么适配当前数学结构；后问沿用/更换算法时没有说明结构继承或变化，尤其没有解释为什么前问 solver 仍足够或已经不足；
-- “同时采用/另用某算法”却没有实际 artifact、角色和可比指标；
-- 高级算法前完全看不到解析关系、降维、候选域、界或分解等结构检查；
-- 核心最优值、图表或验证结果出现后，邻近位置没有说明决策含义、关键趋势、模型原因或它怎样回答设问，解释全部被推迟到章节末尾；
-- 结果图只写“结果如图 X 所示”，正文没有说明该图展示的变量/对象关系以及它在当前小问中的作用；
-- 图中虽然指出趋势、极值或区间，但没有把该特征连回当前问题的参数范围、策略判断、约束满足或最终答案；
-- 为补“原因分析”而写入模型方程、约束、机制或数据证据不能支持的因果解释；
-- 图 1、图 2、图 3 连续裸堆，关键解释和局部收束被拖到很后面的统一总结段；
-- 做了敏感性、鲁棒性、外样本或多算法验证，却没有说明每项证据具体 `support / modify / reject` 哪个 claim。
-
-上述模型建立—求解—结果解释的连续性只服从 `writing_reasoning_contract.model_establishment_solution_narrative`。建模理由与局部适用性只服从 `model_construction_rationale`；优化模型的表达顺序、模型命名以及 Model/Solver/Validator 的判定仍只服从 `optimization_model_expression`、`model_naming` 与 `model_solver_validator_roles`。AI Cleanup 只发现表现风险，不根据模型名、算法名、连接词、标题语法、标题字数、公式数、图引用关键词或段落距离猜测真实模型类型、适用性、数学正确性、详略质量和因果解释是否成立。
-
-`modify` 必须同步修改边界、阈值、置信度或正文；`reject` 必须记录删除/重写 claim 或回退模型/求解的动作。机器不能由关键词判断“证据是否真的足够”。
+判断标准是语义与证据功能。**不得仅凭连接词、标题语法、算法名、段落距离、小节数量、标题字数、正文长度、公式数、图引用关键词或表面顺序判断叙事/详略质量**；机器不能由“因为/因此”判定模型理由完整。
 
 ### B2. Terminology
 
-读取 `模型论文框架.md` 的 Terminology Registry：
-
-- 同一量在邻近正文反复换“近义名”时复查；
-- discouraged alias 出现时优先改回 canonical term；
-- confusable terms 必须保持定义、量纲和符号边界，不能为了避免重复而交替使用；
-- “样本 / 场景 / 仿真样本 / realization”等只有在 Registry 已确认同义或允许简称时才可互换。
-
-技术论文不以同义词丰富为目标。机器只能提示已登记 alias 或局部易混术语，不自动推断陌生词语义等价。
+只根据当前 Terminology Registry 做一致性修正：canonical term 保持稳定，discouraged alias 改回登记词，confusable terms 不因“避免重复”而交替使用。陌生词是否同义不得由机器自判。
 
 ### B3. Numeric Style
 
-读取 Numeric Profile，并以**评分精度优先**而不是“摘要少写几位更简洁”为原则：
-
-- 若核心答案可能按小数后 6--7 位评分，摘要、正文直接答案和关键结果表必须保留相应高精度；
-- 不得把 `0.9132478` 为了美观擅自改写成 `0.91`；
-- 比例、百分比和百分点含义不得混用；
-- 单位、科学计数法、均值 ± 标准差、置信区间及坐标/时间/优化变量精度按项目 profile 统一；
-- 图轴刻度可简化，但作为答案证据的关键标注不能因此丢失必要位数。
-
-机器只检查已登记指标的格式漂移，不从小数位反推物理或统计准确性。
+只根据 current Numeric Profile 和题面/评分精度要求统一格式：默认高精度连续评分结果在没有更具体口径时保留 6--7 位，不得为了摘要简洁擅自降精度；不得为了简洁把高精度答案擅自压成两三位；比例、百分比、百分点、科学计数法、区间、均值±标准差和单位不能混用。图轴刻度可简化，但关键答案标注不能因此丢失必要位数。
 
 ### B4. Citation Evidence、Title Claim 与 Claim Strength
 
-- 外部经验参数、数据、领域事实、非显然标准定理或既有研究比较应有实际引用位置；
-- 引用后说明该外部参数/结论怎样作用到本题，不在句末堆 citation；
-- 本文自己的推导和数值结果不依赖外部文献替代内部证据链；
-- Title Claim 中的主方法、机制或贡献必须在正文实质使用，并有结果证据；
-- 标题—摘要—关键词—正文主模型之间不能出现“标题高级、正文实际没用”的包装漂移；
-- 结论措辞必须服从 `writing_reasoning_contract.claim_strength_calibration`，不能把 `HEURISTIC / OBSERVED / COMPARATIVE / VERIFIED_NUMERIC` 润色升级为 `PROVEN`。
+外部经验参数、外部数据、领域事实、非显然标准定理与既有研究比较保留真实 citation；本文推导与工作簿结果保留内部证据链。Title Claim 必须对应正文实质使用的方法/机制及结果证据。`HEURISTIC / OBSERVED / COMPARATIVE / VERIFIED_NUMERIC` 不得润色升级为 `PROVEN` 或无依据的全局/因果主张。
 
-重点复查中文竞赛论文中容易被 AI 放大的表述：
-
-- “显著提高/显著降低”——若没有统计显著性或项目定义阈值，改为具体变化量、比例或区间；
-- “证明模型有效/证明方案最优”——只有严格证明才能使用；数值证据改成“支持、验证、在所检验范围内保持”；
-- “全局最优”——必须有严格证明、全局证书或等价证据，独立算法未找到更优不自动构成证明；
-- “鲁棒性很强/稳定性很好”——改写为具体扰动范围、独立挑战范围和保持不变的主张；
-- “优于所有现有方法”——只允许比较实际测试过的 baseline/alternative，并写清比较指标与范围。
-
-BibTeX key、重复条目、未使用条目等确定性结构问题由 `scripts/audit_latex_project.py` 的底层 prose/BibTeX 审计处理。
+重点复查**摘要中用“先进、高效、精确、最优、显著、强鲁棒”**等包装词时是否有相应证据；没有证据则改成可验证的具体事实，而不是换一个更夸张的形容词。
 
 ## C. Style & Necessity
 
 ### C1. 模板段、吹牛腔与元话语
 
-重点识别并重写：
+删除或压缩跨题通用的管理句、空泛价值判断、重复章节预告、算法百科与“为了更好地解决问题”等元话语；“本文/本问/该模型”只在承担真实指代时保留。保留真实对象、gap、选择依据、数学作用、结果含义和限制。第一人称不是错误：需要删除的是没有信息增益的宣布动作，**不是删除第一人称本身**。
 
-- “本节主要……”“下面将……”“为了更好地解决……”等重复管理型句子；
-- 多段连续以“本文/本问/该模型”作主语且只重复宣布工作步骤；主语重复本身只提示复查，不自动要求替换；
-- 多次使用“本文不是……而是……”“不能……只能……”“由于……因此本文不能……”制造无必要冲突；
-- “首先、其次、最后”“由图可知”“由表可知”等固定短语高密度重复；
-- 把对象名替换成另一赛题后仍完全成立的通用段落；
-- 与本题无直接作用的模型史、算法百科、通用优点和大段教科书定义；
-- “揭示、表征、耦合、驱动机制、内在关联、理论框架、多尺度”等抽象词无对象支撑地连续堆叠；
-- “具有重要意义、提供参考价值、较好地解决、效果优异、结构稳定性很好、鲁棒性很强、模型适用性强”等没有紧邻证据或具体范围的评价词；
-- 摘要中用“先进、高效、精确、最优、显著、强鲁棒”等形容词替代真实模型类型、目标函数或关键数值。
-
-清理目标不是禁词，而是恢复自然的：
-
-```text
-具体对象/条件 → 当前困难或缺口 → 数学处理 → 结构/证据/结果 → 下一步或边界
-```
-
-“下面进行求解”这类纯管理句应删；但“由于当前目标由离散判定累计得到而缺少可直接使用的梯度，因此采用无梯度搜索”承担了 `solve_entry` 功能，不能因为包含过渡语气而删除。判断标准是逻辑功能，不是连接词词表。
-
-判断、发问和取舍按 Protocol §7.3 正常保留，不先统一改成无人称句再决定是否放行。检测到某连接词或代词时，先读它实际承载的信息，不用替换词制造新的机械句式。
+“本文不是……而是……”等连续否定若只制造无必要冲突则改为直接说明当前对象和选择；不建立推荐连接词库；“首先/然后/因此/同理”可以自然使用，判断标准是逻辑功能，不是连接词词表。不得为了“更像人”刻意加入犹豫、口语、故事或团队经历。
 
 ### C2. Paragraph Necessity、Model Rationale 与 Detail Allocation
 
-对每个正文段落执行一次删除测试：
+段落只在删除后仍不损失题意、机制、模型关系、选择依据、solver 条件、结果证据或边界时才删。决定性推导不能压成一句“可得”；routine algebra、重复定义、算法历史、算法百科和通用优点可以缩减。**不得以字数、句数、公式数**或小节长度直接判断详略得当。
 
-```text
-删掉该段
-→ 是否丢失题意？
-→ 是否丢失机制？
-→ 是否丢失数学关系？
-→ 是否丢失为什么选择当前模型/适用条件？
-→ 是否丢失求解依据或 solver 前提？
-→ 是否丢失结果证据？
-→ 是否丢失必要边界？
-```
-
-如果全部为否，优先删除、合并或移附录。特别清理：重复背景、算法百科、教科书定义、重复模型优点、空泛“模型适用性”段、重复小问总结、装饰性流程描述、重复数字和无下游用途公式。
-
-这里的信息功能包含 Protocol §5/7 所规定的选择依据、取舍、Model Construction Rationale 与数学作用；没有新公式或数值的解释段不据此判冗余。实质改写后按同一删除测试复核选择理由、成立条件和结论边界，不得将其压缩为只剩动作与答案。重复已知理由仍可合并，不为解释段设置全面豁免。
-
-对建模理由本身使用四类清理动作：
-
-- **Keep**：当前结构、modeling gap、why-this-structure、适用条件或下游作用确实不可替代；
-- **Compress**：理由真实但混入模型百科、通用优点或重复问题分析，只保留本题结构匹配；
-- **Re-locate**：理由被集中堆在模型末尾“合理性分析”中，而实际应贴近对应模型/近似/solver 首次出现处时，移到局部位置；
-- **Delete**：只有“模型科学、适用性广、精度高、易求解”等泛化评价，删除后不损失本题语义。
-
-对关键数值建模参数同样保护 `parameter role → candidate/source → evidence metric → selection rule → final value`。清理不能把一段真实的网格/步长依据压回“综合考虑精度与效率，取……”，也不能把主计算精度证据误写成现实参数鲁棒性。
-
-对“必要但篇幅是否合适”的内容继续执行 `detail_allocation_governance`：
-
-- 决定模型结构、关键判据/边界、可行域、非显然降维/等价转化、solver 适配、最终答案或验证 claim 的内容若仅用一句无依据“可得”带过，应复查是否过度压缩；
-- 主变量首次定义、必要参数来源、一般约束、本题化 solver 编码、终止/精度和核心图表解释应紧凑完整；
-- 纯代数展开、重复符号翻译、未变化继承关系、标准算法历史/通用优点、非决定性中间量和逐格/逐点复述应优先压缩；
-- 完整代码、文件路径、调试日志、穷举候选记录和无独立证据作用的参数扫描应移附录或不进正文。
-
-**不得以字数、句数、公式数或小节长度直接判定“详略得当”。** 一个关键推导可能只需数句和一个公式；简单解析题也不能因为新规则被强行增加算法段、适用性段、结果图或多个小节。
-
-机器只能报告 `possible_redundant_paragraph`、`decisive_derivation_overcompressed`、`routine_content_overexpanded` 一类 warning/review，禁止自动删除、扩写或按字数配额重写。
+局部模型适用性通常就地说明，不为展示完整性机械新增“模型适用性分析”；简单直接问题执行 anti-bloat，不强造 solver、命题、图表或验证。
 
 ### C3. 结果与图表表达
 
-- 删除逐格复述表格、逐点重复图中数值的报表式段落；
-- 核心结果写清“发生什么—为什么—对题目意味着什么”；
-- 单点最优或参数组合优先解释对应决策、决定性可行性/约束、形成原因和设问答案，而不是只把一组数值留在表中；
-- 曲线或图像第一次进入当前结果段时，正文应让评委知道**它展示什么变量/对象关系，以及为什么此时需要这张图**；不能只有“结果如图 X 所示”，也不逐字复述 caption；
-- 图分析只抓决定结论的趋势、极值、拐点、阈值、稳定区间、结构差异或异常，并给出必要关键值，不逐点读图；
-- 图中的特征必须连回当前设问：例如缩小参数范围、选择策略、判断约束/要求、支持当前答案或给下一局部步骤提供输入；不能停在“曲线先升后降”的视觉描述；
-- 原因解释必须能回到模型方程、约束活跃性、物理/几何机制、统计结构、资源竞争、边界效应或已证实数据规律；证据不足时只写可确认现象与设问含义，不强行补机制；
-- 当一张图是当前局部任务的关键证据且前文尚未收束时，可用一句短句返回当前结论、参数区间、答案或下一步输入；若前一句已经完成 answer link，不重复总结；
-- 多面板图先说明共同问题，只解释各 panel 对结论有独立贡献的差异；重复同一趋势时用一句综合解释；
-- 参数响应/敏感性图、优化收敛图、预测/拟合图、空间/网络图和机理/几何图按其证据角色解释，不强套同一曲线模板；
-- 算法/精度/验证对照优先说明比较指标、差异量、是否改变主结论以及对应 `support / modify / reject` 的 claim；
-- headline result 若有可用证据，应优先加入真实的基线比较、机制含义、敏感性/鲁棒性、不确定性或独立验证，而不是只报一个漂亮数字；
-- 连续图表解释不要复制同一三句式或六句式，可从关键数值、异常、对比、阈值、空间差异或边界切入；
-- 只有 caption、正文完全不引用核心图表属于证据链风险；核心结果远离所有解释也属于表现风险；
-- 图内标题、正式图注和正文解释各自承担不同功能，不逐字重复；
-- 高精度核心答案可以在摘要、正文直接回答和核心表中重复出现，因为它承担评分与复核作用；需要删除的是**无新作用的重复数字句**，不是把关键答案位数压低。
+删除逐格复述表格、逐点读图和只重复 caption 的报表式句子；核心图表必须在邻近正文承担明确证据作用；保留“关键结果/特征 → 证据支持的解释 → 对设问的含义”。图第一次进入正文时必须说明它展示的变量/对象关系以及**为什么此时需要这张图**。参数响应、收敛、预测拟合、**空间/网络图**、**机理/几何图**分别按证据角色解释，不强套同一曲线模板。
 
-上述 Figure Result Narrative 是信息功能链，不要求每张图固定使用相同句数、句序和词语，也不能仅按“图后多少行”或是否出现“图 X”关键词机械判断是否合格。
-
-对图像想法和作者判断按 Protocol §9/11/13 区分现象、支持的解释与猜想。已有答案的发问要落到实际答案，尚未回答的疑问保留真实边界；不补造检验，也不把有充分证据的结论一律改成“可能”。
+多面板图只解释对结论有独立贡献的差异；原因必须能回到模型/约束/机制/统计结构或已证实数据规律。Figure Result Narrative 是信息功能链，**不要求每张图固定使用相同句数、句序和词语**。核心结果远离所有解释属于风险，但机器不按“图后几行”硬判。
 
 ### C4. 问题章节内部小节架构、标题最小化与大框架保护
 
-问题章节内部执行 `writing_reasoning_contract.subsection_granularity`、`model_establishment_solution_narrative.professional_heading_semantics` 与 `within_question_subsection_architecture`。这里**不限制也不重排一级章节**。
+只调整问题章节内部二级/三级标题，**不限制也不重排一级章节**。执行 Keep / Compress / Merge / Split：标题对应独立数学任务；重复父标题的包装可压缩；同一连续论证链可合并；独立公式组、证明/判据、结构化简、参数证据或 solver stage 可拆分。
 
-首先保护既定中文国赛骨架：
+执行 **Heading Compression Test**：删除父标题已提供的上下文和无信息包装后，当前任务若仍完整则优先短标题；若会混淆对象、方法或边界则保留限定。**Split 不能由字数触发，Merge 不能由标题数量触发**，也没有标题字符数硬阈值。
 
-```text
-符号说明
-→ 数据说明/必要数据预处理
-→ 共享基础模型/模型准备
-→ 问题一模型建立及求解
-→ 问题二模型建立及求解
-→ ……
-```
-
-可选章节是否出现继续由原有 Authority 决定；AI Cleanup 不因“求解依赖”把问题二提前到问题一之前，也不把问题专属内容拆成新的一级大章节。
-
-在每个固定大章节**内部**，执行四类标题动作：
-
-- **Keep**：标题短而明确，且对应独立数学任务、独立求解 stage 或独立验证角色；
-- **Compress**：删除父标题已经提供的“问题X、模型建立及求解、优化模型”等上下文，以及无新增信息的“基于……”“视角下……”“……研究”等包装，前提是当前数学对象/任务仍完整；
-- **Merge**：相邻标题本质属于同一连续论证链，每个小节只有很薄内容，合并后不损失回指与导航；
-- **Split**：一个过长小节内部确有两个以上独立公式组、关键证明/判据、结构化简、参数证据或 solver stage，且拆分能明显提高恢复性。
-
-**Split 不能由字数触发，Merge 不能由标题数量触发。** 标题没有硬字符数，短标题也不自动更好。
-
-重点复查两侧风险：
-
-- 后一小节依赖的判据、边界、可行域、目标或降维关系尚未建立，却先进入 solver/结果；
-- solver 早于其消费的模型结构，结果早于计算依据，验证早于主结果；
-- 一个二级或三级小节只有一个公式、一张表或一幅普通图；
-- “决策变量、目标函数、约束、核心模型汇总”在内容很薄时分别机械拆成多个小节；
-- **相反，复杂模型中决策变量、目标、关键约束、证明、结构化简或参数依据各自有独立内容，却为了“减少标题”全部塞进一个难以导航的长段；**
-- “活跃边界、删除消融、独立算法挑战、局部邻域”都服务同一结果可信性，却各自单开标题；
-- 一个问题内部标题数量明显大于真实独立论证单元，正文被切成技术报告式碎片；
-- 大量使用“模型分析、模型处理、参数处理、算法设计、结果说明”等无法恢复具体数学任务的泛化标题；
-- 标题重复父标题和论文式包装，例如“基于……视角下的……模型构建与优化求解方法研究”，但删除包装后仍可清楚表达当前任务；
-- 把读取数据、构造缓存、并行搜索、保存 Excel 等程序执行步骤直接变成论文小节。
-
-能合并时优先形成连续真实数学任务链；需要导航时保留清晰短标题。复杂优化模型中，“决策变量 / 目标函数 / 关键约束 / 模型汇总”只要确有独立公式组、非平凡定义、后文回指或较长论证，均可合法保留；不应因为旧规则强调“避免机械拆分”而一律合并。
-
-执行 **Heading Compression Test** 时，只判断删去父标题上下文和装饰包装后任务是否仍完整；机器只给 review/warning，不能仅凭“小节 > 4”、是否包含“的/基于”、标题字数或标题语法自动合并、拆分、重命名或判错。
+风险包括：依赖关系倒置；一个二级或三级小节只有一个公式、一张表或一幅普通图却没有独立任务；复杂模型反而过度合并；“模型处理/参数处理/结果说明”等**泛化标题**；把读取数据、缓存、并行或保存等**程序执行步骤直接变成论文小节**。
 
 ### C5. 科研初学者式自然重写
 
-最终文本保持规范、朴素、技术含义稳定，并保留真实推理痕迹。模型建立与求解的作者视角边界消费 `paper_writing_protocol.md#7.3-作者视角与建模解释`，不另设句式模板。可以让当前对象、关系、条件、结果或数学任务承担句子主位，也可以保留有依据、有信息的“我们需要判断”“我们引入”等表达；减少的是连续使用“本文/本问/该模型/我们”空泛宣布工作步骤，不是删除第一人称本身。
+保留真实推理痕迹，动作只有 Keep / Compress / Re-subject / Delete：
 
-Author Reasoning Voice 的清理按 **Keep / Compress / Re-subject / Delete** 四种动作判断，动作依据是语义功能而不是代词本身：
+- Keep：保留当前 gap、选择依据、简化原因、数学作用、验证动机或结论边界；
+- Compress：删除聊天式填充与重复，但保留对象、依据和下一步；
+- Re-subject：已经证明的数学/数据事实可让对象或结果作主语；
+- Delete：纯管理动作且删除后不损失任何技术信息。
 
-- **Keep**：句子确实承担当前缺口、选择依据、结构简化、数学作用、验证动机或结论边界。例如“总量约束仍会允许局部缺货，因此我们需要逐期检查”中的局部遗漏不能因没有新公式而删除。
-- **Compress**：句子有有效理由，但混入“说白了、我们觉得、其实、还是得看看”等聊天式语气时，压缩闲聊和重复，保留问题、依据、数学对象和下一步。例如把“总量够了是不是就行了呢？我们觉得还是得看看每一期”压缩为“总量充足是否足以满足各期需求？由于不能跨期调剂，我们需要分别检查各期约束”。
-- **Re-subject**：句子报告已经证明的数学事实或 current 数据事实时，可以让对象/结果承担主语，避免把客观事实写成主观判断。例如严格得到 $f'(x)>0$ 后优先写“$f(x)$ 在该区间严格单调递增”，而不是“我们认为 $f(x)$ 单调递增”。这不是第一人称禁令，只是避免降低证据强度。
-- **Delete**：句子只宣布管理动作且没有本题特异信息，如“为了更好地解决该问题，我们建立数学模型进行分析”，删除后不损失题意、数学关系、solver 依据、结果证据或边界时直接删除。
-
-每次对作者声音做实质改写前，执行两个语义测试：
-
-1. **Reasoning Necessity**：删掉该句后，是否会失去“为什么这样定义/建式/计算/验证”、当前还缺什么、某式有什么作用或某结论的证据边界？如果会失去，则必须保留这些信息，措辞可以压缩。
-2. **Problem-Specificity**：替换研究对象名称后，该句是否仍能原样用于任意赛题？若是，优先怀疑为模板化空话；应回到本题的对象、机制、数据结构、约束或评价指标重写。
-
-必要的衔接句应能完成 `inherit / gap / introduce / transform / solve_entry / result_entry / interpret / increment` 中至少一种逻辑功能。允许适度解释为什么建立下一关系、某条件怎样缩小搜索范围、某结果为什么需要继续比较；不建立“首先—其次—因此”的推荐词库，也不把优秀论文中的具体句式当作模板。
-
-自然发问按 Protocol §7.3 的 **Question Closure** 处理：问题若用于推动正文，必须进入相邻推导、真实验证、后续明确任务或“现有材料尚不能回答”的边界。清理不能保留“我们希望知道模型是否稳定”这种悬空愿望后又直接写“模型稳定”；已经有验证结果时写实际答案，没有结果时不得补造闭环。
-
-作者判断继续服从 Claim Strength。`HEURISTIC / OBSERVED / COMPARATIVE / VERIFIED_NUMERIC` 不会因为加上“我们认为”就降低全局最优、因果、普遍规律或严格证明所需的证据。图像直觉可以引出可检验猜想，但不能从空间接近、曲线相似或视觉拐点直接写成因果、鲁棒性或数学性质。
-
-“我们”“本文”和对象主语都可以合法存在：局部判断、取舍、探究可自然使用“我们”；研究范围、论文整体方法或贡献可使用“本文”；已经证明/核验的数学与数据事实通常优先让对象或结果承担主语。这里不设置任何代词配额，不批量执行“我们→本文”或“无人称→我们”。
-
-清理前先辨认句子的判断、依据、处理或解释功能。若确实说明当前缺口、选择理由或下游用途，应保留这些信息，只修改空泛宣告、机械重复、语气赘词和过度口语化；不能把有理由的段落压回“建立模型—进行求解”。必要依据缺失时回到语义审查或请求补充事实，不替作者编造理由。
-
-清理后对照当前事实检查被实质改写的段落：理由、关键关系、条件、算法与实现对应、结果含义和未决边界是否仍在。无缺陷原文可不改；简单解析或直接计算已经紧凑、准确时，**不改也是合法结果**。过度口语化只修语气，不连带删除作者视角。该检查不要求新增日志或逐段表格，用户仅要求局部润色时也不扩大为整章改写。
-
-不通过故意病句、刻意或过度口语化、机械同义词替换或频繁自我否定来制造“人工感”。适度自然表达按上述 Protocol 保留，不虚构团队共识、试错经历或检验；不以文风判断作者身份或替代真实 AI 使用披露。固定专业术语、数学对象和变量含义必须保持一致，已有公式来源、推导、命题证明、伪代码及求解细节不得因这次表达调整而缩减。
-
-用户若只要求润色正文，默认直接输出最终文本，不保留原文对照，除非另有要求。
+每次实质改写后做 Reasoning Necessity 与 Problem-Specificity 检查。自然发问必须进入相邻推导、真实验证、后续任务或明确未决边界；不能提出问题后无证据直接给肯定答案。第一人称、本文和对象主语都可合法存在，不设置频率目标，也不推断作者身份。
 
 ## D. Optional machine diagnostics
 
-清理完成后运行：
+正式 LaTeX 工程的确定性审计入口仍为 `scripts/audit_latex_project.py`；Cleanup 本身不替代该审计。机器诊断只定位可复核风险，机器审计不得自动重写正文。允许报告模板化元话语、重复章节预告、solver-first、标题碎片化/过度合并、图表裸堆、术语/数值格式漂移、强 claim 表面风险等；这些通常是 warning / review_required，只有同时违反既有 Hard 事实、证据、引用或 stale 边界时才 blocking。
 
-```bash
-python scripts/audit_latex_project.py final_latex/main.tex \
-  --bib final_latex/references.bib \
-  --framework 模型论文框架.md
-```
-
-机器审计负责穷举**可可靠检测**的静态结构和保守 warning，包括但不限于：
-
-- unresolved / duplicate label 与 citation key；
-- 未引用 label / 编号公式；
-- 图表引用距离、caption 相对位置和题注长度；
-- abstract 中图、表或展示公式；
-- 关键词数量；
-- 已登记 Terminology alias / confusable term 风险；
-- 已登记 Numeric Profile 的单位、百分比和小数位漂移；
-- 元话语、连续公式、重复段落等保守启发式；
-- 可从项目已登记语义可靠判断时，提示 optimization abstract 缺 objective、Model/Solver/Validator 角色漂移、solver 首次使用缺本题理由、小节碎片化或强 claim 超出已登记证据范围；
-- v8 surface audit 当前确定性实现 `workflow_vocabulary_leak`、`decorative_quote_density`、`concept_chain_density`、`result_validation_bridge_risk`、`question_stage_order_risk`、`solver_first_narrative` 与 `consecutive_figures_without_local_interpretation`；这些结果仍只是 warning/review，不是数学正确性判断。
-
-`model_choice_without_recoverable_gap_or_rationale`、`applicability_claim_without_local_basis`、`reduction_provenance_wording_conflict`、`solver_precondition_missing_for_declared_dependency`、`heading_parent_context_repetition`、`heading_overframed_without_navigation_gain`、`subsection_overmerged_despite_independent_tasks`、`subsection_fragmented_without_independent_task`，以及既有 `report_like_model_listing`、`formula_without_need_or_consequence`、`generic_heading_density`、`management_transition`、`detached_result_interpretation`、`repeated_problem_analysis_in_model_section`、`subsection_order_breaks_local_dependency`、`top_level_framework_reordered_by_writing_rule`、`decisive_derivation_overcompressed`、`routine_content_overexpanded`、`figure_without_identity_or_local_role`、`figure_feature_without_question_link`、`unsupported_figure_cause`、`detached_figure_summary`、`local_question_section_not_closed_to_answer` 等属于 Authority 的人工/语义审查类别；除非脚本确有可靠输入和实现，不得在报告中伪称已经自动检测。
-
-Author Reasoning Voice 的 `Question Closure`、`Reasoning Necessity`、`Problem-Specificity`、主语角色选择及判断强度也属于人工/语义审查；**不得**通过 `count("我们")`、`count("本文")`、`first_person_ratio`、`human_like_score` 或 `AI_like_score` 实现。机器可以检查 Authority 指针和项目已登记的 claim 冲突，但不能由作者代词、问句标点或固定短语判断文章是否“像人”、问题是否真正闭合或判断是否合理。
-
-v8.6 的 Model Construction Rationale、Local Applicability、Heading Compression 与 Adaptive Subsection Separation 同样不得被降格为 regex 评分器：机器不能由“因为/因此”判定模型理由完整，不能由模型名判定适用性，不能由算法名判定 solver 前提，也不能由标题字符数、标题数量或是否含“基于”自动决定合并/拆分。
-
-等级仍为：
-
-- Hard/确定性结构或事实范围错误 → `blocking`；
-- Default 偏离 → `review_required`；
-- Recommendation/风格风险 → `warning`。
-
-`--strict` 只阻断 blocking 或未解释的 review_required；warning 不阻断编译。
-
-机器审计不得自动重写正文，也不得从正则推断数学正确性、公式真实来源、参数最优性、术语语义等价、模型标准类型、模型适用性、solver 前提是否成立、物理/统计准确性、文献质量、引用是否真正语义支持某个 claim；不得仅凭连接词、标题语法、算法名、段落距离、小节数量、标题字数、正文长度、公式数、图引用关键词或表面顺序判断叙事/详略质量，也不得自动重排一级大章节。
+机器不得根据代词比例、连接词、标题字符数、公式数量、正文长度、算法名或图引用距离评价“像不像人”、数学正确性或模型理由质量；明确禁止 `first_person_ratio`、`human_like_score`、`AI_like_score` 一类作者身份/自然度评分。BibTeX 只检查 key 与结构完整性，不由 Cleanup 推断引用是否语义支持 claim。所有自动修复必须在改后重新检查 Formula/Proof/Algorithm、数值精度、Citation Evidence、Claim Strength、局部依赖和 LaTeX 引用完整性。

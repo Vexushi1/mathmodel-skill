@@ -66,6 +66,7 @@
 - `docs/main-branch-protection-hardening-plan.md`
 - `docs/matlab_publication_rendering_v91_plan.md`
 - `docs/p3a_global_policy_source_map.md`
+- `docs/p3b_writing_role_source_map.md`
 - `docs/phase_e_artifact_identity_inventory.md`
 - `docs/phase_f_transaction_writer_inventory.md`
 - `docs/phase_i_artifact_alias_retirement.md`
@@ -247,6 +248,7 @@
 - `templates/writing/docx_check.md`
 - `tests/fixtures/model_construction_solution_cases.yaml`
 - `tests/fixtures/p3a_global_policy_source_map.yaml`
+- `tests/fixtures/p3b_writing_role_source_map.yaml`
 - `tests/fixtures/phase_g_cumcm_runtime_golden.yaml`
 - `tests/fixtures/skill_optimization_cases.yaml`
 - `tests/fixtures/v900_phase_h_empty_sync_golden.yaml`
@@ -271,6 +273,7 @@
 - `tests/test_mechanism_template_compat_hygiene.py`
 - `tests/test_optimization_baseline.py`
 - `tests/test_p3a_core_policy.py`
+- `tests/test_p3b_writing_roles.py`
 - `tests/test_preprocessing_decision_contract.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_read_path_semantic_closure.py`

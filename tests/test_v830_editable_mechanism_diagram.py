@@ -410,6 +410,8 @@ class ContractAndDriftTests(unittest.TestCase):
     # the older protected hashes continue to guard every unrelated semantic byte.
     # v9.1.0 deliberately rebaselines only q1_plot/chart_selection/figure patterns because
     # those three Figure implementation surfaces are explicit scope of publication rendering.
+    # P3b intentionally rebaselines only AI Cleanup and Review Delivery because those two
+    # consumer surfaces are the explicit scope of the approved writing-role consolidation.
     PROTECTED = {
         "core/model_approval_contract.yaml": "b86a18b4b0e160e837186ac4273bd06f0426d0f4",
         "core/numerical_verification_contract.yaml": "f7e1921ec4945cb5e87984ccb8946302d854143f",
@@ -419,8 +421,8 @@ class ContractAndDriftTests(unittest.TestCase):
         "modules/03_solve_validate.md": "8817f50af1610fe89d05321e9c9a4d148a34a301",
         "modules/03_result_analysis.md": "f43d21dc99d71e6b19baeec7af66cbf334da13a7",
         "modules/05_writing/paper_writing_protocol.md": "be7f0b7232677fd565502465f657014ab28128c2",
-        "modules/05_writing/ai_cleanup.md": "f6d2d5d6d70972ca09ff00975aa85e8044daa366",
-        "modules/06_review_delivery.md": "c74f57dea33496ca35e8585d0d4d08981022ed69",
+        "modules/05_writing/ai_cleanup.md": "72b4f1c796db18fba28130b11f6eefedbf32a1db",
+        "modules/06_review_delivery.md": "f2f68c34cccf7a70e3ffab4668899a66fc3cfc89",
         "config/competition_profiles.yaml": "0cfe08e2edac99f07f2e527643499b8bc73c0479",
         "scripts/validate_semantic_governance.py": "9bd3fe2d6704accab2635b0c691caaeca6fea977",
         "scripts/validate_submission_package.py": "47bd01db5f45dd8c902418be62f494419a03c676",
