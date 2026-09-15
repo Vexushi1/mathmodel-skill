@@ -1,7 +1,7 @@
-version: 2.4.0
+version: 2.5.0
 introduced_in_skill_version: 7.4.2
 skill_compatibility: '>=7.4.2,<10.0.0'
-purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界，每问主求解与结果深化分析继续使用两个独立Python脚本。P5a起新生成阶段脚本使用RUN_CONFIG承载任务可变输入，全局user/full-fidelity/no-degradation政策由本Authority继承；工作簿运行配置继续记录实际运行事实。v7.14起新生成主求解还绑定Primary Quality Specification与主数值证据独立复核，但不得把结果深化分析提前塞进主求解。
+purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界，每问主求解与结果深化分析继续使用两个独立Python脚本。P5a起新生成阶段脚本使用RUN_CONFIG承载任务可变输入，全局user/full-fidelity/no-degradation政策由本Authority继承；P5b起新生成阶段脚本通过run_receipt_protocol_version绑定版本化RUN_RECEIPT，实际运行事实仍写入既有工作簿运行配置工作表。v7.14起新生成主求解还绑定Primary Quality Specification与主数值证据独立复核，但不得把结果深化分析提前塞进主求解。
 numerical_verification_authority: core/numerical_verification_contract.yaml
 default_mode:
   execution_owner: user
@@ -59,7 +59,7 @@ code_delivery:
     primary: always_after_decision_and_applicable_data_gate
     analysis: accepted_primary_workbook_required
     preprocessing_matlab: preprocessing_decision == project_level and preprocessing_workbook_accepted
-  runtime_metadata: 新生成阶段Python脚本使用RUN_CONFIG声明任务可变输入；user/full-fidelity/no-degradation政策从本Authority继承。实际运行事实仍写入该阶段工作簿的运行配置工作表。FULL_FIDELITY_CONFIG与FULL_RUN_CONFIG仅作旧项目静态读取兼容。
+  runtime_metadata: 新生成阶段Python脚本使用RUN_CONFIG声明任务可变输入，并用run_receipt_protocol_version声明期望的RUN_RECEIPT协议；user/full-fidelity/no-degradation政策从本Authority继承。实际运行事实写入该阶段工作簿运行配置中的RUN_RECEIPT。FULL_FIDELITY_CONFIG与FULL_RUN_CONFIG仅作旧项目静态读取兼容。
   canonical_config_name: RUN_CONFIG
   legacy_config_names:
   - FULL_FIDELITY_CONFIG
@@ -94,6 +94,13 @@ code_delivery:
     allow_silent_solver_fallback: false
   canonical_optional_compatibility_fields:
   - solver_version
+  run_receipt_protocol:
+    field: run_receipt_protocol_version
+    current_version: 1.0.0
+    new_writer_required: true
+    p5a_transitional_missing_marker_read_supported: true
+    unknown_version_policy: fail_closed
+    binding: 已交付阶段代码RUN_CONFIG中的协议期望 + 返回工作簿RUN_RECEIPT中的run_receipt_version；静态读取代码并核对阶段代码SHA，不新增project_state字段
   legacy_required_config_fields:
   - execution_owner
   - execution_profile
@@ -118,7 +125,7 @@ code_delivery:
     - primary_quality_protocol_version
   primary_quality_protocol_version: 1.0.0
   primary_quality_protocol_marker_scope: primary_only
-  primary_quality_protocol_binding: 已交付主求解代码RUN_CONFIG（旧项目可只读FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG）+ 返回主工作簸运行配置；receipt静态读取已交付代码并核对代码SHA，不新增project_state字段
+  primary_quality_protocol_binding: 已交付主求解代码RUN_CONFIG（旧项目可只读FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG）+ 返回主工作簿RUN_RECEIPT；receipt静态读取已交付代码并核对代码SHA，不新增project_state字段
   no_placeholder_markers:
   - TODO
   - FIXME
@@ -173,6 +180,10 @@ execution_states:
 returned_workbook:
   semantic_governance_required: true
   numerical_evidence_checker: scripts/validate_numerical_evidence.py
+  logical_receipt_name: RUN_RECEIPT
+  receipt_transport: 既有运行配置工作表，不新增第二张回执表或独立YAML/JSON
+  receipt_version_field: run_receipt_version
+  current_receipt_version: 1.0.0
   required_sheet: 运行配置
   required_columns:
   - 项目
@@ -200,6 +211,37 @@ returned_workbook:
   - allow_fewer_repetitions
   - allow_relaxed_tolerance
   - allow_silent_solver_fallback
+  versioned_receipt:
+    protocol_expectation_field_in_run_config: run_receipt_protocol_version
+    actual_version_field: run_receipt_version
+    current_version: 1.0.0
+    new_writer_required: true
+    p5a_transitional_missing_version_read_supported: true
+    legacy_full_config_missing_version_read_supported: true
+    declared_unknown_version_policy: fail_closed
+    echo_fields:
+    - stage
+    - problem_name
+    - data_sha256
+    - solver
+    - random_seed
+    - tolerance
+    - iteration_or_time_limit
+    runtime_only_fact_fields:
+    - solver_version
+    - actual_stop_reason
+    - repetitions_or_scenarios
+    - grid_or_time_range
+    - fallback_used
+    - platform
+    - execution_owner
+    - execution_profile
+    - allow_reduced_data
+    - allow_coarser_grid
+    - allow_shorter_horizon
+    - allow_fewer_repetitions
+    - allow_relaxed_tolerance
+    - allow_silent_solver_fallback
   stage_required_items:
     primary_v714_writer:
     - primary_quality_protocol_version
@@ -217,6 +259,9 @@ returned_workbook:
   - execution_profile必须为full_fidelity。
   - 所有缩减、放宽和静默回退标志必须为false。
   - fallback_used必须为false。
+  - P5b新生成阶段代码若在RUN_CONFIG声明run_receipt_protocol_version=1.0.0，返回工作簿RUN_RECEIPT必须携带run_receipt_version=1.0.0；缺失、不匹配或未知版本均fail closed，不能降级为legacy receipt。
+  - P5a过渡RUN_CONFIG或旧FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG未声明receipt协议时，历史工作簿可继续缺少run_receipt_version只读验收；若主动声明run_receipt_version，则必须是当前受支持版本。
+  - 版本化RUN_RECEIPT必须静态绑定对应已交付阶段代码，并核对stage、problem_name、data_sha256、solver、random_seed、tolerance、iteration_or_time_limit与代码RUN_CONFIG计划值一致；solver_version、实际停止原因、运行规模、platform、fallback和no-degradation仍以返回回执为事实源。
   - preprocessing工作簿仅允许位于数据预处理/数据预处理结果.xlsx，且仅在decision=project_level时验收。
   - 主/深化工作簿实际路径与标准文件名必须解析出唯一problem_name和stage，再与运行配置完全一致；当前项目只接受问题X求解/中的两个标准工作簿，旧结果数据表/问题X/仅作只读兼容。
   - preprocessing工作簿code_sha256必须与已交付数据预处理.py一致；主工作簿与深化工作簿分别绑定两阶段小问Python哈希。
@@ -244,8 +289,10 @@ legacy_compatibility:
   - FULL_FIDELITY_CONFIG
   - FULL_RUN_CONFIG
   legacy_config_reader_exit_gate: P9 release adjudication
+  p5a_run_config_without_run_receipt_protocol: read_only_supported_until_p9_release_adjudication
+  legacy_receipt_without_run_receipt_version: read_only_supported_until_p9_release_adjudication
   v7_13_primary_workbook_without_verification_id: read_only_supported
   v7_2_0_preprocessing_without_decision: read_only_until_redesign
   v7_0_semantic_governance_fields: read_only_until_redesign
   v6_6_single_evolving_script: read_only
-  rule: 旧项目可继续读取已有产物；P5a后旧FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG仍按原完整字段和no-degradation显式标志只读兼容，不能因RUN_CONFIG迁移而放宽。v7.13及更早主工作簿只读时不强制反向补Verification ID；重新进入当前主求解时该问按v7.14主数值质量轨迹重新生成。v7.2.0--v7.2.2项目重新进入模型设计/预处理/绘图/写作时沿用三态decision并按当前通用审计与证据规则复核；只读历史交付不强制反向补data_process.m；更早项目重新进入当前流程时先补齐preprocessing_decision，只有project_level才要求统一预处理；重新深化分析时使用独立问题X结果深化分析.py。
+  rule: 旧项目可继续读取已有产物；P5a后旧FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG仍按原完整字段和no-degradation显式标志只读兼容，不能因RUN_CONFIG迁移而放宽。P5a过渡RUN_CONFIG和历史receipt在P9裁决前可缺少RUN_RECEIPT版本握手；一旦任一端显式声明版本则只接受当前协议且不得静默降级。v7.13及更早主工作簿只读时不强制反向补Verification ID；重新进入当前主求解时该问按v7.14主数值质量轨迹重新生成。v7.2.0--v7.2.2项目重新进入模型设计/预处理/绘图/写作时沿用三态decision并按当前通用审计与证据规则复核；只读历史交付不强制反向补data_process.m；更早项目重新进入当前流程时先补齐preprocessing_decision，只有project_level才要求统一预处理；重新深化分析时使用独立问题X结果深化分析.py。
