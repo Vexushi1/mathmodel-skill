@@ -264,6 +264,7 @@
 - `tests/fixtures/writing_capability_preflight_cases.yaml`
 - `tests/fixtures/writing_reasoning_cases.yaml`
 - `tests/fixtures/writing_reasoning_voice_cases.yaml`
+- `tests/matlab/p6b_publication_preview.m`
 - `tests/optimization_baseline.py`
 - `tests/reading_plan_cases.py`
 - `tests/reading_plan_evidence.py`
