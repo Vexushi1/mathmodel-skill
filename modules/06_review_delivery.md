@@ -38,7 +38,7 @@
 1. Formula Roles：`final_model_relation / key_bridge_relation / supporting_derivation` 与下游作用一致，必要 bridge 未被 Cleanup 删除；
 2. Core Model Summary：`required/inline/not_applicable` 来自显式裁决；
 3. Proposition：`planned/current` 自动激活 reasoning + proposition pack，candidate 只审必要性，stale 不作为 current；
-4. Algorithm：`stepwise/pseudocode` 自动激活 current Algorithm Trace 与 algorithm-flow pack，即使用户没有再次说“伪代码”；`not_needed` 不造装饰算法框；
+4. Algorithm：`stepwise/pseudocode` 自动激活 current Algorithm Trace 与 algorithm-flow pack，即使用户没有再次说“伪代码”；`not_needed` 不造装饰算法框；current trace 还必须能闭合到**真实 Python 实现**及对应结果/验证证据；
 5. Missing / Stale：关键状态 missing → `needs_adjudication`，stale/review_required 不得通过 Cleanup 降级；
 6. **Compact Runtime Boundary**：完整 reasoning、proof pack、algorithm pack 仍条件加载，不恢复开篇全量 preload。
 
@@ -106,6 +106,8 @@ final review 读取 current framework、state、active assembly、题目要求�
 ### 2. 动态检查族
 
 终审必须覆盖题意/输出、模型语义、数值与精度、写作能力激活、术语/claim、图表、引用、编译和提交合规。可按 physical file / question / check family 分批读取以控制上下文，但必须维护 coverage ledger；每个 active file、current question、headline claim 与 required gate 都有明确 covered 状态，**不得抽样几个章节就宣称全文通过**。
+
+稳定的机器检查族字段为：`edition_compliance`、`anonymity_and_metadata`、`ai_disclosure`、`citation_entity_integrity`、`rendered_page_surface`、`figure_table_information_value`、`reproducibility_and_package`、`cross_question_dynamic_coverage`。这些名称只服务 `templates/review/final_review_matrix.yaml` 的覆盖闭合，不复制正文规则。每项 finding 的证据来源应明确为 `machine / manual / hybrid`；赛事规则只有 `verification_status=verified` 才可形成官方 Hard，`unverified / expired` 只能进入复核。确认的官方硬违规统一记录为 `verified_official_rule_violation`。内部审查记录**不进入 Project State**，审查中间材料与内部元数据**不得自动加入 official package**。
 
 ### 3. 原子 finding 与评分关系
 

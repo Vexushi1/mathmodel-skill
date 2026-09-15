@@ -97,6 +97,6 @@ Cleanup 不重新判断数学正确性、参数最优性、术语语义等价、
 
 ## D. Optional machine diagnostics
 
-机器诊断只定位可复核风险，机器审计不得自动重写正文。允许报告模板化元话语、重复章节预告、solver-first、标题碎片化/过度合并、图表裸堆、术语/数值格式漂移、强 claim 表面风险等；这些通常是 warning / review_required，只有同时违反既有 Hard 事实、证据、引用或 stale 边界时才 blocking。
+正式 LaTeX 工程的确定性审计入口仍为 `scripts/audit_latex_project.py`；Cleanup 本身不替代该审计。机器诊断只定位可复核风险，机器审计不得自动重写正文。允许报告模板化元话语、重复章节预告、solver-first、标题碎片化/过度合并、图表裸堆、术语/数值格式漂移、强 claim 表面风险等；这些通常是 warning / review_required，只有同时违反既有 Hard 事实、证据、引用或 stale 边界时才 blocking。
 
 机器不得根据代词比例、连接词、标题字符数、公式数量、正文长度、算法名或图引用距离评价“像不像人”、数学正确性或模型理由质量；明确禁止 `first_person_ratio`、`human_like_score`、`AI_like_score` 一类作者身份/自然度评分。BibTeX 只检查 key 与结构完整性，不由 Cleanup 推断引用是否语义支持 claim。所有自动修复必须在改后重新检查 Formula/Proof/Algorithm、数值精度、Citation Evidence、Claim Strength、局部依赖和 LaTeX 引用完整性。
