@@ -416,14 +416,16 @@ class ContractAndDriftTests(unittest.TestCase):
     # because RUN_CONFIG migration explicitly changes those three protected execution surfaces.
     # P5b intentionally rebaselines only code-delivery validation because the versioned
     # RUN_RECEIPT protocol marker is a planned execution-interface extension.
+    # P7 intentionally rebaselines only project-state result-analysis semantics and the
+    # 03B module because conditional Analysis Necessity Gate behavior explicitly changes them.
     PROTECTED = {
         "core/model_approval_contract.yaml": "b86a18b4b0e160e837186ac4273bd06f0426d0f4",
         "core/numerical_verification_contract.yaml": "f7e1921ec4945cb5e87984ccb8946302d854143f",
         "core/workbook_schema.yaml": "ea33b857602754258915e35dbb0373e1f73fa7af",
-        "core/project_state.schema.yaml": "7c380bd8debdf729f0efd95f49aa1615f420fc1f",
+        "core/project_state.schema.yaml": "43ac8750e68150c7b01b6101aecdf7e39cd33cb3",
         "core/writing_reasoning_contract.yaml": "04ae1a4745d3614c7c01ab97e2f9fbe028b262e1",
         "modules/03_solve_validate.md": "17f6c3e755e64bfc7e8287c607b5a8b5b905c1d1",
-        "modules/03_result_analysis.md": "bbc1143f00e231670da57f393b39474c446c4f6a",
+        "modules/03_result_analysis.md": "b9384b0d42562a003887cc62427f62546c41d4f5",
         "modules/05_writing/paper_writing_protocol.md": "be7f0b7232677fd565502465f657014ab28128c2",
         "modules/05_writing/ai_cleanup.md": "72b4f1c796db18fba28130b11f6eefedbf32a1db",
         "modules/06_review_delivery.md": "f2f68c34cccf7a70e3ffab4668899a66fc3cfc89",
@@ -480,11 +482,19 @@ class ContractAndDriftTests(unittest.TestCase):
                     actual = git_blob_sha(path)
                 self.assertEqual(actual, expected)
 
-    def test_matlab_ownership_and_per_question_layout_remain_unchanged(self):
+    def test_matlab_ownership_and_conditional_per_question_layout_are_explicit(self):
         output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         self.assertIn("draw.io", output["ownership"]["other_figure_tools"])
-        self.assertEqual(len(output["per_question"]["exact_default_files"]), 5)
-        self.assertIn("q{阿拉伯序号}_plot.m", output["per_question"]["exact_default_files"])
+        per_question = output["per_question"]
+        base = per_question["base_default_files"]
+        analysis = per_question["analysis_required_additional_files"]
+        self.assertEqual(len(base), 3)
+        self.assertEqual(len(analysis), 2)
+        self.assertTrue(set(base).isdisjoint(analysis))
+        self.assertEqual(len(set(base + analysis)), 5)
+        self.assertIn("q{阿拉伯序号}_plot.m", base)
+        self.assertNotIn("问题{中文序号}结果深化分析.py", base)
+        self.assertIn("问题{中文序号}结果深化分析.py", analysis)
         self.assertNotIn("matplotlib", (ROOT / "templates/code").read_text(encoding="utf-8") if (ROOT / "templates/code").is_file() else "")
 
     def test_figure_authority_and_adapter_boundaries_are_explicit(self):

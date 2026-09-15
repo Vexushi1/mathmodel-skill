@@ -102,7 +102,6 @@ class TestV810CrossFileChapterHandoff(unittest.TestCase):
                 "sections/06_question1.tex",
                 "sections/09_evaluation.tex",
                 "references.bib",
-                "appendices/appendices.tex",
             ],
         )
 

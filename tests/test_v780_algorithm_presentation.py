@@ -96,14 +96,12 @@ class TestV780AlgorithmPresentation(unittest.TestCase):
 
     def test_upgrade_preserves_numerical_interfaces(self):
         self.assertEqual(
-            self.output["per_question"]["exact_default_files"],
-            [
-                "问题{中文序号}求解.py",
-                "问题{中文序号}求解结果.xlsx",
-                "问题{中文序号}结果深化分析.py",
-                "问题{中文序号}结果深化分析.xlsx",
-                "q{阿拉伯序号}_plot.m",
-            ],
+            self.output["per_question"]["base_default_files"],
+            ["问题{中文序号}求解.py", "问题{中文序号}求解结果.xlsx", "q{阿拉伯序号}_plot.m"],
+        )
+        self.assertEqual(
+            self.output["per_question"]["analysis_required_additional_files"],
+            ["问题{中文序号}结果深化分析.py", "问题{中文序号}结果深化分析.xlsx"],
         )
         self.assertEqual(self.output["semantic_governance"]["version"], "1.0.0")
         self.assertEqual(self.output["model_paper_framework"]["current_template_version"], "v0.8-project-memory")

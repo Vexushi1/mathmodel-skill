@@ -448,6 +448,8 @@ def hydrate_project_context(project_root: str | Path, question: str | None = Non
 
     primary_rows: list[dict[str, Any]] = []
     analysis_rows: list[dict[str, Any]] = []
+    analysis_skip_rows: list[dict[str, Any]] = []
+    analysis_complete: list[bool] = []
     subproblems = state.get("subproblems", {}) or {}
     for q in questions:
         item = subproblems.get(q, {}) or {}
@@ -456,46 +458,71 @@ def hydrate_project_context(project_root: str | Path, question: str | None = Non
             item.get("primary_execution_status") == "accepted"
             and item.get("result_quality_status") == "passed"
         )
-        primary_rows.append(
-            _file_evidence(
-                root,
-                artifact="accepted_solution_workbook",
-                scope=q,
-                relative_path=item.get("solution_workbook"),
-                expected_sha256=_expected_hash(item, "solution_workbook"),
-                accepted=primary_ok,
-                accepted_reason=(
-                    "primary execution and result quality are accepted"
-                    if primary_ok
-                    else "primary execution or result quality is not accepted"
-                ),
-            )
+        primary_row = _file_evidence(
+            root,
+            artifact="accepted_solution_workbook",
+            scope=q,
+            relative_path=item.get("solution_workbook"),
+            expected_sha256=_expected_hash(item, "solution_workbook"),
+            accepted=primary_ok,
+            accepted_reason=(
+                "primary execution and result quality are accepted"
+                if primary_ok
+                else "primary execution or result quality is not accepted"
+            ),
         )
+        primary_rows.append(primary_row)
+
         analysis_ok = (
             item.get("analysis_execution_status") == "accepted"
             and item.get("result_analysis_status") == "passed"
         )
-        analysis_rows.append(
-            _file_evidence(
-                root,
-                artifact="accepted_result_analysis_workbook",
-                scope=q,
-                relative_path=item.get("result_analysis_workbook"),
-                expected_sha256=_expected_hash(item, "result_analysis_workbook"),
-                accepted=analysis_ok,
-                accepted_reason=(
-                    "result-analysis execution and stability status are accepted"
-                    if analysis_ok
-                    else "result-analysis execution or stability status is not accepted"
-                ),
-            )
+        analysis_row = _file_evidence(
+            root,
+            artifact="accepted_result_analysis_workbook",
+            scope=q,
+            relative_path=item.get("result_analysis_workbook"),
+            expected_sha256=_expected_hash(item, "result_analysis_workbook"),
+            accepted=analysis_ok,
+            accepted_reason=(
+                "result-analysis execution and stability status are accepted"
+                if analysis_ok
+                else "result-analysis execution or stability status is not accepted"
+            ),
         )
+        analysis_rows.append(analysis_row)
+
+        requirement_reason = str(item.get("result_analysis_requirement_reason") or "").strip()
+        not_required = item.get("result_analysis_status") == "not_required"
+        skip_verified = not_required and bool(requirement_reason) and primary_row["status"] == "verified"
+        if not_required:
+            analysis_skip_rows.append(
+                {
+                    "artifact": "result_analysis_not_required",
+                    "source": "project_state",
+                    "scope": q,
+                    "status": "verified" if skip_verified else "not_accepted",
+                    "reason": (
+                        requirement_reason
+                        if skip_verified
+                        else "result_analysis_status=not_required requires a non-empty reason and a verified accepted primary result"
+                    ),
+                    "path": None,
+                    "expected_sha256": None,
+                    "actual_sha256": None,
+                }
+            )
+        analysis_complete.append(analysis_row["status"] == "verified" or skip_verified)
+
     evidence.extend(primary_rows)
     evidence.extend(analysis_rows)
+    evidence.extend(analysis_skip_rows)
     if primary_rows and all(item["status"] == "verified" for item in primary_rows):
         verified.update({"accepted_solution_workbook", "solution_workbook", "result_quality_report"})
     if analysis_rows and all(item["status"] == "verified" for item in analysis_rows):
-        verified.update({"accepted_result_analysis_workbook", "result_analysis_workbook", "validated_results"})
+        verified.update({"accepted_result_analysis_workbook", "result_analysis_workbook"})
+    if analysis_complete and all(analysis_complete):
+        verified.add("validated_results")
 
     return {
         "loaded": True,

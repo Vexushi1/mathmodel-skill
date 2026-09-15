@@ -16,19 +16,17 @@ def load_sync():
 
 
 class TestV700TwoStageQuestionFolder(unittest.TestCase):
-    def test_output_contract_has_exact_five_default_files(self):
+    def test_output_contract_has_conditional_three_five_files(self):
         data = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         per_question = data["per_question"]
         self.assertEqual(per_question["question_directory"], "问题{中文序号}求解/")
         self.assertEqual(
-            per_question["exact_default_files"],
-            [
-                "问题{中文序号}求解.py",
-                "问题{中文序号}求解结果.xlsx",
-                "问题{中文序号}结果深化分析.py",
-                "问题{中文序号}结果深化分析.xlsx",
-                "q{阿拉伯序号}_plot.m",
-            ],
+            per_question["base_default_files"],
+            ["问题{中文序号}求解.py", "问题{中文序号}求解结果.xlsx", "q{阿拉伯序号}_plot.m"],
+        )
+        self.assertEqual(
+            per_question["analysis_required_additional_files"],
+            ["问题{中文序号}结果深化分析.py", "问题{中文序号}结果深化分析.xlsx"],
         )
         self.assertTrue(per_question["no_auxiliary_files_by_default"])
         self.assertNotIn("single_python_update_policy", per_question)

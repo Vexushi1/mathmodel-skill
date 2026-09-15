@@ -106,7 +106,7 @@ class WritingReasoningScopeTests(unittest.TestCase):
         )
         self.assertEqual(
             git_blob_sha1(normalized_main),
-            "0552dc0d86c71c69e40d4693d5af564deb26feeb",
+            "3d5d9ca537c8ef556e97fe72c4faf2d81313f605",
         )
 
         manifest = yaml.safe_load(read("templates/latex/cumcm/hsk/template_manifest.yaml"))

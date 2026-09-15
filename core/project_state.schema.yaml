@@ -449,7 +449,11 @@ properties:
           oneOf: [{type: number, minimum: 0}, {type: 'null'}]
         result_quality_status: {type: string, enum: [pending, passed, failed]}
         execution_note: {type: string, description: 代码交付与用户本地运行状态说明}
-        result_analysis_status: {type: string, enum: [pending, passed, failed, redo_required]}
+        result_analysis_status: {type: string, enum: [pending, passed, failed, redo_required, not_required]}
+        result_analysis_requirement_reason:
+          description: P7 Analysis Necessity Gate 在not_required时必须记录的非空理由；不等价于稳健性已通过。
+          type: string
+          minLength: 1
         validation_status:
           description: 旧项目兼容汇总字段
           type: string

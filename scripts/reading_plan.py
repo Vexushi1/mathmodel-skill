@@ -322,6 +322,24 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
         project_root, state, issues = _current_project(plan)
         evidence = plan["assurance"]["artifact_assurance"]["evidence"]
         for artifact in config.get("required_verified_artifacts", []):
+            if artifact == "validated_results":
+                primary = [
+                    row for row in evidence
+                    if row.get("artifact") == "accepted_solution_workbook"
+                    and row.get("scope") == context.get("question")
+                ]
+                analysis = [
+                    row for row in evidence
+                    if row.get("artifact") in {"accepted_result_analysis_workbook", "result_analysis_not_required"}
+                    and row.get("scope") == context.get("question")
+                ]
+                if (
+                    not primary
+                    or any(row.get("status") != "verified" for row in primary)
+                    or not any(row.get("status") == "verified" for row in analysis)
+                ):
+                    issues.append("verified scoped artifact required: validated_results")
+                continue
             scoped = [row for row in evidence if row.get("artifact") == artifact
                       and row.get("scope") == context.get("question")]
             if not scoped or any(row.get("status") != "verified" for row in scoped):

@@ -433,8 +433,16 @@ def _formal_state_issues(required: set[str], state: Mapping[str, Any]) -> list[s
             continue
         if "result_quality_report" in required and entry.get("result_quality_status") != "passed":
             issues.append(f"{name}: 正式交付要求 result_quality_status=passed")
-        if "result_analysis_report" in required and entry.get("result_analysis_status") != "passed":
-            issues.append(f"{name}: 正式交付要求 result_analysis_status=passed")
+        if "result_analysis_report" in required:
+            analysis_status = entry.get("result_analysis_status")
+            if analysis_status not in {"passed", "not_required"}:
+                issues.append(f"{name}: 正式交付要求 result_analysis_status=passed 或 not_required")
+            elif analysis_status == "not_required" and not str(
+                entry.get("result_analysis_requirement_reason") or ""
+            ).strip():
+                issues.append(
+                    f"{name}: result_analysis_status=not_required必须提供非空result_analysis_requirement_reason"
+                )
         if required.intersection({"approved_figures", "docx_draft", "latex_source", "compiled_pdf", "validated_submission_package"}):
             if entry.get("artifacts_stale") is True:
                 issues.append(f"{name}: 下游正式交付禁止使用 stale 结果")
@@ -535,7 +543,7 @@ def _scope_artifact_issues(
     if "result_analysis_workbook" in required and not all(snapshot.get("result_analysis_workbook") for snapshot in snapshots.values()):
         issues.append("结果交付缺少标准结果深化分析工作簿")
     if "result_analysis_report" in required and not all(snapshot.get("result_analysis_report") for snapshot in snapshots.values()):
-        issues.append("结果交付缺少结果深化分析报告")
+        issues.append("结果交付缺少结果深化分析报告或明确的not_required判定")
     if "approved_figures" in required:
         issues.extend(_approved_figure_issues(root, state))
     if "docx_draft" in required:
