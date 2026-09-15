@@ -7,6 +7,7 @@ import ast
 import hashlib
 import importlib.util
 import sys
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +27,11 @@ FALSE_FLAGS = (
 )
 VALID_DECISIONS = {"not_needed", "question_local", "project_level"}
 CONFIG_NAMES = ("RUN_CONFIG", "FULL_FIDELITY_CONFIG", "FULL_RUN_CONFIG")
+RUN_RECEIPT_PROTOCOL_VERSION = "1.0.0"
+RUN_RECEIPT_ECHO_FIELDS = (
+    "stage", "problem_name", "data_sha256", "solver", "random_seed",
+    "tolerance", "iteration_or_time_limit",
+)
 PREPROCESSING_EVIDENCE_SHEETS = {
     "运行配置": ("项目", "值"),
     "数据审计": ("数据源", "检查项", "结论", "处理方式"),
@@ -156,23 +162,39 @@ def _embedded_config(text: str) -> tuple[str, dict[str, Any]]:
             continue
         value = ast.literal_eval(node.value)
         if not isinstance(value, dict):
-            raise ValueError(f"已交付主求解代码中的{matched[0]}必须为字典常量")
+            raise ValueError(f"已交付阶段代码中的{matched[0]}必须为字典常量")
         found.extend((name, value) for name in matched)
     if not found:
-        raise ValueError("已交付主求解代码缺少RUN_CONFIG字典常量（旧项目可只读FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG）")
+        raise ValueError("已交付阶段代码缺少RUN_CONFIG字典常量（旧项目可只读FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG）")
     if len(found) != 1:
         names = ", ".join(name for name, _ in found)
-        raise ValueError(f"已交付主求解代码只能定义一个受支持运行配置，当前检测到: {names}")
+        raise ValueError(f"已交付阶段代码只能定义一个受支持运行配置，当前检测到: {names}")
     return found[0]
 
 
-def delivered_primary_protocol(root: Path, entry: dict[str, Any]) -> tuple[str | None, list[str]]:
-    """Bind v7.14 strict receipt semantics to the already delivered primary code.
+def delivered_stage_config(
+    root: Path,
+    state: dict[str, Any],
+    entry: dict[str, Any],
+    stage: str,
+) -> tuple[dict[str, Any] | None, list[str]]:
+    """Read the delivered stage config statically and bind it to the stored code hash."""
+    if stage == "preprocessing":
+        holder = state.get("preprocessing") or {}
+        relative = str(holder.get("code", "")).strip()
+        expected_hash = str(holder.get("code_sha256", "")).lower()
+        label = "数据预处理"
+    elif stage == "primary":
+        relative = str(entry.get("code", "")).strip()
+        expected_hash = str(entry.get("primary_code_sha256", "")).lower()
+        label = "主求解"
+    else:
+        relative = str(entry.get("result_analysis_code", "")).strip()
+        expected_hash = str(entry.get("analysis_code_sha256", "")).lower()
+        label = "结果深化分析"
 
-    Historical states may not have a code path; those remain legacy-readable. For a
-    current delivered code path, the file is read statically, never imported or run.
-    """
-    relative = str(entry.get("code", "")).strip()
+    # Historical states may not persist a code path. They stay readable unless a
+    # versioned receipt explicitly claims the new protocol.
     if not relative:
         return None, []
     root = root.resolve()
@@ -180,19 +202,82 @@ def delivered_primary_protocol(root: Path, entry: dict[str, Any]) -> tuple[str |
     try:
         code.relative_to(root)
     except ValueError:
-        return None, ["项目状态中的主求解代码路径越出项目根目录"]
+        return None, [f"项目状态中的{label}代码路径越出项目根目录"]
     if not code.is_file():
-        return None, ["项目状态登记的已交付主求解代码不存在"]
-    expected_hash = str(entry.get("primary_code_sha256", "")).lower()
+        return None, [f"项目状态登记的已交付{label}代码不存在"]
     actual_hash = file_hash(code).lower()
     if expected_hash and actual_hash != expected_hash:
-        return None, ["已交付主求解代码实际SHA-256与项目状态不一致"]
+        return None, [f"已交付{label}代码实际SHA-256与项目状态不一致"]
     try:
-        _, delivered_config = _embedded_config(code.read_text(encoding="utf-8", errors="strict"))
+        _, delivered = _embedded_config(code.read_text(encoding="utf-8", errors="strict"))
     except (SyntaxError, ValueError) as exc:
         return None, [str(exc)]
-    protocol = str(delivered_config.get("primary_quality_protocol_version", "")).strip()
+    return delivered, []
+
+
+def delivered_primary_protocol(
+    root: Path,
+    state: dict[str, Any],
+    entry: dict[str, Any],
+) -> tuple[str | None, list[str]]:
+    delivered, issues = delivered_stage_config(root, state, entry, "primary")
+    if issues or delivered is None:
+        return None, issues
+    protocol = str(delivered.get("primary_quality_protocol_version", "")).strip()
     return (protocol or None), []
+
+
+def _receipt_values_equal(field: str, expected: Any, actual: Any) -> bool:
+    left = str(expected).strip()
+    right = str(actual).strip()
+    if field == "data_sha256":
+        return left.lower() == right.lower()
+    if left == right:
+        return True
+    if field in {"random_seed", "tolerance", "iteration_or_time_limit"}:
+        try:
+            return Decimal(left) == Decimal(right)
+        except (InvalidOperation, ValueError):
+            return False
+    return False
+
+
+def validate_run_receipt_binding(
+    receipt: dict[str, Any],
+    delivered: dict[str, Any] | None,
+) -> list[str]:
+    """Validate RUN_RECEIPT version handshake and plan-value echo without weakening legacy reads."""
+    issues: list[str] = []
+    receipt_version = str(receipt.get("run_receipt_version", "")).strip()
+    expected_version = "" if delivered is None else str(
+        delivered.get("run_receipt_protocol_version", "")
+    ).strip()
+
+    if expected_version and expected_version != RUN_RECEIPT_PROTOCOL_VERSION:
+        issues.append(f"已交付代码run_receipt_protocol_version不受支持: {expected_version}")
+    if receipt_version and receipt_version != RUN_RECEIPT_PROTOCOL_VERSION:
+        issues.append(f"工作簿run_receipt_version不受支持: {receipt_version}")
+    if expected_version and receipt_version != expected_version:
+        issues.append(
+            "工作簿run_receipt_version与已交付代码run_receipt_protocol_version不一致；"
+            "不得通过省略版本标记降级为legacy receipt"
+        )
+
+    strict_v1 = expected_version == RUN_RECEIPT_PROTOCOL_VERSION or receipt_version == RUN_RECEIPT_PROTOCOL_VERSION
+    if strict_v1:
+        if delivered is None:
+            issues.append("版本化RUN_RECEIPT必须能静态绑定已交付阶段代码")
+        else:
+            for field in RUN_RECEIPT_ECHO_FIELDS:
+                if field not in delivered:
+                    issues.append(f"已交付代码运行配置缺少RUN_RECEIPT绑定字段: {field}")
+                    continue
+                if field not in receipt:
+                    issues.append(f"RUN_RECEIPT缺少计划值回显字段: {field}")
+                    continue
+                if not _receipt_values_equal(field, delivered[field], receipt[field]):
+                    issues.append(f"RUN_RECEIPT.{field}与已交付RUN_CONFIG不一致")
+    return issues
 
 
 def _boolean_gate(workbook: Path, sheet: str, column: str) -> tuple[bool, list[str]]:
@@ -357,6 +442,9 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
         except ARTIFACT_IDENTITY.ArtifactIdentityError as exc:
             issues.append(f"artifact identity alias conflict: {exc}")
     issues.extend(validate_execution_evidence(config, state, entry, stage))
+    delivered, delivered_issues = delivered_stage_config(root, state, entry, stage)
+    issues.extend(delivered_issues)
+    issues.extend(validate_run_receipt_binding(config, delivered))
 
     if stage == "preprocessing":
         passed, quality_issues = preprocessing_passed(workbook)
@@ -376,8 +464,9 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
     if stage == "primary":
         passed, quality_issues = quality_passed(workbook)
         issues.extend(quality_issues)
-        expected_protocol, protocol_issues = delivered_primary_protocol(root, entry)
-        issues.extend(protocol_issues)
+        expected_protocol = "" if delivered is None else str(
+            delivered.get("primary_quality_protocol_version", "")
+        ).strip()
         workbook_protocol = str(config.get("primary_quality_protocol_version", "")).strip()
         if expected_protocol and workbook_protocol != expected_protocol:
             issues.append(
