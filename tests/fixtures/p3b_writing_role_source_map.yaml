@@ -1,0 +1,32 @@
+schema_version: 1
+baseline:
+  ai_cleanup_bytes: 33070
+  review_delivery_bytes: 39277
+  paper_writing_protocol_bytes: 63159
+  writing_runtime_bytes: 35235
+consumer_caps:
+  ai_cleanup_max_bytes: 15000
+  review_delivery_max_bytes: 16000
+authorities:
+  complex_semantics: core/writing_reasoning_contract.yaml
+  ordinary_prose: modules/05_writing/paper_writing_protocol.md
+  runtime: core/writing_runtime_contract.yaml
+  cleanup: modules/05_writing/ai_cleanup.md
+  review: modules/06_review_delivery.md
+protected_markers:
+  cleanup:
+    - final_model_relation
+    - key_bridge_relation
+    - supporting_derivation
+    - routine_algebra
+    - 不能仅因“不是最终模型公式”删除
+    - 用户本轮没有再次提到这些能力
+    - paper_writing_protocol.md#7.3-作者视角与建模解释
+  review:
+    - Question Writing Capability Activation Review
+    - Compact Runtime Boundary
+    - 不得抽样几个章节就宣称全文通过
+    - paper_writing_protocol.md#7.3-作者视角与建模解释
+  protocol:
+    - 按章节渐进读取
+    - 若只写单问，不需要为了“完整感”重新加载无关问题的全部推导和内部治理历史
