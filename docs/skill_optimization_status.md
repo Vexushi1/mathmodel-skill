@@ -16,8 +16,8 @@
 | P3a | 全局政策去重与来源映射 | 已合并，PR #154，`9cb5005b780c278953463d1ebeb891928974bb1f` |
 | P3b | 逐章/局部写作读取与 Cleanup/Review 职责收束 | 已合并，PR #155，`541cd398f5d4dfb9b0137437263747e9d55a6ca8` |
 | P4 | compact framework 实例化与渐进登记 | 已合并，PR #156，`a15b0a15e45fd561a87264eae4af5b1a710d23f6` |
-| P5a | 新生成阶段脚本统一 RUN_CONFIG，执行政策与任务参数分离 | 实施完成，PR #157；最终合并由完整 CI/Optimization baseline gate 决定 |
-| P5b | 版本化运行回执 RUN_RECEIPT | 待 P5a 合并后独立实施 |
+| P5a | 新生成阶段脚本统一 RUN_CONFIG，执行政策与任务参数分离 | 已合并，PR #157，`36c1e8e983228bbe2d8870bef05d204491273cca` |
+| P5b | 版本化运行回执 RUN_RECEIPT | 实施中，PR #158；等待完整 CI/Optimization baseline gate |
 | P6a/P6b | 论文图例索引、独立 MATLAB profile、真实预览 | 未开始 |
 | P7 | 条件式分析与附录 | 已获范围批准，尚未实现 |
 | P8 | 有测量依据的基础设施整理 | 未开始 |
@@ -114,6 +114,29 @@ P5a 只改**运行前代码交付配置**，不改 returned workbook 的运行�
 - 03A/03B 与 starter/pipeline README 同步使用 canonical RUN_CONFIG 口径；
 - 旧 editable-mechanism drift guard 仅对本阶段明确触碰的 `modules/03_solve_validate.md`、`modules/03_result_analysis.md`、`scripts/validate_code_delivery.py` 做受控 hash rebaseline，没有删除或放宽 drift assertion。
 
-专项回归位于 `tests/test_p5a_run_config.py`，覆盖 canonical/legacy schema、data hash、非法 invariant override、multiple-config ambiguity、Authority 字段分离与 PipelineConfig 去重；全量回归、generated metadata、LaTeX 与 Optimization baseline 仍是 PR #157 的正式合并门。
+专项回归位于 `tests/test_p5a_run_config.py`，覆盖 canonical/legacy schema、data hash、非法 invariant override、multiple-config ambiguity、Authority 字段分离与 PipelineConfig 去重；最终 head `1cdcb307bcdc4c6aa007f71afb4951db80af6250` 的 HSK Skill CI 与 Optimization baseline evidence 均通过，PR #157 合并至 main，merge commit 为 `36c1e8e983228bbe2d8870bef05d204491273cca`。
 
 详见非 Authority 迁移证据 `docs/p5a_run_config_migration.md`。
+
+## P5b：版本化 RUN_RECEIPT 与 RUN_CONFIG 绑定
+
+### 边界
+
+P5b 不新建第二张回执表，也不新增独立运行 YAML/JSON。逻辑 `RUN_RECEIPT` 继续序列化到既有 `运行配置(项目, 值)` 工作表；`core/workbook_schema.yaml` 的物理表结构因此无需改写，运行协议语义仍由唯一 `core/user_execution_contract.yaml` 拥有。
+
+新生成 RUN_CONFIG 通过 `run_receipt_protocol_version="1.0.0"` 声明期望协议；实际工作簿通过 `run_receipt_version="1.0.0"` 声明回执版本。P5a 过渡 RUN_CONFIG 与旧 `FULL_*` 的无版本历史回执保留只读兼容到 P9，但显式未知/不匹配版本 fail closed。
+
+### 实现
+
+- User Execution Contract 升至 `2.5.0`，登记 RUN_RECEIPT 逻辑名、传输载体、当前协议、兼容窗口、echo 字段与 runtime-only facts；
+- `scripts/validate_code_delivery.py` 对显式 `run_receipt_protocol_version` 做静态版本校验，同时保留 P5a transitional absence；
+- `scripts/validate_user_execution.py` 可按 preprocessing/primary/analysis 三阶段静态读取已交付代码，核对对应代码哈希，再执行协议握手；
+- v1 回执核对 `stage/problem_name/data_sha256/solver/random_seed/tolerance/iteration_or_time_limit` 与已交付 RUN_CONFIG 一致；数值字段允许 Excel 常见数值表示等价，不把格式差异误判为语义漂移；
+- `solver_version/actual_stop_reason/repetitions_or_scenarios/grid_or_time_range/platform/fallback/owner/profile/allow_*` 继续只作为运行后事实验收，不能由 RUN_CONFIG 自报替代；
+- Primary Quality Protocol 保持独立：primary 可同时携带 receipt protocol 与 `primary_quality_protocol_version`，P5b 不改数值验证 Authority；
+- starter 与 hsk_pipeline README 已切换为 P5b 新 writer 口径；不生成独立 RUN_RECEIPT 文件；
+- 旧 editable-mechanism drift guard 只对本阶段明确触碰的 `scripts/validate_code_delivery.py` 做受控 hash rebaseline，未移除或放宽断言。
+
+专项回归位于 `tests/test_p5b_run_receipt.py`，覆盖 v1 握手、缺版本降级拒绝、未知版本、P5a transitional read compatibility、无已交付代码绑定、echo mismatch、Excel 数值等价与 code-delivery marker 校验。正式合并仍以完整 HSK Skill CI 与 Optimization baseline evidence 为门。
+
+详见非 Authority 设计证据 `docs/p5b_run_receipt_versioning.md`。

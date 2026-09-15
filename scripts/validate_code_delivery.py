@@ -43,6 +43,7 @@ LEGACY_REQUIRED_FIELDS = {
 }
 PRIMARY_QUALITY_PROTOCOL_VERSION = "1.0.0"
 PRIMARY_REQUIRED_FIELDS = {"primary_quality_protocol_version"}
+RUN_RECEIPT_PROTOCOL_VERSION = "1.0.0"
 VALID_PREPROCESSING_DECISIONS = {"not_needed", "question_local", "project_level"}
 DATA_READER_NAMES = {
     "open", "ExcelFile", "read_csv", "read_excel", "read_table", "read_fwf",
@@ -376,6 +377,9 @@ def validate_script(
     stage = str(config.get("stage", ""))
     if stage not in {"preprocessing", "primary", "analysis"}:
         issues.append("stage必须为preprocessing、primary或analysis")
+    receipt_protocol = str(config.get("run_receipt_protocol_version", "")).strip()
+    if receipt_protocol and receipt_protocol != RUN_RECEIPT_PROTOCOL_VERSION:
+        issues.append(f"run_receipt_protocol_version必须为{RUN_RECEIPT_PROTOCOL_VERSION}")
     if stage == "primary":
         for field in sorted(PRIMARY_REQUIRED_FIELDS):
             if field not in config or config[field] in (None, "", []):
