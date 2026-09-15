@@ -276,6 +276,7 @@
 - `tests/test_optimization_baseline.py`
 - `tests/test_p3a_core_policy.py`
 - `tests/test_p3b_writing_roles.py`
+- `tests/test_p4_compact_framework.py`
 - `tests/test_preprocessing_decision_contract.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_read_path_semantic_closure.py`
