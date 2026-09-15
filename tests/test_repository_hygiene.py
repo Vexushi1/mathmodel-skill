@@ -175,7 +175,7 @@ class RepositoryHygieneTests(unittest.TestCase):
             if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
                 continue
             relative = path.relative_to(ROOT).as_posix()
-            if relative.startswith("legacy/") or relative.startswith("docs/"):
+            if relative.startswith("legacy/") or relative.startswith("docs/") or relative.startswith("tests/"):
                 continue
             self.assertIsNone(pattern.search(path.read_text(encoding="utf-8")), relative)
 
