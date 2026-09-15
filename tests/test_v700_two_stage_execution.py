@@ -189,8 +189,9 @@ class V700TwoStageExecutionTests(unittest.TestCase):
             per_question["python_scripts"],
             {"primary": "问题{中文序号}求解.py", "result_analysis": "问题{中文序号}结果深化分析.py"},
         )
-        self.assertEqual(len(per_question["exact_default_files"]), 5)
-        self.assertIn("问题{中文序号}结果深化分析.py", per_question["exact_default_files"])
+        self.assertEqual(len(per_question["base_default_files"]), 3)
+        self.assertEqual(len(per_question["analysis_required_additional_files"]), 2)
+        self.assertIn("问题{中文序号}结果深化分析.py", per_question["analysis_required_additional_files"])
         self.assertNotIn("single_python_update_policy", per_question)
 
     def test_user_execution_contract_preserves_two_stage_scripts_and_conditional_preprocessing(self):
