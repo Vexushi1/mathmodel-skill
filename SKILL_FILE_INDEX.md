@@ -66,6 +66,7 @@
 - `docs/main-branch-protection-hardening-plan.md`
 - `docs/matlab_publication_rendering_v91_plan.md`
 - `docs/p3a_global_policy_source_map.md`
+- `docs/p3b_writing_role_source_map.md`
 - `docs/phase_e_artifact_identity_inventory.md`
 - `docs/phase_f_transaction_writer_inventory.md`
 - `docs/phase_i_artifact_alias_retirement.md`
