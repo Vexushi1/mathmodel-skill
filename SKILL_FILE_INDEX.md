@@ -8,7 +8,6 @@
 - `.gitattributes`
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
-- `.github/workflows/matlab-publication-preview.yml`
 - `.github/workflows/optimization-baseline.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
