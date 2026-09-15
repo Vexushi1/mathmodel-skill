@@ -107,15 +107,15 @@ class AssuredResolverCharacterizationTests(unittest.TestCase):
             with self.subTest(case=identifier):
                 behavior = self.cases[identifier]["behavior"]
                 self.assertEqual(behavior["pause_state"], "awaiting_model_approval")
-                self.assertNotIn("solve_validate", behavior["modules"])
+                self.assertNotIn("modules/03_solve_validate.md", behavior["modules"])
 
     def test_approved_and_wording_only_keep_user_execution_boundary(self):
         for identifier in ("hydrated_approved", "hydrated_wording_only"):
             with self.subTest(case=identifier):
                 behavior = self.cases[identifier]["behavior"]
                 self.assertEqual(behavior["pause_state"], "awaiting_user_execution")
-                self.assertIn("solve_validate", behavior["modules"])
-                self.assertNotIn("result_analysis", behavior["modules"])
+                self.assertIn("modules/03_solve_validate.md", behavior["modules"])
+                self.assertNotIn("modules/03_result_analysis.md", behavior["modules"])
                 self.assertIn("locked_model_spec", behavior["artifact_assurance"]["effective_artifacts"])
 
     def test_hydrated_cases_do_not_write_to_project(self):
