@@ -273,16 +273,26 @@ def _snapshot_question(
     matlab = result_dir / f"q{number}_plot.m" if number else result_dir / "q_plot.m"
     figures = _figure_files(result_dir)
     status = str(entry.get("status", "pending"))
+    analysis_not_required = (
+        entry.get("result_analysis_status") == "not_required"
+        and bool(str(entry.get("result_analysis_requirement_reason") or "").strip())
+    )
     require_solution = status in SOLVED_STATUSES
-    require_analysis = status in ANALYZED_STATUSES
-    require_analysis_code = status in ANALYZED_STATUSES and bool(entry.get("analysis_code_sha256"))
+    require_analysis = status in ANALYZED_STATUSES and not analysis_not_required
+    require_analysis_code = (
+        status in ANALYZED_STATUSES
+        and not analysis_not_required
+        and bool(entry.get("analysis_code_sha256"))
+    )
     if delivery_scope in {"results", "figures", "docx"}:
         require_solution = True
-        require_analysis = True
-        require_analysis_code = True
+        require_analysis = not analysis_not_required
+        require_analysis_code = not analysis_not_required
 
     issues: list[str] = []
     warnings: list[str] = []
+    if entry.get("result_analysis_status") == "not_required" and not analysis_not_required:
+        issues.append("result_analysis_status=not_required必须提供非空result_analysis_requirement_reason")
     if delivery_scope == "code" and primary_code is None:
         issues.append("代码交付缺少标准主求解Python脚本")
     if require_solution and not solution.is_file():
@@ -302,7 +312,9 @@ def _snapshot_question(
             warnings.append("使用旧敏感性与鲁棒性工作簿名；新交付应迁移为结果深化分析工作簿")
 
     quality_exists = _has_sheets(solution, {"主结果质量门"})
-    analysis_report_exists = _has_sheets(analysis_workbook, {"分析设计", "结论稳定性汇总"})
+    analysis_report_exists = analysis_not_required or _has_sheets(
+        analysis_workbook, {"分析设计", "结论稳定性汇总"}
+    )
     if require_solution and not quality_exists:
         issues.append("主求解工作簿缺少主结果质量门报告")
     if require_analysis and not analysis_report_exists:

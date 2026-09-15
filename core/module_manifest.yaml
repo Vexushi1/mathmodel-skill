@@ -71,7 +71,7 @@ artifact_catalog:
   editable_mechanism_source: 由确定性生成器产生并通过结构检查的未压缩可编辑.drawio源；不能替代渲染预览和人工语义QA
   mechanism_preview: 与当前drawio hash绑定、供人工语义与版式复核的渲染预览；没有预览不得批准入文
   mechanism_exports: 人工复核后从可编辑源导出的项目级PDF/SVG/PNG正式机理图
-  validation_plan: 建模阶段的验证规划；其中Primary Quality Specification只定义当前主计算的最低数值有效性要求，参数敏感性、压力场景、替代算法/结构、异质性等仅作为下游风险提示，正式result_analysis_plan必须等主工作簿accepted后再建立
+  validation_plan: 建模阶段的验证规划；其中Primary Quality Specification只定义当前主计算的最低数值有效性要求，参数敏感性、压力场景、替代算法/结构、异质性等仅作为下游风险提示，正式result_analysis_plan必须等主工作簿accepted后并经Analysis Necessity Gate判定required再建立
   semantic_governance_report: 聊天或标准输出中的Problem Contract、语义闭环、复杂度复审、structured identity/text provenance、跨问和paper-fragment stale校验结果
   preprocessing_code: 仅decision=project_level时生成的数据预处理/数据预处理.py；共享原始数据唯一公共处理入口
   preprocessing_workbook: 仅decision=project_level时生成的数据预处理/数据预处理结果.xlsx；依赖小问的统一数值数据入口，同时保存论文方法验证和MATLAB绘图底层证据
@@ -80,7 +80,7 @@ artifact_catalog:
   preprocessing_figures: 由data_process.m形成并人工确认的预处理必要性/有效性证据图；默认不要求自动导出文件
   awaiting_user_preprocessing: decision=project_level且预处理代码已交付后等待用户本地运行的暂停状态
   python_code: 问题X求解/问题X求解.py；负责主求解、当前主计算必需的内在数值有效性检查以及不改变当前计算世界的Primary Evidence Capture；主工作簿accepted后冻结
-  result_analysis_code: 问题X求解/问题X结果深化分析.py；主工作簿accepted后独立生成，只负责敏感性、稳健性、替代方法/结构、阈值、异质性等深化分析并记录support/modify/reject对具体claim的作用
+  result_analysis_code: 仅Analysis Necessity Gate=required时生成的问题X求解/问题X结果深化分析.py；主工作簿accepted后独立生成，只负责敏感性、稳健性、替代方法/结构、阈值、异质性等深化分析并记录support/modify/reject对具体claim的作用
   stage_python_code: 当前代码交付阶段的题目专属Python文件；data_preprocessing仅在project_level时映射统一预处理脚本，solve_validate映射主求解脚本，result_analysis映射深化分析脚本
   full_run_config: 分别嵌入对应阶段Python和工作簸运行配置表的完整精度参数，不单独落盘
   execution_instructions: 聊天内给出的本地运行步骤，不单独落盘
@@ -91,10 +91,10 @@ artifact_catalog:
   result_quality_report: 当前locked model与声明数值方法下，本次主计算的精度、收敛、可行性、残差等内在数值有效性报告；不包含参数敏感性、压力场景或替代方法稳健性
   solved_results: 已通过主结果质量门与适用主数值证据复核的结果
   constraint_checks: 约束、残差、守恒、离散或收敛等主计算内在正确性检查
-  result_analysis_plan: 主工作簿accepted后，基于真实主结果风险选择的参数敏感性、场景压力、替代算法/结构、阈值、异质性、误差分解或外样本稳定性计划
-  result_analysis_workbook: 用户返回并验收的结果深化分析工作簿；保留参数/场景/算法/seed/阈值/对象等细粒度后置分析证据而非仅汇总结论
-  result_analysis_report: 实际深化分析报告；入文证据需说明target claim及support/modify/reject处置
-  validated_results: 通过结果深化分析且可用于写作的结果
+  result_analysis_plan: 仅Analysis Necessity Gate=required时，在主工作簿accepted后基于真实主结果风险选择的参数敏感性、场景压力、替代算法/结构、阈值、异质性、误差分解或外样本稳定性计划
+  result_analysis_workbook: Gate=required时由用户返回并验收的结果深化分析工作簿；保留参数/场景/算法/seed/阈值/对象等细粒度后置分析证据而非仅汇总结论
+  result_analysis_report: 结果分析逻辑完成标记；required分支指实际深化分析报告并要求target claim及support/modify/reject处置，not_required分支由project_state中的非空result_analysis_requirement_reason提供明确判定，不伪造工作簿
+  validated_results: 每个作用域小问均有accepted主结果，并且要么accepted且passed的结果深化分析，要么result_analysis_status=not_required且存在非空requirement reason；not_required不支持任何新增鲁棒性/稳定性主张
   evidence_map: 结论到公式、代码、表和图的证据映射
   matlab_scripts: MATLAB绘图脚本集合；project_level包含data_process.m，每问包含qX_plot.m
   result_figures: 工作簿驱动、经Scientific Figure Synthesis/基础图挑战/组合与全局—局部表达选择形成，正式图名由DOCX/LaTeX caption承担且不嵌入重复整体title/sgtitle的正式结果图
@@ -119,212 +119,79 @@ artifact_catalog:
   sync_report: 项目同步器生成的发现、Schema校验、分层哈希、stale和证据链报告
   figure_evidence: 由当前数据事实源、预处理/结果工作簿与对应MATLAB脚本形成的逻辑证据，不默认生成独立文件
   accepted_solution_workbook: 通过运行配置、哈希、主结果质量门以及适用v7.14主数值证据独立复核的主工作簿
-  accepted_result_analysis_workbook: 通过运行配置和结论稳定性验收的结果深化工作簿
+  accepted_result_analysis_workbook: Gate=required时通过运行配置和结论稳定性验收的真实结果深化工作簿
 modules:
   problem_audit:
     path: modules/01_problem_audit.md
-    inputs:
-    - problem_text
-    - attachments
-    - competition
-    - requested_deliverable
-    outputs:
-    - requirement_map
-    - subproblem_map
-    - problem_contract
-    - classification_by_subproblem
-    - problem_types_by_subproblem
-    - data_schema
-    - risks
+    inputs: [problem_text, attachments, competition, requested_deliverable]
+    outputs: [requirement_map, subproblem_map, problem_contract, classification_by_subproblem, problem_types_by_subproblem, data_schema, risks]
   model_design:
     path: modules/02_model_design.md
-    inputs:
-    - requirement_map
-    - problem_contract
-    - data_schema
-    - classification_by_subproblem
-    outputs:
-    - route_comparison
-    - selected_models
-    - proposed_model_spec
-    - model_challenge
-    - model_approval_brief
-    - awaiting_model_approval
-    - human_model_approval
-    - locked_model_spec
-    - preprocessing_decision
-    - formula_closure
-    - formula_reasoning_chain
-    - semantic_closure
-    - complexity_sanity_check
-    - proposition_plan
-    - model_paper_framework
-    - mechanism_contracts
-    - validation_plan
+    inputs: [requirement_map, problem_contract, data_schema, classification_by_subproblem]
+    outputs: [route_comparison, selected_models, proposed_model_spec, model_challenge, model_approval_brief, awaiting_model_approval, human_model_approval, locked_model_spec, preprocessing_decision, formula_closure, formula_reasoning_chain, semantic_closure, complexity_sanity_check, proposition_plan, model_paper_framework, mechanism_contracts, validation_plan]
   data_preprocessing:
     path: modules/03_data_preprocessing.md
     conditional: true
     activation: preprocessing_decision == project_level
-    inputs:
-    - locked_model_spec
-    - data_schema
-    - preprocessing_decision
-    - model_paper_framework
-    - data
-    - code_quality_contract
-    outputs:
-    - preprocessing_code
-    - preprocessing_workbook
-    - preprocessing_quality_report
-    - awaiting_user_preprocessing
-    - model_paper_framework
+    inputs: [locked_model_spec, data_schema, preprocessing_decision, model_paper_framework, data, code_quality_contract]
+    outputs: [preprocessing_code, preprocessing_workbook, preprocessing_quality_report, awaiting_user_preprocessing, model_paper_framework]
   solve_validate:
     path: modules/03_solve_validate.md
-    inputs:
-    - locked_model_spec
-    - preprocessing_decision
-    - formula_closure
-    - semantic_closure
-    - complexity_sanity_check
-    - proposition_plan
-    - validation_plan
-    - model_paper_framework
-    - data_schema
-    - data
-    - workbook_schema
-    - code_quality_contract
+    inputs: [locked_model_spec, preprocessing_decision, formula_closure, semantic_closure, complexity_sanity_check, proposition_plan, validation_plan, model_paper_framework, data_schema, data, workbook_schema, code_quality_contract]
     conditional_inputs:
       preprocessing_workbook:
         when: preprocessing_decision == project_level
-    outputs:
-    - python_code
-    - stage_python_code
-    - full_run_config
-    - execution_instructions
-    - code_delivery_report
-    - awaiting_user_execution
-    - model_paper_framework
+    outputs: [python_code, stage_python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
   result_analysis:
     path: modules/03_result_analysis.md
-    inputs:
-    - preprocessing_decision
-    - data
-    - accepted_solution_workbook
-    - result_quality_report
-    - validation_plan
-    - model_paper_framework
-    - workbook_schema
-    - code_quality_contract
+    conditional: true
+    activation: analysis_necessity_gate == required
+    inputs: [preprocessing_decision, data, accepted_solution_workbook, result_quality_report, validation_plan, model_paper_framework, workbook_schema, code_quality_contract]
     conditional_inputs:
       preprocessing_workbook:
         when: preprocessing_decision == project_level
-    outputs:
-    - result_analysis_plan
-    - result_analysis_code
-    - stage_python_code
-    - full_run_config
-    - execution_instructions
-    - code_delivery_report
-    - awaiting_user_execution
-    - model_paper_framework
+    outputs: [result_analysis_plan, result_analysis_code, stage_python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
   figure_evidence:
     path: modules/04_figure_evidence.md
-    inputs:
-    - preprocessing_decision
-    - data
-    - solution_workbook
-    - result_analysis_workbook
-    - workbook_schema
-    - model_paper_framework
-    - mechanism_contracts
+    inputs: [preprocessing_decision, data, solution_workbook, workbook_schema, model_paper_framework, mechanism_contracts]
     conditional_inputs:
       preprocessing_workbook:
         when: preprocessing_decision == project_level
-    outputs:
-    - preprocessing_matlab_script
-    - preprocessing_figures
-    - matlab_scripts
-    - result_figures
-    - refined_mechanism_figures
-    - mechanism_diagram_spec
-    - editable_mechanism_source
-    - mechanism_preview
-    - mechanism_exports
-    - figure_contracts
-    - approved_figures
-    - evidence_map
-    - model_paper_framework
+      result_analysis_workbook:
+        when: result_analysis_status == passed
+    outputs: [preprocessing_matlab_script, preprocessing_figures, matlab_scripts, result_figures, refined_mechanism_figures, mechanism_diagram_spec, editable_mechanism_source, mechanism_preview, mechanism_exports, figure_contracts, approved_figures, evidence_map, model_paper_framework]
   writing_docx:
     path: modules/05_writing/docx.md
-    inputs:
-    - model_paper_framework
-    - proposition_plan
-    - locked_model_spec
-    - validated_results
-    - figure_contracts
-    outputs:
-    - docx_draft
-    - latex_migration_notes
+    inputs: [model_paper_framework, proposition_plan, locked_model_spec, validated_results, figure_contracts]
+    outputs: [docx_draft, latex_migration_notes]
   writing_latex:
     path: modules/05_writing/latex.md
     execution_contract: core/writing_runtime_contract.yaml#template_first_progressive_authoring
-    inputs:
-    - model_paper_framework
-    - proposition_plan
-    - locked_model_spec
-    - validated_results
-    - approved_figures
-    - bibliography
-    outputs:
-    - latex_source_draft
-    - paper_text
+    inputs: [model_paper_framework, proposition_plan, locked_model_spec, validated_results, approved_figures, bibliography]
+    outputs: [latex_source_draft, paper_text]
     rules:
     - CUMCM 新论文先检查 Template Manifest 和 main 编排，只确定骨架，不在模板检查阶段生成正文。
-    - 正文按 problem_restatement、problem_analysis、assumptions_symbols_and_preparation、逐问 model/solve/result/validate、评价/引用/附录、最后摘要的 read_now → write_now → gate 顺序推进。
+    - 正文按 problem_restatement、problem_analysis、assumptions_symbols_and_preparation、逐问 model/solve/result/validate、评价/引用/条件式附录、最后摘要的 read_now → write_now → gate 顺序推进。
     - 命题证明与 stepwise/pseudocode 分别按条件读取 proposition_proof 与 algorithm_flow pack；不得遗忘，也不得在 not_needed 时强制生成。
     - draft semantic review 先于 AI Cleanup；Adapter 装配、审计和编译后再执行 final review。
   ai_cleanup:
     path: modules/05_writing/ai_cleanup.md
-    inputs:
-    - latex_source_draft
-    - paper_text
-    - evidence_map
-    outputs:
-    - latex_source
-    - cleaned_paper_text
-    - unsupported_claims
+    inputs: [latex_source_draft, paper_text, evidence_map]
+    outputs: [latex_source, cleaned_paper_text, unsupported_claims]
   latex_compile_quality:
     path: modules/05_latex_compile_quality.md
-    inputs:
-    - latex_source
-    - compile_profile
-    outputs:
-    - latex_audit_report
-    - compiled_pdf
-    - compile_report
+    inputs: [latex_source, compile_profile]
+    outputs: [latex_audit_report, compiled_pdf, compile_report]
   review_delivery:
     path: modules/06_review_delivery.md
-    inputs:
-    - all_requested_artifacts
-    - proposition_plan
-    - model_paper_framework
-    - output_contract
-    - workbook_schema
-    - compile_profile
-    - compile_report
-    outputs:
-    - review_report
-    - submission_package
+    inputs: [all_requested_artifacts, proposition_plan, model_paper_framework, output_contract, workbook_schema, compile_profile, compile_report]
+    outputs: [review_report, submission_package]
 utility_gates:
   semantic_governance:
     path: scripts/validate_semantic_governance.py
     command: python scripts/validate_semantic_governance.py <project_root> --write --strict
-    inputs:
-    - existing_project_state
-    - existing_model_paper_framework
-    outputs:
-    - semantic_governance_report
-    - project_state
+    inputs: [existing_project_state, existing_model_paper_framework]
+    outputs: [semantic_governance_report, project_state]
     rules:
     - Requires frozen Problem Contract, passed semantic closure, passed complexity sanity and a locked preprocessing_decision for designed-or-later subproblems.
     - Validates the current canonical SIB identity when present; legacy model-scope text hashes remain read-only compatibility provenance, and numerical result summaries remain outside model identity.
@@ -336,12 +203,8 @@ utility_gates:
   model_approval:
     path: scripts/validate_model_approval.py
     command: python scripts/validate_model_approval.py <project_root> --strict
-    inputs:
-    - existing_project_state
-    - existing_model_paper_framework
-    outputs:
-    - model_approval_validation_report
-    - project_state
+    inputs: [existing_project_state, existing_model_paper_framework]
+    outputs: [model_approval_validation_report, project_state]
     rules:
     - Requires model_challenge_status=passed and human_model_approval_status=approved for the current question set before project-level preprocessing or primary solve code delivery.
     - Requires approved_semantic_revision == semantic_revision and a complete supported structured identity with semantic_identity_hash == validated_semantic_identity_hash == approved_semantic_identity_hash.
@@ -353,75 +216,38 @@ utility_gates:
   code_delivery:
     path: scripts/validate_code_delivery.py
     command: python scripts/validate_code_delivery.py <project_root> --write --strict
-    inputs:
-    - existing_project_state
-    - existing_model_paper_framework
-    - stage_python_code
-    - code_quality_contract
-    outputs:
-    - code_delivery_report
-    - project_state
-    - awaiting_user_execution
+    inputs: [existing_project_state, existing_model_paper_framework, stage_python_code, code_quality_contract]
+    outputs: [code_delivery_report, project_state, awaiting_user_execution]
   user_execution_receipt:
     path: scripts/validate_user_execution.py
     command: python scripts/validate_user_execution.py <project_root> --write --strict
-    inputs:
-    - existing_project_state
-    - discovered_artifacts
-    outputs:
-    - user_execution_validation_report
-    - project_state
-    - solution_workbook
-    - accepted_solution_workbook
-    - result_quality_report
-    - solved_results
-    - result_analysis_workbook
-    - accepted_result_analysis_workbook
-    - validated_results
+    inputs: [existing_project_state, discovered_artifacts]
+    outputs: [user_execution_validation_report, project_state, solution_workbook, accepted_solution_workbook, result_quality_report, solved_results, result_analysis_workbook, accepted_result_analysis_workbook, validated_results]
     rules:
     - Primary workbook acceptance first validates execution provenance and the Boolean quality gate, then independently rechecks applicable intrinsic numerical evidence through core/numerical_verification_contract.yaml and scripts/validate_numerical_evidence.py.
     - The numerical recheck never runs task-specific code and never performs parameter sensitivity, stress scenarios, alternative-method comparison or other result-analysis work.
-    - Result-analysis workbook acceptance remains governed by its own analysis-design and conclusion-stability semantics after the primary workbook is accepted.
+    - Result-analysis workbook acceptance remains governed by its own analysis-design and conclusion-stability semantics after the primary workbook is accepted; a valid not_required Gate decision does not fabricate an analysis workbook.
   project_sync:
     path: scripts/sync_project.py
     command: python scripts/sync_project.py <project_root> --write --strict --delivery-scope <delivery_scope>
-    inputs:
-    - existing_project_state
-    - existing_model_paper_framework
-    - discovered_artifacts
-    - workbook_schema
-    - output_contract
-    outputs:
-    - project_state
-    - sync_report
-    delivery_scopes:
-    - design
-    - code
-    - results
-    - figures
-    - docx
-    - latex
-    - submission
+    inputs: [existing_project_state, existing_model_paper_framework, discovered_artifacts, workbook_schema, output_contract]
+    outputs: [project_state, sync_report]
+    delivery_scopes: [design, code, results, figures, docx, latex, submission]
     stage_requirements_source: core/output_contract.yaml#project_sync.stage_requirements
     rules:
     - Runs after semantic governance for formal design and downstream delivery.
     - Reads exact delivery requirements from core/output_contract.yaml before checking artifacts.
     - Validates project state and the current model-paper framework before artifact discovery.
     - Discovers preprocessing Python/workbook only when preprocessing_decision=project_level, and additionally requires data_process.m from figure_evidence onward.
-    - Discovers both stage-specific per-question Python scripts, validates workbook contracts and hashes the evidence chain without inventing model semantics or validation success.
-    - Propagates stale from the active data source, preprocessing figure script, primary code, analysis code, workbooks, MATLAB scripts and figure bundles without clearing it.
+    - Discovers stage-specific per-question Python scripts, validates applicable workbook contracts and hashes the evidence chain without inventing model semantics or validation success; result-analysis code/workbook are conditional on the Analysis Necessity Gate.
+    - Propagates stale from the active data source, preprocessing figure script, primary code, applicable analysis code/workbooks, MATLAB scripts and figure bundles without clearing it.
     - Required before formal model, workbooks, figures, DOCX, LaTeX or submission delivery.
     - Code delivery uses the dedicated non-executing code_delivery gate.
   submission_package_validation:
     path: scripts/validate_submission_package.py
     command: python scripts/validate_submission_package.py <project_root> --strict
-    inputs:
-    - existing_project_state
-    - discovered_artifacts
-    - submission_package
-    outputs:
-    - submission_package_validation_report
-    - validated_submission_package
+    inputs: [existing_project_state, discovered_artifacts, submission_package]
+    outputs: [submission_package_validation_report, validated_submission_package]
     rules:
     - Requires exactly one submission_manifest.yaml with per-file SHA-256 records.
     - Revalidates archived files against the current project and requires the packaged PDF to match the current compiled_pdf hash.

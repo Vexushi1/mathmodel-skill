@@ -154,8 +154,13 @@ paper_skeleton:
       default_active: true
     - id: appendix
       source: appendices/appendices.tex
-      required: true
-      default_active: true
+      required: false
+      default_active: false
+      activation: official_rule_requires_appendix_or_material_supporting_content_is_justifiably_kept_out_of_body
+      role: conditional_supporting_material
+      note: >-
+        附录不是结构完整性的必填章节。仅当官方规则要求，或确有长代码、长推导/证明、扩展表格、
+        复现说明等材料需要保留但放入正文会破坏主叙事时启用；没有真实材料时不得生成空附录。
 
 cumcm_question_section:
   title_pattern: "问题{N}模型建立及求解"
@@ -250,12 +255,14 @@ fixed_template_checks:
     - "\\input{sections/06_question1}"
     - "\\input{sections/09_evaluation}"
     - "\\input{sections/10_ai_tool_statement}"
+    - "\\input{appendices/appendices}"
   optional_default_inactive_tokens:
     - "\\input{sections/05_data}"
     - "\\input{sections/05_model_preparation}"
     - "\\input{sections/07_question2}"
     - "\\input{sections/08_question3}"
     - "\\input{sections/10_ai_tool_statement}"
+    - "\\input{appendices/appendices}"
   active_main_order:
     - "\\input{frontmatter/abstract}"
     - "\\input{sections/01_problem_statement}"
@@ -265,7 +272,6 @@ fixed_template_checks:
     - "\\input{sections/06_question1}"
     - "\\input{sections/09_evaluation}"
     - "\\printbibliography"
-    - "\\input{appendices/appendices}"
   required_evaluation_token: "\\section{模型的评价与推广}"
 
 runtime_contract:
@@ -278,6 +284,7 @@ runtime_contract:
     - activate_or_remove_model_preparation_based_on_real_shared_structure
     - activate_or_remove_data_section_based_on_real_data_method_need
     - activate_or_remove_ai_disclosure_based_on_verified_rule_and_confirmed_actual_use_facts
+    - activate_or_remove_appendix_based_on_verified_rule_or_real_supporting_material_need
   prose_writer_may_not_change_without_template_or_competition_switch:
     - documentclass
     - top_level_section_order

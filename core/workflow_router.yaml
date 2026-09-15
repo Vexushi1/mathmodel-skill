@@ -50,7 +50,7 @@ classification_contract:
 
 execution_contract:
   workflow_order: [problem_audit, model_design, data_preprocessing, solve_validate, result_analysis, figure_evidence, writing_latex, ai_cleanup, latex_compile_quality, review_delivery, writing_docx]
-  conditional_modules: [data_preprocessing]
+  conditional_modules: [data_preprocessing, result_analysis]
   formal_delivery_gates: [semantic_governance, project_sync]
   task_code_execution_allowed: false
   rules:
@@ -65,9 +65,10 @@ execution_contract:
   - If preprocessing_decision=project_level, pause before solve_validate, complete data_preprocessing, accept the unified workbook, then forbid dependent downstream code from rereading the corresponding shared raw sources.
   - Project-level preprocessing must persist paper method/validation/before-after plotting evidence in the unified workbook; figure_evidence then creates 数据预处理/data_process.m, which may only read that workbook and may not redo preprocessing.
   - Generate full-fidelity task code and stop at the applicable user-execution boundary; never execute task-specific preprocessing, solve or analysis code.
-  - Primary user-produced workbook must be accepted before final result-analysis code is generated.
-  - Accepted primary workbooks freeze the primary solve script; result-analysis code is a separate stage-specific Python file.
-  - Accepted result-analysis workbooks precede figures and writing.
+  - Primary user-produced workbook must be accepted before the Analysis Necessity Gate can decide whether post-primary result analysis is required.
+  - Accepted primary workbooks freeze the primary solve script; when the Gate is required, result-analysis code is a separate stage-specific Python file.
+  - Figures and writing require validated_results: every scoped question must have an accepted primary result plus either an accepted passed result-analysis workbook or an explicit result_analysis_status=not_required with a non-empty requirement reason.
+  - result_analysis_status=not_required only waives alternative-world computation for the current claims; it never proves robustness, stability, parameter insensitivity, cross-scenario validity or algorithm agreement. Adding such a claim reopens the Analysis Necessity Gate.
   - Result analysis may send the workflow back to model_design, conditionally to data_preprocessing, or to solve_validate when the locked result is not stable enough; paper-facing analysis evidence records support/modify/reject against a target claim.
   - Semantic or preprocessing-decision changes must propagate stale through typed cross-question dependencies before downstream work continues; paper fragments propagate only through explicit local dependencies.
   - Merge multiple intents in workflow order and remove duplicate modules, packs and outputs.
@@ -118,7 +119,7 @@ runtime_segments:
     stage_module: result_analysis
     reset_from_module: solve_validate
     satisfied_when:
-      any: [accepted_result_analysis_workbook]
+      any: [accepted_result_analysis_workbook, validated_results]
       all_groups:
       - [result_analysis_workbook, validated_results]
 
@@ -240,7 +241,7 @@ routing:
     infer_keywords: [模型比较, 建模路线, 变量, 假设, 公式, 目标函数, 约束]
     load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/model_approval_contract.yaml, core/writing_reasoning_contract.yaml, modules/02_model_design.md, packs/task/classifier.md]
     load_classified_task_packs: true
-    terminal_outputs: [route_comparison, selected_models, locked_model_spec, preprocessing_decision, formula_closure, semantic_closure, formula_reasoning_chain, complexity_sanity_check, proposition_plan, validation_plan, model_paper_framework]
+    terminal_outputs: [route_comparison, selected_models, locked_model_spec, preprocessing_decision, formula_closure, semantic_closure, formula_reasoning_chain, complexity_sanity_check, validation_plan, proposition_plan, model_paper_framework]
     formal_delivery: true
     delivery_scope: design
 
@@ -394,7 +395,7 @@ reading_policy:
         - path: core/writing_reasoning_contract.yaml
           yaml_paths: [schema_version, role, scope, rule_governance, analysis_evidence_disposition, paper_fragment_stale_governance, numeric_style_contract]
     figure_style:
-      required_verified_artifacts: [locked_model_spec, accepted_solution_workbook, accepted_result_analysis_workbook]
+      required_verified_artifacts: [locked_model_spec, accepted_solution_workbook, validated_results]
       needs_current_project: true
       needs_approved_figure_binding: true
       read_now:
