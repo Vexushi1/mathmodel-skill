@@ -94,10 +94,6 @@ def build_project(repo: Path, root: Path, mode: str) -> None:
     payload = helper.identity()
     payload["preprocessing_decision"] = "not_needed"
     question = helper.structured_question(payload)
-    question["classification"] = {
-        "objective": "optimization", "structures": ["scheduling"],
-    }
-    question["capabilities"] = {"requires_feasibility_check": True}
     text = helper.framework(payload)
     if mode == "unapproved":
         question["human_model_approval_status"] = "pending"
@@ -117,6 +113,11 @@ def build_project(repo: Path, root: Path, mode: str) -> None:
         }
     elif mode != "approved":
         raise ValueError(f"Unknown synthetic project fixture: {mode}")
+    # Keep task classification fixed even when legacy mode replaces approval fields.
+    question["classification"] = {
+        "objective": "optimization", "structures": ["scheduling"],
+    }
+    question["capabilities"] = {"requires_feasibility_check": True}
     helper.write_project(root, state_question=question, framework_text=text)
 
 
