@@ -299,11 +299,65 @@ def _check_critical_pointer_fragments(errors: list[str]) -> None:
 
 
 _original_check_contracts = checks.check_contracts
+_P7_OBSOLETE_CONTRACT_ERRORS = {
+    "per-question default must be exact five-file two-script layout",
+    "results scope must require independent result-analysis code",
+    "draw.io integration must preserve the per-question five-file layout",
+}
+
+
+def _p7_conditional_analysis_contract_errors(output: Mapping[str, object]) -> list[str]:
+    """Validate the approved P7 conditional three/five-file lifecycle before adapting legacy lint."""
+    current: list[str] = []
+    per_question = output.get("per_question", {}) or {}
+    base_expected = [
+        "问题{中文序号}求解.py",
+        "问题{中文序号}求解结果.xlsx",
+        "q{阿拉伯序号}_plot.m",
+    ]
+    analysis_expected = [
+        "问题{中文序号}结果深化分析.py",
+        "问题{中文序号}结果深化分析.xlsx",
+    ]
+    base = per_question.get("base_default_files") or []
+    analysis = per_question.get("analysis_required_additional_files") or []
+    if base != base_expected:
+        current.append("P7 per-question base layout must be the exact three-file primary/plot set")
+    if analysis != analysis_expected:
+        current.append("P7 required-analysis extension must be the exact independent 03B code/workbook pair")
+    if set(base) & set(analysis) or len(set(base + analysis)) != 5:
+        current.append("P7 conditional layout must remain disjoint three-plus-two and total five when analysis is required")
+
+    sync = output.get("project_sync", {}) or {}
+    requirements = sync.get("stage_requirements", {}) or {}
+    results = requirements.get("results", []) or []
+    if "result_analysis_code" in results:
+        current.append("P7 results base scope must not unconditionally require result-analysis code")
+    if "result_analysis_report" not in results:
+        current.append("P7 results scope must retain the auditable result-analysis gate/report state")
+    formal = sync.get("formal_state_requirements", {}) or {}
+    if formal.get("result_analysis_status") != ["passed", "not_required"]:
+        current.append("P7 formal delivery must accept only passed or reasoned not_required analysis status")
+
+    mechanism = output.get("mechanism_drawio_contract", {}) or {}
+    if mechanism.get("per_question_five_file_layout_unchanged") is not False:
+        current.append("P7 draw.io contract must acknowledge conditional rather than fixed five-file layout")
+
+    manifest = checks.load_structured(ROOT / "core/module_manifest.yaml") or {}
+    result_analysis = ((manifest.get("modules") or {}).get("result_analysis") or {})
+    if result_analysis.get("conditional") is not True:
+        current.append("P7 result-analysis module must remain explicitly conditional")
+    return current
 
 
 def _check_contracts(errors: list[str]) -> None:
     _original_check_contracts(errors)
     output = checks.load_structured(ROOT / "core/output_contract.yaml") or {}
+    p7_errors = _p7_conditional_analysis_contract_errors(output)
+    if p7_errors:
+        errors.extend(p7_errors)
+    else:
+        errors[:] = [item for item in errors if item not in _P7_OBSOLETE_CONTRACT_ERRORS]
     policy = output.get("writing_policy", {}) or {}
     expected = {
         "latex_source_layout_default": "modular",
@@ -318,6 +372,21 @@ def _check_contracts(errors: list[str]) -> None:
 
 
 checks.check_contracts = _check_contracts
+
+_original_check_editable_mechanism_diagrams = checks.check_editable_mechanism_diagrams
+
+
+def _check_editable_mechanism_diagrams(errors: list[str]) -> None:
+    _original_check_editable_mechanism_diagrams(errors)
+    output = checks.load_structured(ROOT / "core/output_contract.yaml") or {}
+    if not _p7_conditional_analysis_contract_errors(output):
+        errors[:] = [
+            item for item in errors
+            if item != "draw.io integration must preserve the per-question five-file layout"
+        ]
+
+
+checks.check_editable_mechanism_diagrams = _check_editable_mechanism_diagrams
 
 _original_check_project_state_and_framework = checks.check_project_state_and_framework
 
