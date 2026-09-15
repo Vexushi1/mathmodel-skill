@@ -53,7 +53,7 @@ class P5bRunReceiptTests(unittest.TestCase):
 
     def write_script(self, root: Path, protocol: str | None) -> Path:
         folder = root / "问题一求解"
-        folder.mkdir(parents=True)
+        folder.mkdir(parents=True, exist_ok=True)
         script = folder / "问题一求解.py"
         config = {
             "stage": "primary",
