@@ -11,12 +11,18 @@
 - **直接目标：** 在 GitHub-hosted 的真实 MATLAB 环境中生成代表性 publication previews；验证 profile/style API、文字与 legend、canvas、PNG/PDF 输出、monochrome print-safe 与输出目录边界；将真实预览作为 CI artifact 保存。
 - **明确不做：** 不修改 Figure Authority；不把 preview fixture 当论文数值证据；不改变 qX/data_process 五文件接口、工作簿/Project State、Model Approval/SIB/stale、03A/03B、LaTeX 或 release carriers；不自动批准任何用户项目 Figure。
 - **权威事实源：** `modules/04_figure_evidence.md`；P6a 实现为 `templates/matlab/hsk_publication_profile.m`、`templates/matlab/hsk_apply_scientific_style.m`；P6a/P6b 边界见 `docs/p6a_figure_reference_profile_split.md`。
-- **预计修改文件：** 独立 MATLAB preview harness、P6b workflow、专项静态测试、本维护证据与优化实施记录；generated metadata 由既有流程管理。
+- **预计修改文件：** 独立 MATLAB preview harness、既有 Optimization baseline workflow 的 preview job、专项静态测试、本维护证据与优化实施记录；generated metadata 由既有流程管理。
 - **禁止触碰：** 数值/工作簿/状态/审批/identity/stale 与正式论文内容语义。
 - **兼容性要求：** 不改变 `hsk_apply_scientific_style(fig[, profile])` 或 profile registry API；preview harness 只消费现有 API；用户项目无迁移。
 - **迁移要求：** 无。
-- **验收测试：** P6b workflow 在真实 MATLAB runner 上成功；三个 profile 均生成非空 PNG/PDF；机器检查文字/legend/canvas/style/print-safe/output-boundary；完整 HSK Skill CI 与 Optimization baseline evidence 仍通过。
-- **回滚方式：** 删除 P6b preview harness/workflow/tests/docs 即可；P6a profile/style implementation 与用户项目不受影响。
+- **验收测试：** 既有 `Optimization baseline evidence` workflow 中的 `Real MATLAB publication preview` job 在真实 MATLAB runner 上成功；三个 profile 均生成非空 PNG/PDF；机器检查文字/legend/canvas/style/print-safe/output-boundary；完整 HSK Skill CI 与 Optimization baseline evidence 仍通过。
+- **回滚方式：** 删除 P6b preview harness/tests/docs，并从既有 Optimization baseline workflow 撤销 preview job/path 即可；P6a profile/style implementation 与用户项目不受影响。
+
+## 为什么复用既有 workflow
+
+GitHub 对 pull request 中**首次新增且 base 分支尚不存在**的独立 workflow 不提供可靠的 pre-merge 执行门。P6b 因此不保留一个只在本 PR 新增的孤立 workflow，而是把真实 MATLAB job 接入已经存在于 `main` 的 `Optimization baseline evidence` workflow。这样 PR head 的 workflow 定义可被实际执行，P6b 的“真实 preview 必须在合并前形成证据”才能成立。
+
+为避免把真实 MATLAB 的安装成本扩散到所有普通优化变更，该 job 先从 base...HEAD 计算 changed files；只有 profile/style、P6b harness/contract/doc 或该 workflow 自身发生变化时才安装 MATLAB 并执行 preview。非相关优化 PR 仍会得到一个快速成功的 scope-check job，不会伪造 rendering evidence。
 
 ## 真实预览口径
 
