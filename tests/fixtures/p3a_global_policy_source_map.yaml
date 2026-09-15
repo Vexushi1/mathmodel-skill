@@ -1,0 +1,91 @@
+schema_version: 1
+baseline:
+  commit: 2a9cb227067d58d52471f164d317be3b4be330fe
+  core_policy_blob: 5616e090814831f0637fa8de6e365e35d6f8099f
+  core_policy_bytes: 20016
+purpose: >-
+  Maintenance-only map proving that details removed from the default global policy
+  remain owned by active authorities. This fixture does not create a new business Authority.
+retained_global_markers:
+  - '题意正确'
+  - 'Problem Contract'
+  - 'semantic_identity_hash'
+  - 'read-before-use / write-after-change'
+  - 'not_needed / question_local / project_level'
+  - 'full-fidelity'
+  - '参数敏感性'
+  - 'MATLAB 只做证据可视化'
+  - 'stale 结果不得写成 current'
+  - '不能替代数学证明'
+  - 'Citation Evidence'
+  - 'pre_delivery_gates'
+  - 'legacy/'
+removed_detail_markers:
+  - '数据预处理/\n├─ 数据预处理.py'
+  - '问题X求解/\n├─ 问题X求解.py'
+  - '`run_info.json`、`result_manifest.yaml` 和 `matlab_figure_handoff.json`'
+source_mappings:
+  - id: problem_contract_details
+    old_scope: '§2.1 Problem Contract field/detail expansion'
+    authority: modules/01_problem_audit.md
+    marker: '## Problem Contract：题意口径冻结'
+  - id: semantic_closure_complexity
+    old_scope: '§2.2--2.4 semantic closure, complexity and model-design implementation details'
+    authority: modules/02_model_design.md
+    marker: '## 4. 题面—数学—代码—输出语义闭环'
+  - id: approval_binding
+    old_scope: '§2.5 approval field-level behavior'
+    authority: core/model_approval_contract.yaml
+    marker: 'human_model_approval_status'
+  - id: project_memory_fields
+    old_scope: '§2.6 exhaustive framework contents and mode details'
+    authority: core/output_contract.yaml
+    marker: 'model_paper_framework:'
+  - id: preprocessing_rules
+    old_scope: '§3 preprocessing decision list, operations, directory and figure evidence'
+    authority: core/global_preprocessing_contract.yaml
+    marker: 'decision_values: [not_needed, question_local, project_level]'
+  - id: per_question_layout
+    old_scope: '§4 exact per-question five-file directory layout'
+    authority: core/output_contract.yaml
+    marker: 'per_question_outputs: 问题{中文序号}求解/'
+  - id: execution_and_receipts
+    old_scope: '§5 execution owner, workbook acceptance and full-fidelity field details'
+    authority: core/user_execution_contract.yaml
+    marker: 'execution_profile: full_fidelity'
+  - id: primary_quality_scope
+    old_scope: '§5 PQS/Verification ID and current-computation admissibility details'
+    authority: core/numerical_verification_contract.yaml
+    marker: 'primary_rule:'
+  - id: solve_analysis_boundary
+    old_scope: '§4--6 primary solve / accepted-only result-analysis operational detail'
+    authority: modules/03_result_analysis.md
+    marker: '本模块只接受已验收的主工作簿'
+  - id: figure_rules
+    old_scope: '§6 figure design/rendering specifics'
+    authority: modules/04_figure_evidence.md
+    marker: 'Scientific Figure Synthesis Gate'
+  - id: writing_complex_semantics
+    old_scope: '§6 detailed formula/algorithm/proposition/claim/citation defaults'
+    authority: core/writing_reasoning_contract.yaml
+    marker: 'claim_strength_calibration:'
+  - id: writing_progressive_runtime
+    old_scope: '§6 progressive chapter/preflight details'
+    authority: core/writing_runtime_contract.yaml
+    marker: 'template_first_progressive_authoring:'
+  - id: ordinary_prose
+    old_scope: '§6 ordinary paragraph and subsection guidance'
+    authority: modules/05_writing/paper_writing_protocol.md
+    marker: '## 4. Local Narrative Chain'
+  - id: compatibility_and_artifacts
+    old_scope: '§7 metadata locations and detailed historical compatibility branches'
+    authority: core/output_contract.yaml
+    marker: 'legacy_single_file_latex_supported: true'
+  - id: delivery_sync
+    old_scope: '§8 exact sync stage requirements and delivery integration'
+    authority: core/output_contract.yaml
+    marker: 'project_sync:'
+  - id: final_review
+    old_scope: '§8 final review semantics and report behavior'
+    authority: modules/06_review_delivery.md
+    marker: '## 一、评审分级'
