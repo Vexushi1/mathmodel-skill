@@ -62,6 +62,7 @@
 - `templates/matlab/data_process.m`
 - `templates/matlab/draw_mechanism_structure.m`
 - `templates/matlab/hsk_apply_scientific_style.m`
+- `templates/matlab/hsk_publication_profile.m`
 - `templates/matlab/hsk_read_result_workbooks.m`
 - `templates/matlab/q1_plot.m`
 - `templates/model/assumption_audit.md`

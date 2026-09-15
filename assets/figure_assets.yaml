@@ -1,12 +1,41 @@
-schema_version: 1.0.0
+schema_version: 1.1.0
 skill_compatibility: ">=7.4.2,<10.0.0"
-purpose: 将 Nature 风格图集作为按需视觉参考接入图型选择；资产不提供数据、结论、固定配色或固定面板数量。
+purpose: 将论文 Figure 图例/视觉参考资产作为按需索引接入图型与版式选择；资产不提供数据、结论、固定配色或固定面板数量。
 default_load: false
 rules:
-  - 仅在图型选择、版式对照或多面板设计需要时加载对应资产。
-  - 资产不能替代 Figure Contract、底层工作簿或 MATLAB 重绘脚本。
-  - 不按示例图机械复制颜色、面板数量和统计图型。
-  - 视觉参考只影响表现形式，不得改变模型结果、统计口径、证据层级或 Figure Layout Gate 的判定。
+  - 仅在图型选择、版式对照或多面板设计需要时，通过 reference_index 先选择少量 asset key，再加载对应资产。
+  - reference_index 只做 Evidence Structure / publication pattern / layout need 到既有 asset key 的候选映射，不拥有 Figure 决策权。
+  - 资产不能替代 Figure Contract、底层工作簿、模型论文框架或 MATLAB 重绘脚本。
+  - 不按示例图机械复制颜色、面板数量、统计图型、legend 或 annotation。
+  - 视觉参考只影响表现形式，不得改变模型结果、统计口径、证据层级、Scientific Figure Synthesis 或 Figure Layout Gate 的判定。
+  - 默认不得预加载全部图片；消费者只读取本次 lookup 命中的 path/paths。
+reference_index:
+  evidence_structures:
+    simple_comparison: [bar_comparison, forest_interval]
+    distribution_uncertainty: [distributions, forest_interval]
+    time_dynamic: [line_trends, area_stacked]
+    parameter_matrix: [heatmaps, scatter_bubble]
+    spatial_field: [image_plates, heatmaps]
+    multiobjective_candidates: [scatter_bubble]
+    network_flow: [network_matrix, area_stacked]
+    composition_decomposition: [area_stacked, heatmaps]
+    multi_metric_profile: [radar_polar, heatmaps]
+    multi_panel_evidence: [biomedical_panel_examples]
+  publication_patterns:
+    multi_metric_comparison_strip: [bar_comparison, forest_interval, biomedical_panel_examples]
+    ordered_ablation_ladder: [bar_comparison, forest_interval]
+    composition_decomposition: [area_stacked, heatmaps]
+    evidence_matrix: [heatmaps, network_matrix]
+    milestone_aware_trend: [line_trends, area_stacked]
+    normalized_multi_criteria_radar: [radar_polar]
+    density_state_space: [scatter_bubble, distributions]
+    comparative_performance_matrix: [heatmaps, forest_interval]
+  layout_needs:
+    compact_multi_panel: [biomedical_panel_examples]
+    shared_or_dedicated_legend: [bar_comparison, biomedical_panel_examples]
+    global_local_pair: [line_trends, scatter_bubble, image_plates]
+    matrix_with_marginal_context: [heatmaps, network_matrix]
+    print_safe_composition: [area_stacked, forest_interval]
 assets:
   bar_comparison:
     path: assets/nature_figure/chart-atlas/atlas-01-bar-charts.png

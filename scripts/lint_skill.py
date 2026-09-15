@@ -397,6 +397,17 @@ def _check_templates(errors: list[str]) -> None:
             errors.append(f"data_process.m lacks current scientific Figure semantic token: {token}")
 
     style = _ORIGINAL_READ_TEXT(ROOT / "templates/matlab/hsk_apply_scientific_style.m")
+    profile = _ORIGINAL_READ_TEXT(ROOT / "templates/matlab/hsk_publication_profile.m")
+    for token in (
+        "spec = hsk_publication_profile(profile)",
+        "palette = spec.palette",
+        "listfonts",
+        "Noto Sans CJK SC",
+    ):
+        if token not in style:
+            errors.append(f"scientific style helper lacks profile-application token: {token}")
+    if 'case "journal_balanced"' in style or 'case "monochrome_print"' in style:
+        errors.append("scientific style helper must not duplicate publication profile registry cases")
     for token in (
         "palette.brightBlue = [20, 120, 255] / 255",
         "palette.vividRed = [240, 68, 68] / 255",
@@ -408,8 +419,8 @@ def _check_templates(errors: list[str]) -> None:
         "palette.series",
         "高对比、中高饱和",
     ):
-        if token not in style:
-            errors.append(f"scientific style helper lacks current high-contrast token: {token}")
+        if token not in profile:
+            errors.append(f"publication profile registry lacks current high-contrast token: {token}")
 
     for name, relative in (
         ("Diangong", "templates/latex/diangong/main.tex"),

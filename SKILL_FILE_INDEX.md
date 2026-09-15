@@ -70,6 +70,7 @@
 - `docs/p4_compact_framework_progression.md`
 - `docs/p5a_run_config_migration.md`
 - `docs/p5b_run_receipt_versioning.md`
+- `docs/p6a_figure_reference_profile_split.md`
 - `docs/phase_e_artifact_identity_inventory.md`
 - `docs/phase_f_transaction_writer_inventory.md`
 - `docs/phase_i_artifact_alias_retirement.md`
@@ -231,6 +232,7 @@
 - `templates/matlab/data_process.m`
 - `templates/matlab/draw_mechanism_structure.m`
 - `templates/matlab/hsk_apply_scientific_style.m`
+- `templates/matlab/hsk_publication_profile.m`
 - `templates/matlab/hsk_read_result_workbooks.m`
 - `templates/matlab/q1_plot.m`
 - `templates/model/assumption_audit.md`
@@ -281,6 +283,7 @@
 - `tests/test_p4_compact_framework.py`
 - `tests/test_p5a_run_config.py`
 - `tests/test_p5b_run_receipt.py`
+- `tests/test_p6a_figure_reference_profile.py`
 - `tests/test_preprocessing_decision_contract.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_read_path_semantic_closure.py`
