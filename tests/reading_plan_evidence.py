@@ -14,8 +14,13 @@ from reading_plan_cases import CASES, build_project
 
 HERE = Path(__file__).resolve()
 ALLOWED_CHANGED_AUTHORITIES = {
-    "core/bootstrap.yaml", "core/workflow_router.yaml", "core/runtime_assurance_contract.yaml",
+    "core/bootstrap.yaml",
+    "core/workflow_router.yaml",
+    "core/runtime_assurance_contract.yaml",
+    "core/module_manifest.yaml",
+    "templates/latex/cumcm/hsk/template_manifest.yaml",
 }
+P7_OPTIONAL_ANALYSIS_PREREQUISITE = "figure_evidence:result_analysis_workbook"
 
 
 def normalize(value, repo, project):
@@ -32,10 +37,15 @@ def legacy_projection(plan):
     value = deepcopy(plan)
     value.pop("reading_plan", None)
     fingerprint = value["assurance"]["authority_fingerprint"]
-    fingerprint["sha256"] = "<EXPECTED_P2_AUTHORITY_CHANGE>"
+    fingerprint["sha256"] = "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"
     for source in fingerprint["sources"]:
         if source["path"] in ALLOWED_CHANGED_AUTHORITIES:
-            source["sha256"] = "<EXPECTED_P2_AUTHORITY_CHANGE>"
+            source["sha256"] = "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"
+    prerequisites = value.get("missing_prerequisites")
+    if isinstance(prerequisites, list):
+        value["missing_prerequisites"] = [
+            item for item in prerequisites if item != P7_OPTIONAL_ANALYSIS_PREREQUISITE
+        ]
     return value
 
 
@@ -110,10 +120,10 @@ def main():
         "schema_version": 1, "baseline_ref": args.baseline_ref, "candidate_ref": args.candidate_ref,
         "driver_sha256": hashlib.sha256(HERE.read_bytes()).hexdigest(),
         "cases_sha256": hashlib.sha256(HERE.with_name("reading_plan_cases.py").read_bytes()).hexdigest(),
-        "comparison_scope": "all_legacy_fields_except_declared_three_authority_hash_values",
+        "comparison_scope": "all_legacy_fields_except_declared_approved_authority_hashes_and_p7_optional_analysis_prerequisite",
         "expected_authority_changes": sorted(ALLOWED_CHANGED_AUTHORITIES),
         "all_legacy_behavior_equal": all(r["legacy_behavior_equal"] for r in rows),
-        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost; existing CUMCM progressive reads are not a new P2 saving.",
+        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost; approved P7 conditional-analysis authority hashes and the single obsolete unconditional result-analysis prerequisite are normalized, while every other legacy field remains exact.",
         "cases": rows,
     }
     args.output.mkdir(parents=True, exist_ok=True)
