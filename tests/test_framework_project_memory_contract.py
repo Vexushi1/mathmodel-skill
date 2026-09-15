@@ -26,7 +26,7 @@ class FrameworkProjectMemoryContractTests(unittest.TestCase):
     def test_framework_is_memory_not_numeric_database(self):
         policy = read("core/hsk_core_policy.md")
         self.assertIn("助手可读工作记忆", policy)
-        self.assertIn("已验收工作簿", policy)
+        self.assertIn("accepted 标准工作簿", policy)
         self.assertIn("state/project_state.yaml", policy)
 
     def test_v08_framework_keeps_project_specific_semantic_registries(self):
