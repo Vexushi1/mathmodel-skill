@@ -17,8 +17,8 @@
 | P3b | 逐章/局部写作读取与 Cleanup/Review 职责收束 | 已合并，PR #155，`541cd398f5d4dfb9b0137437263747e9d55a6ca8` |
 | P4 | compact framework 实例化与渐进登记 | 已合并，PR #156，`a15b0a15e45fd561a87264eae4af5b1a710d23f6` |
 | P5a | 新生成阶段脚本统一 RUN_CONFIG，执行政策与任务参数分离 | 已合并，PR #157，`36c1e8e983228bbe2d8870bef05d204491273cca` |
-| P5b | 版本化运行回执 RUN_RECEIPT | 实施中，PR #158；等待完整 CI/Optimization baseline gate |
-| P6a/P6b | 论文图例索引、独立 MATLAB profile、真实预览 | 未开始 |
+| P5b | 版本化运行回执 RUN_RECEIPT | 已合并，PR #158，`8a7b0738db6d8f730979ea04676d0a113b504f99` |
+| P6a/P6b | 论文图例索引、独立 MATLAB profile、真实预览 | P6a 实施中，PR #159；P6b 未开始 |
 | P7 | 条件式分析与附录 | 已获范围批准，尚未实现 |
 | P8 | 有测量依据的基础设施整理 | 未开始 |
 | P9 | 综合回归、兼容与发布 | 未开始 |
@@ -137,6 +137,27 @@ P5b 不新建第二张回执表，也不新增独立运行 YAML/JSON。逻辑 `R
 - starter 与 hsk_pipeline README 已切换为 P5b 新 writer 口径；不生成独立 RUN_RECEIPT 文件；
 - 旧 editable-mechanism drift guard 只对本阶段明确触碰的 `scripts/validate_code_delivery.py` 做受控 hash rebaseline，未移除或放宽断言。
 
-专项回归位于 `tests/test_p5b_run_receipt.py`，覆盖 v1 握手、缺版本降级拒绝、未知版本、P5a transitional read compatibility、无已交付代码绑定、echo mismatch、Excel 数值等价与 code-delivery marker 校验。正式合并仍以完整 HSK Skill CI 与 Optimization baseline evidence 为门。
+专项回归位于 `tests/test_p5b_run_receipt.py`，覆盖 v1 握手、缺版本降级拒绝、未知版本、P5a transitional read compatibility、无已交付代码绑定、echo mismatch、Excel 数值等价与 code-delivery marker 校验。最终 head `65dce8b23fc77482f568d80d11a66aeeda24837b` 的 HSK Skill CI 与 Optimization baseline evidence 均通过；PR #158 已合并至 main，merge commit 为 `8a7b0738db6d8f730979ea04676d0a113b504f99`。
 
 详见非 Authority 设计证据 `docs/p5b_run_receipt_versioning.md`。
+
+## P6a：论文图例索引与 MATLAB publication profile 分离
+
+### 边界
+
+P6a 只整理既有论文 Figure 视觉参考资产的检索索引，并把 MATLAB publication profile 从样式应用函数中拆成独立纯数据 registry；不新增外部论文图片，不把视觉参考升级为第二 Figure Authority，也不在本阶段宣称真实 MATLAB preview 已完成。真实渲染/预览验证保留给 P6b。
+
+`modules/04_figure_evidence.md` 继续拥有图型、legend、layout 与 Figure evidence 决策；`assets/figure_assets.yaml` 仅提供 Evidence Structure / publication pattern / layout need 到既有 asset key 的候选 lookup。`templates/matlab/hsk_publication_profile.m` 只拥有 deterministic palette/typography/frame profile 数据，`hsk_apply_scientific_style.m` 只负责把已选择 profile 应用到 figure。
+
+### 实现
+
+- `assets/figure_assets.yaml` 升至 additive 1.1.0 索引，保留旧 `assets[].path(s)/use_for` 结构，新增 `reference_index`，默认只加载本次 lookup 命中的少量资产；
+- `hsk_publication_profile.m` 独立保存 `competition_high_contrast / journal_balanced / monochrome_print` 三种 profile 的 palette、typography 与普通 Cartesian frame 参数；
+- `hsk_apply_scientific_style(fig[, profile])` API 不变，改为消费 profile registry，不再复制 profile switch；release-era palette aliases 继续兼容；
+- 视觉参考索引明确不提供数据、结论、固定颜色、固定面板数、legend 或 annotation 决策；
+- MATLAB README、Nature figure asset README 与专项测试同步；不改正式 qX 绘图脚本的项目五文件接口，也不碰数值/工作簿/state/approval/LaTeX/release carrier 业务语义；
+- generated `SKILL_FILE_INDEX.md` / `TEMPLATE_INDEX.md` / `MANIFEST.sha256` 继续由既有生成流程管理。
+
+专项回归位于 `tests/test_p6a_figure_reference_profile.py`，并重跑 v9.1 publication rendering 与既有 scientific-figure 回归。当前候选 head 已通过完整 HSK Skill CI；本状态记录进入同一 PR 后将触发 Optimization baseline evidence，最终合并仍以 final head 的 HSK Skill CI、Optimization baseline evidence、generated contract、scope review 与 mergeability 全部通过为门。
+
+详见非 Authority 设计证据 `docs/p6a_figure_reference_profile_split.md`。
