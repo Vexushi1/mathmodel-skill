@@ -290,6 +290,7 @@
 - `tests/test_p6a_figure_reference_profile.py`
 - `tests/test_p6b_matlab_preview_contract.py`
 - `tests/test_p7_conditional_analysis_appendix.py`
+- `tests/test_p8_infrastructure_measurement.py`
 - `tests/test_preprocessing_decision_contract.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_read_path_semantic_closure.py`
