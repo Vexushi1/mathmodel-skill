@@ -71,6 +71,7 @@
 - `docs/p5a_run_config_migration.md`
 - `docs/p5b_run_receipt_versioning.md`
 - `docs/p6a_figure_reference_profile_split.md`
+- `docs/p6b_matlab_rendering_preview.md`
 - `docs/phase_e_artifact_identity_inventory.md`
 - `docs/phase_f_transaction_writer_inventory.md`
 - `docs/phase_i_artifact_alias_retirement.md`
@@ -263,6 +264,7 @@
 - `tests/fixtures/writing_capability_preflight_cases.yaml`
 - `tests/fixtures/writing_reasoning_cases.yaml`
 - `tests/fixtures/writing_reasoning_voice_cases.yaml`
+- `tests/matlab/p6b_publication_preview.m`
 - `tests/optimization_baseline.py`
 - `tests/reading_plan_cases.py`
 - `tests/reading_plan_evidence.py`
@@ -284,6 +286,7 @@
 - `tests/test_p5a_run_config.py`
 - `tests/test_p5b_run_receipt.py`
 - `tests/test_p6a_figure_reference_profile.py`
+- `tests/test_p6b_matlab_preview_contract.py`
 - `tests/test_preprocessing_decision_contract.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_read_path_semantic_closure.py`
