@@ -372,8 +372,8 @@ per_question:
       path: 问题{中文序号}结果深化分析.xlsx
       when: result_analysis_status == passed
   matlab_script: q{阿拉伯序号}_plot.m
-  base_default_files: [问题{中文序号}求解.py, 问题{中文序号}求解结果.xlsx, q{阿拉伯序号}_plot.m]
-  analysis_required_additional_files: [问题{中文序号}结果深化分析.py, 问题{中文序号}结果深化分析.xlsx]
+  base_default_files: ["问题{中文序号}求解.py", "问题{中文序号}求解结果.xlsx", "q{阿拉伯序号}_plot.m"]
+  analysis_required_additional_files: ["问题{中文序号}结果深化分析.py", "问题{中文序号}结果深化分析.xlsx"]
   no_auxiliary_files_by_default: true
   two_python_stage_policy:
     primary: 主求解阶段交付问题X求解.py；数据入口由preprocessing_decision决定，只做主求解、PQS要求的内在数值有效性检查和不改变当前计算世界的Primary Evidence Capture，主工作簿accepted后冻结该脚本。
