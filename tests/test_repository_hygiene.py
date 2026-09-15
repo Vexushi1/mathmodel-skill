@@ -40,17 +40,22 @@ class RepositoryHygieneTests(unittest.TestCase):
         self.assertNotIn("不得另建结果深化分析 Python 脚本", text)
         self.assertNotIn("覆盖更新同一个 `问题X求解.py`", text)
 
-    def test_output_contract_keeps_exact_five_default_files(self) -> None:
+    def test_output_contract_keeps_conditional_three_five_default_files(self) -> None:
         contract = yaml.safe_load(read("core/output_contract.yaml"))
         per_question = contract["per_question"]
         self.assertEqual(
-            per_question["exact_default_files"],
+            per_question["base_default_files"],
             [
                 "问题{中文序号}求解.py",
                 "问题{中文序号}求解结果.xlsx",
+                "q{阿拉伯序号}_plot.m",
+            ],
+        )
+        self.assertEqual(
+            per_question["analysis_required_additional_files"],
+            [
                 "问题{中文序号}结果深化分析.py",
                 "问题{中文序号}结果深化分析.xlsx",
-                "q{阿拉伯序号}_plot.m",
             ],
         )
         self.assertTrue(per_question["no_auxiliary_files_by_default"])
