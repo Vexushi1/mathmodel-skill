@@ -146,4 +146,4 @@ v7.14 新生成的严格主质量轨迹应在 `运行配置` 中写入 `primary_
 
 若实现过程中发现必须新增核心变量、修改目标函数/约束、改变 `preprocessing_decision`、公共数据处理或算法语义，应停止代码交付，递增 `semantic_revision`，更新 `semantic_change_categories`，把旧 `model_challenge_status`、`human_model_approval_status` 和 `locked_model_spec` 标记 stale，必要时回退 Module 03P 或 Module 02，重新闭环、重新 Challenge、重新取得用户 Approval，并再次运行两个治理门。
 
-完整运行配置嵌入 `FULL_FIDELITY_CONFIG` 并写入主工作簿，不生成独立 YAML、运行说明或校验报告。主工作簿 accepted 后不得为了结果深化分析覆盖更新 `问题X求解.py`；深化分析进入 Module 03B，并生成独立 `问题X结果深化分析.py`。若后续发现主模型必须修改，应显式回退 Module 02/本模块，先传播 stale，再重新审查、批准并验收主结果。
+新生成主脚本必须只定义一个顶层 `RUN_CONFIG`，其中锁定 stage/problem/data path+hash/solver/seed/tolerance/limit/expected workbook 等任务可变输入，并在 primary 阶段写入 `primary_quality_protocol_version`。`execution_owner=user`、`execution_profile=full_fidelity` 与六个 no-degradation 标志由 `core/user_execution_contract.yaml` 全局继承，不在脚本中重复自报；`solver_version` 等实际运行事实仍由返回主工作簿 `运行配置` 记录和验收。旧 `FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG` 仅作只读兼容且继续按旧完整字段要求校验。默认不生成独立 YAML、运行说明或校验报告。主工作簿 accepted 后不得为了结果深化分析覆盖更新 `问题X求解.py`；深化分析进入 Module 03B，并生成独立 `问题X结果深化分析.py`。若后续发现主模型必须修改，应显式回退 Module 02/本模块，先传播 stale，再重新审查、批准并验收主结果。
