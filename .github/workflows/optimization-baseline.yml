@@ -1,0 +1,75 @@
+name: Optimization baseline evidence
+
+on:
+  pull_request:
+    paths:
+      - tests/optimization_baseline.py
+      - tests/test_optimization_baseline.py
+      - tests/fixtures/skill_optimization_cases.yaml
+      - docs/skill_optimization_status.md
+      - .github/workflows/optimization-baseline.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: optimization-baseline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  characterize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install repository validation dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Prepare immutable approved baseline
+        shell: bash
+        run: |
+          baseline=$(python -c 'import yaml; print(yaml.safe_load(open("tests/fixtures/skill_optimization_cases.yaml"))["baseline_commit"])')
+          test "$baseline" = 8a92a7924e950939dc77b15d3bb1a88400c09979
+          git worktree add --detach "$RUNNER_TEMP/hsk-approved-baseline" "$baseline"
+          mkdir -p "$RUNNER_TEMP/optimization-evidence"
+          echo "OPT_BASELINE=$RUNNER_TEMP/hsk-approved-baseline" >> "$GITHUB_ENV"
+          echo "OPT_REPORTS=$RUNNER_TEMP/optimization-evidence" >> "$GITHUB_ENV"
+      - name: Recheck existing baseline lint tests and generated files
+        shell: bash
+        run: |
+          cd "$OPT_BASELINE"
+          python scripts/lint_skill.py > "$OPT_REPORTS/baseline-lint.log" 2>&1
+          python -m unittest discover -s tests > "$OPT_REPORTS/baseline-unittest.log" 2>&1
+          python scripts/generate_indexes.py --check > "$OPT_REPORTS/baseline-generated.log" 2>&1
+      - name: Run measurement and boundary regression tests
+        run: python -m unittest discover -s tests -p test_optimization_baseline.py
+      - name: Measure real plans from baseline and candidate
+        shell: bash
+        run: |
+          python tests/optimization_baseline.py --repo-root "$OPT_BASELINE" --output "$OPT_REPORTS/baseline.json"
+          python tests/optimization_baseline.py --repo-root "$PWD" --output "$OPT_REPORTS/candidate.json"
+          python tests/optimization_baseline.py --compare "$OPT_REPORTS/baseline.json" "$OPT_REPORTS/candidate.json" --output "$OPT_REPORTS/comparison.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = json.loads((Path(os.environ["OPT_REPORTS"]) / "comparison.json").read_text())
+          rows = ["# P1 baseline comparison", "", "No runtime reduction is claimed in P1.", "",
+                  "| Case | Baseline bytes | Candidate bytes | Behavior equal |",
+                  "|---|---:|---:|---|"]
+          for row in report["cases"]:
+              rows.append(f'| {row["id"]} | {row["baseline_declared_bytes"]} | {row["candidate_declared_bytes"]} | {row["behavior_equal"]} |')
+          Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text("\n".join(rows) + "\n")
+          PY
+      - name: Upload real measurement evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: optimization-p1-evidence
+          path: ${{ runner.temp }}/optimization-evidence
+          if-no-files-found: warn
