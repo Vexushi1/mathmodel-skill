@@ -77,14 +77,16 @@ class TestV715ScientificFigureElevation(unittest.TestCase):
 
     def test_high_contrast_palette_is_restored_but_auxiliary_elements_are_deweighted(self):
         module = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
+        profile = (ROOT / "templates/matlab/hsk_publication_profile.m").read_text(encoding="utf-8")
         style = (ROOT / "templates/matlab/hsk_apply_scientific_style.m").read_text(encoding="utf-8")
         for token in ("#1478FF", "#F04444", "#16B364", "#F79009", "#7A5AF8"):
             self.assertIn(token, module)
         self.assertIn("亮蓝 vs 鲜红", module)
         self.assertIn("高对比 ≠ 全图所有元素都鲜艳", module)
-        self.assertIn("palette.brightBlue = [20, 120, 255] / 255", style)
-        self.assertIn("palette.vividRed = [240, 68, 68] / 255", style)
-        self.assertIn("palette.lightGray", style)
+        self.assertIn("palette.brightBlue = [20, 120, 255] / 255", profile)
+        self.assertIn("palette.vividRed = [240, 68, 68] / 255", profile)
+        self.assertIn("palette.lightGray", profile)
+        self.assertIn("spec = hsk_publication_profile(profile)", style)
 
     def test_formal_titles_and_data_honesty_are_unchanged(self):
         module = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
