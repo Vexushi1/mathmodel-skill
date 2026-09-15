@@ -8,6 +8,7 @@
 - `.gitattributes`
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
+- `.github/workflows/optimization-baseline.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
 - `AGENTS.md`
@@ -76,6 +77,7 @@
 - `docs/phase_i_v9_release_carrier_transition.md`
 - `docs/phase_i_v9_release_closure.md`
 - `docs/semantic_state_runtime_refactor_plan.md`
+- `docs/skill_optimization_status.md`
 - `docs/v801_chapter_capability_preservation_audit.md`
 - `docs/v801_skill_health_remediation_plan.md`
 - `docs/v801_skill_health_remediation_status.md`
@@ -243,12 +245,14 @@
 - `templates/writing/docx_check.md`
 - `tests/fixtures/model_construction_solution_cases.yaml`
 - `tests/fixtures/phase_g_cumcm_runtime_golden.yaml`
+- `tests/fixtures/skill_optimization_cases.yaml`
 - `tests/fixtures/v900_phase_h_empty_sync_golden.yaml`
 - `tests/fixtures/v900_phase_i_migration_matrix.yaml`
 - `tests/fixtures/v900_phase_i_writer_retirement_inventory.yaml`
 - `tests/fixtures/writing_capability_preflight_cases.yaml`
 - `tests/fixtures/writing_reasoning_cases.yaml`
 - `tests/fixtures/writing_reasoning_voice_cases.yaml`
+- `tests/optimization_baseline.py`
 - `tests/test_actions_runtime_modernization.py`
 - `tests/test_authority_single_source.py`
 - `tests/test_code_quality_contract.py`
@@ -260,6 +264,7 @@
 - `tests/test_latex_first_versionless_docs.py`
 - `tests/test_legacy_archive_hygiene.py`
 - `tests/test_mechanism_template_compat_hygiene.py`
+- `tests/test_optimization_baseline.py`
 - `tests/test_preprocessing_decision_contract.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_read_path_semantic_closure.py`

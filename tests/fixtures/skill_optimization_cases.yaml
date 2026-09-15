@@ -1,0 +1,65 @@
+schema_version: 1
+baseline_commit: 8a92a7924e950939dc77b15d3bb1a88400c09979
+purpose: Maintenance-only characterization; requests are synthetic, not project approvals.
+cases:
+  - id: framework_result_sync
+    intents: [framework_sync]
+    request: 仅同步已验收结果摘要与证据位置，不修改模型。
+    competition: CUMCM
+  - id: framework_model_change
+    intents: [framework_sync]
+    request: 修改物性公式与假设，然后更新模型论文框架。
+    competition: CUMCM
+  - id: figures_new_field
+    intents: [figures]
+    request: 为时空含水率数据设计新的结果图。
+    competition: CUMCM
+  - id: figures_style_only
+    intents: [figures]
+    request: 只改现有图的配色与线宽，保持数据和坐标口径不变。
+    competition: CUMCM
+  - id: editable_mechanism
+    intents: [editable_mechanism_diagram]
+    request: 用 draw.io 制作可编辑机理图。
+    competition: CUMCM
+  - id: project_sync
+    intents: [project_sync]
+    request: 检查项目产物一致性。
+    competition: CUMCM
+  - id: returned_workbook
+    intents: [returned_workbook_validation]
+    request: 验收本地返回的主求解工作簿。
+    competition: CUMCM
+  - id: latex_cumcm
+    intents: [latex]
+    request: 只调整 LaTeX 摘要的措辞，不改变结果。
+    competition: CUMCM
+  - id: latex_mcm
+    intents: [latex]
+    request: Write the MCM LaTeX paper from current evidence.
+    competition: MCM
+  - id: explicit_intent_precedence
+    intents: [figures]
+    request: 本轮只画图；文字提到模型比较和完整求解，不请求执行它们。
+    competition: CUMCM
+  - id: full_solution_no_approval
+    intents: [full_solution]
+    primary: mechanism
+    competition: CUMCM
+    available_artifacts: []
+    preprocessing_decision: not_needed
+  - id: hydrated_approved
+    intents: [full_solution]
+    project_fixture: approved
+  - id: hydrated_unapproved
+    intents: [full_solution]
+    project_fixture: unapproved
+  - id: hydrated_identity_drift
+    intents: [full_solution]
+    project_fixture: identity_drift
+  - id: hydrated_wording_only
+    intents: [full_solution]
+    project_fixture: wording_only
+  - id: hydrated_legacy
+    intents: [full_solution]
+    project_fixture: legacy
