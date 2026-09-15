@@ -44,6 +44,7 @@ class TestV910PublicationRendering(unittest.TestCase):
             self.assertIn(token, patterns)
 
     def test_style_kernel_profiles_and_backward_aliases(self):
+        profile = (ROOT / "templates/matlab/hsk_publication_profile.m").read_text(encoding="utf-8")
         style = (ROOT / "templates/matlab/hsk_apply_scientific_style.m").read_text(encoding="utf-8")
         for token in (
             'profile (1,1) string = "competition_high_contrast"',
@@ -53,14 +54,21 @@ class TestV910PublicationRendering(unittest.TestCase):
             "palette.primary",
             "palette.comparison",
             "palette.series",
-            '"Box", "off"',
-            '"TickDir", "out"',
-            '"Box", "off"',
             "palette.deepBlue = palette.brightBlue",
             "palette.darkRed = palette.vividRed",
         ):
+            self.assertIn(token, profile)
+        for token in (
+            'profile (1,1) string = "competition_high_contrast"',
+            "spec = hsk_publication_profile(profile)",
+            "palette = spec.palette",
+            '"Box", spec.frame.box',
+            '"TickDir", spec.frame.tick_dir',
+        ):
             self.assertIn(token, style)
+        self.assertNotIn('case "journal_balanced"', style)
         self.assertNotIn("exportgraphics", style)
+        self.assertNotIn("exportgraphics", profile)
 
     def test_entry_templates_prefer_shared_kernel_but_remain_standalone(self):
         for relative in ("templates/matlab/q1_plot.m", "templates/matlab/data_process.m"):
