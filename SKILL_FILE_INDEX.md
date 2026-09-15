@@ -287,6 +287,7 @@
 - `tests/test_p5a_run_config.py`
 - `tests/test_p5b_run_receipt.py`
 - `tests/test_p6a_figure_reference_profile.py`
+- `tests/test_p6b_matlab_preview_contract.py`
 - `tests/test_preprocessing_decision_contract.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_read_path_semantic_closure.py`
