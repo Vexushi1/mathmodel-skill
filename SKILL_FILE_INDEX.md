@@ -145,6 +145,7 @@
 - `scripts/prepare_cumcm_class.py`
 - `scripts/project_snapshot.py`
 - `scripts/project_transaction.py`
+- `scripts/reading_plan.py`
 - `scripts/render_paper.py`
 - `scripts/resolve_runtime.py`
 - `scripts/resolve_workflow.py`
@@ -253,6 +254,8 @@
 - `tests/fixtures/writing_reasoning_cases.yaml`
 - `tests/fixtures/writing_reasoning_voice_cases.yaml`
 - `tests/optimization_baseline.py`
+- `tests/reading_plan_cases.py`
+- `tests/reading_plan_evidence.py`
 - `tests/test_actions_runtime_modernization.py`
 - `tests/test_authority_single_source.py`
 - `tests/test_code_quality_contract.py`
@@ -268,6 +271,7 @@
 - `tests/test_preprocessing_decision_contract.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_read_path_semantic_closure.py`
+- `tests/test_reading_plan.py`
 - `tests/test_repository_hygiene.py`
 - `tests/test_result_io.py`
 - `tests/test_result_state_semantics.py`
