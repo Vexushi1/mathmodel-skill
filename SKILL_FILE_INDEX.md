@@ -142,6 +142,7 @@
 - `scripts/generate_indexes.py`
 - `scripts/generate_mechanism_drawio.py`
 - `scripts/hsk_pack_submission.py`
+- `scripts/instantiate_model_paper_framework.py`
 - `scripts/latex_delivery.py`
 - `scripts/lint_skill.py`
 - `scripts/lint_skill_checks.py`
