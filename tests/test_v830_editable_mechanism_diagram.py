@@ -414,6 +414,8 @@ class ContractAndDriftTests(unittest.TestCase):
     # consumer surfaces are the explicit scope of the approved writing-role consolidation.
     # P5a intentionally rebaselines only the two 03 execution docs and code-delivery validator
     # because RUN_CONFIG migration explicitly changes those three protected execution surfaces.
+    # P5b intentionally rebaselines only code-delivery validation because the versioned
+    # RUN_RECEIPT protocol marker is a planned execution-interface extension.
     PROTECTED = {
         "core/model_approval_contract.yaml": "b86a18b4b0e160e837186ac4273bd06f0426d0f4",
         "core/numerical_verification_contract.yaml": "f7e1921ec4945cb5e87984ccb8946302d854143f",
@@ -432,7 +434,7 @@ class ContractAndDriftTests(unittest.TestCase):
         "templates/matlab/draw_mechanism_structure.m": "65ba4a3b3462a565f86880c49af0959edd21f9a4",
         "templates/figure/chart_selection.md": "87930a49bad06777ac8a42af254b71a11ba1bf22",
         "templates/figure/figure_enhancement_patterns.md": "823550db7331a720ba32f2bc756fcdaaea12888d",
-        "scripts/validate_code_delivery.py": "6d79205633c3b6537db452705563c04b5f2a1d6c",
+        "scripts/validate_code_delivery.py": "8d2cbbf6e75c0871c329954b7fed11df53fe50bc",
     }
 
     def test_protected_authorities_have_not_drifted(self):
