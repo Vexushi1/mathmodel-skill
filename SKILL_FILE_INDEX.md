@@ -151,6 +151,7 @@
 - `scripts/latex_delivery.py`
 - `scripts/lint_skill.py`
 - `scripts/lint_skill_checks.py`
+- `scripts/measure_infrastructure.py`
 - `scripts/prepare_cumcm_class.py`
 - `scripts/project_snapshot.py`
 - `scripts/project_transaction.py`
