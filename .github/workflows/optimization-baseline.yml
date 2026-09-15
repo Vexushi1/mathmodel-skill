@@ -17,6 +17,11 @@ on:
       - tests/test_optimization_baseline.py
       - tests/fixtures/skill_optimization_cases.yaml
       - docs/skill_optimization_status.md
+      - templates/matlab/hsk_publication_profile.m
+      - templates/matlab/hsk_apply_scientific_style.m
+      - tests/matlab/p6b_publication_preview.m
+      - tests/test_p6b_matlab_preview_contract.py
+      - docs/p6b_matlab_rendering_preview.md
       - .github/workflows/optimization-baseline.yml
   workflow_dispatch:
 
@@ -113,3 +118,77 @@ jobs:
           name: optimization-p2-evidence
           path: ${{ runner.temp }}/optimization-evidence
           if-no-files-found: warn
+
+  real_matlab_preview:
+    name: Real MATLAB publication preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      HSK_PREVIEW_DIR: ${{ runner.temp }}/hsk-matlab-preview
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Detect preview-relevant changes
+        id: preview_scope
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git diff --name-only "origin/${{ github.base_ref }}...HEAD" > "$RUNNER_TEMP/p6b-changed-files.txt"
+          else
+            before="${{ github.event.before }}"
+            if [ -n "$before" ] && [ "$before" != "0000000000000000000000000000000000000000" ]; then
+              git diff --name-only "$before...${{ github.sha }}" > "$RUNNER_TEMP/p6b-changed-files.txt"
+            else
+              git show --pretty='' --name-only "${{ github.sha }}" > "$RUNNER_TEMP/p6b-changed-files.txt"
+            fi
+          fi
+          cat "$RUNNER_TEMP/p6b-changed-files.txt"
+          if grep -Eq '^(\.github/workflows/optimization-baseline\.yml|templates/matlab/hsk_publication_profile\.m|templates/matlab/hsk_apply_scientific_style\.m|tests/matlab/p6b_publication_preview\.m|tests/test_p6b_matlab_preview_contract\.py|docs/p6b_matlab_rendering_preview\.md)$' "$RUNNER_TEMP/p6b-changed-files.txt"; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install CJK publication fonts
+        if: steps.preview_scope.outputs.run == 'true'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+          fc-cache -f
+      - name: Set up MATLAB
+        if: steps.preview_scope.outputs.run == 'true'
+        uses: matlab-actions/setup-matlab@v3
+        with:
+          release: R2024b
+          cache: true
+      - name: Render and machine-check publication previews
+        if: steps.preview_scope.outputs.run == 'true'
+        uses: matlab-actions/run-command@v3
+        with:
+          command: addpath(fullfile(pwd,"tests","matlab")); p6b_publication_preview(string(getenv("HSK_PREVIEW_DIR")))
+      - name: Prove preview harness did not mutate repository files
+        if: steps.preview_scope.outputs.run == 'true'
+        shell: bash
+        run: test -z "$(git status --porcelain)"
+      - name: Summarize real MATLAB evidence
+        if: steps.preview_scope.outputs.run == 'true' && success()
+        shell: bash
+        run: |
+          test -s "$HSK_PREVIEW_DIR/preview_report.json"
+          echo '## Real MATLAB publication preview' >> "$GITHUB_STEP_SUMMARY"
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo 'The P6b harness rendered all three publication profiles in a real MATLAB batch session.' >> "$GITHUB_STEP_SUMMARY"
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          cat "$HSK_PREVIEW_DIR/preview_report.json" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload real MATLAB preview evidence
+        if: always() && steps.preview_scope.outputs.run == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: matlab-publication-preview
+          path: ${{ runner.temp }}/hsk-matlab-preview
+          retention-days: 14
+          if-no-files-found: error
