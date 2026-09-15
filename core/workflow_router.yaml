@@ -354,3 +354,87 @@ routing:
     load: [core/writing_reasoning_contract.yaml, modules/05_writing/latex.md, modules/06_review_delivery.md, packs/artifact/review.md, templates/review/final_review_matrix.yaml, packs/artifact/algorithm_flow.md]
     load_competition_pack: true
     terminal_outputs: [review_report]
+
+# P2 is a content-reading projection only. Legacy route selection/load_order is unchanged.
+reading_policy:
+  schema_version: 1.0.0
+  authority: core/runtime_assurance_contract.yaml#reading_plan
+  boundaries:
+    - read_now is a planned read, not proof that a source or a gate has been consumed.
+    - Legacy load_order, modules, terminal outputs, pauses and every pre_delivery_gates entry remain authoritative and unchanged.
+    - Machine contract dependency closure and authority fingerprint are never filtered by reading profiles.
+    - Narrow branches require explicit limited intent and current file-backed project evidence; keywords never grant approval.
+    - Missing/stale/conflicted evidence, mixed intents or unknown scope keep conservative full reading and require adjudication.
+    - Result synchronization changes only current result summaries and evidence references; changed result versions still invalidate real downstream claims.
+    - Style edits cannot alter data, coordinates, units, statistics, thresholds, objects or conclusions; a semantic change returns to full review.
+    - Resolve exact headings or YAML paths with parent applicability context; failed selectors expand to the full existing source, never an empty rule.
+    - Missing/outside-root sources are errors. Re-resolve the plan if any source SHA changes or the content returned by a tool is truncated.
+    - Tool interfaces do not execute commands or attest success. Run every original gate in order and inspect its real results.
+    - No project writes, numerical task execution, state migration or new user-project files are performed by reading planning.
+  scope_signals:
+    result_only: '(仅|只)(同步|更新|登记)(已验收|当前|本问)?结果摘要'
+    style_only: '(仅|只)(修改|改|调整).{0,18}(配色|颜色|线宽|字体|字号|图例|间距)'
+    immutable_clauses:
+      - '不(修改|改变|调整)(模型|数据|坐标口径|参数|阈值|统计口径|结论)'
+      - '保持(数据和坐标口径|数据|模型|数值|坐标口径|结论|统计口径)不变'
+      - '模型论文框架'
+    semantic_risk: '(方程|物性|公式|模型|参数|假设|约束|阈值|插值|采样|平滑|归一化|统计|单位|坐标|重算|重新求解|改成|替换|新增|删除|翻倍|放宽)'
+    mechanism: '(机理图|推导图|draw\.io|drawio|几何示意)'
+  common_reads:
+    - {path: core/bootstrap.yaml}
+    - {path: core/hsk_core_policy.md}
+    - {path: core/workflow_router.yaml, yaml_paths: [reading_policy.boundaries]}
+  profiles:
+    framework_result_sync:
+      required_verified_artifacts: [locked_model_spec, accepted_solution_workbook]
+      needs_current_project: true
+      read_now:
+        - path: modules/02_model_design.md
+          headings: ['## 8. 模型语义修订、审批失效与跨问传播', '## 10. `模型论文框架.md`']
+        - path: core/writing_reasoning_contract.yaml
+          yaml_paths: [schema_version, role, scope, rule_governance, analysis_evidence_disposition, paper_fragment_stale_governance, numeric_style_contract]
+    figure_style:
+      required_verified_artifacts: [locked_model_spec, accepted_solution_workbook, accepted_result_analysis_workbook]
+      needs_current_project: true
+      needs_approved_figure_binding: true
+      read_now:
+        - path: modules/04_figure_evidence.md
+          headings: ['## 正确顺序', '### 视觉修改与语义修改分流', '## C 类：各问结果图合同', '## Publication Rendering Grammar：成熟论文图实现层', '## 实表读取规则', '## 图题、配色与风格', '## 入文闭环']
+        - {path: templates/figure/result_figure_qa.md}
+    figure_design:
+      read_now:
+        - path: modules/04_figure_evidence.md
+          headings: ['## 正确顺序', '## C 类：各问结果图合同', '## Figure Evidence 层级', '## Scientific Figure Synthesis Gate：从证据结构设计 Figure', '## Basic-form Challenge：基础图只在信息结构确实简单时保留', '## Composite Encoding Preference：同一证据空间优先融合互补编码', '## Scientific Rendering Profiles：选定视觉结构后的专属科研表达', '## Figure Layout Gate：单图 / 1×2 / 2×2 动态判断', '## Figure Enhancement Gate：焦点—上下文信息增强', '## Publication Rendering Grammar：成熟论文图实现层', '## 视觉注意力预算', '## 实表读取规则', '## 图题、配色与风格', '## Figure Portfolio Scientific Quality Gate', '## Missing Scientific Evidence Check', '## 分析图准入', '## 入文闭环']
+        - {path: templates/figure/result_figure_contract.md}
+        - {path: templates/figure/result_figure_qa.md}
+      conditional:
+        - {path: templates/figure/chart_selection.md, when: candidate_visual_structure_is_being_selected}
+        - {path: templates/figure/figure_enhancement_patterns.md, when: selected_enhancement_requires_an_implementation_pattern}
+        - {path: modules/04_figure_evidence.md, headings: ['## B 类：项目级预处理证据图'], when: project_level_preprocessing_figure_is_in_scope}
+    mechanism:
+      read_now:
+        - path: modules/04_figure_evidence.md
+          headings: ['## 正确顺序', '## A 类：机理与推导图', '## 入文闭环']
+        - {path: templates/figure/mechanism_contract.md}
+        - {path: templates/figure/mechanism_qa.md}
+      conditional:
+        - {path: templates/figure/mechanism_drawio_spec.yaml, when: drawio_backend_selected}
+        - {path: templates/figure/mechanism_drawio_patterns.md, when: drawio_source_is_being_generated_or_repaired}
+    project_sync:
+      read_now:
+        - {path: scripts/README.md, headings: ['## 运行时入口与治理']}
+        - {path: core/output_contract.yaml, yaml_paths: [scope_boundary, project_sync]}
+      route_tool: project_sync
+    returned_workbook_validation:
+      read_now:
+        - {path: scripts/README.md, headings: ['## 代码与用户执行']}
+        - {path: core/user_execution_contract.yaml, yaml_paths: [assistant_policy, returned_workbook]}
+        - {path: core/numerical_verification_contract.yaml}
+  deferred_conditions:
+    core/project_state.schema.yaml: machine_gate_or_state_conflict_needs_field_definition
+    core/state_transition_contract.yaml: machine_gate_or_typed_stale_conflict_needs_interpretation
+    core/output_contract.yaml: current_delivery_scope_or_file_layout_requires_definition
+    core/workbook_schema.yaml: current_workbook_fields_or_schema_failure_requires_definition
+    core/writing_reasoning_contract.yaml: current_mathematical_or_claim_semantics_require_adjudication
+    templates/figure/chart_selection.md: selecting_or_changing_the_visual_structure
+    templates/figure/figure_enhancement_patterns.md: chosen_enhancement_needs_implementation

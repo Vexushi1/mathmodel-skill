@@ -33,6 +33,7 @@ startup_contract:
   rules:
     - Bootstrap stores pointers and startup invariants only; global domain rules live in core/hsk_core_policy.md.
     - Route-specific contracts are loaded only when the resolved task needs them.
+    - When resolve_runtime returns reading_plan, consume read_now first and evaluate its conditional triggers; load_order remains the complete compatibility resource inventory, and all pre_delivery_gates still execute. See core/runtime_assurance_contract.yaml#reading_plan.
     - Runtime context hydration, intent provenance, artifact assurance and declarative contract dependency closure are governed by core/runtime_assurance_contract.yaml.
     - Resolver-internal manifests and taxonomies are not user-facing preload unless the route needs their content.
     - Current project semantics are restored from current 模型论文框架.md when available; numerical facts still come from accepted workbooks and machine state from project_state.

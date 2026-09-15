@@ -184,7 +184,7 @@ contract_dependency_closure:
 assurance_envelope:
   additive_backward_compatibility: true
   legacy_top_level_plan_preserved: true
-  new_top_level_sections: [runtime_plan, assurance]
+  new_top_level_sections: [runtime_plan, assurance, reading_plan]
   runtime_plan_fields:
   - selected_intents
   - delivery_scope
@@ -232,3 +232,28 @@ compatibility:
   project_state_schema_change_required: already_introduced_in_phase_c2
   workbook_schema_change_required: false
   task_code_interface_change_required: false
+
+
+reading_plan:
+  schema_version: 1.0.0
+  selection_authority: core/workflow_router.yaml#reading_policy
+  producer: scripts/reading_plan.py
+  consumer: assistant follows read_now, conditional triggers and tool_interfaces after resolve_runtime
+  role: additive_content_reading_projection_not_execution_authorization
+  preserves: [load_order, modules, contracts, templates, packs, pause_state, terminal_outputs, pre_delivery_gates, runtime_plan, assurance]
+  fields: [schema_version, profile, status, reasons, read_now, conditional, tool_interfaces, project_sources, machine_dependencies, authority_fingerprint, metrics]
+  source_identity: exact_relative_path_and_full_file_sha256_plus_1_based_inclusive_line_ranges
+  applicability_context: include_document_preamble_and_ancestor_introductions_for_Markdown_and_parent_mapping_headers_for_YAML
+  selector_failure: whole_existing_file_with_explicit_fallback_reason
+  missing_source: error_never_empty_rule
+  mixed_or_unknown_scope: conservative_full_reading_without_changing_selected_intents
+  narrow_evidence_source: existing_file_backed_artifact_assurance_and_current_framework_binding
+  rules:
+    - The sibling reading_plan schema is versioned independently; the existing assurance envelope version and fields remain unchanged.
+    - read_now and conditional are consumption instructions, not passed review, authorization, or evidence that text was actually read.
+    - Need for human semantic/visual review remains; byte/path/hash checks cannot decide mathematical correctness or visual quality.
+    - The legacy resource plan and complete machine closure remain available to old clients; new clients must not run fewer gates.
+    - Approved figure binding only narrows reading when existing registry/files/hash evidence agrees; it never creates or refreshes approval.
+    - Only verified source rows may support narrow modes; declared_unverified artifact names never substitute for verified project evidence.
+    - Planned file/fragment bytes are distinct from observed reads/tokens; actual_read_tokens remains null without a real trace.
+    - Existing CUMCM progressive writing stages and capability preflight remain authoritative; the reading plan delegates instead of inventing a new chapter order.

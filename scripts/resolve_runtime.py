@@ -9,6 +9,7 @@ from typing import Any, Iterable
 import yaml
 
 from resolve_workflow import resolve_workflow
+from reading_plan import build_reading_plan
 from runtime_assurance import (
     apply_contract_dependency_closure,
     authority_fingerprint,
@@ -324,6 +325,8 @@ def resolve_runtime(
         "dependency_closure": dependency,
         "authority_fingerprint": fingerprint,
     }
+    # P2 adds consumption guidance only; old plan fields and machine closure stay intact.
+    plan["reading_plan"] = build_reading_plan(ROOT, plan, router, manifest, request or "")
     return plan
 
 

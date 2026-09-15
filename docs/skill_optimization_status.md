@@ -17,8 +17,8 @@
 | 阶段 | 主题 | 状态 |
 |---|---|---|
 | P0 | 计划与范围审批 | 用户已批准 |
-| P1 | 可重算的读取与行为基线 | 本分支实施；验收/合并以 PR 和 CI 实际记录为准 |
-| P2 | 读取范围、事实同步和工具调用分流 | 待 P1 合并 |
+| P1 | 可重算的读取与行为基线 | 已合并，PR #152，`0eecaf929c83f19555402564ea0b14743d9bcf7d` |
+| P2 | 读取范围、事实同步和工具调用分流 | PR #153 实施；最终 head 验收/合并以实际 CI 为准 |
 | P3a/P3b | 全局去重、逐章写作与清理职责 | 未开始 |
 | P4 | compact 实例化与渐进登记 | 未开始 |
 | P5a/P5b | RUN_CONFIG 命名、版本化回执 | 未开始 |
@@ -79,3 +79,54 @@ python tests/optimization_baseline.py --compare /tmp/baseline.json /tmp/candidat
 `Optimization baseline evidence` 工作流重新运行固定基线的 lint、完整单元测试和 generated check，再测量基线与候选，上传实际 JSON 与日志。既有 `HSK Skill CI` 保持全部检查；索引由既有 refresh 工作流生成，不手填 MANIFEST。
 
 没有看到成功日志前不得将测试标为 passed；没有合并前不得把 P1 写成 main 已完成。当前批次不进行 MATLAB 渲染、国赛 PDE 重算、第三方论文图例收集或官方规则核验。
+
+
+## P1 合并收尾
+
+2026-09-15，用户明确要求合并 P1 后继续 P2。重新核对 P1 head `37f42089ca104e2586f882a76cf2c034a7279842`：HSK Skill CI run `34918609397`（11 项）、Optimization baseline evidence run `34918609487`（1 项）均为 completed/success。此前 action_required 已由第二次成功运行解除，PR 描述已更正。
+
+使用 expected_head_sha 保护执行 squash merge，合并提交为 `0eecaf929c83f19555402564ea0b14743d9bcf7d`，源码树为 `639ac70ccf417f6158e0d3d0f10007fd94c4ce69`。P2 从该 main 创建独立分支，不在 P1 分支续改。
+
+## P2 修改简报与实现边界
+
+**分支/PR：** `refactor/optimization-p2-reading-plan`，PR #153。
+
+**等级/版本：** 向后兼容的读取能力增量，属于已批准优化计划；保留 9.1.0 release carriers，最终 minor release 在 P9 单独裁决，本 PR 不宣称发布 9.2.0。
+
+**直接目标：** 区分资源库存、当前要读的内容与需要执行的工具；明确结果事实同步、语义变更、纯样式返修和新图设计的读取边界。
+
+**唯一选择 Authority：** `core/workflow_router.yaml#reading_policy`。`core/runtime_assurance_contract.yaml#reading_plan` 负责 additive envelope、来源和边界；`scripts/reading_plan.py` 实现，`scripts/resolve_runtime.py` 追加 sibling `reading_plan`；Bootstrap 与 RUNTIME_ROUTER 仅指引 consumer。
+
+**旧接口保护：** 不删除/重排/过滤 `load_order`、modules、contracts、templates、packs、pause、outputs 和 gates；完整机器 dependency closure 与旧 assurance 保留。预期变化只有新增 reading_plan，以及 Bootstrap/Router/Runtime Assurance 三份修改 Authority 的指纹；其它已指纹绑定的来源不能默许变化。
+
+**本批不做：** 不改变旧 resolver CLI、模型审批、identity、typed stale、工作簿 Schema、03A/03B、五文件、赛题算法、MATLAB/LaTeX 模板；不执行赛题数值代码；不压缩全部写作正文；不实施 RUN_CONFIG 或条件式分析。
+
+### 读取分流
+
+`reading_plan` 提供 read_now、conditional、tool_interfaces。read_now 是初始读取安排，conditional 在条件成立时仍需读取；工具接口来自已有 gate/Manifest，执行结果不能由计划推断。完整 load_order 仍供旧客户端和回退使用。
+
+结果摘要快捷读取必须同时具有明确限域请求、显式小问、current 框架及哈希、真实已验证模型/主工作簿与可恢复依赖；否则完整回退。纯样式还要求分析工作簿、现有 approved_figures、MATLAB 脚本及图束的 validated 哈希。第一版只使用既有 per-question 图束发现范围，项目级图若没有可验证的小问绑定，宁可完整回退，不新增审批字段或凭空猜测。
+
+请求关键词只是保守的读取选择线索，不证明语义没有变化；人工仍需核验请求、当前框架和证据。事实同步不改变 SIB/参数/假设/审批，结果变化仍按原有规则影响依赖和正文 stale。任何新发现的语义变化扩大读取并回到现有治理。
+
+新结果图只初读结果证据与设计规则，图型选择时读取 chart_selection，实现选中的高级增强时才读取 enhancement patterns。机理图读取机理分支。CUMCM 写作完全委托已有 initial_read_order / authoring_sequence / capability preflight，不建立第二套写作调度。
+
+### 来源与安全
+
+每个读取条目绑定完整文件 SHA-256、相对路径和一基闭区间行号。Markdown 保留文档前言与祖先标题的适用说明；YAML 保留父映射头，必要元数据在 selector 明确列出。重复/缺失标题、非法子树或 YAML alias 等不能安全定位时扩大到完整存在文件；文件缺失、越界路径不产生空规则。文件 SHA 改变后必须重新解析。
+
+这是读取预算，不是阅读完成回执。planned_skill_read_bytes 与 planned_project_read_bytes 分开计算，actual_read_bytes/tokens 无轨迹时为 null。不得将条件资源省去不算就宣称整任务成本降低，也不得把已经存在的 CUMCM 渐进写作当作 P2 新收益。
+
+### 测试与对照
+
+P1 完整代码通过 CI git archive 保存为仅 tracked 文件的源码工件，断网环境下载后核对 ZIP 与 tree 身份；不导出 .git、凭据或未跟踪内容。该精确 P1 树在本地重新通过 lint、930 个完整单元测试和 generated check。
+
+新增 `test_reading_plan.py` 检查真实选择、范围 union 字节、中文/CRLF、代码块伪标题、缺失/重复/alias 回退、路径/symlink 越界、证据不足、身份/数据/图漂移、混合意图、只读边界、工具/条件资源可达性及原写作委托。新增 `reading_plan_evidence.py` 在隔离进程对相同 19 个请求比较 P1 与候选版本的全部旧 plan 字段，仅允许上述三份 Authority 指纹值按预期变化；不忽略其它行为差异。
+
+P1 原有 driver 与断言不修改。CI 先以 pinned P1 driver 重跑 8a92a79→0eecaf9 的历史全等控制，再独立比较 P1→P2；没有将 P1 的全等要求放宽成可随意放行的新比较器。
+
+本地精确源码工作树已通过 lint、947 个完整单元测试（含 17 个新增专项测试）与 generated check；隔离进程对照为 19/19 旧计划行为一致。此处只记录本地验证，不等价于远端最新 head CI 已通过；远端验收和合并仍按 PR 实际记录。
+
+### 兼容、迁移与回滚
+
+旧客户端可以继续只消费 load_order；新客户端从 Bootstrap/路由导航消费 reading_plan。无用户项目状态、审批或数值产物迁移，不清理旧字段和 legacy reader。回滚 P2 新增 sibling、helper 和读取配置，恢复导航并重新生成索引即可；P1 基线和测试仍可独立保留。
