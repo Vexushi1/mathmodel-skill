@@ -6,7 +6,7 @@
 - `run_result_analysis_pipeline()`：保留为旧项目或显式本地编排的兼容 API；新项目默认由独立 `问题X结果深化分析.py` 读取已验收主工作簿完成深化分析；
 - `run_pipeline()`：仅保留为旧项目显式编排的兼容 API，不是新项目默认入口。
 
-题目专属两个阶段脚本在各自交付前都必须通过 `scripts/validate_code_delivery.py`；工程质量细则只由 `core/code_quality_contract.yaml` 定义，本管线不复制阈值。
+题目专属两个阶段脚本在各自交付前都必须通过 `scripts/validate_code_delivery.py`；工程质量细则只由 `core/code_quality_contract.yaml` 定义，本管线不复制阈值。用户执行、`full_fidelity` 和禁止降级/静默 fallback 的全局政策只由 `core/user_execution_contract.yaml` 定义，`PipelineConfig` 不重复承载这些不可变政策字段。
 
 ## 推荐复制结构
 
@@ -27,7 +27,7 @@
 └─ 赛题附件.xlsx
 ```
 
-运行配置以 `FULL_FIDELITY_CONFIG` 字典分别嵌入对应阶段 Python，并写入对应工作簿 `运行配置` 表；不生成独立 YAML 或说明文件。
+新生成阶段脚本使用唯一顶层 `RUN_CONFIG` 声明 stage/problem/data/hash/solver/seed/tolerance/limit/workbook/protocol 等任务可变输入；不再重复 owner/profile/六个 `allow_*` no-degradation 字段，也不把 `solver_version` 当运行前必填任务参数。旧 `FULL_FIDELITY_CONFIG` / `FULL_RUN_CONFIG` 仅作只读兼容。对应工作簿 `运行配置` 仍完整记录 owner/profile、solver/version、实际停止原因、平台、fallback 和 no-degradation 标志等**实际运行事实**；P5a 不改变该回执 schema，也不生成独立 YAML 或说明文件。
 
 ## 主求解阶段
 

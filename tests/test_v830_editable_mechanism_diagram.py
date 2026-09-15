@@ -412,14 +412,16 @@ class ContractAndDriftTests(unittest.TestCase):
     # those three Figure implementation surfaces are explicit scope of publication rendering.
     # P3b intentionally rebaselines only AI Cleanup and Review Delivery because those two
     # consumer surfaces are the explicit scope of the approved writing-role consolidation.
+    # P5a intentionally rebaselines only the two 03 execution docs and code-delivery validator
+    # because RUN_CONFIG migration explicitly changes those three protected execution surfaces.
     PROTECTED = {
         "core/model_approval_contract.yaml": "b86a18b4b0e160e837186ac4273bd06f0426d0f4",
         "core/numerical_verification_contract.yaml": "f7e1921ec4945cb5e87984ccb8946302d854143f",
         "core/workbook_schema.yaml": "ea33b857602754258915e35dbb0373e1f73fa7af",
         "core/project_state.schema.yaml": "7c380bd8debdf729f0efd95f49aa1615f420fc1f",
         "core/writing_reasoning_contract.yaml": "04ae1a4745d3614c7c01ab97e2f9fbe028b262e1",
-        "modules/03_solve_validate.md": "8817f50af1610fe89d05321e9c9a4d148a34a301",
-        "modules/03_result_analysis.md": "f43d21dc99d71e6b19baeec7af66cbf334da13a7",
+        "modules/03_solve_validate.md": "17f6c3e755e64bfc7e8287c607b5a8b5b905c1d1",
+        "modules/03_result_analysis.md": "bbc1143f00e231670da57f393b39474c446c4f6a",
         "modules/05_writing/paper_writing_protocol.md": "be7f0b7232677fd565502465f657014ab28128c2",
         "modules/05_writing/ai_cleanup.md": "72b4f1c796db18fba28130b11f6eefedbf32a1db",
         "modules/06_review_delivery.md": "f2f68c34cccf7a70e3ffab4668899a66fc3cfc89",
@@ -430,7 +432,7 @@ class ContractAndDriftTests(unittest.TestCase):
         "templates/matlab/draw_mechanism_structure.m": "65ba4a3b3462a565f86880c49af0959edd21f9a4",
         "templates/figure/chart_selection.md": "87930a49bad06777ac8a42af254b71a11ba1bf22",
         "templates/figure/figure_enhancement_patterns.md": "823550db7331a720ba32f2bc756fcdaaea12888d",
-        "scripts/validate_code_delivery.py": "96760ff12591daa5f08b22ff766872d09acfb783",
+        "scripts/validate_code_delivery.py": "6d79205633c3b6537db452705563c04b5f2a1d6c",
     }
 
     def test_protected_authorities_have_not_drifted(self):

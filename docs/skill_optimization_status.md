@@ -15,8 +15,9 @@
 | P2 | 读取范围、事实同步和工具调用分流 | 已合并，PR #153，`2a9cb227067d58d52471f164d317be3b4be330fe` |
 | P3a | 全局政策去重与来源映射 | 已合并，PR #154，`9cb5005b780c278953463d1ebeb891928974bb1f` |
 | P3b | 逐章/局部写作读取与 Cleanup/Review 职责收束 | 已合并，PR #155，`541cd398f5d4dfb9b0137437263747e9d55a6ca8` |
-| P4 | compact framework 实例化与渐进登记 | PR #156 实施；业务实现首轮完整 CI 已通过，待最终记录提交复验 |
-| P5a/P5b | RUN_CONFIG 命名、版本化回执 | 未开始 |
+| P4 | compact framework 实例化与渐进登记 | 已合并，PR #156，`a15b0a15e45fd561a87264eae4af5b1a710d23f6` |
+| P5a | 新生成阶段脚本统一 RUN_CONFIG，执行政策与任务参数分离 | 实施完成，PR #157；最终合并由完整 CI/Optimization baseline gate 决定 |
+| P5b | 版本化运行回执 RUN_RECEIPT | 待 P5a 合并后独立实施 |
 | P6a/P6b | 论文图例索引、独立 MATLAB profile、真实预览 | 未开始 |
 | P7 | 条件式分析与附录 | 已获范围批准，尚未实现 |
 | P8 | 有测量依据的基础设施整理 | 未开始 |
@@ -90,16 +91,29 @@ P4 不创建第二套 framework Authority：
 
 P4 新增 10 个专项测试，覆盖：default compact、compact 顶层精确投影、full validator 闭环、compact→full common sections byte-for-byte 保留、幂等、full→compact 拒绝、未知/重复/full-only 混入 fail-closed、fenced fake heading、防止 project state 隐式写入、Bootstrap entrypoint。
 
-本地/隔离 candidate snapshot：
+业务实现 head `e7b733fb464773a52380707c59aa39bf2130b031` 的完整 HSK Skill CI 与 Optimization baseline evidence 均通过；随后状态记录进入同样的 generated-metadata/final-head 复验流程，PR #156 最终按治理门全绿合并至 `main`，merge commit 为 `a15b0a15e45fd561a87264eae4af5b1a710d23f6`。
 
-- `python -m unittest tests.test_p4_compact_framework -v`：10/10 通过；
-- `python scripts/lint_skill.py`：通过；
-- `python scripts/generate_indexes.py --check`：通过；
-- 单进程全量 unittest 在当前容器 300 s 工具时限内未结束，超时前无失败；最终完整回归以 GitHub matrix 为准。
+## P5a：RUN_CONFIG 任务参数与执行政策分离
 
-业务实现 head `e7b733fb464773a52380707c59aa39bf2130b031`：
+### 边界
 
-- HSK Skill CI run `34982570889`：Python 3.10/3.11/3.12/3.13/3.14、Static contract lint、Generated file contract、CUMCM/MCM-ICM/Diangong LaTeX、Production LaTeX attestation 全部 job success，workflow completed/success；
-- Optimization baseline evidence run `34982570910`：completed/success。
+P5a 只改**运行前代码交付配置**，不改 returned workbook 的运行事实回执 schema，也不在本阶段引入版本化 `RUN_RECEIPT`。后者留给独立 P5b。Skill release carriers 仍保持 v9.1.0，统一版本发布留给 P9。
 
-本状态文件的更新会再次触发 generated metadata 与最终 head CI；只有最终 head 再次全绿后才 mark ready/merge PR #156。P5 不在 P4 PR 内叠加。
+`core/user_execution_contract.yaml` 继续是 user/full-fidelity/no-degradation 的唯一 Authority。新生成脚本不再重复自报这些全局不变量；工作簿 `运行配置` 继续完整记录真实 owner/profile、solver/version、停止原因、platform、fallback 与六个 no-degradation 标志，并由 `scripts/validate_user_execution.py` 验收。
+
+### 实现
+
+- 新生成 primary/analysis/preprocessing Python 阶段脚本统一使用唯一顶层 `RUN_CONFIG`；
+- canonical RUN_CONFIG 只要求 `stage/problem_name/data_paths/data_sha256/solver/random_seed/tolerance/iteration_or_time_limit/expected_workbook`，primary 继续要求 `primary_quality_protocol_version`；
+- `solver_version` 不再是运行前任务参数硬要求，仍允许冗余兼容并在工作簿中作为实际运行事实验收；
+- `execution_owner/user`、`execution_profile/full_fidelity` 与六个 `allow_*=false` 从 User Execution Authority 继承；若新 RUN_CONFIG 显式覆盖这些字段，只允许与 Authority 完全一致，非法覆盖 fail closed；
+- 旧 `FULL_FIDELITY_CONFIG` / `FULL_RUN_CONFIG` 保持只读兼容，并继续执行旧完整字段要求，不因迁移降低约束；
+- 同一脚本若同时定义多个受支持配置名，静态交付与 receipt-side delivered-code reader 均 fail closed，避免 source-order 选择；
+- `data_sha256` 仍是运行前严格 64 位 SHA-256 绑定，project-level 隔离、accepted primary code freeze、PQS/03A/03B 和 state hash 语义不变；
+- `PipelineConfig` 删除重复 owner/profile/no-degradation 字段，避免模板内产生第二份全局政策来源；
+- 03A/03B 与 starter/pipeline README 同步使用 canonical RUN_CONFIG 口径；
+- 旧 editable-mechanism drift guard 仅对本阶段明确触碰的 `modules/03_solve_validate.md`、`modules/03_result_analysis.md`、`scripts/validate_code_delivery.py` 做受控 hash rebaseline，没有删除或放宽 drift assertion。
+
+专项回归位于 `tests/test_p5a_run_config.py`，覆盖 canonical/legacy schema、data hash、非法 invariant override、multiple-config ambiguity、Authority 字段分离与 PipelineConfig 去重；全量回归、generated metadata、LaTeX 与 Optimization baseline 仍是 PR #157 的正式合并门。
+
+详见非 Authority 迁移证据 `docs/p5a_run_config_migration.md`。

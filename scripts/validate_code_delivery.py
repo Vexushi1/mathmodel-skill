@@ -27,11 +27,19 @@ FALSE_FLAGS = (
     "allow_fewer_repetitions", "allow_relaxed_tolerance", "allow_silent_solver_fallback",
 )
 PLACEHOLDERS = ("TODO", "FIXME", "__QUESTION_NAME__", "NotImplementedError")
-CONFIG_NAMES = {"FULL_FIDELITY_CONFIG", "FULL_RUN_CONFIG", "RUN_CONFIG"}
-REQUIRED_FIELDS = {
-    "execution_owner", "execution_profile", "stage", "problem_name", "data_paths",
-    "data_sha256", "solver", "solver_version", "random_seed", "tolerance",
-    "iteration_or_time_limit", "expected_workbook", *FALSE_FLAGS,
+CONFIG_NAMES = ("RUN_CONFIG", "FULL_FIDELITY_CONFIG", "FULL_RUN_CONFIG")
+LEGACY_CONFIG_NAMES = {"FULL_FIDELITY_CONFIG", "FULL_RUN_CONFIG"}
+TASK_REQUIRED_FIELDS = {
+    "stage", "problem_name", "data_paths", "data_sha256", "solver", "random_seed",
+    "tolerance", "iteration_or_time_limit", "expected_workbook",
+}
+POLICY_INVARIANTS = {
+    "execution_owner": "user",
+    "execution_profile": "full_fidelity",
+    **{flag: False for flag in FALSE_FLAGS},
+}
+LEGACY_REQUIRED_FIELDS = {
+    *TASK_REQUIRED_FIELDS, "solver_version", *POLICY_INVARIANTS,
 }
 PRIMARY_QUALITY_PROTOCOL_VERSION = "1.0.0"
 PRIMARY_REQUIRED_FIELDS = {"primary_quality_protocol_version"}
@@ -57,17 +65,36 @@ def is_sha256(value: Any) -> bool:
     return len(text) == 64 and all(character in "0123456789abcdef" for character in text)
 
 
-def embedded_config(text: str) -> dict[str, Any]:
+def embedded_config(text: str) -> tuple[str, dict[str, Any]]:
+    """Return the single supported top-level config name and literal dictionary.
+
+    RUN_CONFIG is the canonical write form. FULL_FIDELITY_CONFIG and FULL_RUN_CONFIG
+    remain read-only legacy inputs. Multiple supported names fail closed so validation
+    never depends on source-order selection.
+    """
     tree = ast.parse(text)
+    found: list[tuple[str, dict[str, Any]]] = []
     for node in tree.body:
-        if isinstance(node, (ast.Assign, ast.AnnAssign)):
-            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-            if any(isinstance(target, ast.Name) and target.id in CONFIG_NAMES for target in targets):
-                value = ast.literal_eval(node.value)
-                if not isinstance(value, dict):
-                    raise ValueError("FULL_FIDELITY_CONFIG必须为字典常量")
-                return value
-    raise ValueError("缺少FULL_FIDELITY_CONFIG字典常量")
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+            continue
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+        matched = [
+            target.id
+            for target in targets
+            if isinstance(target, ast.Name) and target.id in CONFIG_NAMES
+        ]
+        if not matched:
+            continue
+        value = ast.literal_eval(node.value)
+        if not isinstance(value, dict):
+            raise ValueError(f"{matched[0]}必须为字典常量")
+        found.extend((name, value) for name in matched)
+    if not found:
+        raise ValueError("缺少RUN_CONFIG字典常量（旧项目可只读FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG）")
+    if len(found) != 1:
+        names = ", ".join(name for name, _ in found)
+        raise ValueError(f"同一脚本只能定义一个受支持运行配置，当前检测到: {names}")
+    return found[0]
 
 
 def script_identity(script: Path) -> tuple[str, str]:
@@ -135,7 +162,7 @@ def code_quality_findings(
         else:
             errors.append(
                 f"代码{nonblank}行，超过{line_policy['hard_max']}行；"
-                "复杂题需在FULL_FIDELITY_CONFIG提供code_quality_exemption"
+                "复杂题需在嵌入运行配置提供code_quality_exemption"
             )
     elif nonblank > int(line_policy["target_max"]):
         warnings.append(f"代码{nonblank}行，超过目标{line_policy['target_max']}行")
@@ -305,7 +332,7 @@ def _decision_gate_issues(
         configured_paths = [str(item) for item in (data_paths or [])] if isinstance(data_paths, (list, tuple)) else []
         workbook = str(preprocessing.get("workbook") or "数据预处理/数据预处理结果.xlsx")
         if stage == "primary" and not any(_path_matches(item, workbook) for item in configured_paths):
-            issues.append("project_level主求解FULL_FIDELITY_CONFIG.data_paths必须包含已验收数据预处理结果.xlsx")
+            issues.append("project_level主求解嵌入运行配置.data_paths必须包含已验收数据预处理结果.xlsx")
         for item in configured_paths:
             if any(_path_matches(item, source) for source in covered):
                 issues.append(f"project_level下游data_paths不得重新声明已覆盖共享原始数据源: {item}")
@@ -333,15 +360,19 @@ def validate_script(
     if 'if __name__ == "__main__":' not in text and "if __name__ == '__main__':" not in text:
         issues.append("正式代码缺少main入口")
 
+    config_name = ""
     try:
-        config = embedded_config(text)
+        config_name, config = embedded_config(text)
     except (SyntaxError, ValueError) as exc:
         issues.append(str(exc))
         config = {}
 
-    for field in sorted(REQUIRED_FIELDS):
-        if field not in config or config[field] in (None, "", []):
-            issues.append(f"嵌入运行配置缺少字段: {field}")
+    if config_name:
+        required_fields = TASK_REQUIRED_FIELDS if config_name == "RUN_CONFIG" else LEGACY_REQUIRED_FIELDS
+        for field in sorted(required_fields):
+            if field not in config or config[field] in (None, "", []):
+                issues.append(f"{config_name}缺少字段: {field}")
+
     stage = str(config.get("stage", ""))
     if stage not in {"preprocessing", "primary", "analysis"}:
         issues.append("stage必须为preprocessing、primary或analysis")
@@ -354,18 +385,25 @@ def validate_script(
     elif config.get("primary_quality_protocol_version") not in (None, ""):
         issues.append("primary_quality_protocol_version只允许出现在primary阶段运行配置")
     if stage and stage != filename_stage:
-        issues.append(f"脚本文件名对应{filename_stage}阶段，但FULL_FIDELITY_CONFIG.stage={stage}")
+        issues.append(f"脚本文件名对应{filename_stage}阶段，但{config_name or '嵌入运行配置'}.stage={stage}")
     if expected_stage and stage != expected_stage:
         issues.append(f"stage应为{expected_stage}")
     if config.get("problem_name") != problem:
         issues.append("problem_name与目录/阶段身份不一致")
-    if config.get("execution_owner") != "user":
-        issues.append("execution_owner必须为user")
-    if config.get("execution_profile") != "full_fidelity":
-        issues.append("execution_profile必须为full_fidelity")
-    for flag in FALSE_FLAGS:
-        if config.get(flag) is not False:
-            issues.append(f"{flag}必须显式为false")
+
+    if config_name == "RUN_CONFIG":
+        for field, expected_value in POLICY_INVARIANTS.items():
+            if field in config and config[field] != expected_value:
+                issues.append(f"RUN_CONFIG不得覆盖全局执行政策: {field}必须为{expected_value!r}")
+    elif config_name in LEGACY_CONFIG_NAMES:
+        if config.get("execution_owner") != "user":
+            issues.append("execution_owner必须为user")
+        if config.get("execution_profile") != "full_fidelity":
+            issues.append("execution_profile必须为full_fidelity")
+        for flag in FALSE_FLAGS:
+            if config.get(flag) is not False:
+                issues.append(f"{flag}必须显式为false")
+
     if not is_sha256(config.get("data_sha256")):
         issues.append("data_sha256必须是64位十六进制SHA-256")
 

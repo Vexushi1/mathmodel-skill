@@ -68,6 +68,7 @@
 - `docs/p3a_global_policy_source_map.md`
 - `docs/p3b_writing_role_source_map.md`
 - `docs/p4_compact_framework_progression.md`
+- `docs/p5a_run_config_migration.md`
 - `docs/phase_e_artifact_identity_inventory.md`
 - `docs/phase_f_transaction_writer_inventory.md`
 - `docs/phase_i_artifact_alias_retirement.md`
@@ -277,6 +278,7 @@
 - `tests/test_p3a_core_policy.py`
 - `tests/test_p3b_writing_roles.py`
 - `tests/test_p4_compact_framework.py`
+- `tests/test_p5a_run_config.py`
 - `tests/test_preprocessing_decision_contract.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_read_path_semantic_closure.py`
