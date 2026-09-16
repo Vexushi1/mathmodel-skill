@@ -1,6 +1,6 @@
 # HSK MATLAB 科研绘图模板（当前活动模板）
 
-MATLAB 只读取 Python 两阶段输出的 accepted 工作簿与当前合法数据事实源，不重新求解、重新清洗、重新做敏感性或重新估计模型。每问唯一入口通用记为 `q{x}_plot.m`，问题一实例为 `q1_plot.m`，与主求解/深化分析脚本及工作簿同处 `问题X求解/`；活动模板与文档只使用这一标准命名。
+MATLAB 只读取 Python 已验收的 current 合法工作簿与数据事实源，不重新求解、重新清洗、重新做敏感性或重新估计模型。每问唯一入口通用记为 `q{x}_plot.m`，问题一实例为 `q1_plot.m`，与主求解脚本、主工作簿以及条件存在的 03B 脚本/工作簿同处 `问题X求解/`；活动模板与文档只使用这一标准命名。
 
 MATLAB 的职责不是“把 Excel 画出来”，而是：
 
@@ -15,7 +15,9 @@ solutionBook = fullfile(resultDir, "问题一求解结果.xlsx");
 resultAnalysisBook = fullfile(resultDir, "问题一结果深化分析.xlsx");
 ```
 
-主结果、状态、轨迹、约束、逐样本预测等读取 `solutionBook`；敏感性、稳定性、阈值、算法、结构、异质性等读取 `resultAnalysisBook`。不得跨问题读取临时 Excel、根据摘要数字反推数据或在 MATLAB 中重算核心结果。
+`solutionBook` 是主结果图的必需事实源。`resultAnalysisBook` 只是条件路径：Analysis Necessity Gate=`required` 且 03B 已实际执行、验收时才存在；只有敏感性、稳定性、阈值、算法、结构、异质性等 Figure Contract 明确引用 03B evidence 时才读取。Gate=`not_required` 且理由非空时，没有分析工作簿是合法状态；不得因此阻断普通主结果图，也不得从主工作簿伪造 03B 图。若实例脚本明确选择 `resultAnalysisBook` 为 source，则文件不存在必须 fail closed。
+
+不得跨问题读取临时 Excel、根据摘要数字反推数据或在 MATLAB 中重算核心结果。
 
 ## 实表读取
 
@@ -23,7 +25,7 @@ resultAnalysisBook = fullfile(resultDir, "问题一结果深化分析.xlsx");
 
 ## Scientific Figure Synthesis Gate
 
-正式绘图前先读取 Figure Contract 与 accepted 工作簿，识别 Evidence Structure：简单比较、分布、时间演化、空间结构、机制关系、约束/可行域、参数响应、不确定性、多目标、稳定/失效区域、网络流、调度、诊断、全局—局部。
+正式绘图前先读取 Figure Contract 与当前合法 accepted workbook，识别 Evidence Structure：简单比较、分布、时间演化、空间结构、机制关系、约束/可行域、参数响应、不确定性、多目标、稳定/失效区域、网络流、调度、诊断、全局—局部。
 
 不要先问“用 bar 还是 line”。先问：
 
@@ -102,7 +104,7 @@ palette = hsk_apply_scientific_style(fig, "monochrome_print");
 
 ### Standalone project compatibility
 
-项目正式接口仍保持每问五文件，不新增“必须复制一个 style helper/profile helper”的第六文件。仓库模板在 HSK Skill/MATLAB template 路径可见时优先调用共享 `hsk_apply_scientific_style.m` + `hsk_publication_profile.m`；若用户只把单个 `qX_plot.m` / `data_process.m` 带到独立项目目录，入口脚本保留最小 local fallback，仅保证默认高对比 palette 与基础 frame，不复制 profile registry、profile 决策或图型 Authority。
+项目正式接口保持 `core/output_contract.yaml` 的 conditional per-question layout：基础三文件；Gate=`required` 时追加 03B 两文件。共享 style helper/profile helper 仍不是必须复制到每问目录的额外产物。仓库模板在 HSK Skill/MATLAB template 路径可见时优先调用共享 `hsk_apply_scientific_style.m` + `hsk_publication_profile.m`；若用户只把单个 `qX_plot.m` / `data_process.m` 带到独立项目目录，入口脚本保留最小 local fallback，仅保证默认高对比 palette 与基础 frame，不复制 profile registry、profile 决策或图型 Authority。
 
 ## Figure Layout Gate
 
@@ -147,4 +149,4 @@ Figure Contract 记录 `Enhancement / Enhancement rationale`，不把 inset 坐�
 
 每张图的源工作簿、工作表、真实表头、脚本、论文 caption、Evidence level、Primary question、Evidence structure、Figure level、Selected visual structure、Composite encoding、Scientific Rendering Profile、Layout decision、Split decision、Enhancement / Enhancement rationale 和正文位置同步登记到 `模型论文框架.md`；默认不生成独立 `figure_evidence` 文件。
 
-图表交付前执行 `python scripts/sync_project.py <project_root> --write --strict --delivery-scope figures`。同步器检查两个工作簿、`qX_plot.m` 的真实引用、正式图内无整体 `title/sgtitle` 和证据链；默认不要求导出图片已经存在。
+图表交付前执行 `python scripts/sync_project.py <project_root> --write --strict --delivery-scope figures`。同步器检查 current required workbook set、`qX_plot.m` 的真实引用、正式图内无整体 `title/sgtitle` 和证据链；Gate=`not_required` 时不因合法缺少 03B workbook 失败，Gate=`required` 且 Figure 使用 03B 时则必须保持 fail closed。默认不要求导出图片已经存在。
