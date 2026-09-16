@@ -7,6 +7,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github/workflows/refresh-generated.yml"
+CI_WORKFLOW = ROOT / ".github/workflows/ci.yml"
 
 
 class TestGeneratedWorkflowHardening(unittest.TestCase):
@@ -15,6 +16,7 @@ class TestGeneratedWorkflowHardening(unittest.TestCase):
         cls.text = WORKFLOW.read_text(encoding="utf-8")
         cls.workflow = yaml.safe_load(cls.text)
         cls.jobs = cls.workflow["jobs"]
+        cls.ci_text = CI_WORKFLOW.read_text(encoding="utf-8")
 
     def test_default_token_is_read_only(self):
         self.assertEqual(self.workflow["permissions"]["contents"], "read")
@@ -44,6 +46,12 @@ class TestGeneratedWorkflowHardening(unittest.TestCase):
             if (job.get("permissions") or {}).get("contents") == "write"
         ]
         self.assertEqual(writers, ["refresh-feature-branch"])
+
+    def test_full_ci_exposes_explicit_dispatch_without_removing_existing_triggers(self):
+        self.assertIn("  workflow_dispatch:\n", self.ci_text)
+        self.assertIn("  push:\n", self.ci_text)
+        self.assertIn("  pull_request:\n", self.ci_text)
+        self.assertIn('branches: [main, "refactor/**", "upgrade/**"]', self.ci_text)
 
 
 if __name__ == "__main__":
