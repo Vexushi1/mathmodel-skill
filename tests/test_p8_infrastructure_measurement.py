@@ -17,7 +17,7 @@ import measure_infrastructure as metrics  # noqa: E402
 class TestP8InfrastructureMeasurement(unittest.TestCase):
     def test_measurement_is_read_only_structured_evidence(self):
         report = metrics.collect_metrics(ROOT, top=8)
-        self.assertEqual(report["schema_version"], "1.0.0")
+        self.assertEqual(report["schema_version"], "1.1.0")
         self.assertEqual(report["scope"], "repository_infrastructure_measurement_only")
         self.assertGreater(report["python_scripts"]["count"], 0)
         self.assertGreater(report["python_scripts"]["total_bytes"], 0)
@@ -32,6 +32,36 @@ class TestP8InfrastructureMeasurement(unittest.TestCase):
             self.assertFalse(Path(row["path"]).is_absolute())
             self.assertGreater(row["bytes"], 0)
             self.assertGreater(row["nonblank_lines"], 0)
+            self.assertGreaterEqual(row["function_count"], row["top_level_function_count"])
+            spans = row["largest_top_level_functions"]
+            self.assertLessEqual(len(spans), 10)
+            if spans:
+                span_sizes = [item["span_lines"] for item in spans]
+                self.assertEqual(span_sizes, sorted(span_sizes, reverse=True))
+                for item in spans:
+                    self.assertGreaterEqual(item["start_line"], 1)
+                    self.assertGreaterEqual(item["end_line"], item["start_line"])
+                    self.assertEqual(
+                        item["span_lines"],
+                        item["end_line"] - item["start_line"] + 1,
+                    )
+
+    def test_lint_skill_function_distribution_is_measured_not_inferred(self):
+        report = metrics.collect_metrics(ROOT, top=20)
+        lint = next(
+            row
+            for row in report["validator_hotspots"]
+            if row["path"] == "scripts/lint_skill_checks.py"
+        )
+        self.assertGreater(lint["top_level_function_count"], 0)
+        self.assertGreater(lint["top_level_check_function_count"], 0)
+        self.assertTrue(lint["largest_top_level_functions"])
+        self.assertTrue(
+            all(
+                item["name"]
+                for item in lint["largest_top_level_functions"]
+            )
+        )
 
     def test_repeated_parser_measurement_matches_ast_scan(self):
         report = metrics.collect_metrics(ROOT, top=8)
@@ -61,8 +91,9 @@ class TestP8InfrastructureMeasurement(unittest.TestCase):
             check=True,
         )
         payload = json.loads(result.stdout)
-        self.assertEqual(payload["schema_version"], "1.0.0")
+        self.assertEqual(payload["schema_version"], "1.1.0")
         self.assertEqual(len(payload["python_scripts"]["largest"]), 3)
+        self.assertIn("largest_top_level_functions", payload["python_scripts"]["largest"][0])
 
 
 if __name__ == "__main__":

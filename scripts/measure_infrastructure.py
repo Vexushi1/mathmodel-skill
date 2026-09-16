@@ -2,7 +2,7 @@
 """Measure repository infrastructure hotspots without changing runtime semantics.
 
 P8 uses this report as evidence before any validator split, parser consolidation, or
-Generated-metadata workflow change. The script is read-only and intentionally does
+generated-metadata workflow change. The script is read-only and intentionally does
 not define policy thresholds: it reports observable size/call-site/workflow facts.
 """
 from __future__ import annotations
@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "1.1.0"
 PYTHON_ROOT = ROOT / "scripts"
 REFRESH_WORKFLOW = ROOT / ".github" / "workflows" / "refresh-generated.yml"
 WORKFLOW_ROOT = ROOT / ".github" / "workflows"
@@ -44,6 +44,31 @@ def _call_name(node: ast.Call) -> str:
     return ""
 
 
+def _top_level_function_metrics(tree: ast.Module, *, limit: int = 10) -> dict[str, Any]:
+    functions = [
+        node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
+    spans = []
+    for node in functions:
+        end_line = int(getattr(node, "end_lineno", node.lineno) or node.lineno)
+        spans.append(
+            {
+                "name": node.name,
+                "start_line": int(node.lineno),
+                "end_line": end_line,
+                "span_lines": end_line - int(node.lineno) + 1,
+            }
+        )
+    spans.sort(key=lambda item: (-int(item["span_lines"]), str(item["name"])))
+    return {
+        "count": len(functions),
+        "check_function_count": sum(str(item["name"]).startswith("check_") for item in spans),
+        "largest": spans[:limit],
+    }
+
+
 def _python_metrics(root: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     yaml_sites: list[dict[str, Any]] = []
@@ -57,11 +82,15 @@ def _python_metrics(root: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
             node for node in ast.walk(tree)
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
         ]
+        top_level_functions = _top_level_function_metrics(tree)
         row = {
             "path": _relative(path, root),
             "bytes": path.stat().st_size,
             "nonblank_lines": _nonblank_lines(text),
             "function_count": len(functions),
+            "top_level_function_count": top_level_functions["count"],
+            "top_level_check_function_count": top_level_functions["check_function_count"],
+            "largest_top_level_functions": top_level_functions["largest"],
             "yaml_safe_load_calls": len(yaml_calls),
             "openpyxl_load_workbook_calls": len(workbook_calls),
             "validator_surface": path.name.startswith("validate_") or path.name.startswith("lint_skill"),
@@ -139,8 +168,16 @@ def render_text(metrics: dict[str, Any]) -> str:
     for item in metrics["python_scripts"]["largest"]:
         lines.append(
             f"- {item['path']}: {item['bytes']} bytes, "
-            f"{item['nonblank_lines']} nonblank lines"
+            f"{item['nonblank_lines']} nonblank lines, "
+            f"{item['top_level_function_count']} top-level functions"
         )
+        largest_functions = item.get("largest_top_level_functions", [])
+        if largest_functions:
+            top_function = largest_functions[0]
+            lines.append(
+                f"  largest function: {top_function['name']} "
+                f"({top_function['span_lines']} lines)"
+            )
     yaml_summary = metrics["repeated_parsing"]["yaml_safe_load"]
     lines.extend(
         [

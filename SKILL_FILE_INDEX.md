@@ -74,6 +74,7 @@
 - `docs/p6b_matlab_rendering_preview.md`
 - `docs/p7_conditional_analysis_appendix.md`
 - `docs/p8_infrastructure_measurement.md`
+- `docs/p8d_lint_function_measurement.md`
 - `docs/phase_e_artifact_identity_inventory.md`
 - `docs/phase_f_transaction_writer_inventory.md`
 - `docs/phase_i_artifact_alias_retirement.md`
