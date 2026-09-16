@@ -15,9 +15,9 @@
 
 - `run_config_parser.py`：P8 收敛出的共享语法级 helper，只静态抽取顶层 `RUN_CONFIG` / legacy `FULL_*` 字典常量并保持 fail-closed；字段政策与运行语义仍由 `core/user_execution_contract.yaml` 及调用方拥有，不在此建立第二 Authority。
 - `validate_code_delivery.py`：按 `preprocessing / primary / analysis` 阶段静态校验题目专属 Python 的完整运行配置、代码质量和阶段边界；不执行赛题代码。RUN_CONFIG/FULL_* 的顶层语法抽取委托 `run_config_parser.py`，字段要求仍在本 validator 与 User Execution Authority 中判定。
-- `validate_user_execution.py`：按当前 `preprocessing_decision` 验收适用的预处理工作簿、主求解工作簿与结果深化分析工作簿，并核对运行配置、代码/数据哈希和对应质量门；读取已交付阶段代码时复用同一语法级 config parser，但保留本调用面的 receipt/echo/错误边界。
+- `validate_user_execution.py`：按当前 `preprocessing_decision` 与已激活阶段验收适用的预处理工作簿、主求解工作簿和条件存在的结果深化分析工作簿，并核对运行配置、代码/数据哈希和对应质量门；读取已交付阶段代码时复用同一语法级 config parser，但保留本调用面的 receipt/echo/错误边界。
 
-赛题专属预处理、主求解和结果深化分析仍由用户本地以 full-fidelity 执行；脚本工具不得通过降采样、粗网格、缩短时域、减少重复、放宽容差或静默 solver fallback 改变正式求解口径。项目级预处理和主求解属于 current 人工锁模后的代码阶段，不能只凭 Problem Contract 冻结或 Model Challenge 通过绕过 `validate_model_approval.py`。
+赛题专属预处理、主求解和被 Analysis Necessity Gate=`required` 激活的结果深化分析由用户本地以 full-fidelity 执行；脚本工具不得通过降采样、粗网格、缩短时域、减少重复、放宽容差或静默 solver fallback 改变正式求解口径。Gate=`not_required` 时不生成 03B 代码/工作簿，也不得把该状态写成稳健性或稳定性已通过。项目级预处理和主求解属于 current 人工锁模后的代码阶段，不能只凭 Problem Contract 冻结或 Model Challenge 通过绕过 `validate_model_approval.py`。
 
 ## 项目记忆与论文检查
 
@@ -39,7 +39,7 @@
 
 ## 仓库维护
 
-- `lint_skill.py`：检查版本 carrier、Authority 指针、路由/模块/Pack 可达性、生产者—消费者闭环、三态预处理、五文件合同、代码质量、writing/review 读取链、Algorithm Trace 消费、Schema、活动/legacy 隔离、Markdown/仓库引用、Python 语法和 generated-file 状态。
+- `lint_skill.py`：检查版本 carrier、Authority 指针、路由/模块/Pack 可达性、生产者—消费者闭环、三态预处理、当前每问 conditional layout（base3 + Gate=`required` 时 +2）、代码质量、writing/review 读取链、Algorithm Trace 消费、Schema、活动/legacy 隔离、Markdown/仓库引用、Python 语法和 generated-file 状态。
 - `measure_infrastructure.py`：P8 维护测量入口；只读统计脚本体量、validator hotspot、重复解析调用点与 generated-metadata workflow 形态，为后续结构整理提供可复算证据，不定义业务阈值或修改 runtime state。
 - `generate_indexes.py`：重建 `SKILL_FILE_INDEX.md`、`TEMPLATE_INDEX.md` 与 `MANIFEST.sha256`。这些生成文件不得手工伪造或手改哈希。
 - `.github/workflows/ci.yml`：完整 HSK Skill CI 同时保留 `push`、`pull_request` 与显式 `workflow_dispatch` 入口；显式调度执行的是同一组完整 jobs，不能用部分检查替代。
