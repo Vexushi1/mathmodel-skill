@@ -1,5 +1,5 @@
 %% q1_plot：问题一结果绘图入口（当前活动模板）
-% 放在“问题一求解/”，与主求解Python、深化分析Python和两个标准工作簿同目录。
+% 放在“问题一求解/”，与主求解Python、主工作簿和q1_plot.m同目录；仅当 Analysis Necessity Gate=required 时才额外存在深化分析Python与工作簿。
 % 字段使用精确表头唯一匹配；期望列号仅用于结构漂移警告。
 % 先执行 modules/04_figure_evidence.md 的 Scientific Figure Synthesis Gate，识别 Evidence Structure；不要从本模板的示例函数反推最终图型。
 % 正文核心图若只是 plain bar/line/scatter/box/histogram，必须执行 Basic-form Challenge。
@@ -20,12 +20,12 @@ resultDir = string(fileparts(scriptPath));
 solutionBook = fullfile(resultDir, "问题一求解结果.xlsx");
 resultAnalysisBook = fullfile(resultDir, "问题一结果深化分析.xlsx");
 assert(isfile(solutionBook), "缺少工作簿: %s", solutionBook);
-assert(isfile(resultAnalysisBook), "缺少工作簿: %s", resultAnalysisBook);
 
 %% 2. 实际结构锁定
 % 图型选择以 Core conclusion / Evidence level / Primary question / Evidence structure 和信息效率为准。
 % 兼容检查标记：xColumn = NaN；actualXHeader == xHeader。
-% 主结果图优先使用solutionBook；稳定性、阈值、算法或结构图优先使用resultAnalysisBook。
+% 主结果图优先使用solutionBook；仅当当前图明确依赖已验收03B证据时才把sourceBook切换为resultAnalysisBook。
+% sourceBook一旦显式指向resultAnalysisBook，下方存在性断言会fail closed；不得因03B缺失静默回退到主工作簿伪装稳健性/敏感性图。
 % 若图确实需要底层事实源，必须继承当前 preprocessing_decision；MATLAB 不重建模型变换。
 sourceBook = solutionBook;
 sourceSheet = "__ACTUAL_SHEET_NAME__";
@@ -38,6 +38,7 @@ yLabelText = "__ACTUAL_Y_LABEL_WITH_UNIT__";
 
 placeholders = [sourceSheet, xHeader, yHeader, xLabelText, yLabelText];
 assert(~any(startsWith(placeholders, "__ACTUAL_")), "模板尚未实例化");
+assert(isfile(sourceBook), "当前图指定的数据工作簿不存在: %s", sourceBook);
 
 availableSheets = string(sheetnames(sourceBook));
 assert(any(availableSheets == sourceSheet), "缺少工作表: %s", sourceSheet);
@@ -108,7 +109,7 @@ end
 end
 
 function palette = apply_publication_style(fig, profile)
-% 优先使用仓库共享 style kernel；单文件独立运行时保留最小 fallback，不改变每问五文件接口。
+% 优先使用仓库共享 style kernel；单文件独立运行时保留最小 fallback，不改变当前工作簿证据来源。
 if exist("hsk_apply_scientific_style", "file") == 2
     palette = hsk_apply_scientific_style(fig, profile);
     return;

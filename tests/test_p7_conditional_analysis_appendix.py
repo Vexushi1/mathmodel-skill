@@ -124,6 +124,22 @@ class TestP7ConditionalAnalysisAppendix(unittest.TestCase):
         active_appendix = [line for line in main.splitlines() if line.strip() == r"\input{appendices/appendices}"]
         self.assertEqual(active_appendix, [])
 
+    def test_user_execution_and_matlab_template_follow_conditional_analysis(self):
+        execution = yaml.safe_load((ROOT / "core/user_execution_contract.yaml").read_text(encoding="utf-8"))
+        self.assertEqual(
+            execution["code_delivery"]["stage_activation"]["analysis"],
+            "accepted_primary_workbook and analysis_necessity_gate == required",
+        )
+        analysis_policy = execution["three_stage_policy"]["analysis"]
+        self.assertIn("Gate=required", analysis_policy["activation"])
+        self.assertIn("Gate=not_required", analysis_policy["role"])
+
+        matlab = (ROOT / "templates/matlab/q1_plot.m").read_text(encoding="utf-8")
+        self.assertIn("resultAnalysisBook = fullfile", matlab)
+        self.assertIn("sourceBook = solutionBook;", matlab)
+        self.assertNotIn("assert(isfile(resultAnalysisBook)", matlab)
+        self.assertIn("assert(isfile(sourceBook)", matlab)
+
 
 if __name__ == "__main__":
     unittest.main()
