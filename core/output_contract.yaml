@@ -1,4 +1,4 @@
-version: 9.2.0
+version: 9.2.1
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -381,7 +381,6 @@ per_question:
     not_required: 记录非空result_analysis_requirement_reason，不生成03B Python或工作簿；不得据此声称鲁棒性/稳定性已验证。
     no_backwrite: 深化分析不得通过改写问题X求解.py实现；若主模型确需修改，则明确回退solve_validate并重新验收主结果。
     raw_shared_data_read: 只有decision=project_level时禁止两个小问Python直接读取对应共享原始数据源。
-  no_auxiliary_files_by_default: true
   legacy_compatibility:
     result_directory: 结果数据表/问题{中文序号}/
     single_evolving_python: v6.6.x仅问题X求解.py的四文件项目可只读兼容
