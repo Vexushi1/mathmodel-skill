@@ -128,16 +128,6 @@ Paragraph Necessity 与 AI Cleanup 不再把“没有新增公式或数值”当
 
 在 v8.0.0 Template-First 架构上完成 v7.19 章节写法与 v7.20 R1 的逐项能力保全：普通 CUMCM 路由保留标题/摘要、问题重述与分析、假设/符号、数据与共享基础、模型建立、模型求解、数值/术语、结果/验证、图叙事、评价、引用、结论/附录和篇幅诊断的详细规则。默认运行时先读模板但不生成正文，随后按“读当前章节规则 → 写当前章节 → gate”逐章推进；模型建立及求解中的命题/证明与 stepwise/pseudocode 均有显式条件加载分支。另新增 Q3 后问模板、v7.20 终审清单和功能次序/solver-first/连续图裸堆行为审计。迁移矩阵见 `docs/v801_chapter_capability_preservation_audit.md`，旧 v8.0.0 项目不自动改写。
 
-## v8.0.0：Template-First Writing Architecture
-
-v8.0.0 将写作系统从历史 LaTeX 中心结构升级为 Template-First：CUMCM Template Manifest 管章节拓扑，Paper Writing Protocol 管普通正文，完整 Writing Reasoning Authority 管复杂语义，LaTeX Adapter 只管载体；项目事实和状态继续落在模型论文框架/Project State，不在写作模块中复制。
-
-该版本新增了模板级 AI disclosure slot、Cross-File Chapter Handoff、Algorithm Trace / adaptive algorithm presentation、Formula Roles / Per-Question Writing Capability Preflight 等能力，并在不更改模型求解、03A/03B、Workbook/Project State Schema、用户 full-fidelity 执行、MATLAB 只读绘图、正式 LaTeX 交付和 submission provenance 的前提下把写作运行时压缩为按需读取。
-
-## v7.20.0：Competition Paper Writing Hardening
-
-v7.20.0 汇总 v7.19 之后的论文表达强化：模型建立—求解—结果解释连续叙事、问题内小节自适应、标题最小性、详略分配、图结果叙事、作者推理声音、标准模型类型/Model-Solver-Validator 分离、目标函数/约束表达、solver 依据、claim 强度、命题/算法流程与 Citation Evidence。它不改变数值求解协议或工作簿、Project State、Model Approval、Figure、LaTeX/submission 边界。
-
 ## v7.19.0：Intra-Question Writing Closure
 
 本版本在 v7.18.0 连续“模型建立 → 模型求解 → 结果解释”叙事基础上，进一步治理**既定一级论文骨架内部**的小节顺序、详略分配和图结果表达；不改变模型数学语义、Human Model Approval、03A/03B、Workbook/Project State Schema、Python/MATLAB 分工或运行时 Gate。
@@ -259,7 +249,7 @@ v7.20.0 汇总 v7.19 之后的论文表达强化：模型建立—求解—结�
 - 统一 `preprocessing_decision` 生命周期：先做非破坏性数据审计并比较模型路线/输入需求，在 Module 02 内锁定判定，再完成 current proposed model、Model Challenge 与 Human Approval；不再在 Runtime Router 中把该判定误写成锁模后的步骤。
 - 修复 Module 03A 的示意链，使正式主求解代码前的 gate 顺序与 Router 一致：`semantic_governance → model_approval → code_delivery`，并保持 project-level 预处理位于人工锁模之后、主求解之前。
 - 将三个 v7.4.2 引入的长期合同中的旧 `skill_version` 元数据改为 `introduced_in_skill_version + skill_compatibility`，避免把合同引入版本误读为当前 Skill 版本；合同自身 version、Schema、CLI 与执行语义不变。
-- 增加 runtime-health 回归，锁定 root/package Skill 一致性、常用触发面、预处理生命周期与主求解 gate 顺序，防止后续声明式运行时重构再次产生入口/语义漂移。
+- 增加 runtime-health 回归，锁定 root/package Skill 全文件一致、常用触发面、预处理生命周期与主求解 gate 顺序，防止后续声明式运行时重构再次产生入口/语义漂移。
 
 本补丁明确不实现 state-aware resolver hydration、artifact project/hash binding、intent confidence/ambiguity diagnostics 或新的 runtime assurance schema；这些进入 v7.12.0 规划。
 
@@ -306,7 +296,7 @@ v7.20.0 汇总 v7.19 之后的论文表达强化：模型建立—求解—结�
 
 本版本把 v7.8.1 之后已经进入模板/Artifact 层的模块化 LaTeX 能力正式闭合到运行时、编译报告和项目同步层，不改变数学模型、数值求解、工作簿 Schema、Python/MATLAB 职责或每问五文件接口。
 
-- 正式 LaTeX 审计统一从 `scripts/audit_latex_project.py` 进入：模块化工程递归展开 `\input/\include`，兼容单文件工程退化为单文件审计；`audit_paper_prose.py` 保留为底层 prose/BibTeX/framework 审查实现，不再作为活动 LaTeX 运行时的默认入口。
+- 正式 LaTeX 审计统一从 `scripts/audit_latex_project.py` 进入：模块化工程递归展开 `\\input/\\include`，兼容单文件工程退化为单文件审计；`audit_paper_prose.py` 保留为底层 prose/BibTeX/framework 审查实现，不再作为活动 LaTeX 运行时的默认入口。
 - `full_workflow` 在跨过用户执行边界后显式补齐 Figure、LaTeX 和 Review Artifact Packs，避免“直接 latex route 能读规则、完整流程反而漏读 Pack”的分流。
 - CUMCM 当前项目模板统一指向 `templates/latex/cumcm/hsk/`；`cumcmthesis/` 仅保留上游 class/基础模板资源。
 - 新增 `scripts/latex_delivery.py`，对 active `.tex` 图、参考文献、本地 class/style 和正式图片建立 source bundle hash；`render_paper.py` 自动生成 `compile_report.yaml`，记录 source/PDF hash、实际编译序列和未解析引用。
