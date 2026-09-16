@@ -24,10 +24,10 @@ jobs:
 
           readme = Path('README.md')
           text = readme.read_text(encoding='utf-8')
-          old = r'`\\input/\\include`'
-          new = r'`\input/\include`'
+          old = r'- 正式 LaTeX 审计统一从 `scripts/audit_latex_project.py` 进入：模块化工程递归展开 `\\input/\\include`，兼容单文件工程退化为单文件审计；`audit_paper_prose.py` 保留为底层 prose/BibTeX/framework 审查实现，不再作为活动 LaTeX 运行时的默认入口。'
+          new = r'- 正式 LaTeX 审计统一从 `scripts/audit_latex_project.py` 进入：模块化工程递归展开 `\input/\include`，兼容单文件工程退化为单文件审计；`audit_paper_prose.py` 保留为底层 prose/BibTeX/framework 审查实现，不再作为活动 LaTeX 运行时的默认入口。'
           if text.count(old) != 1:
-              raise SystemExit(f'README exact drift count != 1: {text.count(old)}')
+              raise SystemExit(f'README exact v7.9 drift count != 1: {text.count(old)}')
           text = text.replace(old, new, 1)
           readme.write_text(text, encoding='utf-8')
 
