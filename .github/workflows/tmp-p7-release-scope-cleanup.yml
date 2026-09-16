@@ -1,0 +1,67 @@
+name: Temporary P7 release scope cleanup
+
+on:
+  push:
+    branches:
+      - release/v9.2.1-p7-closeout
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore exact historical wording
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          readme = Path('README.md')
+          text = readme.read_text(encoding='utf-8')
+          old = r'`\\input/\\include`'
+          new = r'`\input/\include`'
+          if text.count(old) != 1:
+              raise SystemExit(f'README exact drift count != 1: {text.count(old)}')
+          text = text.replace(old, new, 1)
+          readme.write_text(text, encoding='utf-8')
+
+          changelog = Path('CHANGELOG.md')
+          text = changelog.read_text(encoding='utf-8')
+          replacements = [
+              (
+                  '- Added v8.3 regression coverage for deterministic output, invalid specs, geometry/security failures, approval-state boundaries, version parity, Authority isolation and protected semantic-file drift.',
+                  '- Added v8.3 regression coverage for deterministic output, invalid specs, geometry/security failures, approval-state boundaries, version parity, and protected semantic-file drift.',
+              ),
+              (
+                  '- Added runtime-health regression coverage for full root/packaged Skill parity, discovery triggers, preprocessing lifecycle ordering and subordinate-contract version-carrier hygiene.',
+                  '- Added runtime-health regression coverage for full root/packaged Skill parity, discovery triggers, lifecycle ordering and subordinate-contract version-carrier hygiene.',
+              ),
+              (
+                  '- Numerical modeling, conditional preprocessing semantics, workbook Schema, Python/MATLAB ownership, full-fidelity user execution and the per-question five-file interface remain unchanged.',
+                  '- Numerical modeling, conditional preprocessing, workbook Schema, Python/MATLAB ownership, full-fidelity user execution and the per-question five-file interface remain unchanged.',
+              ),
+          ]
+          for old, new in replacements:
+              if text.count(old) != 1:
+                  raise SystemExit(f'CHANGELOG exact drift count != 1 for: {old!r}; count={text.count(old)}')
+              text = text.replace(old, new, 1)
+          changelog.write_text(text, encoding='utf-8')
+          PY
+      - name: Commit exact cleanup
+        shell: bash
+        run: |
+          if git diff --quiet -- README.md CHANGELOG.md; then
+            echo 'No cleanup changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md CHANGELOG.md
+          git commit -m 'docs: restore historical release wording'
+          git push
