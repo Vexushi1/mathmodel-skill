@@ -9,6 +9,7 @@
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/optimization-baseline.yml`
+- `.github/workflows/p9-release-apply.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
 - `AGENTS.md`
@@ -156,6 +157,7 @@
 - `scripts/lint_skill.py`
 - `scripts/lint_skill_checks.py`
 - `scripts/measure_infrastructure.py`
+- `scripts/p9_release_apply.py`
 - `scripts/prepare_cumcm_class.py`
 - `scripts/project_snapshot.py`
 - `scripts/project_transaction.py`
