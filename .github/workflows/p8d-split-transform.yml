@@ -1,0 +1,38 @@
+name: P8d one-shot validator split analysis
+
+on:
+  push:
+    branches:
+      - maintenance/p8d-validator-split-transform
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: maintenance/p8d-validator-split-transform
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Print exact global dependencies for largest lint checks
+        run: |
+          python - <<'PY'
+          import inspect
+          import sys
+          from pathlib import Path
+          root = Path.cwd()
+          sys.path.insert(0, str(root / 'scripts'))
+          import lint_skill_checks as lint
+          for name in ('check_contracts', 'check_templates'):
+              func = getattr(lint, name)
+              closure = inspect.getclosurevars(func)
+              print(name)
+              print('globals=', sorted(closure.globals))
+              print('nonlocals=', sorted(closure.nonlocals))
+              print('unbound=', sorted(closure.unbound))
+          PY
