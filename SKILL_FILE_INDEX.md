@@ -73,6 +73,7 @@
 - `docs/p6a_figure_reference_profile_split.md`
 - `docs/p6b_matlab_rendering_preview.md`
 - `docs/p7_conditional_analysis_appendix.md`
+- `docs/p8_infrastructure_measurement.md`
 - `docs/phase_e_artifact_identity_inventory.md`
 - `docs/phase_f_transaction_writer_inventory.md`
 - `docs/phase_i_artifact_alias_retirement.md`
@@ -151,6 +152,7 @@
 - `scripts/latex_delivery.py`
 - `scripts/lint_skill.py`
 - `scripts/lint_skill_checks.py`
+- `scripts/measure_infrastructure.py`
 - `scripts/prepare_cumcm_class.py`
 - `scripts/project_snapshot.py`
 - `scripts/project_transaction.py`
@@ -289,6 +291,7 @@
 - `tests/test_p6a_figure_reference_profile.py`
 - `tests/test_p6b_matlab_preview_contract.py`
 - `tests/test_p7_conditional_analysis_appendix.py`
+- `tests/test_p8_infrastructure_measurement.py`
 - `tests/test_preprocessing_decision_contract.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_read_path_semantic_closure.py`
