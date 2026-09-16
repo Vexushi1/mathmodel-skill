@@ -1,0 +1,104 @@
+name: P8d one-shot lint structure measurement
+
+on:
+  push:
+    branches:
+      - refactor/optimization-p8d-lint-structure-measurement
+
+permissions:
+  contents: write
+
+jobs:
+  measure:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: refactor/optimization-p8d-lint-structure-measurement
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Generate reproducible lint structure evidence
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+
+          root = Path.cwd()
+          sys.path.insert(0, str(root / 'scripts'))
+          import measure_infrastructure as m
+
+          report = m.collect_metrics(root, top=20)
+          s = report['lint_skill_checks_structure']
+          lines = [
+              '# P8 `lint_skill_checks.py` 结构测量证据',
+              '',
+              '> 本文件是 P8 维护证据，不是 Runtime / Workflow Authority。函数名族与函数跨度只描述源码结构，不证明语义独立性。',
+              '',
+              '## 1. 测量口径',
+              '',
+              f'- 基线：`main@a1641af6a93b41e06b45be6dde8b621dd7af2fa1`（P8c 合并后）。',
+              f'- 测量 schema：`{report["schema_version"]}`。',
+              '- 入口：`python scripts/measure_infrastructure.py --json --top 20`。',
+              '- AST 只把模块顶层 `def/async def` 计入可拆分表面；嵌套函数单独计数，不把局部实现误当模块 API。',
+              '- `name_prefix_families` 是词法分组，不是职责判定；任何实际拆分仍须读取对应函数依赖并保持 CLI、错误文本与检查集合等价。',
+              '',
+              '## 2. 结构事实',
+              '',
+              f'- 文件：`{s["path"]}`',
+              f'- bytes：**{s["bytes"]:,}**',
+              f'- 非空行：**{s["nonblank_lines"]:,}**',
+              f'- 顶层函数：**{s["top_level_function_count"]}**',
+              f'- 嵌套函数：**{s["nested_function_count"]}**',
+              f'- 顶层函数跨度合计：**{s["top_level_span_lines_total"]:,} 行**',
+              f'- 顶层函数跨度中位数：**{s["top_level_span_lines_median"]:.1f} 行**',
+              f'- 最大顶层函数跨度：**{s["top_level_span_lines_max"]} 行**',
+              '',
+              '### 跨度分布',
+              '',
+              '| 区间（行） | 函数数 |',
+              '|---|---:|',
+          ]
+          for bucket, count in s['span_buckets'].items():
+              lines.append(f'| `{bucket}` | {count} |')
+          lines.extend(['', '### 名称前缀分布（仅词法证据）', '', '| 前缀族 | 函数数 |', '|---|---:|'])
+          for family, count in s['name_prefix_families'].items():
+              lines.append(f'| `{family}` | {count} |')
+          lines.extend([
+              '',
+              '### 最大的顶层函数',
+              '',
+              '| 排名 | 函数 | 行范围 | 跨度 |',
+              '|---:|---|---:|---:|',
+          ])
+          for index, item in enumerate(s['largest_functions'], 1):
+              lines.append(
+                  f'| {index} | `{item["name"]}` | {item["start_line"]}–{item["end_line"]} | {item["span_lines"]} |'
+              )
+          lines.extend([
+              '',
+              '## 3. P8 解释边界与下一步',
+              '',
+              '1. 该测量证明的是维护热点的**结构分布**，不是“文件大所以必须拆”的规则。',
+              '2. 后续若拆分，只允许纯结构搬移：`scripts/lint_skill.py` CLI、现有检查集合、错误文本、返回码与 generated-file gate 必须保持等价。',
+              '3. 优先阅读跨度最大的函数及其共享 helper/常量依赖，寻找能够按既有检查族成组迁移的边界；不得按固定行数机械切割。',
+              '4. 若依赖分析显示检查族高度交叉，则 P8 可以保留单文件；“不拆”同样是基于测量的合法结论。',
+              '5. 任何候选结构拆分都必须重新跑 `lint_skill.py`、全量 unittest、generated check、HSK Skill CI 与 Optimization baseline。',
+              '',
+          ])
+          Path('docs/p8_lint_structure_measurement.md').write_text('\n'.join(lines), encoding='utf-8')
+          Path('.github/workflows/p8d-measure-once.yml').unlink()
+          PY
+      - name: Refresh generated metadata
+        run: python scripts/generate_indexes.py
+      - name: Run measurement regression
+        run: python -m unittest tests.test_p8_infrastructure_measurement
+      - name: Commit measured evidence
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "docs: record P8 lint structure measurement"
+          git push origin HEAD:refactor/optimization-p8d-lint-structure-measurement
