@@ -169,7 +169,7 @@
 - Added precise routing for draw.io/editable mechanism requests while keeping ordinary result-figure routes free of draw.io implementation resources.
 - Required a current rendered preview and manual semantic/visual review before `approved_for_paper`; machine validation explicitly does not judge arrow semantics, mathematics, missing mechanisms, aesthetics, or claim support.
 - Preserved MATLAB ownership for workbook-driven figures, the per-question five-file layout, Project State and Model Approval schemas, numerical/writing/review Authorities, and official package allowlists.
-- Added v8.3 regression coverage for deterministic output, invalid specs, geometry/security failures, approval-state boundaries, version parity, Authority isolation and protected semantic-file drift.
+- Added v8.3 regression coverage for deterministic output, invalid specs, geometry/security failures, approval-state boundaries, version parity, and protected semantic-file drift.
 
 ## Previous release: 8.2.0
 
@@ -355,7 +355,7 @@
 - Aligned `preprocessing_decision` lifecycle across the preprocessing authority, Skill summary, Runtime Router and primary-solve module: audit + model-route/data-requirement comparison → decision → proposed model/challenge → explicit approval → conditional project-level preprocessing.
 - Corrected the Module 03A pre-code sequence to the Router-authoritative `semantic_governance → model_approval → code_delivery` order.
 - Reclassified legacy `skill_version: 7.4.2` metadata in preprocessing/user-execution/code-quality contracts as introduction/compatibility metadata, without changing their contract versions or runtime semantics.
-- Added runtime-health regression coverage for full root/packaged Skill parity, discovery triggers, preprocessing lifecycle ordering and subordinate-contract version-carrier hygiene.
+- Added runtime-health regression coverage for full root/packaged Skill parity, discovery triggers, lifecycle ordering and subordinate-contract version-carrier hygiene.
 - Preserved CLI, Project State Schema, Workbook Schema, per-question five-file interface, Python/MATLAB ownership, full-fidelity user execution, LaTeX attestation v3 and submission provenance.
 
 ## Previous release: 7.11.1
@@ -437,7 +437,7 @@
 - Added `support / modify / reject` result-analysis evidence disposition. Every sensitivity, robustness, out-of-sample, stress or multi-method result can be tied to a target claim and required action; rejecting a core answer triggers redo/redesign, while rejecting an auxiliary evaluation claim may be handled by explicit removal/rewrite.
 - Added local paper-fragment stale propagation for v0.8 projects. A Q3 semantic/result change only invalidates paper fragments that actually depend on Q3 (for example Q3 prose, figures, abstract claim, evaluation sentence or Title Claim); unrelated background/Q1/Q2 remain current. v0.7 and earlier whole-framework stale semantics remain read-compatible.
 - Added `Paragraph Necessity Test`: if deleting a paragraph loses no problem requirement, mechanism, mathematical relation, solver basis, result evidence or necessary boundary, it should be removed, merged or moved to an appendix. Machine heuristics may warn but cannot automatically delete prose.
-- Numerical modeling, conditional preprocessing semantics, workbook Schema, Python/MATLAB ownership, full-fidelity user execution and the per-question five-file interface remain unchanged.
+- Numerical modeling, conditional preprocessing, workbook Schema, Python/MATLAB ownership, full-fidelity user execution and the per-question five-file interface remain unchanged.
 
 ## Previous release: 7.6.0
 
