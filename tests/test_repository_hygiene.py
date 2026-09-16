@@ -81,6 +81,29 @@ class RepositoryHygieneTests(unittest.TestCase):
         self.assertNotIn("result_analysis_code", contract["project_sync"]["stage_requirements"]["results"])
         self.assertIn("result_analysis_report", contract["project_sync"]["stage_requirements"]["results"])
 
+    def test_lint_validates_p7_conditionals_without_obsolete_filter(self) -> None:
+        base = read("scripts/lint_skill_checks.py")
+        adapter = read("scripts/lint_skill.py")
+        for token in (
+            "base_default_files",
+            "analysis_required_additional_files",
+            "results base scope must not unconditionally require result-analysis code",
+            "results scope must retain auditable result-analysis gate/report state",
+            "formal delivery must accept only passed or reasoned not_required result-analysis status",
+            "draw.io integration must acknowledge conditional rather than fixed five-file layout",
+        ):
+            self.assertIn(token, base)
+        for obsolete in (
+            "per-question default must be exact five-file two-script layout",
+            "results scope must require independent result-analysis code",
+            "draw.io integration must preserve the per-question five-file layout",
+        ):
+            self.assertNotIn(obsolete, base)
+            self.assertNotIn(obsolete, adapter)
+        self.assertNotIn("_P7_OBSOLETE_CONTRACT_ERRORS", adapter)
+        self.assertIn("_p7_conditional_analysis_contract_errors", adapter)
+        self.assertIn("errors.extend(_p7_conditional_analysis_contract_errors(output))", adapter)
+
     def test_review_and_submission_packs_use_current_contract(self) -> None:
         review = read("packs/artifact/review.md")
         submission = read("packs/artifact/full_submission.md")
