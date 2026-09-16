@@ -8,6 +8,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github/workflows/refresh-generated.yml"
 CI_WORKFLOW = ROOT / ".github/workflows/ci.yml"
+OPT_WORKFLOW = ROOT / ".github/workflows/optimization-baseline.yml"
 
 
 class TestGeneratedWorkflowHardening(unittest.TestCase):
@@ -17,6 +18,7 @@ class TestGeneratedWorkflowHardening(unittest.TestCase):
         cls.workflow = yaml.safe_load(cls.text)
         cls.jobs = cls.workflow["jobs"]
         cls.ci_text = CI_WORKFLOW.read_text(encoding="utf-8")
+        cls.opt_text = OPT_WORKFLOW.read_text(encoding="utf-8")
 
     def test_default_token_is_read_only(self):
         self.assertEqual(self.workflow["permissions"]["contents"], "read")
@@ -24,6 +26,7 @@ class TestGeneratedWorkflowHardening(unittest.TestCase):
     def test_feature_branch_writer_is_explicit_and_not_main(self):
         job = self.jobs["refresh-feature-branch"]
         self.assertEqual(job["permissions"]["contents"], "write")
+        self.assertEqual(job["permissions"]["actions"], "write")
         condition = str(job["if"])
         self.assertIn("github.ref_name != 'main'", condition)
         self.assertIn("github.actor != 'github-actions[bot]'", condition)
@@ -33,13 +36,15 @@ class TestGeneratedWorkflowHardening(unittest.TestCase):
     def test_main_is_read_only_check_path(self):
         job = self.jobs["verify-main"]
         self.assertEqual(job["permissions"]["contents"], "read")
+        self.assertNotIn("actions", job["permissions"])
         self.assertIn("github.ref_name == 'main'", str(job["if"]))
         step_text = "\n".join(str(step) for step in job["steps"])
         self.assertIn("python scripts/generate_indexes.py --check", step_text)
         self.assertNotIn("git push", step_text)
         self.assertNotIn("git commit", step_text)
+        self.assertNotIn("gh workflow run", step_text)
 
-    def test_only_feature_writer_has_write_permission(self):
+    def test_only_feature_writer_has_contents_write_permission(self):
         writers = [
             name
             for name, job in self.jobs.items()
@@ -47,11 +52,37 @@ class TestGeneratedWorkflowHardening(unittest.TestCase):
         ]
         self.assertEqual(writers, ["refresh-feature-branch"])
 
-    def test_full_ci_exposes_explicit_dispatch_without_removing_existing_triggers(self):
+    def test_only_feature_writer_has_actions_write_permission(self):
+        writers = [
+            name
+            for name, job in self.jobs.items()
+            if (job.get("permissions") or {}).get("actions") == "write"
+        ]
+        self.assertEqual(writers, ["refresh-feature-branch"])
+
+    def test_full_gate_workflows_expose_explicit_dispatch(self):
         self.assertIn("  workflow_dispatch:\n", self.ci_text)
         self.assertIn("  push:\n", self.ci_text)
         self.assertIn("  pull_request:\n", self.ci_text)
         self.assertIn('branches: [main, "refactor/**", "upgrade/**"]', self.ci_text)
+        self.assertIn("  workflow_dispatch:\n", self.opt_text)
+
+    def test_generated_commit_dispatches_both_existing_full_gate_workflows(self):
+        job = self.jobs["refresh-feature-branch"]
+        step = next(
+            item for item in job["steps"] if item.get("name") == "Commit generated metadata and validate final head"
+        )
+        script = step["run"]
+        self.assertEqual(step["env"]["GH_TOKEN"], "${{ github.token }}")
+        self.assertIn("set -euo pipefail", script)
+        self.assertIn('gh workflow run ci.yml --ref "$GITHUB_REF_NAME"', script)
+        self.assertIn('gh workflow run optimization-baseline.yml --ref "$GITHUB_REF_NAME"', script)
+        self.assertLess(script.index("git push"), script.index("gh workflow run ci.yml"))
+        self.assertLess(
+            script.index("git push"),
+            script.index("gh workflow run optimization-baseline.yml"),
+        )
+        self.assertNotIn("continue-on-error", str(step))
 
 
 if __name__ == "__main__":

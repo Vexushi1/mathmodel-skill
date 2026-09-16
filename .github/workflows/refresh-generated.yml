@@ -31,6 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -40,8 +41,11 @@ jobs:
           python-version: "3.12"
       - name: Rebuild active indexes and manifest
         run: python scripts/generate_indexes.py
-      - name: Commit generated metadata when changed
+      - name: Commit generated metadata and validate final head
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           if git diff --quiet -- SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256; then
             echo "Generated metadata is current."
             exit 0
@@ -51,6 +55,10 @@ jobs:
           git add SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
           git commit -m "chore: refresh generated repository metadata"
           git push
+          final_head=$(git rev-parse HEAD)
+          echo "Generated metadata final head: ${final_head}"
+          gh workflow run ci.yml --ref "$GITHUB_REF_NAME"
+          gh workflow run optimization-baseline.yml --ref "$GITHUB_REF_NAME"
 
   verify-main:
     if: github.ref_name == 'main'
