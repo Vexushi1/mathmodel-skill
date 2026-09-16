@@ -1,6 +1,15 @@
 # Changelog
 
-## Current release: 9.1.0
+## Current release: 9.2.0
+
+- Consolidated the approved P1–P8 optimization program into a single minor release without introducing breaking directory, Schema, CLI, numerical, Model Approval, MATLAB or LaTeX semantics.
+- Added task-scoped `reading_plan`, global-policy/writing-role deduplication, compact model-paper framework instantiation, canonical `RUN_CONFIG` and versioned `RUN_RECEIPT`, publication-profile MATLAB rendering with a real preview gate, and conditional result-analysis/appendix lifecycle support.
+- Retained legacy `FULL_FIDELITY_CONFIG / FULL_RUN_CONFIG` and P5a versionless receipt paths as read-only compatibility in 9.2.0; new writers remain canonical and unknown explicit receipt versions fail closed.
+- Recorded an explicit compatibility exit condition: reader removal is deferred to a future major migration (earliest v10) with migration/detection evidence, compatibility-matrix update and dedicated regression.
+- Closed P8 infrastructure work using measured evidence: generated-metadata final-head validation is preserved, duplicated RUN_CONFIG parsing is shared, and the large validator is not forcibly split where host-adapter coupling makes a mechanical move unsafe.
+- Release acceptance remains the complete HSK Skill CI plus Optimization baseline evidence on the final generated head; tests/gates are not deleted or weakened for this release.
+
+## Previous release: 9.1.0
 
 - Added a Module-04-owned Publication Rendering Grammar for palette profile selection, open-axis publication frames, adaptive canvas/panel geometry, legend strategy, axis/baseline honesty and explicit export policy without creating a second Figure Authority.
 - Extended `hsk_apply_scientific_style.m` with `competition_high_contrast`, `journal_balanced` and `monochrome_print` profiles, semantic palette fields, typography hierarchy and backward-compatible legacy palette aliases.

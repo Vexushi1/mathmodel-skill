@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：9.1.0
+当前 Skill 版本：9.2.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -9,7 +9,6 @@
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/optimization-baseline.yml`
-- `.github/workflows/p9-release-apply.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
 - `AGENTS.md`
@@ -157,7 +156,6 @@
 - `scripts/lint_skill.py`
 - `scripts/lint_skill_checks.py`
 - `scripts/measure_infrastructure.py`
-- `scripts/p9_release_apply.py`
 - `scripts/prepare_cumcm_class.py`
 - `scripts/project_snapshot.py`
 - `scripts/project_transaction.py`
@@ -299,6 +297,7 @@
 - `tests/test_p7_conditional_analysis_appendix.py`
 - `tests/test_p8_infrastructure_measurement.py`
 - `tests/test_p8c_run_config_parser.py`
+- `tests/test_p9_release_closeout.py`
 - `tests/test_preprocessing_decision_contract.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_read_path_semantic_closure.py`

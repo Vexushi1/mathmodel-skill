@@ -57,4 +57,4 @@ P5b 起新 writer 必须写 `run_receipt_protocol_version=1.0.0`，返回工作�
 
 ## 发布验收状态
 
-待本 PR 完成实现并在最终 generated head 通过完整 CI 后填写。
+P9 release 实现已写入本 PR；最终 generated head 的 HSK Skill CI / Optimization baseline run ID 与 merge SHA 在最终验收时补入。
