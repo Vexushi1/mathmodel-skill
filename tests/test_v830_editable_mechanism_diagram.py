@@ -418,6 +418,8 @@ class ContractAndDriftTests(unittest.TestCase):
     # RUN_RECEIPT protocol marker is a planned execution-interface extension.
     # P7 intentionally rebaselines only project-state result-analysis semantics and the
     # 03B module because conditional Analysis Necessity Gate behavior explicitly changes them.
+    # P8c intentionally rebaselines only code-delivery validation because the measured
+    # duplicate RUN_CONFIG parser is consolidated without changing its field policy or errors.
     PROTECTED = {
         "core/model_approval_contract.yaml": "b86a18b4b0e160e837186ac4273bd06f0426d0f4",
         "core/numerical_verification_contract.yaml": "f7e1921ec4945cb5e87984ccb8946302d854143f",
@@ -436,7 +438,7 @@ class ContractAndDriftTests(unittest.TestCase):
         "templates/matlab/draw_mechanism_structure.m": "65ba4a3b3462a565f86880c49af0959edd21f9a4",
         "templates/figure/chart_selection.md": "87930a49bad06777ac8a42af254b71a11ba1bf22",
         "templates/figure/figure_enhancement_patterns.md": "823550db7331a720ba32f2bc756fcdaaea12888d",
-        "scripts/validate_code_delivery.py": "8d2cbbf6e75c0871c329954b7fed11df53fe50bc",
+        "scripts/validate_code_delivery.py": "078e50d2d8b192823f4e462d7bfd5e46e0e27988",
     }
 
     def test_protected_authorities_have_not_drifted(self):
