@@ -807,13 +807,23 @@ def check_contracts(errors: list[str]) -> None:
     if result_policy.get("result_analysis_disposition_authority") != "core/writing_reasoning_contract.yaml#analysis_evidence_disposition":
         errors.append("result-analysis dispositions must delegate to writing-reasoning authority")
     per_question = output.get("per_question", {}) or {}
-    expected_files = [
-        "问题{中文序号}求解.py", "问题{中文序号}求解结果.xlsx",
-        "问题{中文序号}结果深化分析.py", "问题{中文序号}结果深化分析.xlsx",
+    base_expected = [
+        "问题{中文序号}求解.py",
+        "问题{中文序号}求解结果.xlsx",
         "q{阿拉伯序号}_plot.m",
     ]
-    if per_question.get("exact_default_files") != expected_files:
-        errors.append("per-question default must be exact five-file two-script layout")
+    analysis_expected = [
+        "问题{中文序号}结果深化分析.py",
+        "问题{中文序号}结果深化分析.xlsx",
+    ]
+    base_files = per_question.get("base_default_files") or []
+    analysis_files = per_question.get("analysis_required_additional_files") or []
+    if base_files != base_expected:
+        errors.append("per-question base layout must be exact three-file primary/plot set")
+    if analysis_files != analysis_expected:
+        errors.append("required result-analysis extension must be exact 03B code/workbook pair")
+    if set(base_files) & set(analysis_files) or len(set(base_files + analysis_files)) != 5:
+        errors.append("conditional per-question layout must remain disjoint three-plus-two and total five when analysis is required")
     if "single_python_update_policy" in per_question:
         errors.append("output contract must not restore single-script overwrite policy")
     delivery = user_execution.get("code_delivery") or {}
@@ -844,9 +854,15 @@ def check_contracts(errors: list[str]) -> None:
     requirements = sync.get("stage_requirements", {}) or {}
     if set(requirements) != expected_scopes or any(not isinstance(value, list) or not value for value in requirements.values()):
         errors.append("output contract must define every exact delivery scope")
-    if "result_analysis_code" not in requirements.get("results", []):
-        errors.append("results scope must require independent result-analysis code")
-    if "preprocessing_workbook" in requirements.get("results", []):
+    result_requirements = requirements.get("results", [])
+    if "result_analysis_code" in result_requirements:
+        errors.append("results base scope must not unconditionally require result-analysis code")
+    if "result_analysis_report" not in result_requirements:
+        errors.append("results scope must retain auditable result-analysis gate/report state")
+    formal = sync.get("formal_state_requirements", {}) or {}
+    if formal.get("result_analysis_status") != ["passed", "not_required"]:
+        errors.append("formal delivery must accept only passed or reasoned not_required result-analysis status")
+    if "preprocessing_workbook" in result_requirements:
         errors.append("base results scope must not unconditionally require preprocessing_workbook")
     conditional = (sync.get("conditional_stage_requirements") or {}).get("preprocessing_decision_project_level", {})
     if "preprocessing_workbook" not in conditional.get("results", []):
@@ -1333,8 +1349,8 @@ def check_editable_mechanism_diagrams(errors: list[str]) -> None:
         errors.append("output contract must delegate mechanism decisions to Module 04")
     if mechanism.get("preview_required_for_approved_figures") is not True:
         errors.append("output contract must require preview before figure approval")
-    if mechanism.get("per_question_five_file_layout_unchanged") is not True:
-        errors.append("draw.io integration must preserve the per-question five-file layout")
+    if mechanism.get("per_question_five_file_layout_unchanged") is not False:
+        errors.append("draw.io integration must acknowledge conditional rather than fixed five-file layout")
     if "工作簿驱动结果图继续归MATLAB" not in str((output.get("ownership") or {}).get("other_figure_tools", "")):
         errors.append("draw.io integration must preserve MATLAB data-figure ownership")
 

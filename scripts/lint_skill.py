@@ -299,15 +299,10 @@ def _check_critical_pointer_fragments(errors: list[str]) -> None:
 
 
 _original_check_contracts = checks.check_contracts
-_P7_OBSOLETE_CONTRACT_ERRORS = {
-    "per-question default must be exact five-file two-script layout",
-    "results scope must require independent result-analysis code",
-    "draw.io integration must preserve the per-question five-file layout",
-}
 
 
 def _p7_conditional_analysis_contract_errors(output: Mapping[str, object]) -> list[str]:
-    """Validate the approved P7 conditional three/five-file lifecycle before adapting legacy lint."""
+    """Validate the approved P7 conditional three/five-file lifecycle directly."""
     current: list[str] = []
     per_question = output.get("per_question", {}) or {}
     base_expected = [
@@ -353,11 +348,7 @@ def _p7_conditional_analysis_contract_errors(output: Mapping[str, object]) -> li
 def _check_contracts(errors: list[str]) -> None:
     _original_check_contracts(errors)
     output = checks.load_structured(ROOT / "core/output_contract.yaml") or {}
-    p7_errors = _p7_conditional_analysis_contract_errors(output)
-    if p7_errors:
-        errors.extend(p7_errors)
-    else:
-        errors[:] = [item for item in errors if item not in _P7_OBSOLETE_CONTRACT_ERRORS]
+    errors.extend(_p7_conditional_analysis_contract_errors(output))
     policy = output.get("writing_policy", {}) or {}
     expected = {
         "latex_source_layout_default": "modular",
@@ -372,21 +363,6 @@ def _check_contracts(errors: list[str]) -> None:
 
 
 checks.check_contracts = _check_contracts
-
-_original_check_editable_mechanism_diagrams = checks.check_editable_mechanism_diagrams
-
-
-def _check_editable_mechanism_diagrams(errors: list[str]) -> None:
-    _original_check_editable_mechanism_diagrams(errors)
-    output = checks.load_structured(ROOT / "core/output_contract.yaml") or {}
-    if not _p7_conditional_analysis_contract_errors(output):
-        errors[:] = [
-            item for item in errors
-            if item != "draw.io integration must preserve the per-question five-file layout"
-        ]
-
-
-checks.check_editable_mechanism_diagrams = _check_editable_mechanism_diagrams
 
 _original_check_project_state_and_framework = checks.check_project_state_and_framework
 
