@@ -1,6 +1,6 @@
 # 题型 Starter 使用说明（template lineage v7.15.0）
 
-本目录中的 `classification.py`、`evaluation.py`、`optimization.py`、`prediction.py` 和 `simulation.py` 只用于生成主求解脚本 `问题X求解.py`。主工作簿验收后，不覆盖主脚本；先执行 Analysis Necessity Gate，仅在 Gate=`required` 时根据真实主结果单独生成 `问题X结果深化分析.py`。
+本目录中的 `classification.py`、`evaluation.py`、`optimization.py`、`prediction.py` 和 `simulation.py` 只用于生成主求解脚本 `问题X求解.py`。主工作簿验收后，不覆盖主脚本；先执行 Analysis Necessity Gate，仅在 Gate=`required` 时根据真实主结果单独生成 `问题X结果深化分析.py`。旧说明中的“主工作簿 accepted 后进入 03B”现在只表示进入 Analysis Necessity Gate；只有 Gate=`required` 才实际激活 03B。
 
 ## 推荐项目结构
 
