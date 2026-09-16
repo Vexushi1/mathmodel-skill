@@ -1,4 +1,4 @@
-name: P8d one-shot validator split analysis
+name: P8d one-shot validator split transform
 
 on:
   push:
@@ -6,36 +6,257 @@ on:
       - maintenance/p8d-validator-split-transform
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  analyze:
+  transform:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
           ref: maintenance/p8d-validator-split-transform
+          fetch-depth: 0
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
       - name: Install validation dependencies
         run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
-      - name: Print exact global dependencies for largest lint checks
+      - name: Extract two measured low-dependency checks behind stable facades
         run: |
           python - <<'PY'
+          from __future__ import annotations
+
+          import ast
+          from pathlib import Path
+
+          root = Path.cwd()
+          source_path = root / "scripts/lint_skill_checks.py"
+          source = source_path.read_text(encoding="utf-8")
+          tree = ast.parse(source)
+          lines = source.splitlines(keepends=True)
+
+          nodes = {
+              node.name: node
+              for node in tree.body
+              if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+              and node.name in {"check_contracts", "check_templates"}
+          }
+          assert set(nodes) == {"check_contracts", "check_templates"}
+
+          def body_lines(name: str) -> str:
+              node = nodes[name]
+              assert node.end_lineno is not None
+              block = "".join(lines[node.lineno - 1 : node.end_lineno])
+              first, remainder = block.split("\n", 1)
+              assert first == f"def {name}(errors: list[str]) -> None:"
+              return remainder
+
+          contracts_body = body_lines("check_contracts")
+          templates_body = body_lines("check_templates")
+
+          companion = '''#!/usr/bin/env python3
+          """Large static-lint check bodies extracted for maintainability.
+
+          P8 moves implementation only. Business rules, error strings, check order,
+          and the public lint facade remain owned by ``lint_skill_checks.py`` and
+          existing contracts/tests. This module is not a new Authority.
+          """
+          from __future__ import annotations
+
+          from pathlib import Path
+          from typing import Any, Callable
+
+          StructuredLoader = Callable[[Path], Any]
+          TextReader = Callable[[Path], str]
+          ActiveFiles = Callable[[], Any]
+
+
+          def check_contracts(
+              errors: list[str],
+              *,
+              root: Path,
+              load_structured: StructuredLoader,
+              read_text: TextReader,
+          ) -> None:
+              ROOT = root
+          '''
+          companion = "\n".join(
+              line[10:] if line.startswith("          ") else line
+              for line in companion.splitlines()
+          ) + "\n"
+          companion += contracts_body
+          if not companion.endswith("\n"):
+              companion += "\n"
+          companion += '''
+
+          def check_templates(
+              errors: list[str],
+              *,
+              root: Path,
+              load_structured: StructuredLoader,
+              read_text: TextReader,
+              active_files: ActiveFiles,
+          ) -> None:
+              ROOT = root
+          '''
+          companion_tail = "\n".join(
+              line[10:] if line.startswith("          ") else line
+              for line in companion.splitlines()[-12:]
+          )
+          # Rebuild the appended template header without touching the already-built prefix.
+          split_marker = "\n\ndef check_templates("
+          prefix = companion.rsplit(split_marker, 1)[0]
+          template_header = '''
+
+          def check_templates(
+              errors: list[str],
+              *,
+              root: Path,
+              load_structured: StructuredLoader,
+              read_text: TextReader,
+              active_files: ActiveFiles,
+          ) -> None:
+              ROOT = root
+          '''
+          template_header = "\n".join(
+              line[10:] if line.startswith("          ") else line
+              for line in template_header.splitlines()
+          ) + "\n"
+          companion = prefix + template_header + templates_body
+          if not companion.endswith("\n"):
+              companion += "\n"
+          (root / "scripts/lint_skill_deep_checks.py").write_text(companion, encoding="utf-8")
+
+          replacements = {
+              "check_contracts": '''def check_contracts(errors: list[str]) -> None:
+              DEEP_CHECKS.check_contracts(
+                  errors,
+                  root=ROOT,
+                  load_structured=load_structured,
+                  read_text=read_text,
+              )
+          ''',
+              "check_templates": '''def check_templates(errors: list[str]) -> None:
+              DEEP_CHECKS.check_templates(
+                  errors,
+                  root=ROOT,
+                  load_structured=load_structured,
+                  read_text=read_text,
+                  active_files=active_files,
+              )
+          ''',
+          }
+          normalized = {}
+          for name, text in replacements.items():
+              normalized[name] = "\n".join(
+                  line[10:] if line.startswith("          ") else line
+                  for line in text.splitlines()
+              ) + "\n"
+
+          mutable = lines[:]
+          for name in sorted(nodes, key=lambda n: nodes[n].lineno, reverse=True):
+              node = nodes[name]
+              assert node.end_lineno is not None
+              mutable[node.lineno - 1 : node.end_lineno] = [normalized[name]]
+          updated = "".join(mutable)
+          import_anchor = "from jsonschema import Draft202012Validator\n"
+          assert updated.count(import_anchor) == 1
+          updated = updated.replace(
+              import_anchor,
+              import_anchor + "\nimport lint_skill_deep_checks as DEEP_CHECKS\n",
+              1,
+          )
+          source_path.write_text(updated, encoding="utf-8")
+
+          test_text = '''from __future__ import annotations
+
           import inspect
           import sys
+          import unittest
           from pathlib import Path
-          root = Path.cwd()
-          sys.path.insert(0, str(root / 'scripts'))
-          import lint_skill_checks as lint
-          for name in ('check_contracts', 'check_templates'):
-              func = getattr(lint, name)
-              closure = inspect.getclosurevars(func)
-              print(name)
-              print('globals=', sorted(closure.globals))
-              print('nonlocals=', sorted(closure.nonlocals))
-              print('unbound=', sorted(closure.unbound))
+          from unittest import mock
+
+          ROOT = Path(__file__).resolve().parents[1]
+          SCRIPTS = ROOT / "scripts"
+          if str(SCRIPTS) not in sys.path:
+              sys.path.insert(0, str(SCRIPTS))
+
+          import lint_skill_checks as lint  # noqa: E402
+          import lint_skill_deep_checks as deep  # noqa: E402
+
+
+          class TestP8dValidatorSplit(unittest.TestCase):
+              def test_public_facade_signatures_remain_stable(self):
+                  self.assertEqual(list(inspect.signature(lint.check_contracts).parameters), ["errors"])
+                  self.assertEqual(list(inspect.signature(lint.check_templates).parameters), ["errors"])
+
+              def test_contract_facade_delegates_same_error_list_and_dependencies(self):
+                  errors: list[str] = []
+                  with mock.patch.object(deep, "check_contracts") as delegated:
+                      lint.check_contracts(errors)
+                  delegated.assert_called_once_with(
+                      errors,
+                      root=lint.ROOT,
+                      load_structured=lint.load_structured,
+                      read_text=lint.read_text,
+                  )
+                  self.assertIs(delegated.call_args.args[0], errors)
+
+              def test_template_facade_delegates_same_error_list_and_dependencies(self):
+                  errors: list[str] = []
+                  with mock.patch.object(deep, "check_templates") as delegated:
+                      lint.check_templates(errors)
+                  delegated.assert_called_once_with(
+                      errors,
+                      root=lint.ROOT,
+                      load_structured=lint.load_structured,
+                      read_text=lint.read_text,
+                      active_files=lint.active_files,
+                  )
+                  self.assertIs(delegated.call_args.args[0], errors)
+
+              def test_extracted_checks_have_only_explicit_injected_repository_dependencies(self):
+                  contract_globals = inspect.getclosurevars(deep.check_contracts).globals
+                  template_globals = inspect.getclosurevars(deep.check_templates).globals
+                  self.assertNotIn("ROOT", contract_globals)
+                  self.assertNotIn("ROOT", template_globals)
+                  self.assertNotIn("load_structured", contract_globals)
+                  self.assertNotIn("read_text", contract_globals)
+                  self.assertNotIn("active_files", template_globals)
+
+              def test_large_bodies_are_no_longer_duplicated_in_facade(self):
+                  facade = (SCRIPTS / "lint_skill_checks.py").read_text(encoding="utf-8")
+                  companion = (SCRIPTS / "lint_skill_deep_checks.py").read_text(encoding="utf-8")
+                  self.assertNotIn('output = load_structured(ROOT / "core/output_contract.yaml")', facade)
+                  self.assertIn('output = load_structured(ROOT / "core/output_contract.yaml")', companion)
+                  self.assertNotIn('pipeline = read_text(ROOT / "templates/code/hsk_pipeline/main_pipeline.py")', facade)
+                  self.assertIn('pipeline = read_text(ROOT / "templates/code/hsk_pipeline/main_pipeline.py")', companion)
+
+
+          if __name__ == "__main__":
+              unittest.main()
+          '''
+          test_text = "\n".join(
+              line[10:] if line.startswith("          ") else line
+              for line in test_text.splitlines()
+          ) + "\n"
+          (root / "tests/test_p8d_validator_split.py").write_text(test_text, encoding="utf-8")
+
+          Path(".github/workflows/p8d-split-transform.yml").unlink()
           PY
+      - name: Refresh generated metadata
+        run: python scripts/generate_indexes.py
+      - name: Run targeted structural and lint regression
+        run: |
+          python -m unittest tests.test_p8_infrastructure_measurement tests.test_p8d_validator_split tests.test_v7101_read_path_closure
+          python scripts/lint_skill.py
+          python scripts/generate_indexes.py --check
+      - name: Commit pure structural split
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "refactor: extract two measured lint check bodies"
+          git push origin HEAD:maintenance/p8d-validator-split-transform
