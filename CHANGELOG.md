@@ -1,6 +1,16 @@
 # Changelog
 
-## Current release: 9.2.0
+## Current release: 9.2.1
+
+- Closed the post-v9.2.0 P7 Analysis Necessity Gate semantic-hygiene gap without adding a new Schema, CLI, project directory, numerical stage or Figure business rule.
+- PR A aligned User Execution activation with `accepted_primary_workbook and analysis_necessity_gate == required` and fixed `q1_plot.m` so a valid `result_analysis_status=not_required` project does not require a nonexistent 03B workbook while explicit 03B evidence remains fail-closed.
+- PR B aligned active consumers, Artifact Packs and guidance to the published `base3 + conditional2` lifecycle and applied the user-approved minimal Module-04 Authority closure for Figure entry conditions, workbook selection and per-question artifact descriptions.
+- PR C replaced obsolete fixed-five textual assumptions with executable conditional-layout invariants in repository hygiene/lint, removed the obsolete fixed-five suppression bridge, and preserved or strengthened validation instead of deleting tests or weakening gates.
+- The per-question contract is therefore exact base 3 (`问题X求解.py`, `问题X求解结果.xlsx`, `qX_plot.m`) plus the exact 03B Python/workbook pair only when the Gate is `required`; `not_required` requires a non-empty reason and does not prove robustness/stability.
+- Legacy five-file projects and the existing `FULL_FIDELITY_CONFIG / FULL_RUN_CONFIG` plus P5a versionless-receipt readers remain read-only compatible under their existing major-migration exit condition; no user-project migration is forced by this patch.
+- Release acceptance remains the complete HSK Skill CI plus Optimization baseline evidence on the final generated head; generated metadata is refreshed rather than hand-forged.
+
+## Previous release: 9.2.0
 
 - Consolidated the approved P1–P8 optimization program into a single minor release without introducing breaking directory, Schema, CLI, numerical, Model Approval, MATLAB or LaTeX semantics.
 - Added task-scoped `reading_plan`, global-policy/writing-role deduplication, compact model-paper framework instantiation, canonical `RUN_CONFIG` and versioned `RUN_RECEIPT`, publication-profile MATLAB rendering with a real preview gate, and conditional result-analysis/appendix lifecycle support.

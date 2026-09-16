@@ -21,7 +21,19 @@
 | P6a/P6b | 论文图例索引、独立 MATLAB profile、真实预览 | 已合并，PR #159 / #160 |
 | P7 | 条件式分析与附录 | 已合并，PR #161 |
 | P8 | 有测量依据的基础设施整理 | 已完成并合并，P8e PR #170 收尾 |
-| P9 | 综合回归、兼容与发布 | 实施中，PR #171，目标 v9.2.0 |
+| P9 | 综合回归、兼容与发布 | 已完成并合并，PR #171；v9.2.0 merge commit `86a8b54e761021cdbe15d8eb879068895d049326` |
+
+## v9.2.1：P7 发布后语义卫生补丁
+
+v9.2.0 发布后通读确认：P7 的核心 Authority 已表达 `base3 + conditional2`，但 User Execution、MATLAB 活动模板、部分 consumer / Artifact Pack 与旧回归仍残留 fixed-five 假设。该问题按独立补丁链处理，不改写 P7/P9 历史 provenance，也不新增业务能力。
+
+- PR #172：planning-only 修复计划，固化影响面、测试矩阵、停止条件和回滚方式；
+- PR #173（PR A）：Runtime Truth Closure，修正 03B activation，并修复 `q1_plot.m` 对合法 `not_required` 项目无条件要求深化工作簿的问题；
+- PR #174（PR B）：Active Consumer Surface Alignment，并按用户明确批准执行最小 `modules/04_figure_evidence.md` Authority closure，只修进入条件、工作簿选择与条件式产物描述；
+- PR #175（PR C）：Regression & Lint Debt Closure，以可执行 `base3 + conditional2` 不变量替换 obsolete fixed-five 断言并移除旧 suppress，完整 CI 全绿后合并为 `b83bfcdc8c63b82586be786983a8a369d9cdf278`；
+- PR #176（PR D）：v9.2.1 Release Closeout；只统一 current release carriers、CHANGELOG、状态/计划记录、release regression 与 generated metadata，最终仍以完整 HSK Skill CI + Optimization baseline evidence 为合并门。
+
+补丁后的语义不变式为：每问基础三文件固定存在；仅 Gate=`required` 增加 03B Python + workbook，总数仍为 5；Gate=`not_required` 必须有非空理由，并且不能据此声称鲁棒性、稳定性、参数不敏感或算法一致性已经通过。旧五文件项目与既有 legacy reader 继续按当前显式兼容窗口只读，不要求用户项目迁移。
 
 ## 已合并阶段摘要
 

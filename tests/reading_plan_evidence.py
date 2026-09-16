@@ -22,7 +22,7 @@ ALLOWED_CHANGED_AUTHORITIES = {
     "templates/latex/cumcm/hsk/template_manifest.yaml",
 }
 P7_OPTIONAL_ANALYSIS_PREREQUISITE = "figure_evidence:result_analysis_workbook"
-P9_RELEASE_VERSIONS = {"9.1.0", "9.2.0"}
+P9_RELEASE_VERSIONS = {"9.1.0", "9.2.0", "9.2.1"}
 
 
 def normalize(value, repo, project):
@@ -127,7 +127,7 @@ def main():
         "comparison_scope": "all_legacy_fields_except_declared_approved_authority_hashes_p7_optional_analysis_prerequisite_and_p9_release_carrier",
         "expected_authority_changes": sorted(ALLOWED_CHANGED_AUTHORITIES),
         "all_legacy_behavior_equal": all(r["legacy_behavior_equal"] for r in rows),
-        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost; approved authority hashes, the P7 conditional-analysis prerequisite removal, and the explicit 9.1.0-to-9.2.0 release carrier are normalized while every other legacy field remains exact.",
+        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost; approved authority hashes, the P7 conditional-analysis prerequisite removal, and the explicit 9.1.0-to-9.2.x release carriers are normalized while every other legacy field remains exact.",
         "cases": rows,
     }
     args.output.mkdir(parents=True, exist_ok=True)
