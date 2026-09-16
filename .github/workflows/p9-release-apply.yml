@@ -1,0 +1,42 @@
+name: P9 Release Apply
+
+on:
+  push:
+    branches:
+      - upgrade/optimization-p9-v920-release
+
+permissions:
+  contents: write
+
+jobs:
+  apply-release:
+    if: github.actor != 'github-actions[bot]' && github.event.head_commit.message == 'chore: bootstrap P9 release application'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v4
+        with:
+          ref: upgrade/optimization-p9-v920-release
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Apply strict P9 release edits
+        run: python scripts/p9_release_apply.py
+
+      - name: Commit release edits
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No P9 release changes produced" >&2
+            exit 1
+          fi
+          git commit -m "release: apply v9.2.0 carriers and compatibility closeout"
+          git push origin HEAD:upgrade/optimization-p9-v920-release
