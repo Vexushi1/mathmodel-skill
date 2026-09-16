@@ -104,7 +104,7 @@ palette = hsk_apply_scientific_style(fig, "monochrome_print");
 
 ### Standalone project compatibility
 
-项目正式接口保持 `core/output_contract.yaml` 的 conditional per-question layout：基础三文件；Gate=`required` 时追加 03B 两文件。共享 style helper/profile helper 仍不是必须复制到每问目录的额外产物。仓库模板在 HSK Skill/MATLAB template 路径可见时优先调用共享 `hsk_apply_scientific_style.m` + `hsk_publication_profile.m`；若用户只把单个 `qX_plot.m` / `data_process.m` 带到独立项目目录，入口脚本保留最小 local fallback，仅保证默认高对比 palette 与基础 frame，不复制 profile registry、profile 决策或图型 Authority。
+项目正式接口保持 `core/output_contract.yaml` 的 conditional per-question layout：基础三文件；Gate=`required` 时追加 03B 两文件。Gate=`required` 的 total=5 兼容路径仍对应历史“每问五文件”接口；该术语不得解释为 Gate=`not_required` 的无条件默认。共享 style helper/profile helper 仍不是必须复制到每问目录的额外产物。仓库模板在 HSK Skill/MATLAB template 路径可见时优先调用共享 `hsk_apply_scientific_style.m` + `hsk_publication_profile.m`；若用户只把单个 `qX_plot.m` / `data_process.m` 带到独立项目目录，入口脚本保留最小 local fallback，仅保证默认高对比 palette 与基础 frame，不复制 profile registry、profile 决策或图型 Authority。
 
 ## Figure Layout Gate
 
