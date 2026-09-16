@@ -1,7 +1,7 @@
-version: 2.5.0
+version: 2.5.1
 introduced_in_skill_version: 7.4.2
 skill_compatibility: '>=7.4.2,<10.0.0'
-purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界，每问主求解与结果深化分析继续使用两个独立Python脚本。P5a起新生成阶段脚本使用RUN_CONFIG承载任务可变输入，全局user/full-fidelity/no-degradation政策由本Authority继承；P5b起新生成阶段脚本通过run_receipt_protocol_version绑定版本化RUN_RECEIPT，实际运行事实仍写入既有工作簿运行配置工作表。v7.14起新生成主求解还绑定Primary Quality Specification与主数值证据独立复核，但不得把结果深化分析提前塞进主求解。
+purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界。每问主求解始终使用独立Python脚本；结果深化分析仅在主工作簿accepted后经过Analysis Necessity Gate且判定required时使用第二个独立Python脚本。P5a起新生成阶段脚本使用RUN_CONFIG承载任务可变输入，全局user/full-fidelity/no-degradation政策由本Authority继承；P5b起新生成阶段脚本通过run_receipt_protocol_version绑定版本化RUN_RECEIPT，实际运行事实仍写入既有工作簿运行配置工作表。v7.14起新生成主求解还绑定Primary Quality Specification与主数值证据独立复核，但不得把结果深化分析提前塞进主求解。
 numerical_verification_authority: core/numerical_verification_contract.yaml
 default_mode:
   execution_owner: user
@@ -20,7 +20,7 @@ assistant_policy:
   - 审题、通用数据审计、preprocessing_decision、模型设计、公式闭环、Primary Quality Specification和完整版代码生成
   - 不导入赛题脚本的静态代码、依赖、语法和工程质量检查
   - 读取用户返回的工作簿并执行Schema、哈希、质量门和主数值证据一致性校验
-  - 在预处理工作簿accepted、主求解与结果深化分析完成后，于Figure Evidence阶段生成data_process.m；该MATLAB脚本只读工作簿绘图，不执行数值预处理
+  - 在预处理工作簿accepted、主求解以及Gate=required时必要的结果深化分析完成后，于Figure Evidence阶段生成data_process.m；该MATLAB脚本只读工作簿绘图，不执行数值预处理
   - 运行本Skill仓库自身的lint、单元测试、索引生成和LaTeX模板CI
 full_fidelity_flags:
   execution_profile: full_fidelity
@@ -57,7 +57,7 @@ code_delivery:
   stage_activation:
     preprocessing: preprocessing_decision == project_level
     primary: always_after_decision_and_applicable_data_gate
-    analysis: accepted_primary_workbook_required
+    analysis: accepted_primary_workbook and analysis_necessity_gate == required
     preprocessing_matlab: preprocessing_decision == project_level and preprocessing_workbook_accepted
   runtime_metadata: 新生成阶段Python脚本使用RUN_CONFIG声明任务可变输入，并用run_receipt_protocol_version声明期望的RUN_RECEIPT协议；user/full-fidelity/no-degradation政策从本Authority继承。实际运行事实写入该阶段工作簿运行配置中的RUN_RECEIPT。FULL_FIDELITY_CONFIG与FULL_RUN_CONFIG仅作旧项目静态读取兼容。
   canonical_config_name: RUN_CONFIG
@@ -156,7 +156,8 @@ three_stage_policy:
       project_level: 已验收数据预处理结果.xlsx
     primary_quality_boundary: 参数敏感性、压力场景、替代算法/结构、多seed/多初值结论稳定性、异质性、误差分解和广义外样本稳定性不属于本阶段
   analysis:
-    role: 主工作簿accepted后新建问题X结果深化分析.py，继承同一preprocessing_decision与数据事实源，依据真实主结果执行敏感性、稳健性、阈值、替代方法/结构、异质性等深化分析，输出问题X结果深化分析.xlsx。
+    activation: 主工作簿accepted后先执行Analysis Necessity Gate；仅Gate=required时激活
+    role: Gate=required时新建问题X结果深化分析.py，继承同一preprocessing_decision与数据事实源，依据真实主结果执行敏感性、稳健性、阈值、替代方法/结构、异质性等深化分析，输出问题X结果深化分析.xlsx；Gate=not_required时记录非空理由且不生成03B代码/工作簿。
   isolation: 修改深化分析脚本不得改变主求解代码哈希、主工作簿或主结果质量状态；修改主求解脚本则主结果及其全部下游重新进入待验收状态；修改project_level预处理则依赖该数据口径的小问进入stale；修改data_process.m只影响预处理图表/论文层。
 execution_states:
   preprocessing:
@@ -187,7 +188,9 @@ execution_states:
   - preprocessing_decision=project_level时，preprocessing=accepted且预处理质量门通过后才能进入primary。
   - 代码交付不得把小问status提升为solved或analyzed。
   - primary_execution_status=accepted且主结果质量门及适用主数值证据复核通过后，status才可进入solved。
+  - 主工作簿accepted后必须先执行Analysis Necessity Gate；只有Gate=required才允许交付问题X结果深化分析.py并推进analysis_execution_status。
   - analysis_execution_status=accepted且结论稳定性校验通过后，status才可进入analyzed。
+  - result_analysis_status=not_required且result_analysis_requirement_reason非空时，analysis阶段保持未激活，不生成03B代码/工作簿；下游可按validated_results语义继续，但不得据此声称已通过稳健性、稳定性或替代算法一致性检验。
   - 主工作簿未验收前不得生成最终结果深化分析脚本；只能形成候选分析方向。
 returned_workbook:
   semantic_governance_required: true
@@ -281,7 +284,7 @@ returned_workbook:
   - preprocessing工作簿必须通过预处理质量门，并包含预处理方法证据、处理前后对比、绘图数据索引以及供data_process.m使用的真实底层数据。
   - 新v7.14主求解验收时，receipt必须静态读取项目状态登记的已交付主求解代码，先核对其实际SHA-256与primary_code_sha256，再从该代码唯一RUN_CONFIG（旧项目可只读FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG）读取primary_quality_protocol_version；返回主工作簿必须携带同一协议版本。不得通过省略工作簿协议标记或Verification ID降级为legacy质量门。
   - 主结果工作簿必须通过主结果质量门；当已交付代码绑定v7.14协议、运行配置声明primary_quality_protocol_version或主结果质量门出现Verification ID时，还必须按core/numerical_verification_contract.yaml独立复核适用底层数值证据，不能只相信工作簿自报Boolean。
-  - 结果深化分析工作簿必须在主工作簿accepted后验收，并包含分析设计和结论稳定性汇总；其参数敏感性、压力场景、替代方法/结构、多seed/多初值、异质性等证据不得被主结果质量门替代或提前吸收。
+  - 结果深化分析工作簿仅在Analysis Necessity Gate=required时存在，并必须在主工作簿accepted后验收，包含分析设计和结论稳定性汇总；其参数敏感性、压力场景、替代方法/结构、多seed/多初值、异质性等证据不得被主结果质量门替代或提前吸收。
   - 插值、填补、预测修复、滤波、异常处理等实质操作的验证结论必须与预处理质量门一致；不得只提供摘要数字而缺少可绘图/可复核底层证据。
 filenames:
   preprocessing_directory: 数据预处理/
