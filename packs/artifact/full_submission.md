@@ -35,21 +35,21 @@ python scripts/hsk_pack_submission.py . \
 - LaTeX 源码与最终 PDF；
 - 允许归档的赛题、附件说明和实际输入数据；
 - 若 `preprocessing_decision=project_level`：数据预处理三文件；
-- 每问标准五文件目录；
+- 每问由 `core/output_contract.yaml` 定义的 current conditional layout：基础三文件始终收集，Gate=`required` 时再收集实际存在且 current 的 03B 两文件；
 - 正式图、可编辑机理图与必要复现说明。
 
-其中每问标准目录仍为：
+每问目录按 current 状态解释为：
 
 ```text
 问题X求解/
 ├─ 问题X求解.py
 ├─ 问题X求解结果.xlsx
-├─ 问题X结果深化分析.py
-├─ 问题X结果深化分析.xlsx
-└─ qX_plot.m
+├─ qX_plot.m
+├─ [问题X结果深化分析.py]    # only Gate=required
+└─ [问题X结果深化分析.xlsx]  # only Gate=required and analysis executed
 ```
 
-主工作簿 accepted 后冻结主求解 Python；深化分析由独立 Python 完成。旧敏感性/鲁棒性工作簿、旧 `结果数据表/问题X/` 与 v6.6 单脚本四文件结构仅作历史只读兼容输入，不作为新复现包标准结构。
+Gate=`not_required` 且理由非空时，复现包不得为了凑固定结构伪造、补空或复制 03B 文件；这也不表示稳健性、稳定性或替代算法一致性已经验证。Gate=`required` 时，当前 03B 代码/工作簿属于复现材料并必须保持 provenance/currentness。主工作簿 accepted 后冻结主求解 Python；已激活的深化分析由独立 Python 完成。旧敏感性/鲁棒性工作簿、旧 `结果数据表/问题X/` 与 v6.6 单脚本四文件结构仅作历史只读兼容输入，不作为新复现包标准结构。
 
 ## 3. 包级 provenance gate
 
@@ -66,7 +66,7 @@ python scripts/validate_submission_package.py . --strict
 - 每个归档文件 SHA-256 与 manifest 一致，并与当前项目同路径文件一致；
 - 包内至少一个 PDF 的哈希必须等于当前 `compiled_pdf`；
 - official package 必须重新读取**当前**已核验 `edition_rules`，并与 `submission_files` allowlist 精确一致；
-- reproducibility package 至少包含当前 PDF、Python、结果工作簿和 MATLAB 脚本；
+- reproducibility package 至少包含当前 PDF、主求解 Python、主结果工作簿和 MATLAB 脚本；Gate=`required` 时还必须包含 current 03B Python/workbook，Gate=`not_required` 时不得因其合法缺失失败；
 - 包内旧 PDF、旧代码或旧工作簿即使文件名正确，也不能通过当前性验证。
 
 `validated_submission_package` 只有在该 gate 成功后才视为可正式交付；不能用“ZIP 存在”替代 provenance 验证。
@@ -79,17 +79,17 @@ python scripts/validate_submission_package.py . --strict
 internal_metadata/
 ```
 
-不得把这些文件塞入 `问题X求解/` 或 `数据预处理/`，也不得破坏每问五文件合同或项目级预处理三文件合同。
+不得把这些文件塞入 `问题X求解/` 或 `数据预处理/`，也不得破坏每问 conditional layout contract 或项目级预处理三文件合同。旧称“每问五文件合同”只对应 Gate=`required` 的 total=5 情形，不能作为 `not_required` 项目的缺件判据。
 
 `latex_audit_report.yaml`、`compile_report.yaml` 和 `submission_manifest.yaml` 属于正式交付证明链的机器元数据；它们用于审计和当前性验证，不机械写进论文正文，也不自动进入只允许 PDF 的官方提交包。
 
 ## 5. 提交前检查
 
-1. 主结果与深化分析质量门已通过，无 unresolved `redo_required`；
+1. 主结果质量门已通过；Analysis Necessity Gate 已有 current disposition：`required` 时 03B 质量/验收链通过且无 unresolved `redo_required`，`not_required` 时理由非空；
 2. 当前模型、工作簿、MATLAB 图、正文和 `模型论文框架.md` 一致且无 stale；
 3. 正式 LaTeX 已形成 current `latex_audit_report.yaml + compile_report.yaml + compiled_pdf` 证明链；
 4. `project_sync --delivery-scope submission` 通过；
-5. 官方包按当前 verified rules 裁剪，复现包保持内部完整性；
+5. 官方包按当前 verified rules 裁剪，复现包保持内部完整性并只收集 current 状态实际要求的 03B 产物；
 6. `validate_submission_package.py --strict` 对实际准备交付的 ZIP 通过；
 7. `Algorithm Trace` 与论文算法呈现闭合：`stepwise/pseudocode` 可追溯到当前模型/公式/命题/约束、真实 Python 实现和工作簿结果或验证证据；`not_needed` 不保留装饰性算法框；
 8. 命题 0--4 仅是默认正文阅读预算；P5+ 若保留，已完成必要性审查并记录 justification，不把默认预算恢复成 Hard 上限。

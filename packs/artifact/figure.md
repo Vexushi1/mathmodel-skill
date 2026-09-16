@@ -4,14 +4,16 @@
 
 用户要求结果图、敏感性图、鲁棒性图、多算法图、机理图或 MATLAB 代码时加载。图表必须服务明确结论，不以复杂图型、固定版式或面板数量替代证据。
 
-本 Pack 只做阶段摘要，不重新定义 Figure Evidence 规则。Scientific Figure Synthesis、Basic-form Challenge、Composite Encoding、Scientific Rendering Profiles、布局、证据层级、数据事实源、Figure Enhancement Gate、配色、Portfolio Gate 和 Figure Contract 的**唯一权威为 `modules/04_figure_evidence.md`**；若本文件与该模块不一致，以后者为准。高级增强的实现模式集中在 `templates/figure/figure_enhancement_patterns.md`，该模板只提供实现参考，不拥有独立决策权。
+本 Pack 只做阶段摘要，不重新定义 Figure Evidence 规则。Scientific Figure Synthesis、Basic-form Challenge、Composite Encoding、Scientific Rendering Profiles、布局、证据层级、数据事实源、Figure Enhancement Gate、配色、Portfolio Gate 和 Figure Contract 的**唯一权威为 `modules/04_figure_evidence.md`**；每问文件是否存在只服从 `core/output_contract.yaml` 与 current project state。若本文件与这些 Authority 不一致，以 Authority 为准。高级增强的实现模式集中在 `templates/figure/figure_enhancement_patterns.md`，该模板只提供实现参考，不拥有独立决策权。
 
 ## 数据前置条件
 
-正式结果图优先读取本问 `问题X求解/` 中两个标准工作簿：
+正式结果图从本问 `问题X求解/` 的 current 合法工作簿集合读取：
 
-- `问题X求解结果.xlsx`：主结果、当前运行真实产生的状态/过程/结构证据、题型专项结果和主结果质量门；
-- `问题X结果深化分析.xlsx`：分析设计、参数/场景/算法/阈值/异质性等细粒度深化数据和结论稳定性汇总。
+- `问题X求解结果.xlsx`：主结果、当前运行真实产生的状态/过程/结构证据、题型专项结果和主结果质量门；主结果图的必需事实源；
+- `问题X结果深化分析.xlsx`：仅当 Analysis Necessity Gate=`required` 且 03B 已实际执行、验收时存在，保存分析设计、参数/场景/算法/阈值/异质性等细粒度深化数据和结论稳定性汇总。
+
+Gate=`not_required` 且有非空理由时，缺少 03B workbook 是合法状态，Figure 不得因此失败，也不得据此生成敏感性、稳健性或替代算法一致性图。若某张 Figure 的 Figure Contract 明确声明消费 03B evidence，则该 workbook 必须真实存在且 current；缺失时 fail closed，不允许回退主工作簿伪装深化证据。
 
 只有图本身确实需要底层事实源时，才继承当前 `preprocessing_decision` 追加数据：
 
@@ -19,7 +21,7 @@
 - `question_local`：允许读取必要原始数据，但 MATLAB 不得重新构造局部模型变换；该变换若需图证据，必须由 Python 先把处理前后底层数据写入本问工作簿；
 - `project_level`：需要公共底层数据时读取 `数据预处理结果.xlsx`，禁止绕回对应共享原始附件。
 
-深化分析方法必须根据具体风险选择，可包括参数敏感性、阈值与失效边界、场景压力测试、多算法一致性、结构稳健性、异质性和误差分解。未执行某类分析时不得生成对应占位图；深化分析要求回退重算时不得继续绘图。
+深化分析方法只在 Gate=`required` 时根据具体风险选择，可包括参数敏感性、阈值与失效边界、场景压力测试、多算法一致性、结构稳健性、异质性和误差分解。未执行某类分析时不得生成对应占位图；深化分析要求回退重算时不得继续绘图。
 
 ## MATLAB 规则
 
@@ -43,7 +45,7 @@
 
 ## Portfolio 级质量门
 
-单图技术正确不等于整篇论文视觉合格。若正文核心 Figure 大量退化为 plain bar / plain line / plain scatter，即使单图没有语法错误，也必须触发 Figure Portfolio Scientific Quality Gate，检查主求解是否丢失状态证据、深化分析是否只留摘要、是否跳过 Synthesis/Rendering、是否可以组合编码/局部放大/合理拆图，以及是否有机制/空间/动态/阈值/不确定性结论缺直接图证据。
+单图技术正确不等于整篇论文视觉合格。若正文核心 Figure 大量退化为 plain bar / plain line / plain scatter，即使单图没有语法错误，也必须触发 Figure Portfolio Scientific Quality Gate，检查主求解是否丢失状态证据、已激活的深化分析是否只留摘要、是否跳过 Synthesis/Rendering、是否可以组合编码/局部放大/合理拆图，以及是否有机制/空间/动态/阈值/不确定性结论缺直接图证据。
 
 不得设置“必须使用 N 种不同图型”的机械多样性指标。
 
