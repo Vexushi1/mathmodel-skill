@@ -9,7 +9,6 @@
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/optimization-baseline.yml`
-- `.github/workflows/p8d-measure-once.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
 - `AGENTS.md`
@@ -75,6 +74,7 @@
 - `docs/p6b_matlab_rendering_preview.md`
 - `docs/p7_conditional_analysis_appendix.md`
 - `docs/p8_infrastructure_measurement.md`
+- `docs/p8_lint_structure_measurement.md`
 - `docs/phase_e_artifact_identity_inventory.md`
 - `docs/phase_f_transaction_writer_inventory.md`
 - `docs/phase_i_artifact_alias_retirement.md`
