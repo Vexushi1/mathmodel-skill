@@ -170,6 +170,6 @@ P6a 只整理既有论文 Figure 视觉参考资产的检索索引，并把 MATL
 - MATLAB README、Nature figure asset README 与专项测试同步；不改正式 qX 绘图脚本的项目五文件接口，也不碰数值/工作簿/state/approval/LaTeX/release carrier 业务语义；
 - generated `SKILL_FILE_INDEX.md` / `TEMPLATE_INDEX.md` / `MANIFEST.sha256` 继续由既有生成流程管理。
 
-专项回归位于 `tests/test_p6a_figure_reference_profile.py`，并重跑 v9.1 publication rendering 与既有 scientific-figure 回归。当前候选 head 已通过完整 HSK Skill CI；本状态记录进入同一 PR 后将触发 Optimization baseline evidence，最终合并仍以 final head 的 HSK Skill CI、Optimization baseline evidence、generated contract、scope review 与 mergeability全部通过为门。
+专项回归位于 `tests/test_p6a_figure_reference_profile.py`，并重跑 v9.1 publication rendering 与既有 scientific-figure 回归。当前候选 head 已通过完整 HSK Skill CI；本状态记录进入同一 PR 后将触发 Optimization baseline evidence，最终合并仍以 final head 的 HSK Skill CI、Optimization baseline evidence、generated contract、scope review 与 mergeability 全部通过为门。
 
 详见非 Authority 设计证据 `docs/p6a_figure_reference_profile_split.md`。
