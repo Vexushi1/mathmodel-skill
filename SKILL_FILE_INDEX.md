@@ -76,6 +76,7 @@
 - `docs/p8_infrastructure_measurement.md`
 - `docs/p8d_lint_function_measurement.md`
 - `docs/p8e_validator_split_decision.md`
+- `docs/p9_release_closeout.md`
 - `docs/phase_e_artifact_identity_inventory.md`
 - `docs/phase_f_transaction_writer_inventory.md`
 - `docs/phase_i_artifact_alias_retirement.md`
