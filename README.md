@@ -1,6 +1,12 @@
-# mathmodel-skill v9.2.0
+# mathmodel-skill v9.2.1
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision / semantic_identity_hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v9.2.1：P7 条件式结果分析语义卫生补丁
+
+v9.2.1 不新增 Schema、CLI、业务阶段或目录，而是把 v9.2.0 已发布的 Analysis Necessity Gate 真正闭合到运行时、Figure consumer 与回归检查。PR A 修正 User Execution 的 03B 激活条件，并修复 `q1_plot.m` 对合法 `result_analysis_status=not_required` 项目无条件索要深化工作簿的问题；PR B 将活动 consumer / Artifact Pack / guidance 统一到 `base3 + conditional2`，并以用户批准的最小 Authority closure 修正 Module 04 的进入条件、工作簿选择与每问产物描述；PR C 用可执行的不变量替换旧 fixed-five 文本断言，并移除 obsolete lint suppress，而不是降低检查。
+
+因此新项目每问基础产物为主求解 Python、主结果工作簿和 `qX_plot.m`；只有 Gate=`required` 才增加结果深化 Python 与工作簿，总数仍为 5。Gate=`not_required` 必须有非空理由，只表示当前题目答案和计划正文 claim 不需要 alternative-world 证据，不得被写成“稳健性/稳定性已经验证”。旧五文件项目及既有 legacy reader 继续按显式兼容窗口读取。
 
 ## v9.2.0：全面优化、运行协议与条件式证据链
 
@@ -290,7 +296,7 @@ Paragraph Necessity 与 AI Cleanup 不再把“没有新增公式或数值”当
 
 本版本把 v7.8.1 之后已经进入模板/Artifact 层的模块化 LaTeX 能力正式闭合到运行时、编译报告和项目同步层，不改变数学模型、数值求解、工作簿 Schema、Python/MATLAB 职责或每问五文件接口。
 
-- 正式 LaTeX 审计统一从 `scripts/audit_latex_project.py` 进入：模块化工程递归展开 `\input/\include`，兼容单文件工程退化为单文件审计；`audit_paper_prose.py` 保留为底层 prose/BibTeX/framework 审查实现，不再作为活动 LaTeX 运行时的默认入口。
+- 正式 LaTeX 审计统一从 `scripts/audit_latex_project.py` 进入：模块化工程递归展开 `\\input/\\include`，兼容单文件工程退化为单文件审计；`audit_paper_prose.py` 保留为底层 prose/BibTeX/framework 审查实现，不再作为活动 LaTeX 运行时的默认入口。
 - `full_workflow` 在跨过用户执行边界后显式补齐 Figure、LaTeX 和 Review Artifact Packs，避免“直接 latex route 能读规则、完整流程反而漏读 Pack”的分流。
 - CUMCM 当前项目模板统一指向 `templates/latex/cumcm/hsk/`；`cumcmthesis/` 仅保留上游 class/基础模板资源。
 - 新增 `scripts/latex_delivery.py`，对 active `.tex` 图、参考文献、本地 class/style 和正式图片建立 source bundle hash；`render_paper.py` 自动生成 `compile_report.yaml`，记录 source/PDF hash、实际编译序列和未解析引用。
