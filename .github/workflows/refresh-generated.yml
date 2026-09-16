@@ -39,8 +39,32 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+      - name: Apply strict P9 release closeout
+        if: github.event_name == 'push' && github.event.head_commit.message == 'chore: trigger P9 release application'
+        run: |
+          python scripts/p9_release_apply.py
+          python scripts/p9_cleanup_release_bootstrap.py
       - name: Rebuild active indexes and manifest
         run: python scripts/generate_indexes.py
+      - name: Commit P9 release closeout and validate final head
+        if: github.event_name == 'push' && github.event.head_commit.message == 'chore: trigger P9 release application'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "P9 release application produced no changes" >&2
+            exit 1
+          fi
+          git commit -m "release: apply v9.2.0 carriers and compatibility closeout"
+          git push
+          final_head=$(git rev-parse HEAD)
+          echo "P9 release final head: ${final_head}"
+          gh workflow run ci.yml --ref "$GITHUB_REF_NAME"
+          gh workflow run optimization-baseline.yml --ref "$GITHUB_REF_NAME"
       - name: Commit generated metadata and validate final head
         env:
           GH_TOKEN: ${{ github.token }}
