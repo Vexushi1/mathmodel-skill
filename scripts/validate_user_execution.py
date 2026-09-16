@@ -19,6 +19,7 @@ if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 import artifact_identity as ARTIFACT_IDENTITY  # noqa: E402
 import project_transaction as PROJECT_TX  # noqa: E402
+import run_config_parser as RUN_CONFIG_PARSER  # noqa: E402
 
 FALSE_FLAGS = (
     "allow_reduced_data", "allow_coarser_grid", "allow_shorter_horizon",
@@ -26,7 +27,7 @@ FALSE_FLAGS = (
     "allow_silent_solver_fallback",
 )
 VALID_DECISIONS = {"not_needed", "question_local", "project_level"}
-CONFIG_NAMES = ("RUN_CONFIG", "FULL_FIDELITY_CONFIG", "FULL_RUN_CONFIG")
+CONFIG_NAMES = RUN_CONFIG_PARSER.CONFIG_NAMES
 RUN_RECEIPT_PROTOCOL_VERSION = "1.0.0"
 RUN_RECEIPT_ECHO_FIELDS = (
     "stage", "problem_name", "data_sha256", "solver", "random_seed",
@@ -147,30 +148,10 @@ def workbook_identity(root: Path, workbook: Path) -> tuple[str, str, list[str]]:
 
 
 def _embedded_config(text: str) -> tuple[str, dict[str, Any]]:
-    tree = ast.parse(text)
-    found: list[tuple[str, dict[str, Any]]] = []
-    for node in tree.body:
-        if not isinstance(node, (ast.Assign, ast.AnnAssign)):
-            continue
-        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-        matched = [
-            target.id
-            for target in targets
-            if isinstance(target, ast.Name) and target.id in CONFIG_NAMES
-        ]
-        if not matched:
-            continue
-        value = ast.literal_eval(node.value)
-        if not isinstance(value, dict):
-            raise ValueError(f"已交付阶段代码中的{matched[0]}必须为字典常量")
-        found.extend((name, value) for name in matched)
-    if not found:
-        raise ValueError("已交付阶段代码缺少RUN_CONFIG字典常量（旧项目可只读FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG）")
-    if len(found) != 1:
-        names = ", ".join(name for name, _ in found)
-        raise ValueError(f"已交付阶段代码只能定义一个受支持运行配置，当前检测到: {names}")
-    return found[0]
-
+    return RUN_CONFIG_PARSER.parse_embedded_config(
+        text,
+        messages=RUN_CONFIG_PARSER.RETURNED_EXECUTION_MESSAGES,
+    )
 
 def delivered_stage_config(
     root: Path,

@@ -18,6 +18,7 @@ if SCRIPT_DIR not in sys.path:
 import state_transitions as STATE_TRANSITIONS  # noqa: E402
 import artifact_identity as ARTIFACT_IDENTITY  # noqa: E402
 import project_transaction as PROJECT_TX  # noqa: E402
+import run_config_parser as RUN_CONFIG_PARSER  # noqa: E402
 STATE_TRANSITION_CONTRACT = yaml.safe_load(
     (SKILL_ROOT / "core" / "state_transition_contract.yaml").read_text(encoding="utf-8")
 ) or {}
@@ -27,7 +28,7 @@ FALSE_FLAGS = (
     "allow_fewer_repetitions", "allow_relaxed_tolerance", "allow_silent_solver_fallback",
 )
 PLACEHOLDERS = ("TODO", "FIXME", "__QUESTION_NAME__", "NotImplementedError")
-CONFIG_NAMES = ("RUN_CONFIG", "FULL_FIDELITY_CONFIG", "FULL_RUN_CONFIG")
+CONFIG_NAMES = RUN_CONFIG_PARSER.CONFIG_NAMES
 LEGACY_CONFIG_NAMES = {"FULL_FIDELITY_CONFIG", "FULL_RUN_CONFIG"}
 TASK_REQUIRED_FIELDS = {
     "stage", "problem_name", "data_paths", "data_sha256", "solver", "random_seed",
@@ -67,36 +68,11 @@ def is_sha256(value: Any) -> bool:
 
 
 def embedded_config(text: str) -> tuple[str, dict[str, Any]]:
-    """Return the single supported top-level config name and literal dictionary.
-
-    RUN_CONFIG is the canonical write form. FULL_FIDELITY_CONFIG and FULL_RUN_CONFIG
-    remain read-only legacy inputs. Multiple supported names fail closed so validation
-    never depends on source-order selection.
-    """
-    tree = ast.parse(text)
-    found: list[tuple[str, dict[str, Any]]] = []
-    for node in tree.body:
-        if not isinstance(node, (ast.Assign, ast.AnnAssign)):
-            continue
-        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-        matched = [
-            target.id
-            for target in targets
-            if isinstance(target, ast.Name) and target.id in CONFIG_NAMES
-        ]
-        if not matched:
-            continue
-        value = ast.literal_eval(node.value)
-        if not isinstance(value, dict):
-            raise ValueError(f"{matched[0]}必须为字典常量")
-        found.extend((name, value) for name in matched)
-    if not found:
-        raise ValueError("缺少RUN_CONFIG字典常量（旧项目可只读FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG）")
-    if len(found) != 1:
-        names = ", ".join(name for name, _ in found)
-        raise ValueError(f"同一脚本只能定义一个受支持运行配置，当前检测到: {names}")
-    return found[0]
-
+    """Return the single supported top-level config using the shared P5 parser."""
+    return RUN_CONFIG_PARSER.parse_embedded_config(
+        text,
+        messages=RUN_CONFIG_PARSER.DELIVERY_MESSAGES,
+    )
 
 def script_identity(script: Path) -> tuple[str, str]:
     if script.parent.name == "数据预处理" and script.name == "数据预处理.py":
