@@ -24,8 +24,10 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import textwrap
 
-          helper = '''#!/usr/bin/env python3
+          helper = textwrap.dedent(r'''
+          #!/usr/bin/env python3
           """Shared static reader for embedded stage RUN_CONFIG declarations.
 
           This module owns only the syntax-level extraction shared by delivery and
@@ -89,8 +91,7 @@ jobs:
                   names = ", ".join(name for name, _ in found)
                   raise ValueError(messages.multiple.format(names=names))
               return found[0]
-          '''
-          helper = '\n'.join(line[10:] if line.startswith('          ') else line for line in helper.splitlines()) + '\n'
+          ''').lstrip()
           Path('scripts/run_config_parser.py').write_text(helper, encoding='utf-8')
 
           code_path = Path('scripts/validate_code_delivery.py')
@@ -99,23 +100,20 @@ jobs:
           replacement = needle + 'import run_config_parser as RUN_CONFIG_PARSER  # noqa: E402\n'
           assert code.count(needle) == 1
           code = code.replace(needle, replacement, 1)
-          assert code.count('CONFIG_NAMES = ("RUN_CONFIG", "FULL_FIDELITY_CONFIG", "FULL_RUN_CONFIG")') == 1
-          code = code.replace(
-              'CONFIG_NAMES = ("RUN_CONFIG", "FULL_FIDELITY_CONFIG", "FULL_RUN_CONFIG")',
-              'CONFIG_NAMES = RUN_CONFIG_PARSER.CONFIG_NAMES',
-              1,
-          )
+          old_names = 'CONFIG_NAMES = ("RUN_CONFIG", "FULL_FIDELITY_CONFIG", "FULL_RUN_CONFIG")'
+          assert code.count(old_names) == 1
+          code = code.replace(old_names, 'CONFIG_NAMES = RUN_CONFIG_PARSER.CONFIG_NAMES', 1)
           start = code.index('def embedded_config(text: str) -> tuple[str, dict[str, Any]]:')
           end = code.index('\ndef script_identity(', start)
-          wrapper = '''def embedded_config(text: str) -> tuple[str, dict[str, Any]]:
+          wrapper = textwrap.dedent('''
+          def embedded_config(text: str) -> tuple[str, dict[str, Any]]:
               """Return the single supported top-level config using the shared P5 parser."""
               return RUN_CONFIG_PARSER.parse_embedded_config(
                   text,
                   messages=RUN_CONFIG_PARSER.DELIVERY_MESSAGES,
               )
 
-          '''
-          wrapper = '\n'.join(line[10:] if line.startswith('          ') else line for line in wrapper.splitlines()) + '\n'
+          ''').lstrip()
           code = code[:start] + wrapper + code[end + 1:]
           assert 'ast.literal_eval' not in code
           code_path.write_text(code, encoding='utf-8')
@@ -126,27 +124,24 @@ jobs:
           replacement = needle + 'import run_config_parser as RUN_CONFIG_PARSER  # noqa: E402\n'
           assert receipt.count(needle) == 1
           receipt = receipt.replace(needle, replacement, 1)
-          assert receipt.count('CONFIG_NAMES = ("RUN_CONFIG", "FULL_FIDELITY_CONFIG", "FULL_RUN_CONFIG")') == 1
-          receipt = receipt.replace(
-              'CONFIG_NAMES = ("RUN_CONFIG", "FULL_FIDELITY_CONFIG", "FULL_RUN_CONFIG")',
-              'CONFIG_NAMES = RUN_CONFIG_PARSER.CONFIG_NAMES',
-              1,
-          )
+          assert receipt.count(old_names) == 1
+          receipt = receipt.replace(old_names, 'CONFIG_NAMES = RUN_CONFIG_PARSER.CONFIG_NAMES', 1)
           start = receipt.index('def _embedded_config(text: str) -> tuple[str, dict[str, Any]]:')
           end = receipt.index('\ndef delivered_stage_config(', start)
-          wrapper = '''def _embedded_config(text: str) -> tuple[str, dict[str, Any]]:
+          wrapper = textwrap.dedent('''
+          def _embedded_config(text: str) -> tuple[str, dict[str, Any]]:
               return RUN_CONFIG_PARSER.parse_embedded_config(
                   text,
                   messages=RUN_CONFIG_PARSER.RETURNED_EXECUTION_MESSAGES,
               )
 
-          '''
-          wrapper = '\n'.join(line[10:] if line.startswith('          ') else line for line in wrapper.splitlines()) + '\n'
+          ''').lstrip()
           receipt = receipt[:start] + wrapper + receipt[end + 1:]
           assert 'ast.literal_eval' not in receipt
           receipt_path.write_text(receipt, encoding='utf-8')
 
-          test = '''from __future__ import annotations
+          test = textwrap.dedent(r'''
+          from __future__ import annotations
 
           import importlib.util
           import unittest
@@ -177,52 +172,61 @@ jobs:
                   self.assertEqual(RECEIPT.CONFIG_NAMES, PARSER.CONFIG_NAMES)
 
               def test_success_behavior_is_identical(self):
-                  text = f"RUN_CONFIG = {self.config()!r}\\n"
+                  text = f"RUN_CONFIG = {self.config()!r}\n"
                   expected = ("RUN_CONFIG", self.config())
                   self.assertEqual(CODE.embedded_config(text), expected)
                   self.assertEqual(RECEIPT._embedded_config(text), expected)
 
               def test_delivery_error_text_is_preserved(self):
                   with self.assertRaisesRegex(ValueError, "缺少RUN_CONFIG字典常量"):
-                      CODE.embedded_config("x = 1\\n")
+                      CODE.embedded_config("x = 1\n")
                   with self.assertRaisesRegex(ValueError, "RUN_CONFIG必须为字典常量"):
-                      CODE.embedded_config("RUN_CONFIG = []\\n")
+                      CODE.embedded_config("RUN_CONFIG = []\n")
                   with self.assertRaisesRegex(ValueError, "同一脚本只能定义一个受支持运行配置"):
-                      CODE.embedded_config("RUN_CONFIG = {}\\nFULL_RUN_CONFIG = {}\\n")
+                      CODE.embedded_config("RUN_CONFIG = {}\nFULL_RUN_CONFIG = {}\n")
 
               def test_returned_execution_error_text_is_preserved(self):
                   with self.assertRaisesRegex(ValueError, "已交付阶段代码缺少RUN_CONFIG字典常量"):
-                      RECEIPT._embedded_config("x = 1\\n")
+                      RECEIPT._embedded_config("x = 1\n")
                   with self.assertRaisesRegex(ValueError, "已交付阶段代码中的RUN_CONFIG必须为字典常量"):
-                      RECEIPT._embedded_config("RUN_CONFIG = []\\n")
+                      RECEIPT._embedded_config("RUN_CONFIG = []\n")
                   with self.assertRaisesRegex(ValueError, "已交付阶段代码只能定义一个受支持运行配置"):
-                      RECEIPT._embedded_config("RUN_CONFIG = {}\\nFULL_RUN_CONFIG = {}\\n")
+                      RECEIPT._embedded_config("RUN_CONFIG = {}\nFULL_RUN_CONFIG = {}\n")
 
               def test_parser_remains_top_level_literal_only(self):
                   with self.assertRaisesRegex(ValueError, "缺少RUN_CONFIG"):
-                      CODE.embedded_config("def f():\\n    RUN_CONFIG = {}\\n")
+                      CODE.embedded_config("def f():\n    RUN_CONFIG = {}\n")
                   with self.assertRaises((ValueError, TypeError)):
-                      CODE.embedded_config("RUN_CONFIG = dict(stage='primary')\\n")
+                      CODE.embedded_config("RUN_CONFIG = dict(stage='primary')\n")
 
               def test_duplicate_literal_eval_implementations_are_removed(self):
-                  self.assertNotIn("ast.literal_eval", (ROOT / "scripts" / "validate_code_delivery.py").read_text(encoding="utf-8"))
-                  self.assertNotIn("ast.literal_eval", (ROOT / "scripts" / "validate_user_execution.py").read_text(encoding="utf-8"))
-                  self.assertIn("ast.literal_eval", (ROOT / "scripts" / "run_config_parser.py").read_text(encoding="utf-8"))
+                  self.assertNotIn(
+                      "ast.literal_eval",
+                      (ROOT / "scripts" / "validate_code_delivery.py").read_text(encoding="utf-8"),
+                  )
+                  self.assertNotIn(
+                      "ast.literal_eval",
+                      (ROOT / "scripts" / "validate_user_execution.py").read_text(encoding="utf-8"),
+                  )
+                  self.assertIn(
+                      "ast.literal_eval",
+                      (ROOT / "scripts" / "run_config_parser.py").read_text(encoding="utf-8"),
+                  )
 
 
           if __name__ == "__main__":
               unittest.main()
-          '''
-          test = '\n'.join(line[10:] if line.startswith('          ') else line for line in test.splitlines()) + '\n'
+          ''').lstrip()
           Path('tests/test_p8c_run_config_parser.py').write_text(test, encoding='utf-8')
 
-          workflow = Path('.github/workflows/p8c-transform-once.yml')
-          workflow.unlink()
+          Path('.github/workflows/p8c-transform-once.yml').unlink()
           PY
       - name: Refresh generated metadata
         run: python scripts/generate_indexes.py
       - name: Run P5 parser and receipt regression
         run: python -m unittest tests.test_p5a_run_config tests.test_p5b_run_receipt tests.test_p8c_run_config_parser
+      - name: Run static skill lint
+        run: python scripts/lint_skill.py
       - name: Commit final P8c tree
         run: |
           git config user.name "github-actions[bot]"
