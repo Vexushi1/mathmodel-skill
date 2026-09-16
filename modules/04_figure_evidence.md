@@ -8,8 +8,8 @@
 
 1. 继承已经锁定的 `preprocessing_decision`；若为 `project_level`，确认 `数据预处理结果.xlsx` 已 accepted 且预处理质量门通过；
 2. Python 完成完整主求解并通过主结果质量门；03A 应已经保存本次主计算真实产生且具有解释/绘图/验证价值的状态、过程与结构证据；
-3. 主工作簿 accepted 后执行 Analysis Necessity Gate：Gate=`required` 时完成实际需要的 03B 结果深化分析并验收 `问题X结果深化分析.xlsx`；Gate=`not_required` 时必须记录非空理由，不生成或要求 03B 代码/工作簿，也不得据此声称稳健性、稳定性或替代方法一致性已经验证；
-4. 主结果质量门通过且 Analysis Necessity Gate 已形成 current disposition 后即可进入 Figure Evidence；先明确每张图读取原始数据、统一预处理工作簿、主工作簿或条件存在的 03B 工作簿中的哪一种事实源。只有 Figure Contract 实际消费 03B evidence 时才要求该工作簿存在，缺失必须 fail closed；
+3. 主工作簿 accepted 后执行 Analysis Necessity Gate：Gate=`required` 时，Python 基于题目风险完成实际需要的结果深化分析并验收 `问题X结果深化分析.xlsx`；Gate=`not_required` 时必须记录非空理由，不生成或要求 03B 代码/工作簿，也不得据此声称稳健性、稳定性或替代方法一致性已经验证；
+4. 只有上述数值阶段完成后才进入 Figure Evidence；这里“完成”按 current Analysis Necessity Gate disposition 解释：Gate=`required` 时包含实际 03B 验收，Gate=`not_required` 时包含非空理由而不运行 03B。进入后先明确每张图读取原始数据、统一预处理工作簿、主工作簿或条件存在的 03B 工作簿中的哪一种事实源。只有 Figure Contract 实际消费 03B evidence 时才要求该工作簿存在，缺失必须 fail closed；
 5. 若为 `project_level`，此时生成并人工检查 `数据预处理/data_process.m`，只把已验收预处理工作簿中的底层证据转成图；
 6. 为每个候选 Figure 先写 Core conclusion、Evidence level、Primary question、Available evidence dimensions；
 7. 先执行 **Scientific Figure Synthesis Gate**，识别证据结构并设计候选视觉结构；不得先问“bar 还是 line”；
