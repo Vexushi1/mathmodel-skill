@@ -19,7 +19,7 @@
 
 核验题目要求、附件、输出格式、单位和精度；检查 current `模型论文框架.md`、`state/project_state.yaml` 与 accepted 标准工作簿的职责边界。模型/结果/图/命题/正文 fragment 的 stale 只沿真实依赖传播，不能“整篇保险起见”全部判旧。
 
-框架应能恢复当前模型身份、Model/Solver/Validator、Formula/Algorithm Trace、Model Construction Rationale、Reduction Provenance、solver precondition、关键参数依据、Terminology/Numeric/Title/Claim 状态、结果和图表证据位置；具体数值回到 accepted workbook。每问 conditional layout contract、目录和交付内容只核对 `core/output_contract.yaml`，Review 不再复制目录定义。
+框架应能恢复当前模型身份、Model/Solver/Validator、Formula/Algorithm Trace、Model Construction Rationale、Reduction Provenance、solver precondition、关键参数依据、Terminology/Numeric/Title/Claim 状态、结果和图表证据位置；具体数值回到 accepted workbook。五文件合同、目录和交付内容只核对 `core/output_contract.yaml`，Review 不再复制目录定义。
 
 ### Cross-File Assembled Seam Sweep
 
@@ -95,7 +95,7 @@ Title Claim 中的主方法/机制必须在正文实质使用并有结果证据�
 
 ## 八、编译、复现与提交包
 
-正式交付消费最新 LaTeX audit、compile report、PDF、project sync 和 submission package validation。目录、**每问 conditional layout contract**、official/reproducibility package 边界以 Output Contract/Artifact Packs 为准；Review 不复制文件列表。任何 stale source bundle、未解析引用、编译错误、manifest/hash 不一致按既有 gate 处理。
+正式交付消费最新 LaTeX audit、compile report、PDF、project sync 和 submission package validation。目录、**五文件合同**、official/reproducibility package 边界以 Output Contract/Artifact Packs 为准；Review 不复制文件列表。任何 stale source bundle、未解析引用、编译错误、manifest/hash 不一致按既有 gate 处理。
 
 ## 九、Final Submission Compliance & Evidence Sweep
 
