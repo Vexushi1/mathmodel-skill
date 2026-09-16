@@ -40,14 +40,14 @@ jobs:
         with:
           python-version: "3.12"
       - name: Apply strict P9 release closeout
-        if: github.event_name == 'push' && github.event.head_commit.message == 'chore: trigger P9 release application'
+        if: "github.event_name == 'push' && github.event.head_commit.message == 'chore: trigger P9 release application'"
         run: |
           python scripts/p9_release_apply.py
           python scripts/p9_cleanup_release_bootstrap.py
       - name: Rebuild active indexes and manifest
         run: python scripts/generate_indexes.py
       - name: Commit P9 release closeout and validate final head
-        if: github.event_name == 'push' && github.event.head_commit.message == 'chore: trigger P9 release application'
+        if: "github.event_name == 'push' && github.event.head_commit.message == 'chore: trigger P9 release application'"
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
