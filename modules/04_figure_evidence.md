@@ -8,8 +8,8 @@
 
 1. 继承已经锁定的 `preprocessing_decision`；若为 `project_level`，确认 `数据预处理结果.xlsx` 已 accepted 且预处理质量门通过；
 2. Python 完成完整主求解并通过主结果质量门；03A 应已经保存本次主计算真实产生且具有解释/绘图/验证价值的状态、过程与结构证据；
-3. Python 基于题目风险完成实际需要的结果深化分析，并验收 `问题X求解/` 中两个标准工作簿；03B 应保存参数、场景、阈值、算法、结构、异质性等分析的细粒度底层证据；
-4. 只有上述数值阶段完成后才进入 Figure Evidence；先明确每张图读取原始数据、统一预处理工作簿或两个标准结果工作簿中的哪一种事实源；
+3. 主工作簿 accepted 后执行 Analysis Necessity Gate：Gate=`required` 时完成实际需要的 03B 结果深化分析并验收 `问题X结果深化分析.xlsx`；Gate=`not_required` 时必须记录非空理由，不生成或要求 03B 代码/工作簿，也不得据此声称稳健性、稳定性或替代方法一致性已经验证；
+4. 主结果质量门通过且 Analysis Necessity Gate 已形成 current disposition 后即可进入 Figure Evidence；先明确每张图读取原始数据、统一预处理工作簿、主工作簿或条件存在的 03B 工作簿中的哪一种事实源。只有 Figure Contract 实际消费 03B evidence 时才要求该工作簿存在，缺失必须 fail closed；
 5. 若为 `project_level`，此时生成并人工检查 `数据预处理/data_process.m`，只把已验收预处理工作簿中的底层证据转成图；
 6. 为每个候选 Figure 先写 Core conclusion、Evidence level、Primary question、Available evidence dimensions；
 7. 先执行 **Scientific Figure Synthesis Gate**，识别证据结构并设计候选视觉结构；不得先问“bar 还是 line”；
@@ -20,7 +20,7 @@
 12. 基础布局确定后执行 Figure Enhancement Gate；只有在增加可验证信息、降低视觉搜索成本或强化关键证据时增加 Local Zoom、Small Multiples、Focus Highlighting、Semantic Background、Composite Diagnostic 或 Conditional 3D；
 13. 生成 MATLAB 代码前实际读取工作簿，锁定工作簿名、工作表名、真实表头、单位和数据类型；
 14. 拟定 DOCX/LaTeX 正式 caption；正式论文图不设置整体 `title` / `sgtitle`，多面板按需只保留 a/b/c/d 等 panel label；
-15. 将各问 `q{x}_plot.m` 与两类 Python 脚本、两类结果工作簿放在同一 `问题X求解/`；项目级预处理图脚本固定为 `数据预处理/data_process.m`；
+15. 将各问 `q{x}_plot.m` 与主求解 Python、主工作簿放在同一 `问题X求解/`；仅 Gate=`required` 时同目录追加独立 03B Python 与 03B 工作簿。每问最终文件集合只服从 `core/output_contract.yaml` 的 conditional per-question layout；项目级预处理图脚本固定为 `数据预处理/data_process.m`；
 16. 完成单图 QA 后执行 **Figure Portfolio Scientific Quality Gate**，检查整篇核心图是否出现基础图型退化；
 17. 检查核心结论是否有图或表证据，并同步 `模型论文框架.md`；
 18. 默认只保留图窗供人工检查，不自动创建图表子目录或批量导出图片。
@@ -74,7 +74,7 @@ current Framework + Mechanism Contract
 5. 打开最新 `.drawio` 或预览图，先执行语义真实性复核，再执行版式复核；未查看最新渲染预览时不得进入 `approved_for_paper` 或 `approved_figures`；
 6. 人工通过后按需导出 `figures/qX_<slug>.pdf|svg|png`，同步 Mechanism Contract 与 Framework 图表登记。
 
-项目级建议路径为：`figures/source/qX_<slug>.mechanism.yaml`、`figures/source/qX_<slug>.drawio`、`figures/preview/qX_<slug>.png` 和 `figures/qX_<slug>.pdf|svg|png`。这些路径只在实际选择 draw.io 时创建，不改变每问两个 Python、两个工作簿和一个 `qX_plot.m` 的五文件结构。Spec、`.drawio` 与 preview 默认是内部编辑/复核材料，不自动加入 official package。
+项目级建议路径为：`figures/source/qX_<slug>.mechanism.yaml`、`figures/source/qX_<slug>.drawio`、`figures/preview/qX_<slug>.png` 和 `figures/qX_<slug>.pdf|svg|png`。这些路径只在实际选择 draw.io 时创建，不改变 `core/output_contract.yaml` 定义的每问 conditional layout：基础三文件保持不变，Gate=`required` 时才追加 03B 两文件。Spec、`.drawio` 与 preview 默认是内部编辑/复核材料，不自动加入 official package。
 
 ### 机器检查与人工审查边界
 
@@ -102,10 +102,12 @@ current Framework + Mechanism Contract
 
 每张结果图至少记录：Core conclusion、Evidence level、Primary question、Figure role、Available evidence dimensions、Evidence structure、Figure level、Candidate visual structures、Selected visual structure、Basic-form challenge、Composite encoding、Scientific Rendering Profile、In-figure title=`none`、论文 caption、Panel map、Layout decision、Split decision、Enhancement、Enhancement rationale、Source workbook、Worksheet、Required headers、Expected positions（可选）、MATLAB script、Statistics/error、Reviewer risk、Paper location 和 Caption duty。
 
-结果证据优先来自本问标准工作簿：
+结果证据优先来自本问 current 合法工作簿集合：
 
-- 主结果、决策变量、状态轨迹、空间/网络状态、预测明细、基础误差和主质量证据来自 `问题X求解结果.xlsx`；
-- 参数、场景、算法、结构、阈值、异质性和稳定范围证据来自 `问题X结果深化分析.xlsx`。
+- 主结果、决策变量、状态轨迹、空间/网络状态、预测明细、基础误差和主质量证据来自必需的 `问题X求解结果.xlsx`；
+- 参数、场景、算法、结构、阈值、异质性和稳定范围证据仅在 Analysis Necessity Gate=`required` 且 03B 已实际执行、验收时来自条件存在的 `问题X结果深化分析.xlsx`。
+
+Gate=`not_required` 且 `result_analysis_requirement_reason` 非空时，没有 03B 工作簿是合法状态，普通主结果 Figure 不得因此失败，也不得从主工作簿伪造敏感性、稳健性、阈值或替代算法一致性图。若 Figure Contract 明确声明消费 03B evidence，则该工作簿必须真实存在且 current；缺失时 fail closed，不允许静默回退到主工作簿。
 
 只有图本身确实需要底层数据时，才按 `preprocessing_decision` 追加数据事实源：
 
@@ -435,7 +437,7 @@ end
 进入 DOCX/LaTeX 前，对正文核心 Figure 集合做论文级复审。如果出现大量 plain bar / plain line / plain scatter / plain box 等，即使每张单独没有技术错误，也必须检查：
 
 1. Python 主求解是否只输出摘要而丢失本次运行已经产生的状态、轨迹、空间、约束或逐样本证据；
-2. 03B 是否只输出“稳定”等摘要而未保留参数/场景/seed/算法/阈值底层记录；
+2. 已激活的 03B 是否只输出“稳定”等摘要而未保留参数/场景/seed/算法/阈值底层记录；
 3. 是否存在时间、空间、分布、边界、机制、不确定性或多目标结构却被压成一维比较；
 4. 是否跳过 Scientific Figure Synthesis / Basic-form Challenge / Rendering Profile；
 5. 是否可以通过 Composite Encoding、Global–Detail、Local Zoom 或合理拆图提高证据表达；
@@ -449,7 +451,7 @@ end
 
 ## 分析图准入
 
-结果深化分析不是每种方法都要画图。只有分析方法与风险来源匹配、图能展示稳定范围/阈值/算法一致性/结构差异/异质性、底层数据完整写入分析工作簿且图能支撑正文核心判断时才入图。统一扰动曲线、无解释的算法柱状图和只展示“结果变化不大”的装饰图删除。
+只有 Analysis Necessity Gate=`required` 且 03B 已实际执行、验收时，结果深化分析证据才可作为分析图数据源；也不是每种深化方法都要画图。只有分析方法与风险来源匹配、图能展示稳定范围/阈值/算法一致性/结构差异/异质性、底层数据完整写入分析工作簿且图能支撑正文核心判断时才入图。Gate=`not_required` 时不得为了补图伪造或反推 03B 数据。统一扰动曲线、无解释的算法柱状图和只展示“结果变化不大”的装饰图删除。
 
 ## 入文闭环
 
