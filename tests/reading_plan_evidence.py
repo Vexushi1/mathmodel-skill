@@ -18,9 +18,11 @@ ALLOWED_CHANGED_AUTHORITIES = {
     "core/workflow_router.yaml",
     "core/runtime_assurance_contract.yaml",
     "core/module_manifest.yaml",
+    "core/writing_runtime_contract.yaml",
     "templates/latex/cumcm/hsk/template_manifest.yaml",
 }
 P7_OPTIONAL_ANALYSIS_PREREQUISITE = "figure_evidence:result_analysis_workbook"
+P9_RELEASE_VERSIONS = {"9.1.0", "9.2.0"}
 
 
 def normalize(value, repo, project):
@@ -36,6 +38,8 @@ def normalize(value, repo, project):
 def legacy_projection(plan):
     value = deepcopy(plan)
     value.pop("reading_plan", None)
+    if value.get("version") in P9_RELEASE_VERSIONS:
+        value["version"] = "<EXPECTED_P9_RELEASE_CARRIER_CHANGE>"
     fingerprint = value["assurance"]["authority_fingerprint"]
     fingerprint["sha256"] = "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"
     for source in fingerprint["sources"]:
@@ -120,10 +124,10 @@ def main():
         "schema_version": 1, "baseline_ref": args.baseline_ref, "candidate_ref": args.candidate_ref,
         "driver_sha256": hashlib.sha256(HERE.read_bytes()).hexdigest(),
         "cases_sha256": hashlib.sha256(HERE.with_name("reading_plan_cases.py").read_bytes()).hexdigest(),
-        "comparison_scope": "all_legacy_fields_except_declared_approved_authority_hashes_and_p7_optional_analysis_prerequisite",
+        "comparison_scope": "all_legacy_fields_except_declared_approved_authority_hashes_p7_optional_analysis_prerequisite_and_p9_release_carrier",
         "expected_authority_changes": sorted(ALLOWED_CHANGED_AUTHORITIES),
         "all_legacy_behavior_equal": all(r["legacy_behavior_equal"] for r in rows),
-        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost; approved P7 conditional-analysis authority hashes and the single obsolete unconditional result-analysis prerequisite are normalized, while every other legacy field remains exact.",
+        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost; approved authority hashes, the P7 conditional-analysis prerequisite removal, and the explicit 9.1.0-to-9.2.0 release carrier are normalized while every other legacy field remains exact.",
         "cases": rows,
     }
     args.output.mkdir(parents=True, exist_ok=True)

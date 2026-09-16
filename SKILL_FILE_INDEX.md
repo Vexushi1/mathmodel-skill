@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：9.1.0
+当前 Skill 版本：9.2.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -76,6 +76,7 @@
 - `docs/p8_infrastructure_measurement.md`
 - `docs/p8d_lint_function_measurement.md`
 - `docs/p8e_validator_split_decision.md`
+- `docs/p9_release_closeout.md`
 - `docs/phase_e_artifact_identity_inventory.md`
 - `docs/phase_f_transaction_writer_inventory.md`
 - `docs/phase_i_artifact_alias_retirement.md`
@@ -296,6 +297,7 @@
 - `tests/test_p7_conditional_analysis_appendix.py`
 - `tests/test_p8_infrastructure_measurement.py`
 - `tests/test_p8c_run_config_parser.py`
+- `tests/test_p9_release_closeout.py`
 - `tests/test_preprocessing_decision_contract.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_read_path_semantic_closure.py`

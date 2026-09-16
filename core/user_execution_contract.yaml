@@ -64,6 +64,18 @@ code_delivery:
   legacy_config_names:
   - FULL_FIDELITY_CONFIG
   - FULL_RUN_CONFIG
+  compatibility_window:
+    release_decision: 9.2.0-read-only-retained
+    legacy_full_config_read_only: true
+    p5a_versionless_receipt_read_only: true
+    new_writer_must_use_run_config: true
+    new_writer_receipt_protocol_required: true
+    earliest_removal_skill_major: 10
+    removal_requires:
+    - explicit_major_migration
+    - legacy_project_detection_or_migration_evidence
+    - compatibility_matrix_update
+    - dedicated_regression
   multiple_supported_configs_in_one_script: forbidden_fail_closed
   standalone_files_forbidden_by_default:
   - 数据预处理完整运行配置.yaml

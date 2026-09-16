@@ -1,6 +1,12 @@
-# mathmodel-skill v9.1.0
+# mathmodel-skill v9.2.0
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision / semantic_identity_hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v9.2.0：全面优化、运行协议与条件式证据链
+
+v9.2.0 汇总 P1–P8 已分阶段合并并通过回归的兼容优化：按任务 `reading_plan` 与 Authority 去重、compact `模型论文框架.md` 实例化、canonical `RUN_CONFIG` + versioned `RUN_RECEIPT`、MATLAB publication profile 与真实 preview gate、条件式 Analysis Necessity Gate / 附录，以及基于测量证据的基础设施整理。P9 只做综合回归、兼容窗口裁决和 release carrier 收尾，不重写这些阶段的业务实现。
+
+旧 `FULL_FIDELITY_CONFIG / FULL_RUN_CONFIG` 与 P5a 过渡期缺 receipt marker/version 的项目在 9.2.0 中继续**只读兼容**；新 writer 仍必须使用 `RUN_CONFIG` 并声明 `run_receipt_protocol_version=1.0.0`，未知显式协议版本继续 fail closed。上述 reader 的删除只允许在未来明确的 major migration 中进行，并须先提供旧项目识别/迁移证据、兼容矩阵更新与专门回归。
 
 ## v9.1.0：MATLAB Publication Rendering
 
