@@ -400,3 +400,4 @@
 - `tests/test_v900_state_transitions.py`
 - `tests/test_v900_transactional_writers.py`
 - `tests/test_v910_publication_rendering.py`
+- `tests/test_v930_initial_modeling_core.py`
