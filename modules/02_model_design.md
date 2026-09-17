@@ -8,26 +8,135 @@
 
 Problem Contract 冻结只回答“题目是什么意思”，不等于模型已获准进入代码阶段。正式任务代码前还必须依次完成当前模型语义闭环、Complexity Sanity、独立 Model Challenge 和用户 Human Model Approval。
 
-## 1. 模型路线比较
+## 1. 初始化结构发现、条件驱动化简与主模型生成
 
-每问至少构造两条实质路线：
+本阶段**禁止以“先选模型名、再把题目塞进去”作为默认建模方式**。在提出标准模型类型、正式模型名称或 solver 之前，先回答“题目条件已经替我们解决了多少问题”，把冻结后的 Problem Contract 转成当前小问的数学本体。
 
-- 路线 A：经典稳健模型 + 本题修正；
-- 路线 B：高级创新或跨领域融合。
+### 1.1 问题本体初始化
 
-比较核心原理、数学表达、适配性、创新点、精度优势、局限、误差来源、求解难度和推荐等级，并说明为何否决看似高级但不适合的路线。
-
-高级模型执行必要性、变量闭环、数据支撑、计算可行、解释性、验证性和复现性七项准入。准备使用 W-DRO、CVaR、MPEC、Stackelberg、ALNS、GNN、空间杜宾、DML、强化学习、深度学习等时，按需加载 `packs/task/advanced_method_gate.md`。
-
-**结构化简优先于算法升级。** 高维、非线性或组合问题在决定 GA、PSO、DE、ALNS、深度学习等方法前，依次检查：解析/近似解析关系、单调性/凸性/对称性、变量消元或降维、候选区域/上下界、分解/分层结构、离散与连续决策能否分开，以及前问结果能否限制搜索域。最终路线应形成：
+先区分并登记真正会改变模型的对象：
 
 ```text
-题目结构 → 数学化简/分解 → 有效搜索空间 → 算法
+研究对象 / 索引集合
+→ 状态变量 / 决策变量 / 外生输入 / 观测量 / 输出量
+→ 定义关系 / 硬条件 / 守恒或不变量
+→ 本构或经验关系 / 时空或图结构 / 信息结构 / 随机结构
+→ 变量基准、单位、参考系
+→ 初始 / 边界 / 终止 / 可行条件
+```
+
+特别区分以下语义，不得把它们全部包装成“模型假设”：
+
+- `definition`：定义恒等式、比率或记号关系；
+- `hard_condition`：题面明确给出的硬条件；
+- `invariant`：守恒量、总量、不变量或恒等约束；
+- `constitutive`：本构、经验、响应或拟合关系；
+- `observation`：附件/数据直接支持的事实；
+- `assumption`：题面未给出、为闭合模型而新增的真实假设；
+- `approximation`：数学、物理或统计近似；
+- `decision`：可控变量、动作或策略。
+
+若两个同名量采用不同基准、参考系、时间口径或统计口径，应先拆分定义再建模，禁止依赖后文文字补救。
+
+### 1.2 Condition → Consequence：题目条件先转成数学后果
+
+逐条处理会影响模型的题设条件，不停留在“记录条件”，而应尽量形成：
+
+```text
+题面条件 / 定义 / 数据事实
+→ 数学性质或关系
+→ 对变量、状态空间、可行域、计算域或信息集的影响
+→ 是否能消元、降维、分解、排序、聚合、缩域或等价变换
+```
+
+题目条件优先被视为**潜在的降复杂度信息**，而不只是需要追加给 solver 的约束。典型可利用结构包括但不限于：
+
+- 定义与恒等关系、守恒与不变量；
+- 几何/周期/交换对称与等价类；
+- 单调性、支配关系、阈值或边界最优；
+- 凸性、凹性、拟凸性；
+- 可分离性、少量耦合约束、分层/递推结构；
+- 排序与 exchange argument；
+- 稀疏性、局部性、带状/块带状结构；
+- tree / DAG / bipartite / flow / matching 等拓扑；
+- 时间/空间尺度、小参数、无量纲关系；
+- 最小充分状态、充分统计量；
+- 独立性、条件独立、期望线性、确定性等价等概率结构；
+- 对数、比值、累计量、势函数、坐标映射、特征分解等等价变量变换；
+- “首次、各处、低于、不超过、持续满足”等 predicate / event 结构；
+- 决策时点可知信息、先后决策与时间因果。
+
+是否成立必须由题面、数据、定义或数学推导支持，不能仅凭题型标签机械宣告。
+
+### 1.3 化简证据等级
+
+所有真正改变变量集、候选域、状态空间、计算域或问题维度的化简，沿用 `writing_reasoning_contract.model_construction_rationale.reduction_language` 的唯一语义：
+
+```text
+exact             = 与原问题严格等价或可逆
+proven_sufficient = 已证明保留全部所需最优/临界/可行对象，或至少一个所需最优解
+heuristic         = 启发式缩域、近似、surrogate 或经验压缩
+```
+
+优先级不是“越简单越好”，而是：在能够保留题目所需信息时，`exact / proven_sufficient` 的结构化简优先于算法升级。`heuristic` 必须保留被舍弃信息、适用边界与后续验证范围，不得因计算成功升级成严格等价。
+
+### 1.4 最小充分主模型
+
+完成条件—后果推导后，先写出**化简后的真实问题**，再构造当前主模型。主模型的默认定义是：
+
+> 在完整回答题意、保留关键机制、满足硬约束、精度与输出要求的前提下，变量、状态、自由度、机制或计算复杂度不能再进一步合理减少而不损失必要信息的当前最小充分模型。
+
+“最小”不等于低级；如果更简单模型会失去题面必要机制、精度、可行域或输出能力，则它不是最小充分模型。更复杂的模型若是满足充分性的最小必要结构，也可以成为主模型。
+
+形成主模型前至少内部回答：
+
+- 哪些变量/状态已被定义、守恒或结构关系消去，为什么；
+- 哪些题面条件真正改变了模型；
+- 哪些机制必须保留，否则会改变目标量或可行性；
+- 哪些看似高级的结构不需要进入主模型，为什么；
+- 是否还存在更简单模型可以完整回答；
+- 若继续简化，首先会损失哪一项必要信息。
+
+主模型先闭合，之后再登记**标准模型类型**和**正式模型名称**；不得用 solver 名称代替模型本体。
+
+### 1.5 Comparison Envelope：对照模型按信息价值选择
+
+不再要求“每问至少经典稳健 + 高级创新两条路线”。每问必须有一个当前最小充分主模型；对照模型数量为 `0..N`，只在能够回答明确比较问题时保留。
+
+可选 comparator 角色包括：
+
+```text
+simple_baseline / high_fidelity / advanced_method / ablation
+alternative_structure / upper_bound / lower_bound
+deterministic / stochastic / low_dim / high_dim
+analytic / numerical / exact / heuristic / independent_solver / stress_model
+```
+
+一个 comparator 至少说明：比较目的、它相对主模型增加/删除什么、能提供什么额外信息、为什么不是当前主模型、在哪个阶段产生真实证据。高级模型完全可以作为高保真参照、机制增强、鲁棒/随机对照或先进算法 benchmark，但“更高级”本身不是比较目的。
+
+若 comparator 证明当前主模型遗漏题面必要结构、精度不足或化简不成立，应回到本模块重新定位**缺失的最小必要结构**并形成新的最小充分主模型；不能简单把最复杂模型自动升级为主模型。
+
+准备使用 W-DRO、CVaR、MPEC、Stackelberg、ALNS、GNN、空间杜宾、DML、强化学习、深度学习等作为主模型时，按需加载 `packs/task/advanced_method_gate.md` 的完整准入；作为正式定量 comparator 时也必须说明比较目的、数据/计算可行性和证据边界。
+
+### 1.6 Solver 必须后置且服从结构
+
+只有主模型数学结构已经确定后才选择 solver。先检查解析/半解析关系、专用结构算法、递推/排序/网络流/DP、凸优化、稀疏/带状数值结构、低维确定性数值法；这些不足以满足当前问题时，再升级通用 solver、元启发式或大型学习模型。
+
+最终建模链应优先形成：
+
+```text
+题目条件
+→ 数学后果
+→ 结构化简/分解
+→ 化简后的真实问题
+→ 最小充分主模型
+→ Comparison Envelope（按需）
+→ 结构匹配 Solver
 ```
 
 而不是“问题复杂 → 直接上高级算法”。
 
-路线选定后，除“选了什么模型”外，还要为写作登记该模型的**局部建模理由**：当前问题结构已经提供什么、仍缺哪个判据/关系/状态/决策结构、为什么当前数学结构能闭合该缺口、在哪些条件或近似范围内成立，以及该结构后续进入哪个目标、约束、判据或 solver。这里记录项目事实，不写通用“模型适用性强”。
+主模型选定后，除“选了什么模型”外，还要为写作登记该模型的**局部建模理由**：当前问题结构已经提供什么、仍缺哪个判据/关系/状态/决策结构、为什么当前数学结构能闭合该缺口、在哪些条件或近似范围内成立，以及该结构后续进入哪个目标、约束、判据或 solver。这里记录项目事实，不写通用“模型适用性强”。
 
 ## 2. 数据协议与预处理必要性判定
 
@@ -35,7 +144,7 @@ Problem Contract 冻结只回答“题目是什么意思”，不等于模型已
 
 标准化、归一化、对数、Box-Cox、滞后、窗口、空间权重、插值、滤波、重采样、异常替换和编码等操作必须有对象和依据。无真实数据时可模拟，但必须记录生成机制、参数来源和随机种子。
 
-完成审计和模型路线选择后，锁定项目级 `preprocessing_decision`：
+完成审计和当前主模型/对照模型设计后，锁定项目级 `preprocessing_decision`：
 
 | 字段 | 取值/要求 |
 |---|---|
@@ -380,7 +489,7 @@ surrogate 可以承担筛选、分配、产生初值或缩域角色，但最终�
 
 ## 5. 复杂度合理性复审
 
-模型路线形成后、进入 Model Challenge 前检查题目复杂度是否被异常压扁。触发复审的典型 flag：
+当前最小充分主模型形成后、进入 Model Challenge 前检查题目复杂度是否被异常压扁。触发复审的典型 flag：
 
 - `unused_problem_conditions`；
 - `unused_attachment_fields`；
@@ -406,8 +515,10 @@ surrogate 可以承担筛选、分配、产生初值或缩域角色，但最终�
 
 Model Reviewer 是正向适配审查，至少检查：
 
-- 当前路线是否真正回答冻结后的 Problem Contract；
-- selected model 是否比被否决路线更适配当前数据、约束和交付；
+- 当前主模型是否真正回答冻结后的 Problem Contract；
+- 当前主模型是否已经利用题面条件完成可证明的消元、降维、分解或等价变换，且没有为了展示算法保留冗余复杂度；
+- 当前主模型是否达到“最小充分”：若存在更简单且仍完整的模型，是否说明为什么当前结构仍有必要；
+- comparator 是否各自有明确比较问题，且没有因为“更高级”自动取得主模型地位；
 - 变量、目标函数、约束、Formula Trace 与 `preprocessing_decision` 是否闭合；
 - 重要模型结构能否恢复 `current structure → modeling gap → chosen structure → why it closes the gap → applicability → downstream role`，而不是只登记模型名；
 - 非平凡近似、surrogate 或结构化简的 applicability / failure boundary 与 Reduction Provenance 是否清楚；
@@ -431,6 +542,7 @@ Devil's Advocate 是反方挑战，至少检查：
 - 是否存在另一种会改变答案的合理题意解释；
 - 是否为了求解方便引入题目不允许的假设；
 - 是否闲置关键题面条件或附件字段；
+- 是否遗漏题面条件能够带来的精确化简，导致主模型保留了不必要的变量、维度、搜索空间或算法复杂度；
 - 预处理是否改变真实对象语义或造成泄漏；
 - 是否错误解耦、错误静态化或把多主体问题压成独立单体；
 - 核心约束是否长期不生效；
@@ -461,7 +573,7 @@ Devil's Advocate 是反方挑战，至少检查：
 
 ## 7. Human Model Approval 与正式锁模
 
-`model_challenge_status=passed` 后，不直接进入 Python。先向用户提供简洁但完整的 Model Approval Brief，至少包含：研究对象、selected model、标准模型类型、核心变量、目标、关键约束、**modeling gap 与 why-this-structure**、关键适用条件/失效边界、`preprocessing_decision`、结构化简及其 provenance、Solver/Validator 角色与算法适配理由、关键 solver preconditions、Algorithm presentation、关键数值建模参数的证据计划、主求解 PQS 的关键门槛、主要被否决路线理由、residual warnings 与下一阶段实际实现范围。若 4.8 适用，Brief 还应简要暴露真正会改变求解语义的精确判据、事件边界策略、缩域 evidence level、组合算子、条件式 solver probe/分支以及 surrogate→original 回算要求；不适用项不机械列空字段。
+`model_challenge_status=passed` 后，不直接进入 Python。先向用户提供简洁但完整的 Model Approval Brief，至少包含：研究对象、selected model、标准模型类型、核心变量、目标、关键约束、**modeling gap 与 why-this-structure**、关键适用条件/失效边界、`preprocessing_decision`、结构化简及其 provenance、为什么当前模型已达到最小充分、Comparator Envelope（若启用）及各自比较目的、Solver/Validator 角色与算法适配理由、关键 solver preconditions、Algorithm presentation、关键数值建模参数的证据计划、主求解 PQS 的关键门槛、主要被否决路线理由、residual warnings 与下一阶段实际实现范围。若 4.8 适用，Brief 还应简要暴露真正会改变求解语义的精确判据、事件边界策略、缩域 evidence level、组合算子、条件式 solver probe/分支以及 surrogate→original 回算要求；不适用项不机械列空字段。
 
 用户必须明确批准当前模型。自然语言如“OK，就按这个模型求解”“这个框架可以，进入主求解”“Q1-Q3 全部冻结”可视为批准；“我看看”“继续说”“还有别的方案吗”“这个模型怎么样”以及用户沉默不得推断为批准。
 
@@ -518,53 +630,3 @@ selected_models
 ## 10. `模型论文框架.md`
 
 `proposed_model_spec` 形成后即可按 `templates/model/model_paper_framework.md` 建立或更新项目根目录 `模型论文框架.md`，用于承载当前模型口径、Semantic Identity Block、Model Challenge 和 Approval Brief；用户批准后再把当前模型状态提升为 `locked_model_spec`。框架不是批准本身，批准事实以 machine state 中绑定的当前 revision/identity 为准。SIB 仍内嵌在 framework 中，不建立第二份模型真相；解析与 canonicalization 只复用 `scripts/semantic_identity.py`，本模块不得复制另一套 parser/canonical 规则。
-
-它只承担**项目级长期工作记忆**：当前题意口径、当前 SIB、数据、变量、标准模型类型与正式模型名称、**Model Construction Rationale 与 applicability boundary**、Model/Solver/Validator 角色、Formula Trace、Algorithm Trace、参数证据、Primary Quality Specification、accepted 后候选深化风险、跨问依赖、Model Challenge、Human Approval 当前状态、写作选择、小节颗粒度与标题规划、命题、Citation Evidence、逐问结果摘要与 claim evidence level/scope、图表映射；对适用问题额外保存当前精确判据/事件结构、缩域 evidence level、组合语义、solver applicability 结论和 surrogate→original 回算口径。通用写作规则不得复制进去。
-
-框架支持：
-
-- `compact`：日常单问迭代，只保留当前有效口径、各问模型/结果、必要证据链和待办；
-- `full`：跨聊天交接、整篇 DOCX/LaTeX、终审和提交，增加论文整体结构、共享基础、命题、Citation Evidence 和跨问综合。
-
-读取规则：
-
-1. 继续某一问前优先读取当前有效口径、该问当前模型/结果摘要、Challenge/Approval 状态和必要依赖；
-2. 普通单问迭代不强制加载整份大框架；
-3. 新聊天恢复、跨问综合、整篇写作和终审读取完整 current 框架；
-4. 框架 stale 时先依据 project state 与已验收产物修正；
-5. 具体数值回到标准工作簿核验，框架摘要不替代数值事实源。
-
-写入规则：
-
-- 只保留当前有效口径和项目选择；
-- 进入 structured identity 路径时，先完整填充当前问 SIB 并通过共享 parser/canonicalizer 校验，再原子写入 framework；不得把带 placeholder 或半成品 marker 的 live SIB 当作当前身份；
-- 口径变化时替换受影响内容，不堆“旧方案—新方案”历史；
-- Model Reviewer/Devil's Advocate 只保存当前 verdict、required actions 与 residual warnings，不保存长篇历史对话；
-- 设计阶段结果摘要为 pending，不填未求解数字；
-- Model Construction Rationale 只保存当前结构、gap、选择理由、适用条件/边界和下游作用，不复制通用“为什么建模”写作手册；
-- Algorithm Trace 只记录真实求解结构、角色与锚点，不复制 Python 源码或通用算法定义；
-- 优化题保存 objective 现实含义与主决策对象，使摘要和正文无需从聊天记忆重建“优化什么”；
-- 小节规划保存真实独立任务、依赖和拆分理由，不保存“每问固定四个小节”之类模板；
-- 对 4.8 适用的问题，只保存本题实际采用的判据、事件/缩域/组合/solver 适配/原模型回算语义及证据锚点，不复制本模块的通用检查清单；
-- baseline / alternative / validator 只有存在真实 artifact 时才进入框架；
-- PQS 只保存本题选择的主数值有效性规格和阈值来源，不复制 `core/numerical_verification_contract.yaml` 的通用规则；
-- accepted 后候选深化风险只作导航，不在主求解前生成具体分析结果；
-- 通用命题、证明、语言、排版规则不写入框架；
-- 正式交付前通过语义治理、Model Approval 验证和框架验证。
-
-事实源边界：模型语义与论文组织仍以 framework 为准，其中 SIB 只提供稳定机器身份；修订、依赖、identity/text provenance、Challenge/Approval 状态与 stale 以项目状态为准；数值以标准工作簿为准。
-
-## 11. 机理图合同
-
-早期只建立合同和占位。合同说明解释对象、支撑公式/约束、必需变量、排除变量、评委需要从图中确认什么，以及无图时哪段机制难以恢复。S 级图必须绑定核心公式、约束或命题。若 4.8 的 line/ray/segment、活动边界、临界状态、量词作用域或多资源协同仅靠文字难以恢复，应优先把该关系纳入 S/A 级机理图合同，而不是另画通用流程图。
-
-## 阶段门槛
-
-进入项目级预处理或主求解前分两层闭合：
-
-1. **设计完整性**：Problem Contract 已冻结；数据口径、三轴分类、标准模型类型与正式模型名称、变量/目标/约束、**重要 Model Construction Rationale 与 applicability conditions**、Model/Solver/Validator 角色、`preprocessing_decision`、语义闭环、核心 Formula Trace、必要 Algorithm Trace、关键数值建模参数证据计划、Primary Quality Specification、Complexity Sanity、当前 semantic revision、命题必要性与 Citation Evidence 计划均达到本模块要求；对适用问题，4.8 的精确判据、事件结构、缩域 evidence level、组合语义、solver applicability 与 original-model reevaluation 也已进入现有闭环或明确 `not_applicable`；
-2. **审批完整性**：调用 `scripts/validate_model_approval.py` 检查 current Challenge/Approval。审批状态、用户显式批准、revision/identity 绑定、blocking/review_required 处置及 stale 规则只由 `core/model_approval_contract.yaml` 定义，本模块不再复制字段级判定表。
-
-若设计完整性已经满足但 Model Approval gate 尚未通过，形成 `proposed_model_spec`、Model Approval Brief、`awaiting_model_approval` 与 current 框架后停止；不得把“用户未反对”解释为 approval。Gate 通过后才形成 current `locked_model_spec`。若 `preprocessing_decision=project_level`，下一阶段进入 Module 03P；否则直接进入主求解。
-
-最终 current 设计链至少形成 `proposed_model_spec`、`model_challenge`、`human_model_approval`、`locked_model_spec`、`preprocessing_decision`、`semantic_closure`、`formula_reasoning_chain`、`complexity_sanity_check`、`proposition_plan`、`citation_evidence_plan`、含 PQS 与 downstream risk hints 的 `validation_plan`，以及包含标准模型类型、Model Construction Rationale、Model/Solver/Validator、当前 Algorithm Trace/Challenge/Approval 状态、小节规划的 current 框架；未闭环不得以代码试错代替建模。

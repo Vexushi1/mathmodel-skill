@@ -1,7 +1,7 @@
 ---
 name: mathmodel-skill
 version: 9.2.1
-summary: HSK mathematical-modeling workflow with bootstrap-first task routing, Problem Contract freezing, independent Model Challenge, explicit Human Model Approval bound to the current semantic revision and validated structured identity, user-owned full-fidelity numerical execution, evidence-checked workbooks, MATLAB evidence visualization, editable draw.io mechanism diagrams with deterministic structural checks and required rendered review, model-construction rationale with solver-precondition evidence, Template-First paper authoring with state-driven per-question writing capability preflight and final-order Cross-File Chapter Handoff, formal LaTeX attestation, evidence-traceable final review compliance, and validated delivery provenance.
+summary: HSK mathematical-modeling workflow with bootstrap-first task routing, Problem Contract freezing, condition-driven structural reduction and minimal-sufficient main-model generation before solver selection, independent Model Challenge, explicit Human Model Approval bound to the current semantic revision and validated structured identity, user-owned full-fidelity numerical execution, evidence-checked workbooks, MATLAB evidence visualization, editable draw.io mechanism diagrams with deterministic structural checks and required rendered review, model-construction rationale with solver-precondition evidence, Template-First paper authoring with state-driven per-question writing capability preflight and final-order Cross-File Chapter Handoff, formal LaTeX attestation, evidence-traceable final review compliance, and validated delivery provenance.
 triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB绘图, 可编辑机理图, draw.io, drawio, LaTeX, DOCX, 终审, 提交包]
 ---
 
@@ -35,7 +35,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 
 为兼容活动导航与健康检查，只列出主链语义节点，不在入口重新定义其业务规则：
 
-`通用数据审计` → `两条模型路线与数据需求比较` → `preprocessing_decision` → `proposed_model_spec` → `Model Reviewer + Devil's Advocate` → `awaiting_model_approval` → explicit Human Model Approval → `locked_model_spec` → resolver-selected preprocessing / solve / analysis stages。
+`通用数据审计` → `条件数学化与结构化简` → `最小充分主模型 + 按需 comparator` → `preprocessing_decision` → `proposed_model_spec` → `Model Reviewer + Devil's Advocate` → `awaiting_model_approval` → explicit Human Model Approval → `locked_model_spec` → resolver-selected preprocessing / solve / analysis stages。
 
 ## 目录、正式交付
 
@@ -85,7 +85,7 @@ triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 
 
 ## 能力发现标签
 
-以下名称仅用于能力发现与回归，不在本入口重复定义规则：**Template Manifest、Paper Writing Protocol、Cross-File Chapter Handoff、Primary Evidence Capture、Scientific Figure Synthesis、Editable Mechanism Diagram、Model/Solver/Validator、Model Construction Rationale、Solver Preconditions、Claim Strength Calibration、Final Review Compliance & Evidence Sweep、within-question local dependency architecture、decisiveness-based detail allocation、adaptive subsection separation、adaptive figure-result narrative**。具体定义只读取上表 Authority。
+以下名称仅用于能力发现与回归，不在本入口重复定义规则：**Condition-Driven Reduction、Minimal Sufficient Main Model、Comparison Envelope、Structure-Matched Solver、Template Manifest、Paper Writing Protocol、Cross-File Chapter Handoff、Primary Evidence Capture、Scientific Figure Synthesis、Editable Mechanism Diagram、Model/Solver/Validator、Model Construction Rationale、Solver Preconditions、Claim Strength Calibration、Final Review Compliance & Evidence Sweep、within-question local dependency architecture、decisiveness-based detail allocation、adaptive subsection separation、adaptive figure-result narrative**。具体定义只读取上表 Authority。
 
 兼容发现 token 仅保留名称：`preprocessing_decision`、`问题X结果深化分析.py`、**Algorithm Trace**。它们用于 lint/路由与 artifact 导航，不在入口重新定义预处理枚举、结果分析流程或算法呈现规则。
 

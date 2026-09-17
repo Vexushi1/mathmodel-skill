@@ -64,18 +64,22 @@ class RuntimeHealthCoherenceTests(unittest.TestCase):
         block = text.split("## 主链", 1)[1].split("目录、正式交付", 1)[0]
         assert_order(self, block, [
             "通用数据审计",
-            "两条模型路线与数据需求比较",
+            "条件数学化与结构化简",
+            "最小充分主模型 + 按需 comparator",
             "preprocessing_decision",
             "proposed_model_spec",
             "Model Reviewer + Devil's Advocate",
             "locked_model_spec",
         ])
 
-    def test_runtime_router_preserves_preprocessing_lifecycle(self):
+    def test_runtime_router_preserves_structure_first_preprocessing_lifecycle(self):
         text = read("RUNTIME_ROUTER.md")
         block = text.split("## 概念上的完整工作流", 1)[1].split("## Algorithm Trace 路由边界", 1)[0]
         assert_order(self, block, [
-            "两条模型路线/数据需求比较",
+            "问题对象/定义/状态/决策/基准初始化",
+            "Condition → Consequence",
+            "exact / proven_sufficient / heuristic 结构化简",
+            "最小充分主模型 + Comparison Envelope（0..N）",
             "preprocessing_decision",
             "proposed_model_spec",
             "Model Reviewer",

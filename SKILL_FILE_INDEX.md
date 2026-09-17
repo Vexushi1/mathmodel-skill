@@ -102,6 +102,7 @@
 - `docs/v8_writing_migration.md`
 - `docs/v900_migration_contract.md`
 - `docs/v921_p7_conditional_analysis_semantic_hygiene_plan.md`
+- `docs/v9_3_initial_modeling_structural_reduction_refactor_plan.md`
 - `legacy/README.md`
 - `modules/01_problem_audit.md`
 - `modules/02_model_design.md`
@@ -399,3 +400,4 @@
 - `tests/test_v900_state_transitions.py`
 - `tests/test_v900_transactional_writers.py`
 - `tests/test_v910_publication_rendering.py`
+- `tests/test_v930_initial_modeling_core.py`

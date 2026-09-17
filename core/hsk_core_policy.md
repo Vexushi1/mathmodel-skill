@@ -16,12 +16,15 @@ $$
 
 ## 2. 题意、模型与批准
 
-1. **先冻结题意，再设计模型。** 每问先形成 current Problem Contract，明确研究对象、已知/可计算量、状态/决策/输出、约束、禁止假设、数据角色和跨问依赖。关键歧义会改变对象、变量、约束或结论时不得锁模。
-2. **题面—数学—代码—输出必须闭环。** 核心对象、公式、约束和结论必须有可追溯来源；“题目要求有而代码没有”“代码对象无数学来源”“单位/粒度/索引断裂”等 hard gap 未关闭时不得正式交付代码。
-3. **复杂度异常退化必须复审。** 复杂题被无依据降成低维直接计算、弱耦合、静态或单主体问题，或者题目专门条件长期闲置时，必须触发 Complexity Sanity Check；无法证明简化合理时不得进入主求解。
-4. **Problem Contract、Semantic Closure 与 Complexity Sanity 都不能替代 Model Approval。** 进入项目级预处理或当前主求解代码前，必须完成独立 Model Reviewer、Devil's Advocate 和显式 Human Model Approval。
-5. **批准只绑定 current structured identity。** 只有用户明确批准当前 `semantic_revision` 与已验证 `semantic_identity_hash`，且 current = validated = approved identity 后，`locked_model_spec` 才成为 current。legacy semantic hash 只保留只读 provenance，不能授权新的项目级预处理或主求解。
-6. **语义变化必须失效真实依赖。** 题意、数据口径、参数、假设、目标、约束、预处理、算法语义或跨问依赖改变时，按 current state/transition Authority 更新 revision 并传播 typed stale；不因“保险起见”无差别失效独立问题，也不以纯排版/SIB 外措辞变化冒充模型变化。
+1. **先冻结题意，再从条件生成结构。** 每问先形成 current Problem Contract，明确研究对象、已知/可计算量、状态/决策/输出、约束、禁止假设、数据角色和跨问依赖。关键歧义会改变对象、变量、约束或结论时不得锁模。Problem Contract 冻结后，在提出模型名称和 solver 之前，必须优先把题面条件、定义、守恒/不变量、几何/时间/网络/随机结构转成数学后果，判断可消元、降维、分解、排序、边界化、充分状态或等价变换；不得把题面条件只当作附加约束后直接进入通用算法。
+2. **主模型以最小充分为目标，不以复杂为目标。** 在完整回答题意、保留关键机制、满足约束/精度/输出要求的前提下，优先选择不能再合理降低变量、自由度、机制或计算复杂度而不损失必要信息的当前主模型。高级模型可以作为主模型或 comparator，但必须说明它增加了哪一个必要机制或比较信息；“更高级”“更复杂”本身不是准入理由。
+3. **精确化简和已证明充分的缩减优先于算法升级。** 可逆等价、定义/守恒消元、严格对称降维、已证明保留所需最优/临界/可行对象的缩减，应先于元启发式、深度学习或大规模通用 solver。启发式缩域、surrogate 或近似必须保留适用范围、被舍弃信息和 claim boundary。具体 Reduction Provenance 语言与证据边界服从 current writing reasoning Authority。
+4. **Solver 服从结构，而不是反向塑造模型。** 先完成问题本体、条件后果、结构化简和当前主模型，再选择解析/结构算法/稀疏或低维数值法/通用 solver。不得因为熟悉某算法而保留本可消掉的变量、把可排序问题写成组合暴搜，或把凸/树/DAG/带状等结构丢给不必要的黑箱算法。
+5. **题面—数学—代码—输出必须闭环。** 核心对象、公式、约束和结论必须有可追溯来源；“题目要求有而代码没有”“代码对象无数学来源”“单位/粒度/索引断裂”等 hard gap 未关闭时不得正式交付代码。
+6. **复杂度异常退化必须复审。** 复杂题被无依据降成低维直接计算、弱耦合、静态或单主体问题，或者题目专门条件长期闲置时，必须触发 Complexity Sanity Check；无法证明简化合理时不得进入主求解。该检查是安全网，不替代前述条件驱动的生成式结构发现。
+7. **Problem Contract、Semantic Closure 与 Complexity Sanity 都不能替代 Model Approval。** 进入项目级预处理或当前主求解代码前，必须完成独立 Model Reviewer、Devil's Advocate 和显式 Human Model Approval。
+8. **批准只绑定 current structured identity。** 只有用户明确批准当前 `semantic_revision` 与已验证 `semantic_identity_hash`，且 current = validated = approved identity 后，`locked_model_spec` 才成为 current。legacy semantic hash 只保留只读 provenance，不能授权新的项目级预处理或主求解。
+9. **语义变化必须失效真实依赖。** 题意、数据口径、参数、假设、目标、约束、预处理、算法语义或跨问依赖改变时，按 current state/transition Authority 更新 revision 并传播 typed stale；不因“保险起见”无差别失效独立问题，也不以纯排版/SIB 外措辞变化冒充模型变化。
 
 上述字段、状态和验证细节只服从对应 Authority；`scripts/validate_semantic_governance.py` 与 `scripts/validate_model_approval.py` 是 current 机器门，不由本文件维护第二套检查清单。
 

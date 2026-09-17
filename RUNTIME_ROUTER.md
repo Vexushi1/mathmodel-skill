@@ -57,10 +57,14 @@
 ```text
 problem_audit
 → model_design
-   ├─ 非破坏性数据审计 + 两条模型路线/数据需求比较
+   ├─ 非破坏性数据审计
+   ├─ 问题对象/定义/状态/决策/基准初始化
+   ├─ Condition → Consequence：题目条件数学化
+   ├─ exact / proven_sufficient / heuristic 结构化简
+   ├─ 最小充分主模型 + Comparison Envelope（0..N）
    ├─ preprocessing_decision
-   ├─ Formula Trace / 结构化简
-   ├─ Algorithm Trace：not_needed / stepwise / pseudocode
+   ├─ Formula Trace / Algorithm Trace：not_needed / stepwise / pseudocode
+   ├─ 结构匹配 Solver / Validator
    ├─ Semantic Closure / Complexity Sanity
    └─ proposed_model_spec
 → Model Reviewer
