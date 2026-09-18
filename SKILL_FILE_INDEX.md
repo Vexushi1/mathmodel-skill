@@ -404,3 +404,4 @@
 - `tests/test_v930_domain_reduction_cues.py`
 - `tests/test_v930_initial_modeling_core.py`
 - `tests/test_v931_model_design_capability_preservation.py`
+- `tests/test_v931_task_pack_budget_closure.py`
