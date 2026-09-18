@@ -53,7 +53,8 @@ class P9ReleaseCloseoutTests(unittest.TestCase):
     def test_release_docs_record_v931_and_compatibility_decision(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         self.assertTrue(changelog.startswith("# Changelog\n\n## Current release: 9.3.1"))
-        self.assertIn("## Previous release: 9.3.0", changelog)\n        self.assertIn("## Previous release: 9.2.1", changelog)
+        self.assertIn("## Previous release: 9.3.0", changelog)
+        self.assertIn("## Previous release: 9.2.1", changelog)
         self.assertIn("## Previous release: 9.2.0", changelog)
         record = (ROOT / "docs/p9_release_closeout.md").read_text(encoding="utf-8")
         self.assertIn("最早 v10", record)
