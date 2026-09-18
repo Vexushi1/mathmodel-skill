@@ -22,7 +22,7 @@ ALLOWED_CHANGED_AUTHORITIES = {
     "templates/latex/cumcm/hsk/template_manifest.yaml",
 }
 P7_OPTIONAL_ANALYSIS_PREREQUISITE = "figure_evidence:result_analysis_workbook"
-P9_RELEASE_VERSIONS = {"9.1.0", "9.2.0", "9.2.1", "9.3.0"}
+P9_RELEASE_VERSIONS = {"9.1.0", "9.2.0", "9.2.1", "9.3.0", "9.3.1"}
 
 
 def normalize(value, repo, project):

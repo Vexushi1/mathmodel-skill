@@ -1,6 +1,15 @@
 # Changelog
 
-## Current release: 9.3.0
+## Current release: 9.3.1
+
+- Restored the Module 02 framework read/write, `mechanism_contracts` producer and design/approval stage-boundary semantics that were accidentally truncated during the v9.3.0 structure-first refactor, with capability-preservation regression coverage.
+- Closed the taxonomy-valid task-pack loading gap: Router now authoritatively allows the four unique packs that can arise from one objective plus three structures, Resolver consumes that budget instead of hard-coding three, and the legacy compatibility alias no longer duplicates the obsolete three-pack limit.
+- Aligned active modeling surfaces with the v9.3 contract while preserving compatibility identifiers: the route-comparison template now records one minimal-sufficient main model plus `0..N` purpose-driven comparators, project memory persists high-value Condition→Consequence / minimal-sufficiency / comparator facts, and Model Approval compatibility fields no longer imply mandatory classic-versus-advanced routes.
+- Updated task-pack headings, maintenance status, plugin discovery and the OpenAI agent discovery summary so active surfaces consistently expose condition-driven structural reduction, minimal-sufficient main-model generation and structure-matched solver selection.
+- Preserved route IDs, CLI, required Semantic Identity/Project State roots, Model Challenge/Human Approval lifecycle, workbook/output contracts and user-owned full-fidelity execution; existing projects remain read-compatible and require no bulk migration solely for this patch.
+- Release acceptance requires the complete HSK Skill CI and Optimization baseline evidence on the final generated head; valid tests and gates are not deleted, weakened or bypassed.
+
+## Previous release: 9.3.0
 
 - Moved condition-driven structural reduction ahead of model naming and solver selection: current Problem Contract facts are converted into mathematical consequences before the minimal-sufficient main model is proposed.
 - Replaced the former mandatory classic-versus-advanced two-route framing with one minimal-sufficient main model plus `0..N` information-bearing comparators; advanced methods remain available when they add a necessary mechanism or answer an explicit comparison question.

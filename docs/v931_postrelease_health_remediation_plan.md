@@ -760,8 +760,8 @@ Plan PR: MERGED（PR #181，merge `b4fe9e3abc81a4481a322b5bd756913d2492e256`）
 PR A: MERGED（PR #182，merge `87a9d3b362562df7265ef2e790d0baf86f44973c`）  
 PR B: MERGED（PR #183，merge `2de9f60f12e50612bc6ff4f451cab2dad855dac4`）  
 PR C: MERGED（PR #185，merge `ed0f013fc024dc9d27c2ead6b370a21f7b6f88eb`）  
-PR D: IN_PROGRESS（branch `docs/v9.3.1-maintenance-status-alignment`）  
-Release 9.3.1: NOT_STARTED  
+PR D: MERGED（PR #186，merge `48d05a98f6a7dd97770f8a1adc9c88e2cde29462`）  
+Release 9.3.1: IN_PROGRESS（PR #187，branch `release/v9.3.1-closeout`）  
 Branch hygiene: DEFERRED_PENDING_EXPLICIT_APPROVAL  
 Docs archive/index hygiene: DEFERRED_PENDING_INVENTORY
 
@@ -812,6 +812,29 @@ Review blockers: none。
 Merge SHA: `ed0f013fc024dc9d27c2ead6b370a21f7b6f88eb`。  
 Residual issues: C1/C4 进入 PR D；branch/docs hygiene 继续保持单独审批。  
 Next stage: PR D — Maintenance Status & Discovery Alignment。
+
+
+## 15.4 PR D 实施记录
+
+PR: #186 — `docs: align v9.3 maintenance status and discovery surfaces`  
+Branch: `docs/v9.3.1-maintenance-status-alignment`  
+Base main SHA: `ed0f013fc024dc9d27c2ead6b370a21f7b6f88eb`。  
+Scope: 更新 `docs/skill_optimization_status.md` 的 v9.3 实施 provenance，并让 plugin/agent discovery surface 显式反映 condition-driven structural reduction、minimal-sufficient main model 与 structure-matched solver；不改变 Runtime 行为。  
+Tests: current-skill health/discovery regression、release-carrier parity 与完整 HSK Skill CI。  
+CI: PR head HSK Skill CI 与 Optimization baseline evidence 均 success；merge 后 main HSK Skill CI 与 generated metadata refresh 均 success。  
+Review blockers: none。  
+Merge SHA: `48d05a98f6a7dd97770f8a1adc9c88e2cde29462`。  
+Residual issues: 核心 remediation A1/A2/A3/B1–B4/C1/C4/C5 已闭合；branch/docs hygiene 仍保持单独审批。  
+Next stage: PR #187 — v9.3.1 Release Closeout。
+
+## 15.5 v9.3.1 Release Closeout
+
+PR: #187 — `release: close v9.3.1 post-release remediation`  
+Branch: `release/v9.3.1-closeout`  
+Base main SHA: `48d05a98f6a7dd97770f8a1adc9c88e2cde29462`。  
+Scope: 只推进活动 release carriers、README/CHANGELOG、release regression 与 generated metadata 到 9.3.1；不新增模型、Runtime、Schema、CLI、Gate 或用户项目迁移。  
+Status: IN_PROGRESS；最终合并必须以 final generated head 的 HSK Skill CI + Optimization baseline evidence + mergeability 全部通过为门。  
+Branch/docs hygiene: 继续 DEFERRED，未经单独审批不执行。
 
 
 ---
