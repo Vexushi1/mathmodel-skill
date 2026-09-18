@@ -418,6 +418,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/v870_question_writing_capability_preflight_evaluation.md`
 - `docs/v8_writing_capability_inventory.md`
 - `docs/v921_p7_conditional_analysis_semantic_hygiene_plan.md`
+- `docs/v931_branch_cleanup_manifest.md`
 - `docs/v9_3_initial_modeling_structural_reduction_refactor_plan.md`
 
 ## Legacy Navigation
