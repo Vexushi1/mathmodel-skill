@@ -630,3 +630,66 @@ selected_models
 ## 10. `模型论文框架.md`
 
 `proposed_model_spec` 形成后即可按 `templates/model/model_paper_framework.md` 建立或更新项目根目录 `模型论文框架.md`，用于承载当前模型口径、Semantic Identity Block、Model Challenge 和 Approval Brief；用户批准后再把当前模型状态提升为 `locked_model_spec`。框架不是批准本身，批准事实以 machine state 中绑定的当前 revision/identity 为准。SIB 仍内嵌在 framework 中，不建立第二份模型真相；解析与 canonicalization 只复用 `scripts/semantic_identity.py`，本模块不得复制另一套 parser/canonical 规则。
+
+它只承担**项目级长期工作记忆**：当前题意口径、当前 SIB、数据、变量、标准模型类型与正式模型名称、Model Construction Rationale 与 applicability boundary、Model/Solver/Validator 角色、Formula Trace、Algorithm Trace、参数证据、Primary Quality Specification、accepted 后候选深化风险、跨问依赖、Model Challenge、Human Approval 当前状态、写作选择、小节颗粒度与标题规划、命题、Citation Evidence、逐问结果摘要与 claim evidence level/scope、图表映射。v9.3 以后还应保存本题**实际改变模型结构**的高价值 Condition → Consequence / Reduction 事实、当前模型为什么达到最小充分，以及已启用 comparator 的 comparison purpose；不得把通用结构原语清单复制进项目框架。
+
+框架支持：
+
+- `compact`：日常单问迭代，只保留当前有效口径、各问模型/结果、必要证据链和待办；
+- `full`：跨聊天交接、整篇 DOCX/LaTeX、终审和提交，增加论文整体结构、共享基础、命题、Citation Evidence 和跨问综合。
+
+读取规则：
+
+1. 继续某一问前优先读取当前有效口径、该问当前模型/结果摘要、Challenge/Approval 状态和必要依赖；
+2. 普通单问迭代不强制加载整份大框架；resolver / reading plan 已给出 targeted read 时只消费当前任务所需片段；
+3. 新聊天恢复、跨问综合、整篇写作和终审读取完整 current 框架；
+4. 框架 stale 时先依据 project state 与已验收产物修正，再继续下游工作；
+5. 具体数值回到 accepted standard workbook 核验，框架摘要不替代数值事实源。
+
+写入规则：
+
+- 只保留当前有效口径和项目选择，历史由 Git 保存；
+- 进入 structured identity 路径时，先完整填充当前问 SIB 并通过共享 parser/canonicalizer 校验，再原子写入 framework；不得把带 placeholder 或半成品 marker 的 live SIB 当作当前身份；
+- 口径变化时替换受影响内容，不堆“旧方案—新方案”历史；
+- Model Reviewer / Devil's Advocate 只保存当前 verdict、required actions 与 residual warnings，不保存长篇历史对话；
+- 设计阶段结果摘要为 pending，不填未求解数字；
+- Condition → Consequence / Reduction 只保存**本题实际采用且会改变模型、可行域、状态空间或 solver 结构**的高价值项目事实，不保存通用结构检索清单；
+- 最小充分性只保存当前主模型、为什么仍然充分以及“继续简化首先损失什么”；若 comparator 未启用，可记录 not_applicable，不机械制造对照路线；
+- comparator 只有存在真实 comparison question 时才登记 comparison purpose；baseline / alternative / validator 只有存在真实 artifact 时才进入框架；
+- Model Construction Rationale 只保存当前 structure、gap、选择理由、适用条件/边界和下游作用，不复制通用“为什么建模”写作手册；
+- Algorithm Trace 只记录真实求解结构、角色与锚点，不复制 Python 源码或通用算法定义；
+- 优化题保存 objective 现实含义与主决策对象，使摘要和正文无需从聊天记忆重建“优化什么”；
+- 小节规划保存真实独立任务、依赖和拆分理由，不保存“每问固定四个小节”之类模板；
+- 对 4.8 适用的问题，只保存本题实际采用的判据、事件/缩域/组合/solver 适配/原模型回算语义及证据锚点，不复制本模块的通用检查清单；
+- PQS 只保存本题选择的主数值有效性规格和阈值来源，不复制 `core/numerical_verification_contract.yaml` 的通用规则；
+- accepted 后候选深化风险只作导航，不在主求解前生成具体分析结果；
+- 通用命题、证明、语言、排版规则不写入框架；
+- 正式交付前通过语义治理、Model Approval 验证和框架验证。
+
+事实源边界：模型语义与论文组织仍以 current framework 为项目记忆，其中 SIB 只提供稳定机器身份；修订、依赖、identity/text provenance、Challenge/Approval 状态与 stale 以 project state 为准；具体数值以 accepted standard workbook 为准。三者职责不得互相替代。
+
+## 11. 机理图合同
+
+本节形成逻辑 artifact `mechanism_contracts`。早期只建立合同和占位，不直接生成正式机理图。合同至少说明：
+
+- 需要解释的题目对象、过程、几何/物理关系或决策结构；
+- 支撑该图的核心 Formula / Constraint / Proposition anchor；
+- 图中必须出现的变量、状态、方向、边界或事件；
+- 明确不应进入图中的次要变量、装饰信息或未批准机制；
+- 评委需要从图中确认什么，以及无图时哪一段机制最难恢复。
+
+S/A 级机理图必须绑定核心公式、约束、命题或已批准的结构关系。若 4.8 的 line/ray/segment、活动边界、临界状态、量词作用域、多资源协同、移动边界或参考系仅靠文字难以恢复，应优先把该关系纳入 `mechanism_contracts`，而不是另画与题目无关的通用流程图。
+
+本节只定义**解释合同**，不替代 `modules/04_figure_evidence.md` 的 Figure Evidence 选择、draw.io 生成/验证或正式论文图形审查，也不新增独立 Gate。
+
+## 阶段门槛
+
+进入项目级预处理或主求解前分两层闭合：
+
+1. **设计完整性**：Problem Contract 已冻结；数据口径与三轴分类已闭合；题目条件已经先形成必要的 Condition → Consequence；可利用的 exact / proven_sufficient reduction 已优先处理，heuristic reduction 已保留证据边界；当前主模型已说明为什么达到最小充分以及继续简化首先会损失什么；Comparator Envelope 若启用，每个 comparator 已有明确 comparison question，未启用时不机械补造；标准模型类型与正式模型名称、变量/目标/约束、重要 Model Construction Rationale 与 applicability conditions、Model/Solver/Validator 角色、`preprocessing_decision`、语义闭环、核心 Formula Trace、必要 Algorithm Trace、关键数值建模参数证据计划、Primary Quality Specification、Complexity Sanity、当前 semantic revision、命题必要性与 Citation Evidence 计划均达到本模块要求；solver 选择发生在结构化简和主模型闭合之后。对适用问题，4.8 的精确判据、事件结构、缩域 evidence level、组合语义、solver applicability 与 original-model reevaluation 也已进入现有闭环或明确 `not_applicable`；
+2. **审批完整性**：调用 `scripts/validate_model_approval.py` 检查 current Challenge / Approval。审批状态、用户显式批准、revision/identity 绑定、blocking/review_required 处置及 stale 规则只由 `core/model_approval_contract.yaml` 定义，本模块不复制字段级判定表。
+
+若设计完整性已经满足但 Model Approval gate 尚未通过，形成 `route_comparison`、`selected_models`、`proposed_model_spec`、Model Approval Brief、`awaiting_model_approval`、`mechanism_contracts`（适用时）与 current framework 后停止；不得把“用户未反对”解释为 approval。Gate 通过后才形成 current `locked_model_spec`。若 `preprocessing_decision=project_level`，下一阶段进入 Module 03P；否则直接进入主求解。
+
+最终 current 设计链至少形成 `route_comparison`、`selected_models`、`proposed_model_spec`、`model_challenge`、`human_model_approval`、`locked_model_spec`、`preprocessing_decision`、`semantic_closure`、`formula_reasoning_chain`、`complexity_sanity_check`、`proposition_plan`、`citation_evidence_plan`、含 PQS 与 downstream risk hints 的 `validation_plan`、适用时的 `mechanism_contracts`，以及包含标准模型类型、Model Construction Rationale、Model/Solver/Validator、Condition → Consequence / Reduction 摘要、最小充分性理由、当前 Algorithm Trace / Challenge / Approval 状态、小节规划的 current framework；未闭环不得以代码试错代替建模。
+

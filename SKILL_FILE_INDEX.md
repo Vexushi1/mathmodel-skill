@@ -403,3 +403,4 @@
 - `tests/test_v910_publication_rendering.py`
 - `tests/test_v930_domain_reduction_cues.py`
 - `tests/test_v930_initial_modeling_core.py`
+- `tests/test_v931_model_design_capability_preservation.py`
