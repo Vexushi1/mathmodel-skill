@@ -762,8 +762,8 @@ PR B: MERGED（PR #183，merge `2de9f60f12e50612bc6ff4f451cab2dad855dac4`）
 PR C: MERGED（PR #185，merge `ed0f013fc024dc9d27c2ead6b370a21f7b6f88eb`）  
 PR D: MERGED（PR #186，merge `48d05a98f6a7dd97770f8a1adc9c88e2cde29462`）  
 Release 9.3.1: MERGED（PR #187，merge `8a9de52b85a93bb4e04bc03d4298da93b51de326`）  
-Branch hygiene: DEFERRED_PENDING_EXPLICIT_APPROVAL  
-Docs archive/index hygiene: DEFERRED_PENDING_INVENTORY
+Branch hygiene: IN_PROGRESS（H0 inventory；用户已批准进入 Repository Hygiene）  
+Docs archive/index hygiene: IN_PROGRESS（H0 inventory；优先非破坏性 Index 分层）
 
 ## 15.1 PR A 实施记录
 
@@ -839,6 +839,16 @@ Merge SHA: `8a9de52b85a93bb4e04bc03d4298da93b51de326`。
 Post-merge verification: `main@8a9de52b...` 的 HSK Skill CI 与 Refresh generated repository metadata 均 success。  
 Status: COMPLETED。  
 Branch/docs hygiene: 继续 DEFERRED，未经单独审批不执行。
+
+
+## 15.6 Repository Hygiene
+
+Status: IN_PROGRESS。  
+H0 inventory：`docs/v931_repository_hygiene_inventory.md`。  
+Baseline: `main@f028b2dc320f5ad8dd731d60903126fc2d193fae` / Skill 9.3.1。  
+Initial findings: 177 branches；v9.3/v9.3.1 残留 13 branches，其中 12 个进入 SAFE_DELETE_CANDIDATE、1 个 metadata helper 进入 MANUAL_REVIEW；`docs/` 共 41 个文件，当前 generator 会把所有非-legacy docs 平铺进 Active Skill Index。  
+Execution order: H0 inventory → H1 non-destructive Active Index segmentation → H2 branch cleanup → H3 only-if-needed docs move/delete。  
+Safety: H0 不删除 branch、不移动 docs；H1 优先只改 index presentation，Manifest 仍覆盖历史文件，test/fixture path 不变。  
 
 
 ---
