@@ -35,6 +35,27 @@ v9.2.0 发布后通读确认：P7 的核心 Authority 已表达 `base3 + conditi
 
 补丁后的语义不变式为：每问基础三文件固定存在；仅 Gate=`required` 增加 03B Python + workbook，总数仍为 5；Gate=`not_required` 必须有非空理由，并且不能据此声称鲁棒性、稳定性、参数不敏感或算法一致性已经通过。旧五文件项目与既有 legacy reader 继续按当前显式兼容窗口只读，不要求用户项目迁移。
 
+## v9.3.0：条件驱动结构化简与最小充分主模型
+
+本节只记录 v9.3.0 的实施 provenance 与后续健康修复进度；它仍是 **implementation record，不是业务 Authority**。实际建模、路由、审批、项目记忆与交付规则继续由 `core/`、`modules/`、`scripts/` 和活动模板中的既有 Authority 定义。
+
+v9.3.0 的正式升级链：
+
+- PR #178：把初始化建模从“先比较模型路线”改为先执行 Condition → Consequence、Reduction Provenance、最小充分主模型，再选择 structure-matched solver；保留 `0..N` comparator；
+- PR #179：把 structure-first 逻辑下沉到 mechanism、optimization、prediction、evaluation、statistics/ML、graph/network、scheduling、game/decision、simulation、spatial 十类 Task Pack，并区分高级方法的 main/comparator/exploratory 角色；
+- PR #180：v9.3.0 release closeout，统一活动 release carriers、README、CHANGELOG、release regression 与 generated metadata；
+- v9.3.0 正式 merge commit：`4018b3339ce7c1f223039d0c94020fc7378444b1`。
+
+发布后健康审计发现的问题按 `docs/v931_postrelease_health_remediation_plan.md` 分阶段修复：
+
+- PR #181：planning-only remediation plan；
+- PR #182（PR A）：恢复 v9.3 重构中意外截断的 Module 02 framework read/write、`mechanism_contracts` producer semantics 与阶段门槛，merge `87a9d3b362562df7265ef2e790d0baf86f44973c`；
+- PR #183（PR B）：闭合 taxonomy-valid 4-pack classification / Router budget / Resolver single-source gap，merge `2de9f60f12e50612bc6ff4f451cab2dad855dac4`；
+- PR #185（PR C）：同步 active route-comparison template、Framework minimal-sufficiency/comparator memory、Approval field semantics、Manifest descriptions 与 Task Pack heading，merge `ed0f013fc024dc9d27c2ead6b370a21f7b6f88eb`；
+- PR D：仅处理维护状态与 discovery 文案，不改变 Runtime、Schema、CLI、Model Challenge/Human Approval 或工作簿/用户执行语义；正式 9.3.1 release carrier 升级仍留给独立 closeout PR。
+
+v9.3 系列的稳定建模语义是：先把题目条件转成数学后果并利用可证明结构化简，再形成当前最小充分主模型；comparator 只在有明确比较问题时启用；solver 必须在模型结构闭合后按结构选择。复杂度或“高级方法”本身不构成创新性或主模型准入理由。
+
 ## 已合并阶段摘要
 
 ### P1

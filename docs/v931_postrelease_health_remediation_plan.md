@@ -759,8 +759,8 @@ Next stage:
 Plan PR: MERGED（PR #181，merge `b4fe9e3abc81a4481a322b5bd756913d2492e256`）  
 PR A: MERGED（PR #182，merge `87a9d3b362562df7265ef2e790d0baf86f44973c`）  
 PR B: MERGED（PR #183，merge `2de9f60f12e50612bc6ff4f451cab2dad855dac4`）  
-PR C: NOT_STARTED  
-PR D: NOT_STARTED  
+PR C: MERGED（PR #185，merge `ed0f013fc024dc9d27c2ead6b370a21f7b6f88eb`）  
+PR D: IN_PROGRESS（branch `docs/v9.3.1-maintenance-status-alignment`）  
 Release 9.3.1: NOT_STARTED  
 Branch hygiene: DEFERRED_PENDING_EXPLICIT_APPROVAL  
 Docs archive/index hygiene: DEFERRED_PENDING_INVENTORY
@@ -799,6 +799,20 @@ Review blockers: none。
 Merge SHA: `2de9f60f12e50612bc6ff4f451cab2dad855dac4`。  
 Residual issues: B1/B2/B3/B4/C5 进入 PR C；C1/C4 进入 PR D；branch/docs hygiene 继续保持单独审批。  
 Next stage: PR C — v9.3 Semantic Surface Alignment。
+
+## 15.3 PR C 实施记录
+
+PR: #185 — `fix: align v9.3 structural-reduction semantic surfaces`  
+Branch: `fix/v9.3.1-structural-reduction-surface-alignment`  
+Base main SHA: `10466507e23e701293bfff597e2c3bbdb4629836`。  
+Scope: 对齐 active route-comparison template、Framework 的 Condition→Consequence / Minimal Sufficiency / Comparator Envelope 项目记忆、Model Approval compatibility field semantics、Manifest artifact descriptions 与十类 Task Pack section-2 heading；不新增 Gate、required Schema、CLI 或迁移。  
+Tests: content-pack、Framework project-memory、Model Approval、v9.3 domain-reduction regressions 与完整 HSK Skill CI。  
+CI: final PR head `3128dfd9c28841ebb09360ecd7bf7d8c3da6d8c1` HSK Skill CI success；Optimization baseline evidence 在与 final head tree 完全一致的直接父提交上 success；merge 后 main HSK Skill CI 与 generated metadata refresh 均 success。  
+Review blockers: none。  
+Merge SHA: `ed0f013fc024dc9d27c2ead6b370a21f7b6f88eb`。  
+Residual issues: C1/C4 进入 PR D；branch/docs hygiene 继续保持单独审批。  
+Next stage: PR D — Maintenance Status & Discovery Alignment。
+
 
 ---
 
