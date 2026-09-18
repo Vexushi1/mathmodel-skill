@@ -1,4 +1,4 @@
-version: 9.2.1
+version: 9.3.0
 role: >-
   普通论文写作的最小运行时映射。它不建立第二套数学写作 Authority，只声明普通论文写作真正需要加载的
   模板、项目事实、证据和 writing_reasoning_contract 中的语义能力，从而避免每次写作预载完整建模、数值与项目治理上下文。
@@ -11,13 +11,6 @@ principles:
   - 数值事实必须回到当前有效工作簿或等价证据源；Compact Runtime 不改变事实来源。
   - 内部状态治理词只用于上游状态判断，不作为正文语言输入。
 
-required_runtime_inputs:
-  - current_model_paper_framework
-  - current_chapter_handoff_map_when_available
-  - active_template_manifest
-  - relevant_numeric_evidence
-  - relevant_figure_map
-  - bibliography_when_needed
 document_length_profile:
   default: adaptive_coverage_diagnostic
   user_configurable_fields:
