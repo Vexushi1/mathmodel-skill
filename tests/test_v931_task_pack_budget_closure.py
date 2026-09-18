@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import importlib.util
 import itertools
 import sys
@@ -7,6 +8,7 @@ import unittest
 from pathlib import Path
 
 import yaml
+from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
@@ -137,6 +139,23 @@ class TaskPackBudgetClosureV931Tests(unittest.TestCase):
         audit = (ROOT / "modules/01_problem_audit.md").read_text(encoding="utf-8")
         self.assertIn("完整派生且去重", audit)
         self.assertNotIn("输出至多三个 `legacy_task_packs`", audit)
+
+    def test_project_state_schema_accepts_derived_four_pack_compatibility_alias(self):
+        schema = yaml.safe_load(
+            (ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8")
+        )
+        example = yaml.safe_load(
+            (ROOT / "state/project_state.example.yaml").read_text(encoding="utf-8")
+        )
+        candidate = copy.deepcopy(example)
+        classification = candidate["subproblems"]["Q1"]["classification"]
+        classification["objective"] = "optimization"
+        classification["structures"] = ["spatial", "network", "stochastic"]
+        classification["legacy_task_packs"] = [
+            "optimization", "spatial", "graph_network", "simulation"
+        ]
+        errors = list(Draft202012Validator(schema).iter_errors(candidate))
+        self.assertEqual(errors, [])
 
     def test_structure_count_above_taxonomy_limit_still_fails_closed(self):
         with self.assertRaisesRegex(ValueError, "at most 3 structures are allowed"):
