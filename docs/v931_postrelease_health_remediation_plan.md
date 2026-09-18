@@ -754,16 +754,51 @@ Next stage:
 
 ---
 
-# 15. 初始状态
+# 15. 当前实施状态
 
-Plan PR: IN_PROGRESS  
-PR A: NOT_STARTED  
-PR B: NOT_STARTED  
+Plan PR: MERGED（PR #181，merge `b4fe9e3abc81a4481a322b5bd756913d2492e256`）  
+PR A: MERGED（PR #182，merge `87a9d3b362562df7265ef2e790d0baf86f44973c`）  
+PR B: MERGED（PR #183，merge `2de9f60f12e50612bc6ff4f451cab2dad855dac4`）  
 PR C: NOT_STARTED  
 PR D: NOT_STARTED  
 Release 9.3.1: NOT_STARTED  
 Branch hygiene: DEFERRED_PENDING_EXPLICIT_APPROVAL  
 Docs archive/index hygiene: DEFERRED_PENDING_INVENTORY
+
+## 15.1 PR A 实施记录
+
+PR: #182 — `fix: restore model-design capability closure after v9.3`  
+Branch: `fix/v9.3.1-model-design-capability-restoration`  
+Base main SHA: `b4fe9e3abc81a4481a322b5bd756913d2492e256`  
+Scope: 恢复 Module 02 framework read/write、`mechanism_contracts` producer semantics 与阶段门槛，并增加 capability-preservation regression。  
+Files: `modules/02_model_design.md`、`tests/test_v931_model_design_capability_preservation.py` 与 generated metadata。  
+Tests: full HSK Skill CI passed。  
+CI: success。  
+Generated files: generator-produced metadata synchronized；中途 stale generated file failure 已按生成流程修正，未削弱 gate。  
+Review blockers: none。  
+Merge SHA: `87a9d3b362562df7265ef2e790d0baf86f44973c`。  
+Residual issues: A2/B1–B4/C1–C5 继续按本计划后续阶段处理。  
+Next stage: PR B。
+
+## 15.2 PR B 实施记录
+
+PR: #183 — `fix: close taxonomy-valid task-pack budget gap`  
+Branch: `fix/v9.3.1-task-pack-budget-closure`  
+Base main SHA: `87a9d3b362562df7265ef2e790d0baf86f44973c`。  
+Scope: 修复 taxonomy 合法的 objective + 3 structures 可能解析为 4 个 unique task packs、却被旧 3-pack budget 拒绝的问题；把 budget 读取收口到 Router；同步 legacy compatibility alias，不改变 lifecycle。  
+Files: `core/workflow_router.yaml`、`scripts/resolve_workflow.py`、`core/project_state.schema.yaml`、`modules/01_problem_audit.md`、`tests/test_v931_task_pack_budget_closure.py`、一处兼容 drift guard 与 generated metadata。  
+Key closure:
+- Router `task_pack_budget: 4` 可覆盖当前 taxonomy 最大合法 unique-pack 组合；
+- Resolver 读取 Router budget，不再硬编码 3；
+- `legacy_task_packs` 作为派生兼容 alias 不再在 Project State Schema 重复设置 `maxItems: 3`；
+- Module 01 明确 compatibility packs 必须完整派生、去重，不得人为截断；
+- 超过 taxonomy 的 3 structures 上限仍 fail closed。
+Tests: 新增合法四 Pack、reading-plan、dedupe、schema compatibility、Router-authoritative budget 等回归。  
+CI: PR head 的 HSK Skill CI 与 Optimization baseline evidence 均 success；merge 后 main 的 HSK Skill CI 与 generated metadata refresh 均 success。  
+Review blockers: none。  
+Merge SHA: `2de9f60f12e50612bc6ff4f451cab2dad855dac4`。  
+Residual issues: B1/B2/B3/B4/C5 进入 PR C；C1/C4 进入 PR D；branch/docs hygiene 继续保持单独审批。  
+Next stage: PR C — v9.3 Semantic Surface Alignment。
 
 ---
 
