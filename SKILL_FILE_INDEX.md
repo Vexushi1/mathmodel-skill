@@ -2,7 +2,11 @@
 
 当前 Skill 版本：9.3.1
 
-本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
+本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
+Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
+历史归档正文仍通过 `legacy/README.md` 追溯；所有本索引文件是否进入 MANIFEST 仍由 `iter_files()` 独立决定。
+
+## Active Runtime & Reference
 
 - `.codex-plugin/plugin.json`
 - `.gitattributes`
@@ -63,49 +67,8 @@
 - `core/workflow_router.yaml`
 - `core/writing_reasoning_contract.yaml`
 - `core/writing_runtime_contract.yaml`
-- `docs/main-branch-protection-hardening-plan.md`
-- `docs/matlab_publication_rendering_v91_plan.md`
-- `docs/p3a_global_policy_source_map.md`
-- `docs/p3b_writing_role_source_map.md`
-- `docs/p4_compact_framework_progression.md`
-- `docs/p5a_run_config_migration.md`
-- `docs/p5b_run_receipt_versioning.md`
-- `docs/p6a_figure_reference_profile_split.md`
-- `docs/p6b_matlab_rendering_preview.md`
-- `docs/p7_conditional_analysis_appendix.md`
-- `docs/p8_infrastructure_measurement.md`
-- `docs/p8d_lint_function_measurement.md`
-- `docs/p8e_validator_split_decision.md`
-- `docs/p9_release_closeout.md`
-- `docs/phase_e_artifact_identity_inventory.md`
-- `docs/phase_f_transaction_writer_inventory.md`
-- `docs/phase_i_artifact_alias_retirement.md`
-- `docs/phase_i_artifact_state_surface_removal.md`
-- `docs/phase_i_compatibility_inventory.md`
-- `docs/phase_i_compatibility_removal_readiness.md`
-- `docs/phase_i_legacy_writer_retirement.md`
-- `docs/phase_i_legacy_writer_retirement_readiness.md`
-- `docs/phase_i_v9_applicability_renewal.md`
-- `docs/phase_i_v9_release_carrier_transition.md`
-- `docs/phase_i_v9_release_closure.md`
-- `docs/semantic_state_runtime_refactor_plan.md`
-- `docs/skill_optimization_status.md`
-- `docs/v801_chapter_capability_preservation_audit.md`
-- `docs/v801_skill_health_remediation_plan.md`
-- `docs/v801_skill_health_remediation_status.md`
-- `docs/v840_author_reasoning_evaluation.md`
-- `docs/v850_author_reasoning_voice_evaluation.md`
-- `docs/v860_model_construction_solution_rationale_evaluation.md`
-- `docs/v870_question_writing_capability_preflight_evaluation.md`
 - `docs/v871_writing_reasoning_schema_version_policy.md`
-- `docs/v8_writing_capability_inventory.md`
-- `docs/v8_writing_migration.md`
 - `docs/v900_migration_contract.md`
-- `docs/v921_p7_conditional_analysis_semantic_hygiene_plan.md`
-- `docs/v931_postrelease_health_remediation_plan.md`
-- `docs/v931_repository_hygiene_inventory.md`
-- `docs/v9_3_initial_modeling_structural_reduction_refactor_plan.md`
-- `legacy/README.md`
 - `modules/01_problem_audit.md`
 - `modules/02_model_design.md`
 - `modules/03_data_preprocessing.md`
@@ -405,4 +368,58 @@
 - `tests/test_v930_domain_reduction_cues.py`
 - `tests/test_v930_initial_modeling_core.py`
 - `tests/test_v931_model_design_capability_preservation.py`
+- `tests/test_v931_repository_hygiene_index.py`
 - `tests/test_v931_task_pack_budget_closure.py`
+
+## Current Maintenance Records
+
+- `docs/skill_optimization_status.md`
+- `docs/v931_postrelease_health_remediation_plan.md`
+- `docs/v931_repository_hygiene_inventory.md`
+
+## Migration / Compatibility Records
+
+- `docs/p5a_run_config_migration.md`
+- `docs/phase_e_artifact_identity_inventory.md`
+- `docs/phase_f_transaction_writer_inventory.md`
+- `docs/phase_i_artifact_alias_retirement.md`
+- `docs/phase_i_artifact_state_surface_removal.md`
+- `docs/phase_i_compatibility_inventory.md`
+- `docs/phase_i_compatibility_removal_readiness.md`
+- `docs/phase_i_legacy_writer_retirement.md`
+- `docs/phase_i_legacy_writer_retirement_readiness.md`
+- `docs/phase_i_v9_applicability_renewal.md`
+- `docs/phase_i_v9_release_carrier_transition.md`
+- `docs/phase_i_v9_release_closure.md`
+- `docs/semantic_state_runtime_refactor_plan.md`
+- `docs/v8_writing_migration.md`
+
+## Historical Maintenance Provenance
+
+- `docs/main-branch-protection-hardening-plan.md`
+- `docs/matlab_publication_rendering_v91_plan.md`
+- `docs/p3a_global_policy_source_map.md`
+- `docs/p3b_writing_role_source_map.md`
+- `docs/p4_compact_framework_progression.md`
+- `docs/p5b_run_receipt_versioning.md`
+- `docs/p6a_figure_reference_profile_split.md`
+- `docs/p6b_matlab_rendering_preview.md`
+- `docs/p7_conditional_analysis_appendix.md`
+- `docs/p8_infrastructure_measurement.md`
+- `docs/p8d_lint_function_measurement.md`
+- `docs/p8e_validator_split_decision.md`
+- `docs/p9_release_closeout.md`
+- `docs/v801_chapter_capability_preservation_audit.md`
+- `docs/v801_skill_health_remediation_plan.md`
+- `docs/v801_skill_health_remediation_status.md`
+- `docs/v840_author_reasoning_evaluation.md`
+- `docs/v850_author_reasoning_voice_evaluation.md`
+- `docs/v860_model_construction_solution_rationale_evaluation.md`
+- `docs/v870_question_writing_capability_preflight_evaluation.md`
+- `docs/v8_writing_capability_inventory.md`
+- `docs/v921_p7_conditional_analysis_semantic_hygiene_plan.md`
+- `docs/v9_3_initial_modeling_structural_reduction_refactor_plan.md`
+
+## Legacy Navigation
+
+- `legacy/README.md`
