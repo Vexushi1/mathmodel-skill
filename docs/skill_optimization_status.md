@@ -52,7 +52,8 @@ v9.3.0 的正式升级链：
 - PR #182（PR A）：恢复 v9.3 重构中意外截断的 Module 02 framework read/write、`mechanism_contracts` producer semantics 与阶段门槛，merge `87a9d3b362562df7265ef2e790d0baf86f44973c`；
 - PR #183（PR B）：闭合 taxonomy-valid 4-pack classification / Router budget / Resolver single-source gap，merge `2de9f60f12e50612bc6ff4f451cab2dad855dac4`；
 - PR #185（PR C）：同步 active route-comparison template、Framework minimal-sufficiency/comparator memory、Approval field semantics、Manifest descriptions 与 Task Pack heading，merge `ed0f013fc024dc9d27c2ead6b370a21f7b6f88eb`；
-- PR D：仅处理维护状态与 discovery 文案，不改变 Runtime、Schema、CLI、Model Challenge/Human Approval 或工作簿/用户执行语义；正式 9.3.1 release carrier 升级仍留给独立 closeout PR。
+- PR #186（PR D）：完成维护状态与 discovery 文案对齐，merge `48d05a98f6a7dd97770f8a1adc9c88e2cde29462`；不改变 Runtime、Schema、CLI、Model Challenge/Human Approval 或工作簿/用户执行语义；
+- PR #187：独立 v9.3.1 release closeout，只推进 current release carriers、README/CHANGELOG、release regression 与 generated metadata；branch/docs hygiene 不进入本 release。
 
 v9.3 系列的稳定建模语义是：先把题目条件转成数学后果并利用可证明结构化简，再形成当前最小充分主模型；comparator 只在有明确比较问题时启用；solver 必须在模型结构闭合后按结构选择。复杂度或“高级方法”本身不构成创新性或主模型准入理由。
 
