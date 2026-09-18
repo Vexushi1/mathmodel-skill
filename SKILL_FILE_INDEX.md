@@ -103,6 +103,7 @@
 - `docs/v900_migration_contract.md`
 - `docs/v921_p7_conditional_analysis_semantic_hygiene_plan.md`
 - `docs/v931_postrelease_health_remediation_plan.md`
+- `docs/v931_repository_hygiene_inventory.md`
 - `docs/v9_3_initial_modeling_structural_reduction_refactor_plan.md`
 - `legacy/README.md`
 - `modules/01_problem_audit.md`
