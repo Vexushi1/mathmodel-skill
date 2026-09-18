@@ -32,6 +32,37 @@ class CurrentSkillHealthTests(unittest.TestCase):
         self.assertIn("Final Review Compliance & Evidence Sweep", root_skill)
         self.assertIn("Editable Mechanism Diagram", root_skill)
 
+    def test_discovery_surfaces_reflect_structure_first_modeling(self):
+        plugin = yaml.safe_load((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")) or {}
+        description = str(plugin.get("description", ""))
+        for token in (
+            "condition-driven structural reduction",
+            "minimal-sufficient main-model",
+            "structure-matched solver",
+        ):
+            self.assertIn(token, description)
+
+        short = str((plugin.get("interface") or {}).get("shortDescription", ""))
+        for token in ("条件驱动结构化简", "最小充分主模型", "结构匹配求解"):
+            self.assertIn(token, short)
+
+        agent = yaml.safe_load((ROOT / "agents/openai.yaml").read_text(encoding="utf-8")) or {}
+        interface = agent.get("interface") or {}
+        agent_short = str(interface.get("short_description", ""))
+        for token in ("条件驱动结构化简", "最小充分主模型", "结构匹配求解"):
+            self.assertIn(token, agent_short)
+        prompt = str(interface.get("default_prompt", ""))
+        for token in (
+            "core/bootstrap.yaml",
+            "scripts/resolve_runtime.py",
+            "convert problem conditions into mathematical consequences",
+            "condition-driven structural reduction",
+            "minimal-sufficient main model",
+            "structure-matched solver",
+        ):
+            self.assertIn(token, prompt)
+        self.assertNotIn("exact / proven_sufficient / heuristic", prompt)
+
     def test_active_skill_authority_targets_exist(self):
         root_skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         authority = root_skill.split("## Authority 导航", 1)[1].split("\n## ", 1)[0]
