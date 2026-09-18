@@ -28,8 +28,8 @@ class DomainReductionCuesV930Tests(unittest.TestCase):
         for name, (path, _) in PACKS.items():
             with self.subTest(pack=name):
                 text = read(path)
-                self.assertIn("## 2. 路线比较", text)
-                self.assertIn("初始化结构化简优先项", text)
+                self.assertIn("## 2. 初始化结构化简优先项与 comparator 选择", text)
+                self.assertNotIn("## 2. 路线比较", text)
                 self.assertIn("主模型", text)
                 self.assertIn("comparator", text)
 

@@ -42,6 +42,22 @@ class ModelApprovalContractTests(unittest.TestCase):
         self.assertEqual(contract["lock_semantics"]["before_approval"], "proposed_model_spec")
         self.assertEqual(contract["lock_semantics"]["after_approval"], "locked_model_spec")
 
+    def test_contract_interprets_legacy_route_fields_with_v930_minimal_sufficient_semantics(self):
+        contract = yaml.safe_load((ROOT / "core" / "model_approval_contract.yaml").read_text(encoding="utf-8"))
+        semantics = contract["model_challenge"]["check_semantics"]
+        self.assertIn("minimal-sufficient main model", semantics["route_selection_fit"])
+        self.assertIn("Condition -> Consequence", semantics["route_selection_fit"])
+        self.assertIn("before solver selection", semantics["structure_before_algorithm"])
+        self.assertIn("minimal-sufficiency check", semantics["simpler_baseline_may_be_sufficient"])
+
+        fields = contract["human_approval"]["approval_brief_fields"]
+        self.assertIn("structural_simplification", fields)
+        self.assertIn("rejected_route_reason", fields)
+        field_semantics = contract["human_approval"]["approval_brief_field_semantics"]
+        self.assertIn("minimal-sufficiency rationale", field_semantics["structural_simplification"])
+        self.assertIn("may be not_applicable", field_semantics["rejected_route_reason"])
+        self.assertIn("fixed two-route comparison", field_semantics["rejected_route_reason"])
+
     def test_solve_module_requires_model_approval_validator(self):
         text = (ROOT / "modules" / "03_solve_validate.md").read_text(encoding="utf-8")
         self.assertIn("scripts/validate_model_approval.py", text)
