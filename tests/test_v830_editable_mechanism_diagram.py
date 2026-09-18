@@ -422,8 +422,10 @@ class ContractAndDriftTests(unittest.TestCase):
     # duplicate RUN_CONFIG parser is consolidated without changing its field policy or errors.
     # v9.3.1 PR B intentionally rebaselines only project-state classification compatibility
     # metadata: the deprecated legacy_task_packs alias no longer duplicates Router's pack budget.
+    # v9.3.1 PR C intentionally rebaselines only Model Approval semantic-surface wording:
+    # field/state identities remain unchanged while v9.3 minimal-sufficient/comparator meanings are made explicit.
     PROTECTED = {
-        "core/model_approval_contract.yaml": "b86a18b4b0e160e837186ac4273bd06f0426d0f4",
+        "core/model_approval_contract.yaml": "fab8ecece97e874a6332427715ba4b24eab3c90a",
         "core/numerical_verification_contract.yaml": "f7e1921ec4945cb5e87984ccb8946302d854143f",
         "core/workbook_schema.yaml": "ea33b857602754258915e35dbb0373e1f73fa7af",
         "core/project_state.schema.yaml": "8632a709047a55e0432d7903089fb4fc7672e8cf",

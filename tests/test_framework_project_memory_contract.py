@@ -41,6 +41,11 @@ class FrameworkProjectMemoryContractTests(unittest.TestCase):
             "### Citation Evidence",
             "**深化证据处置**",
             "### 正文章节与交付映射",
+            "**Condition → Consequence / Reduction Summary**",
+            "**Minimal Sufficiency**",
+            "**Comparator Envelope（按需）**",
+            "若继续简化首先损失的必要信息",
+            "comparison question",
             "图表证据链",
         ):
             self.assertIn(token, template)

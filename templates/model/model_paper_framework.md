@@ -265,6 +265,30 @@
 | 隐含约束 |  |  |
 | 不允许的简化 |  |  |
 
+**Condition → Consequence / Reduction Summary**
+
+> 只登记本问实际采用、且会改变模型结构、变量/状态空间、可行域、计算域或 solver 结构的高价值条件—后果关系；不复制通用结构检索清单。
+
+| ID | 题面条件 / 定义 / 数据事实 | 数学后果 | Reduction Provenance | 下游作用 |
+|---|---|---|---|---|
+| R1 |  |  | exact / proven_sufficient / heuristic / not_applicable |  |
+
+**Minimal Sufficiency**
+
+- 当前最小充分主模型：
+- 为什么已经充分：
+- 若继续简化首先损失的必要信息：
+- 未进入主模型的机制/自由度及理由：
+
+**Comparator Envelope（按需）**
+
+- 状态：`not_applicable / active`
+- comparator 数量：`0..N`
+
+| Comparator | role | comparison question | 相对主模型的额外/删减结构 | evidence target | 当前状态 |
+|---|---|---|---|---|---|
+|  | simple_baseline / high_fidelity / advanced_method / ablation / alternative_structure / bound / independent_solver / stress_model |  |  |  | proposed / planned / evidenced / rejected / not_applicable |
+
 **数据与局部处理**
 
 - 输入数据：

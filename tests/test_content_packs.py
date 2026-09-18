@@ -9,7 +9,7 @@ TASK_PACKS = [
     "simulation", "spatial", "graph_network", "scheduling", "game_decision",
 ]
 HEADINGS = [
-    "## 1. 进入条件", "## 2. 路线比较", "## 3. 变量与公式闭环",
+    "## 1. 进入条件", "## 2. 初始化结构化简优先项与 comparator 选择", "## 3. 变量与公式闭环",
     "## 4. 必做验证与输出", "## 5. 否决或降级条件",
 ]
 
@@ -22,6 +22,21 @@ class TestContentPacks(unittest.TestCase):
             for heading in HEADINGS:
                 self.assertIn(heading, text, f"{path}: {heading}")
             self.assertGreaterEqual(len(text.splitlines()), 20, str(path))
+
+    def test_route_comparison_template_uses_minimal_main_model_and_optional_comparators(self):
+        text = (ROOT / "templates/problem/model_route_compare.md").read_text(encoding="utf-8")
+        self.assertIn("current 最小充分主模型", text)
+        self.assertIn("Comparator 为 `0..N`", text)
+        self.assertIn("main_model", text)
+        self.assertIn("comparison question", text)
+        self.assertNotIn("高级创新/融合", text)
+        self.assertNotIn("推荐等级", text)
+
+        manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
+        catalog = manifest["artifact_catalog"]
+        self.assertIn("最小充分主模型", catalog["route_comparison"])
+        self.assertIn("0..N", catalog["route_comparison"])
+        self.assertIn("最小充分主模型", catalog["selected_models"])
 
     def test_advanced_method_gate_is_separate_from_classifier_labels(self):
         gate = (ROOT / "packs/task/advanced_method_gate.md").read_text(encoding="utf-8")

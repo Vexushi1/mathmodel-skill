@@ -51,11 +51,11 @@ artifact_catalog:
   data_schema: 字段、单位、粒度、键和数据质量口径
   preprocessing_decision: 数据审计后的条件判定；not_needed/question_local/project_level决定是否创建统一预处理阶段以及下游raw/preprocessed事实源
   risks: 审题、数据、模型和交付风险
-  route_comparison: 每问模型路线比较
-  selected_models: 每问选定模型
+  route_comparison: 兼容artifact key；记录每问当前最小充分主模型与0..N信息型comparator的选择/比较事实，不要求固定经典/高级双路线
+  selected_models: 每问当前选定的最小充分主模型；不表示固定多路线二选一
   proposed_model_spec: 已完成语义闭环、Complexity Sanity并等待Model Challenge/Human Approval锁定的当前候选模型
   model_challenge: 当前Model Reviewer与Devil's Advocate两次独立审查结论、required actions和residual warnings；不单独落盘
-  model_approval_brief: 提交给用户确认的当前模型摘要；绑定当前semantic revision与validated structured identity，不单独落盘
+  model_approval_brief: 提交给用户确认的当前模型摘要；包含结构化简与最小充分性理由、按需Comparator Envelope及结构匹配solver语义，绑定当前semantic revision与validated structured identity，不单独落盘
   awaiting_model_approval: Model Challenge已可进入人工确认但用户尚未明确批准当前semantic_revision与validated semantic_identity_hash的暂停状态
   human_model_approval: 用户对当前semantic_revision与validated semantic_identity_hash的明确批准状态；机器绑定记录在project_state中
   locked_model_spec: 仅在Model Challenge passed且Human Model Approval绑定当前semantic_revision与validated semantic_identity_hash后成立的已锁定变量、假设、公式、目标和约束
@@ -65,7 +65,7 @@ artifact_catalog:
   semantic_closure: 题面对象与要求—数学层—Python层—输出证据三层闭环
   complexity_sanity_check: 对异常降维、解耦、条件闲置和异常容易求解的复审结论
   proposition_plan: 全文高价值命题规划；0--4为默认正文阅读预算，超过预算时记录必要性说明而非自动否决
-  model_paper_framework: 助手可再次读取的当前项目语义记忆与论文骨架；只保存Problem Contract、预处理判定、标准模型类型与正式模型名称、Model/Solver/Validator角色、优化目标摘要口径、Formula Trace、Algorithm Trace、Model Challenge/Human Approval当前状态、参数证据、Terminology Registry、Numeric Profile、Title Claim、Claim Evidence Level/Scope、问题章节小节规划、命题、Citation Evidence、paper-fragment状态、逐问结果摘要和图表映射，通用写作规则由Authority管理，具体数值仍以已验收工作簿为准
+  model_paper_framework: 助手可再次读取的当前项目语义记忆与论文骨架；只保存Problem Contract、高价值Condition→Consequence/Reduction项目事实、最小充分性理由、按需Comparator Envelope、预处理判定、标准模型类型与正式模型名称、Model/Solver/Validator角色、优化目标摘要口径、Formula Trace、Algorithm Trace、Model Challenge/Human Approval当前状态、参数证据、Terminology Registry、Numeric Profile、Title Claim、Claim Evidence Level/Scope、问题章节小节规划、命题、Citation Evidence、paper-fragment状态、逐问结果摘要和图表映射，通用写作规则由Authority管理，具体数值仍以已验收工作簿为准
   mechanism_contracts: 机理图合同
   mechanism_diagram_spec: 可选的v1 draw.io渲染规格；只引用current Framework/Contract，不是模型或数值事实源
   editable_mechanism_source: 由确定性生成器产生并通过结构检查的未压缩可编辑.drawio源；不能替代渲染预览和人工语义QA

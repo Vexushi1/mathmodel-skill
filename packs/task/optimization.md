@@ -6,7 +6,7 @@
 
 本 Pack 只定义优化题的题型建模要求；正式论文中的模型命名、Model/Solver/Validator 角色、变量—目标—约束表达顺序和算法说明统一服从 `core/writing_reasoning_contract.yaml`，正文落地服从 `modules/05_writing/latex.md`。
 
-## 2. 路线比较与初始化结构化简优先项
+## 2. 初始化结构化简优先项与 comparator 选择
 
 在写 LP/MILP/NLP 或选择启发式算法之前，先利用题设结构缩小真正的决策空间：
 
