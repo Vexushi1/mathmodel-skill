@@ -368,6 +368,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_v930_domain_reduction_cues.py`
 - `tests/test_v930_initial_modeling_core.py`
 - `tests/test_v931_model_design_capability_preservation.py`
+- `tests/test_v931_repository_hygiene_index.py`
 - `tests/test_v931_task_pack_budget_closure.py`
 
 ## Current Maintenance Records
