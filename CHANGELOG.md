@@ -1,6 +1,16 @@
 # Changelog
 
-## Current release: 9.2.1
+## Current release: 9.3.0
+
+- Moved condition-driven structural reduction ahead of model naming and solver selection: current Problem Contract facts are converted into mathematical consequences before the minimal-sufficient main model is proposed.
+- Replaced the former mandatory classic-versus-advanced two-route framing with one minimal-sufficient main model plus `0..N` information-bearing comparators; advanced methods remain available when they add a necessary mechanism or answer an explicit comparison question.
+- Reused existing `exact / proven_sufficient / heuristic` Reduction Provenance and preserved the existing Model Reviewer, Devil's Advocate, explicit Human Model Approval, Semantic Identity, typed-stale and runtime-gate lifecycle instead of creating a new structural-reduction gate.
+- Added domain-specific structure discovery cues for mechanism, optimization, prediction, evaluation, statistics/ML, graph/network, scheduling, game/decision, simulation and spatial tasks; task classification remains a structure-discovery input rather than a direct model-name/algorithm mapping.
+- Separated advanced-method roles into `main_model`, `quantitative_comparator` and `exploratory_only`; complexity or novelty alone is not sufficient admission evidence.
+- Preserved route IDs, CLI, required schemas, project-state/workbook/output interfaces and user-owned full-fidelity execution. Existing projects remain read-compatible and require no bulk migration solely for this release.
+- Release acceptance requires the complete HSK Skill CI and Optimization baseline evidence on the final generated head; valid tests and gates are not deleted, weakened or bypassed.
+
+## Previous release: 9.2.1
 
 - Closed the post-v9.2.0 P7 Analysis Necessity Gate semantic-hygiene gap without adding a new Schema, CLI, project directory, numerical stage or Figure business rule.
 - PR A aligned User Execution activation with `accepted_primary_workbook and analysis_necessity_gate == required` and fixed `q1_plot.m` so a valid `result_analysis_status=not_required` project does not require a nonexistent 03B workbook while explicit 03B evidence remains fail-closed.
@@ -287,7 +297,7 @@
 - Added **Optimization Model Expression** closure for optimization/scheduling/routing/allocation/control problems: standard model type and real objective → decision variables/objects → objective function and interpretation → constraints by source → adaptive core-model summary → solver/validation.
 - Upgraded optimization abstracts so they must communicate what is being optimized; listing decision variables and an algorithm without objective semantics is no longer considered model-information closure.
 - Added **Solver Justification** for first use, cross-question reuse, solver changes and alternative-method evidence. Alternative algorithms enter the paper only when actually run and traceable as baseline, alternative or validator with comparable evidence.
-- Added **Subsection Granularity** governance focused only on second-level subsections inside question chapters. About 3–4 major units is a default reading structure, not a hard count; top-level chapter count is not restricted, and count alone cannot decide section quality.
+- Added **Subsection Granularity** governance focused only on second-level subsections inside question chapters. About 3--4 major units is a default reading structure, not a hard count; top-level chapter count is not restricted, and count alone cannot decide section quality.
 - Added five-level **Claim Strength Calibration** (`PROVEN`, `VERIFIED_NUMERIC`, `COMPARATIVE`, `OBSERVED`, `HEURISTIC`) to stop numerical/heuristic evidence from being polished into unsupported proof, global-optimality, universal-comparison or strong-robustness claims. Abstract wording receives the strictest scope review.
 - Extended the existing `v0.8-project-memory` model-paper framework with standard model type, formal model name, Model/Solver/Validator roles, optimization-objective abstract closure, solver evidence roles, subsection planning, and headline claim Evidence Level/Scope, without a framework schema-version migration.
 - Extended model design and final review so paper-ready model identity and algorithm rationale are captured upstream rather than reconstructed during writing from chat memory.
@@ -437,7 +447,7 @@
 - Added `support / modify / reject` result-analysis evidence disposition. Every sensitivity, robustness, out-of-sample, stress or multi-method result can be tied to a target claim and required action; rejecting a core answer triggers redo/redesign, while rejecting an auxiliary evaluation claim may be handled by explicit removal/rewrite.
 - Added local paper-fragment stale propagation for v0.8 projects. A Q3 semantic/result change only invalidates paper fragments that actually depend on Q3 (for example Q3 prose, figures, abstract claim, evaluation sentence or Title Claim); unrelated background/Q1/Q2 remain current. v0.7 and earlier whole-framework stale semantics remain read-compatible.
 - Added `Paragraph Necessity Test`: if deleting a paragraph loses no problem requirement, mechanism, mathematical relation, solver basis, result evidence or necessary boundary, it should be removed, merged or moved to an appendix. Machine heuristics may warn but cannot automatically delete prose.
-- Numerical modeling, conditional preprocessing, workbook Schema, Python/MATLAB ownership, full-fidelity user execution and the per-question five-file interface remain unchanged.
+- Numerical modeling, conditional preprocessing semantics, workbook Schema, Python/MATLAB ownership, full-fidelity user execution and the per-question five-file interface remain unchanged.
 
 ## Previous release: 7.6.0
 

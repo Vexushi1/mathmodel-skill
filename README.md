@@ -1,6 +1,14 @@
-# mathmodel-skill v9.2.1
+# mathmodel-skill v9.3.0
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 + 模型路线/数据需求比较 → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构化简与 Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision / semantic_identity_hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 → 条件数学化与结构化简 → 最小充分主模型 + 按需 comparator → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构匹配 Solver + Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision / semantic_identity_hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v9.3.0：条件驱动结构化简与最小充分初始建模
+
+v9.3.0 把“结构化简优先于算法升级”从后置检查前移为初始建模生成顺序：Problem Contract 冻结后，先把题面条件、定义、守恒/不变量、几何/时间/网络/随机结构转成数学后果，再按 `exact / proven_sufficient / heuristic` Reduction Provenance 判断消元、降维、分解、排序、边界化、充分状态或等价变换；当前主模型以**最小充分**为目标，solver 选择后置并服从已经识别出的数学结构。
+
+原先“每问强制经典稳健 + 高级创新两条路线”的默认框架被替换为“最小充分主模型 + `0..N` 有明确比较问题的 comparator”。高级模型仍可作为主模型或定量 comparator，但必须说明它新增的必要机制、精度/非线性/不确定性/高维交互/复杂约束价值或明确比较信息；复杂度和算法名本身不构成准入理由。PR #178 完成核心 Authority、Router、Classifier 与回归，PR #179 将结构发现线索落实到机理、优化、预测、评价、统计/ML、图网络、调度、博弈、仿真和空间 Pack，并区分 `main_model / quantitative_comparator / exploratory_only`。
+
+本次升级不新增 workflow stage 或 pre-delivery gate，不改变 Model Reviewer / Devil's Advocate / Human Model Approval、Semantic Identity、typed stale、route/CLI/required Schema、Workbook/Output 或用户 full-fidelity 执行接口；旧项目继续按现有兼容窗口读取，无需因 v9.3.0 批量迁移。
 
 ## v9.2.1：P7 条件式结果分析语义卫生补丁
 
