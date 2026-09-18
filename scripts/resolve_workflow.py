@@ -96,6 +96,17 @@ def axes_to_packs(
     return unique(packs)
 
 
+def classification_task_pack_budget(router: dict[str, Any]) -> int:
+    """Return the Router-authoritative classified task-pack loading budget."""
+    contract = router.get("classification_contract", {}) or {}
+    value = contract.get("task_pack_budget")
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise ValueError(
+            "router classification_contract.task_pack_budget must be a positive integer"
+        )
+    return value
+
+
 def ordered_modules(paths: Iterable[str], manifest: dict[str, Any], workflow_order: Iterable[str]) -> list[str]:
     order = list(workflow_order)
     rank = {name: index for index, name in enumerate(order)}
@@ -464,8 +475,12 @@ def resolve_workflow(
         if unknown_capabilities:
             raise ValueError(f"unknown capabilities: {unknown_capabilities}")
         task_packs = unique([*legacy_packs, *axes_to_packs(objective, structures, taxonomy_data)])
-        if len(task_packs) > 3:
-            raise ValueError("resolved task packs exceed the one-primary/two-secondary loading budget")
+        task_pack_budget = classification_task_pack_budget(router)
+        if len(task_packs) > task_pack_budget:
+            raise ValueError(
+                f"resolved task packs ({len(task_packs)}) exceed "
+                f"router task_pack_budget={task_pack_budget}"
+            )
     else:
         structures = []
         capability_list = []

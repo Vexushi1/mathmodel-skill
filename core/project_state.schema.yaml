@@ -101,8 +101,8 @@ $defs:
         description: 兼容别名；若存在必须与小问顶层capabilities一致
         $ref: '#/$defs/capabilities'
       legacy_task_packs:
+        description: 由objective/structures派生的旧Pack兼容字段；数量不在Schema重复设限，必须由分类事实确定并通过语义校验保持一致
         type: array
-        maxItems: 3
         uniqueItems: true
         items: {$ref: '#/$defs/legacy_task_label'}
   artifact_hashes:

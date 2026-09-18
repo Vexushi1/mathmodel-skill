@@ -46,7 +46,7 @@ classification_contract:
   objective_required_for_modeling_routes: true
   structures_max_items: 3
   legacy_task_labels_supported: true
-  task_pack_budget: 3
+  task_pack_budget: 4
 
 execution_contract:
   workflow_order: [problem_audit, model_design, data_preprocessing, solve_validate, result_analysis, figure_evidence, writing_latex, ai_cleanup, latex_compile_quality, review_delivery, writing_docx]

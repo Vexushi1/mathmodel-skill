@@ -12,7 +12,7 @@
 4. 建立“题目要求—模型/代码—结果表/图—论文位置—附录”覆盖表；
 5. 只有改变模型、数据口径、约束或结论的歧义才向用户确认；
 6. 按 `core/task_taxonomy.yaml` 为每问确定一个 objective、至多三个 structures 和独立 capabilities；
-7. 为兼容旧 Pack，输出至多三个 `legacy_task_packs`，但不得将其作为唯一分类事实；
+7. 为兼容旧 Pack，输出由 objective/structures **完整派生且去重**的 `legacy_task_packs`，不得人为截断，也不得将其作为唯一分类事实；
 8. 输出字段—含义—单位—粒度—关联键的初步 data schema；
 9. 标记待证明关系，命题准入在 Module 02 按需处理；
 10. 为每问建立 `problem_contract`，完成题意口径冻结。

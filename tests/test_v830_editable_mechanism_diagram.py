@@ -420,11 +420,13 @@ class ContractAndDriftTests(unittest.TestCase):
     # and q1_plot because conditional Analysis Necessity Gate behavior explicitly changes them.
     # P8c intentionally rebaselines only code-delivery validation because the measured
     # duplicate RUN_CONFIG parser is consolidated without changing its field policy or errors.
+    # v9.3.1 PR B intentionally rebaselines only project-state classification compatibility
+    # metadata: the deprecated legacy_task_packs alias no longer duplicates Router's pack budget.
     PROTECTED = {
         "core/model_approval_contract.yaml": "b86a18b4b0e160e837186ac4273bd06f0426d0f4",
         "core/numerical_verification_contract.yaml": "f7e1921ec4945cb5e87984ccb8946302d854143f",
         "core/workbook_schema.yaml": "ea33b857602754258915e35dbb0373e1f73fa7af",
-        "core/project_state.schema.yaml": "43ac8750e68150c7b01b6101aecdf7e39cd33cb3",
+        "core/project_state.schema.yaml": "8632a709047a55e0432d7903089fb4fc7672e8cf",
         "core/writing_reasoning_contract.yaml": "04ae1a4745d3614c7c01ab97e2f9fbe028b262e1",
         "modules/03_solve_validate.md": "17f6c3e755e64bfc7e8287c607b5a8b5b905c1d1",
         "modules/03_result_analysis.md": "b9384b0d42562a003887cc62427f62546c41d4f5",
