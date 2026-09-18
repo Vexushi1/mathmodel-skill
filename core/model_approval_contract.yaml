@@ -57,6 +57,19 @@ model_challenge:
     - local_property_misstated_as_global
     - simpler_baseline_may_be_sufficient
     - problem_may_have_been_implausibly_over_simplified
+  check_semantics:
+    route_selection_fit: >-
+      Compatibility check id. Interpret it as whether the current selected model is the
+      minimal-sufficient main model after Condition -> Consequence and justified reduction,
+      not as a requirement to choose between a fixed classic Route A and advanced Route B.
+    structure_before_algorithm: >-
+      Require problem conditions, definitions, invariants and task-specific structure to be
+      converted into mathematical consequences before solver selection. Exact/proven-sufficient
+      reduction should be used before escalating generic algorithm complexity.
+    simpler_baseline_may_be_sufficient: >-
+      Adversarial minimal-sufficiency check: if a simpler model can still answer the full prompt
+      with required mechanisms, constraints, precision and outputs, the current main model needs
+      repair or explicit justification. A simple baseline may also remain only as a comparator.
   independence_rule: >-
     The reviewer and devil's-advocate passes must form conclusions independently.
     When native parallel agents are available they may run in parallel; otherwise run
@@ -99,6 +112,16 @@ human_approval:
   - rejected_route_reason
   - residual_warnings
   - next_stage_implementation_scope
+  approval_brief_field_semantics:
+    structural_simplification: >-
+      Record the current reduction provenance and the minimal-sufficiency rationale, including
+      what necessary information would be lost by any further simplification.
+    solver_or_algorithm: >-
+      Record the structure-matched solver chosen only after the current main-model structure is closed.
+    rejected_route_reason: >-
+      Compatibility field; it may be not_applicable. When alternatives or comparators exist, use it
+      for why an alternative was rejected or why a comparator did not become the current main model.
+      It must not imply that every question requires a rejected route or a fixed two-route comparison.
   identity_mode_selection:
     principle: structured_identity_preferred_legacy_only_when_absent
     structured_when: any semantic_identity_* field is present for the current question

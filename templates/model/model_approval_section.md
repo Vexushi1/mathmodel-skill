@@ -30,15 +30,15 @@
 | 项目 | 当前待批准口径 |
 |---|---|
 | 研究对象 |  |
-| selected model |  |
+| selected model（当前最小充分主模型） |  |
 | 核心变量 |  |
 | objective |  |
 | 关键约束 |  |
 | preprocessing_decision |  |
-| 结构化简 |  |
+| 结构化简 / Reduction Provenance / 最小充分性 |  |
 | 求解器/算法 |  |
 | algorithm presentation | `not_needed / stepwise / pseudocode` |
-| 被否决路线及主要理由 |  |
+| Comparator Envelope / 未采用 alternative 或未主模型化理由 | `not_applicable` /  |
 | residual warnings |  |
 | 下一阶段实现范围 |  |
 
