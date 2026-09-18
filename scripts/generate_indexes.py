@@ -39,6 +39,23 @@ GENERATED_RELATIVE = {
     MANIFEST.relative_to(ROOT),
 }
 
+CURRENT_REFERENCE_DOCS = {
+    Path("docs/v871_writing_reasoning_schema_version_policy.md"),
+    Path("docs/v900_migration_contract.md"),
+}
+CURRENT_MAINTENANCE_DOCS = {
+    Path("docs/skill_optimization_status.md"),
+    Path("docs/v931_postrelease_health_remediation_plan.md"),
+    Path("docs/v931_repository_hygiene_inventory.md"),
+}
+SKILL_INDEX_SECTION_ORDER = (
+    ("active_runtime_reference", "Active Runtime & Reference"),
+    ("current_maintenance", "Current Maintenance Records"),
+    ("migration_compatibility", "Migration / Compatibility Records"),
+    ("historical_provenance", "Historical Maintenance Provenance"),
+    ("legacy_navigation", "Legacy Navigation"),
+)
+
 
 def current_skill_version() -> str:
     """Read the active Skill version from the bootstrap single source of truth."""
@@ -104,6 +121,57 @@ def index_text(title: str, files: list[Path], version: str) -> str:
     return "\n".join(lines) + "\n"
 
 
+def skill_index_section(relative: Path) -> str:
+    """Classify active-package files for navigation without changing manifest coverage."""
+    if relative == Path("legacy/README.md"):
+        return "legacy_navigation"
+    if not relative.parts or relative.parts[0] != "docs":
+        return "active_runtime_reference"
+    if relative in CURRENT_REFERENCE_DOCS:
+        return "active_runtime_reference"
+    if relative in CURRENT_MAINTENANCE_DOCS:
+        return "current_maintenance"
+    name = relative.name.lower()
+    if (
+        name.startswith("phase_")
+        or "migration" in name
+        or name == "semantic_state_runtime_refactor_plan.md"
+    ):
+        return "migration_compatibility"
+    return "historical_provenance"
+
+
+def skill_index_text(files: list[Path], version: str) -> str:
+    """Render the Skill index as semantic navigation sections.
+
+    Classification changes only index presentation. iter_files()/MANIFEST continue
+    to retain every active-package file, including maintenance and historical
+    provenance kept outside legacy/.
+    """
+    grouped = {key: [] for key, _ in SKILL_INDEX_SECTION_ORDER}
+    for relative in files:
+        grouped[skill_index_section(relative)].append(relative)
+
+    lines = [
+        "# HSK Active Skill File Index",
+        "",
+        f"当前 Skill 版本：{version}",
+        "",
+        "本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；",
+        "Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。",
+        "历史归档正文仍通过 `legacy/README.md` 追溯；所有本索引文件是否进入 MANIFEST 仍由 `iter_files()` 独立决定。",
+        "",
+    ]
+    for key, title in SKILL_INDEX_SECTION_ORDER:
+        members = grouped[key]
+        if not members:
+            continue
+        lines.extend([f"## {title}", ""])
+        lines.extend(f"- `{path.as_posix()}`" for path in members)
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def compatibility_pointer(target: str) -> str:
     return (
         "# Compatibility Pointer\n\n"
@@ -151,7 +219,7 @@ def generated_payloads() -> dict[Path, str]:
     version = current_skill_version()
     files = iter_files()
     template_files = template_index_files(files)
-    skill_payload = index_text("HSK Active Skill File Index", files, version)
+    skill_payload = skill_index_text(files, version)
     template_payload = index_text("HSK Active Template Index", template_files, version)
     legacy_skill_payload = compatibility_pointer(SKILL_INDEX.name)
     legacy_template_payload = compatibility_pointer(TEMPLATE_INDEX.name)
