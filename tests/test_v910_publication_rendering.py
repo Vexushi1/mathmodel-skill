@@ -10,7 +10,8 @@ class TestV910PublicationRendering(unittest.TestCase):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         self.assertIn("skill_version: 9.3.1", bootstrap)
         self.assertTrue(changelog.startswith("# Changelog\n\n## Current release: 9.3.1\n"))
-        self.assertIn("## Previous release: 9.3.0", changelog)\n        self.assertIn("## Previous release: 9.2.1", changelog)
+        self.assertIn("## Previous release: 9.3.0", changelog)
+        self.assertIn("## Previous release: 9.2.1", changelog)
         self.assertIn("## Previous release: 9.2.0", changelog)
         self.assertIn("9.1.0", changelog)
 
