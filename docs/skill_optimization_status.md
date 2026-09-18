@@ -53,9 +53,21 @@ v9.3.0 的正式升级链：
 - PR #183（PR B）：闭合 taxonomy-valid 4-pack classification / Router budget / Resolver single-source gap，merge `2de9f60f12e50612bc6ff4f451cab2dad855dac4`；
 - PR #185（PR C）：同步 active route-comparison template、Framework minimal-sufficiency/comparator memory、Approval field semantics、Manifest descriptions 与 Task Pack heading，merge `ed0f013fc024dc9d27c2ead6b370a21f7b6f88eb`；
 - PR #186（PR D）：完成维护状态与 discovery 文案对齐，merge `48d05a98f6a7dd97770f8a1adc9c88e2cde29462`；不改变 Runtime、Schema、CLI、Model Challenge/Human Approval 或工作簿/用户执行语义；
-- PR #187：独立 v9.3.1 release closeout，只推进 current release carriers、README/CHANGELOG、release regression 与 generated metadata；branch/docs hygiene 不进入本 release。
+- PR #187：独立 v9.3.1 release closeout，final PR head `3609f424f099ab857e13385d2663151c6fd03ef3` 的 HSK Skill CI 与 Optimization baseline evidence 全绿后合并为 `8a9de52b85a93bb4e04bc03d4298da93b51de326`；合并后 main 的 HSK Skill CI 与 generated metadata refresh 再次 success。branch/docs hygiene 未进入该 release。
 
 v9.3 系列的稳定建模语义是：先把题目条件转成数学后果并利用可证明结构化简，再形成当前最小充分主模型；comparator 只在有明确比较问题时启用；solver 必须在模型结构闭合后按结构选择。复杂度或“高级方法”本身不构成创新性或主模型准入理由。
+
+## v9.3.1：发布后健康修复完成
+
+v9.3.1 是 v9.3.0 的兼容 patch release，不新增新的生命周期 Gate、required Schema root、CLI、项目目录或用户执行阶段。它完成了发布后健康审计中确认的核心问题闭合：
+
+- 恢复 Module 02 被意外截断的 framework read/write、`mechanism_contracts` producer 与 design/approval stage-boundary 语义；
+- 修复 taxonomy 合法四 Pack 分类与旧三 Pack budget 冲突，并把 Router 固化为 task-pack budget 的单一事实源；
+- 让 active route-comparison template、Framework、Approval compatibility field、Manifest 和十类 Task Pack 与“最小充分主模型 + 0..N comparator + structure-matched solver”保持一致；
+- 补齐维护状态与 plugin/agent discovery surface；
+- release closeout PR #187 合并为 `8a9de52b85a93bb4e04bc03d4298da93b51de326`，随后 main 的完整 HSK Skill CI 与 generated metadata verification 均通过。
+
+当前活动 Skill release 为 **9.3.1**。branch cleanup 和历史 docs/index 分层仍是独立治理项，不属于本 patch 的完成条件，也未在本次 release 中执行。
 
 ## 已合并阶段摘要
 

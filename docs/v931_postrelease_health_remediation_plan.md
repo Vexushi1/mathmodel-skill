@@ -2,8 +2,8 @@
 
 > 仓库：Vexushi1/mathmodel-skill  
 > 审计基线：main@4018b3339ce7c1f223039d0c94020fc7378444b1  
-> 当前 Skill：9.3.0  
-> 候选修复版本：9.3.1，仅在实际行为修复完成并通过 release closeout 后执行  
+> 计划创建时 Skill：9.3.0  
+> 实际修复完成版本：9.3.1；release closeout 与 main post-merge verification 已通过  
 > 本文件角色：维护计划与修改参考，不是 Runtime、Modeling、Approval、Schema 或 Writing Authority  
 > 修改原则：先修真实语义缺口，再处理一致性与卫生；不新增后置 Gate，不削弱既有测试，不借修复扩大业务范围。
 
@@ -761,7 +761,7 @@ PR A: MERGED（PR #182，merge `87a9d3b362562df7265ef2e790d0baf86f44973c`）
 PR B: MERGED（PR #183，merge `2de9f60f12e50612bc6ff4f451cab2dad855dac4`）  
 PR C: MERGED（PR #185，merge `ed0f013fc024dc9d27c2ead6b370a21f7b6f88eb`）  
 PR D: MERGED（PR #186，merge `48d05a98f6a7dd97770f8a1adc9c88e2cde29462`）  
-Release 9.3.1: IN_PROGRESS（PR #187，branch `release/v9.3.1-closeout`）  
+Release 9.3.1: MERGED（PR #187，merge `8a9de52b85a93bb4e04bc03d4298da93b51de326`）  
 Branch hygiene: DEFERRED_PENDING_EXPLICIT_APPROVAL  
 Docs archive/index hygiene: DEFERRED_PENDING_INVENTORY
 
@@ -833,7 +833,11 @@ PR: #187 — `release: close v9.3.1 post-release remediation`
 Branch: `release/v9.3.1-closeout`  
 Base main SHA: `48d05a98f6a7dd97770f8a1adc9c88e2cde29462`。  
 Scope: 只推进活动 release carriers、README/CHANGELOG、release regression 与 generated metadata 到 9.3.1；不新增模型、Runtime、Schema、CLI、Gate 或用户项目迁移。  
-Status: IN_PROGRESS；最终合并必须以 final generated head 的 HSK Skill CI + Optimization baseline evidence + mergeability 全部通过为门。  
+Final PR head: `3609f424f099ab857e13385d2663151c6fd03ef3`。  
+CI: final PR head 的 HSK Skill CI 与 Optimization baseline evidence 均 success；Generated file contract、Static lint、Python 3.10--3.14、CUMCM/MCM-ICM/Diangong LaTeX 与 Production LaTeX attestation 全部 success。  
+Merge SHA: `8a9de52b85a93bb4e04bc03d4298da93b51de326`。  
+Post-merge verification: `main@8a9de52b...` 的 HSK Skill CI 与 Refresh generated repository metadata 均 success。  
+Status: COMPLETED。  
 Branch/docs hygiene: 继续 DEFERRED，未经单独审批不执行。
 
 
@@ -856,4 +860,4 @@ Branch/docs hygiene: 继续 DEFERRED，未经单独审批不执行。
 → 同步活动语义面  
 → 最后才做维护与卫生
 
-在本 Plan 获批前，不执行 PR A–D 的业务修改，不删除 branch，不移动历史 docs。
+本 Plan 的核心 remediation 与 v9.3.1 release closeout 已全部完成；branch cleanup 与历史 docs/index hygiene 仍是独立治理项，未经单独审批不执行删除或迁移。
