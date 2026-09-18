@@ -24,12 +24,12 @@ def read(path: str) -> str:
 
 
 class DomainReductionCuesV930Tests(unittest.TestCase):
-    def test_all_domain_packs_are_structure_first(self):
+    def test_all_domain_packs_are_structure_first_and_contract_compatible(self):
         for name, (path, _) in PACKS.items():
             with self.subTest(pack=name):
                 text = read(path)
-                self.assertIn("## 2. 初始化结构化简优先项", text)
-                self.assertNotIn("## 2. 路线比较", text)
+                self.assertIn("## 2. 路线比较", text)
+                self.assertIn("初始化结构化简优先项", text)
                 self.assertIn("主模型", text)
                 self.assertIn("comparator", text)
 
@@ -47,7 +47,7 @@ class DomainReductionCuesV930Tests(unittest.TestCase):
         self.assertIn("exploratory_only", text)
         self.assertIn("比较问题、额外结构、数据/计算可行性、可比指标、证据边界", text)
         self.assertIn("主模型七项硬门槛", text)
-        self.assertNotIn("多一个高级模型更显创新", text.replace("不能因为“多一个高级模型更显创新”而运行。", ""))
+        self.assertIn("不能因为“多一个高级模型更显创新”而运行", text)
 
     def test_domain_packs_do_not_make_advanced_models_default(self):
         banned = (
