@@ -3,7 +3,7 @@
 > 仓库：`Vexushi1/mathmodel-skill`  
 > 审计基线：`main@f028b2dc320f5ad8dd731d60903126fc2d193fae`  
 > 当前 Skill：`9.3.1`  
-> 状态：`H0_INVENTORY_IN_PROGRESS`  
+> 状态：`H0_INVENTORY_MERGED / H1_INDEX_SEGMENTATION_IN_PROGRESS`  
 > 角色：维护清单与治理证据，不是 Runtime / Modeling / Approval Authority。
 
 ## 1. Hygiene 边界
@@ -278,8 +278,8 @@ v9.3 / v9.3.1 的 12 个候选满足 H0 删除候选标准；删除动作应在 
 # 9. 当前状态
 
 ```text
-H0 branch/docs inventory: IN_PROGRESS
-H1 Active Index segmentation: NOT_STARTED
+H0 branch/docs inventory: MERGED（PR #189）
+H1 Active Index segmentation: IN_PROGRESS
 H2 safe branch deletion: NOT_STARTED
 H3 docs move/delete: DEFERRED
 ```
