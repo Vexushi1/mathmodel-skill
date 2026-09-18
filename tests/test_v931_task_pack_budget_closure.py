@@ -126,6 +126,18 @@ class TaskPackBudgetClosureV931Tests(unittest.TestCase):
             self.router["classification_contract"]["task_pack_budget"],
         )
 
+    def test_compatibility_state_alias_does_not_duplicate_loading_budget(self):
+        schema = yaml.safe_load(
+            (ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8")
+        )
+        legacy = schema["$defs"]["classification"]["properties"]["legacy_task_packs"]
+        self.assertNotIn("maxItems", legacy)
+        self.assertTrue(legacy["uniqueItems"])
+
+        audit = (ROOT / "modules/01_problem_audit.md").read_text(encoding="utf-8")
+        self.assertIn("完整派生且去重", audit)
+        self.assertNotIn("输出至多三个 `legacy_task_packs`", audit)
+
     def test_structure_count_above_taxonomy_limit_still_fails_closed(self):
         with self.assertRaisesRegex(ValueError, "at most 3 structures are allowed"):
             self.resolver.resolve_workflow(
