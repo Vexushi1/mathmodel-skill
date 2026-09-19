@@ -169,6 +169,30 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         self.assertIn("Judge Readability Test", self.cleanup)
         self.assertIn("专业缩写/方法名串联", self.cleanup)
 
+    def test_formal_heading_depth_is_three_without_making_level_three_exceptional(self):
+        architecture = self.contract["model_establishment_solution_narrative"][
+            "within_question_subsection_architecture"
+        ]
+        policy = architecture["formal_heading_depth_policy"]
+        self.assertEqual(policy["maximum_semantic_level"], 3)
+        self.assertEqual(policy["allowed_semantic_levels"], [1, 2, 3])
+        self.assertEqual(policy["level_three_status"], "normal_available_level")
+        self.assertEqual(
+            policy["carrier_mapping"]["latex"]["forbidden_formal_heading_commands"],
+            ["paragraph", "subparagraph"],
+        )
+        self.assertIn("不设三级标题数量上限", "\n".join(policy["rules"]))
+        self.assertIn("正式章节禁止四级及以上", "\n".join(policy["rules"]))
+        self.assertIn("Formal Heading Depth", self.protocol)
+        self.assertIn("三级标题属于正常可用层级", self.protocol)
+        self.assertIn("不参与论文标题深度判定", self.protocol)
+        self.assertIn("正式章节禁止四级及以上", self.review)
+
+        audit = self.contract["machine_audit_boundary"]
+        self.assertIn("explicit_active_formal_heading_level_greater_than_three", audit["may_block"])
+        self.assertIn("custom_heading_macro_or_style_depth_unresolved", audit["may_review"])
+        self.assertIn("repository_markdown_heading_depth_is_paper_heading_depth", audit["must_not_claim"])
+
     def test_solver_narrative_is_structure_before_algorithm(self):
         bridge = self.contract["model_establishment_solution_narrative"]["model_to_solver_bridge"]
         self.assertEqual(

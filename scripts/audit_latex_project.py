@@ -21,6 +21,10 @@ VERBATIM_ENV_RE = re.compile(
     re.S,
 )
 PAPER_FRAGMENT_HEADING = "### Paper Fragment Dependency Map"
+DOCUMENT_BODY_RE = re.compile(r"\\begin\s*\{document\}(.*?)\\end\s*\{document\}", re.S)
+DEEP_FORMAL_HEADING_RE = re.compile(
+    r"\\(?P<command>paragraph|subparagraph)\*?\s*(?:\[[^\]]*\]\s*)?\{(?P<title>[^{}]*)\}"
+)
 
 
 def strip_comments(text: str) -> str:
@@ -42,6 +46,29 @@ def strip_comments(text: str) -> str:
 
 def executable_tex(text: str) -> str:
     return strip_comments(VERBATIM_ENV_RE.sub("\n", text))
+
+
+def audit_formal_heading_depth(flattened: str) -> list[Finding]:
+    """Reject explicit active LaTeX sectioning below semantic level 3.
+
+    The flattened source already excludes comments and verbatim-like environments. We
+    inspect only the active document body so preamble macro definitions and class/style
+    declarations are not mistaken for generated paper headings. Custom sectioning macros
+    remain a semantic review concern rather than something guessed from their names.
+    """
+    match = DOCUMENT_BODY_RE.search(flattened)
+    body = match.group(1) if match else flattened
+    findings: list[Finding] = []
+    for heading in DEEP_FORMAL_HEADING_RE.finditer(body):
+        command = heading.group("command")
+        title = re.sub(r"\s+", " ", heading.group("title")).strip() or "<empty>"
+        findings.append(Finding(
+            "blocking",
+            "formal_heading_depth_exceeds_three",
+            "正式论文章节最多三级；活动正文不得使用 paragraph/subparagraph 作为更深正式标题。",
+            f"\\{command}{{{title}}}",
+        ))
+    return findings
 
 
 def resolve_include(project_root: Path, target: str) -> Path | None:
@@ -224,6 +251,7 @@ def audit_project(
         return findings
 
     flattened = flatten_tex(main_file, files)
+    findings.extend(audit_formal_heading_depth(flattened))
     findings.extend(audit_text(flattened))
 
     effective_bib = bib_path

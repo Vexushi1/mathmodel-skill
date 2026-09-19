@@ -32,6 +32,8 @@ Template-First 不等于一开始就读取本 Adapter 并生成全文。普通 C
 - 二级/三级标题是否需要及其命名；
 - 页数目标、命题预算、主张强度和风格判断。
 
+本 Adapter 只执行已确定的标题层级映射：正式论文一级、二级、三级分别使用 `\section`、`\subsection`、`\subsubsection`。`\paragraph`、`\subparagraph` 及其星号形式不得作为新的正式第四/第五级章节，也不得用 `\textbf{...}` 独立行、列表项等排版技巧伪装更深章节。三级以下仍需细分时用普通段落、公式组、证明分情况或算法步骤。宏定义、注释、verbatim/listing 示例本身不是已生成论文标题；无法解析的自定义 sectioning 宏交由 Review 复核，不由 Adapter 猜测层级。
+
 ## 2. 模板实例化
 
 中文国赛正式项目复制完整目录：

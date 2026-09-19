@@ -155,6 +155,69 @@ class TestV790ModularLatexSource(unittest.TestCase):
             findings = self.audit.audit_project(root / "main.tex")
             self.assertFalse(any(x.code == "latex_child_declares_document" for x in findings), findings)
 
+    def test_level_three_headings_are_normal_and_unlimited_by_count(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "main.tex").write_text(
+                r"""\documentclass{article}
+\begin{document}
+\section{问题一}
+\subsection{模型建立}
+\subsubsection{变量}
+\subsubsection{目标}
+\subsubsection{约束}
+\subsubsection{模型汇总}
+\end{document}
+""",
+                encoding="utf-8",
+            )
+            findings = self.audit.audit_project(root / "main.tex")
+            self.assertFalse(
+                any(x.code == "formal_heading_depth_exceeds_three" for x in findings),
+                findings,
+            )
+
+    def test_explicit_fourth_level_latex_heading_is_blocking(self):
+        for command in (r"\paragraph{第四层}", r"\paragraph*{未编号第四层}", r"\subparagraph{第五层}"):
+            with self.subTest(command=command), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / "main.tex").write_text(
+                    "\\documentclass{article}\n\\begin{document}\n"
+                    "\\section{问题一}\n\\subsection{模型建立}\n\\subsubsection{核心关系}\n"
+                    + command
+                    + "\n正文。\n\\end{document}\n",
+                    encoding="utf-8",
+                )
+                findings = self.audit.audit_project(root / "main.tex")
+                item = next((x for x in findings if x.code == "formal_heading_depth_exceeds_three"), None)
+                self.assertIsNotNone(item, findings)
+                self.assertEqual(item.severity, "blocking")
+
+    def test_non_active_deep_heading_text_is_not_misclassified(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "main.tex").write_text(
+                r"""\documentclass{article}
+\newcommand{\exampledeep}{\paragraph{宏定义中的示例}}
+\begin{document}
+% \paragraph{注释示例}
+\begin{verbatim}
+\paragraph{代码示例}
+\end{verbatim}
+\section{问题一}
+\subsection{模型建立}
+\subsubsection{核心关系}
+正文。
+\end{document}
+""",
+                encoding="utf-8",
+            )
+            findings = self.audit.audit_project(root / "main.tex")
+            self.assertFalse(
+                any(x.code == "formal_heading_depth_exceeds_three" for x in findings),
+                findings,
+            )
+
     def test_nested_include_must_be_project_root_relative(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
