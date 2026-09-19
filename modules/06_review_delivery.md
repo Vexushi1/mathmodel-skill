@@ -29,13 +29,13 @@
 
 ## 三、公式、模型角色、算法、命题与数值证据审查
 
-核心公式按 reasoning Authority 的 Source → Derivation → Destination 与 Formula Role 检查；模型建立、求解和结果解释按 Protocol 检查当前 gap、结构选择、适用边界、solver 消费、结果意义和验证边界。数学错误回上游修复，不能由风格润色掩盖。
+核心公式按 reasoning Authority 的 Source → Derivation → Destination、Core Derivation Body Closure 与 Formula Role 检查；模型建立、求解和结果解释按 Protocol 检查当前 gap、结构选择、适用边界、solver 消费、结果意义和验证边界。数学错误回上游修复，不能由风格润色掩盖。
 
 ### Question Writing Capability Activation Review
 
 本检查消费 `core/writing_runtime_contract.yaml#per_question_writing_capability_preflight` 与当前项目状态，验证**项目状态是否在该出现时真的激活了相应能力**：
 
-1. Formula Roles：`final_model_relation / key_bridge_relation / supporting_derivation` 与下游作用一致，必要 bridge 未被 Cleanup 删除；
+1. Formula Roles：`final_model_relation / key_bridge_relation / supporting_derivation` 与下游作用一致，必要 bridge 与恢复非显然核心推导所需的 supporting derivation 未被 Cleanup 删除；
 2. Core Model Summary：`required/inline/not_applicable` 来自显式裁决；
 3. Proposition：`planned/current` 自动激活 reasoning + proposition pack，candidate 只审必要性，stale 不作为 current；同时核对核心证明是否按数学作用留在正文完整可恢复，不能仅因篇幅、难度、数量预算或版式把“完整证明”降成“关键链 + 见附录”；
 4. Algorithm：`stepwise/pseudocode` 自动激活 current Algorithm Trace 与 algorithm-flow pack，即使用户没有再次说“伪代码”；`not_needed` 不造装饰算法框；current trace 还必须能闭合到**真实 Python 实现**及对应结果/验证证据；
@@ -47,6 +47,19 @@
 ### Author Reasoning Semantic Review
 
 只消费 Protocol §7.3 与 reasoning Authority。检查 Reasoning Necessity、Problem-Specificity、Question Closure 与 Claim Strength；不做“人工感”评分，不用第一人称/连接词频率推断作者身份；明确禁止 `first_person_ratio`、`human_like_score`、`AI_like_score`。必要理由可以保留“我们”，客观事实可以重设为对象主语；不得由表面自然度牺牲公式来源、证明、Algorithm Trace 或证据边界。
+
+### Core Derivation Body Closure Review
+
+只消费 `formula_reasoning_chain.core_derivation_body_closure` 与 Protocol §7，不新建独立 Gate。对本题实际存在的非显然核心推导，人工/混合审阅至少确认：
+
+- 题目条件、基本规律、数据机制或资源逻辑怎样形成关键变量关系、控制方程、目标函数、约束、指标或决策规则；
+- 关键假设、坐标/变量/参考系变换、对称化简、降维、分解或近似为什么成立，并怎样改变原问题；
+- 非平凡初始条件、边界条件、可行域、必要/充分条件及关键约束的来源能否在正文恢复；
+- 影响主结果的关键离散思想、误差关系、事件判据、搜索区间或 solver 前提是否说明了与原模型的对应；
+- 共享模型复用是否准确回指前文完整推导，后问新增/改变条件是否真正展开；
+- 标准定理若被引用，是否核验当前问题条件并说明定理怎样进入本题模型或求解。
+
+缺失普通代数步骤不构成问题；若缺失使模型成立、化简合法性、关键边界/可行域、solver 适用性或主要结论来源无法恢复，则按既有数学/证据严重度处理，必要时 blocking。机器不能根据公式数量、篇幅、连接词、“见附录”字样或引用存在自动判定推导正确/完整。
 
 ### Model Construction & Solution Rationale Review
 
@@ -140,6 +153,6 @@ finding 定位到最小可修复对象，并记录 evidence/authority/severity/r
 
 ## 十一、Blocking 条件
 
-以下任一成立不得最终交付：题意/输出硬要求缺失；current claim 使用 stale/未验收事实；必要模型/公式/约束或证明逻辑断裂；关键数值/单位/精度错误；局部/启发式结果被宣称为严格全局结论；外部核心 claim 无必要来源；正式引用/编译/包级 gate 失败；verified official rule 明确违规；或 required delivery gate 尚未成功执行。
+以下任一成立不得最终交付：题意/输出硬要求缺失；current claim 使用 stale/未验收事实；必要模型/公式/约束、非显然核心推导或证明逻辑断裂；关键数值/单位/精度错误；局部/启发式结果被宣称为严格全局结论；外部核心 claim 无必要来源；正式引用/编译/包级 gate 失败；verified official rule 明确违规；或 required delivery gate 尚未成功执行。
 
 除此之外的标题数量、第一人称、连接词、普通风格偏好等不得自动升级为 blocking。
