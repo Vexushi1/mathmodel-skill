@@ -127,9 +127,26 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
             self.assertIn(token, detail["compress_when_any"])
         self.assertTrue(detail["no_word_count_rule"])
         self.assertTrue(detail["simple_problem_anti_bloat"])
+        self.assertIn("supplementary_noncore_derivation_or_repeated_expansion", detail["move_to_appendix_when_any"])
+        self.assertIn("正文仍能完整恢复模型成立", detail["appendix_boundary_rule"])
+        self.assertIn("不是最终公式", detail["appendix_boundary_rule"])
         self.assertIn("详写意味着关键信息链完整，不等于字数更长", detail["principle"])
         self.assertIn("简单解析或直接计算问题执行 anti-bloat", self.protocol)
         self.assertIn("不得以字数、句数、公式数", self.cleanup)
+        self.assertIn("Core Derivation Body Closure Test", self.cleanup)
+
+    def test_core_derivation_detail_allocation_keeps_nontrivial_links_in_body(self):
+        detail = self.narrative["detail_allocation_governance"]
+        supporting = detail["formula_rules"]["supporting_derivation"]
+        self.assertIn("关键变换/化简", supporting)
+        self.assertIn("初边值/约束来源", supporting)
+        self.assertIn("solver 前提", supporting)
+        self.assertIn("不得仅因角色名、篇幅或排版移出正文", supporting)
+
+        self.assertIn("Core Derivation Body Closure", self.protocol)
+        self.assertIn("后问新增条件", self.protocol)
+        self.assertIn("标准定理可以引用", self.protocol)
+        self.assertIn("共享模型若前文已经完整推导", self.protocol)
 
     def test_solver_detail_is_problem_specific(self):
         detail = self.narrative["detail_allocation_governance"]["solver_rules"]
