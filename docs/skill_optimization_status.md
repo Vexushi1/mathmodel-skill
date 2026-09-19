@@ -69,6 +69,12 @@ v9.3.1 是 v9.3.0 的兼容 patch release，不新增新的生命周期 Gate、r
 
 当前活动 Skill release 为 **9.3.1**。branch cleanup 和历史 docs/index 分层仍是独立治理项，不属于本 patch 的完成条件，也未在本次 release 中执行。
 
+## Repository Hygiene：H0/H1 完成，H2 删除动作受工具能力限制
+
+v9.3.1 发布后进入独立 Repository Hygiene，不改变 Skill release 或建模 Runtime。PR #189 完成 branch/docs inventory；PR #190 完成非破坏性 Active Skill Index 分层，将维护、迁移与历史 provenance 从默认 Active Runtime & Reference 导航中分离，同时保持原物理路径和 MANIFEST 覆盖。
+
+H2 重新枚举后把 98 个 branch 列为严格 `SAFE_DELETE_CANDIDATE`，其余 branch 按 merged-PR-tip-mismatch、closed-unmerged 或 no-PR 进入人工复核。当前 ChatGPT GitHub 连接没有 delete-ref / delete-branch action，因此远程删除未执行；详细清单见 `docs/v931_branch_cleanup_manifest.md`。H3 物理 docs 迁移/删除在 H1 已显著降低导航噪声后暂定 `DEFERRED_NOT_NEEDED_AFTER_H1`。
+
 ## 已合并阶段摘要
 
 ### P1

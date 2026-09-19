@@ -762,8 +762,8 @@ PR B: MERGED（PR #183，merge `2de9f60f12e50612bc6ff4f451cab2dad855dac4`）
 PR C: MERGED（PR #185，merge `ed0f013fc024dc9d27c2ead6b370a21f7b6f88eb`）  
 PR D: MERGED（PR #186，merge `48d05a98f6a7dd97770f8a1adc9c88e2cde29462`）  
 Release 9.3.1: MERGED（PR #187，merge `8a9de52b85a93bb4e04bc03d4298da93b51de326`）  
-Branch hygiene: IN_PROGRESS（H0 已合并；H2 待 H1 后执行）  
-Docs archive/index hygiene: IN_PROGRESS（H1 Active Index segmentation）
+Branch hygiene: PREPARED_TOOL_BLOCKED（H2 manifest 已生成；当前连接无 delete-ref）  
+Docs archive/index hygiene: H1_MERGED / H3_DEFERRED_NOT_NEEDED
 
 ## 15.1 PR A 实施记录
 
@@ -845,7 +845,9 @@ Branch/docs hygiene: 继续 DEFERRED，未经单独审批不执行。
 
 Status: IN_PROGRESS。  
 H0 inventory：MERGED（PR #189，merge `2ddd91a3a3a66cd1415d5847878c0923697b77ac`）。  
-H1 Active Index segmentation：IN_PROGRESS。  
+H1 Active Index segmentation：MERGED（PR #190，merge `4ac8711049ea2f5a44ee29e2f8e8693ca14ddbec`）。  
+H2 branch cleanup：PREPARED_TOOL_BLOCKED；清单 `docs/v931_branch_cleanup_manifest.md`，严格 SAFE_DELETE_CANDIDATE=98。  
+H3 docs move/delete：DEFERRED_NOT_NEEDED_AFTER_H1。  
 Baseline: `main@f028b2dc320f5ad8dd731d60903126fc2d193fae` / Skill 9.3.1。  
 Initial findings: 177 branches；v9.3/v9.3.1 残留 13 branches，其中 12 个进入 SAFE_DELETE_CANDIDATE、1 个 metadata helper 进入 MANUAL_REVIEW；`docs/` 共 41 个文件，当前 generator 会把所有非-legacy docs 平铺进 Active Skill Index。  
 Execution order: H0 inventory → H1 non-destructive Active Index segmentation → H2 branch cleanup → H3 only-if-needed docs move/delete。  

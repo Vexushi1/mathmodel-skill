@@ -45,6 +45,7 @@ class RepositoryHygieneIndexV931Tests(unittest.TestCase):
         )
         current_maintenance = (
             "docs/skill_optimization_status.md",
+            "docs/v931_branch_cleanup_manifest.md",
             "docs/v931_postrelease_health_remediation_plan.md",
             "docs/v931_repository_hygiene_inventory.md",
         )
@@ -67,6 +68,7 @@ class RepositoryHygieneIndexV931Tests(unittest.TestCase):
         for relative in current_maintenance:
             self.assertIn(f"`{relative}`", maintenance)
             self.assertNotIn(f"`{relative}`", active)
+            self.assertNotIn(f"`{relative}`", historical)
 
         for relative in migration_records:
             self.assertIn(f"`{relative}`", migration)

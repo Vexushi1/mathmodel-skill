@@ -374,6 +374,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 ## Current Maintenance Records
 
 - `docs/skill_optimization_status.md`
+- `docs/v931_branch_cleanup_manifest.md`
 - `docs/v931_postrelease_health_remediation_plan.md`
 - `docs/v931_repository_hygiene_inventory.md`
 
