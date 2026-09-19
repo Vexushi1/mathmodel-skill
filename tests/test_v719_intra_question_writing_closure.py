@@ -31,6 +31,7 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
             "within_question_subsection_architecture",
             "detail_allocation_governance",
             "figure_result_narrative",
+            "table_result_readability",
             "question_section_narrative_closure",
         ):
             self.assertIn(key, self.narrative)
@@ -175,6 +176,31 @@ class TestV719IntraQuestionWritingClosure(unittest.TestCase):
         self.assertIn("不为“分析充分”编造机制", figure["cause_rule"])
         self.assertIn("Figure Result Narrative 是信息功能链，不是固定六句话", self.protocol)
         self.assertIn("为什么此时需要这张图", self.cleanup)
+
+    def test_table_result_readability_keeps_display_and_numeric_semantics_separate(self):
+        table = self.narrative["table_result_readability"]
+        self.assertEqual(table["governance_level"], "default")
+        self.assertIn("比较内容", table["title_rule"])
+        self.assertIn("现实含义", table["header_rule"])
+        self.assertIn("run id", table["row_label_rule"])
+        self.assertIn("越大越好", table["metric_direction_rule"])
+        self.assertIn("无量纲", table["dimensionless_rule"])
+        self.assertIn("一个主要比较问题", table["primary_question_rule"])
+        self.assertIn("accepted 数值", table["source_precision_invariant"])
+        self.assertIn("绝对/相对误差", table["source_precision_invariant"])
+        self.assertIn("Numeric Profile", table["source_precision_invariant"])
+        self.assertIn("不逐格复述", table["caption_body_role_rule"])
+        self.assertIn("表格首先要能独立读懂", self.protocol)
+        self.assertIn("不得把绝对误差改成相对误差", self.protocol)
+        self.assertIn("表格 Cleanup 只改善显示层", self.cleanup)
+
+    def test_figure_caption_axes_and_body_have_distinct_roles(self):
+        figure = self.narrative["figure_result_narrative"]
+        roles = figure["caption_body_role_rule"]
+        self.assertIn("图题负责识别对象", roles)
+        self.assertIn("坐标轴", roles)
+        self.assertIn("正文负责决定性特征", roles)
+        self.assertIn("不把大段结果分析塞进 caption", self.protocol)
 
     def test_figure_profiles_are_not_curve_only(self):
         profiles = self.narrative["figure_result_narrative"]["adaptive_profiles"]

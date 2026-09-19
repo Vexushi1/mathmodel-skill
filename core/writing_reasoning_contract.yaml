@@ -2,7 +2,7 @@ schema_version: 1.8.0
 role: >-
   跨数学建模竞赛的正文推理与证据治理权威。约束核心公式的来源—推导—去向、共享基础模型、
   跨问递进、结构化简、模型/求解器/验证器角色、优化模型表达、模型建立理由与适用边界、
-  模型建立—求解—结果解释的连续叙事、问题章节内部小节架构、详略分配、图结果叙事、算法说明、
+  模型建立—求解—结果解释的连续叙事、问题章节内部小节架构、详略分配、图表结果叙事、算法说明、
   数值参数证据、命题预算、引用证据、术语一致性、数字与单位展示、标题主张、深化证据处置和正文必要性；
   不规定具体题型、固定算法、固定章节名或载体排版细节。
 
@@ -763,6 +763,9 @@ model_establishment_solution_narrative:
     identity_rule: >-
       图第一次进入当前结果段时，邻近正文应让评委知道图展示哪些变量/对象之间的关系以及它在当前问题中的作用；
       不得只写“结果如图X所示”，也不逐字重复完整 caption。
+    caption_body_role_rule: >-
+      图题负责识别对象、关系、范围和必要统计口径；坐标轴、图例、colorbar、panel label 与必要直接标注负责读数；
+      正文负责决定性特征、证据支持的解释和对当前问题的含义。三层不得机械重复，也不得把长篇结果分析塞入 caption。
     feature_rule: >-
       只分析决定当前结论的趋势、极值、拐点、阈值、稳定区间、分组差异、收敛区间、空间结构或异常，不逐点读图。
     quantify_rule: >-
@@ -804,6 +807,46 @@ model_establishment_solution_narrative:
         - supported_reason_from_causal_words_only
         - result_correctness_from_visual_pattern_only
         - narrative_quality_from_sentence_count_only
+  table_result_readability:
+    governance_level: default
+    purpose: >-
+      让结果表在不依赖作者内部运行命名的情况下可被评委快速读懂，同时保持 accepted workbook 的数值、单位、指标定义和精度不变。
+    title_rule: >-
+      表题应说明研究对象、比较内容或关系；必要时补充时间、地区、场景、样本或统计口径。
+      “模型结果”“算法对比”“结果表”一类标题若不能说明比较什么，应补足对象或比较任务。
+    header_rule: >-
+      列名优先使用现实含义，必要时保留符号；单位放在表头或紧邻表注中并与实际量纲一致。
+      仅写 t_c、Cmax、eps 等内部符号时，若读者不能就地恢复含义，应补充可读名称或邻近解释。
+    row_label_rule: >-
+      行名优先使用模型、方案、样本、地区或场景的可读名称。内部 run id、代码变量名、文件名或实验编号只有在正文确实需要追踪时才保留，
+      并应给出对应显示名称，不能让评委自行解码内部标识。
+    comparison_context_rule: >-
+      比较表必须让读者恢复比较基准、时间/场景范围、样本口径及必要的 baseline；不同计算口径的同名指标必须区分。
+    metric_direction_rule: >-
+      不能默认所有指标“越大越好”。误差、风险、损失、拟合、收益、约束余量等按实际定义说明优劣方向；
+      方向已由上下文明确时不重复解释，方向不显然时在表头、表注或邻近正文说明。
+    dimensionless_rule: >-
+      无量纲量标明“无量纲”或给出清楚定义；不得为了表头整齐虚构单位。
+    primary_question_rule: >-
+      一张表通常服务一个主要比较问题，可以包含共同支撑该问题的多个指标；若多个互不相关任务混在同一宽表中，应拆分比较维度或使用分组表头，
+      不靠缩小字号、压缩列名或省略单位硬塞。
+    source_precision_invariant: >-
+      可读性修改只改变显示名称、说明和布局，不改变 accepted 数值、单位、百分比/百分点口径、绝对/相对误差定义、排序规则或 Numeric Profile 精度。
+      题目指定表格格式和官方输出结构优先，不得为了论文美观改写工作簿字段或提交格式。
+    caption_body_role_rule: >-
+      表题负责识别对象与比较任务，表头/行名/表注负责读数条件，正文只提炼决定性差异、排序、约束状态、不确定区间及其题意；
+      不逐格复述，也不把全部解释塞入表题或表注。
+    machine_audit_scope:
+      may_review:
+        - table_internal_identifier_exposed_without_display_context
+        - table_metric_direction_or_comparison_scope_unclear
+        - table_unit_or_dimension_context_missing_when_registered
+        - table_body_repeats_cells_without_question_link
+      must_not_claim:
+        - table_quality_from_column_count_only
+        - metric_direction_from_metric_name_only
+        - unit_correctness_from_header_string_only
+        - semantic_equivalence_from_display_label_similarity_only
   cross_question_language:
     consumes: cross_question_progression
     rule: >-

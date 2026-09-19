@@ -103,6 +103,15 @@ class TestV820FinalReviewCompliance(unittest.TestCase):
         for forbidden in ("287", "扣 1", "扣 2", "问题五", "5 问"):
             self.assertNotIn(forbidden, text)
 
+    def test_table_figure_readability_reuses_existing_review_family(self):
+        review = (ROOT / "modules/06_review_delivery.md").read_text(encoding="utf-8")
+        self.assertIn("figure_table_information_value", review)
+        self.assertIn("不新增新的可读性检查族", review)
+        self.assertIn("accepted 数值", review)
+        self.assertIn("绝对/相对误差", review)
+        self.assertIn("不得仅凭列数", review)
+        self.assertEqual(FAMILIES.count("figure_table_information_value"), 1)
+
     def test_legacy_report_output_remains_v811_compatible(self):
         report = {
             "scores": {name: 80 for name in self.config["dimensions"]},
