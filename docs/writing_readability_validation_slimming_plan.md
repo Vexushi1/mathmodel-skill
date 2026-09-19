@@ -463,7 +463,7 @@ python scripts/generate_indexes.py --check
 | F：三级正常可用，四级及以上禁止 | 用户已明确批准 |
 | P0：详细计划 | MERGED（PR #193，merge `d11961f34ee8f9f6cfa6e80eafd67d37745eb4f5`） |
 | W0 完整基线/检查去重裁决 | PARTIAL：证明范围已完成定点影响面审计；检查减重的完整调用/成本基线仍 NOT_STARTED |
-| W1 核心政策实施 | IN_PROGRESS：PR #194 先处理“核心证明/非显然核心推导留正文”的原子闭环 |
+| W1 核心政策实施 | IN_PROGRESS：W1-P1 已合并（PR #194）；W1-P2 由 PR #195 处理“评委可读标题 + 专业术语首次说明” |
 | W2 Consumer/模板/样例实施 | NOT_STARTED；本次仅同步 PR #194 为保持 proof policy 自洽所必需的 consumer/载体说明，不代表 W2 全阶段完成 |
 | W3 检查减重实施 | NOT_STARTED |
 | W4 行为验收集成 | NOT_STARTED |
@@ -472,15 +472,28 @@ python scripts/generate_indexes.py --check
 ### W1-P1：核心证明正文保全
 
 阶段 / PR：W1 原子修改 / PR #194 — `fix: preserve core proofs in the paper body`  
-Base main SHA：`d11961f34ee8f9f6cfa6e80eafd67d37745eb4f5`；Final head / Merge SHA 待 CI 与合并后补记。  
+Base main SHA：`d11961f34ee8f9f6cfa6e80eafd67d37745eb4f5`；Final head：`3959fee68e9a588e1a3aae9dd9b1fe359b57f8ca`；Merge SHA：`1640680af529f71d08b40973626a85cd13d0b4c2`。  
 本次获批范围与 Authority：用户明确要求证明不因长度被强制放附录；核心证明若决定模型成立、关键变换、核心结论或下游计算，应留正文。Authority 为 `core/writing_reasoning_contract.yaml#proposition_governance`，Pack 为 `packs/artifact/proposition_proof.md`。  
 实际修改范围：Authority、Proposition Pack、Module 02 命题规划、Writing Protocol、AI Cleanup、LaTeX/DOCX adapter、DOCX checklist、CUMCM Template Manifest、Review 与既有测试。未修改 preamble、Output Contract、Project State、Runtime、Schema、CLI、Gate、数值链。  
 核心裁决：删除“超过半页通常移附录”“整框过高则完整证明移附录”等长度优先口径；保留非核心技术引理/重复展开/扩展证明进入附录的空间；较长核心证明允许“命题陈述框 + 正文 `hskproof`”自然分页。  
 检查减重候选：本 PR 不处理；未降低任何 Hard/Default 检查。  
 核心推导、数值与三级层级保全：只改证明位置语义；不改变数值、模型、标题层级政策。  
-静态测试 / 真实执行 / 生成文件：待 final head CI 记录。  
+静态测试 / 真实执行 / 生成文件：final head HSK Skill CI #3663 与 Optimization baseline #279 均 success；合并后 main HSK Skill CI #3665 与 metadata #2431 均 success。  
 兼容性：0--4 命题预算、命题编号、现有环境名、Project State 字段和 Trace 接口保持不变。  
-遗留问题 / 下一阶段：待 PR #194 全绿合并后，再按计划继续 W1 其余写作核心政策；W0 检查减重完整基线仍单独执行。
+遗留问题 / 下一阶段：证明正文保全原子闭环已完成；继续 W1-P2 评委可读标题与术语首次说明；W0 检查减重完整基线仍单独执行。
+
+### W1-P2：评委可读标题与专业术语首次说明
+
+阶段 / PR：W1 原子修改 / PR #195 — `fix: make headings and terminology judge-readable`  
+Base main SHA：`1640680af529f71d08b40973626a85cd13d0b4c2`；Final head / Merge SHA 待 CI 与合并后补记。  
+本次获批范围与 Authority：依据 Part B，默认读者为具有数学建模基础但不预设熟悉题目专业领域的评委。标题应优先恢复研究对象与当前任务，专业模型/方法名按真实区分需要保留；领域术语、项目自定义指标和专业缩写首次实质出现时给出准确、简短、邻近的含义与本题作用说明。Authority 为 `core/writing_reasoning_contract.yaml#model_establishment_solution_narrative.professional_heading_semantics` 与 `#terminology_governance`。  
+实际修改范围：Writing Reasoning Authority、Paper Writing Protocol、AI Cleanup、Review 与既有 heading/terminology/drift regression。未修改 Template Manifest、标题层级规则、表格规则、Runtime、Schema、CLI、Gate、数值链、模型审批、MATLAB。  
+核心裁决：不把“去专业化”理解为删除专业术语；必要模型名/方法名可保留。只在标题由专业缩写/方法堆叠遮蔽对象和任务时补回对象/目的或把非必要方法名移入节首正文；禁止退化为“数据处理/模型处理/结果说明/影响因素”等无对象空标题。术语首次解释不采用固定三句模板，也不靠机器词频或括号存在判断充分性。  
+检查减重候选：本 PR 不处理；不新增 Readability Gate，不改变现有 severity 公共接口。  
+核心推导、数值与三级层级保全：PR #194 的正文证明规则保持；数值、模型和“一级至三级正常可用/四级及以上禁止”的后续任务均不在本 PR 改动。  
+静态测试 / 真实执行 / 生成文件：待 final head CI 记录。  
+兼容性：Terminology Registry 结构、Project State、Title Claim、公开 CLI 和报告接口不变；旧稿不批量迁移。  
+遗留问题 / 下一阶段：PR #195 全绿合并后继续 Part D 表格/图表可读性或按计划拆分的下一原子项；W0/W3 检查减重仍单独实施。
 
 后续每个实施 PR 在本节追加记录，不重写历史裁决：
 
