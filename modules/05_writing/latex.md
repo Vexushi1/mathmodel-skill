@@ -95,7 +95,7 @@ Adapter 接收 Writing Protocol 已组织好的内容，并放入 manifest 指�
 - 图使用 `figure`，先 `\includegraphics`，后 `\caption` 与唯一 `\label{fig:...}`；
 - 表使用 `table`，先 `\caption`，再以 `booktabs` 三线表承载内容；
 - 正文核心图表必须以 `图~\ref{...}` / `表~\ref{...}` 显式引用；
-- 命题只在上游已批准其数学作用时使用 `hskproposition` / `hskproof`；
+- 命题只在上游已批准其数学作用时使用 `hskproposition` / `hskproof`；短证明可在命题框内完成，较长的核心证明可让命题陈述结束于 `hskproposition` 后，在普通正文流中紧接 `hskproof` 完整展开并正常分页。Adapter 不因框高或篇幅把核心证明迁入附录；
 - `not_needed / stepwise / pseudocode` 的选择与算法语义服从 `packs/artifact/algorithm_flow.md`；
 - 伪代码环境只呈现数学对象和控制逻辑，不复制 Python 工程细节；
 - 参考文献使用模板既有的 biblatex/Biber 接口，`\cite{}` key 必须存在于 `references.bib`。

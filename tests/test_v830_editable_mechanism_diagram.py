@@ -429,12 +429,12 @@ class ContractAndDriftTests(unittest.TestCase):
         "core/numerical_verification_contract.yaml": "f7e1921ec4945cb5e87984ccb8946302d854143f",
         "core/workbook_schema.yaml": "ea33b857602754258915e35dbb0373e1f73fa7af",
         "core/project_state.schema.yaml": "8632a709047a55e0432d7903089fb4fc7672e8cf",
-        "core/writing_reasoning_contract.yaml": "04ae1a4745d3614c7c01ab97e2f9fbe028b262e1",
+        "core/writing_reasoning_contract.yaml": "bc4961749494aa32051445cc05479ff4193ba620",
         "modules/03_solve_validate.md": "17f6c3e755e64bfc7e8287c607b5a8b5b905c1d1",
         "modules/03_result_analysis.md": "b9384b0d42562a003887cc62427f62546c41d4f5",
-        "modules/05_writing/paper_writing_protocol.md": "be7f0b7232677fd565502465f657014ab28128c2",
-        "modules/05_writing/ai_cleanup.md": "72b4f1c796db18fba28130b11f6eefedbf32a1db",
-        "modules/06_review_delivery.md": "f2f68c34cccf7a70e3ffab4668899a66fc3cfc89",
+        "modules/05_writing/paper_writing_protocol.md": "54a892f362a08a65feb1ec823c0e9b3ace416906",
+        "modules/05_writing/ai_cleanup.md": "494e06170147b58496171789360ce1ccd7dec5d9",
+        "modules/06_review_delivery.md": "794d7cf59d8260eccc82396afb4ff577edc4fe87",
         "config/competition_profiles.yaml": "0cfe08e2edac99f07f2e527643499b8bc73c0479",
         "scripts/validate_semantic_governance.py": "9bd3fe2d6704accab2635b0c691caaeca6fea977",
         "scripts/validate_submission_package.py": "47bd01db5f45dd8c902418be62f494419a03c676",
@@ -446,6 +446,8 @@ class ContractAndDriftTests(unittest.TestCase):
     }
 
     def test_protected_authorities_have_not_drifted(self):
+        # Core-proof body preservation intentionally re-pins the touched writing authorities;
+        # the guard remains exact and continues to fail closed on any later unrelated drift.
         protocol = "modules/05_writing/paper_writing_protocol.md"
         competition_profiles = "config/competition_profiles.yaml"
         protocol_rewrites = (

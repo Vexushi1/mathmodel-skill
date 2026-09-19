@@ -618,8 +618,8 @@ selected_models
 **0--4 是默认正文阅读预算，不是绝对上限。** 先收集真正需要证明的对象，再筛选：
 
 - 预算内：正常规划；
-- 超过 4 个：先合并同质命题、把技术引理移附录；
-- 仍需超过预算：记录 `proposition_budget_status=justified` 与 `proposition_budget_reason`，说明额外命题的不可替代建模作用。
+- 超过 4 个：先合并同质命题；只有不承担正文主论证闭环的技术引理、重复细节或扩展证明才考虑移附录，核心命题及其必要证明不能因预算外移；
+- 仍需超过预算：记录 `proposition_budget_status=justified` 与 `proposition_budget_reason`，说明额外命题的不可替代建模作用和正文保留理由。
 
 命题 ID 使用 `P1, P2, ...` 作为内部稳定追踪编号，不限制为 P1--P4。正式论文仍按章节显示“命题 4.1、命题 6.2”等。
 

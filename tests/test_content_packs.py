@@ -135,6 +135,51 @@ class TestContentPacks(unittest.TestCase):
         self.assertIn("Adapter 不强制独立“核心模型汇总”标题", adapter)
         self.assertEqual(reasoning["adaptive_core_model_summary"]["modes"], ["required", "inline", "not_applicable"])
 
+    def test_core_proof_placement_is_importance_driven_not_length_driven(self):
+        reasoning = yaml.safe_load((ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8"))
+        proposition = reasoning["proposition_governance"]
+        placement = proposition["proof_placement_rule"]
+        self.assertIn("核心证明必须留在正文", placement)
+        self.assertIn("不是由长度决定", placement)
+        self.assertIn("非核心技术引理", placement)
+
+        pack = (ROOT / "packs/artifact/proposition_proof.md").read_text(encoding="utf-8")
+        self.assertIn("证明位置由数学作用决定而不是由长度决定", pack)
+        self.assertIn("核心证明较长时", pack)
+        self.assertNotIn("超过半页的技术证明通常移附录", pack)
+        self.assertNotIn("完整技术证明移附录", pack)
+
+        model_design = (ROOT / "modules/02_model_design.md").read_text(encoding="utf-8")
+        self.assertIn("核心命题及其必要证明不能因预算外移", model_design)
+        self.assertNotIn("把技术引理移附录", model_design)
+
+        protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
+        self.assertIn("证明位置服从数学作用而不是长度", protocol)
+        self.assertIn("核心证明不能仅因篇幅较长", protocol)
+
+        cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
+        self.assertIn("不能把完整证明降成“关键链 + 见附录”", cleanup)
+
+        latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
+        self.assertIn("普通正文流中紧接 `hskproof`", latex)
+        self.assertIn("不因框高或篇幅把核心证明迁入附录", latex)
+
+        docx = (ROOT / "modules/05_writing/docx.md").read_text(encoding="utf-8")
+        self.assertIn("核心证明较长时", docx)
+        self.assertNotIn("长技术证明移附录", docx)
+
+        checklist = (ROOT / "templates/writing/docx_check.md").read_text(encoding="utf-8")
+        self.assertIn("核心证明是否未因篇幅、难度或分页需要被移附录", checklist)
+        self.assertNotIn("长证明移附录时正文仍保留条件", checklist)
+
+        manifest = yaml.safe_load((ROOT / "templates/latex/cumcm/hsk/template_manifest.yaml").read_text(encoding="utf-8"))
+        appendix = next(section for section in manifest["paper_skeleton"]["ordered_slots"] if section["id"] == "appendix")
+        self.assertIn("核心证明", appendix["note"])
+        self.assertIn("不能单独构成", appendix["note"])
+
+        review = (ROOT / "modules/06_review_delivery.md").read_text(encoding="utf-8")
+        self.assertIn("不能仅因篇幅、难度、数量预算或版式", review)
+
     def test_docx_checklist_is_framework_aware_without_redefining_hard_rules(self):
         writing = ROOT / "templates/writing"
         self.assertTrue((writing / "docx_check.md").is_file())
