@@ -123,6 +123,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/lint_skill.py`
 - `scripts/lint_skill_checks.py`
 - `scripts/measure_infrastructure.py`
+- `scripts/measure_writing_validation.py`
 - `scripts/prepare_cumcm_class.py`
 - `scripts/project_snapshot.py`
 - `scripts/project_transaction.py`
