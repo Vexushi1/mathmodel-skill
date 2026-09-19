@@ -112,6 +112,36 @@ class TestV820FinalReviewCompliance(unittest.TestCase):
         self.assertIn("不得仅凭列数", review)
         self.assertEqual(FAMILIES.count("figure_table_information_value"), 1)
 
+    def test_readability_reuses_existing_review_pipeline_without_new_gate_or_state(self):
+        review = (ROOT / "modules/06_review_delivery.md").read_text(encoding="utf-8")
+        cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
+        runtime = (ROOT / "core/writing_runtime_contract.yaml").read_text(encoding="utf-8")
+        matrix = (ROOT / "templates/review/final_review_matrix.yaml").read_text(encoding="utf-8")
+        project_state = (ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8")
+        module_manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
+
+        self.assertIn("draft_semantic_review", review)
+        self.assertIn("final_review_and_delivery", review)
+        self.assertIn("Cleanup 只在 `draft_semantic_review`", cleanup)
+        self.assertLess(runtime.index("- id: draft_semantic_review"), runtime.index("- id: ai_cleanup"))
+        self.assertLess(runtime.index("- id: ai_cleanup"), runtime.index("- id: final_review_and_delivery"))
+        self.assertIn("八类动态 coverage", runtime)
+
+        self.assertIn("rendered_page_surface", review)
+        self.assertIn("figure_table_information_value", review)
+        self.assertIn("不新增新的可读性检查族", review)
+        self.assertIn("不进入 Project State", review)
+        self.assertIn("machine / manual / hybrid", review)
+
+        self.assertEqual(len(FAMILIES), 8)
+        self.assertFalse(any("readability" in family for family in FAMILIES))
+        self.assertNotIn("readability_status", matrix)
+        self.assertNotIn("readability_status", runtime)
+        self.assertNotIn("readability_status", project_state)
+        self.assertFalse(
+            any("readability" in str(name).lower() for name in (module_manifest.get("utility_gates") or {}))
+        )
+
     def test_legacy_report_output_remains_v811_compatible(self):
         report = {
             "scores": {name: 80 for name in self.config["dimensions"]},

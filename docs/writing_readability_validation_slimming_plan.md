@@ -463,12 +463,12 @@ python scripts/generate_indexes.py --check
 | F：三级正常可用，四级及以上禁止 | 用户已明确批准 |
 | P0：详细计划 | MERGED（PR #193，merge `d11961f34ee8f9f6cfa6e80eafd67d37745eb4f5`） |
 | W0 完整基线/检查去重裁决 | PARTIAL：证明范围已完成定点影响面审计；检查减重的完整调用/成本基线仍 NOT_STARTED |
-| W1 核心政策实施 | IN_PROGRESS：W1-P1 / W1-P2、Part C/D/E 已闭环；下一原子项进入 Part F，Part G 仍待实施 |
+| W1 核心政策实施 | IN_PROGRESS：W1-P1 / W1-P2、Part C/D/E/F 已闭环；当前按计划进入 Part G |
 | Part C：完整核心推导留正文 | COMPLETED：PR #194 完成核心证明正文保全，PR #197 完成非证明型核心推导正文闭环；final head 与合并后 main 验收均通过 |
 | Part D：表格与图表可读性 | COMPLETED（PR #196，merge `b1b92eb31d444058a33a5e72a8ea8796dc1b28ec`） |
 | Part E：公式多时保持清晰叙事 | COMPLETED：PR #199，final head 与合并后 main 验收均通过 |
-| Part F：正式章节最大三级 | IN_PROGRESS：branch `fix/formal-heading-depth-three`，Authority/consumer/active LaTeX audit 同步实施 |
-| Part G：复用现有审查，不增建 Gate | NOT_STARTED：待前述写作语义稳定后实施 |
+| Part F：正式章节最大三级 | COMPLETED：PR #200，final head 与合并后 main 验收均通过 |
+| Part G：复用现有审查，不增建 Gate | IN_PROGRESS：现有 Review/Runtime 已满足 §9，按 §10 以回归测试证明后保持 active interfaces 原样 |
 | W2 Consumer/模板/样例实施 | IN_PROGRESS：PR #194/#195 已同步必要 consumer；PR #196 同步图表写作 consumer/模板，但不代表 W2 全阶段完成 |
 | W3 检查减重实施 | NOT_STARTED |
 | W4 行为验收集成 | NOT_STARTED |
@@ -547,15 +547,29 @@ Part C 保全：Part E 只优化阅读组织，不得删除 Part C 要求保留�
 ### F-P1：正式章节最大三级
 
 阶段 / PR：Part F 原子修改 / PR #200 — `fix: cap formal paper headings at semantic level three`。  
-Base main SHA：`8fb72f6e73a245f101690d01e9db82064206d48b`；Final head / Merge SHA 待真实 CI 与合并后补记。  
+Base main SHA：`8fb72f6e73a245f101690d01e9db82064206d48b`；Final head：`1b1da84e2788bd4894273b9e310b743e6441c26a`；Merge SHA：`0d8b44c0c26ad7694638da468d457df76ded08ce`。  
 本次获批范围与 Authority：依据 Part F，一级、二级、三级标题均为正常可用层级；三级不是例外权限或数量配额，正式章节禁止四级及以上。Authority 进入 `model_establishment_solution_narrative.within_question_subsection_architecture.formal_heading_depth_policy`，不新建独立写作合同。  
 实际修改范围：Writing Reasoning Authority、Paper Writing Protocol、AI Cleanup、Review、LaTeX/DOCX adapter、正式 LaTeX 审计与既有 writing/LaTeX regression。现有 CUMCM/MCM/ICM/电工杯活动模板本身已停在三级，不为完成计划机械改模板正文。  
 核心裁决：LaTeX `section/subsection/subsubsection` 映射一至三级；活动正文 `paragraph/subparagraph`（含星号形式）若承担正式章节即阻止交付。Markdown/DOCX 按最终论文语义/outline level 映射；不全仓搜索 `####`，不把维护文档、注释、代码示例、宏定义、证明分情况、算法步骤或表内分组误判为第四层。  
 三级保全：三级标题数量不设硬上限；不能因多个三级标题自动压回二级。三级以下复杂推理改用自然段、公式组、证明分情况或算法步骤，不通过加粗独立行、列表或无编号子标题伪装第四层，也不得借三级上限删除 Part C 核心推导。  
 机器边界：明确可解析的活动正式 LaTeX 四级及以上为 deterministic blocking；自定义宏/样式真实层级无法判断时进入 review_required，不从宏名或字体外观猜测。  
-静态测试 / 真实执行 / 生成文件：待 final head 自动 metadata refresh、HSK Skill CI 与 Optimization baseline 记录。  
+静态测试 / 真实执行 / 生成文件：final head HSK Skill CI workflow_dispatch #3805 与 Optimization baseline #343 均 success；PR-triggered HSK Skill CI #3806 为 `action_required`，不作为通过证据；合并后 main HSK Skill CI #3807 与 metadata refresh #2509 均 success。  
 兼容性：不新增 Gate、Project State required 字段、报告 schema 或标题数量指标；一级骨架仍由 Template Manifest 管理。  
-遗留问题 / 下一阶段：Part F 全绿合并后进入 Part G；W0/W3/W4/W5 仍后续实施。
+完成结论：Part F 已在 final head 与合并后 main 双重验收下闭环，三级正常可用、四级及以上禁止的跨载体与正式 LaTeX 检查链已稳定。  
+遗留问题 / 下一阶段：按计划进入 Part G；Part G 完成后必须先补齐 W0 检查调用/成本/正反例基线，再进入 W3，不能直接删检查器。
+
+### G-P1：复用现有审查，不增建 Gate
+
+阶段 / PR：Part G 原子修改 / branch `fix/reuse-existing-readability-review`；PR 编号待创建。  
+Base main SHA：`0d8b44c0c26ad7694638da468d457df76ded08ce`；Final head / Merge SHA 待真实 CI 与合并后补记。  
+本次获批范围与 Authority：严格按 Part G §9 与实施规则 §10；draft review 发现理解障碍，Cleanup 只修表达，final review 在既有全篇 coverage 内复验；不得新增 `readability_status`、Project State required 字段、新注册表、独立 Readability Gate 或第九个 coverage family。  
+现状裁决：读取 current Review、Writing Runtime、Cleanup、review matrix、score/lint 与 Project State 后，现有 active interface 已满足 Part G：`draft_semantic_review → ai_cleanup → final_review_and_delivery` 顺序已存在；终审稳定 coverage 仍为八类，`rendered_page_surface` 与 `figure_table_information_value` 已承载相关可读性证据；finding 已区分 `machine / manual / hybrid`；内部审查记录明确不进入 Project State。  
+实际修改文件及未修改原因：按 §10“若现有能力已满足，用测试证明后保持原样”，不修改 Review、Runtime、Cleanup、review matrix、score schema、Project State 或 Gate；仅扩展既有 `tests/test_v820_final_review_compliance.py` 固化上述不新增接口边界，并更新本计划状态/证据。  
+检查减重候选的逐项裁决：Part G 不执行 W3 减重，不降低任何 Hard/Default severity；R7/R8 仍留给 W0 完整基线与 W3 逐候选裁决。  
+核心推导、数值与三级层级保全结果：Part C–F 规则保持；本阶段不改模型、数值、工作簿、标题层级或 LaTeX 审计语义。  
+静态测试 / 真实执行 / 生成文件：待 final head 自动 metadata refresh、HSK Skill CI 与 Optimization baseline 记录。  
+兼容性与实际成本变化：预期零运行接口变化、零 schema/gate/family 增量；本阶段不宣称性能收益。  
+遗留问题 / 下一阶段：Part G 全绿合并后，先完成 W0 的检查对象/调用者/输入指纹/阶段/severity/调用次数耗时/测试覆盖/正反例裁决表，再进入 W3；不得跳过 W0 直接减重。
 
 后续每个实施 PR 在本节追加记录，不重写历史裁决：
 
