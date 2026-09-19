@@ -531,6 +531,13 @@ model_establishment_solution_narrative:
       - derive_define_or_transform_relation
       - state_structural_or_problem_consequence
       - continue_to_next_relation_final_model_or_solution
+    reasoning_unit_rule: >-
+      一个自然段可以承载多个彼此依赖的推理动作，只要它们围绕同一局部数学任务连续推进；
+      当模型选择、solver 介绍、指标定义、结果解释等内容彼此没有直接依赖或需要不同证据来源时，应分成独立推理单元，
+      不能为了“少段落”压成一个长句或一个信息过载段。
+    paragraph_split_rule: >-
+      分段依据语义依赖、对象切换、证据角色和下游任务变化，不按固定字符数、句数、公式数或版面长度切分。
+      同一推理链很长时可以跨多个自然段连续展开；短段若已完整闭合一个独立推理单元也不因字数少而合并。
     rules:
       - 相邻公式服务同一数学任务时优先连续推演，不为每个关系机械命名一个“模型”。
       - 一个自然段可同时承担解释、公式与下游用途，只要逻辑连续；不要求“公式一段、解释一段”。
@@ -540,9 +547,15 @@ model_establishment_solution_narrative:
   formula_prose_rhythm:
     consumes: formula_reasoning_chain
     functional_sequence: [need, basis, formula, meaning, consequence]
+    context_recoverability_rule: >-
+      对非显然公式或连续公式组，邻近正文应让读者恢复“当前已知什么、还缺什么关系、为什么引入本式、依据怎样推出、得到后有什么作用”。
+      这是信息关系而不是固定句序；多个功能可合并表达，但不能省掉决定理解的桥接。
     compression_rule: >-
       need、basis、meaning、consequence 可以合并成一到数句，不要求五个标签逐项显式出现；
       对核心关系，邻近正文至少应让读者恢复“为什么此时需要该式”和“该式得到后下一步怎样变化”。
+    condition_locality_rule: >-
+      关键成立条件、近似范围、定义域、边界、局部性或失效条件应尽量贴近对应公式/变换首次使用处；
+      若这些条件已经在邻近段或明确锚点完整给出，可引用而不重复。不得把决定公式适用性的条件统一拖到章节末尾。
     meaning_priority: >-
       符号首次出现时先完成必要定义；符号已经定义后，公式后的正文优先解释结构作用、问题转化、可行域变化、
       判据变化或下一计算用途，而不是逐个翻译符号。
@@ -984,12 +997,16 @@ model_establishment_solution_narrative:
       - unsupported_figure_cause
       - detached_figure_summary
       - local_question_section_not_closed_to_answer
+      - formula_condition_or_applicability_detached_from_use
+      - paragraph_mixes_unrelated_reasoning_units
     must_not_claim:
       - narrative_quality_from_connector_words_only
       - heading_quality_from_grammar_pattern_only
       - heading_quality_from_character_count_only
       - solver_fit_from_algorithm_name_only
       - solver_precondition_satisfaction_from_algorithm_name_only
+      - paragraph_quality_from_character_sentence_or_formula_count_only
+      - formula_context_completeness_from_connector_presence_only
       - model_applicability_from_model_name_only
       - result_interpretation_quality_from_distance_or_paragraph_count_only
       - mathematical_correctness_from_prose_flow
@@ -1613,6 +1630,8 @@ machine_audit_boundary:
     - unsupported_figure_cause
     - detached_figure_summary
     - local_question_section_not_closed_to_answer
+    - formula_condition_or_applicability_detached_from_use
+    - paragraph_mixes_unrelated_reasoning_units
   may_block:
     - deterministic_structural_error_such_as_missing_citation_key_or_duplicate_label
     - unresolved_cross_reference
@@ -1641,6 +1660,8 @@ machine_audit_boundary:
     - problem_specificity_from_object_name_overlap_only
     - model_applicability_from_model_name_or_adjective_only
     - solver_precondition_satisfaction_from_algorithm_name_only
+    - paragraph_quality_from_character_sentence_or_formula_count_only
+    - formula_context_completeness_from_connector_presence_only
 
 authority_boundaries:
   reasoning_authority: core/writing_reasoning_contract.yaml

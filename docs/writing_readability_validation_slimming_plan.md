@@ -466,7 +466,7 @@ python scripts/generate_indexes.py --check
 | W1 核心政策实施 | IN_PROGRESS：W1-P1 / W1-P2 已合并；Part C 已完整闭环；下一原子项进入 Part E，Part F/G 仍待实施 |
 | Part C：完整核心推导留正文 | COMPLETED：PR #194 完成核心证明正文保全，PR #197 完成非证明型核心推导正文闭环；final head 与合并后 main 验收均通过 |
 | Part D：表格与图表可读性 | COMPLETED（PR #196，merge `b1b92eb31d444058a33a5e72a8ea8796dc1b28ec`） |
-| Part E：公式多时保持清晰叙事 | NOT_STARTED：Part C closeout 后的下一原子项 |
+| Part E：公式多时保持清晰叙事 | IN_PROGRESS：PR #199 — `fix: keep formula-rich mathematical narrative readable` |
 | Part F：正式章节最大三级 | NOT_STARTED：用户已批准规则，待 Part E 后实施 |
 | Part G：复用现有审查，不增建 Gate | NOT_STARTED：待前述写作语义稳定后实施 |
 | W2 Consumer/模板/样例实施 | IN_PROGRESS：PR #194/#195 已同步必要 consumer；PR #196 同步图表写作 consumer/模板，但不代表 W2 全阶段完成 |
@@ -529,6 +529,19 @@ Part C 完成条件：PR #194 + PR #197 共同覆盖证明与非证明型核心�
 兼容性：模型、数值、工作簿、Runtime/Router/Resolver、Schema、CLI/Gate、MATLAB、Part D 图表规则及 Part F 标题层级均不变。  
 完成结论：PR #194 + PR #197 已覆盖 Part C 的证明与非证明型核心推导；当前 `main@a3ceba47f633b25562d53d24b4e0c4b5438e5a4a` 可将 Part C 标记为 COMPLETED。  
 遗留问题 / 下一阶段：按计划进入 Part E“公式多时仍保持清晰叙事”；Part F/G 与 W0/W3/W4/W5 仍未完成，不能把整份计划标为 completed。
+
+### E-P1：公式多时保持清晰叙事
+
+阶段 / PR：Part E 原子修改 / PR #199 — `fix: keep formula-rich mathematical narrative readable`  
+Base main SHA：`ff1996ca46017e24baa0169bf88c7bfb2df73fe8`；Final head / Merge SHA 待 CI 与合并后补记。  
+本次获批范围与 Authority：依据 Part E，公式密集正文应让评委恢复当前对象、数学缺口、引式依据/推导、结构作用与下一用途；关键成立条件/近似范围/定义域/局部性/失效边界贴近对应公式。Authority 复用 `model_establishment_solution_narrative.continuous_mathematical_narrative` 与 `formula_prose_rhythm`，不新建写作合同。  
+实际修改范围：Writing Reasoning Authority、Paper Writing Protocol、AI Cleanup、Review 与既有 writing/drift regression。未修改 Runtime、Project State、Schema、CLI/Gate、模型/数值、Workbook、MATLAB、Part D 图表与 Part F 标题层级。  
+核心裁决：一个自然段可承载直接依赖的多个推理动作；互不相关的模型选择、solver 介绍、指标定义、结果解释不压成信息过载长句；分段按对象/数学依赖/证据角色/下游任务，不按字符数、句数、公式数或版面长度硬切。  
+Part C 保全：Part E 只优化阅读组织，不得删除 Part C 要求保留的非显然核心推导、关键条件、桥接或证明。  
+机器边界：仅提示 `formula_condition_or_applicability_detached_from_use` / `paragraph_mixes_unrelated_reasoning_units` 等风险；不得从字数、句数、公式数、连接词推断可读性或数学完整性。  
+静态测试 / 真实执行 / 生成文件：待 final head CI 记录。  
+兼容性：无新 Gate、无新 Project State 字段、无 readability score、无固定句式或段落长度阈值。  
+遗留问题 / 下一阶段：Part E 全绿合并后进入 Part F“正式章节最大三级”；Part G 与 W0/W3/W4/W5 仍后续实施。
 
 后续每个实施 PR 在本节追加记录，不重写历史裁决：
 

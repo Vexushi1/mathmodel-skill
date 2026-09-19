@@ -48,6 +48,10 @@
 
 只消费 Protocol §7.3 与 reasoning Authority。检查 Reasoning Necessity、Problem-Specificity、Question Closure 与 Claim Strength；不做“人工感”评分，不用第一人称/连接词频率推断作者身份；明确禁止 `first_person_ratio`、`human_like_score`、`AI_like_score`。必要理由可以保留“我们”，客观事实可以重设为对象主语；不得由表面自然度牺牲公式来源、证明、Algorithm Trace 或证据边界。
 
+### Formula-Rich Narrative Readability Review
+
+消费 Authority / Protocol §7。
+
 ### Core Derivation Body Closure Review
 
 消费 `formula_reasoning_chain.core_derivation_body_closure` 与 Protocol §7，不新建 Gate。只核对当前题实际存在的非显然链是否能在正文恢复：

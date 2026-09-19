@@ -429,12 +429,12 @@ class ContractAndDriftTests(unittest.TestCase):
         "core/numerical_verification_contract.yaml": "f7e1921ec4945cb5e87984ccb8946302d854143f",
         "core/workbook_schema.yaml": "ea33b857602754258915e35dbb0373e1f73fa7af",
         "core/project_state.schema.yaml": "8632a709047a55e0432d7903089fb4fc7672e8cf",
-        "core/writing_reasoning_contract.yaml": "6cad559c95eefeb679db41f503836736c3be3998",
+        "core/writing_reasoning_contract.yaml": "36d1f4829a9d2083dd9a5beb34bd9bcfec9a2ff1",
         "modules/03_solve_validate.md": "17f6c3e755e64bfc7e8287c607b5a8b5b905c1d1",
         "modules/03_result_analysis.md": "b9384b0d42562a003887cc62427f62546c41d4f5",
-        "modules/05_writing/paper_writing_protocol.md": "21b4f5d2f64d9a8b616bc7b0af35f0ea79cfc605",
-        "modules/05_writing/ai_cleanup.md": "6a5d4f39eb2a9e68907b1ee7d7cb79fab50e472f",
-        "modules/06_review_delivery.md": "89376f3f8d37f5e4267b0a8b3472c92258a67e73",
+        "modules/05_writing/paper_writing_protocol.md": "05c55f46139050353dd71b9b5993946ddfa5364b",
+        "modules/05_writing/ai_cleanup.md": "d24a431695a6dbb57e8b15029d979de3b3382897",
+        "modules/06_review_delivery.md": "a86b92e1ce7d1f41d36b8a8e91d59e2f14709eef",
         "config/competition_profiles.yaml": "0cfe08e2edac99f07f2e527643499b8bc73c0479",
         "scripts/validate_semantic_governance.py": "9bd3fe2d6704accab2635b0c691caaeca6fea977",
         "scripts/validate_submission_package.py": "47bd01db5f45dd8c902418be62f494419a03c676",
@@ -447,8 +447,8 @@ class ContractAndDriftTests(unittest.TestCase):
 
     def test_protected_authorities_have_not_drifted(self):
         # W1 proof-body preservation, judge-readable heading/terminology, Part D table/figure
-        # readability, and Part C nontrivial-derivation closure intentionally re-pin only the
-        # touched writing authorities; the guard remains exact on later unrelated drift.
+        # readability, Part C derivation closure, and Part E formula-rich narrative changes
+        # intentionally re-pin only the touched writing authorities; unrelated drift still fails closed.
         protocol = "modules/05_writing/paper_writing_protocol.md"
         competition_profiles = "config/competition_profiles.yaml"
         protocol_rewrites = (
