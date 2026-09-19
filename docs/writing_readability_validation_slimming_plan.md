@@ -463,11 +463,11 @@ python scripts/generate_indexes.py --check
 | F：三级正常可用，四级及以上禁止 | 用户已明确批准 |
 | P0：详细计划 | MERGED（PR #193，merge `d11961f34ee8f9f6cfa6e80eafd67d37745eb4f5`） |
 | W0 完整基线/检查去重裁决 | PARTIAL：证明范围已完成定点影响面审计；检查减重的完整调用/成本基线仍 NOT_STARTED |
-| W1 核心政策实施 | IN_PROGRESS：W1-P1 / W1-P2 已合并；Part C 已完整闭环；下一原子项进入 Part E，Part F/G 仍待实施 |
+| W1 核心政策实施 | IN_PROGRESS：W1-P1 / W1-P2、Part C/D/E 已闭环；下一原子项进入 Part F，Part G 仍待实施 |
 | Part C：完整核心推导留正文 | COMPLETED：PR #194 完成核心证明正文保全，PR #197 完成非证明型核心推导正文闭环；final head 与合并后 main 验收均通过 |
 | Part D：表格与图表可读性 | COMPLETED（PR #196，merge `b1b92eb31d444058a33a5e72a8ea8796dc1b28ec`） |
-| Part E：公式多时保持清晰叙事 | IN_PROGRESS：PR #199 — `fix: keep formula-rich mathematical narrative readable` |
-| Part F：正式章节最大三级 | NOT_STARTED：用户已批准规则，待 Part E 后实施 |
+| Part E：公式多时保持清晰叙事 | COMPLETED：PR #199，final head 与合并后 main 验收均通过 |
+| Part F：正式章节最大三级 | NEXT：用户已批准规则，Part E 已闭环，进入实施 |
 | Part G：复用现有审查，不增建 Gate | NOT_STARTED：待前述写作语义稳定后实施 |
 | W2 Consumer/模板/样例实施 | IN_PROGRESS：PR #194/#195 已同步必要 consumer；PR #196 同步图表写作 consumer/模板，但不代表 W2 全阶段完成 |
 | W3 检查减重实施 | NOT_STARTED |
@@ -533,15 +533,16 @@ Part C 完成条件：PR #194 + PR #197 共同覆盖证明与非证明型核心�
 ### E-P1：公式多时保持清晰叙事
 
 阶段 / PR：Part E 原子修改 / PR #199 — `fix: keep formula-rich mathematical narrative readable`  
-Base main SHA：`ff1996ca46017e24baa0169bf88c7bfb2df73fe8`；Final head / Merge SHA 待 CI 与合并后补记。  
+Base main SHA：`ff1996ca46017e24baa0169bf88c7bfb2df73fe8`；Final head：`4697e689c305d871d8f6b868c2008e76ec9bd0d7`；Merge SHA：`23befe4d6580435646ee6b60388e3bb08d4ba7eb`。  
 本次获批范围与 Authority：依据 Part E，公式密集正文应让评委恢复当前对象、数学缺口、引式依据/推导、结构作用与下一用途；关键成立条件/近似范围/定义域/局部性/失效边界贴近对应公式。Authority 复用 `model_establishment_solution_narrative.continuous_mathematical_narrative` 与 `formula_prose_rhythm`，不新建写作合同。  
 实际修改范围：Writing Reasoning Authority、Paper Writing Protocol、AI Cleanup、Review 与既有 writing/drift regression。未修改 Runtime、Project State、Schema、CLI/Gate、模型/数值、Workbook、MATLAB、Part D 图表与 Part F 标题层级。  
 核心裁决：一个自然段可承载直接依赖的多个推理动作；互不相关的模型选择、solver 介绍、指标定义、结果解释不压成信息过载长句；分段按对象/数学依赖/证据角色/下游任务，不按字符数、句数、公式数或版面长度硬切。  
 Part C 保全：Part E 只优化阅读组织，不得删除 Part C 要求保留的非显然核心推导、关键条件、桥接或证明。  
 机器边界：仅提示 `formula_condition_or_applicability_detached_from_use` / `paragraph_mixes_unrelated_reasoning_units` 等风险；不得从字数、句数、公式数、连接词推断可读性或数学完整性。  
-静态测试 / 真实执行 / 生成文件：待 final head CI 记录。  
+静态测试 / 真实执行 / 生成文件：final head HSK Skill CI workflow_dispatch #3785 与 Optimization baseline #337 均 success；PR-triggered HSK Skill CI #3786 为 `action_required`，按仓库既有触发机制不作为通过证据；合并后 main HSK Skill CI #3787 与 metadata refresh #2501 均 success。  
 兼容性：无新 Gate、无新 Project State 字段、无 readability score、无固定句式或段落长度阈值。  
-遗留问题 / 下一阶段：Part E 全绿合并后进入 Part F“正式章节最大三级”；Part G 与 W0/W3/W4/W5 仍后续实施。
+完成结论：Part E 已在 final head 与合并后 main 双重验收下闭环，且 Part C/D 保全未受影响。  
+遗留问题 / 下一阶段：进入 Part F“正式章节最大三级”；Part G 与 W0/W3/W4/W5 仍后续实施。
 
 后续每个实施 PR 在本节追加记录，不重写历史裁决：
 
