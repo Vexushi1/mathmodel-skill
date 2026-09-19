@@ -433,7 +433,7 @@ class ContractAndDriftTests(unittest.TestCase):
         "modules/03_solve_validate.md": "17f6c3e755e64bfc7e8287c607b5a8b5b905c1d1",
         "modules/03_result_analysis.md": "b9384b0d42562a003887cc62427f62546c41d4f5",
         "modules/05_writing/paper_writing_protocol.md": "05c55f46139050353dd71b9b5993946ddfa5364b",
-        "modules/05_writing/ai_cleanup.md": "94da3865853a814ab40756fc84206c31a435fe29",
+        "modules/05_writing/ai_cleanup.md": "e88dd378f28bb0d3b1b6ef349caca60d53160dac",
         "modules/06_review_delivery.md": "569f85382db9a7bda7d6d6bc3ed4fba9cae5d223",
         "config/competition_profiles.yaml": "0cfe08e2edac99f07f2e527643499b8bc73c0479",
         "scripts/validate_semantic_governance.py": "9bd3fe2d6704accab2635b0c691caaeca6fea977",
