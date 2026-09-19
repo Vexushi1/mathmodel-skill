@@ -628,6 +628,47 @@ model_establishment_solution_narrative:
         - shared_foundation_section_when_active
         - question_model_establishment_solution_section
         - local_validation_section_when_active
+    formal_heading_depth_policy:
+      applies_to: active_formal_paper_headings
+      maximum_semantic_level: 3
+      allowed_semantic_levels: [1, 2, 3]
+      level_three_status: normal_available_level
+      rules:
+        - 一级、二级、三级都是正常可用的正式章节层级；三级不是例外权限，也不是必须使用的配额，不设三级标题数量上限。
+        - 正式章节禁止四级及以上；不得用无编号子标题、加粗独立行、列表项或自定义样式包装新的第四层章节语义。
+        - 已到三级仍需展开复杂推理时，使用连续自然段、公式组、证明分情况、算法步骤或说明句，不新增第四层标题。
+        - 不得以三级上限为由删除 Part C 要求保留的正文推导、证明、关键条件或证据链。
+      carrier_mapping:
+        latex:
+          level_1: section
+          level_2: subsection
+          level_3: subsubsection
+          forbidden_formal_heading_commands: [paragraph, subparagraph]
+        markdown:
+          maximum_semantic_level: 3
+          rule: map_by_final_paper_semantics_not_repository_markdown_hash_count
+        docx:
+          allowed_outline_levels: [1, 2, 3]
+          explicit_styles: ["Heading 1", "Heading 2", "Heading 3"]
+          custom_style_requires_outline_level_check: true
+      exclusions:
+        - paper_title_or_cover_metadata
+        - proof_case_or_subcase_labels
+        - algorithm_steps
+        - equation_numbering
+        - table_internal_grouping
+        - repository_maintenance_markdown
+        - code_comments_or_examples
+        - inactive_template_text
+      machine_audit_scope:
+        may_block:
+          - explicit_active_formal_heading_level_greater_than_three
+        may_review:
+          - custom_heading_macro_or_style_depth_unresolved
+        must_not_claim:
+          - repository_markdown_heading_depth_is_paper_heading_depth
+          - level_three_is_invalid_from_count_only
+          - proof_case_algorithm_step_or_table_group_is_heading_depth
     principle: >-
       既定论文大章节结构保持不变；只在当前大章节内部，根据真实局部数学依赖与求解认知顺序安排二级/三级小节、
       公式、solver、结果和验证。局部顺序用于恢复解题思路，不得升级为重排问题一、问题二、问题三的全文排序权。
@@ -682,7 +723,7 @@ model_establishment_solution_narrative:
     rules:
       - 不按合同字段机械拆分同一条论证链。
       - 单一公式、普通图表、单个参数或标准算法参数设置本身不足以自动形成独立标题。
-      - 三级标题只在二级小节内部存在两个以上独立数学任务、独立命题/关键算法/关键图需要锚点，或不拆分会明显降低长论证可恢复性时启用。
+      - 三级标题是正常可用的正式导航层级；二级小节内只要存在需要独立定位的数学任务、命题/关键算法/关键图锚点，或拆分能明显提升长论证可恢复性即可使用；不要求先满足“两个以上”配额，也不因三级标题数量较多自动否决。
       - 不为小节对称或版式整齐新增不存在的数学任务。
       - 复杂模型若确有多个独立任务，允许使用“短而明确”的三级标题；不得为了压缩标题数把证明、关键约束与参数证据混在一个难以回指的长段中。
     machine_audit_scope:
@@ -1632,10 +1673,12 @@ machine_audit_boundary:
     - local_question_section_not_closed_to_answer
     - formula_condition_or_applicability_detached_from_use
     - paragraph_mixes_unrelated_reasoning_units
+    - custom_heading_macro_or_style_depth_unresolved
   may_block:
     - deterministic_structural_error_such_as_missing_citation_key_or_duplicate_label
     - unresolved_cross_reference
     - registered_evidence_scope_conflicts_with_global_optimality_claim
+    - explicit_active_formal_heading_level_greater_than_three
   must_not_claim:
     - mathematical_correctness_from_regex
     - formula_source_semantic_validity_from_keywords_only
@@ -1662,6 +1705,9 @@ machine_audit_boundary:
     - solver_precondition_satisfaction_from_algorithm_name_only
     - paragraph_quality_from_character_sentence_or_formula_count_only
     - formula_context_completeness_from_connector_presence_only
+    - repository_markdown_heading_depth_is_paper_heading_depth
+    - level_three_is_invalid_from_count_only
+    - proof_case_algorithm_step_or_table_group_is_heading_depth
 
 authority_boundaries:
   reasoning_authority: core/writing_reasoning_contract.yaml

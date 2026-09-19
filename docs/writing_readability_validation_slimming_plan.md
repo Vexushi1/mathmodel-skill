@@ -467,7 +467,7 @@ python scripts/generate_indexes.py --check
 | Part C：完整核心推导留正文 | COMPLETED：PR #194 完成核心证明正文保全，PR #197 完成非证明型核心推导正文闭环；final head 与合并后 main 验收均通过 |
 | Part D：表格与图表可读性 | COMPLETED（PR #196，merge `b1b92eb31d444058a33a5e72a8ea8796dc1b28ec`） |
 | Part E：公式多时保持清晰叙事 | COMPLETED：PR #199，final head 与合并后 main 验收均通过 |
-| Part F：正式章节最大三级 | NEXT：用户已批准规则，Part E 已闭环，进入实施 |
+| Part F：正式章节最大三级 | IN_PROGRESS：branch `fix/formal-heading-depth-three`，Authority/consumer/active LaTeX audit 同步实施 |
 | Part G：复用现有审查，不增建 Gate | NOT_STARTED：待前述写作语义稳定后实施 |
 | W2 Consumer/模板/样例实施 | IN_PROGRESS：PR #194/#195 已同步必要 consumer；PR #196 同步图表写作 consumer/模板，但不代表 W2 全阶段完成 |
 | W3 检查减重实施 | NOT_STARTED |
@@ -543,6 +543,19 @@ Part C 保全：Part E 只优化阅读组织，不得删除 Part C 要求保留�
 兼容性：无新 Gate、无新 Project State 字段、无 readability score、无固定句式或段落长度阈值。  
 完成结论：Part E 已在 final head 与合并后 main 双重验收下闭环，且 Part C/D 保全未受影响。  
 遗留问题 / 下一阶段：进入 Part F“正式章节最大三级”；Part G 与 W0/W3/W4/W5 仍后续实施。
+
+### F-P1：正式章节最大三级
+
+阶段 / PR：Part F 原子修改 / branch `fix/formal-heading-depth-three`；PR 编号待创建。  
+Base main SHA：`8fb72f6e73a245f101690d01e9db82064206d48b`；Final head / Merge SHA 待真实 CI 与合并后补记。  
+本次获批范围与 Authority：依据 Part F，一级、二级、三级标题均为正常可用层级；三级不是例外权限或数量配额，正式章节禁止四级及以上。Authority 进入 `model_establishment_solution_narrative.within_question_subsection_architecture.formal_heading_depth_policy`，不新建独立写作合同。  
+实际修改范围：Writing Reasoning Authority、Paper Writing Protocol、AI Cleanup、Review、LaTeX/DOCX adapter、正式 LaTeX 审计与既有 writing/LaTeX regression。现有 CUMCM/MCM/ICM/电工杯活动模板本身已停在三级，不为完成计划机械改模板正文。  
+核心裁决：LaTeX `section/subsection/subsubsection` 映射一至三级；活动正文 `paragraph/subparagraph`（含星号形式）若承担正式章节即阻止交付。Markdown/DOCX 按最终论文语义/outline level 映射；不全仓搜索 `####`，不把维护文档、注释、代码示例、宏定义、证明分情况、算法步骤或表内分组误判为第四层。  
+三级保全：三级标题数量不设硬上限；不能因多个三级标题自动压回二级。三级以下复杂推理改用自然段、公式组、证明分情况或算法步骤，不通过加粗独立行、列表或无编号子标题伪装第四层，也不得借三级上限删除 Part C 核心推导。  
+机器边界：明确可解析的活动正式 LaTeX 四级及以上为 deterministic blocking；自定义宏/样式真实层级无法判断时进入 review_required，不从宏名或字体外观猜测。  
+静态测试 / 真实执行 / 生成文件：待 final head 自动 metadata refresh、HSK Skill CI 与 Optimization baseline 记录。  
+兼容性：不新增 Gate、Project State required 字段、报告 schema 或标题数量指标；一级骨架仍由 Template Manifest 管理。  
+遗留问题 / 下一阶段：Part F 全绿合并后进入 Part G；W0/W3/W4/W5 仍后续实施。
 
 后续每个实施 PR 在本节追加记录，不重写历史裁决：
 
