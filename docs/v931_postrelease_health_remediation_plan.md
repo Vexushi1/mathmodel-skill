@@ -762,7 +762,7 @@ PR B: MERGED（PR #183，merge `2de9f60f12e50612bc6ff4f451cab2dad855dac4`）
 PR C: MERGED（PR #185，merge `ed0f013fc024dc9d27c2ead6b370a21f7b6f88eb`）  
 PR D: MERGED（PR #186，merge `48d05a98f6a7dd97770f8a1adc9c88e2cde29462`）  
 Release 9.3.1: MERGED（PR #187，merge `8a9de52b85a93bb4e04bc03d4298da93b51de326`）  
-Branch hygiene: PREPARED_TOOL_BLOCKED（H2 manifest 已生成；当前连接无 delete-ref）  
+Branch hygiene: COMPLETED（H2 严格安全删除 98/98；H2 工作分支亦删除；远端剩余 main + 80 MANUAL_REVIEW）  
 Docs archive/index hygiene: H1_MERGED / H3_DEFERRED_NOT_NEEDED
 
 ## 15.1 PR A 实施记录
@@ -843,15 +843,28 @@ Branch/docs hygiene: 继续 DEFERRED，未经单独审批不执行。
 
 ## 15.6 Repository Hygiene
 
-Status: IN_PROGRESS。  
+Status: COMPLETED_FOR_APPROVED_SCOPE。  
 H0 inventory：MERGED（PR #189，merge `2ddd91a3a3a66cd1415d5847878c0923697b77ac`）。  
 H1 Active Index segmentation：MERGED（PR #190，merge `4ac8711049ea2f5a44ee29e2f8e8693ca14ddbec`）。  
-H2 branch cleanup：PREPARED_TOOL_BLOCKED；清单 `docs/v931_branch_cleanup_manifest.md`，严格 SAFE_DELETE_CANDIDATE=98。  
+H2 branch cleanup：COMPLETED；严格 SAFE_DELETE_CANDIDATE=98/98 已删除并经 GitHub API 复核，H2 工作分支亦已删除；80 个 MANUAL_REVIEW 按风险边界保留。  
 H3 docs move/delete：DEFERRED_NOT_NEEDED_AFTER_H1。  
 Baseline: `main@f028b2dc320f5ad8dd731d60903126fc2d193fae` / Skill 9.3.1。  
 Initial findings: 177 branches；v9.3/v9.3.1 残留 13 branches，其中 12 个进入 SAFE_DELETE_CANDIDATE、1 个 metadata helper 进入 MANUAL_REVIEW；`docs/` 共 41 个文件，当前 generator 会把所有非-legacy docs 平铺进 Active Skill Index。  
 Execution order: H0 inventory → H1 non-destructive Active Index segmentation → H2 branch cleanup → H3 only-if-needed docs move/delete。  
 Safety: H0 不删除 branch、不移动 docs；H1 优先只改 index presentation，Manifest 仍覆盖历史文件，test/fixture path 不变。  
+
+## 15.7 H2 Branch Cleanup Closeout
+
+Execution date: 2026-09-19 UTC.  
+Pre-delete verified repository state: `main@44b9184b7dd65ff98118db5a4c7c3a6e276bf5ff`, 180 remote branches, open PR=0.  
+Approved deletion cohort: Section 3 strict `SAFE_DELETE_CANDIDATE` = 98.  
+Safety revalidation before execution: 98/98 refs existed, 98/98 live tips matched the recorded SHA, 98/98 were unprotected, and the associated 98 PRs remained merged with matching head refs/head SHAs.  
+Execution: repository owner used native Git ref deletion because the connected GitHub tool surface did not expose delete-ref; the safety script reread the authoritative cohort from `origin/main` and skipped on any SHA drift.  
+Reported result: deleted=98, already-missing=0, SHA-drift-skip=0.  
+Independent post-delete API verification: Section 3 refs remaining=0; H2 working branch remaining=no; MANUAL_REVIEW expected=80 and missing=0; `main` retained; total remote branches=81; open PR=0.  
+Residual issues: 80 MANUAL_REVIEW branches intentionally retained; they have no deletion authorization under H2.  
+H3: `DEFERRED_NOT_NEEDED_AFTER_H1`.  
+Next stage: no further repository-hygiene deletion is authorized by this plan; reopen only under a new inventory/approval cycle.
 
 
 ---
@@ -873,4 +886,4 @@ Safety: H0 不删除 branch、不移动 docs；H1 优先只改 index presentatio
 → 同步活动语义面  
 → 最后才做维护与卫生
 
-本 Plan 的核心 remediation 与 v9.3.1 release closeout 已全部完成；branch cleanup 与历史 docs/index hygiene 仍是独立治理项，未经单独审批不执行删除或迁移。
+本 Plan 的核心 remediation、v9.3.1 release closeout、H1 index hygiene 与获批的 H2 strict-safe branch cleanup 均已完成；80 个 MANUAL_REVIEW 分支继续保留，H3 物理 docs 迁移/删除维持 DEFERRED_NOT_NEEDED_AFTER_H1。
