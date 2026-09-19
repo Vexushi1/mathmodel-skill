@@ -3,7 +3,7 @@
 > 仓库：`Vexushi1/mathmodel-skill`  
 > 审计基线：`main@f028b2dc320f5ad8dd731d60903126fc2d193fae`  
 > 当前 Skill：`9.3.1`  
-> 状态：`H0_MERGED / H1_MERGED / H2_PREPARED_TOOL_BLOCKED`  
+> 状态：`H0_MERGED / H1_MERGED / H2_COMPLETED / H3_DEFERRED_NOT_NEEDED`  
 > 角色：维护清单与治理证据，不是 Runtime / Modeling / Approval Authority。
 
 ## 1. Hygiene 边界
@@ -280,7 +280,7 @@ v9.3 / v9.3.1 的 12 个候选满足 H0 删除候选标准；删除动作应在 
 ```text
 H0 branch/docs inventory: MERGED（PR #189）
 H1 Active Index segmentation: MERGED（PR #190，merge `4ac8711049ea2f5a44ee29e2f8e8693ca14ddbec`）
-H2 safe branch deletion: PREPARED_TOOL_BLOCKED（`docs/v931_branch_cleanup_manifest.md`；98 个严格 SAFE_DELETE_CANDIDATE）
+H2 safe branch deletion: COMPLETED（98/98 严格 SAFE_DELETE_CANDIDATE 已删除并经远端 API 复核；H2 工作分支亦已删除）
 H3 docs move/delete: DEFERRED_NOT_NEEDED_AFTER_H1
 ```
 
@@ -292,4 +292,6 @@ H1 已通过 PR #190 合并：`SKILL_FILE_INDEX.md` 现在按 Active Runtime & R
 
 H2 已生成 `docs/v931_branch_cleanup_manifest.md`。本轮全仓重新枚举 180 个 branch（包含当前 H2 工作分支），严格规则下得到 98 个 `SAFE_DELETE_CANDIDATE`、53 个 merged-PR-tip-mismatch、7 个 closed-unmerged、20 个 no-PR，以及 main + 当前 H2 branch 两个 KEEP。
 
-当前连接未暴露 delete-ref / delete-branch action，因此 H2 的**远程删除动作**被工具能力阻塞；不得用 force-update、空提交或改名冒充删除。候选清单与复核规则已固化，待具备 ref-deletion 能力时逐项重新验证后执行。
+当前连接仍未暴露 delete-ref / delete-branch action，因此实际删除由仓库所有者通过原生 Git ref 删除路径执行；执行脚本从 `origin/main` 重新读取 98 个候选，并在每次删除前强制核对 live SHA 与清单 SHA 完全一致。执行结果为 deleted=98、already-missing=0、SHA-drift-skip=0。随后 GitHub API 独立复核：98 个候选均已不存在，H2 工作分支已不存在，80 个 MANUAL_REVIEW 分支全部保留，`main` 保留，远端 branch 总数为 81，open PR 为 0。
+
+因此 H2 按批准范围 **COMPLETED**。80 个 MANUAL_REVIEW 是有意保留的风险隔离集合，不自动升级为删除候选；H3 继续 `DEFERRED_NOT_NEEDED_AFTER_H1`。
