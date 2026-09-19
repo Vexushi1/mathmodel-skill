@@ -69,10 +69,41 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
             formula["functional_sequence"],
             ["need", "basis", "formula", "meaning", "consequence"],
         )
+        self.assertIn("当前已知什么", formula["context_recoverability_rule"])
+        self.assertIn("还缺什么关系", formula["context_recoverability_rule"])
+        self.assertIn("关键成立条件", formula["condition_locality_rule"])
+        self.assertIn("失效条件", formula["condition_locality_rule"])
         self.assertIn("符号已经定义后", formula["meaning_priority"])
         self.assertIn("公式后优先说明它如何改变判据、可行域、目标、候选域或计算结构", self.protocol)
+        self.assertIn("Formula-Rich Narrative Test", self.protocol)
         self.assertNotIn("Need：", self.protocol)
         self.assertNotIn("Basis：", self.protocol)
+
+    def test_formula_rich_paragraphs_split_by_reasoning_unit_not_length(self):
+        narrative = self.contract["model_establishment_solution_narrative"]
+        continuous = narrative["continuous_mathematical_narrative"]
+        self.assertIn("彼此依赖", continuous["reasoning_unit_rule"])
+        self.assertIn("模型选择", continuous["reasoning_unit_rule"])
+        self.assertIn("solver 介绍", continuous["reasoning_unit_rule"])
+        self.assertIn("固定字符数", continuous["paragraph_split_rule"])
+        self.assertIn("公式数", continuous["paragraph_split_rule"])
+
+        self.assertIn("推理单元", self.protocol)
+        self.assertIn("不按字符数、句数、公式数", self.protocol)
+        self.assertIn("信息过载的长句", self.cleanup)
+        self.assertIn("Formula-Rich Narrative Readability Review", self.review)
+
+        audit = self.contract["machine_audit_boundary"]
+        self.assertIn("formula_condition_or_applicability_detached_from_use", audit["may_review"])
+        self.assertIn("paragraph_mixes_unrelated_reasoning_units", audit["may_review"])
+        self.assertIn(
+            "paragraph_quality_from_character_sentence_or_formula_count_only",
+            audit["must_not_claim"],
+        )
+        self.assertIn(
+            "formula_context_completeness_from_connector_presence_only",
+            audit["must_not_claim"],
+        )
 
     def test_model_section_does_not_repeat_problem_analysis_or_assumption_lists(self):
         separation = self.contract["model_establishment_solution_narrative"]["stage_separation"]
