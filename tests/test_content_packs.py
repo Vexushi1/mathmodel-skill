@@ -173,7 +173,7 @@ class TestContentPacks(unittest.TestCase):
         self.assertNotIn("长证明移附录时正文仍保留条件", checklist)
 
         manifest = yaml.safe_load((ROOT / "templates/latex/cumcm/hsk/template_manifest.yaml").read_text(encoding="utf-8"))
-        appendix = next(section for section in manifest["sections"] if section["id"] == "appendix")
+        appendix = next(section for section in manifest["paper_skeleton"]["ordered_slots"] if section["id"] == "appendix")
         self.assertIn("核心证明", appendix["note"])
         self.assertIn("不能单独构成", appendix["note"])
 
