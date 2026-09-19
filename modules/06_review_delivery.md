@@ -50,7 +50,7 @@
 
 ### Formula-Rich Narrative Readability Review
 
-消费 Authority / Protocol §7，不新增 Gate/分数。人工核公式上下文、适用条件与推理单元；数学或证据链断裂才按既有 Hard。机器不得按字数、句数、公式数或连接词判质量。
+消费 Authority / Protocol §7；不新增 Gate/分数，机器不按字/句/公式数判质量。
 
 ### Core Derivation Body Closure Review
 
