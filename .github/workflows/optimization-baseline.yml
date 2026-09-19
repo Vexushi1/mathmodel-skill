@@ -111,6 +111,9 @@ jobs:
         run: |
           python -m unittest discover -s tests -p test_reading_plan.py
           python tests/reading_plan_evidence.py --baseline "$OPT_P1" --candidate "$PWD" --candidate-ref "$(git rev-parse HEAD)" --output "$OPT_REPORTS"
+      - name: Measure writing-validation W0 baseline
+        shell: bash
+        run: python scripts/measure_writing_validation.py --repeats 30 --warmup 5 --output "$OPT_REPORTS/writing-validation-w0-baseline.json"
       - name: Upload real measurement evidence even on failure
         if: always()
         uses: actions/upload-artifact@v7
