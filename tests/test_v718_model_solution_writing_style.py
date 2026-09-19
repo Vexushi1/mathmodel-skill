@@ -185,7 +185,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         self.assertIn("正式章节禁止四级及以上", "\n".join(policy["rules"]))
         self.assertIn("Formal Heading Depth", self.protocol)
         self.assertIn("三级标题属于正常可用层级", self.protocol)
-        self.assertIn("不全仓搜索", self.cleanup)
+        self.assertIn("不参与论文标题深度判定", self.protocol)
         self.assertIn("formal_heading_depth_policy", self.review)
 
         audit = self.contract["machine_audit_boundary"]
