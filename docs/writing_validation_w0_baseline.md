@@ -147,3 +147,10 @@ W3 允许的最小方向：**合并/移除 count-only `question_subsection_granu
 - Hard/数值/模型/状态/交付边界：未修改。
 
 因此 W0 的维护证据已经完整，**W3 只能从 §6 的单一已批准候选开始**。
+
+
+## 8. W3 实施接续
+
+W0 本文 §1--§7 保留为修改前的不可变维护基线。W3 从该基线只消费 §6 的单一准入项：移除仅由二级小节数量大于 4 触发的 `question_subsection_granularity` review finding。
+
+W3 不改变本文对其它候选的“保留/拒绝”裁决；特别是 `possible_mechanical_model_subsection_split`、`framework_subsection_granularity_pending`、三个 surface review_required、跨阶段复验和 formal→surface 嵌套均继续保留。W3 后 current measurement harness 会把 `many_independent_subsections` 的目标结果更新为“不产生 count-only finding”，但本页记录的 #347 历史 artifact 与源指纹不回写。

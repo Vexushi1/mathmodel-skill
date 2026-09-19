@@ -121,34 +121,44 @@ class TestV716PaperWritingSpec(unittest.TestCase):
         self.assertIn("这不是硬计数", self.review)
         self.assertIn("以下**不再自动列为 Blocking**：问题章节内部二级/三级小节超过经验数量", self.review)
 
-    def test_prose_audit_reviews_more_than_four_question_subsections_only(self):
-        tex = r"""
+    def test_prose_audit_does_not_review_subsection_count_alone(self):
+        independent = r"""
 \begin{document}
 \section{问题一模型建立及求解}
-\subsection{模型建立}模型。
-\subsection{核心模型汇总}汇总。
-\subsection{模型求解}求解。
-\subsection{结果分析}结果。
-\subsection{独立验证}验证。
+\subsection{状态变量定义}定义状态和量纲。
+\subsection{边界条件构造}给出独立边界条件。
+\subsection{控制方程}推导控制方程。
+\subsection{数值求解}依据当前结构说明数值求解。
+\subsection{求解结果}给出结果并回答设问。
 \end{document}
 """
-        findings = AUDIT.audit_text(tex)
-        item = next((x for x in findings if x.code == "question_subsection_granularity"), None)
-        self.assertIsNotNone(item, findings)
-        self.assertEqual(item.severity, "review_required")
-        self.assertIn("不代表结构自动错误", item.message)
+        findings = AUDIT.audit_text(independent)
+        self.assertFalse(
+            any(x.code == "question_subsection_granularity" for x in findings),
+            findings,
+        )
 
-        compact = r"""
+        mechanical = r"""
 \begin{document}
 \section{问题一模型建立及求解}
-\subsection{模型建立}变量、目标、约束和核心模型汇总在本节连续说明。
-\subsection{模型求解}求解。
-\subsection{结果分析}结果。
-\subsection{模型检验}检验。
+\subsection{决策变量}定义变量。
+\subsection{目标函数}给出目标。
+\subsection{约束条件}给出约束。
+\subsection{核心模型汇总}重复汇总。
+\subsection{求解结果}给出结果。
 \end{document}
 """
-        compact_findings = AUDIT.audit_text(compact)
-        self.assertFalse(any(x.code == "question_subsection_granularity" for x in compact_findings), compact_findings)
+        mechanical_findings = AUDIT.audit_text(mechanical)
+        item = next(
+            (x for x in mechanical_findings if x.code == "possible_mechanical_model_subsection_split"),
+            None,
+        )
+        self.assertIsNotNone(item, mechanical_findings)
+        self.assertEqual(item.severity, "warning")
+        self.assertFalse(
+            any(x.code == "question_subsection_granularity" for x in mechanical_findings),
+            mechanical_findings,
+        )
 
     def test_core_model_summary_need_not_be_a_named_subsection(self):
         tex = r"""
