@@ -11,6 +11,16 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def load_measurement_module():
+    path = ROOT / "scripts/measure_writing_validation.py"
+    spec = importlib.util.spec_from_file_location("measure_writing_validation_w0", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 def load_audit_module():
     path = ROOT / "scripts/audit_paper_prose.py"
     spec = importlib.util.spec_from_file_location("audit_paper_prose_v745", path)
@@ -240,6 +250,40 @@ H1. 数据满足要求。
         self.assertEqual(policy["prose_audit_script"], "scripts/audit_paper_prose.py")
         self.assertEqual(policy["prose_audit_default_mode"], "report_only")
         self.assertEqual(policy["prose_audit_strict_blocks_on"], ["blocking", "review_required"])
+
+    def test_w0_measurement_preserves_runtime_and_exposes_paired_candidates(self):
+        measurement = load_measurement_module()
+        report = measurement.collect(ROOT, repeats=1, warmup=0)
+        self.assertEqual(report["schema_version"], "1.0.0")
+        self.assertFalse(report["environment"]["timing_is_gate"])
+        graph = report["call_graph"]
+        self.assertTrue(graph["draft_semantic_review"]["surface_audit_direct"])
+        self.assertFalse(graph["reuse_adjudication"]["same_input"])
+        self.assertFalse(graph["reuse_adjudication"]["cross_stage_cache_allowed"])
+
+        rows = {row["id"]: row for row in report["candidate_snapshots"]}
+        for row in rows.values():
+            self.assertTrue(row["expectation_matches"], row)
+        self.assertEqual(
+            rows["many_independent_subsections"]["observed_severity"],
+            "review_required",
+        )
+        self.assertEqual(
+            rows["mechanical_subsection_split"]["observed_severity"],
+            "warning",
+        )
+        self.assertEqual(
+            rows["result_validation_without_bridge"]["observed_severity"],
+            "review_required",
+        )
+        self.assertFalse(rows["result_validation_with_bridge"]["observed_present"])
+        self.assertEqual(
+            rows["solver_first_without_structure"]["observed_severity"],
+            "review_required",
+        )
+        self.assertFalse(rows["solver_with_structure"]["observed_present"])
+        self.assertEqual(rows["stage_order_inverted"]["observed_severity"], "review_required")
+        self.assertFalse(rows["stage_order_valid"]["observed_present"])
 
 
 if __name__ == "__main__":

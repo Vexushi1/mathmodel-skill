@@ -462,13 +462,13 @@ python scripts/generate_indexes.py --check
 | A–G 摘要方向及 C 修正 | 用户已认可 |
 | F：三级正常可用，四级及以上禁止 | 用户已明确批准 |
 | P0：详细计划 | MERGED（PR #193，merge `d11961f34ee8f9f6cfa6e80eafd67d37745eb4f5`） |
-| W0 完整基线/检查去重裁决 | PARTIAL：证明范围已完成定点影响面审计；检查减重的完整调用/成本基线仍 NOT_STARTED |
-| W1 核心政策实施 | IN_PROGRESS：W1-P1 / W1-P2、Part C/D/E/F 已闭环；当前按计划进入 Part G |
+| W0 完整基线/检查去重裁决 | BASELINE_COMPLETE_PR_PENDING：调用图、同环境耗时、输入指纹、正反例与逐候选裁决已形成；W3 仍未开始，待本 PR final-head 与 main 后验后标 COMPLETED |
+| W1 核心政策实施 | COMPLETED：W1-P1 / W1-P2 与 Part C/D/E/F/G 已闭环；检查减重继续走 W0→W3 独立阶段 |
 | Part C：完整核心推导留正文 | COMPLETED：PR #194 完成核心证明正文保全，PR #197 完成非证明型核心推导正文闭环；final head 与合并后 main 验收均通过 |
 | Part D：表格与图表可读性 | COMPLETED（PR #196，merge `b1b92eb31d444058a33a5e72a8ea8796dc1b28ec`） |
 | Part E：公式多时保持清晰叙事 | COMPLETED：PR #199，final head 与合并后 main 验收均通过 |
 | Part F：正式章节最大三级 | COMPLETED：PR #200，final head 与合并后 main 验收均通过 |
-| Part G：复用现有审查，不增建 Gate | IN_PROGRESS：现有 Review/Runtime 已满足 §9，按 §10 以回归测试证明后保持 active interfaces 原样 |
+| Part G：复用现有审查，不增建 Gate | COMPLETED：PR #201 以既有 Review/Runtime/coverage 回归证明闭环，未新增 Gate/required 状态/coverage family |
 | W2 Consumer/模板/样例实施 | IN_PROGRESS：PR #194/#195 已同步必要 consumer；PR #196 同步图表写作 consumer/模板，但不代表 W2 全阶段完成 |
 | W3 检查减重实施 | NOT_STARTED |
 | W4 行为验收集成 | NOT_STARTED |
@@ -561,15 +561,28 @@ Base main SHA：`8fb72f6e73a245f101690d01e9db82064206d48b`；Final head：`1b1da
 ### G-P1：复用现有审查，不增建 Gate
 
 阶段 / PR：Part G 原子修改 / PR #201 — `test: prove readability reuses the existing review pipeline`。  
-Base main SHA：`0d8b44c0c26ad7694638da468d457df76ded08ce`；Final head / Merge SHA 待真实 CI 与合并后补记。  
+Base main SHA：`0d8b44c0c26ad7694638da468d457df76ded08ce`；Final head：`692e970a32adfbb95ea1380fa72fe65fdef510b9`；Merge SHA：`f489934efd633b1c5c5dc0930858aa4c49f6ca3a`。  
 本次获批范围与 Authority：严格按 Part G §9 与实施规则 §10；draft review 发现理解障碍，Cleanup 只修表达，final review 在既有全篇 coverage 内复验；不得新增 `readability_status`、Project State required 字段、新注册表、独立 Readability Gate 或第九个 coverage family。  
 现状裁决：读取 current Review、Writing Runtime、Cleanup、review matrix、score/lint 与 Project State 后，现有 active interface 已满足 Part G：`draft_semantic_review → ai_cleanup → final_review_and_delivery` 顺序已存在；终审稳定 coverage 仍为八类，`rendered_page_surface` 与 `figure_table_information_value` 已承载相关可读性证据；finding 已区分 `machine / manual / hybrid`；内部审查记录明确不进入 Project State。  
 实际修改文件及未修改原因：按 §10“若现有能力已满足，用测试证明后保持原样”，不修改 Review、Runtime、Cleanup、review matrix、score schema、Project State 或 Gate；仅扩展既有 `tests/test_v820_final_review_compliance.py` 固化上述不新增接口边界，并更新本计划状态/证据。  
 检查减重候选的逐项裁决：Part G 不执行 W3 减重，不降低任何 Hard/Default severity；R7/R8 仍留给 W0 完整基线与 W3 逐候选裁决。  
 核心推导、数值与三级层级保全结果：Part C–F 规则保持；本阶段不改模型、数值、工作簿、标题层级或 LaTeX 审计语义。  
-静态测试 / 真实执行 / 生成文件：待 final head 自动 metadata refresh、HSK Skill CI 与 Optimization baseline 记录。  
-兼容性与实际成本变化：预期零运行接口变化、零 schema/gate/family 增量；本阶段不宣称性能收益。  
-遗留问题 / 下一阶段：Part G 全绿合并后，先完成 W0 的检查对象/调用者/输入指纹/阶段/severity/调用次数耗时/测试覆盖/正反例裁决表，再进入 W3；不得跳过 W0 直接减重。
+静态测试 / 真实执行 / 生成文件：final head HSK Skill CI workflow_dispatch #3811 与 Optimization baseline #345 均 success；PR-triggered HSK 为 `action_required` 不作为通过证据；合并后 main HSK Skill CI #3813 与 metadata refresh #2512 均 success。  
+兼容性与实际成本变化：零运行接口变化、零 schema/gate/family 增量；本阶段未宣称性能收益。  
+完成结论：Part G 已闭环，现有 draft review / Cleanup / final review 管线继续作为唯一可读性审查载体。  
+遗留问题 / 下一阶段：按计划进入 W0 完整基线；必须先完成检查对象/调用者/输入指纹/阶段/severity/调用次数耗时/测试覆盖/正反例裁决表，再进入 W3。
+
+### W0-P1：检查调用、成本与正反例基线
+
+阶段 / PR：W0 完整基线 / branch `fix/writing-validation-w0-baseline`；PR 编号待创建。  
+Base main SHA：`f489934efd633b1c5c5dc0930858aa4c49f6ca3a`；Final head / Merge SHA 待真实验收后补记。  
+本次范围：严格执行 §5.2 与 §10 的 W0 前置要求，只建立调用图、输入阶段/指纹、severity、调用次数/耗时、测试与正反例证据，不删除脚本、不降级检查、不改 Gate/Schema/Runtime 语义。  
+测量入口：新增 maintenance-only `scripts/measure_writing_validation.py`；计时仅作证据，不设阈值、不成为 Gate。配对样例复用/扩展现有 prose audit 测试，覆盖 R7 的 count-only 小节复核、Result→Validation bridge、solver-first 和功能次序。  
+R8 调用图结论：draft 阶段直接运行 `audit_v8_writing_surface.py`；Cleanup 与 LaTeX assembly 后，formal route 由 `audit_latex_project.py → audit_paper_prose.py → audit_v8_writing_surface.py` 再审。两次 surface 输入阶段不同，禁止跨阶段缓存复用；formal 内部只嵌套一次 surface audit。  
+实际测量：Optimization baseline #347，head `8c543f9c6a0966d84f7a357a7fc3c12069c8f5bb`，Python 3.12.14 / Linux Azure，30 次计时 + 5 次 warmup；small/medium/large 三档 fixture 分别为 761 / 3659 / 12344 bytes。完整结果见 `docs/writing_validation_w0_baseline.md`。  
+裁决：跨阶段 surface 复验保留；formal→surface 嵌套保留；surface 内部重复预处理虽实测为 4/6/9 次，但 12.3 KB 大样例 direct surface median 仅 9.7019 ms，当前拒绝为此引入共享 context/cache。R7 仅 `question_subsection_granularity` 的“二级小节 >4 即 review_required”被证实为 W3 候选：独立数学任务正例仍被误报，而机械拆分已有更具体 `possible_mechanical_model_subsection_split` 证据。其余三项 surface review_required 均由成对正反例证明有区分度，保留。  
+当前状态：W0 维护证据已闭合，W3 尚未开始。  
+遗留问题 / 下一阶段：本 PR final-head 与 main 后验通过后将 W0 标 COMPLETED；随后 W3 只允许处理 W0 已批准候选，不得扩大到未取证 severity 或 Gate。
 
 后续每个实施 PR 在本节追加记录，不重写历史裁决：
 
