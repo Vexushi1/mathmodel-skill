@@ -546,7 +546,7 @@ Part C 保全：Part E 只优化阅读组织，不得删除 Part C 要求保留�
 
 ### F-P1：正式章节最大三级
 
-阶段 / PR：Part F 原子修改 / branch `fix/formal-heading-depth-three`；PR 编号待创建。  
+阶段 / PR：Part F 原子修改 / PR #200 — `fix: cap formal paper headings at semantic level three`。  
 Base main SHA：`8fb72f6e73a245f101690d01e9db82064206d48b`；Final head / Merge SHA 待真实 CI 与合并后补记。  
 本次获批范围与 Authority：依据 Part F，一级、二级、三级标题均为正常可用层级；三级不是例外权限或数量配额，正式章节禁止四级及以上。Authority 进入 `model_establishment_solution_narrative.within_question_subsection_architecture.formal_heading_depth_policy`，不新建独立写作合同。  
 实际修改范围：Writing Reasoning Authority、Paper Writing Protocol、AI Cleanup、Review、LaTeX/DOCX adapter、正式 LaTeX 审计与既有 writing/LaTeX regression。现有 CUMCM/MCM/ICM/电工杯活动模板本身已停在三级，不为完成计划机械改模板正文。  
