@@ -469,7 +469,7 @@ python scripts/generate_indexes.py --check
 | Part E：公式多时保持清晰叙事 | COMPLETED：PR #199，final head 与合并后 main 验收均通过 |
 | Part F：正式章节最大三级 | COMPLETED：PR #200，final head 与合并后 main 验收均通过 |
 | Part G：复用现有审查，不增建 Gate | COMPLETED：PR #201 以既有 Review/Runtime/coverage 回归证明闭环，未新增 Gate/required 状态/coverage family |
-| W2 Consumer/模板/样例实施 | CLOSURE_IN_PROGRESS：现有 Pack/Template/例文已承载长核心证明、正常三级导航与可读表格；branch `fix/writing-consumer-template-w2-closure` 以集成回归证明后保持业务文件原样 |
+| W2 Consumer/模板/样例实施 | IN_PROGRESS：W2-P1 PR #205 已证明现有 Pack/Template/例文对齐；按 §7.4 仍需 W2-P2 真实长证明 LaTeX 分页与引用/编号验收，branch `fix/writing-w2-long-proof-render` |
 | W3 检查减重实施 | COMPLETED：PR #203 仅移除 W0 批准的 count-only `question_subsection_granularity` finding；final head 与 main 后验均通过 |
 | W4 行为验收集成 | NOT_STARTED |
 | W5 发布与综合收尾 | NOT_STARTED；目标 release 待实际评估 |
@@ -600,14 +600,26 @@ Hard 保全：duplicate label、missing reference/BibTeX、claim-scope 冲突等
 
 ### W2-P1：Consumer、模板与样例闭环验收
 
-阶段 / PR：W2 closure / branch `fix/writing-consumer-template-w2-closure`；PR 编号待创建。  
-Base main SHA：`491fac0af1f77eb91e64f32e21ae21abcc442b4e`；Final head / Merge SHA 待真实验收后补记。  
+阶段 / PR：W2 closure / PR #205 — `test: close writing consumer and template alignment`。  
+Base main SHA：`491fac0af1f77eb91e64f32e21ae21abcc442b4e`；Final head：`e990bb8afa0d703245f33b87721f824229dc6200`；Merge SHA：`0242bb8d4d6b94dab7b14773940e92e8c692e99d`。  
 本次范围：严格按 §10 W2 完成条件检查 Cleanup/Review/Pack/Template/例文的实际承载，不再改写已经稳定的 C–F Authority。按“现有能力已满足则用测试证明后保持原样”执行。  
 完整读取与裁决：长核心证明由 `packs/artifact/proposition_proof.md` 明确允许命题框后接 standalone `hskproof` 并正常分页，活动 preamble 已提供独立 `hskproof`；CUMCM Q2 模板已有多个正常 `subsubsection` 示例且明确不设固定名称/数量；模型建立与求解论证例文同时保留紧凑型与导航型 Profile；表格可读性由 caption template 与 DOCX checklist 落到 run id、指标方向、accepted 数值和过宽表处理。  
 实际修改：不修改上述业务文件；仅扩展既有 writing evidence regression，把 Pack→preamble→Q2 template→rationale examples→caption/DOCX checklist 的具体输出载体锁成一个集成断言，并更新本计划状态。  
 兼容性：不新增模板骨架、示例库、Gate、Schema 或 Runtime 读取；不把 CUMCM 一级骨架扩散到其他载体。  
-静态测试 / 真实执行 / 生成文件：待 final head HSK Skill CI、Optimization baseline、CUMCM/MCM/ICM/电工杯 LaTeX smoke 与 metadata refresh。  
-遗留问题 / 下一阶段：W2 全绿并完成 main 后验后进入 W4 T01–T18 集成验收；W4 只补缺失的行为证据，不重复修改已闭环业务政策。
+静态测试 / 真实执行 / 生成文件：final head HSK Skill CI #3826 与 Optimization baseline #351 均 success，CUMCM/MCM-ICM/电工杯 LaTeX smoke、Production LaTeX attestation 与 generated-file contract 均 success；合并后 main HSK Skill CI #3828 与 metadata refresh #2521 均 success。  
+完成结论：W2-P1 已证明 Consumer/Pack/Template/例文静态与常规模板执行对齐，但计划 §7.4 还要求长核心证明方案具备真实 LaTeX 渲染与引用/编号证据，因此 W2 暂不标 COMPLETED。  
+遗留问题 / 下一阶段：先完成 W2-P2 长核心证明真实分页验收，再进入 W4 T01–T18；不得以静态 token 检查替代该渲染要求。
+
+### W2-P2：长核心证明真实 LaTeX 分页与引用验收
+
+阶段 / PR：W2 real-render closure / branch `fix/writing-w2-long-proof-render`；PR 编号待创建。  
+Base main SHA：`0242bb8d4d6b94dab7b14773940e92e8c692e99d`；Final head / Merge SHA 待真实验收后补记。  
+计划依据：严格执行 §7.4“长证明的解决方式必须有真实 LaTeX 渲染和引用/编号测试”，以及 T04“核心证明超过半页时正文完整证明可连续阅读并正确分页”。  
+实际修改：不改 Proposition Pack、Writing Authority 或活动 preamble 业务语义；仅在现有 Production LaTeX attestation 中增加临时 CUMCM 长核心证明 fixture，直接复制 current `config/preamble.tex`，把命题陈述留在 `hskproposition`，完整证明置于框外 standalone `hskproof`。真实编译后从 AUX 核对命题/最终公式 label 均存在且最终公式页码大于命题页码，并拒绝 unresolved reference/citation；失败时保留 proof-specific audit/compile/log/aux diagnostics。  
+测试保护：扩展既有 `tests/test_content_packs.py`，确保真实渲染步骤、命题/公式 label 和跨页页码断言不会被后续维护静默删除。  
+兼容性：不新增 Runtime Gate、Project State、报告 schema、模板正式章节、用户必交文件或跨运行缓存；只加强现有 CI 验收，不裁剪任何现有 job。  
+静态测试 / 真实执行 / 生成文件：待 final head HSK Skill CI、Optimization baseline 和真实 proof render 结果。  
+遗留问题 / 下一阶段：该真实渲染全绿并完成 main 后验后，W2 才可标 COMPLETED；随后进入 W4 T01–T18 集成验收。
 
 后续每个实施 PR 在本节追加记录，不重写历史裁决：
 
