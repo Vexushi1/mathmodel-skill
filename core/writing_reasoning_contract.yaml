@@ -525,7 +525,16 @@ model_establishment_solution_narrative:
     phrase_bank_forbidden: true
   professional_heading_semantics:
     governance_level: default
-    principle: 标题按独立数学任务划分，优先让评委从标题恢复“处理哪个对象、完成什么关系或计算动作”，而不是按论文合同字段切块。
+    reader_assumption: mathematical_modeling_literate_not_domain_specialist
+    principle: >-
+      标题按独立数学任务划分。默认评委具有数学建模基础，但不预设其熟悉题目所属行业、专业物理概念或算法缩写；
+      标题优先让评委先恢复“处理哪个对象、回答什么问题或完成什么计算任务”，再由正文准确介绍模型、机制和方法。
+    judge_recoverability_rule: >-
+      标题脱离作者内部上下文后仍应能定位当前对象与任务。若标题只剩领域术语、算法缩写或多个方法名串联，
+      使非该领域评委无法判断本节在解决什么，应补回对象/任务，或把非必要方法名移到节首正文解释。
+    method_name_rule: >-
+      标准模型名、方法名和必要专业术语可以保留；当它们承担区分不同任务、说明真实核心方法或避免歧义时不应强删。
+      “评委可理解”不等于把准确术语改成泛化口语，也不要求所有标题都写成同一种句式。
     preferred_pattern: object_plus_mathematical_task
     alternative_patterns:
       - method_plus_current_task
@@ -542,12 +551,15 @@ model_establishment_solution_narrative:
         - research_framing_repetition
         - decorative_based_on_or_perspective_of
         - generic_method_stacking
+        - jargon_or_acronym_only_when_object_is_hidden
         - title_as_full_sentence_without_navigation_gain
       hard_character_limit: false
     rules:
       - 决策变量、目标函数、约束与核心模型汇总若只是同一短模型建立链，默认连续组织，不机械拆成多个三级标题。
       - 若决策变量、目标函数、关键约束或模型汇总本身包含独立公式组、非平凡定义或后文需要明确回指的任务，可使用清晰短标题；不得为“连续叙事”强行合并。
       - 一个公式、一张表或一个参数设置本身不自动构成独立标题。
+      - 仅由专业缩写、领域名词或多个算法名称串联构成的标题，若遮蔽研究对象和当前任务，应改为对象/任务优先的标题，并在正文准确保留方法名。
+      - “数据处理”“模型处理”“结果说明”“影响因素”等无对象泛化标题不能因为更通俗而替代更准确的任务标题。
       - 短名词标题若能准确恢复数学任务可以保留，不强制“XX的XX”或“名词+动词”语法。
     hard_grammar_rule: false
   within_question_subsection_architecture:
@@ -1085,9 +1097,23 @@ numeric_style_contract:
 
 terminology_governance:
   governance_level: recommendation
+  reader_assumption: mathematical_modeling_literate_not_domain_specialist
   principle: >-
-    自然语言技术术语应与符号治理同等级保持语义稳定。技术论文不以同义词丰富为目标；
-    同一量优先使用一个 canonical term，不同量即使语言相近也必须明确区分。
+    自然语言技术术语应与符号治理同等级保持语义稳定，同时让不具备题目专业背景的数学建模评委能够在首次接触时恢复其含义。
+    技术论文不以同义词丰富为目标；同一量优先使用一个 canonical term，不同量即使语言相近也必须明确区分。
+  first_use_explanation:
+    applies_to:
+      - domain_specific_term
+      - domain_specific_abbreviation
+      - project_specific_metric_or_construct
+    rule: >-
+      首次实质出现时，在邻近正文给出准确名称、简明含义以及它在本题中的作用；解释可以放在同一句、括号或前后短句，
+      不要求固定三句模板。已经清楚解释后不反复定义，基础数学常识也不写成词典。
+    abbreviation_rule: >-
+      正文使用缩写时首次给出可恢复的全称或中文名称；若图表先于正文出现缩写，caption、表注或邻近正文必须能恢复其含义。
+    display_name_rule: >-
+      标题或叙事可使用更易理解的显示名称，但必须与 canonical term 一一对应且不改变定义、量纲、符号、模型类型或数据字段。
+      不能为了通俗把专业术语替换成错误的口语同义词。
   registry_fields:
     - term_id
     - canonical_term
@@ -1105,6 +1131,7 @@ terminology_governance:
     - discouraged alias 出现时只提示复查，不自动认定为数学错误。
     - confusable terms 必须分别登记定义，避免“有效时长/总时长”“样本/场景”等近义词跨量混用。
     - 一个 alias 不应同时映射到两个不同 canonical term；确有上下文区分时必须记录理由。
+    - 首次解释服务读者理解，不要求把每个 canonical term 都扩写成独立定义段；解释粒度由当前题目和真实歧义决定。
   machine_audit_scope:
     may_check:
       - duplicate_term_id
@@ -1115,6 +1142,8 @@ terminology_governance:
     must_not_claim:
       - unseen_terms_are_synonyms
       - semantic_equivalence_from_string_similarity_only
+      - term_is_unfamiliar_from_word_frequency_only
+      - first_use_explanation_is_sufficient_from_parentheses_or_full_name_presence_only
 
 multi_method_validation:
   two_levels:

@@ -117,6 +117,26 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         self.assertIn("泛化标题", self.cleanup)
         self.assertIn("Heading Compression Test", self.cleanup)
 
+    def test_headings_are_judge_readable_without_losing_technical_meaning(self):
+        headings = self.contract["model_establishment_solution_narrative"][
+            "professional_heading_semantics"
+        ]
+        self.assertEqual(
+            headings["reader_assumption"],
+            "mathematical_modeling_literate_not_domain_specialist",
+        )
+        self.assertIn("题目所属行业", headings["principle"])
+        self.assertIn("对象", headings["judge_recoverability_rule"])
+        self.assertIn("任务", headings["judge_recoverability_rule"])
+        self.assertIn("标准模型名", headings["method_name_rule"])
+        self.assertIn("jargon_or_acronym_only_when_object_is_hidden", headings["title_minimality"]["avoid"])
+        self.assertIn("无对象泛化标题", "\n".join(headings["rules"]))
+        self.assertIn("默认读者具有数学建模基础", self.protocol)
+        self.assertIn("Judge Readability Test", self.protocol)
+        self.assertIn("只剩“FV--BDF--Radau 一致性”", self.protocol)
+        self.assertIn("Judge Readability Test", self.cleanup)
+        self.assertIn("专业缩写/方法名串联", self.cleanup)
+
     def test_solver_narrative_is_structure_before_algorithm(self):
         bridge = self.contract["model_establishment_solution_narrative"]["model_to_solver_bridge"]
         self.assertEqual(
