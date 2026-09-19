@@ -94,6 +94,33 @@ class TestV770PaperSemanticGovernance(unittest.TestCase):
         issues = self.state_validator._validate_terminology(framework)
         self.assertTrue(any("alias maps to multiple" in issue for issue in issues), issues)
 
+    def test_terminology_first_use_explanation_is_local_and_accuracy_preserving(self):
+        terminology = self.reasoning["terminology_governance"]
+        self.assertEqual(
+            terminology["reader_assumption"],
+            "mathematical_modeling_literate_not_domain_specialist",
+        )
+        first_use = terminology["first_use_explanation"]
+        self.assertIn("domain_specific_term", first_use["applies_to"])
+        self.assertIn("首次实质出现", first_use["rule"])
+        self.assertIn("本题中的作用", first_use["rule"])
+        self.assertIn("不要求固定三句模板", first_use["rule"])
+        self.assertIn("全称或中文名称", first_use["abbreviation_rule"])
+        self.assertIn("不能为了通俗", first_use["display_name_rule"])
+        self.assertIn(
+            "first_use_explanation_is_sufficient_from_parentheses_or_full_name_presence_only",
+            terminology["machine_audit_scope"]["must_not_claim"],
+        )
+
+        protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
+        cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
+        review = (ROOT / "modules/06_review_delivery.md").read_text(encoding="utf-8")
+        self.assertIn("专业术语首次说明", protocol)
+        self.assertIn("不预设其熟悉当前题目的行业术语", protocol)
+        self.assertIn("不得为了“更简洁”删成裸术语/裸缩写", cleanup)
+        self.assertIn("首次实质出现处是否有准确、简短、邻近", review)
+        self.assertIn("不能为了“更通俗”把标题改成", review)
+
     def test_high_precision_numeric_profile_rejects_unjustified_low_abstract_precision(self):
         good = {"numeric_profile": [{
             "id": "N1", "metric": "最优时间", "display_form": "decimal",
