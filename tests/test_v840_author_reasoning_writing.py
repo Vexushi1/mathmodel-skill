@@ -44,10 +44,11 @@ class WritingReasoningScopeTests(unittest.TestCase):
             with self.subTest(heading=heading):
                 self.assertEqual(hashlib.sha256(sections[heading].encode()).hexdigest(), digest)
 
-    def test_template_adapter_and_proof_algorithm_forms_unchanged(self):
-        # Earlier v8.4 snapshots still protect the substantive proof/algorithm forms.
+    def test_template_adapter_and_proof_algorithm_forms_are_pinned(self):
+        # The proof-body policy intentionally reopens the proposition pack and LaTeX proof placement;
+        # re-pin those exact forms while leaving the untouched algorithm pack on its prior baseline.
         frozen = {
-            "packs/artifact/proposition_proof.md": "312fe5648c498831eef148505b65b074a8fbfee3",
+            "packs/artifact/proposition_proof.md": "187cf4626294857a8e89351cf335a15bd0bbf1f8",
             "packs/artifact/algorithm_flow.md": "dbd06aacd7216c654789a9002ce682a2065ec0bd",
         }
 
@@ -84,7 +85,7 @@ class WritingReasoningScopeTests(unittest.TestCase):
         ).replace(adapter_current, adapter_legacy, 1)
         self.assertEqual(
             git_blob_sha1(normalized_adapter),
-            "98f90f8caa6c3072316dd8e620add05722abfa4b",
+            "31ab4ae8a36ccf04fa64bc01bf619f4ca03c2f7e",
         )
 
         # v8.7.2 keeps the CUMCM AI-disclosure source in the canonical project but
