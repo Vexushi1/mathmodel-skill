@@ -50,7 +50,7 @@
 
 ### Formula-Rich Narrative Readability Review
 
-消费 Authority / Protocol §7；不新增 Gate/分数。
+消费 Authority / Protocol §7。
 
 ### Core Derivation Body Closure Review
 
