@@ -461,13 +461,26 @@ python scripts/generate_indexes.py --check
 |---|---|
 | A–G 摘要方向及 C 修正 | 用户已认可 |
 | F：三级正常可用，四级及以上禁止 | 用户已明确批准 |
-| P0：详细计划 | 本文件已编制；是否进入 main 以规划 PR 实际合并状态为准 |
-| W0 完整基线/检查去重裁决 | NOT_STARTED；第 3 节只是规划前定点取证 |
-| W1 核心政策实施 | NOT_STARTED |
-| W2 Consumer/模板/样例实施 | NOT_STARTED |
+| P0：详细计划 | MERGED（PR #193，merge `d11961f34ee8f9f6cfa6e80eafd67d37745eb4f5`） |
+| W0 完整基线/检查去重裁决 | PARTIAL：证明范围已完成定点影响面审计；检查减重的完整调用/成本基线仍 NOT_STARTED |
+| W1 核心政策实施 | IN_PROGRESS：PR #194 先处理“核心证明/非显然核心推导留正文”的原子闭环 |
+| W2 Consumer/模板/样例实施 | NOT_STARTED；本次仅同步 PR #194 为保持 proof policy 自洽所必需的 consumer/载体说明，不代表 W2 全阶段完成 |
 | W3 检查减重实施 | NOT_STARTED |
 | W4 行为验收集成 | NOT_STARTED |
 | W5 发布与综合收尾 | NOT_STARTED；目标 release 待实际评估 |
+
+### W1-P1：核心证明正文保全
+
+阶段 / PR：W1 原子修改 / PR #194 — `fix: preserve core proofs in the paper body`  
+Base main SHA：`d11961f34ee8f9f6cfa6e80eafd67d37745eb4f5`；Final head / Merge SHA 待 CI 与合并后补记。  
+本次获批范围与 Authority：用户明确要求证明不因长度被强制放附录；核心证明若决定模型成立、关键变换、核心结论或下游计算，应留正文。Authority 为 `core/writing_reasoning_contract.yaml#proposition_governance`，Pack 为 `packs/artifact/proposition_proof.md`。  
+实际修改范围：Authority、Proposition Pack、Module 02 命题规划、Writing Protocol、AI Cleanup、LaTeX/DOCX adapter、DOCX checklist、CUMCM Template Manifest、Review 与既有测试。未修改 preamble、Output Contract、Project State、Runtime、Schema、CLI、Gate、数值链。  
+核心裁决：删除“超过半页通常移附录”“整框过高则完整证明移附录”等长度优先口径；保留非核心技术引理/重复展开/扩展证明进入附录的空间；较长核心证明允许“命题陈述框 + 正文 `hskproof`”自然分页。  
+检查减重候选：本 PR 不处理；未降低任何 Hard/Default 检查。  
+核心推导、数值与三级层级保全：只改证明位置语义；不改变数值、模型、标题层级政策。  
+静态测试 / 真实执行 / 生成文件：待 final head CI 记录。  
+兼容性：0--4 命题预算、命题编号、现有环境名、Project State 字段和 Trace 接口保持不变。  
+遗留问题 / 下一阶段：待 PR #194 全绿合并后，再按计划继续 W1 其余写作核心政策；W0 检查减重完整基线仍单独执行。
 
 后续每个实施 PR 在本节追加记录，不重写历史裁决：
 
