@@ -997,14 +997,16 @@ model_establishment_solution_narrative:
       - unsupported_figure_cause
       - detached_figure_summary
       - local_question_section_not_closed_to_answer
+      - formula_condition_or_applicability_detached_from_use
+      - paragraph_mixes_unrelated_reasoning_units
     must_not_claim:
       - narrative_quality_from_connector_words_only
       - heading_quality_from_grammar_pattern_only
       - heading_quality_from_character_count_only
       - solver_fit_from_algorithm_name_only
       - solver_precondition_satisfaction_from_algorithm_name_only
-    - paragraph_quality_from_character_sentence_or_formula_count_only
-    - formula_context_completeness_from_connector_presence_only
+      - paragraph_quality_from_character_sentence_or_formula_count_only
+      - formula_context_completeness_from_connector_presence_only
       - model_applicability_from_model_name_only
       - result_interpretation_quality_from_distance_or_paragraph_count_only
       - mathematical_correctness_from_prose_flow
@@ -1658,6 +1660,8 @@ machine_audit_boundary:
     - problem_specificity_from_object_name_overlap_only
     - model_applicability_from_model_name_or_adjective_only
     - solver_precondition_satisfaction_from_algorithm_name_only
+    - paragraph_quality_from_character_sentence_or_formula_count_only
+    - formula_context_completeness_from_connector_presence_only
 
 authority_boundaries:
   reasoning_authority: core/writing_reasoning_contract.yaml
