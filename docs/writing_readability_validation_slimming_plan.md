@@ -469,7 +469,7 @@ python scripts/generate_indexes.py --check
 | Part E：公式多时保持清晰叙事 | COMPLETED：PR #199，final head 与合并后 main 验收均通过 |
 | Part F：正式章节最大三级 | COMPLETED：PR #200，final head 与合并后 main 验收均通过 |
 | Part G：复用现有审查，不增建 Gate | COMPLETED：PR #201 以既有 Review/Runtime/coverage 回归证明闭环，未新增 Gate/required 状态/coverage family |
-| W2 Consumer/模板/样例实施 | CLOSURE_IN_PROGRESS：现有 Pack/Template/例文已承载长核心证明、正常三级导航与可读表格；branch `test/writing-consumer-template-w2-closure` 以集成回归证明后保持业务文件原样 |
+| W2 Consumer/模板/样例实施 | CLOSURE_IN_PROGRESS：现有 Pack/Template/例文已承载长核心证明、正常三级导航与可读表格；branch `fix/writing-consumer-template-w2-closure` 以集成回归证明后保持业务文件原样 |
 | W3 检查减重实施 | COMPLETED：PR #203 仅移除 W0 批准的 count-only `question_subsection_granularity` finding；final head 与 main 后验均通过 |
 | W4 行为验收集成 | NOT_STARTED |
 | W5 发布与综合收尾 | NOT_STARTED；目标 release 待实际评估 |
@@ -600,7 +600,7 @@ Hard 保全：duplicate label、missing reference/BibTeX、claim-scope 冲突等
 
 ### W2-P1：Consumer、模板与样例闭环验收
 
-阶段 / PR：W2 closure / branch `test/writing-consumer-template-w2-closure`；PR 编号待创建。  
+阶段 / PR：W2 closure / branch `fix/writing-consumer-template-w2-closure`；PR 编号待创建。  
 Base main SHA：`491fac0af1f77eb91e64f32e21ae21abcc442b4e`；Final head / Merge SHA 待真实验收后补记。  
 本次范围：严格按 §10 W2 完成条件检查 Cleanup/Review/Pack/Template/例文的实际承载，不再改写已经稳定的 C–F Authority。按“现有能力已满足则用测试证明后保持原样”执行。  
 完整读取与裁决：长核心证明由 `packs/artifact/proposition_proof.md` 明确允许命题框后接 standalone `hskproof` 并正常分页，活动 preamble 已提供独立 `hskproof`；CUMCM Q2 模板已有多个正常 `subsubsection` 示例且明确不设固定名称/数量；模型建立与求解论证例文同时保留紧凑型与导航型 Profile；表格可读性由 caption template 与 DOCX checklist 落到 run id、指标方向、accepted 数值和过宽表处理。  
