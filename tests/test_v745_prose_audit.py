@@ -231,6 +231,8 @@ H1. 数据满足要求。
         self.assertEqual(proposition["default_budget"], [0, 4])
         self.assertFalse(proposition["automatic_rejection_over_budget"])
         self.assertIn("proof_length_recommendation", reasoning["proposition_governance"])
+        self.assertIn("proof_placement_rule", reasoning["proposition_governance"])
+        self.assertIn("核心证明必须留在正文", reasoning["proposition_governance"]["proof_placement_rule"])
 
     def test_writing_contract_exposes_tiered_prose_audit(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
