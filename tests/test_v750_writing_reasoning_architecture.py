@@ -28,6 +28,22 @@ class TestV750WritingReasoningArchitecture(unittest.TestCase):
         self.assertIn("verified_standard_theorem", chain["source_allowed"])
         self.assertIn("build_constraint", chain["destination_allowed"])
         self.assertIn("按题型自适应", chain["derivation_rule"])
+        self.assertIn("正文必须可恢复", chain["derivation_rule"])
+        closure = chain["core_derivation_body_closure"]
+        self.assertEqual(closure["governance_level"], "default")
+        for token in (
+            "prompt_condition_or_basic_law_to_model_relation_is_nontrivial",
+            "initial_or_boundary_condition_is_nontrivial",
+            "objective_constraint_metric_or_decision_rule_is_constructed",
+            "key_discretization_error_relation_or_solver_precondition_affects_main_result",
+            "later_question_adds_or_changes_a_material_relation",
+        ):
+            self.assertIn(token, closure["applies_when_any"])
+        self.assertIn("为什么这样建", closure["rule"])
+        self.assertIn("机械代数", closure["appendix_boundary"])
+        self.assertIn("核验本题适用条件", closure["theorem_rule"])
+        self.assertIn("不重复整套推导", closure["inheritance_rule"])
+        self.assertIn("derivation_completeness_from_formula_count_only", closure["machine_boundary"]["must_not_claim"])
         self.assertIn("下一步如何使用", "\n".join(chain["chain_quality_rules"]))
         trace = chain["internal_trace"]
         self.assertEqual(trace["status_values"], ["closed", "gap", "stale"])
@@ -35,6 +51,37 @@ class TestV750WritingReasoningArchitecture(unittest.TestCase):
             self.assertIn(field, trace["required_fields"])
         self.assertIn("正则或关键词判断数学正确性", trace["rule"])
         self.assertIn("正文不得机械显示内部合同列名", trace["rule"])
+
+    def test_core_derivation_body_closure_preserves_reasoning_without_schema_bloat(self):
+        data = yaml.safe_load((ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8"))
+        chain = data["formula_reasoning_chain"]
+        closure = chain["core_derivation_body_closure"]
+        self.assertIn("current_object_condition_or_basic_law", closure["required_body_recoverability"])
+        self.assertIn("nontrivial_derivation_transformation_or_reduction", closure["required_body_recoverability"])
+        self.assertIn("downstream_use_in_model_solver_validation_or_answer", closure["required_body_recoverability"])
+
+        roles = chain["formula_role_taxonomy"]["roles"]
+        self.assertEqual(
+            roles["supporting_derivation"]["paper_policy"],
+            "compress_only_if_core_derivation_body_closure_remains_recoverable",
+        )
+        self.assertIn("关键变换/化简", roles["supporting_derivation"]["definition"])
+
+        protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
+        cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
+        review = (ROOT / "modules/06_review_delivery.md").read_text(encoding="utf-8")
+        self.assertIn("Core Derivation Body Closure", protocol)
+        self.assertIn("外置前必须检查", protocol)
+        self.assertIn("Core Derivation Body Closure Test", cleanup)
+        self.assertIn("代码能复现", cleanup)
+        self.assertIn("Core Derivation Body Closure Review", review)
+        self.assertIn("不能根据公式数量", review)
+
+        project_state = (ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8")
+        runtime = (ROOT / "core/writing_runtime_contract.yaml").read_text(encoding="utf-8")
+        for forbidden in ("core_derivation_body_status", "core_derivation_body_gate"):
+            self.assertNotIn(forbidden, project_state)
+            self.assertNotIn(forbidden, runtime)
 
     def test_shared_foundation_and_progression_are_conditional(self):
         data = yaml.safe_load((ROOT / "core/writing_reasoning_contract.yaml").read_text(encoding="utf-8"))

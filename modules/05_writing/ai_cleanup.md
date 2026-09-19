@@ -11,6 +11,7 @@ Cleanup 前后都必须保持以下不变量：
 - 核心数值、单位、精度、引用键、公式/图表锚点与 current 事实源一致；stale 不得润色成 current；
 - 数值实验、solver 状态或经验现象不得改写成严格证明；局部/启发式结果不得润色成无依据的全局最优；
 - `Reduction Provenance`、solver precondition、约束方向、边界、变量含义和 claim scope 不得被改写；
+- 非显然核心推导必须保持正文可恢复：题目条件/基本规律怎样形成关系或方程、关键假设/变换/化简怎样进入模型、初边值/关键约束/可行域怎样得到、关键离散/误差关系或 solver 前提怎样支撑主结果，不能为了简洁变成“直接可得”或只剩最终公式；
 - 当前 Preflight 已激活的 Core Model Summary、planned/current Proposition、stepwise/pseudocode Algorithm Trace 不得因篇幅或模板感被删除；
 - 需要外部来源的 claim 不得为了行文流畅移除 Citation Evidence；内部推导和工作簿结果也不得用外引替代；
 - 未解决的深化证据 `reject`、语义争议或验证边界不能靠删除异常描述继续交付。
@@ -24,11 +25,21 @@ Cleanup 不重新判断数学正确性、参数最优性、术语语义等价、
 先消费本问 Formula Roles 与 Writing Capability Preflight，再决定 Keep / Compress / Re-locate / Delete：
 
 - `final_model_relation`：Keep；清理后 solver / validator / 决策规则仍可恢复。
-- `key_bridge_relation`：若承担机理、判据、证明、边界、降维、候选域或 solver precondition，Keep 或只压缩解释；**不能仅因“不是最终模型公式”删除**。
-- `supporting_derivation`：按实际数学作用压缩；若其中步骤是恢复非显然核心推导或核心证明不可缺少的逻辑环节，必须留在正文可恢复。Cleanup 不得仅因篇幅、难度、角色名或版面需要把核心证明/关键推导移入附录。
+- `key_bridge_relation`：若承担机理、判据、关键变换/化简、初边值/约束来源、证明、边界、降维、候选域或 solver precondition，Keep 或只压缩解释；**不能仅因“不是最终模型公式”删除**。
+- `supporting_derivation`：按实际数学作用压缩；若其中步骤是恢复非显然核心推导、关键变换/化简、初边值/约束来源、solver 前提或核心证明不可缺少的逻辑环节，必须留在正文可恢复。Cleanup 不得仅因篇幅、难度、角色名或版面需要把它移入附录。
 - `routine_algebra`：优先压缩或删除，不因角色 taxonomy 增加正文公式。
 - Preflight 为 `required / planned / current / stepwise / pseudocode` 时，即使**用户本轮没有再次提到这些能力**也照常保留；`missing/stale/review_required` 必须回到裁决，不能靠润色伪装通过。
 - Proposition / Proof 为 planned/current 且承担正文核心论证时，Cleanup 只能改善分段、衔接和排版，不能把完整证明降成“关键链 + 见附录”。
+
+执行 **Core Derivation Body Closure Test** 后才能 Compress / Re-locate：
+
+1. 正文还能否看出条件、基本规律或定义从哪里进入模型；
+2. 关键假设、坐标/变量/参考系变换、对称化简、降维或分解是否仍能恢复；
+3. 非平凡初边值、目标/约束/指标、可行域或 solver 前提的来源是否仍清楚；
+4. 关键关系怎样进入最终模型、计算、验证或答案是否仍清楚；
+5. 后问新增/改变部分是否真的展开，而不是只剩“同理”。
+
+任一项因删减而断裂，就不是可安全压缩的“支持性细节”。“代码能复现”“附录有完整式子”“最终公式还在”都不能替代正文的数学论证链。共享模型前文已完整推导时允许准确回指，只保留本问新增推导。
 
 模型建立—求解—结果连续性只消费 `model_establishment_solution_narrative`、Model Construction Rationale 与相关 reasoning Authority。Cleanup 只处理表现风险，例如：
 

@@ -463,9 +463,9 @@ python scripts/generate_indexes.py --check
 | F：三级正常可用，四级及以上禁止 | 用户已明确批准 |
 | P0：详细计划 | MERGED（PR #193，merge `d11961f34ee8f9f6cfa6e80eafd67d37745eb4f5`） |
 | W0 完整基线/检查去重裁决 | PARTIAL：证明范围已完成定点影响面审计；检查减重的完整调用/成本基线仍 NOT_STARTED |
-| W1 核心政策实施 | IN_PROGRESS：W1-P1 / W1-P2 已合并；Part C 非证明型核心推导正文闭环仍 PARTIAL，必须在 Part D 后回补 |
-| Part C：完整核心推导留正文 | PARTIAL：核心证明正文保全已由 PR #194 完成；题目条件→关系/方程/目标/约束、关键化简、初边值/可行性、bridge/supporting derivation、关键离散/误差/solver 前提、后问新增推导仍待独立原子闭环 |
-| Part D：表格与图表可读性 | IN_PROGRESS：PR #196 — `fix: make tables and figures easier for judges to read`；完成后不得直接跳 E/F，先回补 Part C |
+| W1 核心政策实施 | IN_PROGRESS：W1-P1 / W1-P2 已合并；Part C 剩余非证明型核心推导由 PR #197 实施 |
+| Part C：完整核心推导留正文 | IN_PROGRESS：核心证明正文保全已由 PR #194 完成；PR #197 回补题目条件→关系/方程/目标/约束、关键化简、初边值/可行性、bridge/supporting derivation、关键离散/误差/solver 前提与后问新增推导；仅在 PR #197 合并且 main 后验收通过后标 COMPLETED |
+| Part D：表格与图表可读性 | COMPLETED（PR #196，merge `b1b92eb31d444058a33a5e72a8ea8796dc1b28ec`） |
 | W2 Consumer/模板/样例实施 | IN_PROGRESS：PR #194/#195 已同步必要 consumer；PR #196 同步图表写作 consumer/模板，但不代表 W2 全阶段完成 |
 | W3 检查减重实施 | NOT_STARTED |
 | W4 行为验收集成 | NOT_STARTED |
@@ -500,16 +500,31 @@ Base main SHA：`1640680af529f71d08b40973626a85cd13d0b4c2`；Final head：`8922d
 ### D-P1：表格与图表可读性
 
 阶段 / PR：Part D 原子修改 / PR #196 — `fix: make tables and figures easier for judges to read`  
-Base main SHA：`bf9c7d1a3cb6270f24db99c28ed1104c1d0b781b`；Final head / Merge SHA 待 CI 与合并后补记。  
+Base main SHA：`bf9c7d1a3cb6270f24db99c28ed1104c1d0b781b`；Final head：`5269a506ad84d6182c97088963b97829e0c2a51f`；Merge SHA：`b1b92eb31d444058a33a5e72a8ea8796dc1b28ec`。  
 本次获批范围与 Authority：依据 Part D，表题、表头、行名、单位、指标方向、比较条件及图题/轴/图例/正文解释要让评委独立读懂；可读性不得改变 accepted 数值和口径。Authority 复用 `core/writing_reasoning_contract.yaml#model_establishment_solution_narrative`，在既有 `figure_result_narrative` 下补职责分工，并新增同层 `table_result_readability`，不另建新合同。  
 实际修改范围：Writing Reasoning Authority、Paper Writing Protocol、AI Cleanup、Review、caption/table 执行模板、DOCX checklist 与既有 writing/review/drift regression。Module 04 Figure Evidence、MATLAB、Workbook/Output、Runtime、Schema、CLI、Gate、模型审批不改。  
 核心裁决：表题说明对象/比较内容/范围；行列使用可读名称并保留必要符号/追踪 ID；单位、无量纲、baseline、样本/时间/场景、指标方向按需说明；图题—轴/图例—正文和表题—表头/行名/表注—正文职责分离；一张表通常服务一个主要比较问题。  
 数值保全：显示层调整不得改变 accepted 数值、单位、百分比/百分点、绝对/相对误差、排序规则、Numeric Profile 精度或题面指定工作簿/提交格式。  
 Review：继续复用 `figure_table_information_value`，不新增 Readability Gate 或第九个 coverage family；机器不得仅凭列数、标题长度、指标名或字符串相似度判断语义质量。  
 Part C 依赖：本 PR 不宣称 Part C 完成；Part C 非证明型核心推导仍列为必须回补项，PR #196 完成后优先执行。  
-静态测试 / 真实执行 / 生成文件：待 final head CI 记录。  
+静态测试 / 真实执行 / 生成文件：final head HSK Skill CI workflow_dispatch #3693 与 Optimization baseline #297 均 success；合并后 main HSK Skill CI #3695 与 metadata #2455 均 success。PR-triggered #3694 的 failure 不作为通过证据，最终验收绑定上述 successful exact-head run 与合并后 main。  
 兼容性：Project State、Terminology Registry、Numeric Profile、Title Claim、公开 CLI/报告接口不变；旧论文不批量迁移。  
-遗留问题 / 下一阶段：PR #196 全绿合并后，**返回 Part C** 完成非证明型核心推导正文闭环；不得直接跳 E/F。
+遗留问题 / 下一阶段：Part D 已闭合；当前按既定顺序返回 Part C，PR #197 回补非证明型核心推导正文闭环；不得直接跳 E/F。
+
+### C-P2：非证明型核心推导正文闭环
+
+阶段 / PR：Part C 原子修改 / PR #197 — `fix: keep nontrivial core derivations recoverable in the body`  
+Base main SHA：`b1b92eb31d444058a33a5e72a8ea8796dc1b28ec`；Final head / Merge SHA 待 CI 与合并后补记。  
+本次获批范围与 Authority：补齐 Part C 除 PR #194 核心证明之外的正文推导责任。Authority 为 `core/writing_reasoning_contract.yaml#formula_reasoning_chain.core_derivation_body_closure`；Formula Role 枚举与 Core Formula Trace 接口保持不变。  
+正文必须可恢复：题目条件/基本规律→变量关系、控制方程、目标/约束/指标；关键假设/变换/参考系/对称化简/降维/分解；非平凡初边值/可行域/必要充分条件；影响主结果的关键离散/误差关系、事件判据、搜索区间与 solver 前提；后问新增/改变推导。  
+压缩边界：机械代数、重复代入、批量同型展开、完整代码/日志、重复系数、非主线补充实验与不承担主论证闭环的扩展推导仍可压缩或外置；但“篇幅长/不是最终公式/supporting_derivation/代码可复现”不能单独作为外置理由。  
+共享与标准定理：前文已完整推导的共享模型可准确回指，后问只展开新增部分；标准定理可引用但必须核验本题条件并说明如何进入模型/边界/solver。  
+Consumer：Paper Writing Protocol、AI Cleanup、Review、DOCX checklist；不新增 Runtime Gate、Project State required 字段或新的 Trace/Review schema。  
+检查减重候选：本 PR 不处理。  
+Part C 完成条件：PR #194 + PR #197 共同覆盖证明与非证明型核心推导；PR #197 final head CI、Optimization baseline 及合并后 main CI 均成功后才将 Part C 标为 COMPLETED。  
+静态测试 / 真实执行 / 生成文件：待 final head CI 记录。  
+兼容性：模型、数值、工作簿、Runtime/Router/Resolver、Schema、CLI/Gate、MATLAB、Part D 图表规则及 Part F 标题层级均不变。  
+遗留问题 / 下一阶段：Part C 合并后再按计划进入后续 E/F 或先执行 W0/W3 检查减重，不提前跨阶段。
 
 后续每个实施 PR 在本节追加记录，不重写历史裁决：
 
