@@ -463,9 +463,12 @@ python scripts/generate_indexes.py --check
 | F：三级正常可用，四级及以上禁止 | 用户已明确批准 |
 | P0：详细计划 | MERGED（PR #193，merge `d11961f34ee8f9f6cfa6e80eafd67d37745eb4f5`） |
 | W0 完整基线/检查去重裁决 | PARTIAL：证明范围已完成定点影响面审计；检查减重的完整调用/成本基线仍 NOT_STARTED |
-| W1 核心政策实施 | IN_PROGRESS：W1-P1 / W1-P2 已合并；Part C 剩余非证明型核心推导由 PR #197 实施 |
-| Part C：完整核心推导留正文 | IN_PROGRESS：核心证明正文保全已由 PR #194 完成；PR #197 回补题目条件→关系/方程/目标/约束、关键化简、初边值/可行性、bridge/supporting derivation、关键离散/误差/solver 前提与后问新增推导；仅在 PR #197 合并且 main 后验收通过后标 COMPLETED |
+| W1 核心政策实施 | IN_PROGRESS：W1-P1 / W1-P2 已合并；Part C 已完整闭环；下一原子项进入 Part E，Part F/G 仍待实施 |
+| Part C：完整核心推导留正文 | COMPLETED：PR #194 完成核心证明正文保全，PR #197 完成非证明型核心推导正文闭环；final head 与合并后 main 验收均通过 |
 | Part D：表格与图表可读性 | COMPLETED（PR #196，merge `b1b92eb31d444058a33a5e72a8ea8796dc1b28ec`） |
+| Part E：公式多时保持清晰叙事 | NOT_STARTED：Part C closeout 后的下一原子项 |
+| Part F：正式章节最大三级 | NOT_STARTED：用户已批准规则，待 Part E 后实施 |
+| Part G：复用现有审查，不增建 Gate | NOT_STARTED：待前述写作语义稳定后实施 |
 | W2 Consumer/模板/样例实施 | IN_PROGRESS：PR #194/#195 已同步必要 consumer；PR #196 同步图表写作 consumer/模板，但不代表 W2 全阶段完成 |
 | W3 检查减重实施 | NOT_STARTED |
 | W4 行为验收集成 | NOT_STARTED |
@@ -514,7 +517,7 @@ Part C 依赖：本 PR 不宣称 Part C 完成；Part C 非证明型核心推导
 ### C-P2：非证明型核心推导正文闭环
 
 阶段 / PR：Part C 原子修改 / PR #197 — `fix: keep nontrivial core derivations recoverable in the body`  
-Base main SHA：`b1b92eb31d444058a33a5e72a8ea8796dc1b28ec`；Final head / Merge SHA 待 CI 与合并后补记。  
+Base main SHA：`b1b92eb31d444058a33a5e72a8ea8796dc1b28ec`；Final head：`81e058c294a2d12dda79c73278c7fd1b121fdd42`；Merge SHA：`a3ceba47f633b25562d53d24b4e0c4b5438e5a4a`。  
 本次获批范围与 Authority：补齐 Part C 除 PR #194 核心证明之外的正文推导责任。Authority 为 `core/writing_reasoning_contract.yaml#formula_reasoning_chain.core_derivation_body_closure`；Formula Role 枚举与 Core Formula Trace 接口保持不变。  
 正文必须可恢复：题目条件/基本规律→变量关系、控制方程、目标/约束/指标；关键假设/变换/参考系/对称化简/降维/分解；非平凡初边值/可行域/必要充分条件；影响主结果的关键离散/误差关系、事件判据、搜索区间与 solver 前提；后问新增/改变推导。  
 压缩边界：机械代数、重复代入、批量同型展开、完整代码/日志、重复系数、非主线补充实验与不承担主论证闭环的扩展推导仍可压缩或外置；但“篇幅长/不是最终公式/supporting_derivation/代码可复现”不能单独作为外置理由。  
@@ -522,9 +525,10 @@ Base main SHA：`b1b92eb31d444058a33a5e72a8ea8796dc1b28ec`；Final head / Merge 
 Consumer：Paper Writing Protocol、AI Cleanup、Review、DOCX checklist；不新增 Runtime Gate、Project State required 字段或新的 Trace/Review schema。  
 检查减重候选：本 PR 不处理。  
 Part C 完成条件：PR #194 + PR #197 共同覆盖证明与非证明型核心推导；PR #197 final head CI、Optimization baseline 及合并后 main CI 均成功后才将 Part C 标为 COMPLETED。  
-静态测试 / 真实执行 / 生成文件：待 final head CI 记录。  
+静态测试 / 真实执行 / 生成文件：final head HSK Skill CI workflow_dispatch #3716 与 Optimization baseline #310 均 success；合并后 main HSK Skill CI #3718 与 metadata #2469 均 success。PR-triggered #3717 没有产生可用 job，不作为验收依据。  
 兼容性：模型、数值、工作簿、Runtime/Router/Resolver、Schema、CLI/Gate、MATLAB、Part D 图表规则及 Part F 标题层级均不变。  
-遗留问题 / 下一阶段：Part C 合并后再按计划进入后续 E/F 或先执行 W0/W3 检查减重，不提前跨阶段。
+完成结论：PR #194 + PR #197 已覆盖 Part C 的证明与非证明型核心推导；当前 `main@a3ceba47f633b25562d53d24b4e0c4b5438e5a4a` 可将 Part C 标记为 COMPLETED。  
+遗留问题 / 下一阶段：按计划进入 Part E“公式多时仍保持清晰叙事”；Part F/G 与 W0/W3/W4/W5 仍未完成，不能把整份计划标为 completed。
 
 后续每个实施 PR 在本节追加记录，不重写历史裁决：
 
