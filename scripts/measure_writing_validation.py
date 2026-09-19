@@ -105,7 +105,7 @@ def candidate_snapshots() -> list[dict[str, Any]]:
             "id": "many_independent_subsections",
             "audit": "formal",
             "target_code": "question_subsection_granularity",
-            "expect_present": True,
+            "expect_present": False,
             "text": r"""
 \begin{document}
 \section{问题一模型建立及求解}
@@ -121,7 +121,7 @@ def candidate_snapshots() -> list[dict[str, Any]]:
 给出结果并回答设问。
 \end{document}
 """,
-            "interpretation": "五个二级小节均承担独立任务；仅按数量触发 review_required 是 W3 候选。",
+            "interpretation": "五个二级小节均承担独立任务；W3 后不再仅按数量生成 question_subsection_granularity。W0 历史 artifact 保留修改前基线。",
         },
         {
             "id": "mechanical_subsection_split",

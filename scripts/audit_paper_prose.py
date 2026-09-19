@@ -503,13 +503,6 @@ def audit_text(text: str) -> list[Finding]:
     for heading, content in _question_sections(main):
         question_count += 1
         subsection_titles = SUBSECTION_RE.findall(content)
-        if len(subsection_titles) > 4:
-            findings.append(Finding(
-                "review_required",
-                "question_subsection_granularity",
-                f"{heading} 检测到 {len(subsection_titles)} 个二级小节；超过默认阅读颗粒度仅触发人工复核，不代表结构自动错误。请检查同一论证链是否被机械拆分。",
-                " / ".join(subsection_titles[:8]),
-            ))
         split_markers = sum(
             any(key in title for key in ("决策变量", "目标函数", "约束条件", "约束", "核心模型汇总"))
             for title in subsection_titles
