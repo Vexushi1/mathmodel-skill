@@ -98,7 +98,48 @@ formula_reasoning_chain:
   source_rule: 核心公式必须能指出题意、定义、机制、数据或已验证理论依据，禁止“根据相关理论可得”后直接悬空给式。
   derivation_rule: >-
     推导深度按题型自适应。需要说明从前一对象/条件到当前关系的关键理由；
-    纯代数展开可压缩，不能为了形式强迫所有题写长演算。
+    纯代数展开可压缩，但若删去某一步会使评委无法恢复题目条件/基本规律如何进入变量关系、控制方程、目标函数、约束、边界、
+    结构化简、solver 前提或最终模型，则该步骤属于正文必须可恢复的非显然核心推导，不能仅因篇幅、难度或“不是最终公式”而外移。
+  core_derivation_body_closure:
+    governance_level: default
+    applies_when_any:
+      - prompt_condition_or_basic_law_to_model_relation_is_nontrivial
+      - assumption_or_approximation_changes_model_structure
+      - coordinate_variable_reference_frame_or_state_transformation_is_material
+      - symmetry_reduction_dimension_reduction_or_decomposition_is_material
+      - initial_or_boundary_condition_is_nontrivial
+      - objective_constraint_metric_or_decision_rule_is_constructed
+      - key_discretization_error_relation_or_solver_precondition_affects_main_result
+      - later_question_adds_or_changes_a_material_relation
+    required_body_recoverability:
+      - current_object_condition_or_basic_law
+      - material_assumption_or_applicability_condition
+      - nontrivial_derivation_transformation_or_reduction
+      - resulting_relation_boundary_constraint_metric_or_precondition
+      - downstream_use_in_model_solver_validation_or_answer
+    rule: >-
+      正文必须能够独立恢复“为什么这样建、怎样从条件推出该关系、这个关系怎样进入后续模型或计算”。
+      对机理/几何题，关键守恒、机制、坐标或对称化简应能追到控制关系及初边界；对优化/评价题，目标、约束、指标和决策规则应能追到题意或资源逻辑；
+      对统计/预测题，关键变换、估计关系、损失/评价指标及其适用条件应能追到数据机制或统计原则；对数值求解，影响主结果可信度的关键离散思想、误差关系和 solver 前提应在正文可恢复。
+    appendix_boundary: >-
+      只有机械代数、重复代入、批量同型展开、完整代码/运行日志、重复系数表、非主线补充实验或不承担主论证闭环的扩展推导可压缩或外置。
+      外置后若正文无法恢复模型成立、化简合法性、关键边界/可行域、主要算法前提或结论来源，则不得外置。
+    theorem_rule: >-
+      标准定理可以引用来源而不重写教材式证明，但正文仍需核验本题适用条件，并写清定理结论如何转化为当前模型关系、边界或 solver 前提。
+    inheritance_rule: >-
+      共享模型已在前文完整推导时，后问可通过明确锚点继承，不重复整套推导；后问新增或改变的条件、关系、约束、边界和 solver 前提必须重新推导或说明，
+      不用“同理”掩盖真实增量。
+    machine_boundary:
+      may_check:
+        - declared_formula_trace_gap_or_stale
+        - missing_declared_anchor_for_inherited_derivation
+        - explicit_appendix_only_core_derivation_marker_when_declared
+      must_not_claim:
+        - derivation_completeness_from_formula_count_only
+        - derivation_validity_from_connector_words_only
+        - theorem_applicability_from_citation_presence_only
+        - core_status_from_formula_position_or_length_only
+
   destination_allowed:
     - define_state_or_parameter
     - feed_next_formula
@@ -132,8 +173,9 @@ formula_reasoning_chain:
       supporting_derivation:
         definition: >-
           对理解推导有帮助但不承担独立模型/判据/证明/solver 接口的关系；若其中某一步虽无独立接口，
-          却是恢复本题非显然核心推导或核心证明不可缺少的逻辑步骤，则仍属于正文必须可恢复的信息。
-        paper_policy: compress_or_keep_by_detail_allocation
+          却是恢复本题非显然核心推导、关键变换/化简、初边值/约束来源、solver 前提或核心证明不可缺少的逻辑步骤，
+          则仍属于正文必须可恢复的信息。
+        paper_policy: compress_only_if_core_derivation_body_closure_remains_recoverable
         summary_policy: exclude_by_default
       routine_algebra:
         definition: 机械展开、重复代换、单位整理或可由相邻式直接恢复的普通代数步骤。
@@ -149,8 +191,8 @@ formula_reasoning_chain:
       “不是最终 solver 方程”不等于“可删除中间式”。若某关系承担 Source→Derivation→Destination 的关键桥接，
       或后续命题、缩域、边界、solver precondition 需要回指，它应登记为 key_bridge_relation 并保留可恢复表达。
     anti_bloat_rule: >-
-      角色分类不是增加公式数量的配额；routine_algebra 不因新增 taxonomy 进入 Core Formula Trace，
-      supporting_derivation 仍可压缩，简单解析题不要求额外造桥接式。
+      角色分类不是增加公式数量的配额；routine_algebra 不因新增 taxonomy 进入 Core Formula Trace。
+      supporting_derivation 只能在不破坏 core_derivation_body_closure 的前提下压缩；简单解析题不要求额外造桥接式。
     machine_boundary:
       may_check: [declared_role_value, declared_role_anchor_presence, stale_role_status_conflict]
       must_not_claim: [mathematical_role_from_regex, bridge_necessity_from_formula_position, formula_correctness_from_role_label]
@@ -682,10 +724,14 @@ model_establishment_solution_narrative:
       - full_code
       - nonessential_parameter_sweep
       - repeated_nondecisive_figure
+      - supplementary_noncore_derivation_or_repeated_expansion
+    appendix_boundary_rule: >-
+      只有在移走后正文仍能完整恢复模型成立、关键变换/化简、初边值或约束来源、主要 solver 前提与结论来源时才允许外置；
+      “篇幅长”“不是最终公式”“supporting_derivation”“已有代码可复现”均不能单独构成外置依据。
     formula_rules:
       final_model_relation: 必须保留，并让评委恢复 solver/validator/决策规则实际消费的目标、关系、约束、状态方程或判据。
       key_bridge_relation: 若删除会造成机理—判据—证明—降维—边界—最终模型之间的关键依赖断裂，则保留其必要来源、推导与下游作用，不得仅因其不是最终 solver 输入而删除。
-      supporting_derivation: 按数学作用压缩或保留；若是恢复本题非显然核心推导或核心证明不可缺少的步骤，必须在正文可恢复，不得仅因角色名、篇幅或排版移出正文；不机械进入最终模型汇总。
+      supporting_derivation: 按数学作用压缩或保留；若是恢复本题非显然核心推导、关键变换/化简、初边值/约束来源、solver 前提或核心证明不可缺少的步骤，必须在正文可恢复，不得仅因角色名、篇幅或排版移出正文；不机械进入最终模型汇总。
       routine_algebra: 优先压缩或省略，默认不进入 Core Formula Trace。
       standard_relation: 只说明本题适用条件与进入当前模型的方式，不展开教科书式长介绍。
     solver_rules:
