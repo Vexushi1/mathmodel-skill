@@ -13,6 +13,7 @@ import importlib.util
 import json
 import platform
 import statistics
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -29,6 +30,21 @@ SURFACE_AUDIT = ROOT / "scripts" / "audit_v8_writing_surface.py"
 
 def _sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _git_head(root: Path) -> str | None:
+    completed = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    value = completed.stdout.strip()
+    return value if completed.returncode == 0 and value else None
 
 
 def _load_module(name: str, path: Path):
@@ -355,7 +371,14 @@ def collect(root: Path = ROOT, *, repeats: int = 25, warmup: int = 3) -> dict[st
     return {
         "schema_version": SCHEMA_VERSION,
         "scope": "writing_validation_w0_maintenance_evidence_only",
-        "source_commit": None,
+        "source_commit": _git_head(root),
+        "source_fingerprints": {
+            "measurement_driver": _sha256_file(Path(__file__).resolve()),
+            "writing_runtime_contract": _sha256_file(root / "core" / "writing_runtime_contract.yaml"),
+            "formal_prose_audit": _sha256_file(root / "scripts" / "audit_paper_prose.py"),
+            "surface_audit": _sha256_file(root / "scripts" / "audit_v8_writing_surface.py"),
+            "surface_policy": _sha256_file(root / "config" / "prose_audit_patterns.yaml"),
+        },
         "environment": {
             "python": platform.python_version(),
             "platform": platform.platform(),
