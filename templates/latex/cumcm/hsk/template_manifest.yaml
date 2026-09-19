@@ -159,8 +159,9 @@ paper_skeleton:
       activation: official_rule_requires_appendix_or_material_supporting_content_is_justifiably_kept_out_of_body
       role: conditional_supporting_material
       note: >-
-        附录不是结构完整性的必填章节。仅当官方规则要求，或确有长代码、长推导/证明、扩展表格、
-        复现说明等材料需要保留但放入正文会破坏主叙事时启用；没有真实材料时不得生成空附录。
+        附录不是结构完整性的必填章节。仅当官方规则要求，或确有长代码、不承担正文主论证闭环的技术引理/
+        补充推导/扩展证明、扩展表格、复现说明等支持材料需要保留时启用；没有真实材料时不得生成空附录。
+        篇幅长、证明难或命题框放不下都不能单独构成核心推导/核心证明外移依据；核心证明应按 Writing Reasoning Authority 留在正文完整可恢复。
 
 cumcm_question_section:
   title_pattern: "问题{N}模型建立及求解"
