@@ -422,6 +422,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/v921_p7_conditional_analysis_semantic_hygiene_plan.md`
 - `docs/v9_3_initial_modeling_structural_reduction_refactor_plan.md`
 - `docs/writing_readability_validation_slimming_plan.md`
+- `docs/writing_validation_w0_baseline.md`
 
 ## Legacy Navigation
 
