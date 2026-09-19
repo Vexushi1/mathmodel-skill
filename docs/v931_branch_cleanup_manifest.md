@@ -7,12 +7,15 @@
 
 ## 1. Current state
 
-- Enumerated branches (including current H2 working branch): **180**.
-- SAFE_DELETE_CANDIDATE: **98**.
+- H2 execution status: **COMPLETED** (verified 2026-09-19 UTC).
+- Pre-delete enumeration (including the then-current H2 working branch): **180**.
+- Deleted from the strict Section 3 cohort: **98 / 98**.
+- Deleted post-merge H2 working branch: **1** (`docs/v9.3.1-branch-cleanup-manifest`).
+- Remaining remote branches after deletion verification: **81** = `main` + **80** `MANUAL_REVIEW`.
 - MANUAL_REVIEW — merged PR tip mismatch: **53**.
 - MANUAL_REVIEW — closed but unmerged PR: **7**.
 - MANUAL_REVIEW — no PR association: **20**.
-- KEEP: **2**.
+- Current open PR count at closeout verification: **0**.
 
 ## 2. Deletion safety rule
 
@@ -27,6 +30,8 @@ A branch is in `SAFE_DELETE_CANDIDATE` only when all currently verifiable condit
 Because this repository commonly uses squash merge, `main...branch` commit ancestry is not used by itself as a deletion veto. Exact PR-head equality is the stronger no-post-merge-advance check used here.
 
 ## 3. SAFE_DELETE_CANDIDATE
+
+> **Execution result:** all 98 entries below were deleted from the remote repository after final revalidation. The list is retained as immutable execution provenance; none of these names remained as live refs in the post-delete API verification.
 - `chore/remove-accidental-noop` — PR #100, tip `db963066b70419a4cb602abcedc4b3518ce69b01`, merged 2026-09-02T09:23:04Z
 - `docs/mechanism-template-compat-hygiene` — PR #123, tip `86ac6801823e6e536f8cf8d22650e4193ff234f8`, merged 2026-09-05T09:49:36Z
 - `docs/semantic-state-runtime-refactor-plan` — PR #124, tip `4c29d1c96a4fc4add632f0526f86e6fe5984b459`, merged 2026-09-06T09:01:34Z
@@ -213,14 +218,15 @@ Because this repository commonly uses squash merge, `main...branch` commit ances
 - `v7.11.1-stabilization` — tip `d4918daf1592ff32a1eea18a5ab5f314708decce`
 
 ## 7. KEEP
-- `docs/v9.3.1-branch-cleanup-manifest` — current H2 working branch
 - `main` — default branch
 
-## 8. Tool capability boundary
+The former H2 working branch `docs/v9.3.1-branch-cleanup-manifest` was deleted after PR #191 had merged and after its post-merge accidental documentation-only advance was identified and excluded from the original 98-branch cohort.
 
-The connected GitHub tool surface in this chat exposes branch creation/update, file writes, PR operations and merge operations, but **does not expose a delete-ref / delete-branch action**. GitHub fetch is GET-only. Therefore this manifest prepares and revalidates the deletion cohort, but the assistant cannot honestly claim that remote branches were deleted through the current connector.
+## 8. Tool capability boundary and execution path
 
-Actual deletion must wait for a GitHub connection/tool surface that supports deleting refs, or be executed by the repository owner outside this chat. No branch is force-moved or repurposed as a substitute for deletion.
+The connected GitHub tool surface used for this maintenance pass still does **not** expose a delete-ref / delete-branch action. The repository owner therefore executed the deletion through native `git push origin --delete` using a generated safety script that reread Section 3 from `origin/main`, required exactly 98 candidates, and deleted a candidate only when its live remote SHA still exactly matched the recorded safe SHA.
+
+The reported execution result was 98 deleted, 0 already missing and 0 skipped for SHA drift. A subsequent GitHub API verification independently confirmed that all 98 Section 3 refs were absent, the H2 working ref was absent, all 80 MANUAL_REVIEW refs remained, `main` remained, and the repository branch count was 81. No ref was force-moved or repurposed as a substitute for deletion.
 
 ## 9. H3 disposition
 
@@ -229,3 +235,18 @@ H1 semantic index segmentation already separates active runtime/reference files 
 ## 10. Revalidation requirement before actual deletion
 
 Immediately before deleting any branch from Section 3, re-fetch current branch tip and PR state. If the tip changed, a new/open PR appeared, protection changed, or a retention request exists, remove it from the deletion cohort and classify it for manual review.
+
+
+## 11. H2 closeout evidence
+
+Closeout verification was performed against `main@44b9184b7dd65ff98118db5a4c7c3a6e276bf5ff` before this status-only PR was created.
+
+- Section 3 candidates recorded on `main`: **98**.
+- Section 3 candidates still present after deletion: **0**.
+- H2 working branch still present: **no**.
+- MANUAL_REVIEW branches expected: **80**.
+- MANUAL_REVIEW branches missing: **0**.
+- Remaining remote branches: **81** (`main` + 80 retained manual-review refs).
+- Open PRs: **0**.
+
+H2 is therefore complete for its approved scope: **merged branch cleanup limited to strict SAFE_DELETE_CANDIDATE refs**. The 80 MANUAL_REVIEW branches remain intentionally retained; their presence is not an H2 failure and no deletion authorization is inferred for them.
