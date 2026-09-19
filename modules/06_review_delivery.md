@@ -37,7 +37,7 @@
 
 1. Formula Roles：`final_model_relation / key_bridge_relation / supporting_derivation` 与下游作用一致，必要 bridge 未被 Cleanup 删除；
 2. Core Model Summary：`required/inline/not_applicable` 来自显式裁决；
-3. Proposition：`planned/current` 自动激活 reasoning + proposition pack，candidate 只审必要性，stale 不作为 current；
+3. Proposition：`planned/current` 自动激活 reasoning + proposition pack，candidate 只审必要性，stale 不作为 current；同时核对核心证明是否按数学作用留在正文完整可恢复，不能仅因篇幅、难度、数量预算或版式把“完整证明”降成“关键链 + 见附录”；
 4. Algorithm：`stepwise/pseudocode` 自动激活 current Algorithm Trace 与 algorithm-flow pack，即使用户没有再次说“伪代码”；`not_needed` 不造装饰算法框；current trace 还必须能闭合到**真实 Python 实现**及对应结果/验证证据；
 5. Missing / Stale：关键状态 missing → `needs_adjudication`，stale/review_required 不得通过 Cleanup 降级；
 6. **Compact Runtime Boundary**：完整 reasoning、proof pack、algorithm pack 仍条件加载，不恢复开篇全量 preload。
