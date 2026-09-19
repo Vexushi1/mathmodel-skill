@@ -587,7 +587,7 @@ R8 调用图结论：draft 阶段直接运行 `audit_v8_writing_surface.py`；Cl
 
 ### W3-P1：移除 count-only 小节数量复核
 
-阶段 / PR：W3 最小减重 / branch `fix/writing-validation-w3-count-only`；PR 编号待创建。  
+阶段 / PR：W3 最小减重 / PR #203 — `fix: remove count-only subsection review finding`。  
 Base main SHA：`cef433c513b3ab384702c1057adf5502788b99b9`；Final head / Merge SHA 待真实 CI 与合并后补记。  
 本次获批范围：严格消费 `docs/writing_validation_w0_baseline.md#6-W3-唯一已批准候选`，只移除 `len(subsection_titles) > 4` 触发的 `question_subsection_granularity` review_required。  
 实际修改范围：`scripts/audit_paper_prose.py` 删除 count-only finding；更新既有 v7.16/v7.45 回归和 maintenance measurement 当前期待；不修改 `config/prose_audit_patterns.yaml`、surface audit、Runtime、Review、Gate、Schema、Project State 或报告结构。  
