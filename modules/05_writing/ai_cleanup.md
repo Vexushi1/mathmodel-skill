@@ -25,9 +25,10 @@ Cleanup 不重新判断数学正确性、参数最优性、术语语义等价、
 
 - `final_model_relation`：Keep；清理后 solver / validator / 决策规则仍可恢复。
 - `key_bridge_relation`：若承担机理、判据、证明、边界、降维、候选域或 solver precondition，Keep 或只压缩解释；**不能仅因“不是最终模型公式”删除**。
-- `supporting_derivation`：可压缩或移位，但关键跳步仍应可恢复。
+- `supporting_derivation`：按实际数学作用压缩；若其中步骤是恢复非显然核心推导或核心证明不可缺少的逻辑环节，必须留在正文可恢复。Cleanup 不得仅因篇幅、难度、角色名或版面需要把核心证明/关键推导移入附录。
 - `routine_algebra`：优先压缩或删除，不因角色 taxonomy 增加正文公式。
 - Preflight 为 `required / planned / current / stepwise / pseudocode` 时，即使**用户本轮没有再次提到这些能力**也照常保留；`missing/stale/review_required` 必须回到裁决，不能靠润色伪装通过。
+- Proposition / Proof 为 planned/current 且承担正文核心论证时，Cleanup 只能改善分段、衔接和排版，不能把完整证明降成“关键链 + 见附录”。
 
 模型建立—求解—结果连续性只消费 `model_establishment_solution_narrative`、Model Construction Rationale 与相关 reasoning Authority。Cleanup 只处理表现风险，例如：
 
