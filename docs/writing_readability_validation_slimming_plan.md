@@ -560,7 +560,7 @@ Base main SHA：`8fb72f6e73a245f101690d01e9db82064206d48b`；Final head：`1b1da
 
 ### G-P1：复用现有审查，不增建 Gate
 
-阶段 / PR：Part G 原子修改 / branch `fix/reuse-existing-readability-review`；PR 编号待创建。  
+阶段 / PR：Part G 原子修改 / PR #201 — `test: prove readability reuses the existing review pipeline`。  
 Base main SHA：`0d8b44c0c26ad7694638da468d457df76ded08ce`；Final head / Merge SHA 待真实 CI 与合并后补记。  
 本次获批范围与 Authority：严格按 Part G §9 与实施规则 §10；draft review 发现理解障碍，Cleanup 只修表达，final review 在既有全篇 coverage 内复验；不得新增 `readability_status`、Project State required 字段、新注册表、独立 Readability Gate 或第九个 coverage family。  
 现状裁决：读取 current Review、Writing Runtime、Cleanup、review matrix、score/lint 与 Project State 后，现有 active interface 已满足 Part G：`draft_semantic_review → ai_cleanup → final_review_and_delivery` 顺序已存在；终审稳定 coverage 仍为八类，`rendered_page_surface` 与 `figure_table_information_value` 已承载相关可读性证据；finding 已区分 `machine / manual / hybrid`；内部审查记录明确不进入 Project State。  
