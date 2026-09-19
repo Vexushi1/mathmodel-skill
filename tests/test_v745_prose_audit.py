@@ -264,10 +264,7 @@ H1. 数据满足要求。
         rows = {row["id"]: row for row in report["candidate_snapshots"]}
         for row in rows.values():
             self.assertTrue(row["expectation_matches"], row)
-        self.assertEqual(
-            rows["many_independent_subsections"]["observed_severity"],
-            "review_required",
-        )
+        self.assertFalse(rows["many_independent_subsections"]["observed_present"])
         self.assertEqual(
             rows["mechanical_subsection_split"]["observed_severity"],
             "warning",
