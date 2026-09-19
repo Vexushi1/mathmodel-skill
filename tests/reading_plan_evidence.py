@@ -1,4 +1,4 @@
-"""Compare complete legacy plans across isolated checkouts; report P2 planned reads separately."""
+"""Compare complete legacy plans across isolated checkouts; normalize only explicitly approved Authority content hashes while keeping every Runtime field, source path, dependency and reading-plan behavior exact."""
 from __future__ import annotations
 
 import argparse
@@ -19,6 +19,8 @@ ALLOWED_CHANGED_AUTHORITIES = {
     "core/runtime_assurance_contract.yaml",
     "core/module_manifest.yaml",
     "core/writing_runtime_contract.yaml",
+    "core/writing_reasoning_contract.yaml",
+    "modules/05_writing/paper_writing_protocol.md",
     "templates/latex/cumcm/hsk/template_manifest.yaml",
 }
 P7_OPTIONAL_ANALYSIS_PREREQUISITE = "figure_evidence:result_analysis_workbook"
