@@ -48,6 +48,18 @@
 
 只消费 Protocol §7.3 与 reasoning Authority。检查 Reasoning Necessity、Problem-Specificity、Question Closure 与 Claim Strength；不做“人工感”评分，不用第一人称/连接词频率推断作者身份；明确禁止 `first_person_ratio`、`human_like_score`、`AI_like_score`。必要理由可以保留“我们”，客观事实可以重设为对象主语；不得由表面自然度牺牲公式来源、证明、Algorithm Trace 或证据边界。
 
+### Formula-Rich Narrative Readability Review
+
+只消费 `model_establishment_solution_narrative.continuous_mathematical_narrative`、`formula_prose_rhythm` 与 Protocol §7，不新增 Gate 或可读性分数。人工/混合审阅重点确认：
+
+- 非显然公式/公式组附近能恢复当前对象、数学缺口、引式依据、主要推导关系和下游作用；
+- 关键成立条件、近似范围、定义域、局部性或失效边界没有与对应公式脱节；
+- 已定义符号没有反复逐字翻译，公式后的文字主要解释结构作用而不是重复读式；
+- 段落按推理单元组织：直接依赖的步骤可连续，互不相关的模型选择、solver 介绍、指标定义和结果解释不被挤进同一个信息过载长句；
+- 结果解释回答当前设问；模型/证据不支持机制或因果时，不为了“分析完整”补造原因。
+
+这类问题默认按现有 Recommendation/Default 语义处理；只有同时造成必要条件、数学关系、证据边界或答案含义缺失时才按既有 Hard 规则升级。机器可以提示 formula-without-context 或混合推理单元风险，但不得根据字符数、句数、公式数、连接词或段落长度自动判定正文可读性。
+
 ### Core Derivation Body Closure Review
 
 消费 `formula_reasoning_chain.core_derivation_body_closure` 与 Protocol §7，不新建 Gate。只核对当前题实际存在的非显然链是否能在正文恢复：
