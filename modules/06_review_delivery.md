@@ -50,7 +50,7 @@
 
 ### Formula-Rich Narrative Readability Review
 
-只消费 `continuous_mathematical_narrative`、`formula_prose_rhythm` 与 Protocol §7；不复制正文规则，也不新增 Gate 或可读性分数。人工/混合审阅核对非显然公式的对象/缺口/依据/作用、关键适用条件是否邻近，以及段落是否按真实推理单元组织。普通可读性缺口沿用现有 Default/Recommendation；只有数学或证据链同时断裂才按既有 Hard。机器只定位已声明风险，不按字符数、句数、公式数、连接词或段落长度自动判定质量。
+只消费 `continuous_mathematical_narrative`、`formula_prose_rhythm` 与 Protocol §7，不新增 Gate/分数。人工确认非显然公式的上下文与关键条件可恢复、段落按真实推理单元组织；普通可读性缺口沿用 Default/Recommendation，数学或证据链断裂才按既有 Hard。机器只定位已声明风险，不按字符/句数/公式数/连接词/段落长度判质量。
 
 ### Core Derivation Body Closure Review
 
