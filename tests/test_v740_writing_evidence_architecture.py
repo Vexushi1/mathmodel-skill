@@ -48,6 +48,42 @@ class TestWritingEvidenceArchitecture(unittest.TestCase):
         self.assertIn("图表可读性修改是否未改变数值", checklist)
         self.assertIn("表格解释是否抓关键差异", checklist)
 
+    def test_w2_consumers_templates_and_examples_are_aligned(self):
+        proposition = (ROOT / "packs/artifact/proposition_proof.md").read_text(encoding="utf-8")
+        preamble = (ROOT / "templates/latex/cumcm/hsk/config/preamble.tex").read_text(encoding="utf-8")
+        q2 = (ROOT / "templates/latex/cumcm/hsk/sections/07_question2.tex").read_text(encoding="utf-8")
+        rationale_examples = (
+            ROOT / "modules/05_writing/references/model_construction_solution_rationale_examples.md"
+        ).read_text(encoding="utf-8")
+        caption = (ROOT / "templates/writing/caption_explanation.md").read_text(encoding="utf-8")
+        checklist = (ROOT / "templates/writing/docx_check.md").read_text(encoding="utf-8")
+
+        for token in ("核心证明较长时", "`hskproof`", "完整展开并允许正常分页"):
+            self.assertIn(token, proposition)
+        self.assertIn("\\newenvironment{hskproof}", preamble)
+        self.assertLess(
+            preamble.index("{\\end{proposition}\\end{tcolorbox}}"),
+            preamble.index("\\newenvironment{hskproof}"),
+        )
+
+        self.assertGreaterEqual(q2.count("\\subsubsection{"), 4)
+        self.assertIn("三级标题必须服务真实数学对象，不要求固定名称或固定数量", q2)
+        self.assertNotIn("\\paragraph{", q2)
+        self.assertNotIn("\\subparagraph{", q2)
+
+        for token in (
+            "Profile A：紧凑型",
+            "Profile B：导航型",
+            "7.1.4 模型汇总",
+            "不应为了“连续叙事”强行全部合并",
+        ):
+            self.assertIn(token, rationale_examples)
+
+        for token in ("内部 run id", "accepted 数值", "过宽表"):
+            self.assertIn(token, caption)
+        self.assertIn("图表可读性修改是否未改变数值", checklist)
+        self.assertIn("表格解释是否抓关键差异", checklist)
+
     def test_framework_remembers_evidence_placement_without_copying_manual(self):
         text = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
         for token in (

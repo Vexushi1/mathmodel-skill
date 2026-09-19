@@ -469,8 +469,8 @@ python scripts/generate_indexes.py --check
 | Part E：公式多时保持清晰叙事 | COMPLETED：PR #199，final head 与合并后 main 验收均通过 |
 | Part F：正式章节最大三级 | COMPLETED：PR #200，final head 与合并后 main 验收均通过 |
 | Part G：复用现有审查，不增建 Gate | COMPLETED：PR #201 以既有 Review/Runtime/coverage 回归证明闭环，未新增 Gate/required 状态/coverage family |
-| W2 Consumer/模板/样例实施 | IN_PROGRESS：PR #194/#195 已同步必要 consumer；PR #196 同步图表写作 consumer/模板，但不代表 W2 全阶段完成 |
-| W3 检查减重实施 | IN_PROGRESS：branch `fix/writing-validation-w3-count-only`；只处理 W0 唯一批准的 count-only `question_subsection_granularity` 候选 |
+| W2 Consumer/模板/样例实施 | CLOSURE_IN_PROGRESS：现有 Pack/Template/例文已承载长核心证明、正常三级导航与可读表格；branch `test/writing-consumer-template-w2-closure` 以集成回归证明后保持业务文件原样 |
+| W3 检查减重实施 | COMPLETED：PR #203 仅移除 W0 批准的 count-only `question_subsection_granularity` finding；final head 与 main 后验均通过 |
 | W4 行为验收集成 | NOT_STARTED |
 | W5 发布与综合收尾 | NOT_STARTED；目标 release 待实际评估 |
 
@@ -588,14 +588,26 @@ R8 调用图结论：draft 阶段直接运行 `audit_v8_writing_surface.py`；Cl
 ### W3-P1：移除 count-only 小节数量复核
 
 阶段 / PR：W3 最小减重 / PR #203 — `fix: remove count-only subsection review finding`。  
-Base main SHA：`cef433c513b3ab384702c1057adf5502788b99b9`；Final head / Merge SHA 待真实 CI 与合并后补记。  
+Base main SHA：`cef433c513b3ab384702c1057adf5502788b99b9`；Final head：`a74079882158bff693cd083f3abc2c1e8abada1e`；Merge SHA：`491fac0af1f77eb91e64f32e21ae21abcc442b4e`。  
 本次获批范围：严格消费 `docs/writing_validation_w0_baseline.md#6-W3-唯一已批准候选`，只移除 `len(subsection_titles) > 4` 触发的 `question_subsection_granularity` review_required。  
 实际修改范围：`scripts/audit_paper_prose.py` 删除 count-only finding；更新既有 v7.16/v7.45 回归和 maintenance measurement 当前期待；不修改 `config/prose_audit_patterns.yaml`、surface audit、Runtime、Review、Gate、Schema、Project State 或报告结构。  
 保留检查：`possible_mechanical_model_subsection_split` warning 继续识别变量/目标/约束/汇总机械拆分；`framework_subsection_granularity_pending` review_required 继续拦截框架中显式未闭合的小节颗粒度状态；其它 W0 保留项 severity 全部不变。  
 Hard 保全：duplicate label、missing reference/BibTeX、claim-scope 冲突等既有 blocking 路径不改；formal audit 入口与 strict 对 remaining review_required 的处理不变。  
 兼容性：public CLI、Finding 数据结构、报告键、Runtime/Gate/Project State 不变；仅不再产生一个已证明 count-only 误报的 finding code。  
-静态测试 / 真实执行 / 生成文件：待 final head HSK Skill CI、Optimization baseline 与 generated-file contract。  
-遗留问题 / 下一阶段：W3 全绿并完成 main 后验后进入 W4；不得借本 PR 顺手降级其它 review_required 或重构 audit 调用链。
+静态测试 / 真实执行 / 生成文件：final head HSK Skill CI workflow_dispatch #3822 与 Optimization baseline #350 均 success；PR-triggered #3823 为 `action_required`，不作为失败证据；合并后 main HSK Skill CI #3824 与 metadata refresh #2519 均 success。  
+完成结论：W3 已闭环，只删除已证明 count-only 误报；其它 review_required、formal audit 与 Hard 路径保持。  
+遗留问题 / 下一阶段：按总实施顺序先正式闭合仍标 IN_PROGRESS 的 W2，再进入 W4；不得借 W2/W4 扩大检查减重范围。
+
+### W2-P1：Consumer、模板与样例闭环验收
+
+阶段 / PR：W2 closure / branch `test/writing-consumer-template-w2-closure`；PR 编号待创建。  
+Base main SHA：`491fac0af1f77eb91e64f32e21ae21abcc442b4e`；Final head / Merge SHA 待真实验收后补记。  
+本次范围：严格按 §10 W2 完成条件检查 Cleanup/Review/Pack/Template/例文的实际承载，不再改写已经稳定的 C–F Authority。按“现有能力已满足则用测试证明后保持原样”执行。  
+完整读取与裁决：长核心证明由 `packs/artifact/proposition_proof.md` 明确允许命题框后接 standalone `hskproof` 并正常分页，活动 preamble 已提供独立 `hskproof`；CUMCM Q2 模板已有多个正常 `subsubsection` 示例且明确不设固定名称/数量；模型建立与求解论证例文同时保留紧凑型与导航型 Profile；表格可读性由 caption template 与 DOCX checklist 落到 run id、指标方向、accepted 数值和过宽表处理。  
+实际修改：不修改上述业务文件；仅扩展既有 writing evidence regression，把 Pack→preamble→Q2 template→rationale examples→caption/DOCX checklist 的具体输出载体锁成一个集成断言，并更新本计划状态。  
+兼容性：不新增模板骨架、示例库、Gate、Schema 或 Runtime 读取；不把 CUMCM 一级骨架扩散到其他载体。  
+静态测试 / 真实执行 / 生成文件：待 final head HSK Skill CI、Optimization baseline、CUMCM/MCM/ICM/电工杯 LaTeX smoke 与 metadata refresh。  
+遗留问题 / 下一阶段：W2 全绿并完成 main 后验后进入 W4 T01–T18 集成验收；W4 只补缺失的行为证据，不重复修改已闭环业务政策。
 
 后续每个实施 PR 在本节追加记录，不重写历史裁决：
 
