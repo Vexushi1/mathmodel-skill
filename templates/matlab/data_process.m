@@ -2,8 +2,8 @@
 % 仅 preprocessing_decision=project_level 时实例化并放入“数据预处理/”。
 % 只读取“数据预处理结果.xlsx”中 Python 已输出的处理前/后与验证底层数据。
 % 禁止在 MATLAB 中重新清洗、插值、滤波、重采样、训练填补模型或重新选择参数。
-% 先执行 modules/04_figure_evidence.md 的 Scientific Figure Synthesis Gate；预处理图也不能因为“前后对比”就默认退化成普通柱状/折线。
-% 若同一证据空间能同时展示原始点、处理结果、误差/区间或阈值边界，优先 Composite Encoding。
+% 先执行 modules/04_figure_evidence.md 的 Scientific Figure Synthesis Gate 与 Basic-form Challenge；清楚的前后折线或点图可直接承担核心证据。
+% Composite Encoding 仅在真实互补信息和可读性增益同时存在时使用；没有实际区间就不画带，不因额外维度存在而强制组合。
 % 选定视觉结构后进入对应 Scientific Rendering Profile，再通过 Figure Layout Gate 与 Figure Enhancement Gate。
 % 视觉结构确定后再进入 Publication Rendering Grammar：palette profile / open-axis / adaptive canvas / legend strategy；样式不得改变预处理证据语义。
 % Enhancement 的实现模式参考 templates/figure/figure_enhancement_patterns.md，不得在本模板建立第二套绘图决策规则。
@@ -73,9 +73,9 @@ if sortByX
     sourceRows = sourceRows(order);
 end
 
-%% 3. 处理前后结构读取示例——正式实例化时按 Evidence Structure 升级
-% 若 x 具有时间/空间顺序，可使用前后曲线 + 原始点/关键事件/误差；若属于分布证据，
-% 应改成 box/violin + raw scatter / ECDF；若属于二维参数/空间证据，应改用 heatmap/field + contour/boundary。
+%% 3. 处理前后结构读取示例——正式实例化时按 Evidence Structure 选择
+% 若 x 具有时间/空间顺序，清楚的前后曲线可独立表达趋势；原始点/事件/误差仅按真实证据需要加入。
+% 结论涉及分布时可用 box、raw scatter 或 ECDF；涉及二维参数/空间时可用 heatmap/field，contour/boundary 按需加入。
 fig = figure("Color", "w", "Position", [100, 100, 960, 620]);
 ax = axes(fig);
 hold(ax, "on");

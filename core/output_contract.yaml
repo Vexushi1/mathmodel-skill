@@ -1,4 +1,4 @@
-version: 9.4.3
+version: 9.4.4
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -399,6 +399,7 @@ matlab_figure_contract:
   scientific_synthesis_required_for_core_figures: true
   basic_form_challenge_required_for_core_figures: true
   composite_encoding_preferred_when_shared_evidence_space: true
+  composite_encoding_preference_conditions: [real_complementary_information, readability_gain]
   portfolio_scientific_quality_review_required: true
   high_contrast_primary_palette_required: true
   auxiliary_visual_deweighting_required: true
@@ -446,7 +447,7 @@ ownership:
   Python_preprocessing: 仅preprocessing_decision=project_level时生成；负责共享原始数据的公共审计与已批准处理、论文方法/验证证据和绘图底层数据并输出统一工作簿，不求解小问核心模型。
   MATLAB_preprocessing: 仅project_level时由data_process.m读取统一工作簿绘制处理前后与验证证据；不重新清洗、插值、滤波、重采样或估计参数。
   Python: 每问固定主求解脚本；主工作簿accepted后按Analysis Necessity Gate条件增加独立深化分析脚本。not_needed/question_local可读取原始数据，project_level读取统一工作簿。问题X求解.py负责主求解、当前主计算最低数值有效性检查及不改变当前计算世界的高价值状态/过程/结构Evidence Capture；问题X结果深化分析.py仅在Gate=required时负责敏感性、稳健性、边界、替代方法/结构等独立深化分析并保留细粒度底层证据。
-  MATLAB: 同目录qX_plot.m精确读取本问适用标准工作簿，并仅在图确实需要底层数据时按preprocessing_decision读取原始数据或统一预处理工作簿；按modules/04_figure_evidence.md执行Scientific Evidence Visualization、组合编码和全局—局部组织，不重新计算核心结果，默认不自动导出图片
+  MATLAB: 同目录qX_plot.m精确读取本问适用标准工作簿，并仅在图确实需要底层数据时按preprocessing_decision读取原始数据或统一预处理工作簿；按modules/04_figure_evidence.md选择充分清楚的表达，真实互补信息有助于阅读时才组合编码或组织全局—局部，不重新计算核心结果，默认不自动导出图片
   other_figure_tools: GeoGebra、PPT、draw.io、SVG、TikZ可用于非数据驱动机理图；draw.io仅按mechanism_drawio_contract选择，工作簿驱动结果图继续归MATLAB
 filenames:
   preprocessing_script: 数据预处理/数据预处理.py（仅project_level）
@@ -486,7 +487,7 @@ rules:
 - v7.16摘要和正文强主张按PROVEN/VERIFIED_NUMERIC/COMPARATIVE/OBSERVED/HEURISTIC校准；有限数值验证、多启动或独立算法未发现更优不得升级成全局最优证明。
 - v7.14新生成主求解在代码前冻结PQS；问题X求解.py只实现当前主计算最低数值有效性检查，主工作簿返回后由独立数值证据校验器复核，不能只相信自报Boolean。
 - v7.15主求解在不改变当前计算世界的前提下同步保留解释/绘图/验证有价值的current-run状态、过程与结构证据；改变参数、场景、seed、算法、模型或验证窗口后的新运行仍只属于accepted后的结果深化分析。
-- v7.15正式核心Figure先执行Scientific Figure Synthesis与Basic-form Challenge；同一证据空间存在互补信息时优先考虑组合编码，并在论文级执行Portfolio Scientific Quality Review；详细配色和图型规则只由modules/04_figure_evidence.md定义。
+- 正式核心Figure先执行Scientific Figure Synthesis与Basic-form Challenge；基础图充分时可直接承担核心论证，共享证据空间且提供真实互补信息与可读性增益时才组合编码；Portfolio审查证据覆盖与重复，不按图型复杂度排序；细则只由modules/04_figure_evidence.md定义。
 - 主工作簿accepted后冻结问题X求解.py，并执行Analysis Necessity Gate；required时单独生成问题X结果深化分析.py，not_required时必须记录理由且不得用该状态支持鲁棒性/稳定性主张。
 - 默认不生成独立完整运行配置、运行说明、code_delivery_report、user_execution_validation_report、semantic_governance_report、figure_evidence或图表子目录。
 - 实际生成的项目级预处理脚本和正式小问Python脚本都必须通过静态工程质量检查且不得由助手执行；校验结果在聊天或标准输出中返回，不额外落盘。

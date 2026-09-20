@@ -1,4 +1,4 @@
-version: 9.4.3
+version: 9.4.4
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -97,7 +97,7 @@ artifact_catalog:
   validated_results: 每个作用域小问均有accepted主结果，并且要么accepted且passed的结果深化分析，要么result_analysis_status=not_required且存在非空requirement reason；not_required不支持任何新增鲁棒性/稳定性主张
   evidence_map: 结论到公式、代码、表和图的证据映射
   matlab_scripts: MATLAB绘图脚本集合；project_level包含data_process.m，每问包含qX_plot.m
-  result_figures: 工作簿驱动、经Scientific Figure Synthesis/基础图挑战/组合与全局—局部表达选择形成，正式图名由DOCX/LaTeX caption承担且不嵌入重复整体title/sgtitle的正式结果图
+  result_figures: 工作簿驱动、经Scientific Figure Synthesis与Basic-form Challenge选择充分清楚的表达，按真实信息增益使用互补编码或全局—局部组织；正式图名由DOCX/LaTeX caption承担且不嵌入重复整体title/sgtitle的正式结果图
   refined_mechanism_figures: 精修后的S/A级机理图
   figure_contracts: 预处理图、结果图和机理图合同
   approved_figures: 已确认可入文的图
