@@ -1,4 +1,4 @@
-version: 9.4.1
+version: 9.4.2
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml

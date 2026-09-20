@@ -440,7 +440,9 @@ class ContractAndDriftTests(unittest.TestCase):
         "config/competition_profiles.yaml": "0cfe08e2edac99f07f2e527643499b8bc73c0479",
         "scripts/validate_semantic_governance.py": "9bd3fe2d6704accab2635b0c691caaeca6fea977",
         "scripts/validate_submission_package.py": "47bd01db5f45dd8c902418be62f494419a03c676",
-        "templates/matlab/q1_plot.m": "ddc0408ec473e9885e963ce816a036179299d007",
+        # P0-B replaces silent filtering/fixed ordering with explicit evidence-preserving reads.
+        # MATLAB syntax is parsed separately; source checks do not claim runtime execution.
+        "templates/matlab/q1_plot.m": "b9942466fa54f51f9fbb166a06526784abd5200c",
         "templates/matlab/draw_mechanism_structure.m": "65ba4a3b3462a565f86880c49af0959edd21f9a4",
         "templates/figure/chart_selection.md": "87930a49bad06777ac8a42af254b71a11ba1bf22",
         "templates/figure/figure_enhancement_patterns.md": "823550db7331a720ba32f2bc756fcdaaea12888d",

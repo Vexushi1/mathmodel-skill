@@ -1,6 +1,12 @@
-# mathmodel-skill v9.4.1
+# mathmodel-skill v9.4.2
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 → 条件数学化与结构化简 → 最小充分主模型 + 按需 comparator → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构匹配 Solver + Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision / semantic_identity_hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v9.4.2：P0-B 工作簿读取与字段交接修复
+
+本补丁继续[绘图技巧与衔接修改计划](docs/figure_technique_and_handoff_refactor_plan.md)中的 P0-B：MATLAB 按当前图声明的来源读取工作簿，仅需主结果时不再强制存在 03B 工作簿；明确要求的已验收深化分析工作簿、工作表或字段缺失时仍报错。字段按去除首尾空白后的精确唯一表头定位，期望列位置只作漂移警告，图表规划、框架和写作交接模板同步这一口径。
+
+绘图入口不再静默丢弃非法值或默认按 x 排序；非法内容、缺测和记录对应关系需明确处理，保留数据顺序语义。Workbook Schema 保持 2.3.1，实际 Excel 字段、accepted 数值和模型求解不变。本阶段不调整配色或 CI；MATLAB 仅作静态检查，实际运行、图形调整和人工验收由用户完成，其余计划阶段继续推进。
 
 ## v9.4.1：P0-A 绘图标题交接兼容修复
 

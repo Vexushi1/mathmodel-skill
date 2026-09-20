@@ -98,7 +98,7 @@
 
 ## 5. 证据登记
 
-论文 caption、源工作簿、工作表、固定列、MATLAB 脚本、panel map 和支撑结论应同步登记在 `模型论文框架.md`。表格的源工作簿/工作表和正文结论也应可反向定位。
+论文 caption、源工作簿、工作表、精确唯一表头、MATLAB 脚本、panel map 和支撑结论应同步登记在 `模型论文框架.md`；期望列位置仅作漂移警告，字段规则服从 `core/workbook_schema.yaml#matlab_handoff.field_resolution`。表格的源工作簿/工作表和正文结论也应可反向定位。只登记当前图实际需要且已验收的来源；03B 工作簿仅在 Analysis Necessity Gate=`required` 且已验收时适用，不把两本工作簿作为每图的必备条件。
 
 ## 6. 负面清单
 

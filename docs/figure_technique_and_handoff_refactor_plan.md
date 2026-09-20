@@ -1,10 +1,10 @@
 # 绘图衔接修复与绘图技巧改进详细计划
 
 > 仓库：`Vexushi1/mathmodel-skill`  
-> 计划日期：2026-09-20；计划版本：1.1
+> 计划日期：2026-09-20；计划版本：1.2
 > 编制基线：`main@d6f24892dec61d01a6a75811d01e0c32e04da438`  
-> 编制时 Skill：9.4.0；计划创建提交未升级版本。P0-A 实施目标：9.4.1 patch。
-> 状态：`implementing`；P0-A 已进入实现，具体验证与剩余阶段见第 12 节。
+> 编制时 Skill：9.4.0；计划创建提交未升级版本。当前已合入 9.4.1，P0-B 实施目标：9.4.2 patch。
+> 状态：`implementing`；P0-A 已完成，P0-B 正在实施，具体验证与剩余阶段见第 12 节。
 > 文件角色：本轮绘图改造的维护计划、实施顺序和进度依据，不是新的 Figure、Workbook、Runtime 或 Writing Authority。
 
 ## 0. 后续如何使用本计划
@@ -118,13 +118,13 @@ Agent 检查 MATLAB 代码结构、文件与函数接口、字段引用、尺寸
 
 **修改内容：**
 
-1. 区分表尾空行、合同允许的缺测、失败状态记录、非空非法文本、Inf/NaN，保留来源行号与记录键。显示转换不承担重新清洗或插补职责。
+1. 区分导入空值、合同允许的缺测、失败状态记录、非空非法文本、Inf/NaN，保留读入行号与记录键。显示转换不承担重新清洗或插补职责。`readcell` 已按读取范围导入；导入后的 missing/NaN 不能证明原单元格是物理空白，默认不追加推测性的尾行裁剪。确需限制尾部时，使用已验收证据明确给出的范围，不从缺测模式猜测。
 2. 非空非法数据给出工作簿、工作表、表头和行号定位；合同未允许的缺测不得悄悄删除。合法缺测应按其语义留下间断或显式说明，不跨越缺口画出连续关系。
 3. 所有配对数组沿同一记录键处理，保持 x/y/区间/组别关联，不能分别过滤后拼接。
 4. 只有合同明确存在时间或连续自变量的排序语义时排序，并同步其他字段；轨迹、路径、类别或配对记录保留真实顺序，不一律 `sort(x)`。
 5. 避免一概拒绝所有 NaN，导致合法缺测无法展示；也不设“丢弃不足某百分比便可接受”的阈值。
 
-**验收：** 合法空尾行、非法文本、Inf、允许/不允许的缺测、配对键、重复时间及路径顺序都有明确预期；错误不会静默变成一个更好看的子样本。采用小型合同样例验证读取规则，样例不冒充实际赛题结果；MATLAB 实现本身仅做静态检查。
+**验收：** 导入范围、非法文本、Inf、允许/不允许的缺测、配对键、重复时间及路径顺序都有明确预期；不能把读入的缺测行自动视为空尾删掉，错误不会静默变成一个更好看的子样本。源代码检查和纯语法解析不冒充 MATLAB 运行行为测试，也不以 Python 影子 reader 证明 MATLAB 正确；模型数值与真实图形仍由用户本机验收。
 
 ### P0-5：先落实不自动运行 MATLAB 和图像检查
 
@@ -171,6 +171,8 @@ Agent 检查 MATLAB 代码结构、文件与函数接口、字段引用、尺寸
 - `tests/test_v910_publication_rendering.py`、`test_p6a_figure_reference_profile.py`、`test_read_path_semantic_closure.py`、`test_tooling.py` 及实际相关调用点：更新假设，保留可调性和真实证据约束。
 
 同步检查 Module 04、Figure Pack、根 `README.md`、MATLAB README、`result_figure_qa.md` 和 enhancement patterns 中的“默认高对比、蓝红优先”表述，以及 `tests/test_content_packs.py`、`test_v715_scientific_figure_elevation.py`、`test_v742_dynamic_figure_layout.py` 等对旧措辞的约束。政策与代码在 F2 同一 PR 闭环，不能只换 helper 让上游仍按旧默认生成调用，也不能把必需的政策更新留到 F4。
+
+F2 还须同步 `core/output_contract.yaml` 中当前为 true 的 `matlab_figure_contract.high_contrast_primary_palette_required` 与 `tests/test_current_skill_health.py` 的对应断言；不能遗漏上游产物合同的强制配色要求。global policy 已将 Figure 细则委托 Module 04，无需另加一份配色政策。
 
 明确选择旧 profile 的调用可以保留兼容；**旧 API 省略参数时隐式选色的行为不能以兼容为由继续作为新默认。** 优先采用“省略颜色只应用基础排版，原色不变”的兼容方式；必须返回 palette 的旧无参调用若无法兼容，应给出清楚的迁移提示并在 PR 如实说明接口影响，不使用隐藏默认掩盖变化。参考色板可继续保留原名，但全部是显式候选。
 
@@ -285,8 +287,8 @@ Python 单元测试在这里验证仓库实现/合同，不代表运行了用户
 
 | 编号 | 状态 | 实现 PR / commit | 验证与剩余事项 |
 |---|---|---|---|
-| P0-A | 已实现，待 PR CI 与合并 | [PR #211](https://github.com/Vexushi1/mathmodel-skill/pull/211)，实现提交 `b070dae`；分支 `fix/figure-p0a-title-contract` | Schema/lint/sync 标题专项、版本回归、lint 与生成检查通过；本地全量 1076 项，2 failures / 38 errors，与未改动基线相同的 40 个问题测试，无新增失败；未运行 MATLAB |
-| P0-B | 未开始 | — | 条件 03B、字段全链、非法值/缺测和排序待修复 |
+| P0-A | 已合并并完成验证 | [PR #211](https://github.com/Vexushi1/mathmodel-skill/pull/211)，合并 `e00f31dfc5ab4fcf67877e8b0effdff61d6970e2` | [PR CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35491575546)、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35491575524)、[main CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35491780957) 和 main 生成检查通过；本地 1076 项仍有同样的 40 个 Windows 基线问题；未运行 MATLAB |
+| P0-B | 实现与本地静态复核完成，待 PR CI | `fix/figure-p0b-workbook-handoff`，基线 `e00f31d` | 条件 03B、精确表头及旧列号映射、缺测/非法值、数值键与排序闭环；3 个 MATLAB 文件纯语法解析通过，36 项读取/保护专项、46 项发布/交接专项通过；lint/生成检查通过；全量 1076 项与初始基线相同的 40 个 Windows 问题，无新增失败（一次中途进程异常退出已单独保留日志，复跑完成）；MATLAB 实机验收独立进行 |
 | P0-C | 未开始 | — | 自动 MATLAB preview 待改为显式手动选择 |
 | F1 | 未开始 | — | 图型选择与读取路径待修改 |
 | F2 | 未开始 | — | 无默认配色及可调 MATLAB 样式待修改 |
@@ -300,6 +302,7 @@ Python 单元测试在这里验证仓库实现/合同，不代表运行了用户
 |---|---|---|
 | 2026-09-20 | 1.0 初稿 | 固化用户要求；P0 优先；配色不设默认；仅静态 MATLAB 检查，人工调图；未实施代码 |
 | 2026-09-20 | 1.1 开始 P0-A | 计划 PR [#210](https://github.com/Vexushi1/mathmodel-skill/pull/210) 已合并，基线 `32587cf8463937611c3458429bc57f0d5cfce591`；用户授权开始实施；目标 Skill 9.4.1、Workbook Schema 声明 2.3.1，不改变实际 Excel 字段或用户项目 |
+| 2026-09-20 | 1.2 完成 P0-A，进入 P0-B | P0-A 的 PR/main 检查通过；P0-B 保守处理不可由导入值反推的物理空白，不自动猜测裁尾；使用 MISS_HIT core 0.9.44 做第三方纯语法解析，不执行 MATLAB；补记 F2 的 Output Contract 配色约束影响面 |
 
 ## 13. 回滚与完成判定
 

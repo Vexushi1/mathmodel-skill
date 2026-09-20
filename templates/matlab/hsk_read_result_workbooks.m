@@ -1,6 +1,7 @@
 function books = hsk_read_result_workbooks(location, problemName, requirements)
-% 读取同一问题目录中的主求解与结果深化分析工作簿。
-% 新项目目录为“问题X求解/”；旧“结果数据表/问题X/”只读兼容。
+% 只检查当前图声明使用的工作簿；空 requirements 仅检查主工作簿。
+% 验收状态由上游工作流核对，本 helper 不因文件存在而宣称结果已验收。
+% 新项目目录为“问题X求解/”；旧目录、robustness 与列号声明只读兼容。
 
 arguments
     location (1,1) string
@@ -8,9 +9,17 @@ arguments
     requirements (1,1) struct = struct()
 end
 
+requestedBooks = string(fieldnames(requirements));
+assert(all(ismember(requestedBooks, ["solution", "analysis", "robustness"])), ...
+    "requirements 只允许 solution、analysis 或历史 robustness");
+assert(~(isfield(requirements, "analysis") && isfield(requirements, "robustness")), ...
+    "analysis 与 robustness 不能同时声明，请明确唯一分析来源");
+if isempty(requestedBooks), requirements.solution = struct(); end
+
 if strlength(problemName) == 0
     resultDir = location;
-    folderName = string(get_last_folder(resultDir));
+    [~, folderName] = fileparts(char(resultDir));
+    folderName = string(folderName);
     assert(endsWith(folderName, "求解"), ...
         "直接传入结果目录时，目录名应为问题一求解、问题二求解等");
     problemName = extractBefore(folderName, strlength(folderName) - 1);
@@ -27,105 +36,208 @@ end
 books.resultDir = resultDir;
 books.solution = fullfile(resultDir, problemName + "求解结果.xlsx");
 books.analysis = fullfile(resultDir, problemName + "结果深化分析.xlsx");
-legacyAnalysis = fullfile(resultDir, problemName + "敏感性与鲁棒性结果.xlsx");
-if ~isfile(books.analysis) && isfile(legacyAnalysis)
-    books.analysis = legacyAnalysis;
-    warning("使用旧工作簿名，仅作只读兼容");
-end
 books.matlabScript = fullfile(resultDir, "q" + question_number(problemName) + "_plot.m");
-
-assert(isfile(books.solution), "缺少求解结果工作簿: %s", books.solution);
-assert(isfile(books.analysis), "缺少结果深化分析工作簿: %s", books.analysis);
-
-books.solutionSheets = string(sheetnames(books.solution));
-books.analysisSheets = string(sheetnames(books.analysis));
+books.solutionSheets = strings(0, 1);
+books.analysisSheets = strings(0, 1);
 
 if isfield(requirements, "solution")
-    validate_exact_requirements(books.solution, requirements.solution);
+    books.solutionSheets = validate_exact_requirements(books.solution, requirements.solution);
 end
-if isfield(requirements, "analysis")
-    validate_exact_requirements(books.analysis, requirements.analysis);
-elseif isfield(requirements, "robustness")
-    validate_exact_requirements(books.analysis, requirements.robustness);
-end
-end
-
-function validate_exact_requirements(workbookPath, sheetRequirements)
-assert(isstruct(sheetRequirements), "工作表校验要求必须为 struct");
-availableSheets = string(sheetnames(workbookPath));
-sheetNames = string(fieldnames(sheetRequirements));
-
-for i = 1:numel(sheetNames)
-    sheetName = sheetNames(i);
-    assert(any(availableSheets == sheetName), "工作簿缺少工作表“%s”", sheetName);
-    spec = sheetRequirements.(sheetName);
-    assert(isstruct(spec) && isfield(spec, "headers") && isfield(spec, "columns"), ...
-        "工作表“%s”必须提供 headers 和 columns", sheetName);
-
-    expectedHeaders = string(spec.headers);
-    fixedColumns = double(spec.columns);
-    assert(numel(expectedHeaders) == numel(fixedColumns), "headers 与 columns 数量不一致");
-    assert(all(isfinite(fixedColumns)) && all(fixedColumns >= 1) && ...
-        all(fixedColumns == floor(fixedColumns)), "固定列号必须为正整数");
-
-    raw = readcell(workbookPath, "Sheet", sheetName);
-    assert(size(raw, 1) >= 2, "工作表“%s”没有真实数据", sheetName);
-    assert(size(raw, 2) >= max(fixedColumns), "工作表“%s”的列数少于已锁定列位置", sheetName);
-
-    for j = 1:numel(fixedColumns)
-        columnIndex = fixedColumns(j);
-        actualHeader = strtrim(string(raw{1, columnIndex}));
-        assert(actualHeader == expectedHeaders(j), ...
-            "工作表“%s”第%d列表头应为“%s”，实际为“%s”", ...
-            sheetName, columnIndex, expectedHeaders(j), actualHeader);
+if isfield(requirements, "analysis") || isfield(requirements, "robustness")
+    legacyAnalysis = fullfile(resultDir, problemName + "敏感性与鲁棒性结果.xlsx");
+    if ~isfile(books.analysis) && isfile(legacyAnalysis)
+        books.analysis = legacyAnalysis;
+        warning("使用旧工作簿名，仅作只读兼容: %s", books.analysis);
     end
-
-    if isfield(spec, "key_column")
-        keyColumn = double(spec.key_column);
-        assert(keyColumn >= 1 && keyColumn <= size(raw, 2), "key_column 越界");
-        key = cell_to_string(raw(2:end, keyColumn));
-        assert(all(strlength(strtrim(key)) > 0), "记录键存在空值");
-        assert(numel(unique(key)) == numel(key), "记录键存在重复值");
-    end
-
-    if isfield(spec, "numeric_columns")
-        for columnIndex = double(spec.numeric_columns)
-            assert(columnIndex >= 1 && columnIndex <= size(raw, 2), "数值列号越界");
-            values = cell_to_numeric(raw(2:end, columnIndex));
-            assert(all(isfinite(values) | isnan(values)), "数值列包含 Inf 或非法值");
-        end
-    end
-end
-end
-
-function values = cell_to_string(column)
-values = strings(size(column, 1), 1);
-for i = 1:size(column, 1)
-    if isempty(column{i})
-        values(i) = "";
+    if isfield(requirements, "analysis")
+        analysisRequirements = requirements.analysis;
     else
-        values(i) = strtrim(string(column{i}));
+        analysisRequirements = requirements.robustness;
+        warning("requirements.robustness 仅作只读兼容；新声明使用 analysis");
     end
+    books.analysisSheets = validate_exact_requirements(books.analysis, analysisRequirements);
 end
 end
 
-function values = cell_to_numeric(column)
-values = nan(size(column, 1), 1);
-for i = 1:size(column, 1)
-    item = column{i};
-    if (isnumeric(item) || islogical(item)) && isscalar(item)
-        values(i) = double(item);
-    elseif ischar(item) || isstring(item)
-        parsed = str2double(string(item));
-        if isfinite(parsed)
-            values(i) = parsed;
+function availableSheets = validate_exact_requirements(workbookPath, sheetRequirements)
+assert(isstruct(sheetRequirements) && isscalar(sheetRequirements), ...
+    "工作簿%s的工作表要求必须为标量 struct", workbookPath);
+assert(isfile(workbookPath), "当前图声明的工作簿不存在: %s", workbookPath);
+availableSheets = string(sheetnames(workbookPath));
+for sheetName = reshape(string(fieldnames(sheetRequirements)), 1, [])
+    context = sprintf("工作簿%s，工作表%s", workbookPath, sheetName);
+    assert(any(availableSheets == sheetName), "%s：缺少工作表", context);
+    spec = normalize_spec(sheetRequirements.(sheetName), context);
+    raw = readcell(workbookPath, "Sheet", sheetName);
+    assert(size(raw, 1) >= 2, "%s：没有读入数据行", context);
+    % 不裁尾、不删行；missing/NaN 无法证明原 Excel 单元格是物理空白。
+    actualHeaders = strtrim(string(raw(1, :)));
+    actualColumns = zeros(size(spec.headers));
+    for j = 1:numel(spec.headers)
+        actualColumns(j) = exact_header_column(actualHeaders, spec.headers(j), context);
+        expected = spec.expected_columns(j);
+        if isfinite(expected) && expected ~= actualColumns(j)
+            warning("%s，字段%s：期望第%d列，实际第%d列；已按精确表头读取", ...
+                context, spec.headers(j), expected, actualColumns(j));
+        end
+    end
+    if strlength(spec.key_header) > 0
+        column = exact_header_column(actualHeaders, spec.key_header, context);
+        validate_keys(raw(2:end, column), spec.key_header, context);
+    end
+    for header = reshape(spec.numeric_headers, 1, [])
+        column = exact_header_column(actualHeaders, header, context);
+        allowMissing = any(spec.allow_missing_headers == header);
+        for row = 2:size(raw, 1)
+            validate_numeric(raw{row, column}, allowMissing, spec.missing_tokens, ...
+                sprintf("%s，字段%s，读入行%d", context, header, row));
         end
     end
 end
 end
 
-function name = get_last_folder(pathValue)
-[~, name] = fileparts(char(pathValue));
+function spec = normalize_spec(input, context)
+allowed = ["headers", "expected_columns", "key_header", "numeric_headers", ...
+    "allow_missing_headers", "missing_tokens", "columns", "key_column", "numeric_columns"];
+assert(isstruct(input) && isscalar(input) && isfield(input, "headers"), ...
+    "%s：每个工作表必须提供带 headers 的标量 struct", context);
+assert(all(ismember(string(fieldnames(input)), allowed)), "%s：存在未知工作表配置字段", context);
+spec.headers = text_list(input.headers, "headers", context);
+assert(~isempty(spec.headers), "%s：headers 不能为空", context);
+spec.expected_columns = nan(size(spec.headers));
+if isfield(input, "expected_columns")
+    spec.expected_columns = position_list(input.expected_columns, true, "expected_columns", context);
+    assert(numel(spec.expected_columns) == numel(spec.headers), ...
+        "%s：expected_columns 与 headers 数量不一致", context);
+end
+legacyColumns = [];
+if isfield(input, "columns")
+    legacyColumns = position_list(input.columns, false, "columns", context);
+    assert(numel(legacyColumns) == numel(spec.headers), "%s：columns 与 headers 数量不一致", context);
+    if isfield(input, "expected_columns")
+        assert(isequaln(spec.expected_columns, legacyColumns), ...
+            "%s：columns 与 expected_columns 声明不一致", context);
+    end
+    spec.expected_columns = legacyColumns;
+end
+spec.key_header = "";
+spec.numeric_headers = strings(0, 1);
+for name = ["key_header", "numeric_headers", "allow_missing_headers", "missing_tokens"]
+    if isfield(input, name)
+        spec.(name) = text_list(input.(name), name, context);
+    elseif name ~= "key_header"
+        spec.(name) = strings(0, 1);
+    end
+end
+parsedTokens = str2double(spec.missing_tokens);
+assert(isreal(parsedTokens) && all(isnan(parsedTokens)), ...
+    "%s：missing_tokens 不能把有限数、Inf 或复数声明为缺测", context);
+aliases = ["key_column", "key_header"; "numeric_columns", "numeric_headers"];
+for k = 1:size(aliases, 1)
+    oldName = aliases(k, 1); newName = aliases(k, 2);
+    if ~isfield(input, oldName), continue; end
+    indices = position_list(input.(oldName), false, oldName, context);
+    mapped = strings(size(indices));
+    for j = 1:numel(indices)
+        match = find(legacyColumns == indices(j));
+        assert(numel(match) == 1, ...
+            "%s：旧%s中的第%d列没有唯一 columns→headers 映射，请改用%s", ...
+            context, oldName, indices(j), newName);
+        mapped(j) = spec.headers(match);
+    end
+    if isfield(input, newName)
+        assert(isequal(sort(spec.(newName)), sort(mapped)), ...
+            "%s：%s 与 %s 声明不一致", context, oldName, newName);
+    end
+    spec.(newName) = mapped;
+end
+assert(isscalar(spec.key_header), "%s：key_header 必须是一个精确表头；不使用时省略或设为空字符串", context);
+assert(strlength(spec.key_header) == 0 || any(spec.headers == spec.key_header), ...
+    "%s：key_header 必须属于 headers", context);
+assert(all(ismember(spec.numeric_headers, spec.headers)), "%s：numeric_headers 必须是 headers 子集", context);
+assert(all(ismember(spec.allow_missing_headers, spec.numeric_headers)), ...
+    "%s：allow_missing_headers 必须是 numeric_headers 子集", context);
+assert(~any(spec.allow_missing_headers == spec.key_header), "%s：记录键不能声明为允许缺测", context);
+end
+
+function values = text_list(input, name, context)
+assert(isstring(input) || ischar(input) || iscellstr(input), ...
+    "%s：%s 必须为文本或文本向量", context, name);
+values = string(input);
+assert(isvector(values) || isempty(values), "%s：%s 必须为向量", context, name);
+values = strtrim(values(:));
+assert(all(~ismissing(values) & (strlength(values) > 0 | name == "key_header")), ...
+    "%s：%s 不能包含空白或缺测文本", context, name);
+assert(numel(unique(values)) == numel(values), "%s：%s 包含重复值", context, name);
+end
+
+function values = position_list(input, allowNaN, name, context)
+assert(isnumeric(input) && isreal(input) && (isvector(input) || isempty(input)), ...
+    "%s：%s 必须为数值向量", context, name);
+values = double(input(:));
+valid = isfinite(values) & values >= 1 & values == floor(values);
+assert(all(valid | (allowNaN & isnan(values))), ...
+    "%s：%s 只允许正整数；仅 expected_columns 可用 NaN 跳过位置检查", context, name);
+finiteValues = values(isfinite(values));
+assert(numel(unique(finiteValues)) == numel(finiteValues), "%s：%s 包含重复列号", context, name);
+end
+
+function column = exact_header_column(headers, expected, context)
+matches = find(headers == expected);
+assert(numel(matches) == 1, "%s：字段%s缺失或重复", context, expected);
+column = matches(1);
+end
+
+function validate_keys(column, header, context)
+keys = strings(size(column));
+for j = 1:numel(column)
+    item = column{j};
+    location = sprintf("%s，字段%s，读入行%d", context, header, j + 1);
+    assert(~is_import_missing(item), "%s：记录键为空或缺测", location);
+    if (isnumeric(item) || islogical(item)) && isscalar(item) && isreal(item) && isfinite(item)
+        if isinteger(item)
+            keys(j) = string(item);
+        elseif item == 0
+            keys(j) = "0";
+        else
+            keys(j) = string(sprintf("%.17g", double(item)));
+        end
+    elseif (ischar(item) && isrow(item)) || (isstring(item) && isscalar(item))
+        keys(j) = strtrim(string(item));
+    else
+        error("%s：记录键必须为有限实数标量或文本", location);
+    end
+    assert(strlength(keys(j)) > 0, "%s：记录键为空白", location);
+end
+[~, first] = unique(keys, "stable");
+duplicate = find(~ismember((1:numel(keys))', first), 1);
+assert(isempty(duplicate), "%s，字段%s：读入行%s的记录键重复", ...
+    context, header, mat2str(duplicate + 1));
+end
+
+function validate_numeric(item, allowMissing, missingTokens, context)
+missingValue = is_import_missing(item);
+if (ischar(item) && (isrow(item) || isempty(item))) || (isstring(item) && isscalar(item))
+    text = strtrim(string(item));
+    if ~ismissing(text)
+        missingValue = strlength(text) == 0 || any(text == missingTokens);
+        if ~missingValue
+            value = str2double(text);
+            assert(isreal(value) && isfinite(value), "%s：非空文本不是有限实数", context);
+        end
+    end
+elseif ~missingValue
+    assert((isnumeric(item) || islogical(item)) && isscalar(item) && isreal(item) && isfinite(item), ...
+        "%s：数值必须是有限实数，不能为 Inf、复数或非标量", context);
+end
+assert(~missingValue || allowMissing, "%s：合同未允许该字段缺测", context);
+end
+
+function result = is_import_missing(item)
+% 只识别导入表示，不声称其原始 Excel 单元格物理为空，不据此删行。
+result = isempty(item) || (isa(item, "missing") && isscalar(item)) || ...
+    (isstring(item) && isscalar(item) && ismissing(item)) || ...
+    (isnumeric(item) && isscalar(item) && isreal(item) && isnan(item));
 end
 
 function number = question_number(problemName)
