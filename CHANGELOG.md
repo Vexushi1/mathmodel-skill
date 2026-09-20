@@ -1,6 +1,12 @@
 # Changelog
 
-## Current release: 9.5.7
+## Current release: 9.6.0
+
+- A6 adds compile-report v4 actual-input evidence: literal conditional support files join the audited bundle, engines produce a recorder, and formal verification binds the recorder and observed project inputs. Partial or unexplained chapter assembly cannot claim a full current PDF.
+- Historical v3 reports remain readable but require re-audit and recompile for new formal delivery. Installed TeX/font assets remain an explicit environment boundary; current bound log/recorder files are retained for verification and reproducibility packaging.
+- Reference checks use the full assembled body including appendices. Headline claim checks compare declared evidence and claims within each question, preserving clear negative statements and using review for ambiguous wording.
+
+## Previous release: 9.5.7
 
 - A5 verifies reproducibility packages against independently derived current per-question, conditional-analysis and project-preprocessing file sets. Declared data directories expand to actual bounded members; a self-consistent manifest cannot hide a missing question or stage.
 - Exact official allowlist paths are required by both collection and validation; optional wildcard zero matches retain compatibility. Official PDF-only rules stay separate from reproducibility requirements.

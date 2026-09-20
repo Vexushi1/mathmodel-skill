@@ -420,6 +420,48 @@ def _audit_numeric_profile(tex_text: str, framework_text: str) -> list[Finding]:
     return findings
 
 
+def _audit_headline_claims(framework_text: str) -> list[Finding]:
+    """Compare declared claims within one question; never infer proof from prose."""
+    headings = list(re.finditer(r"(?m)^(#{1,6})\s+(.+)$", framework_text))
+    findings: list[Finding] = []
+    questions = []
+    for index, heading in enumerate(headings):
+        if not re.match(r"(?:Q\d+\b|问题[一二三四五六七八九十0-9]+)", heading.group(2)):
+            continue
+        end = next((h.start() for h in headings[index + 1:]
+                    if len(h.group(1)) <= len(heading.group(1))), len(framework_text))
+        questions.append((heading.group(2), framework_text[heading.end():end]))
+    for question, block in questions or [(None, framework_text)]:
+        levels = re.findall(r"(?m)^\s*-?\s*Headline Claim Evidence Level[：:]\s*`?([A-Z_]+)`?\s*$", block)
+        if "HEURISTIC" not in levels:
+            continue
+        claims = re.findall(r"(?m)^\s*-?\s*(?:Headline Claim Scope|可入文答案(?:表述)?|当前主张|当前结论|结论)[：:]\s*(.+)$", block)
+        for answer in re.findall(r"(?ms)^\*\*可入文答案表述\*\*[ \t]*\n(.*?)(?=^\*\*|^#{1,6}\s|\Z)", block):
+            claims.extend(line.strip() for line in answer.splitlines()
+                          if line.strip() and not line.lstrip().startswith("用两至四句记录"))
+        for claim in claims:
+            for sentence in re.split(r"[。；;\n]", claim.strip("` ")):
+                if "全局最优" not in sentence:
+                    continue
+                # Only an unambiguous, directly declared assertion is a Hard conflict.
+                # Conditional, quoted or otherwise qualified language needs semantic review.
+                negative = r"(?:不声称|不能声称|未证明|不保证|不宣称|未声称|尚未证明)(?:达到|为|是)?全局最优(?:解)?"
+                if sentence.count("全局最优") == 1 and re.search(r"(?:^|[，,:：])\s*(?:本(?:文|问|方案|结果)\s*)?" + negative + r"$", sentence.strip()):
+                    continue
+                positive = re.fullmatch(r"(?:本(?:文|问|方案|结果)[，,:： ]*)?(?:(?:已)?证明(?:了)?(?:达到|为|是)?|已证|达到|保证|得到|获得|为|是)?全局最优(?:解)?", sentence.strip())
+                # A legacy flat record with exactly one level/claim is one explicit scope.
+                scoped = question is not None or (not headings and len(claims) == 1)
+                blocking = scoped and len(levels) == 1 and positive is not None
+                findings.append(Finding(
+                    "blocking" if blocking else "review_required",
+                    "heuristic_global_optimum_scope_conflict" if blocking else "heuristic_claim_scope_review",
+                    "本问 HEURISTIC 与同一已声明的全局最优主张冲突。" if blocking else
+                    "本问 HEURISTIC 的声明涉及全局最优，但限定、引用或证据作用域需人工核对；机器不据此判定数学冲突。",
+                    f"{question or '<未确定小问作用域>'}: {sentence.strip()}",
+                ))
+    return findings
+
+
 def _audit_writing_status_from_framework(framework_text: str) -> list[Finding]:
     findings: list[Finding] = []
     objective_pending = re.findall(r"优化目标摘要闭合：`?(pending|review_required)`?", framework_text)
@@ -440,12 +482,7 @@ def _audit_writing_status_from_framework(framework_text: str) -> list[Finding]:
             f"{len(granularity_pending)} entry/entries",
         ))
 
-    if re.search(r"Headline Claim Evidence Level：`?HEURISTIC`?", framework_text) and re.search(r"全局最优", framework_text):
-        findings.append(Finding(
-            "blocking",
-            "heuristic_global_optimum_scope_conflict",
-            "框架同时登记 HEURISTIC headline evidence 与‘全局最优’主张；除非补充严格全局证据，否则 claim scope 冲突。",
-        ))
+    findings.extend(_audit_headline_claims(framework_text))
     return findings
 
 
@@ -463,11 +500,11 @@ def audit_text(text: str) -> list[Finding]:
     main = _main_text_before_appendix(body)
     findings: list[Finding] = []
 
-    labels = LABEL_ANY_RE.findall(main)
+    labels = LABEL_ANY_RE.findall(body)
     duplicates = sorted({label for label in labels if labels.count(label) > 1})
     for label in duplicates:
         findings.append(Finding("blocking", "duplicate_label", f"正文存在重复 LaTeX label：{label}", label))
-    findings.extend(_audit_cross_references(main))
+    findings.extend(_audit_cross_references(body))
     findings.extend(_audit_float_caption_positions(main))
     findings.extend(_audit_abstract_and_keywords(body))
     findings.extend(_caption_length_warnings(main))

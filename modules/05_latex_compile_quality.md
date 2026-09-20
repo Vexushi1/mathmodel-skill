@@ -1,6 +1,6 @@
 # Module 05D：LaTeX 编译质量检查
 
-本模块只处理已经完成 AI Cleanup 的 `latex_source`。正式入口统一为 `scripts/render_paper.py`：它先执行项目级 LaTeX 审计并生成 `latex_audit_report.yaml`，审计通过后才按当前 compile profile 编译，最终输出 `compiled_pdf` 与机器生成的 v3 `compile_report.yaml`。
+本模块只处理已经完成 AI Cleanup 的 `latex_source`。正式入口统一为 `scripts/render_paper.py`：它先执行项目级 LaTeX 审计并生成 `latex_audit_report.yaml`，审计通过后才按当前 compile profile 编译，最终输出 `compiled_pdf` 与机器生成的 v4 `compile_report.yaml`。
 
 ## 工程与配置
 
@@ -9,7 +9,9 @@
 - 编译链、仓库模板入口和最终项目入口以 `core/compile_profiles.yaml` 为唯一机器可读配置；
 - 正式项目使用 `python scripts/render_paper.py final_latex --profile <name> --clean`；不得绕过项目审计后再手工伪造 compile report；
 - 正式 `latex_audit_report.yaml` 必须绑定当前 active source bundle 与项目根目录 `模型论文框架.md` 哈希；源码或框架在审计后变化，审计证明立即 stale；
-- v3 `compile_report.yaml` 必须绑定：正式审计报告哈希、compile-profile fingerprint、实际引擎/文献工具/执行序列、active source bundle hash、有效编译日志与 PDF hash；
+- v4 `compile_report.yaml` 在既有审计、profile、执行序列、源码、日志与 PDF 绑定上，增加实际 recorder 输入证明；字段、完整装配与迁移要求统一见 `core/output_contract.yaml#delivery_attestation`；
+- `render_paper.py` 使用 `-recorder`，保留当前 `.fls` 和 `.log`。项目 `.sty/.cls` 条件载入的字面配置也纳入源码检查；未覆盖的实际输入、漏编章节或缺少 recorder 不得取得正式证明。局部预览仍可使用 `--template-smoke`；
+- v3 历史报告可保留查看；再次正式交付时重新审计、完整编译，不能只修改报告版本号。系统 TeX/字体仍按安装环境管理，不声明其内容已逐一绑定；
 - 缺少 `.log`、存在 fatal error、未解析引用/文献、审计证明失效时，`compile_report.status` 不得为 `passed`；
 - 当前 `core/compile_profiles.yaml` 对所用 profile 的定义变化后，旧 PDF 的编译证明失效，必须重新编译；不能只依据源码未变继续复用旧 PDF；
 - `--template-smoke` 仅供仓库模板 CI。该模式产生的 attestation 明确标记为 `template_smoke`，不得满足用户项目的正式交付门。

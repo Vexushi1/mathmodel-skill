@@ -306,6 +306,17 @@ Windows 检查不要求把全部 LaTeX 作业搬到 Windows，但 transaction、
 
 ## 8. 实施记录
 
+### A6 · 9.6.0（compile report v4）
+
+- AUD-10：静态 source bundle 纳入本地 `.sty/.cls` 的字面 `InputIfFileExists/IfFileExists` 依赖及递归引用；原本可选且不存在的配置后来出现也使旧报告 stale。引擎使用 `-recorder`，新编译先移除旧 recorder；v4 绑定 `recorder`、`recorder_sha256`、`actual_input_files`，正式状态要求 `dependency_issues=[]`。
+- 实际读入的项目来源必须由预审计覆盖，所有静态正文必须实际读取；未知/动态且无法绑定的项目输入、工程外非安装环境输入、坏或缺失 recorder 不取得正式通过。TeX/标准字体安装文件保持环境边界，不声称逐一内容绑定。
+- AUD-11：排除正文的 includeonly、多处/动态且不能确认范围的选择不具全量资格；列齐全部章节的合法正例允许，宏间接漏章也由实际输入核对识别。template_smoke 可作局部预览，正式 reader 仍拒绝其证明。
+- AUD-12：label 唯一性与引用在完整 assembled 正文（含附录）中核对；普通正文风格检查仍保持原范围。AUD-13：证据级别与明确主张按小问配对，确定性冲突 blocking，明确否定允许，引用/条件/不清楚作用域交人工 review。
+- 迁移：本阶段采用 minor 发布，项目 state/workbook/CLI 不变。旧 v3 及更早报告可读作历史记录，但再次正式交付需运行当前 render_paper.py 重新审计、完整编译，不能只改报告版本；保留当前绑定 `.fls/.log`。不重写旧 PDF 或用户论文。
+- 新增 17 项边界测试；七组合成场景通过实际编译、PDF **文本提取**及正式模式提前拒绝，覆盖 cfg 从 2 改 3、可选配置出现、未知实际输入、局部/完整 includeonly、正文指向附录等正负例。不是用户论文验收，也未执行图像 QA。集成完整回归及各 profile CI 见阶段 PR。
+- 另按 CI 的 CUMCM + biblatex 最小工程，在本机 TeX Live 2025 实际运行默认编译序列并独立验证 v4 报告。此正例发现并修复 logreq `main.run.xml` 的误报：仅当前主文件对应且同轮 recorder 同时记为 OUTPUT 时视为生成辅助文件；仅 INPUT、用户 XML 和其他 job 名仍拒绝。修复后正式审计、编译与独立证明验证均通过，相关 86 项 LaTeX 测试通过。
+- 保留边界：常规正式 render 布局的 main/report 同目录；特殊 main 子目录而报告在上层的历史布局未获本轮完整证明，不新增兼容承诺。不是通用 TeX 宏解释器。
+
 ### A5 · 9.5.7
 
 - AUD-08：required set 从当前 state 与既有 output contract 独立推导，逐问 `base3 + conditional2`、project_level 三件套、当前 state/框架/论文、声明数据/批准图片、已登记编译证明与其 source/actual inputs 均按精确路径核对，不能由 ZIP manifest 自证完整。
