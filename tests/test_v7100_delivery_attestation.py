@@ -323,7 +323,7 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
                 manifest = self.pack.build_manifest(root, files, kind="official", metadata=metadata)
                 with zipfile.ZipFile(package, "w", zipfile.ZIP_DEFLATED) as archive:
                     for path in files:
-                archive.write(path, path.relative_to(root.resolve()).as_posix())
+                        archive.write(path, path.resolve().relative_to(root.resolve()).as_posix())
                     archive.writestr("submission_manifest.yaml", yaml.safe_dump(manifest, allow_unicode=True))
                 report = self.package_validator.validate_package(root, package, competition="DEMO")
             self.assertEqual(report["status"], "passed", report)
@@ -368,7 +368,7 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
             package = root / "package.zip"
             with zipfile.ZipFile(package, "w", zipfile.ZIP_DEFLATED) as archive:
                 for path in files:
-                archive.write(path, path.relative_to(root.resolve()).as_posix())
+                    archive.write(path, path.resolve().relative_to(root.resolve()).as_posix())
                 archive.writestr("submission_manifest.yaml", yaml.safe_dump(manifest, allow_unicode=True))
             report = self.package_validator.validate_package(root, package)
             self.assertEqual(report["status"], "failed")
@@ -400,7 +400,7 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
             })
             with zipfile.ZipFile(package, "w", zipfile.ZIP_DEFLATED) as archive:
                 for path in files:
-                    archive.write(path, path.relative_to(root).as_posix())
+                    archive.write(path, path.resolve().relative_to(root.resolve()).as_posix())
                 archive.writestr("submission_manifest.yaml", yaml.safe_dump(manifest, allow_unicode=True))
             self.assertEqual(self.package_validator.validate_package(root, package)["status"], "passed")
             (final / "main.pdf").write_bytes(b"pdf-v2")
