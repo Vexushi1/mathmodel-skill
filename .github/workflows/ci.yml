@@ -145,7 +145,7 @@ jobs:
       - name: Install production TeX tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends texlive-xetex texlive-latex-extra texlive-bibtex-extra texlive-lang-chinese texlive-plain-generic texlive-fonts-recommended biber
+          sudo apt-get install -y --no-install-recommends texlive-xetex texlive-latex-extra texlive-bibtex-extra texlive-lang-chinese texlive-plain-generic texlive-fonts-recommended texlive-science biber
       - name: Build minimal formal project fixture
         shell: bash
         run: |
@@ -211,6 +211,95 @@ jobs:
           )
           assert issues == [], issues
           PY
+      - name: Render long core proof pagination and numbering fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          long_project="$RUNNER_TEMP/hsk-long-core-proof"
+          mkdir -p "$long_project/final_latex/config"
+          cp templates/latex/cumcm/hsk/config/preamble.tex "$long_project/final_latex/config/preamble.tex"
+          cat > "$long_project/模型论文框架.md" <<'EOF'
+          # 模型论文框架
+
+          该文件仅用于 CI 验证长核心证明仍留在正文、可正常跨页，并保持命题/公式引用编号可解析。
+          EOF
+          cat > "$long_project/final_latex/references.bib" <<'EOF'
+          @book{proofci,
+            author = {HSK CI},
+            title = {Long Core Proof Rendering Fixture},
+            year = {2026}
+          }
+          EOF
+          cat > "$long_project/final_latex/main.tex" <<'EOF'
+          \documentclass[withoutpreface]{cumcmthesis}
+          \input{config/preamble}
+          \begin{document}
+          \section{长核心证明渲染验证}
+
+          \begin{hskproposition}{长核心证明的正文可分页性}
+          \label{prop:long-core-proof}
+          若每一步推理都保持当前定义域与可行性条件，则完整核心证明应保留在正文，并允许跨页连续展开。
+          \end{hskproposition}
+
+          \begin{hskproof}
+          下面保留一组连续的必要推理单元，用于验证较长核心证明不依赖命题框整体同页，也不会因为篇幅而迁移到附录。
+
+          \newcount\proofstep
+          \proofstep=1
+          \loop
+          第 \the\proofstep 步保留一个独立的必要推理单元：由前一步关系和当前定义域条件，可知对应中间量仍满足可行性要求，因此下一步变换仍具有合法输入。该段只用于形成足够长的正文证明，以真实验证普通正文流中的分页能力。
+          \par\medskip
+          \advance\proofstep by1
+          \ifnum\proofstep<55
+          \repeat
+
+          最后一项关系写为
+          \begin{equation}
+              z=x+1.
+              \label{eq:long-proof-final}
+          \end{equation}
+          因而完整证明在保留全部必要推理后得到最终关系，命题得证。
+          \end{hskproof}
+
+          命题~\ref{prop:long-core-proof} 的完整证明已经在正文跨页展开，最终关系见式~\eqref{eq:long-proof-final}。
+          该维护夹具的参考文献接口见文献~\cite{proofci}。
+          \printbibliography
+          \end{document}
+          EOF
+          echo "HSK_LONG_PROOF_PROJECT=$long_project" >> "$GITHUB_ENV"
+          python scripts/render_paper.py "$long_project/final_latex" --profile cumcm --main main.tex
+          LONG_PROJECT="$long_project" python - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          import yaml
+
+          project = Path(os.environ["LONG_PROJECT"]) / "final_latex"
+          audit = yaml.safe_load((project / "latex_audit_report.yaml").read_text(encoding="utf-8"))
+          report = yaml.safe_load((project / "compile_report.yaml").read_text(encoding="utf-8"))
+          assert audit["status"] == "passed", audit
+          assert report["status"] == "passed", report
+
+          aux = (project / "main.aux").read_text(encoding="utf-8", errors="ignore")
+          log = (project / "main.log").read_text(encoding="utf-8", errors="ignore")
+
+          def label_page(label: str) -> int:
+              prefix = "\\newlabel{" + label + "}"
+              line = next((item for item in aux.splitlines() if item.startswith(prefix)), None)
+              assert line is not None, (label, aux[-3000:])
+              match = re.search(r"\{\{[^{}]*\}\{(\d+)\}", line)
+              assert match is not None, line
+              return int(match.group(1))
+
+          proposition_page = label_page("prop:long-core-proof")
+          final_page = label_page("eq:long-proof-final")
+          assert final_page > proposition_page, (proposition_page, final_page)
+          lowered = log.lower()
+          assert "undefined references" not in lowered, log[-3000:]
+          assert "citation `proofci' undefined" not in lowered, log[-3000:]
+          PY
+
       - name: Collect production attestation diagnostics
         if: failure()
         shell: bash
@@ -220,6 +309,13 @@ jobs:
             cp -f "$HSK_FORMAL_PROJECT/final_latex/latex_audit_report.yaml" production-attestation-diagnostics/ 2>/dev/null || true
             cp -f "$HSK_FORMAL_PROJECT/final_latex/compile_report.yaml" production-attestation-diagnostics/ 2>/dev/null || true
             cp -f "$HSK_FORMAL_PROJECT/final_latex/main.log" production-attestation-diagnostics/ 2>/dev/null || true
+          fi
+          if test -n "${HSK_LONG_PROOF_PROJECT:-}" && test -d "$HSK_LONG_PROOF_PROJECT/final_latex"; then
+            mkdir -p production-attestation-diagnostics/long-core-proof
+            cp -f "$HSK_LONG_PROOF_PROJECT/final_latex/latex_audit_report.yaml" production-attestation-diagnostics/long-core-proof/ 2>/dev/null || true
+            cp -f "$HSK_LONG_PROOF_PROJECT/final_latex/compile_report.yaml" production-attestation-diagnostics/long-core-proof/ 2>/dev/null || true
+            cp -f "$HSK_LONG_PROOF_PROJECT/final_latex/main.log" production-attestation-diagnostics/long-core-proof/ 2>/dev/null || true
+            cp -f "$HSK_LONG_PROOF_PROJECT/final_latex/main.aux" production-attestation-diagnostics/long-core-proof/ 2>/dev/null || true
           fi
       - name: Upload production attestation diagnostics
         if: failure()

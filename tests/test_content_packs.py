@@ -215,6 +215,18 @@ class TestContentPacks(unittest.TestCase):
         self.assertIn("colback=white", preamble)
         self.assertIn("colframe=black!72", preamble)
 
+    def test_long_core_proof_has_real_ci_render_and_reference_check(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        for token in (
+            "Render long core proof pagination and numbering fixture",
+            "hsk-long-core-proof",
+            "prop:long-core-proof",
+            "eq:long-proof-final",
+            "python scripts/render_paper.py",
+            "final_page > proposition_page",
+        ):
+            self.assertIn(token, workflow)
+
     def test_output_contract_keeps_concise_proposition_authority_pointer(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
         proposition = contract["proposition_contract"]
