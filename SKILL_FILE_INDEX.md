@@ -371,6 +371,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_v931_model_design_capability_preservation.py`
 - `tests/test_v931_repository_hygiene_index.py`
 - `tests/test_v931_task_pack_budget_closure.py`
+- `tests/test_v931_writing_readability_w4_acceptance.py`
 
 ## Current Maintenance Records
 
@@ -422,6 +423,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/v921_p7_conditional_analysis_semantic_hygiene_plan.md`
 - `docs/v9_3_initial_modeling_structural_reduction_refactor_plan.md`
 - `docs/writing_readability_validation_slimming_plan.md`
+- `docs/writing_readability_w4_acceptance.md`
 - `docs/writing_validation_w0_baseline.md`
 
 ## Legacy Navigation
