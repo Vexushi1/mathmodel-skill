@@ -275,6 +275,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_read_path_semantic_closure.py`
 - `tests/test_reading_plan.py`
+- `tests/test_reading_plan_evidence.py`
 - `tests/test_repository_hygiene.py`
 - `tests/test_result_io.py`
 - `tests/test_result_state_semantics.py`
