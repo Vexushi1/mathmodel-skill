@@ -161,7 +161,7 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
                 yaml.safe_dump(audit_report, allow_unicode=True), encoding="utf-8"
             )
             # Synthetic recorder for this attestation unit fixture; no TeX run is claimed.
-            recorder_project = main.parent
+            recorder_project = main.parent.resolve()
             observed = self.delivery.source_bundle_files(main)
             main.with_suffix(".fls").write_text(
                 f"PWD {recorder_project}\n" + "".join(
@@ -211,7 +211,7 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
             profiles = yaml.safe_load((ROOT / "core/compile_profiles.yaml").read_text(encoding="utf-8"))
             profile = profiles["profiles"]["cumcm"]
             # Synthetic recorder for this attestation unit fixture; no TeX run is claimed.
-            recorder_project = main.parent
+            recorder_project = main.parent.resolve()
             observed = self.delivery.source_bundle_files(main)
             main.with_suffix(".fls").write_text(
                 f"PWD {recorder_project}\n" + "".join(
@@ -264,7 +264,7 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
             profiles = yaml.safe_load((ROOT / "core/compile_profiles.yaml").read_text(encoding="utf-8"))
             profile = profiles["profiles"]["cumcm"]
             # Synthetic recorder for this attestation unit fixture; no TeX run is claimed.
-            recorder_project = main.parent
+            recorder_project = main.parent.resolve()
             observed = self.delivery.source_bundle_files(main)
             main.with_suffix(".fls").write_text(
                 f"PWD {recorder_project}\n" + "".join(
