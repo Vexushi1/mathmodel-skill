@@ -1,6 +1,11 @@
 # Changelog
 
-## Current release: 9.5.0
+## Current release: 9.5.1
+
+- F3 adds six focused technique references within the existing Figure patterns, with original MATLAB snippets for exact-key pairing, gap-preserving real intervals and per-metric color limits. Each describes input evidence, adjustable parameters and misleading uses.
+- Chart selection and MATLAB guidance link to the relevant sections on demand. No new mandatory files, default palette, synthetic evidence, automatic visual QA or MATLAB execution are introduced; existing template interfaces remain unchanged.
+
+## Previous release: 9.5.0
 
 - F2 separates basic typography/frame from per-figure color selection. Empty or omitted profile now returns an empty palette and never selects a candidate; existing explicitly named profiles and color aliases remain available. Callers that formerly read palette.primary from a no-profile call must choose a profile explicitly or provide RGB.
 - Plotting entry parameters now collect RGB, typography, line/marker size, canvas, legend, grid/frame and limits. A single object uses one color and one legend item; point-only plots retain every point, while sparse markers on continuous lines preserve isolated finite observations across missing-value gaps.

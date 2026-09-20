@@ -8,6 +8,8 @@
 
 只有图型选择或多面板布局需要外部视觉对照时，才按 `assets/figure_assets.yaml` 加载对应资产。图集不提供数据、结论或固定配色，不能替代工作簿、Figure Contract、`模型论文框架.md` 和 `q{x}_plot.m`。
 
+需要具体绘制方法时，按需查 [绘图技巧第 12 节](figure_enhancement_patterns.md#12-按数据结构选择的绘图技巧)：12.1 排序与区间点图、12.2 真实键配对、12.3 趋势与真实区间、12.4 原始点与 ECDF、12.5 多指标矩阵、12.6 空间/Pareto/真实基准消融。每节同时说明适用证据、可调参数和误用边界；不要求每张图组合这些技巧。
+
 ## Scientific Figure Synthesis 快速索引
 
 | Evidence Structure | 可选科学视觉结构 | 须避免的信息遗漏 | 需要检查的底层数据 |

@@ -426,6 +426,7 @@ class ContractAndDriftTests(unittest.TestCase):
     # field/state identities remain unchanged while v9.3 minimal-sufficient/comparator meanings are made explicit.
     # F1 re-pins only approved figure-selection prose; numerical MATLAB lines are unchanged.
     # F2 re-pins the approved configurable entry style and palette guidance only.
+    # F3 re-pins only the two approved figure technique reference documents.
     PROTECTED = {
         "core/model_approval_contract.yaml": "fab8ecece97e874a6332427715ba4b24eab3c90a",
         "core/numerical_verification_contract.yaml": "f7e1921ec4945cb5e87984ccb8946302d854143f",
@@ -446,8 +447,8 @@ class ContractAndDriftTests(unittest.TestCase):
         # MATLAB syntax is parsed separately; source checks do not claim runtime execution.
         "templates/matlab/q1_plot.m": "5c074ca99f4df67a7fbd1f04db08a0a4545502e8",
         "templates/matlab/draw_mechanism_structure.m": "65ba4a3b3462a565f86880c49af0959edd21f9a4",
-        "templates/figure/chart_selection.md": "dca907a8b7dd12568b83583eb29a11d3e9c539b8",
-        "templates/figure/figure_enhancement_patterns.md": "7c6c66286f1b33be68578aed4e84033651ece975",
+        "templates/figure/chart_selection.md": "fb77ff06d246336c3b1c856e0b79a4506fc96cbf",
+        "templates/figure/figure_enhancement_patterns.md": "1a814bc5c9d57cc6cfa7f7ffa96e0eab8b3d313a",
         "scripts/validate_code_delivery.py": "078e50d2d8b192823f4e462d7bfd5e46e0e27988",
     }
 
