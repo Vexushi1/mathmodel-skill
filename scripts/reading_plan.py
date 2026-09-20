@@ -223,6 +223,7 @@ def _figure_binding(root: Path, state: dict[str, Any], question: str) -> list[st
     item = state["subproblems"][question]
     hashes = item.get("validated_artifact_hashes") or {}
     try:
+        root = root.resolve()
         script = _inside(root, item.get("matlab_script", ""))
         if script.suffix.lower() != ".m":
             return ["validated figure script is not a MATLAB source"]

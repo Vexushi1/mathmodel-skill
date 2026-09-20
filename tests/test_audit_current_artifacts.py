@@ -98,6 +98,31 @@ class CurrentArtifactTests(unittest.TestCase):
             self.assertTrue(READING._figure_binding(root, state, "Q1"))
             self.assertEqual(yaml.safe_load((root / "state/project_state.yaml").read_text(encoding="utf-8")), state)
 
+    def test_equivalent_root_spelling_preserves_approved_binding_and_hash_check(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            state, figure = make_current_project(root, root_figure=True)
+            (root / "nested").mkdir()
+            alias = root / "nested" / ".."
+            # As with Windows long/short aliases, discovery returns canonical paths.
+            self.assertNotEqual(alias, alias.resolve())
+            self.assertEqual(READING._figure_binding(alias, state, "Q1"), [])
+            figure.write_bytes(b"%PDF changed after approval")
+            self.assertEqual(READING._figure_binding(alias, state, "Q1"),
+                             ["current figure bundle is not bound to its validated hash"])
+
+    def test_canonical_figure_root_still_rejects_existing_outside_approved_file(self):
+        with tempfile.TemporaryDirectory() as temp:
+            parent = Path(temp).resolve()
+            root = parent / "project"
+            root.mkdir()
+            state, _ = make_current_project(root, root_figure=True)
+            (root / "nested").mkdir()
+            (parent / "outside.pdf").write_bytes(b"%PDF outside project")
+            state["artifacts"]["approved_figures"].append("../outside.pdf")
+            issues = READING._figure_binding(root / "nested" / "..", state, "Q1")
+            self.assertTrue(any("escapes its root" in issue for issue in issues), issues)
+
     def test_approved_root_figure_without_mapping_is_diagnosed(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
