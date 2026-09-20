@@ -1,6 +1,13 @@
 # Changelog
 
-## Current release: 9.5.2
+## Current release: 9.5.3
+
+- A0/A1 repairs native Windows state transactions: backup synchronization uses a writable descriptor and partial pre-journal staging cleans only its own temporary files. Generation checks, locks, journal recovery and companion-file order remain unchanged.
+- Workbook receipt readers close their owned read-only workbook on success, early return and exception. Native Windows unit CI now covers file lifecycle; only the symbolic-link fixture may skip on the exact missing-privilege condition, while ordinary path escape checks always run.
+- This patch implements AUD-01/AUD-14 of the repository audit plan. No model, numerical acceptance rule, project schema, MATLAB execution or visual QA changes.
+- The new Windows runner exposed equivalent short/long temporary-root spellings. File discovery, package paths and combined fingerprints now canonicalize roots before comparison; test measurement normalizes both spellings without disabling path-escape checks.
+
+## Previous release: 9.5.2
 
 - F4 closes the accepted source / exact header / Figure ID / caption / paper-reference / framework handoff in existing figure documents. Planned export names no longer stand in for real exported or approved files.
 - Static code checks, actual MATLAB execution, human appearance review and paper approval are recorded separately using existing fields and pending work. Python execution facts and existing stale/approval rules remain intact; no new schema, review form or image QA is introduced.

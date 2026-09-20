@@ -74,6 +74,7 @@ def resolve_competition(token: str, payload: dict[str, Any]) -> tuple[str, dict[
 
 
 def _expand_allowlist(root: Path, patterns: Iterable[str]) -> list[Path]:
+    root = root.resolve()
     files: set[Path] = set()
     for raw in patterns:
         pattern = str(raw).strip()
@@ -128,8 +129,9 @@ def reproducibility_files(root: Path, output: Path) -> list[Path]:
 
 
 def build_manifest(root: Path, files: Iterable[Path], *, kind: str, metadata: dict[str, Any]) -> dict[str, Any]:
+    root = root.resolve()
     records = [
-        {"path": path.relative_to(root).as_posix(), "sha256": sha256_file(path)}
+        {"path": path.resolve().relative_to(root).as_posix(), "sha256": sha256_file(path)}
         for path in files
     ]
     return {

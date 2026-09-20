@@ -74,6 +74,7 @@ def preprocessing_decision(state: Mapping[str, Any]) -> str | None:
 def data_source_files(
     root: Path, state: Mapping[str, Any]
 ) -> tuple[list[Path], str, list[str], list[str]]:
+    root = root.resolve()
     issues: list[str] = []
     warnings: list[str] = []
     entries = ((state.get("data") or {}).get("sources") or []) if state else []

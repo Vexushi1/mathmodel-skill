@@ -87,7 +87,7 @@ class TestResultIO(unittest.TestCase):
             folder.mkdir()
             script = folder / "问题一求解.py"
             script.write_text("", encoding="utf-8")
-            self.assertEqual(MOD.find_project_root(script), Path(directory))
+            self.assertEqual(MOD.find_project_root(script), Path(directory).resolve())
 
     def test_empty_worksheet_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:

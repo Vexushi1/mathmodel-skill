@@ -18,6 +18,7 @@ def sha256_text(text: str) -> str:
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 def combined_hash(paths: Iterable[Path], root: Path) -> str | None:
+    root = root.resolve()
     files = sorted(
         {Path(path).resolve() for path in paths if Path(path).is_file()},
         key=lambda item: item.as_posix(),

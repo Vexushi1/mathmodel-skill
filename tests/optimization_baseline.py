@@ -129,7 +129,8 @@ def normalize(value: Any, repo: Path, project: Path | None) -> Any:
     if isinstance(value, str):
         if project is not None:
             value = value.replace(str(project), "<PROJECT_ROOT>")
-        return value.replace(str(repo), "<SKILL_ROOT>")
+            value = value.replace(str(project.resolve()), "<PROJECT_ROOT>")
+        return value.replace(str(repo.resolve()), "<SKILL_ROOT>").replace(str(repo), "<SKILL_ROOT>")
     return value
 
 

@@ -89,28 +89,31 @@ def is_sha256(value: Any) -> bool:
 
 def configuration_map(workbook: Path) -> tuple[dict[str, Any], list[str]]:
     book = openpyxl.load_workbook(workbook, read_only=True, data_only=True)
-    if "运行配置" not in book.sheetnames:
-        return {}, ["缺少运行配置工作表"]
-    rows = list(book["运行配置"].iter_rows(values_only=True))
-    if not rows or tuple(rows[0][:2]) != ("项目", "值"):
-        return {}, ["运行配置表头必须为项目|值"]
-    mapping = {
-        str(row[0]).strip(): row[1]
-        for row in rows[1:]
-        if row and row[0] not in (None, "")
-    }
-    required = {
-        "execution_owner", "execution_profile", "stage", "problem_name", "code_sha256",
-        "data_sha256", "solver", "solver_version", "tolerance", "iteration_or_time_limit",
-        "actual_stop_reason", "random_seed", "repetitions_or_scenarios", "grid_or_time_range",
-        "fallback_used", "platform", *FALSE_FLAGS,
-    }
-    issues = [f"运行配置缺少项目: {item}" for item in sorted(required - set(mapping))]
-    if "code_sha256" in mapping and not is_sha256(mapping["code_sha256"]):
-        issues.append("运行配置code_sha256必须为64位十六进制SHA-256")
-    if "data_sha256" in mapping and not is_sha256(mapping["data_sha256"]):
-        issues.append("运行配置data_sha256必须为64位十六进制SHA-256")
-    return mapping, issues
+    try:
+        if "运行配置" not in book.sheetnames:
+            return {}, ["缺少运行配置工作表"]
+        rows = list(book["运行配置"].iter_rows(values_only=True))
+        if not rows or tuple(rows[0][:2]) != ("项目", "值"):
+            return {}, ["运行配置表头必须为项目|值"]
+        mapping = {
+            str(row[0]).strip(): row[1]
+            for row in rows[1:]
+            if row and row[0] not in (None, "")
+        }
+        required = {
+            "execution_owner", "execution_profile", "stage", "problem_name", "code_sha256",
+            "data_sha256", "solver", "solver_version", "tolerance", "iteration_or_time_limit",
+            "actual_stop_reason", "random_seed", "repetitions_or_scenarios", "grid_or_time_range",
+            "fallback_used", "platform", *FALSE_FLAGS,
+        }
+        issues = [f"运行配置缺少项目: {item}" for item in sorted(required - set(mapping))]
+        if "code_sha256" in mapping and not is_sha256(mapping["code_sha256"]):
+            issues.append("运行配置code_sha256必须为64位十六进制SHA-256")
+        if "data_sha256" in mapping and not is_sha256(mapping["data_sha256"]):
+            issues.append("运行配置data_sha256必须为64位十六进制SHA-256")
+        return mapping, issues
+    finally:
+        book.close()
 
 
 def workbook_identity(root: Path, workbook: Path) -> tuple[str, str, list[str]]:
@@ -263,20 +266,23 @@ def validate_run_receipt_binding(
 
 def _boolean_gate(workbook: Path, sheet: str, column: str) -> tuple[bool, list[str]]:
     book = openpyxl.load_workbook(workbook, read_only=True, data_only=True)
-    if sheet not in book.sheetnames:
-        return False, [f"缺少{sheet}工作表"]
-    rows = list(book[sheet].iter_rows(values_only=True))
-    if not rows:
-        return False, [f"{sheet}为空"]
-    headers = [str(item) if item is not None else "" for item in rows[0]]
-    if column not in headers:
-        return False, [f"{sheet}缺少{column}列"]
-    index = headers.index(column)
-    failures = [
-        str(row[0]) for row in rows[1:]
-        if row and as_bool(row[index] if len(row) > index else None) is not True
-    ]
-    return not failures, [f"{sheet}未通过: {item}" for item in failures]
+    try:
+        if sheet not in book.sheetnames:
+            return False, [f"缺少{sheet}工作表"]
+        rows = list(book[sheet].iter_rows(values_only=True))
+        if not rows:
+            return False, [f"{sheet}为空"]
+        headers = [str(item) if item is not None else "" for item in rows[0]]
+        if column not in headers:
+            return False, [f"{sheet}缺少{column}列"]
+        index = headers.index(column)
+        failures = [
+            str(row[0]) for row in rows[1:]
+            if row and as_bool(row[index] if len(row) > index else None) is not True
+        ]
+        return not failures, [f"{sheet}未通过: {item}" for item in failures]
+    finally:
+        book.close()
 
 
 def _evidence_sheet_issues(book: openpyxl.Workbook, sheet: str, required: tuple[str, ...]) -> list[str]:
@@ -295,35 +301,38 @@ def _evidence_sheet_issues(book: openpyxl.Workbook, sheet: str, required: tuple[
 
 def preprocessing_passed(workbook: Path) -> tuple[bool, list[str]]:
     book = openpyxl.load_workbook(workbook, read_only=True, data_only=True)
-    issues: list[str] = []
-    for sheet, required_columns in PREPROCESSING_EVIDENCE_SHEETS.items():
-        issues.extend(_evidence_sheet_issues(book, sheet, required_columns))
-    if issues:
-        return False, list(dict.fromkeys(issues))
+    try:
+        issues: list[str] = []
+        for sheet, required_columns in PREPROCESSING_EVIDENCE_SHEETS.items():
+            issues.extend(_evidence_sheet_issues(book, sheet, required_columns))
+        if issues:
+            return False, list(dict.fromkeys(issues))
 
-    # 绘图数据索引必须至少指向一个真实、非空的底层数据工作表，避免MATLAB从摘要数字反推。
-    index_rows = list(book["绘图数据索引"].iter_rows(values_only=True))
-    headers = [str(item).strip() if item is not None else "" for item in index_rows[0]]
-    source_idx = headers.index("源工作表")
-    referenced = {
-        str(row[source_idx]).strip()
-        for row in index_rows[1:]
-        if len(row) > source_idx and row[source_idx] not in (None, "")
-    }
-    if not referenced:
-        issues.append("绘图数据索引至少必须登记一个源工作表")
-    else:
-        for sheet in sorted(referenced):
-            if sheet not in book.sheetnames:
-                issues.append(f"绘图数据索引引用不存在的工作表: {sheet}")
-                continue
-            rows = list(book[sheet].iter_rows(values_only=True))
-            if len(rows) < 2:
-                issues.append(f"绘图数据索引引用的工作表无底层数据: {sheet}")
+        # 绘图数据索引必须至少指向一个真实、非空的底层数据工作表，避免MATLAB从摘要数字反推。
+        index_rows = list(book["绘图数据索引"].iter_rows(values_only=True))
+        headers = [str(item).strip() if item is not None else "" for item in index_rows[0]]
+        source_idx = headers.index("源工作表")
+        referenced = {
+            str(row[source_idx]).strip()
+            for row in index_rows[1:]
+            if len(row) > source_idx and row[source_idx] not in (None, "")
+        }
+        if not referenced:
+            issues.append("绘图数据索引至少必须登记一个源工作表")
+        else:
+            for sheet in sorted(referenced):
+                if sheet not in book.sheetnames:
+                    issues.append(f"绘图数据索引引用不存在的工作表: {sheet}")
+                    continue
+                rows = list(book[sheet].iter_rows(values_only=True))
+                if len(rows) < 2:
+                    issues.append(f"绘图数据索引引用的工作表无底层数据: {sheet}")
 
-    gate_passed, gate_issues = _boolean_gate(workbook, "预处理质量门", "是否通过")
-    issues.extend(gate_issues)
-    return gate_passed and not issues, list(dict.fromkeys(issues))
+        gate_passed, gate_issues = _boolean_gate(workbook, "预处理质量门", "是否通过")
+        issues.extend(gate_issues)
+        return gate_passed and not issues, list(dict.fromkeys(issues))
+    finally:
+        book.close()
 
 
 def quality_passed(workbook: Path) -> tuple[bool, list[str]]:
@@ -332,26 +341,29 @@ def quality_passed(workbook: Path) -> tuple[bool, list[str]]:
 
 def analysis_passed(workbook: Path) -> tuple[bool, str, list[str]]:
     book = openpyxl.load_workbook(workbook, read_only=True, data_only=True)
-    required = {"分析设计", "结论稳定性汇总"}
-    missing = sorted(required - set(book.sheetnames))
-    if missing:
-        return False, "failed", [f"缺少工作表: {missing}"]
-    rows = list(book["结论稳定性汇总"].iter_rows(values_only=True))
-    if len(rows) < 2:
-        return False, "failed", ["结论稳定性汇总无实质数据"]
-    headers = [str(item) if item is not None else "" for item in rows[0]]
-    if "是否保持" not in headers:
-        return False, "failed", ["结论稳定性汇总缺少是否保持列"]
-    index = headers.index("是否保持")
-    unstable = [
-        row for row in rows[1:]
-        if row and as_bool(row[index] if len(row) > index else None) is not True
-    ]
-    return (
-        not unstable,
-        "passed" if not unstable else "redo_required",
-        ["存在核心结论未保持"] if unstable else [],
-    )
+    try:
+        required = {"分析设计", "结论稳定性汇总"}
+        missing = sorted(required - set(book.sheetnames))
+        if missing:
+            return False, "failed", [f"缺少工作表: {missing}"]
+        rows = list(book["结论稳定性汇总"].iter_rows(values_only=True))
+        if len(rows) < 2:
+            return False, "failed", ["结论稳定性汇总无实质数据"]
+        headers = [str(item) if item is not None else "" for item in rows[0]]
+        if "是否保持" not in headers:
+            return False, "failed", ["结论稳定性汇总缺少是否保持列"]
+        index = headers.index("是否保持")
+        unstable = [
+            row for row in rows[1:]
+            if row and as_bool(row[index] if len(row) > index else None) is not True
+        ]
+        return (
+            not unstable,
+            "passed" if not unstable else "redo_required",
+            ["存在核心结论未保持"] if unstable else [],
+        )
+    finally:
+        book.close()
 
 
 def validate_execution_evidence(

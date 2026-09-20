@@ -4,6 +4,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 import yaml
@@ -43,6 +44,62 @@ class ProjectTransactionTests(unittest.TestCase):
             TX.atomic_write_text(path, "new")
             self.assertEqual(path.read_text(encoding="utf-8"), "new")
             self.assertEqual(list(path.parent.glob(f".{path.name}.*.tmp")), [])
+
+    def test_partial_staging_failures_cleanup_unjournaled_files(self):
+        for failure in ("stage_write", "backup_copy", "backup_sync", "hash"):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                state = self.make_project(root)
+                before = {p: p.read_bytes() for p in root.rglob("*") if p.is_file()}
+                if failure == "stage_write":
+                    original = TX._write_bytes_fsync
+                    def fail_write(path, content):
+                        original(path, content)
+                        raise OSError("staging failure")
+                    target, replacement = "_write_bytes_fsync", fail_write
+                elif failure == "backup_copy":
+                    original = TX.shutil.copyfile
+                    def fail_copy(source, target):
+                        original(source, target)
+                        raise OSError("staging failure")
+                    target, replacement = "shutil.copyfile", fail_copy
+                elif failure == "backup_sync":
+                    original = TX.os.fsync
+                    def fail_sync(descriptor):
+                        if list(root.rglob("*.bak")):
+                            raise OSError("staging failure")
+                        return original(descriptor)
+                    target, replacement = "os.fsync", fail_sync
+                else:
+                    original = TX.sha256_file
+                    def fail_hash(path):
+                        if path.suffix == ".stage":
+                            raise OSError("staging failure")
+                        return original(path)
+                    target, replacement = "sha256_file", fail_hash
+                # Acquire/create the Windows lock before injecting fsync faults.
+                TX.load_state_for_update(root)
+                with patch.object(TX, target, replacement) if "." not in target else patch(
+                    "project_transaction." + target, replacement
+                ):
+                    with self.assertRaises(OSError):
+                        TX.commit_project_state(root, state, expected_generation=0)
+                for path, content in before.items():
+                    self.assertEqual(path.read_bytes(), content)
+                self.assertFalse((root / TX.JOURNAL_RELATIVE_PATH).exists())
+                self.assertEqual(list(root.rglob("*.stage")), [])
+                self.assertEqual(list(root.rglob("*.bak")), [])
+
+    def test_duplicate_later_target_cleans_earlier_staging(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.make_project(root)
+            with self.assertRaisesRegex(TX.ProjectTransactionError, "duplicate transaction target"):
+                TX.commit_project_state(root, state, expected_generation=0,
+                                        writes_before_state=[(TX.STATE_RELATIVE_PATH, "temporary")])
+            self.assertEqual(self.read_state(root)["project"]["state_generation"], 0)
+            self.assertEqual(list(root.rglob("*.stage")), [])
+            self.assertEqual(list(root.rglob("*.bak")), [])
 
     def test_missing_generation_is_legacy_zero_and_first_write_persists_one(self):
         with tempfile.TemporaryDirectory() as tmp:
