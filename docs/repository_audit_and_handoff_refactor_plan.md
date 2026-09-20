@@ -306,6 +306,15 @@ Windows 检查不要求把全部 LaTeX 作业搬到 Windows，但 transaction、
 
 ## 8. 实施记录
 
+### A5 · 9.5.7
+
+- AUD-08：required set 从当前 state 与既有 output contract 独立推导，逐问 `base3 + conditional2`、project_level 三件套、当前 state/框架/论文、声明数据/批准图片、已登记编译证明与其 source/actual inputs 均按精确路径核对，不能由 ZIP manifest 自证完整。
+- 数据源目录按已有 data_source_files 语义展开真实文件，包含中文嵌套路径；不要求 ZIP 中的伪目录条目，不启动未声明数据回退扫描；目录缺失、漏成员、越界明确报错。
+- AUD-09：两端复用同一 allowlist resolver，精确路径缺失拒绝；wildcard 保留零匹配可选语义。verified PDF-only official 不强塞内部代码/Excel/MATLAB，未核验规则仍不能生成 official 合规结论。
+- v4 报告绑定的实际 `.fls/.log` 仅在精确路径/hash 当前时解除打包排除；不放开全部日志。复现包还核对已登记审计及来源成员；v3 不虚构 recorder，正式证明升级由 A6 负责。
+- O02 裁决：旧 `_submission_zip_issues` 对 PDF-only 的反对只存在于非当前默认 required 名称路径；现行 dedicated validator 保持单一提交校验入口，本阶段不加重复 gate。
+- 迁移：缺当前 subproblems/必要性判定或逐问材料的旧包可读，但不能再标完整通过；根据明确缺件清单补齐真实材料、重新打包验证。ZIP 生成不等于 validated，不改已有 ZIP 或用户文件。新增正负例与完整回归/CI 见阶段 PR。
+
 ### A4 · 9.5.6
 
 - AUD-06：snapshot 更新和 typed stale、paper fragment 传播先完成，再运行状态/框架/正式 scope gate；readonly 与 write 使用相同候选状态，首次文件变化即在同次正式检查失败。只读不写磁盘，写入仍走现有事务。
