@@ -340,34 +340,44 @@ def _stage_transaction_files(
     entries: list[dict[str, Any]] = []
     staged_map: dict[str, Path] = {}
     seen: set[str] = set()
-    for index, (relative, content) in enumerate(writes):
-        target = _resolve_inside(root, relative)
-        canonical_relative = _relative(root, target)
-        if canonical_relative in seen:
-            raise ProjectTransactionError(f"duplicate transaction target: {canonical_relative}")
-        seen.add(canonical_relative)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        staged = target.parent / f".{target.name}.txn-{transaction_id}-{index}.stage"
-        backup = target.parent / f".{target.name}.txn-{transaction_id}-{index}.bak"
-        _write_bytes_fsync(staged, content.encode("utf-8"))
-        existed = target.is_file()
-        old_sha = sha256_file(target) if existed else None
-        if existed:
-            shutil.copyfile(target, backup)
-            with backup.open("rb") as handle:
-                os.fsync(handle.fileno())
-            _fsync_directory(backup.parent)
-        new_sha = sha256_file(staged)
-        entry = {
-            "path": canonical_relative,
-            "staged": _relative(root, staged),
-            "backup": _relative(root, backup) if existed else "",
-            "existed": existed,
-            "old_sha256": old_sha,
-            "new_sha256": new_sha,
-        }
-        entries.append(entry)
-        staged_map[canonical_relative] = staged
+    prepared_paths: list[Path] = []
+    try:
+        for index, (relative, content) in enumerate(writes):
+            target = _resolve_inside(root, relative)
+            canonical_relative = _relative(root, target)
+            if canonical_relative in seen:
+                raise ProjectTransactionError(f"duplicate transaction target: {canonical_relative}")
+            seen.add(canonical_relative)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            staged = target.parent / f".{target.name}.txn-{transaction_id}-{index}.stage"
+            backup = target.parent / f".{target.name}.txn-{transaction_id}-{index}.bak"
+            # Track before I/O: a failed write/copy may already have created a file,
+            # but the caller receives entries only after this function returns.
+            prepared_paths.extend((staged, backup))
+            _write_bytes_fsync(staged, content.encode("utf-8"))
+            existed = target.is_file()
+            old_sha = sha256_file(target) if existed else None
+            if existed:
+                shutil.copyfile(target, backup)
+                # Windows CRT requires a writable descriptor for fsync.
+                with backup.open("r+b") as handle:
+                    os.fsync(handle.fileno())
+                _fsync_directory(backup.parent)
+            new_sha = sha256_file(staged)
+            entry = {
+                "path": canonical_relative,
+                "staged": _relative(root, staged),
+                "backup": _relative(root, backup) if existed else "",
+                "existed": existed,
+                "old_sha256": old_sha,
+                "new_sha256": new_sha,
+            }
+            entries.append(entry)
+            staged_map[canonical_relative] = staged
+    except Exception:
+        for path in prepared_paths:
+            _safe_unlink(path)
+        raise
     return entries, staged_map
 
 

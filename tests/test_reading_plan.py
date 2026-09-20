@@ -92,7 +92,20 @@ class SelectorTests(unittest.TestCase):
                 reader.describe({"path": "missing"})
             with self.assertRaises(ValueError):
                 reader.describe({"path": "../outside"})
-            (root / "link").symlink_to(outside)
+
+    def test_symlink_escape_never_becomes_an_inside_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "repo"
+            root.mkdir()
+            outside = Path(tmp) / "outside"
+            outside.write_text("not in repo")
+            try:
+                (root / "link").symlink_to(outside)
+            except OSError as exc:
+                if getattr(exc, "winerror", None) == 1314:
+                    self.skipTest("Windows account lacks symbolic-link privilege")
+                raise
+            reader = READING.SourceReader(root)
             with self.assertRaises(ValueError):
                 reader.describe({"path": "link"})
 
