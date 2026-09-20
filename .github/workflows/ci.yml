@@ -218,7 +218,7 @@ jobs:
           assert "\\documentclass[withoutpreface]{cumcmthesis}" in main_text, main_text
           assert audit["status"] == "passed", audit
           assert audit["mode"] == "formal", audit
-          assert report["report_schema_version"] == "3.0.0", report
+          assert report["report_schema_version"] == "4.0.0", report
           assert report["status"] == "passed", report
           assert report["attestation_mode"] == "formal", report
           assert report["profile"] == "cumcm", report

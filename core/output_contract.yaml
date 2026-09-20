@@ -92,7 +92,7 @@ writing_policy:
   latex_audit_report: final_latex/latex_audit_report.yaml
   latex_audit_report_schema: 1.0.0
   formal_render_script: scripts/render_paper.py
-  compile_report_schema: 3.0.0
+  compile_report_schema: 4.0.0
   submission_package_validator: scripts/validate_submission_package.py
   legacy_single_file_latex_supported: true
   prose_audit_framework_flag: --framework
@@ -108,7 +108,11 @@ writing_policy:
   consumer_rule: modules、packs、checklists与review只引用Authority，不重新定义正文规则。
 delivery_attestation:
   latex_audit_role: 正式LaTeX项目审计证明必须绑定当前active source bundle与当前模型论文框架哈希；template_smoke证明不得用于正式项目交付。
-  compile_role: v3 compile_report绑定正式审计报告哈希、当前compile-profile fingerprint、实际编译序列、有效日志、source bundle与PDF哈希。
+  compile_role: v4 compile_report绑定正式审计报告哈希、当前compile-profile fingerprint、实际编译序列、有效日志、source bundle、实际recorder输入与PDF哈希。
+  actual_input_policy: 正式报告必须绑定recorder、recorder_sha256、actual_input_files且dependency_issues为空；实际项目输入必须由静态审计覆盖，全部静态正文必须实际读取；安装环境TeX/字体依赖不冒充项目源码。
+  partial_compile_policy: includeonly遗漏章节或无法确认完整范围时仅可预览，不可取得正式全量证明。
+  legacy_compile_report_policy: v3及更早报告保留只读历史用途；新正式交付须使用当前render_paper.py重新审计并编译为v4，不自动改旧报告或PDF。
+  evidence_retention: 保留当前compile_report绑定的log与fls供机器复核和复现包使用；official包仍仅按已核验赛事allowlist决定内容。
   missing_log_policy: failed
   profile_drift_policy: stale_recompile_required
   official_package_policy: 只有当届edition_rules=verified且verified_at/source/submission_files完整时才允许自动生成official package；内容必须精确等于verified allowlist。
@@ -495,7 +499,7 @@ rules:
 - 实际生成的项目级预处理脚本和正式小问Python脚本都必须通过静态工程质量检查且不得由助手执行；校验结果在聊天或标准输出中返回，不额外落盘。
 - 用户返回的适用预处理工作簿和小问工作簿均必须先通过对应质量门；代码交付本身不得把状态提升为solved或analyzed。
 - 同步器只做发现、校验、哈希和stale传播，不替代语义治理、条件式预处理质量门、主求解质量门、主数值证据复核与Analysis Necessity Gate/真实结果深化分析。
-- v7.10正式LaTeX交付必须形成current的latex_audit_report + v3 compile_report + PDF证明链；缺日志、审计过期、profile变化或源码/框架变化均不得继续复用旧passed状态。
+- 正式LaTeX交付必须形成current的latex_audit_report + v4 compile_report + PDF证明链；缺日志/recorder、实际输入未覆盖、装配不完整、审计过期、profile或源码/框架变化均不得继续复用旧passed状态。
 - v7.10提交包显式分为official/reproducibility；official必须来自已核验当届allowlist，任一包都必须由submission_manifest和当前项目哈希验证后才可视为validated。
 - v7.8算法流程呈现按not_needed/stepwise/pseudocode自适应；只有真实多阶段或控制流有信息价值时单列，并由Algorithm Trace连接模型/命题、Python实现与工作簿结果。
 - v7.8不把Python源码压缩成论文伪代码，也不要求每问设置Algorithm 1；算法语义变化继续使用既有semantic_change_categories=algorithm传播stale。
