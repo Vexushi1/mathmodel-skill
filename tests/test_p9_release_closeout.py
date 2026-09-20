@@ -5,11 +5,11 @@ import unittest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED = "9.4.0"
+EXPECTED = "9.4.1"
 
 
 class P9ReleaseCloseoutTests(unittest.TestCase):
-    def test_release_carriers_are_v931(self):
+    def test_release_carriers_are_current(self):
         bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8")) or {}
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
         self.assertEqual(str(bootstrap["skill_version"]), EXPECTED)
@@ -50,9 +50,10 @@ class P9ReleaseCloseoutTests(unittest.TestCase):
         self.assertTrue(receipt["legacy_full_config_missing_version_read_supported"])
         self.assertEqual(receipt["declared_unknown_version_policy"], "fail_closed")
 
-    def test_release_docs_record_v931_and_compatibility_decision(self):
+    def test_release_docs_record_current_and_compatibility_decision(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        self.assertTrue(changelog.startswith("# Changelog\n\n## Current release: 9.4.0"))
+        self.assertTrue(changelog.startswith(f"# Changelog\n\n## Current release: {EXPECTED}"))
+        self.assertIn("## Previous release: 9.4.0", changelog)
         self.assertIn("## Previous release: 9.3.1", changelog)
         self.assertIn("## Previous release: 9.3.0", changelog)
         self.assertIn("## Previous release: 9.2.1", changelog)

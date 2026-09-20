@@ -4,6 +4,7 @@ import importlib.util
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -145,6 +146,30 @@ class TestV871CriticalFragmentHealth(unittest.TestCase):
         errors: list[str] = []
         LINT._check_active_markdown_link_fragments(errors)
         self.assertEqual([], errors)
+
+
+class TestFormalMatlabTitleLint(unittest.TestCase):
+    def test_formal_templates_reject_direct_titles_but_accept_ordinary_comments(self):
+        original_read = LINT._ORIGINAL_READ_TEXT
+        cases = (
+            ("", False),
+            ('% title(gca, "注释"); sgtitle("注释");', False),
+            ('title(gca, "结果");', True),
+            ('sgtitle("结果");', True),
+        )
+        for filename in ("q1_plot.m", "data_process.m"):
+            target = ROOT / "templates/matlab" / filename
+            diagnostic = f"{filename} formal template must not contain executable overall title/sgtitle"
+            for snippet, rejected in cases:
+                with self.subTest(filename=filename, snippet=snippet):
+                    def read_candidate(path):
+                        text = original_read(path)
+                        return snippet + "\n" + text if Path(path) == target else text
+
+                    errors = []
+                    with patch.object(LINT, "_ORIGINAL_READ_TEXT", side_effect=read_candidate):
+                        LINT._check_templates(errors)
+                    self.assertEqual(errors, [diagnostic] if rejected else [])
 
 
 if __name__ == "__main__":

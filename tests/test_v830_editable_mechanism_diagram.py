@@ -427,7 +427,9 @@ class ContractAndDriftTests(unittest.TestCase):
     PROTECTED = {
         "core/model_approval_contract.yaml": "fab8ecece97e874a6332427715ba4b24eab3c90a",
         "core/numerical_verification_contract.yaml": "f7e1921ec4945cb5e87984ccb8946302d854143f",
-        "core/workbook_schema.yaml": "ea33b857602754258915e35dbb0373e1f73fa7af",
+        # P0-A intentionally aligns the title handoff with the existing output Authority;
+        # test_schemas covers the new declaration and unchanged caption ownership.
+        "core/workbook_schema.yaml": "a0a9d439953d3f3ae85cb6ff38045aab531f22be",
         "core/project_state.schema.yaml": "8632a709047a55e0432d7903089fb4fc7672e8cf",
         "core/writing_reasoning_contract.yaml": "9936a9064e067b3ceb6d14e51132a2d65e648b05",
         "modules/03_solve_validate.md": "17f6c3e755e64bfc7e8287c607b5a8b5b905c1d1",

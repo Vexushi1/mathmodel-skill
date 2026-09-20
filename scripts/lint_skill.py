@@ -403,12 +403,6 @@ def _check_templates(errors: list[str]) -> None:
 
     _original_check_templates(errors)
 
-    # lint_skill_checks.py keeps a historical v7.4-era positive-title token for
-    # compatibility. Current formal Figure semantics intentionally replace that
-    # requirement with a stronger executable-code prohibition.
-    obsolete = "q1_plot.m lacks required token: title(ax, figureTitle"
-    errors[:] = [item for item in errors if item != obsolete]
-
     plotting = _ORIGINAL_READ_TEXT(ROOT / "templates/matlab/q1_plot.m")
     code = _matlab_executable_code(plotting)
     if re.search(r"\b(?:title|sgtitle)\s*\(", code, flags=re.IGNORECASE):

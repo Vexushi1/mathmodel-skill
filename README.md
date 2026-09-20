@@ -1,6 +1,12 @@
-# mathmodel-skill v9.4.0
+# mathmodel-skill v9.4.1
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 → 条件数学化与结构化简 → 最小充分主模型 + 按需 comparator → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构匹配 Solver + Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision / semantic_identity_hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v9.4.1：P0-A 绘图标题交接兼容修复
+
+本补丁优先修复[绘图技巧与衔接修改计划](docs/figure_technique_and_handoff_refactor_plan.md)中的 P0-A：新 MATLAB 映射不再要求 `matlab_title`，旧字段在契约中保留为只读历史说明，不触发图内标题。Workbook Schema 声明版本更新为 2.3.1，标题政策引用现有正式图输出 Authority；实际 Excel 工作表、表头及 accepted 数值不变，旧项目无需批量迁移。
+
+旧 lint 对 `title` 的正向要求及入口层对应诊断过滤一并移除，保留正式 MATLAB 模板不得执行整体 `title/sgtitle` 的既有检查。该补丁不改变模型求解、工作簿 reader、图型或配色选择，也不新增或执行自动图像检查；其余计划阶段继续按文档推进。MATLAB 代码仅作静态核对，由用户在本地运行、调图和人工验收；当前说明不代表 MATLAB 运行、图像检查或 CI 已通过。
 
 ## v9.4.0：写作可读性、正文推导保全与证据化审查
 
