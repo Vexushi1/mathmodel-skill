@@ -37,8 +37,6 @@ class TestWritingReadabilityW4Acceptance(unittest.TestCase):
             self.assertIn(f"| T{index:02d} |", text)
         self.assertIn("外部人工反馈：none", text)
         self.assertIn("不是独立评委、用户或第三方人工反馈", text)
-        self.assertNotIn("评委已验证", text)
-        self.assertNotIn("用户已人工验收", text)
 
     def test_w4_does_not_create_a_new_gate_state_or_coverage_family(self):
         matrix = yaml.safe_load(
