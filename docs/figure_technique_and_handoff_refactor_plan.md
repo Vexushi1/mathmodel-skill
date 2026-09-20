@@ -1,10 +1,10 @@
 # 绘图衔接修复与绘图技巧改进详细计划
 
 > 仓库：`Vexushi1/mathmodel-skill`  
-> 计划日期：2026-09-20；计划版本：1.2
+> 计划日期：2026-09-20；计划版本：1.3
 > 编制基线：`main@d6f24892dec61d01a6a75811d01e0c32e04da438`  
-> 编制时 Skill：9.4.0；计划创建提交未升级版本。当前已合入 9.4.1，P0-B 实施目标：9.4.2 patch。
-> 状态：`implementing`；P0-A 已完成，P0-B 正在实施，具体验证与剩余阶段见第 12 节。
+> 编制时 Skill：9.4.0；计划创建提交未升级版本。当前已合入 9.4.2，P0-C 实施目标：9.4.3 patch。
+> 状态：`implementing`；P0-A/B 已合并，P0-C 正在实施，具体验证与剩余阶段见第 12 节。
 > 文件角色：本轮绘图改造的维护计划、实施顺序和进度依据，不是新的 Figure、Workbook、Runtime 或 Writing Authority。
 
 ## 0. 后续如何使用本计划
@@ -288,8 +288,8 @@ Python 单元测试在这里验证仓库实现/合同，不代表运行了用户
 | 编号 | 状态 | 实现 PR / commit | 验证与剩余事项 |
 |---|---|---|---|
 | P0-A | 已合并并完成验证 | [PR #211](https://github.com/Vexushi1/mathmodel-skill/pull/211)，合并 `e00f31dfc5ab4fcf67877e8b0effdff61d6970e2` | [PR CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35491575546)、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35491575524)、[main CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35491780957) 和 main 生成检查通过；本地 1076 项仍有同样的 40 个 Windows 基线问题；未运行 MATLAB |
-| P0-B | 实现与本地静态复核完成，待 PR CI | `fix/figure-p0b-workbook-handoff`，基线 `e00f31d` | 条件 03B、精确表头及旧列号映射、缺测/非法值、数值键与排序闭环；3 个 MATLAB 文件纯语法解析通过，36 项读取/保护专项、46 项发布/交接专项通过；lint/生成检查通过；全量 1076 项与初始基线相同的 40 个 Windows 问题，无新增失败（一次中途进程异常退出已单独保留日志，复跑完成）；MATLAB 实机验收独立进行 |
-| P0-C | 未开始 | — | 自动 MATLAB preview 待改为显式手动选择 |
+| P0-B | 已合并并完成验证 | [PR #212](https://github.com/Vexushi1/mathmodel-skill/pull/212)，合并 `208d8ddda42150371d59b6553ec171853e5cd509` | [PR CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35492571378)、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35492571439)、[main CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35492791788)及 main 生成检查通过；3 个 MATLAB 文件纯语法解析通过，36 项读取/保护专项、46 项发布/交接专项通过；全量 1076 项与初始基线相同的 40 个 Windows 问题，无新增失败（一次进程异常退出单独留日志，复跑完成）；MATLAB 实机验收独立进行 |
+| P0-C | 实现与本地静态验证完成，待 PR CI | `fix/figure-p0c-manual-preview`，基线 `208d8dd` | job 级手动选择且默认 false，明确 true 不再受 changed-files 限制；8 项专项、lint、生成检查通过；全量 1079 项仅原有 40 个 Windows 问题；本轮不 dispatch |
 | F1 | 未开始 | — | 图型选择与读取路径待修改 |
 | F2 | 未开始 | — | 无默认配色及可调 MATLAB 样式待修改 |
 | F3 | 未开始 | — | 技巧样例待完善 |
@@ -303,6 +303,7 @@ Python 单元测试在这里验证仓库实现/合同，不代表运行了用户
 | 2026-09-20 | 1.0 初稿 | 固化用户要求；P0 优先；配色不设默认；仅静态 MATLAB 检查，人工调图；未实施代码 |
 | 2026-09-20 | 1.1 开始 P0-A | 计划 PR [#210](https://github.com/Vexushi1/mathmodel-skill/pull/210) 已合并，基线 `32587cf8463937611c3458429bc57f0d5cfce591`；用户授权开始实施；目标 Skill 9.4.1、Workbook Schema 声明 2.3.1，不改变实际 Excel 字段或用户项目 |
 | 2026-09-20 | 1.2 完成 P0-A，进入 P0-B | P0-A 的 PR/main 检查通过；P0-B 保守处理不可由导入值反推的物理空白，不自动猜测裁尾；使用 MISS_HIT core 0.9.44 做第三方纯语法解析，不执行 MATLAB；补记 F2 的 Output Contract 配色约束影响面 |
+| 2026-09-20 | 1.3 完成 P0-B，实施 P0-C | P0-B 的 PR/main 检查通过；P0-C 将真实 MATLAB preview 从普通 PR 移至缺省关闭的手动选项，保留普通静态 CI 和历史证据 |
 
 ## 13. 回滚与完成判定
 

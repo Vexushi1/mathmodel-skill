@@ -1,6 +1,12 @@
 # Changelog
 
-## Current release: 9.4.2
+## Current release: 9.4.3
+
+- P0-C makes real MATLAB preview an explicit manual option: workflow_dispatch must select run_matlab_preview=true; the default is false and ordinary pull requests skip the entire MATLAB job.
+- Removed the preview-only changed-path gate so an explicit manual request is not silently skipped when the latest commit does not touch a style helper. Source snapshots, characterization, native static CI and historical preview evidence remain available.
+- This patch validates configuration and source contracts only; no MATLAB dispatch, rendering, image check or user-project approval was performed.
+
+## Previous release: 9.4.2
 
 - Fixed P0-B MATLAB workbook handoff: analysis workbooks are required only when the current figure explicitly needs accepted 03B evidence; missing requested workbooks, sheets or fields remain errors, while solution-only figures do not require an unrelated analysis workbook.
 - Aligned readers and figure/writing handoff templates with exact unique headers after whitespace normalization. Expected column positions are optional drift warnings rather than field identities; duplicate or missing requested headers remain errors.
