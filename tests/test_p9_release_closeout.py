@@ -5,7 +5,7 @@ import unittest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED = "9.3.1"
+EXPECTED = "9.4.0"
 
 
 class P9ReleaseCloseoutTests(unittest.TestCase):
@@ -52,7 +52,8 @@ class P9ReleaseCloseoutTests(unittest.TestCase):
 
     def test_release_docs_record_v931_and_compatibility_decision(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        self.assertTrue(changelog.startswith("# Changelog\n\n## Current release: 9.3.1"))
+        self.assertTrue(changelog.startswith("# Changelog\n\n## Current release: 9.4.0"))
+        self.assertIn("## Previous release: 9.3.1", changelog)
         self.assertIn("## Previous release: 9.3.0", changelog)
         self.assertIn("## Previous release: 9.2.1", changelog)
         self.assertIn("## Previous release: 9.2.0", changelog)
@@ -60,6 +61,11 @@ class P9ReleaseCloseoutTests(unittest.TestCase):
         self.assertIn("最早 v10", record)
         self.assertIn("未知", record)
         self.assertIn("fail closed", record.lower())
+        writing_release = (ROOT / "docs/writing_readability_w5_release_closeout.md").read_text(encoding="utf-8")
+        self.assertIn("目标版本：** 9.4.0", writing_release)
+        self.assertIn("变更等级：** minor", writing_release)
+        self.assertIn("无强制用户迁移", writing_release)
+        self.assertIn("T01–T18", writing_release)
 
 
 if __name__ == "__main__":

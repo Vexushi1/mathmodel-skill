@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：9.3.1
+当前 Skill 版本：9.4.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -424,6 +424,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/v9_3_initial_modeling_structural_reduction_refactor_plan.md`
 - `docs/writing_readability_validation_slimming_plan.md`
 - `docs/writing_readability_w4_acceptance.md`
+- `docs/writing_readability_w5_release_closeout.md`
 - `docs/writing_validation_w0_baseline.md`
 
 ## Legacy Navigation

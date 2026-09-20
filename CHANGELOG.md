@@ -1,6 +1,17 @@
 # Changelog
 
-## Current release: 9.3.1
+## Current release: 9.4.0
+
+- Published the completed writing/readability program as a backward-compatible minor release: nontrivial core derivations and proofs remain recoverable in the paper body by mathematical role, while routine algebra, repeated coefficients, code/log detail and non-core supplements may still be compressed or externalized.
+- Added judge-readable writing behavior for professional headings and first-use terminology, readable result tables with invariant accepted values/units/precision, formula-rich narrative organized by reasoning units, and normal use of semantic heading levels 1–3 with deterministic blocking of active LaTeX level 4+ headings.
+- Preserved carrier boundaries across CUMCM, MCM/ICM, Diangong and DOCX; non-CUMCM/DOCX writing continues to use the full reasoning fallback and does not inherit the CUMCM top-level skeleton.
+- Closed the long-core-proof delivery path with real CUMCM LaTeX pagination and proposition/equation reference-numbering evidence in Production LaTeX attestation.
+- Slimmed validation only where W0 paired evidence proved a false positive: the count-only `question_subsection_granularity` review finding was removed, while specific mechanical-split, framework-pending, surface-review and all existing Hard paths remain.
+- Completed T01–T18 integrated machine/semantic/hybrid acceptance without adding a Readability Gate, required Project State field, ninth review coverage family, readability score, cross-stage cache or persistent trust token.
+- Preserved Model Approval, Semantic Identity, typed stale, numerical/workbook contracts, 03A/03B, user-owned full-fidelity execution, public CLI/report shapes and project layout; existing projects require no bulk migration for v9.4.0.
+- Release acceptance remains the complete HSK Skill CI plus Optimization baseline evidence on the final generated head, followed by merge-to-main HSK CI and generated-metadata verification.
+
+## Previous release: 9.3.1
 
 - Restored the Module 02 framework read/write, `mechanism_contracts` producer and design/approval stage-boundary semantics that were accidentally truncated during the v9.3.0 structure-first refactor, with capability-preservation regression coverage.
 - Closed the taxonomy-valid task-pack loading gap: Router now authoritatively allows the four unique packs that can arise from one objective plus three structures, Resolver consumes that budget instead of hard-coding three, and the legacy compatibility alias no longer duplicates the obsolete three-pack limit.
