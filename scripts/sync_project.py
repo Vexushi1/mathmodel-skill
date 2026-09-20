@@ -229,6 +229,8 @@ def contract_preflight_issues(
     state_path: Path,
     framework_path: Path,
     output_contract: Mapping[str, Any],
+    *,
+    candidate_state: Mapping[str, Any] | None = None,
 ) -> list[str]:
     issues: list[str] = []
     required = set(stage_requirements(scope, output_contract))
@@ -237,16 +239,20 @@ def contract_preflight_issues(
     elif state_path.is_file():
         issues.extend(
             f"项目状态校验: {item}"
-            for item in STATE_VALIDATION.validate_state_file(state_path, project_root=root)
+            for item in (
+                STATE_VALIDATION.validate_state_payload(candidate_state, project_root=root)
+                if candidate_state is not None
+                else STATE_VALIDATION.validate_state_file(state_path, project_root=root)
+            )
         )
     if "model_paper_framework" in required and not framework_path.is_file():
         issues.append("模型论文框架校验: 缺少 模型论文框架.md")
     elif framework_path.is_file():
         issues.extend(
             f"模型论文框架校验: {item}"
-            for item in FRAMEWORK_VALIDATION.validate_framework_file(
-                framework_path,
-                state_path=state_path if state_path.is_file() else None,
+            for item in FRAMEWORK_VALIDATION.validate_framework_text(
+                framework_path.read_text(encoding="utf-8"),
+                state=candidate_state if candidate_state is not None else load_yaml(state_path),
             )
         )
     return issues
@@ -365,11 +371,33 @@ def _framework_header_text(path: Path, scope: str, stale: bool) -> str | None:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _approved_figure_issues(root: Path, state: Mapping[str, Any]) -> list[str]:
+def _approved_figure_issues(
+    root: Path, state: Mapping[str, Any], snapshots: Mapping[str, Mapping[str, Any]],
+) -> tuple[list[str], list[str]]:
     approved = ((state.get("artifacts") or {}).get("approved_figures") or [])
     if not approved:
-        return ["缺少已批准图表"]
-    return [f"已批准图表不存在: {item}" for item in approved if not (root / str(item)).is_file()]
+        return ["缺少已批准图表"], []
+    issues: list[str] = []
+    warnings: list[str] = []
+    approved_paths = {(root / str(item)).resolve() for item in approved}
+    discovered = {(root / name).resolve() for snapshot in snapshots.values() for name in snapshot.get("figures", [])}
+    for item in approved:
+        path = (root / str(item)).resolve()
+        if not path.is_relative_to(root):
+            issues.append(f"已批准图表路径越出项目根目录: {item}")
+        elif not path.is_file():
+            issues.append(f"已批准图表不存在: {item}")
+        elif path not in discovered:
+            # An independent project-level diagram need not belong to any question.
+            # Report the uncovered scope without inventing a per-question binding.
+            warnings.append(f"已批准图表未映射到本问图哈希: {item}；独立全局图不强分小问，需按现有框架另行核对来源")
+    for key, snapshot in snapshots.items():
+        if not {(root / path).resolve() for path in snapshot.get("figures", [])}.intersection(approved_paths):
+            continue
+        entry = (state.get("subproblems") or {}).get(key) or {}
+        if not (entry.get("validated_artifact_hashes") or {}).get("figure_bundle"):
+            issues.append(f"{key}: 当前图表映射缺少已验证figure_bundle哈希，需人工复核绑定；同步不自动批准")
+    return issues, warnings
 
 
 def _compile_artifact_issues(root: Path, state: Mapping[str, Any]) -> list[str]:
@@ -526,6 +554,8 @@ def _scope_artifact_issues(
     state: Mapping[str, Any],
     snapshots: Mapping[str, Mapping[str, Any]],
     output_contract: Mapping[str, Any],
+    *,
+    warnings: list[str] | None = None,
 ) -> list[str]:
     required = set(stage_requirements(scope, output_contract, state))
     issues = _formal_state_issues(required, state)
@@ -545,7 +575,10 @@ def _scope_artifact_issues(
     if "result_analysis_report" in required and not all(snapshot.get("result_analysis_report") for snapshot in snapshots.values()):
         issues.append("结果交付缺少结果深化分析报告或明确的not_required判定")
     if "approved_figures" in required:
-        issues.extend(_approved_figure_issues(root, state))
+        figure_issues, figure_warnings = _approved_figure_issues(root, state, snapshots)
+        issues.extend(figure_issues)
+        if warnings is not None:
+            warnings.extend(figure_warnings)
     if "docx_draft" in required:
         issues.extend(_docx_issues(root, state))
     if required.intersection({"latex_source", "compiled_pdf", "compile_report"}):
@@ -582,7 +615,7 @@ def synchronize(
     if scope not in {"design", "code", "results", "figures", "docx", "latex", "submission"}:
         raise ValueError(f"未知delivery scope: {scope}")
 
-    issues = contract_preflight_issues(root, scope, state_path, framework_path, output_contract)
+    issues: list[str] = []
     warnings: list[str] = []
     raw_files, raw_mode, data_issues, data_warnings = data_source_files(root, state)
     issues.extend(data_issues)
@@ -608,9 +641,6 @@ def synchronize(
         warnings.extend(f"{key}: {item}" for item in snapshot["warnings"])
     if explicit_delivery_scope and scope in {"results", "figures", "docx"} and not snapshots:
         issues.append("未发现任何小问结果目录或项目状态")
-    if explicit_delivery_scope:
-        issues.extend(_scope_artifact_issues(root, scope, state, snapshots, output_contract))
-
     stale_questions: list[str] = []
     stale_fragments: list[str] = []
     transition_reports: list[dict[str, Any]] = []
@@ -633,13 +663,13 @@ def synchronize(
         dependency_cycles = []
 
     framework_text_for_write: str | None = None
-    if write and state_path.is_file():
+    if state_path.is_file():
         any_stale = any(
             bool(entry.get("artifacts_stale"))
-            for entry in (state.get("subproblems") or {}).values()
+            for entry in (transition_state.get("subproblems") or {}).values()
             if isinstance(entry, Mapping)
         )
-        framework = state.setdefault("paper_framework", {})
+        framework = transition_state.setdefault("paper_framework", {})
         if _uses_fragment_stale(framework):
             stale_fragments = _mark_paper_fragments_stale(framework, set(stale_questions))
             framework["sync_status"] = "current"
@@ -647,6 +677,13 @@ def synchronize(
         else:
             framework["sync_status"] = "stale" if any_stale else "current"
             header_stale = any_stale
+    issues.extend(contract_preflight_issues(
+        root, scope, state_path, framework_path, output_contract, candidate_state=transition_state,
+    ))
+    if explicit_delivery_scope:
+        issues.extend(_scope_artifact_issues(root, scope, transition_state, snapshots, output_contract, warnings=warnings))
+
+    if write and state_path.is_file():
         framework["last_sync_scope"] = scope
         framework["last_synced_at"] = datetime.now(timezone.utc).isoformat()
         framework_text_for_write = _framework_header_text(framework_path, scope, header_stale)
@@ -658,7 +695,7 @@ def synchronize(
         for key, entry in (transition_state.get("subproblems", {}) or {}).items():
             if isinstance(entry, Mapping) and entry.get("artifacts_stale"):
                 stale_questions.append(str(key))
-        framework = state.get("paper_framework") or {}
+        framework = transition_state.get("paper_framework") or {}
         if _uses_fragment_stale(framework):
             stale_fragments = _stale_paper_fragment_ids(framework)
 

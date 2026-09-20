@@ -194,6 +194,102 @@ def _figure_files(result_dir: Path) -> list[Path]:
         key=lambda item: item.as_posix(),
     )
 
+
+def _figure_table_rows(text: str) -> list[dict[str, str]]:
+    """Read explicit Markdown table cells, excluding fenced examples."""
+    rows: list[dict[str, str]] = []
+    headers: list[str] = []
+    fenced = False
+    for line in text.splitlines():
+        if line.lstrip().startswith(("```", "~~~")):
+            fenced = not fenced
+            headers = []
+        if fenced:
+            continue
+        if not line.strip().startswith("|"):
+            headers = []
+            continue
+        cells = [cell.strip().strip("`") for cell in line.strip().strip("|").split("|")]
+        if all(re.fullmatch(r":?-+:?", cell) for cell in cells):
+            continue
+        if not headers:
+            headers = cells
+        elif len(cells) == len(headers):
+            rows.append(dict(zip(headers, cells)))
+    return rows
+
+
+def _declared_paths(cell: str) -> list[str]:
+    paths: list[str] = []
+    for item in re.split(r"<br\s*/?>|[;；]", cell, flags=re.IGNORECASE):
+        item = item.strip().strip("`")
+        link = re.fullmatch(r"\[[^\]]*\]\((.*?)\)", item)
+        if link:
+            item = link.group(1).strip().strip("<>")
+        if item and item not in {"-", "—"}:
+            paths.append(item)
+    return paths
+
+
+def scoped_figure_files(
+    root: Path, script: Path, entry: Mapping[str, Any] | None = None,
+) -> tuple[list[Path], list[str]]:
+    """Combine legacy local figures with exact current framework/export bindings.
+
+    Framework paths are project-relative; literal MATLAB exports are script-relative.
+    Figure IDs in the question's existing map can bind non-MATLAB/shared figures too.
+    This discovers evidence; it does not grant approval or update validated hashes.
+    """
+    root, script = root.resolve(), script.resolve()
+    issues: list[str] = []
+    figures: set[Path] = set()
+
+    def inside(raw: str, base: Path) -> Path:
+        path = (base / raw).resolve()
+        if not path.is_relative_to(root):
+            raise ValueError(f"图表映射路径越出项目根目录: {raw}")
+        return path
+
+    def add(raw: str, base: Path) -> None:
+        try:
+            path = inside(raw, base)
+            if path.suffix.lower() not in FIGURE_SUFFIXES:
+                issues.append(f"图表映射不是受支持的图片载体: {raw}")
+            elif not path.is_file():
+                issues.append(f"图表映射声明的文件不存在: {raw}")
+            else:
+                figures.add(path)
+        except ValueError as exc:
+            issues.append(str(exc))
+
+    if not script.is_relative_to(root):
+        return [], ["图表映射脚本越出项目根目录"]
+    for path in _figure_files(script.parent):
+        add(str(path), root)
+    for raw in _parse_matlab(script)[2]:
+        add(raw, script.parent)
+    framework = root / "模型论文框架.md"
+    text = ARTIFACT_FINGERPRINT.framework_section_text(framework, "## 图表证据链") or ""
+    question_text = ARTIFACT_FINGERPRINT.framework_section_text(
+        framework, str((entry or {}).get("framework_section", ""))
+    ) or ""
+    identifiers = {row["Figure ID"] for row in _figure_table_rows(question_text) if row.get("Figure ID")}
+    for row in _figure_table_rows(text):
+        outputs = _declared_paths(row.get("导出文件", ""))
+        if not outputs:
+            continue
+        programs = {(root / raw).resolve() for raw in _declared_paths(row.get("绘图程序", ""))}
+        identifier = row.get("图号") or row.get("Figure ID")
+        if script not in programs and identifier not in identifiers:
+            continue
+        if any(not program.is_relative_to(root) for program in programs):
+            issues.append(f"图表映射脚本越出项目根目录: {row.get('绘图程序')}")
+            continue
+        for raw in outputs:
+            add(raw, root)
+    return sorted(figures, key=lambda path: path.as_posix()), sorted(set(issues))
+
+
 def _validate_workbook(path: Path, kind: str, schema: Mapping[str, Any], entry: Mapping[str, Any]) -> list[str]:
     objective, structures, problem_types, capabilities = _classification(entry)
     try:
@@ -272,7 +368,7 @@ def _snapshot_question(
     primary_code, analysis_code, legacy_single_code = _stage_code_paths(root, chinese_name)
     number = question_number(chinese_name)
     matlab = result_dir / f"q{number}_plot.m" if number else result_dir / "q_plot.m"
-    figures = _figure_files(result_dir)
+    figures, figure_issues = scoped_figure_files(root, matlab, entry)
     status = str(entry.get("status", "pending"))
     analysis_not_required = (
         entry.get("result_analysis_status") == "not_required"
@@ -290,8 +386,9 @@ def _snapshot_question(
         require_analysis = not analysis_not_required
         require_analysis_code = not analysis_not_required
 
-    issues: list[str] = []
-    warnings: list[str] = []
+    formal_figures = delivery_scope in {"figures", "docx", "latex", "submission"}
+    issues: list[str] = list(figure_issues) if formal_figures else []
+    warnings: list[str] = [] if formal_figures else list(figure_issues)
     if entry.get("result_analysis_status") == "not_required" and not analysis_not_required:
         issues.append("result_analysis_status=not_required必须提供非空result_analysis_requirement_reason")
     if delivery_scope == "code" and primary_code is None:

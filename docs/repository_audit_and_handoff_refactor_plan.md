@@ -306,6 +306,14 @@ Windows 检查不要求把全部 LaTeX 作业搬到 Windows，但 transaction、
 
 ## 8. 实施记录
 
+### A4 · 9.5.6
+
+- AUD-06：snapshot 更新和 typed stale、paper fragment 传播先完成，再运行状态/框架/正式 scope gate；readonly 与 write 使用相同候选状态，首次文件变化即在同次正式检查失败。只读不写磁盘，写入仍走现有事务。
+- AUD-07：snapshot 与 reading_plan 复用 `scoped_figure_files`。既有本问目录图保留；根目录图通过框架“图表证据链”的精确绘图程序/导出路径、脚本字面导出或本问 Figure ID 引用绑定，支持共享或非 MATLAB 图片载体，不猜 q1 文件名前缀、不把所有根图分配给每问。
+- 明确本问映射不存在、越界或无有效图哈希时，正式图文 scope 拒绝；新发现图片绝不补 validated hash/批准。旧项目若此前漏跟踪根图，需要按真实来源完善框架映射并由用户核对后绑定已有批准。
+- 独立项目级机理/预处理图没有本问映射时给出 warning，注明未覆盖本问 bundle；不强分小问，也不声称存在新的全局图 bundle 验证。
+- 12 项新增测试覆盖首次主代码变化、typed 依赖/独立问、根图变化、精确同名路径、Figure ID、literal export、missing validated hash、独立图、readonly fragment 传播及正式/普通 scope；完整回归与 CI 见本阶段 PR。MATLAB 与图像 QA 未执行。
+
 ### A3 · 9.5.5
 
 - AUD-03/04/05：代码交付、回执与 runtime 共享当前主结果资格检查。新 03B 必须有 accepted/passed 的主工作簿、有效路径/hash、当前数据身份、非空 necessity reason 与 analysis_methods；回执还需已交付分析代码身份。pending 本身不代表已判 required；not_required 不会被意外回执覆盖。
