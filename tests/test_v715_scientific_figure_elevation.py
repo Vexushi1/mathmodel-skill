@@ -104,14 +104,15 @@ class TestV715ScientificFigureElevation(unittest.TestCase):
         self.assertNotIn("如果大量都是 plain bar", readme)
         self.assertNotIn("按 Evidence Structure 升级", process)
 
-    def test_high_contrast_palette_is_restored_but_auxiliary_elements_are_deweighted(self):
+    def test_explicit_legacy_palette_remains_available_without_authority_default(self):
         module = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
         profile = (ROOT / "templates/matlab/hsk_publication_profile.m").read_text(encoding="utf-8")
         style = (ROOT / "templates/matlab/hsk_apply_scientific_style.m").read_text(encoding="utf-8")
         for token in ("#1478FF", "#F04444", "#16B364", "#F79009", "#7A5AF8"):
-            self.assertIn(token, module)
-        self.assertIn("亮蓝 vs 鲜红", module)
-        self.assertIn("高对比 ≠ 全图所有元素都鲜艳", module)
+            self.assertIn(token, profile)
+        self.assertIn("不设默认配色或默认 palette profile", module)
+        self.assertIn("不为单张图换色而破坏全文映射", module)
+        self.assertIn("红绿不承担唯一语义", module)
         self.assertIn("palette.brightBlue = [20, 120, 255] / 255", profile)
         self.assertIn("palette.vividRed = [240, 68, 68] / 255", profile)
         self.assertIn("palette.lightGray", profile)
@@ -127,7 +128,7 @@ class TestV715ScientificFigureElevation(unittest.TestCase):
             code = "\n".join(line.split("%", 1)[0] for line in text.splitlines())
             self.assertNotIn("title(", code)
             self.assertNotIn("sgtitle(", code)
-            self.assertIn('grid(ax, "off")', text)
+            self.assertIn("grid(ax, gridMode)", text)
 
     def test_figure_contract_records_scientific_decision_not_style_sprawl(self):
         contract = (ROOT / "templates/figure/result_figure_contract.md").read_text(encoding="utf-8")

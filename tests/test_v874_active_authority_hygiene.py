@@ -41,8 +41,8 @@ class ActiveAuthorityHygieneTests(unittest.TestCase):
     def test_matlab_mechanism_guidance_preserves_monochrome_boundary(self):
         readme = read("templates/matlab/README.md")
         mechanism = read("templates/matlab/draw_mechanism_structure.m")
-        self.assertIn("数据驱动主结果图", readme)
-        self.assertIn("正式机理/推导图不继承该调色板", readme)
+        self.assertIn("不设蓝红优先、默认色板或强制中高饱和要求", readme)
+        self.assertIn("正式机理/推导图仍服从 Module 04 的 monochrome-first 黑白灰线稿规则", readme)
         for grayscale_token in ("[0.15,0.15,0.15]", "[0.95,0.95,0.95]", "[0.1,0.1,0.1]"):
             self.assertIn(grayscale_token, mechanism)
         for forbidden in ("#1478FF", "#F04444", "#16B364", "#F79009", "#7A5AF8"):

@@ -53,7 +53,7 @@
                 共享 x
 ```
 
-规则：跨 panel 比较幅度时统一 `xlim` 与 `ylim`；只研究各自形态而允许自由 y 轴时 caption 必须明确说明；纵向 stacked strips 只在最底部保留完整 x 轴标题；每个 panel 只有一个主对象时优先 direct label；panel 间距紧凑；背景可用极浅 tint，但主线保持高对比。
+规则：跨 panel 比较幅度时统一 `xlim` 与 `ylim`；只研究各自形态而允许自由 y 轴时 caption 必须明确说明；纵向 stacked strips 只在最底部保留完整 x 轴标题；每个 panel 只有一个主对象时优先 direct label；panel 间距紧凑；背景可按真实语义使用极浅 tint；主线与背景保持足够辨识度，颜色和线型沿用当前对象的语义映射。
 
 ### 2.2 Overview + detail
 
@@ -67,16 +67,9 @@
 
 适用于对象很多但核心判断只依赖少量对象。
 
-推荐视觉层级：
+可通过颜色、线宽、线型、marker 或直接标注建立视觉层级；对当前判断不关键的上下文，可适当降低线宽或颜色强度。具体选择服从 Module 04 的逐图配色规则，不强制高饱和主色或全灰背景对象。
 
-```text
-核心对象       高对比、中高饱和主色 + 主线宽
-基准对象       深灰/次主色
-上下文对象     浅灰/低透明度/细线
-关键区间       轻量背景或边界
-```
-
-不得为了突出目标方案而删除不利对象或隐藏失败样本。
+同等重要的比较对象保持可比的辨识度；关键区间用有真实依据的边界或轻量背景表达。不得为了突出目标方案而删除不利对象或隐藏失败样本。
 
 ## 4. Semantic Background
 
@@ -162,7 +155,7 @@ Composite Diagnostic 仅在多个 axes 提供真实互补信息且组合更易�
 - heatmap/colorbar 表示连续响应；
 - contour 提供等值结构；
 - feasible/failure boundary 使用独立线型；
-- current/recommended point 使用高对比 marker；
+- current/recommended point 使用可辨识的 marker 或直接标注，避免与色图背景混淆；
 - 不把分类主色直接硬套为连续 colormap。
 
 ### C6 Pareto + Recommendation + Global/Detail
@@ -171,7 +164,7 @@ Composite Diagnostic 仅在多个 axes 提供真实互补信息且组合更易�
 
 - 全部 accepted candidate / feasible candidate 保留上下文；
 - Pareto front/set 清楚区分；
-- 推荐点使用高对比主色与独立 marker；
+- 推荐点使用独立 marker 或直接标签；颜色沿用当前方案的语义映射；
 - 膝点或局部前沿差异被压缩时增加 Local Zoom；
 - 不用几个目标柱状图替代真实目标空间。
 
@@ -182,7 +175,7 @@ Composite Diagnostic 仅在多个 axes 提供真实互补信息且组合更易�
 - field/背景编码空间状态；
 - trajectory/path 为主对象；
 - boundary/obstacle/feasible region 保留真实几何；
-- critical state 用少量高对比 marker/annotation；
+- critical state 用少量清楚可辨的 marker/annotation；
 - 颜色与几何编码不能重复造成误读。
 
 ### C8 Bar + Error + Benchmark / Bar + Line
@@ -281,7 +274,7 @@ MATLAB 可用 `polaraxes` + 闭合曲线实现；若目标 MATLAB 版本/字体�
 
 - 原始/上下文样本以低视觉权重保留；
 - 密度可由 `histcounts2` + `imagesc/pcolor/contour` 等可复现方法表达；
-- 主轨迹/推荐路径/临界状态使用独立高对比语义；
+- 主轨迹/推荐路径/临界状态以可辨识的线型、marker 或显式颜色区分；
 - density normalization 与 bandwidth/binning 不得改变结论；
 - 点数不高时不要为了“高级”画 density，直接 raw scatter 更诚实。
 
@@ -308,7 +301,7 @@ MATLAB 可用 `polaraxes` + 闭合曲线实现；若目标 MATLAB 版本/字体�
 
 ### L3 Open-axis Publication Frame
 
-普通二维数据 axes：`Box='off'`、`TickDir='out'`、白底、frameless legend、`grid off`。heatmap/3D/polar/边界图按证据结构保留必要 frame。该模式只控制渲染，不更改 x/y limit 与数据范围。
+普通二维数据 axes 可从 `Box='off'`、`TickDir='out'`、frameless legend、`grid off` 起步。背景、网格与完整边框按当前读图需要选择；heatmap/3D/polar/边界图保留必要空间参照。使用基础样式后再设置当前图的局部网格、边框等属性，避免后续样式调用覆盖手调值。该模式只控制渲染，不更改 x/y limit 与数据范围。
 
 ## 7. Conditional 3D
 
@@ -357,7 +350,17 @@ Figure Enhancement 不能改变结果语义。
 
 ## 11. MATLAB 实现提示
 
-本节只提示实现工具，不改变 Gate：
+本节只提示实现工具，不改变 Gate。颜色、字号、数据线宽、轴线宽、网格与边框在脚本参数区集中设置，不建立所有图共用的固定外观。线条、散点和色块按其支持的 `Color`、`FaceColor`、`EdgeColor` 等属性显式给出当前图的 RGB；连续场显式选择 colormap。具体 SCI / Nature 论文的配色可作为参考，不对应仓库默认值或统一官方色板。
+
+样式接口的调用顺序：
+
+1. 按已验收数据创建图形对象、坐标标签、legend/colorbar，并显式赋予当前图选择的颜色与数据线宽；
+2. 调用一次 `hsk_apply_scientific_style(fig, "", style)`，应用基础字体和框架；`style` 可集中设置 `fontName`、`axesFontSize`、`labelFontSize`、`legendFontSize`、`colorbarFontSize`、`axesLineWidth`、`colorbarLineWidth`，未提供字段使用 helper 的排版起点；
+3. 再对需要区别处理的 axes、legend 或 colorbar 设置局部字号、网格、边框等；这些属性不放入未支持的 `style` 字段，也不在覆盖后再次套用基础样式。
+
+无 profile 的 `hsk_publication_profile()` 返回空 palette；`hsk_apply_scientific_style(fig)` 只做基础排版且同样返回空 palette。两者都不替脚本选择数据颜色，样式 helper 也不设置 `ColorOrder`、colormap 或背景色。若确实选用既有候选，可显式调用 `spec = hsk_publication_profile("journal_balanced")`，再把 `spec.palette.series` 中选定的 RGB 赋给对应对象。`competition_high_contrast` 与 `monochrome_print` 也保留这种显式调用方式；它们是兼容候选，不是必选项。
+
+其他实现工具：
 
 - inset / detached axes：`axes('Position', ...)`；
 - ROI：`rectangle` 或 `patch`；

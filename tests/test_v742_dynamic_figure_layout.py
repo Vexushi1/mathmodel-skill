@@ -34,23 +34,19 @@ class TestV742DynamicFigureLayout(unittest.TestCase):
         self.assertIn("先问：单图能否闭合核心结论", text)
         self.assertIn("按 Primary question / Evidence level 拆成多张 Figure", text)
 
-    def test_high_contrast_palette_is_default_and_semantically_hierarchical(self):
+    def test_palette_selection_is_explicit_and_follows_variable_semantics(self):
         text = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
         for token in (
-            "高对比、中高饱和",
-            "#1478FF",
-            "#F04444",
-            "#16B364",
-            "#F79009",
-            "#7A5AF8",
-            "#252B37",
-            "#E9EAEB",
+            "不设默认配色或默认 palette profile",
+            "categorical", "sequential", "diverging",
+            "不再是默认值", "红绿不承担唯一语义",
+            "没有默认色板、蓝红优先或强制中高饱和要求",
+            "SCI", "Nature",
         ):
             self.assertIn(token, text)
-        self.assertIn("亮蓝 vs 鲜红", text)
-        self.assertIn("辅助对象", text)
         self.assertIn("禁止 rainbow", text)
-        self.assertNotIn("主色默认采用**实体、深色、低饱和", text)
+        self.assertNotIn("两对象强比较优先 **亮蓝 vs 鲜红**", text)
+        self.assertNotIn("`competition_high_contrast`：默认 profile", text)
 
     def test_formal_figure_title_is_caption_owned(self):
         module = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
@@ -71,7 +67,8 @@ class TestV742DynamicFigureLayout(unittest.TestCase):
         self.assertIn("modules/04_figure_evidence.md", text)
         self.assertIn("动态决定单图、1×2、2×1、1×3、2×2 或拆图", text)
         self.assertIn("Scientific Figure Synthesis Gate", text)
-        self.assertIn("高对比、中高饱和", text)
+        self.assertIn("seriesColors", text)
+        self.assertIn("RGB", text)
         self.assertIn("Composite Encoding Preference", text)
 
     def test_preprocessing_figure_style_does_not_conflict(self):

@@ -99,7 +99,10 @@ class CurrentSkillHealthTests(unittest.TestCase):
         self.assertEqual(figure.get("composite_encoding_preference_conditions"),
                          ["real_complementary_information", "readability_gain"])
         self.assertTrue(figure.get("portfolio_scientific_quality_review_required"))
-        self.assertTrue(figure.get("high_contrast_primary_palette_required"))
+        self.assertIs(figure.get("high_contrast_primary_palette_required"), False)
+        self.assertEqual(figure.get("palette_selection"), "explicit_per_figure")
+        self.assertIn("default_palette", figure)
+        self.assertIsNone(figure["default_palette"])
         self.assertEqual(
             writing.get("optimization_expression_contract"),
             "core/writing_reasoning_contract.yaml#optimization_model_expression",
