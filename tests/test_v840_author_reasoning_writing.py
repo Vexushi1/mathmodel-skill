@@ -46,10 +46,11 @@ class WritingReasoningScopeTests(unittest.TestCase):
 
     def test_template_adapter_and_proof_algorithm_forms_are_pinned(self):
         # The proof-body policy and approved Part F carrier mapping intentionally reopen the LaTeX adapter;
-        # re-pin those exact forms while leaving the untouched algorithm pack on its prior baseline.
+        # re-pin those exact forms. A7 changes only the algorithm pack's ordinary-prose
+        # Authority pointer from the Adapter to the Protocol; keep the whole-file guard.
         frozen = {
             "packs/artifact/proposition_proof.md": "187cf4626294857a8e89351cf335a15bd0bbf1f8",
-            "packs/artifact/algorithm_flow.md": "dbd06aacd7216c654789a9002ce682a2065ec0bd",
+            "packs/artifact/algorithm_flow.md": "f637e328100f0739b4c9e1104c5d41dd169dc919",
         }
 
         def git_blob_sha1(text: str) -> str:

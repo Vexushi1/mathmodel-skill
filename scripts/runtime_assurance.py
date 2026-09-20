@@ -150,7 +150,7 @@ def _classification_for_scope(
         item = subproblems.get(question, {}) or {}
         classification = item.get("classification", {}) or {}
         objective = classification.get("objective")
-        structures = tuple(classification.get("structures", []) or [])
+        structures = tuple(sorted(set(classification.get("structures", []) or [])))
         capabilities = item.get("capabilities", {}) or classification.get("capabilities", {}) or {}
         enabled = tuple(sorted(str(name) for name, value in capabilities.items() if value is True))
         if objective or structures or enabled:

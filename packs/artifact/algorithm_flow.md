@@ -1,6 +1,6 @@
 # Artifact Pack：算法推理与论文流程呈现
 
-本 Pack 只负责把**已经确定的数学模型与真实求解逻辑**转成论文可读的算法流程。跨竞赛的准入、三态选择、Algorithm Trace 与证据闭环服从 `core/writing_reasoning_contract.yaml#algorithm_presentation`；正文位置与表达服从 `modules/05_writing/latex.md`。本文件不得把通用算法百科、Python 源码或题目专属实现复制成第二套模型规则。
+本 Pack 只负责把**已经确定的数学模型与真实求解逻辑**转成论文可读的算法流程。跨竞赛的准入、三态选择、Algorithm Trace 与证据闭环服从 `core/writing_reasoning_contract.yaml#algorithm_presentation`；正文位置与表达服从 `modules/05_writing/paper_writing_protocol.md`。本文件不得把通用算法百科、Python 源码或题目专属实现复制成第二套模型规则。
 
 机理/几何题中的精确事件判据、Event Topology、Reduction Provenance、Multi-resource Composition 和 Solver Applicability 由 `modules/02_model_design.md` 与对应 Task Pack 在模型设计阶段确定；本 Pack 只消费 current 语义并把真实控制逻辑呈现出来，不重新定义第二套结构有效性规则。
 

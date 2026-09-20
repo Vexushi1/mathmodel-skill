@@ -8,7 +8,7 @@ from typing import Any, Iterable
 
 import yaml
 
-from resolve_workflow import resolve_workflow
+from resolve_workflow import TAXONOMY_PATH, legacy_to_axes, resolve_workflow
 from reading_plan import build_reading_plan
 from runtime_assurance import (
     apply_contract_dependency_closure,
@@ -175,8 +175,8 @@ def resolve_runtime(
     *,
     request: str | None = None,
     objective: str | None = None,
-    structures: Iterable[str] = (),
-    capabilities: Iterable[str] = (),
+    structures: Iterable[str] | None = None,
+    capabilities: Iterable[str] | None = None,
     primary: str | None = None,
     secondary: Iterable[str] = (),
     competition: str | None = None,
@@ -223,7 +223,8 @@ def resolve_runtime(
     elif competition is not None:
         field_provenance["competition"] = "explicit"
         state_competition = hydration.get("competition")
-        if state_competition and str(state_competition).lower() != str(competition).lower():
+        profiles = load_yaml(COMPETITION_PROFILES_PATH)
+        if state_competition and _resolve_competition_profile(str(state_competition), profiles)[0] != _resolve_competition_profile(competition, profiles)[0]:
             context_conflicts.append(
                 f"explicit competition {competition} differs from project state {state_competition}"
             )
@@ -239,17 +240,28 @@ def resolve_runtime(
                 f"explicit preprocessing_decision {preprocessing_decision} differs from project state {state_decision}"
             )
 
-    explicit_classification = bool(
-        objective or list(structures) or list(capabilities) or primary or list(secondary)
+    secondary = list(secondary)
+    legacy_requested = bool(primary or secondary)
+    legacy_objective, legacy_structures, _ = (
+        legacy_to_axes(primary, secondary, load_yaml(TAXONOMY_PATH))
+        if legacy_requested else (None, [], [])
     )
+    explicit_fields = {
+        "objective": objective is not None or legacy_objective is not None,
+        "structures": structures is not None or legacy_requested,
+        "capabilities": capabilities is not None,
+    }
     hydrated_classification = hydration.get("classification", {}) or {}
-    if not explicit_classification and hydrated_classification:
-        objective = hydrated_classification.get("objective")
-        structures = hydrated_classification.get("structures", []) or []
-        capabilities = hydrated_classification.get("capabilities", []) or []
-        field_provenance["classification"] = "project_state"
-    elif explicit_classification:
-        field_provenance["classification"] = "explicit"
+    objective = objective if objective is not None else legacy_objective or hydrated_classification.get("objective")
+    structures = list(structures) if structures is not None else (
+        legacy_structures if legacy_requested else hydrated_classification.get("structures", []) or []
+    )
+    capabilities = list(capabilities) if capabilities is not None else hydrated_classification.get("capabilities", []) or []
+    if any(explicit_fields.values()) or hydrated_classification:
+        field_provenance["classification"] = "explicit" if any(explicit_fields.values()) else "project_state"
+        for field, explicit in explicit_fields.items():
+            if explicit or field in hydrated_classification:
+                field_provenance[f"classification.{field}"] = "explicit" if explicit else "project_state"
 
     effective_artifacts, artifact_evidence, artifact_conflicts = reconcile_legacy_artifacts(
         available_artifacts or (), hydration
@@ -270,6 +282,16 @@ def resolve_runtime(
         available_artifacts=base_available,
         preprocessing_decision=preprocessing_decision,
     )
+    for field, explicit in explicit_fields.items():
+        if not explicit or field not in hydrated_classification:
+            continue
+        current = plan["classification"][field]
+        previous = hydrated_classification[field]
+        differs = current != previous if field == "objective" else set(current) != set(previous)
+        if differs:
+            context_conflicts.append(
+                f"explicit classification.{field} {current} differs from current project scope {previous}"
+            )
     dependency = apply_contract_dependency_closure(plan, manifest, assurance_contract)
     # Assurance closure may legitimately add the full writing reasoning contract because
     # old module dependencies still know the v7 authority graph. Apply the v8 compact
@@ -335,8 +357,8 @@ def main() -> int:
     parser.add_argument("intents", nargs="*")
     parser.add_argument("--request")
     parser.add_argument("--objective")
-    parser.add_argument("--structures", nargs="*", default=[])
-    parser.add_argument("--capabilities", nargs="*", default=[])
+    parser.add_argument("--structures", nargs="*")
+    parser.add_argument("--capabilities", nargs="*")
     parser.add_argument("--primary", help="legacy compatibility label")
     parser.add_argument("--secondary", nargs="*", default=[], help="legacy compatibility labels")
     parser.add_argument("--competition")

@@ -306,6 +306,15 @@ Windows 检查不要求把全部 LaTeX 作业搬到 Windows，但 transaction、
 
 ## 8. 实施记录
 
+### A7 · 9.6.1
+
+- AUD-15：standalone `result_io` 的最小 fallback 投影补齐运行配置及五类既有 task_profiles 必需任选表；测试对照 canonical 的实际验证字段，并在仓库外隔离进程通过真实 XLSX I/O 比较正负例。没有复制整份规则形成平行 Authority。
+- AUD-16：两份 SKILL 入口字节一致，新增简明 `description`；原 version/summary/triggers 内容迁到标准 `metadata`，仓库消费者兼容新 metadata/历史顶层读取。plugin 描述改为逐图选型/选色；不恢复默认高对比。入口说明明确根入口与 packaged 上两级根，通过 bootstrap/plugin 标记定位资源。
+- AUD-17：objective/structures/capabilities 按显式轴比较并报告冲突，保持用户显式值、不覆盖未指定轴；`None`/未提供继续 hydrate，显式空列表表示清空并参与冲突检查。legacy labels 先用既有 taxonomy 映射，structures/capabilities 按集合比较，已登记 competition alias 先规范化；多问分类不同保留 ambiguity。
+- AUD-18：算法流程和 caption 模板的普通正文指针回到唯一 `modules/05_writing/paper_writing_protocol.md`；不修改该 Authority 本身或增加新的写作规则。
+- O04 限定结论：两份实际入口通过 skill-creator quick_validate，已有 plugin 布局复制后的资源路径 smoke 通过；未实际安装/激活宿主，不能宣称全部宿主已发现该 skill。第三方若直接读取旧顶层 version，需改读 metadata.version 或使用本仓库兼容读取方式。
+- 新增 12 项专项，含仓库外运行配置正负例与 canonical 投影、格式缺失诊断、显式分轴/清空/生成器/legacy/别名/多问；集成全量和CI记入本阶段 PR。用户模型、MATLAB、宿主安装和图像 QA 均未执行。
+
 ### A6 · 9.6.0（compile report v4）
 
 - AUD-10：静态 source bundle 纳入本地 `.sty/.cls` 的字面 `InputIfFileExists/IfFileExists` 依赖及递归引用；原本可选且不存在的配置后来出现也使旧报告 stale。引擎使用 `-recorder`，新编译先移除旧 recorder；v4 绑定 `recorder`、`recorder_sha256`、`actual_input_files`，正式状态要求 `dependency_issues=[]`。

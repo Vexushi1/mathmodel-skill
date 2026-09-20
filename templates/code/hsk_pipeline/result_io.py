@@ -29,6 +29,8 @@ PROBLEM_PATTERN = re.compile(r"问题[一二三四五六七八九十百]+")
 QUESTION_DIR_PATTERN = re.compile(r"问题[一二三四五六七八九十百]+求解")
 VALID_WORKBOOK_KINDS = {"solution", "result_analysis", "robustness"}
 
+# Minimal validation projection of core/workbook_schema.yaml for copied support packages.
+# tests/test_audit_a7_entry_consistency.py compares the consumed fields with that Authority.
 _FALLBACK_SCHEMA: dict[str, Any] = {
     "global_rules": {"empty_worksheet_allowed": False},
     "capability_contract": {
@@ -60,6 +62,7 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
     },
     "solution_workbook": {
         "common_required_sheets": {
+            "运行配置": {"required_columns": ["项目", "值"]},
             "核心指标": {"required_columns": ["指标", "数值"]},
             "数据审计": {"required_columns": ["等级", "检查项", "信息", "处理方式"]},
             "主结果质量门": {"required_columns": ["检查项", "是否通过", "证据"]},
@@ -112,10 +115,17 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
             "spatial": {"required_any": ["空间诊断", "参数估计"]},
             "network": {"required_any": ["节点结果", "边结果", "路径或流结果"]},
         },
-        "task_profiles": {},
+        "task_profiles": {
+            "prediction": {"required_any": ["预测明细", "误差指标", "外样本验证"]},
+            "evaluation": {"required_any": ["综合评分", "排序结果"]},
+            "statistics_ml": {"required_any": ["模型指标", "预测或分类结果"]},
+            "spatial": {"required_any": ["空间诊断", "参数估计"]},
+            "graph_network": {"required_any": ["节点结果", "边结果", "路径或流结果"]},
+        },
     },
     "result_analysis_workbook": {
         "common_required_sheets": {
+            "运行配置": {"required_columns": ["项目", "值"]},
             "分析设计": {"required_columns": ["风险来源", "分析问题", "方法", "指标", "通过标准"]},
             "结论稳定性汇总": {"required_columns": ["核心结论", "分析方法", "稳定范围", "是否保持"]},
         },
@@ -124,6 +134,7 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
             "结构稳健性", "异质性分析", "误差分解", "外样本稳定性",
         ],
         "sheet_schemas": {
+            "运行配置": {"required_columns": ["项目", "值"]},
             "分析设计": {"required_columns": ["风险来源", "分析问题", "方法", "指标", "通过标准"]},
             "参数敏感性": {"required_columns": ["参数", "基准值", "变化值", "结果指标"]},
             "阈值与失效边界": {"required_columns": ["分析对象", "临界值", "临界前结论", "临界后结论"]},

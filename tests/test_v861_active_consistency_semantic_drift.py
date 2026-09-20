@@ -149,7 +149,9 @@ class TestV861ActiveConsistencySemanticDrift(unittest.TestCase):
         self.assertEqual(str(plugin["version"]), current)
         for relative in ("SKILL.md", "skills/mathmodel-skill/SKILL.md"):
             text = (ROOT / relative).read_text(encoding="utf-8")
-            self.assertRegex(text, rf"(?m)^version:\s*{re.escape(current)}$")
+            data = yaml.safe_load(text.split("---", 2)[1])
+            version = data.get("metadata", {}).get("version", data.get("version"))
+            self.assertEqual(str(version), current)
 
 
 if __name__ == "__main__":

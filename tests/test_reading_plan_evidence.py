@@ -121,6 +121,78 @@ class ApprovedReadingEvidenceChangesTests(unittest.TestCase):
             row["plan"]["assurance"]["artifact_assurance"]["evidence"][2]["scope"] = "Q2"
         self.assertIn("assurance", self.compare(before, after)["unexpected_legacy_changes"])
 
+    def a7_pair(self, case="facts_current"):
+        before, after = self.pair(case)
+        provenance = {"competition": "explicit", "classification": "project_state"}
+        for row in (before, after):
+            row["plan"]["assurance"]["context"]["field_provenance"] = deepcopy(provenance)
+            row["plan"]["classification"] = {"objective": "optimization", "structures": ["network", "stochastic"]}
+        after["plan"]["assurance"]["context"]["field_provenance"].update({
+            f"classification.{axis}": "project_state" for axis in ("objective", "structures", "capabilities")
+        })
+        return before, after
+
+    def test_a7_exact_leaf_additions_are_visible_for_only_the_measured_cases(self):
+        cases = ("facts_current", "facts_model_change", "facts_ambiguous", "facts_stale_framework",
+                 "facts_hash_drift", "facts_identity_drift", "facts_stale_dependency", "style_current",
+                 "style_data_change", "style_figure_drift", "style_no_approval", "mixed")
+        for case in cases:
+            with self.subTest(case=case):
+                before, after = self.a7_pair(case)
+                saved = deepcopy((before, after))
+                row = self.compare(before, after)
+                self.assertFalse(row["legacy_behavior_equal"])
+                self.assertTrue(row["legacy_behavior_equal_except_approved_changes"])
+                additions = [item for item in row["expected_legacy_changes"] if item["approval"].startswith("A7")]
+                self.assertEqual({item["path"] for item in additions}, {
+                    f"assurance.context.field_provenance.classification.{axis}"
+                    for axis in ("objective", "structures", "capabilities")
+                })
+                self.assertTrue(all(item["baseline_present"] is False and item["candidate"] == "project_state"
+                                    for item in additions))
+                self.assertEqual((before, after), saved)
+
+    def test_a7_other_cases_or_additional_provenance_are_still_rejected(self):
+        for case in ("facts_unscoped", "new_field", "style_unscoped", "mechanism", "project_sync", "receipt", "cumcm_writing", "future_case"):
+            with self.subTest(case=case):
+                self.assertIn("assurance", self.compare(*self.a7_pair(case))["unexpected_legacy_changes"])
+        before, after = self.a7_pair()
+        after["plan"]["assurance"]["context"]["field_provenance"]["classification.extra"] = "project_state"
+        self.assertIn("assurance", self.compare(before, after)["unexpected_legacy_changes"])
+
+    def test_a7_changed_sources_and_present_null_are_not_treated_as_exact_additions(self):
+        for value in ("explicit", None):
+            with self.subTest(value=value):
+                before, after = self.a7_pair()
+                after["plan"]["assurance"]["context"]["field_provenance"]["classification.objective"] = value
+                self.assertIn("assurance", self.compare(before, after)["unexpected_legacy_changes"])
+        before, after = self.a7_pair()
+        before["plan"]["assurance"]["context"]["field_provenance"]["classification.objective"] = None
+        self.assertIn("assurance", self.compare(before, after)["unexpected_legacy_changes"])
+
+    def test_a7_does_not_normalize_classification_values_or_set_order(self):
+        for mode in ("objective", "membership", "order"):
+            with self.subTest(mode=mode):
+                before, after = self.a7_pair()
+                classification = after["plan"]["classification"]
+                if mode == "objective":
+                    classification["objective"] = "prediction"
+                elif mode == "membership":
+                    classification["structures"].append("dynamic")
+                else:
+                    classification["structures"].reverse()
+                self.assertIn("classification", self.compare(before, after)["unexpected_legacy_changes"])
+
+    def test_a7_approved_provenance_does_not_hide_other_assurance_changes(self):
+        for mode in ("status", "dependency"):
+            with self.subTest(mode=mode):
+                before, after = self.a7_pair()
+                if mode == "status":
+                    after["plan"]["assurance"]["status"] = "review_required"
+                else:
+                    after["plan"]["assurance"]["dependency_closure"]["contracts"] = []
+                self.assertIn("assurance", self.compare(before, after)["unexpected_legacy_changes"])
+
 
 if __name__ == "__main__":
     unittest.main()

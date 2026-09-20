@@ -148,11 +148,24 @@ def check_skill_entrypoint_parity(errors: list[str]) -> None:
     end = "<!-- HSK_RUNTIME_ENTRY_CONTRACT_END -->"
 
     def frontmatter_version(text: str, origin: str) -> str | None:
-        match = re.search(r"^version:\s*([^\s]+)", text, flags=re.MULTILINE)
-        if not match:
+        match = re.match(r"\A---\n(.*?)\n---(?:\n|$)", text, flags=re.DOTALL)
+        try:
+            data = yaml.safe_load(match.group(1)) if match else None
+        except yaml.YAMLError:
+            data = None
+        if not isinstance(data, dict):
+            errors.append(f"skill entrypoint frontmatter invalid: {origin}")
+            return None
+        description = data.get("description")
+        if (not isinstance(description, str) or not description.strip()
+                or len(description.strip()) > 1024 or re.search(r"[<>]|\[TODO:", description)):
+            errors.append(f"skill entrypoint description invalid or missing: {origin}")
+        metadata = data.get("metadata", {})
+        version = metadata.get("version", data.get("version")) if isinstance(metadata, dict) else data.get("version")
+        if version is None:
             errors.append(f"skill entrypoint version missing: {origin}")
             return None
-        return match.group(1)
+        return str(version)
 
     def contract_block(text: str, origin: str) -> str | None:
         if text.count(start) != 1 or text.count(end) != 1:
