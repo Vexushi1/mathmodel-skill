@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 import yaml
+import test_user_execution_contract as execution_fixtures
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -126,20 +127,18 @@ class V700TwoStageExecutionTests(unittest.TestCase):
     def test_analysis_change_invalidates_only_analysis_chain(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            state = self.base_state()
-            state["preprocessing"] = {"decision": "not_needed"}
+            fixture = execution_fixtures.UserExecutionContractTests()
+            primary = fixture.make_project(root)
+            state = fixture.accept_primary(root, primary)
             state["subproblems"]["Q1"].update({
-                "status": "solved",
-                "result_quality_status": "passed",
-                "primary_execution_status": "accepted",
                 "analysis_execution_status": "accepted",
                 "result_analysis_status": "passed",
-                "primary_code_sha256": "1" * 64,
                 "analysis_code_sha256": "2" * 64,
+                "result_analysis_requirement_reason": "Current answer has a parameter risk",
+                "analysis_methods": ["参数敏感性"],
             })
             self.write_state(root, state)
             folder = root / "问题一求解"
-            folder.mkdir()
             analysis = folder / "问题一结果深化分析.py"
             self.write_code(analysis, self.config("问题一", "analysis", "问题一结果深化分析.xlsx"), marker=1)
             issues, cfg = CODE.validate_script(root, analysis, "analysis")

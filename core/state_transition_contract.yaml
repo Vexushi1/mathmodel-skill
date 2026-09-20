@@ -40,6 +40,7 @@ compatibility:
 
 profiles:
   semantic:
+    clear: [result_analysis_requirement_reason]
     stale_layers: [primary_code, solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, framework]
     set:
       result_quality_status: pending
@@ -52,6 +53,7 @@ profiles:
       model_challenge_status: stale
       human_model_approval_status: stale
   primary_result:
+    clear: [result_analysis_requirement_reason]
     stale_layers: [primary_code, solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, framework]
     set:
       result_quality_status: pending
@@ -61,6 +63,7 @@ profiles:
     set_if_present:
       analysis_execution_status: pending
   dependent_result:
+    clear: [result_analysis_requirement_reason]
     stale_layers: [solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, framework]
     set:
       result_quality_status: pending
@@ -79,6 +82,7 @@ profiles:
     set_if_present:
       analysis_execution_status: pending
   data_result:
+    clear: [result_analysis_requirement_reason]
     stale_layers: [data, solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, framework]
     set:
       result_quality_status: pending
@@ -172,6 +176,7 @@ cycle_policy:
     according to their gate severity; the transition engine itself remains deterministic.
 
 transition_report:
+  cleared_field_reporting: Profile clear removes an existing state field; status_updates reports its removal as null without writing null into project state.
   required_fields: [event, source, affected_questions, transitions, dependency_cycles]
   transition_fields:
   - question

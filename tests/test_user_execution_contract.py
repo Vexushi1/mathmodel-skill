@@ -159,6 +159,14 @@ class UserExecutionContractTests(unittest.TestCase):
         self.write_code(code, self.config("analysis", "问题一结果深化分析.xlsx"), marker)
         return code
 
+    def activate_analysis(self, root: Path) -> None:
+        state = self.read_state(root)
+        state["subproblems"]["Q1"].update(
+            result_analysis_requirement_reason="Current answer has a material parameter risk",
+            analysis_methods=["参数敏感性"],
+        )
+        self.write_state(root, state)
+
     def test_code_delivery_does_not_mark_solved(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -228,7 +236,7 @@ class UserExecutionContractTests(unittest.TestCase):
             self.make_project(root)
             analysis = self.make_analysis_code(root)
             issues, config = CODE.validate_script(root, analysis, "analysis")
-            self.assertEqual(issues, [])
+            self.assertTrue(any("主工作簿未accepted" in item for item in issues), issues)
             with self.assertRaisesRegex(ValueError, "主工作簿未accepted"):
                 CODE.update_state(root, config, analysis)
 
@@ -237,6 +245,7 @@ class UserExecutionContractTests(unittest.TestCase):
             root = Path(temp)
             primary = self.make_project(root)
             state = self.accept_primary(root, primary)
+            self.activate_analysis(root)
             primary_hash = state["subproblems"]["Q1"]["primary_code_sha256"]
             analysis = self.make_analysis_code(root)
             issues, config = CODE.validate_script(root, analysis, "analysis")
@@ -254,6 +263,7 @@ class UserExecutionContractTests(unittest.TestCase):
             root = Path(temp)
             primary = self.make_project(root)
             self.accept_primary(root, primary)
+            self.activate_analysis(root)
             analysis = self.make_analysis_code(root)
             _, config = CODE.validate_script(root, analysis, "analysis")
             CODE.update_state(root, config, analysis)

@@ -19,6 +19,7 @@ import state_transitions as STATE_TRANSITIONS  # noqa: E402
 import artifact_identity as ARTIFACT_IDENTITY  # noqa: E402
 import project_transaction as PROJECT_TX  # noqa: E402
 import run_config_parser as RUN_CONFIG_PARSER  # noqa: E402
+import analysis_prerequisites as ANALYSIS_PREREQUISITES  # noqa: E402
 STATE_TRANSITION_CONTRACT = yaml.safe_load(
     (SKILL_ROOT / "core" / "state_transition_contract.yaml").read_text(encoding="utf-8")
 ) or {}
@@ -399,6 +400,12 @@ def validate_script(
         project_root, stage, str(config.get("data_sha256", "")),
         config.get("data_paths"), text,
     ))
+    if stage == "analysis":
+        state_path = project_root / "state" / "project_state.yaml"
+        state = load_yaml(state_path) if state_path.is_file() else {}
+        entry = (state.get("subproblems") or {}).get(_question_key(problem), {})
+        issues.extend(ANALYSIS_PREREQUISITES.analysis_issues(
+            project_root, state, entry, data_hash=config.get("data_sha256")))
     quality_errors, _, _ = code_quality_findings(text, config)
     issues.extend(quality_errors)
     return list(dict.fromkeys(issues)), config
@@ -467,13 +474,17 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path) -> li
 
     key = _question_key(problem)
     entry = state.setdefault("subproblems", {}).setdefault(key, {})
+    if stage == "analysis":
+        prerequisite_issues = ANALYSIS_PREREQUISITES.analysis_issues(
+            project_root, state, entry, data_hash=config.get("data_sha256"))
+        if prerequisite_issues:
+            raise ValueError("; ".join(prerequisite_issues))
     try:
         ARTIFACT_IDENTITY.canonicalize_entry_hashes(entry)
     except ARTIFACT_IDENTITY.ArtifactIdentityError as exc:
         raise ValueError(f"artifact identity alias conflict: {exc}") from exc
-    entry["data_hash"] = str(config["data_sha256"]).lower()
-
     if stage == "primary":
+        entry["data_hash"] = str(config["data_sha256"]).lower()
         old_hash = entry.get("primary_code_sha256")
         accepted = entry.get("primary_execution_status") == "accepted"
         unchanged_accepted = accepted and old_hash == new_hash

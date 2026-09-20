@@ -11,6 +11,7 @@ from pathlib import Path
 
 import openpyxl
 import yaml
+import test_user_execution_contract as execution_fixtures
 
 ROOT = Path(__file__).resolve().parents[1]
 FALSE_FLAGS = (
@@ -139,19 +140,18 @@ class TestV701StageBoundaryClosure(unittest.TestCase):
     def test_unscoped_code_delivery_preserves_accepted_primary_and_delivers_analysis(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
+            fixture = execution_fixtures.UserExecutionContractTests()
+            primary = fixture.make_project(root)
+            fixture.accept_primary(root, primary)
+            fixture.activate_analysis(root)
             folder = root / "问题一求解"
-            folder.mkdir(parents=True)
-            primary = folder / "问题一求解.py"
             analysis = folder / "问题一结果深化分析.py"
-            write_code(primary, config("primary", "问题一求解结果.xlsx"))
             write_code(analysis, config("analysis", "问题一结果深化分析.xlsx"))
             primary_hash = hashlib.sha256(primary.read_bytes()).hexdigest()
-            (root / "state").mkdir()
             state_path = root / "state/project_state.yaml"
-            state_path.write_text(
-                yaml.safe_dump(state_payload(primary_hash), allow_unicode=True, sort_keys=False),
-                encoding="utf-8",
-            )
+            state = fixture.read_state(root)
+            state["project"]["current_phase"] = "result_analysis"
+            fixture.write_state(root, state)
 
             result = subprocess.run(
                 [sys.executable, str(ROOT / "scripts/validate_code_delivery.py"), str(root), "--write", "--strict"],

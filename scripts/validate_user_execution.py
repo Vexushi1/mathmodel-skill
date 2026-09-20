@@ -7,6 +7,7 @@ import ast
 import hashlib
 import importlib.util
 import sys
+from copy import deepcopy
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,8 @@ if SCRIPT_DIR not in sys.path:
 import artifact_identity as ARTIFACT_IDENTITY  # noqa: E402
 import project_transaction as PROJECT_TX  # noqa: E402
 import run_config_parser as RUN_CONFIG_PARSER  # noqa: E402
+import analysis_prerequisites as ANALYSIS_PREREQUISITES  # noqa: E402
+import state_transitions as STATE_TRANSITIONS  # noqa: E402
 
 FALSE_FLAGS = (
     "allow_reduced_data", "allow_coarser_grid", "allow_shorter_horizon",
@@ -429,6 +432,13 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
 
     key = question_key(problem)
     entry = {} if stage == "preprocessing" else (state.get("subproblems") or {}).get(key, {})
+    if stage == "analysis":
+        prerequisite_issues = ANALYSIS_PREREQUISITES.analysis_issues(
+            root, state, entry, for_receipt=True,
+            historical_workbook=workbook if not write else None,
+        )
+        if prerequisite_issues:
+            return list(dict.fromkeys([*issues, *prerequisite_issues]))
     if stage != "preprocessing":
         try:
             ARTIFACT_IDENTITY.canonicalize_entry_hashes(entry)
@@ -475,14 +485,26 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
         issues.extend(numerical_issues)
         passed = passed and numerical_passed
         if write:
+            workbook_hash = file_hash(workbook)
+            old_hash = (entry.get("validated_artifact_hashes") or {}).get("solution_workbook") or (
+                entry.get("artifact_hashes") or {}).get("solution_workbook")
+            if old_hash and old_hash != workbook_hash:
+                STATE_TRANSITIONS.apply_transition(
+                    state, event="solution_workbook_changed", source_question=key,
+                    contract=load_yaml(Path(SCRIPT_DIR).parent / "core/state_transition_contract.yaml"),
+                )
             entry["primary_execution_status"] = "accepted" if not issues and passed else "rejected"
             entry["result_quality_status"] = "passed" if not issues and passed else "failed"
             entry["solution_workbook"] = workbook.relative_to(root).as_posix()
-            entry.setdefault("artifact_hashes", {})["solution_workbook"] = file_hash(workbook)
+            entry.setdefault("artifact_hashes", {})["solution_workbook"] = workbook_hash
             if not issues and passed:
                 validated_hashes = entry.setdefault("validated_artifact_hashes", {})
                 validated_hashes["primary_code"] = str(entry.get("primary_code_sha256", "")).lower()
-                validated_hashes["solution_workbook"] = file_hash(workbook)
+                validated_hashes["solution_workbook"] = workbook_hash
+                validated_hashes["data"] = str(entry["data_hash"]).lower()
+                entry["validated_data_hash"] = validated_hashes["data"]
+                entry["artifact_hashes"]["data"] = validated_hashes["data"]
+                _close_verified_layers(entry, {"data", "primary_code", "solution_workbook"})
                 entry["status"] = "solved"
     else:
         passed, result_status, analysis_issues = analysis_passed(workbook)
@@ -500,6 +522,7 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
                 validated_hashes = entry.setdefault("validated_artifact_hashes", {})
                 validated_hashes["analysis_code"] = str(entry.get("analysis_code_sha256", "")).lower()
                 validated_hashes["result_analysis_workbook"] = file_hash(workbook)
+                _close_verified_layers(entry, {"analysis_code", "result_analysis_workbook"})
                 entry["status"] = "analyzed"
             elif result_status == "redo_required":
                 entry["artifacts_stale"] = True
@@ -509,6 +532,11 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
                 entry["result_summary_status"] = "stale"
                 state.setdefault("project", {})["current_phase"] = "solve_validate"
     return list(dict.fromkeys(issues))
+
+
+def _close_verified_layers(entry: dict[str, Any], verified: set[str]) -> None:
+    entry["stale_layers"] = sorted(set(entry.get("stale_layers", []) or []) - verified)
+    entry["artifacts_stale"] = bool(entry["stale_layers"])
 
 
 def discover(root: Path) -> list[Path]:
@@ -545,6 +573,7 @@ def main() -> int:
     else:
         state = load_yaml(state_path)
         base_generation = PROJECT_TX.state_generation(state)
+    original_state = deepcopy(state)
     workbooks = (
         [args.workbook if args.workbook.is_absolute() else root / args.workbook]
         if args.workbook else discover(root)
@@ -555,7 +584,7 @@ def main() -> int:
         issues = validate_one(root, workbook, state, args.write)
         all_issues.extend(f"{workbook.name}: {item}" for item in issues)
         checked.append(workbook.relative_to(root).as_posix())
-    if args.write:
+    if args.write and (not all_issues or state != original_state):
         PROJECT_TX.commit_project_state(
             root, state, expected_generation=base_generation
         )
