@@ -304,16 +304,17 @@ class TestSyncProject(unittest.TestCase):
 
     def test_figure_scope_rejects_embedded_total_title(self):
         syncer = load_syncer()
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            result = setup_project(root, status="analyzed", phase="figure_evidence")
-            (result / "q1_plot.m").write_text(
-                'readcell("问题一求解结果.xlsx"); title(gca, "结果");',
-                encoding="utf-8",
-            )
-            report = syncer.synchronize(root, write=False, delivery_scope="figures")
-            self.assertTrue(any("不得设置整体title或sgtitle" in issue for issue in report["issues"]), report)
-            self.assertTrue(report["questions"]["Q1"]["matlab_has_title"])
+        for call in ('title(gca, "结果")', 'sgtitle("结果")'):
+            with self.subTest(call=call), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                result = setup_project(root, status="analyzed", phase="figure_evidence")
+                (result / "q1_plot.m").write_text(
+                    f'readcell("问题一求解结果.xlsx"); {call};',
+                    encoding="utf-8",
+                )
+                report = syncer.synchronize(root, write=False, delivery_scope="figures")
+                self.assertTrue(any("不得设置整体title或sgtitle" in issue for issue in report["issues"]), report)
+                self.assertTrue(report["questions"]["Q1"]["matlab_has_title"])
 
     def test_matlab_title_in_comment_is_not_executable_title(self):
         syncer = load_syncer()

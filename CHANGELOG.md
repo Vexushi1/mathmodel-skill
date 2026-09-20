@@ -1,6 +1,13 @@
 # Changelog
 
-## Current release: 9.4.0
+## Current release: 9.4.1
+
+- Fixed the P0-A MATLAB title handoff mismatch: new mappings no longer require `matlab_title`, while existing values are declared read-only historical metadata and do not authorize rendered figure titles.
+- Updated the workbook Schema declaration to 2.3.1 and replaced its conflicting title instructions with a reference to the existing formal-figure output Authority; actual Excel worksheet names, headers and accepted numerical data remain unchanged.
+- Removed the obsolete positive `title` lint expectation and its facade diagnostic suppression, preserving the active prohibition on executable overall `title/sgtitle` in formal MATLAB templates.
+- Preserved model solving, optional-analysis lifecycle, workbook readers, chart and palette selection, user-owned MATLAB execution and existing preview infrastructure. This patch does not complete the remaining figure-technique/handoff plan stages or claim MATLAB runtime, image-review or CI acceptance.
+
+## Previous release: 9.4.0
 
 - Published the completed writing/readability program as a backward-compatible minor release: nontrivial core derivations and proofs remain recoverable in the paper body by mathematical role, while routine algebra, repeated coefficients, code/log detail and non-core supplements may still be compressed or externalized.
 - Added judge-readable writing behavior for professional headings and first-use terminology, readable result tables with invariant accepted values/units/precision, formula-rich narrative organized by reasoning units, and normal use of semantic heading levels 1–3 with deterministic blocking of active LaTeX level 4+ headings.

@@ -1,4 +1,4 @@
-schema_version: 2.3.0
+schema_version: 2.3.1
 skill_compatibility: '>=6.3.2,<10.0.0'
 purpose: 约束主求解工作簿与按需结果深化分析工作簿的工作表、字段、三轴条件、非空规则和MATLAB交接。
 runtime_enforcement:
@@ -255,8 +255,14 @@ result_analysis_workbook:
       required_columns: [核心结论, 分析方法, 稳定范围, 是否保持]
       optional_columns: [失效边界, 证据工作表, 论文位置, 说明]
 matlab_handoff:
-  required_mapping_fields: [figure_id, matlab_title, paper_caption, workbook, worksheet, required_headers, matlab_script, framework_registry]
+  required_mapping_fields: [figure_id, paper_caption, workbook, worksheet, required_headers, matlab_script, framework_registry]
   optional_mapping_fields: [expected_column_positions, units, schema_hash]
+  legacy_read_only_fields:
+    matlab_title:
+      role: historical_description_only
+      generate_for_new_mapping: false
+      render_as_title: false
+      project_migration_required: false
   field_resolution:
     method: exact_header_unique_match
     normalize_whitespace: true
@@ -272,11 +278,7 @@ matlab_handoff:
     independent_evidence_file_default: false
     mtime_role: auxiliary_warning_only
   title_contract:
-    single_panel: title
-    multi_panel: sgtitle
-    keep_in_export: true
-    content: 研究对象+指标或关系+必要方法信息
-    caption_policy: 图注补充统计口径、数据范围和解释，不与MATLAB标题逐字重复
+    authority: core/output_contract.yaml#matlab_figure_contract
   reference_required: true
   machine_readable_alternative:
     default_generation: forbidden

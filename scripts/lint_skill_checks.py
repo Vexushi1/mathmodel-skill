@@ -368,8 +368,8 @@ def check_versions(errors: list[str]) -> None:
     if f"version: {PACKAGE_VERSION}" not in packaged:
         errors.append("packaged skill version mismatch")
     workbook = load_structured(ROOT / "core/workbook_schema.yaml") or {}
-    if workbook.get("schema_version") != "2.3.0":
-        errors.append("workbook schema version must be 2.3.0")
+    if workbook.get("schema_version") != "2.3.1":
+        errors.append("workbook schema version must be 2.3.1")
     compatibility = str(workbook.get("skill_compatibility", ""))
     if ">=6.3.2" not in compatibility or "<10.0.0" not in compatibility:
         errors.append("workbook schema compatibility must cover 6.3.2 through v9")
@@ -1024,7 +1024,7 @@ def check_templates(errors: list[str]) -> None:
         if token not in reader:
             errors.append(f"MATLAB reader lacks token: {token}")
     plot = read_text(ROOT / "templates/matlab/q1_plot.m")
-    for token in ("exact_header_column", "headers ==", "warn_position_drift", "title(ax, figureTitle"):
+    for token in ("exact_header_column", "headers ==", "warn_position_drift"):
         if token not in plot:
             errors.append(f"q1_plot.m lacks required token: {token}")
     semantic = read_text(ROOT / "scripts/validate_semantic_governance.py")

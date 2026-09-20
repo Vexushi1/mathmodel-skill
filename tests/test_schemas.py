@@ -81,7 +81,7 @@ class TestSchemas(unittest.TestCase):
 
     def test_workbook_schema_has_quality_gate_and_adaptive_analysis(self):
         schema = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(schema["schema_version"], "2.3.0")
+        self.assertEqual(schema["schema_version"], "2.3.1")
         self.assertIn(">=6.3.2", schema["skill_compatibility"])
         self.assertIn("<10.0.0", schema["skill_compatibility"])
         self.assertEqual(schema["classification_contract"]["capabilities_source"], "subproblem.capabilities")
@@ -109,6 +109,31 @@ class TestSchemas(unittest.TestCase):
         self.assertIn("结构稳健性", analysis["required_any_sheets"])
         self.assertNotIn("适用性说明", analysis["sheet_schemas"])
         self.assertEqual(schema["matlab_handoff"]["field_resolution"]["method"], "exact_header_unique_match")
+
+    def test_matlab_handoff_reuses_caption_policy_and_keeps_legacy_title_read_only(self):
+        schema = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_text(encoding="utf-8"))
+        handoff = schema["matlab_handoff"]
+        self.assertEqual(set(handoff["required_mapping_fields"]), {
+            "figure_id", "paper_caption", "workbook", "worksheet",
+            "required_headers", "matlab_script", "framework_registry",
+        })
+        self.assertNotIn("matlab_title", handoff["optional_mapping_fields"])
+        legacy = handoff["legacy_read_only_fields"]["matlab_title"]
+        self.assertEqual(legacy["role"], "historical_description_only")
+        self.assertFalse(legacy["generate_for_new_mapping"])
+        self.assertFalse(legacy["render_as_title"])
+        self.assertFalse(legacy["project_migration_required"])
+        self.assertEqual(handoff["title_contract"], {
+            "authority": "core/output_contract.yaml#matlab_figure_contract",
+        })
+        path, section = handoff["title_contract"]["authority"].split("#", 1)
+        policy = yaml.safe_load((ROOT / path).read_text(encoding="utf-8"))[section]
+        self.assertFalse(policy["title_required"])
+        self.assertTrue(policy["embedded_overall_title_forbidden"])
+        self.assertEqual(policy["formal_title_owner"], "DOCX_or_LaTeX_caption")
+        self.assertEqual(policy["single_panel_title"], "none")
+        self.assertEqual(policy["multi_panel_title"], "panel_labels_only")
+        self.assertFalse(policy["keep_title_in_export_by_default"])
 
     def test_output_contract_defines_split_result_policy(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))

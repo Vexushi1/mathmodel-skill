@@ -5,11 +5,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class TestV910PublicationRendering(unittest.TestCase):
-    def test_v910_release_is_preserved_after_v930(self):
+    def test_v910_release_is_preserved_after_v941(self):
         bootstrap = (ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8")
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        self.assertIn("skill_version: 9.4.0", bootstrap)
-        self.assertTrue(changelog.startswith("# Changelog\n\n## Current release: 9.4.0\n"))
+        self.assertIn("skill_version: 9.4.1", bootstrap)
+        self.assertTrue(changelog.startswith("# Changelog\n\n## Current release: 9.4.1\n"))
+        self.assertIn("## Previous release: 9.4.0", changelog)
         self.assertIn("## Previous release: 9.3.1", changelog)
         self.assertIn("## Previous release: 9.3.0", changelog)
         self.assertIn("## Previous release: 9.2.1", changelog)
