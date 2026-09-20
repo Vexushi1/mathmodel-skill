@@ -24,16 +24,16 @@
 | Rejected alternatives | 仅记录实际考虑的备选及否决原因；无合适备选时可写 none，不补造比较 |
 | Source workbook | `问题X求解/问题X求解结果.xlsx` 或 `问题X求解/问题X结果深化分析.xlsx` |
 | Worksheet | 中文工作表名 |
-| Required columns | 绘图必需真实字段、记录键、单位和排序字段 |
+| Required headers | 绘图所需精确唯一表头及单位；按实际证据登记真实记录键、配对/排序字段与依据，不造键、不以行序冒充配对 |
 | Expected positions | 可选列号，仅作结构漂移警告 |
 | MATLAB script | `问题X求解/qX_plot.m` |
 | Panel map | a/b/c/d 或其他 axes 的证据职责；无多面板时写单图职责 |
 | Statistics/error | 误差线、区间、样本量和统计口径 |
-| Export files | 求解阶段留空；论文阶段人工确认后可登记项目级 `figures/qx_*.pdf`、`.png` 或 `.svg` |
+| Export files | 未导出时留空；用户实际运行、人工确认并按需导出后登记真实文件，如项目级 `figures/qx_*.pdf`、`.png` 或 `.svg`；预定名称留在图表计划中 |
 | Framework registry | `模型论文框架.md` 中的对应图表登记 |
 | Paper location | 正文章节 |
 | Reviewer risk | 可能质疑点与处理 |
 
-Figure Contract 默认登记在 `模型论文框架.md`，不生成独立 `figure_evidence` 文件。`Candidate visual structures / Basic-form challenge / Scientific value rationale` 只记录科研表达决策，不变成样式参数表；Enhancement 只记录决策与理由，**不记录 inset 坐标、透明度等 MATLAB 实现参数**。
+Figure Contract 默认登记在 `模型论文框架.md`，不生成独立 `figure_evidence` 文件。以同一 Figure ID 复用来源、caption、实际入文文件与正文引用；静态检查和用户运行/外观确认的进度记入现有闭环表或框架待办，静态通过不等于 `approved_figures`。`Candidate visual structures / Basic-form challenge / Scientific value rationale` 只记录科研表达决策，不变成样式参数表；Enhancement 只记录决策与理由，**不记录 inset 坐标、透明度等 MATLAB 实现参数**。
 
 合同说明这张图如何充分、清楚地支持当前结论。清楚的单折线、点图或条形图可直接成为核心图；多编码或多面板只有真实互补且更易读时才采用。同一数据的线与点不登记成两份独立证据。
