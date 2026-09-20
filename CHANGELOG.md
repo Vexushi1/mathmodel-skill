@@ -5,6 +5,7 @@
 - A0/A1 repairs native Windows state transactions: backup synchronization uses a writable descriptor and partial pre-journal staging cleans only its own temporary files. Generation checks, locks, journal recovery and companion-file order remain unchanged.
 - Workbook receipt readers close their owned read-only workbook on success, early return and exception. Native Windows unit CI now covers file lifecycle; only the symbolic-link fixture may skip on the exact missing-privilege condition, while ordinary path escape checks always run.
 - This patch implements AUD-01/AUD-14 of the repository audit plan. No model, numerical acceptance rule, project schema, MATLAB execution or visual QA changes.
+- The new Windows runner exposed equivalent short/long temporary-root spellings. File discovery, package paths and combined fingerprints now canonicalize roots before comparison; test measurement normalizes both spellings without disabling path-escape checks.
 
 ## Previous release: 9.5.2
 

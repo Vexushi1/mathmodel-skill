@@ -313,3 +313,4 @@ Windows 检查不要求把全部 LaTeX 作业搬到 Windows，但 transaction、
 - 原生 Windows CI 覆盖完整 Python 单测；符号链接权限用例独立，只有 WinError 1314 按真实能力 skip，普通路径检查仍执行。
 - 事务新增失败注入在旧代码上复现残留，修复后 12 项通过；Windows 完整回归 1101 项通过（1 项仅因 WinError 1314 缺少 symlink 权限跳过），原 40 个失败不再出现；reader 专项 102 项通过。远端 CI 在对应 PR 中记实。
 - 无 CLI、state/workbook schema 或用户文件迁移；MATLAB/图像 QA 未执行。
+- 首轮远端 Windows CI 另发现 8 fail / 2 error：runner 临时目录的 `RUNNER~1` 与 `runneradmin` 被当成不同根路径。补充规范化数据发现、打包和组合哈希的根路径，以及测量日志路径；增加等价路径与越界反例，保留完整 Windows CI。Linux 各 Python 与 LaTeX 作业首轮已通过；补丁后重新核验。
