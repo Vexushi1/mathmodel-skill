@@ -162,7 +162,7 @@ class TestTooling(unittest.TestCase):
             self.assertTrue(patched.endswith(suffix))
             self.assertFalse(module.patch_cumcm_class(target))
 
-    def test_matlab_templates_use_real_headers_fixed_columns_and_caption_owned_titles(self):
+    def test_matlab_templates_use_unique_headers_and_caption_owned_titles(self):
         plotting = (ROOT / "templates/matlab/q1_plot.m").read_text(encoding="utf-8")
         style = (ROOT / "templates/matlab/hsk_apply_scientific_style.m").read_text(encoding="utf-8")
         profile = (ROOT / "templates/matlab/hsk_publication_profile.m").read_text(encoding="utf-8")
@@ -176,8 +176,9 @@ class TestTooling(unittest.TestCase):
         self.assertIn("默认不自动导出文件", plotting)
         self.assertIn("信息效率", plotting)
         self.assertIn("readcell", plotting)
-        self.assertIn("xColumn = NaN", plotting)
-        self.assertIn("actualXHeader == xHeader", plotting)
+        self.assertIn("exact_header_column(headers, xHeader, sourceBook, sourceSheet)", plotting)
+        self.assertIn("numel(matches) == 1", plotting)
+        self.assertNotIn("兼容检查标记", plotting)
         self.assertNotIn("readtable(", plotting)
         code = "\n".join(line.split("%", 1)[0] for line in plotting.splitlines())
         self.assertNotIn("title(", code)
@@ -200,8 +201,10 @@ class TestTooling(unittest.TestCase):
         self.assertIn("结果深化分析.xlsx", reader)
         self.assertIn("books.analysis", reader)
         self.assertIn("readcell", reader)
-        self.assertIn("fixedColumns", reader)
-        self.assertIn("expectedHeaders", reader)
+        self.assertIn("exact_header_column(actualHeaders, spec.headers(j), context)", reader)
+        self.assertIn("numel(matches) == 1", reader)
+        self.assertIn("expected ~= actualColumns(j)", reader)
+        self.assertNotIn("fixedColumns", reader)
         self.assertNotIn("missingColumns", reader)
         self.assertIn('fullfile(location, problemName + "求解")', reader)
         self.assertNotIn('resultDir = fullfile(location, "结果数据表", problemName)', reader)

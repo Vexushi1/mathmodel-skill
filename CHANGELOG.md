@@ -1,6 +1,13 @@
 # Changelog
 
-## Current release: 9.4.1
+## Current release: 9.4.2
+
+- Fixed P0-B MATLAB workbook handoff: analysis workbooks are required only when the current figure explicitly needs accepted 03B evidence; missing requested workbooks, sheets or fields remain errors, while solution-only figures do not require an unrelated analysis workbook.
+- Aligned readers and figure/writing handoff templates with exact unique headers after whitespace normalization. Expected column positions are optional drift warnings rather than field identities; duplicate or missing requested headers remain errors.
+- Removed silent invalid-value filtering and implicit x sorting from plotting entry templates so malformed values are distinguished from declared missing observations and row correspondence/order remain explicit.
+- Kept Workbook Schema 2.3.1, actual Excel fields, accepted numerical data, model solving, palette selection and CI unchanged. Verification for this patch is static for MATLAB; it does not claim MATLAB execution, image review or completion of later figure-plan stages.
+
+## Previous release: 9.4.1
 
 - Fixed the P0-A MATLAB title handoff mismatch: new mappings no longer require `matlab_title`, while existing values are declared read-only historical metadata and do not authorize rendered figure titles.
 - Updated the workbook Schema declaration to 2.3.1 and replaced its conflicting title instructions with a reference to the existing formal-figure output Authority; actual Excel worksheet names, headers and accepted numerical data remain unchanged.

@@ -5,7 +5,7 @@ import unittest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED = "9.4.1"
+EXPECTED = "9.4.2"
 
 
 class P9ReleaseCloseoutTests(unittest.TestCase):
@@ -53,6 +53,7 @@ class P9ReleaseCloseoutTests(unittest.TestCase):
     def test_release_docs_record_current_and_compatibility_decision(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         self.assertTrue(changelog.startswith(f"# Changelog\n\n## Current release: {EXPECTED}"))
+        self.assertIn("## Previous release: 9.4.1", changelog)
         self.assertIn("## Previous release: 9.4.0", changelog)
         self.assertIn("## Previous release: 9.3.1", changelog)
         self.assertIn("## Previous release: 9.3.0", changelog)

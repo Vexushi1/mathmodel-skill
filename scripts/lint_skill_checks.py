@@ -1020,7 +1020,7 @@ def check_templates(errors: list[str]) -> None:
         if token not in pipeline:
             errors.append(f"main pipeline lacks token: {token}")
     reader = read_text(ROOT / "templates/matlab/hsk_read_result_workbooks.m")
-    for token in ("结果深化分析.xlsx", "books.analysis", "fixedColumns", "expectedHeaders"):
+    for token in ("结果深化分析.xlsx", "books.analysis", "exact_header_column", "numel(matches) == 1", "spec.expected_columns"):
         if token not in reader:
             errors.append(f"MATLAB reader lacks token: {token}")
     plot = read_text(ROOT / "templates/matlab/q1_plot.m")

@@ -19,11 +19,9 @@ assert(strlength(scriptPath) > 0, "请从已保存的q1_plot.m运行脚本");
 resultDir = string(fileparts(scriptPath));
 solutionBook = fullfile(resultDir, "问题一求解结果.xlsx");
 resultAnalysisBook = fullfile(resultDir, "问题一结果深化分析.xlsx");
-assert(isfile(solutionBook), "缺少工作簿: %s", solutionBook);
 
 %% 2. 实际结构锁定
 % 图型选择以 Core conclusion / Evidence level / Primary question / Evidence structure 和信息效率为准。
-% 兼容检查标记：xColumn = NaN；actualXHeader == xHeader。
 % 主结果图优先使用solutionBook；仅当当前图明确依赖已验收03B证据时才把sourceBook切换为resultAnalysisBook。
 % sourceBook一旦显式指向resultAnalysisBook，下方存在性断言会fail closed；不得因03B缺失静默回退到主工作簿伪装稳健性/敏感性图。
 % 若图确实需要底层事实源，必须继承当前 preprocessing_decision；MATLAB 不重建模型变换。
@@ -35,9 +33,16 @@ expectedXColumn = NaN;  % 可选，仅作结构漂移警告
 expectedYColumn = NaN;
 xLabelText = "__ACTUAL_X_LABEL_WITH_UNIT__";
 yLabelText = "__ACTUAL_Y_LABEL_WITH_UNIT__";
+keyHeader = "";  % 有真实记录键时填写；行号只用于定位，不冒充业务键
+allowMissingHeaders = strings(0, 1);  % 仅列出工作簿合同明确允许缺测的 y 字段
+missingTokens = strings(0, 1);  % 仅填写真实的非数值缺测标记，例如 "NA"
+sortByX = false;
+sortReason = "";  % 仅有明确时间/连续自变量排序语义时启用；路径/轨迹保留源顺序
 
 placeholders = [sourceSheet, xHeader, yHeader, xLabelText, yLabelText];
 assert(~any(startsWith(placeholders, "__ACTUAL_")), "模板尚未实例化");
+xHeader = strtrim(string(xHeader));
+yHeader = strtrim(string(yHeader));
 assert(isfile(sourceBook), "当前图指定的数据工作簿不存在: %s", sourceBook);
 
 availableSheets = string(sheetnames(sourceBook));
@@ -46,19 +51,27 @@ raw = readcell(sourceBook, "Sheet", sourceSheet);
 assert(size(raw, 1) >= 2, "工作表没有真实数据");
 headers = strtrim(string(raw(1, :)));
 
-xColumn = exact_header_column(headers, xHeader);
-yColumn = exact_header_column(headers, yHeader);
+xColumn = exact_header_column(headers, xHeader, sourceBook, sourceSheet);
+yColumn = exact_header_column(headers, yHeader, sourceBook, sourceSheet);
 warn_position_drift(xHeader, expectedXColumn, xColumn);
 warn_position_drift(yHeader, expectedYColumn, yColumn);
 
-x = cell_to_numeric(raw(2:end, xColumn));
-y = cell_to_numeric(raw(2:end, yColumn));
-valid = isfinite(x) & isfinite(y);
-x = x(valid);
-y = y(valid);
-assert(~isempty(x), "没有可绘制的真实数据");
-[x, order] = sort(x);
-y = y(order);
+% readcell 已处理默认读取范围；导入后的 missing/NaN 不能证明物理空尾，不再猜测裁行。
+sourceRows = (2:size(raw, 1))';
+recordKeys = read_record_keys(raw, headers, keyHeader, sourceBook, sourceSheet, sourceRows);
+[allowMissingHeaders, missingTokens] = check_numeric_contract([xHeader, yHeader], xHeader, allowMissingHeaders, missingTokens);
+x = cell_to_numeric(raw(2:end, xColumn), xHeader, false, missingTokens, sourceBook, sourceSheet, sourceRows, recordKeys);
+y = cell_to_numeric(raw(2:end, yColumn), yHeader, any(allowMissingHeaders == yHeader), missingTokens, sourceBook, sourceSheet, sourceRows, recordKeys);
+assert(any(isfinite(y)), "工作簿%s/工作表%s没有可绘制的有限 y 值", sourceBook, sourceSheet);
+assert(islogical(sortByX) && isscalar(sortByX), "sortByX 必须为 true 或 false");
+if sortByX
+    assert(isscalar(sortReason) && ~ismissing(sortReason) && strlength(strtrim(sortReason)) > 0, "排序必须声明真实的时间/连续变量语义");
+    assert(numel(unique(x)) == numel(x), "工作簿%s/工作表%s的排序自变量重复；请按真实组别或记录键明确顺序，不能自动聚合", sourceBook, sourceSheet);
+    [x, order] = sort(x);
+    y = y(order);
+    recordKeys = recordKeys(order);
+    sourceRows = sourceRows(order);
+end
 
 %% 3. 结构读取示例——正式实例化时必须由 Scientific Figure Synthesis 结果替换/扩展
 % 本段只证明“真实字段读取 → 可见图窗 → caption-owned title → high-contrast style”链路可用，
@@ -83,27 +96,87 @@ apply_publication_style(fig, "competition_high_contrast");
 
 %% 4. 图窗保留供人工检查；本脚本默认不自动导出文件
 
-function column = exact_header_column(headers, expected)
-matches = find(headers == strtrim(string(expected)));
-assert(numel(matches) == 1, "字段缺失或重复: %s", expected);
+function column = exact_header_column(headers, expected, workbook, sheet)
+expected = strtrim(string(expected));
+assert(isscalar(expected) && ~ismissing(expected) && strlength(expected) > 0, "工作簿%s/工作表%s要求非空标量表头", workbook, sheet);
+matches = find(headers == expected);
+assert(numel(matches) == 1, "工作簿%s/工作表%s字段缺失或重复: %s", workbook, sheet, expected);
 column = matches(1);
 end
 
 function warn_position_drift(header, expected, actual)
-if isfinite(expected) && expected >= 1 && actual ~= expected
+assert(isnumeric(expected) && isscalar(expected) && isreal(expected) && ...
+    (isnan(expected) || (isfinite(expected) && expected >= 1 && expected == floor(expected))), ...
+    "字段%s的期望位置必须为正整数或 NaN", header);
+if isfinite(expected) && actual ~= expected
     warning("字段%s由第%d列移动到第%d列；已按精确表头读取", header, expected, actual);
 end
 end
 
-function values = cell_to_numeric(column)
+function [allowMissingHeaders, missingTokens] = check_numeric_contract(numericHeaders, xHeader, allowMissingHeaders, missingTokens)
+assert(isstring(allowMissingHeaders) && (isvector(allowMissingHeaders) || isempty(allowMissingHeaders)) && ...
+    ~any(ismissing(allowMissingHeaders(:))), "允许缺测字段必须为 string 向量");
+allowMissingHeaders = strtrim(allowMissingHeaders(:));
+assert(all(ismember(allowMissingHeaders, numericHeaders)) && ~any(allowMissingHeaders == xHeader), ...
+    "允许缺测字段须为当前 y/前后指标；该数值曲线示例的 x 必须有限");
+assert(isstring(missingTokens) && (isvector(missingTokens) || isempty(missingTokens)) && ...
+    ~any(ismissing(missingTokens(:))), "缺测标记须为非空 string 向量");
+missingTokens = strtrim(missingTokens(:));
+assert(all(strlength(missingTokens) > 0), "缺测标记不能是空白文本");
+parsedTokens = str2double(missingTokens);
+assert(isreal(parsedTokens) && all(isnan(parsedTokens)), "缺测标记不能伪装有限数值、Inf 或复数");
+end
+
+function keys = read_record_keys(raw, headers, keyHeader, workbook, sheet, sourceRows)
+keyHeader = strtrim(string(keyHeader));
+assert(isscalar(keyHeader) && ~ismissing(keyHeader), "记录键表头必须为标量文本");
+keys = strings(numel(sourceRows), 1);
+if strlength(keyHeader) == 0, return; end
+column = exact_header_column(headers, keyHeader, workbook, sheet);
+for i = 1:numel(sourceRows)
+    item = raw{sourceRows(i), column};
+    validNumber = (isnumeric(item) || islogical(item)) && isscalar(item) && isreal(item) && isfinite(item);
+    validText = (ischar(item) && isrow(item)) || (isstring(item) && isscalar(item) && ~ismissing(item));
+    assert(validNumber || validText, "工作簿%s/工作表%s键字段%s读入行%d无有效标量键", workbook, sheet, keyHeader, sourceRows(i));
+    if validNumber && ~isinteger(item)
+        if item == 0
+            keys(i) = "0";
+        else
+            keys(i) = string(sprintf("%.17g", double(item)));
+        end
+    else
+        keys(i) = strtrim(string(item));
+    end
+    assert(strlength(keys(i)) > 0, "工作簿%s/工作表%s键字段%s读入行%d为空", workbook, sheet, keyHeader, sourceRows(i));
+end
+assert(numel(unique(keys)) == numel(keys), "工作簿%s/工作表%s键字段%s存在重复；请使用真实唯一键", workbook, sheet, keyHeader);
+end
+
+function values = cell_to_numeric(column, header, allowMissing, missingTokens, workbook, sheet, sourceRows, keys)
 values = nan(size(column, 1), 1);
 for i = 1:size(column, 1)
     item = column{i};
-    if (isnumeric(item) || islogical(item)) && isscalar(item)
-        values(i) = double(item);
-    elseif ischar(item) || isstring(item)
-        parsed = str2double(string(item));
-        if isfinite(parsed), values(i) = parsed; end
+    isMissingValue = isempty(item) || isa(item, "missing");
+    value = NaN;
+    if ~isMissingValue && (isnumeric(item) || islogical(item))
+        assert(isscalar(item) && isreal(item), "工作簿%s/工作表%s字段%s读入行%d键%s必须为实数标量", workbook, sheet, header, sourceRows(i), keys(i));
+        value = double(item);
+        isMissingValue = isnan(value);
+    elseif ~isMissingValue && ((ischar(item) && isrow(item)) || (isstring(item) && isscalar(item)))
+        text = strtrim(string(item));
+        isMissingValue = ismissing(text) || strlength(text) == 0 || any(text == missingTokens);
+        if ~isMissingValue
+            value = str2double(text);
+            assert(isreal(value) && isfinite(value), "工作簿%s/工作表%s字段%s读入行%d键%s包含非法数值文本", workbook, sheet, header, sourceRows(i), keys(i));
+        end
+    elseif ~isMissingValue
+        error("工作簿%s/工作表%s字段%s读入行%d键%s包含不支持的单元格类型", workbook, sheet, header, sourceRows(i), keys(i));
+    end
+    if isMissingValue
+        assert(allowMissing, "工作簿%s/工作表%s字段%s读入行%d键%s缺测但合同未允许；不会自动删行", workbook, sheet, header, sourceRows(i), keys(i));
+    else
+        assert(isfinite(value), "工作簿%s/工作表%s字段%s读入行%d键%s包含 Inf 或非法值", workbook, sheet, header, sourceRows(i), keys(i));
+        values(i) = value;
     end
 end
 end
