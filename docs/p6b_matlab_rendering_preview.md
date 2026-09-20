@@ -2,7 +2,20 @@
 
 > 维护实施证据，不建立第二套 Figure Authority。Figure 决策继续由 `modules/04_figure_evidence.md` 唯一拥有；P6b 只把 P6a 的 publication profile/style implementation 放入真实 MATLAB 执行环境，产出可下载预览并做机器可判定的渲染边界检查。
 
-## 修改简报
+## 当前维护方式：P0-C 显式手动选择
+
+P0-C 将既有真实 MATLAB preview 保留为可选维护能力：只有 `workflow_dispatch` 且显式选择 `run_matlab_preview=true` 时才启动 `Real MATLAB publication preview` job；该输入为 boolean，默认 false。普通 PR 即使修改 workflow、样式 helper 或 preview 文件，也不安装或运行 MATLAB，不执行图像检查。上述路径仍可触发既有非 MATLAB 的 `source_snapshot` 与 `characterize` 基线检查。
+
+显式手动选择 true 后，不再用 changed-files 或最近提交是否涉及 helper 决定执行，避免用户主动要求的预览被静默跳过。summary 只在成功后记录真实结果；artifact 仍保留失败时的证据上传路径。跳过不等于真实渲染通过，也不自动生成用户论文图的人工验收结论。
+
+- **基线与目标：** Skill 9.4.2 → 9.4.3 patch；只调整维护预览触发，不改 harness、样式、数值、模型、状态或 Figure Authority。
+- **兼容与迁移：** 保留显式手动运行能力，用户项目无需迁移；历史 P6b 运行和证据保持原样。
+- **本轮验证：** YAML／专项静态检查、原有仓库测试和 PR CI；不发起 MATLAB workflow dispatch，不把静态配置验证说成实际渲染验证。用户本机运行、调图与人工验收仍由用户完成。
+- **回滚边界：** workflow、专项测试和当前说明一起回滚；不得恢复自动预览触发后仍声称后续 helper 修改只做静态检查。
+
+下面的 P6b 简报和接入说明保留其实施时的历史事实；当前触发与验收边界以本节为准。
+
+## 历史 P6b 修改简报
 
 - **修改主题：** P6b，为 P6a 的 `hsk_publication_profile.m` 与 `hsk_apply_scientific_style.m` 建立真实 MATLAB rendering/preview CI。
 - **当前版本：** Skill v9.1.0；P6a 已合并至 main `c8f2a42c6eb37ee7b469024f9ab73d5cb0ac37a3`。
@@ -18,7 +31,7 @@
 - **验收测试：** 既有 `Optimization baseline evidence` workflow 中的 `Real MATLAB publication preview` job 在真实 MATLAB runner 上成功；三个 profile 均生成非空 PNG/PDF；机器检查文字/legend/canvas/style/print-safe/output-boundary；完整 HSK Skill CI 与 Optimization baseline evidence 仍通过。
 - **回滚方式：** 删除 P6b preview harness/tests/docs，并从既有 Optimization baseline workflow 撤销 preview job/path 即可；P6a profile/style implementation 与用户项目不受影响。
 
-## 为什么复用既有 workflow
+## 历史接入：为什么复用既有 workflow
 
 GitHub 对 pull request 中**首次新增且 base 分支尚不存在**的独立 workflow 不提供可靠的 pre-merge 执行门。P6b 因此不保留一个只在本 PR 新增的孤立 workflow，而是把真实 MATLAB job 接入已经存在于 `main` 的 `Optimization baseline evidence` workflow。这样 PR head 的 workflow 定义可被实际执行，P6b 的“真实 preview 必须在合并前形成证据”才能成立。
 
@@ -37,6 +50,6 @@ GitHub 对 pull request 中**首次新增且 base 分支尚不存在**的独立 
 7. 所有输出写入 CI 临时目录，不修改仓库源码或用户项目；
 8. workflow 上传 preview artifact，供人工视觉复核；机器通过只代表 `preview_rendered + machine_checked`，不等同于用户项目 `approved_for_paper`。
 
-## 环境边界
+## 环境边界（仅显式启用真实预览时）
 
 P6b 使用 MathWorks 官方 GitHub Actions 在 public GitHub-hosted runner 上设置 MATLAB 并执行 batch command。若真实 MATLAB action 无法获得许可、安装或运行，则 P6b 保持未验证，必须修复环境或明确阻塞；禁止用 Python/静态 lint/伪造图片替代真实 MATLAB preview。
