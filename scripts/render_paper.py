@@ -187,7 +187,7 @@ def clean_auxiliary(project: Path, stem: str) -> None:
 
 
 def engine_command(engine: str, main_name: str) -> list[str]:
-    return [engine, "-interaction=nonstopmode", "-halt-on-error", "-file-line-error", main_name]
+    return [engine, "-interaction=nonstopmode", "-halt-on-error", "-file-line-error", "-recorder", main_name]
 
 
 def compile_project(
@@ -215,6 +215,9 @@ def compile_project(
     if not sequence:
         raise SystemExit("selected compile profile has an empty sequence")
 
+    # A previous invocation's dependency record cannot attest this compilation.
+    main.with_suffix(".fls").unlink(missing_ok=True)
+
     for step in sequence:
         if step in {"xelatex", "pdflatex", "lualatex"}:
             run(engine_command(step, main.name), project)
@@ -240,6 +243,7 @@ def create_audit_attestation(project: Path, main_tex: Path, *, template_smoke: b
         main_tex,
         framework_path=framework,
         require_framework=not template_smoke,
+        formal=not template_smoke,
     )
     report_path = project / "latex_audit_report.yaml"
     report = write_audit_report(

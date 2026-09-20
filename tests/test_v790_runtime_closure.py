@@ -158,6 +158,14 @@ class TestV790RuntimeClosure(unittest.TestCase):
             )
             profiles = yaml.safe_load((ROOT / "core/compile_profiles.yaml").read_text(encoding="utf-8"))
             cumcm_profile = profiles["profiles"]["cumcm"]
+            # Synthetic recorder for this attestation unit fixture; no TeX run is claimed.
+            recorder_project = main.parent
+            observed = self.delivery.source_bundle_files(main)
+            main.with_suffix(".fls").write_text(
+                f"PWD {recorder_project}\n" + "".join(
+                    f"INPUT {path.relative_to(recorder_project).as_posix()}\n" for path in observed
+                ), encoding="utf-8",
+            )
             report = self.delivery.write_compile_report(
                 project=final,
                 main=main,

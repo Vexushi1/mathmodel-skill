@@ -11,14 +11,20 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import shutil
+import subprocess
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 import yaml
 
 INCLUDE_RE = re.compile(r"\\(?:input|include)\s*\{([^{}]+)\}")
+CONDITIONAL_INPUT_RE = re.compile(r"\\(?:InputIfFileExists|IfFileExists)\s*\{([^{}]*)\}")
+INCLUDEONLY_RE = re.compile(r"\\includeonly\s*\{([^{}]*)\}")
 DOCUMENTCLASS_RE = re.compile(r"\\documentclass(?:\[[^\]]*\])?\{([^{}]+)\}")
 LOADCLASS_RE = re.compile(r"\\LoadClass(?:\[[^\]]*\])?\{([^{}]+)\}")
 USEPACKAGE_RE = re.compile(r"\\usepackage(?:\[[^\]]*\])?\{([^{}]+)\}")
@@ -37,6 +43,7 @@ SUPPORT_INPUT_SUFFIXES = (".tex", ".cfg", ".def", ".sty", ".cls")
 GRAPHIC_SUFFIXES = (".pdf", ".png", ".jpg", ".jpeg", ".eps", ".svg", ".tif", ".tiff")
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 COMPILE_PROFILES_PATH = SKILL_ROOT / "core" / "compile_profiles.yaml"
+GENERATED_INPUT_SUFFIXES = {".aux", ".bbl", ".toc", ".out", ".lof", ".lot", ".bcf", ".nav", ".snm", ".vrb"}
 
 
 def _split_code_comment(line: str) -> str:
@@ -119,6 +126,8 @@ def _declared_support_files(root: Path, text: str) -> list[Path]:
 
 
 def _resolve_support_input(root: Path, token: str) -> Path | None:
+    if not token.strip() or re.search(r"[\\#$]", token) or _safe_project_path(root, token) is None:
+        raise ValueError(f"Cannot bind nonliteral or outside-project LaTeX input: {token}")
     raw = Path(token.strip())
     if raw.suffix:
         candidate = _safe_project_path(root, token)
@@ -133,6 +142,10 @@ def _resolve_support_input(root: Path, token: str) -> Path | None:
 def _discover_local_support_files(root: Path, seed_text: str) -> tuple[set[Path], str]:
     discovered: set[Path] = set()
     queue = list(_declared_support_files(root, seed_text))
+    for token in CONDITIONAL_INPUT_RE.findall(seed_text):
+        candidate = _resolve_support_input(root, token)
+        if candidate is not None:
+            queue.append(candidate)
     texts: list[str] = []
     while queue:
         path = queue.pop(0).resolve()
@@ -144,11 +157,31 @@ def _discover_local_support_files(root: Path, seed_text: str) -> tuple[set[Path]
         for candidate in _declared_support_files(root, code):
             if candidate.resolve() not in discovered:
                 queue.append(candidate)
-        for target in INCLUDE_RE.findall(code):
+        for target in INCLUDE_RE.findall(code) + CONDITIONAL_INPUT_RE.findall(code):
             candidate = _resolve_support_input(root, target)
             if candidate is not None and candidate.resolve() not in discovered:
                 queue.append(candidate)
     return discovered, "\n".join(texts)
+
+
+def formal_assembly_issues(main: Path) -> list[str]:
+    """A development includeonly selection cannot certify an omitted chapter."""
+    root = main.resolve().parent
+    texts = [executable_tex(path.read_text(encoding="utf-8-sig"))
+             for path in source_bundle_files(main) if path.suffix.lower() in TEXT_SUFFIXES - {".bib"}]
+    code = "\n".join(texts)
+    selections = INCLUDEONLY_RE.findall(code)
+    if not selections:
+        return []
+    includes = re.findall(r"\\include\s*\{([^{}]+)\}", code)
+    if len(selections) != 1:
+        return ["正式全量编译不能证明多处 includeonly 的生效范围；请移除局部选择后重编译"]
+    targets = selections[0].split(",") if selections[0].strip() else []
+    if any(re.search(r"[\\#$]", token) for token in targets + includes):
+        return ["正式全量编译不能证明动态 includeonly 范围；请使用完整静态装配"]
+    selected = {_safe_project_path(root, token, ".tex") for token in targets}
+    omitted = [token for token in includes if _safe_project_path(root, token, ".tex") not in selected]
+    return [f"includeonly 排除了正式章节 {', '.join(omitted)}；局部预览不能取得全量编译证明"] if omitted else []
 
 
 def _graphic_dirs(root: Path, combined: str) -> list[Path]:
@@ -250,6 +283,78 @@ def source_bundle_snapshot(main: Path, bib_path: Path | None = None) -> dict[str
     }
 
 
+@lru_cache(maxsize=1)
+def _tex_environment_roots() -> tuple[Path, ...]:
+    """System TeX packages belong to the installed environment, not project source."""
+    executable = shutil.which("kpsewhich")
+    if executable is None:
+        return ()
+    roots = [path.resolve() for path in (
+        Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts",
+        Path("/usr/share/fonts"), Path("/usr/local/share/fonts"),
+        Path.home() / ".local/share/fonts", Path.home() / ".fonts",
+    ) if path.is_dir()]
+    for variable in ("TEXMFROOT", "TEXMFDIST", "TEXMFLOCAL", "TEXMFVAR", "TEXMFSYSVAR",
+                     "TEXMFCONFIG", "TEXMFSYSCONFIG", "TEXMFHOME"):
+        result = subprocess.run([executable, f"-var-value={variable}"], capture_output=True,
+                                text=True, encoding="utf-8", errors="replace", timeout=10, check=False)
+        value = result.stdout.strip()
+        if result.returncode == 0 and value and Path(value).is_absolute() and Path(value).is_dir():
+            roots.append(Path(value).resolve())
+    return tuple(roots)
+
+
+def recorded_input_snapshot(main: Path) -> dict[str, Any]:
+    """Reconcile recorder-observed project inputs with the pre-audited source set.
+
+    Unknown project inputs fail closed; generated auxiliaries and installed TeX assets
+    are not promoted to independent source facts. No synthetic recorder is generated.
+    """
+    root = main.resolve().parent
+    recorder = main.with_suffix(".fls")
+    issues: list[str] = []
+    inputs: set[Path] = set()
+    if not recorder.is_file():
+        return {"recorder": recorder.name, "recorder_sha256": None, "actual_input_files": [],
+                "dependency_issues": ["缺少实际编译 recorder (.fls)；请使用当前 render_paper.py 重编译"]}
+    lines = recorder.read_text(encoding="utf-8-sig", errors="strict").splitlines()
+    outputs = {(root / line[7:].strip().strip('"')).resolve()
+               for line in lines if line.startswith("OUTPUT ")}
+    cwd = root
+    for line in lines:
+        if line.startswith("PWD "):
+            cwd = Path(line[4:].strip()).resolve()
+            if cwd != root:
+                issues.append("recorder 的工作目录不属于当前 LaTeX 工程；请重编译")
+        elif line.startswith("INPUT "):
+            raw = Path(line[6:].strip().strip('"'))
+            path = (raw if raw.is_absolute() else cwd / raw).resolve()
+            if path.is_relative_to(root):
+                if (path in outputs and path.suffix.lower() in GENERATED_INPUT_SUFFIXES) or path == main.with_suffix(".bbl").resolve():
+                    continue
+                inputs.add(path)
+            else:
+                if not any(path.is_relative_to(system) for system in _tex_environment_roots()):
+                    issues.append(f"实际输入越出工程且不属于 TeX/字体安装环境: {path}")
+    if main.resolve() not in inputs:
+        issues.append("recorder 未记录当前主文件；不能证明实际编译来源")
+    declared_tex, _ = _discover_tex_graph(main)
+    for omitted in sorted(declared_tex - inputs):
+        issues.append(f"静态装配的正文未被实际编译读取: {omitted.relative_to(root).as_posix()}；不能取得全量证明")
+    declared = set(source_bundle_files(main))
+    records = []
+    for path in sorted(inputs):
+        relative = path.relative_to(root).as_posix()
+        if not path.is_file():
+            issues.append(f"实际编译输入已缺失: {relative}")
+        else:
+            records.append({"path": relative, "sha256": sha256_file(path)})
+        if path not in declared:
+            issues.append(f"实际编译输入未被静态审计覆盖: {relative}；请使用可绑定的显式项目输入")
+    return {"recorder": recorder.name, "recorder_sha256": sha256_file(recorder),
+            "actual_input_files": records, "dependency_issues": issues}
+
+
 def profile_fingerprint(profile_config: Mapping[str, Any]) -> str:
     """Hash the machine-readable profile definition without depending on YAML layout."""
     payload = json.dumps(profile_config, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
@@ -333,6 +438,10 @@ def verify_audit_report(
     if str(report.get("source_bundle_sha256", "")) != current_source:
         issues.append("LaTeX源码在审计后发生变化；latex_audit_report stale")
     if require_formal:
+        try:
+            issues.extend(formal_assembly_issues(main))
+        except (OSError, ValueError) as exc:
+            issues.append(f"正式全量装配无法核对: {exc}")
         framework = framework_path or project.parent / "模型论文框架.md"
         if not framework.is_file():
             issues.append("正式LaTeX证明缺少模型论文框架.md")
@@ -361,21 +470,32 @@ def write_compile_report(
     pdf = project / f"{main.stem}.pdf"
     if not pdf.is_file():
         raise FileNotFoundError(pdf)
-    snapshot = source_bundle_snapshot(main, bib_path=bib_path)
+    source_issues: list[str] = []
+    try:
+        snapshot = source_bundle_snapshot(main, bib_path=bib_path)
+    except (OSError, ValueError) as exc:
+        snapshot = {"source_bundle_sha256": None, "source_files": []}
+        source_issues.append(f"LaTeX source bundle无法重建: {exc}")
+    try:
+        dependencies = recorded_input_snapshot(main)
+    except (OSError, ValueError) as exc:
+        dependencies = {"recorder": main.with_suffix(".fls").name,
+                        "recorder_sha256": None, "actual_input_files": [],
+                        "dependency_issues": [f"实际编译输入证明无法重建: {exc}"]}
     log_path = project / f"{main.stem}.log"
     log_status = inspect_log(log_path)
 
     audit_path = (audit_report_path or project / "latex_audit_report.yaml").resolve()
     audit_report: dict[str, Any] = {}
-    audit_issues: list[str] = []
+    audit_issues: list[str] = list(source_issues)
     if audit_path.is_file():
         audit_report = yaml.safe_load(audit_path.read_text(encoding="utf-8")) or {}
-        audit_issues = verify_audit_report(
+        audit_issues.extend(verify_audit_report(
             project=project,
             main=main,
             report=audit_report,
             require_formal=attestation_mode == "formal",
-        )
+        ))
     elif attestation_mode == "formal":
         audit_issues.append("正式编译缺少latex_audit_report.yaml")
 
@@ -386,6 +506,7 @@ def write_compile_report(
         or log_status["unresolved_references"]
         or log_status["unresolved_citations"]
         or audit_issues
+        or (attestation_mode == "formal" and dependencies["dependency_issues"])
     ):
         status = "failed"
 
@@ -399,7 +520,7 @@ def write_compile_report(
         sequence=effective_sequence,
     )
     report = {
-        "report_schema_version": "3.0.0",
+        "report_schema_version": "4.0.0",
         "status": status,
         "attestation_mode": attestation_mode,
         "profile": profile,
@@ -410,6 +531,7 @@ def write_compile_report(
         "profile_override_used": override_used,
         "main": main.relative_to(project).as_posix(),
         **snapshot,
+        **dependencies,
         "compiled_from_source_sha256": snapshot["source_bundle_sha256"],
         "latex_audit_report": audit_path.relative_to(project).as_posix() if audit_path.is_relative_to(project) else str(audit_path),
         "latex_audit_report_sha256": sha256_file(audit_path) if audit_path.is_file() else None,
@@ -436,8 +558,8 @@ def verify_compile_report(
     report: Mapping[str, Any],
 ) -> list[str]:
     issues: list[str] = []
-    if str(report.get("report_schema_version", "")) != "3.0.0":
-        issues.append("compile_report缺少v3交付证明Schema；请用当前render_paper.py重新编译")
+    if str(report.get("report_schema_version", "")) != "4.0.0":
+        issues.append("旧compile_report缺少v4实际输入证明；可保留只读记录，但正式交付需重审并重新编译")
         return issues
     if str(report.get("status", "")).lower() != "passed":
         issues.append("compile_report未通过")
@@ -454,6 +576,17 @@ def verify_compile_report(
         issues.append("compile_report缺少source_bundle_sha256/compiled_from_source_sha256")
     elif current_source != recorded_source or current_source != compiled_source:
         issues.append("LaTeX source bundle已在编译后变化；当前PDF stale，必须重新编译")
+    try:
+        dependencies = recorded_input_snapshot(main)
+    except (OSError, ValueError) as exc:
+        issues.append(f"实际编译输入证明无法重建: {exc}")
+    else:
+        issues.extend(dependencies["dependency_issues"])
+        for field in ("recorder", "recorder_sha256", "actual_input_files"):
+            if report.get(field) != dependencies[field]:
+                issues.append(f"实际编译输入证明 {field} 已变化或缺失；当前PDF stale")
+        if report.get("dependency_issues") != []:
+            issues.append("compile_report没有通过实际输入完整性核对")
 
     profile_name = str(report.get("profile", ""))
     current_profile = current_profile_config(profile_name)

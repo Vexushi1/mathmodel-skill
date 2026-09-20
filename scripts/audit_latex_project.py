@@ -12,7 +12,7 @@ from pathlib import Path
 import yaml
 
 from audit_paper_prose import Finding, audit_bibliography, audit_framework_consistency, audit_text, overall_status
-from latex_delivery import sha256_file, source_bundle_snapshot
+from latex_delivery import formal_assembly_issues, sha256_file, source_bundle_snapshot
 
 INCLUDE_RE = re.compile(r"\\(?:input|include)\s*\{([^{}]+)\}")
 FORBIDDEN_CHILD_RE = re.compile(r"\\documentclass|\\begin\s*\{document\}|\\end\s*\{document\}")
@@ -243,6 +243,7 @@ def audit_project(
     bib_path: Path | None = None,
     framework_path: Path | None = None,
     require_framework: bool = False,
+    formal: bool = True,
 ) -> list[Finding]:
     main_file = main_file.resolve()
     project_root = main_file.parent.resolve()
@@ -259,6 +260,12 @@ def audit_project(
         effective_bib = project_root / "references.bib"
     bib_text = effective_bib.read_text(encoding="utf-8-sig", errors="strict") if effective_bib and effective_bib.is_file() else None
     findings.extend(audit_bibliography(flattened, bib_text))
+    if formal:
+        try:
+            assembly_issues = formal_assembly_issues(main_file)
+        except ValueError as exc:
+            assembly_issues = [str(exc)]
+        findings.extend(Finding("blocking", "latex_formal_assembly_incomplete", issue) for issue in assembly_issues)
 
     explicit_framework_missing = framework_path is not None and not framework_path.is_file()
     required_framework_missing = require_framework and framework_path is None
@@ -304,6 +311,13 @@ def write_audit_report(
     """Persist an audit attestation, including a failed report for invalid source graphs."""
     main_file = main_file.resolve()
     project = main_file.parent.resolve()
+    findings = [item for item in findings if mode == "formal" or item.code != "latex_formal_assembly_incomplete"]
+    if mode == "formal" and not any(item.code == "latex_formal_assembly_incomplete" for item in findings):
+        try:
+            findings.extend(Finding("blocking", "latex_formal_assembly_incomplete", issue)
+                            for issue in formal_assembly_issues(main_file))
+        except ValueError as exc:
+            findings.append(Finding("blocking", "latex_formal_assembly_incomplete", str(exc)))
     snapshot_error: str | None = None
     try:
         snapshot = source_bundle_snapshot(main_file, bib_path=bib_path)
@@ -362,6 +376,7 @@ def main() -> int:
         bib_path=args.bib,
         framework_path=args.framework,
         require_framework=args.require_framework,
+        formal=args.mode == "formal",
     )
     status = overall_status(findings)
     report: dict[str, object] | None = None
