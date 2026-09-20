@@ -330,7 +330,10 @@ def recorded_input_snapshot(main: Path) -> dict[str, Any]:
             raw = Path(line[6:].strip().strip('"'))
             path = (raw if raw.is_absolute() else cwd / raw).resolve()
             if path.is_relative_to(root):
-                if (path in outputs and path.suffix.lower() in GENERATED_INPUT_SUFFIXES) or path == main.with_suffix(".bbl").resolve():
+                if (path in outputs and (
+                    path.suffix.lower() in GENERATED_INPUT_SUFFIXES
+                    or path == main.with_suffix(".run.xml").resolve()
+                )) or path == main.with_suffix(".bbl").resolve():
                     continue
                 inputs.add(path)
             else:

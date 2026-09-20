@@ -13,6 +13,21 @@ import audit_paper_prose as prose
 import latex_delivery as delivery
 
 
+def xml_recorder_snapshot(filename, *, output, absolute, main_name="main.tex"):
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp).resolve()
+        main = root / main_name
+        main.write_text(r"\documentclass{article}\begin{document}x\end{document}")
+        xml = root / filename
+        xml.write_text("<fixture/>")
+        token = xml.as_posix() if absolute else f"./{filename}"
+        lines = f"PWD {root}\nINPUT {main.name}\nINPUT {token}\n"
+        if output:
+            lines += f"OUTPUT {token}\n"
+        main.with_suffix(".fls").write_text(lines)
+        return delivery.recorded_input_snapshot(main)
+
+
 class TestA6LatexBoundaries(unittest.TestCase):
     def test_appendix_labels_share_the_document_namespace(self):
         text = r"""\begin{document}
@@ -124,6 +139,38 @@ class TestA6LatexBoundaries(unittest.TestCase):
         issues = delivery.verify_compile_report(project=Path("."), main=Path("main.tex"),
                                                 pdf=Path("main.pdf"), report={"report_schema_version": "3.0.0"})
         self.assertTrue(any("v4" in x and "重审" in x for x in issues), issues)
+
+    def test_current_job_run_xml_is_generated_only_when_recorded_as_output(self):
+        for main_name in ("main.tex", "paper.tex"):
+            for absolute in (False, True):
+                with self.subTest(main=main_name, absolute=absolute):
+                    snapshot = xml_recorder_snapshot(
+                        Path(main_name).with_suffix(".run.xml").name,
+                        output=True, absolute=absolute, main_name=main_name,
+                    )
+                    self.assertEqual(snapshot["dependency_issues"], [])
+                    self.assertEqual([item["path"] for item in snapshot["actual_input_files"]], [main_name])
+
+    def test_current_job_run_xml_without_output_is_still_an_unknown_input(self):
+        for absolute in (False, True):
+            with self.subTest(absolute=absolute):
+                snapshot = xml_recorder_snapshot("main.run.xml", output=False, absolute=absolute)
+                self.assertTrue(any("未被静态审计覆盖: main.run.xml" in item for item in snapshot["dependency_issues"]))
+                self.assertIn("main.run.xml", [item["path"] for item in snapshot["actual_input_files"]])
+
+    def test_user_xml_cannot_be_hidden_by_an_output_record(self):
+        for absolute in (False, True):
+            with self.subTest(absolute=absolute):
+                snapshot = xml_recorder_snapshot("data.xml", output=True, absolute=absolute)
+                self.assertTrue(any("未被静态审计覆盖: data.xml" in item for item in snapshot["dependency_issues"]))
+                self.assertIn("data.xml", [item["path"] for item in snapshot["actual_input_files"]])
+
+    def test_other_job_run_xml_cannot_be_hidden_by_an_output_record(self):
+        for absolute in (False, True):
+            with self.subTest(absolute=absolute):
+                snapshot = xml_recorder_snapshot("other.run.xml", output=True, absolute=absolute)
+                self.assertTrue(any("未被静态审计覆盖: other.run.xml" in item for item in snapshot["dependency_issues"]))
+                self.assertIn("other.run.xml", [item["path"] for item in snapshot["actual_input_files"]])
 
     def test_formal_assembly_failure_is_returned_as_an_issue(self):
         with tempfile.TemporaryDirectory() as temp:
