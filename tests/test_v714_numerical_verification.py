@@ -37,6 +37,7 @@ class V714NumericalVerificationTests(unittest.TestCase):
         quality.title = "主结果质量门"
         quality.append(QUALITY_COLUMNS)
         quality.append(quality_row)
+        quality.cell(2, 5).data_type = "s"  # Keep the allowed "==" relation as text, not an Excel formula.
         evidence = book.create_sheet(sheet)
         evidence.append(headers)
         evidence.append(row)
@@ -160,6 +161,111 @@ class V714NumericalVerificationTests(unittest.TestCase):
                 path, {"requires_convergence_diagnostic": True}
             )
             self.assertTrue(passed, issues)
+
+    def make_boolean_book(self, path, capability, value, *, relation="bool_true", actual=True, declared=True):
+        if capability == "requires_convergence_diagnostic":
+            sheet = "收敛诊断"
+            headers = ["迭代或样本数", "指标", "数值", "判定", "用于主判定"]
+            row = [100, "residual", 1e-9, value, True]
+        else:
+            sheet = "泄漏检查"
+            headers = ["检查项", "是否通过", "证据"]
+            row = ["训练验证分离", value, "sample keys"]
+        return self.make_book(
+            path,
+            ["PQ-Q1-01", "布尔主证据", declared, "rows", relation, 1, actual, sheet, "solver_tolerance"],
+            sheet, headers, row,
+        )
+
+    def test_failed_boolean_evidence_cannot_pass_a_numeric_relation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "问题一求解结果.xlsx"
+            for capability in ("requires_convergence_diagnostic", "requires_leakage_check"):
+                for value in (False, 0, "false", "0"):
+                    for relation in ("<=", "abs<="):
+                        with self.subTest(capability=capability, value=value, relation=relation):
+                            self.make_boolean_book(path, capability, value, relation=relation, actual=0)
+                            passed, issues, _ = NUMERICAL.validate_primary_numerical_evidence(
+                                path, {capability: True}, force_strict=True
+                            )
+                            self.assertFalse(passed, issues)
+
+    def test_boolean_evidence_requires_contract_relation_even_when_true(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "问题一求解结果.xlsx"
+            for capability in ("requires_convergence_diagnostic", "requires_leakage_check"):
+                for relation in ("<=", ">=", "abs<=", "=="):
+                    with self.subTest(capability=capability, relation=relation):
+                        self.make_boolean_book(path, capability, True, relation=relation, actual=1)
+                        passed, issues, _ = NUMERICAL.validate_primary_numerical_evidence(
+                            path, {capability: True}, force_strict=True
+                        )
+                        self.assertFalse(passed, issues)
+                        self.assertTrue(any("bool_true" in item for item in issues), issues)
+
+    def test_false_or_invalid_boolean_main_evidence_rejects_true_summary(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "问题一求解结果.xlsx"
+            for capability in ("requires_convergence_diagnostic", "requires_leakage_check"):
+                for value in (False, 0, None, "", "unknown", 2):
+                    with self.subTest(capability=capability, value=value):
+                        self.make_boolean_book(path, capability, value)
+                        passed, issues, _ = NUMERICAL.validate_primary_numerical_evidence(
+                            path, {capability: True}, force_strict=True
+                        )
+                        self.assertFalse(passed, issues)
+
+    def test_true_boolean_main_evidence_requires_matching_quality_summary(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "问题一求解结果.xlsx"
+            for capability in ("requires_convergence_diagnostic", "requires_leakage_check"):
+                for declared in (True, False):
+                    with self.subTest(capability=capability, declared=declared):
+                        self.make_boolean_book(path, capability, True, declared=declared)
+                        passed, issues, _ = NUMERICAL.validate_primary_numerical_evidence(
+                            path, {capability: True}, force_strict=True
+                        )
+                        self.assertEqual(passed, declared, issues)
+
+    def test_unmarked_failed_convergence_history_does_not_block_main_evidence(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "问题一求解结果.xlsx"
+            self.make_boolean_book(path, "requires_convergence_diagnostic", True)
+            book = openpyxl.load_workbook(path)
+            try:
+                book["收敛诊断"].append([1, "residual", 1.0, False, False])
+                book.save(path)
+            finally:
+                book.close()
+            passed, issues, _ = NUMERICAL.validate_primary_numerical_evidence(
+                path, {"requires_convergence_diagnostic": True}, force_strict=True
+            )
+            self.assertTrue(passed, issues)
+
+    def test_inactive_boolean_capability_does_not_constrain_numeric_quality_relation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "问题一求解结果.xlsx"
+            self.make_boolean_book(path, "requires_convergence_diagnostic", False, relation="<=", actual=0)
+            passed, issues, _ = NUMERICAL.validate_primary_numerical_evidence(
+                path, {"requires_convergence_diagnostic": False}, force_strict=True
+            )
+            self.assertTrue(passed, issues)
+
+    def test_numeric_residual_keeps_legal_comparison_relations(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "问题一求解结果.xlsx"
+            for relation in ("<=", ">=", "abs<=", "=="):
+                with self.subTest(relation=relation):
+                    self.make_book(
+                        path,
+                        ["PQ-Q1-01", "守恒", True, "rows", relation, 0.0, 0.0, "守恒残差", "locked_model_tolerance"],
+                        "守恒残差", ["守恒量", "残差", "容差", "是否满足"],
+                        ["质量", 0.0, 1e-6, True],
+                    )
+                    passed, issues, _ = NUMERICAL.validate_primary_numerical_evidence(
+                        path, {"requires_conservation_residual": True}, force_strict=True
+                    )
+                    self.assertTrue(passed, issues)
 
     def test_strict_quality_gate_cannot_be_empty(self):
         with tempfile.TemporaryDirectory() as temp:

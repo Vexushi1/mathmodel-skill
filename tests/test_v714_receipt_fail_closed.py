@@ -149,6 +149,38 @@ class V714ReceiptFailClosedTests(unittest.TestCase):
             issues = RECEIPT.validate_one(root, workbook, state, False)
             self.assertEqual(issues, [])
 
+    def test_boolean_numerical_failure_cannot_be_accepted(self):
+        for evidence_passed in (False, True):
+            with self.subTest(evidence_passed=evidence_passed), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                code, state = self.make_project(root, protocol="1.0.0")
+                entry = state["subproblems"]["Q1"]
+                entry["capabilities"] = {"requires_leakage_check": True}
+                workbook = self.make_workbook(root, code, protocol="1.0.0", strict_trace=True)
+                book = openpyxl.load_workbook(workbook)
+                try:
+                    quality = book["主结果质量门"]
+                    quality.cell(2, 5).value = "bool_true" if evidence_passed else "<="
+                    quality.cell(2, 6).value = 1
+                    quality.cell(2, 7).value = evidence_passed if evidence_passed else 0
+                    quality.cell(2, 8).value = "泄漏检查"
+                    evidence = book.create_sheet("泄漏检查")
+                    evidence.append(["检查项", "是否通过", "证据"])
+                    evidence.append(["训练验证分离", evidence_passed, "sample keys"])
+                    book.save(workbook)
+                finally:
+                    book.close()
+                read_issues = RECEIPT.validate_one(root, workbook, state, False)
+                self.assertEqual(entry["result_quality_status"], "pending")
+                write_issues = RECEIPT.validate_one(root, workbook, state, True)
+                self.assertEqual(read_issues, write_issues)
+                self.assertEqual(bool(write_issues), not evidence_passed)
+                self.assertEqual(entry["primary_execution_status"], "accepted" if evidence_passed else "rejected")
+                self.assertEqual(entry["result_quality_status"], "passed" if evidence_passed else "failed")
+                self.assertEqual(entry["status"], "solved" if evidence_passed else "designed")
+                if not evidence_passed:
+                    self.assertNotIn("validated_artifact_hashes", entry)
+
 
 if __name__ == "__main__":
     unittest.main()
