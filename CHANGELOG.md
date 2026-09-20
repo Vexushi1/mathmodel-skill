@@ -1,6 +1,12 @@
 # Changelog
 
-## Current release: 9.5.1
+## Current release: 9.5.2
+
+- F4 closes the accepted source / exact header / Figure ID / caption / paper-reference / framework handoff in existing figure documents. Planned export names no longer stand in for real exported or approved files.
+- Static code checks, actual MATLAB execution, human appearance review and paper approval are recorded separately using existing fields and pending work. Python execution facts and existing stale/approval rules remain intact; no new schema, review form or image QA is introduced.
+- MATLAB guidance now gives the short manual workflow from real fields and explicit styles to user-run adjustment and optional export. Existing headings, table structures and F3 technique navigation are preserved.
+
+## Previous release: 9.5.1
 
 - F3 adds six focused technique references within the existing Figure patterns, with original MATLAB snippets for exact-key pairing, gap-preserving real intervals and per-metric color limits. Each describes input evidence, adjustable parameters and misleading uses.
 - Chart selection and MATLAB guidance link to the relevant sections on demand. No new mandatory files, default palette, synthetic evidence, automatic visual QA or MATLAB execution are introduced; existing template interfaces remain unchanged.

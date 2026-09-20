@@ -172,6 +172,14 @@ set(hLine, "Color", palette.primary);
 
 助手只做静态代码与接口检查；MATLAB 运行和图形观感由用户人工确认，不进行自动图像评分，也不把静态检查通过说成已验证外观。
 
+实际操作按以下顺序即可，无需提交截图或填写额外审美表单：
+
+1. 将来源、工作表、精确表头及必要键/单位替换为当前 accepted 工作簿中的真实内容，保留 Figure Contract 规定的缺测与排序语义；
+2. 在脚本头部显式填写 `seriesColors`，按当前图调整字号、线宽、marker、网格、边框和必要坐标范围；
+3. 助手完成静态语法、字段引用和接口检查，明确实际检查范围；仅做静态检查时写“未验证 MATLAB 运行”，确知未运行时再写“MATLAB 未运行”，不写运行或外观已通过；
+4. 用户在 MATLAB 中运行脚本并打开图窗，手动检查、调整标签/图例和版面；需要保留的设置写回脚本参数区或基础样式后的局部覆盖；
+5. 需要入文时再人工确认并按需导出，按同一 Figure ID 同步实际文件、caption、邻近正文引用和框架登记。未导出时 Export files 留空；静态检查不自动将任何文件加入 `artifacts.approved_figures`。
+
 高价值 publication patterns：Multi-Metric Comparison Strip、Dedicated Legend Tile、Ordered Ablation Ladder、Composition/Decomposition、Evidence Matrix、Milestone-aware Trend、Normalized Radar（严格准入）、Density/State-Space、Comparative Performance Matrix。实现边界见 `templates/figure/figure_enhancement_patterns.md`。
 
 ### 论文 Figure 视觉参考索引
