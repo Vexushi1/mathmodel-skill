@@ -57,6 +57,12 @@ v9.3.0 的正式升级链：
 
 v9.3 系列的稳定建模语义是：先把题目条件转成数学后果并利用可证明结构化简，再形成当前最小充分主模型；comparator 只在有明确比较问题时启用；solver 必须在模型结构闭合后按结构选择。复杂度或“高级方法”本身不构成创新性或主模型准入理由。
 
+## v9.4.0：写作可读性与审查减重发布收尾
+
+本次写作计划从 v9.3.1 主干分阶段完成 P0、W0–W4 与 Part C–G。W5 按实际行为裁决为 **9.4.0 minor release**：理由不是版本展示，而是已经新增并验收了向后兼容的正文推导保全、评委可读标题/术语、结果表可读性、公式密集叙事、正式三级标题治理和长核心证明真实分页能力；同时 W3 只删除一个有成对证据的 count-only 误报。没有破坏 Schema、CLI、目录、Model Approval、数值/工作簿或用户执行接口，因此不升 major；变化又超过单纯错误修复，因此不伪装成 9.3.2 patch。
+
+W4 PR #207 final head `06ace7b99bd7977b74c34fc9f7e554b16f576318` 通过 HSK Skill CI #3838 与 Optimization baseline #355，合并为 `e8fd923e6273b9fe644d506ecc8c3b3372d7e4a6`；随后 main HSK Skill CI #3840 与 metadata refresh #2527 success。W5 release carrier 与最终 release CI 证据由当前 release closeout PR 和后续 main 后验记录补齐。
+
 ## v9.3.1：发布后健康修复完成
 
 v9.3.1 是 v9.3.0 的兼容 patch release，不新增新的生命周期 Gate、required Schema root、CLI、项目目录或用户执行阶段。它完成了发布后健康审计中确认的核心问题闭合：

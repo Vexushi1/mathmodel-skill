@@ -1,6 +1,16 @@
-# mathmodel-skill v9.3.1
+# mathmodel-skill v9.4.0
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 → 条件数学化与结构化简 → 最小充分主模型 + 按需 comparator → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构匹配 Solver + Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision / semantic_identity_hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v9.4.0：写作可读性、正文推导保全与证据化审查
+
+v9.4.0 将 W0–W4 已在主干分阶段完成的写作/审查能力正式收口为一个向后兼容 minor release。核心变化包括：非显然核心推导与核心证明按数学作用留在正文而不是按篇幅外移；专业标题与首次术语解释面向具有数学建模基础的评委保持可恢复语义；结果表的对象、单位、指标方向、比较口径和 accepted 数值精度分离治理；公式密集段落按推理单元组织；正式论文一级至三级标题均可正常使用，明确的第四层及以上活动 LaTeX 标题在正式审计中阻止交付。
+
+检查减重严格受 W0 证据约束：仅移除已证明会误报独立数学任务的 count-only `question_subsection_granularity` finding；机械拆分 warning、framework pending、surface review、Hard 引用/label/claim-scope 检查和 Cleanup 后正式复验均保留。没有引入跨阶段缓存、持久 trust token、Readability Gate、额外 Project State required 字段或新的终审 coverage family。
+
+长核心证明路径已经通过真实 CUMCM LaTeX 验收：命题陈述可保留在 `hskproposition`，完整证明紧接正文 standalone `hskproof` 并允许自然跨页；CI 同时核对命题/公式引用与页码。W4 的 T01–T18 集成矩阵进一步验证简单题 anti-bloat、核心推导保全、三级正例/四级反例、Terminology/Numeric drift、wording 与 semantic stale 分界、MCM/ICM/电工杯/DOCX 载体边界及既有 Hard 严重度不被削弱。
+
+本次发布不改变 Model Approval、Semantic Identity、Project State/typed stale、03A/03B、Workbook Schema、用户 full-fidelity 执行、MATLAB 数值事实来源、公开 CLI、项目目录或 resolver Gate 列表；旧项目无需因 v9.4.0 批量迁移。
 
 ## v9.3.0：条件驱动结构化简与最小充分初始建模
 

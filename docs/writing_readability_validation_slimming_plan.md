@@ -471,8 +471,8 @@ python scripts/generate_indexes.py --check
 | Part G：复用现有审查，不增建 Gate | COMPLETED：PR #201 以既有 Review/Runtime/coverage 回归证明闭环，未新增 Gate/required 状态/coverage family |
 | W2 Consumer/模板/样例实施 | COMPLETED：PR #205 完成 Consumer/Pack/Template/例文对齐，PR #206 完成长核心证明真实 LaTeX 分页与引用/编号验收；final head 与 main 后验均通过 |
 | W3 检查减重实施 | COMPLETED：PR #203 仅移除 W0 批准的 count-only `question_subsection_granularity` finding；final head 与 main 后验均通过 |
-| W4 行为验收集成 | IN_PROGRESS：branch `fix/writing-readability-w4-acceptance`，按 T01–T18 建立机器/语义双重验收与跨文件/跨载体证据 |
-| W5 发布与综合收尾 | NOT_STARTED；目标 release 待实际评估 |
+| W4 行为验收集成 | COMPLETED：PR #207 完成 T01–T18 机器/语义双重验收与跨文件/跨载体证据；final head 与 main 后验均通过 |
+| W5 发布与综合收尾 | IN_PROGRESS：按实际行为裁决目标 release 为 9.4.0 minor；branch `upgrade/v9.4.0-writing-readability` 执行 release carriers、综合回归与状态收尾 |
 
 ### W1-P1：核心证明正文保全
 
@@ -624,14 +624,25 @@ Base main SHA：`0242bb8d4d6b94dab7b14773940e92e8c692e99d`；Final head：`7bf2e
 
 ### W4-P1：T01–T18 集成行为验收
 
-阶段 / PR：W4 integrated acceptance / branch `fix/writing-readability-w4-acceptance`；PR 编号待创建。  
-Base main SHA：`f3946972f246cc145796558a8c115062d435ecb3`；Final head / Merge SHA 待真实验收后补记。  
+阶段 / PR：W4 integrated acceptance / PR #207 — `test: integrate writing readability W4 acceptance`。  
+Base main SHA：`f3946972f246cc145796558a8c115062d435ecb3`；Final head：`06ace7b99bd7977b74c34fc9f7e554b16f576318`；Merge SHA：`e8fd923e6273b9fe644d506ecc8c3b3372d7e4a6`。  
 本次范围：严格按 §10 W4 与 §12/T01–T18，把现有 Authority/Consumer/audit/CI 的正例、反例、跨文件与跨载体证据汇总为一个集成验收；不新增 Gate、required 状态、coverage family 或新的业务规则。  
 实际修改：新增维护证据 `docs/writing_readability_w4_acceptance.md` 与一个聚焦集成回归 `tests/test_v931_writing_readability_w4_acceptance.py`。测试复用现有 audit / Runtime / DOCX / Review 接口，覆盖三级正例、四级反例、非活动文本排除、W3 count-only 边界、Terminology/Numeric drift、wording/semantic stale 分界、跨载体 fallback 与 Hard blocking 保全。  
 语义审阅边界：维护记录中的语义判断不是独立评委、用户或第三方反馈；未编造“评委已验证”。机器不能判定的推导完整性、术语解释充分性、表格语义继续按 Review 的 manual/hybrid 边界记录。  
 兼容性：不改模型/数值/工作簿、Runtime stage、Review schema、Project State、formal Gate、CLI 或 report shape。  
-静态测试 / 真实执行 / 生成文件：待 final head HSK Skill CI、Optimization baseline、LaTeX/Production attestation 与 metadata refresh。  
-遗留问题 / 下一阶段：W4 final head 与 main 后验全部通过后标 COMPLETED，随后进入 W5 综合回归、版本/release 裁决与计划收尾。
+静态测试 / 真实执行 / 生成文件：final head HSK Skill CI workflow_dispatch #3838 与 Optimization baseline #355 均 success；Python 3.10–3.14、Static lint、Generated file contract、CUMCM/MCM-ICM/电工杯 LaTeX 与 Production LaTeX attestation 全部 success；PR-triggered #3839 failure 不作为 final-head 通过证据；合并后 main HSK Skill CI #3840 与 metadata refresh #2527 均 success。  
+完成结论：T01–T18 已有机器/语义/hybrid 正反边界和跨载体证据，Hard 集合与既有 review 八类 coverage 保全，W4 可标 COMPLETED。  
+遗留问题 / 下一阶段：进入 W5 综合回归、版本/release 裁决与计划收尾。
+
+### W5-P1：v9.4.0 Release Closeout
+
+阶段 / PR：W5 release closeout / branch `upgrade/v9.4.0-writing-readability`；PR 编号待创建。  
+Base main SHA：`e8fd923e6273b9fe644d506ecc8c3b3372d7e4a6`；Final head / Merge SHA 待真实验收后补记。  
+发布裁决：依据 `SKILL_CHANGE_GOVERNANCE.md`，本轮已新增向后兼容的写作/审查能力而非仅修复单一缺陷，因此从 9.3.1 升为 **9.4.0 minor**；未改变目录、Schema、CLI、required state、Model Approval、数值/工作簿或用户执行接口，不构成 major。  
+实际修改：只统一活动 release carriers、README/CHANGELOG/维护状态、release regression 与本计划状态；不重写 W1–W4 已合并业务实现。新增 `docs/writing_readability_w5_release_closeout.md` 记录版本依据、兼容边界和最终验收要求。  
+兼容性：旧项目继续读取；无批量迁移；W3 只移除已证明 count-only 误报，其余 review/Hard 路径保持；MCM/ICM、电工杯、DOCX 不强套 CUMCM 骨架。  
+正式验收：final generated head 必须通过完整 HSK Skill CI、Optimization baseline、Python 3.10–3.14、Static lint、Generated contract、三类 LaTeX、Production attestation；合并后 main 再通过 HSK CI 与 metadata refresh。  
+遗留问题 / 下一阶段：release PR 合并且 main 后验全绿后，用独立 docs-only 状态收尾记录真实 final head / merge SHA / run IDs，将 W5 和整份计划标 COMPLETED；不在 release PR 中自引用猜测最终 SHA。
 
 后续每个实施 PR 在本节追加记录，不重写历史裁决：
 
