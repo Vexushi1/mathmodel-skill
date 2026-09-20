@@ -287,7 +287,7 @@ Figure Enhancement 发生在 Synthesis、Rendering Profile 和基础布局确定
 
 ### 3. Focus Highlighting
 
-对象很多但核心判断只依赖少量对象时，核心对象用高对比主色和主线宽，基准/上下文对象用灰色、浅色、细线或透明度降权；不得选择性隐藏不利对象。
+对象很多但核心判断只依赖少量对象时，可通过颜色、线宽、线型、marker 或直接标注突出相关对象，并降低非关键上下文的视觉权重。具体强弱取决于当前论证，不强制主对象使用高饱和色或其他对象全部灰化；同等重要的比较对象应保持可比的视觉权重，不得选择性隐藏不利对象。
 
 ### 4. Semantic Background
 
@@ -311,19 +311,32 @@ Scientific Figure Synthesis、Scientific Rendering Profile、Figure Layout 与 F
 
 ### 1. Palette Profile Selection
 
-数据驱动正式 Figure 在完成对象/语义映射后，从下列 profile 中选择一个起点；profile 是渲染默认值，不是固定主题：
+数据驱动正式 Figure **不设默认配色或默认 palette profile**。完成对象与变量语义映射后，按当前图的比较任务、对象数量、图型密度、最终栏宽和输出介质选择颜色。可以参考具体 SCI 期刊或 Nature 论文中的配色与排版，但“SCI 配色”“Nature 配色”不是一套官方统一色板，也不能代替当前图的可读性判断。
 
-- `competition_high_contrast`：默认 profile。适合 1--3 个核心对象、强对比、评委快速阅读；保留亮蓝 `#1478FF`、鲜红 `#F04444`、亮绿 `#16B364`、亮橙 `#F79009`、亮紫 `#7A5AF8`。真正竞争注意力的高饱和对象仍通常不超过 2--3 个。
-- `journal_balanced`：适合 4--8 个方法、多 panel、多指标、长图例或密集 benchmark。优先使用 navy `#0F4D92`、blue `#3775BA`、green `#8BCF8B`、soft green `#AADCA9`、muted red `#B64342`、soft red `#E9A6A1`、teal `#42949E`、violet `#9A4D8E`、neutral `#CFCECE`，必要焦点可用 `#FFD700`；低权重对象继续灰化/透明化。
-- `monochrome_print`：当黑白打印、色觉安全或投稿格式要求高于彩色区分时使用。主要通过灰阶、marker、linestyle、edge/hatch 与 line weight 区分，颜色不得成为唯一语义。
+颜色先服从变量类型：
 
-Profile 选择服从“对象数量 + 语义角色 + 图型密度 + 最终输出介质”，而不是竞赛名称机械绑定。同一 Figure 内不得混用两套互相冲突的 palette grammar；同一对象跨 panel、跨 Figure 的语义颜色必须保持稳定。
+- 离散类别使用可区分的 categorical 颜色；没有顺序的类别不以深浅暗示等级；
+- 连续量使用明暗变化清楚的 sequential colormap，保留数值范围、colorbar 和单位；
+- 围绕零值、基线差或其他有真实语义中心的双向偏差，可使用 diverging colormap；不得为了对称美观虚构中心；
+- 相同对象、相同语义跨 panel、跨 Figure 保持一致；不为单张图换色而破坏全文映射；
+- 为灰度打印和色觉辨识保留必要的 marker、linestyle、shape、edge 或直接标签；红绿不承担唯一语义；
+- 禁止 rainbow、jet、HSV 无序彩虹和无语义的高饱和渐变。
+
+旧的三个显式 profile 保留为兼容候选，使用时仍须确认当前对象与颜色的映射：
+
+- `competition_high_contrast`：需要鲜明区分时可显式选用的既有候选，不再是默认值；
+- `journal_balanced`：另一组既有配色候选，不代表任何期刊的统一标准；
+- `monochrome_print`：灰阶候选，仍需按对象数量辅以线型、marker 等区分。
+
+不指定 profile 时只请求基础排版，不隐式选择上述候选，也不把 MATLAB 的默认颜色循环视为已完成配色。脚本在集中参数区显式给出当前图使用的 RGB / colormap；显式选用旧 profile 时，也须由脚本把其 RGB 赋给对应绘图对象。
 
 ### 2. Publication Frame / Typography
 
-普通二维 Cartesian 数据图默认采用 **open-axis publication frame**：白底、上/右边框弱化或隐藏、刻度朝外、轴线清楚但不厚重、无边框 legend、默认 `grid off`。以下情况可保留完整 frame：heatmap / image-like matrix、3D/polar、边界本身具有解释意义、或完整 frame 明显提高坐标判读。
+普通二维 Cartesian 数据图可从 **open-axis publication frame** 起步：上/右边框弱化或隐藏、刻度朝外、轴线清楚但不厚重、无边框 legend。白底、边框、网格与线宽按当前图的坐标判读和版面选择；需要网格时保持浅、稀并位于数据后方。heatmap / image-like matrix、3D/polar、边界本身具有解释意义或完整 frame 明显提高判读时，可保留完整边框。不得为统一模板抹掉必要的空间参照。
 
-字号采用层级而不是所有文字同大：axis labels > tick labels，legend 与 colorbar 不应比 axis label 更抢眼；panel label 只承担 a/b/c/d 导航。中文字体执行稳定 fallback，不把特定本机字体作为唯一依赖。
+字号按最终显示尺寸和信息层级选择，保证坐标、单位、legend 与 colorbar 可读；不要求所有图固定 tick 16 / axis label 18，也不以过小字号容纳过多内容。panel label 只承担 a/b/c/d 导航。中文字体执行稳定 fallback，不把特定本机字体作为唯一依赖。
+
+颜色、字号、数据线宽、轴线宽、网格和边框放在脚本的集中参数区，便于用户在 MATLAB 中手调。对象、标签、legend/colorbar 创建完成后，基础样式只调用一次，再进行当前图的局部覆盖；重复套用基础样式会覆盖这些局部选择。接口示例：`hsk_apply_scientific_style(fig, "", style)` 只应用基础字体与框架，不设置数据颜色、`ColorOrder` 或 colormap；`hsk_publication_profile()` 的 palette 为空。显式候选例如 `hsk_publication_profile("journal_balanced")` 只提供可选择的 RGB，不会自动为图形对象着色。具体参数与实现示例见模板。
 
 ### 3. Adaptive Canvas / Panel Geometry
 
@@ -380,7 +393,7 @@ Dedicated Legend Tile 只解决共享语义与空间冲突，不得成为装饰�
 - 一张 Figure 原则上只有 1 个一级 Core conclusion / 一级阅读任务；
 - **同一视觉层级中同时竞争注意力的主要对象通常不超过 2--3 个**；对象更多时优先分组、small multiples、focus highlighting 或拆图；
 - 主要视觉编码原则上不超过 2 类；Composite Diagnostic 可有多个 axes，但共享同一 Primary question；
-- 主色可以高对比、中高饱和，但真正竞争注意力的主对象通常不超过 2--3 个；辅助对象必须灰化、浅化或透明；
+- 视觉权重服从论证：必要时突出关键对象，但同等重要的比较对象保持可比的辨识度；颜色饱和度、灰化与透明度均按图选择，不强制统一强弱模板；
 - 信息密度可以高，但读者不应在不同 panel 反复学习新的颜色、线型和指标语法。
 
 ## 实表读取规则
@@ -409,28 +422,9 @@ end
 
 正式论文图不设置整体 `title` 或 `sgtitle`。DOCX/LaTeX caption 承担正式图号、图名与必要统计口径；多面板按需只保留 a/b/c/d 等 panel label，坐标轴、单位、图例、阈值线和必要直接标注用于读图。若本地探索阶段临时加调试标题，进入正式 `figures` 交付前必须移除。
 
-默认白底、清晰细轴、中文坐标轴和单位；普通二维图采用层级字号，默认 tick label 16、axis label 18，legend / colorbar 14，网格关闭；确需网格时必须浅、稀并置于数据后方。主结果恢复**高对比、中高饱和**科研主色，优先让评委第一眼识别关键对象；辅助元素保持克制。此处高对比科研配色针对数据驱动结果 Figure；A 类正式机理/推导图优先遵循前述 monochrome-first 规则，不自动继承蓝/红/绿/橙/紫主色。
+数据驱动结果图的颜色与排版按前述 Publication Rendering Grammar 逐图选择；没有默认色板、蓝红优先或强制中高饱和要求。中文坐标轴、单位、图例与必要直接标注保持清晰，实际颜色、字号、线宽、网格和边框由脚本集中配置。A 类正式机理/推导图仍遵循前述 monochrome-first 规则。
 
-```text
-亮蓝   #1478FF   RGB [20,120,255]
-鲜红   #F04444   RGB [240,68,68]
-亮绿   #16B364   RGB [22,179,100]
-亮橙   #F79009   RGB [247,144,9]
-亮紫   #7A5AF8   RGB [122,90,248]
-深灰   #252B37   RGB [37,43,55]
-浅灰   #E9EAEB   RGB [233,234,235]
-```
-
-配色动态规则：
-
-- 两对象强比较优先 **亮蓝 vs 鲜红**；
-- 正向/改善/可行可使用亮绿，风险/恶化优先鲜红；第三、第四主对象可使用亮橙、亮紫；
-- 主结果、推荐方案、关键曲线和临界点可以使用高对比实体色；背景、参考线、CI、次要对象和上下文用深灰/浅灰/透明度降权；
-- 同一对象和同一语义一旦建立颜色映射，全文保持一致；
-- 红绿不得承担唯一语义，需配合 marker、linestyle、shape 或明暗；
-- 禁止 rainbow、jet、HSV 无序彩虹和无语义的高饱和渐变；
-- 连续场使用与物理量语义匹配的 sequential colormap，正负偏差/相对基准使用 diverging colormap，并保留完整 colorbar 与单位；
-- 高对比 ≠ 全图所有元素都鲜艳。若所有元素同时争夺注意力，说明视觉层级失败。
+外观由用户在 MATLAB 中人工调整和确认；静态代码检查只核对接口、参数与契约，不代表已确认图形美观，也不新增自动视觉检查。
 
 图窗默认可见，不批量自动导出。
 

@@ -1,12 +1,18 @@
 function spec = hsk_publication_profile(profile)
-%HSK_PUBLICATION_PROFILE Deterministic publication rendering profile registry.
+%HSK_PUBLICATION_PROFILE Explicit palette candidates and base typography/frame.
+% 省略 profile 或传入空字符串时 palette 为空；不隐式选择任何颜色。
 % 返回 palette / typography / ordinary Cartesian frame 的纯配置；
 % 不创建/修改 figure，不读取工作簿，不选择图型、legend、layout、ylim 或导出策略。
 arguments
-    profile (1,1) string = "competition_high_contrast"
+    profile (1,1) string = ""
 end
 
 profile = lower(strtrim(profile));
+assert(~ismissing(profile), "profile 必须为非缺测标量文本；空字符串只请求基础排版");
+if strlength(profile) == 0
+    spec = base_spec(profile, struct());
+    return;
+end
 
 switch profile
     case "competition_high_contrast"
@@ -91,6 +97,10 @@ palette.brownGray = palette.darkGray;
 palette.darkRed = palette.vividRed;
 palette.beige = palette.lightGray;
 
+spec = base_spec(profile, palette);
+end
+
+function spec = base_spec(profile, palette)
 spec.name = profile;
 spec.palette = palette;
 spec.typography.axes_font_size = 16;

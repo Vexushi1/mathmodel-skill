@@ -411,10 +411,9 @@ def _check_templates(errors: list[str]) -> None:
         "LaTeX/DOCX caption",
         "Scientific Figure Synthesis Gate",
         "Publication Rendering Grammar",
-        'palette.primary',
-        'palette.comparison',
-        'apply_publication_style(fig, "competition_high_contrast")',
-        'grid(ax, "off")',
+        'seriesColors = zeros(0, 3)',
+        'apply_publication_style(fig, style)',
+        'grid(ax, gridMode)',
     ):
         if token not in plotting:
             errors.append(f"q1_plot.m lacks current scientific Figure semantic token: {token}")
@@ -427,16 +426,18 @@ def _check_templates(errors: list[str]) -> None:
         "LaTeX/DOCX caption",
         "Scientific Figure Synthesis Gate",
         "Publication Rendering Grammar",
-        'palette.primary',
-        'palette.comparison',
-        'apply_publication_style(fig, "competition_high_contrast")',
-        'grid(ax, "off")',
+        'seriesColors = zeros(0, 3)',
+        'apply_publication_style(fig, style)',
+        'grid(ax, gridMode)',
     ):
         if token not in data_process:
             errors.append(f"data_process.m lacks current scientific Figure semantic token: {token}")
 
     style = _ORIGINAL_READ_TEXT(ROOT / "templates/matlab/hsk_apply_scientific_style.m")
     profile = _ORIGINAL_READ_TEXT(ROOT / "templates/matlab/hsk_publication_profile.m")
+    for relative, text in (("style", style), ("profile", profile)):
+        if 'profile (1,1) string = ""' not in text:
+            errors.append(f"{relative} helper must not select an implicit palette")
     for token in (
         "spec = hsk_publication_profile(profile)",
         "palette = spec.palette",
@@ -459,7 +460,7 @@ def _check_templates(errors: list[str]) -> None:
         "高对比、中高饱和",
     ):
         if token not in profile:
-            errors.append(f"publication profile registry lacks current high-contrast token: {token}")
+            errors.append(f"publication profile registry lacks explicit compatibility token: {token}")
 
     for name, relative in (
         ("Diangong", "templates/latex/diangong/main.tex"),

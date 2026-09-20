@@ -146,7 +146,8 @@ class TestReadPathSemanticClosure(unittest.TestCase):
         text = (ROOT / "packs/artifact/figure.md").read_text(encoding="utf-8")
         self.assertIn("唯一权威为 `modules/04_figure_evidence.md`", text)
         self.assertIn("preprocessing_decision", text)
-        self.assertIn("高对比、中高饱和", text)
+        self.assertIn("不设默认色板", text)
+        self.assertIn("只保留为显式兼容候选", text)
         self.assertIn("不设置整体 `title` / `sgtitle`", text)
         self.assertIn("Scientific Figure Synthesis", text)
         self.assertNotIn("正式结果图只读取本问", text)
@@ -157,17 +158,16 @@ class TestReadPathSemanticClosure(unittest.TestCase):
         self.assertIn("禁止再次直接读取对应共享原始数据", text)
         self.assertNotIn("已验收主工作簿和必要原始数据", text)
 
-    def test_active_matlab_templates_use_high_contrast_palette(self):
+    def test_active_matlab_templates_require_explicit_colors_and_keep_profile_compatibility(self):
         q1 = (ROOT / "templates/matlab/q1_plot.m").read_text(encoding="utf-8")
         process = (ROOT / "templates/matlab/data_process.m").read_text(encoding="utf-8")
         style = (ROOT / "templates/matlab/hsk_apply_scientific_style.m").read_text(encoding="utf-8")
         profile = (ROOT / "templates/matlab/hsk_publication_profile.m").read_text(encoding="utf-8")
-        self.assertIn("palette.primary", q1)
-        self.assertIn("palette.comparison", q1)
-        self.assertIn("palette.primary", process)
-        self.assertIn("palette.comparison", process)
-        self.assertIn('apply_publication_style(fig, "competition_high_contrast")', q1)
-        self.assertIn('apply_publication_style(fig, "competition_high_contrast")', process)
+        for text in (q1, process):
+            self.assertIn("seriesColors = zeros(0, 3)", text)
+            self.assertIn('hsk_apply_scientific_style(fig, "", style)', text)
+            self.assertNotIn("palette.primary", text)
+            self.assertNotIn('apply_publication_style(fig, "competition_high_contrast")', text)
         for token in ("brightBlue", "vividRed", "brightGreen", "brightOrange", "brightPurple"):
             self.assertIn(token, profile)
         self.assertIn("palette.deepBlue = palette.brightBlue", profile)

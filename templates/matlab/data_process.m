@@ -12,6 +12,25 @@
 clearvars;
 clc;
 
+%% 0. 本图视觉参数——实例化时按证据与版面填写
+seriesColors = zeros(0, 3);  % 必填 N×3 RGB，范围 [0,1]；无默认色板，不自动循环补色
+style = struct("fontName", "", "axesFontSize", 12, "labelFontSize", 13, ...
+    "legendFontSize", 11, "colorbarFontSize", 11, ...
+    "axesLineWidth", 0.8, "colorbarLineWidth", 0.8);  % 排版起点，可按实际图幅调整
+figurePosition = [100, 100, 900, 560];
+lineWidth = 1.6;
+markerSize = 5;
+markerEvery = 1;  % 有连续线时可稀疏标点，线仍保留全部数据；无连接线时显示全部点
+connectPoints = false;  % 仅有真实连续/顺序语义时改为 true；数值编码的类别不自动连线
+legendLocation = "best";
+gridMode = "off";  % 需要辅助读数时可改为 on；局部覆盖在基础样式之后生效
+axesBox = "off";
+xLimits = [];  % 空表示 MATLAB 自动范围；比较图须按证据决定是否共用范围
+yLimits = [];
+seriesLabels = ["处理前", "处理后"];
+markerSymbols = ["o", "s"];
+seriesLineStyles = ["-", "--"];
+
 %% 1. 路径
 scriptPath = string(mfilename("fullpath"));
 assert(strlength(scriptPath) > 0, "请从已保存的data_process.m运行脚本");
@@ -76,21 +95,40 @@ end
 %% 3. 处理前后结构读取示例——正式实例化时按 Evidence Structure 选择
 % 若 x 具有时间/空间顺序，清楚的前后曲线可独立表达趋势；原始点/事件/误差仅按真实证据需要加入。
 % 结论涉及分布时可用 box、raw scatter 或 ECDF；涉及二维参数/空间时可用 heatmap/field，contour/boundary 按需加入。
-fig = figure("Color", "w", "Position", [100, 100, 960, 620]);
+assert(isnumeric(seriesColors) && ismatrix(seriesColors) && size(seriesColors, 2) == 3 && ...
+    size(seriesColors, 1) >= 2 && isreal(seriesColors) && ...
+    all(isfinite(seriesColors(:))) && all(seriesColors(:) >= 0 & seriesColors(:) <= 1), ...
+    "请在 seriesColors 按图填写足够的 [0,1] RGB 行；本模板不提供默认配色");
+validateattributes(lineWidth, {'numeric'}, {'scalar', 'real', 'finite', 'positive'});
+validateattributes(markerSize, {'numeric'}, {'scalar', 'real', 'finite', 'positive'});
+validateattributes(markerEvery, {'numeric'}, {'scalar', 'real', 'finite', 'integer', 'positive'});
+assert(islogical(connectPoints) && isscalar(connectPoints), "connectPoints 必须为 true 或 false");
+assert(connectPoints || all(markerSymbols ~= "none"), "离散点图需要可见 marker");
+fig = figure("Visible", "on", "Color", "w", "Position", figurePosition);
 ax = axes(fig);
 hold(ax, "on");
-palette = apply_publication_style(fig, "competition_high_contrast");
-plot(ax, x, before, "LineWidth", 1.9, "Color", palette.primary, ...
-    "DisplayName", "处理前");
-plot(ax, x, after, "LineWidth", 2.3, "Color", palette.comparison, ...
-    "DisplayName", "处理后");
-scatter(ax, x, after, 26, palette.comparison, "filled", ...
-    "MarkerFaceAlpha", 0.65, "HandleVisibility", "off");
+values = [before, after];  % 同一 x/记录键下配对；不分别过滤两列
+for j = 1:2
+    lineStyle = "none";
+    if connectPoints, lineStyle = seriesLineStyles(j); end
+    markerIndices = visible_marker_indices(values(:, j), markerEvery, lineStyle, markerSymbols(j));
+    plot(ax, x, values(:, j), "LineStyle", lineStyle, "LineWidth", lineWidth, ...
+        "Color", seriesColors(j, :), "Marker", markerSymbols(j), ...
+        "MarkerIndices", markerIndices, "MarkerSize", markerSize, "DisplayName", seriesLabels(j));
+end
 xlabel(ax, xLabelText);
 ylabel(ax, yLabelText);
-legend(ax, "Location", "best");
-grid(ax, "off");
-apply_publication_style(fig, "competition_high_contrast");
+legend(ax, "Location", legendLocation);
+apply_publication_style(fig, style);  % 对象创建完成后只应用一次
+
+% 当前图的局部覆盖最后生效；不要在这些设置后再次调用统一样式。
+grid(ax, gridMode);
+if gridMode == "on"
+    ax.Layer = "bottom";  % 辅助网格放在数据后方
+end
+ax.Box = axesBox;
+if ~isempty(xLimits), xlim(ax, xLimits); end
+if ~isempty(yLimits), ylim(ax, yLimits); end
 
 %% 4. 可选：按 Figure Contract 继续实例化真正需要的科研证据
 % 推荐优先级：
@@ -106,6 +144,19 @@ apply_publication_style(fig, "competition_high_contrast");
 
 %% 5. 图窗保留供人工检查；默认不自动导出
 % 正式导出时文件基名使用 data_process 或 data_process_<evidence>。
+
+function indices = visible_marker_indices(values, every, lineStyle, marker)
+% 无连线时显示全部点；连续线稀疏标点仍保留缺测间孤立的有效点。
+indices = 1:numel(values);
+if lineStyle == "none"
+    assert(marker ~= "none", "无连线的系列必须使用可见 marker");
+    return;
+end
+finite = isfinite(values);
+isolated = finite & ~[false; finite(1:end-1)] & ~[finite(2:end); false];
+assert(marker ~= "none" || ~any(isolated), "缺测间存在孤立有效点，请使用可见 marker 保留该证据");
+indices = unique([1:every:numel(values), find(isolated)']);
+end
 
 function column = exact_header_column(headers, expected, workbook, sheet)
 expected = strtrim(string(expected));
@@ -192,41 +243,121 @@ for i = 1:size(column, 1)
 end
 end
 
-function palette = apply_publication_style(fig, profile)
-% 优先使用仓库共享 style kernel；单文件独立运行时保留最小 fallback，不新增必需项目文件。
+function apply_publication_style(fig, style)
+% 独立入口只请求基础排版；图的 RGB 由脚本头部显式配置，不复制候选色板。
+arguments
+    fig (1,1) matlab.ui.Figure
+    style (1,1) struct = struct()
+end
+
+assert(isgraphics(fig, "figure"), "fig 必须为有效 figure");
 if exist("hsk_apply_scientific_style", "file") == 2
-    palette = hsk_apply_scientific_style(fig, profile);
+    hsk_apply_scientific_style(fig, "", style);
     return;
 end
-palette = local_publication_palette(profile);
-fontName = local_select_font();
-set(fig, "Color", "w");
-for ax = reshape(findall(fig, "Type", "axes"), 1, [])
-    set(ax, "FontName", fontName, "FontSize", 16, "LineWidth", 1.15, ...
-        "Box", "off", "Layer", "top", "TickDir", "out");
-    grid(ax, "off");
+defaults = struct("fontName", "", "axesFontSize", 16, "labelFontSize", 18, ...
+    "legendFontSize", 14, "colorbarFontSize", 14, ...
+    "axesLineWidth", 1.15, "colorbarLineWidth", 1.0);
+frame = struct("box", "off", "tick_dir", "out", "grid", "off");
+apply_base_style(fig, style, defaults, frame);
 end
-for lgd = reshape(findall(fig, "Type", "legend"), 1, [])
-    set(lgd, "FontName", fontName, "FontSize", 14, "Box", "off");
+
+function fontName = apply_base_style(fig, overrides, defaults, frame)
+% 与独立入口 fallback 保持相同实现；先完整验证，再修改任何图形属性。
+style = checked_style(overrides, defaults);
+assert(isstring(frame.box) && isscalar(frame.box) && any(frame.box == ["on", "off"]), ...
+    "基础 frame.box 必须为 on 或 off");
+assert(isstring(frame.tick_dir) && isscalar(frame.tick_dir) && ...
+    any(frame.tick_dir == ["in", "out", "both"]), "基础 frame.tick_dir 无效");
+assert(isstring(frame.grid) && isscalar(frame.grid) && any(frame.grid == ["on", "off"]), ...
+    "基础 frame.grid 必须为 on 或 off");
+fontName = style.fontName;
+if strlength(fontName) == 0
+    fontName = select_style_font();
+end
+
+% findobj 不穿透隐藏图表内部；只处理公开的普通 axes。
+for ax = reshape(findobj(fig, "Type", "axes"), 1, [])
+    set(ax, "FontName", fontName, "FontUnits", "points", ...
+        "FontSize", style.axesFontSize, "LineWidth", style.axesLineWidth);
+    if isequal(ax.View, [0, 90])
+        set(ax, "Box", frame.box, "Layer", "top", "TickDir", frame.tick_dir);
+        grid(ax, frame.grid);
+    end
+    % yyaxis 的 YAxis 可有两个 ruler；逐个访问 Label，不切换活动侧。
+    for axisName = ["XAxis", "YAxis", "ZAxis"]
+        for ruler = reshape(ax.(axisName), 1, [])
+            if isprop(ruler, "Label") && isgraphics(ruler.Label, "text")
+                set(ruler.Label, "FontName", fontName, "FontUnits", "points", ...
+                    "FontSize", style.labelFontSize);
+            end
+        end
+    end
+end
+
+% 极坐标不套用 Cartesian 的 open-axis/grid 规则。
+for ax = reshape(findobj(fig, "Type", "polaraxes"), 1, [])
+    set(ax, "FontName", fontName, "FontUnits", "points", ...
+        "FontSize", style.axesFontSize, "LineWidth", style.axesLineWidth);
+end
+% HeatmapChart 只有公共统一字号，不访问隐藏 axes 或把文字标签当 Text。
+for chart = reshape(findobj(fig), 1, [])
+    if isa(chart, "matlab.graphics.chart.HeatmapChart")
+        set(chart, "FontName", fontName, "FontSize", style.axesFontSize);
+    end
+end
+for txt = reshape(findobj(fig, "Type", "text"), 1, [])
+    set(txt, "FontName", fontName);
+end
+
+% axes 字号可能影响关联对象，因此 legend/colorbar 最后设置。
+for lgd = reshape(findobj(fig, "Type", "legend"), 1, [])
+    set(lgd, "FontName", fontName, "FontUnits", "points", ...
+        "FontSize", style.legendFontSize, "Box", "off");
+end
+for cb = reshape(findobj(fig, "Type", "colorbar"), 1, [])
+    set(cb, "FontName", fontName, "FontUnits", "points", ...
+        "FontSize", style.colorbarFontSize, "LineWidth", style.colorbarLineWidth);
+    set(cb.Label, "FontName", fontName, "FontUnits", "points", ...
+        "FontSize", style.colorbarFontSize);
 end
 end
 
-function palette = local_publication_palette(profile)
-assert(profile == "competition_high_contrast", ...
-    "独立单文件 fallback 只提供 competition_high_contrast；其他 profile 请让共享 hsk_apply_scientific_style.m 位于 MATLAB path");
-palette.primary = [20, 120, 255] / 255;
-palette.comparison = [240, 68, 68] / 255;
-palette.positive = [22, 179, 100] / 255;
-palette.accent = [247, 144, 9] / 255;
-palette.secondary = [122, 90, 248] / 255;
-palette.context = [154, 164, 178] / 255;
+function style = checked_style(overrides, defaults)
+assert(isstruct(overrides) && isscalar(overrides), "style 必须为标量 struct");
+style = defaults;
+names = fieldnames(overrides);
+unknown = setdiff(names, fieldnames(style));
+assert(isempty(unknown), "未知 style 字段: %s", strjoin(string(unknown), ", "));
+for i = 1:numel(names)
+    style.(names{i}) = overrides.(names{i});
+end
+names = fieldnames(style);
+for i = 1:numel(names)
+    name = names{i};
+    value = style.(name);
+    if strcmp(name, "fontName")
+        isText = (ischar(value) && (isrow(value) || isequal(size(value), [0, 0]))) || ...
+            (isstring(value) && isscalar(value) && ~ismissing(value));
+        assert(isText, "style.fontName 必须为非缺测标量文本；空文本表示本机字体候选");
+        style.fontName = strtrim(string(value));
+    else
+        assert(isnumeric(value) && isscalar(value) && isreal(value) && ...
+            isfinite(value) && value > 0, "style.%s 必须为有限正实标量", name);
+        style.(name) = double(value);
+    end
+end
 end
 
-function fontName = local_select_font()
-preferred = ["Microsoft YaHei", "SimHei", "Noto Sans CJK SC", "Arial Unicode MS", "Helvetica", "Arial"];
+function fontName = select_style_font()
+preferred = ["Microsoft YaHei", "SimHei", "Noto Sans CJK SC", ...
+    "Arial Unicode MS", "Helvetica", "Arial"];
 available = string(listfonts);
 fontName = "Helvetica";
 for candidate = preferred
-    if any(strcmpi(available, candidate)), fontName = candidate; return; end
+    if any(strcmpi(available, candidate))
+        fontName = candidate;
+        return;
+    end
 end
 end

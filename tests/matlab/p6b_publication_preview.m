@@ -75,7 +75,7 @@ assert(isequal(sort(actual), expected), ...
 end
 
 function fig = build_preview(profile, spec)
-fig = figure("Visible", "off", "Units", "pixels", "Position", [100, 100, 1200, 760]);
+fig = figure("Visible", "off", "Color", "w", "Units", "pixels", "Position", [100, 100, 1200, 760]);
 tl = tiledlayout(fig, 1, 2, "TileSpacing", "compact", "Padding", "compact");
 
 x = linspace(0, 10, 121);

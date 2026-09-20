@@ -1,4 +1,4 @@
-version: 9.4.4
+version: 9.5.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -401,8 +401,10 @@ matlab_figure_contract:
   composite_encoding_preferred_when_shared_evidence_space: true
   composite_encoding_preference_conditions: [real_complementary_information, readability_gain]
   portfolio_scientific_quality_review_required: true
-  high_contrast_primary_palette_required: true
-  auxiliary_visual_deweighting_required: true
+  high_contrast_primary_palette_required: false
+  palette_selection: explicit_per_figure
+  default_palette: null
+  auxiliary_visual_deweighting_required: false
   field_resolution: exact_header_unique_match
   expected_column_position: optional_drift_check
   fuzzy_matching_forbidden: true

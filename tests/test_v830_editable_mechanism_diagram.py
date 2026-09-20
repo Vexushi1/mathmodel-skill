@@ -425,6 +425,7 @@ class ContractAndDriftTests(unittest.TestCase):
     # v9.3.1 PR C intentionally rebaselines only Model Approval semantic-surface wording:
     # field/state identities remain unchanged while v9.3 minimal-sufficient/comparator meanings are made explicit.
     # F1 re-pins only approved figure-selection prose; numerical MATLAB lines are unchanged.
+    # F2 re-pins the approved configurable entry style and palette guidance only.
     PROTECTED = {
         "core/model_approval_contract.yaml": "fab8ecece97e874a6332427715ba4b24eab3c90a",
         "core/numerical_verification_contract.yaml": "f7e1921ec4945cb5e87984ccb8946302d854143f",
@@ -443,10 +444,10 @@ class ContractAndDriftTests(unittest.TestCase):
         "scripts/validate_submission_package.py": "47bd01db5f45dd8c902418be62f494419a03c676",
         # P0-B replaces silent filtering/fixed ordering with explicit evidence-preserving reads.
         # MATLAB syntax is parsed separately; source checks do not claim runtime execution.
-        "templates/matlab/q1_plot.m": "2b2c5fc0b4fb5eebdb287fd37af1d8f1c0847072",
+        "templates/matlab/q1_plot.m": "5c074ca99f4df67a7fbd1f04db08a0a4545502e8",
         "templates/matlab/draw_mechanism_structure.m": "65ba4a3b3462a565f86880c49af0959edd21f9a4",
         "templates/figure/chart_selection.md": "dca907a8b7dd12568b83583eb29a11d3e9c539b8",
-        "templates/figure/figure_enhancement_patterns.md": "fb819a0759f0241abac4b60d6016cf9e0892b651",
+        "templates/figure/figure_enhancement_patterns.md": "7c6c66286f1b33be68578aed4e84033651ece975",
         "scripts/validate_code_delivery.py": "078e50d2d8b192823f4e462d7bfd5e46e0e27988",
     }
 

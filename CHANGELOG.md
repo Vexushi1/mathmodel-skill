@@ -1,6 +1,13 @@
 # Changelog
 
-## Current release: 9.4.4
+## Current release: 9.5.0
+
+- F2 separates basic typography/frame from per-figure color selection. Empty or omitted profile now returns an empty palette and never selects a candidate; existing explicitly named profiles and color aliases remain available. Callers that formerly read palette.primary from a no-profile call must choose a profile explicitly or provide RGB.
+- Plotting entry parameters now collect RGB, typography, line/marker size, canvas, legend, grid/frame and limits. A single object uses one color and one legend item; point-only plots retain every point, while sparse markers on continuous lines preserve isolated finite observations across missing-value gaps.
+- Shared and standalone style paths use the same rendering implementation and explicit overrides. Ordinary axes, yyaxis labels, polar axes and heatmap public properties are handled separately; style runs once before local overrides and does not repaint data or colormaps.
+- Updated Figure Authority, output contract, consumers, checks and migration guidance together. The optional historical preview harness now requests its own white background; it remains skipped on PRs and was not executed. MATLAB validation is static only.
+
+## Previous release: 9.4.4
 
 - F1 makes figure selection evidence-first: a clear line, dot, bar or single panel can directly support a core conclusion. Existing F1/F2/F3 labels describe structure, not quality or mandatory escalation.
 - Composite encodings require real complementary information and improved readability; repeated line/point data are one evidence source, and absent intervals or pairings must not be invented.

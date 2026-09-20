@@ -118,28 +118,59 @@ surface + contour projection（第三维真实时）
 
 ## Publication Rendering Grammar 快速参考
 
-`modules/04_figure_evidence.md` 决定“是否应该使用某种结构”；本目录只实现渲染。P6a 将“profile 数据”和“对 figure 应用样式”拆成两个职责：
+`modules/04_figure_evidence.md` 决定视觉结构与逐图配色规则；本目录只实现渲染。数据图不设默认色板，具体 SCI / Nature 论文可作为当前图的配色与排版参考，但不是一套官方统一颜色表。离散类别、连续量和围绕真实中心的双向偏差分别选择 categorical、sequential 和 diverging 表达；相同对象和语义全文一致，灰度与色觉辨识辅以线型、marker 或直接标签。
+
+共享 helper 将“可选配色配置”和“基础排版”拆成两个职责：
 
 ```matlab
-spec = hsk_publication_profile("journal_balanced");
-% spec 只返回 deterministic palette / typography / frame，不修改 figure。
+spec = hsk_publication_profile();  % spec.palette 是没有字段的 struct()
+spec = hsk_publication_profile("journal_balanced");  % 显式取得一组候选 RGB
+% 两种调用都只返回配置，不修改 figure。
 
-palette = hsk_apply_scientific_style(fig);  % 默认 competition_high_contrast
-palette = hsk_apply_scientific_style(fig, "journal_balanced");
-palette = hsk_apply_scientific_style(fig, "monochrome_print");
+% 图形对象、坐标标签、legend/colorbar 创建完成后调用一次：
+palette = hsk_apply_scientific_style(fig, "", style);  % 只排版，返回 struct()
+% 不需要排版覆盖时，可省略 style；省略 profile 也不会选择配色。
 ```
 
-`hsk_publication_profile.m` 是共享 template implementation registry，不是 Figure Authority：它不读取工作簿、不创建 figure、不选择图型、legend/layout、坐标范围或导出策略。`hsk_apply_scientific_style.m` 消费该 registry，选择本机字体并把已选 profile 应用到当前 figure。
+`hsk_publication_profile.m` 是可选配色与基础排版配置的共享 registry，不是 Figure Authority：它不读取工作簿、不创建 figure、不选择图型、legend/layout、坐标范围或导出策略。`hsk_apply_scientific_style.m` 消费基础排版配置，选择本机字体并设置字号、轴线与框架；它不设置数据颜色、背景色、`ColorOrder` 或 colormap。颜色由实例脚本显式赋给对应绘图对象。
 
-新脚本优先使用 semantic roles：`palette.primary / comparison / positive / accent / secondary / focus / context / neutral`；旧 `brightBlue / vividRed / ...` 字段继续兼容，但不应作为新图的唯一设计接口。
+旧的 `competition_high_contrast`、`journal_balanced`、`monochrome_print` 保留为显式候选，不按对象数或竞赛名称自动选择。显式 profile 仍提供 `palette.primary / comparison / positive / accent / secondary / focus / context / neutral`、`palette.series` 和旧 `brightBlue / vividRed / ...` 别名；这些兼容角色不替用户决定当前对象的语义映射。空 profile 的 palette 为没有字段的 `struct()`，不能继续访问 `palette.primary` 等字段；profile helper 的外层 `spec` 仍保留基础排版配置。
 
-选择建议：
+### 旧无参取色调用迁移
 
-- `competition_high_contrast`：1--3 个主要对象、强比较、竞赛快速阅读；
-- `journal_balanced`：4--8 个对象、多 panel、多指标、长 legend；
-- `monochrome_print`：黑白打印或颜色不能承担唯一语义。
+旧项目若需要保留原来的颜色，在已有 `fig` / `hLine` 且标签和图例齐备后，把无 profile 的调用改为显式候选：
 
-共享 style kernel 只做 white background、font fallback、open-axis ordinary Cartesian frame、frameless legend、colorbar typography 与 palette；**不自动决定图型、ylim、x ticks、legend tile、数据字段或导出**。heatmap、3D、polar 等若需要完整 frame，可在 helper 之后按 Figure Contract 明确覆盖。
+```matlab
+% 旧：palette = hsk_apply_scientific_style(fig);  然后使用 palette.primary
+palette = hsk_apply_scientific_style(fig, "competition_high_contrast");
+set(hLine, "Color", palette.primary);
+```
+
+这只是保留旧颜色的兼容写法。新实例在脚本头部填写当前图的 `seriesColors`，然后调用空 profile 的基础样式即可。不要在原样式调用之外再追加一次；应替换原调用，局部覆盖仍放在其后。
+
+### 脚本头部视觉参数
+
+`q1_plot.m` 与 `data_process.m` 将当前图的可调项集中在第 0 节。下表说明已有脚本参数，不增加 Figure Contract 必填表：
+
+| 参数 | 当前接口与作用 |
+|---|---|
+| `seriesColors` | 无默认色板，初始为 `zeros(0, 3)`；实例化时填写有限实数 N×3 RGB，分量属于 `[0,1]`，不得留空或自动循环补色。当前 q1 示例至少 1 行，前后对比示例至少 2 行；使用 0–255 RGB 时先除以 255 |
+| `style` | 小型标量 struct，仅覆盖基础字号、字体与轴线宽；字段见下文 |
+| `figurePosition` | 当前图窗的 `[left, bottom, width, height]`，按标签长度和版面调整 |
+| `lineWidth` / `markerSize` | 数据线宽与标记大小，均为有限正数；不同于 `style.axesLineWidth` 的坐标轴线宽 |
+| `markerEvery` | 正整数；有连续线时每隔若干记录显示 marker，线仍使用完整 x/y 数据，NaN 隔开的孤立有效点额外保留；按每个系列的实际线型判断，无连接线时显示全部点 |
+| `connectPoints` | 默认 `false`，用离散点表达；只有真实连续或顺序关系需要连接时改为 `true`，数值编码的类别不自动连线 |
+| `legendLocation` | 当前图例位置，不通过添加重复对象凑图例 |
+| `gridMode` / `axesBox` | 各为 `"on"` 或 `"off"`；在基础样式之后设置当前图的网格与边框；启用网格时入口同步将 `Layer` 设为 `"bottom"`，使网格位于数据后方 |
+| `xLimits` / `yLimits` | 空数组表示 MATLAB 自动范围；需要固定范围时显式填写两端点，按证据决定比较图是否共用范围 |
+
+`q1_plot.m` 的对象名和标记由 `seriesLabel` / `markerSymbol` 设置；`data_process.m` 使用 `seriesLabels` / `markerSymbols`，连接前后曲线时再使用 `seriesLineStyles`。`connectPoints` 不排序或删记录，仍遵守前述 `sortByX` / `sortReason` 合同。稀疏 marker 只减轻遮挡，不对完整曲线抽样，不越过 NaN 缺口；线和点属于同一对象，只保留一个对象图例。
+
+第三参 `style` 支持 `fontName`、`axesFontSize`、`labelFontSize`、`legendFontSize`、`colorbarFontSize`、`axesLineWidth`、`colorbarLineWidth`。只填写需要覆盖的字段，省略字段使用 helper 的排版起点；`fontName=""` 使用本机字体候选，其余字段须为有限正实数，未知字段会报错。脚本中现有字号、画布与线宽只是可调起点，不是所有图必须满足的固定规格。
+
+调用顺序为：创建图形对象、标签、legend/colorbar → `apply_publication_style(fig, style)` 一次 → 当前图的局部覆盖。入口中的该 local wrapper 负责选择共享 helper 或单文件 fallback；直接调用共享接口时使用 `hsk_apply_scientific_style(fig, "", style)`。网格、边框、坐标范围及个别对象字号放在局部覆盖阶段；不要把它们加成未支持的 `style` 字段，也不要在手调之后再次套用基础样式。heatmap、3D、polar 等按当前图保留必要空间参照。
+
+助手只做静态代码与接口检查；MATLAB 运行和图形观感由用户人工确认，不进行自动图像评分，也不把静态检查通过说成已验证外观。
 
 高价值 publication patterns：Multi-Metric Comparison Strip、Dedicated Legend Tile、Ordered Ablation Ladder、Composition/Decomposition、Evidence Matrix、Milestone-aware Trend、Normalized Radar（严格准入）、Density/State-Space、Comparative Performance Matrix。实现边界见 `templates/figure/figure_enhancement_patterns.md`。
 
@@ -149,7 +180,11 @@ palette = hsk_apply_scientific_style(fig, "monochrome_print");
 
 ### Standalone project compatibility
 
-项目正式接口保持 `core/output_contract.yaml` 的 conditional per-question layout：基础三文件；Gate=`required` 时追加 03B 两文件。Gate=`required` 的 total=5 兼容路径仍对应历史“每问五文件”接口；该术语不得解释为 Gate=`not_required` 的无条件默认。共享 style helper/profile helper 仍不是必须复制到每问目录的额外产物；换言之，本 patch 不新增“必须复制一个 style helper/profile helper”的第六文件。仓库模板在 HSK Skill/MATLAB template 路径可见时优先调用共享 `hsk_apply_scientific_style.m` + `hsk_publication_profile.m`；若用户只把单个 `qX_plot.m` / `data_process.m` 带到独立项目目录，入口脚本保留最小 local fallback，仅保证默认高对比 palette 与基础 frame，不复制 profile registry、profile 决策或图型 Authority。
+项目正式接口保持 `core/output_contract.yaml` 的 conditional per-question layout：基础三文件；Gate=`required` 时追加 03B 两文件。Gate=`required` 的 total=5 兼容路径仍对应历史“每问五文件”接口；该术语不得解释为 Gate=`not_required` 的无条件默认。共享 style helper/profile helper 仍不是必须复制到每问目录的额外产物，不新增第六个必交文件。
+
+使用共享实现时，`hsk_apply_scientific_style.m` 与 `hsk_publication_profile.m` 应来自同一版本，并与当前入口脚本配套；不要混用 MATLAB path 中残留的旧 helper。入口发现共享 style helper 后会直接调用它，缺少配套 profile helper、混用旧签名或共享调用出错时不会静默改走 fallback。
+
+只把单个 `qX_plot.m` / `data_process.m` 带到独立项目目录、共享 style helper 不可见时，脚本内最小 local fallback 负责字体、字号和基础框架。它使用同一 `style` 接口，不提供或复制配色 registry，不隐式选择高对比颜色；图的数据 RGB 仍来自头部 `seriesColors`，无需新增 helper 必交文件。
 
 ## Figure Layout Gate
 
@@ -177,12 +212,12 @@ Figure Contract 记录 `Enhancement / Enhancement rationale`，不把 inset 坐�
 
 - 正式论文图不设置整体 `title` 或 `sgtitle`；LaTeX/DOCX `caption` 承担正式图号和图名，多面板按需只保留 a/b/c/d 等 panel label；
 - 本地探索阶段若临时使用调试标题，进入正式 `figures` 交付前必须移除；
-- 白底、清晰细轴、中文坐标轴和单位，默认字号 18；
-- 数据驱动主结果图恢复高对比、中高饱和科研主色：亮蓝 `#1478FF`、鲜红 `#F04444`、亮绿 `#16B364`、亮橙 `#F79009`、亮紫 `#7A5AF8`；强比较优先亮蓝 vs 鲜红；正式机理/推导图不继承该调色板，统一服从 Module 04 的 monochrome-first 黑白灰线稿规则；
-- 辅助对象、置信区间、背景带和参考元素使用深灰 `#252B37`、浅灰 `#E9EAEB` 或透明度降权；高对比不等于全图所有元素都鲜艳；
+- 数据图颜色、字号、数据线宽、网格与边框按图选择，参数集中手调；中文坐标轴、单位、图例和 colorbar 保持可读；
+- `seriesColors` 显式给出当前对象的 RGB，不设蓝红优先、默认色板或强制中高饱和要求；正式机理/推导图仍服从 Module 04 的 monochrome-first 黑白灰线稿规则；
+- 视觉权重服务当前论证，必要上下文保持可见，同等重要的比较对象保持可比的辨识度，不强制全部辅助对象灰化；
 - 同一对象/语义在全文保持颜色一致；红绿不能承担唯一语义，需要 marker/linestyle/shape；
 - 禁止 rainbow/jet 和无序彩虹；热图按连续变量语义选择 sequential/diverging colormap，并保留 colorbar 与单位；
-- 默认 `grid off`；确需网格时保持浅、稀且位于数据后方；
+- 网格按读数需要选择，启用时保持浅、稀且位于数据后方；基础样式只调用一次，局部覆盖在其后生效；
 - 默认保留可见图窗，不自动关闭，不创建图表子目录，不批量导出；
 - 论文阶段人工确认后，按需导出到项目级 `figures/`。
 

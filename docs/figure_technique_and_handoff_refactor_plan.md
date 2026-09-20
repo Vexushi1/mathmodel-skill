@@ -1,10 +1,10 @@
 # 绘图衔接修复与绘图技巧改进详细计划
 
 > 仓库：`Vexushi1/mathmodel-skill`  
-> 计划日期：2026-09-20；计划版本：1.4
+> 计划日期：2026-09-20；计划版本：1.5
 > 编制基线：`main@d6f24892dec61d01a6a75811d01e0c32e04da438`  
-> 编制时 Skill：9.4.0；计划创建提交未升级版本。当前已合入 9.4.3，F1 实施目标：9.4.4 patch。
-> 状态：`implementing`；P0 已合并，F1 正在实施，具体验证与剩余阶段见第 12 节。
+> 编制时 Skill：9.4.0；计划创建提交未升级版本。当前已合入 9.4.4，F2 实施目标：9.5.0 minor；新增可选样式参数并按本计划取消隐式配色。
+> 状态：`implementing`；P0 与 F1 已合并，F2 正在实施，具体验证与剩余阶段见第 12 节。
 > 文件角色：本轮绘图改造的维护计划、实施顺序和进度依据，不是新的 Figure、Workbook、Runtime 或 Writing Authority。
 
 ## 0. 后续如何使用本计划
@@ -290,8 +290,8 @@ Python 单元测试在这里验证仓库实现/合同，不代表运行了用户
 | P0-A | 已合并并完成验证 | [PR #211](https://github.com/Vexushi1/mathmodel-skill/pull/211)，合并 `e00f31dfc5ab4fcf67877e8b0effdff61d6970e2` | [PR CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35491575546)、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35491575524)、[main CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35491780957) 和 main 生成检查通过；本地 1076 项仍有同样的 40 个 Windows 基线问题；未运行 MATLAB |
 | P0-B | 已合并并完成验证 | [PR #212](https://github.com/Vexushi1/mathmodel-skill/pull/212)，合并 `208d8ddda42150371d59b6553ec171853e5cd509` | [PR CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35492571378)、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35492571439)、[main CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35492791788)及 main 生成检查通过；3 个 MATLAB 文件纯语法解析通过，36 项读取/保护专项、46 项发布/交接专项通过；全量 1076 项与初始基线相同的 40 个 Windows 问题，无新增失败（一次进程异常退出单独留日志，复跑完成）；MATLAB 实机验收独立进行 |
 | P0-C | 已合并并完成验证 | [PR #213](https://github.com/Vexushi1/mathmodel-skill/pull/213)，合并 `deca8d60973635057cf55969c0b0e81bc892c241` | [PR CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35493084211)和[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35493084249)通过，[main CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35493337986) 和 main 生成检查通过；真实 MATLAB job 为 skipped；8 项专项通过，全量 1079 项仅原有 40 个 Windows 问题；未 dispatch |
-| F1 | 实现与本地静态验证完成，待 PR CI | `fix/figure-f1-evidence-first`，基线 `deca8d6` | Authority、消费者和标题读取同步证据优先；保留 F1/F2/F3 标签，不按复杂度排序；MATLAB 非注释行不变，2 文件纯语法解析通过，28 个 Module 04 selector 唯一命中；27 项选择/Pack/产物契约专项通过；全量 1080 项仅原有 40 个 Windows 问题；lint/生成检查通过 |
-| F2 | 未开始 | — | 无默认配色及可调 MATLAB 样式待修改 |
+| F1 | 已合并并完成验证 | [PR #214](https://github.com/Vexushi1/mathmodel-skill/pull/214)，合并 `5d0829b11d3522862697bb638581ddb68fd761e8` | [PR CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35493617169)、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35493617190)、[main CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35493787196)及 main 生成检查通过；28 个 Module 04 selector 唯一命中；MATLAB 非注释行不变，2 文件纯语法解析通过；27 项专项通过；全量 1080 项仅原有 40 个 Windows 问题 |
+| F2 | 实现与本地静态验证完成，待 PR CI | `feat/figure-f2-explicit-style`，基线 `5d0829b` | 无默认 palette，新增 7 个可选排版字段；脚本参数与局部覆盖闭环；共享/fallback 排版一致；单系列一个图例，稀疏 marker 保留孤立点；75 项专项通过，5 个 MATLAB 文件纯语法解析通过；全量 1088 项仅原有 40 个 Windows 问题，无新增失败；lint/生成检查通过；PR/main CI 待完成 |
 | F3 | 未开始 | — | 技巧样例待完善 |
 | F4 | 未开始 | — | 文档与跨文件最终闭环待核对 |
 | 用户 MATLAB 运行与人工调图 | 用户自行进行 | 不适用 | 不由静态检查或 CI 自动宣告通过 |
@@ -305,6 +305,8 @@ Python 单元测试在这里验证仓库实现/合同，不代表运行了用户
 | 2026-09-20 | 1.2 完成 P0-A，进入 P0-B | P0-A 的 PR/main 检查通过；P0-B 保守处理不可由导入值反推的物理空白，不自动猜测裁尾；使用 MISS_HIT core 0.9.44 做第三方纯语法解析，不执行 MATLAB；补记 F2 的 Output Contract 配色约束影响面 |
 | 2026-09-20 | 1.3 完成 P0-B，实施 P0-C | P0-B 的 PR/main 检查通过；P0-C 将真实 MATLAB preview 从普通 PR 移至缺省关闭的手动选项，保留普通静态 CI 和历史证据 |
 | 2026-09-20 | 1.4 完成 P0-C，进入 F1 | P0-C PR CI 通过且 MATLAB job 跳过；F1 保留能力与标签，修正基础图强制升级、候选凑数和 Portfolio 图型比例倾向，同步标题 selector |
+
+| 2026-09-20 | 1.5 完成 F1，进入 F2 | F1 的 PR/main 检查通过；F2 新增可选排版参数并取消隐式配色。旧的显式 profile 名称及别名保留；无参调用不再返回带颜色字段的 palette，依赖 `palette.primary` 等的旧调用须显式传入原 profile，或自行设置 RGB。已复制到旧项目的脚本不自动迁移；新模板须实例化颜色后使用，不把留空参数模板当作开箱即跑的完成代码 |
 
 ## 13. 回滚与完成判定
 

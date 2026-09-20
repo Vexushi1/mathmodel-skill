@@ -1,3 +1,4 @@
+import re
 import unittest
 from pathlib import Path
 
@@ -83,15 +84,93 @@ class TestP6aFigureReferenceProfile(unittest.TestCase):
         ):
             self.assertNotIn(duplicated, style)
         self.assertNotIn("exportgraphics", style)
+        self.assertIn('profile (1,1) string = ""', style)
+        self.assertIn("if ~isempty(fieldnames(palette))", style)
+        self.assertIn("apply_base_style(fig, style, defaults, spec.frame)", style)
+
+    def test_empty_profile_returns_no_palette_before_any_rgb_assignment(self):
+        # Source contract only: no MATLAB execution or simulated renderer.
+        text = (ROOT / "templates/matlab/hsk_publication_profile.m").read_text(encoding="utf-8")
+        self.assertIn('profile (1,1) string = ""', text)
+        empty_branch = re.search(r"if strlength\(profile\) == 0\s+(.*?)\nend", text, re.S)
+        self.assertIsNotNone(empty_branch)
+        self.assertEqual(empty_branch.group(1).strip(), "spec = base_spec(profile, struct());\n    return;")
+        self.assertLess(empty_branch.end(), text.index("switch profile"))
+        before_switch = text[:text.index("switch profile")]
+        self.assertNotRegex(before_switch, r"palette\.\w+\s*=|series\s*=")
+        base = text.split("function spec = base_spec(profile, palette)", 1)[1]
+        self.assertIn("spec.palette = palette;", base)
+        self.assertNotRegex(base, r"(?m)^\s*palette\.\w+\s*=")
+
+    def test_shared_and_standalone_typography_implementations_are_identical(self):
+        marker = "function fontName = apply_base_style(fig, overrides, defaults, frame)"
+        shared = (ROOT / "templates/matlab/hsk_apply_scientific_style.m").read_text(encoding="utf-8")
+        self.assertEqual(shared.count(marker), 1)
+        shared_tail = shared[shared.index(marker):]
+        for relative in ("templates/matlab/q1_plot.m", "templates/matlab/data_process.m"):
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            self.assertEqual(text.count(marker), 1, relative)
+            self.assertEqual(text[text.index(marker):], shared_tail, relative)
+        for signature in ("function style = checked_style", "function fontName = select_style_font"):
+            self.assertEqual(shared_tail.count(signature), 1)
+        self.assertLess(shared_tail.index("checked_style(overrides, defaults)"), shared_tail.index("set(ax,"))
+        for token in ("unknown = setdiff(names, fieldnames(style))", "assert(isempty(unknown)",
+                      "isfinite(value) && value > 0", 'isgraphics(ruler.Label, "text")',
+                      'isa(chart, "matlab.graphics.chart.HeatmapChart")'):
+            self.assertIn(token, shared_tail)
+
+    def test_fallback_defaults_equal_the_registry_and_forward_script_overrides(self):
+        registry = (ROOT / "templates/matlab/hsk_publication_profile.m").read_text(encoding="utf-8")
+        shared = (ROOT / "templates/matlab/hsk_apply_scientific_style.m").read_text(encoding="utf-8")
+        fields = {
+            "axesFontSize": "typography.axes_font_size",
+            "labelFontSize": "typography.label_font_size",
+            "legendFontSize": "typography.legend_font_size",
+            "colorbarFontSize": "typography.colorbar_font_size",
+            "axesLineWidth": "frame.axes_line_width",
+            "colorbarLineWidth": "frame.colorbar_line_width",
+        }
+        for relative in ("templates/matlab/q1_plot.m", "templates/matlab/data_process.m"):
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            fallback = text.split("function apply_publication_style(fig, style)", 1)[1].split(
+                "function fontName = apply_base_style", 1)[0]
+            self.assertIn('hsk_apply_scientific_style(fig, "", style);\n    return;', fallback)
+            self.assertIn("apply_base_style(fig, style, defaults, frame);", fallback)
+            self.assertNotIn("palette", "\n".join(line for line in fallback.splitlines()
+                                                    if not line.lstrip().startswith("%")))
+            self.assertIn('"fontName", ""', fallback)
+            for field, source in fields.items():
+                assignment = re.search(r"spec\." + re.escape(source) + r"\s*=\s*([^;]+);", registry)
+                self.assertIsNotNone(assignment, source)
+                self.assertRegex(fallback, '"' + field + r'",\s*' + re.escape(assignment.group(1).strip()) + r'(?=[,)])')
+                self.assertIn(f'"{field}", spec.{source}', shared)
+            for field in ("box", "tick_dir", "grid"):
+                value = re.search(r"spec\.frame\." + field + r'\s*=\s*("[^"]+");', registry).group(1)
+                self.assertIn(f'"{field}", {value}', fallback)
+
+    def test_style_paths_do_not_set_data_or_background_colors(self):
+        for relative in ("templates/matlab/hsk_apply_scientific_style.m",
+                         "templates/matlab/q1_plot.m", "templates/matlab/data_process.m"):
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            if relative.endswith(("q1_plot.m", "data_process.m")):
+                text = text[text.index("function apply_publication_style(fig, style)"):]
+            source = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("%"))
+            self.assertNotRegex(source, r'"(?:Color|ColorOrder|FaceColor|EdgeColor|MarkerFaceColor|MarkerEdgeColor)"\s*,')
+            self.assertNotRegex(source, r"\b(?:colormap|colororder)\s*\(")
+            self.assertNotIn('case "competition_high_contrast"', source)
+            self.assertNotIn('profile (1,1) string = "competition_high_contrast"', source)
 
     def test_formal_project_interface_stays_five_file_and_standalone(self):
         readme = (ROOT / "templates/matlab/README.md").read_text(encoding="utf-8")
         self.assertIn("每问五文件", readme)
         self.assertIn("hsk_publication_profile.m", readme)
-        self.assertIn("不新增“必须复制一个 style helper/profile helper”的第六文件", readme)
+        self.assertIn("共享 style helper/profile helper 仍不是必须复制到每问目录的额外产物", readme)
+        self.assertIn("不新增第六个必交文件", readme)
         for relative in ("templates/matlab/q1_plot.m", "templates/matlab/data_process.m"):
             text = (ROOT / relative).read_text(encoding="utf-8")
-            self.assertIn("local_publication_palette", text)
+            self.assertIn("function apply_publication_style(fig, style)", text)
+            self.assertIn("apply_base_style(fig, style, defaults, frame)", text)
+            self.assertNotIn("local_publication_palette", text)
             self.assertNotIn("hsk_publication_profile(", text)
 
     def test_p6a_does_not_claim_real_preview(self):
