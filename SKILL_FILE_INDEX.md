@@ -244,6 +244,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/reading_plan_cases.py`
 - `tests/reading_plan_evidence.py`
 - `tests/test_actions_runtime_modernization.py`
+- `tests/test_audit_path_identity.py`
 - `tests/test_audit_workbook_lifecycle.py`
 - `tests/test_authority_single_source.py`
 - `tests/test_code_quality_contract.py`
