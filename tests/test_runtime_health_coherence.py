@@ -35,7 +35,8 @@ class RuntimeHealthCoherenceTests(unittest.TestCase):
         self.assertEqual(ROOT_SKILL.read_text(encoding="utf-8"), PACKAGED_SKILL.read_text(encoding="utf-8"))
 
     def test_skill_discovery_covers_high_frequency_intents(self):
-        triggers = set(skill_frontmatter(ROOT_SKILL).get("triggers", []))
+        data = skill_frontmatter(ROOT_SKILL)
+        triggers = set(data.get("metadata", {}).get("triggers", data.get("triggers", [])))
         required = {"审题", "建模思路", "建模方案", "完整求解", "结果分析", "终审", "提交包"}
         self.assertFalse(required - triggers, sorted(required - triggers))
 

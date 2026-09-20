@@ -23,10 +23,11 @@ def extract_contract(path: Path) -> str:
 
 def frontmatter_version(path: Path) -> str:
     text = path.read_text(encoding="utf-8")
-    match = re.search(r"^version:\s*([^\s]+)", text, flags=re.MULTILINE)
-    if not match:
+    data = yaml.safe_load(text.split("---", 2)[1]) or {}
+    version = data.get("metadata", {}).get("version", data.get("version"))
+    if version is None:
         raise AssertionError(f"frontmatter version missing: {path}")
-    return match.group(1)
+    return str(version)
 
 
 class EntrypointParityTests(unittest.TestCase):
