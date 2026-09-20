@@ -469,9 +469,9 @@ python scripts/generate_indexes.py --check
 | Part E：公式多时保持清晰叙事 | COMPLETED：PR #199，final head 与合并后 main 验收均通过 |
 | Part F：正式章节最大三级 | COMPLETED：PR #200，final head 与合并后 main 验收均通过 |
 | Part G：复用现有审查，不增建 Gate | COMPLETED：PR #201 以既有 Review/Runtime/coverage 回归证明闭环，未新增 Gate/required 状态/coverage family |
-| W2 Consumer/模板/样例实施 | IN_PROGRESS：W2-P1 PR #205 已证明现有 Pack/Template/例文对齐；按 §7.4 仍需 W2-P2 真实长证明 LaTeX 分页与引用/编号验收，branch `fix/writing-w2-long-proof-render` |
+| W2 Consumer/模板/样例实施 | COMPLETED：PR #205 完成 Consumer/Pack/Template/例文对齐，PR #206 完成长核心证明真实 LaTeX 分页与引用/编号验收；final head 与 main 后验均通过 |
 | W3 检查减重实施 | COMPLETED：PR #203 仅移除 W0 批准的 count-only `question_subsection_granularity` finding；final head 与 main 后验均通过 |
-| W4 行为验收集成 | NOT_STARTED |
+| W4 行为验收集成 | IN_PROGRESS：branch `fix/writing-readability-w4-acceptance`，按 T01–T18 建立机器/语义双重验收与跨文件/跨载体证据 |
 | W5 发布与综合收尾 | NOT_STARTED；目标 release 待实际评估 |
 
 ### W1-P1：核心证明正文保全
@@ -612,14 +612,26 @@ Base main SHA：`491fac0af1f77eb91e64f32e21ae21abcc442b4e`；Final head：`e990b
 
 ### W2-P2：长核心证明真实 LaTeX 分页与引用验收
 
-阶段 / PR：W2 real-render closure / branch `fix/writing-w2-long-proof-render`；PR 编号待创建。  
-Base main SHA：`0242bb8d4d6b94dab7b14773940e92e8c692e99d`；Final head / Merge SHA 待真实验收后补记。  
+阶段 / PR：W2 real-render closure / PR #206 — `test: render long core proof across pages`。  
+Base main SHA：`0242bb8d4d6b94dab7b14773940e92e8c692e99d`；Final head：`7bf2e2c3e31319544d93512ab23ceaffb05e6620`；Merge SHA：`f3946972f246cc145796558a8c115062d435ecb3`。  
 计划依据：严格执行 §7.4“长证明的解决方式必须有真实 LaTeX 渲染和引用/编号测试”，以及 T04“核心证明超过半页时正文完整证明可连续阅读并正确分页”。  
 实际修改：不改 Proposition Pack、Writing Authority 或活动 preamble 业务语义；仅在现有 Production LaTeX attestation 中增加临时 CUMCM 长核心证明 fixture，直接复制 current `config/preamble.tex`，把命题陈述留在 `hskproposition`，完整证明置于框外 standalone `hskproof`。真实编译后从 AUX 核对命题/最终公式 label 均存在且最终公式页码大于命题页码，并拒绝 unresolved reference/citation；失败时保留 proof-specific audit/compile/log/aux diagnostics。  
 测试保护：扩展既有 `tests/test_content_packs.py`，确保真实渲染步骤、命题/公式 label 和跨页页码断言不会被后续维护静默删除。  
 兼容性：不新增 Runtime Gate、Project State、报告 schema、模板正式章节、用户必交文件或跨运行缓存；只加强现有 CI 验收，不裁剪任何现有 job。  
-静态测试 / 真实执行 / 生成文件：待 final head HSK Skill CI、Optimization baseline 和真实 proof render 结果。  
-遗留问题 / 下一阶段：该真实渲染全绿并完成 main 后验后，W2 才可标 COMPLETED；随后进入 W4 T01–T18 集成验收。
+静态测试 / 真实执行 / 生成文件：final head HSK Skill CI workflow_dispatch #3832 与 Optimization baseline #353 均 success；Production LaTeX attestation 中 `Render long core proof pagination and numbering fixture` success；PR-triggered #3833 为 `action_required` 不作为失败证据；合并后 main HSK Skill CI #3834 与 metadata refresh #2524 均 success。  
+完成结论：W2-P1 + W2-P2 已共同满足 §10 的 Consumer/模板/样例实际输出条件与 §7.4 长证明真实渲染要求，W2 可标 COMPLETED。  
+遗留问题 / 下一阶段：进入 W4 T01–T18 集成验收；W4 只补行为证据和语义审阅记录，不重复修改已闭环 C–F 业务政策。
+
+### W4-P1：T01–T18 集成行为验收
+
+阶段 / PR：W4 integrated acceptance / branch `fix/writing-readability-w4-acceptance`；PR 编号待创建。  
+Base main SHA：`f3946972f246cc145796558a8c115062d435ecb3`；Final head / Merge SHA 待真实验收后补记。  
+本次范围：严格按 §10 W4 与 §12/T01–T18，把现有 Authority/Consumer/audit/CI 的正例、反例、跨文件与跨载体证据汇总为一个集成验收；不新增 Gate、required 状态、coverage family 或新的业务规则。  
+实际修改：新增维护证据 `docs/writing_readability_w4_acceptance.md` 与一个聚焦集成回归 `tests/test_v931_writing_readability_w4_acceptance.py`。测试复用现有 audit / Runtime / DOCX / Review 接口，覆盖三级正例、四级反例、非活动文本排除、W3 count-only 边界、Terminology/Numeric drift、wording/semantic stale 分界、跨载体 fallback 与 Hard blocking 保全。  
+语义审阅边界：维护记录中的语义判断不是独立评委、用户或第三方反馈；未编造“评委已验证”。机器不能判定的推导完整性、术语解释充分性、表格语义继续按 Review 的 manual/hybrid 边界记录。  
+兼容性：不改模型/数值/工作簿、Runtime stage、Review schema、Project State、formal Gate、CLI 或 report shape。  
+静态测试 / 真实执行 / 生成文件：待 final head HSK Skill CI、Optimization baseline、LaTeX/Production attestation 与 metadata refresh。  
+遗留问题 / 下一阶段：W4 final head 与 main 后验全部通过后标 COMPLETED，随后进入 W5 综合回归、版本/release 裁决与计划收尾。
 
 后续每个实施 PR 在本节追加记录，不重写历史裁决：
 
