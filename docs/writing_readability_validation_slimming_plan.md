@@ -5,7 +5,8 @@
 > 计划版本：1.0  
 > 编制基线：`main@a8cba4d5086eceaf06b98e9bac5332b811a05dc1`  
 > 当前 Skill：9.3.1；本次计划提交不升级 Skill。  
-> 授权状态：用户已认可 A–G 摘要并授权编写、上传详细计划；业务实现尚未开始。  
+> 授权状态：用户已认可 A–G 摘要并授权编写、上传详细计划；该句记录计划创建时状态。  
+> 最终实施状态：**COMPLETED**；P0、W0–W5 与 Part C–G 已全部闭环，活动 release 已进入 v9.4.0。  
 > 文件角色：维护计划与后续实施依据，不是新的 Runtime、Writing、Modeling 或 Approval Authority。
 
 ## 0. 使用方法与授权边界
@@ -472,7 +473,7 @@ python scripts/generate_indexes.py --check
 | W2 Consumer/模板/样例实施 | COMPLETED：PR #205 完成 Consumer/Pack/Template/例文对齐，PR #206 完成长核心证明真实 LaTeX 分页与引用/编号验收；final head 与 main 后验均通过 |
 | W3 检查减重实施 | COMPLETED：PR #203 仅移除 W0 批准的 count-only `question_subsection_granularity` finding；final head 与 main 后验均通过 |
 | W4 行为验收集成 | COMPLETED：PR #207 完成 T01–T18 机器/语义双重验收与跨文件/跨载体证据；final head 与 main 后验均通过 |
-| W5 发布与综合收尾 | IN_PROGRESS：按实际行为裁决目标 release 为 9.4.0 minor；branch `upgrade/v9.4.0-writing-readability` 执行 release carriers、综合回归与状态收尾 |
+| W5 发布与综合收尾 | COMPLETED：v9.4.0 PR #208 完成 release carriers、综合回归与发布说明；final head 与合并后 main 验收均通过 |
 
 ### W1-P1：核心证明正文保全
 
@@ -636,13 +637,13 @@ Base main SHA：`f3946972f246cc145796558a8c115062d435ecb3`；Final head：`06ace
 
 ### W5-P1：v9.4.0 Release Closeout
 
-阶段 / PR：W5 release closeout / branch `upgrade/v9.4.0-writing-readability`；PR 编号待创建。  
-Base main SHA：`e8fd923e6273b9fe644d506ecc8c3b3372d7e4a6`；Final head / Merge SHA 待真实验收后补记。  
+阶段 / PR：W5 release closeout / PR #208 — `release: publish v9.4.0 writing readability closeout`。  
+Base main SHA：`e8fd923e6273b9fe644d506ecc8c3b3372d7e4a6`；Final head：`81492db887439a6afffa4f9e36702f4b686c5f67`；Merge SHA：`551054e695a11a8f49399619b833635577b7215e`。  
 发布裁决：依据 `SKILL_CHANGE_GOVERNANCE.md`，本轮已新增向后兼容的写作/审查能力而非仅修复单一缺陷，因此从 9.3.1 升为 **9.4.0 minor**；未改变目录、Schema、CLI、required state、Model Approval、数值/工作簿或用户执行接口，不构成 major。  
 实际修改：只统一活动 release carriers、README/CHANGELOG/维护状态、release regression 与本计划状态；不重写 W1–W4 已合并业务实现。新增 `docs/writing_readability_w5_release_closeout.md` 记录版本依据、兼容边界和最终验收要求。  
 兼容性：旧项目继续读取；无批量迁移；W3 只移除已证明 count-only 误报，其余 review/Hard 路径保持；MCM/ICM、电工杯、DOCX 不强套 CUMCM 骨架。  
-正式验收：final generated head 必须通过完整 HSK Skill CI、Optimization baseline、Python 3.10–3.14、Static lint、Generated contract、三类 LaTeX、Production attestation；合并后 main 再通过 HSK CI 与 metadata refresh。  
-遗留问题 / 下一阶段：release PR 合并且 main 后验全绿后，用独立 docs-only 状态收尾记录真实 final head / merge SHA / run IDs，将 W5 和整份计划标 COMPLETED；不在 release PR 中自引用猜测最终 SHA。
+正式验收：final generated head `81492db887439a6afffa4f9e36702f4b686c5f67` 的 HSK Skill CI workflow_dispatch #3843 与 Optimization baseline #356 均 success；Python 3.10–3.14、Static lint、Generated contract、CUMCM/MCM-ICM/电工杯 LaTeX、Production attestation（含长核心证明真实分页）全部 success。PR #208 合并为 `551054e695a11a8f49399619b833635577b7215e` 后，main HSK Skill CI #3845 与 metadata refresh #2529 均 success。  
+完成结论：v9.4.0 release carriers、发布说明、综合回归与 main 后验全部闭合，W5 与整份计划均标记 COMPLETED；无后续计划阶段，任何新需求应按新的独立修改简报/PR 进入。
 
 后续每个实施 PR 在本节追加记录，不重写历史裁决：
 

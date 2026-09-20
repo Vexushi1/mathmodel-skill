@@ -83,4 +83,23 @@ Subordinate schema/version、historical plan/provenance 与 legacy 记录不做�
 
 ## 最终验收
 
-本 release PR 创建后，由现有 generated-metadata workflow 生成最终 head，并对该实际 SHA 运行 HSK Skill CI 与 Optimization baseline。最终 run IDs / merge SHA / main 后验由 W5 docs-only 状态收尾 PR 在 release merge 后记录，避免在待测提交中猜测自己的最终 SHA。
+Release PR #208 的最终 generated head 为 `81492db887439a6afffa4f9e36702f4b686c5f67`。该 SHA 的正式验收结果：
+
+- HSK Skill CI workflow_dispatch #3843：success；
+- Optimization baseline #356：success；
+- Python 3.10 / 3.11 / 3.12 / 3.13 / 3.14：全部 success；
+- Static contract lint：success；
+- Generated file contract：success；
+- LaTeX CUMCM / MCM-ICM / Diangong：全部 success；
+- Production LaTeX attestation：success，其中长核心证明真实分页与命题/公式引用编号 fixture 继续 success。
+
+PR #208 squash merge 为 `551054e695a11a8f49399619b833635577b7215e`。合并后 main 后验：
+
+- HSK Skill CI #3845：success；
+- Refresh generated repository metadata #2529：success。
+
+## 发布结论
+
+**v9.4.0 release closeout：COMPLETED。**
+
+本次发布没有新增破坏性迁移，没有降低 Hard/Default 数学、数值、引用、stale 或交付标准，也没有引入新的 Readability Gate / Project State required 字段 / coverage family / persistent trust cache。当前仓库治理未要求额外 GitHub tag/release object；活动 release carriers、CHANGELOG、PR 历史及上述真实 CI 作为发布证据。
