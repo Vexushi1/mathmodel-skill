@@ -61,7 +61,7 @@ v9.3 系列的稳定建模语义是：先把题目条件转成数学后果并利
 
 本次写作计划从 v9.3.1 主干分阶段完成 P0、W0–W4 与 Part C–G。W5 按实际行为裁决为 **9.4.0 minor release**：理由不是版本展示，而是已经新增并验收了向后兼容的正文推导保全、评委可读标题/术语、结果表可读性、公式密集叙事、正式三级标题治理和长核心证明真实分页能力；同时 W3 只删除一个有成对证据的 count-only 误报。没有破坏 Schema、CLI、目录、Model Approval、数值/工作簿或用户执行接口，因此不升 major；变化又超过单纯错误修复，因此不伪装成 9.3.2 patch。
 
-W4 PR #207 final head `06ace7b99bd7977b74c34fc9f7e554b16f576318` 通过 HSK Skill CI #3838 与 Optimization baseline #355，合并为 `e8fd923e6273b9fe644d506ecc8c3b3372d7e4a6`；随后 main HSK Skill CI #3840 与 metadata refresh #2527 success。W5 release carrier 与最终 release CI 证据由当前 release closeout PR 和后续 main 后验记录补齐。
+W4 PR #207 final head `06ace7b99bd7977b74c34fc9f7e554b16f576318` 通过 HSK Skill CI #3838 与 Optimization baseline #355，合并为 `e8fd923e6273b9fe644d506ecc8c3b3372d7e4a6`；随后 main HSK Skill CI #3840 与 metadata refresh #2527 success。W5 release PR #208 final head `81492db887439a6afffa4f9e36702f4b686c5f67` 通过 HSK Skill CI #3843 与 Optimization baseline #356，合并为 `551054e695a11a8f49399619b833635577b7215e`；合并后 main HSK Skill CI #3845 与 metadata refresh #2529 再次 success。当前活动 Skill release 为 **9.4.0**。
 
 ## v9.3.1：发布后健康修复完成
 
@@ -73,7 +73,7 @@ v9.3.1 是 v9.3.0 的兼容 patch release，不新增新的生命周期 Gate、r
 - 补齐维护状态与 plugin/agent discovery surface；
 - release closeout PR #187 合并为 `8a9de52b85a93bb4e04bc03d4298da93b51de326`，随后 main 的完整 HSK Skill CI 与 generated metadata verification 均通过。
 
-当前活动 Skill release 为 **9.3.1**。Repository Hygiene 作为独立治理项已完成 H0/H1 与获批的 H2 strict-safe branch cleanup；H3 物理 docs 迁移/删除维持 `DEFERRED_NOT_NEEDED_AFTER_H1`，不改变本 release 的 Runtime 语义。
+v9.3.1 发布收尾时的活动 Skill release 为 **9.3.1**。Repository Hygiene 作为独立治理项已完成 H0/H1 与获批的 H2 strict-safe branch cleanup；H3 物理 docs 迁移/删除维持 `DEFERRED_NOT_NEEDED_AFTER_H1`，该段仅记录当时状态，不覆盖当前 v9.4.0 release。
 
 ## Repository Hygiene：H0/H1/H2 已完成，H3 暂不需要
 
