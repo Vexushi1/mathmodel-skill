@@ -1,6 +1,10 @@
-# mathmodel-skill v9.5.5
+# mathmodel-skill v9.5.6
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 → 条件数学化与结构化简 → 最小充分主模型 + 按需 comparator → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构匹配 Solver + Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision / semantic_identity_hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + 按需 Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v9.5.6：同步先传播失效，再检查交付
+
+同步现在用刚发现的文件变化形成候选状态，再判定正式交付。项目根目录图件可通过框架中的精确脚本/导出路径或本问 Figure ID 绑定纳入哈希；同步与精简读取共用这一发现逻辑。已有批准不会被重新发现文件自动补写，独立全局图未映射时明确提示覆盖边界。
 
 ## v9.5.5：主求解、深化分析与当前证据资格
 

@@ -1,6 +1,11 @@
 # Changelog
 
-## Current release: 9.5.5
+## Current release: 9.5.6
+
+- A4 applies current snapshot transitions and local paper-fragment invalidation before formal delivery checks. Read-only and write modes assess the same candidate state, so a first detected change cannot reuse an earlier passed gate.
+- Snapshot and reading-plan figure binding share exact framework/script/export discovery, including explicitly mapped project-root figures. Missing or ambiguous scoped evidence is diagnosed; discovery never writes validated hashes or approval. Independent unmapped global diagrams remain a documented coverage warning.
+
+## Previous release: 9.5.5
 
 - A3 uses one current-primary prerequisite check for runtime qualification, analysis code delivery and analysis receipts. New analysis requires an explicit reason and method plan after primary acceptance; not_required remains a valid final-state branch without an analysis workbook.
 - Name-only aliases cannot override current invalid evidence. Primary/data changes reopen the Analysis Necessity Gate and invalidate dependent results; successful receipts close only their verified numerical stale layers and preserve downstream figure/framework invalidation.
