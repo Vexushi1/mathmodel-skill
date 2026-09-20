@@ -1,6 +1,12 @@
 # Changelog
 
-## Current release: 9.6.0
+## Current release: 9.6.1
+
+- A7 aligns copied Python workbook support with canonical required run-configuration and conditional/profile sheets, with isolated real XLSX I/O parity checks.
+- Both skill entries now carry a concise discovery description and preserve legacy version/summary/triggers under metadata. Repository readers accept current metadata and historical top-level fields; root and packaged entries retain identical content and explicit resource-root resolution.
+- Runtime reports explicit classification conflicts per supplied axis while preserving unspecified current axes. Registered competition aliases and equivalent structure sets do not create false conflicts. Two prose references now delegate to the existing Paper Writing Protocol; palette discovery copy follows per-figure choice.
+
+## Previous release: 9.6.0
 
 - A6 adds compile-report v4 actual-input evidence: literal conditional support files join the audited bundle, engines produce a recorder, and formal verification binds the recorder and observed project inputs. Partial or unexplained chapter assembly cannot claim a full current PDF.
 - Historical v3 reports remain readable but require re-audit and recompile for new formal delivery. Installed TeX/font assets remain an explicit environment boundary; current bound log/recorder files are retained for verification and reproducibility packaging.
