@@ -13,15 +13,15 @@
 5. 若为 `project_level`，此时生成并人工检查 `数据预处理/data_process.m`，只把已验收预处理工作簿中的底层证据转成图；
 6. 为每个候选 Figure 先写 Core conclusion、Evidence level、Primary question、Available evidence dimensions；
 7. 先执行 **Scientific Figure Synthesis Gate**，识别证据结构并设计候选视觉结构；不得先问“bar 还是 line”；
-8. 若候选核心图退化为 plain bar / plain line / plain scatter / plain box / plain histogram，执行 **Basic-form Challenge**；
-9. 若多个视觉编码能在同一证据空间互补表达，执行 **Composite Encoding Preference**；
+8. 对候选核心图执行 **Basic-form Challenge**，检查当前表达是否遗漏支撑结论的必要关系；清楚的 plain bar / plain line / plain scatter / plain box / plain histogram 可以直接承担核心论证；
+9. 按 **Composite Encoding Preference** 检查复合表达：只有真实互补信息和可读性增益同时存在时才组合；
 10. 选定视觉结构后进入对应 **Scientific Rendering Profile**；
 11. 再通过 Figure Layout Gate 动态选择单图、1×2、2×1、1×3、2×2 或拆分为多张 Figure；不得先决定版式再硬塞证据；
 12. 基础布局确定后执行 Figure Enhancement Gate；只有在增加可验证信息、降低视觉搜索成本或强化关键证据时增加 Local Zoom、Small Multiples、Focus Highlighting、Semantic Background、Composite Diagnostic 或 Conditional 3D；
 13. 生成 MATLAB 代码前实际读取工作簿，锁定工作簿名、工作表名、真实表头、单位和数据类型；
 14. 拟定 DOCX/LaTeX 正式 caption；正式论文图不设置整体 `title` / `sgtitle`，多面板按需只保留 a/b/c/d 等 panel label；
 15. 将各问 `q{x}_plot.m` 与主求解 Python、主工作簿放在同一 `问题X求解/`；仅 Gate=`required` 时同目录追加独立 03B Python 与 03B 工作簿。每问最终文件集合只服从 `core/output_contract.yaml` 的 conditional per-question layout；项目级预处理图脚本固定为 `数据预处理/data_process.m`；
-16. 完成单图 QA 后执行 **Figure Portfolio Scientific Quality Gate**，检查整篇核心图是否出现基础图型退化；
+16. 完成单图 QA 后执行 **Figure Portfolio Scientific Quality Gate**，检查论证覆盖、必要证据缺口、跨图一致性与重复表达；
 17. 检查核心结论是否有图或表证据，并同步 `模型论文框架.md`；
 18. 默认只保留图窗供人工检查，不自动创建图表子目录或批量导出图片。
 
@@ -96,7 +96,7 @@ current Framework + Mechanism Contract
 
 至少有一张图直接回答下列问题之一：为什么原始数据需要处理；当前处理是否解决已审计问题；插值/填补恢复误差是否可接受；滤波是否保留所需信息；重采样/时间/空间对齐是否满足模型输入；异常处理是否有清晰边界并避免误删真实结构。
 
-优先考虑处理前后时序/轨迹/空间场、缺失与恢复、分布 + 原始点、真实值—恢复值 + 误差、频谱、重采样覆盖、阈值边界等证据。正式图同样执行 Synthesis、Basic-form Challenge、Rendering Profile、Layout 与 Enhancement；不能因为是预处理图就默认画两根柱或两条普通折线。
+优先考虑处理前后时序/轨迹/空间场、缺失与恢复、分布 + 原始点、真实值—恢复值 + 误差、频谱、重采样覆盖、阈值边界等证据。正式图同样执行 Synthesis、Basic-form Challenge、Rendering Profile、Layout 与 Enhancement；按当前处理效果判断选择表达，清楚的前后折线或点图可以直接承担核心证据。
 
 ## C 类：各问结果图合同
 
@@ -147,11 +147,11 @@ L4 数值合法性证据   → 收敛、频带、残差、可行性、预处理�
 - 模型诊断；
 - 全局—局部结构。
 
-每个候选核心图至少比较两种合理视觉结构，选择依据是：能否揭示模型结构、是否保留真实数据粒度、是否提高可验证信息密度、是否降低评委搜索成本、是否更直接支撑当前 Core conclusion。高级不是复杂；若一个直接二维图已经完整表达本题结构，不能为了“高级感”强行 3D 或堆编码。
+每个候选核心图按当前 Core conclusion 和真实数据粒度选择最直接的视觉结构，判断其是否揭示必要关系、保留可核对证据并降低阅读成本。有真正可行的替代结构时比较；只有一种合适结构时记录其理由即可，不为填写合同凑第二候选。一个清楚的二维图已经充分回答问题时，不增加无用途编码、3D 或面板。
 
-## Basic-form Challenge：基础图只在信息结构确实简单时保留
+## Basic-form Challenge：检查当前表达是否遗漏必要证据
 
-plain bar / barh、plain line、plain scatter、plain boxplot、plain histogram 允许使用，但默认属于 F1 基础表达。若它们准备进入正文核心 Figure，必须检查当前 accepted 数据是否还包含：
+Basic-form Challenge 检查表达是否充分，不按图型复杂度分级。plain bar / barh、plain line、plain scatter、plain boxplot、plain histogram 可以是正文核心 Figure；复合图也须检查是否掩盖或遗漏必要证据。对当前结论逐项判断下列关系是否相关、是否有 accepted 数据支持，以及当前图或其他已登记证据是否已清楚表达：
 
 - 时间或空间结构；
 - 原始样本分布；
@@ -163,19 +163,19 @@ plain bar / barh、plain line、plain scatter、plain boxplot、plain histogram 
 - 全局—局部差异；
 - 关键事件、阈值或策略切换。
 
-只要存在这些结构且能提高可验证信息密度，就优先升级表达。**不禁止柱状图，但禁止明明有更丰富证据，却只用一个普通柱状图结束核心结论。**
+只有遗漏会影响结论理解、比较或适用边界时才补充编码、面板或另一张图；数据中存在更多维度本身不是加图理由。清楚的单折线可以完整证明时间趋势，点图可以完整表达对象排序；若结论同时涉及分布尾部、失效边界等关系，才需要相应证据。不得为了丰富形式补造区间或把同一份数据重复包装。
 
 ### Figure 表达等级
 
-- **F1 基础表达**：普通柱状、条形、折线、散点、箱线、直方；适合真正的一维简单事实、辅助图和附录；
-- **F2 增强科研表达**：box + raw scatter、violin + raw scatter + median/quartile、line + uncertainty band、scatter + fit/identity + CI、scatter + marginal histogram/KDE、bar + errorbar + benchmark、heatmap + contour、ECDF + quantile、Gantt + resource utilization、network + weighted flow、Pareto + highlighted recommendation；
-- **F3 核心科学综合图**：spatial field + trajectory + boundary + critical state；Pareto + feasible/infeasible + knee + recommendation + zoom；response surface + contour + stable/failure region + current point；prediction relation + uncertainty + residual/marginal diagnostic；candidate cloud + constraint structure + recommendation。
+- **F1 基础表达**：普通柱状、条形、折线、散点、箱线、直方；结论所需关系已充分表达时，可直接作为正文核心图；
+- **F2 互补编码表达**：box + raw scatter、violin + raw scatter + median/quartile、line + uncertainty band、scatter + fit/identity + CI、scatter + marginal histogram/KDE、bar + errorbar + benchmark、heatmap + contour、ECDF + quantile、Gantt + resource utilization、network + weighted flow、Pareto + highlighted recommendation；
+- **F3 多结构综合表达**：spatial field + trajectory + boundary + critical state；Pareto + feasible/infeasible + knee + recommendation + zoom；response surface + contour + stable/failure region + current point；prediction relation + uncertainty + residual/marginal diagnostic；candidate cloud + constraint structure + recommendation。
 
-F2/F3 的“高级”来自证据结构和联合解释，不来自装饰数量。
+保留 F1/F2/F3 标签供既有 Figure Contract 和登记接口使用；它们描述表达结构，不是质量排序，也不决定正文、辅助或附录资格。F1 可以充分支撑核心结论，F2/F3 只有各部分提供真实互补信息且整体易读时才合适。
 
-## Composite Encoding Preference：同一证据空间优先融合互补编码
+## Composite Encoding Preference：按真实信息增益选择互补编码
 
-若多种视觉编码共同回答同一个 Primary question，且共享同一坐标/统计语义，优先融合，而不是拆成多个低信息密度单图。重点支持：
+只有多种编码共同回答同一个 Primary question、共享明确坐标/统计语义、提供真实互补信息，并在组合后更易读时才融合；否则保留单一表达或分图。以下是可选模式，不是必须逐项补齐的清单：
 
 ```text
 箱线 + 原始散点
@@ -193,9 +193,11 @@ Pareto + 推荐点 + Local Zoom
 真实—预测 + 区间 + 残差/边际结构
 ```
 
-柱状 + 折线、双 Y 轴等组合只有在指标关系明确、量纲和阅读任务清楚时才允许；不得为了“显得高级”把互不相关指标强行叠加。
+同一组 x/y 的折线与点可以帮助追踪取样位置，但仍是一份证据，不构成两个比较对象或两份独立发现。没有实际区间就不画置信带；没有真实配对就不画配对连线。柱状 + 折线、双 Y 轴等组合只有在指标关系明确、量纲和阅读任务清楚且可读性提高时才允许；不把互不相关指标强行叠加。
 
 ## Scientific Rendering Profiles：选定视觉结构后的专属科研表达
+
+下列 Profile 保留可用能力，按当前阅读任务选择其中有依据的元素，不要求一张图具备整组元素。没有合法区间、事件、边界或诊断量时省略对应编码；MATLAB 不为满足 Profile 重新估计或补算。
 
 ### Distribution Profile
 
@@ -203,11 +205,11 @@ Pareto + 推荐点 + Local Zoom
 
 ### Regression / Prediction Profile
 
-优先组合 observed-vs-predicted / scatter、identity 或合法 fit line、CI/prediction interval、residual 或 marginal 结构。训练/测试可用颜色 + marker/linestyle 联合编码；只保留直接支撑可信度判断的少量统计量。
+根据当前可信度判断选择 observed-vs-predicted / scatter、identity 或合法 fit line；只有真实区间、residual 或 marginal 信息提供必要补充时才组合。训练/测试可用颜色 + marker/linestyle 联合编码；只保留直接支撑可信度判断的少量统计量。
 
 ### Dynamic Profile
 
-优先 trajectory/state curve + uncertainty（真实存在时）+ event/threshold + critical point；关键窗口被全局尺度压缩时使用 Local Zoom / Global–Detail；阶段背景只有真实状态/阈值语义时才使用。
+trajectory/state curve 可独立表达动态结论；真实 uncertainty、event/threshold 或 critical point 只有提供必要补充时才加入；关键窗口被全局尺度压缩时使用 Local Zoom / Global–Detail；阶段背景只有真实状态/阈值语义时才使用。
 
 ### Parameter Surface Profile
 
@@ -219,7 +221,7 @@ Pareto + 推荐点 + Local Zoom
 
 ### Optimization / Pareto Profile
 
-优先 candidate solutions + Pareto set/front + feasible/infeasible state + recommendation + knee/threshold + global/detail。只画“算法 A/B/C 三根柱”通常不足以承担优化核心证据。
+论证多目标权衡时展示真实候选方案与 Pareto set/front，再按结论需要选择 feasible/infeasible state、recommendation、knee/threshold 或 global/detail。结论只是比较同口径指标时，点图或条形图即可；结论涉及目标空间或约束结构时，不能用几个汇总值替代所需结构。
 
 ### High-density Scatter Profile
 
@@ -227,7 +229,7 @@ Pareto + 推荐点 + Local Zoom
 
 ## Figure Layout Gate：单图 / 1×2 / 2×2 动态判断
 
-**不存在固定默认版式。** 先做 Scientific Figure Synthesis，再根据证据关系决定布局。
+**不存在固定默认版式。** 先做 Scientific Figure Synthesis，再根据证据关系决定布局。单面板合理时不增加面板；多面板的每一部分须有独立阅读职责。不要求 hero panel、不对称布局或固定面板数量。
 
 ### 1. 单图
 
@@ -434,20 +436,20 @@ end
 
 ## Figure Portfolio Scientific Quality Gate
 
-进入 DOCX/LaTeX 前，对正文核心 Figure 集合做论文级复审。如果出现大量 plain bar / plain line / plain scatter / plain box 等，即使每张单独没有技术错误，也必须检查：
+进入 DOCX/LaTeX 前，对正文核心 Figure 集合做论文级复审，不以 plain 图数量或占比触发返工。检查：
 
-1. Python 主求解是否只输出摘要而丢失本次运行已经产生的状态、轨迹、空间、约束或逐样本证据；
-2. 已激活的 03B 是否只输出“稳定”等摘要而未保留参数/场景/seed/算法/阈值底层记录；
-3. 是否存在时间、空间、分布、边界、机制、不确定性或多目标结构却被压成一维比较；
-4. 是否跳过 Scientific Figure Synthesis / Basic-form Challenge / Rendering Profile；
-5. 是否可以通过 Composite Encoding、Global–Detail、Local Zoom 或合理拆图提高证据表达；
-6. 是否有核心机制、空间、动态、阈值或不确定性结论只有文字/表格而缺直接 Figure 证据。
+1. 核心结论及其必要比较、边界和可信度判断是否都有可核对的图或表证据；
+2. 当前判断需要的状态、轨迹、空间、约束或逐样本证据是否已被主求解保留；已激活的 03B 是否保留对应底层记录，不能用“稳定”等空泛摘要替代；
+3. 是否因过度聚合而遗漏与当前结论相关的时间、分布、机制、不确定性或多目标关系；
+4. 每张图及其各 panel 是否贡献必要信息，是否存在同一数据与结论重复呈现或不必要的线点双图例；
+5. 跨图对象、量纲、尺度和统计口径是否一致；局部放大、复合编码或拆图只有提高理解效率时才保留；
+6. Scientific Figure Synthesis / Basic-form Challenge / Rendering Profile 的选择理由是否与实际证据一致，必要的视觉证据缺口是否已记录。
 
-不得设置“必须有 N 种图型”的机械多样性指标。多张基础图只有在数据结构本身确实都是简单一维比较时才合理；不能为了多样性强行雷达图、桑基图或 3D。
+不得设置图型种类、复杂度或 F2/F3 占比配额。多张清楚的折线或点图可以形成完整的核心论证；互补证据确有需要时也允许复合图。决定去留的是论证覆盖、真实性、可读性和重复程度。
 
 ## Missing Scientific Evidence Check
 
-不按章节字数或图文比例机械补图，而按核心结论检查：核心机制是否无图；空间结构是否只有汇总数；动态过程是否被压成最终值；关键阈值/边界是否无直接视觉证据；重要分布/不确定性是否只报均值；主结果是否只有表格而明显存在更有效的科研图表达。只有存在真实证据源时才补图，不编造数据。
+不按章节字数、图文比例或图型数量机械补图。按核心结论检查：空间或动态关系是否被汇总而无法判断，关键阈值/边界是否缺可核对证据，重要分布/不确定性是否被均值遮蔽，机制关系是否难以从现有表达恢复。已有图、表和正文充分说明时不补图；存在必要视觉证据缺口且有真实数据源时才补图，不编造数据。
 
 ## 分析图准入
 

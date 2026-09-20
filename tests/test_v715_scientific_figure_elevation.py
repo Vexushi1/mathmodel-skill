@@ -46,12 +46,17 @@ class TestV715ScientificFigureElevation(unittest.TestCase):
             "Figure Portfolio Scientific Quality Gate",
             "Missing Scientific Evidence Check",
             "F1 基础表达",
-            "F2 增强科研表达",
-            "F3 核心科学综合图",
+            "F2 互补编码表达",
+            "F3 多结构综合表达",
         ):
             self.assertIn(token, module)
-        self.assertIn("明明有更丰富证据，却只用一个普通柱状图", module)
-        self.assertIn("不得设置“必须有 N 种图型”", module)
+        self.assertIn("不按图型复杂度分级", module)
+        self.assertIn("可以是正文核心 Figure", module)
+        self.assertIn("不是质量排序", module)
+        self.assertIn("不为填写合同凑第二候选", module)
+        self.assertIn("不以 plain 图数量或占比触发返工", module)
+        self.assertIn("不得设置图型种类、复杂度或 F2/F3 占比配额", module)
+        self.assertNotIn("明明有更丰富证据，却只用一个普通柱状图", module)
 
     def test_composite_patterns_cover_requested_high_information_figures(self):
         module = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
@@ -73,7 +78,31 @@ class TestV715ScientificFigureElevation(unittest.TestCase):
             "C7 Trajectory + Field + Boundary",
         ):
             self.assertIn(token, patterns)
-        self.assertIn("基础图退化检查", chart)
+        self.assertIn("核心证据覆盖检查", chart)
+        self.assertIn("真实互补信息", module)
+        self.assertIn("组合后更易读", module)
+        for text in (module, patterns):
+            self.assertIn("没有实际区间就不画", text)
+            self.assertIn("没有真实配对就不画", text)
+        self.assertIn("加号不表示必须凑齐组件", patterns)
+        self.assertIn("相同 x/y 的线与点仍是一份证据", chart)
+
+    def test_matlab_guidance_keeps_simple_core_figures_and_conditional_composites(self):
+        readme = (ROOT / "templates/matlab/README.md").read_text(encoding="utf-8")
+        q1 = (ROOT / "templates/matlab/q1_plot.m").read_text(encoding="utf-8")
+        process = (ROOT / "templates/matlab/data_process.m").read_text(encoding="utf-8")
+        for text in (readme, q1, process):
+            self.assertIn("Basic-form Challenge", text)
+            self.assertRegex(text, r"可(?:以)?直接承担核心")
+            self.assertIn("真实互补信息和可读性增益", text)
+            self.assertIn("没有实际区间就不画带", text)
+            self.assertNotIn("优先 Composite Encoding", text)
+        self.assertIn("不凑第二候选", readme)
+        self.assertIn("不按 plain 图数量或占比触发返工", readme)
+        self.assertIn("不强制 hero panel 或不对称布局", readme)
+        self.assertNotIn("只有数据结构本身确实是一维简单比较时", readme)
+        self.assertNotIn("如果大量都是 plain bar", readme)
+        self.assertNotIn("按 Evidence Structure 升级", process)
 
     def test_high_contrast_palette_is_restored_but_auxiliary_elements_are_deweighted(self):
         module = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
@@ -116,6 +145,11 @@ class TestV715ScientificFigureElevation(unittest.TestCase):
         ):
             self.assertIn(token, contract)
         self.assertIn("不记录 inset 坐标、透明度等 MATLAB 实现参数", contract)
+        self.assertIn("不作质量排序，任一级均可承担核心论证", contract)
+        self.assertIn("不凑第二候选", contract)
+        self.assertIn("复合形式不自动代表通过", contract)
+        self.assertIn("没有实际区间不画带", contract)
+        self.assertIn("不补造比较", contract)
 
 
 if __name__ == "__main__":

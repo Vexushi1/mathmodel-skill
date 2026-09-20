@@ -96,6 +96,8 @@ class CurrentSkillHealthTests(unittest.TestCase):
         )
         self.assertTrue(figure.get("scientific_synthesis_required_for_core_figures"))
         self.assertTrue(figure.get("basic_form_challenge_required_for_core_figures"))
+        self.assertEqual(figure.get("composite_encoding_preference_conditions"),
+                         ["real_complementary_information", "readability_gain"])
         self.assertTrue(figure.get("portfolio_scientific_quality_review_required"))
         self.assertTrue(figure.get("high_contrast_primary_palette_required"))
         self.assertEqual(

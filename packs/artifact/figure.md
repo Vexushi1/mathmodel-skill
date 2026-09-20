@@ -30,8 +30,8 @@ Gate=`not_required` 且有非空理由时，缺少 03B workbook 是合法状态�
 - 字段定位采用精确表头唯一匹配，列号只作结构漂移警告；
 - 禁止模糊匹配、别名猜测、自动回退和在 MATLAB 中重新求解/重新做深化分析；
 - 先执行 `modules/04_figure_evidence.md` 的 Scientific Figure Synthesis，识别时间、空间、分布、边界、机制、不确定性、多目标等 Evidence Structure；
-- 核心 Figure 若只是 plain bar / line / scatter / box / histogram，必须经过 Basic-form Challenge；明明有更丰富证据时不得用基础图敷衍；
-- 同一证据空间内多个编码互补时优先 Composite Encoding，例如 box+scatter、violin+scatter、line+interval、scatter+fit+CI、heatmap+contour、trajectory+boundary；
+- 核心 Figure 执行 Basic-form Challenge，检查必要关系是否充分表达；清楚的 plain bar / line / scatter / box / histogram 可直接承担核心论证，F1/F2/F3 标签不作质量排序；
+- 同一证据空间内仅在真实互补信息和可读性增益同时存在时采用 Composite Encoding；同一数据的线与点不是独立证据，没有实际区间不画带；
 - 选定视觉结构后进入对应 Scientific Rendering Profile，再通过 Figure Layout Gate 动态选择单图、1×2、2×1、1×3、2×2 或拆图；不存在固定默认版式；
 - 基础布局后按 Figure Enhancement Gate 判断是否需要 Local Zoom、Small Multiples、Focus Highlighting、Semantic Background、Composite Diagnostic 或 Conditional 3D；默认不增强；
 - 一张 Figure 原则上只承担一个一级 Core conclusion / 一级阅读任务；不同 Evidence level 默认不混装，必要联合诊断仍须共享同一 Primary question；
@@ -45,9 +45,9 @@ Gate=`not_required` 且有非空理由时，缺少 03B workbook 是合法状态�
 
 ## Portfolio 级质量门
 
-单图技术正确不等于整篇论文视觉合格。若正文核心 Figure 大量退化为 plain bar / plain line / plain scatter，即使单图没有语法错误，也必须触发 Figure Portfolio Scientific Quality Gate，检查主求解是否丢失状态证据、已激活的深化分析是否只留摘要、是否跳过 Synthesis/Rendering、是否可以组合编码/局部放大/合理拆图，以及是否有机制/空间/动态/阈值/不确定性结论缺直接图证据。
+Figure Portfolio Scientific Quality Gate 检查整篇核心论证的图/表覆盖、必要证据缺口、跨图一致性以及重复图和 panel；不按 plain 图数量或占比判断质量。只有当前判断所需关系缺失时，才回查主求解 Evidence Capture、已激活的深化分析底层记录和 Synthesis/Rendering 的选择理由。
 
-不得设置“必须使用 N 种不同图型”的机械多样性指标。
+不设图型种类、复杂度或 F2/F3 占比配额。清楚的简单图可完整承担核心论证；候选只有一种时不凑第二种，单面板合理时不强制 hero panel、多面板或不对称布局。
 
 ## 信息效率与删除规则
 

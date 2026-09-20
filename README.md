@@ -1,6 +1,12 @@
-# mathmodel-skill v9.4.3
+# mathmodel-skill v9.4.4
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 → 条件数学化与结构化简 → 最小充分主模型 + 按需 comparator → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构匹配 Solver + Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision / semantic_identity_hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 → 条件数学化与结构化简 → 最小充分主模型 + 按需 comparator → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构匹配 Solver + Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision / semantic_identity_hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + 按需 Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v9.4.4：F1 按证据选择清楚的图
+
+按[绘图修改计划](docs/figure_technique_and_handoff_refactor_plan.md)修正过度设计倾向：基础图可以直接承担正文核心结论，F1/F2/F3 标签表示表达结构，不表示质量等级。只有真实互补信息和可读性增益同时存在时才复合编码；无区间不画带、同一数据的线与点不冒充两份证据、单面板合理时不强加面板，也不凑第二候选。
+
+Module 04、模板、Figure Pack、输出摘要、按标题读取路径与静态检查同步。Portfolio 检查论证覆盖、重复与跨图一致性，不按基础图占比要求返工。当前阶段仅修改规则与说明，配色及 MATLAB 执行代码留待 F2。
 
 ## v9.4.3：P0-C MATLAB 预览改为显式手动选择
 
@@ -570,7 +576,7 @@ locked model + declared numerical method
 
 ### MATLAB Scientific Figure Evidence
 
-MATLAB 只读取 Python 输出的数据和标准工作簿绘图，不重新求解或重新分析。正式论文图不设置整体 `title/sgtitle`，由 DOCX/LaTeX caption 承担正式图号和图名；多面板按需只保留 panel label。核心图先识别 Evidence Structure，再通过 Scientific Figure Synthesis / Basic-form Challenge 决定单图、组合编码、多面板、局部放大和 Rendering Profile；只有真实证据支持时才使用 uncertainty band、distribution + raw samples、heatmap + contour、Pareto + recommendation、trajectory + field + boundary 等科研表达。主证据采用高对比亮蓝/鲜红等颜色，辅助元素降权，默认白底与 `grid off`，并保留图窗供人工调整，不批量自动导出。**这一高对比科研配色只针对数据驱动结果 Figure；正式机理/推导图按 v8.7.3 monochrome-first 规则使用黑白灰线稿与规则几何图形。**整篇论文在写作前还执行 Figure Portfolio Scientific Quality Review，避免所有核心图即使技术正确也共同退化成低信息密度基础图。
+MATLAB 只读取 Python 输出的数据和标准工作簿绘图，不重新求解或重新分析。正式论文图不设置整体 `title/sgtitle`，由 DOCX/LaTeX caption 承担正式图号和图名；多面板按需只保留 panel label。核心图先识别 Evidence Structure，再通过 Scientific Figure Synthesis / Basic-form Challenge 决定单图、组合编码、多面板、局部放大和 Rendering Profile；只有真实证据支持时才使用 uncertainty band、distribution + raw samples、heatmap + contour、Pareto + recommendation、trajectory + field + boundary 等科研表达。主证据采用高对比亮蓝/鲜红等颜色，辅助元素降权，默认白底与 `grid off`，并保留图窗供人工调整，不批量自动导出。**这一高对比科研配色只针对数据驱动结果 Figure；正式机理/推导图按 v8.7.3 monochrome-first 规则使用黑白灰线稿与规则几何图形。**整篇论文在写作前执行 Figure Portfolio Scientific Quality Review，检查必要证据覆盖、重复表达和可读性；不按基础图数量或图型复杂度要求返工。
 
 ## 运行时权威链
 

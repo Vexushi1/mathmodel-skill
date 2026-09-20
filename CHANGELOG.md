@@ -1,6 +1,12 @@
 # Changelog
 
-## Current release: 9.4.3
+## Current release: 9.4.4
+
+- F1 makes figure selection evidence-first: a clear line, dot, bar or single panel can directly support a core conclusion. Existing F1/F2/F3 labels describe structure, not quality or mandatory escalation.
+- Composite encodings require real complementary information and improved readability; repeated line/point data are one evidence source, and absent intervals or pairings must not be invented.
+- Aligned Module 04, Figure Pack, chart/contract/QA guides, MATLAB entry comments, output summaries and exact-heading routing. Portfolio review checks coverage and repetition rather than quotas of chart types or complexity. MATLAB executable lines and palette policy remain unchanged in this stage.
+
+## Previous release: 9.4.3
 
 - P0-C makes real MATLAB preview an explicit manual option: workflow_dispatch must select run_matlab_preview=true; the default is false and ordinary pull requests skip the entire MATLAB job.
 - Removed the preview-only changed-path gate so an explicit manual request is not silently skipped when the latest commit does not touch a style helper. Source snapshots, characterization, native static CI and historical preview evidence remain available.

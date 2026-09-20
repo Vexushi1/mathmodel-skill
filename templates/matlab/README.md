@@ -80,11 +80,11 @@ requirements.solution.("逐时结果") = struct( ...
 哪种视觉结构能把模型本身暴露出来？
 ```
 
-正文核心图若最终只是 plain bar / plain line / plain scatter / plain box / plain histogram，必须经过 Basic-form Challenge。只有数据结构本身确实是一维简单比较时，才直接保留基础图。
+所有候选核心图按 Module 04 执行 Basic-form Challenge，检查当前结论所需关系是否充分表达。清楚的 plain bar / plain line / plain scatter / plain box / plain histogram 可以直接承担核心论证；复合图同样需要检查证据覆盖。F1/F2/F3 标签描述表达结构，不作质量排序；只有一种合适结构时记录理由，不凑第二候选。
 
 ## Composite Encoding Preference
 
-若多个编码共享同一证据空间并共同回答一个 Primary question，优先组合：
+只有多个编码共享同一证据空间、共同回答一个 Primary question，并同时提供真实互补信息和可读性增益时才组合；否则保留单一表达或分图。下列模式是候选，不是必须凑齐的组件：
 
 ```text
 box + raw scatter
@@ -100,7 +100,7 @@ trajectory + field + boundary
 surface + contour projection（第三维真实时）
 ```
 
-组合图不是为了装饰，而是让原始样本、统计结构、模型关系、阈值/边界或不确定性同屏可验证。
+组合图只补充当前结论需要的真实样本、统计结构、模型关系、阈值/边界或不确定性。同一 x/y 的线与点仍是一份证据，不作为两个比较对象；没有实际区间就不画带，没有真实配对就不画配对线。
 
 ## Scientific Rendering Profile
 
@@ -188,9 +188,9 @@ Figure Contract 记录 `Enhancement / Enhancement rationale`，不把 inset 坐�
 
 ## Portfolio Gate
 
-所有单图完成后，再看整篇核心 Figure 集合。如果大量都是 plain bar / line / scatter，即使每张单独无错，也要检查：Python 是否只留摘要、Evidence Structure 是否被压扁、是否跳过 Synthesis/Rendering、是否可以组合编码/Local Zoom/合理拆图，以及机制/空间/动态/阈值/不确定性是否缺直接视觉证据。
+所有单图完成后，按核心结论检查图或表证据覆盖、必要关系缺口、跨图一致性以及重复图和 panel，不按 plain 图数量或占比触发返工。只有必要关系缺失时，才回查主求解与已激活 03B 的真实 Evidence Capture 和 Synthesis/Rendering 选择；数据中存在更多维度本身不是加图理由。
 
-不得设置“必须有 N 种图型”的机械多样性指标。
+不得设置“必须有 N 种图型”的机械多样性指标，也不设复杂度或 F2/F3 占比配额。多张清楚的简单图可完整承担核心论证；单面板合理时不强制 hero panel 或不对称布局。
 
 每张图的源工作簿、工作表、真实表头、脚本、论文 caption、Evidence level、Primary question、Evidence structure、Figure level、Selected visual structure、Composite encoding、Scientific Rendering Profile、Layout decision、Split decision、Enhancement / Enhancement rationale 和正文位置同步登记到 `模型论文框架.md`；默认不生成独立 `figure_evidence` 文件。
 

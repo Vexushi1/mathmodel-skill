@@ -2,7 +2,7 @@
 
 图型由“要证明的结论”、底层数据结构和信息展示效率共同决定，不按软件默认、图型新奇度或固定禁用清单选择。每张图先填写结果图 Figure Contract，确定 DOCX/LaTeX 正式图注及其证据职责，再查本表；正式论文图不设置冗余整体 `title` / `sgtitle`。
 
-本索引的第一层不是 bar / line / scatter，而是 **Evidence Structure → Scientific Visual Structure**。如果 accepted 工作簿已经保存时间、空间、分布、约束、状态、不确定性、多目标或阈值等结构，不应先把它压成几个汇总数字再画基础图。
+本索引按 **Evidence Structure → Scientific Visual Structure** 查找候选。先判断当前结论需要哪些关系，再选择直接、清楚的表达；不因工作簿还有更多维度便强制增加编码，也不把必要的时间、空间、分布、约束或多目标关系压成汇总数。基础图可以承担核心证据。
 
 ## 可选视觉参考
 
@@ -10,26 +10,26 @@
 
 ## Scientific Figure Synthesis 快速索引
 
-| Evidence Structure | 优先科学视觉结构 | 常见基础退化 | 需要检查的底层数据 |
+| Evidence Structure | 可选科学视觉结构 | 须避免的信息遗漏 | 需要检查的底层数据 |
 |---|---|---|---|
-| 简单离散比较 | interval dot / sorted dot / bar+error+benchmark | plain bar | 对象、指标、误差/区间、基准 |
-| 分布 | box+raw scatter、violin+scatter+median、ECDF+quantile | 均值柱状、plain box | 逐样本值、组别、样本量、分位数 |
-| 时间演化 | line+interval+event、state trajectory、overview+detail | plain line | 时间、状态、区间、事件、阶段 |
-| 空间结构 | spatial field+path+boundary、节点/流量高亮 | 区域均值柱状 | 坐标、节点/网格值、路径、边界 |
-| 机制关系 | trajectory+critical state、phase/response relation | 指标柱状 | 机制变量、状态量、临界点/边界 |
-| 约束/可行域 | feasible region+boundary+recommended point、violation structure | 可行/不可行数量柱状 | 约束值、容差、变量、可行状态 |
-| 参数响应 | curve+stable/risk band、heatmap+contour+operating point | 多组柱状 | 参数网格、响应、阈值、可行状态 |
-| 不确定性 | interval+raw points、ECDF、quantile band | 均值±单数字 | 重复/场景结果、分位数、失败标记 |
-| 多目标权衡 | Pareto+feasible state+knee+zoom | 各目标分开柱状 | 全部候选方案、各目标、推荐点 |
-| 稳定/失效区域 | response+semantic background+threshold | “变化不大”折线 | 扫描点、状态/策略、失效标记 |
-| 网络/流 | network+weighted flow+focus highlighting | 节点分数柱状 | 节点、边、权重、流量、路径 |
-| 调度/资源 | Gantt+resource utilization+conflict context | 完工时间柱状 | 作业、资源、起止、占用/冲突 |
-| 预测/诊断 | observed-vs-predicted+CI+residual/marginal | 模型指标柱状 | 逐样本真实/预测/残差/区间 |
-| 全局—局部 | global view + Local Zoom / detached detail | 单图截轴 | 全局序列、ROI、临界/局部状态 |
+| 简单离散比较 | dot / sorted dot / bar；有真实区间或基准时按需补充 | 未说明比较对象、口径或必要基准 | 对象、指标；区间/基准仅在真实存在时使用 |
+| 分布 | raw scatter、box、ECDF；必要时组合分位数或密度 | 结论涉及分布尾部或异质性却只展示均值 | 逐样本值、组别、样本量、分位数 |
+| 时间演化 | line / state trajectory；必要时补真实区间、事件或 detail | 关键时间关系、状态切换或局部差异不可辨 | 时间、状态；区间/事件/阶段按结论需要检查 |
+| 空间结构 | spatial field+path+boundary、节点/流量高亮 | 位置、路径或边界关系被区域均值遮蔽 | 坐标、节点/网格值、路径、边界 |
+| 机制关系 | trajectory+critical state、phase/response relation | 结论所需状态关系或临界条件缺失 | 机制变量、状态量、临界点/边界 |
+| 约束/可行域 | feasible region+boundary+recommended point、violation structure | 可行边界或违反位置被数量汇总遮蔽 | 约束值、容差、变量、可行状态 |
+| 参数响应 | curve / heatmap；按需补真实阈值、contour 或 operating point | 结论所需响应关系或失效边界缺失 | 参数网格、响应、阈值、可行状态 |
+| 不确定性 | interval、raw points、ECDF、quantile band；按需组合 | 区间含义、失败样本或尾部风险未说明 | 重复/场景结果、分位数、失败标记 |
+| 多目标权衡 | candidates + Pareto；推荐点、可行状态或 zoom 按需补充 | 各目标关系和权衡不能直接判断 | 全部候选方案、各目标、推荐点 |
+| 稳定/失效区域 | response；有真实边界时补 threshold / semantic background | 缺失“稳定”的判据、范围或失效条件 | 扫描点、状态/策略、失效标记 |
+| 网络/流 | network+weighted flow+focus highlighting | 结论所需连通关系或流向缺失 | 节点、边、权重、流量、路径 |
+| 调度/资源 | Gantt；占用或冲突结构按需补充 | 任务时间、资源关系或冲突被总量遮蔽 | 作业、资源、起止、占用/冲突 |
+| 预测/诊断 | observed-vs-predicted / residual；CI 或 marginal 按需组合 | 结论所需误差结构或验证条件未显示 | 逐样本真实/预测/残差/区间 |
+| 全局—局部 | global view + Local Zoom / detached detail | 局部判别缺少全局尺度和位置上下文 | 全局序列、ROI、临界/局部状态 |
 
 ## Composite Encoding 快速索引
 
-当多个编码共享同一证据空间并共同回答一个 Primary question 时，优先考虑组合，而不是拆成多个普通单图：
+多个编码共享同一证据空间并共同回答一个 Primary question，且有真实互补信息和可读性增益时，才考虑组合。以下模式按需选用，不是必须凑齐的组件：
 
 - `box + raw scatter`；
 - `violin + raw scatter + median/quartile`；
@@ -43,11 +43,11 @@
 - `trajectory + field + boundary`；
 - `3D surface + 2D contour projection`（仅第三维真实且 2D 损失结构时）。
 
-组合图的目标是同时保留真实样本、统计结构、阈值/边界或模型关系，不是增加装饰数量。
+组合图应保留当前结论需要的真实样本、统计结构、阈值/边界或模型关系。相同 x/y 的线与点仍是一份证据；没有实际区间不画带，没有真实配对不画配对线。
 
 ## Scientific Rendering Profile 快速索引
 
-| Profile | 核心元素 | 典型用途 |
+| Profile | 按证据选用的元素 | 典型用途 |
 |---|---|---|
 | Distribution | raw points + box/violin/ECDF + median/quantile | 分组、鲁棒性、重复试验 |
 | Regression / Prediction | scatter + identity/fit + CI + residual/marginal | 预测、拟合、分类概率诊断 |
@@ -91,13 +91,13 @@ Enhancement 默认是 `none`。若增强后不能增加可验证信息、降低�
 
 ## 题型候选索引
 
-| 证据任务 | 常规科研候选 | 进阶候选 | 主要准入条件与风险控制 |
+| 证据任务 | 常用候选 | 有额外信息收益时的候选 | 主要准入条件与风险控制 |
 |---|---|---|---|
-| 方案/类别数值比较 | interval dot、排序点图、bar+error+benchmark | dumbbell、slopegraph、少量类别比例图 | 只有真正一维比较才保留 plain bar；成对变化优先直接表达变化方向 |
-| 时间趋势与预测 | line+interval、真实—预测、残差时序 | Small Multiples、Local Zoom、状态阶段背景 | 多线遮挡优先分面；不能用平滑掩盖误差 |
-| 参数敏感性 | 参数—响应+基准/阈值、tornado、heatmap+contour | Local Zoom、Semantic Background、3D response surface | 参数敏感性必须展示稳定/风险/失效结构，而非只报变化率 |
-| 鲁棒性与扰动 | box/violin+raw points、ECDF、quantile interval | raincloud、Small Multiples、threshold background | 必须展示尾部、失败场景或原始点，不能只展示均值 |
-| 多算法比较 | performance profile、error-time scatter、interval dot | Small Multiples、Focus Highlighting、parallel coordinates | 算法柱状图不能成为默认；需保留实例/重复、时间、可行性 |
+| 方案/类别数值比较 | dot、排序点图、bar；真实区间/基准按需补充 | dumbbell、slopegraph、少量类别比例图 | 清楚的基础图可承担核心结论；配对变化须有真实配对关系 |
+| 时间趋势与预测 | line、真实—预测、残差时序；真实 interval 按需加入 | Small Multiples、Local Zoom、状态阶段背景 | 多线遮挡优先分面；不能用平滑掩盖误差 |
+| 参数敏感性 | 参数—响应+基准/阈值、tornado、heatmap+contour | Local Zoom、Semantic Background、3D response surface | 论证稳定范围或失效边界时须展示相应真实证据；单纯响应趋势可以用清楚曲线 |
+| 鲁棒性与扰动 | box/violin+raw points、ECDF、quantile interval | raincloud、Small Multiples、threshold background | 结论涉及尾部、失败场景或分布差异时须保留相应证据，不能只展示均值 |
+| 多算法比较 | performance profile、error-time scatter、interval dot | Small Multiples、Focus Highlighting、parallel coordinates | 按当前比较判断选图；实例/重复、时间和可行性中有必要的信息不得遗漏 |
 | 排名稳定性 | rank heatmap、slopegraph、Top-k overlap | Focus Highlighting、ranking flow | 不把名次变化压成平均名次柱状 |
 | 分布差异 | ECDF、box/violin+raw points | Composite Diagnostic、ridge/raincloud | 高级分布图必须保留样本量与可核对统计量 |
 | 相关性与变量结构 | correlation matrix、scatter matrix、loadings | Composite Diagnostic、network | 不得由相关直接宣称因果 |
@@ -110,11 +110,11 @@ Enhancement 默认是 `none`。若增强后不能增加可验证信息、降低�
 | 构成比例与层级 | sorted/stacked bar、treemap | sunburst、Sankey | 饼图仅少量类别且整体口径明确 |
 | 多指标画像 | parallel coordinates、standardized dot、heatmap | Focus Highlighting、radar | 雷达图仅少量同向标准化指标 |
 
-## 基础图退化检查
+## 核心证据覆盖检查
 
-如果正文核心 Figure 出现连续多个 plain bar / plain line / plain scatter，不要机械换成另一种基础图。先回到 `问题X求解结果.xlsx` / `问题X结果深化分析.xlsx` 检查是否已经存在状态、时间、空间、分布、阈值、不确定性、多目标、候选解或逐样本证据；若存在，回到 Scientific Figure Synthesis，而不是“柱状图换点图”结束。
+按核心结论检查必要关系和适用边界是否有图或表证据，并检查重复图和重复 panel。连续多张 plain bar / plain line / plain scatter 本身不构成问题；已有证据充分时保留。发现必要信息缺口时，回到 current 合法工作簿集合检查真实状态、时间、空间、分布、阈值、不确定性或逐样本记录，再判断是否需要改变表达。
 
-如果工作簿本身只剩汇总值，应检查 Python 是否遗漏了本次运行真实产生的 Evidence Capture；但不得让 MATLAB 自己重算或伪造底层序列。
+只有必要证据被汇总而无法支持当前结论时，才检查 Python 是否遗漏本次运行真实产生的 Evidence Capture；MATLAB 不自行重算或伪造底层序列。
 
 ## 权威边界
 

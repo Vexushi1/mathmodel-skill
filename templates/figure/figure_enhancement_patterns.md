@@ -86,7 +86,7 @@
 
 ## 5. Composite Diagnostic
 
-Composite Diagnostic 用多个 axes 围绕同一个统计对象组织证据，不要求规则 2×2。
+Composite Diagnostic 仅在多个 axes 提供真实互补信息且组合更易读时，围绕同一个统计对象组织证据。一个 axes 已充分回答问题时保留单图；不要求规则 2×2、hero panel 或不对称布局。
 
 ### 5.1 回归/预测联合诊断
 
@@ -114,7 +114,7 @@ Composite Diagnostic 用多个 axes 围绕同一个统计对象组织证据，�
 
 ## 6. Composite Encoding Library
 
-这些模式是在**同一证据空间**内叠加互补编码，优先用于把 raw data、统计摘要、边界和模型关系放在同一视图中。
+这些模式是在**同一证据空间**内叠加互补编码的候选。仅选当前判断需要且已具备真实数据的组件，组合后还须更易读；模式名称中的加号不表示必须凑齐组件。相同 x/y 的线与点仍是一份证据；没有实际区间就不画带，没有真实配对就不画配对线。
 
 ### C1 Box + Raw Scatter
 
@@ -124,7 +124,7 @@ Composite Diagnostic 用多个 axes 围绕同一个统计对象组织证据，�
 - raw points 使用轻微 jitter，避免完全覆盖；
 - 样本点颜色可统一为组色的浅化版本，box/median 使用更强主色；
 - 小样本时 raw points 权重应高于密度估计；
-- 若需要精确均值/区间，用额外 marker/errorbar，不把 box 含义改成均值。
+- 若需要且已有真实均值/区间，用额外 marker/errorbar，不把 box 含义改成均值，也不为图型补估区间。
 
 ### C2 Violin + Scatter + Median/Quartile
 
@@ -137,7 +137,7 @@ Composite Diagnostic 用多个 axes 围绕同一个统计对象组织证据，�
 
 ### C3 Line + Uncertainty + Event/Threshold
 
-适用：时间/连续参数响应。
+适用：时间/连续参数响应。清楚的主线可独立支撑趋势结论；仅当真实区间、事件或阈值提供必要补充时组合。
 
 - 主线承担中心趋势；
 - band 只表示真实 CI/PI/quantile/stability interval；
@@ -187,7 +187,7 @@ Composite Diagnostic 用多个 axes 围绕同一个统计对象组织证据，�
 
 ### C8 Bar + Error + Benchmark / Bar + Line
 
-仅在离散类别本身就是核心结构时使用。
+适用于离散类别比较。清楚的单独 bar 或 dot 可以承担核心结论；仅当真实误差、基准或第二种量提供必要补充时组合。
 
 - bar + error + benchmark 适合“类别中心量 + 真实不确定性 + 外部/基准阈值”；
 - bar + line 只有两种量具有清楚联合语义时允许；

@@ -8,15 +8,15 @@
 | 03B 若适用，是否保留参数/场景/算法/seed/阈值等细粒度分析证据，而不是只写“稳定” |  |  |
 | MATLAB 是否只绘图、不重算核心结果或重新做深化分析 |  |  |
 | 是否先识别 Evidence structure，再选择视觉结构 |  |  |
-| 正文核心图若为 plain bar/line/scatter/box/histogram，是否完成 Basic-form Challenge |  |  |
-| 是否检查时间、空间、分布、不确定性、约束边界、机制、多目标、全局—局部等可用维度是否被错误压扁 |  |  |
-| 同一证据空间内是否优先评估 Composite Encoding，如 box+scatter、violin+scatter、line+interval、heatmap+contour |  |  |
-| Scientific Rendering Profile 是否与当前证据结构匹配 |  |  |
+| 核心图是否通过 Basic-form Challenge 检查必要关系与证据覆盖，而未按基础/复合图型判定高低 |  |  |
+| 当前结论所需的时间、空间、分布、不确定性、边界或多目标关系是否充分表达，且未为无关维度加图 |  |  |
+| Composite Encoding 是否有真实互补信息和可读性增益；同一 x/y 的线与点是否未冒充独立证据 |  |  |
+| Scientific Rendering Profile 是否与当前证据结构匹配；未因模式清单虚构区间、拟合或配对 |  |  |
 | 若使用 Local Zoom，是否确有局部判别价值且 ROI 与主图对应清楚 |  |  |
 | 若使用 Small Multiples，跨面板比较所需坐标尺度是否一致或已明确说明差异 |  |  |
 | 若使用 Focus Highlighting，是否保留必要上下文而未选择性隐藏不利对象 |  |  |
 | 若使用 Semantic Background，背景是否对应真实阈值、状态或阶段而非装饰 |  |  |
-| 若使用 Composite Diagnostic / 3D，是否仍只有一个一级阅读任务且高级形式确实提高信息效率 |  |  |
+| 若使用 Composite Diagnostic / 3D，是否只有一个一级阅读任务且额外结构确实提高信息效率 |  |  |
 | 是否避免为美观对离散点擅自平滑并制造新峰谷/拐点 |  |  |
 | 图窗是否默认可见并保留 |  |  |
 | 是否避免默认自动导出和关闭 |  |  |
@@ -41,7 +41,7 @@
 | 需要黑白打印/色觉安全时是否有 marker/linestyle/edge/hatch 等次级编码，红绿未承担唯一语义 |  |  |
 | caption—工作簿—脚本—结论是否已同步到 `模型论文框架.md` |  |  |
 | 是否能绑定正文结论 |  |  |
-| Figure Portfolio Gate 是否检查整篇核心图是否大量退化为基础图型 |  |  |
-| 是否检查 Missing Scientific Evidence：机制/空间/动态/阈值/分布等核心结论是否缺直接图证据 |  |  |
+| Figure Portfolio Gate 是否检查论证覆盖、重复图/面板和跨图一致性，未按 plain 图占比返工 |  |  |
+| 是否检查 Missing Scientific Evidence：必要关系是否缺可核对证据；已有图、表和正文充分时不补图，仅补必要视觉缺口 |  |  |
 
-Portfolio Review 不以“必须 N 种不同图型”为通过标准，而检查基础图是否来自真实简单数据结构，还是因为 Python 丢失状态、Figure Synthesis 被跳过或复杂证据被过度聚合。
+Portfolio Review 按论证覆盖、真实性、可读性和重复程度检查；不设图型数量、复杂度或 F2/F3 占比要求。清楚的简单图可承担核心论证；只有必要关系缺失时才回到数据与 Figure Synthesis。单面板合理时不强加 hero panel 或不对称布局，也不凑第二候选。

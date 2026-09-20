@@ -2,8 +2,8 @@
 % 放在“问题一求解/”，与主求解Python、主工作簿和q1_plot.m同目录；仅当 Analysis Necessity Gate=required 时才额外存在深化分析Python与工作簿。
 % 字段使用精确表头唯一匹配；期望列号仅用于结构漂移警告。
 % 先执行 modules/04_figure_evidence.md 的 Scientific Figure Synthesis Gate，识别 Evidence Structure；不要从本模板的示例函数反推最终图型。
-% 正文核心图若只是 plain bar/line/scatter/box/histogram，必须执行 Basic-form Challenge。
-% 同一证据空间有互补编码时优先 Composite Encoding，例如 box+scatter、violin+scatter、line+interval、scatter+fit+CI、heatmap+contour、trajectory+boundary。
+% 所有候选核心图执行 Basic-form Challenge 检查必要关系；清楚的 plain bar/line/scatter/box/histogram 可直接承担核心论证。
+% Composite Encoding 仅在真实互补信息和可读性增益同时存在时使用；同一 x/y 的线与点仍是一份证据，没有实际区间就不画带。
 % 选定视觉结构后进入 Scientific Rendering Profile，再通过 Figure Layout Gate 动态判断单图、1×2、2×1、1×3、2×2 或拆图。
 % 基础布局确定后执行 Figure Enhancement Gate；按需使用 Local Zoom、Small Multiples、Focus Highlighting、Semantic Background、Composite Diagnostic 或 Conditional 3D。
 % 视觉结构确定后再进入 Publication Rendering Grammar：palette profile / open-axis / adaptive canvas / legend strategy；不得反向用样式决定图型。

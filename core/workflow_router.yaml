@@ -1,4 +1,4 @@
-version: 9.4.3
+version: 9.4.4
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -405,7 +405,7 @@ reading_policy:
     figure_design:
       read_now:
         - path: modules/04_figure_evidence.md
-          headings: ['## 正确顺序', '## C 类：各问结果图合同', '## Figure Evidence 层级', '## Scientific Figure Synthesis Gate：从证据结构设计 Figure', '## Basic-form Challenge：基础图只在信息结构确实简单时保留', '## Composite Encoding Preference：同一证据空间优先融合互补编码', '## Scientific Rendering Profiles：选定视觉结构后的专属科研表达', '## Figure Layout Gate：单图 / 1×2 / 2×2 动态判断', '## Figure Enhancement Gate：焦点—上下文信息增强', '## Publication Rendering Grammar：成熟论文图实现层', '## 视觉注意力预算', '## 实表读取规则', '## 图题、配色与风格', '## Figure Portfolio Scientific Quality Gate', '## Missing Scientific Evidence Check', '## 分析图准入', '## 入文闭环']
+          headings: ['## 正确顺序', '## C 类：各问结果图合同', '## Figure Evidence 层级', '## Scientific Figure Synthesis Gate：从证据结构设计 Figure', '## Basic-form Challenge：检查当前表达是否遗漏必要证据', '## Composite Encoding Preference：按真实信息增益选择互补编码', '## Scientific Rendering Profiles：选定视觉结构后的专属科研表达', '## Figure Layout Gate：单图 / 1×2 / 2×2 动态判断', '## Figure Enhancement Gate：焦点—上下文信息增强', '## Publication Rendering Grammar：成熟论文图实现层', '## 视觉注意力预算', '## 实表读取规则', '## 图题、配色与风格', '## Figure Portfolio Scientific Quality Gate', '## Missing Scientific Evidence Check', '## 分析图准入', '## 入文闭环']
         - {path: templates/figure/result_figure_contract.md}
         - {path: templates/figure/result_figure_qa.md}
       conditional:
