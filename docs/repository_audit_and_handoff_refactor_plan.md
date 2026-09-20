@@ -1,17 +1,17 @@
 # 全仓库 Skill 审查与衔接修复详细计划
 
-> 状态：审查完成，分阶段修复中。本文是维护计划，不是新的 Runtime Authority，也不表示下列缺陷已经修复。后续按本文件逐项推进，并在各阶段补录 PR、验证证据与剩余限制。
+> 状态：18 项审计问题已落实修复和回归，4 项观察已形成有边界的裁决。A1–A7 已通过各自 PR 检查并合入 main；A8 本地收口验证已完成，其远端发布结果通过下列检查链接追溯。本文是维护计划和实施记录，不是新的 Runtime Authority；未执行事项不计为通过。
 
 | 项目 | 本轮记录 |
 |---|---|
 | 审查日期 | 2026-09-20 |
 | 仓库 | Vexushi1/mathmodel-skill |
-| 基线 | main，Skill 9.5.2，提交 `f6f64887bd5e4ca8ec00fbd10c33308aa3ade660` |
-| 本计划版本 | 1.0 |
-| 本次变更等级 | docs / planning-only；Skill 保持 9.5.2 |
-| 本次交付 | 本计划及自动生成的索引/Manifest；不实施新的业务修复 |
+| 原审查基线 | main，Skill 9.5.2，提交 `f6f64887bd5e4ca8ec00fbd10c33308aa3ade660` |
+| 本计划版本 | 1.1（实施与收口记录） |
+| 本次变更等级 | docs / tests closeout；最终 Skill 9.6.1；A6 的编译报告升级按 minor 发布 |
+| 本次交付 | 18 项修复的实现/回归/迁移索引、4 项观察裁决及发布验证记录 |
 | 优先顺序 | 状态写入与错误验收 → 结果/路由/同步衔接 → 编译与提交完整性 → 模板与入口一致性 |
-| 审查结论 | 18 项确认问题（含静态格式/指针不一致），4 项待裁决观察；未证明用户数据已损坏或真实赛事漏交 |
+| 审查结论 | 18 项确认问题（含静态格式/指针不一致），4 项观察（裁决见第 8 节）；未证明用户数据已损坏或真实赛事漏交 |
 
 ## 1. 目标、范围与保留边界
 
@@ -213,14 +213,14 @@
 - **最小修改：** 只纠正这两处普通正文指针；复杂算法语义继续指向 reasoning contract，LaTeX 环境/编译仍指向 Adapter，不复制规则正文。
 - **验收与兼容：** 两个入口均能直接定位正确 Authority，现有能力和模板结构不变；补针对性的活动引用检查，不批量重写历史文档。
 
-### 3.1 待裁决观察，不计入已确认缺陷
+### 3.1 原审查观察，不计入已确认缺陷（当前裁决见第 8 节）
 
 | 编号 | 观察与已有证据 | 后续处理边界 |
 |---|---|---|
 | O-01 | accepted primary + pending analysis 的 figures route 无缺项；workflow 总规则要求 validated_results，但两个 Python README 明确“只消费主结果的图只需 accepted 主工作簿” | 先区分必要性未决、主结果预览、正式图及真正消费 03B 的图，依据现有 Figure Authority 裁决并同步文字/测试。不得先假定全部图必须等待分析；独立机理图保持合法 |
 | O-02 | sync 的旧 `_submission_zip_issues` 直接调用时要求 py/xlsx/m，会拒绝 PDF-only；但当前 submission 必需名是 submission_package，该分支仅对 validated_submission_package 名触发 | 尚未证明当前默认链会走到该分支，不列为当前交付故障。A5 做调用可达性审查，确认 legacy 实际用法后再决定兼容或清理 |
 | O-03 | 通用表准备层 `dropna(how='all')` 确实把三行中的全空行变成两行；带真实 record key 的缺测行不属于该触发 | 无法仅凭这个案例判定被删的是有效观测还是空白 padding。先明确不同表的记录语义、首尾格式空行/内部缺测区别，再决定是否修改；不批量改变导出行为 |
-| O-04 | 缺 description 静态已确认；从实际插件 skill 子目录解析共享资源是否失败尚未做宿主安装实验 | 在入口阶段做真实安装/路径 smoke；未验证前不声称无法加载 |
+| O-04 | 缺 description 静态已确认；从实际插件 skill 子目录解析共享资源是否失败尚未做宿主安装实验 | 静态格式及现有复制布局已验证；实际宿主安装/激活未执行，不声称曾经无法加载或当前已动态通过；见第 8 节 O-04 |
 
 ## 4. 分阶段实施顺序
 
@@ -228,17 +228,17 @@
 
 | 阶段 | 任务 | 依赖 | 完成条件 | 当前状态 |
 |---|---|---|---|---|
-| A0 | 固定本计划中的反例、整理基线失败原因、增设 Windows 关键检查 | 本计划 | 反例随各阶段补齐；本阶段新增 Windows CI 与事务/句柄反例 | 实施中 |
-| A1 | AUD-01 事务；AUD-14 workbook 生命周期 | A0 | 两平台真实读写/故障恢复通过，Windows 失败重新分类 | 实施中 |
-| A2 | AUD-02 主数值布尔资格 | A0，落盘验收依赖 A1 | 错误证据不能 accepted；数值型正常规则保持 | 待实施 |
-| A3 | AUD-03/04/05 的 03A→Gate→03B→Figure/Writing 条件链 | A1、A2 | required/not_required/pending 各分支及读写一致，别名不能绕过 | 待实施 |
-| A4 | AUD-06/07 同步顺序与图来源绑定 | A1、A3 | 首次变更即阻断对应交付，合法 scoped 图完整发现 | 待实施 |
-| A5 | AUD-08/09 提交集合与 official 必需项；核实 O-02 可达性 | A3、A4 | 逐问逐阶段完整性与模式一致，缺件/旧证据不通过 | 待实施 |
-| A6 | AUD-10/11 编译依赖与完整范围；AUD-12/13 prose 误报 | A0，可与 A2–A4 独立开发；最终接 A5 | 实际依赖变化令旧报告失效；局部 PDF 不当作全量 | 待实施 |
-| A7 | AUD-15 独立模板；AUD-16/17/18 入口、上下文与 Authority 指针 | A3 后定稿接口 | 隔离支持包、宿主格式、别名/分类正反例通过 | 待实施 |
-| A8 | 跨链集成、兼容矩阵、release carrier、计划收口 | A1–A7 | 全部必需 gate 的真实结果可追溯，未验证项明确交接 | 待实施 |
+| A0 | 固定本计划中的反例、整理基线失败原因、增设 Windows 关键检查 | 本计划 | 反例随各阶段补齐；本阶段新增 Windows CI 与事务/句柄反例 | 已验证 |
+| A1 | AUD-01 事务；AUD-14 workbook 生命周期 | A0 | 两平台真实读写/故障恢复通过，Windows 失败重新分类 | 已验证 |
+| A2 | AUD-02 主数值布尔资格 | A0，落盘验收依赖 A1 | 错误证据不能 accepted；数值型正常规则保持 | 已验证 |
+| A3 | AUD-03/04/05 的 03A→Gate→03B→Figure/Writing 条件链 | A1、A2 | required/not_required/pending 各分支及读写一致，别名不能绕过 | 已验证 |
+| A4 | AUD-06/07 同步顺序与图来源绑定 | A1、A3 | 首次变更即阻断对应交付，合法 scoped 图完整发现 | 已验证 |
+| A5 | AUD-08/09 提交集合与 official 必需项；核实 O-02 可达性 | A3、A4 | 逐问逐阶段完整性与模式一致，缺件/旧证据不通过 | 已验证 |
+| A6 | AUD-10/11 编译依赖与完整范围；AUD-12/13 prose 误报 | A0，可与 A2–A4 独立开发；最终接 A5 | 实际依赖变化令旧报告失效；局部 PDF 不当作全量 | 已验证 |
+| A7 | AUD-15 独立模板；AUD-16/17/18 入口、上下文与 Authority 指针 | A3 后定稿接口 | 隔离支持包、宿主格式、别名/分类正反例通过 | 已验证 |
+| A8 | 跨链集成、兼容矩阵、release carrier、计划收口 | A1–A7 | 全部必需 gate 的真实结果可追溯，未验证项明确交接 | 已验证（本地）；远端发布状态见第 8 节链接 |
 
-版本安排：本计划不预占具体发布号。后续各 PR 从最新 main 开始，按治理判定 patch/minor；一般缺陷修复优先兼容 patch。若修改报告/状态/manifest 的 required 字段或枚举，先评估 schema 版本与显式迁移，不能以修 bug 名义静默破坏旧项目；也不机械把所有配置的独立版本同步成 Skill 版本。
+版本记录：A1–A5 依次为 9.5.3–9.5.7；A6 为 9.6.0（编译证明 v4 的显式迁移），A7 为 9.6.1；A8 仅补回归和收口文档，不另升版本。各阶段从当时最新 main 串行发布。若修改报告/状态/manifest 的 required 字段或枚举，先评估 schema 版本与显式迁移，不能以修 bug 名义静默破坏旧项目；也不机械把所有配置的独立版本同步成 Skill 版本。
 
 A0 的失败反例先在修复分支记录旧行为，再与对应修复一起通过后合并；不单独往 main 合并必然失败的检查，也不把反例永久 skip/改成通过旧错误行为的断言。O-01–O-03 必须先形成有依据的裁决，只有确认需要改动后才进入对应阶段，不自动当作已授权的重构任务。
 
@@ -281,7 +281,7 @@ Windows 检查不要求把全部 LaTeX 作业搬到 Windows，但 transaction、
 
 ### 6.2 本轮证据的可重建方式
 
-本地探针与日志保存在维护工作区 `work/repository-audit/`，未混入活动包，也不含用户项目数据。GitHub 上本计划保留了各案例的输入条件、实际错误结果及拟新增断言；后续实施 A0 时把最小反例整理进仓库测试，不能依赖某位维护者的绝对路径。
+本地探针与日志保存在维护工作区 `work/repository-audit/`，未混入活动包，也不含用户项目数据。GitHub 上本计划保留了各案例的输入条件、实际错误结果及拟新增断言；实施阶段已把最小反例整理进下列仓库测试，不能依赖某位维护者的绝对路径。
 
 - root 探针：使用 `tests/test_v712_runtime_assurance.py` 的基础 state，改变显式参数/available_artifacts，检查 assurance、missing_prerequisites 与 effective_artifacts。
 - model 探针：构造 current schema 的合成工作簿，分别改变底层布尔证据、质量比较关系及 03A/03B 状态；只调用读取/验收器，不执行任务脚本。
@@ -302,7 +302,7 @@ Windows 检查不要求把全部 LaTeX 作业搬到 Windows，但 transaction、
 - **回滚：** 每阶段以单主题 PR 回滚；涉及新字段/报告时同时说明旧 reader 能否读取。不要回滚成继续接受已证实错误证据的静默行为，应保留清晰阻断或诊断。
 - **完成记录：** 每个 AUD-ID 补充 PR/commit、新增测试、Windows/Linux 结果、是否需要用户操作与残留限制。阶段状态仅允许“待实施 / 实施中 / 已验证 / 有明确阻塞”，不把计划文档完成写成缺陷修复完成。
 
-下一轮从 A0/A1 开始，先恢复 Windows 状态更新与工作簿释放能力，再推进数值资格和 03A/03B 条件链；不要先做大规模代码精简或整包重构。
+本轮按上述顺序完成仓库修复。后续项目按下面的受影响条件做最小迁移；MATLAB 运行、人工调图及真实宿主使用仍由对应环境验证，不通过仓库测试代替。
 
 ## 8. 实施记录
 
@@ -354,8 +354,8 @@ Windows 检查不要求把全部 LaTeX 作业搬到 Windows，但 transaction、
 
 ### 已验证阶段链接
 
-- A0/A1 已合并：[PR #220](https://github.com/Vexushi1/mathmodel-skill/pull/220)，main `06b224d`。本机 1103 项通过（1 项权限限定 skip）；最终 PR 原生 Windows、Linux Python 3.10–3.14、LaTeX 与生成文件作业全部成功。
-- A2：[PR #221](https://github.com/Vexushi1/mathmodel-skill/pull/221)，本机 1111 项通过（1 项权限限定 skip）；远端结果以该 PR 当前提交为准。
+- A0/A1 已合并：[PR #220](https://github.com/Vexushi1/mathmodel-skill/pull/220)，main `06b224d`。本机运行 1103 项，结果 OK（1 项权限限定 skip）；最终 PR 原生 Windows、Linux Python 3.10–3.14、LaTeX 与生成文件作业全部成功。
+- A2：[PR #221](https://github.com/Vexushi1/mathmodel-skill/pull/221)，本机运行 1111 项，结果 OK（1 项权限限定 skip）；远端结果以该 PR 当前提交为准。
 
 ### A2 · 9.5.4
 
@@ -369,6 +369,80 @@ Windows 检查不要求把全部 LaTeX 作业搬到 Windows，但 transaction、
 - AUD-01：备份改用可写句柄 fsync；staging 内部登记并清理未交给外层的临时文件。保留 writes-before/state/writes-after 次序。
 - AUD-14：四个 workbook reader 以 finally 关闭自有文件，业务返回与异常含义不变。
 - 原生 Windows CI 覆盖完整 Python 单测；符号链接权限用例独立，只有 WinError 1314 按真实能力 skip，普通路径检查仍执行。
-- 事务新增失败注入在旧代码上复现残留，修复后 12 项通过；Windows 完整回归 1101 项通过（1 项仅因 WinError 1314 缺少 symlink 权限跳过），原 40 个失败不再出现；reader 专项 102 项通过。远端 CI 在对应 PR 中记实。
+- 事务新增失败注入在旧代码上复现残留，修复后 12 项通过；Windows 完整回归运行 1101 项，结果 OK（1 项仅因 WinError 1314 缺少 symlink 权限跳过），原 40 个失败不再出现；reader 专项 102 项通过。远端 CI 在对应 PR 中记实。
 - 无 CLI、state/workbook schema 或用户文件迁移；MATLAB/图像 QA 未执行。
 - 首轮远端 Windows CI 另发现 8 fail / 2 error：runner 临时目录的 `RUNNER~1` 与 `runneradmin` 被当成不同根路径。补充规范化数据发现、打包和组合哈希的根路径，以及测量日志路径；增加等价路径与越界反例，保留完整 Windows CI。Linux 各 Python 与 LaTeX 作业首轮已通过；补丁后重新核验。
+
+
+### A8 · 跨链验证与有限收口
+
+A1–A7 的实现已串行发布；下表记录的是各阶段最终 PR 与其合并后 main 的独立成功检查。早期失败及修正保留在对应 PR 中。A8 的本地验证与远端发布分开：本文在提交前完成本地收口；本次 PR / main 的后续状态由 [PR 检查记录](https://github.com/Vexushi1/mathmodel-skill/pulls?q=is%3Apr+in%3Atitle+A8) 和 [main CI](https://github.com/Vexushi1/mathmodel-skill/actions/workflows/ci.yml?query=branch%3Amain) 追溯，不预填尚未发生的成功。
+
+| 阶段 / 版本 | PR | 合并后 main | 最终 PR CI | main CI |
+|---|---|---|---|---|
+| A0/A1 / 9.5.3 | [#220](https://github.com/Vexushi1/mathmodel-skill/pull/220) | `06b224d` | [success](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35498113912) | [success](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35498280468) |
+| A2 / 9.5.4 | [#221](https://github.com/Vexushi1/mathmodel-skill/pull/221) | `5548069` | [success](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35498304288) | [success](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35498534060) |
+| A3 / 9.5.5 | [#222](https://github.com/Vexushi1/mathmodel-skill/pull/222) | `5780c8c` | [success](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35499023010) | [success](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35499222093) |
+| A4 / 9.5.6 | [#223](https://github.com/Vexushi1/mathmodel-skill/pull/223) | `371f042` | [success](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35499593565) | [success](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35499763986) |
+| A5 / 9.5.7 | [#224](https://github.com/Vexushi1/mathmodel-skill/pull/224) | `bdb9fbd` | [success](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35499803559) | [success](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35500895718) |
+| A6 / 9.6.0 | [#225](https://github.com/Vexushi1/mathmodel-skill/pull/225) | `09463a8` | [success](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35501089518) | [success](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35501291528) |
+| A7 / 9.6.1 | [#226](https://github.com/Vexushi1/mathmodel-skill/pull/226) | `aabd822` | [success](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35501373349) | [success](https://github.com/Vexushi1/mathmodel-skill/actions/runs/35501539226) |
+| A8 / 9.6.1 | 本次收口 PR（发布状态见文件历史与 PR 检查） | 合并提交及后续 CI 见下方动态入口 | 以当前 PR checks 为准 | 以当前 main run 为准 |
+
+- 稳定 A1–A8 源码组合在本机 Python 3.14.5 运行 **1205 项测试**，结果 OK，其中 1 项因 Windows symlink 权限条件跳过；保留普通路径越界检查。不是 1205 项全部实际执行，也不是用户模型复算。
+- `lint_skill.py`、`generate_indexes.py --check`、`git diff --check` 及两份入口 `quick_validate.py` 按当前提交核验；远端 CI 包含原生 Windows Python 3.14、Linux Python 3.10–3.14、三个 LaTeX profile 与生产编译证明。
+- 21 个声明 intent × 4 个 canonical 竞赛 profile 的 84 场景解析通过；1085 次 load_order 引用（51 个去重文件）均存在。参数为 objective=optimization、project_root=None、preprocessing_decision=not_needed；不表示任意真实项目或全部状态组合已经完成 gate。
+- immutable P1 基线的 19 案例保持原始 legacy_behavior_equal=false；24 处 A3 预期版本/资格变化和 36 处 A7 字段来源新增逐项登记，合计 60 处 expected、0 unexpected。负控制继续拒绝其他状态、依赖、来源或分类值差异，没有覆盖整份 golden 或宣称行为完全未变。
+- 七组合成 TeX 场景包含真实编译/PDF 文本提取与 formal 提前拒绝；另一个 CUMCM+biblatex 工程在 TeX Live 2025 通过默认完整编译与 v4 独立证明校验。它们不是用户论文，未执行图像检查。
+- O-03 增加 4 项结构 I/O 回归，覆盖 keyed 缺测保留、顺序、原输入不变、真实 XLSX 往返和缺审计负例。两份 Skill 静态格式/复制布局通过；真实宿主安装或技能激活未执行。
+
+#### 18 项问题的最终实现索引
+
+原第 3 节是 9.5.2 审查时的反例与定位，不代表当前版本仍有同一缺陷。以下索引定位修复后的生产逻辑与回归。
+
+| 编号 | 实施结果 | 核验入口 |
+|---|---|---|
+| AUD-01 | 事务 staging 在 I/O 前登记清理对象；Windows 可写备份句柄 fsync；保留事务提交顺序、generation 与恢复语义 | `project_transaction.py`；`test_v900_project_transaction.py`、`test_v900_transactional_writers.py` |
+| AUD-02 | 布尔主判定必须服从原合同 bool_true；False 不能借数值比较和伪造 summary 成为合格结果；合法数值规则及未参与主判定的历史失败保留 | `validate_numerical_evidence.py`；`test_v714_numerical_verification.py` 与回执拒绝/接受用例 |
+| AUD-03 | code delivery、receipt、runtime 共用当前 primary/Gate 前置资格；03B 不得越过未验收主结果、未决定必要性或失效预处理，不覆盖 primary 数据身份 | `analysis_prerequisites.py`、`validate_user_execution.py`；`test_audit_analysis_boundaries.py` |
+| AUD-04 | 合法 not_required+理由+current primary 可进入允许的后续状态，不索要 03B 文件/哈希；不冒充 analyzed 或 accepted analysis；主源变化撤销旧 Gate 决定 | `validate_project_state.py`、state transitions；同一 analysis boundary 测试家族 |
+| AUD-05 | 别名和派生 token 不能抵消已知无效证据；validated_results 按每问 primary AND（accepted analysis OR 合法 exempt）聚合 | `runtime_assurance.py`；`test_audit_runtime_qualification.py` |
+| AUD-06 | snapshot/transition/stale 先于正式 scope 判定；读写使用一致的候选状态，首次来源变化在同一次检查中阻断受影响交付 | `sync_project.py`；`test_audit_current_artifacts.py` |
+| AUD-07 | 根 figures 与本问图按精确 Figure ID/导出路径及 scope 进入 hash；支持共享载体，拒绝缺映射/越界；不从文件名猜依赖或自动批准 | `project_snapshot.py::scoped_figure_files`、reading plan/sync consumer；同一 current-artifacts 测试家族 |
+| AUD-08 | 复现包按 current state+output contract 核对每问/每阶段真实必需文件，含嵌套/目录数据源、已批准图和登记编译来源；manifest 自洽不能代替完整性 | `submission_requirements.py`、pack/validate 脚本；`test_audit_package_completeness.py` |
+| AUD-09 | verified official 清单中的精确文件缺失即拒绝；wildcard 保留既有可选语义；合法 PDF-only 不强塞内部材料 | 同一 submission resolver/validator 与 package-completeness 正反例；竞赛规则仅使用合成假设 |
+| AUD-10 | 受支持的静态条件/嵌套依赖与实际 recorder 输入共同绑定；v4 显式记录 recorder/hash/actual inputs；无法证明来源不获 formal passed | `latex_delivery.py`、`render_paper.py`；`test_audit_a6_latex_boundaries.py` 与七组合成 TeX 编译/提前拒绝场景 |
+| AUD-11 | 局部 includeonly 保留开发预览能力，formal 不接受遗漏章节；实际 recorder 再核对主文件和正文输入 | formal audit/assembly consumer；局部/全量/注释/宏隐藏遗漏正反例及合成 PDF 文本提取 |
+| AUD-12 | 全文标签和引用命名空间包含附录；普通正文风格检查仍保持原作用域；真正 missing/duplicate 仍报错 | `audit_paper_prose.py`；正文↔附录正反例及合成附录引用编译 |
+| AUD-13 | evidence level 与 claim 按同问声明绑定；跨问/明确否定不误判；确定冲突仍 blocking，不确定语言转 review | 同一 prose consumer；同问、跨问、否定、条件、模板提示、legacy flat claim 用例 |
+| AUD-14 | 自持有 workbook reader 在成功、提前返回和异常路径可靠关闭文件；不依赖 gc/sleep | `validate_user_execution.py`；`test_audit_workbook_lifecycle.py` 的 Windows 即时 rename/replace |
+| AUD-15 | 独立支持包的最小 fallback 投影补当前运行配置与既有 legacy profile 必需表；与 canonical 消费字段保持一致 | `templates/code/hsk_pipeline/result_io.py`；A7 隔离支持包 19 组真实 I/O 正反 case 与投影对照 |
+| AUD-16 | 两份入口有有效 description；原 version/summary/triggers 保留于 metadata，consumer 兼容读取；plugin 宣传对齐逐图选色；入口字节一致 | `SKILL.md`/packaged copy、lint；两份实际 quick_validate、当前 package 布局静态 smoke |
+| AUD-17 | 显式分类按字段比较且保留未指定项；真实差异报告 provenance/conflict，登记竞赛别名按 canonical 身份比较；集合顺序不造冲突 | `resolve_runtime.py`、scope classification；A7 部分/清空/别名/legacy/多问/单次 iterable 回归 |
+| AUD-18 | 算法与图注模板的普通正文指向 Paper Writing Protocol；复杂推理和载体 adapter 的职责不变 | `packs/artifact/algorithm_flow.md`、`templates/writing/caption_explanation.md`；指针回归与保留的整文件漂移守护 |
+
+#### 四项观察的有限裁决
+
+| 观察 | 收口文本 |
+|---|---|
+| O-01 | 选择 figures 规划路由不等于正式图件交付批准。正式数值图和写作需 scoped current primary，以及 accepted analysis 或带理由的 not_required。只有 Figure Contract 实际消费 03B 才索要该工作簿；独立机理图保留自身非数值路线。not_required 不能证明稳健性、稳定性或替代算法一致性。已补合同和资格边界回归，不统一新增 03B 要求 |
+| O-02 | 旧 `_submission_zip_issues` 的扩展名要求属于非当前默认 required-token 路径；现行 submission scope 和 dedicated package validator 未因此禁止 verified PDF-only。保留兼容 helper，没有新增重复 Gate；直接调用旧 helper 的行为不作为当前默认故障 |
+| O-03 | 通用表准备层全空行删除按结构 padding 清理保留；带非空记录键的缺测观测不得删。新增 4 项纯 I/O 回归确认 A/B/C 及逆序、B 的 NaN、原输入保留、前中尾全空 padding 清理；生产 XLSX 往返和直接写有空行 XLSX 都覆盖，缺失说明不足仍拒绝。此结论限定于显式记录身份；不声称所有无键全空行在用户项目中无语义，也不修改 MATLAB reader 的全记录保留策略 |
+| O-04 | description/metadata 的静态格式差异已修。根入口按自身目录、packaged skill 按上两级现有插件根定位，检查 bootstrap/plugin 标记；两份 quick_validate 和复制现有布局的静态资源路径检查通过。**没有实际 host 安装或技能激活实验**，不宣称曾经必然无法安装，也不宣称当前宿主已动态验证 |
+
+#### 受影响项目的最小迁移
+
+| 受影响对象 | 最小迁移/复核操作 |
+|---|---|
+| 严格布尔数值证据 | 识别相关 capability/verification 的底层 false 或关系不符记录，按现有合同重新核验真实证据与结论；不把全部历史 accepted 一概撤销，也不补 True 承接旧结论 |
+| 03B 与 not_required | 新分析先明确 necessity reason、methods、current primary 和代码交付；不把 pending 自动当 required。合法 not_required 不补伪分析文件，也不宣称稳定性通过。主源/上游数值变化后重新裁决；相同已验收历史 artifact 只读兼容保持 |
+| 原漏绑的根目录图 | 完善真实 Figure ID、scope、导出路径和人工确认，再刷新当前来源绑定；新发现图不自动补批准/validated hash，不从名称猜问号 |
+| 旧提交包 | 依据 current state 补登记实际问题、分析/预处理决定及数据路径；按明确缺件清单补真实材料后重新打包验证。生成 ZIP 不等于 validated；官方包仍只遵从已核验清单 |
+| 编译报告 v3→v4 | v3 保留为可读历史，正式交付需当前源码重审、完整重编译得到 v4 recorder/actual-input 证明，不能直接给旧 PDF 写新 hash。复现包保留精确绑定的 fls/log/audit/source；不向 PDF-only official 强塞内部证明文件 |
+| 独立支持文件 | 更新同版 result_io/workbook_validation 支持文件；按既有 canonical 合同提供运行配置和对应专项表。更严一致性校验不授权导出器自动编造 receipt 或用户重算 |
+| Skill 入口 metadata | version/summary/triggers 内容保留在 metadata；发布更新器读取/更新 metadata.version，保持两入口一致，历史顶层 reader 兼容不等于继续生成不合格式入口 |
+| 显式分类参数 | 未提供 structures/capabilities（None）使用当前 scope；显式空列表/空 flag 表示清空并报告差异。旧调用若本意是“未指定”应省略参数，不能通过 resolver 静默改项目语义 |
+
+无需批量重算或覆盖用户 accepted 数据。编译输入的验证不是完整 TeX 解释器；main 与 report 位于同一工程目录的标准路径已覆盖，历史特殊跨目录布局没有获得额外保证。O-03 只裁决带真实记录键的缺测观测与匿名全空 padding，不替用户定义位置型记录语义。
+
+本轮未执行 MATLAB、自动图像检查或审美评分、用户模型复算、用户正式论文编译、实际宿主插件安装/激活或当届官方规则核验。图表配色仍逐图选择，人工外观调整由用户在 MATLAB 完成；未自动批准任何图件。
