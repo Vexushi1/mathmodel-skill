@@ -56,7 +56,9 @@ class BlankRecordPreservationTests(unittest.TestCase):
                 raw = padded_records(order)
                 before = raw.copy(deep=True)
                 cleaned = RESULT_IO.WORKBOOK_VALIDATION._as_frame(raw)
-                pd.testing.assert_frame_equal(cleaned, records(order))
+                # Padding may infer object keys in pandas 3; cleaning preserves
+                # input dtypes rather than re-inferring from a nonempty fixture.
+                pd.testing.assert_frame_equal(cleaned, records(order).astype(raw.dtypes))
                 pd.testing.assert_frame_equal(raw, before)
                 self.assertEqual(len(raw) - len(cleaned), 3)
                 self.assertTrue(pd.isna(cleaned.loc[cleaned["记录键"] == "B", "数值"].iloc[0]))
