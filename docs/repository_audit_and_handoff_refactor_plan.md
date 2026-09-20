@@ -306,6 +306,13 @@ Windows 检查不要求把全部 LaTeX 作业搬到 Windows，但 transaction、
 
 ## 8. 实施记录
 
+### A2 · 9.5.4
+
+- AUD-02：严格模式按既有 `recheck_modes.*.quality_relation` 验证；主判定布尔复核为 false 时直接拒绝，不能用 `==`、`<=` 等数值关系绕过。保留数值关系、legacy 只读和非主判定历史失败记录。
+- 新增旧版反例涵盖 24 个子场景；修复后检查三类布尔证据、true 正例、缺少主判定行、非主判定 false、混合行以及数值合法关系。回执测试覆盖 readonly 不写、write 后 rejected 且工作簿字节不变、true 后 accepted。
+- 受影响项目：采用严格数值验证且主判定布尔证据为 false，或质量行判定关系与 mode 合同不符。先修正证据/结论再重新验收；不会重写历史 accepted 工作簿或自动补真值。完整回归与远端 CI 随本阶段 PR 记实。
+- 无 CLI、Schema、真实模型运行、MATLAB 或图像 QA 改动。
+
 ### A0/A1 · 9.5.3
 
 - AUD-01：备份改用可写句柄 fsync；staging 内部登记并清理未交给外层的临时文件。保留 writes-before/state/writes-after 次序。
