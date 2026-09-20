@@ -25,6 +25,11 @@ ALLOWED_CHANGED_AUTHORITIES = {
 }
 P7_OPTIONAL_ANALYSIS_PREREQUISITE = "figure_evidence:result_analysis_workbook"
 P9_RELEASE_VERSIONS = {"9.1.0", "9.2.0", "9.2.1", "9.3.0", "9.3.1", "9.4.0", "9.4.1", "9.4.2", "9.4.3", "9.4.4", "9.5.0", "9.5.1", "9.5.2", "9.5.3", "9.5.4", "9.5.5", "9.5.6", "9.5.7", "9.6.0", "9.6.1"}
+A7_HYDRATED_PROVENANCE_CASES = {
+    "facts_current", "facts_model_change", "facts_ambiguous", "facts_stale_framework",
+    "facts_hash_drift", "facts_identity_drift", "facts_stale_dependency", "style_current",
+    "style_data_change", "style_figure_drift", "style_no_approval", "mixed",
+}
 
 
 def normalize(value, repo, project):
@@ -104,6 +109,32 @@ def approved_a3_changes(identifier, old, new):
     return projected, changes
 
 
+def approved_a7_changes(identifier, old, new):
+    """Only the measured absent-to-project_state provenance leaves are approved."""
+    projected = deepcopy(new)
+    changes = []
+    if identifier not in A7_HYDRATED_PROVENANCE_CASES:
+        return projected, changes
+    try:
+        left, right, target = [plan["assurance"]["context"]["field_provenance"]
+                               for plan in (old, new, projected)]
+    except (KeyError, TypeError):
+        return projected, changes
+    if not all(isinstance(item, dict) and item.get("classification") == "project_state"
+               for item in (left, right)):
+        return projected, changes
+    for axis in ("objective", "structures", "capabilities"):
+        key = f"classification.{axis}"
+        if key not in left and right.get(key) == "project_state":
+            del target[key]
+            changes.append({
+                "path": f"assurance.context.field_provenance.{key}",
+                "baseline_present": False, "baseline": None, "candidate": "project_state",
+                "approval": "A7 AUD-17: expose hydrated classification provenance per axis",
+            })
+    return projected, changes
+
+
 def worker(repo, index):
     sys.path.insert(0, str(repo / "scripts"))
     from resolve_runtime import resolve_runtime
@@ -142,6 +173,8 @@ def compare(before, after):
         old = legacy_projection(a["plan"])
         new = legacy_projection(b["plan"])
         projected, expected = approved_a3_changes(a["id"], old, new)
+        projected, a7_changes = approved_a7_changes(a["id"], old, projected)
+        expected.extend(a7_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,
@@ -178,11 +211,11 @@ def main():
         "schema_version": 1, "baseline_ref": args.baseline_ref, "candidate_ref": args.candidate_ref,
         "driver_sha256": hashlib.sha256(HERE.read_bytes()).hexdigest(),
         "cases_sha256": hashlib.sha256(HERE.with_name("reading_plan_cases.py").read_bytes()).hexdigest(),
-        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_explicit_a3_field_transitions",
+        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_explicit_a3_a7_field_transitions",
         "expected_authority_changes": sorted(ALLOWED_CHANGED_AUTHORITIES),
         "all_legacy_behavior_equal": all(r["legacy_behavior_equal"] for r in rows),
         "all_legacy_behavior_equal_except_approved_changes": all(r["legacy_behavior_equal_except_approved_changes"] for r in rows),
-        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before the exact A3 exceptions; each approved version/qualification change is visible in expected_legacy_changes. Passing requires no unregistered field differences, not an assertion that the original behavior is unchanged.",
+        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before the exact A3/A7 exceptions; each approved version, qualification or per-axis provenance change is visible in expected_legacy_changes. No classification value or list-order normalization is applied. Passing requires no unregistered field differences, not an assertion that the original behavior is unchanged.",
         "cases": rows,
     }
     args.output.mkdir(parents=True, exist_ok=True)
