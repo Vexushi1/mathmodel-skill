@@ -12,6 +12,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 import artifact_identity as ARTIFACT_IDENTITY
+import analysis_prerequisites as ANALYSIS_PREREQUISITES
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = ROOT / "core/project_state.schema.yaml"
@@ -331,6 +332,40 @@ def _normalized_hashes(state: Mapping[str, Any]) -> tuple[dict[str, str], dict[s
     return current, validated, issues
 
 
+def _contract_stale_coverage(state: Mapping[str, Any], stale_layers: set[str]) -> set[str]:
+    contract = load_yaml(ROOT / "core/state_transition_contract.yaml")
+    current, validated, _ = _normalized_hashes(state)
+    closed: set[str] = set()
+    accepted_updates: dict[str, str] = {}
+    for execution, quality, layers in (
+        ("primary_execution_status", "result_quality_status", {"data", "primary_code", "solution_workbook"}),
+        ("analysis_execution_status", "result_analysis_status", {"analysis_code", "result_analysis_workbook"}),
+    ):
+        if (state.get(execution) == "accepted" and state.get(quality) == "passed"
+                and all(current.get(layer) and current.get(layer) == validated.get(layer) for layer in layers)):
+            closed.update(layers)
+            accepted_updates.update({execution: "accepted", quality: "passed"})
+    for execution, code_layer, code_hash in (
+        ("primary_execution_status", "primary_code", "primary_code_sha256"),
+        ("analysis_execution_status", "analysis_code", "analysis_code_sha256"),
+    ):
+        if (state.get(execution) in {"code_delivered", "awaiting_user_execution", "workbook_received"}
+                and current.get(code_layer) and current[code_layer] == state.get(code_hash)):
+            accepted_updates[execution] = state[execution]
+    covered: set[str] = set()
+    for profile in (contract.get("profiles") or {}).values():
+        layers = set(profile.get("stale_layers", []) or []) - closed
+        updates = {**(profile.get("set") or {}), **{
+            key: value for key, value in (profile.get("set_if_present") or {}).items() if key in state
+        }}
+        if layers.issubset(stale_layers) and all(
+            state.get(key) == value or (key in accepted_updates and state.get(key) == accepted_updates[key])
+            for key, value in updates.items()
+        ):
+            covered.update(layers)
+    return covered
+
+
 def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[str]:
     issues: list[str] = []
     current, validated, alias_issues = _normalized_hashes(state)
@@ -355,7 +390,9 @@ def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[s
             if not mismatched.issubset(stale_layers):
                 issues.append(f"{name}.stale_layers must include changed validated layers: {sorted(mismatched)}")
         elif mismatched != stale_layers:
-            issues.append(f"{name}.stale_layers must equal changed validated layers: {sorted(mismatched)}")
+            covered = _contract_stale_coverage(state, stale_layers)
+            if not mismatched.issubset(stale_layers) or not stale_layers.issubset(mismatched | covered):
+                issues.append(f"{name}.stale_layers must equal changed validated layers or complete applicable transition profiles: {sorted(mismatched)}")
     if not stale_flag and stale_layers:
         issues.append(f"{name}.stale_layers must be empty while artifacts_stale is false")
     if status in SOLVED_STATUSES:
@@ -363,7 +400,7 @@ def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[s
         missing = sorted(key for key in required if key not in current or key not in validated)
         if missing:
             issues.append(f"{name} solved status requires current and validated hashes for: {missing}")
-    if status in ANALYZED_STATUSES:
+    if status in ANALYZED_STATUSES and state.get("result_analysis_status") != "not_required":
         required = {"result_analysis_workbook"}
         missing = sorted(key for key in required if key not in current or key not in validated)
         if missing:
@@ -447,7 +484,15 @@ def validate_state_payload(
                 issues.append(f"{name}.result_summary_anchor is required when status is {status}")
             if not _artifact_exists(project_root, state.get("solution_workbook")):
                 issues.append(f"{name}.solution_workbook must exist when status is {status}")
-        if status in ANALYZED_STATUSES:
+        if analysis_status == "not_required":
+            if not str(state.get("result_analysis_requirement_reason") or "").strip():
+                issues.append(f"{name}.result_analysis_requirement_reason is required for not_required")
+            issues.extend(f"{name}: {item}" for item in ANALYSIS_PREREQUISITES.primary_issues(project_root, payload, state))
+            if status == "analyzed":
+                issues.append(f"{name}.status=analyzed requires actual passed analysis, not not_required")
+            if state.get("analysis_execution_status") == "accepted":
+                issues.append(f"{name}.not_required must not claim accepted analysis execution")
+        elif status in ANALYZED_STATUSES:
             if analysis_status != "passed":
                 issues.append(f"{name}.result_analysis_status must be passed when status is {status}")
             analysis_path = state.get("result_analysis_workbook") or state.get("robustness_workbook")

@@ -1,4 +1,4 @@
-"""Compare complete legacy plans across isolated checkouts; normalize only explicitly approved Authority content hashes while keeping every Runtime field, source path, dependency and reading-plan behavior exact."""
+"""Compare legacy plans across isolated checkouts; report exact approved changes separately and reject every unregistered Runtime field difference."""
 from __future__ import annotations
 
 import argparse
@@ -24,7 +24,7 @@ ALLOWED_CHANGED_AUTHORITIES = {
     "templates/latex/cumcm/hsk/template_manifest.yaml",
 }
 P7_OPTIONAL_ANALYSIS_PREREQUISITE = "figure_evidence:result_analysis_workbook"
-P9_RELEASE_VERSIONS = {"9.1.0", "9.2.0", "9.2.1", "9.3.0", "9.3.1", "9.4.0", "9.4.1", "9.4.2", "9.4.3", "9.4.4", "9.5.0", "9.5.1", "9.5.2", "9.5.3", "9.5.4"}
+P9_RELEASE_VERSIONS = {"9.1.0", "9.2.0", "9.2.1", "9.3.0", "9.3.1", "9.4.0", "9.4.1", "9.4.2", "9.4.3", "9.4.4", "9.5.0", "9.5.1", "9.5.2", "9.5.3", "9.5.4", "9.5.5"}
 
 
 def normalize(value, repo, project):
@@ -53,6 +53,55 @@ def legacy_projection(plan):
             item for item in prerequisites if item != P7_OPTIONAL_ANALYSIS_PREREQUISITE
         ]
     return value
+
+
+def approved_a3_changes(identifier, old, new):
+    """Register exact A3 transitions; never normalize an entire assurance subtree."""
+    projected = deepcopy(new)
+    changes = []
+
+    def register(path, baseline, candidate, approval):
+        left, right, target = old, new, projected
+        try:
+            for key in path[:-1]:
+                left, right, target = left[key], right[key], target[key]
+            key = path[-1]
+            if left[key] != baseline or right[key] != candidate:
+                return
+        except (KeyError, IndexError, TypeError):
+            return
+        target[key] = deepcopy(baseline)
+        changes.append({"path": ".".join(map(str, path)), "baseline": baseline,
+                        "candidate": candidate, "approval": approval})
+
+    register(("assurance", "schema_version"), "1.2.0", "1.2.1",
+             "A3 approved runtime assurance contract version")
+    if identifier == "facts_hash_drift":
+        approval = "A3 AUD-03: changed primary workbook cannot qualify analysis or validated_results"
+        evidence = ("assurance", "artifact_assurance", "evidence", 2)
+        try:
+            analysis_rows = [plan["assurance"]["artifact_assurance"]["evidence"][2] for plan in (old, new)]
+        except (KeyError, IndexError, TypeError):
+            analysis_rows = []
+        if len(analysis_rows) == 2 and all(
+            isinstance(row, dict) and row.get("artifact") == "accepted_result_analysis_workbook"
+            and row.get("scope") == "Q1" for row in analysis_rows
+        ):
+            register((*evidence, "status"), "verified", "not_accepted", approval)
+            register((*evidence, "reason"), "result-analysis execution and stability status are accepted",
+                     "result-analysis execution or stability status is not accepted", approval)
+        revoked = {"accepted_result_analysis_workbook", "result_analysis_workbook", "validated_results"}
+        for path in (("assurance", "artifact_assurance", "effective_artifacts"),
+                     ("available_after_modules",), ("available_after_plan",)):
+            values = old
+            try:
+                for key in path:
+                    values = values[key]
+            except (KeyError, TypeError):
+                continue
+            if isinstance(values, list) and all(values.count(item) == 1 for item in revoked):
+                register(path, values, [item for item in values if item not in revoked], approval)
+    return projected, changes
 
 
 def worker(repo, index):
@@ -92,9 +141,12 @@ def compare(before, after):
             raise ValueError(f"P2 reading plan missing: {b['id']}")
         old = legacy_projection(a["plan"])
         new = legacy_projection(b["plan"])
-        changed_keys = sorted(k for k in set(old) | set(new) if old.get(k) != new.get(k))
+        projected, expected = approved_a3_changes(a["id"], old, new)
+        changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,
+            "legacy_behavior_equal_except_approved_changes": old == projected,
+            "expected_legacy_changes": expected,
             "unexpected_legacy_changes": changed_keys,
             "baseline_declared_bytes": a["legacy_declared_bytes"],
             "candidate_declared_bytes": b["legacy_declared_bytes"],
@@ -126,17 +178,18 @@ def main():
         "schema_version": 1, "baseline_ref": args.baseline_ref, "candidate_ref": args.candidate_ref,
         "driver_sha256": hashlib.sha256(HERE.read_bytes()).hexdigest(),
         "cases_sha256": hashlib.sha256(HERE.with_name("reading_plan_cases.py").read_bytes()).hexdigest(),
-        "comparison_scope": "all_legacy_fields_except_declared_approved_authority_hashes_p7_optional_analysis_prerequisite_and_p9_release_carrier",
+        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_explicit_a3_field_transitions",
         "expected_authority_changes": sorted(ALLOWED_CHANGED_AUTHORITIES),
         "all_legacy_behavior_equal": all(r["legacy_behavior_equal"] for r in rows),
-        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost; approved authority hashes, the P7 conditional-analysis prerequisite removal, and the explicitly registered 9.1.0-to-9.5.4 release carriers are normalized while every other legacy field remains exact.",
+        "all_legacy_behavior_equal_except_approved_changes": all(r["legacy_behavior_equal_except_approved_changes"] for r in rows),
+        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before the exact A3 exceptions; each approved version/qualification change is visible in expected_legacy_changes. Passing requires no unregistered field differences, not an assertion that the original behavior is unchanged.",
         "cases": rows,
     }
     args.output.mkdir(parents=True, exist_ok=True)
     for name, value in (("p2-baseline-plans.json", before), ("p2-candidate-plans.json", after), ("p2-comparison.json", report)):
         (args.output / name).write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False, indent=2))
-    return 0 if report["all_legacy_behavior_equal"] else 1
+    return 0 if report["all_legacy_behavior_equal_except_approved_changes"] else 1
 
 
 if __name__ == "__main__":

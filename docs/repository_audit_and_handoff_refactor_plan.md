@@ -306,6 +306,20 @@ Windows 检查不要求把全部 LaTeX 作业搬到 Windows，但 transaction、
 
 ## 8. 实施记录
 
+### A3 · 9.5.5
+
+- AUD-03/04/05：代码交付、回执与 runtime 共享当前主结果资格检查。新 03B 必须有 accepted/passed 的主工作簿、有效路径/hash、当前数据身份、非空 necessity reason 与 analysis_methods；回执还需已交付分析代码身份。pending 本身不代表已判 required；not_required 不会被意外回执覆盖。
+- 合法 not_required + reason + current primary 可处于 validated/written/completed；不要求分析文件或哈希，不冒充实际 analyzed。历史同一 accepted 分析工作簿只读兼容不追补新 reason；新交付/验收依当前规则。
+- 主结果、代码、数据或上游结果变化按已有 typed transition 清除过期 necessity reason。内容改变的主工作簿回执也触发既有 solution_workbook_changed；成功回执仅关闭已验证数值层，保留下游图/框架失效。分析 RUN_CONFIG 不得覆盖主结果 data_hash。
+- 状态校验承认完整适用 transition profile 及已明确验收数值层关闭后的剩余传播集，仍拒绝任意无依据 stale 层；与 A4 候选状态检查共同工作。
+- O01 裁决：选择绘图规划路由不等于正式图件交付批准。正式数值图依 Module 04/现有 output gate，只有实际消费 03B evidence 的图才要求该工作簿；独立机理图保留自身路由，不统一强制替代世界分析。
+- 新边界测试涵盖未验收/缺失/篡改主工作簿、required 未裁决、not_required、只读与写入、别名绕过、多问聚合、相关数值 stale、图件单独 stale、数据身份及验收后状态闭合。未新增 state 字段/枚举、未修改 accepted 用户文件；完整回归/CI 见本阶段 PR。
+
+### 已验证阶段链接
+
+- A0/A1 已合并：[PR #220](https://github.com/Vexushi1/mathmodel-skill/pull/220)，main `06b224d`。本机 1103 项通过（1 项权限限定 skip）；最终 PR 原生 Windows、Linux Python 3.10–3.14、LaTeX 与生成文件作业全部成功。
+- A2：[PR #221](https://github.com/Vexushi1/mathmodel-skill/pull/221)，本机 1111 项通过（1 项权限限定 skip）；远端结果以该 PR 当前提交为准。
+
 ### A2 · 9.5.4
 
 - AUD-02：严格模式按既有 `recheck_modes.*.quality_relation` 验证；主判定布尔复核为 false 时直接拒绝，不能用 `==`、`<=` 等数值关系绕过。保留数值关系、legacy 只读和非主判定历史失败记录。

@@ -433,7 +433,8 @@ class ContractAndDriftTests(unittest.TestCase):
         # P0-A intentionally aligns the title handoff with the existing output Authority;
         # test_schemas covers the new declaration and unchanged caption ownership.
         "core/workbook_schema.yaml": "a0a9d439953d3f3ae85cb6ff38045aab531f22be",
-        "core/project_state.schema.yaml": "8632a709047a55e0432d7903089fb4fc7672e8cf",
+        # A3 clarifies the existing conditional analysis fields without adding an enum.
+        "core/project_state.schema.yaml": "180b4c169c7663a1ce264426d87a558636a3d456",
         "core/writing_reasoning_contract.yaml": "9936a9064e067b3ceb6d14e51132a2d65e648b05",
         "modules/03_solve_validate.md": "17f6c3e755e64bfc7e8287c607b5a8b5b905c1d1",
         "modules/03_result_analysis.md": "b9384b0d42562a003887cc62427f62546c41d4f5",
@@ -449,7 +450,8 @@ class ContractAndDriftTests(unittest.TestCase):
         "templates/matlab/draw_mechanism_structure.m": "65ba4a3b3462a565f86880c49af0959edd21f9a4",
         "templates/figure/chart_selection.md": "fb77ff06d246336c3b1c856e0b79a4506fc96cbf",
         "templates/figure/figure_enhancement_patterns.md": "1a814bc5c9d57cc6cfa7f7ffa96e0eab8b3d313a",
-        "scripts/validate_code_delivery.py": "078e50d2d8b192823f4e462d7bfd5e46e0e27988",
+        # A3 checks current accepted primary and the explicit analysis necessity decision.
+        "scripts/validate_code_delivery.py": "1c7b7ef22e3552ba6cea565d8ca57dd81d2719b1",
     }
 
     def test_protected_authorities_have_not_drifted(self):

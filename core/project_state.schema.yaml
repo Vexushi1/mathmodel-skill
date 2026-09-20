@@ -451,7 +451,7 @@ properties:
         execution_note: {type: string, description: 代码交付与用户本地运行状态说明}
         result_analysis_status: {type: string, enum: [pending, passed, failed, redo_required, not_required]}
         result_analysis_requirement_reason:
-          description: P7 Analysis Necessity Gate 在not_required时必须记录的非空理由；不等价于稳健性已通过。
+          description: Analysis Necessity Gate的当前理由；not_required必须有理由，当前required计划以非空理由和analysis_methods共同表示，pending单独不表示已激活。主结果或数据语义失效后须重新裁决；不等价于稳健性已通过。
           type: string
           minLength: 1
         validation_status:
@@ -459,6 +459,7 @@ properties:
           type: string
           enum: [pending, passed, failed, not_applicable]
         analysis_methods:
+          description: 当前required计划的方法；须与非空result_analysis_requirement_reason共同解释，单独的方法列表不授权分析执行。
           type: array
           uniqueItems: true
           items: {type: string}

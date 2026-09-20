@@ -192,6 +192,17 @@ execution_states:
   - analysis_execution_status=accepted且结论稳定性校验通过后，status才可进入analyzed。
   - result_analysis_status=not_required且result_analysis_requirement_reason非空时，analysis阶段保持未激活，不生成03B代码/工作簿；下游可按validated_results语义继续，但不得据此声称已通过稳健性、稳定性或替代算法一致性检验。
   - 主工作簿未验收前不得生成最终结果深化分析脚本；只能形成候选分析方向。
+analysis_necessity_state_mapping:
+  authority: modules/03_result_analysis.md
+  new_state_enum: false
+  not_required: result_analysis_status=not_required且result_analysis_requirement_reason非空；代码交付或回执不能自动覆盖该决定。
+  required_plan: result_analysis_status不是not_required，且有当前非空result_analysis_requirement_reason和非空analysis_methods；pending本身不表示已激活。
+  receipt_activation: required计划还须有code_delivered/awaiting_user_execution/workbook_received/accepted/rejected/redo_required之一的明确analysis_execution_status及当前绑定的analysis代码；仅有文件不授权验收。
+  primary_prerequisites: 读写和CLI都验证accepted且quality passed的主工作簿、项目内路径、实际与验收哈希、相关数值stale及适用的project_level预处理；图或论文独有stale不使主数值结果失效。
+  data_identity: analysis RUN_CONFIG.data_sha256必须继承当前主结果data_hash；analysis代码交付不得覆盖主结果的数据身份。
+  invalidation: 按state_transition_contract清除primary/data/semantic失效及其相关依赖后的旧requirement reason；保留的方法列表只是候选计划。分析代码重交或图形改动不单独清除此决定。
+  historical_read: 已accepted且passed的同一已验收分析工作簿可只读且不补写新reason；新交付或新验收不能借legacy配置绕过当前前置。
+  implementation: scripts/analysis_prerequisites.py
 returned_workbook:
   semantic_governance_required: true
   numerical_evidence_checker: scripts/validate_numerical_evidence.py
@@ -269,6 +280,8 @@ returned_workbook:
   - 绘图数据索引
   - 预处理质量门
   acceptance_rules:
+  - 成功验收primary仅关闭data/primary_code/solution_workbook的stale并同步既有data验收哈希；成功验收analysis仅关闭analysis_code/result_analysis_workbook。其它下游失效层保持，不能由局部回执隐式验收全项目。
+  - 已登记主工作簿内容哈希改变时，回执写入先按state_transition_contract的solution_workbook_changed事件使旧Gate、分析和适用结果依赖失效，再记录本次主结果验收结论；字节未变不重复失效。
   - 当前Problem Contract、preprocessing_decision、语义闭环与复杂度复审必须先通过semantic_governance gate。
   - execution_owner必须为user。
   - execution_profile必须为full_fidelity。

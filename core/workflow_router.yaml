@@ -1,4 +1,4 @@
-version: 9.5.4
+version: 9.5.5
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -67,7 +67,8 @@ execution_contract:
   - Generate full-fidelity task code and stop at the applicable user-execution boundary; never execute task-specific preprocessing, solve or analysis code.
   - Primary user-produced workbook must be accepted before the Analysis Necessity Gate can decide whether post-primary result analysis is required.
   - Accepted primary workbooks freeze the primary solve script; when the Gate is required, result-analysis code is a separate stage-specific Python file.
-  - Figures and writing require validated_results: every scoped question must have an accepted primary result plus either an accepted passed result-analysis workbook or an explicit result_analysis_status=not_required with a non-empty requirement reason.
+  - Formal numerical-figure delivery and writing require validated_results under Module 04 and the output contract. Selecting a figure-planning route from accepted primary evidence is not formal delivery approval; every scoped numerical claim still needs accepted primary evidence plus either accepted passed analysis or a reasoned not_required disposition.
+  - Figure consumers require a 03B workbook only when their declared evidence uses it; independent mechanism diagrams keep their own non-numerical prerequisite route. Do not infer that every figure requires alternative-world computation.
   - result_analysis_status=not_required only waives alternative-world computation for the current claims; it never proves robustness, stability, parameter insensitivity, cross-scenario validity or algorithm agreement. Adding such a claim reopens the Analysis Necessity Gate.
   - Result analysis may send the workflow back to model_design, conditionally to data_preprocessing, or to solve_validate when the locked result is not stable enough; paper-facing analysis evidence records support/modify/reject against a target claim.
   - Semantic or preprocessing-decision changes must propagate stale through typed cross-question dependencies before downstream work continues; paper fragments propagate only through explicit local dependencies.

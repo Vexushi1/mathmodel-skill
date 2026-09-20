@@ -1,6 +1,12 @@
 # Changelog
 
-## Current release: 9.5.4
+## Current release: 9.5.5
+
+- A3 uses one current-primary prerequisite check for runtime qualification, analysis code delivery and analysis receipts. New analysis requires an explicit reason and method plan after primary acceptance; not_required remains a valid final-state branch without an analysis workbook.
+- Name-only aliases cannot override current invalid evidence. Primary/data changes reopen the Analysis Necessity Gate and invalidate dependent results; successful receipts close only their verified numerical stale layers and preserve downstream figure/framework invalidation.
+- Analysis delivery cannot overwrite the primary data identity. Historical accepted analysis remains readable; new receipt acceptance follows current gate requirements. No user code, MATLAB or image QA is executed.
+
+## Previous release: 9.5.4
 
 - A2 closes strict boolean evidence acceptance: the declared quality relation must match the existing numerical contract, and a false primary boolean recheck cannot become accepted through a numerical comparison.
 - Synthetic receipt tests cover read-only rejection, failed write state, unchanged workbook bytes, true positive evidence and non-primary historical failures. Numeric relations and legacy read-only behavior remain available; no user models are executed.

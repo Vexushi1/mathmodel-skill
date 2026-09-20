@@ -153,6 +153,10 @@ def _apply_profile(
         entry["artifacts_stale"] = True
 
     updates: dict[str, Any] = {}
+    for field in profile.get("clear", []) or []:
+        if str(field) in entry:
+            entry.pop(str(field))
+            updates[str(field)] = None
     for field, value in (profile.get("set", {}) or {}).items():
         if entry.get(str(field)) != value:
             entry[str(field)] = value

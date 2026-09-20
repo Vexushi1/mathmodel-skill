@@ -1,6 +1,10 @@
-# mathmodel-skill v9.5.4
+# mathmodel-skill v9.5.5
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 → 条件数学化与结构化简 → 最小充分主模型 + 按需 comparator → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构匹配 Solver + Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision / semantic_identity_hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + 按需 Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v9.5.5：主求解、深化分析与当前证据资格
+
+03B 代码交付和回执必须建立在当前 accepted 主结果及明确的分析必要性判定上；合法 `not_required` 可继续进入验证、写作和完成状态。主结果改变会重新打开判定，成功验收只关闭本阶段的数值失效标记，保留下游图文待更新状态。运行时的兼容名称不能绕过当前文件、哈希或验收状态。迁移与例外见[全仓库计划](docs/repository_audit_and_handoff_refactor_plan.md)。
 
 ## v9.5.4：严格布尔证据验收
 

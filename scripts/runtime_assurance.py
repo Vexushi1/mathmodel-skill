@@ -15,8 +15,21 @@ from semantic_identity import (
     question_sections,
 )
 import artifact_identity as ARTIFACT_IDENTITY
+import analysis_prerequisites as ANALYSIS_PREREQUISITES
 
 FRAMEWORK_RELATIVE_PATH = "模型论文框架.md"
+QUALIFIED_ARTIFACT_ALIASES = {
+    "locked_model_spec": "locked_model_spec",
+    "preprocessing_workbook": "preprocessing_workbook",
+    "accepted_preprocessing_workbook": "preprocessing_workbook",
+    "accepted_solution_workbook": "accepted_solution_workbook",
+    "solution_workbook": "accepted_solution_workbook",
+    "solved_results": "accepted_solution_workbook",
+    "result_quality_report": "accepted_solution_workbook",
+    "accepted_result_analysis_workbook": "accepted_result_analysis_workbook",
+    "result_analysis_workbook": "accepted_result_analysis_workbook",
+    "validated_results": "validated_results",
+}
 STRUCTURED_IDENTITY_FIELDS = {
     "semantic_identity_schema_version",
     "semantic_identity_hash",
@@ -454,6 +467,8 @@ def hydrate_project_context(project_root: str | Path, question: str | None = Non
     for q in questions:
         item = subproblems.get(q, {}) or {}
         conflicts.extend(ARTIFACT_IDENTITY.entry_alias_issues(item, scope=q))
+        stale = set(ARTIFACT_IDENTITY.normalize_stale_layers(item.get("stale_layers")))
+        primary_issues = ANALYSIS_PREREQUISITES.primary_issues(root, state, item)
         primary_ok = (
             item.get("primary_execution_status") == "accepted"
             and item.get("result_quality_status") == "passed"
@@ -468,14 +483,18 @@ def hydrate_project_context(project_root: str | Path, question: str | None = Non
             accepted_reason=(
                 "primary execution and result quality are accepted"
                 if primary_ok
-                else "primary execution or result quality is not accepted"
+                else "; ".join(primary_issues)
             ),
         )
+        if primary_row["status"] == "verified" and primary_issues:
+            primary_row.update(status="not_accepted", reason="; ".join(primary_issues))
         primary_rows.append(primary_row)
 
         analysis_ok = (
-            item.get("analysis_execution_status") == "accepted"
+            primary_row["status"] == "verified"
+            and item.get("analysis_execution_status") == "accepted"
             and item.get("result_analysis_status") == "passed"
+            and not stale.intersection({"analysis_code", "result_analysis_workbook"})
         )
         analysis_row = _file_evidence(
             root,
@@ -512,7 +531,10 @@ def hydrate_project_context(project_root: str | Path, question: str | None = Non
                     "actual_sha256": None,
                 }
             )
-        analysis_complete.append(analysis_row["status"] == "verified" or skip_verified)
+        analysis_complete.append(
+            primary_row["status"] == "verified"
+            and (analysis_row["status"] == "verified" or skip_verified)
+        )
 
     evidence.extend(primary_rows)
     evidence.extend(analysis_rows)
@@ -559,7 +581,11 @@ def reconcile_legacy_artifacts(
     }
     effective = set(verified)
     for artifact in sorted(declared_set):
-        if hydration.get("loaded") and artifact in known_invalid:
+        canonical = QUALIFIED_ARTIFACT_ALIASES.get(artifact)
+        if hydration.get("loaded") and (
+            (canonical is not None and canonical not in verified)
+            or artifact in known_invalid
+        ):
             conflicts.append(
                 f"legacy artifact declaration {artifact} conflicts with current project-state assurance"
             )

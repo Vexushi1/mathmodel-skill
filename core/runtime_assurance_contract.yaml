@@ -1,4 +1,4 @@
-version: 1.2.0
+version: 1.2.1
 introduced_in_skill_version: 7.12.0
 skill_compatibility: '>=7.12.0,<10.0.0'
 purpose: >-
@@ -119,6 +119,8 @@ artifact_assurance:
       requires:
       - primary_execution_status == accepted
       - result_quality_status == passed
+      - no stale data, primary_code, or solution_workbook layer
+      - declared primary code and project-level preprocessing remain bound to current accepted file and data identities under the shared analysis prerequisite check
       - workbook path resolves inside project_root
       - workbook path exists
       - validated or current workbook sha256 exists
@@ -126,13 +128,17 @@ artifact_assurance:
     accepted_result_analysis_workbook:
       kind: file_backed
       requires:
+      - accepted_solution_workbook is currently verified for the same question
       - analysis_execution_status == accepted
       - result_analysis_status == passed
+      - no stale analysis_code or result_analysis_workbook layer
       - workbook path resolves inside project_root
       - workbook path exists
       - validated or current workbook sha256 exists
       - actual sha256 == expected sha256
   scope_rules:
+  - validated_results requires a current verified primary result plus either current verified analysis or a reasoned not_required decision for every scoped question.
+  - With project state loaded, solution_workbook, solved_results, and result_quality_report declarations share accepted_solution_workbook qualification; result_analysis_workbook shares accepted_result_analysis_workbook qualification. A derived validated_results declaration cannot bypass these qualifications.
   - With --question Qn, semantic and workbook evidence is evaluated for that question.
   - Without a question scope, generic locked_model_spec is promoted only when every scoped question passes the structured identity evidence chain; legacy questions remain readable provenance but are not promoted as verified locked_model_spec.
   - Without a question scope, generic accepted_solution_workbook or accepted_result_analysis_workbook is promoted only when every scoped subproblem satisfies the corresponding condition.
