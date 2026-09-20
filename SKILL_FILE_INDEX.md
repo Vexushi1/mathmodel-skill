@@ -249,6 +249,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_audit_a6_latex_boundaries.py`
 - `tests/test_audit_a7_entry_consistency.py`
 - `tests/test_audit_analysis_boundaries.py`
+- `tests/test_audit_blank_record_preservation.py`
 - `tests/test_audit_current_artifacts.py`
 - `tests/test_audit_package_completeness.py`
 - `tests/test_audit_path_identity.py`
