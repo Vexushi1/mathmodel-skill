@@ -278,6 +278,7 @@ def validate_primary_numerical_evidence(
         referenced_sheets: set[str] = set()
         computed_by_sheet: dict[str, Any] = {}
         modes_by_sheet: dict[str, set[str]] = {}
+        required_relations_by_sheet: dict[str, str] = {}
 
         for capability in active_capabilities:
             spec = protocol_map[capability] or {}
@@ -299,9 +300,15 @@ def validate_primary_numerical_evidence(
                 issues.append(f"同一证据工作表映射到多个不兼容recheck_mode: {sheet} -> {sorted(modes)}")
                 continue
             mode = next(iter(modes))
+            mode_contract = (contract.get("recheck_modes") or {}).get(mode) or {}
+            required_relation = str(mode_contract.get("quality_relation", "")).strip()
+            if required_relation:
+                required_relations_by_sheet[sheet] = required_relation
             computed, evidence_issues = _recheck_evidence(mode, sheet, headers, records)
             computed_by_sheet[sheet] = computed
             issues.extend(evidence_issues)
+            if required_relation == "bool_true" and computed is False:
+                issues.append(f"{sheet}用于主判定的布尔证据未通过")
             if mode in {"max_violation", "max_abs_residual"}:
                 failed_rows = [
                     index for index, record in enumerate(records, start=2)
@@ -341,6 +348,9 @@ def validate_primary_numerical_evidence(
                 issues.append(f"{verification_id}使用未登记阈值来源: {threshold_source}")
 
             relation = str(row.get("判定关系", "")).strip()
+            required_relation = required_relations_by_sheet.get(evidence_sheet)
+            if required_relation and relation != required_relation:
+                issues.append(f"{verification_id}引用{evidence_sheet}必须使用判定关系{required_relation}")
             if relation not in allowed_relations:
                 issues.append(f"{verification_id}使用未登记判定关系: {relation}")
                 continue

@@ -5,7 +5,7 @@ import unittest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED = "9.5.3"
+EXPECTED = "9.5.4"
 
 
 class P9ReleaseCloseoutTests(unittest.TestCase):

@@ -1,6 +1,11 @@
 # Changelog
 
-## Current release: 9.5.3
+## Current release: 9.5.4
+
+- A2 closes strict boolean evidence acceptance: the declared quality relation must match the existing numerical contract, and a false primary boolean recheck cannot become accepted through a numerical comparison.
+- Synthetic receipt tests cover read-only rejection, failed write state, unchanged workbook bytes, true positive evidence and non-primary historical failures. Numeric relations and legacy read-only behavior remain available; no user models are executed.
+
+## Previous release: 9.5.3
 
 - A0/A1 repairs native Windows state transactions: backup synchronization uses a writable descriptor and partial pre-journal staging cleans only its own temporary files. Generation checks, locks, journal recovery and companion-file order remain unchanged.
 - Workbook receipt readers close their owned read-only workbook on success, early return and exception. Native Windows unit CI now covers file lifecycle; only the symbolic-link fixture may skip on the exact missing-privilege condition, while ordinary path escape checks always run.
