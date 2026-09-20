@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 import zipfile
 from pathlib import Path
 from typing import Any, Iterable, Mapping
@@ -18,6 +19,10 @@ from typing import Any, Iterable, Mapping
 import yaml
 
 SKILL_ROOT = Path(__file__).resolve().parent.parent
+if str(SKILL_ROOT / "scripts") not in sys.path:
+    sys.path.insert(0, str(SKILL_ROOT / "scripts"))
+from submission_requirements import expand_required_allowlist, reproducibility_requirements
+
 COMPETITION_PROFILES = SKILL_ROOT / "config" / "competition_profiles.yaml"
 MANIFEST_NAME = "submission_manifest.yaml"
 
@@ -46,20 +51,7 @@ def resolve_competition(token: str, payload: Mapping[str, Any]) -> tuple[str, Ma
 
 
 def expand_allowlist(root: Path, patterns: Iterable[str]) -> set[str]:
-    names: set[str] = set()
-    for raw in patterns:
-        pattern = str(raw).strip()
-        if not pattern:
-            continue
-        for candidate in root.glob(pattern):
-            if not candidate.is_file():
-                continue
-            resolved = candidate.resolve()
-            try:
-                names.add(resolved.relative_to(root).as_posix())
-            except ValueError:
-                continue
-    return names
+    return {path.relative_to(root.resolve()).as_posix() for path in expand_required_allowlist(root, patterns)}
 
 
 def _current_compiled_pdf(root: Path, state: Mapping[str, Any]) -> Path:
@@ -218,7 +210,11 @@ def validate_package(
                     patterns = [str(item) for item in (rules.get("submission_files") or [])]
                     if not patterns:
                         issues.append(f"{profile_name} verified submission_files allowlist为空")
-                    expected = expand_allowlist(root, patterns)
+                    try:
+                        expected = expand_allowlist(root, patterns)
+                    except ValueError as exc:
+                        issues.append(str(exc))
+                        expected = set()
                     if patterns and not expected:
                         issues.append(f"{profile_name} submission_files allowlist未解析到任何当前项目文件")
                     if archived_payload != expected:
@@ -237,12 +233,10 @@ def validate_package(
                     if manifest.get("submission_files_allowlist") != patterns:
                         issues.append("official package manifest记录的submission_files allowlist与当前规则不一致")
         elif kind == "reproducibility":
-            lowered = [name.lower() for name in archived_payload]
-            for suffix, label in ((".pdf", "PDF"), (".py", "Python代码"), (".xlsx", "结果工作簿"), (".m", "MATLAB脚本")):
-                if not any(name.endswith(suffix) for name in lowered):
-                    issues.append(f"完整复现包缺少{label}")
-            if "模型论文框架.md" not in archived_payload:
-                issues.append("完整复现包缺少模型论文框架.md")
+            required, requirement_issues = reproducibility_requirements(root, state)
+            issues.extend(requirement_issues)
+            for relative in sorted(required - archived_payload):
+                issues.append(f"完整复现包缺少当前必需文件: {relative}")
 
     return {
         "status": "passed" if not issues else "failed",

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import sys
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,6 +19,10 @@ from typing import Any, Iterable
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT / "scripts") not in sys.path:
+    sys.path.insert(0, str(ROOT / "scripts"))
+from submission_requirements import bound_compile_files, expand_required_allowlist
+
 COMPETITION_PROFILES = ROOT / "config" / "competition_profiles.yaml"
 EXCLUDED_DIRS = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".venv", "venv", "submission"}
 EXCLUDED_NAMES = {".DS_Store", "Thumbs.db"}
@@ -74,21 +79,10 @@ def resolve_competition(token: str, payload: dict[str, Any]) -> tuple[str, dict[
 
 
 def _expand_allowlist(root: Path, patterns: Iterable[str]) -> list[Path]:
-    root = root.resolve()
-    files: set[Path] = set()
-    for raw in patterns:
-        pattern = str(raw).strip()
-        if not pattern:
-            continue
-        for candidate in root.glob(pattern):
-            if candidate.is_file():
-                resolved = candidate.resolve()
-                try:
-                    resolved.relative_to(root)
-                except ValueError:
-                    continue
-                files.add(resolved)
-    return sorted(files, key=lambda path: path.relative_to(root).as_posix())
+    try:
+        return expand_required_allowlist(root, patterns)
+    except ValueError as exc:
+        raise SystemExit(f"official package refused: {exc}") from exc
 
 
 def official_files(root: Path, competition: str) -> tuple[list[Path], dict[str, Any]]:
@@ -121,10 +115,15 @@ def official_files(root: Path, competition: str) -> tuple[list[Path], dict[str, 
 
 
 def reproducibility_files(root: Path, output: Path) -> list[Path]:
+    root = root.resolve()
+    state_path = root / "state/project_state.yaml"
+    state = (yaml.safe_load(state_path.read_text(encoding="utf-8")) or {}) if state_path.is_file() else {}
+    bound, _ = bound_compile_files(root, state)
     return [
         path.resolve()
         for path in sorted(root.rglob("*"))
-        if path.is_file() and not should_exclude(path, root, output)
+        if path.is_file() and path.resolve() != output.resolve()
+        and (not should_exclude(path, root, output) or path.resolve() in bound)
     ]
 
 

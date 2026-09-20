@@ -1,6 +1,12 @@
 # Changelog
 
-## Current release: 9.5.6
+## Current release: 9.5.7
+
+- A5 verifies reproducibility packages against independently derived current per-question, conditional-analysis and project-preprocessing file sets. Declared data directories expand to actual bounded members; a self-consistent manifest cannot hide a missing question or stage.
+- Exact official allowlist paths are required by both collection and validation; optional wildcard zero matches retain compatibility. Official PDF-only rules stay separate from reproducibility requirements.
+- Current v4 compile-report-bound log/recorder files can be retained, with exact hashes and source members checked; older reports do not gain a fictitious recorder. ZIP creation alone remains distinct from validated delivery.
+
+## Previous release: 9.5.6
 
 - A4 applies current snapshot transitions and local paper-fragment invalidation before formal delivery checks. Read-only and write modes assess the same candidate state, so a first detected change cannot reuse an earlier passed gate.
 - Snapshot and reading-plan figure binding share exact framework/script/export discovery, including explicitly mapped project-root figures. Missing or ambiguous scoped evidence is diagnosed; discovery never writes validated hashes or approval. Independent unmapped global diagrams remain a documented coverage warning.

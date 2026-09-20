@@ -443,7 +443,8 @@ class ContractAndDriftTests(unittest.TestCase):
         "modules/06_review_delivery.md": "b9534d5c3d41aaef01e7f46134a6d2e759273b88",
         "config/competition_profiles.yaml": "0cfe08e2edac99f07f2e527643499b8bc73c0479",
         "scripts/validate_semantic_governance.py": "9bd3fe2d6704accab2635b0c691caaeca6fea977",
-        "scripts/validate_submission_package.py": "47bd01db5f45dd8c902418be62f494419a03c676",
+        # A5 requires current per-question files and exact official allowlist entries.
+        "scripts/validate_submission_package.py": "80e23b1f9d60485cba902f9151940389a452cbdb",
         # P0-B replaces silent filtering/fixed ordering with explicit evidence-preserving reads.
         # MATLAB syntax is parsed separately; source checks do not claim runtime execution.
         "templates/matlab/q1_plot.m": "5c074ca99f4df67a7fbd1f04db08a0a4545502e8",
