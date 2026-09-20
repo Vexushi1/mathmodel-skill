@@ -230,3 +230,9 @@ Figure Contract 记录 `Enhancement / Enhancement rationale`，不把 inset 坐�
 每张图的源工作簿、工作表、真实表头、脚本、论文 caption、Evidence level、Primary question、Evidence structure、Figure level、Selected visual structure、Composite encoding、Scientific Rendering Profile、Layout decision、Split decision、Enhancement / Enhancement rationale 和正文位置同步登记到 `模型论文框架.md`；默认不生成独立 `figure_evidence` 文件。
 
 图表交付前执行 `python scripts/sync_project.py <project_root> --write --strict --delivery-scope figures`。同步器检查 current required workbook set、`qX_plot.m` 的真实引用、正式图内无整体 `title/sgtitle` 和证据链；Gate=`not_required` 时不因合法缺少 03B workbook 失败，Gate=`required` 且 Figure 使用 03B 时则必须保持 fail closed。默认不要求导出图片已经存在。
+
+## 按需参考的绘图技巧
+
+[绘图技巧第 12 节](../figure/figure_enhancement_patterns.md#12-按数据结构选择的绘图技巧)覆盖排序比较、真实配对、趋势区间、分布、多指标矩阵和空间/多目标/消融。配对、分段区间带和独立色限矩阵提供原创 MATLAB 片段；先绑定真实字段、键、单位和显式样式参数，再合入现有绘图段。片段没有自带数据，不能直接当作已实例化脚本，也不要求新增正式文件。
+
+只采用有证据且有助于当前结论的技巧；静态解析不证明 MATLAB 运行或外观效果。最终图幅、字体、颜色和图例仍由用户在 MATLAB 调整。

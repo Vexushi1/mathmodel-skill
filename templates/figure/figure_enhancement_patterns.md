@@ -378,3 +378,164 @@ Figure Enhancement 不能改变结果语义。
 - composite diagnostic：显式创建多个 axes，并按统计关系而非规则网格布置。
 
 正式 `q{x}_plot.m` 仍须遵守 Module 04 的真实表头唯一匹配、MATLAB 不重算、默认保留图窗和不批量自动导出规则。
+
+## 12. 按数据结构选择的绘图技巧
+
+按当前结论只读需要的小节。这里补充“适用证据、可调参数、常见错误”和三个原创 MATLAB 片段，不另建 Figure Authority，不新增每问必交文件；图型选择仍服从 Module 04。
+
+所有数值、对象键、单位、区间含义、顺序和可用来源均绑定 accepted 工作簿的精确唯一表头；03B 仅在当前图确实使用已验收分析证据时读取。代码前先完成既有 reader 的有限值、缺测和键检查，不用片段替代输入合同。这里只画已存在的结果，不计算置信区间、拟合或平滑，不补值、不重算 Pareto 前沿，也不为效果添加模拟样本。
+
+配色没有默认。`seriesColors` 由当前脚本明确提供为 N×3 RGB：配对片段至少两行，趋势片段至少一行，矩阵片段至少两行连续色图；值须为有限实数且在 `[0,1]`。SCI/Nature 风格只能作为候选参考，不能替代顺序、发散或类别语义。`figureSizeCm` 为两个有限正数组成的行向量；`axesFontSize`、`labelFontSize`、`legendFontSize` 均为显式配置的有限正数。`fontName` 为用户本机可用、支持当前中文标签的非空字体名，统一传给坐标轴、轴标签、图例和 colorbar；不依赖 MATLAB 默认字体，也不在片段末尾调用 helper 覆盖用户设置。所有片段保留可见图窗，无整体 title/sgtitle，不自动导出或关闭。
+
+### 12.1 排序比较与区间点图
+
+**何时用：** 比较同口径对象的大小、排名或真实区间；长名称优先横向点图。只有中央估计时只画点，不因图型名称而补区间。
+
+**可调参数：** 排序字段与方向、并列时的真实次序、点大小、区间线宽、对象间距、横轴范围、显示精度和长标签换行。排序只作用于展示索引，同一个索引同时作用于名称、键、点值和区间上下界；不能分别排序各列。指标“越大越好／越小越好”写在轴或 caption 中。
+
+**常见误用：** 把条形截轴造成的视觉长度当数值差距；区间单位或置信水平不一致却直接比较；只留下前几名而隐去失败对象。条形通常保留零基线；点图可聚焦实际范围，但刻度、范围与 caption 应清楚，不靠夸大坐标制造优势。
+
+### 12.2 真实键配对的前后变化
+
+**何时用：** 同一对象在前后时点、两种真实条件或两次测量中的变化。哑铃两端必须绑定同一个 accepted 对象键；完全不同的方法列表用普通比较图。
+
+**可调参数：** 两端颜色和 marker、连接线的颜色与宽度、点大小、对象显示顺序、轴范围、标签密度及图例位置。两端单位和指标定义相同；若方向含义没有真实依据，不自动把某端编码为“改善”。
+
+**常见误用：** 根据 Excel 行号连线；两端各自排序后连线；静默取键交集，丢掉未配对对象。下面的简例明确要求完整一一配对；不满足时停止，单独说明未配对对象，不自动删记录。
+
+前置字段：`beforeKey / afterKey` 为非空字符串列向量，每项已经首尾空白规范化且非空、无 missing；`beforeValue / afterValue` 为同单位有限实数列向量，分别与各自键等长。`displayNames` 是与 `beforeKey` 等长、同顺序的真实对象名；`phaseLabels` 是两个非空真实条件名，`valueAxisLabel` 含指标和单位。`connectorColor` 为一行合法 RGB，`connectorWidth / pointSize` 为显式有限正数，`pointSize` 是 scatter 的面积参数。若要改变显示次序，同一展示索引必须同步作用于名称、before 键值及按键匹配后的 after 值。
+
+```matlab
+assert(numel(unique(beforeKey)) == numel(beforeKey) && ...
+    numel(unique(afterKey)) == numel(afterKey), "配对键必须唯一");
+[matched, afterRow] = ismember(beforeKey, afterKey);
+assert(all(matched) && numel(beforeKey) == numel(afterKey), ...
+    "两端必须是同一对象集合，不能静默取交集");
+afterMatched = afterValue(afterRow);
+n = numel(beforeKey);
+fig = figure("Visible", "on", "Color", "w", "Units", "centimeters", ...
+    "Position", [2, 2, figureSizeCm]);
+ax = axes(fig); hold(ax, "on");
+for i = 1:n
+    plot(ax, [beforeValue(i), afterMatched(i)], [i, i], ...
+        "Color", connectorColor, "LineWidth", connectorWidth, ...
+        "HandleVisibility", "off");
+end
+hBefore = scatter(ax, beforeValue, (1:n)', pointSize, seriesColors(1,:), "filled", "Marker", "o");
+hAfter = scatter(ax, afterMatched, (1:n)', pointSize, seriesColors(2,:), "filled", "Marker", "s");
+set(ax, "YTick", 1:n, "YTickLabel", displayNames, "YDir", "reverse", ...
+    "FontName", fontName, "FontSize", axesFontSize);
+ylim(ax, [0.5, n + 0.5]);
+xlabel(ax, valueAxisLabel, "FontName", fontName, "FontSize", labelFontSize);
+legend(ax, [hBefore, hAfter], phaseLabels, "Location", "best", ...
+    "Box", "off", "FontName", fontName, "FontSize", legendFontSize);
+```
+
+两端用不同 marker 辅助颜色辨识；`pointSize` 调节标记面积，而不是直径。[MATLAB scatter](https://www.mathworks.com/help/matlab/ref/scatter.html)
+
+### 12.3 趋势、稀疏 marker 与真实区间
+
+**何时用：** 时间或连续参数的真实响应。先保证主线易读；区间只有确有来源、含义明确且帮助当前判断时才加。多条同等重要曲线保持相当的视觉权重，不能任意灰化对照。
+
+**可调参数：** 线宽、marker 大小及间隔、真实区间透明度、轴范围、末端标签与图例位置。稀疏 marker 仅减少标记数量，主线仍使用全部原始行；阈值和事件只标注有题面或工作簿依据的位置。
+
+**常见误用：** 先删除 NaN 再连线；把全部有限区间点拼成一个跨缺口的 polygon；平滑掉尖峰；拿同一 x/y 的线与点做两个图例对象。
+
+前置字段：`x / y / lower / upper` 为非空、等长、同键同顺序的实数列向量，中心值和上下界使用相同单位；`x` 有限且严格递增，缺测行按合同保留，`y / lower / upper` 中允许的缺测为 NaN，Inf 已由 reader 拒绝。片段针对一个已确认的连续采样段；若真实时间中存在断档、不同轨迹或重启段，必须按 accepted 的时间／段标识先分段调用，不能仅凭邻接行推断连续。上下界成对存在，每个有效区间须有当前中心值；中心值存在而区间缺测时，保留主线并断开区间带。`markerEvery` 为有限正整数，`bandAlpha` 为 `[0,1]` 内的有限实数，`lineWidth / markerSize` 为有限正数；`xAxisLabel / yAxisLabel` 含真实指标和单位，`seriesLabel` 为真实对象名。caption 说明区间是 CI、PI、分位区间还是其他已验收范围及其水平。
+
+```matlab
+assert(all(isfinite(x)) && all(diff(x) > 0), "x 必须有限且严格递增");
+assert(isequal(isfinite(lower), isfinite(upper)), "区间两端须成对有效");
+bandOK = isfinite(lower) & isfinite(upper);
+assert(all(lower(bandOK) <= upper(bandOK)) && all(isfinite(y(bandOK))), ...
+    "有效区间须有正确上下界和中心值");
+first = find(bandOK & [true; ~bandOK(1:end-1)]);
+last = find(bandOK & [~bandOK(2:end); true]);
+fig = figure("Visible", "on", "Color", "w", "Units", "centimeters", ...
+    "Position", [2, 2, figureSizeCm]);
+ax = axes(fig); hold(ax, "on");
+for k = 1:numel(first)
+    rows = first(k):last(k);
+    if numel(rows) >= 2
+        fill(ax, [x(rows); flipud(x(rows))], ...
+            [lower(rows); flipud(upper(rows))], seriesColors(1,:), ...
+            "FaceAlpha", bandAlpha, "EdgeColor", "none", "HandleVisibility", "off");
+    else
+        plot(ax, [x(rows), x(rows)], [lower(rows), upper(rows)], ...
+            "Color", seriesColors(1,:), "HandleVisibility", "off");
+    end
+end
+finiteMask = isfinite(y);
+finiteRows = find(finiteMask);
+assert(~isempty(finiteRows), "没有可展示的中心值");
+isolatedRows = find(finiteMask & ~[false; finiteMask(1:end-1)] & ...
+    ~[finiteMask(2:end); false]);
+markerRows = unique([finiteRows(1:markerEvery:end); finiteRows(end); isolatedRows]);
+hLine = plot(ax, x, y, "Color", seriesColors(1,:), "LineWidth", lineWidth, ...
+    "Marker", "o", "MarkerSize", markerSize, "MarkerIndices", markerRows);
+set(ax, "FontName", fontName, "FontSize", axesFontSize);
+xlabel(ax, xAxisLabel, "FontName", fontName, "FontSize", labelFontSize);
+ylabel(ax, yAxisLabel, "FontName", fontName, "FontSize", labelFontSize);
+legend(ax, hLine, seriesLabel, "Box", "off", ...
+    "FontName", fontName, "FontSize", legendFontSize);
+```
+
+这里 `bandOK` 只寻找原行序列中连续有效的区间段，不生成压缩后的跨缺口序列；孤立区间绘为竖线，不假造带宽。`plot` 保留 `y` 的 NaN 行产生断线，`MarkerIndices` 只改变 marker 位置；缺测之间或端部的孤立有限点强制进入 `markerRows`，避免没有线段且被稀疏标记隐藏。[MATLAB plot](https://www.mathworks.com/help/matlab/ref/plot.html)、[Line properties](https://www.mathworks.com/help/matlab/ref/matlab.graphics.chart.primitive.line-properties.html)、[fill](https://www.mathworks.com/help/matlab/ref/fill.html)
+
+### 12.4 原始点与 ECDF 分布
+
+**何时用：** 结论涉及样本异质性、尾部、分位数或失败比例。小样本直接展示原始点；需要累计比例时使用 accepted 的 ECDF 节点。箱线、密度或拟合分布不是每张分布图的必需组件。
+
+**可调参数：** 点大小、透明度、类别轴上的轻微错位、类别间距、共同数值轴、累计比例刻度。错位只作用于类别轴，不移动真实数值轴；保持全部有效样本、真实样本量和失败／缺测说明。ECDF 节点由已验收来源提供时用阶梯表达，不在 MATLAB 追加区间估计或拟合。
+
+**常见误用：** 把确定性方案当独立随机重复；为了云图均匀而删掉重合点或极端值；类别错位改变数值；缺少足够样本仍用平滑密度暗示精确形状。原始点或 ECDF 已清楚支持结论时就保留简单图。
+
+### 12.5 多方案多指标矩阵
+
+**何时用：** 同一对象集合有多项指标，需要同时判断各指标位置。不同单位的列可以共享行顺序，但不能共用一个未经解释的原始值色标。
+
+**可调参数：** 行顺序、指标分组、单元格长宽、列间距、每列真实单位与色限、必要的数值标注及其精度。数值标注只改显示层；字色与底色需人工检查。已做归一化时必须说明基准、方向、范围和实际值来源，不把不同列同色解释成绝对值相等。
+
+**常见误用：** 用不同单位的最大值统一映射颜色；每列独立拉伸后声称跨列差距可比较；常数列也制造强烈渐变；文字颜色与深色单元格混在一起。
+
+下面以每指标一条窄矩阵、独立 colorbar 展示，数据仍为原始 accepted 数值。前置字段：`values` 为非空有限实数二维矩阵，所有列使用同一完整对象键和行序，不能按各表行号拼接或静默取键交集。`methodLabels` 与行数等长；`metricLabels / metricUnits` 与列数等长，均为无 missing 的真实文本标签；不含未说明的数值缺测。`metricLimits` 为指标数×2 的有限实数矩阵，每行严格递增且覆盖对应列全部展示值；同一指标跨图比较时沿用可比范围，不为每张图重新拉伸。本简例各列使用语义相容的同一顺序色图 `seriesColors`；需要不同的顺序／发散语义时应逐列显式选色或分图，不能机械共用色图。caption 写明颜色只在各指标自身尺度内解释；没有共同单位或规范化定义时不做跨列颜色大小判断。
+
+```matlab
+assert(~isempty(values) && isreal(values) && all(isfinite(values), "all"), ...
+    "本简例需要非空有限原始值");
+fig = figure("Visible", "on", "Color", "w", "Units", "centimeters", ...
+    "Position", [2, 2, figureSizeCm]);
+tiles = tiledlayout(fig, 1, size(values,2), "TileSpacing", "compact", "Padding", "compact");
+for j = 1:size(values,2)
+    limits = metricLimits(j,:);
+    assert(all(isfinite(limits)) && limits(1) < limits(2), "需显式有效色限");
+    assert(all(values(:,j) >= limits(1) & values(:,j) <= limits(2)), ...
+        "色限不能静默截掉当前指标值");
+    ax = nexttile(tiles);
+    imagesc(ax, values(:,j));
+    colormap(ax, seriesColors);
+    caxis(ax, limits);
+    set(ax, "XTick", [], "YTick", 1:size(values,1), ...
+        "YTickLabel", methodLabels, "FontName", fontName, "FontSize", axesFontSize);
+    xlabel(ax, metricLabels(j), "FontName", fontName, "FontSize", labelFontSize);
+    cb = colorbar(ax);
+    set(cb, "FontName", fontName, "FontSize", legendFontSize);
+    set(cb.Label, "String", metricUnits(j), "FontName", fontName, "FontSize", labelFontSize);
+end
+```
+
+片段使用 `caxis` 兼容所选 R2021a 语法基线；新版 MATLAB 将该接口名改为 `clim`，其含义都是设置颜色映射范围，不修改数值。[MATLAB colormap limits](https://www.mathworks.com/help/matlab/ref/clim.html)
+
+### 12.6 空间场、Pareto 与真实基准消融
+
+**何时用：** 结论确实涉及空间位置、边界、权衡或组件贡献。空间场必须有真实坐标和字段；Pareto 需要完整候选及已验收前沿／可行性标志；消融需要真实基准与已执行的变体。
+
+**可调参数：** 空间纵横比例、共同色限、有物理含义的等值线、边界与路径线宽；候选点大小、前沿线宽、推荐点形状；消融的基准标识、差值方向、零参考线和显示精度。仅对同单位、同口径的空间图共享尺度；推荐点和前沿保留真实语义。
+
+**常见误用：** 从摘要反推连续场；插值生成未经计算的“高分辨率”细节；只保留 Pareto 最优点而隐藏候选、不可行或失败状态；在 MATLAB 重新算前沿；把独立方法排序包装为逐级嵌套消融。消融差值直接读取已验收差值字段，并标明真实 baseline，不能以任意方法当暗含基准。
+
+### 12.7 片段的使用边界
+
+三个片段不自带示例数据，不能直接当作已经实例化的完整脚本。实际使用时先绑定相应字段、顺序和显式样式参数，再合入现有 `qX_plot.m`／`data_process.m` 的对应绘图段；无需额外正式文件。无某类证据就不用该片段，不补占位区间或无意义 panel。
+
+这些片段仅供静态阅读与实例化参考；不生成效果图，不执行 MATLAB，不宣称可运行性或审美已经验收。最终字号、色彩观感、标签、图例位置和导出效果由用户在本机 MATLAB 调整。解析工具、语言版本与具体结果在交付记录中单独报告。
