@@ -285,7 +285,7 @@ Python 单元测试在这里验证仓库实现/合同，不代表运行了用户
 
 | 编号 | 状态 | 实现 PR / commit | 验证与剩余事项 |
 |---|---|---|---|
-| P0-A | 已实现，待 PR CI 与合并 | `fix/figure-p0a-title-contract` | Schema/lint/sync 标题专项、版本回归、lint 与生成检查通过；本地全量 1076 项，2 failures / 38 errors，与未改动基线相同的 40 个问题测试，无新增失败；未运行 MATLAB |
+| P0-A | 已实现，待 PR CI 与合并 | [PR #211](https://github.com/Vexushi1/mathmodel-skill/pull/211)，实现提交 `b070dae`；分支 `fix/figure-p0a-title-contract` | Schema/lint/sync 标题专项、版本回归、lint 与生成检查通过；本地全量 1076 项，2 failures / 38 errors，与未改动基线相同的 40 个问题测试，无新增失败；未运行 MATLAB |
 | P0-B | 未开始 | — | 条件 03B、字段全链、非法值/缺测和排序待修复 |
 | P0-C | 未开始 | — | 自动 MATLAB preview 待改为显式手动选择 |
 | F1 | 未开始 | — | 图型选择与读取路径待修改 |
