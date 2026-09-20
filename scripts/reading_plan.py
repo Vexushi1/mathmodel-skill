@@ -218,7 +218,7 @@ def _current_project(plan: dict[str, Any]) -> tuple[Path | None, dict[str, Any],
 
 def _figure_binding(root: Path, state: dict[str, Any], question: str) -> list[str]:
     """Reuse the existing fingerprint algorithm and discovery scope; never mint approval."""
-    from project_snapshot import _figure_files
+    from project_snapshot import scoped_figure_files
 
     item = state["subproblems"][question]
     hashes = item.get("validated_artifact_hashes") or {}
@@ -229,7 +229,9 @@ def _figure_binding(root: Path, state: dict[str, Any], question: str) -> list[st
         if hashes.get("matlab_script") != sha256_file(script):
             return ["current MATLAB script is not bound to its validated hash"]
         approved = {_inside(root, p) for p in state.get("artifacts", {}).get("approved_figures", [])}
-        figures = _figure_files(script.parent)
+        figures, discovery_issues = scoped_figure_files(root, script, item)
+        if discovery_issues:
+            return discovery_issues
         if not figures or not set(figures).issubset(approved):
             return ["scoped figure bundle is not fully present in the existing approval registry"]
         for figure in figures:
