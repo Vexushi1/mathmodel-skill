@@ -93,7 +93,10 @@ jobs:
     steps:
       - name: Set temporary solver fixture directory
         shell: bash
-        run: echo "HSK_MATLAB_SOLVER_OUTPUT=$RUNNER_TEMP/hsk-native-solver" >> "$GITHUB_ENV"
+        run: |
+          echo "HSK_MATLAB_SOLVER_OUTPUT=$RUNNER_TEMP/hsk-native-solver" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/hsk-native-solver"
+          : > "$RUNNER_TEMP/hsk-native-solver/matlab-ci-probe.log"
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
@@ -109,10 +112,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if ! command -v matlab-batch >/dev/null; then
-            echo "setup-matlab did not provide the MathWorks matlab-batch launcher" >&2
-            exit 1
-          fi
+          launcher="$RUNNER_TEMP/hsk-run-matlab-command"
+          probe_log="$HSK_MATLAB_SOLVER_OUTPUT/matlab-ci-probe.log"
+          # Same official binary as run-command@v3, pinned to its resolved commit.
+          curl --fail --location --silent --show-error \
+            "https://raw.githubusercontent.com/matlab-actions/run-command/bfa857648f4895aa98a446fe41c85e0788421ed5/dist/bin/glnxa64/run-matlab-command" \
+            --output "$launcher" 2>&1 | tee -a "$probe_log"
+          chmod +x "$launcher"
           adapter="$RUNNER_TEMP/hsk-matlab-ci"
           cat > "$adapter" <<'MATLAB_CI'
           #!/usr/bin/env bash
@@ -121,12 +127,13 @@ jobs:
             echo "Expected exactly: -batch MATLAB_EXPRESSION" >&2
             exit 64
           fi
-          exec env MW_BATCH_LICENSING_ONLINE=true matlab-batch "$2"
+          launcher="$(dirname -- "${BASH_SOURCE[0]}")/hsk-run-matlab-command"
+          exec env MW_BATCH_LICENSING_ONLINE=true "$launcher" "$2"
           MATLAB_CI
           chmod +x "$adapter"
           echo "HSK_MATLAB_CI_COMMAND=$adapter" >> "$GITHUB_ENV"
-          if ! "$adapter" -batch "assert(~isempty(ver('MATLAB'))); assert(license('test','MATLAB'));"; then
-            echo "MathWorks CI MATLAB launch and license probe failed" >&2
+          if ! "$adapter" -batch "assert(~isempty(ver('MATLAB'))); assert(license('test','MATLAB'));" 2>&1 | tee -a "$probe_log"; then
+            echo "MathWorks CI MATLAB launch and license probe failed" | tee -a "$probe_log" >&2
             exit 1
           fi
       - name: Prepare isolated synthetic primary fixture
