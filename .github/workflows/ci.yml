@@ -90,9 +90,10 @@ jobs:
     name: MATLAB R2024b native solver contracts
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      HSK_MATLAB_SOLVER_OUTPUT: ${{ runner.temp }}/hsk-native-solver
     steps:
+      - name: Set temporary solver fixture directory
+        shell: bash
+        run: echo "HSK_MATLAB_SOLVER_OUTPUT=$RUNNER_TEMP/hsk-native-solver" >> "$GITHUB_ENV"
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
@@ -155,7 +156,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: matlab-native-solver-evidence
-          path: ${{ runner.temp }}/hsk-native-solver
+          path: ${{ env.HSK_MATLAB_SOLVER_OUTPUT }}
           if-no-files-found: error
       - name: Ensure smoke did not write into the checkout
         run: test -z "$(git status --porcelain)"
