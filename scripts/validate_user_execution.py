@@ -10,7 +10,7 @@ import sys
 from copy import deepcopy
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import openpyxl
 import yaml
@@ -23,6 +23,7 @@ import project_transaction as PROJECT_TX  # noqa: E402
 import run_config_parser as RUN_CONFIG_PARSER  # noqa: E402
 import analysis_prerequisites as ANALYSIS_PREREQUISITES  # noqa: E402
 import state_transitions as STATE_TRANSITIONS  # noqa: E402
+import stage_code as STAGE_CODE  # noqa: E402
 
 FALSE_FLAGS = (
     "allow_reduced_data", "allow_coarser_grid", "allow_shorter_horizon",
@@ -32,6 +33,8 @@ FALSE_FLAGS = (
 VALID_DECISIONS = {"not_needed", "question_local", "project_level"}
 CONFIG_NAMES = RUN_CONFIG_PARSER.CONFIG_NAMES
 RUN_RECEIPT_PROTOCOL_VERSION = "1.0.0"
+SOLVER_RECEIPT_PROTOCOL_VERSION = "1.1.0"
+SUPPORTED_RECEIPT_VERSIONS = {RUN_RECEIPT_PROTOCOL_VERSION, SOLVER_RECEIPT_PROTOCOL_VERSION}
 RUN_RECEIPT_ECHO_FIELDS = (
     "stage", "problem_name", "data_sha256", "solver", "random_seed",
     "tolerance", "iteration_or_time_limit",
@@ -98,18 +101,22 @@ def configuration_map(workbook: Path) -> tuple[dict[str, Any], list[str]]:
         rows = list(book["运行配置"].iter_rows(values_only=True))
         if not rows or tuple(rows[0][:2]) != ("项目", "值"):
             return {}, ["运行配置表头必须为项目|值"]
-        mapping = {
-            str(row[0]).strip(): row[1]
-            for row in rows[1:]
-            if row and row[0] not in (None, "")
-        }
+        mapping: dict[str, Any] = {}
+        duplicate_issues: list[str] = []
+        for row in rows[1:]:
+            if not row or row[0] in (None, ""):
+                continue
+            key = str(row[0]).strip()
+            if key in mapping:
+                duplicate_issues.append(f"运行配置项目重复: {key}")
+            mapping[key] = row[1] if len(row) > 1 else None
         required = {
             "execution_owner", "execution_profile", "stage", "problem_name", "code_sha256",
             "data_sha256", "solver", "solver_version", "tolerance", "iteration_or_time_limit",
             "actual_stop_reason", "random_seed", "repetitions_or_scenarios", "grid_or_time_range",
             "fallback_used", "platform", *FALSE_FLAGS,
         }
-        issues = [f"运行配置缺少项目: {item}" for item in sorted(required - set(mapping))]
+        issues = [*duplicate_issues, *(f"运行配置缺少项目: {item}" for item in sorted(required - set(mapping)))]
         if "code_sha256" in mapping and not is_sha256(mapping["code_sha256"]):
             issues.append("运行配置code_sha256必须为64位十六进制SHA-256")
         if "data_sha256" in mapping and not is_sha256(mapping["data_sha256"]):
@@ -196,7 +203,10 @@ def delivered_stage_config(
     if expected_hash and actual_hash != expected_hash:
         return None, [f"已交付{label}代码实际SHA-256与项目状态不一致"]
     try:
-        _, delivered = _embedded_config(code.read_text(encoding="utf-8", errors="strict"))
+        backend = "matlab" if code.suffix.lower() == ".m" else "python"
+        _, delivered = RUN_CONFIG_PARSER.parse_embedded_config(
+            code.read_text(encoding="utf-8-sig", errors="strict"),
+            messages=RUN_CONFIG_PARSER.RETURNED_EXECUTION_MESSAGES, backend=backend)
     except (SyntaxError, ValueError) as exc:
         return None, [str(exc)]
     return delivered, []
@@ -240,9 +250,11 @@ def validate_run_receipt_binding(
         delivered.get("run_receipt_protocol_version", "")
     ).strip()
 
-    if expected_version and expected_version != RUN_RECEIPT_PROTOCOL_VERSION:
+    allowed_versions = ({RUN_RECEIPT_PROTOCOL_VERSION} if
+                        (delivered or receipt).get("stage") == "preprocessing" else SUPPORTED_RECEIPT_VERSIONS)
+    if expected_version and expected_version not in allowed_versions:
         issues.append(f"已交付代码run_receipt_protocol_version不受支持: {expected_version}")
-    if receipt_version and receipt_version != RUN_RECEIPT_PROTOCOL_VERSION:
+    if receipt_version and receipt_version not in allowed_versions:
         issues.append(f"工作簿run_receipt_version不受支持: {receipt_version}")
     if expected_version and receipt_version != expected_version:
         issues.append(
@@ -250,7 +262,7 @@ def validate_run_receipt_binding(
             "不得通过省略版本标记降级为legacy receipt"
         )
 
-    strict_v1 = expected_version == RUN_RECEIPT_PROTOCOL_VERSION or receipt_version == RUN_RECEIPT_PROTOCOL_VERSION
+    strict_v1 = expected_version in SUPPORTED_RECEIPT_VERSIONS or receipt_version in SUPPORTED_RECEIPT_VERSIONS
     if strict_v1:
         if delivered is None:
             issues.append("版本化RUN_RECEIPT必须能静态绑定已交付阶段代码")
@@ -264,6 +276,23 @@ def validate_run_receipt_binding(
                     continue
                 if not _receipt_values_equal(field, delivered[field], receipt[field]):
                     issues.append(f"RUN_RECEIPT.{field}与已交付RUN_CONFIG不一致")
+    if SOLVER_RECEIPT_PROTOCOL_VERSION in {expected_version, receipt_version}:
+        if delivered is None or delivered.get("solver_backend") not in ("python", "matlab"):
+            issues.append("RUN_RECEIPT 1.1必须绑定已交付solver_backend")
+        elif receipt.get("solver_backend") != delivered["solver_backend"]:
+            issues.append("RUN_RECEIPT.solver_backend与已交付RUN_CONFIG不一致")
+        if not is_sha256(receipt.get("code_bundle_sha256")):
+            issues.append("RUN_RECEIPT 1.1缺少有效code_bundle_sha256")
+        if (delivered is not None and "data_identity_mode" in receipt
+                and receipt["data_identity_mode"] != delivered.get("data_identity_mode", "combined")):
+            issues.append("RUN_RECEIPT.data_identity_mode与已交付RUN_CONFIG不一致")
+        if (delivered or {}).get("stage") == "analysis" or receipt.get("stage") == "analysis":
+            upstream = (delivered or {}).get("primary_workbook_sha256")
+            returned_upstream = receipt.get("primary_workbook_sha256")
+            if not is_sha256(upstream) or not is_sha256(returned_upstream):
+                issues.append("1.1 analysis配置/回执必须绑定primary_workbook_sha256")
+            elif str(upstream).lower() != str(returned_upstream).lower():
+                issues.append("RUN_RECEIPT.primary_workbook_sha256与已交付RUN_CONFIG不一致")
     return issues
 
 
@@ -448,6 +477,20 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
     delivered, delivered_issues = delivered_stage_config(root, state, entry, stage)
     issues.extend(delivered_issues)
     issues.extend(validate_run_receipt_binding(config, delivered))
+    modern = (config.get("run_receipt_version") == SOLVER_RECEIPT_PROTOCOL_VERSION
+              or (delivered or {}).get("run_receipt_protocol_version") == SOLVER_RECEIPT_PROTOCOL_VERSION)
+    if stage != "preprocessing":
+        issues.extend(STAGE_CODE.validate_stage_binding(root, entry, stage))
+        if modern:
+            execution = entry.get("solver_execution")
+            selection = execution.get(stage) if isinstance(execution, Mapping) else None
+            expected_bundle = selection.get("bundle_sha256") if isinstance(selection, Mapping) else None
+            if not expected_bundle or str(config.get("code_bundle_sha256", "")).lower() != str(expected_bundle).lower():
+                issues.append("RUN_RECEIPT代码bundle与已交付源码集合不一致")
+        if stage == "analysis" and delivered and delivered.get("primary_workbook_sha256"):
+            expected_primary = (entry.get("validated_artifact_hashes") or {}).get("solution_workbook")
+            if str(delivered["primary_workbook_sha256"]).lower() != str(expected_primary).lower():
+                issues.append("分析配置绑定的主工作簿不是当前accepted版本")
 
     if stage == "preprocessing":
         passed, quality_issues = preprocessing_passed(workbook)
@@ -506,6 +549,8 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
                 entry["artifact_hashes"]["data"] = validated_hashes["data"]
                 _close_verified_layers(entry, {"data", "primary_code", "solution_workbook"})
                 entry["status"] = "solved"
+                if modern:
+                    entry["solver_execution"][stage]["validated_bundle_sha256"] = config["code_bundle_sha256"]
     else:
         passed, result_status, analysis_issues = analysis_passed(workbook)
         issues.extend(analysis_issues)
@@ -524,6 +569,8 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
                 validated_hashes["result_analysis_workbook"] = file_hash(workbook)
                 _close_verified_layers(entry, {"analysis_code", "result_analysis_workbook"})
                 entry["status"] = "analyzed"
+                if modern:
+                    entry["solver_execution"][stage]["validated_bundle_sha256"] = config["code_bundle_sha256"]
             elif result_status == "redo_required":
                 entry["artifacts_stale"] = True
                 entry["stale_layers"] = [

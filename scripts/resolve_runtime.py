@@ -8,7 +8,7 @@ from typing import Any, Iterable
 
 import yaml
 
-from resolve_workflow import TAXONOMY_PATH, legacy_to_axes, resolve_workflow
+from resolve_workflow import TAXONOMY_PATH, add_solver_resources, code_artifact_projection, legacy_to_axes, resolve_workflow
 from reading_plan import build_reading_plan
 from runtime_assurance import (
     apply_contract_dependency_closure,
@@ -170,6 +170,46 @@ def _apply_profile_writing_runtime(
     }
     return plan
 
+def _solver_context(
+    requested: str | None, hydration: dict[str, Any], intents: list[str],
+) -> tuple[str | None, dict[str, Any] | None, list[str]]:
+    """Resolve a scoped preference without overwriting a previously delivered choice."""
+    if requested is not None and requested not in {"auto", "python", "matlab"}:
+        raise ValueError(f"unknown solver backend: {requested}")
+    by_question = hydration.get("solver_backends") or {}
+    stage = "analysis" if set(intents).intersection({"result_analysis", "validation"}) else "primary"
+    resolved: dict[str, Any] = {}
+    conflicts: list[str] = []
+    modern = False
+    for question, stages in by_question.items():
+        selected = stages.get(stage) or {}
+        if not selected and stage == "analysis" and requested not in {"python", "matlab"}:
+            selected = stages.get("primary") or {}
+        backend = selected.get("backend")
+        modern |= selected.get("source") == "project_state"
+        if backend and requested not in {None, "auto", backend}:
+            conflicts.append(f"{question}.{stage} requested backend {requested} conflicts with current {backend}")
+        resolved[question] = {
+            "backend": backend or (requested if requested != "auto" else None),
+            "source": selected.get("source") or ("explicit" if requested else "unresolved"),
+        }
+    if requested is None and not modern:
+        return None, None, conflicts  # Exact legacy return projection remains available.
+    choices = {row["backend"] for row in resolved.values() if row["backend"]}
+    complete = bool(resolved) and all(row["backend"] for row in resolved.values())
+    effective = next(iter(choices)) if complete and len(choices) == 1 else requested or "auto"
+    if complete and len(choices) > 1:
+        effective = "auto"
+    context = {
+        "request": requested, "stage": stage, "by_question": resolved,
+        "resolved": effective if effective != "auto" else None,
+        "selection_complete": complete or (not resolved and effective in {"python", "matlab"}),
+        "source": "project_state" if modern else "explicit", "environment_verified": False,
+        "decision_contract": "core/user_execution_contract.yaml#solver_backends",
+    }
+    return effective, context, conflicts
+
+
 def resolve_runtime(
     intents: str | Iterable[str] | None = None,
     *,
@@ -182,6 +222,7 @@ def resolve_runtime(
     competition: str | None = None,
     available_artifacts: Iterable[str] | None = None,
     preprocessing_decision: str | None = None,
+    solver_backend: str | None = None,
     project_root: str | Path | None = None,
     question: str | None = None,
 ) -> dict[str, Any]:
@@ -215,6 +256,7 @@ def resolve_runtime(
         }
     )
     context_conflicts = list(hydration.get("conflicts", []) or [])
+    effective_backend, solver_context, solver_conflicts = _solver_context(solver_backend, hydration, selected_intents)
     field_provenance: dict[str, str] = {}
 
     if competition is None and hydration.get("competition"):
@@ -281,7 +323,20 @@ def resolve_runtime(
         competition=competition,
         available_artifacts=base_available,
         preprocessing_decision=preprocessing_decision,
+        solver_backend="auto" if solver_context is not None else None,
     )
+    if "modules/03_result_analysis.md" in plan["modules"] and "modules/03_solve_validate.md" not in plan["modules"]:
+        effective_backend, solver_context, solver_conflicts = _solver_context(solver_backend, hydration, ["result_analysis"])
+    context_conflicts.extend(solver_conflicts)
+    if solver_context is not None:
+        aliases = load_yaml(ROOT / "core/output_contract.yaml").get("solver_artifact_aliases", {})
+        plan = code_artifact_projection(plan, aliases)
+        plan["solver_backend"] = solver_context
+        field_provenance["solver_backend"] = solver_context["source"]
+        if solver_context["selection_complete"]:
+            plan["missing_prerequisites"] = [value for value in plan["missing_prerequisites"] if value != "solver_backend_selection"]
+            backends = [row["backend"] for row in solver_context["by_question"].values() if row["backend"]]
+            add_solver_resources(plan, backends or [effective_backend])
     for field, explicit in explicit_fields.items():
         if not explicit or field not in hydrated_classification:
             continue
@@ -326,6 +381,8 @@ def resolve_runtime(
         "terminal_outputs": list(plan.get("terminal_outputs", [])),
         "writing_runtime": plan.get("writing_runtime"),
     }
+    if solver_context is not None:
+        plan["runtime_plan"]["solver_backend"] = solver_context
     plan["assurance"] = {
         "schema_version": assurance_contract.get("version", "1.0.0"),
         "status": "review_required" if review_required else "pass",
@@ -337,6 +394,7 @@ def resolve_runtime(
             "field_provenance": field_provenance,
             "conflicts": context_conflicts,
             "ambiguities": ambiguities,
+            **({"solver_backends": hydration.get("solver_backends", {})} if solver_context is not None else {}),
         },
         "intent_resolution": intent_diagnostics,
         "artifact_assurance": {
@@ -369,6 +427,7 @@ def main() -> int:
     )
     parser.add_argument("--project-root")
     parser.add_argument("--question")
+    parser.add_argument("--solver-backend", choices=["auto", "python", "matlab"])
     args = parser.parse_args()
     try:
         plan = resolve_runtime(
@@ -384,6 +443,7 @@ def main() -> int:
             preprocessing_decision=args.preprocessing_decision,
             project_root=args.project_root,
             question=args.question,
+            solver_backend=args.solver_backend,
         )
     except (ValueError, FileNotFoundError) as exc:
         raise SystemExit(str(exc)) from exc

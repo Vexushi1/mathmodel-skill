@@ -1,11 +1,30 @@
-version: 1.3.0
+version: 1.4.0
 introduced_in_skill_version: 7.4.2
 skill_compatibility: '>=7.4.2,<10.0.0'
-purpose: 约束条件启用的项目级数据预处理、题目专属Python主求解与结果深化分析代码的规模、可读性、反过度工程和静态工程质量；不替代Problem Contract、模型语义正确性、preprocessing_decision、预处理质量门、论文预处理证据与数值结果质量门。
+purpose: 约束条件启用的项目级数据预处理、题目专属Python/MATLAB主求解与结果深化分析代码的规模、可读性、反过度工程和静态工程质量；不替代Problem Contract、模型语义正确性、preprocessing_decision、预处理质量门、论文预处理证据与数值结果质量门。
 scope:
 - 数据预处理/数据预处理.py
 - 问题X求解/问题X求解.py
 - 问题X求解/问题X结果深化分析.py
+- 问题X求解/qX_solver.m
+- 问题X求解/qX_analysis.m
+language_checks:
+  python:
+    syntax: python_ast
+    preserve_existing_import_and_antipattern_checks: true
+  matlab:
+    static_adapter: scripts/matlab_code_checks.py
+    native_analyzer: checkcode
+    native_analysis_required_for_formal_delivery: true
+    unavailable_analyzer_status: unverified
+    checks: [matching_main_function, syntax_and_structure, function_size, parameter_count, complexity, swallowed_errors, path_pollution, config_override, figure_calls, input_paths]
+    input_readers: [readtable, readcell, readmatrix, load]
+    analyzer_message_policy: classify_by_supported_message_id_and_severity_not_localized_message_text
+    rules:
+    - Never execute or import task code to extract config; use the execution Authority's restricted literal representation.
+    - Apply common size and complexity budgets to the active implementation and declared helpers; splitting files cannot evade quality checks.
+    - When MATLAB or Code Analyzer is unavailable, report the unverified checks; static text checks alone do not establish formal MATLAB engineering acceptance.
+    - Input readers obey preprocessing_decision and covered_raw_sources; unsupported dynamic paths do not count as verified safe reads.
 line_count:
   metric: nonblank_physical_lines
   target_max: 500
@@ -53,5 +72,5 @@ principles:
 - 主求解脚本只保留当前数据事实源读取与字段检查、模型求解、约束/残差或题型质量检查、主结果整理、主工作簿输出和主入口。
 - 结果深化分析脚本只保留当前数据事实源和已验收主结果读取、题目专属深化分析、稳定性判定、深化工作簿输出和主入口；不得复制主求解主链。
 - 删除无用import、调试print、重复逻辑、死代码、伪抽象和未来脚手架。
-- Python不承担论文结果图绘制；project_level预处理图由data_process.m读取统一工作簿，各问结果图由qX_plot.m读取标准结果工作簿。MATLAB不得重新计算核心预处理或求解结果。
+- 主求解和深化代码均不承担论文结果图绘制；project_level预处理图由data_process.m读取统一工作簿，各问结果图由qX_plot.m读取标准结果工作簿。这些绘图入口不得重新计算核心预处理或求解结果。
 - 代码长度是工程质量门，不得为了压行数删除随机种子、目标函数、约束、质量检查、结果输出、预处理验证或复现信息。

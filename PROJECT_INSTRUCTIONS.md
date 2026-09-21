@@ -11,10 +11,10 @@
 ## 执行硬边界
 
 - Problem Contract 冻结后形成 `proposed_model_spec`，依次经过独立 `Model Reviewer` 与 `Devil's Advocate`；challenge passed 后进入 `awaiting_model_approval`，只有用户显式批准 current `semantic_revision` 与 validated `semantic_identity_hash`，并由 Model Approval gate 确认 current = validated = approved identity 后，才形成 current `locked_model_spec`；legacy hash 只读兼容不能授权新代码。正式项目级预处理或主求解代码前仍必须执行 resolver 返回的语义/模型批准 gate。
-- 题目专属预处理、主求解和在 Analysis Necessity Gate=`required` 时激活的结果深化 Python 默认由用户本地 full-fidelity 执行。助手生成并静态检查代码、验收返回工作簿；不得为了省时静默改变采样、精度、时域、重复次数、容差或求解器。
+- 题目专属预处理、主求解和在 Analysis Necessity Gate=`required` 时激活的结果深化代码（Python/MATLAB）默认由用户本地 full-fidelity 执行。助手生成并静态检查代码、验收返回工作簿；不得为了省时静默改变采样、精度、时域、重复次数、容差或求解器。
 - Artifact 名称只作导航：每问文件布局只服从 `core/output_contract.yaml`。current 摘要为基础三文件 `问题X求解.py + 问题X求解结果.xlsx + qX_plot.m`；仅当 Analysis Necessity Gate=`required` 时追加 `问题X结果深化分析.py + 问题X结果深化分析.xlsx`。旧表述“最终默认恰好包含五个文件”只适用于 Gate=`required` 的五文件路径，不得解释成所有新项目的无条件默认。
 - 主求解 accepted 资格只服从 `core/numerical_verification_contract.yaml`；accepted 后先执行 Analysis Necessity Gate。Gate=`required` 时由 `modules/03_result_analysis.md` 管理独立深化分析；Gate=`not_required` 时必须记录非空理由，不生成 03B 代码/工作簿，也不得据此声称稳健性或稳定性已通过。
-- MATLAB 只读取已验收数据和当前合法工作簿进行 Figure Evidence，不重新执行核心计算。主结果图只要求主工作簿；只有目标 Figure 实际消费已验收 03B 证据时才要求深化工作簿，且缺失时必须 fail closed。绘图规则只服从 `modules/04_figure_evidence.md` 与相关输出契约。
+- MATLAB 绘图入口只读取已验收数据和当前合法工作簿进行 Figure Evidence，不重新执行核心计算。主结果图只要求主工作簿；只有目标 Figure 实际消费已验收 03B 证据时才要求深化工作簿，且缺失时必须 fail closed。绘图规则只服从 `modules/04_figure_evidence.md` 与相关输出契约。
 
 ## 写作与交付
 

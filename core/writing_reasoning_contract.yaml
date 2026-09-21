@@ -706,7 +706,7 @@ model_establishment_solution_narrative:
       中文国赛既有“符号说明 → 数据说明/必要数据预处理 → 共享基础模型/模型准备 → 问题一 → 问题二 → ……”
       大章节骨架及问题顺序不由本规则改变；可选章节是否启用继续服从既有 Authority。
     python_log_rule: >-
-      “符合求解顺序”指数学认知顺序，不是读取数据、构造缓存、并行搜索、保存文件等 Python 执行日志顺序；
+      “符合求解顺序”指数学认知顺序，不是读取数据、构造缓存、并行搜索、保存文件等代码执行日志顺序；
       实现细节只有改变数学方法或复现结论时才进入正文。
     cross_question_rule: >-
       后问对前问的真实依赖只改变后问开头的继承说明和新增数学任务，不把后问专属内容提前到前问章节，也不重排问题章节。
@@ -1098,12 +1098,12 @@ algorithm_presentation:
   modes: [not_needed, stepwise, pseudocode]
   principle: >-
     算法流程用于恢复当前模型的真实计算逻辑，并连接数学结构、公式/命题、程序实现和结果证据；
-    不用于介绍通用算法百科，也不把 Python 源码压缩成论文伪代码。
+    不用于介绍通用算法百科，也不把求解源码压缩成论文伪代码。
   closure_chain:
     - model_structure
     - algorithm_trace
     - paper_algorithm_presentation
-    - python_implementation
+    - code_implementation
     - workbook_result_or_validation
   mode_selection:
     not_needed_when:

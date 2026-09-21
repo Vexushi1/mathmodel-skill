@@ -820,15 +820,23 @@ def check_contracts(errors: list[str]) -> None:
     if result_policy.get("result_analysis_disposition_authority") != "core/writing_reasoning_contract.yaml#analysis_evidence_disposition":
         errors.append("result-analysis dispositions must delegate to writing-reasoning authority")
     per_question = output.get("per_question", {}) or {}
+    solver_scripts = per_question.get("solver_scripts") or {}
+    python_scripts = solver_scripts.get("python") or {}
     base_expected = [
-        "问题{中文序号}求解.py",
-        "问题{中文序号}求解结果.xlsx",
-        "q{阿拉伯序号}_plot.m",
+        python_scripts.get("primary"),
+        (per_question.get("mandatory_workbooks") or {}).get("solution"),
+        per_question.get("matlab_script"),
     ]
     analysis_expected = [
-        "问题{中文序号}结果深化分析.py",
-        "问题{中文序号}结果深化分析.xlsx",
+        python_scripts.get("result_analysis"),
+        ((per_question.get("conditional_workbooks") or {}).get("result_analysis") or {}).get("path"),
     ]
+    if set(solver_scripts) != {"python", "matlab"}:
+        errors.append("solver_scripts must declare Python and MATLAB implementations")
+    if per_question.get("python_scripts") != python_scripts:
+        errors.append("legacy Python filename projection must agree with solver_scripts.python")
+    if per_question.get("two_python_stage_policy") != per_question.get("stage_policy"):
+        errors.append("legacy two_python_stage_policy projection must agree with stage_policy")
     base_files = per_question.get("base_default_files") or []
     analysis_files = per_question.get("analysis_required_additional_files") or []
     if base_files != base_expected:
@@ -1056,7 +1064,7 @@ def check_templates(errors: list[str]) -> None:
         if kind not in dependency_rules:
             errors.append(f"state transition contract lacks dependency rule: {kind}")
     validator = read_text(ROOT / "scripts/validate_code_delivery.py")
-    for token in ("QUALITY_CONTRACT", "code_quality_findings", "nonblank_lines", "forbidden_import_roots", "结果深化分析.py", "result_analysis_code", "unchanged_accepted", "preprocessing", "数据预处理.py", "primary_quality_protocol_version"):
+    for token in ("QUALITY_CONTRACT", "code_quality_findings", "nonblank_lines", "forbidden_import_roots", "stage_code", "result_analysis_code", "unchanged_accepted", "preprocessing", "数据预处理.py", "primary_quality_protocol_version"):
         if token not in validator:
             errors.append(f"code delivery validator lacks quality/conditional-stage token: {token}")
     receipt = read_text(ROOT / "scripts/validate_user_execution.py")
@@ -1088,7 +1096,7 @@ def check_templates(errors: list[str]) -> None:
             errors.append(f"preprocessing module lacks generic decision/necessity token: {token}")
     if "validate_semantic_governance.py" not in solve:
         errors.append("solve module must require semantic governance")
-    if "冻结问题X求解.py" not in solve or "问题X结果深化分析.py" not in analysis:
+    if "冻结所选主求解入口" not in solve or "独立深化入口" not in analysis:
         errors.append("solve/result-analysis modules must enforce frozen primary and separate analysis script")
     if "不得把参数敏感性" not in solve or "不得被主求解质量门提前吸收" not in analysis:
         errors.append("v7.14 must preserve the primary-quality/result-analysis boundary")
@@ -1121,8 +1129,8 @@ def check_templates(errors: list[str]) -> None:
     if algorithm_reasoning.get("governance_level") != "default":
         errors.append("algorithm presentation must remain Default, not a universal Hard requirement")
     closure = algorithm_reasoning.get("closure_chain") or []
-    if closure != ["model_structure", "algorithm_trace", "paper_algorithm_presentation", "python_implementation", "workbook_result_or_validation"]:
-        errors.append("Algorithm Trace closure must connect model, paper algorithm, Python and workbook evidence")
+    if closure != ["model_structure", "algorithm_trace", "paper_algorithm_presentation", "code_implementation", "workbook_result_or_validation"]:
+        errors.append("Algorithm Trace closure must connect model, paper algorithm, code implementation and workbook evidence")
     digits = (((reasoning.get("numeric_style_contract") or {}).get("high_precision_default") or {}).get("preferred_decimal_places_when_not_otherwise_specified"))
     if digits != [6, 7]:
         errors.append("numeric style contract must default scoring-sensitive continuous results to 6--7 decimals when no more specific rule exists")
@@ -1147,7 +1155,7 @@ def check_templates(errors: list[str]) -> None:
     for token in ("LaTeX Adapter", "template_manifest.yaml", "paper_writing_protocol.md", "目标函数不得为了大括号整齐而塞进约束系统", "audit_latex_project.py"):
         if token not in latex_adapter:
             errors.append(f"LaTeX adapter lacks current rendering token: {token}")
-    for token in ("not_needed", "stepwise", "pseudocode", "控制流伪代码版", "分阶段数学步骤版", "不把 Python 源码改写成缩进版论文", "Algorithm Trace 不替代 Formula Trace"):
+    for token in ("not_needed", "stepwise", "pseudocode", "控制流伪代码版", "分阶段数学步骤版", "不把求解源码改写成缩进版论文", "Algorithm Trace 不替代 Formula Trace"):
         if token not in algorithm_pack:
             errors.append(f"algorithm-flow pack lacks adaptive presentation token: {token}")
     for text_name, text in (("review module", review_module), ("review pack", review_pack)):

@@ -42,14 +42,14 @@ python scripts/hsk_pack_submission.py . \
 
 ```text
 问题X求解/
-├─ 问题X求解.py
+├─ <已选主入口：问题X求解.py 或 qX_solver.m>
 ├─ 问题X求解结果.xlsx
 ├─ qX_plot.m
-├─ [问题X结果深化分析.py]    # only Gate=required
+├─ [已选深化入口：问题X结果深化分析.py 或 qX_analysis.m]    # only Gate=required
 └─ [问题X结果深化分析.xlsx]  # only Gate=required and analysis executed
 ```
 
-Gate=`not_required` 且理由非空时，复现包不得为了凑固定结构伪造、补空或复制 03B 文件；这也不表示稳健性、稳定性或替代算法一致性已经验证。Gate=`required` 时，当前 03B 代码/工作簿属于复现材料并必须保持 provenance/currentness。主工作簿 accepted 后冻结主求解 Python；已激活的深化分析由独立 Python 完成。旧敏感性/鲁棒性工作簿、旧 `结果数据表/问题X/` 与 v6.6 单脚本四文件结构仅作历史只读兼容输入，不作为新复现包标准结构。
+Gate=`not_required` 且理由非空时，复现包不得为了凑固定结构伪造、补空或复制 03B 文件；这也不表示稳健性、稳定性或替代算法一致性已经验证。Gate=`required` 时，当前 03B 代码/工作簿属于复现材料并必须保持 provenance/currentness，已声明的源码 helper 也必须在当前包中与 bundle 一致。主工作簿 accepted 后冻结主求解代码；已激活的深化分析由独立后端入口完成。旧敏感性/鲁棒性工作簿、旧 `结果数据表/问题X/` 与 v6.6 单脚本四文件结构仅作历史只读兼容输入，不作为新复现包标准结构。
 
 ## 3. 包级 provenance gate
 
@@ -66,7 +66,7 @@ python scripts/validate_submission_package.py . --strict
 - 每个归档文件 SHA-256 与 manifest 一致，并与当前项目同路径文件一致；
 - 包内至少一个 PDF 的哈希必须等于当前 `compiled_pdf`；
 - official package 必须重新读取**当前**已核验 `edition_rules`，并与 `submission_files` allowlist 精确一致；
-- reproducibility package 至少包含当前 PDF、主求解 Python、主结果工作簿和 MATLAB 脚本；Gate=`required` 时还必须包含 current 03B Python/workbook，Gate=`not_required` 时不得因其合法缺失失败；
+- reproducibility package 至少包含当前 PDF、主求解代码、主结果工作簿和 MATLAB 脚本；Gate=`required` 时还必须包含 current 03B代码/workbook，Gate=`not_required` 时不得因其合法缺失失败；
 - 包内旧 PDF、旧代码或旧工作簿即使文件名正确，也不能通过当前性验证。
 
 `validated_submission_package` 只有在该 gate 成功后才视为可正式交付；不能用“ZIP 存在”替代 provenance 验证。
@@ -91,7 +91,7 @@ internal_metadata/
 4. `project_sync --delivery-scope submission` 通过；
 5. 官方包按当前 verified rules 裁剪，复现包保持内部完整性并只收集 current 状态实际要求的 03B 产物；
 6. `validate_submission_package.py --strict` 对实际准备交付的 ZIP 通过；
-7. `Algorithm Trace` 与论文算法呈现闭合：`stepwise/pseudocode` 可追溯到当前模型/公式/命题/约束、真实 Python 实现和工作簿结果或验证证据；`not_needed` 不保留装饰性算法框；
+7. `Algorithm Trace` 与论文算法呈现闭合：`stepwise/pseudocode` 可追溯到当前模型/公式/命题/约束、真实代码实现和工作簿结果或验证证据；`not_needed` 不保留装饰性算法框；
 8. 命题 0--4 仅是默认正文阅读预算；P5+ 若保留，已完成必要性审查并记录 justification，不把默认预算恢复成 Hard 上限。
 
 新项目不得创建 `结果数据表/`、`Python求解/`、`MATLAB绘图/` 等平行数值目录；每问只保留一个 `问题X求解/`。内部检查表和复现元数据不得机械进入论文正文。

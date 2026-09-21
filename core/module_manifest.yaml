@@ -1,4 +1,4 @@
-version: 9.6.1
+version: 9.7.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -62,7 +62,7 @@ artifact_catalog:
   model_approval_validation_report: scripts/validate_model_approval.py输出的challenge/approval与current revision/structured identity一致性检查结论
   formula_closure: 公式—代码—输出映射
   formula_reasoning_chain: 核心公式Source—Derivation—Destination闭环；记录题意/定义/机制来源、关键推导与后续模型/求解/验证用途，不单独落盘
-  semantic_closure: 题面对象与要求—数学层—Python层—输出证据三层闭环
+  semantic_closure: 题面对象与要求—数学层—实现层—输出证据三层闭环
   complexity_sanity_check: 对异常降维、解耦、条件闲置和异常容易求解的复审结论
   proposition_plan: 全文高价值命题规划；0--4为默认正文阅读预算，超过预算时记录必要性说明而非自动否决
   model_paper_framework: 助手可再次读取的当前项目语义记忆与论文骨架；只保存Problem Contract、高价值Condition→Consequence/Reduction项目事实、最小充分性理由、按需Comparator Envelope、预处理判定、标准模型类型与正式模型名称、Model/Solver/Validator角色、优化目标摘要口径、Formula Trace、Algorithm Trace、Model Challenge/Human Approval当前状态、参数证据、Terminology Registry、Numeric Profile、Title Claim、Claim Evidence Level/Scope、问题章节小节规划、命题、Citation Evidence、paper-fragment状态、逐问结果摘要和图表映射，通用写作规则由Authority管理，具体数值仍以已验收工作簿为准
@@ -79,9 +79,11 @@ artifact_catalog:
   preprocessing_matlab_script: 仅project_level在figure_evidence阶段生成的数据预处理/data_process.m；只读预处理工作簿绘制处理前后与验证证据
   preprocessing_figures: 由data_process.m形成并人工确认的预处理必要性/有效性证据图；默认不要求自动导出文件
   awaiting_user_preprocessing: decision=project_level且预处理代码已交付后等待用户本地运行的暂停状态
-  python_code: 问题X求解/问题X求解.py；负责主求解、当前主计算必需的内在数值有效性检查以及不改变当前计算世界的Primary Evidence Capture；主工作簿accepted后冻结
-  result_analysis_code: 仅Analysis Necessity Gate=required时生成的问题X求解/问题X结果深化分析.py；主工作簿accepted后独立生成，只负责敏感性、稳健性、替代方法/结构、阈值、异质性等深化分析并记录support/modify/reject对具体claim的作用
-  stage_python_code: 当前代码交付阶段的题目专属Python文件；data_preprocessing仅在project_level时映射统一预处理脚本，solve_validate映射主求解脚本，result_analysis映射深化分析脚本
+  primary_code: 按output_contract.per_question.solver_scripts与已选后端确定的主求解入口；负责主求解、内在数值有效性检查及Primary Evidence Capture，accepted后冻结
+  python_code: 旧Python调用的primary_code兼容投影；不用于标记MATLAB实现
+  result_analysis_code: 仅Analysis Necessity Gate=required时按output_contract.per_question.solver_scripts生成的独立深化入口；主工作簿accepted后独立生成，只负责敏感性、稳健性、替代方法/结构、阈值、异质性等深化分析并记录support/modify/reject对具体claim的作用
+  stage_code: 当前交付阶段的代码；project_level映射Python统一预处理，solve_validate/result_analysis按已选后端映射主/深化入口
+  stage_python_code: 旧Python调用的stage_code兼容投影；不用于标记MATLAB实现
   full_run_config: 分别嵌入对应阶段Python和工作簸运行配置表的完整精度参数，不单独落盘
   execution_instructions: 聊天内给出的本地运行步骤，不单独落盘
   code_delivery_report: 聊天或标准输出中的静态交付检查结果，不单独落盘
@@ -141,7 +143,7 @@ modules:
     conditional_inputs:
       preprocessing_workbook:
         when: preprocessing_decision == project_level
-    outputs: [python_code, stage_python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
+    outputs: [primary_code, stage_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
   result_analysis:
     path: modules/03_result_analysis.md
     conditional: true
@@ -150,7 +152,7 @@ modules:
     conditional_inputs:
       preprocessing_workbook:
         when: preprocessing_decision == project_level
-    outputs: [result_analysis_plan, result_analysis_code, stage_python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
+    outputs: [result_analysis_plan, result_analysis_code, stage_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
   figure_evidence:
     path: modules/04_figure_evidence.md
     inputs: [preprocessing_decision, data, solution_workbook, workbook_schema, model_paper_framework, mechanism_contracts]
@@ -199,7 +201,7 @@ utility_gates:
     - Propagates stale recursively through typed cross-question dependencies using the single Authority `core/state_transition_contract.yaml` before accepting a new semantic identity.
     - Propagates paper-fragment stale only through explicit source_questions/depends_on links; unrelated background and independent questions remain current.
     - Changes to preprocessing_decision or actual project-level preprocessing are semantic changes and invalidate only dependent downstream question results.
-    - Never runs task-specific Python and never clears numerical stale states.
+    - Never runs task-specific Python/MATLAB code and never clears numerical stale states.
   model_approval:
     path: scripts/validate_model_approval.py
     command: python scripts/validate_model_approval.py <project_root> --strict
@@ -212,11 +214,11 @@ utility_gates:
     - Legacy semantic_hash / approved_semantic_hash are historical read-only provenance only and cannot authorize new project-level preprocessing or primary solve code.
     - User silence or vague continuation is never approval, and user approval cannot waive a blocking Model Challenge issue.
     - Semantic revision or structured identity drift makes previous challenge, approval and locked_model_spec stale until re-reviewed and explicitly re-approved.
-    - Never runs task-specific Python and never changes numerical validity.
+    - Never runs task-specific Python/MATLAB code and never changes numerical validity.
   code_delivery:
     path: scripts/validate_code_delivery.py
     command: python scripts/validate_code_delivery.py <project_root> --write --strict
-    inputs: [existing_project_state, existing_model_paper_framework, stage_python_code, code_quality_contract]
+    inputs: [existing_project_state, existing_model_paper_framework, stage_code, code_quality_contract]
     outputs: [code_delivery_report, project_state, awaiting_user_execution]
   user_execution_receipt:
     path: scripts/validate_user_execution.py
@@ -239,7 +241,7 @@ utility_gates:
     - Reads exact delivery requirements from core/output_contract.yaml before checking artifacts.
     - Validates project state and the current model-paper framework before artifact discovery.
     - Discovers preprocessing Python/workbook only when preprocessing_decision=project_level, and additionally requires data_process.m from figure_evidence onward.
-    - Discovers stage-specific per-question Python scripts, validates applicable workbook contracts and hashes the evidence chain without inventing model semantics or validation success; result-analysis code/workbook are conditional on the Analysis Necessity Gate.
+    - Discovers the selected Python/MATLAB primary and analysis entrypoints with their source bindings, validates applicable workbook contracts and hashes the evidence chain without inventing model semantics or validation success; result-analysis code/workbook are conditional on the Analysis Necessity Gate.
     - Propagates stale from the active data source, preprocessing figure script, primary code, applicable analysis code/workbooks, MATLAB scripts and figure bundles without clearing it.
     - Required before formal model, workbooks, figures, DOCX, LaTeX or submission delivery.
     - Code delivery uses the dedicated non-executing code_delivery gate.
@@ -252,4 +254,4 @@ utility_gates:
     - Requires exactly one submission_manifest.yaml with per-file SHA-256 records.
     - Revalidates archived files against the current project and requires the packaged PDF to match the current compiled_pdf hash.
     - Official packages require current verified competition edition_rules and must match the verified submission_files allowlist exactly.
-    - Reproducibility packages keep the broader internal material boundary and must include PDF, Python, result workbook and MATLAB evidence files.
+    - Reproducibility packages keep the broader internal material boundary and must include PDF, selected solver sources and declared helpers, result workbooks and MATLAB figure evidence files.

@@ -427,32 +427,35 @@ class ContractAndDriftTests(unittest.TestCase):
     # F1 re-pins only approved figure-selection prose; numerical MATLAB lines are unchanged.
     # F2 re-pins the approved configurable entry style and palette guidance only.
     # F3 re-pins only the two approved figure technique reference documents.
+    # v9.7.0 re-pins the approved backend execution interfaces and their consumer
+    # wording only. Numerical rules, drawing code, approval roles, writing semantics
+    # and every unrelated protected authority retain their previous guards.
     PROTECTED = {
-        "core/model_approval_contract.yaml": "fab8ecece97e874a6332427715ba4b24eab3c90a",
+        "core/model_approval_contract.yaml": "7cf530468a9a740a4123d64dec85b257d48e0892",
         "core/numerical_verification_contract.yaml": "f7e1921ec4945cb5e87984ccb8946302d854143f",
         # P0-A intentionally aligns the title handoff with the existing output Authority;
         # test_schemas covers the new declaration and unchanged caption ownership.
-        "core/workbook_schema.yaml": "a0a9d439953d3f3ae85cb6ff38045aab531f22be",
+        "core/workbook_schema.yaml": "9a3885683cd8f666d34abe22657773c98eaa10fd",
         # A3 clarifies the existing conditional analysis fields without adding an enum.
-        "core/project_state.schema.yaml": "180b4c169c7663a1ce264426d87a558636a3d456",
-        "core/writing_reasoning_contract.yaml": "9936a9064e067b3ceb6d14e51132a2d65e648b05",
-        "modules/03_solve_validate.md": "17f6c3e755e64bfc7e8287c607b5a8b5b905c1d1",
-        "modules/03_result_analysis.md": "b9384b0d42562a003887cc62427f62546c41d4f5",
-        "modules/05_writing/paper_writing_protocol.md": "946c88b6dd705ceda1326f7ddcaabdb5e5d88911",
+        "core/project_state.schema.yaml": "cd159351ae574d4a95df09b10da99a2bde1bcd5f",
+        "core/writing_reasoning_contract.yaml": "67a22f6e882a9cb79bc6edccd033731558a81f13",
+        "modules/03_solve_validate.md": "09e055c28c7fdcc37b9921664a879f85f95bb1bc",
+        "modules/03_result_analysis.md": "e0e8bdb9fa258e351bc56e36eb9c2d1ace6b69e9",
+        "modules/05_writing/paper_writing_protocol.md": "ea10da96f20bf11bfcf2b7f7465fb5162ae5efdf",
         "modules/05_writing/ai_cleanup.md": "3e6249d17a0a91091bf7c61c49aeb9245ccc41e1",
-        "modules/06_review_delivery.md": "b9534d5c3d41aaef01e7f46134a6d2e759273b88",
+        "modules/06_review_delivery.md": "94c2096c6f0873a96df57cb16c5c2f2deee5d411",
         "config/competition_profiles.yaml": "0cfe08e2edac99f07f2e527643499b8bc73c0479",
         "scripts/validate_semantic_governance.py": "9bd3fe2d6704accab2635b0c691caaeca6fea977",
         # A5 requires current per-question files and exact official allowlist entries.
         "scripts/validate_submission_package.py": "80e23b1f9d60485cba902f9151940389a452cbdb",
         # P0-B replaces silent filtering/fixed ordering with explicit evidence-preserving reads.
         # MATLAB syntax is parsed separately; source checks do not claim runtime execution.
-        "templates/matlab/q1_plot.m": "5c074ca99f4df67a7fbd1f04db08a0a4545502e8",
+        "templates/matlab/q1_plot.m": "85d621fce69943397e4a11ad0255c03d51c2cc9c",
         "templates/matlab/draw_mechanism_structure.m": "65ba4a3b3462a565f86880c49af0959edd21f9a4",
-        "templates/figure/chart_selection.md": "fb77ff06d246336c3b1c856e0b79a4506fc96cbf",
-        "templates/figure/figure_enhancement_patterns.md": "1a814bc5c9d57cc6cfa7f7ffa96e0eab8b3d313a",
+        "templates/figure/chart_selection.md": "044c87fa93056d6d26e45cb77683942972b79142",
+        "templates/figure/figure_enhancement_patterns.md": "fa9db83323c4dcbe430e8afdca82df806e3db9de",
         # A3 checks current accepted primary and the explicit analysis necessity decision.
-        "scripts/validate_code_delivery.py": "1c7b7ef22e3552ba6cea565d8ca57dd81d2719b1",
+        "scripts/validate_code_delivery.py": "ae3ebbf222e6f0dbdfb9e96b38924eaff17484f8",
     }
 
     def test_protected_authorities_have_not_drifted(self):

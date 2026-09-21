@@ -1,4 +1,4 @@
-# HSK Core Policy v9.6.1
+# HSK Core Policy v9.7.0
 
 本文件只定义**跨阶段硬不变量**。任何阶段的目录、字段、工作表、图型、论文小节、算法展示、兼容迁移或工具参数，均以 `core/bootstrap.yaml` 指向的 current Authority 为准；本文件不复制这些阶段合同的完整实现。
 
@@ -45,11 +45,11 @@ P2 `reading_plan` 可以缩小本轮初始阅读范围，但不能缩小机器�
 
 1. **所有数据题先审计，但不是所有数据题都清洗。** `preprocessing_decision` 只允许 `not_needed / question_local / project_level`，具体判定、操作证据与公共数据源边界由 `core/global_preprocessing_contract.yaml` 唯一定义。共享数据、缺失值或历史经验本身都不能自动推出项目级预处理。
 2. **任何改变模型输入的数据处理都必须有必要性与验证证据。** 不得为了曲线更平滑、结果更好看或流程更完整而补值、删异常、滤波、平滑、标准化、重采样或改变时间因果。
-3. **题目专属 Python 由用户本地 full-fidelity 执行。** 助手可以生成、静态检查和验收返回 artifact，但不得导入、运行或间接执行赛题预处理、主求解或结果深化脚本；不得自动缩减数据、网格、时域、场景、重复次数、迭代次数、放宽容差或静默切换 solver/近似。
+3. **题目专属计算代码由用户本地 full-fidelity 执行。** 助手可以生成、静态检查和验收返回 artifact，但不得导入、运行或间接执行赛题预处理、主求解或结果深化脚本；不得自动缩减数据、网格、时域、场景、重复次数、迭代次数、放宽容差或静默切换 solver/近似。
 4. **主求解只回答当前计算能否 accepted。** Primary Quality Specification、Verification ID、残差、可行性、离散/收敛和其它主数值证据只用于判断当前 locked model 与声明数值方法下的本次计算是否有效；参数敏感性、压力场景、替代算法/结构、多 seed/初值结论稳定性、异质性和广义 claim stability 属于 accepted 之后的独立结果深化分析。
 5. **Primary Evidence Capture 只保存当前运行真实产生的高价值状态。** 不能为了图或分析改变参数、场景、seed、初值、算法、结构或验证窗口去制造另一个计算世界。
 6. **预期身份与实际执行证据都要保留。** 代码/数据指纹、实际停止原因、真实运行范围与质量证据按 user-execution / numerical-verification Authority 核验；工作簿自行写出的 `passed` 不能替代机器可复算证据。
-7. **MATLAB 只做证据可视化。** `data_process.m` 与 `qX_plot.m` 不重新预处理、求解或生成未执行的敏感性/稳健性结论；具体 Figure Evidence 规则只读 `modules/04_figure_evidence.md`。
+7. **绘图入口只做证据可视化。** `data_process.m` 与 `qX_plot.m` 不重新预处理、求解或生成未执行的敏感性/稳健性结论；具体 Figure Evidence 规则只读 `modules/04_figure_evidence.md`。
 
 具体目录、工作簿字段、每问文件集合与 stage requirements 只由 `core/output_contract.yaml`、`core/workbook_schema.yaml` 和相应 Module 定义，不在全局政策重复维护。
 

@@ -1,5 +1,5 @@
 %% q1_plot：问题一结果绘图入口（当前活动模板）
-% 放在“问题一求解/”，与主求解Python、主工作簿和q1_plot.m同目录；仅当 Analysis Necessity Gate=required 时才额外存在深化分析Python与工作簿。
+% 放在“问题一求解/”，与已选主求解代码、主工作簿和q1_plot.m同目录；仅当 Analysis Necessity Gate=required 时才额外存在深化分析代码与工作簿。
 % 字段使用精确表头唯一匹配；期望列号仅用于结构漂移警告。
 % 先执行 modules/04_figure_evidence.md 的 Scientific Figure Synthesis Gate，识别 Evidence Structure；不要从本模板的示例函数反推最终图型。
 % 所有候选核心图执行 Basic-form Challenge 检查必要关系；清楚的 plain bar/line/scatter/box/histogram 可直接承担核心论证。
@@ -42,7 +42,7 @@ resultAnalysisBook = fullfile(resultDir, "问题一结果深化分析.xlsx");
 % 图型选择以 Core conclusion / Evidence level / Primary question / Evidence structure 和信息效率为准。
 % 主结果图优先使用solutionBook；仅当当前图明确依赖已验收03B证据时才把sourceBook切换为resultAnalysisBook。
 % sourceBook一旦显式指向resultAnalysisBook，下方存在性断言会fail closed；不得因03B缺失静默回退到主工作簿伪装稳健性/敏感性图。
-% 若图确实需要底层事实源，必须继承当前 preprocessing_decision；MATLAB 不重建模型变换。
+% 若图确实需要底层事实源，必须继承当前 preprocessing_decision；本绘图入口不重建模型变换。
 sourceBook = solutionBook;
 sourceSheet = "__ACTUAL_SHEET_NAME__";
 xHeader = "__ACTUAL_X_HEADER__";

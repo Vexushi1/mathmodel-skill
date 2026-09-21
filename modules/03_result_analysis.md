@@ -1,12 +1,12 @@
 # Module 03B：条件式独立结果深化分析代码
 
-本模块只接受已验收的主工作簿，但**不是每个已验收主结果都必须进入本模块**。在生成任何 `问题X结果深化分析.py` 之前，先执行 Analysis Necessity Gate：根据题目/用户显式要求、建模阶段遗留的 material risk、真实主结果边界性以及准备写入论文的 claim，判断当前小问是否确实需要改变参数、场景、seed、初值、算法、模型结构或验证窗口，建立一个新的计算世界来检验结论稳定性。
+本模块只接受已验收的主工作簿，但**不是每个已验收主结果都必须进入本模块**。在生成任何 独立深化入口 之前，先执行 Analysis Necessity Gate：根据题目/用户显式要求、建模阶段遗留的 material risk、真实主结果边界性以及准备写入论文的 claim，判断当前小问是否确实需要改变参数、场景、seed、初值、算法、模型结构或验证窗口，建立一个新的计算世界来检验结论稳定性。
 
 若 Gate 判定 `required`，再根据真实主结果选择参数敏感性、场景压力、多算法/多初值、结构稳健性、阈值、异质性、误差分解或外样本稳定性。若 current `模型论文框架.md` 已存在，制定分析计划前先读取本问当前模型、验证方案、主结果摘要、适用/失效边界和跨问依赖，再用已验收主工作簿复核具体数值；不得脱离框架按聊天印象选择分析对象。
 
 若 Gate 判定 `not_required`，不得为了“流程完整”生成空洞的敏感性/鲁棒性代码、工作簿、图表或正文小节。必须在当前项目状态与 `模型论文框架.md` 中记录具体理由；`not_required` 只表示当前题目答案和计划中的正文主张不需要 alternative-world 证据，**绝不等价于“模型已通过稳健性检验”**。后续一旦新增“稳定、鲁棒、对参数不敏感、跨场景有效、替代算法一致”等超出主计算世界的 claim，必须重新打开本 Gate，并在需要时转为 `required`。
 
-v7.14 起，`core/numerical_verification_contract.yaml` 只负责主工作簿 accepted 之前的**当前主计算内在数值有效性**。本模块继续独占主工作簿 accepted 后的参数敏感性、压力场景、替代算法/结构、多随机种子或多初值稳健性、阈值与失效边界、异质性、误差分解及广义外样本稳定性；这些内容**不得被主求解质量门提前吸收**，也不得为了让主工作簿“看起来验证充分”而预先塞回 `问题X求解.py`。
+v7.14 起，`core/numerical_verification_contract.yaml` 只负责主工作簿 accepted 之前的**当前主计算内在数值有效性**。本模块继续独占主工作簿 accepted 后的参数敏感性、压力场景、替代算法/结构、多随机种子或多初值稳健性、阈值与失效边界、异质性、误差分解及广义外样本稳定性；这些内容**不得被主求解质量门提前吸收**，也不得为了让主工作簿“看起来验证充分”而预先塞回 主求解入口。
 
 如果某个主算法按其数学定义本身需要多起点、多随机种子或内部重复才能完成一次主求解，这些运行可以留在 03A 的主算法内部；但一旦问题变成“不同 seed / 初值 / 替代算法下结论是否保持”，就属于本模块，并必须在 accepted 主工作簿之后先经过 Analysis Necessity Gate，再在 `required` 时形成 `result_analysis_plan`。
 
@@ -33,16 +33,18 @@ v7.14 起，`core/numerical_verification_contract.yaml` 只负责主工作簿 ac
 
 ## 二、执行规则
 
+Gate=`required` 后按 `core/user_execution_contract.yaml#solver_backends` 默认继承主后端；确需另一后端时记录具体理由。独立入口名称来自输出 Authority；03B 使用 1.1 配置/回执与独立源码 bundle。读取 accepted 主工作簿前由共享前提检查核对主代码与数据身份，不能通过调用主入口重新计算主结果。主后端的执行状态不被深化后端覆盖。
+
 `required` 分支：
 
 ```text
 主工作簿accepted
-→ 冻结问题X求解.py
+→ 冻结主求解入口及其源码依赖
 → Analysis Necessity Gate = required
 → 继承preprocessing_decision与当前数据事实源
 → 基于真实主结果建立result_analysis_plan
 → 为每项计划声明target claim与判定准则
-→ 新建问题X求解/问题X结果深化分析.py
+→ 按已选后端新建本问独立深化入口
 → 读取当前数据事实源 + 已验收问题X求解结果.xlsx + 必要前问标准工作簿
 → validate_code_delivery.py静态验收analysis阶段代码
 → 用户本地full_fidelity运行
@@ -56,14 +58,14 @@ v7.14 起，`core/numerical_verification_contract.yaml` 只负责主工作簿 ac
 
 ```text
 主工作簿accepted
-→ 冻结问题X求解.py
+→ 冻结主求解入口及其源码依赖
 → Analysis Necessity Gate = not_required
 → 记录result_analysis_requirement_reason并同步模型论文框架
-→ 不生成03B Python/工作簿/分析图
+→ 不生成03B代码/工作簿/分析图
 → 下游只使用accepted主工作簿支持当前计算世界内的claim
 ```
 
-`问题X结果深化分析.py` 是独立可复现程序，不复制主求解主链，不通过改写 `问题X求解.py` 实现深化分析。新生成脚本必须只定义一个顶层 `RUN_CONFIG`，其中 `stage="analysis"` 并锁定当前数据事实源的 `data_sha256`；user/full-fidelity/no-degradation 政策由 `core/user_execution_contract.yaml` 继承，不在脚本中重复自报。工作簿中的 `code_sha256` 必须对应该深化分析脚本，并继续完整记录 solver/version、stop、platform、fallback 与 no-degradation 等实际运行事实。旧 `FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG` 仅作只读兼容。
+独立深化入口 是独立可复现程序，不复制主求解主链，不通过改写 主求解入口 实现深化分析。新生成脚本必须只定义一个按执行 Authority 可静态读取的 `RUN_CONFIG`，其中 `stage="analysis"` 并锁定当前数据事实源的 `data_sha256`；user/full-fidelity/no-degradation 政策由 `core/user_execution_contract.yaml` 继承，不在脚本中重复自报。工作簿中的 `code_sha256` 必须对应该深化分析脚本，并继续完整记录 solver/version、stop、platform、fallback 与 no-degradation 等实际运行事实。旧 `FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG` 仅作只读兼容。
 
 ## 三、Analysis Evidence Disposition
 
@@ -104,7 +106,7 @@ Evidence ID
 
 如果分析过程内部已经形成更细粒度记录，优先保留能够支撑正文、Figure、QA 或复现的那一层；不保存纯 debug 噪声，也不为“图更丰富”额外制造未执行的实验。
 
-这条规则的目的，是让 Figure Evidence 阶段可以直接从 accepted 工作簿构造稳定区、阈值边界、ECDF、箱线/小提琴+散点、Small Multiples、Pareto/性能剖面等科研图，而不在 MATLAB 阶段重新运行分析。
+这条规则的目的，是让 Figure Evidence 阶段可以直接从 accepted 工作簿构造稳定区、阈值边界、ECDF、箱线/小提琴+散点、Small Multiples、Pareto/性能剖面等科研图，而不在 绘图阶段重新运行分析。
 
 ## 五、数据与模型边界
 

@@ -45,16 +45,21 @@ class TestContentPacks(unittest.TestCase):
         self.assertIn("不是题型标签", classifier)
         self.assertIn("advanced_method_gate.md", classifier)
 
-    def test_code_pack_uses_one_self_contained_two_script_question_folder(self):
+    def test_code_pack_delegates_selected_entries_and_preserves_conditional_folder(self):
         text = (ROOT / "packs/artifact/code.md").read_text(encoding="utf-8")
         for token in (
-            "问题X求解/", "问题X求解.py", "问题X求解结果.xlsx",
-            "问题X结果深化分析.py", "问题X结果深化分析.xlsx", "qX_plot.m",
-            "两个阶段明确的 Python 文件", "冻结", "不生成独立 YAML",
+            "问题X求解/", "per_question.solver_scripts", "问题X求解结果.xlsx",
+            "深化后端的独立入口", "问题X结果深化分析.xlsx", "qX_plot.m",
+            "两个阶段明确的代码入口", "冻结", "不生成独立 YAML",
             "同目录两个真实工作簿", "精确匹配表头", "只读兼容",
         ):
             self.assertIn(token, text)
         self.assertNotIn("覆盖更新同一文件", text)
+        output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
+        self.assertEqual(output["per_question"]["solver_scripts"], {
+            "python": {"primary": "问题{中文序号}求解.py", "result_analysis": "问题{中文序号}结果深化分析.py"},
+            "matlab": {"primary": "q{阿拉伯序号}_solver.m", "result_analysis": "q{阿拉伯序号}_analysis.m"},
+        })
 
     def test_chart_selection_is_evidence_driven_and_caption_owned(self):
         text = (ROOT / "templates/figure/chart_selection.md").read_text(encoding="utf-8")

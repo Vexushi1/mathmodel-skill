@@ -2,12 +2,12 @@
 name: mathmodel-skill
 description: Guide mathematical-modeling competition work from problem analysis and model design through user-run computation, accepted-workbook figures, paper writing and delivery review. Use for CUMCM, MCM/ICM and related modeling projects, including targeted work on an existing modeling project.
 metadata:
-  version: 9.6.1
-  summary: HSK mathematical-modeling workflow with bootstrap-first task routing, Problem Contract freezing, condition-driven structural reduction and minimal-sufficient main-model generation before solver selection, independent Model Challenge, explicit Human Model Approval bound to the current semantic revision and validated structured identity, user-owned full-fidelity numerical execution, evidence-checked workbooks, MATLAB evidence visualization, editable draw.io mechanism diagrams with deterministic structural checks and required rendered review, model-construction rationale with solver-precondition evidence, Template-First paper authoring with state-driven per-question writing capability preflight and final-order Cross-File Chapter Handoff, formal LaTeX attestation, evidence-traceable final review compliance, and validated delivery provenance.
-  triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB绘图, 可编辑机理图, draw.io, drawio, LaTeX, DOCX, 终审, 提交包]
+  version: 9.7.0
+  summary: HSK mathematical-modeling workflow with bootstrap-first task routing, Problem Contract freezing, condition-driven structural reduction and minimal-sufficient main-model generation before solver selection, independent Model Challenge, explicit Human Model Approval bound to the current semantic revision and validated structured identity, per-question Python/MATLAB backend selection and user-owned full-fidelity numerical execution, evidence-checked workbooks, MATLAB evidence visualization, editable draw.io mechanism diagrams with deterministic structural checks and required rendered review, model-construction rationale with solver-precondition evidence, Template-First paper authoring with state-driven per-question writing capability preflight and final-order Cross-File Chapter Handoff, formal LaTeX attestation, evidence-traceable final review compliance, and validated delivery provenance.
+  triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB求解, MATLAB绘图, 可编辑机理图, draw.io, drawio, LaTeX, DOCX, 终审, 提交包]
 ---
 
-# HSK 数学建模模块化工作流 v9.6.1
+# HSK 数学建模模块化工作流 v9.7.0
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -29,7 +29,7 @@ metadata:
 
 ## 默认执行
 
-默认入口始终是 `scripts/resolve_runtime.py`；`scripts/resolve_workflow.py` 只作为 legacy / 无状态兼容 resolver，不参与默认 assured read path。
+用户明确指定 Python 或 MATLAB 求解时，将该选择分别传为 `--solver-backend python` 或 `--solver-backend matlab`；用户未指定且项目状态无当前阶段后端时，新求解请求显式传 `--solver-backend auto`。已有选择由状态恢复，规则与兼容默认分别服从执行和 runtime assurance Authority。默认入口始终是 `scripts/resolve_runtime.py`；`scripts/resolve_workflow.py` 只作为 legacy / 无状态兼容 resolver，不参与默认 assured read path。
 
 ### 项目工作记忆
 
@@ -48,14 +48,16 @@ metadata:
 ## 稳定硬边界
 
 - Problem Contract 冻结不等于模型已批准。形成 `proposed_model_spec` 后，必须完成独立 Model Reviewer 与 Devil's Advocate challenge；正式项目级预处理或主求解代码只有在用户明确批准 current `semantic_revision` 与 validated `semantic_identity_hash`、并由 Model Approval gate 确认 current = validated = approved identity 后才允许进入对应 gate；legacy hash 只读兼容不能授权新代码。
-- 题目专属预处理、主求解与结果深化 Python 由用户本地按 `full_fidelity` 执行；助手负责生成、静态检查和验收返回 artifact，不得静默降采样、放宽容差、缩短时域或切换求解器。
+- 题目专属预处理、Python/MATLAB主求解与结果深化代码由用户本地按 `full_fidelity` 执行；助手负责生成、静态检查和验收返回 artifact，不得静默降采样、放宽容差、缩短时域或切换求解器。
 - `模型论文框架.md` 保存当前项目语义与证据位置；`state/project_state.yaml` 管 revision/structured identity/text provenance/stale；accepted workbook 是具体数值事实源。三者职责不得互相替代。
 - 主求解数值有效性与 accepted 资格服从 `core/numerical_verification_contract.yaml`；accepted 后的替代世界/敏感性/稳健性分析服从 resolver 命中的结果分析模块，不反向扩张主质量门。
-- MATLAB 只消费 Python 已输出且已验收的数据/工作簿进行 Figure Evidence，不重新预处理或求解；正式图名由 LaTeX/DOCX caption 承担。
+- MATLAB 绘图入口只消费已验收求解实现的数据/工作簿进行 Figure Evidence，不重新预处理或求解；正式图名由 LaTeX/DOCX caption 承担。
 - 可编辑 draw.io 只服务后端选择门确认的非数据驱动题目专属机理图；确定性结构检查不替代渲染预览、箭头语义或数学正确性人工复核。
 - LaTeX 是默认论文主链；CUMCM 结构先由 Template Manifest 确定，再逐章读取当前写作规则。DOCX 只在用户明确要求 Word 载体时加载。
 - 最终交付只执行 resolver 当前返回且按顺序排列的 `pre_delivery_gates`；入口文件不维护第二套 gate 清单。
 - 仓库修改遵守 `SKILL_CHANGE_GOVERNANCE.md`。Branch Protection 若因平台权限不可用，只记录为平台治理债务，不得用 Skill 代码伪造。
+
+求解语言参数按上文“默认执行”传入；后端决策与旧调用兼容只服从 `core/user_execution_contract.yaml` 和 runtime assurance，不把 MATLAB 一词自动路由为绘图。
 
 ## Authority 导航
 
@@ -73,7 +75,7 @@ metadata:
 | 数据审计与条件式预处理 | `core/global_preprocessing_contract.yaml` |
 | 用户执行所有权 | `core/user_execution_contract.yaml` |
 | 主求解数值有效性 | `core/numerical_verification_contract.yaml` |
-| Python 工程质量 | `core/code_quality_contract.yaml` |
+| Python/MATLAB 工程质量 | `core/code_quality_contract.yaml` |
 | runtime assurance | `core/runtime_assurance_contract.yaml` |
 | 主求解 / Primary Evidence | `modules/03_solve_validate.md` |
 | accepted 后结果深化 | `modules/03_result_analysis.md` |

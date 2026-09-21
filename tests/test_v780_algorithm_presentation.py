@@ -30,11 +30,11 @@ class TestV780AlgorithmPresentation(unittest.TestCase):
                 "model_structure",
                 "algorithm_trace",
                 "paper_algorithm_presentation",
-                "python_implementation",
+                "code_implementation",
                 "workbook_result_or_validation",
             ],
         )
-        self.assertIn("不把 Python 源码压缩成论文伪代码", contract["principle"])
+        self.assertIn("不把求解源码压缩成论文伪代码", contract["principle"])
 
     def test_algorithm_trace_has_model_code_result_anchors(self):
         trace = self.reasoning["algorithm_presentation"]["internal_trace"]
@@ -73,11 +73,11 @@ class TestV780AlgorithmPresentation(unittest.TestCase):
             self.assertIn("packs/artifact/algorithm_flow.md", text)
         self.assertIn("伪代码环境只呈现数学对象和控制逻辑", self.latex)
 
-    def test_pack_supports_both_requested_styles_without_raw_python(self):
+    def test_pack_supports_both_requested_styles_without_raw_code(self):
         self.assertIn("控制流伪代码版", self.pack)
         self.assertIn("分阶段数学步骤版", self.pack)
         self.assertIn("range(len(...))", self.pack)
-        self.assertIn("不把 Python 源码改写成缩进版论文", self.pack)
+        self.assertIn("不把求解源码改写成缩进版论文", self.pack)
         self.assertIn("Algorithm Trace 不替代 Formula Trace", self.pack)
 
     def test_output_contract_exposes_single_authority_pointer(self):

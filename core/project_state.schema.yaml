@@ -121,6 +121,17 @@ $defs:
       matlab_script: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
       figure_bundle: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
       framework: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+  solver_stage_execution:
+    type: object
+    additionalProperties: false
+    required: [backend, selection_reason]
+    properties:
+      backend: {type: string, enum: [python, matlab]}
+      selection_reason: {type: string, minLength: 1}
+      bundle_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      validated_bundle_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+    dependentRequired:
+      validated_bundle_sha256: [bundle_sha256]
   artifact_layer:
     type: string
     enum: [data, primary_code, analysis_code, solution_workbook, result_analysis_workbook, robustness_workbook, matlab_script, figure_bundle, framework]
@@ -421,6 +432,13 @@ properties:
         data_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         validated_data_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         artifacts_stale: {type: boolean, default: false}
+        solver_execution:
+          description: 03A/03B已选实现及交付/验收bundle；auto仅为请求，不是已选后端。项目级预处理保留原状态结构。
+          type: object
+          additionalProperties: false
+          properties:
+            primary: {$ref: '#/$defs/solver_stage_execution'}
+            analysis: {$ref: '#/$defs/solver_stage_execution'}
         code: {type: string, description: 主求解脚本路径}
         result_analysis_code: {type: string, description: 独立结果深化分析脚本路径}
         primary_code_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}

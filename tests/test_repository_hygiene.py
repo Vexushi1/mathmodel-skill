@@ -110,7 +110,7 @@ class RepositoryHygieneTests(unittest.TestCase):
 
         self.assertIn("conditional per-question layout contract", review)
         self.assertIn("基础三文件", review)
-        self.assertIn("仅 Analysis Necessity Gate=`required` 时追加 03B Python 与 workbook", review)
+        self.assertIn("仅 Analysis Necessity Gate=`required` 时追加 03B代码 与 workbook", review)
         self.assertIn("Gate=`not_required`", review)
         self.assertIn("不构成 layout finding", review)
         self.assertNotIn("新项目每问数值目录必须符合当前五文件合同", review)

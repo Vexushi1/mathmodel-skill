@@ -13,6 +13,7 @@ from jsonschema import Draft202012Validator
 
 import artifact_identity as ARTIFACT_IDENTITY
 import analysis_prerequisites as ANALYSIS_PREREQUISITES
+import stage_code as STAGE_CODE
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = ROOT / "core/project_state.schema.yaml"
@@ -464,6 +465,18 @@ def validate_state_payload(
         issues.extend(_validate_classification_aliases(name, state, taxonomy))
         issues.extend(_validate_hashes(name, state, status))
         issues.extend(_validate_analysis_dispositions(name, state))
+        solver_execution = state.get("solver_execution") or {}
+        if isinstance(solver_execution, Mapping):
+            for stage, field in (("primary", "code"), ("analysis", "result_analysis_code")):
+                execution_status = state.get(f"{stage}_execution_status")
+                new_code = STAGE_CODE.requires_bundle_binding(project_root, state, stage)
+                delivered = state.get(field) or execution_status in {
+                    "code_delivered", "awaiting_user_execution", "workbook_received", "accepted",
+                }
+                if new_code and delivered:
+                    issues.extend(f"{name}: {issue}" for issue in STAGE_CODE.validate_stage_binding(
+                        project_root, state, stage, require_validated=execution_status == "accepted",
+                    ))
         section_hash = (state.get("artifact_hashes", {}) or {}).get("framework")
         if section_hash and framework_path.is_file():
             actual_section_hash = _framework_section_hash(framework_path, framework_section)

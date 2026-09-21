@@ -6,8 +6,10 @@
 |---|---|
 | 程序名称 | 必有：`问题X求解/问题X求解.py`、`问题X求解/qX_plot.m`；Gate=`required` 时追加：`问题X求解/问题X结果深化分析.py` |
 | 输入 | 主求解读取当前合法数据事实源和已锁定参数；Gate=`required` 时，深化分析读取已验收主结果工作簿及必要当前数据事实源 |
-| 功能 | 主求解 Python 完成模型求解与主结果质量检查；主工作簿 accepted 后冻结该脚本并执行 Analysis Necessity Gate；仅 Gate=`required` 时由独立深化 Python 完成题目专属敏感性、鲁棒性、多算法、阈值或结构分析；MATLAB 主结果图读取主工作簿，只有实际使用 03B evidence 的图才读取条件存在的深化工作簿 |
+| 功能 | 主求解代码完成模型求解与主结果质量检查；主工作簿 accepted 后冻结该脚本并执行 Analysis Necessity Gate；仅 Gate=`required` 时由独立深化代码完成题目专属敏感性、鲁棒性、多算法、阈值或结构分析；MATLAB 主结果图读取主工作簿，只有实际使用 03B evidence 的图才读取条件存在的深化工作簿 |
 | 主要输出 | 必有：`问题X求解/问题X求解结果.xlsx`；Gate=`required` 且 03B 执行后追加：`问题X求解/问题X结果深化分析.xlsx` |
 | 复现顺序 | 运行 `问题X求解.py` → 验收主工作簿并冻结主脚本 → Analysis Necessity Gate → `required`：运行/验收 `问题X结果深化分析.py/.xlsx`；`not_required`：记录非空理由并跳过 03B → 运行 `qX_plot.m` → LaTeX 编译 |
 
-完整运行配置分别写在实际激活阶段的 Python 和对应工作簿的 `运行配置` 表中。求解目录默认不包含独立配置、说明、校验报告、图表目录或自动导出的图片。Gate=`not_required` 只表示当前计划正文 claim 不需要 alternative-world 证据，不等价于“稳健性已通过”。
+按当前后端列明主/深化入口、必要源码依赖与本地运行顺序；配置和回执版本按执行 Authority 的阶段映射，项目级预处理仍为 Python。
+
+完整运行配置分别写在实际激活阶段的代码 和对应工作簿的 `运行配置` 表中。求解目录默认不包含独立配置、说明、校验报告、图表目录或自动导出的图片。Gate=`not_required` 只表示当前计划正文 claim 不需要 alternative-world 证据，不等价于“稳健性已通过”。

@@ -305,15 +305,25 @@ def _p7_conditional_analysis_contract_errors(output: Mapping[str, object]) -> li
     """Validate the approved P7 conditional three/five-file lifecycle directly."""
     current: list[str] = []
     per_question = output.get("per_question", {}) or {}
-    base_expected = [
-        "问题{中文序号}求解.py",
-        "问题{中文序号}求解结果.xlsx",
-        "q{阿拉伯序号}_plot.m",
-    ]
-    analysis_expected = [
-        "问题{中文序号}结果深化分析.py",
-        "问题{中文序号}结果深化分析.xlsx",
-    ]
+    solver_scripts = per_question.get("solver_scripts") or {}
+    python_scripts = solver_scripts.get("python") or {}
+    solution = (per_question.get("mandatory_workbooks") or {}).get("solution")
+    analysis_workbook = ((per_question.get("conditional_workbooks") or {}).get("result_analysis") or {}).get("path")
+    base_expected = [python_scripts.get("primary"), solution, per_question.get("matlab_script")]
+    analysis_expected = [python_scripts.get("result_analysis"), analysis_workbook]
+    if set(solver_scripts) != {"python", "matlab"}:
+        current.append("per-question solver mapping must cover Python and MATLAB")
+    for backend, stages in solver_scripts.items():
+        if not isinstance(stages, Mapping) or set(stages) != {"primary", "result_analysis"}:
+            current.append(f"{backend} solver mapping must define primary and result_analysis")
+            continue
+        names = [stages["primary"], solution, per_question.get("matlab_script"), stages["result_analysis"], analysis_workbook]
+        if any(not isinstance(name, str) or not name for name in names) or len(set(names)) != 5:
+            current.append(f"{backend} conditional layout must have disjoint primary/analysis/figure roles")
+    if per_question.get("python_scripts") != python_scripts:
+        current.append("legacy python_scripts projection must match the Python backend mapping")
+    if per_question.get("two_python_stage_policy") != per_question.get("stage_policy"):
+        current.append("legacy two_python_stage_policy projection must match stage_policy")
     base = per_question.get("base_default_files") or []
     analysis = per_question.get("analysis_required_additional_files") or []
     if base != base_expected:

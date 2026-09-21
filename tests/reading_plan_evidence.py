@@ -24,7 +24,7 @@ ALLOWED_CHANGED_AUTHORITIES = {
     "templates/latex/cumcm/hsk/template_manifest.yaml",
 }
 P7_OPTIONAL_ANALYSIS_PREREQUISITE = "figure_evidence:result_analysis_workbook"
-P9_RELEASE_VERSIONS = {"9.1.0", "9.2.0", "9.2.1", "9.3.0", "9.3.1", "9.4.0", "9.4.1", "9.4.2", "9.4.3", "9.4.4", "9.5.0", "9.5.1", "9.5.2", "9.5.3", "9.5.4", "9.5.5", "9.5.6", "9.5.7", "9.6.0", "9.6.1"}
+P9_RELEASE_VERSIONS = {"9.1.0", "9.2.0", "9.2.1", "9.3.0", "9.3.1", "9.4.0", "9.4.1", "9.4.2", "9.4.3", "9.4.4", "9.5.0", "9.5.1", "9.5.2", "9.5.3", "9.5.4", "9.5.5", "9.5.6", "9.5.7", "9.6.0", "9.6.1", "9.7.0"}
 A7_HYDRATED_PROVENANCE_CASES = {
     "facts_current", "facts_model_change", "facts_ambiguous", "facts_stale_framework",
     "facts_hash_drift", "facts_identity_drift", "facts_stale_dependency", "style_current",
@@ -162,6 +162,44 @@ def collect(repo):
     return rows
 
 
+def approved_solver_changes(old, new):
+    """Allow only the v9.7 execution-Authority additions, retaining every old field."""
+    projected = deepcopy(new)
+    changes = []
+    additions = {
+        ("contracts",): "core/user_execution_contract.yaml",
+        ("load_order",): "core/user_execution_contract.yaml",
+        ("assurance", "dependency_closure", "added_paths"): "core/user_execution_contract.yaml",
+        ("assurance", "dependency_closure", "required_paths"): "core/user_execution_contract.yaml",
+        ("assurance", "dependency_closure", "required_aliases"): "user_execution",
+    }
+    source_path = ("assurance", "authority_fingerprint", "sources")
+    for path in (*additions, source_path):
+        left, right = old, projected
+        try:
+            for key in path[:-1]:
+                left, right = left[key], right[key]
+            previous, current = left[path[-1]], right[path[-1]]
+        except (KeyError, TypeError):
+            continue
+        if not isinstance(previous, list) or not isinstance(current, list) or previous == current:
+            continue
+        if path == source_path:
+            expected = {"core/user_execution_contract.yaml", "core/code_quality_contract.yaml", "core/output_contract.yaml"}
+            added = [row for row in current if row.get("path") in expected]
+            filtered = [row for row in current if row.get("path") not in expected]
+            exact = {row.get("path") for row in added} == expected and len(added) == 3
+        else:
+            token = additions[path]
+            filtered = [value for value in current if value != token]
+            exact = token not in previous and current.count(token) == 1
+        if exact and filtered == previous:
+            changes.append({"path": ".".join(path), "baseline": previous, "candidate": current,
+                            "approval": "v9.7 approved solver backend Authority dependency/fingerprint closure"})
+            right[path[-1]] = deepcopy(previous)
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -175,6 +213,8 @@ def compare(before, after):
         projected, expected = approved_a3_changes(a["id"], old, new)
         projected, a7_changes = approved_a7_changes(a["id"], old, projected)
         expected.extend(a7_changes)
+        projected, solver_changes = approved_solver_changes(old, projected)
+        expected.extend(solver_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,
@@ -211,11 +251,11 @@ def main():
         "schema_version": 1, "baseline_ref": args.baseline_ref, "candidate_ref": args.candidate_ref,
         "driver_sha256": hashlib.sha256(HERE.read_bytes()).hexdigest(),
         "cases_sha256": hashlib.sha256(HERE.with_name("reading_plan_cases.py").read_bytes()).hexdigest(),
-        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_explicit_a3_a7_field_transitions",
+        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_explicit_a3_a7_v970_field_transitions",
         "expected_authority_changes": sorted(ALLOWED_CHANGED_AUTHORITIES),
         "all_legacy_behavior_equal": all(r["legacy_behavior_equal"] for r in rows),
         "all_legacy_behavior_equal_except_approved_changes": all(r["legacy_behavior_equal_except_approved_changes"] for r in rows),
-        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before the exact A3/A7 exceptions; each approved version, qualification or per-axis provenance change is visible in expected_legacy_changes. No classification value or list-order normalization is applied. Passing requires no unregistered field differences, not an assertion that the original behavior is unchanged.",
+        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before the exact A3/A7/v9.7 exceptions; each approved version, qualification, per-axis provenance or solver Authority addition is visible in expected_legacy_changes. No classification value or existing list-order normalization is applied. Passing requires no unregistered field differences, not an assertion that the original behavior is unchanged.",
         "cases": rows,
     }
     args.output.mkdir(parents=True, exist_ok=True)

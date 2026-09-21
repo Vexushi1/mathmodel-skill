@@ -1,5 +1,7 @@
 # HSK Python 用户执行管线（template lineage v7.0.0）
 
+本目录保留 Python 实现与既有 API；新03A/03B配置/回执按 `core/user_execution_contract.yaml` 使用1.1和源码依赖绑定，项目级预处理仍1.0。MATLAB求解按需读取 `templates/code/matlab/`，不把既有连跑pipeline当作跨越用户执行边界的新默认。
+
 本目录提供用户本地运行的数值底座：
 
 - `run_primary_pipeline()`：数据审计、完整版主求解、主结果质量门和主工作簿；
@@ -29,9 +31,13 @@
 └─ 赛题附件.xlsx
 ```
 
-新生成阶段脚本使用唯一顶层 `RUN_CONFIG` 声明 stage/problem/data/hash/solver/seed/tolerance/limit/workbook/protocol 等任务可变输入，并写 `run_receipt_protocol_version="1.0.0"`；不再重复 owner/profile/六个 `allow_*` no-degradation 字段，也不把 `solver_version` 当运行前必填任务参数。旧 `FULL_FIDELITY_CONFIG` / `FULL_RUN_CONFIG` 仅作只读兼容。
+新生成 03A/03B 脚本使用唯一顶层 `RUN_CONFIG` 声明 stage/problem/data/hash/solver/seed/tolerance/limit/workbook/protocol 等任务输入，写 `solver_backend="python"`、`run_receipt_protocol_version="1.1.0"`；以 `code_dependencies=[{"path": "项目内相对源码路径", "sha256": "文件摘要"}]` 声明实际源码闭包（不含入口自身），包括复制到项目中的实际 `hsk_pipeline` 依赖。不重复 owner/profile/六个 no-degradation 字段，不把 `solver_version` 当运行前必填参数，也不把最终 bundle 摘要写回入口。旧 1.0、P5a 与 `FULL_FIDELITY_CONFIG` / `FULL_RUN_CONFIG` 只按原历史分支兼容；项目级 Python 预处理仍使用 1.0。
 
-用户运行后构造逻辑 `RUN_RECEIPT`，**仍序列化到既有工作簿 `运行配置(项目, 值)`**，不新增第二张回执工作表或独立 YAML/JSON。P5b 新脚本对应的回执写 `run_receipt_version="1.0.0"`，完整记录 owner/profile、solver/version、实际停止原因、平台、fallback 和 no-degradation 标志等实际运行事实，并回显 `stage/problem_name/data_sha256/solver/random_seed/tolerance/iteration_or_time_limit` 与已交付 RUN_CONFIG 对齐。P5a 过渡 RUN_CONFIG 和旧 `FULL_*` 的无版本历史回执继续只读兼容；一旦任一端显式声明未知或不匹配版本则 fail closed。
+用户运行后构造逻辑 `RUN_RECEIPT`，**仍序列化到既有工作簿 `运行配置(项目, 值)`**，不新增回执工作表或独立 YAML/JSON。新 03A/03B 写 `run_receipt_version="1.1.0"`、`solver_backend="python"`、`code_sha256` 和 `code_bundle_sha256`，记录 owner/profile、solver/version、实际停止原因、平台、fallback 和 no-degradation 标志，并回显配置任务字段。入口必须在执行前绑定源码和输入、写出前复核；完整身份序列化只服从执行 Authority。未知或不匹配版本 fail closed。
+
+保留的 PipelineConfig、连跑 API 和题型 starter 是兼容骨架，不会自动升级为 1.1 交付入口。实例化时须补齐上述运行配置与真实回执，并把 `运行配置` 工作表交给共用 `result_io.write_workbook()`；writer 接受该表的新字段，但不替调用方生成后端/bundle 证明。用户运行代码只依赖交付到项目内的源码与声明环境，不依赖 Skill 安装路径。
+
+新 1.1 的 `project_level` 路径显式使用 `data_identity_mode="preprocessing_workbook"`，`data_paths` 恰为已验收预处理 XLSX，`data_sha256` 为其普通文件 SHA。其他两种预处理决策默认 `combined`；完整数据身份规则只由 `core/user_execution_contract.yaml#code_delivery.data_identity_mode` 维护。
 
 ## 主求解阶段
 
@@ -58,6 +64,6 @@
 主工作簿 accepted 后先执行 Analysis Necessity Gate：
 
 - `not_required`：必须记录非空 `result_analysis_requirement_reason`；不生成 `问题一结果深化分析.py` 或 `问题一结果深化分析.xlsx`，也不得把该状态表述为稳健性、稳定性或替代算法一致性已通过；
-- `required`：单独生成 `问题一求解/问题一结果深化分析.py`。该脚本读取已验收 `问题一求解结果.xlsx` 和必要当前数据事实源，根据实际风险完成敏感性、阈值、算法一致性、结构稳健性、异质性或误差分析；再次通过代码工程质量门后由用户运行，并输出 `问题一求解/问题一结果深化分析.xlsx`。analysis RUN_CONFIG 同样声明 `run_receipt_protocol_version="1.0.0"`，返回分析工作簿写 `run_receipt_version="1.0.0"`；不得通过覆盖更新 `问题一求解.py` 实现深化分析。
+- `required` 且选定 Python：单独生成 `问题一求解/问题一结果深化分析.py`，读取已验收主工作簿和必要当前数据事实源，按实际风险完成分析；再次通过代码质量门后由用户运行并输出分析工作簿。analysis RUN_CONFIG 声明 `run_receipt_protocol_version="1.1.0"`、`solver_backend="python"`、自身 `code_dependencies` 和 `primary_workbook_sha256`；返回工作簿写 1.1 回执及本阶段入口/bundle/主工作簿摘要，不得覆盖更新主求解代码。若选择 MATLAB，则读取对应 MATLAB 阶段模板。
 
-Figure 阶段的 `q1_plot.m` 始终与主工作簿同目录。主结果图只要求 accepted 主工作簿；只有目标 Figure 实际消费 03B evidence 时才要求条件存在的分析工作簿，缺失时必须 fail closed。Python 不生成正式论文图；MATLAB 不重新求解，默认不创建图表目录或自动导出文件。
+Figure 阶段的 `q1_plot.m` 始终与主工作簿同目录。主结果图只要求 accepted 主工作簿；只有目标 Figure 实际消费 03B evidence 时才要求条件存在的分析工作簿，缺失时必须 fail closed。求解入口不生成正式论文图；绘图入口不重新求解，默认不创建图表目录或自动导出文件。

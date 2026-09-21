@@ -2,7 +2,10 @@ schema_version: 2.3.1
 skill_compatibility: '>=6.3.2,<10.0.0'
 purpose: 约束主求解工作簿与按需结果深化分析工作簿的工作表、字段、三轴条件、非空规则和MATLAB交接。
 runtime_enforcement:
-  writer: templates/code/hsk_pipeline/result_io.py
+  writer: templates/code/hsk_pipeline/result_io.py  # Legacy Python writer pointer.
+  writers_by_backend:
+    python: templates/code/hsk_pipeline/result_io.py
+    matlab: [templates/code/matlab/q1_solver.m, templates/code/matlab/q1_analysis.m]
   code_delivery_checker: scripts/validate_code_delivery.py
   returned_workbook_checker: scripts/validate_user_execution.py
   numerical_evidence_checker: scripts/validate_numerical_evidence.py
@@ -17,7 +20,7 @@ runtime_enforcement:
   - 主结果质量报告必须写入求解工作簿的主结果质量门工作表；v7.14严格轨迹通过Verification ID、证据工作表、判定关系和阈值来源追到底层证据。
   - 结果分析计划与结论必须分别写入分析设计和结论稳定性汇总工作表。
   - 写入器、代码交付检查器、返回工作簿检查器和项目同步器复用同一事实源。
-  - MATLAB代码生成前必须读取实际工作簿并确认真实工作表与真实表头。
+  - MATLAB绘图代码生成前必须读取实际工作簿并确认真实工作表与真实表头。
   - 两类工作簿都必须包含运行配置工作表，作为用户完整版执行、代码/数据哈希和禁止降级标志的验收证据。
 classification_contract:
   objective_source: subproblem.classification.objective

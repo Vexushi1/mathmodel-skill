@@ -87,7 +87,7 @@ class TestV781AlgorithmClosure(unittest.TestCase):
         )
         self.assertTrue(any("not_needed but still links" in issue for issue in issues))
 
-    def test_solved_trace_requires_python_anchor(self):
+    def test_solved_trace_requires_code_anchor_with_legacy_python_header(self):
         text = self.framework("stepwise", "A1", "stepwise", python_anchor="")
         state = {
             "paper_framework": {"mode": "compact"},
@@ -103,7 +103,7 @@ class TestV781AlgorithmClosure(unittest.TestCase):
             },
         }
         issues = self.validator.validate_framework_text(text, state=state)
-        self.assertTrue(any("requires a Python code anchor" in issue for issue in issues))
+        self.assertTrue(any("requires an implementation code anchor" in issue for issue in issues))
 
     def test_analyzed_status_requires_current_result_summary(self):
         text = self.framework("not_needed")
@@ -142,7 +142,7 @@ class TestV781AlgorithmClosure(unittest.TestCase):
             self.assertIn("Algorithm Trace", text)
             self.assertIn("stepwise", text)
             self.assertIn("pseudocode", text)
-        self.assertIn("真实 Python 实现", self.review_module)
+        self.assertIn("真实代码实现", self.review_module)
         self.assertIn("工作簿结果", self.review_module)
 
 

@@ -14,6 +14,8 @@ ROUTER_PATH = ROOT / "core" / "workflow_router.yaml"
 MANIFEST_PATH = ROOT / "core" / "module_manifest.yaml"
 TAXONOMY_PATH = ROOT / "core" / "task_taxonomy.yaml"
 COMPETITION_PATH = ROOT / "config" / "competition_profiles.yaml"
+EXECUTION_PATH = ROOT / "core" / "user_execution_contract.yaml"
+OUTPUT_PATH = ROOT / "core" / "output_contract.yaml"
 SCOPE_RANK = {"design": 0, "code": 1, "results": 2, "figures": 3, "docx": 4, "latex": 5, "submission": 6}
 VALID_PREPROCESSING_DECISIONS = {"not_needed", "question_local", "project_level"}
 
@@ -26,6 +28,30 @@ def load_yaml(path: Path) -> dict[str, Any]:
 
 def unique(items: Iterable[str | None]) -> list[str]:
     return list(dict.fromkeys(str(item) for item in items if item and str(item).strip()))
+
+
+def code_artifact_projection(value: Any, aliases: dict[str, str]) -> Any:
+    """Project exact artifact tokens, never paths or free-text implementation names."""
+    if isinstance(value, str):
+        return aliases.get(value, value)
+    if isinstance(value, list):
+        return [code_artifact_projection(item, aliases) for item in value]
+    if isinstance(value, dict):
+        return {key: code_artifact_projection(item, aliases) for key, item in value.items()}
+    return value
+
+
+def add_solver_resources(plan: dict[str, Any], backends: Iterable[str]) -> None:
+    contract = load_yaml(EXECUTION_PATH).get("solver_backends", {})
+    resources = contract.get("template_resources", {})
+    stages = [stage for stage, module in (
+        ("primary", "modules/03_solve_validate.md"),
+        ("analysis", "modules/03_result_analysis.md"),
+    ) if module in plan["modules"]]
+    additions = [path for backend in sorted(set(backends)) for stage in stages
+                 for path in resources.get(backend, {}).get(stage, [])]
+    plan["load_order"] = unique([*plan["load_order"], *additions])
+    plan["templates"] = [path for path in plan["load_order"] if path.startswith("templates/")]
 
 
 def resolve_competition_pack(token: str | None, profiles: dict[str, Any]) -> str | None:
@@ -427,6 +453,7 @@ def resolve_workflow(
     competition: str | None = None,
     available_artifacts: Iterable[str] | None = None,
     preprocessing_decision: str | None = None,
+    solver_backend: str | None = None,
     router_path: Path = ROUTER_PATH,
     manifest_path: Path = MANIFEST_PATH,
     taxonomy_path: Path = TAXONOMY_PATH,
@@ -435,6 +462,10 @@ def resolve_workflow(
     bootstrap = load_yaml(BOOTSTRAP_PATH)
     router = load_yaml(router_path)
     manifest = load_yaml(manifest_path)
+    backend_contract = load_yaml(EXECUTION_PATH).get("solver_backends", {})
+    if solver_backend is not None and solver_backend not in backend_contract.get("request_values", []):
+        raise ValueError(f"unknown solver backend: {solver_backend}")
+    code_aliases = load_yaml(OUTPUT_PATH).get("solver_artifact_aliases", {})
     workflow_order = list((router.get("execution_contract", {}) or {}).get("workflow_order", []))
     if not workflow_order:
         raise ValueError("router execution_contract.workflow_order is required")
@@ -486,7 +517,7 @@ def resolve_workflow(
         capability_list = []
         task_packs = []
 
-    available_set = set(available_artifacts or ())
+    available_set = {code_aliases.get(item, item) for item in (available_artifacts or ())}
     if "accepted_preprocessing_workbook" in available_set:
         available_set.add("preprocessing_workbook")
     paths: list[str] = ["core/bootstrap.yaml"]
@@ -608,7 +639,7 @@ def resolve_workflow(
     elif pause_for_user_execution:
         pause_state = "awaiting_user_execution"
 
-    return {
+    plan = {
         "version": bootstrap.get("skill_version", router.get("version")),
         "intents": resolved_intents,
         "preprocessing_decision": preprocessing_decision,
@@ -638,6 +669,20 @@ def resolve_workflow(
         "pause_state": pause_state,
         "task_code_execution_allowed": False,
     }
+    if solver_backend is None:
+        return code_artifact_projection(plan, {value: key for key, value in code_aliases.items()})
+    plan["solver_backend"] = {
+        "request": solver_backend,
+        "resolved": solver_backend if solver_backend in backend_contract.get("resolved_values", []) else None,
+        "source": "explicit",
+        "environment_verified": False,
+    }
+    if solver_backend == "auto":
+        if any(module in module_paths for module in ("modules/03_solve_validate.md", "modules/03_result_analysis.md")):
+            plan["missing_prerequisites"] = unique([*plan["missing_prerequisites"], "solver_backend_selection"])
+    else:
+        add_solver_resources(plan, [solver_backend])
+    return plan
 
 
 def main() -> int:
@@ -652,6 +697,7 @@ def main() -> int:
     parser.add_argument("--competition")
     parser.add_argument("--available-artifacts", nargs="*", default=None)
     parser.add_argument("--preprocessing-decision", choices=sorted(VALID_PREPROCESSING_DECISIONS))
+    parser.add_argument("--solver-backend", choices=["auto", "python", "matlab"])
     args = parser.parse_args()
     try:
         plan = resolve_workflow(
@@ -665,6 +711,7 @@ def main() -> int:
             competition=args.competition,
             available_artifacts=args.available_artifacts,
             preprocessing_decision=args.preprocessing_decision,
+            solver_backend=args.solver_backend,
         )
     except (ValueError, FileNotFoundError) as exc:
         raise SystemExit(str(exc)) from exc

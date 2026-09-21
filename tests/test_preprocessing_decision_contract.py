@@ -346,8 +346,8 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
 
     def test_figure_evidence_order_matches_router_stage_boundary(self):
         text = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
-        primary = text.index("Python 完成完整主求解")
-        analysis = text.index("Python 基于题目风险完成实际需要的结果深化分析")
+        primary = text.index("已选求解实现完成完整主求解")
+        analysis = text.index("已选深化实现基于题目风险完成实际需要的结果深化分析")
         enter_figures = text.index("只有上述数值阶段完成后才进入 Figure Evidence")
         data_process = text.index("此时生成并人工检查 `数据预处理/data_process.m`")
         self.assertLess(primary, analysis)
