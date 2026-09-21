@@ -7,8 +7,8 @@
 进入本模块时先读取 current `模型论文框架.md` 中的当前有效口径、相关小问结果摘要、待办缺口和既有图表映射，用于确定“哪些结论需要图证据”；随后再从真实工作簿读取具体数值和底层序列。不得仅凭聊天记忆或框架摘要数字反推图数据。
 
 1. 继承已经锁定的 `preprocessing_decision`；若为 `project_level`，确认 `数据预处理结果.xlsx` 已 accepted 且预处理质量门通过；
-2. Python 完成完整主求解并通过主结果质量门；03A 应已经保存本次主计算真实产生且具有解释/绘图/验证价值的状态、过程与结构证据；
-3. 主工作簿 accepted 后执行 Analysis Necessity Gate：Gate=`required` 时，Python 基于题目风险完成实际需要的结果深化分析并验收 `问题X结果深化分析.xlsx`；Gate=`not_required` 时必须记录非空理由，不生成或要求 03B 代码/工作簿，也不得据此声称稳健性、稳定性或替代方法一致性已经验证；
+2. 已选求解实现完成完整主求解并通过主结果质量门；03A 应已经保存本次主计算真实产生且具有解释/绘图/验证价值的状态、过程与结构证据；
+3. 主工作簿 accepted 后执行 Analysis Necessity Gate：Gate=`required` 时，已选深化实现基于题目风险完成实际需要的结果深化分析并验收 `问题X结果深化分析.xlsx`；Gate=`not_required` 时必须记录非空理由，不生成或要求 03B 代码/工作簿，也不得据此声称稳健性、稳定性或替代方法一致性已经验证；
 4. 只有上述数值阶段完成后才进入 Figure Evidence；这里“完成”按 current Analysis Necessity Gate disposition 解释：Gate=`required` 时包含实际 03B 验收，Gate=`not_required` 时包含非空理由而不运行 03B。进入后先明确每张图读取原始数据、统一预处理工作簿、主工作簿或条件存在的 03B 工作簿中的哪一种事实源。只有 Figure Contract 实际消费 03B evidence 时才要求该工作簿存在，缺失必须 fail closed；
 5. 若为 `project_level`，此时生成并人工检查 `数据预处理/data_process.m`，只把已验收预处理工作簿中的底层证据转成图；
 6. 为每个候选 Figure 先写 Core conclusion、Evidence level、Primary question、Available evidence dimensions；
@@ -18,9 +18,9 @@
 10. 选定视觉结构后进入对应 **Scientific Rendering Profile**；
 11. 再通过 Figure Layout Gate 动态选择单图、1×2、2×1、1×3、2×2 或拆分为多张 Figure；不得先决定版式再硬塞证据；
 12. 基础布局确定后执行 Figure Enhancement Gate；只有在增加可验证信息、降低视觉搜索成本或强化关键证据时增加 Local Zoom、Small Multiples、Focus Highlighting、Semantic Background、Composite Diagnostic 或 Conditional 3D；
-13. 生成 MATLAB 代码前实际读取工作簿，锁定工作簿名、工作表名、真实表头、单位和数据类型；
+13. 生成 MATLAB 绘图代码前实际读取工作簿，锁定工作簿名、工作表名、真实表头、单位和数据类型；
 14. 拟定 DOCX/LaTeX 正式 caption；正式论文图不设置整体 `title` / `sgtitle`，多面板按需只保留 a/b/c/d 等 panel label；
-15. 将各问 `q{x}_plot.m` 与主求解 Python、主工作簿放在同一 `问题X求解/`；仅 Gate=`required` 时同目录追加独立 03B Python 与 03B 工作簿。每问最终文件集合只服从 `core/output_contract.yaml` 的 conditional per-question layout；项目级预处理图脚本固定为 `数据预处理/data_process.m`；
+15. 将各问 `q{x}_plot.m` 与主求解代码、主工作簿放在同一 `问题X求解/`；仅 Gate=`required` 时同目录追加独立 03B代码 与 03B 工作簿。每问最终文件集合只服从 `core/output_contract.yaml` 的 conditional per-question layout；项目级预处理图脚本固定为 `数据预处理/data_process.m`；
 16. 完成当前阶段可核验的单图 QA 后执行 **Figure Portfolio Scientific Quality Gate**，检查论证覆盖、必要证据缺口、跨图一致性与重复表达；尚未实际运行或人工确认的事项按后述交付边界如实保留；
 17. 检查核心结论是否有图或表证据，并同步 `模型论文框架.md`；
 18. 默认只保留图窗供人工检查，不自动创建图表子目录或批量导出图片。
@@ -92,7 +92,7 @@ current Framework + Mechanism Contract
 
 ## B 类：项目级预处理证据图
 
-当 `preprocessing_decision=project_level` 时，必须生成独立 MATLAB 脚本 `数据预处理/data_process.m`，只读取 `数据预处理/数据预处理结果.xlsx`。其职责是把 Python 已经保存的处理前/后、诊断和验证底层数据转成论文证据图。MATLAB 不允许重新清洗、插值、滤波、重采样、预测填补、训练模型或重新确定参数。
+当 `preprocessing_decision=project_level` 时，必须生成独立 MATLAB 脚本 `数据预处理/data_process.m`，只读取 `数据预处理/数据预处理结果.xlsx`。其职责是把 Python 已经保存的处理前/后、诊断和验证底层数据转成论文证据图。data_process.m 不允许重新清洗、插值、滤波、重采样、预测填补、训练模型或重新确定参数。
 
 至少有一张图直接回答下列问题之一：为什么原始数据需要处理；当前处理是否解决已审计问题；插值/填补恢复误差是否可接受；滤波是否保留所需信息；重采样/时间/空间对齐是否满足模型输入；异常处理是否有清晰边界并避免误删真实结构。
 
@@ -112,10 +112,10 @@ Gate=`not_required` 且 `result_analysis_requirement_reason` 非空时，没有 
 只有图本身确实需要底层数据时，才按 `preprocessing_decision` 追加数据事实源：
 
 - `not_needed`：允许读取必要原始数据；
-- `question_local`：允许读取必要原始数据，但不得在 MATLAB 中重新构造模型变换；若局部处理需要图证据，应由 Python 将处理前后底层数据写入本问工作簿；
+- `question_local`：允许读取必要原始数据，但不得在绘图入口中重新构造模型变换；若局部处理需要图证据，应由本问求解实现将处理前后底层数据写入本问工作簿；
 - `project_level`：各问需要底层公共数据时读取 `数据预处理结果.xlsx`，不得绕回共享原始附件。
 
-不得为了统一脚本结构而强制所有 `q{x}_plot.m` 读取统一预处理工作簿。不得在 MATLAB 中重新求解、重新做敏感性/统计分析或从摘要数字反推绘图序列。
+不得为了统一脚本结构而强制所有 `q{x}_plot.m` 读取统一预处理工作簿。不得在绘图入口中重新求解、重新做敏感性/统计分析或从摘要数字反推绘图序列。
 
 ## Figure Evidence 层级
 
@@ -197,7 +197,7 @@ Pareto + 推荐点 + Local Zoom
 
 ## Scientific Rendering Profiles：选定视觉结构后的专属科研表达
 
-下列 Profile 保留可用能力，按当前阅读任务选择其中有依据的元素，不要求一张图具备整组元素。没有合法区间、事件、边界或诊断量时省略对应编码；MATLAB 不为满足 Profile 重新估计或补算。
+下列 Profile 保留可用能力，按当前阅读任务选择其中有依据的元素，不要求一张图具备整组元素。没有合法区间、事件、边界或诊断量时省略对应编码；绘图代码不为满足 Profile 重新估计或补算。
 
 ### Distribution Profile
 
@@ -303,7 +303,7 @@ Figure Enhancement 发生在 Synthesis、Rendering Profile 和基础布局确定
 
 ### 7. 数据诚实与增强边界
 
-对离散实验点、独立场景点、参数扫描点或迭代记录，**不得仅为了美观使用 spline**、Bezier 等平滑制造新的峰值、谷值或拐点；只有对象本身是连续函数、模型定义连续响应或 Python 已输出连续预测网格时才允许连续平滑。关键标注通常只保留极值、交点、阈值、推荐点等 3--5 个不可替代位置。
+对离散实验点、独立场景点、参数扫描点或迭代记录，**不得仅为了美观使用 spline**、Bezier 等平滑制造新的峰值、谷值或拐点；只有对象本身是连续函数、模型定义连续响应或 求解实现已输出连续预测网格时才允许连续平滑。关键标注通常只保留极值、交点、阈值、推荐点等 3--5 个不可替代位置。
 
 ## Publication Rendering Grammar：成熟论文图实现层
 

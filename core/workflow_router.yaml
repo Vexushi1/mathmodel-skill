@@ -1,4 +1,4 @@
-version: 9.6.1
+version: 9.7.0
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -14,7 +14,7 @@ load_policy:
   - Load task_taxonomy only for classification/modeling/code-analysis routes that actually use objective/structure packs.
   - Load global_preprocessing_contract only when the route decides, executes or inherits preprocessing semantics.
   - Load model_approval_contract for model-design routes that can propose/lock a model and for task-code routes that must verify current Human Model Approval.
-  - Load user_execution_contract and code_quality_contract only for code-generation or returned-workbook execution boundaries.
+  - Load user_execution_contract for model-design backend selection and code-generation/returned-workbook boundaries; load code_quality_contract only when engineering checks are needed.
   - Primary numerical-verification rules are loaded declaratively through runtime-assurance dependency closure only for model design, primary solve, or primary workbook receipt; result-analysis, figure and writing routes do not preload them without need.
   - Load writing_reasoning_contract for model-design, proposition, algorithm-presentation, non-CUMCM writing fallback and final-review routes that create, revise or formally inspect complex mathematical semantics; ordinary CUMCM LaTeX writing uses the compact writing runtime and loads the full authority only when a declared fallback trigger occurs.
   - Ordinary CUMCM LaTeX writing consumes paper_writing_protocol as the prose authority, template_manifest as the structural authority and modules/05_writing/latex.md only as the adapter; figure and workbook routes do not preload them.
@@ -66,7 +66,7 @@ execution_contract:
   - Project-level preprocessing must persist paper method/validation/before-after plotting evidence in the unified workbook; figure_evidence then creates 数据预处理/data_process.m, which may only read that workbook and may not redo preprocessing.
   - Generate full-fidelity task code and stop at the applicable user-execution boundary; never execute task-specific preprocessing, solve or analysis code.
   - Primary user-produced workbook must be accepted before the Analysis Necessity Gate can decide whether post-primary result analysis is required.
-  - Accepted primary workbooks freeze the primary solve script; when the Gate is required, result-analysis code is a separate stage-specific Python file.
+  - Accepted primary workbooks freeze the primary solve script; when the Gate is required, result-analysis code is a separate stage-specific file in its selected backend.
   - Formal numerical-figure delivery and writing require validated_results under Module 04 and the output contract. Selecting a figure-planning route from accepted primary evidence is not formal delivery approval; every scoped numerical claim still needs accepted primary evidence plus either accepted passed analysis or a reasoned not_required disposition.
   - Figure consumers require a 03B workbook only when their declared evidence uses it; independent mechanism diagrams keep their own non-numerical prerequisite route. Do not infer that every figure requires alternative-world computation.
   - result_analysis_status=not_required only waives alternative-world computation for the current claims; it never proves robustness, stability, parameter insensitivity, cross-scenario validity or algorithm agreement. Adding such a claim reopens the Analysis Necessity Gate.
@@ -198,7 +198,7 @@ routing:
     then: [modules/02_model_design.md, modules/03_solve_validate.md, packs/artifact/code.md]
     load_classified_task_packs: true
     load_competition_pack: true
-    terminal_outputs: [preprocessing_decision, python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, proposition_plan, model_paper_framework]
+    terminal_outputs: [preprocessing_decision, primary_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, proposition_plan, model_paper_framework]
     conditional_stage:
       when: preprocessing_decision == project_level
       insert_before: modules/03_solve_validate.md
@@ -217,7 +217,7 @@ routing:
     then: [modules/02_model_design.md, modules/03_solve_validate.md, packs/artifact/code.md]
     load_classified_task_packs: true
     load_competition_pack: true
-    terminal_outputs: [preprocessing_decision, python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
+    terminal_outputs: [preprocessing_decision, primary_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
     writing_execution_sequence: core/writing_runtime_contract.yaml#template_first_progressive_authoring
     conditional_stage:
       when: preprocessing_decision == project_level
@@ -258,11 +258,11 @@ routing:
 
   code_and_solution:
     boundary_roles: [model_approval, preprocessing, primary_execution]
-    triggers: [代码, Python, 求解, 算法, 最优解]
-    infer_keywords: [Python代码, 求解代码, 开始求解, 求解, 继续求解, 重新求解, 重算, 算法实现, 最优解]
+    triggers: [代码, Python, MATLAB求解, MATLAB代码, 求解, 算法, 最优解]
+    infer_keywords: [Python代码, MATLAB求解, MATLAB代码, MATLAB 求解, MATLAB 代码, 求解代码, 开始求解, 求解, 继续求解, 重新求解, 重算, 算法实现, 最优解]
     load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/model_approval_contract.yaml, core/user_execution_contract.yaml, core/code_quality_contract.yaml, modules/03_solve_validate.md, packs/artifact/code.md, packs/task/classifier.md]
     load_classified_task_packs: true
-    terminal_outputs: [preprocessing_decision, python_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
+    terminal_outputs: [preprocessing_decision, primary_code, full_run_config, execution_instructions, code_delivery_report, awaiting_user_execution, model_paper_framework]
     conditional_stage:
       when: preprocessing_decision == project_level
       insert_before: modules/03_solve_validate.md
@@ -307,7 +307,7 @@ routing:
 
   figures:
     triggers: [图表, 可视化, 机理图, 推导图, Nature, SCI, MATLAB图标题, 数据预处理图, 处理前后对比图, 局部放大, 分面图, 联合诊断图]
-    infer_keywords: [MATLAB绘图, MATLAB, 结果图, 敏感性图, 鲁棒性图, 机理图, 推导图, 可视化, 图表, data_process, 预处理图, 局部放大, inset, small multiples, 分面图, 联合诊断]
+    infer_keywords: [MATLAB绘图, MATLAB 绘图, 结果图, 敏感性图, 鲁棒性图, 机理图, 推导图, 可视化, 图表, data_process, 预处理图, 局部放大, inset, small multiples, 分面图, 联合诊断]
     load: [modules/04_figure_evidence.md, packs/artifact/figure.md, templates/figure/chart_selection.md, templates/figure/figure_enhancement_patterns.md]
     terminal_outputs: [preprocessing_matlab_script, preprocessing_figures, matlab_scripts, figure_contracts, approved_figures, model_paper_framework]
     formal_delivery: true

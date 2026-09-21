@@ -136,6 +136,8 @@ analytic / numerical / exact / heuristic / independent_solver / stress_model
 
 而不是“问题复杂 → 直接上高级算法”。
 
+按 `core/user_execution_contract.yaml#solver_backends` 在数值方法要求明确后选定本问实现后端，并在当前框架记录具体 solver、选择理由和所需依赖；环境未核验部分如实列出。选择结果并入现有 Model Approval Brief，不新增审批。纯实现语言改变不进入 SIB；算法、离散方式或数学保证改变仍按当前语义治理处理。
+
 主模型选定后，除“选了什么模型”外，还要为写作登记该模型的**局部建模理由**：当前问题结构已经提供什么、仍缺哪个判据/关系/状态/决策结构、为什么当前数学结构能闭合该缺口、在哪些条件或近似范围内成立，以及该结构后续进入哪个目标、约束、判据或 solver。这里记录项目事实，不写通用“模型适用性强”。
 
 ## 2. 数据协议与预处理必要性判定
@@ -191,7 +193,7 @@ analytic / numerical / exact / heuristic / independent_solver / stress_model
 ```text
 题面对象/要求
 → 数学变量、关系、目标或约束
-→ Python 变量/函数
+→ 实现变量/函数
 → 工作簿输出或验证证据
 ```
 
@@ -281,7 +283,7 @@ Primary Quality Specification
 
 Downstream risk hints
 → 仅提示 accepted 后可能需要哪些深化分析
-→ 不提前执行、不提前写入问题X求解.py
+→ 不提前执行、不提前写入主求解入口
 ```
 
 ### 4.5 Citation Evidence 计划
@@ -304,7 +306,7 @@ stepwise   → 多阶段数学求解流程，控制流不是主要信息
 pseudocode → 循环/分支/候选筛选/修复/停止规则本身是方法信息
 ```
 
-只有 `stepwise` 或 `pseudocode` 才建立 current Algorithm Trace；`not_needed` 不创建装饰性算法框。Trace 至少记录算法作用、输入、核心操作、终止条件、输出、呈现模式与状态，并按需要连接状态/决策变量、循环/分支、Formula、Proposition、Constraint、Python 代码和工作簿证据。
+只有 `stepwise` 或 `pseudocode` 才建立 current Algorithm Trace；`not_needed` 不创建装饰性算法框。Trace 至少记录算法作用、输入、核心操作、终止条件、输出、呈现模式与状态，并按需要连接状态/决策变量、循环/分支、Formula、Proposition、Constraint、实际代码和工作簿证据。
 
 内部闭环：
 
@@ -312,7 +314,7 @@ pseudocode → 循环/分支/候选筛选/修复/停止规则本身是方法信�
 模型结构/已证明性质
 → Algorithm Trace
 → 论文算法步骤
-→ Python真实实现
+→ 代码真实实现
 → 工作簿结果或验证证据
 ```
 
@@ -403,7 +405,7 @@ physical event
 → quantifier order
 → line / ray / segment / surface / volume semantics
 → exact or approximate status
-→ Python predicate / evidence anchor
+→ implementation predicate / evidence anchor
 ```
 
 不得把无限直线、射线和有限线段默认等价；不得把点、边界、表面和实体默认等价；不得把“对所有对象存在一个资源”与“存在一个资源满足所有对象”默认等价。若模型通过对称性、凸性、可见性、极值原理或临界点把连续对象缩减到活动边界/有限临界集，必须同时登记该缩减的依据。
@@ -573,7 +575,7 @@ Devil's Advocate 是反方挑战，至少检查：
 
 ## 7. Human Model Approval 与正式锁模
 
-`model_challenge_status=passed` 后，不直接进入 Python。先向用户提供简洁但完整的 Model Approval Brief，至少包含：研究对象、selected model、标准模型类型、核心变量、目标、关键约束、**modeling gap 与 why-this-structure**、关键适用条件/失效边界、`preprocessing_decision`、结构化简及其 provenance、为什么当前模型已达到最小充分、Comparator Envelope（若启用）及各自比较目的、Solver/Validator 角色与算法适配理由、关键 solver preconditions、Algorithm presentation、关键数值建模参数的证据计划、主求解 PQS 的关键门槛、主要被否决路线理由、residual warnings 与下一阶段实际实现范围。若 4.8 适用，Brief 还应简要暴露真正会改变求解语义的精确判据、事件边界策略、缩域 evidence level、组合算子、条件式 solver probe/分支以及 surrogate→original 回算要求；不适用项不机械列空字段。
+`model_challenge_status=passed` 后，不直接进入代码交付。先向用户提供简洁但完整的 Model Approval Brief，至少包含：研究对象、selected model、标准模型类型、核心变量、目标、关键约束、**modeling gap 与 why-this-structure**、关键适用条件/失效边界、`preprocessing_decision`、结构化简及其 provenance、为什么当前模型已达到最小充分、Comparator Envelope（若启用）及各自比较目的、Solver/Validator 角色与算法适配理由、关键 solver preconditions、Algorithm presentation、关键数值建模参数的证据计划、主求解 PQS 的关键门槛、主要被否决路线理由、residual warnings 与下一阶段实际实现范围（包括已选后端、具体求解器及依赖核验情况）。若 4.8 适用，Brief 还应简要暴露真正会改变求解语义的精确判据、事件边界策略、缩域 evidence level、组合算子、条件式 solver probe/分支以及 surrogate→original 回算要求；不适用项不机械列空字段。
 
 用户必须明确批准当前模型。自然语言如“OK，就按这个模型求解”“这个框架可以，进入主求解”“Q1-Q3 全部冻结”可视为批准；“我看看”“继续说”“还有别的方案吗”“这个模型怎么样”以及用户沉默不得推断为批准。
 
@@ -657,7 +659,7 @@ selected_models
 - 最小充分性只保存当前主模型、为什么仍然充分以及“继续简化首先损失什么”；若 comparator 未启用，可记录 not_applicable，不机械制造对照路线；
 - comparator 只有存在真实 comparison question 时才登记 comparison purpose；baseline / alternative / validator 只有存在真实 artifact 时才进入框架；
 - Model Construction Rationale 只保存当前 structure、gap、选择理由、适用条件/边界和下游作用，不复制通用“为什么建模”写作手册；
-- Algorithm Trace 只记录真实求解结构、角色与锚点，不复制 Python 源码或通用算法定义；
+- Algorithm Trace 只记录真实求解结构、角色与锚点，不复制求解源码或通用算法定义；
 - 优化题保存 objective 现实含义与主决策对象，使摘要和正文无需从聊天记忆重建“优化什么”；
 - 小节规划保存真实独立任务、依赖和拆分理由，不保存“每问固定四个小节”之类模板；
 - 对 4.8 适用的问题，只保存本题实际采用的判据、事件/缩域/组合/solver 适配/原模型回算语义及证据锚点，不复制本模块的通用检查清单；
@@ -692,4 +694,3 @@ S/A 级机理图必须绑定核心公式、约束、命题或已批准的结构�
 若设计完整性已经满足但 Model Approval gate 尚未通过，形成 `route_comparison`、`selected_models`、`proposed_model_spec`、Model Approval Brief、`awaiting_model_approval`、`mechanism_contracts`（适用时）与 current framework 后停止；不得把“用户未反对”解释为 approval。Gate 通过后才形成 current `locked_model_spec`。若 `preprocessing_decision=project_level`，下一阶段进入 Module 03P；否则直接进入主求解。
 
 最终 current 设计链至少形成 `route_comparison`、`selected_models`、`proposed_model_spec`、`model_challenge`、`human_model_approval`、`locked_model_spec`、`preprocessing_decision`、`semantic_closure`、`formula_reasoning_chain`、`complexity_sanity_check`、`proposition_plan`、`citation_evidence_plan`、含 PQS 与 downstream risk hints 的 `validation_plan`、适用时的 `mechanism_contracts`，以及包含标准模型类型、Model Construction Rationale、Model/Solver/Validator、Condition → Consequence / Reduction 摘要、最小充分性理由、当前 Algorithm Trace / Challenge / Approval 状态、小节规划的 current framework；未闭环不得以代码试错代替建模。
-

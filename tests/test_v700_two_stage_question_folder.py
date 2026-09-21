@@ -30,6 +30,8 @@ class TestV700TwoStageQuestionFolder(unittest.TestCase):
         )
         self.assertTrue(per_question["no_auxiliary_files_by_default"])
         self.assertNotIn("single_python_update_policy", per_question)
+        self.assertEqual(per_question["python_scripts"], per_question["solver_scripts"]["python"])
+        self.assertEqual(per_question["two_python_stage_policy"], per_question["stage_policy"])
 
     def test_user_contract_forbids_auxiliary_files_but_requires_analysis_script(self):
         data = yaml.safe_load((ROOT / "core/user_execution_contract.yaml").read_text(encoding="utf-8"))

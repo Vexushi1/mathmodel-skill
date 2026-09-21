@@ -42,7 +42,11 @@ runtime_context:
   - current_framework_navigation_only
   - deterministic_keyword_inference
   rules:
-  - Explicit intent, competition, classification, preprocessing decision, question scope, or artifact declarations remain backward-compatible inputs.
+  - Explicit intent, competition, classification, preprocessing decision, question scope, solver_backend, or artifact declarations remain backward-compatible inputs.
+  - New active Skill solve requests explicitly pass solver_backend=auto when neither the user nor current state has selected a backend; auto is not a resolved backend.
+  - Omitted backend in legacy CLI/API with no selected state retains Python planning and legacy output projection; an existing MATLAB selection is never overridden by that compatibility default.
+  - Hydrate per-question solver_execution without merging different questions into one backend. Explicit conflicts remain review_required; do not overwrite state or promote old accepted results under a new selection.
+  - Legacy Python terminal outputs retain python_code/stage_python_code projection; MATLAB and unresolved auto plans use neutral primary_code/stage_code without false Python aliases.
   - When project_root is supplied, current project state may hydrate missing competition, preprocessing decision, question classification, and verified artifact availability.
   - Framework memory may guide a human or agent to the relevant section, but the runtime resolver must not promote framework prose into a verified numerical artifact.
   - Project-state hydration must never silently override a conflicting explicit argument; conflicts are reported in assurance.context.conflicts.
@@ -121,6 +125,7 @@ artifact_assurance:
       - result_quality_status == passed
       - no stale data, primary_code, or solution_workbook layer
       - declared primary code and project-level preprocessing remain bound to current accepted file and data identities under the shared analysis prerequisite check
+      - protocol 1.1 primary backend, entrypoint and actual source bundle match delivered and validated identities without requiring a prior sync
       - workbook path resolves inside project_root
       - workbook path exists
       - validated or current workbook sha256 exists
@@ -132,6 +137,7 @@ artifact_assurance:
       - analysis_execution_status == accepted
       - result_analysis_status == passed
       - no stale analysis_code or result_analysis_workbook layer
+      - protocol 1.1 analysis backend, entrypoint and actual source bundle match delivered and validated identities without requiring a prior sync
       - workbook path resolves inside project_root
       - workbook path exists
       - validated or current workbook sha256 exists
@@ -166,7 +172,7 @@ contract_dependency_closure:
     readable as compatibility hints but are not required for correctness.
   contract_dependencies:
     modules/01_problem_audit.md: [taxonomy]
-    modules/02_model_design.md: [taxonomy, preprocessing, model_approval, writing_reasoning, numerical_verification]
+    modules/02_model_design.md: [taxonomy, preprocessing, model_approval, user_execution, writing_reasoning, numerical_verification]
     modules/03_data_preprocessing.md: [preprocessing, model_approval, user_execution, code_quality]
     modules/03_solve_validate.md: [preprocessing, model_approval, user_execution, code_quality, workbook, numerical_verification]
     modules/03_result_analysis.md: [taxonomy, preprocessing, user_execution, code_quality, workbook]
@@ -221,6 +227,9 @@ authority_fingerprint:
   - core/module_manifest.yaml
   - config/competition_profiles.yaml
   - core/runtime_assurance_contract.yaml
+  - core/user_execution_contract.yaml
+  - core/output_contract.yaml
+  - core/code_quality_contract.yaml
   - core/writing_reasoning_contract.yaml
   - core/writing_runtime_contract.yaml
   - templates/latex/cumcm/hsk/template_manifest.yaml

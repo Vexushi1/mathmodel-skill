@@ -8,12 +8,18 @@ displayed precision is scientifically correct.
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import re
+import sys
 from pathlib import Path
 from typing import Any, Mapping
 
 import yaml
+
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+import stage_code as STAGE_CODE
 
 COMPACT_HEADINGS = (
     "# 模型论文框架",
@@ -530,11 +536,60 @@ def _validate_proposition_plan(text: str, *, strict: bool) -> tuple[list[str], i
     return issues, declared_count, unique_ids
 
 
+def _implementation_anchor_issues(
+    anchor: str, subproblem: Mapping[str, Any], project_root: Path | None,
+) -> list[str]:
+    modern = bool(subproblem.get("solver_execution"))
+    if project_root is not None:
+        modern |= any(STAGE_CODE.requires_bundle_binding(project_root, subproblem, stage)
+                      for stage in ("primary", "analysis"))
+    if not modern:
+        return []  # Historical free-text anchors keep their original read contract.
+    allowed = {str(subproblem.get(field)) for field in ("code", "result_analysis_code") if subproblem.get(field)}
+    matches = re.findall(r"([^\s`,;|]+\.(?:py|m))(?:[#:](\w+))?", anchor)
+    if not matches:
+        return ["implementation anchor requires the current project-relative solver file"]
+    issues: list[str] = []
+    for raw, symbol in matches:
+        if raw not in allowed:
+            issues.append(f"implementation anchor does not identify current stage code: {raw}")
+            continue
+        if project_root is None:
+            continue
+        path = (project_root / raw).resolve()
+        if not path.is_relative_to(project_root.resolve()) or not path.is_file():
+            issues.append(f"implementation anchor file is missing or outside project: {raw}")
+            continue
+        source = path.read_text(encoding="utf-8")
+        if symbol.isdecimal():
+            if not 1 <= int(symbol) <= len(source.splitlines()):
+                issues.append(f"implementation line anchor is outside file: {raw}:{symbol}")
+        elif symbol:
+            if path.suffix == ".py":
+                try:
+                    names = {node.name for node in ast.walk(ast.parse(source)) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+                except SyntaxError:
+                    names = set()
+            else:
+                from matlab_code_checks import function_signature, statements, tokenize
+                try:
+                    names = {function_signature(row)[0] for row in statements(tokenize(source))
+                             if row[0].kind == "identifier" and row[0].value == "function"}
+                except ValueError:
+                    names = set()
+            if symbol not in names:
+                issues.append(f"implementation function anchor is missing: {raw}#{symbol}")
+        stage = "primary" if raw == subproblem.get("code") else "analysis"
+        issues.extend(STAGE_CODE.validate_stage_binding(project_root, subproblem, stage, require_validated=True))
+    return issues
+
+
 def _validate_algorithm_trace(
     text: str,
     *,
     state: Mapping[str, Any] | None,
     strict: bool,
+    project_root: Path | None = None,
 ) -> list[str]:
     issues: list[str] = []
     rows = _algorithm_rows(text)
@@ -577,7 +632,9 @@ def _validate_algorithm_trace(
         subproblem = state_subproblems.get(question, {}) if isinstance(state_subproblems, Mapping) else {}
         status = str(subproblem.get("status", "")) if isinstance(subproblem, Mapping) else ""
         if cells[11] == "current" and status in SOLVED_STATUSES and not cells[9]:
-            issues.append(f"{algorithm_id} current solved Algorithm Trace requires a Python code anchor")
+            issues.append(f"{algorithm_id} current solved Algorithm Trace requires an implementation code anchor")
+        if cells[11] == "current" and status in SOLVED_STATUSES and cells[9]:
+            issues.extend(f"{algorithm_id}: {issue}" for issue in _implementation_anchor_issues(cells[9], subproblem, project_root))
 
     for question, section in question_sections.items():
         presentation = _extract_scalar(section, "算法流程呈现")
@@ -626,6 +683,7 @@ def validate_framework_text(
     state: Mapping[str, Any] | None = None,
     strict: bool = False,
     mode: str | None = None,
+    project_root: Path | None = None,
 ) -> list[str]:
     issues: list[str] = []
     try:
@@ -678,7 +736,7 @@ def validate_framework_text(
     elif resolved_mode == "full":
         issues.append("full framework requires proposition planning section")
 
-    issues.extend(_validate_algorithm_trace(text, state=state, strict=strict))
+    issues.extend(_validate_algorithm_trace(text, state=state, strict=strict, project_root=project_root))
     issues.extend(_validate_writing_preflight(
         text,
         formula_by_id=formula_by_id,
@@ -775,7 +833,8 @@ def validate_framework_file(
         return [f"framework file not found: {framework_path}"]
     state = load_yaml(state_path) if state_path and state_path.is_file() else None
     return validate_framework_text(
-        framework_path.read_text(encoding="utf-8"), state=state, strict=strict, mode=mode
+        framework_path.read_text(encoding="utf-8"), state=state, strict=strict, mode=mode,
+        project_root=framework_path.resolve().parent,
     )
 
 

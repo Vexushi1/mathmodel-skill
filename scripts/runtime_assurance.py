@@ -16,6 +16,7 @@ from semantic_identity import (
 )
 import artifact_identity as ARTIFACT_IDENTITY
 import analysis_prerequisites as ANALYSIS_PREREQUISITES
+import stage_code as STAGE_CODE
 
 FRAMEWORK_RELATIVE_PATH = "模型论文框架.md"
 QUALIFIED_ARTIFACT_ALIASES = {
@@ -464,8 +465,26 @@ def hydrate_project_context(project_root: str | Path, question: str | None = Non
     analysis_skip_rows: list[dict[str, Any]] = []
     analysis_complete: list[bool] = []
     subproblems = state.get("subproblems", {}) or {}
+    solver_backends: dict[str, Any] = {}
     for q in questions:
         item = subproblems.get(q, {}) or {}
+        solver_backends[q] = {}
+        selections = item.get("solver_execution", {})
+        if not isinstance(selections, dict):
+            conflicts.append(f"{q}.solver_execution must be a mapping")
+            selections = {}
+        for stage, code_field in (("primary", "code"), ("analysis", "result_analysis_code")):
+            selected = selections.get(stage, {})
+            if not isinstance(selected, dict) or selected:
+                if (not isinstance(selected, dict) or not isinstance(selected.get("backend"), str)
+                        or selected.get("backend") not in {"python", "matlab"}):
+                    conflicts.append(f"{q}.{stage} solver backend must resolve to python or matlab")
+                else:
+                    solver_backends[q][stage] = {"backend": selected["backend"], "source": "project_state"}
+            elif str(item.get(code_field) or "").endswith(".py"):
+                solver_backends[q][stage] = {"backend": "python", "source": "legacy_python_path"}
+            elif str(item.get(code_field) or "").endswith(".m"):
+                conflicts.append(f"{q}.{stage} MATLAB code requires explicit solver_execution metadata")
         conflicts.extend(ARTIFACT_IDENTITY.entry_alias_issues(item, scope=q))
         stale = set(ARTIFACT_IDENTITY.normalize_stale_layers(item.get("stale_layers")))
         primary_issues = ANALYSIS_PREREQUISITES.primary_issues(root, state, item)
@@ -509,6 +528,10 @@ def hydrate_project_context(project_root: str | Path, question: str | None = Non
                 else "result-analysis execution or stability status is not accepted"
             ),
         )
+        if analysis_row["status"] == "verified" and (item.get("result_analysis_code") or selections.get("analysis")):
+            binding_issues = STAGE_CODE.validate_stage_binding(root, item, "analysis", require_validated=True)
+            if binding_issues:
+                analysis_row.update(status="not_accepted", reason="; ".join(binding_issues))
         analysis_rows.append(analysis_row)
 
         requirement_reason = str(item.get("result_analysis_requirement_reason") or "").strip()
@@ -560,6 +583,7 @@ def hydrate_project_context(project_root: str | Path, question: str | None = Non
         "competition": project.get("competition"),
         "preprocessing_decision": preprocessing.get("decision"),
         "classification": classification,
+        "solver_backends": solver_backends,
         "verified_artifacts": sorted(verified),
         "artifact_evidence": evidence,
         "conflicts": conflicts,

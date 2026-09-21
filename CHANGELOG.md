@@ -1,6 +1,13 @@
 # Changelog
 
-## Current release: 9.6.1
+## Current release: 9.7.0
+
+- Adds per-question Python/MATLAB selection for primary solving and conditional analysis, with scoped runtime recovery, backend-specific templates, and neutral artifact roles. Existing model approval and numerical acceptance remain authoritative; project-level preprocessing remains Python.
+- Adds shared stage resolution, literal MATLAB RUN_CONFIG parsing, native Code Analyzer delivery checks, and receipt 1.1 binding backend, original entry SHA and declared source bundle. Observed source drift cannot refresh delivered or validated identities and invalidates dependent results through the existing state engine.
+- Adds self-contained MATLAB numerical fixtures, native Excel writing, input/source stability checks, and exact backend-aware reproducibility package requirements. Existing Python receipt 1.0, legacy filenames and omitted CLI argument behavior remain compatible. Figure, writing and delivery consumers use the same accepted evidence interface.
+- Adds backend unit/integration regressions and a distinct native MATLAB solver CI job, including real mixed-language handoffs. MATLAB execution evidence is separate from Python/static tests and the existing optional figure-preview job. See [migration, scope and verification](docs/v970_solver_backends_migration.md).
+
+## Previous release: 9.6.1
 
 - A7 aligns copied Python workbook support with canonical required run-configuration and conditional/profile sheets, with isolated real XLSX I/O parity checks.
 - Both skill entries now carry a concise discovery description and preserve legacy version/summary/triggers under metadata. Repository readers accept current metadata and historical top-level fields; root and packaged entries retain identical content and explicit resource-root resolution.

@@ -1,8 +1,59 @@
-version: 2.5.1
+version: 2.6.0
 introduced_in_skill_version: 7.4.2
 skill_compatibility: '>=7.4.2,<10.0.0'
-purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界。每问主求解始终使用独立Python脚本；结果深化分析仅在主工作簿accepted后经过Analysis Necessity Gate且判定required时使用第二个独立Python脚本。P5a起新生成阶段脚本使用RUN_CONFIG承载任务可变输入，全局user/full-fidelity/no-degradation政策由本Authority继承；P5b起新生成阶段脚本通过run_receipt_protocol_version绑定版本化RUN_RECEIPT，实际运行事实仍写入既有工作簿运行配置工作表。v7.14起新生成主求解还绑定Primary Quality Specification与主数值证据独立复核，但不得把结果深化分析提前塞进主求解。
+purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界。每问主求解使用已选Python或MATLAB独立入口；结果深化分析仅在主工作簿accepted后经过Analysis Necessity Gate且判定required时使用独立入口，默认继承主后端。P5a起新生成阶段脚本使用RUN_CONFIG承载任务可变输入，全局user/full-fidelity/no-degradation政策由本Authority继承；P5b起新生成阶段脚本通过run_receipt_protocol_version绑定版本化RUN_RECEIPT，实际运行事实仍写入既有工作簿运行配置工作表。v7.14起新生成主求解还绑定Primary Quality Specification与主数值证据独立复核，但不得把结果深化分析提前塞进主求解。
 numerical_verification_authority: core/numerical_verification_contract.yaml
+solver_backends:
+  request_values: [auto, python, matlab]
+  resolved_values: [python, matlab]
+  state_field: solver_execution
+  stage_default: {preprocessing: python, analysis: inherit_primary}
+  selection_time: after_model_structure_and_numerical_requirements_before_model_challenge
+  template_resources:
+    python:
+      primary: [templates/code/starter/README.md]
+      analysis: [templates/code/starter/README.md]
+    matlab:
+      primary: [templates/code/matlab/README.md, templates/code/matlab/q1_solver.m]
+      analysis: [templates/code/matlab/README.md, templates/code/matlab/q1_analysis.m]
+  naming_authority: core/output_contract.yaml#per_question.solver_scripts
+  decision_criteria:
+  - feasible_explicit_user_choice
+  - required_solver_capabilities_and_mathematical_guarantees
+  - verified_runtime_packages_toolboxes_and_license_or_explicit_unverified_conditions
+  - input_scale_and_structure
+  - reusable_reliable_implementation_and_reproduction_cost
+  rules:
+  - Record one concrete backend and selection_reason per question and active stage; auto is a request only and cannot authorize code delivery.
+  - Include the concrete solver, dependencies and unresolved environment conditions in the existing Model Approval Brief implementation scope; do not add a separate approval gate.
+  - Do not map a task type directly to a language or prefer MATLAB merely because formal figures use MATLAB.
+  - Different questions may select different backends; analysis may depart from its primary backend only with a recorded reason and must consume the current accepted primary workbook.
+  - Project-level preprocessing remains Python with receipt 1.0 and existing state; question-local mathematical transformations follow the question backend.
+  - Do not silently switch backend, solver, data scale or precision after selection. Report unavailable dependencies without pretending they were verified.
+  - Pure implementation changes use existing primary_code_changed or analysis_code_changed; changes to algorithm semantics use current semantic governance. Backend, paths and environment facts do not belong in the SIB.
+  - Main functions and project helpers are implementation artifacts, never matlab_script which remains the formal figure role.
+  - Each formal MATLAB numerical execution must start in a fresh -batch process using the delivered source; after source changes start another fresh process. An existing GUI session or clear/rehash alone is not sufficient evidence against locked or cached functions. Numerical entrypoints and project helpers must not use mlock.
+code_bundle:
+  protocol_version: 1.1.0
+  scope: [primary, analysis]
+  dependency_field: code_dependencies
+  dependency_item_fields: [path, sha256]
+  dependency_paths: normalized_project_relative_source_files_only_excluding_entrypoint
+  hash_algorithm: sha256
+  serialization: sort normalized relative paths by UTF-8 byte order; concatenate each UTF-8 path, NUL and raw SHA-256 digest bytes for its entrypoint/helper, then SHA-256 over that byte stream
+  entry_hash_field: code_sha256
+  receipt_hash_field: code_bundle_sha256
+  delivered_state_field: solver_execution.<stage>.bundle_sha256
+  accepted_state_field: solver_execution.<stage>.validated_bundle_sha256
+  rules:
+  - Reject missing, absolute, duplicate, aliasing, case-ambiguous or outside-project dependency paths before hashing; preserve raw bytes and do not normalize source line endings.
+  - The entrypoint binds its dependency declarations through its existing entry SHA; never embed the complete bundle hash in the entrypoint because that creates self-reference.
+  - Default to a self-contained entrypoint with local functions; declare every required project helper when separate source files are necessary. Data/workbooks and installed packages are not code_dependencies.
+  - Cross-check statically discoverable project imports/calls and actual runtime resolution; unsupported dynamic loading is unverified, not a proven dependency closure.
+  - Bind source/data identities before the run and recheck before writing a successful receipt; changed inputs or cached/shadowed MATLAB functions must not acquire a successful new receipt.
+  - Only successful stage receipt and numerical acceptance may update validated_bundle_sha256; sync observes and invalidates without refreshing delivered or validated identities.
+  - Existing Python code without the new protocol remains readable by its historical contract; new MATLAB cannot use missing-metadata compatibility.
+
 default_mode:
   execution_owner: user
   execution_profile: full_fidelity
@@ -10,12 +61,12 @@ default_mode:
   local_pipeline_remains_runnable_by_user: true
 assistant_policy:
   prohibited:
-  - 运行、导入或通过subprocess/runpy/notebook执行数据预处理.py、问题X求解.py或问题X结果深化分析.py
+  - 运行、导入或通过subprocess/runpy/notebook/MATLAB执行题目专属预处理、主求解或深化分析入口及其辅助代码
   - 为节省时间自动缩减数据、网格、时域、场景、重复次数、随机种子、迭代次数或容差
   - 在完整版失败后静默切换轻量模型、替代求解器、粗粒度近似或演示结果
   - 用户未返回相应工作簿前声称已完成项目级预处理、已求解、已分析或已得到正式数值
   - 因多问共享同一原始数据、检测到缺失值或某类赛题通常采用某处理方法而自动生成或强制执行项目级预处理
-  - 为了让主工作簿看起来“验证充分”而把参数敏感性、压力场景、替代算法/结构、多seed稳健性、异质性或广义外样本稳定性提前写入问题X求解.py
+  - 为了让主工作簿看起来“验证充分”而把参数敏感性、压力场景、替代算法/结构、多seed稳健性、异质性或广义外样本稳定性提前写入主求解入口
   allowed:
   - 审题、通用数据审计、preprocessing_decision、模型设计、公式闭环、Primary Quality Specification和完整版代码生成
   - 不导入赛题脚本的静态代码、依赖、语法和工程质量检查
@@ -47,10 +98,23 @@ preprocessing_decision_policy:
   project_level_execution_required: true
   not_needed_or_question_local_preprocessing_artifacts_required: false
 code_delivery:
+  data_identity_mode:
+    field: data_identity_mode
+    scope: RUN_CONFIG_for_primary_or_analysis_receipt_1_1
+    values: [combined, preprocessing_workbook]
+    default: combined
+    authority: core/global_preprocessing_contract.yaml
+    rules:
+    - New Python and MATLAB 1.1 stages under project_level must explicitly select preprocessing_workbook; data_paths must contain exactly the current accepted preprocessing XLSX and data_sha256 must be its ordinary file SHA-256, preserving the existing global data identity.
+    - preprocessing_workbook is forbidden without project_level and accepted/passed preprocessing; the existing covered_raw_sources restriction still applies to configured paths and actual reader calls.
+    - combined retains the existing ordered project-relative input fingerprint for not_needed and question_local. Do not replace the accepted preprocessing workbook identity with a combined path/file fingerprint.
+    - The field is not accepted by project-level preprocessing 1.0. Existing legacy 1.0 solver inputs retain their original interpretation and do not require this new field.
   semantic_governance_required: true
   code_quality_contract: core/code_quality_contract.yaml
   preprocessing_script: 数据预处理/数据预处理.py
   preprocessing_matlab_script_after_workbook_acceptance: 数据预处理/data_process.m
+  stage_scripts_authority: core/output_contract.yaml#per_question.solver_scripts
+  # Legacy Python projection for old callers.
   stage_scripts:
     primary: 问题X求解/问题X求解.py
     analysis: 问题X求解/问题X结果深化分析.py
@@ -59,7 +123,7 @@ code_delivery:
     primary: always_after_decision_and_applicable_data_gate
     analysis: accepted_primary_workbook and analysis_necessity_gate == required
     preprocessing_matlab: preprocessing_decision == project_level and preprocessing_workbook_accepted
-  runtime_metadata: 新生成阶段Python脚本使用RUN_CONFIG声明任务可变输入，并用run_receipt_protocol_version声明期望的RUN_RECEIPT协议；user/full-fidelity/no-degradation政策从本Authority继承。实际运行事实写入该阶段工作簿运行配置中的RUN_RECEIPT。FULL_FIDELITY_CONFIG与FULL_RUN_CONFIG仅作旧项目静态读取兼容。
+  runtime_metadata: 新生成阶段代码使用RUN_CONFIG声明任务可变输入，并用run_receipt_protocol_version声明期望的RUN_RECEIPT协议；user/full-fidelity/no-degradation政策从本Authority继承。实际运行事实写入该阶段工作簿运行配置中的RUN_RECEIPT。FULL_FIDELITY_CONFIG与FULL_RUN_CONFIG仅作旧项目静态读取兼容。
   canonical_config_name: RUN_CONFIG
   legacy_config_names:
   - FULL_FIDELITY_CONFIG
@@ -106,13 +170,27 @@ code_delivery:
     allow_silent_solver_fallback: false
   canonical_optional_compatibility_fields:
   - solver_version
+  backend_config:
+    backend_field: solver_backend
+    dependencies_field: code_dependencies
+    matlab_form: literal_jsondecode
+    matlab_config_position: unconditional_start_of_matching_main_function
+    rules:
+    - MATLAB RUN_CONFIG is exactly one jsondecode of a literal JSON object; only tested literal concatenation, comments, escaping and continuation syntax are accepted.
+    - Reject duplicate JSON keys, non-object roots, non-finite numbers, dynamic expressions, conditional assignment and later overrides without executing code.
+    - Standard keys are ASCII identifiers; null/empty/logical/numeric/string and integer precision follow the tested field-level mapping, never silent field-name conversion.
+    - The decoded values must drive the actual data scope, RNG, solver options and output, not merely echo expected metadata.
   run_receipt_protocol:
     field: run_receipt_protocol_version
     current_version: 1.0.0
+    current_version_by_stage: {preprocessing: 1.0.0, primary: 1.1.0, analysis: 1.1.0}
+    supported_versions: [1.0.0, 1.1.0]
+    version_required_config_fields:
+      '1.1.0': [solver_backend]
     new_writer_required: true
     p5a_transitional_missing_marker_read_supported: true
     unknown_version_policy: fail_closed
-    binding: 已交付阶段代码RUN_CONFIG中的协议期望 + 返回工作簿RUN_RECEIPT中的run_receipt_version；静态读取代码并核对阶段代码SHA，不新增project_state字段
+    binding: 已交付阶段代码RUN_CONFIG中的协议期望 + 返回工作簿RUN_RECEIPT中的run_receipt_version；静态读取代码并核对阶段代码SHA；1.1另按code_bundle绑定已交付与已验收实现
   legacy_required_config_fields:
   - execution_owner
   - execution_profile
@@ -149,7 +227,7 @@ three_stage_policy:
     role: 读取需要统一处理的共享原始数据，冻结covered_raw_sources，执行通用审计和已批准公共处理，输出数据预处理结果.xlsx；同时保存论文公式/方法证据、处理前后对比、验证和data_process绘图底层数据
     freeze_after: preprocessing_workbook_accepted
   primary:
-    role: 首次交付问题X求解.py，只负责主求解与PQS要求的当前主计算内在数值有效性检查并输出问题X求解结果.xlsx；主工作簿accepted后该脚本冻结，不为结果深化分析改写。
+    role: 按已选后端交付唯一主求解入口，只负责主求解与PQS要求的当前主计算内在数值有效性检查并输出问题X求解结果.xlsx；主工作簿accepted后该脚本冻结，不为结果深化分析改写。
     input_by_decision:
       not_needed: 原始数据
       question_local: 原始数据 + 本问语义中已定义的局部变换
@@ -157,7 +235,7 @@ three_stage_policy:
     primary_quality_boundary: 参数敏感性、压力场景、替代算法/结构、多seed/多初值结论稳定性、异质性、误差分解和广义外样本稳定性不属于本阶段
   analysis:
     activation: 主工作簿accepted后先执行Analysis Necessity Gate；仅Gate=required时激活
-    role: Gate=required时新建问题X结果深化分析.py，继承同一preprocessing_decision与数据事实源，依据真实主结果执行敏感性、稳健性、阈值、替代方法/结构、异质性等深化分析，输出问题X结果深化分析.xlsx；Gate=not_required时记录非空理由且不生成03B代码/工作簿。
+    role: Gate=required时按已选后端新建独立深化分析入口，继承同一preprocessing_decision与数据事实源，依据真实主结果执行敏感性、稳健性、阈值、替代方法/结构、异质性等深化分析，输出问题X结果深化分析.xlsx；Gate=not_required时记录非空理由且不生成03B代码/工作簿。
   isolation: 修改深化分析脚本不得改变主求解代码哈希、主工作簿或主结果质量状态；修改主求解脚本则主结果及其全部下游重新进入待验收状态；修改project_level预处理则依赖该数据口径的小问进入stale；修改data_process.m只影响预处理图表/论文层。
 execution_states:
   preprocessing:
@@ -210,6 +288,7 @@ returned_workbook:
   receipt_transport: 既有运行配置工作表，不新增第二张回执表或独立YAML/JSON
   receipt_version_field: run_receipt_version
   current_receipt_version: 1.0.0
+  current_receipt_version_by_stage: {preprocessing: 1.0.0, primary: 1.1.0, analysis: 1.1.0}
   required_sheet: 运行配置
   required_columns:
   - 项目
@@ -241,6 +320,10 @@ returned_workbook:
     protocol_expectation_field_in_run_config: run_receipt_protocol_version
     actual_version_field: run_receipt_version
     current_version: 1.0.0
+    current_version_by_stage: {preprocessing: 1.0.0, primary: 1.1.0, analysis: 1.1.0}
+    supported_versions: [1.0.0, 1.1.0]
+    version_required_fields:
+      '1.1.0': [solver_backend, code_bundle_sha256]
     new_writer_required: true
     p5a_transitional_missing_version_read_supported: true
     legacy_full_config_missing_version_read_supported: true
@@ -287,12 +370,14 @@ returned_workbook:
   - execution_profile必须为full_fidelity。
   - 所有缩减、放宽和静默回退标志必须为false。
   - fallback_used必须为false。
-  - P5b新生成阶段代码若在RUN_CONFIG声明run_receipt_protocol_version=1.0.0，返回工作簿RUN_RECEIPT必须携带run_receipt_version=1.0.0；缺失、不匹配或未知版本均fail closed，不能降级为legacy receipt。
+  - 对应代码声明的run_receipt_protocol_version必须与回执run_receipt_version一致；缺失、不匹配或未知版本均fail closed，不能降级为legacy receipt。
+  - 新03A/03B writer使用1.1；项目级预处理继续1.0且不接受1.1。1.1必须带solver_backend与code_bundle_sha256，静态核对配置、角色、实际源码集合与交付身份；不得把缺字段的新项目降级为历史Python。
+  - 运行配置的项目键必须唯一；重复键不得以后值覆盖前值。旧1.0字段原义保持，不反向要求历史工作簿补1.1字段。
   - P5a过渡RUN_CONFIG或旧FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG未声明receipt协议时，历史工作簿可继续缺少run_receipt_version只读验收；若主动声明run_receipt_version，则必须是当前受支持版本。
   - 版本化RUN_RECEIPT必须静态绑定对应已交付阶段代码，并核对stage、problem_name、data_sha256、solver、random_seed、tolerance、iteration_or_time_limit与代码RUN_CONFIG计划值一致；solver_version、实际停止原因、运行规模、platform、fallback和no-degradation仍以返回回执为事实源。
   - preprocessing工作簿仅允许位于数据预处理/数据预处理结果.xlsx，且仅在decision=project_level时验收。
   - 主/深化工作簿实际路径与标准文件名必须解析出唯一problem_name和stage，再与运行配置完全一致；当前项目只接受问题X求解/中的两个标准工作簿，旧结果数据表/问题X/仅作只读兼容。
-  - preprocessing工作簿code_sha256必须与已交付数据预处理.py一致；主工作簿与深化工作簿分别绑定两阶段小问Python哈希。
+  - preprocessing工作簿code_sha256必须与已交付数据预处理.py一致；主工作簿与深化工作簿分别绑定两阶段小问代码入口哈希及适用的bundle身份。
   - data_sha256必须与对应阶段代码交付时锁定的数据哈希完全一致。
   - preprocessing工作簿必须通过预处理质量门，并包含预处理方法证据、处理前后对比、绘图数据索引以及供data_process.m使用的真实底层数据。
   - 新v7.14主求解验收时，receipt必须静态读取项目状态登记的已交付主求解代码，先核对其实际SHA-256与primary_code_sha256，再从该代码唯一RUN_CONFIG（旧项目可只读FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG）读取primary_quality_protocol_version；返回主工作簿必须携带同一协议版本。不得通过省略工作簿协议标记或Verification ID降级为legacy质量门。
@@ -305,6 +390,7 @@ filenames:
   preprocessing_workbook: 数据预处理/数据预处理结果.xlsx
   preprocessing_matlab_script: 数据预处理/data_process.m
   question_directory: 问题X求解/
+  stage_code_authority: core/output_contract.yaml#per_question.solver_scripts
   primary_python_code: 问题X求解/问题X求解.py
   analysis_python_code: 问题X求解/问题X结果深化分析.py
   primary_workbook: 问题X求解/问题X求解结果.xlsx
@@ -323,4 +409,4 @@ legacy_compatibility:
   v7_2_0_preprocessing_without_decision: read_only_until_redesign
   v7_0_semantic_governance_fields: read_only_until_redesign
   v6_6_single_evolving_script: read_only
-  rule: 旧项目可继续读取已有产物；P5a后旧FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG仍按原完整字段和no-degradation显式标志只读兼容，不能因RUN_CONFIG迁移而放宽。P5a过渡RUN_CONFIG和历史receipt在P9裁决前可缺少RUN_RECEIPT版本握手；一旦任一端显式声明版本则只接受当前协议且不得静默降级。v7.13及更早主工作簿只读时不强制反向补Verification ID；重新进入当前主求解时该问按v7.14主数值质量轨迹重新生成。v7.2.0--v7.2.2项目重新进入模型设计/预处理/绘图/写作时沿用三态decision并按当前通用审计与证据规则复核；只读历史交付不强制反向补data_process.m；更早项目重新进入当前流程时先补齐preprocessing_decision，只有project_level才要求统一预处理；重新深化分析时使用独立问题X结果深化分析.py。
+  rule: 旧项目可继续读取已有产物；P5a后旧FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG仍按原完整字段和no-degradation显式标志只读兼容，不能因RUN_CONFIG迁移而放宽。P5a过渡RUN_CONFIG和历史receipt在P9裁决前可缺少RUN_RECEIPT版本握手；一旦任一端显式声明版本则只接受当前协议且不得静默降级。v7.13及更早主工作簿只读时不强制反向补Verification ID；重新进入当前主求解时该问按v7.14主数值质量轨迹重新生成。v7.2.0--v7.2.2项目重新进入模型设计/预处理/绘图/写作时沿用三态decision并按当前通用审计与证据规则复核；只读历史交付不强制反向补data_process.m；更早项目重新进入当前流程时先补齐preprocessing_decision，只有project_level才要求统一预处理；重新深化分析时按当前后端与阶段合同生成独立入口。

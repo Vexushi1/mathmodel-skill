@@ -227,7 +227,7 @@ class TestSyncProject(unittest.TestCase):
             setup_project(root, status="solved", phase="solve_validate", include_analysis=False, include_analysis_code=False)
             report = syncer.synchronize(root, write=False, delivery_scope="results")
             self.assertTrue(any("结果深化分析" in issue for issue in report["issues"]))
-            self.assertTrue(any("Python脚本" in issue for issue in report["issues"]))
+            self.assertTrue(any("缺少标准结果深化分析脚本" in issue for issue in report["issues"]))
 
     def test_capability_required_sheet_is_enforced(self):
         syncer = load_syncer()

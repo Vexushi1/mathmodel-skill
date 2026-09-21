@@ -115,9 +115,11 @@ transition_events:
       data_scope: [data]
       preprocessing: [data]
   primary_code_changed:
+    implementation_binding: primary backend, entry path, entry bytes or declared code dependency set/bytes changed
     own_profile: primary_result
     emitted_impacts: [result]
   analysis_code_changed:
+    implementation_binding: analysis backend, entry path, entry bytes or declared code dependency set/bytes changed
     own_profile: analysis_result
     emitted_impacts: []
   data_changed:
@@ -193,6 +195,7 @@ transition_report:
 invariants:
 - Applying the same transition to an already-transitioned state is idempotent.
 - Model Approval is invalidated only by semantic-profile transitions, not by ordinary primary-code or analysis-code freshness changes.
+- Backend and source-bundle changes use existing code events even if the entry SHA is unchanged; matlab_script_changed remains restricted to formal figure code.
 - Typed result/parameter/data dependencies invalidate execution/evidence without automatically invalidating downstream mathematical approval.
 - Unknown or legacy untyped dependencies must never be treated as no-impact.
 - State transition logic must not read or write project files; callers own persistence.

@@ -149,9 +149,9 @@
 
 ### Algorithm Trace
 
-> 仅当某问 `algorithm_presentation=stepwise/pseudocode` 时登记。Trace 保存真实求解结构与锚点，不复制 Python 源码或通用算法知识。角色需与 Model / Solver / Validator 分离保持一致。`角色`填写 `solver / validator / baseline / alternative` 中与本项目真实用途一致者。
+> 仅当某问 `algorithm_presentation=stepwise/pseudocode` 时登记。旧项目的“Python 锚点”表头继续可读；新表保持原 12 列与列序，代码锚点注明实际入口/函数。Trace 保存真实求解结构与锚点，不复制求解源码或通用算法知识。角色需与 Model / Solver / Validator 分离保持一致。`角色`填写 `solver / validator / baseline / alternative` 中与本项目真实用途一致者。
 
-| Algorithm ID | 小问 | 角色 | 输入/状态 | 核心操作 | 循环/分支/阶段 | Formula/Proposition/Constraint 锚点 | 终止条件 | 输出 | Python 锚点 | 呈现模式 | 状态 |
+| Algorithm ID | 小问 | 角色 | 输入/状态 | 核心操作 | 循环/分支/阶段 | Formula/Proposition/Constraint 锚点 | 终止条件 | 输出 | 代码锚点 | 呈现模式 | 状态 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | A1 |  |  |  |  |  |  |  |  |  | stepwise / pseudocode | current / stale |
 
@@ -183,7 +183,7 @@
 
 ### 正文章节与交付映射
 
-| 题目要求 | 论文位置 | 核心模型/公式 | Algorithm | 命题 | Python | 工作簿/工作表 | MATLAB 图表 | Citation | 本问答案 |
+| 题目要求 | 论文位置 | 核心模型/公式 | Algorithm | 命题 | 求解代码 | 工作簿/工作表 | MATLAB 图表 | Citation | 本问答案 |
 |---|---|---|---|---|---|---|---|---|---|
 |  |  |  |  |  |  |  |  |  |  |
 
@@ -298,7 +298,7 @@
 
 **变量、假设与模型**
 
-| 符号 | 类型 | 含义 | 单位/范围 | Python 变量 |
+| 符号 | 类型 | 含义 | 单位/范围 | 实现变量 |
 |---|---|---|---|---|
 |  |  |  |  |  |
 
@@ -334,7 +334,7 @@ $$
 
 **题面—数学—代码—输出闭环**
 
-| 题面对象/要求 | 数学变量、关系、目标或约束 | Python 变量/函数 | 工作簿输出/验证 | 状态 |
+| 题面对象/要求 | 数学变量、关系、目标或约束 | 实现变量/函数 | 工作簿输出/验证 | 状态 |
 |---|---|---|---|---|
 |  |  |  |  | closed / gap |
 
@@ -405,7 +405,8 @@ $$
 - heuristic 缩域的弃置域检查步骤（若适用）：
 - surrogate→original reevaluation 步骤（若适用）：
 - Formula / Proposition / Constraint 锚点：
-- Python 实现锚点：
+- 已选求解后端 / 选择理由 / 依赖核验：
+- 代码实现锚点：
 - 初始化/随机种子：
 - 容差与终止条件：
 - 03A 当前主计算必须闭合的检验：
@@ -479,7 +480,7 @@ $$
 
 | 证据类型 | 文件 | 工作表/函数/命题/图号/citation key | 关键字段或指标 |
 |---|---|---|---|
-| Python |  |  |  |
+| 求解代码（注明后端） |  |  |  |
 | 求解工作簿 |  |  |  |
 | 深化分析工作簿 |  |  |  |
 | Algorithm |  |  |  |
@@ -581,7 +582,7 @@ $$
 
 ## 待办与缺口
 
-绘图脚本静态检查通过而用户尚未运行、调整或导出时，在本表记录剩余操作，不将其写成已完成的图形验收。需要写入项目状态时，可在 `subproblems[].execution_note` 追加明确标注为 MATLAB 的事实说明，保留原有 Python 主求解/03B 执行事实；不得用 MATLAB 状态覆盖 `primary_execution_status` 或 `analysis_execution_status`。
+绘图脚本静态检查通过而用户尚未运行、调整或导出时，在本表记录剩余操作，不将其写成已完成的图形验收。需要写入项目状态时，可在 `subproblems[].execution_note` 追加明确标注为 MATLAB 绘图的事实说明，保留原有主求解/03B 执行事实；不得用绘图状态覆盖 `primary_execution_status` 或 `analysis_execution_status`。
 
 `artifacts.figures` 记录实际图文件，`artifacts.approved_figures` 仅按既有入文批准流程记录用户确认的真实文件；静态检查不自动产生批准。`paper_framework.sync_status=current` 仅表示框架已同步当前事实，不表示全部图已运行、外观已确认或已批准；脚本/图片变化后的 hash 与 stale 继续服从现有同步和状态转换规则。
 
@@ -609,7 +610,7 @@ $$
 - [ ] solver applicability 已由解析结构或已批准的条件式 probe 说明；若 probe 触发未批准的新算法语义，已回到 Module 02 重新审批；
 - [ ] surrogate / decomposition 的推荐方案已计划/完成 original-model reevaluation，或明确无法完整回算的残余近似；
 - [ ] 需要正式算法流程的小问已选择 `stepwise/pseudocode` 并建立 current Algorithm Trace；简单问题明确 `not_needed`，未机械生成伪代码；
-- [ ] Algorithm Trace 中公式/命题/约束、Python 与输出锚点和当前求解链一致；
+- [ ] Algorithm Trace 中公式/命题/约束、代码与输出锚点和当前求解链一致；
 - [ ] 问题章节内部小节规划已同时检查碎片化与过度合并；标题服务独立数学任务且不存在机械字数/数量门槛；
 - [ ] 影响结论的数值参数有作用说明、候选范围/来源、精度/收敛/验证证据和选择规则；
 - [ ] 复杂度异常信号已经解释；

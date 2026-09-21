@@ -40,7 +40,7 @@
 | 各问核心模型收束是否与框架 `required / inline / not_applicable` 状态一致 |  |  |
 | 求解段是否从当前模型结构解释算法、参数和终止条件 |  |  |
 | 算法流程是否按 `not_needed / stepwise / pseudocode` 自适应，而非每问机械设置伪代码 |  |  |
-| `stepwise/pseudocode` 是否能沿 Algorithm Trace 追溯到公式/命题/约束、真实 Python 与工作簿结果或验证证据 |  |  |
+| `stepwise/pseudocode` 是否能沿 Algorithm Trace 追溯到公式/命题/约束、真实代码实现与工作簿结果或验证证据 |  |  |
 | 主结果是否包含关键数值/图表、比较、机制和题目回答 |  |  |
 | 深化证据是否明确 target claim，并记录 `support / modify / reject` 与 required action |  |  |
 | 多方法验证是否同时检查适用的数值一致性与结构一致性 |  |  |

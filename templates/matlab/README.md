@@ -1,10 +1,12 @@
 # HSK MATLAB 科研绘图模板（当前活动模板）
 
-MATLAB 只读取 Python 已验收的 current 合法工作簿与数据事实源，不重新求解、重新清洗、重新做敏感性或重新估计模型。每问唯一入口通用记为 `q{x}_plot.m`，问题一实例为 `q1_plot.m`，与主求解脚本、主工作簿以及条件存在的 03B 脚本/工作簿同处 `问题X求解/`；活动模板与文档只使用这一标准命名。
+MATLAB 主求解/深化模板在 `templates/code/matlab/`，其职责、配置及回执服从 User Execution Authority；本目录继续专供 Figure Evidence，不能用 qX_plot.m 充当 solver。
 
-MATLAB 的职责不是“把 Excel 画出来”，而是：
+本目录的 MATLAB 绘图入口只读取已验收求解实现提供的 current 合法工作簿与数据事实源，不重新求解、重新清洗、重新做敏感性或重新估计模型。每问唯一入口通用记为 `q{x}_plot.m`，问题一实例为 `q1_plot.m`，与主求解脚本、主工作簿以及条件存在的 03B 脚本/工作簿同处 `问题X求解/`；活动模板与文档只使用这一标准命名。
 
-> **基于 Python 已验收的细粒度证据，完成 Scientific Evidence Visualization：科学视觉编码、组合表达、结构表达、全局—局部组织、统计/不确定性表达与论文证据强化。**
+这些绘图入口的职责不是“把 Excel 画出来”，而是：
+
+> **基于已验收求解实现提供的细粒度证据，完成 Scientific Evidence Visualization：科学视觉编码、组合表达、结构表达、全局—局部组织、统计/不确定性表达与论文证据强化。**
 
 ## 路径
 
@@ -17,7 +19,7 @@ resultAnalysisBook = fullfile(resultDir, "问题一结果深化分析.xlsx");
 
 `solutionBook` 是主结果图的必需事实源。`resultAnalysisBook` 只是条件路径：Analysis Necessity Gate=`required` 且 03B 已实际执行、验收时才存在；只有敏感性、稳定性、阈值、算法、结构、异质性等 Figure Contract 明确引用 03B evidence 时才读取。Gate=`not_required` 且理由非空时，没有分析工作簿是合法状态；不得因此阻断普通主结果图，也不得从主工作簿伪造 03B 图。若实例脚本明确选择 `resultAnalysisBook` 为 source，则文件不存在必须 fail closed。
 
-不得跨问题读取临时 Excel、根据摘要数字反推数据或在 MATLAB 中重算核心结果。
+不得跨问题读取临时 Excel、根据摘要数字反推数据或在绘图入口中重算核心结果。
 
 ## 实表读取
 
@@ -29,7 +31,7 @@ resultAnalysisBook = fullfile(resultDir, "问题一结果深化分析.xlsx");
 
 空 `requirements` 只检查主工作簿存在并枚举其工作表；显式声明后只检查所用的 `solution` / `analysis`。未使用的 `books.solutionSheets` / `books.analysisSheets` 返回空 string 数组，路径字段仍保留，不代表文件已存在或已经验收。声明 `analysis` 后文件缺失必须报错，不回退主结果。历史 `robustness` 仍映射分析来源，但与 `analysis` 同时出现时报歧义；历史分析文件名只在明确使用分析且标准文件缺失时只读兼容并告警。本轮保留这些旧接口，不迁移用户工作簿；未来删除兼容路径须单独说明迁移。
 
-每个工作表的要求是标量 struct，只有 `headers` 必填：
+工作簿内用 N×2 cell 声明 `{精确工作表名, 要求}`，支持中文表名；表名非空、唯一且不含首尾空白。旧版以 ASCII 工作表名作字段的标量 struct 仍可读。每个工作表的要求是标量 struct，只有 `headers` 必填：
 
 | 字段 | 作用 |
 |---|---|
@@ -43,19 +45,19 @@ resultAnalysisBook = fullfile(resultDir, "问题一结果深化分析.xlsx");
 新写法示例，表名和字段名必须替换成 accepted 工作簿的实际名称：
 
 ```matlab
-requirements.solution.("逐时结果") = struct( ...
+requirements.solution = {"逐时结果", struct( ...
     "headers", ["记录键", "时刻", "数值"], ...
     "key_header", "记录键", "numeric_headers", ["时刻", "数值"], ...
-    "allow_missing_headers", "数值");  % 仅当该字段的证据合同确实允许缺测
+    "allow_missing_headers", "数值")};  % 仅当该字段的证据合同确实允许缺测
 books = hsk_read_result_workbooks(projectRoot, "问题一", requirements);
 ```
 
 旧写法仍可读，但整数必须能通过 `columns` 和 `headers` 声明映射：
 
 ```matlab
-requirements.solution.("逐时结果") = struct( ...
+requirements.solution = {"逐时结果", struct( ...
     "headers", ["记录键", "时刻", "数值"], "columns", [1, 3, 5], ...
-    "key_column", 1, "numeric_columns", [3, 5]);
+    "key_column", 1, "numeric_columns", [3, 5])};
 ```
 
 这里的第 3、5 列先映射为“时刻”“数值”，再按真实唯一表头读取；移动列不改变绑定。`columns` 不再锁定实际列位置。旧整数缺少声明映射、存在歧义、新旧位置/角色声明不一致或未知配置字段均报错；不能直接用旧列号读取，也不静默忽略冲突。`key_header` 可单独使用；把它同时列为 numeric_headers 时还会接受数值检查。该 helper 只验证要求，不排序或返回重组后的数值数组。

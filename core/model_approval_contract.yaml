@@ -42,6 +42,7 @@ model_challenge:
     - preprocessing_fit
     - structure_before_algorithm
     - full_fidelity_computability
+    - selected_backend_capabilities_and_environment
     - validation_plan_adequacy
     - paper_explainability
   devils_advocate_pass:
@@ -113,6 +114,12 @@ human_approval:
   - residual_warnings
   - next_stage_implementation_scope
   approval_brief_field_semantics:
+    next_stage_implementation_scope: >-
+      Include the chosen Python/MATLAB backend, concrete solver, selection reason,
+      required packages/toolboxes and any unverified environment conditions under
+      core/user_execution_contract.yaml#solver_backends. This is part of the existing
+      Brief, not a separate backend approval. Pure language implementation changes
+      preserve mathematical approval; changes to algorithm semantics do not.
     structural_simplification: >-
       Record the current reduction provenance and the minimal-sufficiency rationale, including
       what necessary information would be lost by any further simplification.

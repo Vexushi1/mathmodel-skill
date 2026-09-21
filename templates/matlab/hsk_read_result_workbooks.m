@@ -60,14 +60,14 @@ end
 end
 
 function availableSheets = validate_exact_requirements(workbookPath, sheetRequirements)
-assert(isstruct(sheetRequirements) && isscalar(sheetRequirements), ...
-    "工作簿%s的工作表要求必须为标量 struct", workbookPath);
+sheetRequirements = sheet_requirement_pairs(sheetRequirements, workbookPath);
 assert(isfile(workbookPath), "当前图声明的工作簿不存在: %s", workbookPath);
 availableSheets = string(sheetnames(workbookPath));
-for sheetName = reshape(string(fieldnames(sheetRequirements)), 1, [])
+for index = 1:size(sheetRequirements, 1)
+    sheetName = string(sheetRequirements{index, 1});
     context = sprintf("工作簿%s，工作表%s", workbookPath, sheetName);
     assert(any(availableSheets == sheetName), "%s：缺少工作表", context);
-    spec = normalize_spec(sheetRequirements.(sheetName), context);
+    spec = normalize_spec(sheetRequirements{index, 2}, context);
     raw = readcell(workbookPath, "Sheet", sheetName);
     assert(size(raw, 1) >= 2, "%s：没有读入数据行", context);
     % 不裁尾、不删行；missing/NaN 无法证明原 Excel 单元格是物理空白。
@@ -94,6 +94,27 @@ for sheetName = reshape(string(fieldnames(sheetRequirements)), 1, [])
         end
     end
 end
+end
+
+function pairs = sheet_requirement_pairs(input, workbookPath)
+% MATLAB struct field names cannot represent Chinese Excel worksheet names.
+% Nx2 cells preserve exact names; scalar structs remain readable for old ASCII declarations.
+if isstruct(input) && isscalar(input)
+    pairs = [fieldnames(input), struct2cell(input)];
+else
+    assert(iscell(input) && ismatrix(input) && size(input, 2) == 2, ...
+        "HSK:SheetRequirements", "工作簿%s要求 {精确工作表名, spec} 两列 cell 或旧版标量 struct", workbookPath);
+    pairs = input;
+end
+names = strings(size(pairs, 1), 1);
+for k = 1:numel(names)
+    value = pairs{k, 1};
+    assert((ischar(value) && isrow(value)) || (isstring(value) && isscalar(value)), ...
+        "HSK:SheetRequirements", "工作表名称必须为文本标量");
+    names(k) = string(value);
+end
+assert(all(~ismissing(names) & strlength(names) > 0 & names == strtrim(names)) && ...
+    numel(unique(names)) == numel(names), "HSK:SheetRequirements", "工作表名称不能为空、重复或含首尾空格");
 end
 
 function spec = normalize_spec(input, context)

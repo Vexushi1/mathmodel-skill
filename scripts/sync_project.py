@@ -283,7 +283,27 @@ def _code_hash_mismatches(entry: Mapping[str, Any], snapshot: Mapping[str, Any])
     current_analysis = snapshot.get("analysis_code_sha256")
     primary_changed = bool(expected_primary and current_primary != expected_primary)
     analysis_changed = bool(expected_analysis and current_analysis != expected_analysis)
-    return primary_changed, analysis_changed
+    observed = snapshot.get("solver_execution_observed") or {}
+    changes = {"primary": primary_changed, "analysis": analysis_changed}
+    selections = entry.get("solver_execution", {})
+    if not isinstance(selections, Mapping):
+        return True, True
+    for stage, path_field in (("primary", "code"), ("analysis", "result_analysis_code")):
+        delivered = selections.get(stage, {})
+        current = observed.get(stage) or {}
+        if not isinstance(delivered, Mapping):
+            changes[stage] = True
+            continue
+        if delivered.get("bundle_sha256"):
+            changes[stage] |= bool(
+                current.get("bundle_sha256") != str(delivered["bundle_sha256"]).lower()
+                or current.get("backend") != delivered.get("backend")
+                or current.get("entrypoint") != entry.get(path_field)
+                or current.get("binding_issues")
+            )
+        elif current.get("binding_issues") and entry.get(path_field):
+            changes[stage] = True
+    return changes["primary"], changes["analysis"]
 
 
 LAYER_TRANSITION_EVENTS = {
@@ -434,18 +454,25 @@ def _docx_issues(root: Path, state: Mapping[str, Any]) -> list[str]:
     return [] if any(path.is_file() for path in files) else ["DOCX交付缺少真实.docx文件"]
 
 
-def _submission_zip_issues(path: Path, require_matlab: bool = True) -> list[str]:
+def _submission_zip_issues(
+    path: Path, require_matlab: bool = True, *, required_paths: Iterable[str] | None = None,
+) -> list[str]:
     if not path.is_file():
         return ["缺少提交ZIP"]
     try:
         with zipfile.ZipFile(path) as archive:
-            names = [name.lower() for name in archive.namelist() if not name.endswith("/")]
+            actual_names = [name for name in archive.namelist() if not name.endswith("/")]
+            names = [name.lower() for name in actual_names]
     except Exception as exc:  # noqa: BLE001
         return [f"无法读取提交ZIP: {exc}"]
     issues: list[str] = []
     if not any(name.endswith(".pdf") for name in names):
         issues.append("提交ZIP缺少PDF")
-    if not any(name.endswith(".py") for name in names):
+    if required_paths is not None:
+        for required in sorted(set(required_paths)):
+            if required not in actual_names:
+                issues.append(f"提交ZIP缺少当前必需文件: {required}")
+    elif not any(name.endswith(".py") for name in names):
         issues.append("提交ZIP缺少Python代码")
     if not any(name.endswith(".xlsx") for name in names):
         issues.append("提交ZIP缺少结果工作簿")
@@ -560,12 +587,12 @@ def _scope_artifact_issues(
     required = set(stage_requirements(scope, output_contract, state))
     issues = _formal_state_issues(required, state)
     issues.extend(_preprocessing_artifact_issues(root, required, state))
-    if "python_code" in required and not all(snapshot.get("primary_code") for snapshot in snapshots.values()):
-        issues.append("正式交付缺少标准主求解Python脚本")
+    if required.intersection({"python_code", "primary_code"}) and not all(snapshot.get("primary_code") for snapshot in snapshots.values()):
+        issues.append("正式交付缺少标准主求解脚本")
     if "result_analysis_code" in required:
         for key, snapshot in snapshots.items():
             if not snapshot.get("result_analysis_code"):
-                issues.append(f"{key}: 正式结果交付缺少独立结果深化分析Python脚本")
+                issues.append(f"{key}: 正式结果交付缺少独立结果深化分析脚本")
     if "solution_workbook" in required and not all(snapshot.get("solution_workbook") for snapshot in snapshots.values()):
         issues.append("结果交付缺少标准求解结果工作簿")
     if "result_quality_report" in required and not all(snapshot.get("result_quality_report") for snapshot in snapshots.values()):
@@ -584,9 +611,13 @@ def _scope_artifact_issues(
     if required.intersection({"latex_source", "compiled_pdf", "compile_report"}):
         issues.extend(_compile_artifact_issues(root, state))
     if "validated_submission_package" in required:
+        from submission_requirements import reproducibility_requirements
+
         artifacts = state.get("artifacts") or {}
         package = root / str(artifacts.get("submission_package") or "submission/submission.zip")
-        issues.extend(_submission_zip_issues(package, require_matlab=True))
+        package_paths, package_issues = reproducibility_requirements(root, state)
+        issues.extend(package_issues)
+        issues.extend(_submission_zip_issues(package, require_matlab=True, required_paths=package_paths))
     return issues
 
 

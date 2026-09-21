@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 import artifact_fingerprint as ARTIFACT_FINGERPRINT
+import stage_code as STAGE_CODE
 
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 
@@ -52,20 +53,14 @@ VALID_PREPROCESSING_DECISIONS = {"not_needed", "question_local", "project_level"
 
 
 def question_key(chinese_name: str) -> str:
-    order = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
-    suffix = chinese_name.removeprefix("问题")
-    return f"Q{order.index(suffix) + 1}" if suffix in order else chinese_name
+    number = STAGE_CODE.question_number(chinese_name)
+    return f"Q{number}" if number else chinese_name
 
 def chinese_question_name(key: str) -> str:
-    order = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
-    match = re.fullmatch(r"Q(\d+)", key)
-    if match and 1 <= int(match.group(1)) <= len(order):
-        return f"问题{order[int(match.group(1)) - 1]}"
-    return key
+    return STAGE_CODE.question_name(key)
 
 def question_number(chinese_name: str) -> int | None:
-    match = re.fullmatch(r"Q(\d+)", question_key(chinese_name))
-    return int(match.group(1)) if match else None
+    return STAGE_CODE.question_number(chinese_name)
 
 def preprocessing_decision(state: Mapping[str, Any]) -> str | None:
     value = str(((state.get("preprocessing") or {}).get("decision", ""))).strip()
@@ -178,6 +173,53 @@ def _stage_code_paths(root: Path, chinese_name: str) -> tuple[Path | None, Path 
 def _python_files(root: Path, chinese_name: str) -> list[Path]:
     primary, analysis, _ = _stage_code_paths(root, chinese_name)
     return [path for path in (primary, analysis) if path is not None]
+
+
+def _solver_observations(
+    root: Path, question: str, entry: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, Path | None], list[str]]:
+    """Observe current implementation bytes without updating delivered identities."""
+    root = root.resolve()
+    observed: dict[str, Any] = {}
+    paths: dict[str, Path | None] = {"primary": None, "analysis": None}
+    issues: list[str] = []
+    selections = entry.get("solver_execution", {})
+    if not isinstance(selections, Mapping):
+        return observed, paths, ["solver_execution必须为映射"]
+    for stage in paths:
+        field = "code" if stage == "primary" else "result_analysis_code"
+        selection = selections.get(stage, {})
+        if not isinstance(selection, Mapping):
+            observed[stage] = {"binding_issues": ["后端选择必须为映射"]}
+            issues.append(f"{stage}: 后端选择必须为映射")
+            continue
+        registered = bool(entry.get(field) or entry.get(f"{stage}_code_sha256")
+                          or selection.get("bundle_sha256"))
+        try:
+            code = STAGE_CODE.resolve_stage_code(root, question, stage, entry=entry)
+            if code is None:
+                continue
+            paths[stage] = code.path
+            record = {"backend": code.backend, "entrypoint": code.path.relative_to(root).as_posix()}
+            bound_entry = {**entry, field: record["entrypoint"]}
+            if STAGE_CODE.requires_bundle_binding(root, bound_entry, stage):
+                _, config = STAGE_CODE.parse_stage_config(code.path, code.backend)
+                record.update(STAGE_CODE.stage_code_fingerprint(
+                    root, code.path, config.get("code_dependencies", []), check_declared_hashes=False,
+                ))
+                if registered:
+                    binding_issues = STAGE_CODE.validate_stage_binding(root, entry, stage)
+                    record["binding_issues"] = binding_issues
+                    issues.extend(f"{stage}: {issue}" for issue in binding_issues)
+            observed[stage] = record
+        except STAGE_CODE.StageCodeMissingError as exc:
+            if registered:
+                observed[stage] = {"binding_issues": [str(exc)]}
+                issues.append(f"{stage}: {exc}")
+        except (ValueError, OSError, TypeError) as exc:
+            observed[stage] = {"binding_issues": [str(exc)]}
+            issues.append(f"{stage}: {exc}")
+    return observed, paths, issues
 
 def _analysis_path(result_dir: Path, chinese_name: str) -> tuple[Path, bool]:
     current = result_dir / f"{chinese_name}结果深化分析.xlsx"
@@ -361,11 +403,14 @@ def _snapshot_question(
     data_hash: str | None,
     delivery_scope: str | None,
 ) -> dict[str, Any]:
+    root = root.resolve()
     key = question_key(chinese_name)
     result_dir = _question_dir(root, chinese_name)
     solution = result_dir / f"{chinese_name}求解结果.xlsx"
     analysis_workbook, legacy_analysis_workbook = _analysis_path(result_dir, chinese_name)
-    primary_code, analysis_code, legacy_single_code = _stage_code_paths(root, chinese_name)
+    implementations, code_paths, code_issues = _solver_observations(root, chinese_name, entry)
+    primary_code, analysis_code = code_paths["primary"], code_paths["analysis"]
+    legacy_single_code = bool(primary_code and primary_code.suffix == ".py" and not analysis_code)
     number = question_number(chinese_name)
     matlab = result_dir / f"q{number}_plot.m" if number else result_dir / "q_plot.m"
     figures, figure_issues = scoped_figure_files(root, matlab, entry)
@@ -387,12 +432,12 @@ def _snapshot_question(
         require_analysis_code = not analysis_not_required
 
     formal_figures = delivery_scope in {"figures", "docx", "latex", "submission"}
-    issues: list[str] = list(figure_issues) if formal_figures else []
+    issues: list[str] = [*code_issues, *(figure_issues if formal_figures else [])]
     warnings: list[str] = [] if formal_figures else list(figure_issues)
     if entry.get("result_analysis_status") == "not_required" and not analysis_not_required:
         issues.append("result_analysis_status=not_required必须提供非空result_analysis_requirement_reason")
     if delivery_scope == "code" and primary_code is None:
-        issues.append("代码交付缺少标准主求解Python脚本")
+        issues.append("代码交付缺少标准主求解脚本")
     if require_solution and not solution.is_file():
         issues.append("缺少标准求解结果工作簿")
     if require_analysis and not analysis_workbook.is_file():
@@ -401,7 +446,7 @@ def _snapshot_question(
         if delivery_scope is None and legacy_single_code and not entry.get("analysis_code_sha256"):
             warnings.append("检测到v6.6.x单脚本项目；只读兼容，重新深化分析时应迁移为独立结果深化分析脚本")
         else:
-            issues.append("缺少标准结果深化分析Python脚本")
+            issues.append("缺少标准结果深化分析脚本")
     if solution.is_file():
         issues.extend(_validate_workbook(solution, "solution", schema, entry))
     if analysis_workbook.is_file():
@@ -458,6 +503,7 @@ def _snapshot_question(
         "result_analysis_code": analysis_code.relative_to(root).as_posix() if analysis_code else None,
         "primary_code_sha256": sha256_file(primary_code) if primary_code else None,
         "analysis_code_sha256": sha256_file(analysis_code) if analysis_code else None,
+        "solver_execution_observed": implementations,
         "legacy_single_code": legacy_single_code,
         "solution_workbook": solution.relative_to(root).as_posix() if solution.is_file() else None,
         "result_analysis_workbook": analysis_workbook.relative_to(root).as_posix() if analysis_workbook.is_file() else None,

@@ -40,7 +40,7 @@
 | algorithm presentation | `not_needed / stepwise / pseudocode` |
 | Comparator Envelope / 未采用 alternative 或未主模型化理由 | `not_applicable` /  |
 | residual warnings |  |
-| 下一阶段实现范围 |  |
+| 下一阶段实现范围 | 已选后端、具体求解器、选择理由、所需依赖及未核验条件 |
 
 - 当前模型状态：`proposed_model_spec / locked_model_spec / stale`
 - 等待用户确认：`yes / no`

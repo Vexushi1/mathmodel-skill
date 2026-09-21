@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import artifact_identity as ARTIFACT_IDENTITY
+import stage_code as STAGE_CODE
 
 
 def _file_issues(root: Path, path: Any, expected: Any, label: str) -> list[str]:
@@ -31,6 +32,7 @@ def _hashes(entry: Mapping[str, Any]) -> tuple[dict, dict]:
 
 def primary_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, Any]) -> list[str]:
     issues: list[str] = []
+    issues.extend(STAGE_CODE.validate_stage_binding(root, entry, "primary", require_validated=True))
     if entry.get("primary_execution_status") != "accepted" or entry.get("result_quality_status") != "passed":
         issues.append("主工作簿未accepted或主结果质量未passed")
     layers = set(ARTIFACT_IDENTITY.normalize_stale_layers(entry.get("stale_layers", []) or []))
@@ -93,4 +95,5 @@ def analysis_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, An
         }:
             issues.append("分析回执必须先有明确的代码交付/执行状态")
         issues.extend(_file_issues(root, entry.get("result_analysis_code"), entry.get("analysis_code_sha256"), "深化分析代码"))
+        issues.extend(STAGE_CODE.validate_stage_binding(root, entry, "analysis"))
     return list(dict.fromkeys(issues))

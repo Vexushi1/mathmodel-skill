@@ -1,6 +1,12 @@
-# mathmodel-skill v9.6.1
+# mathmodel-skill v9.7.0
 
-HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 → 条件数学化与结构化简 → 最小充分主模型 + 按需 comparator → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构匹配 Solver + Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision / semantic_identity_hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + 按需 Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 → 条件数学化与结构化简 → 最小充分主模型 + 按需 comparator → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构匹配 Solver + Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision / semantic_identity_hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python/MATLAB 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + 按需 Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
+
+## v9.7.0：Python / MATLAB 自适应求解
+
+主求解和按需深化分析可按问题选择 Python 或 MATLAB，已有项目恢复当前选择；新请求的 `auto` 先根据模型、依赖、环境和用户偏好完成选择。两种语言共用工作簿、数值验收和下游图文交接，原项目级预处理继续使用 Python。MATLAB 求解模板与原有绘图入口分开加载。
+
+新执行回执 1.1 同时绑定后端、入口与声明 helper 的代码摘要；文件变化会阻断旧结果资格，并沿原有依赖关系传播失效。旧 Python 命名、回执 1.0 与省略新 CLI 参数的兼容接口保留。迁移步骤、运行边界及测试入口见[求解后端迁移说明](docs/v970_solver_backends_migration.md)。
 
 ## v9.6.1：独立支持包与 skill 入口一致性
 
@@ -612,11 +618,11 @@ locked model + declared numerical method
 └─ qX_plot.m
 ```
 
-主求解与结果深化分析是两个独立 Python 阶段。主工作簿 accepted 后冻结主脚本，再生成深化分析脚本。赛题代码由用户本地 full-fidelity 执行，助手只生成、静态检查并验收返回工作簿。
+主求解与结果深化分析按每问已选 Python/MATLAB 后端交付独立入口；主工作簿 accepted 后冻结主实现，只有 Analysis Necessity Gate=required 才生成深化分析入口。赛题代码由用户本地 full-fidelity 执行，助手只生成、静态检查并验收返回工作簿。
 
 ### MATLAB Scientific Figure Evidence
 
-MATLAB 只读取 Python 输出的数据和标准工作簿绘图，不重新求解或重新分析。正式论文图不设置整体 `title/sgtitle`，由 DOCX/LaTeX caption 承担正式图号和图名；多面板按需只保留 panel label。核心图先识别 Evidence Structure，再通过 Scientific Figure Synthesis / Basic-form Challenge 决定单图、组合编码、多面板、局部放大和 Rendering Profile；只有真实证据支持时才使用 uncertainty band、distribution + raw samples、heatmap + contour、Pareto + recommendation、trajectory + field + boundary 等科研表达。数据图颜色、字号、线宽、网格与边框按图显式配置，可参考具体 SCI / Nature 论文而不设默认色板；保留图窗供人工调整，不批量自动导出。正式机理/推导图继续遵守 monochrome-first 黑白灰线稿规则。整篇论文在写作前执行 Figure Portfolio Scientific Quality Review，检查必要证据覆盖、重复表达和可读性；不按基础图数量或图型复杂度要求返工。
+MATLAB 绘图入口只读取已验收求解实现的数据和标准工作簿，不重新求解或重新分析。正式论文图不设置整体 `title/sgtitle`，由 DOCX/LaTeX caption 承担正式图号和图名；多面板按需只保留 panel label。核心图先识别 Evidence Structure，再通过 Scientific Figure Synthesis / Basic-form Challenge 决定单图、组合编码、多面板、局部放大和 Rendering Profile；只有真实证据支持时才使用 uncertainty band、distribution + raw samples、heatmap + contour、Pareto + recommendation、trajectory + field + boundary 等科研表达。数据图颜色、字号、线宽、网格与边框按图显式配置，可参考具体 SCI / Nature 论文而不设默认色板；保留图窗供人工调整，不批量自动导出。正式机理/推导图继续遵守 monochrome-first 黑白灰线稿规则。整篇论文在写作前执行 Figure Portfolio Scientific Quality Review，检查必要证据覆盖、重复表达和可读性；不按基础图数量或图型复杂度要求返工。
 
 ## 运行时权威链
 
@@ -639,7 +645,7 @@ route-specific contracts / modules / packs / templates
 - `core/model_approval_contract.yaml`：独立 Model Challenge、Model Approval Brief、Human Model Approval 与 current semantic revision / validated structured identity 绑定；
 - `core/global_preprocessing_contract.yaml`：条件式数据预处理；
 - `core/numerical_verification_contract.yaml`：主求解数值有效性、PQS 映射与 strict Verification ID 证据复核；
-- `core/code_quality_contract.yaml`：Python 工程质量；
+- `core/code_quality_contract.yaml`：Python/MATLAB 工程质量；
 - `core/user_execution_contract.yaml`：用户本地执行与工作簿验收；
 - `core/writing_reasoning_contract.yaml`：推理、Model/Solver/Validator、优化模型表达、Algorithm Trace、连续模型建立/求解叙事、问题章节内部局部依赖、详略分配、Figure Result Narrative、问题章节闭环、术语、数值、Title Claim、Claim Strength、规则等级和 Citation Evidence；
 - `modules/05_writing/paper_writing_protocol.md`：普通正文结构与表达；

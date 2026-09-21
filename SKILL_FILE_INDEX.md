@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：9.6.1
+当前 Skill 版本：9.7.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -123,6 +123,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/latex_delivery.py`
 - `scripts/lint_skill.py`
 - `scripts/lint_skill_checks.py`
+- `scripts/matlab_code_checks.py`
 - `scripts/measure_infrastructure.py`
 - `scripts/measure_writing_validation.py`
 - `scripts/prepare_cumcm_class.py`
@@ -136,6 +137,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/runtime_assurance.py`
 - `scripts/score_submission.py`
 - `scripts/semantic_identity.py`
+- `scripts/stage_code.py`
 - `scripts/state_transitions.py`
 - `scripts/submission_requirements.py`
 - `scripts/sync_project.py`
@@ -156,6 +158,9 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `templates/code/hsk_pipeline/main_pipeline.py`
 - `templates/code/hsk_pipeline/result_io.py`
 - `templates/code/hsk_pipeline/workbook_validation.py`
+- `templates/code/matlab/README.md`
+- `templates/code/matlab/q1_analysis.m`
+- `templates/code/matlab/q1_solver.m`
 - `templates/code/requirements.txt`
 - `templates/code/starter/README.md`
 - `templates/code/starter/classification.py`
@@ -235,6 +240,8 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/p3b_writing_role_source_map.yaml`
 - `tests/fixtures/phase_g_cumcm_runtime_golden.yaml`
 - `tests/fixtures/skill_optimization_cases.yaml`
+- `tests/fixtures/solver_backends/input.json`
+- `tests/fixtures/solver_backends/python_primary.py`
 - `tests/fixtures/v900_phase_h_empty_sync_golden.yaml`
 - `tests/fixtures/v900_phase_i_migration_matrix.yaml`
 - `tests/fixtures/v900_phase_i_writer_retirement_inventory.yaml`
@@ -242,9 +249,12 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/writing_reasoning_cases.yaml`
 - `tests/fixtures/writing_reasoning_voice_cases.yaml`
 - `tests/matlab/p6b_publication_preview.m`
+- `tests/matlab/run_solver_backend_mixed_smoke.m`
+- `tests/matlab/run_solver_backend_smoke.m`
 - `tests/optimization_baseline.py`
 - `tests/reading_plan_cases.py`
 - `tests/reading_plan_evidence.py`
+- `tests/solver_backend_mixed_smoke.py`
 - `tests/test_actions_runtime_modernization.py`
 - `tests/test_audit_a6_latex_boundaries.py`
 - `tests/test_audit_a7_entry_consistency.py`
@@ -264,6 +274,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_generated_workflow_hardening.py`
 - `tests/test_latex_first_versionless_docs.py`
 - `tests/test_legacy_archive_hygiene.py`
+- `tests/test_matlab_code_checks.py`
 - `tests/test_mechanism_template_compat_hygiene.py`
 - `tests/test_optimization_baseline.py`
 - `tests/test_p3a_core_policy.py`
@@ -288,6 +299,12 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_router_contract.py`
 - `tests/test_runtime_health_coherence.py`
 - `tests/test_schemas.py`
+- `tests/test_solver_backend_end_to_end.py`
+- `tests/test_solver_backend_integration.py`
+- `tests/test_solver_backend_legacy_evidence.py`
+- `tests/test_solver_backend_preprocessing.py`
+- `tests/test_solver_backend_runtime_resume.py`
+- `tests/test_solver_backends.py`
 - `tests/test_split_pipeline_runtime.py`
 - `tests/test_starter_templates.py`
 - `tests/test_structure.py`
@@ -408,6 +425,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/phase_i_v9_release_closure.md`
 - `docs/semantic_state_runtime_refactor_plan.md`
 - `docs/v8_writing_migration.md`
+- `docs/v970_solver_backends_migration.md`
 
 ## Historical Maintenance Provenance
 

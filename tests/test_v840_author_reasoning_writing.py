@@ -48,9 +48,11 @@ class WritingReasoningScopeTests(unittest.TestCase):
         # The proof-body policy and approved Part F carrier mapping intentionally reopen the LaTeX adapter;
         # re-pin those exact forms. A7 changes only the algorithm pack's ordinary-prose
         # Authority pointer from the Adapter to the Protocol; keep the whole-file guard.
+        # v9.7.0 changes Python-only implementation wording to backend-neutral
+        # code anchors. Re-pin only that pack and the normalized Adapter sentence.
         frozen = {
             "packs/artifact/proposition_proof.md": "187cf4626294857a8e89351cf335a15bd0bbf1f8",
-            "packs/artifact/algorithm_flow.md": "f637e328100f0739b4c9e1104c5d41dd169dc919",
+            "packs/artifact/algorithm_flow.md": "2db23cf485e66d5325fea67e98d19910810505df",
         }
 
         def git_blob_sha1(text: str) -> str:
@@ -86,7 +88,7 @@ class WritingReasoningScopeTests(unittest.TestCase):
         ).replace(adapter_current, adapter_legacy, 1)
         self.assertEqual(
             git_blob_sha1(normalized_adapter),
-            "117d6b929bd995bc3a2ab287cd16e94cc982e3a1",
+            "e726af01b282c2265d02285b4bf2e9cf7ca990a9",
         )
 
         # v8.7.2 keeps the CUMCM AI-disclosure source in the canonical project but

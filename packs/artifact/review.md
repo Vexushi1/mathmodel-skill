@@ -16,20 +16,20 @@ python scripts/sync_project.py . --write --strict --delivery-scope submission
 
 Matrix 中 `unverifiable` 不得改写成 `passed`；未解决 `blocking` 必须有允许的 Hard Fail code；`review_required` 和 warning 均保留证据与处置状态。评分继续使用显式六维分数，不按 finding 数量自动扣分。
 
-对 `stepwise/pseudocode` 小问，核对 current Algorithm ID、核心输入/状态、操作、停止条件和输出，并人工确认论文算法与真实 Python 实现、约束/命题锚点及工作簿结果一致；`not_needed` 小问不因缺少算法框扣分，也不应残留装饰性 Algorithm 1。机器只核确定性字段和锚点存在性，不从伪代码文字推断算法正确性或收敛性。
+对 `stepwise/pseudocode` 小问，核对 current Algorithm ID、核心输入/状态、操作、停止条件和输出，并人工确认论文算法与真实代码实现、约束/命题锚点及工作簿结果一致；`not_needed` 小问不因缺少算法框扣分，也不应残留装饰性 Algorithm 1。机器只核确定性字段和锚点存在性，不从伪代码文字推断算法正确性或收敛性。
 
-新项目每问数值目录只按 `core/output_contract.yaml` 的 **conditional per-question layout contract** 审计：基础三文件始终为当前路径；仅 Analysis Necessity Gate=`required` 时追加 03B Python 与 workbook。历史文档所称“**五文件合同**”在 current 语义中只对应 Gate=`required` 的 total=5 路径，不是无条件默认。
+新项目每问数值目录只按 `core/output_contract.yaml` 的 **conditional per-question layout contract** 审计：基础三文件始终为当前路径；仅 Analysis Necessity Gate=`required` 时追加 03B代码 与 workbook。历史文档所称“**五文件合同**”在 current 语义中只对应 Gate=`required` 的 total=5 路径，不是无条件默认。
 
 ```text
 问题X求解/
-├─ 问题X求解.py
+├─ <已选主入口：问题X求解.py 或 qX_solver.m>
 ├─ 问题X求解结果.xlsx
 ├─ qX_plot.m
-├─ [问题X结果深化分析.py]    # only Gate=required
+├─ [已选深化入口：问题X结果深化分析.py 或 qX_analysis.m]    # only Gate=required
 └─ [问题X结果深化分析.xlsx]  # only Gate=required and analysis executed
 ```
 
-Gate=`not_required` 必须有非空 `result_analysis_requirement_reason`，此时缺少 03B 文件不构成 layout finding，也不得写成“稳健性/稳定性已通过”。Gate=`required` 时则必须核对当前 03B 代码、工作簿与状态/哈希链，缺失不得静默豁免。主工作簿 accepted 后冻结主求解脚本，已激活的深化分析使用独立 Python；旧单脚本四文件目录、旧 `结果数据表/问题X/` 和旧敏感性与鲁棒性工作簿只能作为历史项目只读兼容输入。
+Gate=`not_required` 必须有非空 `result_analysis_requirement_reason`，此时缺少 03B 文件不构成 layout finding，也不得写成“稳健性/稳定性已通过”。Gate=`required` 时则必须核对当前 03B 代码、工作簿与状态/哈希链，缺失不得静默豁免。主工作簿 accepted 后冻结主求解脚本，已激活的深化分析使用独立后端入口；旧单脚本四文件目录、旧 `结果数据表/问题X/` 和旧敏感性与鲁棒性工作簿只能作为历史项目只读兼容输入。
 
 若 `preprocessing_decision=project_level`，同时检查 `数据预处理/数据预处理.py`、已验收 `数据预处理结果.xlsx` 和 Figure Evidence 阶段的 `data_process.m`；若为 `not_needed/question_local`，不得因不存在全局预处理目录而扣分。
 

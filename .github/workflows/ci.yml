@@ -86,6 +86,112 @@ jobs:
           name: unittest-diagnostics-windows
           path: unittest-windows.log
 
+  matlab-solver-smoke:
+    name: MATLAB R2024b native solver contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Set temporary solver fixture directory
+        shell: bash
+        run: |
+          echo "HSK_MATLAB_SOLVER_OUTPUT=$RUNNER_TEMP/hsk-native-solver" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/hsk-native-solver"
+          : > "$RUNNER_TEMP/hsk-native-solver/matlab-ci-probe.log"
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install validation dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Set up MATLAB
+        uses: matlab-actions/setup-matlab@v3
+        with:
+          release: R2024b
+      - name: Configure and verify licensed MATLAB CI launcher
+        shell: bash
+        run: |
+          set -euo pipefail
+          launcher="$RUNNER_TEMP/hsk-run-matlab-command"
+          probe_log="$HSK_MATLAB_SOLVER_OUTPUT/matlab-ci-probe.log"
+          # Same official binary as run-command@v3, pinned to its resolved commit.
+          curl --fail --location --silent --show-error \
+            "https://raw.githubusercontent.com/matlab-actions/run-command/bfa857648f4895aa98a446fe41c85e0788421ed5/dist/bin/glnxa64/run-matlab-command" \
+            --output "$launcher" 2>&1 | tee -a "$probe_log"
+          chmod +x "$launcher"
+          adapter="$RUNNER_TEMP/hsk-matlab-ci"
+          cat > "$adapter" <<'MATLAB_CI'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          if [[ $# -ne 2 || "${1-}" != "-batch" || -z "${2-}" ]]; then
+            echo "Expected exactly: -batch MATLAB_EXPRESSION" >&2
+            exit 64
+          fi
+          launcher="$(dirname -- "${BASH_SOURCE[0]}")/hsk-run-matlab-command"
+          exec env MW_BATCH_LICENSING_ONLINE=true "$launcher" "$2"
+          MATLAB_CI
+          chmod +x "$adapter"
+          echo "HSK_MATLAB_CI_COMMAND=$adapter" >> "$GITHUB_ENV"
+          if ! "$adapter" -batch "assert(~isempty(ver('MATLAB'))); assert(license('test','MATLAB'));" 2>&1 | tee -a "$probe_log"; then
+            echo "MathWorks CI MATLAB launch and license probe failed" | tee -a "$probe_log" >&2
+            exit 1
+          fi
+      - name: Prepare isolated synthetic primary fixture
+        run: python tests/test_solver_backend_end_to_end.py prepare --project "$HSK_MATLAB_SOLVER_OUTPUT"
+      - name: Deliver primary only after real native Code Analyzer passes
+        run: python tests/test_solver_backend_end_to_end.py deliver-primary --project "$HSK_MATLAB_SOLVER_OUTPUT" --matlab-command "$HSK_MATLAB_CI_COMMAND"
+      - name: Run native MATLAB primary solver
+        uses: matlab-actions/run-command@v3
+        with:
+          command: addpath(fullfile(pwd,"tests","matlab")); run_solver_backend_smoke(string(getenv("HSK_MATLAB_SOLVER_OUTPUT")),"primary")
+      - name: Accept native primary workbook and prepare required analysis
+        run: |
+          python tests/test_solver_backend_end_to_end.py verify-primary --project "$HSK_MATLAB_SOLVER_OUTPUT"
+          python tests/test_solver_backend_end_to_end.py prepare-analysis --project "$HSK_MATLAB_SOLVER_OUTPUT"
+          python tests/test_solver_backend_end_to_end.py deliver-analysis --project "$HSK_MATLAB_SOLVER_OUTPUT" --matlab-command "$HSK_MATLAB_CI_COMMAND"
+      - name: Run native MATLAB analysis solver
+        uses: matlab-actions/run-command@v3
+        with:
+          command: addpath(fullfile(pwd,"tests","matlab")); run_solver_backend_smoke(string(getenv("HSK_MATLAB_SOLVER_OUTPUT")),"analysis")
+      - name: Verify analysis and original primary preservation
+        run: python tests/test_solver_backend_end_to_end.py verify-analysis --project "$HSK_MATLAB_SOLVER_OUTPUT"
+      - name: Run real Python mixed-backend stages and accept their workbooks
+        run: python tests/solver_backend_mixed_smoke.py prepare --source "$HSK_MATLAB_SOLVER_OUTPUT" --project "$HSK_MATLAB_SOLVER_OUTPUT/mixed"
+      - name: Run real MATLAB stages consuming accepted Python workbooks
+        uses: matlab-actions/run-command@v3
+        with:
+          command: addpath(fullfile(pwd,"tests","matlab")); run_solver_backend_mixed_smoke(fullfile(string(getenv("HSK_MATLAB_SOLVER_OUTPUT")),"mixed"))
+      - name: Accept both mixed directions and Python-primary MATLAB-analysis results
+        run: python tests/solver_backend_mixed_smoke.py verify --project "$HSK_MATLAB_SOLVER_OUTPUT/mixed"
+      - name: Prepare accepted preprocessing 1.0 fixture and deliver MATLAB 1.1 primary
+        run: |
+          python tests/test_solver_backend_end_to_end.py prepare-preprocessed --project "$HSK_MATLAB_SOLVER_OUTPUT/preprocessed"
+          python tests/test_solver_backend_end_to_end.py deliver-primary --project "$HSK_MATLAB_SOLVER_OUTPUT/preprocessed" --matlab-command "$HSK_MATLAB_CI_COMMAND"
+      - name: Run native primary from accepted preprocessing XLSX
+        uses: matlab-actions/run-command@v3
+        with:
+          command: addpath(fullfile(pwd,"tests","matlab")); run_solver_backend_smoke(fullfile(string(getenv("HSK_MATLAB_SOLVER_OUTPUT")),"preprocessed"),"primary")
+      - name: Accept preprocessed-input primary and deliver analysis
+        run: |
+          python tests/test_solver_backend_end_to_end.py verify-primary --project "$HSK_MATLAB_SOLVER_OUTPUT/preprocessed"
+          python tests/test_solver_backend_end_to_end.py prepare-analysis --project "$HSK_MATLAB_SOLVER_OUTPUT/preprocessed"
+          python tests/test_solver_backend_end_to_end.py deliver-analysis --project "$HSK_MATLAB_SOLVER_OUTPUT/preprocessed" --matlab-command "$HSK_MATLAB_CI_COMMAND"
+      - name: Run native analysis from accepted preprocessing XLSX
+        uses: matlab-actions/run-command@v3
+        with:
+          command: addpath(fullfile(pwd,"tests","matlab")); run_solver_backend_smoke(fullfile(string(getenv("HSK_MATLAB_SOLVER_OUTPUT")),"preprocessed"),"analysis")
+      - name: Verify preprocessing identity and workbook preservation
+        run: python tests/test_solver_backend_end_to_end.py verify-analysis --project "$HSK_MATLAB_SOLVER_OUTPUT/preprocessed"
+      - name: Upload actual MATLAB execution evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: matlab-native-solver-evidence
+          path: ${{ env.HSK_MATLAB_SOLVER_OUTPUT }}
+          if-no-files-found: error
+      - name: Ensure smoke did not write into the checkout
+        run: test -z "$(git status --porcelain)"
+
   latex-smoke:
     name: LaTeX ${{ matrix.name }}
     runs-on: ubuntu-latest

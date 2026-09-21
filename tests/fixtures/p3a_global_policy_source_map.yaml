@@ -14,7 +14,7 @@ retained_global_markers:
   - 'not_needed / question_local / project_level'
   - 'full-fidelity'
   - '参数敏感性'
-  - 'MATLAB 只做证据可视化'
+  - '绘图入口只做证据可视化'
   - 'stale 结果不得写成 current'
   - '不能替代数学证明'
   - 'Citation Evidence'

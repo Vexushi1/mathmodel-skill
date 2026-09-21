@@ -14,7 +14,9 @@
 ## 代码与用户执行
 
 - `run_config_parser.py`：P8 收敛出的共享语法级 helper，只静态抽取顶层 `RUN_CONFIG` / legacy `FULL_*` 字典常量并保持 fail-closed；字段政策与运行语义仍由 `core/user_execution_contract.yaml` 及调用方拥有，不在此建立第二 Authority。
-- `validate_code_delivery.py`：按 `preprocessing / primary / analysis` 阶段静态校验题目专属 Python 的完整运行配置、代码质量和阶段边界；不执行赛题代码。RUN_CONFIG/FULL_* 的顶层语法抽取委托 `run_config_parser.py`，字段要求仍在本 validator 与 User Execution Authority 中判定。
+- `stage_code.py`：依据执行/输出 Authority 解析阶段后端、唯一入口、配置和源码 bundle，供交付/回执/同步/打包/runtime 共享；不写项目状态。
+- `matlab_code_checks.py`：MATLAB 受限静态语法与工程检查适配，原生分析器未执行时如实报告未核验。
+- `validate_code_delivery.py`：按 `preprocessing / primary / analysis` 阶段静态校验题目专属 Python/MATLAB 的完整运行配置、代码质量和阶段边界；不执行赛题代码。RUN_CONFIG/FULL_* 的静态语法抽取委托 `run_config_parser.py`，字段要求仍在本 validator 与 User Execution Authority 中判定。
 - `validate_user_execution.py`：按当前 `preprocessing_decision` 与已激活阶段验收适用的预处理工作簿、主求解工作簿和条件存在的结果深化分析工作簿，并核对运行配置、代码/数据哈希和对应质量门；读取已交付阶段代码时复用同一语法级 config parser，但保留本调用面的 receipt/echo/错误边界。
 
 赛题专属预处理、主求解和被 Analysis Necessity Gate=`required` 激活的结果深化分析由用户本地以 full-fidelity 执行；脚本工具不得通过降采样、粗网格、缩短时域、减少重复、放宽容差或静默 solver fallback 改变正式求解口径。Gate=`not_required` 时不生成 03B 代码/工作簿，也不得把该状态写成稳健性或稳定性已通过。项目级预处理和主求解属于 current 人工锁模后的代码阶段，不能只凭 Problem Contract 冻结或 Model Challenge 通过绕过 `validate_model_approval.py`。
@@ -22,7 +24,7 @@
 ## 项目记忆与论文检查
 
 - `validate_project_state.py`：校验 `state/project_state.yaml` 的机器状态、分类兼容、哈希和 stale 语义。
-- `validate_model_paper_framework.py`：校验 current `模型论文框架.md` 的 compact/full 结构、命题预算、Terminology/Numeric/Title/Paper Fragment 记录以及 Algorithm Trace 的确定性闭环。对 `stepwise/pseudocode` 检查关联 Algorithm ID、必填字段、模式/current 状态和已求解后的 Python code anchor；`not_needed` 不要求算法框。该脚本不从步骤文字推断算法正确性、收敛性或与 Python 的数学等价性。
+- `validate_model_paper_framework.py`：校验 current `模型论文框架.md` 的 compact/full 结构、命题预算、Terminology/Numeric/Title/Paper Fragment 记录以及 Algorithm Trace 的确定性闭环。对 `stepwise/pseudocode` 检查关联 Algorithm ID、必填字段、模式/current 状态和已求解后的 实际代码锚点；`not_needed` 不要求算法框。该脚本不从步骤文字推断算法正确性、收敛性或与实现的数学等价性。
 - `audit_latex_project.py`：正式 LaTeX 项目审计入口。递归展开 active `\input/\include`、检查 fragment/source-file 工程闭环，再委托 `audit_paper_prose.py` 完成 prose/structure/BibTeX/framework 审查；兼容单文件工程自然退化为单文件模式。
 - `audit_paper_prose.py`：底层非破坏性成稿审计实现；结果分为 `blocking / review_required / warning`。它保留维护级直接调用能力，但不是活动 LaTeX route 的默认入口。机器不推断数学正确性、定理适用性、术语语义等价、参数最优性或 citation 是否真正支持 claim。
 

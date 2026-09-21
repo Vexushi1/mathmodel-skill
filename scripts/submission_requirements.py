@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 import yaml
+import stage_code as STAGE_CODE
 
 from project_snapshot import chinese_question_name, data_source_files, question_number
 
@@ -159,7 +160,54 @@ def reproducibility_requirements(root: Path, state: Mapping[str, Any]) -> tuple[
                 tokens = {"中文序号": question.removeprefix("问题"), "阿拉伯序号": number}
                 require(per_question["question_directory"].format(**tokens) + pattern.format(**tokens))
 
-        question_path("code", per_question["python_scripts"]["primary"])
+        def require_stage(stage: str) -> None:
+            field = "code" if stage == "primary" else "result_analysis_code"
+            contract_stage = "primary" if stage == "primary" else "result_analysis"
+            execution = entry.get("solver_execution", {})
+            if not isinstance(execution, Mapping) or not isinstance(execution.get(stage, {}), Mapping):
+                issues.append(f"{key}: {stage}后端状态必须是映射")
+                return
+            selection = execution.get(stage) or {}
+            backend = selection.get("backend", "python")
+            if not isinstance(backend, str):
+                issues.append(f"{key}: {stage}后端必须为python或matlab")
+                return
+            patterns = (per_question.get("solver_scripts") or {}).get(backend)
+            if patterns is None and backend == "python":
+                patterns = per_question["python_scripts"]
+            if patterns is None:
+                issues.append(f"{key}: 未知求解后端 {backend}")
+                return
+            question_path(field, patterns[contract_stage])
+            try:
+                declared = str(entry.get(field) or "")
+                if not selection and declared.endswith(".py"):
+                    # Historical package collection accepted explicitly registered
+                    # Python paths; do not impose new solver naming retrospectively.
+                    legacy_path = project_path(root, declared)
+                    if not legacy_path.is_file():
+                        return
+                    try:
+                        _, legacy_config = STAGE_CODE.parse_stage_config(legacy_path, "python")
+                    except (ValueError, SyntaxError):
+                        return
+                    if legacy_config.get("run_receipt_protocol_version") != "1.1.0":
+                        return
+                code = STAGE_CODE.resolve_stage_code(root, question, stage, entry=entry)
+                if code and STAGE_CODE.requires_bundle_binding(root, {**entry, field: code.path.relative_to(root).as_posix()}, stage):
+                    issues.extend(f"{key}: {item}" for item in STAGE_CODE.validate_stage_binding(
+                        root, entry, stage, require_validated=True,
+                    ))
+                    _, config = STAGE_CODE.parse_stage_config(code.path, code.backend)
+                    fingerprint = STAGE_CODE.stage_code_fingerprint(
+                        root, code.path, config.get("code_dependencies", []),
+                    )
+                    for record in fingerprint["files"]:
+                        require(record["path"])
+            except (ValueError, TypeError, OSError) as exc:
+                issues.append(f"{key}: {exc}")
+
+        require_stage("primary")
         question_path("solution_workbook", per_question["mandatory_workbooks"]["solution"])
         question_path("matlab_script", per_question["matlab_script"])
         status = entry.get("result_analysis_status")
@@ -169,7 +217,7 @@ def reproducibility_requirements(root: Path, state: Mapping[str, Any]) -> tuple[
                 issues.append(f"{key}: not_required缺少result_analysis_requirement_reason，不能确认03B豁免")
         elif status in {"passed", "failed", "redo_required"} or (reason and entry.get("analysis_methods")):
             # Existing activated chains remain readable; new acceptance still uses its own gate.
-            question_path("result_analysis_code", per_question["python_scripts"]["result_analysis"])
+            require_stage("analysis")
             question_path("result_analysis_workbook", per_question["conditional_workbooks"]["result_analysis"]["path"])
         else:
             issues.append(f"{key}: Analysis Necessity Gate尚未明确，须登记required计划或带理由的not_required后重新验证")

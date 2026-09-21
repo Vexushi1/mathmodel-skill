@@ -45,8 +45,9 @@ CUMCM 固定一级结构只认 `templates/latex/cumcm/hsk/template_manifest.yaml
 | Model Challenge、Model Approval Brief 与人工锁模 | `modules/02_model_design.md` + `core/model_approval_contract.yaml`；正式代码前由 `scripts/validate_model_approval.py` 校验 |
 | Primary Quality Specification 与主结果内在数值有效性 | `core/numerical_verification_contract.yaml`；返回工作簿由 `scripts/validate_numerical_evidence.py` 独立复核 |
 | 论文算法流程、Algorithm Trace、伪代码/Step 流程 | `core/writing_reasoning_contract.yaml` + `packs/artifact/algorithm_flow.md`，按需加载 |
-| Python主求解与条件式题目专属结果深化分析 | `modules/03_solve_validate.md`、`modules/03_result_analysis.md`；03B 仅在 Analysis Necessity Gate=`required` 时激活 |
+| Python/MATLAB主求解与条件式题目专属结果深化分析 | `modules/03_solve_validate.md`、`modules/03_result_analysis.md`；03B 仅在 Analysis Necessity Gate=`required` 时激活 |
 | Python题型 starter | `templates/code/starter/` + `templates/code/hsk_pipeline/` |
+| MATLAB求解模板 | `templates/code/matlab/`；由当前后端按需读取 |
 | MATLAB结果图与机理图 | `modules/04_figure_evidence.md` |
 | 默认 CUMCM LaTeX 写作 | `template_manifest.yaml` + `core/writing_runtime_contract.yaml` + `paper_writing_protocol.md` + `modules/05_writing/latex.md` Adapter |
 | 可选 DOCX 审阅 | `modules/05_writing/docx.md` |
@@ -73,7 +74,7 @@ CUMCM 固定一级结构只认 `templates/latex/cumcm/hsk/template_manifest.yaml
 | `modules/05_writing/paper_writing_protocol.md` | 普通正文 Local Narrative、Paragraph Handoff、MODEL/SOLVE/RESULT/VALIDATE 与结果—验证承接 |
 | `core/global_preprocessing_contract.yaml` | 三态预处理判定、处理证据和 `data_process.m` 边界 |
 | `core/user_execution_contract.yaml` | 用户 full-fidelity 执行与返回工作簿验收 |
-| `core/code_quality_contract.yaml` | 题目专属 Python 工程质量 |
+| `core/code_quality_contract.yaml` | 题目专属 Python/MATLAB 工程质量 |
 | `core/workbook_schema.yaml` | objective/structure/capability工作簿条件与精确表头交接 |
 | `core/project_state.schema.yaml` | 单一capability事实源、semantic revision / structured identity、challenge/approval、分层哈希、stale和框架状态 |
 
@@ -83,7 +84,7 @@ CUMCM 固定一级结构只认 `templates/latex/cumcm/hsk/template_manifest.yaml
 - `scripts/resolve_workflow.py`：无状态兼容 resolver；保留旧 CLI/显式 artifact-name 调用，不作为默认入口；
 - `scripts/validate_semantic_governance.py`：题意口径、语义闭环、复杂度复审、semantic revision 与跨问 stale 门；
 - `scripts/validate_model_approval.py`：项目级预处理或主求解代码前，检查 current Model Challenge、Human Model Approval 与当前 semantic revision / structured identity 是否完全一致；
-- `scripts/validate_code_delivery.py`：静态校验每问必需的主求解 Python，并在 Analysis Necessity Gate=`required` 时校验条件激活的结果深化分析 Python；
+- `scripts/validate_code_delivery.py`：静态校验每问必需的已选主求解代码，并在 Analysis Necessity Gate=`required` 时校验条件激活的独立结果深化代码；
 - `scripts/validate_user_execution.py`：验收必需的主求解工作簿及运行配置、哈希和质量门；Gate=`required` 时再验收条件存在的结果深化分析工作簿，Gate=`not_required` 时按 current disposition + 非空理由继续；
 - `scripts/validate_numerical_evidence.py`：按 `core/numerical_verification_contract.yaml` 独立复算/核对主求解 Verification ID、实际值、阈值、判定关系和证据工作表；
 - `scripts/sync_project.py`：阶段产物发现、工作簿Schema、图表链、分层哈希和stale；

@@ -37,10 +37,17 @@ def parse_embedded_config(
     text: str,
     *,
     messages: EmbeddedConfigMessages,
+    backend: str = "python",
 ) -> tuple[str, dict[str, Any]]:
     """Return exactly one supported top-level literal config, fail closed otherwise."""
+    if backend == "matlab":
+        from matlab_code_checks import parse_config
+        return parse_config(text)
+    if backend != "python":
+        raise ValueError(f"不支持的代码后端: {backend}")
     tree = ast.parse(text)
     found: list[tuple[str, dict[str, Any]]] = []
+    declarations: list[ast.AST] = []
     for node in tree.body:
         if not isinstance(node, (ast.Assign, ast.AnnAssign)):
             continue
@@ -56,9 +63,31 @@ def parse_embedded_config(
         if not isinstance(value, dict):
             raise ValueError(messages.non_mapping.format(name=matched[0]))
         found.extend((name, value) for name in matched)
+        declarations.append(node)
     if not found:
         raise ValueError(messages.missing)
     if len(found) != 1:
         names = ", ".join(name for name, _ in found)
         raise ValueError(messages.multiple.format(names=names))
+    if found[0][1].get("run_receipt_protocol_version") == "1.1.0":
+        def root_name(node: ast.AST) -> str | None:
+            while isinstance(node, (ast.Attribute, ast.Subscript)):
+                node = node.value
+            return node.id if isinstance(node, ast.Name) else None
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.Assign, ast.AnnAssign, ast.NamedExpr)) and node not in declarations:
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                if any(root_name(target) in CONFIG_NAMES for target in targets):
+                    raise ValueError("RUN_CONFIG禁止局部重定义或后续覆盖")
+            if isinstance(node, (ast.Attribute, ast.Subscript)) and isinstance(node.ctx, (ast.Store, ast.Del)) and root_name(node) in CONFIG_NAMES:
+                raise ValueError("RUN_CONFIG禁止后续覆盖或删除字段")
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and root_name(node.func.value) in CONFIG_NAMES
+                    and node.func.attr in {"update", "setdefault", "pop", "popitem", "clear", "__setitem__", "__delitem__"}):
+                raise ValueError("RUN_CONFIG禁止后续动态修改")
+        for node in ast.walk(declarations[0]):
+            if isinstance(node, ast.Dict):
+                keys = [ast.literal_eval(key) for key in node.keys if key is not None]
+                if len(keys) != len(set(keys)):
+                    raise ValueError("RUN_CONFIG字典字段重复")
     return found[0]

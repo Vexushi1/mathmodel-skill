@@ -1,4 +1,4 @@
-version: 9.6.1
+version: 9.7.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -226,8 +226,8 @@ project_sync:
     v0_8_delivery_paper_fragments_stale: false
   stage_requirements:
     design: [project_state, model_paper_framework]
-    code: [project_state, model_paper_framework, python_code]
-    results: [project_state, model_paper_framework, python_code, solution_workbook, result_quality_report, result_analysis_report]
+    code: [project_state, model_paper_framework, primary_code]
+    results: [project_state, model_paper_framework, primary_code, solution_workbook, result_quality_report, result_analysis_report]
     figures: [project_state, model_paper_framework, solution_workbook, result_quality_report, result_analysis_report, matlab_scripts]
     docx: [project_state, model_paper_framework, solution_workbook, result_quality_report, result_analysis_report, approved_figures, docx_draft]
     latex: [project_state, model_paper_framework, result_quality_report, result_analysis_report, approved_figures, latex_source, latex_audit_report, compiled_pdf, compile_report]
@@ -272,13 +272,13 @@ project_sync:
   - 正式交付前先由semantic_governance检查当前模型语义、preprocessing_decision和跨问失效传播
   - 进入产物同步前强制执行项目状态Schema/语义校验与模型论文框架校验
   - decision=project_level时发现数据预处理目录中的统一预处理Python、工作簿和图表阶段data_process.m；其他状态不得因缺少该目录报错
-  - 发现每问问题X求解目录中的主求解Python、主工作簿和qX_plot.m；仅Analysis Necessity Gate=required时要求结果深化分析Python与工作簿
+  - 发现每问问题X求解目录中的主求解代码、主工作簿和qX_plot.m；仅Analysis Necessity Gate=required时要求结果深化分析代码与工作簿
   - 只有decision=project_level时检查依赖下游脚本不得再次直接读取对应共享原始数据源
   - 复用工作簿Schema检查工作表、字段、capability条件、主键、非有限数值和约束判定
   - 普通阶段同步按小问status检查最低产物；只有显式delivery scope执行正式交付全量门槛
   - 正式交付按decision条件核对预处理质量，再核对主结果质量、适用v7.14主数值证据已在用户返回验收时通过，并要求结果分析为passed或有明确理由的not_required以及下游数值产物和v0.8 paper fragments非stale
   - project_level进入figures及后续scope时必须核对data_process.m存在、引用数据预处理结果.xlsx且不重新执行预处理；question_local需要局部处理图时由qX_plot.m承接
-  - 核对MATLAB只读取其实际需要的数据事实源和适用标准工作簿，不要求所有qX_plot.m强制引用不存在的结果深化工作簿
+  - 核对MATLAB绘图代码只读取其实际需要的数据事实源和适用标准工作簿，不要求所有qX_plot.m强制引用不存在的结果深化工作簿
   - project_level时统一预处理脚本/工作簿哈希绑定依赖数据链，data_process.m只影响预处理图表/论文层；not_needed/question_local时以原始数据哈希作为数据事实源
   - 主求解脚本哈希与本问主结果链绑定；存在的深化分析脚本哈希只影响本问深化工作簿及其下游
   - 当已验证哈希变化时按实际依赖证据链传播stale
@@ -364,8 +364,17 @@ global_preprocessing:
   workbook_is_single_project_data_entry_when_project_level: true
   matlab_reprocessing_forbidden: true
   absent_when: preprocessing_decision in [not_needed, question_local]
+solver_artifact_aliases: {python_code: primary_code, stage_python_code: stage_code}
 per_question:
   question_directory: 问题{中文序号}求解/
+  solver_scripts:
+    python:
+      primary: 问题{中文序号}求解.py
+      result_analysis: 问题{中文序号}结果深化分析.py
+    matlab:
+      primary: q{阿拉伯序号}_solver.m
+      result_analysis: q{阿拉伯序号}_analysis.m
+  # Read-only Python naming projection for existing callers; new discovery uses solver_scripts.
   python_scripts:
     primary: 问题{中文序号}求解.py
     result_analysis: 问题{中文序号}结果深化分析.py
@@ -376,15 +385,23 @@ per_question:
       path: 问题{中文序号}结果深化分析.xlsx
       when: result_analysis_status == passed
   matlab_script: q{阿拉伯序号}_plot.m
+  # Legacy Python projection; resolve the selected backend for active default files.
   base_default_files: ["问题{中文序号}求解.py", "问题{中文序号}求解结果.xlsx", "q{阿拉伯序号}_plot.m"]
   analysis_required_additional_files: ["问题{中文序号}结果深化分析.py", "问题{中文序号}结果深化分析.xlsx"]
-  no_auxiliary_files_by_default: true
+  stage_policy:
+    primary: 主求解阶段按solver_scripts交付所选后端入口；数据入口由preprocessing_decision决定，只做主求解、PQS要求的内在数值有效性检查和不改变当前计算世界的Primary Evidence Capture，主工作簿accepted后冻结该脚本。
+    result_analysis: 主工作簿accepted后先执行Analysis Necessity Gate；仅required时按solver_scripts单独生成所选后端深化入口，继承同一preprocessing_decision与数据事实源并形成敏感性/稳健性/边界/替代方法等深化分析工作簿。
+    not_required: 记录非空result_analysis_requirement_reason，不生成03B代码或工作簿；不得据此声称鲁棒性/稳定性已验证。
+    no_backwrite: 深化分析不得通过改写主求解入口实现；若主模型确需修改，则明确回退solve_validate并重新验收主结果。
+    raw_shared_data_read: 只有decision=project_level时禁止两个小问计算入口直接读取对应共享原始数据源。
+  # Read-only compatibility projection; lint requires equality with stage_policy.
   two_python_stage_policy:
-    primary: 主求解阶段交付问题X求解.py；数据入口由preprocessing_decision决定，只做主求解、PQS要求的内在数值有效性检查和不改变当前计算世界的Primary Evidence Capture，主工作簿accepted后冻结该脚本。
-    result_analysis: 主工作簿accepted后先执行Analysis Necessity Gate；仅required时单独生成问题X结果深化分析.py，继承同一preprocessing_decision与数据事实源并形成敏感性/稳健性/边界/替代方法等深化分析工作簿。
-    not_required: 记录非空result_analysis_requirement_reason，不生成03B Python或工作簿；不得据此声称鲁棒性/稳定性已验证。
-    no_backwrite: 深化分析不得通过改写问题X求解.py实现；若主模型确需修改，则明确回退solve_validate并重新验收主结果。
-    raw_shared_data_read: 只有decision=project_level时禁止两个小问Python直接读取对应共享原始数据源。
+    primary: 主求解阶段按solver_scripts交付所选后端入口；数据入口由preprocessing_decision决定，只做主求解、PQS要求的内在数值有效性检查和不改变当前计算世界的Primary Evidence Capture，主工作簿accepted后冻结该脚本。
+    result_analysis: 主工作簿accepted后先执行Analysis Necessity Gate；仅required时按solver_scripts单独生成所选后端深化入口，继承同一preprocessing_decision与数据事实源并形成敏感性/稳健性/边界/替代方法等深化分析工作簿。
+    not_required: 记录非空result_analysis_requirement_reason，不生成03B代码或工作簿；不得据此声称鲁棒性/稳定性已验证。
+    no_backwrite: 深化分析不得通过改写主求解入口实现；若主模型确需修改，则明确回退solve_validate并重新验收主结果。
+    raw_shared_data_read: 只有decision=project_level时禁止两个小问计算入口直接读取对应共享原始数据源。
+  auxiliary_source_contract: core/user_execution_contract.yaml#code_bundle
   no_auxiliary_files_by_default: true
   legacy_compatibility:
     result_directory: 结果数据表/问题{中文序号}/
@@ -452,8 +469,8 @@ mechanism_drawio_contract:
 ownership:
   Python_preprocessing: 仅preprocessing_decision=project_level时生成；负责共享原始数据的公共审计与已批准处理、论文方法/验证证据和绘图底层数据并输出统一工作簿，不求解小问核心模型。
   MATLAB_preprocessing: 仅project_level时由data_process.m读取统一工作簿绘制处理前后与验证证据；不重新清洗、插值、滤波、重采样或估计参数。
-  Python: 每问固定主求解脚本；主工作簿accepted后按Analysis Necessity Gate条件增加独立深化分析脚本。not_needed/question_local可读取原始数据，project_level读取统一工作簿。问题X求解.py负责主求解、当前主计算最低数值有效性检查及不改变当前计算世界的高价值状态/过程/结构Evidence Capture；问题X结果深化分析.py仅在Gate=required时负责敏感性、稳健性、边界、替代方法/结构等独立深化分析并保留细粒度底层证据。
-  MATLAB: 同目录qX_plot.m精确读取本问适用标准工作簿，并仅在图确实需要底层数据时按preprocessing_decision读取原始数据或统一预处理工作簿；按modules/04_figure_evidence.md选择充分清楚的表达，真实互补信息有助于阅读时才组合编码或组织全局—局部，不重新计算核心结果，默认不自动导出图片
+  solver: 每问按solver_scripts选定唯一主求解脚本；主工作簿accepted后按Analysis Necessity Gate条件增加独立深化分析脚本。not_needed/question_local可读取原始数据，project_level读取统一工作簿。主求解入口负责主求解、当前主计算最低数值有效性检查及不改变当前计算世界的高价值状态/过程/结构Evidence Capture；深化入口仅在Gate=required时负责敏感性、稳健性、边界、替代方法/结构等独立深化分析并保留细粒度底层证据。
+  figure: 同目录qX_plot.m精确读取本问适用标准工作簿，并仅在图确实需要底层数据时按preprocessing_decision读取原始数据或统一预处理工作簿；按modules/04_figure_evidence.md选择充分清楚的表达，真实互补信息有助于阅读时才组合编码或组织全局—局部，不重新计算核心结果，默认不自动导出图片
   other_figure_tools: GeoGebra、PPT、draw.io、SVG、TikZ可用于非数据驱动机理图；draw.io仅按mechanism_drawio_contract选择，工作簿驱动结果图继续归MATLAB
 filenames:
   preprocessing_script: 数据预处理/数据预处理.py（仅project_level）
@@ -462,7 +479,8 @@ filenames:
   model_paper_framework: 模型论文框架.md
   project_state: state/project_state.yaml
   sync_report: sync_report.yaml
-  python_scripts: [问题X求解/问题X求解.py, 问题X求解/问题X结果深化分析.py（仅Analysis Necessity Gate=required）]
+  solver_scripts: 按per_question.solver_scripts和当前已选后端交付主求解代码；仅Analysis Necessity Gate=required追加独立深化代码
+  python_scripts: [问题X求解/问题X求解.py, 问题X求解/问题X结果深化分析.py（仅Analysis Necessity Gate=required）]  # Legacy Python projection.
   matlab_scripts: 数据预处理/data_process.m（project_level）以及问题X求解/q1_plot.m、q2_plot.m等ASCII固定名称
   workbooks: 中文固定名称；主工作簿必需，结果深化工作簿仅Gate=required且通过验收时存在
   worksheets: 中文描述性名称，最长31字符
@@ -484,25 +502,25 @@ rules:
 - project_level统一工作簿质量门未通过时必须停在awaiting_user_preprocessing；其他两种decision不得因为缺少统一工作簿而阻塞。
 - 缺失填补、预测填补、异常删除、插值、平滑、滤波、去趋势、归一化、标准化和重采样等操作必须有数据/机理/模型必要性证据；有缺失不等于必须插值，赛题本身要求的预测结果不得包装为预处理。
 - 只要实际预处理参与后续模型，论文必须闭合问题证据、数学公式/确定性映射、参数依据、方法验证、处理前后证据、图和模型接口；形式证明仅在数学上适用时使用。
-- project_level进入figure_evidence时必须生成data_process.m，并至少形成一张预处理必要性或有效性证据图；MATLAB不得重新执行预处理。
-- 新项目每问基础产物为主求解Python、主结果工作簿和qX_plot.m；只有Analysis Necessity Gate=required时增加结果深化分析Python与工作簿，not_required不得生成空占位文件。
+- project_level进入figure_evidence时必须生成data_process.m，并至少形成一张预处理必要性或有效性证据图；data_process.m不得重新执行预处理。
+- 新项目每问基础产物为主求解代码、主结果工作簿和qX_plot.m；只有Analysis Necessity Gate=required时增加结果深化分析代码与工作簿，not_required不得生成空占位文件。
 - Problem Contract、preprocessing_decision、语义闭环与复杂度复审先于正式模型和代码交付，不能用运行成功或结果合理替代语义正确性。
 - v7.16模型设计与写作必须区分Model/Solver/Validator；优化题正文和摘要明确标准模型类型、决策对象、objective及约束后再介绍solver，题目专属模型名不能遮蔽标准数学类型。
 - v7.16 solver首次使用需给出本题结构理由，跨问沿用/更换说明继承或结构增量；另用算法只有存在真实artifact和baseline/alternative/validator角色时进入正文。
 - v7.16问题章节内部二级小节按真实论证单元保持紧凑；约3--4个为默认阅读颗粒度而非Hard上限，不限制一级章节数量。
 - v7.16摘要和正文强主张按PROVEN/VERIFIED_NUMERIC/COMPARATIVE/OBSERVED/HEURISTIC校准；有限数值验证、多启动或独立算法未发现更优不得升级成全局最优证明。
-- v7.14新生成主求解在代码前冻结PQS；问题X求解.py只实现当前主计算最低数值有效性检查，主工作簿返回后由独立数值证据校验器复核，不能只相信自报Boolean。
+- v7.14新生成主求解在代码前冻结PQS；主求解入口只实现当前主计算最低数值有效性检查，主工作簿返回后由独立数值证据校验器复核，不能只相信自报Boolean。
 - v7.15主求解在不改变当前计算世界的前提下同步保留解释/绘图/验证有价值的current-run状态、过程与结构证据；改变参数、场景、seed、算法、模型或验证窗口后的新运行仍只属于accepted后的结果深化分析。
 - 正式核心Figure先执行Scientific Figure Synthesis与Basic-form Challenge；基础图充分时可直接承担核心论证，共享证据空间且提供真实互补信息与可读性增益时才组合编码；Portfolio审查证据覆盖与重复，不按图型复杂度排序；细则只由modules/04_figure_evidence.md定义。
-- 主工作簿accepted后冻结问题X求解.py，并执行Analysis Necessity Gate；required时单独生成问题X结果深化分析.py，not_required时必须记录理由且不得用该状态支持鲁棒性/稳定性主张。
+- 主工作簿accepted后冻结主求解入口，并执行Analysis Necessity Gate；required时按solver_scripts单独生成所选后端深化入口，not_required时必须记录理由且不得用该状态支持鲁棒性/稳定性主张。
 - 默认不生成独立完整运行配置、运行说明、code_delivery_report、user_execution_validation_report、semantic_governance_report、figure_evidence或图表子目录。
-- 实际生成的项目级预处理脚本和正式小问Python脚本都必须通过静态工程质量检查且不得由助手执行；校验结果在聊天或标准输出中返回，不额外落盘。
+- 实际生成的项目级预处理脚本和正式小问计算脚本都必须通过静态工程质量检查且不得由助手执行；校验结果在聊天或标准输出中返回，不额外落盘。
 - 用户返回的适用预处理工作簿和小问工作簿均必须先通过对应质量门；代码交付本身不得把状态提升为solved或analyzed。
 - 同步器只做发现、校验、哈希和stale传播，不替代语义治理、条件式预处理质量门、主求解质量门、主数值证据复核与Analysis Necessity Gate/真实结果深化分析。
 - 正式LaTeX交付必须形成current的latex_audit_report + v4 compile_report + PDF证明链；缺日志/recorder、实际输入未覆盖、装配不完整、审计过期、profile或源码/框架变化均不得继续复用旧passed状态。
 - v7.10提交包显式分为official/reproducibility；official必须来自已核验当届allowlist，任一包都必须由submission_manifest和当前项目哈希验证后才可视为validated。
-- v7.8算法流程呈现按not_needed/stepwise/pseudocode自适应；只有真实多阶段或控制流有信息价值时单列，并由Algorithm Trace连接模型/命题、Python实现与工作簿结果。
-- v7.8不把Python源码压缩成论文伪代码，也不要求每问设置Algorithm 1；算法语义变化继续使用既有semantic_change_categories=algorithm传播stale。
+- v7.8算法流程呈现按not_needed/stepwise/pseudocode自适应；只有真实多阶段或控制流有信息价值时单列，并由Algorithm Trace连接模型/命题、代码实现与工作簿结果。
+- v7.8不把求解源码压缩成论文伪代码，也不要求每问设置Algorithm 1；算法语义变化继续使用既有semantic_change_categories=algorithm传播stale。
 - v7.7核心答案的展示精度优先服从题目、官方格式和评分精度；若后续小数位可能计分，不得为摘要简洁或版面美观擅自降低精度。
 - v7.7正文自然语言术语优先使用Terminology Registry中的canonical term；机器只对已登记别名/易混词做提示，不猜测数学语义。
 - v7.7深化分析每项证据必须指向target claim并记录support/modify/reject；reject核心答案必须回退，reject非核心评价可删除/重写。
