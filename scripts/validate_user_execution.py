@@ -444,6 +444,9 @@ def validate_execution_evidence(
 
 
 def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool) -> list[str]:
+    root, workbook = root.resolve(), workbook.resolve()
+    if not workbook.is_relative_to(root):
+        return ["工作簿路径越出项目根目录"]
     config, issues = configuration_map(workbook)
     problem, stage, identity_issues = workbook_identity(root, workbook)
     issues.extend(identity_issues)
@@ -622,12 +625,15 @@ def main() -> int:
         base_generation = PROJECT_TX.state_generation(state)
     original_state = deepcopy(state)
     workbooks = (
-        [args.workbook if args.workbook.is_absolute() else root / args.workbook]
+        [(args.workbook if args.workbook.is_absolute() else root / args.workbook).resolve()]
         if args.workbook else discover(root)
     )
     all_issues: list[str] = []
     checked: list[str] = []
     for workbook in workbooks:
+        if not workbook.is_relative_to(root):
+            all_issues.append(f"{workbook.name}: 工作簿路径越出项目根目录")
+            continue
         issues = validate_one(root, workbook, state, args.write)
         all_issues.extend(f"{workbook.name}: {item}" for item in issues)
         checked.append(workbook.relative_to(root).as_posix())

@@ -323,9 +323,12 @@ def resolve_runtime(
         competition=competition,
         available_artifacts=base_available,
         preprocessing_decision=preprocessing_decision,
-        solver_backend="auto" if solver_context is not None else None,
+        # Backend projection follows the actual resumed stage, not the request intent.
+        solver_backend=None,
     )
-    if "modules/03_result_analysis.md" in plan["modules"] and "modules/03_solve_validate.md" not in plan["modules"]:
+    if "modules/03_solve_validate.md" in plan["modules"]:
+        effective_backend, solver_context, solver_conflicts = _solver_context(solver_backend, hydration, ["code_and_solution"])
+    elif "modules/03_result_analysis.md" in plan["modules"]:
         effective_backend, solver_context, solver_conflicts = _solver_context(solver_backend, hydration, ["result_analysis"])
     context_conflicts.extend(solver_conflicts)
     if solver_context is not None:
@@ -337,6 +340,8 @@ def resolve_runtime(
             plan["missing_prerequisites"] = [value for value in plan["missing_prerequisites"] if value != "solver_backend_selection"]
             backends = [row["backend"] for row in solver_context["by_question"].values() if row["backend"]]
             add_solver_resources(plan, backends or [effective_backend])
+        elif any(module in plan["modules"] for module in ("modules/03_solve_validate.md", "modules/03_result_analysis.md")):
+            plan["missing_prerequisites"] = _unique([*plan["missing_prerequisites"], "solver_backend_selection"])
     for field, explicit in explicit_fields.items():
         if not explicit or field not in hydrated_classification:
             continue

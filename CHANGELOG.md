@@ -1,6 +1,14 @@
 # Changelog
 
-## Current release: 9.7.0
+## Current release: 9.7.1
+
+- Resolves solver backend and legacy artifact projection from the actual resumed stage, including analysis requests that must return to primary solving.
+- Closes discoverable Python relative-import and MATLAB helper-reference gaps, and rejects direct incremental mutation of version 1.1 RUN_CONFIG. Unverifiable project function resolution cannot qualify as a proved source bundle.
+- Aligns per-question input observation with delivered 1.1 inputs, collects declared inputs in reproducibility packages, and wires project-aware implementation-anchor validation into synchronization.
+- Accepts equivalent SHA-256 casing in native MATLAB templates and normalizes returned-workbook path identity, including Windows 8.3 aliases, while rejecting out-of-project paths.
+- Corrects active Python-only summaries, retired implementation-hash guidance and missing versioned analysis-primary binding declarations. Retains legacy Python/FULL/P5a/1.0 compatibility, existing model approval and numerical evidence gates. See [audit scope, repairs and verification](docs/v971_backend_contract_audit.md).
+
+## Previous release: 9.7.0
 
 - Adds per-question Python/MATLAB selection for primary solving and conditional analysis, with scoped runtime recovery, backend-specific templates, and neutral artifact roles. Existing model approval and numerical acceptance remain authoritative; project-level preprocessing remains Python.
 - Adds shared stage resolution, literal MATLAB RUN_CONFIG parsing, native Code Analyzer delivery checks, and receipt 1.1 binding backend, original entry SHA and declared source bundle. Observed source drift cannot refresh delivered or validated identities and invalidates dependent results through the existing state engine.

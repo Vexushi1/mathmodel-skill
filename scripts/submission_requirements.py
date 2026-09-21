@@ -12,6 +12,7 @@ from typing import Any, Iterable, Mapping
 
 import yaml
 import stage_code as STAGE_CODE
+from stage_inputs import observe_inputs
 
 from project_snapshot import chinese_question_name, data_source_files, question_number
 
@@ -204,6 +205,12 @@ def reproducibility_requirements(root: Path, state: Mapping[str, Any]) -> tuple[
                     )
                     for record in fingerprint["files"]:
                         require(record["path"])
+                    observation = observe_inputs(root, config, state)
+                    issues.extend(f"{key}: {stage}: {item}" for item in observation["issues"])
+                    for relative in observation["paths"]:
+                        require(relative)
+                    if stage == "analysis" and str(config.get("data_sha256", "")).lower() != str(entry.get("data_hash", "")).lower():
+                        issues.append(f"{key}: analysis data_sha256必须继承主结果data_hash，不得覆盖主数据身份")
             except (ValueError, TypeError, OSError) as exc:
                 issues.append(f"{key}: {exc}")
 

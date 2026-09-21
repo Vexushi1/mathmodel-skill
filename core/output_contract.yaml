@@ -1,4 +1,4 @@
-version: 9.7.0
+version: 9.7.1
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -303,12 +303,20 @@ project_sync:
     subproblem_framework: subproblem.artifact_hashes.framework记录framework_section对应章节哈希
     primary_code: subproblem.primary_code_sha256记录已交付主求解脚本哈希
     analysis_code: subproblem.analysis_code_sha256记录已交付结果深化分析脚本哈希；Gate=not_required时该层可不存在
-    model_layer: subproblem.artifact_hashes.model只使用主求解脚本，不把结果深化分析脚本并入主模型哈希
+    primary_code_layer: subproblem.artifact_hashes.primary_code只记录主求解入口的当前观察哈希，不包含分析入口，也不能替代primary_code_sha256的已交付身份或数学模型语义身份
   data_hash_policy:
+    solver_protocol_1_1:
+      authority: core/user_execution_contract.yaml#code_delivery.data_identity_mode
+      observer: scripts/stage_inputs.py
+      primary: 按当前主入口RUN_CONFIG.data_paths与data_identity_mode观察实际输入摘要，写入artifact_hashes.data；不得用项目全局data.sources摘要替代本问已声明输入集合。
+      analysis: 核查深化入口声明的每个输入及其当前摘要，仍须继承主data_hash；不覆盖主artifact_hashes.data或任何交付及验收身份，核查失败须阻断同步与交付。
+      identity: combined使用既有输入集合摘要；preprocessing_workbook使用唯一accepted预处理XLSX的普通文件SHA，不改变project_level数据身份。
+      invalid_inputs: 缺失、越界或身份不一致须明确报错，不静默回退项目全局输入。
+      observed_only: 观察源码与输入变化并沿既有事件失效；不得刷新已交付RUN_CONFIG、data_hash、validated_data_hash或validated_bundle_sha256来使旧运行重新有效。
     project_level: 已验收数据预处理结果.xlsx哈希；预处理阶段另记录state/project_state.yaml中的raw data sources
-    not_needed: state/project_state.yaml中的原始data.sources哈希
-    question_local: 原始data.sources哈希 + 本问模型/代码中的局部变换语义
-    fallback: 仅扫描根目录数据型文件，不包含PDF、DOCX、ZIP和正式交付目录
+    not_needed: 旧1.0及历史项目沿用state/project_state.yaml中的原始data.sources哈希；新1.1按solver_protocol_1_1观察阶段输入。
+    question_local: 旧1.0及历史项目沿用原始data.sources哈希，局部变换保持本问模型/代码语义绑定；新1.1按solver_protocol_1_1观察阶段输入。
+    fallback: 仅旧协议输入发现可回退扫描根目录数据型文件，不包含PDF、DOCX、ZIP和正式交付目录；新1.1不得以此替代已声明输入。
   figure_provenance:
     default: 不生成独立figure_evidence文件
     project_level_preprocessing: 数据预处理结果.xlsx -> data_process.m -> 预处理证据图 -> LaTeX正文结论

@@ -10,6 +10,7 @@ from typing import Any, Iterable, Mapping
 
 import artifact_fingerprint as ARTIFACT_FINGERPRINT
 import stage_code as STAGE_CODE
+from stage_inputs import observe_inputs
 
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 
@@ -402,6 +403,8 @@ def _snapshot_question(
     schema: Mapping[str, Any],
     data_hash: str | None,
     delivery_scope: str | None,
+    *,
+    state: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     root = root.resolve()
     key = question_key(chinese_name)
@@ -419,6 +422,25 @@ def _snapshot_question(
         entry.get("result_analysis_status") == "not_required"
         and bool(str(entry.get("result_analysis_requirement_reason") or "").strip())
     )
+    input_issues: list[str] = []
+    for stage, code in code_paths.items():
+        if code is None or (stage == "analysis" and analysis_not_required):
+            continue
+        if not STAGE_CODE.requires_bundle_binding(root, entry, stage):
+            continue  # Historical 1.0 observations retain the global data policy.
+        if stage == "primary":
+            data_hash = None  # Invalid modern inputs must not fall back to raw scans.
+        try:
+            _, config = STAGE_CODE.parse_stage_config(code)
+            observation = observe_inputs(root, config, state or {})
+            implementations.setdefault(stage, {})["inputs"] = observation
+            input_issues.extend(f"{stage}: {issue}" for issue in observation["issues"])
+            if stage == "primary":
+                data_hash = observation["data_sha256"]
+            elif str(config.get("data_sha256", "")).lower() != str(entry.get("data_hash", "")).lower():
+                input_issues.append("analysis data_sha256必须继承主结果data_hash，不得覆盖主数据身份")
+        except (ValueError, OSError, TypeError) as exc:
+            input_issues.append(f"{stage}输入身份: {exc}")
     require_solution = status in SOLVED_STATUSES
     require_analysis = status in ANALYZED_STATUSES and not analysis_not_required
     require_analysis_code = (
@@ -432,7 +454,7 @@ def _snapshot_question(
         require_analysis_code = not analysis_not_required
 
     formal_figures = delivery_scope in {"figures", "docx", "latex", "submission"}
-    issues: list[str] = [*code_issues, *(figure_issues if formal_figures else [])]
+    issues: list[str] = [*code_issues, *input_issues, *(figure_issues if formal_figures else [])]
     warnings: list[str] = [] if formal_figures else list(figure_issues)
     if entry.get("result_analysis_status") == "not_required" and not analysis_not_required:
         issues.append("result_analysis_status=not_required必须提供非空result_analysis_requirement_reason")
