@@ -16,7 +16,7 @@ _DYNAMIC_NAMES = frozenset({
 })
 _NAMESPACES = frozenset({
     "importlib", "importlib.util", "importlib.machinery", "runpy", "builtins",
-    "subprocess", "os", "matlab", "matlab.engine",
+    "subprocess", "os", "matlab", "matlab.engine", "sys.modules",
 })
 _REFLECTIVE = frozenset({"__dict__", "__getattribute__", "__getattr__", "__loader__", "__spec__"})
 _PROCESS_CONSTANTS = frozenset({"subprocess.PIPE", "subprocess.STDOUT", "subprocess.DEVNULL"})
@@ -63,6 +63,8 @@ def execution_reference_issues(tree: ast.AST) -> list[str]:
         for name in sorted(names):
             if name.rsplit(".", 1)[-1] in _DYNAMIC_NAMES:
                 issues.append(_DYNAMIC)
+            if name in {"builtins.globals", "builtins.locals", "sys.modules"}:
+                issues.append(_NAMESPACE)
             base, _, leaf = name.rpartition(".")
             if base in _NAMESPACES and leaf in _REFLECTIVE:
                 issues.append(_NAMESPACE)
@@ -87,9 +89,16 @@ def execution_reference_issues(tree: ast.AST) -> list[str]:
         # returned by an expression whose qualified origin cannot be resolved.
         leaf = node.id if isinstance(node, ast.Name) else node.attr
         inspect(names | {leaf})
-        if leaf == "__builtins__":
+        if leaf == "__builtins__" or any(
+                name in {"globals", "locals", "builtins.globals", "builtins.locals"}
+                or name == "sys.modules" or name.startswith("sys.modules.") for name in names):
             issues.append(_NAMESPACE)
         parent = parents.get(node)
+        if names & {"vars", "builtins.vars"}:
+            # vars(obj) reads data attributes; vars() and escaped vars reveal
+            # an ambient namespace whose callable origins cannot be verified.
+            if not (isinstance(parent, ast.Call) and parent.func is node and parent.args):
+                issues.append(_NAMESPACE)
         attribute_base = isinstance(parent, ast.Attribute) and parent.value is node
         if not attribute_base and names & _NAMESPACES:
             issues.append(_NAMESPACE)

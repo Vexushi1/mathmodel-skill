@@ -76,6 +76,26 @@ class PythonExecutionReferenceTests(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertTrue(self.check(text))
 
+    def test_ambient_namespace_loaders_are_rejected(self):
+        cases = [
+            'import importlib, sys\nload = getattr(sys.modules["importlib"], "import_module")',
+            'import importlib, sys\nload = getattr(sys.modules.get("importlib"), "import_module")',
+            'import importlib\nload = getattr(globals()["importlib"], "import_module")',
+            'import importlib\nload = getattr(locals()["importlib"], "import_module")',
+            'import importlib\nload = getattr(vars()["importlib"], "import_module")',
+            'from builtins import globals as namespace\ngetattr(namespace()["importlib"], "import_module")',
+            'from builtins import locals as namespace\ngetattr(namespace()["importlib"], "import_module")',
+            'from builtins import vars as namespace\ngetattr(namespace()["importlib"], "import_module")',
+            'import builtins\nread_namespace = builtins.vars',
+        ]
+        for text in cases:
+            with self.subTest(text=text):
+                self.assertTrue(self.check(text))
+
+    def test_ordinary_object_attributes_and_static_system_metadata_remain_supported(self):
+        self.assertEqual(self.check('data = vars(record)\nimport sys\nversion = sys.version_info'), [])
+        self.assertEqual(self.check('from builtins import vars as attributes\ndata = attributes(record)'), [])
+
     def test_alternative_loaders_and_builtins_are_not_proven_sources(self):
         cases = [
             'f = __import__', 'f = eval', 'f = exec',
@@ -140,6 +160,22 @@ class PythonExecutionReferenceTests(unittest.TestCase):
             self.assertTrue(STAGE.validate_stage_binding(fixture.root, entry, "primary", require_validated=validated))
         self.assertTrue(any("动态Python" in row for row in RECEIPT.validate_one(fixture.root, book, state, False)))
         self.assertEqual(before, state)
+
+    def test_ambient_namespace_references_reach_delivery_binding_and_receipts(self):
+        for namespace in ('sys.modules', 'globals()', 'locals()', 'vars()'):
+            with self.subTest(namespace=namespace):
+                fixture = workbook_fixtures.SolverBackendTests()
+                fixture.setUp()
+                self.addCleanup(fixture.doCleanups)
+                config = fixture.config()
+                source = fixture.source(config, 'import importlib, sys\nload = getattr(' +
+                                        namespace + '["importlib"], "import_module")\n')
+                entry = fixture.entry(source, config, accepted=True)
+                state = fixture.state(entry)
+                book = fixture.primary_workbook(source, config, entry["solver_execution"]["primary"]["bundle_sha256"])
+                self.assertTrue(DELIVERY.validate_script(fixture.root, source)[0])
+                self.assertTrue(STAGE.validate_stage_binding(fixture.root, entry, "primary", require_validated=True))
+                self.assertTrue(any("命名空间" in row for row in RECEIPT.validate_one(fixture.root, book, state, False)))
 
     def test_old_protocol_binding_is_not_silently_migrated(self):
         fixture = workbook_fixtures.SolverBackendTests()

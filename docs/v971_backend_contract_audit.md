@@ -39,12 +39,22 @@ Authority 仍为 `core/bootstrap.yaml` 指向的 user_execution、runtime_assura
 
 执行顺序为：补充计划 → 保留失败复现 → 共享修复及负/正回归 → 下游验证 → 生成元数据 → 全量与当前提交 CI → 有条件合并 → 主干复核。若发现同主题的新断点，先在此页记录再修改；不将无关优化混入。新 1.1 项目若曾使用未验证动态加载，应改为可验证静态依赖并重新交付、执行、验收，不批量改写历史证据或通过 sync 自动恢复 accepted。回滚使用正常 revert，保留原失败现场，不移动历史标签。
 
-本节是待执行计划，不预先宣称 A13–A15 已通过；实际完成记录及精确提交验收以 PR 后续评论/CI 为准。
+本节先于实现提交，保留计划与验收依据；最终执行状态、精确提交验收和合并状态以 PR 后续完成评论及该提交 CI 为准，不把旧提交结果当作新提交通过。
+
+### 补充执行记录
+
+A13/A14 已由共享 `scripts/python_source_checks.py` 接入 `stage_code.py`，保持原有下游消费者和状态转换 Authority；新增 `tests/test_python_execution_reference_closure.py`。检查从危险能力的引用源头阻断赋值、链式、回调、默认参数、容器和 helper 中的别名，而非为每个下游复制规则。保留原始历史工作簿并验证新检查器拒绝其不完整来源。
+
+二次体检在 `1a68d169057363c9cac0e7dcc593223d867137e1` 进一步确认模块注册表和环境命名空间反射可绕过第一轮修复，已先记录于 PR 再补修：`sys.modules`、`globals()`、`locals()` 以及无参 `vars()` 或其逃逸引用不再获得来源闭包证明；普通 `vars(object)` 数据属性读取保留。新增反射负例与公共交付、绑定、回执检查，本轮专项 17 个测试方法，另保留并整合新增反射复验模块的 4 个方法。两个隔离真实运行复现均显示修复前 helper 变化使结果从 3 变 6、旧回执仍通过，修复后的共享 gate 则拒绝原历史工作簿。
+
+A15 使用当前生成源码快照核对 Git tree、全部单测、路由/读取选择器、哈希与版本，并核对同一 head 的 CI。由生成工作流触发的 `workflow_dispatch` 是现有全量检查入口；未实际执行的重复 PR 事件不能计作测试通过。合并必须等最终候选全部所需检查完成，合并后的主干状态再单独核验。
+
+本检查器是对支持范围内来源证明的保守静态门，不是执行不可信 Python 的安全沙箱；未提供任意反射、混淆代码或外部安装包内部行为的安全性证明。未验证动态依赖应改为显式静态依赖并重新交付/执行/验收，而不是扩张通过声明。
+
 
 ### A13 补充边界复验
 
 在 `1a68d169057363c9cac0e7dcc593223d867137e1` 上进一步复现：受限命名空间的 `__getattribute__` 及 from-import 反射属性可绕过引用检查；MATLAB 根模块值别名可隐藏 engine 调用；纯 `subprocess.PIPE/STDOUT/DEVNULL` 常量被误判为进程启动。修复仍在同一 `python_source_checks` 中完成，不覆盖已有阶段或状态实现。新增 `tests/test_python_reference_followup.py` 验证反射来源、根模块逃逸、无执行能力常量及真正执行产生的旧工作簿（答案 3→6、入口哈希不变）的拒绝与身份不刷新。常量例外仅限这三个值；直接调用原有进程命名空间仍被拒绝。原始候选上四项新增测试有 13 个失败子例，保留负例后再修复。
-
 
 ## 兼容与使用边界
 
@@ -65,6 +75,8 @@ python -m unittest tests.test_solver_backend_runtime_boundaries
 python -m unittest tests.test_solver_backend_source_closure
 python -m unittest tests.test_solver_backend_contract_alignment
 python -m unittest tests.test_solver_backend_downstream_identity
+python -m unittest tests.test_python_execution_reference_closure
+python -m unittest tests.test_python_reference_followup
 python tests/solver_backend_hash_smoke.py --project FRESH_OUTPUT --matlab-command MATLAB_EXE
 ```
 
