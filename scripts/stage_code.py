@@ -15,6 +15,7 @@ from typing import Any, Mapping, Sequence
 
 import yaml
 import run_config_parser
+import python_source_checks
 
 ROOT = Path(__file__).resolve().parent.parent
 BACKENDS = {"python": ".py", "matlab": ".m"}
@@ -429,39 +430,12 @@ def dependency_reference_issues(root: Path, entrypoint: Path, config: Mapping[st
         if source.suffix.lower() == ".py":
             tree = ast.parse(text)
             references: list[Path] = []
-            imported_names: dict[str, str] = {}
+            issues.extend(python_source_checks.execution_reference_issues(tree))
             for node in ast.walk(tree):
-                if isinstance(node, ast.Import):
-                    imported_names.update({alias.asname or alias.name.split(".")[0]: alias.name for alias in node.names})
-                elif isinstance(node, ast.ImportFrom) and node.module:
-                    imported_names.update({alias.asname or alias.name: node.module + "." + alias.name for alias in node.names})
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Import):
+                if isinstance(node, (ast.Import, ast.ImportFrom)):
                     paths, errors = _python_import_files(root, entrypoint, source, node)
                     references.extend(paths)
                     issues.extend(errors)
-                elif isinstance(node, ast.ImportFrom):
-                    paths, errors = _python_import_files(root, entrypoint, source, node)
-                    references.extend(paths)
-                    issues.extend(errors)
-                elif isinstance(node, ast.Call):
-                    name = node.func.id if isinstance(node.func, ast.Name) else node.func.attr if isinstance(node.func, ast.Attribute) else ""
-                    if name in {"__import__", "import_module", "exec", "eval", "run_path", "run_module", "spec_from_file_location"}:
-                        issues.append("新源码闭包不支持动态Python代码加载")
-                    target = node.func
-                    chain: list[str] = []
-                    while isinstance(target, ast.Attribute):
-                        chain.insert(0, target.attr)
-                        target = target.value
-                    if isinstance(target, ast.Name):
-                        chain.insert(0, imported_names.get(target.id, target.id))
-                    called = ".".join(chain)
-                    if called in {"importlib.import_module", "importlib.util.spec_from_file_location",
-                                   "runpy.run_path", "runpy.run_module", "builtins.eval", "builtins.exec", "builtins.__import__"}:
-                        issues.append("新源码闭包不支持动态Python代码加载")
-                    if (called.startswith(("subprocess.", "matlab.engine.")) or called in {"os.system", "os.popen"}
-                            or called.startswith(("os.exec", "os.spawn"))):
-                        issues.append("求解阶段不支持shell/跨后端进程启动")
             for path in references:
                 try:
                     _relative_path(root, path.relative_to(root).as_posix())
