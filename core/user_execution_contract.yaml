@@ -50,6 +50,7 @@ code_bundle:
   - The entrypoint binds its dependency declarations through its existing entry SHA; never embed the complete bundle hash in the entrypoint because that creates self-reference.
   - Default to a self-contained entrypoint with local functions; declare every required project helper when separate source files are necessary. Data/workbooks and installed packages are not code_dependencies.
   - Cross-check statically discoverable project imports/calls and actual runtime resolution; unsupported dynamic loading is unverified, not a proven dependency closure.
+  - Current MATLAB templates can verify ordinary same-directory or project-root .m helpers. Any +package/private resolution not verified by the current template/checker must remain unverified and cannot pass formal source-closure checks; a matching filename alone does not prove resolution.
   - Bind source/data identities before the run and recheck before writing a successful receipt; changed inputs or cached/shadowed MATLAB functions must not acquire a successful new receipt.
   - Only successful stage receipt and numerical acceptance may update validated_bundle_sha256; sync observes and invalidates without refreshing delivered or validated identities.
   - Existing Python code without the new protocol remains readable by its historical contract; new MATLAB cannot use missing-metadata compatibility.
@@ -187,6 +188,9 @@ code_delivery:
     supported_versions: [1.0.0, 1.1.0]
     version_required_config_fields:
       '1.1.0': [solver_backend]
+    version_stage_required_config_fields:
+      '1.1.0':
+        analysis: [primary_workbook_sha256]
     new_writer_required: true
     p5a_transitional_missing_marker_read_supported: true
     unknown_version_policy: fail_closed
@@ -324,6 +328,16 @@ returned_workbook:
     supported_versions: [1.0.0, 1.1.0]
     version_required_fields:
       '1.1.0': [solver_backend, code_bundle_sha256]
+    version_stage_required_fields:
+      '1.1.0':
+        analysis: [primary_workbook_sha256]
+    analysis_primary_binding:
+      applies_to: {version: 1.1.0, stage: analysis}
+      field: primary_workbook_sha256
+      format: sha256_hex
+      comparison: case_insensitive
+      accepted_state_field: subproblems.<question>.validated_artifact_hashes.solution_workbook
+      rule: RUN_CONFIG与RUN_RECEIPT均须包含有效摘要，且两者与当前accepted主工作簿身份一致；缺失或不一致不得交付或验收。旧1.0 analysis不新增此必需项。
     new_writer_required: true
     p5a_transitional_missing_version_read_supported: true
     legacy_full_config_missing_version_read_supported: true

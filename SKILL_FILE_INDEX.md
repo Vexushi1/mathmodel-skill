@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：9.7.0
+当前 Skill 版本：9.7.1
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -129,6 +129,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/prepare_cumcm_class.py`
 - `scripts/project_snapshot.py`
 - `scripts/project_transaction.py`
+- `scripts/python_source_checks.py`
 - `scripts/reading_plan.py`
 - `scripts/render_paper.py`
 - `scripts/resolve_runtime.py`
@@ -138,6 +139,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/score_submission.py`
 - `scripts/semantic_identity.py`
 - `scripts/stage_code.py`
+- `scripts/stage_inputs.py`
 - `scripts/state_transitions.py`
 - `scripts/submission_requirements.py`
 - `scripts/sync_project.py`
@@ -254,6 +256,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/optimization_baseline.py`
 - `tests/reading_plan_cases.py`
 - `tests/reading_plan_evidence.py`
+- `tests/solver_backend_hash_smoke.py`
 - `tests/solver_backend_mixed_smoke.py`
 - `tests/test_actions_runtime_modernization.py`
 - `tests/test_audit_a6_latex_boundaries.py`
@@ -289,7 +292,9 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_p8c_run_config_parser.py`
 - `tests/test_p9_release_closeout.py`
 - `tests/test_preprocessing_decision_contract.py`
+- `tests/test_python_execution_reference_closure.py`
 - `tests/test_python_matlab_ownership.py`
+- `tests/test_python_reference_followup.py`
 - `tests/test_read_path_semantic_closure.py`
 - `tests/test_reading_plan.py`
 - `tests/test_reading_plan_evidence.py`
@@ -299,11 +304,15 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_router_contract.py`
 - `tests/test_runtime_health_coherence.py`
 - `tests/test_schemas.py`
+- `tests/test_solver_backend_contract_alignment.py`
+- `tests/test_solver_backend_downstream_identity.py`
 - `tests/test_solver_backend_end_to_end.py`
 - `tests/test_solver_backend_integration.py`
 - `tests/test_solver_backend_legacy_evidence.py`
 - `tests/test_solver_backend_preprocessing.py`
+- `tests/test_solver_backend_runtime_boundaries.py`
 - `tests/test_solver_backend_runtime_resume.py`
+- `tests/test_solver_backend_source_closure.py`
 - `tests/test_solver_backends.py`
 - `tests/test_split_pipeline_runtime.py`
 - `tests/test_starter_templates.py`
@@ -453,6 +462,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/v870_question_writing_capability_preflight_evaluation.md`
 - `docs/v8_writing_capability_inventory.md`
 - `docs/v921_p7_conditional_analysis_semantic_hygiene_plan.md`
+- `docs/v971_backend_contract_audit.md`
 - `docs/v9_3_initial_modeling_structural_reduction_refactor_plan.md`
 - `docs/writing_readability_validation_slimming_plan.md`
 - `docs/writing_readability_w4_acceptance.md`

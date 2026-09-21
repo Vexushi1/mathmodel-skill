@@ -75,10 +75,12 @@ def parse_embedded_config(
                 node = node.value
             return node.id if isinstance(node, ast.Name) else None
         for node in ast.walk(tree):
-            if isinstance(node, (ast.Assign, ast.AnnAssign, ast.NamedExpr)) and node not in declarations:
+            if isinstance(node, (ast.Assign, ast.AnnAssign, ast.NamedExpr, ast.AugAssign)) and node not in declarations:
                 targets = node.targets if isinstance(node, ast.Assign) else [node.target]
                 if any(root_name(target) in CONFIG_NAMES for target in targets):
                     raise ValueError("RUN_CONFIG禁止局部重定义或后续覆盖")
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Del) and node.id in CONFIG_NAMES:
+                raise ValueError("RUN_CONFIG禁止后续删除")
             if isinstance(node, (ast.Attribute, ast.Subscript)) and isinstance(node.ctx, (ast.Store, ast.Del)) and root_name(node) in CONFIG_NAMES:
                 raise ValueError("RUN_CONFIG禁止后续覆盖或删除字段")
             if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)

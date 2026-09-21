@@ -8,7 +8,7 @@ assert(usejava('jvm'), 'HSK:Environment', 'SHA-256 requires the MATLAB JVM.');
 assert(license('test', 'MATLAB'), 'HSK:Environment', 'MATLAB license is unavailable.');
 identity = verify_inputs(root, entrypoint, RUN_CONFIG);
 primary = project_path(root, RUN_CONFIG.primary_workbook);
-assert(strcmp(file_digest(primary), RUN_CONFIG.primary_workbook_sha256), ...
+assert(strcmpi(file_digest(primary), RUN_CONFIG.primary_workbook_sha256), ...
     'HSK:PrimaryIdentity', 'The primary workbook is not the exact accepted input.');
 raw = readcell(primary, 'Sheet', '核心指标');
 headers = string(raw(1, :));
@@ -42,7 +42,7 @@ sheets(end + 1, :) = {'参数敏感性',[{'参数','基准值','变化值','结�
 sheets(end + 1, :) = {'结论稳定性汇总',{'核心结论','分析方法','稳定范围','是否保持'; ...
     '解为正值','参数敏感性',sprintf('a in [%.17g, %.17g]',min(coefficients),max(coefficients)),kept}};
 current = verify_inputs(root, entrypoint, RUN_CONFIG);
-assert(isequal(identity,current) && strcmp(file_digest(primary),RUN_CONFIG.primary_workbook_sha256), ...
+assert(isequal(identity,current) && strcmpi(file_digest(primary),RUN_CONFIG.primary_workbook_sha256), ...
     'HSK:IdentityChanged', 'Source, input or accepted primary changed during analysis.');
 workbook = project_path(root, RUN_CONFIG.expected_workbook);
 assert(workbook ~= primary, 'HSK:Output', 'Analysis may not overwrite the primary workbook.');
@@ -57,7 +57,7 @@ validateattributes(config.tolerance, {'numeric'}, {'scalar','real','finite','pos
 inputs = string(config.data_paths(:));
 assert(~isempty(inputs), 'HSK:Input', 'Declare at least one actual input.');
 identity.data_sha256 = input_digest(root, inputs, config);
-assert(strcmp(identity.data_sha256, config.data_sha256), 'HSK:InputHash', 'Input hash does not match RUN_CONFIG.');
+assert(strcmpi(identity.data_sha256, config.data_sha256), 'HSK:InputHash', 'Input hash does not match RUN_CONFIG.');
 entryRelative = replace(extractAfter(entrypoint, strlength(root) + 1), '\', '/');
 sources = strings(numel(config.code_dependencies) + 1, 1);
 sources(1) = entryRelative;
@@ -66,7 +66,7 @@ if ~isempty(config.code_dependencies)
     for k = 1:numel(config.code_dependencies)
         dep = config.code_dependencies(k);
         path = project_path(root, dep.path);
-        assert(strcmp(file_digest(path), dep.sha256), 'HSK:Dependencies', 'Dependency hash mismatch.');
+        assert(strcmpi(file_digest(path), dep.sha256), 'HSK:Dependencies', 'Dependency hash mismatch.');
         [~, name, extension] = fileparts(path);
         if extension == ".m"
             actual = string(which(name));

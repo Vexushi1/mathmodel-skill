@@ -452,7 +452,8 @@ class ContractAndDriftTests(unittest.TestCase):
         # MATLAB syntax is parsed separately; source checks do not claim runtime execution.
         "templates/matlab/q1_plot.m": "85d621fce69943397e4a11ad0255c03d51c2cc9c",
         "templates/matlab/draw_mechanism_structure.m": "65ba4a3b3462a565f86880c49af0959edd21f9a4",
-        "templates/figure/chart_selection.md": "044c87fa93056d6d26e45cb77683942972b79142",
+        # v9.7.1 A02 changes only Evidence Capture's producer from Python to the selected solver.
+        "templates/figure/chart_selection.md": "8b87b79d55e23f1b581c1ceca9e4d609fd11ba26",
         "templates/figure/figure_enhancement_patterns.md": "fa9db83323c4dcbe430e8afdca82df806e3db9de",
         # A3 checks current accepted primary and the explicit analysis necessity decision.
         "scripts/validate_code_delivery.py": "3a43b99e472f4f11f7ab620f3e8c5176db2e1ef4",

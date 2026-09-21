@@ -182,6 +182,8 @@ jobs:
           command: addpath(fullfile(pwd,"tests","matlab")); run_solver_backend_smoke(fullfile(string(getenv("HSK_MATLAB_SOLVER_OUTPUT")),"preprocessed"),"analysis")
       - name: Verify preprocessing identity and workbook preservation
         run: python tests/test_solver_backend_end_to_end.py verify-analysis --project "$HSK_MATLAB_SOLVER_OUTPUT/preprocessed"
+      - name: Verify uppercase source input and accepted-primary hashes in native stages
+        run: python tests/solver_backend_hash_smoke.py --project "$HSK_MATLAB_SOLVER_OUTPUT/hash-casing" --matlab-command "$HSK_MATLAB_CI_COMMAND"
       - name: Upload actual MATLAB execution evidence
         if: always()
         uses: actions/upload-artifact@v7

@@ -15,6 +15,7 @@ from typing import Any, Mapping, Sequence
 
 import yaml
 import run_config_parser
+import python_source_checks
 
 ROOT = Path(__file__).resolve().parent.parent
 BACKENDS = {"python": ".py", "matlab": ".m"}
@@ -243,8 +244,183 @@ def stage_code_fingerprint(root: Path, entrypoint: Path, dependencies: Sequence[
             "bundle_sha256": digest.hexdigest(), "files": files}
 
 
+def _python_module_files(base: Path, pieces: Sequence[str]) -> tuple[bool, list[Path]]:
+    """Locate a project import without importing it; regular packages precede modules."""
+    found: list[Path] = []
+    matched = False
+    for piece in pieces:
+        package = base / piece
+        initializer = package / "__init__.py"
+        module = base / (piece + ".py")
+        if initializer.is_file():
+            found.append(initializer)
+        elif module.is_file():
+            found.append(module)
+            return True, found  # Remaining from-import components may be attributes.
+        elif not package.is_dir():
+            break
+        matched = True
+        base = package
+    return matched, found
+
+
+def _python_import_files(root: Path, entrypoint: Path, source: Path, node: ast.AST) -> tuple[list[Path], list[str]]:
+    """Use entry import roots for absolute imports and the source package for relatives."""
+    bases = list(dict.fromkeys((entrypoint.parent, root)))
+    found: list[Path] = []
+    if isinstance(node, ast.ImportFrom) and node.level:
+        anchor = entrypoint.parent if source.is_relative_to(entrypoint.parent) else root
+        package = source.relative_to(anchor).parts[:-1]
+        if source == entrypoint or node.level > len(package):
+            return [], [f"Python相对导入越出已知包上下文: {source.relative_to(root).as_posix()}"]
+        # Importing the current helper already executes each regular parent package.
+        found.extend(anchor.joinpath(*package[:i], "__init__.py") for i in range(1, len(package) + 1))
+        bases = [anchor.joinpath(*package[:len(package) - node.level + 1])]
+    if isinstance(node, ast.Import):
+        modules = [alias.name for alias in node.names]
+    else:
+        modules = [node.module] if node.module else []
+        modules.extend((node.module + "." if node.module else "") + alias.name
+                       for alias in node.names if alias.name != "*")
+    for module in modules:
+        for base in bases:
+            matched, paths = _python_module_files(base, module.split("."))
+            found.extend(paths)
+            if matched:
+                break
+    return [path for path in found if path.is_file()], []
+
+
+def _matlab_references(text: str) -> list[str]:
+    """Read lexical function references, preserving per-function variable precedence."""
+    import matlab_code_checks as matlab
+    rows = matlab.statements(matlab.tokenize(text))
+    block_heads = {"if", "for", "parfor", "while", "switch", "try", "spmd", "arguments"}
+    # Valid function files either terminate every function explicitly (required
+    # for nesting), or let the next declaration/EOF end each flat local function.
+    kinds: list[str] = []
+    explicit_function_ends = False
+    for row in rows:
+        head = row[0].value
+        if head == "function" or head in block_heads:
+            kinds.append(head)
+        elif head == "end" and kinds:
+            explicit_function_ends |= kinds.pop() == "function"
+    scopes: list[dict[str, Any]] = [{"parent": None, "children": set(), "variables": set()}]
+    row_scopes: list[int] = []
+    row_endings: list[str | None] = []
+    stack: list[tuple[str, int]] = []
+    scope = 0
+    for row in rows:
+        head = row[0].value
+        if head == "function":
+            if not explicit_function_ends:
+                scope = 0
+                stack.clear()
+            name, _ = matlab.function_signature(row)
+            parent = scope
+            scopes[parent]["children"].add(name)
+            scope = len(scopes)
+            values = [token.value for token in row]
+            name_index = values.index("=") + 1 if "=" in values else 1
+            parameters = row[name_index + 2:] if "(" in values[name_index + 1:] else []
+            variables = {token.value for token in parameters if token.kind == "identifier"}
+            if "=" in values:
+                variables.update(token.value for token in row[1:name_index - 1] if token.kind == "identifier")
+            scopes.append({"parent": parent, "children": set(), "variables": variables})
+            stack.append((head, scope))
+        elif head in block_heads:
+            stack.append((head, scope))
+        row_scopes.append(scope)
+        row_endings.append(stack[-1][0] if head == "end" and stack else None)
+        if head == "end" and stack:
+            kind, ended = stack.pop()
+            if kind == "function":
+                scope = scopes[ended]["parent"]
+    references: list[str] = []
+    controls: list[tuple[int, set[str]]] = []
+    for row, current, ending in zip(rows, row_scopes, row_endings):
+        if row[0].value == "function":
+            continue
+        head = row[0].value
+        if head in {"global", "persistent"}:
+            scopes[current]["variables"].update(token.value for token in row[1:] if token.kind == "identifier")
+            continue
+        if head in block_heads:
+            controls.append((current, set(scopes[current]["variables"])))
+        elif head in {"else", "elseif", "case", "otherwise", "catch"} and controls:
+            scopes[current]["variables"] = set(controls[-1][1])
+        elif ending and ending != "function" and controls:
+            _, scopes[current]["variables"] = controls.pop()
+        visible = set(scopes[0]["children"])
+        variables = set(scopes[current]["variables"])
+        ancestor = current
+        while ancestor:
+            visible.update(scopes[ancestor]["children"])
+            ancestor = scopes[ancestor]["parent"]
+            variables.update(scopes[ancestor]["variables"])
+        values = [token.value for token in row]
+        # A command's whitespace-separated arguments are character text, not
+        # expressions: `disp helper` must not bind helper.m; `helper text` must.
+        command_end = 1
+        while command_end + 1 < len(row) and values[command_end] == "." and row[command_end + 1].kind == "identifier":
+            command_end += 2
+        statement_heads = block_heads | {"else", "elseif", "case", "otherwise", "catch", "end", "return", "break", "continue"}
+        if (row[0].kind == "identifier" and head not in statement_heads and command_end < len(row)
+                and row[command_end].kind in {"identifier", "char", "string", "number"}
+                and row[command_end].start > row[command_end - 1].end):
+            if head not in variables and (command_end > 1 or head not in visible):
+                references.append("".join(values[:command_end]))
+            continue
+        assignment = values.index("=") if "=" in values else None
+        assigned: set[str] = set()
+        if assignment is not None:
+            left = row[:assignment]
+            if left[0].value == "[":
+                assigned.update(token.value for token in left if token.kind == "identifier")
+            else:
+                first = 1 if left[0].value in {"for", "parfor"} else 0
+                if len(left) > first and left[first].kind == "identifier":
+                    assigned.add(left[first].value)
+        # Anonymous parameters only shadow their own expression, not earlier arguments.
+        anonymous: list[tuple[int, int, set[str]]] = []
+        for i in range(len(row) - 2):
+            if values[i:i + 2] == ["@", "("]:
+                end = next((j for j in range(i + 2, len(row)) if values[j] == ")"), len(row))
+                names = {token.value for token in row[i + 2:end] if token.kind == "identifier"}
+                depth, stop = 0, end + 1
+                while stop < len(row):
+                    value = values[stop]
+                    if depth == 0 and value in {",", ")", "]", "}"}:
+                        break
+                    depth += int(value in {"(", "[", "{"}) - int(value in {")", "]", "}"})
+                    stop += 1
+                anonymous.append((i + 2, stop, names))
+        i = 0
+        while i < len(row):
+            token = row[i]
+            if token.kind != "identifier" or (i and values[i - 1] == "."):
+                i += 1
+                continue
+            direct_handle = i > 0 and values[i - 1] == "@"
+            left_target = assignment is not None and i < assignment and token.value in assigned
+            pieces = [token.value]
+            end = i + 1
+            while end + 1 < len(row) and values[end] == "." and row[end + 1].kind == "identifier":
+                pieces.append(row[end + 1].value)
+                end += 2
+            anonymous_variables = set().union(*(names for start, stop, names in anonymous if start <= i < stop))
+            if not left_target and (direct_handle or token.value not in variables | anonymous_variables):
+                if len(pieces) > 1 or token.value not in visible:
+                    references.append(".".join(pieces))
+            i = end
+        scopes[current]["variables"].update(assigned)
+    return list(dict.fromkeys(references))
+
+
 def dependency_reference_issues(root: Path, entrypoint: Path, config: Mapping[str, Any]) -> list[str]:
     """Reject discoverable undeclared local modules and unsupported dynamic imports."""
+    root, entrypoint = Path(root).resolve(), Path(entrypoint).resolve()
     dependencies = config.get("code_dependencies") or []
     files = [entrypoint, *(root / item["path"] for item in dependencies)]
     declared = {path.resolve() for path in files}
@@ -253,46 +429,20 @@ def dependency_reference_issues(root: Path, entrypoint: Path, config: Mapping[st
         text = source.read_text(encoding="utf-8-sig")
         if source.suffix.lower() == ".py":
             tree = ast.parse(text)
-            modules: list[str] = []
-            imported_names: dict[str, str] = {}
+            references: list[Path] = []
+            issues.extend(python_source_checks.execution_reference_issues(tree))
             for node in ast.walk(tree):
-                if isinstance(node, ast.Import):
-                    imported_names.update({alias.asname or alias.name.split(".")[0]: alias.name for alias in node.names})
-                elif isinstance(node, ast.ImportFrom) and node.module:
-                    imported_names.update({alias.asname or alias.name: node.module + "." + alias.name for alias in node.names})
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Import):
-                    modules.extend(alias.name for alias in node.names)
-                elif isinstance(node, ast.ImportFrom):
-                    if node.module:
-                        modules.append(node.module)
-                    modules.extend((node.module + "." if node.module else "") + alias.name for alias in node.names)
-                elif isinstance(node, ast.Call):
-                    name = node.func.id if isinstance(node.func, ast.Name) else node.func.attr if isinstance(node.func, ast.Attribute) else ""
-                    if name in {"__import__", "import_module", "exec", "eval", "run_path", "run_module", "spec_from_file_location"}:
-                        issues.append("新源码闭包不支持动态Python代码加载")
-                    target = node.func
-                    chain: list[str] = []
-                    while isinstance(target, ast.Attribute):
-                        chain.insert(0, target.attr)
-                        target = target.value
-                    if isinstance(target, ast.Name):
-                        chain.insert(0, imported_names.get(target.id, target.id))
-                    called = ".".join(chain)
-                    if called in {"importlib.import_module", "importlib.util.spec_from_file_location",
-                                   "runpy.run_path", "runpy.run_module", "builtins.eval", "builtins.exec", "builtins.__import__"}:
-                        issues.append("新源码闭包不支持动态Python代码加载")
-                    if (called.startswith(("subprocess.", "matlab.engine.")) or called in {"os.system", "os.popen"}
-                            or called.startswith(("os.exec", "os.spawn"))):
-                        issues.append("求解阶段不支持shell/跨后端进程启动")
-            for module in modules:
-                pieces = module.split(".")
-                for base in (root, source.parent):
-                    candidates = [base.joinpath(*pieces).with_suffix(".py"), base.joinpath(*pieces, "__init__.py")]
-                    candidates.extend(base.joinpath(*pieces[:i], "__init__.py") for i in range(1, len(pieces)))
-                    for path in candidates:
-                        if path.is_file() and path.resolve() not in declared:
-                            issues.append(f"项目Python依赖未声明: {path.relative_to(root).as_posix()}")
+                if isinstance(node, (ast.Import, ast.ImportFrom)):
+                    paths, errors = _python_import_files(root, entrypoint, source, node)
+                    references.extend(paths)
+                    issues.extend(errors)
+            for path in references:
+                try:
+                    _relative_path(root, path.relative_to(root).as_posix())
+                except StageCodeError as exc:
+                    issues.append(str(exc))
+                if path.resolve() not in declared:
+                    issues.append(f"项目Python依赖未声明: {path.relative_to(root).as_posix()}")
         else:
             import matlab_code_checks
             tokens = matlab_code_checks.tokenize(text)
@@ -304,13 +454,27 @@ def dependency_reference_issues(root: Path, entrypoint: Path, config: Mapping[st
                         issues.append(f"MATLAB源码闭包不支持动态执行/缓存锁定: {token.value}")
                     if token.value == "py" and i + 1 < len(row) and row[i + 1].value == ".":
                         issues.append("MATLAB源码闭包不支持启动Python后端")
-            calls = {token.value for i, token in enumerate(tokens[:-1]) if token.kind == "identifier" and tokens[i + 1].value == "("}
-            local = {matlab_code_checks.function_signature(row)[0] for row in matlab_code_checks.statements(tokens) if row[0].value == "function"}
-            for name in calls - local:
-                for base in (root, source.parent):
+            if any(part.startswith("+") or part == "private" for part in source.relative_to(root).parts[:-1]):
+                issues.append("MATLAB项目package/private源码解析尚未验证，不支持声明为已闭包")
+            for name in _matlab_references(text):
+                pieces = name.split(".")
+                for base in dict.fromkeys((source.parent, entrypoint.parent, root)):
+                    if len(pieces) > 1:
+                        if (base / ("+" + pieces[0])).is_dir():
+                            issues.append(f"MATLAB项目限定函数解析尚未验证: {name}")
+                        continue
+                    if (base / "private" / (name + ".m")).is_file():
+                        issues.append(f"MATLAB项目private函数解析尚未验证: {name}")
+                        break
                     path = base / (name + ".m")
-                    if path.is_file() and path.resolve() not in declared:
-                        issues.append(f"项目MATLAB依赖未声明: {path.relative_to(root).as_posix()}")
+                    if path.is_file():
+                        try:
+                            _relative_path(root, path.relative_to(root).as_posix())
+                        except StageCodeError as exc:
+                            issues.append(str(exc))
+                        if path.resolve() not in declared:
+                            issues.append(f"项目MATLAB依赖未声明: {path.relative_to(root).as_posix()}")
+                        break
     return list(dict.fromkeys(issues))
 
 

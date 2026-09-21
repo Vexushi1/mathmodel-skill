@@ -45,7 +45,7 @@ validateattributes(config.tolerance, {'numeric'}, {'scalar','real','finite','pos
 inputs = string(config.data_paths(:));
 assert(~isempty(inputs), 'HSK:Input', 'Declare at least one actual input.');
 identity.data_sha256 = input_digest(root, inputs, config);
-assert(strcmp(identity.data_sha256, config.data_sha256), 'HSK:InputHash', 'Input hash does not match RUN_CONFIG.');
+assert(strcmpi(identity.data_sha256, config.data_sha256), 'HSK:InputHash', 'Input hash does not match RUN_CONFIG.');
 entryRelative = replace(extractAfter(entrypoint, strlength(root) + 1), '\', '/');
 sources = strings(numel(config.code_dependencies) + 1, 1);
 sources(1) = entryRelative;
@@ -54,7 +54,7 @@ if ~isempty(config.code_dependencies)
     for k = 1:numel(config.code_dependencies)
         dep = config.code_dependencies(k);
         path = project_path(root, dep.path);
-        assert(strcmp(file_digest(path), dep.sha256), 'HSK:Dependencies', 'Dependency hash mismatch.');
+        assert(strcmpi(file_digest(path), dep.sha256), 'HSK:Dependencies', 'Dependency hash mismatch.');
         [~, name, extension] = fileparts(path);
         if extension == ".m"
             actual = string(which(name));

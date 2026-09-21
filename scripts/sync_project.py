@@ -253,6 +253,7 @@ def contract_preflight_issues(
             for item in FRAMEWORK_VALIDATION.validate_framework_text(
                 framework_path.read_text(encoding="utf-8"),
                 state=candidate_state if candidate_state is not None else load_yaml(state_path),
+                project_root=root,
             )
         )
     return issues
@@ -666,6 +667,7 @@ def synchronize(
         snapshot = _snapshot_question(
             root, chinese_name, entry, schema, data_hash,
             scope if explicit_delivery_scope else None,
+            state=state,
         )
         snapshots[key] = snapshot
         issues.extend(f"{key}: {item}" for item in snapshot["issues"])
