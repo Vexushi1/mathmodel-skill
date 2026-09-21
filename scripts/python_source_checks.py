@@ -16,8 +16,10 @@ _DYNAMIC_NAMES = frozenset({
 })
 _NAMESPACES = frozenset({
     "importlib", "importlib.util", "importlib.machinery", "runpy", "builtins",
-    "subprocess", "os", "matlab.engine",
+    "subprocess", "os", "matlab", "matlab.engine",
 })
+_REFLECTIVE = frozenset({"__dict__", "__getattribute__", "__getattr__", "__loader__", "__spec__"})
+_PROCESS_CONSTANTS = frozenset({"subprocess.PIPE", "subprocess.STDOUT", "subprocess.DEVNULL"})
 _DYNAMIC = "新源码闭包不支持动态Python代码加载"
 _PROCESS = "求解阶段不支持shell/跨后端进程启动"
 _NAMESPACE = "新源码闭包不支持执行命名空间的间接传递/反射"
@@ -61,6 +63,11 @@ def execution_reference_issues(tree: ast.AST) -> list[str]:
         for name in sorted(names):
             if name.rsplit(".", 1)[-1] in _DYNAMIC_NAMES:
                 issues.append(_DYNAMIC)
+            base, _, leaf = name.rpartition(".")
+            if base in _NAMESPACES and leaf in _REFLECTIVE:
+                issues.append(_NAMESPACE)
+            if name in _PROCESS_CONSTANTS:
+                continue  # Literal stream-routing values cannot launch a process.
             if (name.startswith(("subprocess.", "matlab.engine."))
                     or name in {"os.system", "os.popen", "os.startfile"}
                     or name.startswith(("os.exec", "os.spawn"))):
@@ -68,6 +75,11 @@ def execution_reference_issues(tree: ast.AST) -> list[str]:
 
     inspect(imported_values)
     for node in nodes:
+        # Preserve the old direct-call boundary, including malformed calls to
+        # process constants; only non-call references gain the value exception.
+        if isinstance(node, ast.Call) and any(
+                name.startswith(("subprocess.", "matlab.engine.")) for name in qualified(node.func)):
+            issues.append(_PROCESS)
         if not isinstance(node, (ast.Name, ast.Attribute)) or not isinstance(node.ctx, ast.Load):
             continue
         names = qualified(node)

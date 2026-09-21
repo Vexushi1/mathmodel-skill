@@ -41,6 +41,11 @@ Authority 仍为 `core/bootstrap.yaml` 指向的 user_execution、runtime_assura
 
 本节是待执行计划，不预先宣称 A13–A15 已通过；实际完成记录及精确提交验收以 PR 后续评论/CI 为准。
 
+### A13 补充边界复验
+
+在 `1a68d169057363c9cac0e7dcc593223d867137e1` 上进一步复现：受限命名空间的 `__getattribute__` 及 from-import 反射属性可绕过引用检查；MATLAB 根模块值别名可隐藏 engine 调用；纯 `subprocess.PIPE/STDOUT/DEVNULL` 常量被误判为进程启动。修复仍在同一 `python_source_checks` 中完成，不覆盖已有阶段或状态实现。新增 `tests/test_python_reference_followup.py` 验证反射来源、根模块逃逸、无执行能力常量及真正执行产生的旧工作簿（答案 3→6、入口哈希不变）的拒绝与身份不刷新。常量例外仅限这三个值；直接调用原有进程命名空间仍被拒绝。原始候选上四项新增测试有 13 个失败子例，保留负例后再修复。
+
+
 ## 兼容与使用边界
 
 - 旧 Python 项目不自动迁移；原始 FULL/P5a/1.0 配置继续按旧接口读取。新 1.1 阶段必须声明真实项目 helper 和输入，不能用遗漏依赖的旧绑定继续确认新源码结果。
