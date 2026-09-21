@@ -129,6 +129,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/prepare_cumcm_class.py`
 - `scripts/project_snapshot.py`
 - `scripts/project_transaction.py`
+- `scripts/python_source_checks.py`
 - `scripts/reading_plan.py`
 - `scripts/render_paper.py`
 - `scripts/resolve_runtime.py`
@@ -291,6 +292,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_p8c_run_config_parser.py`
 - `tests/test_p9_release_closeout.py`
 - `tests/test_preprocessing_decision_contract.py`
+- `tests/test_python_execution_reference_closure.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_read_path_semantic_closure.py`
 - `tests/test_reading_plan.py`
