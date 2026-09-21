@@ -293,6 +293,27 @@ def matlab_code_findings(text: str, config: Mapping[str, Any] | None = None, *,
     return list(dict.fromkeys(errors)), list(dict.fromkeys(warnings)), metrics
 
 
+def _diagnostic_excerpt(value: str | bytes | None, limit: int = 2000) -> str:
+    """Keep bounded process evidence without copying credential assignments."""
+    text = value.decode("utf-8", errors="replace") if isinstance(value, bytes) else str(value or "")
+    text = re.sub(r"(?i)\bBearer\s+[^\s,;]+", "Bearer [REDACTED]", text)
+    text = re.sub(
+        r"(?i)(\b[\w.-]*(?:token|password|passwd|secret|api[_-]?key|authorization)[\w.-]*[\"']?\s*[:=]\s*)"
+        r"(?:\"[^\"]*\"|'[^']*'|[^\s,;]+)",
+        r"\1[REDACTED]", text,
+    ).strip()
+    if len(text) > limit:
+        marker = "\n...[truncated]...\n"
+        keep = (limit - len(marker)) // 2
+        text = text[:keep] + marker + text[-keep:]
+    return text
+
+
+def _process_diagnostics(stdout: str | bytes | None, stderr: str | bytes | None) -> list[str]:
+    return [f"MATLAB Code Analyzer {label}: {excerpt}" for label, value in (("stdout", stdout), ("stderr", stderr))
+            if (excerpt := _diagnostic_excerpt(value))]
+
+
 def native_code_analysis(path: Path, executable: str | None = None, *, timeout: int = 180) -> dict[str, Any]:
     """Run factory Code Analyzer on source, never run or import the stage entrypoint."""
     command = executable or shutil.which("matlab")
@@ -312,14 +333,23 @@ def native_code_analysis(path: Path, executable: str | None = None, *, timeout: 
             f"f=fopen('{quoted_output}','w','n','UTF-8');assert(f~=-1);"
             "fprintf(f,'%s',jsonencode(p));fclose(f);"
         )
+        result = None
         try:
             result = subprocess.run([str(command), "-batch", expression], cwd=directory,
-                                    capture_output=True, text=True, timeout=timeout, check=False)
+                                    capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout, check=False)
             if result.returncode or not output.is_file():
-                return {"status": "unverified", "issues": ["MATLAB Code Analyzer运行失败"], "warnings": []}
+                reason = f"MATLAB Code Analyzer运行失败 (exit_code={result.returncode}, report_exists={output.is_file()})"
+                return {"status": "unverified", "issues": [reason, *_process_diagnostics(result.stdout, result.stderr)], "warnings": []}
             payload = json.loads(output.read_text(encoding="utf-8"))
         except (OSError, subprocess.TimeoutExpired, ValueError) as exc:
-            return {"status": "unverified", "issues": [f"MATLAB Code Analyzer未完成: {type(exc).__name__}"], "warnings": []}
+            if isinstance(exc, subprocess.TimeoutExpired):
+                reason = f"TimeoutExpired after {timeout}s"
+                stdout, stderr = exc.stdout, exc.stderr
+            else:
+                reason = f"{type(exc).__name__}: {_diagnostic_excerpt(str(exc))}"
+                stdout, stderr = (result.stdout, result.stderr) if result is not None else (None, None)
+            return {"status": "unverified", "issues": [f"MATLAB Code Analyzer未完成: {reason}",
+                    *_process_diagnostics(stdout, stderr)], "warnings": []}
     if before != hashlib.sha256(path.read_bytes()).hexdigest():
         return {"status": "failed", "issues": ["MATLAB分析期间源文件发生改变"], "warnings": []}
     errors, warnings = [], []

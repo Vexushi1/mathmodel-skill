@@ -745,6 +745,7 @@ def main() -> int:
     checked: list[str] = []
     transition_reports: list[dict[str, Any]] = []
     for script in scripts:
+        script = STAGE_CODE._expand_windows_short_path(script.absolute())
         checked_source_sha256 = sha256(script)
         native_report: dict[str, Any] = {}
         item_issues, config = validate_script(root, script, args.stage, matlab_command=args.matlab_command,

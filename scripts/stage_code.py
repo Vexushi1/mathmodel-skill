@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -174,12 +175,39 @@ def parse_stage_config(path: Path, backend: str | None = None) -> tuple[str, dic
                                                  backend=backend)
 
 
+def _expand_windows_short_path(path: Path) -> Path:
+    """Expand Win32 8.3 names without resolving source symlinks before validation."""
+    if os.name != "nt":
+        return path
+    import ctypes
+
+    expand = ctypes.WinDLL("kernel32", use_last_error=True).GetLongPathNameW
+    expand.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint32]
+    expand.restype = ctypes.c_uint32
+    candidate, suffix = path, []
+    size = expand(str(candidate), None, 0)
+    while not size:
+        if candidate == candidate.parent:
+            return path  # Unreadable paths remain subject to the normal gates.
+        suffix.insert(0, candidate.name)
+        candidate = candidate.parent
+        size = expand(str(candidate), None, 0)
+    buffer = ctypes.create_unicode_buffer(size)
+    written = expand(str(candidate), buffer, size)
+    if not written or written >= size:
+        raise StageCodeError("无法稳定展开Windows源码路径")
+    return Path(buffer.value).joinpath(*suffix)
+
+
 def stage_code_fingerprint(root: Path, entrypoint: Path, dependencies: Sequence[Mapping[str, Any]] = (), *,
                            check_declared_hashes: bool = True) -> dict[str, Any]:
     root = Path(root).resolve()
     entrypoint = Path(entrypoint)
+    if ".." in entrypoint.parts:
+        raise StageCodeError("入口路径含非规范越界片段")
     try:
-        entry_relative = (entrypoint if entrypoint.is_absolute() else root / entrypoint).absolute().relative_to(root).as_posix()
+        absolute_entry = (entrypoint if entrypoint.is_absolute() else root / entrypoint).absolute()
+        entry_relative = _expand_windows_short_path(absolute_entry).relative_to(root).as_posix()
     except ValueError as exc:
         raise StageCodeError("入口路径越出项目根目录") from exc
     if not isinstance(dependencies, (list, tuple)):

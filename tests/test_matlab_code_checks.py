@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import io
+import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -102,6 +105,64 @@ class MatlabCodeChecksTests(unittest.TestCase):
         with patch.object(MATLAB.shutil, "which", return_value=None):
             result = MATLAB.native_code_analysis(Path("never-read.m"))
         self.assertEqual(result["status"], "unverified")
+
+    def test_native_launch_failure_retains_bounded_redacted_process_evidence(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "q1_solver.m"
+            source.write_text(matlab_source({}), encoding="utf-8")
+            output = subprocess.CompletedProcess([], 2,
+                "MATHWORKS_TOKEN=example-secret\n" + "startup detail\n" * 500,
+                "License checkout failed: -9\nAuthorization: Bearer example-bearer\npassword='example password'")
+            with patch.object(MATLAB.subprocess, "run", return_value=output):
+                result = MATLAB.native_code_analysis(source, "matlab")
+        self.assertEqual(result["status"], "unverified")
+        messages = "\n".join(result["issues"])
+        self.assertIn("exit_code=2", messages)
+        self.assertIn("License checkout failed: -9", messages)
+        self.assertIn("[truncated]", messages)
+        for secret in ("example-secret", "example-bearer", "example password"):
+            self.assertNotIn(secret, messages)
+        self.assertTrue(all(len(item) <= 2040 for item in result["issues"]))
+
+    def test_native_timeout_retains_partial_byte_output_and_missing_report_is_distinct(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "q1_solver.m"
+            source.write_text(matlab_source({}), encoding="utf-8")
+            error = subprocess.TimeoutExpired("matlab", 3, output=b"Launching MATLAB", stderr=b"api_key=example-key\nLicense wait")
+            with patch.object(MATLAB.subprocess, "run", side_effect=error):
+                result = MATLAB.native_code_analysis(source, "matlab", timeout=3)
+            messages = "\n".join(result["issues"])
+            self.assertIn("TimeoutExpired after 3s", messages)
+            self.assertIn("Launching MATLAB", messages)
+            self.assertIn("License wait", messages)
+            self.assertNotIn("example-key", messages)
+            with patch.object(MATLAB.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "No analysis report produced", "")):
+                result = MATLAB.native_code_analysis(source, "matlab")
+            self.assertIn("report_exists=False", result["issues"][0])
+            self.assertIn("No analysis report produced", "\n".join(result["issues"]))
+
+    def test_failed_native_evidence_reaches_strict_delivery_cli(self):
+        import validate_code_delivery as delivery
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "问题一求解/q1_solver.m"
+            source.parent.mkdir()
+            config = {"stage": "primary", "problem_name": "问题一", "solver_backend": "matlab",
+                      "data_paths": ["input.json"], "data_sha256": "a" * 64, "solver": "direct", "random_seed": 2026,
+                      "tolerance": 1e-8, "iteration_or_time_limit": "direct", "expected_workbook": "问题一求解结果.xlsx",
+                      "run_receipt_protocol_version": "1.1.0", "primary_quality_protocol_version": "1.0.0", "code_dependencies": []}
+            source.write_text(matlab_source(config), encoding="utf-8")
+            failed = subprocess.CompletedProcess([], 7, "Launcher started", "License Manager Error -9")
+            captured = io.StringIO()
+            with patch.object(MATLAB.subprocess, "run", return_value=failed), patch.object(sys, "argv", [
+                    "validate_code_delivery.py", str(root), "--script", str(source), "--strict", "--matlab-command", "matlab"]), redirect_stdout(captured):
+                code = delivery.main()
+            report = yaml.safe_load(captured.getvalue())
+        self.assertEqual(code, 1)
+        self.assertEqual(report["status"], "failed")
+        self.assertFalse(report["task_code_executed"])
+        self.assertTrue(any("License Manager Error -9" in item for item in report["issues"]))
+        self.assertTrue(any("exit_code=7" in item for item in report["issues"]))
 
     def test_current_matlab_templates_have_parseable_unique_configs(self):
         for path in (ROOT / "templates/code/matlab").glob("q1_*.m"):

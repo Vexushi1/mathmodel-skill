@@ -179,6 +179,7 @@ def _solver_observations(
     root: Path, question: str, entry: Mapping[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Path | None], list[str]]:
     """Observe current implementation bytes without updating delivered identities."""
+    root = root.resolve()
     observed: dict[str, Any] = {}
     paths: dict[str, Path | None] = {"primary": None, "analysis": None}
     issues: list[str] = []
@@ -402,6 +403,7 @@ def _snapshot_question(
     data_hash: str | None,
     delivery_scope: str | None,
 ) -> dict[str, Any]:
+    root = root.resolve()
     key = question_key(chinese_name)
     result_dir = _question_dir(root, chinese_name)
     solution = result_dir / f"{chinese_name}求解结果.xlsx"

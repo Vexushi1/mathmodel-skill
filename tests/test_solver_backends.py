@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -83,7 +84,7 @@ class SolverBackendTests(unittest.TestCase):
         folder.mkdir()
         source = folder / "q10_solver.m"
         source.write_text("function q10_solver()\nend")
-        self.assertEqual(STAGE.resolve_stage_code(self.root, "Q10", "primary", "matlab").path, source)
+        self.assertEqual(STAGE.resolve_stage_code(self.root, "Q10", "primary", "matlab").path, source.resolve())
 
     def test_unselected_matlab_and_ambiguous_candidates_are_rejected(self):
         self.source(self.config("matlab"))
@@ -139,6 +140,62 @@ class SolverBackendTests(unittest.TestCase):
         for path in cases:
             with self.subTest(path=path), self.assertRaises(ValueError):
                 STAGE.stage_code_fingerprint(self.root, source, [{"path": path, "sha256": "a" * 64}])
+
+    @unittest.skipUnless(os.name == "nt", "Win32 8.3 path API")
+    def test_real_windows_short_paths_preserve_bundle_identity_and_snapshot(self):
+        import ctypes
+        import project_snapshot as snapshot
+
+        short_name = ctypes.WinDLL("kernel32", use_last_error=True).GetShortPathNameW
+        short_name.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint32]
+        short_name.restype = ctypes.c_uint32
+
+        def short_path(path):
+            size = short_name(str(path), None, 0)
+            if not size:
+                self.skipTest("Filesystem does not expose an 8.3 alias")
+            buffer = ctypes.create_unicode_buffer(size)
+            self.assertTrue(short_name(str(path), buffer, size))
+            return Path(buffer.value)
+
+        source = self.source(self.config())
+        canonical_root, canonical_source = self.root.resolve(), source.resolve()
+        short_root, short_source = short_path(canonical_root), short_path(canonical_source)
+        if short_root == canonical_root and short_source == canonical_source:
+            self.skipTest("8.3 names are disabled on this volume")
+        expected = STAGE.stage_code_fingerprint(canonical_root, canonical_source)
+        for root, entry in ((short_root, source), (canonical_root, short_source), (short_root, short_source)):
+            with self.subTest(root=root, entry=entry):
+                self.assertEqual(STAGE.stage_code_fingerprint(root, entry), expected)
+        outside = self.root / "outside.py"
+        outside.write_text("value=1\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "越出"):
+            STAGE.stage_code_fingerprint(canonical_source.parent, short_path(outside))
+        with self.assertRaisesRegex(ValueError, "非规范"):
+            STAGE.stage_code_fingerprint(short_root, short_root / "问题一求解/../问题一求解/问题一求解.py")
+        with self.assertRaisesRegex(ValueError, "源码文件不存在"):
+            STAGE.stage_code_fingerprint(short_root, short_root / "问题一求解/missing.m")
+        with self.assertRaises(STAGE.StageCodeMissingError):
+            STAGE.resolve_stage_code(short_root, "Q1", "analysis", "matlab")
+        source.write_text("value=1\n", encoding="utf-8")
+        schema = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_text(encoding="utf-8"))
+        observed = snapshot._snapshot_question(short_root, "问题一", {"status": "designed"}, schema, "a" * 64, None)
+        self.assertEqual(observed["primary_code"], "问题一求解/问题一求解.py")
+
+    def test_entry_symlink_and_outside_path_remain_rejected(self):
+        source = self.source(self.config())
+        alias = self.root / "alias.py"
+        try:
+            alias.symlink_to(source)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"Symlink creation unavailable: {exc}")
+        with self.assertRaisesRegex(ValueError, "符号链接"):
+            STAGE.stage_code_fingerprint(self.root, alias)
+        with tempfile.TemporaryDirectory() as outside:
+            external = Path(outside) / "outside.py"
+            external.write_text("value=1\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "越出"):
+                STAGE.stage_code_fingerprint(self.root, external)
 
     def test_wrong_helper_hash_fails_but_snapshot_can_observe_current(self):
         source = self.source(self.config())

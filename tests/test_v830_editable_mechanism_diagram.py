@@ -455,7 +455,7 @@ class ContractAndDriftTests(unittest.TestCase):
         "templates/figure/chart_selection.md": "044c87fa93056d6d26e45cb77683942972b79142",
         "templates/figure/figure_enhancement_patterns.md": "fa9db83323c4dcbe430e8afdca82df806e3db9de",
         # A3 checks current accepted primary and the explicit analysis necessity decision.
-        "scripts/validate_code_delivery.py": "ae3ebbf222e6f0dbdfb9e96b38924eaff17484f8",
+        "scripts/validate_code_delivery.py": "3a43b99e472f4f11f7ab620f3e8c5176db2e1ef4",
     }
 
     def test_protected_authorities_have_not_drifted(self):

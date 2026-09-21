@@ -105,10 +105,34 @@ jobs:
         uses: matlab-actions/setup-matlab@v3
         with:
           release: R2024b
+      - name: Configure and verify licensed MATLAB CI launcher
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v matlab-batch >/dev/null; then
+            echo "setup-matlab did not provide the MathWorks matlab-batch launcher" >&2
+            exit 1
+          fi
+          adapter="$RUNNER_TEMP/hsk-matlab-ci"
+          cat > "$adapter" <<'MATLAB_CI'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          if [[ $# -ne 2 || "${1-}" != "-batch" || -z "${2-}" ]]; then
+            echo "Expected exactly: -batch MATLAB_EXPRESSION" >&2
+            exit 64
+          fi
+          exec env MW_BATCH_LICENSING_ONLINE=true matlab-batch "$2"
+          MATLAB_CI
+          chmod +x "$adapter"
+          echo "HSK_MATLAB_CI_COMMAND=$adapter" >> "$GITHUB_ENV"
+          if ! "$adapter" -batch "assert(~isempty(ver('MATLAB'))); assert(license('test','MATLAB'));"; then
+            echo "MathWorks CI MATLAB launch and license probe failed" >&2
+            exit 1
+          fi
       - name: Prepare isolated synthetic primary fixture
         run: python tests/test_solver_backend_end_to_end.py prepare --project "$HSK_MATLAB_SOLVER_OUTPUT"
       - name: Deliver primary only after real native Code Analyzer passes
-        run: python tests/test_solver_backend_end_to_end.py deliver-primary --project "$HSK_MATLAB_SOLVER_OUTPUT"
+        run: python tests/test_solver_backend_end_to_end.py deliver-primary --project "$HSK_MATLAB_SOLVER_OUTPUT" --matlab-command "$HSK_MATLAB_CI_COMMAND"
       - name: Run native MATLAB primary solver
         uses: matlab-actions/run-command@v3
         with:
@@ -117,7 +141,7 @@ jobs:
         run: |
           python tests/test_solver_backend_end_to_end.py verify-primary --project "$HSK_MATLAB_SOLVER_OUTPUT"
           python tests/test_solver_backend_end_to_end.py prepare-analysis --project "$HSK_MATLAB_SOLVER_OUTPUT"
-          python tests/test_solver_backend_end_to_end.py deliver-analysis --project "$HSK_MATLAB_SOLVER_OUTPUT"
+          python tests/test_solver_backend_end_to_end.py deliver-analysis --project "$HSK_MATLAB_SOLVER_OUTPUT" --matlab-command "$HSK_MATLAB_CI_COMMAND"
       - name: Run native MATLAB analysis solver
         uses: matlab-actions/run-command@v3
         with:
@@ -135,7 +159,7 @@ jobs:
       - name: Prepare accepted preprocessing 1.0 fixture and deliver MATLAB 1.1 primary
         run: |
           python tests/test_solver_backend_end_to_end.py prepare-preprocessed --project "$HSK_MATLAB_SOLVER_OUTPUT/preprocessed"
-          python tests/test_solver_backend_end_to_end.py deliver-primary --project "$HSK_MATLAB_SOLVER_OUTPUT/preprocessed"
+          python tests/test_solver_backend_end_to_end.py deliver-primary --project "$HSK_MATLAB_SOLVER_OUTPUT/preprocessed" --matlab-command "$HSK_MATLAB_CI_COMMAND"
       - name: Run native primary from accepted preprocessing XLSX
         uses: matlab-actions/run-command@v3
         with:
@@ -144,7 +168,7 @@ jobs:
         run: |
           python tests/test_solver_backend_end_to_end.py verify-primary --project "$HSK_MATLAB_SOLVER_OUTPUT/preprocessed"
           python tests/test_solver_backend_end_to_end.py prepare-analysis --project "$HSK_MATLAB_SOLVER_OUTPUT/preprocessed"
-          python tests/test_solver_backend_end_to_end.py deliver-analysis --project "$HSK_MATLAB_SOLVER_OUTPUT/preprocessed"
+          python tests/test_solver_backend_end_to_end.py deliver-analysis --project "$HSK_MATLAB_SOLVER_OUTPUT/preprocessed" --matlab-command "$HSK_MATLAB_CI_COMMAND"
       - name: Run native analysis from accepted preprocessing XLSX
         uses: matlab-actions/run-command@v3
         with:
