@@ -273,6 +273,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_code_quality_contract.py`
 - `tests/test_content_packs.py`
 - `tests/test_contract_closure.py`
+- `tests/test_copied_support_source_closure.py`
 - `tests/test_current_skill_health.py`
 - `tests/test_framework_project_memory_contract.py`
 - `tests/test_generated_workflow_hardening.py`
