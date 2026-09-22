@@ -12,6 +12,7 @@
 - `sync_project.py`：按当前 data source 和显式 delivery scope 发现产物、校验 Schema、计算分层哈希并传播 stale；不自动生成模型语义、数值结果或 `passed` 状态。
 - `state_transitions.py`：纯内存执行 `core/state_transition_contract.yaml`；新增主求解／深化数值来源退役事件用于显式项目迁移的失效预览与传播，不选择后端、不归档、不撤换当前绑定，也不授权迁移。
 - `project_transaction.py`：复用项目锁、候选验证、generation 和可恢复日志；`commit_project_state` 可选接收 `expected_file_hashes`，绑定 state、所有伴随写入目标和已声明只读来源的原始字节（值为 null 表示必须不存在）。传入时要求规范项目相对路径；存在未清理事务日志先阻断，须明确恢复后重新捕获快照。省略参数的历史调用保持原恢复行为。准备日志后仍按已有 roll-forward 恢复；保护限于声明读集合及协作式锁，不代表数值验收、文件系统级全局原子快照或迁移写侧已上线。
+- `project_transaction.py` 的 `prepare_history_archive` / `verify_history_archive`：显式读集合的流式原始字节归档与只读复核，布局委托 `core/output_contract.yaml#backend_migration_history`，不识别数学资格或批准。准备失败保留并报告本次目录，不递归删除历史。`commit_project_state(preserved_archives=...)` 要求同时使用字节读集合，并以 journal v2 持久保存归档引用，在提交及恢复边界复核；无归档事务仍用 v1。恢复后再次读旧原始路径不是归档复核的前提；旧实现不支持 v2，存在 v2 日志时不得先降级。本批没有开放 select/migrate，历史引用须由之后的协调操作在当前状态/伴随记录中持久登记。
 
 ## 代码与用户执行
 

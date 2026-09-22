@@ -40,6 +40,20 @@ project_root:
   submission: submission/
   figures: figures/（仅在实际有正式图片或选择draw.io机理图路径时创建）
   per_question_outputs: 问题{中文序号}求解/
+backend_migration_history:
+  directory: state/backend_history/
+  archive_directory: state/backend_history/{migration_id}/
+  activation: explicit_backend_migration_only
+  layout: manifest.json + files/{original_project_relative_path}
+  role: historical_original_bytes_not_current_policy_or_execution_evidence
+  default_runtime_input: false
+  official_package_default: excluded
+  preparation_api: scripts/project_transaction.py#prepare_history_archive
+  verification_api: scripts/project_transaction.py#verify_history_archive
+  reference: manifest_project_relative_path_and_external_sha256
+  incomplete_archive: Never reuse or treat as a verified backup; report the retained directory for inspection.
+  unreferenced_archive: May remain after a failed state commit; do not remove existing history automatically.
+  current_implementation_boundary: Archive library support does not enable the unfinished project select/migrate CLI.
 writing_policy:
   role: 写作契约只保存权威指针与运行时开关，不复制正文规则。
   default_mode: latex_first
