@@ -1,0 +1,470 @@
+# 项目级唯一求解后端：P1 整体复审与计划补全
+
+> 日期：2026-09-22。
+>
+> 当前阶段：**先审查和补全计划，暂停实现，保持 Draft，不合并。** 用户最新要求是先整体审视、补全需要修改的内容，再考虑修改实现。本文件不构成实现或合并授权。
+>
+> 当前运行版本仍为 **9.7.1**；用户提出的后续候选版本为 **10.0.0（major）**，不是已发布版本。
+>
+> 本文件与 [P0 原计划](project_solver_backend_redefinition_plan.md) 构成同一计划包。P0 的固定基线、B01—B27、T01—T30 和历史阅读记录原样保留；本文件补充当前审议状态、核实结果、具体设计及验收细目。它不是新的运行时 Authority，也不将已发现事项写成已修复。
+
+## 0. 本轮文档修改简报
+
+| 项目 | 当前内容 |
+|---|---|
+| 仓库 / 默认分支 | `Vexushi1/mathmodel-skill` / `main` |
+| 当前实现基线 | `34deb02ff590d061fc7ca36f9bd2742a6653c797`，Skill 9.7.1 |
+| 当前 main 文件树 | `9c8e9e02786c54f902b1eb6296801f3f1233ae9d` |
+| 本轮读取的计划分支基点 | `d4f24fa073c07217d4a2d214b73b29e0e21e70f0` |
+| 该基点文件树 | `f34c8e20ecc96ef76a82bd0f5d2e1613a0c8bdb2` |
+| 工作分支 / PR | `docs/project-solver-backend-redefinition-plan` / #230 |
+| 本轮变更等级 | docs，仅补全计划与当前 PR 描述，不改变执行规则 |
+| 后续实现候选等级 | major / 10.0.0；独立 Schema、契约、回执版本不能复制此版本号 |
+| 直接目标 | 补齐项目选择、历史迁移、事务恢复、读取快照、消费者和验收之间的缺口 |
+| 权威来源 | 当前 `user_execution`、`project_state` Schema、`runtime_assurance`、`state_transition` 及其真实消费者 |
+| 本轮源文件写入范围 | 本 P1 审查文档；派生索引/哈希仅由生成工作流另行提交 |
+| 本轮禁止修改 | 实现代码、活动契约、Schema、模板、测试、CI、Skill 版本、用户项目、main、标签和 Release |
+| 兼容与迁移 | 本轮不执行迁移；迁移方案见第 4—6 节 |
+| 文档回滚 | 正常撤回本轮文档提交；不覆盖 P0 历史记录，不修改旧标签 |
+| 验证边界 | 基线静态检查、57 项已完成专项测试及三个维护探针；完整测试尝试超时，不能宣称全量通过 |
+
+开始审查和准备写入时均重新核对 main 与 #230；实现基线没有变化，唯一 open PR 仍为 #230。该 PR 基点相对 main 仅增加 P0 计划，以及生成器维护的 `SKILL_FILE_INDEX.md`、`MANIFEST.sha256`，没有提交 v10 实现。PR 历史描述中的“实施进行中”不能替代实际 diff；本轮按用户最新要求回到计划审议。
+
+## 1. 阅读证据及其边界
+
+### 1.1 源码身份
+
+本地 GitHub DNS 通道不可用，本轮没有假称 clone 成功。通过 GitHub 连接器下载现有 Actions 源码归档，再在本地以文件内容和文件模式重建 Git tree。归档来自 run `35676051810`、artifact `10672294783`，归档 ZIP 的 SHA-256 为：
+
+```text
+e09d12207fb9801d24467373e9086ddc9900e76479d1e406ddd5f3a360b7c64c
+```
+
+候选源码重建的 tree 与上表 `f34c8e20...` 完全一致。另用 GitHub compare 确认其与 main 的差异仅为三个计划/派生文件，因此本次读取的实现代码等同于上述 main。树一致证明身份，不证明语义读完。
+
+### 1.2 覆盖口径
+
+| 层次 | 本轮实际覆盖 | 不能据此宣称的事项 |
+|---|---|---|
+| 计划分支完整 tracked 清单 | 550 文件 | 不是 550 文件全部审读 |
+| UTF-8 文本身份与主题扫描 | 535 文件，103026 行 | 不把关键词未命中当作无影响证明 |
+| 二进制/非 UTF-8 | 15 文件的身份记录 | 未做逐项内容或视觉审查 |
+| 本轮本地逐段展开并全文复审 | 33 文件，见附录 A | 不重复累计 P0 已读 106 文件 |
+| 本轮本地部分展开 | `validate_model_paper_framework.py` 539—587 | 不能称此文件本轮全文重读 |
+| 上述本地去重展开行 | 12091 行 | 不等于全仓 103026 行全部理解 |
+| 本轮另经连接器全文重读 | 当前 main 的 bootstrap 与修改治理规范 | 与本地统计分列，不虚增为全仓覆盖 |
+
+P0 已记录 106 个全文文件和两个部分文件，但那是 P0 的历史阅读证据。本次补读重点为其未闭合的 lint、事务、状态、读取、支撑包测试，以及后端链路的实际调用者。跨问、图文、打包、入口清理仍按 P0 的影响矩阵处理，不声称本轮把所有历史计划、领域 Pack、写作推理和二进制重新全文审查。
+
+**审查结论的范围是此次 v10 后端重定义的端到端影响面，不是全仓零缺陷证明。** 实施时每个实际改动文件及其删除/改名引用者仍须全文读取；本文件不能免除此要求。
+
+### 1.3 证据分类
+
+- **F**：已核对的当前源代码、契约或 PR 事实。
+- **E**：本轮维护测试/受控探针实际观察到的行为，结论不超过用例。
+- **D**：本次补全的待实施设计，不冒称接口已存在。
+- **R**：仍需实现前或回归阶段进一步验证的风险。
+
+后续问题条目同时写明分类和原计划对应项；“有意改变的旧能力”“当前确实存在的缺陷”“未来迁移需要新增的设计”不得混成一张已修复 bug 清单。
+
+## 2. 原计划需要纠正或补足的结论
+
+下列编号延续 P0 问题台账。源码行号均绑定 main `34deb02...`，不能用未来行号替换旧证据。
+
+| ID / 证据 | 固定版本依据 | 补全后的处置 |
+|---|---|---|
+| B28 / F+D | P0 首页、第 12 节；PR #230 body 与 actual diff | 当前授权限于复审补计划；10.0.0 是候选 major；不再使用“正在实施”描述没有实现提交的本轮状态 |
+| B29 / F+E+D | `project_transaction.py:229—332,385—489`；事务专项 12 项 | 事务不是所有失败都回滚。准备日志前失败保持 live 文件不变；日志 prepared 后通常向前恢复。修正 P0/PR 中过宽的回滚承诺 |
+| B30 / F+E+D | `state_transition_contract.yaml:51—203`；四种依赖探针 | 普通 primary_code_changed 只传播 result，是既有设计；真正迁移需覆盖 data/parameter/result，不能直接当作普通代码更新 |
+| B31 / F+D+R | `project_snapshot.py:144—223,399—546`；`sync_project.py:337—372` | 删除 stage selector 后，还必须明确旧路径、旧 bundle、历史文件的退役规则，避免目录发现重新建立 active 绑定 |
+| B32 / F+D | `validate_model_approval.py:1—203`；事务 API | 模型批准校验器是只读 validator，不是首次选择 writer。必须落实唯一、显式、受事务保护的选择/迁移协调入口 |
+| B33 / F+D | `project_state.schema.yaml:124—134,540—559` | 区分尚未选择、完整已选、字段残缺、历史状态和来源冲突；不得把用户 project.version 当作 Schema 时代判据 |
+| B34 / F+D+R | `sync_project.py:713—789`；delivery/receipt CLI | failed 报告不必然表示没写入；strict 退出码也不是唯一资格判断。政策冲突需在写入前阻断，正常数值来源漂移仍应登记 stale |
+| B35 / F+D+R | `validate_code_delivery.py:709—797`；`validate_user_execution.py:592—655` | 针对正式交付/验收请求检查覆盖集合，不能“零个所需文件被检查”却被下游当作通过；一般诊断扫描与正式交付区别处理 |
+| B36 / F+D | `stage_code.py:104—166,481—566` 及调用者；P0 B07—B11 | 根策略必须传入共享源码绑定及全部消费者；保留 1.1 缺元数据不能降级的判断，不用删除 stage 字段来触发 legacy 分支 |
+| B37 / F+D | `instantiate_model_paper_framework.py:1—306`；`test_p4_compact_framework.py` | compact/full 是同一框架投影；优先只改全局工程位置和选择器，投影自动适用则不机械改实例化算法 |
+| B38 / F+D | `lint_skill_checks.py:387,426,440,455,1196—1201`；九个适用范围声明 | 补充 v10 applicability 与独立版本矩阵；处理硬编码旧版本/固定 Python 发现 token，不全仓替换 Python 或版本字符串 |
+| B39 / F+D | `test_audit_a7_entry_consistency.py:181—243`；`test_python_reference_followup.py:26` | 现有 IO 隔离一致性不是 1.1 源码闭包可交付证明；mixed smoke 被其他回归导入，不能直接删文件丢失原保护 |
+| B40 / F+D+R | `project_transaction.py` 的 companion text API；历史保留目标 | 明确原始二进制证据备份、空间/路径保护、失败后未引用归档的处理；不能把 YAML/hash 清单当作已保存全部原始工作簿 |
+
+对原有两项的证据升级：
+
+**B23 从静态源码对照升级为 E（限定范围的实际复现）。** 自包含现代 Python 入口在静态交付检查中无问题；原样复制 `result_io.py` 和 `workbook_validation.py`，正确声明 helper 摘要并以静态 import 引用后，真实交付检查返回“新源码闭包不支持动态Python代码加载”和“新源码闭包不支持执行命名空间的间接传递/反射”。本轮没有执行这份任务入口，也没有证明修复后回执链已经通过。
+
+**B27 的读取快照部分升级为 E。** 在实际 resolver 与 reading_plan 之间注入一次受控状态变更，返回的后端仍为旧 Python，而 read_now 状态行已指向新 MATLAB 声明的文件摘要。本例使用合成 provenance fixture，没有真实数值工作簿，证明的是计划元数据混用，不是已发生的数值误验收或数据损坏。非法编码及其他并发交错仍需补充用例，不能一并写成已复现。
+
+## 3. 一次项目选择：落实到写入动作
+
+### 3.1 不变目标
+
+新活动项目只在 `execution.solver_backend` 及 `execution.solver_backend_selection_reason` 保存一次选择。每问 primary 和真正激活的 analysis 均继承该值。保留每问独立算法、入口、源码 bundle、工作簿和验收状态。
+
+RUN_CONFIG 与 RUN_RECEIPT 中的 backend 是实际执行事实，必须保留并与根策略一致。项目选择不是“全部依赖、工具箱、许可证、内存预算已经验证”的证明；未知条件仍须显式记录。
+
+### 3.2 唯一协调入口的建议设计（D，尚不存在）
+
+建议在现有 `stage_code.py` 或同等现有共享层集中纯策略解析与一致性检查，最多增加一个薄的项目协调脚本，例如 `scripts/project_solver_backend.py`，复用既有 Project Transaction 和 State Transition；不能给 resolver、sync、delivery、receipt 各造一个管理器。
+
+该拟议入口应明确区分三种操作，而不是一个可以偷偷覆盖的 setter：
+
+| 拟议操作 | 行为与写入边界 |
+|---|---|
+| inspect | 只读诊断根策略、历史候选和冲突，不恢复事务、不补值、不转换历史状态 |
+| select | 显式传入 python/matlab、非空理由及预期状态代际；核对全题能力审视与既有批准衔接，首次写入 canonical 根选择 |
+| migrate | 已存在历史阶段或需要更换当前选择时，输出影响预览并取得针对该迁移的明确确认，再按第 5—6 节提交 |
+
+命令名称与文件路径是实现设计建议，不是当前仓库可调用的 CLI。实现前冻结其最小参数、结构化诊断及返回状态；新增入口必须进入当前脚本导航和专项测试。
+
+首次选择不得由首份 RUN_CONFIG、目录中的首个 `.py`、Q1 的语言、多数阶段语言或机器上可启动的解释器倒推。auto 只能提出选择待办。缺少全题可预见数值能力、环境或选择理由时，停在候选状态，不交付已定语言的正式数值代码。
+
+选择同一值的重复请求应幂等；仅修订工程理由不能使数值结果自动 stale 或改变数学 SIB。改变已锁值必须进入 migrate，不能允许普通 select 加 force 绕过迁移。纯语言变化不进入数学身份；同时改变算法语义、离散方案或保证时，仍回到已有模型审查和明确批准。
+
+### 3.3 不增加独立审批系统
+
+继续使用当前 Model Challenge/Human Approval。现有 `validate_model_approval.py` 只校验批准证据，不能通过给它一段字符串就伪称用户已批准后端。后端理由在既有 Model Approval Brief 的实现范围和框架全局工程记忆中说明；机器状态由唯一显式写入动作维护。不得新设平行 Backend Approval Gate、第二份策略 JSON 或自引用 trust token。
+
+## 4. 新旧状态及操作资格矩阵
+
+### 4.1 状态分类
+
+| 状态类别 | 识别和处理 |
+|---|---|
+| 尚未选择 | 根 backend 与 reason 均不存在，且没有需迁移的数值阶段；允许早期审题/模型候选，不允许正式数值代码交付 |
+| 完整 canonical | 根值为 python/matlab，理由去空白后非空；当前 stage 无 backend/reason 选择字段 |
+| 残缺/非法 | 两个根字段只出现一个，空理由、auto、未知枚举、错误类型或当前根与旧 stage 选择混存；明确报错，不自动修补 |
+| 一致历史 | 只有旧 per-stage 状态且可信证据同语言；只提出候选，仍需显式迁移/确认，不静默写根 |
+| 混合历史 | 旧各问/主深化语言不同；保留只读历史诊断，暂停新数值交付，由用户选统一目标后分类迁移 |
+| 来源冲突 | 声明、扩展名、代码配置、回执或摘要互相冲突；先列证据，不能填根字段压过冲突 |
+| 事务待恢复 | 存在未完成 prepared 日志；正式读写先阻断或进入明确恢复动作，不混用多个阶段的 live 文件 |
+
+新 Schema 的早期状态可以保留“未选择”，不需要新增 `not_applicable` 后端枚举。不把一般证明咨询、文字润色或只读历史浏览变成必须先选 Python/MATLAB 的操作；这也不等于新增一个未经定义的纯证明最终提交工作流。
+
+旧项目的 `project.version` 是项目字段，不能擅自解释成 schema_version。Schema 自身版本、Skill 版本和回执版本分开。历史读取只能由明确边界解释，不能在所有当前消费者里散布“缺字段则当 v9 混合项目”的逃生分支。
+
+### 4.2 操作矩阵（D）
+
+| 操作 | 未选择/历史 | 合法已选 | 冲突/待恢复 |
+|---|---|---|---|
+| 一般方法咨询、文字整理 | 可进行与数值资格无关的工作；如引用结果仍按原证据门 | 正常读取相关事实 | 报告相关冲突，不编造当前结果，不隐式修复 |
+| 项目需求审视与候选设计 | 形成一次全题候选，不冒称已锁策略 | 沿用当前选择，必要变更进入迁移 | 保留诊断，不能静默换语言 |
+| 当前正式数值代码交付 | 阻断，进入选择或显式迁移 | 原模型门、来源门与项目策略均通过才可交付 | 写入前阻断，不制造新 delivered 身份 |
+| 当前回执验收 | 历史诊断不等于新验收资格 | 四方后端一致并满足原质量/身份条件 | 不刷新 validated bundle，不撤换选择 |
+| 正式 sync/write 与包资格 | 依所请求阶段明确阻断缺失资格；不是默认 Python | 正常观察/登记真实 stale，不替项目重选 | 区分政策冲突与正常来源漂移；前者不得偷偷写选择或误触发迁移 |
+| 显式项目迁移 | 用户确认目标和影响后处理 | 更换当前值须明确确认 | 来源冲突先解决；中断事务先明确恢复，不覆盖未知第三方内容 |
+
+全项目策略声明一致性必须在 question scope 过滤之前检查。Q1 请求不能遮蔽 Q2 的当前冲突，但没有必要因此重算或全文读取所有其他问题的工作簿。
+
+## 5. 迁移与当前身份的退役
+
+### 5.1 迁移前置检查
+
+迁移先记录当前根/历史选择、状态代际与原始字节摘要、所有已声明数值阶段、当前代码/输入/回执/主工作簿身份，以及真实 typed 依赖。不要仅检查本次请求的问题，也不要仅按目录第一份入口判断。
+
+预览至少分出：无需改变实现但仍须核验的同语言阶段、必须重新实现的阶段、已失效阶段、仅历史残留、来源冲突、受影响的参数/数据/结果下游和图文片段。尚未激活 analysis 的问题不能因为迁移而生成空分析源码或工作簿。
+
+### 5.2 字段处置表
+
+| 对象 | 同语言历史迁入 | 更换实现语言/证据不能继承 |
+|---|---|---|
+| 根选择和理由 | 用户确认后写一次 | 迁移确认后与失效状态共同提交 |
+| stage backend/selection_reason | 从新 canonical 状态移除；原状态存历史证据 | 同左，不保留当前双写投影 |
+| stage bundle/validated_bundle | 仅在完整来源与验收证据仍成立时保留 | 旧值保存在历史记录；当前 delivered/validated 绑定撤销或按已定义状态清除，不能指向退役代码 |
+| code/result_analysis_code 与代码哈希 | 与实际当前入口逐项核验 | 不让旧另一语言路径继续充当当前入口；保留旧源文件原始字节，但区分历史观察与当前资格 |
+| 工作簿/回执与其 backend、输入摘要 | 不改写文件；核验决定能否保留资格 | 文件及原回执保留为历史证据；当前结果按 typed stale 失效，不能重写 backend/摘要冒充新运行 |
+| 数学 SIB、challenge、approval | 只迁工程组织时不伪造语义变化 | 单纯语言更换不直接修改数学身份；真正模型/算法/离散语义变化照原规则重审 |
+| 参数/数据/结果依赖 | 根据实际来源和保留结论核验 | 需要重建的数值来源沿正确类型传播 |
+| 图表与论文片段 | 未受影响证据不全局撤回 | 依赖失效数值的图文失效；无依赖的机理图不因语言字符串变化删除 |
+
+不能只删除 `solver_execution.*.backend` 而留下与新策略冲突的 active 路径和 validated bundle。也不能删除整个 solver_execution；阶段源码集合和验收记录仍然必要。删除 validated_bundle 时须满足 Schema 的依赖约束及 existing stale profile，不能制造非法半状态。
+
+### 5.3 避免发现旧文件时重新激活
+
+snapshot 与 sync 会从实际目录发现代码和工作簿，并可能登记路径。迁移必须给出明确的“当前阶段资格与历史文件”的判定，不得仅靠删 YAML 路径期待旧物永远不会再被发现。
+
+验收应包含：旧 Python/MATLAB 文件同时留在目录、旧 analysis 文件存在但当前 not_required、空 stage 元数据、仅有旧 validated 哈希、sync 两次以及重启恢复。观察可记录真实文件存在，但不能自动重新选择后端、恢复已退役 delivered/validated 绑定或重新设为 accepted。正式复现包也不能把历史入口当作当前必需入口。
+
+### 5.4 类型化传播的最小扩展
+
+本轮确认普通 `primary_code_changed` 只发出 result；data/parameter 下游不由该事件自动失效。这不是对旧设计的追责，但它不足以表达真实项目后端迁移的数值来源退役。
+
+建议只为显式迁移增加一个最小事件（名称待实现时冻结，例如数值来源退役），发出 data/parameter/result，不发出 model，复用现有 profile 和同一传播引擎。普通代码变更和相反 CLI 请求的语义保持不变。
+
+primary 与已激活 analysis 的代码失效应分别覆盖，不能因 primary_result profile 不包含 analysis_code 而漏掉分析入口。项目策略影响范围包含独立问题，不局限于 Q1 的依赖连通分量。
+
+现有无类型 legacy 依赖按保守规则可能进一步触发模型层审查。因此“不发出 model”不等于保证所有含旧无类型边的项目审批都永远不受影响；须明确边类型或在迁移预览中报告保守处理，不能暗中削弱 legacy 防线。测试菱形依赖、链式依赖、重复调用和无依赖问题，保持确定性和幂等。
+
+## 6. 事务、历史归档与中断恢复
+
+### 6.1 当前真实事务语义（F/E）
+
+`commit_project_state` 接收文本 companion 写入，在候选验证后写 prepared 日志，再逐文件替换。`_recover_project_transaction_locked` 明确按记录的新摘要向前恢复；`load_state_for_update` 会先调用恢复，因此不是纯读取函数。
+
+| 中断位置 | 正确承诺和验收条件 |
+|---|---|
+| 准备日志前，包括候选验证失败 | 当前 live 状态/框架/伴随文本不变；清理该事务临时物 |
+| prepared 日志后、部分文件已替换 | 不宣称全量回滚；保留恢复记录，按旧/新摘要核验后完成剩余新文件，或在来源不明时阻断 |
+| 当前文件既不匹配旧摘要也不匹配新摘要 | 不猜测、不强覆盖第三方修改；显式报冲突 |
+| 已完成迁移后的撤销 | 使用明确补偿动作和新的状态代际；不能把 generation 改回旧值或直接重新设 accepted |
+
+读操作不得为了“拿一下状态”调用会恢复写盘的 load_state_for_update。遇到 prepared 日志，普通只读检查应报告 recovery_required 或等价诊断；恢复是独立、明确的状态操作。不要修改普通事务的既有恢复语义来使宣传中的“全部回滚”看似成立。
+
+候选校验必须读取候选新状态，而非重新打开磁盘旧状态。根策略、当前身份退役、typed stale、框架工程记忆和必要伴随记录应在同一可恢复提交中协调。提交前重检状态代际及关键来源摘要；同 generation 的人工内容改写也不能忽略。
+
+### 6.2 原始历史证据的最小保留方案（D）
+
+现有 companion API 写的是 UTF-8 文本，不是任意二进制移动/归档事务。仅保存旧 YAML 和摘要列表，不能等同于保留将来可能被覆盖的原始 `.xlsx`、源码和回执。
+
+优先采用不扩建第二套状态机的方案：先准备不可变历史归档，逐项流式复制并核对原始字节摘要；确认归档完整、路径合法、空间足够且源文件未变化后，再由现有项目事务提交当前根选择、退役/失效状态及小型归档引用。旧任务文件不在迁移过程中重写、删改或批量移动。
+
+归档应处于明确历史位置，例如拟议的 `state/backend_history/<migration-id>/`，而非活动问题目录；它不是第二份当前后端选择或默认 runtime 输入，也不进入 official allowlist。路径仅为设计建议，须在 output/迁移说明中统一，不在多个文档各自定义。
+
+该方案允许在当前状态提交前失败时留下未被引用的完整历史归档；应报告其位置和清理状态，不能声称所有文件都已回滚。只清理本次明确创建且尚未被引用的临时/孤立产物，不删除用户已有历史记录。若必须做到二进制归档与所有文件替换在一个更强的原子协议内，需要单独论证最小事务扩展，不能假装当前 API 已支持。
+
+迁移预览、备份、确认、提交之间若来源或 generation 变化，原确认的影响集合不能继续复用；重新审视。未知来源冲突不能通过强制迁移“修正”。
+
+### 6.3 必测故障点
+
+准备前、归档完成后、prepared 后、框架替换后、state 替换后、报告替换后、恢复中断、历史归档摘要损坏、磁盘空间不足、第三方同代际改写、并发 writer、Windows 文件占用。区分能由本地合成故障验证的行为与必须原生 Windows 验证的生命周期，不把 Linux 模拟结果冒称原生平台通过。
+
+## 7. 运行时读取与各消费者的闭合
+
+### 7.1 修复混用快照，而非再加一份状态
+
+runtime hydration、后端解析、analysis 前提和 reading_plan 应使用同一个已验证项目快照，或在读取计划生成前后比对状态 generation 与原始字节摘要。出现变化时重新解析整个相关计划或停止，不输出旧后端配新状态摘要。
+
+只检查 generation 不足以识别手工改 YAML 而没有更新代际的情况。使用本次读取快照的内存身份即可，不需要把整个频繁变化的状态哈希嵌入用户入口造成自引用，也不新增永久 shadow state。
+
+`reading_plan._current_project` 当前重新读盘；窄 `framework_result_sync` 路径仍须满足同一快照条件，不能只因为它不是求解请求就放过旧 assurance 与新状态混用。read_now 是读取计划，不证明助手已消费；实际未测得的 reading consumption 指标继续为空。
+
+### 7.2 共享函数的直接消费者
+
+| 共享能力 | 必须同步审查的实际消费者 |
+|---|---|
+| resolve_stage_code | project_snapshot、submission_requirements、validate_code_delivery |
+| validate_stage_binding | analysis_prerequisites、project_snapshot、runtime_assurance、submission_requirements、validate_model_paper_framework、validate_project_state、validate_user_execution |
+| requires_bundle_binding | project_snapshot、submission_requirements、validate_model_paper_framework、validate_project_state |
+| primary_issues / analysis_issues | runtime_assurance、validate_code_delivery、validate_user_execution、validate_project_state |
+| load_state_for_update / commit_project_state | sync_project、validate_code_delivery、validate_user_execution、validate_semantic_governance；迁移协调入口是拟增加的调用者 |
+
+接口增加项目上下文时必须更新以上调用者和测试夹具。不能某些调用仍只传单问 entry，随后在底层缺值默认 Python。已有独立 input identity、主工作簿绑定、source bundle/validated bundle、防止现代协议降级等边界仍保留。
+
+### 7.3 失败报告与写入效果分开
+
+当前 sync 允许记录真实漂移导致的 stale，并输出失败报告；receipt 写链也可记录拒绝状态。因此“只要 status=failed 就必须任何字节都不变”并非所有既有操作的语义。
+
+需要明确分流：普通相反后端请求及缺少当前政策资格，不得触发迁移、反向选择或刷新身份；真实源码/数据变化应继续通过既有写链登记失效。不能为前者的无副作用要求删除后者必要的 stale 持久化。
+
+正式调用者联合检查操作资格、结构化 status、所请求问题/阶段的非空覆盖及退出状态。无 --strict 的退出码 0、检查到零入口、ZIP 创建成功、历史只读解析成功，都不单独构成正式交付或验收通过。
+
+### 7.4 支撑包整改范围
+
+将 result_io 的动态装载改为能被现有闭包识别的静态组织，或退出新项目默认复制链；不得对模板增加安全豁免。父包 `__init__.py`、实际 helper、相对导入和传递依赖仍属于真实来源闭包，不用同名外部模块代替未声明的项目文件。
+
+原有 A7 复制 IO 包隔离测试验证的是 schema/fallback 的校验行为一致，不能替代现代交付用例。保留它，同时补“复制真实包—声明 helper—静态交付—维护微例执行—回执”的完整回归；本轮只复现到静态交付拒绝。
+
+旧 combined run_pipeline 已有 legacy 说明，整改应让它退出新默认导出/示例路径，不应歪曲为此前模板已经支持新 1.1 正式交付。数值模板只写约定运行产物，不直接拥有整个项目状态；维护控制面内部的 importlib 与真正交付的数值闭包区别处理，不全仓禁止 importlib。
+
+## 8. 入口、框架、图文与版本清理
+
+### 8.1 不重新叠加政策
+
+继续执行 P0 第 5 节的逐文件删除/重写矩阵：Authority 原位改写，root/packaged SKILL 保持一致，AGENTS/PROJECT/agents 提供短委托，模块保留自身职责，README 删除重复长史与错误固定目录树而保留真实能力导航。
+
+全局工程口径只记一次项目 backend/reason，逐问仍写算法与源码/结果锚点。compact/full 共用模板投影，若全局块自然保留，实例化器只需回归而不必改算法。旧当前模型段落中的语言字段迁到全局时，不能把算法、离散和数学假设一起删除。
+
+模型批准片段中出现的旧 text-hash 术语应核对其实际引用，再与当前 structured semantic identity 口径对齐；这是入口清理，不是授权重写审批机制。需要修改标题或 YAML key 时，同步 exact selector、链接、lint token 与读取回退；引用缺失/歧义不能返回空规则继续执行。
+
+### 8.2 职责隔离与应保留的文字
+
+保留项目级 Python 预处理、正式 MATLAB 绘图、draw.io/机理图渲染、LaTeX/bib 后端、可选 DOCX、外部数值库内部 C/Fortran 实现。统一 numerical backend 不代表禁止这些职责，也不等于一个大脚本或一种算法。
+
+正式绘图仅消费合法已验收数据的约束不变。所有另一语言文件不能粗暴从复现 ZIP 中删除；应按角色、执行闭包和当前资格判断。历史命名、示例环境以及只读兼容中的 Python/MATLAB 文字可以存在，但不得继续授予新项目逐阶段选择权。
+
+### 8.3 九处 applicability 与检查器
+
+当前主题扫描定位到以下九个活动 `<10.0.0` 声明，实施时逐项给出保留、续期或重定义依据，而不是全仓替换成 `<11.0.0`：
+
+| 活动文件 | 当前下界 | v10 审议动作 |
+|---|---|---|
+| SKILL_CHANGE_GOVERNANCE.md | >=6.3.0 | 对 v10 仍适用的治理续期；说明治理版本和入口指针影响，不新增多余审批 |
+| assets/figure_assets.yaml | >=7.4.2 | 后端职责无变化，核对后续期；不重写配色/资产方法 |
+| core/code_quality_contract.yaml | >=7.4.2 | 保留工程质量和真实来源门；核对新接口后续期 |
+| core/global_preprocessing_contract.yaml | >=7.4.2 | 保留 Python 预处理及旧回执边界，核对后续期 |
+| core/numerical_verification_contract.yaml | >=7.14.0 | 数值质量标准不降低；核对后续期 |
+| core/runtime_assurance_contract.yaml | >=7.12.0 | 当前恢复语义发生破坏性变化；分别说明新行为与历史只读范围 |
+| core/task_taxonomy.yaml | >=6.3.1 | 分类语义不变，核对后续期 |
+| core/user_execution_contract.yaml | >=7.4.2 | 当前选择权改变，明确 v10 新语义和 v9 历史读取边界 |
+| core/workbook_schema.yaml | >=6.3.2 | 不抹去真实 RUN_CONFIG/RECEIPT 字段；核对后续期 |
+
+`lint_skill_checks.py:387,426,440,455` 的相关硬编码与这些声明一起审查。`1196—1201` 等固定 `.py` 能力发现断言应按实际新入口职责重定义，而不是删除测试让 CI 变绿。过往历史文档中的 `<10.0.0` 保留其历史含义。
+
+### 8.4 独立版本矩阵
+
+| 版本层 | 当前代表值 | 本次候选处理 |
+|---|---|---|
+| Skill release carriers | 9.7.1 | 后续实现验收时统一为候选 10.0.0；本轮不改 |
+| Project State Schema | 7.11.0 | 删除当前 stage selector / 增加根策略属于自身接口变更，单独裁决版本与历史读法 |
+| User Execution Contract | 2.6.0 | 新项目选择权重定义，单独记录破坏性变化 |
+| Runtime Assurance Contract | 1.2.1 | 根策略恢复和快照边界变化，单独裁决 |
+| State Transition Contract | 1.1.0 | 仅确需新增迁移事件时按自身规则升级，不重写普通事件 |
+| 数值 RUN_CONFIG/RECEIPT | 1.1.0 | 不因项目选择移位而机械改为 10.0.0；真实运行字段继续保留 |
+| 预处理回执 / PQS | 1.0.0 / 1.0.0 | 本次职责与质量标准不变，不随意改号 |
+| bootstrap schema / 工作簿 schema | 1.1.0 / 2.3.1 | 按各自接口是否变化裁决，不机械同步 Skill 号 |
+| 框架标记 | v0.8-project-memory | 工程记忆位置与兼容读取单独处理，不凭 Skill 主版本改数学身份 |
+
+独立版本的精确目标号必须在 P2 第一个契约设计提交前写明理由；未冻结时明确标为待裁决，不能声称计划已经得到所有发布层的最终批准。Skill carriers 还需核对 bootstrap、router、manifest、output、plugin.json、root/packaged SKILL、README、CHANGELOG 及活动入口头部；不改历史标签和已发布制品。
+
+## 9. 文件处置与实施顺序
+
+### 9.1 改动组与禁止扩张
+
+| 组 | 处置 |
+|---|---|
+| 四个政策/状态 Authority | 原位定义唯一根选择、当前资格、历史边界和必要的迁移事件；不增平行政策 |
+| stage/runtime/delivery/receipt/state/snapshot/sync/package | 同一个接口的多消费者闭合；不能拆出互相矛盾的半套新语义合并 main |
+| 选择/迁移协调入口 | 拟新增一个薄入口，复用现有纯解析、事务和类型化传播；不要新增另一套状态引擎 |
+| 框架、入口、模块、Pack 和 README | 按 P0 矩阵删除旧选择许可和重复政策，保持导航和精确读取完整 |
+| hsk_pipeline 与 starter | 移除新默认链的状态副作用和动态装载障碍；保留数学模式、IO 校验和明确历史 API |
+| 测试与 CI | 同后端正例、混合负例、显式历史案例；保留 Python 矩阵、Windows、MATLAB、LaTeX 和来源漏洞回归 |
+| stage_inputs / workbook_validation / 通用事务引擎 | 优先复用并回归；无已证实接口缺口不得为统一后端大改 |
+| 图表方法、论文推理、领域 Pack、用户模型 | 本次不做无关重构；只检查实际受影响的读取与交接 |
+| 生成文件 | 仅 generate_indexes.py；源提交与派生提交分开 |
+
+`solver_backend_mixed_smoke.py` 的 helper 被 `test_python_reference_followup.py` 引用。应先审查全部 import 和 CI 调用，再重构为同项目语言正例与独立混合负例，不能简单删除。原来复现 3→6 别名/反射的负例必须在合法根策略下继续命中原来源错误，不能由新“缺策略”错误提前短路而伪装回归通过。
+
+### 9.2 分阶段退出条件
+
+P1 本轮只交付补全计划、真实证据和未决清单。P2 在用户明确同意实施后，先冻结独立版本、唯一 writer 参数、历史保留方案和故障语义；P3 接通全部共享消费者；P4 清理模板/入口/读取选择器；P5 按下节完整回归与原生验证；P6 在精确最终 head 运行生成和独立验收；P7 另行取得合并授权后方可合并，并单独核验 main。
+
+P2—P4 可分源提交供审查，但不允许以“稍后补完”为理由合并能绕过策略的半成品。发现基线、open PR 或候选 tree 变化，先重核差异和交叉影响。不得将本次文档 CI 的绿色状态搬到未来实现提交。
+
+## 10. T01—T30 的具体补测细目
+
+保持原三十组编号，不新建三十个运行时 Gate。以下是原矩阵的可执行细化，全部是未来 v10 验收要求，不是本轮已经通过。
+
+| 原组 | 必须补入的细目 |
+|---|---|
+| T01 选择 | 明确候选但未提交；全题需求不充分；auto；重复同值；理由修订；相反值只能迁移；选择不冒充环境验证 |
+| T02 Schema | 根两字段成对；空白理由/错误类型/未知值；canonical 与旧 stage 选择混存；stage bundle 保留；不按 project.version 猜时代 |
+| T03 同后端 | Python 与 MATLAB 分成两个独立完整项目，每个覆盖 Q1/Q2/required analysis，而非同工程混合正例 |
+| T04 跨问 | 只请求 Q1 仍能发现 Q2 当前声明冲突；独立问题也继承根策略；不因此读取所有无关数值表 |
+| T05 跨阶段 | 主/深化相反语言拒绝；相同语言不同算法合法；未激活 analysis 不产生入口 |
+| T06 恢复 | Q3-only、auto、省略参数、跨聊天恢复；不能由旧扩展名/当前 scope 重选 |
+| T07 请求冲突 | 根 Python 请求 MATLAB，状态/源码/工作簿不变；只读 inspect 不隐式 recover；不能把请求冲突变迁移 |
+| T08 实际阶段 | 请求 analysis 但主结果 stale 时回到 primary，模板与根语言一致且是实际 resumed stage |
+| T09 现代协议 | stage selector 删除仍识别 1.1；缺元数据不降级；无 state 的 literal config 解析不等于当前交付 |
+| T10 写权 | delivery 不从配置创建根选择/理由；选择写入需 expected generation；候选校验不读旧磁盘政策 |
+| T11 回执 | 项目/源码/配置/回执任一不一致拒绝；失败不刷新 validated；记录拒绝与篡改策略区别处理 |
+| T12 来源 | 原始字节、helper、父包、相对 import、输入、主簿、SHA 大小写、路径别名/逃逸及不支持解析仍覆盖 |
+| T13 原漏洞 | 在已选合法根策略下运行原 3→6 别名/反射维护案例，确认失败原因仍为原来源保护 |
+| T14 同步 | 正常无变化不撤 accepted；真实来源漂移仍写 stale；政策冲突不迁移；旧文件存在不自动复活 delivered/validated |
+| T15 迁移 | 全题影响；一致/混合/来源冲突历史；参数/数据/结果下游；无类型旧边的保守行为；未激活分析；归档完整性 |
+| T16 事务 | prepared 前失败不写 live；prepared 后 roll-forward；候选新状态验证；同代际字节变化；中断恢复、并发及未知修改阻断 |
+| T17 模板 | 数值入口无整份状态 writer；不写 approval；主求解不自动执行未批准分析；预处理/绘图角色不混淆 |
+| T18 支撑包 | 真实复制后自包含控制正例；静态 import+已声明 helper 正例；动态/未声明负例；再跑维护微例和回执；保留 A7 IO 一致性 |
+| T19 条件深化 | not_required 有理由且无当前分析资格；required 独立入口及 accepted 主簿；迁移旧分析残留不伪装当前 |
+| T20 跨问输入 | 同后端 Q2 读取 Q1 当前 accepted 结果，声明与摘要齐全；迁移退役 Q1 后 Q2 按真实输入依赖失效 |
+| T21 职责 | Python 全局预处理→MATLAB 数值求解、Python 数值求解→MATLAB 正式图，均保留合法闭环 |
+| T22 包 | 当前必需入口/helper/input 非空且完整；历史文件不是资格来源；另一角色语言文件不误删；ZIP 成功不等于包验收 |
+| T23 精确读取 | 所有改名标题/key 的选择器，缺文件、歧义、范围越界、非法编码和明确 fallback；不悄悄返回空政策 |
+| T24 快照 | hydration 后 backend/generation/依赖变化；同 generation 改字节；prepared 日志；framework_result_sync 窄路由；实际阅读指标不伪造 |
+| T25 图文隔离 | draw.io、bib backend、配色和图形角色保持不变；不以数值关键词替换其他职责 |
+| T26 框架 | 全局工程选择能恢复；compact→full 保留原事实；纯语言不改 SIB；算法/离散真实变更仍触发原审批 |
+| T27 文档 | 无当前 per-question/stage override、固定 Python 数值求解、无条件五文件许可；历史说明与合法职责词保留 |
+| T28 原生平台 | Python 矩阵、Windows 8.3/文件生命周期、MATLAB fresh batch/原生数值回执等原场景不得因改例而减少 |
+| T29 基线 | 固定 SHA 重表征；旧混合合法→新混合拒绝列为有意变化；不要求所有旧输出逐字相同，不称旧测试已验证新策略 |
+| T30 放行 | 精确最终 tree 的 lint/全单测/索引/版本/链接/读取/专项/native；源与生成分提交，逐项登记失败、跳过、未运行 |
+
+## 11. 本轮实际执行结果
+
+### 11.1 已执行与未完成
+
+以下均在修改本 P1 文档之前、上述固定基线读取副本上执行，属于仓库维护验证，不是用户赛题求解。
+
+| 检查 | 实际结果 | 解释边界 |
+|---|---|---|
+| 重建源码 Git tree | 与 d4f 基点 tree 一致 | 仅源码身份 |
+| `python scripts/lint_skill.py` | 通过 | 当前 9.7.1 基线，不证明 v10 完成 |
+| `python scripts/generate_indexes.py --check` | 通过 | 当前基线派生文件一致 |
+| `python -m unittest -v tests.test_v900_project_transaction` | 12 项通过，0.251 s | 已有事务语义的维护回归 |
+| `python -m unittest -v tests.test_v900_state_transitions tests.test_schemas tests.test_reading_plan tests.test_p4_compact_framework` | 45 项通过，15.062 s | 已有状态/Schema/读取/框架维护回归 |
+| 全量 `python -m unittest discover -s tests` | 尝试在 200 s 限时下超时，未得到完成汇总 | 不能宣称全量通过；日志只有阶段性进度，尚未确认超时原因 |
+| 三个受控维护探针 | 已执行，见下一节 | 不执行用户任务数值入口，不等同于三十组未来验收 |
+| 原生 MATLAB / Windows / LaTeX | 本轮未执行 | 不用历史 CI 代替本轮原生验证 |
+
+**可确认完成并通过的现有专项单测合计为 57 项，不是“1354 项全部通过”。** 自动文档工作流若后续完成，应另记其精确 head、任务与结论，不能回填为本轮尚不存在的 v10 实现验收。
+
+### 11.2 三个探针的输入与观察
+
+1. **真实复制支撑包的静态交付。** 在临时项目中构造自包含现代 Python 配置和真实输入摘要，控制入口的检查 issues 为空。复制原文件并声明 helper 摘要后出现两条动态装载/命名空间问题。`result_io.py` 摘要为 `84b838529547779294d88cdb8fb36ad38bdbdb92504c8c8ac9ed68af2dfc1197`，`workbook_validation.py` 为 `4798454f7efbb91c1f541fe552189fca9d458b1dad56f9d8b0722fa36c3251b9`。未运行任务代码，未生成真实执行回执。
+2. **普通事件的四种边。** Q1→Q2 分别设 data、parameter、model、result，触发现有 primary_code_changed。前三种 Q2 不 stale，result 时 Q2 stale。该结果验证旧行为，说明需要迁移专用最小事件，不是发现普通事件实现错误。
+3. **混用读取快照。** 使用现有 reading_plan_cases 的合成 provenance fixture，在 hydration 与 reading_plan 之间把 generation 从 0 改 1，并把阶段声明从 Python 改 MATLAB。返回的 solver_backend.resolved 仍是 Python，而 read_now 状态摘要为新文件；reading_profile 为 framework_result_sync，assurance.status 为 pass。旧状态摘要 `507128d0717ed26e266142f6c699df0fe5e645066f9c7d2fa7a564af80485741`，新摘要 `72b6531503c21d0e669764cdc7e749401460b692806110110183037278dd8dc1`。没有真实数值工作簿，不推断真实数值验收已被绕过。
+
+这些结果将随本轮审查交付保存日志、输入脚本及 JSON；仅扫描、失败的读取调用、未完成的测试不记作通过证据。修复后应再次以相同维护案例核验，不能直接把当前已复现的问题标记关闭。
+
+## 12. 当前审议结论与实施停止条件
+
+此次补全使原计划从方向性重定义进一步落实到：唯一写入者、状态资格、逐阶段身份退役、历史字节保留、类型化迁移、真实事务恢复、读取快照、消费者更新、入口/版本清理，以及原 T01—T30 的细化验收。
+
+**尚未发生：v10 实现提交、状态迁移、全部未来测试通过、版本发布、PR 合并。** 原有 per-question/per-stage 行为仍是 9.7.1 的当前事实，不能因本文件出现而称已被撤销。
+
+进入实现前，必须审议第 3 节唯一协调入口、第 4 节资格矩阵、第 5—6 节迁移/归档及恢复方案，并冻结独立版本与具体 CLI 设计。所有将实际修改的源文件和引用者须全文读取；本轮部分读取和历史范围必须如实保留。全量测试超时需在实现验收前定位或取得相应完整平台证据。
+
+以下情况保持阻断：当前规则同时允许独立 stage 选择与根唯一选择；缺根策略仍默认 Python；现代协议降级；旧文件重新激活；选择和 stale 分次不可恢复提交；读取计划混合两代状态；prepared 后仍宣称所有失败都回滚；只备份摘要却声称保留原始工作簿；原负例被缺政策短路；未检查所需文件却声称通过；原生未运行却称通过；生成/候选 SHA 变化未复验；未取得本阶段授权便推进实现或合并。
+
+本轮停在计划审议，不因工具能写入或文档 CI 通过而自动进入 P2。
+
+## 附录 A. 本轮本地全文复审文件
+
+下列 33 文件按去重范围核对；连接器另读的 bootstrap/治理文档不混入此表。部分复审的 `scripts/validate_model_paper_framework.py:539—587` 单列，不冒称全文。
+
+```text
+core/project_state.schema.yaml
+core/runtime_assurance_contract.yaml
+core/state_transition_contract.yaml
+core/user_execution_contract.yaml
+scripts/analysis_prerequisites.py
+scripts/instantiate_model_paper_framework.py
+scripts/lint_skill_checks.py
+scripts/project_snapshot.py
+scripts/project_transaction.py
+scripts/python_source_checks.py
+scripts/reading_plan.py
+scripts/resolve_runtime.py
+scripts/run_config_parser.py
+scripts/runtime_assurance.py
+scripts/stage_code.py
+scripts/stage_inputs.py
+scripts/submission_requirements.py
+scripts/sync_project.py
+scripts/validate_code_delivery.py
+scripts/validate_model_approval.py
+scripts/validate_project_state.py
+scripts/validate_user_execution.py
+templates/code/hsk_pipeline/__init__.py
+templates/code/hsk_pipeline/result_io.py
+templates/model/model_approval_section.md
+tests/reading_plan_cases.py
+tests/solver_backend_mixed_smoke.py
+tests/test_audit_a7_entry_consistency.py
+tests/test_p4_compact_framework.py
+tests/test_reading_plan.py
+tests/test_v900_project_transaction.py
+tests/test_v900_state_transitions.py
+tests/test_v900_transactional_writers.py
+```
+
+## 附录 B. 关键源码锚点
+
+这些链接只是定位固定版本证据，不是引入外部政策。其他正文 `path:line` 同样绑定本次 main 基线。
+
+- [事务向前恢复及 load_state_for_update](https://github.com/Vexushi1/mathmodel-skill/blob/34deb02ff590d061fc7ca36f9bd2742a6653c797/scripts/project_transaction.py#L229-L332)
+- [候选验证、日志和逐文件替换](https://github.com/Vexushi1/mathmodel-skill/blob/34deb02ff590d061fc7ca36f9bd2742a6653c797/scripts/project_transaction.py#L385-L489)
+- [当前类型化状态转换](https://github.com/Vexushi1/mathmodel-skill/blob/34deb02ff590d061fc7ca36f9bd2742a6653c797/core/state_transition_contract.yaml#L51-L203)
+- [读取计划重新加载状态](https://github.com/Vexushi1/mathmodel-skill/blob/34deb02ff590d061fc7ca36f9bd2742a6653c797/scripts/reading_plan.py#L175-L216)
+- [当前项目 hydration 与逐问后端恢复](https://github.com/Vexushi1/mathmodel-skill/blob/34deb02ff590d061fc7ca36f9bd2742a6653c797/scripts/runtime_assurance.py#L401-L540)
+- [支撑包的动态加载](https://github.com/Vexushi1/mathmodel-skill/blob/34deb02ff590d061fc7ca36f9bd2742a6653c797/templates/code/hsk_pipeline/result_io.py#L13-L26)
+- [交付时反向写入 stage 选择](https://github.com/Vexushi1/mathmodel-skill/blob/34deb02ff590d061fc7ca36f9bd2742a6653c797/scripts/validate_code_delivery.py#L631-L707)
+- [sync 报告与事务写入](https://github.com/Vexushi1/mathmodel-skill/blob/34deb02ff590d061fc7ca36f9bd2742a6653c797/scripts/sync_project.py#L713-L789)
+- [只读模型批准校验器](https://github.com/Vexushi1/mathmodel-skill/blob/34deb02ff590d061fc7ca36f9bd2742a6653c797/scripts/validate_model_approval.py)
+- [包内当前入口与旧 Python 回退](https://github.com/Vexushi1/mathmodel-skill/blob/34deb02ff590d061fc7ca36f9bd2742a6653c797/scripts/submission_requirements.py#L164-L230)
