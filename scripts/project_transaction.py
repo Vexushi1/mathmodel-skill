@@ -13,7 +13,7 @@ from functools import wraps
 import hashlib
 import os
 import threading
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import shutil
 import tempfile
 from typing import Any
@@ -33,6 +33,10 @@ class ProjectTransactionError(RuntimeError):
 
 class GenerationConflictError(ProjectTransactionError):
     """Raised when another writer changed project.state_generation."""
+
+
+class ReadSetConflictError(ProjectTransactionError):
+    """Raised when raw files no longer match the caller's captured read set."""
 
 
 class TransactionRecoveryError(ProjectTransactionError):
@@ -381,12 +385,88 @@ def _stage_transaction_files(
     return entries, staged_map
 
 
+def _guarded_path(root: Path, relative: str) -> Path:
+    """Resolve an unambiguous project-relative POSIX path for a byte-bound write."""
+    if (not isinstance(relative, str) or not relative or "\\" in relative
+            or ":" in relative or "\0" in relative
+            or PureWindowsPath(relative).drive or PurePosixPath(relative).is_absolute()
+            or any(part in {"", ".", ".."} for part in relative.split("/"))):
+        raise ProjectTransactionError(f"read-set path must be canonical and project-relative: {relative!r}")
+    path = _resolve_inside(root, relative)
+    if _relative(root, path) != relative or (root / relative).is_symlink():
+        raise ProjectTransactionError(f"read-set path resolves through an alias: {relative}")
+    if relative in {JOURNAL_RELATIVE_PATH, LOCK_RELATIVE_PATH}:
+        raise ProjectTransactionError(f"read set cannot include transaction internals: {relative}")
+    return path
+
+
+def _prepare_read_set(
+    root: Path,
+    expected: Mapping[str, str | None],
+    writes: Sequence[tuple[str, str]],
+) -> dict[str, str | None]:
+    """Copy the caller's snapshot, requiring state and every companion write target."""
+    if not isinstance(expected, Mapping):
+        raise ProjectTransactionError("expected_file_hashes must be a mapping")
+    normalized: dict[str, str | None] = {}
+    identities: set[str] = set()
+    for relative, digest in expected.items():
+        path = _guarded_path(root, relative)
+        identity = os.path.normcase(str(path))
+        if identity in identities:
+            raise ProjectTransactionError(f"duplicate read-set target: {relative}")
+        identities.add(identity)
+        if digest is not None and (
+            not isinstance(digest, str) or len(digest) != 64
+            or any(char not in "0123456789abcdefABCDEF" for char in digest)
+        ):
+            raise ProjectTransactionError(f"read-set hash must be SHA-256 or None: {relative}")
+        normalized[relative] = digest.lower() if digest is not None else None
+    for relative, _ in writes:
+        _guarded_path(root, relative)
+        if relative not in normalized:
+            raise ProjectTransactionError(f"read set must include every write target: {relative}")
+    return normalized
+
+
+def _check_read_set(root: Path, expected: Mapping[str, str | None]) -> None:
+    for relative, digest in expected.items():
+        try:
+            path = _guarded_path(root, relative)
+            matches = (not os.path.lexists(path)) if digest is None else (
+                path.is_file() and sha256_file(path) == digest
+            )
+        except (OSError, ProjectTransactionError) as exc:
+            raise ReadSetConflictError(f"read-set path is no longer readable: {relative}") from exc
+        if not matches:
+            raise ReadSetConflictError(f"read-set content changed: {relative}")
+
+
+def _check_staged_read_set(
+    root: Path, entries: Sequence[Mapping[str, Any]], expected: Mapping[str, str | None],
+) -> None:
+    """Do not prepare a journal with inconsistent staged data or old-file evidence."""
+    for entry in entries:
+        relative = str(entry["path"])
+        old_digest = expected[relative]
+        if entry["old_sha256"] != old_digest or entry["existed"] != (old_digest is not None):
+            raise ReadSetConflictError(f"staged old identity differs from read set: {relative}")
+        staged = _resolve_inside(root, str(entry["staged"]))
+        if not staged.is_file() or sha256_file(staged) != entry["new_sha256"]:
+            raise ProjectTransactionError(f"staged content changed after construction: {relative}")
+        if old_digest is not None:
+            backup = _resolve_inside(root, str(entry["backup"]))
+            if not backup.is_file() or sha256_file(backup) != old_digest:
+                raise ProjectTransactionError(f"staged backup differs from read set: {relative}")
+
+
 @_with_project_lock
 def commit_project_state(
     project_root: Path,
     state: Mapping[str, Any],
     *,
     expected_generation: int,
+    expected_file_hashes: Mapping[str, str | None] | None = None,
     writes_before_state: Sequence[tuple[str, str]] = (),
     writes_after_state: Sequence[tuple[str, str]] = (),
     validators: Sequence[StagedValidator] = (),
@@ -396,9 +476,29 @@ def commit_project_state(
 
     The state payload is serialized with generation ``expected_generation + 1`` before staging.
     Existing projects without a generation are treated as generation zero.
+
+    Optional ``expected_file_hashes`` binds raw state, all companion write targets,
+    and any additional read-only sources to a caller-captured snapshot. None as a
+    mapping value means the path must not exist. Checks hold the advisory writer
+    lock but do not promise atomicity against arbitrary non-cooperating processes.
+    A guarded caller must explicitly recover an existing journal and take a fresh
+    snapshot; unguarded legacy callers retain automatic recovery. After preparation,
+    recovery still rolls forward using the existing journal, not the old read set.
     """
     root = Path(project_root).resolve()
-    _recover_project_transaction_locked(root)
+    read_set: dict[str, str | None] | None = None
+    if expected_file_hashes is not None:
+        if isinstance(expected_generation, bool) or not isinstance(expected_generation, int) or expected_generation < 0:
+            raise ProjectTransactionError("expected_generation must be a non-negative integer")
+        read_set = _prepare_read_set(
+            root, expected_file_hashes,
+            [*writes_before_state, (STATE_RELATIVE_PATH, ""), *writes_after_state],
+        )
+        if os.path.lexists(_journal_path(root)):
+            raise TransactionRecoveryError("explicit recovery and a fresh read set are required before a guarded commit")
+        _check_read_set(root, read_set)
+    else:
+        _recover_project_transaction_locked(root)
     live_generation = _live_generation(root)
     if live_generation != expected_generation:
         raise GenerationConflictError(
@@ -438,6 +538,9 @@ def commit_project_state(
                 f"live generation {live_generation}"
             )
         _invoke_failure(failure_hook, "after_generation_check")
+        if read_set is not None:
+            _check_read_set(root, read_set)
+            _check_staged_read_set(root, entries, read_set)
 
         journal = {
             "version": JOURNAL_VERSION,
@@ -457,6 +560,10 @@ def commit_project_state(
             target = _resolve_inside(root, relative)
             staged = _resolve_inside(root, str(entry["staged"]))
             _invoke_failure(failure_hook, f"before_replace:{relative}")
+            if read_set is not None:
+                _check_read_set(root, {relative: read_set[relative]})
+                if not staged.is_file() or sha256_file(staged) != entry["new_sha256"]:
+                    raise ProjectTransactionError(f"prepared staged content changed: {relative}")
             os.replace(staged, target)
             _fsync_directory(target.parent)
             _invoke_failure(failure_hook, f"after_replace:{relative}")

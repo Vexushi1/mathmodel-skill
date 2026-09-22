@@ -75,7 +75,7 @@ class CodeDeliveryTransitionContractTests(unittest.TestCase):
 
 class StateTransitionAuthorityTests(unittest.TestCase):
     def test_contract_owns_phase_d_rules(self):
-        self.assertEqual(CONTRACT["version"], "1.1.0")
+        self.assertEqual(CONTRACT["version"], "1.2.0")
         self.assertIn("semantic_identity_changed", CONTRACT["transition_events"])
         self.assertEqual(
             set(CONTRACT["dependency_rules"]),

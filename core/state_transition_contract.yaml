@@ -1,4 +1,4 @@
-version: 1.1.0
+version: 1.2.0
 status: active
 introduced_in_staged_version: 9.0.0
 purpose: >-
@@ -122,6 +122,16 @@ transition_events:
     implementation_binding: analysis backend, entry path, entry bytes or declared code dependency set/bytes changed
     own_profile: analysis_result
     emitted_impacts: []
+  primary_numerical_source_retired:
+    caller_scope: explicit_project_backend_migration_only
+    implementation_binding: retiring a primary numerical source, not an opposite backend request
+    own_profile: primary_result
+    emitted_impacts: [data, parameter, result]
+  analysis_numerical_source_retired:
+    caller_scope: explicit_project_backend_migration_only
+    implementation_binding: retiring analysis outputs while keeping an unaffected primary source current
+    own_profile: analysis_result
+    emitted_impacts: [data, parameter, result]
   data_changed:
     own_profile: data_result
     emitted_impacts: [data, parameter, result]
@@ -195,7 +205,10 @@ transition_report:
 invariants:
 - Applying the same transition to an already-transitioned state is idempotent.
 - Model Approval is invalidated only by semantic-profile transitions, not by ordinary primary-code or analysis-code freshness changes.
-- Backend and source-bundle changes use existing code events even if the entry SHA is unchanged; matlab_script_changed remains restricted to formal figure code.
+- Ordinary observed backend/source-bundle freshness changes use existing code events even if the entry SHA is unchanged; explicit project-level retirement uses numerical-source events, and matlab_script_changed remains restricted to formal figure code.
+- Numerical-source retirement uses the matching primary/analysis profile and emits data/parameter/result, never a direct model impact; ordinary code events and backend request conflicts are not retirement.
+- Retirement events change freshness only. The migration coordinator must separately archive evidence, retire current bindings, and persist an approved whole-project change through the existing transaction; the pure engine does not authorize migration.
+- For both-stage retirement, capture affected stages before applying profiles; a primary profile may reset analysis disposition. Independent affected questions must be included explicitly, not only reached from Q1.
 - Typed result/parameter/data dependencies invalidate execution/evidence without automatically invalidating downstream mathematical approval.
 - Unknown or legacy untyped dependencies must never be treated as no-impact.
 - State transition logic must not read or write project files; callers own persistence.
