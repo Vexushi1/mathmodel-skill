@@ -1,4 +1,0 @@
-HSK GitHub tooling preflight
-Date: 2026-09-22
-Purpose: verify UTF-8 blob upload and exact readback before v10.0.0 implementation.
-中文校验：数学建模；只验证工具，不修改主分支或 PR #230。
