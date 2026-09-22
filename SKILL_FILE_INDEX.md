@@ -281,6 +281,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_legacy_archive_hygiene.py`
 - `tests/test_matlab_code_checks.py`
 - `tests/test_mechanism_template_compat_hygiene.py`
+- `tests/test_numerical_source_retirement.py`
 - `tests/test_optimization_baseline.py`
 - `tests/test_p3a_core_policy.py`
 - `tests/test_p3b_writing_roles.py`
@@ -296,6 +297,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_preprocessing_decision_contract.py`
 - `tests/test_project_solver_backend_inspect.py`
 - `tests/test_project_state_read_snapshot.py`
+- `tests/test_project_transaction_read_set.py`
 - `tests/test_python_execution_reference_closure.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_python_reference_followup.py`
