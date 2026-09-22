@@ -218,6 +218,21 @@ def verify(root: Path, stage: str) -> None:
         assert file_hash(root / "数据预处理/数据预处理结果.xlsx") == baseline["workbook_sha256"]
         assert runtime_report["preprocessing_workbook_unchanged"]
     save_state(root, state)
+    if stage == "analysis":
+        # Exercise read-only migration preflight against the actual native receipts.
+        # This is not execution/confirmation of a backend migration.
+        inspector = load_module("native_migration_preview", "scripts/project_solver_backend.py")
+        before = {p.relative_to(root).as_posix(): file_hash(p) for p in root.rglob("*") if p.is_file()}
+        same = inspector.preview_migration(root, target_backend="matlab", reason="Native same-backend retention check")
+        assert same["status"] == "ready_for_review", same["issues"]
+        assert all(row["evidence_status"] == "accepted_rechecked" for row in same["stages"]), same["stages"]
+        assert same["effects"]["retired_stages"] == [], same["effects"]
+        other = inspector.preview_migration(root, target_backend="python", reason="Native retirement proposal check")
+        assert other["status"] == "ready_for_review", other["issues"]
+        assert {(row["question"], row["stage"]) for row in other["effects"]["retired_stages"]} == {
+            ("Q1", "primary"), ("Q1", "analysis")}, other["effects"]
+        assert not other["migration_authorized"] and not other["write_supported"]
+        assert {p.relative_to(root).as_posix(): file_hash(p) for p in root.rglob("*") if p.is_file()} == before
 
 
 def prepare_analysis(root: Path) -> None:

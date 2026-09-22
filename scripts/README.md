@@ -44,7 +44,7 @@
 
 ## 仓库维护
 
-- `project_solver_backend.py inspect --project-root <项目根目录>`：v10 迁移准备中的只读声明诊断；区分根选择、历史一致/混合/缺失声明和冲突，不替代完整 Schema、来源、回执或审批校验，不授予执行资格。当前只开放 inspect，不写状态、不恢复事务；现有运行时选择规则尚未切换。
+- `project_solver_backend.py inspect --project-root <项目根目录>`：v10 迁移准备中的只读声明诊断；区分根选择、历史一致/混合/缺失声明和冲突，不替代完整 Schema、来源、回执或审批校验，不授予执行资格。可加 `--migration-target python|matlab --reason <reason>` 生成全题来源/回执核验、类型化退役与字段差异预览；`ready_for_review`及预览摘要不是迁移确认或新Schema验收。当前只开放 inspect，不写状态、不创建归档、不恢复事务；现有运行时选择规则尚未切换。
 - `lint_skill.py`：检查版本 carrier、Authority 指针、路由/模块/Pack 可达性、生产者—消费者闭环、三态预处理、当前每问 conditional layout（base3 + Gate=`required` 时 +2）、代码质量、writing/review 读取链、Algorithm Trace 消费、Schema、活动/legacy 隔离、Markdown/仓库引用、Python 语法和 generated-file 状态。
 - `measure_infrastructure.py`：P8 维护测量入口；只读统计脚本体量、validator hotspot、重复解析调用点与 generated-metadata workflow 形态，为后续结构整理提供可复算证据，不定义业务阈值或修改 runtime state。
 - `generate_indexes.py`：重建 `SKILL_FILE_INDEX.md`、`TEMPLATE_INDEX.md` 与 `MANIFEST.sha256`。`SKILL_FILE_INDEX.md` 按 Active Runtime/Reference、Current Maintenance、Migration/Compatibility、Historical Provenance、Legacy Navigation 分区；该分区只影响导航展示，不改变 `iter_files()` / MANIFEST 覆盖。生成文件不得手工伪造或手改哈希。
