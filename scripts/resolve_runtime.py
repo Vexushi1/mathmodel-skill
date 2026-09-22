@@ -11,6 +11,7 @@ import yaml
 from resolve_workflow import TAXONOMY_PATH, add_solver_resources, code_artifact_projection, legacy_to_axes, resolve_workflow
 from reading_plan import build_reading_plan
 from runtime_assurance import (
+    ProjectStateSnapshot,
     apply_contract_dependency_closure,
     authority_fingerprint,
     hydrate_project_context,
@@ -238,8 +239,9 @@ def resolve_runtime(
     if not selected_intents:
         raise ValueError("no workflow intent resolved; pass an intent or --request")
 
+    state_snapshot = ProjectStateSnapshot.capture(project_root) if project_root else None
     hydration = (
-        hydrate_project_context(project_root, question)
+        hydrate_project_context(project_root, question, state_snapshot=state_snapshot)
         if project_root
         else {
             "loaded": False,
@@ -411,7 +413,11 @@ def resolve_runtime(
         "authority_fingerprint": fingerprint,
     }
     # P2 adds consumption guidance only; old plan fields and machine closure stay intact.
-    plan["reading_plan"] = build_reading_plan(ROOT, plan, router, manifest, request or "")
+    plan["reading_plan"] = build_reading_plan(
+        ROOT, plan, router, manifest, request or "", state_snapshot=state_snapshot
+    )
+    if state_snapshot is not None:
+        state_snapshot.assert_current()
     return plan
 
 

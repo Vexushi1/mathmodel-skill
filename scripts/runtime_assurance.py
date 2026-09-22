@@ -2,6 +2,7 @@
 """Runtime context hydration and assurance helpers for the HSK resolver."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 import hashlib
 from pathlib import Path
 from typing import Any, Iterable
@@ -17,6 +18,7 @@ from semantic_identity import (
 import artifact_identity as ARTIFACT_IDENTITY
 import analysis_prerequisites as ANALYSIS_PREREQUISITES
 import stage_code as STAGE_CODE
+from project_transaction import JOURNAL_RELATIVE_PATH, STATE_RELATIVE_PATH, ProjectTransactionError, state_generation
 
 FRAMEWORK_RELATIVE_PATH = "模型论文框架.md"
 QUALIFIED_ARTIFACT_ALIASES = {
@@ -44,10 +46,93 @@ def _unique(items: Iterable[str | None]) -> list[str]:
     return list(dict.fromkeys(str(item) for item in items if item and str(item).strip()))
 
 
-def _load_yaml(path: Path) -> dict[str, Any]:
-    if not path.is_file():
-        return {}
-    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+class ProjectStateReadError(ValueError):
+    """A read-only plan cannot safely use the current project-state bytes."""
+
+    def __init__(self, code: str, detail: str) -> None:
+        self.code = code
+        super().__init__(f"{code}: {detail}")
+
+
+def _read_state_bytes(root: Path) -> bytes | None:
+    """Observe state without opening a writer lock or recovering a transaction."""
+    paths = {}
+    for relative in (STATE_RELATIVE_PATH, JOURNAL_RELATIVE_PATH):
+        path = root / relative
+        if not path.resolve().is_relative_to(root):
+            raise ProjectStateReadError("state_path_outside_project_root", relative)
+        paths[relative] = path
+    journal = paths[JOURNAL_RELATIVE_PATH]
+    if journal.exists() or journal.is_symlink():
+        raise ProjectStateReadError("recovery_required", "project transaction journal requires explicit recovery")
+    path = paths[STATE_RELATIVE_PATH]
+    try:
+        raw = path.read_bytes()
+    except FileNotFoundError:
+        if path.is_symlink():
+            raise ProjectStateReadError("invalid_project_state", "project state link target is missing")
+        raw = None
+    except OSError as exc:
+        raise ProjectStateReadError("unreadable_project_state", str(exc)) from exc
+    if journal.exists() or journal.is_symlink():
+        raise ProjectStateReadError("recovery_required", "project transaction started during the state read")
+    return raw
+
+
+@dataclass(frozen=True)
+class ProjectStateSnapshot:
+    """One immutable byte snapshot; payload() returns a fresh mapping to each caller.
+
+    Boundary rechecks detect observed changes; this is not an atomic snapshot of all
+    project artifacts and does not claim to prevent changes after a plan is returned.
+    """
+
+    root: Path
+    raw: bytes | None
+
+    @classmethod
+    def capture(cls, project_root: str | Path) -> "ProjectStateSnapshot":
+        root = Path(project_root).expanduser().resolve()
+        snapshot = cls(root, _read_state_bytes(root))
+        snapshot.payload()  # Reject malformed/undecodable state before any assurance work.
+        snapshot.assert_current()
+        return snapshot
+
+    def payload(self) -> dict[str, Any]:
+        if self.raw is None:
+            return {}
+        try:
+            state = yaml.safe_load(self.raw.decode("utf-8"))
+        except (UnicodeError, yaml.YAMLError) as exc:
+            raise ProjectStateReadError("invalid_project_state", "state must be valid UTF-8 YAML") from exc
+        state = {} if state is None else state
+        if not isinstance(state, dict):
+            raise ProjectStateReadError("invalid_project_state", "state must be a mapping")
+        for key in ("project", "subproblems"):
+            value = state.get(key)
+            if value is not None and not isinstance(value, dict):
+                raise ProjectStateReadError("invalid_project_state", f"{key} must be a mapping")
+        try:
+            state_generation(state)
+        except ProjectTransactionError as exc:
+            raise ProjectStateReadError("invalid_project_state", str(exc)) from exc
+        return state
+
+    def assert_current(self, project_root: str | Path | None = None) -> None:
+        if project_root is not None and Path(project_root).expanduser().resolve() != self.root:
+            raise ProjectStateReadError("snapshot_project_mismatch", "snapshot belongs to another project")
+        if _read_state_bytes(self.root) != self.raw:
+            raise ProjectStateReadError(
+                "project_state_changed", "state bytes changed during planning; rerun the complete resolver"
+            )
+
+    def describe(self) -> dict[str, Any]:
+        return {
+            "path": STATE_RELATIVE_PATH,
+            "sha256": hashlib.sha256(self.raw).hexdigest() if self.raw is not None else None,
+            "state_generation": state_generation(self.payload()),
+            "present": self.raw is not None,
+        }
 
 
 def sha256_file(path: Path) -> str | None:
@@ -398,11 +483,17 @@ def _expected_hash(item: dict[str, Any], layer: str) -> str | None:
     return validated.get(layer) or current.get(layer)
 
 
-def hydrate_project_context(project_root: str | Path, question: str | None = None) -> dict[str, Any]:
+def hydrate_project_context(
+    project_root: str | Path, question: str | None = None, *,
+    state_snapshot: ProjectStateSnapshot | None = None,
+) -> dict[str, Any]:
     root = Path(project_root).expanduser().resolve()
-    state_path = root / "state" / "project_state.yaml"
-    state = _load_yaml(state_path)
+    state_path = root / STATE_RELATIVE_PATH
+    snapshot = state_snapshot if state_snapshot is not None else ProjectStateSnapshot.capture(root)
+    snapshot.assert_current(root)
+    state = snapshot.payload()
     if not state:
+        snapshot.assert_current()
         return {
             "loaded": False,
             "project_root": str(root),
@@ -569,6 +660,7 @@ def hydrate_project_context(project_root: str | Path, question: str | None = Non
     if analysis_complete and all(analysis_complete):
         verified.add("validated_results")
 
+    snapshot.assert_current()
     return {
         "loaded": True,
         "project_root": str(root),

@@ -16,6 +16,8 @@ from yaml.nodes import MappingNode
 from yaml.tokens import AliasToken
 
 from artifact_fingerprint import combined_hash, sha256_file
+from runtime_assurance import ProjectStateReadError, ProjectStateSnapshot
+from project_transaction import STATE_RELATIVE_PATH
 
 
 def _inside(root: Path, relative: str) -> Path:
@@ -124,6 +126,14 @@ class SourceReader:
         self.origin = origin
         self.cache: dict[str, tuple[bytes, list[str]]] = {}
 
+    def seed(self, path: str, raw: bytes) -> None:
+        """Use already captured bytes, retaining the normal relative-path boundary."""
+        _inside(self.root, path)
+        value = raw, raw.decode("utf-8").splitlines(keepends=True)
+        if path in self.cache and self.cache[path] != value:
+            raise ValueError(f"Conflicting captured reading source: {path}")
+        self.cache[path] = value
+
     def describe(self, spec: dict[str, Any]) -> dict[str, Any]:
         path = str(spec["path"])
         if path not in self.cache:
@@ -172,14 +182,19 @@ class SourceReader:
         return list(grouped.values())
 
 
-def _current_project(plan: dict[str, Any]) -> tuple[Path | None, dict[str, Any], list[str]]:
+def _current_project(
+    plan: dict[str, Any], state_snapshot: ProjectStateSnapshot | None,
+) -> tuple[Path | None, dict[str, Any], list[str]]:
     assurance = plan["assurance"]
     context = assurance["context"]
     if not context.get("project_state_loaded") or not context.get("question"):
         return None, {}, ["current scoped project evidence required"]
     root = Path(context["project_root"]).resolve()
+    if state_snapshot is None:
+        return root, {}, ["hydration snapshot unavailable; rerun resolve_runtime for a current narrow read"]
+    state_snapshot.assert_current(root)
     try:
-        state = yaml.safe_load(_inside(root, "state/project_state.yaml").read_text(encoding="utf-8")) or {}
+        state = state_snapshot.payload()
         framework = _inside(root, "模型论文框架.md")
         record = state.get("paper_framework") or {}
         if record.get("sync_status") != "current" or record.get("sha256") != sha256_file(framework):
@@ -202,7 +217,7 @@ def _current_project(plan: dict[str, Any]) -> tuple[Path | None, dict[str, Any],
                 item = state["subproblems"][target]
                 if item.get("artifacts_stale") or item.get("stale_layers"):
                     return root, state, ["a dependency has stale artifacts"]
-                hydrated = hydrate_project_context(root, target)
+                hydrated = hydrate_project_context(root, target, state_snapshot=state_snapshot)
                 verified = set(hydrated.get("verified_artifacts", []))
                 if "locked_model_spec" not in verified:
                     return root, state, ["dependency semantics lack current verified identity"]
@@ -212,6 +227,8 @@ def _current_project(plan: dict[str, Any]) -> tuple[Path | None, dict[str, Any],
                     visited.add(target)
                     pending.append(target)
         return root, state, []
+    except ProjectStateReadError:
+        raise  # State drift is a resolver failure, not a wider-reading success.
     except (FileNotFoundError, ValueError, KeyError, TypeError, AttributeError, yaml.YAMLError) as exc:
         return root, {}, [f"project evidence cannot be used for a narrow read: {exc}"]
 
@@ -275,8 +292,15 @@ def _scope(plan: dict[str, Any], request: str, policy: dict[str, Any]) -> tuple[
     return "full", "conservative_fallback", ["no narrower reading profile is defined for this operation"]
 
 
-def _project_reads(root: Path, state: dict[str, Any], question: str, *, style: bool) -> list[dict[str, Any]]:
+def _project_reads(
+    root: Path, state: dict[str, Any], question: str, *, style: bool,
+    state_snapshot: ProjectStateSnapshot,
+) -> list[dict[str, Any]]:
+    state_snapshot.assert_current(root)
+    if state_snapshot.raw is None:
+        raise ProjectStateReadError("invalid_project_state", "a narrow read requires captured state bytes")
     reader = SourceReader(root, "project")
+    reader.seed(STATE_RELATIVE_PATH, state_snapshot.raw)
     text = _inside(root, "模型论文框架.md").read_text(encoding="utf-8")
     scoped = {question}
     pending = [question]
@@ -306,8 +330,11 @@ def _project_reads(root: Path, state: dict[str, Any], question: str, *, style: b
 
 
 def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
-                       manifest: dict[str, Any], request: str = "") -> dict[str, Any]:
+                       manifest: dict[str, Any], request: str = "", *,
+                       state_snapshot: ProjectStateSnapshot | None = None) -> dict[str, Any]:
     """Return only a new sibling; never mutate fields or promote artifact evidence."""
+    if state_snapshot is not None:
+        state_snapshot.assert_current(plan["assurance"]["context"]["project_root"])
     policy = router.get("reading_policy") or {}
     reader = SourceReader(root)
     profile, status, reasons = (_scope(plan, request, policy) if policy else
@@ -322,7 +349,7 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
     context = plan["assurance"]["context"]
     project_root, state, project_rows = None, {}, []
     if config.get("needs_current_project"):
-        project_root, state, issues = _current_project(plan)
+        project_root, state, issues = _current_project(plan, state_snapshot)
         evidence = plan["assurance"]["artifact_assurance"]["evidence"]
         for artifact in config.get("required_verified_artifacts", []):
             if artifact == "validated_results":
@@ -361,7 +388,10 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
             reasons.extend(issues)
         else:
             status = "planned"
-            project_rows = _project_reads(project_root, state, context["question"], style=profile == "figure_style")
+            project_rows = _project_reads(
+                project_root, state, context["question"], style=profile == "figure_style",
+                state_snapshot=state_snapshot,
+            )
 
     if profile == "full":
         specs = [{"path": path} for path in plan["load_order"]]
@@ -413,4 +443,6 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
     }
     if profile == "progressive_writing":
         result["delegated_writing_sequence"] = deepcopy(plan["writing_runtime"])
+    if state_snapshot is not None:
+        state_snapshot.assert_current()
     return result

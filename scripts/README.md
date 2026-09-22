@@ -5,7 +5,7 @@
 ## 运行时入口与治理
 
 - `resolve_runtime.py`：默认 assured runtime 入口。在兼容旧 plan 字段及 `objective / structures / capabilities` 分类轴的基础上，可选读取 `--project-root` / `--question` 恢复 current project state，验证 artifact hash，输出 intent provenance、ambiguity、declarative contract closure、authority fingerprint 与 `runtime_plan/assurance`。
-- `reading_plan.py`：由默认 resolver 调用，生成带文件哈希与行范围的初始读取、条件资料和工具接口清单；读取选择服从 `core/workflow_router.yaml#reading_policy`，不改旧计划、不执行校验门、不写项目。
+- `reading_plan.py`：由默认 resolver 调用，使用同一次 hydration 的原始状态快照生成带文件哈希与行范围的初始读取、条件资料和工具接口清单；读取选择服从 `core/workflow_router.yaml#reading_policy`，不改旧计划、不执行校验门、不写项目。
 - `resolve_workflow.py`：保留的无状态兼容 resolver；仍可直接解析显式 intent/classification/artifact-name 输入，但不负责 project-state hydration 或 artifact hash assurance。
 - `validate_semantic_governance.py`：检查 Problem Contract、题面—数学—代码—输出语义闭环、Complexity Sanity Check、semantic revision、跨问 typed dependency 与 paper-fragment stale；不运行赛题代码，也不恢复数值有效性。
 - `validate_model_approval.py`：在项目级预处理或主求解代码交付前，检查 `model_challenge_status=passed`、`human_model_approval_status=approved`，并要求 approved semantic revision / structured identity 与当前 semantic revision / structured identity 完全一致；旧 approved 记录发生语义漂移后只能作为 provenance，不能继续授权新主求解。
@@ -41,6 +41,7 @@
 
 ## 仓库维护
 
+- `project_solver_backend.py inspect --project-root <项目根目录>`：v10 迁移准备中的只读声明诊断；区分根选择、历史一致/混合/缺失声明和冲突，不替代完整 Schema、来源、回执或审批校验，不授予执行资格。当前只开放 inspect，不写状态、不恢复事务；现有运行时选择规则尚未切换。
 - `lint_skill.py`：检查版本 carrier、Authority 指针、路由/模块/Pack 可达性、生产者—消费者闭环、三态预处理、当前每问 conditional layout（base3 + Gate=`required` 时 +2）、代码质量、writing/review 读取链、Algorithm Trace 消费、Schema、活动/legacy 隔离、Markdown/仓库引用、Python 语法和 generated-file 状态。
 - `measure_infrastructure.py`：P8 维护测量入口；只读统计脚本体量、validator hotspot、重复解析调用点与 generated-metadata workflow 形态，为后续结构整理提供可复算证据，不定义业务阈值或修改 runtime state。
 - `generate_indexes.py`：重建 `SKILL_FILE_INDEX.md`、`TEMPLATE_INDEX.md` 与 `MANIFEST.sha256`。`SKILL_FILE_INDEX.md` 按 Active Runtime/Reference、Current Maintenance、Migration/Compatibility、Historical Provenance、Legacy Navigation 分区；该分区只影响导航展示，不改变 `iter_files()` / MANIFEST 覆盖。生成文件不得手工伪造或手改哈希。

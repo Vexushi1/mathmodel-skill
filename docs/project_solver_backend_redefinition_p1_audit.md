@@ -2,7 +2,7 @@
 
 > 日期：2026-09-22。
 >
-> 当前阶段：**先审查和补全计划，暂停实现，保持 Draft，不合并。** 用户最新要求是先整体审视、补全需要修改的内容，再考虑修改实现。本文件不构成实现或合并授权。
+> 当前阶段：**用户已批准实施，进入 P2/P3 读取基础实现；保持 Draft，不合并。** 第 0—12 节及附录保留 P1 审查时的历史证据和当时状态；本轮实施决议与进度见第 13 节。实施不包含自动发布或用户项目迁移。
 >
 > 当前运行版本仍为 **9.7.1**；用户提出的后续候选版本为 **10.0.0（major）**，不是已发布版本。
 >
@@ -468,3 +468,43 @@ tests/test_v900_transactional_writers.py
 - [sync 报告与事务写入](https://github.com/Vexushi1/mathmodel-skill/blob/34deb02ff590d061fc7ca36f9bd2742a6653c797/scripts/sync_project.py#L713-L789)
 - [只读模型批准校验器](https://github.com/Vexushi1/mathmodel-skill/blob/34deb02ff590d061fc7ca36f9bd2742a6653c797/scripts/validate_model_approval.py)
 - [包内当前入口与旧 Python 回退](https://github.com/Vexushi1/mathmodel-skill/blob/34deb02ff590d061fc7ca36f9bd2742a6653c797/scripts/submission_requirements.py#L164-L230)
+
+
+## 13. 审批后的 P2/P3 基础实现续记
+
+### 13.1 恢复基点与实施决议
+
+用户已明确批准：有实质阻断则解决，否则开始修改。中断前 PR 描述已登记实施简报，但远程 head 仍为 `13fd939173d8a72ba9f0d5fce490a818c0be37ed`，没有实现提交。本轮恢复的源码按文件内容与模式重算，tree 精确为 `95c4ccf31e1e8466cd753e9f52b4a595d35107d1`；当前 main 仍为 `34deb02ff590d061fc7ca36f9bd2742a6653c797`。本运行环境没有保留上一请求工作目录，不声称恢复了不可见的未提交实现。
+
+P1 剩余事项是已有方案的工程定稿，不再作为重复索要同范围审批的理由：唯一协调 CLI 定为 inspect / select / migrate；首次选择要求 backend、非空 reason、expected-generation；迁移需先预览，并绑定相同状态字节摘要、代际和影响集合的明确确认。不设 force 或独立 Backend Approval Gate。写侧未完成前只暴露 inspect。
+
+最终独立版本目标冻结为 Project State Schema **8.0.0**、User Execution **3.0.0**、Runtime Assurance **2.0.0**、State Transition **1.2.0**。前两者移除已支持的阶段选择接口，Runtime Assurance 改项目级恢复，State Transition 最小增加迁移事件；数值 RUN_CONFIG/RECEIPT **1.1.0**、预处理回执/PQS **1.0.0**、bootstrap schema **1.1.0**、工作簿 schema **2.3.1**、框架标记 **v0.8-project-memory** 不机械随 Skill 改号。完整切换前，本批保持当前 release carrier 与现有契约版本，不提前宣称最终破坏性接口已生效。
+
+历史保留采用第 6 节方案：先准备并逐字节核验独立归档，再以现有事务提交引用、选择与 typed stale；prepared 前失败不改 live，prepared 后沿用 roll-forward，未知第三方内容阻断。该写侧方案尚未实现，不能将下述只读测试当作迁移通过。
+
+### 13.2 本批源修改及边界
+
+| 文件 | 实际职责 |
+|---|---|
+| scripts/runtime_assurance.py | ProjectStateSnapshot 捕获原始 UTF-8 状态字节；payload 返回独立映射；检查代际类型、路径边界、未清理日志和读取边界的字节变化；hydration 接受同一内存快照 |
+| scripts/resolve_runtime.py | 在 hydration 前捕获快照，传给读取计划，返回前再次核对；不增加旧 assurance 输出字段、不持久化 shadow state |
+| scripts/reading_plan.py | 依赖核验复用同一快照；项目状态的行范围/摘要使用捕获字节；状态变化不退化成宽读成功；缺原始快照的独立投影不能取得窄读资格 |
+| scripts/project_solver_backend.py | 纯声明分类及 inspect，只报告候选/冲突；历史同语言声明不是已验证来源；未知问题/阶段不按多数语言投票，不由扩展名选语言 |
+| tests/test_project_state_read_snapshot.py | 读取中变更、同代际变更、日志、非法编码/结构、依赖、窄读/完整路由、路径与 CLI 的正反回归 |
+| tests/test_project_solver_backend_inspect.py | 根字段成对、空理由/auto、旧阶段混存、历史一致/混合/未知、全题冲突、绘图隔离和只读 CLI 的正反回归 |
+| core/runtime_assurance_contract.yaml；scripts/README.md | 读取一致性职责和维护导航；不在本批提前重定义 v10 当前后端选择权 |
+| 本 P1 文档 | 保留历史记录，登记本批工程决议和完成边界 |
+
+本批不执行 select/migrate、不删除旧 stage 字段、不切换正式交付或回执消费者、不改变数学/数值/图文门，也不修改用户赛题。inspector 的 `schema_validated`、`environment_verified`、`execution_authorized` 均为 false；CLI 零退出仅表示诊断完成且无声明错误，不是项目已批准。
+
+状态一致性是对本次读取边界的乐观核验，不是覆盖所有项目文件的原子快照，也不能阻止返回后的外部修改。后续正式门仍须检查当前来源；实际阅读量指标继续为 null，不将计划哈希伪称已经阅读。
+
+### 13.3 本轮已取得的验证与仍待完成项
+
+在未修改副本上，本轮完整基线 unittest **1354 项执行完成，skipped=3，238.310 s，成功**；lint 和生成检查亦通过。本次给足执行时间后取得完整汇总，不能据此倒改 P1 先前 200 秒超时的历史记录，也不声称已证明所有超时原因。
+
+本批首次新增专项 **35 项通过**，另运行现有读取/Runtime Assurance **28 项通过**。这些是开发时记录；最终源树的完整单测、lint、生成检查、基线行为对照和精确远程 HEAD 的 CI 需在提交后单独记录，不把开发期结果冒称最终放行。
+
+B27 的已复现状态混用路径已有回归与实现；T01/T02 的声明诊断、T07 的只读/冲突基础和 T23/T24 的状态快照子项已推进。T01 首次选择写入、T02 canonical Schema、T07 新全项目运行时策略以及 T01—T30 的其余端到端条件尚未全部完成，不能把整组矩阵勾成通过。
+
+后续沿同一 PR 继续：选择/迁移写侧与 canonical Schema → 运行时/交付/回执/同步/打包消费者统一 → 模板与活动说明清理 → 完整验收与版本统一。该进度不是新的并行计划；最终合并、发布与任何用户赛题迁移仍不在本批授权范围内。

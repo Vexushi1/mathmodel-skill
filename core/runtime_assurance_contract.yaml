@@ -52,6 +52,17 @@ runtime_context:
   - Project-state hydration must never silently override a conflicting explicit argument; conflicts are reported in assurance.context.conflicts.
   - Multi-question classification is hydrated automatically only when the scoped questions agree; otherwise the resolver reports ambiguity and requires explicit classification for routes that need task packs.
 
+  state_read_consistency:
+    implementation: scripts/runtime_assurance.py:ProjectStateSnapshot
+    identity: original_state_bytes_and_state_generation
+    sharing: one_in_memory_byte_snapshot_for_hydration_dependency_checks_and_reading_plan
+    checks: [before_hydration, after_hydration, before_reading_plan, after_reading_plan, before_resolver_return]
+    observed_change: fail_closed_with_project_state_changed_and_require_complete_replanning
+    pending_transaction: recovery_required_without_lock_creation_or_implicit_recovery
+    invalid_state: reject_non_utf8_invalid_yaml_nonmapping_state_and_invalid_generation
+    standalone_projection: without_the_original_hydration_snapshot_do_not_qualify_a_narrow_project_read
+    boundary: optimistic_state_read_consistency_not_atomic_snapshot_of_every_artifact_or_future_execution_authorization
+
 intent_resolution:
   explicit_intent_priority: true
   inference_source: core/workflow_router.yaml:routing.*.infer_keywords
