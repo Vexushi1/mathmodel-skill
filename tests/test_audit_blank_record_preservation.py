@@ -3,7 +3,7 @@
 These synthetic records do not establish that every unkeyed, entirely blank row
 is semantically disposable. No numerical model or missing-value imputation runs.
 """
-import importlib.util
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -11,12 +11,10 @@ import unittest
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
-SPEC = importlib.util.spec_from_file_location(
-    "audit_blank_record_result_io", ROOT / "templates/code/hsk_pipeline/result_io.py"
-)
-RESULT_IO = importlib.util.module_from_spec(SPEC)
-assert SPEC.loader is not None
-SPEC.loader.exec_module(RESULT_IO)
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from templates.code.hsk_pipeline import result_io as RESULT_IO
+
 
 
 def records(order=("A", "B", "C")):

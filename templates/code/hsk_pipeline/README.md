@@ -12,24 +12,22 @@
 
 ## 推荐复制结构
 
-每问 current layout 只服从 `core/output_contract.yaml`；基础三文件始终存在，方括号内 03B 文件只在 Gate=`required` 时存在：
+优先使用自包含入口；确有复用需要时，可只复制工作簿 IO，而不是默认复制整套 legacy runner。精确产物与阶段入口名称由 `core/output_contract.yaml` 定义。以下只展示可选 IO helper 在入口目录内的布局，不代表每问必需新增这些文件：
 
 ```text
-项目根目录/
-├─ hsk_pipeline/
-│  ├─ __init__.py
-│  ├─ main_pipeline.py
-│  ├─ result_io.py
-│  └─ workbook_validation.py
-├─ 问题一求解/
-│  ├─ 问题一求解.py
-│  ├─ 问题一求解结果.xlsx
-│  ├─ q1_plot.m
-│  ├─ [问题一结果深化分析.py]
-│  └─ [问题一结果深化分析.xlsx]
-├─ 模型论文框架.md
-└─ 赛题附件.xlsx
+问题一求解/
+├─ 问题一求解.py
+└─ hsk_pipeline/
+   ├─ __init__.py              # 仅包说明，不导入 main_pipeline
+   ├─ result_io.py
+   └─ workbook_validation.py
 ```
+
+入口用正常静态导入 `from hsk_pipeline.result_io import write_workbook`。三个辅助源码的实际相对路径和 SHA-256 都要纳入 `code_dependencies`，包括包初始化文件；无需修改 `sys.path` 或依赖 Skill 安装位置。包内使用明确的同级静态导入，缺失内部依赖会原样失败，不转到全局同名模块掩盖错误。
+
+若为兼容维护而复制本目录原始 `__init__.py`，它会导入 `main_pipeline.py`，因此后者也属于真实闭包，必须声明，不能只列两个 IO 文件。本目录 runner 的状态写入和旧组合 API **不因 IO 交付测试通过而成为新正式默认入口**；新题目入口只产出约定工作簿及回执，由仓库已有事务门登记状态。
+
+历史平铺的 `result_io.py` / `workbook_validation.py` 仍可在同一脚本导入目录中正常运行；这不等于平铺形式通过现代源码闭包认证。当前保守相对导入检查要求正式 1.1 交付使用上述明确包上下文；不要通过动态单文件装载、捕获 ImportError 后换模块或豁免模板来规避。
 
 新生成 03A/03B 脚本使用唯一顶层 `RUN_CONFIG` 声明 stage/problem/data/hash/solver/seed/tolerance/limit/workbook/protocol 等任务输入，写 `solver_backend="python"`、`run_receipt_protocol_version="1.1.0"`；以 `code_dependencies=[{"path": "项目内相对源码路径", "sha256": "文件摘要"}]` 声明实际源码闭包（不含入口自身），包括复制到项目中的实际 `hsk_pipeline` 依赖。不重复 owner/profile/六个 no-degradation 字段，不把 `solver_version` 当运行前必填参数，也不把最终 bundle 摘要写回入口。旧 1.0、P5a 与 `FULL_FIDELITY_CONFIG` / `FULL_RUN_CONFIG` 只按原历史分支兼容；项目级 Python 预处理仍使用 1.0。
 

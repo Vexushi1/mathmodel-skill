@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-import importlib.util
 import json
 import os
 import shutil
@@ -15,6 +14,9 @@ from unittest.mock import patch
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from templates.code.hsk_pipeline import result_io
 sys.path.insert(0, str(ROOT / "scripts"))
 import lint_skill_checks as lint
 import resolve_runtime as runtime
@@ -130,10 +132,7 @@ class TestA7EntryConsistency(unittest.TestCase):
                 self.assertTrue((base / bootstrap["authoritative_sources"]["routing"]).is_file())
 
     def test_fallback_validation_projection_stays_aligned_with_authority(self):
-        path = ROOT / "templates/code/hsk_pipeline/result_io.py"
-        spec = importlib.util.spec_from_file_location("a7_result_io", path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = result_io
         canonical = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_text(encoding="utf-8"))
         fallback = module._FALLBACK_SCHEMA
         for kind in ("solution", "result_analysis"):

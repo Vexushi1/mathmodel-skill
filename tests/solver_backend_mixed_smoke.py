@@ -18,13 +18,12 @@ import yaml
 
 from test_solver_backend_end_to_end import (
     ROOT, QUESTION, CONFIG, file_hash, load_module, prepare_analysis,
-    reference_digest, save_state,
+    reference_digest, save_state, result_io,
 )
 
 
 def accept(root: Path, question: str, backend: str, expected: float) -> None:
     receipt = load_module("mixed_smoke_receipt", "scripts/validate_user_execution.py")
-    result_io = load_module("mixed_smoke_result_io", "templates/code/hsk_pipeline/result_io.py")
     state = yaml.safe_load((root / "state/project_state.yaml").read_text(encoding="utf-8"))
     workbook = root / f"{question}求解" / f"{question}求解结果.xlsx"
     result_io.validate_workbook_file(workbook, "solution", capabilities={"requires_equilibrium_residual": True})
@@ -141,7 +140,6 @@ def verify(project: Path) -> None:
     accept(reverse, "问题一", "python", 3)
     accept(reverse, "问题二", "matlab", 1.5)
     receipt = load_module("mixed_analysis_receipt", "scripts/validate_user_execution.py")
-    result_io = load_module("mixed_analysis_io", "templates/code/hsk_pipeline/result_io.py")
     state = yaml.safe_load((reverse / "state/project_state.yaml").read_text(encoding="utf-8"))
     workbook = reverse / QUESTION / "问题一结果深化分析.xlsx"
     result_io.validate_workbook_file(workbook, "result_analysis", capabilities={})

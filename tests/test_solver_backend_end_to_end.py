@@ -22,6 +22,9 @@ import openpyxl
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from templates.code.hsk_pipeline import result_io
 QUESTION = "问题一求解"
 CONFIG = re.compile(r"RUN_CONFIG = jsondecode\('([^\n]*)'\);")
 
@@ -168,7 +171,7 @@ def verify(root: Path, stage: str) -> None:
     assert runtime_report["actual_matlab_execution"] is True and runtime_report["status"] == "passed"
     assert runtime_report["matlab_release"]
     receipt = load_module("native_smoke_receipt", "scripts/validate_user_execution.py")
-    io = load_module("native_smoke_result_io", "templates/code/hsk_pipeline/result_io.py")
+    io = result_io
     state = yaml.safe_load((root / "state/project_state.yaml").read_text(encoding="utf-8"))
     entry = state["subproblems"]["Q1"]
     workbook = root / QUESTION / ("问题一求解结果.xlsx" if stage == "primary" else "问题一结果深化分析.xlsx")
