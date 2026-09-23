@@ -263,13 +263,13 @@ compatibility:
 
 
 reading_plan:
-  schema_version: 1.0.0
+  schema_version: 1.1.0
   selection_authority: core/workflow_router.yaml#reading_policy
   producer: scripts/reading_plan.py
   consumer: assistant follows read_now, conditional triggers and tool_interfaces after resolve_runtime
   role: additive_content_reading_projection_not_execution_authorization
   preserves: [load_order, modules, contracts, templates, packs, pause_state, terminal_outputs, pre_delivery_gates, runtime_plan, assurance]
-  fields: [schema_version, profile, status, reasons, read_now, conditional, tool_interfaces, project_sources, machine_dependencies, authority_fingerprint, metrics]
+  fields: [schema_version, profile, status, reasons, read_now, conditional, tool_interfaces, project_backend_navigation, project_sources, machine_dependencies, authority_fingerprint, metrics]
   source_identity: exact_relative_path_and_full_file_sha256_plus_1_based_inclusive_line_ranges
   applicability_context: include_document_preamble_and_ancestor_introductions_for_Markdown_and_parent_mapping_headers_for_YAML
   selector_failure: whole_existing_file_with_explicit_fallback_reason
@@ -279,6 +279,7 @@ reading_plan:
   rules:
     - The sibling reading_plan schema is versioned independently; the existing assurance envelope version and fields remain unchanged.
     - read_now and conditional are consumption instructions, not passed review, authorization, or evidence that text was actually read.
+    - project_backend_navigation is non-executable guidance for the sole inspect/select/migrate CLI when a current project selection needs review; it is not a pre_delivery_gate and never supplies migration confirmation.
     - Need for human semantic/visual review remains; byte/path/hash checks cannot decide mathematical correctness or visual quality.
     - The legacy resource plan and complete machine closure remain available to old clients; new clients must not run fewer gates.
     - Approved figure binding only narrows reading when existing registry/files/hash evidence agrees; it never creates or refreshes approval.

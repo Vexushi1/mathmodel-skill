@@ -292,6 +292,40 @@ def _scope(plan: dict[str, Any], request: str, policy: dict[str, Any]) -> tuple[
     return "full", "conservative_fallback", ["no narrower reading profile is defined for this operation"]
 
 
+def _project_backend_navigation(
+    plan: dict[str, Any], policy: dict[str, Any], reader: SourceReader,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """Expose the policy anchor and project CLI without authorizing an operation."""
+    backend = (plan.get("runtime_plan") or {}).get("solver_backend")
+    navigation = policy.get("project_backend_navigation")
+    if not isinstance(backend, dict):
+        return None, None
+    if not isinstance(navigation, dict) or not isinstance(navigation.get("authority_read"), dict):
+        raise ValueError("project backend reading navigation is missing")
+    decision_intents = navigation.get("decision_intents")
+    if not isinstance(decision_intents, list) or not decision_intents or not all(
+        isinstance(value, str) for value in decision_intents
+    ):
+        raise ValueError("project backend decision intents are missing")
+    if not set(plan.get("intents", [])).intersection(decision_intents):
+        return None, None
+    authority = deepcopy(navigation["authority_read"])
+    if backend.get("scope") != "project" or (backend.get("selection_complete") and not backend.get("conflicts")):
+        return authority, None
+    interface = deepcopy(navigation.get("interface"))
+    if (not isinstance(interface, dict) or not isinstance(interface.get("path"), str)
+            or interface.get("operations") != ["inspect", "select", "migrate"]):
+        raise ValueError("project backend CLI navigation is missing")
+    interface["source_sha256"] = reader.describe({"path": interface["path"]})["sha256"]
+    interface["authority"] = reader.describe(authority)
+    interface["condition"] = navigation.get("condition")
+    interface["source"] = "reading_policy.project_backend_navigation"
+    interface["execute"] = False
+    interface["pre_delivery_gate"] = False
+    interface["boundary"] = navigation.get("boundary")
+    return authority, interface
+
+
 def _project_reads(
     root: Path, state: dict[str, Any], question: str, *, style: bool,
     state_snapshot: ProjectStateSnapshot,
@@ -340,7 +374,7 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
     profile, status, reasons = (_scope(plan, request, policy) if policy else
                                 ("full", "conservative_fallback", ["no reading policy declared"]))
     config = policy.get("profiles", {}).get(profile, {})
-    if policy and policy.get("schema_version") != "1.0.0":
+    if policy and policy.get("schema_version") != "1.1.0":
         raise ValueError("Unsupported reading_policy schema")
     if profile not in {"full", "progressive_writing"} and not config.get("read_now"):
         profile, status = "full", "conservative_fallback"
@@ -393,14 +427,23 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
                 state_snapshot=state_snapshot,
             )
 
+    backend_authority, backend_interface = _project_backend_navigation(plan, policy, reader)
     if profile == "full":
         specs = [{"path": path} for path in plan["load_order"]]
+        if (backend_authority is not None and plan["assurance"]["status"] == "pass"
+                and plan.get("intents") in (["model_selection"], ["advanced_method"])):
+            # These design-only routes need the project choice, while their legacy
+            # load_order remains the complete compatibility resource inventory.
+            specs = [deepcopy(backend_authority) if spec["path"] == backend_authority["path"]
+                     else spec for spec in specs]
     elif profile == "progressive_writing":
         # Existing writing Authority owns stages/preflight; no parallel chapter planner.
         specs = [{"path": path} for path in plan["writing_runtime"]["initial_read_order"]]
     else:
         specs = list(config.get("read_now", []))
     specs = list(policy.get("common_reads", [])) + specs
+    if backend_authority is not None:
+        specs.append(backend_authority)
     read_now = reader.consolidate([reader.describe(spec) for spec in specs])
     deferred = []
     conditions = policy.get("deferred_conditions", {})
@@ -413,6 +456,11 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
             when = "tool_failure_or_explicit_implementation_review_requires_source"
         deferred.append(reader.describe({"path": path, "when": when}))
     deferred.extend(reader.describe(spec) for spec in config.get("conditional", []))
+    if backend_interface is not None:
+        deferred.append(reader.describe({
+            "path": backend_interface["path"],
+            "when": "project_backend_cli_failure_or_explicit_implementation_review",
+        }))
     # Keep different conditional triggers for the same resource; never erase a trigger.
     deferred = list({(r["path"], str(r["selectors"]), r["when"]): r for r in deferred}.values())
 
@@ -426,10 +474,11 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
         tool["success_policy"] = "inspect_real_exit_status_and_report_never_infer_execution_from_plan"
     inventory = reader.consolidate([reader.describe({"path": p}) for p in plan["load_order"]])
     result = {
-        "schema_version": policy.get("schema_version", "1.0.0"),
+        "schema_version": policy.get("schema_version", "1.1.0"),
         "profile": profile, "status": status, "reasons": reasons,
         "read_now": read_now + project_rows, "conditional": deferred,
         "tool_interfaces": tools,
+        "project_backend_navigation": backend_interface,
         "project_sources": deepcopy(plan["assurance"]["artifact_assurance"]["evidence"]),
         "machine_dependencies": deepcopy(plan["assurance"]["dependency_closure"]),
         "authority_fingerprint": deepcopy(plan["assurance"]["authority_fingerprint"]),

@@ -65,6 +65,13 @@ class ApprovedReadingEvidenceChangesTests(unittest.TestCase):
                          [("assurance.schema_version", "1.2.0", "1.2.1")])
         self.assertEqual((before, after), saved)
 
+    def test_v10_skill_carrier_is_registered_without_masking_other_changes(self):
+        before, after = self.pair()
+        after["plan"]["version"] = "10.0.0"
+        self.assertTrue(self.compare(before, after)["legacy_behavior_equal_except_approved_changes"])
+        after["plan"]["version"] = "11.0.0"
+        self.assertIn("version", self.compare(before, after)["unexpected_legacy_changes"])
+
     def test_hash_drift_registers_only_exact_analysis_revocation(self):
         before, after = self.pair("facts_hash_drift")
         row = self.compare(before, after)

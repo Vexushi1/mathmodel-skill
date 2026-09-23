@@ -24,7 +24,7 @@ ALLOWED_CHANGED_AUTHORITIES = {
     "templates/latex/cumcm/hsk/template_manifest.yaml",
 }
 P7_OPTIONAL_ANALYSIS_PREREQUISITE = "figure_evidence:result_analysis_workbook"
-P9_RELEASE_VERSIONS = {"9.1.0", "9.2.0", "9.2.1", "9.3.0", "9.3.1", "9.4.0", "9.4.1", "9.4.2", "9.4.3", "9.4.4", "9.5.0", "9.5.1", "9.5.2", "9.5.3", "9.5.4", "9.5.5", "9.5.6", "9.5.7", "9.6.0", "9.6.1", "9.7.0", "9.7.1"}
+APPROVED_RELEASE_CARRIERS = {"9.1.0", "9.2.0", "9.2.1", "9.3.0", "9.3.1", "9.4.0", "9.4.1", "9.4.2", "9.4.3", "9.4.4", "9.5.0", "9.5.1", "9.5.2", "9.5.3", "9.5.4", "9.5.5", "9.5.6", "9.5.7", "9.6.0", "9.6.1", "9.7.0", "9.7.1", "10.0.0"}
 A7_HYDRATED_PROVENANCE_CASES = {
     "facts_current", "facts_model_change", "facts_ambiguous", "facts_stale_framework",
     "facts_hash_drift", "facts_identity_drift", "facts_stale_dependency", "style_current",
@@ -45,7 +45,7 @@ def normalize(value, repo, project):
 def legacy_projection(plan):
     value = deepcopy(plan)
     value.pop("reading_plan", None)
-    if value.get("version") in P9_RELEASE_VERSIONS:
+    if value.get("version") in APPROVED_RELEASE_CARRIERS:
         value["version"] = "<EXPECTED_P9_RELEASE_CARRIER_CHANGE>"
     fingerprint = value["assurance"]["authority_fingerprint"]
     fingerprint["sha256"] = "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"

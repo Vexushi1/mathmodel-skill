@@ -48,7 +48,7 @@ class RuntimeHealthCoherenceTests(unittest.TestCase):
             data = yaml.safe_load(read(relative)) or {}
             self.assertNotIn("skill_version", data, relative)
             self.assertEqual(str(data.get("introduced_in_skill_version")), "7.4.2", relative)
-            self.assertEqual(str(data.get("skill_compatibility")), ">=7.4.2,<10.0.0", relative)
+            self.assertEqual(str(data.get("skill_compatibility")), ">=7.4.2,<11.0.0", relative)
         execution = yaml.safe_load(read("core/user_execution_contract.yaml")) or {}
         self.assertNotIn("skill_version", execution)
         self.assertEqual(str(execution.get("introduced_in_skill_version")), "10.0.0")

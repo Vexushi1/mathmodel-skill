@@ -49,9 +49,10 @@ class TestContentPacks(unittest.TestCase):
         text = (ROOT / "packs/artifact/code.md").read_text(encoding="utf-8")
         for token in (
             "问题X求解/", "per_question.solver_scripts", "问题X求解结果.xlsx",
-            "深化后端的独立入口", "问题X结果深化分析.xlsx", "qX_plot.m",
+            "同一项目后端对应的独立深化入口", "问题X结果深化分析.xlsx", "qX_plot.m",
             "两个阶段明确的代码入口", "冻结", "不生成独立 YAML",
             "同目录两个真实工作簿", "精确匹配表头", "只读兼容",
+            "execution.solver_backend",
         ):
             self.assertIn(token, text)
         self.assertNotIn("覆盖更新同一文件", text)
@@ -125,6 +126,10 @@ class TestContentPacks(unittest.TestCase):
             self.assertIn(token, text)
         self.assertIn("Git", text)
         self.assertIn("stale", text)
+        self.assertEqual(text.count("### 全项目数值实现"), 1)
+        self.assertIn("- 项目求解后端：", text)
+        self.assertIn("- 项目后端选择理由：", text)
+        self.assertNotIn("- 已选求解后端 / 选择理由 / 依赖核验：", text)
         self.assertNotIn("MATLAB 图标题", text)
         self.assertNotIn("命题准入检查：", text)
         self.assertNotIn("正文证明默认：", text)

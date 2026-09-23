@@ -434,15 +434,15 @@ class ContractAndDriftTests(unittest.TestCase):
     # corresponding code-delivery consumer; the other authority guards remain fixed.
     PROTECTED = {
         "core/model_approval_contract.yaml": "7cf530468a9a740a4123d64dec85b257d48e0892",
-        "core/numerical_verification_contract.yaml": "f7e1921ec4945cb5e87984ccb8946302d854143f",
+        "core/numerical_verification_contract.yaml": "32f70622a8ea79f5bb9472392437abd54949393a",
         # P0-A intentionally aligns the title handoff with the existing output Authority;
         # test_schemas covers the new declaration and unchanged caption ownership.
-        "core/workbook_schema.yaml": "9a3885683cd8f666d34abe22657773c98eaa10fd",
+        "core/workbook_schema.yaml": "e0479f5e74063151a515d11e140b7c4e8b8db077",
         # Schema 8.0.0 removes stage selectors and declares one project-root backend.
         "core/project_state.schema.yaml": "11880dc6c8377245c4cec428f7b2a8f46d3d042f",
         "core/writing_reasoning_contract.yaml": "67a22f6e882a9cb79bc6edccd033731558a81f13",
-        "modules/03_solve_validate.md": "09e055c28c7fdcc37b9921664a879f85f95bb1bc",
-        "modules/03_result_analysis.md": "e0e8bdb9fa258e351bc56e36eb9c2d1ace6b69e9",
+        "modules/03_solve_validate.md": "46664420a42c43f465849e4d7e86c465d62b7267",
+        "modules/03_result_analysis.md": "e8c67ffc2f8e7ba582b834fa365bbcab813cc812",
         "modules/05_writing/paper_writing_protocol.md": "ea10da96f20bf11bfcf2b7f7465fb5162ae5efdf",
         "modules/05_writing/ai_cleanup.md": "3e6249d17a0a91091bf7c61c49aeb9245ccc41e1",
         "modules/06_review_delivery.md": "94c2096c6f0873a96df57cb16c5c2f2deee5d411",

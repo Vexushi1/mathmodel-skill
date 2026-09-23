@@ -38,7 +38,7 @@ REQUIRED = [
     "templates/figure/mechanism_drawio_spec.yaml", "templates/figure/mechanism_drawio_patterns.md",
     "templates/matlab/data_process.m", "templates/latex/cumcm/hsk/hsk_main.tex",
     "templates/latex/diangong/main.tex", "templates/writing/caption_explanation.md",
-    "scripts/resolve_runtime.py", "scripts/runtime_assurance.py", "scripts/resolve_workflow.py", "scripts/validate_semantic_governance.py", "scripts/validate_model_approval.py", "scripts/sync_project.py",
+    "scripts/resolve_runtime.py", "scripts/runtime_assurance.py", "scripts/resolve_workflow.py", "scripts/project_solver_backend.py", "scripts/validate_semantic_governance.py", "scripts/validate_model_approval.py", "scripts/sync_project.py",
     "scripts/validate_code_delivery.py", "scripts/validate_user_execution.py", "scripts/validate_numerical_evidence.py", "scripts/audit_latex_project.py",
     "scripts/audit_paper_prose.py", "scripts/audit_v8_writing_surface.py", "scripts/validate_template_manifest.py", "scripts/latex_delivery.py",
     "scripts/generate_mechanism_drawio.py", "scripts/validate_drawio_figure.py",
@@ -60,7 +60,7 @@ MARKDOWN_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 VERSION_DOCS = ["SKILL.md", "README.md", "CHANGELOG.md", "core/hsk_core_policy.md"]
 VERSION_CONTRACTS = [
     "core/bootstrap.yaml", "core/workflow_router.yaml", "core/module_manifest.yaml",
-    "core/output_contract.yaml",
+    "core/output_contract.yaml", "core/writing_runtime_contract.yaml", "config/prose_audit_patterns.yaml",
 ]
 
 
@@ -384,8 +384,8 @@ def check_versions(errors: list[str]) -> None:
     if workbook.get("schema_version") != "2.3.1":
         errors.append("workbook schema version must be 2.3.1")
     compatibility = str(workbook.get("skill_compatibility", ""))
-    if ">=6.3.2" not in compatibility or "<10.0.0" not in compatibility:
-        errors.append("workbook schema compatibility must cover 6.3.2 through v9")
+    if compatibility != ">=6.3.2,<11.0.0":
+        errors.append("workbook schema compatibility must cover 6.3.2 through v10")
 
 
 def check_bootstrap_and_governance(errors: list[str]) -> None:
@@ -407,6 +407,8 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
         errors.append("bootstrap must expose validate_numerical_evidence.py")
     if data.get("entrypoints", {}).get("sync") != "python scripts/sync_project.py":
         errors.append("bootstrap must expose sync_project.py")
+    if data.get("entrypoints", {}).get("project_solver_backend") != "python scripts/project_solver_backend.py":
+        errors.append("bootstrap must expose the sole project_solver_backend.py coordination entrypoint")
     if data.get("entrypoints", {}).get("audit_paper_prose") != "python scripts/audit_paper_prose.py":
         errors.append("bootstrap must expose audit_paper_prose.py")
     maintenance = data.get("repository_maintenance", {})
@@ -423,12 +425,12 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
     for token in ("每个新聊天的强制启动顺序", "修改简报", "单一事实源", "一次聊天一个分支", "一个 PR 一个主题", "禁止直接写 main", "生成文件规则", "测试与验收", "完成报告"):
         if token not in governance:
             errors.append(f"governance document lacks section: {token}")
-    if "<10.0.0" not in governance:
-        errors.append("governance applicability must include v9")
-    for relative in (
-        "core/global_preprocessing_contract.yaml",
-        "core/code_quality_contract.yaml",
-        "core/numerical_verification_contract.yaml",
+    if 'applies_to_skill: ">=6.3.0,<11.0.0"' not in governance:
+        errors.append("governance applicability must cover its original lower bound through v10")
+    for relative, lower in (
+        ("core/global_preprocessing_contract.yaml", "7.4.2"),
+        ("core/code_quality_contract.yaml", "7.4.2"),
+        ("core/numerical_verification_contract.yaml", "7.14.0"),
     ):
         contract = load_structured(ROOT / relative) or {}
         if "skill_version" in contract:
@@ -436,8 +438,8 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
         if not contract.get("introduced_in_skill_version"):
             errors.append(f"subordinate contract introduction version missing: {relative}")
         compatibility = str(contract.get("skill_compatibility", ""))
-        if "<10.0.0" not in compatibility:
-            errors.append(f"subordinate contract compatibility must cover active v9 line: {relative}")
+        if compatibility != f">={lower},<11.0.0":
+            errors.append(f"subordinate contract compatibility must retain its lower bound and cover v10: {relative}")
     execution = load_structured(ROOT / "core/user_execution_contract.yaml") or {}
     if execution.get("version") != "3.0.0" or execution.get("introduced_in_skill_version") != "10.0.0":
         errors.append("v10 user execution contract must declare its independent 3.0.0 version")
@@ -456,8 +458,8 @@ def check_taxonomy(errors: list[str]) -> None:
     if data.get("classification_contract", {}).get("authoritative_locations", {}).get("capabilities") != "subproblem.capabilities":
         errors.append("taxonomy must declare top-level capabilities as authoritative")
     compatibility = str(data.get("skill_compatibility", ""))
-    if ">=6.3.1" not in compatibility or "<10.0.0" not in compatibility:
-        errors.append("task taxonomy compatibility must cover the active v9 line")
+    if compatibility != ">=6.3.1,<11.0.0":
+        errors.append("task taxonomy compatibility must retain its lower bound and cover v10")
 
 
 def check_router(errors: list[str]) -> None:
@@ -825,6 +827,10 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("result-analysis dispositions must delegate to writing-reasoning authority")
     per_question = output.get("per_question", {}) or {}
     solver_scripts = per_question.get("solver_scripts") or {}
+    expected_solver_scripts = {
+        "python": {"primary": "问题{中文序号}求解.py", "result_analysis": "问题{中文序号}结果深化分析.py"},
+        "matlab": {"primary": "q{阿拉伯序号}_solver.m", "result_analysis": "q{阿拉伯序号}_analysis.m"},
+    }
     python_scripts = solver_scripts.get("python") or {}
     base_expected = [
         python_scripts.get("primary"),
@@ -835,8 +841,8 @@ def check_contracts(errors: list[str]) -> None:
         python_scripts.get("result_analysis"),
         ((per_question.get("conditional_workbooks") or {}).get("result_analysis") or {}).get("path"),
     ]
-    if set(solver_scripts) != {"python", "matlab"}:
-        errors.append("solver_scripts must declare Python and MATLAB implementations")
+    if solver_scripts != expected_solver_scripts:
+        errors.append("current solver_scripts must declare the exact Python and MATLAB primary/analysis mappings")
     if per_question.get("python_scripts") != python_scripts:
         errors.append("legacy Python filename projection must agree with solver_scripts.python")
     if per_question.get("two_python_stage_policy") != per_question.get("stage_policy"):
@@ -844,21 +850,23 @@ def check_contracts(errors: list[str]) -> None:
     base_files = per_question.get("base_default_files") or []
     analysis_files = per_question.get("analysis_required_additional_files") or []
     if base_files != base_expected:
-        errors.append("per-question base layout must be exact three-file primary/plot set")
+        errors.append("legacy Python base layout projection must match the primary/workbook/plot set")
     if analysis_files != analysis_expected:
-        errors.append("required result-analysis extension must be exact 03B code/workbook pair")
+        errors.append("legacy Python result-analysis projection must match the 03B code/workbook pair")
     if set(base_files) & set(analysis_files) or len(set(base_files + analysis_files)) != 5:
-        errors.append("conditional per-question layout must remain disjoint three-plus-two and total five when analysis is required")
+        errors.append("legacy Python per-question layout projection must remain disjoint three-plus-two")
     if "single_python_update_policy" in per_question:
         errors.append("output contract must not restore single-script overwrite policy")
     delivery = user_execution.get("code_delivery") or {}
+    if delivery.get("stage_scripts_authority") != "core/output_contract.yaml#per_question.solver_scripts":
+        errors.append("current stage scripts must delegate to the two-language solver_scripts authority")
     stages = delivery.get("stage_scripts") or {}
     expected_stage_scripts = {
         "primary": "问题X求解/问题X求解.py",
         "analysis": "问题X求解/问题X结果深化分析.py",
     }
     if stages != expected_stage_scripts:
-        errors.append("user execution stage_scripts must preserve the per-question primary/analysis two-script interface")
+        errors.append("legacy Python stage_scripts projection must preserve its historical primary/analysis filenames")
     if delivery.get("preprocessing_script") != "数据预处理/数据预处理.py":
         errors.append("user execution contract must expose conditional preprocessing_script separately")
     if delivery.get("semantic_governance_required") is not True:

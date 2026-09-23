@@ -2,8 +2,8 @@
 
 每问代码保留在同一个 `问题X求解/` 目录；交付服从 `core/output_contract.yaml` 与 `core/user_execution_contract.yaml`，本 Pack 不复制一套固定目录合同：
 
-- `per_question.solver_scripts` 当前后端的主入口：主求解程序，按 applicable approval/data gates 交付；
-- 同一映射中当前深化后端的独立入口：仅在主工作簿 accepted 且 Analysis Necessity Gate=`required` 时交付的独立深化分析程序。
+- `per_question.solver_scripts` 中项目根后端对应的主入口：主求解程序，按 applicable approval/data gates 交付；
+- 同一项目后端对应的独立深化入口：仅在主工作簿 accepted 且 Analysis Necessity Gate=`required` 时交付的独立深化分析程序。
 
 基础布局是主求解代码、`问题X求解结果.xlsx` 与 `qX_plot.m`；Gate=`required` 时再追加结果深化分析代码与 `问题X结果深化分析.xlsx`。因此只有 Gate=`required` 路径才具有两个阶段明确的代码入口；Gate=`not_required` 时仅保留主求解代码。Gate=`required` 的兼容五文件路径中会形成同目录两个真实工作簿（主工作簿 + 03B 工作簿）；该表述仅描述被 Gate 激活的路径，不适用于 Gate=`not_required`。主工作簿 accepted 后冻结主求解脚本，不用深化分析代码覆盖它。Gate=`not_required` 时记录非空理由，不生成 03B 代码/工作簿，也不得把缺少 03B 解释为稳健性或稳定性已验证。
 
@@ -13,7 +13,7 @@
 - `question_local`：可读取必要原始数据，并只复现本问数学层已定义的局部变换；
 - `project_level`：依赖公共口径的主求解/被激活的深化分析读取 `数据预处理/数据预处理结果.xlsx`，禁止再次直接读取对应共享原始数据。
 
-后端、配置字面量、协议与源码 bundle 遵循执行 Authority；默认自包含，必要 helper 显式纳入依赖绑定。
+唯一数值后端取自项目根 `execution.solver_backend`；各阶段 `RUN_CONFIG`、回执、协议与源码 bundle 遵循执行 Authority，记录实际运行事实并与项目策略一致。代码默认自包含，必要 helper 显式纳入依赖绑定。
 
 完整运行配置分别嵌入实际激活阶段的代码并写入对应工作簿，**不生成独立 YAML**、运行说明或校验报告。
 

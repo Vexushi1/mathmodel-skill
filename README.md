@@ -1,12 +1,12 @@
-# mathmodel-skill v9.7.1
+# mathmodel-skill v10.0.0（Draft 候选，尚未发布）
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 → 条件数学化与结构化简 → 最小充分主模型 + 按需 comparator → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构匹配 Solver + Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision / semantic_identity_hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python/MATLAB 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + 按需 Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
 
-## 当前开发分支：v10 项目级数值后端（尚未发布）
+## v10.0.0 候选：项目级数值后端
 
 当前 Project State 与 User Execution Authority 规定在项目根 `execution.solver_backend` 及非空理由中只记录一次 Python 或 MATLAB 选择；全题主求解和被激活的结果深化分析都继承它，各问仍保留独立算法、入口、源码 bundle、工作簿与验收状态。项目级 Python 预处理、正式 MATLAB 绘图和其他非求解工具仍按各自职责运行。`RUN_CONFIG` / `RUN_RECEIPT` 中的后端记录实际执行事实，必须与根策略一致，不能替项目选择或覆盖根策略。
 
-首次选择须审视全题可预见数值需求，并在首次正式数值代码交付前与既有 Model Approval 衔接。`scripts/project_solver_backend.py inspect` 及迁移预览只读；完全未选且无数值历史用 `select` 登记，不能因预览为 `ready_for_review` 而改走 `migrate`。有历史数值阶段或更换已锁后端时，`migrate` 须先预览、核对具体项目状态字节与全题影响，再显式确认。缺少根策略的当前项目不得正式交付数值代码。历史阶段选择只作诊断与迁移证据；仓库改造获批不代表任何具体项目已获迁移确认。迁移后的数值交付仍须重新通过当前门禁。以下 v9.x 版本小节记录当时行为，不覆盖当前开发分支的项目级规则。
+首次选择须审视全题可预见数值需求，并在首次正式数值代码交付前与既有 Model Approval 衔接。`scripts/project_solver_backend.py inspect` 及迁移预览只读；完全未选且无数值历史用 `select` 登记，不能因预览为 `ready_for_review` 而改走 `migrate`。有历史数值阶段或更换已锁后端时，`migrate` 须先预览、核对具体项目状态字节与全题影响，再显式确认。缺少根策略的当前项目不得正式交付数值代码。历史阶段选择只作诊断与迁移证据；仓库改造获批不代表任何具体项目已获迁移确认。迁移后的数值交付仍须重新通过当前门禁。以下 v9.x 版本小节保留当时行为的历史记录。
 
 ## v9.7.1：阶段、源码和输入衔接修复
 

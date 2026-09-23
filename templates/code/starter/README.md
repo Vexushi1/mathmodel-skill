@@ -1,6 +1,6 @@
 # 题型 Starter 使用说明（template lineage v7.15.0）
 
-本目录保留 Python 数学实现骨架；新03A/03B配置/回执按 `core/user_execution_contract.yaml` 使用1.1和源码依赖绑定，项目级预处理仍1.0。MATLAB数值模板位于 `templates/code/matlab/`。starter 不回写项目状态、审批或框架，也不自动连跑分析。
+本目录仅在项目根已锁定 Python 求解后端时提供 Python 数学实现骨架；新03A/03B配置/回执按 `core/user_execution_contract.yaml` 使用1.1和源码依赖绑定，项目级预处理仍1.0。项目根已锁定 MATLAB 时使用 `templates/code/matlab/` 的数值模板。starter 不回写项目状态、审批或框架，也不自动连跑分析。
 
 本目录中的 `classification.py`、`evaluation.py`、`optimization.py`、`prediction.py` 和 `simulation.py` 只用于生成主求解脚本 `问题X求解.py`。主工作簿验收后，不覆盖主脚本；先执行 Analysis Necessity Gate，仅在 Gate=`required` 时根据真实主结果单独生成 `问题X结果深化分析.py`。旧说明中的“主工作簿 accepted 后进入 03B”现在只表示进入 Analysis Necessity Gate；只有 Gate=`required` 才实际激活 03B。
 
@@ -37,7 +37,7 @@
 8. 执行 `validate_code_delivery.py`，同时检查 `RUN_CONFIG` 任务输入、receipt protocol marker、继承执行政策的非法覆盖与 `core/code_quality_contract.yaml` 的工程质量要求；旧 `FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG` 仅作只读兼容，旧脚本仍按原完整字段要求校验；
 9. 用户运行主脚本时构造逻辑 `RUN_RECEIPT`，仍写入既有工作簿 `运行配置(项目, 值)`：新实例写 `run_receipt_version="1.1.0"`、`solver_backend="python"`、实际入口 `code_sha256` 和入口加声明 helper 的 `code_bundle_sha256`，并记录 owner/profile、六个 no-degradation 标志、solver/version/platform/stop/fallback 等实际运行事实。运行前绑定源码和输入，写出前复核，发生漂移则失败；bundle 算法只服从执行 Authority。`stage/problem_name/data_sha256/solver/random_seed/tolerance/iteration_or_time_limit` 与已交付 RUN_CONFIG 一致。`validate_user_execution.py` 静态绑定代码、依赖和回执，并调用 `validate_numerical_evidence.py` 独立复核主质量证据，不能只依赖工作簿自报“通过”；
 10. 主工作簿 accepted 后冻结 `问题一求解.py`，执行 Analysis Necessity Gate。Gate=`not_required` 时记录非空 `result_analysis_requirement_reason`，不生成 `问题一结果深化分析.py/.xlsx`，也不得声称稳健性/稳定性已经验证；Gate=`required` 时依据真实主结果和评委风险单独生成 `问题一结果深化分析.py`；
-11. 仅 Gate=`required` 且选定 Python 后端时，深化分析脚本使用唯一顶层 `RUN_CONFIG`，写 `stage="analysis"`、`solver_backend="python"`、`run_receipt_protocol_version="1.1.0"` 及本阶段 `code_dependencies`，不写 `primary_quality_protocol_version`，以 `primary_workbook_sha256` 绑定已验收主工作簿。它继承当前数据事实源，只实现题目专属敏感性、鲁棒性、多算法、阈值、结构或场景分析；逐参数/逐场景/逐 seed/逐算法/逐区域/逐阈值真实底层数据也应落入分析工作簿，而不是只输出“稳定”；
+11. 仅 Gate=`required` 且项目根已锁定 Python 后端时，深化分析脚本使用唯一顶层 `RUN_CONFIG`，写 `stage="analysis"`、`solver_backend="python"`、`run_receipt_protocol_version="1.1.0"` 及本阶段 `code_dependencies`，不写 `primary_quality_protocol_version`，以 `primary_workbook_sha256` 绑定已验收主工作簿。它继承当前数据事实源，只实现题目专属敏感性、鲁棒性、多算法、阈值、结构或场景分析；逐参数/逐场景/逐 seed/逐算法/逐区域/逐阈值真实底层数据也应落入分析工作簿，而不是只输出“稳定”；
 12. Gate=`required` 时，深化分析脚本再次通过代码交付质量门后由用户运行，并返回 `问题一结果深化分析.xlsx`；该工作簿以 `run_receipt_version="1.1.0"` 记录本阶段后端、入口/bundle 摘要、主工作簿摘要和其他运行事实。原 1.0、P5a 与旧 `FULL_*` 只按原历史分支兼容；新 03A/03B 不主动写旧版本或省略握手，项目级 Python 预处理仍使用 1.0；
 13. Figure 阶段生成同目录 `q1_plot.m`。主结果图可只读 accepted 主工作簿；若目标 Figure 明确使用 03B evidence，则必须读取真实、current 的 `问题一结果深化分析.xlsx`，缺失时 fail closed。qX_plot.m 只读工作簿绘图，并按 Scientific Figure Synthesis / Composite Encoding / Rendering Profile 选择科研表达。
 

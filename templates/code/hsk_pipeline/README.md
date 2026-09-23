@@ -1,6 +1,6 @@
 # HSK Python 用户执行管线（template lineage v7.0.0）
 
-本目录保留 Python 数学模式与工作簿 IO；运行配置、实际回执和用户执行资格只服从 `core/user_execution_contract.yaml`。管线不再拥有项目状态或框架写入权，也不把本地质量检查通过说成正式验收。
+本目录只供项目根已锁定 Python 求解后端时复用 Python 数学模式与工作簿 IO；运行配置、实际回执和用户执行资格只服从 `core/user_execution_contract.yaml`。管线不再拥有项目状态或框架写入权，也不把本地质量检查通过说成正式验收。
 
 本目录提供用户本地运行的数值底座：
 
@@ -64,6 +64,6 @@
 主工作簿 accepted 后先执行 Analysis Necessity Gate：
 
 - `not_required`：必须记录非空 `result_analysis_requirement_reason`；不生成 `问题一结果深化分析.py` 或 `问题一结果深化分析.xlsx`，也不得把该状态表述为稳健性、稳定性或替代算法一致性已通过；
-- `required` 且选定 Python：单独生成 `问题一求解/问题一结果深化分析.py`，读取已验收主工作簿和必要当前数据事实源，按实际风险完成分析；再次通过代码质量门后由用户运行并输出分析工作簿。analysis RUN_CONFIG 声明 `run_receipt_protocol_version="1.1.0"`、`solver_backend="python"`、自身 `code_dependencies` 和 `primary_workbook_sha256`；返回工作簿写 1.1 回执及本阶段入口/bundle/主工作簿摘要，不得覆盖更新主求解代码。若选择 MATLAB，则读取对应 MATLAB 阶段模板。
+- `required` 且项目根已锁定 Python：单独生成 `问题一求解/问题一结果深化分析.py`，读取已验收主工作簿和必要当前数据事实源，按实际风险完成分析；再次通过代码质量门后由用户运行并输出分析工作簿。analysis RUN_CONFIG 声明 `run_receipt_protocol_version="1.1.0"`、`solver_backend="python"`、自身 `code_dependencies` 和 `primary_workbook_sha256`；返回工作簿写 1.1 回执及本阶段入口/bundle/主工作簿摘要，不得覆盖更新主求解代码。项目根已锁定 MATLAB 时使用对应 MATLAB 阶段模板，不在 03B 另选语言。
 
 Figure 阶段的 `q1_plot.m` 始终与主工作簿同目录。主结果图只要求 accepted 主工作簿；只有目标 Figure 实际消费 03B evidence 时才要求条件存在的分析工作簿，缺失时必须 fail closed。求解入口不生成正式论文图；绘图入口不重新求解，默认不创建图表目录或自动导出文件。

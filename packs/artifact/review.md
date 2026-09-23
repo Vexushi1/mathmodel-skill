@@ -22,14 +22,14 @@ Matrix 中 `unverifiable` 不得改写成 `passed`；未解决 `blocking` 必须
 
 ```text
 问题X求解/
-├─ <已选主入口：问题X求解.py 或 qX_solver.m>
+├─ <项目后端对应主入口：问题X求解.py 或 qX_solver.m>
 ├─ 问题X求解结果.xlsx
 ├─ qX_plot.m
-├─ [已选深化入口：问题X结果深化分析.py 或 qX_analysis.m]    # only Gate=required
+├─ [同一项目后端对应深化入口：问题X结果深化分析.py 或 qX_analysis.m]    # only Gate=required
 └─ [问题X结果深化分析.xlsx]  # only Gate=required and analysis executed
 ```
 
-Gate=`not_required` 必须有非空 `result_analysis_requirement_reason`，此时缺少 03B 文件不构成 layout finding，也不得写成“稳健性/稳定性已通过”。Gate=`required` 时则必须核对当前 03B 代码、工作簿与状态/哈希链，缺失不得静默豁免。主工作簿 accepted 后冻结主求解脚本，已激活的深化分析使用独立后端入口；旧单脚本四文件目录、旧 `结果数据表/问题X/` 和旧敏感性与鲁棒性工作簿只能作为历史项目只读兼容输入。
+Gate=`not_required` 必须有非空 `result_analysis_requirement_reason`，此时缺少 03B 文件不构成 layout finding，也不得写成“稳健性/稳定性已通过”。Gate=`required` 时则必须核对当前 03B 代码、工作簿与状态/哈希链，缺失不得静默豁免。主工作簿 accepted 后冻结主求解脚本，已激活的深化分析使用同一项目后端对应的独立入口；旧单脚本四文件目录、旧 `结果数据表/问题X/` 和旧敏感性与鲁棒性工作簿只能作为历史项目只读兼容输入。
 
 若 `preprocessing_decision=project_level`，同时检查 `数据预处理/数据预处理.py`、已验收 `数据预处理结果.xlsx` 和 Figure Evidence 阶段的 `data_process.m`；若为 `not_needed/question_local`，不得因不存在全局预处理目录而扣分。
 

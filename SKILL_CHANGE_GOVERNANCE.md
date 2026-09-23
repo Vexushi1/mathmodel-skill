@@ -1,6 +1,6 @@
 ---
 governance_version: 1.0.3
-applies_to_skill: ">=6.3.0,<10.0.0"
+applies_to_skill: ">=6.3.0,<11.0.0"
 status: active
 ---
 

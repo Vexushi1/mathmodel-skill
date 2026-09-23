@@ -59,9 +59,14 @@ class CurrentSkillHealthTests(unittest.TestCase):
             "condition-driven structural reduction",
             "minimal-sufficient main model",
             "structure-matched solver",
+            "project-root execution.solver_backend",
+            "core/user_execution_contract.yaml",
+            "selected Python or MATLAB backend",
+            "Formal MATLAB plotting reads exact evidence from current accepted workbooks",
         ):
             self.assertIn(token, prompt)
         self.assertNotIn("exact / proven_sufficient / heuristic", prompt)
+        self.assertNotIn("Generate full-fidelity Python code for user execution", prompt)
 
     def test_active_skill_authority_targets_exist(self):
         root_skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
