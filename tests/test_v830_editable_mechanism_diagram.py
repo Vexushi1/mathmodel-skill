@@ -451,8 +451,9 @@ class ContractAndDriftTests(unittest.TestCase):
         # A5 requires current per-question files and exact official allowlist entries.
         "scripts/validate_submission_package.py": "80e23b1f9d60485cba902f9151940389a452cbdb",
         # P0-B replaces silent filtering/fixed ordering with explicit evidence-preserving reads.
+        # v10.0.1 removes unsupported ColorBar.FontUnits in the standalone fallback;
         # MATLAB syntax is parsed separately; source checks do not claim runtime execution.
-        "templates/matlab/q1_plot.m": "85d621fce69943397e4a11ad0255c03d51c2cc9c",
+        "templates/matlab/q1_plot.m": "a16251c7cc9aa02d7c41f90c5ebc41e045fcec10",
         "templates/matlab/draw_mechanism_structure.m": "65ba4a3b3462a565f86880c49af0959edd21f9a4",
         # v9.7.1 A02 changes only Evidence Capture's producer from Python to the selected solver.
         "templates/figure/chart_selection.md": "8b87b79d55e23f1b581c1ceca9e4d609fd11ba26",

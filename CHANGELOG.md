@@ -1,6 +1,11 @@
 # Changelog
 
-## 10.0.0
+## 10.0.1
+
+- Fixes real MATLAB publication preview on R2024b: ColorBar font size is already measured in points and does not expose `FontUnits`. The shared styling helper and both standalone plot/preprocessing fallbacks now set only supported ColorBar properties; ColorBar label typography remains unchanged.
+- Retains the v10.0.0 project-wide solver backend, read-only legacy compatibility, and all independent state, workbook, and receipt protocol versions.
+
+## Previous release: 10.0.0
 
 - Makes one project-root Python or MATLAB numerical backend choice authoritative for all questions and activated numerical analysis. Per-question algorithms, source bundles, workbooks, and accepted evidence remain separate; project-level Python preprocessing and formal MATLAB plotting keep their independent roles.
 - Adds read-only backend inspection, a guarded first-choice `select`, and explicitly confirmed `migrate` with whole-project impact review, original-byte archival, and recoverable transaction. Historical stage declarations remain diagnostic evidence, and migration does not confer numerical delivery or acceptance.
