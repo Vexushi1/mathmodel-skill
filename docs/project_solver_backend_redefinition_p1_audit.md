@@ -737,4 +737,8 @@ snapshot/sync只让已登记、符合项目后端的入口和标准工作簿取�
 
 本地开发期完整unittest在最终补充残留哈希守卫之前运行 **1622项、8项条件跳过、无失败**；补齐守卫后改用逐项记录的`cmd`运行，**1623项、8项条件跳过、无失败，188.762秒**。此前两次PowerShell/.NET进程异常中断没有测试汇总，不计入通过。另在本机MATLAB R2025b实际运行合成Q1主求解/独立深化、原生Q2及对应交付/回执；同后端smoke通过，预览适配修复后对原生已验收结果的`verify-analysis`复核返回0。原生测试只使用仓库维护夹具，不是用户模型运行。生成检查和精确HEAD CI在提交后另行登记。
 
+首次推送的`cc83b148`完整HSK Skill CI **13/13任务成功**（含Windows Python、MATLAB R2024b、Python矩阵、LaTeX、lint与生成）；本地同一HEAD完整unittest **1623项、8项条件跳过、无失败，191.086秒**。并行Optimization baseline的source_snapshot成功，characterize失败：旧P2读取夹具只有accepted标签/工作簿，没有v10根选择或源码bundle，正确的新门将其降为待复核；比较器还只认旧Assurance版本。没有把这次失败改写成绿色或删除工作流。
+
+后续在同一第八批修复测试证据：`reading_plan_cases.py`为当前正例登记canonical Python根策略和1.1主/深化源码bundle；`test_reading_plan.py`保留独立旧accepted缺根负例，必须`review_required`且不得提升`validated_results`。`reading_plan_evidence.py`只登记精确的Assurance 1.2.0→2.0.0与根策略逐叶投影，不豁免结果资格、读取profile或整个assurance。用固定P1源码归档`0eecaf9`和当前工作树重新运行同一比较器，**19/19案例通过、未登记字段差异为0**；相关45项测试通过（1项条件跳过）。新精确HEAD远程CI仍须再次核验。
+
 下一主体仍需按第13.1、5—6、8—9节实现绑定真实状态代际、原始字节集合、影响确认、历史归档和可恢复事务的select/migrate；再清理活动入口/精确读取/适用范围及Skill 10.0.0发布载体。当前候选的契约版本不等于10.0.0已经发布。第八批源与生成派生文件分提交；不能合并半套政策，保持Draft、不合并、不发布、不迁移用户项目。

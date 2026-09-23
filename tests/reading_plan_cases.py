@@ -35,6 +35,51 @@ def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def bind_current_solver_project(root: Path, state: dict) -> None:
+    """Give synthetic accepted results a current Python 1.1 source identity."""
+    q = state["subproblems"]["Q1"]
+    folder = root / "问题一求解"
+    accepted_primary = q["validated_artifact_hashes"]["solution_workbook"]
+    data_hash = "a" * 64
+    q.update(data_hash=data_hash, validated_data_hash=data_hash)
+    q["solver_execution"] = {}
+    for stage, filename, code_field, hash_field in (
+        ("primary", "问题一求解.py", "code", "primary_code_sha256"),
+        ("analysis", "问题一结果深化分析.py", "result_analysis_code", "analysis_code_sha256"),
+    ):
+        config = {
+            "stage": stage, "problem_name": "问题一", "solver_backend": "python",
+            "data_paths": ["data.csv"], "data_sha256": data_hash, "solver": "direct",
+            "random_seed": 2026, "tolerance": 1e-8, "iteration_or_time_limit": "direct",
+            "expected_workbook": "问题一求解结果.xlsx" if stage == "primary" else "问题一结果深化分析.xlsx",
+            "run_receipt_protocol_version": "1.1.0", "code_dependencies": [],
+        }
+        if stage == "primary":
+            config["primary_quality_protocol_version"] = "1.0.0"
+        else:
+            config["primary_workbook_sha256"] = accepted_primary
+        source = folder / filename
+        source.write_text(
+            f"RUN_CONFIG = {config!r}\n\ndef main():\n    return 0\n\n"
+            "if __name__ == '__main__':\n    main()\n", encoding="utf-8",
+        )
+        relative = source.relative_to(root).as_posix()
+        entry_hash = digest(source)
+        bundle = hashlib.sha256(relative.encode("utf-8") + b"\0" + bytes.fromhex(entry_hash)).hexdigest()
+        q.update({code_field: relative, hash_field: entry_hash})
+        q["solver_execution"][stage] = {
+            "bundle_sha256": bundle, "validated_bundle_sha256": bundle,
+        }
+        layer = "primary_code" if stage == "primary" else "analysis_code"
+        for field in ("artifact_hashes", "validated_artifact_hashes"):
+            q.setdefault(field, {})[layer] = entry_hash
+    for field in ("artifact_hashes", "validated_artifact_hashes"):
+        q.setdefault(field, {})["data"] = data_hash
+    state["execution"] = {
+        "solver_backend": "python", "solver_backend_selection_reason": "Synthetic whole-problem review",
+    }
+
+
 def build_project(repo: Path, root: Path, mode: str) -> None:
     path = repo / "tests" / "optimization_baseline.py"
     spec = importlib.util.spec_from_file_location("p2_existing_fixture", path)
@@ -63,6 +108,7 @@ def build_project(repo: Path, root: Path, mode: str) -> None:
         q.setdefault("validated_artifact_hashes", {})[field] = digest(path)
     q.update(primary_execution_status="accepted", result_quality_status="passed",
              analysis_execution_status="accepted", result_analysis_status="passed")
+    bind_current_solver_project(root, state)
     script = folder / "q1_plot.m"
     script.write_text("% synthetic rendering source, never executed\n", encoding="utf-8")
     figure = folder / "test.svg"
