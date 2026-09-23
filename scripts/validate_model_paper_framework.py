@@ -538,10 +538,13 @@ def _validate_proposition_plan(text: str, *, strict: bool) -> tuple[list[str], i
 
 def _implementation_anchor_issues(
     anchor: str, subproblem: Mapping[str, Any], project_root: Path | None,
+    *, project_backend: str | None = None,
 ) -> list[str]:
-    modern = bool(subproblem.get("solver_execution"))
+    modern = project_backend is not None or bool(subproblem.get("solver_execution"))
     if project_root is not None:
-        modern |= any(STAGE_CODE.requires_bundle_binding(project_root, subproblem, stage)
+        modern |= any(STAGE_CODE.requires_bundle_binding(
+            project_root, subproblem, stage, project_backend=project_backend,
+        )
                       for stage in ("primary", "analysis"))
     if not modern:
         return []  # Historical free-text anchors keep their original read contract.
@@ -580,7 +583,10 @@ def _implementation_anchor_issues(
             if symbol not in names:
                 issues.append(f"implementation function anchor is missing: {raw}#{symbol}")
         stage = "primary" if raw == subproblem.get("code") else "analysis"
-        issues.extend(STAGE_CODE.validate_stage_binding(project_root, subproblem, stage, require_validated=True))
+        issues.extend(STAGE_CODE.validate_stage_binding(
+            project_root, subproblem, stage,
+            require_validated=True, project_backend=project_backend,
+        ))
     return issues
 
 
@@ -600,6 +606,12 @@ def _validate_algorithm_trace(
     by_id: dict[str, list[str]] = {}
     question_sections = _question_sections(text)
     state_subproblems = (state.get("subproblems", {}) or {}) if isinstance(state, Mapping) else {}
+    project_backend = None
+    if isinstance(state, Mapping):
+        try:
+            project_backend = STAGE_CODE.current_project_backend(state)
+        except STAGE_CODE.StageCodeError as exc:
+            issues.append(f"项目数值后端: {exc}")
 
     for algorithm_id, cells in rows:
         if not ALGORITHM_ID_PATTERN.fullmatch(algorithm_id):
@@ -634,7 +646,9 @@ def _validate_algorithm_trace(
         if cells[11] == "current" and status in SOLVED_STATUSES and not cells[9]:
             issues.append(f"{algorithm_id} current solved Algorithm Trace requires an implementation code anchor")
         if cells[11] == "current" and status in SOLVED_STATUSES and cells[9]:
-            issues.extend(f"{algorithm_id}: {issue}" for issue in _implementation_anchor_issues(cells[9], subproblem, project_root))
+            issues.extend(f"{algorithm_id}: {issue}" for issue in _implementation_anchor_issues(
+                cells[9], subproblem, project_root, project_backend=project_backend,
+            ))
 
     for question, section in question_sections.items():
         presentation = _extract_scalar(section, "算法流程呈现")

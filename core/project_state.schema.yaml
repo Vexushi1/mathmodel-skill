@@ -1,7 +1,7 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 7.11.0
+version: 8.0.0
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
@@ -124,10 +124,7 @@ $defs:
   solver_stage_execution:
     type: object
     additionalProperties: false
-    required: [backend, selection_reason]
     properties:
-      backend: {type: string, enum: [python, matlab]}
-      selection_reason: {type: string, minLength: 1}
       bundle_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
       validated_bundle_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
     dependentRequired:
@@ -433,7 +430,7 @@ properties:
         validated_data_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         artifacts_stale: {type: boolean, default: false}
         solver_execution:
-          description: 03A/03B已选实现及交付/验收bundle；auto仅为请求，不是已选后端。项目级预处理保留原状态结构。
+          description: 03A/03B各自的真实交付与验收bundle；数值后端只由execution中的项目级选择决定。
           type: object
           additionalProperties: false
           properties:
@@ -540,7 +537,12 @@ properties:
   execution:
     type: object
     additionalProperties: false
+    dependentRequired:
+      solver_backend: [solver_backend_selection_reason]
+      solver_backend_selection_reason: [solver_backend]
     properties:
+      solver_backend: {type: string, enum: [python, matlab]}
+      solver_backend_selection_reason: {type: string, minLength: 1, pattern: '\S'}
       owner: {type: string, enum: [user, assistant, external]}
       profile: {type: string, enum: [full_fidelity]}
       assistant_task_execution_allowed: {type: boolean}

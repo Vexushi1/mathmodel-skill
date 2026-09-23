@@ -178,6 +178,7 @@ def _python_files(root: Path, chinese_name: str) -> list[Path]:
 
 def _solver_observations(
     root: Path, question: str, entry: Mapping[str, Any],
+    *, project_backend: str | None = None, current_state: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Path | None], list[str]]:
     """Observe current implementation bytes without updating delivered identities."""
     root = root.resolve()
@@ -189,27 +190,53 @@ def _solver_observations(
         return observed, paths, ["solver_execution必须为映射"]
     for stage in paths:
         field = "code" if stage == "primary" else "result_analysis_code"
+        hash_field = f"{stage}_code_sha256"
         selection = selections.get(stage, {})
         if not isinstance(selection, Mapping):
             observed[stage] = {"binding_issues": ["后端选择必须为映射"]}
             issues.append(f"{stage}: 后端选择必须为映射")
             continue
-        registered = bool(entry.get(field) or entry.get(f"{stage}_code_sha256")
-                          or selection.get("bundle_sha256"))
+        registered = bool(entry.get(field) or entry.get(hash_field)
+                          or selection.get("bundle_sha256") or selection.get("validated_bundle_sha256")
+                          or entry.get(f"{stage}_execution_status") in {
+                              "code_delivered", "awaiting_user_execution", "workbook_received", "accepted",
+                          })
+        if current_state and not registered:
+            directory = root / f"{STAGE_CODE.question_name(question)}求解"
+            names = (STAGE_CODE._names(STAGE_CODE.question_name(question), stage).values()
+                     if STAGE_CODE.question_number(question) is not None else ())
+            historical = [path.relative_to(root).as_posix() for name in names
+                          if (path := directory / name).is_file()]
+            if historical:
+                observed[stage] = {"historical_entrypoints": historical}
+            continue
+        if current_state and (project_backend is None or not all((
+            entry.get(field), entry.get(hash_field), selection.get("bundle_sha256"),
+        ))):
+            issue = f"{stage}当前交付需要项目后端及完整登记的入口、SHA-256和bundle"
+            observed[stage] = {"binding_issues": [issue]}
+            issues.append(issue)
+            continue
         try:
-            code = STAGE_CODE.resolve_stage_code(root, question, stage, entry=entry)
+            code = STAGE_CODE.resolve_stage_code(
+                root, question, stage, entry=entry, project_backend=project_backend,
+            )
             if code is None:
                 continue
             paths[stage] = code.path
             record = {"backend": code.backend, "entrypoint": code.path.relative_to(root).as_posix()}
             bound_entry = {**entry, field: record["entrypoint"]}
-            if STAGE_CODE.requires_bundle_binding(root, bound_entry, stage):
+            if STAGE_CODE.requires_bundle_binding(root, bound_entry, stage, project_backend=project_backend):
                 _, config = STAGE_CODE.parse_stage_config(code.path, code.backend)
                 record.update(STAGE_CODE.stage_code_fingerprint(
                     root, code.path, config.get("code_dependencies", []), check_declared_hashes=False,
                 ))
                 if registered:
-                    binding_issues = STAGE_CODE.validate_stage_binding(root, entry, stage)
+                    binding_issues = STAGE_CODE.validate_stage_binding(
+                        root, entry, stage,
+                        require_validated=entry.get(f"{stage}_execution_status") == "accepted",
+                        project_backend=project_backend,
+                    )
                     record["binding_issues"] = binding_issues
                     issues.extend(f"{stage}: {issue}" for issue in binding_issues)
             observed[stage] = record
@@ -405,13 +432,39 @@ def _snapshot_question(
     delivery_scope: str | None,
     *,
     state: Mapping[str, Any] | None = None,
+    project_backend: str | None = None,
 ) -> dict[str, Any]:
     root = root.resolve()
     key = question_key(chinese_name)
     result_dir = _question_dir(root, chinese_name)
-    solution = result_dir / f"{chinese_name}求解结果.xlsx"
-    analysis_workbook, legacy_analysis_workbook = _analysis_path(result_dir, chinese_name)
-    implementations, code_paths, code_issues = _solver_observations(root, chinese_name, entry)
+    expected_solution = result_dir / f"{chinese_name}求解结果.xlsx"
+    expected_analysis = result_dir / f"{chinese_name}结果深化分析.xlsx"
+    current_state = state is not None
+    workbook_issues: list[str] = []
+    if current_state:
+        def registered_workbook(field: str, expected: Path) -> Path | None:
+            relative = entry.get(field)
+            if not relative:
+                return None
+            try:
+                path = STAGE_CODE._relative_path(root, relative)
+            except STAGE_CODE.StageCodeError as exc:
+                workbook_issues.append(f"{field}: {exc}")
+                return None
+            if path != expected:
+                workbook_issues.append(f"{field}不是当前阶段标准工作簿: {relative}")
+                return None
+            return path
+
+        solution = registered_workbook("solution_workbook", expected_solution)
+        analysis_workbook = registered_workbook("result_analysis_workbook", expected_analysis)
+        legacy_analysis_workbook = False
+    else:
+        solution = expected_solution
+        analysis_workbook, legacy_analysis_workbook = _analysis_path(result_dir, chinese_name)
+    implementations, code_paths, code_issues = _solver_observations(
+        root, chinese_name, entry, project_backend=project_backend, current_state=current_state,
+    )
     primary_code, analysis_code = code_paths["primary"], code_paths["analysis"]
     legacy_single_code = bool(primary_code and primary_code.suffix == ".py" and not analysis_code)
     number = question_number(chinese_name)
@@ -422,11 +475,18 @@ def _snapshot_question(
         entry.get("result_analysis_status") == "not_required"
         and bool(str(entry.get("result_analysis_requirement_reason") or "").strip())
     )
+    selections = entry.get("solver_execution")
+    if current_state and analysis_not_required and (
+        entry.get("result_analysis_code") or entry.get("analysis_code_sha256")
+        or entry.get("result_analysis_workbook")
+        or (isinstance(selections, Mapping) and selections.get("analysis"))
+    ):
+        workbook_issues.append("not_required阶段仍登记当前analysis数值身份")
     input_issues: list[str] = []
     for stage, code in code_paths.items():
         if code is None or (stage == "analysis" and analysis_not_required):
             continue
-        if not STAGE_CODE.requires_bundle_binding(root, entry, stage):
+        if not STAGE_CODE.requires_bundle_binding(root, entry, stage, project_backend=project_backend):
             continue  # Historical 1.0 observations retain the global data policy.
         if stage == "primary":
             data_hash = None  # Invalid modern inputs must not fall back to raw scans.
@@ -454,32 +514,32 @@ def _snapshot_question(
         require_analysis_code = not analysis_not_required
 
     formal_figures = delivery_scope in {"figures", "docx", "latex", "submission"}
-    issues: list[str] = [*code_issues, *input_issues, *(figure_issues if formal_figures else [])]
+    issues: list[str] = [*workbook_issues, *code_issues, *input_issues, *(figure_issues if formal_figures else [])]
     warnings: list[str] = [] if formal_figures else list(figure_issues)
     if entry.get("result_analysis_status") == "not_required" and not analysis_not_required:
         issues.append("result_analysis_status=not_required必须提供非空result_analysis_requirement_reason")
     if delivery_scope == "code" and primary_code is None:
         issues.append("代码交付缺少标准主求解脚本")
-    if require_solution and not solution.is_file():
+    if require_solution and not (solution and solution.is_file()):
         issues.append("缺少标准求解结果工作簿")
-    if require_analysis and not analysis_workbook.is_file():
+    if require_analysis and not (analysis_workbook and analysis_workbook.is_file()):
         issues.append("缺少标准结果深化分析工作簿")
     if require_analysis_code and analysis_code is None:
         if delivery_scope is None and legacy_single_code and not entry.get("analysis_code_sha256"):
             warnings.append("检测到v6.6.x单脚本项目；只读兼容，重新深化分析时应迁移为独立结果深化分析脚本")
         else:
             issues.append("缺少标准结果深化分析脚本")
-    if solution.is_file():
+    if solution and solution.is_file():
         issues.extend(_validate_workbook(solution, "solution", schema, entry))
-    if analysis_workbook.is_file():
+    if analysis_workbook and analysis_workbook.is_file():
         issues.extend(_validate_workbook(analysis_workbook, "result_analysis", schema, entry))
         if legacy_analysis_workbook:
             warnings.append("使用旧敏感性与鲁棒性工作簿名；新交付应迁移为结果深化分析工作簿")
 
-    quality_exists = _has_sheets(solution, {"主结果质量门"})
-    analysis_report_exists = analysis_not_required or _has_sheets(
+    quality_exists = bool(solution and _has_sheets(solution, {"主结果质量门"}))
+    analysis_report_exists = analysis_not_required or bool(analysis_workbook and _has_sheets(
         analysis_workbook, {"分析设计", "结论稳定性汇总"}
-    )
+    ))
     if require_solution and not quality_exists:
         issues.append("主求解工作簿缺少主结果质量门报告")
     if require_analysis and not analysis_report_exists:
@@ -510,8 +570,8 @@ def _snapshot_question(
         "data": data_hash,
         "primary_code": sha256_file(primary_code) if primary_code else None,
         "analysis_code": sha256_file(analysis_code) if analysis_code else None,
-        "solution_workbook": sha256_file(solution) if solution.is_file() else None,
-        "result_analysis_workbook": sha256_file(analysis_workbook) if analysis_workbook.is_file() else None,
+        "solution_workbook": sha256_file(solution) if solution and solution.is_file() else None,
+        "result_analysis_workbook": sha256_file(analysis_workbook) if analysis_workbook and analysis_workbook.is_file() else None,
         "matlab_script": sha256_file(matlab) if matlab.is_file() else None,
         "figure_bundle": combined_hash(figures, root),
         "framework": framework_section_hash(framework, str(entry.get("framework_section", ""))),
@@ -526,9 +586,13 @@ def _snapshot_question(
         "primary_code_sha256": sha256_file(primary_code) if primary_code else None,
         "analysis_code_sha256": sha256_file(analysis_code) if analysis_code else None,
         "solver_execution_observed": implementations,
+        "project_backend": project_backend,
+        "historical_workbooks": [path.relative_to(root).as_posix() for path in (
+            expected_solution, expected_analysis, result_dir / f"{chinese_name}敏感性与鲁棒性结果.xlsx"
+        ) if path.is_file() and path not in (solution, analysis_workbook)],
         "legacy_single_code": legacy_single_code,
-        "solution_workbook": solution.relative_to(root).as_posix() if solution.is_file() else None,
-        "result_analysis_workbook": analysis_workbook.relative_to(root).as_posix() if analysis_workbook.is_file() else None,
+        "solution_workbook": solution.relative_to(root).as_posix() if solution and solution.is_file() else None,
+        "result_analysis_workbook": analysis_workbook.relative_to(root).as_posix() if analysis_workbook and analysis_workbook.is_file() else None,
         "legacy_analysis_workbook": legacy_analysis_workbook,
         "result_quality_report": quality_exists,
         "result_analysis_report": analysis_report_exists,

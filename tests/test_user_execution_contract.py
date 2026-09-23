@@ -27,11 +27,15 @@ def load_module(name: str, path: Path):
 
 CODE = load_module("validate_code_delivery", ROOT / "scripts" / "validate_code_delivery.py")
 RECEIPT = load_module("validate_user_execution", ROOT / "scripts" / "validate_user_execution.py")
+ARTIFACTS = load_module("user_execution_artifacts", ROOT / "scripts" / "artifact_fingerprint.py")
 
 
 class UserExecutionContractTests(unittest.TestCase):
     def make_project(self, root: Path) -> Path:
         (root / "state").mkdir()
+        data = root / "data.csv"
+        data.write_text("value\n1\n", encoding="utf-8")
+        self.data_hash = ARTIFACTS.combined_hash([data], root)
         folder = root / "问题一求解"
         folder.mkdir()
         code = folder / "问题一求解.py"
@@ -39,6 +43,8 @@ class UserExecutionContractTests(unittest.TestCase):
         self.write_code(code, config)
         state = {
             "project": {"competition": "test", "problem": "A", "current_phase": "solve_validate", "version": "7.2.1"},
+            "execution": {"solver_backend": "python",
+                          "solver_backend_selection_reason": "全题维护微例及用户执行环境已审视"},
             "data": {"active_source_mode": "raw"},
             "preprocessing": {
                 "decision": "not_needed", "level": "none", "status": "not_applicable",
@@ -63,18 +69,23 @@ class UserExecutionContractTests(unittest.TestCase):
     def config(self, stage: str, workbook: str) -> dict:
         config = {
             "execution_owner": "user", "execution_profile": "full_fidelity", "stage": stage,
-            "problem_name": "问题一", "data_paths": ["data.csv"], "data_sha256": "a" * 64,
+            "problem_name": "问题一", "data_paths": ["data.csv"],
+            "data_sha256": getattr(self, "data_hash", "a" * 64),
             "solver": "test", "solver_version": "1", "random_seed": 2026, "tolerance": 1e-8,
             "iteration_or_time_limit": "full", "expected_workbook": workbook,
+            "solver_backend": "python", "run_receipt_protocol_version": "1.1.0",
+            "code_dependencies": [],
             **{flag: False for flag in FALSE_FLAGS},
         }
         if stage == "primary":
             config["primary_quality_protocol_version"] = "1.0.0"
+        elif stage == "analysis":
+            config["primary_workbook_sha256"] = getattr(self, "primary_workbook_sha", "b" * 64)
         return config
 
     def write_code(self, path: Path, config: dict, marker: int = 0) -> None:
         path.write_text(
-            "FULL_FIDELITY_CONFIG = " + repr(config)
+            "RUN_CONFIG = " + repr(config)
             + f"\n\ndef main():\n    return {marker}\n\nif __name__ == \"__main__\":\n    raise SystemExit(main())\n",
             encoding="utf-8",
         )
@@ -87,13 +98,13 @@ class UserExecutionContractTests(unittest.TestCase):
     def read_state(self, root: Path) -> dict:
         return yaml.safe_load((root / "state" / "project_state.yaml").read_text(encoding="utf-8"))
 
-    def make_primary_workbook(self, root: Path, code: Path, data_hash: str = "a" * 64) -> Path:
+    def make_primary_workbook(self, root: Path, code: Path, data_hash: str | None = None) -> Path:
         workbook = root / "问题一求解" / "问题一求解结果.xlsx"
         book = openpyxl.Workbook()
         sheet = book.active
         sheet.title = "运行配置"
         sheet.append(["项目", "值"])
-        items = self.runtime_items("primary", code, data_hash)
+        items = self.runtime_items("primary", code, data_hash or self.data_hash)
         for key, value in items.items():
             sheet.append([key, value])
         quality = book.create_sheet("主结果质量门")
@@ -117,7 +128,7 @@ class UserExecutionContractTests(unittest.TestCase):
         runtime = book.active
         runtime.title = "运行配置"
         runtime.append(["项目", "值"])
-        for key, value in self.runtime_items("analysis", code, "a" * 64).items():
+        for key, value in self.runtime_items("analysis", code, self.data_hash).items():
             runtime.append([key, value])
         design = book.create_sheet("分析设计")
         design.append(["风险来源", "分析问题", "方法", "指标", "通过标准"])
@@ -139,15 +150,21 @@ class UserExecutionContractTests(unittest.TestCase):
             "iteration_or_time_limit": "full", "actual_stop_reason": "optimal", "random_seed": 2026,
             "repetitions_or_scenarios": 100, "grid_or_time_range": "full", "fallback_used": False,
             "platform": "test", **{flag: False for flag in FALSE_FLAGS},
+            "run_receipt_version": "1.1.0", "solver_backend": "python",
+            "code_bundle_sha256": CODE.STAGE_CODE.stage_code_fingerprint(code.parents[1], code)["bundle_sha256"],
         }
         if stage == "primary":
             items["primary_quality_protocol_version"] = "1.0.0"
+        elif stage == "analysis":
+            items["primary_workbook_sha256"] = self.primary_workbook_sha
         return items
 
     def accept_primary(self, root: Path, code: Path) -> dict:
-        _, config = CODE.validate_script(root, code, "primary")
+        issues, config = CODE.validate_script(root, code, "primary")
+        self.assertEqual(issues, [])
         CODE.update_state(root, config, code)
         workbook = self.make_primary_workbook(root, code)
+        self.primary_workbook_sha = hashlib.sha256(workbook.read_bytes()).hexdigest()
         state = self.read_state(root)
         issues = RECEIPT.validate_one(root, workbook, state, True)
         self.assertEqual(issues, [])
@@ -177,7 +194,7 @@ class UserExecutionContractTests(unittest.TestCase):
             state = self.read_state(root)
             self.assertEqual(state["subproblems"]["Q1"]["status"], "designed")
             self.assertEqual(state["subproblems"]["Q1"]["primary_execution_status"], "awaiting_user_execution")
-            self.assertEqual(state["subproblems"]["Q1"]["data_hash"], "a" * 64)
+            self.assertEqual(state["subproblems"]["Q1"]["data_hash"], self.data_hash)
 
     def test_reduced_flag_is_rejected(self):
         with tempfile.TemporaryDirectory() as temp:

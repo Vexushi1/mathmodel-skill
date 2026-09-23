@@ -9,6 +9,9 @@ import yaml
 from openpyxl import Workbook
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+import artifact_fingerprint
+import stage_code
 
 
 def load_syncer():
@@ -140,11 +143,22 @@ def setup_project(
 ):
     result = root / "问题一求解"
     result.mkdir(parents=True)
+    (root / "input.json").write_text("{}", encoding="utf-8")
+    data_hash = artifact_fingerprint.combined_hash([root / "input.json"], root)
     primary = result / "问题一求解.py"
-    write_code(primary)
+    primary_config = {
+        "stage": "primary", "problem_name": "问题一", "solver_backend": "python",
+        "run_receipt_protocol_version": "1.1.0", "data_paths": ["input.json"],
+        "data_sha256": data_hash, "data_identity_mode": "combined", "solver": "fixture",
+        "random_seed": 0, "tolerance": 1e-8, "iteration_or_time_limit": 1,
+        "expected_workbook": "问题一求解/问题一求解结果.xlsx", "code_dependencies": [],
+    }
+    primary.write_text("RUN_CONFIG = " + repr(primary_config) + "\n\ndef main():\n    return 0\n", encoding="utf-8")
     analysis_code = result / "问题一结果深化分析.py"
     if include_analysis_code:
-        write_code(analysis_code)
+        analysis_config = {**primary_config, "stage": "analysis",
+                           "expected_workbook": "问题一求解/问题一结果深化分析.xlsx"}
+        analysis_code.write_text("RUN_CONFIG = " + repr(analysis_config) + "\n\ndef main():\n    return 0\n", encoding="utf-8")
     if include_solution:
         write_solution(result / "问题一求解结果.xlsx", constraint=bool((caps or {}).get("has_explicit_constraints")), out_of_sample=bool((caps or {}).get("requires_out_of_sample_validation")))
     if include_analysis:
@@ -154,11 +168,38 @@ def setup_project(
     state_path = root / "state/project_state.yaml"
     state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
     entry = state["subproblems"]["Q1"]
+    state["execution"] = {"solver_backend": "python", "solver_backend_selection_reason": "Whole-problem fixture"}
+    state["preprocessing"] = {"decision": "not_needed"}
+    state["data"] = {"sources": [{"name": "input", "path": "input.json", "role": "raw"}]}
+    entry["data_hash"] = data_hash
+    entry["validated_data_hash"] = data_hash
     entry["code"] = "问题一求解/问题一求解.py"
-    entry["primary_code_sha256"] = hashlib.sha256(primary.read_bytes()).hexdigest()
-    if include_analysis_code:
+    primary_fingerprint = stage_code.stage_code_fingerprint(root, primary)
+    entry["primary_code_sha256"] = primary_fingerprint["entry_sha256"]
+    entry["solver_execution"] = {"primary": {"bundle_sha256": primary_fingerprint["bundle_sha256"]}}
+    if status in {"solved", "analyzed", "validated", "written", "completed"}:
+        entry["solver_execution"]["primary"]["validated_bundle_sha256"] = primary_fingerprint["bundle_sha256"]
+        entry["primary_execution_status"] = "accepted"
+        if include_solution:
+            entry["solution_workbook"] = "问题一求解/问题一求解结果.xlsx"
+    else:
+        entry["primary_execution_status"] = "awaiting_user_execution"
+    if include_analysis_code and status in {"analyzed", "validated", "written", "completed"}:
+        analysis_config["primary_workbook_sha256"] = hashlib.sha256(
+            (result / "问题一求解结果.xlsx").read_bytes(),
+        ).hexdigest() if include_solution else "0" * 64
+        analysis_code.write_text("RUN_CONFIG = " + repr(analysis_config) + "\n\ndef main():\n    return 0\n", encoding="utf-8")
+        analysis_fingerprint = stage_code.stage_code_fingerprint(root, analysis_code)
         entry["result_analysis_code"] = "问题一求解/问题一结果深化分析.py"
-        entry["analysis_code_sha256"] = hashlib.sha256(analysis_code.read_bytes()).hexdigest()
+        entry["analysis_code_sha256"] = analysis_fingerprint["entry_sha256"]
+        entry["solver_execution"]["analysis"] = {
+            "bundle_sha256": analysis_fingerprint["bundle_sha256"],
+            "validated_bundle_sha256": analysis_fingerprint["bundle_sha256"],
+        }
+        entry["analysis_execution_status"] = "accepted"
+        entry["result_analysis_requirement_reason"] = "Synthetic algorithm consistency review"
+        if include_analysis:
+            entry["result_analysis_workbook"] = "问题一求解/问题一结果深化分析.xlsx"
     state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
     return result
 

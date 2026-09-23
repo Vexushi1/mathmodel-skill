@@ -133,7 +133,8 @@ class AnalysisBoundaryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             fixture, state, code = self.project(root)
-            code.write_text(code.read_text(encoding="utf-8").replace("a" * 64, "b" * 64), encoding="utf-8")
+            original = state["subproblems"]["Q1"]["data_hash"]
+            code.write_text(code.read_text(encoding="utf-8").replace(original, "b" * 64), encoding="utf-8")
             issues, config = CODE.validate_script(root, code, "analysis")
             self.assertTrue(any("data_sha256" in item for item in issues), issues)
             with self.assertRaisesRegex(ValueError, "data_sha256"):
@@ -218,13 +219,31 @@ class AnalysisBoundaryTests(unittest.TestCase):
 class ConditionalAnalysisStateTests(unittest.TestCase):
     def state(self, root, status):
         state = yaml.safe_load((ROOT / "state/project_state.example.yaml").read_text(encoding="utf-8"))
+        state["execution"].update(solver_backend="python",
+                                  solver_backend_selection_reason="全题维护微例已审视")
         entry = state["subproblems"]["Q1"]
         workbook = root / "primary.xlsx"
         workbook.write_bytes(b"accepted primary fixture")
         digest = hashlib.sha256(workbook.read_bytes()).hexdigest()
+        code = root / "问题一求解/问题一求解.py"
+        code.parent.mkdir()
+        config = {
+            "stage": "primary", "problem_name": "问题一", "solver_backend": "python",
+            "run_receipt_protocol_version": "1.1.0", "code_dependencies": [],
+            "data_paths": ["primary.xlsx"], "data_sha256": digest,
+            "solver": "fixture", "random_seed": 2026, "tolerance": 1e-8,
+            "iteration_or_time_limit": "direct", "expected_workbook": "问题一求解/问题一求解结果.xlsx",
+            "primary_quality_protocol_version": "1.0.0",
+        }
+        code.write_text(f"RUN_CONFIG = {config!r}\n\ndef main():\n    return 0\n", encoding="utf-8")
+        code_digest = hashlib.sha256(code.read_bytes()).hexdigest()
+        bundle = CODE.STAGE_CODE.stage_code_fingerprint(root, code)["bundle_sha256"]
         hashes = {name: digest for name in ("data", "primary_code", "solution_workbook", "framework")}
+        hashes["primary_code"] = code_digest
         entry.update(status=status, primary_execution_status="accepted", result_quality_status="passed",
                      result_analysis_status="not_required", result_analysis_requirement_reason="Only current-world claims",
+                     code=code.relative_to(root).as_posix(), primary_code_sha256=code_digest,
+                     solver_execution={"primary": {"bundle_sha256": bundle, "validated_bundle_sha256": bundle}},
                      solution_workbook="primary.xlsx", result_summary_status="current", result_summary_anchor="Q1 result",
                      capabilities={key: False for key in entry["capabilities"]}, artifact_hashes=hashes, validated_artifact_hashes=dict(hashes),
                      validation_status="passed", evidence=["Accepted primary"])

@@ -27,7 +27,7 @@ import project_solver_backend as preview
 import project_transaction as transaction
 import stage_code
 import validate_user_execution as receipts
-from solver_backend_mixed_smoke import python_primary
+from solver_backend_mixed_smoke import python_primary as current_python_primary
 from test_solver_backend_end_to_end import CONFIG, file_hash, reference_digest, save_state
 
 
@@ -37,6 +37,29 @@ def files(root):
 
 def load(root):
     return yaml.safe_load((root / transaction.STATE_RELATIVE_PATH).read_text(encoding="utf-8"))
+
+
+def python_primary(root, question, upstream):
+    """Run the real micro solver, then preserve its evidence as a v9 history fixture."""
+    state_path = root / transaction.STATE_RELATIVE_PATH
+    if state_path.is_file():
+        current = load(root)
+        current["execution"] = {
+            "solver_backend": "python",
+            "solver_backend_selection_reason": "Temporary current policy for real fixture execution",
+        }
+        for entry in current.get("subproblems", {}).values():
+            for selection in (entry.get("solver_execution") or {}).values():
+                selection.pop("backend", None)
+                selection.pop("selection_reason", None)
+        save_state(root, current)
+    current_python_primary(root, question, upstream)
+    historical = load(root)
+    historical.pop("execution", None)
+    for entry in historical["subproblems"].values():
+        for selection in (entry.get("solver_execution") or {}).values():
+            selection.update(backend="python", selection_reason="Historical v9 per-stage selection")
+    save_state(root, historical)
 
 
 def update_receipt(root, relative, updates):
@@ -119,8 +142,15 @@ def synthetic_python_analysis(root):
     wb = root / config["expected_workbook"]
     book.save(wb)
     book.close()
-    issues = receipts.validate_one(root, wb, state, True)
+    issues = receipts.validate_one(root, wb, state, False)
     assert not issues, issues
+    # This is a pre-migration accepted record. Current receipt writes correctly
+    # refuse to grant new acceptance to its historical per-stage selectors.
+    entry.update(analysis_execution_status="accepted", result_analysis_status="passed",
+                 result_analysis_workbook=wb.relative_to(root).as_posix(), status="analyzed")
+    for field in ("artifact_hashes", "validated_artifact_hashes"):
+        entry.setdefault(field, {}).update(analysis_code=file_hash(code), result_analysis_workbook=file_hash(wb))
+    entry["solver_execution"]["analysis"]["validated_bundle_sha256"] = bundle
     save_state(root, state)
 
 
@@ -357,7 +387,9 @@ class MigrationPreviewTests(unittest.TestCase):
             record = s["subproblems"]["Q1"]["solver_execution"]["primary"]
             record.pop("backend"); record.pop("selection_reason")
         self.change(convert)
-        self.assertEqual(self.ready()["kind"], "canonical_declarations")
+        report = self.ready()
+        self.assertEqual(report["kind"], "canonical_declarations")
+        self.assertEqual(report["stages"][0]["evidence_status"], "accepted_rechecked")
         self.assertNotIn("backend", load(self.root)["subproblems"]["Q1"]["solver_execution"]["primary"])
 
     def test_canonical_and_stage_selectors_conflict_without_side_effect(self):

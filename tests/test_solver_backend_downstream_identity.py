@@ -14,6 +14,7 @@ import stage_code
 import sync_project as sync
 from stage_inputs import observe_inputs
 from submission_requirements import reproducibility_requirements
+from validate_model_paper_framework import _implementation_anchor_issues
 from tests.test_audit_package_completeness import archive, VALIDATOR
 from tests.test_solver_backend_end_to_end import file_hash, reference_digest, save_state
 from tests.test_sync_project import write_state, write_solution, write_analysis
@@ -44,7 +45,6 @@ def stage_fixture(root, entry, question, backend, stage, paths, *, mode="combine
     entry[field] = code.relative_to(root).as_posix()
     entry[f"{stage}_code_sha256"] = fingerprint["entry_sha256"]
     entry.setdefault("solver_execution", {})[stage] = {
-        "backend": backend, "selection_reason": "Synthetic identity regression",
         "bundle_sha256": fingerprint["bundle_sha256"], "validated_bundle_sha256": fingerprint["bundle_sha256"]}
     for key in ("artifact_hashes", "validated_artifact_hashes"):
         entry.setdefault(key, {})[f"{stage}_code"] = fingerprint["entry_sha256"]
@@ -55,6 +55,8 @@ def project_fixture(root, backends=("matlab",), *, analysis=False):
     (root / "input.json").write_text('{"coefficient":2,"right_hand_side":6}', encoding="utf-8")
     write_state(root, status="solved")
     state = yaml.safe_load((root / "state/project_state.yaml").read_text(encoding="utf-8"))
+    state["execution"] = {"solver_backend": backends[0],
+                          "solver_backend_selection_reason": "Whole-problem synthetic requirement review"}
     state["preprocessing"] = {"decision": "not_needed", "status": "not_applicable", "quality_status": "not_applicable"}
     state["data"] = {"sources": [{"name": "synthetic input", "path": "input.json", "role": "raw"}]}
     baseline = deepcopy(state["subproblems"]["Q1"])
@@ -82,7 +84,7 @@ def project_fixture(root, backends=("matlab",), *, analysis=False):
         entry["result_analysis_workbook"] = path.relative_to(root).as_posix()
         for key in ("artifact_hashes", "validated_artifact_hashes"):
             entry[key]["result_analysis_workbook"] = file_hash(path)
-        stage_fixture(root, entry, "Q1", "python" if backends[0] == "matlab" else "matlab", "analysis", ["input.json"])
+        stage_fixture(root, entry, "Q1", backends[0], "analysis", ["input.json"])
     save_state(root, state)
     return state
 
@@ -99,8 +101,8 @@ def package_fixture(root, state):
 
 
 class DownstreamInputIdentityTests(unittest.TestCase):
-    def test_unchanged_mixed_and_python_inputs_survive_sync_without_mutating_delivery(self):
-        for backends in (("python", "matlab"), ("matlab", "python"), ("python", "python")):
+    def test_unchanged_same_backend_inputs_survive_sync_without_mutating_delivery(self):
+        for backends in (("python", "python"), ("matlab", "matlab")):
             with self.subTest(backends=backends), tempfile.TemporaryDirectory() as temp:
                 root = Path(temp)
                 state = project_fixture(root, backends)
@@ -118,11 +120,21 @@ class DownstreamInputIdentityTests(unittest.TestCase):
                 for key in ("solver_execution", "data_hash", "validated_data_hash", "validated_artifact_hashes"):
                     self.assertEqual(state["subproblems"]["Q2"][key], delivered[key])
 
+    def test_mixed_history_cannot_be_accepted_as_current_project(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            state = project_fixture(root, ("python", "matlab"))
+            report = sync.synchronize(root)
+            self.assertEqual(report["status"], "failed")
+            self.assertTrue(any("Q2.primary" in item and "suffix" in item for item in report["issues"]))
+            _, issues = reproducibility_requirements(root, state)
+            self.assertTrue(any("项目数值后端" in item for item in issues))
+
     def test_actual_raw_and_upstream_workbook_changes_invalidate_correct_inputs(self):
         for changed, expected in (("input.json", {"Q1", "Q2"}), ("问题一求解/问题一求解结果.xlsx", {"Q2"})):
             with self.subTest(changed=changed), tempfile.TemporaryDirectory() as temp:
                 root = Path(temp)
-                project_fixture(root, ("python", "matlab"))
+                project_fixture(root, ("python", "python"))
                 with (root / changed).open("ab") as handle:
                     handle.write(b" ")
                 report = sync.synchronize(root)
@@ -146,7 +158,7 @@ class DownstreamInputIdentityTests(unittest.TestCase):
             state = project_fixture(root, analysis=True)
             entry = state["subproblems"]["Q1"]
             (root / "analysis.json").write_text("{}", encoding="utf-8")
-            stage_fixture(root, entry, "Q1", "python", "analysis", ["analysis.json"])
+            stage_fixture(root, entry, "Q1", "matlab", "analysis", ["analysis.json"])
             save_state(root, state)
             report = sync.synchronize(root)
             self.assertTrue(any("analysis data_sha256必须继承" in item for item in report["issues"]))
@@ -182,10 +194,11 @@ class DownstreamInputIdentityTests(unittest.TestCase):
             report = sync.synchronize(root)
             self.assertTrue(any("预处理工作簿当前文件SHA-256" in item for item in report["issues"]))
 
-    def test_legacy_10_keeps_global_observation_policy(self):
+    def test_legacy_10_is_readable_but_cannot_become_current_sync(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             state = project_fixture(root, ("python",))
+            state.pop("execution")
             entry = state["subproblems"]["Q1"]
             code = root / entry["code"]
             code.write_text("RUN_CONFIG = {'run_receipt_protocol_version':'1.0.0'}\n", encoding="utf-8")
@@ -196,7 +209,10 @@ class DownstreamInputIdentityTests(unittest.TestCase):
             save_state(root, state)
             report = sync.synchronize(root)
             self.assertEqual(report["state_transitions"], [])
-            self.assertEqual(report["questions"]["Q1"]["artifact_hashes"]["data"], report["data_hash"])
+            self.assertTrue(any("项目数值后端" in item for item in report["issues"]))
+            historical = sync._snapshot_question(root, "问题一", entry,
+                sync.load_yaml(sync.DEFAULT_SCHEMA_PATH), report["data_hash"], None)
+            self.assertEqual(historical["artifact_hashes"]["data"], report["data_hash"])
 
     def test_input_path_validation_and_declared_identity_are_checked(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -290,6 +306,7 @@ class DownstreamPackageAndTraceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             state = project_fixture(root, ("python",))
+            state.pop("execution")
             entry = state["subproblems"]["Q1"]
             entry.pop("solver_execution")
             code = root / entry["code"]
@@ -301,7 +318,8 @@ class DownstreamPackageAndTraceTests(unittest.TestCase):
                 entry[key].update(primary_code=file_hash(code), framework=sync.framework_section_hash(root / "模型论文框架.md", entry["framework_section"]))
             issues = sync.contract_preflight_issues(root, "design", root / "state/project_state.yaml",
                 root / "模型论文框架.md", sync.load_yaml(sync.DEFAULT_OUTPUT_CONTRACT_PATH), candidate_state=state)
-            self.assertEqual(issues, [])
+            self.assertTrue(any("backend" in issue or "后端" in issue for issue in issues), issues)
+            self.assertEqual(_implementation_anchor_issues("historical solve description", entry, root), [])
 
 
 if __name__ == "__main__":

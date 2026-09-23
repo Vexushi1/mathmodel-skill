@@ -155,14 +155,14 @@ jobs:
           command: addpath(fullfile(pwd,"tests","matlab")); run_solver_backend_smoke(string(getenv("HSK_MATLAB_SOLVER_OUTPUT")),"analysis")
       - name: Verify analysis and original primary preservation
         run: python tests/test_solver_backend_end_to_end.py verify-analysis --project "$HSK_MATLAB_SOLVER_OUTPUT"
-      - name: Run real Python mixed-backend stages and accept their workbooks
-        run: python tests/solver_backend_mixed_smoke.py prepare --source "$HSK_MATLAB_SOLVER_OUTPUT" --project "$HSK_MATLAB_SOLVER_OUTPUT/mixed"
-      - name: Run real MATLAB stages consuming accepted Python workbooks
+      - name: Prepare separate same-backend projects and execute Python Q1/Q2/analysis
+        run: python tests/solver_backend_mixed_smoke.py prepare --source "$HSK_MATLAB_SOLVER_OUTPUT" --project "$HSK_MATLAB_SOLVER_OUTPUT/same-backend"
+      - name: Run native MATLAB Q2 consuming accepted MATLAB Q1 workbook
         uses: matlab-actions/run-command@v3
         with:
-          command: addpath(fullfile(pwd,"tests","matlab")); run_solver_backend_mixed_smoke(fullfile(string(getenv("HSK_MATLAB_SOLVER_OUTPUT")),"mixed"))
-      - name: Accept both mixed directions and Python-primary MATLAB-analysis results
-        run: python tests/solver_backend_mixed_smoke.py verify --project "$HSK_MATLAB_SOLVER_OUTPUT/mixed"
+          command: addpath(fullfile(pwd,"tests","matlab")); run_solver_backend_mixed_smoke(fullfile(string(getenv("HSK_MATLAB_SOLVER_OUTPUT")),"same-backend"))
+      - name: Accept same-backend stages and reject mixed numerical delivery
+        run: python tests/solver_backend_mixed_smoke.py verify --project "$HSK_MATLAB_SOLVER_OUTPUT/same-backend"
       - name: Prepare accepted preprocessing 1.0 fixture and deliver MATLAB 1.1 primary
         run: |
           python tests/test_solver_backend_end_to_end.py prepare-preprocessed --project "$HSK_MATLAB_SOLVER_OUTPUT/preprocessed"

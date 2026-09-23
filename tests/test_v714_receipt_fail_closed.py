@@ -8,6 +8,7 @@ from pathlib import Path
 
 import openpyxl
 import yaml
+import test_user_execution_contract as execution_fixtures
 
 ROOT = Path(__file__).resolve().parents[1]
 FALSE_FLAGS = (
@@ -153,10 +154,15 @@ class V714ReceiptFailClosedTests(unittest.TestCase):
         for evidence_passed in (False, True):
             with self.subTest(evidence_passed=evidence_passed), tempfile.TemporaryDirectory() as temp:
                 root = Path(temp)
-                code, state = self.make_project(root, protocol="1.0.0")
+                fixture = execution_fixtures.UserExecutionContractTests()
+                code = fixture.make_project(root)
+                issues, config = execution_fixtures.CODE.validate_script(root, code, "primary")
+                self.assertEqual(issues, [])
+                execution_fixtures.CODE.update_state(root, config, code)
+                state = fixture.read_state(root)
                 entry = state["subproblems"]["Q1"]
                 entry["capabilities"] = {"requires_leakage_check": True}
-                workbook = self.make_workbook(root, code, protocol="1.0.0", strict_trace=True)
+                workbook = fixture.make_primary_workbook(root, code)
                 book = openpyxl.load_workbook(workbook)
                 try:
                     quality = book["主结果质量门"]

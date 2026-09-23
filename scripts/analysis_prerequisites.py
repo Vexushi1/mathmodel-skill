@@ -30,9 +30,27 @@ def _hashes(entry: Mapping[str, Any]) -> tuple[dict, dict]:
     return current, validated
 
 
-def primary_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, Any]) -> list[str]:
+def _project_backend(state: Mapping[str, Any], *, required: bool) -> tuple[str | None, list[str]]:
+    """Use current policy for active work, leaving old states to read-only callers."""
+    execution = state.get("execution") or {}
+    has_policy = isinstance(execution, Mapping) and bool(
+        {"solver_backend", "solver_backend_selection_reason"} & set(execution))
+    if not required and not has_policy:
+        return None, []
+    try:
+        return STAGE_CODE.current_project_backend(state, required=True), []
+    except STAGE_CODE.StageCodeError as exc:
+        return None, [str(exc)]
+
+
+def primary_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, Any], *,
+                   require_project_policy: bool = False) -> list[str]:
     issues: list[str] = []
-    issues.extend(STAGE_CODE.validate_stage_binding(root, entry, "primary", require_validated=True))
+    backend, policy_issues = _project_backend(state, required=require_project_policy)
+    issues.extend(policy_issues)
+    if not policy_issues:
+        issues.extend(STAGE_CODE.validate_stage_binding(
+            root, entry, "primary", require_validated=True, project_backend=backend))
     if entry.get("primary_execution_status") != "accepted" or entry.get("result_quality_status") != "passed":
         issues.append("主工作簿未accepted或主结果质量未passed")
     layers = set(ARTIFACT_IDENTITY.normalize_stale_layers(entry.get("stale_layers", []) or []))
@@ -66,8 +84,11 @@ def primary_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, Any
 
 def analysis_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, Any], *,
                     for_receipt: bool = False, historical_workbook: Path | None = None,
-                    data_hash: Any = None) -> list[str]:
-    issues = primary_issues(root, state, entry)
+                    data_hash: Any = None, require_project_policy: bool = False) -> list[str]:
+    issues = primary_issues(root, state, entry, require_project_policy=require_project_policy)
+    backend, policy_issues = _project_backend(state, required=require_project_policy)
+    if policy_issues:
+        return list(dict.fromkeys([*issues, *policy_issues]))
     if data_hash is not None and str(data_hash).lower() != str(entry.get("data_hash", "")).lower():
         issues.append("analysis data_sha256必须继承当前主结果data_hash，不得覆盖主结果数据身份")
     if entry.get("result_analysis_status") == "not_required":
@@ -95,5 +116,6 @@ def analysis_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, An
         }:
             issues.append("分析回执必须先有明确的代码交付/执行状态")
         issues.extend(_file_issues(root, entry.get("result_analysis_code"), entry.get("analysis_code_sha256"), "深化分析代码"))
-        issues.extend(STAGE_CODE.validate_stage_binding(root, entry, "analysis"))
+        issues.extend(STAGE_CODE.validate_stage_binding(
+            root, entry, "analysis", project_backend=backend))
     return list(dict.fromkeys(issues))

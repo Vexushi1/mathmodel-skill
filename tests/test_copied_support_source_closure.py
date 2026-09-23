@@ -110,13 +110,15 @@ def instantiate(root: Path, *, minimal: bool = False) -> tuple[Path, dict]:
     state = {
         "project": {"competition": "test", "problem": "synthetic", "current_phase": "solve_validate",
                     "state_generation": 0},
+        "execution": {"solver_backend": "python",
+                      "solver_backend_selection_reason": "全题维护微例与支撑依赖已审视"},
         "preprocessing": {"decision": "not_needed", "status": "not_applicable", "quality_status": "not_applicable"},
         "subproblems": {"Q1": {
             "status": "designed", "selected_model": "a*x=b",
             "capabilities": {"requires_equilibrium_residual": True},
             "primary_execution_status": "pending", "result_quality_status": "pending",
             "result_analysis_status": "pending",
-            "solver_execution": {"primary": {"backend": "python", "selection_reason": "Repository maintenance fixture"}},
+            "solver_execution": {"primary": {}},
         }},
     }
     (root / "state/project_state.yaml").write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")

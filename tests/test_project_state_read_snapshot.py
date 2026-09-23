@@ -19,8 +19,10 @@ sys.path.insert(0, str(ROOT / "tests"))
 import reading_plan as READING
 import resolve_runtime as RESOLVER
 import runtime_assurance as ASSURANCE
+import stage_code as STAGE_CODE
 from project_transaction import JOURNAL_RELATIVE_PATH, STATE_RELATIVE_PATH
 from reading_plan_cases import build_project
+from tests import test_solver_backends as solver_fixtures
 
 
 def hashes(root: Path) -> dict[str, str]:
@@ -36,6 +38,20 @@ class ProjectStateReadSnapshotTests(unittest.TestCase):
         build_project(ROOT, self.root, "current")
         self.path = self.root / STATE_RELATIVE_PATH
         self.state = yaml.safe_load(self.path.read_text(encoding="utf-8"))
+        fixture = solver_fixtures.SolverBackendTests()
+        fixture.root = self.root
+        source = fixture.source(fixture.config("python"))
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        bundle = STAGE_CODE.stage_code_fingerprint(self.root, source)["bundle_sha256"]
+        question = self.state["subproblems"]["Q1"]
+        question.update(code=source.relative_to(self.root).as_posix(), primary_code_sha256=digest)
+        question["solver_execution"] = {"primary": {
+            "bundle_sha256": bundle, "validated_bundle_sha256": bundle}}
+        for field in ("artifact_hashes", "validated_artifact_hashes"):
+            question.setdefault(field, {})["primary_code"] = digest
+        self.state["execution"] = {
+            "solver_backend": "python", "solver_backend_selection_reason": "Synthetic whole-problem review"}
+        self.save(self.state)
 
     def save(self, state):
         self.path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
@@ -70,8 +86,7 @@ class ProjectStateReadSnapshotTests(unittest.TestCase):
         def interleave(*args, **kwargs):
             updated = deepcopy(self.state)
             updated["project"]["state_generation"] = 1
-            updated["subproblems"]["Q1"]["solver_execution"] = {
-                "primary": {"backend": "matlab", "selection_reason": "synthetic state change"}}
+            updated["execution"]["solver_backend"] = "matlab"
             self.save(updated)
             return original(*args, **kwargs)
         with patch.object(RESOLVER, "build_reading_plan", side_effect=interleave):

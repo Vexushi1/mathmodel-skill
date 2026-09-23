@@ -34,6 +34,11 @@ class SolverBackendSourceClosureTests(unittest.TestCase):
         return path
 
     def source(self, backend, body, dependencies=()):
+        state_path = self.root / "state/project_state.yaml"
+        state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+        state["execution"] = {"solver_backend": backend,
+                              "solver_backend_selection_reason": "Synthetic whole-project source-closure fixture"}
+        state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
         config = {"stage": "primary", "problem_name": "问题一", "solver_backend": backend,
                   "data_paths": ["input.json"], "data_sha256": "a" * 64, "solver": "direct",
                   "random_seed": 2026, "tolerance": 1e-8, "iteration_or_time_limit": "direct",
@@ -54,8 +59,7 @@ class SolverBackendSourceClosureTests(unittest.TestCase):
     def binding(self, source, config):
         fingerprint = STAGE.stage_code_fingerprint(self.root, source, config["code_dependencies"])
         return {"code": source.relative_to(self.root).as_posix(), "primary_code_sha256": fingerprint["entry_sha256"],
-                "solver_execution": {"primary": {"backend": config["solver_backend"], "selection_reason": "maintenance fixture",
-                                                 "bundle_sha256": fingerprint["bundle_sha256"],
+                "solver_execution": {"primary": {"bundle_sha256": fingerprint["bundle_sha256"],
                                                  "validated_bundle_sha256": fingerprint["bundle_sha256"]}}}
 
     def references(self, source, config):
@@ -80,7 +84,8 @@ class SolverBackendSourceClosureTests(unittest.TestCase):
         self.assertEqual(subprocess.check_output(command, text=True).strip(), "1")
         constants.write_text("VALUE = 999\n", encoding="utf-8")
         self.assertEqual(subprocess.check_output(command, text=True).strip(), "999")
-        self.assertTrue(STAGE.validate_stage_binding(self.root, entry, "primary", require_validated=True))
+        self.assertTrue(STAGE.validate_stage_binding(self.root, entry, "primary", require_validated=True,
+                                                     project_backend="python"))
 
     def test_single_level_relative_import_and_from_dot_alias_are_resolved(self):
         for statement in ("from .constants import VALUE", "from . import constants"):
@@ -150,9 +155,11 @@ class SolverBackendSourceClosureTests(unittest.TestCase):
         helper = self.write("问题一求解/helper.m", "function y = helper()\ny = 1;\nend\n")
         source, config = self.source("matlab", "value = helper;\nend\n", [helper])
         entry = self.binding(source, config)
-        self.assertEqual(STAGE.validate_stage_binding(self.root, entry, "primary", require_validated=True), [])
+        self.assertEqual(STAGE.validate_stage_binding(self.root, entry, "primary", require_validated=True,
+                                                      project_backend="matlab"), [])
         helper.write_text("function y = helper()\ny = 999;\nend\n", encoding="utf-8")
-        self.assertTrue(STAGE.validate_stage_binding(self.root, entry, "primary", require_validated=True))
+        self.assertTrue(STAGE.validate_stage_binding(self.root, entry, "primary", require_validated=True,
+                                                     project_backend="matlab"))
 
     def test_matlab_local_function_and_variable_precedence_do_not_capture_unrelated_file(self):
         self.write("问题一求解/helper.m", "function y = helper()\ny = 999;\nend\n")
@@ -214,7 +221,7 @@ class SolverBackendSourceClosureTests(unittest.TestCase):
         entry = self.binding(source, config)
         self.assertTrue(any("helper.m" in issue for issue in self.references(source, config)))
         self.assertTrue(any("helper.m" in issue for issue in STAGE.validate_stage_binding(
-            self.root, entry, "primary", require_validated=True)))
+            self.root, entry, "primary", require_validated=True, project_backend="matlab")))
         source, config = self.source("matlab", body, [helper])
         self.assertEqual(self.references(source, config), [])
         # Explicit nesting has different semantics: the nested function captures
@@ -230,7 +237,8 @@ class SolverBackendSourceClosureTests(unittest.TestCase):
                 source, config = self.source("matlab", command + "\nvalue = 1;\nend\n")
                 self.assertEqual(self.references(source, config), [])
                 self.assertEqual(STAGE.validate_stage_binding(self.root, self.binding(source, config),
-                                                             "primary", require_validated=True), [])
+                                                             "primary", require_validated=True,
+                                                             project_backend="matlab"), [])
         source, config = self.source("matlab", "helper text\nend\n")
         self.assertTrue(any("helper.m" in issue for issue in self.references(source, config)))
         source, config = self.source("matlab", "helper text\nend\n", [helper])
@@ -246,7 +254,8 @@ class SolverBackendSourceClosureTests(unittest.TestCase):
                 source, config = self.source("matlab", body)
                 self.assertEqual(self.references(source, config), [])
                 self.assertEqual(STAGE.validate_stage_binding(self.root, self.binding(source, config),
-                                                             "primary", require_validated=True), [])
+                                                             "primary", require_validated=True,
+                                                             project_backend="matlab"), [])
 
     def test_new_config_incremental_assignment_and_deletion_are_rejected_in_all_scopes(self):
         for operation in ("RUN_CONFIG |= {'tolerance': 0.5}", "del RUN_CONFIG", "del RUN_CONFIG, unrelated"):

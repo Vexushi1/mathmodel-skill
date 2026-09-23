@@ -1,14 +1,18 @@
-version: 2.6.0
-introduced_in_skill_version: 7.4.2
-skill_compatibility: '>=7.4.2,<10.0.0'
-purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界。每问主求解使用已选Python或MATLAB独立入口；结果深化分析仅在主工作簿accepted后经过Analysis Necessity Gate且判定required时使用独立入口，默认继承主后端。P5a起新生成阶段脚本使用RUN_CONFIG承载任务可变输入，全局user/full-fidelity/no-degradation政策由本Authority继承；P5b起新生成阶段脚本通过run_receipt_protocol_version绑定版本化RUN_RECEIPT，实际运行事实仍写入既有工作簿运行配置工作表。v7.14起新生成主求解还绑定Primary Quality Specification与主数值证据独立复核，但不得把结果深化分析提前塞进主求解。
+version: 3.0.0
+introduced_in_skill_version: 10.0.0
+skill_compatibility: '>=10.0.0,<11.0.0'
+purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界。每问主求解使用项目唯一已选Python或MATLAB后端的独立入口；结果深化分析仅在主工作簿accepted后经过Analysis Necessity Gate且判定required时使用独立入口，并必须继承同一项目数值后端。P5a起新生成阶段脚本使用RUN_CONFIG承载任务可变输入，全局user/full-fidelity/no-degradation政策由本Authority继承；P5b起新生成阶段脚本通过run_receipt_protocol_version绑定版本化RUN_RECEIPT，实际运行事实仍写入既有工作簿运行配置工作表。v7.14起新生成主求解还绑定Primary Quality Specification与主数值证据独立复核，但不得把结果深化分析提前塞进主求解。
 numerical_verification_authority: core/numerical_verification_contract.yaml
 solver_backends:
+  scope: one_project_choice_for_all_questions_and_numerical_stages
   request_values: [auto, python, matlab]
   resolved_values: [python, matlab]
-  state_field: solver_execution
-  stage_default: {preprocessing: python, analysis: inherit_primary}
+  state_field: execution.solver_backend
+  reason_field: execution.solver_backend_selection_reason
+  stage_identity_field: solver_execution
+  stage_default: {preprocessing: python, primary: inherit_project, analysis: inherit_project}
   selection_time: after_model_structure_and_numerical_requirements_before_model_challenge
+  selection_basis: whole_project_foreseeable_numerical_requirements_and_available_environment
   template_resources:
     python:
       primary: [templates/code/starter/README.md]
@@ -24,11 +28,14 @@ solver_backends:
   - input_scale_and_structure
   - reusable_reliable_implementation_and_reproduction_cost
   rules:
-  - Record one concrete backend and selection_reason per question and active stage; auto is a request only and cannot authorize code delivery.
+  - Record one concrete backend and non-empty selection reason at the project root before any current numerical code delivery. auto is a request only and cannot authorize code delivery. The choice covers all questions and both numerical stages.
   - Include the concrete solver, dependencies and unresolved environment conditions in the existing Model Approval Brief implementation scope; do not add a separate approval gate.
   - Do not map a task type directly to a language or prefer MATLAB merely because formal figures use MATLAB.
-  - Different questions may select different backends; analysis may depart from its primary backend only with a recorded reason and must consume the current accepted primary workbook.
-  - Project-level preprocessing remains Python with receipt 1.0 and existing state; question-local mathematical transformations follow the question backend.
+  - Current question stages carry source-bundle and acceptance identities, never a second backend or selection reason. Primary and analysis must both match the project backend; analysis consumes the current accepted primary workbook.
+  - Project-level preprocessing remains Python with receipt 1.0 and existing state; question-local mathematical transformations follow the one project backend.
+  - Historical per-stage selections are read-only migration evidence. A consistent historical selection is only a candidate, not a current project choice; mixed or conflicting history requires explicit review and migration.
+  - RUN_CONFIG and RUN_RECEIPT retain solver_backend as facts of actual execution. Delivery and acceptance require project policy, delivered source, configuration, receipt and accepted evidence to agree; neither configuration nor receipt may select or overwrite project policy.
+  - A missing project choice does not imply Python. Opposite-backend requests and malformed or mixed declarations fail before current numerical writes; real source or data drift still follows the existing stale transition rules.
   - Do not silently switch backend, solver, data scale or precision after selection. Report unavailable dependencies without pretending they were verified.
   - Pure implementation changes use existing primary_code_changed or analysis_code_changed; changes to algorithm semantics use current semantic governance. Backend, paths and environment facts do not belong in the SIB.
   - Main functions and project helpers are implementation artifacts, never matlab_script which remains the formal figure role.

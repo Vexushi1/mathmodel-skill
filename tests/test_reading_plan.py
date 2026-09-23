@@ -13,13 +13,47 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import reading_plan as READING
+import stage_code as STAGE_CODE
 from resolve_runtime import resolve_runtime
 from reading_plan_cases import CASES, build_project
+from tests import test_solver_backends as solver_fixtures
 
 
 def tree_hashes(root):
     return {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
             for p in root.rglob("*") if p.is_file()}
+
+
+def bind_current_solver_project(root):
+    """Complete the older reading fixture's synthetic accepted source identity."""
+    path = root / "state/project_state.yaml"
+    state = yaml.safe_load(path.read_text(encoding="utf-8"))
+    entry = state["subproblems"]["Q1"]
+    fixture = solver_fixtures.SolverBackendTests()
+    fixture.root = root
+    primary_config = fixture.config("python")
+    primary_source = fixture.source(primary_config)
+    primary = fixture.entry(primary_source, primary_config, accepted=True)
+    analysis_config = fixture.config(
+        "python", stage="analysis",
+        primary_workbook_sha256=entry["validated_artifact_hashes"]["solution_workbook"],
+    )
+    analysis_source = fixture.source(analysis_config)
+    analysis = fixture.entry(analysis_source, analysis_config, accepted=True)
+    entry.update(code=primary["code"], primary_code_sha256=primary["primary_code_sha256"],
+                 result_analysis_code=analysis["result_analysis_code"],
+                 analysis_code_sha256=analysis["analysis_code_sha256"],
+                 data_hash=primary_config["data_sha256"],
+                 validated_data_hash=primary_config["data_sha256"],
+                 solver_execution={**primary["solver_execution"], **analysis["solver_execution"]})
+    for field in ("artifact_hashes", "validated_artifact_hashes"):
+        entry.setdefault(field, {}).update(
+            data=primary_config["data_sha256"], primary_code=primary["primary_code_sha256"],
+            analysis_code=analysis["analysis_code_sha256"],
+        )
+    state["execution"] = {"solver_backend": "python",
+                          "solver_backend_selection_reason": "Synthetic whole-problem review"}
+    path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
 
 
 class SelectorTests(unittest.TestCase):
@@ -120,6 +154,7 @@ class ReadingPlanTests(unittest.TestCase):
                 kwargs = {"competition": "CUMCM", "request": request}
                 if fixture:
                     build_project(ROOT, root, fixture)
+                    bind_current_solver_project(root)
                     before = tree_hashes(root)
                     kwargs.update(project_root=root, question="Q1")
                 plan = resolve_runtime(intent, **kwargs)

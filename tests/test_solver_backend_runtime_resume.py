@@ -17,8 +17,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from project_snapshot import _solver_observations
+import stage_code
 from resolve_runtime import resolve_runtime
 from sync_project import synchronize
+from tests import test_solver_backends as solver_fixtures
 from tests.test_sync_project import framework_text, write_state
 from tests.test_v900_semantic_identity_binding import (
     framework, identity, structured_question, write_project,
@@ -60,21 +62,57 @@ def legacy_primary_project(root: Path, *, analysis_backend: str | None = None):
     return entry
 
 
+def canonical_primary_project(root: Path, backend: str, *, accepted: bool = True):
+    directory = root / "问题一求解"
+    directory.mkdir()
+    fixture = solver_fixtures.SolverBackendTests()
+    fixture.root = root
+    config = fixture.config(backend)
+    code = fixture.source(config)
+    fingerprint = stage_code.stage_code_fingerprint(root, code)
+    workbook = directory / "问题一求解结果.xlsx"
+    workbook.write_bytes(b"synthetic hash-only route evidence; not a numerical workbook")
+    hashes = {"primary_code": fingerprint["entry_sha256"],
+              "solution_workbook": hashlib.sha256(workbook.read_bytes()).hexdigest()}
+    entry = structured_question()
+    entry.update(classification={"objective": "optimization", "structures": []},
+                 status="solved" if accepted else "designed",
+                 code=code.relative_to(root).as_posix(),
+                 primary_code_sha256=hashes["primary_code"],
+                 primary_execution_status="accepted" if accepted else "pending",
+                 result_quality_status="passed" if accepted else "pending",
+                 result_analysis_status="pending", analysis_execution_status="pending",
+                 solution_workbook=workbook.relative_to(root).as_posix() if accepted else None,
+                 artifact_hashes=hashes, validated_artifact_hashes=dict(hashes) if accepted else {},
+                 data_hash=config["data_sha256"],
+                 solver_execution={"primary": {"bundle_sha256": fingerprint["bundle_sha256"],
+                                               **({"validated_bundle_sha256": fingerprint["bundle_sha256"]}
+                                                  if accepted else {})}})
+    write_project(root, state_question=entry, framework_text=framework(identity()))
+    path = root / "state/project_state.yaml"
+    state = yaml.safe_load(path.read_text(encoding="utf-8"))
+    state["execution"] = {"solver_backend": backend,
+                          "solver_backend_selection_reason": "Synthetic whole-problem review"}
+    path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    return entry
+
+
 class SolverBackendRuntimeResumeTests(unittest.TestCase):
-    def test_old_python_resume_without_new_parameters_retains_legacy_projection(self):
+    def test_current_python_resume_without_new_parameters_uses_root_policy(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            legacy_primary_project(root)
+            canonical_primary_project(root, "python", accepted=False)
             plan = resolve_runtime(request="继续求解", project_root=root, question="Q1")
         self.assertIn("modules/03_solve_validate.md", plan["modules"])
-        self.assertIn("python_code", plan["terminal_outputs"])
-        self.assertNotIn("solver_backend", plan)
+        self.assertIn("primary_code", plan["terminal_outputs"])
+        self.assertEqual(plan["solver_backend"]["resolved"], "python")
+        self.assertEqual(plan["solver_backend"]["stage"], "primary")
         self.assertEqual(plan["assurance"]["status"], "pass")
 
-    def test_full_workflow_resumes_legacy_python_primary_into_selected_matlab_analysis(self):
+    def test_full_workflow_resumes_current_matlab_primary_into_matlab_analysis(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            legacy_primary_project(root, analysis_backend="matlab")
+            canonical_primary_project(root, "matlab")
             before = (root / "state/project_state.yaml").read_bytes()
             plan = resolve_runtime("full_workflow", project_root=root, question="Q1")
             self.assertEqual(before, (root / "state/project_state.yaml").read_bytes())
@@ -90,31 +128,32 @@ class SolverBackendRuntimeResumeTests(unittest.TestCase):
             self.assertIn("stage_code", string_values(interface))
         self.assertFalse({"python_code", "stage_python_code"} & string_values(plan))
 
-    def test_explicit_new_analysis_backend_precedes_default_primary_inheritance(self):
+    def test_explicit_analysis_request_cannot_override_project_backend(self):
         for intent in ("result_analysis", "full_workflow"):
             with self.subTest(intent=intent), tempfile.TemporaryDirectory() as temp:
                 root = Path(temp)
-                legacy_primary_project(root)
+                canonical_primary_project(root, "python")
                 before = (root / "state/project_state.yaml").read_bytes()
                 plan = resolve_runtime(intent, project_root=root, question="Q1", solver_backend="matlab")
                 self.assertEqual(before, (root / "state/project_state.yaml").read_bytes())
                 self.assertEqual(plan["solver_backend"]["stage"], "analysis")
-                self.assertEqual(plan["solver_backend"]["resolved"], "matlab")
-                self.assertEqual(plan["solver_backend"]["by_question"]["Q1"]["source"], "explicit")
-                self.assertEqual(plan["assurance"]["context"]["conflicts"], [])
-                self.assertIn("templates/code/matlab/q1_analysis.m", plan["templates"])
-                self.assertNotIn("templates/code/starter/README.md", plan["templates"])
+                self.assertEqual(plan["solver_backend"]["resolved"], "python")
+                self.assertEqual(plan["assurance"]["status"], "review_required")
+                self.assertTrue(any("requested backend matlab conflicts" in issue for issue in
+                                    plan["assurance"]["context"]["conflicts"]))
+                self.assertIn("templates/code/starter/README.md", plan["templates"])
+                self.assertNotIn("templates/code/matlab/q1_analysis.m", plan["templates"])
 
-    def test_existing_analysis_selection_remains_protected_from_conflicting_request(self):
+    def test_mixed_legacy_analysis_is_diagnostic_only(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             legacy_primary_project(root, analysis_backend="matlab")
             before = (root / "state/project_state.yaml").read_bytes()
             plan = resolve_runtime("result_analysis", project_root=root, question="Q1", solver_backend="python")
             self.assertEqual(before, (root / "state/project_state.yaml").read_bytes())
-        self.assertEqual(plan["solver_backend"]["resolved"], "matlab")
+        self.assertIsNone(plan["solver_backend"]["resolved"])
         self.assertEqual(plan["assurance"]["status"], "review_required")
-        self.assertTrue(any("Q1.analysis requested backend python conflicts with current matlab" in issue
+        self.assertTrue(any("historical numerical declarations require explicit project migration" in issue
                             for issue in plan["assurance"]["context"]["conflicts"]))
 
     def test_selection_only_empty_directory_does_not_fail_design_sync(self):
@@ -127,12 +166,12 @@ class SolverBackendRuntimeResumeTests(unittest.TestCase):
                 state_path = root / "state/project_state.yaml"
                 state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
                 entry = state["subproblems"]["Q1"]
-                entry["solver_execution"] = {"primary": {
-                    "backend": backend, "selection_reason": "Selected during model design",
-                }}
+                state["execution"] = {"solver_backend": backend,
+                                      "solver_backend_selection_reason": "Synthetic whole-problem review"}
                 state_path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
                 before = state_path.read_bytes()
-                observed, paths, issues = _solver_observations(root, "问题一", entry)
+                observed, paths, issues = _solver_observations(
+                    root, "问题一", entry, project_backend=backend, current_state=True)
                 self.assertEqual((observed, paths, issues), ({}, {"primary": None, "analysis": None}, []))
                 report = synchronize(root, write=False, delivery_scope="design")
                 self.assertEqual(report["issues"], [])
@@ -143,8 +182,9 @@ class SolverBackendRuntimeResumeTests(unittest.TestCase):
             root = Path(temp)
             (root / "问题一求解").mkdir()
             entry = {"code": "问题一求解/q1_solver.m", "primary_code_sha256": "a" * 64,
-                     "solver_execution": {"primary": {"backend": "matlab", "selection_reason": "Delivered"}}}
-            observed, paths, issues = _solver_observations(root, "问题一", entry)
+                     "solver_execution": {"primary": {"bundle_sha256": "a" * 64}}}
+            observed, paths, issues = _solver_observations(
+                root, "问题一", entry, project_backend="matlab", current_state=True)
         self.assertIsNone(paths["primary"])
         self.assertTrue(observed["primary"]["binding_issues"])
         self.assertTrue(any("已登记阶段入口不存在" in issue for issue in issues))

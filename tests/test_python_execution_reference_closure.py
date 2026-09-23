@@ -143,7 +143,7 @@ class PythonExecutionReferenceTests(unittest.TestCase):
         source, config = fixture.source("python", "import helper", [helper])
         self.assertEqual(DELIVERY.validate_script(fixture.root, source)[0], [])
         self.assertEqual(STAGE.validate_stage_binding(fixture.root, fixture.binding(source, config),
-                                                      "primary", require_validated=True), [])
+                                                      "primary", project_backend="python", require_validated=True), [])
 
     def test_original_delivery_and_historical_workbook_reject_even_with_matching_hashes(self):
         fixture = workbook_fixtures.SolverBackendTests()
@@ -286,7 +286,12 @@ class PythonExecutionDownstreamTests(unittest.TestCase):
             plan = resolve_runtime("result_analysis", project_root=root, question="Q1", solver_backend="auto")
             self.assertNotIn("modules/03_result_analysis.md", plan["modules"])
             self.assertIn("modules/03_solve_validate.md", plan["modules"])
-            self.assertIn("动态Python", json.dumps(plan, ensure_ascii=False))
+            self.assertIn("historical numerical declarations require explicit project migration",
+                          json.dumps(plan, ensure_ascii=False))
+            code = root / entry["code"]
+            _, config = STAGE.parse_stage_config(code)
+            self.assertTrue(any("动态Python" in issue for issue in
+                                STAGE.dependency_reference_issues(root, code, config)))
             self.assertEqual(before, (root / "state/project_state.yaml").read_bytes())
 
 

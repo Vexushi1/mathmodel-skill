@@ -24,6 +24,7 @@ import artifact_identity as ARTIFACT_IDENTITY  # noqa: E402
 import project_transaction as PROJECT_TX  # noqa: E402
 import artifact_fingerprint as ARTIFACT_FINGERPRINT  # noqa: E402
 import project_snapshot as PROJECT_SNAPSHOT  # noqa: E402
+import stage_code as STAGE_CODE  # noqa: E402
 DEFAULT_SCHEMA_PATH = SKILL_ROOT / "core" / "workbook_schema.yaml"
 DEFAULT_OUTPUT_CONTRACT_PATH = SKILL_ROOT / "core" / "output_contract.yaml"
 PHASE_SCOPE = {
@@ -298,7 +299,7 @@ def _code_hash_mismatches(entry: Mapping[str, Any], snapshot: Mapping[str, Any])
         if delivered.get("bundle_sha256"):
             changes[stage] |= bool(
                 current.get("bundle_sha256") != str(delivered["bundle_sha256"]).lower()
-                or current.get("backend") != delivered.get("backend")
+                or current.get("backend") != snapshot.get("project_backend")
                 or current.get("entrypoint") != entry.get(path_field)
                 or current.get("binding_issues")
             )
@@ -338,7 +339,10 @@ def _apply_snapshot_to_state(
     root: Path, state: dict[str, Any], snapshot: Mapping[str, Any]
 ) -> tuple[set[str], list[dict[str, Any]]]:
     key = str(snapshot["key"])
-    entry = state.setdefault("subproblems", {}).setdefault(key, {})
+    subproblems = state.get("subproblems") or {}
+    if key not in subproblems:
+        return set(), []  # Files in an unregistered question directory are historical observations.
+    entry = subproblems[key]
     ARTIFACT_IDENTITY.canonicalize_entry_hashes(entry)
     current = dict(snapshot.get("artifact_hashes", {}))
     transition_reports: list[dict[str, Any]] = []
@@ -649,6 +653,17 @@ def synchronize(
 
     issues: list[str] = []
     warnings: list[str] = []
+    policy_error = False
+    try:
+        project_backend = STAGE_CODE.current_project_backend(
+            state, required=(explicit_delivery_scope or write) and scope in {
+                "code", "results", "figures", "docx", "latex", "submission",
+            } and phase != "data_preprocessing",
+        )
+    except STAGE_CODE.StageCodeError as exc:
+        project_backend = None
+        policy_error = True
+        issues.append(f"项目数值后端: {exc}")
     raw_files, raw_mode, data_issues, data_warnings = data_source_files(root, state)
     issues.extend(data_issues)
     warnings.extend(data_warnings)
@@ -667,7 +682,7 @@ def synchronize(
         snapshot = _snapshot_question(
             root, chinese_name, entry, schema, data_hash,
             scope if explicit_delivery_scope else None,
-            state=state,
+            state=state, project_backend=project_backend,
         )
         snapshots[key] = snapshot
         issues.extend(f"{key}: {item}" for item in snapshot["issues"])
@@ -678,7 +693,7 @@ def synchronize(
     stale_fragments: list[str] = []
     transition_reports: list[dict[str, Any]] = []
     transition_state = state if write else deepcopy(state)
-    if state_path.is_file():
+    if state_path.is_file() and not policy_error:
         for snapshot in snapshots.values():
             stale, reports = _apply_snapshot_to_state(root, transition_state, snapshot)
             transition_reports.extend(reports)
@@ -737,6 +752,7 @@ def synchronize(
         "delivery_scope": scope,
         "formal_delivery_scope": explicit_delivery_scope,
         "write": write,
+        "write_performed": write and not policy_error,
         "strict": strict,
         "preprocessing_decision": decision,
         "data_hash_mode": data_mode,
@@ -755,7 +771,7 @@ def synchronize(
         "warnings": sorted(set(warnings)),
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
-    if write:
+    if write and not policy_error:
         report_text = yaml.safe_dump(report, allow_unicode=True, sort_keys=False)
         if state_path.is_file():
             before_state = (

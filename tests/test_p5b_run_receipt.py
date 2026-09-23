@@ -5,6 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -52,6 +54,13 @@ class P5bRunReceiptTests(unittest.TestCase):
         return receipt
 
     def write_script(self, root: Path, protocol: str | None) -> Path:
+        (root / "state").mkdir(exist_ok=True)
+        (root / "state/project_state.yaml").write_text(yaml.safe_dump({
+            "project": {"current_phase": "solve_validate"},
+            "execution": {"solver_backend": "python", "solver_backend_selection_reason": "全题审视"},
+            "preprocessing": {"decision": "not_needed"},
+            "subproblems": {"Q1": {"status": "designed"}},
+        }, allow_unicode=True), encoding="utf-8")
         folder = root / "问题一求解"
         folder.mkdir(parents=True, exist_ok=True)
         script = folder / "问题一求解.py"
@@ -69,6 +78,8 @@ class P5bRunReceiptTests(unittest.TestCase):
         }
         if protocol is not None:
             config["run_receipt_protocol_version"] = protocol
+        if protocol == "1.1.0":
+            config.update(solver_backend="python", code_dependencies=[])
         script.write_text(
             "RUN_CONFIG = " + repr(config)
             + "\n\ndef main():\n    return 0\n\nif __name__ == \"__main__\":\n    raise SystemExit(main())\n",
@@ -121,16 +132,18 @@ class P5bRunReceiptTests(unittest.TestCase):
             [],
         )
 
-    def test_code_delivery_accepts_current_marker_and_transitional_absence(self):
+    def test_code_delivery_requires_current_marker_while_transitional_pair_stays_read_only(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            current = self.write_script(root, "1.0.0")
+            current = self.write_script(root, "1.1.0")
             issues, _ = CODE.validate_script(root, current, "primary")
             self.assertEqual(issues, [])
             current.unlink()
             transitional = self.write_script(root, None)
             issues, _ = CODE.validate_script(root, transitional, "primary")
-            self.assertEqual(issues, [])
+            self.assertTrue(any("项目后端" in item for item in issues), issues)
+            self.assertEqual(RECEIPT.validate_run_receipt_binding(
+                self.receipt(version=None), self.delivered(version=None)), [])
 
     def test_code_delivery_rejects_unknown_protocol_marker(self):
         with tempfile.TemporaryDirectory() as temp:

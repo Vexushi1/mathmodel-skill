@@ -58,6 +58,7 @@ class PhaseHMechanicalSplitTests(unittest.TestCase):
             actual = SYNC.synchronize(Path(tmp), write=False, strict=False)
         actual = dict(actual)
         actual.pop("generated_at", None)
+        self.assertFalse(actual.pop("write_performed"))
         self.assertEqual(actual, expected)
 
     def test_fingerprint_helpers_remain_deterministic(self):

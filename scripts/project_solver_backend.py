@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Read-only project-backend preflight for the planned v10 state transition.
+"""Read-only project-backend preflight for explicit v10 selection or migration.
 
 This inspector classifies declarations, not complete Schema/receipt validity. It
-neither selects a backend nor grants execution eligibility. Current v9 runtime
-selection remains in its existing Authority until the coordinated cutover.
+neither selects a backend nor grants execution eligibility. A preview does not
+modify the current project or authorize use of historical numerical artifacts.
 """
 from __future__ import annotations
 
@@ -60,6 +60,9 @@ _PREVIEW_SOURCES = (
     "scripts/validate_user_execution.py", "scripts/validate_numerical_evidence.py",
     "scripts/analysis_prerequisites.py", "scripts/artifact_identity.py",
     "scripts/state_transitions.py", "scripts/sync_project.py",
+    "scripts/project_snapshot.py", "scripts/submission_requirements.py",
+    "scripts/validate_code_delivery.py", "scripts/validate_project_state.py",
+    "scripts/validate_model_paper_framework.py", "scripts/resolve_runtime.py",
 )
 
 
@@ -291,7 +294,7 @@ def preview_migration(project_root: str | Path, *, target_backend: str, reason: 
         for field in ("data_hash", "validated_data_hash"):
             if _sha(entry.get(field)):
                 historical_state["subproblems"][q][field] = entry[field].lower()
-        if report["selected_backend"]:
+        if report["selected_backend"] and report["kind"] != "canonical_declarations":
             for stage in ("primary", "analysis"):
                 if _has_stage_binding(entry, stage):
                     historical_state["subproblems"][q].setdefault("solver_execution", {}).setdefault(stage, {}).update(
@@ -416,7 +419,10 @@ def preview_migration(project_root: str | Path, *, target_backend: str, reason: 
                 row["inputs"] = list(config.get("data_paths", []))
                 current = historical_state["subproblems"][question]
                 accepted = entry.get(f"{stage}_execution_status") == "accepted"
-                row["issues"].extend(stage_code.validate_stage_binding(root, current, stage, require_validated=accepted))
+                row["issues"].extend(stage_code.validate_stage_binding(
+                    root, current, stage, require_validated=accepted,
+                    project_backend=(report["selected_backend"] if report["kind"] == "canonical_declarations" else None),
+                ))
                 code_layer = "primary_code" if stage == "primary" else "analysis_code"
                 for name in ("artifact_hashes", "validated_artifact_hashes"):
                     saved = entry.get(name, {}).get(code_layer)

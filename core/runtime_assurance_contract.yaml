@@ -1,6 +1,6 @@
-version: 1.2.1
-introduced_in_skill_version: 7.12.0
-skill_compatibility: '>=7.12.0,<10.0.0'
+version: 2.0.0
+introduced_in_skill_version: 10.0.0
+skill_compatibility: '>=10.0.0,<11.0.0'
 purpose: >-
   Define the machine-readable runtime assurance layer that sits above the legacy
   resolver plan: context hydration, intent provenance, artifact assurance,
@@ -44,12 +44,14 @@ runtime_context:
   rules:
   - Explicit intent, competition, classification, preprocessing decision, question scope, solver_backend, or artifact declarations remain backward-compatible inputs.
   - New active Skill solve requests explicitly pass solver_backend=auto when neither the user nor current state has selected a backend; auto is not a resolved backend.
-  - Omitted backend in legacy CLI/API with no selected state retains Python planning and legacy output projection; an existing MATLAB selection is never overridden by that compatibility default.
-  - Hydrate per-question solver_execution without merging different questions into one backend. Explicit conflicts remain review_required; do not overwrite state or promote old accepted results under a new selection.
+  - A current project hydrates exactly one backend from execution.solver_backend, after checking whole-project declarations before filtering question scope. Missing policy never defaults to Python and cannot authorize numerical delivery or receipt acceptance.
+  - A concrete explicit request that differs from the current project selection is review_required. Historical stage selections remain diagnostic migration evidence only; they do not hydrate a current backend or promote old accepted results under a new selection.
+  - Stateless legacy CLI/API requests may retain their historical Python planning projection only when no current project state is supplied. Such a plan is not a current numerical delivery authorization.
   - Legacy Python terminal outputs retain python_code/stage_python_code projection; MATLAB and unresolved auto plans use neutral primary_code/stage_code without false Python aliases.
   - When project_root is supplied, current project state may hydrate missing competition, preprocessing decision, question classification, and verified artifact availability.
   - Framework memory may guide a human or agent to the relevant section, but the runtime resolver must not promote framework prose into a verified numerical artifact.
   - Project-state hydration must never silently override a conflicting explicit argument; conflicts are reported in assurance.context.conflicts.
+  - Hydration, analysis prerequisites, artifact assurance and reading plan use the same validated ProjectStateSnapshot bytes and generation; a changed snapshot requires complete replanning or a fail-closed result.
   - Multi-question classification is hydrated automatically only when the scoped questions agree; otherwise the resolver reports ambiguity and requires explicit classification for routes that need task packs.
 
   state_read_consistency:
@@ -255,9 +257,9 @@ compatibility:
   legacy_semantic_hash_read_supported: true
   legacy_semantic_hash_is_read_only_provenance: true
   structured_identity_is_new_write_and_lock_path: true
-  project_state_schema_change_required: already_introduced_in_phase_c2
+  project_state_schema_change_required: project_backend_policy_schema_8_0_0
   workbook_schema_change_required: false
-  task_code_interface_change_required: false
+  task_code_interface_change_required: current_numerical_stage_binding_requires_project_backend
 
 
 reading_plan:

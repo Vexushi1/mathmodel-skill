@@ -144,13 +144,12 @@ class TestV701StageBoundaryClosure(unittest.TestCase):
             primary = fixture.make_project(root)
             fixture.accept_primary(root, primary)
             fixture.activate_analysis(root)
-            folder = root / "问题一求解"
-            analysis = folder / "问题一结果深化分析.py"
-            write_code(analysis, config("analysis", "问题一结果深化分析.xlsx"))
+            analysis = fixture.make_analysis_code(root)
             primary_hash = hashlib.sha256(primary.read_bytes()).hexdigest()
             state_path = root / "state/project_state.yaml"
             state = fixture.read_state(root)
             state["project"]["current_phase"] = "result_analysis"
+            state["subproblems"]["Q1"]["result_analysis_code"] = analysis.relative_to(root).as_posix()
             fixture.write_state(root, state)
 
             result = subprocess.run(
@@ -230,9 +229,11 @@ class TestV701StageBoundaryClosure(unittest.TestCase):
             state["subproblems"]["Q1"].pop("code", None)
             workbook = root / "结果数据表/问题一/问题一求解结果.xlsx"
             write_workbook(workbook, "primary", "问题一", primary_hash)
+            before = yaml.safe_dump(state, allow_unicode=True, sort_keys=False)
+            self.assertEqual(receipt.validate_one(root, workbook, state, False), [])
             issues = receipt.validate_one(root, workbook, state, True)
-            self.assertEqual(issues, [])
-            self.assertEqual(state["subproblems"]["Q1"]["primary_execution_status"], "accepted")
+            self.assertTrue(any("历史" in item or "historical" in item for item in issues), issues)
+            self.assertEqual(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), before)
 
     def test_resolver_docstring_is_versionless_to_avoid_release_drift(self):
         text = (ROOT / "scripts/resolve_workflow.py").read_text(encoding="utf-8")

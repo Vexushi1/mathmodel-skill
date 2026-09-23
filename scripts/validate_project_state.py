@@ -415,6 +415,8 @@ def validate_state_payload(
     payload: Mapping[str, Any], *, project_root: Path,
     schema_path: Path = SCHEMA_PATH, taxonomy_path: Path = TAXONOMY_PATH,
 ) -> list[str]:
+    if not isinstance(payload, Mapping):
+        return ["schema <root>: project state must be a mapping"]
     issues: list[str] = []
     schema = load_yaml(schema_path)
     taxonomy = load_yaml(taxonomy_path)
@@ -422,6 +424,27 @@ def validate_state_payload(
     for error in sorted(validator.iter_errors(payload), key=lambda item: list(item.path)):
         location = "/".join(str(part) for part in error.path) or "<root>"
         issues.append(f"schema {location}: {error.message}")
+
+    backend_report = STAGE_CODE.inspect_project_backend_declarations(payload)
+    if backend_report["kind"] not in {"unselected", "canonical_declarations"}:
+        issues.append(f"current project backend state is {backend_report['kind']}; explicit selection or migration is required")
+    issues.extend(f"project backend: {item}" for item in backend_report["issues"])
+    project_backend = (backend_report["selected_backend"]
+                       if backend_report["kind"] == "canonical_declarations" and not backend_report["issues"] else None)
+    if backend_report["kind"] == "unselected":
+        numerical_layers = {"primary_code", "analysis_code", "solution_workbook", "result_analysis_workbook",
+                            "robustness_workbook"}
+        subproblems = payload.get("subproblems") or {}
+        if isinstance(subproblems, Mapping):
+            for name, entry in subproblems.items():
+                if not isinstance(entry, Mapping):
+                    continue
+                hashes = (entry.get("artifact_hashes"), entry.get("validated_artifact_hashes"))
+                has_numeric_hash = any(
+                    isinstance(values, Mapping) and bool(numerical_layers & set(values)) for values in hashes
+                )
+                if (entry.get("primary_code_sha256") or entry.get("analysis_code_sha256") or has_numeric_hash):
+                    issues.append(f"{name}: numerical delivery identity requires explicit project backend selection")
 
     requirements = payload.get("requirements", {})
     completed = set(requirements.get("completed", []))
@@ -469,13 +492,15 @@ def validate_state_payload(
         if isinstance(solver_execution, Mapping):
             for stage, field in (("primary", "code"), ("analysis", "result_analysis_code")):
                 execution_status = state.get(f"{stage}_execution_status")
-                new_code = STAGE_CODE.requires_bundle_binding(project_root, state, stage)
+                new_code = STAGE_CODE.requires_bundle_binding(
+                    project_root, state, stage, project_backend=project_backend)
                 delivered = state.get(field) or execution_status in {
                     "code_delivered", "awaiting_user_execution", "workbook_received", "accepted",
                 }
-                if new_code and delivered:
+                if new_code and delivered and project_backend is not None:
                     issues.extend(f"{name}: {issue}" for issue in STAGE_CODE.validate_stage_binding(
                         project_root, state, stage, require_validated=execution_status == "accepted",
+                        project_backend=project_backend,
                     ))
         section_hash = (state.get("artifact_hashes", {}) or {}).get("framework")
         if section_hash and framework_path.is_file():

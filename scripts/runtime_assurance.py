@@ -502,12 +502,20 @@ def hydrate_project_context(
             "competition": None,
             "preprocessing_decision": None,
             "classification": {},
+            "backend_policy": None,
             "verified_artifacts": [],
             "artifact_evidence": [],
             "conflicts": [],
             "ambiguities": ["project state is unavailable"],
         }
 
+    # The backend is a project declaration: inspect every registered question
+    # before narrowing numerical and semantic evidence to this request's scope.
+    backend_policy = STAGE_CODE.inspect_project_backend_declarations(state)
+    try:
+        project_backend = STAGE_CODE.current_project_backend(state)
+    except STAGE_CODE.StageCodeError:
+        project_backend = None  # The diagnostic report below retains the conflict.
     questions, ambiguities = _scope_questions(state, question)
     classification, classification_ambiguities = _classification_for_scope(state, questions)
     ambiguities.extend(classification_ambiguities)
@@ -515,7 +523,7 @@ def hydrate_project_context(
     preprocessing = state.get("preprocessing", {}) or {}
     evidence: list[dict[str, Any]] = []
     verified: set[str] = set()
-    conflicts: list[str] = []
+    conflicts: list[str] = list(backend_policy["issues"])
 
     framework_path = root / FRAMEWORK_RELATIVE_PATH
     semantic_evidence, framework_error = _framework_semantic_evidence(framework_path)
@@ -556,29 +564,16 @@ def hydrate_project_context(
     analysis_skip_rows: list[dict[str, Any]] = []
     analysis_complete: list[bool] = []
     subproblems = state.get("subproblems", {}) or {}
-    solver_backends: dict[str, Any] = {}
     for q in questions:
         item = subproblems.get(q, {}) or {}
-        solver_backends[q] = {}
         selections = item.get("solver_execution", {})
         if not isinstance(selections, dict):
-            conflicts.append(f"{q}.solver_execution must be a mapping")
             selections = {}
-        for stage, code_field in (("primary", "code"), ("analysis", "result_analysis_code")):
-            selected = selections.get(stage, {})
-            if not isinstance(selected, dict) or selected:
-                if (not isinstance(selected, dict) or not isinstance(selected.get("backend"), str)
-                        or selected.get("backend") not in {"python", "matlab"}):
-                    conflicts.append(f"{q}.{stage} solver backend must resolve to python or matlab")
-                else:
-                    solver_backends[q][stage] = {"backend": selected["backend"], "source": "project_state"}
-            elif str(item.get(code_field) or "").endswith(".py"):
-                solver_backends[q][stage] = {"backend": "python", "source": "legacy_python_path"}
-            elif str(item.get(code_field) or "").endswith(".m"):
-                conflicts.append(f"{q}.{stage} MATLAB code requires explicit solver_execution metadata")
         conflicts.extend(ARTIFACT_IDENTITY.entry_alias_issues(item, scope=q))
         stale = set(ARTIFACT_IDENTITY.normalize_stale_layers(item.get("stale_layers")))
-        primary_issues = ANALYSIS_PREREQUISITES.primary_issues(root, state, item)
+        primary_issues = ANALYSIS_PREREQUISITES.primary_issues(
+            root, state, item, require_project_policy=True,
+        )
         primary_ok = (
             item.get("primary_execution_status") == "accepted"
             and item.get("result_quality_status") == "passed"
@@ -619,15 +614,32 @@ def hydrate_project_context(
                 else "result-analysis execution or stability status is not accepted"
             ),
         )
-        if analysis_row["status"] == "verified" and (item.get("result_analysis_code") or selections.get("analysis")):
-            binding_issues = STAGE_CODE.validate_stage_binding(root, item, "analysis", require_validated=True)
+        if analysis_row["status"] == "verified" and (
+            project_backend is not None or item.get("result_analysis_code") or selections.get("analysis")
+        ):
+            binding_issues = STAGE_CODE.validate_stage_binding(
+                root, item, "analysis", require_validated=True, project_backend=project_backend,
+            )
             if binding_issues:
                 analysis_row.update(status="not_accepted", reason="; ".join(binding_issues))
         analysis_rows.append(analysis_row)
 
         requirement_reason = str(item.get("result_analysis_requirement_reason") or "").strip()
         not_required = item.get("result_analysis_status") == "not_required"
-        skip_verified = not_required and bool(requirement_reason) and primary_row["status"] == "verified"
+        analysis_hash_layers = ("analysis_code", "result_analysis_workbook", "robustness_workbook")
+        analysis_identity = (
+            any(item.get(field) for field in (
+                "result_analysis_code", "analysis_code_sha256", "result_analysis_workbook", "robustness_workbook",
+            ))
+            or bool(selections.get("analysis"))
+            or item.get("analysis_execution_status") not in (None, "pending")
+            or any(hashes.get(layer)
+                   for hashes in (item.get("artifact_hashes"), item.get("validated_artifact_hashes"))
+                   if isinstance(hashes, dict)
+                   for layer in analysis_hash_layers)
+        )
+        skip_verified = (not_required and bool(requirement_reason)
+                         and primary_row["status"] == "verified" and not analysis_identity)
         if not_required:
             analysis_skip_rows.append(
                 {
@@ -638,7 +650,9 @@ def hydrate_project_context(
                     "reason": (
                         requirement_reason
                         if skip_verified
-                        else "result_analysis_status=not_required requires a non-empty reason and a verified accepted primary result"
+                        else ("not_required still records current analysis numerical identity"
+                              if analysis_identity else
+                              "result_analysis_status=not_required requires a non-empty reason and a verified accepted primary result")
                     ),
                     "path": None,
                     "expected_sha256": None,
@@ -675,7 +689,7 @@ def hydrate_project_context(
         "competition": project.get("competition"),
         "preprocessing_decision": preprocessing.get("decision"),
         "classification": classification,
-        "solver_backends": solver_backends,
+        "backend_policy": backend_policy,
         "verified_artifacts": sorted(verified),
         "artifact_evidence": evidence,
         "conflicts": conflicts,

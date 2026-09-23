@@ -94,16 +94,18 @@ class PythonReferenceFollowupTests(unittest.TestCase):
                 self.assertTrue(RECEIPT.validate_one(root, workbook, state, False))
                 self.assertEqual(state, before)
                 self.assertTrue(RECEIPT.validate_one(root, workbook, state, True))
-                self.assertEqual(state["subproblems"]["Q1"]["primary_execution_status"], "rejected")
-                for field in ("solver_execution", "primary_code_sha256", "validated_artifact_hashes"):
-                    self.assertEqual(state["subproblems"]["Q1"][field], before["subproblems"]["Q1"][field])
+                self.assertEqual(state, before)
+                _, config = STAGE.parse_stage_config(code)
+                self.assertTrue(STAGE.dependency_reference_issues(root, code, config))
                 helper.write_text("FACTOR = 2.0\n", encoding="utf-8")
                 second = json.loads(subprocess.check_output([sys.executable, "-B", str(code)], cwd=root, text=True))
                 self.assertEqual(second["answer"], 6.0)
                 self.assertEqual(first["code_sha256"], second["code_sha256"])
                 workbook.write_bytes(original)
                 self.assertTrue(RECEIPT.validate_one(root, workbook, state, False))
-                self.assertTrue(STAGE.validate_stage_binding(root, state["subproblems"]["Q1"], "primary", require_validated=True))
+                self.assertTrue(STAGE.validate_stage_binding(
+                    root, state["subproblems"]["Q1"], "primary", require_validated=True,
+                    project_backend="python"))
 
 
 if __name__ == "__main__":

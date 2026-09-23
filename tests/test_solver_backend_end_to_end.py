@@ -69,8 +69,7 @@ def instantiate(root: Path, stage: str, **updates) -> Path:
 
 
 def stage_state(root: Path, stage: str, code: Path) -> dict:
-    return {"backend": "matlab", "selection_reason": "Synthetic native workbook integration",
-            "bundle_sha256": reference_digest(root, [code.relative_to(root).as_posix()])}
+    return {"bundle_sha256": reference_digest(root, [code.relative_to(root).as_posix()])}
 
 
 def save_state(root: Path, state: dict) -> None:
@@ -89,6 +88,8 @@ def prepare(root: Path) -> None:
     code = instantiate(root, "primary")
     state = {"project": {"competition": "test", "problem": "synthetic", "current_phase": "solve_validate"},
              "preprocessing": {"decision": "not_needed", "status": "not_applicable", "quality_status": "not_applicable"},
+             "execution": {"solver_backend": "matlab",
+                           "solver_backend_selection_reason": "Synthetic whole-project native workbook integration"},
              "subproblems": {"Q1": {
                  "status": "designed", "selected_model": "a*x=b", "capabilities": {"requires_equilibrium_residual": True},
                  "code": code.relative_to(root).as_posix(), "primary_code_sha256": file_hash(code),
@@ -157,6 +158,8 @@ def prepare_preprocessed(root: Path) -> None:
     code = instantiate(root, "primary", data_paths=["数据预处理/数据预处理结果.xlsx"],
                        data_sha256=digest, data_identity_mode="preprocessing_workbook")
     state["project"]["current_phase"] = "solve_validate"
+    state["execution"] = {"solver_backend": "matlab",
+                          "solver_backend_selection_reason": "Synthetic whole-project native workbook integration"}
     state["subproblems"]["Q1"].update(
         selected_model="a*x=b", capabilities={"requires_equilibrium_residual": True},
         code=code.relative_to(root).as_posix(), primary_code_sha256=file_hash(code), data_hash=digest,

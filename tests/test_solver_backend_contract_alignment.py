@@ -17,6 +17,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import artifact_fingerprint
+import stage_code
 import validate_code_delivery as code_delivery
 import validate_user_execution as execution
 
@@ -114,10 +115,21 @@ class SolverBackendContractAlignmentTests(unittest.TestCase):
         data = root / "input.json"
         data.write_text("{}", encoding="utf-8")
         primary = folder / "问题一求解.py"
-        primary.write_text("def main():\n    return 0\n", encoding="utf-8")
         workbook = folder / "问题一求解结果.xlsx"
         workbook.write_bytes(b"synthetic accepted source-binding fixture; not numerical execution")
         data_sha = artifact_fingerprint.combined_hash([data], root)
+        primary_config = {
+            "stage": "primary", "problem_name": "问题一", "solver_backend": "python",
+            "run_receipt_protocol_version": "1.1.0", "code_dependencies": [],
+            "data_paths": ["input.json"], "data_sha256": data_sha,
+            "solver": "fixture", "random_seed": 2026, "tolerance": 1e-8,
+            "iteration_or_time_limit": "direct", "expected_workbook": "问题一求解/问题一求解结果.xlsx",
+            "primary_quality_protocol_version": "1.0.0",
+        }
+        primary.write_text(
+            f"RUN_CONFIG = {primary_config!r}\n\ndef main():\n    return 0\n\n"
+            "if __name__ == '__main__':\n    main()\n", encoding="utf-8")
+        primary_bundle = stage_code.stage_code_fingerprint(root, primary)["bundle_sha256"]
         hashes = {"data": data_sha, "primary_code": hashlib.sha256(primary.read_bytes()).hexdigest(),
                   "solution_workbook": hashlib.sha256(workbook.read_bytes()).hexdigest()}
         entry = {"status": "solved", "code": primary.relative_to(root).as_posix(),
@@ -126,9 +138,13 @@ class SolverBackendContractAlignmentTests(unittest.TestCase):
                  "primary_execution_status": "accepted", "result_quality_status": "passed",
                  "result_analysis_status": "pending", "result_analysis_requirement_reason": "Check parameter sensitivity",
                  "analysis_methods": ["参数敏感性"], "artifact_hashes": hashes,
-                 "validated_artifact_hashes": dict(hashes)}
+                 "validated_artifact_hashes": dict(hashes),
+                 "solver_execution": {"primary": {"bundle_sha256": primary_bundle,
+                                                  "validated_bundle_sha256": primary_bundle}}}
         state = {"project": {"current_phase": "result_analysis"}, "subproblems": {"Q1": entry},
-                 "preprocessing": {"decision": "not_needed"}}
+                 "preprocessing": {"decision": "not_needed"},
+                 "execution": {"solver_backend": "python",
+                               "solver_backend_selection_reason": "全题维护微例已审视"}}
         (root / "state").mkdir()
         (root / "state/project_state.yaml").write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
         config, receipt = analysis_pair()

@@ -427,7 +427,6 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
         errors.append("governance applicability must include v9")
     for relative in (
         "core/global_preprocessing_contract.yaml",
-        "core/user_execution_contract.yaml",
         "core/code_quality_contract.yaml",
         "core/numerical_verification_contract.yaml",
     ):
@@ -439,6 +438,11 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
         compatibility = str(contract.get("skill_compatibility", ""))
         if "<10.0.0" not in compatibility:
             errors.append(f"subordinate contract compatibility must cover active v9 line: {relative}")
+    execution = load_structured(ROOT / "core/user_execution_contract.yaml") or {}
+    if execution.get("version") != "3.0.0" or execution.get("introduced_in_skill_version") != "10.0.0":
+        errors.append("v10 user execution contract must declare its independent 3.0.0 version")
+    if str(execution.get("skill_compatibility")) != ">=10.0.0,<11.0.0":
+        errors.append("v10 user execution contract must apply only to the new major line")
 
 
 def check_taxonomy(errors: list[str]) -> None:
@@ -934,6 +938,14 @@ def check_contracts(errors: list[str]) -> None:
 def check_project_state_and_framework(errors: list[str]) -> None:
     schema = load_structured(ROOT / "core/project_state.schema.yaml")
     Draft202012Validator.check_schema(schema)
+    if schema.get("version") != "8.0.0":
+        errors.append("v10 project state must use independent schema 8.0.0")
+    execution_fields = (schema.get("properties", {}).get("execution", {}).get("properties") or {})
+    stage_fields = (schema.get("$defs", {}).get("solver_stage_execution", {}).get("properties") or {})
+    if not {"solver_backend", "solver_backend_selection_reason"}.issubset(execution_fields):
+        errors.append("current project backend and reason must be root execution fields")
+    if {"backend", "selection_reason"} & set(stage_fields):
+        errors.append("current stage execution must not own a second backend selection")
     example = load_structured(ROOT / "state/project_state.example.yaml")
     for violation in Draft202012Validator(schema).iter_errors(example):
         location = "/".join(map(str, violation.path)) or "<root>"

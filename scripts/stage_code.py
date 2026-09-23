@@ -154,6 +154,26 @@ class StageCodeMissingError(StageCodeError):
     """A backend was selected but its not-yet-registered entry does not exist."""
 
 
+def current_project_backend(
+    state: Mapping[str, Any], *, requested_backend: str | None = None, required: bool = False,
+) -> str | None:
+    """Read the one current selection; historical declarations remain diagnostic only.
+
+    This checks project-wide declaration consistency, not Schema, model approval,
+    source identity, environment availability or numerical acceptance.
+    """
+    report = inspect_project_backend_declarations(state, requested_backend=requested_backend)
+    if report["issues"]:
+        raise StageCodeError("; ".join(report["issues"]))
+    if report["kind"] == "unselected":
+        if required:
+            raise StageCodeError("current numerical work requires an explicit project backend selection")
+        return None
+    if report["kind"] != "canonical_declarations":
+        raise StageCodeError("historical numerical declarations require explicit project migration")
+    return report["selected_backend"]
+
+
 @dataclass(frozen=True)
 class StageCode:
     path: Path
@@ -227,7 +247,8 @@ def script_identity(script: Path) -> StageCode:
 
 def resolve_stage_code(root: Path, question: str, stage: str,
                        selection: Mapping[str, Any] | str | None = None, *,
-                       entry: Mapping[str, Any] | None = None) -> StageCode | None:
+                       entry: Mapping[str, Any] | None = None,
+                       project_backend: str | None = None) -> StageCode | None:
     root = Path(root).resolve()
     entry = {} if entry is None else entry
     if not isinstance(entry, Mapping):
@@ -252,6 +273,14 @@ def resolve_stage_code(root: Path, question: str, stage: str,
             and (not isinstance(selection["backend"], str) or selection["backend"] not in BACKENDS)):
         raise StageCodeError("已选后端必须为python或matlab")
     backend = selection if isinstance(selection, str) else str(selection.get("backend") or "")
+    if project_backend is not None:
+        if project_backend not in BACKENDS:
+            raise StageCodeError("项目后端必须为python或matlab")
+        if isinstance(selection, Mapping) and ({"backend", "selection_reason"} & set(selection)):
+            raise StageCodeError("当前阶段不得再保存独立后端选择")
+        if backend and backend != project_backend:
+            raise StageCodeError("阶段请求后端与项目后端冲突")
+        backend = project_backend
     if backend and backend not in BACKENDS:
         raise StageCodeError(f"已选后端必须为python或matlab: {backend}")
     field = "code" if stage == "primary" else "result_analysis_code"
@@ -602,8 +631,11 @@ def dependency_reference_issues(root: Path, entrypoint: Path, config: Mapping[st
     return list(dict.fromkeys(issues))
 
 
-def requires_bundle_binding(root: Path, entry: Mapping[str, Any], stage: str) -> bool:
+def requires_bundle_binding(root: Path, entry: Mapping[str, Any], stage: str, *,
+                            project_backend: str | None = None) -> bool:
     """Detect the new contract, without granting binding or legacy acceptance."""
+    if project_backend is not None:
+        return True
     if not isinstance(entry, Mapping):
         return True
     execution = entry.get("solver_execution")
@@ -628,7 +660,8 @@ def requires_bundle_binding(root: Path, entry: Mapping[str, Any], stage: str) ->
 
 
 def validate_stage_binding(root: Path, entry: Mapping[str, Any], stage: str, *,
-                           require_delivered: bool = True, require_validated: bool = False) -> list[str]:
+                           require_delivered: bool = True, require_validated: bool = False,
+                           project_backend: str | None = None) -> list[str]:
     root = Path(root).resolve()
     if not isinstance(entry, Mapping):
         return ["阶段状态必须为映射"]
@@ -639,11 +672,16 @@ def validate_stage_binding(root: Path, entry: Mapping[str, Any], stage: str, *,
     if selection is not None and not isinstance(selection, Mapping):
         return [f"solver_execution.{stage}必须为映射"]
     selection = selection or {}
+    if project_backend is not None:
+        if project_backend not in BACKENDS:
+            return ["项目后端必须为python或matlab"]
+        if {"backend", "selection_reason"} & set(selection):
+            return [f"{stage}当前阶段不得再保存独立后端选择"]
     field = "code" if stage == "primary" else "result_analysis_code"
     hash_field = "primary_code_sha256" if stage == "primary" else "analysis_code_sha256"
     relative = str(entry.get(field) or "")
     if not relative:
-        return [f"{stage}缺少已交付入口路径"] if selection else []
+        return [f"{stage}缺少已交付入口路径"] if selection or project_backend else []
     try:
         path = _relative_path(root, relative)
         if not path.is_file():
@@ -651,7 +689,7 @@ def validate_stage_binding(root: Path, entry: Mapping[str, Any], stage: str, *,
         actual_hash = hashlib.sha256(path.read_bytes()).hexdigest()
         if entry.get(hash_field) and actual_hash != str(entry[hash_field]).lower():
             raise StageCodeError(f"{stage}入口SHA-256与已交付代码不一致")
-        if not selection and path.suffix == ".py":
+        if project_backend is None and not selection and path.suffix == ".py":
             # Preserve historical source-only checks, including old non-config fixtures.
             try:
                 _, config = parse_stage_config(path, "python")
@@ -664,7 +702,7 @@ def validate_stage_binding(root: Path, entry: Mapping[str, Any], stage: str, *,
         identity = script_identity(path)
         if require_delivered and not re.fullmatch(r"[0-9a-fA-F]{64}", str(entry.get(hash_field, ""))):
             raise StageCodeError(f"{stage}新协议缺少已交付入口SHA-256")
-        backend = selection.get("backend")
+        backend = project_backend if project_backend is not None else selection.get("backend")
         if not isinstance(backend, str) or backend not in BACKENDS or backend != identity.backend or config.get("solver_backend") != backend:
             raise StageCodeError(f"{stage}状态、入口及RUN_CONFIG后端不一致")
         if config.get("stage") != stage or config.get("problem_name") != identity.problem_name:

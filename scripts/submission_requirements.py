@@ -143,6 +143,11 @@ def reproducibility_requirements(root: Path, state: Mapping[str, Any]) -> tuple[
     if not isinstance(questions, Mapping) or not questions:
         issues.append("缺少当前subproblems，无法确认逐问复现完整性；历史包可读取，须登记当前问题及产物后重新打包验证")
         questions = {}
+    try:
+        project_backend = STAGE_CODE.current_project_backend(state, required=bool(questions))
+    except STAGE_CODE.StageCodeError as exc:
+        project_backend = None
+        issues.append(f"项目数值后端: {exc}")
     per_question = contract["per_question"]
     for key, entry in questions.items():
         if not isinstance(entry, Mapping):
@@ -151,15 +156,37 @@ def reproducibility_requirements(root: Path, state: Mapping[str, Any]) -> tuple[
         question = chinese_question_name(str(key))
         number = question_number(question)
 
-        def question_path(field: str, pattern: str) -> None:
+        def question_path(field: str, pattern: str, *, allow_default: bool = False) -> None:
             declared = entry.get(field)
             if declared:
                 require(declared)
+            elif not allow_default:
+                issues.append(f"{key}: {field}缺少当前状态登记，目录旧文件不能取得正式包资格")
             elif number is None:
                 issues.append(f"{key}: 无法推导{field}，请登记当前精确路径")
             else:
                 tokens = {"中文序号": question.removeprefix("问题"), "阿拉伯序号": number}
                 require(per_question["question_directory"].format(**tokens) + pattern.format(**tokens))
+
+        def verified_workbook(field: str, pattern: str) -> None:
+            question_path(field, pattern)
+            declared = entry.get(field)
+            if not declared or number is None:
+                return
+            tokens = {"中文序号": question.removeprefix("问题"), "阿拉伯序号": number}
+            expected = per_question["question_directory"].format(**tokens) + pattern.format(**tokens)
+            try:
+                path = project_path(root, declared)
+                if path != project_path(root, expected):
+                    issues.append(f"{key}: {field}不是当前标准工作簿: {declared}")
+                    return
+                validated = (entry.get("validated_artifact_hashes") or {}).get(field)
+                if not isinstance(validated, str) or len(validated) != 64:
+                    issues.append(f"{key}: {field}缺少已验收SHA-256绑定")
+                elif not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != validated.lower():
+                    issues.append(f"{key}: {field}当前文件与已验收SHA-256绑定不一致")
+            except (ValueError, OSError) as exc:
+                issues.append(f"{key}: {field}: {exc}")
 
         def require_stage(stage: str) -> None:
             field = "code" if stage == "primary" else "result_analysis_code"
@@ -168,64 +195,62 @@ def reproducibility_requirements(root: Path, state: Mapping[str, Any]) -> tuple[
             if not isinstance(execution, Mapping) or not isinstance(execution.get(stage, {}), Mapping):
                 issues.append(f"{key}: {stage}后端状态必须是映射")
                 return
-            selection = execution.get(stage) or {}
-            backend = selection.get("backend", "python")
-            if not isinstance(backend, str):
-                issues.append(f"{key}: {stage}后端必须为python或matlab")
+            if project_backend is None:
+                issues.append(f"{key}: {stage}缺少当前项目数值后端")
                 return
-            patterns = (per_question.get("solver_scripts") or {}).get(backend)
-            if patterns is None and backend == "python":
-                patterns = per_question["python_scripts"]
+            patterns = (per_question.get("solver_scripts") or {}).get(project_backend)
             if patterns is None:
-                issues.append(f"{key}: 未知求解后端 {backend}")
+                issues.append(f"{key}: 未知求解后端 {project_backend}")
                 return
             question_path(field, patterns[contract_stage])
+            if not entry.get(field):
+                return
             try:
-                declared = str(entry.get(field) or "")
-                if not selection and declared.endswith(".py"):
-                    # Historical package collection accepted explicitly registered
-                    # Python paths; do not impose new solver naming retrospectively.
-                    legacy_path = project_path(root, declared)
-                    if not legacy_path.is_file():
-                        return
-                    try:
-                        _, legacy_config = STAGE_CODE.parse_stage_config(legacy_path, "python")
-                    except (ValueError, SyntaxError):
-                        return
-                    if legacy_config.get("run_receipt_protocol_version") != "1.1.0":
-                        return
-                code = STAGE_CODE.resolve_stage_code(root, question, stage, entry=entry)
-                if code and STAGE_CODE.requires_bundle_binding(root, {**entry, field: code.path.relative_to(root).as_posix()}, stage):
-                    issues.extend(f"{key}: {item}" for item in STAGE_CODE.validate_stage_binding(
-                        root, entry, stage, require_validated=True,
-                    ))
-                    _, config = STAGE_CODE.parse_stage_config(code.path, code.backend)
-                    fingerprint = STAGE_CODE.stage_code_fingerprint(
-                        root, code.path, config.get("code_dependencies", []),
-                    )
-                    for record in fingerprint["files"]:
-                        require(record["path"])
-                    observation = observe_inputs(root, config, state)
-                    issues.extend(f"{key}: {stage}: {item}" for item in observation["issues"])
-                    for relative in observation["paths"]:
-                        require(relative)
-                    if stage == "analysis" and str(config.get("data_sha256", "")).lower() != str(entry.get("data_hash", "")).lower():
-                        issues.append(f"{key}: analysis data_sha256必须继承主结果data_hash，不得覆盖主数据身份")
+                code = STAGE_CODE.resolve_stage_code(
+                    root, question, stage, entry=entry, project_backend=project_backend,
+                )
+                if code is None:
+                    issues.append(f"{key}: {stage}当前登记入口不存在")
+                    return
+                issues.extend(f"{key}: {item}" for item in STAGE_CODE.validate_stage_binding(
+                    root, entry, stage, require_validated=True, project_backend=project_backend,
+                ))
+                _, config = STAGE_CODE.parse_stage_config(code.path, code.backend)
+                fingerprint = STAGE_CODE.stage_code_fingerprint(
+                    root, code.path, config.get("code_dependencies", []),
+                )
+                for record in fingerprint["files"]:
+                    require(record["path"])
+                observation = observe_inputs(root, config, state)
+                issues.extend(f"{key}: {stage}: {item}" for item in observation["issues"])
+                for relative in observation["paths"]:
+                    require(relative)
+                if stage == "analysis" and str(config.get("data_sha256", "")).lower() != str(entry.get("data_hash", "")).lower():
+                    issues.append(f"{key}: analysis data_sha256必须继承主结果data_hash，不得覆盖主数据身份")
             except (ValueError, TypeError, OSError) as exc:
                 issues.append(f"{key}: {exc}")
 
         require_stage("primary")
-        question_path("solution_workbook", per_question["mandatory_workbooks"]["solution"])
-        question_path("matlab_script", per_question["matlab_script"])
+        if entry.get("primary_execution_status") != "accepted":
+            issues.append(f"{key}: 正式包要求已验收主求解执行状态")
+        verified_workbook("solution_workbook", per_question["mandatory_workbooks"]["solution"])
+        question_path("matlab_script", per_question["matlab_script"], allow_default=True)
         status = entry.get("result_analysis_status")
         reason = str(entry.get("result_analysis_requirement_reason") or "").strip()
         if status == "not_required":
             if not reason:
                 issues.append(f"{key}: not_required缺少result_analysis_requirement_reason，不能确认03B豁免")
+            analysis_record = (entry.get("solver_execution") or {}).get("analysis")
+            if any(entry.get(field) for field in (
+                "result_analysis_code", "analysis_code_sha256", "result_analysis_workbook",
+            )) or analysis_record:
+                issues.append(f"{key}: not_required阶段仍登记当前analysis数值身份")
         elif status in {"passed", "failed", "redo_required"} or (reason and entry.get("analysis_methods")):
             # Existing activated chains remain readable; new acceptance still uses its own gate.
             require_stage("analysis")
-            question_path("result_analysis_workbook", per_question["conditional_workbooks"]["result_analysis"]["path"])
+            if entry.get("analysis_execution_status") != "accepted":
+                issues.append(f"{key}: 正式包要求已验收结果深化分析执行状态")
+            verified_workbook("result_analysis_workbook", per_question["conditional_workbooks"]["result_analysis"]["path"])
         else:
             issues.append(f"{key}: Analysis Necessity Gate尚未明确，须登记required计划或带理由的not_required后重新验证")
 

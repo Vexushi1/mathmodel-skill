@@ -16,6 +16,7 @@ if SCRIPTS not in sys.path:
     sys.path.insert(0, SCRIPTS)
 
 import artifact_identity as ARTIFACT_IDENTITY
+from tests.test_user_execution_contract import UserExecutionContractTests
 
 
 def load_module(name: str, relative: str):
@@ -139,31 +140,15 @@ class ActiveAliasRetirementTests(unittest.TestCase):
         digest = "a" * 64
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "state").mkdir()
-            folder = root / "问题一求解"
-            folder.mkdir()
-            script = folder / "问题一求解.py"
-            script.write_text("print('primary')\n", encoding="utf-8")
-            state = {
-                "project": {"current_phase": "solve_validate"},
-                "subproblems": {
-                    "Q1": {
-                        "status": "designed",
-                        "artifact_hashes": {"model": digest},
-                    }
-                },
-            }
+            fixture = UserExecutionContractTests()
+            script = fixture.make_project(root)
+            state = fixture.read_state(root)
+            state["subproblems"]["Q1"]["artifact_hashes"] = {"model": digest}
             state_path = root / "state" / "project_state.yaml"
-            state_path.write_text(
-                yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8"
-            )
+            fixture.write_state(root, state)
             before = state_path.read_text(encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "artifact identity alias conflict"):
-                CODE.update_state(
-                    root,
-                    {"problem_name": "问题一", "stage": "primary", "data_sha256": digest},
-                    script,
-                )
+                CODE.update_state(root, fixture.config("primary", "问题一求解结果.xlsx"), script)
             self.assertEqual(state_path.read_text(encoding="utf-8"), before)
 
 
@@ -198,23 +183,9 @@ class CanonicalWriteTests(unittest.TestCase):
     def test_code_delivery_primary_write_uses_only_primary_code_artifact(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "state").mkdir()
-            folder = root / "问题一求解"
-            folder.mkdir()
-            script = folder / "问题一求解.py"
-            script.write_text("print('primary')\n", encoding="utf-8")
-            state = {
-                "project": {"current_phase": "solve_validate"},
-                "subproblems": {"Q1": {"status": "designed"}},
-            }
-            (root / "state" / "project_state.yaml").write_text(
-                yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8"
-            )
-            CODE.update_state(
-                root,
-                {"problem_name": "问题一", "stage": "primary", "data_sha256": "a" * 64},
-                script,
-            )
+            fixture = UserExecutionContractTests()
+            script = fixture.make_project(root)
+            CODE.update_state(root, fixture.config("primary", "问题一求解结果.xlsx"), script)
             expected_hash = hashlib.sha256(script.read_bytes()).hexdigest()
             updated = yaml.safe_load((root / "state" / "project_state.yaml").read_text(encoding="utf-8"))
         hashes = updated["subproblems"]["Q1"]["artifact_hashes"]
