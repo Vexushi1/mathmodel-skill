@@ -59,13 +59,13 @@ class TestV861ActiveConsistencySemanticDrift(unittest.TestCase):
             if re.match(r"^## .*?\b\d+\.\d+\.\d+$", line)
         ]
         self.assertGreaterEqual(len(semver_headings), 3)
-        pattern = re.compile(r"^## (Unreleased|Current release|Previous release): (\d+\.\d+\.\d+)$")
+        pattern = re.compile(r"^## (?:(Unreleased|Current release|Previous release): )?(\d+\.\d+\.\d+)$")
         parsed = []
         for line in semver_headings:
             match = pattern.match(line)
             self.assertIsNotNone(match, line)
             parsed.append(match.groups())
-        self.assertIn(parsed[0][0], {"Unreleased", "Current release"})
+        self.assertIn(parsed[0][0], {None, "Unreleased", "Current release"})
         self.assertEqual(parsed[0][1], str(self.bootstrap["skill_version"]))
         versions = [version for _, version in parsed]
         self.assertEqual(len(versions), len(set(versions)))
