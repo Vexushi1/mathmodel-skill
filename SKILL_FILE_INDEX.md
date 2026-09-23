@@ -327,6 +327,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_structure.py`
 - `tests/test_sync_project.py`
 - `tests/test_template_index_exclusions.py`
+- `tests/test_template_state_isolation.py`
 - `tests/test_tooling.py`
 - `tests/test_user_execution_contract.py`
 - `tests/test_v631_contract_closure.py`
