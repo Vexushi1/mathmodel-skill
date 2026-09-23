@@ -292,12 +292,14 @@ def _decision_gate_issues(
     backend: str = "python",
     data_identity_mode: Any = "combined",
     modern: bool = False,
+    state: dict[str, Any] | None = None,
 ) -> list[str]:
     state_path = project_root / "state" / "project_state.yaml"
-    if not state_path.is_file():
+    if state is None and not state_path.is_file():
         return (["preprocessing_workbook模式必须有已验收的项目级预处理状态"]
                 if modern and data_identity_mode == "preprocessing_workbook" else [])
-    state = load_yaml(state_path)
+    if state is None:
+        state = load_yaml(state_path)
     preprocessing = state.get("preprocessing") or {}
     decision = str(preprocessing.get("decision", "")).strip()
     if decision not in VALID_PREPROCESSING_DECISIONS:
@@ -426,13 +428,13 @@ def validate_script(
     elif "solver_backend" in config or config.get("code_dependencies"):
         issues.append("后端与源码依赖扩展必须使用1.1.0回执协议")
     state_path = project_root / "state" / "project_state.yaml"
-    if stage in {"primary", "analysis"} and state_path.is_file():
-        state_entry = (load_yaml(state_path).get("subproblems") or {}).get(_question_key(problem), {})
+    if stage in {"primary", "analysis"}:
+        state = load_yaml(state_path) if state_path.is_file() else {}
         try:
-            selection = _stage_selection(state_entry, stage)
-            if selection and (selection.get("backend") != backend or not modern):
-                issues.append("已选后端与代码/协议不一致，不得静默替换或降级")
-        except ValueError as exc:
+            selected_backend = STAGE_CODE.current_project_backend(state, required=True)
+            if selected_backend != backend or config.get("solver_backend") != selected_backend or not modern:
+                issues.append("项目后端与源码/RUN_CONFIG/协议不一致，不得静默替换或降级")
+        except STAGE_CODE.StageCodeError as exc:
             issues.append(str(exc))
     if stage == "primary":
         for field in sorted(PRIMARY_REQUIRED_FIELDS):
@@ -483,7 +485,8 @@ def validate_script(
         state = load_yaml(state_path) if state_path.is_file() else {}
         entry = (state.get("subproblems") or {}).get(_question_key(problem), {})
         issues.extend(ANALYSIS_PREREQUISITES.analysis_issues(
-            project_root, state, entry, data_hash=config.get("data_sha256")))
+            project_root, state, entry, data_hash=config.get("data_sha256"),
+            require_project_policy=True))
         if modern:
             expected_primary = (entry.get("validated_artifact_hashes") or {}).get("solution_workbook")
             if not is_sha256(config.get("primary_workbook_sha256")):
@@ -568,18 +571,33 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
                  expected_bundle_sha256: str | None = None) -> list[dict[str, Any]]:
     state_path = project_root / "state" / "project_state.yaml"
     if not state_path.is_file():
-        return []
+        if config.get("stage") == "preprocessing":
+            return []
+        raise ValueError("缺少项目状态与已锁项目后端，禁止正式数值代码交付")
     _, state, base_generation = PROJECT_TX.load_state_for_update(project_root)
     problem = str(config["problem_name"])
     stage = str(config["stage"])
+    if stage in {"primary", "analysis"}:
+        project_backend = STAGE_CODE.current_project_backend(state, required=True)
     new_hash = sha256(script)
     if expected_source_sha256 is not None and new_hash != expected_source_sha256.lower():
         raise ValueError("源码在代码检查后改变，禁止登记未验证版本")
     relative = script.relative_to(project_root).as_posix()
     modern = config.get("run_receipt_protocol_version") == SOLVER_RECEIPT_PROTOCOL_VERSION
+    if stage in {"primary", "analysis"}:
+        actual_backend = STAGE_CODE.script_identity(script).backend
+        if not modern or config.get("solver_backend") != project_backend or actual_backend != project_backend:
+            raise ValueError("项目后端与源码/RUN_CONFIG/协议不一致，禁止交付")
     fingerprint = STAGE_CODE.stage_code_fingerprint(project_root, script, config.get("code_dependencies", [])) if modern else None
     if expected_bundle_sha256 is not None and (fingerprint is None or fingerprint["bundle_sha256"] != expected_bundle_sha256.lower()):
         raise ValueError("源码bundle在代码检查后改变，禁止登记未验证版本")
+    if stage in {"primary", "analysis"}:
+        gate_issues = _decision_gate_issues(
+            project_root, stage, str(config.get("data_sha256", "")), config.get("data_paths"),
+            script.read_text(encoding="utf-8-sig"), project_backend,
+            config.get("data_identity_mode", "combined"), modern, state=state)
+        if gate_issues:
+            raise ValueError("; ".join(gate_issues))
     transition_reports: list[dict[str, Any]] = []
 
     if stage == "preprocessing":
@@ -629,8 +647,6 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
     key = _question_key(problem)
     entry = state.setdefault("subproblems", {}).setdefault(key, {})
     selection = _stage_selection(entry, stage)
-    if selection and (not modern or selection.get("backend") != config.get("solver_backend")):
-        raise ValueError("当前后端选择与交付代码冲突，不得降级或静默替换")
     old_path = entry.get("code" if stage == "primary" else "result_analysis_code")
     binding_changed = bool(
         (old_path and old_path != relative)
@@ -638,7 +654,8 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
     )
     if stage == "analysis":
         prerequisite_issues = ANALYSIS_PREREQUISITES.analysis_issues(
-            project_root, state, entry, data_hash=config.get("data_sha256"))
+            project_root, state, entry, data_hash=config.get("data_sha256"),
+            require_project_policy=True)
         if prerequisite_issues:
             raise ValueError("; ".join(prerequisite_issues))
     try:
@@ -692,8 +709,6 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
 
     if modern:
         target = entry.setdefault("solver_execution", {}).setdefault(stage, {})
-        target["backend"] = config["solver_backend"]
-        target.setdefault("selection_reason", "按已交付RUN_CONFIG确定实现后端")
         target["bundle_sha256"] = fingerprint["bundle_sha256"]
         if str(target.get("validated_bundle_sha256", "")).lower() != fingerprint["bundle_sha256"]:
             target.pop("validated_bundle_sha256", None)
@@ -717,7 +732,12 @@ def discover_scripts(root: Path) -> list[Path]:
         problem = folder.name.removesuffix("求解")
         entry = (state.get("subproblems") or {}).get(_question_key(problem), {})
         for stage in ("primary", "analysis"):
-            code = STAGE_CODE.resolve_stage_code(root, problem, stage, entry=entry)
+            field = "code" if stage == "primary" else "result_analysis_code"
+            if not isinstance(entry, Mapping) or not entry.get(field):
+                continue  # An orphan standard filename does not grant delivery eligibility.
+            project_backend = STAGE_CODE.current_project_backend(state, required=True)
+            code = STAGE_CODE.resolve_stage_code(
+                root, problem, stage, entry=entry, project_backend=project_backend)
             if code:
                 scripts.append(code.path)
     return sorted(set(scripts))
@@ -738,6 +758,9 @@ def main() -> int:
                    if args.script else discover_scripts(root))
     except ValueError as exc:
         print(str(exc))
+        return 1
+    if not scripts:
+        print("未发现可交付的当前阶段代码")
         return 1
     issues: list[str] = []
     warnings: list[str] = []

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import importlib.util
 import tempfile
 import unittest
@@ -24,77 +23,11 @@ CODE = load_module("validate_code_delivery_v700", ROOT / "scripts/validate_code_
 
 
 class V700TwoStageExecutionTests(unittest.TestCase):
-    def config(self, problem: str, stage: str, workbook: str) -> dict:
-        cfg = {
-            "execution_owner": "user",
-            "execution_profile": "full_fidelity",
-            "stage": stage,
-            "problem_name": problem,
-            "data_paths": ["data.csv"],
-            "data_sha256": "a" * 64,
-            "solver": "test",
-            "solver_version": "1",
-            "random_seed": 2026,
-            "tolerance": 1e-8,
-            "iteration_or_time_limit": "full",
-            "expected_workbook": workbook,
-            "allow_reduced_data": False,
-            "allow_coarser_grid": False,
-            "allow_shorter_horizon": False,
-            "allow_fewer_repetitions": False,
-            "allow_relaxed_tolerance": False,
-            "allow_silent_solver_fallback": False,
-        }
-        if stage == "primary":
-            cfg["primary_quality_protocol_version"] = "1.0.0"
-        return cfg
-
-    def write_code(self, path: Path, cfg: dict, marker: int = 0) -> None:
-        path.write_text(
-            "FULL_FIDELITY_CONFIG = " + repr(cfg)
-            + f"\n\ndef main():\n    return {marker}\n\nif __name__ == '__main__':\n    raise SystemExit(main())\n",
-            encoding="utf-8",
-        )
-
-    def base_state(self) -> dict:
-        return {
-            "project": {"competition": "test", "problem": "A", "current_phase": "solve_validate"},
-            "requirements": {"total": 0, "completed": [], "pending": []},
-            "decisions": {},
-            "subproblems": {
-                "Q1": {
-                    "status": "designed",
-                    "selected_model": "m1",
-                    "capabilities": {},
-                    "result_quality_status": "pending",
-                    "result_analysis_status": "pending",
-                    "framework_section": "Q1",
-                    "result_summary_status": "pending",
-                },
-                "Q2": {
-                    "status": "designed",
-                    "selected_model": "m2",
-                    "capabilities": {},
-                    "result_quality_status": "pending",
-                    "result_analysis_status": "pending",
-                    "framework_section": "Q2",
-                    "result_summary_status": "pending",
-                },
-            },
-            "variables": {"locked": [], "source": {}},
-            "paper_framework": {
-                "path": "模型论文框架.md",
-                "version": "1",
-                "sync_status": "stale",
-                "last_sync_scope": "design",
-                "proposition_limit": 4,
-                "proposition_count": 0,
-                "proposition_status": "not_assessed",
-                "propositions": [],
-            },
-            "artifacts": {"code": [], "results": [], "figures": [], "papers": []},
-            "risks": [],
-            "next_gate": {"module": "solve_validate", "condition": "code"},
+    def add_q2(self, state: dict) -> None:
+        state["subproblems"]["Q2"] = {
+            "status": "designed", "selected_model": "m2", "capabilities": {},
+            "result_quality_status": "pending", "result_analysis_status": "pending",
+            "framework_section": "Q2", "result_summary_status": "pending",
         }
 
     def write_state(self, root: Path, state: dict) -> None:
@@ -109,13 +42,11 @@ class V700TwoStageExecutionTests(unittest.TestCase):
     def test_code_delivery_updates_only_target_question(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            state = self.base_state()
-            state["preprocessing"] = {"decision": "not_needed"}
+            fixture = execution_fixtures.UserExecutionContractTests()
+            code = fixture.make_project(root)
+            state = self.read_state(root)
+            self.add_q2(state)
             self.write_state(root, state)
-            folder = root / "问题一求解"
-            folder.mkdir()
-            code = folder / "问题一求解.py"
-            self.write_code(code, self.config("问题一", "primary", "问题一求解结果.xlsx"))
             issues, cfg = CODE.validate_script(root, code, "primary")
             self.assertEqual(issues, [])
             CODE.update_state(root, cfg, code)
@@ -129,18 +60,17 @@ class V700TwoStageExecutionTests(unittest.TestCase):
             root = Path(temp)
             fixture = execution_fixtures.UserExecutionContractTests()
             primary = fixture.make_project(root)
-            state = fixture.accept_primary(root, primary)
-            state["subproblems"]["Q1"].update({
-                "analysis_execution_status": "accepted",
-                "result_analysis_status": "passed",
-                "analysis_code_sha256": "2" * 64,
-                "result_analysis_requirement_reason": "Current answer has a parameter risk",
-                "analysis_methods": ["参数敏感性"],
-            })
+            fixture.accept_primary(root, primary)
+            fixture.activate_analysis(root)
+            analysis = fixture.make_analysis_code(root)
+            issues, cfg = CODE.validate_script(root, analysis, "analysis")
+            self.assertEqual(issues, [])
+            CODE.update_state(root, cfg, analysis)
+            workbook = fixture.make_analysis_workbook(root, analysis)
+            state = self.read_state(root)
+            self.assertEqual(execution_fixtures.RECEIPT.validate_one(root, workbook, state, True), [])
             self.write_state(root, state)
-            folder = root / "问题一求解"
-            analysis = folder / "问题一结果深化分析.py"
-            self.write_code(analysis, self.config("问题一", "analysis", "问题一结果深化分析.xlsx"), marker=1)
+            fixture.write_code(analysis, fixture.config("analysis", "问题一结果深化分析.xlsx"), marker=1)
             issues, cfg = CODE.validate_script(root, analysis, "analysis")
             self.assertEqual(issues, [])
             CODE.update_state(root, cfg, analysis)
@@ -153,33 +83,33 @@ class V700TwoStageExecutionTests(unittest.TestCase):
     def test_primary_change_invalidates_primary_and_analysis_chain(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            state = self.base_state()
-            state["preprocessing"] = {"decision": "not_needed"}
-            state["subproblems"]["Q1"].update({
-                "status": "analyzed",
-                "result_quality_status": "passed",
-                "primary_execution_status": "accepted",
-                "analysis_execution_status": "accepted",
-                "result_analysis_status": "passed",
-                "primary_code_sha256": "1" * 64,
-                "analysis_code_sha256": "2" * 64,
-            })
-            self.write_state(root, state)
-            folder = root / "问题一求解"
-            folder.mkdir()
-            primary = folder / "问题一求解.py"
-            self.write_code(primary, self.config("问题一", "primary", "问题一求解结果.xlsx"), marker=1)
+            fixture = execution_fixtures.UserExecutionContractTests()
+            primary = fixture.make_project(root)
             state = self.read_state(root)
+            self.add_q2(state)
+            self.write_state(root, state)
+            fixture.accept_primary(root, primary)
+            fixture.activate_analysis(root)
+            analysis = fixture.make_analysis_code(root)
+            issues, cfg = CODE.validate_script(root, analysis, "analysis")
+            self.assertEqual(issues, [])
+            CODE.update_state(root, cfg, analysis)
+            workbook = fixture.make_analysis_workbook(root, analysis)
+            state = self.read_state(root)
+            self.assertEqual(execution_fixtures.RECEIPT.validate_one(root, workbook, state, True), [])
             state["project"]["current_phase"] = "solve_validate"
             self.write_state(root, state)
+            fixture.write_code(primary, fixture.config("primary", "问题一求解结果.xlsx"), marker=1)
             issues, cfg = CODE.validate_script(root, primary, "primary")
             self.assertEqual(issues, [])
             CODE.update_state(root, cfg, primary)
-            entry = self.read_state(root)["subproblems"]["Q1"]
+            updated = self.read_state(root)
+            entry = updated["subproblems"]["Q1"]
             self.assertEqual(entry["result_quality_status"], "pending")
             self.assertEqual(entry["result_analysis_status"], "pending")
             self.assertIn("solution_workbook", entry["stale_layers"])
             self.assertIn("result_analysis_workbook", entry["stale_layers"])
+            self.assertNotIn("primary_execution_status", updated["subproblems"]["Q2"])
 
     def test_output_contract_uses_two_stage_python_files(self):
         contract = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))

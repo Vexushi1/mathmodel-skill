@@ -31,7 +31,11 @@ def qualified_fixture(root, *, helper=False):
     prepare(root)
     state = yaml.safe_load((root / "state/project_state.yaml").read_text(encoding="utf-8"))
     state["project"]["competition"] = "CUMCM"
+    state["execution"] = {"solver_backend": "matlab",
+                          "solver_backend_selection_reason": "Synthetic whole-problem review"}
     entry = state["subproblems"]["Q1"]
+    entry["solver_execution"]["primary"].pop("backend", None)
+    entry["solver_execution"]["primary"].pop("selection_reason", None)
     entry["classification"] = {"objective": "optimization", "structures": []}
     dependencies = []
     if helper:
@@ -87,7 +91,7 @@ class SolverBackendIntegrationTests(unittest.TestCase):
             qualified_fixture(root)
             before = (root / "state/project_state.yaml").read_bytes()
             plan = resolve_runtime("figures", project_root=root, question="Q1", solver_backend="python")
-            self.assertEqual(plan["solver_backend"]["by_question"]["Q1"]["backend"], "matlab")
+            self.assertEqual(plan["solver_backend"]["resolved"], "matlab")
             self.assertEqual(plan["assurance"]["status"], "review_required")
             self.assertTrue(any("requested backend" in issue for issue in plan["assurance"]["context"]["conflicts"]))
             self.assertEqual(before, (root / "state/project_state.yaml").read_bytes())
@@ -109,10 +113,12 @@ class SolverBackendIntegrationTests(unittest.TestCase):
             delivered = deepcopy(entry["solver_execution"])
             (root / "问题一求解/helper.m").write_text("function y = helper(x)\ny = x + 1;\nend\n", encoding="utf-8")
             self.assertNotIn("validated_results", hydrate_project_context(root, "Q1")["verified_artifacts"])
-            observed, paths, issues = snapshot._solver_observations(root, "问题一", entry)
+            observed, paths, issues = snapshot._solver_observations(
+                root, "问题一", entry, project_backend="matlab", current_state=True)
             self.assertTrue(issues)
             current = {"key": "Q1", "chinese_name": "问题一", "artifact_hashes": dict(entry["artifact_hashes"]),
-                       "primary_code_sha256": file_hash(paths["primary"]), "solver_execution_observed": observed}
+                       "primary_code_sha256": file_hash(paths["primary"]), "solver_execution_observed": observed,
+                       "project_backend": "matlab"}
             self.assertIn("primary_code_changed", sync._snapshot_transition_events(entry, current))
             sync._apply_snapshot_to_state(root, state, current)
             self.assertEqual(delivered, state["subproblems"]["Q1"]["solver_execution"])
@@ -130,7 +136,7 @@ class SolverBackendIntegrationTests(unittest.TestCase):
             entry.update(result_analysis_code=code.relative_to(root).as_posix(), analysis_code_sha256=file_hash(code),
                          result_analysis_workbook=analysis.relative_to(root).as_posix(), analysis_execution_status="accepted",
                          result_analysis_status="passed", analysis_methods=["coefficient sensitivity"])
-            entry["solver_execution"]["analysis"] = {"backend": "matlab", "selection_reason": "same runtime",
+            entry["solver_execution"]["analysis"] = {
                 "bundle_sha256": fingerprint["bundle_sha256"], "validated_bundle_sha256": fingerprint["bundle_sha256"]}
             for field in ("artifact_hashes", "validated_artifact_hashes"):
                 entry[field].update(analysis_code=file_hash(code), result_analysis_workbook=file_hash(analysis))
@@ -165,37 +171,42 @@ class SolverBackendIntegrationTests(unittest.TestCase):
             root = Path(temp)
             entry = qualified_fixture(root)["subproblems"]["Q1"]
             anchor = entry["code"] + "#q1_solver"
-            self.assertEqual(_implementation_anchor_issues(anchor, entry, root), [])
-            self.assertTrue(_implementation_anchor_issues(entry["code"] + "#missing_function", entry, root))
-            self.assertTrue(_implementation_anchor_issues("问题一求解/q1_plot.m", entry, root))
+            self.assertEqual(_implementation_anchor_issues(anchor, entry, root, project_backend="matlab"), [])
+            self.assertTrue(_implementation_anchor_issues(entry["code"] + "#missing_function", entry, root,
+                                                           project_backend="matlab"))
+            self.assertTrue(_implementation_anchor_issues("问题一求解/q1_plot.m", entry, root,
+                                                           project_backend="matlab"))
             code = root / entry["code"]
             code.write_text(code.read_text(encoding="utf-8") + "\n%{\nfunction ghost()\n%}\n", encoding="utf-8")
             fingerprint = stage_code.stage_code_fingerprint(root, code)
             entry["primary_code_sha256"] = fingerprint["entry_sha256"]
             entry["solver_execution"]["primary"].update(bundle_sha256=fingerprint["bundle_sha256"],
                                                        validated_bundle_sha256=fingerprint["bundle_sha256"])
-            self.assertEqual(_implementation_anchor_issues(anchor, entry, root), [])
-            self.assertTrue(_implementation_anchor_issues(entry["code"] + "#ghost", entry, root))
+            self.assertEqual(_implementation_anchor_issues(anchor, entry, root, project_backend="matlab"), [])
+            self.assertTrue(_implementation_anchor_issues(entry["code"] + "#ghost", entry, root,
+                                                           project_backend="matlab"))
 
     def test_selection_reason_change_does_not_invalidate_current_result(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             state = qualified_fixture(root)
             entry = state["subproblems"]["Q1"]
-            entry["solver_execution"]["primary"]["selection_reason"] = "Updated explanation, identical source"
-            observed, paths, issues = snapshot._solver_observations(root, "问题一", entry)
+            state["execution"]["solver_backend_selection_reason"] = "Updated explanation, identical source"
+            observed, paths, issues = snapshot._solver_observations(
+                root, "问题一", entry, project_backend="matlab", current_state=True)
             self.assertEqual(issues, [])
             current = {"artifact_hashes": dict(entry["artifact_hashes"]),
-                       "primary_code_sha256": file_hash(paths["primary"]), "solver_execution_observed": observed}
+                       "primary_code_sha256": file_hash(paths["primary"]), "solver_execution_observed": observed,
+                       "project_backend": "matlab"}
             self.assertEqual(sync._snapshot_transition_events(entry, current), [])
 
-    def test_mixed_backend_result_dependencies_propagate_source_drift(self):
-        for upstream, downstream in (("python", "matlab"), ("matlab", "python")):
+    def test_same_backend_result_dependencies_propagate_source_drift(self):
+        for backend in ("python", "matlab"):
             for event in ("primary_code_changed", "analysis_code_changed"):
-                with self.subTest(upstream=upstream, event=event):
+                with self.subTest(backend=backend, event=event):
                     state = state_with_dependency("result")
-                    state["subproblems"]["Q1"]["solver_execution"] = {"primary": {"backend": upstream}}
-                    state["subproblems"]["Q2"]["solver_execution"] = {"primary": {"backend": downstream}}
+                    state["execution"] = {"solver_backend": backend,
+                                          "solver_backend_selection_reason": "Synthetic whole-problem review"}
                     report = sync.STATE_TRANSITIONS.apply_transition(
                         state, event=event, source_question="Q1", contract=sync.STATE_TRANSITION_CONTRACT)
                     q2 = state["subproblems"]["Q2"]
@@ -207,6 +218,8 @@ class SolverBackendIntegrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             state = qualified_fixture(root)
+            state["execution"] = {"solver_backend": "python",
+                                  "solver_backend_selection_reason": "Synthetic whole-problem review"}
             entry = state["subproblems"]["Q1"]
             matlab = root / entry["code"]
             _, config = stage_code.parse_stage_config(matlab)
@@ -224,13 +237,16 @@ class SolverBackendIntegrationTests(unittest.TestCase):
             save_state(root, state)
             required, issues = reproducibility_requirements(root, state)
             self.assertIn(helper.relative_to(root).as_posix(), required)
-            self.assertTrue(any("后端不一致" in issue for issue in issues), issues)
-            observed, paths, issues = snapshot._solver_observations(root, "问题一", entry)
+            self.assertTrue(issues, issues)
+            observed, paths, issues = snapshot._solver_observations(
+                root, "问题一", entry, project_backend="python", current_state=True)
             self.assertTrue(issues)
             current = {"artifact_hashes": dict(entry["artifact_hashes"]),
-                       "primary_code_sha256": file_hash(code), "solver_execution_observed": observed}
+                       "primary_code_sha256": file_hash(code), "solver_execution_observed": observed,
+                       "project_backend": "python"}
             self.assertIn("primary_code_changed", sync._snapshot_transition_events(entry, current))
-            self.assertTrue(_implementation_anchor_issues("unresolvable legacy prose", entry, root))
+            self.assertTrue(_implementation_anchor_issues("unresolvable legacy prose", entry, root,
+                                                           project_backend="python"))
 
 
 if __name__ == "__main__":

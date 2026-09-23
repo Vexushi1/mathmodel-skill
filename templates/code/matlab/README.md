@@ -27,4 +27,4 @@ matlab -batch "cd('C:/项目/问题一求解'); q1_analysis"
 
 正式绘图继续使用 `templates/matlab/q1_plot.m`；求解入口不生成正式图，绘图入口不重算核心结果。静态检查、Code Analyzer、真实 MATLAB 运行与用户项目数值验收分别报告。
 
-维护合成验证入口为 `tests/test_solver_backend_end_to_end.py` 与 `tests/matlab/run_solver_backend_smoke.m`；`tests/solver_backend_mixed_smoke.py` 与 `tests/matlab/run_solver_backend_mixed_smoke.m` 验证双向跨问混合及同问 Python 主求解接 MATLAB 深化。测试只运行独立临时目录中复制并实例化的微型数学例子，不运行用户赛题，也不把静态检查或 skipped 的 MATLAB job 当作运行通过。
+维护合成验证入口为 `tests/test_solver_backend_end_to_end.py` 与 `tests/matlab/run_solver_backend_smoke.m`。`tests/solver_backend_mixed_smoke.py` 与 `tests/matlab/run_solver_backend_mixed_smoke.m` 中双向跨问混合及同问 Python 主求解接 MATLAB 深化的场景仅用于 v9 历史兼容与 v10 当前路径拒绝回归，不授权新项目逐问或逐阶段混用数值后端。测试只运行独立临时目录中复制并实例化的微型数学例子，不运行用户赛题，也不把静态检查或 skipped 的 MATLAB job 当作运行通过。

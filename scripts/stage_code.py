@@ -19,7 +19,131 @@ import python_source_checks
 
 ROOT = Path(__file__).resolve().parent.parent
 BACKENDS = {"python": ".py", "matlab": ".m"}
+POLICY_FIELDS = ("solver_backend", "solver_backend_selection_reason")
+STAGE_FIELDS = {"backend", "selection_reason", "bundle_sha256", "validated_bundle_sha256"}
+NUMERICAL_FIELDS = ("code", "result_analysis_code", "solution_workbook", "result_analysis_workbook")
 QUESTION_NUMERALS = ("一", "二", "三", "四", "五", "六", "七", "八", "九", "十")
+
+
+def inspect_project_backend_declarations(
+    state: Mapping[str, Any], *, requested_backend: str | None = None,
+) -> dict[str, Any]:
+    """Classify whole-project declarations without reading files or granting execution."""
+    if not isinstance(state, Mapping):
+        raise ValueError("project state must be a mapping")
+    if requested_backend is not None and requested_backend not in ("auto", "python", "matlab"):
+        raise ValueError("requested backend must be auto, python or matlab")
+    issues: list[str] = []
+    execution = state.get("execution", {})
+    if not isinstance(execution, Mapping):
+        issues.append("execution must be a mapping")
+        execution = {}
+    subproblems = state.get("subproblems", {})
+    if not isinstance(subproblems, Mapping):
+        issues.append("subproblems must be a mapping")
+        subproblems = {}
+    present = [name in execution for name in POLICY_FIELDS]
+    selected = execution.get(POLICY_FIELDS[0])
+    if any(present):
+        if not all(present):
+            issues.append("project backend and selection reason must be present together")
+        if not _backend(selected):
+            issues.append("execution.solver_backend must be python or matlab, never auto")
+        if not _reason(execution.get(POLICY_FIELDS[1])):
+            issues.append("project backend selection reason must be a non-empty string")
+
+    declarations: list[dict[str, Any]] = []
+    has_numerical_state = False
+    has_legacy_selectors = False
+    missing_stage_backend = False
+    for question, entry in sorted(subproblems.items(), key=lambda item: str(item[0])):
+        if not isinstance(question, str) or not isinstance(entry, Mapping):
+            issues.append(f"subproblem {question!r} must have a string key and mapping record")
+            continue
+        has_numerical_state |= any(entry.get(name) for name in NUMERICAL_FIELDS)
+        stages = entry.get("solver_execution", {})
+        if not isinstance(stages, Mapping):
+            issues.append(f"{question}.solver_execution must be a mapping")
+            continue
+        if set(stages) - {"primary", "analysis"}:
+            issues.append(f"{question}.solver_execution contains unknown stages")
+        for stage, code_field in (("primary", "code"), ("analysis", "result_analysis_code")):
+            record = stages.get(stage, {})
+            if not isinstance(record, Mapping):
+                issues.append(f"{question}.{stage} must be a mapping")
+                continue
+            has_numerical_state |= stage in stages
+            if set(record) - STAGE_FIELDS:
+                issues.append(f"{question}.{stage} contains unknown execution fields")
+            legacy = "backend" in record or "selection_reason" in record
+            has_legacy_selectors |= legacy
+            actual = record.get("backend")
+            if legacy and (not _backend(actual) or not _reason(record.get("selection_reason"))):
+                issues.append(f"{question}.{stage} legacy backend/reason pair is malformed")
+            for field in ("bundle_sha256", "validated_bundle_sha256"):
+                value = record.get(field)
+                if field in record and (not isinstance(value, str) or len(value) != 64
+                                        or any(c not in "0123456789abcdefABCDEF" for c in value)):
+                    issues.append(f"{question}.{stage}.{field} must be a SHA-256 string")
+            if "validated_bundle_sha256" in record and "bundle_sha256" not in record:
+                issues.append(f"{question}.{stage} validated bundle requires a delivered bundle")
+            code = entry.get(code_field)
+            if code is not None and not isinstance(code, str):
+                issues.append(f"{question}.{code_field} must be a string")
+            workbook_field = "solution_workbook" if stage == "primary" else "result_analysis_workbook"
+            execution_field = "primary_execution_status" if stage == "primary" else "analysis_execution_status"
+            numerical_record = bool(entry.get(workbook_field)) or entry.get(execution_field) in (
+                "code_delivered", "awaiting_user_execution", "workbook_received", "accepted", "rejected", "redo_required",
+            )
+            has_numerical_state |= numerical_record
+            if record or code or stage in stages or numerical_record:
+                declarations.append({
+                    "question": question, "stage": stage,
+                    "declared_backend": actual if _backend(actual) else None,
+                    "code": code if isinstance(code, str) else None,
+                    "artifact_identity_verified": False,
+                })
+                missing_stage_backend |= not _backend(actual)
+            expected = selected if _backend(selected) else actual
+            if isinstance(code, str) and code and _backend(expected):
+                if Path(code).suffix.lower() != BACKENDS[expected]:
+                    issues.append(f"{question}.{stage} declared code suffix conflicts with backend {expected}")
+
+    candidates = {row["declared_backend"] for row in declarations if row["declared_backend"]}
+    if any(present) and has_legacy_selectors:
+        issues.append("root policy and legacy stage selectors cannot coexist in canonical state")
+    if issues:
+        kind = "invalid"
+    elif any(present):
+        kind = "canonical_declarations"
+    elif has_legacy_selectors:
+        kind = "legacy_mixed" if len(candidates) > 1 else (
+            "legacy_unresolved" if missing_stage_backend else "legacy_consistent"
+        )
+    elif has_numerical_state:
+        kind = "legacy_unresolved"
+    else:
+        kind = "unselected"
+    request_conflict = bool(_backend(selected) and requested_backend not in (None, "auto", selected))
+    if request_conflict:
+        issues.append(f"requested backend {requested_backend} conflicts with project backend {selected}")
+    return {
+        "scope": "project", "kind": kind, "diagnostic_only": True,
+        "selected_backend": selected if _backend(selected) else None,
+        "candidate_backend": next(iter(candidates)) if kind == "legacy_consistent" else None,
+        "candidate_evidence": "declarations_only_not_artifact_validation",
+        "requested_backend": requested_backend, "request_conflict": request_conflict,
+        "declarations": declarations, "issues": issues,
+        "schema_validated": False, "environment_verified": False, "execution_authorized": False,
+    }
+
+
+def _backend(value: Any) -> bool:
+    return isinstance(value, str) and value in BACKENDS
+
+
+def _reason(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
 
 
 class StageCodeError(ValueError):
@@ -28,6 +152,26 @@ class StageCodeError(ValueError):
 
 class StageCodeMissingError(StageCodeError):
     """A backend was selected but its not-yet-registered entry does not exist."""
+
+
+def current_project_backend(
+    state: Mapping[str, Any], *, requested_backend: str | None = None, required: bool = False,
+) -> str | None:
+    """Read the one current selection; historical declarations remain diagnostic only.
+
+    This checks project-wide declaration consistency, not Schema, model approval,
+    source identity, environment availability or numerical acceptance.
+    """
+    report = inspect_project_backend_declarations(state, requested_backend=requested_backend)
+    if report["issues"]:
+        raise StageCodeError("; ".join(report["issues"]))
+    if report["kind"] == "unselected":
+        if required:
+            raise StageCodeError("current numerical work requires an explicit project backend selection")
+        return None
+    if report["kind"] != "canonical_declarations":
+        raise StageCodeError("historical numerical declarations require explicit project migration")
+    return report["selected_backend"]
 
 
 @dataclass(frozen=True)
@@ -103,7 +247,8 @@ def script_identity(script: Path) -> StageCode:
 
 def resolve_stage_code(root: Path, question: str, stage: str,
                        selection: Mapping[str, Any] | str | None = None, *,
-                       entry: Mapping[str, Any] | None = None) -> StageCode | None:
+                       entry: Mapping[str, Any] | None = None,
+                       project_backend: str | None = None) -> StageCode | None:
     root = Path(root).resolve()
     entry = {} if entry is None else entry
     if not isinstance(entry, Mapping):
@@ -128,6 +273,14 @@ def resolve_stage_code(root: Path, question: str, stage: str,
             and (not isinstance(selection["backend"], str) or selection["backend"] not in BACKENDS)):
         raise StageCodeError("已选后端必须为python或matlab")
     backend = selection if isinstance(selection, str) else str(selection.get("backend") or "")
+    if project_backend is not None:
+        if project_backend not in BACKENDS:
+            raise StageCodeError("项目后端必须为python或matlab")
+        if isinstance(selection, Mapping) and ({"backend", "selection_reason"} & set(selection)):
+            raise StageCodeError("当前阶段不得再保存独立后端选择")
+        if backend and backend != project_backend:
+            raise StageCodeError("阶段请求后端与项目后端冲突")
+        backend = project_backend
     if backend and backend not in BACKENDS:
         raise StageCodeError(f"已选后端必须为python或matlab: {backend}")
     field = "code" if stage == "primary" else "result_analysis_code"
@@ -478,8 +631,11 @@ def dependency_reference_issues(root: Path, entrypoint: Path, config: Mapping[st
     return list(dict.fromkeys(issues))
 
 
-def requires_bundle_binding(root: Path, entry: Mapping[str, Any], stage: str) -> bool:
+def requires_bundle_binding(root: Path, entry: Mapping[str, Any], stage: str, *,
+                            project_backend: str | None = None) -> bool:
     """Detect the new contract, without granting binding or legacy acceptance."""
+    if project_backend is not None:
+        return True
     if not isinstance(entry, Mapping):
         return True
     execution = entry.get("solver_execution")
@@ -504,7 +660,8 @@ def requires_bundle_binding(root: Path, entry: Mapping[str, Any], stage: str) ->
 
 
 def validate_stage_binding(root: Path, entry: Mapping[str, Any], stage: str, *,
-                           require_delivered: bool = True, require_validated: bool = False) -> list[str]:
+                           require_delivered: bool = True, require_validated: bool = False,
+                           project_backend: str | None = None) -> list[str]:
     root = Path(root).resolve()
     if not isinstance(entry, Mapping):
         return ["阶段状态必须为映射"]
@@ -515,11 +672,16 @@ def validate_stage_binding(root: Path, entry: Mapping[str, Any], stage: str, *,
     if selection is not None and not isinstance(selection, Mapping):
         return [f"solver_execution.{stage}必须为映射"]
     selection = selection or {}
+    if project_backend is not None:
+        if project_backend not in BACKENDS:
+            return ["项目后端必须为python或matlab"]
+        if {"backend", "selection_reason"} & set(selection):
+            return [f"{stage}当前阶段不得再保存独立后端选择"]
     field = "code" if stage == "primary" else "result_analysis_code"
     hash_field = "primary_code_sha256" if stage == "primary" else "analysis_code_sha256"
     relative = str(entry.get(field) or "")
     if not relative:
-        return [f"{stage}缺少已交付入口路径"] if selection else []
+        return [f"{stage}缺少已交付入口路径"] if selection or project_backend else []
     try:
         path = _relative_path(root, relative)
         if not path.is_file():
@@ -527,7 +689,7 @@ def validate_stage_binding(root: Path, entry: Mapping[str, Any], stage: str, *,
         actual_hash = hashlib.sha256(path.read_bytes()).hexdigest()
         if entry.get(hash_field) and actual_hash != str(entry[hash_field]).lower():
             raise StageCodeError(f"{stage}入口SHA-256与已交付代码不一致")
-        if not selection and path.suffix == ".py":
+        if project_backend is None and not selection and path.suffix == ".py":
             # Preserve historical source-only checks, including old non-config fixtures.
             try:
                 _, config = parse_stage_config(path, "python")
@@ -540,7 +702,7 @@ def validate_stage_binding(root: Path, entry: Mapping[str, Any], stage: str, *,
         identity = script_identity(path)
         if require_delivered and not re.fullmatch(r"[0-9a-fA-F]{64}", str(entry.get(hash_field, ""))):
             raise StageCodeError(f"{stage}新协议缺少已交付入口SHA-256")
-        backend = selection.get("backend")
+        backend = project_backend if project_backend is not None else selection.get("backend")
         if not isinstance(backend, str) or backend not in BACKENDS or backend != identity.backend or config.get("solver_backend") != backend:
             raise StageCodeError(f"{stage}状态、入口及RUN_CONFIG后端不一致")
         if config.get("stage") != stage or config.get("problem_name") != identity.problem_name:

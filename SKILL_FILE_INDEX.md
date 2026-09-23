@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：9.7.1
+当前 Skill 版本：10.0.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -128,6 +128,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/measure_writing_validation.py`
 - `scripts/prepare_cumcm_class.py`
 - `scripts/project_snapshot.py`
+- `scripts/project_solver_backend.py`
 - `scripts/project_transaction.py`
 - `scripts/python_source_checks.py`
 - `scripts/reading_plan.py`
@@ -272,6 +273,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_code_quality_contract.py`
 - `tests/test_content_packs.py`
 - `tests/test_contract_closure.py`
+- `tests/test_copied_support_source_closure.py`
 - `tests/test_current_skill_health.py`
 - `tests/test_framework_project_memory_contract.py`
 - `tests/test_generated_workflow_hardening.py`
@@ -279,6 +281,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_legacy_archive_hygiene.py`
 - `tests/test_matlab_code_checks.py`
 - `tests/test_mechanism_template_compat_hygiene.py`
+- `tests/test_numerical_source_retirement.py`
 - `tests/test_optimization_baseline.py`
 - `tests/test_p3a_core_policy.py`
 - `tests/test_p3b_writing_roles.py`
@@ -292,6 +295,15 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_p8c_run_config_parser.py`
 - `tests/test_p9_release_closeout.py`
 - `tests/test_preprocessing_decision_contract.py`
+- `tests/test_project_backend_history_schema.py`
+- `tests/test_project_backend_migrate.py`
+- `tests/test_project_backend_migration_preview.py`
+- `tests/test_project_backend_policy_shared.py`
+- `tests/test_project_history_archive.py`
+- `tests/test_project_solver_backend_inspect.py`
+- `tests/test_project_solver_backend_select.py`
+- `tests/test_project_state_read_snapshot.py`
+- `tests/test_project_transaction_read_set.py`
 - `tests/test_python_execution_reference_closure.py`
 - `tests/test_python_matlab_ownership.py`
 - `tests/test_python_reference_followup.py`
@@ -318,9 +330,17 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_starter_templates.py`
 - `tests/test_structure.py`
 - `tests/test_sync_project.py`
+- `tests/test_sync_project_source_read_set.py`
 - `tests/test_template_index_exclusions.py`
+- `tests/test_template_state_isolation.py`
 - `tests/test_tooling.py`
 - `tests/test_user_execution_contract.py`
+- `tests/test_v1000_release_version_matrix.py`
+- `tests/test_v10_project_delivery_receipt.py`
+- `tests/test_v10_project_policy_core.py`
+- `tests/test_v10_project_runtime_policy.py`
+- `tests/test_v10_recovery_read_boundaries.py`
+- `tests/test_v10_retired_artifact_isolation.py`
 - `tests/test_v631_contract_closure.py`
 - `tests/test_v632_delivery_gate_closure.py`
 - `tests/test_v633_gate_hardening.py`
@@ -452,6 +472,8 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/p8d_lint_function_measurement.md`
 - `docs/p8e_validator_split_decision.md`
 - `docs/p9_release_closeout.md`
+- `docs/project_solver_backend_redefinition_p1_audit.md`
+- `docs/project_solver_backend_redefinition_plan.md`
 - `docs/repository_audit_and_handoff_refactor_plan.md`
 - `docs/v801_chapter_capability_preservation_audit.md`
 - `docs/v801_skill_health_remediation_plan.md`

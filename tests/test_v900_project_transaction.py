@@ -246,6 +246,76 @@ class ProjectTransactionTests(unittest.TestCase):
     def test_recovery_after_state_replace_before_report_replace(self):
         self._crash_and_recover("after_replace:state/project_state.yaml")
 
+    def test_v1_committed_cleanup_refuses_unrelated_backup_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.make_project(root)
+            unrelated = root / "input.txt"
+            unrelated.write_bytes(b"user input")
+
+            def stop(point):
+                if point == "after_journal_committed":
+                    raise RuntimeError("interrupted")
+
+            with self.assertRaisesRegex(RuntimeError, "interrupted"):
+                TX.commit_project_state(
+                    root, state, expected_generation=0,
+                    writes_before_state=[("模型论文框架.md", "new framework\n")], failure_hook=stop,
+                )
+            journal_path = root / TX.JOURNAL_RELATIVE_PATH
+            journal = yaml.safe_load(journal_path.read_text(encoding="utf-8"))
+            self.assertEqual(journal["version"], 1)
+            journal["entries"][0]["backup"] = "input.txt"
+            journal_path.write_text(yaml.safe_dump(journal), encoding="utf-8")
+            with self.assertRaisesRegex(TX.TransactionRecoveryError, "backup path is invalid"):
+                TX.recover_project_transaction(root)
+            self.assertEqual(unrelated.read_bytes(), b"user input")
+            self.assertTrue(journal_path.is_file())
+
+    def test_v1_recovery_keeps_unknown_bytes_at_valid_cleanup_names(self):
+        cases = (
+            ("after_journal_prepared", "backup"),
+            ("after_replace:模型论文框架.md", "staged"),
+            ("after_journal_committed", "backup"),
+            ("after_journal_committed", "staged"),
+        )
+        for boundary, field in cases:
+            with self.subTest(boundary=boundary, field=field), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                state = self.make_project(root)
+
+                def stop(point):
+                    if point == boundary:
+                        raise RuntimeError("interrupted")
+
+                with self.assertRaisesRegex(RuntimeError, "interrupted"):
+                    TX.commit_project_state(
+                        root, state, expected_generation=0,
+                        writes_before_state=[("模型论文框架.md", "new framework\n")], failure_hook=stop,
+                    )
+                journal_path = root / TX.JOURNAL_RELATIVE_PATH
+                journal_bytes = journal_path.read_bytes()
+                journal = yaml.safe_load(journal_bytes)
+                entry = journal["entries"][0]
+                cleanup_file = root / entry[field]
+                original = cleanup_file.read_bytes() if cleanup_file.exists() else None
+                cleanup_file.write_bytes(b"third-party content")
+                state_before = (root / TX.STATE_RELATIVE_PATH).read_bytes()
+                with self.assertRaisesRegex(TX.TransactionRecoveryError, "unknown content"):
+                    TX.recover_project_transaction(root)
+                self.assertEqual(journal_path.read_bytes(), journal_bytes)
+                self.assertEqual(cleanup_file.read_bytes(), b"third-party content")
+                self.assertEqual((root / TX.STATE_RELATIVE_PATH).read_bytes(), state_before)
+
+                # A matching leftover staging file or original backup is safe to clean.
+                cleanup_file.write_bytes(
+                    original if original is not None else (root / entry["path"]).read_bytes()
+                )
+                self.assertIn(TX.recover_project_transaction(root)["status"],
+                              ("rolled_forward", "committed_cleanup"))
+                self.assertFalse(journal_path.exists())
+                self.assertFalse(cleanup_file.exists())
+
     def test_recovery_rejects_unknown_third_party_generation(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

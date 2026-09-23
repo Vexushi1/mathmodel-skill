@@ -69,6 +69,30 @@ class SelectorTests(unittest.TestCase):
                 row = self.describe(text, yaml_paths=["a.x"])
                 self.assertEqual(row["resolution"], "whole_file_fallback")
 
+    def test_backend_selector_duplicate_key_reads_whole_existing_authority(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "core/user_execution_contract.yaml"
+            path.parent.mkdir()
+            path.write_text("solver_backends: {}\nsolver_backends: {}\n", encoding="utf-8")
+            row = READING.SourceReader(root).describe({
+                "path": "core/user_execution_contract.yaml", "yaml_paths": ["solver_backends"],
+            })
+        self.assertEqual(row["resolution"], "whole_file_fallback")
+        self.assertIn("Duplicate YAML mapping keys", row["fallback_reason"])
+        self.assertEqual(row["planned_bytes"], row["source_bytes"])
+
+    def test_invalid_utf8_backend_authority_is_not_an_empty_rule(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "core/user_execution_contract.yaml"
+            path.parent.mkdir()
+            path.write_bytes(b"solver_backends: \xff\n")
+            with self.assertRaises(UnicodeDecodeError):
+                READING.SourceReader(root).describe({
+                    "path": "core/user_execution_contract.yaml", "yaml_paths": ["solver_backends"],
+                })
+
     def test_crlf_unicode_and_overlap_count_actual_utf8_union(self):
         text = "# A\r\n## B\r\n中文\r\n### C\r\n文\r\n## D\r\nx\r\n"
         with tempfile.TemporaryDirectory() as tmp:
@@ -146,6 +170,7 @@ class ReadingPlanTests(unittest.TestCase):
         for identifier, plan in self.plans.items():
             with self.subTest(case=identifier):
                 reading = plan["reading_plan"]
+                self.assertEqual(reading["schema_version"], "1.1.0")
                 self.assertEqual(reading["machine_dependencies"], plan["assurance"]["dependency_closure"])
                 self.assertEqual(reading["authority_fingerprint"], plan["assurance"]["authority_fingerprint"])
                 tools = {row["name"]: row for row in reading["tool_interfaces"]}
@@ -201,6 +226,148 @@ class ReadingPlanTests(unittest.TestCase):
         plan = resolve_runtime("framework_sync", request="仅同步已验收结果摘要，不修改模型。",
                                available_artifacts=["locked_model_spec", "accepted_solution_workbook"])
         self.assertEqual(plan["reading_plan"]["profile"], "full")
+
+    def test_historical_accepted_labels_without_project_policy_stay_unqualified(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            build_project(ROOT, root, "current")
+            path = root / "state/project_state.yaml"
+            state = yaml.safe_load(path.read_text(encoding="utf-8"))
+            state.pop("execution")
+            question = state["subproblems"]["Q1"]
+            for field in ("code", "primary_code_sha256", "result_analysis_code",
+                          "analysis_code_sha256", "data_hash", "validated_data_hash", "solver_execution"):
+                question.pop(field, None)
+            for field in ("artifact_hashes", "validated_artifact_hashes"):
+                for layer in ("data", "primary_code", "analysis_code"):
+                    question.get(field, {}).pop(layer, None)
+            path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
+            before = tree_hashes(root)
+            plan = resolve_runtime("framework_sync", request="仅同步已验收结果摘要，不修改模型。",
+                                   project_root=root, question="Q1", competition="CUMCM")
+            self.assertEqual(tree_hashes(root), before)
+            self.assertEqual(plan["assurance"]["status"], "review_required")
+            self.assertEqual(plan["assurance"]["context"]["backend_policy"]["kind"], "legacy_unresolved")
+            self.assertNotIn("validated_results", plan["assurance"]["artifact_assurance"]["effective_artifacts"])
+            self.assertEqual(plan["reading_plan"]["profile"], "full")
+
+    def test_backend_authority_is_precise_for_numeric_entry_routes(self):
+        for intent in ("model_selection", "advanced_method"):
+            with self.subTest(intent=intent):
+                plan = resolve_runtime(intent, objective="optimization", structures=["network"],
+                                       solver_backend="auto")
+                self.assertIsInstance(plan["runtime_plan"]["solver_backend"], dict)
+                rows = [row for row in plan["reading_plan"]["read_now"]
+                        if row["path"] == "core/user_execution_contract.yaml"]
+                self.assertEqual(len(rows), 1)
+                self.assertEqual(rows[0]["selectors"], {"yaml_paths": ["solver_backends"]})
+                self.assertEqual(rows[0]["resolution"], "exact")
+                self.assertLess(rows[0]["planned_bytes"], rows[0]["source_bytes"])
+                line_count = len((ROOT / "core/user_execution_contract.yaml").read_text(encoding="utf-8").splitlines())
+                self.assertLess(sum(end - start + 1 for start, end in rows[0]["ranges"]), line_count)
+                self.assertIsNone(plan["reading_plan"]["project_backend_navigation"])
+        for intent in ("project_sync", "returned_workbook_validation"):
+            with self.subTest(intent=intent):
+                plan = resolve_runtime(intent)
+                rows = [row for row in plan["reading_plan"]["read_now"]
+                        if row["path"] == "core/user_execution_contract.yaml"]
+                self.assertEqual(len(rows), 1)
+                self.assertIn("solver_backends", rows[0]["selectors"]["yaml_paths"])
+                self.assertEqual(rows[0]["resolution"], "exact")
+
+    def test_backend_navigation_is_project_only_and_never_a_gate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            build_project(ROOT, root, "current")
+            original = tree_hashes(root)
+            router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8"))
+            manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
+            for requested, expect_navigation in ((None, False), ("matlab", True)):
+                with self.subTest(requested=requested):
+                    plan = resolve_runtime("code_and_solution", project_root=root, question="Q1",
+                                           solver_backend=requested)
+                    self.assertEqual(tree_hashes(root), original)
+                    before_projection = deepcopy(plan)
+                    READING.build_reading_plan(ROOT, plan, router, manifest)
+                    self.assertEqual(plan, before_projection)
+                    self.assertEqual(plan["reading_plan"]["machine_dependencies"],
+                                     plan["assurance"]["dependency_closure"])
+                    self.assertEqual([tool["name"] for tool in plan["reading_plan"]["tool_interfaces"]],
+                                     [gate["name"] for gate in plan["pre_delivery_gates"]])
+                    navigation = plan["reading_plan"]["project_backend_navigation"]
+                    self.assertEqual(navigation is not None, expect_navigation)
+                    self.assertFalse(any(gate["name"] == "project_solver_backend"
+                                         for gate in plan["pre_delivery_gates"]))
+                    if navigation:
+                        authority = next(row for row in plan["reading_plan"]["read_now"]
+                                         if row["path"] == "core/user_execution_contract.yaml")
+                        self.assertEqual(navigation["path"], "scripts/project_solver_backend.py")
+                        self.assertEqual(navigation["operations"], ["inspect", "select", "migrate"])
+                        self.assertIs(navigation["execute"], False)
+                        self.assertIs(navigation["pre_delivery_gate"], False)
+                        self.assertIn("navigation_only", navigation["boundary"])
+                        self.assertEqual(len(navigation["source_sha256"]), 64)
+                        self.assertEqual(navigation["authority"]["sha256"], authority["sha256"])
+                        self.assertEqual(plan["assurance"]["status"], "review_required")
+                        self.assertEqual(authority["planned_bytes"], authority["source_bytes"])
+
+            design = resolve_runtime("model_selection", project_root=root, question="Q1")
+            self.assertEqual(tree_hashes(root), original)
+            authority = next(row for row in design["reading_plan"]["read_now"]
+                             if row["path"] == "core/user_execution_contract.yaml")
+            self.assertEqual(authority["resolution"], "exact")
+            self.assertLess(authority["planned_bytes"], authority["source_bytes"])
+
+            state_path = root / "state/project_state.yaml"
+            state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+            state.pop("execution")
+            for stage, backend in (("primary", "python"), ("analysis", "matlab")):
+                state["subproblems"]["Q1"]["solver_execution"][stage].update(
+                    backend=backend, selection_reason="historical declaration",
+                )
+            state["subproblems"]["Q1"]["result_analysis_code"] = "问题一求解/q1_analysis.m"
+            state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
+            historical = tree_hashes(root)
+            plan = resolve_runtime("code_and_solution", project_root=root, question="Q1")
+            self.assertEqual(tree_hashes(root), historical)
+            self.assertEqual(plan["assurance"]["context"]["backend_policy"]["kind"], "legacy_mixed")
+            self.assertEqual(plan["assurance"]["status"], "review_required")
+            self.assertIs(plan["reading_plan"]["project_backend_navigation"]["execute"], False)
+            self.assertFalse(any(tool["name"] == "project_solver_backend"
+                                 for tool in plan["reading_plan"]["tool_interfaces"]))
+            authority = next(row for row in plan["reading_plan"]["read_now"]
+                             if row["path"] == "core/user_execution_contract.yaml")
+            self.assertEqual(authority["planned_bytes"], authority["source_bytes"])
+
+    def test_missing_or_ambiguous_backend_selector_never_becomes_empty_rule(self):
+        plan = resolve_runtime("model_selection", objective="optimization", structures=["network"],
+                               solver_backend="auto")
+        router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8"))
+        manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
+        for selector in (["missing_backend_selector"], [], ["solver_backends"]):
+            with self.subTest(selector=selector):
+                changed = deepcopy(router)
+                authority = changed["reading_policy"]["project_backend_navigation"]["authority_read"]
+                authority["yaml_paths"] = selector
+                if selector == ["solver_backends"]:
+                    authority["headings"] = ["## impossible for YAML"]
+                row = next(row for row in READING.build_reading_plan(ROOT, plan, changed, manifest)["read_now"]
+                           if row["path"] == "core/user_execution_contract.yaml")
+                self.assertEqual(row["resolution"], "whole_file_fallback")
+                self.assertTrue(row["fallback_reason"])
+                self.assertEqual(row["planned_bytes"], row["source_bytes"])
+        missing = deepcopy(router)
+        del missing["reading_policy"]["project_backend_navigation"]
+        with self.assertRaisesRegex(ValueError, "project backend reading navigation is missing"):
+            READING.build_reading_plan(ROOT, plan, missing, manifest)
+        missing = deepcopy(router)
+        del missing["reading_policy"]["project_backend_navigation"]["decision_intents"]
+        with self.assertRaisesRegex(ValueError, "project backend decision intents are missing"):
+            READING.build_reading_plan(ROOT, plan, missing, manifest)
+        missing = deepcopy(router)
+        missing["reading_policy"]["project_backend_navigation"]["authority_read"]["path"] = "core/missing_backend_contract.yaml"
+        with self.assertRaises(FileNotFoundError):
+            READING.build_reading_plan(ROOT, plan, missing, manifest)
 
 
 if __name__ == "__main__":

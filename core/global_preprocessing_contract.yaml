@@ -1,6 +1,6 @@
 version: 1.3.0
 introduced_in_skill_version: 7.4.2
-skill_compatibility: '>=7.4.2,<10.0.0'
+skill_compatibility: '>=7.4.2,<11.0.0'
 purpose: 规定跨赛题通用的数据质量审计、预处理必要性判定、项目级统一预处理、论文数学证据、MATLAB预处理图证据与下游读取边界。任何数据题都先判断原始数据能否正确、充分且无信息泄漏地支撑当前模型；只有真实数据问题或模型输入要求提供证据时才修改数据。共享数据、特定题型或某一次赛题经验都不能单独触发清洗、插值、预测填补、滤波或统一工作簿。
 
 decision_gate:
@@ -291,7 +291,7 @@ workbook:
 question_local:
   allowed_examples: [对数变换, 本问标准化, 滞后变量, 滑动窗口, 本问专属派生特征, 仅服务本问算法的编码, 只影响本问输入且有依据的局部缺失处理]
   rules:
-  - 由本问所选后端的主求解入口在数学层有来源的前提下构造；入口命名只服从core/output_contract.yaml#per_question.solver_scripts。
+  - 由项目根唯一已选数值后端对应的本问主求解入口在数学层有来源的前提下构造；入口命名只服从core/output_contract.yaml#per_question.solver_scripts。
   - 不建立数据预处理目录，不要求其他小问复用。
   - 不得包含本应统一的坐标修正、公共单位换算或跨问共享清洗。
   - 若局部填补或预测会学习数据分布，仍必须遵守训练验证边界与信息泄漏检查。
@@ -304,8 +304,8 @@ semantic_governance:
   stale_policy: decision、公共处理操作、参数、源数据或统一工作簿发生变化时，只对实际依赖该公共数据口径的小问及其下游传播stale；not_needed或question_local项目不得因不存在的统一工作簿变化而失效。
 
 downstream_contract:
-  solve_scripts: core/output_contract.yaml#per_question.solver_scripts中当前主后端的入口
-  analysis_scripts: core/output_contract.yaml#per_question.solver_scripts中当前深化后端的独立入口，仅Analysis Necessity Gate=required时激活
+  solve_scripts: core/output_contract.yaml#per_question.solver_scripts中项目根唯一已选数值后端对应的主求解入口
+  analysis_scripts: core/output_contract.yaml#per_question.solver_scripts中继承同一项目根数值后端的独立深化入口，仅Analysis Necessity Gate=required时激活
   matlab_scripts:
     project_level_preprocessing: 数据预处理/data_process.m
     per_question: 问题X求解/qX_plot.m

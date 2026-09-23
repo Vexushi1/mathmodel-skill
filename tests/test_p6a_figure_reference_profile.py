@@ -12,7 +12,7 @@ class TestP6aFigureReferenceProfile(unittest.TestCase):
         data = yaml.safe_load((ROOT / "assets/figure_assets.yaml").read_text(encoding="utf-8"))
         self.assertEqual(data["schema_version"], "1.1.0")
         self.assertFalse(data["default_load"])
-        self.assertEqual(data["skill_compatibility"], ">=7.4.2,<10.0.0")
+        self.assertEqual(data["skill_compatibility"], ">=7.4.2,<11.0.0")
 
         assets = data["assets"]
         index = data["reference_index"]

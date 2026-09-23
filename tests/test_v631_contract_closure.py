@@ -8,6 +8,9 @@ import pandas as pd
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from templates.code.hsk_pipeline import result_io
 
 
 def load_module(name: str, relative: str):
@@ -24,7 +27,7 @@ class TestV631ContractClosure(unittest.TestCase):
     def setUpClass(cls):
         cls.framework = load_module("v631_framework", "scripts/validate_model_paper_framework.py")
         cls.state_validator = load_module("v631_state", "scripts/validate_project_state.py")
-        cls.result_io = load_module("v631_result_io", "templates/code/hsk_pipeline/result_io.py")
+        cls.result_io = result_io
         cls.example = yaml.safe_load((ROOT / "state/project_state.example.yaml").read_text(encoding="utf-8"))
 
     def base_solution_tables(self):

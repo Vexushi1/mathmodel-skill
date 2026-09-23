@@ -16,6 +16,8 @@ from yaml.nodes import MappingNode
 from yaml.tokens import AliasToken
 
 from artifact_fingerprint import combined_hash, sha256_file
+from runtime_assurance import ProjectStateReadError, ProjectStateSnapshot
+from project_transaction import STATE_RELATIVE_PATH
 
 
 def _inside(root: Path, relative: str) -> Path:
@@ -124,6 +126,14 @@ class SourceReader:
         self.origin = origin
         self.cache: dict[str, tuple[bytes, list[str]]] = {}
 
+    def seed(self, path: str, raw: bytes) -> None:
+        """Use already captured bytes, retaining the normal relative-path boundary."""
+        _inside(self.root, path)
+        value = raw, raw.decode("utf-8").splitlines(keepends=True)
+        if path in self.cache and self.cache[path] != value:
+            raise ValueError(f"Conflicting captured reading source: {path}")
+        self.cache[path] = value
+
     def describe(self, spec: dict[str, Any]) -> dict[str, Any]:
         path = str(spec["path"])
         if path not in self.cache:
@@ -172,14 +182,19 @@ class SourceReader:
         return list(grouped.values())
 
 
-def _current_project(plan: dict[str, Any]) -> tuple[Path | None, dict[str, Any], list[str]]:
+def _current_project(
+    plan: dict[str, Any], state_snapshot: ProjectStateSnapshot | None,
+) -> tuple[Path | None, dict[str, Any], list[str]]:
     assurance = plan["assurance"]
     context = assurance["context"]
     if not context.get("project_state_loaded") or not context.get("question"):
         return None, {}, ["current scoped project evidence required"]
     root = Path(context["project_root"]).resolve()
+    if state_snapshot is None:
+        return root, {}, ["hydration snapshot unavailable; rerun resolve_runtime for a current narrow read"]
+    state_snapshot.assert_current(root)
     try:
-        state = yaml.safe_load(_inside(root, "state/project_state.yaml").read_text(encoding="utf-8")) or {}
+        state = state_snapshot.payload()
         framework = _inside(root, "模型论文框架.md")
         record = state.get("paper_framework") or {}
         if record.get("sync_status") != "current" or record.get("sha256") != sha256_file(framework):
@@ -202,7 +217,7 @@ def _current_project(plan: dict[str, Any]) -> tuple[Path | None, dict[str, Any],
                 item = state["subproblems"][target]
                 if item.get("artifacts_stale") or item.get("stale_layers"):
                     return root, state, ["a dependency has stale artifacts"]
-                hydrated = hydrate_project_context(root, target)
+                hydrated = hydrate_project_context(root, target, state_snapshot=state_snapshot)
                 verified = set(hydrated.get("verified_artifacts", []))
                 if "locked_model_spec" not in verified:
                     return root, state, ["dependency semantics lack current verified identity"]
@@ -212,6 +227,8 @@ def _current_project(plan: dict[str, Any]) -> tuple[Path | None, dict[str, Any],
                     visited.add(target)
                     pending.append(target)
         return root, state, []
+    except ProjectStateReadError:
+        raise  # State drift is a resolver failure, not a wider-reading success.
     except (FileNotFoundError, ValueError, KeyError, TypeError, AttributeError, yaml.YAMLError) as exc:
         return root, {}, [f"project evidence cannot be used for a narrow read: {exc}"]
 
@@ -275,8 +292,49 @@ def _scope(plan: dict[str, Any], request: str, policy: dict[str, Any]) -> tuple[
     return "full", "conservative_fallback", ["no narrower reading profile is defined for this operation"]
 
 
-def _project_reads(root: Path, state: dict[str, Any], question: str, *, style: bool) -> list[dict[str, Any]]:
+def _project_backend_navigation(
+    plan: dict[str, Any], policy: dict[str, Any], reader: SourceReader,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """Expose the policy anchor and project CLI without authorizing an operation."""
+    backend = (plan.get("runtime_plan") or {}).get("solver_backend")
+    navigation = policy.get("project_backend_navigation")
+    if not isinstance(backend, dict):
+        return None, None
+    if not isinstance(navigation, dict) or not isinstance(navigation.get("authority_read"), dict):
+        raise ValueError("project backend reading navigation is missing")
+    decision_intents = navigation.get("decision_intents")
+    if not isinstance(decision_intents, list) or not decision_intents or not all(
+        isinstance(value, str) for value in decision_intents
+    ):
+        raise ValueError("project backend decision intents are missing")
+    if not set(plan.get("intents", [])).intersection(decision_intents):
+        return None, None
+    authority = deepcopy(navigation["authority_read"])
+    if backend.get("scope") != "project" or (backend.get("selection_complete") and not backend.get("conflicts")):
+        return authority, None
+    interface = deepcopy(navigation.get("interface"))
+    if (not isinstance(interface, dict) or not isinstance(interface.get("path"), str)
+            or interface.get("operations") != ["inspect", "select", "migrate"]):
+        raise ValueError("project backend CLI navigation is missing")
+    interface["source_sha256"] = reader.describe({"path": interface["path"]})["sha256"]
+    interface["authority"] = reader.describe(authority)
+    interface["condition"] = navigation.get("condition")
+    interface["source"] = "reading_policy.project_backend_navigation"
+    interface["execute"] = False
+    interface["pre_delivery_gate"] = False
+    interface["boundary"] = navigation.get("boundary")
+    return authority, interface
+
+
+def _project_reads(
+    root: Path, state: dict[str, Any], question: str, *, style: bool,
+    state_snapshot: ProjectStateSnapshot,
+) -> list[dict[str, Any]]:
+    state_snapshot.assert_current(root)
+    if state_snapshot.raw is None:
+        raise ProjectStateReadError("invalid_project_state", "a narrow read requires captured state bytes")
     reader = SourceReader(root, "project")
+    reader.seed(STATE_RELATIVE_PATH, state_snapshot.raw)
     text = _inside(root, "模型论文框架.md").read_text(encoding="utf-8")
     scoped = {question}
     pending = [question]
@@ -306,14 +364,17 @@ def _project_reads(root: Path, state: dict[str, Any], question: str, *, style: b
 
 
 def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
-                       manifest: dict[str, Any], request: str = "") -> dict[str, Any]:
+                       manifest: dict[str, Any], request: str = "", *,
+                       state_snapshot: ProjectStateSnapshot | None = None) -> dict[str, Any]:
     """Return only a new sibling; never mutate fields or promote artifact evidence."""
+    if state_snapshot is not None:
+        state_snapshot.assert_current(plan["assurance"]["context"]["project_root"])
     policy = router.get("reading_policy") or {}
     reader = SourceReader(root)
     profile, status, reasons = (_scope(plan, request, policy) if policy else
                                 ("full", "conservative_fallback", ["no reading policy declared"]))
     config = policy.get("profiles", {}).get(profile, {})
-    if policy and policy.get("schema_version") != "1.0.0":
+    if policy and policy.get("schema_version") != "1.1.0":
         raise ValueError("Unsupported reading_policy schema")
     if profile not in {"full", "progressive_writing"} and not config.get("read_now"):
         profile, status = "full", "conservative_fallback"
@@ -322,7 +383,7 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
     context = plan["assurance"]["context"]
     project_root, state, project_rows = None, {}, []
     if config.get("needs_current_project"):
-        project_root, state, issues = _current_project(plan)
+        project_root, state, issues = _current_project(plan, state_snapshot)
         evidence = plan["assurance"]["artifact_assurance"]["evidence"]
         for artifact in config.get("required_verified_artifacts", []):
             if artifact == "validated_results":
@@ -361,16 +422,28 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
             reasons.extend(issues)
         else:
             status = "planned"
-            project_rows = _project_reads(project_root, state, context["question"], style=profile == "figure_style")
+            project_rows = _project_reads(
+                project_root, state, context["question"], style=profile == "figure_style",
+                state_snapshot=state_snapshot,
+            )
 
+    backend_authority, backend_interface = _project_backend_navigation(plan, policy, reader)
     if profile == "full":
         specs = [{"path": path} for path in plan["load_order"]]
+        if (backend_authority is not None and plan["assurance"]["status"] == "pass"
+                and plan.get("intents") in (["model_selection"], ["advanced_method"])):
+            # These design-only routes need the project choice, while their legacy
+            # load_order remains the complete compatibility resource inventory.
+            specs = [deepcopy(backend_authority) if spec["path"] == backend_authority["path"]
+                     else spec for spec in specs]
     elif profile == "progressive_writing":
         # Existing writing Authority owns stages/preflight; no parallel chapter planner.
         specs = [{"path": path} for path in plan["writing_runtime"]["initial_read_order"]]
     else:
         specs = list(config.get("read_now", []))
     specs = list(policy.get("common_reads", [])) + specs
+    if backend_authority is not None:
+        specs.append(backend_authority)
     read_now = reader.consolidate([reader.describe(spec) for spec in specs])
     deferred = []
     conditions = policy.get("deferred_conditions", {})
@@ -383,6 +456,11 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
             when = "tool_failure_or_explicit_implementation_review_requires_source"
         deferred.append(reader.describe({"path": path, "when": when}))
     deferred.extend(reader.describe(spec) for spec in config.get("conditional", []))
+    if backend_interface is not None:
+        deferred.append(reader.describe({
+            "path": backend_interface["path"],
+            "when": "project_backend_cli_failure_or_explicit_implementation_review",
+        }))
     # Keep different conditional triggers for the same resource; never erase a trigger.
     deferred = list({(r["path"], str(r["selectors"]), r["when"]): r for r in deferred}.values())
 
@@ -396,10 +474,11 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
         tool["success_policy"] = "inspect_real_exit_status_and_report_never_infer_execution_from_plan"
     inventory = reader.consolidate([reader.describe({"path": p}) for p in plan["load_order"]])
     result = {
-        "schema_version": policy.get("schema_version", "1.0.0"),
+        "schema_version": policy.get("schema_version", "1.1.0"),
         "profile": profile, "status": status, "reasons": reasons,
         "read_now": read_now + project_rows, "conditional": deferred,
         "tool_interfaces": tools,
+        "project_backend_navigation": backend_interface,
         "project_sources": deepcopy(plan["assurance"]["artifact_assurance"]["evidence"]),
         "machine_dependencies": deepcopy(plan["assurance"]["dependency_closure"]),
         "authority_fingerprint": deepcopy(plan["assurance"]["authority_fingerprint"]),
@@ -413,4 +492,6 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
     }
     if profile == "progressive_writing":
         result["delegated_writing_sequence"] = deepcopy(plan["writing_runtime"])
+    if state_snapshot is not None:
+        state_snapshot.assert_current()
     return result

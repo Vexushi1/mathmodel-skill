@@ -40,6 +40,8 @@ class SolverBackendTests(unittest.TestCase):
 
     def source(self, config, extra=""):
         backend, stage = config.get("solver_backend", "python"), config["stage"]
+        if stage in {"primary", "analysis"}:
+            self.current_backend = backend
         if backend == "matlab":
             stem = "q1_solver" if stage == "primary" else "q1_analysis"
             path = self.root / "问题一求解" / (stem + ".m")
@@ -55,16 +57,18 @@ class SolverBackendTests(unittest.TestCase):
     def entry(self, source, config, *, accepted=False):
         stage = config["stage"]
         fingerprint = STAGE.stage_code_fingerprint(self.root, source, config.get("code_dependencies", []))
-        record = {"backend": config["solver_backend"], "selection_reason": "fixture explicit backend",
-                  "bundle_sha256": fingerprint["bundle_sha256"]}
+        record = {"bundle_sha256": fingerprint["bundle_sha256"]}
         if accepted:
             record["validated_bundle_sha256"] = fingerprint["bundle_sha256"]
         return {"code" if stage == "primary" else "result_analysis_code": source.relative_to(self.root).as_posix(),
                 "primary_code_sha256" if stage == "primary" else "analysis_code_sha256": fingerprint["entry_sha256"],
                 "solver_execution": {stage: record}, "data_hash": config["data_sha256"], "capabilities": {}}
 
-    def state(self, entry=None):
+    def state(self, entry=None, *, backend=None):
+        backend = backend or getattr(self, "current_backend", "python")
         state = {"project": {"current_phase": "solve_validate"}, "preprocessing": {"decision": "not_needed"},
+                 "execution": {"solver_backend": backend,
+                               "solver_backend_selection_reason": "全题维护微例已审视"},
                  "subproblems": {"Q1": entry or {"status": "designed"}}, "data": {}}
         directory = self.root / "state"
         directory.mkdir(exist_ok=True)
@@ -212,10 +216,13 @@ class SolverBackendTests(unittest.TestCase):
         config = self.config(code_dependencies=[{"path": "helper.py", "sha256": hashlib.sha256(helper.read_bytes()).hexdigest()}])
         source = self.source(config, "import helper")
         entry = self.entry(source, config, accepted=True)
-        self.assertEqual(STAGE.validate_stage_binding(self.root, entry, "primary", require_validated=True), [])
+        self.assertEqual(STAGE.validate_stage_binding(
+            self.root, entry, "primary", require_validated=True, project_backend="python"), [])
         helper.write_text("value=3\n")
-        self.assertTrue(STAGE.validate_stage_binding(self.root, entry, "primary", require_validated=True))
-        self.assertTrue(any("依赖SHA" in issue for issue in PREREQUISITES.primary_issues(self.root, {}, entry)))
+        self.assertTrue(STAGE.validate_stage_binding(
+            self.root, entry, "primary", require_validated=True, project_backend="python"))
+        state = {"execution": {"solver_backend": "python", "solver_backend_selection_reason": "全题维护微例已审视"}}
+        self.assertTrue(any("依赖SHA" in issue for issue in PREREQUISITES.primary_issues(self.root, state, entry)))
 
     def test_local_python_import_requires_explicit_dependency(self):
         (self.root / "helper.py").write_text("value=2")
@@ -232,6 +239,7 @@ class SolverBackendTests(unittest.TestCase):
         for backend in ("python", "matlab"):
             config = self.config(backend)
             source = self.source(config)
+            self.state(backend=backend)
             self.assertEqual(CODE.validate_script(self.root, source)[0], [])
 
     def test_matlab_must_have_new_protocol(self):
@@ -374,7 +382,8 @@ class SolverBackendTests(unittest.TestCase):
         source = self.source(config)
         entry = self.entry(source, config)
         entry.pop("primary_code_sha256")
-        self.assertTrue(any("入口SHA" in issue for issue in STAGE.validate_stage_binding(self.root, entry, "primary")))
+        self.assertTrue(any("入口SHA" in issue for issue in STAGE.validate_stage_binding(
+            self.root, entry, "primary", project_backend="python")))
 
     def test_uppercase_bundle_hashes_keep_identical_binding(self):
         config = self.config()
@@ -383,7 +392,8 @@ class SolverBackendTests(unittest.TestCase):
         selection = entry["solver_execution"]["primary"]
         for field in ("bundle_sha256", "validated_bundle_sha256"):
             selection[field] = selection[field].upper()
-        self.assertEqual(STAGE.validate_stage_binding(self.root, entry, "primary", require_validated=True), [])
+        self.assertEqual(STAGE.validate_stage_binding(
+            self.root, entry, "primary", require_validated=True, project_backend="python"), [])
         state = self.state(entry)
         workbook = self.primary_workbook(source, config, selection["bundle_sha256"].lower())
         self.assertEqual(RECEIPT.validate_one(self.root, workbook, state, True), [])
@@ -442,8 +452,8 @@ class SolverBackendTests(unittest.TestCase):
         for payload in ([], {"primary": []}, {"primary": "matlab"}):
             self.state({"solver_execution": payload})
             issues, _ = CODE.validate_script(self.root, source)
-            self.assertTrue(any("必须为映射" in issue for issue in issues))
-            with self.assertRaisesRegex(ValueError, "必须为映射"):
+            self.assertTrue(any("must be a mapping" in issue for issue in issues), issues)
+            with self.assertRaisesRegex(ValueError, "must be a mapping"):
                 CODE.update_state(self.root, config, source)
 
     def test_project_preprocessing_mode_binds_the_one_accepted_workbook(self):
@@ -494,7 +504,7 @@ class SolverBackendTests(unittest.TestCase):
         return self.source(config), helper, config
 
     def test_declared_matlab_helpers_cannot_hide_syntax_or_dynamic_execution(self):
-        self.state()
+        self.state(backend="matlab")
         for body in ("y=(;", "mlock; y=x;", "eval('y=x');", "system('python other.py');", "y=py.solver(x);"):
             source, helper, config = self.helper_source(body)
             issues, _ = CODE.validate_script(self.root, source)
@@ -503,7 +513,7 @@ class SolverBackendTests(unittest.TestCase):
         self.assertEqual(CODE.validate_script(self.root, source)[0], [])
 
     def test_every_matlab_helper_is_natively_checked_and_bound(self):
-        self.state()
+        self.state(backend="matlab")
         source, helper, config = self.helper_source()
         reports = {}
         visited = []
@@ -533,7 +543,7 @@ class SolverBackendTests(unittest.TestCase):
         self.assertTrue(any("bundle在工程/原生检查期间改变" in item for item in issues))
 
     def test_helper_native_failure_or_unavailability_blocks_formal_delivery(self):
-        self.state()
+        self.state(backend="matlab")
         source, helper, _ = self.helper_source()
         for status in ("failed", "unverified"):
             def analyze(path, executable):

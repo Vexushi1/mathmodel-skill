@@ -58,24 +58,25 @@ def state_with_dependency(kind: str | None) -> dict:
 
 
 class CodeDeliveryTransitionContractTests(unittest.TestCase):
-    def test_missing_project_state_returns_empty_transition_list(self):
+    def test_missing_project_state_rejects_current_delivery_without_creating_state(self):
         import tempfile
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             script = root / "问题一求解.py"
             script.write_text("print('placeholder')\n", encoding="utf-8")
-            result = CODE_DELIVERY.update_state(
-                root,
-                {"stage": "primary", "problem": "问题一"},
-                script,
-            )
-        self.assertEqual(result, [])
+            with self.assertRaisesRegex(ValueError, "缺少项目状态"):
+                CODE_DELIVERY.update_state(
+                    root,
+                    {"stage": "primary", "problem": "问题一"},
+                    script,
+                )
+            self.assertFalse((root / "state/project_state.yaml").exists())
 
 
 class StateTransitionAuthorityTests(unittest.TestCase):
     def test_contract_owns_phase_d_rules(self):
-        self.assertEqual(CONTRACT["version"], "1.1.0")
+        self.assertEqual(CONTRACT["version"], "1.2.0")
         self.assertIn("semantic_identity_changed", CONTRACT["transition_events"])
         self.assertEqual(
             set(CONTRACT["dependency_rules"]),

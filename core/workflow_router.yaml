@@ -1,4 +1,4 @@
-version: 9.7.1
+version: 10.0.0
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -66,7 +66,7 @@ execution_contract:
   - Project-level preprocessing must persist paper method/validation/before-after plotting evidence in the unified workbook; figure_evidence then creates 数据预处理/data_process.m, which may only read that workbook and may not redo preprocessing.
   - Generate full-fidelity task code and stop at the applicable user-execution boundary; never execute task-specific preprocessing, solve or analysis code.
   - Primary user-produced workbook must be accepted before the Analysis Necessity Gate can decide whether post-primary result analysis is required.
-  - Accepted primary workbooks freeze the primary solve script; when the Gate is required, result-analysis code is a separate stage-specific file in its selected backend.
+  - Accepted primary workbooks freeze the primary solve script; when the Gate is required, result-analysis code is a separate stage-specific file that inherits the one project-root numerical backend.
   - Formal numerical-figure delivery and writing require validated_results under Module 04 and the output contract. Selecting a figure-planning route from accepted primary evidence is not formal delivery approval; every scoped numerical claim still needs accepted primary evidence plus either accepted passed analysis or a reasoned not_required disposition.
   - Figure consumers require a 03B workbook only when their declared evidence uses it; independent mechanism diagrams keep their own non-numerical prerequisite route. Do not infer that every figure requires alternative-world computation.
   - result_analysis_status=not_required only waives alternative-world computation for the current claims; it never proves robustness, stability, parameter insensitivity, cross-scenario validity or algorithm agreement. Adding such a claim reopens the Analysis Necessity Gate.
@@ -359,7 +359,7 @@ routing:
 
 # P2 is a content-reading projection only. Legacy route selection/load_order is unchanged.
 reading_policy:
-  schema_version: 1.0.0
+  schema_version: 1.1.0
   authority: core/runtime_assurance_contract.yaml#reading_plan
   boundaries:
     - read_now is a planned read, not proof that a source or a gate has been consumed.
@@ -373,6 +373,12 @@ reading_policy:
     - Missing/outside-root sources are errors. Re-resolve the plan if any source SHA changes or the content returned by a tool is truncated.
     - Tool interfaces do not execute commands or attest success. Run every original gate in order and inspect its real results.
     - No project writes, numerical task execution, state migration or new user-project files are performed by reading planning.
+  project_backend_navigation:
+    authority_read: {path: core/user_execution_contract.yaml, yaml_paths: [solver_backends]}
+    decision_intents: [new_problem_design, model_selection, advanced_method, full_solution, full_workflow, code_and_solution, result_analysis, validation, returned_workbook_validation, project_sync]
+    interface: {name: project_solver_backend, path: scripts/project_solver_backend.py, operations: [inspect, select, migrate]}
+    condition: current_project_selection_missing_historical_or_conflicted
+    boundary: navigation_only; inspect_is_read_only; select_and_migrate_require_their_own_explicit_project_decision
   scope_signals:
     result_only: '(仅|只)(同步|更新|登记)(已验收|当前|本问)?结果摘要'
     style_only: '(仅|只)(修改|改|调整).{0,18}(配色|颜色|线宽|字体|字号|图例|间距)'
@@ -426,11 +432,12 @@ reading_policy:
       read_now:
         - {path: scripts/README.md, headings: ['## 运行时入口与治理']}
         - {path: core/output_contract.yaml, yaml_paths: [scope_boundary, project_sync]}
+        - {path: core/user_execution_contract.yaml, yaml_paths: [solver_backends]}
       route_tool: project_sync
     returned_workbook_validation:
       read_now:
         - {path: scripts/README.md, headings: ['## 代码与用户执行']}
-        - {path: core/user_execution_contract.yaml, yaml_paths: [assistant_policy, returned_workbook]}
+        - {path: core/user_execution_contract.yaml, yaml_paths: [solver_backends, assistant_policy, returned_workbook]}
         - {path: core/numerical_verification_contract.yaml}
   deferred_conditions:
     core/project_state.schema.yaml: machine_gate_or_state_conflict_needs_field_definition

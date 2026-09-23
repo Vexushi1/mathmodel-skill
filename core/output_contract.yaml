@@ -1,4 +1,4 @@
-version: 9.7.1
+version: 10.0.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -40,6 +40,22 @@ project_root:
   submission: submission/
   figures: figures/（仅在实际有正式图片或选择draw.io机理图路径时创建）
   per_question_outputs: 问题{中文序号}求解/
+backend_migration_history:
+  directory: state/backend_history/
+  archive_directory: state/backend_history/{migration_id}/
+  report_path: state/backend_migration_reports/{migration_id}.yaml
+  report_role: 将具体项目迁移目标、快照、影响、确认与提交结果作为持久证据，并由当前state/project_state.yaml的execution.backend_migration_history记录报告和归档的项目相对路径及原始字节摘要；不是当前数值运行事实源
+  activation: explicit_backend_migration_only
+  layout: manifest.json + files/{original_project_relative_path}
+  role: historical_original_bytes_not_current_policy_or_execution_evidence
+  default_runtime_input: false
+  official_package_default: excluded
+  preparation_api: scripts/project_transaction.py#prepare_history_archive
+  verification_api: scripts/project_transaction.py#verify_history_archive
+  reference: manifest_project_relative_path_and_external_sha256
+  incomplete_archive: Never reuse or treat as a verified backup; report the retained directory for inspection.
+  unreferenced_archive: May remain after a failed state commit; do not remove existing history automatically.
+  current_implementation_boundary: 原始字节归档、只读全题预览和显式project select/migrate协调写侧已开放；完全未选且无数值历史走select，不能用migrate生成无意义归档；有历史数值阶段或更换已锁后端时migrate须绑定原始state哈希、代际、预览及影响摘要并显式确认，同事务持久登记归档和报告引用；不会自动迁移任何具体项目，迁移后仍须通过当前执行与验收门。
 writing_policy:
   role: 写作契约只保存权威指针与运行时开关，不复制正文规则。
   default_mode: latex_first
@@ -397,15 +413,15 @@ per_question:
   base_default_files: ["问题{中文序号}求解.py", "问题{中文序号}求解结果.xlsx", "q{阿拉伯序号}_plot.m"]
   analysis_required_additional_files: ["问题{中文序号}结果深化分析.py", "问题{中文序号}结果深化分析.xlsx"]
   stage_policy:
-    primary: 主求解阶段按solver_scripts交付所选后端入口；数据入口由preprocessing_decision决定，只做主求解、PQS要求的内在数值有效性检查和不改变当前计算世界的Primary Evidence Capture，主工作簿accepted后冻结该脚本。
-    result_analysis: 主工作簿accepted后先执行Analysis Necessity Gate；仅required时按solver_scripts单独生成所选后端深化入口，继承同一preprocessing_decision与数据事实源并形成敏感性/稳健性/边界/替代方法等深化分析工作簿。
+    primary: 主求解阶段继承项目根execution.solver_backend，按solver_scripts交付对应入口；数据入口由preprocessing_decision决定，只做主求解、PQS要求的内在数值有效性检查和不改变当前计算世界的Primary Evidence Capture，主工作簿accepted后冻结该脚本。
+    result_analysis: 主工作簿accepted后先执行Analysis Necessity Gate；仅required时按solver_scripts生成继承同一项目根后端的独立深化入口，沿用preprocessing_decision与数据事实源并形成敏感性/稳健性/边界/替代方法等深化分析工作簿。
     not_required: 记录非空result_analysis_requirement_reason，不生成03B代码或工作簿；不得据此声称鲁棒性/稳定性已验证。
     no_backwrite: 深化分析不得通过改写主求解入口实现；若主模型确需修改，则明确回退solve_validate并重新验收主结果。
     raw_shared_data_read: 只有decision=project_level时禁止两个小问计算入口直接读取对应共享原始数据源。
   # Read-only compatibility projection; lint requires equality with stage_policy.
   two_python_stage_policy:
-    primary: 主求解阶段按solver_scripts交付所选后端入口；数据入口由preprocessing_decision决定，只做主求解、PQS要求的内在数值有效性检查和不改变当前计算世界的Primary Evidence Capture，主工作簿accepted后冻结该脚本。
-    result_analysis: 主工作簿accepted后先执行Analysis Necessity Gate；仅required时按solver_scripts单独生成所选后端深化入口，继承同一preprocessing_decision与数据事实源并形成敏感性/稳健性/边界/替代方法等深化分析工作簿。
+    primary: 主求解阶段继承项目根execution.solver_backend，按solver_scripts交付对应入口；数据入口由preprocessing_decision决定，只做主求解、PQS要求的内在数值有效性检查和不改变当前计算世界的Primary Evidence Capture，主工作簿accepted后冻结该脚本。
+    result_analysis: 主工作簿accepted后先执行Analysis Necessity Gate；仅required时按solver_scripts生成继承同一项目根后端的独立深化入口，沿用preprocessing_decision与数据事实源并形成敏感性/稳健性/边界/替代方法等深化分析工作簿。
     not_required: 记录非空result_analysis_requirement_reason，不生成03B代码或工作簿；不得据此声称鲁棒性/稳定性已验证。
     no_backwrite: 深化分析不得通过改写主求解入口实现；若主模型确需修改，则明确回退solve_validate并重新验收主结果。
     raw_shared_data_read: 只有decision=project_level时禁止两个小问计算入口直接读取对应共享原始数据源。
@@ -477,7 +493,7 @@ mechanism_drawio_contract:
 ownership:
   Python_preprocessing: 仅preprocessing_decision=project_level时生成；负责共享原始数据的公共审计与已批准处理、论文方法/验证证据和绘图底层数据并输出统一工作簿，不求解小问核心模型。
   MATLAB_preprocessing: 仅project_level时由data_process.m读取统一工作簿绘制处理前后与验证证据；不重新清洗、插值、滤波、重采样或估计参数。
-  solver: 每问按solver_scripts选定唯一主求解脚本；主工作簿accepted后按Analysis Necessity Gate条件增加独立深化分析脚本。not_needed/question_local可读取原始数据，project_level读取统一工作簿。主求解入口负责主求解、当前主计算最低数值有效性检查及不改变当前计算世界的高价值状态/过程/结构Evidence Capture；深化入口仅在Gate=required时负责敏感性、稳健性、边界、替代方法/结构等独立深化分析并保留细粒度底层证据。
+  solver: 项目根只选择一次数值后端；每问按该后端的solver_scripts交付独立主求解脚本，主工作簿accepted后仅在Analysis Necessity Gate=required时增加同后端独立深化脚本。not_needed/question_local可读取原始数据，project_level读取统一工作簿。主求解入口负责主求解、当前主计算最低数值有效性检查及不改变当前计算世界的高价值状态/过程/结构Evidence Capture；深化入口仅在Gate=required时负责敏感性、稳健性、边界、替代方法/结构等独立深化分析并保留细粒度底层证据。
   figure: 同目录qX_plot.m精确读取本问适用标准工作簿，并仅在图确实需要底层数据时按preprocessing_decision读取原始数据或统一预处理工作簿；按modules/04_figure_evidence.md选择充分清楚的表达，真实互补信息有助于阅读时才组合编码或组织全局—局部，不重新计算核心结果，默认不自动导出图片
   other_figure_tools: GeoGebra、PPT、draw.io、SVG、TikZ可用于非数据驱动机理图；draw.io仅按mechanism_drawio_contract选择，工作簿驱动结果图继续归MATLAB
 filenames:
@@ -487,7 +503,7 @@ filenames:
   model_paper_framework: 模型论文框架.md
   project_state: state/project_state.yaml
   sync_report: sync_report.yaml
-  solver_scripts: 按per_question.solver_scripts和当前已选后端交付主求解代码；仅Analysis Necessity Gate=required追加独立深化代码
+  solver_scripts: 按per_question.solver_scripts和项目根唯一已选后端交付主求解代码；仅Analysis Necessity Gate=required追加同后端独立深化代码
   python_scripts: [问题X求解/问题X求解.py, 问题X求解/问题X结果深化分析.py（仅Analysis Necessity Gate=required）]  # Legacy Python projection.
   matlab_scripts: 数据预处理/data_process.m（project_level）以及问题X求解/q1_plot.m、q2_plot.m等ASCII固定名称
   workbooks: 中文固定名称；主工作簿必需，结果深化工作簿仅Gate=required且通过验收时存在
@@ -520,7 +536,7 @@ rules:
 - v7.14新生成主求解在代码前冻结PQS；主求解入口只实现当前主计算最低数值有效性检查，主工作簿返回后由独立数值证据校验器复核，不能只相信自报Boolean。
 - v7.15主求解在不改变当前计算世界的前提下同步保留解释/绘图/验证有价值的current-run状态、过程与结构证据；改变参数、场景、seed、算法、模型或验证窗口后的新运行仍只属于accepted后的结果深化分析。
 - 正式核心Figure先执行Scientific Figure Synthesis与Basic-form Challenge；基础图充分时可直接承担核心论证，共享证据空间且提供真实互补信息与可读性增益时才组合编码；Portfolio审查证据覆盖与重复，不按图型复杂度排序；细则只由modules/04_figure_evidence.md定义。
-- 主工作簿accepted后冻结主求解入口，并执行Analysis Necessity Gate；required时按solver_scripts单独生成所选后端深化入口，not_required时必须记录理由且不得用该状态支持鲁棒性/稳定性主张。
+- 主工作簿accepted后冻结主求解入口，并执行Analysis Necessity Gate；required时按solver_scripts单独生成继承项目根后端的深化入口，not_required时必须记录理由且不得用该状态支持鲁棒性/稳定性主张。
 - 默认不生成独立完整运行配置、运行说明、code_delivery_report、user_execution_validation_report、semantic_governance_report、figure_evidence或图表子目录。
 - 实际生成的项目级预处理脚本和正式小问计算脚本都必须通过静态工程质量检查且不得由助手执行；校验结果在聊天或标准输出中返回，不额外落盘。
 - 用户返回的适用预处理工作簿和小问工作簿均必须先通过对应质量门；代码交付本身不得把状态提升为solved或analyzed。

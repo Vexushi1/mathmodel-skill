@@ -399,29 +399,13 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
             self.assertTrue(any("模型论文框架.md" in item for item in report["issues"]), report)
 
     def test_reproducibility_manifest_detects_stale_packaged_pdf(self):
+        from tests.test_audit_package_completeness import complete_project
+
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
+            complete_project(root, questions=1)
             final = root / "final_latex"
-            final.mkdir()
             (final / "main.pdf").write_bytes(b"pdf-v1")
-            (final / "main.tex").write_text("synthetic source", encoding="utf-8")
-            (root / "模型论文框架.md").write_text("framework", encoding="utf-8")
-            (root / "q.py").write_text("print(1)", encoding="utf-8")
-            (root / "r.xlsx").write_bytes(b"xlsx")
-            (root / "q.m").write_text("disp(1)", encoding="utf-8")
-            state_dir = root / "state"
-            state_dir.mkdir()
-            (state_dir / "project_state.yaml").write_text(
-                yaml.safe_dump({
-                    "artifacts": {"compiled_pdf": "final_latex/main.pdf"},
-                    "preprocessing": {"decision": "not_needed"},
-                    "subproblems": {"Q1": {
-                        "code": "q.py", "solution_workbook": "r.xlsx", "matlab_script": "q.m",
-                        "result_analysis_status": "not_required",
-                        "result_analysis_requirement_reason": "synthetic packaging fixture",
-                    }},
-                }), encoding="utf-8"
-            )
             package = root / "package.zip"
             files = self.pack.reproducibility_files(root, package)
             manifest = self.pack.build_manifest(root, files, kind="reproducibility", metadata={
@@ -435,7 +419,8 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
                 for path in files:
                     archive.write(path, path.resolve().relative_to(root.resolve()).as_posix())
                 archive.writestr("submission_manifest.yaml", yaml.safe_dump(manifest, allow_unicode=True))
-            self.assertEqual(self.package_validator.validate_package(root, package)["status"], "passed")
+            baseline = self.package_validator.validate_package(root, package)
+            self.assertEqual(baseline["status"], "passed", baseline)
             (final / "main.pdf").write_bytes(b"pdf-v2")
             report = self.package_validator.validate_package(root, package)
             self.assertEqual(report["status"], "failed")

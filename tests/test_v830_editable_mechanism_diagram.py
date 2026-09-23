@@ -430,17 +430,19 @@ class ContractAndDriftTests(unittest.TestCase):
     # v9.7.0 re-pins the approved backend execution interfaces and their consumer
     # wording only. Numerical rules, drawing code, approval roles, writing semantics
     # and every unrelated protected authority retain their previous guards.
+    # The v10 candidate re-pins only the project-root backend schema and the
+    # corresponding code-delivery consumer; the other authority guards remain fixed.
     PROTECTED = {
         "core/model_approval_contract.yaml": "7cf530468a9a740a4123d64dec85b257d48e0892",
-        "core/numerical_verification_contract.yaml": "f7e1921ec4945cb5e87984ccb8946302d854143f",
+        "core/numerical_verification_contract.yaml": "32f70622a8ea79f5bb9472392437abd54949393a",
         # P0-A intentionally aligns the title handoff with the existing output Authority;
         # test_schemas covers the new declaration and unchanged caption ownership.
-        "core/workbook_schema.yaml": "9a3885683cd8f666d34abe22657773c98eaa10fd",
-        # A3 clarifies the existing conditional analysis fields without adding an enum.
-        "core/project_state.schema.yaml": "cd159351ae574d4a95df09b10da99a2bde1bcd5f",
+        "core/workbook_schema.yaml": "e0479f5e74063151a515d11e140b7c4e8b8db077",
+        # Schema 8.0.0 removes stage selectors and declares one project-root backend.
+        "core/project_state.schema.yaml": "11880dc6c8377245c4cec428f7b2a8f46d3d042f",
         "core/writing_reasoning_contract.yaml": "67a22f6e882a9cb79bc6edccd033731558a81f13",
-        "modules/03_solve_validate.md": "09e055c28c7fdcc37b9921664a879f85f95bb1bc",
-        "modules/03_result_analysis.md": "e0e8bdb9fa258e351bc56e36eb9c2d1ace6b69e9",
+        "modules/03_solve_validate.md": "46664420a42c43f465849e4d7e86c465d62b7267",
+        "modules/03_result_analysis.md": "e8c67ffc2f8e7ba582b834fa365bbcab813cc812",
         "modules/05_writing/paper_writing_protocol.md": "ea10da96f20bf11bfcf2b7f7465fb5162ae5efdf",
         "modules/05_writing/ai_cleanup.md": "3e6249d17a0a91091bf7c61c49aeb9245ccc41e1",
         "modules/06_review_delivery.md": "94c2096c6f0873a96df57cb16c5c2f2deee5d411",
@@ -455,8 +457,8 @@ class ContractAndDriftTests(unittest.TestCase):
         # v9.7.1 A02 changes only Evidence Capture's producer from Python to the selected solver.
         "templates/figure/chart_selection.md": "8b87b79d55e23f1b581c1ceca9e4d609fd11ba26",
         "templates/figure/figure_enhancement_patterns.md": "fa9db83323c4dcbe430e8afdca82df806e3db9de",
-        # A3 checks current accepted primary and the explicit analysis necessity decision.
-        "scripts/validate_code_delivery.py": "3a43b99e472f4f11f7ab620f3e8c5176db2e1ef4",
+        # Delivery checks the root policy again against the state being committed.
+        "scripts/validate_code_delivery.py": "be9c3d325c4ab535acf1b6301e23333ac3d0fa9a",
     }
 
     def test_protected_authorities_have_not_drifted(self):

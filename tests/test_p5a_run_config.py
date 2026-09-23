@@ -42,6 +42,9 @@ class P5aRunConfigTests(unittest.TestCase):
             "iteration_or_time_limit": "full",
             "expected_workbook": "问题一求解/问题一求解结果.xlsx",
             "primary_quality_protocol_version": "1.0.0",
+            "solver_backend": "python",
+            "run_receipt_protocol_version": "1.1.0",
+            "code_dependencies": [],
         }
 
     def legacy_config(self) -> dict:
@@ -52,9 +55,18 @@ class P5aRunConfigTests(unittest.TestCase):
             "solver_version": "1.0",
         }
         config.update({flag: False for flag in FALSE_FLAGS})
+        for field in ("solver_backend", "run_receipt_protocol_version", "code_dependencies"):
+            config.pop(field)
         return config
 
     def write_script(self, root: Path, name: str, config: dict, *, extra: str = "") -> Path:
+        (root / "state").mkdir(exist_ok=True)
+        (root / "state/project_state.yaml").write_text(yaml.safe_dump({
+            "project": {"current_phase": "solve_validate"},
+            "execution": {"solver_backend": "python", "solver_backend_selection_reason": "全题审视"},
+            "preprocessing": {"decision": "not_needed"},
+            "subproblems": {"Q1": {"status": "designed"}},
+        }, allow_unicode=True), encoding="utf-8")
         folder = root / "问题一求解"
         folder.mkdir(parents=True, exist_ok=True)
         script = folder / "问题一求解.py"

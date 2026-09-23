@@ -109,6 +109,11 @@ class SolverBackendPreprocessingTests(unittest.TestCase):
         return hashlib.sha256(self.pre_workbook.read_bytes()).hexdigest()
 
     def primary_config(self, digest):
+        self.state["execution"] = {
+            "solver_backend": "matlab",
+            "solver_backend_selection_reason": "全题数值能力与预处理输入已核查",
+        }
+        self.save_state()
         return self.solver.config(
             "matlab", data_paths=[self.pre_workbook.relative_to(self.root).as_posix()], data_sha256=digest,
             data_identity_mode="preprocessing_workbook",

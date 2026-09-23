@@ -7,10 +7,12 @@ from pathlib import Path
 from typing import Any, Iterable
 
 import yaml
+import stage_code as STAGE_CODE
 
 from resolve_workflow import TAXONOMY_PATH, add_solver_resources, code_artifact_projection, legacy_to_axes, resolve_workflow
 from reading_plan import build_reading_plan
 from runtime_assurance import (
+    ProjectStateSnapshot,
     apply_contract_dependency_closure,
     authority_fingerprint,
     hydrate_project_context,
@@ -171,43 +173,50 @@ def _apply_profile_writing_runtime(
     return plan
 
 def _solver_context(
-    requested: str | None, hydration: dict[str, Any], intents: list[str],
+    requested: str | None, hydration: dict[str, Any], state: dict[str, Any] | None,
+    stage: str | None, *, project_root_supplied: bool,
 ) -> tuple[str | None, dict[str, Any] | None, list[str]]:
-    """Resolve a scoped preference without overwriting a previously delivered choice."""
+    """Project policy is the only current selection; requests are never state writes."""
     if requested is not None and requested not in {"auto", "python", "matlab"}:
         raise ValueError(f"unknown solver backend: {requested}")
-    by_question = hydration.get("solver_backends") or {}
-    stage = "analysis" if set(intents).intersection({"result_analysis", "validation"}) else "primary"
-    resolved: dict[str, Any] = {}
-    conflicts: list[str] = []
-    modern = False
-    for question, stages in by_question.items():
-        selected = stages.get(stage) or {}
-        if not selected and stage == "analysis" and requested not in {"python", "matlab"}:
-            selected = stages.get("primary") or {}
-        backend = selected.get("backend")
-        modern |= selected.get("source") == "project_state"
-        if backend and requested not in {None, "auto", backend}:
-            conflicts.append(f"{question}.{stage} requested backend {requested} conflicts with current {backend}")
-        resolved[question] = {
-            "backend": backend or (requested if requested != "auto" else None),
-            "source": selected.get("source") or ("explicit" if requested else "unresolved"),
+    candidate = requested if requested in {"python", "matlab"} else None
+    if not project_root_supplied and requested is None:
+        return None, None, []  # Stateless legacy planning keeps its old projection.
+    if not project_root_supplied or not hydration.get("loaded"):
+        scope = "stateless" if not project_root_supplied else "project"
+        source = "explicit_candidate" if candidate else "unresolved"
+        context = {
+            "scope": scope, "request": requested, "stage": stage,
+            "resolved": candidate if scope == "stateless" else None,
+            "candidate_backend": candidate, "selection_complete": False,
+            "source": source, "conflicts": [], "environment_verified": False,
+            "decision_contract": "core/user_execution_contract.yaml#solver_backends",
         }
-    if requested is None and not modern:
-        return None, None, conflicts  # Exact legacy return projection remains available.
-    choices = {row["backend"] for row in resolved.values() if row["backend"]}
-    complete = bool(resolved) and all(row["backend"] for row in resolved.values())
-    effective = next(iter(choices)) if complete and len(choices) == 1 else requested or "auto"
-    if complete and len(choices) > 1:
-        effective = "auto"
+        return candidate if scope == "stateless" else None, context, []
+
+    assert state is not None
+    report = STAGE_CODE.inspect_project_backend_declarations(state, requested_backend=requested)
+    conflicts = list(report["issues"])
+    try:
+        backend = STAGE_CODE.current_project_backend(state, requested_backend=requested)
+    except STAGE_CODE.StageCodeError as exc:
+        if report["kind"] == "canonical_declarations" and report["request_conflict"]:
+            backend = STAGE_CODE.current_project_backend(state)
+        else:
+            backend = None
+            if not conflicts:
+                conflicts.append(str(exc))
+    complete = backend is not None and report["kind"] == "canonical_declarations"
+    source = ("project_state" if complete else "historical_read_only" if report["kind"].startswith("legacy_")
+              else "explicit_candidate" if report["kind"] == "unselected" and candidate else "unresolved")
     context = {
-        "request": requested, "stage": stage, "by_question": resolved,
-        "resolved": effective if effective != "auto" else None,
-        "selection_complete": complete or (not resolved and effective in {"python", "matlab"}),
-        "source": "project_state" if modern else "explicit", "environment_verified": False,
+        "scope": "project", "request": requested, "stage": stage,
+        "resolved": backend, "candidate_backend": report["candidate_backend"] or candidate,
+        "selection_complete": complete, "source": source, "conflicts": conflicts,
+        "environment_verified": False,
         "decision_contract": "core/user_execution_contract.yaml#solver_backends",
     }
-    return effective, context, conflicts
+    return backend, context, conflicts
 
 
 def resolve_runtime(
@@ -238,8 +247,9 @@ def resolve_runtime(
     if not selected_intents:
         raise ValueError("no workflow intent resolved; pass an intent or --request")
 
+    state_snapshot = ProjectStateSnapshot.capture(project_root) if project_root else None
     hydration = (
-        hydrate_project_context(project_root, question)
+        hydrate_project_context(project_root, question, state_snapshot=state_snapshot)
         if project_root
         else {
             "loaded": False,
@@ -256,7 +266,6 @@ def resolve_runtime(
         }
     )
     context_conflicts = list(hydration.get("conflicts", []) or [])
-    effective_backend, solver_context, solver_conflicts = _solver_context(solver_backend, hydration, selected_intents)
     field_provenance: dict[str, str] = {}
 
     if competition is None and hydration.get("competition"):
@@ -326,11 +335,13 @@ def resolve_runtime(
         # Backend projection follows the actual resumed stage, not the request intent.
         solver_backend=None,
     )
-    if "modules/03_solve_validate.md" in plan["modules"]:
-        effective_backend, solver_context, solver_conflicts = _solver_context(solver_backend, hydration, ["code_and_solution"])
-    elif "modules/03_result_analysis.md" in plan["modules"]:
-        effective_backend, solver_context, solver_conflicts = _solver_context(solver_backend, hydration, ["result_analysis"])
-    context_conflicts.extend(solver_conflicts)
+    actual_stage = ("primary" if "modules/03_solve_validate.md" in plan["modules"] else
+                    "analysis" if "modules/03_result_analysis.md" in plan["modules"] else None)
+    effective_backend, solver_context, solver_conflicts = _solver_context(
+        solver_backend, hydration, state_snapshot.payload() if state_snapshot is not None else None,
+        actual_stage, project_root_supplied=project_root is not None,
+    )
+    context_conflicts = _unique([*context_conflicts, *solver_conflicts])
     if solver_context is not None:
         aliases = load_yaml(ROOT / "core/output_contract.yaml").get("solver_artifact_aliases", {})
         plan = code_artifact_projection(plan, aliases)
@@ -338,8 +349,10 @@ def resolve_runtime(
         field_provenance["solver_backend"] = solver_context["source"]
         if solver_context["selection_complete"]:
             plan["missing_prerequisites"] = [value for value in plan["missing_prerequisites"] if value != "solver_backend_selection"]
-            backends = [row["backend"] for row in solver_context["by_question"].values() if row["backend"]]
-            add_solver_resources(plan, backends or [effective_backend])
+            add_solver_resources(plan, [effective_backend])
+        elif solver_context["scope"] == "stateless" and effective_backend in {"python", "matlab"}:
+            # Explicit generic planning may show a template without claiming a project selection.
+            add_solver_resources(plan, [effective_backend])
         elif any(module in plan["modules"] for module in ("modules/03_solve_validate.md", "modules/03_result_analysis.md")):
             plan["missing_prerequisites"] = _unique([*plan["missing_prerequisites"], "solver_backend_selection"])
     for field, explicit in explicit_fields.items():
@@ -399,7 +412,7 @@ def resolve_runtime(
             "field_provenance": field_provenance,
             "conflicts": context_conflicts,
             "ambiguities": ambiguities,
-            **({"solver_backends": hydration.get("solver_backends", {})} if solver_context is not None else {}),
+            **({"backend_policy": hydration.get("backend_policy")} if solver_context is not None else {}),
         },
         "intent_resolution": intent_diagnostics,
         "artifact_assurance": {
@@ -411,7 +424,11 @@ def resolve_runtime(
         "authority_fingerprint": fingerprint,
     }
     # P2 adds consumption guidance only; old plan fields and machine closure stay intact.
-    plan["reading_plan"] = build_reading_plan(ROOT, plan, router, manifest, request or "")
+    plan["reading_plan"] = build_reading_plan(
+        ROOT, plan, router, manifest, request or "", state_snapshot=state_snapshot
+    )
+    if state_snapshot is not None:
+        state_snapshot.assert_current()
     return plan
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 from pathlib import Path
+import sys
 import tempfile
 import unittest
 import warnings
@@ -12,6 +13,9 @@ import zipfile
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+import artifact_fingerprint
+import stage_code
 
 
 def load_script(name):
@@ -31,9 +35,12 @@ def save_state(root, state):
     (root / "state/project_state.yaml").write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
 
 
-def complete_project(root, *, analysis="not_required", preprocessing=False, questions=2):
+def complete_project(root, *, analysis="not_required", preprocessing=False, questions=2,
+                     preprocessing_workbook="数据预处理/数据预处理结果.xlsx"):
     state = {"project": {"competition": "DEMO"}, "subproblems": {},
              "artifacts": {"compiled_pdf": "final_latex/main.pdf", "latex_source": "final_latex/main.tex"},
+             "execution": {"solver_backend": "python", "solver_backend_selection_reason":
+                           "Synthetic whole-project packaging requirements reviewed"},
              "preprocessing": {"decision": "project_level" if preprocessing else "not_needed"}}
     names = ["模型论文框架.md", "final_latex/main.pdf", "final_latex/main.tex", "附件/附件1.xlsx"]
     for index, chinese in enumerate(("一", "二")[:questions], 1):
@@ -51,11 +58,54 @@ def complete_project(root, *, analysis="not_required", preprocessing=False, ques
             names.extend([entry["result_analysis_code"], entry["result_analysis_workbook"]])
         state["subproblems"][f"Q{index}"] = entry
     if preprocessing:
-        names.extend("数据预处理/" + name for name in ("数据预处理.py", "数据预处理结果.xlsx", "data_process.m"))
+        names.extend(["数据预处理/数据预处理.py", preprocessing_workbook, "数据预处理/data_process.m"])
     for name in names:
         path = root / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(("synthetic packaging fixture: " + name).encode())
+    raw = root / "附件/附件1.xlsx"
+    data_path = preprocessing_workbook if preprocessing else "附件/附件1.xlsx"
+    data_hash = (hashlib.sha256((root / data_path).read_bytes()).hexdigest() if preprocessing
+                 else artifact_fingerprint.combined_hash([raw], root))
+    if preprocessing:
+        state["preprocessing"].update({
+            "status": "accepted", "quality_status": "passed", "workbook": preprocessing_workbook,
+            "workbook_sha256": data_hash,
+        })
+    for index, chinese in enumerate(("一", "二")[:questions], 1):
+        entry = state["subproblems"][f"Q{index}"]
+        problem = f"问题{chinese}"
+        workbook = root / entry["solution_workbook"]
+        workbook_hash = hashlib.sha256(workbook.read_bytes()).hexdigest()
+        entry.update(primary_execution_status="accepted", result_quality_status="passed",
+                     data_hash=data_hash, validated_data_hash=data_hash)
+        current = {"data": data_hash, "solution_workbook": workbook_hash}
+        for stage, field, workbook_field in (("primary", "code", "solution_workbook"),
+                                              ("analysis", "result_analysis_code", "result_analysis_workbook")):
+            if field not in entry:
+                continue
+            code = root / entry[field]
+            config = {"stage": stage, "problem_name": problem, "solver_backend": "python",
+                      "run_receipt_protocol_version": "1.1.0", "data_paths": [data_path],
+                      "data_sha256": data_hash,
+                      "data_identity_mode": "preprocessing_workbook" if preprocessing else "combined",
+                      "code_dependencies": [], "expected_workbook": entry[workbook_field]}
+            if stage == "analysis":
+                config["primary_workbook_sha256"] = workbook_hash
+            code.write_text(f"RUN_CONFIG = {config!r}\n\ndef main():\n    return 0\n", encoding="utf-8")
+            identity = stage_code.stage_code_fingerprint(root, code)
+            entry[f"{stage}_code_sha256"] = identity["entry_sha256"]
+            entry.setdefault("solver_execution", {})[stage] = {
+                "bundle_sha256": identity["bundle_sha256"],
+                "validated_bundle_sha256": identity["bundle_sha256"],
+            }
+            current[f"{stage}_code"] = identity["entry_sha256"]
+            if stage == "analysis":
+                entry["analysis_execution_status"] = "accepted"
+                current["result_analysis_workbook"] = hashlib.sha256(
+                    (root / entry["result_analysis_workbook"]).read_bytes()).hexdigest()
+        entry["artifact_hashes"] = dict(current)
+        entry["validated_artifact_hashes"] = dict(current)
     save_state(root, state)
     return state
 
@@ -116,7 +166,9 @@ class PackageCompletenessTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             state = complete_project(root, analysis="passed", preprocessing=True)
-            required = [value for field, value in state["subproblems"]["Q2"].items() if field != "result_analysis_status"]
+            required = [state["subproblems"]["Q2"][field] for field in (
+                "code", "solution_workbook", "matlab_script", "result_analysis_code", "result_analysis_workbook",
+            )]
             required += ["数据预处理/" + name for name in ("数据预处理.py", "数据预处理结果.xlsx", "data_process.m")]
             for name in required:
                 with self.subTest(name=name):
@@ -155,16 +207,19 @@ class PackageCompletenessTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             state = complete_project(root)
-            old = state["subproblems"]["Q2"]["solution_workbook"]
-            current = "已登记材料/精确主结果.xlsx"
-            target = root / current
+            current = state["subproblems"]["Q2"]["solution_workbook"]
+            substitute = "已登记材料/精确主结果.xlsx"
+            target = root / substitute
             target.parent.mkdir()
-            (root / old).rename(target)
-            state["subproblems"]["Q2"]["solution_workbook"] = current
-            save_state(root, state)
-            self.assertEqual(VALIDATOR.validate_package(root, archive(root))["status"], "passed")
+            target.write_bytes((root / current).read_bytes())
+            result = VALIDATOR.validate_package(root, archive(root))
+            self.assertEqual(result["status"], "passed", result)
             report = VALIDATOR.validate_package(root, archive(root, omit=[current]))
             self.assertTrue(any(current in issue for issue in report["issues"]), report)
+            state["subproblems"]["Q2"]["solution_workbook"] = substitute
+            save_state(root, state)
+            report = VALIDATOR.validate_package(root, archive(root))
+            self.assertTrue(any("不是当前标准工作簿" in issue for issue in report["issues"]), report)
 
     def test_official_missing_exact_file_is_rejected_by_generator_and_independent_validator(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -235,14 +290,14 @@ class PackageCompletenessTests(unittest.TestCase):
             state = complete_project(root, analysis="passed", preprocessing=True)
             omitted = state["subproblems"]["Q2"]["result_analysis_workbook"]
             for entry in state["subproblems"].values():
-                for field in ("code", "solution_workbook", "matlab_script", "result_analysis_code", "result_analysis_workbook"):
-                    entry.pop(field)
+                entry.pop("matlab_script")
             state["data"] = {"sources": [{"path": "附件/附件1.xlsx"}]}
             state["artifacts"]["approved_figures"] = ["figures/正式图.svg"]
             (root / "figures").mkdir()
             (root / "figures/正式图.svg").write_text("synthetic figure")
             save_state(root, state)
-            self.assertEqual(VALIDATOR.validate_package(root, archive(root))["status"], "passed")
+            result = VALIDATOR.validate_package(root, archive(root))
+            self.assertEqual(result["status"], "passed", result)
             for name in (omitted, "附件/附件1.xlsx", "figures/正式图.svg"):
                 report = VALIDATOR.validate_package(root, archive(root, omit=[name]))
                 self.assertTrue(any(name in item for item in report["issues"]), report)
@@ -250,15 +305,15 @@ class PackageCompletenessTests(unittest.TestCase):
     def test_registered_preprocessing_paths_and_activated_pending_analysis_are_not_omitted(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            state = complete_project(root, analysis="passed", preprocessing=True)
+            current = "已登记预处理.xlsx"
+            state = complete_project(root, analysis="passed", preprocessing=True,
+                                     preprocessing_workbook=current)
             entry = state["subproblems"]["Q2"]
             entry.update(result_analysis_status="pending", result_analysis_requirement_reason="planned evidence",
                          analysis_methods=["declared method"])
-            current = "已登记预处理.xlsx"
-            (root / "数据预处理/数据预处理结果.xlsx").rename(root / current)
-            state["preprocessing"]["workbook"] = current
             save_state(root, state)
-            self.assertEqual(VALIDATOR.validate_package(root, archive(root))["status"], "passed")
+            result = VALIDATOR.validate_package(root, archive(root))
+            self.assertEqual(result["status"], "passed", result)
             for name in (entry["result_analysis_code"], entry["result_analysis_workbook"], current):
                 report = VALIDATOR.validate_package(root, archive(root, omit=[name]))
                 self.assertTrue(any(name in issue for issue in report["issues"]), report)

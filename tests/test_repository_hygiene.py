@@ -40,7 +40,10 @@ class RepositoryHygieneTests(unittest.TestCase):
         for token in ("问题X求解.py", "问题X求解结果.xlsx", "qX_plot.m"):
             self.assertIn(token, text)
         self.assertIn("仅当 Analysis Necessity Gate=`required` 时追加", text)
-        self.assertIn("问题X结果深化分析.py + 问题X结果深化分析.xlsx", text)
+        self.assertIn("问题X结果深化分析.py", text)
+        self.assertIn("问题X结果深化分析.xlsx", text)
+        self.assertIn("同一项目后端对应的独立深化入口", text)
+        self.assertNotIn("混合后端分别按各阶段映射选取入口", text)
         self.assertIn("Gate=`not_required`", text)
         self.assertIn("非空理由", text)
         self.assertIn("不得据此声称稳健性或稳定性已通过", text)

@@ -14,7 +14,7 @@ class TestV661CodeQualityClosure(unittest.TestCase):
             self.assertIn(str(current), text, relative)
             self.assertNotIn("└─ 图表/", text, relative)
             self.assertNotIn("输出完整版代码、运行配置和说明", text, relative)
-            self.assertIn("问题X结果深化分析.py", text, relative)
+            self.assertIn("core/output_contract.yaml#per_question.solver_scripts", text, relative)
 
     def test_workbook_runtime_checkers_exist(self):
         data = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_text(encoding="utf-8"))
@@ -49,7 +49,7 @@ class TestV661CodeQualityClosure(unittest.TestCase):
         # release parity is carried globally, while this file records introduction
         # and compatible Skill lines explicitly.
         self.assertEqual(str(data["introduced_in_skill_version"]), "7.4.2")
-        self.assertEqual(str(data["skill_compatibility"]), ">=7.4.2,<10.0.0")
+        self.assertEqual(str(data["skill_compatibility"]), ">=7.4.2,<11.0.0")
         self.assertNotIn("skill_version", data)
         self.assertEqual(data["line_count"]["target_max"], 500)
         self.assertEqual(data["line_count"]["hard_max"], 700)

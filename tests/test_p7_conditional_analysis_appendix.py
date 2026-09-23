@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = str(ROOT / "scripts")
 if SCRIPTS not in sys.path:
     sys.path.insert(0, SCRIPTS)
+from tests import test_solver_backends as solver_fixtures
 
 
 def load_module(name: str, relative: str):
@@ -28,8 +29,14 @@ SYNC = load_module("p7_sync_project", "scripts/sync_project.py")
 
 
 class TestP7ConditionalAnalysisAppendix(unittest.TestCase):
-    def _state(self, digest: str, *, reason: str | None):
+    def _state(self, root: Path, digest: str, *, reason: str | None):
+        fixture = solver_fixtures.SolverBackendTests()
+        fixture.root = root
+        config = fixture.config("python")
+        source = fixture.source(config)
+        binding = fixture.entry(source, config, accepted=True)
         q1 = {
+            **binding,
             "status": "analyzed",
             "selected_model": "demo",
             "capabilities": {
@@ -47,13 +54,20 @@ class TestP7ConditionalAnalysisAppendix(unittest.TestCase):
             "primary_execution_status": "accepted",
             "analysis_execution_status": "pending",
             "solution_workbook": "问题一求解/问题一求解结果.xlsx",
-            "artifact_hashes": {"solution_workbook": digest},
-            "validated_artifact_hashes": {"solution_workbook": digest},
+            "artifact_hashes": {"data": config["data_sha256"],
+                                "primary_code": binding["primary_code_sha256"],
+                                "solution_workbook": digest},
+            "validated_artifact_hashes": {"data": config["data_sha256"],
+                                          "primary_code": binding["primary_code_sha256"],
+                                          "solution_workbook": digest},
+            "validated_data_hash": config["data_sha256"],
         }
         if reason is not None:
             q1["result_analysis_requirement_reason"] = reason
         return {
             "project": {"competition": "demo", "problem": "A", "current_phase": "figure_evidence"},
+            "execution": {"solver_backend": "python",
+                          "solver_backend_selection_reason": "Synthetic whole-problem review"},
             "requirements": {"total": 1, "completed": [], "pending": []},
             "decisions": {},
             "subproblems": {"Q1": q1},
@@ -75,7 +89,7 @@ class TestP7ConditionalAnalysisAppendix(unittest.TestCase):
             workbook.parent.mkdir(parents=True)
             workbook.write_bytes(b"accepted-primary")
             digest = hashlib.sha256(workbook.read_bytes()).hexdigest()
-            state = self._state(digest, reason="题目与计划正文只使用当前计算世界，且无未关闭的03B风险。")
+            state = self._state(root, digest, reason="题目与计划正文只使用当前计算世界，且无未关闭的03B风险。")
             (root / "state").mkdir()
             (root / "state/project_state.yaml").write_text(
                 yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8"
@@ -95,7 +109,7 @@ class TestP7ConditionalAnalysisAppendix(unittest.TestCase):
             workbook.parent.mkdir(parents=True)
             workbook.write_bytes(b"accepted-primary")
             digest = hashlib.sha256(workbook.read_bytes()).hexdigest()
-            state = self._state(digest, reason=None)
+            state = self._state(root, digest, reason=None)
             (root / "state").mkdir()
             (root / "state/project_state.yaml").write_text(
                 yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8"

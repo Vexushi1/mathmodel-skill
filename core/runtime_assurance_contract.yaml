@@ -1,6 +1,6 @@
-version: 1.2.1
-introduced_in_skill_version: 7.12.0
-skill_compatibility: '>=7.12.0,<10.0.0'
+version: 2.0.0
+introduced_in_skill_version: 10.0.0
+skill_compatibility: '>=10.0.0,<11.0.0'
 purpose: >-
   Define the machine-readable runtime assurance layer that sits above the legacy
   resolver plan: context hydration, intent provenance, artifact assurance,
@@ -44,13 +44,26 @@ runtime_context:
   rules:
   - Explicit intent, competition, classification, preprocessing decision, question scope, solver_backend, or artifact declarations remain backward-compatible inputs.
   - New active Skill solve requests explicitly pass solver_backend=auto when neither the user nor current state has selected a backend; auto is not a resolved backend.
-  - Omitted backend in legacy CLI/API with no selected state retains Python planning and legacy output projection; an existing MATLAB selection is never overridden by that compatibility default.
-  - Hydrate per-question solver_execution without merging different questions into one backend. Explicit conflicts remain review_required; do not overwrite state or promote old accepted results under a new selection.
+  - A current project hydrates exactly one backend from execution.solver_backend, after checking whole-project declarations before filtering question scope. Missing policy never defaults to Python and cannot authorize numerical delivery or receipt acceptance.
+  - A concrete explicit request that differs from the current project selection is review_required. Historical stage selections remain diagnostic migration evidence only; they do not hydrate a current backend or promote old accepted results under a new selection.
+  - Stateless legacy CLI/API requests may retain their historical Python planning projection only when no current project state is supplied. Such a plan is not a current numerical delivery authorization.
   - Legacy Python terminal outputs retain python_code/stage_python_code projection; MATLAB and unresolved auto plans use neutral primary_code/stage_code without false Python aliases.
   - When project_root is supplied, current project state may hydrate missing competition, preprocessing decision, question classification, and verified artifact availability.
   - Framework memory may guide a human or agent to the relevant section, but the runtime resolver must not promote framework prose into a verified numerical artifact.
   - Project-state hydration must never silently override a conflicting explicit argument; conflicts are reported in assurance.context.conflicts.
+  - Hydration, analysis prerequisites, artifact assurance and reading plan use the same validated ProjectStateSnapshot bytes and generation; a changed snapshot requires complete replanning or a fail-closed result.
   - Multi-question classification is hydrated automatically only when the scoped questions agree; otherwise the resolver reports ambiguity and requires explicit classification for routes that need task packs.
+
+  state_read_consistency:
+    implementation: scripts/runtime_assurance.py:ProjectStateSnapshot
+    identity: original_state_bytes_and_state_generation
+    sharing: one_in_memory_byte_snapshot_for_hydration_dependency_checks_and_reading_plan
+    checks: [before_hydration, after_hydration, before_reading_plan, after_reading_plan, before_resolver_return]
+    observed_change: fail_closed_with_project_state_changed_and_require_complete_replanning
+    pending_transaction: recovery_required_without_lock_creation_or_implicit_recovery
+    invalid_state: reject_non_utf8_invalid_yaml_nonmapping_state_and_invalid_generation
+    standalone_projection: without_the_original_hydration_snapshot_do_not_qualify_a_narrow_project_read
+    boundary: optimistic_state_read_consistency_not_atomic_snapshot_of_every_artifact_or_future_execution_authorization
 
 intent_resolution:
   explicit_intent_priority: true
@@ -244,19 +257,19 @@ compatibility:
   legacy_semantic_hash_read_supported: true
   legacy_semantic_hash_is_read_only_provenance: true
   structured_identity_is_new_write_and_lock_path: true
-  project_state_schema_change_required: already_introduced_in_phase_c2
+  project_state_schema_change_required: project_backend_policy_schema_8_0_0
   workbook_schema_change_required: false
-  task_code_interface_change_required: false
+  task_code_interface_change_required: current_numerical_stage_binding_requires_project_backend
 
 
 reading_plan:
-  schema_version: 1.0.0
+  schema_version: 1.1.0
   selection_authority: core/workflow_router.yaml#reading_policy
   producer: scripts/reading_plan.py
   consumer: assistant follows read_now, conditional triggers and tool_interfaces after resolve_runtime
   role: additive_content_reading_projection_not_execution_authorization
   preserves: [load_order, modules, contracts, templates, packs, pause_state, terminal_outputs, pre_delivery_gates, runtime_plan, assurance]
-  fields: [schema_version, profile, status, reasons, read_now, conditional, tool_interfaces, project_sources, machine_dependencies, authority_fingerprint, metrics]
+  fields: [schema_version, profile, status, reasons, read_now, conditional, tool_interfaces, project_backend_navigation, project_sources, machine_dependencies, authority_fingerprint, metrics]
   source_identity: exact_relative_path_and_full_file_sha256_plus_1_based_inclusive_line_ranges
   applicability_context: include_document_preamble_and_ancestor_introductions_for_Markdown_and_parent_mapping_headers_for_YAML
   selector_failure: whole_existing_file_with_explicit_fallback_reason
@@ -266,6 +279,7 @@ reading_plan:
   rules:
     - The sibling reading_plan schema is versioned independently; the existing assurance envelope version and fields remain unchanged.
     - read_now and conditional are consumption instructions, not passed review, authorization, or evidence that text was actually read.
+    - project_backend_navigation is non-executable guidance for the sole inspect/select/migrate CLI when a current project selection needs review; it is not a pre_delivery_gate and never supplies migration confirmation.
     - Need for human semantic/visual review remains; byte/path/hash checks cannot decide mathematical correctness or visual quality.
     - The legacy resource plan and complete machine closure remain available to old clients; new clients must not run fewer gates.
     - Approved figure binding only narrows reading when existing registry/files/hash evidence agrees; it never creates or refreshes approval.

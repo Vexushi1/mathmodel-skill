@@ -50,7 +50,7 @@ class PhaseII4bReleaseCarrierTests(unittest.TestCase):
     def test_i4a_applicability_and_i4b_scope_remain_explicit(self):
         governance = (ROOT / "SKILL_CHANGE_GOVERNANCE.md").read_text(encoding="utf-8")
         record = (ROOT / "docs/phase_i_v9_release_carrier_transition.md").read_text(encoding="utf-8")
-        self.assertIn('applies_to_skill: ">=6.3.0,<10.0.0"', governance)
+        self.assertIn('applies_to_skill: ">=6.3.0,<11.0.0"', governance)
         self.assertIn("runtime_authority: false", record)
         self.assertIn(f"target_skill_version: {HISTORICAL_RELEASE}", record)
         self.assertIn("github_release_or_tag_created: false", record)

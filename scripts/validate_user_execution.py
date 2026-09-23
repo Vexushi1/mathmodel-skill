@@ -464,26 +464,60 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
 
     key = question_key(problem)
     entry = {} if stage == "preprocessing" else (state.get("subproblems") or {}).get(key, {})
+    project_backend = None
+    if stage != "preprocessing":
+        execution = state.get("execution") or {}
+        has_policy = isinstance(execution, Mapping) and bool(
+            {"solver_backend", "solver_backend_selection_reason"} & set(execution))
+        if write or has_policy:
+            try:
+                project_backend = STAGE_CODE.current_project_backend(state, required=True)
+            except STAGE_CODE.StageCodeError as exc:
+                return list(dict.fromkeys([*issues, str(exc)]))
+        if project_backend is not None:
+            if (config.get("run_receipt_version") != SOLVER_RECEIPT_PROTOCOL_VERSION
+                    or config.get("solver_backend") != project_backend):
+                return list(dict.fromkeys([
+                    *issues, "项目后端与RUN_RECEIPT后端/协议不一致，不能登记当前工作簿",
+                ]))
+        if write:
+            field = "code" if stage == "primary" else "result_analysis_code"
+            hash_field = "primary_code_sha256" if stage == "primary" else "analysis_code_sha256"
+            execution = entry.get("solver_execution") if isinstance(entry, Mapping) else None
+            binding = execution.get(stage) if isinstance(execution, Mapping) else None
+            if (not isinstance(entry, dict) or not entry.get(field) or not entry.get(hash_field)
+                    or not isinstance(binding, Mapping) or not binding.get("bundle_sha256")):
+                return list(dict.fromkeys([
+                    *issues, f"{stage}缺少当前已交付源码及bundle绑定；历史工作簿不得重新登记",
+                ]))
     if stage == "analysis":
         prerequisite_issues = ANALYSIS_PREREQUISITES.analysis_issues(
             root, state, entry, for_receipt=True,
             historical_workbook=workbook if not write else None,
+            require_project_policy=write,
         )
         if prerequisite_issues:
             return list(dict.fromkeys([*issues, *prerequisite_issues]))
-    if stage != "preprocessing":
-        try:
-            ARTIFACT_IDENTITY.canonicalize_entry_hashes(entry)
-        except ARTIFACT_IDENTITY.ArtifactIdentityError as exc:
-            issues.append(f"artifact identity alias conflict: {exc}")
     issues.extend(validate_execution_evidence(config, state, entry, stage))
     delivered, delivered_issues = delivered_stage_config(root, state, entry, stage)
     issues.extend(delivered_issues)
     issues.extend(validate_run_receipt_binding(config, delivered))
+    if project_backend is not None and delivered is not None and delivered.get("solver_backend") != project_backend:
+        return list(dict.fromkeys([
+            *issues, "项目后端与已交付RUN_CONFIG后端不一致，不能登记当前工作簿",
+        ]))
     modern = (config.get("run_receipt_version") == SOLVER_RECEIPT_PROTOCOL_VERSION
               or (delivered or {}).get("run_receipt_protocol_version") == SOLVER_RECEIPT_PROTOCOL_VERSION)
     if stage != "preprocessing":
-        issues.extend(STAGE_CODE.validate_stage_binding(root, entry, stage))
+        binding_issues = STAGE_CODE.validate_stage_binding(
+            root, entry, stage, project_backend=project_backend)
+        issues.extend(binding_issues)
+        if write and project_backend is not None and (delivered_issues or binding_issues):
+            return list(dict.fromkeys(issues))
+        try:
+            ARTIFACT_IDENTITY.canonicalize_entry_hashes(entry)
+        except ARTIFACT_IDENTITY.ArtifactIdentityError as exc:
+            issues.append(f"artifact identity alias conflict: {exc}")
         if modern:
             execution = entry.get("solver_execution")
             selection = execution.get(stage) if isinstance(execution, Mapping) else None

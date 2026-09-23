@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from resolve_runtime import resolve_runtime
 import validate_user_execution as RECEIPT
 from tests import test_solver_backends as fixtures
-from tests.test_solver_backend_runtime_resume import legacy_primary_project
+from tests.test_solver_backend_runtime_resume import canonical_primary_project, legacy_primary_project
 
 
 class StageRecoveryTests(unittest.TestCase):
@@ -24,16 +24,8 @@ class StageRecoveryTests(unittest.TestCase):
             for primary, analysis in (("python", "matlab"), ("matlab", "python")):
                 with self.subTest(intent=intent, primary=primary), tempfile.TemporaryDirectory() as tmp:
                     root = Path(tmp)
-                    legacy_primary_project(root, analysis_backend=analysis)
+                    canonical_primary_project(root, primary, accepted=False)
                     path = root / "state/project_state.yaml"
-                    state = yaml.safe_load(path.read_text(encoding="utf-8"))
-                    entry = state["subproblems"]["Q1"]
-                    entry.update(primary_execution_status="pending", result_quality_status="pending", status="designed")
-                    # This recovery fixture has a selected primary but no delivered implementation.
-                    entry.pop("code")
-                    entry.pop("primary_code_sha256")
-                    entry["solver_execution"]["primary"] = {"backend": primary, "selection_reason": "selected model implementation"}
-                    path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
                     before = path.read_bytes()
                     for requested in (None, "auto", analysis):
                         plan = resolve_runtime(intent, project_root=root, question="Q1", solver_backend=requested)
@@ -48,7 +40,7 @@ class StageRecoveryTests(unittest.TestCase):
                         self.assertNotIn("templates/code/matlab/q1_analysis.m", plan["templates"])
                         self.assertEqual(before, path.read_bytes())
 
-    def test_legacy_primary_recovery_keeps_omitted_parameter_projection(self):
+    def test_legacy_primary_recovery_requires_project_migration(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             legacy_primary_project(root, analysis_backend="matlab")
@@ -57,8 +49,11 @@ class StageRecoveryTests(unittest.TestCase):
             state["subproblems"]["Q1"]["primary_execution_status"] = "pending"
             path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
             plan = resolve_runtime("result_analysis", project_root=root, question="Q1")
-        self.assertNotIn("solver_backend", plan)
-        self.assertIn("python_code", plan["terminal_outputs"])
+        self.assertEqual(plan["solver_backend"]["source"], "historical_read_only")
+        self.assertIsNone(plan["solver_backend"]["resolved"])
+        self.assertIn("solver_backend_selection", plan["missing_prerequisites"])
+        self.assertIn("primary_code", plan["terminal_outputs"])
+        self.assertEqual(plan["assurance"]["status"], "review_required")
 
 
 class ReturnedWorkbookPathTests(unittest.TestCase):
@@ -70,6 +65,13 @@ class ReturnedWorkbookPathTests(unittest.TestCase):
         source = fixture.source(config)
         entry = fixture.entry(source, config)
         state = fixture.state(entry)
+        state["execution"] = {"solver_backend": "python",
+                              "solver_backend_selection_reason": "Synthetic whole-problem review"}
+        selection = state["subproblems"]["Q1"]["solver_execution"]["primary"]
+        selection.pop("backend", None)
+        selection.pop("selection_reason", None)
+        (root / "state/project_state.yaml").write_text(
+            yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
         book = fixture.primary_workbook(source, config, entry["solver_execution"]["primary"]["bundle_sha256"])
         return book, state
 

@@ -11,7 +11,7 @@ class PhaseII5ReleaseClosureTests(unittest.TestCase):
         bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
         matrix = yaml.safe_load((ROOT / "tests/fixtures/v900_phase_i_migration_matrix.yaml").read_text(encoding="utf-8"))
         contract = (ROOT / "docs/v900_migration_contract.md").read_text(encoding="utf-8")
-        self.assertTrue(str(bootstrap["skill_version"]).startswith("9."))
+        self.assertEqual(str(bootstrap["skill_version"]), "10.0.0")
         self.assertEqual(matrix["schema_version"], "1.3.0")
         self.assertEqual(matrix["baseline_skill_version"], "8.9.0")
         self.assertEqual(matrix["current_skill_version"], "9.0.0")
@@ -41,7 +41,8 @@ class PhaseII5ReleaseClosureTests(unittest.TestCase):
         current_release = changelog.split("## Previous release: 8.9.0", 1)[0]
         self.assertIn("Phase I I5 closes", current_release)
         self.assertNotIn("remain Phase I I5 work", current_release)
-        self.assertIn("Phase I I5 已完成", readme)
+        self.assertIn("[CHANGELOG](CHANGELOG.md)", readme)
+        self.assertIn("## Previous release: 9.0.0", changelog)
         self.assertNotIn("继续由 Phase I I5 完成", readme)
 
 

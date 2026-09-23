@@ -1,6 +1,6 @@
 # Module 03A：主求解代码交付
 
-本模块按 `core/output_contract.yaml#per_question.solver_scripts` 在 `问题X求解/` 中生成已选 Python 或 MATLAB 主求解入口。助手只生成和静态检查，不运行赛题代码。
+本模块按项目根 `execution.solver_backend` 和 `core/output_contract.yaml#per_question.solver_scripts`，在 `问题X求解/` 中生成对应语言的本问主求解入口。助手只生成和静态检查，不运行赛题代码。
 
 若项目根目录已有 current `模型论文框架.md`，正式生成本问代码前必须先读取“当前有效口径”、本问“当前模型口径/求解与验证方案/模型挑战与人工锁模”以及必要前问依赖，用它恢复当前模型语义；不得仅凭聊天记忆重建变量、参数、目标或约束。具体输入数值和已验收结果仍回到当前数据事实源/标准工作簿核验。
 
@@ -8,7 +8,7 @@
 
 任一 gate 未通过都不得生成正式主求解代码；Model Approval 未通过时返回 Module 02，并停在 `awaiting_model_approval`。
 
-本问具体后端必须先确定，不能以 `auto` 交付。按 resolver 的后端资源映射读取对应模板，不同时生成两份求解器。配置、1.1 回执、主入口 SHA 与源码 bundle 的绑定只服从 `core/user_execution_contract.yaml`；工程检查按 `core/code_quality_contract.yaml` 分流。MATLAB 无原生分析器时明确未核验项，不把静态字符串检查当作正式工程验收。
+正式交付前必须从项目根恢复并核验唯一求解后端；缺失、冲突或 `auto` 均不得交付，也不得为本问另选语言。按 resolver 的后端资源映射读取该语言模板，不同时生成两份求解器。配置、1.1 回执、主入口 SHA 与源码 bundle 的绑定只服从 `core/user_execution_contract.yaml`；工程检查按 `core/code_quality_contract.yaml` 分流。MATLAB 无原生分析器时明确未核验项，不把静态字符串检查当作正式工程验收。
 
 ## 数据事实源分流
 
@@ -147,4 +147,4 @@ v7.14 新生成的严格主质量轨迹应在 `运行配置` 中写入 `primary_
 
 若实现过程中发现必须新增核心变量、修改目标函数/约束、改变 `preprocessing_decision`、公共数据处理或算法语义，应停止代码交付，递增 `semantic_revision`，更新 `semantic_change_categories`，把旧 `model_challenge_status`、`human_model_approval_status` 和 `locked_model_spec` 标记 stale，必要时回退 Module 03P 或 Module 02，重新闭环、重新 Challenge、重新取得用户 Approval，并再次运行两个治理门。
 
-新生成主脚本必须只定义一个静态可读 `RUN_CONFIG`（Python 顶层字典或 MATLAB 主函数初始区域的受限 JSON 字面量，语法服从执行 Authority），其中锁定 stage/problem/data path+hash/solver/seed/tolerance/limit/expected workbook 等任务可变输入，并在 primary 阶段写入 `primary_quality_protocol_version`。`execution_owner=user`、`execution_profile=full_fidelity` 与六个 no-degradation 标志由 `core/user_execution_contract.yaml` 全局继承，不在脚本中重复自报；`solver_version` 等实际运行事实仍由返回主工作簿 `运行配置` 记录和验收。旧 `FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG` 仅作只读兼容且继续按旧完整字段要求校验。默认不生成独立 YAML、运行说明或校验报告。主工作簿 accepted 后不得为了结果深化分析覆盖更新主求解入口；深化分析进入 Module 03B，并按已选深化后端生成独立入口。若后续发现主模型必须修改，应显式回退 Module 02/本模块，先传播 stale，再重新审查、批准并验收主结果。
+新生成主脚本必须只定义一个静态可读 `RUN_CONFIG`（Python 顶层字典或 MATLAB 主函数初始区域的受限 JSON 字面量，语法服从执行 Authority），其中锁定 stage/problem/data path+hash/solver/seed/tolerance/limit/expected workbook 等任务可变输入，并在 primary 阶段写入 `primary_quality_protocol_version`。`execution_owner=user`、`execution_profile=full_fidelity` 与六个 no-degradation 标志由 `core/user_execution_contract.yaml` 全局继承，不在脚本中重复自报；`solver_version` 等实际运行事实仍由返回主工作簿 `运行配置` 记录和验收。旧 `FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG` 仅作只读兼容且继续按旧完整字段要求校验。默认不生成独立 YAML、运行说明或校验报告。主工作簿 accepted 后不得为了结果深化分析覆盖更新主求解入口；深化分析进入 Module 03B，并按同一项目后端生成独立入口。若后续发现主模型必须修改，应显式回退 Module 02/本模块，先传播 stale，再重新审查、批准并验收主结果。

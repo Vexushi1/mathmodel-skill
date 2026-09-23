@@ -42,14 +42,14 @@ python scripts/hsk_pack_submission.py . \
 
 ```text
 问题X求解/
-├─ <已选主入口：问题X求解.py 或 qX_solver.m>
+├─ <项目后端对应主入口：问题X求解.py 或 qX_solver.m>
 ├─ 问题X求解结果.xlsx
 ├─ qX_plot.m
-├─ [已选深化入口：问题X结果深化分析.py 或 qX_analysis.m]    # only Gate=required
+├─ [同一项目后端对应深化入口：问题X结果深化分析.py 或 qX_analysis.m]    # only Gate=required
 └─ [问题X结果深化分析.xlsx]  # only Gate=required and analysis executed
 ```
 
-Gate=`not_required` 且理由非空时，复现包不得为了凑固定结构伪造、补空或复制 03B 文件；这也不表示稳健性、稳定性或替代算法一致性已经验证。Gate=`required` 时，当前 03B 代码/工作簿属于复现材料并必须保持 provenance/currentness，已声明的源码 helper 也必须在当前包中与 bundle 一致。主工作簿 accepted 后冻结主求解代码；已激活的深化分析由独立后端入口完成。旧敏感性/鲁棒性工作簿、旧 `结果数据表/问题X/` 与 v6.6 单脚本四文件结构仅作历史只读兼容输入，不作为新复现包标准结构。
+Gate=`not_required` 且理由非空时，复现包不得为了凑固定结构伪造、补空或复制 03B 文件；这也不表示稳健性、稳定性或替代算法一致性已经验证。Gate=`required` 时，当前 03B 代码/工作簿属于复现材料并必须保持 provenance/currentness，已声明的源码 helper 也必须在当前包中与 bundle 一致。主工作簿 accepted 后冻结主求解代码；已激活的深化分析由同一项目后端对应的独立入口完成。旧敏感性/鲁棒性工作簿、旧 `结果数据表/问题X/` 与 v6.6 单脚本四文件结构仅作历史只读兼容输入，不作为新复现包标准结构。
 
 ## 3. 包级 provenance gate
 

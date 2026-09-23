@@ -9,7 +9,7 @@ import unittest
 
 import yaml
 
-from tests.test_sync_project import ROOT, load_syncer, setup_project
+from tests.test_sync_project import ROOT, load_syncer, setup_project, stage_code
 
 SYNC = load_syncer()
 SPEC = importlib.util.spec_from_file_location("audit_reading_plan", ROOT / "scripts/reading_plan.py")
@@ -274,6 +274,17 @@ class CurrentArtifactTests(unittest.TestCase):
                     state["subproblems"]["Q1"], allow_unicode=True
                 ).replace("问题一", "问题二").replace("q1_plot", "q2_plot").replace("Q1", "Q2"))
                 second = state["subproblems"]["Q2"]
+                for stage, field, digest_field in (
+                    ("primary", "code", "primary_code_sha256"),
+                    ("analysis", "result_analysis_code", "analysis_code_sha256"),
+                ):
+                    code = root / second[field]
+                    code.write_text(code.read_text(encoding="utf-8").replace("问题一", "问题二"),
+                                    encoding="utf-8")
+                    identity = stage_code.stage_code_fingerprint(root, code)
+                    second[digest_field] = identity["entry_sha256"]
+                    second["solver_execution"][stage]["bundle_sha256"] = identity["bundle_sha256"]
+                    second["solver_execution"][stage]["validated_bundle_sha256"] = identity["bundle_sha256"]
                 second["depends_on"] = [{"question": "Q1", "kind": "result"}] if dependent else []
                 framework = root / "模型论文框架.md"
                 framework.write_text(framework.read_text(encoding="utf-8").replace(

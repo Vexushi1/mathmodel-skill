@@ -18,6 +18,7 @@ import project_transaction as TX
 import validate_code_delivery as CODE
 import validate_semantic_governance as SEMANTIC
 from tests.test_sync_project import load_syncer, setup_project
+from tests.test_user_execution_contract import UserExecutionContractTests
 from tests.test_v900_semantic_governance import framework, identity_payload
 
 
@@ -51,27 +52,9 @@ class TransactionalWriterContractTests(unittest.TestCase):
     def test_code_delivery_write_advances_generation(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "state").mkdir()
-            folder = root / "问题一求解"
-            folder.mkdir()
-            script = folder / "问题一求解.py"
-            script.write_text("print('full')\n", encoding="utf-8")
-            state = {
-                "project": {
-                    "competition": "test",
-                    "problem": "A",
-                    "current_phase": "solve_validate",
-                },
-                "subproblems": {"Q1": {"status": "designed"}},
-            }
-            (root / "state/project_state.yaml").write_text(
-                yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8"
-            )
-            config = {
-                "problem_name": "问题一",
-                "stage": "primary",
-                "data_sha256": "a" * 64,
-            }
+            fixture = UserExecutionContractTests()
+            script = fixture.make_project(root)
+            config = fixture.config("primary", "问题一求解结果.xlsx")
             CODE.update_state(root, config, script)
             updated = yaml.safe_load((root / "state/project_state.yaml").read_text(encoding="utf-8"))
             self.assertEqual(updated["project"]["state_generation"], 1)

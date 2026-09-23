@@ -14,18 +14,16 @@ class PhaseIV9ApplicabilityTests(unittest.TestCase):
         text = (ROOT / "SKILL_CHANGE_GOVERNANCE.md").read_text(encoding="utf-8")
         frontmatter = yaml.safe_load(text.split("---", 2)[1]) or {}
         self.assertEqual(str(frontmatter["governance_version"]), "1.0.3")
-        self.assertEqual(str(frontmatter["applies_to_skill"]), ">=6.3.0,<10.0.0")
+        self.assertEqual(str(frontmatter["applies_to_skill"]), ">=6.3.0,<11.0.0")
 
-    def test_active_contract_applicability_covers_v9(self):
+    def test_unchanged_contract_applicability_preserves_v9_until_release_cutover(self):
         expected = {
-            "core/task_taxonomy.yaml": ">=6.3.1,<10.0.0",
-            "core/workbook_schema.yaml": ">=6.3.2,<10.0.0",
-            "core/global_preprocessing_contract.yaml": ">=7.4.2,<10.0.0",
-            "core/user_execution_contract.yaml": ">=7.4.2,<10.0.0",
-            "core/code_quality_contract.yaml": ">=7.4.2,<10.0.0",
-            "assets/figure_assets.yaml": ">=7.4.2,<10.0.0",
-            "core/runtime_assurance_contract.yaml": ">=7.12.0,<10.0.0",
-            "core/numerical_verification_contract.yaml": ">=7.14.0,<10.0.0",
+            "core/task_taxonomy.yaml": ">=6.3.1,<11.0.0",
+            "core/workbook_schema.yaml": ">=6.3.2,<11.0.0",
+            "core/global_preprocessing_contract.yaml": ">=7.4.2,<11.0.0",
+            "core/code_quality_contract.yaml": ">=7.4.2,<11.0.0",
+            "assets/figure_assets.yaml": ">=7.4.2,<11.0.0",
+            "core/numerical_verification_contract.yaml": ">=7.14.0,<11.0.0",
         }
         for relative, compatibility in expected.items():
             with self.subTest(relative=relative):
@@ -33,9 +31,18 @@ class PhaseIV9ApplicabilityTests(unittest.TestCase):
                 self.assertEqual(str(data["skill_compatibility"]), compatibility)
                 self.assertNotIn("<9.0.0", str(data["skill_compatibility"]))
 
+    def test_redefined_execution_and_runtime_contracts_have_v10_major_boundaries(self):
+        for relative, version in (("core/user_execution_contract.yaml", "3.0.0"),
+                                  ("core/runtime_assurance_contract.yaml", "2.0.0")):
+            with self.subTest(relative=relative):
+                data = self.load(relative)
+                self.assertEqual(data["version"], version)
+                self.assertEqual(data["introduced_in_skill_version"], "10.0.0")
+                self.assertEqual(data["skill_compatibility"], ">=10.0.0,<11.0.0")
+
     def test_i4b_publishes_v9_after_i4a_applicability_renewal(self):
         bootstrap = self.load("core/bootstrap.yaml")
-        self.assertTrue(str(bootstrap["skill_version"]).startswith("9."))
+        self.assertEqual(str(bootstrap["skill_version"]), "10.0.0")
         i4a_record = (ROOT / "docs/phase_i_v9_applicability_renewal.md").read_text(encoding="utf-8")
         self.assertIn("当前 Skill release carrier 仍为 `8.9.0`", i4a_record)
         self.assertIn("I4b 才处理 current release carriers 从 `8.9.0` 到 `9.0.0`", i4a_record)

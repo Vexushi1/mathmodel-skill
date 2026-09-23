@@ -11,8 +11,8 @@
 ## 执行硬边界
 
 - Problem Contract 冻结后形成 `proposed_model_spec`，依次经过独立 `Model Reviewer` 与 `Devil's Advocate`；challenge passed 后进入 `awaiting_model_approval`，只有用户显式批准 current `semantic_revision` 与 validated `semantic_identity_hash`，并由 Model Approval gate 确认 current = validated = approved identity 后，才形成 current `locked_model_spec`；legacy hash 只读兼容不能授权新代码。正式项目级预处理或主求解代码前仍必须执行 resolver 返回的语义/模型批准 gate。
-- 题目专属预处理、主求解和在 Analysis Necessity Gate=`required` 时激活的结果深化代码（Python/MATLAB）默认由用户本地 full-fidelity 执行。助手生成并静态检查代码、验收返回工作簿；不得为了省时静默改变采样、精度、时域、重复次数、容差或求解器。
-- Artifact 名称只作导航：每问文件布局只服从 `core/output_contract.yaml`。基础三文件为 `per_question.solver_scripts` 中当前主后端入口、`问题X求解结果.xlsx` 与 `qX_plot.m`；仅当 Analysis Necessity Gate=`required` 时追加当前深化后端的独立入口与 `问题X结果深化分析.xlsx`。例如 Python 主入口为 `问题X求解.py`，Python 深化分支追加 `问题X结果深化分析.py + 问题X结果深化分析.xlsx`；MATLAB 和混合后端分别按各阶段映射选取入口。必要辅助源码按执行 Authority 声明。旧表述“最终默认恰好包含五个文件”只适用于 Gate=`required` 且不需要辅助源码的路径，不是所有新项目的无条件默认。
+- 需要项目级预处理时使用固定 Python 入口；`question_local` 变换随项目后端对应的本问主求解实现执行。主求解和在 Analysis Necessity Gate=`required` 时激活的独立结果深化代码均由项目根唯一后端确定语言，默认由用户本地 full-fidelity 执行。助手生成并静态检查代码、验收返回工作簿；不得为了省时静默改变采样、精度、时域、重复次数、容差或求解器。
+- Artifact 名称只作导航：每问文件布局只服从 `core/output_contract.yaml`。基础三文件为项目根 `execution.solver_backend` 对应的主入口、`问题X求解结果.xlsx` 与 `qX_plot.m`；仅当 Analysis Necessity Gate=`required` 时追加同一项目后端对应的独立深化入口与 `问题X结果深化分析.xlsx`。Python 项目使用 `问题X求解.py` 和条件式 `问题X结果深化分析.py`，MATLAB 项目使用对应的 `.m` 入口；不得逐问或逐阶段混合选择。必要辅助源码按执行 Authority 声明。旧表述“最终默认恰好包含五个文件”只适用于 Gate=`required` 且不需要辅助源码的路径，不是所有新项目的无条件默认。
 - 主求解 accepted 资格只服从 `core/numerical_verification_contract.yaml`；accepted 后先执行 Analysis Necessity Gate。Gate=`required` 时由 `modules/03_result_analysis.md` 管理独立深化分析；Gate=`not_required` 时必须记录非空理由，不生成 03B 代码/工作簿，也不得据此声称稳健性或稳定性已通过。
 - MATLAB 绘图入口只读取已验收数据和当前合法工作簿进行 Figure Evidence，不重新执行核心计算。主结果图只要求主工作簿；只有目标 Figure 实际消费已验收 03B 证据时才要求深化工作簿，且缺失时必须 fail closed。绘图规则只服从 `modules/04_figure_evidence.md` 与相关输出契约。
 

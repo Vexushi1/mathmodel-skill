@@ -22,6 +22,9 @@ import openpyxl
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from templates.code.hsk_pipeline import result_io
 QUESTION = "问题一求解"
 CONFIG = re.compile(r"RUN_CONFIG = jsondecode\('([^\n]*)'\);")
 
@@ -66,8 +69,7 @@ def instantiate(root: Path, stage: str, **updates) -> Path:
 
 
 def stage_state(root: Path, stage: str, code: Path) -> dict:
-    return {"backend": "matlab", "selection_reason": "Synthetic native workbook integration",
-            "bundle_sha256": reference_digest(root, [code.relative_to(root).as_posix()])}
+    return {"bundle_sha256": reference_digest(root, [code.relative_to(root).as_posix()])}
 
 
 def save_state(root: Path, state: dict) -> None:
@@ -86,6 +88,8 @@ def prepare(root: Path) -> None:
     code = instantiate(root, "primary")
     state = {"project": {"competition": "test", "problem": "synthetic", "current_phase": "solve_validate"},
              "preprocessing": {"decision": "not_needed", "status": "not_applicable", "quality_status": "not_applicable"},
+             "execution": {"solver_backend": "matlab",
+                           "solver_backend_selection_reason": "Synthetic whole-project native workbook integration"},
              "subproblems": {"Q1": {
                  "status": "designed", "selected_model": "a*x=b", "capabilities": {"requires_equilibrium_residual": True},
                  "code": code.relative_to(root).as_posix(), "primary_code_sha256": file_hash(code),
@@ -154,6 +158,8 @@ def prepare_preprocessed(root: Path) -> None:
     code = instantiate(root, "primary", data_paths=["数据预处理/数据预处理结果.xlsx"],
                        data_sha256=digest, data_identity_mode="preprocessing_workbook")
     state["project"]["current_phase"] = "solve_validate"
+    state["execution"] = {"solver_backend": "matlab",
+                          "solver_backend_selection_reason": "Synthetic whole-project native workbook integration"}
     state["subproblems"]["Q1"].update(
         selected_model="a*x=b", capabilities={"requires_equilibrium_residual": True},
         code=code.relative_to(root).as_posix(), primary_code_sha256=file_hash(code), data_hash=digest,
@@ -168,7 +174,7 @@ def verify(root: Path, stage: str) -> None:
     assert runtime_report["actual_matlab_execution"] is True and runtime_report["status"] == "passed"
     assert runtime_report["matlab_release"]
     receipt = load_module("native_smoke_receipt", "scripts/validate_user_execution.py")
-    io = load_module("native_smoke_result_io", "templates/code/hsk_pipeline/result_io.py")
+    io = result_io
     state = yaml.safe_load((root / "state/project_state.yaml").read_text(encoding="utf-8"))
     entry = state["subproblems"]["Q1"]
     workbook = root / QUESTION / ("问题一求解结果.xlsx" if stage == "primary" else "问题一结果深化分析.xlsx")
@@ -215,6 +221,21 @@ def verify(root: Path, stage: str) -> None:
         assert file_hash(root / "数据预处理/数据预处理结果.xlsx") == baseline["workbook_sha256"]
         assert runtime_report["preprocessing_workbook_unchanged"]
     save_state(root, state)
+    if stage == "analysis":
+        # Exercise read-only migration preflight against the actual native receipts.
+        # This is not execution/confirmation of a backend migration.
+        inspector = load_module("native_migration_preview", "scripts/project_solver_backend.py")
+        before = {p.relative_to(root).as_posix(): file_hash(p) for p in root.rglob("*") if p.is_file()}
+        same = inspector.preview_migration(root, target_backend="matlab", reason="Native same-backend retention check")
+        assert same["status"] == "ready_for_review", same["issues"]
+        assert all(row["evidence_status"] == "accepted_rechecked" for row in same["stages"]), same["stages"]
+        assert same["effects"]["retired_stages"] == [], same["effects"]
+        other = inspector.preview_migration(root, target_backend="python", reason="Native retirement proposal check")
+        assert other["status"] == "ready_for_review", other["issues"]
+        assert {(row["question"], row["stage"]) for row in other["effects"]["retired_stages"]} == {
+            ("Q1", "primary"), ("Q1", "analysis")}, other["effects"]
+        assert not other["migration_authorized"] and not other["write_supported"]
+        assert {p.relative_to(root).as_posix(): file_hash(p) for p in root.rglob("*") if p.is_file()} == before
 
 
 def prepare_analysis(root: Path) -> None:

@@ -29,7 +29,7 @@
 
 默认 resolver 另返回 `reading_plan`，语义由 `core/runtime_assurance_contract.yaml#reading_plan` 管理，选择配置只在 `core/workflow_router.yaml#reading_policy`。它是读取安排，不是执行批准，也不替代现有 module/gate/output 计划。
 
-先按 `read_now` 的路径、SHA-256 和行范围读取；进入后续工作前评估 `conditional` 中与实际阶段相关的条件，条件成立就读取相应资源。工具只需先读取接口、实际执行并检查报告；只有失败排查或显式源码审查才读取实现。`tool_interfaces` 保留全部现有校验门，不能用“未读工具源码”作为不执行检查的理由。
+先按 `read_now` 的路径、SHA-256 和行范围读取；进入后续工作前评估 `conditional` 中与实际阶段相关的条件，条件成立就读取相应资源。校验工具只需先读取接口、实际执行并检查报告；只有失败排查或显式源码审查才读取实现。`tool_interfaces` 保留全部现有校验门，不能用“未读工具源码”作为不执行检查的理由。`project_backend_navigation` 仅列出项目后端 `inspect/select/migrate` 的唯一 CLI 与权威段，`execute: false` 不触发命令，也不构成选择、迁移确认或交付门。
 
 片段范围只对声明的完整文件 SHA 有效，文件变化后重新解析。标题或 YAML 路径缺失、重复、别名等无法安全定位时，读取完整存在的源文件；源文件本身缺失则报错，不返回空规则。
 
@@ -104,11 +104,11 @@ problem_audit
 
 Problem Contract 冻结、Semantic Closure 通过和 Complexity Sanity 通过都不能单独授权项目级预处理或主求解代码。只有 Model Challenge passed 且 Human Model Approval 绑定当前 `semantic_revision` 与 validated `semantic_identity_hash`，并满足 current = validated = approved identity 后，`locked_model_spec` 才成为 current；legacy hash 仅为只读 provenance。semantic revision 或 structured identity 漂移会使旧 challenge、approval 与 locked model stale，并在重新进入主求解前要求重新 challenge + approval。
 
-`data_preprocessing` 是条件阶段，不因“多问共享数据”自动启用。`not_needed` 直接使用原始数据；`question_local` 仅允许相关小问所选实现 执行当前数学层已经定义的局部变换；只有 `project_level` 才在主求解前暂停，等待统一预处理工作簿通过质量门。
+`data_preprocessing` 是条件阶段，不因“多问共享数据”自动启用。`not_needed` 直接使用原始数据；`question_local` 仅允许项目后端对应的本问主求解实现执行当前数学层已经定义的局部变换；只有 `project_level` 才在主求解前暂停，等待固定 Python 预处理入口生成的统一工作簿通过质量门。
 
 `data_process.m` 虽属于 `数据预处理/`，但它在后续 Figure Evidence 阶段生成，只读取已验收 `数据预处理结果.xlsx` 的底层证据绘图，不是主求解前置。
 
-`solve_validate` 表示主求解代码交付与主结果质量门；主工作簿 accepted 后先执行 Analysis Necessity Gate。只有 Gate=`required` 时才激活 `result_analysis`，按 `core/output_contract.yaml#per_question.solver_scripts` 生成当前深化后端的独立入口，并选择题目专属深化分析；Gate=`not_required` 时必须记录非空 `result_analysis_requirement_reason`，不生成 03B 代码/工作簿，也不得据此声称稳健性或稳定性已经验证。03A 与被激活的 03B 不得倒序，也不得通过覆盖当前主入口合并。已有 accepted 主工作簿的历史项目进入被激活的独立 `result_analysis` 时，不要求为了分析阶段追溯补做当时不存在的 Human Model Approval；只有重新进入当前模型设计、项目级预处理、主求解或语义变化后的重算才迁入该门。
+`solve_validate` 表示主求解代码交付与主结果质量门；主工作簿 accepted 后先执行 Analysis Necessity Gate。只有 Gate=`required` 时才激活 `result_analysis`，按 `core/output_contract.yaml#per_question.solver_scripts` 生成项目根后端对应的独立深化入口，并选择题目专属深化分析方法；Gate=`not_required` 时必须记录非空 `result_analysis_requirement_reason`，不生成 03B 代码/工作簿，也不得据此声称稳健性或稳定性已经验证。03A 与被激活的 03B 使用同一项目后端，不得倒序，也不得通过覆盖当前主入口合并。已有 accepted 主工作簿的历史项目进入被激活的独立 `result_analysis` 时，不要求为了分析阶段追溯补做当时不存在的 Human Model Approval；只有重新进入当前模型设计、项目级预处理、主求解或语义变化后的重算才迁入该门。
 
 解析器的 `full_solution` / `full_workflow` 初始计划不会跨越用户执行边界：未完成人工锁模时先停在 `awaiting_model_approval`；已锁模后若 `project_level` 则停在 `awaiting_user_preprocessing`，否则交付当前主求解代码 并停在 `awaiting_user_execution`。用户返回对应工作簿并通过验收后，再继续后续模块。概念上的完整链与单次 resolver 输出不要混为一谈。
 
@@ -144,19 +144,21 @@ pseudocode → 循环、分支、筛选、修复、接受/拒绝或终止逻辑�
 
 ## 示例
 
+以下数值阶段示例读取已有项目根策略；`--solver-backend auto` 只用于无状态兼容诊断，不能授权项目代码交付。
+
 ```bash
-python scripts/resolve_runtime.py code_and_solution --solver-backend auto \
+python scripts/resolve_runtime.py code_and_solution --project-root /path/to/project \
   --objective optimization \
   --structures stochastic \
   --competition CUMCM \
   --preprocessing-decision not_needed
 
-python scripts/resolve_runtime.py code_and_solution --solver-backend auto \
+python scripts/resolve_runtime.py code_and_solution --project-root /path/to/project \
   --objective optimization \
   --competition CUMCM \
   --preprocessing-decision project_level
 
-python scripts/resolve_runtime.py result_analysis \
+python scripts/resolve_runtime.py result_analysis --project-root /path/to/project \
   --objective prediction \
   --structures temporal
 

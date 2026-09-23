@@ -24,7 +24,7 @@ ALLOWED_CHANGED_AUTHORITIES = {
     "templates/latex/cumcm/hsk/template_manifest.yaml",
 }
 P7_OPTIONAL_ANALYSIS_PREREQUISITE = "figure_evidence:result_analysis_workbook"
-P9_RELEASE_VERSIONS = {"9.1.0", "9.2.0", "9.2.1", "9.3.0", "9.3.1", "9.4.0", "9.4.1", "9.4.2", "9.4.3", "9.4.4", "9.5.0", "9.5.1", "9.5.2", "9.5.3", "9.5.4", "9.5.5", "9.5.6", "9.5.7", "9.6.0", "9.6.1", "9.7.0", "9.7.1"}
+APPROVED_RELEASE_CARRIERS = {"9.1.0", "9.2.0", "9.2.1", "9.3.0", "9.3.1", "9.4.0", "9.4.1", "9.4.2", "9.4.3", "9.4.4", "9.5.0", "9.5.1", "9.5.2", "9.5.3", "9.5.4", "9.5.5", "9.5.6", "9.5.7", "9.6.0", "9.6.1", "9.7.0", "9.7.1", "10.0.0"}
 A7_HYDRATED_PROVENANCE_CASES = {
     "facts_current", "facts_model_change", "facts_ambiguous", "facts_stale_framework",
     "facts_hash_drift", "facts_identity_drift", "facts_stale_dependency", "style_current",
@@ -45,7 +45,7 @@ def normalize(value, repo, project):
 def legacy_projection(plan):
     value = deepcopy(plan)
     value.pop("reading_plan", None)
-    if value.get("version") in P9_RELEASE_VERSIONS:
+    if value.get("version") in APPROVED_RELEASE_CARRIERS:
         value["version"] = "<EXPECTED_P9_RELEASE_CARRIER_CHANGE>"
     fingerprint = value["assurance"]["authority_fingerprint"]
     fingerprint["sha256"] = "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"
@@ -200,6 +200,61 @@ def approved_solver_changes(old, new):
     return projected, changes
 
 
+def approved_v10_project_backend_changes(identifier, old, new):
+    """Register only the measured v10 Authority version and canonical root projection."""
+    projected = deepcopy(new)
+    changes = []
+
+    def register(path, candidate, approval):
+        left, right, target = old, new, projected
+        try:
+            for key in path[:-1]:
+                left, right, target = left[key], right[key], target[key]
+            key = path[-1]
+            if key in left or right.get(key) != candidate:
+                return
+        except (KeyError, TypeError):
+            return
+        target.pop(key)
+        changes.append({"path": ".".join(path), "baseline_present": False,
+                        "candidate": candidate, "approval": approval})
+
+    if (old.get("assurance", {}).get("schema_version") == "1.2.0"
+            and new.get("assurance", {}).get("schema_version") == "2.0.0"):
+        projected["assurance"]["schema_version"] = "1.2.0"
+        changes.append({"path": "assurance.schema_version", "baseline": "1.2.0",
+                        "candidate": "2.0.0", "approval": "v10 approved Runtime Assurance Authority version"})
+
+    if identifier not in A7_HYDRATED_PROVENANCE_CASES:
+        return projected, changes
+    approval = "v10 approved canonical project solver backend projection"
+    solver = {
+        "scope": "project", "request": None, "stage": None, "resolved": "python",
+        "candidate_backend": None, "selection_complete": True, "source": "project_state",
+        "conflicts": [], "environment_verified": False,
+        "decision_contract": "core/user_execution_contract.yaml#solver_backends",
+    }
+    declarations = [
+        {"question": "Q1", "stage": stage, "declared_backend": None,
+         "code": f"问题一求解/{filename}", "artifact_identity_verified": False}
+        for stage, filename in (("primary", "问题一求解.py"),
+                                ("analysis", "问题一结果深化分析.py"))
+    ]
+    policy = {
+        "scope": "project", "kind": "canonical_declarations", "diagnostic_only": True,
+        "selected_backend": "python", "candidate_backend": None,
+        "candidate_evidence": "declarations_only_not_artifact_validation",
+        "requested_backend": None, "request_conflict": False,
+        "declarations": declarations, "issues": [], "schema_validated": False,
+        "environment_verified": False, "execution_authorized": False,
+    }
+    register(("assurance", "context", "backend_policy"), policy, approval)
+    register(("assurance", "context", "field_provenance", "solver_backend"), "project_state", approval)
+    register(("runtime_plan", "solver_backend"), solver, approval)
+    register(("solver_backend",), solver, approval)
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -215,6 +270,8 @@ def compare(before, after):
         expected.extend(a7_changes)
         projected, solver_changes = approved_solver_changes(old, projected)
         expected.extend(solver_changes)
+        projected, v10_changes = approved_v10_project_backend_changes(a["id"], old, projected)
+        expected.extend(v10_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,
@@ -251,11 +308,11 @@ def main():
         "schema_version": 1, "baseline_ref": args.baseline_ref, "candidate_ref": args.candidate_ref,
         "driver_sha256": hashlib.sha256(HERE.read_bytes()).hexdigest(),
         "cases_sha256": hashlib.sha256(HERE.with_name("reading_plan_cases.py").read_bytes()).hexdigest(),
-        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_explicit_a3_a7_v970_field_transitions",
+        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_transitions",
         "expected_authority_changes": sorted(ALLOWED_CHANGED_AUTHORITIES),
         "all_legacy_behavior_equal": all(r["legacy_behavior_equal"] for r in rows),
         "all_legacy_behavior_equal_except_approved_changes": all(r["legacy_behavior_equal_except_approved_changes"] for r in rows),
-        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before the exact A3/A7/v9.7 exceptions; each approved version, qualification, per-axis provenance or solver Authority addition is visible in expected_legacy_changes. No classification value or existing list-order normalization is applied. Passing requires no unregistered field differences, not an assertion that the original behavior is unchanged.",
+        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before exact A3/A7/v9.7/v10 exceptions; each approved version, provenance or canonical solver projection is visible in expected_legacy_changes. No result qualification, classification value or existing list-order normalization is waived. Passing requires no unregistered field differences.",
         "cases": rows,
     }
     args.output.mkdir(parents=True, exist_ok=True)

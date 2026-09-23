@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 import yaml
+from tests import test_solver_backends as solver_fixtures
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -60,6 +61,8 @@ class TestV712RuntimeAssurance(unittest.TestCase):
     def _base_state(self) -> dict:
         current_semantic_hash = semantic_hash()
         return {
+            "execution": {"solver_backend": "python",
+                          "solver_backend_selection_reason": "Synthetic whole-problem review"},
             "project": {
                 "competition": "CUMCM",
                 "problem": "A",
@@ -97,6 +100,24 @@ class TestV712RuntimeAssurance(unittest.TestCase):
                 }
             },
         }
+
+    def _bind_primary(self, root: Path, state: dict) -> None:
+        (root / "问题一求解").mkdir(exist_ok=True)
+        fixture = solver_fixtures.SolverBackendTests()
+        fixture.root = root
+        source = fixture.source(fixture.config("python"))
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        scripts = str(ROOT / "scripts")
+        if scripts not in sys.path:
+            sys.path.insert(0, scripts)
+        import stage_code
+        bundle = stage_code.stage_code_fingerprint(root, source)["bundle_sha256"]
+        question = state["subproblems"]["Q1"]
+        question.update(code=source.relative_to(root).as_posix(), primary_code_sha256=digest)
+        question["solver_execution"] = {"primary": {
+            "bundle_sha256": bundle, "validated_bundle_sha256": bundle}}
+        question.setdefault("artifact_hashes", {})["primary_code"] = digest
+        question.setdefault("validated_artifact_hashes", {})["primary_code"] = digest
 
     def test_default_runtime_adds_assurance_without_breaking_legacy_plan(self):
         plan = self.runtime.resolve_runtime("problem_analysis")
@@ -217,13 +238,14 @@ class TestV712RuntimeAssurance(unittest.TestCase):
             workbook.write_bytes(b"verified-workbook")
             digest = hashlib.sha256(workbook.read_bytes()).hexdigest()
             state = self._base_state()
+            self._bind_primary(root, state)
             q1 = state["subproblems"]["Q1"]
             q1.update(
                 {
                     "primary_execution_status": "accepted",
                     "result_quality_status": "passed",
                     "solution_workbook": workbook.name,
-                    "artifact_hashes": {"solution_workbook": digest},
+                    "artifact_hashes": {**q1["artifact_hashes"], "solution_workbook": digest},
                 }
             )
             self._write_state(root, state)
@@ -243,13 +265,14 @@ class TestV712RuntimeAssurance(unittest.TestCase):
             workbook = root / "问题一求解结果.xlsx"
             workbook.write_bytes(b"actual")
             state = self._base_state()
+            self._bind_primary(root, state)
             q1 = state["subproblems"]["Q1"]
             q1.update(
                 {
                     "primary_execution_status": "accepted",
                     "result_quality_status": "passed",
                     "solution_workbook": workbook.name,
-                    "artifact_hashes": {"solution_workbook": "b" * 64},
+                    "artifact_hashes": {**q1["artifact_hashes"], "solution_workbook": "b" * 64},
                 }
             )
             self._write_state(root, state)
@@ -279,13 +302,14 @@ class TestV712RuntimeAssurance(unittest.TestCase):
             outside.write_bytes(b"outside")
             digest = hashlib.sha256(outside.read_bytes()).hexdigest()
             state = self._base_state()
+            self._bind_primary(root, state)
             q1 = state["subproblems"]["Q1"]
             q1.update(
                 {
                     "primary_execution_status": "accepted",
                     "result_quality_status": "passed",
                     "solution_workbook": "../outside.xlsx",
-                    "artifact_hashes": {"solution_workbook": digest},
+                    "artifact_hashes": {**q1["artifact_hashes"], "solution_workbook": digest},
                 }
             )
             self._write_state(root, state)

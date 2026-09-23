@@ -10,20 +10,13 @@ import pandas as pd
 import yaml
 
 
-def _load_workbook_validation():
-    import importlib.util
-    import sys
+# A real package uses its own sibling; legacy flat scripts use the script import root.
+# Do not catch ImportError here: a missing dependency inside the sibling must fail.
+if __package__:
+    from . import workbook_validation as WORKBOOK_VALIDATION
+else:
+    import workbook_validation as WORKBOOK_VALIDATION
 
-    path = Path(__file__).resolve().with_name("workbook_validation.py")
-    spec = importlib.util.spec_from_file_location("hsk_pipeline_workbook_validation", path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
-WORKBOOK_VALIDATION = _load_workbook_validation()
 INVALID_SHEET_CHARS = set('[]:*?/\\')
 PROBLEM_PATTERN = re.compile(r"问题[一二三四五六七八九十百]+")
 QUESTION_DIR_PATTERN = re.compile(r"问题[一二三四五六七八九十百]+求解")

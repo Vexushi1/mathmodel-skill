@@ -67,7 +67,7 @@ class TestV7101ReadPathClosure(unittest.TestCase):
         runtime = read("RUNTIME_ROUTER.md")
         repository_index = read("REPOSITORY_INDEX.md")
         scripts_readme = read("scripts/README.md")
-        readme_summary = read("README.md").splitlines()[2]
+        readme = read("README.md")
 
         for token in ("proposed_model_spec", "Model Reviewer", "Devil's Advocate", "awaiting_model_approval", "locked_model_spec"):
             self.assertIn(token, project, token)
@@ -80,9 +80,11 @@ class TestV7101ReadPathClosure(unittest.TestCase):
         self.assertIn("core/model_approval_contract.yaml", repository_index)
         self.assertIn("scripts/validate_model_approval.py", repository_index)
         self.assertIn("validate_model_approval.py", scripts_readme)
-        self.assertIn("Model Reviewer", readme_summary)
-        self.assertIn("awaiting_model_approval", readme_summary)
-        self.assertIn("locked_model_spec", readme_summary)
+        approval_chain = ("proposed_model_spec", "Model Reviewer", "Devil's Advocate",
+                          "awaiting_model_approval", "locked_model_spec")
+        self.assertTrue(all(token in readme for token in approval_chain))
+        self.assertEqual(sorted(readme.index(token) for token in approval_chain),
+                         [readme.index(token) for token in approval_chain])
 
     def test_project_state_example_waits_for_explicit_model_approval(self) -> None:
         example = yaml.safe_load(read("state/project_state.example.yaml"))

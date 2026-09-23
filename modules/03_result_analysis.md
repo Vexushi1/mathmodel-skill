@@ -33,7 +33,7 @@ v7.14 起，`core/numerical_verification_contract.yaml` 只负责主工作簿 ac
 
 ## 二、执行规则
 
-Gate=`required` 后按 `core/user_execution_contract.yaml#solver_backends` 默认继承主后端；确需另一后端时记录具体理由。独立入口名称来自输出 Authority；03B 使用 1.1 配置/回执与独立源码 bundle。读取 accepted 主工作簿前由共享前提检查核对主代码与数据身份，不能通过调用主入口重新计算主结果。主后端的执行状态不被深化后端覆盖。
+Gate=`required` 后按 `core/user_execution_contract.yaml#solver_backends` 继承项目根唯一求解后端，不在 03B 另选语言。独立入口名称来自输出 Authority；03B 使用 1.1 配置/回执与独立源码 bundle。读取 accepted 主工作簿前由共享前提检查核对主代码与数据身份，不能通过调用主入口重新计算主结果。主阶段的执行状态不被深化阶段覆盖；`RUN_CONFIG` 与回执中的 backend 记录实际运行事实，须与项目策略一致。
 
 `required` 分支：
 
@@ -44,7 +44,7 @@ Gate=`required` 后按 `core/user_execution_contract.yaml#solver_backends` 默�
 → 继承preprocessing_decision与当前数据事实源
 → 基于真实主结果建立result_analysis_plan
 → 为每项计划声明target claim与判定准则
-→ 按已选后端新建本问独立深化入口
+→ 按项目根后端新建本问独立深化入口
 → 读取当前数据事实源 + 已验收问题X求解结果.xlsx + 必要前问标准工作簿
 → validate_code_delivery.py静态验收analysis阶段代码
 → 用户本地full_fidelity运行
