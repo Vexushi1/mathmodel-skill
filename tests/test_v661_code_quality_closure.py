@@ -14,7 +14,7 @@ class TestV661CodeQualityClosure(unittest.TestCase):
             self.assertIn(str(current), text, relative)
             self.assertNotIn("└─ 图表/", text, relative)
             self.assertNotIn("输出完整版代码、运行配置和说明", text, relative)
-            self.assertIn("问题X结果深化分析.py", text, relative)
+            self.assertIn("core/output_contract.yaml#per_question.solver_scripts", text, relative)
 
     def test_workbook_runtime_checkers_exist(self):
         data = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_text(encoding="utf-8"))

@@ -91,6 +91,29 @@ class V1000ReleaseVersionMatrixTests(unittest.TestCase):
         self.assertEqual(output["analysis_required_additional_files"][0],
                          output["solver_scripts"]["python"]["result_analysis"])
 
+    def test_readme_routes_current_work_and_preserves_historical_sources(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        headings = ("## 最短启动", "## 项目数值职责", "## 唯一 Authority 导航",
+                    "## 最少检查命令", "## 兼容与历史")
+        self.assertEqual([readme.index(heading) for heading in headings],
+                         sorted(readme.index(heading) for heading in headings))
+        self.assertNotRegex(readme, r"(?m)^## v[789]\.")
+        for authority in ("modules/05_writing/paper_writing_protocol.md",
+                          "modules/05_writing/latex.md", "core/writing_reasoning_contract.yaml",
+                          "core/output_contract.yaml#per_question.solver_scripts"):
+            self.assertIn(authority, readme)
+        for target in (
+            "docs/figure_technique_and_handoff_refactor_plan.md",
+            "docs/repository_audit_and_handoff_refactor_plan.md",
+            "docs/v840_author_reasoning_evaluation.md",
+            "docs/v860_model_construction_solution_rationale_evaluation.md",
+            "docs/v870_question_writing_capability_preflight_evaluation.md",
+            "templates/figure/figure_enhancement_patterns.md#12-按数据结构选择的绘图技巧",
+            "templates/matlab/README.md",
+        ):
+            with self.subTest(target=target):
+                self.assertIn(f"]({target})", readme)
+
 
 if __name__ == "__main__":
     unittest.main()

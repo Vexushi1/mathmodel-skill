@@ -798,3 +798,13 @@ snapshot/sync只让已登记、符合项目后端的入口和标准工作簿取�
 第21.5节记录的数值来源竞态已经用临时项目复现：观察完成后改动主源码，旧同步仍可提交基于旧 SHA 的 `passed` 报告。本批为同步写侧在观察前登记已声明源码、helper、输入、工作簿、图脚本/图证据的原始 SHA 或缺失事实，snapshot 后交叉核对观察摘要，提交前复核发现集合和同一 read set，再交既有字节绑定事务。并发改主源码、helper、输入或工作簿的负例均阻断，且 state、框架、报告不写入。此修复保护数值同步的观察—提交边界；非协作方在 journal prepared 后再修改非写入来源、formal LaTeX/ZIP 等间接读取和目录 ABA 不在本批全局原子性承诺内。
 
 定向测试已覆盖载体版本、七处适用范围、阅读导航与精确范围、活动文案/模板以及同步并发负例；优化基线固定 P1 来源与候选工作树的 **19/19 案例通过、未登记 legacy 差异为 0**。首次完整 `unittest` 实测 **1685项、8项条件跳过、4项失败，243.770秒**；四项均为 `test_v830_editable_mechanism_diagram.py` 对两份已按计划续期的契约和两份已改项目后端文案的旧 Git blob 哈希。逐一复核精确 diff 后仅重钉四项，原防漂移测试 **26/26通过**；没有删除保护门或把首次失败写成通过。随后生成索引、完整 lint、索引 `--check`、`git diff --check` 通过；再次完整 `unittest` 实测 **1685项、8项条件跳过、无失败，240.777秒**。这些是本地候选源码树的证据，生成后的源/派生分提交及精确最终 HEAD 远程 CI 仍须另记；本地测试不替代原生平台任务。PR 保持 Draft，未迁移任何用户赛题、未合并 main、未发布 10.0.0。
+
+第十批分为活动入口/读取源提交 `48f73621`、同步来源读集合修复提交 `1dd23d25` 和派生索引提交 `731413cc`，已推送同一 Draft PR #230，远端精确 HEAD 为 `731413ccb077950bf4658e3524465fbe27cc12e4`。该 HEAD 的 GitHub HSK Skill CI **13/13任务成功**（Windows Python、MATLAB R2024b、Python 3.10—3.14、LaTeX、lint、生成文件），Optimization baseline evidence 也成功。后续第十一批变更再次改变候选 tree，须单独验收最终 HEAD。
+
+## 23. 第十一批：README 当前导航与残留许可清理
+
+按照 P0 §5.2 将 README 从重复的逐版本长史改成当前简介、最短启动、项目数值职责、唯一 Authority 导航、最少检查命令和兼容/历史入口。版本演进交给 `CHANGELOG.md` 与 Git 历史；旧 v9 后端说明只作为历史资料链接，不再占据当前启动路径。旧 README 独有的七项专题资料入口逐一保留并验证目标；Algorithm Trace、普通正文/LaTeX 与复杂证据裁决分别委托现行 Pack、Paper Writing Protocol、LaTeX Adapter 和 Writing Reasoning Authority，不把旧首页长文当第二套政策。根与打包 SKILL 的历史指针和固定 Python 深化文件名发现断言同步换成 `core/output_contract.yaml#per_question.solver_scripts`，两入口保持字节一致。历史 Phase I 断言仍查 CHANGELOG 的真实记录，而不要求 README 再复制一份版本史。
+
+活动文本复扫还在 `core/global_preprocessing_contract.yaml` 的 `question_local` 与下游入口、`core/workflow_router.yaml` 的 analysis 规则发现“本问/当前阶段所选后端”残留；现已原位改为项目根唯一后端继承。MATLAB 模板 README 的跨问/跨阶段混合 smoke 明确限定为 v9 历史兼容与 v10 拒绝回归，避免把负例当当前推荐路径。项目级 Python 预处理、各问数学 solver、正式 MATLAB 只读绘图和原输出契约仍保留。
+
+README、双 SKILL 入口、版本矩阵及相关文档的定向测试 **71/71通过**；残留三文件相关 **65项通过、1项条件跳过**；README 本地 Markdown 链接/fragment 核对通过。第十一批候选树生成索引、完整 lint、索引 `--check` 与 `git diff --check` 通过；固定 P1 基线的运行时比较 **19/19通过、未登记差异为 0**；完整 `unittest` 实测 **1686项、8项条件跳过、无失败，399.316秒**。上述本地测试在审计文字最终补记前运行，源与派生提交后的精确 HEAD CI 与原生任务结果仍须另记，不沿用第十批 HEAD 的结论。

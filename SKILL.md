@@ -93,10 +93,10 @@ metadata:
 
 以下名称仅用于能力发现与回归，不在本入口重复定义规则：**Condition-Driven Reduction、Minimal Sufficient Main Model、Comparison Envelope、Structure-Matched Solver、Template Manifest、Paper Writing Protocol、Cross-File Chapter Handoff、Primary Evidence Capture、Scientific Figure Synthesis、Editable Mechanism Diagram、Model/Solver/Validator、Model Construction Rationale、Solver Preconditions、Claim Strength Calibration、Final Review Compliance & Evidence Sweep、within-question local dependency architecture、decisiveness-based detail allocation、adaptive subsection separation、adaptive figure-result narrative**。具体定义只读取上表 Authority。
 
-兼容发现 token 仅保留名称：`preprocessing_decision`、`问题X结果深化分析.py`、**Algorithm Trace**。它们用于 lint/路由与 artifact 导航，不在入口重新定义预处理枚举、结果分析流程或算法呈现规则。
+能力发现只保留名称与委托：`preprocessing_decision`、**Algorithm Trace**；当前主求解与独立深化入口按 `core/output_contract.yaml#per_question.solver_scripts` 和项目根后端解析，不以旧 Python 文件名推定交付。入口不重新定义预处理、结果分析或算法呈现规则。
 
 ## 兼容与版本信息
 
 - 历史 v7 项目继续保持只读兼容，不自动重排或覆盖既有论文正文；迁移说明见 `docs/v8_writing_migration.md`。
-- 历史版本能力与实施记录统一见 `CHANGELOG.md`、`README.md` 和 `legacy/README.md`；入口不再复制 v7.14--v8.0.1 的版本演进正文。
+- 历史版本能力与实施记录见 `CHANGELOG.md`、Git 历史和 `legacy/README.md`；`README.md` 只提供当前启动、职责与资料导航。
 - 活动文件导航使用 `PROJECT_INSTRUCTIONS.md`、`RUNTIME_ROUTER.md`、`SKILL_FILE_INDEX.md`、`TEMPLATE_INDEX.md`。

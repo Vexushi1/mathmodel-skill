@@ -1217,8 +1217,8 @@ def check_templates(errors: list[str]) -> None:
         text = read_text(ROOT / relative)
         if "└─ 图表/" in text or "输出完整版代码、运行配置和说明" in text:
             errors.append(f"active entry still contains obsolete output wording: {relative}")
-        if "问题X结果深化分析.py" not in text:
-            errors.append(f"active entry lacks independent analysis script: {relative}")
+        if "core/output_contract.yaml#per_question.solver_scripts" not in text:
+            errors.append(f"active entry lacks current two-language numerical stage mapping authority: {relative}")
         if "semantic" not in text.lower() and "语义" not in text:
             errors.append(f"active entry lacks semantic governance summary: {relative}")
         if "preprocessing_decision" not in text:

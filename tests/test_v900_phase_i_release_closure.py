@@ -41,7 +41,8 @@ class PhaseII5ReleaseClosureTests(unittest.TestCase):
         current_release = changelog.split("## Previous release: 8.9.0", 1)[0]
         self.assertIn("Phase I I5 closes", current_release)
         self.assertNotIn("remain Phase I I5 work", current_release)
-        self.assertIn("Phase I I5 已完成", readme)
+        self.assertIn("[CHANGELOG](CHANGELOG.md)", readme)
+        self.assertIn("## Previous release: 9.0.0", changelog)
         self.assertNotIn("继续由 Phase I I5 完成", readme)
 
 
