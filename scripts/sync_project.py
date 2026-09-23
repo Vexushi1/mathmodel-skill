@@ -7,6 +7,7 @@ from copy import deepcopy
 import hashlib
 import importlib.util
 import json
+import os
 import re
 import sys
 import zipfile
@@ -753,6 +754,102 @@ def _scope_artifact_issues(
     return issues
 
 
+def _capture_sync_source(root: Path, read_set: dict[str, str | None], path: Path) -> None:
+    """Bind a source before sync reads it; None also guards an expected absence."""
+    relative = path.relative_to(root).as_posix()
+    guarded = PROJECT_TX._guarded_path(root, relative)
+    if os.path.lexists(guarded) and not guarded.is_file():
+        raise PROJECT_TX.ReadSetConflictError(f"sync source is not a regular file: {relative}")
+    digest = PROJECT_TX.sha256_file(guarded) if guarded.is_file() else None
+    if relative in read_set and read_set[relative] != digest:
+        raise PROJECT_TX.ReadSetConflictError(f"sync source changed during observation: {relative}")
+    read_set[relative] = digest
+
+
+def _capture_sync_question_sources(
+    root: Path, name: str, entry: Mapping[str, Any], read_set: dict[str, str | None],
+) -> set[str]:
+    """Capture registered numerical sources and standard observation candidates."""
+    result_dir = _question_dir(root, name)
+    number = question_number(name)
+    for stage, field in (("primary", "code"), ("analysis", "result_analysis_code")):
+        if number is not None:
+            for filename in STAGE_CODE._names(name, stage).values():
+                _capture_sync_source(root, read_set, root / f"{name}求解" / filename)
+        relative = entry.get(field)
+        if not isinstance(relative, str) or not relative:
+            continue
+        try:
+            code = STAGE_CODE._relative_path(root, relative)
+        except STAGE_CODE.StageCodeError:
+            continue  # The normal snapshot reports invalid registered paths.
+        _capture_sync_source(root, read_set, code)
+        if not code.is_file():
+            continue
+        try:
+            _, config = STAGE_CODE.parse_stage_config(code)
+        except (OSError, ValueError, SyntaxError, TypeError):
+            continue  # The normal snapshot reports invalid RUN_CONFIG.
+        for item in config.get("code_dependencies", []) or []:
+            if isinstance(item, Mapping) and isinstance(item.get("path"), str):
+                try:
+                    _capture_sync_source(root, read_set, STAGE_CODE._relative_path(root, item["path"]))
+                except STAGE_CODE.StageCodeError:
+                    pass
+        for relative_input in config.get("data_paths", []) or []:
+            if isinstance(relative_input, str):
+                try:
+                    _capture_sync_source(root, read_set, STAGE_CODE._relative_path(root, relative_input))
+                except STAGE_CODE.StageCodeError:
+                    pass
+    for suffix in ("求解结果.xlsx", "结果深化分析.xlsx", "敏感性与鲁棒性结果.xlsx"):
+        _capture_sync_source(root, read_set, result_dir / f"{name}{suffix}")
+    for field in ("solution_workbook", "result_analysis_workbook"):
+        relative = entry.get(field)
+        if isinstance(relative, str) and relative:
+            try:
+                _capture_sync_source(root, read_set, STAGE_CODE._relative_path(root, relative))
+            except STAGE_CODE.StageCodeError:
+                pass
+    plot = result_dir / (f"q{number}_plot.m" if number else "q_plot.m")
+    _capture_sync_source(root, read_set, plot)
+    _capture_sync_source(root, read_set, result_dir / "figure_evidence.yaml")
+    figures, _ = PROJECT_SNAPSHOT.scoped_figure_files(root, plot, entry)
+    for figure in figures:
+        _capture_sync_source(root, read_set, figure)
+    return {figure.relative_to(root).as_posix() for figure in figures}
+
+
+def _verify_sync_question_sources(
+    snapshot: Mapping[str, Any], read_set: Mapping[str, str | None], figures: set[str],
+) -> None:
+    """Do not pair observations with an uncaptured or different source version."""
+    if set(snapshot.get("figures", [])) != figures:
+        raise PROJECT_TX.ReadSetConflictError("sync figure discovery changed during observation")
+    observed: dict[str, str] = {}
+    for stage in ("primary", "analysis"):
+        row = (snapshot.get("solver_execution_observed") or {}).get(stage) or {}
+        for source in row.get("files", []) or []:
+            observed[source["path"]] = source["sha256"]
+        for relative in ((row.get("inputs") or {}).get("paths") or []):
+            if relative not in read_set:
+                raise PROJECT_TX.ReadSetConflictError(f"sync input was not captured: {relative}")
+    for field, digest_field in (
+        ("primary_code", "primary_code_sha256"),
+        ("result_analysis_code", "analysis_code_sha256"),
+    ):
+        if snapshot.get(field) and snapshot.get(digest_field):
+            observed[snapshot[field]] = snapshot[digest_field]
+    for field in ("solution_workbook", "result_analysis_workbook", "matlab_script"):
+        relative = snapshot.get(field)
+        if relative and (digest := (snapshot.get("artifact_hashes") or {}).get(field)):
+            observed[relative] = digest
+    observed.update(snapshot.get("individual_figure_hashes") or {})
+    for relative, digest in observed.items():
+        if relative not in read_set or read_set[relative] != digest:
+            raise PROJECT_TX.ReadSetConflictError(f"sync observation differs from captured source: {relative}")
+
+
 def synchronize(
     project_root: Path,
     *,
@@ -775,6 +872,15 @@ def synchronize(
         for relative in ("模型论文框架.md", "sync_report.yaml"):
             path = PROJECT_TX._guarded_path(root, relative)
             sync_read_set[relative] = PROJECT_TX.sha256_file(path) if path.is_file() else None
+        history = (state.get("execution") or {}).get("backend_migration_history") or []
+        if isinstance(history, list):
+            for item in history:
+                if not isinstance(item, Mapping):
+                    continue
+                for field, pattern in (("manifest", _HISTORY_MANIFEST), ("report", _HISTORY_REPORT)):
+                    relative = item.get(field)
+                    if isinstance(relative, str) and pattern.fullmatch(relative):
+                        _capture_sync_source(root, sync_read_set, root / relative)
     schema = load_yaml(Path(schema_path))
     output_contract = load_yaml(Path(output_contract_path))
     phase = str((state.get("project") or {}).get("current_phase", "model_design"))
@@ -799,6 +905,16 @@ def synchronize(
     raw_files, raw_mode, data_issues, data_warnings = data_source_files(root, state)
     issues.extend(data_issues)
     warnings.extend(data_warnings)
+    if sync_read_set is not None:
+        for source in raw_files:
+            _capture_sync_source(root, sync_read_set, source)
+        preprocessing = state.get("preprocessing") or {}
+        if preprocessing.get("decision") == "project_level":
+            relative = preprocessing.get("workbook") or "数据预处理/数据预处理结果.xlsx"
+            try:
+                _capture_sync_source(root, sync_read_set, STAGE_CODE._relative_path(root, relative))
+            except STAGE_CODE.StageCodeError:
+                pass  # The normal preflight reports an invalid workbook path.
     data_hash, data_mode, active_warnings = active_data_hash(root, state, raw_files, raw_mode)
     warnings.extend(active_warnings)
 
@@ -808,14 +924,21 @@ def synchronize(
 
     snapshots: dict[str, dict[str, Any]] = {}
     subproblems = state.get("subproblems") or {}
-    for chinese_name in _question_names(root, state):
+    question_names = _question_names(root, state)
+    for chinese_name in question_names:
         key = question_key(chinese_name)
         entry = subproblems.get(key) or subproblems.get(chinese_name) or {}
+        captured_figures = (
+            _capture_sync_question_sources(root, chinese_name, entry, sync_read_set)
+            if sync_read_set is not None else set()
+        )
         snapshot = _snapshot_question(
             root, chinese_name, entry, schema, data_hash,
             scope if explicit_delivery_scope else None,
             state=state, project_backend=project_backend,
         )
+        if sync_read_set is not None:
+            _verify_sync_question_sources(snapshot, sync_read_set, captured_figures)
         snapshots[key] = snapshot
         issues.extend(f"{key}: {item}" for item in snapshot["issues"])
         warnings.extend(f"{key}: {item}" for item in snapshot["warnings"])
@@ -904,6 +1027,14 @@ def synchronize(
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
     if write and not policy_error:
+        if sync_read_set is not None:
+            current_raw_files, current_raw_mode, _, _ = data_source_files(root, state)
+            if (current_raw_mode != raw_mode or
+                    {path.relative_to(root).as_posix() for path in current_raw_files}
+                    != {path.relative_to(root).as_posix() for path in raw_files} or
+                    _question_names(root, state) != question_names):
+                raise PROJECT_TX.ReadSetConflictError("sync source discovery changed during observation")
+            PROJECT_TX._check_read_set(root, sync_read_set)
         state_snapshot.assert_current()
         report_text = yaml.safe_dump(report, allow_unicode=True, sort_keys=False)
         if state_present:

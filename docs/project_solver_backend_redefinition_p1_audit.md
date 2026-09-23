@@ -778,3 +778,23 @@ snapshot/sync只让已登记、符合项目后端的入口和标准工作簿取�
 旧归档不仅在预览时核 manifest/成员，而且在 `select` 理由修订和 `migrate` 的写侧作为历史依赖绑定；v2 journal 在 prepared、显式恢复及 committed 清理时复核完整旧归档，并保存受保护读集合中所有非写入目标的原始 SHA/null，包括旧报告及已验收源码、工作簿和输入。旧 v2 日志缺此新增字段时维持原有兼容行为，不伪称旧日志已受新字段保护。事务日志的临时/备份清理路径须与事务 ID、目标和序号生成的精确文件名一致，且在任何 journal 恢复/清理前核对仍存在的 stage/backup 原始摘要；同名文件被第三方替换时保留文件和 journal，不删除未知字节。新增 v1/v2 清理负例，事务相关 **91项执行、3项条件跳过、无失败**。普通 writer 不再隐式恢复 v2 归档事务；同步和默认状态校验只读遇 pending journal 报 `recovery_required`。旧 v1 自动恢复语义保留，未知残留字节同样阻断清理。
 
 同步写侧已对 state、框架和同步报告使用字节读集合；其观察期间读取的全部外部代码/数据/工作簿尚未形成完整的同步专用原始字节集合，非协作进程在观察与提交之间修改这些文件仍需单独处理。不能据本批声称项目级全局原子性。上述恢复/保留边界修复后、框架漂移修复前，完整 `unittest` 实测 **1668项、8项条件跳过、无失败，238.725秒**；lint、索引检查、`git diff --check` 同一候选通过。框架漂移修复后的最终完整单测与精确提交 HEAD 远程 CI 待核后登记；开发测试使用临时仓库维护夹具，没有迁移用户赛题。PR 保持 Draft，未合并 main 或发布 Skill 10.0.0。Skill 10.0.0 的 release carrier、适用范围声明、精确读取入口、lint 硬编码及生成派生文件仍按第8.3—8.4与9.2节分批核对；当前 Schema/契约版本不是已发布的 Skill 版本。
+
+第九批最终源提交 `1c799e29f97ea0a0bf71fa996647bb131db84d5f`、派生索引提交 `e0a0105a111e79472fb549ad23e854eb06ca3b40` 后，本地完整 `unittest` 在精确 HEAD 实测 **1672项、8项条件跳过、无失败，233.591秒**；lint、生成索引 `--check` 与 `git diff --check` 通过。GitHub 上该精确 HEAD 的 HSK Skill CI **13/13任务成功**（包含 Windows Python、MATLAB R2024b、Python 3.10—3.14、LaTeX、lint 与生成文件），独立 Optimization baseline evidence 工作流也成功。上述结果只证明第九批精确提交；第十批及任何后续源码变化须重新验证，且 CI 成功不等于 PR 合并或 10.0.0 发布。
+
+## 22. 第十批：10.0.0 候选入口、精确读取与活动文案
+
+### 22.1 当前载体与独立版本
+
+按第8.3—8.4节将 bootstrap、router、manifest、output、writing runtime、prose patterns、plugin 元数据、双 SKILL 入口、README 首行、CHANGELOG 当前候选与核心政策标题统一为 Skill `10.0.0`；这是 Draft PR 的候选源码，不是已发布 tag。bootstrap 只增加一个 `project_solver_backend.py` 协调入口。治理、图形资产、工程质量、全局预处理、数值核验、任务分类与工作簿七处活动适用范围在保留各自原下界的同时续期到 `<11.0.0`。Project State Schema `8.0.0`、User Execution `3.0.0`、Runtime Assurance `2.0.0`、State Transition `1.2.0`、RUN_CONFIG/RECEIPT `1.1.0`、工作簿 Schema `2.3.1`、框架标记 `v0.8-project-memory` 各守独立协议版本；未随 Skill 主版本机械改号。lint 原固定 Python 两阶段断言改为核对当前双语言入口映射，同时明确旧五文件表只是 Python 历史投影。
+
+### 22.2 当前阅读与文案
+
+`reading_policy` 和独立 `reading_plan` schema 升至 `1.1.0`；纯 `model_selection` / `advanced_method` 且 Assurance `pass` 时，`read_now` 对 User Execution 的 `solver_backends` 实际缩小行范围和计划字节，原 `load_order` 与机器依赖闭包不改。结果工作簿验收与项目同步读取此策略；缺失、歧义或非法选择器有显式全文回退，缺文件则报错，不返回空规则。`project_backend_navigation` 单列只读导航元数据，指向唯一 `inspect/select/migrate` CLI，`execute: false`；不混入需执行的 `tool_interfaces` 或 `pre_delivery_gates`，也不代表已得到某个真实项目的迁移确认。
+
+活动文档、模块、Artifact Pack、代码附录说明和数值模板把“本问/本阶段另选后端”的许可改为项目根唯一选择；全局框架口径只登记一次项目后端及理由，各问保留独立数学 solver、实现锚点、证据与条件式深化。`agents/openai.yaml` 不再固定要求 Python 求解，MATLAB 的只读限制仅指正式绘图。项目级 Python 预处理、同项目后端的 question_local 变换、正式 MATLAB Figure Evidence 与独立论文工具职责保留。README 的长版本史及普通写作导航仍须依 P0 §5.2 在下一独立源批次审慎整理，不以本批仅改首行冒称 README 重组已完成。
+
+### 22.3 同步观察竞态与验证边界
+
+第21.5节记录的数值来源竞态已经用临时项目复现：观察完成后改动主源码，旧同步仍可提交基于旧 SHA 的 `passed` 报告。本批为同步写侧在观察前登记已声明源码、helper、输入、工作簿、图脚本/图证据的原始 SHA 或缺失事实，snapshot 后交叉核对观察摘要，提交前复核发现集合和同一 read set，再交既有字节绑定事务。并发改主源码、helper、输入或工作簿的负例均阻断，且 state、框架、报告不写入。此修复保护数值同步的观察—提交边界；非协作方在 journal prepared 后再修改非写入来源、formal LaTeX/ZIP 等间接读取和目录 ABA 不在本批全局原子性承诺内。
+
+定向测试已覆盖载体版本、七处适用范围、阅读导航与精确范围、活动文案/模板以及同步并发负例；优化基线固定 P1 来源与候选工作树的 **19/19 案例通过、未登记 legacy 差异为 0**。首次完整 `unittest` 实测 **1685项、8项条件跳过、4项失败，243.770秒**；四项均为 `test_v830_editable_mechanism_diagram.py` 对两份已按计划续期的契约和两份已改项目后端文案的旧 Git blob 哈希。逐一复核精确 diff 后仅重钉四项，原防漂移测试 **26/26通过**；没有删除保护门或把首次失败写成通过。随后生成索引、完整 lint、索引 `--check`、`git diff --check` 通过；再次完整 `unittest` 实测 **1685项、8项条件跳过、无失败，240.777秒**。这些是本地候选源码树的证据，生成后的源/派生分提交及精确最终 HEAD 远程 CI 仍须另记；本地测试不替代原生平台任务。PR 保持 Draft，未迁移任何用户赛题、未合并 main、未发布 10.0.0。
