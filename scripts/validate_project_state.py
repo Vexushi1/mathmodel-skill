@@ -13,6 +13,7 @@ from jsonschema import Draft202012Validator
 
 import artifact_identity as ARTIFACT_IDENTITY
 import analysis_prerequisites as ANALYSIS_PREREQUISITES
+import runtime_assurance as RUNTIME_ASSURANCE
 import stage_code as STAGE_CODE
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -40,6 +41,8 @@ ARTIFACT_LAYERS = {
 }
 HIGH_PRECISION_BASES = {"prompt", "official", "reviewer", "project_high_precision"}
 AUXILIARY_REJECT_ACTION_MARKERS = ("remove", "rewrite", "drop", "delete", "删除", "重写", "撤回")
+BACKEND_HISTORY_MANIFEST = re.compile(r"^state/backend_history/([0-9a-f]{32})/manifest\.json$")
+BACKEND_HISTORY_REPORT = re.compile(r"^state/backend_migration_reports/([0-9a-f]{32})\.yaml$")
 
 
 def load_yaml(path: Path) -> Any:
@@ -53,6 +56,51 @@ def _artifact_exists(project_root: Path, value: Any) -> bool:
 def _sha256_text(path: Path) -> str:
     text = path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _validate_backend_history(
+    payload: Mapping[str, Any], project_root: Path,
+    report_path_overrides: Mapping[str, Path] | None,
+) -> list[str]:
+    """Check durable migration references without re-reading archived user workbooks."""
+    execution = payload.get("execution", {}) or {}
+    history = execution.get("backend_migration_history", []) if isinstance(execution, Mapping) else []
+    if not isinstance(history, list):
+        return []  # The JSON Schema reports this shape error.
+    issues, seen = [], set()
+    root = project_root.resolve()
+    for index, item in enumerate(history):
+        if not isinstance(item, Mapping):
+            continue
+        manifest, report = item.get("manifest"), item.get("report")
+        manifest_match = BACKEND_HISTORY_MANIFEST.fullmatch(manifest) if isinstance(manifest, str) else None
+        report_match = BACKEND_HISTORY_REPORT.fullmatch(report) if isinstance(report, str) else None
+        if manifest_match and report_match:
+            migration_id = manifest_match.group(1)
+            if migration_id != report_match.group(1):
+                issues.append(f"execution.backend_migration_history[{index}]: archive and report IDs differ")
+            if migration_id in seen:
+                issues.append(f"execution.backend_migration_history[{index}]: duplicate migration ID")
+            seen.add(migration_id)
+        for field, relative in (("manifest", manifest), ("report", report)):
+            if not isinstance(relative, str) or not (
+                BACKEND_HISTORY_MANIFEST.fullmatch(relative) if field == "manifest"
+                else BACKEND_HISTORY_REPORT.fullmatch(relative)
+            ):
+                continue  # The JSON Schema reports malformed paths.
+            path = (report_path_overrides or {}).get(relative) if field == "report" else None
+            path = Path(path) if path is not None else root / relative
+            try:
+                if not path.resolve().is_relative_to(root) or not path.is_file() or path.is_symlink():
+                    raise OSError("missing, linked, or outside project root")
+                actual = hashlib.sha256(path.read_bytes()).hexdigest()
+            except OSError:
+                issues.append(f"execution.backend_migration_history[{index}].{field}: referenced file is unavailable")
+                continue
+            expected = item.get("sha256" if field == "manifest" else "report_sha256")
+            if isinstance(expected, str) and actual != expected.lower():
+                issues.append(f"execution.backend_migration_history[{index}].{field}: raw SHA-256 differs")
+    return issues
 
 
 def _uses_fragment_stale(framework: Mapping[str, Any]) -> bool:
@@ -414,6 +462,8 @@ def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[s
 def validate_state_payload(
     payload: Mapping[str, Any], *, project_root: Path,
     schema_path: Path = SCHEMA_PATH, taxonomy_path: Path = TAXONOMY_PATH,
+    framework_path_override: Path | None = None,
+    report_path_overrides: Mapping[str, Path] | None = None,
 ) -> list[str]:
     if not isinstance(payload, Mapping):
         return ["schema <root>: project state must be a mapping"]
@@ -424,6 +474,8 @@ def validate_state_payload(
     for error in sorted(validator.iter_errors(payload), key=lambda item: list(item.path)):
         location = "/".join(str(part) for part in error.path) or "<root>"
         issues.append(f"schema {location}: {error.message}")
+
+    issues.extend(_validate_backend_history(payload, project_root, report_path_overrides))
 
     backend_report = STAGE_CODE.inspect_project_backend_declarations(payload)
     if backend_report["kind"] not in {"unselected", "canonical_declarations"}:
@@ -458,7 +510,10 @@ def validate_state_payload(
     framework = payload.get("paper_framework", {}) or {}
     fragment_mode = _uses_fragment_stale(framework)
     phase = str(project.get("current_phase", ""))
-    framework_path = project_root / str(framework.get("path", "模型论文框架.md"))
+    # A transaction validator must inspect the staged companion framework that
+    # belongs to this candidate, not the previous live framework bytes.
+    framework_path = (framework_path_override if framework_path_override is not None
+                      else project_root / str(framework.get("path", "模型论文框架.md")))
     framework_sync = framework.get("sync_status")
     expected_framework_hash = framework.get("sha256")
     if framework_path.is_file() and expected_framework_hash:
@@ -594,6 +649,14 @@ def validate_state_payload(
 
 def validate_state_file(path: Path, *, project_root: Path | None = None) -> list[str]:
     root = (project_root or path.parent.parent).resolve()
+    if path.resolve() == (root / "state/project_state.yaml").resolve():
+        try:
+            snapshot = RUNTIME_ASSURANCE.ProjectStateSnapshot.capture(root)
+            issues = validate_state_payload(snapshot.payload(), project_root=root)
+            snapshot.assert_current()
+            return issues
+        except RUNTIME_ASSURANCE.ProjectStateReadError as exc:
+            return [str(exc)]
     return validate_state_payload(load_yaml(path), project_root=root)
 
 

@@ -425,6 +425,28 @@ class HistoryArchiveTests(unittest.TestCase):
         self.assertEqual(TX.recover_project_transaction(self.root)["status"], "rolled_forward")
         self.assert_no_journal()
 
+    def test_prepared_recovery_rechecks_non_target_source_and_absence(self):
+        ref = self.prepare()
+        journal = self.interrupt(ref, "after_journal_prepared")
+        self.assertEqual(journal["read_only_file_hashes"]["raw.bin"], self.expected["raw.bin"])
+        self.assertIsNone(journal["read_only_file_hashes"]["absent.txt"])
+        original_state = self.state_path.read_bytes()
+        source = self.root / "raw.bin"
+        original_source = source.read_bytes()
+        source.write_bytes(b"changed after journal preparation")
+        with self.assertRaisesRegex(TX.TransactionRecoveryError, "read-only evidence"):
+            TX.recover_project_transaction(self.root)
+        self.assertEqual(self.state_path.read_bytes(), original_state)
+        source.write_bytes(original_source)
+        absent = self.root / "absent.txt"
+        absent.write_bytes(b"unexpected new evidence")
+        with self.assertRaisesRegex(TX.TransactionRecoveryError, "read-only evidence"):
+            TX.recover_project_transaction(self.root)
+        self.assertEqual(self.state_path.read_bytes(), original_state)
+        absent.unlink()
+        self.assertEqual(TX.recover_project_transaction(self.root)["status"], "rolled_forward")
+        self.assert_no_journal()
+
     def test_committed_cleanup_also_refuses_damaged_archive(self):
         ref = self.prepare()
         self.interrupt(ref, "after_journal_committed")
@@ -432,6 +454,105 @@ class HistoryArchiveTests(unittest.TestCase):
         with self.assertRaises(TX.TransactionRecoveryError):
             TX.recover_project_transaction(self.root)
         self.assertTrue((self.root / TX.JOURNAL_RELATIVE_PATH).is_file())
+
+    def test_committed_cleanup_checks_report_and_framework_before_removing_journal(self):
+        ref = self.prepare()
+        self.interrupt(ref, "after_journal_committed")
+        journal = self.root / TX.JOURNAL_RELATIVE_PATH
+        original_journal = journal.read_bytes()
+        for relative in ("history_reference.yaml", "模型论文框架.md"):
+            with self.subTest(relative=relative):
+                target = self.root / relative
+                original = target.read_bytes()
+                target.write_bytes(b"unknown third-party content")
+                with self.assertRaisesRegex(TX.TransactionRecoveryError, "committed target changed"):
+                    TX.recover_project_transaction(self.root)
+                self.assertEqual(journal.read_bytes(), original_journal)
+                self.assertEqual(target.read_bytes(), b"unknown third-party content")
+                target.write_bytes(original)
+        self.assertEqual(TX.recover_project_transaction(self.root)["status"], "committed_cleanup")
+        self.assert_no_journal()
+
+    def test_committed_cleanup_cannot_delete_unrelated_original_file(self):
+        ref = self.prepare()
+        journal = self.interrupt(ref, "after_journal_committed")
+        path = self.root / TX.JOURNAL_RELATIVE_PATH
+        journal["entries"][0]["backup"] = "raw.bin"
+        path.write_text(yaml.safe_dump(journal), encoding="utf-8")
+        with self.assertRaisesRegex(TX.TransactionRecoveryError, "backup path is invalid"):
+            TX.recover_project_transaction(self.root)
+        self.assertEqual((self.root / "raw.bin").read_bytes(), self.old_bytes["raw.bin"])
+        self.assertTrue(path.is_file())
+
+    def test_v2_committed_cleanup_checks_validly_named_temp_bytes(self):
+        ref = self.prepare()
+        journal = self.interrupt(ref, "after_journal_committed")
+        journal_path = self.root / TX.JOURNAL_RELATIVE_PATH
+        entry = journal["entries"][0]
+        backup = self.root / entry["backup"]
+        original_backup = backup.read_bytes()
+        backup.write_bytes(b"unknown backup bytes")
+        with self.assertRaisesRegex(TX.TransactionRecoveryError, "backup has unknown content"):
+            TX.recover_project_transaction(self.root)
+        self.assertTrue(journal_path.is_file())
+        self.assertEqual(backup.read_bytes(), b"unknown backup bytes")
+
+        backup.write_bytes(original_backup)
+        staged = self.root / entry["staged"]
+        self.assertFalse(staged.exists())
+        staged.write_bytes(b"unknown staged bytes")
+        with self.assertRaisesRegex(TX.TransactionRecoveryError, "staged has unknown content"):
+            TX.recover_project_transaction(self.root)
+        self.assertTrue(journal_path.is_file())
+        self.assertEqual(staged.read_bytes(), b"unknown staged bytes")
+
+        staged.write_bytes((self.root / entry["path"]).read_bytes())
+        self.assertEqual(TX.recover_project_transaction(self.root)["status"], "committed_cleanup")
+        self.assert_no_journal()
+
+    def test_previous_archive_is_durable_dependency_of_next_journal(self):
+        ref = self.prepare()
+        self.commit(ref)
+        current = yaml.safe_load(self.state_path.read_text(encoding="utf-8"))
+        archive_hashes = TX.verify_history_archive(self.root, ref)["archive_hashes"]
+        old_report = "state/backend_migration_reports/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.yaml"
+        report_path = self.root / old_report
+        report_path.parent.mkdir(exist_ok=True)
+        report_path.write_bytes(b"old committed migration report\n")
+        original_report = report_path.read_bytes()
+        expected = {TX.STATE_RELATIVE_PATH: TX.sha256_file(self.state_path),
+                    **archive_hashes, old_report: TX.sha256_file(report_path)}
+
+        def stop(point):
+            if point == "after_journal_prepared":
+                raise RuntimeError("interrupted")
+
+        with self.assertRaisesRegex(RuntimeError, "interrupted"):
+            TX.commit_project_state(
+                self.root, current, expected_generation=1, expected_file_hashes=expected,
+                historical_archives=[ref], failure_hook=stop,
+            )
+        journal = self.root / TX.JOURNAL_RELATIVE_PATH
+        payload = yaml.safe_load(journal.read_text(encoding="utf-8"))
+        self.assertEqual(payload["version"], 2)
+        self.assertEqual(payload["historical_archives"], [ref])
+        self.assertEqual(payload["read_only_file_hashes"][old_report], expected[old_report])
+        with self.assertRaisesRegex(TX.TransactionRecoveryError, "explicit recovery"):
+            TX.load_state_for_update(self.root)
+        report_path.write_bytes(b"tampered migration report\n")
+        with self.assertRaisesRegex(TX.TransactionRecoveryError, "read-only evidence"):
+            TX.recover_project_transaction(self.root)
+        self.assertTrue(journal.is_file())
+        report_path.write_bytes(original_report)
+        extra = self.root / self.directory / "unlisted.txt"
+        extra.write_text("unexpected", encoding="utf-8")
+        with self.assertRaises(TX.TransactionRecoveryError):
+            TX.recover_project_transaction(self.root)
+        self.assertTrue(journal.is_file())
+        extra.unlink()
+        self.assertEqual(TX.recover_project_transaction(self.root)["status"], "rolled_forward")
+        self.assertFalse(journal.exists())
+        self.assertEqual(yaml.safe_load(self.state_path.read_text(encoding="utf-8"))["project"]["state_generation"], 2)
 
     def test_journal_cleanup_paths_cannot_delete_preserved_history(self):
         ref = self.prepare()

@@ -13,6 +13,7 @@ from functools import wraps
 import hashlib
 import json
 import os
+import re
 import stat
 import threading
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -220,12 +221,79 @@ def _safe_unlink(path: Path) -> None:
         pass
 
 
-def _cleanup_entry_files(root: Path, entries: Sequence[Mapping[str, Any]]) -> None:
+def _verified_cleanup_files(root: Path, entries: Sequence[Mapping[str, Any]]) -> list[tuple[str, str]]:
+    """Identify only unchanged transaction files before deleting any of them."""
+    found: list[tuple[str, str]] = []
     for entry in entries:
         for field in ("staged", "backup"):
-            value = str(entry.get(field, "")).strip()
-            if value:
-                _safe_unlink(_resolve_inside(root, value))
+            relative = entry.get(field, "")
+            if relative == "":
+                continue
+            digest = entry.get("new_sha256" if field == "staged" else "old_sha256")
+            if (not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest)):
+                raise TransactionRecoveryError(f"transaction {field} digest is invalid: {relative}")
+            try:
+                path = _guarded_path(root, relative)
+                if os.path.lexists(path) and (not path.is_file() or sha256_file(path) != digest):
+                    raise TransactionRecoveryError(f"transaction {field} has unknown content: {relative}")
+            except (OSError, ProjectTransactionError) as exc:
+                if isinstance(exc, TransactionRecoveryError):
+                    raise
+                raise TransactionRecoveryError(f"transaction {field} is unavailable: {relative}") from exc
+            found.append((relative, digest))
+    return found
+
+
+def _cleanup_entry_files(root: Path, entries: Sequence[Mapping[str, Any]]) -> None:
+    for relative, digest in _verified_cleanup_files(root, entries):
+        try:
+            path = _guarded_path(root, relative)
+            if not os.path.lexists(path):
+                continue
+            if not path.is_file() or sha256_file(path) != digest:
+                raise TransactionRecoveryError(f"transaction cleanup file has unknown content: {relative}")
+            path.unlink()
+        except (OSError, ProjectTransactionError) as exc:
+            if isinstance(exc, TransactionRecoveryError):
+                raise
+            raise TransactionRecoveryError(f"transaction cleanup file is unavailable: {relative}") from exc
+
+
+def _cleanup_unjournaled_entry_files(root: Path, entries: Sequence[Mapping[str, Any]]) -> None:
+    """Discard private staging after a failed candidate, preserving its original error."""
+    for entry in entries:
+        for field in ("staged", "backup"):
+            relative = entry.get(field, "")
+            if relative:
+                _safe_unlink(_guarded_path(root, relative))
+
+
+def _validate_journal_cleanup_paths(root: Path, journal: Mapping[str, Any], entries: list[Any]) -> None:
+    """A recovered journal may clean up only the staging names this writer creates."""
+    transaction_id = journal.get("transaction_id")
+    if not isinstance(transaction_id, str) or not re.fullmatch(r"[0-9a-f]{32}", transaction_id):
+        raise TransactionRecoveryError("transaction journal id is invalid")
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, Mapping) or type(entry.get("existed")) is not bool:
+            raise TransactionRecoveryError("transaction journal entry shape is invalid")
+        relative = entry.get("path")
+        try:
+            _canonical_relative_name(relative)
+            _guarded_path(root, relative)
+        except ProjectTransactionError as exc:
+            raise TransactionRecoveryError(f"transaction journal target path is invalid: {relative}") from exc
+        target = PurePosixPath(relative)
+        directory = "" if target.parent == PurePosixPath(".") else target.parent.as_posix() + "/"
+        stem = f"{directory}.{target.name}.txn-{transaction_id}-{index}"
+        expected = {"staged": stem + ".stage", "backup": stem + ".bak" if entry["existed"] else ""}
+        for field, name in expected.items():
+            if entry.get(field) != name:
+                raise TransactionRecoveryError(f"transaction journal {field} path is invalid: {relative}")
+            if name:
+                try:
+                    _guarded_path(root, name)
+                except ProjectTransactionError as exc:
+                    raise TransactionRecoveryError(f"transaction journal {field} path is aliased: {relative}") from exc
 
 
 def _remove_journal(root: Path) -> None:
@@ -235,7 +303,7 @@ def _remove_journal(root: Path) -> None:
         _fsync_directory(journal.parent)
 
 
-def _recover_project_transaction_locked(project_root: Path) -> dict[str, Any]:
+def _recover_project_transaction_locked(project_root: Path, *, explicit: bool = False) -> dict[str, Any]:
     """Roll a prepared transaction forward to its declared new hashes.
 
     Recovery never guesses. Every target must still match either the journal's old hash
@@ -247,12 +315,45 @@ def _recover_project_transaction_locked(project_root: Path) -> dict[str, Any]:
         return {"recovered": False, "status": "clean"}
 
     journal = _load_yaml_mapping(journal_path)
-    _verify_journal_archives(root, journal)
+    if journal.get("version") == ARCHIVE_JOURNAL_VERSION and not explicit:
+        raise TransactionRecoveryError("archive-bound transaction requires explicit recovery")
     status = str(journal.get("status", ""))
     entries = journal.get("entries") or []
     if not isinstance(entries, list):
         raise TransactionRecoveryError("transaction journal entries must be a list")
+    _validate_journal_cleanup_paths(root, journal, entries)
+    _verify_journal_archives(root, journal)
+    _verified_cleanup_files(root, entries)
     if status == "committed":
+        base_generation = journal.get("base_generation")
+        target_generation = journal.get("target_generation")
+        if (type(base_generation) is not int or base_generation < 0
+                or type(target_generation) is not int or target_generation != base_generation + 1):
+            raise TransactionRecoveryError("committed journal generations are invalid")
+        if sum(isinstance(entry, Mapping) and entry.get("path") == STATE_RELATIVE_PATH for entry in entries) != 1:
+            raise TransactionRecoveryError("committed journal requires one project state target")
+        for entry in entries:
+            if not isinstance(entry, Mapping):
+                raise TransactionRecoveryError("committed journal entry must be a mapping")
+            relative = entry.get("path")
+            digest = entry.get("new_sha256")
+            if (not isinstance(relative, str) or not relative or not isinstance(digest, str)
+                    or len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest)):
+                raise TransactionRecoveryError("committed journal target identity is invalid")
+            target = _resolve_inside(root, relative)
+            try:
+                if not target.is_file() or sha256_file(target) != digest:
+                    raise TransactionRecoveryError(f"committed target changed: {relative}")
+            except OSError as exc:
+                raise TransactionRecoveryError(f"committed target is unavailable: {relative}") from exc
+        try:
+            if _live_generation(root) != target_generation:
+                raise TransactionRecoveryError("committed project state generation changed")
+        except (OSError, yaml.YAMLError, ProjectTransactionError) as exc:
+            if isinstance(exc, TransactionRecoveryError):
+                raise
+            raise TransactionRecoveryError("committed project state generation is unreadable") from exc
+        _verify_journal_archives(root, journal)
         _cleanup_entry_files(root, entries)
         _remove_journal(root)
         return {"recovered": True, "status": "committed_cleanup"}
@@ -325,6 +426,12 @@ def _recover_project_transaction_locked(project_root: Path) -> dict[str, Any]:
 @_with_project_lock
 def recover_project_transaction(project_root: Path) -> dict[str, Any]:
     """Recover one prepared journal while holding the project-local writer lock."""
+    return _recover_project_transaction_locked(Path(project_root).resolve(), explicit=True)
+
+
+@_with_project_lock
+def _recover_for_update(project_root: Path) -> dict[str, Any]:
+    """Retain legacy v1 auto-recovery without silently recovering archive-bound work."""
     return _recover_project_transaction_locked(Path(project_root).resolve())
 
 
@@ -333,9 +440,9 @@ def load_state_for_update(
     *,
     state_relative: str = STATE_RELATIVE_PATH,
 ) -> tuple[Path, dict[str, Any], int]:
-    """Recover any interrupted transaction, then load state with its generation."""
+    """Auto-recover legacy v1 work, then load state; v2 needs explicit recovery."""
     root = Path(project_root).resolve()
-    recover_project_transaction(root)
+    _recover_for_update(root)
     state_path = _resolve_inside(root, state_relative)
     state = _load_yaml_mapping(state_path)
     return state_path, state, state_generation(state)
@@ -724,21 +831,52 @@ def _preserved_archive_reports(
     return refs, reports
 
 
+def _historical_archive_reports(
+    root: Path, references: Sequence[Mapping[str, str]], base_generation: int,
+    write_paths: Sequence[str],
+) -> tuple[list[dict[str, str]], list[dict[str, Any]]]:
+    """Verify earlier archive generations without requiring current source bytes."""
+    if not isinstance(references, (list, tuple)):
+        raise ProjectTransactionError("historical_archives must be a list or tuple of references")
+    refs, reports, seen = [], [], set()
+    for reference in references:
+        ref = _archive_reference(reference)
+        directory = _guarded_path(root, ref["manifest"]).parent
+        identity = os.path.normcase(str(directory))
+        if identity in seen:
+            raise ProjectTransactionError("duplicate historical archive reference")
+        seen.add(identity)
+        for relative in write_paths:
+            target = _guarded_path(root, relative)
+            if target == directory or target.is_relative_to(directory) or directory.is_relative_to(target):
+                raise ProjectTransactionError("transaction cannot write into a historical archive")
+        report = verify_history_archive(root, ref)
+        if report["base_generation"] >= base_generation:
+            raise GenerationConflictError("historical archive must precede this transaction's base generation")
+        refs.append(ref)
+        reports.append(report)
+    return refs, reports
+
+
 def _verify_journal_archives(root: Path, journal: Mapping[str, Any]) -> None:
     version = journal.get("version")
     if type(version) is not int or version not in {JOURNAL_VERSION, ARCHIVE_JOURNAL_VERSION}:
         raise TransactionRecoveryError("unsupported project transaction journal version")
     if version == JOURNAL_VERSION:
-        if "preserved_archives" in journal:
+        if ("preserved_archives" in journal or "historical_archives" in journal
+                or "read_only_file_hashes" in journal):
             raise TransactionRecoveryError("archive dependencies require journal version 2")
         return
     if (type(journal.get("base_generation")) is not int or journal["base_generation"] < 0
             or type(journal.get("target_generation")) is not int
             or journal["target_generation"] != journal["base_generation"] + 1):
         raise TransactionRecoveryError("archive-bound journal generations are invalid")
-    references, entries = journal.get("preserved_archives"), journal.get("entries")
-    if not isinstance(references, list) or not references or not isinstance(entries, list):
-        raise TransactionRecoveryError("journal version 2 requires preserved archives and entries")
+    references = journal.get("preserved_archives", [])
+    historical = journal.get("historical_archives", [])
+    entries = journal.get("entries")
+    if (not isinstance(references, list) or not isinstance(historical, list)
+            or not (references or historical) or not isinstance(entries, list)):
+        raise TransactionRecoveryError("journal version 2 requires archive dependencies and entries")
     try:
         touched_paths = []
         for entry in entries:
@@ -746,9 +884,25 @@ def _verify_journal_archives(root: Path, journal: Mapping[str, Any]) -> None:
             # Cleanup also mutates the filesystem; a journal must never redirect
             # its temporary/backup paths into the evidence it promises to preserve.
             touched_paths.extend(entry[field] for field in ("staged", "backup") if entry.get(field))
+        read_only = journal.get("read_only_file_hashes", {})
+        if not isinstance(read_only, Mapping):
+            raise ProjectTransactionError("journal read-only identities must be a mapping")
+        for relative, digest in read_only.items():
+            _guarded_path(root, relative)
+            if relative in touched_paths:
+                raise ProjectTransactionError(f"journal read-only identity overlaps a transaction target: {relative}")
+            if (digest is not None and (not isinstance(digest, str)
+                    or not re.fullmatch(r"[0-9a-f]{64}", digest))):
+                raise ProjectTransactionError(f"journal read-only identity has invalid SHA-256: {relative}")
+        _check_read_set(root, read_only)
         _, reports = _preserved_archive_reports(
             root, references, journal["base_generation"], touched_paths,
         )
+        old_refs, _ = _historical_archive_reports(
+            root, historical, journal["base_generation"], touched_paths,
+        )
+        if {ref["manifest"] for ref in references}.intersection(ref["manifest"] for ref in old_refs):
+            raise ProjectTransactionError("current and historical archive references overlap")
         state_entries = [entry for entry in entries if entry["path"] == STATE_RELATIVE_PATH]
         if len(state_entries) != 1:
             raise ProjectTransactionError("archive-bound journal requires one state entry")
@@ -757,7 +911,7 @@ def _verify_journal_archives(root: Path, journal: Mapping[str, Any]) -> None:
             if state_entry.get("old_sha256") != report["source_hashes"][STATE_RELATIVE_PATH]:
                 raise ProjectTransactionError("journal old state differs from archived state")
     except (OSError, ValueError, TypeError, KeyError, ProjectTransactionError) as exc:
-        raise TransactionRecoveryError(f"preserved archive verification failed: {exc}") from exc
+        raise TransactionRecoveryError(f"archive/read-only evidence verification failed: {exc}") from exc
 
 
 @_with_project_lock
@@ -768,6 +922,7 @@ def commit_project_state(
     expected_generation: int,
     expected_file_hashes: Mapping[str, str | None] | None = None,
     preserved_archives: Sequence[Mapping[str, str]] = (),
+    historical_archives: Sequence[Mapping[str, str]] = (),
     writes_before_state: Sequence[tuple[str, str]] = (),
     writes_after_state: Sequence[tuple[str, str]] = (),
     validators: Sequence[StagedValidator] = (),
@@ -783,23 +938,28 @@ def commit_project_state(
     mapping value means the path must not exist. Checks hold the advisory writer
     lock but do not promise atomicity against arbitrary non-cooperating processes.
     A guarded caller must explicitly recover an existing journal and take a fresh
-    snapshot; unguarded legacy callers retain automatic recovery. After preparation,
+    snapshot; unguarded legacy callers retain v1 automatic recovery only. After preparation,
     recovery still rolls forward using the existing journal, not the old read set.
-    Nonempty preserved_archives additionally require byte protection and persist
-    externally bound archive references in journal v2 for recovery verification.
+    Archive dependencies require byte protection and persist externally bound
+    current or historical archive references in journal v2 for recovery verification.
     Transactions without archives continue using v1. The caller still owns the
     durable project-level history reference and migration/approval semantics.
     """
     root = Path(project_root).resolve()
     read_set: dict[str, str | None] | None = None
-    if not isinstance(preserved_archives, (list, tuple)):
-        raise ProjectTransactionError("preserved_archives must be a list or tuple")
-    if preserved_archives and expected_file_hashes is None:
-        raise ProjectTransactionError("preserved archives require expected_file_hashes")
+    if not isinstance(preserved_archives, (list, tuple)) or not isinstance(historical_archives, (list, tuple)):
+        raise ProjectTransactionError("archive dependencies must be lists or tuples")
+    if (preserved_archives or historical_archives) and expected_file_hashes is None:
+        raise ProjectTransactionError("archive dependencies require expected_file_hashes")
+    write_paths = [relative for relative, _ in [*writes_before_state, (STATE_RELATIVE_PATH, ""), *writes_after_state]]
     archive_refs, archive_reports = _preserved_archive_reports(
-        root, preserved_archives, expected_generation,
-        [relative for relative, _ in [*writes_before_state, (STATE_RELATIVE_PATH, ""), *writes_after_state]],
+        root, preserved_archives, expected_generation, write_paths,
     )
+    historical_refs, historical_reports = _historical_archive_reports(
+        root, historical_archives, expected_generation, write_paths,
+    )
+    if {ref["manifest"] for ref in archive_refs}.intersection(ref["manifest"] for ref in historical_refs):
+        raise ProjectTransactionError("current and historical archive references overlap")
     if expected_file_hashes is not None:
         if isinstance(expected_generation, bool) or not isinstance(expected_generation, int) or expected_generation < 0:
             raise ProjectTransactionError("expected_generation must be a non-negative integer")
@@ -817,6 +977,10 @@ def commit_project_state(
                 if relative in read_set and read_set[relative] != digest:
                     raise ReadSetConflictError(f"archive differs from confirmed read set: {relative}")
                 read_set[relative] = digest
+        for report in historical_reports:
+            for relative, digest in report["archive_hashes"].items():
+                if relative not in read_set or read_set[relative] != digest:
+                    raise ReadSetConflictError(f"historical archive differs from confirmed read set: {relative}")
         _check_read_set(root, read_set)
     else:
         _recover_project_transaction_locked(root)
@@ -864,7 +1028,7 @@ def commit_project_state(
             _check_staged_read_set(root, entries, read_set)
 
         journal = {
-            "version": ARCHIVE_JOURNAL_VERSION if archive_refs else JOURNAL_VERSION,
+            "version": ARCHIVE_JOURNAL_VERSION if archive_refs or historical_refs else JOURNAL_VERSION,
             "status": "prepared",
             "transaction_id": transaction_id,
             "base_generation": expected_generation,
@@ -873,12 +1037,19 @@ def commit_project_state(
         }
         if archive_refs:
             journal["preserved_archives"] = archive_refs
+        if historical_refs:
+            journal["historical_archives"] = historical_refs
+        if archive_refs or historical_refs:
+            journal["read_only_file_hashes"] = {
+                relative: digest for relative, digest in read_set.items()
+                if relative not in write_paths
+            }
             _verify_journal_archives(root, journal)
         journal_path = _journal_path(root)
         atomic_write_text(journal_path, yaml.safe_dump(journal, allow_unicode=True, sort_keys=False))
         journal_written = True
         _invoke_failure(failure_hook, "after_journal_prepared")
-        if archive_refs:
+        if archive_refs or historical_refs:
             _verify_journal_archives(root, journal)
 
         for entry in entries:
@@ -919,5 +1090,5 @@ def commit_project_state(
         }
     except Exception:
         if not journal_written:
-            _cleanup_entry_files(root, entries)
+            _cleanup_unjournaled_entry_files(root, entries)
         raise

@@ -4,20 +4,20 @@
 
 ## 运行时入口与治理
 
-- `resolve_runtime.py`：默认 assured runtime 入口。在兼容旧 plan 字段及 `objective / structures / capabilities` 分类轴的基础上，可选读取 `--project-root` / `--question` 恢复 current project state，验证 artifact hash，输出 intent provenance、ambiguity、declarative contract closure、authority fingerprint 与 `runtime_plan/assurance`。
+- `resolve_runtime.py`：默认 assured runtime 入口。在兼容旧 plan 字段及 `objective / structures / capabilities` 分类轴的基础上，可选读取 `--project-root` / `--question` 恢复 current project state，先检查全题项目后端策略，再按本次问题及实际恢复阶段验证 artifact hash，输出 intent provenance、ambiguity、declarative contract closure、authority fingerprint 与 `runtime_plan/assurance`；`auto` 或无状态兼容默认不写入项目选择。
 - `reading_plan.py`：由默认 resolver 调用，使用同一次 hydration 的原始状态快照生成带文件哈希与行范围的初始读取、条件资料和工具接口清单；读取选择服从 `core/workflow_router.yaml#reading_policy`，不改旧计划、不执行校验门、不写项目。
 - `resolve_workflow.py`：保留的无状态兼容 resolver；仍可直接解析显式 intent/classification/artifact-name 输入，但不负责 project-state hydration 或 artifact hash assurance。
 - `validate_semantic_governance.py`：检查 Problem Contract、题面—数学—代码—输出语义闭环、Complexity Sanity Check、semantic revision、跨问 typed dependency 与 paper-fragment stale；不运行赛题代码，也不恢复数值有效性。
 - `validate_model_approval.py`：在项目级预处理或主求解代码交付前，检查 `model_challenge_status=passed`、`human_model_approval_status=approved`，并要求 approved semantic revision / structured identity 与当前 semantic revision / structured identity 完全一致；旧 approved 记录发生语义漂移后只能作为 provenance，不能继续授权新主求解。
 - `sync_project.py`：按当前 data source 和显式 delivery scope 发现产物、校验 Schema、计算分层哈希并传播 stale；不自动生成模型语义、数值结果或 `passed` 状态。
 - `state_transitions.py`：纯内存执行 `core/state_transition_contract.yaml`；新增主求解／深化数值来源退役事件用于显式项目迁移的失效预览与传播，不选择后端、不归档、不撤换当前绑定，也不授权迁移。
-- `project_transaction.py`：复用项目锁、候选验证、generation 和可恢复日志；`commit_project_state` 可选接收 `expected_file_hashes`，绑定 state、所有伴随写入目标和已声明只读来源的原始字节（值为 null 表示必须不存在）。传入时要求规范项目相对路径；存在未清理事务日志先阻断，须明确恢复后重新捕获快照。省略参数的历史调用保持原恢复行为。准备日志后仍按已有 roll-forward 恢复；保护限于声明读集合及协作式锁，不代表数值验收、文件系统级全局原子快照或迁移写侧已上线。
-- `project_transaction.py` 的 `prepare_history_archive` / `verify_history_archive`：显式读集合的流式原始字节归档与只读复核，布局委托 `core/output_contract.yaml#backend_migration_history`，不识别数学资格或批准。准备失败保留并报告本次目录，不递归删除历史。`commit_project_state(preserved_archives=...)` 要求同时使用字节读集合，并以 journal v2 持久保存归档引用，在提交及恢复边界复核；无归档事务仍用 v1。恢复后再次读旧原始路径不是归档复核的前提；旧实现不支持 v2，存在 v2 日志时不得先降级。本批没有开放 select/migrate，历史引用须由之后的协调操作在当前状态/伴随记录中持久登记。
+- `project_transaction.py`：复用项目锁、候选验证、generation 和可恢复日志；`commit_project_state` 可选接收 `expected_file_hashes`，绑定 state、所有伴随写入目标和已声明只读来源的原始字节（值为 null 表示必须不存在）。传入时要求规范项目相对路径；存在未清理事务日志先阻断，须明确恢复后重新捕获快照。省略参数的历史调用保持原恢复行为。准备日志后仍按已有 roll-forward 恢复；保护限于声明读集合及协作式锁，不代表数值验收或文件系统级全局原子快照。
+- `project_transaction.py` 的 `prepare_history_archive` / `verify_history_archive`：显式读集合的流式原始字节归档与只读复核，布局委托 `core/output_contract.yaml#backend_migration_history`，不识别数学资格或批准。准备失败保留并报告本次目录，不递归删除历史。`commit_project_state(preserved_archives=...)` 要求同时使用字节读集合，并以 journal v2 持久保存归档引用，在提交及恢复边界复核；无归档事务仍用 v1。恢复后再次读旧原始路径不是归档复核的前提；旧实现不支持 v2，存在 v2 日志时不得先降级。`project_solver_backend.py migrate` 同事务登记归档与报告引用至当前 `execution.backend_migration_history`。
 
 ## 代码与用户执行
 
 - `run_config_parser.py`：P8 收敛出的共享语法级 helper，只静态抽取顶层 `RUN_CONFIG` / legacy `FULL_*` 字典常量并保持 fail-closed；字段政策与运行语义仍由 `core/user_execution_contract.yaml` 及调用方拥有，不在此建立第二 Authority。
-- `stage_code.py`：依据执行/输出 Authority 解析阶段后端、唯一入口、配置和源码 bundle，供交付/回执/同步/打包/runtime 共享；不写项目状态。
+- `stage_code.py`：依据项目根唯一后端选择及执行/输出 Authority 解析阶段入口、配置和源码 bundle，供交付/回执/同步/打包/runtime 共享；`RUN_CONFIG` / `RUN_RECEIPT` 的后端仅是须与根策略相符的实际执行事实，本脚本不写项目状态。
 - `matlab_code_checks.py`：MATLAB 受限静态语法与工程检查适配，原生分析器未执行时如实报告未核验。
 - `validate_code_delivery.py`：按 `preprocessing / primary / analysis` 阶段静态校验题目专属 Python/MATLAB 的完整运行配置、代码质量和阶段边界；不执行赛题代码。RUN_CONFIG/FULL_* 的静态语法抽取委托 `run_config_parser.py`，字段要求仍在本 validator 与 User Execution Authority 中判定。
 - `validate_user_execution.py`：按当前 `preprocessing_decision` 与已激活阶段验收适用的预处理工作簿、主求解工作簿和条件存在的结果深化分析工作簿，并核对运行配置、代码/数据哈希和对应质量门；读取已交付阶段代码时复用同一语法级 config parser，但保留本调用面的 receipt/echo/错误边界。
@@ -44,7 +44,17 @@
 
 ## 仓库维护
 
-- `project_solver_backend.py inspect --project-root <项目根目录>`：v10 迁移准备中的只读声明诊断；区分根选择、历史一致/混合/缺失声明和冲突，不替代完整 Schema、来源、回执或审批校验，不授予执行资格。可加 `--migration-target python|matlab --reason <reason>` 生成全题来源/回执核验、类型化退役与字段差异预览；`ready_for_review`及预览摘要不是迁移确认或新Schema验收。当前只开放 inspect，不写状态、不创建归档、不恢复事务；现有运行时选择规则尚未切换。
+- `project_solver_backend.py inspect --project-root <项目根目录>`：只读声明诊断；区分当前根选择、历史一致/混合/缺失声明和冲突，不替代完整 Schema、来源、回执或审批校验，不授予执行资格。加 `--migration-target python|matlab --reason <reason>` 可生成全题来源/回执核验、类型化退役与字段差异预览；`ready_for_review` 及摘要不等于迁移确认。完全未选且无数值历史的项目由 `select` 登记首次显式选择，即使预览显示 `ready_for_review` 也不得调用 `migrate` 创建空历史归档；`select` 亦可修订当前同后端理由。有历史数值阶段或更换已锁后端时，`migrate` 要求另行确认具体项目的目标、原始 state 哈希、代际、完整预览摘要及影响摘要，再归档原始字节并同事务写框架、state、报告。仓库实施授权不代表任何真实项目迁移授权。迁移后仍须通过当前 Model Approval、运行与验收门。
+
+典型命令（第一行只用于无数值历史的首次选择；其余占位符须由同一历史项目、同一目标和理由的最新只读预览逐项填入，核对报告后才运行迁移写命令）：
+
+```text
+python scripts/project_solver_backend.py select --project-root <项目根目录> --backend python --reason <全题选择理由> --expected-generation <当前代际>
+python scripts/project_solver_backend.py inspect --project-root <项目根目录> --migration-target matlab --reason <迁移理由>
+python scripts/project_solver_backend.py migrate --project-root <项目根目录> --target-backend matlab --reason <同一迁移理由> --expected-generation <state_snapshot.state_generation> --expected-state-sha256 <state_snapshot.sha256> --confirmed-preview-sha256 <preview_sha256> --confirmed-effects-sha256 <effects_sha256> --migration-id <migration_id> --confirm-migration
+```
+
+若预览后任何状态或输入字节改变、目标/理由改变，须重新预览和确认。`--confirm-migration` 仅在用户对该具体项目影响明确确认后使用；迁移不会自动遍历项目。若已留下 prepared transaction journal，先显式恢复，再重新取得快照；失败留下的未引用归档不得复用。
 - `lint_skill.py`：检查版本 carrier、Authority 指针、路由/模块/Pack 可达性、生产者—消费者闭环、三态预处理、当前每问 conditional layout（base3 + Gate=`required` 时 +2）、代码质量、writing/review 读取链、Algorithm Trace 消费、Schema、活动/legacy 隔离、Markdown/仓库引用、Python 语法和 generated-file 状态。
 - `measure_infrastructure.py`：P8 维护测量入口；只读统计脚本体量、validator hotspot、重复解析调用点与 generated-metadata workflow 形态，为后续结构整理提供可复算证据，不定义业务阈值或修改 runtime state。
 - `generate_indexes.py`：重建 `SKILL_FILE_INDEX.md`、`TEMPLATE_INDEX.md` 与 `MANIFEST.sha256`。`SKILL_FILE_INDEX.md` 按 Active Runtime/Reference、Current Maintenance、Migration/Compatibility、Historical Provenance、Legacy Navigation 分区；该分区只影响导航展示，不改变 `iter_files()` / MANIFEST 覆盖。生成文件不得手工伪造或手改哈希。

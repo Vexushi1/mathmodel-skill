@@ -129,6 +129,19 @@ $defs:
       validated_bundle_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
     dependentRequired:
       validated_bundle_sha256: [bundle_sha256]
+  backend_migration_history_reference:
+    type: object
+    additionalProperties: false
+    required: [manifest, sha256, report, report_sha256]
+    properties:
+      manifest:
+        type: string
+        pattern: '^state/backend_history/[0-9a-f]{32}/manifest\.json$'
+      sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      report:
+        type: string
+        pattern: '^state/backend_migration_reports/[0-9a-f]{32}\.yaml$'
+      report_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
   artifact_layer:
     type: string
     enum: [data, primary_code, analysis_code, solution_workbook, result_analysis_workbook, robustness_workbook, matlab_script, figure_bundle, framework]
@@ -543,6 +556,11 @@ properties:
     properties:
       solver_backend: {type: string, enum: [python, matlab]}
       solver_backend_selection_reason: {type: string, minLength: 1, pattern: '\S'}
+      backend_migration_history:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items: {$ref: '#/$defs/backend_migration_history_reference'}
       owner: {type: string, enum: [user, assistant, external]}
       profile: {type: string, enum: [full_fidelity]}
       assistant_task_execution_allowed: {type: boolean}

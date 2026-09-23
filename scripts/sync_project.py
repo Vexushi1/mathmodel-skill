@@ -22,6 +22,7 @@ if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 import artifact_identity as ARTIFACT_IDENTITY  # noqa: E402
 import project_transaction as PROJECT_TX  # noqa: E402
+import runtime_assurance as RUNTIME_ASSURANCE  # noqa: E402
 import artifact_fingerprint as ARTIFACT_FINGERPRINT  # noqa: E402
 import project_snapshot as PROJECT_SNAPSHOT  # noqa: E402
 import stage_code as STAGE_CODE  # noqa: E402
@@ -396,6 +397,132 @@ def _framework_header_text(path: Path, scope: str, stale: bool) -> str | None:
     return "\n".join(lines).rstrip() + "\n"
 
 
+_LEGACY_BACKEND_LINE = re.compile(r"^(\s*)- 已选求解后端 / 选择理由 / 依赖核验([：:])(.*)$")
+_QUESTION_FRAMEWORK_HEADING = re.compile(r"^### Q[1-9][0-9]*(?:$|[：: ])")
+_HISTORY_MANIFEST = re.compile(r"^state/backend_history/([0-9a-f]{32})/manifest\.json$")
+_HISTORY_REPORT = re.compile(r"^state/backend_migration_reports/([0-9a-f]{32})\.yaml$")
+
+
+def backend_history_append_issues(
+    previous_state: Mapping[str, Any], candidate_state: Mapping[str, Any],
+) -> list[str]:
+    """Check that a new state retains every previously published migration reference."""
+    previous = (previous_state.get("execution") or {}).get("backend_migration_history") or []
+    candidate = (candidate_state.get("execution") or {}).get("backend_migration_history") or []
+    if not isinstance(previous, list) or not isinstance(candidate, list):
+        return ["backend_migration_history must be an array"]
+    issues = []
+    if candidate[:len(previous)] != previous:
+        issues.append("backend_migration_history must retain the previous references in order")
+    seen: set[str] = set()
+    for index, item in enumerate(candidate):
+        if not isinstance(item, Mapping):
+            issues.append(f"backend_migration_history[{index}] must be a reference")
+            continue
+        manifest = _HISTORY_MANIFEST.fullmatch(str(item.get("manifest", "")))
+        report = _HISTORY_REPORT.fullmatch(str(item.get("report", "")))
+        if manifest is None or report is None or manifest.group(1) != report.group(1):
+            issues.append(f"backend_migration_history[{index}] manifest/report id mismatch")
+            continue
+        migration_id = manifest.group(1)
+        if migration_id in seen:
+            issues.append(f"backend_migration_history[{index}] repeats migration id")
+        seen.add(migration_id)
+    return issues
+
+
+def render_project_backend_memory(text: str, candidate_state: Mapping[str, Any]) -> str:
+    """Patch only project backend memory and exact legacy template fields in framework text."""
+    backend = STAGE_CODE.current_project_backend(candidate_state, required=True)
+    reason = (candidate_state.get("execution") or {}).get("solver_backend_selection_reason")
+    if (not isinstance(reason, str) or not reason.strip() or len(reason.splitlines()) != 1
+            or any(ord(char) < 32 for char in reason)):
+        raise ValueError("project backend reason must be one non-empty text line")
+    reason = reason.strip()
+    without_crlf = text.replace("\r\n", "")
+    if "\r" in without_crlf or ("\r\n" in text and "\n" in without_crlf):
+        raise ValueError("framework has unsupported mixed line endings")
+    newline = "\r\n" if "\r\n" in text else "\n"
+    lines = text.split(newline)
+    current = [i for i, line in enumerate(lines) if line == "## 当前有效口径"]
+    if len(current) != 1:
+        raise ValueError("framework requires one exact current-state heading")
+
+    # Leave the known per-question template line byte-for-byte intact so an
+    # accepted question section keeps its existing framework identity. Its
+    # historical meaning is stated once in the new global project section.
+    section = ""
+    question = ""
+    converted: set[str] = set()
+    for line in lines:
+        if line.startswith("## "):
+            section, question = line, ""
+        elif line.startswith("### "):
+            question = (line.split("：", 1)[0].split(":", 1)[0].split(" ", 2)[1]
+                        if _QUESTION_FRAMEWORK_HEADING.match(line) else "")
+        if "已选求解后端" not in line:
+            continue
+        match = _LEGACY_BACKEND_LINE.fullmatch(line)
+        if match is None or section != "## 各问模型与结果" or not question or question in converted:
+            raise ValueError("ambiguous legacy per-question backend field in framework")
+        converted.add(question)
+
+    start = current[0]
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("## ")), len(lines))
+    headings = [i for i, line in enumerate(lines) if line == "### 全项目数值实现"]
+    if any(line.startswith("### 全项目数值实现") and line != "### 全项目数值实现" for line in lines):
+        raise ValueError("ambiguous project backend section in framework")
+    if len(headings) > 1 or (headings and not start < headings[0] < end):
+        raise ValueError("ambiguous project backend section in framework")
+    backend_line = f"- 项目求解后端：`{backend}`"
+    reason_line = f"- 项目后端选择理由：{reason}"
+    history_note = "- 逐问旧已选后端/理由为迁移前历史记录，当前取项目根。"
+    if not headings:
+        if any("项目求解后端" in line or "项目后端选择理由" in line for line in lines):
+            raise ValueError("project backend field appears outside its section")
+        insert = ["", "### 全项目数值实现", "", backend_line, reason_line]
+        if converted:
+            insert.append(history_note)
+        insert.append("")
+        if start + 1 < len(lines) and lines[start + 1] == "":
+            del lines[start + 1]
+        lines[start + 1:start + 1] = insert
+    else:
+        heading = headings[0]
+        block_end = next(
+            (i for i in range(heading + 1, end) if lines[i].startswith(("### ", "## "))), end,
+        )
+        if any(
+            ("项目求解后端" in line or "项目后端选择理由" in line)
+            for index, line in enumerate(lines) if not heading < index < block_end
+        ):
+            raise ValueError("project backend field appears outside its section")
+        body = lines[heading + 1:block_end]
+        retained = []
+        found = {"backend": 0, "reason": 0, "history": 0}
+        for line in body:
+            if line.startswith("- 项目求解后端："):
+                found["backend"] += 1
+            elif line.startswith("- 项目后端选择理由："):
+                found["reason"] += 1
+            elif line == history_note:
+                found["history"] += 1
+            elif "项目求解后端" in line or "项目后端选择理由" in line:
+                raise ValueError("ambiguous project backend field in framework")
+            else:
+                retained.append(line)
+        if max(found.values()) > 1:
+            raise ValueError("duplicate project backend field in framework")
+        if retained and retained[0] == "":
+            retained.pop(0)
+        if retained and retained[0] != "":
+            retained.insert(0, "")
+        lines[heading + 1:block_end] = [
+            "", backend_line, reason_line, *([history_note] if converted else []), *retained,
+        ]
+    return newline.join(lines)
+
+
 def _approved_figure_issues(
     root: Path, state: Mapping[str, Any], snapshots: Mapping[str, Mapping[str, Any]],
 ) -> tuple[list[str], list[str]]:
@@ -638,11 +765,16 @@ def synchronize(
     root = Path(project_root).resolve()
     state_path = root / "state/project_state.yaml"
     framework_path = root / "模型论文框架.md"
-    if write and state_path.is_file():
-        _, state, base_generation = PROJECT_TX.load_state_for_update(root)
-    else:
-        state = load_yaml(state_path)
-        base_generation = PROJECT_TX.state_generation(state)
+    state_snapshot = RUNTIME_ASSURANCE.ProjectStateSnapshot.capture(root)
+    state = state_snapshot.payload()
+    state_present = state_snapshot.raw is not None
+    base_generation = state_snapshot.describe()["state_generation"]
+    sync_read_set = None
+    if write and state_present:
+        sync_read_set = {PROJECT_TX.STATE_RELATIVE_PATH: state_snapshot.describe()["sha256"]}
+        for relative in ("模型论文框架.md", "sync_report.yaml"):
+            path = PROJECT_TX._guarded_path(root, relative)
+            sync_read_set[relative] = PROJECT_TX.sha256_file(path) if path.is_file() else None
     schema = load_yaml(Path(schema_path))
     output_contract = load_yaml(Path(output_contract_path))
     phase = str((state.get("project") or {}).get("current_phase", "model_design"))
@@ -693,7 +825,7 @@ def synchronize(
     stale_fragments: list[str] = []
     transition_reports: list[dict[str, Any]] = []
     transition_state = state if write else deepcopy(state)
-    if state_path.is_file() and not policy_error:
+    if state_present and not policy_error:
         for snapshot in snapshots.values():
             stale, reports = _apply_snapshot_to_state(root, transition_state, snapshot)
             transition_reports.extend(reports)
@@ -711,7 +843,7 @@ def synchronize(
         dependency_cycles = []
 
     framework_text_for_write: str | None = None
-    if state_path.is_file():
+    if state_present:
         any_stale = any(
             bool(entry.get("artifacts_stale"))
             for entry in (transition_state.get("subproblems") or {}).values()
@@ -731,7 +863,7 @@ def synchronize(
     if explicit_delivery_scope:
         issues.extend(_scope_artifact_issues(root, scope, transition_state, snapshots, output_contract, warnings=warnings))
 
-    if write and state_path.is_file():
+    if write and state_present:
         framework["last_sync_scope"] = scope
         framework["last_synced_at"] = datetime.now(timezone.utc).isoformat()
         framework_text_for_write = _framework_header_text(framework_path, scope, header_stale)
@@ -772,8 +904,9 @@ def synchronize(
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
     if write and not policy_error:
+        state_snapshot.assert_current()
         report_text = yaml.safe_dump(report, allow_unicode=True, sort_keys=False)
-        if state_path.is_file():
+        if state_present:
             before_state = (
                 [("模型论文框架.md", framework_text_for_write)]
                 if framework_text_for_write is not None
@@ -796,12 +929,15 @@ def synchronize(
                 root,
                 state,
                 expected_generation=base_generation,
+                expected_file_hashes=sync_read_set,
                 writes_before_state=before_state,
                 writes_after_state=[("sync_report.yaml", report_text)],
                 validators=[_validate_staged_sync],
             )
         else:
             PROJECT_TX.atomic_write_text(root / "sync_report.yaml", report_text)
+    elif not write:
+        state_snapshot.assert_current()
     return report
 
 
@@ -815,10 +951,14 @@ def main() -> int:
         choices=["design", "code", "results", "figures", "docx", "latex", "submission"],
     )
     args = parser.parse_args()
-    report = synchronize(
-        Path(args.project_root), write=args.write, strict=args.strict,
-        delivery_scope=args.delivery_scope,
-    )
+    try:
+        report = synchronize(
+            Path(args.project_root), write=args.write, strict=args.strict,
+            delivery_scope=args.delivery_scope,
+        )
+    except (RUNTIME_ASSURANCE.ProjectStateReadError, PROJECT_TX.TransactionRecoveryError) as exc:
+        print(f"- {exc}")
+        return 2
     for item in report["issues"]:
         print("-", item)
     for item in report["warnings"]:

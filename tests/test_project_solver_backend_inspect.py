@@ -186,12 +186,13 @@ class ProjectBackendInspectCLITests(unittest.TestCase):
         self.assertEqual(yaml.safe_load(proc.stdout)["status"], "recovery_required")
         self.assertEqual(before, self.tree())
 
-    def test_select_and_migrate_are_not_exposed_until_the_write_side_exists(self):
+    def test_select_and_migrate_require_explicit_write_parameters(self):
         before = self.tree()
         for operation in ("select", "migrate"):
+            self.assertEqual(self.command(operation, "--help").returncode, 0)
             proc = self.command(operation, "--project-root", str(self.root))
             self.assertNotEqual(proc.returncode, 0)
-            self.assertIn("invalid choice", proc.stderr)
+            self.assertIn("required", proc.stderr)
         self.assertEqual(before, self.tree())
 
 

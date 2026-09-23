@@ -2,13 +2,19 @@
 
 HSK 数学建模工作流：**审题与 Problem Contract 冻结 → 非破坏性数据审计 → 条件数学化与结构化简 → 最小充分主模型 + 按需 comparator → `preprocessing_decision` → 语义闭环 + 按需机理/几何结构有效性闭合 + 复杂度复审 → 标准模型类型 + Model/Solver/Validator 身份闭合 → 结构匹配 Solver + Algorithm Trace → `proposed_model_spec` → Model Reviewer + Devil's Advocate → Model Approval Brief → `awaiting_model_approval` → 用户明确批准当前 `semantic_revision / semantic_identity_hash` → `locked_model_spec` → 条件式预处理 → Primary Quality Specification → 用户本地 full-fidelity Python/MATLAB 主求解 + Primary Evidence Capture → 主结果质量门 + 独立数值证据复核 → accepted solution workbook → 独立结果深化分析 + Analysis Evidence Capture → MATLAB Scientific Figure Synthesis + 按需 Composite/Enhancement 或 draw.io 可编辑机理图闭环 → Figure Portfolio Review → Template-First 逐章读取/写入 + 每问 Writing Capability Preflight → final-order Cross-File Chapter Handoff assembled seam sweep → draft semantic review → AI cleanup → LaTeX project audit attestation → profile-bound compile attestation → Final Review Compliance & Evidence Sweep → submission package generation → resolver-returned `pre_delivery_gates` → validated submission package**。
 
+## 当前开发分支：v10 项目级数值后端（尚未发布）
+
+当前 Project State 与 User Execution Authority 规定在项目根 `execution.solver_backend` 及非空理由中只记录一次 Python 或 MATLAB 选择；全题主求解和被激活的结果深化分析都继承它，各问仍保留独立算法、入口、源码 bundle、工作簿与验收状态。项目级 Python 预处理、正式 MATLAB 绘图和其他非求解工具仍按各自职责运行。`RUN_CONFIG` / `RUN_RECEIPT` 中的后端记录实际执行事实，必须与根策略一致，不能替项目选择或覆盖根策略。
+
+首次选择须审视全题可预见数值需求，并在首次正式数值代码交付前与既有 Model Approval 衔接。`scripts/project_solver_backend.py inspect` 及迁移预览只读；完全未选且无数值历史用 `select` 登记，不能因预览为 `ready_for_review` 而改走 `migrate`。有历史数值阶段或更换已锁后端时，`migrate` 须先预览、核对具体项目状态字节与全题影响，再显式确认。缺少根策略的当前项目不得正式交付数值代码。历史阶段选择只作诊断与迁移证据；仓库改造获批不代表任何具体项目已获迁移确认。迁移后的数值交付仍须重新通过当前门禁。以下 v9.x 版本小节记录当时行为，不覆盖当前开发分支的项目级规则。
+
 ## v9.7.1：阶段、源码和输入衔接修复
 
 修复主求解与分析阶段恢复时的后端串用、项目 helper 闭包遗漏、配置后续覆盖、跨问输入误失效、复现包漏收运行输入，以及同步遗漏实现锚点核验。MATLAB 数值模板接受等价的大写 SHA，Windows 工作簿验收统一长短路径身份；活动契约和说明同步修正。旧 Python/1.0 接口、项目级预处理和原数值验收标准保持兼容。见[检查与修复说明](docs/v971_backend_contract_audit.md)。
 
 ## v9.7.0：Python / MATLAB 自适应求解
 
-主求解和按需深化分析可按问题选择 Python 或 MATLAB，已有项目恢复当前选择；新请求的 `auto` 先根据模型、依赖、环境和用户偏好完成选择。两种语言共用工作簿、数值验收和下游图文交接，原项目级预处理继续使用 Python。MATLAB 求解模板与原有绘图入口分开加载。
+此处记录 v9.7.0 发布时的历史接口：主求解和按需深化分析当时可按问题选择 Python 或 MATLAB，已有项目恢复当时选择；新请求的 `auto` 当时根据模型、依赖、环境和用户偏好提出选择。两种语言共用工作簿、数值验收和下游图文交接，原项目级预处理继续使用 Python。MATLAB 求解模板与原有绘图入口分开加载。
 
 新执行回执 1.1 同时绑定后端、入口与声明 helper 的代码摘要；文件变化会阻断旧结果资格，并沿原有依赖关系传播失效。旧 Python 命名、回执 1.0 与省略新 CLI 参数的兼容接口保留。迁移步骤、运行边界及测试入口见[求解后端迁移说明](docs/v970_solver_backends_migration.md)。
 
@@ -596,33 +602,24 @@ preprocessing_decision
 
 ### 主求解数值有效性、Evidence Capture 与结果深化分析
 
-每问正式主求解前形成 PQS。主求解阶段只做当前计算 accepted 所必需的内在数值质量证据，同时把本次运行已经产生且对解释/绘图/验证有价值的 current-run 状态保存为 Primary Evidence Capture；返回主工作簿后由独立 validator 复核。主质量门通过后才进入结果深化分析：
+每问正式主求解前形成 PQS。各问主求解入口和被激活的深化入口使用同一个项目根数值后端。主求解阶段只做当前计算 accepted 所必需的内在数值质量证据，同时把本次运行已经产生且对解释/绘图/验证有价值的 current-run 状态保存为 Primary Evidence Capture；返回主工作簿后由独立 validator 复核。主质量门通过后才进入结果深化分析：
 
 ```text
 locked model + declared numerical method
 → Primary Quality Specification
-→ 问题X求解.py + Primary Evidence Capture
+→ 按项目后端交付本问主入口 + Primary Evidence Capture
 → 主结果底层证据 + 主结果质量门
 → validate_numerical_evidence.py 独立复核
 → accepted solution workbook
-→ 问题X结果深化分析.py + Analysis Evidence Capture
+→ Gate=required 时按同一后端交付独立深化入口 + Analysis Evidence Capture
 → sensitivity / stress / alternatives / robustness / boundaries
 ```
 
 主质量与深化分析不互相替代。离散步长、网格、残差、当前 solver gap/termination 等“本次计算能否接受”的问题属于主质量；参数敏感性、替代算法、压力场景和结论稳定性属于深化分析。Primary Evidence Capture 不允许通过新参数/新场景/新 seed 等另起一次 alternative-world 计算来扩张 03A。
 
-### 每问唯一五文件目录
+### 每问目录与条件式产物
 
-```text
-问题X求解/
-├─ 问题X求解.py
-├─ 问题X求解结果.xlsx
-├─ 问题X结果深化分析.py
-├─ 问题X结果深化分析.xlsx
-└─ qX_plot.m
-```
-
-主求解与结果深化分析按每问已选 Python/MATLAB 后端交付独立入口；主工作簿 accepted 后冻结主实现，只有 Analysis Necessity Gate=required 才生成深化分析入口。赛题代码由用户本地 full-fidelity 执行，助手只生成、静态检查并验收返回工作簿。
+`问题X求解/` 的基础交付是按项目根策略二选一的主入口（Python `问题X求解.py` 或 MATLAB `qX_solver.m`）、`问题X求解结果.xlsx` 与正式绘图入口 `qX_plot.m`。只有 Analysis Necessity Gate=`required` 时，同目录再增加同一后端的独立深化入口（Python `问题X结果深化分析.py` 或 MATLAB `qX_analysis.m`）和 `问题X结果深化分析.xlsx`；`not_required` 不生成这两项。主工作簿 accepted 后冻结主实现。赛题代码由用户本地 full-fidelity 执行，助手只生成、静态检查并验收返回工作簿。
 
 ### MATLAB Scientific Figure Evidence
 
