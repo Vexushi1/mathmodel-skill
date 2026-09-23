@@ -331,6 +331,10 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_template_state_isolation.py`
 - `tests/test_tooling.py`
 - `tests/test_user_execution_contract.py`
+- `tests/test_v10_project_delivery_receipt.py`
+- `tests/test_v10_project_policy_core.py`
+- `tests/test_v10_project_runtime_policy.py`
+- `tests/test_v10_retired_artifact_isolation.py`
 - `tests/test_v631_contract_closure.py`
 - `tests/test_v632_delivery_gate_closure.py`
 - `tests/test_v633_gate_hardening.py`
