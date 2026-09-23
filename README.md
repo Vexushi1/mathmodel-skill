@@ -1,4 +1,4 @@
-# mathmodel-skill v10.0.0（main 源码，尚未发布 GitHub Release）
+# mathmodel-skill v10.0.0
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值语言由项目根策略统一选择。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。
 

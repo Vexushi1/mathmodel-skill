@@ -1,10 +1,10 @@
 # Changelog
 
-## Unreleased: 10.0.0
+## 10.0.0
 
 - Makes one project-root Python or MATLAB numerical backend choice authoritative for all questions and activated numerical analysis. Per-question algorithms, source bundles, workbooks, and accepted evidence remain separate; project-level Python preprocessing and formal MATLAB plotting keep their independent roles.
 - Adds read-only backend inspection, a guarded first-choice `select`, and explicitly confirmed `migrate` with whole-project impact review, original-byte archival, and recoverable transaction. Historical stage declarations remain diagnostic evidence, and migration does not confer numerical delivery or acceptance.
-- Aligns current Project State, runtime, synchronization, delivery, and package checks with the root choice. Skill carriers are 10.0.0 while state schemas, contracts, workbooks, and run receipts retain their independent protocol versions. The source is merged into main; no v10.0.0 tag or GitHub Release has been published.
+- Aligns current Project State, runtime, synchronization, delivery, and package checks with the root choice. Skill carriers are 10.0.0 while state schemas, contracts, workbooks, and run receipts retain their independent protocol versions.
 
 ## Previous release: 9.7.1
 

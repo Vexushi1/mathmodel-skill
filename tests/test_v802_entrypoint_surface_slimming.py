@@ -85,7 +85,7 @@ class TestV802EntrypointSurfaceSlimming(unittest.TestCase):
         self.assertTrue((ROOT / "README.md").read_text(encoding="utf-8").startswith(f"# mathmodel-skill v{expected}"))
         self.assertTrue((ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8").startswith(f"# HSK Core Policy v{expected}"))
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        self.assertTrue(changelog.startswith(f"# Changelog\n\n## Unreleased: {expected}"))
+        self.assertTrue(changelog.startswith(f"# Changelog\n\n## {expected}"))
         for relative in (
             "core/workflow_router.yaml",
             "core/module_manifest.yaml",

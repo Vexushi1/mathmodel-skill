@@ -277,7 +277,7 @@ reading_plan:
   mixed_or_unknown_scope: conservative_full_reading_without_changing_selected_intents
   narrow_evidence_source: existing_file_backed_artifact_assurance_and_current_framework_binding
   rules:
-    - The sibling reading_plan schema is versioned independently; the existing assurance envelope version and fields remain unchanged.
+    - The reading_plan schema is versioned independently; building a reading plan preserves the resolved assurance envelope and does not set or downgrade its version or fields.
     - read_now and conditional are consumption instructions, not passed review, authorization, or evidence that text was actually read.
     - project_backend_navigation is non-executable guidance for the sole inspect/select/migrate CLI when a current project selection needs review; it is not a pre_delivery_gate and never supplies migration confirmation.
     - Need for human semantic/visual review remains; byte/path/hash checks cannot decide mathematical correctness or visual quality.
