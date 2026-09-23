@@ -23,6 +23,7 @@ class TestStarterTemplates(unittest.TestCase):
             "workbook_paths(", "write_workbook(", "def validate_model(",
             "run_pipeline(", "ResultAnalysisResult", "analyze_results",
             "sync_analysis_framework", "result_analysis_hook=",
+            "sync_primary_framework", "framework_sync_hook=",
         )
         for filename, objective in STARTERS.items():
             path = STARTER_DIR / filename
@@ -31,7 +32,6 @@ class TestStarterTemplates(unittest.TestCase):
             self.assertIn(f'objective="{objective}"', text)
             self.assertIn("run_primary_pipeline(", text)
             self.assertIn("evaluate_primary_quality", text)
-            self.assertIn("sync_primary_framework", text)
             self.assertIn("REQUIRED_CAPABILITIES", text)
             self.assertIn('if __name__ == "__main__":', text)
             for token in forbidden:
@@ -56,14 +56,18 @@ class TestStarterTemplates(unittest.TestCase):
             if added:
                 sys.path.remove(code_root)
 
-    def test_pipeline_keeps_split_runners_and_compatibility_api(self):
+    def test_pipeline_exports_primary_only_and_retires_combined_api(self):
         init_text = (PIPELINE_DIR / "__init__.py").read_text(encoding="utf-8")
         pipeline_text = (PIPELINE_DIR / "main_pipeline.py").read_text(encoding="utf-8")
-        for token in ("run_primary_pipeline", "run_result_analysis_pipeline", "run_pipeline"):
-            self.assertIn(token, init_text)
+        self.assertIn("run_primary_pipeline", init_text)
+        for token in ("run_result_analysis_pipeline", "run_pipeline"):
+            self.assertNotIn(token, init_text)
         self.assertIn("def run_primary_pipeline(", pipeline_text)
         self.assertIn("def run_result_analysis_pipeline(", pipeline_text)
         self.assertIn("def run_pipeline(", pipeline_text)
+        self.assertIn("run_pipeline 已退出活动接口", pipeline_text)
+        for token in ("def _write_state(", "def _update_primary_state(", "def _update_analysis_state(", "framework_sync_hook"):
+            self.assertNotIn(token, pipeline_text)
         self.assertIn('"运行配置": solution["运行配置"]', pipeline_text)
         self.assertIn('required = {"运行配置", "分析设计", "结论稳定性汇总"}', pipeline_text)
 

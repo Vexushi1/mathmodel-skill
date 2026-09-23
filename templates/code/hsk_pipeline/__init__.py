@@ -1,4 +1,4 @@
-"""HSK 数学建模 Python 求解与结果深化分析管线。"""
+"""Python主求解数学骨架；不导出旧连跑或内存分析入口。"""
 
 from .main_pipeline import (
     AuditLog,
@@ -10,9 +10,7 @@ from .main_pipeline import (
     check_dimensions,
     check_missing_values,
     check_required_columns,
-    run_pipeline,
     run_primary_pipeline,
-    run_result_analysis_pipeline,
 )
 
 __all__ = [
@@ -26,6 +24,4 @@ __all__ = [
     "check_missing_values",
     "check_required_columns",
     "run_primary_pipeline",
-    "run_result_analysis_pipeline",
-    "run_pipeline",
 ]

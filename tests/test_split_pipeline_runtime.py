@@ -16,9 +16,10 @@ from hsk_pipeline import (  # noqa: E402
     ResultAnalysisResult,
     REQUIRED_CAPABILITIES,
     run_primary_pipeline,
-    run_result_analysis_pipeline,
 )
 from hsk_pipeline.result_io import read_workbook_tables  # noqa: E402
+# Explicit historical in-memory adapter, not the current package-level 03B API.
+from hsk_pipeline.main_pipeline import run_result_analysis_pipeline  # noqa: E402
 
 
 def framework_text() -> str:
@@ -67,14 +68,6 @@ def constraints(solution, cfg):
     return None
 
 
-def sync_primary(primary):
-    return None
-
-
-def sync_analysis(primary, path, tables):
-    return None
-
-
 class TestSplitPipelineRuntime(unittest.TestCase):
     def test_failed_primary_quality_is_written_before_blocking(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -95,14 +88,13 @@ class TestSplitPipelineRuntime(unittest.TestCase):
                     solve_hook=solve,
                     constraint_hook=constraints,
                     quality_hook=quality,
-                    framework_sync_hook=sync_primary,
                 )
             workbook = root / "问题一求解/问题一求解结果.xlsx"
             self.assertTrue(workbook.is_file())
             quality_table = read_workbook_tables(workbook)["主结果质量门"]
             self.assertFalse(bool(quality_table.loc[0, "是否通过"]))
 
-    def test_redo_required_persists_analysis_and_marks_state_stale(self):
+    def test_redo_required_persists_analysis_without_mutating_state(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             cfg = config(root)
@@ -128,7 +120,9 @@ class TestSplitPipelineRuntime(unittest.TestCase):
                 "paper_framework": {"sync_status": "current"},
             }
             state_path = state_dir / "project_state.yaml"
-            state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
+            state_path.write_text("# keep original state bytes\n" + yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
+            original_state = state_path.read_bytes()
+            original_framework = cfg.framework_path.read_bytes()
 
             def quality(context, checked):
                 return pd.DataFrame(
@@ -143,7 +137,6 @@ class TestSplitPipelineRuntime(unittest.TestCase):
                 solve_hook=solve,
                 constraint_hook=constraints,
                 quality_hook=quality,
-                framework_sync_hook=sync_primary,
             )
 
             tables = {
@@ -188,18 +181,16 @@ class TestSplitPipelineRuntime(unittest.TestCase):
                 run_result_analysis_pipeline(
                     primary,
                     analysis_hook=analyze,
-                    framework_sync_hook=sync_analysis,
                 )
             analysis_path = root / "问题一求解/问题一结果深化分析.xlsx"
             self.assertTrue(analysis_path.is_file())
-            updated = yaml.safe_load(state_path.read_text(encoding="utf-8"))
-            entry = updated["subproblems"]["Q1"]
-            self.assertEqual(entry["analysis_execution_status"], "redo_required")
-            self.assertEqual(entry["result_analysis_status"], "redo_required")
-            self.assertTrue(entry["artifacts_stale"])
-            self.assertIn("result_analysis_workbook", entry["stale_layers"])
-            self.assertEqual(updated["project"]["current_phase"], "model_design")
-            self.assertEqual(updated["paper_framework"]["sync_status"], "stale")
+            tables_returned = read_workbook_tables(analysis_path)
+            self.assertFalse(bool(tables_returned["结论稳定性汇总"].loc[0, "是否保持"]))
+            self.assertEqual(float(tables_returned["结构稳健性"].loc[0, "结果指标"]), 2.0)
+            # The authorized breaking change removes task-template state ownership.
+            # Control-plane stale propagation is tested in transactional-writer suites.
+            self.assertEqual(state_path.read_bytes(), original_state)
+            self.assertEqual(cfg.framework_path.read_bytes(), original_framework)
 
 
 if __name__ == "__main__":

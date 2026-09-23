@@ -9,7 +9,6 @@ from hsk_pipeline import (
     AuditLog,
     ModelContext,
     PipelineConfig,
-    PrimarySolveResult,
     REQUIRED_CAPABILITIES,
     run_primary_pipeline,
 )
@@ -84,10 +83,6 @@ def evaluate_primary_quality(
     )
 
 
-def sync_primary_framework(primary: PrimarySolveResult) -> None:
-    raise NotImplementedError("回写主仿真结果、逐时刻/逐次状态证据、收敛与区间证据和质量门结论")
-
-
 def main() -> None:
     config = build_config(Path(__file__))
     run_primary_pipeline(
@@ -98,7 +93,6 @@ def main() -> None:
         solve_hook=solve_model,
         constraint_hook=check_constraints,
         quality_hook=evaluate_primary_quality,
-        framework_sync_hook=sync_primary_framework,
     )
 
 
