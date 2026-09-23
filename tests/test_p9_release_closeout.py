@@ -49,6 +49,11 @@ class P9ReleaseCloseoutTests(unittest.TestCase):
         self.assertTrue(receipt["p5a_transitional_missing_version_read_supported"])
         self.assertTrue(receipt["legacy_full_config_missing_version_read_supported"])
         self.assertEqual(receipt["declared_unknown_version_policy"], "fail_closed")
+        legacy = contract["legacy_compatibility"]
+        self.assertEqual(legacy["legacy_config_readers"], delivery["legacy_config_names"])
+        self.assertEqual(legacy["p5a_run_config_without_run_receipt_protocol"], "read_only_supported")
+        self.assertEqual(legacy["legacy_receipt_without_run_receipt_version"], "read_only_supported")
+        self.assertIn("major_migration", legacy["legacy_config_reader_exit_gate"])
 
     def test_release_docs_record_current_and_compatibility_decision(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
