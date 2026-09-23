@@ -21,7 +21,7 @@ class TestV7101ReadPathClosure(unittest.TestCase):
         self.assertIn(f"version: {version}", read("skills/mathmodel-skill/SKILL.md"))
         self.assertEqual(json.loads(read(".codex-plugin/plugin.json"))["version"], version)
         self.assertTrue(read("README.md").startswith(f"# mathmodel-skill v{version}"))
-        self.assertIn(f"## Current release: {version}", read("CHANGELOG.md"))
+        self.assertIn(f"## Unreleased: {version}", read("CHANGELOG.md"))
         self.assertIn(f"# HSK Core Policy v{version}", read("core/hsk_core_policy.md"))
         for relative in ("core/workflow_router.yaml", "core/module_manifest.yaml", "core/output_contract.yaml"):
             self.assertEqual(str(yaml.safe_load(read(relative))["version"]), version, relative)

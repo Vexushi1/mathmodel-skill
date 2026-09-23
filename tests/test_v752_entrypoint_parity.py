@@ -72,7 +72,7 @@ class EntrypointParityTests(unittest.TestCase):
     def test_current_changelog_matches_bootstrap(self):
         current = str(yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))["skill_version"])
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        releases = re.findall(r"^## (?:Current|Previous) release: ([^\n]+)$", changelog, flags=re.MULTILINE)
+        releases = re.findall(r"^## (?:Unreleased|(?:Current|Previous) release): ([^\n]+)$", changelog, flags=re.MULTILINE)
         self.assertGreaterEqual(len(releases), 2)
         self.assertEqual(releases[0], current)
         self.assertNotEqual(releases[1], current)
