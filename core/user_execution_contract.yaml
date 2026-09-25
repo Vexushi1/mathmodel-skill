@@ -1,4 +1,4 @@
-version: 3.0.0
+version: 3.1.0
 introduced_in_skill_version: 10.0.0
 skill_compatibility: '>=10.0.0,<11.0.0'
 purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界。每问主求解使用项目唯一已选Python或MATLAB后端的独立入口；结果深化分析仅在主工作簿accepted后经过Analysis Necessity Gate且判定required时使用独立入口，并必须继承同一项目数值后端。P5a起新生成阶段脚本使用RUN_CONFIG承载任务可变输入，全局user/full-fidelity/no-degradation政策由本Authority继承；P5b起新生成阶段脚本通过run_receipt_protocol_version绑定版本化RUN_RECEIPT，实际运行事实仍写入既有工作簿运行配置工作表。v7.14起新生成主求解还绑定Primary Quality Specification与主数值证据独立复核，但不得把结果深化分析提前塞进主求解。
@@ -108,15 +108,33 @@ preprocessing_decision_policy:
 code_delivery:
   data_identity_mode:
     field: data_identity_mode
-    scope: RUN_CONFIG_for_primary_or_analysis_receipt_1_1
+    scope: RUN_CONFIG_for_primary_or_analysis_receipt_1_1_or_1_2
     values: [combined, preprocessing_workbook]
     default: combined
     authority: core/global_preprocessing_contract.yaml
     rules:
-    - New Python and MATLAB 1.1 stages under project_level must explicitly select preprocessing_workbook; data_paths must contain exactly the current accepted preprocessing XLSX and data_sha256 must be its ordinary file SHA-256, preserving the existing global data identity.
+    - New Python and MATLAB 1.1/1.2 stages under project_level must explicitly select preprocessing_workbook; data_paths must contain exactly the current accepted preprocessing XLSX and data_sha256 must be its ordinary file SHA-256, preserving the existing global data identity.
     - preprocessing_workbook is forbidden without project_level and accepted/passed preprocessing; the existing covered_raw_sources restriction still applies to configured paths and actual reader calls.
     - combined retains the existing ordered project-relative input fingerprint for not_needed and question_local. Do not replace the accepted preprocessing workbook identity with a combined path/file fingerprint.
     - The field is not accepted by project-level preprocessing 1.0. Existing legacy 1.0 solver inputs retain their original interpretation and do not require this new field.
+  auxiliary_inputs:
+    introduced_in_receipt: 1.2.0
+    scope: primary_or_analysis_with_project_level_preprocessing
+    config_fields: [auxiliary_data_paths, auxiliary_data_sha256]
+    base_identity: keep_unique_accepted_preprocessing_xlsx_and_its_ordinary_sha256
+    auxiliary_identity: existing_artifact_fingerprint_combined_hash
+    receipt_paths_transport: strict_json_string_array_in_existing_workbook_configuration_sheet
+    rules:
+    - Only receipt 1.2.0 may declare auxiliary inputs; it requires a non-empty path list, SHA-256, preprocessing_workbook mode and accepted/passed project_level preprocessing.
+    - Without auxiliary inputs keep receipt 1.1.0; project-level preprocessing remains receipt 1.0.0. Partial fields, wrong stage/mode/version or missing receipt fields fail closed.
+    - Paths are actual bounded project-relative files; reject duplicates, hardlink/symlink/case aliases, overlap with base inputs and covered_raw_sources. Do not hide auxiliary data in code_dependencies.
+    - RUN_CONFIG binds auxiliary paths and digest through the delivered source bundle. RUN_RECEIPT echoes the exact JSON path list and matching case-insensitive digest; no new project-state numerical fact copy is created.
+    - At runtime qualification, delivery and receipt acceptance, observe all actual primary and auxiliary bytes without requiring a prior sync. Matching old state hashes are insufficient.
+    - Generated code captures all input/source identities before execution and rechecks them before successful receipt output. An auxiliary input must materially serve the declared model, not only be hashed for appearance.
+    - Analysis retains the primary data_sha256 and accepted-primary binding; auxiliary inputs are stage-specific explicit evidence, never a silent change to approved mathematical scope.
+    - Sync observes and invalidates; it never refreshes delivered or validated identities. Primary auxiliary drift uses data_changed; analysis-only input drift uses analysis_inputs_changed and preserves the primary result.
+    - Reproducibility and explicit migration archives include every declared auxiliary input. Missing files or unsupported legacy-reader protocol must be reported, never silently dropped.
+    - Receipt 1.2.0 is an explicit compatibility boundary: old tools reject it. Do not remove auxiliary fields or relabel a 1.2 run as 1.1 when downgrading.
   semantic_governance_required: true
   code_quality_contract: core/code_quality_contract.yaml
   preprocessing_script: 数据预处理/数据预处理.py
@@ -192,16 +210,20 @@ code_delivery:
     field: run_receipt_protocol_version
     current_version: 1.0.0
     current_version_by_stage: {preprocessing: 1.0.0, primary: 1.1.0, analysis: 1.1.0}
-    supported_versions: [1.0.0, 1.1.0]
+    current_version_when_auxiliary_inputs: 1.2.0
+    supported_versions: [1.0.0, 1.1.0, 1.2.0]
     version_required_config_fields:
       '1.1.0': [solver_backend]
+      '1.2.0': [solver_backend, data_identity_mode, auxiliary_data_paths, auxiliary_data_sha256]
     version_stage_required_config_fields:
       '1.1.0':
+        analysis: [primary_workbook_sha256]
+      '1.2.0':
         analysis: [primary_workbook_sha256]
     new_writer_required: true
     p5a_transitional_missing_marker_read_supported: true
     unknown_version_policy: fail_closed
-    binding: 已交付阶段代码RUN_CONFIG中的协议期望 + 返回工作簿RUN_RECEIPT中的run_receipt_version；静态读取代码并核对阶段代码SHA；1.1另按code_bundle绑定已交付与已验收实现
+    binding: 已交付阶段代码RUN_CONFIG中的协议期望 + 返回工作簿RUN_RECEIPT中的run_receipt_version；静态读取代码并核对阶段代码SHA；1.1/1.2另按code_bundle绑定已交付与已验收实现；1.2按auxiliary_inputs绑定辅助数据
   legacy_required_config_fields:
   - execution_owner
   - execution_profile
@@ -332,14 +354,19 @@ returned_workbook:
     actual_version_field: run_receipt_version
     current_version: 1.0.0
     current_version_by_stage: {preprocessing: 1.0.0, primary: 1.1.0, analysis: 1.1.0}
-    supported_versions: [1.0.0, 1.1.0]
+    current_version_when_auxiliary_inputs: 1.2.0
+    supported_versions: [1.0.0, 1.1.0, 1.2.0]
     version_required_fields:
       '1.1.0': [solver_backend, code_bundle_sha256]
+      '1.2.0': [solver_backend, code_bundle_sha256, data_identity_mode, auxiliary_data_paths, auxiliary_data_sha256]
     version_stage_required_fields:
       '1.1.0':
         analysis: [primary_workbook_sha256]
+      '1.2.0':
+        analysis: [primary_workbook_sha256]
     analysis_primary_binding:
       applies_to: {version: 1.1.0, stage: analysis}
+      additional_receipt_versions: [1.2.0]
       field: primary_workbook_sha256
       format: sha256_hex
       comparison: case_insensitive
@@ -392,7 +419,7 @@ returned_workbook:
   - 所有缩减、放宽和静默回退标志必须为false。
   - fallback_used必须为false。
   - 对应代码声明的run_receipt_protocol_version必须与回执run_receipt_version一致；缺失、不匹配或未知版本均fail closed，不能降级为legacy receipt。
-  - 新03A/03B writer使用1.1；项目级预处理继续1.0且不接受1.1。1.1必须带solver_backend与code_bundle_sha256，静态核对配置、角色、实际源码集合与交付身份；不得把缺字段的新项目降级为历史Python。
+  - 无辅助输入的新03A/03B writer使用1.1；project_level独立辅助输入使用1.2并遵守code_delivery.auxiliary_inputs。项目级预处理继续1.0且不接受1.1/1.2。现代回执必须带solver_backend与code_bundle_sha256，核对配置、角色、实际源码与全部实际输入；不得把缺字段的新项目降级为历史Python。
   - 运行配置的项目键必须唯一；重复键不得以后值覆盖前值。旧1.0字段原义保持，不反向要求历史工作簿补1.1字段。
   - P5a过渡RUN_CONFIG或旧FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG未声明receipt协议时，历史工作簿可继续缺少run_receipt_version只读验收；若主动声明run_receipt_version，则必须是当前受支持版本。
   - 版本化RUN_RECEIPT必须静态绑定对应已交付阶段代码，并核对stage、problem_name、data_sha256、solver、random_seed、tolerance、iteration_or_time_limit与代码RUN_CONFIG计划值一致；solver_version、实际停止原因、运行规模、platform、fallback和no-degradation仍以返回回执为事实源。

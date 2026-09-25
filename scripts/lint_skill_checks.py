@@ -441,8 +441,8 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
         if compatibility != f">={lower},<11.0.0":
             errors.append(f"subordinate contract compatibility must retain its lower bound and cover v10: {relative}")
     execution = load_structured(ROOT / "core/user_execution_contract.yaml") or {}
-    if execution.get("version") != "3.0.0" or execution.get("introduced_in_skill_version") != "10.0.0":
-        errors.append("v10 user execution contract must declare its independent 3.0.0 version")
+    if execution.get("version") != "3.1.0" or execution.get("introduced_in_skill_version") != "10.0.0":
+        errors.append("v10 user execution contract must declare its independent 3.1.0 version")
     if str(execution.get("skill_compatibility")) != ">=10.0.0,<11.0.0":
         errors.append("v10 user execution contract must apply only to the new major line")
 

@@ -184,6 +184,8 @@ jobs:
         run: python tests/test_solver_backend_end_to_end.py verify-analysis --project "$HSK_MATLAB_SOLVER_OUTPUT/preprocessed"
       - name: Verify uppercase source input and accepted-primary hashes in native stages
         run: python tests/solver_backend_hash_smoke.py --project "$HSK_MATLAB_SOLVER_OUTPUT/hash-casing" --matlab-command "$HSK_MATLAB_CI_COMMAND"
+      - name: Verify native auxiliary-input receipt 1.2 without changing preprocessing identity
+        run: python tests/audit_auxiliary_smoke.py --project "$HSK_MATLAB_SOLVER_OUTPUT/auxiliary-inputs" --backend matlab --matlab-command "$HSK_MATLAB_CI_COMMAND"
       - name: Upload actual MATLAB execution evidence
         if: always()
         uses: actions/upload-artifact@v7

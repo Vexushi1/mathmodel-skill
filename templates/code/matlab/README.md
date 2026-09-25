@@ -28,3 +28,9 @@ matlab -batch "cd('C:/项目/问题一求解'); q1_analysis"
 正式绘图继续使用 `templates/matlab/q1_plot.m`；求解入口不生成正式图，绘图入口不重算核心结果。静态检查、Code Analyzer、真实 MATLAB 运行与用户项目数值验收分别报告。
 
 维护合成验证入口为 `tests/test_solver_backend_end_to_end.py` 与 `tests/matlab/run_solver_backend_smoke.m`。`tests/solver_backend_mixed_smoke.py` 与 `tests/matlab/run_solver_backend_mixed_smoke.m` 中双向跨问混合及同问 Python 主求解接 MATLAB 深化的场景仅用于 v9 历史兼容与 v10 当前路径拒绝回归，不授权新项目逐问或逐阶段混用数值后端。测试只运行独立临时目录中复制并实例化的微型数学例子，不运行用户赛题，也不把静态检查或 skipped 的 MATLAB job 当作运行通过。
+
+## 可选辅助输入：回执 1.2
+
+当 `project_level` 求解还需要未被统一工作簿覆盖的独立附件时，按 `core/user_execution_contract.yaml#code_delivery.auxiliary_inputs` 使用 1.2；没有辅助输入仍使用 1.1，项目级预处理仍是 1.0。主 `data_paths` 和 `data_sha256` 保持唯一 accepted 预处理 XLSX 及其普通 SHA；另以完整 `auxiliary_data_paths` / `auxiliary_data_sha256` 登记辅助文件。字段不能只写一半，不能重复主来源、使用已覆盖原始数据或改写旧版本标记规避校验。
+
+生成入口在运行前后同时核对主数据、辅助数据与源码，辅助值实际进入本题模型。回执仍写现有工作簿“运行配置”，路径数组以 JSON 文本传输，摘要与已交付配置一致。旧工具不支持 1.2 时应拒绝，不可静默省略辅助来源。原生合成用例见 `tests/audit_auxiliary_smoke.py`，不是可照抄的本题数学模型。

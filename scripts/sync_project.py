@@ -27,6 +27,7 @@ import runtime_assurance as RUNTIME_ASSURANCE  # noqa: E402
 import artifact_fingerprint as ARTIFACT_FINGERPRINT  # noqa: E402
 import project_snapshot as PROJECT_SNAPSHOT  # noqa: E402
 import stage_code as STAGE_CODE  # noqa: E402
+from execution_protocol import declared_input_paths
 DEFAULT_SCHEMA_PATH = SKILL_ROOT / "core" / "workbook_schema.yaml"
 DEFAULT_OUTPUT_CONTRACT_PATH = SKILL_ROOT / "core" / "output_contract.yaml"
 PHASE_SCOPE = {
@@ -326,6 +327,10 @@ def _snapshot_transition_events(entry: Mapping[str, Any], snapshot: Mapping[str,
     current = dict(snapshot.get("artifact_hashes", {}))
     primary_changed, analysis_changed = _code_hash_mismatches(entry, snapshot)
     events: list[str] = []
+    observed_inputs = snapshot.get("solver_execution_observed") or {}
+    for stage, event in (("primary", "data_changed"), ("analysis", "analysis_inputs_changed")):
+        if ((observed_inputs.get(stage) or {}).get("inputs") or {}).get("issues"):
+            events.append(event)
     if primary_changed:
         events.append("primary_code_changed")
     if analysis_changed:
@@ -796,7 +801,11 @@ def _capture_sync_question_sources(
                     _capture_sync_source(root, read_set, STAGE_CODE._relative_path(root, item["path"]))
                 except STAGE_CODE.StageCodeError:
                     pass
-        for relative_input in config.get("data_paths", []) or []:
+        try:
+            declared_inputs = declared_input_paths(config)
+        except ValueError:
+            declared_inputs = []  # Snapshot observation reports the invalid shape; no current qualification.
+        for relative_input in declared_inputs:
             if isinstance(relative_input, str):
                 try:
                     _capture_sync_source(root, read_set, STAGE_CODE._relative_path(root, relative_input))

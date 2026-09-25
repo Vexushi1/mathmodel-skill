@@ -1,6 +1,15 @@
 # Changelog
 
-## 10.0.1
+## 10.1.0
+
+- Rechecks actual stage inputs at current-result qualification and receipt boundaries without requiring a prior sync; matching stale state hashes cannot prove unchanged raw files.
+- Adds optional receipt 1.2 for project-level preprocessing plus explicit independent auxiliary attachments. Base preprocessing identity remains unchanged; auxiliary paths and digest are bound by code, runtime receipts, synchronization and reproducibility inventory. Unextended 1.1 and preprocessing 1.0 retain their contracts; older readers reject 1.2 rather than ignoring new evidence.
+- Rejects boolean, floating-point and string semantic revisions consistently in approval, semantic governance and runtime recovery.
+- Makes omitted backend arguments neutral/auto in the assured numerical entry while keeping the explicit legacy resolver's old projection. One project-wide Python/MATLAB selection remains required; preprocessing and plotting roles are unchanged.
+- Corrects prose-authority delegation in script navigation. Independent protocol versions remain distinct from the Skill release.
+- Verification and remaining limitations are recorded in `docs/v1010_audit_closure_remediation_plan.md` and this PR; a version heading does not assert completed CI or publication.
+
+## Previous release: 10.0.1
 
 - Fixes real MATLAB publication preview on R2024b: ColorBar font size is already measured in points and does not expose `FontUnits`. The shared styling helper and both standalone plot/preprocessing fallbacks now set only supported ColorBar properties; ColorBar label typography remains unchanged.
 - Retains the v10.0.0 project-wide solver backend, read-only legacy compatibility, and all independent state, workbook, and receipt protocol versions.

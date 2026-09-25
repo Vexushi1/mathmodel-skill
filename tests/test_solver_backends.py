@@ -28,8 +28,12 @@ class SolverBackendTests(unittest.TestCase):
         (self.root / "问题一求解").mkdir()
 
     def config(self, backend="python", stage="primary", **updates):
+        from artifact_fingerprint import combined_hash
+        data = self.root / "data.csv"
+        if not data.exists():
+            data.write_text("value\n10\n", encoding="utf-8")
         result = {"stage": stage, "problem_name": "问题一", "solver_backend": backend,
-                  "data_paths": ["data.csv"], "data_sha256": "a" * 64, "solver": "direct",
+                  "data_paths": ["data.csv"], "data_sha256": combined_hash([data], self.root), "solver": "direct",
                   "random_seed": 2026, "tolerance": 1e-8, "iteration_or_time_limit": "direct",
                   "expected_workbook": f"问题一{'求解结果' if stage == 'primary' else '结果深化分析'}.xlsx",
                   "run_receipt_protocol_version": "1.1.0", "code_dependencies": []}

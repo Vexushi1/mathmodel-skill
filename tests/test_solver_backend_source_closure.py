@@ -39,8 +39,12 @@ class SolverBackendSourceClosureTests(unittest.TestCase):
         state["execution"] = {"solver_backend": backend,
                               "solver_backend_selection_reason": "Synthetic whole-project source-closure fixture"}
         state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
+        from artifact_fingerprint import combined_hash
+        data = self.root / "input.json"
+        if not data.exists():
+            data.write_text("{}", encoding="utf-8")
         config = {"stage": "primary", "problem_name": "问题一", "solver_backend": backend,
-                  "data_paths": ["input.json"], "data_sha256": "a" * 64, "solver": "direct",
+                  "data_paths": ["input.json"], "data_sha256": combined_hash([data], self.root), "solver": "direct",
                   "random_seed": 2026, "tolerance": 1e-8, "iteration_or_time_limit": "direct",
                   "expected_workbook": "问题一求解结果.xlsx", "run_receipt_protocol_version": "1.1.0",
                   "primary_quality_protocol_version": "1.0.0",
