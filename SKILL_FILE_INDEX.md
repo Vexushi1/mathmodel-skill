@@ -11,6 +11,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `.codex-plugin/plugin.json`
 - `.gitattributes`
 - `.github/pull_request_template.md`
+- `.github/workflows/audit-apply-verified-delta.yml`
 - `.github/workflows/audit-source-snapshot.yml`
 - `.github/workflows/ci.yml`
 - `.github/workflows/optimization-baseline.yml`
