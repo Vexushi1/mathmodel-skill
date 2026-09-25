@@ -1,0 +1,176 @@
+name: Apply verified A2 delta once
+
+on:
+  push:
+    branches: ["upgrade/v10.3.0-conformance-a2"]
+    paths: [".github/workflows/apply-conformance-a2-once.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  apply:
+    if: github.repository == 'Vexushi1/mathmodel-skill' && github.ref_name == 'upgrade/v10.3.0-conformance-a2' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Apply fixed hash-verified source delta and delete this workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PYTHON'
+          import base64, bz2, hashlib, json, os, pathlib, subprocess, tempfile, urllib.request
+
+          REPO = 'Vexushi1/mathmodel-skill'
+          BRANCH = 'upgrade/v10.3.0-conformance-a2'
+          BASE = 'd69b8c3e7e478f3935552d164fb9c35e42c4911a'
+          MAIN = '718d129bf0121d95bac3e6323e48c11bf67dafba'
+          TREE = 'bd0031fe71a6443d19c19fec5a913b40e68215cd'
+          DIGEST = '4ff3bece732ec9e030d3c08953a1e0c59e4cd798b56ebb3cc0a16a85d6feaabb'
+          SELF = '.github/workflows/apply-conformance-a2-once.yml'
+          GENERATED = {'SKILL_FILE_INDEX.md', 'TEMPLATE_INDEX.md', 'MANIFEST.sha256', 'HSK_SKILL_FILE_INDEX_V622.md', 'HSK_TEMPLATE_INDEX_V622.md'}
+          ALLOWED = set('''.codex-plugin/plugin.json
+          .github/workflows/ci.yml
+          CHANGELOG.md
+          README.md
+          SKILL.md
+          config/prose_audit_patterns.yaml
+          core/bootstrap.yaml
+          core/hsk_core_policy.md
+          core/model_code_conformance_contract.yaml
+          core/module_manifest.yaml
+          core/output_contract.yaml
+          core/project_state.schema.yaml
+          core/runtime_assurance_contract.yaml
+          core/state_transition_contract.yaml
+          core/user_execution_contract.yaml
+          core/workflow_router.yaml
+          core/writing_runtime_contract.yaml
+          docs/modeling_intelligence_a2_execution_plan.md
+          docs/modeling_intelligence_evidence_evolution_plan.md
+          modules/03_result_analysis.md
+          modules/03_solve_validate.md
+          scripts/README.md
+          scripts/analysis_prerequisites.py
+          scripts/conformance_gate.py
+          scripts/lint_skill_checks.py
+          scripts/model_code_conformance.py
+          scripts/reading_plan.py
+          scripts/resolve_runtime.py
+          scripts/runtime_assurance.py
+          scripts/stage_code.py
+          scripts/state_transitions.py
+          scripts/sync_project.py
+          scripts/validate_code_delivery.py
+          scripts/validate_project_state.py
+          scripts/validate_user_execution.py
+          skills/mathmodel-skill/SKILL.md
+          templates/model/formula_code_closure.md
+          tests/conformance_a2_smoke.py
+          tests/reading_plan_evidence.py
+          tests/test_conformance_a2_contract.py
+          tests/test_conformance_execution.py
+          tests/test_conformance_integration.py
+          tests/test_numerical_source_retirement.py
+          tests/test_p9_release_closeout.py
+          tests/test_v1000_release_version_matrix.py
+          tests/test_v830_editable_mechanism_diagram.py
+          tests/test_v900_phase_i_migration_matrix.py
+          tests/test_v900_phase_i_release_closure.py
+          tests/test_v900_phase_i_v9_applicability.py
+          tests/test_v900_phase_i_writer_retirement_readiness.py
+          tests/test_v900_state_transitions.py
+          tests/test_v910_publication_rendering.py'''.splitlines())
+
+          def git(*args):
+              return subprocess.check_output(['git', *args], text=True).strip()
+
+          def api(path):
+              request = urllib.request.Request('https://api.github.com/repos/' + REPO + path,
+                  headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json'})
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  raw = response.read(2_000_001)
+              if len(raw) > 2_000_000:
+                  raise RuntimeError('API response exceeds transport limit')
+              return json.loads(raw)
+
+          def blob(data):
+              return hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+
+          assert os.environ['GITHUB_REPOSITORY'] == REPO and os.environ['GITHUB_REF_NAME'] == BRANCH
+          assert api('/git/ref/heads/main')['object']['sha'] == MAIN, 'main advanced; re-review required'
+          assert git('merge-base', BASE, 'HEAD') == BASE
+          assert set(git('diff', '--name-only', BASE, 'HEAD').splitlines()) <= GENERATED | {SELF}
+          entries = api('/git/trees/' + TREE)
+          assert entries['sha'] == TREE and not entries.get('truncated')
+          assert [row['path'] for row in entries['tree']] == [f'part-{i:03d}.txt' for i in range(29)]
+          parts = []
+          for row in entries['tree']:
+              assert row['mode'] == '100644' and row['type'] == 'blob' and row['size'] <= 2048
+              item = api('/git/blobs/' + row['sha'])
+              assert item['encoding'] == 'base64'
+              data = base64.b64decode(item['content'])
+              assert len(data) == row['size'] and blob(data) == row['sha']
+              parts.append(data)
+          compressed = base64.b64decode(b''.join(parts), validate=True)
+          assert len(compressed) == 43024 and hashlib.sha256(compressed).hexdigest() == DIGEST
+          reader = bz2.BZ2Decompressor()
+          raw = reader.decompress(compressed, max_length=1_000_001)
+          assert len(raw) <= 1_000_000 and reader.eof and not reader.unused_data
+          payload = json.loads(raw)
+          assert set(payload) == {'protocol', 'repository', 'branch', 'base_commit', 'files', 'patch'}
+          assert (payload['protocol'], payload['repository'], payload['branch'], payload['base_commit']) == ('A2-exact-delta-1', REPO, BRANCH, BASE)
+          rows = payload['files']
+          assert len(rows) == 52 and len(ALLOWED) == 52 and {row['path'] for row in rows} == ALLOWED
+          root = pathlib.Path.cwd().resolve()
+          for row in rows:
+              relative = pathlib.PurePosixPath(row['path'])
+              assert not relative.is_absolute() and '..' not in relative.parts and '\\' not in row['path']
+              path = root / relative
+              assert path.resolve().is_relative_to(root) and not path.is_symlink()
+              actual = blob(path.read_bytes()) if path.exists() else None
+              assert actual == row['old_blob'], f'Old source mismatch: {relative}'
+          with tempfile.NamedTemporaryFile(prefix='a2-verified-', suffix='.diff', delete=False) as handle:
+              patch = pathlib.Path(handle.name)
+              handle.write(payload['patch'].encode('utf-8'))
+          try:
+              subprocess.run(['git', 'apply', '--check', str(patch)], check=True)
+              subprocess.run(['git', 'apply', str(patch)], check=True)
+          finally:
+              patch.unlink(missing_ok=True)
+          for row in rows:
+              data = (root / row['path']).read_bytes()
+              assert blob(data) == row['new_blob'] and hashlib.sha256(data).hexdigest() == row['sha256'], row['path']
+          (root / SELF).unlink()
+          print('Verified and applied 52 exact A2 paths; temporary workflow removed.')
+          subprocess.run(['git', 'config', 'user.name', 'github-actions[bot]'], check=True)
+          subprocess.run(['git', 'config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com'], check=True)
+          subprocess.run(['git', 'add', '--', *sorted(ALLOWED), SELF], check=True)
+          subprocess.run(['git', 'diff', '--cached', '--check'], check=True)
+          subprocess.run(['git', 'commit', '-m', 'feat: integrate opted-in A2 conformance delivery receipt and stale bindings'], check=True)
+          subprocess.run(['python', 'scripts/generate_indexes.py'], check=True)
+          changed = set(git('diff', '--name-only').splitlines())
+          assert changed <= GENERATED, 'Generator changed unrelated sources'
+          if changed:
+              subprocess.run(['git', 'add', '--', *sorted(changed)], check=True)
+              subprocess.run(['git', 'commit', '-m', 'chore: regenerate A2 indexes and manifest'], check=True)
+          assert not git('status', '--porcelain')
+          subprocess.run(['git', 'push', 'origin', 'HEAD:refs/heads/' + BRANCH], check=True)
+          print('Published verified A2 branch head:', git('rev-parse', 'HEAD'))
+          PYTHON
+      - name: Validate the published branch through existing workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run ci.yml --ref "$GITHUB_REF_NAME"
+          gh workflow run optimization-baseline.yml --ref "$GITHUB_REF_NAME"
