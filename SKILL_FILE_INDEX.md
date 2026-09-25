@@ -284,6 +284,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_conformance_a2_contract.py`
 - `tests/test_conformance_execution.py`
 - `tests/test_conformance_integration.py`
+- `tests/test_conformance_upstream_read_set.py`
 - `tests/test_content_packs.py`
 - `tests/test_contract_closure.py`
 - `tests/test_copied_support_source_closure.py`
