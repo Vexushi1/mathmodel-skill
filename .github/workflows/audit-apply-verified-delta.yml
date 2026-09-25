@@ -1,0 +1,189 @@
+name: Temporary verified audit delta bridge
+
+on:
+  push:
+    branches: ["upgrade/v10.1.0-audit-closure"]
+    paths: [".github/workflows/audit-apply-verified-delta.yml"]
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: audit-verified-delta-v1010
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.repository == 'Vexushi1/mathmodel-skill' && github.ref == 'refs/heads/upgrade/v10.1.0-audit-closure'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: upgrade/v10.1.0-audit-closure
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Validate pinned delta and commit only the reviewed file set
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64
+          import hashlib
+          import json
+          import lzma
+          from pathlib import Path, PurePosixPath
+          import subprocess
+
+          REPO = 'Vexushi1/mathmodel-skill'
+          BRANCH = 'upgrade/v10.1.0-audit-closure'
+          BASE = '0fc52fa47abf457ef4e180ac7a291583cd9be68f'
+          BLOBS = [
+              'dfcaec25c61e7f84a8022a983335609eb4db6bda',
+              '81b7fa625de97dcfc11236cd4dfc900189f0465e',
+              'f8fafef286c413424a46592569ece6660f71eaa1',
+              '7ded77022b6ab0de04629c8606facab4e5d89865',
+          ]
+          ALLOWED = set('''.codex-plugin/plugin.json
+          CHANGELOG.md
+          README.md
+          SKILL.md
+          config/prose_audit_patterns.yaml
+          core/bootstrap.yaml
+          core/global_preprocessing_contract.yaml
+          core/hsk_core_policy.md
+          core/module_manifest.yaml
+          core/output_contract.yaml
+          core/runtime_assurance_contract.yaml
+          core/state_transition_contract.yaml
+          core/user_execution_contract.yaml
+          core/workflow_router.yaml
+          core/writing_runtime_contract.yaml
+          scripts/README.md
+          scripts/analysis_prerequisites.py
+          scripts/execution_protocol.py
+          scripts/lint_skill_checks.py
+          scripts/project_snapshot.py
+          scripts/project_solver_backend.py
+          scripts/resolve_runtime.py
+          scripts/run_config_parser.py
+          scripts/runtime_assurance.py
+          scripts/semantic_identity.py
+          scripts/stage_code.py
+          scripts/stage_inputs.py
+          scripts/sync_project.py
+          scripts/validate_code_delivery.py
+          scripts/validate_model_approval.py
+          scripts/validate_semantic_governance.py
+          scripts/validate_user_execution.py
+          skills/mathmodel-skill/SKILL.md
+          templates/code/matlab/README.md
+          templates/code/matlab/q1_analysis.m
+          templates/code/matlab/q1_solver.m
+          templates/code/starter/README.md
+          tests/audit_auxiliary_smoke.py
+          tests/fixtures/solver_backends/python_auxiliary.py
+          tests/reading_plan_cases.py
+          tests/test_audit_analysis_boundaries.py
+          tests/test_audit_closure_regressions.py
+          tests/test_auxiliary_input_protocol.py
+          tests/test_numerical_source_retirement.py
+          tests/test_p5a_run_config.py
+          tests/test_p5b_run_receipt.py
+          tests/test_p9_release_closeout.py
+          tests/test_solver_backend_source_closure.py
+          tests/test_solver_backends.py
+          tests/test_v1000_release_version_matrix.py
+          tests/test_v712_runtime_assurance.py
+          tests/test_v830_editable_mechanism_diagram.py
+          tests/test_v900_phase_i_migration_matrix.py
+          tests/test_v900_phase_i_release_closure.py
+          tests/test_v900_phase_i_v9_applicability.py
+          tests/test_v900_phase_i_writer_retirement_readiness.py
+          tests/test_v900_state_transitions.py
+          tests/test_v910_publication_rendering.py'''.splitlines())
+          ALLOWED = {p.strip() for p in ALLOWED}
+          def run(*args):
+              return subprocess.run(args, check=True, capture_output=True, text=True).stdout
+          chunks = []
+          for sha in BLOBS:
+              payload = json.loads(run('gh', 'api', f'repos/{REPO}/git/blobs/{sha}'))
+              raw = base64.b64decode(payload['content'])
+              actual = hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
+              if actual != sha:
+                  raise ValueError('Git blob identity mismatch')
+              chunks.append(raw)
+          compressed = base64.b64decode(b''.join(chunks), validate=True)
+          if hashlib.sha256(compressed).hexdigest() != 'a835b73c526564d280ae2ee81ef43c41f053b946c022e513b295738a0f777e1e':
+              raise ValueError('Exact local delta SHA-256 mismatch')
+          decoder = lzma.LZMADecompressor(memlimit=128 * 1024 * 1024)
+          decoded = decoder.decompress(compressed, max_length=100000)
+          if len(decoded) != 94987 or not decoder.eof or decoder.unused_data:
+              raise ValueError('Unexpected decoded delta size or stream')
+          records = json.loads(decoded)
+          paths = [r['path'] for r in records]
+          if len(records) != 58 or len(set(paths)) != 58 or set(paths) != ALLOWED:
+              raise ValueError('Reviewed delta path set mismatch')
+          root = Path.cwd().resolve()
+          generated = ['SKILL_FILE_INDEX.md', 'TEMPLATE_INDEX.md', 'HSK_SKILL_FILE_INDEX_V622.md', 'HSK_TEMPLATE_INDEX_V622.md', 'MANIFEST.sha256']
+          run('git', 'config', 'user.name', 'github-actions[bot]')
+          run('git', 'config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com')
+          for attempt in range(3):
+              run('git', 'fetch', 'origin', BRANCH)
+              run('git', 'reset', '--hard', 'origin/' + BRANCH)
+              run('git', 'merge-base', '--is-ancestor', BASE, 'HEAD')
+              candidates = []
+              for row in records:
+                  relative = PurePosixPath(row['path'])
+                  if relative.is_absolute() or '..' in relative.parts or str(relative) not in ALLOWED:
+                      raise ValueError('Unsafe delta target')
+                  path = root.joinpath(*relative.parts)
+                  if not path.resolve().is_relative_to(root) or path.is_symlink():
+                      raise ValueError('Delta target escapes checkout')
+                  original = path.read_bytes() if path.is_file() else None
+                  actual = hashlib.sha256(original).hexdigest() if original is not None else None
+                  if actual == row['new_sha256']:
+                      continue
+                  if actual != row['old_sha256']:
+                      raise ValueError('Unexpected concurrent source change: ' + row['path'])
+                  lines = (original or b'').decode('utf-8').splitlines(keepends=True)
+                  edits = row['edits']
+                  previous = 0
+                  for start, end, replacement in edits:
+                      if not (isinstance(start, int) and isinstance(end, int) and previous <= start <= end <= len(lines) and isinstance(replacement, str)):
+                          raise ValueError('Malformed line delta')
+                      previous = end
+                  for start, end, replacement in reversed(edits):
+                      lines[start:end] = [replacement]
+                  value = ''.join(lines).encode('utf-8')
+                  if hashlib.sha256(value).hexdigest() != row['new_sha256']:
+                      raise ValueError('Patched source SHA-256 mismatch: ' + row['path'])
+                  candidates.append((path, value))
+              for path, value in candidates:
+                  path.parent.mkdir(parents=True, exist_ok=True)
+                  path.write_bytes(value)
+              run('python', 'scripts/generate_indexes.py')
+              run('python', 'scripts/generate_indexes.py', '--check')
+              run('git', 'diff', '--check')
+              run('git', 'add', '--', *sorted(ALLOWED), *generated)
+              changed = set(run('git', 'diff', '--cached', '--name-only').splitlines())
+              if changed - ALLOWED - set(generated):
+                  raise ValueError('Unexpected staged paths')
+              if not changed:
+                  print('Exact delta is already present:', run('git', 'rev-parse', 'HEAD').strip())
+                  break
+              run('git', 'commit', '-m', 'fix: close audited input, revision and backend qualification gaps')
+              result = subprocess.run(['git', 'push', 'origin', f'HEAD:refs/heads/{BRANCH}'], text=True, capture_output=True)
+              if result.returncode == 0:
+                  print('Applied exact tested delta:', run('git', 'rev-parse', 'HEAD').strip())
+                  print('Reviewed source files:', len(ALLOWED))
+                  break
+              if attempt == 2:
+                  raise RuntimeError('Branch advanced or push failed; no forced update: ' + result.stderr)
+          run('gh', 'workflow', 'run', 'ci.yml', '--ref', BRANCH)
+          run('gh', 'workflow', 'run', 'optimization-baseline.yml', '--ref', BRANCH)
+          PY
