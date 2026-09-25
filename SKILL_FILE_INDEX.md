@@ -472,6 +472,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/main-branch-protection-hardening-plan.md`
 - `docs/matlab_publication_rendering_v91_plan.md`
 - `docs/modeling_intelligence_a0_decisions.md`
+- `docs/modeling_intelligence_a2_execution_plan.md`
 - `docs/modeling_intelligence_evidence_evolution_plan.md`
 - `docs/p3a_global_policy_source_map.md`
 - `docs/p3b_writing_role_source_map.md`
