@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.1.0
+当前 Skill 版本：10.2.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -11,7 +11,6 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `.codex-plugin/plugin.json`
 - `.gitattributes`
 - `.github/pull_request_template.md`
-- `.github/workflows/apply-conformance-a1-once.yml`
 - `.github/workflows/ci.yml`
 - `.github/workflows/optimization-baseline.yml`
 - `.github/workflows/refresh-generated.yml`
@@ -56,6 +55,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `core/global_preprocessing_contract.yaml`
 - `core/hsk_core_policy.md`
 - `core/model_approval_contract.yaml`
+- `core/model_code_conformance_contract.yaml`
 - `core/module_manifest.yaml`
 - `core/numerical_verification_contract.yaml`
 - `core/output_contract.yaml`
@@ -117,6 +117,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/audit_latex_project.py`
 - `scripts/audit_paper_prose.py`
 - `scripts/audit_v8_writing_surface.py`
+- `scripts/conformance_source.py`
 - `scripts/execution_protocol.py`
 - `scripts/generate_indexes.py`
 - `scripts/generate_mechanism_drawio.py`
@@ -128,6 +129,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/matlab_code_checks.py`
 - `scripts/measure_infrastructure.py`
 - `scripts/measure_writing_validation.py`
+- `scripts/model_code_conformance.py`
 - `scripts/prepare_cumcm_class.py`
 - `scripts/project_snapshot.py`
 - `scripts/project_solver_backend.py`
@@ -277,6 +279,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_authority_single_source.py`
 - `tests/test_auxiliary_input_protocol.py`
 - `tests/test_code_quality_contract.py`
+- `tests/test_conformance_integration.py`
 - `tests/test_content_packs.py`
 - `tests/test_contract_closure.py`
 - `tests/test_copied_support_source_closure.py`
@@ -287,6 +290,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_legacy_archive_hygiene.py`
 - `tests/test_matlab_code_checks.py`
 - `tests/test_mechanism_template_compat_hygiene.py`
+- `tests/test_model_code_conformance.py`
 - `tests/test_numerical_source_retirement.py`
 - `tests/test_optimization_baseline.py`
 - `tests/test_p3a_core_policy.py`
