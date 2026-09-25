@@ -1,4 +1,4 @@
-version: 2.0.0
+version: 2.1.0
 introduced_in_skill_version: 10.0.0
 skill_compatibility: '>=10.0.0,<11.0.0'
 purpose: >-
@@ -43,10 +43,10 @@ runtime_context:
   - deterministic_keyword_inference
   rules:
   - Explicit intent, competition, classification, preprocessing decision, question scope, solver_backend, or artifact declarations remain backward-compatible inputs.
-  - New active Skill solve requests explicitly pass solver_backend=auto when neither the user nor current state has selected a backend; auto is not a resolved backend.
+  - The assured numerical/model-design entry treats an omitted solver_backend as auto when no concrete request is supplied; current project policy still takes precedence. auto is unresolved, not a selected backend. Non-numerical routes do not preload solver templates.
   - A current project hydrates exactly one backend from execution.solver_backend, after checking whole-project declarations before filtering question scope. Missing policy never defaults to Python and cannot authorize numerical delivery or receipt acceptance.
   - A concrete explicit request that differs from the current project selection is review_required. Historical stage selections remain diagnostic migration evidence only; they do not hydrate a current backend or promote old accepted results under a new selection.
-  - Stateless legacy CLI/API requests may retain their historical Python planning projection only when no current project state is supplied. Such a plan is not a current numerical delivery authorization.
+  - Only the explicit legacy resolve_workflow CLI/API retains omitted-argument Python planning projection. The new assured numerical entry uses neutral artifacts even without a project root; a plan never grants numerical delivery authorization.
   - Legacy Python terminal outputs retain python_code/stage_python_code projection; MATLAB and unresolved auto plans use neutral primary_code/stage_code without false Python aliases.
   - When project_root is supplied, current project state may hydrate missing competition, preprocessing decision, question classification, and verified artifact availability.
   - Framework memory may guide a human or agent to the relevant section, but the runtime resolver must not promote framework prose into a verified numerical artifact.
@@ -108,6 +108,7 @@ artifact_assurance:
       - model_challenge_status == passed
       - human_model_approval_status == approved
       - approved_semantic_revision == semantic_revision
+      - declared current/approved/validated semantic revisions are positive integers, never booleans, floats or strings
       - current 模型论文框架.md exists
       - current question semantic scope exists in 模型论文框架.md
       structured_requires:
@@ -138,11 +139,12 @@ artifact_assurance:
       - result_quality_status == passed
       - no stale data, primary_code, or solution_workbook layer
       - declared primary code and project-level preprocessing remain bound to current accepted file and data identities under the shared analysis prerequisite check
-      - protocol 1.1 primary backend, entrypoint and actual source bundle match delivered and validated identities without requiring a prior sync
+      - protocol 1.1/1.2 primary backend, entrypoint and actual source bundle match delivered and validated identities without requiring a prior sync
       - workbook path resolves inside project_root
       - workbook path exists
       - validated or current workbook sha256 exists
       - actual sha256 == expected sha256
+      - current primary data_paths and any receipt-1.2 auxiliary inputs are observed against delivered identity without requiring prior sync
     accepted_result_analysis_workbook:
       kind: file_backed
       requires:
@@ -150,11 +152,12 @@ artifact_assurance:
       - analysis_execution_status == accepted
       - result_analysis_status == passed
       - no stale analysis_code or result_analysis_workbook layer
-      - protocol 1.1 analysis backend, entrypoint and actual source bundle match delivered and validated identities without requiring a prior sync
+      - protocol 1.1/1.2 analysis backend, entrypoint and actual source bundle match delivered and validated identities without requiring a prior sync
       - workbook path resolves inside project_root
       - workbook path exists
       - validated or current workbook sha256 exists
       - actual sha256 == expected sha256
+      - current analysis data_paths and any receipt-1.2 auxiliary inputs are observed against delivered identity without requiring prior sync
   scope_rules:
   - validated_results requires a current verified primary result plus either current verified analysis or a reasoned not_required decision for every scoped question.
   - With project state loaded, solution_workbook, solved_results, and result_quality_report declarations share accepted_solution_workbook qualification; result_analysis_workbook shares accepted_result_analysis_workbook qualification. A derived validated_results declaration cannot bypass these qualifications.

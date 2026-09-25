@@ -8,6 +8,7 @@ core/user_execution_contract.yaml.
 from __future__ import annotations
 
 import ast
+from execution_protocol import is_source_receipt
 from dataclasses import dataclass
 from typing import Any
 
@@ -69,7 +70,7 @@ def parse_embedded_config(
     if len(found) != 1:
         names = ", ".join(name for name, _ in found)
         raise ValueError(messages.multiple.format(names=names))
-    if found[0][1].get("run_receipt_protocol_version") == "1.1.0":
+    if is_source_receipt(found[0][1].get("run_receipt_protocol_version")):
         def root_name(node: ast.AST) -> str | None:
             while isinstance(node, (ast.Attribute, ast.Subscript)):
                 node = node.value

@@ -32,8 +32,8 @@ class PhaseIV9ApplicabilityTests(unittest.TestCase):
                 self.assertNotIn("<9.0.0", str(data["skill_compatibility"]))
 
     def test_redefined_execution_and_runtime_contracts_have_v10_major_boundaries(self):
-        for relative, version in (("core/user_execution_contract.yaml", "3.0.0"),
-                                  ("core/runtime_assurance_contract.yaml", "2.0.0")):
+        for relative, version in (("core/user_execution_contract.yaml", "3.1.0"),
+                                  ("core/runtime_assurance_contract.yaml", "2.1.0")):
             with self.subTest(relative=relative):
                 data = self.load(relative)
                 self.assertEqual(data["version"], version)
@@ -42,7 +42,7 @@ class PhaseIV9ApplicabilityTests(unittest.TestCase):
 
     def test_i4b_publishes_v9_after_i4a_applicability_renewal(self):
         bootstrap = self.load("core/bootstrap.yaml")
-        self.assertEqual(str(bootstrap["skill_version"]), "10.0.1")
+        self.assertEqual(str(bootstrap["skill_version"]), "10.1.0")
         i4a_record = (ROOT / "docs/phase_i_v9_applicability_renewal.md").read_text(encoding="utf-8")
         self.assertIn("当前 Skill release carrier 仍为 `8.9.0`", i4a_record)
         self.assertIn("I4b 才处理 current release carriers 从 `8.9.0` 到 `9.0.0`", i4a_record)

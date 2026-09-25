@@ -16,6 +16,8 @@ if SCRIPT_DIR not in sys.path:
 
 from semantic_identity import (  # noqa: E402
     SemanticIdentityError,
+    is_semantic_revision,
+    semantic_revision_issues,
     inspect_question_semantics,
     question_sections as _question_sections,
     semantic_scope as _semantic_scope,
@@ -98,7 +100,7 @@ def _mark_paper_fragments_stale(framework: dict[str, Any], affected_questions: s
 
 
 def _gate_issues(key: str, entry: Mapping[str, Any]) -> list[str]:
-    issues: list[str] = []
+    issues: list[str] = [f"{key}: {issue}" for issue in semantic_revision_issues(entry)]
     status = str(entry.get("status", "pending"))
     if status not in DESIGNED_OR_LATER:
         return issues
@@ -113,7 +115,7 @@ def _gate_issues(key: str, entry: Mapping[str, Any]) -> list[str]:
     if flags and not str(entry.get("complexity_sanity_note", "")).strip():
         issues.append(f"{key}: complexity_sanity_flags非空时必须记录复审结论")
     revision = entry.get("semantic_revision")
-    if not isinstance(revision, int) or revision < 1:
+    if not is_semantic_revision(revision):
         issues.append(f"{key}: semantic_revision必须为>=1的整数")
     categories = set(entry.get("semantic_change_categories", []) or [])
     unknown = categories - CHANGE_CATEGORIES
@@ -135,7 +137,7 @@ def _revision_change_issues(
     issues: list[str] = []
     revision = entry.get("semantic_revision")
     validated_revision = entry.get("validated_semantic_revision")
-    if not isinstance(validated_revision, int) or not isinstance(revision, int) or revision <= validated_revision:
+    if not is_semantic_revision(validated_revision) or not is_semantic_revision(revision) or revision <= validated_revision:
         issues.append(f"{key}: 语义身份已变化，但semantic_revision未递增")
     categories = set(entry.get("semantic_change_categories", []) or [])
     if not categories or categories == {"initial_design"}:
@@ -315,8 +317,8 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
                 revision = entry.get("semantic_revision")
                 validated_revision = entry.get("validated_semantic_revision")
                 revision_ok = not hash_changed or (
-                    isinstance(revision, int)
-                    and (not isinstance(validated_revision, int) or revision > validated_revision)
+                    is_semantic_revision(revision)
+                    and is_semantic_revision(validated_revision) and revision > validated_revision
                 )
                 categories = set(entry.get("semantic_change_categories", []) or [])
                 category_ok = not hash_changed or bool(categories - {"initial_design"})

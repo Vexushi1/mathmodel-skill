@@ -20,6 +20,7 @@ import yaml
 
 from runtime_assurance import ProjectStateReadError, ProjectStateSnapshot
 from stage_code import BACKENDS, POLICY_FIELDS, inspect_project_backend_declarations
+from execution_protocol import is_source_receipt, declared_input_paths
 
 
 def _backend(value: Any) -> bool:
@@ -204,7 +205,7 @@ _PREVIEW_SOURCES = (
     "core/user_execution_contract.yaml", "core/project_state.schema.yaml",
     "core/workbook_schema.yaml", "core/numerical_verification_contract.yaml",
     "scripts/project_solver_backend.py", "scripts/project_transaction.py",
-    "scripts/stage_code.py", "scripts/stage_inputs.py", "scripts/run_config_parser.py",
+    "scripts/stage_code.py", "scripts/stage_inputs.py", "scripts/run_config_parser.py", "scripts/execution_protocol.py",
     "scripts/artifact_fingerprint.py", "scripts/runtime_assurance.py",
     "scripts/validate_user_execution.py", "scripts/validate_numerical_evidence.py",
     "scripts/analysis_prerequisites.py", "scripts/artifact_identity.py",
@@ -584,7 +585,7 @@ def preview_migration(project_root: str | Path, *, target_backend: str, reason: 
                     if read_set[item["path"]] != item["sha256"]:
                         raise ValueError(f"source changed during fingerprint: {item['path']}")
                 # Historical evidence is never an escape from a modern source binding.
-                if config.get("run_receipt_protocol_version") != "1.1.0":
+                if not is_source_receipt(config.get("run_receipt_protocol_version")):
                     if record.get("bundle_sha256") or record.get("validated_bundle_sha256"):
                         raise ValueError(f"{question}.{stage}: modern binding cannot downgrade to a legacy config")
                     if entry.get(hashkey) and read_set[code] != str(entry[hashkey]).lower():
@@ -607,7 +608,7 @@ def preview_migration(project_root: str | Path, *, target_backend: str, reason: 
                     row.update(action="rebuild_legacy", evidence_status="unqualified_legacy_requires_rebuild",
                                inputs=list(config["data_paths"]))
                     continue
-                for relative in config.get("data_paths", []):
+                for relative in declared_input_paths(config):
                     capture(relative)
                     source = workbooks.get(relative) or standard_workbooks.get(relative)
                     if source and relative not in workbooks:
@@ -617,7 +618,7 @@ def preview_migration(project_root: str | Path, *, target_backend: str, reason: 
                     if source and source[0] != question:
                         if (source[0], question) not in numeric_edges:
                             row["issues"].append(f"input {relative} lacks an explicit numerical or conservative legacy dependency")
-                row["inputs"] = list(config.get("data_paths", []))
+                row["inputs"] = declared_input_paths(config)
                 current = historical_state["subproblems"][question]
                 accepted = entry.get(f"{stage}_execution_status") == "accepted"
                 row["issues"].extend(stage_code.validate_stage_binding(

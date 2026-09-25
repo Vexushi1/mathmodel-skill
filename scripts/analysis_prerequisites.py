@@ -7,6 +7,8 @@ from typing import Any, Mapping
 
 import artifact_identity as ARTIFACT_IDENTITY
 import stage_code as STAGE_CODE
+from stage_inputs import observe_inputs
+from execution_protocol import is_source_receipt, auxiliary_config_issues
 
 
 def _file_issues(root: Path, path: Any, expected: Any, label: str) -> list[str]:
@@ -41,6 +43,31 @@ def _project_backend(state: Mapping[str, Any], *, required: bool) -> tuple[str |
         return STAGE_CODE.current_project_backend(state, required=True), []
     except STAGE_CODE.StageCodeError as exc:
         return None, [str(exc)]
+
+
+def stage_input_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, Any], stage: str) -> list[str]:
+    """Observe modern inputs at every current-qualification boundary, without sync."""
+    field = "code" if stage == "primary" else "result_analysis_code"
+    relative = entry.get(field)
+    if not relative:
+        return []  # Source-binding qualification owns missing entrypoint diagnostics.
+    try:
+        path = STAGE_CODE._relative_path(Path(root), relative)
+        try:
+            _, config = STAGE_CODE.parse_stage_config(path)
+        except (ValueError, SyntaxError):
+            if STAGE_CODE.requires_bundle_binding(root, entry, stage):
+                raise
+            return []  # Explicit historical source-only compatibility.
+        if not is_source_receipt(config.get("run_receipt_protocol_version")):
+            return auxiliary_config_issues(config)  # Unsupported modern versions are rejected by stage binding.
+        observation = observe_inputs(Path(root), config, state)
+        issues = list(observation["issues"])
+        if str(config.get("data_sha256", "")).lower() != str(entry.get("data_hash", "")).lower():
+            issues.append("delivered input identity differs from current primary data_hash")
+        return [f"{stage} input: {issue}" for issue in issues]
+    except (OSError, ValueError, SyntaxError, TypeError, KeyError) as exc:
+        return [f"{stage} input: {exc}"]
 
 
 def primary_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, Any], *,
@@ -79,6 +106,7 @@ def primary_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, Any
         issues.extend(_file_issues(root, preprocessing.get("workbook"), digest, "预处理工作簿"))
         if not digest or str(entry.get("data_hash", "")).lower() != str(digest).lower():
             issues.append("主结果数据身份必须绑定已验收预处理工作簿")
+    issues.extend(stage_input_issues(root, state, entry, "primary"))
     return list(dict.fromkeys(issues))
 
 
@@ -118,4 +146,5 @@ def analysis_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, An
         issues.extend(_file_issues(root, entry.get("result_analysis_code"), entry.get("analysis_code_sha256"), "深化分析代码"))
         issues.extend(STAGE_CODE.validate_stage_binding(
             root, entry, "analysis", project_backend=backend))
+        issues.extend(stage_input_issues(root, state, entry, "analysis"))
     return list(dict.fromkeys(issues))

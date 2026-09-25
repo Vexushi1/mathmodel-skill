@@ -40,7 +40,10 @@ def bind_current_solver_project(root: Path, state: dict) -> None:
     q = state["subproblems"]["Q1"]
     folder = root / "问题一求解"
     accepted_primary = q["validated_artifact_hashes"]["solution_workbook"]
-    data_hash = "a" * 64
+    from artifact_fingerprint import combined_hash
+    data = root / "data.csv"
+    data.write_text("x,y\n1,2\n", encoding="utf-8")
+    data_hash = combined_hash([data], root)
     q.update(data_hash=data_hash, validated_data_hash=data_hash)
     q["solver_execution"] = {}
     for stage, filename, code_field, hash_field in (

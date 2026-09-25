@@ -105,7 +105,8 @@ class TestV712RuntimeAssurance(unittest.TestCase):
         (root / "问题一求解").mkdir(exist_ok=True)
         fixture = solver_fixtures.SolverBackendTests()
         fixture.root = root
-        source = fixture.source(fixture.config("python"))
+        config = fixture.config("python")
+        source = fixture.source(config)
         digest = hashlib.sha256(source.read_bytes()).hexdigest()
         scripts = str(ROOT / "scripts")
         if scripts not in sys.path:
@@ -113,7 +114,10 @@ class TestV712RuntimeAssurance(unittest.TestCase):
         import stage_code
         bundle = stage_code.stage_code_fingerprint(root, source)["bundle_sha256"]
         question = state["subproblems"]["Q1"]
-        question.update(code=source.relative_to(root).as_posix(), primary_code_sha256=digest)
+        question.update(code=source.relative_to(root).as_posix(), primary_code_sha256=digest,
+                        data_hash=config["data_sha256"], validated_data_hash=config["data_sha256"])
+        for field in ("artifact_hashes", "validated_artifact_hashes"):
+            question.setdefault(field, {})["data"] = config["data_sha256"]
         question["solver_execution"] = {"primary": {
             "bundle_sha256": bundle, "validated_bundle_sha256": bundle}}
         question.setdefault("artifact_hashes", {})["primary_code"] = digest

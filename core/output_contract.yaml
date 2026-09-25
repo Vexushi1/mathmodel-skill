@@ -1,4 +1,4 @@
-version: 10.0.1
+version: 10.1.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -329,6 +329,7 @@ project_sync:
       identity: combined使用既有输入集合摘要；preprocessing_workbook使用唯一accepted预处理XLSX的普通文件SHA，不改变project_level数据身份。
       invalid_inputs: 缺失、越界或身份不一致须明确报错，不静默回退项目全局输入。
       observed_only: 观察源码与输入变化并沿既有事件失效；不得刷新已交付RUN_CONFIG、data_hash、validated_data_hash或validated_bundle_sha256来使旧运行重新有效。
+      auxiliary_inputs: 该来源观察链也消费可选receipt 1.2；辅助字段与摘要只服从user_execution_contract.code_delivery.auxiliary_inputs。主data_hash仍为accepted预处理XLSX身份，辅助字节冲突分别使主数据或分析层失效，不能因主XLSX未变而跳过。
     project_level: 已验收数据预处理结果.xlsx哈希；预处理阶段另记录state/project_state.yaml中的raw data sources
     not_needed: 旧1.0及历史项目沿用state/project_state.yaml中的原始data.sources哈希；新1.1按solver_protocol_1_1观察阶段输入。
     question_local: 旧1.0及历史项目沿用原始data.sources哈希，局部变换保持本问模型/代码语义绑定；新1.1按solver_protocol_1_1观察阶段输入。

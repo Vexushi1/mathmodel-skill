@@ -16,6 +16,7 @@ from typing import Any, Mapping, Sequence
 import yaml
 import run_config_parser
 import python_source_checks
+from execution_protocol import is_source_receipt, auxiliary_config_issues
 
 ROOT = Path(__file__).resolve().parent.parent
 BACKENDS = {"python": ".py", "matlab": ".m"}
@@ -653,7 +654,7 @@ def requires_bundle_binding(root: Path, entry: Mapping[str, Any], stage: str, *,
         path = _relative_path(Path(root), relative)
         if path.is_file():
             _, config = parse_stage_config(path, "python")
-            return config.get("run_receipt_protocol_version") == "1.1.0"
+            return is_source_receipt(config.get("run_receipt_protocol_version"))
     except (OSError, ValueError, SyntaxError):
         pass
     return False
@@ -695,8 +696,8 @@ def validate_stage_binding(root: Path, entry: Mapping[str, Any], stage: str, *,
                 _, config = parse_stage_config(path, "python")
             except (ValueError, SyntaxError):
                 return []
-            if config.get("run_receipt_protocol_version") != "1.1.0":
-                return []
+            if not is_source_receipt(config.get("run_receipt_protocol_version")):
+                return auxiliary_config_issues(config)
         else:
             _, config = parse_stage_config(path)
         identity = script_identity(path)
@@ -707,8 +708,11 @@ def validate_stage_binding(root: Path, entry: Mapping[str, Any], stage: str, *,
             raise StageCodeError(f"{stage}状态、入口及RUN_CONFIG后端不一致")
         if config.get("stage") != stage or config.get("problem_name") != identity.problem_name:
             raise StageCodeError(f"{stage}配置与目录身份不一致")
-        if config.get("run_receipt_protocol_version") != "1.1.0":
-            raise StageCodeError("新后端绑定必须使用RUN_RECEIPT 1.1.0")
+        if not is_source_receipt(config.get("run_receipt_protocol_version")):
+            raise StageCodeError("新后端绑定必须使用RUN_RECEIPT 1.1.0/1.2.0")
+        auxiliary_issues = auxiliary_config_issues(config)
+        if auxiliary_issues:
+            raise StageCodeError("; ".join(auxiliary_issues))
         if stage == "analysis":
             accepted_hashes = entry.get("validated_artifact_hashes")
             accepted_primary = accepted_hashes.get("solution_workbook") if isinstance(accepted_hashes, Mapping) else None

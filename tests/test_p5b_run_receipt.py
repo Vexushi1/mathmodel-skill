@@ -76,6 +76,10 @@ class P5bRunReceiptTests(unittest.TestCase):
             "expected_workbook": "问题一求解/问题一求解结果.xlsx",
             "primary_quality_protocol_version": "1.0.0",
         }
+        from artifact_fingerprint import combined_hash
+        data = root / "data.csv"
+        data.write_text("x,y\n1,2\n", encoding="utf-8")
+        config["data_sha256"] = combined_hash([data], root)
         if protocol is not None:
             config["run_receipt_protocol_version"] = protocol
         if protocol == "1.1.0":

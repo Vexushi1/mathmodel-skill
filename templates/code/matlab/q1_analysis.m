@@ -58,6 +58,8 @@ inputs = string(config.data_paths(:));
 assert(~isempty(inputs), 'HSK:Input', 'Declare at least one actual input.');
 identity.data_sha256 = input_digest(root, inputs, config);
 assert(strcmpi(identity.data_sha256, config.data_sha256), 'HSK:InputHash', 'Input hash does not match RUN_CONFIG.');
+auxiliaryHash = auxiliary_input_digest(root, inputs, config);
+if auxiliaryHash ~= "", identity.auxiliary_data_sha256 = auxiliaryHash; end
 entryRelative = replace(extractAfter(entrypoint, strlength(root) + 1), '\', '/');
 sources = strings(numel(config.code_dependencies) + 1, 1);
 sources(1) = entryRelative;
@@ -78,6 +80,39 @@ if ~isempty(config.code_dependencies)
 end
 identity.code_sha256 = file_digest(entrypoint);
 identity.code_bundle_sha256 = files_digest(root, sources);
+end
+
+function hash = auxiliary_input_digest(root, inputs, config)
+protocol = string(config.run_receipt_protocol_version);
+assert(isscalar(protocol) && any(protocol == ["1.1.0","1.2.0"]), ...
+    'HSK:Protocol', 'Unsupported numerical receipt protocol.');
+fields = isfield(config, {'auxiliary_data_paths','auxiliary_data_sha256'});
+hash = "";
+if protocol == "1.1.0"
+    assert(~any(fields), 'HSK:Protocol', 'Auxiliary inputs require receipt 1.2.0.');
+    return
+end
+assert(all(fields) && data_identity_mode(config) == "preprocessing_workbook", ...
+    'HSK:Protocol', 'Receipt 1.2.0 requires preprocessing and complete auxiliary inputs.');
+assert(iscell(config.auxiliary_data_paths), 'HSK:Input', 'Auxiliary paths must be an array.');
+paths = string(config.auxiliary_data_paths(:));
+assert(~isempty(paths) && all(strlength(paths) > 0), 'HSK:Input', 'Auxiliary inputs cannot be empty.');
+assert_distinct_files(root, [inputs; paths]);
+hash = files_digest(root, paths);
+assert(strcmpi(hash, config.auxiliary_data_sha256), 'HSK:InputHash', 'Auxiliary input hash mismatch.');
+end
+
+function assert_distinct_files(root, paths)
+paths = string(paths(:));
+assert(numel(unique(lower(paths))) == numel(paths), 'HSK:Path', 'Duplicate or case-aliased inputs.');
+for k = 1:numel(paths)
+    current = java.io.File(char(project_path(root, paths(k))));
+    for j = 1:k-1
+        previous = java.io.File(char(project_path(root, paths(j))));
+        assert(~java.nio.file.Files.isSameFile(current.toPath(), previous.toPath()), ...
+            'HSK:Path', 'Different declared inputs alias the same file.');
+    end
+end
 end
 
 function mode = data_identity_mode(config)
@@ -166,7 +201,7 @@ result = lower(reshape(dec2hex(bytes, 2).', 1, []));
 end
 
 function receipt = make_receipt(config, identity, elapsed, reason, count)
-receipt = struct('run_receipt_version','1.1.0','execution_owner','user', ...
+receipt = struct('run_receipt_version',config.run_receipt_protocol_version,'execution_owner','user', ...
     'execution_profile','full_fidelity','stage',config.stage,'problem_name',config.problem_name, ...
     'solver_backend','matlab','code_sha256',identity.code_sha256, ...
     'code_bundle_sha256',identity.code_bundle_sha256,'data_sha256',identity.data_sha256, ...
@@ -178,6 +213,11 @@ receipt = struct('run_receipt_version','1.1.0','execution_owner','user', ...
     'allow_fewer_repetitions',false,'allow_relaxed_tolerance',false, ...
     'allow_silent_solver_fallback',false,'matlab_release',version('-release'), ...
     'elapsed_seconds',elapsed);
+if strcmp(config.run_receipt_protocol_version, '1.2.0')
+    receipt.data_identity_mode = 'preprocessing_workbook';
+    receipt.auxiliary_data_paths = jsonencode(config.auxiliary_data_paths(:).');
+    receipt.auxiliary_data_sha256 = identity.auxiliary_data_sha256;
+end
 end
 
 function cells = receipt_cells(receipt)

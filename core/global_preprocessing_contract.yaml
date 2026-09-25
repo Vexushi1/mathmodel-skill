@@ -226,6 +226,7 @@ source_policy:
       covered_raw_sources_field: state.preprocessing.covered_raw_sources
       covered_raw_sources_required: true
       independent_raw_sources_allowed: true
+      independent_input_identity_authority: core/user_execution_contract.yaml#code_delivery.auxiliary_inputs
       downstream_raw_read_forbidden: true
       rule: 统一工作簿通过质量门后，state.preprocessing.covered_raw_sources中列出的原始源由统一工作簿替代，依赖该公共口径的主求解、深化分析和数据型MATLAB流程不得再次直接读取这些源；未列入covered_raw_sources的独立辅助附件可按题意继续读取。如需改变覆盖范围或公共口径必须回退本阶段并传播stale。
 

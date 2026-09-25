@@ -43,6 +43,19 @@ class SemanticIdentityError(ValueError):
     """Raised when an embedded Semantic Identity Block is malformed or incomplete."""
 
 
+def is_semantic_revision(value: Any) -> bool:
+    """Implement the State Schema's positive-integer revision, excluding booleans."""
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 1
+
+
+def semantic_revision_issues(entry: Mapping[str, Any], *, required: tuple[str, ...] = ()) -> list[str]:
+    """Validate declared revision endpoints before equality or ordering comparisons."""
+    fields = ("semantic_revision", "approved_semantic_revision", "validated_semantic_revision")
+    return [f"{field} must be a positive integer (not bool, float or string)"
+            for field in fields if (field in entry or field in required)
+            and not is_semantic_revision(entry.get(field))]
+
+
 def sha256_text(text: str) -> str:
     normalized = text.replace("\r\n", "\n").replace("\r", "\n").strip() + "\n"
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()

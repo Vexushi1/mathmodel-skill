@@ -24,6 +24,8 @@ import run_config_parser as RUN_CONFIG_PARSER  # noqa: E402
 import analysis_prerequisites as ANALYSIS_PREREQUISITES  # noqa: E402
 import state_transitions as STATE_TRANSITIONS  # noqa: E402
 import stage_code as STAGE_CODE  # noqa: E402
+from execution_protocol import SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, auxiliary_receipt_issues
+from stage_inputs import observe_inputs
 
 FALSE_FLAGS = (
     "allow_reduced_data", "allow_coarser_grid", "allow_shorter_horizon",
@@ -34,7 +36,7 @@ VALID_DECISIONS = {"not_needed", "question_local", "project_level"}
 CONFIG_NAMES = RUN_CONFIG_PARSER.CONFIG_NAMES
 RUN_RECEIPT_PROTOCOL_VERSION = "1.0.0"
 SOLVER_RECEIPT_PROTOCOL_VERSION = "1.1.0"
-SUPPORTED_RECEIPT_VERSIONS = {RUN_RECEIPT_PROTOCOL_VERSION, SOLVER_RECEIPT_PROTOCOL_VERSION}
+SUPPORTED_RECEIPT_VERSIONS = {RUN_RECEIPT_PROTOCOL_VERSION, *SOURCE_RECEIPT_VERSIONS}
 RUN_RECEIPT_ECHO_FIELDS = (
     "stage", "problem_name", "data_sha256", "solver", "random_seed",
     "tolerance", "iteration_or_time_limit",
@@ -276,7 +278,7 @@ def validate_run_receipt_binding(
                     continue
                 if not _receipt_values_equal(field, delivered[field], receipt[field]):
                     issues.append(f"RUN_RECEIPT.{field}与已交付RUN_CONFIG不一致")
-    if SOLVER_RECEIPT_PROTOCOL_VERSION in {expected_version, receipt_version}:
+    if any(is_source_receipt(value) for value in (expected_version, receipt_version)):
         if delivered is None or delivered.get("solver_backend") not in ("python", "matlab"):
             issues.append("RUN_RECEIPT 1.1必须绑定已交付solver_backend")
         elif receipt.get("solver_backend") != delivered["solver_backend"]:
@@ -293,6 +295,7 @@ def validate_run_receipt_binding(
                 issues.append("1.1 analysis配置/回执必须绑定primary_workbook_sha256")
             elif str(upstream).lower() != str(returned_upstream).lower():
                 issues.append("RUN_RECEIPT.primary_workbook_sha256与已交付RUN_CONFIG不一致")
+    issues.extend(auxiliary_receipt_issues(receipt, delivered or {}))
     return issues
 
 
@@ -475,7 +478,7 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
             except STAGE_CODE.StageCodeError as exc:
                 return list(dict.fromkeys([*issues, str(exc)]))
         if project_backend is not None:
-            if (config.get("run_receipt_version") != SOLVER_RECEIPT_PROTOCOL_VERSION
+            if (not is_source_receipt(config.get("run_receipt_version"))
                     or config.get("solver_backend") != project_backend):
                 return list(dict.fromkeys([
                     *issues, "项目后端与RUN_RECEIPT后端/协议不一致，不能登记当前工作簿",
@@ -506,8 +509,13 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
         return list(dict.fromkeys([
             *issues, "项目后端与已交付RUN_CONFIG后端不一致，不能登记当前工作簿",
         ]))
-    modern = (config.get("run_receipt_version") == SOLVER_RECEIPT_PROTOCOL_VERSION
-              or (delivered or {}).get("run_receipt_protocol_version") == SOLVER_RECEIPT_PROTOCOL_VERSION)
+    modern = (is_source_receipt(config.get("run_receipt_version"))
+              or is_source_receipt((delivered or {}).get("run_receipt_protocol_version")))
+    if modern and delivered is not None:
+        try:
+            issues.extend(observe_inputs(root, delivered, state)["issues"])
+        except (OSError, ValueError, TypeError) as exc:
+            issues.append(f"回执实际输入无法核验: {exc}")
     if stage != "preprocessing":
         binding_issues = STAGE_CODE.validate_stage_binding(
             root, entry, stage, project_backend=project_backend)
@@ -564,6 +572,9 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
         )
         issues.extend(numerical_issues)
         passed = passed and numerical_passed
+        if modern:
+            issues.extend(STAGE_CODE.validate_stage_binding(root, entry, stage, project_backend=project_backend))
+            issues.extend(ANALYSIS_PREREQUISITES.stage_input_issues(root, state, entry, stage))
         if write:
             workbook_hash = file_hash(workbook)
             old_hash = (entry.get("validated_artifact_hashes") or {}).get("solution_workbook") or (
@@ -591,6 +602,10 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
     else:
         passed, result_status, analysis_issues = analysis_passed(workbook)
         issues.extend(analysis_issues)
+        if modern:
+            issues.extend(STAGE_CODE.validate_stage_binding(root, entry, stage, project_backend=project_backend))
+            issues.extend(ANALYSIS_PREREQUISITES.stage_input_issues(root, state, entry, stage))
+            issues.extend(ANALYSIS_PREREQUISITES.primary_issues(root, state, entry))
         if write:
             entry["analysis_execution_status"] = (
                 "accepted" if not issues and passed

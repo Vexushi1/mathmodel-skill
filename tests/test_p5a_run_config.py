@@ -70,6 +70,12 @@ class P5aRunConfigTests(unittest.TestCase):
         folder = root / "问题一求解"
         folder.mkdir(parents=True, exist_ok=True)
         script = folder / "问题一求解.py"
+        from artifact_fingerprint import combined_hash
+        data = root / "附件1.xlsx"
+        data.write_bytes(b"synthetic input identity fixture")
+        config = dict(config)
+        if config.get("data_sha256") == "a" * 64:
+            config["data_sha256"] = combined_hash([data], root)
         script.write_text(
             f"{name} = {config!r}\n{extra}\n"
             "def main():\n    return 0\n\n"

@@ -2,12 +2,12 @@
 name: mathmodel-skill
 description: Guide mathematical-modeling competition work from problem analysis and model design through user-run computation, accepted-workbook figures, paper writing and delivery review. Use for CUMCM, MCM/ICM and related modeling projects, including targeted work on an existing modeling project.
 metadata:
-  version: 10.0.1
+  version: 10.1.0
   summary: HSK mathematical-modeling workflow with bootstrap-first task routing, Problem Contract freezing, condition-driven structural reduction and minimal-sufficient main-model generation before solver selection, independent Model Challenge, explicit Human Model Approval bound to the current semantic revision and validated structured identity, one project-wide Python/MATLAB numerical backend choice and user-owned full-fidelity numerical execution, evidence-checked workbooks, MATLAB evidence visualization, editable draw.io mechanism diagrams with deterministic structural checks and required rendered review, model-construction rationale with solver-precondition evidence, Template-First paper authoring with state-driven per-question writing capability preflight and final-order Cross-File Chapter Handoff, formal LaTeX attestation, evidence-traceable final review compliance, and validated delivery provenance.
   triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB求解, MATLAB绘图, 可编辑机理图, draw.io, drawio, LaTeX, DOCX, 终审, 提交包]
 ---
 
-# HSK 数学建模模块化工作流 v10.0.1
+# HSK 数学建模模块化工作流 v10.1.0
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -29,7 +29,7 @@ metadata:
 
 ## 默认执行
 
-用户明确指定 Python 或 MATLAB 求解时，将请求传为 `--solver-backend python` 或 `--solver-backend matlab`，与当前项目根 `execution.solver_backend` 核对；未指定时可传 `--solver-backend auto`，已有项目选择由状态恢复。`auto` 和无状态兼容默认均不写入项目选择，当前项目缺少根选择时不得正式交付数值代码。完全未选且无历史数值阶段的项目，审视全题需求并衔接既有 Model Approval 后用 `scripts/project_solver_backend.py select` 登记；即使只读迁移预览为 `ready_for_review`，也不能以 `migrate` 替代首次选择。有历史数值阶段或更换已锁后端时，先用该脚本 `inspect --migration-target ... --reason ...` 预览全题影响，再针对该项目目标、原始状态、代际和影响摘要明确确认，才可执行 `migrate --confirm-migration`；仓库代码修改的批准不等于具体项目迁移的确认。迁移同事务登记原始字节归档和报告引用，完成后仍须重新满足当前数值交付门。`RUN_CONFIG` / `RUN_RECEIPT` 的后端是实际运行事实，不能替项目选值。具体规则服从 `core/user_execution_contract.yaml` 与 `core/runtime_assurance_contract.yaml`。默认入口始终是 `scripts/resolve_runtime.py`；`scripts/resolve_workflow.py` 只作为 legacy / 无状态兼容 resolver，不参与默认 assured read path。
+用户明确指定 Python 或 MATLAB 求解时，将请求传为 `--solver-backend python` 或 `--solver-backend matlab`，与当前项目根 `execution.solver_backend` 核对；未指定时，新 assured 数值/模型设计入口按 `--solver-backend auto` 解释，已有项目选择由状态恢复；仅旧 `resolve_workflow.py` 保留省略参数时的 Python 兼容投影。`auto` 和无状态兼容默认均不写入项目选择，当前项目缺少根选择时不得正式交付数值代码。完全未选且无历史数值阶段的项目，审视全题需求并衔接既有 Model Approval 后用 `scripts/project_solver_backend.py select` 登记；即使只读迁移预览为 `ready_for_review`，也不能以 `migrate` 替代首次选择。有历史数值阶段或更换已锁后端时，先用该脚本 `inspect --migration-target ... --reason ...` 预览全题影响，再针对该项目目标、原始状态、代际和影响摘要明确确认，才可执行 `migrate --confirm-migration`；仓库代码修改的批准不等于具体项目迁移的确认。迁移同事务登记原始字节归档和报告引用，完成后仍须重新满足当前数值交付门。`RUN_CONFIG` / `RUN_RECEIPT` 的后端是实际运行事实，不能替项目选值。具体规则服从 `core/user_execution_contract.yaml` 与 `core/runtime_assurance_contract.yaml`。默认入口始终是 `scripts/resolve_runtime.py`；`scripts/resolve_workflow.py` 只作为 legacy / 无状态兼容 resolver，不参与默认 assured read path。
 
 ### 项目工作记忆
 
