@@ -480,6 +480,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/modeling_intelligence_a2_execution_plan.md`
 - `docs/modeling_intelligence_a2_followup_review.md`
 - `docs/modeling_intelligence_b1_execution_plan.md`
+- `docs/modeling_intelligence_b1_protocol_decisions.md`
 - `docs/modeling_intelligence_evidence_evolution_plan.md`
 - `docs/p3a_global_policy_source_map.md`
 - `docs/p3b_writing_role_source_map.md`
