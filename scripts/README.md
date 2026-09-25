@@ -26,6 +26,10 @@
 
 赛题专属预处理、主求解和被 Analysis Necessity Gate=`required` 激活的结果深化分析由用户本地以 full-fidelity 执行；脚本工具不得通过降采样、粗网格、缩短时域、减少重复、放宽容差或静默 solver fallback 改变正式求解口径。Gate=`not_required` 时不生成 03B 代码/工作簿，也不得把该状态写成稳健性或稳定性已通过。项目级预处理和主求解属于 current 人工锁模后的代码阶段，不能只凭 Problem Contract 冻结或 Model Challenge 通过绕过 `validate_model_approval.py`。
 
+## 可选实现结构核验
+
+`model_code_conformance.py <project_root> --question Q1 --stage primary|analysis [--inventory]` 是A1只读入口，协议由 `core/model_code_conformance_contract.yaml` 管理，记录形状由Project State Schema管理。复用当前模型锁、源码bundle及快照，不导入/执行用户代码，不读取工作簿，不写PASS或修改状态。`conformance_source.py`仅提供有界符号与词法观察。退出码0只表示structure_verified，1表示blocked，2表示needs_review/not_assessed；这些均不是数学等价、数值验收或独立审查证明。A2尚未把该报告接入正式交付资格。
+
 ## 项目记忆与论文检查
 
 - `validate_project_state.py`：校验 `state/project_state.yaml` 的机器状态、分类兼容、哈希和 stale 语义。

@@ -441,7 +441,7 @@ class ContractAndDriftTests(unittest.TestCase):
         # test_schemas covers the new declaration and unchanged caption ownership.
         "core/workbook_schema.yaml": "e0479f5e74063151a515d11e140b7c4e8b8db077",
         # Schema 8.0.0 removes stage selectors and declares one project-root backend.
-        "core/project_state.schema.yaml": "11880dc6c8377245c4cec428f7b2a8f46d3d042f",
+        "core/project_state.schema.yaml": "9d65f48e6cf9ba90292015e049dd2e9112eb87e9",
         "core/writing_reasoning_contract.yaml": "67a22f6e882a9cb79bc6edccd033731558a81f13",
         "modules/03_solve_validate.md": "46664420a42c43f465849e4d7e86c465d62b7267",
         "modules/03_result_analysis.md": "e8c67ffc2f8e7ba582b834fa365bbcab813cc812",
