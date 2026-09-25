@@ -38,7 +38,7 @@ class NumericalSourceRetirementTests(unittest.TestCase):
         return ST.apply_transition(state, event=event, source_question=source, contract=CONTRACT)
 
     def test_two_retirement_events_reuse_existing_profiles(self):
-        self.assertEqual(CONTRACT['version'], '1.3.0')
+        self.assertEqual(CONTRACT['version'], '1.4.0')
         for event, profile in ((PRIMARY, 'primary_result'), (ANALYSIS, 'analysis_result')):
             with self.subTest(event=event):
                 spec = CONTRACT['transition_events'][event]

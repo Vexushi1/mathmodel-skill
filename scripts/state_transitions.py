@@ -167,6 +167,17 @@ def _apply_profile(
             if entry.get(field) != value:
                 entry[field] = value
             updates[field] = value
+    # Nested structural bindings are lifecycle evidence, not a second stale graph.
+    selections = entry.get("solver_execution")
+    for stage, fields in (profile.get("invalidate_conformance", {}) or {}).items():
+        slot = selections.get(stage) if isinstance(selections, MutableMapping) else None
+        if not isinstance(slot, MutableMapping):
+            continue
+        for field in fields:
+            binding = slot.get(field)
+            if isinstance(binding, MutableMapping):
+                binding["applicability"] = "stale"
+                updates[f"solver_execution.{stage}.{field}.applicability"] = "stale"
     return stale_layers, updates
 
 

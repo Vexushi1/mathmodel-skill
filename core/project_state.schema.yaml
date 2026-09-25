@@ -1,11 +1,52 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 8.1.0
+version: 8.2.0
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
 $defs:
+  implementation_conformance_policy:
+    description: A2显式阶段结构门；没有此字段的A1声明仍仅用于观察。
+    type: object
+    additionalProperties: false
+    required: [protocol_version, required_stages]
+    properties:
+      protocol_version: {const: 1.0.0}
+      required_stages:
+        type: array
+        minItems: 1
+        maxItems: 2
+        uniqueItems: true
+        items: {enum: [primary, analysis]}
+  conformance_delivery:
+    description: 由代码交付协调器写入的结构观察绑定，不是数学或数值验收证明。
+    type: object
+    additionalProperties: false
+    required: [protocol_version, question, stage, solver_backend, entrypoint, semantic_revision, semantic_identity_hash, source_bundle_sha256, declaration_sha256, authority_sha256, structure_status, applicability]
+    properties:
+      protocol_version: {const: 1.0.0}
+      question: {type: string, pattern: '^Q[1-9][0-9]*$'}
+      stage: {enum: [primary, analysis]}
+      solver_backend: {enum: [python, matlab]}
+      entrypoint: {type: string, minLength: 1, maxLength: 512}
+      semantic_revision: {type: integer, minimum: 1}
+      semantic_identity_hash: {type: string, pattern: '^[0-9a-f]{64}$'}
+      source_bundle_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      declaration_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      authority_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      structure_status: {const: structure_verified}
+      applicability: {enum: [current, stale]}
+  conformance_acceptance:
+    description: 原数值/回执门成功后写入的交付-工作簿关联，不单独授予accepted资格。
+    type: object
+    additionalProperties: false
+    required: [protocol_version, delivery_sha256, workbook_sha256, applicability]
+    properties:
+      protocol_version: {const: 1.0.0}
+      delivery_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      workbook_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      applicability: {enum: [current, stale]}
   conformance_model_ref:
     type: object
     additionalProperties: false
@@ -316,9 +357,25 @@ $defs:
     additionalProperties: false
     properties:
       bundle_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      conformance_delivery: {$ref: '#/$defs/conformance_delivery'}
+      conformance_acceptance: {$ref: '#/$defs/conformance_acceptance'}
       validated_bundle_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
     dependentRequired:
       validated_bundle_sha256: [bundle_sha256]
+      conformance_acceptance: [conformance_delivery]
+    allOf:
+    - if:
+        required: [conformance_delivery]
+        properties:
+          conformance_delivery:
+            properties: {applicability: {const: current}}
+      then: {required: [bundle_sha256]}
+    - if:
+        required: [conformance_acceptance]
+        properties:
+          conformance_acceptance:
+            properties: {applicability: {const: current}}
+      then: {required: [validated_bundle_sha256]}
   backend_migration_history_reference:
     type: object
     additionalProperties: false
@@ -632,6 +689,7 @@ properties:
         data_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         validated_data_hash: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
         artifacts_stale: {type: boolean, default: false}
+        implementation_conformance_policy: {$ref: '#/$defs/implementation_conformance_policy'}
         implementation_conformance: {$ref: '#/$defs/implementation_conformance'}
         solver_execution:
           description: 03A/03B各自的真实交付与验收bundle；数值后端只由execution中的项目级选择决定。

@@ -267,7 +267,7 @@ def inspect_project(project_root: str | Path, question: str, stage: str, *, inve
             _read(ROOT, path, 8 * 1024 * 1024, policy_read_set)
         contract = yaml.safe_load((ROOT / CONTRACT).read_text(encoding="utf-8"))
         schema = yaml.safe_load((ROOT / SCHEMA).read_text(encoding="utf-8"))
-        if contract.get("version") != "1.0.0":
+        if contract.get("version") != "1.1.0":
             raise ConformanceError("unsupported conformance Authority version")
         snapshot, state, entry, model = _model_snapshot(root, question, contract, project_read_set)
         items = _model_items(model["identity"], contract)

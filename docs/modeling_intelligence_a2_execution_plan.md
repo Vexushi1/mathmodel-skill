@@ -76,3 +76,53 @@ T01旧无A2项目差分不变；T02只有A1声明仍观察；T03显式空/null/�
 后续顺序：固定本计划→补A2反例→实现最小消费与writer绑定→专项→完整回归→索引→精确上传→PR最终head CI及差异复核→正常合并→main复验。每次追加记录真实失败、修正、命令/退出码、SHA、CI及未完成事项。
 
 本轮到A2结束，不启动B/C/D，不发布10.3.0。未合并可撤回PR；合并后revert不删除用户已有记录。旧工具遇新策略/绑定必须报告不支持，不能靠删除记录让历史结果重新合格。
+
+
+## 10. 实施中核对的精确衔接（不扩张到后续模块）
+
+- 既有后端声明白名单必须识别两种新绑定，但不由绑定反向选择后端；新增字段仍由 Schema/A2 guard 核验，不放宽任意未知字段。
+- current 绑定需要当前 bundle，stale 绑定允许在既有显式源码退役后保留来源；Schema 采用精确条件依赖，不能为了保存历史而让 current 缺 bundle 通过。
+- 仅更新映射的重新交付也触发既有 typed result 失效，不绕过下游；它不撤销数学批准，也不冒称新数值运行。
+- A2 不解决 A1 的一般语义不可判定部分；needs_review 仍不构成结构通过，不能把合法变换或不可执行假设伪写为 direct。无新审稿协议，不以自填审查布尔值绕过。
+- 为T15提供真实MATLAB证据，仅在现有 native solver CI job 添加一个 A2 合成 smoke，复用原许可证/启动器；不改变其余 jobs、执行模型或工作流权限。
+
+
+## 11. 首轮完整回归与修正记录
+
+本轮固定基线实际1766项/321.874秒/3条件跳过/无失败。A2首轮完整1810项/389.485秒/3跳过有9失败：4项为获授权修改的Schema、求解/深化导航和交付writer固定Git blob保护；4项为State Transition、User Execution、Runtime Assurance的准确旧版本断言；1项为Changelog没有把10.2标题归入历史标题。逐项对照真实diff后更新，旧Schema仍由剔除精确A2新增后的规范化摘要保护，其他受保护文件不更新、不放宽断言。
+
+首轮1810计数包含新测试文件直接导入前一TestCase类而重复发现的6项旧测试，已改为模块导入，后续不把这6项冒充新增覆盖。新增直接writer配置与实际捕获源码RUN_CONFIG不一致反例，比较同次观察的配置摘要后拒绝；analysis输入观察使用明确问题范围，不按文件名反猜问题。所有配置摘要仅派生观察，不新增状态字段或回执协议。
+
+绑定和hash提供输入一致性与来源定位，不是防篡改签名；离线工具无法在全部新元数据被恶意删除且没有外部记录的情况下证明其曾被启用。本阶段拒绝可观察的孤立、部分删除、残缺及旧绑定重放，不宣称对抗任意记录伪造。
+
+
+## 12. 本地完成证据与远程验收入口
+
+- 第二轮完整测试：`python -m unittest discover -s tests -p 'test_*.py'`，**1805项 / 396.858秒 / 3条件跳过 / 无失败 / exit0**。没有将重复发现的旧TestCase算作新增覆盖。
+- 最终一致性专项49项 / 59.734秒 / 无失败；其中A2新增32项行为测试和7项Authority/兼容控制，其他为原有A1集成控制。
+- 历史P2对照19场景实际执行，原始 `all_legacy_behavior_equal=false` 保留；仅减去精确已批准载体变化后 `all_legacy_behavior_equal_except_approved_changes=true`，未登记差异为空。该基线与本轮10.2.0基础回归不是同一基线，不能混称。
+- 本地lint、索引检查及 `git diff --check` 通过。Python合成主求解/深化通过真实执行及原回执CLI验收；MATLAB完整模板的结构检查通过但本地没有原生MATLAB，原生A2须以远程新增步骤及真实报告核对。
+- 所有最终head、多平台CI、原生报告、差异审查、是否合并及merge SHA，统一记录于 [PR #238](https://github.com/Vexushi1/mathmodel-skill/pull/238) 的最终验收评论。本文是提交前的真实台账，不用本地通过预先宣称远程或合并完成。
+
+### T01—T28行为覆盖索引
+
+| 场景 | 实现/测试定位 |
+|---|---|
+| T01/T02旧无A2、仅A1 | A2BaselineGaps.test_unchanged_a1_only_still_uses_original_delivery；test_legacy_off_does_not_call_a1_or_parse_user_source；P2固定对照 |
+| T03/T04/T27残缺策略、孤立绑定 | test_policy_shape_and_orphans_fail_closed；test_partial_or_false_certificate_never_qualifies；test_unknown_bindings_and_boolean_revisions_are_rejected |
+| T05/T06/T07首次交付、漏映射、未核验 | test_valid_delivery_binds_structure_without_a_workbook；test_required_missing_mapping_does_not_pass_delivery；test_needs_review_is_not_promoted_and_does_not_revoke_model |
+| T08/T16问题/阶段隔离 | test_primary_and_analysis_policies_are_separate；test_partial_or_false_certificate_never_qualifies；test_analysis_only_does_not_force_primary_binding |
+| T09/T10/T25来源与声明漂移 | test_raw_input_drift_and_helper_drift_are_not_laundered；test_mapping_edit_requires_redelivery_not_hash_refresh；test_redelivery_mapping_change_requires_reacceptance_and_preserves_model_approval；原生smoke漂移拒绝 |
+| T11/T12/T13原验收与工作簿 | test_pqs_failure_cannot_create_conformance_acceptance；test_receipt_bundle_and_validated_workbook_are_bound；conformance_a2_smoke原1.2回执CLI |
+| T14/T15真实Python及MATLAB证据 | test_native_python_main_and_analysis_through_actual_receipt_cli；test_matlab_stage_mapping_is_statically_supported_without_claiming_native_run；CI新增原生A2步骤单独验收 |
+| T17落盘前漂移 | test_delivery_commit_rejects_late_source_input_framework_and_state_edits；test_skill_edit_at_staged_validation_rejects_commit；test_receipt_read_set_rejects_change_between_validation_and_commit；test_receipt_validation_race_returns_issues_without_candidate_acceptance；test_sync_late_mapping_read_change_is_rejected |
+| T18/T19事务 | test_pending_journal_is_not_automatically_recovered；test_prepared_failure_uses_existing_explicit_recovery；复用原事务完整回归 |
+| T20/T21/T22/T23失效范围 | test_sync_detects_changed_mapping_and_is_idempotent；test_change_profiles_invalidate_only_applicable_bindings；test_retirement_preserves_stale_provenance_without_active_bundle |
+| T24路由与读取 | test_conditional_route_loads_authority_but_does_not_add_parallel_gate；原A1未启用差分及P2对照 |
+| T26/T28直接writer、真实依赖 | test_direct_writer_cannot_bypass_missing_mapping；test_direct_writer_configuration_cannot_differ_from_the_inspected_source；实际数据/auxiliary/bundle回归 |
+
+上表为行为场景与实际测试函数映射，不是每个场景一个独立算法证明。测试类路径均在 `tests/test_conformance_execution.py`、`tests/test_conformance_a2_contract.py`，原A1控制位于既有文件；真实合成执行入口为 `tests/conformance_a2_smoke.py`。
+
+### 完成边界
+
+A2代码、协议接线及本地验证已完成；只有本PR精确head的完整CI、原生A2、生成物和审查均满足后才允许正常合并。后续维护者先看PR最后验收记录，再看当前main，不根据提交前状态文字自行重复实施。原计划B/C/D/E仍未完成，本轮不发布Release、不移动tag、不迁移任何用户项目。

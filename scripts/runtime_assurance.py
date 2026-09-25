@@ -622,6 +622,8 @@ def hydrate_project_context(
                 root, item, "analysis", require_validated=True, project_backend=project_backend,
             )
             binding_issues.extend(ANALYSIS_PREREQUISITES.stage_input_issues(root, state, item, "analysis"))
+            from conformance_gate import read_issues
+            binding_issues.extend(read_issues(root, state, item, "analysis"))
             if binding_issues:
                 analysis_row.update(status="not_accepted", reason="; ".join(binding_issues))
         analysis_rows.append(analysis_row)

@@ -543,6 +543,8 @@ def validate_state_payload(
         issues.extend(_validate_classification_aliases(name, state, taxonomy))
         issues.extend(_validate_hashes(name, state, status))
         issues.extend(_validate_analysis_dispositions(name, state))
+        from conformance_gate import stored_issues
+        issues.extend(stored_issues(state, str(name)))
         solver_execution = state.get("solver_execution") or {}
         if isinstance(solver_execution, Mapping):
             for stage, field in (("primary", "code"), ("analysis", "result_analysis_code")):

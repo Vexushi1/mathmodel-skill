@@ -441,10 +441,10 @@ class ContractAndDriftTests(unittest.TestCase):
         # test_schemas covers the new declaration and unchanged caption ownership.
         "core/workbook_schema.yaml": "e0479f5e74063151a515d11e140b7c4e8b8db077",
         # Schema 8.0.0 removes stage selectors and declares one project-root backend.
-        "core/project_state.schema.yaml": "9d65f48e6cf9ba90292015e049dd2e9112eb87e9",
+        "core/project_state.schema.yaml": "28e3f87b8a4f54caadff48abbcf82ab56c1b9009",
         "core/writing_reasoning_contract.yaml": "67a22f6e882a9cb79bc6edccd033731558a81f13",
-        "modules/03_solve_validate.md": "46664420a42c43f465849e4d7e86c465d62b7267",
-        "modules/03_result_analysis.md": "e8c67ffc2f8e7ba582b834fa365bbcab813cc812",
+        "modules/03_solve_validate.md": "cfbe8091f0434b8531ec97cbccde013895e18228",
+        "modules/03_result_analysis.md": "dc184e94d4fbce579e25f8e82362d0ef7b3ff72a",
         "modules/05_writing/paper_writing_protocol.md": "ea10da96f20bf11bfcf2b7f7465fb5162ae5efdf",
         "modules/05_writing/ai_cleanup.md": "3e6249d17a0a91091bf7c61c49aeb9245ccc41e1",
         "modules/06_review_delivery.md": "94c2096c6f0873a96df57cb16c5c2f2deee5d411",
@@ -461,7 +461,7 @@ class ContractAndDriftTests(unittest.TestCase):
         "templates/figure/chart_selection.md": "8b87b79d55e23f1b581c1ceca9e4d609fd11ba26",
         "templates/figure/figure_enhancement_patterns.md": "fa9db83323c4dcbe430e8afdca82df806e3db9de",
         # Delivery checks the root policy again against the state being committed.
-        "scripts/validate_code_delivery.py": "9e1f9f440d798e8dfcd0426e9ad4a47452a3bd57",
+        "scripts/validate_code_delivery.py": "039ae7850bb36e4d93df26228e83b84f8e951c25",
     }
 
     def test_protected_authorities_have_not_drifted(self):

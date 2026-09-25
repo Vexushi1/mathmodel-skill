@@ -1,4 +1,4 @@
-version: 2.1.0
+version: 2.2.0
 introduced_in_skill_version: 10.0.0
 skill_compatibility: '>=10.0.0,<11.0.0'
 purpose: >-
@@ -289,3 +289,10 @@ reading_plan:
     - Only verified source rows may support narrow modes; declared_unverified artifact names never substitute for verified project evidence.
     - Planned file/fragment bytes are distinct from observed reads/tokens; actual_read_tokens remains null without a real trace.
     - Existing CUMCM progressive writing stages and capability preflight remain authoritative; the reading plan delegates instead of inventing a new chapter order.
+
+implementation_conformance:
+  authority: core/model_code_conformance_contract.yaml#activation.integration
+  live_qualification: Opted-in primary and analysis artifacts additionally require current structural delivery and workbook acceptance bindings through the shared prerequisite checker.
+  conditional_resources: The assured resolver and reading plan expose the integration Authority only when scoped policy/bindings and an existing consumer gate require it; they do not add a parallel gate or select a backend.
+  legacy_boundary: No A2 policy or bindings preserves the prior workflow; A1 declarations alone do not activate enforcement.
+  structure_boundary: Missing/invalid/stale bindings never elevate artifacts. A structure result does not establish mathematical correctness, native execution or independent review.

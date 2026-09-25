@@ -1,6 +1,15 @@
 # Changelog
 
-## 10.2.0
+## 10.3.0
+
+- A2 adds an explicit per-question/stage opt-in policy for consuming A1 structural conformance at existing code-delivery, receipt, runtime and sync boundaries. A1-only declarations and projects without A2 policy/bindings keep their previous workflow.
+- Existing coordinators record structural delivery and successful-original-receipt acceptance bindings; declaration, model, helper, source or checker-Authority drift cannot silently re-sign old evidence. Current model approval and numerical/PQS checks remain separate and mandatory.
+- Guarded writes include the captured state/framework/source/input/auxiliary/primary-workbook read set and a staged Skill-source recheck. Pending journals require explicit existing recovery; no replacement transaction engine or universal atomic-snapshot claim.
+- State Schema 8.2.0 adds optional policy/binding fields. Conformance 1.1.0, User Execution 3.2.0, Runtime Assurance 2.2.0 and State Transition 1.4.0 maintain separate protocol versions. SIB, source bundle and RUN_RECEIPT 1.0/1.1/1.2 remain unchanged.
+- Retain stale bindings through existing typed invalidation without revoking mathematical approval for ordinary code changes. Unknown/partial/orphan A2 records fail closed; structure verification never proves mathematical equivalence or independent review.
+- Scope ends at A2. Claim-Evidence Graph, independent reviewer receipts and Case Memory are not implemented by this change; no user project is migrated and no release/tag is automatically created.
+
+## Previous release: 10.2.0
 
 - Adds opt-in A1 model/code structural conformance: current approved SIB selectors, selected primary/analysis source bundles, bounded symbol anchors, lexical reverse candidates and optional syntax-only expression checks. No task execution or mathematical-equivalence claim.
 - Adds optional Project State Schema 8.1.0 declaration records and a dedicated read-only audit route; existing runtime gates, source receipts, numerical acceptance and ordinary workflow behavior are unchanged when the extension is not requested.
