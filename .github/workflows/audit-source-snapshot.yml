@@ -1,0 +1,36 @@
+name: Temporary audit source snapshot
+
+on:
+  push:
+    branches: ["upgrade/v10.1.0-audit-closure"]
+    paths: [".github/workflows/audit-source-snapshot.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    if: github.repository == 'Vexushi1/mathmodel-skill' && github.ref == 'refs/heads/upgrade/v10.1.0-audit-closure'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 0fc52fa47abf457ef4e180ac7a291583cd9be68f
+          persist-credentials: false
+      - name: Export only tracked public baseline files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 0fc52fa47abf457ef4e180ac7a291583cd9be68f
+          mkdir -p "$RUNNER_TEMP/audit-source"
+          git archive --format=tar HEAD > "$RUNNER_TEMP/audit-source/baseline.tar"
+          git ls-tree -r HEAD > "$RUNNER_TEMP/audit-source/git-tree.txt"
+          git rev-parse HEAD > "$RUNNER_TEMP/audit-source/commit.txt"
+          cd "$RUNNER_TEMP/audit-source"
+          sha256sum baseline.tar > baseline.tar.sha256
+      - uses: actions/upload-artifact@v7
+        with:
+          name: audit-source-0fc52fa47abf
+          path: ${{ runner.temp }}/audit-source/
+          retention-days: 3
+          if-no-files-found: error
