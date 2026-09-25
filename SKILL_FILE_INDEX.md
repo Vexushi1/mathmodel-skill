@@ -13,6 +13,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/optimization-baseline.yml`
+- `.github/workflows/prepare-claim-b1-once.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
 - `AGENTS.md`
