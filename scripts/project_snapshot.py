@@ -501,6 +501,7 @@ def _snapshot_question(
                 input_issues.append("analysis data_sha256必须继承主结果data_hash，不得覆盖主数据身份")
         except (ValueError, OSError, TypeError) as exc:
             input_issues.append(f"{stage}输入身份: {exc}")
+            implementations.setdefault(stage, {})["inputs"] = {"issues": [str(exc)], "paths": []}
     require_solution = status in SOLVED_STATUSES
     require_analysis = status in ANALYZED_STATUSES and not analysis_not_required
     require_analysis_code = (

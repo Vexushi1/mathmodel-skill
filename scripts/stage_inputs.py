@@ -6,6 +6,7 @@ import re
 from typing import Any, Mapping
 
 from artifact_fingerprint import combined_hash, sha256_file
+from execution_protocol import AUXILIARY_RECEIPT_VERSION, auxiliary_config_issues
 
 
 def input_files(root: Path, declared: Any) -> list[Path]:
@@ -38,6 +39,8 @@ def input_files(root: Path, declared: Any) -> list[Path]:
             raise ValueError(f"输入文件路径越出项目根目录: {relative}")
         if not path.is_file():
             raise ValueError(f"输入文件不存在或不是文件: {relative}")
+        if any(path.samefile(previous) for previous in files):
+            raise ValueError(f"data_paths含同一文件的硬链接别名: {relative}")
         files.append(path)
     return files
 
@@ -45,6 +48,9 @@ def input_files(root: Path, declared: Any) -> list[Path]:
 def observe_inputs(root: Path, config: Mapping[str, Any], state: Mapping[str, Any]) -> dict[str, Any]:
     """Return current input bytes and issues, never replacing delivered hashes."""
     root = root.resolve()
+    configuration_issues = auxiliary_config_issues(config)
+    if configuration_issues:
+        raise ValueError("; ".join(configuration_issues))
     files = input_files(root, config.get("data_paths"))
     mode = config.get("data_identity_mode", "combined")
     preprocessing = state.get("preprocessing") or {}
@@ -68,5 +74,31 @@ def observe_inputs(root: Path, config: Mapping[str, Any], state: Mapping[str, An
     expected = str(config.get("data_sha256", "")).lower()
     if not re.fullmatch(r"[0-9a-f]{64}", expected) or digest != expected:
         issues.append("当前实际输入data_sha256与已交付RUN_CONFIG不一致")
-    return {"paths": [path.relative_to(root).as_posix() for path in files],
-            "data_sha256": digest, "data_identity_mode": mode, "issues": issues}
+    result = {"paths": [path.relative_to(root).as_posix() for path in files],
+              "data_sha256": digest, "data_identity_mode": mode, "issues": issues}
+    if config.get("run_receipt_protocol_version") == AUXILIARY_RECEIPT_VERSION:
+        auxiliaries = input_files(root, config["auxiliary_data_paths"])
+        if any(aux.samefile(base) for aux in auxiliaries for base in files):
+            raise ValueError("auxiliary_data_paths不得重复主数据文件或其别名")
+        covered = preprocessing.get("covered_raw_sources")
+        if not isinstance(covered, list) or not covered or any(not isinstance(item, str) or not item.strip() for item in covered):
+            raise ValueError("辅助输入核验需要有效covered_raw_sources")
+        for relative in covered:
+            if (PurePosixPath(relative).is_absolute() or PureWindowsPath(relative).drive
+                    or "\\" in relative or any(part in {"", ".", ".."} for part in relative.split("/"))):
+                raise ValueError("covered_raw_sources路径必须为规范项目相对路径")
+            covered_path = (root / relative).resolve()
+            if not covered_path.is_relative_to(root):
+                raise ValueError("covered_raw_sources路径越出项目根目录")
+            for aux in auxiliaries:
+                same_name = aux.relative_to(root).as_posix().casefold() == relative.casefold()
+                same_file = covered_path.is_file() and aux.samefile(covered_path)
+                if same_name or same_file:
+                    raise ValueError("auxiliary_data_paths不得重读covered_raw_sources已覆盖原始源")
+        auxiliary_digest = combined_hash(auxiliaries, root)
+        if auxiliary_digest != config["auxiliary_data_sha256"].lower():
+            issues.append("当前实际auxiliary_data_sha256与已交付RUN_CONFIG不一致")
+        result.update(auxiliary_data_paths=[path.relative_to(root).as_posix() for path in auxiliaries],
+                      auxiliary_data_sha256=auxiliary_digest)
+        result["paths"].extend(result["auxiliary_data_paths"])
+    return result

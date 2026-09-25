@@ -432,6 +432,8 @@ class ContractAndDriftTests(unittest.TestCase):
     # and every unrelated protected authority retain their previous guards.
     # The v10 candidate re-pins only the project-root backend schema and the
     # corresponding code-delivery consumer; the other authority guards remain fixed.
+    # v10.1 AUD-01/03 intentionally re-pin input qualification and strict revision
+    # checks; behavioral regressions live in test_audit_closure_regressions.
     PROTECTED = {
         "core/model_approval_contract.yaml": "7cf530468a9a740a4123d64dec85b257d48e0892",
         "core/numerical_verification_contract.yaml": "32f70622a8ea79f5bb9472392437abd54949393a",
@@ -447,7 +449,7 @@ class ContractAndDriftTests(unittest.TestCase):
         "modules/05_writing/ai_cleanup.md": "3e6249d17a0a91091bf7c61c49aeb9245ccc41e1",
         "modules/06_review_delivery.md": "94c2096c6f0873a96df57cb16c5c2f2deee5d411",
         "config/competition_profiles.yaml": "0cfe08e2edac99f07f2e527643499b8bc73c0479",
-        "scripts/validate_semantic_governance.py": "9bd3fe2d6704accab2635b0c691caaeca6fea977",
+        "scripts/validate_semantic_governance.py": "1b48c4e5935c960f28bef89af86ce89a3c6f105f",
         # A5 requires current per-question files and exact official allowlist entries.
         "scripts/validate_submission_package.py": "80e23b1f9d60485cba902f9151940389a452cbdb",
         # P0-B replaces silent filtering/fixed ordering with explicit evidence-preserving reads.
@@ -459,7 +461,7 @@ class ContractAndDriftTests(unittest.TestCase):
         "templates/figure/chart_selection.md": "8b87b79d55e23f1b581c1ceca9e4d609fd11ba26",
         "templates/figure/figure_enhancement_patterns.md": "fa9db83323c4dcbe430e8afdca82df806e3db9de",
         # Delivery checks the root policy again against the state being committed.
-        "scripts/validate_code_delivery.py": "be9c3d325c4ab535acf1b6301e23333ac3d0fa9a",
+        "scripts/validate_code_delivery.py": "9e1f9f440d798e8dfcd0426e9ad4a47452a3bd57",
     }
 
     def test_protected_authorities_have_not_drifted(self):

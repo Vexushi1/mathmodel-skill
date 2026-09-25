@@ -21,6 +21,8 @@ import project_transaction as PROJECT_TX  # noqa: E402
 import run_config_parser as RUN_CONFIG_PARSER  # noqa: E402
 import analysis_prerequisites as ANALYSIS_PREREQUISITES  # noqa: E402
 import stage_code as STAGE_CODE  # noqa: E402
+from execution_protocol import SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues
+from stage_inputs import observe_inputs
 import matlab_code_checks as MATLAB_CHECKS  # noqa: E402
 STATE_TRANSITION_CONTRACT = yaml.safe_load(
     (SKILL_ROOT / "core" / "state_transition_contract.yaml").read_text(encoding="utf-8")
@@ -400,12 +402,13 @@ def validate_script(
         issues.append("stage必须为preprocessing、primary或analysis")
     receipt_protocol = str(config.get("run_receipt_protocol_version", "")).strip()
     allowed_protocols = {RUN_RECEIPT_PROTOCOL_VERSION} if stage == "preprocessing" else {
-        RUN_RECEIPT_PROTOCOL_VERSION, SOLVER_RECEIPT_PROTOCOL_VERSION}
+        RUN_RECEIPT_PROTOCOL_VERSION, *SOURCE_RECEIPT_VERSIONS}
     if receipt_protocol and receipt_protocol not in allowed_protocols:
         issues.append(f"run_receipt_protocol_version不支持当前阶段: {receipt_protocol}")
-    if backend == "matlab" and receipt_protocol != SOLVER_RECEIPT_PROTOCOL_VERSION:
-        issues.append("新MATLAB阶段必须声明run_receipt_protocol_version=1.1.0")
-    modern = receipt_protocol == SOLVER_RECEIPT_PROTOCOL_VERSION
+    if backend == "matlab" and not is_source_receipt(receipt_protocol):
+        issues.append("新MATLAB阶段必须声明run_receipt_protocol_version=1.1.0/1.2.0")
+    modern = is_source_receipt(receipt_protocol)
+    issues.extend(auxiliary_config_issues(config))
     source_fingerprint = None
     data_identity_mode = config.get("data_identity_mode", "combined")
     if "data_identity_mode" in config and (not modern or data_identity_mode not in ("combined", "preprocessing_workbook")):
@@ -426,7 +429,7 @@ def validate_script(
         except (OSError, ValueError, SyntaxError, TypeError, KeyError) as exc:
             issues.append(str(exc))
     elif "solver_backend" in config or config.get("code_dependencies"):
-        issues.append("后端与源码依赖扩展必须使用1.1.0回执协议")
+        issues.append("后端与源码依赖扩展必须使用1.1.0/1.2.0回执协议")
     state_path = project_root / "state" / "project_state.yaml"
     if stage in {"primary", "analysis"}:
         state = load_yaml(state_path) if state_path.is_file() else {}
@@ -480,6 +483,12 @@ def validate_script(
         config.get("data_paths"), text, backend,
         data_identity_mode, modern,
     ))
+    if modern:
+        try:
+            state = load_yaml(state_path) if state_path.is_file() else {}
+            issues.extend(observe_inputs(project_root, config, state)["issues"])
+        except (OSError, ValueError, TypeError) as exc:
+            issues.append(f"阶段实际输入无法核验: {exc}")
     if stage == "analysis":
         state_path = project_root / "state" / "project_state.yaml"
         state = load_yaml(state_path) if state_path.is_file() else {}
@@ -569,6 +578,9 @@ def _question_key(problem: str) -> str:
 def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
                  expected_source_sha256: str | None = None,
                  expected_bundle_sha256: str | None = None) -> list[dict[str, Any]]:
+    configuration_issues = auxiliary_config_issues(config)
+    if configuration_issues:
+        raise ValueError("; ".join(configuration_issues))
     state_path = project_root / "state" / "project_state.yaml"
     if not state_path.is_file():
         if config.get("stage") == "preprocessing":
@@ -583,7 +595,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
     if expected_source_sha256 is not None and new_hash != expected_source_sha256.lower():
         raise ValueError("源码在代码检查后改变，禁止登记未验证版本")
     relative = script.relative_to(project_root).as_posix()
-    modern = config.get("run_receipt_protocol_version") == SOLVER_RECEIPT_PROTOCOL_VERSION
+    modern = is_source_receipt(config.get("run_receipt_protocol_version"))
     if stage in {"primary", "analysis"}:
         actual_backend = STAGE_CODE.script_identity(script).backend
         if not modern or config.get("solver_backend") != project_backend or actual_backend != project_backend:
@@ -596,6 +608,11 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
             project_root, stage, str(config.get("data_sha256", "")), config.get("data_paths"),
             script.read_text(encoding="utf-8-sig"), project_backend,
             config.get("data_identity_mode", "combined"), modern, state=state)
+        if modern:
+            try:
+                gate_issues.extend(observe_inputs(project_root, config, state)["issues"])
+            except (OSError, ValueError, TypeError) as exc:
+                gate_issues.append(f"阶段实际输入无法核验: {exc}")
         if gate_issues:
             raise ValueError("; ".join(gate_issues))
     transition_reports: list[dict[str, Any]] = []
@@ -716,6 +733,10 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
     if sha256(script) != new_hash or (modern and STAGE_CODE.stage_code_fingerprint(
             project_root, script, config.get("code_dependencies", [])) != fingerprint):
         raise ValueError("源码集合在交付提交前改变，必须重新检查")
+    if modern:
+        final_input_issues = observe_inputs(project_root, config, state)["issues"]
+        if final_input_issues:
+            raise ValueError("; ".join(final_input_issues))
     PROJECT_TX.commit_project_state(
         project_root, state, expected_generation=base_generation
     )

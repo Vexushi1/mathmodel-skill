@@ -1,4 +1,4 @@
-version: 1.2.0
+version: 1.3.0
 status: active
 introduced_in_staged_version: 9.0.0
 purpose: >-
@@ -118,6 +118,10 @@ transition_events:
     implementation_binding: primary backend, entry path, entry bytes or declared code dependency set/bytes changed
     own_profile: primary_result
     emitted_impacts: [result]
+  analysis_inputs_changed:
+    implementation_binding: declared analysis input bytes are missing or differ from delivered identities
+    own_profile: analysis_result
+    emitted_impacts: []
   analysis_code_changed:
     implementation_binding: analysis backend, entry path, entry bytes or declared code dependency set/bytes changed
     own_profile: analysis_result

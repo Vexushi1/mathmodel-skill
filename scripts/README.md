@@ -17,6 +17,8 @@
 ## 代码与用户执行
 
 - `run_config_parser.py`：P8 收敛出的共享语法级 helper，只静态抽取顶层 `RUN_CONFIG` / legacy `FULL_*` 字典常量并保持 fail-closed；字段政策与运行语义仍由 `core/user_execution_contract.yaml` 及调用方拥有，不在此建立第二 Authority。
+- `execution_protocol.py`：执行 Authority 的共享回执版本与辅助字段形状检查；无 I/O、不设第二套模型政策。
+- `stage_inputs.py`：只读观察实际主输入和可选 1.2 辅助输入，供 runtime/交付/回执/同步/打包共同消费；不刷新已验收哈希。
 - `stage_code.py`：依据项目根唯一后端选择及执行/输出 Authority 解析阶段入口、配置和源码 bundle，供交付/回执/同步/打包/runtime 共享；`RUN_CONFIG` / `RUN_RECEIPT` 的后端仅是须与根策略相符的实际执行事实，本脚本不写项目状态。
 - `matlab_code_checks.py`：MATLAB 受限静态语法与工程检查适配，原生分析器未执行时如实报告未核验。
 - `validate_code_delivery.py`：按 `preprocessing / primary / analysis` 阶段静态校验题目专属 Python/MATLAB 的完整运行配置、代码质量和阶段边界；不执行赛题代码。RUN_CONFIG/FULL_* 的静态语法抽取委托 `run_config_parser.py`，字段要求仍在本 validator 与 User Execution Authority 中判定。
@@ -31,7 +33,7 @@
 - `audit_latex_project.py`：正式 LaTeX 项目审计入口。递归展开 active `\input/\include`、检查 fragment/source-file 工程闭环，再委托 `audit_paper_prose.py` 完成 prose/structure/BibTeX/framework 审查；兼容单文件工程自然退化为单文件模式。
 - `audit_paper_prose.py`：底层非破坏性成稿审计实现；结果分为 `blocking / review_required / warning`。它保留维护级直接调用能力，但不是活动 LaTeX route 的默认入口。机器不推断数学正确性、定理适用性、术语语义等价、参数最优性或 citation 是否真正支持 claim。
 
-正文结构与表达由 `modules/05_writing/latex.md` 管理；跨竞赛 Formula Trace、Algorithm Trace、Hard/Default/Recommendation、命题、Terminology、Numeric Style、Title Claim、深化证据处置、Paragraph Necessity、Paper Fragment stale 与 Citation Evidence 由 `core/writing_reasoning_contract.yaml` 管理。脚本只执行可确定性检查，不建立第二套正文规则。
+正文结构与表达由 `modules/05_writing/paper_writing_protocol.md` 管理，`modules/05_writing/latex.md` 只负责 LaTeX 载体适配；跨竞赛 Formula Trace、Algorithm Trace、Hard/Default/Recommendation、命题、Terminology、Numeric Style、Title Claim、深化证据处置、Paragraph Necessity、Paper Fragment stale 与 Citation Evidence 由 `core/writing_reasoning_contract.yaml` 管理。脚本只执行可确定性检查，不建立第二套正文规则。
 
 ## LaTeX、评分与打包
 

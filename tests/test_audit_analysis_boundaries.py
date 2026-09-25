@@ -154,6 +154,20 @@ class AnalysisBoundaryTests(unittest.TestCase):
             entry.update(data_hash=digest, validated_data_hash=digest)
             entry["artifact_hashes"]["data"] = digest
             entry["validated_artifact_hashes"]["data"] = digest
+            # This synthetic accepted source now actually consumes the preprocessing XLSX.
+            primary = root / entry["code"]
+            _, config = CODE.STAGE_CODE.parse_stage_config(primary)
+            config.update(data_paths=["preprocessing.xlsx"], data_sha256=digest,
+                          data_identity_mode="preprocessing_workbook")
+            primary.write_text(f"RUN_CONFIG = {config!r}\n\ndef main():\n    return 0\n", encoding="utf-8")
+            fingerprint = CODE.STAGE_CODE.stage_code_fingerprint(root, primary)
+            entry["primary_code_sha256"] = fingerprint["entry_sha256"]
+            entry["solver_execution"]["primary"] = {
+                "bundle_sha256": fingerprint["bundle_sha256"],
+                "validated_bundle_sha256": fingerprint["bundle_sha256"],
+            }
+            for field in ("artifact_hashes", "validated_artifact_hashes"):
+                entry[field]["primary_code"] = fingerprint["entry_sha256"]
             helper = CODE.ANALYSIS_PREREQUISITES
             self.assertEqual(helper.primary_issues(root, state, state["subproblems"]["Q1"]), [])
             preprocessing.write_bytes(b"changed preprocessing")
@@ -225,12 +239,16 @@ class ConditionalAnalysisStateTests(unittest.TestCase):
         workbook = root / "primary.xlsx"
         workbook.write_bytes(b"accepted primary fixture")
         digest = hashlib.sha256(workbook.read_bytes()).hexdigest()
+        from artifact_fingerprint import combined_hash
+        data = root / "input.csv"
+        data.write_text("x,y\n1,2\n", encoding="utf-8")
+        data_digest = combined_hash([data], root)
         code = root / "问题一求解/问题一求解.py"
         code.parent.mkdir()
         config = {
             "stage": "primary", "problem_name": "问题一", "solver_backend": "python",
             "run_receipt_protocol_version": "1.1.0", "code_dependencies": [],
-            "data_paths": ["primary.xlsx"], "data_sha256": digest,
+            "data_paths": ["input.csv"], "data_sha256": data_digest,
             "solver": "fixture", "random_seed": 2026, "tolerance": 1e-8,
             "iteration_or_time_limit": "direct", "expected_workbook": "问题一求解/问题一求解结果.xlsx",
             "primary_quality_protocol_version": "1.0.0",
@@ -240,7 +258,8 @@ class ConditionalAnalysisStateTests(unittest.TestCase):
         bundle = CODE.STAGE_CODE.stage_code_fingerprint(root, code)["bundle_sha256"]
         hashes = {name: digest for name in ("data", "primary_code", "solution_workbook", "framework")}
         hashes["primary_code"] = code_digest
-        entry.update(status=status, primary_execution_status="accepted", result_quality_status="passed",
+        hashes["data"] = data_digest
+        entry.update(data_hash=data_digest, validated_data_hash=data_digest, status=status, primary_execution_status="accepted", result_quality_status="passed",
                      result_analysis_status="not_required", result_analysis_requirement_reason="Only current-world claims",
                      code=code.relative_to(root).as_posix(), primary_code_sha256=code_digest,
                      solver_execution={"primary": {"bundle_sha256": bundle, "validated_bundle_sha256": bundle}},

@@ -337,8 +337,11 @@ def resolve_runtime(
     )
     actual_stage = ("primary" if "modules/03_solve_validate.md" in plan["modules"] else
                     "analysis" if "modules/03_result_analysis.md" in plan["modules"] else None)
+    numerical_context = actual_stage is not None or any(module in plan["modules"] for module in (
+        "modules/02_model_design.md", "modules/03_data_preprocessing.md"))
+    requested_backend = "auto" if solver_backend is None and numerical_context else solver_backend
     effective_backend, solver_context, solver_conflicts = _solver_context(
-        solver_backend, hydration, state_snapshot.payload() if state_snapshot is not None else None,
+        requested_backend, hydration, state_snapshot.payload() if state_snapshot is not None else None,
         actual_stage, project_root_supplied=project_root is not None,
     )
     context_conflicts = _unique([*context_conflicts, *solver_conflicts])

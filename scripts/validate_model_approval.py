@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 import yaml
+from semantic_identity import semantic_revision_issues
 
 APPROVED = "approved"
 CHALLENGE_PASSED = "passed"
@@ -70,8 +71,8 @@ def validate_question(
         errors.append(
             f"{question}: human_model_approval_status must be '{APPROVED}', got {approval!r}"
         )
-    if not isinstance(current_revision, int) or current_revision < 1:
-        errors.append(f"{question}: semantic_revision must be a positive integer")
+    errors.extend(f"{question}: {issue}" for issue in semantic_revision_issues(
+        spec, required=("semantic_revision", "approved_semantic_revision")))
     if approved_revision != current_revision:
         errors.append(
             f"{question}: approved_semantic_revision {approved_revision!r} does not match current semantic_revision {current_revision!r}"

@@ -12,6 +12,7 @@ import yaml
 from semantic_identity import (
     SEMANTIC_IDENTITY_SCHEMA_VERSION,
     SemanticIdentityError,
+    semantic_revision_issues,
     inspect_question_semantics,
     question_sections,
 )
@@ -299,8 +300,8 @@ def _semantic_lock_evidence(
     approval_current = (
         item.get("model_challenge_status") == "passed"
         and item.get("human_model_approval_status") == "approved"
-        and isinstance(revision, int)
-        and revision >= 1
+        and not semantic_revision_issues(
+            item, required=("semantic_revision", "approved_semantic_revision"))
         and approved_revision == revision
     )
     structured_state = _uses_structured_identity(item)
@@ -620,6 +621,7 @@ def hydrate_project_context(
             binding_issues = STAGE_CODE.validate_stage_binding(
                 root, item, "analysis", require_validated=True, project_backend=project_backend,
             )
+            binding_issues.extend(ANALYSIS_PREREQUISITES.stage_input_issues(root, state, item, "analysis"))
             if binding_issues:
                 analysis_row.update(status="not_accepted", reason="; ".join(binding_issues))
         analysis_rows.append(analysis_row)
