@@ -1,0 +1,90 @@
+name: Publish verified v10.1.0 once
+on:
+  push:
+    branches: [docs/modeling-intelligence-evidence-plan]
+    paths: [.github/workflows/publish-v1010-once.yml]
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: publish-verified-v1010
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.repository == 'Vexushi1/mathmodel-skill' && github.ref == 'refs/heads/docs/modeling-intelligence-evidence-plan'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify immutable target, existing CI and release identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import base64, json, os, urllib.request, urllib.error
+          repo = 'Vexushi1/mathmodel-skill'
+          target = '8fc5b42a953204b64a8ff7ddc00d5fb8983072a4'
+          tag = 'v10.1.0'
+          prefix = 'https://api.github.com/repos/' + repo
+          def api(path, payload=None, missing=False):
+              data = None if payload is None else json.dumps(payload).encode()
+              request = urllib.request.Request(prefix + path, data=data, headers={
+                  'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                  'Accept': 'application/vnd.github+json', 'User-Agent': 'verified-release',
+                  'Content-Type': 'application/json'})
+              try:
+                  with urllib.request.urlopen(request, timeout=30) as response:
+                      return json.load(response)
+              except urllib.error.HTTPError as exc:
+                  if missing and exc.code == 404:
+                      return None
+                  raise RuntimeError('GitHub request failed: ' + str(exc.code) + ' ' + path) from None
+          if api('/git/ref/heads/main')['object']['sha'] != target:
+              raise SystemExit('main moved; release requires a new review')
+          source = api('/contents/core/bootstrap.yaml?ref=' + target)
+          if not base64.b64decode(source['content']).decode().startswith('skill_version: 10.1.0\n'):
+              raise SystemExit('target version mismatch')
+          run = api('/actions/runs/36108343193')
+          if (run['head_sha'], run['status'], run['conclusion']) != (target, 'completed', 'success'):
+              raise SystemExit('target CI is not fully successful')
+          jobs = api('/actions/runs/36108343193/jobs?per_page=100')
+          if jobs['total_count'] != 13 or len(jobs['jobs']) != 13 or any(j['conclusion'] != 'success' for j in jobs['jobs']):
+              raise SystemExit('expected 13 successful target jobs')
+          ref = api('/git/ref/tags/' + tag, missing=True)
+          if ref is None:
+              obj = api('/git/tags', {'tag': tag, 'message': 'mathmodel-skill v10.1.0: verified AUD-01--05 closure', 'object': target, 'type': 'commit'})
+              ref = api('/git/refs', {'ref': 'refs/tags/' + tag, 'sha': obj['sha']})
+          obj = ref['object']
+          for _ in range(8):
+              if obj['type'] != 'tag':
+                  break
+              obj = api('/git/tags/' + obj['sha'])['object']
+          if obj.get('type') != 'commit' or obj.get('sha') != target:
+              raise SystemExit('existing tag points elsewhere; never overwrite it')
+          notes = '''## 本版内容
+          v10.1.0 完成 AUD-01—AUD-05 的既有资格链修复。PR #236 已合并；本发布固定于 `8fc5b42a953204b64a8ff7ddc00d5fb8983072a4`。
+
+          - 公共主结果前提、runtime 与回执检查实际输入字节；未同步的附件修改或删除不能沿用旧结果资格。
+          - 可选 RUN_RECEIPT 1.2 绑定 project_level 的独立辅助附件；预处理 XLSX 的普通 SHA 不变。两后端、同步、打包和迁移预览共同核验辅助身份。
+          - 严格拒绝布尔、浮点和字符串语义修订号。
+          - 新 assured 数值入口省略后端参数按 auto/unresolved 处理，已有项目仍继承统一 Python/MATLAB 后端；旧无状态入口保留兼容。
+          - 修正普通正文规则到 Paper Writing Protocol 的职责委托。
+
+          ## 验证
+          - [合并后完整 CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36108343193)：13/13 jobs 成功，含 Python 3.10—3.14、Windows、MATLAB R2024b 原生 1.2、三套 LaTeX、正式编译证明、lint 与生成物。
+          - [合并后元数据检查](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36108343150)：成功。
+          - [最终验收记录](https://github.com/Vexushi1/mathmodel-skill/pull/236#issuecomment-5828720307)：最终文件树本地 1730 项，3 项条件跳过，无失败；源码快照与 Git tree 核对一致。
+          - [优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36107247363)：2 成功、独立出版图预览条件跳过；MATLAB 数值测试在完整 CI 实际运行，不混称。
+
+          ## 兼容与范围
+          Skill 10.1.0；User Execution 3.1.0、Runtime Assurance 2.1.0、State Transition 1.3.0 各自版本。State Schema 8.0.0、source bundle 1.1、预处理回执 1.0 不变。无辅助输入仍使用合法 1.1；旧 reader 明确拒绝 1.2，禁止删辅助字段伪装降级。
+          本版不含 Case Memory、Claim-Evidence Graph 或新的审查回执系统；不会自动修改或迁移用户项目。合成测试不是对任意赛题或模型的正确性证明。旧版本标签不变。
+          '''
+          release = api('/releases/tags/' + tag, missing=True)
+          if release is None:
+              release = api('/releases', {'tag_name': tag, 'target_commitish': target,
+                  'name': 'v10.1.0 — 输入身份、审批与后端一致性修复', 'body': notes,
+                  'draft': False, 'prerelease': False, 'make_latest': 'true'})
+          elif release['draft'] or release['prerelease']:
+              raise SystemExit('existing release requires explicit review; not overwritten')
+          print(json.dumps({'release_id': release['id'], 'url': release['html_url'], 'tag': tag, 'target': target}, ensure_ascii=False))
+          PY
