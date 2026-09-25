@@ -466,6 +466,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/figure_technique_and_handoff_refactor_plan.md`
 - `docs/main-branch-protection-hardening-plan.md`
 - `docs/matlab_publication_rendering_v91_plan.md`
+- `docs/modeling_intelligence_a0_decisions.md`
 - `docs/modeling_intelligence_evidence_evolution_plan.md`
 - `docs/p3a_global_policy_source_map.md`
 - `docs/p3b_writing_role_source_map.md`
