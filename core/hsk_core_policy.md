@@ -1,4 +1,4 @@
-# HSK Core Policy v10.1.0
+# HSK Core Policy v10.2.0
 
 本文件只定义**跨阶段硬不变量**。任何阶段的目录、字段、工作表、图型、论文小节、算法展示、兼容迁移或工具参数，均以 `core/bootstrap.yaml` 指向的 current Authority 为准；本文件不复制这些阶段合同的完整实现。
 

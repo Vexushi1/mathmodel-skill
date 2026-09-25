@@ -1,4 +1,4 @@
-# mathmodel-skill v10.1.0
+# mathmodel-skill v10.2.0
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值语言由项目根策略统一选择。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。
 
@@ -16,6 +16,12 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 每问在已选项目后端下交付独立主求解入口，按 Primary Quality Specification (PQS) 保存本次运行的 Primary Evidence Capture；返回主工作簿通过独立数值复核后才可成为 accepted。Analysis Necessity Gate 判定 `required` 时，独立结果深化入口继承同一后端，产生 Analysis Evidence Capture；`not_required` 记录理由，不生成深化结果，也不声称已验证稳健性。精确入口名、工作簿和条件式产物只看 `core/output_contract.yaml#per_question.solver_scripts`；不按固定 Python 文件清单或统一五文件数推断当前资格。赛题数值代码由用户本地 `full_fidelity` 执行，助手生成、静态检查并验收返回证据。
 
 项目级预处理仍是独立的 Python 职责。正式 MATLAB 结果绘图只消费当前 accepted 工作簿与已验收证据，不重求解、不制造序列；非数据驱动的题目专属机理图可按 Figure Authority 选择可编辑 draw.io。图内正式标题由论文 caption 承担，实际渲染和语义检查不能由静态检查替代。
+
+## 可选 Code ↔ Model 结构核验（A1）
+
+`python scripts/model_code_conformance.py <项目根> --question Q1 --stage primary` 只读核对当前批准SIB、阶段源码bundle和`implementation_conformance`覆盖声明。`--inventory`只列当前可定位对象与源码锚点，不自动生成已验证映射。范围、状态与限制见`core/model_code_conformance_contract.yaml`；使用说明见`templates/model/formula_code_closure.md`。
+
+`structure_verified`只表示记录/身份/静态引用闭合，不证明约束实际启用、数学等价或数值正确。没有记录为`not_assessed`；未支持结构为`needs_review`；旧记录、冲突或残缺声明阻断本次结构核验。该能力尚未接入普通交付/回执的强制门，A2另行实施；B/C/D增强尚未完成。
 
 ## 唯一 Authority 导航
 

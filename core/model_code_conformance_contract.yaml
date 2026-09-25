@@ -1,0 +1,69 @@
+version: 1.0.0
+status: active_opt_in_read_only
+introduced_in_skill_version: 10.2.0
+purpose: Bind declared model-to-source coverage to a current SIB and one selected source bundle without executing user code or granting acceptance.
+authority:
+  record_shape: core/project_state.schema.yaml#/$defs/implementation_conformance_record
+  model_identity: scripts/semantic_identity.py
+  model_approval: core/model_approval_contract.yaml
+  model_lock_reader: scripts/runtime_assurance.py
+  source_bundle: core/user_execution_contract.yaml
+  project_snapshot: scripts/project_transaction.py
+  implementation: scripts/model_code_conformance.py
+activation:
+  explicit_route: conformance_audit
+  automatic_existing_gate_insertion: false
+  record_path: subproblems.Qn.implementation_conformance.{stage}
+  missing_record: not_assessed
+  unknown_or_partial_record: blocked
+  current_stage_writer: none
+  report_persistence: stdout_only
+  default_project_files_added: []
+  future_integration: A2 must separately define delivery, receipt and transition consumption; A1 declarations do not replace any existing gate.
+coverage:
+  stable_id_fields: [data_scope, variables, parameters, assumptions, constraints]
+  singleton_fields: [objective, algorithm_semantics, preprocessing_decision]
+  extension_scope: existing_top_level_entries
+  declaration_role: author_supplied_correspondence_not_proof
+  relations: [direct, equivalent_transform, approved_approximation, numerical_choice, non_executable]
+  symbol_anchor: exact_relative_file_and_unique_symbol_and_utf8_fragment_sha256
+  line_numbers: diagnostic_only
+  expression_reference: implementation_expression.python_or_matlab_on_the_selected_current_approved_SIB_object
+  expression_scope: optional_syntactic_comparison_only_not_algebraic_equivalence
+  reverse_scope: bounded_lexical_candidates_only_not_complete_semantic_discovery
+  python_reverse_calls: [numpy.clip, numpy.minimum, numpy.maximum, clip]
+  matlab_reverse_calls: [min, max]
+limits:
+  state_bytes: 2097152
+  framework_bytes: 2097152
+  source_file_bytes: 2097152
+  total_source_bytes: 16777216
+  source_files: 64
+  model_items: 512
+  mappings: 512
+  reverse_operations: 256
+  record_depth: 32
+  source_ast_nodes: 100000
+  source_ast_depth: 128
+  policy: refuse_explicitly_never_truncate_to_success
+result_semantics:
+  statuses: [structure_verified, needs_review, not_assessed, blocked]
+  exit_codes: {structure_verified: 0, blocked: 1, needs_review: 2, not_assessed: 2}
+  mathematical_equivalence: not_established
+  constraint_activation: not_proved
+  numerical_acceptance: not_assessed
+  native_execution: not_run
+  independent_review: not_run
+  execution_authorized: false
+  inventory_role: observed_inputs_and_candidates_only_not_a_verified_mapping
+rules:
+- Enumerate required model selectors from the actual SIB, not from the author's own list.
+- Reuse current project backend, source bundle and semantic lock readers; do not invent an alternative identity root.
+- Require exact question/stage/entry/bundle/revision binding; do not use an analysis record for a primary source.
+- Keep unknown MATLAB structures, dynamic references and unresolved source scope as needs_review rather than silently accepting.
+- A matching symbol or syntactic expression does not prove constraint activation, solver correctness or mathematical equivalence.
+- Equivalent transformations, approximations and penalty algorithms need their own mathematical evidence; their names do not imply failure or proof.
+- Acknowledge reverse candidates only against a valid model selector and a rationale; this is a declaration, not verified reviewer execution.
+- Read checks must not modify source, state, approved identity, workbook, stale fields or transaction journals.
+- Recheck observed state, framework, all declared source bytes and consumed Skill sources before returning a result; this is not an atomic filesystem snapshot.
+- No workbook reading, task execution, network requests, arbitrary eval or subprocess execution occurs in this checker.

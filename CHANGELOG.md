@@ -1,6 +1,12 @@
 # Changelog
 
-## 10.1.0
+## 10.2.0
+
+- Adds opt-in A1 model/code structural conformance: current approved SIB selectors, selected primary/analysis source bundles, bounded symbol anchors, lexical reverse candidates and optional syntax-only expression checks. No task execution or mathematical-equivalence claim.
+- Adds optional Project State Schema 8.1.0 declaration records and a dedicated read-only audit route; existing runtime gates, source receipts, numerical acceptance and ordinary workflow behavior are unchanged when the extension is not requested.
+- Keeps A2 integration and Claim-Evidence/Reviewer Receipt/Case Memory stages separate. Implementation and verification scope are recorded in `docs/modeling_intelligence_a0_decisions.md`; this heading alone does not mean a GitHub Release was published.
+
+## Previous release: 10.1.0
 
 - Rechecks actual stage inputs at current-result qualification and receipt boundaries without requiring a prior sync; matching stale state hashes cannot prove unchanged raw files.
 - Adds optional receipt 1.2 for project-level preprocessing plus explicit independent auxiliary attachments. Base preprocessing identity remains unchanged; auxiliary paths and digest are bound by code, runtime receipts, synchronization and reproducibility inventory. Unextended 1.1 and preprocessing 1.0 retain their contracts; older readers reject 1.2 rather than ignoring new evidence.

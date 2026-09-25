@@ -1,4 +1,4 @@
-version: 10.1.0
+version: 10.2.0
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -133,6 +133,14 @@ runtime_segments:
     formal_delivery: true
 
 routing:
+  conformance_audit:
+    triggers: [模型代码一致性核验, 实现闭环核验]
+    infer_keywords: [模型代码一致性核验, 实现闭环核验]
+    load: [core/model_code_conformance_contract.yaml, core/project_state.schema.yaml, templates/model/formula_code_closure.md, scripts/model_code_conformance.py]
+    terminal_outputs: [conformance_report]
+    pre_delivery_gates: [model_code_conformance]
+    formal_delivery: false
+
   new_problem_design:
     boundary_roles: [model_approval]
     triggers: [新赛题, 建模方案, 建模思路, 全流程思路]
