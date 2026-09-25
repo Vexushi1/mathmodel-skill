@@ -201,5 +201,93 @@ class ApprovedReadingEvidenceChangesTests(unittest.TestCase):
                 self.assertIn("assurance", self.compare(before, after)["unexpected_legacy_changes"])
 
 
+class AuditClosureProjectionTests(unittest.TestCase):
+    def pair(self, identifier="facts_current"):
+        old = {"version": "<EXPECTED_P9_RELEASE_CARRIER_CHANGE>", "runtime_plan": {},
+               "assurance": {"schema_version": "1.2.0", "context": {"field_provenance": {}}}}
+        new = deepcopy(old)
+        new["version"] = "10.1.0"
+        new["assurance"]["schema_version"] = "2.1.0"
+        solver = {"scope": "project", "request": "auto", "stage": None, "resolved": "python",
+                  "candidate_backend": None, "selection_complete": True, "source": "project_state",
+                  "conflicts": [], "environment_verified": False,
+                  "decision_contract": "core/user_execution_contract.yaml#solver_backends"}
+        if identifier == "facts_unscoped":
+            solver.update(scope="stateless", resolved=None, selection_complete=False, source="unresolved")
+            new["assurance"]["context"].update(backend_policy=None)
+            new["assurance"]["context"]["field_provenance"]["solver_backend"] = "unresolved"
+        new["solver_backend"] = deepcopy(solver)
+        new["runtime_plan"]["solver_backend"] = deepcopy(solver)
+        return old, new
+
+    def test_exact_registered_changes_are_visible_and_inputs_are_immutable(self):
+        for case in (*EVIDENCE.A7_HYDRATED_PROVENANCE_CASES, "facts_unscoped"):
+            with self.subTest(case=case):
+                old, new = self.pair(case)
+                saved = deepcopy((old, new))
+                projected, changes = EVIDENCE.approved_v1010_audit_changes(case, old, new)
+                self.assertEqual(projected, old)
+                self.assertNotEqual(new, old)
+                self.assertEqual(len(changes), 6 if case == "facts_unscoped" else 4)
+                self.assertEqual((old, new), saved)
+
+    def test_unknown_case_or_version_gets_no_projection(self):
+        for case, version in (("future_case", "10.1.0"), ("facts_current", "10.2.0")):
+            old, new = self.pair()
+            new["version"] = version
+            projected, changes = EVIDENCE.approved_v1010_audit_changes(case, old, new)
+            self.assertEqual(changes, [])
+            self.assertEqual(projected, new)
+
+    def test_unapproved_solver_fields_and_extra_metadata_remain_visible(self):
+        for key, value in (("environment_verified", True), ("environment_verified", 0), ("resolved", "matlab"),
+                           ("selection_complete", False), ("source", "explicit"),
+                           ("unexpected_field", "cannot be discarded")):
+            with self.subTest(key=key):
+                old, new = self.pair()
+                new["solver_backend"][key] = value
+                projected, _ = EVIDENCE.approved_v1010_audit_changes("facts_current", old, new)
+                self.assertNotEqual(projected, old)
+                self.assertEqual(projected["solver_backend"][key], value)
+
+    def test_existing_null_is_not_absent_and_unknown_protocol_is_not_approved(self):
+        old, new = self.pair()
+        old["solver_backend"] = None
+        projected, _ = EVIDENCE.approved_v1010_audit_changes("facts_current", old, new)
+        self.assertNotEqual(projected, old)
+        old, new = self.pair()
+        new["assurance"]["schema_version"] = "2.2.0"
+        projected, _ = EVIDENCE.approved_v1010_audit_changes("facts_current", old, new)
+        self.assertEqual(projected["assurance"]["schema_version"], "2.2.0")
+
+    def test_stateless_selection_and_non_numeric_projections_are_not_waived(self):
+        old, new = self.pair("facts_unscoped")
+        new["solver_backend"].update(resolved="python", selection_complete=True)
+        projected, _ = EVIDENCE.approved_v1010_audit_changes("facts_unscoped", old, new)
+        self.assertNotEqual(projected, old)
+        old, new = self.pair()
+        for case in ("mechanism", "style_unscoped", "cumcm_writing", "receipt"):
+            projected, _ = EVIDENCE.approved_v1010_audit_changes(case, old, new)
+            self.assertIn("solver_backend", projected)
+
+    def test_full_comparison_keeps_unrelated_assurance_and_gate_changes(self):
+        old, new = self.pair()
+        for plan in (old, new):
+            plan["assurance"]["authority_fingerprint"] = {"sha256": "same", "sources": []}
+            plan["reading_plan"] = {"metrics": {"planned_skill_read_bytes": 1,
+                                    "planned_project_read_bytes": 0},
+                                    "profile": "test", "status": "planned"}
+        before = {"id": "facts_current", "plan": old, "legacy_declared_bytes": 1}
+        after = {"id": "facts_current", "plan": new, "legacy_declared_bytes": 1}
+        row = EVIDENCE.compare([before], [after])[0]
+        self.assertTrue(row["legacy_behavior_equal_except_approved_changes"])
+        self.assertFalse(row["legacy_behavior_equal"])
+        new["assurance"]["status"] = "invented_acceptance"
+        new["pre_delivery_gates"] = []
+        row = EVIDENCE.compare([before], [after])[0]
+        self.assertIn("assurance", row["unexpected_legacy_changes"])
+        self.assertIn("pre_delivery_gates", row["unexpected_legacy_changes"])
+
+
 if __name__ == "__main__":
     unittest.main()
