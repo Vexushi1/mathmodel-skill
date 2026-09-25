@@ -5,6 +5,7 @@ The SIB fixture's approval is setup data, not a real human-review assertion.
 """
 from __future__ import annotations
 import argparse
+from copy import deepcopy
 import json
 import os
 from pathlib import Path
@@ -54,12 +55,12 @@ def declare(root: Path, state: dict, stage: str) -> None:
     record={'protocol_version':'1.0.0','question':'Q1','stage':stage,**observed['binding'],
             'mappings':[],'reverse_review':[]}
     for i,ref in enumerate(observed['model_selectors'],1):
-        record['mappings'].append({'id':f'MC{i}','model_ref':ref,'relation':'direct',
+        record['mappings'].append({'id':f'MC{i}','model_ref':deepcopy(ref),'relation':'direct',
             'rationale':'Synthetic structural association only; numerical correctness is checked separately.',
             'anchors':[{key:anchor[key] for key in ('path','symbol','sha256')}]})
     for candidate in observed['reverse_candidates']:
         record['reverse_review'].append({'operation_id':candidate['operation_id'],
-            'model_ref':observed['model_selectors'][0],
+            'model_ref':deepcopy(observed['model_selectors'][0]),
             'rationale':'Synthetic lexical acknowledgement, not independent review.'})
     state['subproblems']['Q1'].setdefault('implementation_conformance',{})[stage]=record
     save(root,state)

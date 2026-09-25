@@ -35,4 +35,17 @@
 
 ## 5. 执行台账
 
-本文提交时：恢复完成，R1实测可复现，R2原生失败原因已定位；两项尚未修正。后续真实测试、提交、合并状态在本节和PR最终验收记录回填。无Release/tag/用户项目变更。
+本文先行提交 `1f168e88faac1a175f366f95c0e155dcdfba4cb3` 时，R1/R2均未修正。后续在同一PR内完成如下有限修复，并保留之前的失败事实：
+
+- R1：在 `conformance_gate.observe_execution_sources` 的analysis分支补 `_observe_primary_dependencies`，以既有source limits、stage resolver、source fingerprint、输入观察及primary资格核验捕获上游source/helper/独立附件。全部进入既有transaction读集和Skill依据绑定。没有改事务引擎或要求未启用的primary提供A2声明。
+- R2：两处合成声明构造器对model_ref作独立复制，避免YAML别名；不改变生产解析器安全规则。
+- 新增 `tests/test_conformance_upstream_read_set.py` 五个测试函数，实际合成运行后注入落盘前变化。原恢复代码上出现13个预期失败子例、零执行错误；修复后5项全部通过。
+- 新测试初版因合成脚本只计算入口SHA、未将新增helper加入回执bundle而失败；先修正生成的合成fixture，再执行上述有效红绿对照。这一fixture错误不是另一个生产缺陷，不隐藏为通过。
+- 定向回归54项：全部通过，93.465秒。
+- 本地完整回归：`python -m unittest discover -s tests -p 'test_*.py'`，**Ran 1810 tests in 411.098s / OK (skipped=3) / exit0**；新增5项不包含重复导入旧TestCase。
+- `python scripts/lint_skill.py`、`python scripts/generate_indexes.py --check`、`git diff --check`均通过；生成物由原生成器生成。
+- 曾有一次定向命令因调用超时中断，之后用保存日志的完整命令重新执行并得到上述54项结果。中断日志不能计为通过。
+
+这组本地结果对应恢复源码加R1/R2五个源码/测试文件修正；本文台账、后续自动生成metadata不改变执行逻辑。上传时各新blob与已测本地 `git hash-object` 逐一核对，避免手工复制差异。最终head、原生MATLAB、完整CI、是否合并和main复验以 [PR #238最终验收记录](https://github.com/Vexushi1/mathmodel-skill/pull/238) 为准，未完成前不提前宣称成功。
+
+无Release/tag/用户项目变更。只有A2通过最终验收后才能在独立分支启动原计划B1；这不代表B2/C/D或整份增强计划完成。

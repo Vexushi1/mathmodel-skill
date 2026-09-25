@@ -19,7 +19,8 @@ ACCEPTANCE = 'conformance_acceptance'
 FIELDS = (DELIVERY, ACCEPTANCE)
 EXTRA_SOURCES = ('scripts/conformance_gate.py', 'core/state_transition_contract.yaml',
                  'core/runtime_assurance_contract.yaml', 'scripts/stage_inputs.py',
-                 'scripts/artifact_fingerprint.py')
+                 'scripts/artifact_fingerprint.py', 'scripts/analysis_prerequisites.py',
+                 'scripts/artifact_identity.py')
 
 
 def digest(domain: str, value: Any) -> str:
@@ -219,8 +220,55 @@ def observe_execution_sources(root: Path, state: Mapping[str, Any], question: st
         if actual != expected:
             raise ValueError('conformance: analysis primary workbook differs from delivered config')
         merge_read_sets(observed, {'project': {relative: actual}})
+        _observe_primary_dependencies(root, state, question, observed)
     assert_observed(root, observed)
     return config
+
+
+def _observe_primary_dependencies(root: Path, state: Mapping[str, Any], question: str, observed: dict) -> None:
+    """Bind the existing primary-qualification reads, not a new primary A2 policy.
+
+    An analysis workbook depends on the validity of its primary source, helpers
+    and inputs even when the analysis code does not read those files directly.
+    Capture them before qualification, then keep them in the caller's transaction
+    read set. No primary conformance declaration is required by this helper.
+    """
+    import model_code_conformance as audit
+    import analysis_prerequisites as prerequisites
+    import run_config_parser
+    import stage_code
+    entry = state.get('subproblems', {}).get(question, {})
+    backend = stage_code.current_project_backend(state, required=True)
+    code = stage_code.resolve_stage_code(root, question, 'primary', entry=entry, project_backend=backend)
+    if code is None:
+        raise ValueError('conformance: analysis primary source is missing')
+    limits = audit._yaml(audit._read(ROOT, audit.CONTRACT, 2 * 1024 * 1024,
+                                    observed['skill']).decode('utf-8'), 32)['limits']
+    relative = code.path.relative_to(root).as_posix()
+    raw = audit._read(root, relative, limits['source_file_bytes'], observed['project'])
+    _, config = run_config_parser.parse_embedded_config(
+        raw.decode('utf-8-sig'), messages=run_config_parser.DELIVERY_MESSAGES, backend=backend)
+    if config.get('stage') != 'primary' or config.get('solver_backend') != backend:
+        raise ValueError('conformance: primary source has an inconsistent stage/backend')
+    dependencies = config.get('code_dependencies', [])
+    if not isinstance(dependencies, list) or len(dependencies) + 1 > limits['source_files']:
+        raise ValueError('conformance: primary dependencies exceed the source budget or have invalid shape')
+    total = len(raw)
+    for dependency in dependencies:
+        if not isinstance(dependency, Mapping) or set(dependency) != {'path', 'sha256'}:
+            raise ValueError('conformance: primary dependency requires exactly path/sha256')
+        total += len(audit._read(root, dependency['path'], limits['source_file_bytes'], observed['project']))
+        if total > limits['total_source_bytes']:
+            raise ValueError('conformance: primary dependencies exceed the total source budget')
+    fingerprint = stage_code.stage_code_fingerprint(root, code.path, dependencies)
+    if any(observed['project'][item['path']] != item['sha256'] for item in fingerprint['files']):
+        raise ValueError('conformance: primary sources changed during dependency capture')
+    observe_execution_sources(root, state, question,
+                              {'entrypoint': relative, 'solver_backend': backend}, observed)
+    issues = prerequisites.primary_issues(root, state, entry, require_project_policy=True)
+    if issues:
+        raise ValueError('conformance: analysis primary qualification failed: ' + '; '.join(issues))
+    assert_observed(root, observed)
 
 
 def acceptance_binding(delivered: Mapping[str, Any], workbook_sha256: str) -> dict[str, str]:

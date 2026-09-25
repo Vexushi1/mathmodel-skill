@@ -41,12 +41,12 @@ def declare(root, state, stage='primary'):
     record = {'protocol_version': '1.0.0', 'question': 'Q1', 'stage': stage,
               **inventory['binding'], 'mappings': [], 'reverse_review': []}
     for number, selector in enumerate(inventory['model_selectors'], 1):
-        record['mappings'].append({'id': f'MC{number}', 'model_ref': selector, 'relation': 'direct',
+        record['mappings'].append({'id': f'MC{number}', 'model_ref': deepcopy(selector), 'relation': 'direct',
             'rationale': 'Synthetic structural mapping only; no mathematical proof claimed.',
             'anchors': [{key: anchor[key] for key in ('path', 'symbol', 'sha256')}]})
     for row in inventory['reverse_candidates']:
         record['reverse_review'].append({'operation_id': row['operation_id'],
-            'model_ref': inventory['model_selectors'][0], 'rationale': 'Synthetic lexical acknowledgement only.'})
+            'model_ref': deepcopy(inventory['model_selectors'][0]), 'rationale': 'Synthetic lexical acknowledgement only.'})
     state['subproblems']['Q1'].setdefault('implementation_conformance', {})[stage] = record
     save(root, state)
     return record
