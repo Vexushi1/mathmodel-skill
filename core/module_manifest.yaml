@@ -1,4 +1,4 @@
-version: 10.2.0
+version: 10.3.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -197,7 +197,7 @@ utility_gates:
     inputs: [existing_project_state, existing_model_paper_framework]
     outputs: [conformance_report]
     rules:
-    - Explicit opt-in only; no current-state writes or ordinary delivery gate insertion.
+    - This standalone A1 inspector remains read-only; optional A2 consumption by existing delivery/receipt/sync gates is governed by core/model_code_conformance_contract.yaml#activation.integration.
     - Consumers must distinguish structure_verified, needs_review, not_assessed and blocked; no status proves mathematical equivalence.
   semantic_governance:
     path: scripts/validate_semantic_governance.py
@@ -230,6 +230,8 @@ utility_gates:
     command: python scripts/validate_code_delivery.py <project_root> --write --strict
     inputs: [existing_project_state, existing_model_paper_framework, stage_code, code_quality_contract]
     outputs: [code_delivery_report, project_state, awaiting_user_execution]
+    rules:
+    - Optional A2 structural binding is written only through this coordinator under core/model_code_conformance_contract.yaml#activation.integration; it does not replace original approval or code-quality checks.
   user_execution_receipt:
     path: scripts/validate_user_execution.py
     command: python scripts/validate_user_execution.py <project_root> --write --strict

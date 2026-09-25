@@ -441,8 +441,8 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
         if compatibility != f">={lower},<11.0.0":
             errors.append(f"subordinate contract compatibility must retain its lower bound and cover v10: {relative}")
     execution = load_structured(ROOT / "core/user_execution_contract.yaml") or {}
-    if execution.get("version") != "3.1.0" or execution.get("introduced_in_skill_version") != "10.0.0":
-        errors.append("v10 user execution contract must declare its independent 3.1.0 version")
+    if execution.get("version") != "3.2.0" or execution.get("introduced_in_skill_version") != "10.0.0":
+        errors.append("v10 A2 execution contract must declare its independent 3.2.0 version")
     if str(execution.get("skill_compatibility")) != ">=10.0.0,<11.0.0":
         errors.append("v10 user execution contract must apply only to the new major line")
 
@@ -946,8 +946,8 @@ def check_contracts(errors: list[str]) -> None:
 def check_project_state_and_framework(errors: list[str]) -> None:
     schema = load_structured(ROOT / "core/project_state.schema.yaml")
     Draft202012Validator.check_schema(schema)
-    if schema.get("version") != "8.1.0":
-        errors.append("v10.2 optional conformance records require independent schema 8.1.0")
+    if schema.get("version") != "8.2.0":
+        errors.append("v10.3 optional conformance bindings require independent schema 8.2.0")
     execution_fields = (schema.get("properties", {}).get("execution", {}).get("properties") or {})
     stage_fields = (schema.get("$defs", {}).get("solver_stage_execution", {}).get("properties") or {})
     if not {"solver_backend", "solver_backend_selection_reason"}.issubset(execution_fields):

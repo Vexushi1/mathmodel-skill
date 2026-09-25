@@ -444,6 +444,9 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
     specs = list(policy.get("common_reads", [])) + specs
     if backend_authority is not None:
         specs.append(backend_authority)
+    # A2's consumer contract is relevant now only for explicitly scoped opt-in work.
+    for path in (plan.get("conformance_integration") or {}).get("resources", []):
+        specs.append({"path": path})
     read_now = reader.consolidate([reader.describe(spec) for spec in specs])
     deferred = []
     conditions = policy.get("deferred_conditions", {})

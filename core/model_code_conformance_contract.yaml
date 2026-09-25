@@ -1,5 +1,5 @@
-version: 1.0.0
-status: active_opt_in_read_only
+version: 1.1.0
+status: active_opt_in_structural_gate
 introduced_in_skill_version: 10.2.0
 purpose: Bind declared model-to-source coverage to a current SIB and one selected source bundle without executing user code or granting acceptance.
 authority:
@@ -16,10 +16,43 @@ activation:
   record_path: subproblems.Qn.implementation_conformance.{stage}
   missing_record: not_assessed
   unknown_or_partial_record: blocked
-  current_stage_writer: none
+  current_stage_writer: existing_delivery_and_receipt_coordinators_only
+  integration:
+    policy: subproblems.Qn.implementation_conformance_policy
+    fields_authority: core/project_state.schema.yaml
+    consumer_gates: [code_delivery, user_execution_receipt, project_sync, submission_package_validation]
+    resources: [core/model_code_conformance_contract.yaml]
+    implementation: scripts/conformance_gate.py
+    binding_protocol_version: 1.0.0
+    absent_policy_and_bindings: preserve_existing_workflow
+    a1_declaration_without_policy: observation_only
+    incomplete_unknown_or_orphan: blocked
+    delivery_writer: scripts/validate_code_delivery.py:update_state
+    acceptance_writer: scripts/validate_user_execution.py:validate_one_and_main
+    invalidation_writer: existing_state_transition_and_sync_coordinators
+    required_structure_result: structure_verified
+    unmet_structure_result: block_opted_in_stage_without_claiming_math_error
+    declaration_digest: HSK-conformance-declaration-v1
+    authority_digest: HSK-conformance-authorities-v1
+    delivery_digest: HSK-conformance-delivery-v1
+    digest_encoding: UTF8_domain_NUL_then_sorted_compact_JSON_without_NaN
+    identity_scope: question_stage_backend_entry_bundle_semantic_identity_revision_declaration_and_consumed_skill_sources
+    no_workbook_required_before_delivery: true
+    workbook_acceptance: bind_returned_bundle_and_workbook_only_after_original_receipt_and_PQS_succeed
+    stale_retention: preserve_prior_bindings_as_stale_without_resigning
+    replay_guard: current_declaration_and_source_must_match_the_explicitly_delivered_binding
+    transaction: existing_read_set_and_staged_validator_hooks_no_new_transaction_engine
+    pending_journal: explicit_recovery_then_reinspect
+    source_observation: current_code_helpers_model_state_data_auxiliary_and_analysis_primary_workbook
+    analysis_upstream_read_set: primary_entry_helpers_inputs_auxiliary_and_current_workbook
+    analysis_upstream_scope: existing_primary_qualification_without_forcing_primary_A2_activation
+    scope_limits: does_not_establish_math_equivalence_constraint_activation_independent_review_or_task_execution
   report_persistence: stdout_only
   default_project_files_added: []
-  future_integration: A2 must separately define delivery, receipt and transition consumption; A1 declarations do not replace any existing gate.
+  integration_boundary: A2 adds one opted-in prerequisite inside existing consumers; A1 reports and bindings never replace model approval or numerical quality.
+  inspector_write_policy: A1 inspection remains stdout_only_and_read_only
+  binding_shape: core/project_state.schema.yaml#/$defs/conformance_delivery
+  invalidation_authority: core/state_transition_contract.yaml
 coverage:
   stable_id_fields: [data_scope, variables, parameters, assumptions, constraints]
   singleton_fields: [objective, algorithm_semantics, preprocessing_decision]
@@ -65,5 +98,11 @@ rules:
 - Equivalent transformations, approximations and penalty algorithms need their own mathematical evidence; their names do not imply failure or proof.
 - Acknowledge reverse candidates only against a valid model selector and a rationale; this is a declaration, not verified reviewer execution.
 - Read checks must not modify source, state, approved identity, workbook, stale fields or transaction journals.
+- A2 delivery requires current structural observation but no result workbook; acceptance additionally checks the actual receipt bundle and original numerical gates.
+- Opted-in changes of declarations, source or consumed checker authorities require explicit redelivery; no silent digest refresh or automatic model approval.
+- Current bindings require matching active source and validated workbook identities; stale bindings may survive explicit source retirement without active bundle fields.
+- Source changes invalidate implementation evidence, not mathematical approval unless the original semantic transition also applies.
+- Returned workbook revalidation does not claim a new run when source and original execution receipt are unchanged.
+- The new binding is a deterministic observation, not a signature against actors who can rewrite the complete project state.
 - Recheck observed state, framework, all declared source bytes and consumed Skill sources before returning a result; this is not an atomic filesystem snapshot.
 - No workbook reading, task execution, network requests, arbitrary eval or subprocess execution occurs in this checker.

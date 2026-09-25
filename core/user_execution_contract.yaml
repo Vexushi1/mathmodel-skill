@@ -1,4 +1,4 @@
-version: 3.1.0
+version: 3.2.0
 introduced_in_skill_version: 10.0.0
 skill_compatibility: '>=10.0.0,<11.0.0'
 purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界。每问主求解使用项目唯一已选Python或MATLAB后端的独立入口；结果深化分析仅在主工作簿accepted后经过Analysis Necessity Gate且判定required时使用独立入口，并必须继承同一项目数值后端。P5a起新生成阶段脚本使用RUN_CONFIG承载任务可变输入，全局user/full-fidelity/no-degradation政策由本Authority继承；P5b起新生成阶段脚本通过run_receipt_protocol_version绑定版本化RUN_RECEIPT，实际运行事实仍写入既有工作簿运行配置工作表。v7.14起新生成主求解还绑定Primary Quality Specification与主数值证据独立复核，但不得把结果深化分析提前塞进主求解。
@@ -458,3 +458,11 @@ legacy_compatibility:
   v7_0_semantic_governance_fields: read_only_until_redesign
   v6_6_single_evolving_script: read_only
   rule: 旧项目可继续读取已有产物；P5a后旧FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG仍按原完整字段和no-degradation显式标志只读兼容，不能因RUN_CONFIG迁移而放宽。P9已裁决继续保留P5a过渡RUN_CONFIG和历史receipt缺少RUN_RECEIPT版本握手的只读兼容；新writer必须声明当前版本，一旦任一端显式声明版本则只接受当前协议且不得静默降级。未来移除旧reader须另行明确major migration、提供旧项目识别与迁移证据并完成兼容回归。v7.13及更早主工作簿只读时不强制反向补Verification ID；重新进入当前主求解时该问按v7.14主数值质量轨迹重新生成。v7.2.0--v7.2.2项目重新进入模型设计/预处理/绘图/写作时沿用三态decision并按当前通用审计与证据规则复核；只读历史交付不强制反向补data_process.m；更早项目重新进入当前流程时先补齐preprocessing_decision，只有project_level才要求统一预处理；重新深化分析时按当前后端与阶段合同生成独立入口。
+
+implementation_conformance:
+  authority: core/model_code_conformance_contract.yaml#activation.integration
+  shape_authority: core/project_state.schema.yaml
+  principle: Only explicitly opted-in question/stages add the structural prerequisite inside existing delivery and receipt coordinators.
+  delivery: No accepted workbook is required before initial code delivery; the captured structure and source binding must be current.
+  receipt: Current delivery binding and actual returned source bundle are checked before original receipt and numerical acceptance; only successful original acceptance may attach a workbook binding.
+  unaffected_protocols: Existing SIB, code bundle and RUN_RECEIPT versions are unchanged; no synthetic review or new user execution is inferred from structural evidence.

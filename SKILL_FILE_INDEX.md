@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.2.0
+当前 Skill 版本：10.3.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -117,6 +117,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/audit_latex_project.py`
 - `scripts/audit_paper_prose.py`
 - `scripts/audit_v8_writing_surface.py`
+- `scripts/conformance_gate.py`
 - `scripts/conformance_source.py`
 - `scripts/execution_protocol.py`
 - `scripts/generate_indexes.py`
@@ -243,6 +244,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `templates/writing/code_appendix_description.md`
 - `templates/writing/docx_check.md`
 - `tests/audit_auxiliary_smoke.py`
+- `tests/conformance_a2_smoke.py`
 - `tests/fixtures/model_construction_solution_cases.yaml`
 - `tests/fixtures/p3a_global_policy_source_map.yaml`
 - `tests/fixtures/p3b_writing_role_source_map.yaml`
@@ -279,7 +281,10 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_authority_single_source.py`
 - `tests/test_auxiliary_input_protocol.py`
 - `tests/test_code_quality_contract.py`
+- `tests/test_conformance_a2_contract.py`
+- `tests/test_conformance_execution.py`
 - `tests/test_conformance_integration.py`
+- `tests/test_conformance_upstream_read_set.py`
 - `tests/test_content_packs.py`
 - `tests/test_contract_closure.py`
 - `tests/test_copied_support_source_closure.py`
@@ -472,6 +477,8 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/main-branch-protection-hardening-plan.md`
 - `docs/matlab_publication_rendering_v91_plan.md`
 - `docs/modeling_intelligence_a0_decisions.md`
+- `docs/modeling_intelligence_a2_execution_plan.md`
+- `docs/modeling_intelligence_a2_followup_review.md`
 - `docs/modeling_intelligence_evidence_evolution_plan.md`
 - `docs/p3a_global_policy_source_map.md`
 - `docs/p3b_writing_role_source_map.md`

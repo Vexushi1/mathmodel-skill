@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import artifact_identity as ARTIFACT_IDENTITY
+import conformance_gate as CONFORMANCE
 import stage_code as STAGE_CODE
 from stage_inputs import observe_inputs
 from execution_protocol import is_source_receipt, auxiliary_config_issues
@@ -107,6 +108,7 @@ def primary_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, Any
         if not digest or str(entry.get("data_hash", "")).lower() != str(digest).lower():
             issues.append("主结果数据身份必须绑定已验收预处理工作簿")
     issues.extend(stage_input_issues(root, state, entry, "primary"))
+    issues.extend(CONFORMANCE.read_issues(root, state, entry, "primary"))
     return list(dict.fromkeys(issues))
 
 
@@ -147,4 +149,5 @@ def analysis_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, An
         issues.extend(STAGE_CODE.validate_stage_binding(
             root, entry, "analysis", project_backend=backend))
         issues.extend(stage_input_issues(root, state, entry, "analysis"))
+        issues.extend(CONFORMANCE.read_issues(root, state, entry, "analysis", boundary="receipt"))
     return list(dict.fromkeys(issues))

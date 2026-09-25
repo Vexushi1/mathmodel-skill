@@ -21,7 +21,8 @@ from execution_protocol import is_source_receipt, auxiliary_config_issues
 ROOT = Path(__file__).resolve().parent.parent
 BACKENDS = {"python": ".py", "matlab": ".m"}
 POLICY_FIELDS = ("solver_backend", "solver_backend_selection_reason")
-STAGE_FIELDS = {"backend", "selection_reason", "bundle_sha256", "validated_bundle_sha256"}
+STAGE_FIELDS = {"backend", "selection_reason", "bundle_sha256", "validated_bundle_sha256",
+                "conformance_delivery", "conformance_acceptance"}
 NUMERICAL_FIELDS = ("code", "result_analysis_code", "solution_workbook", "result_analysis_workbook")
 QUESTION_NUMERALS = ("一", "二", "三", "四", "五", "六", "七", "八", "九", "十")
 

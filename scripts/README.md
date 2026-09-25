@@ -76,3 +76,14 @@ python scripts/generate_indexes.py --check
 ```
 
 正式修改流程还必须遵守根目录 `SKILL_CHANGE_GOVERNANCE.md`：从 `main` 读取 bootstrap 与治理文件、使用独立分支和单主题 PR，并在完整 CI 全绿后才合并。
+
+
+## A2：显式启用的一致性交付与验收绑定
+
+权威规则见 `core/model_code_conformance_contract.yaml#activation.integration`，字段只由 Project State Schema 定义。A1 的 `model_code_conformance.py` 仍为只读；A2 由现有 `validate_code_delivery.py`、`validate_user_execution.py`、公共前置核验及 `sync_project.py` 消费 `conformance_gate.py`，不新增另一组正式交付命令。
+
+在已完成模型批准及真实 A1 对应记录之后，由项目维护者显式声明适用小问的 `implementation_conformance_policy: {protocol_version: '1.0.0', required_stages: [primary]}`；需要深化时可将 analysis 加入适用集合。该字段本身不批准模型、不验收数值，也不追认历史执行。仅有 A1 记录而无 A2 策略仍保持观察模式；已有 A2 绑定不得靠删除策略伪装旧项目。
+
+`needs_review` 在 A2 的当前可判定子集中仍阻断结构门；不得把合法等价变换或不可执行假设伪写成 direct 来求通过。现有语义审查可以提供判断依据，但本阶段没有新建机器可验证审稿协议，审查文字不会自动把 A1 的未知结论变成结构核验通过。
+
+初次交付不要求工作簿存在；结构和数值分开验收。声明改变需要显式重新交付并复核原回执；同一源码和回执的工作簿再次核验不声称发生了新求解。源字节、数据和检查依据在检查与事务提交之间变化时，重新取快照检查；pending journal 使用既有显式恢复入口。

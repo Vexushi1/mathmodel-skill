@@ -27,6 +27,7 @@ import runtime_assurance as RUNTIME_ASSURANCE  # noqa: E402
 import artifact_fingerprint as ARTIFACT_FINGERPRINT  # noqa: E402
 import project_snapshot as PROJECT_SNAPSHOT  # noqa: E402
 import stage_code as STAGE_CODE  # noqa: E402
+import conformance_gate as CONFORMANCE  # noqa: E402
 from execution_protocol import declared_input_paths
 DEFAULT_SCHEMA_PATH = SKILL_ROOT / "core" / "workbook_schema.yaml"
 DEFAULT_OUTPUT_CONTRACT_PATH = SKILL_ROOT / "core" / "output_contract.yaml"
@@ -335,6 +336,10 @@ def _snapshot_transition_events(entry: Mapping[str, Any], snapshot: Mapping[str,
         events.append("primary_code_changed")
     if analysis_changed:
         events.append("analysis_code_changed")
+    for stage, observation in (snapshot.get("conformance_observed") or {}).items():
+        field = "code" if stage == "primary" else "result_analysis_code"
+        if observation.get("issues") and entry.get(field):
+            events.append(f"{stage}_conformance_changed")
     for layer in sorted(_mismatched_layers(entry, current)):
         event = LAYER_TRANSITION_EVENTS.get(layer)
         if event and event not in events:
@@ -931,6 +936,7 @@ def synchronize(
     if state.get("data") and decision is None:
         warnings.append("项目含数据但尚未锁定preprocessing.decision；重新进入模型设计/求解前必须补齐")
 
+    conformance_read_set: dict[str, Any] = {"project": {}, "skill": {}}
     snapshots: dict[str, dict[str, Any]] = {}
     subproblems = state.get("subproblems") or {}
     question_names = _question_names(root, state)
@@ -946,6 +952,24 @@ def synchronize(
             scope if explicit_delivery_scope else None,
             state=state, project_backend=project_backend,
         )
+        if CONFORMANCE.present(entry):
+            snapshot["conformance_observed"] = {}
+            for stage in CONFORMANCE.STAGES:
+                slot = (entry.get("solver_execution") or {}).get(stage, {})
+                boundary = ("current" if entry.get(f"{stage}_execution_status") == "accepted"
+                            else "receipt" if slot.get(CONFORMANCE.DELIVERY) or slot.get("bundle_sha256") else "delivery")
+                check = CONFORMANCE.inspect_gate(root, state, key, stage, boundary=boundary)
+                if check["enabled"]:
+                    snapshot["conformance_observed"][stage] = {
+                        "status": check["status"], "issues": check["issues"],
+                        "structure_status": check.get("structure_status", "not_assessed")}
+                    snapshot["issues"].extend(check["issues"])
+                    CONFORMANCE.merge_read_sets(conformance_read_set, check["observed_sources"])
+            if sync_read_set is not None:
+                for relative, digest in conformance_read_set["project"].items():
+                    if relative in sync_read_set and sync_read_set[relative] != digest:
+                        raise PROJECT_TX.ReadSetConflictError("conformance sync read-set conflict: " + relative)
+                    sync_read_set[relative] = digest
         if sync_read_set is not None:
             _verify_sync_question_sources(snapshot, sync_read_set, captured_figures)
         snapshots[key] = snapshot
@@ -1035,6 +1059,7 @@ def synchronize(
         "warnings": sorted(set(warnings)),
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
+    CONFORMANCE.assert_observed(root, conformance_read_set)
     if write and not policy_error:
         if sync_read_set is not None:
             current_raw_files, current_raw_mode, _, _ = data_source_files(root, state)
@@ -1072,7 +1097,7 @@ def synchronize(
                 expected_file_hashes=sync_read_set,
                 writes_before_state=before_state,
                 writes_after_state=[("sync_report.yaml", report_text)],
-                validators=[_validate_staged_sync],
+                validators=[_validate_staged_sync, CONFORMANCE.skill_validator(conformance_read_set)],
             )
         else:
             PROJECT_TX.atomic_write_text(root / "sync_report.yaml", report_text)

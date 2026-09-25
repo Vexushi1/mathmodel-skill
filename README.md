@@ -1,4 +1,4 @@
-# mathmodel-skill v10.2.0
+# mathmodel-skill v10.3.0
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值语言由项目根策略统一选择。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。
 
@@ -21,7 +21,7 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 
 `python scripts/model_code_conformance.py <项目根> --question Q1 --stage primary` 只读核对当前批准SIB、阶段源码bundle和`implementation_conformance`覆盖声明。`--inventory`只列当前可定位对象与源码锚点，不自动生成已验证映射。范围、状态与限制见`core/model_code_conformance_contract.yaml`；使用说明见`templates/model/formula_code_closure.md`。
 
-`structure_verified`只表示记录/身份/静态引用闭合，不证明约束实际启用、数学等价或数值正确。没有记录为`not_assessed`；未支持结构为`needs_review`；旧记录、冲突或残缺声明阻断本次结构核验。该能力尚未接入普通交付/回执的强制门，A2另行实施；B/C/D增强尚未完成。
+`structure_verified`只表示记录/身份/静态引用闭合，不证明约束实际启用、数学等价或数值正确。没有记录为`not_assessed`；未支持结构为`needs_review`；旧记录、冲突或残缺声明阻断本次结构核验。A1 独立入口仍只读；A2 仅对显式启用阶段在现有交付/回执链中消费该结果，未启用项目不增加强制门。B/C/D 增强尚未完成。
 
 ## 唯一 Authority 导航
 
@@ -58,3 +58,8 @@ python scripts/project_solver_backend.py --help
 保留的专题资料入口：[绘图技巧与交接计划](docs/figure_technique_and_handoff_refactor_plan.md)、[仓库审计与交接计划](docs/repository_audit_and_handoff_refactor_plan.md)、[v8.4 写作评估](docs/v840_author_reasoning_evaluation.md)、[v8.6 模型叙事评估](docs/v860_model_construction_solution_rationale_evaluation.md)、[v8.7 逐问写作预检评估](docs/v870_question_writing_capability_preflight_evaluation.md)、[按数据结构选择的绘图技巧](templates/figure/figure_enhancement_patterns.md#12-按数据结构选择的绘图技巧)、[MATLAB 绘图说明](templates/matlab/README.md)。这些是历史或专项材料；当前执行仍以表中的 Authority 为准。
 
 许可证与第三方声明见 `LICENSE`、`THIRD_PARTY_NOTICES.md`。
+
+
+## A2：结构核验接入已有执行链
+
+显式选择阶段的项目，可按 [Conformance Authority](core/model_code_conformance_contract.yaml) 使用 A2 交付、回执与失效绑定；[实施台账](docs/modeling_intelligence_a2_execution_plan.md) 记录具体范围与验证。该功能不强制迁移旧项目，不把结构对应当成数学等价证明，不包含 B/C/D 后续模块。最新 GitHub Release 与开发主干版本分别以实际发布记录和 bootstrap 为准。

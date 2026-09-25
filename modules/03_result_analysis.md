@@ -119,3 +119,8 @@ Evidence ID
 若深化分析发现公共数据处理口径本身导致结论不稳定，且当前为 `project_level`，应回退 `data_preprocessing`；若发现 `not_needed/question_local` 的判定本身错误，则回退 `model_design` 修改 `preprocessing_decision`；若发现模型语义问题，则回退 `model_design`；若仅主求解数值质量不足，则回退 `solve_validate`。任何回退都必须按依赖传播下游 stale。
 
 若核心结论未保持，必须回退相应阶段并标记真实依赖的下游 stale。默认不生成独立运行配置、运行说明或校验报告。
+
+
+### 可选 A2 一致性绑定
+
+仅当本问本阶段显式启用 A2 时，现有交付/回执与同步流程消费 `core/model_code_conformance_contract.yaml#activation.integration`。结构核验不代替模型批准、真实运行或数值质量；不支持或待审查的结构不得伪装通过，未启用的项目维持原流程。

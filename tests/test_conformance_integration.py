@@ -20,6 +20,29 @@ import test_reading_plan_evidence as predecessor_tests
 from test_model_code_conformance import fixture, declare, save, bytes_in
 
 
+def previous_a1_schema(schema):
+    """Remove only the exact A2 additions and verify all prior fields byte-semantically."""
+    schema=deepcopy(schema)
+    assert schema['version']=='8.2.0'
+    schema['version']='8.1.0'
+    for name in ('implementation_conformance_policy','conformance_delivery','conformance_acceptance'):
+        schema['$defs'].pop(name)
+    schema['properties']['subproblems']['additionalProperties']['properties'].pop('implementation_conformance_policy')
+    slot=schema['$defs']['solver_stage_execution']
+    slot['properties'].pop('conformance_delivery');slot['properties'].pop('conformance_acceptance')
+    assert slot['dependentRequired'].pop('conformance_acceptance')==['conformance_delivery']
+    expected=[{'if':{'required':['conformance_delivery'],'properties':{
+        'conformance_delivery':{'properties':{'applicability':{'const':'current'}}}}},
+        'then':{'required':['bundle_sha256']}},
+        {'if':{'required':['conformance_acceptance'],'properties':{
+        'conformance_acceptance':{'properties':{'applicability':{'const':'current'}}}}},
+        'then':{'required':['validated_bundle_sha256']}}]
+    assert slot.pop('allOf')==expected
+    normalized=json.dumps(schema,ensure_ascii=False,sort_keys=True,separators=(',',':'))
+    assert hashlib.sha256(normalized.encode()).hexdigest()=="43b1477f453e1006373fc3b70a3294cbc0a21c0cf2424e8cfbbe52744423955b"
+    return schema
+
+
 class OptInTests(unittest.TestCase):
     def test_new_route_is_readonly_and_does_not_generate_numerical_artifacts(self):
         plan = resolve_runtime("conformance_audit")
@@ -37,6 +60,7 @@ class OptInTests(unittest.TestCase):
 
     def test_schema_change_is_optional_and_existing_definitions_are_preserved(self):
         schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
+        schema = previous_a1_schema(schema)
         self.assertEqual(schema["version"], "8.1.0")
         schema["version"] = "8.0.0"
         for name in ("conformance_model_ref", "conformance_anchor", "conformance_mapping", "conformance_reverse",

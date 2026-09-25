@@ -368,6 +368,9 @@ def resolve_runtime(
             context_conflicts.append(
                 f"explicit classification.{field} {current} differs from current project scope {previous}"
             )
+    if state_snapshot is not None:
+        from conformance_gate import add_runtime_resources
+        add_runtime_resources(plan, state_snapshot.payload(), question)
     dependency = apply_contract_dependency_closure(plan, manifest, assurance_contract)
     # Assurance closure may legitimately add the full writing reasoning contract because
     # old module dependencies still know the v7 authority graph. Apply the v8 compact

@@ -21,6 +21,7 @@ import project_transaction as PROJECT_TX  # noqa: E402
 import run_config_parser as RUN_CONFIG_PARSER  # noqa: E402
 import analysis_prerequisites as ANALYSIS_PREREQUISITES  # noqa: E402
 import stage_code as STAGE_CODE  # noqa: E402
+import conformance_gate as CONFORMANCE  # noqa: E402
 from execution_protocol import SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues
 from stage_inputs import observe_inputs
 import matlab_code_checks as MATLAB_CHECKS  # noqa: E402
@@ -566,6 +567,15 @@ def validate_script(
             issues.append("源码在代码检查期间改变，必须重新检查")
     except OSError as exc:
         issues.append(f"源码在代码检查期间无法读取: {exc}")
+    if stage in {"primary", "analysis"}:
+        state = load_yaml(state_path) if state_path.is_file() else {}
+        conformance = CONFORMANCE.inspect_gate(project_root, state, _question_key(problem), stage)
+        issues.extend(conformance["issues"])
+        binding = conformance.get("delivery_candidate")
+        if binding and binding["entrypoint"] != script.relative_to(project_root).as_posix():
+            issues.append("conformance: inspected entry differs from the delivered script")
+        if native_report is not None and conformance["enabled"]:
+            native_report["conformance"] = conformance
     return list(dict.fromkeys(issues)), config
 
 
@@ -586,7 +596,14 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
         if config.get("stage") == "preprocessing":
             return []
         raise ValueError("缺少项目状态与已锁项目后端，禁止正式数值代码交付")
-    _, state, base_generation = PROJECT_TX.load_state_for_update(project_root)
+    observed_state = load_yaml(state_path)
+    if any(CONFORMANCE.present(entry) for entry in (observed_state.get("subproblems") or {}).values()):
+        from runtime_assurance import ProjectStateSnapshot
+        snapshot = ProjectStateSnapshot.capture(project_root)
+        state = snapshot.payload()
+        base_generation = PROJECT_TX.state_generation(state)
+    else:
+        _, state, base_generation = PROJECT_TX.load_state_for_update(project_root)
     problem = str(config["problem_name"])
     stage = str(config["stage"])
     if stage in {"primary", "analysis"}:
@@ -663,12 +680,22 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
 
     key = _question_key(problem)
     entry = state.setdefault("subproblems", {}).setdefault(key, {})
+    conformance = CONFORMANCE.inspect_gate(project_root, state, key, stage)
+    if conformance["issues"]:
+        raise ValueError("; ".join(conformance["issues"]))
+    conformance_binding = conformance.get("delivery_candidate")
+    if conformance_binding and CONFORMANCE.digest("HSK-conformance-config-v1", config) != conformance.get("observed_config_sha256"):
+        raise ValueError("conformance: caller configuration differs from captured source RUN_CONFIG")
+    if conformance_binding and conformance_binding["entrypoint"] != relative:
+        raise ValueError("conformance: inspected entry differs from delivery target")
     selection = _stage_selection(entry, stage)
     old_path = entry.get("code" if stage == "primary" else "result_analysis_code")
     binding_changed = bool(
         (old_path and old_path != relative)
         or (modern and selection.get("bundle_sha256") and str(selection["bundle_sha256"]).lower() != fingerprint["bundle_sha256"])
     )
+    conformance_changed = bool(conformance_binding and selection.get("bundle_sha256")
+                               and selection.get(CONFORMANCE.DELIVERY) != conformance_binding)
     if stage == "analysis":
         prerequisite_issues = ANALYSIS_PREREQUISITES.analysis_issues(
             project_root, state, entry, data_hash=config.get("data_sha256"),
@@ -683,7 +710,10 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
         entry["data_hash"] = str(config["data_sha256"]).lower()
         old_hash = entry.get("primary_code_sha256")
         accepted = entry.get("primary_execution_status") == "accepted"
-        unchanged_accepted = accepted and old_hash == new_hash and not binding_changed
+        unchanged_conformance = not conformance_binding or (
+            selection.get(CONFORMANCE.DELIVERY) == conformance_binding
+            and (selection.get(CONFORMANCE.ACCEPTANCE) or {}).get("applicability") == "current")
+        unchanged_accepted = accepted and old_hash == new_hash and not binding_changed and unchanged_conformance
         phase = str((state.get("project") or {}).get("current_phase", ""))
         if accepted and old_hash and (old_hash != new_hash or binding_changed) and phase != "solve_validate":
             raise ValueError("主求解脚本已accepted并冻结；如需修改必须先显式回退solve_validate")
@@ -704,6 +734,13 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
             )
             entry["status"] = "designed"
             entry["primary_execution_status"] = "awaiting_user_execution"
+        elif conformance_changed:
+            transition_reports.append(STATE_TRANSITIONS.apply_transition(
+                state, event="primary_conformance_changed", source_question=key,
+                contract=STATE_TRANSITION_CONTRACT))
+            entry["status"] = "designed"
+            entry["primary_execution_status"] = "awaiting_user_execution"
+            state.setdefault("project", {})["current_phase"] = "solve_validate"
     else:
         if entry.get("primary_execution_status") != "accepted":
             raise ValueError("主工作簿未accepted，禁止交付最终结果深化分析脚本")
@@ -722,6 +759,12 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
             )
             entry["status"] = "solved"
             state.setdefault("project", {})["current_phase"] = "result_analysis"
+        elif conformance_changed:
+            transition_reports.append(STATE_TRANSITIONS.apply_transition(
+                state, event="analysis_conformance_changed", source_question=key,
+                contract=STATE_TRANSITION_CONTRACT))
+            entry["status"] = "solved"
+            state.setdefault("project", {})["current_phase"] = "result_analysis"
         entry["analysis_execution_status"] = "awaiting_user_execution"
 
     if modern:
@@ -737,8 +780,19 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
         final_input_issues = observe_inputs(project_root, config, state)["issues"]
         if final_input_issues:
             raise ValueError("; ".join(final_input_issues))
+    if conformance_binding:
+        target = entry["solver_execution"][stage]
+        if CONFORMANCE.ACCEPTANCE in target and (
+                target.get(CONFORMANCE.DELIVERY) != conformance_binding
+                or entry.get(f"{stage}_execution_status") != "accepted"):
+            target[CONFORMANCE.ACCEPTANCE]["applicability"] = "stale"
+        target[CONFORMANCE.DELIVERY] = conformance_binding
+    observed = conformance["observed_sources"]
+    CONFORMANCE.assert_observed(project_root, observed)
     PROJECT_TX.commit_project_state(
-        project_root, state, expected_generation=base_generation
+        project_root, state, expected_generation=base_generation,
+        expected_file_hashes=observed["project"] or None,
+        validators=[CONFORMANCE.skill_validator(observed)] if conformance["enabled"] else (),
     )
     return transition_reports
 

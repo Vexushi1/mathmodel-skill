@@ -24,6 +24,7 @@ import run_config_parser as RUN_CONFIG_PARSER  # noqa: E402
 import analysis_prerequisites as ANALYSIS_PREREQUISITES  # noqa: E402
 import state_transitions as STATE_TRANSITIONS  # noqa: E402
 import stage_code as STAGE_CODE  # noqa: E402
+import conformance_gate as CONFORMANCE  # noqa: E402
 from execution_protocol import SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, auxiliary_receipt_issues
 from stage_inputs import observe_inputs
 
@@ -446,10 +447,13 @@ def validate_execution_evidence(
     return issues
 
 
-def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool) -> list[str]:
+def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool, *,
+                 conformance_read_set: dict | None = None) -> list[str]:
     root, workbook = root.resolve(), workbook.resolve()
     if not workbook.is_relative_to(root):
         return ["工作簿路径越出项目根目录"]
+    a2_present = any(CONFORMANCE.present(entry) for entry in (state.get("subproblems") or {}).values())
+    initial_workbook_hash = file_hash(workbook) if a2_present else None
     config, issues = configuration_map(workbook)
     problem, stage, identity_issues = workbook_identity(root, workbook)
     issues.extend(identity_issues)
@@ -467,6 +471,15 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
 
     key = question_key(problem)
     entry = {} if stage == "preprocessing" else (state.get("subproblems") or {}).get(key, {})
+    conformance = {"enabled": False, "observed_sources": {"project": {}, "skill": {}}}
+    if stage != "preprocessing":
+        conformance = CONFORMANCE.inspect_gate(root, state, key, stage, boundary="receipt", receipt=config)
+        if conformance["issues"]:
+            return list(dict.fromkeys([*issues, *conformance["issues"]]))
+        if conformance["enabled"]:
+            conformance["observed_sources"]["project"][workbook.relative_to(root).as_posix()] = initial_workbook_hash
+            if conformance_read_set is not None:
+                CONFORMANCE.merge_read_sets(conformance_read_set, conformance["observed_sources"])
     project_backend = None
     if stage != "preprocessing":
         execution = state.get("execution") or {}
@@ -575,6 +588,17 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
         if modern:
             issues.extend(STAGE_CODE.validate_stage_binding(root, entry, stage, project_backend=project_backend))
             issues.extend(ANALYSIS_PREREQUISITES.stage_input_issues(root, state, entry, stage))
+        if conformance["enabled"]:
+            repeated = CONFORMANCE.inspect_gate(root, state, key, stage, boundary="receipt", receipt=config)
+            if repeated["issues"]:
+                return list(dict.fromkeys([*issues, *repeated["issues"]]))
+            try:
+                CONFORMANCE.merge_read_sets(conformance["observed_sources"], repeated["observed_sources"])
+                CONFORMANCE.assert_observed(root, conformance["observed_sources"])
+                if conformance_read_set is not None:
+                    CONFORMANCE.merge_read_sets(conformance_read_set, conformance["observed_sources"])
+            except (OSError, ValueError, RuntimeError) as exc:
+                return list(dict.fromkeys([*issues, f"conformance receipt read-set conflict: {exc}"]))
         if write:
             workbook_hash = file_hash(workbook)
             old_hash = (entry.get("validated_artifact_hashes") or {}).get("solution_workbook") or (
@@ -599,6 +623,9 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
                 entry["status"] = "solved"
                 if modern:
                     entry["solver_execution"][stage]["validated_bundle_sha256"] = config["code_bundle_sha256"]
+                    if conformance["enabled"]:
+                        entry["solver_execution"][stage][CONFORMANCE.ACCEPTANCE] = CONFORMANCE.acceptance_binding(
+                            conformance["delivery_candidate"], file_hash(workbook))
     else:
         passed, result_status, analysis_issues = analysis_passed(workbook)
         issues.extend(analysis_issues)
@@ -606,6 +633,17 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
             issues.extend(STAGE_CODE.validate_stage_binding(root, entry, stage, project_backend=project_backend))
             issues.extend(ANALYSIS_PREREQUISITES.stage_input_issues(root, state, entry, stage))
             issues.extend(ANALYSIS_PREREQUISITES.primary_issues(root, state, entry))
+        if conformance["enabled"]:
+            repeated = CONFORMANCE.inspect_gate(root, state, key, stage, boundary="receipt", receipt=config)
+            if repeated["issues"]:
+                return list(dict.fromkeys([*issues, *repeated["issues"]]))
+            try:
+                CONFORMANCE.merge_read_sets(conformance["observed_sources"], repeated["observed_sources"])
+                CONFORMANCE.assert_observed(root, conformance["observed_sources"])
+                if conformance_read_set is not None:
+                    CONFORMANCE.merge_read_sets(conformance_read_set, conformance["observed_sources"])
+            except (OSError, ValueError, RuntimeError) as exc:
+                return list(dict.fromkeys([*issues, f"conformance receipt read-set conflict: {exc}"]))
         if write:
             entry["analysis_execution_status"] = (
                 "accepted" if not issues and passed
@@ -623,6 +661,9 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
                 entry["status"] = "analyzed"
                 if modern:
                     entry["solver_execution"][stage]["validated_bundle_sha256"] = config["code_bundle_sha256"]
+                    if conformance["enabled"]:
+                        entry["solver_execution"][stage][CONFORMANCE.ACCEPTANCE] = CONFORMANCE.acceptance_binding(
+                            conformance["delivery_candidate"], file_hash(workbook))
             elif result_status == "redo_required":
                 entry["artifacts_stale"] = True
                 entry["stale_layers"] = [
@@ -630,6 +671,10 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool)
                 ]
                 entry["result_summary_status"] = "stale"
                 state.setdefault("project", {})["current_phase"] = "solve_validate"
+    if write and conformance["enabled"] and issues:
+        previous = entry.get("solver_execution", {}).get(stage, {}).get(CONFORMANCE.ACCEPTANCE)
+        if isinstance(previous, dict):
+            previous["applicability"] = "stale"
     return list(dict.fromkeys(issues))
 
 
@@ -667,10 +712,19 @@ def main() -> int:
     state_path = root / "state" / "project_state.yaml"
     if not state_path.is_file():
         raise SystemExit("缺少state/project_state.yaml")
-    if args.write:
+    candidate = load_yaml(state_path)
+    a2_present = any(CONFORMANCE.present(entry) for entry in (candidate.get("subproblems") or {}).values())
+    conformance_read_set: dict[str, Any] = {"project": {}, "skill": {}}
+    if a2_present:
+        from runtime_assurance import ProjectStateSnapshot
+        initial_snapshot = ProjectStateSnapshot.capture(root)
+        state = initial_snapshot.payload()
+        base_generation = PROJECT_TX.state_generation(state)
+        conformance_read_set["project"][PROJECT_TX.STATE_RELATIVE_PATH] = initial_snapshot.describe()["sha256"]
+    elif args.write:
         _, state, base_generation = PROJECT_TX.load_state_for_update(root)
     else:
-        state = load_yaml(state_path)
+        state = candidate
         base_generation = PROJECT_TX.state_generation(state)
     original_state = deepcopy(state)
     workbooks = (
@@ -683,12 +737,15 @@ def main() -> int:
         if not workbook.is_relative_to(root):
             all_issues.append(f"{workbook.name}: 工作簿路径越出项目根目录")
             continue
-        issues = validate_one(root, workbook, state, args.write)
+        issues = validate_one(root, workbook, state, args.write, conformance_read_set=conformance_read_set)
         all_issues.extend(f"{workbook.name}: {item}" for item in issues)
         checked.append(workbook.relative_to(root).as_posix())
     if args.write and (not all_issues or state != original_state):
+        CONFORMANCE.assert_observed(root, conformance_read_set)
         PROJECT_TX.commit_project_state(
-            root, state, expected_generation=base_generation
+            root, state, expected_generation=base_generation,
+            expected_file_hashes=conformance_read_set["project"] or None,
+            validators=[CONFORMANCE.skill_validator(conformance_read_set)] if a2_present else (),
         )
     report = {
         "status": "passed" if not all_issues else "failed",

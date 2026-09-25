@@ -323,6 +323,28 @@ def approved_a1_carrier_change(identifier, old, new):
     return projected, changes
 
 
+def approved_a2_carrier_change(identifier, old, new):
+    """A2-disabled controls may change exact version carriers, not runtime behavior."""
+    if (identifier not in {case[0] for case in CASES}
+            or old.get("version") != "<EXPECTED_P9_RELEASE_CARRIER_CHANGE>"
+            or new.get("version") != "10.3.0"):
+        return deepcopy(new), []
+    predecessor=deepcopy(new)
+    predecessor["version"]="10.2.0"
+    known=(predecessor.get("assurance") or {}).get("schema_version")=="2.2.0"
+    if known:
+        predecessor["assurance"]["schema_version"]="2.1.0"
+    projected,changes=approved_a1_carrier_change(identifier,old,predecessor)
+    for change in changes:
+        if change["path"]=="version":
+            change["candidate"]="10.3.0"
+            change["approval"]="A2 opt-in 10.3.0 version carrier only on fixed disabled controls"
+        elif known and change["path"]=="assurance.schema_version":
+            change["candidate"]="2.2.0"
+            change["approval"]="A2 Runtime Assurance 2.2.0 protocol carrier; no qualification changes waived"
+    return projected,changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -344,6 +366,8 @@ def compare(before, after):
         expected.extend(audit_changes)
         projected, a1_changes = approved_a1_carrier_change(a["id"], old, projected)
         expected.extend(a1_changes)
+        projected, a2_changes = approved_a2_carrier_change(a["id"], old, projected)
+        expected.extend(a2_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,
