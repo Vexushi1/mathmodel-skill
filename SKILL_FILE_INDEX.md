@@ -475,6 +475,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/project_solver_backend_redefinition_p1_audit.md`
 - `docs/project_solver_backend_redefinition_plan.md`
 - `docs/repository_audit_and_handoff_refactor_plan.md`
+- `docs/v1010_audit_closure_remediation_plan.md`
 - `docs/v801_chapter_capability_preservation_audit.md`
 - `docs/v801_skill_health_remediation_plan.md`
 - `docs/v801_skill_health_remediation_status.md`
