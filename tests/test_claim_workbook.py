@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 import unittest
 import zipfile
+import xml.etree.ElementTree as ET
 import yaml
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'scripts'))
 from claim_workbook import Workbook
@@ -134,21 +135,25 @@ class ClaimWorkbookTests(unittest.TestCase):
         raw=self.rewrite(workbook(),'xl/workbook.xml',alias)
         with self.assertRaises(EvidenceError):self.selected(raw)
     def test_sheet_and_relationship_tags_must_have_ooxml_meaning(self):
-        mutations=(
-            ('sheet child','xl/workbook.xml',lambda x:x.replace(b'<sheet xmlns:r=',b'<notSheet xmlns:r=',1)),
-            ('workbook root','xl/workbook.xml',lambda x:x.replace(b'<workbook xmlns=',b'<notWorkbook xmlns=',1)
-             .replace(b'</workbook>',b'</notWorkbook>',1)),
-            ('relationship child','xl/_rels/workbook.xml.rels',
-             lambda x:x.replace(b'<Relationship Type=',b'<notRelationship Type=',1)),
-            ('relationships root','xl/_rels/workbook.xml.rels',
-             lambda x:x.replace(b'<Relationships xmlns=',b'<notRelationships xmlns=',1)
-             .replace(b'</Relationships>',b'</notRelationships>',1)),
-            ('relationship type','xl/_rels/workbook.xml.rels',
-             lambda x:x.replace(b'/relationships/worksheet" Target=',b'/relationships/styles" Target=',1)),
-        )
-        for label,path,change in mutations:
+        main='{http://schemas.openxmlformats.org/spreadsheetml/2006/main}'
+        package='{http://schemas.openxmlformats.org/package/2006/relationships}'
+        def change(data,label):
+            root=ET.fromstring(data)
+            if label=='sheet child':root.find(main+'sheets')[0].tag=main+'notSheet'
+            elif label=='workbook root':root.tag=main+'notWorkbook'
+            elif label=='relationship child':root[0].tag=package+'notRelationship'
+            elif label=='relationships root':root.tag=package+'notRelationships'
+            else:
+                sheet=next(item for item in root if item.get('Type','').endswith('/worksheet'))
+                sheet.set('Type',sheet.get('Type').replace('/worksheet','/styles'))
+            return ET.tostring(root,encoding='utf-8')
+        mutations=(('sheet child','xl/workbook.xml'),('workbook root','xl/workbook.xml'),
+                   ('relationship child','xl/_rels/workbook.xml.rels'),
+                   ('relationships root','xl/_rels/workbook.xml.rels'),
+                   ('relationship type','xl/_rels/workbook.xml.rels'))
+        for label,path in mutations:
             with self.subTest(label=label),self.assertRaises(EvidenceError):
-                self.selected(self.rewrite(workbook(),path,change))
+                self.selected(self.rewrite(workbook(),path,lambda data:change(data,label)))
     def test_percentage_display_requires_explicit_value_semantics(self):
         raw=workbook([['cost','baseline','S1',0.4,'%']],
                      mutate=lambda b:setattr(b.active['D2'],'number_format','0%'))
