@@ -42,7 +42,7 @@ class V1000ReleaseVersionMatrixTests(unittest.TestCase):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         self.assertTrue(readme.startswith("# mathmodel-skill v10.6.0"))
         self.assertEqual(readme.splitlines()[0], "# mathmodel-skill v10.6.0")
-        self.assertTrue(changelog.startswith("# Changelog\n\n## 10.6.0\n"))
+        self.assertTrue(changelog.startswith("# Changelog\n\n## Unreleased: 10.6.0\n"))
         self.assertTrue((ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8").startswith("# HSK Core Policy v10.6.0"))
 
     def test_independent_protocol_versions_are_not_skill_versions(self):

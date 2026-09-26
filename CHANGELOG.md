@@ -1,12 +1,12 @@
 # Changelog
 
-## 10.6.0
+## Unreleased: 10.6.0
 
 - Add an explicit B2 `propagate` policy (protocol 1.1.0) for claim-ID-based local paper-fragment stale propagation through the existing project sync transaction. The original `observe` 1.0.0 audit stays read-only; projects without the policy keep their prior behavior.
 - Keep State and the Framework fragment table synchronized when the opt-in writer marks fragments stale. Preserve the existing artifact-level stale rules, accepted-workbook qualification, human model approval, and project generation/read-set checks.
 - This slice does not introduce a formal writing, figure or submission gate and does not establish semantic support. B2 remains in progress pending cross-format and figure-chain integration.
 
-## 10.5.0
+## Previous release: 10.5.0
 
 - Add an explicit read-only B2 `claim_consumption_audit` route for declared claim-to-fragment and active LaTeX observations. The route keeps original B1 source qualification and does not grant semantic support, write project state, or alter ordinary delivery gates.
 - Extend optional Project State Schema to 8.4.0 for the B2 observe policy while retaining `paper_fragments[].depends_on` as the consumption edge. B1 Claim Evidence 1.0.0, A2 binding, numerical acceptance and approval protocols remain distinct; projects without the policy retain their routes.
