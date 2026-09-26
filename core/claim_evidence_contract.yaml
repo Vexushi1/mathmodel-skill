@@ -123,3 +123,5 @@ rules:
 - This command cannot recover a pending transaction or mutate any project source, approval, workbook, receipt or stale field.
 - Read-before/read-after checks are optimistic observations, not filesystem atomic snapshots or protection against later changes.
 - B2 text/fragment consumption, C review receipts and D case memory remain outside this contract.
+- Referenced Numeric Profiles must satisfy the existing numeric_metric_entry Schema; unknown display forms never fall back to decimal.
+- Display assertion modes must match the selected value type; percent requires explicit percent units and integer requires zero places.

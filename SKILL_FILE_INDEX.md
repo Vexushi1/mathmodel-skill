@@ -13,7 +13,6 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/optimization-baseline.yml`
-- `.github/workflows/prepare-claim-b1-once.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
 - `AGENTS.md`
@@ -294,6 +293,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_claim_contract.py`
 - `tests/test_claim_evidence.py`
 - `tests/test_claim_graph.py`
+- `tests/test_claim_profiles.py`
 - `tests/test_claim_values.py`
 - `tests/test_claim_workbook.py`
 - `tests/test_code_quality_contract.py`

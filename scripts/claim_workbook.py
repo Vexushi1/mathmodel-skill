@@ -4,12 +4,14 @@ from dataclasses import dataclass
 from decimal import Decimal
 import hashlib
 import io
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 import posixpath
 import re
 from typing import Any, Mapping
 import xml.etree.ElementTree as ET
 import zipfile
+import yaml
+from jsonschema import Draft202012Validator
 from openpyxl.styles.numbers import BUILTIN_FORMATS, is_date_format
 from claim_values import EvidenceError, NeedsReview, Value, number, unit_info
 
@@ -29,6 +31,13 @@ def current_profile(profiles: list, profile_id: str, metric: Any) -> dict:
     matched = [x for x in profiles if isinstance(x, Mapping) and x.get('id') == profile_id]
     if len(matched) != 1 or matched[0].get('status') != 'current':
         raise EvidenceError('Numeric Profile must be current and uniquely identified')
+    # Shape stays in the existing project Schema, including legal display forms.
+    schema = yaml.safe_load((Path(__file__).resolve().parents[1] /
+                             'core/project_state.schema.yaml').read_text(encoding='utf-8'))
+    validator = Draft202012Validator({'$ref': '#/$defs/numeric_metric_entry', '$defs': schema['$defs']})
+    error = next(validator.iter_errors(matched[0]), None)
+    if error is not None:
+        raise EvidenceError('Numeric Profile schema: ' + error.message[:4096])
     if matched[0].get('metric') != metric:
         raise EvidenceError('Numeric Profile metric conflicts with the actual selected metric')
     return matched[0]

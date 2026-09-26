@@ -14,7 +14,7 @@ from typing import Any, Mapping
 import yaml
 from jsonschema import Draft202012Validator
 import model_code_conformance as bounded
-from claim_values import EvidenceError, NeedsReview, Value, number, converted, derive, describe
+from claim_values import EvidenceError, NeedsReview, Value, number, converted, derive, describe, unit_info
 from claim_workbook import Workbook, current_profile
 from claim_sources import Sources, QualificationError, CONTRACT, ROOT
 from project_transaction import JOURNAL_RELATIVE_PATH
@@ -71,6 +71,16 @@ def _assertion(claim: dict, value: Value, profiles: list, contract: dict) -> dic
     asserted=claim['assertion'];profile=None
     if claim.get('numeric_profile_id'):
         profile=current_profile(profiles,claim['numeric_profile_id'],value.identity['metric'])
+    if 'display_location' in asserted:
+        if profile is None:raise EvidenceError('display comparison requires a current linked Numeric Profile')
+        form=profile['display_form']
+        if ((value.kind=='scalar' and form not in ('decimal','percent','scientific','integer'))
+                or (value.kind!='scalar' and form!=value.kind)):
+            raise EvidenceError('Numeric Profile display form conflicts with the selected value type')
+        if profile.get('unit')!=asserted['unit']:
+            raise EvidenceError('assertion unit differs from Numeric Profile')
+        if form=='percent' and unit_info(asserted['unit'],contract)[2]!='percent':
+            raise EvidenceError('percent display requires an explicit percent quantity, not a ratio or points')
     if value.kind=='categorical':
         if asserted['unit']!='not_applicable' or not isinstance(asserted['value'],str):
             raise EvidenceError('categorical assertions require text and a not-applicable unit')
@@ -92,6 +102,8 @@ def _assertion(claim: dict, value: Value, profiles: list, contract: dict) -> dic
         places=profile.get(asserted['display_location']+'_decimals')
         if type(places) is not int or not 0<=places<=contract['limits']['profile_decimals']:
             raise EvidenceError('profile decimal precision is absent, noninteger or exceeds budget')
+        if profile['display_form']=='integer' and places!=0:
+            raise EvidenceError('integer display requires zero decimal places')
         with localcontext() as ctx:
             ctx.prec=contract['limits']['decimal_precision']
             expected=[x.quantize(Decimal(1).scaleb((x.adjusted() if x else 0)-places

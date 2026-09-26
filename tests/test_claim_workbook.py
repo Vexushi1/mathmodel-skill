@@ -51,7 +51,7 @@ class ClaimWorkbookTests(unittest.TestCase):
         with self.assertRaises(NeedsReview):self.selected(selector=s)
     def test_profile_cannot_override_actual_units(self):
         s=deepcopy(self.selector);s['unit']={'kind':'numeric_profile','profile_id':'N1'}
-        profile={'id':'N1','metric':'cost','unit':'h','status':'current'}
+        profile={'id':'N1','metric':'cost','unit':'h','status':'current','display_form':'decimal'}
         with self.assertRaises(EvidenceError):self.selected(selector=s,profiles=[profile])
         profile['unit']='kg';profile['status']='stale'
         with self.assertRaises(EvidenceError):self.selected(selector=s,profiles=[profile])
