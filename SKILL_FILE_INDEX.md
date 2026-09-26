@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.7.0
+当前 Skill 版本：10.8.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -121,6 +121,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/audit_v8_writing_surface.py`
 - `scripts/claim_consumption.py`
 - `scripts/claim_evidence.py`
+- `scripts/claim_figure.py`
 - `scripts/claim_sources.py`
 - `scripts/claim_tex.py`
 - `scripts/claim_values.py`
@@ -295,6 +296,9 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_auxiliary_input_protocol.py`
 - `tests/test_b2b2_sync_gate.py`
 - `tests/test_b2b2_text_gate.py`
+- `tests/test_b2b3_figure_audit.py`
+- `tests/test_b2b3_figure_bindings_schema.py`
+- `tests/test_b2b3_figure_parser.py`
 - `tests/test_b2b_claim_stale_transition.py`
 - `tests/test_b2b_stale_writer.py`
 - `tests/test_claim_consumption.py`

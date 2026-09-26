@@ -269,6 +269,69 @@ def _validate_paper_fragments(framework: Mapping[str, Any]) -> tuple[list[str], 
     return issues, has_stale
 
 
+def _validate_figure_bindings(
+    policy: Mapping[str, Any], fragments: list[Any], claim_ids: set[str], obligations: list[Any],
+) -> list[str]:
+    """Check declared Figure identities and direct claim edges; no artifact approval occurs here."""
+    if "figure_bindings" not in policy:
+        return []
+    bindings = policy["figure_bindings"]
+    if not isinstance(bindings, list):
+        return ["paper_framework.claim_consumption_policy.figure_bindings must be an array"]
+    issues: list[str] = []
+    if len(bindings) > 128:
+        issues.append("paper_framework.claim_consumption_policy.figure_bindings budget exceeded (128)")
+    fragments_by_id = {row["id"]: row for row in fragments
+                       if isinstance(row, Mapping) and isinstance(row.get("id"), str)}
+    required_kinds = {row["claim_id"]: {kind for kind in row.get("fragment_kinds", [])
+                                        if isinstance(kind, str)}
+                      for row in obligations if isinstance(row, Mapping)
+                      and isinstance(row.get("claim_id"), str)
+                      and isinstance(row.get("fragment_kinds"), list)}
+    seen: dict[str, set[str]] = {key: set() for key in
+                                 ("figure_id", "fragment_id", "latex_label", "image_path")}
+    for index, binding in enumerate(bindings):
+        prefix = f"paper_framework.claim_consumption_policy.figure_bindings[{index}]"
+        if not isinstance(binding, Mapping):
+            issues.append(f"{prefix} must be a mapping")
+            continue
+        for key, used in seen.items():
+            value = binding.get(key)
+            if not isinstance(value, str) or not value:
+                issues.append(f"{prefix}.{key} must be a nonempty string")
+            elif value in used:
+                issues.append(f"{prefix}.{key} duplicates a Figure binding: {value}")
+            else:
+                used.add(value)
+        image_path = binding.get("image_path")
+        if isinstance(image_path, str):
+            parts = image_path.split("/")
+            if (any(not part or part in (".", "..") or part != part.strip() or
+                        any(ord(char) < 32 or 127 <= ord(char) <= 159 or char in "\\:"
+                            for char in part)
+                        for part in parts) or
+                    not image_path.endswith((".pdf", ".png", ".svg"))):
+                issues.append(f"{prefix}.image_path must be a normalized project-relative pdf/png/svg path")
+        fragment_id = binding.get("fragment_id")
+        if not isinstance(fragment_id, str):
+            continue
+        fragment = fragments_by_id.get(fragment_id)
+        if fragment is None:
+            issues.append(f"{prefix}.fragment_id references unknown paper fragment: {fragment_id}")
+        elif fragment.get("kind") != "figure_or_table_claim":
+            issues.append(f"{prefix}.fragment_id requires a figure_or_table_claim fragment: {fragment_id}")
+        elif fragment.get("status") != "current":
+            issues.append(f"{prefix}.fragment_id requires a current fragment: {fragment_id}")
+        else:
+            refs = fragment.get("depends_on")
+            linked = {ref[6:] for ref in refs if isinstance(ref, str) and ref.startswith("claim:")} \
+                     if isinstance(refs, list) else set()
+            if not any(claim_id in claim_ids and "figure_or_table_claim" in required_kinds.get(claim_id, set())
+                       for claim_id in linked):
+                issues.append(f"{prefix}.fragment_id requires a declared current claim: Figure obligation edge")
+    return issues
+
+
 def _validate_claim_consumption_policy(framework: Mapping[str, Any]) -> list[str]:
     """Check opt-in B2 references without changing legacy fragment semantics."""
     if "claim_consumption_policy" not in framework:
@@ -311,6 +374,7 @@ def _validate_claim_consumption_policy(framework: Mapping[str, Any]) -> list[str
         required_ids.add(claim_id)
         if claim_id not in claim_scope:
             issues.append(f"paper_framework.claim_consumption_policy references unknown claim: {claim_id}")
+    issues.extend(_validate_figure_bindings(policy, fragments, set(claim_scope), obligations))
     fragment_ids = {row.get("id") for row in fragments if isinstance(row, Mapping) and isinstance(row.get("id"), str)}
     dependencies: dict[str, list[str]] = {}
     edge_count = 0

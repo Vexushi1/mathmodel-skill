@@ -11,13 +11,43 @@ A2_SCHEMA_SHA256 = '657a554b78a93e7de4bde75cf898bf595fe00b9531883b2b804b83e4c089
 B1_SCHEMA_SHA256 = 'fe2ddcef208dc712ed86150e0633e0acacd18e2b3b13c8f13c0c8b7729534034'
 B2A_SCHEMA_SHA256 = '481127098bc09f620c3ee9d64ae368860734808f07fbbce04543310a65f41fb4'
 B2B_SCHEMA_SHA256 = '3822af68490cc12a699ada8aeee272c439a6af5f0d685b3def7b160d201f7075'
+B2B2_SCHEMA_SHA256 = '62d1fbe7c5694929685f9ca6634143ea38043c8ae3759d238c1b1594e9bc1785'
 
 def _digest(schema):
     encoded = json.dumps(schema, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()
     return hashlib.sha256(encoded).hexdigest()
 
+def previous_b2b3a_schema(schema):
+    schema = deepcopy(schema)
+    assert schema['version'] == '8.7.0'
+    schema['version'] = '8.6.0'
+    policy = schema['$defs']['claim_consumption_policy']
+    assert policy['description'] == 'B2显式消费观察、陈旧传播或模块化LaTeX文本有限门与覆盖义务；可选Figure绑定只登记身份，实际消费边仍为paper_fragments.depends_on。'
+    policy['description'] = 'B2显式消费观察、陈旧传播或模块化LaTeX文本有限门与覆盖义务；实际消费边仍为paper_fragments.depends_on。'
+    assert policy['properties'].pop('figure_bindings') == {
+        'description': '可选Figure身份绑定；本字段不表示图片、来源或caption已获批准。',
+        'type': 'array', 'maxItems': 128,
+        'items': {
+            'type': 'object', 'additionalProperties': False,
+            'required': ['figure_id', 'fragment_id', 'latex_label', 'image_path'],
+            'properties': {
+                'figure_id': {'type': 'string', 'minLength': 1, 'maxLength': 128,
+                              'pattern': r'^(?=.*\S)[^|`\r\n]{1,128}$'},
+                'fragment_id': {'type': 'string', 'pattern': r'^paper\.[A-Za-z0-9_.-]+$'},
+                'latex_label': {'type': 'string', 'minLength': 1, 'maxLength': 128,
+                                'pattern': r'^[A-Za-z][A-Za-z0-9:._-]*$'},
+                'image_path': {'type': 'string', 'maxLength': 512,
+                               'pattern': r'^(?!\.{1,2}(?:/|$))[^/\\:\x00-\x1f\x7f-\x9f]+(?:/(?!\.{1,2}(?:/|$))[^/\\:\x00-\x1f\x7f-\x9f]+)*\.(?:pdf|png|svg)$'},
+            },
+        },
+    }
+    assert _digest(schema) == B2B2_SCHEMA_SHA256
+    return schema
+
 def previous_b2b_schema(schema):
     schema = deepcopy(schema)
+    if schema['version'] == '8.7.0':
+        schema = previous_b2b3a_schema(schema)
     assert schema['version'] == '8.6.0'
     schema['version'] = '8.5.0'
     policy = schema['$defs']['claim_consumption_policy']
@@ -35,7 +65,7 @@ def previous_b2b_schema(schema):
 
 def previous_b2a_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] == '8.6.0':
+    if schema['version'] in ('8.6.0', '8.7.0'):
         schema = previous_b2b_schema(schema)
     assert schema['version'] == '8.5.0'
     schema['version'] = '8.4.0'
@@ -55,7 +85,7 @@ def previous_b2a_schema(schema):
 
 def previous_b1_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] in ('8.5.0', '8.6.0'):
+    if schema['version'] in ('8.5.0', '8.6.0', '8.7.0'):
         schema = previous_b2a_schema(schema)
     assert schema['version'] == '8.4.0'
     schema['version'] = '8.3.0'
@@ -74,7 +104,7 @@ def previous_b1_schema(schema):
 
 def previous_a2_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] in ('8.5.0', '8.6.0'):
+    if schema['version'] in ('8.5.0', '8.6.0', '8.7.0'):
         schema = previous_b2a_schema(schema)
     if schema['version'] == '8.4.0':
         schema = previous_b1_schema(schema)

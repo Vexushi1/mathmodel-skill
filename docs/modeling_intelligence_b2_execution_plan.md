@@ -2,7 +2,7 @@
 
 > 阶段指南，不是运行时 Authority。B2 的只读审计、状态写入、正式门禁和跨格式覆盖须分别以实际提交、测试和 CI 证明；完成首个切片不等于完成 B2。
 
-> **2026-09-26 接续：** B2a [PR #240](https://github.com/Vexushi1/mathmodel-skill/pull/240) 已合并为 `b7c0f6827fdab4319c504f9f1592a59096fef265`；最终 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36215999744) 和 [优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36215999692) 成功，主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36216997615) 13/13 成功。B2b1 [PR #241](https://github.com/Vexushi1/mathmodel-skill/pull/241) 已合并为 `a17a1d539519fc7c662a73fb957871c822aadf36`；精确 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36220676500) 13/13、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36220676509) 和主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36221675161) 13/13 均成功，合并树与已测 head 树一致。下面 B2a/B2b1 简报保留为实施记录；当前进入单独的 B2b2 模块化 LaTeX 文本门切片。
+> **2026-09-26 接续：** B2a [PR #240](https://github.com/Vexushi1/mathmodel-skill/pull/240) 已合并为 `b7c0f6827fdab4319c504f9f1592a59096fef265`；最终 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36215999744) 和 [优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36215999692) 成功，主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36216997615) 13/13 成功。B2b1 [PR #241](https://github.com/Vexushi1/mathmodel-skill/pull/241) 已合并为 `a17a1d539519fc7c662a73fb957871c822aadf36`；精确 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36220676500) 13/13、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36220676509) 和主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36221675161) 13/13 均成功，合并树与已测 head 树一致。B2b2 [PR #242](https://github.com/Vexushi1/mathmodel-skill/pull/242) 已合并为 `431839d4cb77440bffc2c6f1fcac7c2279b3ab10`；精确 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36226883079) 13/13、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36226883018) 和主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36235022833) 13/13 均成功，合并树与已测 head 树一致。下面 B2a/B2b1/B2b2 简报保留为实施记录；当前进入独立的 B2b3a Figure 身份只读绑定切片。
 
 日期：2026-09-26。基线 main=`a7ff4b792c4f0dac92bb7cd5b4569cf0de03967d`，Skill 10.4.0 / State 8.3.0；B1 PR #239 已合并，主干 CI [36212303219](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36212303219) 13/13 成功，合并树与最终 B1 head 树一致。开始本阶段时没有其他开放 PR。本指南落实原计划第 7、11—16、19 节，保留 B1 的 accepted 资格与语义支持边界。
 
@@ -90,3 +90,18 @@ B2a 对 `analysis_evidence_dispositions` 的 `modify/reject` 仅给出影响 cla
 | 回滚 | 未合并撤回本主题 PR；已声明新协议的项目保留可解释状态及原 stale，不能删除字段冒充旧项目 |
 
 本切片只授予“已声明模块化 LaTeX 文本消费机器门通过”的有限判定。任何图注或其他未支持的 claim 消费义务均不能从文本门取得通过；B2 完成复核和 C1 继续等待后续独立验收。
+
+## 8. B2b3a Figure 身份只读绑定的修改简报
+
+| 项目 | 决定 |
+|---|---|
+| 当前基线 | `main@431839d4cb77440bffc2c6f1fcac7c2279b3ab10`，Skill 10.7.0 / State 8.6.0 / B2 合同 1.2.0；B2b2 的精确 head 与合并后主干 CI 均 13/13 成功 |
+| 目标 | 向后兼容的 Skill 10.8.0 / State 8.7.0 / B2 合同 1.3.0；原有 `1.0.0/observe`、`1.1.0/propagate`、`1.2.0/enforce_latex_text` 配对和旧正式门不变 |
+| 直接目标 | 在项目显式声明的工作簿驱动结果图范围，以同一 Figure ID 只读核对 typed binding、当前 Framework 图表登记、State 片段依赖、活动模块化 LaTeX 的图标签/图片引用和当前已批准图片路径；报告具体身份缺口和未评估项 |
+| Authority | `modules/04_figure_evidence.md` 的 Figure 链、`core/project_state.schema.yaml` 的可选绑定形状、`core/claim_consumption_contract.yaml` 的 B2 只读审计边界；Framework 图表登记与 `artifacts.approved_figures` 保持原有职责 |
+| 明确不做 | 不写项目、不生成/重绘图片、不凭文件名视作实际批准；不核准 accepted 工作簿来源或绘图脚本内容，不判断图像/图注语义、不接入 LaTeX/提交正式门；机理图、全局示意图、表格、DOCX、单文件/动态 TeX 留待后续 |
+| 兼容与迁移 | `figure_bindings` 可选，无记录的旧项目保持原路径；项目选择绑定时逐项显式登记并核对，不自动迁移、不新增 policy mode、不把只读观察升级为正式通过 |
+| 验收 | 正常 Figure ID 闭合、错误/重复 ID、未批准或路径错配、非活动 TeX、label/图片歧义、State/Framework 失配、读集漂移、旧 mode/无 policy 兼容；专项、全量测试、lint、索引、精确 head CI 和主干复验分别记录 |
+| 回滚 | 未合并时撤回本主题 PR；已声明的绑定保留可解释记录，移除新审计功能不能伪称图形证据资格已验证 |
+
+本切片只增加**身份与路径的只读观察**。采用绑定的项目在 Framework“正文引用位置”填写当前活动源码的 `final_latex/...tex:物理行号`，供字面引用定位；活动 `\graphicspath`、符号链接入口和无法静态解析的结构保持未核验或阻断。`identity_status=matched` 仅说明本次路径/字面关系匹配，既往图片批准对当前字节的有效性仍为 `approval_freshness=not_assessed`。本切片不授予 Figure 证据链完整通过、正文/图注语义支持或新的交付资格。B2 仍在进行中；B16 全场景、跨格式 Figure 链和 C1 均等待后续独立验收。

@@ -19,6 +19,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 import claim_evidence
+import claim_figure
 from claim_sources import ROOT
 from claim_tex import scan_static_latex, source_location
 from claim_values import EvidenceError, NeedsReview, Value, converted
@@ -47,6 +48,7 @@ def _report() -> dict:
             'semantic_support': 'not_established', 'human_semantic_coverage': 'not_assessed',
             'formal_delivery_gate': 'not_run', 'b1_status': 'not_assessed',
             'fragment_locations': [], 'registered_location_gaps': [], 'required_coverage': [], 'numeric_checks': [],
+            'figure_identity_checks': [],
             'unregistered_candidates': [], 'wording_findings': [],
             'suggested_stale_fragment_ids': [], 'stale_reason_paths': [],
             'errors': [], 'issues': [], 'observed_sources': {'project': {}, 'skill': {}}}
@@ -152,6 +154,90 @@ def _locations(fragments: list[dict], scan: dict) -> list[dict]:
 
 def _fragment_text(scan: dict, row: dict) -> str:
     return scan['files'][row['source_file']]['masked'][row['offset']:row['end_offset']]
+
+
+def _figure_identity_checks(root: Path, state: dict, policy: dict, framework_text: str,
+                            scan: dict, locations: list[dict], observed: dict,
+                            tex_main_dir: Path) -> list[dict]:
+    """Check declared result-figure identities, without approving visual evidence."""
+    bindings = policy.get('figure_bindings', [])
+    if not bindings:
+        return []
+    registry = claim_figure.parse_framework_figure_rows(framework_text)
+    static = claim_figure.inspect_static_figures(scan)
+    fragments = {row['id']: row for row in state['paper_framework']['paper_fragments']}
+    located = {row['id']: row for row in locations}
+    artifacts = state.get('artifacts') or {}
+    declared = set(artifacts.get('figures') or [])
+    approved = set(artifacts.get('approved_figures') or [])
+    checks = []
+    for binding in bindings:
+        figure_id = binding['figure_id']
+        fragment_id = binding['fragment_id']
+        label = binding['latex_label']
+        image_path = binding['image_path']
+        issues = []
+        row = registry.get(figure_id)
+        if row is None:
+            issues.append('Figure ID has no unique Framework registry row')
+        else:
+            exports = [item.strip().strip('`') for item in
+                       re.split(r'<br\s*/?>|[;；]', row['export_file'], flags=re.I) if item.strip()]
+            if image_path not in exports:
+                issues.append('bound image is absent from the Framework export files')
+            if not row['paper_caption']:
+                issues.append('Framework caption is empty')
+            if not row['body_reference']:
+                issues.append('Framework body reference location is empty')
+            if not row['workbook'] or not row['worksheet_headers'] or not row['plotting_program']:
+                issues.append('result-figure source registry fields are incomplete')
+        fragment = fragments[fragment_id]
+        location = located[fragment_id]
+        if location['status'] != 'located' or fragment['status'] != 'current':
+            issues.append('bound claim fragment is not current and located')
+        matches = [item for item in static['figures'] if item.get('label') == label]
+        if len(matches) != 1 or matches[0].get('status') != 'located':
+            issues.append('literal active LaTeX figure label is missing, ambiguous or unsupported')
+        else:
+            figure = matches[0]
+            caption = figure.get('caption', '')
+            if row is not None and ' '.join(row['paper_caption'].split()) != ' '.join(caption.split()):
+                issues.append('Framework caption differs from the literal LaTeX caption')
+            if (fragment.get('anchor', '') not in caption
+                    or location.get('source_file') != figure['caption_location']['source_file']
+                    or not figure['caption_location']['char_offset'] <= location.get('offset', -1) < figure['end_offset']):
+                issues.append('claim fragment anchor is not in this Figure caption')
+            image_literal = figure.get('image', '')
+            if not image_literal or not image_literal.lower().endswith(('.pdf', '.png', '.svg')):
+                issues.append('LaTeX image path is not an explicit supported file')
+            else:
+                # TeX resolves graphics from the main document's working directory,
+                # including when the command lives in an included child file.
+                actual = (tex_main_dir / image_literal).resolve()
+                expected = (root / image_path).resolve()
+                if not actual.is_relative_to(root) or actual != expected:
+                    issues.append('LaTeX image does not resolve to the bound approved file')
+            if not figure.get('body_ref_locations'):
+                issues.append('active body has no literal reference to the Figure label')
+            elif row is not None and row['body_reference'] not in {
+                    f"{ref['source_file']}:{ref['line']}" for ref in figure['body_ref_locations']}:
+                issues.append('Framework body reference location differs from the active literal reference')
+        if static['status'] != 'scanned':
+            issues.append('active LaTeX figure structure is not fully assessed')
+        if image_path not in declared or image_path not in approved:
+            issues.append('bound image is not both actual and approved in State')
+        else:
+            try:
+                bounded._read(root, image_path, 64 * 1024 * 1024, observed['project'])
+            except (OSError, ValueError) as exc:
+                issues.append('bound approved image cannot be read: ' + str(exc)[:256])
+        checks.append({'figure_id': figure_id, 'fragment_id': fragment_id,
+                       'latex_label': label, 'image_path': image_path,
+                       'identity_status': 'matched' if not issues else 'needs_review',
+                       'approval_freshness': 'not_assessed',
+                       'source_and_visual_semantics': 'not_assessed',
+                       'issues': sorted(set(issues))})
+    return checks
 
 
 def _numeric_tokens(text: str) -> list[tuple[Decimal, str, str]]:
@@ -274,9 +360,11 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         for path in ('scripts/claim_consumption.py', 'scripts/claim_tex.py',
                      'scripts/validate_project_state.py'):
             bounded._read(ROOT, path, 2 * 1024 * 1024, observed['skill'])
-        if contract.get('version') != '1.2.0':
+        if contract.get('version') != '1.3.0':
             raise EvidenceError('unsupported B2 contract version')
         policy = framework['claim_consumption_policy']
+        if isinstance(policy, Mapping) and policy.get('figure_bindings'):
+            bounded._read(ROOT, 'scripts/claim_figure.py', 2 * 1024 * 1024, observed['skill'])
         if isinstance(policy, Mapping):
             report['mode'] = policy.get('mode') if isinstance(policy.get('mode'), str) else None
             report['policy_protocol_version'] = (policy.get('protocol_version')
@@ -313,7 +401,10 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
             report['issues'].append('live B1 source qualification or assertion check is not evidence_checked')
             report['b1_errors'] = b1.get('errors', [])
             return report
-        scan = scan_static_latex(root, Path(tex_main))
+        main_path = Path(tex_main)
+        if not main_path.is_absolute():
+            main_path = root / main_path
+        scan = scan_static_latex(root, main_path)
         for path, entry in scan['files'].items():
             merge_read_sets(observed, {'project': {path: entry['sha256']}})
         report['tex_scan'] = {'status': scan['status'], 'active_files': scan['active_files'],
@@ -327,6 +418,9 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         report['fragment_locations'] = [{key: value for key, value in row.items()
                                          if key not in ('offset', 'end_offset', 'segment_end')}
                                         for row in locations]
+        report['figure_identity_checks'] = _figure_identity_checks(
+            root, state, policy, framework_text, scan, locations, observed,
+            main_path.parent.resolve())
         by_id = {row['id']: row for row in locations}
         report['registered_location_gaps'] = [item['id'] for item in fragments
             if any(dep.startswith('claim:') for dep in item['depends_on'])
@@ -428,6 +522,7 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
             report['status'] = 'blocked'
         elif (gaps or report['registered_location_gaps'] or suggestions or
               report['wording_findings'] or report['issues'] or
+              any(row['identity_status'] != 'matched' for row in report['figure_identity_checks']) or
               any(row['status'] in ('needs_review', 'not_assessed') for row in report['numeric_checks']) or
               report['unregistered_candidates']):
             report['status'] = 'needs_review'
@@ -507,7 +602,7 @@ def formal_text_gate(project_root: str | Path, *,
             main = (root / main).resolve()
         if main != (root / 'final_latex/main.tex').resolve():
             raise EvidenceError('B2 formal text gate requires final_latex/main.tex')
-        audit = inspect_project(root, tex_main=main)
+        audit = inspect_project(root, tex_main=tex_main)
         merge_read_sets(observed, audit.get('observed_sources', {}))
         result['audit_status'] = audit['status']
         result['b1_status'] = audit['b1_status']
