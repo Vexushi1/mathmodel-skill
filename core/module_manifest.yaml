@@ -1,4 +1,4 @@
-version: 10.4.0
+version: 10.5.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -20,6 +20,7 @@ contracts:
   code_quality: core/code_quality_contract.yaml
   model_code_conformance: core/model_code_conformance_contract.yaml
   claim_evidence: core/claim_evidence_contract.yaml
+  claim_consumption: core/claim_consumption_contract.yaml
   writing_reasoning: core/writing_reasoning_contract.yaml
   writing_runtime: core/writing_runtime_contract.yaml
   writing_protocol: modules/05_writing/paper_writing_protocol.md
@@ -45,6 +46,7 @@ external_artifacts:
 - existing_model_paper_framework
 - discovered_artifacts
 artifact_catalog:
+  claim_consumption_report: 显式B2只读主张与活动论文片段关联、实际文本差异和影响范围报告；不授予语义支持、数值验收或正式交付资格
   claim_evidence_report: 显式B1只读来源、选择与有限算术报告；不授予语义支持、执行、数值验收或独立审查资格
   conformance_report: 显式A1只读结构核验报告；不授予模型批准、执行、数值验收或数学等价资格
   requirement_map: 题目要求与交付映射
@@ -193,6 +195,14 @@ modules:
     inputs: [all_requested_artifacts, proposition_plan, model_paper_framework, output_contract, workbook_schema, compile_profile, compile_report]
     outputs: [review_report, submission_package]
 utility_gates:
+  claim_consumption:
+    path: scripts/claim_consumption.py
+    command: python scripts/claim_consumption.py <project_root> --tex-main final_latex/main.tex
+    inputs: [existing_project_state, existing_model_paper_framework]
+    outputs: [claim_consumption_report]
+    rules:
+    - This explicit B2 inspector is read-only and uses the B1 accepted-source qualification before reporting declared claim/fragment and active-paper observations.
+    - It never changes ordinary-route gates, accepted status, stale state, approval, or formal delivery qualification.
   claim_evidence:
     path: scripts/claim_evidence.py
     command: python scripts/claim_evidence.py <project_root>

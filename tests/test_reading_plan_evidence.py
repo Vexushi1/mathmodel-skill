@@ -288,6 +288,68 @@ class AuditClosureProjectionTests(unittest.TestCase):
         self.assertIn("assurance", row["unexpected_legacy_changes"])
         self.assertIn("pre_delivery_gates", row["unexpected_legacy_changes"])
 
+    def test_b2_carrier_reuses_exact_predecessor_projection(self):
+        for case in (*EVIDENCE.A7_HYDRATED_PROVENANCE_CASES, "facts_unscoped"):
+            with self.subTest(case=case):
+                old, new = self.pair(case)
+                new["version"] = "10.5.0"
+                new["assurance"]["schema_version"] = "2.2.0"
+                saved = deepcopy((old, new))
+                projected, changes = EVIDENCE.approved_b2_carrier_change(case, old, new)
+                self.assertEqual(projected, old)
+                self.assertEqual((old, new), saved)
+                self.assertEqual([(item["candidate"], item["approval"])
+                                  for item in changes if item["path"] == "version"],
+                                 [("10.5.0", "B2 opt-in 10.5.0 carrier only; all old qualification differences remain checked")])
+
+    def test_b2_carrier_rejects_unknown_case_and_version(self):
+        for case, version in (("future_case", "10.5.0"), ("facts_current", "10.5.1"),
+                              ("facts_current", "11.0.0")):
+            with self.subTest(case=case, version=version):
+                old, new = self.pair(case)
+                new["version"] = version
+                new["assurance"]["schema_version"] = "2.2.0"
+                projected, changes = EVIDENCE.approved_b2_carrier_change(case, old, new)
+                self.assertEqual(projected, new)
+                self.assertEqual(changes, [])
+
+    def test_b2_carrier_rejects_assurance_protocol_regression(self):
+        for protocol in ("1.2.0", "2.1.0", "2.3.0", None):
+            with self.subTest(protocol=protocol):
+                old, new = self.pair()
+                new["version"] = "10.5.0"
+                new["assurance"]["schema_version"] = protocol
+                projected, changes = EVIDENCE.approved_b2_carrier_change("facts_current", old, new)
+                self.assertEqual(projected, new)
+                self.assertEqual(changes, [])
+
+    def test_b2_full_comparison_keeps_unrelated_changes(self):
+        old, new = self.pair()
+        new["version"] = "10.5.0"
+        new["assurance"]["schema_version"] = "2.2.0"
+        for plan in (old, new):
+            plan["assurance"]["authority_fingerprint"] = {"sha256": "same", "sources": []}
+            plan["reading_plan"] = {"metrics": {"planned_skill_read_bytes": 1,
+                                    "planned_project_read_bytes": 0},
+                                    "profile": "test", "status": "planned"}
+        before = {"id": "facts_current", "plan": old, "legacy_declared_bytes": 1}
+        after = {"id": "facts_current", "plan": new, "legacy_declared_bytes": 1}
+        row = EVIDENCE.compare([before], [after])[0]
+        self.assertTrue(row["legacy_behavior_equal_except_approved_changes"])
+        self.assertEqual(row["unexpected_legacy_changes"], [])
+        new["assurance"]["status"] = "invented_acceptance"
+        new["pre_delivery_gates"] = []
+        row = EVIDENCE.compare([before], [after])[0]
+        self.assertIn("assurance", row["unexpected_legacy_changes"])
+        self.assertIn("pre_delivery_gates", row["unexpected_legacy_changes"])
+        new["assurance"].pop("status")
+        new.pop("pre_delivery_gates")
+        new["assurance"]["schema_version"] = "2.1.0"
+        row = EVIDENCE.compare([before], [after])[0]
+        self.assertFalse(row["legacy_behavior_equal_except_approved_changes"])
+        self.assertIn("assurance", row["unexpected_legacy_changes"])
+        self.assertIn("version", row["unexpected_legacy_changes"])
+
 
 if __name__ == "__main__":
     unittest.main()

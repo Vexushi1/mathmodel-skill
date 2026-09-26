@@ -361,6 +361,24 @@ def approved_b1_carrier_change(identifier, old, new):
     return projected,changes
 
 
+def approved_b2_carrier_change(identifier, old, new):
+    """Only the exact B2 version carrier on pre-existing disabled controls."""
+    if (identifier not in {case[0] for case in CASES}
+            or old.get("version") != "<EXPECTED_P9_RELEASE_CARRIER_CHANGE>"
+            or new.get("version") != "10.5.0"
+            or not isinstance(new.get("assurance"), dict)
+            or new["assurance"].get("schema_version") != "2.2.0"):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    predecessor["version"] = "10.4.0"
+    projected, changes = approved_b1_carrier_change(identifier, old, predecessor)
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = "10.5.0"
+            change["approval"] = "B2 opt-in 10.5.0 carrier only; all old qualification differences remain checked"
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -386,6 +404,8 @@ def compare(before, after):
         expected.extend(a2_changes)
         projected, b1_changes = approved_b1_carrier_change(a["id"], old, projected)
         expected.extend(b1_changes)
+        projected, b2_changes = approved_b2_carrier_change(a["id"], old, projected)
+        expected.extend(b2_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,
@@ -422,11 +442,11 @@ def main():
         "schema_version": 1, "baseline_ref": args.baseline_ref, "candidate_ref": args.candidate_ref,
         "driver_sha256": hashlib.sha256(HERE.read_bytes()).hexdigest(),
         "cases_sha256": hashlib.sha256(HERE.with_name("reading_plan_cases.py").read_bytes()).hexdigest(),
-        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_carrier_transitions",
+        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_carrier_transitions",
         "expected_authority_changes": sorted(ALLOWED_CHANGED_AUTHORITIES),
         "all_legacy_behavior_equal": all(r["legacy_behavior_equal"] for r in rows),
         "all_legacy_behavior_equal_except_approved_changes": all(r["legacy_behavior_equal_except_approved_changes"] for r in rows),
-        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before exact A3/A7/v9.7/v10/v10.1/A1 carrier exceptions; each approved version, provenance or canonical solver projection is visible in expected_legacy_changes. No result qualification, classification value or existing list-order normalization is waived. Passing requires no unregistered field differences.",
+        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before exact A3/A7/v9.7/v10/v10.1/A1/A2/B1/B2 carrier exceptions; each approved version, provenance or canonical solver projection is visible in expected_legacy_changes. No result qualification, classification value or existing list-order normalization is waived. Passing requires no unregistered field differences.",
         "cases": rows,
     }
     args.output.mkdir(parents=True, exist_ok=True)
