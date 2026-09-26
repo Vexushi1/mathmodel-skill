@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import re
+from collections import deque
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -268,6 +269,96 @@ def _validate_paper_fragments(framework: Mapping[str, Any]) -> tuple[list[str], 
     return issues, has_stale
 
 
+def _validate_claim_consumption_policy(framework: Mapping[str, Any]) -> list[str]:
+    """Check opt-in B2 references without changing legacy fragment semantics."""
+    if "claim_consumption_policy" not in framework:
+        return []
+    policy = framework["claim_consumption_policy"]
+    if not isinstance(policy, Mapping):
+        return []  # The JSON Schema reports the malformed policy.
+    record = framework.get("claim_evidence")
+    if not isinstance(record, Mapping):
+        return ["paper_framework.claim_consumption_policy requires a B1 claim_evidence record"]
+    claims = record.get("claims")
+    obligations = policy.get("required_consumptions")
+    fragments = framework.get("paper_fragments")
+    if not isinstance(claims, list) or not isinstance(obligations, list) or not isinstance(fragments, list):
+        return ["paper_framework.claim_consumption_policy requires claim and paper fragment arrays"]
+    issues: list[str] = []
+    if len(fragments) > 512:
+        return ["paper_framework.claim_consumption_policy fragment budget exceeded (512)"]
+    claim_scope: dict[str, str] = {}
+    for claim in claims:
+        if not isinstance(claim, Mapping):
+            continue
+        claim_id, scope = claim.get("id"), claim.get("scope")
+        if not isinstance(claim_id, str):
+            continue
+        if claim_id in claim_scope:
+            issues.append(f"paper_framework.claim_evidence has duplicate claim IDs: {claim_id}")
+        claim_scope[claim_id] = scope if isinstance(scope, str) else ""
+    required_ids: set[str] = set()
+    for row in obligations:
+        if not isinstance(row, Mapping) or not isinstance(row.get("claim_id"), str):
+            continue
+        claim_id = row["claim_id"]
+        if claim_id in required_ids:
+            issues.append(f"paper_framework.claim_consumption_policy has duplicate claim obligations: {claim_id}")
+        required_ids.add(claim_id)
+        if claim_id not in claim_scope:
+            issues.append(f"paper_framework.claim_consumption_policy references unknown claim: {claim_id}")
+    fragment_ids = {row.get("id") for row in fragments if isinstance(row, Mapping) and isinstance(row.get("id"), str)}
+    dependencies: dict[str, list[str]] = {}
+    edge_count = 0
+    for fragment in fragments:
+        if not isinstance(fragment, Mapping) or not isinstance(fragment.get("id"), str):
+            continue
+        fragment_id = fragment["id"]
+        raw_dependencies = fragment.get("depends_on")
+        if not isinstance(raw_dependencies, list):
+            continue
+        edge_count += len(raw_dependencies)
+        dependencies[fragment_id] = []
+        for ref in raw_dependencies:
+            if not isinstance(ref, str):
+                continue
+            if ref.startswith("claim:"):
+                claim_id = ref[6:]
+                if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,63}", claim_id):
+                    issues.append(f"{fragment_id}.depends_on has malformed claim reference: {ref}")
+                elif claim_id not in claim_scope:
+                    issues.append(f"{fragment_id}.depends_on references unknown claim: {claim_id}")
+                else:
+                    claim_question, fragment_scope = claim_scope[claim_id], fragment.get("scope")
+                    if (re.fullmatch(r"Q[1-9][0-9]*", claim_question)
+                            and isinstance(fragment_scope, str)
+                            and re.fullmatch(r"Q[1-9][0-9]*", fragment_scope)
+                            and fragment_scope != claim_question):
+                        issues.append(f"{fragment_id} scope {fragment_scope} conflicts with claim {claim_id} scope {claim_question}")
+            elif ref.startswith("paper.") and ref in fragment_ids:
+                dependencies[fragment_id].append(ref)
+    if edge_count > 2048:
+        issues.append("paper_framework.claim_consumption_policy fragment dependency edge budget exceeded (2048)")
+        return issues
+    remaining = {fragment_id: len(set(refs)) for fragment_id, refs in dependencies.items()}
+    dependents: dict[str, set[str]] = {fragment_id: set() for fragment_id in dependencies}
+    for fragment_id, refs in dependencies.items():
+        for ref in refs:
+            dependents[ref].add(fragment_id)
+    ready = deque(sorted(fragment_id for fragment_id, count in remaining.items() if count == 0))
+    visited = 0
+    while ready:
+        fragment_id = ready.popleft()
+        visited += 1
+        for dependent in sorted(dependents[fragment_id]):
+            remaining[dependent] -= 1
+            if remaining[dependent] == 0:
+                ready.append(dependent)
+    if visited != len(dependencies):
+        issues.append("paper_framework.paper_fragments contains a dependency cycle under claim consumption policy")
+    return issues
+
+
 def _validate_analysis_dispositions(name: str, state: Mapping[str, Any]) -> list[str]:
     issues: list[str] = []
     entries = state.get("analysis_evidence_dispositions", []) or []
@@ -529,6 +620,7 @@ def validate_state_payload(
     issues.extend(_validate_title_claims(framework))
     fragment_issues, has_stale_fragments = _validate_paper_fragments(framework)
     issues.extend(fragment_issues)
+    issues.extend(_validate_claim_consumption_policy(framework))
 
     any_subproblem_stale = False
     for name, state in payload.get("subproblems", {}).items():

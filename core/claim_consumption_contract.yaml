@@ -1,0 +1,56 @@
+version: 1.0.0
+status: active_opt_in_read_only
+introduced_in_skill_version: 10.5.0
+purpose: Locate and compare declared claim consumption in supported active paper text without changing project state or asserting semantic truth.
+authority:
+  policy_shape: core/project_state.schema.yaml#/$defs/claim_consumption_policy
+  policy_path: paper_framework.claim_consumption_policy
+  claim_record: core/project_state.schema.yaml#/$defs/claim_evidence
+  consumption_edges: core/project_state.schema.yaml#/$defs/paper_fragment_entry
+  numerical_qualification: core/claim_evidence_contract.yaml
+  claim_strength: core/writing_reasoning_contract.yaml#claim_strength_calibration
+  stale_governance: core/writing_reasoning_contract.yaml#paper_fragment_stale_governance
+  state_transitions: core/state_transition_contract.yaml
+activation:
+  explicit_route: claim_consumption_audit
+  missing_policy: not_assessed
+  null_partial_unknown_policy: blocked
+  supported_mode: observe
+  automatic_existing_gate_insertion: false
+  project_writer: none
+  persistence: stdout_only
+  default_project_files_added: []
+relationships:
+  actual_consumption: 'paper_fragments[].depends_on contains claim:<id>'
+  required_consumptions: obligations_only_not_duplicate_location_or_evidence
+  source_location: paper_fragments[].source_file_and_anchor
+  state_authority: paper_framework_machine_state
+  framework_role: human_readable_projection_must_agree_when_opted_in
+  numerical_truth: original_accepted_workbook_qualification_only
+scope:
+  first_slice: provably_active_static_modular_latex
+  unsupported_active_graph: not_assessed
+  unsupported_formats: not_assessed
+  unregistered_candidates: needs_review_not_complete_semantic_recall
+  human_semantic_coverage: not_assessed
+  proposed_fragment_stale: report_only_not_written_status
+limits:
+  policy_obligations: 512
+  fragment_kinds_per_obligation: 8
+  fragment_nodes: 512
+  fragment_dependency_edges: 2048
+result_semantics:
+  statuses: [observed, needs_review, not_assessed, blocked]
+  evidence_status: inherit_live_B1_result_per_claim
+  semantic_support: not_established
+  execution_authorized: false
+rules:
+- Missing policy leaves existing routes and gates unchanged.
+- Explicit observe mode is read-only and cannot be treated as enforce or formal delivery approval.
+- Only existing claim-prefixed fragment dependencies record actual consumption; the policy records coverage obligations.
+- Unknown or duplicated claim IDs, malformed claim references, clear question-scope conflicts and cyclic fragment references block opt-in structural validation.
+- An unlocated required fragment is an observed coverage gap, not a successful semantic claim or a schema-shape error.
+- Read current B1 source qualification and paper bytes in the same audit; a saved B1 stdout report is not current evidence.
+- Keep original accepted workbook and artifact stale decisions; a value match never signs them current again.
+- Machine text matches do not prove robustness, optimality, causality, statistical significance or full-paper claim coverage.
+- Any future writer or enforce mode requires a separate reviewed protocol and explicit migration; observe never writes stale or current status.

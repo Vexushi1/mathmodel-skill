@@ -9,7 +9,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'scripts'))
 sys.path.insert(0,str(ROOT/'tests'))
 from resolve_runtime import resolve_runtime
-from tests.claim_schema_reference import previous_a2_schema
+from tests.claim_schema_reference import previous_a2_schema, previous_b1_schema
 from tests import reading_plan_evidence as evidence
 from tests import test_reading_plan_evidence as controls
 import claim_evidence
@@ -46,6 +46,7 @@ class ClaimContractTests(unittest.TestCase):
                 self.assertNotIn('claim_evidence',[x['name'] for x in plan['pre_delivery_gates']])
     def test_old_schema_all_constraints_exactly_preserved(self):
         schema=yaml.safe_load((ROOT/'core/project_state.schema.yaml').read_text(encoding='utf-8'))
+        self.assertEqual(previous_b1_schema(schema)['version'],'8.3.0')
         self.assertEqual(previous_a2_schema(schema)['version'],'8.2.0')
         mutated=deepcopy(schema);mutated['additionalProperties']=True
         with self.assertRaises(AssertionError):previous_a2_schema(mutated)

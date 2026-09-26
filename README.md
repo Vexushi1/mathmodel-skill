@@ -1,4 +1,4 @@
-# mathmodel-skill v10.4.0
+# mathmodel-skill v10.5.0
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值语言由项目根策略统一选择。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。
 
@@ -21,7 +21,7 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 
 `python scripts/model_code_conformance.py <项目根> --question Q1 --stage primary` 只读核对当前批准SIB、阶段源码bundle和`implementation_conformance`覆盖声明。`--inventory`只列当前可定位对象与源码锚点，不自动生成已验证映射。范围、状态与限制见`core/model_code_conformance_contract.yaml`；使用说明见`templates/model/formula_code_closure.md`。
 
-`structure_verified`只表示记录/身份/静态引用闭合，不证明约束实际启用、数学等价或数值正确。没有记录为`not_assessed`；未支持结构为`needs_review`；旧记录、冲突或残缺声明阻断本次结构核验。A1 独立入口仍只读；A2 仅对显式启用阶段在现有交付/回执链中消费该结果，未启用项目不增加强制门。B1提供独立只读主张证据核验；B2正文消费与C/D增强尚未完成。
+`structure_verified`只表示记录/身份/静态引用闭合，不证明约束实际启用、数学等价或数值正确。没有记录为`not_assessed`；未支持结构为`needs_review`；旧记录、冲突或残缺声明阻断本次结构核验。A1 独立入口仍只读；A2 仅对显式启用阶段在现有交付/回执链中消费该结果，未启用项目不增加强制门。B1提供独立只读主张证据核验；B2提供显式只读论文消费观察入口，不改变普通路由门禁。
 
 ## 唯一 Authority 导航
 
@@ -68,4 +68,8 @@ python scripts/project_solver_backend.py --help
 
 `python scripts/claim_evidence.py <项目根>` 读取显式 `paper_framework.claim_evidence`，通过原运行时核对已验收工作簿，按真实表头与唯一行键定位指标，检查受限派生图及声明数值。接口与安全边界唯一由 `core/claim_evidence_contract.yaml` 定义。缺记录不增加旧项目门禁；报告只覆盖已登记主张，算术正确不证明统计显著性、机制、全局最优或稳健性。
 
-新增Schema或检查依据会使旧A2绑定要求显式复验，B1仅输出原协调器的命令参数与必要人工判断，不自动续签或执行。详细步骤、旧版本合成证明与限制见 `docs/modeling_intelligence_b1_protocol_decisions.md` 和 `scripts/README.md`；正文/摘要扫描及片段失效仍属于未完成的B2。
+新增Schema或检查依据会使旧A2绑定要求显式复验，B1仅输出原协调器的命令参数与必要人工判断，不自动续签或执行。详细步骤、旧版本合成证明与限制见 `docs/modeling_intelligence_b1_protocol_decisions.md` 和 `scripts/README.md`；B2正文消费与片段影响由独立只读入口处理。
+
+## B2：显式论文主张消费观察
+
+`python scripts/claim_consumption.py <项目根> --tex-main final_latex/main.tex` 只读观察已登记主张、现有 paper fragment 依赖与可证明静态包含的 LaTeX 字面源码位置；具体判定和覆盖范围服从 `core/claim_consumption_contract.yaml`。原 B1 来源资格仍须成立；宏展开、PDF 呈现和语义支持不由该观察证明，也不自动修改 fragment 状态或增加普通写作、绘图、审查路由的门禁。

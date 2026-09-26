@@ -1,6 +1,11 @@
 # Changelog
 
-## 10.4.0
+## 10.5.0
+
+- Add an explicit read-only B2 `claim_consumption_audit` route for declared claim-to-fragment and active LaTeX observations. The route keeps original B1 source qualification and does not grant semantic support, write project state, or alter ordinary delivery gates.
+- Extend optional Project State Schema to 8.4.0 for the B2 observe policy while retaining `paper_fragments[].depends_on` as the consumption edge. B1 Claim Evidence 1.0.0, A2 binding, numerical acceptance and approval protocols remain distinct; projects without the policy retain their routes.
+
+## Previous release: 10.4.0
 
 - Add opt-in B1 `claim_evidence_audit`: original accepted-workbook qualification, bounded OOXML selectors, finite Decimal derivations and declared assertion checks, with independent source/selection/arithmetic/semantic-support statuses.
 - Keep `paper_framework.claim_evidence` optional in State Schema8.3.0; no new mandatory gate or user-project writer. Unknown/partial records, ambiguous coordinates, formula caches, cross-scope comparisons, duplicate origins, invalid units and resource overruns are not silently accepted.

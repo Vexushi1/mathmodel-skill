@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.4.0
+当前 Skill 版本：10.5.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -50,6 +50,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `config/prose_audit_patterns.yaml`
 - `config/review_weights.json`
 - `core/bootstrap.yaml`
+- `core/claim_consumption_contract.yaml`
 - `core/claim_evidence_contract.yaml`
 - `core/code_quality_contract.yaml`
 - `core/compile_profiles.yaml`
@@ -118,8 +119,10 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/audit_latex_project.py`
 - `scripts/audit_paper_prose.py`
 - `scripts/audit_v8_writing_surface.py`
+- `scripts/claim_consumption.py`
 - `scripts/claim_evidence.py`
 - `scripts/claim_sources.py`
+- `scripts/claim_tex.py`
 - `scripts/claim_values.py`
 - `scripts/claim_workbook.py`
 - `scripts/conformance_gate.py`
@@ -290,10 +293,14 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_audit_workbook_lifecycle.py`
 - `tests/test_authority_single_source.py`
 - `tests/test_auxiliary_input_protocol.py`
+- `tests/test_claim_consumption.py`
+- `tests/test_claim_consumption_contract.py`
+- `tests/test_claim_consumption_route.py`
 - `tests/test_claim_contract.py`
 - `tests/test_claim_evidence.py`
 - `tests/test_claim_graph.py`
 - `tests/test_claim_profiles.py`
+- `tests/test_claim_tex.py`
 - `tests/test_claim_values.py`
 - `tests/test_claim_workbook.py`
 - `tests/test_code_quality_contract.py`
@@ -497,6 +504,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/modeling_intelligence_a2_followup_review.md`
 - `docs/modeling_intelligence_b1_execution_plan.md`
 - `docs/modeling_intelligence_b1_protocol_decisions.md`
+- `docs/modeling_intelligence_b2_execution_plan.md`
 - `docs/modeling_intelligence_evidence_evolution_plan.md`
 - `docs/p3a_global_policy_source_map.md`
 - `docs/p3b_writing_role_source_map.md`

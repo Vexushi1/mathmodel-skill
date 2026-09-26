@@ -1,4 +1,4 @@
-version: 10.4.0
+version: 10.5.0
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -133,6 +133,14 @@ runtime_segments:
     formal_delivery: true
 
 routing:
+  claim_consumption_audit:
+    triggers: [论文主张消费核验, 摘要正文数值一致性核验]
+    infer_keywords: [论文主张消费核验, 摘要正文数值一致性核验]
+    load: [core/claim_consumption_contract.yaml, core/claim_evidence_contract.yaml, core/project_state.schema.yaml, core/writing_reasoning_contract.yaml, scripts/claim_consumption.py, scripts/claim_tex.py]
+    terminal_outputs: [claim_consumption_report]
+    pre_delivery_gates: [claim_consumption]
+    formal_delivery: false
+
   claim_evidence_audit:
     triggers: [主张证据核验, 声明数值核验]
     infer_keywords: [主张证据核验, 声明数值核验]
