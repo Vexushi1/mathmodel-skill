@@ -946,8 +946,8 @@ def check_contracts(errors: list[str]) -> None:
 def check_project_state_and_framework(errors: list[str]) -> None:
     schema = load_structured(ROOT / "core/project_state.schema.yaml")
     Draft202012Validator.check_schema(schema)
-    if schema.get("version") != "8.2.0":
-        errors.append("v10.3 optional conformance bindings require independent schema 8.2.0")
+    if schema.get("version") != "8.3.0":
+        errors.append("v10.4 optional claim evidence requires independent schema 8.3.0")
     execution_fields = (schema.get("properties", {}).get("execution", {}).get("properties") or {})
     stage_fields = (schema.get("$defs", {}).get("solver_stage_execution", {}).get("properties") or {})
     if not {"solver_backend", "solver_backend_selection_reason"}.issubset(execution_fields):

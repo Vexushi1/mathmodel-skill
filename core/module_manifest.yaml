@@ -1,4 +1,4 @@
-version: 10.3.0
+version: 10.4.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -19,6 +19,7 @@ contracts:
   user_execution: core/user_execution_contract.yaml
   code_quality: core/code_quality_contract.yaml
   model_code_conformance: core/model_code_conformance_contract.yaml
+  claim_evidence: core/claim_evidence_contract.yaml
   writing_reasoning: core/writing_reasoning_contract.yaml
   writing_runtime: core/writing_runtime_contract.yaml
   writing_protocol: modules/05_writing/paper_writing_protocol.md
@@ -44,6 +45,7 @@ external_artifacts:
 - existing_model_paper_framework
 - discovered_artifacts
 artifact_catalog:
+  claim_evidence_report: 显式B1只读来源、选择与有限算术报告；不授予语义支持、执行、数值验收或独立审查资格
   conformance_report: 显式A1只读结构核验报告；不授予模型批准、执行、数值验收或数学等价资格
   requirement_map: 题目要求与交付映射
   subproblem_map: 小问依赖、边界与依赖类型
@@ -191,6 +193,14 @@ modules:
     inputs: [all_requested_artifacts, proposition_plan, model_paper_framework, output_contract, workbook_schema, compile_profile, compile_report]
     outputs: [review_report, submission_package]
 utility_gates:
+  claim_evidence:
+    path: scripts/claim_evidence.py
+    command: python scripts/claim_evidence.py <project_root>
+    inputs: [existing_project_state, existing_model_paper_framework]
+    outputs: [claim_evidence_report]
+    rules:
+    - This explicit B1 inspector is read-only and consumes original accepted-workbook qualification, never replacing it.
+    - Follow core/claim_evidence_contract.yaml for source, selection, arithmetic and semantic-support boundaries; no ordinary-route gate is added.
   model_code_conformance:
     path: scripts/model_code_conformance.py
     command: python scripts/model_code_conformance.py <project_root> --question <question> --stage <stage>

@@ -345,6 +345,22 @@ def approved_a2_carrier_change(identifier, old, new):
     return projected,changes
 
 
+def approved_b1_carrier_change(identifier, old, new):
+    """Only the exact B1 version carrier on pre-existing disabled controls."""
+    if (identifier not in {case[0] for case in CASES}
+            or old.get("version") != "<EXPECTED_P9_RELEASE_CARRIER_CHANGE>"
+            or new.get("version") != "10.4.0"):
+        return deepcopy(new), []
+    predecessor=deepcopy(new)
+    predecessor["version"]="10.3.0"
+    projected,changes=approved_a2_carrier_change(identifier,old,predecessor)
+    for change in changes:
+        if change["path"]=="version":
+            change["candidate"]="10.4.0"
+            change["approval"]="B1 opt-in 10.4.0 carrier only; all old qualification differences remain checked"
+    return projected,changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -368,6 +384,8 @@ def compare(before, after):
         expected.extend(a1_changes)
         projected, a2_changes = approved_a2_carrier_change(a["id"], old, projected)
         expected.extend(a2_changes)
+        projected, b1_changes = approved_b1_carrier_change(a["id"], old, projected)
+        expected.extend(b1_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,

@@ -1,6 +1,13 @@
 # Changelog
 
-## 10.3.0
+## 10.4.0
+
+- Add opt-in B1 `claim_evidence_audit`: original accepted-workbook qualification, bounded OOXML selectors, finite Decimal derivations and declared assertion checks, with independent source/selection/arithmetic/semantic-support statuses.
+- Keep `paper_framework.claim_evidence` optional in State Schema8.3.0; no new mandatory gate or user-project writer. Unknown/partial records, ambiguous coordinates, formula caches, cross-scope comparisons, duplicate origins, invalid units and resource overruns are not silently accepted.
+- Preserve A2 full checker fingerprints. Read-only guidance requires explicit original delivery/receipt revalidation and re-adjudication of the analysis necessity gate when invalidated; never re-sign old evidence or claim a new numerical run.
+- Use genuine synthetic old-A2 workbooks for cross-version regression; preserve original approval, numerical/PQS/receipt, transaction and Python/MATLAB policies. B2/C/D and new Release/tag creation remain outside this change.
+
+## Previous release: 10.3.0
 
 - A2 adds an explicit per-question/stage opt-in policy for consuming A1 structural conformance at existing code-delivery, receipt, runtime and sync boundaries. A1-only declarations and projects without A2 policy/bindings keep their previous workflow.
 - Existing coordinators record structural delivery and successful-original-receipt acceptance bindings; declaration, model, helper, source or checker-Authority drift cannot silently re-sign old evidence. Current model approval and numerical/PQS checks remain separate and mandatory.

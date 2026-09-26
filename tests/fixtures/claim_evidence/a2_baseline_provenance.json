@@ -1,0 +1,37 @@
+{
+  "synthetic_only": true,
+  "fixture": "scalar a*x=b+offset, a=2,b=6,offset=2",
+  "baseline_commit": "186785e662b15989c649201a25709ae90cfee410",
+  "baseline_tree": "ff0e5612bb9df47ea33a0ad74e1e47ff5e613ff8",
+  "creation_command": [
+    "python",
+    "tests/conformance_a2_smoke.py",
+    "--project",
+    "<isolated synthetic directory>",
+    "--backend",
+    "python"
+  ],
+  "baseline_native_and_receipt_exit": 0,
+  "capsule_sha256": "cebf29fff76a8e19f182d05d47c8b90f8f795d6944324b8efb3d6e81bb8f57c6",
+  "files": {
+    "constraints.json": "67a68b3dc91b0fa7ab1155b8009aa51ffc04aa48ece8e5fe4468baafcbb15c4d",
+    "data.csv": "c3e029749ed5b62b8d20404a73201d7f160059fdaa50421287c9976aa06858c1",
+    "data/raw.csv": "71163ba97df59cb511808b6ce674006fa200bdc639cc0086401fa04299e1fe9b",
+    "state/project_state.yaml": "e5e55db6092ca9c506c3b9c6c5d23011c06fe49457928c06e81a81b9493f3fc2",
+    "数据预处理/数据预处理.py": "a25053b81ff1ca638ecead689016de11251636f6cd79a3602aaa6ed8a8a957a9",
+    "数据预处理/数据预处理结果.xlsx": "a419fde52139e6d4fb41c776c6f5692cd650a5f1d1868eeb76b768c0e58b3a84",
+    "模型论文框架.md": "e2caa0fb1cf7605aff9b42c3c2c9b8cb31a8319935cea5ae4c3bd6a4ea509fb9",
+    "问题一求解/问题一求解.py": "2701f1c04405952cd5c35e62456c6e1d68e9e2c6e2c82be388fb411424106304",
+    "问题一求解/问题一求解结果.xlsx": "e9e617d440669cfdbe8cd8cc69cb3aa660689b2aabf52079cd3565340e3f227c",
+    "问题一求解/问题一结果深化分析.py": "6e722982652370dc7a8e29285f795f87e6546e0423bdb981464f45be5e516e55",
+    "问题一求解/问题一结果深化分析.xlsx": "e393f007f84be5172e5ed968513abd8de318ac5af031ee5fdd84810a033ede53"
+  },
+  "excluded_transient_files": [
+    "a2_analysis_native.log",
+    "a2_analysis_receipt.log",
+    "a2_primary_native.log",
+    "a2_primary_receipt.log",
+    "a2_smoke_report.json",
+    "state/.project_transaction.lock"
+  ]
+}
