@@ -18,6 +18,8 @@ from claim_values import EvidenceError, NeedsReview, Value, number, unit_info
 NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'
 M = '{' + NS + '}'
 R = '{http://schemas.openxmlformats.org/officeDocument/2006/relationships}'
+P = '{http://schemas.openxmlformats.org/package/2006/relationships}'
+WORKSHEET_RELATIONSHIP = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet'
 _ADDRESS = re.compile(r'([A-Z]{1,3})([1-9][0-9]*)\Z')
 
 @dataclass(frozen=True)
@@ -167,27 +169,39 @@ class Workbook:
         return [is_date_format(code) for code in codes], ['%' in code for code in stripped]
 
     def _sheets(self) -> dict[str,str]:
-        relationships: dict[str,str] = {}
-        for item in self._tree('xl/_rels/workbook.xml.rels'):
+        relationships: dict[str,tuple[str,str]] = {}
+        rels = self._tree('xl/_rels/workbook.xml.rels')
+        if rels.tag != P+'Relationships':
+            raise EvidenceError('invalid workbook relationships root')
+        for item in rels:
+            if item.tag != P+'Relationship':
+                raise EvidenceError('invalid workbook relationship element')
             rid, target = item.get('Id'), item.get('Target','')
             if not rid or rid in relationships:
                 raise EvidenceError('duplicate or missing workbook relationship ID')
             path = posixpath.normpath(target.lstrip('/') if target.startswith('/') else 'xl/'+target)
             if path.startswith('../') or '\\' in path or ':' in path:
                 raise EvidenceError('unsafe internal workbook relationship')
-            relationships[rid] = path
+            relationships[rid] = path,item.get('Type','')
         result = {}
         root = self._tree('xl/workbook.xml')
+        if root.tag != M+'workbook':
+            raise EvidenceError('invalid workbook root')
         sheets = root.find(M+'sheets')
         if sheets is None or len(root.findall(M+'sheets')) != 1:
             raise EvidenceError('unsupported or ambiguous workbook sheet collection')
         for sheet in sheets:
+            if sheet.tag != M+'sheet':
+                raise EvidenceError('invalid workbook sheet element')
             name, rid = sheet.get('name'), sheet.get(R+'id')
             if not name or name in result or rid not in relationships:
                 raise EvidenceError('ambiguous sheet name or relationship')
-            if relationships[rid] in result.values():
+            path, kind = relationships[rid]
+            if kind != WORKSHEET_RELATIONSHIP:
+                raise EvidenceError('sheet relationship does not identify a worksheet')
+            if path in result.values():
                 raise EvidenceError('multiple sheet names refer to the same physical worksheet')
-            result[name] = relationships[rid]
+            result[name] = path
         return result
 
     def _cell(self, element: ET.Element) -> Cell:
@@ -307,7 +321,11 @@ class Workbook:
             for key,expected in selector['row_key'].items():
                 cell = observed(row,key)
                 if isinstance(expected,str):same=cell.kind=='text' and cell.value==expected
-                else:same=cell.kind=='number' and cell.value==number(expected,self.contract)
+                elif isinstance(expected,Mapping) and set(expected)=={'decimal'}:
+                    same=cell.kind=='number' and cell.value==number(expected['decimal'],self.contract)
+                elif type(expected) is int:
+                    same=cell.kind=='number' and cell.value==number(expected,self.contract)
+                else:raise EvidenceError('row key must be text, exact integer or explicit decimal literal')
                 ok = ok and same
             if ok:matches.append(row)
         if len(matches)!=1:

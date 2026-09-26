@@ -495,7 +495,12 @@ $defs:
           - type: string
             minLength: 1
             maxLength: 4096
-          - type: number
+          - type: integer
+          - type: object
+            additionalProperties: false
+            required: [decimal]
+            properties:
+              decimal: {type: string, minLength: 1, maxLength: 4096}
       expected_cardinality:
         type: integer
         const: 1
@@ -884,7 +889,7 @@ $defs:
         pattern: ^(source|derivation):[A-Za-z][A-Za-z0-9_-]{0,63}$
       value:
         oneOf:
-        - type: number
+        - type: integer
         - type: string
           minLength: 1
           maxLength: 4096
@@ -896,7 +901,7 @@ $defs:
             - type: string
               minLength: 1
               maxLength: 4096
-            - type: number
+            - type: integer
       unit:
         type: string
         minLength: 1

@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import unittest
 import yaml
+from jsonschema import Draft202012Validator
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'scripts'))
 sys.path.insert(0,str(ROOT/'tests'))
@@ -12,8 +13,24 @@ from tests.claim_schema_reference import previous_a2_schema
 from tests import reading_plan_evidence as evidence
 from tests import test_reading_plan_evidence as controls
 import claim_evidence
+from tests.claim_fixture import record
 
 class ClaimContractTests(unittest.TestCase):
+    def test_declared_decimal_lexemes_require_unambiguous_shapes(self):
+        schema=yaml.safe_load((ROOT/'core/project_state.schema.yaml').read_text(encoding='utf-8'))
+        validator=Draft202012Validator({'$ref':'#/$defs/claim_evidence','$defs':schema['$defs']})
+        declared=record()
+        declared['sources'][0]['selector']['row_key']['value']={'decimal':'1.0000000000000001'}
+        self.assertTrue(validator.is_valid(declared))
+        for value in (1.5, {'decimal':1.5}, {'decimal':'1','extra':True}):
+            with self.subTest(value=value):
+                declared['sources'][0]['selector']['row_key']['value']=value
+                self.assertFalse(validator.is_valid(declared))
+        declared=record()
+        declared['claims'][0]['assertion']['value']=1.5
+        self.assertFalse(validator.is_valid(declared))
+        declared['claims'][0]['assertion']['value']='1.5'
+        self.assertTrue(validator.is_valid(declared))
     def test_explicit_route_has_no_writer_or_numerical_authority(self):
         plan=resolve_runtime('claim_evidence_audit')
         self.assertEqual(plan['modules'],[])

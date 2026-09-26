@@ -24,7 +24,9 @@ _DECIMAL = re.compile(r'[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)
 def number(value: Any, contract: Mapping[str, Any]) -> Decimal:
     """Parse a number/explicit decimal literal, never an expression or bool."""
     limits = contract['limits']
-    if isinstance(value, bool) or not isinstance(value, (Decimal, int, float, str)):
+    # PyYAML has already rounded unquoted noninteger numerals to binary floats.
+    # Their original decimal lexemes cannot be recovered here.
+    if isinstance(value, bool) or not isinstance(value, (Decimal, int, str)):
         raise EvidenceError('numeric type is unsupported')
     text = str(value)
     if len(text) > limits['decimal_digits'] + 16 or not _DECIMAL.fullmatch(text):

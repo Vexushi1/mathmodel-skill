@@ -106,6 +106,18 @@ class ClaimWorkbookTests(unittest.TestCase):
     def test_plain_numbers_read_without_float_precision_loss(self):
         raw=self.rewrite(workbook(),'xl/worksheets/sheet1.xml',lambda x:x.replace(b'<v>100</v>',b'<v>1.234567890123456789</v>'))
         self.assertEqual(self.selected(raw)[0].value,Decimal('1.234567890123456789'))
+    def test_decimal_row_key_is_explicit_and_exact(self):
+        s=deepcopy(self.selector);s['row_key']['value']={'decimal':'100.0000000000000001'}
+        raw=self.rewrite(workbook(),'xl/worksheets/sheet1.xml',
+                         lambda x:x.replace(b'<v>100</v>',b'<v>100.0000000000000001</v>'))
+        self.assertEqual(self.selected(raw,s)[0].value,Decimal('100.0000000000000001'))
+        with self.assertRaises(EvidenceError):self.selected(selector=s)
+        s['row_key']['value']=100
+        self.assertEqual(self.selected(selector=s)[0].value,Decimal(100))
+        s['row_key']['value']={'decimal':'1e2'}
+        self.assertEqual(self.selected(selector=s)[0].value,Decimal(100))
+        s['row_key']['value']=100.0
+        with self.assertRaises(EvidenceError):self.selected(selector=s)
 
     def test_duplicate_cell_value_payload_is_ambiguous(self):
         raw=self.rewrite(workbook(),'xl/worksheets/sheet1.xml',
@@ -121,6 +133,22 @@ class ClaimWorkbookTests(unittest.TestCase):
             return ET.tostring(tree,encoding='utf-8')
         raw=self.rewrite(workbook(),'xl/workbook.xml',alias)
         with self.assertRaises(EvidenceError):self.selected(raw)
+    def test_sheet_and_relationship_tags_must_have_ooxml_meaning(self):
+        mutations=(
+            ('sheet child','xl/workbook.xml',lambda x:x.replace(b'<sheet xmlns:r=',b'<notSheet xmlns:r=',1)),
+            ('workbook root','xl/workbook.xml',lambda x:x.replace(b'<workbook xmlns=',b'<notWorkbook xmlns=',1)
+             .replace(b'</workbook>',b'</notWorkbook>',1)),
+            ('relationship child','xl/_rels/workbook.xml.rels',
+             lambda x:x.replace(b'<Relationship Type=',b'<notRelationship Type=',1)),
+            ('relationships root','xl/_rels/workbook.xml.rels',
+             lambda x:x.replace(b'<Relationships xmlns=',b'<notRelationships xmlns=',1)
+             .replace(b'</Relationships>',b'</notRelationships>',1)),
+            ('relationship type','xl/_rels/workbook.xml.rels',
+             lambda x:x.replace(b'/relationships/worksheet" Target=',b'/relationships/styles" Target=',1)),
+        )
+        for label,path,change in mutations:
+            with self.subTest(label=label),self.assertRaises(EvidenceError):
+                self.selected(self.rewrite(workbook(),path,change))
     def test_percentage_display_requires_explicit_value_semantics(self):
         raw=workbook([['cost','baseline','S1',0.4,'%']],
                      mutate=lambda b:setattr(b.active['D2'],'number_format','0%'))

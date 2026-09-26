@@ -51,6 +51,14 @@ class ClaimGraphTests(unittest.TestCase):
     def test_node_budget(self):
         limited=deepcopy(self.contract);limited['limits']['graph_nodes']=3
         with self.assertRaises(EvidenceError):audit.validate_record(self.record,self.schema,limited)
+    def test_oversized_malformed_record_rejected_before_nested_schema_walk(self):
+        bad=deepcopy(self.record)
+        bad['sources']=[None]*(self.contract['limits']['graph_nodes']+1)
+        with self.assertRaisesRegex(EvidenceError,'total graph node budget exceeded'):
+            audit.validate_record(bad,self.schema,self.contract)
+        bad['sources']=[None]
+        with self.assertRaisesRegex(EvidenceError,'record schema'):
+            audit.validate_record(bad,self.schema,self.contract)
     def test_depth_budget(self):
         self.record['derivations']=[{'id':'gain','op':'identity','inputs':{'value':'source:baseline'}}]
         for i in range(65):
@@ -61,6 +69,11 @@ class ClaimGraphTests(unittest.TestCase):
         for value in (True,1.0):
             self.record['sources'][0]['selector']['header_row']=value
             with self.subTest(value=value),self.assertRaises(EvidenceError):self.validate()
+    def test_yaml_integral_floats_not_accepted_as_exact_record_values(self):
+        self.record['sources'][0]['selector']['row_key']['scenario']=4.0
+        with self.assertRaises(EvidenceError):self.validate()
+        self.record=record();self.record['claims'][0]['assertion']['value']=4.0
+        with self.assertRaises(EvidenceError):self.validate()
     def test_dangerous_assertion_is_not_evaluated(self):
         self.record['claims'][0]['assertion']['value']='__import__("os").system("echo bad")'
         self.assertEqual(self.evaluate()[1][0]['arithmetic_status'],'blocked')

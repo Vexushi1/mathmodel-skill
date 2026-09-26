@@ -12,7 +12,7 @@ from pathlib import Path
 from decimal import Decimal, DecimalException, ROUND_HALF_EVEN, localcontext
 from typing import Any, Mapping
 import yaml
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, validators
 import model_code_conformance as bounded
 from claim_values import EvidenceError, NeedsReview, Value, number, converted, derive, describe, unit_info
 from claim_workbook import Workbook, current_profile
@@ -21,16 +21,18 @@ from project_transaction import JOURNAL_RELATIVE_PATH
 
 SCHEMA='core/project_state.schema.yaml'
 EXIT_CODES={'evidence_checked':0,'blocked':1,'needs_review':2,'not_assessed':2}
+RecordValidator=validators.extend(Draft202012Validator,type_checker=
+    Draft202012Validator.TYPE_CHECKER.redefine('integer',lambda _checker,value:type(value) is int))
 
 def validate_record(record: Any, schema: dict, contract: dict) -> list[dict]:
-    validator=Draft202012Validator({'$ref':'#/$defs/claim_evidence','$defs':schema['$defs']})
-    errors=list(validator.iter_errors(record))
-    if errors:
-        error=errors[0]
-        raise EvidenceError('record schema: '+ '/'.join(map(str,error.absolute_path)) + ': '+error.message[:4096])
     limits=contract['limits']
-    if sum(len(record[x]) for x in ('sources','derivations','claims'))>limits['graph_nodes']:
+    if type(record) is dict and sum(len(record[key]) for key in ('sources','derivations','claims')
+                                     if type(record.get(key)) is list)>limits['graph_nodes']:
         raise EvidenceError('total graph node budget exceeded')
+    validator=RecordValidator({'$ref':'#/$defs/claim_evidence','$defs':schema['$defs']})
+    error=next(validator.iter_errors(record),None)
+    if error is not None:
+        raise EvidenceError('record schema: '+ '/'.join(map(str,error.absolute_path)) + ': '+error.message[:4096])
     namespaces={kind:{item['id']:item for item in record[kind]} for kind in ('sources','derivations','claims')}
     if any(len(namespaces[k])!=len(record[k]) for k in namespaces):
         raise EvidenceError('duplicate stable ID within a namespace')
@@ -207,11 +209,14 @@ def inspect_project(project_root: str|Path) -> dict:
                 row.update(selection_status='blocked',reason=str(exc))
             report['sources'].append(row)
         report['derivations'],report['claims']=evaluate(record,order,values,profiles,titles,contract,source_scopes)
-        states=[x['selection_status'] for x in report['sources']]+[x['arithmetic_status'] for x in report['derivations']+report['claims']]
+        selections=[x['selection_status'] for x in report['sources']]
+        arithmetic=[x['arithmetic_status'] for x in report['derivations']+report['claims']]
         report['source_qualification']='verified' if all(x['source_qualification']=='verified' for x in report['sources']) else 'blocked'
-        report['selection_status']='selected' if all(x['selection_status']=='selected' for x in report['sources']) else ('blocked' if 'blocked' in states else 'needs_review')
-        report['arithmetic_status']='blocked' if 'blocked' in states else ('needs_review' if 'needs_review' in states else 'checked')
-        report['status']='blocked' if 'blocked' in states else ('needs_review' if 'needs_review' in states else 'evidence_checked')
+        report['selection_status']='selected' if all(x=='selected' for x in selections) else ('blocked' if 'blocked' in selections else 'needs_review')
+        report['arithmetic_status']=('blocked' if 'blocked' in arithmetic else 'needs_review' if 'needs_review' in arithmetic
+                                     else 'checked' if 'checked' in arithmetic else 'not_requested')
+        report['status']=('blocked' if 'blocked' in (*selections,*arithmetic) else
+                          'needs_review' if 'needs_review' in (*selections,*arithmetic) else 'evidence_checked')
         report['decimal_precision']=contract['limits']['decimal_precision']
         report['observed_sources']=adapter.read_set
     except (OSError,ValueError,TypeError,KeyError,AttributeError,RecursionError,yaml.YAMLError) as exc:

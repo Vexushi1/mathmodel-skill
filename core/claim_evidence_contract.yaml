@@ -51,6 +51,7 @@ limits:
 selection:
   cardinality: one_exact_row
   identity: actual_registered_artifact_sheet_row_keys_columns_and_observed_axes
+  numeric_row_key: exact_integer_or_explicit_decimal_string_object
   unknown_axes: unverified_not_inferred
   unit_sources: [column, header, numeric_profile, not_applicable]
   formula_cells: needs_review_even_when_cached
@@ -98,6 +99,7 @@ units:
   万元: {dimension: currency_CNY, scale: '10000', kind: measure}
 result_semantics:
   statuses: [evidence_checked, needs_review, not_assessed, blocked]
+  arithmetic_statuses: [not_requested, checked, needs_review, blocked]
   exit_codes: {evidence_checked: 0, blocked: 1, needs_review: 2, not_assessed: 2}
   semantic_support: not_established
   mathematical_or_statistical_truth: not_established
@@ -125,3 +127,4 @@ rules:
 - B2 text/fragment consumption, C review receipts and D case memory remain outside this contract.
 - Referenced Numeric Profiles must satisfy the existing numeric_metric_entry Schema; unknown display forms never fall back to decimal.
 - Display assertion modes must match the selected value type; percent requires explicit percent units and integer requires zero places.
+- "Decimal assertion values and interval endpoints must be quoted strings; exact YAML integers remain accepted. Fractional row keys use {decimal: '...'} to distinguish numeric cells from text keys. Unquoted YAML floats are never evidence."

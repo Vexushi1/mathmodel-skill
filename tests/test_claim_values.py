@@ -37,6 +37,12 @@ class ClaimValuesTests(unittest.TestCase):
     def test_finite_numbers_and_boolean_rejected(self):
         for x in (True,False,'NaN','Infinity','1e301','1e-301','1+2','1,000'):
             with self.subTest(x=x),self.assertRaises(values.EvidenceError):values.number(x,self.contract)
+    def test_yaml_float_cannot_be_reinterpreted_as_exact_decimal(self):
+        for x in (1.0, 1.5, 4.0000000000000001):
+            with self.subTest(x=x),self.assertRaises(values.EvidenceError):
+                values.number(x,self.contract)
+        self.assertEqual(values.number(9007199254740993,self.contract),Decimal(9007199254740993))
+        self.assertEqual(values.number('1.0000000000000001',self.contract),Decimal('1.0000000000000001'))
     def test_time_conversion(self):
         got=values.derive({'id':'d','op':'convert_unit','to_unit':'h'},
                          {'value':self.value(3600,'s')},self.contract)

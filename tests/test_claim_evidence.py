@@ -53,6 +53,26 @@ class ClaimEvidenceIntegrationTests(unittest.TestCase):
         cmd=[sys.executable,'-B',str(ROOT/'scripts/claim_evidence.py'),str(self.root)]
         proc=subprocess.run(cmd,capture_output=True,text=True,encoding='utf-8')
         self.assertEqual(proc.returncode,0,proc.stderr);self.assertEqual(json.loads(proc.stdout)['status'],'evidence_checked')
+    def test_no_requested_arithmetic_is_reported_as_not_requested(self):
+        record=self.state['paper_framework']['claim_evidence']
+        record['claims'][0]['evidence']=[{'ref':'source:answer','relation':'supports'}]
+        record['claims'][0].pop('assertion')
+        save(self.root,self.state)
+        report=audit.inspect_project(self.root)
+        self.assertEqual(report['status'],'evidence_checked',report)
+        self.assertEqual(report['source_qualification'],'verified')
+        self.assertEqual(report['selection_status'],'selected')
+        self.assertEqual(report['arithmetic_status'],'not_requested')
+    def test_unquoted_decimal_assertion_does_not_match_after_yaml_float_rounding(self):
+        self.state['paper_framework']['claim_evidence']['claims'][0]['assertion']['value']='4.0000000000000001'
+        save(self.root,self.state)
+        path=self.root/'state/project_state.yaml';original=path.read_text(encoding='utf-8')
+        quoted="value: '4.0000000000000001'"
+        self.assertIn(quoted,original)
+        path.write_text(original.replace(quoted,'value: 4.0000000000000001',1),encoding='utf-8')
+        report=audit.inspect_project(self.root)
+        self.assertEqual(report['status'],'blocked',report)
+        self.assertTrue(any('record schema' in error for error in report['errors']),report)
     def test_missing_record_does_not_load_new_contract_or_workbook(self):
         self.state['paper_framework'].pop('claim_evidence');save(self.root,self.state)
         with patch.object(audit,'Sources',side_effect=AssertionError('must not load')):
@@ -127,6 +147,7 @@ class ClaimEvidenceIntegrationTests(unittest.TestCase):
 class ClaimCrossVersionTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.root=Path(self.tmp.name)/'project';self.root.mkdir()
+        self.root=self.root.resolve()
         fixtures=ROOT/'tests/fixtures/claim_evidence'
         meta=json.loads((fixtures/'a2_baseline_provenance.json').read_text(encoding='utf-8'))
         data=(fixtures/'a2_baseline_synthetic.zip').read_bytes()
