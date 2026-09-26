@@ -17,24 +17,33 @@ def sha256_text(text: str) -> str:
     normalized = text.replace("\r\n", "\n").replace("\r", "\n")
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
+def combined_hash_from_entries(entries: Iterable[tuple[str, str]]) -> str | None:
+    """Apply the bundle format to unique, ordered path/hash pairs from one read set."""
+    entries = list(entries)
+    if not entries:
+        return None
+    digest = hashlib.sha256()
+    for relative, file_sha256 in entries:
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(bytes.fromhex(file_sha256))
+    return digest.hexdigest()
+
+
 def combined_hash(paths: Iterable[Path], root: Path) -> str | None:
     root = root.resolve()
     files = sorted(
         {Path(path).resolve() for path in paths if Path(path).is_file()},
         key=lambda item: item.as_posix(),
     )
-    if not files:
-        return None
-    digest = hashlib.sha256()
+    entries = []
     for path in files:
         try:
             relative = path.relative_to(root).as_posix()
         except ValueError:
             relative = path.as_posix()
-        digest.update(relative.encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(bytes.fromhex(sha256_file(path)))
-    return digest.hexdigest()
+        entries.append((relative, sha256_file(path)))
+    return combined_hash_from_entries(entries)
 
 def framework_section_text(path: Path, anchor: str) -> str | None:
     if not path.is_file() or not anchor.strip():

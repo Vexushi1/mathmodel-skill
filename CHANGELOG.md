@@ -1,6 +1,12 @@
 # Changelog
 
-## 10.8.0
+## 10.9.0
+
+- Add optional Figure `source_bindings` (State Schema 8.8.0, B2 contract 1.4.0) for read-only source and current approved-bundle observation. An explicitly bound workbook-driven result Figure can report exact B1 source ID, sheet and literal header agreement, plus whether the existing validated script/figure bundle matches current bytes and every discovered path in this scoped bundle belongs to the original `approved_figures` list.
+- Preserve the three existing B2 policy pairs and B2b3a-only Figure rows: missing source bindings remain `not_assessed`. The audit does not rerun a model or plotting script, renew approval, certify image/caption semantics, or add a formal Figure gate. B2 remains in progress.
+- Bound one audit by unique accepted-workbook bytes (B1's 64 MiB total), image bytes (256 MiB) and script bytes (16 MiB). Repeated Figure sources may reuse captured hashes, workbook readers and scoped discovery; final project/Skill read-set and discovery checks still run.
+
+## Previous release: 10.8.0
 
 - Add optional B2 Figure identity bindings (State Schema 8.7.0, B2 contract 1.3.0) for workbook-driven result figures. The read-only audit checks the current Figure ID across the Framework registry, claim fragment, approved image path and literal active modular LaTeX label, caption, image and body reference.
 - Keep the existing `observe`, `propagate` and `enforce_latex_text` policy pairs unchanged. Figure identity observations do not qualify workbook or plotting-script content, establish visual/caption semantics, change project state or enter a formal LaTeX/submission gate. B2 remains in progress.

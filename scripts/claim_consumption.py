@@ -48,7 +48,7 @@ def _report() -> dict:
             'semantic_support': 'not_established', 'human_semantic_coverage': 'not_assessed',
             'formal_delivery_gate': 'not_run', 'b1_status': 'not_assessed',
             'fragment_locations': [], 'registered_location_gaps': [], 'required_coverage': [], 'numeric_checks': [],
-            'figure_identity_checks': [],
+            'figure_identity_checks': [], 'figure_source_checks': [],
             'unregistered_candidates': [], 'wording_findings': [],
             'suggested_stale_fragment_ids': [], 'stale_reason_paths': [],
             'errors': [], 'issues': [], 'observed_sources': {'project': {}, 'skill': {}}}
@@ -228,7 +228,8 @@ def _figure_identity_checks(root: Path, state: dict, policy: dict, framework_tex
             issues.append('bound image is not both actual and approved in State')
         else:
             try:
-                bounded._read(root, image_path, 64 * 1024 * 1024, observed['project'])
+                if image_path not in observed['project']:
+                    bounded._read(root, image_path, 64 * 1024 * 1024, observed['project'])
             except (OSError, ValueError) as exc:
                 issues.append('bound approved image cannot be read: ' + str(exc)[:256])
         checks.append({'figure_id': figure_id, 'fragment_id': fragment_id,
@@ -344,6 +345,9 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
     root = Path(project_root).expanduser().resolve()
     report = _report()
     observed = report['observed_sources']
+    source_recheck_checks: list[dict] = []
+    source_audit_cache: dict = {}
+    state: dict = {}
     try:
         if (root / JOURNAL_RELATIVE_PATH).exists() or (root / JOURNAL_RELATIVE_PATH).is_symlink():
             raise EvidenceError('pending project transaction requires recovery')
@@ -360,11 +364,18 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         for path in ('scripts/claim_consumption.py', 'scripts/claim_tex.py',
                      'scripts/validate_project_state.py'):
             bounded._read(ROOT, path, 2 * 1024 * 1024, observed['skill'])
-        if contract.get('version') != '1.3.0':
+        if contract.get('version') != '1.4.0':
             raise EvidenceError('unsupported B2 contract version')
         policy = framework['claim_consumption_policy']
         if isinstance(policy, Mapping) and policy.get('figure_bindings'):
             bounded._read(ROOT, 'scripts/claim_figure.py', 2 * 1024 * 1024, observed['skill'])
+            if any(isinstance(item, Mapping) and item.get('source_bindings')
+                   for item in policy['figure_bindings']):
+                for path in ('scripts/claim_figure_source.py', 'scripts/project_snapshot.py',
+                             'scripts/artifact_fingerprint.py', 'scripts/stage_code.py',
+                             'scripts/claim_workbook.py', 'scripts/claim_values.py'):
+                    bounded._read(ROOT, path, 2 * 1024 * 1024, observed['skill'])
+                import claim_figure_source
         if isinstance(policy, Mapping):
             report['mode'] = policy.get('mode') if isinstance(policy.get('mode'), str) else None
             report['policy_protocol_version'] = (policy.get('protocol_version')
@@ -401,6 +412,20 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
             report['issues'].append('live B1 source qualification or assertion check is not evidence_checked')
             report['b1_errors'] = b1.get('errors', [])
             return report
+        bindings = policy.get('figure_bindings', [])
+        if bindings:
+            registry = claim_figure.parse_framework_figure_rows(framework_text)
+            for binding in bindings:
+                if binding.get('source_bindings'):
+                    check = claim_figure_source.inspect_source_binding(
+                        root, state, binding, registry.get(binding['figure_id'], {}),
+                        b1, observed, claim_contract, cache=source_audit_cache)
+                    source_recheck_checks.append(check)
+                else:
+                    check = {'figure_id': binding['figure_id'], 'status': 'not_assessed',
+                             'approval_freshness': 'not_assessed',
+                             'issues': ['Figure source bindings are not declared']}
+                report['figure_source_checks'].append(check)
         main_path = Path(tex_main)
         if not main_path.is_absolute():
             main_path = root / main_path
@@ -421,6 +446,11 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         report['figure_identity_checks'] = _figure_identity_checks(
             root, state, policy, framework_text, scan, locations, observed,
             main_path.parent.resolve())
+        sources_by_figure = {row['figure_id']: row for row in report['figure_source_checks']}
+        for row in report['figure_identity_checks']:
+            source = sources_by_figure.get(row['figure_id'], {})
+            row['source_qualification'] = source.get('status', 'not_assessed')
+            row['approval_freshness'] = source.get('approval_freshness', 'not_assessed')
         by_id = {row['id']: row for row in locations}
         report['registered_location_gaps'] = [item['id'] for item in fragments
             if any(dep.startswith('claim:') for dep in item['depends_on'])
@@ -523,6 +553,8 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         elif (gaps or report['registered_location_gaps'] or suggestions or
               report['wording_findings'] or report['issues'] or
               any(row['identity_status'] != 'matched' for row in report['figure_identity_checks']) or
+              any(row['status'] != 'current' for row in report['figure_source_checks']
+                  if row['figure_id'] in {b['figure_id'] for b in source_recheck_checks}) or
               any(row['status'] in ('needs_review', 'not_assessed') for row in report['numeric_checks']) or
               report['unregistered_candidates']):
             report['status'] = 'needs_review'
@@ -535,6 +567,11 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         try:
             if (root / JOURNAL_RELATIVE_PATH).exists() or (root / JOURNAL_RELATIVE_PATH).is_symlink():
                 raise EvidenceError('pending project transaction appeared during inspection')
+            if source_recheck_checks:
+                drift = claim_figure_source.recheck_source_discovery(
+                    root, state, source_recheck_checks)
+                if drift:
+                    raise EvidenceError('Figure source discovery changed: ' + '; '.join(drift[:8]))
             bounded._recheck(root, observed['project'])
             bounded._recheck(ROOT, observed['skill'])
         except (OSError, ValueError, RuntimeError) as exc:
