@@ -1,4 +1,4 @@
-# mathmodel-skill v10.6.0
+# mathmodel-skill v10.7.0
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值语言由项目根策略统一选择。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。
 
@@ -70,6 +70,6 @@ python scripts/project_solver_backend.py --help
 
 新增Schema或检查依据会使旧A2绑定要求显式复验，B1仅输出原协调器的命令参数与必要人工判断，不自动续签或执行。详细步骤、旧版本合成证明与限制见 `docs/modeling_intelligence_b1_protocol_decisions.md` 和 `scripts/README.md`；B2正文消费与片段影响由独立只读入口处理。
 
-## B2：显式论文主张消费观察
+## B2：显式论文主张消费观察与有限文本门
 
-`python scripts/claim_consumption.py <项目根> --tex-main final_latex/main.tex` 始终只读，观察已登记主张、paper fragment 依赖与可证明静态包含的 LaTeX 字面源码位置。`observe` 1.0.0 不新增 claim 驱动的写入；原有问题级 `sync_project.py --write` 仍可失效片段并同步《模型论文框架》表行。显式 `propagate` 1.1.0 才根据当前 `modify/reject` 处置的精确 B1 claim ID 增加局部失效，State 与 Framework 表行同事务提交。原 artifact stale、B1 来源资格与人工批准仍须成立；宏展开、PDF 呈现、语义支持和正式写作/图表/交付门尚未由本切片证明或启用。具体边界见 `core/claim_consumption_contract.yaml`。
+`python scripts/claim_consumption.py <项目根> --tex-main final_latex/main.tex` 始终只读，观察已登记主张、paper fragment 依赖与可证明静态包含的 LaTeX 字面源码位置。`observe` 1.0.0 不新增 claim 驱动的写入；显式 `propagate` 1.1.0 根据当前 `modify/reject` 处置的精确 B1 claim ID 增加局部失效，State 与 Framework 表行同事务提交。显式 `enforce_latex_text` 1.2.0 继承该失效路径，并只为活动模块化 LaTeX 中已登记的摘要及各问结果文本启用有限机器门，正式审计、编译证明、显式 latex/submission 同步与提交包验证会复核当前来源。未声明新策略的项目沿用原门；宏展开、PDF 呈现、图注/Figure 链、DOCX、单文件 TeX、全文召回及人工语义支持尚未由该门证明。具体边界见 `core/claim_consumption_contract.yaml`。

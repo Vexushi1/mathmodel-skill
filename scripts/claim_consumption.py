@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""B2 opt-in, read-only claim consumption inspection of static LaTeX sources.
+"""B2 opt-in claim consumption inspection of static LaTeX sources.
 
-Locations and number comparisons are observations, never semantic proof, a
-formal paper gate, a stale-state writer, or permission to requalify workbooks.
+The independent observe/propagate audit stays read-only. An explicit 1.2.0
+policy may use these same bounded observations as a limited formal text gate;
+neither route establishes human semantic coverage or workbook qualification.
 """
 from __future__ import annotations
 
@@ -273,7 +274,7 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         for path in ('scripts/claim_consumption.py', 'scripts/claim_tex.py',
                      'scripts/validate_project_state.py'):
             bounded._read(ROOT, path, 2 * 1024 * 1024, observed['skill'])
-        if contract.get('version') != '1.1.0':
+        if contract.get('version') != '1.2.0':
             raise EvidenceError('unsupported B2 contract version')
         policy = framework['claim_consumption_policy']
         if isinstance(policy, Mapping):
@@ -445,6 +446,126 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
             report['status'] = 'blocked'
             report['errors'].append('read-set conflict: ' + str(exc)[:4096])
     return report
+
+
+def formal_text_gate(project_root: str | Path, *,
+                     tex_main: str | Path = 'final_latex/main.tex') -> dict:
+    """Apply only the explicit B2 1.2.0 static modular LaTeX text gate.
+
+    The result is an ephemeral decision with a complete B1/B2 read set, not a
+    persisted approval. ``not_applicable`` preserves the old delivery route.
+    """
+    root = Path(project_root).expanduser().resolve()
+    result = {'status': 'failed', 'issues': [],
+              'observed_sources': {'project': {}, 'skill': {}},
+              'human_semantic_coverage': 'not_assessed'}
+    observed = result['observed_sources']
+    try:
+        if (root / JOURNAL_RELATIVE_PATH).exists() or (root / JOURNAL_RELATIVE_PATH).is_symlink():
+            raise EvidenceError('pending project transaction requires recovery')
+        if not (root / STATE).is_file():
+            observed['project'][STATE] = None
+            result.update(status='not_applicable', reason='No project State for B2 opt-in.')
+            return result
+        _, state = _read_yaml(root, STATE, 2 * 1024 * 1024, observed['project'])
+        if not isinstance(state, dict):
+            raise EvidenceError('project state is malformed')
+        if 'paper_framework' not in state:
+            result.update(status='not_applicable', reason='No paper framework or B2 opt-in policy.')
+            return result
+        if not isinstance(state['paper_framework'], dict):
+            raise EvidenceError('paper framework is malformed')
+        policy = state['paper_framework'].get('claim_consumption_policy', None)
+        if 'claim_consumption_policy' not in state['paper_framework']:
+            result.update(status='not_applicable', reason='No B2 opt-in policy.')
+            return result
+        if not isinstance(policy, Mapping):
+            raise EvidenceError('B2 policy must be a mapping')
+        pair = (policy.get('protocol_version'), policy.get('mode'))
+        result['policy_protocol_version'], result['mode'] = pair
+        if pair in (('1.0.0', 'observe'), ('1.1.0', 'propagate')):
+            schema = yaml.safe_load(bounded._read(ROOT, SCHEMA, 2 * 1024 * 1024,
+                                                   observed['skill']).decode('utf-8'))
+            validator = Draft202012Validator({'$ref': '#/$defs/claim_consumption_policy',
+                                               '$defs': schema['$defs']})
+            error = next(validator.iter_errors(policy), None)
+            if error:
+                raise EvidenceError('B2 policy schema: ' + error.message[:4096])
+            issues = _validate_claim_consumption_policy(state['paper_framework'])
+            fragment_issues, _ = _validate_paper_fragments(state['paper_framework'])
+            issues.extend(fragment_issues)
+            if issues:
+                raise EvidenceError('B2 policy relations: ' + '; '.join(issues[:8]))
+            result.update(status='not_applicable', reason='B2 policy does not opt into formal text enforcement.')
+            return result
+        if pair != ('1.2.0', 'enforce_latex_text'):
+            raise EvidenceError('unsupported B2 policy protocol_version/mode pair')
+        main = Path(tex_main)
+        if main.is_absolute():
+            main = main.resolve()
+        else:
+            main = (root / main).resolve()
+        if main != (root / 'final_latex/main.tex').resolve():
+            raise EvidenceError('B2 formal text gate requires final_latex/main.tex')
+        audit = inspect_project(root, tex_main=main)
+        merge_read_sets(observed, audit.get('observed_sources', {}))
+        result['audit_status'] = audit['status']
+        result['b1_status'] = audit['b1_status']
+        result['fragment_locations'] = audit['fragment_locations']
+        if audit['status'] != 'observed':
+            result['issues'].append('B2 live claim consumption audit is not observed: ' + audit['status'])
+        for field in ('errors', 'issues'):
+            result['issues'].extend(str(issue) for issue in audit.get(field, []))
+        scan = audit.get('tex_scan', {})
+        if scan.get('status') != 'scanned' or len(set(scan.get('active_files', []))) < 2:
+            result['issues'].append('B2 formal text gate requires a proven active modular static LaTeX include graph')
+        if audit.get('b1_status') != 'evidence_checked':
+            result['issues'].append('live B1 source and assertion qualification is not evidence_checked')
+        for item in audit['fragment_locations']:
+            if item['status'] == 'located' and item['fragment_status'] != 'current':
+                result['issues'].append(f"active fragment is not current: {item['id']}")
+        allowed_kinds = {'abstract_claim', 'question_result_text'}
+        for fragment in state['paper_framework'].get('paper_fragments', []):
+            if not any(dep.startswith('claim:') for dep in fragment['depends_on']):
+                continue
+            if fragment['kind'] not in allowed_kinds:
+                result['issues'].append(f"claim-linked fragment kind is outside the formal text gate: {fragment['id']}")
+            if fragment['status'] != 'current':
+                result['issues'].append(f"claim-linked fragment is not current: {fragment['id']}")
+        for item in audit['required_coverage']:
+            if item['fragment_kind'] not in allowed_kinds:
+                result['issues'].append(
+                    f"required fragment kind is outside the formal text gate: {item['claim_id']}/{item['fragment_kind']}")
+            if item['status'] != 'located':
+                result['issues'].append(
+                    f"required text consumption is not current and located: {item['claim_id']}/{item['fragment_kind']}")
+        if audit['registered_location_gaps']:
+            result['issues'].append('registered claim-linked fragment location gaps: ' +
+                                    ', '.join(audit['registered_location_gaps']))
+        for item in audit['numeric_checks']:
+            if item['status'] != 'matched':
+                result['issues'].append(f"numeric claim text is not matched: {item['fragment_id']}/{item['status']}")
+        if audit['wording_findings']:
+            result['issues'].append('registered claim wording needs review')
+        if audit['unregistered_candidates']:
+            result['issues'].append('unregistered numeric candidates need review')
+        if audit['suggested_stale_fragment_ids']:
+            result['issues'].append('current analysis dispositions suggest stale claim fragments')
+        result['issues'] = sorted(set(result['issues']))
+        if not result['issues']:
+            result['status'] = 'passed'
+    except (OSError, ValueError, TypeError, KeyError, AttributeError, yaml.YAMLError) as exc:
+        result['issues'].append(str(exc)[:4096])
+    finally:
+        try:
+            if (root / JOURNAL_RELATIVE_PATH).exists() or (root / JOURNAL_RELATIVE_PATH).is_symlink():
+                raise EvidenceError('pending project transaction appeared during formal text gate')
+            bounded._recheck(root, observed['project'])
+            bounded._recheck(ROOT, observed['skill'])
+        except (OSError, ValueError, RuntimeError) as exc:
+            result['status'] = 'failed'
+            result['issues'].append('read-set conflict: ' + str(exc)[:4096])
+    return result
 
 
 def main() -> int:

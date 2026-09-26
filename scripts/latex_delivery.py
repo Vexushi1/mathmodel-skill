@@ -418,6 +418,28 @@ def inspect_log(log_path: Path) -> dict[str, Any]:
     }
 
 
+def _claim_text_proof_issues(*, project: Path, main: Path,
+                             report: Mapping[str, Any]) -> list[str]:
+    """Replay the current B2 gate and bind formal audit to its whole read set."""
+    from claim_consumption import formal_text_gate
+
+    latex_root = project.resolve()
+    project_root = latex_root.parent if latex_root.name == 'final_latex' else latex_root
+    gate = formal_text_gate(project_root, tex_main=main)
+    recorded = report.get('claim_text_gate')
+    if gate['status'] == 'failed':
+        return ['当前B2正式文本门未通过: ' + '; '.join(gate['issues'][:8])]
+    if gate['status'] == 'not_applicable':
+        return ['B2策略在审计后变化；latex_audit_report stale'] if recorded is not None else []
+    if not isinstance(recorded, Mapping) or recorded.get('status') != 'passed':
+        return ['latex_audit_report缺少当前B2正式文本门证明；请重新审计']
+    if (recorded.get('policy_protocol_version') != gate.get('policy_protocol_version')
+            or recorded.get('mode') != gate.get('mode')
+            or recorded.get('observed_sources') != gate['observed_sources']):
+        return ['B2 State/Framework/工作簿/LaTeX读集在审计后变化；latex_audit_report stale']
+    return []
+
+
 def verify_audit_report(
     *,
     project: Path,
@@ -445,13 +467,15 @@ def verify_audit_report(
             issues.extend(formal_assembly_issues(main))
         except (OSError, ValueError) as exc:
             issues.append(f"正式全量装配无法核对: {exc}")
-        framework = framework_path or project.parent / "模型论文框架.md"
+        project_root = main.resolve().parent.parent if main.resolve().parent.name == 'final_latex' else main.resolve().parent
+        framework = framework_path or project_root / "模型论文框架.md"
         if not framework.is_file():
             issues.append("正式LaTeX证明缺少模型论文框架.md")
         else:
             recorded = str(report.get("framework_sha256", ""))
             if not recorded or recorded != sha256_file(framework):
                 issues.append("模型论文框架在审计后发生变化；latex_audit_report stale")
+        issues.extend(_claim_text_proof_issues(project=project, main=main, report=report))
     return issues
 
 

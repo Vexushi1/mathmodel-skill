@@ -41,7 +41,7 @@ class ClaimConsumptionContractTests(unittest.TestCase):
         })
 
     def test_optional_closed_policy_pairs_and_bounded_obligations(self):
-        self.assertEqual(self.schema["version"], "8.5.0")
+        self.assertEqual(self.schema["version"], "8.6.0")
         paper = self.schema["properties"]["paper_framework"]
         self.assertNotIn("claim_consumption_policy", paper["required"])
         self.assertEqual(paper["properties"]["claim_consumption_policy"],
@@ -50,15 +50,20 @@ class ClaimConsumptionContractTests(unittest.TestCase):
         self.assertTrue(self.policy_validator.is_valid(valid))
         propagate = {**valid, "protocol_version": "1.1.0", "mode": "propagate"}
         self.assertTrue(self.policy_validator.is_valid(propagate))
+        enforce = {**valid, "protocol_version": "1.2.0", "mode": "enforce_latex_text"}
+        self.assertTrue(self.policy_validator.is_valid(enforce))
         for bad in (None, {}, {**valid, "mode": "enforce"},
                     {**valid, "mode": "propagate"},
                     {**valid, "protocol_version": "1.1.0"},
+                    {**valid, "protocol_version": "1.2.0"},
+                    {**valid, "mode": "enforce_latex_text"},
                     {**valid, "mode": None},
                     {**valid, "protocol_version": None},
                     {key: value for key, value in valid.items() if key != "mode"},
                     {key: value for key, value in valid.items() if key != "protocol_version"},
                     {**valid, "protocol_version": "2.0.0"},
                     {**propagate, "mode": "enforce"},
+                    {**enforce, "mode": "propagate"},
                     {**propagate, "required_consumptions": []},
                     {**valid, "source_format": "modular_latex"},
                     {**valid, "required_consumptions": []},
@@ -92,6 +97,8 @@ class ClaimConsumptionContractTests(unittest.TestCase):
         for policy in (None, {}, {"mode": "observe"},
                        {**base["claim_consumption_policy"], "mode": "propagate"},
                        {**base["claim_consumption_policy"], "protocol_version": "1.1.0"},
+                       {**base["claim_consumption_policy"], "protocol_version": "1.2.0"},
+                       {**base["claim_consumption_policy"], "mode": "enforce_latex_text"},
                        {**base["claim_consumption_policy"], "mode": "other"}):
             with self.subTest(policy=policy):
                 changed = deepcopy(base)
@@ -99,6 +106,8 @@ class ClaimConsumptionContractTests(unittest.TestCase):
                 self.assertTrue(state_validator._validate_claim_consumption_policy(changed))
         good = deepcopy(base)
         good["claim_consumption_policy"].update(protocol_version="1.1.0", mode="propagate")
+        self.assertEqual(state_validator._validate_claim_consumption_policy(good), [])
+        good["claim_consumption_policy"].update(protocol_version="1.2.0", mode="enforce_latex_text")
         self.assertEqual(state_validator._validate_claim_consumption_policy(good), [])
 
     def test_opt_in_references_and_claim_ids_must_be_unique_and_known(self):
@@ -162,29 +171,37 @@ class ClaimConsumptionContractTests(unittest.TestCase):
         state["paper_framework"].pop("claim_consumption_policy")
         self.assertEqual(state_validator.validate_state_payload(state, project_root=ROOT), [])
 
-    def test_contract_keeps_original_authorities_and_limits_writer_to_propagate(self):
+    def test_contract_keeps_original_authorities_and_limits_new_gate_to_explicit_text_scope(self):
         contract = yaml.safe_load((ROOT / "core/claim_consumption_contract.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(contract["version"], "1.1.0")
+        self.assertEqual(contract["version"], "1.2.0")
         self.assertEqual(contract["authority"]["numerical_qualification"], "core/claim_evidence_contract.yaml")
         self.assertEqual(contract["authority"]["claim_strength"],
                          "core/writing_reasoning_contract.yaml#claim_strength_calibration")
         self.assertEqual(contract["activation"]["supported_policies"], [
             {"protocol_version": "1.0.0", "mode": "observe", "stale_writer": "none"},
             {"protocol_version": "1.1.0", "mode": "propagate", "stale_writer": "existing_project_transaction_only"},
+            {"protocol_version": "1.2.0", "mode": "enforce_latex_text", "stale_writer": "existing_project_transaction_only"},
         ])
         self.assertTrue(contract["activation"]["audit_route_read_only_in_all_modes"])
         self.assertEqual(contract["activation"]["project_writer"],
-                         "existing_project_transaction_for_propagate_only")
-        self.assertFalse(contract["activation"]["automatic_existing_gate_insertion"])
+                         "existing_project_transaction_for_propagate_or_enforce_latex_text")
+        self.assertEqual(contract["activation"]["automatic_existing_gate_insertion"],
+                         "explicit_latex_or_submission_scope_only_for_protocol_1.2.0")
+        self.assertEqual(contract["formal_text_gate"]["activation"],
+                         "explicit_enforce_latex_text_protocol_1.2.0_and_explicit_latex_or_submission_scope")
+        self.assertEqual(contract["formal_text_gate"]["source_binding"],
+                         "project_and_skill_read_sets_rechecked_under_existing_project_lock")
+        self.assertEqual(contract["formal_text_gate"]["passing_sync"],
+                         "preserve_State_and_Framework_bytes_write_only_sync_report_under_project_lock")
         propagation = contract["stale_propagation"]
-        self.assertEqual(propagation["activation"], "explicit_propagate_protocol_1.1.0_only")
+        self.assertEqual(propagation["activation"], "explicit_propagate_1.1.0_or_enforce_latex_text_1.2.0")
         self.assertEqual(propagation["seed_edges"], "claim:<id> dependencies of paper_fragments")
         self.assertEqual(propagation["transitive_edges"], "paper_fragment_ID_dependencies")
         self.assertEqual(propagation["merge"], "union_with_existing_question_and_artifact_stale")
         self.assertEqual(propagation["status_change"], "current_to_stale_only_never_clear_stale")
         self.assertEqual(propagation["persistence"],
                          "State_and_Framework_fragment_rows_in_one_existing_project_transaction")
-        self.assertEqual(propagation["audit_route"], "report_only_in_both_modes")
+        self.assertEqual(propagation["audit_route"], "report_only_in_all_modes")
 
 
 if __name__ == "__main__":

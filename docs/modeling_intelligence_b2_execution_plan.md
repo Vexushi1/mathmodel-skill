@@ -2,7 +2,7 @@
 
 > 阶段指南，不是运行时 Authority。B2 的只读审计、状态写入、正式门禁和跨格式覆盖须分别以实际提交、测试和 CI 证明；完成首个切片不等于完成 B2。
 
-> **2026-09-26 接续：** B2a [PR #240](https://github.com/Vexushi1/mathmodel-skill/pull/240) 已合并为 `b7c0f6827fdab4319c504f9f1592a59096fef265`；最终 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36215999744) 和 [优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36215999692) 成功，主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36216997615) 13/13 成功，合并树与已测 head 树一致。下面原 B2a 简报保留为实施记录；当前改动进入单独的 B2b1 局部失效切片。
+> **2026-09-26 接续：** B2a [PR #240](https://github.com/Vexushi1/mathmodel-skill/pull/240) 已合并为 `b7c0f6827fdab4319c504f9f1592a59096fef265`；最终 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36215999744) 和 [优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36215999692) 成功，主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36216997615) 13/13 成功。B2b1 [PR #241](https://github.com/Vexushi1/mathmodel-skill/pull/241) 已合并为 `a17a1d539519fc7c662a73fb957871c822aadf36`；精确 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36220676500) 13/13、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36220676509) 和主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36221675161) 13/13 均成功，合并树与已测 head 树一致。下面 B2a/B2b1 简报保留为实施记录；当前进入单独的 B2b2 模块化 LaTeX 文本门切片。
 
 日期：2026-09-26。基线 main=`a7ff4b792c4f0dac92bb7cd5b4569cf0de03967d`，Skill 10.4.0 / State 8.3.0；B1 PR #239 已合并，主干 CI [36212303219](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36212303219) 13/13 成功，合并树与最终 B1 head 树一致。开始本阶段时没有其他开放 PR。本指南落实原计划第 7、11—16、19 节，保留 B1 的 accepted 资格与语义支持边界。
 
@@ -75,3 +75,18 @@ B2a 对 `analysis_evidence_dispositions` 的 `modify/reject` 仅给出影响 cla
 | 回滚 | 未合并时撤回独立 PR；合并后不能删除已经声明的 1.1.0 记录来伪装兼容，保留旧 stale 与项目事务恢复边界 |
 
 预计文件组为可选 State/B2 协议、纯失效闭包、原同步器中的唯一 writer、Frame 表投影校验、专项及历史兼容测试、版本载体和生成元数据。不另造第二个写入器或默认路由门。正式消费门、DOCX/单文件 TeX、Figure ID→脚本→accepted 来源→图片→caption 另阶段处理；这些验收完成前 B2 台账保持进行中，C/D/E 不启动。
+
+## 7. B2b2 模块化 LaTeX 文本门的修改简报
+
+| 项目 | 决定 |
+|---|---|
+| 当前基线 | `main@a17a1d539519fc7c662a73fb957871c822aadf36`，Skill 10.6.0 / State 8.5.0；2026-09-26 查询无开放 PR，主干 CI 36221675161 成功 |
+| 目标 | 向后兼容的 Skill 10.7.0 / State 8.6.0，B2 精确 `1.2.0/enforce_latex_text` 配对；只在明示项目的模块化 LaTeX 文本范围执行机器门 |
+| 直接目标 | 现场重检 B1 当前来源、已登记 claim 到活动摘要/正文 fragment 的消费、数值与过强措辞；正式 LaTeX 审计、编译证明、显式 latex/submission 同步和提交验证均不可绕过；旧证明绑定当前 State、Framework、workbook、源码和 Skill 读集 |
+| Authority | B1 来源资格、B2 消费合同、State/fragment、现有 Writing Reasoning 与 LaTeX 审计/编译/提交链；Framework 表仍是 State 投影 |
+| 明确不做 | 不宣称人工语义覆盖、全文召回或 Figure ID→脚本→accepted 来源→图片→caption；不把 DOCX、单文件/动态 TeX 纳入新门，不改数值求解或接受资格 |
+| 兼容与迁移 | 无 policy、`1.0.0/observe`、`1.1.0/propagate` 保持原门；新模式继承 claim 局部 stale 写入；未知/错配协议 fail closed。项目须显式选择新模式并复核义务与活动模块化源码，不能自动升级 |
+| 验收 | B01、B09—B12、B16 的选定文本范围正反例；旧项目差分、跨格式未评估、read-set 改写和旧证明重放；lint、全量单测、索引检查、精确 head CI、合并树与主干复验 |
+| 回滚 | 未合并撤回本主题 PR；已声明新协议的项目保留可解释状态及原 stale，不能删除字段冒充旧项目 |
+
+本切片只授予“已声明模块化 LaTeX 文本消费机器门通过”的有限判定。任何图注或其他未支持的 claim 消费义务均不能从文本门取得通过；B2 完成复核和 C1 继续等待后续独立验收。

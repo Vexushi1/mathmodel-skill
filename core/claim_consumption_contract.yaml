@@ -1,8 +1,9 @@
-version: 1.1.0
+version: 1.2.0
 status: active_opt_in
 introduced_in_skill_version: 10.5.0
 propagate_introduced_in_skill_version: 10.6.0
-purpose: Locate and compare declared claim consumption; explicitly propagate stale fragment status from qualifying claim dispositions without asserting semantic truth.
+latex_text_gate_introduced_in_skill_version: 10.7.0
+purpose: Locate and compare declared claim consumption, propagate qualifying stale fragment status, and gate only the declared static modular LaTeX text subset without asserting semantic truth.
 authority:
   policy_shape: core/project_state.schema.yaml#/$defs/claim_consumption_policy
   policy_path: paper_framework.claim_consumption_policy
@@ -19,10 +20,11 @@ activation:
   supported_policies:
   - {protocol_version: 1.0.0, mode: observe, stale_writer: none}
   - {protocol_version: 1.1.0, mode: propagate, stale_writer: existing_project_transaction_only}
+  - {protocol_version: 1.2.0, mode: enforce_latex_text, stale_writer: existing_project_transaction_only}
   audit_route_read_only_in_all_modes: true
-  automatic_existing_gate_insertion: false
-  project_writer: existing_project_transaction_for_propagate_only
-  persistence: audit_stdout_only_and_propagate_stale_only
+  automatic_existing_gate_insertion: explicit_latex_or_submission_scope_only_for_protocol_1.2.0
+  project_writer: existing_project_transaction_for_propagate_or_enforce_latex_text
+  persistence: audit_stdout_only_and_claim_stale_status_only
   default_project_files_added: []
 relationships:
   actual_consumption: 'paper_fragments[].depends_on contains claim:<id>'
@@ -32,7 +34,7 @@ relationships:
   framework_role: human_readable_projection_must_agree_when_opted_in
   numerical_truth: original_accepted_workbook_qualification_only
 stale_propagation:
-  activation: explicit_propagate_protocol_1.1.0_only
+  activation: explicit_propagate_1.1.0_or_enforce_latex_text_1.2.0
   trigger: current_modify_or_reject_disposition_with_exact_same_question_B1_claim_ID
   seed_edges: 'claim:<id> dependencies of paper_fragments'
   transitive_edges: paper_fragment_ID_dependencies
@@ -40,14 +42,29 @@ stale_propagation:
   status_change: current_to_stale_only_never_clear_stale
   status_change_scope: claim_driven_only_existing_question_level_rules_remain
   persistence: State_and_Framework_fragment_rows_in_one_existing_project_transaction
-  audit_route: report_only_in_both_modes
+  audit_route: report_only_in_all_modes
+formal_text_gate:
+  activation: explicit_enforce_latex_text_protocol_1.2.0_and_explicit_latex_or_submission_scope
+  supported_source: proven_active_static_modular_latex_text
+  permitted_fragment_kinds: [abstract_claim, question_result_text]
+  read_only_entrypoint: scripts/claim_consumption.py#formal_text_gate
+  checked_subset: declared_claim_consumption_in_active_text
+  excludes: [figure_content, docx, single_file_latex, rendered_pdf, full_paper_semantic_coverage]
+  stale_dependency: inherited_claim_driven_and_legacy_stale_status_must_be_current
+  write_behavior: no_independent_State_or_Framework_writer
+  passing_sync: preserve_State_and_Framework_bytes_write_only_sync_report_under_project_lock
+  changed_candidate_sync: fail_formal_qualification_and_keep_existing_safe_stale_transaction
+  activated_policy_non_passed: block_explicit_latex_or_submission_qualification
+  source_binding: project_and_skill_read_sets_rechecked_under_existing_project_lock
 scope:
   first_slice: provably_active_static_modular_latex
   unsupported_active_graph: not_assessed
+  unsupported_active_graph_when_formal: failed
   unsupported_formats: not_assessed
   unregistered_candidates: needs_review_not_complete_semantic_recall
   human_semantic_coverage: not_assessed
   audit_proposed_fragment_stale: report_only_not_written_status
+  formal_text_gate: only_explicit_1.2.0_policy_and_explicit_latex_or_submission_scope
 limits:
   policy_obligations: 512
   fragment_kinds_per_obligation: 8
@@ -55,6 +72,7 @@ limits:
   fragment_dependency_edges: 2048
 result_semantics:
   statuses: [observed, needs_review, not_assessed, blocked]
+  formal_text_gate_statuses: [passed, failed, not_applicable]
   evidence_status: inherit_live_B1_result_per_claim
   semantic_support: not_established
   execution_authorized: false
@@ -62,8 +80,9 @@ rules:
 - Missing policy leaves existing routes and gates unchanged.
 - Protocol 1.0.0 observe adds no claim-driven write; its audit is read-only. Existing question-level sync writes still update stale fragments and their Framework projection.
 - Protocol 1.1.0 propagate explicitly opts into claim-driven stale-only writes in existing project transactions.
+- Protocol 1.2.0 enforce_latex_text inherits the claim-driven stale-only writer and adds a limited formal gate only for explicit latex or submission scope.
 - Unknown, partial, or mismatched protocol-version and mode pairs block opt-in processing.
-- The claim_consumption_audit route is read-only in both modes and cannot be treated as formal delivery approval.
+- The claim_consumption_audit route remains read-only in all modes and cannot be treated as formal delivery approval.
 - Only existing claim-prefixed fragment dependencies record actual consumption; the policy records coverage obligations.
 - Unknown or duplicated claim IDs, malformed claim references, clear question-scope conflicts and cyclic fragment references block opt-in structural validation.
 - An unlocated required fragment is an observed coverage gap, not a successful semantic claim or a schema-shape error.
@@ -71,7 +90,7 @@ rules:
 - Keep original accepted workbook and artifact stale decisions; a value match never signs them current again.
 - Machine text matches do not prove robustness, optimality, causality, statistical significance or full-paper claim coverage.
 - Propagate may mark a transitively dependent current fragment stale, but cannot clear stale status or requalify source evidence.
-- Propagate accepts only a current modify/reject disposition whose target_claim is an exact B1 claim ID in the same question scope; legacy text matches remain audit suggestions only.
+- Claim-driven stale propagation accepts only a current modify/reject disposition whose target_claim is an exact B1 claim ID in the same question scope; legacy text matches remain audit suggestions only.
 - Seed from claim-prefixed dependencies, traverse fragment-ID dependencies, and union the result with existing question and artifact stale decisions.
 - Commit fragment status in State and the Framework dependency table through the same existing project transaction.
-- A formal delivery gate requires a separate reviewed protocol; this audit does not claim one.
+- The 1.2.0 formal text gate must fail closed on missing coverage, conflicting or unassessed numeric text, unresolved wording or current stale fragments in its declared static LaTeX text subset; it does not certify semantic truth or full-paper coverage.
