@@ -7,13 +7,84 @@ returned/mutated project state themselves.
 """
 from __future__ import annotations
 
+import re
 from collections import defaultdict, deque
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Collection, Mapping, MutableMapping
 from typing import Any
 
 VALID_DEPENDENCY_KINDS = {"data", "parameter", "model", "result"}
 LEGACY_DEPENDENCY_KIND = "legacy_untyped"
 _EVENT_SIGNAL = "*"
+_CLAIM_ID = re.compile(r"[A-Za-z][A-Za-z0-9_-]{0,63}\Z")
+_FRAGMENT_ID = re.compile(r"paper\.[A-Za-z0-9_.-]+\Z")
+
+
+def claim_fragment_stale_closure(
+    fragments: list[Mapping[str, Any]], claim_ids: Collection[str]
+) -> list[str]:
+    """Return the bounded fragment closure of exact changed-claim references.
+
+    Only ``claim:<id>`` and fragment-ID dependencies participate. Other legacy
+    dependency tokens belong to the existing question-level transition engine.
+    This helper neither mutates its inputs nor writes project state.
+    """
+    if not isinstance(fragments, list) or len(fragments) > 512:
+        raise ValueError("paper fragments must be a list of at most 512 entries")
+    if isinstance(claim_ids, (str, bytes)) or not isinstance(claim_ids, Collection):
+        raise ValueError("claim IDs must be a collection of identifiers")
+    changed = set()
+    for claim_id in claim_ids:
+        if not isinstance(claim_id, str) or not _CLAIM_ID.fullmatch(claim_id):
+            raise ValueError(f"malformed claim ID: {claim_id!r}")
+        changed.add(claim_id)
+
+    by_id: dict[str, Mapping[str, Any]] = {}
+    for index, fragment in enumerate(fragments):
+        if not isinstance(fragment, Mapping):
+            raise ValueError(f"paper fragment at index {index} must be a mapping")
+        fragment_id = fragment.get("id")
+        if not isinstance(fragment_id, str) or not _FRAGMENT_ID.fullmatch(fragment_id):
+            raise ValueError(f"malformed paper fragment ID at index {index}: {fragment_id!r}")
+        if fragment_id in by_id:
+            raise ValueError(f"duplicate paper fragment ID: {fragment_id}")
+        by_id[fragment_id] = fragment
+
+    dependents: dict[str, set[str]] = defaultdict(set)
+    seeds: set[str] = set()
+    edge_count = 0
+    for fragment_id, fragment in by_id.items():
+        dependencies = fragment.get("depends_on")
+        if not isinstance(dependencies, list):
+            raise ValueError(f"{fragment_id}.depends_on must be a list")
+        edge_count += len(dependencies)
+        if edge_count > 2048:
+            raise ValueError("paper fragment dependency edge budget exceeded (2048)")
+        seen: set[str] = set()
+        for dependency in dependencies:
+            if not isinstance(dependency, str) or not dependency or dependency != dependency.strip():
+                raise ValueError(f"{fragment_id}.depends_on has malformed reference: {dependency!r}")
+            if dependency in seen:
+                raise ValueError(f"{fragment_id}.depends_on has duplicate reference: {dependency}")
+            seen.add(dependency)
+            if dependency.startswith("claim:"):
+                claim_id = dependency[6:]
+                if not _CLAIM_ID.fullmatch(claim_id):
+                    raise ValueError(f"{fragment_id}.depends_on has malformed claim reference: {dependency}")
+                if claim_id in changed:
+                    seeds.add(fragment_id)
+            elif dependency.startswith("paper."):
+                if not _FRAGMENT_ID.fullmatch(dependency) or dependency not in by_id:
+                    raise ValueError(f"{fragment_id}.depends_on has unknown paper fragment: {dependency}")
+                dependents[dependency].add(fragment_id)
+
+    affected = set(seeds)
+    queue = deque(sorted(seeds))
+    while queue:
+        for dependent in sorted(dependents[queue.popleft()]):
+            if dependent not in affected:
+                affected.add(dependent)
+                queue.append(dependent)
+    return sorted(affected)
 
 
 def _subproblems(state: Mapping[str, Any]) -> Mapping[str, Any]:

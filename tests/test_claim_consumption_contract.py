@@ -1,4 +1,4 @@
-"""B2 observe-only state contract and opt-in reference validation."""
+"""B2 opt-in policy pairing and state reference validation."""
 from copy import deepcopy
 from pathlib import Path
 import sys
@@ -40,16 +40,26 @@ class ClaimConsumptionContractTests(unittest.TestCase):
             "$ref": "#/$defs/claim_consumption_policy", "$defs": cls.schema["$defs"],
         })
 
-    def test_optional_closed_observe_policy_and_bounded_obligations(self):
-        self.assertEqual(self.schema["version"], "8.4.0")
+    def test_optional_closed_policy_pairs_and_bounded_obligations(self):
+        self.assertEqual(self.schema["version"], "8.5.0")
         paper = self.schema["properties"]["paper_framework"]
         self.assertNotIn("claim_consumption_policy", paper["required"])
         self.assertEqual(paper["properties"]["claim_consumption_policy"],
                          {"$ref": "#/$defs/claim_consumption_policy"})
         valid = framework()["claim_consumption_policy"]
         self.assertTrue(self.policy_validator.is_valid(valid))
+        propagate = {**valid, "protocol_version": "1.1.0", "mode": "propagate"}
+        self.assertTrue(self.policy_validator.is_valid(propagate))
         for bad in (None, {}, {**valid, "mode": "enforce"},
+                    {**valid, "mode": "propagate"},
+                    {**valid, "protocol_version": "1.1.0"},
+                    {**valid, "mode": None},
+                    {**valid, "protocol_version": None},
+                    {key: value for key, value in valid.items() if key != "mode"},
+                    {key: value for key, value in valid.items() if key != "protocol_version"},
                     {**valid, "protocol_version": "2.0.0"},
+                    {**propagate, "mode": "enforce"},
+                    {**propagate, "required_consumptions": []},
                     {**valid, "source_format": "modular_latex"},
                     {**valid, "required_consumptions": []},
                     {**valid, "required_consumptions": [valid["required_consumptions"][0]] * 513},
@@ -76,6 +86,20 @@ class ClaimConsumptionContractTests(unittest.TestCase):
         old["paper_fragments"][0]["depends_on"] = ["claim:legacy_unchecked"]
         self.assertEqual(state_validator._validate_claim_consumption_policy(old), [])
         self.assertEqual(state_validator._validate_paper_fragments(old)[0], [])
+
+    def test_relation_validator_rejects_malformed_or_mismatched_policy(self):
+        base = framework()
+        for policy in (None, {}, {"mode": "observe"},
+                       {**base["claim_consumption_policy"], "mode": "propagate"},
+                       {**base["claim_consumption_policy"], "protocol_version": "1.1.0"},
+                       {**base["claim_consumption_policy"], "mode": "other"}):
+            with self.subTest(policy=policy):
+                changed = deepcopy(base)
+                changed["claim_consumption_policy"] = policy
+                self.assertTrue(state_validator._validate_claim_consumption_policy(changed))
+        good = deepcopy(base)
+        good["claim_consumption_policy"].update(protocol_version="1.1.0", mode="propagate")
+        self.assertEqual(state_validator._validate_claim_consumption_policy(good), [])
 
     def test_opt_in_references_and_claim_ids_must_be_unique_and_known(self):
         good = framework()
@@ -138,14 +162,29 @@ class ClaimConsumptionContractTests(unittest.TestCase):
         state["paper_framework"].pop("claim_consumption_policy")
         self.assertEqual(state_validator.validate_state_payload(state, project_root=ROOT), [])
 
-    def test_contract_keeps_original_authorities_and_no_writer(self):
+    def test_contract_keeps_original_authorities_and_limits_writer_to_propagate(self):
         contract = yaml.safe_load((ROOT / "core/claim_consumption_contract.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(contract["version"], "1.0.0")
+        self.assertEqual(contract["version"], "1.1.0")
         self.assertEqual(contract["authority"]["numerical_qualification"], "core/claim_evidence_contract.yaml")
         self.assertEqual(contract["authority"]["claim_strength"],
                          "core/writing_reasoning_contract.yaml#claim_strength_calibration")
-        self.assertEqual(contract["activation"]["project_writer"], "none")
+        self.assertEqual(contract["activation"]["supported_policies"], [
+            {"protocol_version": "1.0.0", "mode": "observe", "stale_writer": "none"},
+            {"protocol_version": "1.1.0", "mode": "propagate", "stale_writer": "existing_project_transaction_only"},
+        ])
+        self.assertTrue(contract["activation"]["audit_route_read_only_in_all_modes"])
+        self.assertEqual(contract["activation"]["project_writer"],
+                         "existing_project_transaction_for_propagate_only")
         self.assertFalse(contract["activation"]["automatic_existing_gate_insertion"])
+        propagation = contract["stale_propagation"]
+        self.assertEqual(propagation["activation"], "explicit_propagate_protocol_1.1.0_only")
+        self.assertEqual(propagation["seed_edges"], "claim:<id> dependencies of paper_fragments")
+        self.assertEqual(propagation["transitive_edges"], "paper_fragment_ID_dependencies")
+        self.assertEqual(propagation["merge"], "union_with_existing_question_and_artifact_stale")
+        self.assertEqual(propagation["status_change"], "current_to_stale_only_never_clear_stale")
+        self.assertEqual(propagation["persistence"],
+                         "State_and_Framework_fragment_rows_in_one_existing_project_transaction")
+        self.assertEqual(propagation["audit_route"], "report_only_in_both_modes")
 
 
 if __name__ == "__main__":

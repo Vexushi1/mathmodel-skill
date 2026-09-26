@@ -100,6 +100,8 @@ class ClaimConsumptionIntegrationTests(unittest.TestCase):
         before = bytes_in(self.root)
         report = audit.inspect_project(self.root)
         self.assertEqual(report["status"], "observed", report)
+        self.assertEqual((report["policy_protocol_version"], report["mode"]),
+                         ("1.0.0", "observe"))
         self.assertEqual(report["b1_status"], "evidence_checked", report)
         self.assertEqual({item["status"] for item in report["numeric_checks"]}, {"matched"})
         self.assertEqual({item["expected_value"] for item in report["numeric_checks"]},
@@ -111,6 +113,37 @@ class ClaimConsumptionIntegrationTests(unittest.TestCase):
         self.assertEqual(report["semantic_support"], "not_established")
         self.assertEqual(report["formal_delivery_gate"], "not_run")
         self.assertEqual(bytes_in(self.root), before)
+
+    def test_propagate_policy_audit_reports_real_mode_without_writing(self):
+        self.state["paper_framework"]["claim_consumption_policy"].update(
+            protocol_version="1.1.0", mode="propagate",
+        )
+        save(self.root, self.state)
+        before = bytes_in(self.root)
+        report = audit.inspect_project(self.root)
+        self.assertEqual(report["status"], "observed", report)
+        self.assertEqual((report["policy_protocol_version"], report["mode"]),
+                         ("1.1.0", "propagate"))
+        self.assertFalse(report["execution_authorized"])
+        self.assertEqual(report["formal_delivery_gate"], "not_run")
+        self.assertEqual(bytes_in(self.root), before)
+
+    def test_partial_unknown_or_mismatched_policy_blocks_before_b1(self):
+        original = deepcopy(self.state["paper_framework"]["claim_consumption_policy"])
+        for policy in (None, {}, {"mode": "observe"},
+                       {**original, "mode": "propagate"},
+                       {**original, "protocol_version": "1.1.0"},
+                       {**original, "mode": "future"}):
+            with self.subTest(policy=policy):
+                self.state["paper_framework"]["claim_consumption_policy"] = policy
+                save(self.root, self.state)
+                before = bytes_in(self.root)
+                with patch.object(audit.claim_evidence, "inspect_project",
+                                  side_effect=AssertionError("B1 called")):
+                    report = audit.inspect_project(self.root)
+                self.assertEqual(report["status"], "blocked", report)
+                self.assertEqual(report["b1_status"], "not_assessed")
+                self.assertEqual(bytes_in(self.root), before)
 
     def test_b01_second_location_110_conflicts_with_same_live_100(self):
         (self.root / "final_latex/result.tex").write_text("Result: 110.00.\n", encoding="utf-8")
@@ -171,6 +204,7 @@ class ClaimConsumptionIntegrationTests(unittest.TestCase):
             with patch.object(audit, "scan_static_latex", side_effect=AssertionError("TeX scanned")):
                 report = audit.inspect_project(self.root)
         self.assertEqual(report["status"], "not_assessed", report)
+        self.assertIsNone(report["mode"])
         self.assertEqual(report["b1_status"], "not_assessed")
         self.assertEqual(bytes_in(self.root), before)
 

@@ -2,6 +2,8 @@
 
 > 阶段指南，不是运行时 Authority。B2 的只读审计、状态写入、正式门禁和跨格式覆盖须分别以实际提交、测试和 CI 证明；完成首个切片不等于完成 B2。
 
+> **2026-09-26 接续：** B2a [PR #240](https://github.com/Vexushi1/mathmodel-skill/pull/240) 已合并为 `b7c0f6827fdab4319c504f9f1592a59096fef265`；最终 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36215999744) 和 [优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36215999692) 成功，主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36216997615) 13/13 成功，合并树与已测 head 树一致。下面原 B2a 简报保留为实施记录；当前改动进入单独的 B2b1 局部失效切片。
+
 日期：2026-09-26。基线 main=`a7ff4b792c4f0dac92bb7cd5b4569cf0de03967d`，Skill 10.4.0 / State 8.3.0；B1 PR #239 已合并，主干 CI [36212303219](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36212303219) 13/13 成功，合并树与最终 B1 head 树一致。开始本阶段时没有其他开放 PR。本指南落实原计划第 7、11—16、19 节，保留 B1 的 accepted 资格与语义支持边界。
 
 ## 1. 修改简报
@@ -57,4 +59,19 @@ B2a 对 `analysis_evidence_dispositions` 的 `modify/reject` 仅给出影响 cla
 
 禁用路径差分不加载新合同或扫描论文；独立 route 没有 `--write`，不插入普通 LaTeX、绘图或交付强制门。运行 `lint_skill.py`、全量 `unittest discover`、`generate_indexes.py --check`、B2 专项与受影响旧测试；仅精确提交的 Linux 多版本、Windows、原生 MATLAB 和 LaTeX CI 全通过后才合并。主干合并树与已测 head 树核对，合并后 CI 再复验。没有真实执行证据时在台账写未运行或进行中。
 
-B2a 的 Schema/合同、位置 scanner、现场 B1 组合审计、显式路由、合成反例与版本载体已在独立分支实现；合并资格仍取决于精确 head 的全量回归和 CI。下一动作是完成该验收，再单独裁决 B2b 的状态写入及正式门。C/D/E 保持未开始。
+合并前记录：B2a 的 Schema/合同、位置 scanner、现场 B1 组合审计、显式路由、合成反例与版本载体已在独立分支实现；当时合并资格仍取决于精确 head 的全量回归和 CI。该验收与合并现已完成，见页首接续记录。C/D/E 保持未开始。
+
+## 6. B2b1 局部失效写入的修改简报
+
+| 项目 | 决定 |
+|---|---|
+| 当前基线 | `main@b7c0f6827fdab4319c504f9f1592a59096fef265`，Skill 10.5.0 / State 8.4.0；无开放 PR |
+| 目标 | Skill 10.6.0 / State 8.5.0，独立 B2 `propagate` 1.1.0 协议；`observe` 1.0.0 不迁移 |
+| 直接目标 | 对显式启用的项目，在现有 `sync_project --write` 中把当前 `modify/reject` 处置的精确 B1 claim ID 扩散到全部登记 fragment，并与 Framework 表行同事务写 stale |
+| Authority | `core/project_state.schema.yaml`、B1/B2 合同、`core/state_transition_contract.yaml`、`scripts/state_transitions.py`、现有 `sync_project.py`/`project_transaction.py`；Framework 表是 State 的可核对投影 |
+| 明确不做 | 不对普通项目和 `observe` 项目新增 claim 驱动失效；保留旧问题级同步写入；不按自由文本猜测 claim ID，不清除既有 artifact stale，不续签 accepted/approval，不接正式写作/图表/交付 gate，不宣称 B2 完成 |
+| 兼容与迁移 | 新策略必须精确配对协议和 mode；未知/残缺记录 fail closed。已有 `observe` 不自动升级；需要持久化失效的项目显式选择新策略并复核当前处置的目标 ID |
+| 验收 | B12 辅助否决只失效相关片段、依赖扇出、未知/歧义目标拒写、旧问题级失效并集、State/Framework 同步、generation/read-set 冲突与事务故障注入；完整基础回归、lint、索引、精确 head CI 和主干复验 |
+| 回滚 | 未合并时撤回独立 PR；合并后不能删除已经声明的 1.1.0 记录来伪装兼容，保留旧 stale 与项目事务恢复边界 |
+
+预计文件组为可选 State/B2 协议、纯失效闭包、原同步器中的唯一 writer、Frame 表投影校验、专项及历史兼容测试、版本载体和生成元数据。不另造第二个写入器或默认路由门。正式消费门、DOCX/单文件 TeX、Figure ID→脚本→accepted 来源→图片→caption 另阶段处理；这些验收完成前 B2 台账保持进行中，C/D/E 不启动。

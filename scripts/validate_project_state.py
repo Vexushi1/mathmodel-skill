@@ -275,7 +275,10 @@ def _validate_claim_consumption_policy(framework: Mapping[str, Any]) -> list[str
         return []
     policy = framework["claim_consumption_policy"]
     if not isinstance(policy, Mapping):
-        return []  # The JSON Schema reports the malformed policy.
+        return ["paper_framework.claim_consumption_policy must be a mapping"]
+    supported_policies = (("1.0.0", "observe"), ("1.1.0", "propagate"))
+    if (policy.get("protocol_version"), policy.get("mode")) not in supported_policies:
+        return ["paper_framework.claim_consumption_policy requires a supported protocol_version/mode pair"]
     record = framework.get("claim_evidence")
     if not isinstance(record, Mapping):
         return ["paper_framework.claim_consumption_policy requires a B1 claim_evidence record"]
@@ -554,6 +557,7 @@ def validate_state_payload(
     payload: Mapping[str, Any], *, project_root: Path,
     schema_path: Path = SCHEMA_PATH, taxonomy_path: Path = TAXONOMY_PATH,
     framework_path_override: Path | None = None,
+    framework_text_override: str | None = None,
     report_path_overrides: Mapping[str, Path] | None = None,
 ) -> list[str]:
     if not isinstance(payload, Mapping):
@@ -607,8 +611,12 @@ def validate_state_payload(
                       else project_root / str(framework.get("path", "模型论文框架.md")))
     framework_sync = framework.get("sync_status")
     expected_framework_hash = framework.get("sha256")
-    if framework_path.is_file() and expected_framework_hash:
-        if _sha256_text(framework_path).lower() != str(expected_framework_hash).lower():
+    if expected_framework_hash and (framework_text_override is not None or framework_path.is_file()):
+        actual_framework_hash = (
+            hashlib.sha256(framework_text_override.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")).hexdigest()
+            if framework_text_override is not None else _sha256_text(framework_path)
+        )
+        if actual_framework_hash.lower() != str(expected_framework_hash).lower():
             issues.append("paper_framework.sha256 does not match the current framework file")
 
     proposition_issues, proposition_ids, proposition_stale = _validate_propositions(

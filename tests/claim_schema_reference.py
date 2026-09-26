@@ -9,13 +9,34 @@ B1_DEFINITIONS = (
 )
 A2_SCHEMA_SHA256 = '657a554b78a93e7de4bde75cf898bf595fe00b9531883b2b804b83e4c0899385'
 B1_SCHEMA_SHA256 = 'fe2ddcef208dc712ed86150e0633e0acacd18e2b3b13c8f13c0c8b7729534034'
+B2A_SCHEMA_SHA256 = '481127098bc09f620c3ee9d64ae368860734808f07fbbce04543310a65f41fb4'
 
 def _digest(schema):
     encoded = json.dumps(schema, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()
     return hashlib.sha256(encoded).hexdigest()
 
+def previous_b2a_schema(schema):
+    schema = deepcopy(schema)
+    assert schema['version'] == '8.5.0'
+    schema['version'] = '8.4.0'
+    policy = schema['$defs']['claim_consumption_policy']
+    assert policy.pop('oneOf') == [
+        {'properties': {'protocol_version': {'const': '1.0.0'}, 'mode': {'const': 'observe'}}},
+        {'properties': {'protocol_version': {'const': '1.1.0'}, 'mode': {'const': 'propagate'}}},
+    ]
+    assert policy['description'] == 'B2显式消费观察或陈旧传播与覆盖义务；实际消费边仍为paper_fragments.depends_on。'
+    policy['description'] = 'B2显式只读消费观察与覆盖义务；实际消费边仍为paper_fragments.depends_on。'
+    assert policy['properties']['protocol_version'] == {'enum': ['1.0.0', '1.1.0']}
+    assert policy['properties']['mode'] == {'enum': ['observe', 'propagate']}
+    policy['properties']['protocol_version'] = {'const': '1.0.0'}
+    policy['properties']['mode'] = {'const': 'observe'}
+    assert _digest(schema) == B2A_SCHEMA_SHA256
+    return schema
+
 def previous_b1_schema(schema):
     schema = deepcopy(schema)
+    if schema['version'] == '8.5.0':
+        schema = previous_b2a_schema(schema)
     assert schema['version'] == '8.4.0'
     schema['version'] = '8.3.0'
     assert schema['properties']['paper_framework']['properties'].pop('claim_consumption_policy') == {
@@ -33,6 +54,8 @@ def previous_b1_schema(schema):
 
 def previous_a2_schema(schema):
     schema = deepcopy(schema)
+    if schema['version'] == '8.5.0':
+        schema = previous_b2a_schema(schema)
     if schema['version'] == '8.4.0':
         schema = previous_b1_schema(schema)
     assert schema['version'] == '8.3.0'
