@@ -719,6 +719,8 @@ def _compile_artifact_issues(root: Path, state: Mapping[str, Any]) -> list[str]:
         issues.append("LaTeX交付缺少 compile_report")
     else:
         report = load_json_or_yaml(report_path)
+        if not isinstance(report, Mapping):
+            return ["compile_report 必须是映射"]
         if str(report.get("status", "")).lower() != "passed":
             issues.append("compile_report 未通过")
         if int(report.get("unresolved_references", 0) or 0) != 0:
@@ -918,6 +920,41 @@ def _capture_sync_source(root: Path, read_set: dict[str, str | None], path: Path
     read_set[relative] = digest
 
 
+def _formal_compile_paths(root: Path, state: Mapping[str, Any], scope: str) -> set[Path]:
+    """Discover files read by the existing LaTeX compile proof."""
+    artifacts = state.get("artifacts") or {}
+    source = root / str(artifacts.get("latex_source") or "final_latex/main.tex")
+    pdf = root / str(artifacts.get("compiled_pdf") or "final_latex/main.pdf")
+    report = root / str(artifacts.get("compile_report") or "final_latex/compile_report.yaml")
+    paths = {source, pdf, report, source.with_suffix(".fls"), source.with_suffix(".log"),
+             source.parent / "latex_audit_report.yaml"}
+    if source.is_file():
+        try:
+            paths.update(LATEX_DELIVERY.source_bundle_files(source))
+        except (OSError, ValueError, UnicodeError):
+            pass  # The compile verifier and formal text gate report unsupported source syntax.
+        try:
+            recorded = LATEX_DELIVERY.recorded_input_snapshot(source)
+        except (OSError, ValueError, UnicodeError):
+            recorded = {}  # The existing compile verifier reports malformed recorder input.
+        for row in recorded.get("actual_input_files", []):
+            if isinstance(row, Mapping) and isinstance(row.get("path"), str):
+                paths.add(source.parent / row["path"])
+    if report.is_file():
+        compiled = load_json_or_yaml(report)
+        if not isinstance(compiled, Mapping):
+            compiled = {}
+        for key, default in (("latex_audit_report", "latex_audit_report.yaml"),
+                             ("log", source.with_suffix(".log").name)):
+            relative = Path(str(compiled.get(key) or default))
+            paths.add(relative if relative.is_absolute() else source.parent / relative)
+    if scope == "submission":
+        paths.add(root / str(artifacts.get("submission_package") or "submission/submission.zip"))
+    for path in paths:
+        _ = PROJECT_TX._guarded_path(root, path.relative_to(root).as_posix())
+    return paths
+
+
 def _capture_sync_question_sources(
     root: Path, name: str, entry: Mapping[str, Any], read_set: dict[str, str | None],
 ) -> set[str]:
@@ -1053,7 +1090,21 @@ def synchronize(
     claim_ids: list[str] = []
     claim_stale_fragments: list[str] = []
     claim_framework_text: str | None = None
+    claim_text_gate: dict[str, Any] | None = None
     initial_framework = state.get("paper_framework") or {}
+    selected_policy = (initial_framework.get("claim_consumption_policy")
+                       if isinstance(initial_framework, Mapping) else None)
+    formal_scope_policy_present = (
+        explicit_delivery_scope and scope in {"latex", "submission"}
+        and isinstance(initial_framework, Mapping)
+        and "claim_consumption_policy" in initial_framework
+    )
+    claim_text_gate_requested = (
+        formal_scope_policy_present and isinstance(selected_policy, Mapping)
+        and (selected_policy.get("protocol_version") == "1.2.0"
+             or selected_policy.get("mode") == "enforce_latex_text")
+    )
+    claim_original_state = deepcopy(state) if write and claim_text_gate_requested else None
     claim_policy_present = (write and state_present and isinstance(initial_framework, Mapping)
                             and "claim_consumption_policy" in initial_framework)
     if claim_policy_present:
@@ -1066,7 +1117,9 @@ def synchronize(
         else:
             policy = initial_framework["claim_consumption_policy"]
             claim_projection_write = True
-            claim_propagate = (policy["protocol_version"], policy["mode"]) == ("1.1.0", "propagate")
+            claim_propagate = (policy["protocol_version"], policy["mode"]) in {
+                ("1.1.0", "propagate"), ("1.2.0", "enforce_latex_text"),
+            }
             try:
                 if not framework_path.is_file():
                     raise ValueError("claim policy requires 模型论文框架.md")
@@ -1084,6 +1137,12 @@ def synchronize(
             except (ValueError, KeyError, TypeError, UnicodeError) as exc:
                 policy_error = True
                 issues.append(f"claim policy projection: {exc}")
+    elif formal_scope_policy_present:
+        claim_schema = load_yaml(SKILL_ROOT / "core/project_state.schema.yaml")
+        policy_issues = _claim_policy_issues(initial_framework, claim_schema)
+        if policy_issues:
+            policy_error = True
+            issues.extend(policy_issues)
     try:
         project_backend = STAGE_CODE.current_project_backend(
             state, required=(explicit_delivery_scope or write) and scope in {
@@ -1212,10 +1271,30 @@ def synchronize(
         issues.extend(contract_preflight_issues(
             root, scope, state_path, framework_path, output_contract, candidate_state=transition_state,
         ))
+    formal_compile_read_set: dict[str, str | None] | None = None
+    formal_compile_paths: set[Path] | None = None
+    if claim_text_gate_requested:
+        formal_compile_paths = _formal_compile_paths(root, transition_state, scope)
+        formal_compile_read_set = {}
+        for path in sorted(formal_compile_paths):
+            _capture_sync_source(root, formal_compile_read_set, path)
+        if sync_read_set is not None:
+            for relative, digest in formal_compile_read_set.items():
+                if relative in sync_read_set and sync_read_set[relative] != digest:
+                    raise PROJECT_TX.ReadSetConflictError("formal compile source differs from sync snapshot: " + relative)
+                sync_read_set[relative] = digest
+        skill_profile = LATEX_DELIVERY.COMPILE_PROFILES_PATH
+        CONFORMANCE.merge_read_sets(conformance_read_set, {"skill": {
+            skill_profile.relative_to(SKILL_ROOT).as_posix(): PROJECT_TX.sha256_file(skill_profile)
+        }})
     if explicit_delivery_scope and not (claim_policy_present and policy_error):
         issues.extend(_scope_artifact_issues(root, scope, transition_state, snapshots, output_contract, warnings=warnings))
 
-    if write and state_present:
+    claim_report_only = bool(
+        write and state_present and claim_text_gate_requested and not policy_error
+        and transition_state == claim_original_state
+    )
+    if write and state_present and not claim_report_only:
         framework["last_sync_scope"] = scope
         framework["last_synced_at"] = datetime.now(timezone.utc).isoformat()
         if claim_policy_present and policy_error:
@@ -1252,6 +1331,54 @@ def synchronize(
             candidate_state=transition_state, candidate_framework_text=framework_text_for_write,
         ))
 
+    if claim_text_gate_requested:
+        import claim_consumption as CLAIM_CONSUMPTION
+        claim_text_gate = CLAIM_CONSUMPTION.formal_text_gate(root)
+        CONFORMANCE.merge_read_sets(conformance_read_set, claim_text_gate["observed_sources"])
+        if sync_read_set is not None:
+            for relative, digest in claim_text_gate["observed_sources"]["project"].items():
+                if relative in sync_read_set and sync_read_set[relative] != digest:
+                    raise PROJECT_TX.ReadSetConflictError("claim text gate sync read-set conflict: " + relative)
+                sync_read_set[relative] = digest
+        if claim_text_gate["status"] == "passed":
+            candidate_fragments = {
+                row.get("id"): row for row in
+                (transition_state.get("paper_framework") or {}).get("paper_fragments", [])
+                if isinstance(row, Mapping) and isinstance(row.get("id"), str)
+            }
+            changed = sorted(
+                row["id"] for row in claim_text_gate.get("fragment_locations", [])
+                if row.get("status") == "located"
+                and (candidate_fragments.get(row.get("id")) or {}).get("status") != "current"
+            )
+            if changed:
+                claim_text_gate["status"] = "failed"
+                claim_text_gate["issues"].append(
+                    "candidate State has non-current active LaTeX fragments after sync: " + ", ".join(changed)
+                )
+            elif write and not claim_report_only:
+                claim_text_gate["status"] = "failed"
+                claim_text_gate["issues"].append(
+                    "candidate State changes during sync require a fresh formal text audit"
+                )
+        if claim_text_gate["status"] != "passed":
+            # A failed delivery gate must not suppress the inherited safe stale writer.
+            # A vanished opt-in or conflicted source snapshot cannot enter its transaction.
+            if (claim_text_gate["status"] == "not_applicable"
+                    or any("read-set conflict:" in str(item) for item in claim_text_gate.get("issues", []))):
+                policy_error = True
+                framework_text_for_write = None
+            gate_issues = claim_text_gate.get("issues") or claim_text_gate.get("errors") or []
+            issues.extend("claim formal text gate: " + str(item) for item in gate_issues)
+            if not gate_issues:
+                issues.append("claim formal text gate: " + claim_text_gate["status"])
+        # The compile/PDF proof was checked before the text gate. Recheck it
+        # against the same captured inputs so a mid-check TeX edit cannot pass.
+        issues.extend(_compile_artifact_issues(root, transition_state))
+        if _formal_compile_paths(root, transition_state, scope) != formal_compile_paths:
+            raise PROJECT_TX.ReadSetConflictError("formal compile source discovery changed during sync")
+        PROJECT_TX._check_read_set(root, formal_compile_read_set)
+
     report = {
         "status": "passed" if not issues else "failed",
         "delivery_scope": scope,
@@ -1279,6 +1406,9 @@ def synchronize(
     if claim_propagate:
         report["invalidated_claim_ids"] = claim_ids
         report["claim_stale_fragments"] = claim_stale_fragments
+    if claim_text_gate is not None:
+        report["claim_text_gate"] = claim_text_gate
+        report["state_write_performed"] = write and not policy_error and not claim_report_only
     CONFORMANCE.assert_observed(root, conformance_read_set)
     if write and not policy_error:
         if sync_read_set is not None:
@@ -1291,7 +1421,15 @@ def synchronize(
             PROJECT_TX._check_read_set(root, sync_read_set)
         state_snapshot.assert_current()
         report_text = yaml.safe_dump(report, allow_unicode=True, sort_keys=False)
-        if state_present:
+        if claim_report_only:
+            # Preserve the exact State/Framework bytes bound by the formal audit.
+            # Only the sync report changes, under the same project lock and read set.
+            with PROJECT_TX._project_lock(root):
+                PROJECT_TX._check_read_set(root, sync_read_set)
+                CONFORMANCE.assert_observed(root, conformance_read_set)
+                state_snapshot.assert_current()
+                PROJECT_TX.atomic_write_text(root / "sync_report.yaml", report_text)
+        elif state_present:
             before_state = (
                 [("模型论文框架.md", framework_text_for_write)]
                 if framework_text_for_write is not None

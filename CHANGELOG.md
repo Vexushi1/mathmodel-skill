@@ -1,6 +1,12 @@
 # Changelog
 
-## 10.6.0
+## 10.7.0
+
+- Add an explicit B2 `enforce_latex_text` policy (protocol 1.2.0) for machine-checkable claim consumption in active modular LaTeX text at formal audit, compile, project sync, and package validation boundaries. The gate checks live B1 qualification and current declared fragments; human semantic review remains separate.
+- Retain claim-local stale propagation when an opted-in project advances from `propagate` to `enforce_latex_text`. Existing projects and the `observe`/`propagate` modes keep their prior gate behavior.
+- Figure/caption evidence chains, DOCX, single-file or dynamic TeX, and full-paper semantic coverage remain outside this slice. B2 stays in progress.
+
+## Previous release: 10.6.0
 
 - Add an explicit B2 `propagate` policy (protocol 1.1.0) for claim-ID-based local paper-fragment stale propagation through the existing project sync transaction. The original `observe` 1.0.0 audit stays read-only; projects without the policy keep their prior behavior.
 - Keep State and the Framework fragment table synchronized when the opt-in writer marks fragments stale. Preserve the existing artifact-level stale rules, accepted-workbook qualification, human model approval, and project generation/read-set checks.

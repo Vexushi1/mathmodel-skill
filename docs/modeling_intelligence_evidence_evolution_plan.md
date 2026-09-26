@@ -1,6 +1,6 @@
 # 建模智能与证据闭环增强：详细修改计划与实施指南
 
-> **2026-09-26 当前接续状态：** A2、B1和 B2a 均已合并并完成主干复验；B1见[PR #239](https://github.com/Vexushi1/mathmodel-skill/pull/239)，B2a见[PR #240](https://github.com/Vexushi1/mathmodel-skill/pull/240)。B2 的[只读审计切片](modeling_intelligence_b2_execution_plan.md)已完成，局部失效写入切片在独立分支推进；正式门与跨格式完整验收尚未完成，C/D/E未开始。下文2026-09-25原编制时的“仅写计划”授权、版本基线和停点均为历史记录；阶段进度以第19节和PR的实际证据为准。
+> **2026-09-26 当前接续状态：** A2、B1、B2a 与 B2b1 均已合并并完成主干复验；B1见[PR #239](https://github.com/Vexushi1/mathmodel-skill/pull/239)，B2a见[PR #240](https://github.com/Vexushi1/mathmodel-skill/pull/240)，B2b1见[PR #241](https://github.com/Vexushi1/mathmodel-skill/pull/241)。B2 的[只读审计与局部失效写入](modeling_intelligence_b2_execution_plan.md)已完成；模块化 LaTeX 文本门进入 B2b2 独立切片，跨格式和 Figure 链完整验收尚未完成，C/D/E 未开始。下文2026-09-25原编制时的“仅写计划”授权、版本基线和停点均为历史记录；阶段进度以第19节和PR的实际证据为准。
 
 > **2026-09-25 A2 接续执行说明：** v10.1.0已发布；原计划PR #235和A0/A1的PR #237已合并，A1主干CI 13/13通过。用户本轮明确只授权按计划推进A2，实施分支及PR为 `upgrade/v10.3.0-conformance-a2` / #238。当前裁决与执行证据见 `docs/modeling_intelligence_a2_execution_plan.md`；此前A0裁决见 `docs/modeling_intelligence_a0_decisions.md`。原编制基线和“仅计划”授权叙述保留为历史记录；第19节台账按实际阶段更新。B/C/D/E尚未实施，本轮不发布新Release、不修改用户项目。
 
@@ -819,7 +819,7 @@ A0 先测现有 resolver、同步、代码交付和写作审计的耗时/加载�
 | A1 | 已合并及主干复验通过 | #237 / 718d129bf0121d95bac3e6323e48c11bf67dafba | 1766项本地测试；main CI36119863180 13/13成功 | 结构核验不等于数学等价证明 |
 | A2 | 已合并并完成主干复验 | #238 / 186785e662b15989c649201a25709ae90cfee410 | main CI36137982829 13/13成功；1810次执行/1800唯一测试，补充读集与原生夹具反例已关闭 | 结构核验不证明数学等价 |
 | B1 | 已合并并完成主干复验 | #239 / a7ff4b792c4f0dac92bb7cd5b4569cf0de03967d | 精确head本地1907次测试OK（9 skipped）；PR CI 36208396616 13/13成功；main CI 36212303219 13/13成功 | 已登记声明的来源与算术核验不等于论文全文消费或语义证明 |
-| B2 | 进行中：B2a已合并，B2b1局部失效切片开发中 | [B2a PR #240](https://github.com/Vexushi1/mathmodel-skill/pull/240) / `b7c0f6827fdab4319c504f9f1592a59096fef265`；[B2接续指南](modeling_intelligence_b2_execution_plan.md) | B2a精确head CI 36215999744 13/13与优化基线36215999692成功；合并树同已测head，main CI36216997615 13/13成功；本机单进程 Python3.14 曾原生崩溃，逐文件隔离复跑覆盖 | B2b1写入仍待专项/全量/CI验收；正式门、Figure/DOCX等跨格式链与B2总验收未完成 |
+| B2 | 进行中：B2a、B2b1已合并；B2b2模块化 LaTeX 文本门开发中 | [B2a PR #240](https://github.com/Vexushi1/mathmodel-skill/pull/240) / `b7c0f6827fdab4319c504f9f1592a59096fef265`；[B2b1 PR #241](https://github.com/Vexushi1/mathmodel-skill/pull/241) / `a17a1d539519fc7c662a73fb957871c822aadf36`；[B2接续指南](modeling_intelligence_b2_execution_plan.md) | B2a精确head CI 36215999744、main CI 36216997615 均13/13；B2b1精确head CI 36220676500、main CI 36221675161 均13/13，优化基线 36220676509 成功，合并树同已测head | B2b2 尚待实现/专项/全量/CI验收；Figure/DOCX/单文件 TeX 等跨格式链与 B2 总验收未完成 |
 | C1 | 未开始 | — | — | 回执与独立性来源 |
 | C2 | 未开始 | — | — | 门禁及复验消费 |
 | D1 | 未开始 | — | — | 案例准入与种子 |

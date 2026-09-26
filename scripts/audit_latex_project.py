@@ -12,6 +12,7 @@ from pathlib import Path
 import yaml
 
 from audit_paper_prose import Finding, audit_bibliography, audit_framework_consistency, audit_text, overall_status
+from claim_consumption import formal_text_gate
 from latex_delivery import formal_assembly_issues, sha256_file, source_bundle_snapshot
 
 INCLUDE_RE = re.compile(r"\\(?:input|include)\s*\{([^{}]+)\}")
@@ -25,6 +26,18 @@ DOCUMENT_BODY_RE = re.compile(r"\\begin\s*\{document\}(.*?)\\end\s*\{document\}"
 DEEP_FORMAL_HEADING_RE = re.compile(
     r"\\(?P<command>paragraph|subparagraph)\*?\s*(?:\[[^\]]*\]\s*)?\{(?P<title>[^{}]*)\}"
 )
+
+
+def _claim_text_gate(main_file: Path) -> dict:
+    project = main_file.parent.parent if main_file.parent.name == "final_latex" else main_file.parent
+    return formal_text_gate(project, tex_main=main_file)
+
+
+def _claim_text_findings(gate: dict) -> list[Finding]:
+    if gate['status'] != 'failed':
+        return []
+    details = '; '.join(gate['issues'][:8]) or 'B2 formal text gate failed'
+    return [Finding('blocking', 'b2_claim_text_gate_failed', details)]
 
 
 def strip_comments(text: str) -> str:
@@ -296,6 +309,8 @@ def audit_project(
             continue
         relative = path.relative_to(project_root).as_posix()
         findings.append(Finding("warning", "latex_orphan_fragment", f"LaTeX 工程中存在未被 main.tex 引用的 .tex 文件：{relative}", relative))
+    if formal:
+        findings.extend(_claim_text_findings(_claim_text_gate(main_file)))
     return findings
 
 
@@ -318,6 +333,9 @@ def write_audit_report(
                             for issue in formal_assembly_issues(main_file))
         except ValueError as exc:
             findings.append(Finding("blocking", "latex_formal_assembly_incomplete", str(exc)))
+    claim_text_gate = _claim_text_gate(main_file) if mode == "formal" else None
+    if claim_text_gate is not None and not any(item.code == 'b2_claim_text_gate_failed' for item in findings):
+        findings.extend(_claim_text_findings(claim_text_gate))
     snapshot_error: str | None = None
     try:
         snapshot = source_bundle_snapshot(main_file, bib_path=bib_path)
@@ -345,6 +363,11 @@ def write_audit_report(
         "source_snapshot_error": snapshot_error,
         "framework": str(framework_path) if framework_path is not None else None,
         "framework_sha256": framework_hash,
+        **({'claim_text_gate': {key: claim_text_gate[key] for key in
+                                ('status', 'policy_protocol_version', 'mode',
+                                 'human_semantic_coverage', 'observed_sources', 'issues')
+                                if key in claim_text_gate}}
+           if claim_text_gate is not None and claim_text_gate['status'] != 'not_applicable' else {}),
         "findings": [asdict(item) for item in findings],
         "audited_at": datetime.now(timezone.utc).isoformat(),
     }

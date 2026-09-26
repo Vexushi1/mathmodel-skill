@@ -946,8 +946,8 @@ def check_contracts(errors: list[str]) -> None:
 def check_project_state_and_framework(errors: list[str]) -> None:
     schema = load_structured(ROOT / "core/project_state.schema.yaml")
     Draft202012Validator.check_schema(schema)
-    if schema.get("version") != "8.5.0":
-        errors.append("v10.6 optional claim stale propagation requires independent schema 8.5.0")
+    if schema.get("version") != "8.6.0":
+        errors.append("v10.7 optional LaTeX text claim gate requires independent schema 8.6.0")
     execution_fields = (schema.get("properties", {}).get("execution", {}).get("properties") or {})
     stage_fields = (schema.get("$defs", {}).get("solver_stage_execution", {}).get("properties") or {})
     if not {"solver_backend", "solver_backend_selection_reason"}.issubset(execution_fields):

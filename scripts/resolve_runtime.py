@@ -370,7 +370,28 @@ def resolve_runtime(
             )
     if state_snapshot is not None:
         from conformance_gate import add_runtime_resources
-        add_runtime_resources(plan, state_snapshot.payload(), question)
+        state_payload = state_snapshot.payload()
+        add_runtime_resources(plan, state_payload, question)
+        paper_framework = state_payload.get("paper_framework")
+        policy = paper_framework.get("claim_consumption_policy") if isinstance(paper_framework, dict) else None
+        if (isinstance(policy, dict)
+                and policy.get("protocol_version") == "1.2.0"
+                and policy.get("mode") == "enforce_latex_text"
+                and plan.get("delivery_scope") in {"latex", "submission"}
+                and any(gate.get("name") == "project_sync" for gate in plan.get("pre_delivery_gates", []))):
+            resources = ["core/claim_consumption_contract.yaml", "core/claim_evidence_contract.yaml",
+                         "scripts/claim_consumption.py"]
+            for path in resources:
+                if path not in plan["load_order"]:
+                    plan["load_order"].append(path)
+                if path.startswith("core/") and path not in plan["contracts"]:
+                    plan["contracts"].append(path)
+            plan["claim_consumption_integration"] = {
+                "mode": "enforce_latex_text", "protocol_version": "1.2.0",
+                "scope": "declared_static_modular_latex_text_only",
+                "consumer_gates": ["project_sync"], "resources": resources,
+                "human_semantic_coverage": "not_assessed",
+            }
     dependency = apply_contract_dependency_closure(plan, manifest, assurance_contract)
     # Assurance closure may legitimately add the full writing reasoning contract because
     # old module dependencies still know the v7 authority graph. Apply the v8 compact

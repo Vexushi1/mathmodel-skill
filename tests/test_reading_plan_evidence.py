@@ -388,6 +388,33 @@ class AuditClosureProjectionTests(unittest.TestCase):
         self.assertEqual(projected, new)
         self.assertEqual(changes, [])
 
+    def test_b2b2_carrier_is_exact_and_preserves_unrelated_differences(self):
+        for case in (*EVIDENCE.A7_HYDRATED_PROVENANCE_CASES, "facts_unscoped"):
+            with self.subTest(case=case):
+                old, new = self.pair(case)
+                new["version"] = "10.7.0"
+                new["assurance"]["schema_version"] = "2.2.0"
+                projected, changes = EVIDENCE.approved_b2b2_carrier_change(case, old, new)
+                self.assertEqual(projected, old)
+                self.assertEqual([item["candidate"] for item in changes if item["path"] == "version"],
+                                 ["10.7.0"])
+        old, new = self.pair()
+        new["version"] = "10.7.0"
+        new["assurance"]["schema_version"] = "2.2.0"
+        new["pre_delivery_gates"] = []
+        projected, _ = EVIDENCE.approved_b2b2_carrier_change("facts_current", old, new)
+        self.assertEqual(projected["pre_delivery_gates"], [])
+        for case, version, protocol in (("future_case", "10.7.0", "2.2.0"),
+                                         ("facts_current", "10.7.1", "2.2.0"),
+                                         ("facts_current", "10.7.0", "2.1.0")):
+            with self.subTest(case=case, version=version):
+                old, new = self.pair()
+                new["version"] = version
+                new["assurance"]["schema_version"] = protocol
+                projected, changes = EVIDENCE.approved_b2b2_carrier_change(case, old, new)
+                self.assertEqual(projected, new)
+                self.assertEqual(changes, [])
+
 
 if __name__ == "__main__":
     unittest.main()

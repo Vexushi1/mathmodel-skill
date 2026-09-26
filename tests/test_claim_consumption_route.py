@@ -1,6 +1,7 @@
 """B2's opt-in inspection route must leave ordinary delivery plans unchanged."""
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 
 import yaml
@@ -46,6 +47,32 @@ class ClaimConsumptionRouteTests(unittest.TestCase):
         self.assertEqual(gate["outputs"], ["claim_consumption_report"])
         self.assertIn("--tex-main final_latex/main.tex", gate["command"])
         self.assertNotIn("--write", gate["command"])
+
+    def test_enforced_text_resources_are_conditional_on_project_and_formal_scope(self):
+        example = yaml.safe_load((ROOT / "state/project_state.example.yaml").read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            (project / "state").mkdir()
+            state_path = project / "state/project_state.yaml"
+            for policy in (None, {"protocol_version": "1.0.0", "mode": "observe"},
+                           {"protocol_version": "1.2.0", "mode": "enforce_latex_text"}):
+                state = yaml.safe_load(yaml.safe_dump(example, allow_unicode=True))
+                if policy is not None:
+                    state["paper_framework"]["claim_consumption_policy"] = policy
+                state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
+                plan = resolve_runtime("latex", project_root=project)
+                gates = [gate["name"] for gate in plan["pre_delivery_gates"]]
+                self.assertIn("project_sync", gates)
+                self.assertNotIn("claim_consumption", gates)
+                enabled = policy is not None and policy["mode"] == "enforce_latex_text"
+                self.assertEqual("claim_consumption_integration" in plan, enabled)
+                self.assertEqual("core/claim_consumption_contract.yaml" in plan["load_order"], enabled)
+                self.assertEqual("scripts/claim_consumption.py" in plan["load_order"], enabled)
+                if enabled:
+                    self.assertEqual(plan["claim_consumption_integration"]["human_semantic_coverage"],
+                                     "not_assessed")
+                    figures = resolve_runtime("figures", project_root=project)
+                    self.assertNotIn("claim_consumption_integration", figures)
 
 
 if __name__ == "__main__":

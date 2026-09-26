@@ -1,4 +1,4 @@
-version: 10.6.0
+version: 10.7.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -276,6 +276,7 @@ utility_gates:
     - Discovers the selected Python/MATLAB primary and analysis entrypoints with their source bindings, validates applicable workbook contracts and hashes the evidence chain without inventing model semantics or validation success; result-analysis code/workbook are conditional on the Analysis Necessity Gate.
     - Propagates stale from the active data source, preprocessing figure script, primary code, applicable analysis code/workbooks, MATLAB scripts and figure bundles without clearing it.
     - Required before formal model, workbooks, figures, DOCX, LaTeX or submission delivery.
+    - For explicit 1.2.0/enforce_latex_text projects, the existing latex/submission scope gate also runs the bounded live B2 text check; older policies and other scopes retain their prior behavior.
     - Code delivery uses the dedicated non-executing code_delivery gate.
   submission_package_validation:
     path: scripts/validate_submission_package.py
@@ -287,3 +288,4 @@ utility_gates:
     - Revalidates archived files against the current project and requires the packaged PDF to match the current compiled_pdf hash.
     - Official packages require current verified competition edition_rules and must match the verified submission_files allowlist exactly.
     - Reproducibility packages keep the broader internal material boundary and must include PDF, selected solver sources and declared helpers, result workbooks and MATLAB figure evidence files.
+    - Explicit 1.2.0/enforce_latex_text projects recheck the current modular LaTeX text gate and bound formal compile proof before a package can pass; this is not Figure-chain or human semantic approval.

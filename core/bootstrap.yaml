@@ -1,10 +1,8 @@
-skill_version: 10.6.0
+skill_version: 10.7.0
 bootstrap_schema_version: 1.1.0
 purpose: >-
-  Minimal startup index for the HSK mathematical-modeling workflow. Read this
-  file first, load the global policy through workflow_router.default_load, then
-  use scripts/resolve_runtime.py for the assured task-specific plan. Do not preload the
-  repository or duplicate domain contracts here.
+  Minimal startup index. Read first, load workflow_router.default_load, and use
+  scripts/resolve_runtime.py for the task plan. Do not preload domain contracts.
 authoritative_sources:
   global_policy: core/hsk_core_policy.md
   routing: core/workflow_router.yaml
@@ -19,6 +17,7 @@ authoritative_sources:
   user_execution: core/user_execution_contract.yaml
   code_quality: core/code_quality_contract.yaml
   model_code_conformance: core/model_code_conformance_contract.yaml
+  claim_consumption: core/claim_consumption_contract.yaml
   writing_reasoning: core/writing_reasoning_contract.yaml
   writing_runtime: core/writing_runtime_contract.yaml
   figure_evidence: modules/04_figure_evidence.md
@@ -63,6 +62,7 @@ entrypoints:
   validate_code_delivery: python scripts/validate_code_delivery.py
   validate_user_execution: python scripts/validate_user_execution.py
   validate_numerical_evidence: python scripts/validate_numerical_evidence.py
+  claim_consumption: python scripts/claim_consumption.py
   audit_latex_project: python scripts/audit_latex_project.py
   render_paper: python scripts/render_paper.py
   validate_submission_package: python scripts/validate_submission_package.py

@@ -276,7 +276,8 @@ def _validate_claim_consumption_policy(framework: Mapping[str, Any]) -> list[str
     policy = framework["claim_consumption_policy"]
     if not isinstance(policy, Mapping):
         return ["paper_framework.claim_consumption_policy must be a mapping"]
-    supported_policies = (("1.0.0", "observe"), ("1.1.0", "propagate"))
+    supported_policies = (("1.0.0", "observe"), ("1.1.0", "propagate"),
+                          ("1.2.0", "enforce_latex_text"))
     if (policy.get("protocol_version"), policy.get("mode")) not in supported_policies:
         return ["paper_framework.claim_consumption_policy requires a supported protocol_version/mode pair"]
     record = framework.get("claim_evidence")

@@ -2,6 +2,8 @@
 
 本模块只处理已经完成 AI Cleanup 的 `latex_source`。正式入口统一为 `scripts/render_paper.py`：它先执行项目级 LaTeX 审计并生成 `latex_audit_report.yaml`，审计通过后才按当前 compile profile 编译，最终输出 `compiled_pdf` 与机器生成的 v4 `compile_report.yaml`。
 
+项目显式采用 B2 `1.2.0/enforce_latex_text` 时，正式审计还执行当前 B1 来源与活动模块化 LaTeX 文本消费的有限机器门，并将其读集绑定到证明；图注、Figure 证据链及人工语义仍需单独核验。
+
 ## 工程与配置
 
 - Windows 工程放纯英文路径，项目主文件使用 Profile 的 `project_main`；

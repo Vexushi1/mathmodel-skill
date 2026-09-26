@@ -35,6 +35,14 @@ def sha256_file(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
 
 
+def _sha256_stream(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open('rb') as source:
+        for block in iter(lambda: source.read(1024 * 1024), b''):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 def load_yaml(path: Path) -> dict[str, Any]:
     if not path.is_file():
         return {}
@@ -103,7 +111,89 @@ def validate_package(
     package = package_path.resolve()
     issues: list[str] = []
     warnings: list[str] = []
-    state = load_yaml(root / "state/project_state.yaml")
+    state_path = root / 'state/project_state.yaml'
+    state_bytes = state_path.read_bytes() if state_path.is_file() else None
+    state_hash = sha256_bytes(state_bytes) if state_bytes is not None else None
+    state = (yaml.safe_load(state_bytes.decode('utf-8')) or {}) if state_bytes is not None else {}
+
+    # A direct invocation must replay the opt-in B2 gate and the formal proof
+    # chain; a matching ZIP/PDF hash alone cannot certify changed claim sources.
+    from claim_consumption import formal_text_gate
+    from project_transaction import _check_read_set
+
+    claim_gate = formal_text_gate(root)
+    observed = claim_gate['observed_sources']
+    project_read_set = dict(observed['project'])
+    if project_read_set.get('state/project_state.yaml') != state_hash:
+        issues.append('项目State首读与B2门读集不一致')
+    project_read_set['state/project_state.yaml'] = state_hash
+    package_hash: str | None = None
+
+    def finish(payload: dict[str, Any]) -> dict[str, Any]:
+        try:
+            if package_hash is not None and _sha256_stream(package) != package_hash:
+                raise ValueError('提交ZIP在验证过程中发生变化')
+            _check_read_set(root, project_read_set)
+            _check_read_set(SKILL_ROOT, observed['skill'])
+        except (OSError, ValueError, RuntimeError) as exc:
+            payload['issues'] = sorted(set([*payload['issues'], '提交包验证读集冲突: ' + str(exc)]))
+            payload['status'] = 'failed'
+        return payload
+
+    if claim_gate['status'] == 'failed':
+        issues.append('B2正式文本门未通过: ' + '; '.join(claim_gate['issues'][:8]))
+    elif claim_gate['status'] == 'passed':
+        from latex_delivery import recorded_input_snapshot, source_bundle_snapshot, verify_compile_report
+
+        latex_root = root / 'final_latex'
+        skill_profile = 'core/compile_profiles.yaml'
+        profile_before = _sha256_stream(SKILL_ROOT / skill_profile)
+        if skill_profile in observed['skill'] and observed['skill'][skill_profile] != profile_before:
+            issues.append('B2读集与编译profile版本冲突')
+        observed['skill'][skill_profile] = profile_before
+        compile_path = latex_root / 'compile_report.yaml'
+        if not compile_path.is_file():
+            issues.append('B2正式文本门要求当前compile_report.yaml证明')
+        else:
+            project_read_set['final_latex/compile_report.yaml'] = _sha256_stream(compile_path)
+            compile_report = load_yaml(compile_path)
+            if not isinstance(compile_report, Mapping):
+                issues.append('B2正式文本门的compile_report.yaml结构无效')
+            else:
+                bound_audit = Path(str(compile_report.get('latex_audit_report') or 'latex_audit_report.yaml'))
+                audit_path = bound_audit if bound_audit.is_absolute() else latex_root / bound_audit
+                if audit_path.is_file():
+                    if audit_path.resolve().is_relative_to(root):
+                        project_read_set[audit_path.resolve().relative_to(root).as_posix()] = _sha256_stream(audit_path)
+                issues.extend(verify_compile_report(
+                    project=latex_root, main=latex_root / 'main.tex',
+                    pdf=_current_compiled_pdf(root, state), report=compile_report,
+                ))
+                try:
+                    source_snapshot = source_bundle_snapshot(latex_root / 'main.tex')
+                    input_snapshot = recorded_input_snapshot(latex_root / 'main.tex')
+                    if (source_snapshot['source_bundle_sha256'] != compile_report.get('source_bundle_sha256')
+                            or input_snapshot['actual_input_files'] != compile_report.get('actual_input_files')):
+                        issues.append('B2证明输入在提交包验证期间变化')
+                    for field in (source_snapshot['source_files'], input_snapshot['actual_input_files']):
+                        for entry in field:
+                            relative = 'final_latex/' + entry['path']
+                            raw_hash = _sha256_stream(root / relative)
+                            if relative in project_read_set and project_read_set[relative] != raw_hash:
+                                issues.append(f'B2读集与编译证明输入冲突: {relative}')
+                            project_read_set[relative] = raw_hash
+                    if source_bundle_snapshot(latex_root / 'main.tex') != source_snapshot:
+                        issues.append('B2 LaTeX source bundle在提交包验证期间变化')
+                    recorder_path = latex_root / input_snapshot['recorder']
+                    if recorder_path.is_file():
+                        project_read_set['final_latex/' + input_snapshot['recorder']] = _sha256_stream(recorder_path)
+                    log_path = latex_root / str(compile_report.get('log') or 'main.log')
+                    if log_path.is_file() and log_path.resolve().is_relative_to(root):
+                        project_read_set[log_path.resolve().relative_to(root).as_posix()] = _sha256_stream(log_path)
+                    if _sha256_stream(SKILL_ROOT / skill_profile) != profile_before:
+                        issues.append('编译profile在提交包验证期间变化')
+                except (OSError, ValueError, TypeError, KeyError) as exc:
+                    issues.append('B2编译证明输入无法复核: ' + str(exc))
 
     try:
         package.relative_to(root)
@@ -111,11 +201,12 @@ def validate_package(
         issues.append("正式提交包必须位于当前项目目录内")
 
     if not package.is_file():
-        return {"status": "failed", "kind": None, "issues": sorted(set([*issues, f"提交包不存在: {package}"])), "warnings": []}
+        return finish({"status": "failed", "kind": None, "issues": sorted(set([*issues, f"提交包不存在: {package}"])), "warnings": []})
     try:
+        package_hash = _sha256_stream(package)
         archive = zipfile.ZipFile(package)
     except Exception as exc:  # noqa: BLE001
-        return {"status": "failed", "kind": None, "issues": sorted(set([*issues, f"无法打开提交ZIP: {exc}"])), "warnings": []}
+        return finish({"status": "failed", "kind": None, "issues": sorted(set([*issues, f"无法打开提交ZIP: {exc}"])), "warnings": []})
 
     manifest: dict[str, Any] = {}
     with archive:
@@ -165,8 +256,15 @@ def validate_package(
                 continue
             if not current.is_file():
                 issues.append(f"manifest声明的项目文件当前不存在: {relative}")
-            elif sha256_file(current) != archived_hash:
-                issues.append(f"提交包文件不是当前项目版本: {relative}")
+            else:
+                current_hash = sha256_file(current)
+                if current_hash != archived_hash:
+                    issues.append(f"提交包文件不是当前项目版本: {relative}")
+                else:
+                    if claim_gate['status'] == 'passed':
+                        if relative in project_read_set and project_read_set[relative] != current_hash:
+                            issues.append(f"B2读集与提交包项目文件版本冲突: {relative}")
+                        project_read_set[relative] = current_hash
 
         archived_payload = set(names) - {MANIFEST_NAME}
         if archived_payload != set(declared_paths):
@@ -182,6 +280,11 @@ def validate_package(
             issues.append(f"当前项目缺少正式编译PDF: {compiled_pdf}")
         else:
             current_pdf_hash = sha256_file(compiled_pdf)
+            if claim_gate['status'] == 'passed' and compiled_pdf.is_relative_to(root):
+                relative_pdf = compiled_pdf.relative_to(root).as_posix()
+                if relative_pdf in project_read_set and project_read_set[relative_pdf] != current_pdf_hash:
+                    issues.append(f"B2读集与当前compiled_pdf版本冲突: {relative_pdf}")
+                project_read_set[relative_pdf] = current_pdf_hash
             matching_pdf = [
                 path for path in declared_paths
                 if path.lower().endswith(".pdf")
@@ -238,12 +341,12 @@ def validate_package(
             for relative in sorted(required - archived_payload):
                 issues.append(f"完整复现包缺少当前必需文件: {relative}")
 
-    return {
+    return finish({
         "status": "passed" if not issues else "failed",
         "kind": str(manifest.get("kind", "")) if manifest else None,
         "issues": sorted(set(issues)),
         "warnings": sorted(set(warnings)),
-    }
+    })
 
 
 def main() -> int:
