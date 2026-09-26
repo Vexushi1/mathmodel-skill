@@ -105,3 +105,9 @@ python scripts/resolve_runtime.py --help
 需要恢复时按项目依赖顺序，由原 `validate_code_delivery.py --write --strict` 与 `validate_user_execution.py --write --strict` 重新检查主结果。主结果重新交付可能按原状态规则清空深化必要性理由，随后必须显式重新裁决现有Analysis Necessity Gate，再按原协调器处理深化。仅analysis启用A2时不要求primary补A2声明；MATLAB交付还须使用实际Code Analyzer支持的`--matlab-command`。
 
 只有原源码、数据、工作簿及执行证据保持且原门允许时，才可复核同一个旧工作簿而不重新执行数值模型。复验不更改工作簿，不伪称新运行或新数学批准；B1本身不执行上述命令。B2的正文定位与失效写入不在本阶段。
+
+## B2：显式论文主张消费与局部失效
+
+`python scripts/claim_consumption.py <项目根目录> --tex-main final_latex/main.tex` 在 `observe/1.0.0` 和 `propagate/1.1.0` 下都只输出观察报告，不写项目状态或授予正式交付资格。缺少策略时不启用 B2 审计。
+
+只有显式 `propagate/1.1.0` 项目通过现有 `python scripts/sync_project.py <项目根目录> --write`，才根据当前 `modify/reject` 处置中的同题精确 B1 claim ID，沿 `claim:<id>` 和 fragment ID 依赖将 current 片段置 stale。旧问题级失效继续生效；已有 `observe` 项目执行原同步写入时，Framework 表格也会与 State 的旧问题级失效保持一致。写入使用原项目事务与读集检查。跨格式覆盖和正式交付门仍待后续阶段。

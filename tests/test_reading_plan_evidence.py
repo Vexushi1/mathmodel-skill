@@ -350,6 +350,44 @@ class AuditClosureProjectionTests(unittest.TestCase):
         self.assertIn("assurance", row["unexpected_legacy_changes"])
         self.assertIn("version", row["unexpected_legacy_changes"])
 
+    def test_b2b1_carrier_is_exact_and_keeps_other_changes_visible(self):
+        for case in (*EVIDENCE.A7_HYDRATED_PROVENANCE_CASES, "facts_unscoped"):
+            with self.subTest(case=case):
+                old, new = self.pair(case)
+                new["version"] = "10.6.0"
+                new["assurance"]["schema_version"] = "2.2.0"
+                saved = deepcopy((old, new))
+                projected, changes = EVIDENCE.approved_b2b1_carrier_change(case, old, new)
+                self.assertEqual(projected, old)
+                self.assertEqual((old, new), saved)
+                self.assertEqual([item["candidate"] for item in changes if item["path"] == "version"],
+                                 ["10.6.0"])
+        old, new = self.pair()
+        new["version"] = "10.6.0"
+        new["assurance"]["schema_version"] = "2.2.0"
+        new["pre_delivery_gates"] = []
+        projected, _ = EVIDENCE.approved_b2b1_carrier_change("facts_current", old, new)
+        self.assertEqual(projected["pre_delivery_gates"], [])
+
+    def test_b2b1_carrier_rejects_unknown_and_protocol_regression(self):
+        for case, version, protocol in (("future_case", "10.6.0", "2.2.0"),
+                                         ("facts_current", "10.6.1", "2.2.0"),
+                                         ("facts_current", "10.6.0", "2.1.0"),
+                                         ("facts_current", "10.6.0", None)):
+            with self.subTest(case=case, version=version, protocol=protocol):
+                old, new = self.pair()
+                new["version"] = version
+                new["assurance"]["schema_version"] = protocol
+                projected, changes = EVIDENCE.approved_b2b1_carrier_change(case, old, new)
+                self.assertEqual(projected, new)
+                self.assertEqual(changes, [])
+        old, new = self.pair()
+        new["version"] = "10.6.0"
+        new["assurance"] = "malformed"
+        projected, changes = EVIDENCE.approved_b2b1_carrier_change("facts_current", old, new)
+        self.assertEqual(projected, new)
+        self.assertEqual(changes, [])
+
 
 if __name__ == "__main__":
     unittest.main()

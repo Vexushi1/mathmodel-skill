@@ -41,7 +41,8 @@ EXIT = {'observed': 0, 'blocked': 1, 'needs_review': 2, 'not_assessed': 2}
 
 
 def _report() -> dict:
-    return {'status': 'not_assessed', 'mode': 'observe', 'execution_authorized': False,
+    return {'status': 'not_assessed', 'mode': None, 'policy_protocol_version': None,
+            'execution_authorized': False,
             'semantic_support': 'not_established', 'human_semantic_coverage': 'not_assessed',
             'formal_delivery_gate': 'not_run', 'b1_status': 'not_assessed',
             'fragment_locations': [], 'registered_location_gaps': [], 'required_coverage': [], 'numeric_checks': [],
@@ -272,9 +273,13 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         for path in ('scripts/claim_consumption.py', 'scripts/claim_tex.py',
                      'scripts/validate_project_state.py'):
             bounded._read(ROOT, path, 2 * 1024 * 1024, observed['skill'])
-        if contract.get('version') != '1.0.0':
+        if contract.get('version') != '1.1.0':
             raise EvidenceError('unsupported B2 contract version')
         policy = framework['claim_consumption_policy']
+        if isinstance(policy, Mapping):
+            report['mode'] = policy.get('mode') if isinstance(policy.get('mode'), str) else None
+            report['policy_protocol_version'] = (policy.get('protocol_version')
+                                                 if isinstance(policy.get('protocol_version'), str) else None)
         validator = Draft202012Validator({'$ref': '#/$defs/claim_consumption_policy', '$defs': schema['$defs']})
         error = next(validator.iter_errors(policy), None)
         if error:

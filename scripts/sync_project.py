@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 import yaml
+from jsonschema import Draft202012Validator
 
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT_DIR = str(SKILL_ROOT / "scripts")
@@ -211,6 +212,142 @@ def _stale_paper_fragment_ids(framework: Mapping[str, Any]) -> list[str]:
     )
 
 
+def _claim_policy_issues(framework: Mapping[str, Any], schema: Mapping[str, Any]) -> list[str]:
+    """Validate an explicit claim policy before any project writer can run."""
+    if "claim_consumption_policy" not in framework:
+        return []
+    validator = Draft202012Validator({
+        "$ref": "#/$defs/claim_consumption_policy", "$defs": schema.get("$defs", {}),
+    })
+    errors = sorted(validator.iter_errors(framework["claim_consumption_policy"]),
+                    key=lambda error: (list(map(str, error.absolute_path)), error.message))
+    if errors:
+        return [f"claim consumption policy: {error.message}" for error in errors]
+    issues: list[str] = []
+    record_validator = Draft202012Validator({
+        "$ref": "#/$defs/claim_evidence", "$defs": schema.get("$defs", {}),
+    })
+    for error in record_validator.iter_errors(framework.get("claim_evidence")):
+        issues.append(f"B1 claim record: {error.message}")
+    fragment_validator = Draft202012Validator({
+        "$ref": "#/$defs/paper_fragment_entry", "$defs": schema.get("$defs", {}),
+    })
+    fragments = framework.get("paper_fragments")
+    if not isinstance(fragments, list):
+        issues.append("paper_fragments must be a list")
+    else:
+        for index, fragment in enumerate(fragments):
+            for error in fragment_validator.iter_errors(fragment):
+                issues.append(f"paper fragment {index}: {error.message}")
+    if issues:
+        return issues
+    issues.extend(STATE_VALIDATION._validate_claim_consumption_policy(framework))
+    fragment_issues, _ = STATE_VALIDATION._validate_paper_fragments(framework)
+    issues.extend(fragment_issues)
+    return issues
+
+
+def _current_rejected_claim_ids(state: Mapping[str, Any], schema: Mapping[str, Any]) -> list[str]:
+    """Return exact B1 IDs for current modifying/rejecting dispositions only."""
+    framework = state.get("paper_framework", {}) or {}
+    claims = ((framework.get("claim_evidence") or {}).get("claims") or [])
+    by_id = {row["id"]: row for row in claims
+             if isinstance(row, Mapping) and isinstance(row.get("id"), str)}
+    validator = Draft202012Validator({
+        "$ref": "#/$defs/analysis_evidence_entry", "$defs": schema.get("$defs", {}),
+    })
+    selected: set[str] = set()
+    for question, entry in sorted((state.get("subproblems") or {}).items()):
+        if not isinstance(entry, Mapping):
+            raise ValueError(f"{question}: subproblem must be a mapping")
+        dispositions = entry.get("analysis_evidence_dispositions", []) or []
+        if not isinstance(dispositions, list):
+            raise ValueError(f"{question}: analysis dispositions must be a list")
+        seen_dispositions: set[str] = set()
+        for disposition in dispositions:
+            if not isinstance(disposition, Mapping):
+                raise ValueError(f"{question}: analysis disposition must be a mapping")
+            error = next(validator.iter_errors(disposition), None)
+            if error:
+                raise ValueError(f"{question}: malformed analysis disposition: {error.message}")
+            disposition_id = disposition["id"]
+            if disposition_id in seen_dispositions:
+                raise ValueError(f"{question}: duplicate analysis disposition ID {disposition_id}")
+            seen_dispositions.add(disposition_id)
+            if (disposition.get("status", "current") != "current"
+                    or disposition.get("disposition") not in {"modify", "reject"}):
+                continue
+            target = disposition.get("target_claim")
+            if not isinstance(target, str) or target not in by_id:
+                raise ValueError(f"{question}/{disposition.get('id')}: target_claim must be an exact B1 claim ID")
+            if by_id[target].get("scope") != question:
+                raise ValueError(f"{question}/{disposition.get('id')}: target_claim {target} scope does not match {question}")
+            selected.add(target)
+    return sorted(selected)
+
+
+def _read_framework_exact(path: Path) -> str:
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        return handle.read()
+
+
+def _framework_header_preserving_layout(text: str, scope: str, stale: bool) -> str:
+    """Apply the usual sync header fields while retaining all other line endings."""
+    lines = text.splitlines(keepends=True)
+    newline = "\r\n" if "\r\n" in text else "\n"
+    replacements = (
+        ("- 最近同步：", f"- 最近同步：`{scope}`"),
+        ("- 最近同步时间：", f"- 最近同步时间：`{datetime.now(timezone.utc).isoformat()}`"),
+        ("- 当前状态：", f"- 当前状态：`{'stale' if stale else 'current'}`"),
+    )
+    for prefix, replacement in replacements:
+        match = next((index for index, line in enumerate(lines) if line.startswith(prefix)), None)
+        if match is None:
+            lines.insert(0, replacement + newline)
+        else:
+            line = lines[match]
+            ending = "\r\n" if line.endswith("\r\n") else "\n" if line.endswith("\n") else ""
+            lines[match] = replacement + ending
+    return "".join(lines)
+
+
+def _framework_fragment_status_text(text: str, stale_ids: set[str]) -> str:
+    """Patch only existing seven-column status cells for selected fragment IDs."""
+    if not stale_ids:
+        return text
+    lines = text.splitlines(keepends=True)
+    heading = "### Paper Fragment Dependency Map"
+    starts = [index for index, line in enumerate(lines) if line.rstrip("\r\n") == heading]
+    if len(starts) != 1:
+        raise ValueError("Framework requires exactly one Paper Fragment Dependency Map")
+    seen: set[str] = set()
+    for index in range(starts[0] + 1, len(lines)):
+        line = lines[index]
+        body = line.rstrip("\r\n")
+        if re.match(r"^#{1,4}\s+", body):
+            break
+        if not body.startswith("|"):
+            continue
+        cells = body.split("|")
+        if len(cells) != 9 or cells[0] or cells[-1].strip():
+            raise ValueError("Framework fragment row must have seven columns")
+        fragment_id = cells[1].strip()
+        if fragment_id not in stale_ids:
+            continue
+        if fragment_id in seen:
+            raise ValueError(f"Framework repeats fragment ID {fragment_id}")
+        seen.add(fragment_id)
+        status = re.fullmatch(r"([ \t]*)(current|stale|not_applicable)([ \t]*)", cells[7])
+        if status is None:
+            raise ValueError(f"Framework fragment {fragment_id} has malformed status cell")
+        cells[7] = status.group(1) + "stale" + status.group(3)
+        lines[index] = "|".join(cells) + line[len(body):]
+    missing = sorted(stale_ids - seen)
+    if missing:
+        raise ValueError(f"Framework missing stale fragment rows: {missing}")
+    return "".join(lines)
+
+
 
 def stage_requirements(
     scope: str,
@@ -236,6 +373,7 @@ def contract_preflight_issues(
     output_contract: Mapping[str, Any],
     *,
     candidate_state: Mapping[str, Any] | None = None,
+    candidate_framework_text: str | None = None,
 ) -> list[str]:
     issues: list[str] = []
     required = set(stage_requirements(scope, output_contract))
@@ -245,7 +383,10 @@ def contract_preflight_issues(
         issues.extend(
             f"项目状态校验: {item}"
             for item in (
-                STATE_VALIDATION.validate_state_payload(candidate_state, project_root=root)
+                STATE_VALIDATION.validate_state_payload(
+                    candidate_state, project_root=root,
+                    framework_text_override=candidate_framework_text,
+                )
                 if candidate_state is not None
                 else STATE_VALIDATION.validate_state_file(state_path, project_root=root)
             )
@@ -256,7 +397,8 @@ def contract_preflight_issues(
         issues.extend(
             f"模型论文框架校验: {item}"
             for item in FRAMEWORK_VALIDATION.validate_framework_text(
-                framework_path.read_text(encoding="utf-8"),
+                candidate_framework_text if candidate_framework_text is not None
+                else framework_path.read_text(encoding="utf-8"),
                 state=candidate_state if candidate_state is not None else load_yaml(state_path),
                 project_root=root,
             )
@@ -906,6 +1048,42 @@ def synchronize(
     issues: list[str] = []
     warnings: list[str] = []
     policy_error = False
+    claim_projection_write = False
+    claim_propagate = False
+    claim_ids: list[str] = []
+    claim_stale_fragments: list[str] = []
+    claim_framework_text: str | None = None
+    initial_framework = state.get("paper_framework") or {}
+    claim_policy_present = (write and state_present and isinstance(initial_framework, Mapping)
+                            and "claim_consumption_policy" in initial_framework)
+    if claim_policy_present:
+        # `schema_path` above is the workbook schema; this policy uses the State schema.
+        claim_schema = load_yaml(SKILL_ROOT / "core/project_state.schema.yaml")
+        policy_issues = _claim_policy_issues(initial_framework, claim_schema)
+        if policy_issues:
+            policy_error = True
+            issues.extend(policy_issues)
+        else:
+            policy = initial_framework["claim_consumption_policy"]
+            claim_projection_write = True
+            claim_propagate = (policy["protocol_version"], policy["mode"]) == ("1.1.0", "propagate")
+            try:
+                if not framework_path.is_file():
+                    raise ValueError("claim policy requires 模型论文框架.md")
+                claim_framework_text = _read_framework_exact(framework_path)
+                if claim_framework_text.startswith("\ufeff"):
+                    raise ValueError("UTF-8 BOM in Framework is unsupported for claim policy writes")
+                recorded_hash = initial_framework.get("sha256")
+                if recorded_hash and (not isinstance(recorded_hash, str)
+                                      or recorded_hash.lower() != sha256_text(claim_framework_text)):
+                    raise ValueError("paper_framework.sha256 does not match 模型论文框架.md")
+                import claim_consumption as CLAIM_CONSUMPTION
+                CLAIM_CONSUMPTION._check_projection(initial_framework, claim_framework_text)
+                if claim_propagate:
+                    claim_ids = _current_rejected_claim_ids(state, claim_schema)
+            except (ValueError, KeyError, TypeError, UnicodeError) as exc:
+                policy_error = True
+                issues.append(f"claim policy projection: {exc}")
     try:
         project_backend = STAGE_CODE.current_project_backend(
             state, required=(explicit_delivery_scope or write) and scope in {
@@ -1006,25 +1184,58 @@ def synchronize(
             if isinstance(entry, Mapping)
         )
         framework = transition_state.setdefault("paper_framework", {})
-        if _uses_fragment_stale(framework):
+        if claim_policy_present and policy_error:
+            header_stale = False  # An invalid opt-in policy cannot enter either stale writer.
+        elif _uses_fragment_stale(framework):
             stale_fragments = _mark_paper_fragments_stale(framework, set(stale_questions))
+            if claim_propagate and not policy_error:
+                try:
+                    claim_closure = set(STATE_TRANSITIONS.claim_fragment_stale_closure(
+                        framework.get("paper_fragments", []), claim_ids,
+                    ))
+                    for fragment in framework["paper_fragments"]:
+                        if fragment["id"] in claim_closure and fragment["status"] == "current":
+                            fragment["status"] = "stale"
+                            claim_stale_fragments.append(fragment["id"])
+                    claim_stale_fragments.sort()
+                except ValueError as exc:
+                    policy_error = True
+                    issues.append(f"claim stale propagation: {exc}")
+            if claim_projection_write and not policy_error:
+                stale_fragments = _stale_paper_fragment_ids(framework)
             framework["sync_status"] = "current"
             header_stale = False
         else:
             framework["sync_status"] = "stale" if any_stale else "current"
             header_stale = any_stale
-    issues.extend(contract_preflight_issues(
-        root, scope, state_path, framework_path, output_contract, candidate_state=transition_state,
-    ))
-    if explicit_delivery_scope:
+    if not claim_projection_write and not (claim_policy_present and policy_error):
+        issues.extend(contract_preflight_issues(
+            root, scope, state_path, framework_path, output_contract, candidate_state=transition_state,
+        ))
+    if explicit_delivery_scope and not (claim_policy_present and policy_error):
         issues.extend(_scope_artifact_issues(root, scope, transition_state, snapshots, output_contract, warnings=warnings))
 
     if write and state_present:
         framework["last_sync_scope"] = scope
         framework["last_synced_at"] = datetime.now(timezone.utc).isoformat()
-        framework_text_for_write = _framework_header_text(framework_path, scope, header_stale)
+        if claim_policy_present and policy_error:
+            framework_text_for_write = None
+        elif claim_projection_write and not policy_error:
+            try:
+                framework_text_for_write = _framework_fragment_status_text(
+                    _framework_header_preserving_layout(claim_framework_text or "", scope, header_stale),
+                    set(_stale_paper_fragment_ids(framework)),
+                )
+            except ValueError as exc:
+                policy_error = True
+                issues.append(f"claim stale propagation: {exc}")
+        else:
+            framework_text_for_write = _framework_header_text(framework_path, scope, header_stale)
         if framework_text_for_write is not None:
-            framework["sha256"] = hashlib.sha256(framework_text_for_write.encode("utf-8")).hexdigest()
+            framework["sha256"] = (
+                sha256_text(framework_text_for_write) if claim_projection_write
+                else hashlib.sha256(framework_text_for_write.encode("utf-8")).hexdigest()
+            )
         state.setdefault("artifacts", {})["sync_report"] = "sync_report.yaml"
         state.setdefault("execution", {})["last_sync_report"] = "sync_report.yaml"
     else:
@@ -1034,6 +1245,12 @@ def synchronize(
         framework = transition_state.get("paper_framework") or {}
         if _uses_fragment_stale(framework):
             stale_fragments = _stale_paper_fragment_ids(framework)
+
+    if claim_projection_write and not policy_error:
+        issues.extend(contract_preflight_issues(
+            root, scope, state_path, framework_path, output_contract,
+            candidate_state=transition_state, candidate_framework_text=framework_text_for_write,
+        ))
 
     report = {
         "status": "passed" if not issues else "failed",
@@ -1059,6 +1276,9 @@ def synchronize(
         "warnings": sorted(set(warnings)),
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
+    if claim_propagate:
+        report["invalidated_claim_ids"] = claim_ids
+        report["claim_stale_fragments"] = claim_stale_fragments
     CONFORMANCE.assert_observed(root, conformance_read_set)
     if write and not policy_error:
         if sync_read_set is not None:
@@ -1083,12 +1303,22 @@ def synchronize(
                 if framework_text_for_write is not None:
                     staged_framework = staged["模型论文框架.md"]
                     expected = ((staged_state.get("paper_framework") or {}).get("sha256"))
-                    actual = sha256_file(staged_framework)
+                    actual = (
+                        sha256_text(_read_framework_exact(staged_framework))
+                        if claim_projection_write else sha256_file(staged_framework)
+                    )
                     if expected != actual:
                         raise ValueError("staged paper_framework.sha256 self-check failed")
+                    if claim_projection_write:
+                        import claim_consumption as CLAIM_CONSUMPTION
+                        CLAIM_CONSUMPTION._check_projection(
+                            staged_state["paper_framework"], _read_framework_exact(staged_framework),
+                        )
                 staged_report = load_yaml(staged["sync_report.yaml"])
                 if staged_report.get("framework_hash") != report.get("framework_hash"):
                     raise ValueError("staged sync report framework hash self-check failed")
+                if claim_projection_write and sha256_file(staged["模型论文框架.md"]) != report["framework_hash"]:
+                    raise ValueError("staged sync report framework bytes self-check failed")
 
             PROJECT_TX.commit_project_state(
                 root,

@@ -440,9 +440,9 @@ class ContractAndDriftTests(unittest.TestCase):
         # P0-A intentionally aligns the title handoff with the existing output Authority;
         # test_schemas covers the new declaration and unchanged caption ownership.
         "core/workbook_schema.yaml": "e0479f5e74063151a515d11e140b7c4e8b8db077",
-        # B2a adds only the opt-in observe policy and repairs two fragment patterns;
+        # B2b1 adds only the explicit propagate pair to the B2 opt-in policy;
         # test_claim_contract projects this exact schema back to protected B1 and A2 shapes.
-        "core/project_state.schema.yaml": "16b40363ad6ec4c684311342cc0bf5eaf1c1bff0",
+        "core/project_state.schema.yaml": "6c98128177e8f08740b92a742e34ec6cbefe0d19",
         "core/writing_reasoning_contract.yaml": "67a22f6e882a9cb79bc6edccd033731558a81f13",
         "modules/03_solve_validate.md": "cfbe8091f0434b8531ec97cbccde013895e18228",
         "modules/03_result_analysis.md": "dc184e94d4fbce579e25f8e82362d0ef7b3ff72a",
