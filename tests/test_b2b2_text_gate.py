@@ -31,7 +31,7 @@ class B2b2TextGateTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.seed_tmp = tempfile.TemporaryDirectory()
-        cls.seed = Path(cls.seed_tmp.name) / 'seed'
+        cls.seed = (Path(cls.seed_tmp.name) / 'seed').resolve()
         cls.seed.mkdir()
         state = smoke.prepare(cls.seed, 'python', required=('primary', 'analysis'))
         (cls.seed / 'constraints.json').write_text('{"right_hand_side_offset":194}', encoding='utf-8')
@@ -45,7 +45,7 @@ class B2b2TextGateTests(unittest.TestCase):
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.root = Path(self.tmp.name) / 'project'
+        self.root = (Path(self.tmp.name) / 'project').resolve()
         shutil.copytree(self.seed, self.root)
         self.state = deepcopy(self.base_state)
         install_record(self.state)

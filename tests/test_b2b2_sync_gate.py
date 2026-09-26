@@ -21,7 +21,7 @@ class SyncFormalTextGateTests(unittest.TestCase):
     def setUp(self):
         self.fixture = fixture.ClaimStaleWriterTests("test_b12_auxiliary_disposition_stales_only_linked_fragments_atomically")
         self.fixture.setUp()
-        self.root = self.fixture.root
+        self.root = self.fixture.root.resolve()
         self.fixture.state["paper_framework"]["claim_consumption_policy"].update(
             protocol_version="1.2.0", mode="enforce_latex_text")
         fixture._save_state(self.root, self.fixture.state)
