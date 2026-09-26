@@ -2,7 +2,7 @@
 
 > 阶段指南，不是运行时 Authority。B2 的只读审计、状态写入、正式门禁和跨格式覆盖须分别以实际提交、测试和 CI 证明；完成首个切片不等于完成 B2。
 
-> **2026-09-26 接续：** B2a [PR #240](https://github.com/Vexushi1/mathmodel-skill/pull/240) 已合并为 `b7c0f6827fdab4319c504f9f1592a59096fef265`；最终 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36215999744) 和 [优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36215999692) 成功，主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36216997615) 13/13 成功。B2b1 [PR #241](https://github.com/Vexushi1/mathmodel-skill/pull/241) 已合并为 `a17a1d539519fc7c662a73fb957871c822aadf36`；精确 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36220676500) 13/13、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36220676509) 和主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36221675161) 13/13 均成功，合并树与已测 head 树一致。B2b2 [PR #242](https://github.com/Vexushi1/mathmodel-skill/pull/242) 已合并为 `431839d4cb77440bffc2c6f1fcac7c2279b3ab10`；精确 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36226883079) 13/13、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36226883018) 和主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36235022833) 13/13 均成功，合并树与已测 head 树一致。下面 B2a/B2b1/B2b2 简报保留为实施记录；当前进入独立的 B2b3a Figure 身份只读绑定切片。
+> **2026-09-26 接续：** B2a [PR #240](https://github.com/Vexushi1/mathmodel-skill/pull/240) 已合并为 `b7c0f6827fdab4319c504f9f1592a59096fef265`；最终 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36215999744) 和 [优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36215999692) 成功，主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36216997615) 13/13 成功。B2b1 [PR #241](https://github.com/Vexushi1/mathmodel-skill/pull/241) 已合并为 `a17a1d539519fc7c662a73fb957871c822aadf36`；精确 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36220676500) 13/13、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36220676509) 和主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36221675161) 13/13 均成功，合并树与已测 head 树一致。B2b2 [PR #242](https://github.com/Vexushi1/mathmodel-skill/pull/242) 已合并为 `431839d4cb77440bffc2c6f1fcac7c2279b3ab10`；精确 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36226883079) 13/13、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36226883018) 和主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36235022833) 13/13 均成功，合并树与已测 head 树一致。B2b3a [PR #243](https://github.com/Vexushi1/mathmodel-skill/pull/243) 已合并为 `1428b9c7309aefdb6a76409f904543daf989c20b`；精确 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36241117504) 13/13、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36241117468) 和主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36242410758) 13/13 均成功，合并树与已测 head 树一致。下面 B2a/B2b1/B2b2/B2b3a 简报保留为实施记录；当前进入独立的 B2b3b Figure 来源及批准 bundle 当前性只读切片。
 
 日期：2026-09-26。基线 main=`a7ff4b792c4f0dac92bb7cd5b4569cf0de03967d`，Skill 10.4.0 / State 8.3.0；B1 PR #239 已合并，主干 CI [36212303219](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36212303219) 13/13 成功，合并树与最终 B1 head 树一致。开始本阶段时没有其他开放 PR。本指南落实原计划第 7、11—16、19 节，保留 B1 的 accepted 资格与语义支持边界。
 
@@ -105,3 +105,20 @@ B2a 对 `analysis_evidence_dispositions` 的 `modify/reject` 仅给出影响 cla
 | 回滚 | 未合并时撤回本主题 PR；已声明的绑定保留可解释记录，移除新审计功能不能伪称图形证据资格已验证 |
 
 本切片只增加**身份与路径的只读观察**。采用绑定的项目在 Framework“正文引用位置”填写当前活动源码的 `final_latex/...tex:物理行号`，供字面引用定位；活动 `\graphicspath`、符号链接入口和无法静态解析的结构保持未核验或阻断。`identity_status=matched` 仅说明本次路径/字面关系匹配，既往图片批准对当前字节的有效性仍为 `approval_freshness=not_assessed`。本切片不授予 Figure 证据链完整通过、正文/图注语义支持或新的交付资格。B2 仍在进行中；B16 全场景、跨格式 Figure 链和 C1 均等待后续独立验收。
+
+## 9. B2b3b Figure 来源与批准 bundle 当前性只读观察的修改简报
+
+| 项目 | 决定 |
+|---|---|
+| 当前基线 | `main@1428b9c7309aefdb6a76409f904543daf989c20b`，Skill 10.8.0 / State 8.7.0 / B2 合同 1.3.0；B2b3a 精确 head 与合并后主干 CI 均 13/13 成功 |
+| 目标 | 向后兼容的 Skill 10.9.0 / State 8.8.0 / B2 合同 1.4.0；原 `observe`、`propagate`、`enforce_latex_text` 协议/mode 配对及正式文本门不变 |
+| 直接目标 | 工作簿驱动结果图的现有 `figure_bindings` 行可选声明非空 `source_bindings`，以 `{source_id, sheet, required_headers}` 绑定 Figure 关联 claim 的当前 B1 来源闭包；只读核对所选工作表/精确表头，观察原 State 已验证脚本与图片 bundle 哈希是否匹配当前字节，并要求本次 scoped Figure bundle 的全部发现路径属于原 `approved_figures` |
+| Authority | B1 Claim 来源资格、`core/project_state.schema.yaml` 可选绑定、`core/claim_consumption_contract.yaml` B2 审计、Figure Evidence Authority；不建立第二套来源或批准状态 |
+| 明确不做 | 不重算 accepted 工作簿、不执行绘图脚本、不生成或重绘图、不续签原入文批准、不判断图片/图注语义；不扩 LaTeX/提交正式门、不覆盖机理/全局示意图、表格或其他论文格式 |
+| 兼容与迁移 | `source_bindings` 可选；只有 B2b3a 旧身份绑定而无来源记录的行继续报告来源 `not_assessed`，旧项目和 policy 三配对不自动迁移或改变资格 |
+| 验收 | 当前 B1 source_id、sheet、required_headers 的正反例，缺失/歧义/漂移来源，脚本或图片 bundle 与批准路径的当前性，旧身份行 `not_assessed`、只读字节不变与读集改写；专项、全量、lint、索引、精确 head CI 和主干复验分别记录 |
+| 回滚 | 未合并撤回本主题 PR；已声明来源绑定不得通过删字段假装曾获来源或视觉语义核准 |
+
+报告新增 `figure_source_checks`，每张图来源观察为 `current`、`needs_review` 或 `not_assessed`；`approval_freshness=current` 只说明原已验证 bundle 的脚本/图片哈希匹配当前字节，且本次 scoped bundle 的全部发现路径属于原 `approved_figures`，绝不代表新批准或全局批准路径复验。`identity_status` 保留 B2b3a 的身份意义，`source_and_visual_semantics` 仍为 `not_assessed`。本切片没有正式 Figure 门；B2 总验收和 C1 继续等待后续阶段。
+
+同一次只读审计按唯一来源计共享预算：accepted 工作簿最多 8 本、合计沿用 B1 `total_workbook_bytes` 64 MiB；图片最多 512 张、合计 256 MiB；脚本最多 16 份、合计 16 MiB。超限返回 `needs_review`，不截断为成功。同一 Figure 来源可复用已捕获哈希、工作簿解析对象和 scoped discovery；返回前仍逐项复核完整项目/Skill 读集与 Figure discovery，不能因缓存跳过漂移检查。

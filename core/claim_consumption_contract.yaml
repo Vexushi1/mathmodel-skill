@@ -1,10 +1,11 @@
-version: 1.3.0
+version: 1.4.0
 status: active_opt_in
 introduced_in_skill_version: 10.5.0
 propagate_introduced_in_skill_version: 10.6.0
 latex_text_gate_introduced_in_skill_version: 10.7.0
 figure_identity_binding_introduced_in_skill_version: 10.8.0
-purpose: Locate and compare declared claim consumption, propagate qualifying stale fragment status, gate only the declared static modular LaTeX text subset, and observe opt-in Figure identities without asserting semantic truth.
+figure_source_binding_introduced_in_skill_version: 10.9.0
+purpose: Locate and compare declared claim consumption, propagate qualifying stale fragment status, gate only the declared static modular LaTeX text subset, and observe opt-in Figure identities and source/current-bundle facts without asserting semantic truth.
 authority:
   policy_shape: core/project_state.schema.yaml#/$defs/claim_consumption_policy
   policy_path: paper_framework.claim_consumption_policy
@@ -76,6 +77,29 @@ figure_identity_audit:
   formal_gate: none_in_this_slice
   write_behavior: read_only_no_approval_or_project_state_writer
   excludes: [mechanism_and_global_diagrams, tables, workbook_and_plot_script_content_qualification, image_visual_adequacy, caption_semantic_support, rendered_pdf, docx, single_file_or_dynamic_latex]
+figure_source_audit:
+  activation: optional_nonempty_source_bindings_on_existing_figure_binding
+  source_binding_fields: [source_id, sheet, required_headers]
+  source_id: current_linked_claim_B1_source_closure_only
+  sheet_and_headers: literal_match_to_current_B1_selector_and_current_accepted_worksheet
+  read_only_report: figure_source_checks
+  source_statuses: [current, needs_review, not_assessed]
+  absent_source_bindings: not_assessed_without_changing_prior_identity_observation
+  shared_one_audit_unique_byte_budgets:
+    accepted_workbooks_total: 67108864 # reuse core/claim_evidence_contract.yaml#limits.total_workbook_bytes (64 MiB)
+    images_total: 268435456 # 256 MiB
+    scripts_total: 16777216 # 16 MiB
+  shared_one_audit_unique_file_budgets: {accepted_workbooks: 8, images: 512, scripts: 16}
+  budget_exceeded: needs_review_never_truncate_to_current
+  reuse_within_one_audit: same_project_root_and_path_may_reuse_captured_hash_parsed_workbook_and_scoped_discovery
+  final_recheck: all_project_and_skill_read_set_bytes_and_scoped_figure_discovery_still_rechecked
+  approved_bundle_freshness: current_only_when_existing_validated_script_and_figure_bundle_hashes_match_current_bytes_and_all_discovered_scoped_figure_paths_are_in_original_approved_figures
+  approval_freshness_without_current_bundle: not_assessed_or_needs_review
+  source_report_visual_and_caption_semantics: not_assessed
+  identity_report_source_and_visual_semantics: not_assessed
+  formal_gate: none_in_this_slice
+  write_behavior: read_only_no_bundle_resign_or_project_state_writer
+  excludes: [plot_script_execution, workbook_recalculation, image_visual_adequacy, caption_semantic_support, rendered_pdf, docx, single_file_or_dynamic_latex]
 scope:
   first_slice: provably_active_static_modular_latex
   unsupported_active_graph: not_assessed
@@ -116,3 +140,6 @@ rules:
 - The 1.2.0 formal text gate must fail closed on missing coverage, conflicting or unassessed numeric text, unresolved wording or current stale fragments in its declared static LaTeX text subset; it does not certify semantic truth or full-paper coverage.
 - Optional Figure bindings identify workbook-driven result figures by the same Figure ID across the current Framework registry, State fragment and actual/approved figure path, and literal active LaTeX label/caption/image/body reference; they do not change the supported policy-version/mode pairs.
 - A matched Figure identity is a read-only location and path observation. The audit does not qualify the registered workbook or plot script content, approve visual or caption semantics, extend the formal text gate, or sign a new delivery approval.
+- Optional Figure source bindings use only a Figure-linked claim's current B1 source closure, exact sheet and required literal headers; an old Figure binding without source bindings remains source `not_assessed`.
+- The Figure audit may observe existing validated script/figure bundle hashes against current bytes and require every discovered path in this scoped Figure bundle to belong to the original approved_figures list. It does not recheck every globally approved path, renew or write prior approval, execute plotting code, judge the image or caption, or add a formal Figure gate.
+- Figure source auditing counts unique accepted workbook, image and script bytes once per audit against the shared limits above. Reuse of a captured hash, workbook parser or Figure discovery for the same source cannot waive the final read-set or discovery recheck.

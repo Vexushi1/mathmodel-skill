@@ -1,7 +1,7 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 8.7.0
+version: 8.8.0
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
@@ -1038,6 +1038,24 @@ $defs:
               type: string
               maxLength: 512
               pattern: '^(?!\.{1,2}(?:/|$))[^/\\:\x00-\x1f\x7f-\x9f]+(?:/(?!\.{1,2}(?:/|$))[^/\\:\x00-\x1f\x7f-\x9f]+)*\.(?:pdf|png|svg)$'
+            source_bindings:
+              description: 可选B1来源声明；需要现场核验对应工作簿工作表及精确表头。
+              type: array
+              minItems: 1
+              maxItems: 8
+              items:
+                type: object
+                additionalProperties: false
+                required: [source_id, sheet, required_headers]
+                properties:
+                  source_id: {type: string, pattern: '^[A-Za-z][A-Za-z0-9_-]{0,63}$'}
+                  sheet: {type: string, minLength: 1, maxLength: 4096, pattern: '^[^\s\x00-\x1f\x7f-\x9f](?:[^\x00-\x1f\x7f-\x9f]*[^\s\x00-\x1f\x7f-\x9f])?$'}
+                  required_headers:
+                    type: array
+                    minItems: 1
+                    maxItems: 64
+                    uniqueItems: true
+                    items: {type: string, minLength: 1, maxLength: 4096, pattern: '^(?=.*\S)[^\x00-\x1f\x7f-\x9f]+$'}
     oneOf:
     - properties:
         protocol_version: {const: 1.0.0}
