@@ -1,0 +1,102 @@
+name: Prepare B1 profile boundary objects once
+on:
+  push:
+    branches: ["upgrade/v10.4.0-claim-evidence-b1"]
+    paths: [".github/workflows/prepare-claim-b1-once.yml"]
+permissions:
+  contents: read
+jobs:
+  prepare:
+    if: github.repository == 'Vexushi1/mathmodel-skill' && github.ref_name == 'upgrade/v10.4.0-claim-evidence-b1' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Apply exact reviewed six-file delta and preserve unattached objects
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PYTHON'
+          import base64,bz2,hashlib,json,os,pathlib,subprocess,urllib.request
+          REPO='Vexushi1/mathmodel-skill'; BRANCH='upgrade/v10.4.0-claim-evidence-b1'
+          BASE='cca43f32eb1cce9c9481f934826bba4bc750b117'
+          MAIN='186785e662b15989c649201a25709ae90cfee410'
+          SELF='.github/workflows/prepare-claim-b1-once.yml'
+          SHA='f0f6fe47295ab2a1b30140ed19e403893206310d'
+          ALLOWED={'scripts/claim_evidence.py','scripts/claim_workbook.py','tests/test_claim_workbook.py','tests/test_claim_profiles.py','core/claim_evidence_contract.yaml','docs/modeling_intelligence_b1_protocol_decisions.md'}
+          GENERATED={'SKILL_FILE_INDEX.md','TEMPLATE_INDEX.md','MANIFEST.sha256','HSK_SKILL_FILE_INDEX_V622.md','HSK_TEMPLATE_INDEX_V622.md'}
+          ROOT=pathlib.Path.cwd().resolve(); OUT=pathlib.Path(os.environ['RUNNER_TEMP'])/'b1-profile-objects';OUT.mkdir()
+          def git(*args,raw=False):
+              result=subprocess.check_output(['git',*args]); return result if raw else result.decode().strip()
+          def blob(data):return hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+          def api(path,data=None):
+              request=urllib.request.Request('https://api.github.com/repos/'+REPO+path,
+                  data=None if data is None else json.dumps(data).encode(),
+                  headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json'})
+              with urllib.request.urlopen(request,timeout=60) as response: raw=response.read(4_000_001)
+              assert len(raw)<=4_000_000
+              return json.loads(raw)
+          assert os.environ['GITHUB_REPOSITORY']==REPO and os.environ['GITHUB_REF_NAME']==BRANCH
+          assert api('/git/ref/heads/main')['object']['sha']==MAIN
+          assert git('merge-base',BASE,'HEAD')==BASE
+          assert set(git('diff','--name-only',BASE,'HEAD').splitlines())<=GENERATED|{SELF}
+          obj=api('/git/blobs/'+SHA);assert obj['encoding']=='base64'
+          text=base64.b64decode(obj['content']);assert len(text)==6640 and blob(text)==SHA
+          packed=base64.b64decode(text,validate=True)
+          assert len(packed)==4980 and hashlib.sha256(packed).hexdigest()=='b81ca64926f95015b83f34c7e64e52f2a721548a4e690fb34c486cc773c16d3b'
+          decoder=bz2.BZ2Decompressor();raw=decoder.decompress(packed,max_length=20001)
+          assert len(raw)==12893 and decoder.eof and not decoder.unused_data
+          delta=json.loads(raw)
+          assert set(delta)=={'protocol','files','patch'} and delta['protocol']=='B1-profile-boundary-1'
+          assert len(delta['files'])==6 and {x['path'] for x in delta['files']}==ALLOWED
+          for row in delta['files']:
+              p=ROOT/row['path'];assert p.resolve().is_relative_to(ROOT) and not p.is_symlink()
+              assert (blob(p.read_bytes()) if p.exists() else None)==row['old_blob'],row['path']
+          patch=OUT/'verified-profile.diff';patch.write_text(delta['patch'],encoding='utf-8')
+          subprocess.run(['git','apply','--check',str(patch)],check=True)
+          subprocess.run(['git','apply',str(patch)],check=True)
+          for row in delta['files']:
+              data=(ROOT/row['path']).read_bytes()
+              assert blob(data)==row['new_blob'] and hashlib.sha256(data).hexdigest()==row['sha256'],row['path']
+          (ROOT/SELF).unlink()
+          subprocess.run(['python','scripts/generate_indexes.py'],check=True)
+          for name,cmd in [('lint',['python','scripts/lint_skill.py']),('indexes',['python','scripts/generate_indexes.py','--check']),('profiles',['python','-m','unittest','tests.test_claim_profiles','tests.test_claim_graph','tests.test_claim_workbook','tests.test_claim_values','tests.test_claim_contract'])]:
+              p=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+              (OUT/(name+'.log')).write_bytes(p.stdout);print(name,p.returncode);assert p.returncode==0
+          subprocess.run(['git','fetch','origin','refs/heads/'+BRANCH],check=True)
+          parent=git('rev-parse','FETCH_HEAD');assert git('merge-base',BASE,parent)==BASE
+          assert set(git('diff','--name-only',BASE,parent).splitlines())<=GENERATED|{SELF}
+          assert api('/git/ref/heads/main')['object']['sha']==MAIN
+          subprocess.run(['git','add','--',*sorted(ALLOWED|GENERATED|{SELF})],check=True)
+          subprocess.run(['git','diff','--cached','--check'],check=True)
+          changes=set(git('diff','--cached','--name-only',parent).splitlines());assert changes<=ALLOWED|GENERATED|{SELF}
+          tree=git('write-tree');elements=[]
+          for name in sorted(changes):
+              path=ROOT/name
+              if not path.exists():
+                  assert name==SELF; elements.append({'path':name,'mode':'100644','type':'blob','sha':None});continue
+              data=path.read_bytes();assert git('ls-files','--stage','--',name).split()[0]=='100644'
+              made=api('/git/blobs',{'encoding':'base64','content':base64.b64encode(data).decode()})
+              assert made['sha']==blob(data)
+              elements.append({'path':name,'mode':'100644','type':'blob','sha':made['sha']})
+          archive=git('archive','--format=tar.gz',tree,raw=True);(OUT/'candidate.tar.gz').write_bytes(archive)
+          report={'parent':parent,'parent_tree':git('rev-parse',parent+'^{tree}'),'tree':tree,'tree_elements':elements,
+              'refs_written':False,'trees_written':False,'candidate_archive_sha256':hashlib.sha256(archive).hexdigest()}
+          (OUT/'candidate.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
+          print(json.dumps({k:v for k,v in report.items() if k!='tree_elements'}))
+          PYTHON
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: b1-profile-objects
+          path: ${{ runner.temp }}/b1-profile-objects
+          if-no-files-found: error
