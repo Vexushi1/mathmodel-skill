@@ -1,7 +1,7 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 8.2.0
+version: 8.3.0
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
@@ -426,6 +426,572 @@ $defs:
       linked_symbols: {type: array, uniqueItems: true, items: {type: string}}
       scope: {type: array, uniqueItems: true, items: {type: string}}
       status: {type: string, enum: [current, stale]}
+  claim_selector_unit:
+    oneOf:
+    - type: object
+      additionalProperties: false
+      required:
+      - kind
+      - column
+      properties:
+        kind:
+          const: column
+        column:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          pattern: \S
+    - type: object
+      additionalProperties: false
+      required:
+      - kind
+      properties:
+        kind:
+          const: header
+    - type: object
+      additionalProperties: false
+      required:
+      - kind
+      - profile_id
+      properties:
+        kind:
+          const: numeric_profile
+        profile_id:
+          type: string
+          pattern: ^N[1-9][0-9]*$
+    - type: object
+      additionalProperties: false
+      required:
+      - kind
+      properties:
+        kind:
+          const: not_applicable
+  claim_selector:
+    type: object
+    additionalProperties: false
+    required:
+    - sheet
+    - header_row
+    - row_key
+    - expected_cardinality
+    - value_type
+    - identity_columns
+    properties:
+      sheet:
+        type: string
+        minLength: 1
+        maxLength: 4096
+        pattern: \S
+      header_row:
+        type: integer
+        minimum: 1
+        maximum: 200000
+      row_key:
+        type: object
+        minProperties: 1
+        maxProperties: 32
+        additionalProperties:
+          oneOf:
+          - type: string
+            minLength: 1
+            maxLength: 4096
+          - type: number
+      expected_cardinality:
+        type: integer
+        const: 1
+      value_type:
+        enum:
+        - scalar
+        - interval
+        - categorical
+      identity_columns:
+        type: object
+        required:
+        - metric
+        minProperties: 1
+        maxProperties: 32
+        propertyNames:
+          pattern: ^[a-z][a-z0-9_]{0,63}$
+        additionalProperties:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          pattern: \S
+      value_column:
+        type: string
+        minLength: 1
+        maxLength: 4096
+        pattern: \S
+      lower_column:
+        type: string
+        minLength: 1
+        maxLength: 4096
+        pattern: \S
+      upper_column:
+        type: string
+        minLength: 1
+        maxLength: 4096
+        pattern: \S
+      unit:
+        $ref: '#/$defs/claim_selector_unit'
+    allOf:
+    - if:
+        properties:
+          value_type:
+            const: interval
+      then:
+        required:
+        - lower_column
+        - upper_column
+        not:
+          required:
+          - value_column
+      else:
+        required:
+        - value_column
+        not:
+          anyOf:
+          - required:
+            - lower_column
+          - required:
+            - upper_column
+  claim_source:
+    type: object
+    additionalProperties: false
+    required:
+    - id
+    - question
+    - stage
+    - artifact_role
+    - selector
+    properties:
+      id:
+        type: string
+        pattern: ^[A-Za-z][A-Za-z0-9_-]{0,63}$
+      question:
+        type: string
+        pattern: ^Q[1-9][0-9]*$
+      stage:
+        enum:
+        - primary
+        - analysis
+      artifact_role:
+        enum:
+        - solution_workbook
+        - result_analysis_workbook
+      selector:
+        $ref: '#/$defs/claim_selector'
+  claim_derivation:
+    oneOf:
+    - type: object
+      additionalProperties: false
+      required:
+      - id
+      - op
+      - inputs
+      properties:
+        id:
+          type: string
+          pattern: ^[A-Za-z][A-Za-z0-9_-]{0,63}$
+        op:
+          const: identity
+        inputs:
+          type: object
+          additionalProperties: false
+          required:
+          - value
+          properties:
+            value:
+              type: string
+              pattern: ^(source|derivation):[A-Za-z][A-Za-z0-9_-]{0,63}$
+    - type: object
+      additionalProperties: false
+      required:
+      - id
+      - op
+      - inputs
+      - to_unit
+      properties:
+        id:
+          type: string
+          pattern: ^[A-Za-z][A-Za-z0-9_-]{0,63}$
+        op:
+          const: convert_unit
+        inputs:
+          type: object
+          additionalProperties: false
+          required:
+          - value
+          properties:
+            value:
+              type: string
+              pattern: ^(source|derivation):[A-Za-z][A-Za-z0-9_-]{0,63}$
+        to_unit:
+          type: string
+          minLength: 1
+          maxLength: 128
+    - type: object
+      additionalProperties: false
+      required:
+      - id
+      - op
+      - inputs
+      properties:
+        id:
+          type: string
+          pattern: ^[A-Za-z][A-Za-z0-9_-]{0,63}$
+        op:
+          const: percent_to_ratio
+        inputs:
+          type: object
+          additionalProperties: false
+          required:
+          - value
+          properties:
+            value:
+              type: string
+              pattern: ^(source|derivation):[A-Za-z][A-Za-z0-9_-]{0,63}$
+    - type: object
+      additionalProperties: false
+      required:
+      - id
+      - op
+      - inputs
+      properties:
+        id:
+          type: string
+          pattern: ^[A-Za-z][A-Za-z0-9_-]{0,63}$
+        op:
+          const: ratio_to_percent
+        inputs:
+          type: object
+          additionalProperties: false
+          required:
+          - value
+          properties:
+            value:
+              type: string
+              pattern: ^(source|derivation):[A-Za-z][A-Za-z0-9_-]{0,63}$
+    - type: object
+      additionalProperties: false
+      required:
+      - id
+      - op
+      - inputs
+      - comparison_axis
+      properties:
+        id:
+          type: string
+          pattern: ^[A-Za-z][A-Za-z0-9_-]{0,63}$
+        op:
+          const: difference
+        inputs:
+          type: object
+          additionalProperties: false
+          required:
+          - baseline
+          - candidate
+          properties:
+            baseline:
+              type: string
+              pattern: ^(source|derivation):[A-Za-z][A-Za-z0-9_-]{0,63}$
+            candidate:
+              type: string
+              pattern: ^(source|derivation):[A-Za-z][A-Za-z0-9_-]{0,63}$
+        comparison_axis:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          pattern: \S
+    - type: object
+      additionalProperties: false
+      required:
+      - id
+      - op
+      - inputs
+      - comparison_axis
+      properties:
+        id:
+          type: string
+          pattern: ^[A-Za-z][A-Za-z0-9_-]{0,63}$
+        op:
+          const: ratio
+        inputs:
+          type: object
+          additionalProperties: false
+          required:
+          - baseline
+          - candidate
+          properties:
+            baseline:
+              type: string
+              pattern: ^(source|derivation):[A-Za-z][A-Za-z0-9_-]{0,63}$
+            candidate:
+              type: string
+              pattern: ^(source|derivation):[A-Za-z][A-Za-z0-9_-]{0,63}$
+        comparison_axis:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          pattern: \S
+    - type: object
+      additionalProperties: false
+      required:
+      - id
+      - op
+      - inputs
+      - comparison_axis
+      properties:
+        id:
+          type: string
+          pattern: ^[A-Za-z][A-Za-z0-9_-]{0,63}$
+        op:
+          const: relative_change
+        inputs:
+          type: object
+          additionalProperties: false
+          required:
+          - baseline
+          - candidate
+          properties:
+            baseline:
+              type: string
+              pattern: ^(source|derivation):[A-Za-z][A-Za-z0-9_-]{0,63}$
+            candidate:
+              type: string
+              pattern: ^(source|derivation):[A-Za-z][A-Za-z0-9_-]{0,63}$
+        comparison_axis:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          pattern: \S
+    - type: object
+      additionalProperties: false
+      required:
+      - id
+      - op
+      - inputs
+      - comparison_axis
+      - direction
+      properties:
+        id:
+          type: string
+          pattern: ^[A-Za-z][A-Za-z0-9_-]{0,63}$
+        op:
+          const: improvement
+        inputs:
+          type: object
+          additionalProperties: false
+          required:
+          - baseline
+          - candidate
+          properties:
+            baseline:
+              type: string
+              pattern: ^(source|derivation):[A-Za-z][A-Za-z0-9_-]{0,63}$
+            candidate:
+              type: string
+              pattern: ^(source|derivation):[A-Za-z][A-Za-z0-9_-]{0,63}$
+        comparison_axis:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          pattern: \S
+        direction:
+          enum:
+          - higher
+          - lower
+    - type: object
+      additionalProperties: false
+      required:
+      - id
+      - op
+      - inputs
+      - comparison_axis
+      properties:
+        id:
+          type: string
+          pattern: ^[A-Za-z][A-Za-z0-9_-]{0,63}$
+        op:
+          const: percentage_points
+        inputs:
+          type: object
+          additionalProperties: false
+          required:
+          - baseline
+          - candidate
+          properties:
+            baseline:
+              type: string
+              pattern: ^(source|derivation):[A-Za-z][A-Za-z0-9_-]{0,63}$
+            candidate:
+              type: string
+              pattern: ^(source|derivation):[A-Za-z][A-Za-z0-9_-]{0,63}$
+        comparison_axis:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          pattern: \S
+    - type: object
+      additionalProperties: false
+      required:
+      - id
+      - op
+      - inputs
+      - axis
+      - reducer
+      properties:
+        id:
+          type: string
+          pattern: ^[A-Za-z][A-Za-z0-9_-]{0,63}$
+        op:
+          const: aggregate
+        inputs:
+          type: object
+          additionalProperties: false
+          required:
+          - items
+          properties:
+            items:
+              type: array
+              minItems: 2
+              maxItems: 512
+              uniqueItems: true
+              items:
+                type: string
+                pattern: ^(source|derivation):[A-Za-z][A-Za-z0-9_-]{0,63}$
+        axis:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          pattern: \S
+        reducer:
+          enum:
+          - sum
+          - mean
+          - min
+          - max
+  claim_assertion:
+    type: object
+    additionalProperties: false
+    required:
+    - evidence_ref
+    - value
+    - unit
+    properties:
+      evidence_ref:
+        type: string
+        pattern: ^(source|derivation):[A-Za-z][A-Za-z0-9_-]{0,63}$
+      value:
+        oneOf:
+        - type: number
+        - type: string
+          minLength: 1
+          maxLength: 4096
+        - type: array
+          minItems: 2
+          maxItems: 2
+          items:
+            oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 4096
+            - type: number
+      unit:
+        type: string
+        minLength: 1
+        maxLength: 128
+      display_location:
+        enum:
+        - abstract
+        - body
+        - table
+        - submission
+  claim_record:
+    type: object
+    additionalProperties: false
+    required:
+    - id
+    - scope
+    - kind
+    - text
+    - evidence
+    properties:
+      id:
+        type: string
+        pattern: ^[A-Za-z][A-Za-z0-9_-]{0,63}$
+      scope:
+        type: string
+        pattern: ^(project|Q[1-9][0-9]*)$
+      kind:
+        enum:
+        - factual
+        - computational
+        - comparative
+        - robustness
+        - optimality
+        - mechanism
+      text:
+        type: string
+        minLength: 1
+        maxLength: 4096
+        pattern: \S
+      evidence:
+        type: array
+        minItems: 1
+        maxItems: 512
+        uniqueItems: true
+        items:
+          type: object
+          additionalProperties: false
+          required:
+          - ref
+          - relation
+          properties:
+            ref:
+              type: string
+              pattern: ^(source|derivation):[A-Za-z][A-Za-z0-9_-]{0,63}$
+            relation:
+              enum:
+              - supports
+              - contradicts
+              - qualifies
+      assertion:
+        $ref: '#/$defs/claim_assertion'
+      numeric_profile_id:
+        type: string
+        pattern: ^N[1-9][0-9]*$
+      title_claim_id:
+        type: string
+        pattern: ^TC[1-9][0-9]*$
+  claim_evidence:
+    type: object
+    additionalProperties: false
+    required:
+    - protocol_version
+    - sources
+    - derivations
+    - claims
+    properties:
+      protocol_version:
+        const: 1.0.0
+      sources:
+        type: array
+        minItems: 1
+        maxItems: 512
+        items:
+          $ref: '#/$defs/claim_source'
+      derivations:
+        type: array
+        maxItems: 512
+        items:
+          $ref: '#/$defs/claim_derivation'
+      claims:
+        type: array
+        minItems: 1
+        maxItems: 512
+        items:
+          $ref: '#/$defs/claim_record'
   numeric_metric_entry:
     type: object
     additionalProperties: false
@@ -773,6 +1339,7 @@ properties:
       terminology_registry:
         type: array
         items: {$ref: '#/$defs/terminology_entry'}
+      claim_evidence: {$ref: '#/$defs/claim_evidence'}
       numeric_profile:
         type: array
         items: {$ref: '#/$defs/numeric_metric_entry'}

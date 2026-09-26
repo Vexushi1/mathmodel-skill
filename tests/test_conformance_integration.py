@@ -22,7 +22,8 @@ from test_model_code_conformance import fixture, declare, save, bytes_in
 
 def previous_a1_schema(schema):
     """Remove only the exact A2 additions and verify all prior fields byte-semantically."""
-    schema=deepcopy(schema)
+    from tests.claim_schema_reference import previous_a2_schema
+    schema=previous_a2_schema(schema)
     assert schema['version']=='8.2.0'
     schema['version']='8.1.0'
     for name in ('implementation_conformance_policy','conformance_delivery','conformance_acceptance'):

@@ -1,0 +1,125 @@
+version: 1.0.0
+status: active_opt_in_read_only
+introduced_in_skill_version: 10.4.0
+purpose: Verify declared own-result source selection and bounded arithmetic without establishing the semantic truth of paper claims.
+authority:
+  record_shape: core/project_state.schema.yaml#/$defs/claim_evidence
+  record_path: paper_framework.claim_evidence
+  qualification: scripts/runtime_assurance.py:hydrate_project_context
+  source_observation: scripts/claim_sources.py
+  implementation: scripts/claim_evidence.py
+  workbook_reader: scripts/claim_workbook.py
+  derivations: scripts/claim_values.py
+  original_model_approval: core/model_approval_contract.yaml
+  numerical_acceptance: core/user_execution_contract.yaml
+  claim_strength: core/writing_reasoning_contract.yaml#claim_strength_calibration
+activation:
+  explicit_route: claim_evidence_audit
+  automatic_existing_gate_insertion: false
+  missing_record: not_assessed
+  unknown_partial_or_null_record: blocked
+  project_writer: none
+  persistence: stdout_only
+  default_project_files_added: []
+limits:
+  state_bytes: 2097152
+  framework_bytes: 2097152
+  source_file_bytes: 2097152
+  total_source_bytes: 16777216
+  source_files: 64
+  input_files: 512
+  input_bytes: 536870912
+  workbook_bytes: 33554432
+  total_workbook_bytes: 67108864
+  zip_members: 1024
+  uncompressed_bytes: 268435456
+  xml_depth: 64
+  xml_nodes: 2000000
+  table_rows: 200000
+  table_columns: 256
+  workbook_cells: 1000000
+  graph_nodes: 512
+  graph_edges: 2048
+  derivation_depth: 64
+  declaration_depth: 32
+  text_length: 4096
+  decimal_digits: 128
+  decimal_exponent: 300
+  decimal_precision: 80
+  profile_decimals: 30
+  policy: refuse_explicitly_never_truncate_to_success
+selection:
+  cardinality: one_exact_row
+  identity: actual_registered_artifact_sheet_row_keys_columns_and_observed_axes
+  unknown_axes: unverified_not_inferred
+  unit_sources: [column, header, numeric_profile, not_applicable]
+  formula_cells: needs_review_even_when_cached
+  percentage_number_formats: needs_review_for_unresolved_storage_vs_display_unit_scale
+  ambiguous_OOXML: reject_duplicate_cell_payloads_or_sheet_aliases
+  other_unsupported_cells: [boolean, date, error, missing]
+  xml: UTF8_only_no_DTD_entities_macros_or_external_relationships
+  numeric_cells: decimal_from_XML_lexeme_not_float_coercion
+operations:
+  unary: [identity, convert_unit, percent_to_ratio, ratio_to_percent]
+  binary: [difference, ratio, relative_change, improvement, percentage_points]
+  aggregate: [sum, mean, min, max]
+  difference: candidate_minus_baseline
+  relative_change: candidate_minus_baseline_divided_by_strictly_positive_baseline
+  improvement: explicit_higher_or_lower_is_better_and_strictly_positive_baseline
+  percentage_points: percent_candidate_minus_percent_baseline
+  same_source: duplicate_physical_observations_must_not_be_counted_as_independent
+  comparison_scope: identical_observed_noncomparison_axes_and_distinct_comparison_axis
+  unverified_scope: no_claim_that_omitted_axes_were_checked
+  decimal_rounding: ROUND_HALF_EVEN_for_declared_profile_only
+  inexact_arithmetic: needs_review_without_silent_rounding_or_increased_precision_budget
+  expression_execution: forbidden
+units:
+  ratio: {dimension: ratio, scale: '1', kind: ratio}
+  '1': {dimension: ratio, scale: '1', kind: ratio}
+  dimensionless: {dimension: ratio, scale: '1', kind: ratio}
+  '%': {dimension: ratio, scale: '0.01', kind: percent}
+  percent: {dimension: ratio, scale: '0.01', kind: percent}
+  百分点: {dimension: ratio, scale: '0.01', kind: points}
+  pp: {dimension: ratio, scale: '0.01', kind: points}
+  s: {dimension: time, scale: '1', kind: measure}
+  秒: {dimension: time, scale: '1', kind: measure}
+  min: {dimension: time, scale: '60', kind: measure}
+  分钟: {dimension: time, scale: '60', kind: measure}
+  h: {dimension: time, scale: '3600', kind: measure}
+  小时: {dimension: time, scale: '3600', kind: measure}
+  m: {dimension: length, scale: '1', kind: measure}
+  cm: {dimension: length, scale: '0.01', kind: measure}
+  mm: {dimension: length, scale: '0.001', kind: measure}
+  kg: {dimension: mass, scale: '1', kind: measure}
+  g: {dimension: mass, scale: '0.001', kind: measure}
+  mg: {dimension: mass, scale: '0.000001', kind: measure}
+  CNY: {dimension: currency_CNY, scale: '1', kind: measure}
+  元: {dimension: currency_CNY, scale: '1', kind: measure}
+  万元: {dimension: currency_CNY, scale: '10000', kind: measure}
+result_semantics:
+  statuses: [evidence_checked, needs_review, not_assessed, blocked]
+  exit_codes: {evidence_checked: 0, blocked: 1, needs_review: 2, not_assessed: 2}
+  semantic_support: not_established
+  mathematical_or_statistical_truth: not_established
+  independent_review: not_run
+  execution_authorized: false
+  coverage: declared_records_only_not_all_paper_claims
+compatibility:
+  a2_authority_algorithm: unchanged
+  old_a2_authorities: explicit_redelivery_and_original_receipt_revalidation_required
+  revalidation_guidance: command_arguments_only_never_execute_or_resign
+  same_workbook_revalidation: only_original_coordinators_decide_no_new_run_claim
+  no_a2_policy: never_enable_implicitly
+  fingerprint_projection: forbidden_in_production
+rules:
+- Paths are resolved from current state artifact roles, never arbitrary source paths.
+- Qualify each question and stage with the original runtime, not an analysis pre-receipt function or a global accepted flag.
+- Keep source qualification, selection, arithmetic and semantic support separate.
+- A profile is usable only when current, unique and linked to the actual metric; it cannot override a conflicting workbook unit.
+- Unknown same-name units may be compared exactly, but conversion factors and offset conversions are not guessed.
+- Percent and percentage points are distinct types. Never silently convert one into the other.
+- A numerically valid comparison does not prove significance, causality, global optimality or robustness.
+- Capture workbook bytes once, qualify that identity, select from those bytes and recheck the complete observed read set before returning.
+- This command cannot recover a pending transaction or mutate any project source, approval, workbook, receipt or stale field.
+- Read-before/read-after checks are optimistic observations, not filesystem atomic snapshots or protection against later changes.
+- B2 text/fragment consumption, C review receipts and D case memory remain outside this contract.

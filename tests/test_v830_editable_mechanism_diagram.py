@@ -440,8 +440,8 @@ class ContractAndDriftTests(unittest.TestCase):
         # P0-A intentionally aligns the title handoff with the existing output Authority;
         # test_schemas covers the new declaration and unchanged caption ownership.
         "core/workbook_schema.yaml": "e0479f5e74063151a515d11e140b7c4e8b8db077",
-        # Schema 8.0.0 removes stage selectors and declares one project-root backend.
-        "core/project_state.schema.yaml": "28e3f87b8a4f54caadff48abbcf82ab56c1b9009",
+        # B1 adds optional claim records; test_claim_contract protects the exact predecessor schema.
+        "core/project_state.schema.yaml": "b7ad4dbaccc76734ac712f6388c898654813cde2",
         "core/writing_reasoning_contract.yaml": "67a22f6e882a9cb79bc6edccd033731558a81f13",
         "modules/03_solve_validate.md": "cfbe8091f0434b8531ec97cbccde013895e18228",
         "modules/03_result_analysis.md": "dc184e94d4fbce579e25f8e82362d0ef7b3ff72a",

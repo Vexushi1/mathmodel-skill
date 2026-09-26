@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.3.0
+当前 Skill 版本：10.4.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -13,7 +13,6 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `.github/pull_request_template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/optimization-baseline.yml`
-- `.github/workflows/prepare-claim-b1-once.yml`
 - `.github/workflows/refresh-generated.yml`
 - `.gitignore`
 - `AGENTS.md`
@@ -51,6 +50,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `config/prose_audit_patterns.yaml`
 - `config/review_weights.json`
 - `core/bootstrap.yaml`
+- `core/claim_evidence_contract.yaml`
 - `core/code_quality_contract.yaml`
 - `core/compile_profiles.yaml`
 - `core/global_preprocessing_contract.yaml`
@@ -118,6 +118,10 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/audit_latex_project.py`
 - `scripts/audit_paper_prose.py`
 - `scripts/audit_v8_writing_surface.py`
+- `scripts/claim_evidence.py`
+- `scripts/claim_sources.py`
+- `scripts/claim_values.py`
+- `scripts/claim_workbook.py`
 - `scripts/conformance_gate.py`
 - `scripts/conformance_source.py`
 - `scripts/execution_protocol.py`
@@ -245,7 +249,12 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `templates/writing/code_appendix_description.md`
 - `templates/writing/docx_check.md`
 - `tests/audit_auxiliary_smoke.py`
+- `tests/claim_evidence_smoke.py`
+- `tests/claim_fixture.py`
+- `tests/claim_schema_reference.py`
 - `tests/conformance_a2_smoke.py`
+- `tests/fixtures/claim_evidence/a2_baseline_provenance.json`
+- `tests/fixtures/claim_evidence/a2_baseline_synthetic.zip`
 - `tests/fixtures/model_construction_solution_cases.yaml`
 - `tests/fixtures/p3a_global_policy_source_map.yaml`
 - `tests/fixtures/p3b_writing_role_source_map.yaml`
@@ -281,6 +290,11 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_audit_workbook_lifecycle.py`
 - `tests/test_authority_single_source.py`
 - `tests/test_auxiliary_input_protocol.py`
+- `tests/test_claim_contract.py`
+- `tests/test_claim_evidence.py`
+- `tests/test_claim_graph.py`
+- `tests/test_claim_values.py`
+- `tests/test_claim_workbook.py`
 - `tests/test_code_quality_contract.py`
 - `tests/test_conformance_a2_contract.py`
 - `tests/test_conformance_execution.py`

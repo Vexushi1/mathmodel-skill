@@ -87,3 +87,21 @@ python scripts/generate_indexes.py --check
 `needs_review` 在 A2 的当前可判定子集中仍阻断结构门；不得把合法等价变换或不可执行假设伪写成 direct 来求通过。现有语义审查可以提供判断依据，但本阶段没有新建机器可验证审稿协议，审查文字不会自动把 A1 的未知结论变成结构核验通过。
 
 初次交付不要求工作簿存在；结构和数值分开验收。声明改变需要显式重新交付并复核原回执；同一源码和回执的工作簿再次核验不声称发生了新求解。源字节、数据和检查依据在检查与事务提交之间变化时，重新取快照检查；pending journal 使用既有显式恢复入口。
+
+
+## B1：只读主张证据核验
+
+```bash
+python scripts/claim_evidence.py /path/to/project
+python scripts/resolve_runtime.py --help
+```
+
+专门意图为 `claim_evidence_audit`；记录形状在 Project State Schema 的 `claim_evidence` 定义，行为在 `core/claim_evidence_contract.yaml`。`claim_values.py` 是纯有限算术，`claim_workbook.py` 是捕获字节的安全选择器，`claim_sources.py` 只组织原运行时来源资格与读集；这些层不互相替代。报告输出stdout，不写入项目，不运行模型、不启动Excel、不执行公式或表达式。`evidence_checked`不是语义支持或数学正确性的签名。
+
+### A2跨版本显式复验
+
+新Schema或原检查依据变动后，A2仍完整比较原Authority摘要。B1提供旧/当前摘要和现有命令的参数数组，不能自动更新旧绑定，也不会猜测缺失的旧逐文件摘要。先复核输入、源码和工作簿是否仍与原执行证据相同；原门判断必须重跑时不能通过重算哈希绕过。
+
+需要恢复时按项目依赖顺序，由原 `validate_code_delivery.py --write --strict` 与 `validate_user_execution.py --write --strict` 重新检查主结果。主结果重新交付可能按原状态规则清空深化必要性理由，随后必须显式重新裁决现有Analysis Necessity Gate，再按原协调器处理深化。仅analysis启用A2时不要求primary补A2声明；MATLAB交付还须使用实际Code Analyzer支持的`--matlab-command`。
+
+只有原源码、数据、工作簿及执行证据保持且原门允许时，才可复核同一个旧工作簿而不重新执行数值模型。复验不更改工作簿，不伪称新运行或新数学批准；B1本身不执行上述命令。B2的正文定位与失效写入不在本阶段。
