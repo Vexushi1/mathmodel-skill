@@ -1,6 +1,11 @@
 # Changelog
 
-## 10.7.0
+## 10.8.0
+
+- Add optional B2 Figure identity bindings (State Schema 8.7.0, B2 contract 1.3.0) for workbook-driven result figures. The read-only audit checks the current Figure ID across the Framework registry, claim fragment, approved image path and literal active modular LaTeX label, caption, image and body reference.
+- Keep the existing `observe`, `propagate` and `enforce_latex_text` policy pairs unchanged. Figure identity observations do not qualify workbook or plotting-script content, establish visual/caption semantics, change project state or enter a formal LaTeX/submission gate. B2 remains in progress.
+
+## Previous release: 10.7.0
 
 - Add an explicit B2 `enforce_latex_text` policy (protocol 1.2.0) for machine-checkable claim consumption in active modular LaTeX text at formal audit, compile, project sync, and package validation boundaries. The gate checks live B1 qualification and current declared fragments; human semantic review remains separate.
 - Retain claim-local stale propagation when an opted-in project advances from `propagate` to `enforce_latex_text`. Existing projects and the `observe`/`propagate` modes keep their prior gate behavior.

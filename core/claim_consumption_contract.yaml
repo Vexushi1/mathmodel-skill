@@ -1,9 +1,10 @@
-version: 1.2.0
+version: 1.3.0
 status: active_opt_in
 introduced_in_skill_version: 10.5.0
 propagate_introduced_in_skill_version: 10.6.0
 latex_text_gate_introduced_in_skill_version: 10.7.0
-purpose: Locate and compare declared claim consumption, propagate qualifying stale fragment status, and gate only the declared static modular LaTeX text subset without asserting semantic truth.
+figure_identity_binding_introduced_in_skill_version: 10.8.0
+purpose: Locate and compare declared claim consumption, propagate qualifying stale fragment status, gate only the declared static modular LaTeX text subset, and observe opt-in Figure identities without asserting semantic truth.
 authority:
   policy_shape: core/project_state.schema.yaml#/$defs/claim_consumption_policy
   policy_path: paper_framework.claim_consumption_policy
@@ -56,6 +57,25 @@ formal_text_gate:
   changed_candidate_sync: fail_formal_qualification_and_keep_existing_safe_stale_transaction
   activated_policy_non_passed: block_explicit_latex_or_submission_qualification
   source_binding: project_and_skill_read_sets_rechecked_under_existing_project_lock
+figure_identity_audit:
+  activation: optional_figure_bindings_on_existing_explicit_policy
+  eligible_figures: workbook_driven_result_figures_only
+  binding_fields: [figure_id, fragment_id, latex_label, image_path]
+  read_only_entrypoint: scripts/claim_consumption.py#_figure_identity_checks
+  framework_registry: current_model_paper_framework_figure_evidence_table
+  state_source: current_fragment_and_actual_and_approved_figure_paths
+  latex_source: proven_active_static_modular_figure_label_caption_image_and_body_reference
+  image_resolution: from_main_tex_working_directory_without_active_graphicspath
+  framework_body_reference_location: exact_active_source_file_colon_physical_line
+  source_registry_fields: checked_for_presence_not_qualified
+  image_file: declared_and_approved_path_must_exist_and_be_readable_without_recertifying_prior_approval
+  read_set: project_and_skill_bytes_rechecked_before_report_return
+  result_fields: [identity_status, approval_freshness, source_and_visual_semantics]
+  approval_freshness: not_assessed_until_original_figure_bundle_qualification_is_rechecked
+  source_and_visual_semantics: not_assessed
+  formal_gate: none_in_this_slice
+  write_behavior: read_only_no_approval_or_project_state_writer
+  excludes: [mechanism_and_global_diagrams, tables, workbook_and_plot_script_content_qualification, image_visual_adequacy, caption_semantic_support, rendered_pdf, docx, single_file_or_dynamic_latex]
 scope:
   first_slice: provably_active_static_modular_latex
   unsupported_active_graph: not_assessed
@@ -94,3 +114,5 @@ rules:
 - Seed from claim-prefixed dependencies, traverse fragment-ID dependencies, and union the result with existing question and artifact stale decisions.
 - Commit fragment status in State and the Framework dependency table through the same existing project transaction.
 - The 1.2.0 formal text gate must fail closed on missing coverage, conflicting or unassessed numeric text, unresolved wording or current stale fragments in its declared static LaTeX text subset; it does not certify semantic truth or full-paper coverage.
+- Optional Figure bindings identify workbook-driven result figures by the same Figure ID across the current Framework registry, State fragment and actual/approved figure path, and literal active LaTeX label/caption/image/body reference; they do not change the supported policy-version/mode pairs.
+- A matched Figure identity is a read-only location and path observation. The audit does not qualify the registered workbook or plot script content, approve visual or caption semantics, extend the formal text gate, or sign a new delivery approval.

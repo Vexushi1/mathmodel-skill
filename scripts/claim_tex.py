@@ -156,6 +156,16 @@ def _group_depths(text: str) -> tuple[list[int], bool]:
     return depths, invalid or depth != 0
 
 
+def _has_link_component(path: Path, base: Path) -> bool:
+    """Reject aliases whose target could change outside the captured read set."""
+    current = path
+    while current != base and current.parent != current:
+        if current.is_symlink() or (hasattr(current, 'is_junction') and current.is_junction()):
+            return True
+        current = current.parent
+    return False
+
+
 def scan_static_latex(project_root: Path, main_tex: Path) -> dict[str, Any]:
     """Return a bounded read-only scan of literal, statically included TeX files.
 
@@ -167,11 +177,17 @@ def scan_static_latex(project_root: Path, main_tex: Path) -> dict[str, Any]:
     main = Path(main_tex)
     if not main.is_absolute():
         main = root / main
+    raw_main = main
     main = main.resolve()
     report: dict[str, Any] = {
         "status": "scanned", "active_files": [], "files": {}, "segments": [], "issues": [],
     }
     latex_root = main.parent
+
+    if _has_link_component(raw_main, root):
+        report["status"] = "blocked"
+        report["issues"].append({"code": "main_symlink_unsupported", "path": str(raw_main), "line": 1})
+        return report
     if not main.is_relative_to(root) or main.suffix.lower() != ".tex":
         report["status"] = "blocked"
         report["issues"].append({"code": "main_outside_project", "path": str(main), "line": 1})
@@ -209,7 +225,11 @@ def scan_static_latex(project_root: Path, main_tex: Path) -> dict[str, Any]:
             return None
         if not raw.suffix:
             raw = raw.with_suffix(".tex")
-        child = (latex_root / raw).resolve()
+        candidate = latex_root / raw
+        if _has_link_component(candidate, latex_root):
+            issue("include_symlink_unsupported", parent, offset, blocked=True)
+            return None
+        child = candidate.resolve()
         if not child.is_relative_to(latex_root) or not child.is_relative_to(root):
             issue("include_outside_project", parent, offset, blocked=True)
             return None

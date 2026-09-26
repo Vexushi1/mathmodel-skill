@@ -153,6 +153,30 @@ class ClaimTexTests(unittest.TestCase):
             self.assertEqual(report["active_files"].count("final_latex/q1.tex"), 2)
             self.assertIn("repeated_include", {x["code"] for x in report["issues"]})
 
+    def test_symlinked_active_source_is_not_a_proven_read_set(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root, latex = self.project(temp)
+            main = latex / "main.tex"
+            main.write_text(
+                "\\documentclass{article}\\begin{document}\\input{alias}\\end{document}",
+                encoding="utf-8",
+            )
+            target = latex / "target.tex"
+            target.write_text("Evidence 100", encoding="utf-8")
+            alias = latex / "alias.tex"
+            try:
+                alias.symlink_to(target)
+            except (OSError, NotImplementedError) as exc:
+                self.skipTest(f"symlink creation unavailable: {exc}")
+            report = scan_static_latex(root, main)
+            self.assertEqual(report["status"], "blocked", report)
+            self.assertIn("include_symlink_unsupported", {x["code"] for x in report["issues"]})
+            main_alias = latex / "main_alias.tex"
+            main_alias.symlink_to(main)
+            report = scan_static_latex(root, main_alias)
+            self.assertEqual(report["status"], "blocked", report)
+            self.assertIn("main_symlink_unsupported", {x["code"] for x in report["issues"]})
+
 
 if __name__ == "__main__":
     unittest.main()
