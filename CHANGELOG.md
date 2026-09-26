@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased: 10.6.0
+## 10.6.0
 
 - Add an explicit B2 `propagate` policy (protocol 1.1.0) for claim-ID-based local paper-fragment stale propagation through the existing project sync transaction. The original `observe` 1.0.0 audit stays read-only; projects without the policy keep their prior behavior.
 - Keep State and the Framework fragment table synchronized when the opt-in writer marks fragments stale. Preserve the existing artifact-level stale rules, accepted-workbook qualification, human model approval, and project generation/read-set checks.
