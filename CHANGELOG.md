@@ -1,6 +1,11 @@
 # Changelog
 
-## 10.9.0
+## 10.10.0
+
+- Add optional Figure-caption-specific `figure_caption_decimals` (State Schema 8.9.0, B2 contract 1.5.0) for a read-only numeric observation of a current B1 scalar in a proven active static modular LaTeX long caption. Only the current Numeric Profile's own caption precision and unit/display form apply; abstract, body, table and submission precision cannot substitute.
+- Keep the existing three B2 policy pairs and text formal gate unchanged. Ambiguous multi-value captions, units/macros, short captions, visual adequacy and semantic support remain unassessed; this observation neither renews Figure approval nor grants a formal Figure gate. B2 remains in progress.
+
+## Previous release: 10.9.0
 
 - Add optional Figure `source_bindings` (State Schema 8.8.0, B2 contract 1.4.0) for read-only source and current approved-bundle observation. An explicitly bound workbook-driven result Figure can report exact B1 source ID, sheet and literal header agreement, plus whether the existing validated script/figure bundle matches current bytes and every discovered path in this scoped bundle belongs to the original `approved_figures` list.
 - Preserve the three existing B2 policy pairs and B2b3a-only Figure rows: missing source bindings remain `not_assessed`. The audit does not rerun a model or plotting script, renew approval, certify image/caption semantics, or add a formal Figure gate. B2 remains in progress.

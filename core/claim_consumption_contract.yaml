@@ -1,10 +1,11 @@
-version: 1.4.0
+version: 1.5.0
 status: active_opt_in
 introduced_in_skill_version: 10.5.0
 propagate_introduced_in_skill_version: 10.6.0
 latex_text_gate_introduced_in_skill_version: 10.7.0
 figure_identity_binding_introduced_in_skill_version: 10.8.0
 figure_source_binding_introduced_in_skill_version: 10.9.0
+figure_caption_numeric_observation_introduced_in_skill_version: 10.10.0
 purpose: Locate and compare declared claim consumption, propagate qualifying stale fragment status, gate only the declared static modular LaTeX text subset, and observe opt-in Figure identities and source/current-bundle facts without asserting semantic truth.
 authority:
   policy_shape: core/project_state.schema.yaml#/$defs/claim_consumption_policy
@@ -100,6 +101,19 @@ figure_source_audit:
   formal_gate: none_in_this_slice
   write_behavior: read_only_no_bundle_resign_or_project_state_writer
   excludes: [plot_script_execution, workbook_recalculation, image_visual_adequacy, caption_semantic_support, rendered_pdf, docx, single_file_or_dynamic_latex]
+figure_caption_numeric_audit:
+  activation: optional_figure_binding_and_current_scalar_claim_with_caption_specific_numeric_profile
+  source: live_B1_original_scalar_evidence_and_current_Numeric_Profile
+  precision_field: paper_framework.numeric_profile[].figure_caption_decimals
+  precision_fallback: none_from_abstract_body_table_or_submission
+  unit_and_display_form: existing_Numeric_Profile_only
+  read_only_report: figure_caption_numeric_checks
+  supported_source: provably_active_static_modular_latex_long_caption
+  unsupported_or_ambiguous: not_assessed_or_needs_review_without_inferred_numeric_support
+  visual_and_caption_semantics: not_assessed
+  formal_gate: none_in_this_slice
+  write_behavior: read_only_no_project_state_or_approval_writer
+  excludes: [multi_value_caption, unit_or_macro_semantics, short_caption, rendered_pdf, docx, single_file_or_dynamic_latex]
 scope:
   first_slice: provably_active_static_modular_latex
   unsupported_active_graph: not_assessed

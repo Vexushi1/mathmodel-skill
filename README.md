@@ -1,4 +1,4 @@
-# mathmodel-skill v10.9.0
+# mathmodel-skill v10.10.0
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值语言由项目根策略统一选择。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。
 
@@ -21,7 +21,7 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 
 `python scripts/model_code_conformance.py <项目根> --question Q1 --stage primary` 只读核对当前批准SIB、阶段源码bundle和`implementation_conformance`覆盖声明。`--inventory`只列当前可定位对象与源码锚点，不自动生成已验证映射。范围、状态与限制见`core/model_code_conformance_contract.yaml`；使用说明见`templates/model/formula_code_closure.md`。
 
-`structure_verified`只表示记录/身份/静态引用闭合，不证明约束实际启用、数学等价或数值正确。没有记录为`not_assessed`；未支持结构为`needs_review`；旧记录、冲突或残缺声明阻断本次结构核验。A1 独立入口仍只读；A2 仅对显式启用阶段在现有交付/回执链中消费该结果，未启用项目不增加强制门。B1提供独立只读主张证据核验；B2审计入口仍只读，显式失效写入仅由原项目同步器处理，不改变普通路由门禁。
+`structure_verified`只表示记录/身份/静态引用闭合，不证明约束实际启用、数学等价或数值正确。没有记录为`not_assessed`；未支持结构为`needs_review`；旧记录、冲突或残缺声明阻断本次结构核验。A1 独立入口仍只读；A2 仅对显式启用阶段在现有交付/回执链中消费该结果，未启用项目不增加强制门。B1提供独立只读主张证据核验；B2审计入口仍只读，显式失效写入仅由原项目同步器处理，不改变普通路由门禁。可选结果图绑定在限定的模块化 LaTeX 图注中只观察当前 B1 标量及专属 `figure_caption_decimals` 的数值形式；图注语义、视觉充分性及正式 Figure 门仍需单独验收。
 
 ## 唯一 Authority 导航
 

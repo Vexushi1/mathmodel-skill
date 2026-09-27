@@ -34,7 +34,9 @@ class B2b2TextGateTests(unittest.TestCase):
         cls.seed = (Path(cls.seed_tmp.name) / 'seed').resolve()
         cls.seed.mkdir()
         state = smoke.prepare(cls.seed, 'python', required=('primary', 'analysis'))
-        (cls.seed / 'constraints.json').write_text('{"right_hand_side_offset":194}', encoding='utf-8')
+        offset = getattr(cls, 'seed_offset', 194)
+        (cls.seed / 'constraints.json').write_text(
+            f'{{"right_hand_side_offset":{offset}}}', encoding='utf-8')
         state, _ = smoke.run_stage(cls.seed, 'python', 'primary', state)
         state, _ = smoke.run_stage(cls.seed, 'python', 'analysis', state)
         cls.base_state = state
