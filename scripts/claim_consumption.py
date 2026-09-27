@@ -10,6 +10,8 @@ from __future__ import annotations
 import argparse
 from decimal import Decimal, DecimalException, ROUND_HALF_EVEN, localcontext
 import hashlib
+from heapq import merge
+from itertools import chain
 import json
 from pathlib import Path
 import re
@@ -39,6 +41,10 @@ FRAGMENT_HEADER = '### Paper Fragment Dependency Map'
 NUMBER = re.compile(r'(?<![\w.])[-+−]?(?:\d+(?:[.,]\d+)?|\.\d+)(?:[eE][-+−]?\d+)?(?!\w|\.\d)')
 GLOBAL_OPTIMAL = re.compile(r'全局最优|global(?:ly)?\s+optimal|global\s+optimum', re.I)
 BROAD_ROBUST = re.compile(r'广泛稳健|全面稳健|(?:robust|stable)\s+(?:under|across)\s+all', re.I)
+UNCERTAIN_CLAIM_WORDING = re.compile(
+    r'\b(?:not|no|never|without|cannot|can\x27t|may|might|could|perhaps|possibly|'
+    r'uncertain|unproven|unverified|unconfirmed|unsupported)\b|[不未非无]|可能|或许|尚待', re.I)
+MAX_WORDING_CANDIDATES = 100
 EXIT = {'observed': 0, 'blocked': 1, 'needs_review': 2, 'not_assessed': 2}
 
 
@@ -51,6 +57,7 @@ def _report() -> dict:
             'figure_identity_checks': [], 'figure_source_checks': [],
             'figure_caption_numeric_checks': [],
             'unregistered_candidates': [], 'wording_findings': [],
+            'unregistered_wording_candidates': [], 'unregistered_wording_overflow': False,
             'suggested_stale_fragment_ids': [], 'stale_reason_paths': [],
             'errors': [], 'issues': [], 'observed_sources': {'project': {}, 'skill': {}}}
 
@@ -155,6 +162,76 @@ def _locations(fragments: list[dict], scan: dict) -> list[dict]:
 
 def _fragment_text(scan: dict, row: dict) -> str:
     return scan['files'][row['source_file']]['masked'][row['offset']:row['end_offset']]
+
+
+def _unregistered_wording(scan: dict, fragments: list[dict], locations: list[dict],
+                          claim_by_id: dict[str, dict]) -> tuple[list[dict], bool, str | None]:
+    by_id = {row['id']: row for row in locations}
+    registered_spans = []
+    for fragment in fragments:
+        location = by_id[fragment['id']]
+        if location['status'] != 'located':
+            continue
+        codes = set()
+        for dependency in fragment['depends_on']:
+            if not dependency.startswith('claim:'):
+                continue
+            claim_text = claim_by_id[dependency.split(':', 1)[1]]['text']
+            # A negated or uncertain clause cannot automatically register an
+            # affirmative manuscript phrase; this remains lexical screening.
+            for clause in re.split(r'[.!?。！？;；\r\n]', claim_text):
+                if UNCERTAIN_CLAIM_WORDING.search(clause):
+                    continue
+                if GLOBAL_OPTIMAL.search(clause):
+                    codes.add('unregistered_global_optimality')
+                if BROAD_ROBUST.search(clause):
+                    codes.add('unregistered_broad_robustness')
+        if codes:
+            registered_spans.append((location['source_file'], location['offset'],
+                                     location['end_offset'], codes))
+
+    def unmatched_matches():
+        for segment in scan['segments']:
+            if not segment['in_document']:
+                continue
+            path = segment['path']
+            masked = scan['files'][path]['masked']
+            matches = merge(
+                ((match.start(), match.end(), 'unregistered_global_optimality', match.group())
+                 for match in GLOBAL_OPTIMAL.finditer(masked, segment['start'], segment['end'])),
+                ((match.start(), match.end(), 'unregistered_broad_robustness', match.group())
+                 for match in BROAD_ROBUST.finditer(masked, segment['start'], segment['end'])),
+            )
+            for start, end, code, literal in matches:
+                if not any(source == path and span_start <= start and end <= span_end and code in codes
+                           for source, span_start, span_end, codes in registered_spans):
+                    yield path, start, end, code, literal
+
+    unmatched = unmatched_matches()
+    first = next(unmatched, None)
+    if first is None:
+        return [], False, None
+    figures = claim_figure.inspect_static_figures(scan)
+    structural = {'figure_scan_budget_exceeded', 'invalid_figure_scan_segment',
+                  'figure_end_without_begin_in_segment'}
+    malformed = {'figure_not_closed_in_same_segment', 'mismatched_figure_environment'}
+    if structural.intersection(figures['issues']) or any(
+            malformed.intersection(row['issues']) for row in figures['figures']):
+        return [], False, 'unregistered strong wording Figure environment inventory incomplete'
+    figure_spans = [(row['source_file'], row['begin_offset'], row['end_offset'])
+                    for row in figures['figures']]
+    candidates = []
+    for path, start, end, code, literal in chain((first,), unmatched):
+        if any(source == path and span_start <= start and end <= span_end
+               for source, span_start, span_end in figure_spans):
+            continue
+        if len(candidates) == MAX_WORDING_CANDIDATES:
+            return candidates, True, None
+        candidates.append({'source_file': path,
+                           **source_location(scan['files'], path, start),
+                           'literal': literal, 'code': code,
+                           'status': 'candidate_needs_review'})
+    return candidates, False, None
 
 
 def _figure_identity_checks(root: Path, state: dict, policy: dict, framework_text: str,
@@ -496,13 +573,12 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         schema = yaml.safe_load(bounded._read(ROOT, SCHEMA, 2 * 1024 * 1024, observed['skill']).decode('utf-8'))
         _, claim_contract = _read_yaml(ROOT, CLAIM_CONTRACT, 2 * 1024 * 1024, observed['skill'])
         for path in ('scripts/claim_consumption.py', 'scripts/claim_tex.py',
-                     'scripts/validate_project_state.py'):
+                     'scripts/claim_figure.py', 'scripts/validate_project_state.py'):
             bounded._read(ROOT, path, 2 * 1024 * 1024, observed['skill'])
-        if contract.get('version') != '1.5.0':
+        if contract.get('version') != '1.5.1':
             raise EvidenceError('unsupported B2 contract version')
         policy = framework['claim_consumption_policy']
         if isinstance(policy, Mapping) and policy.get('figure_bindings'):
-            bounded._read(ROOT, 'scripts/claim_figure.py', 2 * 1024 * 1024, observed['skill'])
             if any(isinstance(item, Mapping) and item.get('source_bindings')
                    for item in policy['figure_bindings']):
                 for path in ('scripts/claim_figure_source.py', 'scripts/project_snapshot.py',
@@ -594,6 +670,10 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
             and by_id[item['id']]['status'] != 'located']
         claims = framework['claim_evidence']['claims']
         claim_by_id = {row['id']: row for row in claims}
+        (report['unregistered_wording_candidates'], report['unregistered_wording_overflow'],
+         wording_issue) = _unregistered_wording(scan, fragments, locations, claim_by_id)
+        if wording_issue:
+            report['issues'].append(wording_issue)
         gaps = False
         for obligation in policy['required_consumptions']:
             for kind in obligation['fragment_kinds']:
@@ -688,7 +768,8 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         if any(row['status'] == 'conflict' for row in report['numeric_checks']):
             report['status'] = 'blocked'
         elif (gaps or report['registered_location_gaps'] or suggestions or
-              report['wording_findings'] or report['issues'] or
+              report['wording_findings'] or report['unregistered_wording_candidates'] or
+              report['unregistered_wording_overflow'] or report['issues'] or
               any(row['identity_status'] != 'matched' for row in report['figure_identity_checks']) or
               any(row['status'] != 'current' for row in report['figure_source_checks']
                   if row['figure_id'] in {b['figure_id'] for b in source_recheck_checks}) or
@@ -818,6 +899,10 @@ def formal_text_gate(project_root: str | Path, *,
             result['issues'].append('registered claim wording needs review')
         if audit['unregistered_candidates']:
             result['issues'].append('unregistered numeric candidates need review')
+        if audit['unregistered_wording_candidates']:
+            result['issues'].append('unregistered strong wording candidates need review')
+        if audit['unregistered_wording_overflow']:
+            result['issues'].append('unregistered strong wording candidate overflow needs review')
         if audit['suggested_stale_fragment_ids']:
             result['issues'].append('current analysis dispositions suggest stale claim fragments')
         result['issues'] = sorted(set(result['issues']))

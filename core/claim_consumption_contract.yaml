@@ -1,4 +1,4 @@
-version: 1.5.0
+version: 1.5.1
 status: active_opt_in
 introduced_in_skill_version: 10.5.0
 propagate_introduced_in_skill_version: 10.6.0
@@ -59,6 +59,19 @@ formal_text_gate:
   changed_candidate_sync: fail_formal_qualification_and_keep_existing_safe_stale_transaction
   activated_policy_non_passed: block_explicit_latex_or_submission_qualification
   source_binding: project_and_skill_read_sets_rechecked_under_existing_project_lock
+unregistered_wording_audit:
+  activation: existing_explicit_B2_policy_audit_only
+  source: masked_active_in_document_static_latex_segments
+  excluded_content: figure_environments_even_without_a_Figure_binding
+  figure_inventory: only_required_when_active_target_wording_exists; ambiguous_cross_segment_figure_with_target_wording_needs_review
+  candidate_patterns: existing_global_optimality_and_broad_robustness_patterns
+  exclusion: only_fully_located_fragment_spans_whose_direct_claim_text_registers_the_same_unnegated_wording_kind
+  report: unregistered_wording_candidates_with_literal_code_and_physical_location
+  max_reported_candidates: 100
+  overflow: explicit_needs_review_never_silent_success
+  formal_text_gate: unresolved_candidates_or_overflow_fail_explicit_1.2.0_gate
+  semantic_support: not_established_and_not_full_paper_recall
+  write_behavior: read_only
 figure_identity_audit:
   activation: optional_figure_bindings_on_existing_explicit_policy
   eligible_figures: workbook_driven_result_figures_only
@@ -120,6 +133,7 @@ scope:
   unsupported_active_graph_when_formal: failed
   unsupported_formats: not_assessed
   unregistered_candidates: needs_review_not_complete_semantic_recall
+  unregistered_wording_candidates: needs_review_not_complete_semantic_recall
   human_semantic_coverage: not_assessed
   audit_proposed_fragment_stale: report_only_not_written_status
   formal_text_gate: only_explicit_1.2.0_policy_and_explicit_latex_or_submission_scope
@@ -152,6 +166,7 @@ rules:
 - Seed from claim-prefixed dependencies, traverse fragment-ID dependencies, and union the result with existing question and artifact stale decisions.
 - Commit fragment status in State and the Framework dependency table through the same existing project transaction.
 - The 1.2.0 formal text gate must fail closed on missing coverage, conflicting or unassessed numeric text, unresolved wording or current stale fragments in its declared static LaTeX text subset; it does not certify semantic truth or full-paper coverage.
+- Active global-optimality or broad-robustness wording without a matching direct registered unnegated claim text is a review candidate, even inside a located numeric claim fragment or when it contains no number; negated or uncertain registration does not waive the candidate, and a report cap never turns overflow into success. The explicit 1.2.0 text gate rejects unresolved candidates without deciding whether the sentence is true.
 - Optional Figure bindings identify workbook-driven result figures by the same Figure ID across the current Framework registry, State fragment and actual/approved figure path, and literal active LaTeX label/caption/image/body reference; they do not change the supported policy-version/mode pairs.
 - A matched Figure identity is a read-only location and path observation. The audit does not qualify the registered workbook or plot script content, approve visual or caption semantics, extend the formal text gate, or sign a new delivery approval.
 - Optional Figure source bindings use only a Figure-linked claim's current B1 source closure, exact sheet and required literal headers; an old Figure binding without source bindings remains source `not_assessed`.

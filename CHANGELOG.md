@@ -1,6 +1,11 @@
 # Changelog
 
-## 10.10.0
+## 10.10.1
+
+- Fix the opt-in B2 LaTeX text audit so unregistered overstrong wording is surfaced for review even when no numeric candidate is found. The existing 1.2.0 formal text gate remains conservative; this patch does not grant Figure, caption, or human semantic approval.
+- Keep State Schema 8.9.0 and the three existing B2 project policy/mode pairs unchanged. B2 remains in progress.
+
+## Previous release: 10.10.0
 
 - Add optional Figure-caption-specific `figure_caption_decimals` (State Schema 8.9.0, B2 contract 1.5.0) for a read-only numeric observation of a current B1 scalar in a proven active static modular LaTeX long caption. Only the current Numeric Profile's own caption precision and unit/display form apply; abstract, body, table and submission precision cannot substitute.
 - Keep the existing three B2 policy pairs and text formal gate unchanged. Ambiguous multi-value captions, units/macros, short captions, visual adequacy and semantic support remain unassessed; this observation neither renews Figure approval nor grants a formal Figure gate. B2 remains in progress.

@@ -224,6 +224,23 @@ class ClaimConsumptionIntegrationTests(unittest.TestCase):
                           "broad_robustness_without_required_analysis"})
         self.assertEqual(report["semantic_support"], "not_established")
 
+    def test_b09_b10_b16_unregistered_wording_observe_is_read_only(self):
+        main = self.root / 'final_latex/main.tex'
+        main.write_text(main.read_text(encoding='utf-8').replace(
+            '\\end{document}', '\\input{extra}\n\\end{document}', 1), encoding='utf-8')
+        (self.root / 'final_latex/extra.tex').write_bytes(
+            b'Globally optimal and robust across all cases.\n')
+        before = bytes_in(self.root)
+        report = audit.inspect_project(self.root)
+        self.assertEqual(report['b1_status'], 'evidence_checked', report)
+        self.assertEqual(report['status'], 'needs_review', report)
+        self.assertEqual({row['code'] for row in report['unregistered_wording_candidates']},
+                         {'unregistered_global_optimality',
+                          'unregistered_broad_robustness'})
+        self.assertFalse(report['unregistered_wording_overflow'])
+        self.assertEqual(audit.formal_text_gate(self.root)['status'], 'not_applicable')
+        self.assertEqual(bytes_in(self.root), before)
+
     def test_global_abstract_inherits_linked_q1_wording_limits(self):
         self.fragments[0]["scope"] = "global"
         entry = self.state["subproblems"]["Q1"]
