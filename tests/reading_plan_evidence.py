@@ -505,6 +505,24 @@ def approved_b2b4_carrier_change(identifier, old, new):
     return projected, changes
 
 
+def approved_b2b5_carrier_change(identifier, old, new):
+    """Only the exact B12 acceptance 10.11.1 carrier; no qualification waiver."""
+    if (identifier not in {case[0] for case in CASES}
+            or old.get("version") != "<EXPECTED_P9_RELEASE_CARRIER_CHANGE>"
+            or new.get("version") != "10.11.1"
+            or not isinstance(new.get("assurance"), dict)
+            or new["assurance"].get("schema_version") != "2.2.0"):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    predecessor["version"] = "10.11.0"
+    projected, changes = approved_b2b4_carrier_change(identifier, old, predecessor)
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = "10.11.1"
+            change["approval"] = "B12 acceptance 10.11.1 carrier only; old qualification remains checked"
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -546,6 +564,8 @@ def compare(before, after):
         expected.extend(b2_patch_changes)
         projected, b2b4_changes = approved_b2b4_carrier_change(a["id"], old, projected)
         expected.extend(b2b4_changes)
+        projected, b2b5_changes = approved_b2b5_carrier_change(a["id"], old, projected)
+        expected.extend(b2b5_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,
@@ -582,7 +602,7 @@ def main():
         "schema_version": 1, "baseline_ref": args.baseline_ref, "candidate_ref": args.candidate_ref,
         "driver_sha256": hashlib.sha256(HERE.read_bytes()).hexdigest(),
         "cases_sha256": hashlib.sha256(HERE.with_name("reading_plan_cases.py").read_bytes()).hexdigest(),
-        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_b2b1_b2b2_b2b3a_b2b3b_b2b3c_b2_patch_b2b4_carrier_transitions",
+        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_b2b1_b2b2_b2b3a_b2b3b_b2b3c_b2_patch_b2b4_b2b5_carrier_transitions",
         "expected_authority_changes": sorted(ALLOWED_CHANGED_AUTHORITIES),
         "all_legacy_behavior_equal": all(r["legacy_behavior_equal"] for r in rows),
         "all_legacy_behavior_equal_except_approved_changes": all(r["legacy_behavior_equal_except_approved_changes"] for r in rows),

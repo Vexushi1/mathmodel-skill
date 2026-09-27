@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import artifact_fingerprint
 import stage_code
+from project_transaction import JOURNAL_RELATIVE_PATH, LOCK_RELATIVE_PATH, _project_lock
 
 
 def load_script(name):
@@ -148,6 +149,32 @@ def compile_fixture(root, state):
 
 
 class PackageCompletenessTests(unittest.TestCase):
+    def test_persistent_transaction_lock_is_not_packaged_or_deleted(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            complete_project(root)
+            with _project_lock(root):
+                pass
+            lock = root / LOCK_RELATIVE_PATH
+            original = lock.read_bytes()
+            ordinary = root / '附件' / lock.name
+            ordinary.write_bytes(b'user input with the same basename')
+            package = archive(root)
+            with zipfile.ZipFile(package) as bundle:
+                manifest = yaml.safe_load(bundle.read(VALIDATOR.MANIFEST_NAME))
+                self.assertNotIn(LOCK_RELATIVE_PATH, bundle.namelist())
+                self.assertNotIn(LOCK_RELATIVE_PATH, {row['path'] for row in manifest['files']})
+                self.assertIn(ordinary.relative_to(root).as_posix(), bundle.namelist())
+            report = VALIDATOR.validate_package(root, package)
+            self.assertEqual(report['status'], 'passed', report['issues'])
+            self.assertEqual(lock.read_bytes(), original)
+            # A pending journal is not silently omitted or made deliverable.
+            (root / JOURNAL_RELATIVE_PATH).write_text('status: prepared\n', encoding='utf-8')
+            pending = archive(root)
+            with zipfile.ZipFile(pending) as bundle:
+                self.assertIn(JOURNAL_RELATIVE_PATH, bundle.namelist())
+            self.assertEqual(VALIDATOR.validate_package(root, pending)['status'], 'failed')
+
     def test_two_question_required_analysis_package_rejects_omitted_question_and_stage(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

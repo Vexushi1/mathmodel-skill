@@ -1,6 +1,12 @@
 # Changelog
 
-## 10.11.0
+## 10.11.1
+
+- Add B12 continuous acceptance coverage for auxiliary-claim rejection, local fragment invalidation, retained primary qualification, and fresh LaTeX/Figure delivery proof after explicit review. Synthetic integration evidence and real compiler execution remain distinct.
+- Exclude the exact persistent project-transaction lock from reproducibility packages. Real synchronization leaves this coordination file behind; including it conflicted with the existing evidence read-set rules. Other same-named files and pending-journal rejection remain unchanged.
+- Keep State Schema 8.10.0, B2 contract 1.6.0, existing project policies and qualification boundaries unchanged. B2 cross-format and human semantic acceptance remain pending.
+
+## Previous release: 10.11.0
 
 - Add opt-in B2 `1.3.0/enforce_latex_text_and_figure_chain` (State Schema 8.10.0, B2 contract 1.6.0). Explicit LaTeX/submission delivery rechecks the 1.2.0 text conditions in the same live audit with an exact matched Figure-caption scalar exemption, then requires a current machine Figure chain for declared workbook-driven result figures; the audit remains read-only and the existing project transaction remains the only stale writer.
 - Bind passing Figure image paths to the later v5 formal LaTeX audit, compile attestation, and submission-package verification. Older policy/mode pairs and v4 proof paths retain their previous behavior. A machine pass does not establish image visual adequacy, whole-caption semantic support, or complete B2 coverage.

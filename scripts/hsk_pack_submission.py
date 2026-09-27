@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
 from submission_requirements import bound_compile_files, expand_required_allowlist
+from project_transaction import LOCK_RELATIVE_PATH
 
 COMPETITION_PROFILES = ROOT / "config" / "competition_profiles.yaml"
 EXCLUDED_DIRS = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".venv", "venv", "submission"}
@@ -56,6 +57,10 @@ def should_exclude(path: Path, root: Path, output: Path) -> bool:
     if path.resolve() == output:
         return True
     relative = path.relative_to(root)
+    # The persistent writer lock is coordination state, not reproducible input.
+    # Keep other similarly named files and pending journals visible to validation.
+    if relative.as_posix() == LOCK_RELATIVE_PATH:
+        return True
     if any(part in EXCLUDED_DIRS for part in relative.parts):
         return True
     if path.name in EXCLUDED_NAMES:
