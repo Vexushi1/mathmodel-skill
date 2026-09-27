@@ -173,7 +173,7 @@ class ClaimConsumptionContractTests(unittest.TestCase):
 
     def test_contract_keeps_original_authorities_and_limits_new_gate_to_explicit_text_scope(self):
         contract = yaml.safe_load((ROOT / "core/claim_consumption_contract.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(contract["version"], "1.5.0")
+        self.assertEqual(contract["version"], "1.5.1")
         self.assertEqual(contract["authority"]["numerical_qualification"], "core/claim_evidence_contract.yaml")
         self.assertEqual(contract["authority"]["claim_strength"],
                          "core/writing_reasoning_contract.yaml#claim_strength_calibration")

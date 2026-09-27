@@ -98,6 +98,12 @@ class B2b2TextGateTests(unittest.TestCase):
         self.state['paper_framework']['sha256'] = sha256_text(text)
         save(self.root, self.state)
 
+    def include_extra(self, text):
+        main = self.latex / 'main.tex'
+        main.write_text(main.read_text(encoding='utf-8').replace(
+            '\\end{document}', '\\input{extra}\n\\end{document}', 1), encoding='utf-8')
+        (self.latex / 'extra.tex').write_bytes(text.encode('utf-8'))
+
     def synthetic_compile_proof(self):
         """Build a proof-chain fixture without claiming a real TeX compilation."""
         main = self.latex / 'main.tex'
@@ -127,7 +133,172 @@ class B2b2TextGateTests(unittest.TestCase):
         self.assertEqual(gate['human_semantic_coverage'], 'not_assessed')
         self.assertIn('state/project_state.yaml', gate['observed_sources']['project'])
         self.assertIn('final_latex/result.tex', gate['observed_sources']['project'])
+        self.assertNotIn('scripts/claim_figure.py', gate['observed_sources']['skill'])
         self.assertEqual(bytes_in(self.root), before)
+
+    def test_b09_b10_b16_unregistered_strong_wording_fails_with_source_location(self):
+        extra = ('Setup.\nGlobally optimal and robust across all cases.\n'
+                 '全局最优且广泛稳健。\n')
+        self.include_extra(extra)
+        before = bytes_in(self.root)
+        audit = claims.inspect_project(self.root)
+        self.assertEqual(audit['status'], 'needs_review', audit)
+        self.assertIn('scripts/claim_figure.py', audit['observed_sources']['skill'])
+        self.assertEqual(audit['unregistered_candidates'], [])
+        self.assertEqual(audit['wording_findings'], [])
+        candidates = audit['unregistered_wording_candidates']
+        self.assertEqual({row['code'] for row in candidates},
+                         {'unregistered_global_optimality', 'unregistered_broad_robustness'})
+        self.assertEqual(len(candidates), 4, candidates)
+        for literal, line in [('Globally optimal', 2), ('robust across all', 2),
+                              ('全局最优', 3), ('广泛稳健', 3)]:
+            row = next(item for item in candidates if item['literal'] == literal)
+            self.assertEqual(row['source_file'], 'final_latex/extra.tex')
+            self.assertEqual(row['line'], line)
+            self.assertEqual(row['byte_offset'],
+                             len(extra[:extra.index(literal)].encode('utf-8')))
+            self.assertEqual(row['status'], 'candidate_needs_review')
+        gate = claims.formal_text_gate(self.root)
+        self.assertEqual(gate['status'], 'failed', gate)
+        self.assertTrue(any('unregistered strong wording' in issue for issue in gate['issues']), gate)
+        self.assertEqual(bytes_in(self.root), before)
+
+    def test_b09_b10_masked_comments_verbatim_and_preamble_do_not_trigger(self):
+        main = self.latex / 'main.tex'
+        main.write_text(main.read_text(encoding='utf-8').replace(
+            '\\begin{document}', 'Globally optimal.\n\\begin{document}', 1), encoding='utf-8')
+        self.include_extra('% globally optimal and robust across all\n'
+                           '\\begin{verbatim}\n全局最优且广泛稳健\n\\end{verbatim}\n'
+                           '\\verb|globally optimal and robust across all|\n')
+        audit = claims.inspect_project(self.root)
+        self.assertEqual(audit['status'], 'observed', audit)
+        self.assertEqual(audit['unregistered_wording_candidates'], [])
+        self.assertFalse(audit['unregistered_wording_overflow'])
+        self.assertEqual(claims.formal_text_gate(self.root)['status'], 'passed')
+
+    def test_b16_unbound_figure_caption_keeps_formal_text_gate_scope(self):
+        self.include_extra('\\begin{figure}\n'
+                           '\\caption{Globally optimal and robust across all cases.}\n'
+                           '\\end{figure}\n')
+        audit = claims.inspect_project(self.root)
+        self.assertEqual(audit['status'], 'observed', audit)
+        self.assertEqual(audit['unregistered_wording_candidates'], [])
+        self.assertEqual(claims.formal_text_gate(self.root)['status'], 'passed')
+
+    def test_b16_unbound_center_inside_figure_keeps_text_gate_scope(self):
+        self.include_extra('\\begin{figure}\\begin{center}'
+                           'Ordinary diagram.\\end{center}\\end{figure}\n')
+        audit = claims.inspect_project(self.root)
+        self.assertEqual(audit['status'], 'observed', audit)
+        self.assertEqual(audit['unregistered_wording_candidates'], [])
+        self.assertEqual(claims.formal_text_gate(self.root)['status'], 'passed')
+
+    def test_b16_modular_figure_without_strong_wording_keeps_text_gate_scope(self):
+        self.include_extra('\\begin{figure}\\input{figbody}\\end{figure}\n')
+        body = self.latex / 'figbody.tex'
+        body.write_text('Ordinary diagram.\n', encoding='utf-8')
+        audit = claims.inspect_project(self.root)
+        self.assertEqual(audit['status'], 'observed', audit)
+        self.assertEqual(audit['unregistered_wording_candidates'], [])
+        self.assertEqual(claims.formal_text_gate(self.root)['status'], 'passed')
+        body.write_text('Globally optimal diagram.\n', encoding='utf-8')
+        audit = claims.inspect_project(self.root)
+        self.assertEqual(audit['status'], 'needs_review', audit)
+        self.assertEqual(audit['unregistered_wording_candidates'], [])
+        self.assertTrue(any('Figure environment inventory incomplete' in issue
+                            for issue in audit['issues']), audit)
+        self.assertEqual(claims.formal_text_gate(self.root)['status'], 'failed')
+
+    def test_b16_incomplete_figure_inventory_fails_without_caption_candidates(self):
+        self.include_extra('\\begin{figure}\\caption{Globally optimal.}\\end{figure}\n' * 513)
+        audit = claims.inspect_project(self.root)
+        self.assertEqual(audit['status'], 'needs_review', audit)
+        self.assertEqual(audit['unregistered_wording_candidates'], [])
+        self.assertTrue(any('Figure environment inventory incomplete' in issue
+                            for issue in audit['issues']), audit)
+        gate = claims.formal_text_gate(self.root)
+        self.assertEqual(gate['status'], 'failed', gate)
+
+    def test_b16_unregistered_wording_crlf_bom_uses_physical_byte_location(self):
+        self.include_extra('placeholder\n')
+        extra = 'Prelude.\r\n全局最优且全面稳健。\r\n'
+        (self.latex / 'extra.tex').write_bytes(b'\xef\xbb\xbf' + extra.encode('utf-8'))
+        audit = claims.inspect_project(self.root)
+        self.assertEqual(audit['status'], 'needs_review', audit)
+        by_literal = {row['literal']: row for row in audit['unregistered_wording_candidates']}
+        self.assertEqual(set(by_literal), {'全局最优', '全面稳健'})
+        for literal, row in by_literal.items():
+            self.assertEqual(row['source_file'], 'final_latex/extra.tex')
+            self.assertEqual(row['line'], 2)
+            self.assertEqual(row['byte_offset'],
+                             3 + len(extra[:extra.index(literal)].encode('utf-8')))
+        self.assertEqual(claims.formal_text_gate(self.root)['status'], 'failed')
+
+    def test_b09_b10_registered_wording_is_not_duplicated_as_candidate(self):
+        self.state['subproblems']['Q1'].update(optimality_claim='heuristic',
+                                                result_analysis_status='not_required')
+        self.state['paper_framework']['claim_evidence']['claims'][0]['text'] = (
+            'Result is 100.00, globally optimal and robust across all cases.')
+        (self.latex / 'result.tex').write_text(
+            'Result: 100.00; globally optimal and robust across all cases.\n', encoding='utf-8')
+        save(self.root, self.state)
+        audit = claims.inspect_project(self.root)
+        self.assertEqual(audit['status'], 'needs_review', audit)
+        self.assertEqual({row['code'] for row in audit['wording_findings']},
+                         {'global_optimality_exceeds_registered_status',
+                          'broad_robustness_without_required_analysis'})
+        self.assertEqual(audit['unregistered_wording_candidates'], [])
+        self.assertEqual(claims.formal_text_gate(self.root)['status'], 'failed')
+
+    def test_b09_b10_undocumented_wording_in_located_numeric_span_fails(self):
+        result = 'Result: 100.00. Globally optimal and robust across all cases.\n'
+        (self.latex / 'result.tex').write_bytes(result.encode('utf-8'))
+        audit = claims.inspect_project(self.root)
+        self.assertEqual(audit['status'], 'needs_review', audit)
+        self.assertEqual(audit['wording_findings'], [])
+        candidates = audit['unregistered_wording_candidates']
+        self.assertEqual({row['code'] for row in candidates},
+                         {'unregistered_global_optimality', 'unregistered_broad_robustness'})
+        self.assertEqual({row['source_file'] for row in candidates}, {'final_latex/result.tex'})
+        self.assertEqual({row['line'] for row in candidates}, {1})
+        self.assertEqual(claims.formal_text_gate(self.root)['status'], 'failed')
+
+    def test_b09_b10_negated_claim_text_does_not_exempt_affirmative_prose(self):
+        self.state['subproblems']['Q1'].update(optimality_claim='global',
+                                                result_analysis_status='passed')
+        cases = [
+            ('We do not claim globally optimal performance and are not robust across all cases.',
+             'Globally optimal and robust across all cases.',
+             {'unregistered_global_optimality', 'unregistered_broad_robustness'}),
+            ('We are not robust across all cases.', 'Robust across all cases.',
+             {'unregistered_broad_robustness'}),
+            ('未证明全局最优，也未验证广泛稳健。', '全局最优且广泛稳健。',
+             {'unregistered_global_optimality', 'unregistered_broad_robustness'}),
+            ('globally optimal is unverified.', 'Globally optimal.',
+             {'unregistered_global_optimality'}),
+        ]
+        for claim_text, prose, expected in cases:
+            with self.subTest(claim_text=claim_text):
+                self.state['paper_framework']['claim_evidence']['claims'][0]['text'] = claim_text
+                (self.latex / 'result.tex').write_text(
+                    'Result: 100.00. ' + prose + '\n', encoding='utf-8')
+                save(self.root, self.state)
+                audit = claims.inspect_project(self.root)
+                self.assertEqual(audit['status'], 'needs_review', audit)
+                self.assertEqual(audit['wording_findings'], [])
+                self.assertEqual({row['code'] for row in audit['unregistered_wording_candidates']},
+                                 expected)
+                self.assertEqual(claims.formal_text_gate(self.root)['status'], 'failed')
+
+    def test_b16_unregistered_wording_overflow_fails_closed(self):
+        self.include_extra('globally optimal\n' * 101)
+        audit = claims.inspect_project(self.root)
+        self.assertEqual(audit['status'], 'needs_review', audit)
+        self.assertEqual(len(audit['unregistered_wording_candidates']), 100)
+        self.assertTrue(audit['unregistered_wording_overflow'])
+        gate = claims.formal_text_gate(self.root)
+        self.assertEqual(gate['status'], 'failed', gate)
+        self.assertTrue(any('overflow' in issue for issue in gate['issues']), gate)
 
     def test_legacy_policies_keep_formal_gate_unselected_but_unknown_pair_fails(self):
         for pair in [('1.0.0', 'observe'), ('1.1.0', 'propagate')]:

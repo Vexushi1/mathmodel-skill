@@ -469,6 +469,24 @@ def approved_b2b3c_carrier_change(identifier, old, new):
     return projected, changes
 
 
+def approved_b2_patch_carrier_change(identifier, old, new):
+    """Only the exact 10.10.1 patch carrier on pre-existing disabled controls."""
+    if (identifier not in {case[0] for case in CASES}
+            or old.get("version") != "<EXPECTED_P9_RELEASE_CARRIER_CHANGE>"
+            or new.get("version") != "10.10.1"
+            or not isinstance(new.get("assurance"), dict)
+            or new["assurance"].get("schema_version") != "2.2.0"):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    predecessor["version"] = "10.10.0"
+    projected, changes = approved_b2b3c_carrier_change(identifier, old, predecessor)
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = "10.10.1"
+            change["approval"] = "B2 wording patch 10.10.1 carrier only; old qualification remains checked"
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -506,6 +524,8 @@ def compare(before, after):
         expected.extend(b2b3b_changes)
         projected, b2b3c_changes = approved_b2b3c_carrier_change(a["id"], old, projected)
         expected.extend(b2b3c_changes)
+        projected, b2_patch_changes = approved_b2_patch_carrier_change(a["id"], old, projected)
+        expected.extend(b2_patch_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,

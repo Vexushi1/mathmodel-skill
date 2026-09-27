@@ -42,7 +42,7 @@ class FigureCaptionProfileSchemaTests(unittest.TestCase):
 
     def test_contract_keeps_text_gate_and_policy_pairs(self):
         contract = yaml.safe_load((ROOT / "core/claim_consumption_contract.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(contract["version"], "1.5.0")
+        self.assertEqual(contract["version"], "1.5.1")
         caption = contract["figure_caption_numeric_audit"]
         self.assertEqual(caption["precision_field"], "paper_framework.numeric_profile[].figure_caption_decimals")
         self.assertEqual(caption["read_only_report"], "figure_caption_numeric_checks")
