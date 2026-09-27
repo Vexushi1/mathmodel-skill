@@ -1,4 +1,4 @@
-version: 10.10.1
+version: 10.11.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -202,6 +202,7 @@ utility_gates:
     outputs: [claim_consumption_report]
     rules:
     - This explicit B2 inspector is read-only and uses the B1 accepted-source qualification before reporting declared claim/fragment and active-paper observations.
+    - Explicit 1.3.0/enforce_latex_text_and_figure_chain projects can additionally consume the current bounded Figure machine-chain result in latex/submission scope; this inspector itself never writes State or renews visual approval.
     - It never changes ordinary-route gates, accepted status, stale state, approval, or formal delivery qualification.
   claim_evidence:
     path: scripts/claim_evidence.py
@@ -277,6 +278,7 @@ utility_gates:
     - Propagates stale from the active data source, preprocessing figure script, primary code, applicable analysis code/workbooks, MATLAB scripts and figure bundles without clearing it.
     - Required before formal model, workbooks, figures, DOCX, LaTeX or submission delivery.
     - For explicit 1.2.0/enforce_latex_text projects, the existing latex/submission scope gate also runs the bounded live B2 text check; older policies and other scopes retain their prior behavior.
+    - For explicit 1.3.0/enforce_latex_text_and_figure_chain projects, the same scope additionally requires the current Figure machine chain and later exact-image v5 LaTeX proof; older policy pairs retain their previous qualification.
     - Code delivery uses the dedicated non-executing code_delivery gate.
   submission_package_validation:
     path: scripts/validate_submission_package.py
@@ -289,3 +291,4 @@ utility_gates:
     - Official packages require current verified competition edition_rules and must match the verified submission_files allowlist exactly.
     - Reproducibility packages keep the broader internal material boundary and must include PDF, selected solver sources and declared helpers, result workbooks and MATLAB figure evidence files.
     - Explicit 1.2.0/enforce_latex_text projects recheck the current modular LaTeX text gate and bound formal compile proof before a package can pass; this is not Figure-chain or human semantic approval.
+    - Explicit 1.3.0/enforce_latex_text_and_figure_chain projects also require the current bounded Figure gate and v5 proof of its exact included image inputs before a package can pass; this is not visual adequacy or whole-caption semantic approval.

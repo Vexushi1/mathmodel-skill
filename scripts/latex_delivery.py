@@ -32,6 +32,9 @@ REQUIREPACKAGE_RE = re.compile(r"\\RequirePackage(?:\[[^\]]*\])?\{([^{}]+)\}")
 ADDBIB_RE = re.compile(r"\\addbibresource(?:\[[^\]]*\])?\{([^{}]+)\}")
 BIBLIOGRAPHY_RE = re.compile(r"\\bibliography\{([^{}]+)\}")
 GRAPHICS_RE = re.compile(r"\\includegraphics(?:\[[^\]]*\])?\{([^{}]+)\}")
+V5_GRAPHICS_COMMAND_RE = re.compile(r"\\includegraphics\b")
+V5_GRAPHICS_RE = re.compile(r"\\includegraphics(?:\s*\[[^\]]*\])?\s*\{([^{}]+)\}")
+V5_LITERAL_IMAGE_RE = re.compile(r"[\w./-]+\Z")
 GRAPHICSPATH_RE = re.compile(r"\\graphicspath\s*\{((?:\{[^{}]*\}\s*)+)\}")
 GRAPHIC_DIR_RE = re.compile(r"\{([^{}]*)\}")
 VERBATIM_ENV_RE = re.compile(
@@ -212,7 +215,142 @@ def _resolve_graphic(root: Path, token: str, directories: Iterable[Path]) -> Pat
     return None
 
 
-def source_bundle_files(main: Path, bib_path: Path | None = None) -> list[Path]:
+def _v5_lexical(path: Path) -> Path:
+    """Normalize spelling without following a symlink or Windows junction."""
+    return Path(os.path.abspath(path))
+
+
+def _v5_no_alias(path: Path, label: str) -> Path:
+    lexical = _v5_lexical(path)
+    actual = lexical.resolve(strict=True)
+    if lexical != actual:
+        raise ValueError(f"v5 {label} uses a symbolic-link/junction alias: {path}")
+    return actual
+
+
+def _v5_graphic_context(
+    main: Path,
+    project_root: Path,
+    allowed_external_graphics: Mapping[str, Path] | None,
+) -> tuple[Path, Path, dict[str, Path]]:
+    project = _v5_no_alias(project_root, "project root")
+    main_path = _v5_no_alias(main, "main source")
+    root = project / "final_latex"
+    if main_path != root / "main.tex" or not root.is_dir():
+        raise ValueError("v5 proof requires project_root/final_latex/main.tex")
+    approved: dict[str, Path] = {}
+    for token, value in (allowed_external_graphics or {}).items():
+        if not isinstance(token, str) or not token.startswith("../figures/") or (
+            not V5_LITERAL_IMAGE_RE.fullmatch(token) or
+            any(part in ("", ".", "..") for part in token.split("/")[2:])
+        ):
+            raise ValueError(f"v5 approved external graphic token is not literal ../figures path: {token}")
+        image_path = Path(value)
+        if not image_path.is_absolute():
+            raise ValueError(f"v5 approved graphic path must be absolute: {value}")
+        image = _v5_no_alias(image_path, "approved graphic")
+        expected = _v5_lexical(root / token)
+        if image != expected or not image.is_relative_to(project / "figures") or (
+            image.suffix.lower() not in GRAPHIC_SUFFIXES or not image.is_file()
+        ):
+            raise ValueError(f"v5 approved graphic does not match literal project image: {token}")
+        approved[token] = image
+    return project, root, approved
+
+
+def _v5_check_local_source_aliases(root: Path, files: set[Path], bib_path: Path | None) -> None:
+    """Reject aliases hidden by the legacy resolver's canonical path set."""
+    if bib_path is not None and bib_path.is_file():
+        _v5_no_alias(bib_path, "bibliography")
+    if (root / "references.bib").is_file():
+        _v5_no_alias(root / "references.bib", "bibliography")
+    for path in files:
+        code = executable_tex(path.read_text(encoding="utf-8-sig", errors="strict"))
+        for token in INCLUDE_RE.findall(code) + CONDITIONAL_INPUT_RE.findall(code):
+            selected = _resolve_support_input(root, token)
+            if selected is not None:
+                raw = root / token.strip()
+                if not raw.suffix:
+                    raw = raw.with_suffix(selected.suffix)
+                _v5_no_alias(raw, "TeX/support include")
+        for pattern, suffix in (
+            (DOCUMENTCLASS_RE, ".cls"), (LOADCLASS_RE, ".cls"),
+            (USEPACKAGE_RE, ".sty"), (REQUIREPACKAGE_RE, ".sty"),
+        ):
+            for names in pattern.findall(code):
+                for name in names.split(","):
+                    raw = root / name.strip()
+                    if not raw.suffix:
+                        raw = raw.with_suffix(suffix)
+                    if raw.is_file():
+                        _v5_no_alias(raw, "class/package")
+        for token in ADDBIB_RE.findall(code) + [
+            item.strip() for names in BIBLIOGRAPHY_RE.findall(code) for item in names.split(",")
+        ]:
+            raw = root / token.strip()
+            if not raw.suffix:
+                raw = raw.with_suffix(".bib")
+            if raw.is_file():
+                _v5_no_alias(raw, "bibliography")
+
+
+def _v5_source_bundle_files(
+    main: Path, bib_path: Path | None, project_root: Path,
+    allowed_external_graphics: Mapping[str, Path] | None,
+) -> list[Path]:
+    project, root, approved = _v5_graphic_context(main, project_root, allowed_external_graphics)
+    files = set(source_bundle_files(main, bib_path))  # Preserve the v4 local-source discovery.
+    visited, combined = _discover_tex_graph(main)
+    support_files, support_text = _discover_local_support_files(root, combined)
+    _v5_check_local_source_aliases(root, visited | support_files, bib_path)
+    code = "\n".join((combined, support_text))
+    if re.search(r"\\graphicspath\b", code):
+        raise ValueError("v5 proof cannot resolve an active graphicspath")
+    used_external: set[str] = set()
+    for command in V5_GRAPHICS_COMMAND_RE.finditer(code):
+        match = V5_GRAPHICS_RE.match(code, command.start())
+        if match is None:
+            raise ValueError("v5 proof cannot resolve dynamic or malformed includegraphics")
+        token = match.group(1)
+        if not V5_LITERAL_IMAGE_RE.fullmatch(token) or token.startswith("/") or "//" in token:
+            raise ValueError(f"v5 proof requires literal includegraphics path: {token}")
+        if token.startswith("../"):
+            if token not in approved:
+                raise ValueError(f"v5 external includegraphics is not approved by live Figure gate: {token}")
+            files.add(approved[token])
+            used_external.add(token)
+        else:
+            if ".." in Path(token).parts:
+                raise ValueError(f"v5 graphic path leaves final_latex: {token}")
+            if not Path(token).suffix:
+                raise ValueError(f"v5 local graphic requires an explicit file extension: {token}")
+            graphic = _resolve_graphic(root, token, [root])
+            if graphic is None:
+                raise ValueError(f"v5 literal includegraphics is missing or ambiguous: {token}")
+            lexical_graphic = root / token
+            if _v5_no_alias(lexical_graphic, "local graphic") != graphic:
+                raise ValueError(f"v5 local graphic is ambiguous: {token}")
+            files.add(graphic)
+    if used_external != set(approved):
+        missing = sorted(set(approved) - used_external)
+        raise ValueError(f"v5 approved Figure images were not literally included: {', '.join(missing)}")
+    for path in files:
+        if not path.is_relative_to(root):
+            if path not in approved.values():
+                raise ValueError(f"v5 source outside final_latex is not approved: {path}")
+        elif not path.is_file():
+            raise ValueError(f"v5 source file is missing: {path}")
+    return sorted(files, key=lambda path: path.relative_to(project).as_posix())
+
+
+def source_bundle_files(
+    main: Path, bib_path: Path | None = None, *, project_root: Path | None = None,
+    allowed_external_graphics: Mapping[str, Path] | None = None,
+) -> list[Path]:
+    if project_root is not None:
+        return _v5_source_bundle_files(main, bib_path, project_root, allowed_external_graphics)
+    if allowed_external_graphics is not None:
+        raise ValueError("v5 graphic allowlist requires project_root")
     main = main.resolve()
     root = main.parent.resolve()
     visited, combined = _discover_tex_graph(main)
@@ -263,10 +401,16 @@ def sha256_file(path: Path) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def source_bundle_snapshot(main: Path, bib_path: Path | None = None) -> dict[str, Any]:
-    main = main.resolve()
-    root = main.parent.resolve()
-    files = source_bundle_files(main, bib_path=bib_path)
+def source_bundle_snapshot(
+    main: Path, bib_path: Path | None = None, *, project_root: Path | None = None,
+    allowed_external_graphics: Mapping[str, Path] | None = None,
+) -> dict[str, Any]:
+    input_main = Path(main)
+    main = input_main.resolve()
+    root = project_root.resolve() if project_root is not None else main.parent.resolve()
+    files = source_bundle_files(input_main if project_root is not None else main,
+                                bib_path=bib_path, project_root=project_root,
+                                allowed_external_graphics=allowed_external_graphics)
     digest = hashlib.sha256()
     records: list[dict[str, str]] = []
     for path in files:
@@ -304,12 +448,84 @@ def _tex_environment_roots() -> tuple[Path, ...]:
     return tuple(roots)
 
 
-def recorded_input_snapshot(main: Path) -> dict[str, Any]:
+def _v5_recorded_input_snapshot(
+    main: Path, project_root: Path,
+    allowed_external_graphics: Mapping[str, Path] | None,
+) -> dict[str, Any]:
+    project, root, approved = _v5_graphic_context(main, project_root, allowed_external_graphics)
+    main = root / "main.tex"
+    recorder = main.with_suffix(".fls")
+    if not recorder.is_file():
+        return {"recorder": recorder.name, "recorder_sha256": None, "actual_input_files": [],
+                "dependency_issues": ["缺少实际编译 recorder (.fls)；请使用当前 render_paper.py 重编译"]}
+    issues: list[str] = []
+    lines = recorder.read_text(encoding="utf-8-sig", errors="strict").splitlines()
+    outputs = {(root / line[7:].strip().strip('"')).resolve()
+               for line in lines if line.startswith("OUTPUT ")}
+    inputs: set[Path] = set()
+    cwd = root
+    for line in lines:
+        if line.startswith("PWD "):
+            try:
+                cwd = _v5_no_alias(Path(line[4:].strip()), "recorder PWD")
+            except (OSError, ValueError) as exc:
+                issues.append(f"recorder 工作目录存在别名或不可核对: {exc}")
+                continue
+            if cwd != root:
+                issues.append("recorder 的工作目录不属于当前 LaTeX 工程；请重编译")
+        elif line.startswith("INPUT "):
+            raw = Path(line[6:].strip().strip('"'))
+            lexical = _v5_lexical(raw if raw.is_absolute() else cwd / raw)
+            path = lexical.resolve()
+            if path.is_relative_to(project):
+                if lexical != path:
+                    issues.append(f"实际项目输入使用符号链接或 junction 别名: {lexical}")
+                if (path in outputs and (
+                    path.suffix.lower() in GENERATED_INPUT_SUFFIXES
+                    or path == main.with_suffix(".run.xml")
+                )) or path == main.with_suffix(".bbl"):
+                    continue
+                inputs.add(path)
+                if not path.is_relative_to(root) and path not in approved.values():
+                    issues.append(f"实际项目输入不属于 final_latex 或获准 Figure 图片: {path.relative_to(project).as_posix()}")
+            elif not any(path.is_relative_to(system) for system in _tex_environment_roots()):
+                issues.append(f"实际输入越出工程且不属于 TeX/字体安装环境: {path}")
+    if main not in inputs:
+        issues.append("recorder 未记录当前主文件；不能证明实际编译来源")
+    declared_tex, _ = _discover_tex_graph(main)
+    for omitted in sorted(declared_tex - inputs):
+        issues.append(f"静态装配的正文未被实际编译读取: {omitted.relative_to(project).as_posix()}；不能取得全量证明")
+    for token, image in sorted(approved.items()):
+        if image not in inputs:
+            issues.append(f"获准 Figure 图片未被实际编译读取: {token}")
+    declared = set(source_bundle_files(main, project_root=project,
+                                       allowed_external_graphics=approved))
+    records: list[dict[str, str]] = []
+    for path in sorted(inputs):
+        relative = path.relative_to(project).as_posix()
+        if not path.is_file():
+            issues.append(f"实际编译输入已缺失: {relative}")
+        else:
+            records.append({"path": relative, "sha256": sha256_file(path)})
+        if path not in declared:
+            issues.append(f"实际编译输入未被静态审计覆盖: {relative}；请使用可绑定的显式项目输入")
+    return {"recorder": recorder.name, "recorder_sha256": sha256_file(recorder),
+            "actual_input_files": records, "dependency_issues": issues}
+
+
+def recorded_input_snapshot(
+    main: Path, *, project_root: Path | None = None,
+    allowed_external_graphics: Mapping[str, Path] | None = None,
+) -> dict[str, Any]:
     """Reconcile recorder-observed project inputs with the pre-audited source set.
 
     Unknown project inputs fail closed; generated auxiliaries and installed TeX assets
     are not promoted to independent source facts. No synthetic recorder is generated.
     """
+    if project_root is not None:
+        return _v5_recorded_input_snapshot(main, project_root, allowed_external_graphics)
+    if allowed_external_graphics is not None:
+        raise ValueError("v5 graphic allowlist requires project_root")
     root = main.resolve().parent
     recorder = main.with_suffix(".fls")
     issues: list[str] = []
@@ -440,6 +656,61 @@ def _claim_text_proof_issues(*, project: Path, main: Path,
     return []
 
 
+def _v5_policy_declared(main: Path) -> bool:
+    project = main.resolve().parent.parent
+    state_path = project / "state" / "project_state.yaml"
+    if not state_path.is_file():
+        return False
+    state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+    if not isinstance(state, Mapping):
+        raise ValueError("project State is malformed; cannot select LaTeX proof version")
+    framework = state.get("paper_framework")
+    if framework is None:
+        return False
+    if not isinstance(framework, Mapping):
+        raise ValueError("paper_framework is malformed; cannot select LaTeX proof version")
+    policy = framework.get("claim_consumption_policy")
+    if policy is None:
+        return False
+    if not isinstance(policy, Mapping):
+        raise ValueError("claim_consumption_policy is malformed; cannot select LaTeX proof version")
+    return (policy.get("protocol_version") == "1.3.0" or
+            policy.get("mode") == "enforce_latex_text_and_figure_chain")
+
+
+def _v5_live_figure_options(main: Path, report: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Reconstruct Figure authority from current project bytes, never a report allowlist."""
+    from claim_consumption import formal_figure_gate
+
+    project_root = main.resolve().parent.parent
+    gate = formal_figure_gate(project_root, tex_main=main)
+    if (gate.get("status") != "passed" or gate.get("policy_protocol_version") != "1.3.0"
+            or gate.get("mode") != "enforce_latex_text_and_figure_chain"):
+        detail = "; ".join(str(x) for x in gate.get("issues", [])[:8])
+        raise ValueError("当前 B2 正式 Figure 门未通过" + (": " + detail if detail else ""))
+    if report is not None:
+        recorded = report.get("claim_figure_gate")
+        fields = ("status", "policy_protocol_version", "mode", "human_semantic_coverage",
+                  "observed_sources", "issues", "figure_image_paths", "figure_graphic_bindings")
+        expected = {key: gate[key] for key in fields if key in gate}
+        if not isinstance(recorded, Mapping) or dict(recorded) != expected:
+            raise ValueError("B2 Figure gate 读集或图像绑定在审计后变化；latex_audit_report stale")
+    bindings = gate.get("figure_graphic_bindings")
+    if not isinstance(bindings, list) or any(
+        not isinstance(row, Mapping) or not isinstance(row.get("image_token"), str)
+        or not isinstance(row.get("image_path"), str) for row in bindings
+    ):
+        raise ValueError("当前 B2 Figure gate 缺少确切图像绑定")
+    allowlist: dict[str, Path] = {}
+    for row in bindings:
+        token = row["image_token"]
+        image = project_root / row["image_path"]
+        if token in allowlist and allowlist[token] != image:
+            raise ValueError(f"当前 B2 Figure gate 图像字面路径冲突: {token}")
+        allowlist[token] = image
+    return {"project_root": project_root, "allowed_external_graphics": allowlist}
+
+
 def verify_audit_report(
     *,
     project: Path,
@@ -450,18 +721,30 @@ def verify_audit_report(
 ) -> list[str]:
     """Verify that an audit attestation still describes the current source/framework."""
     issues: list[str] = []
-    if str(report.get("audit_schema_version", "")) != "1.0.0":
+    try:
+        figure_mode = _v5_policy_declared(main)
+    except (OSError, UnicodeError, ValueError, yaml.YAMLError) as exc:
+        return [f"无法从当前 State 判定 LaTeX 证明版本: {exc}"]
+    expected_schema = "2.0.0" if figure_mode else "1.0.0"
+    if str(report.get("audit_schema_version", "")) != expected_schema:
+        if figure_mode:
+            return ["latex_audit_report缺少当前v2 Figure审计证明Schema；请重新运行当前项目审计"]
         return ["latex_audit_report缺少v1审计证明Schema；请重新运行当前项目审计"]
     if str(report.get("status", "")).lower() != "passed":
         issues.append("latex_audit_report未通过")
     if require_formal and str(report.get("mode", "")) != "formal":
         issues.append("正式交付不得使用template_smoke审计证明")
     try:
-        current_source = source_bundle_snapshot(main)["source_bundle_sha256"]
+        options = _v5_live_figure_options(main, report) if figure_mode else {}
+        snapshot = source_bundle_snapshot(main, **options)
+        current_source = snapshot["source_bundle_sha256"]
     except Exception as exc:  # noqa: BLE001
         return [f"LaTeX source bundle无法重建: {exc}"]
     if str(report.get("source_bundle_sha256", "")) != current_source:
         issues.append("LaTeX源码在审计后发生变化；latex_audit_report stale")
+    if figure_mode and any(report.get(field) != snapshot[field]
+                           for field in ("source_files", "source_file_count")):
+        issues.append("v2 Figure审计报告的项目根源码清单已变化或缺失")
     if require_formal:
         try:
             issues.extend(formal_assembly_issues(main))
@@ -475,7 +758,8 @@ def verify_audit_report(
             recorded = str(report.get("framework_sha256", ""))
             if not recorded or recorded != sha256_file(framework):
                 issues.append("模型论文框架在审计后发生变化；latex_audit_report stale")
-        issues.extend(_claim_text_proof_issues(project=project, main=main, report=report))
+        if not figure_mode:
+            issues.extend(_claim_text_proof_issues(project=project, main=main, report=report))
     return issues
 
 
@@ -498,13 +782,30 @@ def write_compile_report(
     if not pdf.is_file():
         raise FileNotFoundError(pdf)
     source_issues: list[str] = []
+    figure_options: dict[str, Any] | None = {}
     try:
-        snapshot = source_bundle_snapshot(main, bib_path=bib_path)
+        figure_mode = _v5_policy_declared(main)
+    except (OSError, UnicodeError, ValueError, yaml.YAMLError) as exc:
+        figure_mode = True  # An unreadable policy must never fall back to v4.
+        figure_options = None
+        source_issues.append(f"无法从当前 State 判定 LaTeX 证明版本: {exc}")
+    if figure_mode and figure_options is not None:
+        try:
+            figure_options = _v5_live_figure_options(main)
+        except Exception as exc:  # noqa: BLE001 - persist a failed report
+            figure_options = None
+            source_issues.append(f"当前 B2 Figure 正式门无法重建: {exc}")
+    try:
+        if figure_options is None:
+            raise ValueError("v5 Figure proof unavailable")
+        snapshot = source_bundle_snapshot(main, bib_path=bib_path, **figure_options)
     except (OSError, ValueError) as exc:
         snapshot = {"source_bundle_sha256": None, "source_files": []}
         source_issues.append(f"LaTeX source bundle无法重建: {exc}")
     try:
-        dependencies = recorded_input_snapshot(main)
+        if figure_options is None:
+            raise ValueError("v5 Figure proof unavailable")
+        dependencies = recorded_input_snapshot(main, **figure_options)
     except (OSError, ValueError) as exc:
         dependencies = {"recorder": main.with_suffix(".fls").name,
                         "recorder_sha256": None, "actual_input_files": [],
@@ -547,7 +848,7 @@ def write_compile_report(
         sequence=effective_sequence,
     )
     report = {
-        "report_schema_version": "4.0.0",
+        "report_schema_version": "5.0.0" if figure_mode else "4.0.0",
         "status": status,
         "attestation_mode": attestation_mode,
         "profile": profile,
@@ -585,15 +886,24 @@ def verify_compile_report(
     report: Mapping[str, Any],
 ) -> list[str]:
     issues: list[str] = []
-    if str(report.get("report_schema_version", "")) != "4.0.0":
-        issues.append("旧compile_report缺少v4实际输入证明；可保留只读记录，但正式交付需重审并重新编译")
+    try:
+        figure_mode = _v5_policy_declared(main)
+    except (OSError, UnicodeError, ValueError, yaml.YAMLError) as exc:
+        return [f"无法从当前 State 判定 LaTeX 证明版本: {exc}"]
+    expected_schema = "5.0.0" if figure_mode else "4.0.0"
+    if str(report.get("report_schema_version", "")) != expected_schema:
+        if figure_mode:
+            issues.append("当前 B2 Figure 策略缺少v5实际图像输入证明；请重新审计并编译")
+        else:
+            issues.append("旧compile_report缺少v4实际输入证明；可保留只读记录，但正式交付需重审并重新编译")
         return issues
     if str(report.get("status", "")).lower() != "passed":
         issues.append("compile_report未通过")
     if str(report.get("attestation_mode", "")) != "formal":
         issues.append("正式交付不得使用template_smoke编译证明")
     try:
-        snapshot = source_bundle_snapshot(main)
+        figure_options = _v5_live_figure_options(main) if figure_mode else {}
+        snapshot = source_bundle_snapshot(main, **figure_options)
     except Exception as exc:  # noqa: BLE001
         return [f"LaTeX source bundle无法重建: {exc}"]
     current_source = snapshot["source_bundle_sha256"]
@@ -603,8 +913,11 @@ def verify_compile_report(
         issues.append("compile_report缺少source_bundle_sha256/compiled_from_source_sha256")
     elif current_source != recorded_source or current_source != compiled_source:
         issues.append("LaTeX source bundle已在编译后变化；当前PDF stale，必须重新编译")
+    if figure_mode and any(report.get(field) != snapshot[field]
+                           for field in ("source_files", "source_file_count")):
+        issues.append("v5 Figure编译报告的项目根源码清单已变化或缺失")
     try:
-        dependencies = recorded_input_snapshot(main)
+        dependencies = recorded_input_snapshot(main, **figure_options)
     except (OSError, ValueError) as exc:
         issues.append(f"实际编译输入证明无法重建: {exc}")
     else:

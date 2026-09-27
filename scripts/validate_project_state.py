@@ -450,7 +450,8 @@ def _validate_claim_consumption_policy(framework: Mapping[str, Any]) -> list[str
     if not isinstance(policy, Mapping):
         return ["paper_framework.claim_consumption_policy must be a mapping"]
     supported_policies = (("1.0.0", "observe"), ("1.1.0", "propagate"),
-                          ("1.2.0", "enforce_latex_text"))
+                          ("1.2.0", "enforce_latex_text"),
+                          ("1.3.0", "enforce_latex_text_and_figure_chain"))
     if (policy.get("protocol_version"), policy.get("mode")) not in supported_policies:
         return ["paper_framework.claim_consumption_policy requires a supported protocol_version/mode pair"]
     record = framework.get("claim_evidence")
@@ -462,6 +463,13 @@ def _validate_claim_consumption_policy(framework: Mapping[str, Any]) -> list[str
     if not isinstance(claims, list) or not isinstance(obligations, list) or not isinstance(fragments, list):
         return ["paper_framework.claim_consumption_policy requires claim and paper fragment arrays"]
     issues: list[str] = []
+    if policy.get("protocol_version") == "1.3.0":
+        bindings = policy.get("figure_bindings")
+        if not isinstance(bindings, list) or not bindings:
+            issues.append("formal Figure policy requires nonempty figure_bindings")
+        elif any(not isinstance(binding, Mapping) or not binding.get("source_bindings")
+                 for binding in bindings):
+            issues.append("formal Figure policy requires source_bindings on every Figure binding")
     if len(fragments) > 512:
         return ["paper_framework.claim_consumption_policy fragment budget exceeded (512)"]
     claim_scope: dict[str, str] = {}

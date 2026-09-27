@@ -374,21 +374,25 @@ def resolve_runtime(
         add_runtime_resources(plan, state_payload, question)
         paper_framework = state_payload.get("paper_framework")
         policy = paper_framework.get("claim_consumption_policy") if isinstance(paper_framework, dict) else None
-        if (isinstance(policy, dict)
-                and policy.get("protocol_version") == "1.2.0"
-                and policy.get("mode") == "enforce_latex_text"
+        claim_pair = (policy.get("protocol_version"), policy.get("mode")) if isinstance(policy, dict) else None
+        if (claim_pair in {("1.2.0", "enforce_latex_text"),
+                           ("1.3.0", "enforce_latex_text_and_figure_chain")}
                 and plan.get("delivery_scope") in {"latex", "submission"}
                 and any(gate.get("name") == "project_sync" for gate in plan.get("pre_delivery_gates", []))):
             resources = ["core/claim_consumption_contract.yaml", "core/claim_evidence_contract.yaml",
                          "scripts/claim_consumption.py"]
+            if claim_pair[0] == "1.3.0":
+                resources.extend(["modules/04_figure_evidence.md", "scripts/claim_figure.py",
+                                  "scripts/latex_delivery.py"])
             for path in resources:
                 if path not in plan["load_order"]:
                     plan["load_order"].append(path)
                 if path.startswith("core/") and path not in plan["contracts"]:
                     plan["contracts"].append(path)
             plan["claim_consumption_integration"] = {
-                "mode": "enforce_latex_text", "protocol_version": "1.2.0",
-                "scope": "declared_static_modular_latex_text_only",
+                "mode": claim_pair[1], "protocol_version": claim_pair[0],
+                "scope": ("declared_static_modular_latex_text_and_figure_chain"
+                          if claim_pair[0] == "1.3.0" else "declared_static_modular_latex_text_only"),
                 "consumer_gates": ["project_sync"], "resources": resources,
                 "human_semantic_coverage": "not_assessed",
             }

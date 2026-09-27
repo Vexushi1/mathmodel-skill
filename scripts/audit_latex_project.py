@@ -12,7 +12,7 @@ from pathlib import Path
 import yaml
 
 from audit_paper_prose import Finding, audit_bibliography, audit_framework_consistency, audit_text, overall_status
-from claim_consumption import formal_text_gate
+from claim_consumption import formal_figure_gate, formal_text_gate
 from latex_delivery import formal_assembly_issues, sha256_file, source_bundle_snapshot
 
 INCLUDE_RE = re.compile(r"\\(?:input|include)\s*\{([^{}]+)\}")
@@ -28,16 +28,41 @@ DEEP_FORMAL_HEADING_RE = re.compile(
 )
 
 
-def _claim_text_gate(main_file: Path) -> dict:
+def _claim_gate(main_file: Path) -> tuple[str, dict]:
     project = main_file.parent.parent if main_file.parent.name == "final_latex" else main_file.parent
-    return formal_text_gate(project, tex_main=main_file)
+    state_path = project / "state/project_state.yaml"
+    try:
+        state = yaml.safe_load(state_path.read_text(encoding="utf-8")) if state_path.is_file() else {}
+        framework = state.get("paper_framework") if isinstance(state, dict) else None
+        policy = framework.get("claim_consumption_policy") if isinstance(framework, dict) else None
+    except (OSError, UnicodeError, yaml.YAMLError):
+        policy = None  # The live gate reports the malformed State as a failure.
+    figure_mode = isinstance(policy, dict) and (
+        policy.get("protocol_version") == "1.3.0"
+        or policy.get("mode") == "enforce_latex_text_and_figure_chain"
+    )
+    if figure_mode:
+        return "figure", formal_figure_gate(project, tex_main=main_file)
+    return "text", formal_text_gate(project, tex_main=main_file)
 
 
-def _claim_text_findings(gate: dict) -> list[Finding]:
+def _claim_gate_findings(kind: str, gate: dict) -> list[Finding]:
     if gate['status'] != 'failed':
         return []
-    details = '; '.join(gate['issues'][:8]) or 'B2 formal text gate failed'
-    return [Finding('blocking', 'b2_claim_text_gate_failed', details)]
+    details = '; '.join(gate['issues'][:8]) or f'B2 formal {kind} gate failed'
+    return [Finding('blocking', f'b2_claim_{kind}_gate_failed', details)]
+
+
+def _figure_snapshot_options(project: Path, gate: dict) -> dict:
+    if gate['status'] != 'passed':
+        raise ValueError('B2 formal Figure gate did not pass')
+    return {
+        'project_root': project,
+        'allowed_external_graphics': {
+            row['image_token']: project / row['image_path']
+            for row in gate['figure_graphic_bindings']
+        },
+    }
 
 
 def strip_comments(text: str) -> str:
@@ -310,7 +335,8 @@ def audit_project(
         relative = path.relative_to(project_root).as_posix()
         findings.append(Finding("warning", "latex_orphan_fragment", f"LaTeX 工程中存在未被 main.tex 引用的 .tex 文件：{relative}", relative))
     if formal:
-        findings.extend(_claim_text_findings(_claim_text_gate(main_file)))
+        kind, gate = _claim_gate(main_file)
+        findings.extend(_claim_gate_findings(kind, gate))
     return findings
 
 
@@ -333,12 +359,13 @@ def write_audit_report(
                             for issue in formal_assembly_issues(main_file))
         except ValueError as exc:
             findings.append(Finding("blocking", "latex_formal_assembly_incomplete", str(exc)))
-    claim_text_gate = _claim_text_gate(main_file) if mode == "formal" else None
-    if claim_text_gate is not None and not any(item.code == 'b2_claim_text_gate_failed' for item in findings):
-        findings.extend(_claim_text_findings(claim_text_gate))
+    claim_kind, claim_gate = _claim_gate(main_file) if mode == "formal" else ("text", None)
+    if claim_gate is not None and not any(item.code == f'b2_claim_{claim_kind}_gate_failed' for item in findings):
+        findings.extend(_claim_gate_findings(claim_kind, claim_gate))
     snapshot_error: str | None = None
     try:
-        snapshot = source_bundle_snapshot(main_file, bib_path=bib_path)
+        options = _figure_snapshot_options(main_file.parent.parent, claim_gate) if claim_kind == "figure" else {}
+        snapshot = source_bundle_snapshot(main_file, bib_path=bib_path, **options)
     except Exception as exc:  # noqa: BLE001 - persistence must survive malformed source graphs
         snapshot_error = str(exc)
         snapshot = {
@@ -354,7 +381,7 @@ def write_audit_report(
         or snapshot_error is not None
     )
     report = {
-        "audit_schema_version": "1.0.0",
+        "audit_schema_version": "2.0.0" if claim_kind == "figure" else "1.0.0",
         "status": "failed" if rejected else "passed",
         "highest_severity": highest_severity,
         "mode": mode,
@@ -363,11 +390,12 @@ def write_audit_report(
         "source_snapshot_error": snapshot_error,
         "framework": str(framework_path) if framework_path is not None else None,
         "framework_sha256": framework_hash,
-        **({'claim_text_gate': {key: claim_text_gate[key] for key in
+        **({f'claim_{claim_kind}_gate': {key: claim_gate[key] for key in
                                 ('status', 'policy_protocol_version', 'mode',
-                                 'human_semantic_coverage', 'observed_sources', 'issues')
-                                if key in claim_text_gate}}
-           if claim_text_gate is not None and claim_text_gate['status'] != 'not_applicable' else {}),
+                                 'human_semantic_coverage', 'observed_sources', 'issues',
+                                 'figure_image_paths', 'figure_graphic_bindings')
+                                if key in claim_gate}}
+           if claim_gate is not None and claim_gate['status'] != 'not_applicable' else {}),
         "findings": [asdict(item) for item in findings],
         "audited_at": datetime.now(timezone.utc).isoformat(),
     }

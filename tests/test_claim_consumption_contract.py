@@ -41,7 +41,7 @@ class ClaimConsumptionContractTests(unittest.TestCase):
         })
 
     def test_optional_closed_policy_pairs_and_bounded_obligations(self):
-        self.assertEqual(self.schema["version"], "8.9.0")
+        self.assertEqual(self.schema["version"], "8.10.0")
         paper = self.schema["properties"]["paper_framework"]
         self.assertNotIn("claim_consumption_policy", paper["required"])
         self.assertEqual(paper["properties"]["claim_consumption_policy"],
@@ -171,9 +171,9 @@ class ClaimConsumptionContractTests(unittest.TestCase):
         state["paper_framework"].pop("claim_consumption_policy")
         self.assertEqual(state_validator.validate_state_payload(state, project_root=ROOT), [])
 
-    def test_contract_keeps_original_authorities_and_limits_new_gate_to_explicit_text_scope(self):
+    def test_contract_keeps_original_authorities_and_limits_gates_to_explicit_scope(self):
         contract = yaml.safe_load((ROOT / "core/claim_consumption_contract.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(contract["version"], "1.5.1")
+        self.assertEqual(contract["version"], "1.6.0")
         self.assertEqual(contract["authority"]["numerical_qualification"], "core/claim_evidence_contract.yaml")
         self.assertEqual(contract["authority"]["claim_strength"],
                          "core/writing_reasoning_contract.yaml#claim_strength_calibration")
@@ -181,20 +181,26 @@ class ClaimConsumptionContractTests(unittest.TestCase):
             {"protocol_version": "1.0.0", "mode": "observe", "stale_writer": "none"},
             {"protocol_version": "1.1.0", "mode": "propagate", "stale_writer": "existing_project_transaction_only"},
             {"protocol_version": "1.2.0", "mode": "enforce_latex_text", "stale_writer": "existing_project_transaction_only"},
+            {"protocol_version": "1.3.0", "mode": "enforce_latex_text_and_figure_chain", "stale_writer": "existing_project_transaction_only"},
         ])
         self.assertTrue(contract["activation"]["audit_route_read_only_in_all_modes"])
         self.assertEqual(contract["activation"]["project_writer"],
-                         "existing_project_transaction_for_propagate_or_enforce_latex_text")
+                         "existing_project_transaction_for_propagate_or_enforce_modes")
         self.assertEqual(contract["activation"]["automatic_existing_gate_insertion"],
-                         "explicit_latex_or_submission_scope_only_for_protocol_1.2.0")
+                         "explicit_latex_or_submission_scope_only_for_protocol_1.2.0_or_1.3.0")
         self.assertEqual(contract["formal_text_gate"]["activation"],
                          "explicit_enforce_latex_text_protocol_1.2.0_and_explicit_latex_or_submission_scope")
+        self.assertEqual(contract["formal_figure_gate"]["activation"],
+                         "explicit_protocol_1.3.0_enforce_latex_text_and_figure_chain_and_explicit_latex_or_submission_scope")
+        self.assertEqual(contract["formal_figure_gate"]["inherited_text_conditions"],
+                         "recheck_1.2.0_text_conditions_in_one_live_audit_with_exact_matched_Figure_caption_scalar_exemption")
         self.assertEqual(contract["formal_text_gate"]["source_binding"],
                          "project_and_skill_read_sets_rechecked_under_existing_project_lock")
         self.assertEqual(contract["formal_text_gate"]["passing_sync"],
                          "preserve_State_and_Framework_bytes_write_only_sync_report_under_project_lock")
         propagation = contract["stale_propagation"]
-        self.assertEqual(propagation["activation"], "explicit_propagate_1.1.0_or_enforce_latex_text_1.2.0")
+        self.assertEqual(propagation["activation"],
+                         "explicit_propagate_1.1.0_or_enforce_latex_text_1.2.0_or_figure_chain_1.3.0")
         self.assertEqual(propagation["seed_edges"], "claim:<id> dependencies of paper_fragments")
         self.assertEqual(propagation["transitive_edges"], "paper_fragment_ID_dependencies")
         self.assertEqual(propagation["merge"], "union_with_existing_question_and_artifact_stale")

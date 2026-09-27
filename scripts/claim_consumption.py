@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """B2 opt-in claim consumption inspection of static LaTeX sources.
 
-The independent observe/propagate audit stays read-only. An explicit 1.2.0
-policy may use these same bounded observations as a limited formal text gate;
-neither route establishes human semantic coverage or workbook qualification.
+The independent observe/propagate audit stays read-only. Explicit 1.2.0 and
+1.3.0 policies may use these bounded observations as limited formal text and
+Figure-chain gates; neither route establishes human semantic coverage.
 """
 from __future__ import annotations
 
@@ -577,7 +577,7 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         for path in ('scripts/claim_consumption.py', 'scripts/claim_tex.py',
                      'scripts/validate_project_state.py'):
             bounded._read(ROOT, path, 2 * 1024 * 1024, observed['skill'])
-        if contract.get('version') != '1.5.1':
+        if contract.get('version') != '1.6.0':
             raise EvidenceError('unsupported B2 contract version')
         policy = framework['claim_consumption_policy']
         if isinstance(policy, Mapping) and policy.get('figure_bindings'):
@@ -924,6 +924,225 @@ def formal_text_gate(project_root: str | Path, *,
         except (OSError, ValueError, RuntimeError) as exc:
             result['status'] = 'failed'
             result['issues'].append('read-set conflict: ' + str(exc)[:4096])
+    return result
+
+
+def formal_figure_gate(project_root: str | Path, *,
+                       tex_main: str | Path = 'final_latex/main.tex') -> dict:
+    """Gate only the explicit 1.3.0 static text and declared Figure chain.
+
+    A passing result identifies already approved, current Figure files for a
+    separate delivery proof. It does not approve visual evidence, the whole
+    caption claim, or human semantic coverage.
+    """
+    root = Path(project_root).expanduser().resolve()
+    result = {'status': 'failed', 'issues': [],
+              'observed_sources': {'project': {}, 'skill': {}},
+              'human_semantic_coverage': 'not_assessed',
+              'policy_protocol_version': None, 'mode': None,
+              'fragment_locations': [], 'figure_image_paths': [],
+              'figure_graphic_bindings': []}
+    observed = result['observed_sources']
+    state: dict = {}
+    audit: dict = {}
+    try:
+        if (root / JOURNAL_RELATIVE_PATH).exists() or (root / JOURNAL_RELATIVE_PATH).is_symlink():
+            raise EvidenceError('pending project transaction requires recovery')
+        if not (root / STATE).is_file():
+            observed['project'][STATE] = None
+            result.update(status='not_applicable', reason='No project State for B2 opt-in.')
+            return result
+        _, state = _read_yaml(root, STATE, 2 * 1024 * 1024, observed['project'])
+        if not isinstance(state, dict):
+            raise EvidenceError('project state is malformed')
+        framework = state.get('paper_framework')
+        if framework is None or (isinstance(framework, dict)
+                                 and 'claim_consumption_policy' not in framework):
+            result.update(status='not_applicable', reason='No B2 Figure gate opt-in policy.')
+            return result
+        if not isinstance(framework, dict):
+            raise EvidenceError('paper framework is malformed')
+        policy = framework['claim_consumption_policy']
+        if not isinstance(policy, Mapping):
+            raise EvidenceError('B2 policy must be a mapping')
+        pair = (policy.get('protocol_version'), policy.get('mode'))
+        result['policy_protocol_version'], result['mode'] = pair
+        if pair in (('1.0.0', 'observe'), ('1.1.0', 'propagate'),
+                    ('1.2.0', 'enforce_latex_text')):
+            schema = yaml.safe_load(bounded._read(ROOT, SCHEMA, 2 * 1024 * 1024,
+                                                   observed['skill']).decode('utf-8'))
+            validator = Draft202012Validator({'$ref': '#/$defs/claim_consumption_policy',
+                                               '$defs': schema['$defs']})
+            error = next(validator.iter_errors(policy), None)
+            if error:
+                raise EvidenceError('B2 policy schema: ' + error.message[:4096])
+            issues = _validate_claim_consumption_policy(framework)
+            fragment_issues, _ = _validate_paper_fragments(framework)
+            issues.extend(fragment_issues)
+            if issues:
+                raise EvidenceError('B2 policy relations: ' + '; '.join(issues[:8]))
+            result.update(status='not_applicable',
+                          reason='B2 policy does not opt into the formal Figure chain.')
+            return result
+        if pair != ('1.3.0', 'enforce_latex_text_and_figure_chain'):
+            raise EvidenceError('unsupported B2 policy protocol_version/mode pair')
+        main = Path(tex_main)
+        main = main.resolve() if main.is_absolute() else (root / main).resolve()
+        if main != (root / 'final_latex/main.tex').resolve():
+            raise EvidenceError('B2 formal Figure gate requires final_latex/main.tex')
+        audit = inspect_project(root, tex_main=tex_main)
+        merge_read_sets(observed, audit.get('observed_sources', {}))
+        for key in ('status', 'b1_status'):
+            result['audit_status' if key == 'status' else key] = audit[key]
+        for key in ('fragment_locations', 'figure_identity_checks', 'figure_source_checks',
+                    'figure_caption_numeric_checks'):
+            result[key] = audit.get(key, [])
+        if audit['status'] not in ('observed', 'needs_review'):
+            result['issues'].append('B2 live claim consumption audit is not available: ' + audit['status'])
+        for field in ('errors', 'issues'):
+            result['issues'].extend(str(issue) for issue in audit.get(field, []))
+        tex_scan = audit.get('tex_scan', {})
+        if tex_scan.get('status') != 'scanned' or len(set(tex_scan.get('active_files', []))) < 2:
+            result['issues'].append('B2 formal Figure gate requires a proven active modular static LaTeX include graph')
+        if audit.get('b1_status') != 'evidence_checked':
+            result['issues'].append('live B1 source and assertion qualification is not evidence_checked')
+        for item in audit['fragment_locations']:
+            if item['status'] == 'located' and item['fragment_status'] != 'current':
+                result['issues'].append(f"active fragment is not current: {item['id']}")
+        bindings = policy.get('figure_bindings')
+        if not isinstance(bindings, list) or not bindings:
+            result['issues'].append('B2 formal Figure gate requires nonempty Figure bindings')
+            bindings = []
+        required_kinds = {kind for obligation in policy.get('required_consumptions', [])
+                          for kind in obligation.get('fragment_kinds', [])}
+        if not {'abstract_claim', 'question_result_text', 'figure_or_table_claim'} <= required_kinds:
+            result['issues'].append('B2 formal Figure gate requires abstract, result-body and Figure obligations')
+        allowed_kinds = {'abstract_claim', 'question_result_text', 'figure_or_table_claim'}
+        locations = {row['id']: row for row in audit.get('fragment_locations', [])}
+        for fragment in framework.get('paper_fragments', []):
+            if not any(dep.startswith('claim:') for dep in fragment['depends_on']):
+                continue
+            fragment_id = fragment['id']
+            if fragment['kind'] not in allowed_kinds:
+                result['issues'].append(f'claim-linked fragment kind is outside the formal Figure gate: {fragment_id}')
+            if fragment['status'] != 'current' or locations.get(fragment_id, {}).get('status') != 'located':
+                result['issues'].append(f'claim-linked fragment is not current and located: {fragment_id}')
+        for row in audit.get('required_coverage', []):
+            if row['fragment_kind'] not in allowed_kinds:
+                result['issues'].append(
+                    f"required fragment kind is outside the formal Figure gate: {row['claim_id']}/{row['fragment_kind']}")
+            if row['status'] != 'located':
+                result['issues'].append(
+                    f"required consumption is not current and located: {row['claim_id']}/{row['fragment_kind']}")
+        if audit.get('registered_location_gaps'):
+            result['issues'].append('registered claim-linked fragment location gaps: ' +
+                                    ', '.join(audit['registered_location_gaps']))
+        for row in audit.get('numeric_checks', []):
+            if row['status'] != 'matched' and row['fragment_id'] not in {
+                    binding.get('fragment_id') for binding in bindings}:
+                result['issues'].append(
+                    f"numeric claim text is not matched: {row['fragment_id']}/{row['status']}")
+        for field, issue in (
+            ('wording_findings', 'registered claim wording needs review'),
+            ('unregistered_wording_candidates', 'unregistered strong wording candidates need review'),
+            ('suggested_stale_fragment_ids', 'current analysis dispositions suggest stale claim fragments'),
+        ):
+            if audit.get(field):
+                result['issues'].append(issue)
+        if audit.get('unregistered_wording_overflow'):
+            result['issues'].append('unregistered strong wording candidate overflow needs review')
+        identity = {row['figure_id']: row for row in audit.get('figure_identity_checks', [])}
+        source = {row['figure_id']: row for row in audit.get('figure_source_checks', [])}
+        caption = {row['figure_id']: row for row in audit.get('figure_caption_numeric_checks', [])}
+        ids = {row.get('figure_id') for row in bindings}
+        if any(len(rows) != len(bindings) or set(table) != ids
+               for rows, table in ((audit.get('figure_identity_checks', []), identity),
+                                   (audit.get('figure_source_checks', []), source),
+                                   (audit.get('figure_caption_numeric_checks', []), caption))):
+            result['issues'].append('declared Figure audit checks are incomplete or ambiguous')
+        matched_caption_numbers = set()
+        for binding in bindings:
+            figure_id = binding['figure_id']
+            figure_identity = identity.get(figure_id, {})
+            figure_source = source.get(figure_id, {})
+            figure_caption = caption.get(figure_id, {})
+            if figure_identity.get('identity_status') != 'matched':
+                result['issues'].append(f'Figure identity is not matched: {figure_id}')
+            if (figure_source.get('status') != 'current'
+                    or figure_source.get('approval_freshness') != 'current'):
+                result['issues'].append(f'Figure source or original approval freshness is not current: {figure_id}')
+            if figure_caption.get('status') != 'matched':
+                result['issues'].append(f'Figure caption scalar numeric check is not matched: {figure_id}')
+            else:
+                matched_caption_numbers.add((figure_caption.get('source_file'),
+                                             figure_caption.get('number_byte_offset'),
+                                             figure_caption.get('literal')))
+                claim_id = figure_caption.get('claim_id')
+                declared = {kind for obligation in policy['required_consumptions']
+                            if obligation['claim_id'] == claim_id
+                            for kind in obligation['fragment_kinds']}
+                if not {'abstract_claim', 'question_result_text', 'figure_or_table_claim'} <= declared:
+                    result['issues'].append(
+                        f'Figure claim lacks its own abstract, result-body or Figure obligation: {figure_id}')
+            fragment = locations.get(binding['fragment_id'], {})
+            if fragment.get('status') != 'located' or fragment.get('fragment_status') != 'current':
+                result['issues'].append(f"bound Figure fragment is not current and located: {figure_id}")
+        for candidate in audit.get('unregistered_candidates', []):
+            if (candidate.get('source_file'), candidate.get('byte_offset'),
+                    candidate.get('literal')) not in matched_caption_numbers:
+                result['issues'].append('unregistered numeric candidates need review')
+                break
+        if len(audit.get('unregistered_candidates', [])) >= 100:
+            result['issues'].append('unregistered numeric candidate report reached its limit')
+        if tex_scan.get('status') == 'scanned':
+            scan = scan_static_latex(root, main)
+            for path, entry in scan['files'].items():
+                merge_read_sets(observed, {'project': {path: entry['sha256']}})
+            figures = claim_figure.inspect_static_figures(scan)
+            if scan['status'] != 'scanned' or figures['status'] != 'scanned':
+                result['issues'].append('active Figure source structure is not fully assessed')
+            else:
+                graphic_rows = []
+                for binding in bindings:
+                    hits = [row for row in figures['figures']
+                            if row.get('label') == binding['latex_label'] and row['status'] == 'located']
+                    if len(hits) != 1 or not hits[0].get('image'):
+                        result['issues'].append('declared Figure literal image token is absent or ambiguous: ' +
+                                                binding['figure_id'])
+                        continue
+                    graphic_rows.append({'figure_id': binding['figure_id'],
+                                         'image_token': hits[0]['image'],
+                                         'image_path': binding['image_path']})
+                by_token = {}
+                for row in graphic_rows:
+                    prior = by_token.setdefault(row['image_token'], row['image_path'])
+                    if prior != row['image_path']:
+                        result['issues'].append('one literal Figure image token maps to different approved paths')
+                if not result['issues'] and graphic_rows:
+                    result['figure_graphic_bindings'] = sorted(graphic_rows, key=lambda row: row['figure_id'])
+                    result['figure_image_paths'] = sorted({row['image_path'] for row in graphic_rows})
+                    result['status'] = 'passed'
+    except (OSError, ValueError, TypeError, KeyError, AttributeError, yaml.YAMLError) as exc:
+        result['issues'].append(str(exc)[:4096])
+    finally:
+        try:
+            if (root / JOURNAL_RELATIVE_PATH).exists() or (root / JOURNAL_RELATIVE_PATH).is_symlink():
+                raise EvidenceError('pending project transaction appeared during formal Figure gate')
+            if audit.get('figure_source_checks'):
+                import claim_figure_source
+                drift = claim_figure_source.recheck_source_discovery(
+                    root, state, audit['figure_source_checks'])
+                if drift:
+                    raise EvidenceError('Figure source discovery changed: ' + '; '.join(drift[:8]))
+            bounded._recheck(root, observed['project'])
+            bounded._recheck(ROOT, observed['skill'])
+        except (OSError, ValueError, RuntimeError) as exc:
+            result['status'] = 'failed'
+            result['issues'].append('read-set conflict: ' + str(exc)[:4096])
+        result['issues'] = sorted(set(result['issues']))
+        if result['status'] != 'passed':
+            result['figure_image_paths'] = []
+            result['figure_graphic_bindings'] = []
     return result
 
 

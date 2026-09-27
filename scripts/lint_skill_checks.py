@@ -946,8 +946,15 @@ def check_contracts(errors: list[str]) -> None:
 def check_project_state_and_framework(errors: list[str]) -> None:
     schema = load_structured(ROOT / "core/project_state.schema.yaml")
     Draft202012Validator.check_schema(schema)
-    if schema.get("version") != "8.9.0":
-        errors.append("v10.10 optional Figure caption precision requires independent schema 8.9.0")
+    if schema.get("version") != "8.10.0":
+        errors.append("v10.11 formal Figure gate requires independent schema 8.10.0")
+    policy = schema.get("$defs", {}).get("claim_consumption_policy", {})
+    if policy.get("oneOf", [])[:3] != [
+            {"properties": {"protocol_version": {"const": "1.0.0"}, "mode": {"const": "observe"}}},
+            {"properties": {"protocol_version": {"const": "1.1.0"}, "mode": {"const": "propagate"}}},
+            {"properties": {"protocol_version": {"const": "1.2.0"}, "mode": {"const": "enforce_latex_text"}}},
+    ]:
+        errors.append("formal Figure policy must preserve the exact 1.0/1.1/1.2 predecessor pairs")
     execution_fields = (schema.get("properties", {}).get("execution", {}).get("properties") or {})
     stage_fields = (schema.get("$defs", {}).get("solver_stage_execution", {}).get("properties") or {})
     if not {"solver_backend", "solver_backend_selection_reason"}.issubset(execution_fields):
