@@ -33,7 +33,7 @@ class FigureSourceBindingsSchemaTests(unittest.TestCase):
         })
 
     def test_opt_in_typed_rows_keep_older_figures_and_policy_pairs_valid(self):
-        self.assertEqual(self.schema["version"], "8.8.0")
+        self.assertEqual(self.schema["version"], "8.9.0")
         base = with_sources()["claim_consumption_policy"]
         for version, mode in (("1.0.0", "observe"), ("1.1.0", "propagate"),
                               ("1.2.0", "enforce_latex_text")):

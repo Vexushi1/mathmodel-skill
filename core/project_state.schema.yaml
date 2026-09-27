@@ -1,7 +1,7 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 8.8.0
+version: 8.9.0
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
@@ -1079,6 +1079,7 @@ $defs:
       abstract_decimals: {type: integer, minimum: 0}
       body_decimals: {type: integer, minimum: 0}
       table_decimals: {type: integer, minimum: 0}
+      figure_caption_decimals: {type: integer, minimum: 0, maximum: 30}
       submission_decimals: {type: integer, minimum: 0}
       precision_basis: {type: string, enum: [prompt, official, reviewer, model_resolution, project_high_precision, not_applicable]}
       status: {type: string, enum: [current, stale]}

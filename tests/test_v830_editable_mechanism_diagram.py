@@ -440,9 +440,9 @@ class ContractAndDriftTests(unittest.TestCase):
         # P0-A intentionally aligns the title handoff with the existing output Authority;
         # test_schemas covers the new declaration and unchanged caption ownership.
         "core/workbook_schema.yaml": "e0479f5e74063151a515d11e140b7c4e8b8db077",
-        # B2b3b adds optional typed Figure source bindings; the B1/A2 projection
-        # and unrelated protected authorities retain their existing guards.
-        "core/project_state.schema.yaml": "7ce19bd8767c786865a3d9773c79947774fd9113",
+        # B2b3c adds only optional caption-specific Numeric Profile precision;
+        # exact B2b3b, B1 and A2 predecessor projections retain their guards.
+        "core/project_state.schema.yaml": "401a91a6e130dee85b859880ae8323fdaf850ac6",
         "core/writing_reasoning_contract.yaml": "67a22f6e882a9cb79bc6edccd033731558a81f13",
         "modules/03_solve_validate.md": "cfbe8091f0434b8531ec97cbccde013895e18228",
         "modules/03_result_analysis.md": "dc184e94d4fbce579e25f8e82362d0ef7b3ff72a",

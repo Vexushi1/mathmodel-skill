@@ -22,7 +22,7 @@ import claim_evidence
 import claim_figure
 from claim_sources import ROOT
 from claim_tex import scan_static_latex, source_location
-from claim_values import EvidenceError, NeedsReview, Value, converted
+from claim_values import EvidenceError, NeedsReview, Value, converted, unit_info
 from claim_workbook import current_profile
 from conformance_gate import merge_read_sets
 import model_code_conformance as bounded
@@ -49,6 +49,7 @@ def _report() -> dict:
             'formal_delivery_gate': 'not_run', 'b1_status': 'not_assessed',
             'fragment_locations': [], 'registered_location_gaps': [], 'required_coverage': [], 'numeric_checks': [],
             'figure_identity_checks': [], 'figure_source_checks': [],
+            'figure_caption_numeric_checks': [],
             'unregistered_candidates': [], 'wording_findings': [],
             'suggested_stale_fragment_ids': [], 'stale_reason_paths': [],
             'errors': [], 'issues': [], 'observed_sources': {'project': {}, 'skill': {}}}
@@ -309,6 +310,129 @@ def _literal_matches_profile(literal: str, form: str, places: int | None) -> boo
     return decimals == places
 
 
+def _figure_caption_numeric_checks(state: dict, policy: dict, scan: dict, b1: dict,
+                                   identity_checks: list[dict], source_checks: list[dict],
+                                   claim_contract: dict) -> list[dict]:
+    """Compare one literal Figure caption number with current B1 scalar evidence.
+
+    This is a narrow numeric observation, not visual or caption semantic approval.
+    A short optional caption, TeX macro, extra number, missing unit or missing
+    location-specific precision cannot be promoted to a match.
+    """
+    bindings = policy.get('figure_bindings', [])
+    if not bindings:
+        return []
+    framework = state['paper_framework']
+    fragments = {row['id']: row for row in framework['paper_fragments']}
+    claims = {row['id']: row for row in framework['claim_evidence']['claims']}
+    b1_claims = {row['id']: row for row in b1['claims']}
+    identities = {row['figure_id']: row for row in identity_checks}
+    sources = {row['figure_id']: row for row in source_checks}
+    figures = claim_figure.inspect_static_figures(scan)['figures']
+    checks = []
+    for binding in bindings:
+        figure_id = binding['figure_id']
+        fragment_id = binding['fragment_id']
+        check = {'figure_id': figure_id, 'fragment_id': fragment_id,
+                 'status': 'not_assessed', 'visual_semantics': 'not_assessed',
+                 'caption_semantic_support': 'not_established'}
+        checks.append(check)
+        identity = identities.get(figure_id, {})
+        source = sources.get(figure_id, {})
+        if identity.get('identity_status') != 'matched':
+            check.update(status='needs_review', reason='Figure identity is not matched')
+            continue
+        if source.get('status') != 'current' or source.get('approval_freshness') != 'current':
+            check.update(reason='current B1 Figure source and original approval bundle are not both established')
+            continue
+        fragment = fragments[fragment_id]
+        linked = [dep.split(':', 1)[1] for dep in fragment['depends_on']
+                  if dep.startswith('claim:')]
+        if len(linked) != 1:
+            check.update(reason='caption fragment needs exactly one direct claim')
+            continue
+        claim = claims[linked[0]]
+        check['claim_id'] = claim['id']
+        live_claim = b1_claims.get(claim['id'], {})
+        if ('assertion' not in claim or live_claim.get('arithmetic_status') != 'checked'
+                or live_claim.get('assertion_check', {}).get('status') != 'matched'):
+            check.update(reason='one current scalar B1 claim assertion is required')
+            continue
+        figure_matches = [row for row in figures if row.get('label') == binding['latex_label']
+                          and row.get('status') == 'located']
+        if len(figure_matches) != 1:
+            check.update(reason='one literal active Figure caption is required')
+            continue
+        figure = figure_matches[0]
+        caption = figure['caption']
+        source_file = figure['source_file']
+        offset = figure['caption_location']['char_offset']
+        masked = scan['files'][source_file]['masked']
+        prefix = re.match(r'\\caption\s*\{', masked[offset:figure['end_offset']])
+        if prefix is None:
+            check.update(reason='short optional, starred or nonliteral caption is unsupported')
+            continue
+        caption_start = offset + prefix.end()
+        if masked[caption_start:caption_start + len(caption)] != caption:
+            check.update(reason='caption source span is not literal')
+            continue
+        tokens = list(NUMBER.finditer(caption))
+        if len(tokens) != 1:
+            check.update(reason='caption needs exactly one literal numeric value')
+            continue
+        number_match = tokens[0]
+        literal = number_match.group()
+        number_offset = caption_start + number_match.start()
+        number_location = source_location(scan['files'], source_file, number_offset)
+        check.update(source_file=source_file, line=number_location['line'],
+                     literal=literal, number_offset=number_offset,
+                     number_byte_offset=number_location['byte_offset'])
+        try:
+            if not claim.get('numeric_profile_id'):
+                raise NeedsReview('caption needs a dedicated current Numeric Profile')
+            asserted = claim['assertion']
+            ref_kind, ref_id = asserted['evidence_ref'].split(':', 1)
+            evidence_rows = b1['sources'] if ref_kind == 'source' else b1['derivations']
+            evidence = [row for row in evidence_rows if row.get('id') == ref_id]
+            if len(evidence) != 1 or evidence[0].get('value_type') != 'scalar':
+                raise NeedsReview('caption assertion evidence is not one current scalar')
+            profile = current_profile(framework.get('numeric_profile', []),
+                                      claim['numeric_profile_id'], evidence[0]['identity']['metric'])
+            unit = profile.get('unit')
+            if not isinstance(unit, str) or not unit or unit == 'not_applicable':
+                raise NeedsReview('caption Numeric Profile unit is not explicit')
+            expected, _, form, places = _expected_number(
+                claim, b1, state, claim_contract, 'figure_caption')
+            if form == 'percent' and unit_info(unit, claim_contract)[2] != 'percent':
+                raise NeedsReview('percent caption display requires an explicit percent unit')
+            suffix = caption[number_match.end():]
+            unit_match = re.match(r'\s+' + re.escape(unit) +
+                                  r'(?=$|[\s.,;:!?，。；：！？])', suffix)
+            remainder = suffix[unit_match.end():] if unit_match else ''
+            if (unit_match is None
+                    or re.match(r'\s*[\^/*·×⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻-]', remainder)
+                    or any(re.search(r'(?<!\w)' + re.escape(other) + r'(?!\w)',
+                                     remainder)
+                           for other in claim_contract['units'] if other != unit)):
+                check.update(status='needs_review', reason='caption numeric unit is absent or ambiguous')
+                continue
+            if ',' in literal:
+                check.update(status='needs_review', reason='comma numeric notation has no declared locale')
+                continue
+            observed_value = Decimal(literal.replace('−', '-'))
+            check.update(observed_value=str(observed_value), expected_value=str(expected),
+                         display_form=form, display_places=places, unit=unit)
+            if observed_value != expected:
+                check['status'] = 'conflict'
+            elif _literal_matches_profile(literal, form, places):
+                check['status'] = 'matched'
+            else:
+                check.update(status='needs_review', reason='literal form or precision differs from Figure caption Numeric Profile')
+        except (EvidenceError, DecimalException, KeyError, ValueError) as exc:
+            check.update(reason=str(exc)[:512])
+    return checks
+
+
 def _suggested_stale(state: dict, fragments: list[dict], claims: list[dict]) -> tuple[list[str], list[dict], list[str]]:
     by_id = {row['id']: row for row in fragments}
     claim_by_id = {row['id']: row for row in claims}
@@ -364,7 +488,7 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         for path in ('scripts/claim_consumption.py', 'scripts/claim_tex.py',
                      'scripts/validate_project_state.py'):
             bounded._read(ROOT, path, 2 * 1024 * 1024, observed['skill'])
-        if contract.get('version') != '1.4.0':
+        if contract.get('version') != '1.5.0':
             raise EvidenceError('unsupported B2 contract version')
         policy = framework['claim_consumption_policy']
         if isinstance(policy, Mapping) and policy.get('figure_bindings'):
@@ -451,6 +575,9 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
             source = sources_by_figure.get(row['figure_id'], {})
             row['source_qualification'] = source.get('status', 'not_assessed')
             row['approval_freshness'] = source.get('approval_freshness', 'not_assessed')
+        report['figure_caption_numeric_checks'] = _figure_caption_numeric_checks(
+            state, policy, scan, b1, report['figure_identity_checks'],
+            report['figure_source_checks'], claim_contract)
         by_id = {row['id']: row for row in locations}
         report['registered_location_gaps'] = [item['id'] for item in fragments
             if any(dep.startswith('claim:') for dep in item['depends_on'])
