@@ -311,7 +311,8 @@ def _literal_matches_profile(literal: str, form: str, places: int | None) -> boo
 
 
 def _figure_caption_numeric_checks(state: dict, policy: dict, scan: dict, b1: dict,
-                                   identity_checks: list[dict], source_checks: list[dict],
+                                   locations: list[dict], identity_checks: list[dict],
+                                   source_checks: list[dict],
                                    claim_contract: dict) -> list[dict]:
     """Compare one literal Figure caption number with current B1 scalar evidence.
 
@@ -326,6 +327,7 @@ def _figure_caption_numeric_checks(state: dict, policy: dict, scan: dict, b1: di
     fragments = {row['id']: row for row in framework['paper_fragments']}
     claims = {row['id']: row for row in framework['claim_evidence']['claims']}
     b1_claims = {row['id']: row for row in b1['claims']}
+    fragments_located = {row['id']: row for row in locations}
     identities = {row['figure_id']: row for row in identity_checks}
     sources = {row['figure_id']: row for row in source_checks}
     figures = claim_figure.inspect_static_figures(scan)['figures']
@@ -387,6 +389,13 @@ def _figure_caption_numeric_checks(state: dict, policy: dict, scan: dict, b1: di
         check.update(source_file=source_file, line=number_location['line'],
                      literal=literal, number_offset=number_offset,
                      number_byte_offset=number_location['byte_offset'])
+        fragment_location = fragments_located[fragment_id]
+        if (fragment_location.get('status') != 'located'
+                or fragment_location.get('source_file') != source_file
+                or not fragment_location['offset'] <= number_offset < fragment_location['end_offset']):
+            check.update(status='needs_review',
+                         reason='caption number is outside the bound claim fragment span')
+            continue
         try:
             if not claim.get('numeric_profile_id'):
                 raise NeedsReview('caption needs a dedicated current Numeric Profile')
@@ -576,7 +585,7 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
             row['source_qualification'] = source.get('status', 'not_assessed')
             row['approval_freshness'] = source.get('approval_freshness', 'not_assessed')
         report['figure_caption_numeric_checks'] = _figure_caption_numeric_checks(
-            state, policy, scan, b1, report['figure_identity_checks'],
+            state, policy, scan, b1, locations, report['figure_identity_checks'],
             report['figure_source_checks'], claim_contract)
         by_id = {row['id']: row for row in locations}
         report['registered_location_gaps'] = [item['id'] for item in fragments

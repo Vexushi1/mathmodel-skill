@@ -86,6 +86,14 @@ class FigureCaptionNumericTests(unittest.TestCase):
         self.assertEqual(check['number_byte_offset'],
                          len(physical_text[:check['number_offset']].encode('utf-8')))
 
+    def test_number_before_bound_claim_anchor_is_not_attributed_to_that_fragment(self):
+        self.set_caption('100.00 ratio Result evidence')
+        report = claim_consumption.inspect_project(self.root)
+        self.assertEqual(report['figure_identity_checks'][0]['identity_status'], 'matched', report)
+        check = report['figure_caption_numeric_checks'][0]
+        self.assertEqual(check['status'], 'needs_review', report)
+        self.assertIn('outside the bound claim fragment span', check['reason'])
+
     def test_old_text_gate_ignores_new_caption_numeric_observation(self):
         policy = self.state['paper_framework']['claim_consumption_policy']
         self.assertEqual(claim_consumption.formal_text_gate(self.root)['status'], 'not_applicable')
