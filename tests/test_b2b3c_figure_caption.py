@@ -110,7 +110,10 @@ class FigureCaptionNumericTests(unittest.TestCase):
 
     def test_missing_or_mismatched_unit_needs_review(self):
         for caption in ('Result evidence 100.00.', 'Result evidence 100.00 kg.',
-                        'Result evidence 100.00 ratio/kg.'):
+                        'Result evidence 100.00 ratio/kg.',
+                        'Result evidence 100.00 ratio per patient.',
+                        'Result evidence 100.00 ratio each day.',
+                        'Result evidence 100.00 ratio 每人.'):
             with self.subTest(caption=caption):
                 self.set_caption(caption)
                 check = claim_consumption.inspect_project(self.root)['figure_caption_numeric_checks'][0]

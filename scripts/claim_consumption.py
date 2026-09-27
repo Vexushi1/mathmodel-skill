@@ -420,6 +420,7 @@ def _figure_caption_numeric_checks(state: dict, policy: dict, scan: dict, b1: di
             remainder = suffix[unit_match.end():] if unit_match else ''
             if (unit_match is None
                     or re.match(r'\s*[\^/*·×⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻-]', remainder)
+                    or re.search(r'\b(?:per|each|every)\b|每', remainder, re.I)
                     or any(re.search(r'(?<!\w)' + re.escape(other) + r'(?!\w)',
                                      remainder)
                            for other in claim_contract['units'] if other != unit)):
