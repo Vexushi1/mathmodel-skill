@@ -136,6 +136,6 @@ B2a 对 `analysis_evidence_dispositions` 的 `modify/reject` 仅给出影响 cla
 | 验收 | 图注专属精度的正反例、缺失/越界字段、与 body/table 精度不同、B1 原值变化、静态活动源码与多值/单位/宏/短图注未评估、只读与读集漂移；专项/全量/lint/索引及精确 head CI 后分别补证 |
 | 回滚 | 未合并撤回本主题 PR；旧字段不需迁移，新字段审计不能通过删除精度记录伪装曾核准图注数值 |
 
-**2026-09-27 本地验收：** `unittest discover -s tests` 运行 2055 项，10 项条件跳过，其余通过；`lint_skill.py`、生成索引 `--check` 与 `git diff --check` 通过。精确 PR head CI 和合并后主干复验仍待完成。
+**2026-09-27 验收进度：** 初版 `unittest discover -s tests` 运行 2055 项，10 项条件跳过，其余通过；独立复审发现并修复图注数字落在绑定 claim 片段之前仍误报匹配的问题，修复后相关 30 项组合回归通过。最终 head 的全量测试、精确 PR CI 与合并后主干复验仍待完成。
 
 `figure_caption_numeric_checks` 是独立只读观察。局部数值形式匹配不表示图注整体主张获语义支持，也不表示图片视觉充分或渲染后版式合格。B2 台账继续“进行中”；DOCX、单文件 TeX、复杂宏、Figure 正式门与完整 B01/B09—B12/B16 场景验收仍需后续独立证据。
