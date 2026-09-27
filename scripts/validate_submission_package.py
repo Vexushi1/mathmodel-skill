@@ -118,10 +118,17 @@ def validate_package(
 
     # A direct invocation must replay the opt-in B2 gate and the formal proof
     # chain; a matching ZIP/PDF hash alone cannot certify changed claim sources.
-    from claim_consumption import formal_text_gate
+    from claim_consumption import formal_figure_gate, formal_text_gate
     from project_transaction import _check_read_set
 
-    claim_gate = formal_text_gate(root)
+    framework = state.get('paper_framework') if isinstance(state, Mapping) else None
+    policy = framework.get('claim_consumption_policy') if isinstance(framework, Mapping) else None
+    figure_policy = isinstance(policy, Mapping) and (
+        policy.get('protocol_version') == '1.3.0'
+        or policy.get('mode') == 'enforce_latex_text_and_figure_chain'
+    )
+    claim_gate = formal_figure_gate(root) if figure_policy else formal_text_gate(root)
+    gate_label = 'Figure链' if figure_policy else '文本'
     observed = claim_gate['observed_sources']
     project_read_set = dict(observed['project'])
     if project_read_set.get('state/project_state.yaml') != state_hash:
@@ -141,11 +148,18 @@ def validate_package(
         return payload
 
     if claim_gate['status'] == 'failed':
-        issues.append('B2正式文本门未通过: ' + '; '.join(claim_gate['issues'][:8]))
+        issues.append(f'B2正式{gate_label}门未通过: ' + '; '.join(claim_gate['issues'][:8]))
     elif claim_gate['status'] == 'passed':
         from latex_delivery import recorded_input_snapshot, source_bundle_snapshot, verify_compile_report
 
         latex_root = root / 'final_latex'
+        snapshot_options = ({
+            'project_root': root,
+            'allowed_external_graphics': {
+                row['image_token']: root / row['image_path']
+                for row in claim_gate['figure_graphic_bindings']
+            },
+        } if figure_policy else {})
         skill_profile = 'core/compile_profiles.yaml'
         profile_before = _sha256_stream(SKILL_ROOT / skill_profile)
         if skill_profile in observed['skill'] and observed['skill'][skill_profile] != profile_before:
@@ -170,19 +184,19 @@ def validate_package(
                     pdf=_current_compiled_pdf(root, state), report=compile_report,
                 ))
                 try:
-                    source_snapshot = source_bundle_snapshot(latex_root / 'main.tex')
-                    input_snapshot = recorded_input_snapshot(latex_root / 'main.tex')
+                    source_snapshot = source_bundle_snapshot(latex_root / 'main.tex', **snapshot_options)
+                    input_snapshot = recorded_input_snapshot(latex_root / 'main.tex', **snapshot_options)
                     if (source_snapshot['source_bundle_sha256'] != compile_report.get('source_bundle_sha256')
                             or input_snapshot['actual_input_files'] != compile_report.get('actual_input_files')):
                         issues.append('B2证明输入在提交包验证期间变化')
                     for field in (source_snapshot['source_files'], input_snapshot['actual_input_files']):
                         for entry in field:
-                            relative = 'final_latex/' + entry['path']
+                            relative = entry['path'] if figure_policy else 'final_latex/' + entry['path']
                             raw_hash = _sha256_stream(root / relative)
                             if relative in project_read_set and project_read_set[relative] != raw_hash:
                                 issues.append(f'B2读集与编译证明输入冲突: {relative}')
                             project_read_set[relative] = raw_hash
-                    if source_bundle_snapshot(latex_root / 'main.tex') != source_snapshot:
+                    if source_bundle_snapshot(latex_root / 'main.tex', **snapshot_options) != source_snapshot:
                         issues.append('B2 LaTeX source bundle在提交包验证期间变化')
                     recorder_path = latex_root / input_snapshot['recorder']
                     if recorder_path.is_file():

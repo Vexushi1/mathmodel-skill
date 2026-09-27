@@ -282,6 +282,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends texlive-xetex texlive-latex-extra texlive-bibtex-extra texlive-lang-chinese texlive-plain-generic texlive-fonts-recommended texlive-science biber
+      - name: Verify live B2 Figure compilation proof
+        run: python -m unittest tests.test_b2b4_figure_integration.FigureFormalChainIntegrationTests.test_real_xelatex_figure_image_proof
       - name: Build minimal formal project fixture
         shell: bash
         run: |

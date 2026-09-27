@@ -1,6 +1,11 @@
 # Changelog
 
-## 10.10.1
+## 10.11.0
+
+- Add opt-in B2 `1.3.0/enforce_latex_text_and_figure_chain` (State Schema 8.10.0, B2 contract 1.6.0). Explicit LaTeX/submission delivery rechecks the 1.2.0 text conditions in the same live audit with an exact matched Figure-caption scalar exemption, then requires a current machine Figure chain for declared workbook-driven result figures; the audit remains read-only and the existing project transaction remains the only stale writer.
+- Bind passing Figure image paths to the later v5 formal LaTeX audit, compile attestation, and submission-package verification. Older policy/mode pairs and v4 proof paths retain their previous behavior. A machine pass does not establish image visual adequacy, whole-caption semantic support, or complete B2 coverage.
+
+## Previous release: 10.10.1
 
 - Fix the opt-in B2 LaTeX text audit so unregistered overstrong wording is surfaced for review even when no numeric candidate is found. The existing 1.2.0 formal text gate remains conservative; this patch does not grant Figure, caption, or human semantic approval.
 - Keep State Schema 8.9.0 and the three existing B2 project policy/mode pairs unchanged. B2 remains in progress.

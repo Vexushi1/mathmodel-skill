@@ -920,7 +920,9 @@ def _capture_sync_source(root: Path, read_set: dict[str, str | None], path: Path
     read_set[relative] = digest
 
 
-def _formal_compile_paths(root: Path, state: Mapping[str, Any], scope: str) -> set[Path]:
+def _formal_compile_paths(root: Path, state: Mapping[str, Any], scope: str, *,
+                          figure_policy: bool = False,
+                          allowed_external_graphics: Mapping[str, Path] | None = None) -> set[Path]:
     """Discover files read by the existing LaTeX compile proof."""
     artifacts = state.get("artifacts") or {}
     source = root / str(artifacts.get("latex_source") or "final_latex/main.tex")
@@ -928,18 +930,20 @@ def _formal_compile_paths(root: Path, state: Mapping[str, Any], scope: str) -> s
     report = root / str(artifacts.get("compile_report") or "final_latex/compile_report.yaml")
     paths = {source, pdf, report, source.with_suffix(".fls"), source.with_suffix(".log"),
              source.parent / "latex_audit_report.yaml"}
-    if source.is_file():
+    if source.is_file() and (not figure_policy or allowed_external_graphics):
+        snapshot_options = ({"project_root": root, "allowed_external_graphics": allowed_external_graphics}
+                            if figure_policy else {})
         try:
-            paths.update(LATEX_DELIVERY.source_bundle_files(source))
+            paths.update(LATEX_DELIVERY.source_bundle_files(source, **snapshot_options))
         except (OSError, ValueError, UnicodeError):
-            pass  # The compile verifier and formal text gate report unsupported source syntax.
+            pass  # The compile verifier and active formal gate report unsupported source syntax.
         try:
-            recorded = LATEX_DELIVERY.recorded_input_snapshot(source)
+            recorded = LATEX_DELIVERY.recorded_input_snapshot(source, **snapshot_options)
         except (OSError, ValueError, UnicodeError):
             recorded = {}  # The existing compile verifier reports malformed recorder input.
         for row in recorded.get("actual_input_files", []):
             if isinstance(row, Mapping) and isinstance(row.get("path"), str):
-                paths.add(source.parent / row["path"])
+                paths.add((root if figure_policy else source.parent) / row["path"])
     if report.is_file():
         compiled = load_json_or_yaml(report)
         if not isinstance(compiled, Mapping):
@@ -1101,8 +1105,13 @@ def synchronize(
     )
     claim_text_gate_requested = (
         formal_scope_policy_present and isinstance(selected_policy, Mapping)
-        and (selected_policy.get("protocol_version") == "1.2.0"
-             or selected_policy.get("mode") == "enforce_latex_text")
+        and (selected_policy.get("protocol_version") in {"1.2.0", "1.3.0"}
+             or selected_policy.get("mode") in {"enforce_latex_text", "enforce_latex_text_and_figure_chain"})
+    )
+    figure_policy_requested = (
+        claim_text_gate_requested and isinstance(selected_policy, Mapping)
+        and (selected_policy.get("protocol_version") == "1.3.0"
+             or selected_policy.get("mode") == "enforce_latex_text_and_figure_chain")
     )
     claim_original_state = deepcopy(state) if write and claim_text_gate_requested else None
     claim_policy_present = (write and state_present and isinstance(initial_framework, Mapping)
@@ -1119,6 +1128,7 @@ def synchronize(
             claim_projection_write = True
             claim_propagate = (policy["protocol_version"], policy["mode"]) in {
                 ("1.1.0", "propagate"), ("1.2.0", "enforce_latex_text"),
+                ("1.3.0", "enforce_latex_text_and_figure_chain"),
             }
             try:
                 if not framework_path.is_file():
@@ -1273,8 +1283,27 @@ def synchronize(
         ))
     formal_compile_read_set: dict[str, str | None] | None = None
     formal_compile_paths: set[Path] | None = None
+    figure_graphics: dict[str, Path] | None = None
     if claim_text_gate_requested:
-        formal_compile_paths = _formal_compile_paths(root, transition_state, scope)
+        import claim_consumption as CLAIM_CONSUMPTION
+
+        claim_text_gate = (CLAIM_CONSUMPTION.formal_figure_gate(root) if figure_policy_requested
+                           else CLAIM_CONSUMPTION.formal_text_gate(root))
+        CONFORMANCE.merge_read_sets(conformance_read_set, claim_text_gate["observed_sources"])
+        if sync_read_set is not None:
+            for relative, digest in claim_text_gate["observed_sources"]["project"].items():
+                if relative in sync_read_set and sync_read_set[relative] != digest:
+                    raise PROJECT_TX.ReadSetConflictError("claim formal gate sync read-set conflict: " + relative)
+                sync_read_set[relative] = digest
+        if figure_policy_requested and claim_text_gate["status"] == "passed":
+            figure_graphics = {
+                row["image_token"]: root / row["image_path"]
+                for row in claim_text_gate["figure_graphic_bindings"]
+            }
+        formal_compile_paths = _formal_compile_paths(
+            root, transition_state, scope, figure_policy=figure_policy_requested,
+            allowed_external_graphics=figure_graphics,
+        )
         formal_compile_read_set = {}
         for path in sorted(formal_compile_paths):
             _capture_sync_source(root, formal_compile_read_set, path)
@@ -1332,14 +1361,6 @@ def synchronize(
         ))
 
     if claim_text_gate_requested:
-        import claim_consumption as CLAIM_CONSUMPTION
-        claim_text_gate = CLAIM_CONSUMPTION.formal_text_gate(root)
-        CONFORMANCE.merge_read_sets(conformance_read_set, claim_text_gate["observed_sources"])
-        if sync_read_set is not None:
-            for relative, digest in claim_text_gate["observed_sources"]["project"].items():
-                if relative in sync_read_set and sync_read_set[relative] != digest:
-                    raise PROJECT_TX.ReadSetConflictError("claim text gate sync read-set conflict: " + relative)
-                sync_read_set[relative] = digest
         if claim_text_gate["status"] == "passed":
             candidate_fragments = {
                 row.get("id"): row for row in
@@ -1359,9 +1380,14 @@ def synchronize(
             elif write and not claim_report_only:
                 claim_text_gate["status"] = "failed"
                 claim_text_gate["issues"].append(
+                    "candidate State changes during sync require a fresh formal Figure audit"
+                    if figure_policy_requested else
                     "candidate State changes during sync require a fresh formal text audit"
                 )
         if claim_text_gate["status"] != "passed":
+            if figure_policy_requested:
+                claim_text_gate["figure_image_paths"] = []
+                claim_text_gate["figure_graphic_bindings"] = []
             # A failed delivery gate must not suppress the inherited safe stale writer.
             # A vanished opt-in or conflicted source snapshot cannot enter its transaction.
             if (claim_text_gate["status"] == "not_applicable"
@@ -1369,13 +1395,17 @@ def synchronize(
                 policy_error = True
                 framework_text_for_write = None
             gate_issues = claim_text_gate.get("issues") or claim_text_gate.get("errors") or []
-            issues.extend("claim formal text gate: " + str(item) for item in gate_issues)
+            gate_label = "claim formal Figure gate" if figure_policy_requested else "claim formal text gate"
+            issues.extend(gate_label + ": " + str(item) for item in gate_issues)
             if not gate_issues:
-                issues.append("claim formal text gate: " + claim_text_gate["status"])
-        # The compile/PDF proof was checked before the text gate. Recheck it
-        # against the same captured inputs so a mid-check TeX edit cannot pass.
+                issues.append(gate_label + ": " + claim_text_gate["status"])
+        # Recheck compile/PDF proof against the same captured inputs so a
+        # mid-check TeX or Figure image edit cannot pass.
         issues.extend(_compile_artifact_issues(root, transition_state))
-        if _formal_compile_paths(root, transition_state, scope) != formal_compile_paths:
+        if _formal_compile_paths(
+            root, transition_state, scope, figure_policy=figure_policy_requested,
+            allowed_external_graphics=figure_graphics,
+        ) != formal_compile_paths:
             raise PROJECT_TX.ReadSetConflictError("formal compile source discovery changed during sync")
         PROJECT_TX._check_read_set(root, formal_compile_read_set)
 
@@ -1407,7 +1437,7 @@ def synchronize(
         report["invalidated_claim_ids"] = claim_ids
         report["claim_stale_fragments"] = claim_stale_fragments
     if claim_text_gate is not None:
-        report["claim_text_gate"] = claim_text_gate
+        report["claim_figure_gate" if figure_policy_requested else "claim_text_gate"] = claim_text_gate
         report["state_write_performed"] = write and not policy_error and not claim_report_only
     CONFORMANCE.assert_observed(root, conformance_read_set)
     if write and not policy_error:

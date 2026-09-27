@@ -440,9 +440,9 @@ class ContractAndDriftTests(unittest.TestCase):
         # P0-A intentionally aligns the title handoff with the existing output Authority;
         # test_schemas covers the new declaration and unchanged caption ownership.
         "core/workbook_schema.yaml": "e0479f5e74063151a515d11e140b7c4e8b8db077",
-        # B2b3c adds only optional caption-specific Numeric Profile precision;
-        # exact B2b3b, B1 and A2 predecessor projections retain their guards.
-        "core/project_state.schema.yaml": "401a91a6e130dee85b859880ae8323fdaf850ac6",
+        # B2b4 adds only the explicit 1.3 Figure-chain pair and its required bindings;
+        # exact predecessor policy shapes remain covered by their schema tests.
+        "core/project_state.schema.yaml": "0b130fd82db9a14730bc8919fe97a1d191379f92",
         "core/writing_reasoning_contract.yaml": "67a22f6e882a9cb79bc6edccd033731558a81f13",
         "modules/03_solve_validate.md": "cfbe8091f0434b8531ec97cbccde013895e18228",
         "modules/03_result_analysis.md": "dc184e94d4fbce579e25f8e82362d0ef7b3ff72a",
@@ -452,8 +452,8 @@ class ContractAndDriftTests(unittest.TestCase):
         "config/competition_profiles.yaml": "0cfe08e2edac99f07f2e527643499b8bc73c0479",
         "scripts/validate_semantic_governance.py": "1b48c4e5935c960f28bef89af86ce89a3c6f105f",
         # A5 requires current per-question files and exact official allowlist entries.
-        # B2b2 additionally replays the opt-in text gate and compile proof on this direct entry.
-        "scripts/validate_submission_package.py": "5fe2ab8004ed51f672ee68f7a03941c8563c462d",
+        # B2b4 additionally replays the opt-in Figure gate and v5 image inputs here.
+        "scripts/validate_submission_package.py": "27ea37b303e5ae1a65f70ed916cefa2800fd51fc",
         # P0-B replaces silent filtering/fixed ordering with explicit evidence-preserving reads.
         # v10.0.1 removes unsupported ColorBar.FontUnits in the standalone fallback;
         # MATLAB syntax is parsed separately; source checks do not claim runtime execution.

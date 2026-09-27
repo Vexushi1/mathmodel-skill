@@ -54,7 +54,7 @@ def expand_required_allowlist(root: Path, patterns: Iterable[str]) -> list[Path]
 
 
 def bound_compile_files(root: Path, state: Mapping[str, Any]) -> tuple[set[Path], list[str]]:
-    """Retain only current v4 report-bound log/recorder auxiliaries, never all logs."""
+    """Retain current v4/v5 report-bound log/recorder auxiliaries, never all logs."""
     root = root.resolve()
     artifacts = state.get("artifacts") or {}
     issues: list[str] = []
@@ -64,7 +64,7 @@ def bound_compile_files(root: Path, state: Mapping[str, Any]) -> tuple[set[Path]
         if not report_path.is_file():
             return files, issues
         report = yaml.safe_load(report_path.read_text(encoding="utf-8")) or {}
-        if not isinstance(report, Mapping) or str(report.get("report_schema_version")) != "4.0.0":
+        if not isinstance(report, Mapping) or str(report.get("report_schema_version")) not in {"4.0.0", "5.0.0"}:
             return files, issues  # Historical reports do not acquire a new recorder requirement.
         latex_root = report_path.parent
         main = project_path(latex_root, report.get("main"))
@@ -122,12 +122,14 @@ def reproducibility_requirements(root: Path, state: Mapping[str, Any]) -> tuple[
         if report_path.is_file():
             report = yaml.safe_load(report_path.read_text(encoding="utf-8")) or {}
             if isinstance(report, Mapping):
-                is_v4 = str(report.get("report_schema_version")) == "4.0.0"
+                schema_version = str(report.get("report_schema_version"))
+                is_v4 = schema_version == "4.0.0"
+                is_v5 = schema_version == "5.0.0"
                 audit = report.get("latex_audit_report") or "latex_audit_report.yaml"
-                if is_v4 or report.get("latex_audit_report") or (report_path.parent / audit).is_file():
+                if is_v4 or is_v5 or report.get("latex_audit_report") or (report_path.parent / audit).is_file():
                     require(project_path(report_path.parent, audit))
-                if is_v4:
-                    source_root = project_path(report_path.parent, report.get("main")).parent
+                if is_v4 or is_v5:
+                    source_root = project_path(report_path.parent, report.get("main")).parent if is_v4 else root
                     for field in ("source_files", "actual_input_files"):
                         for record in report.get(field) or []:
                             if not isinstance(record, Mapping):
