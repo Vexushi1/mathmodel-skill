@@ -133,6 +133,7 @@ class B2b2TextGateTests(unittest.TestCase):
         self.assertEqual(gate['human_semantic_coverage'], 'not_assessed')
         self.assertIn('state/project_state.yaml', gate['observed_sources']['project'])
         self.assertIn('final_latex/result.tex', gate['observed_sources']['project'])
+        self.assertNotIn('scripts/claim_figure.py', gate['observed_sources']['skill'])
         self.assertEqual(bytes_in(self.root), before)
 
     def test_b09_b10_b16_unregistered_strong_wording_fails_with_source_location(self):
@@ -142,6 +143,7 @@ class B2b2TextGateTests(unittest.TestCase):
         before = bytes_in(self.root)
         audit = claims.inspect_project(self.root)
         self.assertEqual(audit['status'], 'needs_review', audit)
+        self.assertIn('scripts/claim_figure.py', audit['observed_sources']['skill'])
         self.assertEqual(audit['unregistered_candidates'], [])
         self.assertEqual(audit['wording_findings'], [])
         candidates = audit['unregistered_wording_candidates']

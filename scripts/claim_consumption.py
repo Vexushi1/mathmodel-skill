@@ -165,7 +165,7 @@ def _fragment_text(scan: dict, row: dict) -> str:
 
 
 def _unregistered_wording(scan: dict, fragments: list[dict], locations: list[dict],
-                          claim_by_id: dict[str, dict]) -> tuple[list[dict], bool, str | None]:
+                          claim_by_id: dict[str, dict], skill_reads: dict) -> tuple[list[dict], bool, str | None]:
     by_id = {row['id']: row for row in locations}
     registered_spans = []
     for fragment in fragments:
@@ -211,6 +211,8 @@ def _unregistered_wording(scan: dict, fragments: list[dict], locations: list[dic
     first = next(unmatched, None)
     if first is None:
         return [], False, None
+    if 'scripts/claim_figure.py' not in skill_reads:
+        bounded._read(ROOT, 'scripts/claim_figure.py', 2 * 1024 * 1024, skill_reads)
     figures = claim_figure.inspect_static_figures(scan)
     structural = {'figure_scan_budget_exceeded', 'invalid_figure_scan_segment',
                   'figure_end_without_begin_in_segment'}
@@ -573,12 +575,14 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         schema = yaml.safe_load(bounded._read(ROOT, SCHEMA, 2 * 1024 * 1024, observed['skill']).decode('utf-8'))
         _, claim_contract = _read_yaml(ROOT, CLAIM_CONTRACT, 2 * 1024 * 1024, observed['skill'])
         for path in ('scripts/claim_consumption.py', 'scripts/claim_tex.py',
-                     'scripts/claim_figure.py', 'scripts/validate_project_state.py'):
+                     'scripts/validate_project_state.py'):
             bounded._read(ROOT, path, 2 * 1024 * 1024, observed['skill'])
         if contract.get('version') != '1.5.1':
             raise EvidenceError('unsupported B2 contract version')
         policy = framework['claim_consumption_policy']
         if isinstance(policy, Mapping) and policy.get('figure_bindings'):
+            bounded._read(ROOT, 'scripts/claim_figure.py', 2 * 1024 * 1024,
+                          observed['skill'])
             if any(isinstance(item, Mapping) and item.get('source_bindings')
                    for item in policy['figure_bindings']):
                 for path in ('scripts/claim_figure_source.py', 'scripts/project_snapshot.py',
@@ -671,7 +675,8 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         claims = framework['claim_evidence']['claims']
         claim_by_id = {row['id']: row for row in claims}
         (report['unregistered_wording_candidates'], report['unregistered_wording_overflow'],
-         wording_issue) = _unregistered_wording(scan, fragments, locations, claim_by_id)
+         wording_issue) = _unregistered_wording(scan, fragments, locations, claim_by_id,
+                                               observed['skill'])
         if wording_issue:
             report['issues'].append(wording_issue)
         gaps = False
