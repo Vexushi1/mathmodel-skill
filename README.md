@@ -1,4 +1,4 @@
-# mathmodel-skill v10.8.0
+# mathmodel-skill v10.9.0
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值语言由项目根策略统一选择。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。
 
@@ -74,4 +74,4 @@ python scripts/project_solver_backend.py --help
 
 `python scripts/claim_consumption.py <项目根> --tex-main final_latex/main.tex` 始终只读，观察已登记主张、paper fragment 依赖与可证明静态包含的 LaTeX 字面源码位置。`observe` 1.0.0 不新增 claim 驱动的写入；显式 `propagate` 1.1.0 根据当前 `modify/reject` 处置的精确 B1 claim ID 增加局部失效，State 与 Framework 表行同事务提交。显式 `enforce_latex_text` 1.2.0 继承该失效路径，并只为活动模块化 LaTeX 中已登记的摘要及各问结果文本启用有限机器门，正式审计、编译证明、显式 latex/submission 同步与提交包验证会复核当前来源。
 
-可选 `figure_bindings` 只在上述只读审计中核对工作簿驱动结果图的 Figure ID、当前 Framework 登记、State 片段及实际/已批准图片路径、活动模块化 LaTeX 的字面标签、图注、图片引用与正文引用。报告分别标明身份匹配及来源/视觉语义 `not_assessed`；登记的工作簿和绘图脚本内容、图片表达与图注语义尚未获得核准，也不进入正式文本门。未声明新策略的项目沿用原门；机理/全局示意图、表格、DOCX、单文件或动态 TeX、PDF 呈现、全文召回及人工语义支持仍待后续验收。具体边界见 `core/claim_consumption_contract.yaml`。
+可选 `figure_bindings` 只在上述只读审计中核对工作簿驱动结果图的 Figure ID、当前 Framework 登记、State 片段及实际/已批准图片路径、活动模块化 LaTeX 的字面标签、图注、图片引用与正文引用。每个绑定可再声明 `source_bindings`，用当前 Figure 关联 claim 的 B1 来源闭包、工作表及精确表头观察来源；同时复核原有已验证脚本/图片 bundle 哈希，并要求本次 scoped Figure bundle 的全部发现路径属于原 `approved_figures`。报告分别给出 `figure_source_checks` 与 `approval_freshness`，旧绑定未声明来源时仍为 `not_assessed`。这些观察不重新批准图片，不执行绘图脚本，也不证明图片表达或图注语义；正式文本门未扩展到 Figure。未声明新策略的项目沿用原门；机理/全局示意图、表格、DOCX、单文件或动态 TeX、PDF 呈现、全文召回及人工语义支持仍待后续验收。具体边界见 `core/claim_consumption_contract.yaml`。

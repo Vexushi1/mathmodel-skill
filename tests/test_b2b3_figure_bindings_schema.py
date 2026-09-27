@@ -43,7 +43,7 @@ class FigureBindingsSchemaTests(unittest.TestCase):
         })
 
     def test_optional_closed_identity_rows_preserve_existing_policy_modes(self):
-        self.assertEqual(self.schema["version"], "8.7.0")
+        self.assertEqual(self.schema["version"], "8.8.0")
         base = framework()["claim_consumption_policy"]
         for version, mode in (("1.0.0", "observe"), ("1.1.0", "propagate"),
                               ("1.2.0", "enforce_latex_text")):

@@ -269,8 +269,52 @@ def _validate_paper_fragments(framework: Mapping[str, Any]) -> tuple[list[str], 
     return issues, has_stale
 
 
+def _claim_source_closure(
+    claim: Mapping[str, Any], sources: Mapping[str, Any], derivations: Mapping[str, Any],
+) -> tuple[set[str], list[str]]:
+    """Follow supporting/qualifying B1 evidence and derivation inputs within a budget."""
+    evidence = claim.get("evidence")
+    if not isinstance(evidence, list):
+        return set(), ["claim evidence must be an array"]
+    pending = [row.get("ref") for row in evidence if isinstance(row, Mapping)
+               and row.get("relation") in {"supports", "qualifies"}]
+    found: set[str] = set()
+    visited: set[str] = set()
+    issues: list[str] = []
+    edges = len(pending)
+    while pending:
+        ref = pending.pop()
+        if not isinstance(ref, str) or ":" not in ref:
+            issues.append(f"malformed B1 evidence reference: {ref}")
+            continue
+        if ref in visited:
+            continue
+        visited.add(ref)
+        kind, identifier = ref.split(":", 1)
+        if kind == "source":
+            if identifier in sources:
+                found.add(identifier)
+            else:
+                issues.append(f"dangling B1 source reference: {identifier}")
+        elif kind == "derivation":
+            node = derivations.get(identifier)
+            if not isinstance(node, Mapping) or not isinstance(node.get("inputs"), Mapping):
+                issues.append(f"dangling B1 derivation reference: {identifier}")
+                continue
+            children = [ref for value in node["inputs"].values()
+                        for ref in (value if isinstance(value, list) else [value])]
+            edges += len(children)
+            if edges > 2048:
+                issues.append("B1 evidence dependency edge budget exceeded (2048)")
+                break
+            pending.extend(children)
+        else:
+            issues.append(f"malformed B1 evidence reference: {ref}")
+    return found, issues
+
+
 def _validate_figure_bindings(
-    policy: Mapping[str, Any], fragments: list[Any], claim_ids: set[str], obligations: list[Any],
+    policy: Mapping[str, Any], fragments: list[Any], record: Mapping[str, Any], obligations: list[Any],
 ) -> list[str]:
     """Check declared Figure identities and direct claim edges; no artifact approval occurs here."""
     if "figure_bindings" not in policy:
@@ -280,7 +324,17 @@ def _validate_figure_bindings(
         return ["paper_framework.claim_consumption_policy.figure_bindings must be an array"]
     issues: list[str] = []
     if len(bindings) > 128:
-        issues.append("paper_framework.claim_consumption_policy.figure_bindings budget exceeded (128)")
+        return ["paper_framework.claim_consumption_policy.figure_bindings budget exceeded (128)"]
+    claim_rows = record.get("claims")
+    source_rows = record.get("sources")
+    derivation_rows = record.get("derivations")
+    claim_by_id = {row["id"]: row for row in claim_rows
+                   if isinstance(row, Mapping) and isinstance(row.get("id"), str)} if isinstance(claim_rows, list) else {}
+    source_by_id = {row["id"]: row for row in source_rows
+                    if isinstance(row, Mapping) and isinstance(row.get("id"), str)} if isinstance(source_rows, list) else {}
+    derivation_by_id = {row["id"]: row for row in derivation_rows
+                        if isinstance(row, Mapping) and isinstance(row.get("id"), str)} if isinstance(derivation_rows, list) else {}
+    closure_cache: dict[str, tuple[set[str], list[str]]] = {}
     fragments_by_id = {row["id"]: row for row in fragments
                        if isinstance(row, Mapping) and isinstance(row.get("id"), str)}
     required_kinds = {row["claim_id"]: {kind for kind in row.get("fragment_kinds", [])
@@ -326,9 +380,65 @@ def _validate_figure_bindings(
             refs = fragment.get("depends_on")
             linked = {ref[6:] for ref in refs if isinstance(ref, str) and ref.startswith("claim:")} \
                      if isinstance(refs, list) else set()
-            if not any(claim_id in claim_ids and "figure_or_table_claim" in required_kinds.get(claim_id, set())
-                       for claim_id in linked):
+            eligible = {claim_id for claim_id in linked if claim_id in claim_by_id
+                        and "figure_or_table_claim" in required_kinds.get(claim_id, set())}
+            if not eligible:
                 issues.append(f"{prefix}.fragment_id requires a declared current claim: Figure obligation edge")
+            if "source_bindings" not in binding:
+                continue
+            source_bindings = binding["source_bindings"]
+            if not isinstance(source_bindings, list) or not 1 <= len(source_bindings) <= 8:
+                issues.append(f"{prefix}.source_bindings requires 1-8 rows")
+                continue
+            if not isinstance(source_rows, list) or not isinstance(derivation_rows, list):
+                issues.append(f"{prefix}.source_bindings requires B1 source and derivation arrays")
+                continue
+            if len(source_by_id) != len(source_rows) or len(derivation_by_id) != len(derivation_rows):
+                issues.append(f"{prefix}.source_bindings requires unique B1 source and derivation IDs")
+                continue
+            closures: dict[str, set[str]] = {}
+            for claim_id in sorted(eligible):
+                if claim_id not in closure_cache:
+                    closure_cache[claim_id] = _claim_source_closure(
+                        claim_by_id[claim_id], source_by_id, derivation_by_id)
+                closures[claim_id], graph_issues = closure_cache[claim_id]
+                issues.extend(f"{prefix}.source_bindings claim {claim_id}: {issue}" for issue in graph_issues)
+            seen_sources: set[str] = set()
+            for source_index, source_binding in enumerate(source_bindings):
+                source_prefix = f"{prefix}.source_bindings[{source_index}]"
+                if not isinstance(source_binding, Mapping):
+                    issues.append(f"{source_prefix} must be a mapping")
+                    continue
+                source_id = source_binding.get("source_id")
+                if not isinstance(source_id, str) or not source_id:
+                    issues.append(f"{source_prefix}.source_id must be a B1 source ID")
+                    continue
+                if source_id in seen_sources:
+                    issues.append(f"{source_prefix}.source_id duplicates a source in this Figure: {source_id}")
+                seen_sources.add(source_id)
+                source = source_by_id.get(source_id)
+                if source is None:
+                    issues.append(f"{source_prefix}.source_id references unknown B1 source: {source_id}")
+                    continue
+                selector = source.get("selector")
+                sheet = selector.get("sheet") if isinstance(selector, Mapping) else None
+                if not isinstance(sheet, str) or source_binding.get("sheet") != sheet:
+                    issues.append(f"{source_prefix}.sheet differs from B1 source.selector.sheet: {source_id}")
+                matched_claims = [claim_id for claim_id, closure in closures.items()
+                                  if source_id in closure]
+                if not matched_claims:
+                    issues.append(f"{source_prefix}.source_id is outside linked claim source evidence: {source_id}")
+                    continue
+                fragment_scope = fragment.get("scope")
+                source_question = source.get("question")
+                scopes_by_claim = [
+                    [scope for scope in (fragment_scope, claim_by_id[claim_id].get("scope"))
+                     if isinstance(scope, str) and re.fullmatch(r"Q[1-9][0-9]*", scope)]
+                    for claim_id in matched_claims
+                ]
+                if not any(scopes and all(source_question == scope for scope in scopes)
+                           for scopes in scopes_by_claim):
+                    issues.append(f"{source_prefix}.source_id question conflicts with Figure claim scope: {source_id}")
     return issues
 
 
@@ -374,7 +484,7 @@ def _validate_claim_consumption_policy(framework: Mapping[str, Any]) -> list[str
         required_ids.add(claim_id)
         if claim_id not in claim_scope:
             issues.append(f"paper_framework.claim_consumption_policy references unknown claim: {claim_id}")
-    issues.extend(_validate_figure_bindings(policy, fragments, set(claim_scope), obligations))
+    issues.extend(_validate_figure_bindings(policy, fragments, record, obligations))
     fragment_ids = {row.get("id") for row in fragments if isinstance(row, Mapping) and isinstance(row.get("id"), str)}
     dependencies: dict[str, list[str]] = {}
     edge_count = 0
