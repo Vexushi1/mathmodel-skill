@@ -154,6 +154,7 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
                 "audit_schema_version": "1.0.0",
                 "status": "passed",
                 "mode": "template_smoke",
+                "main": "main.tex",
                 "source_bundle_sha256": self.delivery.source_bundle_snapshot(main)["source_bundle_sha256"],
                 "framework_sha256": None,
             }
@@ -202,6 +203,7 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
                 "audit_schema_version": "1.0.0",
                 "status": "passed",
                 "mode": "formal",
+                "main": "main.tex",
                 "source_bundle_sha256": snapshot,
                 "framework_sha256": self.delivery.sha256_file(framework),
             }
@@ -255,6 +257,7 @@ class TestV7100DeliveryAttestation(unittest.TestCase):
                 "audit_schema_version": "1.0.0",
                 "status": "passed",
                 "mode": "formal",
+                "main": "main.tex",
                 "source_bundle_sha256": snapshot,
                 "framework_sha256": self.delivery.sha256_file(framework),
             }

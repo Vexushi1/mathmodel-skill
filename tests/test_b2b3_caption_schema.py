@@ -21,7 +21,7 @@ class FigureCaptionProfileSchemaTests(unittest.TestCase):
         })
 
     def test_optional_precision_is_distinct_and_bounded(self):
-        self.assertEqual(self.schema["version"], "8.11.0")
+        self.assertEqual(self.schema["version"], "8.12.0")
         base = {"id": "N1", "metric": "score", "display_form": "decimal", "unit": "ratio",
                 "body_decimals": 2, "table_decimals": 4, "status": "current"}
         self.assertTrue(self.validator.is_valid(base))
@@ -42,12 +42,12 @@ class FigureCaptionProfileSchemaTests(unittest.TestCase):
 
     def test_contract_keeps_text_gate_and_policy_pairs(self):
         contract = yaml.safe_load((ROOT / "core/claim_consumption_contract.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(contract["version"], "1.7.0")
+        self.assertEqual(contract["version"], "1.8.0")
         caption = contract["figure_caption_numeric_audit"]
         self.assertEqual(caption["precision_field"], "paper_framework.numeric_profile[].figure_caption_decimals")
         self.assertEqual(caption["read_only_report"], "figure_caption_numeric_checks")
         self.assertEqual(caption["formal_gate"],
-                         "observation_only_for_legacy_policies_and_current_caption_numeric_consumed_by_1.3.0_or_1.4.0_gate")
+                         "observation_only_for_legacy_policies_and_current_caption_numeric_consumed_by_1.3.0_or_1.4.0_or_1.5.0_gate")
         self.assertEqual(contract["formal_text_gate"]["activation"],
                          "explicit_enforce_latex_text_protocol_1.2.0_and_explicit_latex_or_submission_scope")
         self.assertEqual([(row["protocol_version"], row["mode"])
@@ -55,7 +55,8 @@ class FigureCaptionProfileSchemaTests(unittest.TestCase):
                          [("1.0.0", "observe"), ("1.1.0", "propagate"),
                           ("1.2.0", "enforce_latex_text"),
                           ("1.3.0", "enforce_latex_text_and_figure_chain"),
-                          ("1.4.0", "enforce_latex_text_and_figure_chain")])
+                          ("1.4.0", "enforce_latex_text_and_figure_chain"),
+                          ("1.5.0", "enforce_selected_paper_claim_chain")])
 
 
 if __name__ == "__main__":

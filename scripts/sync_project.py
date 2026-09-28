@@ -728,16 +728,46 @@ def _approved_figure_issues(
     return issues, warnings
 
 
-def _compile_artifact_issues(root: Path, state: Mapping[str, Any]) -> list[str]:
+def _latex_artifact_paths(root: Path, state: Mapping[str, Any]) -> tuple[Path, Path, Path]:
     artifacts = state.get("artifacts") or {}
-    source = root / str(artifacts.get("latex_source") or "final_latex/main.tex")
-    pdf = root / str(artifacts.get("compiled_pdf") or "final_latex/main.pdf")
-    report_path = root / str(artifacts.get("compile_report") or "final_latex/compile_report.yaml")
+    framework = state.get("paper_framework") or {}
+    policy = framework.get("claim_consumption_policy") if isinstance(framework, Mapping) else None
+    paper_source = policy.get("paper_source") if isinstance(policy, Mapping) else None
+    selected = (paper_source.get("entrypoint")
+                if (isinstance(policy, Mapping)
+                    and (policy.get("protocol_version"), policy.get("mode"))
+                    == ("1.5.0", "enforce_selected_paper_claim_chain")
+                    and isinstance(paper_source, Mapping)
+                    and paper_source.get("format") == "latex") else None)
+    source = root / str(selected or artifacts.get("latex_source") or "final_latex/main.tex")
+    pdf = (source.with_suffix(".pdf") if selected else
+           root / str(artifacts.get("compiled_pdf") or source.with_suffix(".pdf").relative_to(root)))
+    report_path = root / str(artifacts.get("compile_report") or
+                             (source.parent / "compile_report.yaml").relative_to(root))
+    return source, pdf, report_path
+
+
+def _compile_artifact_issues(root: Path, state: Mapping[str, Any]) -> list[str]:
+    source, pdf, report_path = _latex_artifact_paths(root, state)
     issues: list[str] = []
+    declared_source = (state.get("artifacts") or {}).get("latex_source")
+    if isinstance(declared_source, str) and (root / declared_source).resolve() != source.resolve():
+        issues.append("artifacts.latex_source differs from selected B2 paper_source")
+    declared_pdf = (state.get("artifacts") or {}).get("compiled_pdf")
+    policy = ((state.get("paper_framework") or {}).get("claim_consumption_policy") or {})
+    paper_source = policy.get("paper_source") or {}
+    selected_latex = (
+        (policy.get("protocol_version"), policy.get("mode"))
+        == ("1.5.0", "enforce_selected_paper_claim_chain")
+        and paper_source.get("format") == "latex"
+    )
+    if (selected_latex and isinstance(declared_pdf, str)
+            and (root / declared_pdf).resolve() != pdf.resolve()):
+        issues.append("artifacts.compiled_pdf differs from selected B2 paper_source output")
     if not source.is_file():
-        issues.append("LaTeX交付缺少 final_latex/main.tex")
+        issues.append("LaTeX交付缺少选定源码: " + source.relative_to(root).as_posix())
     if not pdf.is_file():
-        issues.append("LaTeX交付缺少 final_latex/main.pdf")
+        issues.append("LaTeX交付缺少选定PDF: " + pdf.relative_to(root).as_posix())
     if not report_path.is_file():
         issues.append("LaTeX交付缺少 compile_report")
     else:
@@ -759,7 +789,26 @@ def _compile_artifact_issues(root: Path, state: Mapping[str, Any]) -> list[str]:
 
 
 def _docx_issues(root: Path, state: Mapping[str, Any]) -> list[str]:
-    declared = ((state.get("artifacts") or {}).get("docx") or [])
+    artifacts = state.get("artifacts") or {}
+    declared = artifacts.get("docx") or []
+    framework = state.get("paper_framework") or {}
+    policy = framework.get("claim_consumption_policy") if isinstance(framework, Mapping) else None
+    paper_source = policy.get("paper_source") if isinstance(policy, Mapping) else None
+    pair = ((policy.get("protocol_version"), policy.get("mode"))
+            if isinstance(policy, Mapping) else (None, None))
+    selected = (paper_source.get("entrypoint")
+                if (pair == ("1.5.0", "enforce_selected_paper_claim_chain")
+                    and isinstance(paper_source, Mapping)
+                    and paper_source.get("format") == "docx") else None)
+    if isinstance(selected, str):
+        selected_path = (root / selected).resolve()
+        if (not selected_path.is_relative_to(root.resolve())
+                or selected_path.suffix.lower() != ".docx"):
+            return ["选定DOCX载体路径无效"]
+        issues = [] if selected_path.is_file() else ["DOCX交付缺少选定文件: " + selected]
+        if declared and selected not in declared:
+            issues.append("artifacts.docx未包含选定B2 paper_source")
+        return issues
     files = [root / str(item) for item in declared] if declared else list((root / "draft_docx").glob("*.docx"))
     return [] if any(path.is_file() for path in files) else ["DOCX交付缺少真实.docx文件"]
 
@@ -948,9 +997,7 @@ def _formal_compile_paths(root: Path, state: Mapping[str, Any], scope: str, *,
                           allowed_external_graphics: Mapping[str, Path] | None = None) -> set[Path]:
     """Discover files read by the existing LaTeX compile proof."""
     artifacts = state.get("artifacts") or {}
-    source = root / str(artifacts.get("latex_source") or "final_latex/main.tex")
-    pdf = root / str(artifacts.get("compiled_pdf") or "final_latex/main.pdf")
-    report = root / str(artifacts.get("compile_report") or "final_latex/compile_report.yaml")
+    source, pdf, report = _latex_artifact_paths(root, state)
     paths = {source, pdf, report, source.with_suffix(".fls"), source.with_suffix(".log"),
              source.parent / "latex_audit_report.yaml"}
     if source.is_file() and (not figure_policy or allowed_external_graphics):
@@ -1123,21 +1170,45 @@ def synchronize(
     initial_framework = state.get("paper_framework") or {}
     selected_policy = (initial_framework.get("claim_consumption_policy")
                        if isinstance(initial_framework, Mapping) else None)
+    selected_pair = ((selected_policy.get("protocol_version"), selected_policy.get("mode"))
+                     if isinstance(selected_policy, Mapping) else (None, None))
+    selected_paper_source = (selected_policy.get("paper_source")
+                             if isinstance(selected_policy, Mapping) else None)
+    selected_paper_format = (selected_paper_source.get("format")
+                             if isinstance(selected_paper_source, Mapping) else None)
+    selected_carrier_policy = selected_pair == (
+        "1.5.0", "enforce_selected_paper_claim_chain")
+    selected_scope_mismatch = bool(
+        selected_carrier_policy and scope in {"docx", "latex"}
+        and selected_paper_format in {"docx", "latex"}
+        and scope != selected_paper_format
+    )
+    if selected_scope_mismatch:
+        issues.append(
+            f"delivery scope {scope} conflicts with selected B2 paper_source format "
+            f"{selected_paper_format}"
+        )
     formal_scope_policy_present = (
-        explicit_delivery_scope and scope in {"latex", "submission"}
+        explicit_delivery_scope and scope in {"docx", "latex", "submission"}
         and isinstance(initial_framework, Mapping)
         and "claim_consumption_policy" in initial_framework
     )
     claim_text_gate_requested = (
         formal_scope_policy_present and isinstance(selected_policy, Mapping)
-        and (selected_policy.get("protocol_version") in {"1.2.0", "1.3.0", "1.4.0"}
-             or selected_policy.get("mode") in {"enforce_latex_text", "enforce_latex_text_and_figure_chain"})
+        and (selected_policy.get("protocol_version") in {"1.2.0", "1.3.0", "1.4.0", "1.5.0"}
+             or selected_policy.get("mode") in {"enforce_latex_text", "enforce_latex_text_and_figure_chain",
+                                                "enforce_selected_paper_claim_chain"})
+        and ((selected_carrier_policy and scope in {"docx", "latex", "submission"})
+             or (not selected_carrier_policy and scope in {"latex", "submission"}))
     )
     figure_policy_requested = (
         claim_text_gate_requested and isinstance(selected_policy, Mapping)
-        and (selected_policy.get("protocol_version") in {"1.3.0", "1.4.0"}
-             or selected_policy.get("mode") == "enforce_latex_text_and_figure_chain")
+        and (selected_policy.get("protocol_version") in {"1.3.0", "1.4.0", "1.5.0"}
+             or selected_policy.get("mode") in {"enforce_latex_text_and_figure_chain",
+                                                "enforce_selected_paper_claim_chain"})
     )
+    docx_paper_gate_requested = bool(
+        claim_text_gate_requested and selected_carrier_policy and selected_paper_format == "docx")
     claim_original_state = deepcopy(state) if write and claim_text_gate_requested else None
     claim_policy_present = (write and state_present and isinstance(initial_framework, Mapping)
                             and "claim_consumption_policy" in initial_framework)
@@ -1155,6 +1226,7 @@ def synchronize(
                 ("1.1.0", "propagate"), ("1.2.0", "enforce_latex_text"),
                 ("1.3.0", "enforce_latex_text_and_figure_chain"),
                 ("1.4.0", "enforce_latex_text_and_figure_chain"),
+                ("1.5.0", "enforce_selected_paper_claim_chain"),
             }
             try:
                 if not framework_path.is_file():
@@ -1170,8 +1242,10 @@ def synchronize(
                 CLAIM_CONSUMPTION._check_projection(initial_framework, claim_framework_text)
                 if claim_propagate:
                     structured_rejection = (
-                        (policy["protocol_version"], policy["mode"])
-                        == ("1.4.0", "enforce_latex_text_and_figure_chain")
+                        (policy["protocol_version"], policy["mode"]) in {
+                            ("1.4.0", "enforce_latex_text_and_figure_chain"),
+                            ("1.5.0", "enforce_selected_paper_claim_chain"),
+                        }
                     )
                     claim_ids, claim_rejection_events = _current_claim_actions(
                         state, claim_schema, structured_rejection=structured_rejection,
@@ -1329,8 +1403,11 @@ def synchronize(
     if claim_text_gate_requested:
         import claim_consumption as CLAIM_CONSUMPTION
 
-        claim_text_gate = (CLAIM_CONSUMPTION.formal_figure_gate(root) if figure_policy_requested
-                           else CLAIM_CONSUMPTION.formal_text_gate(root))
+        claim_text_gate = (
+            CLAIM_CONSUMPTION.formal_paper_gate(root) if selected_carrier_policy else
+            CLAIM_CONSUMPTION.formal_figure_gate(root) if figure_policy_requested else
+            CLAIM_CONSUMPTION.formal_text_gate(root)
+        )
         CONFORMANCE.merge_read_sets(conformance_read_set, claim_text_gate["observed_sources"])
         if sync_read_set is not None:
             for relative, digest in claim_text_gate["observed_sources"]["project"].items():
@@ -1342,22 +1419,23 @@ def synchronize(
                 row["image_token"]: root / row["image_path"]
                 for row in claim_text_gate["figure_graphic_bindings"]
             }
-        formal_compile_paths = _formal_compile_paths(
-            root, transition_state, scope, figure_policy=figure_policy_requested,
-            allowed_external_graphics=figure_graphics,
-        )
-        formal_compile_read_set = {}
-        for path in sorted(formal_compile_paths):
-            _capture_sync_source(root, formal_compile_read_set, path)
-        if sync_read_set is not None:
-            for relative, digest in formal_compile_read_set.items():
-                if relative in sync_read_set and sync_read_set[relative] != digest:
-                    raise PROJECT_TX.ReadSetConflictError("formal compile source differs from sync snapshot: " + relative)
-                sync_read_set[relative] = digest
-        skill_profile = LATEX_DELIVERY.COMPILE_PROFILES_PATH
-        CONFORMANCE.merge_read_sets(conformance_read_set, {"skill": {
-            skill_profile.relative_to(SKILL_ROOT).as_posix(): PROJECT_TX.sha256_file(skill_profile)
-        }})
+        if not docx_paper_gate_requested and not selected_scope_mismatch:
+            formal_compile_paths = _formal_compile_paths(
+                root, transition_state, scope, figure_policy=figure_policy_requested,
+                allowed_external_graphics=figure_graphics,
+            )
+            formal_compile_read_set = {}
+            for path in sorted(formal_compile_paths):
+                _capture_sync_source(root, formal_compile_read_set, path)
+            if sync_read_set is not None:
+                for relative, digest in formal_compile_read_set.items():
+                    if relative in sync_read_set and sync_read_set[relative] != digest:
+                        raise PROJECT_TX.ReadSetConflictError("formal compile source differs from sync snapshot: " + relative)
+                    sync_read_set[relative] = digest
+            skill_profile = LATEX_DELIVERY.COMPILE_PROFILES_PATH
+            CONFORMANCE.merge_read_sets(conformance_read_set, {"skill": {
+                skill_profile.relative_to(SKILL_ROOT).as_posix(): PROJECT_TX.sha256_file(skill_profile)
+            }})
     if explicit_delivery_scope and not (claim_policy_present and policy_error):
         issues.extend(_scope_artifact_issues(root, scope, transition_state, snapshots, output_contract, warnings=warnings))
 
@@ -1422,6 +1500,8 @@ def synchronize(
             elif write and not claim_report_only:
                 claim_text_gate["status"] = "failed"
                 claim_text_gate["issues"].append(
+                    "candidate State changes during sync require a fresh selected-paper audit"
+                    if selected_carrier_policy else
                     "candidate State changes during sync require a fresh formal Figure audit"
                     if figure_policy_requested else
                     "candidate State changes during sync require a fresh formal text audit"
@@ -1437,19 +1517,29 @@ def synchronize(
                 policy_error = True
                 framework_text_for_write = None
             gate_issues = claim_text_gate.get("issues") or claim_text_gate.get("errors") or []
-            gate_label = "claim formal Figure gate" if figure_policy_requested else "claim formal text gate"
+            gate_label = (
+                "claim selected-paper gate" if selected_carrier_policy else
+                "claim formal Figure gate" if figure_policy_requested else
+                "claim formal text gate"
+            )
             issues.extend(gate_label + ": " + str(item) for item in gate_issues)
             if not gate_issues:
                 issues.append(gate_label + ": " + claim_text_gate["status"])
-        # Recheck compile/PDF proof against the same captured inputs so a
-        # mid-check TeX or Figure image edit cannot pass.
-        issues.extend(_compile_artifact_issues(root, transition_state))
-        if _formal_compile_paths(
-            root, transition_state, scope, figure_policy=figure_policy_requested,
-            allowed_external_graphics=figure_graphics,
-        ) != formal_compile_paths:
-            raise PROJECT_TX.ReadSetConflictError("formal compile source discovery changed during sync")
-        PROJECT_TX._check_read_set(root, formal_compile_read_set)
+        if docx_paper_gate_requested:
+            # The DOCX carrier gate binds OOXML text, media and current project
+            # evidence.  It cannot promote a PDF or submission proof.
+            if scope == "submission":
+                issues.append("selected DOCX carrier has no supported rendered submission proof")
+        elif not selected_scope_mismatch:
+            # Recheck compile/PDF proof against the same captured inputs so a
+            # mid-check TeX or Figure image edit cannot pass.
+            issues.extend(_compile_artifact_issues(root, transition_state))
+            if _formal_compile_paths(
+                root, transition_state, scope, figure_policy=figure_policy_requested,
+                allowed_external_graphics=figure_graphics,
+            ) != formal_compile_paths:
+                raise PROJECT_TX.ReadSetConflictError("formal compile source discovery changed during sync")
+            PROJECT_TX._check_read_set(root, formal_compile_read_set)
 
     report = {
         "status": "passed" if not issues else "failed",
@@ -1480,7 +1570,9 @@ def synchronize(
         report["claim_stale_fragments"] = claim_stale_fragments
         report["claim_rejection_transitions"] = claim_rejection_reports
     if claim_text_gate is not None:
-        report["claim_figure_gate" if figure_policy_requested else "claim_text_gate"] = claim_text_gate
+        report[("claim_paper_gate" if selected_carrier_policy else
+                "claim_figure_gate" if figure_policy_requested else
+                "claim_text_gate")] = claim_text_gate
         report["state_write_performed"] = write and not policy_error and not claim_report_only
     CONFORMANCE.assert_observed(root, conformance_read_set)
     if write and not policy_error:

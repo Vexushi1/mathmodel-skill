@@ -19,6 +19,38 @@ from project_snapshot import chinese_question_name, data_source_files, question_
 OUTPUT_CONTRACT = Path(__file__).resolve().parents[1] / "core/output_contract.yaml"
 
 
+def selected_latex_entrypoint(state: Mapping[str, Any]) -> str | None:
+    """Return the exact B2 1.5 LaTeX carrier selected by project state."""
+    framework = state.get("paper_framework")
+    policy = framework.get("claim_consumption_policy") if isinstance(framework, Mapping) else None
+    source = policy.get("paper_source") if isinstance(policy, Mapping) else None
+    if (
+        isinstance(source, Mapping)
+        and (policy.get("protocol_version"), policy.get("mode"))
+        == ("1.5.0", "enforce_selected_paper_claim_chain")
+        and source.get("format") == "latex"
+        and isinstance(source.get("entrypoint"), str)
+        and source["entrypoint"].strip()
+    ):
+        return source["entrypoint"]
+    return None
+
+
+def latex_artifact_defaults(state: Mapping[str, Any]) -> tuple[str, str, str]:
+    """Resolve package proof defaults without overriding the selected B2 carrier."""
+    artifacts = state.get("artifacts") or {}
+    selected = selected_latex_entrypoint(state)
+    source = selected or artifacts.get("latex_source") or "final_latex/main.tex"
+    source_path = Path(str(source))
+    pdf = (source_path.with_suffix(".pdf").as_posix() if selected
+           else artifacts.get("compiled_pdf") or "final_latex/main.pdf")
+    report = artifacts.get("compile_report") or (
+        (source_path.parent / "compile_report.yaml").as_posix()
+        if selected else "final_latex/compile_report.yaml"
+    )
+    return str(source), str(pdf), str(report)
+
+
 def project_path(root: Path, raw: Any) -> Path:
     """Canonicalize a registered path without allowing a project-boundary escape."""
     if not str(raw or "").strip():
@@ -57,10 +89,21 @@ def bound_compile_files(root: Path, state: Mapping[str, Any]) -> tuple[set[Path]
     """Retain current v4/v5 report-bound log/recorder auxiliaries, never all logs."""
     root = root.resolve()
     artifacts = state.get("artifacts") or {}
+    selected = selected_latex_entrypoint(state)
+    source_raw, pdf_raw, report_raw = latex_artifact_defaults(state)
     issues: list[str] = []
     files: set[Path] = set()
     try:
-        report_path = project_path(root, artifacts.get("compile_report") or "final_latex/compile_report.yaml")
+        expected_source = project_path(root, source_raw)
+        if selected and artifacts.get("latex_source"):
+            declared_source = project_path(root, artifacts["latex_source"])
+            if declared_source != expected_source:
+                raise ValueError("artifacts.latex_source与选定B2 paper_source不一致")
+        if selected and artifacts.get("compiled_pdf"):
+            declared_pdf = project_path(root, artifacts["compiled_pdf"])
+            if declared_pdf != project_path(root, pdf_raw):
+                raise ValueError("artifacts.compiled_pdf与选定B2 paper_source输出不一致")
+        report_path = project_path(root, report_raw)
         if not report_path.is_file():
             return files, issues
         report = yaml.safe_load(report_path.read_text(encoding="utf-8")) or {}
@@ -68,8 +111,11 @@ def bound_compile_files(root: Path, state: Mapping[str, Any]) -> tuple[set[Path]
             return files, issues  # Historical reports do not acquire a new recorder requirement.
         latex_root = report_path.parent
         main = project_path(latex_root, report.get("main"))
-        if artifacts.get("latex_source") and main != project_path(root, artifacts["latex_source"]):
-            raise ValueError("compile_report.main与当前latex_source不一致")
+        if main != expected_source:
+            if selected:
+                raise ValueError("compile_report.main与选定B2 paper_source不一致")
+            if artifacts.get("latex_source"):
+                raise ValueError("compile_report.main与当前latex_source不一致")
         recorder = project_path(latex_root, main.with_suffix(".fls"))
         if report.get("recorder") != recorder.name:
             raise ValueError("compile_report.recorder不是当前main绑定的.fls文件名")
@@ -103,10 +149,11 @@ def reproducibility_requirements(root: Path, state: Mapping[str, Any]) -> tuple[
             issues.append(str(exc))
 
     artifacts = state.get("artifacts") or {}
+    source_raw, pdf_raw, report_raw = latex_artifact_defaults(state)
     require(contract["project_root"]["project_state"])
     require((state.get("paper_framework") or {}).get("path") or contract["model_paper_framework"]["path"])
-    require(artifacts.get("compiled_pdf") or "final_latex/main.pdf")
-    require(artifacts.get("latex_source") or "final_latex/main.tex")
+    require(pdf_raw)
+    require(source_raw)
     if (state.get("data") or {}).get("sources"):
         files, _, source_issues, _ = data_source_files(root, state)
         issues.extend(source_issues)
@@ -114,7 +161,7 @@ def reproducibility_requirements(root: Path, state: Mapping[str, Any]) -> tuple[
             require(path)  # Recheck each expanded member's boundary, including symlinks.
     for path in artifacts.get("approved_figures") or []:
         require(path)
-    raw_report = artifacts.get("compile_report") or "final_latex/compile_report.yaml"
+    raw_report = report_raw
     try:
         report_path = project_path(root, raw_report)
         if artifacts.get("compile_report") or report_path.is_file():

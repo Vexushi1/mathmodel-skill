@@ -29,7 +29,7 @@ DEEP_FORMAL_HEADING_RE = re.compile(
 
 
 def _claim_gate(main_file: Path) -> tuple[str, dict]:
-    project = main_file.parent.parent if main_file.parent.name == "final_latex" else main_file.parent
+    project = _project_root_for_main(main_file)
     state_path = project / "state/project_state.yaml"
     try:
         state = yaml.safe_load(state_path.read_text(encoding="utf-8")) if state_path.is_file() else {}
@@ -37,6 +37,25 @@ def _claim_gate(main_file: Path) -> tuple[str, dict]:
         policy = framework.get("claim_consumption_policy") if isinstance(framework, dict) else None
     except (OSError, UnicodeError, yaml.YAMLError):
         policy = None  # The live gate reports the malformed State as a failure.
+    pair = ((policy.get("protocol_version"), policy.get("mode"))
+            if isinstance(policy, dict) else None)
+    if pair == ("1.5.0", "enforce_selected_paper_claim_chain"):
+        from claim_consumption import formal_paper_gate
+
+        gate = formal_paper_gate(project)
+        paper_source = policy.get("paper_source")
+        entrypoint = (paper_source.get("entrypoint")
+                      if isinstance(paper_source, dict) else None)
+        carrier_format = (paper_source.get("format")
+                          if isinstance(paper_source, dict) else None)
+        selected = (project / str(entrypoint)).resolve() if entrypoint else None
+        if carrier_format != "latex" or selected != main_file.resolve():
+            gate = dict(gate)
+            gate["status"] = "failed"
+            gate["issues"] = list(gate.get("issues", [])) + [
+                "LaTeX审计入口必须等于1.5.0 paper_source选择的LaTeX入口"
+            ]
+        return "figure", gate
     figure_mode = isinstance(policy, dict) and (
         policy.get("protocol_version") in {"1.3.0", "1.4.0"}
         or policy.get("mode") == "enforce_latex_text_and_figure_chain"
@@ -44,6 +63,16 @@ def _claim_gate(main_file: Path) -> tuple[str, dict]:
     if figure_mode:
         return "figure", formal_figure_gate(project, tex_main=main_file)
     return "text", formal_text_gate(project, tex_main=main_file)
+
+
+def _project_root_for_main(main_file: Path) -> Path:
+    """Find the project that owns a selected source under final_latex."""
+    resolved = main_file.resolve()
+    for candidate in resolved.parents:
+        if ((candidate / "state/project_state.yaml").is_file()
+                and resolved.is_relative_to(candidate / "final_latex")):
+            return candidate
+    return resolved.parent.parent if resolved.parent.name == "final_latex" else resolved.parent
 
 
 def _claim_gate_findings(kind: str, gate: dict) -> list[Finding]:
@@ -364,7 +393,7 @@ def write_audit_report(
         findings.extend(_claim_gate_findings(claim_kind, claim_gate))
     snapshot_error: str | None = None
     try:
-        options = _figure_snapshot_options(main_file.parent.parent, claim_gate) if claim_kind == "figure" else {}
+        options = _figure_snapshot_options(_project_root_for_main(main_file), claim_gate) if claim_kind == "figure" else {}
         snapshot = source_bundle_snapshot(main_file, bib_path=bib_path, **options)
     except Exception as exc:  # noqa: BLE001 - persistence must survive malformed source graphs
         snapshot_error = str(exc)
@@ -391,7 +420,7 @@ def write_audit_report(
         "framework": str(framework_path) if framework_path is not None else None,
         "framework_sha256": framework_hash,
         **({f'claim_{claim_kind}_gate': {key: claim_gate[key] for key in
-                                ('status', 'policy_protocol_version', 'mode',
+                                ('status', 'policy_protocol_version', 'mode', 'carrier_format',
                                  'human_semantic_coverage', 'observed_sources', 'issues',
                                  'figure_image_paths', 'figure_graphic_bindings')
                                 if key in claim_gate}}

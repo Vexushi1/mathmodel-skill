@@ -34,7 +34,7 @@ class ModelConstructionRationaleContractTests(unittest.TestCase):
         cls.examples = read(EXAMPLES)
 
     def test_schema_and_single_reasoning_authority(self):
-        self.assertEqual(self.contract["schema_version"], "1.9.0")
+        self.assertEqual(self.contract["schema_version"], "1.10.0")
         rationale = self.contract["model_construction_rationale"]
         self.assertEqual(rationale["governance_level"], "default")
         self.assertEqual(

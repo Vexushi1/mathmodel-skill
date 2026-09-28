@@ -45,6 +45,11 @@ STRUCTURED_IDENTITY_FIELDS = {
     "semantic_text_hash",
 }
 STRUCTURED_REJECTION_POLICY = ("1.4.0", "enforce_latex_text_and_figure_chain")
+SELECTED_PAPER_CLAIM_POLICY = ("1.5.0", "enforce_selected_paper_claim_chain")
+STRUCTURED_REJECTION_POLICIES = {
+    STRUCTURED_REJECTION_POLICY,
+    SELECTED_PAPER_CLAIM_POLICY,
+}
 LEGACY_CLAIM_CONSUMPTION_POLICIES = {
     ("1.0.0", "observe"),
     ("1.1.0", "propagate"),
@@ -155,7 +160,7 @@ def _dependency_shape_issue(subproblems: Any) -> str | None:
 def _current_structured_rejections(
     state: dict[str, Any], questions: Iterable[str],
 ) -> dict[str, dict[str, Any]]:
-    """Return fail-closed runtime effects for exact B2 1.4 current rejections."""
+    """Return fail-closed runtime effects for current structured B2 policies."""
     framework = state.get("paper_framework")
     policy_present = isinstance(framework, dict) and "claim_consumption_policy" in framework
     policy = framework.get("claim_consumption_policy") if policy_present else None
@@ -163,18 +168,20 @@ def _current_structured_rejections(
         (policy.get("protocol_version"), policy.get("mode"))
         if isinstance(policy, dict) else None
     )
-    active = pair == STRUCTURED_REJECTION_POLICY
+    active = pair in STRUCTURED_REJECTION_POLICIES
     policy_error = None
     if "paper_framework" in state and not isinstance(framework, dict):
         policy_error = "paper_framework is malformed"
     elif policy_present and not isinstance(policy, dict):
         policy_error = "paper_framework.claim_consumption_policy is malformed"
-    elif policy_present and pair not in (*LEGACY_CLAIM_CONSUMPTION_POLICIES, STRUCTURED_REJECTION_POLICY):
+    elif policy_present and pair not in (LEGACY_CLAIM_CONSUMPTION_POLICIES
+                                         | STRUCTURED_REJECTION_POLICIES):
         policy_error = f"claim-consumption policy pair is unsupported or incomplete: {pair!r}"
     elif active:
         policy_issues = _exact_structured_policy_issues(policy)
         if policy_issues:
-            policy_error = "exact B2 1.4 claim-consumption policy is malformed: " + "; ".join(policy_issues)
+            label = "1.4" if pair == STRUCTURED_REJECTION_POLICY else "1.5"
+            policy_error = f"exact B2 {label} claim-consumption policy is malformed: " + "; ".join(policy_issues)
     requested = [str(question) for question in questions]
     results: dict[str, dict[str, Any]] = {}
     subproblems = state.get("subproblems", {})
@@ -221,17 +228,18 @@ def _current_structured_rejections(
         return results
     if not active:
         return results
+    b2_label = "1.4" if pair == STRUCTURED_REJECTION_POLICY else "1.5"
 
     for question in sorted(known_questions):
         result = result_for(question)
         item = subproblems.get(question, {}) if isinstance(subproblems, dict) else {}
         if not isinstance(item, dict):
-            block_invalid(question, f"{question} is malformed under B2 1.4")
+            block_invalid(question, f"{question} is malformed under B2 {b2_label}")
             continue
         rows = item.get("analysis_evidence_dispositions", []) if isinstance(item, dict) else []
         if not isinstance(rows, list):
             block_invalid(
-                question, f"{question}.analysis_evidence_dispositions is malformed under B2 1.4",
+                question, f"{question}.analysis_evidence_dispositions is malformed under B2 {b2_label}",
             )
             continue
         current_ids = [
@@ -245,21 +253,21 @@ def _current_structured_rejections(
         if duplicate_ids:
             block_invalid(
                 question,
-                f"{question}.analysis_evidence_dispositions has duplicate current B2 1.4 IDs: {duplicate_ids}",
+                f"{question}.analysis_evidence_dispositions has duplicate current B2 {b2_label} IDs: {duplicate_ids}",
             )
             continue
         for index, row in enumerate(rows):
             if not isinstance(row, dict):
                 block_invalid(
                     question,
-                    f"{question}.analysis_evidence_dispositions[{index}] is malformed under B2 1.4",
+                    f"{question}.analysis_evidence_dispositions[{index}] is malformed under B2 {b2_label}",
                 )
                 continue
             status = row.get("status", "current")
             if not isinstance(status, str) or status not in {"current", "resolved", "stale"}:
                 block_invalid(
                     question,
-                    f"{question}.analysis_evidence_dispositions[{index}].status is malformed under B2 1.4",
+                    f"{question}.analysis_evidence_dispositions[{index}].status is malformed under B2 {b2_label}",
                 )
                 continue
             if status != "current":
@@ -268,7 +276,7 @@ def _current_structured_rejections(
             if not isinstance(disposition, str) or disposition not in {"support", "modify", "reject"}:
                 block_invalid(
                     question,
-                    f"{question}.analysis_evidence_dispositions[{index}].disposition is malformed under B2 1.4",
+                    f"{question}.analysis_evidence_dispositions[{index}].disposition is malformed under B2 {b2_label}",
                 )
                 continue
             if disposition not in {"modify", "reject"}:
@@ -278,7 +286,7 @@ def _current_structured_rejections(
             if shape_issue:
                 block_invalid(
                     question,
-                    f"{question}.{evidence_id} is a malformed current B2 1.4 {disposition}: {shape_issue}",
+                    f"{question}.{evidence_id} is a malformed current B2 {b2_label} {disposition}: {shape_issue}",
                 )
                 continue
             if disposition == "modify":
@@ -287,11 +295,11 @@ def _current_structured_rejections(
             if scope == "core_answer":
                 result["blocks_primary"] = True
                 result["primary_reasons"].append(
-                    f"{question}.{evidence_id} is a current B2 1.4 core-answer rejection"
+                    f"{question}.{evidence_id} is a current B2 {b2_label} core-answer rejection"
                 )
                 emit_event(question, "core_answer_rejected")
             elif scope == "model_validity":
-                reason = f"{question}.{evidence_id} is a current B2 1.4 model-validity rejection"
+                reason = f"{question}.{evidence_id} is a current B2 {b2_label} model-validity rejection"
                 result["blocks_primary"] = True
                 result["blocks_model"] = True
                 result["primary_reasons"].append(reason)
@@ -300,14 +308,14 @@ def _current_structured_rejections(
     by_source: dict[str, list[dict[str, Any]]] = {}
     dependency_issue = _dependency_shape_issue(subproblems)
     if dependency_issue:
-        reason = f"project dependency declarations are malformed under B2 1.4: {dependency_issue}"
+        reason = f"project dependency declarations are malformed under B2 {b2_label}: {dependency_issue}"
         for question in sorted(known_questions):
             block_invalid(question, reason)
         return results
     try:
         dependency_rows = STATE_TRANSITIONS.dependency_edges(subproblems)
     except (TypeError, ValueError) as exc:
-        reason = f"project dependency declarations are malformed under B2 1.4: {exc}"
+        reason = f"project dependency declarations are malformed under B2 {b2_label}: {exc}"
         for question in sorted(known_questions):
             block_invalid(question, reason)
         return results

@@ -16,14 +16,61 @@ B2B3A_SCHEMA_SHA256 = '99e7df6a9fe3872698a1d126d0d678b5b91f3a08371be3353b18389b5
 B2B3B_SCHEMA_SHA256 = '2a06f7b6ac281f65a1dc520ecec8ac24981f0bba602e49d89a4320d18e1633b7'
 B2B3C_SCHEMA_SHA256 = '4d1d84c298529f6ac0014621a0d54245974f0e29e249451ba2b22d8f4bf244cc'
 B2B4_SCHEMA_SHA256 = '5025ba4a659feba51d217ab60461e7a71a4e8292199c87f3f373e3682ac21bc4'
+B2B6_SCHEMA_SHA256 = 'eab7c9c23da6c676673bdcf3aa0e8aa3e76fdd758f4760c76c583d5ec7a8f47a'
 B2B6_DISPOSITION_RULES_SHA256 = '9e9e2edaa80c0ca6060930a953ee67e2d4611d95ba24533f84ad33f3c08e516e'
 
 def _digest(schema):
     encoded = json.dumps(schema, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()
     return hashlib.sha256(encoded).hexdigest()
 
+def previous_b2c_schema(schema):
+    schema = deepcopy(schema)
+    assert schema['version'] == '8.12.0'
+    schema['version'] = '8.11.0'
+    policy = schema['$defs']['claim_consumption_policy']
+    assert policy['description'] == ('B2显式消费观察、陈旧传播或选定论文载体的文本与Figure链有限门；'
+                                     '实际消费边仍为paper_fragments.depends_on。')
+    policy['description'] = ('B2显式消费观察、陈旧传播或模块化LaTeX文本与Figure链有限门；'
+                             '实际消费边仍为paper_fragments.depends_on。')
+    policy['properties']['protocol_version']['enum'].remove('1.5.0')
+    policy['properties']['mode']['enum'].remove('enforce_selected_paper_claim_chain')
+    policy['properties'].pop('paper_source')
+    figure = policy['properties']['figure_bindings']['items']
+    assert figure['required'] == ['figure_id', 'fragment_id', 'image_path']
+    figure['required'] = ['figure_id', 'fragment_id', 'latex_label', 'image_path']
+    figure['properties'].pop('carrier_locator')
+    for branch in policy['oneOf'][:3]:
+        assert branch['properties'].pop('figure_bindings') == {
+            'items': {'required': ['latex_label']},
+        }
+    for branch in policy['oneOf'][3:5]:
+        assert branch['properties']['figure_bindings']['items']['required'] == [
+            'latex_label', 'source_bindings',
+        ]
+        branch['properties']['figure_bindings']['items']['required'] = ['source_bindings']
+    assert policy['oneOf'].pop() == {
+        'required': ['paper_source', 'figure_bindings'],
+        'properties': {
+            'protocol_version': {'const': '1.5.0'},
+            'mode': {'const': 'enforce_selected_paper_claim_chain'},
+            'figure_bindings': {
+                'minItems': 1,
+                'items': {'required': ['carrier_locator', 'source_bindings']},
+            },
+        },
+    }
+    source = schema['$defs']['paper_fragment_entry']['properties']['source_file']
+    source['description'] = ('可选的物理LaTeX源码映射；使用时必须是项目根目录下final_latex/中的.tex文件，'
+                             '旧单文件项目可缺失。')
+    source['pattern'] = r'^final_latex/.+\.tex$'
+    schema['properties']['paper_framework'].pop('allOf')
+    assert _digest(schema) == B2B6_SCHEMA_SHA256
+    return schema
+
 def previous_b2b6_schema(schema):
     schema = deepcopy(schema)
+    if schema['version'] == '8.12.0':
+        schema = previous_b2c_schema(schema)
     assert schema['version'] == '8.11.0'
     schema['version'] = '8.10.0'
     policy = schema['$defs']['claim_consumption_policy']
@@ -50,7 +97,7 @@ def previous_b2b6_schema(schema):
 
 def previous_b2b4_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] == '8.11.0':
+    if schema['version'] in ('8.11.0', '8.12.0'):
         schema = previous_b2b6_schema(schema)
     assert schema['version'] == '8.10.0'
     schema['version'] = '8.9.0'
@@ -77,7 +124,7 @@ def previous_b2b4_schema(schema):
 
 def previous_b2b3c_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] in ('8.10.0', '8.11.0'):
+    if schema['version'] in ('8.10.0', '8.11.0', '8.12.0'):
         schema = previous_b2b4_schema(schema)
     assert schema['version'] == '8.9.0'
     schema['version'] = '8.8.0'
@@ -89,7 +136,7 @@ def previous_b2b3c_schema(schema):
 
 def previous_b2b3b_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] in ('8.9.0', '8.10.0', '8.11.0'):
+    if schema['version'] in ('8.9.0', '8.10.0', '8.11.0', '8.12.0'):
         schema = previous_b2b3c_schema(schema)
     assert schema['version'] == '8.8.0'
     schema['version'] = '8.7.0'
@@ -117,7 +164,7 @@ def previous_b2b3b_schema(schema):
 
 def previous_b2b3a_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] in ('8.8.0', '8.9.0', '8.10.0', '8.11.0'):
+    if schema['version'] in ('8.8.0', '8.9.0', '8.10.0', '8.11.0', '8.12.0'):
         schema = previous_b2b3b_schema(schema)
     assert schema['version'] == '8.7.0'
     schema['version'] = '8.6.0'
@@ -146,7 +193,7 @@ def previous_b2b3a_schema(schema):
 
 def previous_b2b_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] in ('8.7.0', '8.8.0', '8.9.0', '8.10.0', '8.11.0'):
+    if schema['version'] in ('8.7.0', '8.8.0', '8.9.0', '8.10.0', '8.11.0', '8.12.0'):
         schema = previous_b2b3a_schema(schema)
     assert schema['version'] == '8.6.0'
     schema['version'] = '8.5.0'
@@ -165,7 +212,7 @@ def previous_b2b_schema(schema):
 
 def previous_b2a_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] in ('8.6.0', '8.7.0', '8.8.0', '8.9.0', '8.10.0', '8.11.0'):
+    if schema['version'] in ('8.6.0', '8.7.0', '8.8.0', '8.9.0', '8.10.0', '8.11.0', '8.12.0'):
         schema = previous_b2b_schema(schema)
     assert schema['version'] == '8.5.0'
     schema['version'] = '8.4.0'
@@ -185,7 +232,7 @@ def previous_b2a_schema(schema):
 
 def previous_b1_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] in ('8.5.0', '8.6.0', '8.7.0', '8.8.0', '8.9.0', '8.10.0', '8.11.0'):
+    if schema['version'] in ('8.5.0', '8.6.0', '8.7.0', '8.8.0', '8.9.0', '8.10.0', '8.11.0', '8.12.0'):
         schema = previous_b2a_schema(schema)
     assert schema['version'] == '8.4.0'
     schema['version'] = '8.3.0'
@@ -204,7 +251,7 @@ def previous_b1_schema(schema):
 
 def previous_a2_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] in ('8.5.0', '8.6.0', '8.7.0', '8.8.0', '8.9.0', '8.10.0', '8.11.0'):
+    if schema['version'] in ('8.5.0', '8.6.0', '8.7.0', '8.8.0', '8.9.0', '8.10.0', '8.11.0', '8.12.0'):
         schema = previous_b2a_schema(schema)
     if schema['version'] == '8.4.0':
         schema = previous_b1_schema(schema)

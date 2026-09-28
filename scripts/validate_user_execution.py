@@ -83,11 +83,12 @@ def question_key(problem: str) -> str:
 def _uses_structured_rejection_policy(state: Mapping[str, Any]) -> bool:
     framework = state.get("paper_framework")
     policy = framework.get("claim_consumption_policy") if isinstance(framework, Mapping) else None
-    return (
-        isinstance(policy, Mapping)
-        and (policy.get("protocol_version"), policy.get("mode"))
-        == ("1.4.0", "enforce_latex_text_and_figure_chain")
-    )
+    pair = ((policy.get("protocol_version"), policy.get("mode"))
+            if isinstance(policy, Mapping) else None)
+    return pair in {
+        ("1.4.0", "enforce_latex_text_and_figure_chain"),
+        ("1.5.0", "enforce_selected_paper_claim_chain"),
+    }
 
 
 def as_bool(value: Any) -> bool | None:

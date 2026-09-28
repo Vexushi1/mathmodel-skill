@@ -1,4 +1,4 @@
-version: 1.7.0
+version: 1.8.0
 status: active_opt_in
 introduced_in_skill_version: 10.5.0
 propagate_introduced_in_skill_version: 10.6.0
@@ -8,7 +8,8 @@ figure_source_binding_introduced_in_skill_version: 10.9.0
 figure_caption_numeric_observation_introduced_in_skill_version: 10.10.0
 figure_chain_gate_introduced_in_skill_version: 10.11.0
 structured_rejection_return_introduced_in_skill_version: 10.12.0
-purpose: Locate and compare declared claim consumption, propagate qualifying stale fragment status, return explicit core-answer or model-validity rejection to its declared upstream stage, and gate the declared static modular LaTeX text and opt-in Figure machine chain without asserting visual or caption semantic truth.
+selected_paper_carrier_gate_introduced_in_skill_version: 10.13.0
+purpose: Locate and compare declared claim consumption, propagate qualifying stale fragment status, return explicit core-answer or model-validity rejection to its declared upstream stage, and gate the declared static LaTeX or bounded DOCX text and opt-in Figure machine chain without asserting visual or caption semantic truth.
 authority:
   policy_shape: core/project_state.schema.yaml#/$defs/claim_consumption_policy
   policy_path: paper_framework.claim_consumption_policy
@@ -28,8 +29,9 @@ activation:
   - {protocol_version: 1.2.0, mode: enforce_latex_text, stale_writer: existing_project_transaction_only}
   - {protocol_version: 1.3.0, mode: enforce_latex_text_and_figure_chain, stale_writer: existing_project_transaction_only}
   - {protocol_version: 1.4.0, mode: enforce_latex_text_and_figure_chain, stale_writer: existing_project_transaction_only, structured_rejection_return: required}
+  - {protocol_version: 1.5.0, mode: enforce_selected_paper_claim_chain, stale_writer: existing_project_transaction_only, structured_rejection_return: required, selected_carrier: required}
   audit_route_read_only_in_all_modes: true
-  automatic_existing_gate_insertion: explicit_latex_or_submission_scope_only_for_protocol_1.2.0_or_1.3.0_or_1.4.0
+  automatic_existing_gate_insertion: explicit_latex_or_submission_scope_for_protocol_1.2.0_to_1.4.0_and_explicit_selected_carrier_or_submission_scope_for_protocol_1.5.0
   project_writer: existing_project_transaction_for_propagate_or_enforce_modes
   persistence: audit_stdout_only_or_existing_project_transaction_for_fragment_stale_and_structured_rejection_state
   default_project_files_added: []
@@ -41,7 +43,7 @@ relationships:
   framework_role: human_readable_projection_must_agree_when_opted_in
   numerical_truth: original_accepted_workbook_qualification_only
 stale_propagation:
-  activation: explicit_propagate_1.1.0_or_enforce_latex_text_1.2.0_or_figure_chain_1.3.0_or_structured_rejection_1.4.0
+  activation: explicit_propagate_1.1.0_or_enforce_latex_text_1.2.0_or_figure_chain_1.3.0_or_structured_rejection_1.4.0_or_selected_carrier_1.5.0
   trigger: current_modify_or_reject_disposition_with_exact_same_question_B1_claim_ID
   seed_edges: 'claim:<id> dependencies of paper_fragments'
   transitive_edges: paper_fragment_ID_dependencies
@@ -83,28 +85,53 @@ formal_figure_gate:
   v5_external_image_scope: literal_../figures/..._token_resolving_to_approved_project_root_figures_path_only
   semantic_support: image_visual_adequacy_and_whole_caption_claim_support_not_established
   excludes: [mechanism_and_global_diagrams, tables, docx, single_file_or_dynamic_latex, rendered_visual_judgment]
+formal_selected_paper_gate:
+  activation: exact_protocol_1.5.0_enforce_selected_paper_claim_chain_and_explicit_selected_carrier_or_submission_scope
+  read_only_entrypoint: scripts/claim_consumption.py#formal_paper_gate
+  selected_source: exactly_one_paper_source_format_and_entrypoint
+  supported_latex: bounded_literal_static_single_file_or_modular_include_graph
+  unsupported_latex: dynamic_include_unbounded_redefinition_dynamic_or_control_symbol_definition_preamble_or_global_rendering_effect_and_custom_macro_generated_claim_caption_or_figure_structure_fail_closed
+  supported_docx: bounded_ordinary_OOXML_main_document_body_with_literal_text_bookmarks_internal_bookmark_hyperlinks_and_one_canonical_DrawingML_picture_source
+  unsupported_docx: tracked_or_property_changes_fields_automatic_numbering_altChunk_content_parts_text_boxes_non_image_drawings_alternate_image_representations_external_relationships_DTD_or_entities_damaged_or_noncanonical_bookmarks_unsafe_OPC_names_targets_or_relationship_IDs_and_over_budget_or_high_ratio_ZIP_fail_closed
+  docx_location_basis: normalized_main_document_text_and_one_based_paragraphs_not_raw_XML_offsets
+  required_bindings: nonempty_figure_bindings_with_carrier_locator_and_source_bindings_on_every_row
+  latex_locator: one_literal_active_label
+  docx_locator: one_named_bookmark_containing_exactly_one_canonical_DrawingML_picture_and_literal_caption_anchor
+  docx_image_identity: embedded_media_SHA256_equals_bound_current_approved_external_image_SHA256
+  body_reference: unique_literal_reference_outside_Figure_inside_one_internal_hyperlink_to_the_same_bookmark_and_Framework_location_matches_active_source
+  inherited_machine_conditions: current_B1_claim_qualification_fragment_coverage_wording_calibration_structured_rejection_and_current_Figure_source_bundle
+  per_figure_claim_obligations: [abstract_claim, question_result_text, figure_or_table_claim]
+  passing_report_fields: [carrier_format, figure_image_paths]
+  latex_only_passing_field: figure_graphic_bindings
+  docx_submission_proof: unsupported_and_must_fail_closed_without_a_separate_rendered_proof_contract
+  read_set: project_and_skill_bytes_and_Figure_source_discovery_rechecked_before_return
+  human_semantic_coverage: not_assessed
+  semantic_support: visual_adequacy_whole_caption_meaning_and_human_review_not_established
+  write_behavior: no_independent_State_Framework_approval_or_review_receipt_writer
+  excludes: [general_TeX_macro_evaluation, Word_rendering, automatic_visual_judgment, C1_review_receipts]
 unregistered_wording_audit:
   activation: existing_explicit_B2_policy_audit_only
-  source: masked_active_in_document_static_latex_segments
-  excluded_content: figure_environments_even_without_a_Figure_binding
-  figure_inventory: only_required_when_active_target_wording_exists; ambiguous_cross_segment_figure_with_target_wording_needs_review
+  source: masked_active_in_document_static_latex_segments_or_normalized_selected_DOCX_main_body
+  excluded_content: Figure_environments_only_for_protocols_1.0.0_through_1.4.0; protocol_1.5.0_checks_unregistered_wording_inside_bound_and_unbound_Figure_captions
+  figure_inventory: legacy_skip_only_when_active_target_wording_exists; ambiguous_cross_segment_legacy_Figure_with_target_wording_needs_review
   candidate_patterns: existing_global_optimality_and_broad_robustness_patterns
   exclusion: only_fully_located_fragment_spans_whose_direct_claim_text_registers_the_same_unnegated_wording_kind
   report: unregistered_wording_candidates_with_literal_code_and_physical_location
   max_reported_candidates: 100
   overflow: explicit_needs_review_never_silent_success
   formal_text_gate: unresolved_candidates_or_overflow_fail_explicit_1.2.0_text_gate
-  formal_figure_gate: unresolved_candidates_or_overflow_fail_explicit_1.3.0_or_1.4.0_machine_chain
+  formal_figure_gate: unresolved_candidates_or_overflow_fail_explicit_1.3.0_or_1.4.0_or_1.5.0_machine_chain
   semantic_support: not_established_and_not_full_paper_recall
   write_behavior: read_only
 figure_identity_audit:
   activation: optional_figure_bindings_on_existing_explicit_policy
   eligible_figures: workbook_driven_result_figures_only
-  binding_fields: [figure_id, fragment_id, latex_label, image_path]
-  read_only_entrypoint: scripts/claim_consumption.py#_figure_identity_checks
+  binding_fields: [figure_id, fragment_id, latex_label_or_carrier_locator, image_path]
+  read_only_entrypoint: scripts/claim_consumption.py#_figure_identity_checks_or__docx_figure_identity_checks
   framework_registry: current_model_paper_framework_figure_evidence_table
   state_source: current_fragment_and_actual_and_approved_figure_paths
-  latex_source: proven_active_static_modular_figure_label_caption_image_and_body_reference
+  legacy_latex_source: proven_active_static_modular_figure_label_caption_image_and_body_reference
+  selected_carrier_source: literal_static_single_or_modular_latex_or_bounded_DOCX_bookmark_caption_embedded_image_and_body_reference
   image_resolution: from_main_tex_working_directory_without_active_graphicspath
   framework_body_reference_location: exact_active_source_file_colon_physical_line
   source_registry_fields: checked_for_presence_not_qualified
@@ -113,9 +140,9 @@ figure_identity_audit:
   result_fields: [identity_status, approval_freshness, source_and_visual_semantics]
   approval_freshness: not_assessed_until_original_figure_bundle_qualification_is_rechecked
   source_and_visual_semantics: not_assessed
-  formal_gate: observation_only_for_legacy_policies_and_current_identity_consumed_by_1.3.0_or_1.4.0_gate
+  formal_gate: observation_only_for_legacy_policies_and_current_identity_consumed_by_1.3.0_or_1.4.0_or_1.5.0_gate
   write_behavior: read_only_no_approval_or_project_state_writer
-  excludes: [mechanism_and_global_diagrams, tables, workbook_and_plot_script_content_qualification, image_visual_adequacy, caption_semantic_support, rendered_pdf, docx, single_file_or_dynamic_latex]
+  excludes: [mechanism_and_global_diagrams, tables, workbook_and_plot_script_content_qualification, image_visual_adequacy, caption_semantic_support, rendered_pdf, dynamic_latex]
 figure_source_audit:
   activation: optional_nonempty_source_bindings_on_existing_figure_binding
   source_binding_fields: [source_id, sheet, required_headers]
@@ -136,9 +163,9 @@ figure_source_audit:
   approval_freshness_without_current_bundle: not_assessed_or_needs_review
   source_report_visual_and_caption_semantics: not_assessed
   identity_report_source_and_visual_semantics: not_assessed
-  formal_gate: observation_only_for_legacy_policies_and_current_source_bundle_consumed_by_1.3.0_or_1.4.0_gate
+  formal_gate: observation_only_for_legacy_policies_and_current_source_bundle_consumed_by_1.3.0_or_1.4.0_or_1.5.0_gate
   write_behavior: read_only_no_bundle_resign_or_project_state_writer
-  excludes: [plot_script_execution, workbook_recalculation, image_visual_adequacy, caption_semantic_support, rendered_pdf, docx, single_file_or_dynamic_latex]
+  excludes: [plot_script_execution, workbook_recalculation, image_visual_adequacy, caption_semantic_support, rendered_pdf, dynamic_latex]
 figure_caption_numeric_audit:
   activation: optional_figure_binding_and_current_scalar_claim_with_caption_specific_numeric_profile
   source: live_B1_original_scalar_evidence_and_current_Numeric_Profile
@@ -146,14 +173,15 @@ figure_caption_numeric_audit:
   precision_fallback: none_from_abstract_body_table_or_submission
   unit_and_display_form: existing_Numeric_Profile_only
   read_only_report: figure_caption_numeric_checks
-  supported_source: provably_active_static_modular_latex_long_caption
+  supported_source: provably_active_static_latex_long_caption_or_literal_selected_DOCX_bookmark_caption
   unsupported_or_ambiguous: not_assessed_or_needs_review_without_inferred_numeric_support
   visual_and_caption_semantics: not_assessed
-  formal_gate: observation_only_for_legacy_policies_and_current_caption_numeric_consumed_by_1.3.0_or_1.4.0_gate
+  formal_gate: observation_only_for_legacy_policies_and_current_caption_numeric_consumed_by_1.3.0_or_1.4.0_or_1.5.0_gate
   write_behavior: read_only_no_project_state_or_approval_writer
-  excludes: [multi_value_caption, unit_or_macro_semantics, short_caption, rendered_pdf, docx, single_file_or_dynamic_latex]
+  excludes: [multi_value_caption, unit_or_macro_semantics, short_caption, rendered_pdf, dynamic_latex, rendered_DOCX_semantics]
 scope:
   first_slice: provably_active_static_modular_latex
+  completed_selected_carriers: [static_modular_latex, static_single_file_latex, bounded_ordinary_docx]
   unsupported_active_graph: not_assessed
   unsupported_active_graph_when_formal: failed
   unsupported_formats: not_assessed
@@ -163,6 +191,7 @@ scope:
   audit_proposed_fragment_stale: report_only_not_written_status
   formal_text_gate: only_explicit_1.2.0_policy_and_explicit_latex_or_submission_scope
   formal_figure_gate: only_explicit_1.3.0_or_1.4.0_policy_and_explicit_latex_or_submission_scope
+  formal_selected_paper_gate: only_exact_1.5.0_policy_and_explicit_selected_carrier_or_submission_scope
 limits:
   policy_obligations: 512
   fragment_kinds_per_obligation: 8
@@ -172,6 +201,7 @@ result_semantics:
   statuses: [observed, needs_review, not_assessed, blocked]
   formal_text_gate_statuses: [passed, failed, not_applicable]
   formal_figure_gate_statuses: [passed, failed, not_applicable]
+  formal_selected_paper_gate_statuses: [passed, failed, not_applicable]
   evidence_status: inherit_live_B1_result_per_claim
   semantic_support: not_established
   execution_authorized: false
@@ -182,6 +212,11 @@ rules:
 - Protocol 1.2.0 enforce_latex_text inherits the claim-driven stale-only writer and adds a limited formal gate only for explicit latex or submission scope.
 - Protocol 1.3.0 enforce_latex_text_and_figure_chain inherits the stale-only writer and rechecks the 1.2.0 text conditions in the same live audit, with only the exact matched Figure caption scalar candidate exempted, then applies a bounded Figure machine-chain gate only for explicit latex or submission scope. The 1.2.0 formal_text_gate entrypoint remains exclusive to 1.2.0.
 - Protocol 1.4.0 retains the exact 1.3.0 Figure/v5 proof route and additionally requires current modify/reject dispositions to declare impact_scope. A core_answer reject must declare solve_validate; a model_validity reject must declare model_design; auxiliary_wording never carries return_stage.
+- Protocol 1.5.0 inherits the 1.4.0 stale and structured-rejection behavior, requires one selected paper_source, and applies one machine claim/Figure chain to bounded static LaTeX or ordinary DOCX. Static LaTeX may be single-file or modular. DOCX identity requires a literal bookmark caption, one internal embedded image equal by SHA-256 to the current bound approved file, and one literal body reference outside the bookmark.
+- A uniquely matched DOCX body_reference is structural Figure identity. Only its one Figure prefix number, matching the bound caption number when present, is exempt from numeric result-claim matching; every other numeric token in and around that reference remains a result-claim candidate.
+- Protocol 1.5.0 treats dynamic includes, unbounded or dynamically named redefinitions, control-symbol definitions, preamble/global rendering effects, custom-macro-generated claim/caption structure, DOCX revisions or property changes, fields, automatic numbering, altChunk/content parts, text boxes, non-image drawings, alternate image representations, external relationships, DTD/entities in any XML part, noncanonical relationship/bookmark identities and unsafe, high-ratio or over-budget packages as failed or unassessed formal evidence. A DOCX body reference must be the unique literal text of an internal hyperlink to the same Figure bookmark. It never interprets general TeX macros or Word rendering.
+- A passing 1.5.0 machine gate keeps human_semantic_coverage as not_assessed. It neither creates a reviewer receipt nor establishes visual adequacy, whole-caption semantic support, or C1 review completion.
+- Explicit DOCX scope may consume the 1.5.0 DOCX machine gate. Submission scope remains blocked until a separate supported rendered-delivery proof exists; the DOCX package scan is not a PDF or final-submission proof.
 - The existing project transaction applies structured rejection, exact paper-fragment stale propagation, lifecycle rewind, next_gate update and typed downstream propagation atomically. It never resolves stale proof, reruns task code, revises a model, or renews Human Approval.
 - Unknown, partial, or mismatched protocol-version and mode pairs block opt-in processing.
 - The claim_consumption_audit route remains read-only in all modes and cannot be treated as formal delivery approval.
@@ -201,5 +236,5 @@ rules:
 - A matched Figure identity is a read-only location and path observation. The audit does not qualify the registered workbook or plot script content, approve visual or caption semantics, extend the formal text gate, or sign a new delivery approval.
 - Optional Figure source bindings use only a Figure-linked claim's current B1 source closure, exact sheet and required literal headers; an old Figure binding without source bindings remains source `not_assessed`.
 - The Figure audit may observe existing validated script/figure bundle hashes against current bytes and require every discovered path in this scoped Figure bundle to belong to the original approved_figures list. It does not recheck every globally approved path, renew or write prior approval, execute plotting code, or judge the image or caption. Legacy policy pairs retain observation-only Figure reports.
-- In explicit 1.3.0 or 1.4.0 mode, the formal Figure gate consumes the current Figure identity, B1 source and original approved bundle freshness, active fragment and long-caption scalar check. A passing machine chain supplies only exact image paths and graphic bindings for a later v5 audit/compile/package proof; it does not itself require a compile report or establish image visual adequacy or whole-caption semantic support.
+- In explicit 1.3.0 or 1.4.0 mode, the formal Figure gate consumes the current Figure identity, B1 source and original approved bundle freshness, active fragment and long-caption scalar check. A passing machine chain supplies only exact image paths and graphic bindings for a later v5 audit/compile/package proof; it does not itself require a compile report or establish image visual adequacy or whole-caption semantic support. The 1.5.0 LaTeX carrier uses the same later v5 proof, while DOCX deliberately has no such promotion path in this contract.
 - Figure source auditing counts unique accepted workbook, image and script bytes once per audit against the shared limits above. Reuse of a captured hash, workbook parser or Figure discovery for the same source cannot waive the final read-set or discovery recheck.

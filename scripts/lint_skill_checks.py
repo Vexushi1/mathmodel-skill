@@ -946,15 +946,30 @@ def check_contracts(errors: list[str]) -> None:
 def check_project_state_and_framework(errors: list[str]) -> None:
     schema = load_structured(ROOT / "core/project_state.schema.yaml")
     Draft202012Validator.check_schema(schema)
-    if schema.get("version") != "8.11.0":
-        errors.append("v10.12 structured rejection return requires independent schema 8.11.0")
+    if schema.get("version") != "8.12.0":
+        errors.append("v10.13 selected paper carrier requires independent schema 8.12.0")
     policy = schema.get("$defs", {}).get("claim_consumption_policy", {})
     if policy.get("oneOf", [])[:3] != [
-            {"properties": {"protocol_version": {"const": "1.0.0"}, "mode": {"const": "observe"}}},
-            {"properties": {"protocol_version": {"const": "1.1.0"}, "mode": {"const": "propagate"}}},
-            {"properties": {"protocol_version": {"const": "1.2.0"}, "mode": {"const": "enforce_latex_text"}}},
+            {"properties": {"protocol_version": {"const": "1.0.0"}, "mode": {"const": "observe"},
+                            "figure_bindings": {"items": {"required": ["latex_label"]}}}},
+            {"properties": {"protocol_version": {"const": "1.1.0"}, "mode": {"const": "propagate"},
+                            "figure_bindings": {"items": {"required": ["latex_label"]}}}},
+            {"properties": {"protocol_version": {"const": "1.2.0"}, "mode": {"const": "enforce_latex_text"},
+                            "figure_bindings": {"items": {"required": ["latex_label"]}}}},
     ]:
         errors.append("formal Figure policy must preserve the exact 1.0/1.1/1.2 predecessor pairs")
+    if policy.get("oneOf", [])[-1:] != [{
+        "required": ["paper_source", "figure_bindings"],
+        "properties": {
+            "protocol_version": {"const": "1.5.0"},
+            "mode": {"const": "enforce_selected_paper_claim_chain"},
+            "figure_bindings": {
+                "minItems": 1,
+                "items": {"required": ["carrier_locator", "source_bindings"]},
+            },
+        },
+    }]:
+        errors.append("selected-paper policy must preserve the exact 1.5.0 opt-in shape")
     execution_fields = (schema.get("properties", {}).get("execution", {}).get("properties") or {})
     stage_fields = (schema.get("$defs", {}).get("solver_stage_execution", {}).get("properties") or {})
     if not {"solver_backend", "solver_backend_selection_reason"}.issubset(execution_fields):

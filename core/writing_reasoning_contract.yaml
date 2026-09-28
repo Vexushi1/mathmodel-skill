@@ -1,4 +1,4 @@
-schema_version: 1.9.0
+schema_version: 1.10.0
 role: >-
   跨数学建模竞赛的正文推理与证据治理权威。约束核心公式的来源—推导—去向、共享基础模型、
   跨问递进、结构化简、模型/求解器/验证器角色、优化模型表达、模型建立理由与适用边界、
@@ -1358,7 +1358,7 @@ analysis_evidence_disposition:
     - modify -> mark_dependent_paper_fragments_stale_until_updated
     - support -> keep_target_current_only_if_upstream_model_and_result_are_current
   structured_rejection_protocol:
-    activation: paper_framework.claim_consumption_policy == 1.4.0/enforce_latex_text_and_figure_chain
+    activation: paper_framework.claim_consumption_policy in [1.4.0/enforce_latex_text_and_figure_chain, 1.5.0/enforce_selected_paper_claim_chain]
     current_modify_or_reject_requires: [impact_scope]
     impact_scopes: [auxiliary_wording, core_answer, model_validity]
     return_stage:
