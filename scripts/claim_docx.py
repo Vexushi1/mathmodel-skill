@@ -394,6 +394,16 @@ def _flatten_document(root: ET.Element, relationships: Mapping[str, Mapping[str,
             if cursor is body or cursor is None:
                 issues.append(_issue("orphan_text_unsupported",
                                      part="word/document.xml"))
+        elif node.tag == W_DRAWING:
+            run = parents.get(node)
+            host = parents.get(run) if run is not None else None
+            paragraph = (host if host is not None and host.tag == W_P else
+                         parents.get(host) if host is not None
+                         and host.tag == W_HYPERLINK else None)
+            if (run is None or run.tag != W_R or paragraph is None
+                    or paragraph.tag != W_P):
+                issues.append(_issue("misnested_drawing_unsupported",
+                                     part="word/document.xml"))
     for node in body.iter():
         code = NOT_ASSESSED_TAGS.get(node.tag)
         if code and (code, id(node)) not in unsupported_seen:
@@ -758,7 +768,7 @@ def scan_docx(
             "hidden_text_unsupported", "hidden_style_text_unsupported",
             "inline_drawing_splits_text_unsupported", "unknown_extension_text_unsupported",
             "misnested_paragraph_unsupported", "misnested_text_unsupported",
-            "orphan_text_unsupported",
+            "orphan_text_unsupported", "misnested_drawing_unsupported",
             "non_image_drawing_unsupported", "misnested_image_blip_unsupported",
             "alternate_image_representation_unsupported",
         }

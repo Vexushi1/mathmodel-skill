@@ -334,6 +334,29 @@ class DocxScannerTests(unittest.TestCase):
                     "not_assessed",
                 )
 
+    def test_picture_outside_a_direct_paragraph_run_is_not_assessed(self):
+        variants = {
+            "outside_paragraph": DOCUMENT.replace(
+                "<w:sectPr/>", f"<w:r>{VALID_DRAWING}</w:r><w:sectPr/>"),
+            "wrapped_run": DOCUMENT.replace(
+                f"<w:r>{VALID_DRAWING}</w:r>",
+                f"<w:unknown><w:r>{VALID_DRAWING}</w:r></w:unknown>",
+            ),
+            "wrapped_drawing": DOCUMENT.replace(
+                VALID_DRAWING, f"<w:unknown>{VALID_DRAWING}</w:unknown>"),
+        }
+        for name, document in variants.items():
+            with self.subTest(name=name):
+                self.write_docx(document=document)
+                scan = scan_docx(self.path)
+                self.assertEqual(scan["status"], "not_assessed", scan)
+                self.assertIn("misnested_drawing_unsupported",
+                              {row["code"] for row in scan["issues"]})
+                self.assertEqual(
+                    bind_bookmark_figure(scan, "fig_q1", "Figure 1.")["status"],
+                    "not_assessed",
+                )
+
     def test_alternate_svg_representation_cannot_bypass_image_identity(self):
         alternate = VALID_DRAWING.replace(
             '<a:blip r:embed="rImg1"/>',
