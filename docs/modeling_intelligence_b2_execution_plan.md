@@ -6,6 +6,8 @@
 
 > **2026-09-28 接续（覆盖上一段的当前状态）：** B2b6 [PR #249](https://github.com/Vexushi1/mathmodel-skill/pull/249) 已合并至 `main@86fedb04fa4ace5ce27ba5f65a804ab82b306f09`；精确 head CI 13/13、优化基线、合并树一致性与合并后主干 CI 13/13 均已复核。当前进入第 15 节 B2c 跨载体消费与总验收；本节不预写该切片后续的 PR、CI、合并或主干复验结果，C1 在 B2 总验收关闭前不启动。
 
+> **2026-09-28 B2c 代码与 B2 机器总验收：** [PR #250](https://github.com/Vexushi1/mathmodel-skill/pull/250) 的精确 head `f16296504507111e3f3c5a28cf5ea6a027a1d01c` 已通过 [HSK Skill CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36420552482) 13/13 与[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36420552350)；squash 合并为 `main@7100dd7096a381041bbce07030a27d7a65876be4`，合并树与已测 head 树同为 `bd9c2f60b3359de527dc7aaac4760612b2133a81`。[合并后主干 CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36429993892) 的 push 工作流结论为 success，13/13 job 成功。B01、B09—B12、B16 的可判定机器行为及跨载体失败边界按第 15 节验收达标；收口分支补两项正文遗漏反例并在本地通过。B2 机器总验收关闭，人工视觉、图注整体语义和人类语义覆盖保持 `not_assessed`；C1 未开始，未发布 Release。
+
 日期：2026-09-26。基线 main=`a7ff4b792c4f0dac92bb7cd5b4569cf0de03967d`，Skill 10.4.0 / State 8.3.0；B1 PR #239 已合并，主干 CI [36212303219](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36212303219) 13/13 成功，合并树与最终 B1 head 树一致。开始本阶段时没有其他开放 PR。本指南落实原计划第 7、11—16、19 节，保留 B1 的 accepted 资格与语义支持边界。
 
 ## 1. 修改简报
@@ -26,7 +28,7 @@
 
 1. **B2a 只读 observe：** 新 opt-in 仅接受 `mode: observe`，通过独立只读路由。以现有 `paper_fragments[].depends_on: claim:<id>` 为唯一实际消费边；覆盖义务只声明哪些已登记 claim 需要哪类 fragment。扫描器现场核验 B1 来源并读取可证明活动的静态 LaTeX 图，报告 source→claim→fragment、位置、数值冲突、登记覆盖与未登记候选。全部项目字节不变。
 2. **B2b 状态传播与正式消费：** 另经协议/兼容评审决定 enforce 激活，扩原状态 Authority 的纯转移和现有 coordinator 写入；B12 的实际局部 stale、正式写作/图表/交付门与 transaction/read-set 故障注入在此验收。不得用细粒度结果清除原 artifact stale。
-3. **B2 完成复核：** 按原 B01、B09—B12、B16 的完整场景，检查选定论文格式与 Figure ID→脚本→accepted 来源→真实图片→caption 的消费链。未覆盖 DOCX、单文件 TeX、复杂宏或人工语义判定时逐项标未完成，不提前进入 C1。
+3. **B2 完成复核：** 按原 B01、B09—B12、B16 的完整场景，检查选定论文格式与 Figure ID→脚本→accepted 来源→真实图片→caption 的消费链。DOCX、单文件 TeX 和复杂宏的机器行为或失败边界未覆盖时逐项标未完成；人工视觉、图注整体语义和人类语义覆盖须如实标为 `not_assessed`，不能冒充机器 PASS。B2 机器验收完成前不进入 C1。
 
 B2a 和 B2b 可以分 PR 串行；每个 PR 都须有精确 head CI、完整基础回归、相关专项测试和主干复验。B2 台账在全部目标达成前保持“进行中”。
 
@@ -241,3 +243,23 @@ B2b5 实现对应 `tests/test_b2b5_continuous_acceptance.py`：
 | 回滚 | 未合并撤回本主题改动；已显式选择 1.5.0 的项目保留可解释记录并回到人工复核，不能删除载体声明或降级策略来伪装旧路径通过 |
 
 复杂宏与动态包含的“覆盖”是可判定边界验收：不受相关动态结构影响且可证明为新建、显式调用的字面宏可以在活动载体内核对；动态命名、控制符定义、无界重定义、前言/全局渲染副作用，或宏直接生成或改变 claim、caption、图片关系时必须失败或要求人工，不把编译成功、PDF 存在或人工职责写成机器语义 PASS。DOCX 的 Figure 绑定还必须由规范 DrawingML picture 子树、当前批准图片的逐字节哈希、同一书签内的 caption 和指向该书签的正文内部超链接共同证明；图表、SmartArt、自动编号、替代 SVG/备用表示、错位 blip 或任意同文字符串都不能替代这条关系。B2 完成表示上述行为和边界均有实际测试与 CI 证据，不表示任一具体用户项目已经完成视觉审阅。
+
+**B2c 代码验收记录：** PR #250 精确 head 的 DOCX scanner 与跨格式总矩阵本地 50 项通过，运行时集成 20 项通过；本验收收口分支再补单文件 LaTeX、DOCX 各一项“正文必需主张遗漏”反例，两个专项文件本地合计 52 项通过。生产 LaTeX attestation 在 PR #250 CI 中实际执行选定入口的 XeLaTeX、v2/v5 证明和提交包重放，PR CI 13/13 成功。修复旧读集漂移测试的 mock 签名、受保护 Authority 哈希和上一版本 Changelog 标题后，影响的 3 个测试入口在本地通过。单体本机 Python 3.14/3.12 全量进程未取得完整退出汇总，不能计作本地全量 PASS；精确 head 的 Linux Python 3.10—3.14 与 Windows Python 3.14 全量 CI 是完整回归证据。优化基线成功，其中可选真实 MATLAB publication preview 按条件跳过；HSK CI 中真实 MATLAB R2024b solver contracts 通过。DOCX submission 仍因缺少受支持的渲染证明而失败关闭，机器门的 `human_semantic_coverage` 仍为 `not_assessed`，C1 未创建。
+
+| 原计划场景 | B2c 已核验的机器行为与边界 |
+|---|---|
+| B01 | 同一 accepted 指标在摘要与正文冲突时定位到 claim/fragment；DOCX 正文与图注中的冲突数字不能借 Figure 引用豁免 |
+| B09、B10 | 单次启发式“全局最优”、缺少必要分析的广泛稳健断言进入 wording gate 的拒绝/复核路径，LaTeX 与 DOCX 均有反例 |
+| B11 | accepted workbook 字节改变即使选定数值未变也撤销原 artifact qualification，不重用旧 Figure 来源证明 |
+| B12 | 辅助措辞否证只影响有依赖的片段；核心答案或模型有效性否证沿既有 State Transition Authority 返回相应阶段 |
+| B16 | 已登记的关键正文消费缺失形成 `required_coverage=gap` 并阻断正式门；Figure ID、绘图脚本、accepted 来源、当前批准图片、caption 和正文引用构成可重放机器链。未登记的语义遗漏、图像是否充分表达结论、整段图注语义与人类语义覆盖仍为 `not_assessed` |
+
+| 选定载体或边界 | 直接正反例证据 |
+|---|---|
+| 模块化 LaTeX | `test_static_modular_latex_is_a_real_selected_carrier_pass` 与 `test_b01_b09_b10_b11_b12_b16_acceptance_matrix`；登记消费及 Figure 绑定缺失的旧正式门反例继续执行 |
+| 单文件 LaTeX | `test_static_single_file_latex_is_in_scope` 与 `test_single_file_latex_omitted_required_body_claim_fails_closed`；正文必需主张遗漏时 `required_coverage=gap`，不能凭 Figure 存在通过 |
+| DOCX | `test_docx_body_caption_bookmark_reference_and_media_bytes_pass`、`test_docx_omitted_required_body_claim_fails_closed`、`test_docx_caption_and_body_numeric_conflicts_fail_closed`、`test_docx_b09_b10_strong_wording_fails_closed`；DOCX claim gate 可通过，但无受支持渲染证明时 submission 失败关闭 |
+| 不可判定结构 | `test_dynamic_include_and_macro_generated_caption_fail_closed`、`test_project_local_macro_generated_claim_fails_but_unrelated_macro_continues` 与 `test_docx_tracked_changes_fields_and_external_relationship_fail_closed`；更细的 OOXML ZIP、关系和 DrawingML 反例见 `tests/test_b2c_docx_scanner.py` |
+| 共享消费与状态链 | B11 的 workbook 整体资格、B12 的辅助/核心/模型否证由同一 B1 和 State Transition 检查，不因载体换成 DOCX 或单文件 TeX 而另设规则；专项正反例见 `tests/test_b2c_total_acceptance.py` 与 `tests/test_b2c_runtime_integration.py` |
+
+这些方法位于 `tests/test_b2c_total_acceptance.py`，另有 `tests/test_b2c_runtime_integration.py` 对选定 LaTeX 入口执行 XeLaTeX、v2/v5 证明与提交包重放；旧 B2b5/B2b6 连续状态回归随完整 CI 执行。矩阵区分各载体直接测试和共享合同继承，不声称每个 B 场景在每个载体上独立重测，也不代表对任一用户论文完成审美或数学语义审查。
