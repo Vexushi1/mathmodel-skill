@@ -124,7 +124,7 @@ def validate_package(
     framework = state.get('paper_framework') if isinstance(state, Mapping) else None
     policy = framework.get('claim_consumption_policy') if isinstance(framework, Mapping) else None
     figure_policy = isinstance(policy, Mapping) and (
-        policy.get('protocol_version') == '1.3.0'
+        policy.get('protocol_version') in {'1.3.0', '1.4.0'}
         or policy.get('mode') == 'enforce_latex_text_and_figure_chain'
     )
     claim_gate = formal_figure_gate(root) if figure_policy else formal_text_gate(root)

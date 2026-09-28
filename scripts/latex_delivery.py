@@ -674,7 +674,7 @@ def _v5_policy_declared(main: Path) -> bool:
         return False
     if not isinstance(policy, Mapping):
         raise ValueError("claim_consumption_policy is malformed; cannot select LaTeX proof version")
-    return (policy.get("protocol_version") == "1.3.0" or
+    return (policy.get("protocol_version") in {"1.3.0", "1.4.0"} or
             policy.get("mode") == "enforce_latex_text_and_figure_chain")
 
 
@@ -684,7 +684,8 @@ def _v5_live_figure_options(main: Path, report: Mapping[str, Any] | None = None)
 
     project_root = main.resolve().parent.parent
     gate = formal_figure_gate(project_root, tex_main=main)
-    if (gate.get("status") != "passed" or gate.get("policy_protocol_version") != "1.3.0"
+    if (gate.get("status") != "passed"
+            or gate.get("policy_protocol_version") not in {"1.3.0", "1.4.0"}
             or gate.get("mode") != "enforce_latex_text_and_figure_chain"):
         detail = "; ".join(str(x) for x in gate.get("issues", [])[:8])
         raise ValueError("当前 B2 正式 Figure 门未通过" + (": " + detail if detail else ""))

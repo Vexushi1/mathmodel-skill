@@ -440,12 +440,12 @@ class ContractAndDriftTests(unittest.TestCase):
         # P0-A intentionally aligns the title handoff with the existing output Authority;
         # test_schemas covers the new declaration and unchanged caption ownership.
         "core/workbook_schema.yaml": "e0479f5e74063151a515d11e140b7c4e8b8db077",
-        # B2b4 adds only the explicit 1.3 Figure-chain pair and its required bindings;
+        # B2b6 adds the explicit 1.4 structured-rejection pair and return fields;
         # exact predecessor policy shapes remain covered by their schema tests.
-        "core/project_state.schema.yaml": "0b130fd82db9a14730bc8919fe97a1d191379f92",
-        "core/writing_reasoning_contract.yaml": "67a22f6e882a9cb79bc6edccd033731558a81f13",
+        "core/project_state.schema.yaml": "5e3f2efa436b1f21230f5e29176ba6b95c95082a",
+        "core/writing_reasoning_contract.yaml": "0aa43500483291e832a1d4c302a6451252d272a5",
         "modules/03_solve_validate.md": "cfbe8091f0434b8531ec97cbccde013895e18228",
-        "modules/03_result_analysis.md": "dc184e94d4fbce579e25f8e82362d0ef7b3ff72a",
+        "modules/03_result_analysis.md": "b446f0dfa0877a0d3f2ff344e1561f2a098f23c8",
         "modules/05_writing/paper_writing_protocol.md": "ea10da96f20bf11bfcf2b7f7465fb5162ae5efdf",
         "modules/05_writing/ai_cleanup.md": "3e6249d17a0a91091bf7c61c49aeb9245ccc41e1",
         "modules/06_review_delivery.md": "94c2096c6f0873a96df57cb16c5c2f2deee5d411",
@@ -453,7 +453,7 @@ class ContractAndDriftTests(unittest.TestCase):
         "scripts/validate_semantic_governance.py": "1b48c4e5935c960f28bef89af86ce89a3c6f105f",
         # A5 requires current per-question files and exact official allowlist entries.
         # B2b4 additionally replays the opt-in Figure gate and v5 image inputs here.
-        "scripts/validate_submission_package.py": "27ea37b303e5ae1a65f70ed916cefa2800fd51fc",
+        "scripts/validate_submission_package.py": "faab97493415f01b335627c65c395f68ee4ad023",
         # P0-B replaces silent filtering/fixed ordering with explicit evidence-preserving reads.
         # v10.0.1 removes unsupported ColorBar.FontUnits in the standalone fallback;
         # MATLAB syntax is parsed separately; source checks do not claim runtime execution.

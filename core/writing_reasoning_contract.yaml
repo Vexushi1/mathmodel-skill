@@ -1,4 +1,4 @@
-schema_version: 1.8.0
+schema_version: 1.9.0
 role: >-
   跨数学建模竞赛的正文推理与证据治理权威。约束核心公式的来源—推导—去向、共享基础模型、
   跨问递进、结构化简、模型/求解器/验证器角色、优化模型表达、模型建立理由与适用边界、
@@ -1357,6 +1357,18 @@ analysis_evidence_disposition:
     - reject_auxiliary_style_or_strength_claim -> remove_or_rewrite_claim_without_forcing_full_resolve
     - modify -> mark_dependent_paper_fragments_stale_until_updated
     - support -> keep_target_current_only_if_upstream_model_and_result_are_current
+  structured_rejection_protocol:
+    activation: paper_framework.claim_consumption_policy == 1.4.0/enforce_latex_text_and_figure_chain
+    current_modify_or_reject_requires: [impact_scope]
+    impact_scopes: [auxiliary_wording, core_answer, model_validity]
+    return_stage:
+      auxiliary_wording: forbidden
+      core_answer_reject: solve_validate
+      model_validity_reject: model_design
+      modify: forbidden
+    precedence: model_design_wins_over_solve_validate
+    writer: existing_project_sync_transaction_only
+    prohibitions: [infer_impact_from_free_text, rerun_task_code, renew_model_approval, clear_existing_stale]
   rule: >-
     深化分析不是“做过就算验证”。每项敏感性、鲁棒性、外样本、算法一致性或压力测试都必须说明它支持、修正还是否决哪个具体主张。
 

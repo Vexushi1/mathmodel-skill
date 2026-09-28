@@ -5,9 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 from pathlib import Path
+import re
 from typing import Any, Iterable
 
 import yaml
+from jsonschema import Draft202012Validator
 
 from semantic_identity import (
     SEMANTIC_IDENTITY_SCHEMA_VERSION,
@@ -19,6 +21,7 @@ from semantic_identity import (
 import artifact_identity as ARTIFACT_IDENTITY
 import analysis_prerequisites as ANALYSIS_PREREQUISITES
 import stage_code as STAGE_CODE
+import state_transitions as STATE_TRANSITIONS
 from project_transaction import JOURNAL_RELATIVE_PATH, STATE_RELATIVE_PATH, ProjectTransactionError, state_generation
 
 FRAMEWORK_RELATIVE_PATH = "模型论文框架.md"
@@ -41,10 +44,319 @@ STRUCTURED_IDENTITY_FIELDS = {
     "approved_semantic_identity_hash",
     "semantic_text_hash",
 }
+STRUCTURED_REJECTION_POLICY = ("1.4.0", "enforce_latex_text_and_figure_chain")
+LEGACY_CLAIM_CONSUMPTION_POLICIES = {
+    ("1.0.0", "observe"),
+    ("1.1.0", "propagate"),
+    ("1.2.0", "enforce_latex_text"),
+    ("1.3.0", "enforce_latex_text_and_figure_chain"),
+}
+STRUCTURED_DISPOSITION_FIELDS = {
+    "id", "method_or_source", "target_claim", "disposition", "impact_scope",
+    "return_stage", "key_finding", "required_action", "paper_or_figure_anchor", "status",
+}
 
 
 def _unique(items: Iterable[str | None]) -> list[str]:
     return list(dict.fromkeys(str(item) for item in items if item and str(item).strip()))
+
+
+def _structured_disposition_issue(row: dict[str, Any]) -> str | None:
+    """Validate the runtime-relevant exact-1.4 shape for current modify/reject rows."""
+    required = {
+        "id", "method_or_source", "target_claim", "disposition",
+        "impact_scope", "key_finding", "required_action",
+    }
+    missing = sorted(required - set(row))
+    unknown = sorted(repr(key) for key in set(row) - STRUCTURED_DISPOSITION_FIELDS)
+    if missing:
+        return f"missing required fields {missing}"
+    if unknown:
+        return f"unknown fields {unknown}"
+    identifier = row.get("id")
+    if not isinstance(identifier, str) or re.fullmatch(r"E[1-9][0-9]*", identifier) is None:
+        return "id must match E1, E2, ..."
+    for field in ("method_or_source", "target_claim", "key_finding", "required_action"):
+        value = row.get(field)
+        if not isinstance(value, str) or not value.strip():
+            return f"{field} must be a non-empty string"
+    anchor = row.get("paper_or_figure_anchor")
+    if "paper_or_figure_anchor" in row and not isinstance(anchor, str):
+        return "paper_or_figure_anchor must be a string"
+    scope = row.get("impact_scope")
+    if (not isinstance(scope, str)
+            or scope not in {"auxiliary_wording", "core_answer", "model_validity"}):
+        return "impact_scope is invalid"
+    disposition = row.get("disposition")
+    if disposition == "modify":
+        return "modify must not declare return_stage" if "return_stage" in row else None
+    expected = {
+        "auxiliary_wording": None,
+        "core_answer": "solve_validate",
+        "model_validity": "model_design",
+    }[scope]
+    if expected is None:
+        return "auxiliary_wording reject must omit return_stage" if "return_stage" in row else None
+    if row.get("return_stage") != expected:
+        return f"{scope} reject requires return_stage={expected}"
+    return None
+
+
+def _exact_structured_policy_issues(policy: dict[str, Any]) -> list[str]:
+    schema_path = Path(__file__).resolve().parent.parent / "core" / "project_state.schema.yaml"
+    try:
+        schema = yaml.safe_load(schema_path.read_text(encoding="utf-8")) or {}
+        validator = Draft202012Validator({
+            "$ref": "#/$defs/claim_consumption_policy", "$defs": schema["$defs"],
+        })
+    except (OSError, yaml.YAMLError, KeyError, TypeError) as exc:
+        return [f"claim-consumption policy schema is unavailable: {exc}"]
+    issues: list[str] = []
+    for error in sorted(
+        validator.iter_errors(policy),
+        key=lambda item: tuple(str(part) for part in item.absolute_path),
+    ):
+        location = ".".join(str(item) for item in error.absolute_path) or "<root>"
+        issues.append(f"{location}: {error.message}")
+    return issues
+
+
+def _dependency_shape_issue(subproblems: Any) -> str | None:
+    """Reject dependency shapes the compatibility parser would otherwise skip."""
+    if not isinstance(subproblems, dict):
+        return "subproblems must be a mapping"
+    for question, entry in subproblems.items():
+        if not isinstance(entry, dict) or "depends_on" not in entry:
+            continue
+        dependencies = entry.get("depends_on")
+        if not isinstance(dependencies, list):
+            return f"{question}.depends_on must be a list"
+        for index, dependency in enumerate(dependencies):
+            if isinstance(dependency, str):
+                if re.fullmatch(r"Q[1-9][0-9]*", dependency) is None:
+                    return f"{question}.depends_on[{index}] must name Q1, Q2, ..."
+                continue
+            if not isinstance(dependency, dict):
+                return f"{question}.depends_on[{index}] must be a string or mapping"
+            unknown = sorted(repr(key) for key in set(dependency) - {"question", "kind", "note"})
+            if unknown:
+                return f"{question}.depends_on[{index}] has unknown fields {unknown}"
+            source = dependency.get("question")
+            if (not isinstance(source, str)
+                    or re.fullmatch(r"Q[1-9][0-9]*", source) is None):
+                return f"{question}.depends_on[{index}].question must match Q1, Q2, ..."
+            if "kind" in dependency and not isinstance(dependency.get("kind"), str):
+                return f"{question}.depends_on[{index}].kind must be a string"
+            if "note" in dependency and not isinstance(dependency.get("note"), str):
+                return f"{question}.depends_on[{index}].note must be a string"
+    return None
+
+
+def _current_structured_rejections(
+    state: dict[str, Any], questions: Iterable[str],
+) -> dict[str, dict[str, Any]]:
+    """Return fail-closed runtime effects for exact B2 1.4 current rejections."""
+    framework = state.get("paper_framework")
+    policy_present = isinstance(framework, dict) and "claim_consumption_policy" in framework
+    policy = framework.get("claim_consumption_policy") if policy_present else None
+    pair = (
+        (policy.get("protocol_version"), policy.get("mode"))
+        if isinstance(policy, dict) else None
+    )
+    active = pair == STRUCTURED_REJECTION_POLICY
+    policy_error = None
+    if "paper_framework" in state and not isinstance(framework, dict):
+        policy_error = "paper_framework is malformed"
+    elif policy_present and not isinstance(policy, dict):
+        policy_error = "paper_framework.claim_consumption_policy is malformed"
+    elif policy_present and pair not in (*LEGACY_CLAIM_CONSUMPTION_POLICIES, STRUCTURED_REJECTION_POLICY):
+        policy_error = f"claim-consumption policy pair is unsupported or incomplete: {pair!r}"
+    elif active:
+        policy_issues = _exact_structured_policy_issues(policy)
+        if policy_issues:
+            policy_error = "exact B2 1.4 claim-consumption policy is malformed: " + "; ".join(policy_issues)
+    requested = [str(question) for question in questions]
+    results: dict[str, dict[str, Any]] = {}
+    subproblems = state.get("subproblems", {})
+    contract_path = Path(__file__).resolve().parent.parent / "core" / "state_transition_contract.yaml"
+    contract = yaml.safe_load(contract_path.read_text(encoding="utf-8")) or {}
+    events = contract.get("transition_events", {}) or {}
+    rules = contract.get("dependency_rules", {}) or {}
+    profiles = contract.get("profiles", {}) or {}
+    known_questions = set(requested)
+    if isinstance(subproblems, dict):
+        known_questions.update(str(question) for question in subproblems)
+
+    def result_for(question: str) -> dict[str, Any]:
+        return results.setdefault(question, {
+            "blocks_primary": False,
+            "blocks_model": False,
+            "primary_reasons": [],
+            "model_reasons": [],
+            "conflicts": [],
+        })
+
+    for question in sorted(known_questions):
+        result_for(question)
+
+    signals: list[tuple[str, str]] = []
+
+    def emit_event(question: str, event: str) -> None:
+        spec = events.get(event, {}) if isinstance(events, dict) else {}
+        emitted = {str(item) for item in spec.get("emitted_impacts", []) or []}
+        signals.extend((question, signal) for signal in sorted({"*", *emitted}))
+
+    def block_invalid(question: str, reason: str) -> None:
+        result = result_for(question)
+        result["blocks_primary"] = True
+        result["blocks_model"] = True
+        result["primary_reasons"].append(reason)
+        result["model_reasons"].append(reason)
+        result["conflicts"].append(reason)
+        signals.extend((question, signal) for signal in ("*", "data", "model", "parameter", "result"))
+
+    if policy_error:
+        for question in sorted(known_questions):
+            block_invalid(question, f"{policy_error}; runtime qualification is blocked")
+        return results
+    if not active:
+        return results
+
+    for question in sorted(known_questions):
+        result = result_for(question)
+        item = subproblems.get(question, {}) if isinstance(subproblems, dict) else {}
+        if not isinstance(item, dict):
+            block_invalid(question, f"{question} is malformed under B2 1.4")
+            continue
+        rows = item.get("analysis_evidence_dispositions", []) if isinstance(item, dict) else []
+        if not isinstance(rows, list):
+            block_invalid(
+                question, f"{question}.analysis_evidence_dispositions is malformed under B2 1.4",
+            )
+            continue
+        current_ids = [
+            row.get("id") for row in rows
+            if isinstance(row, dict) and row.get("status", "current") == "current"
+            and isinstance(row.get("disposition"), str)
+            and row.get("disposition") in {"modify", "reject"}
+            and isinstance(row.get("id"), str)
+        ]
+        duplicate_ids = sorted({identifier for identifier in current_ids if current_ids.count(identifier) > 1})
+        if duplicate_ids:
+            block_invalid(
+                question,
+                f"{question}.analysis_evidence_dispositions has duplicate current B2 1.4 IDs: {duplicate_ids}",
+            )
+            continue
+        for index, row in enumerate(rows):
+            if not isinstance(row, dict):
+                block_invalid(
+                    question,
+                    f"{question}.analysis_evidence_dispositions[{index}] is malformed under B2 1.4",
+                )
+                continue
+            status = row.get("status", "current")
+            if not isinstance(status, str) or status not in {"current", "resolved", "stale"}:
+                block_invalid(
+                    question,
+                    f"{question}.analysis_evidence_dispositions[{index}].status is malformed under B2 1.4",
+                )
+                continue
+            if status != "current":
+                continue
+            disposition = row.get("disposition")
+            if not isinstance(disposition, str) or disposition not in {"support", "modify", "reject"}:
+                block_invalid(
+                    question,
+                    f"{question}.analysis_evidence_dispositions[{index}].disposition is malformed under B2 1.4",
+                )
+                continue
+            if disposition not in {"modify", "reject"}:
+                continue
+            shape_issue = _structured_disposition_issue(row)
+            evidence_id = str(row.get("id") or f"index {index}")
+            if shape_issue:
+                block_invalid(
+                    question,
+                    f"{question}.{evidence_id} is a malformed current B2 1.4 {disposition}: {shape_issue}",
+                )
+                continue
+            if disposition == "modify":
+                continue
+            scope = row.get("impact_scope")
+            if scope == "core_answer":
+                result["blocks_primary"] = True
+                result["primary_reasons"].append(
+                    f"{question}.{evidence_id} is a current B2 1.4 core-answer rejection"
+                )
+                emit_event(question, "core_answer_rejected")
+            elif scope == "model_validity":
+                reason = f"{question}.{evidence_id} is a current B2 1.4 model-validity rejection"
+                result["blocks_primary"] = True
+                result["blocks_model"] = True
+                result["primary_reasons"].append(reason)
+                result["model_reasons"].append(reason)
+                emit_event(question, "model_validity_rejected")
+    by_source: dict[str, list[dict[str, Any]]] = {}
+    dependency_issue = _dependency_shape_issue(subproblems)
+    if dependency_issue:
+        reason = f"project dependency declarations are malformed under B2 1.4: {dependency_issue}"
+        for question in sorted(known_questions):
+            block_invalid(question, reason)
+        return results
+    try:
+        dependency_rows = STATE_TRANSITIONS.dependency_edges(subproblems)
+    except (TypeError, ValueError) as exc:
+        reason = f"project dependency declarations are malformed under B2 1.4: {exc}"
+        for question in sorted(known_questions):
+            block_invalid(question, reason)
+        return results
+    for edge in dependency_rows:
+        by_source.setdefault(str(edge["source"]), []).append(edge)
+    visited: set[tuple[str, str]] = set()
+    applied_edges: set[tuple[str, str, str]] = set()
+    cursor = 0
+    while cursor < len(signals):
+        source, signal = signals[cursor]
+        cursor += 1
+        if (source, signal) in visited:
+            continue
+        visited.add((source, signal))
+        for edge in by_source.get(source, []):
+            kind = str(edge["kind"])
+            rule = rules.get(kind, {}) if isinstance(rules, dict) else {}
+            triggers = set(rule.get("trigger_impacts", []) or []) if isinstance(rule, dict) else set()
+            if not (signal == "*" if "*" in triggers else signal in triggers):
+                continue
+            edge_key = (source, str(edge["target"]), kind)
+            if edge_key in applied_edges:
+                continue
+            applied_edges.add(edge_key)
+            target = str(edge["target"])
+            profile_name = str(rule.get("target_profile", ""))
+            profile = profiles.get(profile_name, {}) if isinstance(profiles, dict) else {}
+            target_result = result_for(target)
+            stale_layers = set(profile.get("stale_layers", []) or []) if isinstance(profile, dict) else set()
+            updates = {
+                **(profile.get("set", {}) or {}),
+                **(profile.get("set_if_present", {}) or {}),
+            } if isinstance(profile, dict) else {}
+            reason = f"{target} depends on rejected {source} through {kind}"
+            if ("solution_workbook" in stale_layers
+                    or updates.get("result_quality_status") not in {None, "passed"}
+                    or "primary_execution_status" in updates):
+                target_result["blocks_primary"] = True
+                if reason not in target_result["primary_reasons"]:
+                    target_result["primary_reasons"].append(reason)
+            if any(field in updates for field in (
+                "human_model_approval_status", "model_challenge_status", "semantic_closure_status",
+            )):
+                target_result["blocks_model"] = True
+                if reason not in target_result["model_reasons"]:
+                    target_result["model_reasons"].append(reason)
+            emitted = {str(item) for item in rule.get("emitted_impacts", []) or []}
+            signals.extend((target, next_signal) for next_signal in sorted({"*", *emitted}))
+    return results
 
 
 class ProjectStateReadError(ValueError):
@@ -218,7 +530,9 @@ def resolve_intent_assurance(
 
 
 def _scope_questions(state: dict[str, Any], question: str | None) -> tuple[list[str], list[str]]:
-    subproblems = state.get("subproblems", {}) or {}
+    subproblems = state.get("subproblems", {})
+    if not isinstance(subproblems, dict):
+        return [], ["project state subproblems must be a mapping"]
     if question:
         if question not in subproblems:
             return [], [f"question {question} is not present in project state"]
@@ -231,29 +545,49 @@ def _classification_for_scope(
 ) -> tuple[dict[str, Any], list[str]]:
     if not questions:
         return {}, []
-    subproblems = state.get("subproblems", {}) or {}
+    subproblems = state.get("subproblems", {})
+    if not isinstance(subproblems, dict):
+        return {}, ["project state subproblems must be a mapping"]
     rows: list[tuple[str | None, tuple[str, ...], tuple[str, ...]]] = []
+    ambiguities: list[str] = []
     for question in questions:
-        item = subproblems.get(question, {}) or {}
+        item = subproblems.get(question, {})
+        if not isinstance(item, dict):
+            ambiguities.append(f"subproblem {question} must be a mapping")
+            continue
         classification = item.get("classification", {}) or {}
+        if not isinstance(classification, dict):
+            ambiguities.append(f"subproblem {question} classification must be a mapping")
+            continue
         objective = classification.get("objective")
-        structures = tuple(sorted(set(classification.get("structures", []) or [])))
+        raw_structures = classification.get("structures", []) or []
+        if (not isinstance(raw_structures, list)
+                or not all(isinstance(structure, str) for structure in raw_structures)):
+            ambiguities.append(
+                f"subproblem {question} classification.structures must be a string list"
+            )
+            continue
+        structures = tuple(sorted(set(raw_structures)))
         capabilities = item.get("capabilities", {}) or classification.get("capabilities", {}) or {}
+        if not isinstance(capabilities, dict):
+            ambiguities.append(f"subproblem {question} capabilities must be a mapping")
+            continue
         enabled = tuple(sorted(str(name) for name, value in capabilities.items() if value is True))
         if objective or structures or enabled:
             rows.append((str(objective) if objective else None, structures, enabled))
     if not rows:
-        return {}, []
+        return {}, ambiguities
     if len(set(rows)) != 1:
-        return {}, [
+        ambiguities.append(
             "scoped subproblems do not share one objective/structures/capabilities classification"
-        ]
+        )
+        return {}, ambiguities
     objective, structures, capabilities = rows[0]
     return {
         "objective": objective,
         "structures": list(structures),
         "capabilities": list(capabilities),
-    }, []
+    }, ambiguities
 
 
 def _framework_semantic_evidence(
@@ -520,23 +854,45 @@ def hydrate_project_context(
     questions, ambiguities = _scope_questions(state, question)
     classification, classification_ambiguities = _classification_for_scope(state, questions)
     ambiguities.extend(classification_ambiguities)
+    structured_rejections = _current_structured_rejections(state, questions)
     project = state.get("project", {}) or {}
     preprocessing = state.get("preprocessing", {}) or {}
     evidence: list[dict[str, Any]] = []
     verified: set[str] = set()
     conflicts: list[str] = list(backend_policy["issues"])
+    conflicts.extend(
+        issue
+        for scoped in structured_rejections.values()
+        for issue in scoped.get("conflicts", [])
+    )
 
     framework_path = root / FRAMEWORK_RELATIVE_PATH
     semantic_evidence, framework_error = _framework_semantic_evidence(framework_path)
+    subproblems = state.get("subproblems", {})
+    scoped_items = {
+        q: (
+            subproblems.get(q, {})
+            if isinstance(subproblems, dict) and isinstance(subproblems.get(q, {}), dict)
+            else {}
+        )
+        for q in questions
+    }
     semantic_rows = [
         _semantic_lock_evidence(
             q,
-            (state.get("subproblems", {}) or {}).get(q, {}) or {},
+            scoped_items[q],
             current_semantics=semantic_evidence.get(q),
             framework_error=framework_error,
         )
         for q in questions
     ]
+    for question, row in zip(questions, semantic_rows):
+        rejection = structured_rejections.get(str(question), {})
+        if rejection.get("blocks_model"):
+            prior_reason = str(row.get("reason") or "").strip()
+            rejection_reason = "; ".join(rejection.get("model_reasons", []) or [])
+            row["status"] = "not_accepted"
+            row["reason"] = "; ".join(item for item in (prior_reason, rejection_reason) if item)
     evidence.extend(semantic_rows)
     if semantic_rows and all(item["status"] == "verified" for item in semantic_rows):
         verified.add("locked_model_spec")
@@ -564,9 +920,8 @@ def hydrate_project_context(
     analysis_rows: list[dict[str, Any]] = []
     analysis_skip_rows: list[dict[str, Any]] = []
     analysis_complete: list[bool] = []
-    subproblems = state.get("subproblems", {}) or {}
     for q in questions:
-        item = subproblems.get(q, {}) or {}
+        item = scoped_items[q]
         selections = item.get("solver_execution", {})
         if not isinstance(selections, dict):
             selections = {}
@@ -575,9 +930,12 @@ def hydrate_project_context(
         primary_issues = ANALYSIS_PREREQUISITES.primary_issues(
             root, state, item, require_project_policy=True,
         )
+        rejection = structured_rejections.get(str(q), {})
+        primary_issues.extend(rejection.get("primary_reasons", []) or [])
         primary_ok = (
             item.get("primary_execution_status") == "accepted"
             and item.get("result_quality_status") == "passed"
+            and not rejection.get("blocks_primary")
         )
         primary_row = _file_evidence(
             root,

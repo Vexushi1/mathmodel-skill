@@ -48,14 +48,19 @@ class ClaimConsumptionRouteTests(unittest.TestCase):
         self.assertIn("--tex-main final_latex/main.tex", gate["command"])
         self.assertNotIn("--write", gate["command"])
 
-    def test_enforced_text_resources_are_conditional_on_project_and_formal_scope(self):
+    def test_enforced_resources_are_conditional_on_exact_policy_and_formal_scope(self):
         example = yaml.safe_load((ROOT / "state/project_state.example.yaml").read_text(encoding="utf-8"))
         with tempfile.TemporaryDirectory() as temporary:
             project = Path(temporary)
             (project / "state").mkdir()
             state_path = project / "state/project_state.yaml"
-            for policy in (None, {"protocol_version": "1.0.0", "mode": "observe"},
-                           {"protocol_version": "1.2.0", "mode": "enforce_latex_text"}):
+            for policy in (
+                None,
+                {"protocol_version": "1.0.0", "mode": "observe"},
+                {"protocol_version": "1.2.0", "mode": "enforce_latex_text"},
+                {"protocol_version": "1.3.0", "mode": "enforce_latex_text_and_figure_chain"},
+                {"protocol_version": "1.4.0", "mode": "enforce_latex_text_and_figure_chain"},
+            ):
                 state = yaml.safe_load(yaml.safe_dump(example, allow_unicode=True))
                 if policy is not None:
                     state["paper_framework"]["claim_consumption_policy"] = policy
@@ -64,13 +69,27 @@ class ClaimConsumptionRouteTests(unittest.TestCase):
                 gates = [gate["name"] for gate in plan["pre_delivery_gates"]]
                 self.assertIn("project_sync", gates)
                 self.assertNotIn("claim_consumption", gates)
-                enabled = policy is not None and policy["mode"] == "enforce_latex_text"
+                pair = ((policy or {}).get("protocol_version"), (policy or {}).get("mode"))
+                enabled = pair in {
+                    ("1.2.0", "enforce_latex_text"),
+                    ("1.3.0", "enforce_latex_text_and_figure_chain"),
+                    ("1.4.0", "enforce_latex_text_and_figure_chain"),
+                }
                 self.assertEqual("claim_consumption_integration" in plan, enabled)
                 self.assertEqual("core/claim_consumption_contract.yaml" in plan["load_order"], enabled)
                 self.assertEqual("scripts/claim_consumption.py" in plan["load_order"], enabled)
                 if enabled:
                     self.assertEqual(plan["claim_consumption_integration"]["human_semantic_coverage"],
                                      "not_assessed")
+                    figure_policy = pair[0] in {"1.3.0", "1.4.0"}
+                    if figure_policy:
+                        self.assertIn("modules/04_figure_evidence.md", plan["load_order"])
+                        self.assertIn("scripts/latex_delivery.py", plan["load_order"])
+                    self.assertEqual(
+                        plan["claim_consumption_integration"]["scope"],
+                        ("declared_static_modular_latex_text_and_figure_chain"
+                         if figure_policy else "declared_static_modular_latex_text_only"),
+                    )
                     figures = resolve_runtime("figures", project_root=project)
                     self.assertNotIn("claim_consumption_integration", figures)
 

@@ -374,7 +374,9 @@ def _validate_figure_bindings(
             issues.append(f"{prefix}.fragment_id references unknown paper fragment: {fragment_id}")
         elif fragment.get("kind") != "figure_or_table_claim":
             issues.append(f"{prefix}.fragment_id requires a figure_or_table_claim fragment: {fragment_id}")
-        elif fragment.get("status") != "current":
+        elif (fragment.get("status") != "current"
+              and not (policy.get("protocol_version") == "1.4.0"
+                       and fragment.get("status") == "stale")):
             issues.append(f"{prefix}.fragment_id requires a current fragment: {fragment_id}")
         else:
             refs = fragment.get("depends_on")
@@ -451,7 +453,8 @@ def _validate_claim_consumption_policy(framework: Mapping[str, Any]) -> list[str
         return ["paper_framework.claim_consumption_policy must be a mapping"]
     supported_policies = (("1.0.0", "observe"), ("1.1.0", "propagate"),
                           ("1.2.0", "enforce_latex_text"),
-                          ("1.3.0", "enforce_latex_text_and_figure_chain"))
+                          ("1.3.0", "enforce_latex_text_and_figure_chain"),
+                          ("1.4.0", "enforce_latex_text_and_figure_chain"))
     if (policy.get("protocol_version"), policy.get("mode")) not in supported_policies:
         return ["paper_framework.claim_consumption_policy requires a supported protocol_version/mode pair"]
     record = framework.get("claim_evidence")
@@ -463,7 +466,10 @@ def _validate_claim_consumption_policy(framework: Mapping[str, Any]) -> list[str
     if not isinstance(claims, list) or not isinstance(obligations, list) or not isinstance(fragments, list):
         return ["paper_framework.claim_consumption_policy requires claim and paper fragment arrays"]
     issues: list[str] = []
-    if policy.get("protocol_version") == "1.3.0":
+    if (policy.get("protocol_version"), policy.get("mode")) in {
+        ("1.3.0", "enforce_latex_text_and_figure_chain"),
+        ("1.4.0", "enforce_latex_text_and_figure_chain"),
+    }:
         bindings = policy.get("figure_bindings")
         if not isinstance(bindings, list) or not bindings:
             issues.append("formal Figure policy requires nonempty figure_bindings")
@@ -545,9 +551,13 @@ def _validate_claim_consumption_policy(framework: Mapping[str, Any]) -> list[str
     return issues
 
 
-def _validate_analysis_dispositions(name: str, state: Mapping[str, Any]) -> list[str]:
+def _validate_analysis_dispositions(
+    name: str, state: Mapping[str, Any], *, structured_rejection: bool = False,
+) -> list[str]:
     issues: list[str] = []
     entries = state.get("analysis_evidence_dispositions", []) or []
+    if not isinstance(entries, list):
+        return issues
     ids: list[str] = []
     for index, entry in enumerate(entries):
         if not isinstance(entry, Mapping):
@@ -557,9 +567,32 @@ def _validate_analysis_dispositions(name: str, state: Mapping[str, Any]) -> list
         ids.append(evidence_id)
         disposition = entry.get("disposition")
         action = str(entry.get("required_action", "")).strip()
-        if disposition in {"modify", "reject"} and not action:
+        current = entry.get("status", "current") == "current"
+        impact_scope = entry.get("impact_scope")
+        return_stage = entry.get("return_stage")
+        structured_action = (
+            isinstance(disposition, str) and disposition in {"modify", "reject"}
+        )
+        if structured_action and not action:
             issues.append(f"{name}.{evidence_id}.required_action is required for {disposition}")
-        if disposition == "reject" and state.get("result_analysis_status") == "passed":
+        if structured_rejection and current and structured_action and not impact_scope:
+            issues.append(
+                f"{name}.{evidence_id}.impact_scope is required by B2 policy 1.4.0 for current {disposition}"
+            )
+        if (structured_rejection and current and disposition == "reject"
+                and isinstance(impact_scope, str)
+                and impact_scope in {"core_answer", "model_validity"}):
+            expected = "solve_validate" if impact_scope == "core_answer" else "model_design"
+            if return_stage != expected:
+                issues.append(
+                    f"{name}.{evidence_id}.return_stage must be {expected} for {impact_scope} rejection"
+                )
+            if state.get("result_analysis_status") != "redo_required":
+                issues.append(
+                    f"{name}.{evidence_id} rejects {impact_scope}; result_analysis_status must be redo_required"
+                )
+        elif (not structured_rejection and disposition == "reject"
+              and state.get("result_analysis_status") == "passed"):
             lowered = action.lower()
             if not any(marker in lowered or marker in action for marker in AUXILIARY_REJECT_ACTION_MARKERS):
                 issues.append(
@@ -568,6 +601,81 @@ def _validate_analysis_dispositions(name: str, state: Mapping[str, Any]) -> list
                 )
     if len(ids) != len(set(ids)):
         issues.append(f"{name}.analysis_evidence_dispositions must use unique IDs")
+    return issues
+
+
+def _current_structured_rejection_scopes(state: Mapping[str, Any]) -> set[str]:
+    scopes: set[str] = set()
+    entries = state.get("analysis_evidence_dispositions", []) or []
+    if not isinstance(entries, list):
+        return scopes
+    for entry in entries:
+        if (isinstance(entry, Mapping)
+                and entry.get("status", "current") == "current"
+                and entry.get("disposition") == "reject"):
+            scope = entry.get("impact_scope")
+            if isinstance(scope, str) and scope in {"core_answer", "model_validity"}:
+                scopes.add(str(scope))
+    return scopes
+
+
+def _validate_structured_rejection_profile(
+    name: str,
+    state: Mapping[str, Any],
+    *,
+    scopes: set[str],
+    contract: Mapping[str, Any],
+) -> list[str]:
+    """Require the complete Authority profile, not only a declared return stage."""
+    issues: list[str] = []
+    profiles = contract.get("profiles", {}) or {}
+    events = contract.get("transition_events", {}) or {}
+    rewind = contract.get("lifecycle_rewind", {}) or {}
+    status_order = rewind.get("status_order", []) if isinstance(rewind, Mapping) else []
+    scope_events = {
+        "core_answer": "core_answer_rejected",
+        "model_validity": "model_validity_rejected",
+    }
+    for scope in sorted(scopes):
+        event_name = scope_events[scope]
+        spec = events.get(event_name, {}) if isinstance(events, Mapping) else {}
+        profile_name = spec.get("own_profile") if isinstance(spec, Mapping) else None
+        profile = profiles.get(profile_name, {}) if isinstance(profiles, Mapping) else {}
+        label = f"{name} current {scope} rejection"
+        required_layers = set(profile.get("stale_layers", []) or []) if isinstance(profile, Mapping) else set()
+        raw_stale_layers = state.get("stale_layers", []) or []
+        stale_layers = (
+            {item for item in raw_stale_layers if isinstance(item, str)}
+            if isinstance(raw_stale_layers, list) else set()
+        )
+        missing_layers = sorted(required_layers - stale_layers)
+        if state.get("artifacts_stale") is not True:
+            issues.append(f"{label} requires artifacts_stale=true")
+        if missing_layers:
+            issues.append(f"{label} requires stale layers: {missing_layers}")
+        for field, expected in (profile.get("set", {}) or {}).items():
+            if state.get(field) != expected:
+                issues.append(f"{label} requires {field}={expected}")
+        for field, expected in (profile.get("set_if_present", {}) or {}).items():
+            if field in state and state.get(field) != expected:
+                issues.append(f"{label} requires present {field}={expected}")
+        for field in profile.get("clear", []) or []:
+            if field in state:
+                issues.append(f"{label} requires {field} to be cleared")
+        selections = state.get("solver_execution", {}) or {}
+        for stage, fields in (profile.get("invalidate_conformance", {}) or {}).items():
+            slot = selections.get(stage, {}) if isinstance(selections, Mapping) else {}
+            for field in fields or []:
+                binding = slot.get(field) if isinstance(slot, Mapping) else None
+                if isinstance(binding, Mapping) and binding.get("applicability") != "stale":
+                    issues.append(
+                        f"{label} requires solver_execution.{stage}.{field}.applicability=stale"
+                    )
+        cap = spec.get("own_status_cap") if isinstance(spec, Mapping) else None
+        status = state.get("status")
+        if cap in status_order and status in status_order:
+            if status_order.index(status) > status_order.index(cap):
+                issues.append(f"{label} requires status no later than {cap}")
     return issues
 
 
@@ -696,7 +804,15 @@ def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[s
     issues: list[str] = []
     current, validated, alias_issues = _normalized_hashes(state)
     issues.extend(f"{name}.{item}" for item in alias_issues)
-    raw_stale_layers = set(state.get("stale_layers", []) or [])
+    stale_value = state.get("stale_layers", []) or []
+    if isinstance(stale_value, list):
+        invalid_items = [repr(item) for item in stale_value if not isinstance(item, str)]
+        raw_stale_layers = {item for item in stale_value if isinstance(item, str)}
+        if invalid_items:
+            issues.append(f"{name}.stale_layers contains non-string items: {sorted(invalid_items)}")
+    else:
+        raw_stale_layers = set()
+        issues.append(f"{name}.stale_layers must be a list")
     invalid_layers = raw_stale_layers - ARTIFACT_LAYERS
     stale_layers = set(ARTIFACT_IDENTITY.normalize_stale_layers(raw_stale_layers))
     if invalid_layers:
@@ -748,6 +864,7 @@ def validate_state_payload(
     issues: list[str] = []
     schema = load_yaml(schema_path)
     taxonomy = load_yaml(taxonomy_path)
+    transition_contract = load_yaml(ROOT / "core/state_transition_contract.yaml")
     validator = Draft202012Validator(schema)
     for error in sorted(validator.iter_errors(payload), key=lambda item: list(item.path)):
         location = "/".join(str(part) for part in error.path) or "<root>"
@@ -812,6 +929,45 @@ def validate_state_payload(
     fragment_issues, has_stale_fragments = _validate_paper_fragments(framework)
     issues.extend(fragment_issues)
     issues.extend(_validate_claim_consumption_policy(framework))
+    policy = framework.get("claim_consumption_policy") or {}
+    structured_rejection = (
+        isinstance(policy, Mapping)
+        and (policy.get("protocol_version"), policy.get("mode"))
+        == ("1.4.0", "enforce_latex_text_and_figure_chain")
+    )
+    structured_scopes: dict[str, set[str]] = {}
+    structured_return_active = False
+    if structured_rejection:
+        structured_scopes = {
+            str(name): _current_structured_rejection_scopes(state)
+            for name, state in (payload.get("subproblems", {}) or {}).items()
+            if isinstance(state, Mapping)
+        }
+        all_scopes = set().union(*structured_scopes.values()) if structured_scopes else set()
+        structured_return_active = bool(all_scopes)
+        if all_scopes:
+            event_name = (
+                "model_validity_rejected" if "model_validity" in all_scopes
+                else "core_answer_rejected"
+            )
+            transition_events = transition_contract.get("transition_events", {}) or {}
+            event = transition_events.get(event_name, {}) if isinstance(transition_events, Mapping) else {}
+            preferred_phase = event.get("restart_phase") if isinstance(event, Mapping) else None
+            rewind = transition_contract.get("lifecycle_rewind", {}) or {}
+            phase_order = rewind.get("project_phase_order", []) if isinstance(rewind, Mapping) else []
+            allowed_phases = (
+                set(phase_order[:phase_order.index(preferred_phase) + 1])
+                if isinstance(phase_order, list) and preferred_phase in phase_order
+                else set()
+            )
+            if phase not in allowed_phases:
+                issues.append(
+                    f"structured rejection return requires project.current_phase in {sorted(allowed_phases)}"
+                )
+            gate = payload.get("next_gate", {}) or {}
+            gate_phase = phase if phase in allowed_phases else str(preferred_phase or event_name)
+            if not isinstance(gate, Mapping) or gate.get("module") != gate_phase:
+                issues.append(f"structured rejection return requires next_gate.module={gate_phase}")
 
     any_subproblem_stale = False
     for name, state in payload.get("subproblems", {}).items():
@@ -825,7 +981,14 @@ def validate_state_payload(
         analysis_status = state.get("result_analysis_status")
         issues.extend(_validate_classification_aliases(name, state, taxonomy))
         issues.extend(_validate_hashes(name, state, status))
-        issues.extend(_validate_analysis_dispositions(name, state))
+        issues.extend(_validate_analysis_dispositions(
+            name, state, structured_rejection=structured_rejection,
+        ))
+        if structured_rejection:
+            issues.extend(_validate_structured_rejection_profile(
+                name, state, scopes=structured_scopes.get(str(name), set()),
+                contract=transition_contract,
+            ))
         from conformance_gate import stored_issues
         issues.extend(stored_issues(state, str(name)))
         solver_execution = state.get("solver_execution") or {}
@@ -881,7 +1044,7 @@ def validate_state_payload(
         if analysis_status == "redo_required":
             if state.get("artifacts_stale") is not True:
                 issues.append(f"{name}.artifacts_stale must be true when result_analysis_status is redo_required")
-            if phase not in {"model_design", "solve_validate"}:
+            if not structured_return_active and phase not in {"model_design", "solve_validate"}:
                 issues.append(f"{name} redo_required must return project.current_phase to model_design or solve_validate")
         if state.get("artifacts_stale") is True:
             any_subproblem_stale = True

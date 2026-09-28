@@ -1,6 +1,13 @@
 # Changelog
 
-## 10.11.1
+## 10.12.0
+
+- Add opt-in B2 policy `1.4.0/enforce_latex_text_and_figure_chain` with structured `impact_scope` and `return_stage` fields. Auxiliary wording rejection retains local fragment invalidation; core-answer rejection returns to `solve_validate`; model-validity rejection returns to `model_design` and revokes current semantic/model approval evidence.
+- Apply rejection lifecycle rewind, exact fragment stale propagation, project phase/next-gate updates, and typed cross-question invalidation through the existing project transaction. Under exact policy 1.4.0, a failed analysis conclusion receipt uses a dedicated solve-return event; no task code is rerun and no approval is renewed.
+- Advance Project State Schema to 8.11.0, B2 contract to 1.7.0, State Transition contract to 1.5.0, Writing Reasoning Schema to 1.9.0, and Runtime Assurance to 2.3.0. Runtime hydration validates the exact 1.4.0 policy shape, consumes current rejection and typed dependency effects fail-closed before sync, and binds Project State Schema plus State Transition Authority into its fingerprint. Policy 1.4.0 inherits the existing Figure audit v2 and compile v5 proof route; policy 1.3.0 and older projects retain their previous behavior.
+- Keep DOCX, single-file or dynamic TeX, complex macro, human semantic/visual, and total B2 acceptance work pending. This version does not enter C1.
+
+## Previous release: 10.11.1
 
 - Add B12 continuous acceptance coverage for auxiliary-claim rejection, local fragment invalidation, retained primary qualification, and fresh LaTeX/Figure delivery proof after explicit review. Synthetic integration evidence and real compiler execution remain distinct.
 - Exclude the exact persistent project-transaction lock from reproducibility packages. Real synchronization leaves this coordination file behind; including it conflicted with the existing evidence read-set rules. Other same-named files and pending-journal rejection remain unchanged.
