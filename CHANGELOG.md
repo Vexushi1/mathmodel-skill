@@ -8,7 +8,7 @@
 - Extend explicit `docx` project sync to consume the same B2 machine chain. DOCX submission remains blocked without a supported rendered proof. Machine results keep `human_semantic_coverage=not_assessed` and never create a reviewer receipt or assert visual adequacy or whole-caption meaning.
 - Advance Project State Schema to 8.12.0, B2 contract to 1.8.0, State Transition to 1.6.0, Writing Reasoning to 1.10.0 and Runtime Assurance to 2.4.0. Policy 1.5.0 inherits the exact 1.4.0 structured rejection and stale propagation semantics; policies 1.0.0 through 1.4.0 retain their existing activation and proof behavior.
 
-## 10.12.0
+## Previous release: 10.12.0
 
 - Add opt-in B2 policy `1.4.0/enforce_latex_text_and_figure_chain` with structured `impact_scope` and `return_stage` fields. Auxiliary wording rejection retains local fragment invalidation; core-answer rejection returns to `solve_validate`; model-validity rejection returns to `model_design` and revokes current semantic/model approval evidence.
 - Apply rejection lifecycle rewind, exact fragment stale propagation, project phase/next-gate updates, and typed cross-question invalidation through the existing project transaction. Under exact policy 1.4.0, a failed analysis conclusion receipt uses a dedicated solve-return event; no task code is rerun and no approval is renewed.

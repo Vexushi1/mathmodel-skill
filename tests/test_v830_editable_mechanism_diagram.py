@@ -440,20 +440,21 @@ class ContractAndDriftTests(unittest.TestCase):
         # P0-A intentionally aligns the title handoff with the existing output Authority;
         # test_schemas covers the new declaration and unchanged caption ownership.
         "core/workbook_schema.yaml": "e0479f5e74063151a515d11e140b7c4e8b8db077",
-        # B2b6 adds the explicit 1.4 structured-rejection pair and return fields;
-        # exact predecessor policy shapes remain covered by their schema tests.
-        "core/project_state.schema.yaml": "5e3f2efa436b1f21230f5e29176ba6b95c95082a",
-        "core/writing_reasoning_contract.yaml": "0aa43500483291e832a1d4c302a6451252d272a5",
+        # B2c adds the explicit 1.5 selected-carrier pair and preserves the
+        # predecessor policy shapes under dedicated schema and runtime tests.
+        "core/project_state.schema.yaml": "ef691df58727edc29783f979c94bf9a43dc6b6e6",
+        "core/writing_reasoning_contract.yaml": "dadeebc2118f7b76f4aa355ebbe81ec4c1bb800c",
         "modules/03_solve_validate.md": "cfbe8091f0434b8531ec97cbccde013895e18228",
-        "modules/03_result_analysis.md": "b446f0dfa0877a0d3f2ff344e1561f2a098f23c8",
+        "modules/03_result_analysis.md": "94edc812f8a0a11c6c32c40fafae9559a56f9230",
         "modules/05_writing/paper_writing_protocol.md": "ea10da96f20bf11bfcf2b7f7465fb5162ae5efdf",
         "modules/05_writing/ai_cleanup.md": "3e6249d17a0a91091bf7c61c49aeb9245ccc41e1",
         "modules/06_review_delivery.md": "94c2096c6f0873a96df57cb16c5c2f2deee5d411",
         "config/competition_profiles.yaml": "0cfe08e2edac99f07f2e527643499b8bc73c0479",
         "scripts/validate_semantic_governance.py": "1b48c4e5935c960f28bef89af86ce89a3c6f105f",
         # A5 requires current per-question files and exact official allowlist entries.
-        # B2b4 additionally replays the opt-in Figure gate and v5 image inputs here.
-        "scripts/validate_submission_package.py": "faab97493415f01b335627c65c395f68ee4ad023",
+        # B2c additionally binds the selected LaTeX entrypoint and blocks
+        # DOCX submission until a supported rendered proof exists.
+        "scripts/validate_submission_package.py": "ce51e454a0a9fa2a8a45823a870115453bf988e9",
         # P0-B replaces silent filtering/fixed ordering with explicit evidence-preserving reads.
         # v10.0.1 removes unsupported ColorBar.FontUnits in the standalone fallback;
         # MATLAB syntax is parsed separately; source checks do not claim runtime execution.
