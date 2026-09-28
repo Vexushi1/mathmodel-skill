@@ -64,8 +64,19 @@ def expand_allowlist(root: Path, patterns: Iterable[str]) -> set[str]:
 
 def _current_compiled_pdf(root: Path, state: Mapping[str, Any]) -> Path:
     artifacts = state.get("artifacts") or {}
+    framework = state.get("paper_framework")
+    policy = framework.get("claim_consumption_policy") if isinstance(framework, Mapping) else None
+    pair = ((policy.get("protocol_version"), policy.get("mode"))
+            if isinstance(policy, Mapping) else None)
+    source = policy.get("paper_source") if isinstance(policy, Mapping) else None
+    if (pair == ("1.5.0", "enforce_selected_paper_claim_chain")
+            and isinstance(source, Mapping) and source.get("format") == "latex"
+            and isinstance(source.get("entrypoint"), str)):
+        return (root / source["entrypoint"]).with_suffix(".pdf")
     declared = artifacts.get("compiled_pdf")
-    return root / str(declared or "final_latex/main.pdf")
+    if declared:
+        return root / str(declared)
+    return root / "final_latex/main.pdf"
 
 
 def declared_package_path(root: Path, state: Mapping[str, Any]) -> Path:
@@ -123,12 +134,23 @@ def validate_package(
 
     framework = state.get('paper_framework') if isinstance(state, Mapping) else None
     policy = framework.get('claim_consumption_policy') if isinstance(framework, Mapping) else None
+    pair = ((policy.get('protocol_version'), policy.get('mode'))
+            if isinstance(policy, Mapping) else None)
+    selected_policy = pair == ('1.5.0', 'enforce_selected_paper_claim_chain')
+    paper_source = policy.get('paper_source') if isinstance(policy, Mapping) else None
+    carrier_format = (paper_source.get('format')
+                      if selected_policy and isinstance(paper_source, Mapping) else 'latex')
     figure_policy = isinstance(policy, Mapping) and (
         policy.get('protocol_version') in {'1.3.0', '1.4.0'}
         or policy.get('mode') == 'enforce_latex_text_and_figure_chain'
+        or (selected_policy and carrier_format == 'latex')
     )
-    claim_gate = formal_figure_gate(root) if figure_policy else formal_text_gate(root)
-    gate_label = 'Figure链' if figure_policy else '文本'
+    if selected_policy:
+        from claim_consumption import formal_paper_gate
+        claim_gate = formal_paper_gate(root)
+    else:
+        claim_gate = formal_figure_gate(root) if figure_policy else formal_text_gate(root)
+    gate_label = '选定论文链' if selected_policy else 'Figure链' if figure_policy else '文本'
     observed = claim_gate['observed_sources']
     project_read_set = dict(observed['project'])
     if project_read_set.get('state/project_state.yaml') != state_hash:
@@ -149,10 +171,18 @@ def validate_package(
 
     if claim_gate['status'] == 'failed':
         issues.append(f'B2正式{gate_label}门未通过: ' + '; '.join(claim_gate['issues'][:8]))
+    elif claim_gate['status'] == 'passed' and selected_policy and carrier_format == 'docx':
+        issues.append(
+            'B2 1.5.0选定DOCX载体缺少可验证的DOCX到正式PDF编译证明；submission失败关闭'
+        )
     elif claim_gate['status'] == 'passed':
         from latex_delivery import recorded_input_snapshot, source_bundle_snapshot, verify_compile_report
 
-        latex_root = root / 'final_latex'
+        if selected_policy:
+            latex_main = (root / str(paper_source['entrypoint'])).resolve()
+        else:
+            latex_main = (root / 'final_latex/main.tex').resolve()
+        latex_root = latex_main.parent
         snapshot_options = ({
             'project_root': root,
             'allowed_external_graphics': {
@@ -180,12 +210,12 @@ def validate_package(
                     if audit_path.resolve().is_relative_to(root):
                         project_read_set[audit_path.resolve().relative_to(root).as_posix()] = _sha256_stream(audit_path)
                 issues.extend(verify_compile_report(
-                    project=latex_root, main=latex_root / 'main.tex',
+                    project=latex_root, main=latex_main,
                     pdf=_current_compiled_pdf(root, state), report=compile_report,
                 ))
                 try:
-                    source_snapshot = source_bundle_snapshot(latex_root / 'main.tex', **snapshot_options)
-                    input_snapshot = recorded_input_snapshot(latex_root / 'main.tex', **snapshot_options)
+                    source_snapshot = source_bundle_snapshot(latex_main, **snapshot_options)
+                    input_snapshot = recorded_input_snapshot(latex_main, **snapshot_options)
                     if (source_snapshot['source_bundle_sha256'] != compile_report.get('source_bundle_sha256')
                             or input_snapshot['actual_input_files'] != compile_report.get('actual_input_files')):
                         issues.append('B2证明输入在提交包验证期间变化')
@@ -196,12 +226,14 @@ def validate_package(
                             if relative in project_read_set and project_read_set[relative] != raw_hash:
                                 issues.append(f'B2读集与编译证明输入冲突: {relative}')
                             project_read_set[relative] = raw_hash
-                    if source_bundle_snapshot(latex_root / 'main.tex', **snapshot_options) != source_snapshot:
+                    if source_bundle_snapshot(latex_main, **snapshot_options) != source_snapshot:
                         issues.append('B2 LaTeX source bundle在提交包验证期间变化')
                     recorder_path = latex_root / input_snapshot['recorder']
                     if recorder_path.is_file():
-                        project_read_set['final_latex/' + input_snapshot['recorder']] = _sha256_stream(recorder_path)
-                    log_path = latex_root / str(compile_report.get('log') or 'main.log')
+                        project_read_set[recorder_path.relative_to(root).as_posix()] = _sha256_stream(recorder_path)
+                    log_path = latex_root / str(
+                        compile_report.get('log') or latex_main.with_suffix('.log').name
+                    )
                     if log_path.is_file() and log_path.resolve().is_relative_to(root):
                         project_read_set[log_path.resolve().relative_to(root).as_posix()] = _sha256_stream(log_path)
                     if _sha256_stream(SKILL_ROOT / skill_profile) != profile_before:

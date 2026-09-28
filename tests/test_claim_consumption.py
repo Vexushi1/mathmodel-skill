@@ -396,8 +396,8 @@ class ClaimConsumptionIntegrationTests(unittest.TestCase):
         path = self.root / "final_latex/result.tex"
         original = audit.scan_static_latex
 
-        def drift(root, main):
-            observed = original(root, main)
+        def drift(root, main, **kwargs):
+            observed = original(root, main, **kwargs)
             path.write_bytes(path.read_bytes() + b"% concurrent edit\n")
             return observed
 

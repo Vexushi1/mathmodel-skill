@@ -1,4 +1,4 @@
-version: 2.3.0
+version: 2.4.0
 introduced_in_skill_version: 10.0.0
 skill_compatibility: '>=10.0.0,<11.0.0'
 purpose: >-
@@ -54,7 +54,7 @@ runtime_context:
   - Project-state hydration must never silently override a conflicting explicit argument; conflicts are reported in assurance.context.conflicts.
   - Hydration, analysis prerequisites, artifact assurance and reading plan use the same validated ProjectStateSnapshot bytes and generation; a changed snapshot requires complete replanning or a fail-closed result.
   - Multi-question classification is hydrated automatically only when the scoped questions agree; otherwise the resolver reports ambiguity and requires explicit classification for routes that need task packs.
-  - Exact claim-consumption policy 1.4.0 current modify/reject rows are shape-checked before project sync. Malformed rows fail closed; valid core-answer rejection revokes result qualification, model-validity rejection also revokes model lock, and State Transition Authority projects the same effect through typed or legacy dependencies.
+  - Exact claim-consumption policies 1.4.0 and 1.5.0 shape-check current modify/reject rows before project sync. Malformed rows fail closed; valid core-answer rejection revokes result qualification, model-validity rejection also revokes model lock, and State Transition Authority projects the same effect through typed or legacy dependencies.
 
   state_read_consistency:
     implementation: scripts/runtime_assurance.py:ProjectStateSnapshot
@@ -113,7 +113,7 @@ artifact_assurance:
       - declared current/approved/validated semantic revisions are positive integers, never booleans, floats or strings
       - current 模型论文框架.md exists
       - current question semantic scope exists in 模型论文框架.md
-      - no exact policy 1.4.0 current model-validity rejection applies directly or through State Transition Authority dependency propagation
+      - no exact policy 1.4.0 or 1.5.0 current model-validity rejection applies directly or through State Transition Authority dependency propagation
       structured_requires:
       - semantic_identity_schema_version == current supported SIB schema version
       - current framework SIB parses and validates
@@ -148,7 +148,7 @@ artifact_assurance:
       - validated or current workbook sha256 exists
       - actual sha256 == expected sha256
       - current primary data_paths and any receipt-1.2 auxiliary inputs are observed against delivered identity without requiring prior sync
-      - no exact policy 1.4.0 current core-answer or model-validity rejection applies directly or through State Transition Authority dependency propagation
+      - no exact policy 1.4.0 or 1.5.0 current core-answer or model-validity rejection applies directly or through State Transition Authority dependency propagation
     accepted_result_analysis_workbook:
       kind: file_backed
       requires:
@@ -170,7 +170,7 @@ artifact_assurance:
   - Without a question scope, generic accepted_solution_workbook or accepted_result_analysis_workbook is promoted only when every scoped subproblem satisfies the corresponding condition.
   - A known stale, rejected, hash-mismatched, missing, malformed, identity-mode-mismatched, legacy-review-required, or outside-project-root artifact must not be promoted merely because its legacy name appears in available_artifacts.
   - Runtime assurance recomputes current semantic evidence from 模型论文框架.md. Project-state equality alone cannot self-attest locked_model_spec.
-  - A malformed exact policy 1.4.0 current modify/reject row or an unsupported/partial policy activation blocks model and result qualification and is reported as a context conflict; valid legacy 1.0.0 through 1.3.0 policy pairs retain their prior disposition semantics.
+  - A malformed exact policy 1.4.0 or 1.5.0 current modify/reject row, or an unsupported/partial policy activation, blocks model and result qualification and is reported as a context conflict; valid legacy 1.0.0 through 1.3.0 policy pairs retain their prior disposition semantics.
   - In structured mode, wording-only prose outside the SIB may change semantic_text_hash without invalidating locked_model_spec when the canonical SIB identity and all approval bindings remain current.
   required_evidence_fields:
   - artifact

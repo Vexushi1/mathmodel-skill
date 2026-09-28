@@ -178,6 +178,7 @@ class TestA6LatexBoundaries(unittest.TestCase):
             main = root / "main.tex"
             main.write_text(r"\documentclass{article}\begin{document}x\end{document}")
             report = {"audit_schema_version": "1.0.0", "status": "passed", "mode": "formal",
+                      "main": "main.tex",
                       "source_bundle_sha256": delivery.source_bundle_snapshot(main)["source_bundle_sha256"]}
             with patch.object(delivery, "formal_assembly_issues", side_effect=ValueError("changed input")):
                 issues = delivery.verify_audit_report(project=root, main=main, report=report)

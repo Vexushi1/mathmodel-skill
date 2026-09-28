@@ -110,4 +110,6 @@ python scripts/resolve_runtime.py --help
 
 `python scripts/claim_consumption.py <项目根目录> --tex-main final_latex/main.tex` 在 `observe/1.0.0` 和 `propagate/1.1.0` 下都只输出观察报告，不写项目状态或授予正式交付资格。缺少策略时不启用 B2 审计。
 
-只有显式 `propagate/1.1.0` 项目通过现有 `python scripts/sync_project.py <项目根目录> --write`，才根据当前 `modify/reject` 处置中的同题精确 B1 claim ID，沿 `claim:<id>` 和 fragment ID 依赖将 current 片段置 stale。旧问题级失效继续生效；已有 `observe` 项目执行原同步写入时，Framework 表格也会与 State 的旧问题级失效保持一致。写入使用原项目事务与读集检查。跨格式覆盖和正式交付门仍待后续阶段。
+显式 `propagate/1.1.0` 及后续 enforce 策略通过现有 `python scripts/sync_project.py <项目根目录> --write`，根据当前 `modify/reject` 处置中的同题精确 B1 claim ID，沿 `claim:<id>` 和 fragment ID 依赖将 current 片段置 stale。1.4.0/1.5.0 的结构化核心否证还会按既有 State Transition Authority 回退阶段。旧问题级失效继续生效；Framework 表格与 State 在原项目事务和读集检查内保持一致。
+
+`1.5.0/enforce_selected_paper_claim_chain` 要求 `paper_source` 选择一个根级 `final_latex/*.tex` 或 `draft_docx/*.docx`。静态单文件/模块化 LaTeX 与有界普通 DOCX 共用 B1、fragment 和 Figure 来源链；LaTeX 的动态包含、动态命名或无界重定义、控制符定义、前言/全局渲染副作用及会改变 claim/Figure 片段的宏失败关闭；DOCX 使用 `scripts/claim_docx.py` 核对正文、同一 bookmark 的内部超链接、规范 DrawingML 图片树与唯一内嵌 media 哈希，并拒绝修订/属性变更、字段、自动编号、图表/SmartArt、图片双表示、DTD/entity、外部关系、非规范 OPC 路径或标识及超预算 ZIP。机器门不评定图形视觉或整段图注语义，`human_semantic_coverage` 始终为 `not_assessed`；DOCX submission 在缺少受支持的渲染证明时失败关闭。

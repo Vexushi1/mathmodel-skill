@@ -286,6 +286,8 @@ jobs:
         run: python -m unittest tests.test_b2b4_figure_integration.FigureFormalChainIntegrationTests.test_real_xelatex_figure_image_proof
       - name: Verify continuous B12 repair and fresh Figure package proof
         run: python -m unittest tests.test_b2b5_continuous_acceptance.B2b5ContinuousAcceptanceTests.test_real_xelatex_b12_repair_regenerates_current_figure_and_package_proof
+      - name: Verify B2c selected LaTeX carrier and package proof
+        run: python -m unittest tests.test_b2c_runtime_integration.SelectedPolicyStructuredSyncTests.test_real_xelatex_1_5_selected_carrier_proof_and_package
       - name: Build minimal formal project fixture
         shell: bash
         run: |

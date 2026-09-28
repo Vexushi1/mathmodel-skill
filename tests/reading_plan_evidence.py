@@ -42,6 +42,14 @@ B2B6_AUTHORITY_VERSIONS = {
     "writing_reasoning": "1.9.0",
     "runtime_assurance": "2.3.0",
 }
+B2C_AUTHORITY_VERSIONS = {
+    "skill": "10.13.0",
+    "project_state": "8.12.0",
+    "claim_consumption": "1.8.0",
+    "state_transition": "1.6.0",
+    "writing_reasoning": "1.10.0",
+    "runtime_assurance": "2.4.0",
+}
 
 
 def authority_versions(repo):
@@ -619,6 +627,37 @@ def approved_b2b6_carrier_change(identifier, old, new, candidate_authority_versi
     return projected, changes
 
 
+def approved_b2c_carrier_change(identifier, old, new, candidate_authority_versions):
+    """Approve B2c only after replaying the exact historical B2b6 projection."""
+    if (identifier not in {case[0] for case in CASES}
+            or old.get("version") != "<EXPECTED_P9_RELEASE_CARRIER_CHANGE>"
+            or new.get("version") != B2C_AUTHORITY_VERSIONS["skill"]
+            or candidate_authority_versions != B2C_AUTHORITY_VERSIONS
+            or not isinstance(new.get("assurance"), dict)
+            or new["assurance"].get("schema_version") != B2C_AUTHORITY_VERSIONS["runtime_assurance"]):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    predecessor["version"] = B2B6_AUTHORITY_VERSIONS["skill"]
+    predecessor["assurance"]["schema_version"] = B2B6_AUTHORITY_VERSIONS["runtime_assurance"]
+    projected, changes = approved_b2b6_carrier_change(
+        identifier, old, predecessor, deepcopy(B2B6_AUTHORITY_VERSIONS)
+    )
+    if projected != old:
+        return deepcopy(new), []
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = B2C_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(B2C_AUTHORITY_VERSIONS)
+            change["approval"] = (
+                "B2c selected paper-carrier exact Authority set only; "
+                "old qualification remains checked"
+            )
+        elif change["path"] == "assurance.schema_version":
+            change["candidate"] = B2C_AUTHORITY_VERSIONS["runtime_assurance"]
+            change["approval"] = "B2c selected paper-carrier runtime qualification protocol"
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -666,6 +705,10 @@ def compare(before, after):
             a["id"], old, projected, b.get("authority_versions")
         )
         expected.extend(b2b6_changes)
+        projected, b2c_changes = approved_b2c_carrier_change(
+            a["id"], old, projected, b.get("authority_versions")
+        )
+        expected.extend(b2c_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,
@@ -703,12 +746,13 @@ def main():
         "schema_version": 1, "baseline_ref": args.baseline_ref, "candidate_ref": args.candidate_ref,
         "driver_sha256": hashlib.sha256(HERE.read_bytes()).hexdigest(),
         "cases_sha256": hashlib.sha256(HERE.with_name("reading_plan_cases.py").read_bytes()).hexdigest(),
-        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_b2b1_b2b2_b2b3a_b2b3b_b2b3c_b2_patch_b2b4_b2b5_b2b6_exact_authority_carrier_transitions",
+        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_b2b1_b2b2_b2b3a_b2b3b_b2b3c_b2_patch_b2b4_b2b5_b2b6_b2c_exact_authority_carrier_transitions",
         "expected_authority_changes": sorted(ALLOWED_CHANGED_AUTHORITIES),
         "approved_b2b6_authority_versions": B2B6_AUTHORITY_VERSIONS,
+        "approved_b2c_authority_versions": B2C_AUTHORITY_VERSIONS,
         "all_legacy_behavior_equal": all(r["legacy_behavior_equal"] for r in rows),
         "all_legacy_behavior_equal_except_approved_changes": all(r["legacy_behavior_equal_except_approved_changes"] for r in rows),
-        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before exact A3/A7/v9.7/v10/v10.1/A1/A2/B1/B2/B2b1/B2b2/B2b3a/B2b3b/B2b3c/B2 patch/B2b4/B2b5/B2b6 carrier exceptions; B2b6 additionally requires the exact Skill, Project State, Claim Consumption, State Transition, Writing Reasoning and Runtime Assurance version set. Each approved version, provenance or canonical solver projection is visible in expected_legacy_changes. No result qualification, classification value or existing list-order normalization is waived. Passing requires no unregistered field differences.",
+        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before exact A3/A7/v9.7/v10/v10.1/A1/A2/B1/B2/B2b1/B2b2/B2b3a/B2b3b/B2b3c/B2 patch/B2b4/B2b5/B2b6/B2c carrier exceptions; B2b6 and B2c each require their exact Skill, Project State, Claim Consumption, State Transition, Writing Reasoning and Runtime Assurance version set. Each approved version, provenance or canonical solver projection is visible in expected_legacy_changes. No result qualification, classification value or existing list-order normalization is waived. Passing requires no unregistered field differences.",
         "cases": rows,
     }
     args.output.mkdir(parents=True, exist_ok=True)

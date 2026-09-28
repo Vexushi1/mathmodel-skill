@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""B2 opt-in claim consumption inspection of static LaTeX sources.
+"""B2 opt-in claim consumption inspection of selected paper carriers.
 
 The independent observe/propagate audit stays read-only. Explicit 1.2.0,
-1.3.0 and 1.4.0 policies may use these bounded observations as limited formal text and
-Figure-chain gates; neither route establishes human semantic coverage.
+1.3.0 and 1.4.0 policies may use these bounded LaTeX observations as limited
+formal text and Figure-chain gates.  The explicit 1.5.0 policy selects either a
+bounded static LaTeX source or ordinary DOCX OOXML.  No route establishes human
+semantic coverage.
 """
 from __future__ import annotations
 
@@ -21,9 +23,11 @@ import yaml
 from jsonschema import Draft202012Validator
 
 import claim_evidence
+import claim_docx
 import claim_figure
 from claim_sources import ROOT
-from claim_tex import scan_static_latex, source_location
+from claim_tex import (SELECTED_LITERAL_BODY_COMMANDS, SELECTED_LITERAL_ENVIRONMENTS,
+                       scan_static_latex, source_location)
 from claim_values import EvidenceError, NeedsReview, Value, converted, unit_info
 from claim_workbook import current_profile
 from conformance_gate import merge_read_sets
@@ -41,6 +45,12 @@ FRAGMENT_HEADER = '### Paper Fragment Dependency Map'
 NUMBER = re.compile(r'(?<![\w.])[-+−]?(?:\d+(?:[.,]\d+)?|\.\d+)(?:[eE][-+−]?\d+)?(?!\w|\.\d)')
 GLOBAL_OPTIMAL = re.compile(r'全局最优|global(?:ly)?\s+optimal|global\s+optimum', re.I)
 BROAD_ROBUST = re.compile(r'广泛稳健|全面稳健|(?:robust|stable)\s+(?:under|across)\s+all', re.I)
+DOCX_FIGURE_NUMBER_PREFIX = re.compile(
+    r'^\s*(?:Figure|Fig\.?|图)\s*(?P<number>[0-9]+)(?=\s|[.：:、-])', re.I,
+)
+DOCX_BODY_FIGURE_NUMBER = re.compile(
+    r'(?:Figure|Fig\.?|图)\s*(?P<number>[0-9]+)(?=\s|[.：:、,，-]|$)', re.I,
+)
 UNCERTAIN_CLAIM_WORDING = re.compile(
     r'\b(?:not|no|never|without|cannot|can\x27t|may|might|could|perhaps|possibly|'
     r'uncertain|unproven|unverified|unconfirmed|unsupported)\b|[不未非无]|可能|或许|尚待', re.I)
@@ -53,6 +63,7 @@ def _report() -> dict:
             'execution_authorized': False,
             'semantic_support': 'not_established', 'human_semantic_coverage': 'not_assessed',
             'formal_delivery_gate': 'not_run', 'b1_status': 'not_assessed',
+            'carrier_format': None, 'paper_scan': {},
             'fragment_locations': [], 'registered_location_gaps': [], 'required_coverage': [], 'numeric_checks': [],
             'figure_identity_checks': [], 'figure_source_checks': [],
             'figure_caption_numeric_checks': [],
@@ -60,6 +71,74 @@ def _report() -> dict:
             'unregistered_wording_candidates': [], 'unregistered_wording_overflow': False,
             'suggested_stale_fragment_ids': [], 'stale_reason_paths': [],
             'errors': [], 'issues': [], 'observed_sources': {'project': {}, 'skill': {}}}
+
+
+def _policy_pair(policy: Mapping[str, Any]) -> tuple[Any, Any]:
+    return policy.get('protocol_version'), policy.get('mode')
+
+
+def _selected_carrier(root: Path, policy: Mapping[str, Any], tex_main: str | Path) -> tuple[str, str, Path]:
+    """Return carrier format, project-relative entrypoint and resolved path."""
+    if _policy_pair(policy) == ('1.5.0', 'enforce_selected_paper_claim_chain'):
+        source = policy.get('paper_source')
+        if not isinstance(source, Mapping):
+            raise EvidenceError('B2 1.5.0 requires one selected paper_source')
+        paper_format, relative = source.get('format'), source.get('entrypoint')
+        if paper_format not in {'latex', 'docx'} or not isinstance(relative, str):
+            raise EvidenceError('B2 1.5.0 paper_source is malformed')
+        path = (root / relative).resolve()
+        if not path.is_relative_to(root):
+            raise EvidenceError('selected paper entrypoint is outside the project')
+        return paper_format, relative, path
+    main = Path(tex_main)
+    path = main.resolve() if main.is_absolute() else (root / main).resolve()
+    if not path.is_relative_to(root):
+        raise EvidenceError('LaTeX entrypoint is outside the project')
+    return 'latex', path.relative_to(root).as_posix(), path
+
+
+def _docx_as_text_scan(raw: Mapping[str, Any], relative: str) -> dict[str, Any]:
+    """Adapt normalized DOCX body text to the existing bounded lexical checks."""
+    text = raw.get('text') if isinstance(raw.get('text'), str) else ''
+    digest = raw.get('sha256') if isinstance(raw.get('sha256'), str) else ''
+    return {
+        'status': raw.get('status'),
+        'active_files': [relative] if raw.get('status') == 'scanned' else [],
+        'files': {relative: {'text': text, 'masked': text, 'sha256': digest, 'bom_bytes': 0}},
+        'segments': [{'path': relative, 'start': 0, 'end': len(text), 'in_document': True}],
+        'issues': list(raw.get('issues') or []),
+        'carrier_format': 'docx',
+        'docx': raw,
+    }
+
+
+def _binding_locator(policy: Mapping[str, Any], binding: Mapping[str, Any]) -> tuple[str, str]:
+    if _policy_pair(policy) == ('1.5.0', 'enforce_selected_paper_claim_chain'):
+        locator = binding.get('carrier_locator')
+        if not isinstance(locator, Mapping):
+            raise EvidenceError('B2 1.5.0 Figure binding lacks carrier_locator')
+        return str(locator.get('kind') or ''), str(locator.get('value') or '')
+    return 'latex_label', str(binding.get('latex_label') or '')
+
+
+def _literal_hits_outside_ranges(text: str, literal: str,
+                                 ranges: list[tuple[int, int]]) -> list[int]:
+    """Find at most two whole literal matches disjoint from all Figure ranges."""
+    hits: list[int] = []
+    if not literal:
+        return hits
+    cursor = 0
+    while True:
+        found = text.find(literal, cursor)
+        if found < 0:
+            break
+        finish = found + len(literal)
+        if all(finish <= start or found >= end for start, end in ranges):
+            hits.append(found)
+        cursor = found + max(1, len(literal))
+        if len(hits) > 1:
+            break
+    return hits
 
 
 def _read_yaml(root: Path, relative: str, limit: int, target: dict) -> tuple[bytes, Any]:
@@ -129,7 +208,7 @@ def _locations(fragments: list[dict], scan: dict) -> list[dict]:
         elif path not in scan['files'] or path not in scan['active_files']:
             row['reason'] = 'source_file is not in the proven active include graph'
         else:
-            masked = scan['files'][path]['masked']
+            masked = scan['files'][path].get('prose', scan['files'][path]['masked'])
             hits = [match.start() for match in re.finditer(re.escape(anchor), masked)
                     if any(segment['path'] == path and segment['start'] <= match.start()
                            and match.end() <= segment['end'] for segment in body)]
@@ -161,11 +240,13 @@ def _locations(fragments: list[dict], scan: dict) -> list[dict]:
 
 
 def _fragment_text(scan: dict, row: dict) -> str:
-    return scan['files'][row['source_file']]['masked'][row['offset']:row['end_offset']]
+    entry = scan['files'][row['source_file']]
+    return entry.get('prose', entry['masked'])[row['offset']:row['end_offset']]
 
 
 def _unregistered_wording(scan: dict, fragments: list[dict], locations: list[dict],
-                          claim_by_id: dict[str, dict], skill_reads: dict) -> tuple[list[dict], bool, str | None]:
+                          claim_by_id: dict[str, dict], skill_reads: dict, *,
+                          skip_figure_spans: bool = True) -> tuple[list[dict], bool, str | None]:
     by_id = {row['id']: row for row in locations}
     registered_spans = []
     for fragment in fragments:
@@ -195,7 +276,8 @@ def _unregistered_wording(scan: dict, fragments: list[dict], locations: list[dic
             if not segment['in_document']:
                 continue
             path = segment['path']
-            masked = scan['files'][path]['masked']
+            entry = scan['files'][path]
+            masked = entry.get('prose', entry['masked'])
             matches = merge(
                 ((match.start(), match.end(), 'unregistered_global_optimality', match.group())
                  for match in GLOBAL_OPTIMAL.finditer(masked, segment['start'], segment['end'])),
@@ -211,17 +293,19 @@ def _unregistered_wording(scan: dict, fragments: list[dict], locations: list[dic
     first = next(unmatched, None)
     if first is None:
         return [], False, None
-    if 'scripts/claim_figure.py' not in skill_reads:
-        bounded._read(ROOT, 'scripts/claim_figure.py', 2 * 1024 * 1024, skill_reads)
-    figures = claim_figure.inspect_static_figures(scan)
-    structural = {'figure_scan_budget_exceeded', 'invalid_figure_scan_segment',
-                  'figure_end_without_begin_in_segment'}
-    malformed = {'figure_not_closed_in_same_segment', 'mismatched_figure_environment'}
-    if structural.intersection(figures['issues']) or any(
-            malformed.intersection(row['issues']) for row in figures['figures']):
-        return [], False, 'unregistered strong wording Figure environment inventory incomplete'
-    figure_spans = [(row['source_file'], row['begin_offset'], row['end_offset'])
-                    for row in figures['figures']]
+    figure_spans = []
+    if skip_figure_spans:
+        if 'scripts/claim_figure.py' not in skill_reads:
+            bounded._read(ROOT, 'scripts/claim_figure.py', 2 * 1024 * 1024, skill_reads)
+        figures = claim_figure.inspect_static_figures(scan)
+        structural = {'figure_scan_budget_exceeded', 'invalid_figure_scan_segment',
+                      'figure_end_without_begin_in_segment'}
+        malformed = {'figure_not_closed_in_same_segment', 'mismatched_figure_environment'}
+        if structural.intersection(figures['issues']) or any(
+                malformed.intersection(row['issues']) for row in figures['figures']):
+            return [], False, 'unregistered strong wording Figure environment inventory incomplete'
+        figure_spans = [(row['source_file'], row['begin_offset'], row['end_offset'])
+                        for row in figures['figures']]
     candidates = []
     for path, start, end, code, literal in chain((first,), unmatched):
         if any(source == path and span_start <= start and end <= span_end
@@ -254,9 +338,11 @@ def _figure_identity_checks(root: Path, state: dict, policy: dict, framework_tex
     for binding in bindings:
         figure_id = binding['figure_id']
         fragment_id = binding['fragment_id']
-        label = binding['latex_label']
+        locator_kind, label = _binding_locator(policy, binding)
         image_path = binding['image_path']
         issues = []
+        if locator_kind != 'latex_label':
+            issues.append('LaTeX Figure binding requires a latex_label locator')
         row = registry.get(figure_id)
         if row is None:
             issues.append('Figure ID has no unique Framework registry row')
@@ -318,6 +404,156 @@ def _figure_identity_checks(root: Path, state: dict, policy: dict, framework_tex
                        'approval_freshness': 'not_assessed',
                        'source_and_visual_semantics': 'not_assessed',
                        'issues': sorted(set(issues))})
+    return checks
+
+
+def _docx_figure_identity_checks(root: Path, state: dict, policy: dict,
+                                 framework_text: str, scan: dict,
+                                 locations: list[dict], observed: dict) -> list[dict]:
+    """Bind a DOCX bookmark, embedded media bytes and one external approved image."""
+    bindings = policy.get('figure_bindings', [])
+    if not bindings:
+        return []
+    registry = claim_figure.parse_framework_figure_rows(framework_text)
+    fragments = {row['id']: row for row in state['paper_framework']['paper_fragments']}
+    located = {row['id']: row for row in locations}
+    artifacts = state.get('artifacts') or {}
+    declared = set(artifacts.get('figures') or [])
+    approved = set(artifacts.get('approved_figures') or [])
+    raw = scan['docx']
+    source_file = scan['active_files'][0]
+    text = raw['text']
+    declared_bookmarks = {
+        str((binding.get('carrier_locator') or {}).get('value') or '')
+        for binding in bindings if isinstance(binding, Mapping)
+    }
+    figure_ranges = [
+        (bookmark['start'], bookmark['end']) for bookmark in raw['bookmarks']
+        if bookmark.get('name') in declared_bookmarks
+    ]
+    checks = []
+    for binding in bindings:
+        figure_id = binding['figure_id']
+        fragment_id = binding['fragment_id']
+        locator = binding.get('carrier_locator') or {}
+        locator_kind, bookmark_name = _binding_locator(policy, binding)
+        body_reference = locator.get('body_reference') if isinstance(locator, Mapping) else None
+        image_path = binding['image_path']
+        issues = []
+        row = registry.get(figure_id)
+        if locator_kind != 'docx_bookmark':
+            issues.append('DOCX Figure binding requires a docx_bookmark locator')
+        if row is None:
+            issues.append('Figure ID has no unique Framework registry row')
+        else:
+            exports = [item.strip().strip('`') for item in
+                       re.split(r'<br\s*/?>|[;；]', row['export_file'], flags=re.I) if item.strip()]
+            if image_path not in exports:
+                issues.append('bound image is absent from the Framework export files')
+            if not row['paper_caption'] or not row['body_reference']:
+                issues.append('Framework caption or body reference location is empty')
+            if not row['workbook'] or not row['worksheet_headers'] or not row['plotting_program']:
+                issues.append('result-figure source registry fields are incomplete')
+        fragment = fragments[fragment_id]
+        location = located[fragment_id]
+        if location['status'] != 'located' or fragment['status'] != 'current':
+            issues.append('bound claim fragment is not current and located')
+        bound = claim_docx.bind_bookmark_figure(raw, bookmark_name, fragment.get('anchor', ''))
+        caption = ''
+        caption_start = None
+        bookmark_end = None
+        body_reference_start = None
+        body_reference_structural_number_start = None
+        body_reference_structural_number_end = None
+        caption_structural_number_start = None
+        caption_structural_number_end = None
+        if bound.get('status') != 'matched':
+            issues.append('DOCX Figure bookmark, caption anchor or embedded image is not uniquely matched')
+        else:
+            bookmark = next(item for item in raw['bookmarks'] if item['name'] == bookmark_name)
+            caption = bookmark['text']
+            caption_start = bookmark['start']
+            bookmark_end = bookmark['end']
+            figure_number = DOCX_FIGURE_NUMBER_PREFIX.match(caption)
+            if figure_number is not None:
+                caption_structural_number_start = (
+                    caption_start + figure_number.start('number'))
+                caption_structural_number_end = (
+                    caption_start + figure_number.end('number'))
+            if row is not None and ' '.join(row['paper_caption'].split()) != ' '.join(caption.split()):
+                issues.append('Framework caption differs from the literal DOCX bookmark caption')
+            if (location.get('source_file') != source_file
+                    or not bookmark['start'] <= location.get('offset', -1) < bookmark['end']):
+                issues.append('claim fragment anchor is not in this DOCX Figure bookmark')
+            if image_path not in declared or image_path not in approved:
+                issues.append('bound image is not both actual and approved in State')
+            else:
+                try:
+                    external = bounded._read(root, image_path, 64 * 1024 * 1024,
+                                             observed['project'])
+                    if hashlib.sha256(external).hexdigest() != bound.get('image_sha256'):
+                        issues.append('DOCX embedded image bytes differ from the bound approved file')
+                except (OSError, ValueError) as exc:
+                    issues.append('bound approved image cannot be read: ' + str(exc)[:256])
+            hits = (_literal_hits_outside_ranges(text, body_reference, figure_ranges)
+                    if isinstance(body_reference, str) else [])
+            if len(hits) != 1:
+                issues.append('DOCX body has no unique literal reference outside all bound Figure bookmarks')
+            else:
+                candidate_start = hits[0]
+                candidate_end = candidate_start + len(body_reference)
+                hyperlinks = [item for item in raw.get('hyperlinks', [])
+                              if item.get('anchor') == bookmark_name
+                              and not item.get('relationship_id')
+                              and item.get('start') <= candidate_start
+                              and item.get('end') >= candidate_end]
+                if len(hyperlinks) != 1:
+                    issues.append(
+                        'DOCX body reference is not uniquely linked to the bound Figure bookmark'
+                    )
+                else:
+                    body_reference_start = candidate_start
+                    body_numbers = list(DOCX_BODY_FIGURE_NUMBER.finditer(body_reference))
+                    caption_number = (figure_number.group('number')
+                                      if figure_number is not None else None)
+                    matching_numbers = (
+                        body_numbers if caption_number is None else
+                        [match for match in body_numbers
+                         if match.group('number') == caption_number]
+                    )
+                    if len(matching_numbers) == 1:
+                        body_reference_structural_number_start = (
+                            candidate_start + matching_numbers[0].start('number'))
+                        body_reference_structural_number_end = (
+                            candidate_start + matching_numbers[0].end('number'))
+            if type(body_reference_start) is int and row is not None:
+                paragraph = next((item for item in raw['paragraphs']
+                                  if item['start'] <= body_reference_start <= item['end']), None)
+                expected = f"{source_file}:p{paragraph['index']}" if paragraph else None
+                if expected is None or row['body_reference'] != expected:
+                    issues.append('Framework body reference location differs from the active DOCX reference')
+        checks.append({
+            'figure_id': figure_id, 'fragment_id': fragment_id,
+            'carrier_locator': {'kind': locator_kind, 'value': bookmark_name},
+            'image_path': image_path,
+            'identity_status': 'matched' if not issues else 'needs_review',
+            'approval_freshness': 'not_assessed',
+            'source_and_visual_semantics': 'not_assessed',
+            'caption_text': caption, 'caption_start': caption_start,
+            'caption_end': bookmark_end, 'source_file': source_file,
+            'caption_structural_number_start': caption_structural_number_start,
+            'caption_structural_number_end': caption_structural_number_end,
+            'body_reference_text': body_reference,
+            'body_reference_start': body_reference_start,
+            'body_reference_end': (body_reference_start + len(body_reference)
+                                   if type(body_reference_start) is int
+                                   and isinstance(body_reference, str) else None),
+            'body_reference_structural_number_start':
+                body_reference_structural_number_start,
+            'body_reference_structural_number_end':
+                body_reference_structural_number_end,
+            'issues': sorted(set(issues)),
+        })
     return checks
 
 
@@ -409,7 +645,9 @@ def _figure_caption_numeric_checks(state: dict, policy: dict, scan: dict, b1: di
     fragments_located = {row['id']: row for row in locations}
     identities = {row['figure_id']: row for row in identity_checks}
     sources = {row['figure_id']: row for row in source_checks}
-    figures = claim_figure.inspect_static_figures(scan)['figures']
+    carrier_format = scan.get('carrier_format', 'latex')
+    figures = (claim_figure.inspect_static_figures(scan)['figures']
+               if carrier_format == 'latex' else [])
     checks = []
     for binding in bindings:
         figure_id = binding['figure_id']
@@ -439,25 +677,42 @@ def _figure_caption_numeric_checks(state: dict, policy: dict, scan: dict, b1: di
                 or live_claim.get('assertion_check', {}).get('status') != 'matched'):
             check.update(reason='one current scalar B1 claim assertion is required')
             continue
-        figure_matches = [row for row in figures if row.get('label') == binding['latex_label']
-                          and row.get('status') == 'located']
-        if len(figure_matches) != 1:
-            check.update(reason='one literal active Figure caption is required')
-            continue
-        figure = figure_matches[0]
-        caption = figure['caption']
-        source_file = figure['source_file']
-        offset = figure['caption_location']['char_offset']
-        masked = scan['files'][source_file]['masked']
-        prefix = re.match(r'\\caption\s*\{', masked[offset:figure['end_offset']])
-        if prefix is None:
-            check.update(reason='short optional, starred or nonliteral caption is unsupported')
-            continue
-        caption_start = offset + prefix.end()
-        if masked[caption_start:caption_start + len(caption)] != caption:
-            check.update(reason='caption source span is not literal')
-            continue
+        if carrier_format == 'latex':
+            _, label = _binding_locator(policy, binding)
+            figure_matches = [row for row in figures if row.get('label') == label
+                              and row.get('status') == 'located']
+            if len(figure_matches) != 1:
+                check.update(reason='one literal active Figure caption is required')
+                continue
+            figure = figure_matches[0]
+            caption = figure['caption']
+            source_file = figure['source_file']
+            offset = figure['caption_location']['char_offset']
+            masked = scan['files'][source_file]['masked']
+            prefix = re.match(r'\\caption\s*\{', masked[offset:figure['end_offset']])
+            if prefix is None:
+                check.update(reason='short optional, starred or nonliteral caption is unsupported')
+                continue
+            caption_start = offset + prefix.end()
+            if masked[caption_start:caption_start + len(caption)] != caption:
+                check.update(reason='caption source span is not literal')
+                continue
+        else:
+            caption = identity.get('caption_text')
+            caption_start = identity.get('caption_start')
+            source_file = identity.get('source_file')
+            if (not isinstance(caption, str) or not caption
+                    or type(caption_start) is not int or not isinstance(source_file, str)):
+                check.update(reason='one literal DOCX Figure caption is required')
+                continue
         tokens = list(NUMBER.finditer(caption))
+        if carrier_format == 'docx':
+            structural_start = identity.get('caption_structural_number_start')
+            structural_end = identity.get('caption_structural_number_end')
+            if type(structural_start) is int and type(structural_end) is int:
+                tokens = [token for token in tokens
+                          if not (caption_start + token.start() == structural_start
+                                  and caption_start + token.end() == structural_end)]
         if len(tokens) != 1:
             check.update(reason='caption needs exactly one literal numeric value')
             continue
@@ -577,7 +832,7 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         for path in ('scripts/claim_consumption.py', 'scripts/claim_tex.py',
                      'scripts/validate_project_state.py'):
             bounded._read(ROOT, path, 2 * 1024 * 1024, observed['skill'])
-        if contract.get('version') != '1.7.0':
+        if contract.get('version') != '1.8.0':
             raise EvidenceError('unsupported B2 contract version')
         policy = framework['claim_consumption_policy']
         if isinstance(policy, Mapping) and policy.get('figure_bindings'):
@@ -640,15 +895,38 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
                              'approval_freshness': 'not_assessed',
                              'issues': ['Figure source bindings are not declared']}
                 report['figure_source_checks'].append(check)
-        main_path = Path(tex_main)
-        if not main_path.is_absolute():
-            main_path = root / main_path
-        scan = scan_static_latex(root, main_path)
+        carrier_format, entrypoint, main_path = _selected_carrier(root, policy, tex_main)
+        report['carrier_format'] = carrier_format
+        if carrier_format == 'docx':
+            bounded._read(ROOT, 'scripts/claim_docx.py', 2 * 1024 * 1024,
+                          observed['skill'])
+            raw_docx = claim_docx.scan_docx(main_path)
+            if isinstance(raw_docx.get('sha256'), str):
+                merge_read_sets(observed, {'project': {entrypoint: raw_docx['sha256']}})
+            scan = _docx_as_text_scan(raw_docx, entrypoint)
+            report['docx_scan'] = {
+                'status': raw_docx['status'], 'issues': raw_docx['issues'],
+                'paragraph_count': len(raw_docx['paragraphs']),
+                'bookmark_count': len(raw_docx['bookmarks']),
+                'image_count': len(raw_docx['images']),
+                'scope': raw_docx['scope'],
+            }
+        else:
+            scan = scan_static_latex(
+                root, main_path,
+                selected_carrier=_policy_pair(policy) == (
+                    '1.5.0', 'enforce_selected_paper_claim_chain'),
+            )
         for path, entry in scan['files'].items():
             merge_read_sets(observed, {'project': {path: entry['sha256']}})
-        report['tex_scan'] = {'status': scan['status'], 'active_files': scan['active_files'],
-                              'issues': scan['issues'],
-                              'scope': 'literal_static_include_source_only_no_macro_expansion_or_pdf'}
+        scan_summary = {'status': scan['status'], 'active_files': scan['active_files'],
+                        'issues': scan['issues'],
+                        'scope': ('literal_static_include_source_only_no_macro_expansion_or_pdf'
+                                  if carrier_format == 'latex' else
+                                  'main_document_body_only_normalized_ooxml_text')}
+        report['paper_scan'] = scan_summary
+        if carrier_format == 'latex':
+            report['tex_scan'] = scan_summary
         if scan['status'] != 'scanned':
             report['status'] = scan['status']
             return report
@@ -656,10 +934,142 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         locations = _locations(fragments, scan)
         report['fragment_locations'] = [{key: value for key, value in row.items()
                                          if key not in ('offset', 'end_offset', 'segment_end')}
-                                        for row in locations]
-        report['figure_identity_checks'] = _figure_identity_checks(
-            root, state, policy, framework_text, scan, locations, observed,
-            main_path.parent.resolve())
+                                         for row in locations]
+        if carrier_format == 'latex':
+            claim_linked = {fragment['id'] for fragment in fragments
+                            if any(dep.startswith('claim:') for dep in fragment['depends_on'])}
+            claim_anchors = [fragment.get('anchor', '') for fragment in fragments
+                             if fragment['id'] in claim_linked and fragment.get('anchor')]
+            definitions: dict[tuple[str, str], list[str]] = {}
+            for definition in scan.get('custom_definitions', []):
+                key = (str(definition.get('kind')), str(definition.get('name')))
+                definitions.setdefault(key, []).append(str(definition.get('body') or ''))
+            generated_structure = re.compile(
+                r'\\(?:caption|includegraphics|label|ref|pageref|autoref|input|include|'
+                r'import|subimport|subfile|subfileinclude|inputfrom|includefrom|'
+                r'subinputfrom|subincludefrom|phantom|hphantom|vphantom|texorpdfstring|'
+                r'invisible|visible|uncover|only|alt|onslide|color|textcolor)\b|'
+                r'\\begin\s*\{figure\*?\}', re.I,
+            )
+            custom_command_reference = re.compile(
+                r'\\(?P<name>[A-Za-z@][A-Za-z0-9@:_]*)')
+            custom_environment_reference = re.compile(
+                r'\\begin\s*\{(?P<name>[A-Za-z@]+)\}')
+            sensitivity_cache: dict[tuple[str, str], bool] = {}
+
+            def definition_sensitive(key: tuple[str, str],
+                                     trail: frozenset[tuple[str, str]] = frozenset()) -> bool:
+                """Conservatively follow project-local macro aliases without executing TeX."""
+                if key in sensitivity_cache:
+                    return sensitivity_cache[key]
+                if key in trail:
+                    return True
+                bodies = definitions.get(key, [])
+                if not bodies:
+                    return True
+                nested_trail = trail | {key}
+                for body in bodies:
+                    if (not body or GLOBAL_OPTIMAL.search(body) or BROAD_ROBUST.search(body)
+                            or generated_structure.search(body)
+                            or any(anchor in body for anchor in claim_anchors)
+                            or NUMBER.search(body)):
+                        sensitivity_cache[key] = True
+                        return True
+                    references = [
+                        ('command', match.group('name'))
+                        for match in custom_command_reference.finditer(body)
+                    ]
+                    references.extend(
+                        ('environment', match.group('name'))
+                        for match in custom_environment_reference.finditer(body)
+                    )
+                    if any(
+                        (reference in definitions
+                         and definition_sensitive(reference, nested_trail))
+                        or (reference not in definitions
+                            and reference[0] == 'command'
+                            and reference[1] not in SELECTED_LITERAL_BODY_COMMANDS)
+                        or (reference not in definitions
+                            and reference[0] == 'environment'
+                            and reference[1] not in SELECTED_LITERAL_ENVIRONMENTS)
+                        for reference in references
+                    ):
+                        sensitivity_cache[key] = True
+                        return True
+                sensitivity_cache[key] = False
+                return False
+
+            for macro_issue in scan.get('issues', []):
+                if macro_issue.get('code') in {
+                    'unsupported_definition_form', 'unbounded_redefinition',
+                    'global_rendering_assignment', 'preamble_rendering_effect',
+                    'preamble_custom_macro_effect', 'opaque_macro_in_preamble',
+                    'preamble_environment_unsupported',
+                }:
+                    reason = {
+                        'unsupported_definition_form':
+                            'unassessed TeX definition form can alter selected paper rendering',
+                        'unbounded_redefinition':
+                            'unbounded TeX redefinition can alter selected paper rendering',
+                        'global_rendering_assignment':
+                            'global TeX rendering assignment can alter selected paper rendering',
+                        'preamble_rendering_effect':
+                            'preamble rendering command can alter selected paper rendering',
+                        'preamble_custom_macro_effect':
+                            'preamble custom macro can alter selected paper rendering',
+                        'opaque_macro_in_preamble':
+                            'unassessed preamble macro can alter selected paper rendering',
+                        'preamble_environment_unsupported':
+                            'unassessed preamble environment can alter selected paper rendering',
+                    }[macro_issue.get('code')]
+                    report['issues'].append(
+                        f"{reason}: {macro_issue.get('path')}:{macro_issue.get('line')}"
+                    )
+                    continue
+                if macro_issue.get('code') in {
+                    'rendering_macro_in_body', 'opaque_macro_in_body',
+                    'opaque_environment_in_body',
+                }:
+                    report['issues'].append(
+                        ('rendering macro can alter the selected paper body: '
+                         if macro_issue.get('code') == 'rendering_macro_in_body' else
+                         'unassessed body macro can alter the selected paper body: '
+                         if macro_issue.get('code') == 'opaque_macro_in_body' else
+                         'unassessed body environment can alter the selected paper body: ') +
+                        f"{macro_issue.get('path')}:{macro_issue.get('line')}"
+                    )
+                    continue
+                if macro_issue.get('code') != 'custom_macro_in_body':
+                    continue
+                offset = macro_issue.get('char_offset')
+                if type(offset) is not int:
+                    continue
+                definition_key = (str(macro_issue.get('custom_kind')),
+                                  str(macro_issue.get('name')))
+                sensitive = definition_sensitive(definition_key)
+                invocation_end = macro_issue.get('end_offset')
+                alters_claim_literal = (
+                    type(invocation_end) is int
+                    and any(
+                        row['id'] in claim_linked and row.get('status') == 'located'
+                        and row.get('source_file') == macro_issue.get('path')
+                        and offset < row['end_offset'] and invocation_end > row['offset']
+                        for row in locations
+                    )
+                )
+                if sensitive or alters_claim_literal:
+                    report['issues'].append(
+                        'custom macro generates or can alter claim/Figure evidence: '
+                        f"{macro_issue.get('path')}:{macro_issue.get('line')}"
+                    )
+        report['figure_identity_checks'] = (
+            _figure_identity_checks(
+                root, state, policy, framework_text, scan, locations, observed,
+                main_path.parent.resolve())
+            if carrier_format == 'latex' else
+            _docx_figure_identity_checks(
+                root, state, policy, framework_text, scan, locations, observed)
+        )
         sources_by_figure = {row['figure_id']: row for row in report['figure_source_checks']}
         for row in report['figure_identity_checks']:
             source = sources_by_figure.get(row['figure_id'], {})
@@ -668,6 +1078,24 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         report['figure_caption_numeric_checks'] = _figure_caption_numeric_checks(
             state, policy, scan, b1, locations, report['figure_identity_checks'],
             report['figure_source_checks'], claim_contract)
+        structural_reference_spans = [
+            (row['source_file'], row['body_reference_structural_number_start'],
+             row['body_reference_structural_number_end'])
+            for row in report['figure_identity_checks']
+            if row.get('identity_status') == 'matched'
+            and isinstance(row.get('source_file'), str)
+            and type(row.get('body_reference_structural_number_start')) is int
+            and type(row.get('body_reference_structural_number_end')) is int
+        ]
+        structural_reference_spans.extend(
+            (row['source_file'], row['caption_structural_number_start'],
+             row['caption_structural_number_end'])
+            for row in report['figure_identity_checks']
+            if row.get('identity_status') == 'matched'
+            and isinstance(row.get('source_file'), str)
+            and type(row.get('caption_structural_number_start')) is int
+            and type(row.get('caption_structural_number_end')) is int
+        )
         by_id = {row['id']: row for row in locations}
         report['registered_location_gaps'] = [item['id'] for item in fragments
             if any(dep.startswith('claim:') for dep in item['depends_on'])
@@ -676,7 +1104,10 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         claim_by_id = {row['id']: row for row in claims}
         (report['unregistered_wording_candidates'], report['unregistered_wording_overflow'],
          wording_issue) = _unregistered_wording(scan, fragments, locations, claim_by_id,
-                                               observed['skill'])
+                                               observed['skill'],
+                                               skip_figure_spans=_policy_pair(policy) != (
+                                                   '1.5.0',
+                                                   'enforce_selected_paper_claim_chain'))
         if wording_issue:
             report['issues'].append(wording_issue)
         gaps = False
@@ -728,7 +1159,22 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
             try:
                 expected, expected_unit, form, places = _expected_number(
                     claim, b1, state, claim_contract, location_kind)
-                tokens = _numeric_tokens(prose)
+                numeric_prose = prose
+                if carrier_format == 'docx':
+                    # A hand-numbered Figure prefix or a declared body reference
+                    # may fall inside the source span between two registered
+                    # anchors.  Those literals identify structure; they are not
+                    # result claims and must not create a false multi-number hit.
+                    chars = list(prose)
+                    for path, start, end in structural_reference_spans:
+                        if path != location['source_file']:
+                            continue
+                        overlap_start = max(start, location['offset'])
+                        overlap_end = min(end, location['end_offset'])
+                        for index in range(overlap_start, overlap_end):
+                            chars[index - location['offset']] = ' '
+                    numeric_prose = ''.join(chars)
+                tokens = _numeric_tokens(numeric_prose)
                 if len(tokens) == 1:
                     observed_value, observed_unit, literal = tokens[0]
                     if ',' in literal:
@@ -761,9 +1207,13 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
             if not segment['in_document']:
                 continue
             path = segment['path']
-            masked = scan['files'][path]['masked']
+            entry = scan['files'][path]
+            masked = entry.get('prose', entry['masked'])
             for match in NUMBER.finditer(masked, segment['start'], segment['end']):
                 if any(p == path and start <= match.start() < end for p, start, end in checked_spans):
+                    continue
+                if any(p == path and start <= match.start() and match.end() <= end
+                       for p, start, end in structural_reference_spans):
                     continue
                 if len(report['unregistered_candidates']) >= 100:
                     break
@@ -929,7 +1379,7 @@ def formal_text_gate(project_root: str | Path, *,
 
 def formal_figure_gate(project_root: str | Path, *,
                        tex_main: str | Path = 'final_latex/main.tex') -> dict:
-    """Gate only the explicit 1.3.0/1.4.0 static text and declared Figure chain.
+    """Gate the explicit 1.3/1.4 LaTeX or 1.5 selected-carrier Figure chain.
 
     A passing result identifies already approved, current Figure files for a
     separate delivery proof. It does not approve visual evidence, the whole
@@ -940,6 +1390,7 @@ def formal_figure_gate(project_root: str | Path, *,
               'observed_sources': {'project': {}, 'skill': {}},
               'human_semantic_coverage': 'not_assessed',
               'policy_protocol_version': None, 'mode': None,
+              'carrier_format': None,
               'fragment_locations': [], 'figure_image_paths': [],
               'figure_graphic_bindings': []}
     observed = result['observed_sources']
@@ -987,13 +1438,14 @@ def formal_figure_gate(project_root: str | Path, *,
         if pair not in {
             ('1.3.0', 'enforce_latex_text_and_figure_chain'),
             ('1.4.0', 'enforce_latex_text_and_figure_chain'),
+            ('1.5.0', 'enforce_selected_paper_claim_chain'),
         }:
             raise EvidenceError('unsupported B2 policy protocol_version/mode pair')
-        main = Path(tex_main)
-        main = main.resolve() if main.is_absolute() else (root / main).resolve()
-        if main != (root / 'final_latex/main.tex').resolve():
+        carrier_format, _, main = _selected_carrier(root, policy, tex_main)
+        result['carrier_format'] = carrier_format
+        if pair != ('1.5.0', 'enforce_selected_paper_claim_chain') and main != (root / 'final_latex/main.tex').resolve():
             raise EvidenceError('B2 formal Figure gate requires final_latex/main.tex')
-        audit = inspect_project(root, tex_main=tex_main)
+        audit = inspect_project(root, tex_main=main)
         merge_read_sets(observed, audit.get('observed_sources', {}))
         for key in ('status', 'b1_status'):
             result['audit_status' if key == 'status' else key] = audit[key]
@@ -1004,9 +1456,14 @@ def formal_figure_gate(project_root: str | Path, *,
             result['issues'].append('B2 live claim consumption audit is not available: ' + audit['status'])
         for field in ('errors', 'issues'):
             result['issues'].extend(str(issue) for issue in audit.get(field, []))
-        tex_scan = audit.get('tex_scan', {})
-        if tex_scan.get('status') != 'scanned' or len(set(tex_scan.get('active_files', []))) < 2:
-            result['issues'].append('B2 formal Figure gate requires a proven active modular static LaTeX include graph')
+        paper_scan = audit.get('paper_scan', audit.get('tex_scan', {}))
+        minimum_files = 1 if pair == ('1.5.0', 'enforce_selected_paper_claim_chain') else 2
+        if (paper_scan.get('status') != 'scanned'
+                or len(set(paper_scan.get('active_files', []))) < minimum_files):
+            result['issues'].append(
+                'B2 formal Figure gate requires a fully assessed selected paper carrier'
+                if minimum_files == 1 else
+                'B2 formal Figure gate requires a proven active modular static LaTeX include graph')
         if audit.get('b1_status') != 'evidence_checked':
             result['issues'].append('live B1 source and assertion qualification is not evidence_checked')
         for item in audit['fragment_locations']:
@@ -1097,8 +1554,12 @@ def formal_figure_gate(project_root: str | Path, *,
                 break
         if len(audit.get('unregistered_candidates', [])) >= 100:
             result['issues'].append('unregistered numeric candidate report reached its limit')
-        if tex_scan.get('status') == 'scanned':
-            scan = scan_static_latex(root, main)
+        if carrier_format == 'latex' and paper_scan.get('status') == 'scanned':
+            scan = scan_static_latex(
+                root, main,
+                selected_carrier=pair == (
+                    '1.5.0', 'enforce_selected_paper_claim_chain'),
+            )
             for path, entry in scan['files'].items():
                 merge_read_sets(observed, {'project': {path: entry['sha256']}})
             figures = claim_figure.inspect_static_figures(scan)
@@ -1107,8 +1568,9 @@ def formal_figure_gate(project_root: str | Path, *,
             else:
                 graphic_rows = []
                 for binding in bindings:
+                    _, label = _binding_locator(policy, binding)
                     hits = [row for row in figures['figures']
-                            if row.get('label') == binding['latex_label'] and row['status'] == 'located']
+                            if row.get('label') == label and row['status'] == 'located']
                     if len(hits) != 1 or not hits[0].get('image'):
                         result['issues'].append('declared Figure literal image token is absent or ambiguous: ' +
                                                 binding['figure_id'])
@@ -1125,6 +1587,10 @@ def formal_figure_gate(project_root: str | Path, *,
                     result['figure_graphic_bindings'] = sorted(graphic_rows, key=lambda row: row['figure_id'])
                     result['figure_image_paths'] = sorted({row['image_path'] for row in graphic_rows})
                     result['status'] = 'passed'
+        elif carrier_format == 'docx' and paper_scan.get('status') == 'scanned':
+            if not result['issues'] and bindings:
+                result['figure_image_paths'] = sorted({row['image_path'] for row in bindings})
+                result['status'] = 'passed'
     except (OSError, ValueError, TypeError, KeyError, AttributeError, yaml.YAMLError) as exc:
         result['issues'].append(str(exc)[:4096])
     finally:
@@ -1147,6 +1613,21 @@ def formal_figure_gate(project_root: str | Path, *,
             result['figure_image_paths'] = []
             result['figure_graphic_bindings'] = []
     return result
+
+
+def formal_paper_gate(project_root: str | Path) -> dict:
+    """Run only the exact 1.5.0 selected-paper formal gate."""
+    result = formal_figure_gate(project_root)
+    if result.get('policy_protocol_version') == '1.5.0':
+        return result
+    if result.get('status') == 'not_applicable':
+        return result
+    return {
+        **result,
+        'status': 'not_applicable',
+        'reason': 'B2 policy does not select the 1.5.0 paper-carrier gate.',
+        'issues': [], 'figure_image_paths': [], 'figure_graphic_bindings': [],
+    }
 
 
 def main() -> int:

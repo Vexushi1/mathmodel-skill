@@ -75,7 +75,7 @@ Gate=`required` 后按 `core/user_execution_contract.yaml#solver_backends` 继�
 - `modify`：目标主张主体仍可使用，但区间、阈值、置信度、排序、边界或文字必须修改，并使依赖的 paper fragments 在完成同步前保持 stale；
 - `reject`：目标主张不能继续原样使用。若否决的是核心答案、核心模型结构或关键可行性判断，必须 `redo_required` 并按原因回退；若只是否决一个附加的“稳定性很强”等非核心 claim，可以删除/重写该 claim，而不强迫整题重算。
 
-显式采用 B2 `1.4.0/enforce_latex_text_and_figure_chain` 时，current 的 `modify/reject` 还必须记录 `impact_scope`，不得从 `target_claim` 或 `required_action` 自由文本猜测。`reject/core_answer` 精确声明 `return_stage=solve_validate`；`reject/model_validity` 精确声明 `return_stage=model_design`；`auxiliary_wording` 和 `modify` 不得携带 `return_stage`。若多个否证并存，`model_design` 优先。
+显式采用 B2 `1.4.0/enforce_latex_text_and_figure_chain` 或 `1.5.0/enforce_selected_paper_claim_chain` 时，current 的 `modify/reject` 还必须记录 `impact_scope`，不得从 `target_claim` 或 `required_action` 自由文本猜测。`reject/core_answer` 精确声明 `return_stage=solve_validate`；`reject/model_validity` 精确声明 `return_stage=model_design`；`auxiliary_wording` 和 `modify` 不得携带 `return_stage`。若多个否证并存，`model_design` 优先。
 
 每项证据至少记录：
 
@@ -84,7 +84,7 @@ Evidence ID
 → method/source
 → target claim
 → disposition
-→ impact scope（B2 1.4.0 current modify/reject）
+→ impact scope（B2 1.4.0/1.5.0 current modify/reject）
 → return stage（仅核心 reject）
 → key finding
 → required action

@@ -1,6 +1,14 @@
 # Changelog
 
-## 10.12.0
+## 10.13.0
+
+- Complete the B2 carrier and acceptance scope with opt-in `1.5.0/enforce_selected_paper_claim_chain`. A project selects one root-level `final_latex/*.tex` or `draft_docx/*.docx` entrypoint; the existing B1 claims, paper fragments, Figure source bindings and current approved bundle remain the only evidence authority.
+- Admit bounded static single-file and modular LaTeX while keeping dynamic includes, dynamically named or unbounded redefinitions, control-symbol definitions, preamble/global rendering effects and custom-macro-generated claim, caption or Figure structure fail closed. Selected LaTeX uses the existing v2 audit and v5 compile/recorder/package proof against the declared entrypoint.
+- Add a standard-library, bounded, read-only DOCX OOXML scanner for normalized main-body text, literal anchors, bookmark-linked body references, canonical DrawingML pictures, internal image relationships and media hashes. Revisions and property changes, fields, automatic numbering, DTD/entities in any XML part, altChunk/content parts, text boxes, chart/SmartArt or alternate image representations, external relationships, noncanonical OPC paths or identifiers, malformed bookmarks, unsafe or high-ratio ZIP structure and budget overflow cannot pass; the one visible embedded Figure source must equal the bound current approved image.
+- Extend explicit `docx` project sync to consume the same B2 machine chain. DOCX submission remains blocked without a supported rendered proof. Machine results keep `human_semantic_coverage=not_assessed` and never create a reviewer receipt or assert visual adequacy or whole-caption meaning.
+- Advance Project State Schema to 8.12.0, B2 contract to 1.8.0, State Transition to 1.6.0, Writing Reasoning to 1.10.0 and Runtime Assurance to 2.4.0. Policy 1.5.0 inherits the exact 1.4.0 structured rejection and stale propagation semantics; policies 1.0.0 through 1.4.0 retain their existing activation and proof behavior.
+
+## Previous release: 10.12.0
 
 - Add opt-in B2 policy `1.4.0/enforce_latex_text_and_figure_chain` with structured `impact_scope` and `return_stage` fields. Auxiliary wording rejection retains local fragment invalidation; core-answer rejection returns to `solve_validate`; model-validity rejection returns to `model_design` and revokes current semantic/model approval evidence.
 - Apply rejection lifecycle rewind, exact fragment stale propagation, project phase/next-gate updates, and typed cross-question invalidation through the existing project transaction. Under exact policy 1.4.0, a failed analysis conclusion receipt uses a dedicated solve-return event; no task code is rerun and no approval is renewed.

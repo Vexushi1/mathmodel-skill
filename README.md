@@ -1,4 +1,4 @@
-# mathmodel-skill v10.12.0
+# mathmodel-skill v10.13.0
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值语言由项目根策略统一选择。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。
 
@@ -21,7 +21,7 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 
 `python scripts/model_code_conformance.py <项目根> --question Q1 --stage primary` 只读核对当前批准SIB、阶段源码bundle和`implementation_conformance`覆盖声明。`--inventory`只列当前可定位对象与源码锚点，不自动生成已验证映射。范围、状态与限制见`core/model_code_conformance_contract.yaml`；使用说明见`templates/model/formula_code_closure.md`。
 
-`structure_verified`只表示记录/身份/静态引用闭合，不证明约束实际启用、数学等价或数值正确。没有记录为`not_assessed`；未支持结构为`needs_review`；旧记录、冲突或残缺声明阻断本次结构核验。A1 独立入口仍只读；A2 仅对显式启用阶段在现有交付/回执链中消费该结果，未启用项目不增加强制门。B1提供独立只读主张证据核验；B2审计入口仍只读，显式失效与结构化否证回退仅由原项目同步器处理，不改变普通路由门禁。可选结果图绑定在限定的模块化 LaTeX 图注中观察当前 B1 标量及专属 `figure_caption_decimals` 的数值形式；显式 B2 1.3.0/1.4.0 策略进入 Figure 机器链正式门，图注整体语义和视觉充分性仍需单独验收。
+`structure_verified`只表示记录/身份/静态引用闭合，不证明约束实际启用、数学等价或数值正确。没有记录为`not_assessed`；未支持结构为`needs_review`；旧记录、冲突或残缺声明阻断本次结构核验。A1 独立入口仍只读；A2 仅对显式启用阶段在现有交付/回执链中消费该结果，未启用项目不增加强制门。B1提供独立只读主张证据核验；B2审计入口仍只读，显式失效与结构化否证回退仅由原项目同步器处理，不改变普通路由门禁。1.3.0/1.4.0 保留模块化 LaTeX Figure 机器门；显式 1.5.0 可选择静态单文件/模块化 LaTeX 或有界 DOCX OOXML，并核对同一 B1、片段、来源、当前批准图片及字面图注。机器通过后图注整体语义、视觉充分性和人工语义覆盖仍为 `not_assessed`。
 
 ## 唯一 Authority 导航
 
@@ -72,6 +72,6 @@ python scripts/project_solver_backend.py --help
 
 ## B2：显式论文主张消费观察与有限文本门
 
-`python scripts/claim_consumption.py <项目根> --tex-main final_latex/main.tex` 始终只读，观察已登记主张、paper fragment 依赖与可证明静态包含的 LaTeX 字面源码位置。`observe` 1.0.0 不新增 claim 驱动的写入；显式 `propagate` 1.1.0 根据当前 `modify/reject` 处置的精确 B1 claim ID 增加局部失效，State 与 Framework 表行同事务提交。显式 `enforce_latex_text` 1.2.0 继承该失效路径，并只为活动模块化 LaTeX 中已登记的摘要及各问结果文本启用有限机器门。显式 `enforce_latex_text_and_figure_chain` 1.3.0 在同一次只读审计重做 1.2.0 文本条件，并使用 v5 LaTeX/Figure 证明链。1.4.0 继承该证明链，并要求 current `modify/reject` 显式声明影响类别；核心答案和模型有效性否证分别由现有同步事务回退到 `solve_validate` 和 `model_design`，辅助措辞仍只局部失效。旧策略及旧 v4 证明路径的行为不变。
+`python scripts/claim_consumption.py <项目根> --tex-main final_latex/main.tex` 始终只读，观察已登记主张、paper fragment 依赖与选定论文载体中的字面位置。`observe` 1.0.0 不新增 claim 驱动的写入；显式 `propagate` 1.1.0 根据当前 `modify/reject` 处置的精确 B1 claim ID 增加局部失效，State 与 Framework 表行同事务提交。显式 `enforce_latex_text` 1.2.0 继承该失效路径，并只为活动模块化 LaTeX 中已登记的摘要及各问结果文本启用有限机器门。显式 `enforce_latex_text_and_figure_chain` 1.3.0 在同一次只读审计重做 1.2.0 文本条件，并使用 v5 LaTeX/Figure 证明链。1.4.0 继承该证明链，并要求 current `modify/reject` 显式声明影响类别；核心答案和模型有效性否证分别由现有同步事务回退到 `solve_validate` 和 `model_design`，辅助措辞仍只局部失效。1.5.0 继承该回退语义，并要求 `paper_source` 显式选择 LaTeX 或 DOCX；动态包含、由自定义宏生成的相关正文/图注、DOCX 修订/字段/外链及不安全包结构一律保守阻断。旧策略及旧 v4/v5 证明路径的行为不变。
 
-可选 `figure_bindings` 在只读审计中核对工作簿驱动结果图的 Figure ID、当前 Framework 登记、State 片段及实际/已批准图片路径、活动模块化 LaTeX 的字面标签、图注、图片引用与正文引用。每个绑定可再声明 `source_bindings`，用当前 Figure 关联 claim 的 B1 来源闭包、工作表及精确表头观察来源；同时复核原有已验证脚本/图片 bundle 哈希，并要求本次 scoped Figure bundle 的全部发现路径属于原 `approved_figures`。报告分别给出 `figure_source_checks` 与 `approval_freshness`，旧绑定未声明来源时仍为 `not_assessed`。1.3.0/1.4.0 策略只将当前身份、来源、原批准 bundle、长图注标量和活动片段观察纳入正式 Figure 机器门；审计不重新批准图片，不执行绘图脚本，也不证明图片视觉充分性或图注整体语义。未声明新策略的项目沿用原门；机理/全局示意图、表格、DOCX、单文件或动态 TeX、PDF 呈现、全文召回及人工语义支持仍待后续验收。具体边界见 `core/claim_consumption_contract.yaml`。
+可选 `figure_bindings` 在只读审计中核对工作簿驱动结果图的 Figure ID、当前 Framework 登记、State 片段及实际/已批准图片路径。每个绑定可再声明 `source_bindings`，用当前 Figure 关联 claim 的 B1 来源闭包、工作表及精确表头观察来源；同时复核原有已验证脚本/图片 bundle 哈希，并要求本次 scoped Figure bundle 的全部发现路径属于原 `approved_figures`。1.3.0/1.4.0 使用活动模块化 LaTeX 的字面标签、长图注、图片与正文引用；1.5.0 的 `carrier_locator` 使用 LaTeX label 或包含一个内嵌图片和字面图注的 DOCX bookmark，DOCX 内嵌 media 必须与当前批准图片 SHA-256 一致。审计不重新批准图片，不执行绘图脚本，也不证明视觉充分性、整段图注语义或人工审阅通过；DOCX 机器门也不能冒充 PDF/提交证明。具体边界见 `core/claim_consumption_contract.yaml`。

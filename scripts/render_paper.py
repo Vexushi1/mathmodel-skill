@@ -78,6 +78,30 @@ def resolve_main(
             raise SystemExit(f"main tex not found: {main}")
         return main
 
+    # Exact B2 1.5 makes its selected LaTeX carrier authoritative even when a
+    # legacy main.tex remains beside it.  This is only discovery; the formal
+    # audit still revalidates the policy and exact entrypoint.
+    state_path = project.parent / "state/project_state.yaml"
+    if project.name == "final_latex" and state_path.is_file():
+        try:
+            state = yaml.safe_load(state_path.read_text(encoding="utf-8")) or {}
+            framework = state.get("paper_framework") if isinstance(state, Mapping) else None
+            policy = (framework.get("claim_consumption_policy")
+                      if isinstance(framework, Mapping) else None)
+            source = policy.get("paper_source") if isinstance(policy, Mapping) else None
+            if ((policy.get("protocol_version"), policy.get("mode"))
+                    == ("1.5.0", "enforce_selected_paper_claim_chain")
+                    and isinstance(source, Mapping) and source.get("format") == "latex"):
+                entrypoint = source.get("entrypoint")
+                selected = ((project.parent / str(entrypoint)).resolve()
+                            if isinstance(entrypoint, str) else None)
+                if (selected is None or selected.parent != project.resolve()
+                        or selected.suffix.lower() != ".tex" or not selected.is_file()):
+                    raise SystemExit("selected B2 1.5 LaTeX entrypoint is missing or invalid")
+                return selected
+        except (OSError, UnicodeError, yaml.YAMLError, AttributeError, TypeError) as exc:
+            raise SystemExit(f"cannot read selected B2 1.5 LaTeX entrypoint: {exc}") from exc
+
     candidates: list[Path] = []
     if profile:
         for key in ("project_main", "template_main"):

@@ -342,8 +342,11 @@ def _validate_figure_bindings(
                       for row in obligations if isinstance(row, Mapping)
                       and isinstance(row.get("claim_id"), str)
                       and isinstance(row.get("fragment_kinds"), list)}
-    seen: dict[str, set[str]] = {key: set() for key in
-                                 ("figure_id", "fragment_id", "latex_label", "image_path")}
+    cross_carrier = policy.get("protocol_version") == "1.5.0"
+    identity_keys = (("figure_id", "fragment_id", "image_path") if cross_carrier else
+                     ("figure_id", "fragment_id", "latex_label", "image_path"))
+    seen: dict[str, set[str]] = {key: set() for key in identity_keys}
+    seen_locator: set[tuple[str, str]] = set()
     for index, binding in enumerate(bindings):
         prefix = f"paper_framework.claim_consumption_policy.figure_bindings[{index}]"
         if not isinstance(binding, Mapping):
@@ -357,6 +360,22 @@ def _validate_figure_bindings(
                 issues.append(f"{prefix}.{key} duplicates a Figure binding: {value}")
             else:
                 used.add(value)
+        if cross_carrier:
+            locator = binding.get("carrier_locator")
+            if not isinstance(locator, Mapping):
+                issues.append(f"{prefix}.carrier_locator must be a mapping")
+            else:
+                kind, value = locator.get("kind"), locator.get("value")
+                if not isinstance(kind, str) or not isinstance(value, str) or not value:
+                    issues.append(f"{prefix}.carrier_locator requires kind and nonempty value")
+                elif (kind, value) in seen_locator:
+                    issues.append(f"{prefix}.carrier_locator duplicates a Figure binding: {kind}/{value}")
+                else:
+                    seen_locator.add((kind, value))
+        else:
+            label = binding.get("latex_label")
+            if not isinstance(label, str) or not label:
+                issues.append(f"{prefix}.latex_label must be a nonempty string")
         image_path = binding.get("image_path")
         if isinstance(image_path, str):
             parts = image_path.split("/")
@@ -375,7 +394,7 @@ def _validate_figure_bindings(
         elif fragment.get("kind") != "figure_or_table_claim":
             issues.append(f"{prefix}.fragment_id requires a figure_or_table_claim fragment: {fragment_id}")
         elif (fragment.get("status") != "current"
-              and not (policy.get("protocol_version") == "1.4.0"
+              and not (policy.get("protocol_version") in {"1.4.0", "1.5.0"}
                        and fragment.get("status") == "stale")):
             issues.append(f"{prefix}.fragment_id requires a current fragment: {fragment_id}")
         else:
@@ -454,9 +473,13 @@ def _validate_claim_consumption_policy(framework: Mapping[str, Any]) -> list[str
     supported_policies = (("1.0.0", "observe"), ("1.1.0", "propagate"),
                           ("1.2.0", "enforce_latex_text"),
                           ("1.3.0", "enforce_latex_text_and_figure_chain"),
-                          ("1.4.0", "enforce_latex_text_and_figure_chain"))
+                          ("1.4.0", "enforce_latex_text_and_figure_chain"),
+                          ("1.5.0", "enforce_selected_paper_claim_chain"))
     if (policy.get("protocol_version"), policy.get("mode")) not in supported_policies:
         return ["paper_framework.claim_consumption_policy requires a supported protocol_version/mode pair"]
+    issues: list[str] = []
+    if policy.get("protocol_version") != "1.5.0" and "paper_source" in policy:
+        issues.append("paper_source is only valid for B2 protocol 1.5.0")
     record = framework.get("claim_evidence")
     if not isinstance(record, Mapping):
         return ["paper_framework.claim_consumption_policy requires a B1 claim_evidence record"]
@@ -465,10 +488,10 @@ def _validate_claim_consumption_policy(framework: Mapping[str, Any]) -> list[str
     fragments = framework.get("paper_fragments")
     if not isinstance(claims, list) or not isinstance(obligations, list) or not isinstance(fragments, list):
         return ["paper_framework.claim_consumption_policy requires claim and paper fragment arrays"]
-    issues: list[str] = []
     if (policy.get("protocol_version"), policy.get("mode")) in {
         ("1.3.0", "enforce_latex_text_and_figure_chain"),
         ("1.4.0", "enforce_latex_text_and_figure_chain"),
+        ("1.5.0", "enforce_selected_paper_claim_chain"),
     }:
         bindings = policy.get("figure_bindings")
         if not isinstance(bindings, list) or not bindings:
@@ -476,6 +499,85 @@ def _validate_claim_consumption_policy(framework: Mapping[str, Any]) -> list[str
         elif any(not isinstance(binding, Mapping) or not binding.get("source_bindings")
                  for binding in bindings):
             issues.append("formal Figure policy requires source_bindings on every Figure binding")
+    if (policy.get("protocol_version"), policy.get("mode")) == (
+        "1.5.0", "enforce_selected_paper_claim_chain"
+    ):
+        paper_source = policy.get("paper_source")
+        if not isinstance(paper_source, Mapping):
+            issues.append("B2 1.5.0 requires paper_source")
+        else:
+            paper_format = paper_source.get("format")
+            entrypoint = paper_source.get("entrypoint")
+            expected_prefix, expected_suffix = (
+                ("final_latex/", ".tex") if paper_format == "latex"
+                else ("draft_docx/", ".docx") if paper_format == "docx"
+                else (None, None)
+            )
+            if expected_prefix is None or not isinstance(entrypoint, str) or not (
+                entrypoint.startswith(expected_prefix) and entrypoint.endswith(expected_suffix)
+            ):
+                issues.append("B2 1.5.0 paper_source format and entrypoint do not match")
+            for fragment in fragments:
+                if not isinstance(fragment, Mapping):
+                    continue
+                source_file = fragment.get("source_file")
+                if paper_format == "docx" and source_file != entrypoint:
+                    issues.append(
+                        f"{fragment.get('id', '<unknown>')}.source_file must equal the selected DOCX entrypoint"
+                    )
+                elif paper_format == "latex" and (
+                    not isinstance(source_file, str)
+                    or not source_file.startswith("final_latex/")
+                    or not source_file.endswith(".tex")
+                ):
+                    issues.append(
+                        f"{fragment.get('id', '<unknown>')}.source_file must name a final_latex TeX source"
+                    )
+            for index, binding in enumerate(policy.get("figure_bindings") or []):
+                if not isinstance(binding, Mapping):
+                    continue
+                locator = binding.get("carrier_locator")
+                kind = locator.get("kind") if isinstance(locator, Mapping) else None
+                expected_kind = "latex_label" if paper_format == "latex" else "docx_bookmark"
+                if kind != expected_kind:
+                    issues.append(
+                        f"paper_framework.claim_consumption_policy.figure_bindings[{index}].carrier_locator "
+                        f"must use {expected_kind} for {paper_format}"
+                    )
+                if (paper_format == "latex" and isinstance(locator, Mapping)
+                        and "body_reference" in locator):
+                    issues.append(
+                        f"paper_framework.claim_consumption_policy.figure_bindings[{index}].carrier_locator "
+                        "must not declare body_reference for latex"
+                    )
+                if paper_format == "docx" and (
+                    not isinstance(locator, Mapping)
+                    or not isinstance(locator.get("body_reference"), str)
+                    or not locator.get("body_reference", "").strip()
+                ):
+                    issues.append(
+                        f"paper_framework.claim_consumption_policy.figure_bindings[{index}].carrier_locator "
+                        "requires a DOCX body_reference"
+                    )
+    else:
+        for fragment in fragments:
+            if not isinstance(fragment, Mapping):
+                continue
+            source_file = fragment.get("source_file")
+            if source_file is not None and (
+                not isinstance(source_file, str)
+                or not source_file.startswith("final_latex/")
+                or not source_file.endswith(".tex")
+            ):
+                issues.append(
+                    f"{fragment.get('id', '<unknown>')}.source_file must keep the legacy final_latex TeX shape"
+                )
+        for index, binding in enumerate(policy.get("figure_bindings") or []):
+            if isinstance(binding, Mapping) and "carrier_locator" in binding:
+                issues.append(
+                    f"paper_framework.claim_consumption_policy.figure_bindings[{index}].carrier_locator "
+                    "is only valid for B2 protocol 1.5.0"
+                )
     if len(fragments) > 512:
         return ["paper_framework.claim_consumption_policy fragment budget exceeded (512)"]
     claim_scope: dict[str, str] = {}
@@ -577,7 +679,7 @@ def _validate_analysis_dispositions(
             issues.append(f"{name}.{evidence_id}.required_action is required for {disposition}")
         if structured_rejection and current and structured_action and not impact_scope:
             issues.append(
-                f"{name}.{evidence_id}.impact_scope is required by B2 policy 1.4.0 for current {disposition}"
+                f"{name}.{evidence_id}.impact_scope is required by the active structured B2 policy for current {disposition}"
             )
         if (structured_rejection and current and disposition == "reject"
                 and isinstance(impact_scope, str)
@@ -933,7 +1035,10 @@ def validate_state_payload(
     structured_rejection = (
         isinstance(policy, Mapping)
         and (policy.get("protocol_version"), policy.get("mode"))
-        == ("1.4.0", "enforce_latex_text_and_figure_chain")
+        in {
+            ("1.4.0", "enforce_latex_text_and_figure_chain"),
+            ("1.5.0", "enforce_selected_paper_claim_chain"),
+        }
     )
     structured_scopes: dict[str, set[str]] = {}
     structured_return_active = False

@@ -143,6 +143,7 @@ class V5ReportTests(FigureProofFixture):
         }
         audit = {
             "audit_schema_version": "2.0.0", "status": "passed", "mode": "formal",
+            "main": "main.tex",
             **delivery.source_bundle_snapshot(self.main, **self.options),
             "framework_sha256": delivery.sha256_file(self.framework),
             "claim_figure_gate": self.gate,

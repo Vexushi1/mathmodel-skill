@@ -236,8 +236,11 @@ def _v5_graphic_context(
     project = _v5_no_alias(project_root, "project root")
     main_path = _v5_no_alias(main, "main source")
     root = project / "final_latex"
-    if main_path != root / "main.tex" or not root.is_dir():
-        raise ValueError("v5 proof requires project_root/final_latex/main.tex")
+    expected_main = _selected_latex_main(project)
+    if main_path != expected_main or not root.is_dir():
+        raise ValueError(
+            "v5 proof requires the current policy's selected LaTeX entrypoint under final_latex"
+        )
     approved: dict[str, Path] = {}
     for token, value in (allowed_external_graphics or {}).items():
         if not isinstance(token, str) or not token.startswith("../figures/") or (
@@ -401,6 +404,21 @@ def sha256_file(path: Path) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def _proof_path_identity_issue(
+    *, field: str, raw: Any, expected: Path, latex_root: Path,
+) -> str | None:
+    """Require writer-canonical relative identities for proof carrier fields."""
+    root = latex_root.resolve()
+    target = expected.resolve()
+    try:
+        expected_relative = target.relative_to(root).as_posix()
+    except ValueError:
+        return f"{field}目标越出当前LaTeX工程"
+    if not isinstance(raw, str) or raw != expected_relative:
+        return f"{field}与当前选定载体不一致或不是规范的LaTeX工程相对路径"
+    return None
+
+
 def source_bundle_snapshot(
     main: Path, bib_path: Path | None = None, *, project_root: Path | None = None,
     allowed_external_graphics: Mapping[str, Path] | None = None,
@@ -453,10 +471,10 @@ def _v5_recorded_input_snapshot(
     allowed_external_graphics: Mapping[str, Path] | None,
 ) -> dict[str, Any]:
     project, root, approved = _v5_graphic_context(main, project_root, allowed_external_graphics)
-    main = root / "main.tex"
+    main = main.resolve()
     recorder = main.with_suffix(".fls")
     if not recorder.is_file():
-        return {"recorder": recorder.name, "recorder_sha256": None, "actual_input_files": [],
+        return {"recorder": recorder.relative_to(root).as_posix(), "recorder_sha256": None, "actual_input_files": [],
                 "dependency_issues": ["缺少实际编译 recorder (.fls)；请使用当前 render_paper.py 重编译"]}
     issues: list[str] = []
     lines = recorder.read_text(encoding="utf-8-sig", errors="strict").splitlines()
@@ -509,7 +527,7 @@ def _v5_recorded_input_snapshot(
             records.append({"path": relative, "sha256": sha256_file(path)})
         if path not in declared:
             issues.append(f"实际编译输入未被静态审计覆盖: {relative}；请使用可绑定的显式项目输入")
-    return {"recorder": recorder.name, "recorder_sha256": sha256_file(recorder),
+    return {"recorder": recorder.relative_to(root).as_posix(), "recorder_sha256": sha256_file(recorder),
             "actual_input_files": records, "dependency_issues": issues}
 
 
@@ -656,42 +674,98 @@ def _claim_text_proof_issues(*, project: Path, main: Path,
     return []
 
 
-def _v5_policy_declared(main: Path) -> bool:
-    project = main.resolve().parent.parent
-    state_path = project / "state" / "project_state.yaml"
+def _project_root_for_main(main: Path) -> Path:
+    """Locate the project whose selected LaTeX source contains ``main``."""
+    resolved = main.resolve()
+    for candidate in resolved.parents:
+        if ((candidate / "state/project_state.yaml").is_file()
+                and resolved.is_relative_to(candidate / "final_latex")):
+            return candidate
+    return resolved.parent.parent
+
+
+def _claim_policy(project: Path) -> Mapping[str, Any] | None:
+    state_path = project / "state/project_state.yaml"
     if not state_path.is_file():
-        return False
+        return None
     state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
     if not isinstance(state, Mapping):
         raise ValueError("project State is malformed; cannot select LaTeX proof version")
     framework = state.get("paper_framework")
     if framework is None:
-        return False
+        return None
     if not isinstance(framework, Mapping):
         raise ValueError("paper_framework is malformed; cannot select LaTeX proof version")
     policy = framework.get("claim_consumption_policy")
     if policy is None:
-        return False
+        return None
     if not isinstance(policy, Mapping):
         raise ValueError("claim_consumption_policy is malformed; cannot select LaTeX proof version")
-    return (policy.get("protocol_version") in {"1.3.0", "1.4.0"} or
-            policy.get("mode") == "enforce_latex_text_and_figure_chain")
+    return policy
+
+
+def _selected_latex_main(project: Path) -> Path:
+    """Use the 1.5 carrier declaration; preserve the legacy main.tex default."""
+    policy = _claim_policy(project)
+    pair = ((policy.get("protocol_version"), policy.get("mode"))
+            if isinstance(policy, Mapping) else None)
+    if pair != ("1.5.0", "enforce_selected_paper_claim_chain"):
+        return (project / "final_latex/main.tex").resolve()
+    source = policy.get("paper_source")
+    if not isinstance(source, Mapping) or source.get("format") != "latex":
+        raise ValueError("B2 1.5 selected carrier is not LaTeX")
+    entrypoint = source.get("entrypoint")
+    if not isinstance(entrypoint, str) or not entrypoint.strip():
+        raise ValueError("B2 1.5 selected LaTeX entrypoint is missing")
+    selected = (project / entrypoint).resolve()
+    latex_root = (project / "final_latex").resolve()
+    if not selected.is_relative_to(latex_root) or selected.suffix.lower() != ".tex":
+        raise ValueError("B2 1.5 selected LaTeX entrypoint must stay under final_latex")
+    return selected
+
+
+def _v5_policy_declared(main: Path) -> bool:
+    project = _project_root_for_main(main)
+    policy = _claim_policy(project)
+    if policy is None:
+        return False
+    pair = (policy.get("protocol_version"), policy.get("mode"))
+    legacy = (policy.get("protocol_version") in {"1.3.0", "1.4.0"} or
+              policy.get("mode") == "enforce_latex_text_and_figure_chain")
+    selected = pair == ("1.5.0", "enforce_selected_paper_claim_chain")
+    if selected:
+        source = policy.get("paper_source")
+        return isinstance(source, Mapping) and source.get("format") == "latex"
+    return legacy
 
 
 def _v5_live_figure_options(main: Path, report: Mapping[str, Any] | None = None) -> dict[str, Any]:
     """Reconstruct Figure authority from current project bytes, never a report allowlist."""
     from claim_consumption import formal_figure_gate
 
-    project_root = main.resolve().parent.parent
-    gate = formal_figure_gate(project_root, tex_main=main)
+    project_root = _project_root_for_main(main)
+    policy = _claim_policy(project_root)
+    pair = ((policy.get("protocol_version"), policy.get("mode"))
+            if isinstance(policy, Mapping) else None)
+    selected = pair == ("1.5.0", "enforce_selected_paper_claim_chain")
+    if selected:
+        from claim_consumption import formal_paper_gate
+        gate = formal_paper_gate(project_root)
+    else:
+        gate = formal_figure_gate(project_root, tex_main=main)
+    expected_mode = ("enforce_selected_paper_claim_chain" if selected
+                     else "enforce_latex_text_and_figure_chain")
+    expected_versions = {"1.5.0"} if selected else {"1.3.0", "1.4.0"}
     if (gate.get("status") != "passed"
-            or gate.get("policy_protocol_version") not in {"1.3.0", "1.4.0"}
-            or gate.get("mode") != "enforce_latex_text_and_figure_chain"):
+            or gate.get("carrier_format", "latex") != "latex"
+            or gate.get("policy_protocol_version") not in expected_versions
+            or gate.get("mode") != expected_mode):
         detail = "; ".join(str(x) for x in gate.get("issues", [])[:8])
         raise ValueError("当前 B2 正式 Figure 门未通过" + (": " + detail if detail else ""))
     if report is not None:
         recorded = report.get("claim_figure_gate")
-        fields = ("status", "policy_protocol_version", "mode", "human_semantic_coverage",
+        fields = ("status", "policy_protocol_version", "mode", "carrier_format",
+                  "human_semantic_coverage",
                   "observed_sources", "issues", "figure_image_paths", "figure_graphic_bindings")
         expected = {key: gate[key] for key in fields if key in gate}
         if not isinstance(recorded, Mapping) or dict(recorded) != expected:
@@ -735,6 +809,12 @@ def verify_audit_report(
         issues.append("latex_audit_report未通过")
     if require_formal and str(report.get("mode", "")) != "formal":
         issues.append("正式交付不得使用template_smoke审计证明")
+    identity_issue = _proof_path_identity_issue(
+        field="latex_audit_report.main", raw=report.get("main"),
+        expected=main, latex_root=main.parent,
+    )
+    if identity_issue:
+        issues.append(identity_issue)
     try:
         options = _v5_live_figure_options(main, report) if figure_mode else {}
         snapshot = source_bundle_snapshot(main, **options)
@@ -902,6 +982,15 @@ def verify_compile_report(
         issues.append("compile_report未通过")
     if str(report.get("attestation_mode", "")) != "formal":
         issues.append("正式交付不得使用template_smoke编译证明")
+    for field, raw, expected in (
+        ("compile_report.main", report.get("main"), main),
+        ("compile_report.pdf", report.get("pdf"), pdf),
+    ):
+        identity_issue = _proof_path_identity_issue(
+            field=field, raw=raw, expected=expected, latex_root=main.parent,
+        )
+        if identity_issue:
+            issues.append(identity_issue)
     try:
         figure_options = _v5_live_figure_options(main) if figure_mode else {}
         snapshot = source_bundle_snapshot(main, **figure_options)

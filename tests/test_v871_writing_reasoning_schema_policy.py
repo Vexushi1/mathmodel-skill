@@ -14,7 +14,7 @@ POLICY = ROOT / "docs" / "v871_writing_reasoning_schema_version_policy.md"
 class TestV871WritingReasoningSchemaPolicy(unittest.TestCase):
     def test_current_reasoning_schema_family_is_190(self):
         contract = yaml.safe_load(CONTRACT.read_text(encoding="utf-8"))
-        self.assertEqual("1.9.0", contract["schema_version"])
+        self.assertEqual("1.10.0", contract["schema_version"])
 
     def test_policy_defines_parser_compatibility_not_skill_release_mirroring(self):
         text = POLICY.read_text(encoding="utf-8")

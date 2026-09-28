@@ -1,4 +1,4 @@
-version: 1.5.0
+version: 1.6.0
 status: active
 introduced_in_staged_version: 9.0.0
 purpose: >-
@@ -155,7 +155,7 @@ profiles:
 
 transition_events:
   core_answer_rejected:
-    caller_scope: explicit_B2_1.4.0_current_reject_only
+    caller_scope: explicit_B2_1.4.0_or_1.5.0_current_reject_only
     own_profile: core_answer_rejection
     emitted_impacts: [result]
     own_status_cap: designed
@@ -175,7 +175,7 @@ transition_events:
       data: solve_validate
       legacy_untyped: model_design
   analysis_conclusion_rejected:
-    caller_scope: failed_analysis_conclusion_receipt_under_exact_B2_1.4.0_only
+    caller_scope: failed_analysis_conclusion_receipt_under_exact_B2_1.4.0_or_1.5.0_only
     own_profile: core_answer_rejection
     emitted_impacts: [result]
     own_status_cap: designed
@@ -195,7 +195,7 @@ transition_events:
       data: solve_validate
       legacy_untyped: model_design
   model_validity_rejected:
-    caller_scope: explicit_B2_1.4.0_current_reject_only
+    caller_scope: explicit_B2_1.4.0_or_1.5.0_current_reject_only
     own_profile: model_validity_rejection
     emitted_impacts: [model, result, parameter, data]
     own_status_cap: audited
