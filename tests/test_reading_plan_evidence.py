@@ -618,6 +618,41 @@ class AuditClosureProjectionTests(unittest.TestCase):
         )
         self.assertEqual(projected["pre_delivery_gates"], [])
 
+    def test_b2b6_carrier_composes_with_registered_solver_fingerprint_sources(self):
+        old, new = self.pair()
+        self.prepare_b2b6(old, new)
+        solver_sources = [
+            {"path": path, "sha256": f"bound-{index}"}
+            for index, path in enumerate((
+                "core/user_execution_contract.yaml",
+                "core/output_contract.yaml",
+                "core/code_quality_contract.yaml",
+            ))
+        ]
+        new["assurance"]["authority_fingerprint"]["sources"].extend(solver_sources)
+        projected, changes = EVIDENCE.approved_b2b6_carrier_change(
+            "facts_current", old, new, deepcopy(EVIDENCE.B2B6_AUTHORITY_VERSIONS)
+        )
+        self.assertEqual(projected, old)
+        source_changes = [
+            item for item in changes
+            if item["path"] == "assurance.authority_fingerprint.sources"
+        ]
+        self.assertEqual(len(source_changes), 2)
+        self.assertEqual(source_changes[-1]["baseline"], solver_sources)
+
+    def test_b2b6_carrier_keeps_unknown_fingerprint_source_visible(self):
+        old, new = self.pair()
+        self.prepare_b2b6(old, new)
+        new["assurance"]["authority_fingerprint"]["sources"].append(
+            {"path": "core/unregistered.yaml", "sha256": "unknown"}
+        )
+        projected, changes = EVIDENCE.approved_b2b6_carrier_change(
+            "facts_current", old, new, deepcopy(EVIDENCE.B2B6_AUTHORITY_VERSIONS)
+        )
+        self.assertEqual(projected, new)
+        self.assertEqual(changes, [])
+
     def test_b2b6_carrier_rejects_unknown_case_skill_or_authority_version(self):
         mutations = [
             ("future_case", "10.12.0", None),

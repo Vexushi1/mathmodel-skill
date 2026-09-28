@@ -573,7 +573,7 @@ def approved_b2b6_carrier_change(identifier, old, new, candidate_authority_versi
     ]
     exact_fingerprint_extension = (
         [row.get("path") for row in added_authorities] == fingerprint_additions
-        and filtered_sources == old_sources
+        and all(set(row) == {"path", "sha256"} for row in added_authorities)
     )
     if (identifier not in {case[0] for case in CASES}
             or old.get("version") != "<EXPECTED_P9_RELEASE_CARRIER_CHANGE>"
@@ -587,7 +587,15 @@ def approved_b2b6_carrier_change(identifier, old, new, candidate_authority_versi
     predecessor["version"] = "10.11.1"
     predecessor["assurance"]["schema_version"] = "2.2.0"
     predecessor["assurance"]["authority_fingerprint"]["sources"] = deepcopy(filtered_sources)
+    predecessor, solver_changes = approved_solver_changes(old, predecessor)
+    projected_sources = (
+        ((predecessor.get("assurance") or {}).get("authority_fingerprint") or {})
+        .get("sources") or []
+    )
+    if projected_sources != old_sources:
+        return deepcopy(new), []
     projected, changes = approved_b2b5_carrier_change(identifier, old, predecessor)
+    changes = solver_changes + changes
     for change in changes:
         if change["path"] == "version":
             change["candidate"] = B2B6_AUTHORITY_VERSIONS["skill"]
@@ -604,7 +612,7 @@ def approved_b2b6_carrier_change(identifier, old, new, candidate_authority_versi
         },
         {
             "path": "assurance.authority_fingerprint.sources",
-            "baseline": old_sources, "candidate": new_sources,
+            "baseline": filtered_sources, "candidate": new_sources,
             "approval": "B2b6 binds Project State Schema and State Transition Authority into the runtime fingerprint",
         },
     ])
