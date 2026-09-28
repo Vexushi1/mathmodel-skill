@@ -96,7 +96,7 @@ class B2cSelectedLatexAcceptanceTests(unittest.TestCase):
         self.assertEqual(audit["human_semantic_coverage"], "not_assessed")
         self.assertEqual(gate["human_semantic_coverage"], "not_assessed")
 
-    def test_static_single_file_latex_is_in_scope(self):
+    def _select_static_single_file_latex(self):
         main_text = (
             "\\documentclass{article}\n"
             "\\usepackage{graphicx}\n"
@@ -120,11 +120,25 @@ class B2cSelectedLatexAcceptanceTests(unittest.TestCase):
         self.registry_row = "|".join(cells)
         self.save_projection()
 
+    def test_static_single_file_latex_is_in_scope(self):
+        self._select_static_single_file_latex()
         audit = claims.inspect_project(self.root)
         gate = claims.formal_paper_gate(self.root)
         self.assertEqual(audit["paper_scan"]["active_files"], ["final_latex/main.tex"], audit)
         self.assertEqual(gate["status"], "passed", gate)
         self.assertEqual(gate["human_semantic_coverage"], "not_assessed")
+
+    def test_single_file_latex_omitted_required_body_claim_fails_closed(self):
+        self._select_static_single_file_latex()
+        main = self.latex / "main.tex"
+        main.write_text(main.read_text(encoding="utf-8").replace(
+            "Result: 100.00.\n", "Unrelated text.\n"), encoding="utf-8")
+        audit = claims.inspect_project(self.root)
+        coverage = {(row["claim_id"], row["fragment_kind"]): row["status"]
+                    for row in audit["required_coverage"]}
+        self.assertEqual(audit["figure_identity_checks"][0]["identity_status"], "matched", audit)
+        self.assertEqual(coverage[("answer_claim", "question_result_text")], "gap", audit)
+        self.assert_failed_without_human_approval(claims.formal_paper_gate(self.root))
 
     def test_latex_selection_rejects_explicit_docx_scope_after_running_same_gate(self):
         report = sync_project.synchronize(self.root, write=False, delivery_scope="docx")
@@ -708,6 +722,17 @@ class B2cSelectedDocxAcceptanceTests(unittest.TestCase):
         self.assertEqual(gate["figure_graphic_bindings"], [])
         self.assertEqual(audit["human_semantic_coverage"], "not_assessed")
         self.assertEqual(gate["human_semantic_coverage"], "not_assessed")
+
+    def test_docx_omitted_required_body_claim_fails_closed(self):
+        self._write_docx(body="Unrelated text.")
+        audit = claims.inspect_project(self.root)
+        coverage = {(row["claim_id"], row["fragment_kind"]): row["status"]
+                    for row in audit["required_coverage"]}
+        self.assertEqual(audit["figure_identity_checks"][0]["identity_status"], "matched", audit)
+        self.assertEqual(coverage[("answer_claim", "question_result_text")], "gap", audit)
+        self.assert_failed_without_human_approval(claims.formal_paper_gate(self.root))
+        report = sync_project.synchronize(self.root, write=False, delivery_scope="docx")
+        self.assertEqual(report["claim_paper_gate"]["status"], "failed", report)
 
     def test_docx_literal_figure_number_is_structural_not_a_result_claim(self):
         caption = "Figure 1. Result evidence 100.00 ratio."
