@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """B2 opt-in claim consumption inspection of static LaTeX sources.
 
-The independent observe/propagate audit stays read-only. Explicit 1.2.0 and
-1.3.0 policies may use these bounded observations as limited formal text and
+The independent observe/propagate audit stays read-only. Explicit 1.2.0,
+1.3.0 and 1.4.0 policies may use these bounded observations as limited formal text and
 Figure-chain gates; neither route establishes human semantic coverage.
 """
 from __future__ import annotations
@@ -577,7 +577,7 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
         for path in ('scripts/claim_consumption.py', 'scripts/claim_tex.py',
                      'scripts/validate_project_state.py'):
             bounded._read(ROOT, path, 2 * 1024 * 1024, observed['skill'])
-        if contract.get('version') != '1.6.0':
+        if contract.get('version') != '1.7.0':
             raise EvidenceError('unsupported B2 contract version')
         policy = framework['claim_consumption_policy']
         if isinstance(policy, Mapping) and policy.get('figure_bindings'):
@@ -929,7 +929,7 @@ def formal_text_gate(project_root: str | Path, *,
 
 def formal_figure_gate(project_root: str | Path, *,
                        tex_main: str | Path = 'final_latex/main.tex') -> dict:
-    """Gate only the explicit 1.3.0 static text and declared Figure chain.
+    """Gate only the explicit 1.3.0/1.4.0 static text and declared Figure chain.
 
     A passing result identifies already approved, current Figure files for a
     separate delivery proof. It does not approve visual evidence, the whole
@@ -984,7 +984,10 @@ def formal_figure_gate(project_root: str | Path, *,
             result.update(status='not_applicable',
                           reason='B2 policy does not opt into the formal Figure chain.')
             return result
-        if pair != ('1.3.0', 'enforce_latex_text_and_figure_chain'):
+        if pair not in {
+            ('1.3.0', 'enforce_latex_text_and_figure_chain'),
+            ('1.4.0', 'enforce_latex_text_and_figure_chain'),
+        }:
             raise EvidenceError('unsupported B2 policy protocol_version/mode pair')
         main = Path(tex_main)
         main = main.resolve() if main.is_absolute() else (root / main).resolve()

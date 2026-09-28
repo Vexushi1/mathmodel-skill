@@ -296,6 +296,79 @@ class UserExecutionContractTests(unittest.TestCase):
             self.assertIn("result_analysis_workbook", entry["stale_layers"])
             self.assertNotIn("solution_workbook", entry["stale_layers"])
 
+    def test_failed_analysis_conclusion_uses_core_answer_rejection_return(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            primary = self.make_project(root)
+            self.accept_primary(root, primary)
+            self.activate_analysis(root)
+            analysis = self.make_analysis_code(root)
+            issues, config = CODE.validate_script(root, analysis, "analysis")
+            self.assertEqual(issues, [])
+            CODE.update_state(root, config, analysis)
+            workbook = self.make_analysis_workbook(root, analysis)
+            book = openpyxl.load_workbook(workbook)
+            book["结论稳定性汇总"]["D2"] = False
+            book.save(workbook)
+            book.close()
+            state = self.read_state(root)
+            state["project"]["current_phase"] = "result_analysis"
+            state["next_gate"] = {"module": "result_analysis", "condition": "review"}
+            state["paper_framework"]["claim_consumption_policy"] = {
+                "protocol_version": "1.4.0",
+                "mode": "enforce_latex_text_and_figure_chain",
+            }
+            state["subproblems"]["Q1"].update(
+                model_challenge_status="passed", human_model_approval_status="approved",
+            )
+            issues = RECEIPT.validate_one(root, workbook, state, True)
+            self.assertIn("存在核心结论未保持", issues)
+            entry = state["subproblems"]["Q1"]
+            self.assertEqual(state["project"]["current_phase"], "solve_validate")
+            self.assertEqual(state["next_gate"]["module"], "solve_validate")
+            self.assertEqual(entry["status"], "designed")
+            self.assertEqual(entry["result_analysis_status"], "redo_required")
+            self.assertEqual(entry["analysis_execution_status"], "redo_required")
+            self.assertIn("solution_workbook", entry["stale_layers"])
+            self.assertEqual(entry["human_model_approval_status"], "approved")
+
+    def test_failed_analysis_conclusion_preserves_legacy_return_behavior(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            primary = self.make_project(root)
+            self.accept_primary(root, primary)
+            self.activate_analysis(root)
+            analysis = self.make_analysis_code(root)
+            issues, config = CODE.validate_script(root, analysis, "analysis")
+            self.assertEqual(issues, [])
+            CODE.update_state(root, config, analysis)
+            workbook = self.make_analysis_workbook(root, analysis)
+            book = openpyxl.load_workbook(workbook)
+            book["结论稳定性汇总"]["D2"] = False
+            book.save(workbook)
+            book.close()
+            state = self.read_state(root)
+            state["project"]["current_phase"] = "result_analysis"
+            state["next_gate"] = {"module": "result_analysis", "condition": "legacy review"}
+            state["paper_framework"]["claim_consumption_policy"] = {
+                "protocol_version": "1.3.0",
+                "mode": "enforce_latex_text_and_figure_chain",
+            }
+            prior_status = state["subproblems"]["Q1"]["status"]
+            issues = RECEIPT.validate_one(root, workbook, state, True)
+            self.assertIn("存在核心结论未保持", issues)
+            entry = state["subproblems"]["Q1"]
+            self.assertEqual(state["project"]["current_phase"], "solve_validate")
+            self.assertEqual(state["next_gate"]["module"], "result_analysis")
+            self.assertEqual(entry["status"], prior_status)
+            self.assertEqual(entry["result_analysis_status"], "redo_required")
+            self.assertEqual(entry["analysis_execution_status"], "redo_required")
+            self.assertEqual(
+                entry["stale_layers"],
+                ["result_analysis_workbook", "matlab_script", "figure_bundle", "framework"],
+            )
+            self.assertNotIn("solution_workbook", entry["stale_layers"])
+
     def test_accepted_primary_is_frozen_outside_solve_validate(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

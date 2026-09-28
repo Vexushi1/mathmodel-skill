@@ -43,7 +43,7 @@ class FigureBindingsSchemaTests(unittest.TestCase):
         })
 
     def test_optional_closed_identity_rows_preserve_existing_policy_modes(self):
-        self.assertEqual(self.schema["version"], "8.10.0")
+        self.assertEqual(self.schema["version"], "8.11.0")
         base = framework()["claim_consumption_policy"]
         for version, mode in (("1.0.0", "observe"), ("1.1.0", "propagate"),
                               ("1.2.0", "enforce_latex_text")):
@@ -152,6 +152,19 @@ class FigureBindingsSchemaTests(unittest.TestCase):
         state["paper_framework"]["paper_fragments"][0]["status"] = "stale"
         self.assertTrue(any("requires a current fragment" in issue for issue in
                             state_validator.validate_state_payload(state, project_root=ROOT)))
+
+    def test_1_4_keeps_stale_figure_identity_binding_for_repair(self):
+        state = framework()
+        policy = state["claim_consumption_policy"]
+        policy.update(
+            protocol_version="1.4.0", mode="enforce_latex_text_and_figure_chain",
+        )
+        policy["figure_bindings"][0]["source_bindings"] = [
+            {"source_id": "baseline", "sheet": "measurements", "required_headers": ["value"]},
+        ]
+        state["paper_fragments"][0]["status"] = "stale"
+        self.assertTrue(self.validator.is_valid(policy))
+        self.assertEqual(state_validator._validate_claim_consumption_policy(state), [])
 
 
 if __name__ == "__main__":

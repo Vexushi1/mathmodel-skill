@@ -247,8 +247,10 @@ def _claim_policy_issues(framework: Mapping[str, Any], schema: Mapping[str, Any]
     return issues
 
 
-def _current_rejected_claim_ids(state: Mapping[str, Any], schema: Mapping[str, Any]) -> list[str]:
-    """Return exact B1 IDs for current modifying/rejecting dispositions only."""
+def _current_claim_actions(
+    state: Mapping[str, Any], schema: Mapping[str, Any], *, structured_rejection: bool,
+) -> tuple[list[str], list[dict[str, str]]]:
+    """Return exact stale targets and explicit structured rejection events."""
     framework = state.get("paper_framework", {}) or {}
     claims = ((framework.get("claim_evidence") or {}).get("claims") or [])
     by_id = {row["id"]: row for row in claims
@@ -257,6 +259,7 @@ def _current_rejected_claim_ids(state: Mapping[str, Any], schema: Mapping[str, A
         "$ref": "#/$defs/analysis_evidence_entry", "$defs": schema.get("$defs", {}),
     })
     selected: set[str] = set()
+    transitions: list[dict[str, str]] = []
     for question, entry in sorted((state.get("subproblems") or {}).items()):
         if not isinstance(entry, Mapping):
             raise ValueError(f"{question}: subproblem must be a mapping")
@@ -283,7 +286,27 @@ def _current_rejected_claim_ids(state: Mapping[str, Any], schema: Mapping[str, A
             if by_id[target].get("scope") != question:
                 raise ValueError(f"{question}/{disposition.get('id')}: target_claim {target} scope does not match {question}")
             selected.add(target)
-    return sorted(selected)
+            if not structured_rejection:
+                continue
+            impact_scope = disposition.get("impact_scope")
+            if not impact_scope:
+                raise ValueError(
+                    f"{question}/{disposition_id}: impact_scope is required by B2 policy 1.4.0"
+                )
+            if disposition.get("disposition") != "reject" or impact_scope == "auxiliary_wording":
+                continue
+            event = {
+                "core_answer": "core_answer_rejected",
+                "model_validity": "model_validity_rejected",
+            }.get(str(impact_scope))
+            if event is None:
+                raise ValueError(f"{question}/{disposition_id}: unsupported rejection impact_scope")
+            transitions.append({
+                "question": str(question), "disposition_id": str(disposition_id), "event": event,
+            })
+    return sorted(selected), sorted(
+        transitions, key=lambda row: (row["question"], row["disposition_id"], row["event"]),
+    )
 
 
 def _read_framework_exact(path: Path) -> str:
@@ -1092,6 +1115,8 @@ def synchronize(
     claim_projection_write = False
     claim_propagate = False
     claim_ids: list[str] = []
+    claim_rejection_events: list[dict[str, str]] = []
+    claim_rejection_reports: list[dict[str, Any]] = []
     claim_stale_fragments: list[str] = []
     claim_framework_text: str | None = None
     claim_text_gate: dict[str, Any] | None = None
@@ -1105,12 +1130,12 @@ def synchronize(
     )
     claim_text_gate_requested = (
         formal_scope_policy_present and isinstance(selected_policy, Mapping)
-        and (selected_policy.get("protocol_version") in {"1.2.0", "1.3.0"}
+        and (selected_policy.get("protocol_version") in {"1.2.0", "1.3.0", "1.4.0"}
              or selected_policy.get("mode") in {"enforce_latex_text", "enforce_latex_text_and_figure_chain"})
     )
     figure_policy_requested = (
         claim_text_gate_requested and isinstance(selected_policy, Mapping)
-        and (selected_policy.get("protocol_version") == "1.3.0"
+        and (selected_policy.get("protocol_version") in {"1.3.0", "1.4.0"}
              or selected_policy.get("mode") == "enforce_latex_text_and_figure_chain")
     )
     claim_original_state = deepcopy(state) if write and claim_text_gate_requested else None
@@ -1129,6 +1154,7 @@ def synchronize(
             claim_propagate = (policy["protocol_version"], policy["mode"]) in {
                 ("1.1.0", "propagate"), ("1.2.0", "enforce_latex_text"),
                 ("1.3.0", "enforce_latex_text_and_figure_chain"),
+                ("1.4.0", "enforce_latex_text_and_figure_chain"),
             }
             try:
                 if not framework_path.is_file():
@@ -1143,7 +1169,13 @@ def synchronize(
                 import claim_consumption as CLAIM_CONSUMPTION
                 CLAIM_CONSUMPTION._check_projection(initial_framework, claim_framework_text)
                 if claim_propagate:
-                    claim_ids = _current_rejected_claim_ids(state, claim_schema)
+                    structured_rejection = (
+                        (policy["protocol_version"], policy["mode"])
+                        == ("1.4.0", "enforce_latex_text_and_figure_chain")
+                    )
+                    claim_ids, claim_rejection_events = _current_claim_actions(
+                        state, claim_schema, structured_rejection=structured_rejection,
+                    )
             except (ValueError, KeyError, TypeError, UnicodeError) as exc:
                 policy_error = True
                 issues.append(f"claim policy projection: {exc}")
@@ -1234,6 +1266,16 @@ def synchronize(
             transition_reports.extend(reports)
             if stale:
                 stale_questions.append(str(snapshot["key"]))
+        for rejection in claim_rejection_events:
+            transition = STATE_TRANSITIONS.apply_transition(
+                transition_state,
+                event=rejection["event"],
+                source_question=rejection["question"],
+                contract=STATE_TRANSITION_CONTRACT,
+            )
+            transition["disposition_id"] = rejection["disposition_id"]
+            claim_rejection_reports.append(transition)
+            transition_reports.append(transition)
         merged_transitions = STATE_TRANSITIONS.merge_transition_reports(transition_reports)
         stale_questions.extend(merged_transitions["affected_questions"])
         dependency_cycles = (
@@ -1436,6 +1478,7 @@ def synchronize(
     if claim_propagate:
         report["invalidated_claim_ids"] = claim_ids
         report["claim_stale_fragments"] = claim_stale_fragments
+        report["claim_rejection_transitions"] = claim_rejection_reports
     if claim_text_gate is not None:
         report["claim_figure_gate" if figure_policy_requested else "claim_text_gate"] = claim_text_gate
         report["state_write_performed"] = write and not policy_error and not claim_report_only

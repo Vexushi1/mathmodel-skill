@@ -376,12 +376,13 @@ def resolve_runtime(
         policy = paper_framework.get("claim_consumption_policy") if isinstance(paper_framework, dict) else None
         claim_pair = (policy.get("protocol_version"), policy.get("mode")) if isinstance(policy, dict) else None
         if (claim_pair in {("1.2.0", "enforce_latex_text"),
-                           ("1.3.0", "enforce_latex_text_and_figure_chain")}
+                           ("1.3.0", "enforce_latex_text_and_figure_chain"),
+                           ("1.4.0", "enforce_latex_text_and_figure_chain")}
                 and plan.get("delivery_scope") in {"latex", "submission"}
                 and any(gate.get("name") == "project_sync" for gate in plan.get("pre_delivery_gates", []))):
             resources = ["core/claim_consumption_contract.yaml", "core/claim_evidence_contract.yaml",
                          "scripts/claim_consumption.py"]
-            if claim_pair[0] == "1.3.0":
+            if claim_pair[0] in {"1.3.0", "1.4.0"}:
                 resources.extend(["modules/04_figure_evidence.md", "scripts/claim_figure.py",
                                   "scripts/latex_delivery.py"])
             for path in resources:
@@ -392,7 +393,8 @@ def resolve_runtime(
             plan["claim_consumption_integration"] = {
                 "mode": claim_pair[1], "protocol_version": claim_pair[0],
                 "scope": ("declared_static_modular_latex_text_and_figure_chain"
-                          if claim_pair[0] == "1.3.0" else "declared_static_modular_latex_text_only"),
+                          if claim_pair[0] in {"1.3.0", "1.4.0"}
+                          else "declared_static_modular_latex_text_only"),
                 "consumer_gates": ["project_sync"], "resources": resources,
                 "human_semantic_coverage": "not_assessed",
             }

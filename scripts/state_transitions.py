@@ -210,6 +210,59 @@ def _dependency_rule(contract: Mapping[str, Any], kind: str) -> Mapping[str, Any
     return value
 
 
+def _ordered_values(contract: Mapping[str, Any], field: str) -> list[str]:
+    rewind = contract.get("lifecycle_rewind", {}) or {}
+    values = rewind.get(field, []) if isinstance(rewind, Mapping) else []
+    if not isinstance(values, list) or not all(isinstance(item, str) for item in values):
+        raise ValueError(f"state transition lifecycle_rewind.{field} must be a string list")
+    return values
+
+
+def _cap_status(
+    entry: MutableMapping[str, Any], *, cap: str | None, contract: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Rewind status to ``cap`` without ever advancing an earlier lifecycle."""
+    if not cap:
+        return {}
+    order = _ordered_values(contract, "status_order")
+    current = entry.get("status")
+    if cap not in order or current not in order:
+        raise ValueError(f"cannot apply lifecycle status cap {cap!r} to {current!r}")
+    if order.index(str(current)) > order.index(cap):
+        entry["status"] = cap
+    return {"status": entry["status"]}
+
+
+def _apply_project_restart(
+    state: MutableMapping[str, Any], *, phase: str | None, condition: str,
+    contract: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Rewind project phase and next gate while preserving an earlier boundary."""
+    if not phase:
+        return {}
+    order = _ordered_values(contract, "project_phase_order")
+    project = state.get("project")
+    if not isinstance(project, MutableMapping):
+        raise ValueError("project state project must be a mutable mapping")
+    current = project.get("current_phase")
+    if phase not in order or current not in order:
+        raise ValueError(f"cannot apply project phase restart {phase!r} to {current!r}")
+    if order.index(str(current)) < order.index(phase):
+        return {}
+    rewind = contract.get("lifecycle_rewind", {}) or {}
+    conditions = rewind.get("restart_conditions", {}) if isinstance(rewind, Mapping) else {}
+    if isinstance(conditions, Mapping):
+        condition = str(conditions.get(phase, condition))
+    project["current_phase"] = phase
+    gate = state.get("next_gate")
+    if not isinstance(gate, MutableMapping):
+        gate = {}
+        state["next_gate"] = gate
+    gate["module"] = phase
+    gate["condition"] = condition
+    return {"current_phase": phase, "next_gate": dict(gate)}
+
+
 def _apply_profile(
     entry: MutableMapping[str, Any],
     *,
@@ -229,15 +282,24 @@ def _apply_profile(
             entry.pop(str(field))
             updates[str(field)] = None
     for field, value in (profile.get("set", {}) or {}).items():
-        if entry.get(str(field)) != value:
-            entry[str(field)] = value
-        updates[str(field)] = value
+        field = str(field)
+        if (field in {"result_analysis_status", "analysis_execution_status"}
+                and entry.get(field) == "redo_required" and value == "pending"):
+            updates[field] = "redo_required"
+            continue
+        if entry.get(field) != value:
+            entry[field] = value
+        updates[field] = entry.get(field)
     for field, value in (profile.get("set_if_present", {}) or {}).items():
         field = str(field)
         if field in entry:
+            if (field in {"result_analysis_status", "analysis_execution_status"}
+                    and entry.get(field) == "redo_required" and value == "pending"):
+                updates[field] = "redo_required"
+                continue
             if entry.get(field) != value:
                 entry[field] = value
-            updates[field] = value
+            updates[field] = entry.get(field)
     # Nested structural bindings are lifecycle evidence, not a second stale graph.
     selections = entry.get("solver_execution")
     for stage, fields in (profile.get("invalidate_conformance", {}) or {}).items():
@@ -261,10 +323,13 @@ def apply_local_event(
 ) -> dict[str, Any]:
     """Apply only an event's own-question profile to one subproblem entry."""
     spec = _event_spec(contract, event)
+    if spec.get("restart_phase"):
+        raise ValueError(f"event {event!r} requires apply_transition for atomic project restart")
     profile_name = str(spec.get("own_profile", "")).strip()
     if not profile_name:
         raise ValueError(f"event {event!r} has no own_profile")
     stale_layers, updates = _apply_profile(entry, profile_name=profile_name, contract=contract)
+    updates.update(_cap_status(entry, cap=spec.get("own_status_cap"), contract=contract))
     emitted = _event_impacts(spec, context or {})
     return {
         "profile": profile_name,
@@ -302,7 +367,37 @@ def apply_transition(
         raise ValueError(f"source question {source_question!r} is not present as a mutable mapping")
 
     spec = _event_spec(contract, event)
-    local = apply_local_event(source_entry, event, contract, context=context)
+    profile_name = str(spec.get("own_profile", "")).strip()
+    if not profile_name:
+        raise ValueError(f"event {event!r} has no own_profile")
+    if spec.get("restart_phase"):
+        status_order = _ordered_values(contract, "status_order")
+        phase_order = _ordered_values(contract, "project_phase_order")
+        if source_entry.get("status") not in status_order:
+            raise ValueError(f"cannot apply lifecycle status cap to {source_entry.get('status')!r}")
+        project = state.get("project", {}) or {}
+        if not isinstance(project, Mapping) or project.get("current_phase") not in phase_order:
+            raise ValueError("cannot apply structured rejection without a valid project.current_phase")
+        stale_layers, updates = _apply_profile(
+            source_entry, profile_name=profile_name, contract=contract,
+        )
+        updates.update(_cap_status(
+            source_entry, cap=spec.get("own_status_cap"), contract=contract,
+        ))
+        local = {
+            "profile": profile_name,
+            "stale_layers": stale_layers,
+            "status_updates": updates,
+            "emitted_impacts": sorted(_event_impacts(spec, context or {})),
+        }
+    else:
+        local = apply_local_event(source_entry, event, contract, context=context)
+    project_updates = _apply_project_restart(
+        state,
+        phase=spec.get("restart_phase"),
+        condition=str(spec.get("restart_condition", f"Resolve state transition event {event}.")),
+        contract=contract,
+    )
     transitions: list[dict[str, Any]] = [
         {
             "question": source_question,
@@ -354,6 +449,28 @@ def apply_transition(
             stale_layers, updates = _apply_profile(
                 target_entry, profile_name=profile_name, contract=contract
             )
+            status_caps = spec.get("dependency_status_caps", {}) or {}
+            if not isinstance(status_caps, Mapping):
+                raise ValueError(f"event {event!r} dependency_status_caps must be a mapping")
+            updates.update(_cap_status(
+                target_entry, cap=status_caps.get(kind), contract=contract,
+            ))
+            for field in spec.get("dependency_clear", []) or []:
+                field = str(field)
+                if field in target_entry:
+                    target_entry.pop(field)
+                    updates[field] = None
+            restart_phases = spec.get("dependency_restart_phases", {}) or {}
+            if not isinstance(restart_phases, Mapping):
+                raise ValueError(f"event {event!r} dependency_restart_phases must be a mapping")
+            restarted = _apply_project_restart(
+                state,
+                phase=restart_phases.get(kind),
+                condition=str(spec.get("restart_condition", f"Resolve state transition event {event}.")),
+                contract=contract,
+            )
+            if restarted:
+                project_updates = restarted
             emitted = sorted({str(item) for item in rule.get("emitted_impacts", []) or []})
             reason = str(rule.get("reason", "typed dependency invalidation"))
             if edge.get("legacy") and edge.get("declared_kind"):
@@ -375,12 +492,20 @@ def apply_transition(
             for next_signal in sorted({*emitted, _EVENT_SIGNAL}):
                 queue.append((target, next_signal))
 
+    if project_updates:
+        project = state.get("project", {}) or {}
+        gate = state.get("next_gate", {}) or {}
+        project_updates = {
+            "current_phase": project.get("current_phase"),
+            "next_gate": dict(gate) if isinstance(gate, Mapping) else gate,
+        }
     return {
         "event": event,
         "source": source_question,
         "affected_questions": sorted(affected),
         "transitions": transitions,
         "dependency_cycles": dependency_cycles(subproblems),
+        "project_updates": project_updates,
     }
 
 
@@ -389,12 +514,16 @@ def merge_transition_reports(reports: list[Mapping[str, Any]]) -> dict[str, Any]
     affected: set[str] = set()
     cycles: set[str] = set()
     transitions: list[dict[str, Any]] = []
+    project_updates: dict[str, Any] = {}
     for report in reports:
         affected.update(str(item) for item in report.get("affected_questions", []) or [])
         cycles.update(str(item) for item in report.get("dependency_cycles", []) or [])
         transitions.extend(dict(item) for item in report.get("transitions", []) or [])
+        if report.get("project_updates"):
+            project_updates = dict(report["project_updates"])
     return {
         "affected_questions": sorted(affected),
         "dependency_cycles": sorted(cycles),
         "transitions": transitions,
+        "project_updates": project_updates,
     }

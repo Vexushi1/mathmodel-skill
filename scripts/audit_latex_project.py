@@ -38,7 +38,7 @@ def _claim_gate(main_file: Path) -> tuple[str, dict]:
     except (OSError, UnicodeError, yaml.YAMLError):
         policy = None  # The live gate reports the malformed State as a failure.
     figure_mode = isinstance(policy, dict) and (
-        policy.get("protocol_version") == "1.3.0"
+        policy.get("protocol_version") in {"1.3.0", "1.4.0"}
         or policy.get("mode") == "enforce_latex_text_and_figure_chain"
     )
     if figure_mode:

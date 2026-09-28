@@ -57,6 +57,16 @@ def state_with_dependency(kind: str | None) -> dict:
     }
 
 
+def rejection_state(kind: str | None = "result") -> dict:
+    state = state_with_dependency(kind)
+    state["project"] = {"current_phase": "writing_latex"}
+    state["next_gate"] = {"module": "writing_latex", "condition": "downstream"}
+    for row in state["subproblems"].values():
+        row["proposition_refs"] = ["P1"]
+        row["semantic_closure_status"] = "passed"
+    return state
+
+
 class CodeDeliveryTransitionContractTests(unittest.TestCase):
     def test_missing_project_state_rejects_current_delivery_without_creating_state(self):
         import tempfile
@@ -76,7 +86,7 @@ class CodeDeliveryTransitionContractTests(unittest.TestCase):
 
 class StateTransitionAuthorityTests(unittest.TestCase):
     def test_contract_owns_phase_d_rules(self):
-        self.assertEqual(CONTRACT["version"], "1.4.0")
+        self.assertEqual(CONTRACT["version"], "1.5.0")
         self.assertIn("semantic_identity_changed", CONTRACT["transition_events"])
         self.assertEqual(
             set(CONTRACT["dependency_rules"]),
@@ -262,6 +272,88 @@ class DeterminismTests(unittest.TestCase):
                 for row in merged["transitions"]
             )
         )
+
+
+class StructuredRejectionReturnTests(unittest.TestCase):
+    def test_core_answer_rewinds_result_dependency_and_keeps_model_approval(self):
+        state = rejection_state("result")
+        report = TRANSITIONS.apply_transition(
+            state, event="core_answer_rejected", source_question="Q1", contract=CONTRACT,
+        )
+        self.assertEqual(state["project"]["current_phase"], "solve_validate")
+        self.assertEqual(state["next_gate"]["module"], "solve_validate")
+        self.assertEqual(state["subproblems"]["Q1"]["status"], "designed")
+        self.assertEqual(state["subproblems"]["Q2"]["status"], "designed")
+        self.assertEqual(state["subproblems"]["Q1"]["result_analysis_status"], "redo_required")
+        self.assertEqual(state["subproblems"]["Q2"]["result_analysis_status"], "pending")
+        self.assertEqual(state["subproblems"]["Q1"]["human_model_approval_status"], "approved")
+        self.assertNotIn("proposition_refs", state["subproblems"]["Q1"])
+        self.assertNotIn("proposition_refs", state["subproblems"]["Q2"])
+        self.assertEqual(report["project_updates"]["current_phase"], "solve_validate")
+
+    def test_legacy_dependency_conservatively_wins_with_model_design(self):
+        state = rejection_state(None)
+        TRANSITIONS.apply_transition(
+            state, event="core_answer_rejected", source_question="Q1", contract=CONTRACT,
+        )
+        self.assertEqual(state["project"]["current_phase"], "model_design")
+        self.assertEqual(state["next_gate"]["module"], "model_design")
+        self.assertIn("renewed semantic closure", state["next_gate"]["condition"])
+        self.assertEqual(state["subproblems"]["Q2"]["status"], "audited")
+
+    def test_core_answer_does_not_invalidate_model_only_dependency(self):
+        state = rejection_state("model")
+        report = TRANSITIONS.apply_transition(
+            state, event="core_answer_rejected", source_question="Q1", contract=CONTRACT,
+        )
+        self.assertEqual(state["project"]["current_phase"], "solve_validate")
+        self.assertNotIn("Q2", report["affected_questions"])
+        self.assertEqual(state["subproblems"]["Q2"]["status"], "validated")
+
+    def test_model_rejection_propagates_all_typed_impacts(self):
+        for kind in ("model", "result", "parameter", "data"):
+            with self.subTest(kind=kind):
+                state = rejection_state(kind)
+                report = TRANSITIONS.apply_transition(
+                    state, event="model_validity_rejected", source_question="Q1", contract=CONTRACT,
+                )
+                self.assertIn("Q2", report["affected_questions"])
+                self.assertEqual(state["project"]["current_phase"], "model_design")
+                expected = "audited" if kind == "model" else "designed"
+                self.assertEqual(state["subproblems"]["Q2"]["status"], expected)
+                self.assertEqual(state["subproblems"]["Q1"]["semantic_closure_status"], "stale")
+
+    def test_model_design_precedence_is_event_order_independent(self):
+        outcomes = []
+        for events in (
+            ("core_answer_rejected", "model_validity_rejected"),
+            ("model_validity_rejected", "core_answer_rejected"),
+        ):
+            state = rejection_state("result")
+            for event in events:
+                TRANSITIONS.apply_transition(
+                    state, event=event, source_question="Q1", contract=CONTRACT,
+                )
+            outcomes.append(state)
+        self.assertEqual(outcomes[0], outcomes[1])
+        self.assertEqual(outcomes[0]["project"]["current_phase"], "model_design")
+        self.assertEqual(outcomes[0]["subproblems"]["Q1"]["status"], "audited")
+
+    def test_cycle_cannot_downgrade_redo_required_to_pending(self):
+        state = rejection_state("result")
+        state["subproblems"]["Q1"]["depends_on"] = [{"question": "Q2", "kind": "result"}]
+        TRANSITIONS.apply_transition(
+            state, event="core_answer_rejected", source_question="Q1", contract=CONTRACT,
+        )
+        self.assertEqual(state["subproblems"]["Q1"]["result_analysis_status"], "redo_required")
+        self.assertEqual(state["subproblems"]["Q1"]["analysis_execution_status"], "redo_required")
+
+    def test_local_api_rejects_project_level_event_without_partial_mutation(self):
+        row = entry()
+        before = deepcopy(row)
+        with self.assertRaisesRegex(ValueError, "requires apply_transition"):
+            TRANSITIONS.apply_local_event(row, "core_answer_rejected", CONTRACT)
+        self.assertEqual(row, before)
 
 
 if __name__ == "__main__":

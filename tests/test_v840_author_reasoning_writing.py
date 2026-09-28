@@ -131,7 +131,7 @@ class WritingReasoningScopeTests(unittest.TestCase):
 
     def test_v85_author_reasoning_voice_semantics_remain_pinned(self):
         contract = yaml.safe_load(read("core/writing_reasoning_contract.yaml"))
-        self.assertEqual(contract["schema_version"], "1.8.0")
+        self.assertEqual(contract["schema_version"], "1.9.0")
         trace = contract["prose_style"]["human_reasoning_trace"]
         self.assertEqual(trace["prose_authority"], AUTHORITY)
         self.assertEqual(

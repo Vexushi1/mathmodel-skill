@@ -321,7 +321,9 @@ def stored_issues(entry: Mapping[str, Any], question: str) -> list[str]:
         slot = selections.get(stage, {})
         certificate = slot.get(DELIVERY)
         accepted = slot.get(ACCEPTANCE)
-        stale = set(entry.get('stale_layers') or [])
+        stale_value = entry.get('stale_layers') or []
+        stale = ({item for item in stale_value if isinstance(item, str)}
+                 if isinstance(stale_value, list) else set())
         relevant = {'data', 'primary_code', 'solution_workbook'}
         if stage == 'analysis':
             relevant |= {'analysis_code', 'result_analysis_workbook'}

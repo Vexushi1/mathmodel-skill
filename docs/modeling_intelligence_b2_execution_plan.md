@@ -4,6 +4,8 @@
 
 > **2026-09-27 接续：** B2a [PR #240](https://github.com/Vexushi1/mathmodel-skill/pull/240) 已合并为 `b7c0f6827fdab4319c504f9f1592a59096fef265`；最终 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36215999744) 和 [优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36215999692) 成功，主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36216997615) 13/13 成功。B2b1 [PR #241](https://github.com/Vexushi1/mathmodel-skill/pull/241) 已合并为 `a17a1d539519fc7c662a73fb957871c822aadf36`；精确 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36220676500) 13/13、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36220676509) 和主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36221675161) 13/13 均成功，合并树与已测 head 树一致。B2b2 [PR #242](https://github.com/Vexushi1/mathmodel-skill/pull/242) 已合并为 `431839d4cb77440bffc2c6f1fcac7c2279b3ab10`；精确 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36226883079) 13/13、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36226883018) 和主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36235022833) 13/13 均成功，合并树与已测 head 树一致。B2b3a [PR #243](https://github.com/Vexushi1/mathmodel-skill/pull/243) 已合并为 `1428b9c7309aefdb6a76409f904543daf989c20b`；精确 head 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36241117504) 13/13、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36241117468) 和主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36242410758) 13/13 均成功，合并树与已测 head 树一致。下面 B2a/B2b1/B2b2/B2b3a 简报保留为实施记录；B2b3b [PR #244](https://github.com/Vexushi1/mathmodel-skill/pull/244) 已合并为 `4033896b4e3b7c4c897bfc9528c9ec826b5d83cf`；精确 head `ad158ea42e16d1debe3dcd248addaf76c8434d04` 的 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36247446351) 13/13 与 [优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36247446381) 均成功，合并树 `383574dd04ce5643c810c2c773d5a99114ac3e8a` 与已测 head 树一致；合并后主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36286699465) 13/13 成功。B2b3c [PR #245](https://github.com/Vexushi1/mathmodel-skill/pull/245) 已合并为 `360caee92aa8d33d9ff856e5abf03bf8768bf4eb`，精确 head CI 与合并后主干 CI 均 13/13 成功；B2b3d [PR #246](https://github.com/Vexushi1/mathmodel-skill/pull/246) 已合并至 `main@53263841053765a956759be1757ff7630e995187`；精确 head [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36294611029) 13/13、[优化基线](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36294611040) 成功，已测 head tree 与合并树同为 `82d116765f33c26b7edfbc0f845df4aecdbbcb5a`；合并后主干 [CI](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36295956023) 13/13 成功。B2b4 #247 已合并并完成主干复验，证据见第 12 节；当前接续第 13 节 B2b5 连续验收。
 
+> **2026-09-28 接续（覆盖上一段的当前状态）：** B2b5 [PR #248](https://github.com/Vexushi1/mathmodel-skill/pull/248) 已合并至 `main@52502e701ba3e21104db75b3e34661a1bfb60047`。当前进入第 14 节 B2b6 核心否证返回切片；本节不预写该切片后续的 PR、CI、合并或主干复验结果，B2 总验收仍未完成，C1 不启动。
+
 日期：2026-09-26。基线 main=`a7ff4b792c4f0dac92bb7cd5b4569cf0de03967d`，Skill 10.4.0 / State 8.3.0；B1 PR #239 已合并，主干 CI [36212303219](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36212303219) 13/13 成功，合并树与最终 B1 head 树一致。开始本阶段时没有其他开放 PR。本指南落实原计划第 7、11—16、19 节，保留 B1 的 accepted 资格与语义支持边界。
 
 ## 1. 修改简报
@@ -206,3 +208,19 @@ B2b5 实现对应 `tests/test_b2b5_continuous_acceptance.py`：
 | 真实 XeLaTeX variant | 同一 reject 链实际编译修前/修后源码，并重建当前 Figure 证明和完整复现包；普通无编译器测试的合成记录不算真实编译 |
 
 合成模型/图片批准为明确 fixture 输入，数值主解及深化由既有合成执行/接受链产生；测试没有实际人工复核或视觉语义判定。测试实现、专项结果、最终 head 全量/CI 与合并后主干复验分开记录于本切片 PR，不凭本段宣称全量验收已经通过。
+
+## 14. B2b6 核心否证返回切片的修改简报
+
+| 项目 | 决定 |
+|---|---|
+| 当前基线 | B2b5 [PR #248](https://github.com/Vexushi1/mathmodel-skill/pull/248) 已合并至 `main@52502e701ba3e21104db75b3e34661a1bfb60047`；Skill 10.11.1 / State 8.10.0 / B2 合同 1.6.0 / State Transition 1.4.0 / Runtime Assurance 2.2.0 |
+| 目标与等级 | 向后兼容 minor：Skill 10.12.0 / State 8.11.0 / B2 合同 1.7.0 / State Transition 1.5.0 / Writing Reasoning 1.9.0 / Runtime Assurance 2.3.0 |
+| 可复现缺口 | 当前 `reject` disposition 可以只把论文 fragment 标为 stale，同时仍保留 `result_analysis_status=passed`、accepted solution 与原阶段；若用自由文本 `required_action` 推断影响级别，核心答案或模型有效性否证可能被误作辅助文字重写，形成 fail-open |
+| 直接目标 | 为当前 B2 策略增加结构化 `impact_scope` 与受约束 `return_stage`：`auxiliary_wording` 只局部失效；`core_answer` 撤销已接受主结果、标记结果重做并回到 `solve_validate`；`model_validity` 同时撤销语义闭包和模型批准并回到 `model_design` |
+| Authority 与写入 | State Schema 定义合法形状，B2 合同定义分类语义，State Transition 定义失效与阶段回退；Runtime Assurance 在 sync 前先按 State Schema 核验精确 1.4.0 策略，再按同一转换 Authority 撤销旧资格，并将两项 Authority 纳入运行时指纹；现有 `sync_project.py` / `project_transaction.py` 事务统一写入 fragment stale、`redo_required`、阶段回退及跨问传播，不另设第二 writer |
+| 兼容与迁移 | 只有精确 `1.4.0/enforce_latex_text_and_figure_chain` 采用结构化否证；旧 `1.0.0`—`1.3.0` 项目保持原行为，不自动迁移。新策略下当前 modify/reject 缺少影响分类须 fail closed，不从自然语言猜测核心程度 |
+| 明确不做 | 不重算数值、不运行求解或绘图、不自动清 stale、不续签模型或结果批准、不修改算法或用户项目；不扩展 DOCX、单文件/动态/复杂宏 TeX，不进入 C1，不发布 Release |
+| 验收条件 | 覆盖三类否证、缺字段拒绝、核心与模型回退、多个否证时 `model_design` 优先、跨问传播、`redo_required` 粘性、真实分析结论失败回执、resolver 下一门、正式 Figure/旧交付证明拒绝，以及旧策略兼容；专项、全量、lint、索引、精确 head CI、合并树比较和主干复验须分别形成证据 |
+| 回滚 | 未合并撤回本主题改动；已选 1.4.0 的项目保留其结构化否证与 stale 事实，不能通过删除分类、降级策略或改写自然语言伪装通过 |
+
+本节只关闭“核心答案或模型有效性被否证后应返回哪里、哪些资格必须撤销”的结构化状态链。Figure 视觉充分性与图注整体语义、DOCX、单文件/动态/复杂宏 TeX、跨格式闭包和 B2 的 B01/B09—B12/B16 总验收仍待后续独立证据；在这些项目关闭前，B2 继续标记为进行中，C1 保持未开始。

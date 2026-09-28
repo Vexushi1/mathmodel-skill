@@ -220,6 +220,18 @@ class AuditClosureProjectionTests(unittest.TestCase):
         new["runtime_plan"]["solver_backend"] = deepcopy(solver)
         return old, new
 
+    def prepare_b2b6(self, old, new):
+        old["assurance"]["authority_fingerprint"] = {"sha256": "same", "sources": []}
+        new["assurance"]["authority_fingerprint"] = {
+            "sha256": "same",
+            "sources": [
+                {"path": "core/project_state.schema.yaml", "sha256": "bound-schema"},
+                {"path": "core/state_transition_contract.yaml", "sha256": "bound-transition"},
+            ],
+        }
+        new["version"] = "10.12.0"
+        new["assurance"]["schema_version"] = "2.3.0"
+
     def test_exact_registered_changes_are_visible_and_inputs_are_immutable(self):
         for case in (*EVIDENCE.A7_HYDRATED_PROVENANCE_CASES, "facts_unscoped"):
             with self.subTest(case=case):
@@ -579,6 +591,79 @@ class AuditClosureProjectionTests(unittest.TestCase):
                 projected, changes = EVIDENCE.approved_b2b5_carrier_change(case, old, new)
                 self.assertEqual(projected, new)
                 self.assertEqual(changes, [])
+
+
+    def test_b2b6_carrier_requires_the_exact_six_version_set(self):
+        carriers = deepcopy(EVIDENCE.B2B6_AUTHORITY_VERSIONS)
+        for case in (*EVIDENCE.A7_HYDRATED_PROVENANCE_CASES, "facts_unscoped"):
+            with self.subTest(case=case):
+                old, new = self.pair(case)
+                self.prepare_b2b6(old, new)
+                original = deepcopy(new)
+                projected, changes = EVIDENCE.approved_b2b6_carrier_change(
+                    case, old, new, carriers
+                )
+                self.assertEqual(projected, old)
+                self.assertEqual(new, original)
+                version_changes = [item for item in changes if item["path"] == "version"]
+                self.assertEqual([item["candidate"] for item in version_changes], ["10.12.0"])
+                self.assertEqual(version_changes[0]["authority_versions"], carriers)
+
+    def test_b2b6_carrier_keeps_unrelated_differences_visible(self):
+        old, new = self.pair()
+        self.prepare_b2b6(old, new)
+        new["pre_delivery_gates"] = []
+        projected, _ = EVIDENCE.approved_b2b6_carrier_change(
+            "facts_current", old, new, deepcopy(EVIDENCE.B2B6_AUTHORITY_VERSIONS)
+        )
+        self.assertEqual(projected["pre_delivery_gates"], [])
+
+    def test_b2b6_carrier_rejects_unknown_case_skill_or_authority_version(self):
+        mutations = [
+            ("future_case", "10.12.0", None),
+            ("facts_current", "10.12.1", None),
+            ("facts_current", "10.12.0", ("project_state", "8.11.1")),
+            ("facts_current", "10.12.0", ("claim_consumption", "1.7.1")),
+            ("facts_current", "10.12.0", ("state_transition", "1.5.1")),
+            ("facts_current", "10.12.0", ("writing_reasoning", "1.9.1")),
+            ("facts_current", "10.12.0", ("runtime_assurance", "2.3.1")),
+        ]
+        for case, version, authority_mutation in mutations:
+            with self.subTest(case=case, version=version, mutation=authority_mutation):
+                old, new = self.pair()
+                self.prepare_b2b6(old, new)
+                new["version"] = version
+                carriers = deepcopy(EVIDENCE.B2B6_AUTHORITY_VERSIONS)
+                if authority_mutation:
+                    carriers[authority_mutation[0]] = authority_mutation[1]
+                projected, changes = EVIDENCE.approved_b2b6_carrier_change(
+                    case, old, new, carriers
+                )
+                self.assertEqual(projected, new)
+                self.assertEqual(changes, [])
+
+    def test_b2b6_compare_requires_authority_metadata_and_accepts_exact_set(self):
+        old, new = self.pair()
+        self.prepare_b2b6(old, new)
+        old["assurance"]["authority_fingerprint"]["sha256"] = "same"
+        new["assurance"]["authority_fingerprint"]["sha256"] = "same"
+        for plan in (old, new):
+            plan["reading_plan"] = {
+                "metrics": {"planned_skill_read_bytes": 1, "planned_project_read_bytes": 0},
+                "profile": "test", "status": "planned",
+            }
+        before = {"id": "facts_current", "plan": old, "legacy_declared_bytes": 1}
+        after = {"id": "facts_current", "plan": new, "legacy_declared_bytes": 1}
+        missing = EVIDENCE.compare([before], [after])[0]
+        self.assertFalse(missing["legacy_behavior_equal_except_approved_changes"])
+        self.assertIn("version", missing["unexpected_legacy_changes"])
+
+        after["authority_versions"] = deepcopy(EVIDENCE.B2B6_AUTHORITY_VERSIONS)
+        accepted = EVIDENCE.compare([before], [after])[0]
+        self.assertTrue(accepted["legacy_behavior_equal_except_approved_changes"])
+        self.assertEqual(accepted["unexpected_legacy_changes"], [])
+        self.assertEqual(accepted["candidate_authority_versions"],
+                         EVIDENCE.B2B6_AUTHORITY_VERSIONS)
 
 
 if __name__ == "__main__":

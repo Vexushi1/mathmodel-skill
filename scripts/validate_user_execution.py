@@ -80,6 +80,16 @@ def question_key(problem: str) -> str:
     return f"Q{order.index(suffix) + 1}" if suffix in order else problem
 
 
+def _uses_structured_rejection_policy(state: Mapping[str, Any]) -> bool:
+    framework = state.get("paper_framework")
+    policy = framework.get("claim_consumption_policy") if isinstance(framework, Mapping) else None
+    return (
+        isinstance(policy, Mapping)
+        and (policy.get("protocol_version"), policy.get("mode"))
+        == ("1.4.0", "enforce_latex_text_and_figure_chain")
+    )
+
+
 def as_bool(value: Any) -> bool | None:
     if isinstance(value, bool):
         return value
@@ -665,12 +675,20 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool,
                         entry["solver_execution"][stage][CONFORMANCE.ACCEPTANCE] = CONFORMANCE.acceptance_binding(
                             conformance["delivery_candidate"], file_hash(workbook))
             elif result_status == "redo_required":
-                entry["artifacts_stale"] = True
-                entry["stale_layers"] = [
-                    "result_analysis_workbook", "matlab_script", "figure_bundle", "framework"
-                ]
-                entry["result_summary_status"] = "stale"
-                state.setdefault("project", {})["current_phase"] = "solve_validate"
+                if _uses_structured_rejection_policy(state):
+                    STATE_TRANSITIONS.apply_transition(
+                        state,
+                        event="analysis_conclusion_rejected",
+                        source_question=key,
+                        contract=load_yaml(Path(SCRIPT_DIR).parent / "core/state_transition_contract.yaml"),
+                    )
+                else:
+                    entry["artifacts_stale"] = True
+                    entry["stale_layers"] = [
+                        "result_analysis_workbook", "matlab_script", "figure_bundle", "framework"
+                    ]
+                    entry["result_summary_status"] = "stale"
+                    state.setdefault("project", {})["current_phase"] = "solve_validate"
     if write and conformance["enabled"] and issues:
         previous = entry.get("solver_execution", {}).get(stage, {}).get(CONFORMANCE.ACCEPTANCE)
         if isinstance(previous, dict):

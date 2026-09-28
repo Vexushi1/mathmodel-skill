@@ -1,4 +1,4 @@
-version: 1.4.0
+version: 1.5.0
 status: active
 introduced_in_staged_version: 9.0.0
 purpose: >-
@@ -16,6 +16,8 @@ authority_boundary:
   - legacy_untyped_dependency_fallback
   - dependency_cycle_reporting
   - transition_report_semantics
+  - structured_rejection_return
+  - lifecycle_rewind_precedence
   delegates:
     project_state_shape: core/project_state.schema.yaml
     model_approval: core/model_approval_contract.yaml
@@ -39,6 +41,37 @@ compatibility:
   unknown_dependency_kind_policy: blocking_or_conservative_full_invalidation
 
 profiles:
+  core_answer_rejection:
+    invalidate_conformance:
+      primary: [conformance_acceptance]
+      analysis: [conformance_delivery, conformance_acceptance]
+    clear: [result_analysis_requirement_reason, proposition_refs]
+    stale_layers: [solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, framework]
+    set:
+      result_quality_status: pending
+      result_analysis_status: redo_required
+      validation_status: pending
+      result_summary_status: stale
+    set_if_present:
+      primary_execution_status: pending
+      analysis_execution_status: redo_required
+  model_validity_rejection:
+    invalidate_conformance:
+      primary: [conformance_delivery, conformance_acceptance]
+      analysis: [conformance_delivery, conformance_acceptance]
+    clear: [result_analysis_requirement_reason, proposition_refs]
+    stale_layers: [primary_code, analysis_code, solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, framework]
+    set:
+      result_quality_status: pending
+      result_analysis_status: redo_required
+      validation_status: pending
+      result_summary_status: stale
+    set_if_present:
+      primary_execution_status: pending
+      analysis_execution_status: redo_required
+      model_challenge_status: stale
+      human_model_approval_status: stale
+      semantic_closure_status: stale
   semantic:
     invalidate_conformance:
       primary: [conformance_delivery, conformance_acceptance]
@@ -121,6 +154,66 @@ profiles:
       result_summary_status: stale
 
 transition_events:
+  core_answer_rejected:
+    caller_scope: explicit_B2_1.4.0_current_reject_only
+    own_profile: core_answer_rejection
+    emitted_impacts: [result]
+    own_status_cap: designed
+    restart_phase: solve_validate
+    restart_condition: Resolve the rejected core answer through a new accepted primary result.
+    dependency_status_caps:
+      model: audited
+      result: designed
+      parameter: designed
+      data: designed
+      legacy_untyped: audited
+    dependency_clear: [proposition_refs]
+    dependency_restart_phases:
+      model: model_design
+      result: solve_validate
+      parameter: solve_validate
+      data: solve_validate
+      legacy_untyped: model_design
+  analysis_conclusion_rejected:
+    caller_scope: failed_analysis_conclusion_receipt_under_exact_B2_1.4.0_only
+    own_profile: core_answer_rejection
+    emitted_impacts: [result]
+    own_status_cap: designed
+    restart_phase: solve_validate
+    restart_condition: Resolve the failed analysis conclusion through a new accepted primary result.
+    dependency_status_caps:
+      model: audited
+      result: designed
+      parameter: designed
+      data: designed
+      legacy_untyped: audited
+    dependency_clear: [proposition_refs]
+    dependency_restart_phases:
+      model: model_design
+      result: solve_validate
+      parameter: solve_validate
+      data: solve_validate
+      legacy_untyped: model_design
+  model_validity_rejected:
+    caller_scope: explicit_B2_1.4.0_current_reject_only
+    own_profile: model_validity_rejection
+    emitted_impacts: [model, result, parameter, data]
+    own_status_cap: audited
+    restart_phase: model_design
+    restart_condition: Resolve the rejected model validity through renewed challenge and explicit approval.
+    dependency_status_caps:
+      model: audited
+      result: designed
+      parameter: designed
+      data: designed
+      legacy_untyped: audited
+    dependency_clear: [proposition_refs]
+    dependency_restart_phases:
+      model: model_design
+      result: solve_validate
+      parameter: solve_validate
+      data: solve_validate
+      legacy_untyped: model_design
   primary_conformance_changed:
     implementation_binding: opted-in primary declaration or structural delivery/acceptance is no longer current
     own_profile: primary_result
@@ -213,9 +306,19 @@ cycle_policy:
     state so a cycle can never loop indefinitely. Callers may escalate reported cycles
     according to their gate severity; the transition engine itself remains deterministic.
 
+lifecycle_rewind:
+  status_order: [pending, audited, designed, solved, analyzed, validated, written, completed]
+  project_phase_order: [problem_audit, model_design, data_preprocessing, solve_validate, result_analysis, figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality, review_delivery, completed]
+  event_order_independent_restart_precedence: [model_design, solve_validate]
+  restart_conditions:
+    model_design: Resolve rejected model validity through renewed semantic closure, Model Challenge, and explicit Human Approval.
+    solve_validate: Resolve the rejected core answer through a new accepted primary result.
+  rule: A structured rejection may only rewind lifecycle status and project phase; it never advances either one.
+
 transition_report:
   cleared_field_reporting: Profile clear removes an existing state field; status_updates reports its removal as null without writing null into project state.
   required_fields: [event, source, affected_questions, transitions, dependency_cycles]
+  optional_fields: [project_updates]
   transition_fields:
   - question
   - scope
@@ -230,6 +333,7 @@ transition_report:
 
 invariants:
 - Applying the same transition to an already-transitioned state is idempotent.
+- Structured B2 rejection events rewind subproblem lifecycle and project phase atomically; model_design always wins over solve_validate regardless of disposition order.
 - Model Approval is invalidated only by semantic-profile transitions, not by ordinary primary-code or analysis-code freshness changes.
 - Ordinary observed backend/source-bundle freshness changes use existing code events even if the entry SHA is unchanged; explicit project-level retirement uses numerical-source events, and matlab_script_changed remains restricted to formal figure code.
 - Numerical-source retirement uses the matching primary/analysis profile and emits data/parameter/result, never a direct model impact; ordinary code events and backend request conflicts are not retirement.
