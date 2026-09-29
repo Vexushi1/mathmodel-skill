@@ -90,6 +90,7 @@ jobs:
           $p1Path = Join-Path $env:RUNNER_TEMP 'hsk-p1-baseline'
           $candidatePath = Join-Path $env:RUNNER_TEMP 'hsk-candidate'
           $reportPath = Join-Path $env:RUNNER_TEMP 'optimization-evidence'
+          $fixtureTemp = Join-Path $env:RUNNER_TEMP 'hsk-fixture-temp'
           git worktree add --detach $baselinePath $baseline
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           git worktree add --detach $p1Path 0eecaf929c83f19555402564ea0b14743d9bcf7d
@@ -97,7 +98,11 @@ jobs:
           git worktree add --detach $candidatePath HEAD
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           New-Item -ItemType Directory -Path $reportPath -Force | Out-Null
-          @("OPT_BASELINE=$baselinePath", "OPT_P1=$p1Path", "OPT_CANDIDATE=$candidatePath", "OPT_REPORTS=$reportPath") |
+          # The immutable P1 driver replaces its exact synthetic root string.
+          # Keep fixtures under runner temp to avoid Windows profile-path aliasing.
+          New-Item -ItemType Directory -Path $fixtureTemp -Force | Out-Null
+          @("OPT_BASELINE=$baselinePath", "OPT_P1=$p1Path", "OPT_CANDIDATE=$candidatePath", "OPT_REPORTS=$reportPath",
+            "TMPDIR=$fixtureTemp", "TEMP=$fixtureTemp", "TMP=$fixtureTemp") |
             Add-Content -Path $env:GITHUB_ENV -Encoding utf8
       - name: Recheck approved baseline lint and generated files
         shell: pwsh
