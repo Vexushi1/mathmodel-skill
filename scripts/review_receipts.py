@@ -610,6 +610,15 @@ def _cross_record_issues(records: list[Mapping[str, Any]], reports: list[dict[st
                 old_report["issues"].append("reverified finding exceeds its original review scope")
                 old_report["applicability"] = "unverified"
                 continue
+            original_check_objects = {
+                check["id"]: set(check["object_ids"]) for check in old["checks"]
+                if check["id"] in affected_checks
+            }
+            if (affected_objects - set().union(*original_check_objects.values())
+                    or any(not objects & affected_objects for objects in original_check_objects.values())):
+                old_report["issues"].append("reverified finding object/check scope is not linked in the original review")
+                old_report["applicability"] = "unverified"
+                continue
             valid_recheck = False
             for successor in records:
                 if successor["review_id"] == old_id:

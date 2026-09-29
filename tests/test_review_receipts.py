@@ -439,6 +439,32 @@ class ReviewReceiptTests(unittest.TestCase):
         self.assertIn("PASS omits declared review objects", issues, report)
         self.assertIn("supersede full review", issues, report)
 
+    def test_c07_finding_scope_must_match_original_check_objects(self):
+        original = self.receipt(role="semantic_reviewer", gate="draft_semantic_review",
+                                object_ids=("Q1:A", "Q1:B"))
+        original["checks"] = [
+            {"id": "A", "object_ids": ["Q1:A"], "result": "fail",
+             "evidence_locator": "synthetic-review/pass-1#A"},
+            {"id": "B", "object_ids": ["Q1:B"], "result": "pass",
+             "evidence_locator": "synthetic-review/pass-1#B"},
+        ]
+        original["findings"] = [{"id": "F1", "severity": "blocking",
+                                 "evidence_locator": "synthetic-review/pass-1#A",
+                                 "closure": "reverified", "object_ids": ["Q1:A"],
+                                 "check_ids": ["B"]}]
+        original["verdict"] = "fail"
+        unrelated = self.receipt("R2", role="semantic_reviewer",
+                                 gate="draft_semantic_review", pass_id="pass-2",
+                                 object_ids=("Q1:A",))
+        unrelated["checks"] = [{"id": "B", "object_ids": ["Q1:A"], "result": "pass",
+                                "evidence_locator": "synthetic-review/pass-2#B"}]
+        unrelated["rechecks"] = [{"review_id": "R1", "finding_ids": ["F1"],
+                                   "object_ids": ["Q1:A"], "check_ids": ["B"]}]
+        self.install(original, unrelated)
+        report = self.inspect()
+        self.assertEqual(self.row(report, "R1")["applicability"], "unverified", report)
+        self.assertIn("not linked", " ".join(self.row(report, "R1")["issues"]), report)
+
     def test_c07_pass_requires_union_coverage_of_declared_objects(self):
         record = self.receipt(object_ids=("Q1:A", "Q1:B"))
         for check in record["checks"]:
