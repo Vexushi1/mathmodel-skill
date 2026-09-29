@@ -1,0 +1,131 @@
+version: 1.0.0
+status: active_opt_in_read_only
+introduced_in_skill_version: 10.14.0
+purpose: Record the actual scope, execution method, findings, and input snapshot of a review without granting independent-review or delivery qualification.
+authority:
+  record_shape: core/project_state.schema.yaml#/$defs/review_receipts
+  record_path: review_receipts
+  existing_model_challenge: core/model_approval_contract.yaml
+  existing_final_review: modules/06_review_delivery.md
+  snapshot_and_read_set: scripts/project_transaction.py
+  implementation: scripts/review_receipts.py
+gate_authorities:
+  model_challenge:
+    required_paths: [core/model_approval_contract.yaml]
+    version_source: core/model_approval_contract.yaml
+  draft_semantic_review:
+    required_paths:
+    - modules/06_review_delivery.md
+    - modules/05_writing/paper_writing_protocol.md
+    - core/writing_reasoning_contract.yaml
+    - core/writing_runtime_contract.yaml
+    - core/claim_consumption_contract.yaml
+    - core/output_contract.yaml
+    - core/workbook_schema.yaml
+    - modules/04_figure_evidence.md
+    latex_required_paths: [templates/latex/cumcm/hsk/template_manifest.yaml]
+  final_review_and_delivery:
+    required_paths:
+    - modules/06_review_delivery.md
+    - modules/05_writing/paper_writing_protocol.md
+    - core/writing_reasoning_contract.yaml
+    - core/writing_runtime_contract.yaml
+    - core/claim_consumption_contract.yaml
+    - core/output_contract.yaml
+    - core/workbook_schema.yaml
+    - modules/04_figure_evidence.md
+    - templates/review/final_review_matrix.yaml
+    latex_required_paths: [templates/latex/cumcm/hsk/template_manifest.yaml]
+gate_inputs:
+  model_challenge:
+    required_state_pointers_per_question:
+    - /subproblems/{question}/semantic_revision
+    - /subproblems/{question}/semantic_identity_hash
+    required_project_files: [模型论文框架.md]
+  draft_semantic_review:
+    selected_paper_source_pointer: /paper_framework/claim_consumption_policy/paper_source
+    paper_carrier_patterns: ['^final_latex/[^/]+\.tex$', '^draft_docx/[^/]+\.docx$']
+    paper_carrier_match: any_project_file
+    requires_static_latex_closure: true
+    requires_approved_figure_images: true
+  final_review_and_delivery:
+    selected_paper_source_pointer: /paper_framework/claim_consumption_policy/paper_source
+    paper_carrier_patterns: ['^final_latex/[^/]+\.tex$', '^draft_docx/[^/]+\.docx$']
+    paper_carrier_match: any_project_file
+    requires_static_latex_closure: true
+    requires_approved_figure_images: true
+    required_state_pointers: [/artifacts/compiled_pdf]
+    required_project_file_from_state_pointer: /artifacts/compiled_pdf
+  unknown_gate: unverified
+paper_source_closure:
+  selected_source_authority: core/project_state.schema.yaml#/$defs/claim_consumption_policy/properties/paper_source
+  selection_pointer: /paper_framework/claim_consumption_policy/paper_source
+  state_binding: selected_source_pointer_and_exact_entrypoint_must_be_in_review_snapshot
+  latex_scanner: scripts/claim_tex.py#scan_static_latex(selected_carrier=True)
+  latex_input_scope: all_reported_files_including_active_includes_and_local_supports
+  latex_requirement: scanned_status_and_every_reported_path_and_sha256_in_review_snapshot
+  docx_requirement: selected_ordinary_DOCX_entrypoint_and_its_file_sha256_in_review_snapshot
+  figure_requirement: current_approved_images_in_the_selected_static_source_must_be_in_review_snapshot
+  unresolved_or_dynamic_source: unverified_not_current
+activation:
+  explicit_cli: scripts/review_receipts.py
+  automatic_existing_gate_insertion: false
+  missing_record: not_assessed
+  empty_records: not_assessed
+  unknown_partial_or_null_record: blocked
+  project_writer: none_in_C1
+  persistence: stdout_only
+  default_project_files_added: []
+record:
+  required_fields: [review_id, gate, role, criteria_version, scope, snapshot, execution, checks, findings, uncovered, verdict]
+  optional_relations: [supersedes, rechecks]
+  scope: exact_question_and_object_ids_only
+  verdicts: [pass, fail, inconclusive]
+  applicability: derived_current_stale_superseded_or_unverified_not_author_signed
+  finding_closure: [open, corrected, reverified, not_applicable]
+  corrected_is_not_reverified: true
+  partial_recheck: covers_declared_object_and_check_ids_only
+  pass_requires_nonempty_checks: true
+  pass_requires_each_declared_object_covered_by_at_least_one_check: true
+  recheck_relation: same_gate_and_role_with_explicit_finding_object_and_check_scope
+  finding_affected_scope: optional_object_ids_and_check_ids_lists; required_to_qualify_a_reverified_finding
+  finding_reverification: successor_must_name_the_finding_and_cover_its_affected_objects_and_checks
+  full_scope_replacement: supersedes_requires_full_prior_object_and_check_coverage_and_current_PASS
+execution:
+  methods: [native_isolated, human_review, separated_passes, author_self_check, unverified]
+  source_kind: bounded_declaration_not_an_attestation
+  source_locator: required_for_declared_execution_but_requires_external_verification_before_native_or_human_provenance_claim
+  separated_pass_id: required_for_traceability_not_independence_proof
+  independent_boolean: forbidden
+  duplicate_pass_or_verdict: cannot_prove_separate_execution
+  unavailable_native_session: retain_separated_passes_when_two_real_separate_passes_occurred
+  command_and_exit_code: actual_observed_execution_only; failed_or_unknown_must_not_be_reported_as_success
+snapshot:
+  state_field_digest_domain: hsk.review_receipt.state_field.v1
+  state_field_digest_payload: canonical_JSON_of_selected_JSON_Pointer_value
+  input_digest_domain: hsk.review_receipt.input_snapshot.v1
+  input_digest_payload: canonical_JSON_of_gate_role_scope_criteria_version_and_sorted_state_fields_project_files_authorities
+  digest_encoding: UTF8_domain_NUL_then_sorted_compact_JSON_without_NaN
+  sorting: state_fields_by_pointer_project_files_and_authorities_by_path
+  fingerprint_excludes: [state_generation, full_project_state_hash, review_receipts_subtree]
+  forbidden_project_files: [state/project_state.yaml]
+  forbidden_state_pointers: [root, /review_receipts, /project/state_generation]
+  state_generation: read_write_consistency_context_not_universal_freshness_dependency
+  authority_change: recheck_by_actual_criteria_and_scope_impact
+  optimistic_consistency: recheck_every_read_dependency_before_return_or_future_commit
+  hash_scope: record_integrity_or_input_identity_not_identity_of_reviewer
+limits:
+  records: 128
+  state_fields_per_record: 128
+  project_files_per_record: 128
+  authorities_per_record: 64
+  checks_per_record: 512
+  findings_per_record: 512
+  uncovered_per_record: 128
+  policy: reject_oversize_or_unknown_without_truncating_to_pass
+boundaries:
+  - The receipt validator is read-only and does not execute review commands or create host or human provenance.
+  - Receipt PASS does not accept a workbook, approve a mathematical model, establish numerical reproduction, or replace an existing gate.
+  - A stale or inconclusive receipt cannot be consumed as a current pass; gate consumption and repair closure are reserved for C2.
+  - Legacy projects without review_receipts retain the existing two-pass review path without retrospective receipts.
+  - An actor able to rewrite both a receipt and its digest can forge the record; a digest is not an independent signature.

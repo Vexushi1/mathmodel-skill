@@ -1,6 +1,11 @@
 # Changelog
 
-## 10.13.0
+## 10.14.0
+
+- Add opt-in C1 reviewer receipts with a closed Project State Schema 8.13.0 record, explicit review inputs and Authority snapshots, and a read-only validator. Protocol 1.0.0 separates review conclusion, current applicability, execution provenance, and finding closure; self-declared independence and receipt hashes do not establish independent execution.
+- Preserve old projects and the existing two-pass review path. C1 validation does not enter default delivery gates, generate receipts, approve a model or workbook, or assert human visual and semantic coverage. Gate consumption and repair re-verification remain C2 work.
+
+## Previous release: 10.13.0
 
 - Complete the B2 carrier and acceptance scope with opt-in `1.5.0/enforce_selected_paper_claim_chain`. A project selects one root-level `final_latex/*.tex` or `draft_docx/*.docx` entrypoint; the existing B1 claims, paper fragments, Figure source bindings and current approved bundle remain the only evidence authority.
 - Admit bounded static single-file and modular LaTeX while keeping dynamic includes, dynamically named or unbounded redefinitions, control-symbol definitions, preamble/global rendering effects and custom-macro-generated claim, caption or Figure structure fail closed. Selected LaTeX uses the existing v2 audit and v5 compile/recorder/package proof against the declared entrypoint.

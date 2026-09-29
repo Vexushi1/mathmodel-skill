@@ -626,6 +626,22 @@ class AuditClosureProjectionTests(unittest.TestCase):
                 self.assertEqual([item["candidate"] for item in version_changes], ["10.13.0"])
                 self.assertEqual(version_changes[0]["authority_versions"], carriers)
 
+    def test_c1_carrier_requires_only_exact_opt_in_versions(self):
+        carriers = deepcopy(EVIDENCE.C1_AUTHORITY_VERSIONS)
+        for case in (*EVIDENCE.A7_HYDRATED_PROVENANCE_CASES, "facts_unscoped"):
+            with self.subTest(case=case):
+                old, new = self.pair(case)
+                self.prepare_b2c(old, new)
+                new["version"] = "10.14.0"
+                projected, changes = EVIDENCE.approved_c1_carrier_change(case, old, new, carriers)
+                self.assertEqual(projected, old)
+                version_changes = [item for item in changes if item["path"] == "version"]
+                self.assertEqual([item["candidate"] for item in version_changes], ["10.14.0"])
+                self.assertEqual(version_changes[0]["authority_versions"], carriers)
+                bad = deepcopy(carriers)
+                bad["project_state"] = "8.13.1"
+                self.assertEqual(EVIDENCE.approved_c1_carrier_change(case, old, new, bad), (new, []))
+
     def test_b2c_carrier_keeps_unrelated_differences_visible(self):
         old, new = self.pair()
         self.prepare_b2c(old, new)

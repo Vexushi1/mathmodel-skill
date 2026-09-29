@@ -135,7 +135,7 @@ final review 读取 current framework、state、active assembly、题目要求�
 
 终审必须覆盖题意/输出、模型语义、数值与精度、写作能力激活、术语/claim、图表、引用、编译和提交合规。可按 physical file / question / check family 分批读取以控制上下文，但必须维护 coverage ledger；每个 active file、current question、headline claim 与 required gate 都有明确 covered 状态，**不得抽样几个章节就宣称全文通过**。
 
-稳定的机器检查族字段为：`edition_compliance`、`anonymity_and_metadata`、`ai_disclosure`、`citation_entity_integrity`、`rendered_page_surface`、`figure_table_information_value`、`reproducibility_and_package`、`cross_question_dynamic_coverage`。这些名称只服务 `templates/review/final_review_matrix.yaml` 的覆盖闭合，不复制正文规则。每项 finding 的证据来源应明确为 `machine / manual / hybrid`；赛事规则只有 `verification_status=verified` 才可形成官方 Hard，`unverified / expired` 只能进入复核。确认的官方硬违规统一记录为 `verified_official_rule_violation`。内部审查记录**不进入 Project State**，审查中间材料与内部元数据**不得自动加入 official package**。
+稳定的机器检查族字段为：`edition_compliance`、`anonymity_and_metadata`、`ai_disclosure`、`citation_entity_integrity`、`rendered_page_surface`、`figure_table_information_value`、`reproducibility_and_package`、`cross_question_dynamic_coverage`。这些名称只服务 `templates/review/final_review_matrix.yaml` 的覆盖闭合，不复制正文规则。每项 finding 的证据来源应明确为 `machine / manual / hybrid`；赛事规则只有 `verification_status=verified` 才可形成官方 Hard，`unverified / expired` 只能进入复核。确认的官方硬违规统一记录为 `verified_official_rule_violation`。完整内部审查矩阵与中间材料不进入 Project State，也不得自动加入 official package；C1 可选的结构化回执元数据仅按 `core/review_receipt_contract.yaml` 记录在 Project State，不代替矩阵或人审。
 
 ### 3. 原子 finding 与评分关系
 

@@ -1,4 +1,4 @@
-# mathmodel-skill v10.13.0
+# mathmodel-skill v10.14.0
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值语言由项目根策略统一选择。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。
 
@@ -75,3 +75,7 @@ python scripts/project_solver_backend.py --help
 `python scripts/claim_consumption.py <项目根> --tex-main final_latex/main.tex` 始终只读，观察已登记主张、paper fragment 依赖与选定论文载体中的字面位置。`observe` 1.0.0 不新增 claim 驱动的写入；显式 `propagate` 1.1.0 根据当前 `modify/reject` 处置的精确 B1 claim ID 增加局部失效，State 与 Framework 表行同事务提交。显式 `enforce_latex_text` 1.2.0 继承该失效路径，并只为活动模块化 LaTeX 中已登记的摘要及各问结果文本启用有限机器门。显式 `enforce_latex_text_and_figure_chain` 1.3.0 在同一次只读审计重做 1.2.0 文本条件，并使用 v5 LaTeX/Figure 证明链。1.4.0 继承该证明链，并要求 current `modify/reject` 显式声明影响类别；核心答案和模型有效性否证分别由现有同步事务回退到 `solve_validate` 和 `model_design`，辅助措辞仍只局部失效。1.5.0 继承该回退语义，并要求 `paper_source` 显式选择 LaTeX 或 DOCX；动态包含、由自定义宏生成的相关正文/图注、DOCX 修订/字段/外链及不安全包结构一律保守阻断。旧策略及旧 v4/v5 证明路径的行为不变。
 
 可选 `figure_bindings` 在只读审计中核对工作簿驱动结果图的 Figure ID、当前 Framework 登记、State 片段及实际/已批准图片路径。每个绑定可再声明 `source_bindings`，用当前 Figure 关联 claim 的 B1 来源闭包、工作表及精确表头观察来源；同时复核原有已验证脚本/图片 bundle 哈希，并要求本次 scoped Figure bundle 的全部发现路径属于原 `approved_figures`。1.3.0/1.4.0 使用活动模块化 LaTeX 的字面标签、长图注、图片与正文引用；1.5.0 的 `carrier_locator` 使用 LaTeX label 或包含一个内嵌图片和字面图注的 DOCX bookmark，DOCX 内嵌 media 必须与当前批准图片 SHA-256 一致。审计不重新批准图片，不执行绘图脚本，也不证明视觉充分性、整段图注语义或人工审阅通过；DOCX 机器门也不能冒充 PDF/提交证明。具体边界见 `core/claim_consumption_contract.yaml`。
+
+## C1：可选审查回执只读核验
+
+`python scripts/review_receipts.py <项目根>` 按 `core/review_receipt_contract.yaml` 检查可选 `review_receipts` 的结构、被审输入与 Authority 快照、执行来源声明和复验范围。旧项目缺少回执时报告 `not_assessed`，继续既有双轮审查路径；回执结论即使为 PASS，也不证明独立执行，不授予模型批准、accepted 工作簿或交付资格。该入口不写项目或插入默认门禁；现有门禁消费与修后复验资格留待 C2。

@@ -1,4 +1,4 @@
-version: 10.13.0
+version: 10.14.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -21,6 +21,7 @@ contracts:
   model_code_conformance: core/model_code_conformance_contract.yaml
   claim_evidence: core/claim_evidence_contract.yaml
   claim_consumption: core/claim_consumption_contract.yaml
+  review_receipts: core/review_receipt_contract.yaml
   writing_reasoning: core/writing_reasoning_contract.yaml
   writing_runtime: core/writing_runtime_contract.yaml
   writing_protocol: modules/05_writing/paper_writing_protocol.md
