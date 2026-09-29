@@ -2,7 +2,13 @@
 
 > 维护实施证据，不建立第二套 Figure Authority。Figure 决策继续由 `modules/04_figure_evidence.md` 唯一拥有；P6b 只把 P6a 的 publication profile/style implementation 放入真实 MATLAB 执行环境，产出可下载预览并做机器可判定的渲染边界检查。
 
-## 当前维护方式：P0-C 显式手动选择
+## 当前维护方式：Windows R2024b 手动预览
+
+`Real MATLAB publication preview` 固定运行在 GitHub 的 Windows Server 2022 runner，使用 MathWorks 官方 actions 安装并运行 MATLAB R2024b。R2024b 的 Windows Server 支持范围列有 Server 2022；当前 `windows-latest` 指向 Server 2025，因此这里使用 `windows-2022`。依据：[MathWorks R2024b 系统要求](https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/support/sysreq/files/system-requirements-release-2024b-windows.pdf)、[GitHub runner 映射](https://github.com/actions/runner-images)。
+
+触发仍需 `workflow_dispatch` 和 `run_matlab_preview=true`，默认 false。PowerShell 将输出放到 runner 临时目录，并检查仓库工作树保持干净。运行前检查 Windows 可见的中文字体；真实 MATLAB session 还要用 `listfonts` 确认字体可见并核对实际选中的字体。候选为 Microsoft YaHei、SimHei、Noto Sans CJK SC、Arial Unicode MS。字体缺失时任务失败，不能依赖 Helvetica 回退后声称 publication preview 通过。上传的 PNG、PDF 和 `preview_report.json` 才是这次 Windows 渲染的远端证据；未显式运行时仍是跳过，不代表渲染成功。
+
+## 历史 P0-C 显式手动选择
 
 P0-C 将既有真实 MATLAB preview 保留为可选维护能力：只有 `workflow_dispatch` 且显式选择 `run_matlab_preview=true` 时才启动 `Real MATLAB publication preview` job；该输入为 boolean，默认 false。普通 PR 即使修改 workflow、样式 helper 或 preview 文件，也不安装或运行 MATLAB，不执行图像检查。上述路径仍可触发既有非 MATLAB 的 `source_snapshot` 与 `characterize` 基线检查。
 

@@ -1,5 +1,5 @@
 ---
-governance_version: 1.0.4
+governance_version: 1.0.5
 applies_to_skill: ">=6.3.0,<11.0.0"
 status: active
 ---
@@ -230,6 +230,8 @@ Linux runner 可以用于 LaTeX / TeX Live、静态工具、生成文件、Git �
 仓库维护不要求 Codex、Agent 或开发者在本地运行 lint、unittest、`generate_indexes.py`、MATLAB 或 LaTeX。本地测试可以完全不执行；自愿执行时仅作辅助诊断，不替代 GitHub Actions，也不产生合并资格。正式证据为最终 PR head 的 GitHub Actions job、日志与产物、该 head 与合并提交的对应关系，以及合并后 `main` 的 GitHub Actions。若 required check 名称受变更影响，合并前须核对 GitHub Settings；无法核对时停止合并。
 
 这项远端验收规则仅适用于 Skill 仓库维护。真实用户赛题的 Python / MATLAB 数值代码仍由用户在实际环境按 `full_fidelity` 执行，并按原有工作簿、回执与验收契约交付。
+
+正式 MATLAB 原生数值 CI 在 Windows Server 2022 + MATLAB R2024b 执行，必须实测主求解、独立结果深化分析、accepted XLSX 交接、版本化 RUN_RECEIPT，以及 A2/B1 对真实合成执行证据的检查。可选 MATLAB 绘图预览是独立的渲染检查，不能代替这条原生数值验收链。
 
 ### 9.2 按影响面追加
 

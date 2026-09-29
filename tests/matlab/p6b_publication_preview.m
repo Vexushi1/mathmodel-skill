@@ -8,6 +8,11 @@ end
 repoRoot = string(fileparts(fileparts(fileparts(mfilename("fullpath")))));
 addpath(fullfile(repoRoot, "templates", "matlab"));
 
+cjkFonts = ["Microsoft YaHei", "SimHei", "Noto Sans CJK SC", "Arial Unicode MS"];
+availableFonts = string(listfonts);
+assert(any(ismember(lower(availableFonts), lower(cjkFonts))), ...
+    "Missing CJK publication font visible to MATLAB on the Windows runner.");
+
 if isfolder(outputDir)
     rmdir(outputDir, "s");
 end
@@ -24,7 +29,7 @@ for i = 1:numel(profiles)
     cleaner = onCleanup(@() close_if_valid(fig)); %#ok<NASGU>
     palette = hsk_apply_scientific_style(fig, profile);
 
-    verify_runtime_style(fig, spec, palette, profile);
+    verify_runtime_style(fig, spec, palette, profile, cjkFonts);
 
     pngPath = fullfile(outputDir, profile + ".png");
     pdfPath = fullfile(outputDir, profile + ".pdf");
@@ -58,7 +63,7 @@ end
 report.matlab_version = version;
 report.matlab_release = version("-release");
 report.profiles = reports;
-report.machine_checks = ["profile_api", "style_application", "text", "legend", ...
+report.machine_checks = ["profile_api", "style_application", "cjk_font", "text", "legend", ...
     "canvas", "png_pdf_export", "nonblank_raster", "monochrome_print_safe", "output_boundary"];
 reportPath = fullfile(outputDir, "preview_report.json");
 fid = fopen(reportPath, "w");
@@ -122,11 +127,13 @@ else
 end
 end
 
-function verify_runtime_style(fig, spec, palette, profile)
+function verify_runtime_style(fig, spec, palette, profile, cjkFonts)
 assert(isequal(round(fig.Position(3:4)), [1200, 760]), "Figure canvas changed unexpectedly.");
 assert(max(abs(fig.Color - spec.frame.background)) < 1e-12, "Figure background does not match profile spec.");
 assert(string(palette.profile) == profile, "Applied profile name does not match requested profile.");
 assert(strlength(string(palette.fontName)) > 0, "Runtime font selection returned an empty font.");
+assert(any(strcmpi(string(palette.fontName), cjkFonts)), ...
+    "MATLAB publication preview selected a fallback without a verified CJK font.");
 
 axesList = findall(fig, "Type", "axes");
 assert(numel(axesList) == 2, "Representative preview must contain exactly two data axes.");

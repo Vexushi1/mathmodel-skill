@@ -1,6 +1,13 @@
 # Changelog
 
-## 10.14.1
+## 10.14.2
+
+- Move the required native MATLAB R2024b numerical CI job to Windows Server 2022. Keep the primary and independent analysis runs, accepted preprocessing and cross-question XLSX handoffs, source hashes, versioned receipts, A2 structural checks, and B1 read-only evidence checks.
+- Use a temporary Windows adapter around the pinned official Run MATLAB Command binary. It preserves the existing `-batch` CLI while forwarding quoted Unicode expressions and native exit codes. Require nonempty native reports and workbooks, then preserve actual runner evidence as an artifact.
+- Move the optional publication preview to Windows R2024b with a checked CJK font prerequisite and real MATLAB font selection. Clarify the formal Windows MATLAB validation platform in repository governance. Historical CI records are unchanged; this entry does not claim acceptance before the exact PR head runs.
+- Register the exact 10.14.2 version-only carrier in the immutable optimization comparison; runtime qualifications and other Authority versions remain fully compared.
+
+## Previous release: 10.14.1
 
 - Run exactly two formal Python full regressions on Windows: `Python 3.10` in the existing matrix job and the real `Windows Python 3.14` job. Remove the hidden Linux whole-suite run from Optimization baseline and move its focused characterization to Windows Python 3.14. Linux remains the tool environment for LaTeX, source snapshots, static lint and generated-file checks without a Linux Python compatibility promise.
 - Make GitHub Actions the repository-maintenance acceptance path: push source changes, let `refresh-generated` commit managed metadata, validate the generated final PR head, then merge and recheck `main`. Local repository testing is optional diagnostics; user-project full-fidelity numerical execution remains on the user's Windows environment. Preserve historical CI records and the C1 reviewer-receipt contracts unchanged.
