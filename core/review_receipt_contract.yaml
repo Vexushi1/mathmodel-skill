@@ -57,6 +57,9 @@ gate_inputs:
     required_state_pointers: [/artifacts/compiled_pdf]
     required_project_file_from_state_pointer: /artifacts/compiled_pdf
   unknown_gate: unverified
+required_authority_paths:
+  - core/project_state.schema.yaml
+  - core/review_receipt_contract.yaml
 paper_source_closure:
   selected_source_authority: core/project_state.schema.yaml#/$defs/claim_consumption_policy/properties/paper_source
   selection_pointer: /paper_framework/claim_consumption_policy/paper_source

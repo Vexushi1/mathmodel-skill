@@ -225,7 +225,8 @@ def _gate_authority_issues(
     spec = (contract.get("gate_authorities") or {}).get(gate, {})
     if not isinstance(spec, Mapping):
         raise ReceiptInspectionError(f"invalid gate authority contract for {gate}")
-    required = list(spec.get("required_paths") or [])
+    required = [SCHEMA, CONTRACT]
+    required.extend(spec.get("required_paths") or [])
     source = _selected_paper_source(state)
     if source is not None and source[0] == "latex":
         required.extend(spec.get("latex_required_paths") or [])
@@ -522,6 +523,8 @@ def _cross_record_issues(records: list[Mapping[str, Any]], reports: list[dict[st
         issues.append("duplicate review_id")
         return issues
     by_report = {item["review_id"]: item for item in reports}
+    initially_current = {review_id: row["applicability"] == "current"
+                         for review_id, row in by_report.items()}
     for record in records:
         review_id = record["review_id"]
         for predecessor in record.get("supersedes", []):
@@ -529,7 +532,8 @@ def _cross_record_issues(records: list[Mapping[str, Any]], reports: list[dict[st
                 issues.append(f"{review_id} supersedes unknown or self receipt: {predecessor}")
             else:
                 old = by_id[predecessor]
-                same_review = record["gate"] == old["gate"] and record["role"] == old["role"]
+                same_review = (record["gate"], record["role"], record["criteria_version"]) == (
+                    old["gate"], old["role"], old["criteria_version"])
                 old_objects = set(old["scope"]["object_ids"])
                 old_checks = {item["id"] for item in old["checks"]}
                 old_findings = {item["id"] for item in old["findings"]}
@@ -544,7 +548,7 @@ def _cross_record_issues(records: list[Mapping[str, Any]], reports: list[dict[st
                     for item in record.get("rechecks", [])
                 )
                 if (not same_review or not covers_old or not linked or record["verdict"] != "pass"
-                        or by_report[review_id]["applicability"] != "current"):
+                        or not initially_current[review_id]):
                     by_report[review_id]["issues"].append("partial or inapplicable receipt cannot supersede full review")
                     by_report[review_id]["applicability"] = "unverified"
                 else:
@@ -565,6 +569,24 @@ def _cross_record_issues(records: list[Mapping[str, Any]], reports: list[dict[st
                 issues.append(f"{review_id} rechecks objects outside predecessor scope")
             if not set(recheck["check_ids"]).issubset({c["id"] for c in old["checks"]}):
                 issues.append(f"{review_id} rechecks checks outside predecessor scope")
+    visiting: set[str] = set()
+    visited: set[str] = set()
+
+    def has_supersedes_cycle(review_id: str) -> bool:
+        if review_id in visiting:
+            return True
+        if review_id in visited:
+            return False
+        visiting.add(review_id)
+        for predecessor in by_id[review_id].get("supersedes", []):
+            if predecessor in by_id and has_supersedes_cycle(predecessor):
+                return True
+        visiting.remove(review_id)
+        visited.add(review_id)
+        return False
+
+    if any(has_supersedes_cycle(review_id) for review_id in by_id if review_id not in visited):
+        issues.append("supersedes relation contains a cycle")
     pairs: dict[str, list[Mapping[str, Any]]] = {}
     for record in records:
         if record["execution"]["method"] != "separated_passes":
@@ -628,7 +650,8 @@ def _cross_record_issues(records: list[Mapping[str, Any]], reports: list[dict[st
                 ):
                     continue
                 successor_report = by_report[successor["review_id"]]
-                if successor_report["applicability"] != "current" or successor["verdict"] != "pass":
+                if (not initially_current[successor["review_id"]] or successor_report["issues"]
+                        or successor["verdict"] != "pass"):
                     continue
                 old_pass = old["execution"].get("pass_id")
                 new_pass = successor["execution"].get("pass_id")
@@ -707,8 +730,10 @@ def inspect_project(
                                   if review_id is not None else all_reports)
             if not records:
                 report["status"] = "not_assessed"
-            elif report["issues"] or any(row["issues"] or row["applicability"] != "current" or row["verdict"] != "pass"
-                                         for row in all_reports):
+            elif (report["issues"] or not any(row["applicability"] == "current" for row in all_reports)
+                  or (review_id is not None and report["receipts"][0]["applicability"] != "current")
+                  or any(row["issues"] or row["applicability"] != "current" or row["verdict"] != "pass"
+                         for row in all_reports if row["applicability"] != "superseded")):
                 report["status"] = "needs_review"
             else:
                 report["status"] = "current"

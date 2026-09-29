@@ -107,10 +107,10 @@ class ReviewReceiptTests(unittest.TestCase):
                          for path in project_paths]
         contract = yaml.safe_load((self.skill / "core/review_receipt_contract.yaml").read_text(encoding="utf-8"))
         spec = contract["gate_authorities"][gate]
-        authority_paths = set(spec["required_paths"])
+        authority_paths = set(contract["required_authority_paths"])
+        authority_paths.update(spec["required_paths"])
         if gate != "model_challenge" and source["format"] == "latex":
             authority_paths.update(spec.get("latex_required_paths", []))
-        authority_paths.add("core/review_receipt_contract.yaml")
         authorities = [
             {"path": relative, "sha256": sha256(self.skill / relative)}
             for relative in sorted(authority_paths)
@@ -219,6 +219,32 @@ class ReviewReceiptTests(unittest.TestCase):
         self.state["review_receipts"]["records"][0]["criteria_version"] = "1.2.0"
         self.save()
         self.assertNotEqual(self.inspect()["status"], "current")
+
+    def test_c03_common_review_authorities_are_required_and_fingerprinted(self):
+        for relative in ("core/project_state.schema.yaml", "core/review_receipt_contract.yaml"):
+            with self.subTest(relative=relative):
+                record = self.receipt()
+                record["snapshot"]["authorities"] = [
+                    row for row in record["snapshot"]["authorities"] if row["path"] != relative]
+                self.rebind(record)
+                self.install(record)
+                report = self.inspect()
+                self.assertEqual(report["status"], "needs_review", report)
+                self.assertIn(f"required review Authority omitted: {relative}",
+                              self.row(report, "R1")["issues"])
+
+                record = self.receipt()
+                self.install(record)
+                self.assertEqual(self.inspect()["status"], "current")
+                path = self.skill / relative
+                original = path.read_bytes()
+                path.write_bytes(original + b"\n# synthetic Authority change\n")
+                try:
+                    report = self.inspect()
+                    self.assertEqual(self.row(report, "R1")["applicability"], "stale", report)
+                    self.assertEqual(report["status"], "needs_review", report)
+                finally:
+                    path.write_bytes(original)
 
     def test_paper_review_tracks_delegated_module06_authority(self):
         record = self.receipt(gate="draft_semantic_review", role="semantic_reviewer")
@@ -438,6 +464,95 @@ class ReviewReceiptTests(unittest.TestCase):
         issues = " ".join(self.row(report, "R2")["issues"])
         self.assertIn("PASS omits declared review objects", issues, report)
         self.assertIn("supersede full review", issues, report)
+
+    def test_c07_current_full_review_can_supersede_stale_predecessor(self):
+        original = self.receipt()
+        (self.root / "模型论文框架.md").write_text("# Updated synthetic model\n", encoding="utf-8")
+        successor = self.receipt("R2", pass_id="pass-2")
+        successor["supersedes"] = ["R1"]
+        successor["rechecks"] = [{"review_id": "R1", "finding_ids": [],
+                                  "object_ids": ["Q1:model"],
+                                  "check_ids": [check["id"] for check in original["checks"]]}]
+        self.install(original, successor)
+        report = self.inspect()
+        self.assertEqual(report["status"], "current", report)
+        self.assertEqual(report["qualification"], "not_granted", report)
+        self.assertEqual(self.row(report, "R1")["applicability"], "superseded", report)
+        self.assertEqual(self.row(report, "R2")["applicability"], "current", report)
+        self.assertEqual(self.inspect("R1")["status"], "needs_review")
+        self.assertEqual(self.inspect("R2")["status"], "current")
+
+    def test_c07_supersedes_cycle_cannot_make_all_reviews_current(self):
+        first = self.receipt()
+        second = self.receipt("R2", pass_id="pass-2")
+        for record, predecessor in ((first, second), (second, first)):
+            record["supersedes"] = [predecessor["review_id"]]
+            record["rechecks"] = [{"review_id": predecessor["review_id"],
+                                    "finding_ids": [], "object_ids": ["Q1:model"],
+                                    "check_ids": [check["id"] for check in predecessor["checks"]]}]
+        self.install(first, second)
+        report = self.inspect()
+        self.assertEqual(report["status"], "needs_review", report)
+        self.assertIn("supersedes relation contains a cycle", report["issues"])
+
+    def test_c07_full_replacement_chain_is_independent_of_record_order(self):
+        records = [self.receipt(review_id, pass_id=f"pass-{index}")
+                   for index, review_id in enumerate(("R1", "R2", "R3"), start=1)]
+        for successor, predecessor in ((records[1], records[0]), (records[2], records[1])):
+            successor["supersedes"] = [predecessor["review_id"]]
+            successor["rechecks"] = [{"review_id": predecessor["review_id"],
+                                      "finding_ids": [], "object_ids": ["Q1:model"],
+                                      "check_ids": [check["id"] for check in predecessor["checks"]]}]
+        for ordered in (records, list(reversed(records))):
+            with self.subTest(order=[record["review_id"] for record in ordered]):
+                self.install(*ordered)
+                report = self.inspect()
+                self.assertEqual(report["status"], "current", report)
+                self.assertEqual({row["review_id"]: row["applicability"] for row in report["receipts"]},
+                                 {"R1": "superseded", "R2": "superseded", "R3": "current"}, report)
+
+    def test_c06_reverified_finding_stays_closed_through_full_replacement_chain(self):
+        first = self.receipt()
+        affected_check = first["checks"][0]["id"]
+        first["checks"][0]["result"] = "fail"
+        first["findings"] = [{"id": "F1", "severity": "blocking",
+                              "evidence_locator": "synthetic-review/pass-1#F1",
+                              "closure": "reverified", "object_ids": ["Q1:model"],
+                              "check_ids": [affected_check]}]
+        first["verdict"] = "fail"
+        second = self.receipt("R2", pass_id="pass-2")
+        second["supersedes"] = ["R1"]
+        second["rechecks"] = [{"review_id": "R1", "finding_ids": ["F1"],
+                                "object_ids": ["Q1:model"],
+                                "check_ids": [check["id"] for check in first["checks"]]}]
+        third = self.receipt("R3", pass_id="pass-3")
+        third["supersedes"] = ["R2"]
+        third["rechecks"] = [{"review_id": "R2", "finding_ids": [],
+                               "object_ids": ["Q1:model"],
+                               "check_ids": [check["id"] for check in second["checks"]]}]
+        for ordered in ((first, second, third), (third, second, first)):
+            with self.subTest(order=[record["review_id"] for record in ordered]):
+                self.install(*ordered)
+                report = self.inspect()
+                self.assertEqual(report["status"], "current", report)
+                self.assertEqual({row["review_id"]: row["applicability"] for row in report["receipts"]},
+                                 {"R1": "superseded", "R2": "superseded", "R3": "current"}, report)
+
+    def test_c07_different_criteria_cannot_supersede_prior_review(self):
+        first = self.receipt(gate="draft_semantic_review", role="semantic_reviewer")
+        second = self.receipt("R2", gate="draft_semantic_review",
+                              role="semantic_reviewer", pass_id="pass-2")
+        second["criteria_version"] = "1.1.0"
+        self.rebind(second)
+        second["supersedes"] = ["R1"]
+        second["rechecks"] = [{"review_id": "R1", "finding_ids": [],
+                                "object_ids": ["Q1:model"],
+                                "check_ids": [check["id"] for check in first["checks"]]}]
+        self.install(first, second)
+        report = self.inspect()
+        self.assertEqual(self.row(report, "R1")["applicability"], "current", report)
+        self.assertEqual(self.row(report, "R2")["applicability"], "unverified", report)
+        self.assertNotEqual(report["status"], "current", report)
 
     def test_c07_finding_scope_must_match_original_check_objects(self):
         original = self.receipt(role="semantic_reviewer", gate="draft_semantic_review",
