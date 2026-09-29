@@ -27,14 +27,31 @@ class P6bMatlabPreviewContractTests(unittest.TestCase):
         self.assertIn("real_matlab_preview", jobs)
         job = jobs["real_matlab_preview"]
         self.assertEqual(job["name"], "Real MATLAB publication preview")
-        self.assertEqual(job["runs-on"], "ubuntu-latest")
+        self.assertEqual(job["runs-on"], "windows-2022")
         self.assertLessEqual(job["timeout-minutes"], 40)
-        self.assertIn("matlab-actions/setup-matlab@v3", raw)
-        self.assertIn("matlab-actions/run-command@v3", raw)
-        self.assertIn("release: R2024b", raw)
-        self.assertIn("fonts-noto-cjk", raw)
+        steps = {step["name"]: step for step in job["steps"]}
+        self.assertEqual(steps["Set up MATLAB"]["uses"], "matlab-actions/setup-matlab@v3")
+        self.assertEqual(steps["Set up MATLAB"]["with"]["release"], "R2024b")
+        self.assertEqual(
+            steps["Render and machine-check publication previews"]["uses"],
+            "matlab-actions/run-command@v3",
+        )
+        font_step = steps["Verify Windows CJK publication font prerequisite"]
+        self.assertEqual(font_step["shell"], "pwsh")
+        self.assertIn("InstalledFontCollection", font_step["run"])
+        self.assertIn("Microsoft YaHei", font_step["run"])
+        self.assertIn("throw", font_step["run"])
+        clean_step = steps["Prove preview harness did not mutate repository files"]
+        self.assertEqual(clean_step["shell"], "pwsh")
+        self.assertIn("git status --porcelain --untracked-files=all", clean_step["run"])
+        self.assertIn("$LASTEXITCODE", clean_step["run"])
+        for name in ("Define preview output directory", "Summarize real MATLAB evidence"):
+            self.assertEqual(steps[name]["shell"], "pwsh")
+        self.assertNotIn("apt-get", repr(job))
+        self.assertNotIn("fonts-noto-cjk", repr(job))
+        self.assertNotIn("fc-cache", repr(job))
+        self.assertTrue(all(step.get("shell") != "bash" for step in job["steps"]))
         self.assertIn("actions/upload-artifact@v7", raw)
-        self.assertIn("test -z \"$(git status --porcelain)\"", raw)
         self.assertIn("if-no-files-found: error", raw)
         self.assertNotIn("octave", raw.lower())
         self.assertNotIn("python tests/matlab", raw.lower())
@@ -105,6 +122,10 @@ class P6bMatlabPreviewContractTests(unittest.TestCase):
             'monochrome_print palette is not grayscale/print-safe',
             'Preview output boundary violated',
             'preview_report.json',
+            'availableFonts = string(listfonts)',
+            '"cjk_font"',
+            'Missing CJK publication font visible to MATLAB',
+            'MATLAB publication preview selected a fallback without a verified CJK font',
         ):
             self.assertIn(token, text)
         self.assertNotIn("saveas", text)
@@ -119,6 +140,9 @@ class P6bMatlabPreviewContractTests(unittest.TestCase):
         self.assertIn("run_matlab_preview=true", text)
         self.assertIn("默认 false", text)
         self.assertIn("跳过不等于真实渲染通过", text)
+        self.assertIn("Windows Server 2022", text)
+        self.assertIn("R2024b", text)
+        self.assertIn("字体缺失", text)
 
 
 if __name__ == "__main__":

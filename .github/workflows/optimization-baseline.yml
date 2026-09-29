@@ -162,7 +162,7 @@ jobs:
   real_matlab_preview:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_matlab_preview == true }}
     name: Real MATLAB publication preview
-    runs-on: ubuntu-latest
+    runs-on: windows-2022
     timeout-minutes: 40
     steps:
       - name: Check out repository
@@ -170,14 +170,21 @@ jobs:
         with:
           fetch-depth: 0
       - name: Define preview output directory
-        shell: bash
-        run: echo "HSK_PREVIEW_DIR=$RUNNER_TEMP/hsk-matlab-preview" >> "$GITHUB_ENV"
-      - name: Install CJK publication fonts
-        shell: bash
+        shell: pwsh
         run: |
-          sudo apt-get update
-          sudo apt-get install -y fonts-noto-cjk
-          fc-cache -f
+          $previewDir = Join-Path $env:RUNNER_TEMP "hsk-matlab-preview"
+          "HSK_PREVIEW_DIR=$previewDir" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
+      - name: Verify Windows CJK publication font prerequisite
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Drawing
+          $installed = [System.Drawing.Text.InstalledFontCollection]::new().Families.Name
+          $candidates = @("Microsoft YaHei", "SimHei", "Noto Sans CJK SC", "Arial Unicode MS")
+          $available = @($candidates | Where-Object { $installed -contains $_ })
+          if ($available.Count -eq 0) {
+            throw "Windows runner lacks a CJK publication font: $($candidates -join ', ')"
+          }
+          Write-Host "Available CJK publication font(s): $($available -join ', ')"
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v3
         with:
@@ -188,20 +195,30 @@ jobs:
         with:
           command: addpath(fullfile(pwd,"tests","matlab")); p6b_publication_preview(string(getenv("HSK_PREVIEW_DIR")))
       - name: Prove preview harness did not mutate repository files
-        shell: bash
-        run: test -z "$(git status --porcelain)"
+        shell: pwsh
+        run: |
+          $changes = @(git status --porcelain --untracked-files=all)
+          if ($LASTEXITCODE -ne 0) { throw "Unable to inspect repository status" }
+          if ($changes.Count -ne 0) {
+            $changes | Write-Host
+            throw "MATLAB preview mutated repository files"
+          }
       - name: Summarize real MATLAB evidence
         if: success()
-        shell: bash
+        shell: pwsh
         run: |
-          test -s "$HSK_PREVIEW_DIR/preview_report.json"
-          echo '## Real MATLAB publication preview' >> "$GITHUB_STEP_SUMMARY"
-          echo '' >> "$GITHUB_STEP_SUMMARY"
-          echo 'The P6b harness rendered all three publication profiles in a real MATLAB batch session.' >> "$GITHUB_STEP_SUMMARY"
-          echo '' >> "$GITHUB_STEP_SUMMARY"
-          echo '```json' >> "$GITHUB_STEP_SUMMARY"
-          cat "$HSK_PREVIEW_DIR/preview_report.json" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          $report = Join-Path $env:HSK_PREVIEW_DIR "preview_report.json"
+          if (-not (Test-Path -LiteralPath $report -PathType Leaf)) { throw "MATLAB preview report is missing" }
+          if ((Get-Item -LiteralPath $report).Length -eq 0) { throw "MATLAB preview report is empty" }
+          @(
+            '## Real MATLAB publication preview'
+            ''
+            'The P6b harness rendered all three publication profiles in a real MATLAB batch session.'
+            ''
+            '```json'
+          ) | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+          Get-Content -LiteralPath $report -Raw | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+          '```' | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Encoding utf8
       - name: Upload real MATLAB preview evidence
         if: always()
         uses: actions/upload-artifact@v7
