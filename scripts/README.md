@@ -32,6 +32,7 @@
 
 ## 项目记忆与论文检查
 
+- `review_receipts.py <project_root>`：C1 可选回执的只读结构、输入与 Authority 快照核验；结论、适用性、执行来源和 finding 闭环分别报告。退出码 0 仅表示声明范围内快照当前，1 为阻断，2 为未评估或需要复核；任何结果均不授予独立审查、模型批准、accepted 工作簿或最终交付资格。缺少回执维持旧路径；合同见 `core/review_receipt_contract.yaml`。
 - `validate_project_state.py`：校验 `state/project_state.yaml` 的机器状态、分类兼容、哈希和 stale 语义。
 - `validate_model_paper_framework.py`：校验 current `模型论文框架.md` 的 compact/full 结构、命题预算、Terminology/Numeric/Title/Paper Fragment 记录以及 Algorithm Trace 的确定性闭环。对 `stepwise/pseudocode` 检查关联 Algorithm ID、必填字段、模式/current 状态和已求解后的 实际代码锚点；`not_needed` 不要求算法框。该脚本不从步骤文字推断算法正确性、收敛性或与实现的数学等价性。
 - `audit_latex_project.py`：正式 LaTeX 项目审计入口。递归展开 active `\input/\include`、检查 fragment/source-file 工程闭环，再委托 `audit_paper_prose.py` 完成 prose/structure/BibTeX/framework 审查；兼容单文件工程自然退化为单文件模式。

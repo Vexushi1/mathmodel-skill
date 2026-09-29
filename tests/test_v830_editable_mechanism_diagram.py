@@ -440,15 +440,16 @@ class ContractAndDriftTests(unittest.TestCase):
         # P0-A intentionally aligns the title handoff with the existing output Authority;
         # test_schemas covers the new declaration and unchanged caption ownership.
         "core/workbook_schema.yaml": "e0479f5e74063151a515d11e140b7c4e8b8db077",
-        # B2c adds the explicit 1.5 selected-carrier pair and preserves the
-        # predecessor policy shapes under dedicated schema and runtime tests.
-        "core/project_state.schema.yaml": "ef691df58727edc29783f979c94bf9a43dc6b6e6",
+        # C1 adds only the optional reviewer receipt shape after B2c; the
+        # predecessor policy shapes remain protected by dedicated regressions.
+        "core/project_state.schema.yaml": "5afbd761f88014288ce3c8ca808abfa44c7e0c3c",
         "core/writing_reasoning_contract.yaml": "dadeebc2118f7b76f4aa355ebbe81ec4c1bb800c",
         "modules/03_solve_validate.md": "cfbe8091f0434b8531ec97cbccde013895e18228",
         "modules/03_result_analysis.md": "94edc812f8a0a11c6c32c40fafae9559a56f9230",
         "modules/05_writing/paper_writing_protocol.md": "ea10da96f20bf11bfcf2b7f7465fb5162ae5efdf",
         "modules/05_writing/ai_cleanup.md": "3e6249d17a0a91091bf7c61c49aeb9245ccc41e1",
-        "modules/06_review_delivery.md": "94c2096c6f0873a96df57cb16c5c2f2deee5d411",
+        # C1 distinguishes optional receipt metadata from the internal review matrix.
+        "modules/06_review_delivery.md": "6d1d65f61bb73ef4fab3452cb6b8027ef7e8ade4",
         "config/competition_profiles.yaml": "0cfe08e2edac99f07f2e527643499b8bc73c0479",
         "scripts/validate_semantic_governance.py": "1b48c4e5935c960f28bef89af86ce89a3c6f105f",
         # A5 requires current per-question files and exact official allowlist entries.

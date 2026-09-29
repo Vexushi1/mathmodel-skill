@@ -1,11 +1,181 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 8.12.0
+version: 8.13.0
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
 $defs:
+  review_receipts:
+    description: C1可选只读审查记录；回执声明不自行证明独立执行或授予门禁通过。
+    type: object
+    additionalProperties: false
+    required: [protocol_version, records]
+    properties:
+      protocol_version: {const: 1.0.0}
+      records:
+        type: array
+        maxItems: 128
+        items: {$ref: '#/$defs/review_receipt_record'}
+  review_receipt_record:
+    type: object
+    additionalProperties: false
+    required: [review_id, gate, role, criteria_version, scope, snapshot, execution, checks, findings, uncovered, verdict]
+    properties:
+      review_id: {type: string, minLength: 1, maxLength: 128, pattern: '\S'}
+      gate: {type: string, minLength: 1, maxLength: 128, pattern: '\S'}
+      role: {type: string, minLength: 1, maxLength: 128, pattern: '\S'}
+      criteria_version: {type: string, minLength: 1, maxLength: 128, pattern: '\S'}
+      scope:
+        type: object
+        additionalProperties: false
+        required: [questions, object_ids]
+        properties:
+          questions:
+            type: array
+            maxItems: 64
+            uniqueItems: true
+            items: {type: string, pattern: '^Q[1-9][0-9]*$'}
+          object_ids:
+            type: array
+            minItems: 1
+            maxItems: 512
+            uniqueItems: true
+            items: {type: string, minLength: 1, maxLength: 128, pattern: '^\S(?:.*\S)?$'}
+      snapshot:
+        type: object
+        additionalProperties: false
+        required: [state_generation, state_fields, project_files, authorities, fingerprint_sha256]
+        properties:
+          state_generation: {type: integer, minimum: 0}
+          state_fields:
+            type: array
+            maxItems: 128
+            items:
+              type: object
+              additionalProperties: false
+              required: [pointer, sha256]
+              properties:
+                pointer:
+                  type: string
+                  maxLength: 512
+                  pattern: '^/(?!review_receipts(?:/|$)|project/state_generation(?:/|$)).+'
+                sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+          project_files:
+            type: array
+            maxItems: 128
+            items: {$ref: '#/$defs/review_receipt_file_identity'}
+          authorities:
+            type: array
+            minItems: 1
+            maxItems: 64
+            items: {$ref: '#/$defs/review_receipt_file_identity'}
+          fingerprint_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+        anyOf:
+        - properties: {state_fields: {minItems: 1}}
+        - properties: {project_files: {minItems: 1}}
+      execution:
+        type: object
+        additionalProperties: false
+        required: [method, source_kind]
+        properties:
+          method: {enum: [native_isolated, human_review, separated_passes, author_self_check, unverified]}
+          source_kind: {type: string, minLength: 1, maxLength: 64, pattern: '\S'}
+          source_locator: {type: string, minLength: 1, maxLength: 512, pattern: '\S'}
+          command: {type: string, minLength: 1, maxLength: 4096, pattern: '\S'}
+          exit_code: {type: integer}
+          pass_id: {type: string, minLength: 1, maxLength: 128, pattern: '\S'}
+        dependentRequired:
+          exit_code: [command]
+      checks:
+        type: array
+        minItems: 1
+        maxItems: 512
+        items:
+          type: object
+          additionalProperties: false
+          required: [id, object_ids, result, evidence_locator]
+          properties:
+            id: {type: string, minLength: 1, maxLength: 128, pattern: '\S'}
+            object_ids:
+              type: array
+              minItems: 1
+              maxItems: 512
+              uniqueItems: true
+              items: {type: string, minLength: 1, maxLength: 128, pattern: '^\S(?:.*\S)?$'}
+            result: {enum: [pass, fail, inconclusive]}
+            evidence_locator: {type: string, minLength: 1, maxLength: 512, pattern: '\S'}
+      findings:
+        type: array
+        maxItems: 512
+        items:
+          type: object
+          additionalProperties: false
+          required: [id, severity, evidence_locator, closure]
+          properties:
+            id: {type: string, minLength: 1, maxLength: 128, pattern: '\S'}
+            severity: {enum: [blocking, review_required, warning]}
+            evidence_locator: {type: string, minLength: 1, maxLength: 512, pattern: '\S'}
+            closure: {enum: [open, corrected, reverified, not_applicable]}
+            object_ids:
+              type: array
+              minItems: 1
+              maxItems: 512
+              uniqueItems: true
+              items: {type: string, minLength: 1, maxLength: 128, pattern: '^\S(?:.*\S)?$'}
+            check_ids:
+              type: array
+              minItems: 1
+              maxItems: 512
+              uniqueItems: true
+              items: {type: string, minLength: 1, maxLength: 128, pattern: '^\S(?:.*\S)?$'}
+      uncovered:
+        type: array
+        maxItems: 128
+        uniqueItems: true
+        items: {type: string, minLength: 1, maxLength: 512, pattern: '\S'}
+      verdict: {enum: [pass, fail, inconclusive]}
+      supersedes:
+        type: array
+        maxItems: 32
+        uniqueItems: true
+        items: {type: string, minLength: 1, maxLength: 128, pattern: '\S'}
+      rechecks:
+        type: array
+        maxItems: 128
+        items:
+          type: object
+          additionalProperties: false
+          required: [review_id, finding_ids, object_ids, check_ids]
+          properties:
+            review_id: {type: string, minLength: 1, maxLength: 128, pattern: '\S'}
+            finding_ids:
+              type: array
+              maxItems: 128
+              uniqueItems: true
+              items: {type: string, minLength: 1, maxLength: 128, pattern: '^\S(?:.*\S)?$'}
+            object_ids:
+              type: array
+              minItems: 1
+              maxItems: 512
+              uniqueItems: true
+              items: {type: string, minLength: 1, maxLength: 128, pattern: '\S'}
+            check_ids:
+              type: array
+              minItems: 1
+              maxItems: 512
+              uniqueItems: true
+              items: {type: string, minLength: 1, maxLength: 128, pattern: '\S'}
+  review_receipt_file_identity:
+    type: object
+    additionalProperties: false
+    required: [path, sha256]
+    properties:
+      path:
+        type: string
+        maxLength: 512
+        pattern: '^(?!\.{1,2}(?:/|$))[^/\\:\x00-\x1f\x7f-\x9f]+(?:/(?!\.{1,2}(?:/|$))[^/\\:\x00-\x1f\x7f-\x9f]+)*$'
+      sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
   implementation_conformance_policy:
     description: A2显式阶段结构门；没有此字段的A1声明仍仅用于观察。
     type: object
@@ -1239,6 +1409,7 @@ $defs:
         pattern: '^(?:final_latex/.+\.tex|draft_docx/.+\.docx)$'
       status: {type: string, enum: [current, stale, not_applicable]}
 properties:
+  review_receipts: {$ref: '#/$defs/review_receipts'}
   semantic_governance_version:
     description: v7.1+语义治理门版本；旧项目可缺失，只读兼容，重新进入审题/模型设计时补齐
     type: string

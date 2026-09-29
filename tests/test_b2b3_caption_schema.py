@@ -21,7 +21,7 @@ class FigureCaptionProfileSchemaTests(unittest.TestCase):
         })
 
     def test_optional_precision_is_distinct_and_bounded(self):
-        self.assertEqual(self.schema["version"], "8.12.0")
+        self.assertEqual(self.schema["version"], "8.13.0")
         base = {"id": "N1", "metric": "score", "display_form": "decimal", "unit": "ratio",
                 "body_decimals": 2, "table_decimals": 4, "status": "current"}
         self.assertTrue(self.validator.is_valid(base))
