@@ -63,60 +63,94 @@ jobs:
           if-no-files-found: error
 
   characterize:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     timeout-minutes: 25
+    env:
+      PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: "3.14"
           cache: pip
       - name: Install repository validation dependencies
-        run: python -m pip install -r requirements-dev.txt
+        shell: pwsh
+        run: |
+          python -m pip install -r requirements-dev.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Prepare immutable approved baseline
-        shell: bash
+        shell: pwsh
         run: |
-          baseline=$(python -c 'import yaml; print(yaml.safe_load(open("tests/fixtures/skill_optimization_cases.yaml"))["baseline_commit"])')
-          test "$baseline" = 8a92a7924e950939dc77b15d3bb1a88400c09979
-          git worktree add --detach "$RUNNER_TEMP/hsk-approved-baseline" "$baseline"
-          git worktree add --detach "$RUNNER_TEMP/hsk-p1-baseline" 0eecaf929c83f19555402564ea0b14743d9bcf7d
-          echo "OPT_P1=$RUNNER_TEMP/hsk-p1-baseline" >> "$GITHUB_ENV"
-          mkdir -p "$RUNNER_TEMP/optimization-evidence"
-          echo "OPT_BASELINE=$RUNNER_TEMP/hsk-approved-baseline" >> "$GITHUB_ENV"
-          echo "OPT_REPORTS=$RUNNER_TEMP/optimization-evidence" >> "$GITHUB_ENV"
-      - name: Recheck existing baseline lint tests and generated files
-        shell: bash
+          $baseline = & python -c "import pathlib,yaml; print(yaml.safe_load(pathlib.Path('tests/fixtures/skill_optimization_cases.yaml').read_text(encoding='utf-8'))['baseline_commit'])"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($baseline.Trim() -ne '8a92a7924e950939dc77b15d3bb1a88400c09979') { throw 'Approved baseline commit changed' }
+          $baselinePath = Join-Path $env:RUNNER_TEMP 'hsk-approved-baseline'
+          $p1Path = Join-Path $env:RUNNER_TEMP 'hsk-p1-baseline'
+          $candidatePath = Join-Path $env:RUNNER_TEMP 'hsk-candidate'
+          $reportPath = Join-Path $env:RUNNER_TEMP 'optimization-evidence'
+          $fixtureTemp = Join-Path $env:RUNNER_TEMP 'hsk-fixture-temp'
+          git worktree add --detach $baselinePath $baseline
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git worktree add --detach $p1Path 0eecaf929c83f19555402564ea0b14743d9bcf7d
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git worktree add --detach $candidatePath HEAD
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Path $reportPath -Force | Out-Null
+          # The immutable P1 driver replaces its exact synthetic root string.
+          # Keep fixtures under runner temp to avoid Windows profile-path aliasing.
+          New-Item -ItemType Directory -Path $fixtureTemp -Force | Out-Null
+          @("OPT_BASELINE=$baselinePath", "OPT_P1=$p1Path", "OPT_CANDIDATE=$candidatePath", "OPT_REPORTS=$reportPath",
+            "TMPDIR=$fixtureTemp", "TEMP=$fixtureTemp", "TMP=$fixtureTemp") |
+            Add-Content -Path $env:GITHUB_ENV -Encoding utf8
+      - name: Recheck approved baseline lint and generated files
+        shell: pwsh
         run: |
-          cd "$OPT_BASELINE"
-          python scripts/lint_skill.py > "$OPT_REPORTS/baseline-lint.log" 2>&1
-          python -m unittest discover -s tests > "$OPT_REPORTS/baseline-unittest.log" 2>&1
-          python scripts/generate_indexes.py --check > "$OPT_REPORTS/baseline-generated.log" 2>&1
+          Push-Location $env:OPT_BASELINE
+          try {
+            python scripts/lint_skill.py *> (Join-Path $env:OPT_REPORTS 'baseline-lint.log')
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            python scripts/generate_indexes.py --check *> (Join-Path $env:OPT_REPORTS 'baseline-generated.log')
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } finally {
+            Pop-Location
+          }
       - name: Run measurement and boundary regression tests
-        run: python -m unittest discover -s tests -p test_optimization_baseline.py
-      - name: Preserve the immutable P1 characterization as a control
-        shell: bash
+        shell: pwsh
         run: |
-          python "$OPT_P1/tests/optimization_baseline.py" --repo-root "$OPT_BASELINE" --output "$OPT_REPORTS/baseline.json"
-          python "$OPT_P1/tests/optimization_baseline.py" --repo-root "$OPT_P1" --output "$OPT_REPORTS/candidate.json"
-          python "$OPT_P1/tests/optimization_baseline.py" --compare "$OPT_REPORTS/baseline.json" "$OPT_REPORTS/candidate.json" --output "$OPT_REPORTS/comparison.json"
-          python - <<'PY'
-          import json, os
-          from pathlib import Path
-          report = json.loads((Path(os.environ["OPT_REPORTS"]) / "comparison.json").read_text())
-          rows = ["# P1 baseline comparison", "", "No runtime reduction is claimed in P1.", "",
-                  "| Case | Baseline bytes | Candidate bytes | Behavior equal |",
-                  "|---|---:|---:|---|"]
-          for row in report["cases"]:
-              rows.append(f'| {row["id"]} | {row["baseline_declared_bytes"]} | {row["candidate_declared_bytes"]} | {row["behavior_equal"]} |')
-          Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text("\n".join(rows) + "\n")
-          PY
+          python -m unittest discover -s tests -p test_optimization_baseline.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Preserve the immutable P1 characterization as a control
+        shell: pwsh
+        run: |
+          $driver = Join-Path $env:OPT_P1 'tests/optimization_baseline.py'
+          $baselineReport = Join-Path $env:OPT_REPORTS 'baseline.json'
+          $p1Report = Join-Path $env:OPT_REPORTS 'candidate.json'
+          $comparisonReport = Join-Path $env:OPT_REPORTS 'comparison.json'
+          python $driver --repo-root $env:OPT_BASELINE --output $baselineReport
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python $driver --repo-root $env:OPT_P1 --output $p1Report
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python $driver --compare $baselineReport $p1Report --output $comparisonReport
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $report = Get-Content -Path $comparisonReport -Raw -Encoding utf8 | ConvertFrom-Json
+          $rows = @('# P1 baseline comparison', '', 'No runtime reduction is claimed in P1.', '',
+                    '| Case | Baseline bytes | Candidate bytes | Behavior equal |',
+                    '|---|---:|---:|---|')
+          foreach ($row in $report.cases) {
+            $rows += "| $($row.id) | $($row.baseline_declared_bytes) | $($row.candidate_declared_bytes) | $($row.behavior_equal) |"
+          }
+          [System.IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, ($rows -join "`n") + "`n", [System.Text.UTF8Encoding]::new($false))
       - name: Validate reading scopes and compare P2 legacy behavior
-        shell: bash
+        shell: pwsh
         run: |
           python -m unittest discover -s tests -p test_reading_plan.py
-          python tests/reading_plan_evidence.py --baseline "$OPT_P1" --candidate "$PWD" --candidate-ref "$(git rev-parse HEAD)" --output "$OPT_REPORTS"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $candidateRef = (git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/reading_plan_evidence.py --baseline $env:OPT_P1 --candidate $env:OPT_CANDIDATE --candidate-ref $candidateRef --output $env:OPT_REPORTS
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload real measurement evidence even on failure
         if: always()
         uses: actions/upload-artifact@v7

@@ -1,6 +1,12 @@
 # Changelog
 
-## 10.14.0
+## 10.14.1
+
+- Run exactly two formal Python full regressions on Windows: `Python 3.10` in the existing matrix job and the real `Windows Python 3.14` job. Remove the hidden Linux whole-suite run from Optimization baseline and move its focused characterization to Windows Python 3.14. Linux remains the tool environment for LaTeX, source snapshots, static lint and generated-file checks without a Linux Python compatibility promise.
+- Make GitHub Actions the repository-maintenance acceptance path: push source changes, let `refresh-generated` commit managed metadata, validate the generated final PR head, then merge and recheck `main`. Local repository testing is optional diagnostics; user-project full-fidelity numerical execution remains on the user's Windows environment. Preserve historical CI records and the C1 reviewer-receipt contracts unchanged.
+- Register the exact 10.14.1 version-only transition in the immutable optimization baseline comparison; all other Authority versions and runtime qualification fields remain strictly compared.
+
+## Previous release: 10.14.0
 
 - Add opt-in C1 reviewer receipts with a closed Project State Schema 8.13.0 record, explicit review inputs and Authority snapshots, and a read-only validator. Protocol 1.0.0 separates review conclusion, current applicability, execution provenance, and finding closure; self-declared independence and receipt hashes do not establish independent execution.
 - Preserve old projects and the existing two-pass review path. C1 validation does not enter default delivery gates, generate receipts, approve a model or workbook, or assert human visual and semantic coverage. Gate consumption and repair re-verification remain C2 work.

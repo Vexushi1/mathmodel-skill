@@ -30,9 +30,33 @@ class TestActionsRuntimeModernization(unittest.TestCase):
         jobs = self.ci["jobs"]
         self.assertEqual(jobs["static-lint"]["name"], "Static contract lint")
         self.assertEqual(jobs["unit-matrix"]["name"], "Python ${{ matrix.python-version }}")
+        self.assertEqual(jobs["windows-unit"]["name"], "Windows Python 3.14")
         self.assertEqual(jobs["latex-smoke"]["name"], "LaTeX ${{ matrix.name }}")
         self.assertEqual(jobs["production-latex-attestation"]["name"], "Production LaTeX attestation")
         self.assertEqual(jobs["generated-files"]["name"], "Generated file contract")
+
+    def test_formal_python_full_regression_is_windows_310_and_314_only(self):
+        jobs = self.ci["jobs"]
+        matrix = jobs["unit-matrix"]
+        self.assertEqual(matrix["runs-on"], "windows-latest")
+        self.assertEqual(matrix["strategy"]["matrix"]["python-version"], ["3.10"])
+        self.assertEqual(matrix["env"]["PYTHONUTF8"], "1")
+        windows = jobs["windows-unit"]
+        self.assertEqual(windows["runs-on"], "windows-latest")
+        self.assertEqual(windows["env"]["PYTHONUTF8"], "1")
+        self.assertNotIn("needs", windows)
+        self.assertEqual(
+            next(step["with"]["python-version"] for step in windows["steps"]
+                 if step.get("uses", "").startswith("actions/setup-python@")),
+            "3.14",
+        )
+        for job in (matrix, windows):
+            full_steps = [step for step in job["steps"]
+                          if "python -m unittest discover -s tests" in step.get("run", "")]
+            self.assertEqual(len(full_steps), 1)
+            self.assertNotEqual(full_steps[0].get("shell"), "bash")
+        self.assertFalse(any("python -m unittest discover -s tests" in str(job.get("steps", ""))
+                             for name, job in jobs.items() if name not in {"unit-matrix", "windows-unit"}))
 
     def test_ci_business_commands_and_third_party_latex_action_are_preserved(self):
         for token in (

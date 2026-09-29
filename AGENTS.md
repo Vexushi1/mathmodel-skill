@@ -23,5 +23,6 @@
 3. Produce the required change brief before writing files.
 4. Use one dedicated branch and one single-theme PR; never write directly to `main`.
 5. Do not rely on previous-chat memory, duplicate authoritative rules, hand-edit generated indexes or falsify test status.
-6. Run the governance-mandated lint, full tests, generated-file checks and affected specialist checks before merge.
-7. Report branch, PR, merge status, commit SHA, compatibility and unfinished validation accurately.
+6. For repository maintenance, commit source files and push the branch. Let GitHub `refresh-generated` rebuild and commit managed indexes and `MANIFEST.sha256`; review that bot commit and validate the resulting final PR head through GitHub Actions. Use the governance-mandated Windows Python 3.10/3.14 full regression, lint, generated-file checks and affected specialist jobs, plus Optimization baseline when applicable. Revalidate after any head change, merge only after those checks pass, and review the post-merge `main` Actions results.
+7. Local lint, unittest, index generation, MATLAB and LaTeX runs are optional diagnostics for repository maintenance, not acceptance requirements. This does not change the user's local full-fidelity execution of real modeling code under the user execution contract.
+8. Report branch, PR, final-head and merge commit SHAs, GitHub workflow runs, post-merge status, compatibility and unfinished validation accurately.

@@ -642,6 +642,26 @@ class AuditClosureProjectionTests(unittest.TestCase):
                 bad["project_state"] = "8.13.1"
                 self.assertEqual(EVIDENCE.approved_c1_carrier_change(case, old, new, bad), (new, []))
 
+    def test_windows_python_ci_patch_changes_only_the_exact_skill_carrier(self):
+        carriers = deepcopy(EVIDENCE.WINDOWS_PYTHON_CI_AUTHORITY_VERSIONS)
+        for case in (*EVIDENCE.A7_HYDRATED_PROVENANCE_CASES, "facts_unscoped"):
+            with self.subTest(case=case):
+                old, new = self.pair(case)
+                self.prepare_b2c(old, new)
+                new["version"] = "10.14.1"
+                projected, changes = EVIDENCE.approved_windows_python_ci_carrier_change(case, old, new, carriers)
+                self.assertEqual(projected, old)
+                version_changes = [item for item in changes if item["path"] == "version"]
+                self.assertEqual([item["candidate"] for item in version_changes], ["10.14.1"])
+                self.assertEqual(version_changes[0]["authority_versions"], carriers)
+                bad_carriers = {**carriers, "project_state": "8.13.1"}
+                self.assertEqual(EVIDENCE.approved_windows_python_ci_carrier_change(
+                    case, old, new, bad_carriers), (new, []))
+                unrelated = deepcopy(new)
+                unrelated["pre_delivery_gates"] = []
+                self.assertEqual(EVIDENCE.approved_windows_python_ci_carrier_change(
+                    case, old, unrelated, carriers), (unrelated, []))
+
     def test_b2c_carrier_keeps_unrelated_differences_visible(self):
         old, new = self.pair()
         self.prepare_b2c(old, new)

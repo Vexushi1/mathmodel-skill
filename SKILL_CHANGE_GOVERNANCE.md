@@ -1,5 +1,5 @@
 ---
-governance_version: 1.0.3
+governance_version: 1.0.4
 applies_to_skill: ">=6.3.0,<11.0.0"
 status: active
 ---
@@ -38,7 +38,7 @@ status: active
 5. 读取本次修改涉及的权威事实源，而不是全仓库无差别加载；
 6. 在写文件前形成“修改简报”；
 7. 创建独立分支，禁止直接写入 `main`；
-8. 修改、测试、生成 PR，并在 CI 通过后再合并。
+8. 修改源码、提交并推送，由 GitHub 生成受管文件；在最终 PR head 的 GitHub Actions 正式验收通过后合并，再复核 `main` 的 GitHub Actions。
 
 若无法确认当前 `main`、未合并 PR 或权威事实源，必须停止写入，不得以旧聊天内容代替仓库事实。
 
@@ -98,7 +98,7 @@ status: active
 仅调整表述、索引或说明，不改变执行行为、Schema、CLI、目录和模板输出。
 
 - 通常不升级 Skill 版本；
-- 仍需分支、PR 和基础 lint；
+- 仍需分支、PR 和 GitHub Actions 的基础 lint；
 - 若“文档修正”实际上改变行为口径，则不得标为 docs。
 
 ### 5.2 patch
@@ -166,7 +166,7 @@ refactor/<topic>
 2. 判断两个 PR 是否可串行；
 3. 优先合并基础 PR；
 4. 当前分支基于最新 `main` 重建或变基；
-5. 重新运行完整测试。
+5. 推送新的远端 head，等待远端生成工作流形成最终 head，并重新完成该最终 head 的 GitHub Actions 正式验收。
 
 不得让两个聊天分别修改同一契约后依次强行合并。
 
@@ -199,41 +199,49 @@ refactor/<topic>
 
 - `HSK_SKILL_FILE_INDEX_V622.md`；
 - `HSK_TEMPLATE_INDEX_V622.md`；
+- `SKILL_FILE_INDEX.md`；
+- `TEMPLATE_INDEX.md`；
 - `MANIFEST.sha256`；
 - 其他由 `scripts/generate_indexes.py` 明确生成的文件。
 
-正确流程：
+仓库维护的正式生成流程：
 
 ```text
-修改源文件
-→ 运行或触发 generate_indexes.py
-→ 检查生成差异
-→ 单独提交生成结果
+修改源文件并仅提交源文件
+→ 推送分支
+→ refresh-generated 在 GitHub 运行 generate_indexes.py
+→ bot 提交生成结果，形成最终 head
+→ 显式调度该 head 的 HSK Skill CI 与 Optimization baseline
+→ 核对生成差异并对最终 head 完成 GitHub Actions 验收
 ```
 
-禁止手工修改哈希以“让 CI 通过”。若自动生成工作流提交了生成文件，应确认该提交只包含预期生成结果。
+本地运行 generator 仅可用于自愿诊断，不是合并前置，也不代替上述远端闭环。禁止手工修改哈希以“让 CI 通过”。若自动生成工作流提交了生成文件，应确认该提交只包含预期生成结果。
 
 ---
 
 ## 9. 测试与验收
 
-### 9.1 所有修改至少执行
+### 9.1 分层验证与正式平台
 
-```bash
-python scripts/lint_skill.py
-python -m unittest discover -s tests
-python scripts/generate_indexes.py --check
-```
+开发阶段优先安排受影响的专项测试；PR 冻结前在 GitHub Actions 对待合并的精确最终 head 执行完整回归。当前候选代码的正式 Python full regression 仅有 Windows + Python 3.10、Windows + Python 3.14 两套，均执行 `python -m unittest discover -s tests -p "test_*.py"`。最终 head 还须通过 Static contract lint、Generated file contract、MATLAB native contract、LaTeX templates、Production LaTeX attestation 及适用的 Optimization baseline 等远端检查。源码或生成文件提交发生变化后，必须对新的最终 head 重新验收。
+
+Linux runner 可以用于 LaTeX / TeX Live、静态工具、生成文件、Git 来源快照等工具作业；作业内部调用 Python helper 不构成 Linux Python 正式兼容承诺。不得在没有明确兼容目标与验收依据时无限扩展完整 Python 矩阵，也不得在其他 workflow 隐藏执行 Linux 整仓完整 unittest。
+
+仓库维护不要求 Codex、Agent 或开发者在本地运行 lint、unittest、`generate_indexes.py`、MATLAB 或 LaTeX。本地测试可以完全不执行；自愿执行时仅作辅助诊断，不替代 GitHub Actions，也不产生合并资格。正式证据为最终 PR head 的 GitHub Actions job、日志与产物、该 head 与合并提交的对应关系，以及合并后 `main` 的 GitHub Actions。若 required check 名称受变更影响，合并前须核对 GitHub Settings；无法核对时停止合并。
+
+这项远端验收规则仅适用于 Skill 仓库维护。真实用户赛题的 Python / MATLAB 数值代码仍由用户在实际环境按 `full_fidelity` 执行，并按原有工作簿、回执与验收契约交付。
 
 ### 9.2 按影响面追加
 
-- 路由或分类：运行代表性 `resolve_workflow.py` 命令；
-- 同步器或状态：运行 `tests.test_sync_project`、`tests.test_schemas`；
-- 工作簿：运行 `tests.test_result_io` 与 artifact checker 测试；
-- MATLAB：运行模板静态测试，并检查真实表头唯一匹配；
-- LaTeX：运行对应竞赛模板编译与未定义引用检查；
-- 目录或产物契约：运行 contract closure 和 structure 测试；
-- 版本升级：运行版本一致性和生成索引检查。
+按影响面在 GitHub Actions 中安排并核对：
+
+- 路由或分类：代表性 `resolve_workflow.py` 检查；
+- 同步器或状态：`tests.test_sync_project`、`tests.test_schemas`；
+- 工作簿：`tests.test_result_io` 与 artifact checker 测试；
+- MATLAB：模板静态测试与真实表头唯一匹配，涉及原生执行时核对 native job；
+- LaTeX：对应竞赛模板编译与未定义引用检查；
+- 目录或产物契约：contract closure 和 structure 测试；
+- 版本升级：版本一致性和远端生成索引检查。
 
 测试失败时不得合并。不得通过删除测试、降低断言或把错误加入例外列表来掩盖真实冲突。
 
@@ -303,7 +311,7 @@ python scripts/generate_indexes.py --check
 - 核心修改文件；
 - 权威规则发生了什么变化；
 - 兼容性；
-- 测试和 CI 状态；
+- 最终 PR head SHA、GitHub Actions workflow run 与各正式门状态，以及合并后 `main` 的 GitHub Actions 状态；
 - 尚未完成或存在不确定性的事项。
 
 若 CI 仍在运行，应明确写“尚未完成验证”，不得提前宣称全部通过。
@@ -328,7 +336,7 @@ python scripts/generate_indexes.py --check
 ## 15. 新聊天可直接使用的开场指令
 
 ```text
-准备修改 Vexushi1/mathmodel-skill。先从 main 读取 core/bootstrap.yaml 和 SKILL_CHANGE_GOVERNANCE.md，确认当前版本、最新提交、未合并 PR 与权威事实源。先给出修改简报，不要直接写文件。确认范围后创建独立分支和单主题 PR，完成 lint、完整单元测试、生成索引检查及受影响专项测试。禁止依据旧聊天记忆、直接写 main、重复定义规则或手工伪造生成文件。
+准备修改 Vexushi1/mathmodel-skill。先从 main 读取 core/bootstrap.yaml 和 SKILL_CHANGE_GOVERNANCE.md，确认当前版本、最新提交、未合并 PR 与权威事实源。先给出修改简报，不要直接写文件。确认范围后创建独立分支和单主题 PR；提交源文件并推送，由 GitHub refresh-generated 提交受管文件。开发阶段优先受影响专项测试，冻结 PR 前由 GitHub Actions 在最终 head 上完成 Windows Python 3.10/3.14 正式完整回归，以及 lint、生成索引和受影响专项检查；合并后复核 main。仓库维护不要求本地测试或生成器。禁止依据旧聊天记忆、直接写 main、重复定义规则或手工伪造生成文件。
 ```
 
 ---
