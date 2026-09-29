@@ -22,19 +22,30 @@
 
 -
 
-## 测试结果
+## GitHub Actions 验收
 
-- [ ] `python scripts/lint_skill.py`
-- [ ] `python -m unittest discover -s tests`
-- [ ] `python scripts/generate_indexes.py --check`
-- [ ] 已完成受影响专项测试
-- [ ] 已检查生成文件差异
-- [ ] CI 已通过或已明确说明仍在运行
+- [ ] 源文件已推送，远端 `refresh-generated` 已生成并提交受管文件；已检查生成差异
+- [ ] 最终 PR head 已由 GitHub Actions 验证
+- [ ] Windows Python 3.10 full regression 成功
+- [ ] Windows Python 3.14 full regression 成功
+- [ ] Static contract lint 成功
+- [ ] Generated file contract 成功
+- [ ] 受影响原生/载体 job 成功
+- [ ] Optimization baseline（若适用）成功
+- [ ] 已记录最终 head SHA 与 workflow run
+- [ ] 若删改 CI job / check 名称，已核对 `main` 的 required checks 并处理失效依赖
+- [ ] 未以本地测试结果替代远端验收
 
-专项测试：
+最终 head SHA、workflow run 与受影响专项检查：
 
 ```text
-填写实际命令与结果
+填写 GitHub Actions 的实际运行链接或 ID、结果；未完成时如实注明。
+```
+
+合并后 `main` SHA 与 GitHub Actions 状态（未合并时注明待复核）：
+
+```text
+填写实际 SHA、运行链接或 ID、结果。
 ```
 
 ## 兼容与迁移

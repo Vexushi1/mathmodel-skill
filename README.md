@@ -1,4 +1,4 @@
-# mathmodel-skill v10.14.0
+# mathmodel-skill v10.14.1
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值语言由项目根策略统一选择。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。
 
@@ -40,16 +40,20 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 
 这些路径负责当前规范。README 只提供入口和职责导航，不替它们设第二套规则。
 
-## 最少检查命令
+## 仓库维护验收
+
+Skill 仓库维护的正式验收由 GitHub Actions 完成：提交并推送源文件，等待 `refresh-generated` 在远端提交受管索引和 MANIFEST，再对生成后的最终 PR head 核对 Windows Python 3.10/3.14 完整回归、lint、生成文件及受影响专项检查。适用时核对 Optimization baseline；合并后还需复核 `main` 的 GitHub Actions。本地不要求运行仓库测试或生成器；本地结果不能替代远端最终 head 证据。Linux / TeX Live 仍用于 LaTeX 验证，Linux 工具作业不构成 Linux Python 正式兼容声明。
+
+可选本地诊断（默认无需执行）：
 
 ```bash
 python scripts/lint_skill.py
-python -m unittest discover -s tests
+python -m unittest discover -s tests -p "test_*.py"
 python scripts/generate_indexes.py --check
 python scripts/project_solver_backend.py --help
 ```
 
-针对项目的模型批准、数值验收、论文编译与提交包门以 resolver 当前返回的 `pre_delivery_gates` 为准；静态测试、真实 MATLAB 执行、渲染验收和远程 CI 分别记录，不能互相替代。
+上述仓库维护流程不改变用户赛题代码在实际 Windows 环境的 Python / MATLAB `full_fidelity` 数值执行。针对项目的模型批准、数值验收、论文编译与提交包门以 resolver 当前返回的 `pre_delivery_gates` 为准；仓库 CI 与项目真实执行、工作簿和回执验收分别记录，不能互相替代。
 
 ## 兼容与历史
 

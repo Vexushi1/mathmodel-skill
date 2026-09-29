@@ -68,7 +68,9 @@ python scripts/project_solver_backend.py migrate --project-root <项目根目录
 - `.github/workflows/ci.yml`：完整 HSK Skill CI 同时保留 `push`、`pull_request` 与显式 `workflow_dispatch` 入口；显式调度执行的是同一组完整 jobs，不能用部分检查替代。
 - `.github/workflows/refresh-generated.yml`：feature branch 仍只负责生成并提交受管 metadata；当 bot push 产生新的 final head 时，显式调度既有完整 HSK Skill CI 与 Optimization baseline，对该最终 head 做等价复验；main 路径仍保持只读 `--check`，不得用部分检查替代完整门禁。
 
-仓库维护至少执行：
+仓库维护正式门禁由 GitHub Actions 执行：提交并推送源文件，等待 `refresh-generated` 的 bot 提交受管文件，记录最终 PR head，再核对该 head 的完整 CI 和适用的 Optimization baseline；合并后复核 `main`。正式 Python 完整回归为 Windows 3.10 / 3.14，LaTeX / TeX Live 继续在 Linux 验证。Linux 工具作业不构成 Linux Python 兼容声明。
+
+以下命令仅为可选本地诊断，默认不要求执行，也不能替代远端验收：
 
 ```bash
 python scripts/lint_skill.py
@@ -76,7 +78,7 @@ python -m unittest discover -s tests -p "test_*.py"
 python scripts/generate_indexes.py --check
 ```
 
-正式修改流程还必须遵守根目录 `SKILL_CHANGE_GOVERNANCE.md`：从 `main` 读取 bootstrap 与治理文件、使用独立分支和单主题 PR，并在完整 CI 全绿后才合并。
+正式修改流程还必须遵守根目录 `SKILL_CHANGE_GOVERNANCE.md`：从 `main` 读取 bootstrap 与治理文件、使用独立分支和单主题 PR，并在最终 head 的 GitHub Actions 全绿后才合并。本段仓库维护验证不改变用户赛题数值代码在实际环境的本地 `full_fidelity` 执行职责。
 
 
 ## A2：显式启用的一致性交付与验收绑定
