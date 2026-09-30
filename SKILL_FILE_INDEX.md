@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.15.0
+当前 Skill 版本：10.15.1
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -121,6 +121,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/audit_latex_project.py`
 - `scripts/audit_paper_prose.py`
 - `scripts/audit_v8_writing_surface.py`
+- `scripts/ci_unittest.py`
 - `scripts/claim_consumption.py`
 - `scripts/claim_docx.py`
 - `scripts/claim_evidence.py`
@@ -141,6 +142,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/lint_skill.py`
 - `scripts/lint_skill_checks.py`
 - `scripts/matlab_code_checks.py`
+- `scripts/measure_contract_parsing.py`
 - `scripts/measure_infrastructure.py`
 - `scripts/measure_writing_validation.py`
 - `scripts/model_code_conformance.py`
@@ -157,6 +159,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/review_receipts.py`
 - `scripts/run_config_parser.py`
 - `scripts/runtime_assurance.py`
+- `scripts/safe_yaml.py`
 - `scripts/score_submission.py`
 - `scripts/semantic_identity.py`
 - `scripts/stage_code.py`
@@ -322,6 +325,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_b2c_total_acceptance.py`
 - `tests/test_c2_submission_gate_integration.py`
 - `tests/test_ci_platform_policy.py`
+- `tests/test_ci_unittest.py`
 - `tests/test_claim_consumption.py`
 - `tests/test_claim_consumption_contract.py`
 - `tests/test_claim_consumption_route.py`
@@ -385,6 +389,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_review_receipts.py`
 - `tests/test_router_contract.py`
 - `tests/test_runtime_health_coherence.py`
+- `tests/test_safe_yaml.py`
 - `tests/test_schemas.py`
 - `tests/test_solver_backend_contract_alignment.py`
 - `tests/test_solver_backend_downstream_identity.py`
@@ -565,6 +570,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/v921_p7_conditional_analysis_semantic_hygiene_plan.md`
 - `docs/v971_backend_contract_audit.md`
 - `docs/v9_3_initial_modeling_structural_reduction_refactor_plan.md`
+- `docs/windows_python_ci_performance_plan.md`
 - `docs/writing_readability_validation_slimming_plan.md`
 - `docs/writing_readability_w4_acceptance.md`
 - `docs/writing_readability_w5_release_closeout.md`
