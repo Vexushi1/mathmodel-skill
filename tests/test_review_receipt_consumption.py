@@ -176,7 +176,7 @@ class ReviewReceiptConsumptionTests(unittest.TestCase):
 
     def test_optional_policy_is_closed_and_legacy_state_is_unchanged(self) -> None:
         schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(schema["version"], "8.14.0")
+        self.assertEqual(schema["version"], "8.15.0")
         policy_schema = schema["$defs"]["review_receipt_policy"]
         self.assertEqual(self.inspect("model_challenge")["status"], "not_assessed")
         good = self.activate("model_challenge")

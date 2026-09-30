@@ -10,8 +10,12 @@ on:
       - core/project_state.schema.yaml
       - core/module_manifest.yaml
       - core/review_receipt_consumption_contract.yaml
+      - core/case_memory_retrieval_contract.yaml
       - knowledge/case_memory/**
       - scripts/case_memory.py
+      - scripts/case_memory_retrieve.py
+      - scripts/case_references.py
+      - packs/artifact/case_memory_retrieval.md
       - scripts/generate_indexes.py
       - scripts/resolve_runtime.py
       - scripts/safe_yaml.py

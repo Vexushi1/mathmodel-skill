@@ -1,0 +1,389 @@
+{
+  "protocol_version": "1.0.0",
+  "annotation_scope": "manual_synthetic_applicability_projection",
+  "features": [
+    {
+      "case_id": "CM-SYN-001",
+      "case_version": "1.0.0",
+      "case_sha256": "4a9d9132f8ed3eb4970624378c0bcd2c5fdb4a54afb2c1eed3d9084afadf9c88",
+      "source_sha256": "1e9ac7e27966ed9dcbde88b4e1bff577ea8d0f07d6f21a36a86baaa340742706",
+      "annotation_kind": "synthetic_example",
+      "traits": {
+        "observation_regime": {
+          "value": "ordered_fixed_interval",
+          "source_anchor": "overview"
+        },
+        "variable_domain": {
+          "value": "unknown",
+          "source_anchor": "overview"
+        },
+        "information_boundary": {
+          "value": "current_only",
+          "source_anchor": "overview"
+        }
+      },
+      "required_conditions": [
+        {
+          "condition": "historical_sequence",
+          "source_anchor": "overview"
+        },
+        {
+          "condition": "cycle_basis",
+          "source_anchor": "decision"
+        },
+        {
+          "condition": "temporal_separation",
+          "source_anchor": "decision"
+        },
+        {
+          "condition": "no_future_features",
+          "source_anchor": "overview"
+        }
+      ],
+      "terms": [
+        {
+          "term": "序列",
+          "source_anchor": "overview"
+        },
+        {
+          "term": "周期",
+          "source_anchor": "decision"
+        },
+        {
+          "term": "时序",
+          "source_anchor": "decision"
+        }
+      ]
+    },
+    {
+      "case_id": "CM-SYN-002",
+      "case_version": "1.0.0",
+      "case_sha256": "56bae0d733e56c6c2e880fb212bd2cb7ae407246358e31f3c42315fe0a7a7ab1",
+      "source_sha256": "b0fa659eed751e6752366a5dae1780846750fb128da64198dda0ae5f5225bab7",
+      "annotation_kind": "synthetic_example",
+      "traits": {
+        "observation_regime": {
+          "value": "comparable_objects",
+          "source_anchor": "overview"
+        },
+        "variable_domain": {
+          "value": "unknown",
+          "source_anchor": "overview"
+        },
+        "information_boundary": {
+          "value": "unknown",
+          "source_anchor": "overview"
+        }
+      },
+      "required_conditions": [
+        {
+          "condition": "comparable_definitions",
+          "source_anchor": "decision"
+        },
+        {
+          "condition": "indicator_directions",
+          "source_anchor": "overview"
+        },
+        {
+          "condition": "consistent_units",
+          "source_anchor": "overview"
+        },
+        {
+          "condition": "justified_weights",
+          "source_anchor": "decision"
+        },
+        {
+          "condition": "distinct_indicator_meanings",
+          "source_anchor": "decision"
+        }
+      ],
+      "terms": [
+        {
+          "term": "指标",
+          "source_anchor": "overview"
+        },
+        {
+          "term": "权重",
+          "source_anchor": "decision"
+        },
+        {
+          "term": "排名",
+          "source_anchor": "decision"
+        }
+      ]
+    },
+    {
+      "case_id": "CM-SYN-003",
+      "case_version": "1.0.0",
+      "case_sha256": "cc03eca3400f1a6fcfa07bd6060fb09830399eebf3561a7af89e6e8f3cfbe9fe",
+      "source_sha256": "5be351be0768f7b6fe2231e51320b849fb4daffa9ebdd84010c13d9cb7612d1d",
+      "annotation_kind": "synthetic_example",
+      "traits": {
+        "observation_regime": {
+          "value": "shared_resource_tasks",
+          "source_anchor": "overview"
+        },
+        "variable_domain": {
+          "value": "continuous",
+          "source_anchor": "overview"
+        },
+        "information_boundary": {
+          "value": "unknown",
+          "source_anchor": "overview"
+        }
+      },
+      "required_conditions": [
+        {
+          "condition": "same_decision_period",
+          "source_anchor": "overview"
+        },
+        {
+          "condition": "shared_resource_feasibility",
+          "source_anchor": "decision"
+        },
+        {
+          "condition": "linear_relations",
+          "source_anchor": "decision"
+        },
+        {
+          "condition": "divisible_allocation",
+          "source_anchor": "decision"
+        }
+      ],
+      "terms": [
+        {
+          "term": "资源",
+          "source_anchor": "overview"
+        },
+        {
+          "term": "连续",
+          "source_anchor": "overview"
+        },
+        {
+          "term": "线性",
+          "source_anchor": "decision"
+        }
+      ]
+    },
+    {
+      "case_id": "CM-SYN-004",
+      "case_version": "1.0.0",
+      "case_sha256": "c8ffb2c10f664cef941ad6d7ebc6cfb0146a31aabb4f234e2c83121f143dc416",
+      "source_sha256": "5bd29b3200cb6cb1db97d2e038a942176094afb64a0dc5dac84cc6f87527e1c4",
+      "annotation_kind": "synthetic_example",
+      "traits": {
+        "observation_regime": {
+          "value": "lumped_state",
+          "source_anchor": "overview"
+        },
+        "variable_domain": {
+          "value": "unknown",
+          "source_anchor": "overview"
+        },
+        "information_boundary": {
+          "value": "unknown",
+          "source_anchor": "overview"
+        }
+      },
+      "required_conditions": [
+        {
+          "condition": "initial_state",
+          "source_anchor": "overview"
+        },
+        {
+          "condition": "boundary_flows",
+          "source_anchor": "overview"
+        },
+        {
+          "condition": "consistent_units",
+          "source_anchor": "decision"
+        },
+        {
+          "condition": "uniform_state_approximation",
+          "source_anchor": "overview"
+        },
+        {
+          "condition": "conservation_balance",
+          "source_anchor": "decision"
+        }
+      ],
+      "terms": [
+        {
+          "term": "流入",
+          "source_anchor": "overview"
+        },
+        {
+          "term": "状态",
+          "source_anchor": "decision"
+        },
+        {
+          "term": "守恒",
+          "source_anchor": "decision"
+        }
+      ]
+    },
+    {
+      "case_id": "CM-SYN-005",
+      "case_version": "1.0.0",
+      "case_sha256": "bb58c28e590907c871ec9b863d7e3849666308ca530434239c428a36c1d09b7c",
+      "source_sha256": "8227eda7cf2dcbe9c260364af90c07c27fb1ece2216e9a3decee7522bdf0aeda",
+      "annotation_kind": "synthetic_example",
+      "traits": {
+        "observation_regime": {
+          "value": "network_tasks",
+          "source_anchor": "overview"
+        },
+        "variable_domain": {
+          "value": "unknown",
+          "source_anchor": "overview"
+        },
+        "information_boundary": {
+          "value": "unknown",
+          "source_anchor": "overview"
+        }
+      },
+      "required_conditions": [
+        {
+          "condition": "network_connections",
+          "source_anchor": "overview"
+        },
+        {
+          "condition": "processing_times",
+          "source_anchor": "overview"
+        },
+        {
+          "condition": "resource_capacities",
+          "source_anchor": "overview"
+        },
+        {
+          "condition": "precedence",
+          "source_anchor": "overview"
+        },
+        {
+          "condition": "time_windows",
+          "source_anchor": "decision"
+        }
+      ],
+      "terms": [
+        {
+          "term": "路径",
+          "source_anchor": "decision"
+        },
+        {
+          "term": "时窗",
+          "source_anchor": "decision"
+        },
+        {
+          "term": "资源",
+          "source_anchor": "overview"
+        }
+      ]
+    },
+    {
+      "case_id": "CM-SYN-006",
+      "case_version": "1.0.0",
+      "case_sha256": "98b0203e78cdf0d983f07aa22d1c45ec26ca613052cbc15be45b607b457efdae",
+      "source_sha256": "fcf19e315cfde774d579a5a473d813eef773759c65dc24ead90f7dcf8f48ec19",
+      "annotation_kind": "synthetic_example",
+      "traits": {
+        "observation_regime": {
+          "value": "random_trials",
+          "source_anchor": "overview"
+        },
+        "variable_domain": {
+          "value": "unknown",
+          "source_anchor": "overview"
+        },
+        "information_boundary": {
+          "value": "unknown",
+          "source_anchor": "overview"
+        }
+      },
+      "required_conditions": [
+        {
+          "condition": "distribution_basis",
+          "source_anchor": "overview"
+        },
+        {
+          "condition": "correlation_basis",
+          "source_anchor": "overview"
+        },
+        {
+          "condition": "event_definition",
+          "source_anchor": "decision"
+        },
+        {
+          "condition": "fixed_horizon",
+          "source_anchor": "overview"
+        }
+      ],
+      "terms": [
+        {
+          "term": "分布",
+          "source_anchor": "overview"
+        },
+        {
+          "term": "相关",
+          "source_anchor": "overview"
+        },
+        {
+          "term": "事件",
+          "source_anchor": "decision"
+        }
+      ]
+    },
+    {
+      "case_id": "CM-SYN-007",
+      "case_version": "1.0.0",
+      "case_sha256": "8c94b19c321e1292ec4dc7377ce50411b1e263b5f1135ac877854f9b6a8fe328",
+      "source_sha256": "40d593d70337a11bd79389615730f70b00992c7dbc07b375f7f4c1dbf85788f7",
+      "annotation_kind": "synthetic_example",
+      "traits": {
+        "observation_regime": {
+          "value": "prediction_decision_chain",
+          "source_anchor": "overview"
+        },
+        "variable_domain": {
+          "value": "unknown",
+          "source_anchor": "overview"
+        },
+        "information_boundary": {
+          "value": "current_only",
+          "source_anchor": "overview"
+        }
+      },
+      "required_conditions": [
+        {
+          "condition": "upstream_contract",
+          "source_anchor": "overview"
+        },
+        {
+          "condition": "consistent_units",
+          "source_anchor": "decision"
+        },
+        {
+          "condition": "fixed_horizon",
+          "source_anchor": "overview"
+        },
+        {
+          "condition": "uncertainty_propagation",
+          "source_anchor": "decision"
+        }
+      ],
+      "terms": [
+        {
+          "term": "契约",
+          "source_anchor": "decision"
+        },
+        {
+          "term": "预测",
+          "source_anchor": "decision"
+        },
+        {
+          "term": "情景",
+          "source_anchor": "decision"
+        }
+      ]
+    }
+  ]
+}

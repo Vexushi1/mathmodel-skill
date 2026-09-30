@@ -87,7 +87,7 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
       - name: Run affected development tests
         run: |
-          python scripts/ci_unittest.py run --modules test_safe_yaml,test_ci_unittest,test_actions_runtime_modernization,test_ci_platform_policy,test_generated_workflow_hardening,test_p6b_matlab_preview_contract,test_review_receipts,test_review_receipt_consumption,test_project_solver_backend_select,test_model_code_conformance,test_claim_workbook,test_claim_evidence,test_claim_consumption,test_reading_plan_evidence,test_v1000_release_version_matrix,test_v861_active_consistency_semantic_drift,test_case_memory,test_case_memory_generated,test_template_index_exclusions,test_p9_release_closeout,test_v900_phase_i_migration_matrix,test_v900_phase_i_release_closure,test_v900_phase_i_v9_applicability,test_v900_phase_i_writer_retirement_readiness,test_v910_publication_rendering,test_v751_architecture_slimming --report timings.json > unittest.log 2>&1
+          python scripts/ci_unittest.py run --modules test_safe_yaml,test_ci_unittest,test_actions_runtime_modernization,test_ci_platform_policy,test_generated_workflow_hardening,test_p6b_matlab_preview_contract,test_review_receipts,test_review_receipt_consumption,test_project_solver_backend_select,test_model_code_conformance,test_claim_workbook,test_claim_evidence,test_claim_consumption,test_reading_plan_evidence,test_v1000_release_version_matrix,test_v861_active_consistency_semantic_drift,test_case_memory,test_case_memory_generated,test_template_index_exclusions,test_p9_release_closeout,test_v900_phase_i_migration_matrix,test_v900_phase_i_release_closure,test_v900_phase_i_v9_applicability,test_v900_phase_i_writer_retirement_readiness,test_v910_publication_rendering,test_v751_architecture_slimming,test_case_memory_retrieval,test_case_references,test_case_memory_routing,test_b2b4_formal_figure_gate,test_b2b3_source_bindings_schema,test_claim_consumption_contract,test_b2b3_figure_bindings_schema,test_b2b3_caption_schema,test_review_receipt_schema --report timings.json > unittest.log 2>&1
           $testExit = $LASTEXITCODE
           Get-Content unittest.log -Tail 35
           exit $testExit
@@ -95,6 +95,11 @@ jobs:
         if: always()
         run: |
           python scripts/measure_contract_parsing.py --repeats 3 --output contract-parsing.json
+          exit $LASTEXITCODE
+      - name: Measure declared case retrieval development suite
+        if: always()
+        run: |
+          python scripts/case_memory_retrieve.py evaluate > case-memory-development.json
           exit $LASTEXITCODE
       - name: Upload targeted timing and diagnostics
         if: always()
@@ -105,6 +110,7 @@ jobs:
             unittest.log
             timings.json
             contract-parsing.json
+            case-memory-development.json
           if-no-files-found: error
 
   unit-matrix-shards:
@@ -254,6 +260,19 @@ jobs:
         with:
           name: python-3.14-coverage-summary
           path: coverage-summary.json
+          if-no-files-found: warn
+      - name: Install bounded case retrieval dependencies
+        run: python -m pip install "PyYAML>=6.0" "jsonschema>=4.22"
+      - name: Measure declared case retrieval development suite
+        run: |
+          python scripts/case_memory_retrieve.py evaluate > case-memory-development.json
+          exit $LASTEXITCODE
+      - name: Preserve case retrieval development evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: case-memory-development-evidence
+          path: case-memory-development.json
           if-no-files-found: warn
 
   matlab-solver-smoke:

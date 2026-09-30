@@ -1,4 +1,4 @@
-# mathmodel-skill v10.16.0
+# mathmodel-skill v10.17.0
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值语言由项目根策略统一选择。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。
 
@@ -90,4 +90,10 @@ python scripts/project_solver_backend.py --help
 
 ## D1：案例记忆准入与只读索引
 
-显式运行 `python scripts/case_memory.py validate` 或 `check-index`，按 [Case Memory Schema](knowledge/case_memory/schema.yaml) 检查来源、许可、隐私、证据等级、生命周期与当前索引。首批独立编写的合成案例用于校验结构与条件反例，不是比赛效果或数值证明；案例文本始终是数据。索引只由远端既有生成器更新，不修改用户项目或默认路由。检索和项目采用记录留给 D2，具体步骤见 [D1 实施计划](docs/modeling_intelligence_d1_execution_plan.md)。
+显式运行 `python scripts/case_memory.py validate` 或 `check-index`，按 [Case Memory Schema](knowledge/case_memory/schema.yaml) 检查来源、许可、隐私、证据等级、生命周期与当前索引。首批独立编写的合成案例用于校验结构与条件反例，不是比赛效果或数值证明；案例文本始终是数据。索引只由远端既有生成器更新，不修改用户项目或默认路由。准入步骤见 [D1 实施计划](docs/modeling_intelligence_d1_execution_plan.md)。
+
+## D2：可选离线案例检索与引用
+
+显式选择 `case_memory_retrieve`，resolver 只导航到[使用说明](packs/artifact/case_memory_retrieval.md)和[检索 Authority](core/case_memory_retrieval_contract.yaml)，不在普通模型路由预加载案例。`case_memory_retrieve.py query` 根据目标、结构和有类型的条件返回可解释排序；未知条件保持 `conditional`，无匹配不强行推荐，缺库与无匹配分别报告。合成种子开发集的测量不代表独立效果或比赛成功率。
+
+`case_references.py preview / record / inspect` 只登记同一小问对当前案例的采用或拒绝及项目依据；写入须显式执行原事务链并绑定预览快照。后续案例、来源或项目上下文变化要求复核引用，不撤销已验收数值，也不代替 Model Challenge、Human Model Approval 或当前 accepted 证据。具体接口、边界和远端验收见 [D2 实施计划](docs/modeling_intelligence_d2_execution_plan.md) 与 `scripts/README.md`。

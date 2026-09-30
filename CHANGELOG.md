@@ -1,6 +1,13 @@
 # Changelog
 
-## 10.16.0
+## 10.17.0
+
+- Add bounded offline D2 retrieval with an independent 1.0.0 Authority, typed synthetic feature projections and deterministic structural/term modes. Return match reasons, conflicts, unknown conditions and nontransferable items; off, unavailable and no_match remain legitimate. Consume the current admitted corpus and index in one protected read set, including all origins of deduplicated groups.
+- Add an explicit case_memory_retrieve reading profile and tool interface. Ordinary routes keep their existing gates and do not load the corpus. The fixed query suite measures development contracts and costs, marks origin contamination and does not claim independent held-out modeling quality.
+- Add optional decisions.Qn.case_references with State Schema 8.15.0. Preview and inspection are read-only; explicit recording uses the existing guarded project transaction and changes only references and generation. References do not authorize model or numerical qualification, and changed/retired source context requires review. Original queries are not persisted; later inspection reports ranking_not_recomputed.
+- Preserve D1 admission 1.0.0 and independent C2 policy/Authority 1.0.0; the C2 consumer supports the exact State 8.14.0/8.15.0 set. Protect the predecessor Schema and default-runtime behavior with strict D2 carrier comparisons. Final-head and merge/main GitHub acceptance is recorded in the independent PR; no release is published.
+
+## Previous release: 10.16.0
 
 - Add the independent Case Memory Schema 1.0.0 and a bounded, read-only D1 admission/index inspector. Preserve source identity, rights, privacy, lifecycle and evidence-level declarations; reject fabricated observed/validated evidence, unsafe paths, unresolved duplicates and stale index snapshots. Case text is inert data and never authorizes model approval or numerical acceptance.
 - Seed seven independently authored synthetic modeling cases with conditional counterexamples and explicit unperformed checks. Publish only current reviewed and permitted records in the deterministic index; rebuild it through the existing GitHub metadata generator, alongside the active indexes and MANIFEST.

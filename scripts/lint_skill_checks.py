@@ -946,8 +946,8 @@ def check_contracts(errors: list[str]) -> None:
 def check_project_state_and_framework(errors: list[str]) -> None:
     schema = load_structured(ROOT / "core/project_state.schema.yaml")
     Draft202012Validator.check_schema(schema)
-    if schema.get("version") != "8.14.0":
-        errors.append("v10.15 C2 review receipt policy requires independent schema 8.14.0")
+    if schema.get("version") != "8.15.0":
+        errors.append("v10.17 D2 decision references require independent schema 8.15.0")
     policy = schema.get("$defs", {}).get("claim_consumption_policy", {})
     if policy.get("oneOf", [])[:3] != [
             {"properties": {"protocol_version": {"const": "1.0.0"}, "mode": {"const": "observe"},

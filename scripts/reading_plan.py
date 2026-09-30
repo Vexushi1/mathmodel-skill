@@ -266,7 +266,7 @@ def _scope(plan: dict[str, Any], request: str, policy: dict[str, Any]) -> tuple[
     if len(intents) != 1 or plan["assurance"]["status"] != "pass":
         return "full", "conservative_fallback", ["mixed intents or unresolved assurance diagnostics"]
     intent = intents[0]
-    if intent in {"project_sync", "returned_workbook_validation"}:
+    if intent in {"project_sync", "returned_workbook_validation", "case_memory_retrieve"}:
         return intent, "planned", []
     if intent == "latex" and (plan.get("writing_runtime") or {}).get("mode") == "compact":
         return "progressive_writing", "delegated", []
@@ -469,6 +469,8 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
 
     tools = deepcopy(plan["pre_delivery_gates"])
     route_tool = config.get("route_tool")
+    if "case_memory_retrieve" in plan.get("intents", []):
+        route_tool = "case_memory_retrieval"
     if route_tool and not any(tool["name"] == route_tool for tool in tools):
         tools.append({"name": route_tool, **deepcopy(manifest["utility_gates"][route_tool])})
     for tool in tools:

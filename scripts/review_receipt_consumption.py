@@ -284,7 +284,7 @@ def evaluate_gate(
         contract = _observe_skill(CONTRACT, observed["skill"])
         model = _observe_skill(MODEL_CONTRACT, observed["skill"])
         final_matrix = _observe_skill(FINAL_MATRIX, observed["skill"])
-        if schema.get("version") != "8.14.0" or contract.get("version") != POLICY_VERSION:
+        if schema.get("version") not in {"8.14.0", "8.15.0"} or contract.get("version") != POLICY_VERSION:
             raise ValueError("unsupported C2 Schema or Authority version")
         policy_shape = (schema.get("$defs") or {}).get("review_receipt_policy")
         if not isinstance(policy_shape, Mapping):

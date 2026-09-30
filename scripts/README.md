@@ -138,4 +138,23 @@ python scripts/resolve_runtime.py --help
 - `case_memory.py validate`：只读复核受限案例库的结构、来源许可、隐私、证据边界与去重。
 - `case_memory.py build-index`：只在标准输出返回确定性索引；`check-index` 复核当前受管索引，失败返回非零，不写项目或案例。
 - `knowledge/case_memory/schema.yaml` 是唯一准入 Authority；`generate_indexes.py` 是 canonical index 的唯一写入者，由 GitHub `refresh-generated` 提交元数据。专项与冻结前完整回归均在 GitHub 运行。
+
+### D2：按需检索和显式引用
+
+检索唯一规则在 `core/case_memory_retrieval_contract.yaml`；准入仍只由 D1 Schema 决定。以下命令是接口说明，仓库维护验收在 GitHub 执行：
+
+```bash
+python scripts/resolve_runtime.py case_memory_retrieve
+python scripts/case_memory_retrieve.py query --query query.json --top-k 3
+python scripts/case_memory_retrieve.py query --disabled
+python scripts/case_memory_retrieve.py evaluate
+python scripts/case_references.py preview --project-root PROJECT --question Q1 --query query.json --selection selection.json
+python scripts/case_references.py inspect --project-root PROJECT
+```
+
+query 使用当前 taxonomy 的目标、至多三项结构、能力，以及有类型的 observation / variable / information 条件。缺少必需字段、未知协议或不支持的类型会阻断；合法 `unknown` 和未证实条件不能变成已适用。`--mode lexical` 使用同一准入、条件过滤、去重与预算，供开发对照；`--exclude-origin` 排除整个来源组。返回值包含案例和来源版本/哈希、匹配理由、缺失条件及只读快照绑定，不包含执行或批准资格。
+
+selection 的输入字段为 `case_id`、`disposition`（reference/adopt/reject）、`adopted_parts`、`rejected_parts`、`current_evidence` 和 `reason`；唯一持久形状由 State 8.15 的 `case_reference_record` 定义。adopt 至少提供一项采用内容及一项当前项目依据。记录不存完整 query、不自动选择模型。`record` 默认只读；显式 `--write` 必须带预览的 `--expected-generation`、`--expected-state-sha256`、`--expected-retrieval-corpus-sha256`，经原恢复事务只改当前小问 `case_references` 和 generation。更改审批、SIB、accepted/stale 或选模字段不在该入口权限内。具体 typed 依据输入格式见 State definitions 和 D2 专项夹具。
+
+inspect 重建当前案例、来源、固定规则和项目上下文。原 query 没有持久化，所以明确报告 `ranking_not_recomputed` / `original_query_not_available`，不声称仍是最佳推荐。引用失效只要求 `needs_review`，不擅自撤销旧数值资格；项目真实条件语义仍需人审。开发集由种子来源派生，评测报告保留 off / lexical / structural、来源污染说明、召回、错误推荐、条件缺口、上下文字节与检索耗时，独立效果为 `not_assessed`。
 - 案例建议和合成示例不证明当前赛题事实，不授予 Model Approval、accepted workbook 或 delivery 资格；检索与项目采用/拒绝记录留给 D2。
