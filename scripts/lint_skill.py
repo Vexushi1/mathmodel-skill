@@ -43,7 +43,7 @@ _ROOT_ACTIVE_MARKDOWN = (
     ROOT / "SKILL_CHANGE_GOVERNANCE.md",
 )
 _REPO_POINTER_RE = re.compile(
-    r"^(?:core|modules|templates|config|packs|scripts)/[^#\s]+#[^\s]+$"
+    r"^(?:core|modules|templates|config|packs|scripts|knowledge)/[^#\s]+#[^\s]+$"
 )
 
 

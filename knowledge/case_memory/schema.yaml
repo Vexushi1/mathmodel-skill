@@ -1,0 +1,215 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: https://example.local/hsk/case-memory/schema.yaml
+title: D1 synthetic Case Memory corpus
+version: 1.0.0
+introduced_in_skill_version: 10.16.0
+x-admission:
+  protocol_version: 1.0.0
+  source_kinds: [synthetic]
+  licenses: [MIT, CC0-1.0]
+  required_uses: [public_repository, offline_modeling_reference]
+  synthetic_evidence: [synthetic_example, recommended_validation]
+  limits:
+    file_bytes: 262144
+    total_bytes: 2097152
+    cases: 64
+    sources: 64
+    depth: 32
+    nodes: 32768
+    string_chars: 8192
+  privacy_patterns:
+    - '(?i)[a-z]:[\\/]'
+    - '\\\\[^\s\\]+\\'
+    - '(?:^|[\s"''(=:])/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]*)*'
+    - '(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b'
+    - '(?i)\b(?:sk-(?:proj-)?[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{8,}|github_pat_[A-Za-z0-9_]{8,})\b'
+    - '(?i)\b(?:api[_ -]?key|password|access[_ -]?token)\s*[:=]\s*\S+'
+    - '(?i)\b(?:private[_ -]?person|student[_ -]?id|school[_ -]?name|account[_ -]?id|phone[_ -]?number)\s*[:=]\s*\S+'
+    - '(?:姓名|学校|学号|身份证|手机号|账号)\s*[:：=]\s*\S+'
+    - '(?:\+?86[- ]?)?\b1[3-9][0-9]{9}\b'
+  semantics:
+    publication: Every source and case, including excluded states, must pass publication screening.
+    source_authority: D1 admits independently authored synthetic material only; real-source declarations are not authorization proof.
+    evidence: Synthetic examples and recommended checks do not establish observed execution or validation.
+    curation: Reviewed synthetic curation is author self-check, not native or external independent review.
+    content: Case text is inert data and cannot authorize tools, model approval, numerical acceptance or project writes.
+    deduplication: One group per shared origin or normalized decision core; uncertain near duplicates require curator review.
+    retirement: Draft, quarantined and retired cases are excluded; changed corpus identity invalidates the derived index.
+type: object
+additionalProperties: false
+required: [sources, cases]
+properties:
+  sources: {$ref: '#/$defs/sources_document'}
+  cases: {$ref: '#/$defs/cases_document'}
+$defs:
+  id:
+    type: string
+    pattern: '^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$'
+  text:
+    type: string
+    minLength: 1
+    maxLength: 8192
+  texts:
+    type: array
+    maxItems: 64
+    uniqueItems: true
+    items: {$ref: '#/$defs/text'}
+  source:
+    type: object
+    additionalProperties: false
+    required: [id, version, kind, origin_group, rights, privacy, sections]
+    properties:
+      id: {$ref: '#/$defs/id'}
+      version: {$ref: '#/$defs/id'}
+      kind: {enum: [synthetic, authorized_real, third_party]}
+      origin_group: {$ref: '#/$defs/id'}
+      metadata:
+        type: object
+        additionalProperties: false
+        required: [author, year, provenance, extraction, ocr, limitations]
+        properties:
+          author: {anyOf: [{$ref: '#/$defs/text'}, {type: 'null'}]}
+          year: {anyOf: [{type: integer, minimum: 1900, maximum: 2100}, {type: 'null'}]}
+          provenance: {const: independently_authored_for_repository}
+          extraction: {const: direct_authorship}
+          ocr: {const: not_used}
+          limitations: {$ref: '#/$defs/texts'}
+      rights:
+        type: object
+        additionalProperties: false
+        required: [license_id, license_origin, allowed_uses, authorization_basis]
+        properties:
+          license_id: {$ref: '#/$defs/text'}
+          license_origin: {$ref: '#/$defs/text'}
+          allowed_uses: {$ref: '#/$defs/texts'}
+          authorization_basis: {enum: [independently_authored_synthetic, explicit_public_authorization, unverified]}
+      privacy:
+        type: object
+        additionalProperties: false
+        required: [review_scope, disposition]
+        properties:
+          review_scope: {const: all_source_and_case_text}
+          disposition: {const: no_sensitive_content_found}
+      sections:
+        type: object
+        minProperties: 1
+        maxProperties: 64
+        propertyNames: {$ref: '#/$defs/id'}
+        additionalProperties: {$ref: '#/$defs/text'}
+  case:
+    type: object
+    additionalProperties: false
+    required: [id, version, status, source, structure, decision, evidence, validation, transfer, review, status_reason]
+    properties:
+      id: {$ref: '#/$defs/id'}
+      version: {$ref: '#/$defs/id'}
+      status: {enum: [draft, quarantined, reviewed, retired]}
+      source:
+        type: object
+        additionalProperties: false
+        required: [id, sha256]
+        properties:
+          id: {$ref: '#/$defs/id'}
+          sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      structure:
+        type: object
+        additionalProperties: false
+        required: [objective, structures, capabilities, observation_unit, data_regime, variables, constraints, objective_description, dependencies, uncertainty]
+        properties:
+          objective: {enum: [explanation, inference, prediction, evaluation, optimization, simulation]}
+          structures:
+            type: array
+            maxItems: 3
+            uniqueItems: true
+            items: {enum: [physical_mechanism, temporal, spatial, network, scheduling, game, stochastic, static_tabular]}
+          capabilities:
+            type: array
+            uniqueItems: true
+            maxItems: 11
+            items: {enum: [has_explicit_constraints, requires_feasibility_check, requires_equilibrium_residual, requires_conservation_residual, requires_discretization_check, requires_convergence_diagnostic, requires_out_of_sample_validation, requires_uncertainty_quantification, requires_leakage_check, requires_calibration_check, requires_identifiability_check]}
+          observation_unit: {$ref: '#/$defs/text'}
+          data_regime: {$ref: '#/$defs/text'}
+          variables: {$ref: '#/$defs/texts'}
+          constraints: {$ref: '#/$defs/texts'}
+          objective_description: {$ref: '#/$defs/text'}
+          dependencies: {$ref: '#/$defs/texts'}
+          uncertainty: {$ref: '#/$defs/texts'}
+      decision:
+        type: object
+        additionalProperties: false
+        required: [baseline, adopted_pattern, alternatives, selection_reason, failure_conditions, implementation_cost]
+        properties:
+          baseline: {anyOf: [{$ref: '#/$defs/text'}, {type: 'null'}]}
+          adopted_pattern: {$ref: '#/$defs/text'}
+          alternatives: {$ref: '#/$defs/texts'}
+          selection_reason: {$ref: '#/$defs/text'}
+          failure_conditions: {$ref: '#/$defs/texts'}
+          implementation_cost: {$ref: '#/$defs/text'}
+      evidence:
+        type: array
+        minItems: 1
+        maxItems: 64
+        items:
+          type: object
+          additionalProperties: false
+          required: [id, kind, statement, source_anchor]
+          properties:
+            id: {$ref: '#/$defs/id'}
+            kind: {enum: [observed_in_source, curator_inference, recommended_validation, synthetic_example]}
+            statement: {$ref: '#/$defs/text'}
+            source_anchor: {$ref: '#/$defs/id'}
+      validation:
+        type: object
+        additionalProperties: false
+        required: [completed_checks, recommended_checks, limitations, outcome]
+        properties:
+          completed_checks: {$ref: '#/$defs/texts'}
+          recommended_checks: {$ref: '#/$defs/texts'}
+          limitations: {$ref: '#/$defs/texts'}
+          outcome: {enum: [not_run, source_reported]}
+      transfer:
+        type: object
+        additionalProperties: false
+        required: [reusable_pattern, prohibited_transfers]
+        properties:
+          reusable_pattern: {$ref: '#/$defs/text'}
+          prohibited_transfers: {$ref: '#/$defs/texts'}
+      review:
+        type: object
+        additionalProperties: false
+        required: [mode, scope, reason]
+        properties:
+          mode: {const: author_self_check}
+          scope: {const: synthetic_content_only}
+          reason: {$ref: '#/$defs/text'}
+          reviewer_role: {const: authoring_assistant}
+          reviewed_on: {type: string, pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'}
+          review_version: {$ref: '#/$defs/id'}
+      near_duplicates:
+        type: object
+        additionalProperties: false
+        required: [status, reason]
+        properties:
+          status: {enum: [cleared, unresolved]}
+          reason: {$ref: '#/$defs/text'}
+      status_reason: {$ref: '#/$defs/text'}
+  sources_document:
+    type: object
+    additionalProperties: false
+    required: [protocol_version, sources]
+    properties:
+      protocol_version: {const: 1.0.0}
+      sources:
+        type: array
+        maxItems: 64
+        items: {$ref: '#/$defs/source'}
+  cases_document:
+    type: object
+    additionalProperties: false
+    required: [protocol_version, cases]
+    properties:
+      protocol_version: {const: 1.0.0}
+      cases:
+        type: array
+        maxItems: 64
+        items: {$ref: '#/$defs/case'}

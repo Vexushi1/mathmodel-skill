@@ -1,4 +1,4 @@
-version: 10.15.1
+version: 10.16.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -23,6 +23,7 @@ contracts:
   claim_consumption: core/claim_consumption_contract.yaml
   review_receipts: core/review_receipt_contract.yaml
   review_receipt_consumption: core/review_receipt_consumption_contract.yaml
+  case_memory: knowledge/case_memory/schema.yaml
   writing_reasoning: core/writing_reasoning_contract.yaml
   writing_runtime: core/writing_runtime_contract.yaml
   writing_protocol: modules/05_writing/paper_writing_protocol.md
@@ -48,6 +49,7 @@ external_artifacts:
 - existing_model_paper_framework
 - discovered_artifacts
 artifact_catalog:
+  case_memory_report: 显式只读案例准入与索引报告；不授予模型批准、数值验收或项目交付资格
   claim_consumption_report: 显式B2只读主张与活动论文片段关联、实际文本差异和影响范围报告；不授予语义支持、数值验收或正式交付资格
   claim_evidence_report: 显式B1只读来源、选择与有限算术报告；不授予语义支持、执行、数值验收或独立审查资格
   conformance_report: 显式A1只读结构核验报告；不授予模型批准、执行、数值验收或数学等价资格
@@ -197,6 +199,14 @@ modules:
     inputs: [all_requested_artifacts, proposition_plan, model_paper_framework, output_contract, workbook_schema, compile_profile, compile_report]
     outputs: [review_report, submission_package]
 utility_gates:
+  case_memory_admission:
+    path: scripts/case_memory.py
+    command: python scripts/case_memory.py validate
+    inputs: []
+    outputs: [case_memory_report]
+    rules:
+    - Read-only D1 corpus validation uses knowledge/case_memory/schema.yaml; no ordinary route loads the corpus or adds a project gate.
+    - Only reviewed, permitted, current cases enter the generated index; examples do not authorize current model choices or numerical facts.
   claim_consumption:
     path: scripts/claim_consumption.py
     command: python scripts/claim_consumption.py <project_root> --tex-main final_latex/main.tex

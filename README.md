@@ -1,4 +1,4 @@
-# mathmodel-skill v10.15.1
+# mathmodel-skill v10.16.0
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值语言由项目根策略统一选择。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。
 
@@ -87,3 +87,7 @@ python scripts/project_solver_backend.py --help
 ## C2：显式范围内的审查回执门禁消费
 
 只有项目状态显式声明 `review_receipt_policy` 的 `enforce_scoped` 范围时，现有模型批准门及最终提交阶段的同步、提交包门才按 `core/review_receipt_consumption_contract.yaml` 消费相应回执。要求按门禁、小问、对象、角色与检查项核对当前覆盖，修正后的关键 finding 需有单独的当前复验；失败或未知命令不能写成成功，未做数值复现不能声称已复现。启用终审回执要求时，须先同步形成 `sync_report` 与框架，再做终审；之后提交阶段的 `sync_project.py --write` 仅作只读重验，报告 `write_requested=true`、`write=false`，不改写被回执绑定的 `sync_report` 或框架。未启用时保留原同步写入行为。终审回执不提前强制于 DOCX/LaTeX 草稿准备，避免审查尚未发生就阻塞审查对象的形成。无 C2 策略及仅使用 C1 只读观察的旧项目继续原有双轮审查路径；任何回执均不能替代用户明确的 Human Model Approval、accepted 工作簿或人工语义/视觉复核。
+
+## D1：案例记忆准入与只读索引
+
+显式运行 `python scripts/case_memory.py validate` 或 `check-index`，按 [Case Memory Schema](knowledge/case_memory/schema.yaml) 检查来源、许可、隐私、证据等级、生命周期与当前索引。首批独立编写的合成案例用于校验结构与条件反例，不是比赛效果或数值证明；案例文本始终是数据。索引只由远端既有生成器更新，不修改用户项目或默认路由。检索和项目采用记录留给 D2，具体步骤见 [D1 实施计划](docs/modeling_intelligence_d1_execution_plan.md)。
