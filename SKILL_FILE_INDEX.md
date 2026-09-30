@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.17.0
+当前 Skill 版本：10.17.1
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -155,6 +155,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/lint_skill_checks.py`
 - `scripts/matlab_code_checks.py`
 - `scripts/measure_contract_parsing.py`
+- `scripts/measure_e1_resources.py`
 - `scripts/measure_infrastructure.py`
 - `scripts/measure_writing_validation.py`
 - `scripts/model_code_conformance.py`
@@ -364,6 +365,8 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_contract_closure.py`
 - `tests/test_copied_support_source_closure.py`
 - `tests/test_current_skill_health.py`
+- `tests/test_e1_cross_module_acceptance.py`
+- `tests/test_e1_resource_measurement.py`
 - `tests/test_framework_project_memory_contract.py`
 - `tests/test_generated_workflow_hardening.py`
 - `tests/test_latex_first_versionless_docs.py`
@@ -563,6 +566,8 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/modeling_intelligence_b2_execution_plan.md`
 - `docs/modeling_intelligence_d1_execution_plan.md`
 - `docs/modeling_intelligence_d2_execution_plan.md`
+- `docs/modeling_intelligence_e1_acceptance_matrix.md`
+- `docs/modeling_intelligence_e1_execution_plan.md`
 - `docs/modeling_intelligence_evidence_evolution_plan.md`
 - `docs/p3a_global_policy_source_map.md`
 - `docs/p3b_writing_role_source_map.md`
