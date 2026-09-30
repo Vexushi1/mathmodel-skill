@@ -16,7 +16,7 @@ if SCRIPTS not in sys.path:
     sys.path.insert(0, SCRIPTS)
 
 import artifact_identity as ARTIFACT_IDENTITY
-from tests.test_user_execution_contract import UserExecutionContractTests
+from tests import test_user_execution_contract as user_execution_fixture
 
 
 def load_module(name: str, relative: str):
@@ -140,7 +140,7 @@ class ActiveAliasRetirementTests(unittest.TestCase):
         digest = "a" * 64
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            fixture = UserExecutionContractTests()
+            fixture = user_execution_fixture.UserExecutionContractTests()
             script = fixture.make_project(root)
             state = fixture.read_state(root)
             state["subproblems"]["Q1"]["artifact_hashes"] = {"model": digest}
@@ -183,7 +183,7 @@ class CanonicalWriteTests(unittest.TestCase):
     def test_code_delivery_primary_write_uses_only_primary_code_artifact(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            fixture = UserExecutionContractTests()
+            fixture = user_execution_fixture.UserExecutionContractTests()
             script = fixture.make_project(root)
             CODE.update_state(root, fixture.config("primary", "问题一求解结果.xlsx"), script)
             expected_hash = hashlib.sha256(script.read_bytes()).hexdigest()

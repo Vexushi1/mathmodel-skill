@@ -711,6 +711,36 @@ class AuditClosureProjectionTests(unittest.TestCase):
                 self.assertEqual(EVIDENCE.approved_c2_carrier_change(
                     case, old, unrelated, carriers), (unrelated, []))
 
+    def test_python_ci_performance_patch_changes_only_exact_carriers(self):
+        carriers = deepcopy(EVIDENCE.PYTHON_CI_PERFORMANCE_AUTHORITY_VERSIONS)
+        for case in (*EVIDENCE.A7_HYDRATED_PROVENANCE_CASES, "facts_unscoped"):
+            with self.subTest(case=case):
+                old, new = self.pair(case)
+                self.prepare_b2c(old, new)
+                new["version"] = "10.15.1"
+                original = deepcopy(new)
+                projected, changes = EVIDENCE.approved_python_ci_performance_carrier_change(
+                    case, old, new, carriers)
+                self.assertEqual(projected, old)
+                self.assertEqual(new, original)
+                version_changes = [item for item in changes if item["path"] == "version"]
+                self.assertEqual([item["candidate"] for item in version_changes], ["10.15.1"])
+                self.assertEqual(version_changes[0]["authority_versions"], carriers)
+                for bad_carriers in (
+                    {**carriers, "project_state": "8.14.1"},
+                    {**carriers, "review_receipt_consumption": "1.0.1"},
+                    {**carriers, "runtime_assurance": "2.4.1"},
+                    {key: value for key, value in carriers.items()
+                     if key != "review_receipt_consumption"},
+                ):
+                    self.assertEqual(EVIDENCE.approved_python_ci_performance_carrier_change(
+                        case, old, new, bad_carriers), (new, []))
+                for field, value in (("pre_delivery_gates", []), ("version", "10.15.2")):
+                    unrelated = deepcopy(new)
+                    unrelated[field] = value
+                    self.assertEqual(EVIDENCE.approved_python_ci_performance_carrier_change(
+                        case, old, unrelated, carriers), (unrelated, []))
+
     def test_b2c_carrier_keeps_unrelated_differences_visible(self):
         old, new = self.pair()
         self.prepare_b2c(old, new)

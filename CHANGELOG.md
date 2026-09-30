@@ -1,6 +1,14 @@
 # Changelog
 
-## 10.15.0
+## 10.15.1
+
+- Speed up ordinary equivalent YAML parsing with PyYAML's existing safe C loader and a SafeLoader fallback, plus bounded process-local reuse by current content and loader semantics. Preserve independent returned objects, strict parser rules, current-byte observations, read-set/budget checks, approval and receipt qualification; never cache gate PASS or mutable project facts.
+- Run each formal Windows Python 3.10 / 3.14 full regression across four file shards while retaining standard unittest discovery coverage and fixture behavior. Keep `Python 3.10` and `Windows Python 3.14` as complete coverage gates; reject missing, mismatched, duplicate, failed or unfinished shard evidence. Preserve Windows MATLAB native and Linux LaTeX validation.
+- Use GitHub targeted checks during branch and draft PR development, then full checks for ready PRs, explicit full dispatch and main. Refresh generated metadata before costly full shards, including a validation path when generation has no differences. Remove two imported TestCase exposures that collected 24 redundant executions without deleting their original tests.
+- Save remote success and failure logs, per-test/file/collection timings and parser microbenchmarks. Use a tracked, provenance-preserving file timing seed for deterministic shard balancing; new files use average seconds per case. Recheck its bytes, weights and plan in the collector. Historical timing, including a completed failed gate, estimates scheduling only and never supplies PASS or current coverage. Governance 1.0.6 requires GitHub-only repository acceptance and exact source/checkout evidence; measured final-head and main results are recorded in the infrastructure PR before any speed claim. Project State 8.14.0 and all independent business protocols retain their versions and behavior.
+- Register only the exact 10.15.1 patch carrier in the immutable optimization comparison. No user project migration, numerical backend change, reduced computation or D1 work is included.
+
+## Previous release: 10.15.0
 
 - Add opt-in C2 review receipt consumption with Project State Schema 8.14.0 and a separate `core/review_receipt_consumption_contract.yaml` 1.0.0. An explicit root `review_receipt_policy` scopes required gates, questions, objects, roles, and checks; the C1 `review_receipts` record protocol and its Authority remain 1.0.0.
 - Apply scoped receipt requirements within the existing Model Approval gate and the final submission sync and package gates. Once a final-review requirement is active, submission sync only rechecks previously synchronized project facts so that consuming the receipt cannot itself stale its bound inputs; projects without that requirement keep their original sync write behavior. A current declared PASS alone is insufficient: failed or unknown execution, unsupported numerical reproduction claims, stale or incomplete scope, and corrected findings without a current separate recheck cannot qualify. Human Model Approval, accepted workbooks, and human semantic or visual review retain their existing owners.

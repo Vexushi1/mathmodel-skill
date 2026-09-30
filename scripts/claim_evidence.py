@@ -12,6 +12,7 @@ from pathlib import Path
 from decimal import Decimal, DecimalException, ROUND_HALF_EVEN, localcontext
 from typing import Any, Mapping
 import yaml
+import safe_yaml
 from jsonschema import Draft202012Validator, validators
 import model_code_conformance as bounded
 from claim_values import EvidenceError, NeedsReview, Value, number, converted, derive, describe, unit_info
@@ -178,7 +179,8 @@ def inspect_project(project_root: str|Path) -> dict:
             report['reason']='No B1 record. No workbook or Claim Authority was loaded.'
             return report
         contract=bounded._yaml(bounded._read(ROOT,CONTRACT,2*1024*1024,observation['skill']).decode('utf-8'),32)
-        schema=yaml.safe_load(bounded._read(ROOT,SCHEMA,2*1024*1024,observation['skill']).decode('utf-8'))
+        bounded._read(ROOT,safe_yaml.SOURCE_RELATIVE_PATH,2*1024*1024,observation['skill'])
+        schema=safe_yaml.safe_load(bounded._read(ROOT,SCHEMA,2*1024*1024,observation['skill']).decode('utf-8'))
         if contract.get('version')!='1.0.0':raise EvidenceError('unsupported Claim Authority version')
         record=framework['claim_evidence'];order=validate_record(record,schema,contract)
         adapter=Sources(root,raw,state,contract)

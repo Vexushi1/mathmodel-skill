@@ -36,7 +36,7 @@ class ReviewReceiptTests(unittest.TestCase):
         (self.skill / "core").mkdir(parents=True)
         contract = yaml.safe_load((ROOT / "core/review_receipt_contract.yaml").read_text(encoding="utf-8"))
         authority_paths = {"core/project_state.schema.yaml", "core/review_receipt_contract.yaml",
-                           "core/model_approval_contract.yaml"}
+                           "core/model_approval_contract.yaml", "scripts/safe_yaml.py"}
         for gate in contract["gate_authorities"].values():
             authority_paths.update(gate.get("required_paths", []))
             authority_paths.update(gate.get("latex_required_paths", []))

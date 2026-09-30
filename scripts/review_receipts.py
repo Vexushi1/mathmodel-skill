@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import yaml
+import safe_yaml
 from jsonschema import Draft202012Validator
 
 import claim_figure
@@ -237,7 +238,7 @@ def _gate_authority_issues(
     if version_path and version_path in authority_paths:
         try:
             raw = _observe_bytes(ROOT, version_path, skill_read_set)
-            current = yaml.safe_load(raw.decode("utf-8")) or {}
+            current = safe_yaml.safe_load(raw.decode("utf-8")) or {}
             if str(current.get("version", "")) != record["criteria_version"]:
                 issues.append("review criteria version differs from current Authority")
             if gate == "model_challenge":
@@ -715,8 +716,9 @@ def inspect_project(
         if "review_receipts" not in state:
             report["status"] = "not_assessed"
         else:
-            schema = yaml.safe_load(_observe_bytes(ROOT, SCHEMA, skill_read_set).decode("utf-8")) or {}
-            contract = yaml.safe_load(_observe_bytes(ROOT, CONTRACT, skill_read_set).decode("utf-8")) or {}
+            _observe_bytes(ROOT, safe_yaml.SOURCE_RELATIVE_PATH, skill_read_set)
+            schema = safe_yaml.safe_load(_observe_bytes(ROOT, SCHEMA, skill_read_set).decode("utf-8")) or {}
+            contract = safe_yaml.safe_load(_observe_bytes(ROOT, CONTRACT, skill_read_set).decode("utf-8")) or {}
             if not isinstance(schema, Mapping) or not isinstance(contract, Mapping):
                 raise ReceiptInspectionError("review Schema or Authority is not a mapping")
             if contract.get("version") != PROTOCOL_VERSION:

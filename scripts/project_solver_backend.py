@@ -213,7 +213,7 @@ _PREVIEW_SOURCES = (
     "scripts/state_transitions.py", "scripts/sync_project.py",
     "scripts/project_snapshot.py", "scripts/submission_requirements.py",
     "scripts/validate_code_delivery.py", "scripts/validate_project_state.py",
-    "scripts/validate_model_paper_framework.py", "scripts/resolve_runtime.py",
+    "scripts/validate_model_paper_framework.py", "scripts/resolve_runtime.py", "scripts/safe_yaml.py",
 )
 
 

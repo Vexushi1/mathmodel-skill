@@ -41,29 +41,76 @@ class TestActionsRuntimeModernization(unittest.TestCase):
         matrix = jobs["unit-matrix"]
         self.assertEqual(matrix["runs-on"], "windows-latest")
         self.assertEqual(matrix["strategy"]["matrix"]["python-version"], ["3.10"])
-        self.assertEqual(matrix["env"]["PYTHONUTF8"], "1")
         windows = jobs["windows-unit"]
         self.assertEqual(windows["runs-on"], "windows-latest")
-        self.assertEqual(windows["env"]["PYTHONUTF8"], "1")
-        self.assertNotIn("needs", windows)
         self.assertEqual(
             next(step["with"]["python-version"] for step in windows["steps"]
                  if step.get("uses", "").startswith("actions/setup-python@")),
             "3.14",
         )
-        for job in (matrix, windows):
-            full_steps = [step for step in job["steps"]
-                          if "python -m unittest discover -s tests" in step.get("run", "")]
-            self.assertEqual(len(full_steps), 1)
-            self.assertNotEqual(full_steps[0].get("shell"), "bash")
-        self.assertFalse(any("python -m unittest discover -s tests" in str(job.get("steps", ""))
-                             for name, job in jobs.items() if name not in {"unit-matrix", "windows-unit"}))
+        for version, worker_id, gate_id in (
+            ("3.10", "unit-matrix-shards", "unit-matrix"),
+            ("3.14", "windows-unit-shards", "windows-unit"),
+        ):
+            worker = jobs[worker_id]
+            self.assertEqual(worker["runs-on"], "windows-latest")
+            self.assertEqual(worker["env"]["PYTHONUTF8"], "1")
+            self.assertEqual(worker["strategy"]["matrix"]["shard"], [0, 1, 2, 3])
+            self.assertFalse(worker["strategy"]["fail-fast"])
+            self.assertIn("generated-files", worker["needs"])
+            self.assertIn("== 'true'", worker["if"])
+            setup = next(step for step in worker["steps"]
+                         if step.get("uses", "").startswith("actions/setup-python@"))
+            self.assertEqual(setup["with"]["python-version"], version)
+            commands = "\n".join(step.get("run", "") for step in worker["steps"])
+            self.assertIn("ci_unittest.py run --shard-index", commands)
+            self.assertIn("--shard-count 4", commands)
+            self.assertNotIn("--modules", commands)
+            self.assertIn("exit $testExit", commands)
+            artifact = next(step for step in worker["steps"]
+                            if step.get("uses", "").startswith("actions/upload-artifact@"))
+            self.assertEqual(artifact["if"], "always()")
+            self.assertIn("timings.json", artifact["with"]["path"])
+            gate = jobs[gate_id]
+            self.assertIn(worker_id, gate["needs"])
+            self.assertIn("always()", gate["if"])
+            self.assertIn("needs.test-plan.result != 'success'", gate["if"])
+            commands = "\n".join(step.get("run", "") for step in gate["steps"])
+            self.assertIn("$env:SHARD_RESULT -ne 'success'", commands)
+            self.assertIn("gh run download $env:GITHUB_RUN_ID", commands)
+            self.assertIn(f"--python-version {version}", commands)
+            self.assertIn("ci_unittest.py verify", commands)
+
+    def test_development_is_targeted_and_pr_freeze_or_main_has_full_path(self):
+        events = self.ci.get("on", self.ci.get(True))
+        self.assertEqual(events["push"]["branches"], ["main"])
+        self.assertIn("ready_for_review", events["pull_request"]["types"])
+        options = events["workflow_dispatch"]["inputs"]["python_test_mode"]
+        self.assertEqual(options["options"], ["targeted", "full"])
+        self.assertEqual(options["default"], "full")
+        mode = self.ci["jobs"]["test-plan"]["steps"][0]["run"]
+        self.assertIn("full=true", mode)
+        self.assertIn('"$CI_DRAFT" == true', mode)
+        self.assertIn('"$CI_MODE" == targeted', mode)
+        targeted = self.ci["jobs"]["python-targeted"]
+        self.assertIn("!= 'true'", targeted["if"])
+        self.assertIn("--modules", str(targeted["steps"]))
+        self.assertIn("github.event_name", self.ci["concurrency"]["group"])
+        self.assertIn("python_test_mode", self.ci["concurrency"]["group"])
+
+    def test_all_ci_gates_checkout_the_same_source_head(self):
+        expected = "${{ github.event.pull_request.head.sha || github.sha }}"
+        self.assertEqual(self.ci["env"]["HSK_SOURCE_SHA"], expected)
+        for job_id, job in self.ci["jobs"].items():
+            for step in job["steps"]:
+                if step.get("uses", "").startswith("actions/checkout@"):
+                    self.assertEqual(step["with"]["ref"], expected, job_id)
 
     def test_ci_business_commands_and_third_party_latex_action_are_preserved(self):
         for token in (
             "python scripts/lint_skill.py --skip-generated",
             "python scripts/resolve_runtime.py full_solution",
-            "python -m unittest discover -s tests",
+            "python scripts/ci_unittest.py run --shard-index",
             "xu-cheng/latex-action@v4",
             "python scripts/render_paper.py",
             "python scripts/generate_indexes.py",

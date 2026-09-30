@@ -1,4 +1,4 @@
-# mathmodel-skill v10.15.0
+# mathmodel-skill v10.15.1
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值语言由项目根策略统一选择。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。
 
@@ -42,9 +42,9 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 
 ## 仓库维护验收
 
-Skill 仓库维护的正式验收由 GitHub Actions 完成：提交并推送源文件，等待 `refresh-generated` 在远端提交受管索引和 MANIFEST，再对生成后的最终 PR head 核对 Windows Python 3.10/3.14 完整回归、lint、生成文件及受影响专项检查。适用时核对 Optimization baseline；合并后还需复核 `main` 的 GitHub Actions。本地不要求运行仓库测试或生成器；本地结果不能替代远端最终 head 证据。Linux / TeX Live 仍用于 LaTeX 验证，Linux 工具作业不构成 Linux Python 正式兼容声明。
+Skill 仓库维护的正式验收仅由 GitHub Actions 完成：提交并推送源文件，由 `refresh-generated` 在远端更新受管索引和 MANIFEST；即使无生成差异，也验证对应最终 head。开发分支与 draft PR 先运行专项，ready PR / 显式 full dispatch / main 执行完整回归。Windows Python 3.10/3.14 各采用 4 个文件分片，完整 coverage 与标准 unittest discovery 等价；保留 `Python 3.10`、`Windows Python 3.14` check 验证分片全集、版本、commit 和结果。冻结前还须核对 lint、生成物、Windows MATLAB、Linux LaTeX 与适用的 Optimization baseline；合并后复核 main。本地不要求运行仓库测试或生成器，用户要求 GitHub-only 时不运行本地诊断。完整安全与证据规则见 `SKILL_CHANGE_GOVERNANCE.md`，逐项远端计时用于核对实际收益。
 
-可选本地诊断（默认无需执行）：
+以下为 GitHub runner 内的命令参考，无需在本机执行：
 
 ```bash
 python scripts/lint_skill.py

@@ -14,7 +14,7 @@ TARGETED_PATTERNS = ("-p test_optimization_baseline.py", "-p test_reading_plan.p
 
 
 class TestCiPlatformPolicy(unittest.TestCase):
-    def test_full_unittest_only_runs_in_two_windows_jobs(self):
+    def test_full_unittest_only_runs_in_two_windows_version_shard_groups(self):
         full_jobs = []
         workflows = sorted({*ROOT.glob(".github/workflows/*.yml"), *ROOT.glob(".github/workflows/*.yaml")})
         for workflow in workflows:
@@ -22,14 +22,15 @@ class TestCiPlatformPolicy(unittest.TestCase):
             for job_id, job in jobs.items():
                 commands = "\n".join(str(step.get("run", "")) for step in job.get("steps", []))
                 for line in commands.splitlines():
-                    if "python -m unittest discover -s tests" not in line:
+                    shard_run = "scripts/ci_unittest.py run" in line and "--modules" not in line
+                    if not shard_run and "python -m unittest discover -s tests" not in line:
                         continue
                     pattern = re.search(r"(?:^|\s)-p\s+['\"]?([^'\"\s]+)", line)
                     if pattern and pattern.group(1) != "test_*.py":
                         continue
                     self.assertEqual(job["runs-on"], "windows-latest", (workflow.name, job_id, line))
                     full_jobs.append((workflow.name, job_id))
-        self.assertEqual(full_jobs, [("ci.yml", "unit-matrix"), ("ci.yml", "windows-unit")])
+        self.assertEqual(full_jobs, [("ci.yml", "unit-matrix-shards"), ("ci.yml", "windows-unit-shards")])
 
     def test_optimization_characterization_uses_windows_314_and_targeted_tests(self):
         jobs = yaml.safe_load(OPTIMIZATION.read_text(encoding="utf-8"))["jobs"]

@@ -20,6 +20,7 @@ import re
 from typing import Any, Mapping
 
 import yaml
+import safe_yaml
 from jsonschema import Draft202012Validator
 
 import claim_evidence
@@ -827,10 +828,10 @@ def inspect_project(project_root: str | Path, *, tex_main: str | Path = 'final_l
             report['reason'] = 'No B2 opt-in policy; original routes remain unchanged.'
             return report
         _, contract = _read_yaml(ROOT, CONTRACT, 2 * 1024 * 1024, observed['skill'])
-        schema = yaml.safe_load(bounded._read(ROOT, SCHEMA, 2 * 1024 * 1024, observed['skill']).decode('utf-8'))
+        schema = safe_yaml.safe_load(bounded._read(ROOT, SCHEMA, 2 * 1024 * 1024, observed['skill']).decode('utf-8'))
         _, claim_contract = _read_yaml(ROOT, CLAIM_CONTRACT, 2 * 1024 * 1024, observed['skill'])
         for path in ('scripts/claim_consumption.py', 'scripts/claim_tex.py',
-                     'scripts/validate_project_state.py'):
+                     'scripts/validate_project_state.py', safe_yaml.SOURCE_RELATIVE_PATH):
             bounded._read(ROOT, path, 2 * 1024 * 1024, observed['skill'])
         if contract.get('version') != '1.8.0':
             raise EvidenceError('unsupported B2 contract version')
@@ -1289,7 +1290,8 @@ def formal_text_gate(project_root: str | Path, *,
         pair = (policy.get('protocol_version'), policy.get('mode'))
         result['policy_protocol_version'], result['mode'] = pair
         if pair in (('1.0.0', 'observe'), ('1.1.0', 'propagate')):
-            schema = yaml.safe_load(bounded._read(ROOT, SCHEMA, 2 * 1024 * 1024,
+            bounded._read(ROOT, safe_yaml.SOURCE_RELATIVE_PATH, 2 * 1024 * 1024, observed['skill'])
+            schema = safe_yaml.safe_load(bounded._read(ROOT, SCHEMA, 2 * 1024 * 1024,
                                                    observed['skill']).decode('utf-8'))
             validator = Draft202012Validator({'$ref': '#/$defs/claim_consumption_policy',
                                                '$defs': schema['$defs']})
@@ -1420,7 +1422,8 @@ def formal_figure_gate(project_root: str | Path, *,
         result['policy_protocol_version'], result['mode'] = pair
         if pair in (('1.0.0', 'observe'), ('1.1.0', 'propagate'),
                     ('1.2.0', 'enforce_latex_text')):
-            schema = yaml.safe_load(bounded._read(ROOT, SCHEMA, 2 * 1024 * 1024,
+            bounded._read(ROOT, safe_yaml.SOURCE_RELATIVE_PATH, 2 * 1024 * 1024, observed['skill'])
+            schema = safe_yaml.safe_load(bounded._read(ROOT, SCHEMA, 2 * 1024 * 1024,
                                                    observed['skill']).decode('utf-8'))
             validator = Draft202012Validator({'$ref': '#/$defs/claim_consumption_policy',
                                                '$defs': schema['$defs']})
