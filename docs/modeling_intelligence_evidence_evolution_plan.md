@@ -1,5 +1,7 @@
 # 建模智能与证据闭环增强：详细修改计划与实施指南
 
+> **2026-10-01 E2 当前交接状态（覆盖下方候选快照）：** E1 [PR #259](https://github.com/Vexushi1/mathmodel-skill/pull/259) 已合并为 `main@c270900683a5080cb914bdf3f05ef1993170f847` / Skill 10.17.1 / State 8.15.0；[final-head CI 36748623437](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36748623437)、[main CI 36752661198](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36752661198) 的九项正式门和八个 Python worker 均成功，两版本各覆盖 2453 项；[main 生成物 36752661194](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36752661194) verify-main 成功，已测/合并 tree 同为 `350315a2dc90b3e3592c758e54cb4a47ea1f1f29`。当前 E2 只形成发布评审与交接文档，按 Governance 5.1 保持版本；其新 final-head/合并/main 事实由 E2 PR 关闭台账登记，不提前填写。见 [E2 交接记录](modeling_intelligence_e2_release_review_handoff.md)。A—D/E1 关闭的是已列明的有限机器范围；人工语义/视觉、独立建模效果和部分来源权利仍诚实标记未核验。真正 latest GitHub Release 仍为 v10.1.0，未创建新 tag/Release；实际发布须明确授权。下方各日期的原授权、候选与历史平台记录保留当时事实，不作为当前运行时规则。
+
 > **E1 接续状态（覆盖下方 D2 候选快照）：** D2 PR #258 已合并并完成 main 验收，Skill 10.17.0 / State 8.15.0。用户授权接续 E1 综合验收、E2 发布评审与交接；当前独立推进 E1 / 10.17.1。52 场景映射、交叉行为和有限资源测量见 [E1 实施计划](modeling_intelligence_e1_execution_plan.md)。验收仅在 GitHub，Windows Python 3.10/3.14、Windows MATLAB 和 Linux LaTeX；E1 尚未记录本候选最终通过，实际 Release 须明确发布授权。
 
 > **2026-09-30 D2 接续状态（覆盖下方旧阶段状态）：** C1 [PR #252](https://github.com/Vexushi1/mathmodel-skill/pull/252)、C2 [PR #255](https://github.com/Vexushi1/mathmodel-skill/pull/255) 和提速基础设施 [PR #256](https://github.com/Vexushi1/mathmodel-skill/pull/256) 已合并并完成主干复验。D1 [PR #257](https://github.com/Vexushi1/mathmodel-skill/pull/257) 已合并为 `main@04617fa09c5b57e9b0fd6c1f4b95e3206c2ef296` / Skill 10.16.0；最终 head 与 main CI 的 9 项正式门及各 8 个 Python worker 全通过，两套版本各覆盖 2345 项，main 生成物验证通过。现在按第 9、12 节在独立分支推进 D2 / Skill 10.17.0 / State 8.15.0：离线结构检索、按需导航及项目采用/拒绝引用。D2 尚无最终 head 验收、合并或 main 复验，不提前登记完成；E 和 Release 不在本次范围。见 [D1 实施计划](modeling_intelligence_d1_execution_plan.md)、[D2 实施计划](modeling_intelligence_d2_execution_plan.md)。仓库正式验收仍为 GitHub-only，开发专项、冻结前 Windows Python 3.10/3.14 完整覆盖，Windows MATLAB 与 Linux LaTeX；历史平台/验收记录不改写。
@@ -836,8 +838,8 @@ A0 先测现有 resolver、同步、代码交付和写作审计的耗时/加载�
 | C2 | 已合并并完成主干复验 | [PR #255](https://github.com/Vexushi1/mathmodel-skill/pull/255)；精确 head `51f839f2ae57dcd8eb8ced22240290e7dda9b184`；squash `6385f9a66dcd57033f31545cc4b22ebd1d20b77a` | [head CI 36661458941](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36661458941)、[main CI 36665935999](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36665935999) 均 9/9；[优化基线 36661461229](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36661461229) 必需两项成功（可选 preview skipped），[main 生成物 36665936004](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36665936004) verify-main 成功；合并树同已测 head | C01—C12 机器范围完成；人工语义/视觉及未执行数值复现仍不得自证，回执不代替 Human Model Approval 或 accepted 资格 |
 | D1 | 已合并并完成主干复验 | [PR #257](https://github.com/Vexushi1/mathmodel-skill/pull/257)；final head `1efbab2de817785b0088ad718ddc253d56b3cb69`；squash `04617fa09c5b57e9b0fd6c1f4b95e3206c2ef296` | [head CI 36705652486](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36705652486) 与 [main CI 36708442608](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36708442608) 9项正式门通过、每版本2345项无遗漏；[优化基线 36705652423](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36705652423)必需两项成功（preview skipped）；[main生成物 36708442493](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36708442493) verify-main通过；head/main树相同 | 准入、有限合成种子、许可/隐私/证据屏障、去重和生成索引完成；不宣称独立效果或真实项目自动入库 |
 | D2 | 已合并并完成主干复验 | [PR #258](https://github.com/Vexushi1/mathmodel-skill/pull/258)；final head `fe4ab2bfa4e415541bc417b0df879e73e3d46fc1`；squash `b9f20400e7e58a0717eaa2b88ebcce116c7d0613` | [head CI 36725254153](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36725254153) 与 [main CI 36729741410](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36729741410) 九项正式门通过、每版本2438项完整覆盖；[Optimization 36725254198](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36725254198)必需两项成功；[main生成物36729741450](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36729741450)通过；head/main tree均 `ac60f43812676551a239fe9b853e98d09a6ef3d2` | 离线检索/引用完成；独立效果、整体语义和人工视觉仍未核验；不发布Release |
-| E1 | 候选验收中 | 10.17.1；见 [实施计划](modeling_intelligence_e1_execution_plan.md) | 尚无本候选最终 head 验收或合并证据 | 52场景映射、跨模块/兼容/性能及原平台链 |
-| E2 | 未开始 | — | — | 发布授权与交接 |
+| E1 | 有限机器综合验收关闭，已合并并完成 main 复验 | [PR #259](https://github.com/Vexushi1/mathmodel-skill/pull/259)；final head `b28731db29fa9e52d98e7a31ffde819db5f02e98`；squash `c270900683a5080cb914bdf3f05ef1993170f847`；见 [实施计划](modeling_intelligence_e1_execution_plan.md)与[验收映射](modeling_intelligence_e1_acceptance_matrix.md) | [专项 36747213248](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36747213248) 634项/544.685秒/1条件skip；[head CI 36748623437](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36748623437)与[main CI 36752661198](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36752661198)九项正式门和八worker成功、每版本2453项；[Optimization 36748623490](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36748623490)必需两项成功、preview skipped；[生成物 36752661194](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36752661194)verify-main成功；head/main tree同为`350315a2dc90b3e3592c758e54cb4a47ea1f1f29` | 52场景及十混合链、旧/残缺/并发/事务映射、有限资源和 Windows MATLAB/Linux LaTeX 链；人工语义/视觉、独立效果、无预冻时间/RSS阈值仍未核验，不发布Release |
+| E2 | 发布评审与交接材料已形成；实际发布待明确授权 | [交接记录](modeling_intelligence_e2_release_review_handoff.md)；docs-only，保持Skill 10.17.1 | E1精确证据已记录；E2自身最终head、GitHub验收、合并和main复验只由本主题PR关闭台账登记，不预填未来PASS | 17项判据 disposition、版本/兼容/回退、实际素材来源与未核验项已明列；tag/Release未创建，真正latest仍v10.1.0 |
 
 ### 2026-09-25 原编制验证边界
 
@@ -851,23 +853,25 @@ A0 先测现有 resolver、同步、代码交付和写作审计的耗时/加载�
 
 只有下列条件全部满足，才可宣称四项增强完成；“文件已创建”不算完成。
 
-- [ ] 当前仓库事实与本计划的增量判断已重新核对，没有重复 Authority。
-- [ ] A 模块能检出冻结负例，并准确区分等价变换、合法近似、工程变化和未知区域。
-- [ ] A 的记录绑定真实 primary/analysis bundle，不绕过模型批准或数值验收。
-- [ ] B 的证据选择器、派生操作、单位、范围和关键主张覆盖经过正负例验证。
-- [ ] B 只增强精细定位，不绕过完整 accepted/freshness 资格。
-- [ ] C 能拒绝旧回执重放和虚构独立性，保留实际不支持/未核验状态。
-- [ ] C 的修正与复验闭环可追踪，不代替 Human Model Approval。
-- [ ] D 的所有正式案例有来源、权利、隐私和迁移边界记录，无未授权真实项目发布。
-- [ ] D 返回匹配理由与不适配条件，可合法 no_match，不影响既有数值资格。
-- [ ] 所有检查入口默认只读；必要写入由唯一事务协调入口完成。
-- [ ] 旧项目、新协议残缺、未知版本、并发变化和故障恢复均有测试。
-- [ ] 当前正式主流程、MATLAB 绘图边界、PQS/深化分离和 LaTeX/提交包链保持有效。
-- [ ] 扩展关闭/开启的资源开销已记录，未把全部知识库加载进普通任务。
-- [ ] 本文 52 个场景和跨模块链有实际测试/审查映射，没有用关键词断言代替行为测试。
-- [ ] 新增或变更的每个对象都有真实 producer、consumer、validator 与失效规则。
-- [ ] 最终 head 的基础测试、专项测试、生成索引与 CI 状态已经读取并记录。
-- [ ] 版本、迁移、第三方声明和回滚说明符合实际变更，没有夸大完成或能力。
+2026-10-01 的勾选只对应 A—D/E1 已验收的有限机器范围和如实记录义务，具体证据及每项 disposition 见 [E2 交接记录第 3 节](modeling_intelligence_e2_release_review_handoff.md)。这不把真实赛题数学/数值、人类语义/视觉、可信独立身份、完整隐私/权利认证或实际 Release 改为 PASS。E2 文档 PR 自身的 GitHub 关闭证据另行登记；未决来源与实际发布仍保留明确状态。
+
+- [x] 当前仓库事实与本计划的增量判断已重新核对，没有重复 Authority。
+- [x] A 模块能检出冻结负例，并准确区分等价变换、合法近似、工程变化和未知区域。
+- [x] A 的记录绑定真实 primary/analysis bundle，不绕过模型批准或数值验收。
+- [x] B 的证据选择器、派生操作、单位、范围和关键主张覆盖经过正负例验证。
+- [x] B 只增强精细定位，不绕过完整 accepted/freshness 资格。
+- [x] C 能拒绝旧回执重放和虚构独立性，保留实际不支持/未核验状态。
+- [x] C 的修正与复验闭环可追踪，不代替 Human Model Approval。
+- [x] D 的所有正式案例有来源、权利、隐私和迁移边界记录，无未授权真实项目发布。
+- [x] D 返回匹配理由与不适配条件，可合法 no_match，不影响既有数值资格。
+- [x] 所有检查入口默认只读；必要写入由唯一事务协调入口完成。
+- [x] 旧项目、新协议残缺、未知版本、并发变化和故障恢复均有测试。
+- [x] 当前正式主流程、MATLAB 绘图边界、PQS/深化分离和 LaTeX/提交包链保持有效。
+- [x] 扩展关闭/开启的资源开销已记录，未把全部知识库加载进普通任务。
+- [x] 本文 52 个场景和跨模块链有实际测试/审查映射，没有用关键词断言代替行为测试。
+- [x] 新增或变更的每个对象都有真实 producer、consumer、validator 与失效规则。
+- [x] 最终 head 的基础测试、专项测试、生成索引与 CI 状态已经读取并记录。
+- [x] 版本、迁移、第三方声明和回滚说明符合实际变更，没有夸大完成或能力。
 
 ---
 

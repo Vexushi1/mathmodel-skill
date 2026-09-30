@@ -63,6 +63,25 @@ and authorization work.
 
 To withdraw a public synthetic case, set `status` to `retired` and explain
 `status_reason`, then rebuild through GitHub. The corpus identity changes and the
-old derived index fails its freshness check. D2 will provide retrieval, no-match,
-adoption/rejection records and affected-project reference handling in a separate
-PR. D1 neither queries models nor changes any project qualification.
+old derived index fails its freshness check. D1 neither queries models nor changes
+any project qualification.
+
+D2 provides bounded offline retrieval through
+[scripts/case_memory_retrieve.py](../../scripts/case_memory_retrieve.py) (`query`),
+using the separate
+[retrieval Authority](../../core/case_memory_retrieval_contract.yaml).
+[Usage and boundaries](../../packs/artifact/case_memory_retrieval.md) describe
+typed conditions, explanatory matches, legal `no_match` and the distinct
+`unavailable` state. Ordinary modeling routes do not load the corpus; synthetic
+development-query results do not establish independent modeling performance.
+
+[scripts/case_references.py](../../scripts/case_references.py) provides
+`preview`, `record` and `inspect` for an explicit decision in the same question.
+Preview and inspection are read-only; recording remains read-only unless writing
+is explicitly requested. An authorized write uses the existing guarded project
+transaction and changes only that question's references and state generation.
+Changes to a referenced case, source or project context require review; references
+do not grant model approval or accepted numerical qualification. The actual
+implementation scope and evidence are recorded in the
+[D2 plan](../../docs/modeling_intelligence_d2_execution_plan.md) and
+[E2 handoff](../../docs/modeling_intelligence_e2_release_review_handoff.md).

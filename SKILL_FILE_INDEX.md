@@ -568,6 +568,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/modeling_intelligence_d2_execution_plan.md`
 - `docs/modeling_intelligence_e1_acceptance_matrix.md`
 - `docs/modeling_intelligence_e1_execution_plan.md`
+- `docs/modeling_intelligence_e2_release_review_handoff.md`
 - `docs/modeling_intelligence_evidence_evolution_plan.md`
 - `docs/p3a_global_policy_source_map.md`
 - `docs/p3b_writing_role_source_map.md`
