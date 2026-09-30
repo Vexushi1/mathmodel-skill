@@ -1,6 +1,12 @@
 # Changelog
 
-## 10.17.0
+## 10.17.1
+
+- Close E1 verification gaps with cross-module synthetic behavior checks and a 52-scenario evidence mapping. Preserve the existing numerical, approval, claim, review and case-memory authorities; do not infer human review or real modeling quality from machine checks.
+- Record bounded remote extension resource measurements on Windows without introducing post-hoc timing thresholds or caching qualifications. Keep Windows Python 3.10/3.14 complete regression, Windows MATLAB native and Linux LaTeX evidence chains.
+- Register only the exact E1 patch carrier in historical optimization comparisons. State 8.15.0 and all independent protocols retain their versions; no user-project migration or Release publication is included.
+
+## Previous release: 10.17.0
 
 - Add bounded offline D2 retrieval with an independent 1.0.0 Authority, typed synthetic feature projections and deterministic structural/term modes. Return match reasons, conflicts, unknown conditions and nontransferable items; off, unavailable and no_match remain legitimate. Consume the current admitted corpus and index in one protected read set, including all origins of deduplicated groups.
 - Add an explicit case_memory_retrieve reading profile and tool interface. Ordinary routes keep their existing gates and do not load the corpus. The fixed query suite measures development contracts and costs, marks origin contamination and does not claim independent held-out modeling quality.

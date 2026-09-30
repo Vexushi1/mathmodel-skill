@@ -21,6 +21,7 @@ on:
       - scripts/safe_yaml.py
       - scripts/ci_unittest.py
       - scripts/measure_contract_parsing.py
+      - scripts/measure_e1_resources.py
       - scripts/review_receipts.py
       - scripts/review_receipt_consumption.py
       - scripts/validate_model_approval.py
