@@ -386,6 +386,20 @@ def build_index(corpus_root: Path = DEFAULT_CORPUS_ROOT) -> dict:
         raise CaseMemoryError("read_error", "corpus could not be safely read") from None
 
 
+def _consume_index(report: dict, snapshot: _Snapshot, policy: dict, relative: str = "index.json") -> None:
+    """Consume the current index in the admission read set; caller rechecks before return."""
+    limits = policy["limits"]
+    _screen(relative, [re.compile(pattern) for pattern in policy["privacy_patterns"]], "corpus", "index")
+    if not _path(snapshot.root, relative).is_file():
+        raise CaseMemoryError("index_missing", "derived index is missing; rebuild through the repository generator")
+    expected = _index_payload(report, snapshot, limits)
+    actual = _json(snapshot.read(relative, limits))
+    if snapshot.nodes + _tree(actual, limits) > limits["nodes"]:
+        raise CaseMemoryError("budget_exceeded", "corpus and supplied index exceed the total node budget")
+    if _canonical(actual) != _canonical(expected):
+        raise CaseMemoryError("index_stale", "derived index differs from current admitted corpus; rebuild before consumption")
+
+
 def check_index(corpus_root: Path = DEFAULT_CORPUS_ROOT, index_path: Path | None = None) -> dict:
     """Read-only freshness check; a missing, changed or retired corpus never replays an old index."""
     try:
@@ -396,15 +410,7 @@ def check_index(corpus_root: Path = DEFAULT_CORPUS_ROOT, index_path: Path | None
             relative = candidate.relative_to(snapshot.root).as_posix()
         except ValueError:
             raise CaseMemoryError("path_violation", "index must remain inside the corpus root") from None
-        _screen(relative, [re.compile(pattern) for pattern in policy["privacy_patterns"]], "corpus", "index")
-        if not _path(snapshot.root, relative).is_file():
-            raise CaseMemoryError("index_missing", "derived index is missing; rebuild through the repository generator")
-        expected = _index_payload(report, snapshot, limits)
-        actual = _json(snapshot.read(relative, limits))
-        if snapshot.nodes + _tree(actual, limits) > limits["nodes"]:
-            raise CaseMemoryError("budget_exceeded", "corpus and supplied index exceed the total node budget")
-        if _canonical(actual) != _canonical(expected):
-            raise CaseMemoryError("index_stale", "derived index differs from current admitted corpus; rebuild before consumption")
+        _consume_index(report, snapshot, policy, relative)
         snapshot.recheck(limits)
         return {"status": "index_current", "protocol_version": PROTOCOL_VERSION,
                 "corpus_sha256": report["corpus_sha256"], "counts": report["counts"],

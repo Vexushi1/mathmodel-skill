@@ -4,6 +4,8 @@
 
 ## 0. 前置条件
 
+题意和结构明确后，可按需选择 `case_memory_retrieve`，依照 `packs/artifact/case_memory_retrieval.md` 比较既有模式、条件差异与不可迁移项，并显式记录采用/拒绝理由及本题证据。它提供有边界的建议；当前模型的语义闭环、Model Challenge 与 Human Model Approval 仍按原 Authority 执行。
+
 只接受 `problem_contract_status=frozen` 的小问。若题意对象、数据角色、约束来源或小问依赖仍存在会改变答案的歧义，退回 Module 01；不得通过代码试错替代审题。
 
 Problem Contract 冻结只回答“题目是什么意思”，不等于模型已获准进入代码阶段。正式任务代码前还必须依次完成当前模型语义闭环、Complexity Sanity、独立 Model Challenge 和用户 Human Model Approval。

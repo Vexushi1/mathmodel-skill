@@ -1,11 +1,87 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 8.14.0
+version: 8.15.0
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
 $defs:
+  case_references:
+    description: D2 optional decision provenance; currentness is derived, never approval or numerical acceptance.
+    type: object
+    additionalProperties: false
+    required: [protocol_version, records]
+    properties:
+      protocol_version: {const: 1.0.0}
+      records:
+        type: array
+        maxItems: 64
+        uniqueItems: true
+        items: {$ref: '#/$defs/case_reference_record'}
+  case_reference_record:
+    type: object
+    additionalProperties: false
+    required: [case_id, case_version, case_sha256, source_id, source_sha256, corpus_sha256, features_sha256, authority_sha256, taxonomy_sha256, retriever_sha256, filter_policy_sha256, query_sha256, filter_sha256, project_context_sha256, disposition, adopted_parts, rejected_parts, current_evidence, reason]
+    properties:
+      case_id: {type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$'}
+      case_version: {type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$'}
+      case_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      source_id: {type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$'}
+      source_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      corpus_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      features_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      authority_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      taxonomy_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      retriever_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      filter_policy_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      query_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      filter_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      project_context_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      disposition: {enum: [reference, adopt, reject]}
+      adopted_parts:
+        type: array
+        maxItems: 16
+        uniqueItems: true
+        items: {type: string, minLength: 1, maxLength: 4096}
+      rejected_parts:
+        type: array
+        maxItems: 16
+        uniqueItems: true
+        items: {type: string, minLength: 1, maxLength: 4096}
+      current_evidence:
+        type: array
+        maxItems: 16
+        uniqueItems: true
+        items:
+          oneOf:
+          - type: object
+            additionalProperties: false
+            required: [kind, pointer, sha256]
+            properties:
+              kind: {const: state_field}
+              pointer: {type: string, maxLength: 256, pattern: '^/subproblems/Q[1-9][0-9]*/(?:classification|capabilities|depends_on|problem_contract_status)$'}
+              sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+          - type: object
+            additionalProperties: false
+            required: [kind, anchor, sha256]
+            properties:
+              kind: {const: framework_anchor}
+              anchor: {type: string, minLength: 1, maxLength: 4096}
+              sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+          - type: object
+            additionalProperties: false
+            required: [kind, path, sha256]
+            properties:
+              kind: {const: project_file}
+              path: {type: string, minLength: 1, maxLength: 512}
+              sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      reason: {type: string, minLength: 1, maxLength: 4096}
+    allOf:
+    - if:
+        properties: {disposition: {const: adopt}}
+        required: [disposition]
+      then:
+        properties: {adopted_parts: {minItems: 1}, current_evidence: {minItems: 1}}
   review_receipt_policy:
     description: C2 显式、按 gate 和小问激活回执消费；缺省保持既有审查路径。
     type: object
@@ -1562,6 +1638,7 @@ properties:
         solver_candidates: {type: array, items: {type: string}}
         validation_plan: {type: array, items: {type: string}}
         result_analysis_candidates: {type: array, items: {type: string}}
+        case_references: {$ref: '#/$defs/case_references'}
   subproblems:
     type: object
     minProperties: 1

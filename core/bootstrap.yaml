@@ -1,4 +1,4 @@
-skill_version: 10.16.0
+skill_version: 10.17.0
 bootstrap_schema_version: 1.1.0
 purpose: >-
   Read first, load workflow_router.default_load, and use
@@ -21,6 +21,7 @@ authoritative_sources:
   review_receipts: core/review_receipt_contract.yaml
   review_receipt_consumption: core/review_receipt_consumption_contract.yaml
   case_memory: knowledge/case_memory/schema.yaml
+  case_memory_retrieval: core/case_memory_retrieval_contract.yaml
   writing_reasoning: core/writing_reasoning_contract.yaml
   writing_runtime: core/writing_runtime_contract.yaml
   figure_evidence: modules/04_figure_evidence.md
@@ -40,8 +41,8 @@ startup_contract:
     - Context hydration, intent provenance, artifact assurance and contract closure follow core/runtime_assurance_contract.yaml.
     - Load resolver manifests and taxonomies only when the route needs them.
     - Current project semantics are restored from current 模型论文框架.md when available; numerical facts still come from accepted workbooks and machine state from project_state.
-    - New 模型论文框架.md instances use scripts/instantiate_model_paper_framework.py so core/output_contract.yaml#model_paper_framework.default_mode=compact is applied; the repository framework template is a canonical full superset source, not a live-project default copy.
-    - Pure paper-writing routes use core/writing_runtime_contract.yaml plus the active template manifest and compact paper_writing_protocol; full core/writing_reasoning_contract.yaml remains the semantic fallback for complex adjudication and final review.
+    - New 模型论文框架.md instances use scripts/instantiate_model_paper_framework.py; core/output_contract.yaml owns compact/full modes and the canonical full template.
+    - Paper writing follows core/writing_runtime_contract.yaml, the active template manifest and paper_writing_protocol; full writing_reasoning_contract is a declared fallback.
     - For a project-wide numerical backend, inspect before writing; select records a first choice, while migration of historical or locked choices requires a reviewed preview and explicit project confirmation. Follow core/user_execution_contract.yaml#solver_backends.
 hard_invariants:
   - Global modeling, preprocessing, solving, figure, writing and review rules are governed by their authoritative sources above; bootstrap must not restate those contracts in detail.
@@ -68,6 +69,8 @@ entrypoints:
   claim_consumption: python scripts/claim_consumption.py
   review_receipts: python scripts/review_receipts.py
   case_memory: python scripts/case_memory.py
+  case_memory_retrieval: python scripts/case_memory_retrieve.py
+  case_references: python scripts/case_references.py
   audit_latex_project: python scripts/audit_latex_project.py
   render_paper: python scripts/render_paper.py
   validate_submission_package: python scripts/validate_submission_package.py

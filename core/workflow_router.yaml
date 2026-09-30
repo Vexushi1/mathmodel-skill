@@ -1,4 +1,4 @@
-version: 10.16.0
+version: 10.17.0
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -133,6 +133,14 @@ runtime_segments:
     formal_delivery: true
 
 routing:
+  case_memory_retrieve:
+    triggers: [案例记忆检索, 结构案例检索, 参考历史建模模式]
+    infer_keywords: [案例记忆检索, 结构案例检索, 参考历史建模模式]
+    load: [packs/artifact/case_memory_retrieval.md, core/case_memory_retrieval_contract.yaml]
+    terminal_outputs: [case_memory_retrieval_report]
+    pre_delivery_gates: []
+    formal_delivery: false
+
   claim_consumption_audit:
     triggers: [论文主张消费核验, 摘要正文数值一致性核验]
     infer_keywords: [论文主张消费核验, 摘要正文数值一致性核验]
@@ -417,6 +425,11 @@ reading_policy:
     - {path: core/hsk_core_policy.md}
     - {path: core/workflow_router.yaml, yaml_paths: [reading_policy.boundaries]}
   profiles:
+    case_memory_retrieve:
+      read_now:
+        - {path: packs/artifact/case_memory_retrieval.md}
+        - {path: core/case_memory_retrieval_contract.yaml}
+      route_tool: case_memory_retrieval
     framework_result_sync:
       required_verified_artifacts: [locked_model_spec, accepted_solution_workbook]
       needs_current_project: true

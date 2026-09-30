@@ -1,4 +1,4 @@
-version: 10.16.0
+version: 10.17.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -24,6 +24,7 @@ contracts:
   review_receipts: core/review_receipt_contract.yaml
   review_receipt_consumption: core/review_receipt_consumption_contract.yaml
   case_memory: knowledge/case_memory/schema.yaml
+  case_memory_retrieval: core/case_memory_retrieval_contract.yaml
   writing_reasoning: core/writing_reasoning_contract.yaml
   writing_runtime: core/writing_runtime_contract.yaml
   writing_protocol: modules/05_writing/paper_writing_protocol.md
@@ -49,6 +50,8 @@ external_artifacts:
 - existing_model_paper_framework
 - discovered_artifacts
 artifact_catalog:
+  case_memory_retrieval_report: 有界离线检索的建议、差异与禁迁移项；不授予当前模型批准或数值资格
+  case_reference_report: 显式案例采用/拒绝声明及来源当前性报告；批准与 accepted 状态仍由原契约判定
   case_memory_report: 显式只读案例准入与索引报告；不授予模型批准、数值验收或项目交付资格
   claim_consumption_report: 显式B2只读主张与活动论文片段关联、实际文本差异和影响范围报告；不授予语义支持、数值验收或正式交付资格
   claim_evidence_report: 显式B1只读来源、选择与有限算术报告；不授予语义支持、执行、数值验收或独立审查资格
@@ -199,6 +202,22 @@ modules:
     inputs: [all_requested_artifacts, proposition_plan, model_paper_framework, output_contract, workbook_schema, compile_profile, compile_report]
     outputs: [review_report, submission_package]
 utility_gates:
+  case_memory_retrieval:
+    path: scripts/case_memory_retrieve.py
+    command: python scripts/case_memory_retrieve.py query --query <query.json>
+    inputs: []
+    outputs: [case_memory_retrieval_report]
+    rules:
+    - Explicit case_memory_retrieve intent exposes this interface; ordinary routes do not load the corpus or add a gate.
+    - Follow core/case_memory_retrieval_contract.yaml; only actual execution provides a bounded read-only recommendation report.
+  case_references:
+    path: scripts/case_references.py
+    command: python scripts/case_references.py preview --project-root <project_root> --question Q1 --query <query.json> --selection <selection.json>
+    inputs: [existing_project_state, existing_model_paper_framework]
+    outputs: [case_reference_report]
+    rules:
+    - Preview and inspection are read-only; explicit record writes use the existing guarded project transaction.
+    - References are declarations, not approval or numerical facts; changed models follow the original Challenge and Human Model Approval chain.
   case_memory_admission:
     path: scripts/case_memory.py
     command: python scripts/case_memory.py validate

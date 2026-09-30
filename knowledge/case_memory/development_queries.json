@@ -1,0 +1,305 @@
+{
+  "protocol_version": "1.0.0",
+  "evaluation_scope": "seed_derived_development_only",
+  "queries": [
+    {
+      "id": "DEV-001",
+      "query": {
+        "protocol_version": "1.0.0",
+        "objective": "prediction",
+        "structures": [
+          "temporal"
+        ],
+        "capabilities": [
+          "requires_out_of_sample_validation",
+          "requires_leakage_check"
+        ],
+        "summary": "轮班观测与下一周期外推的重新设计，保留序列和周期信息",
+        "traits": {
+          "observation_regime": "ordered_fixed_interval",
+          "variable_domain": "unknown",
+          "information_boundary": "current_only",
+          "conditions": {
+            "historical_sequence": "satisfied",
+            "cycle_basis": "satisfied",
+            "temporal_separation": "satisfied",
+            "no_future_features": "satisfied"
+          }
+        }
+      },
+      "expected_case_ids": [
+        "CM-SYN-001"
+      ],
+      "derived_origins": [
+        "SYN-ORIGIN-001"
+      ]
+    },
+    {
+      "id": "DEV-002",
+      "query": {
+        "protocol_version": "1.0.0",
+        "objective": "evaluation",
+        "structures": [
+          "static_tabular"
+        ],
+        "capabilities": [],
+        "summary": "新的对象比较题需说明指标语义与排名权重",
+        "traits": {
+          "observation_regime": "comparable_objects",
+          "variable_domain": "unknown",
+          "information_boundary": "unknown",
+          "conditions": {
+            "comparable_definitions": "satisfied",
+            "indicator_directions": "satisfied",
+            "consistent_units": "satisfied",
+            "justified_weights": "satisfied",
+            "distinct_indicator_meanings": "satisfied"
+          }
+        }
+      },
+      "expected_case_ids": [
+        "CM-SYN-002"
+      ],
+      "derived_origins": [
+        "SYN-ORIGIN-002"
+      ]
+    },
+    {
+      "id": "DEV-003",
+      "query": {
+        "protocol_version": "1.0.0",
+        "objective": "optimization",
+        "structures": [],
+        "capabilities": [
+          "has_explicit_constraints",
+          "requires_feasibility_check"
+        ],
+        "summary": "不同材料任务在共同资源下连续分配，线性关系已明确",
+        "traits": {
+          "observation_regime": "shared_resource_tasks",
+          "variable_domain": "continuous",
+          "information_boundary": "unknown",
+          "conditions": {
+            "same_decision_period": "satisfied",
+            "shared_resource_feasibility": "satisfied",
+            "linear_relations": "satisfied",
+            "divisible_allocation": "satisfied"
+          }
+        }
+      },
+      "expected_case_ids": [
+        "CM-SYN-003"
+      ],
+      "derived_origins": [
+        "SYN-ORIGIN-003"
+      ]
+    },
+    {
+      "id": "DEV-004",
+      "query": {
+        "protocol_version": "1.0.0",
+        "objective": "explanation",
+        "structures": [
+          "physical_mechanism",
+          "temporal"
+        ],
+        "capabilities": [
+          "requires_conservation_residual",
+          "requires_discretization_check"
+        ],
+        "summary": "另一容器的流入流出和状态变化需守恒表达",
+        "traits": {
+          "observation_regime": "lumped_state",
+          "variable_domain": "unknown",
+          "information_boundary": "unknown",
+          "conditions": {
+            "initial_state": "satisfied",
+            "boundary_flows": "satisfied",
+            "consistent_units": "satisfied",
+            "uniform_state_approximation": "satisfied",
+            "conservation_balance": "satisfied"
+          }
+        }
+      },
+      "expected_case_ids": [
+        "CM-SYN-004"
+      ],
+      "derived_origins": [
+        "SYN-ORIGIN-004"
+      ]
+    },
+    {
+      "id": "DEV-005",
+      "query": {
+        "protocol_version": "1.0.0",
+        "objective": "optimization",
+        "structures": [
+          "network",
+          "scheduling"
+        ],
+        "capabilities": [
+          "has_explicit_constraints",
+          "requires_feasibility_check"
+        ],
+        "summary": "移动作业的路径、时窗与资源冲突联合安排",
+        "traits": {
+          "observation_regime": "network_tasks",
+          "variable_domain": "unknown",
+          "information_boundary": "unknown",
+          "conditions": {
+            "network_connections": "satisfied",
+            "processing_times": "satisfied",
+            "resource_capacities": "satisfied",
+            "precedence": "satisfied",
+            "time_windows": "satisfied"
+          }
+        }
+      },
+      "expected_case_ids": [
+        "CM-SYN-005"
+      ],
+      "derived_origins": [
+        "SYN-ORIGIN-005"
+      ]
+    },
+    {
+      "id": "DEV-006",
+      "query": {
+        "protocol_version": "1.0.0",
+        "objective": "simulation",
+        "structures": [
+          "stochastic"
+        ],
+        "capabilities": [
+          "requires_convergence_diagnostic",
+          "requires_uncertainty_quantification"
+        ],
+        "summary": "新风险情景需依据分布和相关性定义事件",
+        "traits": {
+          "observation_regime": "random_trials",
+          "variable_domain": "unknown",
+          "information_boundary": "unknown",
+          "conditions": {
+            "distribution_basis": "satisfied",
+            "correlation_basis": "satisfied",
+            "event_definition": "satisfied",
+            "fixed_horizon": "satisfied"
+          }
+        }
+      },
+      "expected_case_ids": [
+        "CM-SYN-006"
+      ],
+      "derived_origins": [
+        "SYN-ORIGIN-006"
+      ]
+    },
+    {
+      "id": "DEV-007",
+      "query": {
+        "protocol_version": "1.0.0",
+        "objective": "optimization",
+        "structures": [
+          "temporal",
+          "stochastic"
+        ],
+        "capabilities": [
+          "has_explicit_constraints",
+          "requires_feasibility_check",
+          "requires_leakage_check"
+        ],
+        "summary": "前后问题交换预测结果时维护契约与情景边界",
+        "traits": {
+          "observation_regime": "prediction_decision_chain",
+          "variable_domain": "unknown",
+          "information_boundary": "current_only",
+          "conditions": {
+            "upstream_contract": "satisfied",
+            "consistent_units": "satisfied",
+            "fixed_horizon": "satisfied",
+            "uncertainty_propagation": "satisfied"
+          }
+        }
+      },
+      "expected_case_ids": [
+        "CM-SYN-007"
+      ],
+      "derived_origins": [
+        "SYN-ORIGIN-007"
+      ]
+    },
+    {
+      "id": "DEV-008",
+      "query": {
+        "protocol_version": "1.0.0",
+        "objective": "prediction",
+        "structures": [
+          "static_tabular"
+        ],
+        "capabilities": [],
+        "summary": "横截面对象一次观测的比较，不存在可供滚动外推的固定序列",
+        "traits": {
+          "observation_regime": "cross_sectional",
+          "variable_domain": "unknown",
+          "information_boundary": "current_only",
+          "conditions": {}
+        }
+      },
+      "expected_case_ids": [],
+      "derived_origins": [
+        "SYN-ORIGIN-001"
+      ]
+    },
+    {
+      "id": "DEV-009",
+      "query": {
+        "protocol_version": "1.0.0",
+        "objective": "explanation",
+        "structures": [
+          "physical_mechanism",
+          "spatial"
+        ],
+        "capabilities": [],
+        "summary": "空间梯度显著的物理系统需要位置分辨率，不能套单状态守恒近似",
+        "traits": {
+          "observation_regime": "distributed_state",
+          "variable_domain": "unknown",
+          "information_boundary": "unknown",
+          "conditions": {}
+        }
+      },
+      "expected_case_ids": [],
+      "derived_origins": [
+        "SYN-ORIGIN-004"
+      ]
+    },
+    {
+      "id": "DEV-010",
+      "query": {
+        "protocol_version": "1.0.0",
+        "objective": "inference",
+        "structures": [
+          "static_tabular"
+        ],
+        "capabilities": [],
+        "summary": "识别干预因果效应需要识别假设；这些合成模式未提供此结构",
+        "traits": {
+          "observation_regime": "cross_sectional",
+          "variable_domain": "unknown",
+          "information_boundary": "unknown",
+          "conditions": {}
+        }
+      },
+      "expected_case_ids": [],
+      "derived_origins": [
+        "SYN-ORIGIN-001",
+        "SYN-ORIGIN-002",
+        "SYN-ORIGIN-003",
+        "SYN-ORIGIN-004",
+        "SYN-ORIGIN-005",
+        "SYN-ORIGIN-006",
+        "SYN-ORIGIN-007"
+      ]
+    }
+  ]
+}

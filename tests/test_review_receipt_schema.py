@@ -46,7 +46,7 @@ class ReviewReceiptSchemaTests(unittest.TestCase):
 
     def test_closed_optional_record_and_historical_projection(self):
         Draft202012Validator.check_schema(self.schema)
-        self.assertEqual(self.schema["version"], "8.14.0")
+        self.assertEqual(self.schema["version"], "8.15.0")
         self.assertFalse(list(self.validator.iter_errors(self.example)))
         self.assertFalse(list(self.validator.iter_errors(self.candidate())))
         empty = self.candidate()
