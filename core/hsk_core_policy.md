@@ -67,6 +67,7 @@ P2 `reading_plan` 可以缩小本轮初始阅读范围，但不能缩小机器�
 1. `scripts/resolve_runtime.py` 返回的 `pre_delivery_gates` 是本次正式交付的完整有序机器门；必须按顺序真实执行并检查报告。读取更少、文件存在或 ZIP 生成都不等于 gate 已通过。
 2. `scripts/sync_project.py` 只做发现、Schema/哈希核验与 stale 传播，不自动生成模型语义、数据处理决策、数值结果或 `passed` 状态。
 3. 最终审查、LaTeX audit/compile attestation 与 submission package 只服从 `modules/06_review_delivery.md`、`core/output_contract.yaml` 及 resolver 当前返回的 gate；未核验赛事规则不得伪装成官方 Hard 要求。
+   State 显式启用 `review_receipt_policy` 时，模型挑战、初稿审查和最终交付须在各自声明的 gate/Qn 范围内读取 `core/review_receipt_consumption_contract.yaml` 并消费回执；初稿消费必须早于 AI Cleanup，回执不替代人工审查或 Model Approval。
 4. 旧项目、旧字段和 legacy artifact 的兼容只按各 Authority 的显式 compatibility 条款读取；历史 accepted 记录不要求批量迁移，但重新进入 current 模型设计、预处理、主求解、写作或终审时，按该阶段 current contract 补足需要的信息。`legacy/` 不能成为活动执行依赖。
 
 ## 7. Authority 导航
