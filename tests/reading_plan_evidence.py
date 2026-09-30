@@ -63,6 +63,12 @@ WINDOWS_MATLAB_CI_AUTHORITY_VERSIONS = {
     **WINDOWS_PYTHON_CI_AUTHORITY_VERSIONS,
     "skill": "10.14.2",
 }
+C2_AUTHORITY_VERSIONS = {
+    **WINDOWS_MATLAB_CI_AUTHORITY_VERSIONS,
+    "skill": "10.15.0",
+    "project_state": "8.14.0",
+    "review_receipt_consumption": "1.0.0",
+}
 
 
 def authority_versions(repo):
@@ -74,6 +80,7 @@ def authority_versions(repo):
         "state_transition": ("core/state_transition_contract.yaml", "version"),
         "writing_reasoning": ("core/writing_reasoning_contract.yaml", "schema_version"),
         "runtime_assurance": ("core/runtime_assurance_contract.yaml", "version"),
+        "review_receipt_consumption": ("core/review_receipt_consumption_contract.yaml", "version"),
     }
     versions = {}
     for name, (relative, key) in carriers.items():
@@ -743,6 +750,33 @@ def approved_windows_matlab_ci_carrier_change(identifier, old, new, candidate_au
     return projected, changes
 
 
+def approved_c2_carrier_change(identifier, old, new, candidate_authority_versions):
+    """Allow only exact opt-in C2 carriers; compare all ordinary runtime fields."""
+    if (identifier not in {case[0] for case in CASES}
+            or old.get("version") != "<EXPECTED_P9_RELEASE_CARRIER_CHANGE>"
+            or new.get("version") != C2_AUTHORITY_VERSIONS["skill"]
+            or candidate_authority_versions != C2_AUTHORITY_VERSIONS
+            or not isinstance(new.get("assurance"), dict)
+            or new["assurance"].get("schema_version") != C2_AUTHORITY_VERSIONS["runtime_assurance"]):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    predecessor["version"] = WINDOWS_MATLAB_CI_AUTHORITY_VERSIONS["skill"]
+    projected, changes = approved_windows_matlab_ci_carrier_change(
+        identifier, old, predecessor, deepcopy(WINDOWS_MATLAB_CI_AUTHORITY_VERSIONS)
+    )
+    if projected != old:
+        return deepcopy(new), []
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = C2_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(C2_AUTHORITY_VERSIONS)
+            change["approval"] = (
+                "C2 explicit scoped review-receipt policy and Authority carriers only; "
+                "ordinary legacy runtime qualification remains checked"
+            )
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -806,6 +840,10 @@ def compare(before, after):
             a["id"], old, projected, b.get("authority_versions")
         )
         expected.extend(windows_matlab_ci_changes)
+        projected, c2_changes = approved_c2_carrier_change(
+            a["id"], old, projected, b.get("authority_versions")
+        )
+        expected.extend(c2_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,
@@ -843,16 +881,17 @@ def main():
         "schema_version": 1, "baseline_ref": args.baseline_ref, "candidate_ref": args.candidate_ref,
         "driver_sha256": hashlib.sha256(HERE.read_bytes()).hexdigest(),
         "cases_sha256": hashlib.sha256(HERE.with_name("reading_plan_cases.py").read_bytes()).hexdigest(),
-        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_b2b1_b2b2_b2b3a_b2b3b_b2b3c_b2_patch_b2b4_b2b5_b2b6_b2c_c1_windows_python_ci_windows_matlab_ci_exact_authority_carrier_transitions",
+        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_b2b1_b2b2_b2b3a_b2b3b_b2b3c_b2_patch_b2b4_b2b5_b2b6_b2c_c1_windows_python_ci_windows_matlab_ci_c2_exact_authority_carrier_transitions",
         "expected_authority_changes": sorted(ALLOWED_CHANGED_AUTHORITIES),
         "approved_b2b6_authority_versions": B2B6_AUTHORITY_VERSIONS,
         "approved_b2c_authority_versions": B2C_AUTHORITY_VERSIONS,
         "approved_c1_authority_versions": C1_AUTHORITY_VERSIONS,
         "approved_windows_python_ci_authority_versions": WINDOWS_PYTHON_CI_AUTHORITY_VERSIONS,
         "approved_windows_matlab_ci_authority_versions": WINDOWS_MATLAB_CI_AUTHORITY_VERSIONS,
+        "approved_c2_authority_versions": C2_AUTHORITY_VERSIONS,
         "all_legacy_behavior_equal": all(r["legacy_behavior_equal"] for r in rows),
         "all_legacy_behavior_equal_except_approved_changes": all(r["legacy_behavior_equal_except_approved_changes"] for r in rows),
-        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before exact A3/A7/v9.7/v10/v10.1/A1/A2/B1/B2/B2b1/B2b2/B2b3a/B2b3b/B2b3c/B2 patch/B2b4/B2b5/B2b6/B2c/C1/Windows Python CI/Windows MATLAB CI carrier exceptions; B2b6, B2c, C1 and both CI patches require their exact Authority version sets. Each approved version, provenance or canonical solver projection is visible in expected_legacy_changes. No result qualification, classification value or existing list-order normalization is waived. Passing requires no unregistered field differences.",
+        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before exact A3/A7/v9.7/v10/v10.1/A1/A2/B1/B2/B2b1/B2b2/B2b3a/B2b3b/B2b3c/B2 patch/B2b4/B2b5/B2b6/B2c/C1/Windows Python CI/Windows MATLAB CI/C2 carrier exceptions; B2b6, B2c, C1, both CI patches and C2 require their exact Authority version sets. Each approved version, provenance or canonical solver projection is visible in expected_legacy_changes. No result qualification, classification value or existing list-order normalization is waived. Passing requires no unregistered field differences.",
         "cases": rows,
     }
     args.output.mkdir(parents=True, exist_ok=True)

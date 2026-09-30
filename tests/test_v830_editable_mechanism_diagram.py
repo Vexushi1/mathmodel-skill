@@ -440,9 +440,9 @@ class ContractAndDriftTests(unittest.TestCase):
         # P0-A intentionally aligns the title handoff with the existing output Authority;
         # test_schemas covers the new declaration and unchanged caption ownership.
         "core/workbook_schema.yaml": "e0479f5e74063151a515d11e140b7c4e8b8db077",
-        # C1 adds only the optional reviewer receipt shape after B2c; the
+        # C2 adds only the opt-in reviewer receipt policy after C1; the
         # predecessor policy shapes remain protected by dedicated regressions.
-        "core/project_state.schema.yaml": "5afbd761f88014288ce3c8ca808abfa44c7e0c3c",
+        "core/project_state.schema.yaml": "9be39d30d5acf7e88d67bf2ccee89031e5135568",
         "core/writing_reasoning_contract.yaml": "dadeebc2118f7b76f4aa355ebbe81ec4c1bb800c",
         "modules/03_solve_validate.md": "cfbe8091f0434b8531ec97cbccde013895e18228",
         "modules/03_result_analysis.md": "94edc812f8a0a11c6c32c40fafae9559a56f9230",
@@ -454,8 +454,9 @@ class ContractAndDriftTests(unittest.TestCase):
         "scripts/validate_semantic_governance.py": "1b48c4e5935c960f28bef89af86ce89a3c6f105f",
         # A5 requires current per-question files and exact official allowlist entries.
         # B2c additionally binds the selected LaTeX entrypoint and blocks
-        # DOCX submission until a supported rendered proof exists.
-        "scripts/validate_submission_package.py": "ce51e454a0a9fa2a8a45823a870115453bf988e9",
+        # DOCX submission until a supported rendered proof exists. C2 adds
+        # only an explicit opt-in final-review receipt recheck at this gate.
+        "scripts/validate_submission_package.py": "f2eedd6b14ee6ed9731a6f2a74799ceb2b35e78f",
         # P0-B replaces silent filtering/fixed ordering with explicit evidence-preserving reads.
         # v10.0.1 removes unsupported ColorBar.FontUnits in the standalone fallback;
         # MATLAB syntax is parsed separately; source checks do not claim runtime execution.

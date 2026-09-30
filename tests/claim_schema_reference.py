@@ -25,8 +25,22 @@ def _digest(schema):
     encoded = json.dumps(schema, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()
     return hashlib.sha256(encoded).hexdigest()
 
+def previous_c2_schema(schema):
+    schema = deepcopy(schema)
+    assert schema['version'] == '8.14.0'
+    schema['version'] = '8.13.0'
+    assert schema['properties'].pop('review_receipt_policy') == {
+        '$ref': '#/$defs/review_receipt_policy'
+    }
+    policy = schema['$defs'].pop('review_receipt_policy')
+    assert policy['properties']['protocol_version'] == {'const': '1.0.0'}
+    assert policy['properties']['mode'] == {'const': 'enforce_scoped'}
+    return schema
+
 def previous_c1_schema(schema):
     schema = deepcopy(schema)
+    if schema['version'] == '8.14.0':
+        schema = previous_c2_schema(schema)
     assert schema['version'] == '8.13.0'
     schema['version'] = '8.12.0'
     assert schema['properties'].pop('review_receipts') == {'$ref': '#/$defs/review_receipts'}
@@ -37,7 +51,7 @@ def previous_c1_schema(schema):
 
 def previous_b2c_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] == '8.13.0':
+    if schema['version'] in ('8.13.0', '8.14.0'):
         schema = previous_c1_schema(schema)
     assert schema['version'] == '8.12.0'
     schema['version'] = '8.11.0'
@@ -83,7 +97,7 @@ def previous_b2c_schema(schema):
 
 def previous_b2b6_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] in ('8.12.0', '8.13.0'):
+    if schema['version'] in ('8.12.0', '8.13.0', '8.14.0'):
         schema = previous_b2c_schema(schema)
     assert schema['version'] == '8.11.0'
     schema['version'] = '8.10.0'
@@ -111,7 +125,7 @@ def previous_b2b6_schema(schema):
 
 def previous_b2b4_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] in ('8.11.0', '8.12.0', '8.13.0'):
+    if schema['version'] in ('8.11.0', '8.12.0', '8.13.0', '8.14.0'):
         schema = previous_b2b6_schema(schema)
     assert schema['version'] == '8.10.0'
     schema['version'] = '8.9.0'
@@ -138,7 +152,7 @@ def previous_b2b4_schema(schema):
 
 def previous_b2b3c_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] in ('8.10.0', '8.11.0', '8.12.0', '8.13.0'):
+    if schema['version'] in ('8.10.0', '8.11.0', '8.12.0', '8.13.0', '8.14.0'):
         schema = previous_b2b4_schema(schema)
     assert schema['version'] == '8.9.0'
     schema['version'] = '8.8.0'
@@ -150,7 +164,7 @@ def previous_b2b3c_schema(schema):
 
 def previous_b2b3b_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] in ('8.9.0', '8.10.0', '8.11.0', '8.12.0', '8.13.0'):
+    if schema['version'] in ('8.9.0', '8.10.0', '8.11.0', '8.12.0', '8.13.0', '8.14.0'):
         schema = previous_b2b3c_schema(schema)
     assert schema['version'] == '8.8.0'
     schema['version'] = '8.7.0'
@@ -178,7 +192,7 @@ def previous_b2b3b_schema(schema):
 
 def previous_b2b3a_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] in ('8.8.0', '8.9.0', '8.10.0', '8.11.0', '8.12.0', '8.13.0'):
+    if schema['version'] in ('8.8.0', '8.9.0', '8.10.0', '8.11.0', '8.12.0', '8.13.0', '8.14.0'):
         schema = previous_b2b3b_schema(schema)
     assert schema['version'] == '8.7.0'
     schema['version'] = '8.6.0'
@@ -207,7 +221,7 @@ def previous_b2b3a_schema(schema):
 
 def previous_b2b_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] in ('8.7.0', '8.8.0', '8.9.0', '8.10.0', '8.11.0', '8.12.0', '8.13.0'):
+    if schema['version'] in ('8.7.0', '8.8.0', '8.9.0', '8.10.0', '8.11.0', '8.12.0', '8.13.0', '8.14.0'):
         schema = previous_b2b3a_schema(schema)
     assert schema['version'] == '8.6.0'
     schema['version'] = '8.5.0'
@@ -226,7 +240,7 @@ def previous_b2b_schema(schema):
 
 def previous_b2a_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] in ('8.6.0', '8.7.0', '8.8.0', '8.9.0', '8.10.0', '8.11.0', '8.12.0', '8.13.0'):
+    if schema['version'] in ('8.6.0', '8.7.0', '8.8.0', '8.9.0', '8.10.0', '8.11.0', '8.12.0', '8.13.0', '8.14.0'):
         schema = previous_b2b_schema(schema)
     assert schema['version'] == '8.5.0'
     schema['version'] = '8.4.0'
@@ -246,7 +260,7 @@ def previous_b2a_schema(schema):
 
 def previous_b1_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] in ('8.5.0', '8.6.0', '8.7.0', '8.8.0', '8.9.0', '8.10.0', '8.11.0', '8.12.0', '8.13.0'):
+    if schema['version'] in ('8.5.0', '8.6.0', '8.7.0', '8.8.0', '8.9.0', '8.10.0', '8.11.0', '8.12.0', '8.13.0', '8.14.0'):
         schema = previous_b2a_schema(schema)
     assert schema['version'] == '8.4.0'
     schema['version'] = '8.3.0'
@@ -265,7 +279,7 @@ def previous_b1_schema(schema):
 
 def previous_a2_schema(schema):
     schema = deepcopy(schema)
-    if schema['version'] in ('8.5.0', '8.6.0', '8.7.0', '8.8.0', '8.9.0', '8.10.0', '8.11.0', '8.12.0', '8.13.0'):
+    if schema['version'] in ('8.5.0', '8.6.0', '8.7.0', '8.8.0', '8.9.0', '8.10.0', '8.11.0', '8.12.0', '8.13.0', '8.14.0'):
         schema = previous_b2a_schema(schema)
     if schema['version'] == '8.4.0':
         schema = previous_b1_schema(schema)

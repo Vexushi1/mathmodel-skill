@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.14.2
+当前 Skill 版本：10.15.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -62,6 +62,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `core/numerical_verification_contract.yaml`
 - `core/output_contract.yaml`
 - `core/project_state.schema.yaml`
+- `core/review_receipt_consumption_contract.yaml`
 - `core/review_receipt_contract.yaml`
 - `core/runtime_assurance_contract.yaml`
 - `core/state_transition_contract.yaml`
@@ -152,6 +153,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/render_paper.py`
 - `scripts/resolve_runtime.py`
 - `scripts/resolve_workflow.py`
+- `scripts/review_receipt_consumption.py`
 - `scripts/review_receipts.py`
 - `scripts/run_config_parser.py`
 - `scripts/runtime_assurance.py`
@@ -318,6 +320,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_b2c_docx_scanner.py`
 - `tests/test_b2c_runtime_integration.py`
 - `tests/test_b2c_total_acceptance.py`
+- `tests/test_c2_submission_gate_integration.py`
 - `tests/test_ci_platform_policy.py`
 - `tests/test_claim_consumption.py`
 - `tests/test_claim_consumption_contract.py`
@@ -377,6 +380,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_repository_hygiene.py`
 - `tests/test_result_io.py`
 - `tests/test_result_state_semantics.py`
+- `tests/test_review_receipt_consumption.py`
 - `tests/test_review_receipt_schema.py`
 - `tests/test_review_receipts.py`
 - `tests/test_router_contract.py`

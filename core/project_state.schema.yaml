@@ -1,11 +1,57 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 8.13.0
+version: 8.14.0
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
 $defs:
+  review_receipt_policy:
+    description: C2 显式、按 gate 和小问激活回执消费；缺省保持既有审查路径。
+    type: object
+    additionalProperties: false
+    required: [protocol_version, mode, requirements]
+    properties:
+      protocol_version: {const: 1.0.0}
+      mode: {const: enforce_scoped}
+      requirements:
+        type: array
+        minItems: 1
+        maxItems: 64
+        items:
+          type: object
+          additionalProperties: false
+          required: [gate, questions, object_ids, roles]
+          properties:
+            gate: {enum: [model_challenge, draft_semantic_review, final_review_and_delivery]}
+            questions:
+              type: array
+              minItems: 1
+              maxItems: 64
+              uniqueItems: true
+              items: {type: string, pattern: '^Q[1-9][0-9]*$'}
+            object_ids:
+              type: array
+              minItems: 1
+              maxItems: 512
+              uniqueItems: true
+              items: {type: string, minLength: 1, maxLength: 128, pattern: '^\S(?:.*\S)?$'}
+            roles:
+              type: array
+              minItems: 2
+              maxItems: 8
+              items:
+                type: object
+                additionalProperties: false
+                required: [role, check_ids]
+                properties:
+                  role: {type: string, minLength: 1, maxLength: 128, pattern: '^\S(?:.*\S)?$'}
+                  check_ids:
+                    type: array
+                    minItems: 1
+                    maxItems: 512
+                    uniqueItems: true
+                    items: {type: string, minLength: 1, maxLength: 128, pattern: '^\S(?:.*\S)?$'}
   review_receipts:
     description: C1可选只读审查记录；回执声明不自行证明独立执行或授予门禁通过。
     type: object
@@ -1409,6 +1455,7 @@ $defs:
         pattern: '^(?:final_latex/.+\.tex|draft_docx/.+\.docx)$'
       status: {type: string, enum: [current, stale, not_applicable]}
 properties:
+  review_receipt_policy: {$ref: '#/$defs/review_receipt_policy'}
   review_receipts: {$ref: '#/$defs/review_receipts'}
   semantic_governance_version:
     description: v7.1+语义治理门版本；旧项目可缺失，只读兼容，重新进入审题/模型设计时补齐

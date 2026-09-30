@@ -1,4 +1,4 @@
-version: 10.14.2
+version: 10.15.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -22,6 +22,7 @@ contracts:
   claim_evidence: core/claim_evidence_contract.yaml
   claim_consumption: core/claim_consumption_contract.yaml
   review_receipts: core/review_receipt_contract.yaml
+  review_receipt_consumption: core/review_receipt_consumption_contract.yaml
   writing_reasoning: core/writing_reasoning_contract.yaml
   writing_runtime: core/writing_runtime_contract.yaml
   writing_protocol: modules/05_writing/paper_writing_protocol.md
@@ -247,6 +248,7 @@ utility_gates:
     - Any partial structured identity state fails closed and never falls back to legacy hash authorization.
     - Legacy semantic_hash / approved_semantic_hash are historical read-only provenance only and cannot authorize new project-level preprocessing or primary solve code.
     - User silence or vague continuation is never approval, and user approval cannot waive a blocking Model Challenge issue.
+    - Exact opt-in review_receipt_policy 1.0.0/enforce_scoped projects additionally consume the scoped current Model Challenge receipts under core/review_receipt_consumption_contract.yaml; the original challenge, semantic identity, and explicit Human Model Approval requirements still apply.
     - Semantic revision or structured identity drift makes previous challenge, approval and locked_model_spec stale until re-reviewed and explicitly re-approved.
     - Never runs task-specific Python/MATLAB code and never changes numerical validity.
   code_delivery:
@@ -283,6 +285,7 @@ utility_gates:
     - For explicit 1.2.0/enforce_latex_text projects, the existing latex/submission scope gate also runs the bounded live B2 text check; older policies and other scopes retain their prior behavior.
     - For explicit 1.3.0 or 1.4.0 enforce_latex_text_and_figure_chain projects, the same scope additionally requires the current Figure machine chain and later exact-image v5 LaTeX proof; older policy pairs retain their previous qualification.
     - For exact 1.5.0/enforce_selected_paper_claim_chain projects, explicit docx or latex scope must match paper_source and consume the same current B1/fragment/Figure machine chain; selected LaTeX additionally binds the declared entrypoint to its v5 proof, while selected DOCX never acquires a rendered-PDF claim.
+    - Exact opt-in review_receipt_policy 1.0.0/enforce_scoped projects additionally consume scoped final_review_and_delivery receipts in submission scope only; this scope rechecks previously synchronized evidence without writing the reviewed snapshot, while docx and latex preparation remain available before final review. Projects without this final requirement retain the original sync write behavior.
     - Code delivery uses the dedicated non-executing code_delivery gate.
   submission_package_validation:
     path: scripts/validate_submission_package.py
@@ -297,3 +300,4 @@ utility_gates:
     - Explicit 1.2.0/enforce_latex_text projects recheck the current modular LaTeX text gate and bound formal compile proof before a package can pass; this is not Figure-chain or human semantic approval.
     - Explicit 1.3.0 or 1.4.0 enforce_latex_text_and_figure_chain projects also require the current bounded Figure gate and v5 proof of its exact included image inputs before a package can pass; this is not visual adequacy or whole-caption semantic approval.
     - Exact 1.5.0 selected LaTeX packages recheck the declared entrypoint, current machine claim/Figure gate and its exact v2/v5 source, image, PDF, recorder and log identities; selected DOCX submission fails closed until a separate supported rendered-delivery proof contract exists.
+    - Exact opt-in review_receipt_policy 1.0.0/enforce_scoped projects recheck scoped final_review_and_delivery receipts on direct package validation under core/review_receipt_consumption_contract.yaml; receipt status never replaces the existing package, PDF, or human review evidence.

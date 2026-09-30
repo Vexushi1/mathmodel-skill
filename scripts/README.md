@@ -9,7 +9,7 @@
 - `resolve_workflow.py`：保留的无状态兼容 resolver；仍可直接解析显式 intent/classification/artifact-name 输入，但不负责 project-state hydration 或 artifact hash assurance。
 - `validate_semantic_governance.py`：检查 Problem Contract、题面—数学—代码—输出语义闭环、Complexity Sanity Check、semantic revision、跨问 typed dependency 与 paper-fragment stale；不运行赛题代码，也不恢复数值有效性。
 - `validate_model_approval.py`：在项目级预处理或主求解代码交付前，检查 `model_challenge_status=passed`、`human_model_approval_status=approved`，并要求 approved semantic revision / structured identity 与当前 semantic revision / structured identity 完全一致；旧 approved 记录发生语义漂移后只能作为 provenance，不能继续授权新主求解。
-- `sync_project.py`：按当前 data source 和显式 delivery scope 发现产物、校验 Schema、计算分层哈希并传播 stale；不自动生成模型语义、数值结果或 `passed` 状态。
+- `sync_project.py`：按当前 data source 和显式 delivery scope 发现产物、校验 Schema、计算分层哈希并传播 stale；不自动生成模型语义、数值结果或 `passed` 状态。显式终审回执策略激活时须先同步再终审，之后提交阶段即使传入 `--write` 也只读重验，并报告 `write_requested=true`、`write=false`，不改写被回执绑定的 `sync_report` 和框架；未激活时维持原写入行为。
 - `state_transitions.py`：纯内存执行 `core/state_transition_contract.yaml`；新增主求解／深化数值来源退役事件用于显式项目迁移的失效预览与传播，不选择后端、不归档、不撤换当前绑定，也不授权迁移。
 - `project_transaction.py`：复用项目锁、候选验证、generation 和可恢复日志；`commit_project_state` 可选接收 `expected_file_hashes`，绑定 state、所有伴随写入目标和已声明只读来源的原始字节（值为 null 表示必须不存在）。传入时要求规范项目相对路径；存在未清理事务日志先阻断，须明确恢复后重新捕获快照。省略参数的历史调用保持原恢复行为。准备日志后仍按已有 roll-forward 恢复；保护限于声明读集合及协作式锁，不代表数值验收或文件系统级全局原子快照。
 - `project_transaction.py` 的 `prepare_history_archive` / `verify_history_archive`：显式读集合的流式原始字节归档与只读复核，布局委托 `core/output_contract.yaml#backend_migration_history`，不识别数学资格或批准。准备失败保留并报告本次目录，不递归删除历史。`commit_project_state(preserved_archives=...)` 要求同时使用字节读集合，并以 journal v2 持久保存归档引用，在提交及恢复边界复核；无归档事务仍用 v1。恢复后再次读旧原始路径不是归档复核的前提；旧实现不支持 v2，存在 v2 日志时不得先降级。`project_solver_backend.py migrate` 同事务登记归档与报告引用至当前 `execution.backend_migration_history`。
@@ -33,6 +33,7 @@
 ## 项目记忆与论文检查
 
 - `review_receipts.py <project_root>`：C1 可选回执的只读结构、输入与 Authority 快照核验；结论、适用性、执行来源和 finding 闭环分别报告。退出码 0 仅表示声明范围内快照当前，1 为阻断，2 为未评估或需要复核；任何结果均不授予独立审查、模型批准、accepted 工作簿或最终交付资格。缺少回执维持旧路径；合同见 `core/review_receipt_contract.yaml`。
+- `review_receipt_consumption.py`：C2 显式 `review_receipt_policy` 的有界门禁消费内核，供原模型批准门和提交阶段同步/包检查复用；仅报告所声明 gate、小问和对象的回执资格，不产生回执、不执行审查命令，也不授予 Human Model Approval、数值复现或最终交付。协议见 `core/review_receipt_consumption_contract.yaml`。
 - `validate_project_state.py`：校验 `state/project_state.yaml` 的机器状态、分类兼容、哈希和 stale 语义。
 - `validate_model_paper_framework.py`：校验 current `模型论文框架.md` 的 compact/full 结构、命题预算、Terminology/Numeric/Title/Paper Fragment 记录以及 Algorithm Trace 的确定性闭环。对 `stepwise/pseudocode` 检查关联 Algorithm ID、必填字段、模式/current 状态和已求解后的 实际代码锚点；`not_needed` 不要求算法框。该脚本不从步骤文字推断算法正确性、收敛性或与实现的数学等价性。
 - `audit_latex_project.py`：正式 LaTeX 项目审计入口。递归展开 active `\input/\include`、检查 fragment/source-file 工程闭环，再委托 `audit_paper_prose.py` 完成 prose/structure/BibTeX/framework 审查；兼容单文件工程自然退化为单文件模式。
