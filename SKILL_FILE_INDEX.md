@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.15.1
+当前 Skill 版本：10.16.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -74,6 +74,11 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `core/writing_runtime_contract.yaml`
 - `docs/v871_writing_reasoning_schema_version_policy.md`
 - `docs/v900_migration_contract.md`
+- `knowledge/case_memory/README.md`
+- `knowledge/case_memory/cases.json`
+- `knowledge/case_memory/index.json`
+- `knowledge/case_memory/schema.yaml`
+- `knowledge/case_memory/sources.json`
 - `modules/01_problem_audit.md`
 - `modules/02_model_design.md`
 - `modules/03_data_preprocessing.md`
@@ -121,6 +126,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/audit_latex_project.py`
 - `scripts/audit_paper_prose.py`
 - `scripts/audit_v8_writing_surface.py`
+- `scripts/case_memory.py`
 - `scripts/ci_unittest.py`
 - `scripts/claim_consumption.py`
 - `scripts/claim_docx.py`
@@ -325,6 +331,8 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_b2c_runtime_integration.py`
 - `tests/test_b2c_total_acceptance.py`
 - `tests/test_c2_submission_gate_integration.py`
+- `tests/test_case_memory.py`
+- `tests/test_case_memory_generated.py`
 - `tests/test_ci_platform_policy.py`
 - `tests/test_ci_unittest.py`
 - `tests/test_claim_consumption.py`
@@ -543,6 +551,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/modeling_intelligence_b1_execution_plan.md`
 - `docs/modeling_intelligence_b1_protocol_decisions.md`
 - `docs/modeling_intelligence_b2_execution_plan.md`
+- `docs/modeling_intelligence_d1_execution_plan.md`
 - `docs/modeling_intelligence_evidence_evolution_plan.md`
 - `docs/p3a_global_policy_source_map.md`
 - `docs/p3b_writing_role_source_map.md`
