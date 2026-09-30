@@ -1,0 +1,250 @@
+{
+  "protocol_version": "1.0.0",
+  "sources": [
+    {
+      "id": "SYN-SOURCE-001",
+      "version": "1.0.0",
+      "kind": "synthetic",
+      "origin_group": "SYN-ORIGIN-001",
+      "rights": {
+        "license_id": "MIT",
+        "license_origin": "repository_LICENSE",
+        "allowed_uses": [
+          "public_repository",
+          "offline_modeling_reference"
+        ],
+        "authorization_basis": "independently_authored_synthetic"
+      },
+      "privacy": {
+        "review_scope": "all_source_and_case_text",
+        "disposition": "no_sensitive_content_found"
+      },
+      "sections": {
+        "overview": "合成设计：固定间隔、过去可见、未来不可见的序列；仅历史量可用于下一期预测。",
+        "decision": "保留朴素时序基线，再按已知周期选择有界复杂度的趋势与季节结构。 观察制度决定验证划分；仅凭拟合误差不能选择预测结构。 条件性失效反例：随机打散时间会泄漏未来制度。 制度突变或周期未稳定时，历史周期不能直接外推。",
+        "validation": "未执行建模计算或验证。建议检查：按时间滚动验证与朴素基线比较；检查特征是否含未来信息。",
+        "transfer": "复用时间边界、基线和滚动验证决策。 不能直接迁移：原周期和窗口长度；误差数值或已验证准确率。"
+      },
+      "metadata": {
+        "author": "repository authoring assistant",
+        "year": 2026,
+        "provenance": "independently_authored_for_repository",
+        "extraction": "direct_authorship",
+        "ocr": "not_used",
+        "limitations": [
+          "原创合成结构说明；没有抽取真实论文、用户对话或项目数据。"
+        ]
+      }
+    },
+    {
+      "id": "SYN-SOURCE-002",
+      "version": "1.0.0",
+      "kind": "synthetic",
+      "origin_group": "SYN-ORIGIN-002",
+      "rights": {
+        "license_id": "MIT",
+        "license_origin": "repository_LICENSE",
+        "allowed_uses": [
+          "public_repository",
+          "offline_modeling_reference"
+        ],
+        "authorization_basis": "independently_authored_synthetic"
+      },
+      "privacy": {
+        "review_scope": "all_source_and_case_text",
+        "disposition": "no_sensitive_content_found"
+      },
+      "sections": {
+        "overview": "合成设计：对象有多个指标，方向和单位已知；不含真实地区或人员。",
+        "decision": "先解释指标方向和可比性，再用有依据的加权聚合，并计划检查排序对权重的变化。 评价权重表达价值判断；数据离散程度不自动等于重要性。 条件性失效反例：对象口径不可比时不能直接排名。 重复指标可能重复计入同一含义。",
+        "validation": "未执行建模计算或验证。建议检查：核对指标方向与重复含义；检查有意义的权重变化对排序的影响。",
+        "transfer": "复用指标语义审计、权重解释和条件性排序表达。 不能直接迁移：原权重和标准化极值；合成排序推广为真实对象结论。"
+      },
+      "metadata": {
+        "author": "repository authoring assistant",
+        "year": 2026,
+        "provenance": "independently_authored_for_repository",
+        "extraction": "direct_authorship",
+        "ocr": "not_used",
+        "limitations": [
+          "原创合成结构说明；没有抽取真实论文、用户对话或项目数据。"
+        ]
+      }
+    },
+    {
+      "id": "SYN-SOURCE-003",
+      "version": "1.0.0",
+      "kind": "synthetic",
+      "origin_group": "SYN-ORIGIN-003",
+      "rights": {
+        "license_id": "MIT",
+        "license_origin": "repository_LICENSE",
+        "allowed_uses": [
+          "public_repository",
+          "offline_modeling_reference"
+        ],
+        "authorization_basis": "independently_authored_synthetic"
+      },
+      "privacy": {
+        "review_scope": "all_source_and_case_text",
+        "disposition": "no_sensitive_content_found"
+      },
+      "sections": {
+        "overview": "合成设计：需求、资源消耗和效益按相同决策周期给出；决策变量是连续分配量。",
+        "decision": "关系确为线性且允许连续分配时，保留线性规划作为最小充分结构。 资源耦合必须进入共同可行域；选模型前核对变量类型。 条件性失效反例：任务不可分时连续解可能不可实施，应另行审查整数结构。 逐任务独立最优不能保证共享资源约束。",
+        "validation": "未执行建模计算或验证。建议检查：检查全部约束违反量；按求解器状态区分可行解和最优解。",
+        "transfer": "复用共享资源耦合和变量类型审查。 不能直接迁移：原资源上界和效益系数；未运行却宣称全局最优。"
+      },
+      "metadata": {
+        "author": "repository authoring assistant",
+        "year": 2026,
+        "provenance": "independently_authored_for_repository",
+        "extraction": "direct_authorship",
+        "ocr": "not_used",
+        "limitations": [
+          "原创合成结构说明；没有抽取真实论文、用户对话或项目数据。"
+        ]
+      }
+    },
+    {
+      "id": "SYN-SOURCE-004",
+      "version": "1.0.0",
+      "kind": "synthetic",
+      "origin_group": "SYN-ORIGIN-004",
+      "rights": {
+        "license_id": "MIT",
+        "license_origin": "repository_LICENSE",
+        "allowed_uses": [
+          "public_repository",
+          "offline_modeling_reference"
+        ],
+        "authorization_basis": "independently_authored_synthetic"
+      },
+      "privacy": {
+        "review_scope": "all_source_and_case_text",
+        "disposition": "no_sensitive_content_found"
+      },
+      "sections": {
+        "overview": "合成设计：边界流入、流出及初始储量可描述；先审查均匀近似。",
+        "decision": "从净流入推导状态方程，保持单位一致，再计划离散步长检查。 守恒决定方程含义；积分实现不能替代初始和边界条件的解释。 条件性失效反例：空间梯度明显时单状态近似可能失效。 未知流量或单位混用不能靠减小步长修复。",
+        "validation": "未执行建模计算或验证。建议检查：检查累计净流与储量变化残差；比较合理步长下的离散误差。",
+        "transfer": "复用守恒推导、边界审查和离散验证规划。 不能直接迁移：原参数、初值和步长；单状态假设推广到空间梯度明显的系统。"
+      },
+      "metadata": {
+        "author": "repository authoring assistant",
+        "year": 2026,
+        "provenance": "independently_authored_for_repository",
+        "extraction": "direct_authorship",
+        "ocr": "not_used",
+        "limitations": [
+          "原创合成结构说明；没有抽取真实论文、用户对话或项目数据。"
+        ]
+      }
+    },
+    {
+      "id": "SYN-SOURCE-005",
+      "version": "1.0.0",
+      "kind": "synthetic",
+      "origin_group": "SYN-ORIGIN-005",
+      "rights": {
+        "license_id": "MIT",
+        "license_origin": "repository_LICENSE",
+        "allowed_uses": [
+          "public_repository",
+          "offline_modeling_reference"
+        ],
+        "authorization_basis": "independently_authored_synthetic"
+      },
+      "privacy": {
+        "review_scope": "all_source_and_case_text",
+        "disposition": "no_sensitive_content_found"
+      },
+      "sections": {
+        "overview": "合成设计：连接、处理时间及资源容量已定义，任务有先后关系。",
+        "decision": "先明确路径与排程是否耦合，再用同时表达关键时窗和资源冲突的约束结构。 拓扑可达的路线可能违反时间或资源条件；目标值需要完整可行性。 条件性失效反例：最短路和排程各自最优可能留下无法衔接的安排。 忽略回程或资源复用可能重复分配资源。",
+        "validation": "未执行建模计算或验证。建议检查：逐任务核对路径、时窗与先后；逐资源核对重叠占用。",
+        "transfer": "复用网络、时间和资源可行性的联合审查。 不能直接迁移：原连接、旅行时间和优先级；可达性检查冒充完整排程可行性。"
+      },
+      "metadata": {
+        "author": "repository authoring assistant",
+        "year": 2026,
+        "provenance": "independently_authored_for_repository",
+        "extraction": "direct_authorship",
+        "ocr": "not_used",
+        "limitations": [
+          "原创合成结构说明；没有抽取真实论文、用户对话或项目数据。"
+        ]
+      }
+    },
+    {
+      "id": "SYN-SOURCE-006",
+      "version": "1.0.0",
+      "kind": "synthetic",
+      "origin_group": "SYN-ORIGIN-006",
+      "rights": {
+        "license_id": "MIT",
+        "license_origin": "repository_LICENSE",
+        "allowed_uses": [
+          "public_repository",
+          "offline_modeling_reference"
+        ],
+        "authorization_basis": "independently_authored_synthetic"
+      },
+      "privacy": {
+        "review_scope": "all_source_and_case_text",
+        "disposition": "no_sensitive_content_found"
+      },
+      "sections": {
+        "overview": "合成设计：输入分布与相关性需有依据，风险指标及期限预先声明。",
+        "decision": "先界定事件、期限与分布，再用可复现试验并计划样本量和区间检查。 固定随机种子帮助复现，不能证明样本量充分或估计正确。 条件性失效反例：罕见事件在小样本中未出现不等于概率为零。 错误独立假设可能改变尾部风险。",
+        "validation": "未执行建模计算或验证。建议检查：检查样本量变化下的估计与区间；核对输入分布和相关结构。",
+        "transfer": "复用事件定义、抽样误差及输入假设分层。 不能直接迁移：原随机种子、试验次数和分布参数；未出现事件推导零风险。"
+      },
+      "metadata": {
+        "author": "repository authoring assistant",
+        "year": 2026,
+        "provenance": "independently_authored_for_repository",
+        "extraction": "direct_authorship",
+        "ocr": "not_used",
+        "limitations": [
+          "原创合成结构说明；没有抽取真实论文、用户对话或项目数据。"
+        ]
+      }
+    },
+    {
+      "id": "SYN-SOURCE-007",
+      "version": "1.0.0",
+      "kind": "synthetic",
+      "origin_group": "SYN-ORIGIN-007",
+      "rights": {
+        "license_id": "MIT",
+        "license_origin": "repository_LICENSE",
+        "allowed_uses": [
+          "public_repository",
+          "offline_modeling_reference"
+        ],
+        "authorization_basis": "independently_authored_synthetic"
+      },
+      "privacy": {
+        "review_scope": "all_source_and_case_text",
+        "disposition": "no_sensitive_content_found"
+      },
+      "sections": {
+        "overview": "合成设计：前问给出口径、时间范围与不确定性，后问仅使用当前可见信息。",
+        "decision": "明确上下游契约和不确定性传递，再区分确定性决策与需要另行批准的情景扩展。 上游点预测不是确定真值；下游可行性和结论范围要独立确认。 条件性失效反例：前问单位或期限改变而后问仍读旧输出会破坏契约。 预测值当已知真值可能漏掉资源不足风险。",
+        "validation": "未执行建模计算或验证。建议检查：核对上下游字段、单位和期限；检查不同需求情景的可行性。",
+        "transfer": "复用依赖契约、误差传播和变更复查范围。 不能直接迁移：原预测数值和资源阈值；案例引用替代当前模型批准或工作簿验收。"
+      },
+      "metadata": {
+        "author": "repository authoring assistant",
+        "year": 2026,
+        "provenance": "independently_authored_for_repository",
+        "extraction": "direct_authorship",
+        "ocr": "not_used",
+        "limitations": [
+          "原创合成结构说明；没有抽取真实论文、用户对话或项目数据。"
+        ]
+      }
+    }
+  ]
+}

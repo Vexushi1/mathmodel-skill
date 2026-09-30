@@ -73,6 +73,10 @@ PYTHON_CI_PERFORMANCE_AUTHORITY_VERSIONS = {
     **C2_AUTHORITY_VERSIONS,
     "skill": "10.15.1",
 }
+D1_AUTHORITY_VERSIONS = {
+    **PYTHON_CI_PERFORMANCE_AUTHORITY_VERSIONS,
+    "skill": "10.16.0",
+}
 
 
 def authority_versions(repo):
@@ -808,6 +812,33 @@ def approved_python_ci_performance_carrier_change(identifier, old, new, candidat
     return projected, changes
 
 
+def approved_d1_carrier_change(identifier, old, new, candidate_authority_versions):
+    """Allow the exact D1 carrier without loading cases or changing C2 qualifications."""
+    if (identifier not in {case[0] for case in CASES}
+            or old.get("version") != "<EXPECTED_P9_RELEASE_CARRIER_CHANGE>"
+            or new.get("version") != D1_AUTHORITY_VERSIONS["skill"]
+            or candidate_authority_versions != D1_AUTHORITY_VERSIONS
+            or not isinstance(new.get("assurance"), dict)
+            or new["assurance"].get("schema_version") != C2_AUTHORITY_VERSIONS["runtime_assurance"]):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    predecessor["version"] = PYTHON_CI_PERFORMANCE_AUTHORITY_VERSIONS["skill"]
+    projected, changes = approved_python_ci_performance_carrier_change(
+        identifier, old, predecessor, deepcopy(PYTHON_CI_PERFORMANCE_AUTHORITY_VERSIONS)
+    )
+    if projected != old:
+        return deepcopy(new), []
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = D1_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(D1_AUTHORITY_VERSIONS)
+            change["approval"] = (
+                "D1 case admission and standalone index carrier only; "
+                "default case loading, all C2 qualifications and legacy gates remain checked"
+            )
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -879,6 +910,10 @@ def compare(before, after):
             a["id"], old, projected, b.get("authority_versions")
         )
         expected.extend(python_ci_performance_changes)
+        projected, d1_changes = approved_d1_carrier_change(
+            a["id"], old, projected, b.get("authority_versions")
+        )
+        expected.extend(d1_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,
@@ -916,7 +951,7 @@ def main():
         "schema_version": 1, "baseline_ref": args.baseline_ref, "candidate_ref": args.candidate_ref,
         "driver_sha256": hashlib.sha256(HERE.read_bytes()).hexdigest(),
         "cases_sha256": hashlib.sha256(HERE.with_name("reading_plan_cases.py").read_bytes()).hexdigest(),
-        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_b2b1_b2b2_b2b3a_b2b3b_b2b3c_b2_patch_b2b4_b2b5_b2b6_b2c_c1_windows_python_ci_windows_matlab_ci_c2_python_ci_performance_exact_authority_carrier_transitions",
+        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_b2b1_b2b2_b2b3a_b2b3b_b2b3c_b2_patch_b2b4_b2b5_b2b6_b2c_c1_windows_python_ci_windows_matlab_ci_c2_python_ci_performance_d1_exact_authority_carrier_transitions",
         "expected_authority_changes": sorted(ALLOWED_CHANGED_AUTHORITIES),
         "approved_b2b6_authority_versions": B2B6_AUTHORITY_VERSIONS,
         "approved_b2c_authority_versions": B2C_AUTHORITY_VERSIONS,
@@ -925,9 +960,10 @@ def main():
         "approved_windows_matlab_ci_authority_versions": WINDOWS_MATLAB_CI_AUTHORITY_VERSIONS,
         "approved_c2_authority_versions": C2_AUTHORITY_VERSIONS,
         "approved_python_ci_performance_authority_versions": PYTHON_CI_PERFORMANCE_AUTHORITY_VERSIONS,
+        "approved_d1_authority_versions": D1_AUTHORITY_VERSIONS,
         "all_legacy_behavior_equal": all(r["legacy_behavior_equal"] for r in rows),
         "all_legacy_behavior_equal_except_approved_changes": all(r["legacy_behavior_equal_except_approved_changes"] for r in rows),
-        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before exact A3/A7/v9.7/v10/v10.1/A1/A2/B1/B2/B2b1/B2b2/B2b3a/B2b3b/B2b3c/B2 patch/B2b4/B2b5/B2b6/B2c/C1/Windows Python CI/Windows MATLAB CI/C2/Python CI performance carrier exceptions; B2b6, B2c, C1, both earlier CI patches, C2 and the performance patch require their exact Authority version sets. Each approved version, provenance or canonical solver projection is visible in expected_legacy_changes. No result qualification, classification value or existing list-order normalization is waived. Passing requires no unregistered field differences.",
+        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before exact A3/A7/v9.7/v10/v10.1/A1/A2/B1/B2/B2b1/B2b2/B2b3a/B2b3b/B2b3c/B2 patch/B2b4/B2b5/B2b6/B2c/C1/Windows Python CI/Windows MATLAB CI/C2/Python CI performance/D1 carrier exceptions; B2b6, B2c, C1, both earlier CI patches, C2, the performance patch and D1 require their exact Authority version sets. D1 keeps the case corpus outside default runtime loading and its independent Schema outside runtime Authority metadata. Each approved version, provenance or canonical solver projection is visible in expected_legacy_changes. No result qualification, classification value or existing list-order normalization is waived. Passing requires no unregistered field differences.",
         "cases": rows,
     }
     args.output.mkdir(parents=True, exist_ok=True)

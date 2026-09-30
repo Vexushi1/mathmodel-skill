@@ -10,6 +10,9 @@ on:
       - core/project_state.schema.yaml
       - core/module_manifest.yaml
       - core/review_receipt_consumption_contract.yaml
+      - knowledge/case_memory/**
+      - scripts/case_memory.py
+      - scripts/generate_indexes.py
       - scripts/resolve_runtime.py
       - scripts/safe_yaml.py
       - scripts/ci_unittest.py

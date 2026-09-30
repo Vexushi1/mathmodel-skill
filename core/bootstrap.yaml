@@ -1,7 +1,7 @@
-skill_version: 10.15.1
+skill_version: 10.16.0
 bootstrap_schema_version: 1.1.0
 purpose: >-
-  Minimal startup index. Read first, load workflow_router.default_load, and use
+  Read first, load workflow_router.default_load, and use
   scripts/resolve_runtime.py for the task plan. Do not preload domain contracts.
 authoritative_sources:
   global_policy: core/hsk_core_policy.md
@@ -20,6 +20,7 @@ authoritative_sources:
   claim_consumption: core/claim_consumption_contract.yaml
   review_receipts: core/review_receipt_contract.yaml
   review_receipt_consumption: core/review_receipt_consumption_contract.yaml
+  case_memory: knowledge/case_memory/schema.yaml
   writing_reasoning: core/writing_reasoning_contract.yaml
   writing_runtime: core/writing_runtime_contract.yaml
   figure_evidence: modules/04_figure_evidence.md
@@ -33,10 +34,10 @@ startup_contract:
   default_policy_source: core/hsk_core_policy.md
   resolver: scripts/resolve_runtime.py
   rules:
-    - Bootstrap stores pointers and startup invariants only; global domain rules live in core/hsk_core_policy.md.
-    - Load route-specific contracts only when needed.
+    - Bootstrap stores startup pointers; global rules live in core/hsk_core_policy.md.
+    - Load route contracts only when needed.
     - For reading_plan, use read_now then conditional triggers; load_order remains compatibility inventory. Execute every pre_delivery_gate. See core/runtime_assurance_contract.yaml#reading_plan.
-    - Runtime context hydration, intent provenance, artifact assurance and declarative contract dependency closure are governed by core/runtime_assurance_contract.yaml.
+    - Context hydration, intent provenance, artifact assurance and contract closure follow core/runtime_assurance_contract.yaml.
     - Load resolver manifests and taxonomies only when the route needs them.
     - Current project semantics are restored from current 模型论文框架.md when available; numerical facts still come from accepted workbooks and machine state from project_state.
     - New 模型论文框架.md instances use scripts/instantiate_model_paper_framework.py so core/output_contract.yaml#model_paper_framework.default_mode=compact is applied; the repository framework template is a canonical full superset source, not a live-project default copy.
@@ -45,7 +46,7 @@ startup_contract:
 hard_invariants:
   - Global modeling, preprocessing, solving, figure, writing and review rules are governed by their authoritative sources above; bootstrap must not restate those contracts in detail.
   - Resolve the smallest task-specific load order and stop after the user-requested deliverable; do not preload unrelated contracts or modules.
-  - Formal delivery must execute every `pre_delivery_gates` entry returned by the resolver, in resolver order; stage-specific gates such as semantic governance, project sync, and submission-package validation are examples, not a separately maintained fixed list.
+  - Formal delivery must execute every `pre_delivery_gates` entry returned by the resolver, in resolver order. The resolver owns this list.
   - Current 模型论文框架.md is the assistant-readable semantic memory; accepted workbooks are numerical fact sources and project state is the machine-state source.
   - Problem Contract freezing does not authorize task code by itself; before current model code is generated, the Model Challenge must pass and the user must explicitly approve the current semantic_revision and validated semantic_identity_hash under core/model_approval_contract.yaml; legacy semantic_hash approval is read-only provenance only.
   - Task-specific preprocessing, solve and result-analysis code remains user-executed; the assistant generates, statically checks and validates returned artifacts under the existing execution contracts.
@@ -66,6 +67,7 @@ entrypoints:
   validate_numerical_evidence: python scripts/validate_numerical_evidence.py
   claim_consumption: python scripts/claim_consumption.py
   review_receipts: python scripts/review_receipts.py
+  case_memory: python scripts/case_memory.py
   audit_latex_project: python scripts/audit_latex_project.py
   render_paper: python scripts/render_paper.py
   validate_submission_package: python scripts/validate_submission_package.py

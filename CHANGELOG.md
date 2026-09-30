@@ -1,6 +1,12 @@
 # Changelog
 
-## 10.15.1
+## 10.16.0
+
+- Add the independent Case Memory Schema 1.0.0 and a bounded, read-only D1 admission/index inspector. Preserve source identity, rights, privacy, lifecycle and evidence-level declarations; reject fabricated observed/validated evidence, unsafe paths, unresolved duplicates and stale index snapshots. Case text is inert data and never authorizes model approval or numerical acceptance.
+- Seed seven independently authored synthetic modeling cases with conditional counterexamples and explicit unperformed checks. Publish only current reviewed and permitted records in the deterministic index; rebuild it through the existing GitHub metadata generator, alongside the active indexes and MANIFEST.
+- Register the optional corpus Authority and utility entrypoint without loading cases on ordinary routes or changing project gates. Retain State 8.14.0, existing C2 protocol versions and Governance 1.0.6. Correct the current C2 completion ledger while preserving historical validation records. D2 retrieval and project adoption remain a separate change.
+
+## Previous release: 10.15.1
 
 - Speed up ordinary equivalent YAML parsing with PyYAML's existing safe C loader and a SafeLoader fallback, plus bounded process-local reuse by current content and loader semantics. Preserve independent returned objects, strict parser rules, current-byte observations, read-set/budget checks, approval and receipt qualification; never cache gate PASS or mutable project facts.
 - Run each formal Windows Python 3.10 / 3.14 full regression across four file shards while retaining standard unittest discovery coverage and fixture behavior. Keep `Python 3.10` and `Windows Python 3.14` as complete coverage gates; reject missing, mismatched, duplicate, failed or unfinished shard evidence. Preserve Windows MATLAB native and Linux LaTeX validation.

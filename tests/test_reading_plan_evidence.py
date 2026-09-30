@@ -741,6 +741,94 @@ class AuditClosureProjectionTests(unittest.TestCase):
                     self.assertEqual(EVIDENCE.approved_python_ci_performance_carrier_change(
                         case, old, unrelated, carriers), (unrelated, []))
 
+    def test_d1_carrier_keeps_exact_c2_protocols_and_immutable_inputs(self):
+        carriers = deepcopy(EVIDENCE.D1_AUTHORITY_VERSIONS)
+        self.assertEqual(carriers, {**EVIDENCE.C2_AUTHORITY_VERSIONS, "skill": "10.16.0"})
+        for case in (*EVIDENCE.A7_HYDRATED_PROVENANCE_CASES, "facts_unscoped"):
+            with self.subTest(case=case):
+                old, new = self.pair(case)
+                self.prepare_b2c(old, new)
+                new["version"] = "10.16.0"
+                original = deepcopy(new)
+                projected, changes = EVIDENCE.approved_d1_carrier_change(case, old, new, carriers)
+                self.assertEqual(projected, old)
+                self.assertEqual(new, original)
+                version_changes = [item for item in changes if item["path"] == "version"]
+                self.assertEqual([item["candidate"] for item in version_changes], ["10.16.0"])
+                self.assertEqual(version_changes[0]["authority_versions"], carriers)
+                for bad_carriers in (
+                    *({**carriers, key: "unknown"} for key in carriers),
+                    {key: value for key, value in carriers.items() if key != "project_state"},
+                    {**carriers, "case_memory": "1.0.0"},
+                ):
+                    self.assertEqual(EVIDENCE.approved_d1_carrier_change(
+                        case, old, new, bad_carriers), (new, []))
+
+    def test_d1_does_not_hide_case_loading_qualification_gate_or_unknown_version_changes(self):
+        old, new = self.pair()
+        self.prepare_b2c(old, new)
+        new["version"] = "10.16.0"
+        carriers = deepcopy(EVIDENCE.D1_AUTHORITY_VERSIONS)
+        for field, value in (
+            ("pre_delivery_gates", []),
+            ("load_order", ["knowledge/case_memory/cases/synthetic.yaml"]),
+            ("version", "10.16.1"),
+        ):
+            with self.subTest(field=field):
+                changed = deepcopy(new)
+                changed[field] = value
+                self.assertEqual(EVIDENCE.approved_d1_carrier_change(
+                    "facts_current", old, changed, carriers), (changed, []))
+        changed = deepcopy(new)
+        changed["assurance"]["qualification"] = "accepted"
+        self.assertEqual(EVIDENCE.approved_d1_carrier_change(
+            "facts_current", old, changed, carriers), (changed, []))
+        changed = deepcopy(new)
+        changed["assurance"]["authority_fingerprint"]["sources"].append(
+            {"path": "knowledge/case_memory/schema.yaml", "sha256": "case-schema"}
+        )
+        self.assertEqual(EVIDENCE.approved_d1_carrier_change(
+            "facts_current", old, changed, carriers), (changed, []))
+        self.assertEqual(EVIDENCE.approved_d1_carrier_change(
+            "future_case", old, new, carriers), (new, []))
+        wrong_baseline = deepcopy(old)
+        wrong_baseline["version"] = "10.15.1"
+        self.assertEqual(EVIDENCE.approved_d1_carrier_change(
+            "facts_current", wrong_baseline, new, carriers), (new, []))
+
+    def test_d1_runtime_metadata_excludes_independent_corpus_schema(self):
+        self.assertEqual(EVIDENCE.authority_versions(EVIDENCE.HERE.parents[1]),
+                         EVIDENCE.D1_AUTHORITY_VERSIONS)
+
+    def test_d1_full_comparison_requires_metadata_and_rejects_new_runtime_behavior(self):
+        old, new = self.pair()
+        self.prepare_b2c(old, new)
+        new["version"] = "10.16.0"
+        for plan in (old, new):
+            plan["reading_plan"] = {
+                "metrics": {"planned_skill_read_bytes": 1, "planned_project_read_bytes": 0},
+                "profile": "test", "status": "planned",
+            }
+        before = {"id": "facts_current", "plan": old, "legacy_declared_bytes": 1}
+        after = {"id": "facts_current", "plan": new, "legacy_declared_bytes": 1}
+        missing = EVIDENCE.compare([before], [after])[0]
+        self.assertFalse(missing["legacy_behavior_equal_except_approved_changes"])
+        self.assertIn("version", missing["unexpected_legacy_changes"])
+        after["authority_versions"] = deepcopy(EVIDENCE.D1_AUTHORITY_VERSIONS)
+        accepted = EVIDENCE.compare([before], [after])[0]
+        self.assertTrue(accepted["legacy_behavior_equal_except_approved_changes"])
+        self.assertEqual(accepted["unexpected_legacy_changes"], [])
+        for field, value in (
+            ("pre_delivery_gates", []),
+            ("load_order", ["knowledge/case_memory/schema.yaml"]),
+        ):
+            with self.subTest(field=field):
+                changed = deepcopy(after)
+                changed["plan"][field] = value
+                rejected = EVIDENCE.compare([before], [changed])[0]
+                self.assertFalse(rejected["legacy_behavior_equal_except_approved_changes"])
+                self.assertIn(field, rejected["unexpected_legacy_changes"])
+
     def test_b2c_carrier_keeps_unrelated_differences_visible(self):
         old, new = self.pair()
         self.prepare_b2c(old, new)

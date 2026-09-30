@@ -47,7 +47,7 @@ REQUIRED = [
     ".github/workflows/ci.yml", ".github/workflows/refresh-generated.yml",
     "LICENSE", "THIRD_PARTY_NOTICES.md",
 ]
-ACTIVE_DIRS = ["core", "modules", "packs", "templates", "scripts", "config", "state", "assets", "agents", "skills", ".codex-plugin", ".github"]
+ACTIVE_DIRS = ["core", "modules", "packs", "templates", "scripts", "config", "knowledge", "state", "assets", "agents", "skills", ".codex-plugin", ".github"]
 TEXT_SUFFIXES = {".md", ".yaml", ".yml", ".json", ".py", ".m", ".tex", ".bib"}
 COMPATIBILITY_POINTERS = {
     "PROJECT_INSTRUCTIONS_HSK_V622.md": "PROJECT_INSTRUCTIONS.md",
@@ -55,7 +55,7 @@ COMPATIBILITY_POINTERS = {
     "HSK_SKILL_FILE_INDEX_V622.md": "SKILL_FILE_INDEX.md",
     "HSK_TEMPLATE_INDEX_V622.md": "TEMPLATE_INDEX.md",
 }
-REPO_PATH_PREFIXES = ("core/", "modules/", "packs/", "templates/", "scripts/", "config/", "state/", "assets/", "agents/", "skills/", ".github/", ".codex-plugin/")
+REPO_PATH_PREFIXES = ("core/", "modules/", "packs/", "templates/", "scripts/", "config/", "knowledge/", "state/", "assets/", "agents/", "skills/", ".github/", ".codex-plugin/")
 MARKDOWN_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 VERSION_DOCS = ["SKILL.md", "README.md", "CHANGELOG.md", "core/hsk_core_policy.md"]
 VERSION_CONTRACTS = [

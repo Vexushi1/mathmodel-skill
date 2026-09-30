@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -219,6 +221,25 @@ def manifest_text(files: list[Path], overrides: dict[Path, str]) -> str:
 def generated_payloads() -> dict[Path, str]:
     version = current_skill_version()
     files = iter_files()
+    corpus_root = ROOT / "knowledge" / "case_memory"
+    case_relative = Path("knowledge/case_memory/index.json")
+    case_payloads = {}
+    # Old archived/fake repositories without this optional Authority keep their
+    # original generator. A registered but missing corpus must fail closed.
+    registered = "knowledge/case_memory/schema.yaml" in BOOTSTRAP.read_text(encoding="utf-8-sig")
+    if corpus_root.exists() or registered:
+        # Also work when this module is loaded by path, outside a script CLI.
+        script_dir = str(Path(__file__).resolve().parent)
+        sys.path.insert(0, script_dir)
+        try:
+            from case_memory import build_index
+        finally:
+            sys.path.pop(0)
+
+        case_payloads[case_relative] = json.dumps(
+            build_index(corpus_root), ensure_ascii=False, indent=2, sort_keys=True
+        ) + "\n"
+        files = sorted(set(files) | {case_relative}, key=lambda item: item.as_posix())
     template_files = template_index_files(files)
     skill_payload = skill_index_text(files, version)
     template_payload = index_text("HSK Active Template Index", template_files, version)
@@ -229,12 +250,14 @@ def generated_payloads() -> dict[Path, str]:
         TEMPLATE_INDEX.relative_to(ROOT): template_payload,
         LEGACY_SKILL_INDEX.relative_to(ROOT): legacy_skill_payload,
         LEGACY_TEMPLATE_INDEX.relative_to(ROOT): legacy_template_payload,
+        **case_payloads,
     }
     return {
         SKILL_INDEX: skill_payload,
         TEMPLATE_INDEX: template_payload,
         LEGACY_SKILL_INDEX: legacy_skill_payload,
         LEGACY_TEMPLATE_INDEX: legacy_template_payload,
+        **{ROOT / path: payload for path, payload in case_payloads.items()},
         MANIFEST: manifest_text(files, overrides),
     }
 
