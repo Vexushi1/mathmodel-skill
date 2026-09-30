@@ -37,3 +37,9 @@ A0 冻结的文件/节点/对象预算及 D2 上下文预算继续执行。A0 �
 5. squash merge 时核对已测 head 与 main Git tree 相同，复核 main 九项正式门和 verify-main；随后 E2 文档主题基于新 main 接续。
 
 本稿是验收前的范围冻结。最终 head、PR、测试计数和合并后证据保存在 PR 的关闭台账；不存在的运行不能预登记。E2 可以诚实标记限制，实际创建 tag/Release 须符合总计划的明确发布授权。
+
+## 首轮专项发现与窄修
+
+首轮 bot head `6a5a58ee03601d5e9acadc759a91630b7f888404` 的 [GitHub 专项 36740672801](https://github.com/Vexushi1/mathmodel-skill/actions/runs/36740672801) 实际运行 702 项，2219.463 秒；两项新增跨模块测试在准备阶段失败，3 项条件 skip。原因是测试选择 B2 1.5 论文证据链却没有其 Schema 必需的 Figure 绑定；现有 validator 正确拒绝了残缺策略。本次只补齐真实合成 Figure 夹具和断言诊断，不放宽生产门禁。原失败运行保留，不作为新 head 的通过证据。
+
+逐文件计时显示，未改动的 `test_b2b5_continuous_acceptance`、`test_b2b6_rejection_return`、`test_b2c_total_acceptance` 与 `test_b2c_runtime_integration` 合计 1641.171 秒，约占该专项 74%。这四个文件继续由 Windows 3.10/3.14 冻结完整回归覆盖；从开发专项的新增列表移出，保留本次新增链、度量、conformance/currentness/transaction、严格载体及既有专项。测试、断言、完整 discovery 和正式 CI 门均保留；该调整只减少开发阶段与冻结阶段的重复执行。

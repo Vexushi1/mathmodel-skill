@@ -29,6 +29,7 @@ import review_receipts
 import runtime_assurance
 import sync_project
 from tests import test_claim_consumption as claim_fixture
+from tests import test_b2b4_figure_integration as figure_fixture
 from tests import test_model_code_conformance as conformance_fixture
 from tests.claim_fixture import record
 
@@ -72,32 +73,39 @@ class CrossModuleAcceptanceTests(unittest.TestCase):
             return code, config
 
         with patch.object(claim_fixture.smoke, "instantiate_stage", side_effect=with_helper):
-            claim_fixture.ClaimConsumptionIntegrationTests.setUpClass.__func__(cls)
+            figure_fixture.FigureFormalChainIntegrationTests.setUpClass.__func__(cls)
 
     @classmethod
     def tearDownClass(cls):
-        claim_fixture.ClaimConsumptionIntegrationTests.tearDownClass.__func__(cls)
+        figure_fixture.FigureFormalChainIntegrationTests.tearDownClass.__func__(cls)
 
-    _save_with_projection = claim_fixture.ClaimConsumptionIntegrationTests._save_with_projection
+    save_projection = figure_fixture.FigureFormalChainIntegrationTests.save_projection
+    set_caption = figure_fixture.FigureFormalChainIntegrationTests.set_caption
 
     def setUp(self):
-        claim_fixture.ClaimConsumptionIntegrationTests.setUp(self)
+        figure_fixture.FigureFormalChainIntegrationTests.setUp(self)
         self.addCleanup(self.tmp.cleanup)
         framework = self.state["paper_framework"]
         framework["claim_consumption_policy"].update(
             protocol_version="1.5.0", mode="enforce_selected_paper_claim_chain",
             paper_source={"format": "latex", "entrypoint": "final_latex/main.tex"},
         )
+        # C2 paper consumption requires selected carrier 1.5. Reuse the
+        # existing complete Figure fixture instead of declaring an incomplete
+        # selected policy on a text-only fixture. Its image is an identity
+        # fixture; neither review below claims rendered or visual approval.
+        for binding in framework["claim_consumption_policy"]["figure_bindings"]:
+            binding["carrier_locator"] = {
+                "kind": "latex_label", "value": binding.pop("latex_label"),
+            }
         main = self.root / "final_latex/main.tex"
         main.write_text(main.read_text(encoding="utf-8").replace(
             "\\begin{document}", "\\title{Synthetic scalar equation study}\n\\begin{document}", 1),
             encoding="utf-8")
         pdf = self.root / "final_latex/main.pdf"
         pdf.write_bytes(b"synthetic PDF identity; no compilation or rendering claim\n")
-        self.state.setdefault("artifacts", {}).update(
-            compiled_pdf="final_latex/main.pdf", approved_figures=[],
-        )
-        self._save_with_projection()
+        self.state.setdefault("artifacts", {})["compiled_pdf"] = "final_latex/main.pdf"
+        self.save_projection()
         self.install_bound_review_pair()
         self.assert_current_chain()
 
@@ -110,6 +118,8 @@ class CrossModuleAcceptanceTests(unittest.TestCase):
         self.assertEqual(scan["status"], "scanned", scan)
         objects = ["paper_source:final_latex/main.tex", "rendered:final_latex/main.pdf"]
         objects += ["source:" + path for path in sorted(scan["files"])]
+        approved_images = self.state["artifacts"]["approved_figures"]
+        objects += ["figure:" + path for path in sorted(approved_images)]
         roles = [{"role": role, "check_ids": list(checks)}
                  for role in ("semantic_reviewer", "final_reviewer")]
         self.state["review_receipt_policy"] = {
@@ -129,6 +139,7 @@ class CrossModuleAcceptanceTests(unittest.TestCase):
             "/paper_framework/claim_consumption_policy/paper_source":
                 self.state["paper_framework"]["claim_consumption_policy"]["paper_source"],
             "/artifacts/compiled_pdf": self.state["artifacts"]["compiled_pdf"],
+            "/artifacts/approved_figures": approved_images,
         }
         fields = [{"pointer": pointer, "sha256": review_receipts.state_field_sha256(value)}
                   for pointer, value in pointers.items()]
@@ -136,6 +147,7 @@ class CrossModuleAcceptanceTests(unittest.TestCase):
         paths = {*scan["files"], "final_latex/main.pdf", "问题一求解/e1_helper.py"}
         paths.update(entry[field] for field in (
             "code", "result_analysis_code", "solution_workbook", "result_analysis_workbook"))
+        paths.update(approved_images)
         # These supplemental input bindings are the scope of this fixture, not
         # a new requirement that every paper receipt bind every helper.
         files = [{"path": path, "sha256": digest(self.root / path)} for path in sorted(paths)]
@@ -165,14 +177,24 @@ class CrossModuleAcceptanceTests(unittest.TestCase):
         conformance_fixture.save(self.root, self.state)
 
     def assert_current_chain(self):
-        self.assertEqual(model_code_conformance.inspect_project(self.root, "Q1", "primary")["status"],
-                         "structure_verified")
-        self.assertEqual(claim_evidence.inspect_project(self.root)["status"], "evidence_checked")
+        a_report = model_code_conformance.inspect_project(self.root, "Q1", "primary")
+        self.assertEqual(a_report["status"], "structure_verified", a_report)
+        b_report = claim_evidence.inspect_project(self.root)
+        self.assertEqual(b_report["status"], "evidence_checked", b_report)
         observed = consumption.inspect_project(self.root)
-        self.assertEqual(observed["status"], "observed", observed)
-        self.assertEqual({row["status"] for row in observed["numeric_checks"]}, {"matched"})
-        self.assertEqual(review_consumption.evaluate_gate(self.root, "final_review_and_delivery")["status"],
-                         "passed")
+        # The generic Figure numeric row retains its not_assessed boundary;
+        # the exact selected-carrier Figure gate separately checks its current
+        # caption/source identity. Neither result grants visual semantics.
+        self.assertEqual(observed["status"], "needs_review", observed)
+        self.assertEqual({row["fragment_id"]: row["status"]
+                          for row in observed["numeric_checks"]
+                         if row.get("fragment_id") in {"paper.abstract.q1", "paper.result.q1"}},
+                         {"paper.abstract.q1": "matched", "paper.result.q1": "matched"}, observed)
+        paper_gate = consumption.formal_paper_gate(self.root)
+        self.assertEqual(paper_gate["status"], "passed", paper_gate)
+        self.assertEqual(paper_gate["human_semantic_coverage"], "not_assessed", paper_gate)
+        c_report = review_consumption.evaluate_gate(self.root, "final_review_and_delivery")
+        self.assertEqual(c_report["status"], "passed", c_report)
         self.assertIn("accepted_solution_workbook",
                       runtime_assurance.hydrate_project_context(self.root)["verified_artifacts"])
 
@@ -184,18 +206,19 @@ class CrossModuleAcceptanceTests(unittest.TestCase):
         helper = self.root / "问题一求解/e1_helper.py"
         helper.write_text("def checked_solution(value):\n    return value + 1\n", encoding="utf-8")
         before = conformance_fixture.bytes_in(self.root)
-        self.assertEqual(model_code_conformance.inspect_project(self.root, "Q1", "primary")["status"],
-                         "blocked")
+        a_report = model_code_conformance.inspect_project(self.root, "Q1", "primary")
+        self.assertEqual(a_report["status"], "blocked", a_report)
         self.assertTrue(conformance_gate.inspect_gate(
             self.root, self.state, "Q1", "primary", boundary="current")["issues"])
-        self.assertEqual(claim_evidence.inspect_project(self.root)["status"], "blocked")
+        b_report = claim_evidence.inspect_project(self.root)
+        self.assertEqual(b_report["status"], "blocked", b_report)
         observed = consumption.inspect_project(self.root)
         self.assertEqual(observed["status"], "blocked", observed)
         self.assertEqual(observed["numeric_checks"], [])
         inspected = review_receipts.inspect_project(self.root)
-        self.assertEqual({row["applicability"] for row in inspected["receipts"]}, {"stale"})
-        self.assertEqual(review_consumption.evaluate_gate(self.root, "final_review_and_delivery")["status"],
-                         "failed")
+        self.assertEqual({row["applicability"] for row in inspected["receipts"]}, {"stale"}, inspected)
+        c_report = review_consumption.evaluate_gate(self.root, "final_review_and_delivery")
+        self.assertEqual(c_report["status"], "failed", c_report)
         context = runtime_assurance.hydrate_project_context(self.root)
         self.assertNotIn("accepted_solution_workbook", context["verified_artifacts"])
         self.assertEqual(entry["human_model_approval_status"], "approved")
@@ -219,16 +242,23 @@ class CrossModuleAcceptanceTests(unittest.TestCase):
         main.write_text(text.replace(old, "\\title{A study of a synthetic scalar equation}", 1),
                         encoding="utf-8")
         before = conformance_fixture.bytes_in(self.root)
-        self.assertEqual(model_code_conformance.inspect_project(self.root, "Q1", "primary")["status"],
-                         "structure_verified")
-        self.assertEqual(claim_evidence.inspect_project(self.root)["status"], "evidence_checked")
+        a_report = model_code_conformance.inspect_project(self.root, "Q1", "primary")
+        self.assertEqual(a_report["status"], "structure_verified", a_report)
+        b_report = claim_evidence.inspect_project(self.root)
+        self.assertEqual(b_report["status"], "evidence_checked", b_report)
         observed = consumption.inspect_project(self.root)
-        self.assertEqual(observed["status"], "observed", observed)
-        self.assertEqual({row["status"] for row in observed["numeric_checks"]}, {"matched"})
-        self.assertEqual(review_consumption.evaluate_gate(self.root, "final_review_and_delivery")["status"],
-                         "failed")
+        self.assertEqual(observed["status"], "needs_review", observed)
+        self.assertEqual({row["fragment_id"]: row["status"]
+                          for row in observed["numeric_checks"]
+                         if row.get("fragment_id") in {"paper.abstract.q1", "paper.result.q1"}},
+                         {"paper.abstract.q1": "matched", "paper.result.q1": "matched"}, observed)
+        paper_gate = consumption.formal_paper_gate(self.root)
+        self.assertEqual(paper_gate["status"], "passed", paper_gate)
+        self.assertEqual(paper_gate["human_semantic_coverage"], "not_assessed", paper_gate)
+        c_report = review_consumption.evaluate_gate(self.root, "final_review_and_delivery")
+        self.assertEqual(c_report["status"], "failed", c_report)
         inspected = review_receipts.inspect_project(self.root)
-        self.assertEqual({row["applicability"] for row in inspected["receipts"]}, {"stale"})
+        self.assertEqual({row["applicability"] for row in inspected["receipts"]}, {"stale"}, inspected)
         self.assertIn("accepted_solution_workbook",
                       runtime_assurance.hydrate_project_context(self.root)["verified_artifacts"])
         self.assertEqual(self.state["subproblems"]["Q1"], entry_before)
