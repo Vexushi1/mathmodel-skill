@@ -340,7 +340,7 @@ def _inspect(corpus_root: Path) -> tuple[dict, _Snapshot, dict]:
               "counts": {"cases": len(cases["cases"]), "sources": len(source_records),
                          "reviewed_cases": len(eligible), "indexed_groups": len(groups)},
               "corpus_sha256": hashlib.sha256(_canonical(identity)).hexdigest()}
-    return report, snapshot, policy["limits"]
+    return report, snapshot, policy
 
 
 def _failure(error: Exception) -> dict:
@@ -363,7 +363,8 @@ def _index_payload(report: dict, snapshot: _Snapshot, limits: dict) -> dict:
 def inspect_corpus(corpus_root: Path = DEFAULT_CORPUS_ROOT) -> dict:
     """Read-only publication/admission report; returned objects never confer project qualifications."""
     try:
-        report, snapshot, limits = _inspect(corpus_root)
+        report, snapshot, policy = _inspect(corpus_root)
+        limits = policy["limits"]
         snapshot.recheck(limits)
         report["read_set"] = snapshot.read_set()
         return deepcopy(report)
@@ -374,7 +375,8 @@ def inspect_corpus(corpus_root: Path = DEFAULT_CORPUS_ROOT) -> dict:
 def build_index(corpus_root: Path = DEFAULT_CORPUS_ROOT) -> dict:
     """Produce a deterministic reviewed-only payload without writing any file."""
     try:
-        report, snapshot, limits = _inspect(corpus_root)
+        report, snapshot, policy = _inspect(corpus_root)
+        limits = policy["limits"]
         payload = _index_payload(report, snapshot, limits)
         snapshot.recheck(limits)
         return deepcopy(payload)
@@ -387,12 +389,14 @@ def build_index(corpus_root: Path = DEFAULT_CORPUS_ROOT) -> dict:
 def check_index(corpus_root: Path = DEFAULT_CORPUS_ROOT, index_path: Path | None = None) -> dict:
     """Read-only freshness check; a missing, changed or retired corpus never replays an old index."""
     try:
-        report, snapshot, limits = _inspect(corpus_root)
+        report, snapshot, policy = _inspect(corpus_root)
+        limits = policy["limits"]
         candidate = Path(index_path).absolute() if index_path is not None else snapshot.root / "index.json"
         try:
             relative = candidate.relative_to(snapshot.root).as_posix()
         except ValueError:
             raise CaseMemoryError("path_violation", "index must remain inside the corpus root") from None
+        _screen(relative, [re.compile(pattern) for pattern in policy["privacy_patterns"]], "corpus", "index")
         if not _path(snapshot.root, relative).is_file():
             raise CaseMemoryError("index_missing", "derived index is missing; rebuild through the repository generator")
         expected = _index_payload(report, snapshot, limits)
