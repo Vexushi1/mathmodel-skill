@@ -2,23 +2,52 @@ name: HSK Skill CI
 
 on:
   push:
-    branches: [main, "refactor/**", "upgrade/**"]
+    branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
+    inputs:
+      python_test_mode:
+        description: Targeted development checks or full frozen-head acceptance
+        type: choice
+        options: [targeted, full]
+        default: full
 
 permissions:
   contents: read
 
+env:
+  HSK_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 concurrency:
-  group: hsk-skill-ci-${{ github.workflow }}-${{ github.ref }}
+  group: hsk-skill-ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}-${{ inputs.python_test_mode || (github.event.pull_request.draft && 'targeted') || 'full' }}
   cancel-in-progress: true
 
 jobs:
+  test-plan:
+    name: Regression mode
+    runs-on: ubuntu-latest
+    outputs:
+      full: ${{ steps.mode.outputs.full }}
+    steps:
+      - id: mode
+        env:
+          CI_EVENT: ${{ github.event_name }}
+          CI_DRAFT: ${{ github.event.pull_request.draft || false }}
+          CI_MODE: ${{ inputs.python_test_mode || 'full' }}
+        run: |
+          full=true
+          if [[ "$CI_EVENT" == pull_request && "$CI_DRAFT" == true ]]; then full=false; fi
+          if [[ "$CI_EVENT" == workflow_dispatch && "$CI_MODE" == targeted ]]; then full=false; fi
+          echo "full=$full" >> "$GITHUB_OUTPUT"
+
   static-lint:
     name: Static contract lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -39,56 +68,198 @@ jobs:
       - name: Legacy resolver compatibility smoke
         run: python scripts/resolve_workflow.py problem_analysis --primary mechanism --competition CUMCM
 
-  unit-matrix:
-    name: Python ${{ matrix.python-version }}
-    runs-on: windows-latest
-    env:
-      PYTHONUTF8: "1"
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.10"]
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-      - name: Install test dependencies
-        run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
-      - name: Run unit tests
-        run: python -m unittest discover -s tests -p "test_*.py" > unittest.log 2>&1
-      - name: Upload unit test diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: unittest-diagnostics-${{ matrix.python-version }}
-          path: unittest.log
-
-  windows-unit:
-    name: Windows Python 3.14
+  python-targeted:
+    name: Windows Python targeted checks
+    needs: [test-plan, generated-files]
+    if: needs.test-plan.outputs.full != 'true'
     runs-on: windows-latest
     env:
       PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
           cache: pip
       - name: Install test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
-      - name: Run unit tests
-        run: python -m unittest discover -s tests -p "test_*.py" > unittest.log 2>&1
-      - name: Upload unit test diagnostics
-        if: failure()
+      - name: Run affected development tests
+        run: |
+          python scripts/ci_unittest.py run --modules test_safe_yaml,test_ci_unittest,test_actions_runtime_modernization,test_ci_platform_policy,test_generated_workflow_hardening,test_review_receipts,test_review_receipt_consumption,test_project_solver_backend_select,test_model_code_conformance,test_claim_workbook,test_claim_evidence,test_claim_consumption,test_reading_plan_evidence,test_v1000_release_version_matrix --report timings.json > unittest.log 2>&1
+          $testExit = $LASTEXITCODE
+          Get-Content unittest.log -Tail 35
+          exit $testExit
+      - name: Measure safe contract parsing separately from regression time
+        if: always()
+        run: |
+          python scripts/measure_contract_parsing.py --repeats 3 --output contract-parsing.json
+          exit $LASTEXITCODE
+      - name: Upload targeted timing and diagnostics
+        if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: unittest-diagnostics-windows-3.14
-          path: unittest.log
+          name: python-targeted-evidence
+          path: |
+            unittest.log
+            timings.json
+            contract-parsing.json
+          if-no-files-found: error
+
+  unit-matrix-shards:
+    name: Windows Python 3.10 shard ${{ matrix.shard }}
+    needs: [test-plan, generated-files]
+    if: needs.test-plan.outputs.full == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      PYTHONUTF8: "1"
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.10"
+          cache: pip
+      - name: Install test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
+      - name: Run complete regression shard with timings
+        run: |
+          python scripts/ci_unittest.py run --shard-index ${{ matrix.shard }} --shard-count 4 --report timings.json > unittest.log 2>&1
+          $testExit = $LASTEXITCODE
+          Get-Content unittest.log -Tail 35
+          exit $testExit
+      - name: Upload shard timing and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: python-3.10-shard-${{ matrix.shard }}
+          path: |
+            unittest.log
+            timings.json
+          if-no-files-found: error
+
+  windows-unit-shards:
+    name: Windows Python 3.14 shard ${{ matrix.shard }}
+    needs: [test-plan, generated-files]
+    if: needs.test-plan.outputs.full == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      PYTHONUTF8: "1"
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt
+      - name: Run complete regression shard with timings
+        run: |
+          python scripts/ci_unittest.py run --shard-index ${{ matrix.shard }} --shard-count 4 --report timings.json > unittest.log 2>&1
+          $testExit = $LASTEXITCODE
+          Get-Content unittest.log -Tail 35
+          exit $testExit
+      - name: Upload shard timing and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: python-3.14-shard-${{ matrix.shard }}
+          path: |
+            unittest.log
+            timings.json
+          if-no-files-found: error
+
+  unit-matrix:
+    name: Python ${{ matrix.python-version }}
+    needs: [test-plan, generated-files, unit-matrix-shards]
+    if: always() && (needs.test-plan.outputs.full == 'true' || needs.test-plan.result != 'success')
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      actions: read
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Require every shard and verify complete coverage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHARD_RESULT: ${{ needs.unit-matrix-shards.result }}
+          MODE_RESULT: ${{ needs.test-plan.result }}
+          GENERATED_RESULT: ${{ needs.generated-files.result }}
+        run: |
+          if ($env:MODE_RESULT -ne 'success' -or $env:GENERATED_RESULT -ne 'success' -or $env:SHARD_RESULT -ne 'success') { throw 'Full regression prerequisites and shards did not all succeed.' }
+          gh run download $env:GITHUB_RUN_ID --repo $env:GITHUB_REPOSITORY --pattern 'python-3.10-shard-*' --dir shard-reports
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/ci_unittest.py verify --reports shard-reports --shard-count 4 --python-version 3.10 --output coverage-summary.json
+          exit $LASTEXITCODE
+      - name: Preserve complete coverage and timing summary
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: python-3.10-coverage-summary
+          path: coverage-summary.json
+          if-no-files-found: warn
+
+  windows-unit:
+    name: Windows Python 3.14
+    needs: [test-plan, generated-files, windows-unit-shards]
+    if: always() && (needs.test-plan.outputs.full == 'true' || needs.test-plan.result != 'success')
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Require every shard and verify complete coverage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHARD_RESULT: ${{ needs.windows-unit-shards.result }}
+          MODE_RESULT: ${{ needs.test-plan.result }}
+          GENERATED_RESULT: ${{ needs.generated-files.result }}
+        run: |
+          if ($env:MODE_RESULT -ne 'success' -or $env:GENERATED_RESULT -ne 'success' -or $env:SHARD_RESULT -ne 'success') { throw 'Full regression prerequisites and shards did not all succeed.' }
+          gh run download $env:GITHUB_RUN_ID --repo $env:GITHUB_REPOSITORY --pattern 'python-3.14-shard-*' --dir shard-reports
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/ci_unittest.py verify --reports shard-reports --shard-count 4 --python-version 3.14 --output coverage-summary.json
+          exit $LASTEXITCODE
+      - name: Preserve complete coverage and timing summary
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: python-3.14-coverage-summary
+          path: coverage-summary.json
+          if-no-files-found: warn
 
   matlab-solver-smoke:
     name: MATLAB R2024b native solver contracts
+    needs: [test-plan, generated-files]
+    if: needs.test-plan.outputs.full == 'true'
     # MathWorks R2024b lists Server 2022; windows-latest currently selects Server 2025.
     runs-on: windows-2022
     timeout-minutes: 60
@@ -105,6 +276,8 @@ jobs:
           New-Item -ItemType File -Force -Path (Join-Path $output 'matlab-ci-probe.log') | Out-Null
           "HSK_MATLAB_SOLVER_OUTPUT=$output" >> $env:GITHUB_ENV
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
@@ -303,6 +476,8 @@ jobs:
           if ($changes) { throw 'MATLAB smoke wrote into the repository checkout.' }
 
   latex-smoke:
+    needs: [test-plan, generated-files]
+    if: needs.test-plan.outputs.full == 'true'
     name: LaTeX ${{ matrix.name }}
     runs-on: ubuntu-latest
     strategy:
@@ -323,6 +498,8 @@ jobs:
             xelatex: true
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -370,10 +547,14 @@ jobs:
 
   production-latex-attestation:
     name: Production LaTeX attestation
+    needs: [test-plan, generated-files]
+    if: needs.test-plan.outputs.full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -573,6 +754,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"

@@ -1,5 +1,5 @@
 ---
-governance_version: 1.0.5
+governance_version: 1.0.6
 applies_to_skill: ">=6.3.0,<11.0.0"
 status: active
 ---
@@ -210,12 +210,13 @@ refactor/<topic>
 修改源文件并仅提交源文件
 → 推送分支
 → refresh-generated 在 GitHub 运行 generate_indexes.py
-→ bot 提交生成结果，形成最终 head
-→ 显式调度该 head 的 HSK Skill CI 与 Optimization baseline
-→ 核对生成差异并对最终 head 完成 GitHub Actions 验收
+→ bot 有差异时提交生成结果，确定最终 head
+→ draft PR / 无 PR 分支调度专项验证，ready PR 调度正式完整验证
+→ 冻结 PR 后对最终 head 完成 HSK Skill CI 与适用的 Optimization baseline
+→ 核对生成差异、实际 checkout commit 与远端证据
 ```
 
-本地运行 generator 仅可用于自愿诊断，不是合并前置，也不代替上述远端闭环。禁止手工修改哈希以“让 CI 通过”。若自动生成工作流提交了生成文件，应确认该提交只包含预期生成结果。
+生成无差异也必须进入对应验证路径。生成文件检查通过后才启动完整 Python 分片；源码提交和 bot 生成提交不能同时无条件启动整套回归。若已有同一最终 head 的等价正式运行，须明确核对其范围与状态后才可避免重复调度。仓库维护仅以 GitHub 证据验收，本地不要求运行 generator；用户要求 GitHub-only 时不运行本地诊断。禁止手工修改哈希以“让 CI 通过”。若自动生成工作流提交了生成文件，应确认该提交只包含预期生成结果。
 
 ---
 
@@ -223,17 +224,25 @@ refactor/<topic>
 
 ### 9.1 分层验证与正式平台
 
-开发阶段优先安排受影响的专项测试；PR 冻结前在 GitHub Actions 对待合并的精确最终 head 执行完整回归。当前候选代码的正式 Python full regression 仅有 Windows + Python 3.10、Windows + Python 3.14 两套，均执行 `python -m unittest discover -s tests -p "test_*.py"`。最终 head 还须通过 Static contract lint、Generated file contract、MATLAB native contract、LaTeX templates、Production LaTeX attestation 及适用的 Optimization baseline 等远端检查。源码或生成文件提交发生变化后，必须对新的最终 head 重新验收。
+开发分支 push 与 draft PR 优先在 GitHub Actions 安排受影响的专项测试及基础静态/生成检查。PR 冻结为 ready 时（包括 `ready_for_review` 事件）、显式 full dispatch 和 main push 执行正式完整验证；专项成功不能代替冻结验收。源码或生成文件提交发生变化后，必须对新的最终 head 重新验收。
+
+正式 Python full regression 仅有 Windows + Python 3.10、Windows + Python 3.14 两套。覆盖参考仍为 `python -m unittest discover -s tests -p "test_*.py"`；CI 每版本按测试文件分为 4 个独立进程分片，保留标准 discovery 的全集与 fixture 语义。每版本汇总必须核对所有分片的实际 checkout commit、Python 版本、分组、discovery ID 全集和结果，拒绝重复、遗漏、失败、缺失或未完成证据。保留现有 `Python 3.10` 与 `Windows Python 3.14` 正式 check 名称作为汇总门；不能把缺失分片或上游失败变成通过。所有正式 job 显式 checkout 同一 source head，分别记录 PR source head、实际 checkout commit 和 GitHub event SHA，不能以旧 head 的日志或产物代替当前验收。
+
+最终 head 还须通过 Static contract lint、Generated file contract、MATLAB native contract、LaTeX templates、Production LaTeX attestation 及适用的 Optimization baseline 等远端检查。所有分片无论成功或失败均保存日志及逐项/文件/收集耗时；报告每版本 wall time 与所有分片总 runner time，实测后才说明收益，不用解析微基准替代完整回归证据。
 
 Linux runner 可以用于 LaTeX / TeX Live、静态工具、生成文件、Git 来源快照等工具作业；作业内部调用 Python helper 不构成 Linux Python 正式兼容承诺。不得在没有明确兼容目标与验收依据时无限扩展完整 Python 矩阵，也不得在其他 workflow 隐藏执行 Linux 整仓完整 unittest。
 
-仓库维护不要求 Codex、Agent 或开发者在本地运行 lint、unittest、`generate_indexes.py`、MATLAB 或 LaTeX。本地测试可以完全不执行；自愿执行时仅作辅助诊断，不替代 GitHub Actions，也不产生合并资格。正式证据为最终 PR head 的 GitHub Actions job、日志与产物、该 head 与合并提交的对应关系，以及合并后 `main` 的 GitHub Actions。若 required check 名称受变更影响，合并前须核对 GitHub Settings；无法核对时停止合并。
+仓库维护不要求 Codex、Agent 或开发者在本地运行 lint、unittest、`generate_indexes.py`、MATLAB 或 LaTeX；正式验收仅在 GitHub。用户要求 GitHub-only 时不运行本地诊断。正式证据为最终 PR head 的 GitHub Actions job、日志与产物、该 head 与实际 checkout / 合并提交的对应关系，以及合并后 `main` 的 GitHub Actions。若 required check 名称受变更影响，合并前须核对 GitHub Settings；无法核对时保留现有正式 check 名称与验证语义，不能擅自删除或改名。
 
 这项远端验收规则仅适用于 Skill 仓库维护。真实用户赛题的 Python / MATLAB 数值代码仍由用户在实际环境按 `full_fidelity` 执行，并按原有工作簿、回执与验收契约交付。
 
 正式 MATLAB 原生数值 CI 在 Windows Server 2022 + MATLAB R2024b 执行，必须实测主求解、独立结果深化分析、accepted XLSX 交接、版本化 RUN_RECEIPT，以及 A2/B1 对真实合成执行证据的检查。可选 MATLAB 绘图预览是独立的渲染检查，不能代替这条原生数值验收链。
 
-### 9.2 按影响面追加
+### 9.2 解析复用的安全边界
+
+普通等价 YAML 解析可以使用 PyYAML 已有的 `CSafeLoader`，不可用时回退 `SafeLoader`；无需编写 C 代码。有限容量的进程内解析缓存按当前内容哈希与 Loader 语义区分，核对真实字节并返回独立副本。每次读取仍观察当前字节；read-set、budget、currentness 和提交前重检继续执行。严格重复 key/alias/depth 限制与自定义构造器不能被普通 helper 替换。不得缓存 gate PASS、批准、回执资格、工作簿数值或项目可变事实。须保留纯 Python / 禁用缓存的远端诊断和回滚路径。
+
+### 9.3 按影响面追加
 
 按影响面在 GitHub Actions 中安排并核对：
 

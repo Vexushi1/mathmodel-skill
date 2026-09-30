@@ -9,6 +9,7 @@ import re
 from typing import Any, Iterable
 
 import yaml
+import safe_yaml
 from jsonschema import Draft202012Validator
 
 from semantic_identity import (
@@ -110,7 +111,7 @@ def _structured_disposition_issue(row: dict[str, Any]) -> str | None:
 def _exact_structured_policy_issues(policy: dict[str, Any]) -> list[str]:
     schema_path = Path(__file__).resolve().parent.parent / "core" / "project_state.schema.yaml"
     try:
-        schema = yaml.safe_load(schema_path.read_text(encoding="utf-8")) or {}
+        schema = safe_yaml.safe_load(schema_path.read_text(encoding="utf-8")) or {}
         validator = Draft202012Validator({
             "$ref": "#/$defs/claim_consumption_policy", "$defs": schema["$defs"],
         })
@@ -186,7 +187,7 @@ def _current_structured_rejections(
     results: dict[str, dict[str, Any]] = {}
     subproblems = state.get("subproblems", {})
     contract_path = Path(__file__).resolve().parent.parent / "core" / "state_transition_contract.yaml"
-    contract = yaml.safe_load(contract_path.read_text(encoding="utf-8")) or {}
+    contract = safe_yaml.safe_load(contract_path.read_text(encoding="utf-8")) or {}
     events = contract.get("transition_events", {}) or {}
     rules = contract.get("dependency_rules", {}) or {}
     profiles = contract.get("profiles", {}) or {}
@@ -423,7 +424,7 @@ class ProjectStateSnapshot:
         if self.raw is None:
             return {}
         try:
-            state = yaml.safe_load(self.raw.decode("utf-8"))
+            state = safe_yaml.safe_load(self.raw.decode("utf-8"))
         except (UnicodeError, yaml.YAMLError) as exc:
             raise ProjectStateReadError("invalid_project_state", "state must be valid UTF-8 YAML") from exc
         state = {} if state is None else state

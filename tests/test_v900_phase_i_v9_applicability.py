@@ -13,7 +13,7 @@ class PhaseIV9ApplicabilityTests(unittest.TestCase):
     def test_governance_is_explicitly_renewed_for_v9(self):
         text = (ROOT / "SKILL_CHANGE_GOVERNANCE.md").read_text(encoding="utf-8")
         frontmatter = yaml.safe_load(text.split("---", 2)[1]) or {}
-        self.assertEqual(str(frontmatter["governance_version"]), "1.0.5")
+        self.assertEqual(str(frontmatter["governance_version"]), "1.0.6")
         self.assertEqual(str(frontmatter["applies_to_skill"]), ">=6.3.0,<11.0.0")
 
     def test_unchanged_contract_applicability_preserves_v9_until_release_cutover(self):
@@ -42,7 +42,7 @@ class PhaseIV9ApplicabilityTests(unittest.TestCase):
 
     def test_i4b_publishes_v9_after_i4a_applicability_renewal(self):
         bootstrap = self.load("core/bootstrap.yaml")
-        self.assertEqual(str(bootstrap["skill_version"]), "10.15.0")
+        self.assertEqual(str(bootstrap["skill_version"]), "10.15.1")
         i4a_record = (ROOT / "docs/phase_i_v9_applicability_renewal.md").read_text(encoding="utf-8")
         self.assertIn("当前 Skill release carrier 仍为 `8.9.0`", i4a_record)
         self.assertIn("I4b 才处理 current release carriers 从 `8.9.0` 到 `9.0.0`", i4a_record)

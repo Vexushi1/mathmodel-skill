@@ -32,6 +32,7 @@ jobs:
     permissions:
       contents: write
       actions: write
+      pull-requests: read
     steps:
       - uses: actions/checkout@v7
         with:
@@ -46,19 +47,45 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          generated_changed=false
           if git diff --quiet -- SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256; then
             echo "Generated metadata is current."
-            exit 0
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
+            git commit -m "chore: refresh generated repository metadata"
+            git push
+            generated_changed=true
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256
-          git commit -m "chore: refresh generated repository metadata"
-          git push
           final_head=$(git rev-parse HEAD)
           echo "Generated metadata final head: ${final_head}"
-          gh workflow run ci.yml --ref "$GITHUB_REF_NAME"
-          gh workflow run optimization-baseline.yml --ref "$GITHUB_REF_NAME"
+          # Fail closed on API errors; an unreadable PR is not a missing PR.
+          pull_requests=$(gh api --method GET "repos/$GITHUB_REPOSITORY/pulls" -f state=open -f "head=${GITHUB_REPOSITORY%%/*}:$GITHUB_REF_NAME")
+          mode=targeted
+          if jq -e 'any(.[]; .draft == false)' <<< "$pull_requests" >/dev/null; then mode=full; fi
+          dispatch=true
+          if [[ "$generated_changed" == false && "$mode" == full ]]; then
+            runs=$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" -f event=pull_request -f "head_sha=$final_head" -f per_page=100)
+            # A successful draft run has skipped full gates; it is not acceptance.
+            while read -r run_id; do
+              run_jobs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/jobs?per_page=100")
+              if jq -e '[.jobs[] | select(.name == "Python 3.10" or .name == "Windows Python 3.14")] | length == 2 and all(.[]; (.status != "completed" or .conclusion == "success"))' <<< "$run_jobs" >/dev/null; then
+                echo "The ready PR already has a current-head full validation path."
+                dispatch=false
+                break
+              fi
+            done < <(jq -r --arg sha "$final_head" '.workflow_runs[] | select(.head_sha == $sha and (.status == "queued" or .status == "in_progress" or (.status == "completed" and .conclusion == "success"))) | .id' <<< "$runs")
+            if [[ "$dispatch" == true ]]; then
+              echo "No current-head full gate evidence found; dispatching full acceptance."
+            fi
+          fi
+          if [[ "$dispatch" == true ]]; then
+            gh workflow run ci.yml --ref "$GITHUB_REF_NAME" -f "python_test_mode=$mode"
+          fi
+          if [[ "$generated_changed" == true && "$mode" == full ]]; then
+            gh workflow run optimization-baseline.yml --ref "$GITHUB_REF_NAME"
+          fi
 
   verify-main:
     if: github.ref_name == 'main'

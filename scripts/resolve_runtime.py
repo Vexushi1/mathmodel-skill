@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 import yaml
+import safe_yaml
 import stage_code as STAGE_CODE
 
 from resolve_workflow import TAXONOMY_PATH, add_solver_resources, code_artifact_projection, legacy_to_axes, resolve_workflow
@@ -32,7 +33,7 @@ COMPETITION_PROFILES_PATH = ROOT / "config" / "competition_profiles.yaml"
 def load_yaml(path: Path) -> dict[str, Any]:
     if not path.is_file():
         raise FileNotFoundError(path)
-    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return safe_yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
 def _unique(items: Iterable[str | None]) -> list[str]:

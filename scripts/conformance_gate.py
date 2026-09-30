@@ -10,6 +10,7 @@ import hashlib
 import json
 from pathlib import Path
 from typing import Any, Mapping
+import safe_yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 POLICY = 'implementation_conformance_policy'
@@ -20,7 +21,7 @@ FIELDS = (DELIVERY, ACCEPTANCE)
 EXTRA_SOURCES = ('scripts/conformance_gate.py', 'core/state_transition_contract.yaml',
                  'core/runtime_assurance_contract.yaml', 'scripts/stage_inputs.py',
                  'scripts/artifact_fingerprint.py', 'scripts/analysis_prerequisites.py',
-                 'scripts/artifact_identity.py')
+                 'scripts/artifact_identity.py', safe_yaml.SOURCE_RELATIVE_PATH)
 
 
 def digest(domain: str, value: Any) -> str:
@@ -47,8 +48,7 @@ def _shape(schema: dict, name: str, value: Any) -> list[str]:
 
 
 def _schema() -> dict:
-    import yaml
-    return yaml.safe_load((ROOT / 'core/project_state.schema.yaml').read_text(encoding='utf-8'))
+    return safe_yaml.safe_load((ROOT / 'core/project_state.schema.yaml').read_text(encoding='utf-8'))
 
 
 def policy_issues(entry: Mapping[str, Any], schema: dict | None = None) -> list[str]:
@@ -291,8 +291,7 @@ def skill_validator(observed: Mapping[str, Any]):
         if expected:
             _check_read_set(ROOT, expected)
         if expected and STATE_RELATIVE_PATH in staged:
-            import yaml
-            candidate = yaml.safe_load(staged[STATE_RELATIVE_PATH].read_text(encoding='utf-8'))
+            candidate = safe_yaml.safe_load(staged[STATE_RELATIVE_PATH].read_text(encoding='utf-8'))
             errors = [issue for question, entry in (candidate.get('subproblems') or {}).items()
                       for issue in stored_issues(entry, str(question))]
             if errors:
@@ -371,9 +370,8 @@ def add_runtime_resources(plan: dict, state: Mapping[str, Any], question: str | 
               if (question is None or question == str(key)) and present(entry)}
     if not scopes:
         return
-    import yaml
     contract_path = 'core/model_code_conformance_contract.yaml'
-    contract = yaml.safe_load((ROOT / contract_path).read_text(encoding='utf-8'))
+    contract = safe_yaml.safe_load((ROOT / contract_path).read_text(encoding='utf-8'))
     settings = contract['activation']['integration']
     consumers = [row['name'] for row in plan.get('pre_delivery_gates', [])
                  if row['name'] in settings['consumer_gates']]

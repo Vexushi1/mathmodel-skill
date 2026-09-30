@@ -9,7 +9,7 @@ from collections import deque
 from pathlib import Path
 from typing import Any, Mapping
 
-import yaml
+import safe_yaml
 from jsonschema import Draft202012Validator
 
 import artifact_identity as ARTIFACT_IDENTITY
@@ -47,7 +47,7 @@ BACKEND_HISTORY_REPORT = re.compile(r"^state/backend_migration_reports/([0-9a-f]
 
 
 def load_yaml(path: Path) -> Any:
-    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return safe_yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
 def _artifact_exists(project_root: Path, value: Any) -> bool:

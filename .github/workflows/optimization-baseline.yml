@@ -2,6 +2,7 @@ name: Optimization baseline evidence
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - core/bootstrap.yaml
       - core/workflow_router.yaml
@@ -10,6 +11,9 @@ on:
       - core/module_manifest.yaml
       - core/review_receipt_consumption_contract.yaml
       - scripts/resolve_runtime.py
+      - scripts/safe_yaml.py
+      - scripts/ci_unittest.py
+      - scripts/measure_contract_parsing.py
       - scripts/review_receipts.py
       - scripts/review_receipt_consumption.py
       - scripts/validate_model_approval.py
@@ -48,12 +52,14 @@ concurrency:
 
 jobs:
   source_snapshot:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Preserve tracked source inputs without credentials or working files
         shell: bash
         run: |
@@ -71,6 +77,7 @@ jobs:
           if-no-files-found: error
 
   characterize:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: windows-latest
     timeout-minutes: 25
     env:
@@ -79,6 +86,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
@@ -88,6 +96,11 @@ jobs:
         run: |
           python -m pip install -r requirements-dev.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Require generated final head before characterization
+        shell: pwsh
+        run: |
+          python scripts/generate_indexes.py --check
+          exit $LASTEXITCODE
       - name: Prepare immutable approved baseline
         shell: pwsh
         run: |
@@ -177,6 +190,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Define preview output directory
         shell: pwsh
         run: |

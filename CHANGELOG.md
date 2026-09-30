@@ -1,5 +1,13 @@
 # Changelog
 
+## 10.15.1
+
+- Speed up ordinary equivalent YAML parsing with PyYAML's existing safe C loader and a SafeLoader fallback, plus bounded process-local reuse by current content and loader semantics. Preserve independent returned objects, strict parser rules, current-byte observations, read-set/budget checks, approval and receipt qualification; never cache gate PASS or mutable project facts.
+- Run each formal Windows Python 3.10 / 3.14 full regression across four file shards while retaining standard unittest discovery coverage and fixture behavior. Keep `Python 3.10` and `Windows Python 3.14` as complete coverage gates; reject missing, mismatched, duplicate, failed or unfinished shard evidence. Preserve Windows MATLAB native and Linux LaTeX validation.
+- Use GitHub targeted checks during branch and draft PR development, then full checks for ready PRs, explicit full dispatch and main. Refresh generated metadata before costly full shards, including a validation path when generation has no differences. Remove two imported TestCase exposures that collected 24 redundant executions without deleting their original tests.
+- Save remote success and failure logs, per-test/file/collection timings and parser microbenchmarks. Governance 1.0.6 requires GitHub-only repository acceptance and exact source/checkout evidence; measured final-head and main results are recorded in the infrastructure PR before any speed claim. Project State 8.14.0 and all independent business protocols retain their versions and behavior.
+- Register only the exact 10.15.1 patch carrier in the immutable optimization comparison. No user project migration, numerical backend change, reduced computation or D1 work is included.
+
 ## 10.15.0
 
 - Add opt-in C2 review receipt consumption with Project State Schema 8.14.0 and a separate `core/review_receipt_consumption_contract.yaml` 1.0.0. An explicit root `review_receipt_policy` scopes required gates, questions, objects, roles, and checks; the C1 `review_receipts` record protocol and its Authority remain 1.0.0.

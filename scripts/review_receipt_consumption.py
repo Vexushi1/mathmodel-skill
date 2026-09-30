@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import yaml
+import safe_yaml
 from jsonschema import Draft202012Validator
 
 import project_transaction as PROJECT_TX
@@ -56,7 +57,7 @@ def _observe_skill(relative: str, observed: dict[str, str | None]) -> Mapping[st
     path = ROOT / relative
     raw = path.read_bytes()
     observed[relative] = hashlib.sha256(raw).hexdigest()
-    value = yaml.safe_load(raw.decode("utf-8"))
+    value = safe_yaml.safe_load(raw.decode("utf-8"))
     if not isinstance(value, Mapping):
         raise ValueError(f"{relative} is not a mapping")
     return value
@@ -277,6 +278,8 @@ def evaluate_gate(
         if policy is None and "review_receipt_policy" not in payload:
             report["status"] = "not_assessed"
             return report
+        observed["skill"][safe_yaml.SOURCE_RELATIVE_PATH] = PROJECT_TX.sha256_file(
+            ROOT / safe_yaml.SOURCE_RELATIVE_PATH)
         schema = _observe_skill(SCHEMA, observed["skill"])
         contract = _observe_skill(CONTRACT, observed["skill"])
         model = _observe_skill(MODEL_CONTRACT, observed["skill"])

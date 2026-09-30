@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 import yaml
+import safe_yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 BOOTSTRAP_PATH = ROOT / "core" / "bootstrap.yaml"
@@ -23,7 +24,7 @@ VALID_PREPROCESSING_DECISIONS = {"not_needed", "question_local", "project_level"
 def load_yaml(path: Path) -> dict[str, Any]:
     if not path.is_file():
         raise FileNotFoundError(path)
-    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return safe_yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
 def unique(items: Iterable[str | None]) -> list[str]:

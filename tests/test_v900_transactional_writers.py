@@ -18,7 +18,7 @@ import project_transaction as TX
 import validate_code_delivery as CODE
 import validate_semantic_governance as SEMANTIC
 from tests.test_sync_project import load_syncer, setup_project
-from tests.test_user_execution_contract import UserExecutionContractTests
+from tests import test_user_execution_contract as user_execution_fixture
 from tests.test_v900_semantic_governance import framework, identity_payload
 
 
@@ -52,7 +52,7 @@ class TransactionalWriterContractTests(unittest.TestCase):
     def test_code_delivery_write_advances_generation(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            fixture = UserExecutionContractTests()
+            fixture = user_execution_fixture.UserExecutionContractTests()
             script = fixture.make_project(root)
             config = fixture.config("primary", "问题一求解结果.xlsx")
             CODE.update_state(root, config, script)

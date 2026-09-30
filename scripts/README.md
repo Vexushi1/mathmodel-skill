@@ -65,19 +65,34 @@ python scripts/project_solver_backend.py migrate --project-root <项目根目录
 若预览后任何状态或输入字节改变、目标/理由改变，须重新预览和确认。`--confirm-migration` 仅在用户对该具体项目影响明确确认后使用；迁移不会自动遍历项目。若已留下 prepared transaction journal，先显式恢复，再重新取得快照；失败留下的未引用归档不得复用。
 - `lint_skill.py`：检查版本 carrier、Authority 指针、路由/模块/Pack 可达性、生产者—消费者闭环、三态预处理、当前每问 conditional layout（base3 + Gate=`required` 时 +2）、代码质量、writing/review 读取链、Algorithm Trace 消费、Schema、活动/legacy 隔离、Markdown/仓库引用、Python 语法和 generated-file 状态。
 - `measure_infrastructure.py`：P8 维护测量入口；只读统计脚本体量、validator hotspot、重复解析调用点与 generated-metadata workflow 形态，为后续结构整理提供可复算证据，不定义业务阈值或修改 runtime state。
+- `safe_yaml.py`：普通等价 YAML 解析的共用 helper；优先 `CSafeLoader`，不可用时回退 `SafeLoader`。按当前字节内容和 Loader 语义进行有限进程内解析复用，返回独立副本；严格 parser、read-set、budget、当前资格与 gate 判定不由该 helper 替代。纯 Python / 禁用缓存诊断以该 helper 的实际接口为准。
+- `ci_unittest.py`：GitHub 仓库维护测试 runner；沿用标准 unittest discovery 的完整清单与 fixture 语义，按文件运行专项或分片，保存 case/file/collection 耗时并汇总正式覆盖证据。专项结果不能代替完整回归。
+- `measure_contract_parsing.py`：GitHub 上普通合同解析的纯 Python、C、C+cache 对照微基准。其输出仅证明解析成本；整套回归收益须由实际 shard wall time 和总 runner time 核对。
 - `generate_indexes.py`：重建 `SKILL_FILE_INDEX.md`、`TEMPLATE_INDEX.md` 与 `MANIFEST.sha256`。`SKILL_FILE_INDEX.md` 按 Active Runtime/Reference、Current Maintenance、Migration/Compatibility、Historical Provenance、Legacy Navigation 分区；该分区只影响导航展示，不改变 `iter_files()` / MANIFEST 覆盖。生成文件不得手工伪造或手改哈希。
-- `.github/workflows/ci.yml`：完整 HSK Skill CI 同时保留 `push`、`pull_request` 与显式 `workflow_dispatch` 入口；显式调度执行的是同一组完整 jobs，不能用部分检查替代。
-- `.github/workflows/refresh-generated.yml`：feature branch 仍只负责生成并提交受管 metadata；当 bot push 产生新的 final head 时，显式调度既有完整 HSK Skill CI 与 Optimization baseline，对该最终 head 做等价复验；main 路径仍保持只读 `--check`，不得用部分检查替代完整门禁。
+- `.github/workflows/ci.yml`：保留 PR、main push 与显式 dispatch；draft / targeted 运行专项，ready PR（含 `ready_for_review`）/ full dispatch / main 完成全部正式门。每版本 4 个 Python 文件分片，以现有正式 check 名称汇总全集、版本、实际 checkout commit 和结果；任何缺失、失败或未完成证据不能通过。
+- `.github/workflows/refresh-generated.yml`：feature branch 生成受管 metadata，有差异时由 bot 提交；无差异也确定 final head 并进入对应验证路径。draft / 无 PR 调度专项，ready PR 的新 bot head 调度正式完整验证与适用的 Optimization baseline；main 路径保持只读 `--check`。
 
-仓库维护正式门禁由 GitHub Actions 执行：提交并推送源文件，等待 `refresh-generated` 的 bot 提交受管文件，记录最终 PR head，再核对该 head 的完整 CI 和适用的 Optimization baseline；合并后复核 `main`。正式 Python 完整回归为 Windows 3.10 / 3.14，LaTeX / TeX Live 继续在 Linux 验证。Linux 工具作业不构成 Linux Python 兼容声明。
+仓库维护正式门禁仅由 GitHub Actions 执行，规则统一引用根目录 `SKILL_CHANGE_GOVERNANCE.md`。冻结前对最终 head 核对两套 Windows Python 3.10 / 3.14 全覆盖分片及 specialist gates；所有正式 job 显式 checkout 同一 source head，分别记录 PR source head、实际 checkout commit 和 GitHub event SHA，合并后复核 main。Windows MATLAB 与 Linux LaTeX 保留原有原生证据链；Linux 工具作业不构成 Linux Python 兼容声明。所有 shard 无论成功或失败均保存 log/JSON 和逐项/文件/收集耗时。
 
-以下命令仅为可选本地诊断，默认不要求执行，也不能替代远端验收：
+以下为 GitHub runner 内的命令参考，无需在本机执行；标准 discovery 是完整 coverage 参考：
 
 ```bash
 python scripts/lint_skill.py
 python -m unittest discover -s tests -p "test_*.py"
 python scripts/generate_indexes.py --check
 ```
+
+分片与专项 runner 的远端命令（N 为当前分片序号，VERSION 为 3.10 或 3.14；以实际 CLI 校验为准）：
+
+```bash
+python scripts/ci_unittest.py run --shard-index N --shard-count 4 --report timings.json
+python scripts/ci_unittest.py run --modules test_safe_yaml,test_ci_unittest --report timings.json
+python scripts/ci_unittest.py verify --reports shard-reports --shard-count 4 --python-version VERSION --output coverage-summary.json
+```
+
+`--modules` 使用逗号分隔的测试模块名；仅显式专项使用该参数，正式 full 分片不能筛掉慢项或失败项。汇总只使用当前 workflow run 对应 checkout 的所有 shard 报告，不复用旧 head artifact。
+
+解析微基准：`python scripts/measure_contract_parsing.py --repeats 3 --output contract-parsing.json`。远端诊断可设置 `HSK_YAML_PURE_PYTHON=1` 或 `HSK_YAML_DISABLE_CACHE=1`；报告应注明实际 Loader。微基准不包括文件 I/O、gate 执行或真实数值求解。
 
 正式修改流程还必须遵守根目录 `SKILL_CHANGE_GOVERNANCE.md`：从 `main` 读取 bootstrap 与治理文件、使用独立分支和单主题 PR，并在最终 head 的 GitHub Actions 全绿后才合并。本段仓库维护验证不改变用户赛题数值代码在实际环境的本地 `full_fidelity` 执行职责。
 

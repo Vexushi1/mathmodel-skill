@@ -15,8 +15,14 @@ import measure_infrastructure as metrics  # noqa: E402
 
 
 class TestP8InfrastructureMeasurement(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # These assertions only read the same repository measurement. The CLI
+        # case below remains an independent process and exercises its arguments.
+        cls.reports = {top: metrics.collect_metrics(ROOT, top=top) for top in (8, 12, 20)}
+
     def test_measurement_is_read_only_structured_evidence(self):
-        report = metrics.collect_metrics(ROOT, top=8)
+        report = self.reports[8]
         self.assertEqual(report["schema_version"], "1.1.0")
         self.assertEqual(report["scope"], "repository_infrastructure_measurement_only")
         self.assertGreater(report["python_scripts"]["count"], 0)
@@ -24,7 +30,7 @@ class TestP8InfrastructureMeasurement(unittest.TestCase):
         self.assertLessEqual(len(report["python_scripts"]["largest"]), 8)
 
     def test_largest_rows_are_sorted_and_use_relative_paths(self):
-        report = metrics.collect_metrics(ROOT, top=12)
+        report = self.reports[12]
         rows = report["python_scripts"]["largest"]
         sizes = [row["bytes"] for row in rows]
         self.assertEqual(sizes, sorted(sizes, reverse=True))
@@ -47,7 +53,7 @@ class TestP8InfrastructureMeasurement(unittest.TestCase):
                     )
 
     def test_lint_skill_function_distribution_is_measured_not_inferred(self):
-        report = metrics.collect_metrics(ROOT, top=20)
+        report = self.reports[20]
         lint = next(
             row
             for row in report["validator_hotspots"]
@@ -64,7 +70,7 @@ class TestP8InfrastructureMeasurement(unittest.TestCase):
         )
 
     def test_repeated_parser_measurement_matches_ast_scan(self):
-        report = metrics.collect_metrics(ROOT, top=8)
+        report = self.reports[8]
         yaml_report = report["repeated_parsing"]["yaml_safe_load"]
         self.assertEqual(
             yaml_report["call_count"],
@@ -76,7 +82,7 @@ class TestP8InfrastructureMeasurement(unittest.TestCase):
         self.assertIn("scripts/validate_user_execution.py", paths)
 
     def test_generated_metadata_measurement_detects_current_workflow_shape(self):
-        report = metrics.collect_metrics(ROOT, top=8)
+        report = self.reports[8]
         generated = report["generated_metadata"]
         self.assertTrue(generated["refresh_workflow_present"])
         self.assertGreaterEqual(generated["generator_invocations"], 1)

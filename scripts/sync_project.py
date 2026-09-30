@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 import yaml
+import safe_yaml
 from jsonschema import Draft202012Validator
 
 SKILL_ROOT = Path(__file__).resolve().parent.parent
@@ -142,7 +143,7 @@ _snapshot_question = PROJECT_SNAPSHOT._snapshot_question
 def load_yaml(path: Path) -> dict[str, Any]:
     if not path.is_file():
         return {}
-    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return safe_yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
 def unique(items: Iterable[Any]) -> list[str]:

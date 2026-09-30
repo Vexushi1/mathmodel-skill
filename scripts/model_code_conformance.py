@@ -33,7 +33,7 @@ POLICY_SOURCES = (
     "core/output_contract.yaml", "scripts/model_code_conformance.py", "scripts/conformance_source.py",
     "scripts/semantic_identity.py", "scripts/runtime_assurance.py", "scripts/project_transaction.py",
     "scripts/stage_code.py", "scripts/run_config_parser.py", "scripts/python_source_checks.py",
-    "scripts/matlab_code_checks.py", "scripts/execution_protocol.py",
+    "scripts/matlab_code_checks.py", "scripts/execution_protocol.py", "scripts/safe_yaml.py",
 )
 
 

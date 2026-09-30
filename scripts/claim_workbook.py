@@ -10,7 +10,7 @@ import re
 from typing import Any, Mapping
 import xml.etree.ElementTree as ET
 import zipfile
-import yaml
+import safe_yaml
 from jsonschema import Draft202012Validator
 from openpyxl.styles.numbers import BUILTIN_FORMATS, is_date_format
 from claim_values import EvidenceError, NeedsReview, Value, number, unit_info
@@ -34,7 +34,7 @@ def current_profile(profiles: list, profile_id: str, metric: Any) -> dict:
     if len(matched) != 1 or matched[0].get('status') != 'current':
         raise EvidenceError('Numeric Profile must be current and uniquely identified')
     # Shape stays in the existing project Schema, including legal display forms.
-    schema = yaml.safe_load((Path(__file__).resolve().parents[1] /
+    schema = safe_yaml.safe_load((Path(__file__).resolve().parents[1] /
                              'core/project_state.schema.yaml').read_text(encoding='utf-8'))
     validator = Draft202012Validator({'$ref': '#/$defs/numeric_metric_entry', '$defs': schema['$defs']})
     error = next(validator.iter_errors(matched[0]), None)

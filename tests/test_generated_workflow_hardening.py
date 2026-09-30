@@ -27,6 +27,7 @@ class TestGeneratedWorkflowHardening(unittest.TestCase):
         job = self.jobs["refresh-feature-branch"]
         self.assertEqual(job["permissions"]["contents"], "write")
         self.assertEqual(job["permissions"]["actions"], "write")
+        self.assertEqual(job["permissions"]["pull-requests"], "read")
         condition = str(job["if"])
         self.assertIn("github.ref_name != 'main'", condition)
         self.assertIn("github.actor != 'github-actions[bot]'", condition)
@@ -64,7 +65,8 @@ class TestGeneratedWorkflowHardening(unittest.TestCase):
         self.assertIn("  workflow_dispatch:\n", self.ci_text)
         self.assertIn("  push:\n", self.ci_text)
         self.assertIn("  pull_request:\n", self.ci_text)
-        self.assertIn('branches: [main, "refactor/**", "upgrade/**"]', self.ci_text)
+        self.assertIn('branches: [main]', self.ci_text)
+        self.assertIn('ready_for_review', self.ci_text)
         self.assertIn("  workflow_dispatch:\n", self.opt_text)
 
     def test_generated_commit_dispatches_both_existing_full_gate_workflows(self):
@@ -83,6 +85,18 @@ class TestGeneratedWorkflowHardening(unittest.TestCase):
             script.index("gh workflow run optimization-baseline.yml"),
         )
         self.assertNotIn("continue-on-error", str(step))
+
+    def test_no_diff_still_has_validation_and_draft_success_is_not_full_evidence(self):
+        script = next(step["run"] for step in self.jobs["refresh-feature-branch"]["steps"]
+                      if step.get("name") == "Commit generated metadata and validate final head")
+        self.assertNotIn("exit 0", script)
+        self.assertIn("mode=targeted", script)
+        self.assertIn(".draft == false", script)
+        self.assertIn('python_test_mode=$mode', script)
+        self.assertIn('"head_sha=$final_head"', script)
+        self.assertIn('.name == "Python 3.10"', script)
+        self.assertIn('.name == "Windows Python 3.14"', script)
+        self.assertIn('.conclusion == "success"', script)
 
 
 if __name__ == "__main__":
