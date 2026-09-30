@@ -63,10 +63,12 @@ python scripts/project_solver_backend.py --help
 
 许可证与第三方声明见 `LICENSE`、`THIRD_PARTY_NOTICES.md`。
 
+建模证据增强的阶段范围见 [A—D 演进计划](docs/modeling_intelligence_evidence_evolution_plan.md)，实际行为验收见 [E1 场景映射](docs/modeling_intelligence_e1_acceptance_matrix.md)。[E2 发布评审与交接](docs/modeling_intelligence_e2_release_review_handoff.md) 记录当前协议、兼容与回退、具体材料来源、未核验范围和发布状态；这些维护记录不另设运行资格规则。
+
 
 ## A2：结构核验接入已有执行链
 
-显式选择阶段的项目，可按 [Conformance Authority](core/model_code_conformance_contract.yaml) 使用 A2 交付、回执与失效绑定；[实施台账](docs/modeling_intelligence_a2_execution_plan.md) 记录具体范围与验证。该功能不强制迁移旧项目，不把结构对应当成数学等价证明，不包含 B2/C/D 后续模块。最新 GitHub Release 与开发主干版本分别以实际发布记录和 bootstrap 为准。
+显式选择阶段的项目，可按 [Conformance Authority](core/model_code_conformance_contract.yaml) 使用 A2 交付、回执与失效绑定；[实施台账](docs/modeling_intelligence_a2_execution_plan.md) 记录具体范围与验证。该功能不强制迁移旧项目，不把结构对应当成数学等价证明。本段说明 A2 的职责；当前 B/C/D 能力及边界见对应章节。最新 GitHub Release 与开发主干版本分别以实际发布记录和 bootstrap 为准。
 
 ## B1：声明来源、选择与有限算术核验
 
