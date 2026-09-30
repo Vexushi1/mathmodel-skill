@@ -511,6 +511,25 @@ class ContractAndDriftTests(unittest.TestCase):
                     actual = hashlib.sha1(
                         b"blob " + str(len(data)).encode("ascii") + b"\0" + data
                     ).hexdigest()
+                elif relative == "core/project_state.schema.yaml":
+                    from claim_schema_reference import previous_d2_schema
+
+                    text = path.read_text(encoding="utf-8")
+                    schema = yaml.safe_load(text)
+                    if schema["version"] == "8.15.0":
+                        # Only the pinned D2 additions may project back to the frozen C2 bytes.
+                        previous_d2_schema(schema)
+                        start = text.index("  case_references:\n")
+                        end = text.index("  review_receipt_policy:\n", start)
+                        text = text[:start] + text[end:]
+                        reference = "        case_references: {$ref: '#/$defs/case_references'}\n"
+                        self.assertEqual(text.count(reference), 1)
+                        self.assertEqual(text.count("version: 8.15.0\n"), 1)
+                        text = text.replace(reference, "", 1).replace("version: 8.15.0\n", "version: 8.14.0\n", 1)
+                    data = text.encode("utf-8")
+                    actual = hashlib.sha1(
+                        b"blob " + str(len(data)).encode("ascii") + b"\0" + data
+                    ).hexdigest()
                 else:
                     actual = git_blob_sha(path)
                 self.assertEqual(actual, expected)
