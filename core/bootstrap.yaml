@@ -37,7 +37,7 @@ startup_contract:
     - Bootstrap stores startup pointers; global rules live in core/hsk_core_policy.md.
     - Load route contracts only when needed.
     - For reading_plan, use read_now then conditional triggers; load_order remains compatibility inventory. Execute every pre_delivery_gate. See core/runtime_assurance_contract.yaml#reading_plan.
-    - Runtime context hydration, intent provenance, artifact assurance and declarative contract dependency closure are governed by core/runtime_assurance_contract.yaml.
+    - Context hydration, intent provenance, artifact assurance and contract closure follow core/runtime_assurance_contract.yaml.
     - Load resolver manifests and taxonomies only when the route needs them.
     - Current project semantics are restored from current 模型论文框架.md when available; numerical facts still come from accepted workbooks and machine state from project_state.
     - New 模型论文框架.md instances use scripts/instantiate_model_paper_framework.py so core/output_contract.yaml#model_paper_framework.default_mode=compact is applied; the repository framework template is a canonical full superset source, not a live-project default copy.
@@ -46,7 +46,7 @@ startup_contract:
 hard_invariants:
   - Global modeling, preprocessing, solving, figure, writing and review rules are governed by their authoritative sources above; bootstrap must not restate those contracts in detail.
   - Resolve the smallest task-specific load order and stop after the user-requested deliverable; do not preload unrelated contracts or modules.
-  - Formal delivery must execute every `pre_delivery_gates` entry returned by the resolver, in resolver order; stage-specific gates such as semantic governance, project sync, and submission-package validation are examples, not a separately maintained fixed list.
+  - Formal delivery must execute every `pre_delivery_gates` entry returned by the resolver, in resolver order. The resolver owns this list.
   - Current 模型论文框架.md is the assistant-readable semantic memory; accepted workbooks are numerical fact sources and project state is the machine-state source.
   - Problem Contract freezing does not authorize task code by itself; before current model code is generated, the Model Challenge must pass and the user must explicitly approve the current semantic_revision and validated semantic_identity_hash under core/model_approval_contract.yaml; legacy semantic_hash approval is read-only provenance only.
   - Task-specific preprocessing, solve and result-analysis code remains user-executed; the assistant generates, statically checks and validates returned artifacts under the existing execution contracts.
