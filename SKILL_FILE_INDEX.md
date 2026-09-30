@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.16.0
+当前 Skill 版本：10.17.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -50,6 +50,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `config/prose_audit_patterns.yaml`
 - `config/review_weights.json`
 - `core/bootstrap.yaml`
+- `core/case_memory_retrieval_contract.yaml`
 - `core/claim_consumption_contract.yaml`
 - `core/claim_evidence_contract.yaml`
 - `core/code_quality_contract.yaml`
@@ -76,7 +77,9 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/v900_migration_contract.md`
 - `knowledge/case_memory/README.md`
 - `knowledge/case_memory/cases.json`
+- `knowledge/case_memory/development_queries.json`
 - `knowledge/case_memory/index.json`
+- `knowledge/case_memory/retrieval_features.json`
 - `knowledge/case_memory/schema.yaml`
 - `knowledge/case_memory/sources.json`
 - `modules/01_problem_audit.md`
@@ -94,6 +97,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `modules/05_writing/references/model_solution_reasoning_examples.md`
 - `modules/06_review_delivery.md`
 - `packs/artifact/algorithm_flow.md`
+- `packs/artifact/case_memory_retrieval.md`
 - `packs/artifact/code.md`
 - `packs/artifact/docx.md`
 - `packs/artifact/figure.md`
@@ -127,6 +131,8 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/audit_paper_prose.py`
 - `scripts/audit_v8_writing_surface.py`
 - `scripts/case_memory.py`
+- `scripts/case_memory_retrieve.py`
+- `scripts/case_references.py`
 - `scripts/ci_unittest.py`
 - `scripts/claim_consumption.py`
 - `scripts/claim_docx.py`
@@ -268,6 +274,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `templates/writing/code_appendix_description.md`
 - `templates/writing/docx_check.md`
 - `tests/audit_auxiliary_smoke.py`
+- `tests/case_memory_fixtures.py`
 - `tests/claim_evidence_smoke.py`
 - `tests/claim_fixture.py`
 - `tests/claim_schema_reference.py`
@@ -333,6 +340,9 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_c2_submission_gate_integration.py`
 - `tests/test_case_memory.py`
 - `tests/test_case_memory_generated.py`
+- `tests/test_case_memory_retrieval.py`
+- `tests/test_case_memory_routing.py`
+- `tests/test_case_references.py`
 - `tests/test_ci_platform_policy.py`
 - `tests/test_ci_unittest.py`
 - `tests/test_claim_consumption.py`
@@ -552,6 +562,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/modeling_intelligence_b1_protocol_decisions.md`
 - `docs/modeling_intelligence_b2_execution_plan.md`
 - `docs/modeling_intelligence_d1_execution_plan.md`
+- `docs/modeling_intelligence_d2_execution_plan.md`
 - `docs/modeling_intelligence_evidence_evolution_plan.md`
 - `docs/p3a_global_policy_source_map.md`
 - `docs/p3b_writing_role_source_map.md`
