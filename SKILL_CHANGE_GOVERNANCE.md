@@ -228,6 +228,8 @@ refactor/<topic>
 
 正式 Python full regression 仅有 Windows + Python 3.10、Windows + Python 3.14 两套。覆盖参考仍为 `python -m unittest discover -s tests -p "test_*.py"`；CI 每版本按测试文件分为 4 个独立进程分片，保留标准 discovery 的全集与 fixture 语义。每版本汇总必须核对所有分片的实际 checkout commit、Python 版本、分组、discovery ID 全集和结果，拒绝重复、遗漏、失败、缺失或未完成证据。保留现有 `Python 3.10` 与 `Windows Python 3.14` 正式 check 名称作为汇总门；不能把缺失分片或上游失败变成通过。所有正式 job 显式 checkout 同一 source head，分别记录 PR source head、实际 checkout commit 和 GitHub event SHA，不能以旧 head 的日志或产物代替当前验收。
 
+已提交的耗时种子仅用于确定性文件分片调度，保存来源 commit、run、Python 版本和原始报告哈希。完整执行但门禁失败的历史报告也可提供度量，不能保存或复用 PASS。Python 3.14 度量用于 3.10 时仅作运行时长估计；各版本仍按当前 head 独立完成全部覆盖与正式验收。新增文件用种子的平均秒数/测试作调度估计；汇总从当前 checkout 重读种子并核对内容哈希、实际权重与分组。
+
 最终 head 还须通过 Static contract lint、Generated file contract、MATLAB native contract、LaTeX templates、Production LaTeX attestation 及适用的 Optimization baseline 等远端检查。所有分片无论成功或失败均保存日志及逐项/文件/收集耗时；报告每版本 wall time 与所有分片总 runner time，实测后才说明收益，不用解析微基准替代完整回归证据。
 
 Linux runner 可以用于 LaTeX / TeX Live、静态工具、生成文件、Git 来源快照等工具作业；作业内部调用 Python helper 不构成 Linux Python 正式兼容承诺。不得在没有明确兼容目标与验收依据时无限扩展完整 Python 矩阵，也不得在其他 workflow 隐藏执行 Linux 整仓完整 unittest。

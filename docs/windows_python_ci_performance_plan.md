@@ -49,7 +49,9 @@
 新增维护用 Python runner，沿用标准 `unittest discover -s tests -p test_*.py` 的模块命名、收集和 fixture 语义。每个 worker 先取得完整收集清单，再按测试文件分组选择自己的子集，禁止用关键词筛掉失败或慢测试。
 
 - 初始固定为每版本 4 个 shard；只有两个正式 Python 版本，不扩张版本矩阵。
-- 分组使用确定性规则，初次按每文件收集测试数作 LPT 分配；日志积累后再依据实际文件耗时调整，不伪称已有逐项排名。
+- 分组使用确定性 LPT 规则。初次按每文件收集测试数分配；已从 GitHub run `36681830056` 的四个 Python 3.14 shard 取得真实逐项数据，现提交 `tests/fixtures/windows_unittest_timings.json`，按实测文件耗时重新均衡。新增文件用种子的平均秒数/测试乘当前收集数量估计；没有匹配种子的合成集合保持测试数分组。
+- 种子完整记录来源 head `ae97c6893430037ba9f3af0b53eb7f336e30ee24`、run、版本、四个 artifact ZIP 和原报告 SHA-256。该运行完整执行 2283 项，存在一条旧 CI 策略断言失败，故明确标记 `timing_only_failed_gate_not_acceptance`。215 个文件权重仅为 case time + exclusive fixture time，不叠加 suite block、不保存 PASS、不代替新 head 验收；Python 3.14 数据用于 3.10 只作调度估计。
+- 每个 worker 记录种子原始字节哈希、身份、实际权重和分组；collector 从当前 checkout 重读种子，再核所有 worker 的哈希、权重和确定性计划。任何版本仍独立重新执行完整全集，禁止复用旧运行的 coverage artifact。
 - 逐 case 输出含 setUp/tearDown/cleanup 的耗时；额外记录文件/fixture 开销、collection 时间、实际 loader、Python/依赖/runner 信息、source/checkout commit。
 - 所有 shard 无论成功或失败都上传 log 和 JSON 证据。
 - 每版本汇总验证 shard 数、commit、版本、分组、完整 discovery ID 清单、重复/遗漏、结果状态；任何缺失、错误、失败或 shard 未完成都使正式 gate 失败。
@@ -94,4 +96,4 @@ refresh-generated 即使没有生成差异也要有明确后续验证路径。�
 
 ## 8. 当前执行状态
 
-2026-09-30：计划已形成，用户已授权实施。源码实现、版本同步及 parser/工作流独立静态审查已完成，准备建立 draft PR 运行 GitHub 专项；runner 和全部正式证据仍待远端验收。最终 head CI、基础设施 PR 合并及 main 复验尚未完成，后续真实证据记录于该独立 PR 描述，不能提前标记完成。
+2026-09-30：计划已形成，用户已授权实施。PR #256 已建立，源码实现、版本同步及 parser/工作流独立静态审查已完成，draft GitHub 专项 242 项通过。首轮正式运行发现旧版 Changelog 标题分类断言，按既有格式修复；第二轮完整测量发现 baseline 不允许 draft 排除条件的旧断言，按本计划精确更新，并把该模块加入专项。现在根据四个远端 shard 的实测耗时重新分组。修改后的最终 head 完整验收、合并及 main 复验仍未完成，后续真实证据记录于该独立 PR 描述，不能提前标记完成。

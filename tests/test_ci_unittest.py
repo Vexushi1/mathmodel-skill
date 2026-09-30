@@ -4,6 +4,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 import copy
 import io
+import json
 from pathlib import Path
 import sys
 import tempfile
@@ -41,6 +42,7 @@ def synthetic_suite(sources):
 
 
 def run_synthetic(root, start, **kwargs):
+    kwargs.setdefault("profile", None)
     return CI.execute_collection(CI.discover_tests(root, start), metadata=META,
                                  stream=io.StringIO(), **kwargs)
 
@@ -281,19 +283,21 @@ class CiUnittestCoverageTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.reports_root = Path(self.temp.name)
 
-    def successful_reports(self):
+    def successful_reports(self, profile=None):
         with synthetic_suite({name: simple_module(number) for name, number in
                               (("a", 4), ("b", 3), ("c", 2), ("d", 1))}) as (root, start):
-            return [run_synthetic(root, start, shard_index=index, shard_count=4) for index in range(4)]
+            return [run_synthetic(root, start, shard_index=index, shard_count=4, profile=profile)
+                    for index in range(4)]
 
-    def verify(self, reports):
+    def verify(self, reports, profile=None):
         paths = []
         for index, report in enumerate(reports):
             path = self.reports_root / f"shard-{index}" / "timings.json"
             CI.write_report(path, report)
             paths.append(path)
         return CI.verify_reports(paths, shard_count=4, python_version="3.10",
-                                 github_sha=META["github_sha"], source_sha=META["source_sha"])
+                                 github_sha=META["github_sha"], source_sha=META["source_sha"],
+                                 profile=profile)
 
     def test_valid_same_head_shards_pass_with_file_and_case_rankings(self):
         summary = self.verify(self.successful_reports())
@@ -311,7 +315,7 @@ class CiUnittestCoverageTests(unittest.TestCase):
         path = self.reports_root / "shard-3" / "timings.json"
         path.write_text("not JSON", encoding="utf-8")
         summary = CI.verify_reports(sorted(self.reports_root.rglob("*.json")), shard_count=4,
-                                    python_version="3.10", github_sha=META["github_sha"])
+                                    python_version="3.10", github_sha=META["github_sha"], profile=None)
         self.assertEqual(summary["status"], "failure")
         self.assertTrue(any("unreadable report" in message for message in summary["errors"]))
 
@@ -341,6 +345,121 @@ class CiUnittestCoverageTests(unittest.TestCase):
                 reports = copy.deepcopy(original)
                 change(reports[0])
                 self.assertEqual(self.verify(reports)["status"], "failure")
+
+
+def profile_payload(weights, case_count=21):
+    return {"schema_version": 1, "profile_source_sha": "c" * 40, "profile_run_id": 123,
+            "python_version": "3.14", "profile_case_count": case_count,
+            "status": "timing_only_failed_gate_not_acceptance", "weights": weights,
+            "evidence": [{"run_id": 123, "purpose": "file timings only"}]}
+
+
+class CiUnittestMeasuredWeightsTests(unittest.TestCase):
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        self.profile_path = self.root / "profile.json"
+
+    def load(self, payload):
+        self.profile_path.write_text(json.dumps(payload), encoding="utf-8")
+        return CI.load_timing_profile(self.profile_path)
+
+    def test_measured_file_weights_balance_the_observed_work_better_than_counts(self):
+        entries = [{"file": f"tests/test_{name}.py"} for name, count in
+                   (("a", 6), ("b", 5), ("c", 4), ("d", 3), ("e", 2), ("f", 1))
+                   for _ in range(count)]
+        weights = {f"tests/test_{name}.py": seconds for name, seconds in
+                   (("a", 100), ("b", 50), ("c", 40), ("d", 30), ("e", 20), ("f", 10))}
+        profile = self.load(profile_payload(weights))
+        count_plan = CI.assign_files(entries, 2)
+        measured_plan = CI.assign_files(entries, 2, profile)
+        def totals(plan):
+            return [sum(seconds for path, seconds in weights.items() if plan[path] == index)
+                    for index in range(2)]
+        self.assertLess(max(totals(measured_plan)), max(totals(count_plan)))
+        self.assertEqual(measured_plan, CI.assign_files(list(reversed(entries)), 2, profile))
+
+    def test_new_files_use_seconds_per_case_and_unrelated_suites_keep_count_lpt(self):
+        profile = self.load(profile_payload({"tests/test_known.py": 20}, case_count=10))
+        entries = [{"file": "tests/test_known.py"}] + [{"file": "tests/test_new.py"}] * 3
+        weights, manifest = CI.file_weights(entries, profile)
+        self.assertEqual(weights["tests/test_known.py"], 20)
+        self.assertEqual(weights["tests/test_new.py"], 6)
+        self.assertEqual(manifest["mode"], "measured_file_seconds")
+        self.assertEqual(manifest["fallback_files"], ["tests/test_new.py"])
+        unrelated = [{"file": "tests/test_other.py"}] * 4 + [{"file": "tests/test_new.py"}]
+        self.assertEqual(CI.assign_files(unrelated, 2, profile), CI.assign_files(unrelated, 2))
+        self.assertEqual(CI.file_weights(unrelated, profile)[1]["mode"], "case_count")
+        self.assertIsNone(CI.load_timing_profile(self.root / "missing.json"))
+
+    def test_invalid_profile_identity_paths_weights_and_duplicate_keys_are_rejected(self):
+        original = profile_payload({"tests/test_known.py": 1})
+        variants = (("profile_source_sha", "wrong"), ("profile_run_id", 0),
+                    ("profile_run_id", True), ("python_version", "3.12"),
+                    ("profile_case_count", 0), ("schema_version", 1.0),
+                    ("status", "success"), ("evidence", []), ("weights", {}),
+                    ("weights", {"tests/../test_known.py": 1}),
+                    ("weights", {"tests\\test_known.py": 1}),
+                    ("weights", {"tests/test_known.py": 0}),
+                    ("weights", {"tests/test_known.py": -1}),
+                    ("weights", {"tests/test_known.py": float("nan")}),
+                    ("weights", {"tests/test_known.py": float("inf")}))
+        for field, value in variants:
+            with self.subTest(field=field, value=value), self.assertRaises(CI.EvidenceError):
+                payload = copy.deepcopy(original)
+                payload[field] = value
+                self.load(payload)
+        self.profile_path.write_text('{"schema_version":1,"schema_version":1}', encoding="utf-8")
+        with self.assertRaisesRegex(CI.EvidenceError, "duplicate timing profile key"):
+            CI.load_timing_profile(self.profile_path)
+
+    def test_collector_rejects_changed_checkout_profile_hash_even_when_assignment_is_identical(self):
+        weights = {f"tests/{PREFIX}{name}.py": seconds for name, seconds in
+                   (("a", 4), ("b", 3), ("c", 2), ("d", 1))}
+        payload = profile_payload(weights, case_count=10)
+        profile = self.load(payload)
+        with synthetic_suite({name: simple_module(count) for name, count in
+                              (("a", 4), ("b", 3), ("c", 2), ("d", 1))}) as (root, start):
+            reports = [run_synthetic(root, start, shard_index=index, shard_count=4, profile=profile)
+                       for index in range(4)]
+        paths = []
+        for index, report in enumerate(reports):
+            path = self.root / f"shard-{index}.json"
+            CI.write_report(path, report)
+            paths.append(path)
+        def verify(expected):
+            return CI.verify_reports(paths, shard_count=4, python_version="3.10",
+                                     github_sha=META["github_sha"], source_sha=META["source_sha"],
+                                     profile=expected)
+        self.assertEqual(verify(profile)["status"], "success")
+        payload["evidence"].append({"purpose": "same weights but changed evidence identity"})
+        changed = self.load(payload)
+        self.assertEqual(profile.weights, changed.weights)
+        self.assertNotEqual(profile.sha256, changed.sha256)
+        summary = verify(changed)
+        self.assertEqual(summary["status"], "failure")
+        self.assertTrue(any("profile hash" in message for message in summary["errors"]))
+
+    def test_tiny_positive_weight_and_empty_shards_preserve_full_coverage(self):
+        profile = self.load(profile_payload({f"tests/{PREFIX}a.py": 1e-9}, case_count=1))
+        with synthetic_suite({"a": simple_module(1)}) as (root, start):
+            reports = [run_synthetic(root, start, shard_index=index, shard_count=4, profile=profile)
+                       for index in range(4)]
+        paths = []
+        for index, report in enumerate(reports):
+            path = self.root / f"shard-{index}.json"
+            CI.write_report(path, report)
+            paths.append(path)
+        summary = CI.verify_reports(paths, shard_count=4, python_version="3.10",
+                                    github_sha=META["github_sha"], source_sha=META["source_sha"],
+                                    profile=profile)
+        self.assertEqual(summary["status"], "success", summary)
+        self.assertEqual([report["counts"]["assigned"] for report in reports], [1, 0, 0, 0])
+        with synthetic_suite({}) as (root, start):
+            empty = run_synthetic(root, start, profile=profile)
+            self.assertEqual(empty["status"], "error")
+            self.assertIn("discovery collected no tests", empty["integrity_errors"][0])
 
 
 if __name__ == "__main__":

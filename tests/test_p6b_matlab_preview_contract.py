@@ -73,7 +73,13 @@ class P6bMatlabPreviewContractTests(unittest.TestCase):
             "${{ github.event_name == 'workflow_dispatch' && inputs.run_matlab_preview == true }}",
         )
         for name in ("source_snapshot", "characterize"):
-            self.assertNotIn("if", jobs[name])
+            condition = jobs[name]["if"]
+            self.assertEqual(
+                condition,
+                "github.event_name != 'pull_request' || github.event.pull_request.draft == false",
+            )
+            self.assertNotIn("run_matlab_preview", condition)
+            self.assertNotIn("workflow_dispatch", condition)
             self.assertNotIn("needs", jobs[name])
 
     def test_explicit_preview_has_no_changed_file_barrier(self) -> None:

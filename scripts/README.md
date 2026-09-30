@@ -66,7 +66,7 @@ python scripts/project_solver_backend.py migrate --project-root <项目根目录
 - `lint_skill.py`：检查版本 carrier、Authority 指针、路由/模块/Pack 可达性、生产者—消费者闭环、三态预处理、当前每问 conditional layout（base3 + Gate=`required` 时 +2）、代码质量、writing/review 读取链、Algorithm Trace 消费、Schema、活动/legacy 隔离、Markdown/仓库引用、Python 语法和 generated-file 状态。
 - `measure_infrastructure.py`：P8 维护测量入口；只读统计脚本体量、validator hotspot、重复解析调用点与 generated-metadata workflow 形态，为后续结构整理提供可复算证据，不定义业务阈值或修改 runtime state。
 - `safe_yaml.py`：普通等价 YAML 解析的共用 helper；优先 `CSafeLoader`，不可用时回退 `SafeLoader`。按当前字节内容和 Loader 语义进行有限进程内解析复用，返回独立副本；严格 parser、read-set、budget、当前资格与 gate 判定不由该 helper 替代。纯 Python / 禁用缓存诊断以该 helper 的实际接口为准。
-- `ci_unittest.py`：GitHub 仓库维护测试 runner；沿用标准 unittest discovery 的完整清单与 fixture 语义，按文件运行专项或分片，保存 case/file/collection 耗时并汇总正式覆盖证据。专项结果不能代替完整回归。
+- `ci_unittest.py`：GitHub 仓库维护测试 runner；沿用标准 unittest discovery 的完整清单与 fixture 语义，按文件运行专项或分片，保存 case/file/collection 耗时并汇总正式覆盖证据。默认用 `tests/fixtures/windows_unittest_timings.json` 的实测文件耗时作确定性分组，新增文件按平均秒数/测试估计；collector 从当前 checkout 核种子哈希、权重和分组。种子仅为调度估计，失败历史运行的度量不能复用 PASS；3.14 权重不替代 3.10 的独立全覆盖验收。专项结果不能代替完整回归。
 - `measure_contract_parsing.py`：GitHub 上普通合同解析的纯 Python、C、C+cache 对照微基准。其输出仅证明解析成本；整套回归收益须由实际 shard wall time 和总 runner time 核对。
 - `generate_indexes.py`：重建 `SKILL_FILE_INDEX.md`、`TEMPLATE_INDEX.md` 与 `MANIFEST.sha256`。`SKILL_FILE_INDEX.md` 按 Active Runtime/Reference、Current Maintenance、Migration/Compatibility、Historical Provenance、Legacy Navigation 分区；该分区只影响导航展示，不改变 `iter_files()` / MANIFEST 覆盖。生成文件不得手工伪造或手改哈希。
 - `.github/workflows/ci.yml`：保留 PR、main push 与显式 dispatch；draft / targeted 运行专项，ready PR（含 `ready_for_review`）/ full dispatch / main 完成全部正式门。每版本 4 个 Python 文件分片，以现有正式 check 名称汇总全集、版本、实际 checkout commit 和结果；任何缺失、失败或未完成证据不能通过。

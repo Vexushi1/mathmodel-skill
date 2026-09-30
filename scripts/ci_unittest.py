@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 from dataclasses import dataclass
+import hashlib
 import importlib.metadata
 import json
 import math
@@ -27,10 +28,92 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_VERSION = "1.0.0"
+TIMINGS_PATH = ROOT / "tests/fixtures/windows_unittest_timings.json"
+_DEFAULT_PROFILE = object()
 
 
 class EvidenceError(ValueError):
     """Discovery or shard evidence cannot establish full-suite coverage."""
+
+
+@dataclass(frozen=True)
+class TimingProfile:
+    weights: dict[str, float]
+    case_count: int
+    sha256: str
+    identity: dict[str, Any]
+
+
+def _unique_json_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise EvidenceError(f"duplicate timing profile key: {key}")
+        result[key] = value
+    return result
+
+
+def load_timing_profile(path: Path = TIMINGS_PATH) -> TimingProfile | None:
+    if not path.exists():
+        return None
+    try:
+        raw = path.read_bytes()
+        if len(raw) > 2 * 1024 * 1024:
+            raise EvidenceError("timing profile exceeds 2 MiB")
+        payload = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_json_object)
+        if not isinstance(payload, dict) or type(payload.get("schema_version")) is not int or payload["schema_version"] != 1:
+            raise EvidenceError("timing profile schema_version must be 1")
+        if not re.fullmatch(r"[0-9a-f]{40}", str(payload.get("profile_source_sha", ""))):
+            raise EvidenceError("timing profile source SHA is invalid")
+        if type(payload.get("profile_run_id")) is not int or payload["profile_run_id"] < 1:
+            raise EvidenceError("timing profile run ID is invalid")
+        if payload.get("python_version") not in ("3.10", "3.14"):
+            raise EvidenceError("timing profile Python version is outside the formal matrix")
+        if type(payload.get("profile_case_count")) is not int or payload["profile_case_count"] < 1:
+            raise EvidenceError("timing profile case count is invalid")
+        if payload.get("status") not in ("timing_only_failed_gate_not_acceptance", "timing_only_successful_gate_not_acceptance"):
+            raise EvidenceError("timing profile must explicitly describe timing-only evidence")
+        evidence = payload.get("evidence")
+        if not isinstance(evidence, list) or not evidence or any(not isinstance(row, (dict, str)) or not row for row in evidence):
+            raise EvidenceError("timing profile evidence is missing or invalid")
+        weights = payload.get("weights")
+        if not isinstance(weights, dict) or not weights:
+            raise EvidenceError("timing profile weights must be a nonempty mapping")
+        if payload["profile_case_count"] < len(weights):
+            raise EvidenceError("timing profile case count is smaller than its file count")
+        for filename, seconds in weights.items():
+            if not isinstance(filename, str):
+                raise EvidenceError("timing profile path is not text")
+            parts = filename.split("/")
+            if (len(parts) < 2 or parts[0] != "tests" or "\\" in filename
+                    or any(not part or part in (".", "..") for part in parts)
+                    or not parts[-1].startswith("test_") or not parts[-1].endswith(".py")
+                    or not parts[-1][:-3].isidentifier()
+                    or any(not part.isidentifier() for part in parts[1:-1])):
+                raise EvidenceError(f"timing profile path is not a relative discovery file: {filename}")
+            if type(seconds) not in (int, float) or not math.isfinite(seconds) or seconds <= 0:
+                raise EvidenceError(f"timing profile weight must be finite and positive: {filename}")
+        if not math.isfinite(sum(weights.values())):
+            raise EvidenceError("timing profile total weight is not finite")
+        identity = {key: payload[key] for key in ("profile_source_sha", "profile_run_id", "python_version",
+                                                "profile_case_count", "status")}
+        return TimingProfile(weights, payload["profile_case_count"], hashlib.sha256(raw).hexdigest(), identity)
+    except (OSError, ValueError, UnicodeError) as exc:
+        raise EvidenceError(f"cannot load timing profile {path}: {exc}") from exc
+
+
+def file_weights(entries: list[dict[str, Any]], profile: TimingProfile | None = None) -> tuple[dict[str, float], dict[str, Any]]:
+    counts = Counter(entry["file"] for entry in entries)
+    matched = set(counts) & set(profile.weights) if profile else set()
+    average = sum(profile.weights.values()) / profile.case_count if profile and matched else None
+    weights = {path: profile.weights.get(path, average * count) if average is not None else count
+               for path, count in counts.items()}
+    manifest = {"mode": "measured_file_seconds" if matched else "case_count",
+                "weights_sha256": profile.sha256 if profile else None,
+                "profile": profile.identity if profile else None,
+                "fallback_seconds_per_case": average, "matched_file_count": len(matched),
+                "fallback_files": sorted(set(counts) - matched) if matched else []}
+    return weights, manifest
 
 
 def iter_cases(suite: unittest.TestSuite) -> Iterable[unittest.TestCase]:
@@ -89,14 +172,15 @@ def discover_tests(root: Path = ROOT, start_directory: Path | None = None) -> Co
     return Collection(suite, entries, time.perf_counter() - began, list(loader.errors))
 
 
-def assign_files(entries: list[dict[str, Any]], shard_count: int) -> dict[str, int]:
+def assign_files(entries: list[dict[str, Any]], shard_count: int,
+                 profile: TimingProfile | None = None) -> dict[str, int]:
     if shard_count < 1:
         raise EvidenceError("shard count must be positive")
-    weights = Counter(entry["file"] for entry in entries)
+    weights, _ = file_weights(entries, profile)
     loads = [0] * shard_count
     assignments = {}
-    # Largest-first by collected case count, with stable filename/index ties.
-    # These are seed weights, not a claim about measured file runtimes.
+    # Measured file seconds when available; otherwise collected case counts.
+    # New files use the profile's average seconds/case. No test result is reused.
     for path in sorted(weights, key=lambda name: (-weights[name], name)):
         index = min(range(shard_count), key=lambda value: (loads[value], value))
         assignments[path] = index
@@ -300,7 +384,8 @@ def runtime_metadata(root: Path = ROOT) -> dict[str, Any]:
 
 
 def execute_collection(collection: Collection, *, metadata: dict[str, Any], shard_index=0,
-                       shard_count=1, modules: list[str] | None = None, stream=None) -> dict[str, Any]:
+                       shard_count=1, modules: list[str] | None = None, stream=None,
+                       profile=_DEFAULT_PROFILE) -> dict[str, Any]:
     began = time.perf_counter()
     report = {"schema_version": SCHEMA_VERSION, **metadata, "status": "error",
               "mode": "targeted" if modules else "full", "modules": modules or [],
@@ -318,7 +403,13 @@ def execute_collection(collection: Collection, *, metadata: dict[str, Any], shar
             raise EvidenceError("duplicate discovery IDs: " + ", ".join(duplicates))
         if not collection.entries:
             raise EvidenceError("discovery collected no tests")
-        assignments = assign_files(collection.entries, shard_count)
+        if profile is _DEFAULT_PROFILE:
+            profile = load_timing_profile()
+        weights, manifest = file_weights(collection.entries, profile)
+        report["file_weights"] = weights
+        report["weight_profile"] = manifest
+        report["weights_sha256"] = manifest["weights_sha256"]
+        assignments = assign_files(collection.entries, shard_count, profile)
         report["file_assignments"] = assignments
         selected_files = {path for path, index in assignments.items() if index == shard_index}
         if modules:
@@ -391,7 +482,7 @@ def validate_report_structure(report: dict[str, Any]) -> None:
         value = report.get(field)
         if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
             raise EvidenceError(f"missing or invalid {field}")
-    for field in ("full_files", "file_assignments"):
+    for field in ("full_files", "file_assignments", "file_weights"):
         value = report.get(field)
         if not isinstance(value, dict) or any(not isinstance(key, str) for key in value):
             raise EvidenceError(f"missing or invalid {field}")
@@ -399,6 +490,11 @@ def validate_report_structure(report: dict[str, Any]) -> None:
         raise EvidenceError("invalid full file mapping")
     if any(type(value) is not int for value in report["file_assignments"].values()):
         raise EvidenceError("invalid file assignment")
+    if any(type(value) not in (int, float) or not math.isfinite(value) or value <= 0
+           for value in report["file_weights"].values()):
+        raise EvidenceError("invalid file weights")
+    if not isinstance(report.get("weight_profile"), dict):
+        raise EvidenceError("missing weight profile identity")
     shard = report.get("shard")
     if not isinstance(shard, dict) or any(type(shard.get(key)) is not int for key in ("index", "count")):
         raise EvidenceError("missing or invalid shard")
@@ -424,7 +520,8 @@ def validate_report_structure(report: dict[str, Any]) -> None:
 
 
 def verify_reports(paths: list[Path], *, shard_count: int, python_version: str,
-                   github_sha: str, source_sha: str | None = None) -> dict[str, Any]:
+                   github_sha: str, source_sha: str | None = None,
+                   profile=_DEFAULT_PROFILE) -> dict[str, Any]:
     errors, reports = [], []
     for path in paths:
         try:
@@ -439,6 +536,12 @@ def verify_reports(paths: list[Path], *, shard_count: int, python_version: str,
         errors.append(f"expected {shard_count} reports; found {len(paths)}, readable {len(reports)}")
     if not re.fullmatch(r"[0-9a-f]{40}", github_sha):
         errors.append("expected GitHub event SHA is missing or invalid")
+    if profile is _DEFAULT_PROFILE:
+        try:
+            profile = load_timing_profile()
+        except EvidenceError as exc:
+            errors.append(str(exc))
+            profile = None
     baseline = reports[0] if reports else {}
     seen_indices, all_assigned = [], []
     full = baseline.get("full_ids", [])
@@ -446,10 +549,12 @@ def verify_reports(paths: list[Path], *, shard_count: int, python_version: str,
         errors.append("full discovery IDs are missing or duplicated")
     expected_plan = baseline.get("file_assignments", {})
     full_files = baseline.get("full_files", {})
+    entries = [{"file": path} for path in full_files.values()]
+    weights, manifest = file_weights(entries, profile)
     if set(full_files) != set(full):
         errors.append("full discovery file mapping is incomplete")
     if full_files and shard_count > 0:
-        calculated = assign_files([{"file": path} for path in full_files.values()], shard_count)
+        calculated = assign_files(entries, shard_count, profile)
         if expected_plan != calculated:
             errors.append("file assignment is not the deterministic plan")
     for report in reports:
@@ -479,6 +584,9 @@ def verify_reports(paths: list[Path], *, shard_count: int, python_version: str,
         if (report.get("full_ids") != full or report.get("file_assignments") != expected_plan
                 or report.get("full_files") != full_files):
             errors.append(f"{label}: full discovery or assignment plan differs")
+        if (report.get("weight_profile") != manifest or report.get("file_weights") != weights
+                or report.get("weights_sha256") != manifest["weights_sha256"]):
+            errors.append(f"{label}: weights or profile hash differ from the current checkout")
         assigned = report.get("assigned_ids", [])
         expected_assigned = [case_id for case_id in full
                              if expected_plan.get(full_files.get(case_id)) == index]
@@ -507,6 +615,7 @@ def verify_reports(paths: list[Path], *, shard_count: int, python_version: str,
     return {"schema_version": SCHEMA_VERSION, "status": "failure" if errors else "success",
             "errors": errors, "python_version": python_version, "github_sha": github_sha,
             "source_sha": baseline.get("source_sha"), "checkout_sha": baseline.get("checkout_sha"),
+            "weight_profile": manifest, "weights_sha256": manifest["weights_sha256"],
             "shards": len(reports), "full_count": len(full),
             "wall_seconds": max((report.get("wall_seconds", 0) for report in reports), default=0),
             "runner_seconds": sum(report.get("wall_seconds", 0) for report in reports),
