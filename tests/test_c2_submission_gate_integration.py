@@ -9,12 +9,13 @@ from unittest.mock import patch
 
 import yaml
 
-from tests.test_sync_project import load_syncer, setup_project
+from tests.test_sync_project import setup_project
 
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
+import sync_project as SYNC
 import validate_submission_package as PACKAGE
 
 
@@ -40,7 +41,7 @@ class C2SubmissionGateTests(unittest.TestCase):
                 "observed_sources": {"project": {}, "skill": {}}}
 
     def test_submission_sync_consumes_opt_in_final_review_and_does_not_write_on_failure(self):
-        sync = load_syncer()
+        sync = SYNC
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             setup_project(root, status="designed")
@@ -53,7 +54,7 @@ class C2SubmissionGateTests(unittest.TestCase):
             self.assertEqual((root / "state/project_state.yaml").read_bytes(), state_bytes)
 
     def test_legacy_submission_sync_does_not_require_receipts(self):
-        sync = load_syncer()
+        sync = SYNC
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             setup_project(root, status="designed")
@@ -63,7 +64,7 @@ class C2SubmissionGateTests(unittest.TestCase):
             self.assertNotIn("review_receipt_gate", report)
 
     def test_undeclared_final_gate_retains_the_original_submission_write_path(self):
-        sync = load_syncer()
+        sync = SYNC
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             setup_project(root, status="designed")
@@ -89,7 +90,7 @@ class C2SubmissionGateTests(unittest.TestCase):
             self.assertEqual(report["review_receipt_gate"]["status"], "not_assessed")
 
     def test_final_pass_replays_submission_without_rewriting_reviewed_files(self):
-        sync = load_syncer()
+        sync = SYNC
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             setup_project(root, status="designed")
@@ -109,7 +110,7 @@ class C2SubmissionGateTests(unittest.TestCase):
             self.assertEqual({path: path.read_bytes() for path in watched}, before)
 
     def test_final_read_only_replay_rejects_source_changed_after_observation(self):
-        sync = load_syncer()
+        sync = SYNC
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             setup_project(root, status="designed")

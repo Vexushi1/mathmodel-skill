@@ -11,6 +11,11 @@ activation:
   path: review_receipt_policy
   protocol_version: 1.0.0
   mode: enforce_scoped
+  draft_handoff: >-
+    If draft_semantic_review is explicitly declared, run scripts/review_receipt_consumption.py
+    <project_root> --gate draft_semantic_review --question Qn for every declared question
+    before AI Cleanup and require passed scoped eligibility. This is a manual review-flow
+    step, not an automatic writing-runtime run_now or a replacement for human semantic review.
   absent_or_undeclared_gate_question: not_assessed_preserve_existing_review_path
   declared_but_missing_partial_unknown_or_invalid: failed_no_legacy_fallback
   duplicate_gate_question: failed

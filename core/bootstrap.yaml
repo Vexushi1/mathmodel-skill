@@ -34,10 +34,10 @@ startup_contract:
   resolver: scripts/resolve_runtime.py
   rules:
     - Bootstrap stores pointers and startup invariants only; global domain rules live in core/hsk_core_policy.md.
-    - Route-specific contracts are loaded only when the resolved task needs them.
+    - Load route-specific contracts only when needed.
     - For reading_plan, use read_now then conditional triggers; load_order remains compatibility inventory. Execute every pre_delivery_gate. See core/runtime_assurance_contract.yaml#reading_plan.
     - Runtime context hydration, intent provenance, artifact assurance and declarative contract dependency closure are governed by core/runtime_assurance_contract.yaml.
-    - Resolver-internal manifests and taxonomies are not user-facing preload unless the route needs their content.
+    - Load resolver manifests and taxonomies only when the route needs them.
     - Current project semantics are restored from current 模型论文框架.md when available; numerical facts still come from accepted workbooks and machine state from project_state.
     - New 模型论文框架.md instances use scripts/instantiate_model_paper_framework.py so core/output_contract.yaml#model_paper_framework.default_mode=compact is applied; the repository framework template is a canonical full superset source, not a live-project default copy.
     - Pure paper-writing routes use core/writing_runtime_contract.yaml plus the active template manifest and compact paper_writing_protocol; full core/writing_reasoning_contract.yaml remains the semantic fallback for complex adjudication and final review.

@@ -273,13 +273,16 @@ class ReviewReceiptConsumptionTests(unittest.TestCase):
         missing = self.inspect("final_review_and_delivery")
         self.assertEqual(missing["status"], "failed")
         self.assertTrue(any("figure:figures/q1.png" in issue for issue in missing["issues"]))
+        nested_object_id = "source:final_latex/sections/figure.tex"
         object_id = "figure:figures/q1.png"
-        self.state["review_receipt_policy"]["requirements"][0]["object_ids"].append(object_id)
+        self.state["review_receipt_policy"]["requirements"][0]["object_ids"].extend(
+            [nested_object_id, object_id]
+        )
         policy_digest = REVIEW.state_field_sha256(self.state["review_receipt_policy"])
         for record in self.state["review_receipts"]["records"]:
-            record["scope"]["object_ids"].append(object_id)
+            record["scope"]["object_ids"].extend([nested_object_id, object_id])
             for check in record["checks"]:
-                check["object_ids"].append(object_id)
+                check["object_ids"].extend([nested_object_id, object_id])
             for field in record["snapshot"]["state_fields"]:
                 if field["pointer"] == "/review_receipt_policy":
                     field["sha256"] = policy_digest
