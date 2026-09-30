@@ -156,6 +156,19 @@ def validate_package(
     if project_read_set.get('state/project_state.yaml') != state_hash:
         issues.append('项目State首读与B2门读集不一致')
     project_read_set['state/project_state.yaml'] = state_hash
+    if isinstance(state, Mapping) and 'review_receipt_policy' in state:
+        from review_receipt_consumption import evaluate_gate
+
+        review_gate = evaluate_gate(root, gate='final_review_and_delivery')
+        for domain, observed_rows in review_gate['observed_sources'].items():
+            destination = project_read_set if domain == 'project' else observed['skill']
+            for relative, digest in observed_rows.items():
+                if relative in destination and destination[relative] != digest:
+                    issues.append('C2 final review receipt read-set conflict: ' + relative)
+                destination[relative] = digest
+        if review_gate['status'] == 'failed':
+            issues.extend('C2 final review receipt: ' + str(item)
+                          for item in (review_gate['issues'] or [review_gate['status']]))
     package_hash: str | None = None
 
     def finish(payload: dict[str, Any]) -> dict[str, Any]:

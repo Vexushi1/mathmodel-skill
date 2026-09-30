@@ -75,7 +75,7 @@ class ClaimConsumptionContractTests(unittest.TestCase):
         })
 
     def test_optional_closed_policy_pairs_and_bounded_obligations(self):
-        self.assertEqual(self.schema["version"], "8.13.0")
+        self.assertEqual(self.schema["version"], "8.14.0")
         paper = self.schema["properties"]["paper_framework"]
         self.assertNotIn("claim_consumption_policy", paper["required"])
         self.assertEqual(paper["properties"]["claim_consumption_policy"],

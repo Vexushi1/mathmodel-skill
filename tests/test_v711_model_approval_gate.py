@@ -4,6 +4,7 @@ import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 
@@ -81,11 +82,44 @@ class ModelApprovalValidatorTests(unittest.TestCase):
         self.validator = load_validator()
         self.hash_value = "a" * 64
 
-    def write_state(self, subproblem: dict) -> Path:
+    def write_state(self, subproblem: dict, *, review_receipt_policy: dict | None = None,
+                    project_root: Path | None = None) -> Path:
+        state = {"subproblems": {"Q1": subproblem}}
+        if review_receipt_policy is not None:
+            state["review_receipt_policy"] = review_receipt_policy
+        if project_root is not None:
+            path = project_root / "state/project_state.yaml"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
+            return path
         temp = tempfile.NamedTemporaryFile("w", suffix=".yaml", encoding="utf-8", delete=False)
         with temp:
-            yaml.safe_dump({"subproblems": {"Q1": subproblem}}, temp, allow_unicode=True, sort_keys=False)
+            yaml.safe_dump(state, temp, allow_unicode=True, sort_keys=False)
         return Path(temp.name)
+
+    def current_structured_model(self, *, approval: str = "approved") -> dict:
+        return {
+            "model_challenge_status": "passed",
+            "human_model_approval_status": approval,
+            "semantic_revision": 3,
+            "approved_semantic_revision": 3,
+            "semantic_identity_schema_version": "1.0.0",
+            "semantic_identity_hash": self.hash_value,
+            "validated_semantic_identity_hash": self.hash_value,
+            "approved_semantic_identity_hash": self.hash_value,
+        }
+
+    @staticmethod
+    def active_model_receipt_policy() -> dict:
+        return {
+            "protocol_version": "1.0.0", "mode": "enforce_scoped", "requirements": [
+                {"gate": "model_challenge", "questions": ["Q1"], "object_ids": ["Q1:model"],
+                 "roles": [
+                     {"role": "positive_fitness_review", "check_ids": ["problem_contract_fit"]},
+                     {"role": "adversarial_model_challenge", "check_ids": ["alternative_problem_interpretation"]},
+                 ]},
+            ],
+        }
 
     def test_approved_matching_legacy_revision_and_hash_is_read_only_compatible(self):
         path = self.write_state({
@@ -118,6 +152,71 @@ class ModelApprovalValidatorTests(unittest.TestCase):
         try:
             errors = self.validator.validate_state(path, ["Q1"])
             self.assertTrue(any("human_model_approval_status" in item for item in errors))
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_c12_receipt_pass_cannot_replace_pending_human_approval(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = self.write_state(
+                self.current_structured_model(approval="pending"),
+                review_receipt_policy=self.active_model_receipt_policy(), project_root=root,
+            )
+            receipt_pass = {"status": "passed", "issues": [],
+                            "qualification": "scoped_receipt_eligible"}
+            with patch.object(self.validator, "_evaluate_model_receipts", return_value=receipt_pass) as evaluate:
+                errors = self.validator.validate_state(path, ["Q1"], project_root=root)
+            evaluate.assert_called_once_with(root.resolve(), "Q1")
+            self.assertTrue(any("human_model_approval_status" in issue for issue in errors), errors)
+            self.assertFalse(any("review receipt" in issue for issue in errors), errors)
+
+    def test_c12_active_receipt_failure_blocks_otherwise_approved_model(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = self.write_state(
+                self.current_structured_model(),
+                review_receipt_policy=self.active_model_receipt_policy(), project_root=root,
+            )
+            receipt_fail = {"status": "failed", "issues": ["missing second review pass"],
+                            "qualification": "not_granted"}
+            with patch.object(self.validator, "_evaluate_model_receipts", return_value=receipt_fail):
+                errors = self.validator.validate_state(path, ["Q1"], project_root=root)
+            self.assertIn("Q1: model_challenge review receipt: missing second review pass", errors)
+            self.assertFalse(any("human_model_approval_status" in issue for issue in errors), errors)
+
+    def test_c12_explicit_state_cannot_mix_canonical_review_policy(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.write_state(self.current_structured_model(),
+                             review_receipt_policy=self.active_model_receipt_policy(),
+                             project_root=root)
+            alternative = root / "alternate.yaml"
+            alternative.write_text(yaml.safe_dump({"subproblems": {"Q1": self.current_structured_model()}}),
+                                   encoding="utf-8")
+            with patch.object(self.validator, "_evaluate_model_receipts") as evaluate:
+                errors = self.validator.validate_state(alternative, ["Q1"], project_root=root)
+            evaluate.assert_not_called()
+            self.assertTrue(any("canonical state/project_state.yaml" in issue for issue in errors), errors)
+
+    def test_c12_explicit_policy_state_must_be_canonical(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.write_state(self.current_structured_model(), project_root=root)
+            alternative = root / "alternate.yaml"
+            alternative.write_text(yaml.safe_dump({
+                "subproblems": {"Q1": self.current_structured_model()},
+                "review_receipt_policy": self.active_model_receipt_policy(),
+            }), encoding="utf-8")
+            with patch.object(self.validator, "_evaluate_model_receipts") as evaluate:
+                errors = self.validator.validate_state(alternative, ["Q1"], project_root=root)
+            evaluate.assert_not_called()
+            self.assertTrue(any("canonical state/project_state.yaml" in issue for issue in errors), errors)
+
+    def test_c12_no_policy_preserves_existing_approval_gate(self):
+        path = self.write_state(self.current_structured_model())
+        try:
+            with patch.object(self.validator, "_evaluate_model_receipts", side_effect=AssertionError("not activated")):
+                self.assertEqual(self.validator.validate_state(path, ["Q1"]), [])
         finally:
             path.unlink(missing_ok=True)
 

@@ -1,0 +1,56 @@
+version: 1.0.0
+status: active_opt_in
+purpose: Consume current C1 receipts for an explicitly declared gate and question scope without granting another authority's qualification.
+authority:
+  activation_and_shape: core/project_state.schema.yaml#/$defs/review_receipt_policy
+  receipt_shape_and_snapshot: core/review_receipt_contract.yaml
+  existing_model_challenge: core/model_approval_contract.yaml
+  existing_final_review: modules/06_review_delivery.md
+  implementation: scripts/review_receipt_consumption.py
+activation:
+  path: review_receipt_policy
+  protocol_version: 1.0.0
+  mode: enforce_scoped
+  absent_or_undeclared_gate_question: not_assessed_preserve_existing_review_path
+  declared_but_missing_partial_unknown_or_invalid: failed_no_legacy_fallback
+  duplicate_gate_question: failed
+  removal_after_enforcement: governance_requires_explicit_migration_and_qualification_recheck
+  removal_detection_limit: current_State_alone_cannot_distinguish_a_legacy_project_from_deleted_policy; compare_durable_Git_or_audit_history_when_available
+requirements:
+  scope: exact_gate_and_question
+  required_roles: at_least_two_distinct_roles
+  model_challenge_roles: [positive_fitness_review, adversarial_model_challenge]
+  model_challenge_checks: policy_must_include_current_role_specific_must_check_ids
+  model_challenge_object: Qn:model
+  required_objects: every_policy_object_must_be_in_each_selected_role_scope_and_passed_checks
+  required_checks: every_policy_role_check_must_pass_and_touch_the_declared_scope; collectively_cover_all_required_objects
+  paper_object_ids:
+  - paper_source:<selected_entrypoint>
+  - source:<each_active_static_LaTeX_path_or_selected_DOCX_entrypoint>
+  - figure:<each_located_active_Figure_image_path_in_the_C1_LaTeX_closure>
+  - rendered:<registered_compiled_PDF_path>_for_final_review
+  paper_source: C1_selected_source_pointer_and_active_carrier_closure_must_be_current
+  paper_figure_scope: C2_requires_each_located_active_image_in_both_role_scopes_and_passed_checks; C1_alone_decides_external_approval_and_image_closure; neither_proves_visual_or_semantic_quality
+  final_review_checks: each_role_must_cover_current_final_review_matrix_check_families
+  final_review_limit: machine_family_coverage_does_not_prove_human_semantic_or_visual_review
+  snapshot_state_pointer: /review_receipt_policy
+  snapshot_authority: core/review_receipt_consumption_contract.yaml
+  paired_passes: same_gate_criteria_questions_objects_and_input_snapshot_except_role
+  execution: two_distinct_separated_passes_with_traceable_sources; native_or_human_self_declaration_is_unverified
+  findings: corrected_is_not_reverified; partial_recheck_never_replaces_full_review
+  prior_overlapping_records: stale_failed_or_inconclusive_records_require_valid_full_supersession
+command_evidence:
+  declared_command_without_known_zero_exit: ineligible
+  declared_zero_exit: statement_only_not_a_trusted_execution_attestation
+  trusted_host_adapter: unavailable
+output:
+  statuses: [passed, failed, not_assessed]
+  passed_means: scoped_receipt_eligibility_only
+  observed_sources: [project, skill]
+  selected_snapshots: selected_receipt_input_rows_for_candidate_state_recheck
+  never_grants: [human_model_approval, numerical_reproduction, accepted_workbook, final_delivery]
+compatibility:
+  old_project_without_policy: existing_two_pass_path_unchanged
+  C1_observation_receipts_without_policy: not_assessed
+  opted_in_partial_or_unknown_policy: failed
+  inspection: read_only_no_state_writer_or_implicit_repair

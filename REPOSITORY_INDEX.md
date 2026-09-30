@@ -78,6 +78,7 @@ CUMCM 固定一级结构只认 `templates/latex/cumcm/hsk/template_manifest.yaml
 | `core/workbook_schema.yaml` | objective/structure/capability工作簿条件与精确表头交接 |
 | `core/project_state.schema.yaml` | 单一capability事实源、semantic revision / structured identity、challenge/approval、分层哈希、stale和框架状态 |
 | `core/review_receipt_contract.yaml` | C1 可选审查回执的字段语义、输入与 Authority 快照、执行来源及复验范围；只读核验不授予交付资格 |
+| `core/review_receipt_consumption_contract.yaml` | C2 显式范围的门禁消费、当前回执选择与旧双轮审查兼容；不接管模型批准、数值或终审 Authority |
 
 ## 工具
 
@@ -91,6 +92,7 @@ CUMCM 固定一级结构只认 `templates/latex/cumcm/hsk/template_manifest.yaml
 - `scripts/sync_project.py`：阶段产物发现、工作簿Schema、图表链、分层哈希和stale；
 - `scripts/validate_project_state.py`：分类兼容、哈希与状态语义；
 - `scripts/review_receipts.py`：可选回执的只读结构与当前适用性核验；缺少回执不改变旧项目审查路径，也不插入默认门禁；
+- `scripts/review_receipt_consumption.py`：仅为显式 C2 策略的门禁提供范围、双轮与复验资格判断；旧路径保持原有门禁；
 - `scripts/validate_model_paper_framework.py`：compact/full 模式、Algorithm Trace 与项目记忆确定性校验；
 - `scripts/audit_latex_project.py`：正式 LaTeX 项目审计入口，递归覆盖模块化源码并委托 prose/BibTeX/framework 检查；
 - `scripts/audit_paper_prose.py`：上述入口使用的底层成稿结构、引用、登记术语/Numeric Profile 保守审查实现；

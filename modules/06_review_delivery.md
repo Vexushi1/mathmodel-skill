@@ -7,6 +7,8 @@
 - `draft_semantic_review`：正文初稿完成、AI Cleanup 前，检查数学/证据/能力激活/结构/引用风险，不要求 compile report，也不做最终交付判定；
 - `final_review_and_delivery`：Cleanup、装配、正式 audit/compile 后，覆盖全文 active scope、所有 assembled seam 与机器证据，给出最终 delivery decision。
 
+若项目显式以 `review_receipt_policy` 声明 `draft_semantic_review` 的 Qn 范围，AI Cleanup 前由审查流程运行 `python scripts/review_receipt_consumption.py <项目根> --gate draft_semantic_review --question Qn`，对每个声明 Qn 取得 `passed` 的 scoped eligibility，并照常完成本模块的人工语义审查；`failed` 或 `not_assessed` 不能替代该门。此项是显式流程要求，当前没有自动接入写作阶段的程序调用。未声明该 gate 的项目继续原有双轮审查路径。终审回执即使取得 `passed`，仍须完成本模块的全文、人工语义/视觉及既有提交门，不能直接作交付判定。
+
 ## 一、评审分级
 
 - **blocking**：已有 Hard 违规，修复前不得交付；
@@ -135,7 +137,7 @@ final review 读取 current framework、state、active assembly、题目要求�
 
 终审必须覆盖题意/输出、模型语义、数值与精度、写作能力激活、术语/claim、图表、引用、编译和提交合规。可按 physical file / question / check family 分批读取以控制上下文，但必须维护 coverage ledger；每个 active file、current question、headline claim 与 required gate 都有明确 covered 状态，**不得抽样几个章节就宣称全文通过**。
 
-机器检查族：`edition_compliance`、`anonymity_and_metadata`、`ai_disclosure`、`citation_entity_integrity`、`rendered_page_surface`、`figure_table_information_value`、`reproducibility_and_package`、`cross_question_dynamic_coverage`。仅供 `templates/review/final_review_matrix.yaml` 覆盖闭合，不复制正文规则。finding 标明 `machine / manual / hybrid` 来源；赛事规则只有 `verification_status=verified` 才可形成官方 Hard，`unverified / expired` 只能进入复核。已核实官方硬违规统一记为 `verified_official_rule_violation`。内部矩阵与中间材料不进入 Project State，不得自动加入 official package；C1 回执仅按 `core/review_receipt_contract.yaml` 入 State，不替代矩阵或人审。
+机器检查族：`edition_compliance`、`anonymity_and_metadata`、`ai_disclosure`、`citation_entity_integrity`、`rendered_page_surface`、`figure_table_information_value`、`reproducibility_and_package`、`cross_question_dynamic_coverage`。仅供 `templates/review/final_review_matrix.yaml` 覆盖闭合，不复制正文规则。finding 标明 `machine / manual / hybrid` 来源；赛事规则只有 `verification_status=verified` 才可形成官方 Hard，`unverified / expired` 只能进入复核。已核实官方硬违规统一记为 `verified_official_rule_violation`。内部矩阵与中间材料不进入 Project State，不得自动加入 official package；C1 回执仅按 `core/review_receipt_contract.yaml` 入 State，不替代矩阵或人审。C2 只在项目显式启用 `review_receipt_policy` 的范围内按 `core/review_receipt_consumption_contract.yaml` 将当前终审回执交给原有交付门消费；回执不自行完成本节要求的人工语义、视觉或完整正文审查，亦不替代终审矩阵。
 
 ### 3. 原子 finding 与评分关系
 

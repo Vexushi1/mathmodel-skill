@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import re
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 import yaml
 from semantic_identity import semantic_revision_issues
@@ -124,16 +124,23 @@ def validate_question(
     return errors
 
 
+def _evaluate_model_receipts(project_root: Path, question: str) -> Mapping[str, Any]:
+    from review_receipt_consumption import evaluate_gate
+    return evaluate_gate(project_root, gate="model_challenge", questions=[question])
+
+
 def validate_state(
     path: Path,
     questions: Iterable[str],
     *,
     allow_legacy_read_only: bool = False,
+    project_root: Path | None = None,
 ) -> list[str]:
     state = load_yaml(path)
     subproblems = state.get("subproblems", {})
     errors: list[str] = []
-    for question in iter_questions(state, questions):
+    selected_questions = iter_questions(state, questions)
+    for question in selected_questions:
         spec = subproblems.get(question, {})
         if not isinstance(spec, dict):
             errors.append(f"{question}: subproblem state must be a mapping")
@@ -145,6 +152,49 @@ def validate_state(
                 allow_legacy_read_only=allow_legacy_read_only,
             )
         )
+    root = Path(project_root).resolve() if project_root is not None else None
+    state_path = Path(path).resolve()
+    if root is None and state_path.name == "project_state.yaml" and state_path.parent.name == "state":
+        root = state_path.parent.parent
+    policy_active = "review_receipt_policy" in state
+    if root is not None and state_path != (root / "state/project_state.yaml").resolve():
+        canonical_path = root / "state/project_state.yaml"
+        canonical_state = (load_yaml(canonical_path)
+                           if not policy_active and canonical_path.is_file() else {})
+        if policy_active or "review_receipt_policy" in canonical_state:
+            errors.append(
+                "model_challenge review receipts require the canonical state/project_state.yaml "
+                "for this project root"
+            )
+            return errors
+    if policy_active:
+        if root is None:
+            errors.append("model_challenge review receipts require an explicit project root")
+        else:
+            for question in selected_questions:
+                try:
+                    result = _evaluate_model_receipts(root, question)
+                except Exception as exc:
+                    errors.append(
+                        f"{question}: model_challenge review receipt evaluation failed ({type(exc).__name__})"
+                    )
+                    continue
+                if not isinstance(result, Mapping):
+                    errors.append(f"{question}: model_challenge review receipt evaluation returned no report")
+                    continue
+                status = result.get("status")
+                issues = result.get("issues")
+                if status == "not_assessed" and not issues:
+                    continue
+                if (status == "passed" and result.get("qualification") == "scoped_receipt_eligible"
+                        and not issues):
+                    continue
+                errors.append(f"{question}: model_challenge review receipt status is {status!r}")
+                if isinstance(issues, list):
+                    errors.extend(
+                        f"{question}: model_challenge review receipt: {issue}"
+                        for issue in issues if isinstance(issue, str)
+                    )
     return errors
 
 
@@ -184,7 +234,7 @@ def main() -> int:
     project_root = Path(args.project_root).resolve()
     state_path = resolve_state_path(project_root, args.state)
     try:
-        errors = validate_state(state_path, args.question)
+        errors = validate_state(state_path, args.question, project_root=project_root)
     except (FileNotFoundError, ValueError) as exc:
         print("MODEL_APPROVAL: FAIL")
         print(f"- {exc}")

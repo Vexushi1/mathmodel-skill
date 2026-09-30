@@ -1167,6 +1167,19 @@ def synchronize(
     claim_stale_fragments: list[str] = []
     claim_framework_text: str | None = None
     claim_text_gate: dict[str, Any] | None = None
+    review_receipt_policy_present = "review_receipt_policy" in state
+    requested_write = write
+    review_receipt_gate: dict[str, Any] | None = None
+    if explicit_delivery_scope and scope == "submission" and review_receipt_policy_present:
+        import review_receipt_consumption as REVIEW_CONSUMPTION
+
+        review_receipt_gate = REVIEW_CONSUMPTION.evaluate_gate(
+            root, gate="final_review_and_delivery",
+        )
+        # Final review follows an earlier sync. Replaying submission checks may
+        # inspect the existing receipt, but must not rewrite a file it reviewed.
+        if review_receipt_gate["status"] != "not_assessed":
+            write = False
     initial_framework = state.get("paper_framework") or {}
     selected_policy = (initial_framework.get("claim_consumption_policy")
                        if isinstance(initial_framework, Mapping) else None)
@@ -1541,6 +1554,38 @@ def synchronize(
                 raise PROJECT_TX.ReadSetConflictError("formal compile source discovery changed during sync")
             PROJECT_TX._check_read_set(root, formal_compile_read_set)
 
+    if review_receipt_gate is not None:
+        import review_receipts as REVIEW_RECEIPTS
+
+        CONFORMANCE.merge_read_sets(conformance_read_set, review_receipt_gate["observed_sources"])
+        if sync_read_set is not None:
+            for relative, digest in review_receipt_gate["observed_sources"]["project"].items():
+                if relative in sync_read_set and sync_read_set[relative] != digest:
+                    raise PROJECT_TX.ReadSetConflictError("review receipt sync read-set conflict: " + relative)
+                sync_read_set[relative] = digest
+        if review_receipt_gate["status"] == "failed":
+            policy_error = True
+            issues.extend("final review receipt: " + str(item)
+                          for item in (review_receipt_gate["issues"] or ["failed"]))
+        elif review_receipt_gate["status"] == "passed":
+            if transition_state != state:
+                policy_error = True
+                issues.append("final review receipt: project sync would change State; synchronize before final review")
+            for selected in review_receipt_gate.get("selected_snapshots", []):
+                for field in selected["state_fields"]:
+                    try:
+                        current = REVIEW_RECEIPTS.state_field_sha256(
+                            REVIEW_RECEIPTS._state_value(transition_state, field["pointer"]),
+                        )
+                    except (KeyError, ValueError, TypeError):
+                        current = None
+                    if current != field["sha256"]:
+                        policy_error = True
+                        issues.append(
+                            "final review receipt: candidate State changes reviewed field "
+                            + field["pointer"]
+                        )
+
     report = {
         "status": "passed" if not issues else "failed",
         "delivery_scope": scope,
@@ -1574,16 +1619,27 @@ def synchronize(
                 "claim_figure_gate" if figure_policy_requested else
                 "claim_text_gate")] = claim_text_gate
         report["state_write_performed"] = write and not policy_error and not claim_report_only
+    if review_receipt_gate is not None:
+        report["review_receipt_gate"] = {
+            key: review_receipt_gate[key] for key in ("status", "issues", "receipt_ids", "coverage_boundary")
+            if key in review_receipt_gate
+        }
+        if requested_write != write:
+            report["write_requested"] = requested_write
     CONFORMANCE.assert_observed(root, conformance_read_set)
+    c2_read_only_replay = bool(
+        requested_write and not write and review_receipt_gate is not None
+        and review_receipt_gate["status"] != "not_assessed"
+    )
+    if sync_read_set is not None and ((write and not policy_error) or c2_read_only_replay):
+        current_raw_files, current_raw_mode, _, _ = data_source_files(root, state)
+        if (current_raw_mode != raw_mode or
+                {path.relative_to(root).as_posix() for path in current_raw_files}
+                != {path.relative_to(root).as_posix() for path in raw_files} or
+                _question_names(root, state) != question_names):
+            raise PROJECT_TX.ReadSetConflictError("sync source discovery changed during observation")
+        PROJECT_TX._check_read_set(root, sync_read_set)
     if write and not policy_error:
-        if sync_read_set is not None:
-            current_raw_files, current_raw_mode, _, _ = data_source_files(root, state)
-            if (current_raw_mode != raw_mode or
-                    {path.relative_to(root).as_posix() for path in current_raw_files}
-                    != {path.relative_to(root).as_posix() for path in raw_files} or
-                    _question_names(root, state) != question_names):
-                raise PROJECT_TX.ReadSetConflictError("sync source discovery changed during observation")
-            PROJECT_TX._check_read_set(root, sync_read_set)
         state_snapshot.assert_current()
         report_text = yaml.safe_dump(report, allow_unicode=True, sort_keys=False)
         if claim_report_only:

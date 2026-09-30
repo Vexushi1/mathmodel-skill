@@ -199,6 +199,47 @@ class ReviewReceiptTests(unittest.TestCase):
         report = self.inspect(host_evidence=fake_host)
         self.assertEqual(self.row(report, "R1")["independence"], "unverified")
 
+    def test_c10_pass_command_requires_known_zero_exit(self):
+        record = self.receipt()
+        record["execution"]["command"] = "python verify.py"
+        self.install(record)
+        report = self.inspect()
+        self.assertEqual(report["status"], "needs_review", report)
+        self.assertIn("unknown exit code", " ".join(self.row(report, "R1")["issues"]))
+
+        record["execution"]["exit_code"] = 2
+        self.install(record)
+        report = self.inspect()
+        self.assertEqual(report["status"], "needs_review", report)
+        self.assertIn("nonzero exit code", " ".join(self.row(report, "R1")["issues"]))
+
+        record["execution"]["exit_code"] = 0
+        self.install(record)
+        report = self.inspect()
+        self.assertEqual(report["status"], "current", report)
+        self.assertEqual(report["qualification"], "not_granted")
+
+    def test_c10_host_observation_can_refute_but_not_attest_a_pass(self):
+        record = self.receipt()
+        record["execution"].update(command="python verify.py", exit_code=0)
+        self.install(record)
+        for observed in (
+            {"command": "python another.py"}, {"exit_code": 1},
+            {"status": "failed"}, {"status": "unknown"}, {"status": "completed"},
+            {"method": "native_isolated"},
+        ):
+            with self.subTest(observed=observed):
+                report = self.inspect(host_evidence={"R1": observed})
+                self.assertEqual(report["status"], "needs_review", report)
+                self.assertEqual(self.row(report, "R1")["applicability"], "unverified")
+                self.assertEqual(self.row(report, "R1")["independence"], "separated_passes")
+
+        observed = {"command": "python verify.py", "exit_code": 0, "status": "success"}
+        report = self.inspect(host_evidence={"R1": observed})
+        self.assertEqual(report["status"], "current", report)
+        self.assertEqual(report["qualification"], "not_granted")
+        self.assertEqual(self.row(report, "R1")["independence"], "separated_passes")
+
     def test_c02_old_pass_is_stale_after_bound_input_changes(self):
         self.install(self.receipt())
         self.assertEqual(self.row(self.inspect(), "R1")["applicability"], "current")

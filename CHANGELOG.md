@@ -1,6 +1,13 @@
 # Changelog
 
-## 10.14.2
+## 10.15.0
+
+- Add opt-in C2 review receipt consumption with Project State Schema 8.14.0 and a separate `core/review_receipt_consumption_contract.yaml` 1.0.0. An explicit root `review_receipt_policy` scopes required gates, questions, objects, roles, and checks; the C1 `review_receipts` record protocol and its Authority remain 1.0.0.
+- Apply scoped receipt requirements within the existing Model Approval gate and the final submission sync and package gates. Once a final-review requirement is active, submission sync only rechecks previously synchronized project facts so that consuming the receipt cannot itself stale its bound inputs; projects without that requirement keep their original sync write behavior. A current declared PASS alone is insufficient: failed or unknown execution, unsupported numerical reproduction claims, stale or incomplete scope, and corrected findings without a current separate recheck cannot qualify. Human Model Approval, accepted workbooks, and human semantic or visual review retain their existing owners.
+- Preserve the original two-pass path for projects without the C2 policy and C1-only observation projects. Draft DOCX/LaTeX preparation does not require a final-review receipt before final review can occur. No receipt is generated, no user project is migrated, and no Release is published by this repository change.
+- Register only the exact 10.15.0 / State 8.14.0 / C2 Authority 1.0.0 carrier in the immutable optimization comparison. Ordinary legacy runtime behavior and every other Authority version remain strictly compared. GitHub Actions evidence is recorded separately for the final candidate head and merged main.
+
+## Previous release: 10.14.2
 
 - Move the required native MATLAB R2024b numerical CI job to Windows Server 2022. Keep the primary and independent analysis runs, accepted preprocessing and cross-question XLSX handoffs, source hashes, versioned receipts, A2 structural checks, and B1 read-only evidence checks.
 - Use a temporary Windows adapter around the pinned official Run MATLAB Command binary. It preserves the existing `-batch` CLI while forwarding quoted Unicode expressions and native exit codes. Require nonempty native reports and workbooks, then preserve actual runner evidence as an artifact.

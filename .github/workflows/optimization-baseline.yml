@@ -6,7 +6,15 @@ on:
       - core/bootstrap.yaml
       - core/workflow_router.yaml
       - core/runtime_assurance_contract.yaml
+      - core/project_state.schema.yaml
+      - core/module_manifest.yaml
+      - core/review_receipt_consumption_contract.yaml
       - scripts/resolve_runtime.py
+      - scripts/review_receipts.py
+      - scripts/review_receipt_consumption.py
+      - scripts/validate_model_approval.py
+      - scripts/sync_project.py
+      - scripts/validate_submission_package.py
       - scripts/reading_plan.py
       - scripts/README.md
       - RUNTIME_ROUTER.md

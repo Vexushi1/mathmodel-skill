@@ -396,40 +396,49 @@ def _gate_input_issues(
 
 
 def _independence(record: Mapping[str, Any], host_evidence: Mapping[str, Any] | None) -> tuple[str, list[str]]:
-    method = record["execution"]["method"]
-    source_kind = record["execution"]["source_kind"]
+    execution = record["execution"]
+    method = execution["method"]
+    source_kind = execution["source_kind"]
     issues: list[str] = []
-    if method != "unverified" and not record["execution"].get("source_locator"):
+    if method != "unverified" and not execution.get("source_locator"):
         issues.append("review execution source has no locator")
-    if method == "separated_passes" and not record["execution"].get("pass_id"):
+    if method == "separated_passes" and not execution.get("pass_id"):
         issues.append("separated review pass has no pass ID")
+    independence = "unverified"
     if method == "author_self_check":
         if source_kind not in {"author_self_report", "self_report"}:
             issues.append("author self-check has contradictory execution source")
-        return "not_independent", issues
-    if method == "separated_passes":
+        independence = "not_independent"
+    elif method == "separated_passes":
         if source_kind not in {"assistant_record", "self_report"}:
             issues.append("separated passes have contradictory execution source")
-        return "separated_passes", issues
-    if method == "native_isolated":
+        independence = "separated_passes"
+    elif method == "native_isolated":
         if source_kind != "host_record":
             issues.append("native isolated method lacks a host-record source")
     elif method == "human_review":
         if source_kind != "human_record":
             issues.append("human review method lacks a human-record source")
-    else:
-        return "unverified", issues
+
+    if record["verdict"] == "pass" and "command" in execution:
+        if "exit_code" not in execution:
+            issues.append("PASS command has an unknown exit code")
+        elif execution["exit_code"] != 0:
+            issues.append("PASS command has a nonzero exit code")
     # C1 has no trusted host attestation adapter. A caller's dict can expose a
     # contradiction, but it must never turn a self-declaration into verification.
     if host_evidence is not None and record["review_id"] in host_evidence:
         observed = host_evidence[record["review_id"]]
         if not isinstance(observed, Mapping) or any(
-            observed.get(key) != record["execution"].get(key)
-            for key in ("method", "source_kind", "source_locator", "pass_id")
+            observed.get(key) != execution.get(key)
+            for key in ("method", "source_kind", "source_locator", "pass_id", "command", "exit_code")
             if key in observed
         ):
             issues.append("host observation contradicts declared execution")
-    return "unverified", issues
+        elif (record["verdict"] == "pass" and "status" in observed
+              and observed["status"] not in {"success", "passed"}):
+            issues.append("host observation does not show successful execution")
+    return independence, issues
 
 
 def _inspect_record(
