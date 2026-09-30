@@ -2,6 +2,8 @@
 
 本目录只保存活动运行/维护脚本。行为以各脚本实现及其 Authority/contract 为准；本文件只提供稳定导航，不保留旧版本的行为快照。
 
+`measure_e1_resources.py --repeats 1 --output e1-resources.json` 是 GitHub 仓库维护度量：固定普通路由/关闭检索/显式合成检索，记录真实调用的耗时、Python 分配峰值、文件打开观察和返回字节。它不运行赛题、不授予资格，也不以未经预冻的时间阈值判 PASS；范围与证据映射见 [E1 计划](../docs/modeling_intelligence_e1_execution_plan.md) 和 [52 场景矩阵](../docs/modeling_intelligence_e1_acceptance_matrix.md)。
+
 ## 运行时入口与治理
 
 - `resolve_runtime.py`：默认 assured runtime 入口。在兼容旧 plan 字段及 `objective / structures / capabilities` 分类轴的基础上，可选读取 `--project-root` / `--question` 恢复 current project state，先检查全题项目后端策略，再按本次问题及实际恢复阶段验证 artifact hash，输出 intent provenance、ambiguity、declarative contract closure、authority fingerprint 与 `runtime_plan/assurance`；`auto` 或无状态兼容默认不写入项目选择。

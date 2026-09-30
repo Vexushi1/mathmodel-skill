@@ -796,9 +796,36 @@ class AuditClosureProjectionTests(unittest.TestCase):
         self.assertEqual(EVIDENCE.approved_d1_carrier_change(
             "facts_current", wrong_baseline, new, carriers), (new, []))
 
-    def test_current_d2_runtime_metadata_excludes_independent_corpus_schema(self):
+    def test_current_e1_runtime_metadata_excludes_independent_corpus_schema(self):
         self.assertEqual(EVIDENCE.authority_versions(EVIDENCE.HERE.parents[1]),
-                         EVIDENCE.D2_AUTHORITY_VERSIONS)
+                         EVIDENCE.E1_AUTHORITY_VERSIONS)
+
+    def test_e1_patch_retains_d2_history_and_rejects_qualification_or_loading_drift(self):
+        carriers = deepcopy(EVIDENCE.E1_AUTHORITY_VERSIONS)
+        self.assertEqual(carriers, {**EVIDENCE.D2_AUTHORITY_VERSIONS, "skill": "10.17.1"})
+        for case in (*EVIDENCE.A7_HYDRATED_PROVENANCE_CASES, "facts_unscoped"):
+            with self.subTest(case=case):
+                old, new = self.pair(case)
+                self.prepare_b2c(old, new)
+                new["version"] = "10.17.1"
+                original = deepcopy(new)
+                projected, changes = EVIDENCE.approved_e1_carrier_change(case, old, new, carriers)
+                self.assertEqual(projected, old)
+                self.assertEqual(new, original)
+                self.assertEqual([c["candidate"] for c in changes if c["path"] == "version"], ["10.17.1"])
+                for bad in ({**carriers, "project_state": "8.16.0"},
+                            {**carriers, "skill": "10.17.2"},
+                            {**carriers, "case_memory_retrieval": "1.0.0"}):
+                    self.assertEqual(EVIDENCE.approved_e1_carrier_change(case, old, new, bad), (new, []))
+                for field, value in (("load_order", ["knowledge/case_memory/index.json"]),
+                                     ("pre_delivery_gates", []), ("formal_delivery", True),
+                                     ("version", "10.17.2")):
+                    changed = deepcopy(new)
+                    changed[field] = value
+                    self.assertEqual(EVIDENCE.approved_e1_carrier_change(case, old, changed, carriers), (changed, []))
+                changed = deepcopy(new)
+                changed["assurance"]["qualification"] = "accepted"
+                self.assertEqual(EVIDENCE.approved_e1_carrier_change(case, old, changed, carriers), (changed, []))
 
     def test_d2_exact_carrier_preserves_d1_history_and_blocks_default_behavior_drift(self):
         carriers = deepcopy(EVIDENCE.D2_AUTHORITY_VERSIONS)
