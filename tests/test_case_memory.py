@@ -307,6 +307,47 @@ class CaseMemoryTests(unittest.TestCase):
                     self.save()
                     self.assert_blocked("privacy_violation", secrets=(secret,))
 
+    def test_d10_ids_schema_paths_and_custom_index_errors_never_echo_credentials(self) -> None:
+        secret = "sk-proj-" + "A" * 48
+        phone = "13812345678"
+        diagnostic = memory.CaseMemoryError("duplicate_id", "fixed message", phone, "sources.0.sections." + phone)
+        self.assertNotIn(phone, str(diagnostic))
+        self.assertNotIn(phone, json.dumps(diagnostic.diagnostic()))
+        original_source, original_case = deepcopy(self.source), deepcopy(self.case)
+        for location in ("source_id", "case_id", "evidence_id", "duplicate_id", "schema_path"):
+            with self.subTest(location=location):
+                self.sources["sources"] = [deepcopy(original_source)]
+                self.cases["cases"] = [deepcopy(original_case)]
+                if location in ("source_id", "duplicate_id"):
+                    self.sources["sources"][0]["id"] = secret
+                    self.cases["cases"][0]["source"]["id"] = secret
+                    if location == "duplicate_id":
+                        self.sources["sources"].append(deepcopy(self.sources["sources"][0]))
+                elif location == "case_id":
+                    self.cases["cases"][0]["id"] = secret
+                elif location == "evidence_id":
+                    self.cases["cases"][0]["evidence"][0]["id"] = secret
+                else:
+                    self.sources["sources"][0]["sections"][secret] = 1
+                self.save()
+                code = {"duplicate_id": "duplicate_id", "schema_path": "schema_error"}.get(location, "privacy_violation")
+                self.assert_blocked(code, secrets=(secret,))
+                if location == "source_id":
+                    completed = self.cli("validate")
+                    self.assertEqual(completed.returncode, 1, completed.stderr)
+                    self.assertNotIn(secret, completed.stdout + completed.stderr)
+        self.sources["sources"] = [deepcopy(original_source)]
+        self.cases["cases"] = [deepcopy(original_case)]
+        self.save()
+        candidate = self.root / (secret + ".json")
+        candidate.write_bytes(b" " * 262145)
+        before = snapshot(self.root)
+        report = memory.check_index(self.root, candidate)
+        self.assertEqual(report["status"], "blocked", report)
+        self.assertEqual(report["errors"][0]["code"], "budget_exceeded")
+        self.assertNotIn(secret, json.dumps(report))
+        self.assertEqual(snapshot(self.root), before)
+
     def test_parser_file_string_depth_and_node_budgets_fail_closed(self) -> None:
         original = snapshot(self.root)
         payloads = {

@@ -33,9 +33,13 @@ class CaseMemoryError(ValueError):
 
     def __init__(self, code: str, message: str, object_id: str = "corpus", field: str = ""):
         self.code, self.message = code, message
-        self.object_id = object_id if re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", object_id) else "invalid_id"
-        self.field = ".".join(part if re.fullmatch(r"[A-Za-z0-9_-]{1,64}", part) else "invalid_field"
-                              for part in field.split("."))[:512]
+        # IDs, section keys and custom index names are untrusted text, including
+        # on failures that occur before publication screening. Never echo them.
+        self.object_id = "corpus" if object_id == "corpus" else "record"
+        safe_fields = {"schema", "sources", "cases", "evidence", "source", "rights",
+                       "validation", "kind", "near_duplicates", "index", "yaml", "json"}
+        self.field = ".".join(part if part in safe_fields or re.fullmatch(r"[0-9]{1,4}", part)
+                              else "field" for part in field.split(".") if part)[:512]
         super().__init__(f"{self.code}: {self.object_id}: {self.field}: {self.message}")
 
     def diagnostic(self) -> dict:
