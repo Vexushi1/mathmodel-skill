@@ -326,7 +326,8 @@ class CaseReferenceBehaviorTests(unittest.TestCase):
         entry.update(artifacts_stale=True, result_summary_status="stale",
                      stale_layers=["primary_code", "solution_workbook", "result_analysis_workbook",
                                    "matlab_script", "figure_bundle", "framework"])
-        self.state["paper_framework"]["sync_status"] = "stale"
+        # Fragment mode keeps the framework registry current while Q1 layers are stale.
+        self.state["paper_framework"]["sync_status"] = "current"
         write_state(self.root, self.state)
         self.assertEqual(STATE.validate_state_payload(self.state, project_root=self.root), [])
         before = deepcopy(self.state)
