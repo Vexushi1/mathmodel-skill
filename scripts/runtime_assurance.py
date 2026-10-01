@@ -448,10 +448,20 @@ class ProjectStateSnapshot:
         state = {} if state is None else state
         if not isinstance(state, dict):
             raise ProjectStateReadError("invalid_project_state", "state must be a mapping")
-        for key in ("project", "subproblems"):
+        for key in ("project", "subproblems", "preprocessing"):
             value = state.get(key)
             if value is not None and not isinstance(value, dict):
                 raise ProjectStateReadError("invalid_project_state", f"{key} must be a mapping")
+        for question, entry in (state.get("subproblems") or {}).items():
+            scope = f"subproblems.{question}"
+            if not isinstance(entry, dict):
+                raise ProjectStateReadError("invalid_project_state", f"{scope} must be a mapping")
+            if entry.get("stale_layers") is not None and not isinstance(entry["stale_layers"], list):
+                raise ProjectStateReadError("invalid_project_state", f"{scope}.stale_layers must be a list")
+            try:
+                ARTIFACT_IDENTITY.validate_identity_container_shapes(entry, scope=scope)
+            except ARTIFACT_IDENTITY.ArtifactIdentityError as exc:
+                raise ProjectStateReadError("invalid_project_state", str(exc)) from exc
         try:
             state_generation(state)
         except ProjectTransactionError as exc:
@@ -625,7 +635,11 @@ def _framework_semantic_evidence(
         return {}, "current model framework is missing"
     text = framework_path.read_text(encoding="utf-8")
     rows: dict[str, dict[str, Any]] = {}
-    for question, section in question_sections(text).items():
+    try:
+        sections = question_sections(text)
+    except SemanticIdentityError as exc:
+        return {}, f"current model framework is malformed: {exc}"
+    for question, section in sections.items():
         try:
             rows[question] = inspect_question_semantics(section, question)
         except SemanticIdentityError as exc:
@@ -709,7 +723,7 @@ def _semantic_lock_evidence(
         actual_hash = value if isinstance(value, str) else None
 
     if framework_error:
-        status = "missing"
+        status = "missing" if framework_error == "current model framework is missing" else "malformed"
         reason = framework_error
     elif current_semantics is None:
         status = "malformed"

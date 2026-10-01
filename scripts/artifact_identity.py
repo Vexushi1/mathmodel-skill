@@ -2,7 +2,7 @@
 """Canonical artifact-identity compatibility helpers for the staged v9 migration."""
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence, Set
 from typing import Any
 
 LEGACY_PRIMARY_CODE_KEY = "model"
@@ -18,6 +18,38 @@ def _same_hash(left: Any, right: Any) -> bool:
     return str(left).strip().lower() == str(right).strip().lower()
 
 
+def _hash_container(values: Any) -> dict[str, Any]:
+    if values is None:
+        return {}
+    if not isinstance(values, Mapping):
+        raise ArtifactIdentityError("must be a mapping")
+    if any(not isinstance(key, str) or value is not None and not isinstance(value, str)
+           for key, value in values.items()):
+        raise ArtifactIdentityError("must contain string keys and string or null hash values")
+    return dict(values)
+
+
+def _stale_container(values: Any) -> Sequence[str] | Set[str]:
+    if values is None:
+        return ()
+    if isinstance(values, (str, bytes)) or not isinstance(values, (Sequence, Set)):
+        raise ArtifactIdentityError("must be a sequence or set of layer names")
+    if any(not isinstance(item, str) for item in values):
+        raise ArtifactIdentityError("must contain string layer names")
+    return values
+
+
+def validate_identity_container_shapes(entry: Mapping[str, Any], *, scope: str) -> None:
+    """Check consumed shapes without interpreting legacy/current alias conflicts."""
+    for field, check in (("artifact_hashes", _hash_container),
+                         ("validated_artifact_hashes", _hash_container),
+                         ("stale_layers", _stale_container)):
+        try:
+            check(entry.get(field))
+        except ArtifactIdentityError as exc:
+            raise ArtifactIdentityError(f"{scope}.{field} {exc}") from exc
+
+
 def normalize_artifact_hashes(
     values: Mapping[str, Any] | None,
     *,
@@ -30,7 +62,7 @@ def normalize_artifact_hashes(
     writers must call ``canonicalize_entry_hashes`` and therefore cannot rely on these
     read-only aliases.
     """
-    normalized = dict(values or {})
+    normalized = _hash_container(values)
     legacy = normalized.get(LEGACY_PRIMARY_CODE_KEY)
     primary = normalized.get(PRIMARY_CODE_KEY)
     if legacy not in (None, "") and primary not in (None, "") and not _same_hash(legacy, primary):
@@ -49,7 +81,7 @@ def normalize_artifact_hashes(
 
 def normalize_stale_layers(values: Any) -> list[str]:
     """Map the v8 implementation layer name model -> primary_code for read-only comparison."""
-    return sorted({PRIMARY_CODE_KEY if str(item) == LEGACY_PRIMARY_CODE_KEY else str(item) for item in (values or [])})
+    return sorted({PRIMARY_CODE_KEY if item == LEGACY_PRIMARY_CODE_KEY else item for item in _stale_container(values)})
 
 
 def entry_alias_issues(entry: Mapping[str, Any], *, scope: str = "subproblem") -> list[str]:
@@ -88,7 +120,12 @@ def active_alias_issues(entry: Mapping[str, Any], *, scope: str = "subproblem") 
                 f"{scope}.{field} is historical read-only compatibility; "
                 f"migrate to {canonical} before active project writes"
             )
-    if LEGACY_PRIMARY_CODE_KEY in {str(item) for item in (entry.get("stale_layers", []) or [])}:
+    try:
+        stale = _stale_container(entry.get("stale_layers"))
+    except ArtifactIdentityError as exc:
+        issues.append(f"{scope}.stale_layers {exc}")
+        stale = ()
+    if LEGACY_PRIMARY_CODE_KEY in stale:
         issues.append(
             f"{scope}.stale_layers contains historical layer 'model'; "
             "migrate it to 'primary_code' before active project writes"
