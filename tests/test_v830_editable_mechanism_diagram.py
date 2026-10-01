@@ -516,6 +516,20 @@ class ContractAndDriftTests(unittest.TestCase):
 
                     text = path.read_text(encoding="utf-8")
                     schema = yaml.safe_load(text)
+                    if schema["version"] == "8.16.0":
+                        from claim_schema_reference import previous_comparison_schema
+                        schema = previous_comparison_schema(schema)
+                        begin = "# analysis comparison definitions BEGIN\n"
+                        end = "# analysis comparison definitions END\n"
+                        self.assertEqual(text.count(begin), 1)
+                        self.assertEqual(text.count(end), 1)
+                        start = text.rfind("\n", 0, text.index(begin)) + 1
+                        stop = text.index(end, start) + len(end)
+                        text = text[:start] + text[stop:]
+                        reference = "        analysis_comparison: {$ref: '#/$defs/analysis_comparison'}\n"
+                        self.assertEqual(text.count(reference), 1)
+                        self.assertEqual(text.count("version: 8.16.0\n"), 1)
+                        text = text.replace(reference, "", 1).replace("version: 8.16.0\n", "version: 8.15.0\n", 1)
                     if schema["version"] == "8.15.0":
                         # Only the pinned D2 additions may project back to the frozen C2 bytes.
                         previous_d2_schema(schema)

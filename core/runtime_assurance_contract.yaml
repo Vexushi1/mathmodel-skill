@@ -1,4 +1,4 @@
-version: 2.4.0
+version: 2.5.0
 introduced_in_skill_version: 10.0.0
 skill_compatibility: '>=10.0.0,<11.0.0'
 purpose: >-
@@ -162,8 +162,10 @@ artifact_assurance:
       - validated or current workbook sha256 exists
       - actual sha256 == expected sha256
       - current analysis data_paths and any receipt-1.2 auxiliary inputs are observed against delivered identity without requiring prior sync
+      - when analysis comparison is declared, its current scope and frozen plan match delivered code and receipt and every required comparison has current captured source evidence and disposition
   scope_rules:
   - validated_results requires a current verified primary result plus either current verified analysis or a reasoned not_required decision for every scoped question.
+  - A current required analysis-comparison item prevents not_required qualification; technical comparison coverage cannot certify mathematical truth or independent model validity.
   - With project state loaded, solution_workbook, solved_results, and result_quality_report declarations share accepted_solution_workbook qualification; result_analysis_workbook shares accepted_result_analysis_workbook qualification. A derived validated_results declaration cannot bypass these qualifications.
   - With --question Qn, semantic and workbook evidence is evaluated for that question.
   - Without a question scope, generic locked_model_spec is promoted only when every scoped question passes the structured identity evidence chain; legacy questions remain readable provenance but are not promoted as verified locked_model_spec.

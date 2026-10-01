@@ -1,7 +1,7 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/project_state.schema.yaml
 title: HSK 数学建模项目状态
-version: 8.15.0
+version: 8.16.0
 type: object
 additionalProperties: false
 required: [project, requirements, decisions, subproblems, variables, paper_framework, artifacts, risks, next_gate]
@@ -1530,6 +1530,119 @@ $defs:
         type: string
         pattern: '^(?:final_latex/.+\.tex|draft_docx/.+\.docx)$'
       status: {type: string, enum: [current, stale, not_applicable]}
+  # analysis comparison definitions BEGIN
+  comparison_selector_source:
+    type: object
+    additionalProperties: false
+    required: [source, selector]
+    properties:
+      source: {type: string, enum: [primary, analysis]}
+      selector: {$ref: '#/$defs/claim_selector'}
+  comparison_criterion:
+    type: object
+    additionalProperties: false
+    required: [id, relation, threshold, unit, source]
+    properties:
+      id: {type: string, minLength: 1, maxLength: 4096}
+      relation: {type: string, enum: [le, ge, abs_le, abs_ge]}
+      threshold: {type: string, minLength: 1, maxLength: 144, pattern: '^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$'}
+      unit: {type: string, minLength: 1, maxLength: 4096}
+      source: {type: string, minLength: 1, maxLength: 4096}
+      arithmetic_tolerance: {type: string, minLength: 1, maxLength: 144, pattern: '^[+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$'}
+  comparison_evidence_ref:
+    type: object
+    additionalProperties: false
+    required: [id, candidate_ref, baseline, candidate, reported_baseline, reported_difference, operation]
+    properties:
+      id: {type: string, minLength: 1, maxLength: 4096}
+      candidate_ref: {type: string, minLength: 1, maxLength: 4096}
+      baseline: {$ref: '#/$defs/comparison_selector_source'}
+      candidate: {$ref: '#/$defs/comparison_selector_source'}
+      reported_baseline: {$ref: '#/$defs/comparison_selector_source'}
+      reported_difference: {$ref: '#/$defs/comparison_selector_source'}
+      operation:
+        type: object
+        additionalProperties: false
+        required: [op, comparison_axis]
+        properties:
+          op: {type: string, enum: [difference, relative_change, improvement, percentage_points]}
+          comparison_axis: {type: string, enum: [model, algorithm]}
+          direction: {type: string, enum: [higher, lower]}
+        allOf:
+        - if:
+            properties: {op: {const: improvement}}
+          then:
+            required: [direction]
+  comparison_check:
+    type: object
+    additionalProperties: false
+    required: [id, kind, requirement, requirement_source, question, target_claim, baseline_ref, candidate_refs, criterion, evidence_refs]
+    properties:
+      id: {type: string, pattern: '^CMP-Q[1-9][0-9]*-[0-9]{2,}$'}
+      kind: {type: string, enum: [model_comparison, algorithm_comparison]}
+      requirement: {type: string, enum: [required, exploratory, retired]}
+      requirement_source: {type: string, minLength: 1, maxLength: 4096}
+      question: {type: string, minLength: 1, maxLength: 4096}
+      target_claim: {type: string, minLength: 1, maxLength: 4096}
+      baseline_ref: {type: string, minLength: 1, maxLength: 4096}
+      candidate_refs: {type: array, minItems: 1, maxItems: 128, uniqueItems: true, items: {type: string, minLength: 1}}
+      criterion: {$ref: '#/$defs/comparison_criterion'}
+      evidence_refs: {type: array, maxItems: 128, items: {$ref: '#/$defs/comparison_evidence_ref'}}
+      disposition_ref: {type: string, pattern: '^E[1-9][0-9]*$'}
+      retirement:
+        type: object
+        additionalProperties: false
+        required: [reason, claim_action, source_ref]
+        properties:
+          reason: {type: string, minLength: 1, maxLength: 4096}
+          claim_action: {type: string, enum: [removed_auxiliary_claim, superseded_primary_semantics]}
+          source_ref: {type: string, minLength: 1, maxLength: 4096}
+    allOf:
+    - if:
+        properties: {requirement: {const: required}}
+      then:
+        properties: {evidence_refs: {minItems: 1}}
+    - if:
+        properties: {requirement: {const: retired}}
+      then:
+        required: [retirement]
+  comparison_review:
+    type: object
+    additionalProperties: false
+    required: [review_id, role, scope_sha256, verdict, method, conclusion, blocking_items, unresolved_items]
+    properties:
+      review_id: {type: string, minLength: 1, maxLength: 4096}
+      role: {type: string, enum: [positive_fitness_review, adversarial_model_challenge]}
+      scope_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      verdict: {type: string, enum: [pending, passed, revision_required, stale]}
+      method: {type: string, enum: [separate_pass, subagent]}
+      conclusion: {type: string, minLength: 1, maxLength: 4096}
+      blocking_items: {type: array, maxItems: 128, items: {type: string, minLength: 1}}
+      unresolved_items: {type: array, maxItems: 128, items: {type: string, minLength: 1}}
+  comparison_approval:
+    type: object
+    additionalProperties: false
+    required: [status, owner, statement, source_ref, approved_scope_sha256, reviews]
+    properties:
+      status: {type: string, enum: [pending, approved, revision_required, stale]}
+      owner: {const: user}
+      statement: {type: string, minLength: 1, maxLength: 4096}
+      source_ref: {type: string, minLength: 1, maxLength: 4096}
+      approved_scope_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      reviews: {type: array, maxItems: 2, items: {$ref: '#/$defs/comparison_review'}}
+  analysis_comparison:
+    description: Optional strict 03B comparison scope and frozen coverage plan; never replaces primary model identity or approval.
+    type: object
+    additionalProperties: false
+    required: [protocol_version, scope_ref, scope_sha256, baseline_semantic_identity_hash, approval_binding, checks]
+    properties:
+      protocol_version: {const: 1.0.0}
+      scope_ref: {type: string, pattern: '^Q[1-9][0-9]*$'}
+      scope_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+      baseline_semantic_identity_hash: {type: string, pattern: '^[0-9a-f]{64}$'}
+      approval_binding: {$ref: '#/$defs/comparison_approval'}
+      checks: {type: array, minItems: 1, maxItems: 128, items: {$ref: '#/$defs/comparison_check'}}
+  # analysis comparison definitions END
 properties:
   review_receipt_policy: {$ref: '#/$defs/review_receipt_policy'}
   review_receipts: {$ref: '#/$defs/review_receipts'}
@@ -1791,6 +1904,7 @@ properties:
           description: v7.7+深化证据对具体主张的 support/modify/reject 处置；旧项目可缺失。
           type: array
           items: {$ref: '#/$defs/analysis_evidence_entry'}
+        analysis_comparison: {$ref: '#/$defs/analysis_comparison'}
         evidence:
           type: array
           uniqueItems: true

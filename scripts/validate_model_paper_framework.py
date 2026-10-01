@@ -20,6 +20,7 @@ import yaml
 if str(Path(__file__).resolve().parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
 import stage_code as STAGE_CODE
+import analysis_comparison as COMPARISON
 
 COMPACT_HEADINGS = (
     "# 模型论文框架",
@@ -812,6 +813,13 @@ def validate_framework_text(
     for name, subproblem in (state.get("subproblems", {}) or {}).items():
         if not isinstance(subproblem, Mapping):
             continue
+        if COMPARISON.enabled(subproblem):
+            try:
+                comparison_result = COMPARISON.inspect_plan(
+                    subproblem, question=str(name), specs=text)
+                issues.extend(f"{name}: {item}" for item in comparison_result["issues"])
+            except (ValueError, TypeError, KeyError) as exc:
+                issues.append(f"{name}: malformed comparison specifications: {exc}")
         section = str(subproblem.get("framework_section", "")).strip()
         if not section:
             issues.append(f"{name}.framework_section is empty")

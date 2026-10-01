@@ -96,6 +96,8 @@ sum / union / intersection / max / min / forall-exists / exists-forall / custom
 
 ## 4. 必做验证与输出
 
+按需后置的多模型检验与同模型多算法检验遵守 `modules/03_result_analysis.md`：前者比较不同数学结构，后者保持原模型比较不同求解方法；继承项目 backend、合法数据与共同评价，并逐项输出真实专项证据。不因本 Pack 的基准要求恢复固定双模型路线。
+
 ### 03A：当前主计算的内在有效性
 
 只检查当前 locked model 与当前 numerical method 是否足以形成 accepted 主结果，按实际适用项执行：

@@ -129,12 +129,56 @@ def _evaluate_model_receipts(project_root: Path, question: str) -> Mapping[str, 
     return evaluate_gate(project_root, gate="model_challenge", questions=[question])
 
 
+def validate_comparison_approval(
+    project_root: Path, state: Mapping[str, Any], entry: Mapping[str, Any], question: str,
+    *, specs=None, review_report=None,
+) -> list[str]:
+    """Reuse Model Approval for a separately identified analysis comparison scope.
+
+    A recorded scope verdict is not a numerical acceptance or a replacement for
+    the current primary lock. Opt-in C review qualification remains separately owned.
+    """
+    from analysis_comparison import enabled, inspect_plan
+    from semantic_identity import inspect_question_semantics, question_sections
+
+    if not enabled(entry):
+        return []
+    errors = validate_question(question, dict(entry))
+    try:
+        if specs is None:
+            specs = (Path(project_root) / "模型论文框架.md").read_text(encoding="utf-8")
+        if isinstance(specs, str):
+            section = question_sections(specs).get(question, "")
+            actual = inspect_question_semantics(section, question)["semantic_identity_hash"]
+            if actual != entry.get("semantic_identity_hash"):
+                errors.append(f"{question}: comparison baseline differs from current primary framework SIB")
+        report = inspect_plan(entry, question=question, specs=specs)
+        errors.extend(f"{question}: {issue}" for issue in report["issues"])
+        if "review_receipt_policy" in state:
+            from review_receipt_consumption import evaluate_gate
+
+            receipt = (review_report if review_report is not None else
+                       evaluate_gate(Path(project_root), gate="model_challenge", questions=[question], comparison_scope=True))
+            if not isinstance(receipt, Mapping):
+                errors.append(f"{question}: comparison scope receipt returned no structured report")
+                return list(dict.fromkeys(errors))
+            if receipt.get("status") != "not_assessed" or receipt.get("issues"):
+                if (receipt.get("status") != "passed" or receipt.get("qualification") != "scoped_receipt_eligible"
+                        or receipt.get("issues")):
+                    errors.append(f"{question}: comparison-scope review receipt qualification is incomplete")
+                    errors.extend(f"{question}: {issue}" for issue in receipt.get("issues", []))
+    except (OSError, ValueError, TypeError, KeyError) as exc:
+        errors.append(f"{question}: comparison approval inspection failed: {exc}")
+    return list(dict.fromkeys(errors))
+
+
 def validate_state(
     path: Path,
     questions: Iterable[str],
     *,
     allow_legacy_read_only: bool = False,
     project_root: Path | None = None,
+    comparison_scope: bool = False,
 ) -> list[str]:
     state = load_yaml(path)
     subproblems = state.get("subproblems", {})
@@ -156,6 +200,12 @@ def validate_state(
     state_path = Path(path).resolve()
     if root is None and state_path.name == "project_state.yaml" and state_path.parent.name == "state":
         root = state_path.parent.parent
+    if comparison_scope:
+        if root is None:
+            errors.append("comparison approval requires an explicit project root")
+        else:
+            for question in selected_questions:
+                errors.extend(validate_comparison_approval(root, state, subproblems[question], question))
     policy_active = "review_receipt_policy" in state
     if root is not None and state_path != (root / "state/project_state.yaml").resolve():
         canonical_path = root / "state/project_state.yaml"
@@ -225,6 +275,10 @@ def main() -> int:
         help="question id such as Q1; repeat for multiple questions; default validates all",
     )
     parser.add_argument(
+        "--comparison-scope", action="store_true",
+        help="also validate activated analysis comparison scopes without changing the primary lock",
+    )
+    parser.add_argument(
         "--strict",
         action="store_true",
         help="accepted for gate CLI parity; approval mismatches and legacy migration requirements are always hard failures",
@@ -234,7 +288,8 @@ def main() -> int:
     project_root = Path(args.project_root).resolve()
     state_path = resolve_state_path(project_root, args.state)
     try:
-        errors = validate_state(state_path, args.question, project_root=project_root)
+        errors = validate_state(state_path, args.question, project_root=project_root,
+                                comparison_scope=args.comparison_scope)
     except (FileNotFoundError, ValueError) as exc:
         print("MODEL_APPROVAL: FAIL")
         print(f"- {exc}")

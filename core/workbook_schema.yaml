@@ -1,4 +1,4 @@
-schema_version: 2.3.1
+schema_version: 2.4.0
 skill_compatibility: '>=6.3.2,<11.0.0'
 purpose: 约束主求解工作簿与按需结果深化分析工作簿的工作表、字段、三轴条件、非空规则和MATLAB交接。
 runtime_enforcement:
@@ -211,10 +211,10 @@ result_analysis_workbook:
       required_columns: [项目, 值]
     分析设计:
       required_columns: [风险来源, 分析问题, 方法, 指标, 通过标准]
-      optional_columns: [输入, 论文作用, 选择理由]
+      optional_columns: [输入, 论文作用, 选择理由, 检验ID, 评价协议ID, 判据ID]
     结论稳定性汇总:
       required_columns: [核心结论, 分析方法, 稳定范围, 是否保持]
-      optional_columns: [失效边界, 证据工作表, 论文位置, 说明]
+      optional_columns: [失效边界, 证据工作表, 论文位置, 说明, 检验ID, 证据处置ID]
   required_any_sheets:
   - 参数敏感性
   - 阈值与失效边界
@@ -224,6 +224,13 @@ result_analysis_workbook:
   - 异质性分析
   - 误差分解
   - 外样本稳定性
+  - 多模型检验
+  - 同模型多算法检验
+  comparison_method_sheets:
+    model_comparison: 多模型检验
+    多模型检验: 多模型检验
+    algorithm_comparison: 同模型多算法检验
+    同模型多算法检验: 同模型多算法检验
   sheet_schemas:
     运行配置:
       required_columns: [项目, 值]
@@ -254,6 +261,12 @@ result_analysis_workbook:
     外样本稳定性:
       required_columns: [划分或迁移场景, 指标, 数值]
       optional_columns: [样本数, 时间范围, 地区, 基准值, 变化率]
+    多模型检验:
+      required_columns: [检验ID, 记录键, 主模型ID, 对照模型ID, 评价协议ID, 实例或场景, 指标, 单位, 主模型数值, 对照模型数值, 差异类型, 差异, 判据ID, 判定]
+      optional_columns: [模型族, 对照角色, 结构差异, 数据划分, 重复编号, 随机种子, 可行性, 残差, gap, 运行时间, 求解器及版本, 停止原因, 子运行ID, 源码位置, 证据位置]
+    同模型多算法检验:
+      required_columns: [检验ID, 记录键, 模型ID, 基准算法ID, 对照算法ID, 评价协议ID, 实例或场景, 重复编号, 指标, 单位, 基准数值, 对照数值, 差异类型, 差异, 判据ID, 判定]
+      optional_columns: [随机种子, 初值, 计算预算, 可行性, 残差, gap, 决策差异, 运行时间, 求解器版本, 停止原因, 子运行ID, 源码位置, 证据位置]
     结论稳定性汇总:
       required_columns: [核心结论, 分析方法, 稳定范围, 是否保持]
       optional_columns: [失效边界, 证据工作表, 论文位置, 说明]

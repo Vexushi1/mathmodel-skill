@@ -34,3 +34,11 @@ matlab -batch "cd('C:/项目/问题一求解'); q1_analysis"
 当 `project_level` 求解还需要未被统一工作簿覆盖的独立附件时，按 `core/user_execution_contract.yaml#code_delivery.auxiliary_inputs` 使用 1.2；没有辅助输入仍使用 1.1，项目级预处理仍是 1.0。主 `data_paths` 和 `data_sha256` 保持唯一 accepted 预处理 XLSX 及其普通 SHA；另以完整 `auxiliary_data_paths` / `auxiliary_data_sha256` 登记辅助文件。字段不能只写一半，不能重复主来源、使用已覆盖原始数据或改写旧版本标记规避校验。
 
 生成入口在运行前后同时核对主数据、辅助数据与源码，辅助值实际进入本题模型。回执仍写现有工作簿“运行配置”，路径数组以 JSON 文本传输，摘要与已交付配置一致。旧工具不支持 1.2 时应拒绝，不可静默省略辅助来源。原生合成用例见 `tests/audit_auxiliary_smoke.py`，不是可照抄的本题数学模型。
+
+## 两类条件式比较例子
+
+`analysis_comparison_example.m` 与 `hsk_comparison_fit.m` 提供真实 QR/SVD 的多模型和同模型多算法微型模式；保留旧 `q1_analysis.m` 系数敏感性例子。实例化后主函数／文件名仍是本问 `qX_analysis`，复制实际 helper 并登记其项目相对路径和 SHA。维护 fixture 的 primary 分支生成二阶 QR 基准；analysis 分支读取 accepted 主簿，真实计算一阶 QR 与同模型二阶 SVD，不调用主入口或覆盖主簿。
+
+正式用户实例先完成当前范围审查、冻结检验计划、代码交付，再用户执行；两个新协议字段回显到现有运行配置，绑定主簿、数据和全源码 bundle。共同评价及表列服从 Module 03B 与 workbook Authority；全部声明评价点均保留，负结果不能伪装运行失败或删去。
+
+维护入口 `tests/analysis_comparison_smoke.py --backend matlab --matlab-command <新进程命令>` 只运行合成维护案例。正式 GitHub MATLAB job 必须显式调用它，普通 Python discovery 不会自动执行新 `.m` 文件。MATLAB 实际运行、Schema／receipt 接受和用户项目批准分别报告。

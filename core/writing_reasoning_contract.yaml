@@ -1,4 +1,4 @@
-schema_version: 1.10.0
+schema_version: 1.11.0
 role: >-
   跨数学建模竞赛的正文推理与证据治理权威。约束核心公式的来源—推导—去向、共享基础模型、
   跨问递进、结构化简、模型/求解器/验证器角色、优化模型表达、模型建立理由与适用边界、
@@ -1345,6 +1345,13 @@ claim_strength_calibration:
       - statistical_significance_without_test_metadata
 
 analysis_evidence_disposition:
+  comparison_scope:
+    authority: modules/03_result_analysis.md
+    rules:
+    - Distinguish different mathematical models from different algorithms for one model; cite current accepted comparison evidence.
+    - Agreement corroborates only the declared evaluation scope; a disagreement can support a model-selection or boundary claim.
+    - Required comparisons need exact current evidence and disposition; sensitivity evidence cannot replace missing comparison evidence.
+    - Do not put inspection IDs, hashes, protocol markers or machine statuses into ordinary paper prose.
   governance_level: default
   statuses: [support, modify, reject]
   required_fields: [evidence_id, question, method_or_source, target_claim, disposition, key_finding, required_action, paper_or_figure_anchor]

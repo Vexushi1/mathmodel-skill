@@ -20,7 +20,7 @@ _FRAGMENT_ID = re.compile(r"paper\.[A-Za-z0-9_.-]+\Z")
 
 
 def claim_fragment_stale_closure(
-    fragments: list[Mapping[str, Any]], claim_ids: Collection[str]
+    fragments: list[Mapping[str, Any]], claim_ids: Collection[str], *, fragment_ids: Collection[str] = ()
 ) -> list[str]:
     """Return the bounded fragment closure of exact changed-claim references.
 
@@ -48,9 +48,13 @@ def claim_fragment_stale_closure(
         if fragment_id in by_id:
             raise ValueError(f"duplicate paper fragment ID: {fragment_id}")
         by_id[fragment_id] = fragment
+    if isinstance(fragment_ids, (str, bytes)) or not isinstance(fragment_ids, Collection):
+        raise ValueError("fragment IDs must be a collection of identifiers")
+    if any(not isinstance(identifier, str) or identifier not in by_id for identifier in fragment_ids):
+        raise ValueError("explicit stale fragment anchor must identify an existing fragment")
 
     dependents: dict[str, set[str]] = defaultdict(set)
-    seeds: set[str] = set()
+    seeds: set[str] = set(fragment_ids)
     edge_count = 0
     for fragment_id, fragment in by_id.items():
         dependencies = fragment.get("depends_on")
@@ -85,6 +89,21 @@ def claim_fragment_stale_closure(
                 affected.add(dependent)
                 queue.append(dependent)
     return sorted(affected)
+
+
+def mark_claim_fragments_stale(state: MutableMapping[str, Any], question: str, fragment_ids: Collection[str]) -> list[str]:
+    """Apply an already computed exact closure without invalidating numerical artifacts."""
+    if not fragment_ids:
+        return []
+    framework = state.get("paper_framework") or {}
+    fragments = framework.get("paper_fragments", [])
+    selected = set(fragment_ids)
+    changed = []
+    for row in fragments:
+        if row.get("id") in selected and row.get("status") == "current":
+            row["status"] = "stale"
+            changed.append(row["id"])
+    return sorted(changed)
 
 
 def _subproblems(state: Mapping[str, Any]) -> Mapping[str, Any]:

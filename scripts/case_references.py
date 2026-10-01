@@ -258,7 +258,7 @@ def _capture(root, question: str) -> _Context:
     if skill_reads["scripts/case_references.py"] != _LOADED_SCRIPT_SHA256:
         raise CaseReferenceError("source_changed")
     schema = yaml.safe_load(_read(ROOT / "core/project_state.schema.yaml"))
-    if schema.get("version") != "8.15.0":
+    if schema.get("version") not in {"8.15.0", "8.16.0"}:
         raise CaseReferenceError("unsupported_state_schema")
     if any(Draft202012Validator(schema).iter_errors(state)):
         raise CaseReferenceError("invalid_project_state")
@@ -470,7 +470,7 @@ def inspect_references(root, *, corpus_root=DEFAULT_CORPUS_ROOT):
         snapshot.assert_current()
         schema_raw = _read(_guarded_path(ROOT, "core/project_state.schema.yaml"))
         schema = yaml.safe_load(schema_raw)
-        if schema.get("version") != "8.15.0" or any(Draft202012Validator(schema).iter_errors(state)):
+        if schema.get("version") not in {"8.15.0", "8.16.0"} or any(Draft202012Validator(schema).iter_errors(state)):
             raise CaseReferenceError("invalid_project_state")
         retrieval = capture_current(corpus_root=corpus_root)
         records = []

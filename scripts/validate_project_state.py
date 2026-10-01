@@ -14,6 +14,8 @@ from jsonschema import Draft202012Validator
 
 import artifact_identity as ARTIFACT_IDENTITY
 import analysis_prerequisites as ANALYSIS_PREREQUISITES
+import analysis_comparison as COMPARISON
+import analysis_comparison_gate as COMPARISON_GATE
 import runtime_assurance as RUNTIME_ASSURANCE
 import stage_code as STAGE_CODE
 
@@ -1042,11 +1044,16 @@ def validate_state_payload(
     )
     structured_scopes: dict[str, set[str]] = {}
     structured_return_active = False
-    if structured_rejection:
+    comparison_questions = {
+        str(name) for name, entry in (payload.get("subproblems", {}) or {}).items()
+        if isinstance(entry, Mapping) and COMPARISON_GATE.present(entry)
+    }
+    if structured_rejection or comparison_questions:
         structured_scopes = {
-            str(name): _current_structured_rejection_scopes(state)
+            str(name): (_current_structured_rejection_scopes(state) if structured_rejection else {
+                event["impact_scope"] for event in COMPARISON_GATE.rejection_events(state)})
             for name, state in (payload.get("subproblems", {}) or {}).items()
-            if isinstance(state, Mapping)
+            if isinstance(state, Mapping) and (structured_rejection or str(name) in comparison_questions)
         }
         all_scopes = set().union(*structured_scopes.values()) if structured_scopes else set()
         structured_return_active = bool(all_scopes)
@@ -1087,13 +1094,27 @@ def validate_state_payload(
         issues.extend(_validate_classification_aliases(name, state, taxonomy))
         issues.extend(_validate_hashes(name, state, status))
         issues.extend(_validate_analysis_dispositions(
-            name, state, structured_rejection=structured_rejection,
+            name, state, structured_rejection=structured_rejection or str(name) in comparison_questions,
         ))
-        if structured_rejection:
+        if structured_rejection or str(name) in comparison_questions:
             issues.extend(_validate_structured_rejection_profile(
                 name, state, scopes=structured_scopes.get(str(name), set()),
                 contract=transition_contract,
             ))
+        if str(name) in comparison_questions:
+            try:
+                comparison_text = (framework_text_override if framework_text_override is not None
+                                   else framework_path.read_text(encoding="utf-8"))
+                comparison_result = COMPARISON.inspect_plan(
+                    state, question=str(name), specs=comparison_text)
+                issues.extend(f"{name}: {item}" for item in comparison_result["issues"])
+                if analysis_status == "passed" and state.get("analysis_execution_status") == "accepted":
+                    current_comparison = COMPARISON_GATE.inspect_gate(
+                        project_root, payload, str(name),
+                        boundary="current" if phase in {"review_delivery", "completed"} else "receipt")
+                    issues.extend(f"{name}: {item}" for item in current_comparison["issues"])
+            except (OSError, ValueError, TypeError, KeyError) as exc:
+                issues.append(f"{name}: comparison validation unavailable: {exc}")
         from conformance_gate import stored_issues
         issues.extend(stored_issues(state, str(name)))
         solver_execution = state.get("solver_execution") or {}

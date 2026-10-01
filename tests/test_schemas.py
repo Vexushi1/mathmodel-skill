@@ -81,7 +81,7 @@ class TestSchemas(unittest.TestCase):
 
     def test_workbook_schema_has_quality_gate_and_adaptive_analysis(self):
         schema = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(schema["schema_version"], "2.3.1")
+        self.assertEqual(schema["schema_version"], "2.4.0")
         self.assertIn(">=6.3.2", schema["skill_compatibility"])
         self.assertIn("<11.0.0", schema["skill_compatibility"])
         self.assertEqual(schema["classification_contract"]["capabilities_source"], "subproblem.capabilities")

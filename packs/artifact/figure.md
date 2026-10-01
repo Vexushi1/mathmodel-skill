@@ -2,6 +2,8 @@
 
 ## 进入条件
 
+两类新增比较图按 `modules/03_result_analysis.md` 消费 current accepted 的 `多模型检验`／`同模型多算法检验`，准入仍由 Figure Evidence Authority 定义。检验 ID 与真实记录键应保留到数据读取，不从摘要数字重造比较序列。
+
 用户要求结果图、敏感性图、鲁棒性图、多算法图、机理图或 MATLAB 绘图代码时加载。图表必须服务明确结论，不以复杂图型、固定版式或面板数量替代证据。
 
 本 Pack 只做阶段摘要，不重新定义 Figure Evidence 规则。Scientific Figure Synthesis、Basic-form Challenge、Composite Encoding、Scientific Rendering Profiles、布局、证据层级、数据事实源、Figure Enhancement Gate、配色、Portfolio Gate 和 Figure Contract 的**唯一权威为 `modules/04_figure_evidence.md`**；每问文件是否存在只服从 `core/output_contract.yaml` 与 current project state。若本文件与这些 Authority 不一致，以 Authority 为准。高级增强的实现模式集中在 `templates/figure/figure_enhancement_patterns.md`，该模板只提供实现参考，不拥有独立决策权。

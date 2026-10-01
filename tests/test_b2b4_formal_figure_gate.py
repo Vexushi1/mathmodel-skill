@@ -59,7 +59,7 @@ class B2b4FormalFigureGateTests(unittest.TestCase):
     def test_schema_requires_nonempty_bindings_and_each_source_binding(self):
         schema = yaml.safe_load((Path(__file__).resolve().parents[1] /
                                  'core/project_state.schema.yaml').read_text(encoding='utf-8'))
-        self.assertEqual(schema['version'], '8.15.0')
+        self.assertEqual(schema['version'], '8.16.0')
         validator = Draft202012Validator({
             '$ref': '#/$defs/claim_consumption_policy', '$defs': schema['$defs']})
         policy = self.state['paper_framework']['claim_consumption_policy']

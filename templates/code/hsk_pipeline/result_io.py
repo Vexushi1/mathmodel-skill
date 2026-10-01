@@ -125,7 +125,12 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
         "required_any_sheets": [
             "参数敏感性", "阈值与失效边界", "场景压力测试", "算法一致性",
             "结构稳健性", "异质性分析", "误差分解", "外样本稳定性",
+            "多模型检验", "同模型多算法检验",
         ],
+        "comparison_method_sheets": {
+            "model_comparison": "多模型检验", "多模型检验": "多模型检验",
+            "algorithm_comparison": "同模型多算法检验", "同模型多算法检验": "同模型多算法检验",
+        },
         "sheet_schemas": {
             "运行配置": {"required_columns": ["项目", "值"]},
             "分析设计": {"required_columns": ["风险来源", "分析问题", "方法", "指标", "通过标准"]},
@@ -137,6 +142,8 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
             "异质性分析": {"required_columns": ["分组维度", "分组", "指标", "数值"]},
             "误差分解": {"required_columns": ["误差来源", "指标", "数值"]},
             "外样本稳定性": {"required_columns": ["划分或迁移场景", "指标", "数值"]},
+            "多模型检验": {"required_columns": ["检验ID", "记录键", "主模型ID", "对照模型ID", "评价协议ID", "实例或场景", "指标", "单位", "主模型数值", "对照模型数值", "差异类型", "差异", "判据ID", "判定"]},
+            "同模型多算法检验": {"required_columns": ["检验ID", "记录键", "模型ID", "基准算法ID", "对照算法ID", "评价协议ID", "实例或场景", "重复编号", "指标", "单位", "基准数值", "对照数值", "差异类型", "差异", "判据ID", "判定"]},
             "结论稳定性汇总": {"required_columns": ["核心结论", "分析方法", "稳定范围", "是否保持"]},
         },
     },
@@ -223,6 +230,8 @@ def validate_workbook_tables(
     objective: str | None = None,
     structures: Sequence[str] = (),
     require_quality_passed: bool = True,
+    analysis_methods: Sequence[str] = (),
+    comparison_plan: Mapping[str, Any] | None = None,
 ) -> list[tuple[str, pd.DataFrame]]:
     if workbook_kind not in VALID_WORKBOOK_KINDS:
         raise ValueError(f"未知工作簿类型: {workbook_kind}")
@@ -231,6 +240,7 @@ def validate_workbook_tables(
         problem_types=problem_types, capabilities=capabilities,
         objective=objective, structures=structures, name_normalizer=_sheet_name,
         require_quality_passed=require_quality_passed,
+        analysis_methods=analysis_methods, comparison_plan=comparison_plan,
     )
 
 
@@ -248,12 +258,15 @@ def validate_workbook_file(
     objective: str | None = None,
     structures: Sequence[str] = (),
     require_quality_passed: bool = True,
+    analysis_methods: Sequence[str] = (),
+    comparison_plan: Mapping[str, Any] | None = None,
 ) -> list[tuple[str, pd.DataFrame]]:
     return WORKBOOK_VALIDATION.validate_workbook_file(
         Path(path), workbook_kind, schema=load_workbook_schema(schema_path),
         problem_types=problem_types, capabilities=capabilities,
         objective=objective, structures=structures,
         require_quality_passed=require_quality_passed,
+        analysis_methods=analysis_methods, comparison_plan=comparison_plan,
     )
 
 
@@ -278,6 +291,8 @@ def write_workbook(
     objective: str | None = None,
     structures: Sequence[str] = (),
     require_quality_passed: bool = True,
+    analysis_methods: Sequence[str] = (),
+    comparison_plan: Mapping[str, Any] | None = None,
 ) -> Path:
     path = Path(path)
     kind = workbook_kind or _infer_workbook_kind(path)
@@ -289,6 +304,7 @@ def write_workbook(
             capabilities=capabilities, schema_path=schema_path,
             objective=objective, structures=structures,
             require_quality_passed=require_quality_passed,
+            analysis_methods=analysis_methods, comparison_plan=comparison_plan,
         )
     path.parent.mkdir(parents=True, exist_ok=True)
     with pd.ExcelWriter(path, engine="openpyxl", mode="w") as writer:

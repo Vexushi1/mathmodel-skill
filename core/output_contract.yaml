@@ -1,4 +1,4 @@
-version: 10.17.1
+version: 10.18.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -169,7 +169,7 @@ result_policy:
   primary_numerical_recheck_required_for_v714_trace: true
   primary_scope: 当前locked model与声明数值方法下本次主计算的内在数值有效性及不改变当前计算世界的Primary Evidence Capture；不包含参数敏感性、压力场景、替代算法/结构、多seed稳健性、异质性或广义结论稳定性
   result_analysis_activation: conditional_after_primary_acceptance_via_analysis_necessity_gate
-  result_analysis_scope: 主工作簿accepted后的敏感性、稳健性、阈值、替代方法/结构、异质性与claim stability；仅Gate=required时生成03B代码和工作簿
+  result_analysis_scope: 主工作簿accepted后的敏感性、稳健性、阈值、多模型检验、同模型多算法检验、异质性与claim stability；仅Gate=required时生成03B代码和工作簿；两类新比较遵循modules/03_result_analysis.md
   result_analysis_not_required_semantics: 必须有非空result_analysis_requirement_reason；只表示当前题目答案和计划正文claim不需要alternative-world证据，不等价于稳健性已通过
   failed_quality_evidence_persisted: true
   downstream_admission_requires_quality_passed: true
@@ -198,6 +198,12 @@ model_paper_framework:
   formal_delivery_sync: true
   local_fragment_stale_from: v0.8-project-memory
   result_summary_required_after: solved
+  comparison_section:
+    heading: 03B比较计划与证据
+    position: after_each_question_result_summary_outside_primary_semantic_scope
+    retained_in_modes: [compact, full]
+    required_when: analysis_comparison_protocol_is_active
+    semantics_authority: modules/03_result_analysis.md
   authoritative_boundaries:
     model_semantics_and_project_specific_writing_choices: 模型论文框架.md
     template_structure: templates/latex/cumcm/hsk/template_manifest.yaml

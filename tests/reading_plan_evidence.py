@@ -83,6 +83,12 @@ D2_AUTHORITY_VERSIONS = {
     "project_state": "8.15.0",
 }
 E1_AUTHORITY_VERSIONS = {**D2_AUTHORITY_VERSIONS, "skill": "10.17.1"}
+COMPARISON_AUTHORITY_VERSIONS = {
+    **E1_AUTHORITY_VERSIONS,
+    "skill": "10.18.0", "project_state": "8.16.0",
+    "state_transition": "1.7.0", "runtime_assurance": "2.5.0",
+    "writing_reasoning": "1.11.0",
+}
 
 
 def authority_versions(repo):
@@ -892,6 +898,32 @@ def approved_e1_carrier_change(identifier, old, new, candidate_authority_version
     return projected, changes
 
 
+def approved_comparison_carrier_change(identifier, old, new, candidate_authority_versions):
+    """Only the exact inactive-comparison carriers; retain all old behavior checks."""
+    if (candidate_authority_versions != COMPARISON_AUTHORITY_VERSIONS
+            or new.get("version") != COMPARISON_AUTHORITY_VERSIONS["skill"]
+            or not isinstance(new.get("assurance"), dict)
+            or new["assurance"].get("schema_version") != "2.5.0"):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    predecessor["version"] = E1_AUTHORITY_VERSIONS["skill"]
+    predecessor["assurance"]["schema_version"] = E1_AUTHORITY_VERSIONS["runtime_assurance"]
+    projected, changes = approved_e1_carrier_change(
+        identifier, old, predecessor, deepcopy(E1_AUTHORITY_VERSIONS))
+    if projected != old or not changes:
+        return deepcopy(new), []
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = COMPARISON_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(COMPARISON_AUTHORITY_VERSIONS)
+            change["approval"] = (
+                "03B comparison exact inactive carrier set; all existing qualifications remain checked")
+        elif change["path"] == "assurance.schema_version":
+            change["candidate"] = COMPARISON_AUTHORITY_VERSIONS["runtime_assurance"]
+            change["approval"] = "03B conditional comparison qualification protocol"
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -975,6 +1007,9 @@ def compare(before, after):
             a["id"], old, projected, b.get("authority_versions")
         )
         expected.extend(e1_changes)
+        projected, comparison_changes = approved_comparison_carrier_change(
+            a["id"], old, projected, b.get("authority_versions"))
+        expected.extend(comparison_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,

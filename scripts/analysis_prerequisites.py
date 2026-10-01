@@ -8,6 +8,7 @@ from typing import Any, Mapping
 import artifact_identity as ARTIFACT_IDENTITY
 import conformance_gate as CONFORMANCE
 import stage_code as STAGE_CODE
+import analysis_comparison_gate as COMPARISON
 from stage_inputs import observe_inputs
 from execution_protocol import is_source_receipt, auxiliary_config_issues
 
@@ -121,6 +122,13 @@ def analysis_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, An
         return list(dict.fromkeys([*issues, *policy_issues]))
     if data_hash is not None and str(data_hash).lower() != str(entry.get("data_hash", "")).lower():
         issues.append("analysis data_sha256必须继承当前主结果data_hash，不得覆盖主结果数据身份")
+    if COMPARISON.present(entry):
+        try:
+            question = CONFORMANCE.question_for(state, entry)
+            comparison = COMPARISON.inspect_gate(root, state, question, boundary="plan")
+            issues.extend(comparison["issues"])
+        except (OSError, ValueError, TypeError) as exc:
+            issues.append(f"analysis comparison prerequisite: {exc}")
     if entry.get("result_analysis_status") == "not_required":
         return [*issues, "Analysis Necessity Gate=not_required，必须显式重新裁决后才能交付或验收分析"]
     # Only the identical previously accepted artifact may use historical read compatibility.

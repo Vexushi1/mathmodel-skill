@@ -22,7 +22,8 @@ import run_config_parser as RUN_CONFIG_PARSER  # noqa: E402
 import analysis_prerequisites as ANALYSIS_PREREQUISITES  # noqa: E402
 import stage_code as STAGE_CODE  # noqa: E402
 import conformance_gate as CONFORMANCE  # noqa: E402
-from execution_protocol import SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues
+import analysis_comparison_gate as COMPARISON  # noqa: E402
+from execution_protocol import SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, comparison_config_issues
 from stage_inputs import observe_inputs
 import matlab_code_checks as MATLAB_CHECKS  # noqa: E402
 STATE_TRANSITION_CONTRACT = yaml.safe_load(
@@ -410,6 +411,7 @@ def validate_script(
         issues.append("新MATLAB阶段必须声明run_receipt_protocol_version=1.1.0/1.2.0")
     modern = is_source_receipt(receipt_protocol)
     issues.extend(auxiliary_config_issues(config))
+    issues.extend(comparison_config_issues(config))
     source_fingerprint = None
     data_identity_mode = config.get("data_identity_mode", "combined")
     if "data_identity_mode" in config and (not modern or data_identity_mode not in ("combined", "preprocessing_workbook")):
@@ -497,6 +499,9 @@ def validate_script(
         issues.extend(ANALYSIS_PREREQUISITES.analysis_issues(
             project_root, state, entry, data_hash=config.get("data_sha256"),
             require_project_policy=True))
+        comparison = COMPARISON.inspect_gate(
+            project_root, state, _question_key(problem), config=config, code_path=script)
+        issues.extend(comparison["issues"])
         if modern:
             expected_primary = (entry.get("validated_artifact_hashes") or {}).get("solution_workbook")
             if not is_sha256(config.get("primary_workbook_sha256")):
@@ -589,6 +594,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
                  expected_source_sha256: str | None = None,
                  expected_bundle_sha256: str | None = None) -> list[dict[str, Any]]:
     configuration_issues = auxiliary_config_issues(config)
+    configuration_issues.extend(comparison_config_issues(config))
     if configuration_issues:
         raise ValueError("; ".join(configuration_issues))
     state_path = project_root / "state" / "project_state.yaml"
@@ -597,7 +603,9 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
             return []
         raise ValueError("缺少项目状态与已锁项目后端，禁止正式数值代码交付")
     observed_state = load_yaml(state_path)
-    if any(CONFORMANCE.present(entry) for entry in (observed_state.get("subproblems") or {}).values()):
+    guarded = any(CONFORMANCE.present(entry) or COMPARISON.present(entry, config=config)
+                  for entry in (observed_state.get("subproblems") or {}).values())
+    if guarded:
         from runtime_assurance import ProjectStateSnapshot
         snapshot = ProjectStateSnapshot.capture(project_root)
         state = snapshot.payload()
@@ -702,6 +710,11 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
             require_project_policy=True)
         if prerequisite_issues:
             raise ValueError("; ".join(prerequisite_issues))
+    comparison = COMPARISON.inspect_gate(
+        project_root, state, key, config=config, code_path=script) if stage == "analysis" else {
+            "enabled": False, "issues": [], "observed_sources": {"project": {}, "skill": {}}}
+    if comparison["issues"]:
+        raise ValueError("; ".join(comparison["issues"]))
     try:
         ARTIFACT_IDENTITY.canonicalize_entry_hashes(entry)
     except ARTIFACT_IDENTITY.ArtifactIdentityError as exc:
@@ -788,11 +801,12 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
             target[CONFORMANCE.ACCEPTANCE]["applicability"] = "stale"
         target[CONFORMANCE.DELIVERY] = conformance_binding
     observed = conformance["observed_sources"]
+    CONFORMANCE.merge_read_sets(observed, comparison["observed_sources"])
     CONFORMANCE.assert_observed(project_root, observed)
     PROJECT_TX.commit_project_state(
         project_root, state, expected_generation=base_generation,
         expected_file_hashes=observed["project"] or None,
-        validators=[CONFORMANCE.skill_validator(observed)] if conformance["enabled"] else (),
+        validators=[CONFORMANCE.skill_validator(observed)] if conformance["enabled"] or comparison["enabled"] else (),
     )
     return transition_reports
 

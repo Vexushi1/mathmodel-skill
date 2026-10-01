@@ -32,7 +32,7 @@ class PhaseIV9ApplicabilityTests(unittest.TestCase):
                 self.assertNotIn("<9.0.0", str(data["skill_compatibility"]))
 
     def test_redefined_execution_and_runtime_contracts_have_v10_major_boundaries(self):
-        for relative, version in (("core/user_execution_contract.yaml", "3.2.0"),
+        for relative, version in (("core/user_execution_contract.yaml", "3.3.0"),
                                   ("core/runtime_assurance_contract.yaml", "2.4.0")):
             with self.subTest(relative=relative):
                 data = self.load(relative)

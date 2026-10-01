@@ -1,5 +1,7 @@
 # Artifact Pack：每问自包含求解代码
 
+按需 `model_comparison / algorithm_comparison` 复用独立 analysis 入口与项目 backend，详见 Module 03B。模型／算法 helper 纳入实际源码闭包；配置与回执绑定冻结比较计划，每个 required 项真实输出专项底层数据，不能只添表或固定数字。可实例化模式见 Python starter 与 MATLAB comparison example；它们不授权用户模型。
+
 每问代码保留在同一个 `问题X求解/` 目录；交付服从 `core/output_contract.yaml` 与 `core/user_execution_contract.yaml`，本 Pack 不复制一套固定目录合同：
 
 - `per_question.solver_scripts` 中项目根后端对应的主入口：主求解程序，按 applicable approval/data gates 交付；

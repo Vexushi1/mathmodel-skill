@@ -1,4 +1,4 @@
-version: 1.1.0
+version: 1.2.0
 status: active
 purpose: >-
   Define the pre-code Model Challenge and explicit Human Model Approval gate.
@@ -160,6 +160,46 @@ human_approval:
     Phase C migration boundary, pre-code approval must not newly write or refresh
     legacy approved_semantic_hash. Migration or validation code must never synthesize
     human approval.
+
+analysis_comparison_approval:
+  activation: current_analysis_comparison_1.0.0_only
+  same_gate: model_approval
+  scope_authority: modules/03_result_analysis.md
+  scope_shape: core/project_state.schema.yaml#/$defs/analysis_comparison
+  implementation: scripts/analysis_comparison.py
+  framework_marker: HSK_ANALYSIS_COMPARISON_BEGIN_END_Qn_after_result_summary
+  primary_identity: unchanged_full_current_validated_approved_SIB
+  scope_digest:
+    includes: [protocol_version, question, baseline_semantic_identity_hash, complete_model_specs, algorithm_definitions, comparison_questions, common_evaluation_protocols]
+    excludes: [future_primary_workbook_hash, actual_results, final_evidence_row_positions, approval_records]
+  mathematical_projection:
+    purpose: declared_model_comparison_only_not_a_new_global_identity
+    retain: all_model_fields_all_extensions_and_unknown_algorithm_content
+    removable_scalar_implementation_keys: [family, method, solver, solver_role, implementation, backend]
+    removal_requires: explicit_pure_algorithm_keys_and_scope_bound_two_pass_boundary_review
+    comparison_partition: identical_pure_algorithm_key_sets_for_compared_model_specs
+    nonremovable_examples: [domain_reduction, discretization_approximation, exact_predicate, event_topology, update_rule, stop_rule, original_model_reevaluation]
+    qualification_boundary: string_or_hash_equality_does_not_prove_mathematical_equivalence_or_independence
+  independent_review:
+    roles: [positive_fitness_review, adversarial_model_challenge]
+    same_independence_rule_as_primary: true
+    each_record_requires: [distinct_review_reference, matching_scope_sha256, passed_verdict, actual_method, concrete_boundary_and_independence_conclusion, no_blocking_items, no_unresolved_items]
+    checks: [mathematical_closure, material_difference_or_same_original_model, common_evaluation_fit, full_fidelity_feasibility, shared_defects_and_independent_information, legitimate_parameter_and_algorithm_scope]
+  human_approval:
+    explicit_only: true
+    binding: current_scope_sha256
+    recorded_provenance: user_statement_and_source_reference
+    may_share_primary_brief: true
+    no_synthesized_approval: true
+  concrete_plan:
+    create_only_after_primary_accepted: true
+    criteria_and_selectors_frozen_before_analysis_delivery: true
+    must_stay_within_approved_scope: true
+  out_of_scope_change: supplemental_two_pass_review_and_explicit_scope_approval_in_existing_gate
+  scope_only_change: invalidate_scope_approval_and_analysis_chain_preserve_unchanged_primary_lock_and_acceptance
+  actual_primary_change: original_semantic_revision_and_identity_stale_policy
+  c_review_policy: consume_comparison_scope_objects_when_explicitly_declared_never_reuse_main_only_receipts_as_comparison_review
+  compatibility: absent_new_scope_preserves_existing_primary_and_legacy_analysis_rules
 
 lock_semantics:
   before_approval: proposed_model_spec
