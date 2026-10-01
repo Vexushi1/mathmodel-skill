@@ -129,10 +129,11 @@ class ReviewReceiptTests(unittest.TestCase):
                 method: str = "separated_passes", pass_id: str = "pass-1",
                 gate: str = "model_challenge",
                 object_ids: tuple[str, ...] = ("Q1:model",)) -> dict:
-        criteria_version = "1.1.0" if gate == "model_challenge" else "1.0.0"
+        criteria_version = "1.0.0"
         scope = {"questions": ["Q1"], "object_ids": list(object_ids)}
         if gate == "model_challenge":
             contract = yaml.safe_load((self.skill / "core/model_approval_contract.yaml").read_text(encoding="utf-8"))
+            criteria_version = str(contract["version"])
             role_key = ("reviewer_pass" if role == "positive_fitness_review"
                         else "devils_advocate_pass")
             check_ids = contract["model_challenge"][role_key]["must_check"]
@@ -257,9 +258,12 @@ class ReviewReceiptTests(unittest.TestCase):
         criterion.write_bytes(criterion.read_bytes() + b"\n# changed criterion\n")
         self.assertEqual(self.row(self.inspect(), "R1")["applicability"], "stale")
         criterion.write_bytes(original_bytes)
-        self.state["review_receipts"]["records"][0]["criteria_version"] = "1.2.0"
+        self.state["review_receipts"]["records"][0]["criteria_version"] = "999.0.0"
+        self.rebind(self.state["review_receipts"]["records"][0])
         self.save()
-        self.assertNotEqual(self.inspect()["status"], "current")
+        report = self.inspect()
+        self.assertNotEqual(report["status"], "current")
+        self.assertIn("review criteria version differs from current Authority", self.row(report, "R1")["issues"])
 
     def test_c03_common_review_authorities_are_required_and_fingerprinted(self):
         for relative in ("core/project_state.schema.yaml", "core/review_receipt_contract.yaml"):
