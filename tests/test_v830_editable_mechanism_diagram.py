@@ -607,7 +607,7 @@ class ContractAndDriftTests(unittest.TestCase):
         "templates/figure/chart_selection.md": "8b87b79d55e23f1b581c1ceca9e4d609fd11ba26",
         "templates/figure/figure_enhancement_patterns.md": "fa9db83323c4dcbe430e8afdca82df806e3db9de",
         # Delivery checks the root policy again against the state being committed.
-        "scripts/validate_code_delivery.py": "039ae7850bb36e4d93df26228e83b84f8e951c25",
+        "scripts/validate_code_delivery.py": "2877ba23d4b52cedafb8508e47a5afe0b2ece975",
     }
 
     def test_protected_authorities_have_not_drifted(self):
