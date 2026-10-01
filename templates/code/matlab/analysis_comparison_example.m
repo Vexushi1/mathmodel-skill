@@ -76,14 +76,16 @@ for k = 1:count
 end
 [~,linear,linearResidual] = hsk_comparison_fit(payload.train_t,payload.train_y,1,"QR",payload.evaluation_t);
 [~,svdPrediction,svdResidual] = hsk_comparison_fit(payload.train_t,payload.train_y,2,"SVD",payload.evaluation_t);
-models = cell(count,17);
+models = cell(1,17);
 algorithms = cell(count,19);
 for k = 1:count
     modelDifference = linear(k)-baseline(k);
     algorithmDifference = svdPrediction(k)-baseline(k);
-    models(k,:) = {'CMP-Q1-01',sprintf('model-%d',k-1),'MODEL-Q1-01','MODEL-Q1-02','EVAL-Q1-01',payload.scenarios{k}, ...
-        'prediction','dimensionless',baseline(k),linear(k),'difference',modelDifference,'CRIT-CMP-Q1-01', ...
-        abs(modelDifference)>=payload.model_difference_threshold,linearResidual,char("QR/MATLAB " + string(version)),'decomposition_completed'};
+    if strcmp(payload.scenarios{k}, 'holdout')
+        models(1,:) = {'CMP-Q1-01',sprintf('model-%d',k-1),'MODEL-Q1-01','MODEL-Q1-02','EVAL-Q1-01',payload.scenarios{k}, ...
+            'prediction','dimensionless',baseline(k),linear(k),'difference',modelDifference,'CRIT-CMP-Q1-01', ...
+            abs(modelDifference)>=payload.model_difference_threshold,linearResidual,char("QR/MATLAB " + string(version)),'decomposition_completed'};
+    end
     algorithms(k,:) = {'CMP-Q1-02',sprintf('algorithm-%d',k-1),'MODEL-Q1-01','ALGO-Q1-01','ALGO-Q1-02','EVAL-Q1-02',payload.scenarios{k}, ...
         1,'prediction','dimensionless',baseline(k),svdPrediction(k),'difference',algorithmDifference,'CRIT-CMP-Q1-02', ...
         abs(algorithmDifference)<=config.tolerance,svdResidual,char("SVD/MATLAB " + string(version)),'decomposition_completed'};

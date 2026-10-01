@@ -251,7 +251,8 @@ def run_smoke(root, backend, matlab_command=None):
         algorithm_rows = list(book["同模型多算法检验"].iter_rows(values_only=True))
         model = dict(zip(model_rows[0], model_rows[-1]))
         algorithm = dict(zip(algorithm_rows[0], algorithm_rows[-1]))
-        assert len(model_rows) == len(algorithm_rows) == len(PAYLOAD["evaluation_t"]) + 1
+        assert len(model_rows) == 2 and len(algorithm_rows) == len(PAYLOAD["evaluation_t"]) + 1
+        assert model["记录键"] == "model-4" and model["实例或场景"] == "holdout"
         assert abs(model["主模型数值"] - 16) < 1e-10 and abs(model["对照模型数值"] - 11) < 1e-10
         assert abs(model["差异"] + 5) < 1e-10 and abs(algorithm["差异"]) <= 1e-10
     finally:

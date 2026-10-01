@@ -125,9 +125,10 @@ def analysis_tables(root, config, payload):
     model_rows, algorithm_rows = [], []
     for i, scenario in enumerate(payload["scenarios"]):
         model_difference, algorithm_difference = linear[i] - baseline[i], svd[i] - baseline[i]
-        model_rows.append(["CMP-Q1-01", f"model-{i}", "MODEL-Q1-01", "MODEL-Q1-02", "EVAL-Q1-01", scenario,
-                           "prediction", "dimensionless", baseline[i], linear[i], "difference", model_difference,
-                           "CRIT-CMP-Q1-01", abs(model_difference) >= payload["model_difference_threshold"], linear_residual, f"QR/NumPy {np.__version__}", "decomposition_completed"])
+        if scenario == "holdout":
+            model_rows.append(["CMP-Q1-01", f"model-{i}", "MODEL-Q1-01", "MODEL-Q1-02", "EVAL-Q1-01", scenario,
+                               "prediction", "dimensionless", baseline[i], linear[i], "difference", model_difference,
+                               "CRIT-CMP-Q1-01", abs(model_difference) >= payload["model_difference_threshold"], linear_residual, f"QR/NumPy {np.__version__}", "decomposition_completed"])
         algorithm_rows.append(["CMP-Q1-02", f"algorithm-{i}", "MODEL-Q1-01", "ALGO-Q1-01", "ALGO-Q1-02", "EVAL-Q1-02", scenario,
                                1, "prediction", "dimensionless", baseline[i], svd[i], "difference", algorithm_difference,
                                "CRIT-CMP-Q1-02", abs(algorithm_difference) <= config["tolerance"], svd_residual, f"SVD/NumPy {np.__version__}", "decomposition_completed"])

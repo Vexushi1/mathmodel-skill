@@ -55,6 +55,6 @@
 
 `analysis_comparison.py` 与 `comparison_numerics.py` 是可实例化的微型模式，不是任意题目的默认模型。复制入口及实际 helper 到本问目录；Python 入口仍按输出 Authority 命名，helper 路径与原始 SHA 必须加入 `code_dependencies`。入口包含维护 fixture 所用 primary 分支；正式 analysis 实例只读取已验收主簿，不调用主入口、不重算其 QR 基准。
 
-例子在声明训练点上分别真实执行一阶 QR 和二阶 SVD，并与 accepted 二阶 QR 基准比较；没有固定填入 11 或 16。全部声明评价点逐行进入两张新专项表，保留实际差异、残差、方法／版本和停止原因。实例化时替换数学规范、输入、评价、判据和预期 selectors，按现行 Authority 完成范围审查、冻结计划、代码交付与用户执行。选用本扩展的配置及回执声明 `analysis_comparison_protocol_version` 和 `analysis_comparison_plan_sha256`；不整体改 receipt 1.1/1.2。
+例子在声明训练点上分别真实执行一阶 QR 和二阶 SVD，并与 accepted 二阶 QR 基准比较；没有固定填入 11 或 16。多模型表呈报冻结留出点，同模型多算法表呈报全部声明评价点，保留实际差异、残差、方法／版本和停止原因。实例化时替换数学规范、输入、评价、判据和预期 selectors，按现行 Authority 完成范围审查、冻结计划、代码交付与用户执行。选用本扩展的配置及回执声明 `analysis_comparison_protocol_version` 和 `analysis_comparison_plan_sha256`；不整体改 receipt 1.1/1.2。
 
 维护运行入口是 `tests/analysis_comparison_smoke.py`，分别在独立 Python/MATLAB 项目里验证真实求解、交付／回执和主簿保护。旧敏感性模式继续保留。无支持扩展的工具不能用旧 Boolean 校验代替新比较验收。

@@ -411,7 +411,7 @@ def inspect_plan(entry: Mapping[str, Any], *, question: str, specs, config=None,
                 raise ComparisonError("activated check is outside its approved comparison scope")
             _validate_evidence_metadata(check, scoped, scope)
         result["plan"] = deepcopy(dict(registry)) | {"scope": scope}
-        result["plan_sha256"] = plan_sha256(plan)
+        result["plan_sha256"] = _hash(plan)
         result["required_ids"] = [row["id"] for row in plan["checks"] if row["requirement"] == "required"]
         if result["required_ids"] and entry.get("result_analysis_status") == "not_required":
             raise ComparisonError("required comparison conflicts with Analysis Necessity Gate=not_required")
@@ -525,18 +525,21 @@ def _table_decision(book, sheet, header_row, row):
     raise ComparisonError("comparison 判定 must be an explicit boolean or true/false text")
 
 
-def _exploratory_started(check, book, dispositions, declared_ids):
-    """No result obligation until an optional check reports a row or disposition."""
-    if check.get("disposition_ref") in dispositions:
-        return True
-    sheet = KINDS[check["kind"]]
-    if sheet not in book.sheets:
-        return False
-    header_rows = {record["candidate"]["selector"]["header_row"] for record in check["evidence_refs"]} or {1}
-    record_ids = {record["id"] for record in check["evidence_refs"]}
-    rows = book.rows(sheet)
-    started = False
-    for header_row in header_rows:
+def _reported_comparison_checks(book, checks):
+    """All presented records, including retired history, must remain registered."""
+    reported = set()
+    records = {identifier: _index(check["evidence_refs"], "comparison evidence")
+               for identifier, check in checks.items()}
+    for kind, sheet in KINDS.items():
+        if sheet not in book.sheets:
+            continue
+        header_rows = {record["candidate"]["selector"]["header_row"]
+                       for identifier, check in checks.items() if check["kind"] == kind
+                       for record in records[identifier].values()} or {1}
+        if len(header_rows) != 1:
+            raise ComparisonError("one comparison table requires one shared registered header row")
+        header_row = next(iter(header_rows))
+        rows = book.rows(sheet)
         headers = rows.get(header_row, {})
         columns = {}
         for field in ("检验ID", "记录键"):
@@ -544,17 +547,32 @@ def _exploratory_started(check, book, dispositions, declared_ids):
             if len(matched) != 1:
                 raise ComparisonError("comparison table requires exact unique check/record ID columns")
             columns[field] = matched[0]
+        used_records = set()
         for row_index, row in rows.items():
-            if row_index <= header_row or not row:
+            if row_index <= header_row or not row or all(
+                    cell.kind == "missing" or (cell.kind == "text" and not cell.value.strip())
+                    for cell in row.values()):
                 continue
             check_cell, record_cell = (row.get(columns[field]) for field in ("检验ID", "记录键"))
             if (check_cell is None or check_cell.formula or check_cell.kind != "text"
-                    or check_cell.value not in declared_ids):
+                    or check_cell.value not in checks):
                 raise ComparisonError("reported comparison row has malformed or undeclared check ID")
             if record_cell is None or record_cell.formula or record_cell.kind != "text" or not record_cell.value:
                 raise ComparisonError("reported comparison row has malformed record ID")
-            started |= check_cell.value == check["id"] or record_cell.value in record_ids
-    return started
+            identifier = check_cell.value
+            if checks[identifier]["kind"] != kind:
+                raise ComparisonError("reported comparison check kind differs from its registered evidence table")
+            if record_cell.value not in records[identifier]:
+                raise ComparisonError("reported comparison row has an unregistered record ID")
+            selector = records[identifier][record_cell.value]["candidate"]["selector"]
+            if selector["sheet"] != sheet or selector["header_row"] != header_row:
+                raise ComparisonError("reported comparison record differs from its registered table/header")
+            record_key = (identifier, record_cell.value)
+            if record_key in used_records:
+                raise ComparisonError("reported comparison record key repeats in its evidence table")
+            used_records.add(record_key)
+            reported.add(identifier)
+    return reported
 
 
 def inspect_evidence(plan: Mapping[str, Any], *, primary_bytes: bytes, analysis_bytes: bytes,
@@ -575,13 +593,19 @@ def inspect_evidence(plan: Mapping[str, Any], *, primary_bytes: bytes, analysis_
         questions = _index(scope["questions"], "scope question")
         disposition_rows = _index(dispositions, "disposition")
         original_checks = _index(plan["checks"], "comparison check")
+        reported_checks = _reported_comparison_checks(books["analysis"], original_checks)
         used_observations = set()
         for check in canonical["checks"]:
             if check["requirement"] == "retired":
+                disposition = disposition_rows.get(original_checks[check["id"]].get("disposition_ref"))
+                if (disposition and disposition.get("disposition") == "reject"
+                        and disposition.get("impact_scope") in {"core_answer", "model_validity"}
+                        and disposition.get("status", "current") == "resolved"):
+                    result["issues"].append(f"{check['id']}: retired core rejection cannot be closed by a resolved label")
                 continue
             identifier = check["id"]
             if check["requirement"] == "exploratory":
-                if not _exploratory_started(original_checks[identifier], books["analysis"], disposition_rows, original_checks):
+                if identifier not in reported_checks and original_checks[identifier].get("disposition_ref") not in disposition_rows:
                     continue
                 if not check["evidence_refs"]:
                     result["issues"].append(f"{identifier}: reported exploratory comparison requires predeclared exact evidence selectors")

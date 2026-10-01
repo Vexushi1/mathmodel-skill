@@ -39,6 +39,6 @@ matlab -batch "cd('C:/项目/问题一求解'); q1_analysis"
 
 `analysis_comparison_example.m` 与 `hsk_comparison_fit.m` 提供真实 QR/SVD 的多模型和同模型多算法微型模式；保留旧 `q1_analysis.m` 系数敏感性例子。实例化后主函数／文件名仍是本问 `qX_analysis`，复制实际 helper 并登记其项目相对路径和 SHA。维护 fixture 的 primary 分支生成二阶 QR 基准；analysis 分支读取 accepted 主簿，真实计算一阶 QR 与同模型二阶 SVD，不调用主入口或覆盖主簿。
 
-正式用户实例先完成当前范围审查、冻结检验计划、代码交付，再用户执行；两个新协议字段回显到现有运行配置，绑定主簿、数据和全源码 bundle。共同评价及表列服从 Module 03B 与 workbook Authority；全部声明评价点均保留，负结果不能伪装运行失败或删去。
+正式用户实例先完成当前范围审查、冻结检验计划、代码交付，再用户执行；两个新协议字段回显到现有运行配置，绑定主簿、数据和全源码 bundle。共同评价及表列服从 Module 03B 与 workbook Authority；多模型表呈报冻结留出点，同模型多算法表呈报全部声明评价点，负结果不能伪装运行失败或删去。
 
 维护入口 `tests/analysis_comparison_smoke.py --backend matlab --matlab-command <新进程命令>` 只运行合成维护案例。正式 GitHub MATLAB job 必须显式调用它，普通 Python discovery 不会自动执行新 `.m` 文件。MATLAB 实际运行、Schema／receipt 接受和用户项目批准分别报告。

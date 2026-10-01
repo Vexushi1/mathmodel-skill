@@ -224,6 +224,81 @@ class AnalysisComparisonTests(unittest.TestCase):
         self.assertIn("CMP-Q1-01", result["uncovered_required_ids"])
         self.assertTrue(result["issues"])
 
+    def test_every_reported_row_requires_registered_check_kind_and_record(self):
+        # Both planned checks are required: the old optional-only scan ignored
+        # these extra finite XLSX rows even though their displayed evidence IDs
+        # were unknown, or belonged to the other comparison table.
+        def extra_model(sheets, check_id="CMP-Q1-99", record_id="REC99"):
+            row = list(sheets["多模型检验"][1])
+            row[0], row[1] = check_id, record_id
+            sheets["多模型检验"].append(row)
+        self.assertTrue(self.evidence(mutation=extra_model)["issues"])
+        self.assertTrue(self.evidence(mutation=lambda sheets: extra_model(sheets, "CMP-Q1-01"))["issues"])
+        self.assertTrue(self.evidence(mutation=lambda sheets: extra_model(sheets, "=\"CMP-Q1-01\""))["issues"])
+        def wrong_kind(sheets):
+            row = list(sheets["同模型多算法检验"][1])
+            row[0], row[1] = "CMP-Q1-01", "REC1"
+            sheets["同模型多算法检验"].append(row)
+        self.assertTrue(self.evidence(mutation=wrong_kind)["issues"])
+        self.entry["analysis_comparison"]["checks"][1]["requirement"] = "exploratory"
+        self.assertTrue(self.evidence(mutation=extra_model)["issues"])
+
+    def test_record_id_namespace_is_per_check_and_duplicate_pair_is_refused(self):
+        scope = deepcopy(self.scope)
+        question = deepcopy(scope["questions"][0])
+        question.update(id="CMP-Q1-03", target_claim="C-model-auxiliary", question="Does this declared comparison also inform the auxiliary claim?")
+        question["evaluation"]["id"] = "EVAL-Q1-03"
+        scope["questions"].append(question)
+        entry = comparison_entry(scope)
+        record = entry["analysis_comparison"]["checks"][2]["evidence_refs"][0]
+        record["id"] = "REC1"
+        for field in ("candidate", "reported_baseline", "reported_difference"):
+            record[field]["selector"]["row_key"]["记录键"] = "REC1"
+        disposition = deepcopy(entry["analysis_evidence_dispositions"][0])
+        disposition.update(id="E3", target_claim="C-model-auxiliary")
+        entry["analysis_evidence_dispositions"].append(disposition)
+        def additional_check(sheets):
+            row = list(sheets["多模型检验"][1])
+            row[0], row[4], row[12] = "CMP-Q1-03", "EVAL-Q1-03", "CRIT-CMP-Q1-03"
+            sheets["多模型检验"].append(row)
+        primary, analysis = captured_books(mutation=additional_check)
+        report = COMPARISON.inspect_plan(entry, question="Q1", specs=scope)
+        self.assertEqual(report["issues"], [])
+        result = COMPARISON.inspect_evidence(report["plan"], primary_bytes=primary, analysis_bytes=analysis,
+                                            dispositions=entry["analysis_evidence_dispositions"], comparison_rules=self.rules)
+        self.assertEqual(result["issues"], [])
+        self.assertEqual(result["covered_ids"], ["CMP-Q1-01", "CMP-Q1-02", "CMP-Q1-03"])
+        self.assertTrue(self.evidence(mutation=lambda sheets: sheets["多模型检验"].append(list(sheets["多模型检验"][1])))["issues"])
+
+    def test_retired_registered_history_is_preserved_but_unknown_rows_are_not_laundered(self):
+        check = self.entry["analysis_comparison"]["checks"][0]
+        check.update(requirement="retired", retirement={"reason": "Auxiliary claim was removed; retain its audit records",
+                     "claim_action": "removed_auxiliary_claim", "source_ref": "fixture:removed-claim"})
+        before = deepcopy(self.entry)
+        report = self.plan()
+        self.assertEqual(report["plan_sha256"], COMPARISON.plan_sha256(self.entry["analysis_comparison"]))
+        result = self.evidence()
+        self.assertEqual(result["issues"], [])
+        self.assertEqual(result["covered_ids"], ["CMP-Q1-02"])
+        self.assertEqual(self.entry, before)
+        def extra_history(sheets):
+            row = list(sheets["多模型检验"][1])
+            row[1] = "unregistered-retired-record"
+            sheets["多模型检验"].append(row)
+        self.assertTrue(self.evidence(mutation=extra_history)["issues"])
+
+    def test_retirement_does_not_resolve_core_rejection_or_discard_stale_audit(self):
+        check = self.entry["analysis_comparison"]["checks"][0]
+        check.update(requirement="retired", retirement={"reason": "Historical primary semantics was superseded",
+                     "claim_action": "superseded_primary_semantics", "source_ref": "fixture:historical-action"})
+        disposition = self.entry["analysis_evidence_dispositions"][0]
+        for impact, stage in (("core_answer", "solve_validate"), ("model_validity", "model_design")):
+            disposition.update(disposition="reject", impact_scope=impact, return_stage=stage, status="resolved")
+            self.assertTrue(any("retired core rejection" in issue for issue in self.evidence()["issues"]))
+            disposition["status"] = "stale"
+            self.assertEqual(self.evidence()["issues"], [])
+            self.assertEqual(disposition["disposition"], "reject")
+
     def test_unexecuted_exploratory_does_not_require_result_but_reported_rows_do(self):
         optional = self.entry["analysis_comparison"]["checks"][1]
         optional["requirement"] = "exploratory"
