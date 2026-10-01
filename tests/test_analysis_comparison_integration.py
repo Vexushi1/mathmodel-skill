@@ -301,6 +301,9 @@ class ComparisonIntegrationTests(unittest.TestCase):
                 for registry in ("artifact_hashes", "validated_artifact_hashes"):
                     entry[registry]["result_analysis_workbook"] = digest
                 fixture.write_state(root, state)
+                (root / "模型论文框架.md").write_text(
+                    "# 模型论文框架\n\n### Q1：第一问\n#### 结果摘要\nSynthetic legacy accepted analysis.\n",
+                    encoding="utf-8")
                 self.assertFalse(gate.present(entry, config=config))
                 with patch.object(gate.openpyxl, "load_workbook", side_effect=AssertionError("probe must not use openpyxl")):
                     self.assertTrue(gate.workbook_present(workbook))
