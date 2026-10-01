@@ -16,6 +16,7 @@ from jsonschema import Draft202012Validator
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import analysis_comparison as COMPARISON
+from claim_workbook import Workbook
 import semantic_identity as SEMANTIC
 import validate_model_approval as APPROVAL
 
@@ -399,7 +400,7 @@ class AnalysisComparisonTests(unittest.TestCase):
             "sheet": "同模型多算法检验", "header_row": 1, "row_key": {"指标": "prediction"},
             "expected_cardinality": 1, "value_type": "scalar", "value_column": "差异",
             "identity_columns": {"metric": "指标"}, "unit": {"kind": "column", "column": "差异单位"}}}
-        value, location = COMPARISON._select_reported_difference(source, COMPARISON.Workbook(raw, self.rules))
+        value, location = COMPARISON._select_reported_difference(source, Workbook(raw, self.rules))
         self.assertEqual(value.unit, "ratio")
         self.assertEqual(location["row"], 2)
         self.assertTrue(any(origin.endswith("|D2") for origin in value.origins))
@@ -411,7 +412,7 @@ class AnalysisComparisonTests(unittest.TestCase):
         finally:
             book.close()
         with self.assertRaises(COMPARISON.ComparisonError):
-            COMPARISON._select_reported_difference(source, COMPARISON.Workbook(buffer.getvalue(), self.rules))
+            COMPARISON._select_reported_difference(source, Workbook(buffer.getvalue(), self.rules))
 
     def test_negative_result_with_modify_can_complete_without_core_redo(self):
         self.entry["analysis_evidence_dispositions"][1].update({"disposition": "modify", "impact_scope": "auxiliary_wording",

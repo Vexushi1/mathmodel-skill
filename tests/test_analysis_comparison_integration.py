@@ -7,6 +7,7 @@ from copy import deepcopy
 import hashlib
 import io
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -33,6 +34,38 @@ CONTRACT = yaml.safe_load((ROOT / "core/state_transition_contract.yaml").read_te
 
 
 class ComparisonIntegrationTests(unittest.TestCase):
+    def test_resolver_without_workbook_dependencies_preserves_inactive_qualification(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            reading_plan_cases.build_project(ROOT, project, "current")
+            program = """
+import importlib.abc
+from pathlib import Path
+import sys
+
+class BlockWorkbookDependencies(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname.split('.')[0] in {'openpyxl', 'claim_workbook'}:
+            raise ModuleNotFoundError('workbook dependency requested by an inactive route: ' + fullname)
+
+sys.meta_path.insert(0, BlockWorkbookDependencies())
+sys.path.insert(0, str(Path(sys.argv[1]) / 'scripts'))
+from resolve_runtime import resolve_runtime
+from runtime_assurance import hydrate_project_context
+plain = resolve_runtime('model_selection', objective='optimization', structures=[])
+assert plain['task_code_execution_allowed'] is False
+project = Path(sys.argv[2])
+current = resolve_runtime('framework_sync', project_root=project, question='Q1',
+                          request='仅同步已验收结果摘要，不修改模型。')
+assert current['reading_plan']['profile'] == 'framework_result_sync'
+assert 'validated_results' in hydrate_project_context(project, 'Q1')['verified_artifacts']
+assert 'claim_workbook' not in sys.modules
+assert 'openpyxl' not in sys.modules
+"""
+            completed = subprocess.run([sys.executable, "-c", program, str(ROOT), str(project)],
+                                       cwd=ROOT, capture_output=True, text=True, encoding="utf-8", timeout=60)
+            self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+
     def project(self, root):
         fixture = legacy.UserExecutionContractTests()
         primary_code = fixture.make_project(root)
@@ -305,7 +338,7 @@ class ComparisonIntegrationTests(unittest.TestCase):
                     "# 模型论文框架\n\n### Q1：第一问\n#### 结果摘要\nSynthetic legacy accepted analysis.\n",
                     encoding="utf-8")
                 self.assertFalse(gate.present(entry, config=config))
-                with patch.object(gate.openpyxl, "load_workbook", side_effect=AssertionError("probe must not use openpyxl")):
+                with patch.object(openpyxl, "load_workbook", side_effect=AssertionError("probe must not use openpyxl")):
                     self.assertTrue(gate.workbook_present(workbook))
                 report = gate.inspect_gate(root, state, "Q1", boundary="current")
                 self.assertTrue(report["enabled"])
@@ -320,7 +353,7 @@ class ComparisonIntegrationTests(unittest.TestCase):
                 book.active.append([field[:split], field[split:]])
             book.save(workbook)
             book.close()
-            with patch.object(gate.openpyxl, "load_workbook", side_effect=AssertionError("probe must not use openpyxl")):
+            with patch.object(openpyxl, "load_workbook", side_effect=AssertionError("probe must not use openpyxl")):
                 self.assertFalse(gate.workbook_present(workbook))
 
     def test_required_item_cannot_be_waived_by_not_required_reason(self):
@@ -405,7 +438,7 @@ class ComparisonIntegrationTests(unittest.TestCase):
                         raw = raw.replace(b'r="A1"', b'r="ZZ1"', 1)
                     destination.writestr(name, raw)
             workbook.write_bytes(output.getvalue())
-            with patch.object(gate.openpyxl, "load_workbook", side_effect=AssertionError("unbounded candidate parser")):
+            with patch.object(openpyxl, "load_workbook", side_effect=AssertionError("unbounded candidate parser")):
                 with self.assertRaisesRegex(ValueError, "cell/column budget"):
                     legacy.RECEIPT.validate_one(root, workbook, state, True)
             self.assertNotEqual(state["subproblems"]["Q1"]["analysis_execution_status"], "accepted")

@@ -14,7 +14,6 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Mapping
 
-import openpyxl
 import safe_yaml
 import analysis_comparison as COMPARISON
 import conformance_gate as CONFORMANCE
@@ -22,7 +21,6 @@ import model_code_conformance as BOUNDED
 import run_config_parser
 import stage_code
 import state_transitions
-from claim_workbook import Workbook
 from execution_protocol import COMPARISON_FIELDS, comparison_config_issues, comparison_receipt_issues, declared_input_paths
 from stage_inputs import input_files
 
@@ -107,6 +105,8 @@ def present(entry: Mapping[str, Any], config=None, receipt=None) -> bool:
 
 
 def receipt_from_bytes(raw: bytes) -> tuple[dict, list[str]]:
+    import openpyxl
+
     book = openpyxl.load_workbook(io.BytesIO(raw), read_only=True, data_only=True)
     try:
         if "运行配置" not in book.sheetnames:
@@ -194,6 +194,8 @@ def capture_workbook(root: Path, path: Path, observed: dict) -> bytes:
 
 
 def candidate_preflight(raw: bytes, observed: dict) -> None:
+    from claim_workbook import Workbook
+
     rules_raw = BOUNDED._read(ROOT, "core/claim_evidence_contract.yaml", 4 * 1024 * 1024,
                               observed.setdefault("skill", {}))
     Workbook(raw, safe_yaml.safe_load(rules_raw))

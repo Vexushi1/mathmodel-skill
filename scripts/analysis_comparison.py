@@ -15,7 +15,6 @@ from typing import Any, Mapping
 
 import yaml
 from claim_values import EvidenceError, converted, derive, number, unit_info
-from claim_workbook import Workbook
 from semantic_identity import canonical_semantic_identity, semantic_identity_hash
 
 VERSION = "1.0.0"
@@ -577,6 +576,8 @@ def _reported_comparison_checks(book, checks):
 
 def inspect_evidence(plan: Mapping[str, Any], *, primary_bytes: bytes, analysis_bytes: bytes,
                      dispositions, workbook_contract=None, comparison_rules=None) -> dict:
+    from claim_workbook import Workbook
+
     result = {"issues": [], "covered_ids": [], "uncovered_required_ids": [], "computed_metrics": [],
               "criterion_results": [], "disposition_impacts": []}
     if not isinstance(comparison_rules, Mapping) or "limits" not in comparison_rules or "units" not in comparison_rules:
