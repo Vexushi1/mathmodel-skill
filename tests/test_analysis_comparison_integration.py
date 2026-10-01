@@ -257,6 +257,69 @@ class ComparisonIntegrationTests(unittest.TestCase):
             self.assertTrue(legacy.RECEIPT.validate_one(root, workbook, state, True))
             self.assertNotEqual(entry["analysis_execution_status"], "accepted")
 
+    def test_decoded_receipt_markers_activate_without_new_tables_or_source_markers(self):
+        for encoding in ("numeric_entities", "rich_text"):
+            with self.subTest(encoding=encoding), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                fixture = legacy.UserExecutionContractTests()
+                fixture.accept_primary(root, fixture.make_project(root))
+                fixture.activate_analysis(root)
+                code = fixture.make_analysis_code(root)
+                issues, config = legacy.CODE.validate_script(root, code, "analysis")
+                self.assertEqual(issues, [])
+                legacy.CODE.update_state(root, config, code)
+                state = fixture.read_state(root)
+                workbook = fixture.make_analysis_workbook(root, code)
+                self.assertEqual(legacy.RECEIPT.validate_one(root, workbook, state, True), [])
+                book = openpyxl.load_workbook(workbook)
+                for field, value in zip(protocol.COMPARISON_FIELDS, ("1.0.0", "a" * 64)):
+                    book["运行配置"].append([field, value])
+                book.save(workbook)
+                book.close()
+                output = io.BytesIO()
+                with zipfile.ZipFile(workbook) as source, zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as target:
+                    for name in source.namelist():
+                        raw = source.read(name)
+                        if name.startswith("xl/worksheets/"):
+                            for field in protocol.COMPARISON_FIELDS:
+                                key = field.encode("utf-8")
+                                if encoding == "numeric_entities":
+                                    raw = raw.replace(key, "".join(f"&#{ord(char)};" for char in field).encode("ascii"))
+                                else:
+                                    split = len(field) // 2
+                                    runs = (f"<r><t>{field[:split]}</t></r><r><t>{field[split:]}</t></r>").encode("ascii")
+                                    raw = raw.replace(b"<t>" + key + b"</t>", runs)
+                        self.assertFalse(any(field.encode("utf-8") in raw for field in protocol.COMPARISON_FIELDS))
+                        target.writestr(name, raw)
+                workbook.write_bytes(output.getvalue())
+                receipt, issues = legacy.RECEIPT.configuration_map(workbook)
+                self.assertEqual(issues, [])
+                self.assertEqual(receipt[protocol.COMPARISON_FIELDS[0]], "1.0.0")
+                self.assertEqual(receipt[protocol.COMPARISON_FIELDS[1]], "a" * 64)
+                digest = hashlib.sha256(workbook.read_bytes()).hexdigest()
+                entry = state["subproblems"]["Q1"]
+                for registry in ("artifact_hashes", "validated_artifact_hashes"):
+                    entry[registry]["result_analysis_workbook"] = digest
+                fixture.write_state(root, state)
+                self.assertFalse(gate.present(entry, config=config))
+                with patch.object(gate.openpyxl, "load_workbook", side_effect=AssertionError("probe must not use openpyxl")):
+                    self.assertTrue(gate.workbook_present(workbook))
+                report = gate.inspect_gate(root, state, "Q1", boundary="current")
+                self.assertTrue(report["enabled"])
+                self.assertIn("comparison activation is missing its complete registry/method/protocol binding", report["issues"])
+
+    def test_separate_cell_fragments_do_not_activate_legacy_workbook(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            workbook = Path(temporary) / "separate-fragments.xlsx"
+            book = openpyxl.Workbook()
+            for field in protocol.COMPARISON_FIELDS:
+                split = len(field) // 2
+                book.active.append([field[:split], field[split:]])
+            book.save(workbook)
+            book.close()
+            with patch.object(gate.openpyxl, "load_workbook", side_effect=AssertionError("probe must not use openpyxl")):
+                self.assertFalse(gate.workbook_present(workbook))
+
     def test_required_item_cannot_be_waived_by_not_required_reason(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

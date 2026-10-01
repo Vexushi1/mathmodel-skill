@@ -154,8 +154,25 @@ def _metadata_present(raw: bytes) -> bool:
             if scanned > limits["total_source_bytes"]:
                 break
             part = archive.read(item)
+            if b"<!DOCTYPE" in part or b"<!ENTITY" in part:
+                continue
             if any(field.encode("utf-8") in part for field in COMPARISON_FIELDS):
                 return True
+            try:
+                tree = ET.fromstring(part)
+            except ET.ParseError:
+                continue
+            namespace = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
+            for container in tree.iter():
+                if container.tag in {namespace + "si", namespace + "is"}:
+                    decoded = container.findtext(namespace + "t", "") + "".join(
+                        run.findtext(namespace + "t", "") for run in container.findall(namespace + "r"))
+                elif container.tag == namespace + "c" and container.get("t") == "str":
+                    decoded = container.findtext(namespace + "v", "")
+                else:
+                    continue
+                if any(field in decoded for field in COMPARISON_FIELDS):
+                    return True
     return False
 
 
