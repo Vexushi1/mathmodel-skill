@@ -2,6 +2,21 @@
 
 本目录只保存活动运行/维护脚本。行为以各脚本实现及其 Authority/contract 为准；本文件只提供稳定导航，不保留旧版本的行为快照。
 
+## 运行环境与资源根
+
+在完整仓库或发布包根中，使用同一个已确认的解释器运行以下只读 preflight；`python` 是示例命令名，可替换为实际虚拟环境解释器绝对路径：
+
+```text
+python -c "import sys; print(sys.executable); print(sys.version)"
+python -c "import yaml, jsonschema; print(yaml.__version__); print(jsonschema.__file__)"
+python scripts/resolve_runtime.py --help
+python scripts/resolve_runtime.py problem_analysis --objective explanation
+```
+
+默认 `python` 命中 WindowsApps 别名或另一个缺依赖的解释器时，先明确选择已有可用环境；不要把命令名当成版本证据，也不要为修复读取问题自动改全局 PATH、安装依赖或调整执行别名。仓库维护使用 `requirements-dev.txt`，用户数值阶段依赖来自 `templates/code/requirements.txt` 及实际交付代码；两者不能混为系统全局安装要求。
+
+从外部 cwd 调用时传入脚本的完整路径，并保留其所属完整资源根。根 `SKILL.md` 与打包入口 `skills/mathmodel-skill/SKILL.md` 依赖上层 `core/`、`scripts/`、`templates/` 等资源；仅安装嵌套 SKILL 子目录不能证明可执行读取链完整。安装时核对入口根、bootstrap version、plugin metadata、MANIFEST 与所选 tag/commit，再核对会话真实读取；安装位置或会话证据未获取时报告 unknown。此 preflight 不安装 Skill、不修改用户项目、不授权任何数值执行。
+
 `measure_e1_resources.py --repeats 1 --output e1-resources.json` 是 GitHub 仓库维护度量：固定普通路由/关闭检索/显式合成检索，记录真实调用的耗时、Python 分配峰值、文件打开观察和返回字节。它不运行赛题、不授予资格，也不以未经预冻的时间阈值判 PASS；范围与证据映射见 [E1 计划](../docs/modeling_intelligence_e1_execution_plan.md) 和 [52 场景矩阵](../docs/modeling_intelligence_e1_acceptance_matrix.md)。
 
 ## 运行时入口与治理

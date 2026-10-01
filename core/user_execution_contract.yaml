@@ -299,7 +299,7 @@ execution_states:
   - preprocessing_decision=project_level时，preprocessing=accepted且预处理质量门通过后才能进入primary。
   - 代码交付不得把小问status提升为solved或analyzed。
   - primary_execution_status=accepted且主结果质量门及适用主数值证据复核通过后，status才可进入solved。
-  - 主工作簿accepted后必须先执行Analysis Necessity Gate；只有Gate=required才允许交付问题X结果深化分析.py并推进analysis_execution_status。
+  - 主工作簿accepted后必须先执行Analysis Necessity Gate；只有Gate=required才允许交付Output Authority中对应项目求解后端的analysis入口并推进analysis_execution_status。
   - analysis_execution_status=accepted且结论稳定性校验通过后，status才可进入analyzed。
   - result_analysis_status=not_required且result_analysis_requirement_reason非空时，analysis阶段保持未激活，不生成03B代码/工作簿；下游可按validated_results语义继续，但不得据此声称已通过稳健性、稳定性或替代算法一致性检验。
   - 主工作簿未验收前不得生成最终结果深化分析脚本；只能形成候选分析方向。
