@@ -107,6 +107,8 @@ spec.typography.axes_font_size = 16;
 spec.typography.label_font_size = 18;
 spec.typography.legend_font_size = 14;
 spec.typography.colorbar_font_size = 14;
+spec.typography.cjk_font_candidates = ["Microsoft YaHei", "Microsoft YaHei UI", ...
+    "微软雅黑", "SimHei", "黑体", "Noto Sans CJK SC", "Noto Sans SC", "Arial Unicode MS"];
 spec.frame.axes_line_width = 1.15;
 spec.frame.colorbar_line_width = 1.0;
 spec.frame.box = "off";

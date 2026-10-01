@@ -452,7 +452,7 @@ def _check_templates(errors: list[str]) -> None:
         "spec = hsk_publication_profile(profile)",
         "palette = spec.palette",
         "listfonts",
-        "Noto Sans CJK SC",
+        "spec.typography.cjk_font_candidates",
     ):
         if token not in style:
             errors.append(f"scientific style helper lacks profile-application token: {token}")
@@ -467,6 +467,8 @@ def _check_templates(errors: list[str]) -> None:
         'case "monochrome_print"',
         "palette.primary",
         "palette.series",
+        "spec.typography.cjk_font_candidates",
+        "Noto Sans CJK SC",
         "高对比、中高饱和",
     ):
         if token not in profile:

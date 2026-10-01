@@ -209,10 +209,13 @@ jobs:
         run: |
           Add-Type -AssemblyName System.Drawing
           $installed = [System.Drawing.Text.InstalledFontCollection]::new().Families.Name
-          $candidates = @("Microsoft YaHei", "SimHei", "Noto Sans CJK SC", "Arial Unicode MS")
+          $fontConfig = Get-Content -LiteralPath "templates/matlab/hsk_publication_profile.m" -Raw -Encoding utf8
+          $candidateBlock = [regex]::Match($fontConfig, '(?s)spec\.typography\.cjk_font_candidates\s*=\s*\[(.*?)\];')
+          if (-not $candidateBlock.Success) { throw "Publication CJK font configuration is missing" }
+          $candidates = @([regex]::Matches($candidateBlock.Groups[1].Value, '"([^"]+)"') | ForEach-Object { $_.Groups[1].Value })
           $available = @($candidates | Where-Object { $installed -contains $_ })
           if ($available.Count -eq 0) {
-            throw "Windows runner lacks a CJK publication font: $($candidates -join ', ')"
+            Write-Warning "No configured CJK family in .NET enumeration; MATLAB listfonts and real rendering will verify the prerequisite."
           }
           Write-Host "Available CJK publication font(s): $($available -join ', ')"
       - name: Set up MATLAB

@@ -6,7 +6,7 @@
 
 `Real MATLAB publication preview` 固定运行在 GitHub 的 Windows Server 2022 runner，使用 MathWorks 官方 actions 安装并运行 MATLAB R2024b。R2024b 的 Windows Server 支持范围列有 Server 2022；当前 `windows-latest` 指向 Server 2025，因此这里使用 `windows-2022`。依据：[MathWorks R2024b 系统要求](https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/support/sysreq/files/system-requirements-release-2024b-windows.pdf)、[GitHub runner 映射](https://github.com/actions/runner-images)。
 
-触发仍需 `workflow_dispatch` 和 `run_matlab_preview=true`，默认 false。PowerShell 将输出放到 runner 临时目录，并检查仓库工作树保持干净。运行前检查 Windows 可见的中文字体；真实 MATLAB session 还要用 `listfonts` 确认字体可见并核对实际选中的字体。候选为 Microsoft YaHei、SimHei、Noto Sans CJK SC、Arial Unicode MS。字体缺失时任务失败，不能依赖 Helvetica 回退后声称 publication preview 通过。上传的 PNG、PDF 和 `preview_report.json` 才是这次 Windows 渲染的远端证据；未显式运行时仍是跳过，不代表渲染成功。
+触发仍需 `workflow_dispatch` 和 `run_matlab_preview=true`，默认 false。PowerShell 将输出放到 runner 临时目录，并检查仓库工作树保持干净。Windows 的 .NET 字体枚举只提供诊断，候选从 `hsk_publication_profile.m` 的配置读取；最终由真实 MATLAB session 的 `listfonts` 和实际选中字体确认。配置包含 Microsoft YaHei UI、微软雅黑、黑体和 Noto Sans SC 等明确名称变体，并保留原候选。harness 同时运行 shared/standalone selector 的合成变体、顺序、无候选控制，真实预览标签包含中文；字体缺失时 MATLAB 任务失败，不能依赖 Helvetica 回退后声称 publication preview 通过。上传的 PNG、PDF 和 `preview_report.json` 才是这次 Windows 渲染的远端证据；未显式运行时仍是跳过，不代表渲染成功。
 
 ## 历史 P0-C 显式手动选择
 

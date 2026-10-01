@@ -349,14 +349,15 @@ for i = 1:numel(names)
 end
 end
 
-function fontName = select_style_font()
-preferred = ["Microsoft YaHei", "SimHei", "Noto Sans CJK SC", ...
-    "Arial Unicode MS", "Helvetica", "Arial"];
-available = string(listfonts);
+function fontName = select_style_font(available)
+preferred = ["Microsoft YaHei", "Microsoft YaHei UI", "微软雅黑", "SimHei", "黑体", ...
+    "Noto Sans CJK SC", "Noto Sans SC", "Arial Unicode MS", "Helvetica", "Arial"];
+if nargin == 0, available = string(listfonts); else, available = string(available); end
 fontName = "Helvetica";
 for candidate = preferred
-    if any(strcmpi(available, candidate))
-        fontName = candidate;
+    match = find(strcmpi(available, candidate), 1);
+    if ~isempty(match)
+        fontName = available(match);
         return;
     end
 end
