@@ -834,7 +834,7 @@ def discover(root: Path) -> list[Path]:
     })
 
 
-def main() -> int:
+def _main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("project_root", type=Path)
     parser.add_argument("--workbook", type=Path)
@@ -847,6 +847,8 @@ def main() -> int:
     if not state_path.is_file():
         raise SystemExit("缺少state/project_state.yaml")
     candidate = load_yaml(state_path)
+    from runtime_assurance import validate_consumed_state_shapes
+    validate_consumed_state_shapes(candidate)
     a2_present = any(CONFORMANCE.present(entry) for entry in (candidate.get("subproblems") or {}).values())
     workbooks = (
         [(args.workbook if args.workbook.is_absolute() else root / args.workbook).resolve()]
@@ -903,6 +905,19 @@ def main() -> int:
         print("\n".join(all_issues))
         return 1 if args.strict else 0
     return 0
+
+
+def main() -> int:
+    from runtime_assurance import ProjectStateShapeError
+
+    try:
+        return _main()
+    except ProjectStateShapeError as exc:
+        print(yaml.safe_dump({
+            "status": "failed", "checked_workbooks": [],
+            "issues": [str(exc)], "task_code_executed": False, "report_persisted": False,
+        }, allow_unicode=True, sort_keys=False).rstrip())
+        return 1
 
 
 if __name__ == "__main__":

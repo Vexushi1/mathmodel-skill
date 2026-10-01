@@ -74,6 +74,15 @@ def stage_input_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str,
 
 def primary_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, Any], *,
                    require_project_policy: bool = False) -> list[str]:
+    if not isinstance(entry, Mapping):
+        return ["subproblem must be a mapping"]
+    preprocessing = state.get("preprocessing")
+    if preprocessing is not None and not isinstance(preprocessing, Mapping):
+        return ["preprocessing must be a mapping"]
+    try:
+        ARTIFACT_IDENTITY.validate_identity_container_shapes(entry, scope="subproblem")
+    except ARTIFACT_IDENTITY.ArtifactIdentityError as exc:
+        return [str(exc)]
     issues: list[str] = []
     backend, policy_issues = _project_backend(state, required=require_project_policy)
     issues.extend(policy_issues)

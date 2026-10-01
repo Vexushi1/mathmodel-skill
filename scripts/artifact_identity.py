@@ -13,6 +13,10 @@ ANALYSIS_CODE_KEY = "analysis_code"
 class ArtifactIdentityError(ValueError):
     """Raised when legacy and canonical artifact identities cannot be used safely."""
 
+    def __init__(self, detail: str, *, field: str | None = None) -> None:
+        self.field = field
+        super().__init__(detail)
+
 
 def _same_hash(left: Any, right: Any) -> bool:
     return str(left).strip().lower() == str(right).strip().lower()
@@ -47,7 +51,7 @@ def validate_identity_container_shapes(entry: Mapping[str, Any], *, scope: str) 
         try:
             check(entry.get(field))
         except ArtifactIdentityError as exc:
-            raise ArtifactIdentityError(f"{scope}.{field} {exc}") from exc
+            raise ArtifactIdentityError(f"{scope}.{field} {exc}", field=f"{scope}.{field}") from exc
 
 
 def normalize_artifact_hashes(
