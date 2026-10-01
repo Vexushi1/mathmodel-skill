@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+from numbers import Real
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
@@ -226,6 +227,32 @@ def _check_missing_value_audit(prepared: Sequence[tuple[str, pd.DataFrame]], kin
         raise ValueError(f"工作表 {affected} 包含缺失值，但数据审计未说明缺失处理")
 
 
+def _check_required_comparison_sheets(
+    names: set[str], section: Mapping[str, Any], analysis_methods: Sequence[str],
+    comparison_plan: Mapping[str, Any] | None,
+) -> None:
+    """Require each selected method and required check's own evidence table."""
+    mapping = section.get("comparison_method_sheets", {})
+    required = {mapping[method] for method in analysis_methods if method in mapping}
+    for check in (comparison_plan or {}).get("checks", []):
+        if check.get("requirement") == "required" and check.get("kind") in mapping:
+            required.add(mapping[check["kind"]])
+    missing = sorted(required - names)
+    if missing:
+        raise ValueError(f"结果深化分析缺少已选择的比较证据表: {missing}")
+
+
+def _check_comparison_values(sheet: str, frame: pd.DataFrame, spec: Mapping[str, Any]) -> None:
+    """Check complete comparison records and literal finite numerical values."""
+    for column in spec["required_columns"]:
+        if frame[column].isna().any() or frame[column].astype(str).str.strip().eq("").any():
+            raise ValueError(f"比较表“{sheet}”必需字段“{column}”存在空值")
+    numeric = ("主模型数值", "对照模型数值", "差异") if sheet == "多模型检验" else ("基准数值", "对照数值", "差异")
+    for column in numeric:
+        if not frame[column].map(lambda value: isinstance(value, Real) and not isinstance(value, bool) and math.isfinite(value)).all():
+            raise ValueError(f"比较表“{sheet}”字段“{column}”必须为真实有限数值")
+
+
 def validate_tables(
     tables: Mapping[str, Any],
     workbook_kind: str,
@@ -237,6 +264,8 @@ def validate_tables(
     structures: Sequence[str] = (),
     name_normalizer: Callable[[str], str] | None = None,
     require_quality_passed: bool = True,
+    analysis_methods: Sequence[str] = (),
+    comparison_plan: Mapping[str, Any] | None = None,
 ) -> list[tuple[str, pd.DataFrame]]:
     kind = _normalize_kind(workbook_kind)
     prepared = prepare_tables(tables, name_normalizer=name_normalizer)
@@ -265,12 +294,15 @@ def validate_tables(
             raise ValueError(f"结果深化分析工作簿包含未登记工作表: {unknown_sheets}")
         if not names.intersection(allowed_any):
             raise ValueError(f"结果深化分析工作簿至少需要一个实质分析表: {sorted(allowed_any)}")
+        _check_required_comparison_sheets(names, section, analysis_methods, comparison_plan)
     for name, frame in prepared:
         if name in sheet_schemas:
             _check_required_columns(name, frame, sheet_schemas[name])
         _check_record_keys(name, frame)
         _check_finite_numbers(name, frame)
         _check_residual_consistency(name, frame)
+        if kind == "result_analysis" and name in set(section.get("comparison_method_sheets", {}).values()):
+            _check_comparison_values(name, frame, sheet_schemas[name])
     if kind == "solution" and require_quality_passed:
         _check_quality_gate(prepared)
     _check_missing_value_audit(prepared, kind)
@@ -287,6 +319,8 @@ def validate_workbook_file(
     objective: str | None = None,
     structures: Sequence[str] = (),
     require_quality_passed: bool = True,
+    analysis_methods: Sequence[str] = (),
+    comparison_plan: Mapping[str, Any] | None = None,
 ) -> list[tuple[str, pd.DataFrame]]:
     path = Path(path)
     if not path.is_file():
@@ -296,6 +330,7 @@ def validate_workbook_file(
         problem_types=problem_types, capabilities=capabilities,
         objective=objective, structures=structures,
         require_quality_passed=require_quality_passed,
+        analysis_methods=analysis_methods, comparison_plan=comparison_plan,
     )
 
 

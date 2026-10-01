@@ -381,8 +381,8 @@ def check_versions(errors: list[str]) -> None:
     if f"version: {PACKAGE_VERSION}" not in packaged:
         errors.append("packaged skill version mismatch")
     workbook = load_structured(ROOT / "core/workbook_schema.yaml") or {}
-    if workbook.get("schema_version") != "2.3.1":
-        errors.append("workbook schema version must be 2.3.1")
+    if workbook.get("schema_version") != "2.4.0":
+        errors.append("workbook schema version must be 2.4.0")
     compatibility = str(workbook.get("skill_compatibility", ""))
     if compatibility != ">=6.3.2,<11.0.0":
         errors.append("workbook schema compatibility must cover 6.3.2 through v10")
@@ -441,7 +441,7 @@ def check_bootstrap_and_governance(errors: list[str]) -> None:
         if compatibility != f">={lower},<11.0.0":
             errors.append(f"subordinate contract compatibility must retain its lower bound and cover v10: {relative}")
     execution = load_structured(ROOT / "core/user_execution_contract.yaml") or {}
-    if execution.get("version") != "3.2.0" or execution.get("introduced_in_skill_version") != "10.0.0":
+    if execution.get("version") != "3.3.0" or execution.get("introduced_in_skill_version") != "10.0.0":
         errors.append("v10 A2 execution contract must declare its independent 3.2.0 version")
     if str(execution.get("skill_compatibility")) != ">=10.0.0,<11.0.0":
         errors.append("v10 user execution contract must apply only to the new major line")
@@ -946,8 +946,8 @@ def check_contracts(errors: list[str]) -> None:
 def check_project_state_and_framework(errors: list[str]) -> None:
     schema = load_structured(ROOT / "core/project_state.schema.yaml")
     Draft202012Validator.check_schema(schema)
-    if schema.get("version") != "8.15.0":
-        errors.append("v10.17 D2 decision references require independent schema 8.15.0")
+    if schema.get("version") != "8.16.0":
+        errors.append("v10.18 analysis comparisons require independent schema 8.16.0")
     policy = schema.get("$defs", {}).get("claim_consumption_policy", {})
     if policy.get("oneOf", [])[:3] != [
             {"properties": {"protocol_version": {"const": "1.0.0"}, "mode": {"const": "observe"},

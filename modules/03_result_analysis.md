@@ -67,7 +67,30 @@ Gate=`required` 后按 `core/user_execution_contract.yaml#solver_backends` 继�
 
 独立深化入口 是独立可复现程序，不复制主求解主链，不通过改写 主求解入口 实现深化分析。新生成脚本必须只定义一个按执行 Authority 可静态读取的 `RUN_CONFIG`，其中 `stage="analysis"` 并锁定当前数据事实源的 `data_sha256`；user/full-fidelity/no-degradation 政策由 `core/user_execution_contract.yaml` 继承，不在脚本中重复自报。工作簿中的 `code_sha256` 必须对应该深化分析脚本，并继续完整记录 solver/version、stop、platform、fallback 与 no-degradation 等实际运行事实。旧 `FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG` 仅作只读兼容。
 
-## 三、Analysis Evidence Disposition
+## 三、按需多模型检验与同模型多算法检验
+
+两类新检验沿用本模块的 Analysis Necessity Gate、独立 analysis 入口、项目唯一 backend 和现有处置，不要求每问两个模型。
+
+| 类型 | 保持与改变的对象 | 专项证据表 |
+|---|---|---|
+| `model_comparison` | 保持题目对象、合法数据事实源和共同评价问题；比较至少一个有实质数学差异的合理模型 | `多模型检验` |
+| `algorithm_comparison` | 保持原始数学模型、现实参数、目标和硬约束；比较至少两个不同真实求解方法 | `同模型多算法检验` |
+
+同算法换 seed、初值、容差或函数名不单独计为多算法；不同模型名字不证明模型不同。同一方程改变离散或积分算法通常属于求解方法变化，增加物理机制才可能属于模型变化。等价 reformulation 必须保留原模型映射与回算。两模型一致只提供指定范围内的交叉佐证；不同模型产生差异也不自动否决主模型。
+
+Module 02 的 Comparator 按具体比较问题关联稳定检验 ID。数学／算法比较规范置于框架 `#### 结果摘要` 之后的独立 `HSK_ANALYSIS_COMPARISON_BEGIN/END Qn` marker，不能混入主 SIB 或主语义哈希区。规范、范围审查和批准服从 `core/model_approval_contract.yaml`；当前主身份仍须 current = validated = approved。比较范围变化只失效该范围及 analysis 链，主模型真正变化才按原语义治理使主批准和结果失效。
+
+主工作簿 accepted 后，在现有 `analysis_comparison.checks` 中冻结本次具体检验、对象引用、共同评价、判据和预期证据选择器。`required` 项必须逐项执行并形成真实非空证据及 disposition；敏感性或另一张实质表不能替代它。`exploratory` 未完成不阻塞当前必要答案，但不得写成已验证。仍有 current required 项时不得整体 `not_required`；明确题目／用户要求和未关闭核心风险不能因计算失败撤销。
+
+配置与回执扩展仅按 `core/user_execution_contract.yaml` 激活；计划摘要排除实际结果和运行后处置，主簿和源码身份继续使用现有绑定。机器能核对规范一致性、有限指标算术、覆盖和来源，不能从名称自动证明数学等价、算法独立性或模型正确性。
+
+每次真实子运行保留模型／算法、实例或重复、指标、单位、实际设置、停止原因及必要可行性／残差／时间；表列与 MATLAB 交接只由 `core/workbook_schema.yaml` 定义。共同评价须声明输出映射、因果合法划分、单位、方向和判据；不同目标函数不能直接相减。性能主张还需要适用预算、硬件和重复记录。只写固定比较数字或“通过”不构成执行证据。
+
+`单位` 标记基准与对照指标；相对变化、改进比例或百分点等差异单位与指标单位不同时，必须在同一行明确填写 `差异单位`，并由该差异 selector 显式引用。非空 `差异单位` 不能被普通单位 selector 忽略；空可选列不触发单位推断。机器只对该字面单位作有限转换，不从运算名称补造单位，也不放宽其他指标的单位冲突规则。
+
+有效的负比较结果属于实验发现。技术失败、缺行、不可比数据或身份不符不能冒充 `reject` 或已完成。`modify` 或附加 claim 的 `reject` 可完成检验，但关联正文保持 stale，直到具体动作完成；核心答案／模型有效性 `reject` 按现有核心否证规则 `redo_required` 并回退。
+
+## 四、Analysis Evidence Disposition
 
 深化分析的每一项敏感性、鲁棒性、外样本、压力测试、多算法或多初值证据都必须说明它**作用于哪个具体主张**，并给出以下三种 disposition 之一：
 
@@ -93,7 +116,7 @@ Evidence ID
 
 禁止只写“通过敏感性分析验证了模型稳定性”而不说明：分析了什么、支持/修改/否决了哪个主张、变化范围多大以及正文应怎样处理。
 
-## 四、Analysis Evidence Capture：深化分析必须保留可复查的底层结果
+## 五、Analysis Evidence Capture：深化分析必须保留可复查的底层结果
 
 03B 不得只输出“稳定”“变化不大”“算法一致”等摘要结论。只要本次深化分析已经真实产生逐参数、逐场景、逐 seed、逐算法、逐区域、逐阈值或逐样本结果，就应在分析工作簿中保留足以复核结论和直接供 MATLAB 绘图的细粒度证据。
 
@@ -112,7 +135,7 @@ Evidence ID
 
 这条规则的目的，是让 Figure Evidence 阶段可以直接从 accepted 工作簿构造稳定区、阈值边界、ECDF、箱线/小提琴+散点、Small Multiples、Pareto/性能剖面等科研图，而不在 绘图阶段重新运行分析。
 
-## 五、数据与模型边界
+## 六、数据与模型边界
 
 数据处理边界：
 

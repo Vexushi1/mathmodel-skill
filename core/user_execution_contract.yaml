@@ -1,4 +1,4 @@
-version: 3.2.0
+version: 3.3.0
 introduced_in_skill_version: 10.0.0
 skill_compatibility: '>=10.0.0,<11.0.0'
 purpose: 定义用户本地完整版数值执行链；所有数据项目先根据当前题目、当前附件和模型输入要求锁定preprocessing_decision，只有project_level才增加项目级预处理执行边界。每问主求解使用项目唯一已选Python或MATLAB后端的独立入口；结果深化分析仅在主工作簿accepted后经过Analysis Necessity Gate且判定required时使用独立入口，并必须继承同一项目数值后端。P5a起新生成阶段脚本使用RUN_CONFIG承载任务可变输入，全局user/full-fidelity/no-degradation政策由本Authority继承；P5b起新生成阶段脚本通过run_receipt_protocol_version绑定版本化RUN_RECEIPT，实际运行事实仍写入既有工作簿运行配置工作表。v7.14起新生成主求解还绑定Primary Quality Specification与主数值证据独立复核，但不得把结果深化分析提前塞进主求解。
@@ -314,6 +314,42 @@ analysis_necessity_state_mapping:
   invalidation: 按state_transition_contract清除primary/data/semantic失效及其相关依赖后的旧requirement reason；保留的方法列表只是候选计划。分析代码重交或图形改动不单独清除此决定。
   historical_read: 已accepted且passed的同一已验收分析工作簿可只读且不补写新reason；新交付或新验收不能借legacy配置绕过当前前置。
   implementation: scripts/analysis_prerequisites.py
+analysis_comparison:
+  introduced_in_skill_version: 10.18.0
+  minimum_reader_skill_version: 10.18.0
+  protocol_version: 1.0.0
+  activation: any_current_analysis_comparison_registry_method_source_marker_receipt_marker_or_new_comparison_sheet
+  config_fields: [analysis_comparison_protocol_version, analysis_comparison_plan_sha256]
+  receipt_transport: existing_运行配置_sheet_only
+  receipt_versions: [1.1.0, 1.2.0]
+  stage: analysis_only
+  plan_freeze: >-
+    Bind the current question, approved primary identity, approved comparison scope and
+    canonical pre-execution checks/criteria/selectors to the delivered RUN_CONFIG and
+    the identical RUN_RECEIPT digest. Exclude outcomes, dispositions, action status,
+    actual workbook hashes and the source bundle digest from the plan digest.
+  qualification: >-
+    Required checks must each have current comparable source evidence and a valid
+    disposition. A reasoned not_required decision cannot waive a current required
+    comparison. Unsupported, partial or mismatched declarations fail closed.
+  candidate_acceptance: >-
+    The existing receipt coordinator qualifies candidate code/input/upstream identities,
+    evaluates the captured candidate bytes, and only then commits acceptance. An
+    accepted-analysis source qualifier cannot be used to accept its own candidate.
+  negative_results: >-
+    A completed modify or auxiliary reject is not a technical failure; its claim action
+    must be completed before formal delivery through the existing disposition status=resolved.
+    Current actions stale exact existing claim/anchor fragments and their dependency closure;
+    an unbound current action still blocks formal consumption. Numerical acceptance alone
+    never closes these actions. Core-answer/model-validity rejection
+    returns the existing lifecycle to solve_validate/model_design and withholds current
+    validated_results. Missing or failed subruns cannot be retired as successful evidence.
+  read_set: guarded_code_and_receipt_writes_independent_of_optional_A2_B2_C
+  compatibility: >-
+    Old accepted same-hash analysis retains its original read-only semantics. Original
+    analysis methods do not implicitly activate comparison. New comparison declarations
+    require the complete overlay; old readers are not retroactively guaranteed to reject it.
+  implementation: scripts/analysis_comparison_gate.py
 returned_workbook:
   semantic_governance_required: true
   numerical_evidence_checker: scripts/validate_numerical_evidence.py

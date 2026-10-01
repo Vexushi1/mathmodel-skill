@@ -60,7 +60,7 @@ class SelectedCarrierRuntimeTests(unittest.TestCase):
         contract = yaml.safe_load(
             (ROOT / "core/runtime_assurance_contract.yaml").read_text(encoding="utf-8")
         )
-        self.assertEqual(contract["version"], "2.4.0")
+        self.assertEqual(contract["version"], "2.5.0")
         rules = "\n".join(contract["runtime_context"]["rules"])
         self.assertIn("1.4.0 and 1.5.0", rules)
         analysis_module = (ROOT / "modules/03_result_analysis.md").read_text(encoding="utf-8")

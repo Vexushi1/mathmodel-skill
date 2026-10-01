@@ -248,10 +248,26 @@ def _record_issues(
     return issues
 
 
+def _comparison_scope_issues(record: Mapping[str, Any], question: str,
+                             framework_path: str) -> list[str]:
+    """A primary-model receipt cannot silently authorize a new comparison scope."""
+    review_id = record["review_id"]
+    fields = {item["pointer"] for item in record["snapshot"]["state_fields"]}
+    paths = {item["path"] for item in record["snapshot"]["project_files"]}
+    issues = []
+    pointer = f"/subproblems/{question}/analysis_comparison/scope_sha256"
+    if pointer not in fields:
+        issues.append(f"{review_id}: comparison scope identity is outside the review snapshot")
+    if framework_path not in paths:
+        issues.append(f"{review_id}: comparison specifications are outside the review snapshot")
+    return issues
+
+
 def evaluate_gate(
     project_root: str | Path, gate: str, questions: Sequence[str] | None = None,
     state: Mapping[str, Any] | None = None,
     host_evidence: Mapping[str, Any] | None = None,
+    *, comparison_scope: bool = False,
 ) -> dict[str, Any]:
     """Evaluate only current, policy-declared receipt coverage for an existing gate."""
     requested = ([questions] if isinstance(questions, str) else list(questions)
@@ -284,7 +300,7 @@ def evaluate_gate(
         contract = _observe_skill(CONTRACT, observed["skill"])
         model = _observe_skill(MODEL_CONTRACT, observed["skill"])
         final_matrix = _observe_skill(FINAL_MATRIX, observed["skill"])
-        if schema.get("version") not in {"8.14.0", "8.15.0"} or contract.get("version") != POLICY_VERSION:
+        if schema.get("version") not in {"8.14.0", "8.15.0", "8.16.0"} or contract.get("version") != POLICY_VERSION:
             raise ValueError("unsupported C2 Schema or Authority version")
         policy_shape = (schema.get("$defs") or {}).get("review_receipt_policy")
         if not isinstance(policy_shape, Mapping):
@@ -347,6 +363,18 @@ def evaluate_gate(
         for question in requested:
             requirement = next(item for item in gate_reqs if question in item["questions"])
             required_objects = set(requirement["object_ids"])
+            if comparison_scope:
+                if gate != "model_challenge":
+                    raise ValueError("comparison scope applies only to the existing Model Challenge gate")
+                comparison = subproblems[question].get("analysis_comparison")
+                if (not isinstance(comparison, Mapping)
+                        or comparison.get("protocol_version") != "1.0.0"
+                        or not isinstance(comparison.get("scope_sha256"), str)
+                        or not re.fullmatch(r"[0-9a-f]{64}", comparison["scope_sha256"])):
+                    raise ValueError(f"{question}: no current supported comparison scope identity")
+                if f"{question}:analysis_comparison" not in required_objects:
+                    report["issues"].append(
+                        f"{gate}/{question}: comparison scope is absent from the explicit review policy")
             if active_paper_objects - required_objects:
                 report["issues"].append(
                     f"{gate}/{question}: policy omits active paper source objects: "
@@ -387,6 +415,10 @@ def evaluate_gate(
                     active_paper_objects,
                     host_evidence.get(item["review_id"]) if host_evidence is not None else None,
                 ))
+                if comparison_scope:
+                    framework = payload.get("paper_framework") or {}
+                    framework_path = framework.get("path", "模型论文框架.md")
+                    report["issues"].extend(_comparison_scope_issues(item, question, framework_path))
                 chosen.append(item)
             if len(chosen) != len(requirement["roles"]):
                 continue

@@ -17,9 +17,9 @@ def load(relative):
 class V1000ReleaseVersionMatrixTests(unittest.TestCase):
     def test_current_skill_carriers_and_single_backend_cli(self):
         bootstrap = load("core/bootstrap.yaml")
-        self.assertEqual(str(bootstrap["skill_version"]), "10.17.1")
+        self.assertEqual(str(bootstrap["skill_version"]), "10.18.0")
         plugin = load(".codex-plugin/plugin.json")
-        self.assertEqual(plugin["version"], "10.17.1")
+        self.assertEqual(plugin["version"], "10.18.0")
         self.assertIn("one project-wide Python/MATLAB numerical backend", plugin["description"])
         for relative in (
             "core/workflow_router.yaml", "core/module_manifest.yaml",
@@ -27,7 +27,7 @@ class V1000ReleaseVersionMatrixTests(unittest.TestCase):
             "config/prose_audit_patterns.yaml",
         ):
             with self.subTest(relative=relative):
-                self.assertEqual(str(load(relative)["version"]), "10.17.1")
+                self.assertEqual(str(load(relative)["version"]), "10.18.0")
         self.assertEqual(
             bootstrap["entrypoints"]["project_solver_backend"],
             "python scripts/project_solver_backend.py",
@@ -37,31 +37,32 @@ class V1000ReleaseVersionMatrixTests(unittest.TestCase):
         )
         root_skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         self.assertEqual(root_skill, (ROOT / "skills/mathmodel-skill/SKILL.md").read_text(encoding="utf-8"))
-        self.assertIn("version: 10.17.1", root_skill)
+        self.assertIn("version: 10.18.0", root_skill)
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        self.assertTrue(readme.startswith("# mathmodel-skill v10.17.1"))
-        self.assertEqual(readme.splitlines()[0], "# mathmodel-skill v10.17.1")
-        self.assertTrue(changelog.startswith("# Changelog\n\n## 10.17.1\n"))
-        self.assertTrue((ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8").startswith("# HSK Core Policy v10.17.1"))
+        self.assertTrue(readme.startswith("# mathmodel-skill v10.18.0"))
+        self.assertEqual(readme.splitlines()[0], "# mathmodel-skill v10.18.0")
+        self.assertTrue(changelog.startswith("# Changelog\n\n## 10.18.0\n"))
+        self.assertTrue((ROOT / "core/hsk_core_policy.md").read_text(encoding="utf-8").startswith("# HSK Core Policy v10.18.0"))
 
     def test_independent_protocol_versions_are_not_skill_versions(self):
         bootstrap = load("core/bootstrap.yaml")
         execution = load("core/user_execution_contract.yaml")
         self.assertEqual(bootstrap["bootstrap_schema_version"], "1.1.0")
-        self.assertEqual(load("core/project_state.schema.yaml")["version"], "8.15.0")
+        self.assertEqual(load("core/project_state.schema.yaml")["version"], "8.16.0")
         self.assertEqual(load("core/review_receipt_contract.yaml")["version"], "1.0.0")
         self.assertEqual(load("core/review_receipt_consumption_contract.yaml")["version"], "1.0.0")
         case_schema = load("knowledge/case_memory/schema.yaml")
         self.assertEqual(case_schema["version"], "1.0.0")
         self.assertEqual(case_schema["introduced_in_skill_version"], "10.16.0")
         self.assertEqual(load("core/case_memory_retrieval_contract.yaml")["version"], "1.0.0")
-        self.assertEqual(execution["version"], "3.2.0")
-        self.assertEqual(load("core/runtime_assurance_contract.yaml")["version"], "2.4.0")
-        self.assertEqual(load("core/state_transition_contract.yaml")["version"], "1.6.0")
+        self.assertEqual(execution["version"], "3.3.0")
+        self.assertEqual(load("core/runtime_assurance_contract.yaml")["version"], "2.5.0")
+        self.assertEqual(load("core/state_transition_contract.yaml")["version"], "1.7.0")
         self.assertEqual(load("core/claim_consumption_contract.yaml")["version"], "1.8.0")
-        self.assertEqual(load("core/writing_reasoning_contract.yaml")["schema_version"], "1.10.0")
-        self.assertEqual(load("core/workbook_schema.yaml")["schema_version"], "2.3.1")
+        self.assertEqual(load("core/writing_reasoning_contract.yaml")["schema_version"], "1.11.0")
+        self.assertEqual(load("core/workbook_schema.yaml")["schema_version"], "2.4.0")
+        self.assertEqual(load("core/model_approval_contract.yaml")["version"], "1.2.0")
         self.assertEqual(execution["code_bundle"]["protocol_version"], "1.1.0")
         self.assertEqual(execution["code_delivery"]["run_receipt_protocol"]["current_version_by_stage"],
                          {"preprocessing": "1.0.0", "primary": "1.1.0", "analysis": "1.1.0"})

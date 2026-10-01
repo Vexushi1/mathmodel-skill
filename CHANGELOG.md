@@ -1,6 +1,13 @@
 # Changelog
 
-## 10.17.1
+## 10.18.0
+
+- Extend conditional 03B analysis with multi-model comparison and distinct algorithms for the same mathematical model. Preserve sensitivity and other existing analysis types; neither comparison is mandatory for every question.
+- Bind the reviewed comparison scope and predeclared experiment plan to current approved primary semantics, delivered analysis source and the existing 1.1/1.2 execution receipt. Validate every required check against precise primary and candidate evidence before acceptance; distinguish valid negative findings from execution failures.
+- Keep comparison specifications outside the primary semantic identity. Plan changes stale analysis and its dependents; core or model-validity rejection uses the existing return transitions. Preserve old workbooks and explicit legacy read compatibility without granting new comparison claims.
+- Add matching Python/MATLAB QR-versus-SVD and linear-versus-quadratic synthetic examples and remote checks. GitHub validation, final source/generated heads and merge/main evidence are recorded in the implementation PR; repository changes do not migrate user projects or publish a Release.
+
+## Previous release: 10.17.1
 
 - Close E1 verification gaps with cross-module synthetic behavior checks and a 52-scenario evidence mapping. Preserve the existing numerical, approval, claim, review and case-memory authorities; do not infer human review or real modeling quality from machine checks.
 - Record bounded remote extension resource measurements on Windows without introducing post-hoc timing thresholds or caching qualifications. Keep Windows Python 3.10/3.14 complete regression, Windows MATLAB native and Linux LaTeX evidence chains.

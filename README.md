@@ -1,4 +1,4 @@
-# mathmodel-skill v10.17.1
+# mathmodel-skill v10.18.0
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值语言由项目根策略统一选择。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。
 
@@ -16,6 +16,8 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 每问在已选项目后端下交付独立主求解入口，按 Primary Quality Specification (PQS) 保存本次运行的 Primary Evidence Capture；返回主工作簿通过独立数值复核后才可成为 accepted。Analysis Necessity Gate 判定 `required` 时，独立结果深化入口继承同一后端，产生 Analysis Evidence Capture；`not_required` 记录理由，不生成深化结果，也不声称已验证稳健性。精确入口名、工作簿和条件式产物只看 `core/output_contract.yaml#per_question.solver_scripts`；不按固定 Python 文件清单或统一五文件数推断当前资格。赛题数值代码由用户本地 `full_fidelity` 执行，助手生成、静态检查并验收返回证据。
 
 项目级预处理仍是独立的 Python 职责。正式 MATLAB 结果绘图只消费当前 accepted 工作簿与已验收证据，不重求解、不制造序列；非数据驱动的题目专属机理图可按 Figure Authority 选择可编辑 draw.io。图内正式标题由论文 caption 承担，实际渲染和语义检查不能由静态检查替代。
+
+03B 支持按需进行多模型检验，以及同一数学模型的不同求解算法检验。比较范围先审查，实验判据在交付前冻结；每项必要比较都要有真实、可比的底层证据。两类区别和完成条件见 [结果深化分析 Authority](modules/03_result_analysis.md)，实施范围见 [10.18.0 修改计划](docs/v10180_analysis_comparison_plan.md)。使用新比较协议的项目须由支持该协议的工具验收，旧工具的通过状态不能证明新检验完成。
 
 ## 可选 Code ↔ Model 结构核验（A1）
 

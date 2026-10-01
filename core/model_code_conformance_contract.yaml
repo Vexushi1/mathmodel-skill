@@ -47,6 +47,13 @@ activation:
     analysis_upstream_read_set: primary_entry_helpers_inputs_auxiliary_and_current_workbook
     analysis_upstream_scope: existing_primary_qualification_without_forcing_primary_A2_activation
     scope_limits: does_not_establish_math_equivalence_constraint_activation_independent_review_or_task_execution
+    analysis_comparison_scope: >-
+      The current A2 coverage maps the primary SIB, not the separate comparison
+      specifications owned by Module 03B. An explicitly A2-enabled analysis stage
+      using the new comparison protocol reports needs_review and blocks structural
+      qualification until comparator coverage is supported; it cannot reuse a
+      primary-only structure_verified result as comparator verification. This does
+      not enable A2 for projects without its explicit policy.
   report_persistence: stdout_only
   default_project_files_added: []
   integration_boundary: A2 adds one opted-in prerequisite inside existing consumers; A1 reports and bindings never replace model approval or numerical quality.

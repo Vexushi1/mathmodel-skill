@@ -21,6 +21,8 @@ from semantic_identity import (
 )
 import artifact_identity as ARTIFACT_IDENTITY
 import analysis_prerequisites as ANALYSIS_PREREQUISITES
+import analysis_comparison_gate as COMPARISON
+import conformance_gate as CONFORMANCE
 import stage_code as STAGE_CODE
 import state_transitions as STATE_TRANSITIONS
 from project_transaction import JOURNAL_RELATIVE_PATH, STATE_RELATIVE_PATH, ProjectTransactionError, state_generation
@@ -227,13 +229,24 @@ def _current_structured_rejections(
         for question in sorted(known_questions):
             block_invalid(question, f"{policy_error}; runtime qualification is blocked")
         return results
-    if not active:
+    comparison_questions = {str(q) for q, entry in subproblems.items()
+                            if isinstance(entry, dict) and COMPARISON.present(entry)} if isinstance(subproblems, dict) else set()
+    if not active and not comparison_questions:
         return results
-    b2_label = "1.4" if pair == STRUCTURED_REJECTION_POLICY else "1.5"
+    b2_label = ("1.4" if pair == STRUCTURED_REJECTION_POLICY else "1.5") if active else "analysis-comparison 1.0"
 
     for question in sorted(known_questions):
         result = result_for(question)
         item = subproblems.get(question, {}) if isinstance(subproblems, dict) else {}
+        if not active and question not in comparison_questions:
+            continue
+        comparison = item.get("analysis_comparison", {}) if isinstance(item, dict) else {}
+        checks = comparison.get("checks", []) if isinstance(comparison, dict) else []
+        if not isinstance(checks, list):
+            block_invalid(question, f"{question}.analysis_comparison.checks is malformed")
+            continue
+        references = {row["disposition_ref"] for row in checks if isinstance(row, dict)
+                      and isinstance(row.get("disposition_ref"), str)}
         if not isinstance(item, dict):
             block_invalid(question, f"{question} is malformed under B2 {b2_label}")
             continue
@@ -258,6 +271,8 @@ def _current_structured_rejections(
             )
             continue
         for index, row in enumerate(rows):
+            if not active and (not isinstance(row, dict) or row.get("id") not in references):
+                continue
             if not isinstance(row, dict):
                 block_invalid(
                     question,
@@ -271,6 +286,9 @@ def _current_structured_rejections(
                     f"{question}.analysis_evidence_dispositions[{index}].status is malformed under B2 {b2_label}",
                 )
                 continue
+            if (status == "resolved" and row.get("id") in references and row.get("disposition") == "reject"
+                    and row.get("impact_scope") in {"core_answer", "model_validity"}):
+                status = "current"  # Resolving wording cannot restore rejected numerical/model validity.
             if status != "current":
                 continue
             disposition = row.get("disposition")
@@ -869,6 +887,7 @@ def hydrate_project_context(
     evidence: list[dict[str, Any]] = []
     verified: set[str] = set()
     conflicts: list[str] = list(backend_policy["issues"])
+    comparison_read_set = {"project": {}, "skill": {}}
     conflicts.extend(
         issue
         for scoped in structured_rejections.values()
@@ -993,6 +1012,11 @@ def hydrate_project_context(
             binding_issues.extend(read_issues(root, state, item, "analysis"))
             if binding_issues:
                 analysis_row.update(status="not_accepted", reason="; ".join(binding_issues))
+        if analysis_row["status"] == "verified":
+            comparison = COMPARISON.inspect_gate(root, state, q, boundary="current")
+            CONFORMANCE.merge_read_sets(comparison_read_set, comparison["observed_sources"])
+            if comparison["issues"]:
+                analysis_row.update(status="not_accepted", reason="; ".join(comparison["issues"]))
         analysis_rows.append(analysis_row)
 
         requirement_reason = str(item.get("result_analysis_requirement_reason") or "").strip()
@@ -1009,7 +1033,12 @@ def hydrate_project_context(
                    if isinstance(hashes, dict)
                    for layer in analysis_hash_layers)
         )
-        skip_verified = (not_required and bool(requirement_reason)
+        skip_issues = []
+        if not_required:
+            comparison = COMPARISON.inspect_gate(root, state, q, boundary="plan")
+            CONFORMANCE.merge_read_sets(comparison_read_set, comparison["observed_sources"])
+            skip_issues = comparison["issues"]
+        skip_verified = (not_required and bool(requirement_reason) and not COMPARISON.required_ids(item) and not skip_issues
                          and primary_row["status"] == "verified" and not analysis_identity)
         if not_required:
             analysis_skip_rows.append(
@@ -1021,7 +1050,10 @@ def hydrate_project_context(
                     "reason": (
                         requirement_reason
                         if skip_verified
-                        else ("not_required still records current analysis numerical identity"
+                        else ("; ".join(skip_issues) if skip_issues else
+                              "not_required cannot retire a current required comparison"
+                              if COMPARISON.required_ids(item) else
+                              "not_required still records current analysis numerical identity"
                               if analysis_identity else
                               "result_analysis_status=not_required requires a non-empty reason and a verified accepted primary result")
                     ),
@@ -1045,6 +1077,7 @@ def hydrate_project_context(
     if analysis_complete and all(analysis_complete):
         verified.add("validated_results")
 
+    CONFORMANCE.assert_observed(root, comparison_read_set)
     snapshot.assert_current()
     return {
         "loaded": True,

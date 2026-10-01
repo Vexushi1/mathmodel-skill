@@ -30,6 +30,7 @@ import artifact_fingerprint as ARTIFACT_FINGERPRINT  # noqa: E402
 import project_snapshot as PROJECT_SNAPSHOT  # noqa: E402
 import stage_code as STAGE_CODE  # noqa: E402
 import conformance_gate as CONFORMANCE  # noqa: E402
+import analysis_comparison_gate as COMPARISON  # noqa: E402
 from execution_protocol import declared_input_paths
 DEFAULT_SCHEMA_PATH = SKILL_ROOT / "core" / "workbook_schema.yaml"
 DEFAULT_OUTPUT_CONTRACT_PATH = SKILL_ROOT / "core" / "output_contract.yaml"
@@ -506,6 +507,9 @@ def _snapshot_transition_events(entry: Mapping[str, Any], snapshot: Mapping[str,
         field = "code" if stage == "primary" else "result_analysis_code"
         if observation.get("issues") and entry.get(field):
             events.append(f"{stage}_conformance_changed")
+    comparison = snapshot.get("analysis_comparison_observed") or {}
+    if comparison.get("plan_issues") and entry.get("result_analysis_code"):
+        events.append("analysis_comparison_plan_changed")
     for layer in sorted(_mismatched_layers(entry, current)):
         event = LAYER_TRANSITION_EVENTS.get(layer)
         if event and event not in events:
@@ -858,6 +862,8 @@ def _formal_state_issues(required: set[str], state: Mapping[str, Any]) -> list[s
                 issues.append(
                     f"{name}: result_analysis_status=not_required必须提供非空result_analysis_requirement_reason"
                 )
+            if analysis_status == "not_required" and COMPARISON.required_ids(entry):
+                issues.append(f"{name}: not_required不得跳过当前required比较检验")
         if required.intersection({"approved_figures", "docx_draft", "latex_source", "compiled_pdf", "validated_submission_package"}):
             if entry.get("artifacts_stale") is True:
                 issues.append(f"{name}: 下游正式交付禁止使用 stale 结果")
@@ -1337,6 +1343,29 @@ def synchronize(
                     if relative in sync_read_set and sync_read_set[relative] != digest:
                         raise PROJECT_TX.ReadSetConflictError("conformance sync read-set conflict: " + relative)
                     sync_read_set[relative] = digest
+        comparison_boundary = (("current" if scope in {"figures", "docx", "latex", "submission"} else "receipt")
+                               if entry.get("analysis_execution_status") == "accepted"
+                               else "delivery" if entry.get("result_analysis_code") else "plan")
+        comparison = COMPARISON.inspect_gate(root, state, key, boundary=comparison_boundary)
+        if comparison["enabled"]:
+            snapshot["analysis_comparison_observed"] = {
+                "plan_sha256": comparison.get("plan_sha256"),
+                "scope_sha256": comparison.get("scope_sha256"),
+                "plan_issues": comparison["plan_issues"], "issues": comparison["issues"],
+            }
+            snapshot["issues"].extend(comparison["issues"])
+            CONFORMANCE.merge_read_sets(conformance_read_set, comparison["observed_sources"])
+            if sync_read_set is not None:
+                for relative, digest in comparison["observed_sources"]["project"].items():
+                    if relative in sync_read_set and sync_read_set[relative] != digest:
+                        raise PROJECT_TX.ReadSetConflictError("comparison sync read-set conflict: " + relative)
+                    sync_read_set[relative] = digest
+            if not comparison["issues"] and comparison_boundary in {"receipt", "current"}:
+                for rejection in COMPARISON.rejection_events(entry):
+                    record = {"question": key, **rejection}
+                    if not any(row["question"] == key and row["disposition_id"] == record["disposition_id"]
+                               for row in claim_rejection_events):
+                        claim_rejection_events.append(record)
         if sync_read_set is not None:
             _verify_sync_question_sources(snapshot, sync_read_set, captured_figures)
         snapshots[key] = snapshot
@@ -1352,6 +1381,12 @@ def synchronize(
         for snapshot in snapshots.values():
             stale, reports = _apply_snapshot_to_state(root, transition_state, snapshot)
             transition_reports.extend(reports)
+            question = str(snapshot["key"])
+            comparison_entry = (transition_state.get("subproblems") or {}).get(question, {})
+            if COMPARISON.present(comparison_entry):
+                closure = COMPARISON.action_fragment_closure(transition_state, comparison_entry)
+                changed = STATE_TRANSITIONS.mark_claim_fragments_stale(transition_state, question, closure["fragment_ids"])
+                claim_stale_fragments.extend(changed)
             if stale:
                 stale_questions.append(str(snapshot["key"]))
         for rejection in claim_rejection_events:

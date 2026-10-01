@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.17.1
+当前 Skill 版本：10.18.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -124,6 +124,8 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
 - `scripts/README.md`
+- `scripts/analysis_comparison.py`
+- `scripts/analysis_comparison_gate.py`
 - `scripts/analysis_prerequisites.py`
 - `scripts/artifact_fingerprint.py`
 - `scripts/artifact_identity.py`
@@ -198,11 +200,15 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `templates/code/hsk_pipeline/result_io.py`
 - `templates/code/hsk_pipeline/workbook_validation.py`
 - `templates/code/matlab/README.md`
+- `templates/code/matlab/analysis_comparison_example.m`
+- `templates/code/matlab/hsk_comparison_fit.m`
 - `templates/code/matlab/q1_analysis.m`
 - `templates/code/matlab/q1_solver.m`
 - `templates/code/requirements.txt`
 - `templates/code/starter/README.md`
+- `templates/code/starter/analysis_comparison.py`
 - `templates/code/starter/classification.py`
+- `templates/code/starter/comparison_numerics.py`
 - `templates/code/starter/evaluation.py`
 - `templates/code/starter/optimization.py`
 - `templates/code/starter/prediction.py`
@@ -274,6 +280,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `templates/writing/caption_explanation.md`
 - `templates/writing/code_appendix_description.md`
 - `templates/writing/docx_check.md`
+- `tests/analysis_comparison_smoke.py`
 - `tests/audit_auxiliary_smoke.py`
 - `tests/case_memory_fixtures.py`
 - `tests/claim_evidence_smoke.py`
@@ -306,6 +313,10 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/solver_backend_hash_smoke.py`
 - `tests/solver_backend_mixed_smoke.py`
 - `tests/test_actions_runtime_modernization.py`
+- `tests/test_analysis_comparison.py`
+- `tests/test_analysis_comparison_integration.py`
+- `tests/test_analysis_comparison_review.py`
+- `tests/test_analysis_comparison_smoke.py`
 - `tests/test_audit_a6_latex_boundaries.py`
 - `tests/test_audit_a7_entry_consistency.py`
 - `tests/test_audit_analysis_boundaries.py`
@@ -586,6 +597,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/repository_audit_and_handoff_refactor_plan.md`
 - `docs/v1010_audit_closure_remediation_plan.md`
 - `docs/v1010_input_identity_protocol_decision.md`
+- `docs/v10180_analysis_comparison_plan.md`
 - `docs/v801_chapter_capability_preservation_audit.md`
 - `docs/v801_skill_health_remediation_plan.md`
 - `docs/v801_skill_health_remediation_status.md`

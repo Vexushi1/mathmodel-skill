@@ -128,6 +128,14 @@ def inspect_gate(root: Path, state: Mapping[str, Any], question: str, stage: str
         if stage not in required_stages(entry):
             result.update(enabled=False, status='not_enabled')
             return result
+        if stage == 'analysis':
+            from analysis_comparison import enabled as comparison_active
+            if comparison_active(entry):
+                result['structure_status'] = 'needs_review'
+                result['issues'].append(
+                    'conformance analysis comparison: current A2 maps the primary SIB only; '
+                    'comparator model/method scope is not structurally verified')
+                return result
         # Lazy import avoids the existing runtime -> prerequisite -> inspector cycle.
         import model_code_conformance as audit
         observed = result['observed_sources']

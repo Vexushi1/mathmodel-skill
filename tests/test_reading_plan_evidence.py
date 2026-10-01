@@ -5,6 +5,8 @@ from pathlib import Path
 import sys
 import unittest
 
+import yaml
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import reading_plan_evidence as EVIDENCE
 
@@ -796,9 +798,9 @@ class AuditClosureProjectionTests(unittest.TestCase):
         self.assertEqual(EVIDENCE.approved_d1_carrier_change(
             "facts_current", wrong_baseline, new, carriers), (new, []))
 
-    def test_current_e1_runtime_metadata_excludes_independent_corpus_schema(self):
+    def test_current_comparison_runtime_metadata_excludes_independent_corpus_schema(self):
         self.assertEqual(EVIDENCE.authority_versions(EVIDENCE.HERE.parents[1]),
-                         EVIDENCE.E1_AUTHORITY_VERSIONS)
+                         EVIDENCE.COMPARISON_AUTHORITY_VERSIONS)
 
     def test_e1_patch_retains_d2_history_and_rejects_qualification_or_loading_drift(self):
         carriers = deepcopy(EVIDENCE.E1_AUTHORITY_VERSIONS)
@@ -826,6 +828,116 @@ class AuditClosureProjectionTests(unittest.TestCase):
                 changed = deepcopy(new)
                 changed["assurance"]["qualification"] = "accepted"
                 self.assertEqual(EVIDENCE.approved_e1_carrier_change(case, old, changed, carriers), (changed, []))
+
+    def test_comparison_carrier_preserves_inactive_runtime_and_rejects_unregistered_drift(self):
+        carriers = deepcopy(EVIDENCE.COMPARISON_AUTHORITY_VERSIONS)
+        for case in (*EVIDENCE.A7_HYDRATED_PROVENANCE_CASES, "facts_unscoped"):
+            with self.subTest(case=case):
+                old, new = self.pair(case)
+                self.prepare_b2c(old, new)
+                new["version"] = "10.18.0"
+                new["assurance"]["schema_version"] = "2.5.0"
+                original = deepcopy(new)
+                projected, changes = EVIDENCE.approved_comparison_carrier_change(case, old, new, carriers)
+                self.assertEqual(projected, old)
+                self.assertTrue(changes)
+                self.assertEqual(new, original)
+                for field, value in (("pre_delivery_gates", []), ("formal_delivery", True),
+                                     ("load_order", ["scripts/analysis_comparison.py"])):
+                    changed = deepcopy(new)
+                    changed[field] = value
+                    self.assertEqual(EVIDENCE.approved_comparison_carrier_change(
+                        case, old, changed, carriers), (changed, []))
+                changed = deepcopy(new)
+                changed["assurance"]["qualification"] = "accepted"
+                self.assertEqual(EVIDENCE.approved_comparison_carrier_change(
+                    case, old, changed, carriers), (changed, []))
+                bad = {**carriers, "project_state": "8.17.0"}
+                self.assertEqual(EVIDENCE.approved_comparison_carrier_change(case, old, new, bad), (new, []))
+
+    def comparison_writing_pair(self):
+        old, new = self.pair("cumcm_writing")
+        new.pop("solver_backend")
+        new["runtime_plan"].pop("solver_backend")
+        self.prepare_b2c(old, new)
+        new["version"] = "10.18.0"
+        new["assurance"]["schema_version"] = "2.5.0"
+        golden = yaml.safe_load((EVIDENCE.HERE.parent / "fixtures/phase_g_cumcm_runtime_golden.yaml").read_text(encoding="utf-8"))
+        writing = golden["routes"]["latex"]["writing_runtime"]
+        for plan in (old, new):
+            plan["writing_runtime"] = deepcopy(writing)
+            plan["runtime_plan"]["writing_runtime"] = deepcopy(writing)
+        for runtime in (new["writing_runtime"], new["runtime_plan"]["writing_runtime"]):
+            runtime["fallback_triggers"].insert(-1, EVIDENCE.COMPARISON_WRITING_TRIGGER)
+        return old, new
+
+    def test_comparison_cumcm_declared_trigger_projects_only_two_exact_leaf_lists(self):
+        old, new = self.comparison_writing_pair()
+        saved = deepcopy((old, new))
+        projected, changes = EVIDENCE.approved_comparison_carrier_change(
+            "cumcm_writing", old, new, EVIDENCE.COMPARISON_AUTHORITY_VERSIONS)
+        self.assertEqual(projected, old)
+        declarations = [item for item in changes if item["path"].endswith("fallback_triggers")]
+        self.assertEqual([item["path"] for item in declarations], [
+            "writing_runtime.fallback_triggers", "runtime_plan.writing_runtime.fallback_triggers"])
+        self.assertTrue(all(item["baseline"] == old["writing_runtime"]["fallback_triggers"]
+                            and item["candidate"] == new["writing_runtime"]["fallback_triggers"]
+                            for item in declarations))
+        self.assertFalse(new["writing_runtime"]["full_reasoning_authority_preloaded"])
+        self.assertEqual((old, new), saved)
+        new["reading_plan"] = {"metrics": {"planned_skill_read_bytes": 1, "planned_project_read_bytes": 0},
+                               "profile": "progressive_writing", "status": "delegated"}
+        row = EVIDENCE.compare(
+            [{"id": "cumcm_writing", "plan": old, "legacy_declared_bytes": 1}],
+            [{"id": "cumcm_writing", "plan": new, "legacy_declared_bytes": 1,
+              "authority_versions": EVIDENCE.COMPARISON_AUTHORITY_VERSIONS}])[0]
+        self.assertTrue(row["legacy_behavior_equal_except_approved_changes"])
+        self.assertEqual(row["unexpected_legacy_changes"], [])
+
+    def test_comparison_cumcm_trigger_does_not_waive_other_lists_or_runtime_decisions(self):
+        carriers = EVIDENCE.COMPARISON_AUTHORITY_VERSIONS
+        for location in ("top", "nested"):
+            for mutation in ("extra", "duplicate", "missing", "order", "preloaded", "stage"):
+                with self.subTest(location=location, mutation=mutation):
+                    old, new = self.comparison_writing_pair()
+                    runtime = new["writing_runtime"] if location == "top" else new["runtime_plan"]["writing_runtime"]
+                    triggers = runtime["fallback_triggers"]
+                    if mutation == "extra":
+                        triggers.insert(-1, "unapproved_fallback_reason")
+                    elif mutation == "duplicate":
+                        triggers.insert(-1, EVIDENCE.COMPARISON_WRITING_TRIGGER)
+                    elif mutation == "missing":
+                        triggers.remove(EVIDENCE.COMPARISON_WRITING_TRIGGER)
+                    elif mutation == "order":
+                        triggers.reverse()
+                    elif mutation == "preloaded":
+                        runtime["full_reasoning_authority_preloaded"] = True
+                    else:
+                        runtime["authoring_sequence"][0]["read_now"].append("scripts/analysis_comparison.py")
+                    self.assertEqual(EVIDENCE.approved_comparison_carrier_change(
+                        "cumcm_writing", old, new, carriers), (new, []))
+        for field, value in (("pre_delivery_gates", []), ("load_order", []), ("formal_delivery", True)):
+            old, new = self.comparison_writing_pair()
+            new[field] = value
+            self.assertEqual(EVIDENCE.approved_comparison_carrier_change(
+                "cumcm_writing", old, new, carriers), (new, []))
+        old, new = self.comparison_writing_pair()
+        new["assurance"]["qualification"] = "accepted"
+        self.assertEqual(EVIDENCE.approved_comparison_carrier_change(
+            "cumcm_writing", old, new, carriers), (new, []))
+        old, new = self.comparison_writing_pair()
+        for case in ("facts_current", "future_case"):
+            self.assertEqual(EVIDENCE.approved_comparison_carrier_change(case, old, new, carriers), (new, []))
+        self.assertEqual(EVIDENCE.approved_comparison_carrier_change(
+            "cumcm_writing", old, new, {**carriers, "writing_reasoning": "1.11.1"}), (new, []))
+        old, new = self.comparison_writing_pair()
+        old["writing_runtime"]["fallback_triggers"].reverse()
+        self.assertEqual(EVIDENCE.approved_comparison_carrier_change(
+            "cumcm_writing", old, new, carriers), (new, []))
+        old, new = self.comparison_writing_pair()
+        del new["runtime_plan"]["writing_runtime"]["fallback_triggers"]
+        self.assertEqual(EVIDENCE.approved_comparison_carrier_change(
+            "cumcm_writing", old, new, carriers), (new, []))
 
     def test_d2_exact_carrier_preserves_d1_history_and_blocks_default_behavior_drift(self):
         carriers = deepcopy(EVIDENCE.D2_AUTHORITY_VERSIONS)

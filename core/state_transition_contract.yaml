@@ -1,4 +1,4 @@
-version: 1.6.0
+version: 1.7.0
 status: active
 introduced_in_staged_version: 9.0.0
 purpose: >-
@@ -155,7 +155,7 @@ profiles:
 
 transition_events:
   core_answer_rejected:
-    caller_scope: explicit_B2_1.4.0_or_1.5.0_current_reject_only
+    caller_scope: explicit_B2_1.4.0_or_1.5.0_or_current_analysis_comparison_1.0.0_bound_reject_only
     own_profile: core_answer_rejection
     emitted_impacts: [result]
     own_status_cap: designed
@@ -195,7 +195,7 @@ transition_events:
       data: solve_validate
       legacy_untyped: model_design
   model_validity_rejected:
-    caller_scope: explicit_B2_1.4.0_or_1.5.0_current_reject_only
+    caller_scope: explicit_B2_1.4.0_or_1.5.0_or_current_analysis_comparison_1.0.0_bound_reject_only
     own_profile: model_validity_rejection
     emitted_impacts: [model, result, parameter, data]
     own_status_cap: audited
@@ -235,6 +235,10 @@ transition_events:
     emitted_impacts: [result]
   analysis_inputs_changed:
     implementation_binding: declared analysis input bytes are missing or differ from delivered identities
+    own_profile: analysis_result
+    emitted_impacts: []
+  analysis_comparison_plan_changed:
+    implementation_binding: current comparison scope or frozen checks/criteria/selectors differ from delivered analysis plan
     own_profile: analysis_result
     emitted_impacts: []
   analysis_code_changed:

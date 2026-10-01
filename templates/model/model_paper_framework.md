@@ -492,6 +492,21 @@ $$
 | MATLAB 图 |  |  |  |
 | Citation |  |  |  |
 
+#### 03B比较计划与证据
+
+仅选用 `model_comparison / algorithm_comparison` 时登记；规则见 Module 03B、模型批准与执行 Authorities。比较规范置于独立 `HSK_ANALYSIS_COMPARISON_BEGIN/END Qn` marker，不能复制主 SIB marker，也不能改变上方主语义区。未激活时不填写占位批准或结果。
+
+- 当前范围引用／审查与批准：
+- 共同评价与保持／改变条件：
+- 规范中的模型／算法 ID 及真实实现位置：
+- 当前冻结计划引用：`analysis_comparison.checks`；这里只保留人可读投影，不建立第二份可编辑机器清单。
+
+| 检验ID | 类型 | required / exploratory及依据 | 比较问题／目标主张 | 对象／共同评价／判据引用 | 真实工作簿选择器 | Evidence ID／处置／后续动作 |
+|---|---|---|---|---|---|---|
+|  | model_comparison / algorithm_comparison |  |  |  |  |  |
+
+同模型声明应引用已审查的数学投影与算法定义；不同模型对照应说明实质结构差异与共享缺陷。未运行、技术失败和有效负结果分别记录，不能从表名或一致数值推断已验证。
+
 #### 论文与图表映射
 
 本问映射与下方“图表证据链”使用同一 Figure ID，复用同一当前 Figure Contract；字段、单位和必要记录键/排序依据只维护一处，另一处引用对应登记。

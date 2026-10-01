@@ -10,6 +10,7 @@ from typing import Any, Iterable, Mapping
 
 import artifact_fingerprint as ARTIFACT_FINGERPRINT
 import stage_code as STAGE_CODE
+import analysis_comparison_gate as COMPARISON
 from stage_inputs import observe_inputs
 
 SKILL_ROOT = Path(__file__).resolve().parent.parent
@@ -367,6 +368,8 @@ def _validate_workbook(path: Path, kind: str, schema: Mapping[str, Any], entry: 
             path, kind, schema=schema, problem_types=problem_types,
             capabilities=capabilities, objective=objective, structures=structures,
             require_quality_passed=True,
+            analysis_methods=entry.get("analysis_methods", ()),
+            comparison_plan=entry.get("analysis_comparison"),
         )
     except Exception as exc:  # noqa: BLE001
         return [f"{path.name}: {exc}"]
@@ -519,6 +522,8 @@ def _snapshot_question(
     warnings: list[str] = [] if formal_figures else list(figure_issues)
     if entry.get("result_analysis_status") == "not_required" and not analysis_not_required:
         issues.append("result_analysis_status=not_required必须提供非空result_analysis_requirement_reason")
+    if analysis_not_required and COMPARISON.required_ids(entry):
+        issues.append("not_required不得跳过当前required多模型或多算法检验")
     if delivery_scope == "code" and primary_code is None:
         issues.append("代码交付缺少标准主求解脚本")
     if require_solution and not (solution and solution.is_file()):

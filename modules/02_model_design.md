@@ -116,6 +116,8 @@ analytic / numerical / exact / heuristic / independent_solver / stress_model
 
 一个 comparator 至少说明：比较目的、它相对主模型增加/删除什么、能提供什么额外信息、为什么不是当前主模型、在哪个阶段产生真实证据。高级模型完全可以作为高保真参照、机制增强、鲁棒/随机对照或先进算法 benchmark，但“更高级”本身不是比较目的。
 
+准备在 accepted 后使用的比较候选，按 `modules/03_result_analysis.md` 的两类定义关联检验 ID、比较问题和范围引用：更换数学模型为 `model_comparison`，保持原数学模型更换求解方法为 `algorithm_comparison`。角色名称不决定检验类型。Module 02 只登记候选规范及范围审查，不伪造尚未存在的具体结果分析计划；accepted 后按真实主结果冻结 required 项与证据。Comparator 的 planned 状态不能替代实际执行和处置；未执行探索候选不得进入正式比较主张。
+
 若 comparator 证明当前主模型遗漏题面必要结构、精度不足或化简不成立，应回到本模块重新定位**缺失的最小必要结构**并形成新的最小充分主模型；不能简单把最复杂模型自动升级为主模型。
 
 准备使用 W-DRO、CVaR、MPEC、Stackelberg、ALNS、GNN、空间杜宾、DML、强化学习、深度学习等作为主模型时，按需加载 `packs/task/advanced_method_gate.md` 的完整准入；作为正式定量 comparator 时也必须说明比较目的、数据/计算可行性和证据边界。

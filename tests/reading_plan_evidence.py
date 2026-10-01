@@ -83,6 +83,28 @@ D2_AUTHORITY_VERSIONS = {
     "project_state": "8.15.0",
 }
 E1_AUTHORITY_VERSIONS = {**D2_AUTHORITY_VERSIONS, "skill": "10.17.1"}
+COMPARISON_AUTHORITY_VERSIONS = {
+    **E1_AUTHORITY_VERSIONS,
+    "skill": "10.18.0", "project_state": "8.16.0",
+    "state_transition": "1.7.0", "runtime_assurance": "2.5.0",
+    "writing_reasoning": "1.11.0",
+}
+COMPARISON_WRITING_TRIGGER = "model_or_algorithm_comparison_claim_exceeds_accepted_evidence_scope"
+COMPARISON_WRITING_PREVIOUS_TRIGGERS = (
+    "proposition_or_proof_is_being_created_or_revised",
+    "algorithm_trace_semantics_are_being_created_or_revised",
+    "question_preflight_requires_semantic_adjudication",
+    "model_construction_rationale_or_applicability_is_in_dispute",
+    "reduction_provenance_is_in_dispute",
+    "solver_precondition_or_fit_is_in_dispute",
+    "model_solver_validator_role_is_ambiguous",
+    "optimization_semantics_are_in_dispute",
+    "cross_question_dependency_is_in_dispute",
+    "terminology_or_numeric_profile_semantics_are_in_dispute",
+    "citation_evidence_scope_is_in_dispute",
+    "title_claim_or_claim_strength_requires_semantic_adjudication",
+    "final_review_requires_full_authority",
+)
 
 
 def authority_versions(repo):
@@ -892,6 +914,53 @@ def approved_e1_carrier_change(identifier, old, new, candidate_authority_version
     return projected, changes
 
 
+def approved_comparison_carrier_change(identifier, old, new, candidate_authority_versions):
+    """Project exact carriers and the CUMCM declaration, keeping runtime decisions checked."""
+    if (candidate_authority_versions != COMPARISON_AUTHORITY_VERSIONS
+            or new.get("version") != COMPARISON_AUTHORITY_VERSIONS["skill"]
+            or not isinstance(new.get("assurance"), dict)
+            or new["assurance"].get("schema_version") != "2.5.0"):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    declaration_changes = []
+    if identifier == "cumcm_writing":
+        previous = list(COMPARISON_WRITING_PREVIOUS_TRIGGERS)
+        current = [*previous[:-1], COMPARISON_WRITING_TRIGGER, previous[-1]]
+        for path in (("writing_runtime", "fallback_triggers"),
+                     ("runtime_plan", "writing_runtime", "fallback_triggers")):
+            left, right, target = old, new, predecessor
+            try:
+                for key in path[:-1]:
+                    left, right, target = left[key], right[key], target[key]
+                if left[path[-1]] != previous or right[path[-1]] != current:
+                    return deepcopy(new), []
+                target[path[-1]] = deepcopy(previous)
+            except (KeyError, TypeError):
+                return deepcopy(new), []
+            declaration_changes.append({
+                "path": ".".join(path), "baseline": deepcopy(previous),
+                "candidate": deepcopy(current),
+                "approval": "03B exact CUMCM comparison-claim fallback declaration; no runtime decision waived",
+            })
+    predecessor["version"] = E1_AUTHORITY_VERSIONS["skill"]
+    predecessor["assurance"]["schema_version"] = E1_AUTHORITY_VERSIONS["runtime_assurance"]
+    projected, changes = approved_e1_carrier_change(
+        identifier, old, predecessor, deepcopy(E1_AUTHORITY_VERSIONS))
+    if projected != old or not changes:
+        return deepcopy(new), []
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = COMPARISON_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(COMPARISON_AUTHORITY_VERSIONS)
+            change["approval"] = (
+                "03B comparison exact inactive carrier set; all existing qualifications remain checked")
+        elif change["path"] == "assurance.schema_version":
+            change["candidate"] = COMPARISON_AUTHORITY_VERSIONS["runtime_assurance"]
+            change["approval"] = "03B conditional comparison qualification protocol"
+    changes.extend(declaration_changes)
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -975,6 +1044,9 @@ def compare(before, after):
             a["id"], old, projected, b.get("authority_versions")
         )
         expected.extend(e1_changes)
+        projected, comparison_changes = approved_comparison_carrier_change(
+            a["id"], old, projected, b.get("authority_versions"))
+        expected.extend(comparison_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,

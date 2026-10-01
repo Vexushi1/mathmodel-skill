@@ -1,6 +1,6 @@
 # HSK Active Template Index
 
-当前 Skill 版本：10.17.1
+当前 Skill 版本：10.18.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -10,11 +10,15 @@
 - `templates/code/hsk_pipeline/result_io.py`
 - `templates/code/hsk_pipeline/workbook_validation.py`
 - `templates/code/matlab/README.md`
+- `templates/code/matlab/analysis_comparison_example.m`
+- `templates/code/matlab/hsk_comparison_fit.m`
 - `templates/code/matlab/q1_analysis.m`
 - `templates/code/matlab/q1_solver.m`
 - `templates/code/requirements.txt`
 - `templates/code/starter/README.md`
+- `templates/code/starter/analysis_comparison.py`
 - `templates/code/starter/classification.py`
+- `templates/code/starter/comparison_numerics.py`
 - `templates/code/starter/evaluation.py`
 - `templates/code/starter/optimization.py`
 - `templates/code/starter/prediction.py`

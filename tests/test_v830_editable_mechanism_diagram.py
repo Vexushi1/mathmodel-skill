@@ -144,6 +144,143 @@ def git_blob_sha(path: Path) -> str:
     return hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest()
 
 
+# v10.18 comparison extensions are an exact inverse projection, not a new body
+# baseline. Every authorized literal must occur once; the historical blob hashes
+# below still reject any unrelated change, including primary execution semantics.
+COMPARISON_AUTHORITY_REWRITES = {
+    "core/model_approval_contract.yaml": (
+        ("version: 1.2.0\n", "version: 1.1.0\n"),
+        ("""analysis_comparison_approval:
+  activation: current_analysis_comparison_1.0.0_only
+  same_gate: model_approval
+  scope_authority: modules/03_result_analysis.md
+  scope_shape: core/project_state.schema.yaml#/$defs/analysis_comparison
+  implementation: scripts/analysis_comparison.py
+  framework_marker: HSK_ANALYSIS_COMPARISON_BEGIN_END_Qn_after_result_summary
+  primary_identity: unchanged_full_current_validated_approved_SIB
+  scope_digest:
+    includes: [protocol_version, question, baseline_semantic_identity_hash, complete_model_specs, algorithm_definitions, comparison_questions, common_evaluation_protocols]
+    excludes: [future_primary_workbook_hash, actual_results, final_evidence_row_positions, approval_records]
+  mathematical_projection:
+    purpose: declared_model_comparison_only_not_a_new_global_identity
+    retain: all_model_fields_all_extensions_and_unknown_algorithm_content
+    removable_scalar_implementation_keys: [family, method, solver, solver_role, implementation, backend]
+    removal_requires: explicit_pure_algorithm_keys_and_scope_bound_two_pass_boundary_review
+    comparison_partition: identical_pure_algorithm_key_sets_for_compared_model_specs
+    nonremovable_examples: [domain_reduction, discretization_approximation, exact_predicate, event_topology, update_rule, stop_rule, original_model_reevaluation]
+    qualification_boundary: string_or_hash_equality_does_not_prove_mathematical_equivalence_or_independence
+  independent_review:
+    roles: [positive_fitness_review, adversarial_model_challenge]
+    same_independence_rule_as_primary: true
+    each_record_requires: [distinct_review_reference, matching_scope_sha256, passed_verdict, actual_method, concrete_boundary_and_independence_conclusion, no_blocking_items, no_unresolved_items]
+    checks: [mathematical_closure, material_difference_or_same_original_model, common_evaluation_fit, full_fidelity_feasibility, shared_defects_and_independent_information, legitimate_parameter_and_algorithm_scope]
+  human_approval:
+    explicit_only: true
+    binding: current_scope_sha256
+    recorded_provenance: user_statement_and_source_reference
+    may_share_primary_brief: true
+    no_synthesized_approval: true
+  concrete_plan:
+    create_only_after_primary_accepted: true
+    criteria_and_selectors_frozen_before_analysis_delivery: true
+    must_stay_within_approved_scope: true
+  out_of_scope_change: supplemental_two_pass_review_and_explicit_scope_approval_in_existing_gate
+  scope_only_change: invalidate_scope_approval_and_analysis_chain_preserve_unchanged_primary_lock_and_acceptance
+  actual_primary_change: original_semantic_revision_and_identity_stale_policy
+  c_review_policy: consume_comparison_scope_objects_when_explicitly_declared_never_reuse_main_only_receipts_as_comparison_review
+  compatibility: absent_new_scope_preserves_existing_primary_and_legacy_analysis_rules
+
+""", ""),
+    ),
+    "core/workbook_schema.yaml": (
+        ("schema_version: 2.4.0\n", "schema_version: 2.3.1\n"),
+        ("      optional_columns: [输入, 论文作用, 选择理由, 检验ID, 评价协议ID, 判据ID]\n",
+         "      optional_columns: [输入, 论文作用, 选择理由]\n"),
+        ("      optional_columns: [失效边界, 证据工作表, 论文位置, 说明, 检验ID, 证据处置ID]\n",
+         "      optional_columns: [失效边界, 证据工作表, 论文位置, 说明]\n"),
+        ("""  - 多模型检验
+  - 同模型多算法检验
+  comparison_method_sheets:
+    model_comparison: 多模型检验
+    多模型检验: 多模型检验
+    algorithm_comparison: 同模型多算法检验
+    同模型多算法检验: 同模型多算法检验
+""", ""),
+        ("""    多模型检验:
+      required_columns: [检验ID, 记录键, 主模型ID, 对照模型ID, 评价协议ID, 实例或场景, 指标, 单位, 主模型数值, 对照模型数值, 差异类型, 差异, 判据ID, 判定]
+      optional_columns: [模型族, 对照角色, 结构差异, 数据划分, 重复编号, 随机种子, 可行性, 残差, gap, 运行时间, 求解器及版本, 停止原因, 子运行ID, 源码位置, 证据位置, 差异单位]
+    同模型多算法检验:
+      required_columns: [检验ID, 记录键, 模型ID, 基准算法ID, 对照算法ID, 评价协议ID, 实例或场景, 重复编号, 指标, 单位, 基准数值, 对照数值, 差异类型, 差异, 判据ID, 判定]
+      optional_columns: [随机种子, 初值, 计算预算, 可行性, 残差, gap, 决策差异, 运行时间, 求解器版本, 停止原因, 子运行ID, 源码位置, 证据位置, 差异单位]
+""", ""),
+    ),
+    "core/writing_reasoning_contract.yaml": (
+        ("schema_version: 1.11.0\n", "schema_version: 1.10.0\n"),
+        ("""  comparison_scope:
+    authority: modules/03_result_analysis.md
+    rules:
+    - Distinguish different mathematical models from different algorithms for one model; cite current accepted comparison evidence.
+    - Agreement corroborates only the declared evaluation scope; a disagreement can support a model-selection or boundary claim.
+    - Required comparisons need exact current evidence and disposition; sensitivity evidence cannot replace missing comparison evidence.
+    - Do not put inspection IDs, hashes, protocol markers or machine statuses into ordinary paper prose.
+""", ""),
+    ),
+    "modules/03_result_analysis.md": (
+        ("""## 三、按需多模型检验与同模型多算法检验
+
+两类新检验沿用本模块的 Analysis Necessity Gate、独立 analysis 入口、项目唯一 backend 和现有处置，不要求每问两个模型。
+
+| 类型 | 保持与改变的对象 | 专项证据表 |
+|---|---|---|
+| `model_comparison` | 保持题目对象、合法数据事实源和共同评价问题；比较至少一个有实质数学差异的合理模型 | `多模型检验` |
+| `algorithm_comparison` | 保持原始数学模型、现实参数、目标和硬约束；比较至少两个不同真实求解方法 | `同模型多算法检验` |
+
+同算法换 seed、初值、容差或函数名不单独计为多算法；不同模型名字不证明模型不同。同一方程改变离散或积分算法通常属于求解方法变化，增加物理机制才可能属于模型变化。等价 reformulation 必须保留原模型映射与回算。两模型一致只提供指定范围内的交叉佐证；不同模型产生差异也不自动否决主模型。
+
+Module 02 的 Comparator 按具体比较问题关联稳定检验 ID。数学／算法比较规范置于框架 `#### 结果摘要` 之后的独立 `HSK_ANALYSIS_COMPARISON_BEGIN/END Qn` marker，不能混入主 SIB 或主语义哈希区。规范、范围审查和批准服从 `core/model_approval_contract.yaml`；当前主身份仍须 current = validated = approved。比较范围变化只失效该范围及 analysis 链，主模型真正变化才按原语义治理使主批准和结果失效。
+
+主工作簿 accepted 后，在现有 `analysis_comparison.checks` 中冻结本次具体检验、对象引用、共同评价、判据和预期证据选择器。`required` 项必须逐项执行并形成真实非空证据及 disposition；敏感性或另一张实质表不能替代它。`exploratory` 未完成不阻塞当前必要答案，但不得写成已验证。仍有 current required 项时不得整体 `not_required`；明确题目／用户要求和未关闭核心风险不能因计算失败撤销。
+
+配置与回执扩展仅按 `core/user_execution_contract.yaml` 激活；计划摘要排除实际结果和运行后处置，主簿和源码身份继续使用现有绑定。机器能核对规范一致性、有限指标算术、覆盖和来源，不能从名称自动证明数学等价、算法独立性或模型正确性。
+
+每次真实子运行保留模型／算法、实例或重复、指标、单位、实际设置、停止原因及必要可行性／残差／时间；表列与 MATLAB 交接只由 `core/workbook_schema.yaml` 定义。共同评价须声明输出映射、因果合法划分、单位、方向和判据；不同目标函数不能直接相减。性能主张还需要适用预算、硬件和重复记录。只写固定比较数字或“通过”不构成执行证据。
+
+`单位` 标记基准与对照指标；相对变化、改进比例或百分点等差异单位与指标单位不同时，必须在同一行明确填写 `差异单位`，并由该差异 selector 显式引用。非空 `差异单位` 不能被普通单位 selector 忽略；空可选列不触发单位推断。机器只对该字面单位作有限转换，不从运算名称补造单位，也不放宽其他指标的单位冲突规则。
+
+有效的负比较结果属于实验发现。技术失败、缺行、不可比数据或身份不符不能冒充 `reject` 或已完成。`modify` 或附加 claim 的 `reject` 可完成检验，但关联正文保持 stale，直到具体动作完成；核心答案／模型有效性 `reject` 按现有核心否证规则 `redo_required` 并回退。
+
+""", ""),
+        ("## 四、Analysis Evidence Disposition\n", "## 三、Analysis Evidence Disposition\n"),
+        ("## 五、Analysis Evidence Capture：深化分析必须保留可复查的底层结果\n", "## 四、Analysis Evidence Capture：深化分析必须保留可复查的底层结果\n"),
+        ("## 六、数据与模型边界\n", "## 五、数据与模型边界\n"),
+    ),
+    "scripts/validate_code_delivery.py": (
+        ("import analysis_comparison_gate as COMPARISON  # noqa: E402\n", ""),
+        ("from execution_protocol import SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, comparison_config_issues\n",
+         "from execution_protocol import SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues\n"),
+        ("    issues.extend(comparison_config_issues(config))\n", ""),
+        ("""        comparison = COMPARISON.inspect_gate(
+            project_root, state, _question_key(problem), config=config, code_path=script)
+        issues.extend(comparison["issues"])
+""", ""),
+        ("    configuration_issues.extend(comparison_config_issues(config))\n", ""),
+        ("""    guarded = any(CONFORMANCE.present(entry) or COMPARISON.present(entry, config=config)
+                  for entry in (observed_state.get("subproblems") or {}).values())
+    if guarded:
+""", "    if any(CONFORMANCE.present(entry) for entry in (observed_state.get(\"subproblems\") or {}).values()):\n"),
+        ("""    comparison = COMPARISON.inspect_gate(
+        project_root, state, key, config=config, code_path=script) if stage == "analysis" else {
+            "enabled": False, "issues": [], "observed_sources": {"project": {}, "skill": {}}}
+    if comparison["issues"]:
+        raise ValueError("; ".join(comparison["issues"]))
+""", ""),
+        ("    CONFORMANCE.merge_read_sets(observed, comparison[\"observed_sources\"])\n", ""),
+        ("        validators=[CONFORMANCE.skill_validator(observed)] if conformance[\"enabled\"] or comparison[\"enabled\"] else (),\n",
+         "        validators=[CONFORMANCE.skill_validator(observed)] if conformance[\"enabled\"] else (),\n"),
+    ),
+}
+
+
 class MechanismSpecTests(unittest.TestCase):
     def test_template_is_problem_specific_and_machine_readable(self):
         path = ROOT / "templates/figure/mechanism_drawio_spec.yaml"
@@ -511,11 +648,34 @@ class ContractAndDriftTests(unittest.TestCase):
                     actual = hashlib.sha1(
                         b"blob " + str(len(data)).encode("ascii") + b"\0" + data
                     ).hexdigest()
+                elif relative in COMPARISON_AUTHORITY_REWRITES:
+                    text = path.read_text(encoding="utf-8")
+                    for current, baseline in COMPARISON_AUTHORITY_REWRITES[relative]:
+                        self.assertEqual(text.count(current), 1, (relative, current))
+                        text = text.replace(current, baseline, 1)
+                    data = text.encode("utf-8")
+                    actual = hashlib.sha1(
+                        b"blob " + str(len(data)).encode("ascii") + b"\0" + data
+                    ).hexdigest()
                 elif relative == "core/project_state.schema.yaml":
                     from claim_schema_reference import previous_d2_schema
 
                     text = path.read_text(encoding="utf-8")
                     schema = yaml.safe_load(text)
+                    if schema["version"] == "8.16.0":
+                        from claim_schema_reference import previous_comparison_schema
+                        schema = previous_comparison_schema(schema)
+                        begin = "# analysis comparison definitions BEGIN\n"
+                        end = "# analysis comparison definitions END\n"
+                        self.assertEqual(text.count(begin), 1)
+                        self.assertEqual(text.count(end), 1)
+                        start = text.rfind("\n", 0, text.index(begin)) + 1
+                        stop = text.index(end, start) + len(end)
+                        text = text[:start] + text[stop:]
+                        reference = "        analysis_comparison: {$ref: '#/$defs/analysis_comparison'}\n"
+                        self.assertEqual(text.count(reference), 1)
+                        self.assertEqual(text.count("version: 8.16.0\n"), 1)
+                        text = text.replace(reference, "", 1).replace("version: 8.16.0\n", "version: 8.15.0\n", 1)
                     if schema["version"] == "8.15.0":
                         # Only the pinned D2 additions may project back to the frozen C2 bytes.
                         previous_d2_schema(schema)

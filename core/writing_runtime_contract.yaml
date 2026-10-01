@@ -1,4 +1,4 @@
-version: 10.17.1
+version: 10.18.0
 role: >-
   普通论文写作的最小运行时映射。它不建立第二套数学写作 Authority，只声明普通论文写作真正需要加载的
   模板、项目事实、证据和 writing_reasoning_contract 中的语义能力，从而避免每次写作预载完整建模、数值与项目治理上下文。
@@ -574,6 +574,7 @@ semantic_capabilities:
     - terminology_or_numeric_profile_semantics_are_in_dispute
     - citation_evidence_scope_is_in_dispute
     - title_claim_or_claim_strength_requires_semantic_adjudication
+    - model_or_algorithm_comparison_claim_exceeds_accepted_evidence_scope
     - final_review_requires_full_authority
 
 ordinary_writing_resource_order:

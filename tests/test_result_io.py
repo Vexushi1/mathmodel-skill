@@ -192,6 +192,37 @@ class TestResultIO(unittest.TestCase):
     def test_legacy_robustness_kind_is_read_compatible(self):
         MOD.validate_workbook_tables(self.analysis_tables(), "robustness")
 
+    def test_selected_comparison_cannot_be_replaced_by_legacy_algorithm_table(self):
+        with self.assertRaisesRegex(ValueError, "缺少已选择的比较证据表"):
+            MOD.validate_workbook_tables(self.analysis_tables(), "result_analysis", analysis_methods=["多模型检验"])
+        with self.assertRaisesRegex(ValueError, "同模型多算法检验"):
+            MOD.validate_workbook_tables(self.analysis_tables(), "result_analysis", comparison_plan={
+                "checks": [{"kind": "algorithm_comparison", "requirement": "required"}]})
+
+    def test_comparison_tables_require_finite_numeric_values_and_unique_keys(self):
+        tables = self.analysis_tables()
+        columns = MOD.load_workbook_schema()["result_analysis_workbook"]["sheet_schemas"]["多模型检验"]["required_columns"]
+        record = dict.fromkeys(columns, "declared")
+        record.update({"记录键": "R1", "主模型数值": 16.0, "对照模型数值": 11.0, "差异": -5.0, "判定": True})
+        tables["多模型检验"] = pd.DataFrame([record])
+        MOD.validate_workbook_tables(tables, "result_analysis", analysis_methods=["多模型检验"])
+        for invalid in ("11", float("nan"), True):
+            tables["多模型检验"] = pd.DataFrame([{**record, "对照模型数值": invalid}])
+            with self.assertRaises(ValueError):
+                MOD.validate_workbook_tables(tables, "result_analysis")
+        tables["多模型检验"] = pd.DataFrame([record, record])
+        with self.assertRaisesRegex(ValueError, "重复值"):
+            MOD.validate_workbook_tables(tables, "result_analysis")
+
+    def test_standalone_fallback_has_current_comparison_schema(self):
+        current = MOD.load_workbook_schema()["result_analysis_workbook"]
+        fallback = MOD._FALLBACK_SCHEMA["result_analysis_workbook"]
+        self.assertEqual(current["comparison_method_sheets"], fallback["comparison_method_sheets"])
+        for sheet in ("多模型检验", "同模型多算法检验"):
+            self.assertEqual(current["sheet_schemas"][sheet]["required_columns"], fallback["sheet_schemas"][sheet]["required_columns"])
+            self.assertEqual(fallback["sheet_schemas"][sheet]["optional_columns"], ["差异单位"])
+            self.assertEqual(current["sheet_schemas"][sheet]["optional_columns"].count("差异单位"), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
