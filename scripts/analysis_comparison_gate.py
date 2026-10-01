@@ -304,6 +304,7 @@ def inspect_gate(root: Path, state: Mapping[str, Any], question: str, *, boundar
         state_bytes = BOUNDED._read(root, "state/project_state.yaml", 2 * 1024 * 1024, observed["project"])
         captured_state = safe_yaml.safe_load(state_bytes)
         assert_authorization_context(state, captured_state, question)
+        captured_entry = captured_state["subproblems"][question]
         framework = BOUNDED._read(root, "模型论文框架.md", 2 * 1024 * 1024, observed["project"])
         authorities = {path: BOUNDED._read(ROOT, path, 4 * 1024 * 1024, observed["skill"])
                        for path in AUTHORITIES}
@@ -356,11 +357,30 @@ def inspect_gate(root: Path, state: Mapping[str, Any], question: str, *, boundar
         result.update({key: value for key, value in plan_result.items() if key not in {"issues", "enabled"}})
         result["plan_issues"] = [*approval_issues, *plan_result["issues"]]
         result["issues"].extend(plan_result["issues"])
+        primary_bytes = None
+        if boundary in {"delivery", "receipt", "current"}:
+            primary = entry.get("solution_workbook")
+            primary_bytes = BOUNDED._read(root, primary, 32 * 1024 * 1024, observed["project"])
+            accepted = (entry.get("validated_artifact_hashes") or {}).get("solution_workbook")
+            if boundary in {"delivery", "current"}:
+                captured_accepted = (captured_entry.get("validated_artifact_hashes") or {}).get("solution_workbook")
+                if str(accepted or "").lower() != str(captured_accepted or "").lower():
+                    result["issues"].append("comparison caller primary accepted hash differs from captured State")
+                accepted = captured_accepted
+            if not accepted or hashlib.sha256(primary_bytes).hexdigest() != str(accepted).lower():
+                result["issues"].append("comparison baseline bytes differ from the accepted primary workbook")
         if boundary in {"receipt", "current"}:
             if analysis_bytes is None:
                 relative = entry.get("result_analysis_workbook")
                 analysis_bytes = BOUNDED._read(root, relative, 32 * 1024 * 1024, observed["project"])
                 candidate_preflight(analysis_bytes, observed)
+            if boundary == "current":
+                accepted_analysis = (captured_entry.get("validated_artifact_hashes") or {}).get("result_analysis_workbook")
+                caller_analysis = (entry.get("validated_artifact_hashes") or {}).get("result_analysis_workbook")
+                if str(caller_analysis or "").lower() != str(accepted_analysis or "").lower():
+                    result["issues"].append("comparison caller analysis accepted hash differs from captured State")
+                if not accepted_analysis or hashlib.sha256(analysis_bytes).hexdigest() != str(accepted_analysis).lower():
+                    result["issues"].append("comparison analysis bytes differ from the accepted analysis workbook")
             actual_receipt, receipt_issues = receipt_from_bytes(analysis_bytes)
             result["issues"].extend(receipt_issues)
             if receipt is not None and receipt != actual_receipt:
@@ -368,11 +388,6 @@ def inspect_gate(root: Path, state: Mapping[str, Any], question: str, *, boundar
             result["issues"].extend(comparison_receipt_issues(actual_receipt, delivered or {}, required=True))
             result["issues"].extend(workbook_structure_issues(
                 analysis_bytes, safe_yaml.safe_load(authorities["core/workbook_schema.yaml"]), entry))
-            primary = entry.get("solution_workbook")
-            primary_bytes = BOUNDED._read(root, primary, 32 * 1024 * 1024, observed["project"])
-            accepted = (entry.get("validated_artifact_hashes") or {}).get("solution_workbook")
-            if not accepted or hashlib.sha256(primary_bytes).hexdigest() != str(accepted).lower():
-                result["issues"].append("comparison baseline bytes differ from the accepted primary workbook")
             if not result["issues"]:
                 evidence = COMPARISON.inspect_evidence(
                     result["plan"], primary_bytes=primary_bytes, analysis_bytes=analysis_bytes,

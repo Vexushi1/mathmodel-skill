@@ -179,6 +179,40 @@ class AnalysisComparisonTests(unittest.TestCase):
         return COMPARISON.inspect_evidence(self.plan()["plan"], primary_bytes=primary, analysis_bytes=analysis,
                                           dispositions=self.entry["analysis_evidence_dispositions"], comparison_rules=self.rules)
 
+    def dimensioned_relative_evidence(self, operation="relative_change", *, unit="ratio", reported_value=.5,
+                                     explicit=True, mutation=None):
+        scope = deepcopy(self.scope)
+        for question in scope["questions"]:
+            question["evaluation"].update(unit="m", direction="lower")
+        entry = comparison_entry(scope)
+        entry["analysis_comparison"]["checks"][0]["criterion"]["unit"] = "m"
+        check = entry["analysis_comparison"]["checks"][1]
+        check["criterion"].update(relation="ge", threshold="0.4", unit="ratio")
+        record = check["evidence_refs"][0]
+        record["operation"]["op"] = operation
+        if operation == "improvement":
+            record["operation"]["direction"] = "lower"
+        for field in ("candidate", "reported_baseline", "reported_difference"):
+            record[field]["selector"]["row_key"]["差异类型"] = operation
+        if explicit:
+            record["reported_difference"]["selector"]["unit"] = {"kind": "column", "column": "差异单位"}
+        def rows(sheets):
+            sheets["多模型检验"][1][7] = "m"
+            sheets["同模型多算法检验"][1][9] = "m"
+            sheets["同模型多算法检验"][1][12] = operation
+            sheets["同模型多算法检验"][0].append("差异单位")
+            sheets["同模型多算法检验"][1].append(unit)
+            if mutation:
+                mutation(sheets)
+        _, analysis = captured_books(algorithm_prediction=8 if operation == "improvement" else 24,
+                                    algorithm_difference=reported_value, mutation=rows)
+        primary = workbook_bytes({"核心指标": [["指标", "实例或场景", "单位", "数值"],
+                                             ["prediction", "holdout", "m", 16]]})
+        report = COMPARISON.inspect_plan(entry, question="Q1", specs=scope)
+        self.assertEqual(report["issues"], [])
+        return COMPARISON.inspect_evidence(report["plan"], primary_bytes=primary, analysis_bytes=analysis,
+                                          dispositions=entry["analysis_evidence_dispositions"], comparison_rules=self.rules)
+
     def test_two_types_cover_required_items_and_recompute_real_literal_sources(self):
         result = self.evidence()
         self.assertEqual(result["issues"], [])
@@ -218,6 +252,91 @@ class AnalysisComparisonTests(unittest.TestCase):
     def test_wrong_difference_and_wrong_table_decision_are_technical_failures(self):
         self.assertTrue(self.evidence(algorithm_difference=1)["issues"])
         self.assertTrue(self.evidence(algorithm_decision=False)["issues"])
+
+    def test_reported_values_cannot_rebind_the_header_to_another_physical_row(self):
+        for field in ("reported_baseline", "reported_difference"):
+            entry = deepcopy(self.entry)
+            entry["analysis_comparison"]["checks"][0]["evidence_refs"][0][field]["selector"]["header_row"] = 2
+            report = COMPARISON.inspect_plan(entry, question="Q1", specs=self.scope)
+            self.assertTrue(any("same exact comparison row" in issue for issue in report["issues"]))
+
+    def test_optional_columns_cannot_impersonate_registered_comparison_identities(self):
+        for field, axis, column in (("candidate", "metric", "模型族"),
+                                    ("candidate", "model", "模型族"),
+                                    ("candidate", "scenario", "数据划分"),
+                                    ("reported_baseline", "metric", "模型族"),
+                                    ("reported_difference", "metric", "模型族"),
+                                    ("reported_baseline", "model", "对照模型ID")):
+            entry = deepcopy(self.entry)
+            entry["analysis_comparison"]["checks"][0]["evidence_refs"][0][field]["selector"]["identity_columns"][axis] = column
+            self.assertTrue(COMPARISON.inspect_plan(entry, question="Q1", specs=self.scope)["issues"])
+        # This used to verify a displayed wrong metric through an optional text
+        # column containing the approved metric, although the numbers agreed.
+        check = self.entry["analysis_comparison"]["checks"][0]
+        for field in ("candidate", "reported_baseline", "reported_difference"):
+            check["evidence_refs"][0][field]["selector"]["identity_columns"]["metric"] = "模型族"
+        primary, analysis = captured_books(mutation=lambda sheets: (
+            sheets["多模型检验"][0].append("模型族"), sheets["多模型检验"][1].append("prediction"),
+            sheets["多模型检验"][1].__setitem__(6, "different_actual_metric")))
+        plan = deepcopy(self.entry["analysis_comparison"]) | {"scope": self.scope}
+        result = COMPARISON.inspect_evidence(plan, primary_bytes=primary, analysis_bytes=analysis,
+                                            dispositions=self.entry["analysis_evidence_dispositions"], comparison_rules=self.rules)
+        self.assertTrue(result["issues"])
+
+    def test_declared_reported_baseline_axis_binds_the_primary_object_column(self):
+        for check in self.entry["analysis_comparison"]["checks"]:
+            axis, column = (("model", "主模型ID") if check["kind"] == "model_comparison" else ("algorithm", "基准算法ID"))
+            check["evidence_refs"][0]["reported_baseline"]["selector"]["identity_columns"][axis] = column
+        self.assertEqual(self.evidence()["issues"], [])
+
+    def test_dimensioned_relative_change_and_improvement_use_explicit_output_units(self):
+        for operation in ("relative_change", "improvement"):
+            result = self.dimensioned_relative_evidence(operation)
+            self.assertEqual(result["issues"], [])
+            self.assertIn("CMP-Q1-02", result["covered_ids"])
+            percent = self.dimensioned_relative_evidence(operation, unit="%", reported_value=50)
+            self.assertEqual(percent["issues"], [])
+
+    def test_difference_unit_never_infers_missing_conflicting_or_formula_metadata(self):
+        for unit in (None, "", "s", "百分点", "=\"ratio\""):
+            self.assertTrue(self.dimensioned_relative_evidence(unit=unit)["issues"])
+        self.assertTrue(self.dimensioned_relative_evidence(mutation=lambda sheets: (
+            sheets["同模型多算法检验"][0].pop(), sheets["同模型多算法检验"][1].pop()))["issues"])
+        self.assertTrue(self.dimensioned_relative_evidence(explicit=False)["issues"])
+        for value in ("0.5", "=0.5", True):
+            self.assertTrue(self.dimensioned_relative_evidence(mutation=lambda sheets, bad=value:
+                sheets["同模型多算法检验"][1].__setitem__(13, bad))["issues"])
+        for field in ("baseline", "candidate", "reported_baseline"):
+            entry = deepcopy(self.entry)
+            entry["analysis_comparison"]["checks"][1]["evidence_refs"][0][field]["selector"]["unit"] = {"kind": "column", "column": "差异单位"}
+            self.assertTrue(COMPARISON.inspect_plan(entry, question="Q1", specs=self.scope)["issues"])
+
+    def test_nonempty_difference_unit_cannot_be_ignored_by_an_ordinary_selector(self):
+        self.assertTrue(self.evidence(mutation=lambda sheets: (
+            sheets["同模型多算法检验"][0].append("差异单位"), sheets["同模型多算法检验"][1].append("ratio")))["issues"])
+        self.assertEqual(self.evidence(mutation=lambda sheets: (
+            sheets["同模型多算法检验"][0].append("差异单位"), sheets["同模型多算法检验"][1].append(None)))["issues"], [])
+
+    def test_difference_unit_origin_is_captured_and_merged_unit_is_refused(self):
+        raw = workbook_bytes({"同模型多算法检验": [["指标", "单位", "差异", "差异单位"],
+                                                  ["prediction", "m", .5, "ratio"]]})
+        source = {"source": "analysis", "selector": {
+            "sheet": "同模型多算法检验", "header_row": 1, "row_key": {"指标": "prediction"},
+            "expected_cardinality": 1, "value_type": "scalar", "value_column": "差异",
+            "identity_columns": {"metric": "指标"}, "unit": {"kind": "column", "column": "差异单位"}}}
+        value, location = COMPARISON._select_reported_difference(source, COMPARISON.Workbook(raw, self.rules))
+        self.assertEqual(value.unit, "ratio")
+        self.assertEqual(location["row"], 2)
+        self.assertTrue(any(origin.endswith("|D2") for origin in value.origins))
+        book = openpyxl.load_workbook(io.BytesIO(raw))
+        try:
+            book["同模型多算法检验"].merge_cells("D2:E2")
+            buffer = io.BytesIO()
+            book.save(buffer)
+        finally:
+            book.close()
+        with self.assertRaises(COMPARISON.ComparisonError):
+            COMPARISON._select_reported_difference(source, COMPARISON.Workbook(buffer.getvalue(), self.rules))
 
     def test_negative_result_with_modify_can_complete_without_core_redo(self):
         self.entry["analysis_evidence_dispositions"][1].update({"disposition": "modify", "impact_scope": "auxiliary_wording",

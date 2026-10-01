@@ -159,6 +159,92 @@ class ComparisonIntegrationTests(unittest.TestCase):
                     legacy.RECEIPT.validate_one(root, workbook, state, True)
             self.assertNotEqual(state["subproblems"]["Q1"]["analysis_execution_status"], "accepted")
 
+    def test_current_analysis_replacement_after_artifact_hash_read_cannot_qualify(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            fixture, state, _, workbook, _ = self.project(root)
+            self.assertEqual(legacy.RECEIPT.validate_one(root, workbook, state, True), [])
+            fixture.write_state(root, state)
+            replacement = io.BytesIO()
+            book = openpyxl.load_workbook(workbook)
+            book.properties.description = "Synthetic replacement after the accepted artifact hash read"
+            book.save(replacement)
+            book.close()
+            original = runtime._file_evidence
+
+            def replace_after_hash(*args, **kwargs):
+                row = original(*args, **kwargs)
+                if kwargs.get("artifact") == "accepted_result_analysis_workbook":
+                    self.assertEqual(row["status"], "verified")
+                    workbook.write_bytes(replacement.getvalue())
+                return row
+
+            with patch.object(runtime, "_file_evidence", side_effect=replace_after_hash):
+                qualified = runtime.hydrate_project_context(root, "Q1")
+            analysis = next(row for row in qualified["artifact_evidence"]
+                            if row["artifact"] == "accepted_result_analysis_workbook")
+            self.assertEqual(analysis["status"], "not_accepted")
+            self.assertIn("analysis bytes differ from the accepted analysis workbook", analysis["reason"])
+            self.assertNotIn("validated_results", qualified["verified_artifacts"])
+            self.assertIn("accepted_solution_workbook", qualified["verified_artifacts"])
+
+    def test_delivery_primary_replacement_after_prerequisite_read_cannot_commit(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _, _, code, _, primary = self.project(root)
+            before_state = (root / "state/project_state.yaml").read_bytes()
+            _, config = gate.stage_code.parse_stage_config(code)
+            original = gate.COMPARISON.inspect_plan
+            replaced = False
+
+            def replace_after_plan(*args, **kwargs):
+                nonlocal replaced
+                report = original(*args, **kwargs)
+                if not replaced:
+                    primary.write_bytes(primary.read_bytes() + b"changed-after-primary-prerequisite")
+                    replaced = True
+                return report
+
+            with patch.object(gate.COMPARISON, "inspect_plan", side_effect=replace_after_plan):
+                with self.assertRaisesRegex(ValueError, "baseline bytes differ from the accepted primary workbook"):
+                    legacy.CODE.update_state(root, config, code)
+            self.assertTrue(replaced)
+            self.assertEqual((root / "state/project_state.yaml").read_bytes(), before_state)
+
+    def test_current_caller_cannot_register_replacement_by_forging_accepted_hash(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            fixture, state, _, workbook, _ = self.project(root)
+            self.assertEqual(legacy.RECEIPT.validate_one(root, workbook, state, True), [])
+            fixture.write_state(root, state)
+            captured = deepcopy(state)
+            self.assertEqual(gate.inspect_gate(root, state, "Q1", boundary="current")["issues"], [])
+            book = openpyxl.load_workbook(workbook)
+            book.properties.description = "Unaccepted replacement with caller-forged accepted SHA"
+            book.save(workbook)
+            book.close()
+            state["subproblems"]["Q1"]["validated_artifact_hashes"]["result_analysis_workbook"] = (
+                hashlib.sha256(workbook.read_bytes()).hexdigest())
+            gate.assert_authorization_context(state, captured, "Q1")
+            current = gate.inspect_gate(root, state, "Q1", boundary="current")
+            self.assertIn("comparison caller analysis accepted hash differs from captured State", current["issues"])
+            self.assertIn("comparison analysis bytes differ from the accepted analysis workbook", current["issues"])
+            # Candidate receipt validation retains the coordinator's legitimate batch-output contract.
+            self.assertEqual(gate.inspect_gate(root, state, "Q1", boundary="receipt")["issues"], [])
+
+    def test_delivery_caller_cannot_override_captured_primary_accepted_hash(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _, state, code, _, primary = self.project(root)
+            captured = deepcopy(state)
+            primary.write_bytes(primary.read_bytes() + b"unaccepted-primary-replacement")
+            state["subproblems"]["Q1"]["validated_artifact_hashes"]["solution_workbook"] = (
+                hashlib.sha256(primary.read_bytes()).hexdigest())
+            gate.assert_authorization_context(state, captured, "Q1")
+            report = gate.inspect_gate(root, state, "Q1", boundary="delivery", code_path=code)
+            self.assertIn("comparison caller primary accepted hash differs from captured State", report["issues"])
+            self.assertIn("comparison baseline bytes differ from the accepted primary workbook", report["issues"])
+
     def test_new_sheet_without_registry_is_strict_activation(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -199,6 +285,11 @@ class ComparisonIntegrationTests(unittest.TestCase):
                 self.assertEqual(observed["project"][path.relative_to(root).as_posix()], hashlib.sha256(path.read_bytes()).hexdigest())
             self.assertIn("scripts/analysis_comparison.py", observed["skill"])
             self.assertIn("templates/code/hsk_pipeline/workbook_validation.py", observed["skill"])
+            delivery = gate.inspect_gate(root, state, "Q1", boundary="delivery", code_path=code)
+            self.assertEqual(delivery["issues"], [], delivery)
+            self.assertEqual(delivery["observed_sources"]["project"][primary.relative_to(root).as_posix()],
+                             hashlib.sha256(primary.read_bytes()).hexdigest())
+            self.assertNotIn(workbook.relative_to(root).as_posix(), delivery["observed_sources"]["project"])
 
     def test_caller_cannot_forge_captured_scope_approval_or_permissions(self):
         with tempfile.TemporaryDirectory() as temporary:

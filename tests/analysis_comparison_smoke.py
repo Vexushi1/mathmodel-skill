@@ -129,7 +129,8 @@ def activate_comparison(root, state, backend):
         evidence = {"id": key, "candidate_ref": scoped["candidate_refs"][0],
                     "baseline": {"source": "primary", "selector": selector("状态明细", {"记录键": "prediction-4"}, "数值", {"metric": "指标", "scenario": "实例或场景"})},
                     "candidate": {"source": "analysis", "selector": selector(sheet, keys, "对照模型数值" if model else "对照数值", identities)},
-                    "reported_baseline": {"source": "analysis", "selector": selector(sheet, keys, "主模型数值" if model else "基准数值", identities)},
+                    "reported_baseline": {"source": "analysis", "selector": selector(sheet, keys, "主模型数值" if model else "基准数值",
+                        identities | {"model" if model else "algorithm": "主模型ID" if model else "基准算法ID"})},
                     "reported_difference": {"source": "analysis", "selector": selector(sheet, keys, "差异", identities)},
                     "operation": {"op": "difference", "comparison_axis": "model" if model else "algorithm"}}
         evidence_refs = [evidence]

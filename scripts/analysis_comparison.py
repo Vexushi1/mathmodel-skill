@@ -322,6 +322,8 @@ def canonical_plan(plan: Mapping[str, Any], *, question: str, baseline_identity=
                 _selector(record[field], field)
                 if field != "baseline" and record[field]["source"] != "analysis":
                     raise ComparisonError("candidate/reported observations must come from analysis")
+                if field != "reported_difference" and record[field]["selector"]["unit"].get("column") == "差异单位":
+                    raise ComparisonError("explicit difference-unit selection is only legal for reported_difference")
             op = _mapping(record["operation"], {"op", "comparison_axis"}, {"op", "comparison_axis", "direction"}, label="comparison operation")
             if op["op"] not in {"difference", "relative_change", "improvement", "percentage_points"}:
                 raise ComparisonError("comparison operation is outside finite whitelist")
@@ -443,10 +445,25 @@ def _validate_evidence_metadata(check, scoped, scope):
         needed_axes = {"metric", axis, *evaluation["fixed_axes"]}
         if not needed_axes.issubset(candidate["identity_columns"]):
             raise ComparisonError("comparison candidate must observe its metric, object and fixed axes")
+        object_column = "对照模型ID" if axis == "model" else "对照算法ID"
+        fixed_columns = {"metric": "指标", axis: object_column}
+        if "scenario" in candidate["identity_columns"]:
+            fixed_columns["scenario"] = "实例或场景"
+        if any(candidate["identity_columns"].get(key) != value for key, value in fixed_columns.items()):
+            raise ComparisonError("comparison identities must use their actual registered table columns")
         for field in ("reported_baseline", "reported_difference"):
             selector = record[field]["selector"]
-            if selector["sheet"] != candidate["sheet"] or selector["row_key"] != candidate["row_key"]:
+            if any(selector[key] != candidate[key] for key in ("sheet", "header_row", "row_key")):
                 raise ComparisonError("reported baseline/difference must be in the same exact comparison row")
+            if selector["identity_columns"].get("metric") != "指标":
+                raise ComparisonError("reported comparison metric must use the actual 指标 column")
+            for fixed_axis in evaluation["fixed_axes"]:
+                if selector["identity_columns"].get(fixed_axis) != candidate["identity_columns"][fixed_axis]:
+                    raise ComparisonError("reported comparison fixed-axis columns differ from their exact candidate row")
+            if axis in selector["identity_columns"]:
+                expected_column = ("主模型ID" if axis == "model" else "基准算法ID") if field == "reported_baseline" else object_column
+                if selector["identity_columns"][axis] != expected_column:
+                    raise ComparisonError("reported comparison object identity uses the wrong baseline/candidate column")
         columns = (("对照模型数值", "主模型数值") if axis == "model" else ("对照数值", "基准数值"))
         if (candidate["value_column"] != columns[0]
                 or record["reported_baseline"]["selector"]["value_column"] != columns[1]
@@ -458,6 +475,39 @@ def _validate_evidence_metadata(check, scoped, scope):
 
 def _select(source, books):
     return books[source["source"]].select(source["selector"], [])[0]
+
+
+def _select_reported_difference(source, book):
+    """Read a comparison-only output unit without relaxing the B1 input-unit rule."""
+    selector = source["selector"]
+    explicit = selector["unit"] == {"kind": "column", "column": "差异单位"}
+    numeric_selector = deepcopy(selector)
+    if explicit:
+        numeric_selector["unit"] = {"kind": "column", "column": "单位"}
+    value, location = book.select(numeric_selector, [])
+    rows = book.rows(location["sheet"])
+    header_row = selector["header_row"]
+    columns = [column for column, cell in rows[header_row].items()
+               if cell.kind == "text" and not cell.formula and cell.value == "差异单位"]
+    if not columns and not explicit:
+        return value, location
+    if len(columns) != 1:
+        raise ComparisonError("explicit difference unit requires one exact 差异单位 column")
+    column = columns[0]
+    cell = rows[location["row"]].get(column)
+    if not explicit:
+        if cell is None or cell.kind == "missing" or (cell.kind == "text" and not cell.value.strip()):
+            return value, location
+        raise ComparisonError("a nonempty 差异单位 cell must be explicitly bound by reported_difference selector")
+    if any(c1 <= column <= c2 and any(r1 <= row <= r2 for row in (header_row, location["row"]))
+           for c1, r1, c2, r2 in book._merges[location["sheet"]]):
+        raise ComparisonError("explicit difference unit cannot use an ambiguous merged cell")
+    if cell is None or cell.formula or cell.kind != "text":
+        raise ComparisonError("explicit difference unit must be a literal text cell")
+    unit = _text(cell.value, "explicit difference unit")
+    unit_info(unit, book.contract)
+    origin = book.sha256 + "|" + location["sheet"] + "|" + cell.address
+    return replace(value, unit=unit, origins=value.origins | frozenset({origin})), location
 
 
 def _table_decision(book, sheet, header_row, row):
@@ -548,8 +598,11 @@ def inspect_evidence(plan: Mapping[str, Any], *, primary_bytes: bytes, analysis_
                 try:
                     baseline = _select(record["baseline"], books)
                     candidate, location = books["analysis"].select(record["candidate"]["selector"], [])
-                    reported_base = _select(record["reported_baseline"], books)
-                    reported_difference = _select(record["reported_difference"], books)
+                    reported_base, base_location = books["analysis"].select(record["reported_baseline"]["selector"], [])
+                    reported_difference, difference_location = _select_reported_difference(record["reported_difference"], books["analysis"])
+                    if any(observed[key] != location[key] for observed in (base_location, difference_location)
+                           for key in ("sheet", "row")):
+                        raise ComparisonError("reported comparison values must come from the same exact physical row")
                     axis = record["operation"]["comparison_axis"]
                     expected_axes = {"metric", *evaluation["fixed_axes"]}
                     for value in (baseline, candidate):
@@ -569,6 +622,8 @@ def inspect_evidence(plan: Mapping[str, Any], *, primary_bytes: bytes, analysis_
                         raise ComparisonError("analysis baseline does not reproduce its captured source")
                     if not expected_axes.issubset(reported_base.identity) or any(reported_base.identity[key] != baseline.identity[key] for key in expected_axes):
                         raise ComparisonError("reported baseline has different observation axes")
+                    if axis in reported_base.identity and reported_base.identity[axis] != check["baseline_ref"]:
+                        raise ComparisonError("reported baseline is attributed to the wrong object")
                     observed = next(iter(candidate.origins))
                     if observed in used_observations:
                         raise ComparisonError("duplicate physical candidate evidence cannot close multiple records")

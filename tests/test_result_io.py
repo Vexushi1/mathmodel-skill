@@ -220,6 +220,8 @@ class TestResultIO(unittest.TestCase):
         self.assertEqual(current["comparison_method_sheets"], fallback["comparison_method_sheets"])
         for sheet in ("多模型检验", "同模型多算法检验"):
             self.assertEqual(current["sheet_schemas"][sheet]["required_columns"], fallback["sheet_schemas"][sheet]["required_columns"])
+            self.assertEqual(fallback["sheet_schemas"][sheet]["optional_columns"], ["差异单位"])
+            self.assertEqual(current["sheet_schemas"][sheet]["optional_columns"].count("差异单位"), 1)
 
 
 if __name__ == "__main__":
