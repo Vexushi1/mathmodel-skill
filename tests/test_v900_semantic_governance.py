@@ -121,6 +121,40 @@ def write_project(root: Path, state: dict, framework_text: str) -> Path:
 
 
 class TestV900SemanticGovernance(unittest.TestCase):
+    def test_duplicate_current_question_scope_blocks_governance_write(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            payload = identity_payload()
+            state_path = write_project(root, base_state(), framework(payload))
+            self.assertEqual(SEMANTIC.validate_project(root, write=True, strict=True)["status"], "passed")
+            before = state_path.read_bytes()
+            changed = deepcopy(payload)
+            changed["objective"]["sense"] = "maximize"
+            (root / "模型论文框架.md").write_text(framework(changed) + framework(payload), encoding="utf-8")
+            report = SEMANTIC.validate_project(root, write=True, strict=True)
+            self.assertEqual(report["status"], "failed", report)
+            self.assertTrue(any("duplicate" in item and "Q1" in item for item in report["issues"]), report)
+            self.assertEqual(state_path.read_bytes(), before)
+            self.assertNotIn("Q1", report["semantic_identity_hashes"])
+
+    def test_canonical_key_collision_blocks_governance_write_without_legacy_fallback(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            payload = identity_payload()
+            payload["extensions"] = {"weights": {"1": "approved"}}
+            state_path = write_project(root, base_state(), framework(payload))
+            self.assertEqual(SEMANTIC.validate_project(root, write=True, strict=True)["status"], "passed")
+            before = state_path.read_bytes()
+            collision = deepcopy(payload)
+            collision["extensions"]["weights"] = {1: "hidden", "1": "approved"}
+            (root / "模型论文框架.md").write_text(framework(collision), encoding="utf-8")
+            report = SEMANTIC.validate_project(root, write=True, strict=True)
+            self.assertEqual(report["status"], "failed", report)
+            self.assertTrue(any("key" in item and "collision" in item for item in report["issues"]), report)
+            self.assertEqual(state_path.read_bytes(), before)
+            self.assertNotIn("Q1", report["semantic_hashes"])
+            self.assertNotIn("Q1", report["semantic_identity_hashes"])
+
     def test_schema_accepts_complete_identity_state_and_rejects_partial_identity_state(self):
         schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
         Draft202012Validator.check_schema(schema)

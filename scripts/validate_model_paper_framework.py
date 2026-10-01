@@ -21,6 +21,7 @@ if str(Path(__file__).resolve().parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
 import stage_code as STAGE_CODE
 import analysis_comparison as COMPARISON
+from semantic_identity import SemanticIdentityError, question_sections as _question_sections
 
 COMPACT_HEADINGS = (
     "# 模型论文框架",
@@ -95,7 +96,6 @@ FORMULA_ROLE_ALIASES = {
     "key_bridge_relation": "key_bridge_relation",
     "supporting_derivation": "supporting_derivation",
 }
-QUESTION_HEADING_RE = re.compile(r"^###\s+(Q\d+)[:：].*$", re.MULTILINE)
 
 
 def load_yaml(path: Path) -> Any:
@@ -164,15 +164,6 @@ def _section_between(text: str, heading: str) -> str:
     tail = text[start + len(heading):]
     next_heading = re.search(r"\n#{1,4}\s+", tail)
     return tail[:next_heading.start()] if next_heading else tail
-
-
-def _question_sections(text: str) -> dict[str, str]:
-    matches = list(QUESTION_HEADING_RE.finditer(text))
-    sections: dict[str, str] = {}
-    for index, match in enumerate(matches):
-        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
-        sections[match.group(1)] = text[match.start():end]
-    return sections
 
 
 def _proposition_section(text: str) -> str:
@@ -701,6 +692,10 @@ def validate_framework_text(
     project_root: Path | None = None,
 ) -> list[str]:
     issues: list[str] = []
+    try:
+        _question_sections(text)
+    except SemanticIdentityError as exc:
+        return [str(exc)]
     try:
         resolved_mode = infer_mode(text, state, mode)
     except ValueError as exc:

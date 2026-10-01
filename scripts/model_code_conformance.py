@@ -125,9 +125,6 @@ def _model_snapshot(root: Path, question: str, contract: dict, read_set: dict) -
     if not isinstance(entry, dict):
         raise ConformanceError("requested question is missing or malformed")
     text = _read(root, "模型论文框架.md", limits["framework_bytes"], read_set).decode("utf-8")
-    headings = [match.group(1) for match in semantic.Q_HEADING_RE.finditer(text)]
-    if len(headings) != len(set(headings)):
-        raise ConformanceError("ambiguous duplicate question scopes in current framework")
     section = semantic.question_sections(text).get(question)
     if section is None:
         raise ConformanceError("current framework has no requested question scope")

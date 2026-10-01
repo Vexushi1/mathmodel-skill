@@ -185,7 +185,13 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
         subproblems = {}
 
     framework_text = framework_path.read_text(encoding="utf-8") if framework_path.is_file() else ""
-    sections = _question_sections(framework_text)
+    semantic_parse_failed = False
+    try:
+        sections = _question_sections(framework_text)
+    except SemanticIdentityError as exc:
+        issues.append(str(exc))
+        sections = {}
+        semantic_parse_failed = True
     semantic_hashes: dict[str, str] = {}
     semantic_identity_hashes: dict[str, str] = {}
     semantic_text_hashes: dict[str, str] = {}
@@ -213,6 +219,7 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
             inspection = inspect_question_semantics(section, question)
         except SemanticIdentityError as exc:
             issues.append(f"{key}: {exc}")
+            semantic_parse_failed = True
             continue
         inspections[question] = inspection
         mode = str(inspection["mode"])
@@ -259,9 +266,9 @@ def validate_project(root: Path, *, write: bool, strict: bool) -> dict[str, Any]
                 changed_sources.add(question)
         issues.extend(_revision_change_issues(question, entry, changed=changed))
 
-    # A legacy/no-SIB question blocks the entire write transaction. Transition
+    # Ambiguous/malformed semantics or a legacy/no-SIB question blocks the entire write transaction. Transition
     # diagnostics still run on a copy so mixed projects cannot be half-migrated.
-    write_allowed = write and not legacy_write_blocked_sources
+    write_allowed = write and not legacy_write_blocked_sources and not semantic_parse_failed
     transition_state = state if write_allowed else deepcopy(state)
     transition_reports: list[dict[str, Any]] = []
     for key in sorted(changed_sources):
