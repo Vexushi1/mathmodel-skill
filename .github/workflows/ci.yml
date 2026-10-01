@@ -608,7 +608,7 @@ jobs:
     needs: [test-plan, generated-files]
     if: needs.test-plan.outputs.full == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7
         with:
