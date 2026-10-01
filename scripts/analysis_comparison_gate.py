@@ -285,7 +285,11 @@ def inspect_gate(root: Path, state: Mapping[str, Any], question: str, *, boundar
         if not result["enabled"] and analysis_bytes is None:
             candidate_path = workbook
             if candidate_path is None and boundary == "current" and entry.get("result_analysis_workbook"):
-                candidate_path = stage_code._relative_path(root, entry["result_analysis_workbook"])
+                # Discovery preserves the existing artifact reader's native-path
+                # compatibility. Activated comparisons use strict paths below.
+                candidate_path = (root / Path(entry["result_analysis_workbook"]).expanduser()).resolve()
+                if not candidate_path.is_relative_to(root):
+                    candidate_path = None
             if candidate_path is not None:
                 result["enabled"] = workbook_present(Path(candidate_path))
         if analysis_bytes is None and workbook is not None and result["enabled"]:

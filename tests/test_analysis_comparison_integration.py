@@ -27,6 +27,7 @@ import state_transitions as transitions
 import sync_project as sync
 from tests import test_user_execution_contract as legacy
 from tests import analysis_comparison_smoke as smoke
+from tests import reading_plan_cases
 
 CONTRACT = yaml.safe_load((ROOT / "core/state_transition_contract.yaml").read_text(encoding="utf-8"))
 
@@ -102,6 +103,20 @@ class ComparisonIntegrationTests(unittest.TestCase):
                          {"analysis_comparison_plan_sha256": "b" * 64}, {"run_receipt_version": "1.0.0"}):
             self.assertTrue(protocol.comparison_receipt_issues(receipt | mutation, good))
         self.assertTrue(protocol.comparison_config_issues({"analysis_comparison_protocol_version": "1.0.0"}))
+
+    def test_inactive_current_analysis_preserves_native_legacy_artifact_paths(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            reading_plan_cases.build_project(ROOT, root, "current")
+            state = yaml.safe_load((root / "state/project_state.yaml").read_text(encoding="utf-8"))
+            entry = state["subproblems"]["Q1"]
+            self.assertEqual(entry["result_analysis_workbook"],
+                             str(Path("问题一求解") / "问题一结果深化分析.xlsx"))
+            report = gate.inspect_gate(root, state, "Q1", boundary="current")
+            self.assertFalse(report["enabled"])
+            self.assertEqual(report["issues"], [], report)
+            qualified = runtime.hydrate_project_context(root, "Q1")
+            self.assertIn("validated_results", qualified["verified_artifacts"], qualified["artifact_evidence"])
 
     def test_candidate_accepts_without_accepted_analysis_qualification(self):
         with tempfile.TemporaryDirectory() as temporary:

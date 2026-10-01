@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import importlib.util
 import sys
 import unittest
@@ -36,12 +37,35 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
         )
 
     def _projection(self, plan):
+        writing = copy.deepcopy(plan.get("writing_runtime"))
+        if writing is not None:
+            # v10.18 adds one declared fallback condition, not a changed route or
+            # an actual fallback decision. Require the exact new list before
+            # projecting that clause back to the frozen Phase G metadata.
+            previous = self.golden["routes"]["latex"]["writing_runtime"]["fallback_triggers"]
+            comparison_trigger = "model_or_algorithm_comparison_claim_exceeds_accepted_evidence_scope"
+            self.assertEqual(previous[-1], "final_review_requires_full_authority")
+            self.assertNotIn(comparison_trigger, previous)
+            self.assertEqual(writing.get("fallback_triggers"), [*previous[:-1], comparison_trigger, previous[-1]])
+            writing["fallback_triggers"] = list(previous)
         return {
             "load_order": list(plan.get("load_order", [])),
             "contracts": list(plan.get("contracts", [])),
             "templates": list(plan.get("templates", [])),
-            "writing_runtime": plan.get("writing_runtime"),
+            "writing_runtime": writing,
         }
+
+    def test_comparison_fallback_is_declared_without_preloading_latex_full_authority(self):
+        plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
+        triggers = list(plan["writing_runtime"]["fallback_triggers"])
+        self.assertEqual(self._projection(plan), self.golden["routes"]["latex"])
+        self.assertEqual(plan["writing_runtime"]["fallback_triggers"], triggers)
+        self.assertFalse(plan["writing_runtime"]["full_reasoning_authority_preloaded"])
+        self.assertNotIn("core/writing_reasoning_contract.yaml", plan["load_order"])
+        altered = copy.deepcopy(plan)
+        altered["writing_runtime"]["fallback_triggers"].insert(-1, "unapproved_fallback_reason")
+        with self.assertRaises(AssertionError):
+            self._projection(altered)
 
     def test_cumcm_routes_match_pre_migration_golden(self):
         for intent, expected in self.golden["routes"].items():
