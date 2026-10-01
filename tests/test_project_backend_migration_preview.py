@@ -132,9 +132,12 @@ def synthetic_python_analysis(root):
     book.remove(book.active)
     for name, rows in {
         "运行配置": [("项目", "值"), *rc.items()],
-        "分析设计": [("分析项", "设计"), ("coefficient", "synthetic reader fixture")],
-        "结论稳定性汇总": [("结论", "是否保持"), ("positive", True)],
-        "参数敏感性": [("coefficient", "solution"), (1.5, 4), (2, 3), (3, 2)],
+        "分析设计": [("风险来源", "分析问题", "方法", "指标", "通过标准"),
+                     ("coefficient变化", "正解是否保持", "参数敏感性", "solution", "解仍为正")],
+        "结论稳定性汇总": [("核心结论", "分析方法", "稳定范围", "是否保持"),
+                          ("positive", "参数敏感性", "coefficient=1.5至3", True)],
+        "参数敏感性": [("参数", "基准值", "变化值", "结果指标"),
+                       ("coefficient", 2, 1.5, 4), ("coefficient", 2, 2, 3), ("coefficient", 2, 3, 2)],
     }.items():
         sheet = book.create_sheet(name)
         for row in rows:

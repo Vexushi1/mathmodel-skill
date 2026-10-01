@@ -115,6 +115,67 @@ class V714NumericalVerificationTests(unittest.TestCase):
             self.assertFalse(passed)
             self.assertTrue(any("重算指标不一致" in item for item in issues))
 
+    def test_recomputed_metric_must_satisfy_threshold_independently_of_reporting_tolerance(self):
+        cases = (
+            (1e-10, 1e-12, 0.0, False),
+            (1.5e-12, 1e-12, 9e-13, False),  # Report is within atol but crosses the criterion.
+            (1e-12, 1e-12, 1e-12, True),
+            (9e-13, 1e-12, 9e-13, True),
+            (1e-10, 1e-9, 1e-10, True),
+        )
+        for residual, threshold, reported, expected in cases:
+            with self.subTest(residual=residual, threshold=threshold), tempfile.TemporaryDirectory() as temp:
+                path = Path(temp) / "问题一求解结果.xlsx"
+                self.make_book(
+                    path,
+                    ["PQ-Q1-01", "均衡", True, "rows", "<=", threshold, reported,
+                     "均衡残差", "locked_model_tolerance"],
+                    "均衡残差", ["主体或均衡", "残差", "容差", "是否满足"],
+                    ["单主体", residual, 1e-9, True],
+                )
+                passed, issues, _ = NUMERICAL.validate_primary_numerical_evidence(
+                    path, {"requires_equilibrium_residual": True}, force_strict=True,
+                )
+                self.assertEqual(passed, expected, issues)
+                if not expected:
+                    self.assertTrue(any("重算指标未达到主质量判据" in item for item in issues), issues)
+                if residual == 1.5e-12:
+                    self.assertFalse(any("重算指标不一致" in item for item in issues), issues)
+
+    def test_reporting_relative_tolerance_does_not_apply_unit_scale_floor(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "问题一求解结果.xlsx"
+            self.make_book(
+                path,
+                ["PQ-Q1-01", "均衡", True, "rows", "<=", 1e-9, 0.0,
+                 "均衡残差", "locked_model_tolerance"],
+                "均衡残差", ["主体或均衡", "残差", "容差", "是否满足"],
+                ["单主体", 1e-10, 1e-9, True],
+            )
+            passed, issues, _ = NUMERICAL.validate_primary_numerical_evidence(
+                path, {"requires_equilibrium_residual": True}, force_strict=True,
+            )
+            self.assertFalse(passed)
+            self.assertTrue(any("重算指标不一致" in item for item in issues), issues)
+            self.assertFalse(any("未达到主质量判据" in item for item in issues), issues)
+
+    def test_duplicate_normalized_or_empty_evidence_headers_are_rejected(self):
+        for extra in ("残差", "残差 ", " "):
+            with self.subTest(extra=extra), tempfile.TemporaryDirectory() as temp:
+                path = Path(temp) / "问题一求解结果.xlsx"
+                self.make_book(
+                    path,
+                    ["PQ-Q1-01", "均衡", True, "rows", "<=", 1e-6, 0,
+                     "均衡残差", "locked_model_tolerance"],
+                    "均衡残差", ["主体或均衡", "残差", "容差", "是否满足", extra],
+                    ["单主体", 0.01, 1e-6, True, 0],
+                )
+                passed, issues, _ = NUMERICAL.validate_primary_numerical_evidence(
+                    path, {"requires_equilibrium_residual": True}, force_strict=True,
+                )
+                self.assertFalse(passed)
+                self.assertTrue(any("字段" in item for item in issues), issues)
+
     def test_discretization_requires_marked_primary_evidence_and_matches_metric(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "问题一求解结果.xlsx"

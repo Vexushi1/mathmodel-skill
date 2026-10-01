@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import importlib.util
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 import openpyxl
 import yaml
@@ -119,6 +122,12 @@ class UserExecutionContractTests(unittest.TestCase):
         evidence = book.create_sheet("基础数值证据")
         evidence.append(["检查项", "数值"])
         evidence.append(["full_fidelity", 1])
+        metrics = book.create_sheet("核心指标")
+        metrics.append(["指标", "数值"])
+        metrics.append(["输入value汇总", 1])
+        audit = book.create_sheet("数据审计")
+        audit.append(["等级", "检查项", "信息", "处理方式"])
+        audit.append(["Info", "data.csv/value", "单条有限输入value=1，无缺失", "保持原值"])
         book.save(workbook)
         return workbook
 
@@ -226,6 +235,182 @@ class UserExecutionContractTests(unittest.TestCase):
             state = self.accept_primary(root, code)
             self.assertEqual(state["subproblems"]["Q1"]["status"], "solved")
             self.assertEqual(state["subproblems"]["Q1"]["result_quality_status"], "passed")
+
+    def test_primary_schema_failures_never_acquire_validated_workbook_hash(self):
+        for missing in ("核心指标", "数据审计", None):
+            with self.subTest(missing=missing), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                code = self.make_project(root)
+                _, config = CODE.validate_script(root, code, "primary")
+                CODE.update_state(root, config, code)
+                workbook = self.make_primary_workbook(root, code)
+                book = openpyxl.load_workbook(workbook)
+                if missing:
+                    del book[missing]
+                else:
+                    quality = book["主结果质量门"]
+                    quality.delete_rows(2)
+                    quality.append(["PQ-Q1-01", "均衡", True, "rows", "<=", 1e-6, 0,
+                                    "均衡残差", "locked_model_tolerance"])
+                    evidence = book.create_sheet("均衡残差")
+                    evidence.append(["主体或均衡", "残差", "容差", "是否满足", "残差 "])
+                    evidence.append(["单主体", 0.01, 1e-6, True, 0])
+                book.save(workbook)
+                book.close()
+                state = self.read_state(root)
+                if missing is None:
+                    state["subproblems"]["Q1"]["capabilities"] = {"requires_equilibrium_residual": True}
+                issues = RECEIPT.validate_one(root, workbook, state, True)
+                self.assertTrue(any("结构Schema" in issue for issue in issues), issues)
+                entry = state["subproblems"]["Q1"]
+                self.assertEqual(entry["primary_execution_status"], "rejected")
+                self.assertEqual(entry["result_quality_status"], "failed")
+                self.assertNotIn("solution_workbook", entry.get("validated_artifact_hashes", {}))
+
+    def test_analysis_structure_failure_does_not_become_accepted_or_core_rejection(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            primary = self.make_project(root)
+            self.accept_primary(root, primary)
+            self.activate_analysis(root)
+            analysis = self.make_analysis_code(root)
+            _, config = CODE.validate_script(root, analysis, "analysis")
+            CODE.update_state(root, config, analysis)
+            workbook = self.make_analysis_workbook(root, analysis)
+            book = openpyxl.load_workbook(workbook)
+            book["分析设计"].cell(1, 1, "旧风险字段")
+            book.save(workbook)
+            book.close()
+            state = self.read_state(root)
+            primary_hash = state["subproblems"]["Q1"]["validated_artifact_hashes"]["solution_workbook"]
+            issues = RECEIPT.validate_one(root, workbook, state, True)
+            entry = state["subproblems"]["Q1"]
+            self.assertTrue(any("结构Schema" in issue for issue in issues), issues)
+            self.assertEqual(entry["analysis_execution_status"], "rejected")
+            self.assertEqual(entry["result_analysis_status"], "failed")
+            self.assertNotIn("result_analysis_workbook", entry["validated_artifact_hashes"])
+            self.assertEqual(entry["validated_artifact_hashes"]["solution_workbook"], primary_hash)
+            self.assertEqual(entry["primary_execution_status"], "accepted")
+
+    def test_malformed_schema_context_returns_issues_without_qualification(self):
+        for field in ("classification", "problem_types", "capabilities"):
+            for invalid in ([], ["unexpected"], "unexpected"):
+                with self.subTest(field=field, invalid=invalid), tempfile.TemporaryDirectory() as temp:
+                    root = Path(temp)
+                    code = self.make_project(root)
+                    _, config = CODE.validate_script(root, code, "primary")
+                    CODE.update_state(root, config, code)
+                    workbook = self.make_primary_workbook(root, code)
+                    state = self.read_state(root)
+                    entry = state["subproblems"]["Q1"]
+                    entry[field] = invalid
+                    issues = RECEIPT.validate_one(root, workbook, state, True)
+                    self.assertTrue(any(field in issue and "Schema" in issue for issue in issues), issues)
+                    self.assertNotEqual(entry["primary_execution_status"], "accepted")
+                    self.assertNotIn("solution_workbook", entry.get("validated_artifact_hashes", {}))
+
+    def test_active_comparison_retains_budget_before_unbounded_candidate_read(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            code = self.make_project(root)
+            _, config = CODE.validate_script(root, code, "primary")
+            CODE.update_state(root, config, code)
+            workbook = self.make_primary_workbook(root, code)
+            with workbook.open("r+b") as handle:
+                handle.truncate(32 * 1024 * 1024 + 1)
+            state = self.read_state(root)
+            state["subproblems"]["Q1"]["analysis_comparison"] = {"protocol_version": "1.0.0"}
+            with mock.patch.object(Path, "read_bytes", side_effect=AssertionError("unbounded candidate read")):
+                with self.assertRaisesRegex(ValueError, "byte budget"):
+                    RECEIPT.validate_one(root, workbook, state, True)
+            self.assertNotEqual(state["subproblems"]["Q1"]["primary_execution_status"], "accepted")
+
+    def test_primary_recomputed_threshold_is_required_even_with_close_reported_actual(self):
+        for threshold, reported, expected in ((1e-12, 9e-13, False), (1e-9, 1.5e-12, True)):
+            with self.subTest(threshold=threshold), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                code = self.make_project(root)
+                _, config = CODE.validate_script(root, code, "primary")
+                CODE.update_state(root, config, code)
+                workbook = self.make_primary_workbook(root, code)
+                book = openpyxl.load_workbook(workbook)
+                book["主结果质量门"].delete_rows(2)
+                book["主结果质量门"].append([
+                    "PQ-Q1-01", "均衡", True, "重算残差", "<=", threshold,
+                    reported, "均衡残差", "locked_model_tolerance",
+                ])
+                evidence = book.create_sheet("均衡残差")
+                evidence.append(["主体或均衡", "残差", "容差", "是否满足"])
+                evidence.append(["单主体均衡", 1.5e-12, 1e-9, True])
+                book.save(workbook)
+                book.close()
+                state = self.read_state(root)
+                state["subproblems"]["Q1"]["capabilities"] = {"requires_equilibrium_residual": True}
+                issues = RECEIPT.validate_one(root, workbook, state, True)
+                entry = state["subproblems"]["Q1"]
+                self.assertEqual(not issues, expected, issues)
+                self.assertEqual(entry["primary_execution_status"], "accepted" if expected else "rejected")
+                self.assertEqual("solution_workbook" in entry.get("validated_artifact_hashes", {}), expected)
+
+    def test_workbook_changed_after_capture_cannot_acquire_qualification(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            code = self.make_project(root)
+            _, config = CODE.validate_script(root, code, "primary")
+            CODE.update_state(root, config, code)
+            workbook = self.make_primary_workbook(root, code)
+            state = self.read_state(root)
+            original_quality = RECEIPT.quality_passed
+
+            def change_after_capture(raw):
+                self.assertIsInstance(raw, bytes)
+                result = original_quality(raw)
+                workbook.write_bytes(workbook.read_bytes() + b"changed-after-capture")
+                return result
+
+            with mock.patch.object(RECEIPT, "quality_passed", side_effect=change_after_capture):
+                with self.assertRaises((RuntimeError, ValueError)):
+                    RECEIPT.validate_one(root, workbook, state, True)
+            entry = state["subproblems"]["Q1"]
+            self.assertNotEqual(entry["primary_execution_status"], "accepted")
+            self.assertNotIn("solution_workbook", entry.get("validated_artifact_hashes", {}))
+
+    def test_no_workbooks_reports_failure_without_empty_receipt_transaction(self):
+        for strict in (False, True):
+            with self.subTest(strict=strict), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                self.make_project(root)
+                before = (root / "state/project_state.yaml").read_bytes()
+                args = ["validate_user_execution.py", str(root), "--write", *( ["--strict"] if strict else [])]
+                output = io.StringIO()
+                with mock.patch("sys.argv", args), redirect_stdout(output), mock.patch.object(
+                    RECEIPT.PROJECT_TX, "commit_project_state") as commit:
+                    code = RECEIPT.main()
+                self.assertEqual(code, 1 if strict else 0)
+                self.assertIn("status: failed", output.getvalue())
+                self.assertIn("no_workbooks: true", output.getvalue())
+                self.assertIn("未发现待验收工作簿", output.getvalue())
+                commit.assert_not_called()
+                self.assertEqual((root / "state/project_state.yaml").read_bytes(), before)
+
+    def test_primary_receipt_cli_commits_captured_state_and_workbook(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            code = self.make_project(root)
+            _, config = CODE.validate_script(root, code, "primary")
+            CODE.update_state(root, config, code)
+            workbook = self.make_primary_workbook(root, code)
+            generation = RECEIPT.PROJECT_TX.state_generation(self.read_state(root))
+            output = io.StringIO()
+            with mock.patch("sys.argv", ["validate_user_execution.py", str(root), "--write", "--strict"]), redirect_stdout(output):
+                self.assertEqual(RECEIPT.main(), 0)
+            report = yaml.safe_load(output.getvalue())
+            self.assertEqual(report["status"], "passed")
+            self.assertFalse(report["no_workbooks"])
+            state = self.read_state(root)
+            self.assertEqual(RECEIPT.PROJECT_TX.state_generation(state), generation + 1)
+            self.assertEqual(state["subproblems"]["Q1"]["validated_artifact_hashes"]["solution_workbook"],
+                             hashlib.sha256(workbook.read_bytes()).hexdigest())
 
     def test_data_hash_mismatch_is_rejected(self):
         with tempfile.TemporaryDirectory() as temp:

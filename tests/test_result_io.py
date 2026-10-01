@@ -1,9 +1,11 @@
 import sys
+import io
 import tempfile
 import unittest
 from pathlib import Path
 
 import pandas as pd
+import openpyxl
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -13,6 +15,40 @@ from templates.code.hsk_pipeline import result_io as MOD
 
 
 class TestResultIO(unittest.TestCase):
+    def test_captured_workbook_bytes_share_the_file_schema(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "result.xlsx"
+            MOD.write_workbook(path, self.solution_tables())
+            raw = path.read_bytes()
+            validator = MOD.WORKBOOK_VALIDATION
+            schema = MOD.load_workbook_schema()
+            from_file = validator.validate_workbook_file(path, "solution", schema=schema)
+            from_bytes = validator.validate_workbook_file(raw, "solution", schema=schema)
+            self.assertEqual([name for name, _ in from_file], [name for name, _ in from_bytes])
+            for (_, file_table), (_, byte_table) in zip(from_file, from_bytes):
+                pd.testing.assert_frame_equal(file_table, byte_table)
+            book = openpyxl.load_workbook(io.BytesIO(raw))
+            del book["核心指标"]
+            buffer = io.BytesIO()
+            book.save(buffer)
+            book.close()
+            with self.assertRaisesRegex(ValueError, "核心指标"):
+                validator.validate_workbook_file(buffer.getvalue(), "solution", schema=schema)
+
+    def test_empty_trailing_header_only_ignores_an_unused_column(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "result.xlsx"
+            MOD.write_workbook(path, self.solution_tables())
+            book = openpyxl.load_workbook(path)
+            book["核心指标"].cell(1, 3).number_format = "0.000"
+            book.save(path)
+            MOD.validate_workbook_file(path, "solution")
+            book["核心指标"].cell(2, 3, 99.0)
+            book.save(path)
+            book.close()
+            with self.assertRaisesRegex(ValueError, "空字段名"):
+                MOD.validate_workbook_file(path, "solution")
+
     def quality_table(self):
         return pd.DataFrame(
             {"检查项": ["收敛"], "是否通过": [True], "证据": ["达到终止条件"]}

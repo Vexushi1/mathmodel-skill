@@ -337,6 +337,12 @@ class SolverBackendTests(unittest.TestCase):
         evidence = book.create_sheet("基础数值证据")
         evidence.append(["检查项", "数值"])
         evidence.append(["full", 1])
+        metrics = book.create_sheet("核心指标")
+        metrics.append(["指标", "数值"])
+        metrics.append(["完整执行次数", 1])
+        audit = book.create_sheet("数据审计")
+        audit.append(["等级", "检查项", "信息", "处理方式"])
+        audit.append(["Info", "当前输入绑定", "合成输入按声明data_sha256核验", "保持原值"])
         book.save(path)
         return path
 
