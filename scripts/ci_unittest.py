@@ -299,7 +299,11 @@ class TimingResult(unittest.TextTestResult):
 
     def _outcome(self, test, status, detail=""):
         if test.id() in self.active:
-            self.outcomes[test.id()] = status
+            priority = {"success": 0, "skip": 1, "expected_failure": 2,
+                        "unexpected_success": 3, "failure": 4, "error": 5}
+            previous = self.outcomes.get(test.id())
+            if previous is None or priority[status] >= priority[previous]:
+                self.outcomes[test.id()] = status
         else:
             self.fixture_events.append({"id": test.id(), "outcome": status, "detail": detail})
 
@@ -316,8 +320,11 @@ class TimingResult(unittest.TextTestResult):
         super().addFailure(test, err)
 
     def addSkip(self, test, reason):
-        self._outcome(test, "skip", reason)
-        if test.id() not in self.active:
+        # unittest reports a skipped _SubTest directly, without addSuccess for
+        # its parent. Only the parent is a discovered/executed case or fixture.
+        parent = test.test_case if isinstance(test, unittest.case._SubTest) else test
+        self._outcome(parent, "skip", reason)
+        if parent.id() not in self.active:
             match = re.fullmatch(r"(setUpClass|setUpModule) \((.+)\)", test.id())
             if not match:
                 self.integrity_errors.append(f"unknown fixture skip scope: {test.id()}")
@@ -522,6 +529,20 @@ def validate_report_structure(report: dict[str, Any]) -> None:
 def verify_reports(paths: list[Path], *, shard_count: int, python_version: str,
                    github_sha: str, source_sha: str | None = None,
                    profile=_DEFAULT_PROFILE) -> dict[str, Any]:
+    actual_python = f"{sys.version_info.major}.{sys.version_info.minor}"
+    version_error = None
+    if not isinstance(python_version, str) or not re.fullmatch(r"[0-9]+\.[0-9]+", python_version):
+        version_error = "invalid_collector_python_version: expected a major.minor label"
+    elif python_version != actual_python:
+        version_error = f"collector_python_version_mismatch: requested {python_version}, running {actual_python}"
+    if version_error:
+        # Recomputing version-sensitive timing weights would misdiagnose this
+        # maintenance replay as source/profile drift. Do not read any reports.
+        return {"schema_version": SCHEMA_VERSION, "status": "failure", "errors": [version_error],
+                "python_version": python_version, "collector_python_version": actual_python,
+                "github_sha": github_sha, "source_sha": source_sha, "checkout_sha": None,
+                "weight_profile": None, "weights_sha256": None, "shards": 0, "full_count": 0,
+                "wall_seconds": 0, "runner_seconds": 0, "slowest_cases": [], "slowest_files": []}
     errors, reports = [], []
     for path in paths:
         try:
