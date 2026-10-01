@@ -571,9 +571,13 @@ class ContractAndDriftTests(unittest.TestCase):
     # corresponding code-delivery consumer; the other authority guards remain fixed.
     # v10.1 AUD-01/03 intentionally re-pin input qualification and strict revision
     # checks; behavioral regressions live in test_audit_closure_regressions.
+    # v10.18.1 approved audit closure re-pins only the recomputed numeric relation
+    # (G2), ambiguous-semantic write rejection (G3), installed font fallback (G6),
+    # and current conditional-file/input protocol wording (G7). Every other
+    # protected hash and the exact historical inverse projections remain fixed.
     PROTECTED = {
         "core/model_approval_contract.yaml": "7cf530468a9a740a4123d64dec85b257d48e0892",
-        "core/numerical_verification_contract.yaml": "32f70622a8ea79f5bb9472392437abd54949393a",
+        "core/numerical_verification_contract.yaml": "37e111469a3d97a0f0acb89cbf78bb219dd47645",
         # P0-A intentionally aligns the title handoff with the existing output Authority;
         # test_schemas covers the new declaration and unchanged caption ownership.
         "core/workbook_schema.yaml": "e0479f5e74063151a515d11e140b7c4e8b8db077",
@@ -582,13 +586,13 @@ class ContractAndDriftTests(unittest.TestCase):
         "core/project_state.schema.yaml": "9be39d30d5acf7e88d67bf2ccee89031e5135568",
         "core/writing_reasoning_contract.yaml": "dadeebc2118f7b76f4aa355ebbe81ec4c1bb800c",
         "modules/03_solve_validate.md": "cfbe8091f0434b8531ec97cbccde013895e18228",
-        "modules/03_result_analysis.md": "94edc812f8a0a11c6c32c40fafae9559a56f9230",
+        "modules/03_result_analysis.md": "d63db5f2acdba56d006cff5de6de2f76df02364a",
         "modules/05_writing/paper_writing_protocol.md": "ea10da96f20bf11bfcf2b7f7465fb5162ae5efdf",
         "modules/05_writing/ai_cleanup.md": "3e6249d17a0a91091bf7c61c49aeb9245ccc41e1",
         # C1 distinguishes optional receipt metadata from the internal review matrix.
-        "modules/06_review_delivery.md": "6d1d65f61bb73ef4fab3452cb6b8027ef7e8ade4",
+        "modules/06_review_delivery.md": "4d2bc78193c14f2ee72983db7d58b1870e9ca59f",
         "config/competition_profiles.yaml": "0cfe08e2edac99f07f2e527643499b8bc73c0479",
-        "scripts/validate_semantic_governance.py": "1b48c4e5935c960f28bef89af86ce89a3c6f105f",
+        "scripts/validate_semantic_governance.py": "3a91083546ce0bd0cc20ca3e1c5593611f00f77d",
         # A5 requires current per-question files and exact official allowlist entries.
         # B2c additionally binds the selected LaTeX entrypoint and blocks
         # DOCX submission until a supported rendered proof exists. C2 adds
@@ -597,13 +601,13 @@ class ContractAndDriftTests(unittest.TestCase):
         # P0-B replaces silent filtering/fixed ordering with explicit evidence-preserving reads.
         # v10.0.1 removes unsupported ColorBar.FontUnits in the standalone fallback;
         # MATLAB syntax is parsed separately; source checks do not claim runtime execution.
-        "templates/matlab/q1_plot.m": "a16251c7cc9aa02d7c41f90c5ebc41e045fcec10",
+        "templates/matlab/q1_plot.m": "3958dd613ec23d7f43b493757f3d3cc287b8b1ec",
         "templates/matlab/draw_mechanism_structure.m": "65ba4a3b3462a565f86880c49af0959edd21f9a4",
         # v9.7.1 A02 changes only Evidence Capture's producer from Python to the selected solver.
         "templates/figure/chart_selection.md": "8b87b79d55e23f1b581c1ceca9e4d609fd11ba26",
         "templates/figure/figure_enhancement_patterns.md": "fa9db83323c4dcbe430e8afdca82df806e3db9de",
         # Delivery checks the root policy again against the state being committed.
-        "scripts/validate_code_delivery.py": "039ae7850bb36e4d93df26228e83b84f8e951c25",
+        "scripts/validate_code_delivery.py": "2877ba23d4b52cedafb8508e47a5afe0b2ece975",
     }
 
     def test_protected_authorities_have_not_drifted(self):

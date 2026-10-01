@@ -1,6 +1,15 @@
 # Changelog
 
-## 10.18.0
+## 10.18.1
+
+- Close audited source/receipt acceptance gaps: reject unverified Python import-search capabilities, reapply declared numerical thresholds to recomputed metrics, and validate the shared workbook Schema before current primary/analysis acceptance. Capture one workbook version and preserve guarded read-set/transaction semantics; empty discovery cannot pass or advance state.
+- Reject duplicate real question scopes and canonical mapping-key collisions without changing unaffected semantic serialization or hashes. Return controlled diagnostics for malformed consumed state containers; preserve user approval, historical read-only provenance, and project-wide backend policy.
+- Record legitimate skipped subtests as their parent cases without weakening coverage or failure checks. Diagnose collector interpreter-version mismatches before weight replay; keep formal Windows Python 3.10/3.14 checks and report semantics.
+- Bind hosted pip caches to the actual CI requirements, enable the native R2024b tool cache, and run Production proofs with a digest-pinned preinstalled TeX image instead of repeated apt installation. Keep Python toolchain checks, real TeX input provenance and every existing proof gate.
+- Align shared and standalone MATLAB CJK font selection, explicit overrides, and the real preview with known family-name variants; preserve colors and output boundaries. Clarify backend/receipt/conditional-layout wording and interpreter/resource-root preflight without installing or migrating user projects.
+- Register the exact patch carrier while retaining independent schema/receipt versions. Generated metadata and formal final-head validation remain GitHub-managed; this source change does not merge main or publish a Release.
+
+## Previous release: 10.18.0
 
 - Extend conditional 03B analysis with multi-model comparison and distinct algorithms for the same mathematical model. Preserve sensitivity and other existing analysis types; neither comparison is mandatory for every question.
 - Bind the reviewed comparison scope and predeclared experiment plan to current approved primary semantics, delivered analysis source and the existing 1.1/1.2 execution receipt. Validate every required check against precise primary and candidate evidence before acceptance; distinguish valid negative findings from execution failures.

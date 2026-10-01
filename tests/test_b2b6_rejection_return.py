@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import hashlib
 from pathlib import Path
+import subprocess
+import sys
 import unittest
 
 from jsonschema import Draft202012Validator
@@ -503,6 +506,38 @@ class B2b6RejectionReturnTests(unittest.TestCase):
         stale_issues = validate_project_state.validate_state_file(
             self.root / "state/project_state.yaml", project_root=self.root)
         self.assertTrue(stale_issues)
+
+    def test_malformed_identity_and_preprocessing_do_not_escape_real_validation_clis(self):
+        original = deepcopy(self.state)
+
+        def hashes():
+            return {path.relative_to(self.root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+                    for path in self.root.rglob("*") if path.is_file()}
+
+        for field in ("legal", "question", "preprocessing", "artifact_hashes", "validated_artifact_hashes", "stale_layers"):
+            with self.subTest(field=field):
+                state = deepcopy(original)
+                if field == "question":
+                    state["subproblems"]["Q1"] = "broken"
+                elif field == "preprocessing":
+                    state[field] = "broken"
+                elif field != "legal":
+                    state["subproblems"]["Q1"][field] = [{}]
+                save(self.root, state)
+                before = hashes()
+                for script in ("validate_user_execution.py", "validate_code_delivery.py"):
+                    for write_args in ([], ["--write"]) if field != "legal" else ([],):
+                        completed = subprocess.run(
+                            [sys.executable, "-B", str(ROOT / "scripts" / script), str(self.root), "--strict", *write_args],
+                            cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
+                        )
+                        self.assertNotIn("Traceback (most recent call last)", completed.stderr, script)
+                        report = yaml.safe_load(completed.stdout)
+                        self.assertEqual(report["status"], "passed" if field == "legal" else "failed", script)
+                        self.assertEqual(completed.returncode, 0 if field == "legal" else 1, script)
+                        self.assertFalse(report["task_code_executed"])
+                        self.assertFalse(report["report_persisted"])
+                        self.assertEqual(before, hashes(), script)
 
     def test_model_design_wins_when_core_and_model_rejects_coexist(self):
         self.sync_with(

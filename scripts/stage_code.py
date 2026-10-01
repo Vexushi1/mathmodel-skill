@@ -585,7 +585,8 @@ def dependency_reference_issues(root: Path, entrypoint: Path, config: Mapping[st
         if source.suffix.lower() == ".py":
             tree = ast.parse(text)
             references: list[Path] = []
-            issues.extend(python_source_checks.execution_reference_issues(tree))
+            issues.extend(python_source_checks.execution_reference_issues(
+                tree, source_path=source.relative_to(root).as_posix()))
             for node in ast.walk(tree):
                 if isinstance(node, (ast.Import, ast.ImportFrom)):
                     paths, errors = _python_import_files(root, entrypoint, source, node)

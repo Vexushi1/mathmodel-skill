@@ -39,7 +39,10 @@ class P6bMatlabPreviewContractTests(unittest.TestCase):
         font_step = steps["Verify Windows CJK publication font prerequisite"]
         self.assertEqual(font_step["shell"], "pwsh")
         self.assertIn("InstalledFontCollection", font_step["run"])
-        self.assertIn("Microsoft YaHei", font_step["run"])
+        self.assertIn("hsk_publication_profile.m", font_step["run"])
+        self.assertIn("cjk_font_candidates", font_step["run"])
+        self.assertIn("Write-Warning", font_step["run"])
+        self.assertNotIn("throw \"Windows runner lacks", font_step["run"])
         self.assertIn("throw", font_step["run"])
         clean_step = steps["Prove preview harness did not mutate repository files"]
         self.assertEqual(clean_step["shell"], "pwsh")
@@ -129,6 +132,8 @@ class P6bMatlabPreviewContractTests(unittest.TestCase):
             'Preview output boundary violated',
             'preview_report.json',
             'availableFonts = string(listfonts)',
+            'cjkFonts = baseSpec.typography.cjk_font_candidates',
+            'verify_font_selection(repoRoot, cjkFonts)',
             '"cjk_font"',
             'Missing CJK publication font visible to MATLAB',
             'MATLAB publication preview selected a fallback without a verified CJK font',

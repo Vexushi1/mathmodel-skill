@@ -170,6 +170,8 @@ set(hLine, "Color", palette.primary);
 
 第三参 `style` 支持 `fontName`、`axesFontSize`、`labelFontSize`、`legendFontSize`、`colorbarFontSize`、`axesLineWidth`、`colorbarLineWidth`。只填写需要覆盖的字段，省略字段使用 helper 的排版起点；`fontName=""` 使用本机字体候选，其余字段须为有限正实数，未知字段会报错。脚本中现有字号、画布与线宽只是可调起点，不是所有图必须满足的固定规格。
 
+共享字体候选来自 `hsk_publication_profile().typography.cjk_font_candidates`，支持 Microsoft YaHei UI、微软雅黑、黑体和 Noto Sans SC 等明确名称变体，按 `listfonts` 返回的实际名称设置属性；独立入口保留同序列的自包含 fallback。显式 `fontName` 优先。候选命中只是字体选择，中文可读性仍须在实际环境看图确认；没有 CJK 候选时的通用字体回退不代表出版预览通过。
+
 调用顺序为：创建图形对象、标签、legend/colorbar → `apply_publication_style(fig, style)` 一次 → 当前图的局部覆盖。入口中的该 local wrapper 负责选择共享 helper 或单文件 fallback；直接调用共享接口时使用 `hsk_apply_scientific_style(fig, "", style)`。网格、边框、坐标范围及个别对象字号放在局部覆盖阶段；不要把它们加成未支持的 `style` 字段，也不要在手调之后再次套用基础样式。heatmap、3D、polar 等按当前图保留必要空间参照。
 
 助手只做静态代码与接口检查；MATLAB 运行和图形观感由用户人工确认，不进行自动图像评分，也不把静态检查通过说成已验证外观。

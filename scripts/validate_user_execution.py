@@ -67,6 +67,14 @@ def _load_numerical_validator():
 
 NUMERICAL_VALIDATION = _load_numerical_validator()
 
+_workbook_spec = importlib.util.spec_from_file_location(
+    "hsk_receipt_workbook_validation",
+    Path(SCRIPT_DIR).parent / "templates/code/hsk_pipeline/workbook_validation.py",
+)
+WORKBOOK_VALIDATION = importlib.util.module_from_spec(_workbook_spec)
+assert _workbook_spec.loader is not None
+_workbook_spec.loader.exec_module(WORKBOOK_VALIDATION)
+
 
 def load_yaml(path: Path) -> dict[str, Any]:
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -315,8 +323,9 @@ def validate_run_receipt_binding(
     return issues
 
 
-def _boolean_gate(workbook: Path, sheet: str, column: str) -> tuple[bool, list[str]]:
-    book = openpyxl.load_workbook(workbook, read_only=True, data_only=True)
+def _boolean_gate(workbook: Path | bytes, sheet: str, column: str) -> tuple[bool, list[str]]:
+    book = openpyxl.load_workbook(io.BytesIO(workbook) if isinstance(workbook, bytes) else workbook,
+                                 read_only=True, data_only=True)
     try:
         if sheet not in book.sheetnames:
             return False, [f"缺少{sheet}工作表"]
@@ -350,8 +359,9 @@ def _evidence_sheet_issues(book: openpyxl.Workbook, sheet: str, required: tuple[
     return issues
 
 
-def preprocessing_passed(workbook: Path) -> tuple[bool, list[str]]:
-    book = openpyxl.load_workbook(workbook, read_only=True, data_only=True)
+def preprocessing_passed(workbook: Path | bytes) -> tuple[bool, list[str]]:
+    book = openpyxl.load_workbook(io.BytesIO(workbook) if isinstance(workbook, bytes) else workbook,
+                                 read_only=True, data_only=True)
     try:
         issues: list[str] = []
         for sheet, required_columns in PREPROCESSING_EVIDENCE_SHEETS.items():
@@ -386,7 +396,7 @@ def preprocessing_passed(workbook: Path) -> tuple[bool, list[str]]:
         book.close()
 
 
-def quality_passed(workbook: Path) -> tuple[bool, list[str]]:
+def quality_passed(workbook: Path | bytes) -> tuple[bool, list[str]]:
     return _boolean_gate(workbook, "主结果质量门", "是否通过")
 
 
@@ -471,8 +481,6 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool,
     root, workbook = root.resolve(), workbook.resolve()
     if not workbook.is_relative_to(root):
         return ["工作簿路径越出项目根目录"]
-    a2_present = any(CONFORMANCE.present(entry) for entry in (state.get("subproblems") or {}).values())
-    initial_workbook_hash = file_hash(workbook) if a2_present else None
     problem, stage, identity_issues = workbook_identity(root, workbook)
     if identity_issues:
         return identity_issues
@@ -480,8 +488,22 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool,
     entry = {} if stage == "preprocessing" else (state.get("subproblems") or {}).get(key, {})
     comparison_observed = {"project": {}, "skill": {}}
     comparison_active = COMPARISON.present(entry) or COMPARISON.workbook_present(workbook)
-    captured_workbook = COMPARISON.capture_workbook(root, workbook, comparison_observed) if comparison_active else None
-    config, issues = configuration_map(captured_workbook if captured_workbook is not None else workbook)
+    try:
+        captured_workbook = (COMPARISON.capture_workbook(root, workbook, comparison_observed)
+                             if comparison_active else workbook.read_bytes())
+    except OSError as exc:
+        return [f"工作簿无法读取: {exc}"]
+    workbook_hash = hashlib.sha256(captured_workbook).hexdigest()
+    workbook_observed = {"project": {workbook.relative_to(root).as_posix(): workbook_hash}, "skill": {}}
+    # Recheck captured metadata too: a changed candidate cannot lose strict
+    # activation merely because the initial discovery read lacked the marker.
+    if not comparison_active and COMPARISON._metadata_present(captured_workbook):
+        comparison_active = True
+        CONFORMANCE.merge_read_sets(comparison_observed, workbook_observed)
+        COMPARISON.candidate_preflight(captured_workbook, comparison_observed)
+    if conformance_read_set is not None:
+        CONFORMANCE.merge_read_sets(conformance_read_set, workbook_observed)
+    config, issues = configuration_map(captured_workbook)
 
     configured_stage = str(config.get("stage", ""))
     configured_problem = str(config.get("problem_name", ""))
@@ -498,7 +520,7 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool,
         if conformance["issues"]:
             return list(dict.fromkeys([*issues, *conformance["issues"]]))
         if conformance["enabled"]:
-            conformance["observed_sources"]["project"][workbook.relative_to(root).as_posix()] = initial_workbook_hash
+            conformance["observed_sources"]["project"][workbook.relative_to(root).as_posix()] = workbook_hash
             if conformance_read_set is not None:
                 CONFORMANCE.merge_read_sets(conformance_read_set, conformance["observed_sources"])
     project_backend = None
@@ -545,6 +567,41 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool,
         ]))
     modern = (is_source_receipt(config.get("run_receipt_version"))
               or is_source_receipt((delivered or {}).get("run_receipt_protocol_version")))
+    if stage != "preprocessing" and (write or modern):
+        schema_path = Path(SCRIPT_DIR).parent / "core/workbook_schema.yaml"
+        schema_bytes = schema_path.read_bytes()
+        workbook_observed["skill"]["core/workbook_schema.yaml"] = hashlib.sha256(schema_bytes).hexdigest()
+        try:
+            classification = entry.get("classification")
+            legacy_types = entry.get("problem_types")
+            capabilities = entry.get("capabilities")
+            for field, value in (("classification", classification), ("problem_types", legacy_types),
+                                 ("capabilities", capabilities), ("analysis_comparison", entry.get("analysis_comparison"))):
+                if value is not None and not isinstance(value, Mapping):
+                    return list(dict.fromkeys([*issues, f"工作簿结构Schema未通过: subproblem.{field}必须为mapping"]))
+            classification = classification or {}
+            legacy_types = legacy_types or {}
+            structures = classification.get("structures")
+            secondary = legacy_types.get("secondary")
+            methods = entry.get("analysis_methods")
+            for field, value in (("classification.structures", structures), ("problem_types.secondary", secondary),
+                                 ("analysis_methods", methods)):
+                if value is not None and not isinstance(value, (list, tuple)):
+                    return list(dict.fromkeys([*issues, f"工作簿结构Schema未通过: subproblem.{field}必须为列表"]))
+            problem_types = tuple(item for item in (
+                legacy_types.get("primary"), *(secondary or [])) if item)
+            WORKBOOK_VALIDATION.validate_workbook_file(
+                captured_workbook, "solution" if stage == "primary" else "result_analysis",
+                schema=yaml.safe_load(schema_bytes), problem_types=problem_types,
+                capabilities=capabilities, objective=classification.get("objective"),
+                structures=structures or (), require_quality_passed=False,
+                analysis_methods=methods or (),
+                comparison_plan=entry.get("analysis_comparison"),
+            )
+        except (ValueError, OSError, KeyError, TypeError) as exc:
+            issues.append(f"工作簿结构Schema未通过: {exc}")
+        if conformance_read_set is not None:
+            CONFORMANCE.merge_read_sets(conformance_read_set, workbook_observed)
     if modern and delivered is not None:
         try:
             issues.extend(observe_inputs(root, delivered, state)["issues"])
@@ -572,22 +629,23 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool,
                 issues.append("分析配置绑定的主工作簿不是当前accepted版本")
 
     if stage == "preprocessing":
-        passed, quality_issues = preprocessing_passed(workbook)
+        passed, quality_issues = preprocessing_passed(captured_workbook)
         issues.extend(quality_issues)
         if write:
+            CONFORMANCE.assert_observed(root, workbook_observed)
             preprocessing = state.setdefault("preprocessing", {})
             accepted = not issues and passed
             preprocessing["status"] = "accepted" if accepted else "rejected"
             preprocessing["quality_status"] = "passed" if accepted else "failed"
             preprocessing["workbook"] = workbook.relative_to(root).as_posix()
-            preprocessing["workbook_sha256"] = file_hash(workbook)
+            preprocessing["workbook_sha256"] = workbook_hash
             if accepted:
                 state.setdefault("data", {})["active_source_mode"] = "preprocessed"
                 state.setdefault("project", {})["current_phase"] = "solve_validate"
         return list(dict.fromkeys(issues))
 
     if stage == "primary":
-        passed, quality_issues = quality_passed(workbook)
+        passed, quality_issues = quality_passed(captured_workbook)
         issues.extend(quality_issues)
         expected_protocol = "" if delivered is None else str(
             delivered.get("primary_quality_protocol_version", "")
@@ -599,10 +657,16 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool,
                 "不得通过省略标记降级为legacy质量门"
             )
         force_strict = True if expected_protocol or workbook_protocol else None
+        numerical_path = Path(SCRIPT_DIR).parent / "core/numerical_verification_contract.yaml"
+        numerical_bytes = numerical_path.read_bytes()
+        workbook_observed["skill"]["core/numerical_verification_contract.yaml"] = hashlib.sha256(numerical_bytes).hexdigest()
+        if conformance_read_set is not None:
+            CONFORMANCE.merge_read_sets(conformance_read_set, workbook_observed)
         numerical_passed, numerical_issues, _ = NUMERICAL_VALIDATION.validate_primary_numerical_evidence(
-            workbook,
+            captured_workbook,
             entry.get("capabilities") or {},
             force_strict=force_strict,
+            contract=yaml.safe_load(numerical_bytes),
         )
         issues.extend(numerical_issues)
         passed = passed and numerical_passed
@@ -621,7 +685,7 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool,
             except (OSError, ValueError, RuntimeError) as exc:
                 return list(dict.fromkeys([*issues, f"conformance receipt read-set conflict: {exc}"]))
         if write:
-            workbook_hash = file_hash(workbook)
+            CONFORMANCE.assert_observed(root, workbook_observed)
             old_hash = (entry.get("validated_artifact_hashes") or {}).get("solution_workbook") or (
                 entry.get("artifact_hashes") or {}).get("solution_workbook")
             if old_hash and old_hash != workbook_hash:
@@ -646,7 +710,7 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool,
                     entry["solver_execution"][stage]["validated_bundle_sha256"] = config["code_bundle_sha256"]
                     if conformance["enabled"]:
                         entry["solver_execution"][stage][CONFORMANCE.ACCEPTANCE] = CONFORMANCE.acceptance_binding(
-                            conformance["delivery_candidate"], file_hash(workbook))
+                            conformance["delivery_candidate"], workbook_hash)
     else:
         negative_analysis_issues = []
         comparison = COMPARISON.inspect_gate(
@@ -658,7 +722,7 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool,
         if comparison["enabled"]:
             issues.extend(comparison["issues"])
             _, legacy_status, legacy_issues = analysis_passed(
-                captured_workbook if captured_workbook is not None else workbook,
+                captured_workbook,
                 comparison_methods={"model_comparison", "algorithm_comparison", "多模型检验", "同模型多算法检验"})
             if legacy_status == "failed":
                 issues.extend(legacy_issues)
@@ -669,8 +733,11 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool,
             passed = not issues and not core_rejections and not negative_analysis_issues
         else:
             core_rejections = []
-            passed, result_status, analysis_issues = analysis_passed(workbook)
-            issues.extend(analysis_issues)
+            passed, result_status, analysis_issues = analysis_passed(captured_workbook)
+            if result_status == "redo_required":
+                negative_analysis_issues = analysis_issues
+            else:
+                issues.extend(analysis_issues)
         if modern:
             issues.extend(STAGE_CODE.validate_stage_binding(root, entry, stage, project_backend=project_backend))
             issues.extend(ANALYSIS_PREREQUISITES.stage_input_issues(root, state, entry, stage))
@@ -687,12 +754,14 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool,
             except (OSError, ValueError, RuntimeError) as exc:
                 return list(dict.fromkeys([*issues, f"conformance receipt read-set conflict: {exc}"]))
         if write:
+            CONFORMANCE.assert_observed(root, workbook_observed)
+            if issues:
+                result_status, passed, core_rejections = "failed", False, []
             if comparison["enabled"]:
                 CONFORMANCE.assert_observed(root, comparison_observed)
                 if issues:
                     result_status, passed, core_rejections = "failed", False, []
-            accepted_workbook_hash = (
-                hashlib.sha256(captured_workbook).hexdigest() if captured_workbook is not None else file_hash(workbook))
+            accepted_workbook_hash = workbook_hash
             entry["analysis_execution_status"] = (
                 "accepted" if not issues and passed
                 else "redo_required" if result_status == "redo_required"
@@ -714,7 +783,7 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool,
                     entry["solver_execution"][stage]["validated_bundle_sha256"] = config["code_bundle_sha256"]
                     if conformance["enabled"]:
                         entry["solver_execution"][stage][CONFORMANCE.ACCEPTANCE] = CONFORMANCE.acceptance_binding(
-                            conformance["delivery_candidate"], file_hash(workbook))
+                            conformance["delivery_candidate"], workbook_hash)
             elif result_status == "redo_required":
                 if core_rejections:
                     for rejection in sorted(core_rejections, key=lambda row: row["event"]):
@@ -765,7 +834,7 @@ def discover(root: Path) -> list[Path]:
     })
 
 
-def main() -> int:
+def _main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("project_root", type=Path)
     parser.add_argument("--workbook", type=Path)
@@ -778,6 +847,8 @@ def main() -> int:
     if not state_path.is_file():
         raise SystemExit("缺少state/project_state.yaml")
     candidate = load_yaml(state_path)
+    from runtime_assurance import validate_consumed_state_shapes
+    validate_consumed_state_shapes(candidate)
     a2_present = any(CONFORMANCE.present(entry) for entry in (candidate.get("subproblems") or {}).values())
     workbooks = (
         [(args.workbook if args.workbook.is_absolute() else root / args.workbook).resolve()]
@@ -792,13 +863,20 @@ def main() -> int:
         state = initial_snapshot.payload()
         base_generation = PROJECT_TX.state_generation(state)
         conformance_read_set["project"][PROJECT_TX.STATE_RELATIVE_PATH] = initial_snapshot.describe()["sha256"]
-    elif args.write:
-        _, state, base_generation = PROJECT_TX.load_state_for_update(root)
+    elif args.write and workbooks:
+        # Preserve legacy recovery, then bind both parsed State and the write target
+        # to the same immutable bytes as every guarded receipt transaction.
+        PROJECT_TX.load_state_for_update(root)
+        from runtime_assurance import ProjectStateSnapshot
+        initial_snapshot = ProjectStateSnapshot.capture(root)
+        state = initial_snapshot.payload()
+        base_generation = PROJECT_TX.state_generation(state)
+        conformance_read_set["project"][PROJECT_TX.STATE_RELATIVE_PATH] = initial_snapshot.describe()["sha256"]
     else:
         state = candidate
         base_generation = PROJECT_TX.state_generation(state)
     original_state = deepcopy(state)
-    all_issues: list[str] = []
+    all_issues: list[str] = [] if workbooks else ["未发现待验收工作簿"]
     checked: list[str] = []
     for workbook in workbooks:
         if not workbook.is_relative_to(root):
@@ -807,16 +885,17 @@ def main() -> int:
         issues = validate_one(root, workbook, state, args.write, conformance_read_set=conformance_read_set)
         all_issues.extend(f"{workbook.name}: {item}" for item in issues)
         checked.append(workbook.relative_to(root).as_posix())
-    if args.write and (not all_issues or state != original_state):
+    if args.write and workbooks and (not all_issues or state != original_state):
         CONFORMANCE.assert_observed(root, conformance_read_set)
         PROJECT_TX.commit_project_state(
             root, state, expected_generation=base_generation,
             expected_file_hashes=conformance_read_set["project"] or None,
-            validators=[CONFORMANCE.skill_validator(conformance_read_set)] if a2_present or comparison_present else (),
+            validators=[CONFORMANCE.skill_validator(conformance_read_set)],
         )
     report = {
         "status": "passed" if not all_issues else "failed",
         "checked_workbooks": checked,
+        "no_workbooks": not workbooks,
         "issues": all_issues,
         "task_code_executed": False,
         "report_persisted": False,
@@ -826,6 +905,19 @@ def main() -> int:
         print("\n".join(all_issues))
         return 1 if args.strict else 0
     return 0
+
+
+def main() -> int:
+    from runtime_assurance import ProjectStateShapeError
+
+    try:
+        return _main()
+    except ProjectStateShapeError as exc:
+        print(yaml.safe_dump({
+            "status": "failed", "checked_workbooks": [],
+            "issues": [str(exc)], "task_code_executed": False, "report_persisted": False,
+        }, allow_unicode=True, sort_keys=False).rstrip())
+        return 1
 
 
 if __name__ == "__main__":

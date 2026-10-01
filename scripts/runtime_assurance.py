@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import hashlib
 from pathlib import Path
 import re
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 import yaml
 import safe_yaml
@@ -394,6 +394,33 @@ class ProjectStateReadError(ValueError):
         super().__init__(f"{code}: {detail}")
 
 
+class ProjectStateShapeError(ProjectStateReadError):
+    """Consumed nested state has an unsafe shape; diagnostics cannot qualify it."""
+
+    def __init__(self, field: str, detail: str) -> None:
+        self.field = field
+        super().__init__("invalid_project_state", detail)
+
+
+def validate_consumed_state_shapes(state: Mapping[str, Any]) -> None:
+    preprocessing = state.get("preprocessing")
+    if preprocessing is not None and not isinstance(preprocessing, Mapping):
+        raise ProjectStateShapeError("preprocessing", "preprocessing must be a mapping")
+    subproblems = state.get("subproblems")
+    if not isinstance(subproblems, Mapping):
+        return  # Existing root-shape validation owns this boundary.
+    for question, entry in subproblems.items():
+        scope = f"subproblems.{question}"
+        if not isinstance(entry, Mapping):
+            raise ProjectStateShapeError(scope, f"{scope} must be a mapping")
+        if entry.get("stale_layers") is not None and not isinstance(entry["stale_layers"], list):
+            raise ProjectStateShapeError(f"{scope}.stale_layers", f"{scope}.stale_layers must be a list")
+        try:
+            ARTIFACT_IDENTITY.validate_identity_container_shapes(entry, scope=scope)
+        except ARTIFACT_IDENTITY.ArtifactIdentityError as exc:
+            raise ProjectStateShapeError(exc.field or scope, str(exc)) from exc
+
+
 def _read_state_bytes(root: Path) -> bytes | None:
     """Observe state without opening a writer lock or recovering a transaction."""
     paths = {}
@@ -456,6 +483,7 @@ class ProjectStateSnapshot:
             state_generation(state)
         except ProjectTransactionError as exc:
             raise ProjectStateReadError("invalid_project_state", str(exc)) from exc
+        validate_consumed_state_shapes(state)
         return state
 
     def assert_current(self, project_root: str | Path | None = None) -> None:
@@ -625,7 +653,11 @@ def _framework_semantic_evidence(
         return {}, "current model framework is missing"
     text = framework_path.read_text(encoding="utf-8")
     rows: dict[str, dict[str, Any]] = {}
-    for question, section in question_sections(text).items():
+    try:
+        sections = question_sections(text)
+    except SemanticIdentityError as exc:
+        return {}, f"current model framework is malformed: {exc}"
+    for question, section in sections.items():
         try:
             rows[question] = inspect_question_semantics(section, question)
         except SemanticIdentityError as exc:
@@ -709,7 +741,7 @@ def _semantic_lock_evidence(
         actual_hash = value if isinstance(value, str) else None
 
     if framework_error:
-        status = "missing"
+        status = "missing" if framework_error == "current model framework is missing" else "malformed"
         reason = framework_error
     elif current_semantics is None:
         status = "malformed"
@@ -851,11 +883,19 @@ def hydrate_project_context(
 ) -> dict[str, Any]:
     root = Path(project_root).expanduser().resolve()
     state_path = root / STATE_RELATIVE_PATH
-    snapshot = state_snapshot if state_snapshot is not None else ProjectStateSnapshot.capture(root)
-    snapshot.assert_current(root)
-    state = snapshot.payload()
+    shape_error = None
+    try:
+        snapshot = state_snapshot if state_snapshot is not None else ProjectStateSnapshot.capture(root)
+        snapshot.assert_current(root)
+        state = snapshot.payload()
+    except ProjectStateShapeError as exc:
+        if state_snapshot is not None:
+            state_snapshot.assert_current(root)
+        shape_error = str(exc)
+        state = {}
     if not state:
-        snapshot.assert_current()
+        if shape_error is None:
+            snapshot.assert_current()
         return {
             "loaded": False,
             "project_root": str(root),
@@ -867,8 +907,8 @@ def hydrate_project_context(
             "backend_policy": None,
             "verified_artifacts": [],
             "artifact_evidence": [],
-            "conflicts": [],
-            "ambiguities": ["project state is unavailable"],
+            "conflicts": [shape_error] if shape_error else [],
+            "ambiguities": [shape_error or "project state is unavailable"],
         }
 
     # The backend is a project declaration: inspect every registered question

@@ -33,7 +33,7 @@ v7.14 起，`core/numerical_verification_contract.yaml` 只负责主工作簿 ac
 
 ## 二、执行规则
 
-Gate=`required` 后按 `core/user_execution_contract.yaml#solver_backends` 继承项目根唯一求解后端，不在 03B 另选语言。独立入口名称来自输出 Authority；03B 使用 1.1 配置/回执与独立源码 bundle。读取 accepted 主工作簿前由共享前提检查核对主代码与数据身份，不能通过调用主入口重新计算主结果。主阶段的执行状态不被深化阶段覆盖；`RUN_CONFIG` 与回执中的 backend 记录实际运行事实，须与项目策略一致。
+Gate=`required` 后按 `core/user_execution_contract.yaml#solver_backends` 继承项目根唯一求解后端，不在 03B 另选语言。独立入口名称来自输出 Authority；03B 配置/回执及可选项目级辅助输入版本遵循 `core/user_execution_contract.yaml#code_delivery`：无辅助输入为 1.1，合法辅助输入路径为 1.2，并使用独立源码 bundle。读取 accepted 主工作簿前由共享前提检查核对主代码与数据身份，不能通过调用主入口重新计算主结果。主阶段的执行状态不被深化阶段覆盖；`RUN_CONFIG` 与回执中的 backend 记录实际运行事实，须与项目策略一致。
 
 `required` 分支：
 

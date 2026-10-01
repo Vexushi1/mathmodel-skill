@@ -8,10 +8,12 @@ end
 repoRoot = string(fileparts(fileparts(fileparts(mfilename("fullpath")))));
 addpath(fullfile(repoRoot, "templates", "matlab"));
 
-cjkFonts = ["Microsoft YaHei", "SimHei", "Noto Sans CJK SC", "Arial Unicode MS"];
+baseSpec = hsk_publication_profile();
+cjkFonts = baseSpec.typography.cjk_font_candidates;
 availableFonts = string(listfonts);
 assert(any(ismember(lower(availableFonts), lower(cjkFonts))), ...
     "Missing CJK publication font visible to MATLAB on the Windows runner.");
+verify_font_selection(repoRoot, cjkFonts);
 
 if isfolder(outputDir)
     rmdir(outputDir, "s");
@@ -63,7 +65,7 @@ end
 report.matlab_version = version;
 report.matlab_release = version("-release");
 report.profiles = reports;
-report.machine_checks = ["profile_api", "style_application", "cjk_font", "text", "legend", ...
+report.machine_checks = ["profile_api", "style_application", "cjk_font", "font_selection_controls", "text", "legend", ...
     "canvas", "png_pdf_export", "nonblank_raster", "monochrome_print_safe", "output_boundary"];
 reportPath = fullfile(outputDir, "preview_report.json");
 fid = fopen(reportPath, "w");
@@ -77,6 +79,59 @@ actual = string({listing(~[listing.isdir]).name});
 assert(isequal(sort(actual), expected), ...
     "Preview output boundary violated. Expected: %s; actual: %s", ...
     strjoin(expected, ", "), strjoin(sort(actual), ", "));
+end
+
+function verify_font_selection(repoRoot, cjkFonts)
+% Exercise the actual shared/standalone selectors with controlled font lists.
+% No font installation, graphics export or user project is involved here.
+probeDir = string(tempname);
+mkdir(probeDir);
+cleaner = onCleanup(@() cleanup_font_probe(probeDir)); %#ok<NASGU>
+paths = ["hsk_apply_scientific_style.m", "q1_plot.m", "data_process.m"];
+selectors = strings(size(paths));
+for i = 1:numel(paths)
+    source = fileread(fullfile(repoRoot, "templates", "matlab", paths(i)));
+    marker = "function fontName = select_style_font(available)";
+    at = strfind(source, char(marker));
+    assert(isscalar(at), "Expected exactly one standalone font selector in %s", paths(i));
+    selectors(i) = "hsk_probe_font_selector_" + i;
+    body = replace(string(source(at:end)), marker, "function fontName = " + selectors(i) + "(available)");
+    write_probe_source(fullfile(probeDir, selectors(i) + ".m"), body);
+end
+addpath(probeDir, "-begin");
+fontLists = cellstr(cjkFonts);
+expected = cjkFonts;
+fontLists{end + 1} = ["Helvetica", "Noto Sans SC"];
+expected(end + 1) = "Noto Sans SC";
+fontLists{end + 1} = ["SimHei", "Microsoft YaHei"];
+expected(end + 1) = "Microsoft YaHei";
+fontLists{end + 1} = "microsoft yahei ui";
+expected(end + 1) = "microsoft yahei ui";
+fontLists{end + 1} = "Arial";
+expected(end + 1) = "Arial";
+fontLists{end + 1} = strings(1, 0);
+expected(end + 1) = "Helvetica";
+for j = 1:numel(fontLists)
+    for i = 1:numel(selectors)
+        selected = string(feval(selectors(i), string(fontLists{j})));
+        assert(selected == expected(j), "Font selector %s returned %s, expected %s", ...
+            paths(i), selected, expected(j));
+    end
+end
+end
+
+function write_probe_source(path, text)
+fid = fopen(path, "w", "n", "UTF-8");
+assert(fid ~= -1, "Cannot create temporary font probe source");
+closer = onCleanup(@() fclose(fid)); %#ok<NASGU>
+fprintf(fid, "%s", text);
+end
+
+function cleanup_font_probe(probeDir)
+if contains(path, char(probeDir)), rmpath(probeDir); end
+assert(string(fileparts(probeDir)) == string(strip(tempdir, "right", filesep)), ...
+    "Font probe cleanup must remain inside its temporary root");
+if isfolder(probeDir), rmdir(probeDir, "s"); end
 end
 
 function fig = build_preview(profile, spec)
@@ -94,8 +149,8 @@ for k = 1:3
         "Marker", markers(k), "MarkerIndices", 1:20:numel(x), ...
         "Color", spec.palette.series(k, :), "DisplayName", "Series " + k);
 end
-xlabel(ax1, "Normalized input");
-ylabel(ax1, "Response");
+xlabel(ax1, "Normalized input / 归一化输入");
+ylabel(ax1, "Response / 响应");
 legend(ax1, "Location", "best");
 
 ax2 = nexttile(tl, 2);

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+import io
 from numbers import Real
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
@@ -64,8 +65,9 @@ def prepare_tables(
     return prepared
 
 
-def read_workbook_tables(path: Path) -> dict[str, pd.DataFrame]:
-    workbook = load_workbook(path, read_only=True, data_only=True)
+def read_workbook_tables(path: Path | bytes) -> dict[str, pd.DataFrame]:
+    workbook = load_workbook(io.BytesIO(path) if isinstance(path, bytes) else path,
+                             read_only=True, data_only=True)
     tables: dict[str, pd.DataFrame] = {}
     try:
         for worksheet in workbook.worksheets:
@@ -73,7 +75,9 @@ def read_workbook_tables(path: Path) -> dict[str, pd.DataFrame]:
             if not rows:
                 raise ValueError(f"工作表“{worksheet.title}”为空")
             headers = ["" if value is None else str(value).strip() for value in rows[0]]
-            while headers and not headers[-1]:
+            while headers and not headers[-1] and all(
+                len(row) < len(headers) or row[len(headers) - 1] in (None, "") for row in rows[1:]
+            ):
                 headers.pop()
             if not headers or any(not header for header in headers):
                 raise ValueError(f"工作表“{worksheet.title}”存在空字段名")
@@ -310,7 +314,7 @@ def validate_tables(
 
 
 def validate_workbook_file(
-    path: Path,
+    path: Path | bytes,
     workbook_kind: str,
     *,
     schema: Mapping[str, Any],
@@ -322,9 +326,10 @@ def validate_workbook_file(
     analysis_methods: Sequence[str] = (),
     comparison_plan: Mapping[str, Any] | None = None,
 ) -> list[tuple[str, pd.DataFrame]]:
-    path = Path(path)
-    if not path.is_file():
-        raise FileNotFoundError(path)
+    if not isinstance(path, bytes):
+        path = Path(path)
+        if not path.is_file():
+            raise FileNotFoundError(path)
     return validate_tables(
         read_workbook_tables(path), workbook_kind, schema=schema,
         problem_types=problem_types, capabilities=capabilities,

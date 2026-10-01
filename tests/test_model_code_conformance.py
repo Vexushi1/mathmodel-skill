@@ -312,6 +312,19 @@ class ConformanceTests(unittest.TestCase):
         path.write_text(path.read_text(encoding="utf-8") * 2, encoding="utf-8")
         self.assertEqual(self.result()["status"], "blocked")
 
+    def test_fenced_question_scope_example_keeps_real_model_conformance(self):
+        state, _, _ = fixture(self.root)
+        path = self.root / "模型论文框架.md"
+        original = path.read_text(encoding="utf-8")
+        for opening, closing in (("```markdown", "```"), ("~~~~", "~~~~")):
+            with self.subTest(opening=opening):
+                path.write_text(original + f"\n{opening}\n### Q1:example\n{closing}\n", encoding="utf-8")
+                declare(self.root, state)
+                before = bytes_in(self.root)
+                report = self.result()
+                self.assertEqual(report["status"], "structure_verified", report)
+                self.assertEqual(bytes_in(self.root), before)
+
     def test_record_schema_is_closed_and_not_an_approval_store(self):
         state, _, _ = fixture(self.root)
         record = declare(self.root, state)

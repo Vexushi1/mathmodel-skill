@@ -9,6 +9,7 @@ bottom-level evidence and the main quality summary.
 from __future__ import annotations
 
 import argparse
+import io
 import math
 import re
 from pathlib import Path
@@ -62,6 +63,14 @@ def _sheet_records(book: openpyxl.Workbook, sheet: str) -> tuple[list[str], list
     if not rows:
         return [], []
     headers = ["" if item is None else str(item).strip() for item in rows[0]]
+    while headers and not headers[-1] and all(
+        len(row) < len(headers) or row[len(headers) - 1] in (None, "") for row in rows[1:]
+    ):
+        headers.pop()
+    if any(not header for header in headers):
+        raise ValueError(f"工作表“{sheet}”存在空字段名")
+    if len(headers) != len(set(headers)):
+        raise ValueError(f"工作表“{sheet}”包含重复字段")
     records: list[dict[str, Any]] = []
     for row in rows[1:]:
         if not any(value not in (None, "") for value in row[: len(headers)]):
@@ -74,7 +83,7 @@ def _numeric_equal(left: float, right: float, contract: Mapping[str, Any]) -> bo
     tolerance = (contract.get("numeric_consistency") or {}).get("comparison_tolerance") or {}
     absolute = float(tolerance.get("absolute", 1.0e-12))
     relative = float(tolerance.get("relative", 1.0e-9))
-    return abs(left - right) <= max(absolute, relative * max(abs(left), abs(right), 1.0))
+    return abs(left - right) <= max(absolute, relative * max(abs(left), abs(right)))
 
 
 def _relation_result(relation: str, actual: Any, threshold: Any) -> tuple[bool | None, str | None]:
@@ -213,16 +222,19 @@ def _recheck_evidence(
 
 
 def validate_primary_numerical_evidence(
-    workbook: Path,
+    workbook: Path | bytes,
     capabilities: Mapping[str, bool] | None = None,
     *,
     contract_path: Path | None = None,
     force_strict: bool | None = None,
+    contract: Mapping[str, Any] | None = None,
 ) -> tuple[bool, list[str], dict[str, Any]]:
     """Validate one primary workbook without executing task-specific code."""
-    contract = load_contract(contract_path)
-    workbook = Path(workbook)
-    book = openpyxl.load_workbook(workbook, read_only=True, data_only=True)
+    contract = load_contract(contract_path) if contract is None else contract
+    book = openpyxl.load_workbook(
+        io.BytesIO(workbook) if isinstance(workbook, bytes) else Path(workbook),
+        read_only=True, data_only=True,
+    )
     issues: list[str] = []
     try:
         quality_headers, quality_rows = _sheet_records(book, "主结果质量门")
@@ -368,6 +380,13 @@ def validate_primary_numerical_evidence(
 
             if evidence_sheet in computed_by_sheet and computed_by_sheet[evidence_sheet] is not None:
                 computed = computed_by_sheet[evidence_sheet]
+                computed_pass, computed_issue = _relation_result(
+                    relation, computed, row.get("阈值或容差")
+                )
+                if computed_issue:
+                    issues.append(f"{verification_id}重算指标: {computed_issue}")
+                elif computed_pass is not True:
+                    issues.append(f"{verification_id}重算指标未达到主质量判据")
                 if isinstance(computed, bool):
                     actual_bool = _as_bool(row.get("实际值"))
                     if actual_bool is None or actual_bool != computed:
@@ -395,6 +414,8 @@ def validate_primary_numerical_evidence(
             "task_code_executed": False,
         }
         return not issues, list(dict.fromkeys(issues)), report
+    except ValueError as exc:
+        return False, [str(exc)], {"mode": "invalid", "strict": bool(force_strict)}
     finally:
         book.close()
 

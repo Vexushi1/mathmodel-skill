@@ -9,6 +9,7 @@ from pathlib import Path
 import sys
 import tempfile
 import textwrap
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -18,8 +19,10 @@ if str(ROOT / "scripts") not in sys.path:
 import ci_unittest as CI
 
 
+PYTHON_VERSION = f"{sys.version_info.major}.{sys.version_info.minor}"
+OTHER_PYTHON_VERSION = "3.14" if PYTHON_VERSION == "3.10" else "3.10"
 META = {"github_sha": "a" * 40, "checkout_sha": "b" * 40, "source_sha": "b" * 40,
-        "python_version": "3.10", "python_full_version": "3.10.99", "runtime": {}}
+        "python_version": PYTHON_VERSION, "python_full_version": sys.version.split()[0], "runtime": {}}
 PREFIX = "test_ci_fixture_"
 
 
@@ -54,6 +57,63 @@ def simple_module(count):
 
 
 class CiUnittestRunnerTests(unittest.TestCase):
+    def test_unknown_fixture_skip_scope_is_still_an_integrity_error(self):
+        result = CI.TimingResult(io.StringIO(), True, 0)
+        result.addSkip(unittest.FunctionTestCase(lambda: None), "unknown fixture")
+        self.assertTrue(any("unknown fixture skip scope" in error for error in result.integrity_errors))
+        self.assertEqual(result.fixture_skipped_ids, [])
+    def test_skipped_subtests_keep_parent_cases_and_standard_skip_counts(self):
+        bodies = (
+            ("with self.subTest(value=1): self.skipTest('optional')", 1),
+            ("for value in range(3):\n            with self.subTest(value=value): self.skipTest('optional')", 3),
+            ("with self.subTest(value=1): self.skipTest('optional')\n        with self.subTest(value=2): pass", 1),
+            ("with self.subTest(outer=1):\n            with self.subTest(inner=2): self.skipTest('optional')", 1),
+        )
+        for body, skips in bodies:
+            with self.subTest(body=body):
+                source = "import unittest\nclass Case(unittest.TestCase):\n    def test_one(self):\n        " + body + "\n"
+                with synthetic_suite({"a": source}) as (root, start):
+                    standard = unittest.TextTestRunner(stream=io.StringIO()).run(CI.discover_tests(root, start).suite)
+                    reports = [run_synthetic(root, start, shard_index=index, shard_count=4) for index in range(4)]
+                    self.assertTrue(standard.wasSuccessful())
+                    self.assertEqual(standard.testsRun, 1)
+                    self.assertEqual(len(standard.skipped), skips)
+                    active = next(report for report in reports if report["counts"]["run"])
+                    self.assertEqual(active["status"], "success", active)
+                    self.assertEqual(active["counts"]["run"], 1)
+                    self.assertEqual(active["counts"]["skips"], skips)
+                    self.assertEqual(active["fixture_events"], [])
+                    self.assertEqual(active["fixture_skipped_ids"], [])
+                    self.assertEqual(active["cases"][0]["outcome"], "skip")
+                    paths = []
+                    for index, report in enumerate(reports):
+                        path = root / f"report-{index}.json"
+                        CI.write_report(path, report)
+                        paths.append(path)
+                    summary = CI.verify_reports(paths, shard_count=4, python_version=PYTHON_VERSION,
+                                                github_sha=META["github_sha"], source_sha=META["source_sha"], profile=None)
+                    self.assertEqual(summary["status"], "success", summary)
+
+    def test_subtest_skip_or_success_cannot_overwrite_a_failure_or_error(self):
+        for failure in ("self.fail('failure')", "raise RuntimeError('error')"):
+            for first, second in ((failure, "self.skipTest('optional')"),
+                                  ("self.skipTest('optional')", failure), (failure, "pass")):
+                with self.subTest(first=first, second=second):
+                    source = ("import unittest\nclass Case(unittest.TestCase):\n    def test_one(self):\n"
+                              f"        with self.subTest(value=1): {first}\n"
+                              f"        with self.subTest(value=2): {second}\n")
+                    with synthetic_suite({"a": source}) as (root, start):
+                        standard = unittest.TextTestRunner(stream=io.StringIO()).run(CI.discover_tests(root, start).suite)
+                        report = run_synthetic(root, start)
+                        self.assertFalse(standard.wasSuccessful())
+                        self.assertEqual(report["status"], "failure")
+                        self.assertEqual(report["counts"]["failures"], len(standard.failures))
+                        self.assertEqual(report["counts"]["errors"], len(standard.errors))
+                        self.assertEqual(report["counts"]["skips"], len(standard.skipped))
+                        self.assertIn(report["cases"][0]["outcome"], ("failure", "error"))
+                        self.assertEqual(report["fixture_events"], [])
+                        self.assertEqual(report["integrity_errors"], [])
+
     def test_lpt_plan_is_deterministic_and_keeps_whole_files(self):
         with synthetic_suite({"a": simple_module(7), "b": simple_module(5),
                               "c": simple_module(3), "d": simple_module(1)}) as (root, start):
@@ -295,7 +355,7 @@ class CiUnittestCoverageTests(unittest.TestCase):
             path = self.reports_root / f"shard-{index}" / "timings.json"
             CI.write_report(path, report)
             paths.append(path)
-        return CI.verify_reports(paths, shard_count=4, python_version="3.10",
+        return CI.verify_reports(paths, shard_count=4, python_version=PYTHON_VERSION,
                                  github_sha=META["github_sha"], source_sha=META["source_sha"],
                                  profile=profile)
 
@@ -315,7 +375,7 @@ class CiUnittestCoverageTests(unittest.TestCase):
         path = self.reports_root / "shard-3" / "timings.json"
         path.write_text("not JSON", encoding="utf-8")
         summary = CI.verify_reports(sorted(self.reports_root.rglob("*.json")), shard_count=4,
-                                    python_version="3.10", github_sha=META["github_sha"], profile=None)
+                                    python_version=PYTHON_VERSION, github_sha=META["github_sha"], profile=None)
         self.assertEqual(summary["status"], "failure")
         self.assertTrue(any("unreadable report" in message for message in summary["errors"]))
 
@@ -326,7 +386,7 @@ class CiUnittestCoverageTests(unittest.TestCase):
             lambda report: report.update(source_sha="c" * 40),
             lambda report: report.update(checkout_sha="c" * 40),
             lambda report: report.update(github_sha="c" * 40),
-            lambda report: report.update(python_version="3.14"),
+            lambda report: report.update(python_version=OTHER_PYTHON_VERSION),
             lambda report: report["shard"].update(index=1),
             lambda report: report["shard"].update(count=3),
             lambda report: report.update(mode="targeted"),
@@ -345,6 +405,51 @@ class CiUnittestCoverageTests(unittest.TestCase):
                 reports = copy.deepcopy(original)
                 change(reports[0])
                 self.assertEqual(self.verify(reports)["status"], "failure")
+
+    def test_collector_rejects_cross_python_replay_before_loading_weights_or_reports(self):
+        with patch.object(CI, "load_timing_profile", side_effect=AssertionError("must not reweight mismatched Python")):
+            summary = CI.verify_reports([self.reports_root / "missing.json"], shard_count=1,
+                                        python_version=OTHER_PYTHON_VERSION, github_sha=META["github_sha"])
+        self.assertEqual(summary["status"], "failure")
+        self.assertEqual(summary["collector_python_version"], PYTHON_VERSION)
+        self.assertEqual(summary["python_version"], OTHER_PYTHON_VERSION)
+        self.assertTrue(any("collector_python_version_mismatch" in error for error in summary["errors"]))
+        self.assertFalse(any("weights" in error or "unreadable report" in error for error in summary["errors"]))
+
+    def test_collector_rejects_non_major_minor_version_labels(self):
+        for version in ("3", "3.10.99", "3.10 ", "3.x", "", None, True):
+            with self.subTest(version=version):
+                summary = CI.verify_reports([], shard_count=1, python_version=version, github_sha=META["github_sha"])
+                self.assertEqual(summary["status"], "failure")
+                self.assertTrue(any("invalid_collector_python_version" in error for error in summary["errors"]))
+
+    def test_synthetic_reports_match_each_supported_collector_version_context(self):
+        originals = self.successful_reports()
+        paths = [self.reports_root / f"shard-{index}.json" for index in range(4)]
+        for minor in (10, 14):
+            version = f"3.{minor}"
+            reports = copy.deepcopy(originals)
+            for path, report in zip(paths, reports):
+                report.update(python_version=version, python_full_version=version + ".99")
+                CI.write_report(path, report)
+            with self.subTest(version=version), patch.object(CI.sys, "version_info", SimpleNamespace(major=3, minor=minor)):
+                summary = CI.verify_reports(paths, shard_count=4, python_version=version,
+                                            github_sha=META["github_sha"], source_sha=META["source_sha"], profile=None)
+            self.assertEqual(summary["status"], "success", summary)
+
+    def test_cli_version_mismatch_persists_failure_and_step_summary(self):
+        output = self.reports_root / "coverage.json"
+        step_summary = self.reports_root / "summary.md"
+        with patch.dict("os.environ", {"GITHUB_SHA": META["github_sha"],
+                                        "HSK_SOURCE_SHA": META["source_sha"],
+                                        "GITHUB_STEP_SUMMARY": str(step_summary)}), patch("sys.stdout", new=io.StringIO()):
+            code = CI.main(["verify", "--reports", str(self.reports_root), "--shard-count", "4",
+                            "--python-version", OTHER_PYTHON_VERSION, "--output", str(output)])
+        self.assertEqual(code, 1)
+        payload = json.loads(output.read_text(encoding="utf-8"))
+        self.assertEqual(payload["status"], "failure")
+        self.assertIn("collector_python_version_mismatch", payload["errors"][0])
+        self.assertIn("failure", step_summary.read_text(encoding="utf-8"))
 
 
 def profile_payload(weights, case_count=21):
@@ -429,7 +534,7 @@ class CiUnittestMeasuredWeightsTests(unittest.TestCase):
             CI.write_report(path, report)
             paths.append(path)
         def verify(expected):
-            return CI.verify_reports(paths, shard_count=4, python_version="3.10",
+            return CI.verify_reports(paths, shard_count=4, python_version=PYTHON_VERSION,
                                      github_sha=META["github_sha"], source_sha=META["source_sha"],
                                      profile=expected)
         self.assertEqual(verify(profile)["status"], "success")
@@ -451,7 +556,7 @@ class CiUnittestMeasuredWeightsTests(unittest.TestCase):
             path = self.root / f"shard-{index}.json"
             CI.write_report(path, report)
             paths.append(path)
-        summary = CI.verify_reports(paths, shard_count=4, python_version="3.10",
+        summary = CI.verify_reports(paths, shard_count=4, python_version=PYTHON_VERSION,
                                     github_sha=META["github_sha"], source_sha=META["source_sha"],
                                     profile=profile)
         self.assertEqual(summary["status"], "success", summary)

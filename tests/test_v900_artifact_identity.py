@@ -37,6 +37,23 @@ CONTRACT = yaml.safe_load((ROOT / "core/state_transition_contract.yaml").read_te
 
 
 class ArtifactAliasReadOnlyTests(unittest.TestCase):
+    def test_invalid_hash_container_shapes_raise_artifact_identity_error(self):
+        for value in (True, False, "broken", 0, "", [], [("primary_code", "a" * 64)]):
+            with self.subTest(value=value), self.assertRaisesRegex(ARTIFACT_IDENTITY.ArtifactIdentityError, "mapping"):
+                ARTIFACT_IDENTITY.normalize_artifact_hashes(value)
+        self.assertEqual(ARTIFACT_IDENTITY.normalize_artifact_hashes(None), {})
+        self.assertEqual(ARTIFACT_IDENTITY.normalize_artifact_hashes({}), {})
+
+    def test_invalid_stale_containers_and_members_are_not_coerced(self):
+        for value in (True, False, "primary_code", 0, "", {}, [True], [1]):
+            with self.subTest(value=value), self.assertRaises(ARTIFACT_IDENTITY.ArtifactIdentityError):
+                ARTIFACT_IDENTITY.normalize_stale_layers(value)
+        for value in (None, [], (), set()):
+            with self.subTest(value=value):
+                self.assertEqual(ARTIFACT_IDENTITY.normalize_stale_layers(value), [])
+        self.assertEqual(ARTIFACT_IDENTITY.normalize_stale_layers({"model", "framework"}),
+                         ["framework", "primary_code"])
+
     def test_legacy_model_alias_reads_as_primary_code_for_historical_audit(self):
         digest = "a" * 64
         normalized = ARTIFACT_IDENTITY.normalize_artifact_hashes({"model": digest})
@@ -75,6 +92,15 @@ class ArtifactAliasReadOnlyTests(unittest.TestCase):
 
 
 class ActiveAliasRetirementTests(unittest.TestCase):
+    def test_active_invalid_containers_fail_without_partial_mutation(self):
+        for field in ("artifact_hashes", "validated_artifact_hashes", "stale_layers"):
+            with self.subTest(field=field):
+                entry = {field: True}
+                before = copy.deepcopy(entry)
+                with self.assertRaises(ARTIFACT_IDENTITY.ArtifactIdentityError):
+                    ARTIFACT_IDENTITY.canonicalize_entry_hashes(entry)
+                self.assertEqual(entry, before)
+
     def test_active_canonicalization_rejects_legacy_model_alias_even_when_equal(self):
         digest = "a" * 64
         entry = {

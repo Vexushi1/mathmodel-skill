@@ -20,6 +20,8 @@ import reading_plan as READING
 import resolve_runtime as RESOLVER
 import runtime_assurance as ASSURANCE
 import stage_code as STAGE_CODE
+import validate_project_state as STATE_VALIDATOR
+import analysis_prerequisites as PREREQUISITES
 from project_transaction import JOURNAL_RELATIVE_PATH, STATE_RELATIVE_PATH
 from reading_plan_cases import build_project
 from tests import test_solver_backends as solver_fixtures
@@ -192,6 +194,115 @@ class ProjectStateReadSnapshotTests(unittest.TestCase):
                 with self.assertRaisesRegex(ASSURANCE.ProjectStateReadError, "invalid_project_state"):
                     ASSURANCE.hydrate_project_context(self.root)
                 self.assertEqual(self.path.read_bytes(), raw)
+
+    def test_consumed_container_shapes_fail_with_field_diagnostics_before_hydration(self):
+        cases = [("preprocessing", value) for value in ("broken", True, False, [], 0, "")]
+        cases += [(field, value) for field in ("artifact_hashes", "validated_artifact_hashes", "stale_layers")
+                  for value in (True, False, "broken", 0, "")]
+        cases += [("artifact_hashes", []), ("artifact_hashes", {1: "a" * 64}),
+                  ("validated_artifact_hashes", {"solution_workbook": True}),
+                  ("stale_layers", {}), ("stale_layers", [True])]
+        for field, value in cases:
+            with self.subTest(field=field, value=value):
+                state = deepcopy(self.state)
+                target = state if field == "preprocessing" else state["subproblems"]["Q1"]
+                target[field] = value
+                self.save(state)
+                before = hashes(self.root)
+                with self.assertRaisesRegex(ASSURANCE.ProjectStateReadError, "invalid_project_state.*" + field):
+                    ASSURANCE.ProjectStateSnapshot.capture(self.root)
+                self.assertEqual(before, hashes(self.root))
+
+    def test_malformed_question_entry_and_other_question_fail_before_scope_filtering(self):
+        for entry in (None, True, "broken", []):
+            with self.subTest(entry=entry):
+                state = deepcopy(self.state)
+                state["subproblems"]["Q2"] = entry
+                self.save(state)
+                with self.assertRaisesRegex(ASSURANCE.ProjectStateReadError, "subproblems.Q2"):
+                    self.resolve("problem_analysis")
+
+    def test_nested_shape_diagnostics_revoke_qualification_without_masking_old_read_errors(self):
+        cases = [("preprocessing", value) for value in ("broken", True, False, [], 0, "")]
+        cases += [(field, value) for field in ("artifact_hashes", "validated_artifact_hashes", "stale_layers")
+                  for value in (True, False, "broken", 0, "", [{}])]
+        cases += [("question", value) for value in (None, True, "broken", [])]
+        for field, value in cases:
+            with self.subTest(field=field, value=value):
+                state = deepcopy(self.state)
+                if field == "preprocessing":
+                    state[field] = value
+                elif field == "question":
+                    state["subproblems"]["Q1"] = value
+                else:
+                    state["subproblems"]["Q1"][field] = value
+                self.save(state)
+                before = hashes(self.root)
+                with self.assertRaises(ASSURANCE.ProjectStateShapeError) as error:
+                    ASSURANCE.ProjectStateSnapshot.capture(self.root)
+                expected = "subproblems.Q1" if field == "question" else (
+                    field if field == "preprocessing" else f"subproblems.Q1.{field}")
+                self.assertEqual(error.exception.field, expected)
+                context = ASSURANCE.hydrate_project_context(self.root, "Q1")
+                self.assertFalse(context["loaded"])
+                self.assertEqual(context["verified_artifacts"], [])
+                self.assertEqual(context["artifact_evidence"], [])
+                self.assertTrue(context["conflicts"])
+                self.assertTrue(context["ambiguities"])
+                self.assertIn(expected, context["conflicts"][0])
+                self.assertTrue(STATE_VALIDATOR.validate_state_payload(state, project_root=self.root))
+                if field != "question":
+                    entry = state["subproblems"]["Q1"]
+                    self.assertTrue(PREREQUISITES.primary_issues(self.root, state, entry))
+                    self.assertTrue(PREREQUISITES.analysis_issues(self.root, state, entry))
+                self.assertEqual(before, hashes(self.root))
+
+        state = deepcopy(self.state)
+        state["project"]["state_generation"] = True
+        state["subproblems"]["Q1"] = "broken"
+        self.save(state)
+        with self.assertRaises(ASSURANCE.ProjectStateReadError) as error:
+            ASSURANCE.hydrate_project_context(self.root, "Q1")
+        self.assertNotIsInstance(error.exception, ASSURANCE.ProjectStateShapeError)
+        self.assertIn("state_generation", str(error.exception))
+        self.save(self.state)
+        with patch.object(ASSURANCE.ProjectStateSnapshot, "capture", side_effect=RuntimeError("internal fault")):
+            with self.assertRaisesRegex(RuntimeError, "internal fault"):
+                ASSURANCE.hydrate_project_context(self.root, "Q1")
+
+    def test_missing_optional_and_null_compatibility_containers_remain_readable(self):
+        for value in (None, "missing", "empty"):
+            with self.subTest(value=value):
+                state = {"project": {"state_generation": 0}, "subproblems": {"Q1": {}}}
+                if value != "missing":
+                    state["preprocessing"] = None if value is None else {}
+                    for field in ("artifact_hashes", "validated_artifact_hashes", "stale_layers"):
+                        state["subproblems"]["Q1"][field] = None if value is None else ([] if field == "stale_layers" else {})
+                self.save(state)
+                before = hashes(self.root)
+                self.assertEqual(ASSURANCE.ProjectStateSnapshot.capture(self.root).payload(), state)
+                self.assertTrue(ASSURANCE.hydrate_project_context(self.root)["loaded"])
+                self.assertEqual(before, hashes(self.root))
+
+    def test_original_five_malformed_shapes_have_controlled_read_only_cli_errors(self):
+        for field, value in (("preprocessing", "broken"), ("preprocessing", True),
+                             ("artifact_hashes", True), ("validated_artifact_hashes", True),
+                             ("stale_layers", True)):
+            with self.subTest(field=field, value=value):
+                state = deepcopy(self.state)
+                target = state if field == "preprocessing" else state["subproblems"]["Q1"]
+                target[field] = value
+                self.save(state)
+                before = hashes(self.root)
+                proc = subprocess.run([sys.executable, str(ROOT / "scripts/resolve_runtime.py"),
+                                       "problem_analysis", "--project-root", str(self.root), "--question", "Q1"],
+                                      capture_output=True, text=True, timeout=20)
+                self.assertNotEqual(proc.returncode, 0)
+                self.assertEqual(proc.stdout, "")
+                self.assertIn("invalid_project_state", proc.stderr)
+                self.assertIn(field, proc.stderr)
+                self.assertNotIn("Traceback", proc.stderr)
+                self.assertEqual(before, hashes(self.root))
 
     def test_dependency_hydration_reuses_the_same_snapshot(self):
         self.state["subproblems"]["Q1"]["depends_on"] = [

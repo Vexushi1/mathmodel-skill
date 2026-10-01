@@ -214,7 +214,7 @@ class AnalysisBoundaryTests(unittest.TestCase):
             self.assertIn("result_analysis_requirement_reason", entry)
             self.assertEqual(dependent["primary_execution_status"], "accepted")
             book = openpyxl.load_workbook(primary)
-            book.create_sheet("补充证据").append(["Updated primary evidence"])
+            book["数据审计"]["C2"] = str(book["数据审计"]["C2"].value) + "；本次补充审计复核"
             book.save(primary)
             book.close()
             self.assertEqual(RECEIPT.validate_one(root, primary, state, True), [])

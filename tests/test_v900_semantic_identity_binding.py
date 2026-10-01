@@ -160,6 +160,36 @@ class StructuredApprovalTests(unittest.TestCase):
 
 
 class RuntimeIdentityEvidenceTests(unittest.TestCase):
+    def test_duplicate_framework_scope_cannot_verify_the_last_approved_identity(self):
+        approved = identity()
+        changed = deepcopy(approved)
+        changed["objective"]["sense"] = "maximize"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            text = framework(changed) + framework(approved)
+            write_project(root, state_question=structured_question(approved), framework_text=text)
+            before = (root / "state/project_state.yaml").read_bytes()
+            hydration = RUNTIME.hydrate_project_context(root, "Q1")
+            self.assertEqual((root / "state/project_state.yaml").read_bytes(), before)
+        row = locked_row(hydration)
+        self.assertEqual(row["status"], "malformed", row)
+        self.assertIn("duplicate", row["reason"])
+        self.assertNotIn("locked_model_spec", hydration["verified_artifacts"])
+
+    def test_colliding_key_cannot_hide_semantics_behind_the_approved_hash(self):
+        approved = identity()
+        approved["extensions"] = {"weights": {"1": "approved"}}
+        collision = deepcopy(approved)
+        collision["extensions"]["weights"] = {1: "hidden", "1": "approved"}
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write_project(root, state_question=structured_question(approved), framework_text=framework(collision))
+            hydration = RUNTIME.hydrate_project_context(root, "Q1")
+        row = locked_row(hydration)
+        self.assertEqual(row["status"], "malformed", row)
+        self.assertIn("collision", row["reason"])
+        self.assertNotIn("locked_model_spec", hydration["verified_artifacts"])
+
     def test_structured_chain_verifies_current_framework_identity(self):
         payload = identity()
         with tempfile.TemporaryDirectory() as tmp:

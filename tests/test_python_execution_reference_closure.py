@@ -23,6 +23,7 @@ import validate_code_delivery as DELIVERY
 import validate_user_execution as RECEIPT
 import sync_project as SYNC
 from resolve_runtime import resolve_runtime
+from runtime_assurance import hydrate_project_context
 from submission_requirements import reproducibility_requirements
 from tests import test_solver_backend_source_closure as source_fixtures
 from tests import test_solver_backends as workbook_fixtures
@@ -35,6 +36,95 @@ from tests.test_audit_package_completeness import archive, VALIDATOR
 class PythonExecutionReferenceTests(unittest.TestCase):
     def check(self, text):
         return execution_reference_issues(ast.parse(text))
+
+    def test_import_search_environment_references_and_aliases_are_unverified(self):
+        cases = [
+            'import sys\nsys.path.insert(0, "extras")',
+            'import sys\nsys.path.append("extras")',
+            'import sys\nsys.path.extend(["extras"])',
+            'import sys\nsys.path = ["extras"]',
+            'import sys\nsys.path[:] = ["extras"]',
+            'import sys as system\nsystem.path.insert(0, "extras")',
+            'from sys import path as search_path\nsearch_path.append("extras")',
+            'import sys\np = sys.path\nf(p)',
+            'import sys\nappend = sys.path.append\nappend("extras")',
+            'import sys\ncallbacks = [sys.path.append]',
+            'import sys\nsys.path += ["extras"]',
+            'import sys\ndel sys.path',
+            'from sys import path',
+            'from sys import *',
+            'import sys\nprint(sys.path)',
+            'import sys\nsys.meta_path = []',
+            'from sys import path_hooks as hooks',
+            'import sys\nsys.path_importer_cache.clear()',
+        ]
+        for text in cases:
+            with self.subTest(text=text):
+                self.assertTrue(any("导入搜索环境" in issue for issue in self.check(text)))
+
+    def test_harmless_sys_static_imports_and_path_text_remain_supported(self):
+        cases = [
+            'import sys\nprint(sys.version, sys.version_info, sys.argv, file=sys.stdout)\nsys.exit(0)',
+            'import sys as system\nprint(system.executable, file=system.stderr)',
+            'from sys import version as runtime_version\nprint(runtime_version)',
+            'from pathlib import Path\nroot = Path(__file__).resolve().parent',
+            'import os\nroot = os.path.dirname(__file__)',
+            '# sys.path.append("extras")\ntext = "sys.path = []"',
+        ]
+        for text in cases:
+            with self.subTest(text=text):
+                self.assertEqual(self.check(text), [])
+
+    def test_indirect_sys_namespace_cannot_hide_search_path_operations(self):
+        for text in ('import sys\nsystem = sys\nsystem.path.append("extras")',
+                     'import sys\ngetattr(sys, "path").append("extras")',
+                     'import sys\nsys.__dict__["path"].append("extras")'):
+            with self.subTest(text=text):
+                self.assertTrue(any("命名空间" in issue for issue in self.check(text)))
+
+    def test_search_environment_in_declared_helper_reaches_delivery_and_binding(self):
+        fixture = source_fixtures.SolverBackendSourceClosureTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        helper = fixture.write("问题一求解/helper.py", 'import sys as system\np = system.path\n')
+        source, config = fixture.source("python", "import helper", [helper])
+        for issues in (STAGE.dependency_reference_issues(fixture.root, source, config),
+                       DELIVERY.validate_script(fixture.root, source)[0],
+                       STAGE.validate_stage_binding(fixture.root, fixture.binding(source, config),
+                                                   "primary", project_backend="python", require_validated=True)):
+            self.assertTrue(any("导入搜索环境" in issue and "helper.py" in issue for issue in issues))
+            self.assertTrue(any("第2行" in issue for issue in issues))
+
+    def test_hidden_search_path_helper_cannot_qualify_old_matching_receipt(self):
+        fixture = workbook_fixtures.SolverBackendTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        helper = fixture.root / "extras" / "factor_helper.py"
+        helper.parent.mkdir()
+        helper.write_text("factor = 1\n", encoding="utf-8")
+        config = fixture.config()
+        source = fixture.source(config, 'import sys\nfrom pathlib import Path\n'
+                                'sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "extras"))\n'
+                                'import factor_helper\n')
+        entry = fixture.entry(source, config, accepted=True)
+        state = fixture.state(entry)
+        book = fixture.primary_workbook(source, config, entry["solver_execution"]["primary"]["bundle_sha256"])
+        entry.update(primary_execution_status="accepted", result_quality_status="passed",
+                     solution_workbook=book.relative_to(fixture.root).as_posix(),
+                     artifact_hashes={"solution_workbook": file_hash(book)},
+                     validated_artifact_hashes={"solution_workbook": file_hash(book)})
+        save_state(fixture.root, state)
+        before = deepcopy(state)
+        prior_fingerprint = STAGE.stage_code_fingerprint(fixture.root, source)
+        helper.write_text("factor = 2\n", encoding="utf-8")
+        self.assertEqual(prior_fingerprint, STAGE.stage_code_fingerprint(fixture.root, source))
+        self.assertTrue(any("导入搜索环境" in issue for issue in DELIVERY.validate_script(fixture.root, source)[0]))
+        self.assertTrue(any("导入搜索环境" in issue for issue in RECEIPT.validate_one(fixture.root, book, state, False)))
+        hydration = hydrate_project_context(fixture.root, question="Q1")
+        self.assertNotIn("accepted_solution_workbook", hydration["verified_artifacts"])
+        row = next(row for row in hydration["artifact_evidence"] if row["artifact"] == "accepted_solution_workbook")
+        self.assertIn("导入搜索环境", row["reason"])
+        self.assertEqual(state, before)
 
     def test_assignment_and_chained_callable_aliases(self):
         cases = [
@@ -182,9 +272,11 @@ class PythonExecutionReferenceTests(unittest.TestCase):
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
         config = fixture.config(run_receipt_protocol_version="1.0.0")
-        source = fixture.source(config, "import importlib\nload = importlib.import_module\n")
-        entry = {"code": source.relative_to(fixture.root).as_posix(), "primary_code_sha256": file_hash(source)}
-        self.assertEqual(STAGE.validate_stage_binding(fixture.root, entry, "primary"), [])
+        for body in ("import importlib\nload = importlib.import_module\n", 'import sys\nsys.path.append("extras")\n'):
+            with self.subTest(body=body):
+                source = fixture.source(config, body)
+                entry = {"code": source.relative_to(fixture.root).as_posix(), "primary_code_sha256": file_hash(source)}
+                self.assertEqual(STAGE.validate_stage_binding(fixture.root, entry, "primary"), [])
 
 
 class PythonExecutionDownstreamTests(unittest.TestCase):
@@ -206,6 +298,29 @@ class PythonExecutionDownstreamTests(unittest.TestCase):
                                                validated_bundle_sha256=fingerprint["bundle_sha256"])
         save_state(root, state)
         return code, config
+
+    def test_search_path_source_is_quarantined_by_sync_runtime_and_package_for_each_stage(self):
+        for stage in ("primary", "analysis"):
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                state = project_fixture(root, ("python",), analysis=True)
+                entry = state["subproblems"]["Q1"]
+                field = "code" if stage == "primary" else "result_analysis_code"
+                code = root / entry[field]
+                code.write_text(code.read_text(encoding="utf-8") + '\nimport sys\nsys.path.append("extras")\n', encoding="utf-8")
+                self.rebind_historical_fixture(root, state, stage, unsafe=False)
+                before = (root / "state/project_state.yaml").read_bytes()
+                report = SYNC.synchronize(root)
+                self.assertIn(stage + "_code_changed", [row["event"] for row in report["state_transitions"]])
+                hydration = hydrate_project_context(root, question="Q1")
+                artifact = "accepted_solution_workbook" if stage == "primary" else "accepted_result_analysis_workbook"
+                self.assertNotIn(artifact, hydration["verified_artifacts"])
+                if stage == "analysis":
+                    self.assertIn("accepted_solution_workbook", hydration["verified_artifacts"])
+                self.assertEqual(before, (root / "state/project_state.yaml").read_bytes())
+                package_fixture(root, state)
+                self.assertTrue(any("导入搜索环境" in issue for issue in reproducibility_requirements(root, state)[1]))
+                self.assertEqual(VALIDATOR.validate_package(root, archive(root))["status"], "failed")
 
     def test_sync_read_and_write_invalidate_without_rebinding(self):
         for stage in ("primary", "analysis"):

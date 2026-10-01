@@ -304,7 +304,10 @@ def _decision_gate_issues(
                 if modern and data_identity_mode == "preprocessing_workbook" else [])
     if state is None:
         state = load_yaml(state_path)
-    preprocessing = state.get("preprocessing") or {}
+    preprocessing = state.get("preprocessing")
+    if preprocessing is not None and not isinstance(preprocessing, Mapping):
+        return ["preprocessing must be a mapping"]
+    preprocessing = preprocessing or {}
     decision = str(preprocessing.get("decision", "")).strip()
     if decision not in VALID_PREPROCESSING_DECISIONS:
         return ["项目状态缺少有效preprocessing.decision；正式代码前必须先锁定not_needed/question_local/project_level"]
@@ -434,6 +437,14 @@ def validate_script(
     elif "solver_backend" in config or config.get("code_dependencies"):
         issues.append("后端与源码依赖扩展必须使用1.1.0/1.2.0回执协议")
     state_path = project_root / "state" / "project_state.yaml"
+    if state_path.is_file():
+        from runtime_assurance import ProjectStateShapeError, validate_consumed_state_shapes
+
+        state = load_yaml(state_path)
+        try:
+            validate_consumed_state_shapes(state)
+        except ProjectStateShapeError as exc:
+            return [*issues, str(exc)], config
     if stage in {"primary", "analysis"}:
         state = load_yaml(state_path) if state_path.is_file() else {}
         try:

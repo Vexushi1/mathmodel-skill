@@ -1,4 +1,4 @@
-# mathmodel-skill v10.18.0
+# mathmodel-skill v10.18.1
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值语言由项目根策略统一选择。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。
 
@@ -8,6 +8,8 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 2. 运行 `scripts/resolve_runtime.py`，按任务和当前项目恢复最小 `reading_plan`、Authority 与 `pre_delivery_gates`。已有项目传入 `--project-root`，需要定位小问时传入 `--question`；只读取 resolver 当前返回的资源。
 3. 模型设计先完成语义闭环、Model Challenge 和当前 `semantic_revision` / validated `semantic_identity_hash` 的 Human Model Approval。数据项目先审计，再按证据确定 `preprocessing_decision`；锁模不等于代码交付资格。
 4. 生成、核验和交付时执行 resolver 返回的完整且有序的 `pre_delivery_gates`。当前 `模型论文框架.md` 是语义工作记忆，`state/project_state.yaml` 是机器状态，accepted workbook 是具体数值事实；三者不能互相代替。
+
+运行前确认当前终端实际使用的 Python 路径、版本和阶段依赖；帮助命令及最小 resolver 成功读取后再进入项目。维护依赖见 `requirements-dev.txt`，用户数值项目依赖见 `templates/code/requirements.txt`。完整资源根必须保留 `core/`、`scripts/`、`templates/` 等目录；只复制嵌套 `skills/mathmodel-skill/` 不满足入口合同。仓库、Release、安装目录和会话实际加载版本分别核对；下载或建立 checkout 不等于 Skill 已安装或已被会话读取。具体 preflight 见 [Scripts 运行环境](scripts/README.md#运行环境与资源根)。
 
 ## 项目数值职责
 

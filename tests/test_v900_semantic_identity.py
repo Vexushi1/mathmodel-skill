@@ -74,6 +74,57 @@ def framework(identity_yaml: str, *, extra_prose: str = "模型说明A。") -> s
 
 
 class TestV900SemanticIdentity(unittest.TestCase):
+    def test_duplicate_real_question_sections_are_rejected(self):
+        text = "### Q1：first\nfirst body\n### Q2:second\nsecond body\n### Q1:last\nlast body\n"
+        with self.assertRaisesRegex(SEMANTIC_IDENTITY.SemanticIdentityError, "Q1.*duplicate"):
+            SEMANTIC_IDENTITY.question_sections(text)
+
+    def test_fenced_question_examples_do_not_split_or_duplicate_real_scopes(self):
+        for fence, close in (("```markdown", "```"), ("~~~~", "~~~~~"), ("   ````text", "   ````")):
+            with self.subTest(fence=fence):
+                text = f"### Q1：first\n{fence}\n### Q1：example\n### Q2：example\n{close}\nkept in Q1\n### Q2:second\nsecond body\n"
+                sections = SEMANTIC_IDENTITY.question_sections(text)
+                self.assertEqual(list(sections), ["Q1", "Q2"])
+                self.assertIn("kept in Q1", sections["Q1"])
+                self.assertEqual(sections["Q2"], "### Q2:second\nsecond body\n")
+
+    def test_short_or_wrong_character_fence_does_not_close_an_example(self):
+        text = "### Q1:first\n````markdown\n```\n~~~\n### Q1:example\n````\n### Q2:second\n"
+        self.assertEqual(list(SEMANTIC_IDENTITY.question_sections(text)), ["Q1", "Q2"])
+
+    def test_canonical_mapping_key_collisions_are_rejected_at_nested_locations(self):
+        for field in ("extensions", "objective", "algorithm_semantics", "variables"):
+            with self.subTest(field=field):
+                payload = identity()
+                collision = {1: "hidden semantics", "1": "approved semantics"}
+                if field == "variables":
+                    payload[field][0]["labels"] = collision
+                else:
+                    payload[field]["labels"] = [collision]
+                with self.assertRaisesRegex(SEMANTIC_IDENTITY.SemanticIdentityError, "canonical.*key.*collision"):
+                    SEMANTIC_IDENTITY.semantic_identity_hash(payload)
+
+    def test_noncolliding_numeric_labels_preserve_existing_canonical_hash(self):
+        payload = identity()
+        self.assertEqual(SEMANTIC_IDENTITY.semantic_identity_hash(payload),
+                         "5aeb4b1c1575d83da7924a133700b85b8efa81cdb14d9b7ef8a04f7c6f8c106a")
+        payload["extensions"] = {"weights": {1: 0.25, 2: 0.75},
+                                 "thresholds": [{None: "unknown", True: "enabled", 3.5: "value"}]}
+        self.assertEqual(SEMANTIC_IDENTITY.semantic_identity_hash(payload),
+                         "f33cdd61388fae2b34da1a773490ec25b4a3c77526f8ad27f99cc528beec11cc")
+        changed = deepcopy(payload)
+        changed["extensions"]["weights"][1] = 0.5
+        self.assertNotEqual(SEMANTIC_IDENTITY.semantic_identity_hash(payload),
+                            SEMANTIC_IDENTITY.semantic_identity_hash(changed))
+
+    def test_other_scalar_key_collisions_raise_the_same_semantic_error(self):
+        for key in (None, True, 1.5):
+            with self.subTest(key=key):
+                payload = identity()
+                payload["extensions"]["labels"] = {key: "hidden", str(key): "visible"}
+                with self.assertRaisesRegex(SEMANTIC_IDENTITY.SemanticIdentityError, "canonical.*key.*collision"):
+                    SEMANTIC_IDENTITY.semantic_identity_hash(payload)
+
     def test_mapping_and_declared_set_order_do_not_change_identity_hash(self):
         left = identity()
         right = {

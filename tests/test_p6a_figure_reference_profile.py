@@ -107,10 +107,42 @@ class TestP6aFigureReferenceProfile(unittest.TestCase):
         shared = (ROOT / "templates/matlab/hsk_apply_scientific_style.m").read_text(encoding="utf-8")
         self.assertEqual(shared.count(marker), 1)
         shared_tail = shared[shared.index(marker):]
+        selector = "function fontName = select_style_font(available)"
+        self.assertEqual(shared_tail.count(selector), 1)
+        shared_core, shared_selector = shared_tail.split(selector, 1)
+        profile = (ROOT / "templates/matlab/hsk_publication_profile.m").read_text(encoding="utf-8")
+        candidate_assignment = re.findall(
+            r"spec\.typography\.cjk_font_candidates = \[(.*?)\];", profile, re.S)
+        self.assertEqual(len(candidate_assignment), 1)
+        literal_sequence = r'\s*"[^"]+"(?:\s*,\s*(?:\.\.\.\s*)?"[^"]+")*\s*'
+        self.assertRegex(candidate_assignment[0], "^" + literal_sequence + "$")
+        candidates = re.findall(r'"([^"]+)"', candidate_assignment[0])
+        self.assertTrue(candidates)
+        self.assertEqual(len(candidates), len(set(candidates)))
+        shared_initialization = (
+            '\nspec = hsk_publication_profile();\n'
+            'preferred = [spec.typography.cjk_font_candidates, "Helvetica", "Arial"];\n'
+        )
+        self.assertTrue(shared_selector.startswith(shared_initialization))
+        shared_algorithm = shared_selector[len(shared_initialization):]
+        standalone_tails = []
         for relative in ("templates/matlab/q1_plot.m", "templates/matlab/data_process.m"):
             text = (ROOT / relative).read_text(encoding="utf-8")
             self.assertEqual(text.count(marker), 1, relative)
-            self.assertEqual(text[text.index(marker):], shared_tail, relative)
+            standalone_tail = text[text.index(marker):]
+            standalone_tails.append(standalone_tail)
+            self.assertEqual(standalone_tail.count(selector), 1, relative)
+            standalone_core, standalone_selector = standalone_tail.split(selector, 1)
+            # Only candidate initialization differs: the shared kernel consumes
+            # profile Authority, while a standalone delivery needs no extra file.
+            self.assertEqual(standalone_core, shared_core, relative)
+            initialization = re.match(r"\npreferred = \[(.*?)\];\n", standalone_selector, re.S)
+            self.assertIsNotNone(initialization, relative)
+            self.assertRegex(initialization.group(1), "^" + literal_sequence + "$", relative)
+            self.assertEqual(re.findall(r'"([^"]+)"', initialization.group(1)),
+                             [*candidates, "Helvetica", "Arial"], relative)
+            self.assertEqual(standalone_selector[initialization.end():], shared_algorithm, relative)
+        self.assertEqual(standalone_tails[0], standalone_tails[1])
         for signature in ("function style = checked_style", "function fontName = select_style_font"):
             self.assertEqual(shared_tail.count(signature), 1)
         self.assertLess(shared_tail.index("checked_style(overrides, defaults)"), shared_tail.index("set(ax,"))

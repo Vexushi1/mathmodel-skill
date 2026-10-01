@@ -197,11 +197,13 @@ numeric_consistency:
   comparison_tolerance:
     absolute: 1.0e-12
     relative: 1.0e-9
+    formula: 'abs(actual - recomputed) <= max(absolute, relative * max(abs(actual), abs(recomputed)))'
   rules:
   - Non-finite numeric values are invalid.
   - Tolerances must be non-negative; explicit violation magnitudes must also be non-negative.
   - For violation and residual rows, row Boolean must equal the value-versus-tolerance result.
   - For strict max-violation/max-residual/marked-relative-change protocols, quality-gate 实际值 must numerically match the recomputed evidence metric within comparison tolerance.
+  - Every recomputed evidence metric must independently satisfy the quality-gate relation and threshold; comparison tolerance must never turn a failed recomputed criterion into a pass.
   - '`time_limit` or `max_iter` text in 运行配置 must never be interpreted by infrastructure as converged or globally optimal without separate admissibility evidence.'
 
 legacy_compatibility:

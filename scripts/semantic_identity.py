@@ -15,7 +15,8 @@ from typing import Any
 import yaml
 
 SEMANTIC_IDENTITY_SCHEMA_VERSION = "1.0.0"
-Q_HEADING_RE = re.compile(r"^###\s+(Q\d+)[:：].*$", re.MULTILINE)
+Q_HEADING_RE = re.compile(r"^###[ \t]+(Q\d+)[:：].*$", re.MULTILINE)
+FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
 QUESTION_RE = re.compile(r"^Q[1-9][0-9]*$")
 PLACEHOLDER_RE = re.compile(r"__[^\s]+__")
 PREPROCESSING_DECISIONS = {"not_needed", "question_local", "project_level"}
@@ -62,11 +63,38 @@ def sha256_text(text: str) -> str:
 
 
 def question_sections(text: str) -> dict[str, str]:
-    matches = list(Q_HEADING_RE.finditer(text))
+    """Find unique real Qn scopes, preserving section bytes and ignoring fenced examples."""
+    matches: list[tuple[str, int]] = []
+    first_lines: dict[str, int] = {}
+    fence_character: str | None = None
+    fence_length = 0
+    offset = 0
+    for line_number, raw_line in enumerate(text.splitlines(keepends=True), 1):
+        line = raw_line.rstrip("\r\n")
+        fence = FENCE_RE.fullmatch(line)
+        if fence_character is not None:
+            if (fence and fence.group(1)[0] == fence_character
+                    and len(fence.group(1)) >= fence_length and re.fullmatch(r"[ \t]*", fence.group(2))):
+                fence_character = None
+        elif fence and (fence.group(1)[0] != "`" or "`" not in fence.group(2)):
+            fence_character = fence.group(1)[0]
+            fence_length = len(fence.group(1))
+        else:
+            heading = Q_HEADING_RE.fullmatch(line)
+            if heading:
+                question = heading.group(1)
+                if question in first_lines:
+                    raise SemanticIdentityError(
+                        f"{question}: duplicate question section headings at lines "
+                        f"{first_lines[question]} and {line_number}"
+                    )
+                first_lines[question] = line_number
+                matches.append((question, offset))
+        offset += len(raw_line)
     sections: dict[str, str] = {}
-    for index, match in enumerate(matches):
-        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
-        sections[match.group(1)] = text[match.start():end]
+    for index, (question, start) in enumerate(matches):
+        end = matches[index + 1][1] if index + 1 < len(matches) else len(text)
+        sections[question] = text[start:end]
     return sections
 
 
@@ -154,11 +182,30 @@ def _validate_id_list(name: str, value: Any, errors: list[str]) -> None:
         errors.append(f"{name} contains duplicate ids: {duplicates}")
 
 
+def _check_canonical_mapping_keys(value: Any, *, path: str = "identity") -> None:
+    """Reject lossy key normalization without changing valid canonical representations."""
+    if isinstance(value, Mapping):
+        keys: dict[str, Any] = {}
+        for key, item in value.items():
+            normalized = str(key)
+            if normalized in keys:
+                raise SemanticIdentityError(
+                    f"{path}: canonical mapping key collision between "
+                    f"{keys[normalized]!r} and {key!r} after normalization to {normalized!r}"
+                )
+            keys[normalized] = key
+            _check_canonical_mapping_keys(item, path=f"{path}[{normalized!r}]")
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            _check_canonical_mapping_keys(item, path=f"{path}[{index}]")
+
+
 def validate_semantic_identity(identity: Mapping[str, Any], *, expected_question: str | None = None) -> None:
+    _check_canonical_mapping_keys(identity)
     errors: list[str] = []
     fields = set(identity)
     missing = sorted(REQUIRED_ROOT_FIELDS - fields)
-    unknown = sorted(fields - ALLOWED_ROOT_FIELDS)
+    unknown = sorted(fields - ALLOWED_ROOT_FIELDS, key=str)
     if missing:
         errors.append(f"missing required fields: {missing}")
     if unknown:

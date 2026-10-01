@@ -974,6 +974,11 @@ def validate_state_payload(
         location = "/".join(str(part) for part in error.path) or "<root>"
         issues.append(f"schema {location}: {error.message}")
 
+    try:
+        RUNTIME_ASSURANCE.validate_consumed_state_shapes(payload)
+    except RUNTIME_ASSURANCE.ProjectStateShapeError as exc:
+        return [*issues, str(exc)]
+
     issues.extend(_validate_backend_history(payload, project_root, report_path_overrides))
 
     backend_report = STAGE_CODE.inspect_project_backend_declarations(payload)

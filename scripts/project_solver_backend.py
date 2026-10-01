@@ -392,7 +392,19 @@ def preview_migration(project_root: str | Path, *, target_backend: str, reason: 
 
     if not _backend(target_backend) or not _reason(reason):
         raise ValueError("migration preview requires an explicit python/matlab target and non-empty reason")
-    snapshot = ProjectStateSnapshot.capture(project_root)
+    try:
+        snapshot = ProjectStateSnapshot.capture(project_root)
+    except ProjectStateReadError as exc:
+        if exc.code != "invalid_project_state":
+            raise  # Recovery, changed bytes and path boundaries retain their own policy.
+        return {"status": "blocked", "mode": "migration_preview", "issues": [str(exc)],
+                "project_root": str(Path(project_root).expanduser().resolve()),
+                "target_backend": target_backend, "reason": reason.strip(), "migration_id": migration_id,
+                "state_snapshot": None, "stages": [], "preview_sha256": None, "state_delta": [],
+                "effects": {}, "effects_sha256": None, "expected_file_hashes": {}, "history_file_hashes": {},
+                "coverage_complete": False, "schema_validated": False, "execution_authorized": False,
+                "migration_authorized": False, "write_supported": False,
+                "semantic_approval_rechecked": False, "archive_prepared": False}
     root, state = snapshot.root, snapshot.payload()
     if migration_id is None:
         migration_id = hashlib.sha256(json.dumps({
@@ -789,7 +801,10 @@ def migrate_project_backend(
     # delivered but has not yet produced an accepted workbook. Check approval,
     # necessity, and the actual structured semantic identity before archiving.
     retained_rows = [row for row in report["stages"] if row["action"] == "retain_candidate"]
-    sections = semantic_identity.question_sections(framework_text)
+    try:
+        sections = semantic_identity.question_sections(framework_text)
+    except semantic_identity.SemanticIdentityError as exc:
+        raise ProjectBackendMigrationError(f"current framework question scopes are invalid: {exc}") from exc
     for question in sorted({row["question"] for row in retained_rows}):
         entry = candidate["subproblems"][question]
         issues = approval.validate_question(question, entry)

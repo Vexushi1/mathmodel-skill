@@ -110,6 +110,20 @@ class TestTooling(unittest.TestCase):
         self.assertTrue(any("sync_status" in issue for issue in issues), issues)
         self.assertTrue(any("result_summary_status" in issue for issue in issues), issues)
 
+    def test_framework_validator_rejects_duplicate_real_question_scope(self):
+        module = load_module("validate_model_paper_framework_duplicates", ROOT / "scripts/validate_model_paper_framework.py")
+        text = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
+        issues = module.validate_framework_text(text + "\n### Q1：second current model\n")
+        self.assertTrue(any("Q1" in issue and "duplicate" in issue for issue in issues), issues)
+
+    def test_framework_validator_accepts_fenced_question_heading_examples(self):
+        module = load_module("validate_model_paper_framework_fences", ROOT / "scripts/validate_model_paper_framework.py")
+        text = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
+        for opening, closing in (("```markdown", "```"), ("~~~~text", "~~~~")):
+            with self.subTest(opening=opening):
+                example = f"\n{opening}\n### Q1：documentation example\n### Q2:example\n{closing}\n"
+                self.assertEqual(module.validate_framework_text(text + example), [])
+
     def test_manifest_digest_normalizes_text_line_endings(self):
         module = load_module("generate_indexes", ROOT / "scripts/generate_indexes.py")
         with tempfile.TemporaryDirectory() as temp:
@@ -190,7 +204,8 @@ class TestTooling(unittest.TestCase):
         self.assertIn("apply_publication_style(fig, style)", plotting)
         self.assertIn("grid(ax, gridMode)", plotting)
         self.assertIn("listfonts", style)
-        self.assertIn("Noto Sans CJK SC", style)
+        self.assertIn("Noto Sans CJK SC", profile)
+        self.assertIn("spec.typography.cjk_font_candidates", style)
         self.assertNotIn("ax.Title", style)
         self.assertIn("spec = hsk_publication_profile(profile)", style)
         self.assertNotIn('case "journal_balanced"', style)
