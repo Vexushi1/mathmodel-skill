@@ -7,6 +7,7 @@
 - Register only the exact E1 patch carrier in historical optimization comparisons. State 8.15.0 and all independent protocols retain their versions; no user-project migration or Release publication is included.
 - Add E2 documentation for the accepted E1 evidence, independent protocol versions, compatibility, rollback, provenance inventory and finite unassessed areas. Clarify the A2 section's scope and link the existing D2 retrieval/reference entrypoints. Keep Skill 10.17.1 under the docs rule; runtime, code, CI and user projects are unchanged.
 - Record unresolved redistribution permissions for the bundled CUMCM snapshot and reference materials without applying repository MIT to them. E2's own final-head and merge/main evidence is recorded in its PR closing ledger; no tag, GitHub Release or distribution package is created by this review and handoff.
+- On 2026-10-01, record the owner's explicit publication authorization and policy that unconfirmed third-party permission is not a mandatory repository release check. Preserve attribution and truthful source/permission status, identify the bundled class's exact upstream blob, and retain Case Memory admission rules. Keep Skill 10.17.1; actual publication follows the policy PR's GitHub acceptance and main verification.
 
 ## Previous release: 10.17.0
 

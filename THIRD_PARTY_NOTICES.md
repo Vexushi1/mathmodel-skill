@@ -4,6 +4,18 @@ The repository-level MIT License applies to HSK-authored workflow rules, scripts
 templates and documentation for which the repository authors hold the applicable
 rights. It does not grant rights in third-party or user-provided materials.
 
+## Repository publication policy
+
+On 2026-10-01 the repository owner explicitly authorized publication without
+requiring confirmed redistribution permission as a mandatory release check.
+Unknown source or permission status is recorded as `not_assessed` and disclosed;
+it does not automatically block a repository tag or Release. Original notices
+and attribution are preserved. This publication policy does not grant rights in
+third-party materials or change their original terms.
+
+Case Memory source admission, permissions and privacy validation continue to
+follow their existing contracts; this policy concerns repository publication.
+
 ## CUMCMThesis
 
 The directory `templates/latex/cumcm/cumcmthesis/` contains a bundled copy or derivative snapshot of the CUMCMThesis project maintained by its original authors and contributors. The class file identifies itself as `cumcmthesis` and retains its original notices, version header and documentation.
@@ -12,12 +24,16 @@ The directory `templates/latex/cumcm/cumcmthesis/` contains a bundled copy or de
 - Upstream reference: [latexstudio/CUMCMThesis](https://github.com/latexstudio/CUMCMThesis)
 - Bundled path: `templates/latex/cumcm/cumcmthesis/`
 - Local class header: `2017/09/16 v2.6`; no LICENSE is bundled in that directory.
+- Exact source: the bundled class Git blob `4c0c3f27cc20e71c981812df91858a53f75196a5` matches [upstream commit 90d3e854](https://github.com/latexstudio/CUMCMThesis/blob/90d3e854534ae7dc605dfe9296785f8c17e56e22/cumcmthesis.cls). The header date is not a complete file-history record.
 - Local policy: preserve the original class, notices and attribution; HSK additions are placed under `templates/latex/cumcm/hsk/` instead of replacing the upstream class.
 
-The repository does not relicense third-party material under the HSK MIT License. Redistribution and use of the bundled third-party files remain subject to the terms supplied by their original project. Before publishing a redistributed package, maintainers should verify the upstream license and update this notice when the bundled snapshot changes.
+The repository does not relicense third-party material under the HSK MIT License.
+Known upstream terms, original attribution and observed permission status are
+recorded here. When the bundled snapshot changes, update its source identity and
+observed status under the publication policy above.
 
 The upstream root `LICENSE` API query returned 404 on 2026-10-01. That observation
-does not establish whether another license exists or authorize this 2017 snapshot.
+does not establish whether another license exists or authorize this snapshot.
 The snapshot's redistribution permission remains `not_assessed`; a current
 upstream license cannot be attributed to the older bundled files without evidence.
 
@@ -34,9 +50,10 @@ Current material inventory:
 | `knowledge/case_memory/sources.json` and `cases.json` | Seven source/card records declare independently authored synthetic content under repository MIT. Admission checks preserve those declarations and exact source bindings; they are not independent rights or privacy certification. |
 
 Reference purposes and presence in the repository do not imply a transfer of
-copyright. External images, papers and examples require applicable permission
-before redistribution; unverified materials are not relicensed by the root MIT
-statement. GitHub source archives include the tagged tree's tracked materials,
+copyright. Unverified materials retain their recorded source and permission
+status and are not relicensed by the root MIT statement; the publication policy
+above does not turn an unknown permission into a confirmed grant. GitHub source
+archives include the tagged tree's tracked materials,
 even when no additional Release assets are uploaded.
 
 ## Release review inventory

@@ -2,6 +2,8 @@
 
 Skill **10.17.1**；本文件是维护验收记录，不建立新的 Runtime、数学、数值、审查或案例 Authority。
 
+> **2026-10-01 发布授权与政策更新：** 用户已明确授权发布新版本，并明确要求第三方许可不作为仓库发布的硬性前置。按 [第三方声明的发布政策](../THIRD_PARTY_NOTICES.md#repository-publication-policy)，保留素材、原署名及 `not_assessed` 事实，不将未知状态改为 MIT 或已获许可。Case Memory 准入、权限和隐私合同保持原义。正式发布取本政策文档 PR 合并并完成 main 复验后的完整 SHA；实际验收、合并和 Release 身份由该 PR 台账及 GitHub 对象登记，不预填未来成功。下方“尚未授权”的记录保留 E2 最初交接时的事实，由本段覆盖当前操作授权。
+
 用户授权完成 E1 综合验收与 E2 发布评审、交接。**实际创建 tag、draft Release 或正式 GitHub Release 尚未获得明确授权，也未执行。** 当前真正 latest Release 为 [v10.1.0](https://github.com/Vexushi1/mathmodel-skill/releases/tag/v10.1.0)，固定于 `8fc5b42a953204b64a8ff7ddc00d5fb8983072a4`；开发主干 Skill 版本与 GitHub 发布对象分别记录。
 
 E2 仅更新当前说明、验收台账、第三方材料记录与交接导航。按 [Governance 第 5.1 节](../SKILL_CHANGE_GOVERNANCE.md#51-docs)，保持 Skill 10.17.1；独立协议、运行行为、代码、CI、Schema、模板输出和用户项目保持各自当前语义。
@@ -191,6 +193,6 @@ D1/D2 当前 source/card 各 7 条、同源组 7 个，声明 independently-auth
 
 发布评审建议维持 **Skill 10.17.1**，以 E2 文档 PR 合并且 main 复验完成的完整 SHA 作为将来发行目标，发布说明同时列明 A—D 能力、E1 精确证据、独立协议、兼容/回退、第三方状态与未核验边界。当前未创建 v10.17.1 tag/Release，也未生成或上传发行包。
 
-实际发布仍需明确授权覆盖版本、固定 SHA、最终说明、draft/正式发布方式及 source archive/附件范围；权利状态须按第 7 节具体处理。仓库已经公开、功能合并或 CI 全绿不代替这项授权与来源审查。
+2026-10-01 用户已授权正式发布，并批准许可确认不作为发布硬门。版本保持 v10.17.1，固定 SHA 取本政策 PR 完成 main 复验后的完整提交；使用带有限验收与来源状态说明的 Release 正文及 GitHub 自动 source archives，不另上传发行附件。第 7 节来源与许可未知事实继续披露，原署名和第三方权利声明保留；不把这项发布授权当成第三方许可或 Case Memory 准入资格。
 
 交接入口：[总计划](modeling_intelligence_evidence_evolution_plan.md)、[E1 验收映射](modeling_intelligence_e1_acceptance_matrix.md)、[当前 README](../README.md)、[案例准入说明](../knowledge/case_memory/README.md)、[第三方声明](../THIRD_PARTY_NOTICES.md)。当前事实以 bootstrap、实际 GitHub 对象和对应 PR 关闭台账为准。
