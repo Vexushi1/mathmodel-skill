@@ -617,7 +617,6 @@ jobs:
     timeout-minutes: 40
     env:
       HSK_TEX_IMAGE: ghcr.io/xu-cheng/texlive-historic-debian@sha256:b466f39161dc6d37772e773284f094e11205fcdfe33b91ea43ad4a3b7da2bc57
-      TMPDIR: ${{ runner.temp }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -632,6 +631,7 @@ jobs:
       - name: Prepare pinned production TeX environment
         run: |
           docker pull "$HSK_TEX_IMAGE"
+          echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
           echo "HSK_PRODUCTION_PYTHON=$(python -c 'import sys; print(sys.executable)')" >> "$GITHUB_ENV"
           echo "HSK_PRODUCTION_PYTHON_ROOT=$(python -c 'import sys; print(sys.prefix)')" >> "$GITHUB_ENV"
           tools="$RUNNER_TEMP/hsk-production-bin"
