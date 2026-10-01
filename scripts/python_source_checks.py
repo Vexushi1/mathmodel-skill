@@ -16,16 +16,18 @@ _DYNAMIC_NAMES = frozenset({
 })
 _NAMESPACES = frozenset({
     "importlib", "importlib.util", "importlib.machinery", "runpy", "builtins",
-    "subprocess", "os", "matlab", "matlab.engine", "sys.modules",
+    "subprocess", "os", "matlab", "matlab.engine", "sys", "sys.modules",
 })
 _REFLECTIVE = frozenset({"__dict__", "__getattribute__", "__getattr__", "__loader__", "__spec__"})
 _PROCESS_CONSTANTS = frozenset({"subprocess.PIPE", "subprocess.STDOUT", "subprocess.DEVNULL"})
+_IMPORT_ENVIRONMENTS = frozenset({"sys.path", "sys.meta_path", "sys.path_hooks", "sys.path_importer_cache"})
 _DYNAMIC = "新源码闭包不支持动态Python代码加载"
 _PROCESS = "求解阶段不支持shell/跨后端进程启动"
 _NAMESPACE = "新源码闭包不支持执行命名空间的间接传递/反射"
+_IMPORT_ENVIRONMENT = "新源码闭包不支持Python导入搜索环境的修改/间接传递"
 
 
-def execution_reference_issues(tree: ast.AST) -> list[str]:
+def execution_reference_issues(tree: ast.AST, *, source_path: str | None = None) -> list[str]:
     """Reject forbidden references, including those not immediately called.
 
     Import origins are an over-approximation: an unrelated import in a sibling
@@ -35,7 +37,7 @@ def execution_reference_issues(tree: ast.AST) -> list[str]:
     nodes = list(ast.walk(tree))
     parents = {child: node for node in nodes for child in ast.iter_child_nodes(node)}
     origins: dict[str, set[str]] = {}
-    imported_values: set[str] = set()
+    imported_values: dict[str, int] = {}
     wildcard_namespace = False
     for node in nodes:
         if isinstance(node, ast.Import):
@@ -47,7 +49,7 @@ def execution_reference_issues(tree: ast.AST) -> list[str]:
             for alias in node.names:
                 wildcard_namespace |= alias.name == "*" and node.module in _NAMESPACES
                 origin = node.module + "." + alias.name
-                imported_values.add(origin)
+                imported_values[origin] = node.lineno
                 origins.setdefault(alias.asname or alias.name, set()).add(origin)
 
     def qualified(node: ast.AST) -> set[str]:
@@ -59,7 +61,14 @@ def execution_reference_issues(tree: ast.AST) -> list[str]:
 
     issues: list[str] = [_NAMESPACE] if wildcard_namespace else []
 
-    def inspect(names: set[str]) -> None:
+    def inspect_import_environment(names: set[str], line: int) -> None:
+        for name in names:
+            if any(name == origin or name.startswith(origin + ".") for origin in _IMPORT_ENVIRONMENTS) or name == "sys.*":
+                location = f"{source_path}: " if source_path else ""
+                issues.append(f"{location}{_IMPORT_ENVIRONMENT}（第{line}行）")
+
+    def inspect(names: set[str], line: int) -> None:
+        inspect_import_environment(names, line)
         for name in sorted(names):
             if name.rsplit(".", 1)[-1] in _DYNAMIC_NAMES:
                 issues.append(_DYNAMIC)
@@ -75,20 +84,27 @@ def execution_reference_issues(tree: ast.AST) -> list[str]:
                     or name.startswith(("os.exec", "os.spawn"))):
                 issues.append(_PROCESS)
 
-    inspect(imported_values)
+    for origin, line in imported_values.items():
+        inspect({origin}, line)
     for node in nodes:
         # Preserve the old direct-call boundary, including malformed calls to
         # process constants; only non-call references gain the value exception.
         if isinstance(node, ast.Call) and any(
                 name.startswith(("subprocess.", "matlab.engine.")) for name in qualified(node.func)):
             issues.append(_PROCESS)
-        if not isinstance(node, (ast.Name, ast.Attribute)) or not isinstance(node.ctx, ast.Load):
+        if not isinstance(node, (ast.Name, ast.Attribute)):
             continue
         names = qualified(node)
+        if isinstance(node.ctx, (ast.Store, ast.Del)):
+            # Rebinding or deleting sys.path has no Load at the target itself.
+            inspect_import_environment(names, node.lineno)
+            continue
+        if not isinstance(node.ctx, ast.Load):
+            continue
         # Keep the existing conservative leaf-name boundary even for a value
         # returned by an expression whose qualified origin cannot be resolved.
         leaf = node.id if isinstance(node, ast.Name) else node.attr
-        inspect(names | {leaf})
+        inspect(names | {leaf}, node.lineno)
         if leaf == "__builtins__" or any(
                 name in {"globals", "locals", "builtins.globals", "builtins.locals"}
                 or name == "sys.modules" or name.startswith("sys.modules.") for name in names):
