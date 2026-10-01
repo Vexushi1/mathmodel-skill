@@ -635,7 +635,7 @@ jobs:
           echo "HSK_PRODUCTION_PYTHON=$(python -c 'import sys; print(sys.executable)')" >> "$GITHUB_ENV"
           echo "HSK_PRODUCTION_PYTHON_ROOT=$(python -c 'import sys; print(sys.prefix)')" >> "$GITHUB_ENV"
           tools="$RUNNER_TEMP/hsk-production-bin"
-          mkdir -p "$tools" "$RUNNER_TEMP/hsk-tex-home"
+          mkdir -p "$tools" "$RUNNER_TEMP/hsk-tex-home"/{texmf-var,texmf-config,texmf}
           cat > "$tools/python" <<'SH'
           #!/usr/bin/env bash
           set -euo pipefail
@@ -646,6 +646,9 @@ jobs:
             --workdir "$PWD" \
             --env "LD_LIBRARY_PATH=$HSK_PRODUCTION_PYTHON_ROOT/lib" \
             --env "HOME=$RUNNER_TEMP/hsk-tex-home" \
+            --env "TEXMFVAR=$RUNNER_TEMP/hsk-tex-home/texmf-var" \
+            --env "TEXMFCONFIG=$RUNNER_TEMP/hsk-tex-home/texmf-config" \
+            --env "TEXMFHOME=$RUNNER_TEMP/hsk-tex-home/texmf" \
             --env TMPDIR --env PYTHONUTF8 \
             --env HSK_FORMAL_PROJECT --env HSK_LONG_PROOF_PROJECT --env LONG_PROJECT \
             --entrypoint "$HSK_PRODUCTION_PYTHON" "$HSK_TEX_IMAGE" "$@"
@@ -655,7 +658,8 @@ jobs:
       - name: Verify preinstalled production TeX tools and Python ABI
         run: |
           python - <<'PY'
-          import bz2, ctypes, lzma, sqlite3, ssl, subprocess, sys
+          import bz2, ctypes, lzma, os, sqlite3, ssl, subprocess, sys
+          from pathlib import Path
           import jsonschema, openpyxl, pandas, yaml
 
           assert sys.version_info[:2] == (3, 12), sys.version
@@ -667,6 +671,19 @@ jobs:
               result = subprocess.run(command, check=True, capture_output=True, text=True)
               assert result.stdout.strip(), command
               print(result.stdout.strip(), flush=True)
+          required_roots = {"TEXMFROOT", "TEXMFDIST", "TEXMFVAR", "TEXMFCONFIG", "TEXMFHOME"}
+          for variable in ("TEXMFROOT", "TEXMFDIST", "TEXMFLOCAL", "TEXMFVAR", "TEXMFSYSVAR",
+                           "TEXMFCONFIG", "TEXMFSYSCONFIG", "TEXMFHOME"):
+              result = subprocess.run(["kpsewhich", f"-var-value={variable}"],
+                                      check=True, capture_output=True, text=True)
+              path = Path(result.stdout.strip())
+              assert path.is_absolute() and not path.is_relative_to("/root"), (variable, path)
+              present = path.is_dir()
+              assert present or variable not in required_roots, (variable, path)
+              assert not present or os.access(path, os.R_OK | os.X_OK), (variable, path)
+              if variable in {"TEXMFVAR", "TEXMFCONFIG", "TEXMFHOME"}:
+                  assert os.access(path, os.W_OK), (variable, path)
+              print(f"{variable}={path.resolve()} directory={present}", flush=True)
           PY
       - name: Verify live B2 Figure compilation proof
         run: python -m unittest tests.test_b2b4_figure_integration.FigureFormalChainIntegrationTests.test_real_xelatex_figure_image_proof
