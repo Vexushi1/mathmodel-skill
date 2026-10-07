@@ -598,6 +598,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/v1010_audit_closure_remediation_plan.md`
 - `docs/v1010_input_identity_protocol_decision.md`
 - `docs/v10180_analysis_comparison_plan.md`
+- `docs/v10182_routing_submission_closure_plan.md`
 - `docs/v801_chapter_capability_preservation_audit.md`
 - `docs/v801_skill_health_remediation_plan.md`
 - `docs/v801_skill_health_remediation_status.md`
