@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
 import zipfile
 from pathlib import Path
@@ -21,7 +22,8 @@ import yaml
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 if str(SKILL_ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(SKILL_ROOT / "scripts"))
-from submission_requirements import expand_required_allowlist, reproducibility_requirements
+from submission_requirements import current_analysis_artifacts, expand_required_allowlist, reproducibility_requirements
+from safe_yaml import safe_load
 
 COMPETITION_PROFILES = SKILL_ROOT / "config" / "competition_profiles.yaml"
 MANIFEST_NAME = "submission_manifest.yaml"
@@ -43,15 +45,23 @@ def _sha256_stream(path: Path) -> str:
     return digest.hexdigest()
 
 
-def load_yaml(path: Path) -> dict[str, Any]:
+def load_yaml(path: Path, *, observe=None) -> dict[str, Any]:
     if not path.is_file():
         return {}
-    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    raw = path.read_bytes()
+    if observe is not None:
+        observe(path, raw)
+    return safe_load(raw) or {}
 
 
 def resolve_competition(token: str, payload: Mapping[str, Any]) -> tuple[str, Mapping[str, Any]]:
     normalized = token.strip().lower()
-    for name, config in (payload.get("profiles") or {}).items():
+    profiles = payload.get("profiles") or {}
+    if not isinstance(profiles, Mapping):
+        raise ValueError('competition_profiles.yaml.profiles必须是映射结构')
+    for name, config in profiles.items():
+        if not isinstance(config, Mapping):
+            raise ValueError(f'competition profile必须是映射结构: {name}')
         aliases = [name, *config.get("aliases", [])]
         if normalized in {str(item).lower() for item in aliases}:
             return str(name), config
@@ -122,15 +132,89 @@ def validate_package(
     package = package_path.resolve()
     issues: list[str] = []
     warnings: list[str] = []
+    from project_transaction import _check_read_set, _guarded_path
+    from stage_code import _expand_windows_short_path
+
+    project_read_set: dict[str, str | None] = {}
+    skill_read_set: dict[str, str | None] = {}
+    observed = {'project': project_read_set, 'skill': skill_read_set}
+    identities: dict[str, tuple[str, str]] = {}
+    declared_roots = {'project': _expand_windows_short_path(project_root.absolute()),
+                      'skill': _expand_windows_short_path(SKILL_ROOT.absolute())}
+    package_hash: str | None = None
+
+    def remember(path: Path, digest: str | None, *, domain: str | None = None) -> None:
+        """Keep the first byte observation, including observations from other gates."""
+        try:
+            if domain is not None and domain not in observed:
+                raise ValueError('unknown observed source domain: ' + domain)
+            candidate = Path(path)
+            if '..' in candidate.parts:
+                raise ValueError('observed source contains a parent-path alias: ' + str(path))
+            bases = ((domain, root if domain == 'project' else SKILL_ROOT.resolve()),) if domain else (
+                ('project', root), ('skill', SKILL_ROOT.resolve()),
+            )
+            for source_domain, base in bases:
+                absolute = candidate.absolute() if candidate.is_absolute() else base / candidate
+                # Expand native Windows 8.3 names without hiding symlinks from
+                # _guarded_path. Only the caller's own root alias is remapped.
+                absolute = _expand_windows_short_path(absolute)
+                declared = declared_roots[source_domain]
+                if not absolute.is_relative_to(base) and absolute.is_relative_to(declared):
+                    absolute = base / absolute.relative_to(declared)
+                if absolute.is_relative_to(base):
+                    relative = absolute.relative_to(base).as_posix()
+                    canonical = _guarded_path(base, relative)
+                    identity = os.path.normcase(str(canonical))
+                    source_domain, relative = identities.setdefault(identity, (source_domain, relative))
+                    destination = observed[source_domain]
+                    if relative in destination and destination[relative] != digest:
+                        issues.append('提交包验证首次观察与后续读集冲突: ' + relative)
+                    else:
+                        destination.setdefault(relative, digest)
+                    return
+            raise ValueError('observed source is outside the project and Skill roots: ' + str(path))
+        except (OSError, ValueError, RuntimeError) as exc:
+            issues.append('提交包验证读集路径无效: ' + str(exc))
+
+    def observe(path: Path, raw: bytes) -> None:
+        remember(path, sha256_bytes(raw))
+
+    def observe_file(path: Path) -> bytes | None:
+        raw = path.read_bytes() if path.is_file() else None
+        remember(path, sha256_bytes(raw) if raw is not None else None)
+        return raw
+
+    def finish(payload: dict[str, Any]) -> dict[str, Any]:
+        try:
+            if package_hash is not None and _sha256_stream(package) != package_hash:
+                raise ValueError('提交ZIP在验证过程中发生变化')
+            _check_read_set(root, project_read_set)
+            _check_read_set(SKILL_ROOT.resolve(), skill_read_set)
+        except (OSError, ValueError, RuntimeError) as exc:
+            payload['issues'] = sorted(set([*payload['issues'], '提交包验证读集冲突: ' + str(exc)]))
+        payload['issues'] = sorted(set([*payload['issues'], *issues]))
+        if payload['issues']:
+            payload['status'] = 'failed'
+        return payload
+
     state_path = root / 'state/project_state.yaml'
-    state_bytes = state_path.read_bytes() if state_path.is_file() else None
-    state_hash = sha256_bytes(state_bytes) if state_bytes is not None else None
-    state = (yaml.safe_load(state_bytes.decode('utf-8')) or {}) if state_bytes is not None else {}
+    try:
+        state_bytes = state_path.read_bytes() if state_path.is_file() else None
+        state_hash = sha256_bytes(state_bytes) if state_bytes is not None else None
+        remember(state_path, state_hash)
+        state = (safe_load(state_bytes) or {}) if state_bytes is not None else {}
+        if not isinstance(state, Mapping):
+            raise ValueError('project_state.yaml必须是映射结构')
+        if not isinstance(state.get('artifacts') or {}, Mapping):
+            raise ValueError('project_state.yaml.artifacts必须是映射结构')
+    except (OSError, ValueError, TypeError, UnicodeError, yaml.YAMLError) as exc:
+        return finish({'status': 'failed', 'kind': None,
+                       'issues': [*issues, '无法读取当前项目State: ' + str(exc)], 'warnings': []})
 
     # A direct invocation must replay the opt-in B2 gate and the formal proof
     # chain; a matching ZIP/PDF hash alone cannot certify changed claim sources.
     from claim_consumption import formal_figure_gate, formal_text_gate
-    from project_transaction import _check_read_set
 
     framework = state.get('paper_framework') if isinstance(state, Mapping) else None
     policy = framework.get('claim_consumption_policy') if isinstance(framework, Mapping) else None
@@ -151,37 +235,22 @@ def validate_package(
     else:
         claim_gate = formal_figure_gate(root) if figure_policy else formal_text_gate(root)
     gate_label = '选定论文链' if selected_policy else 'Figure链' if figure_policy else '文本'
-    observed = claim_gate['observed_sources']
-    project_read_set = dict(observed['project'])
-    if project_read_set.get('state/project_state.yaml') != state_hash:
+    gate_sources = claim_gate['observed_sources']
+    if gate_sources['project'].get('state/project_state.yaml') != state_hash:
         issues.append('项目State首读与B2门读集不一致')
-    project_read_set['state/project_state.yaml'] = state_hash
+    for domain, rows in gate_sources.items():
+        for relative, digest in rows.items():
+            remember(Path(relative), digest, domain=domain)
     if isinstance(state, Mapping) and 'review_receipt_policy' in state:
         from review_receipt_consumption import evaluate_gate
 
         review_gate = evaluate_gate(root, gate='final_review_and_delivery')
         for domain, observed_rows in review_gate['observed_sources'].items():
-            destination = project_read_set if domain == 'project' else observed['skill']
             for relative, digest in observed_rows.items():
-                if relative in destination and destination[relative] != digest:
-                    issues.append('C2 final review receipt read-set conflict: ' + relative)
-                destination[relative] = digest
+                remember(Path(relative), digest, domain=domain)
         if review_gate['status'] == 'failed':
             issues.extend('C2 final review receipt: ' + str(item)
                           for item in (review_gate['issues'] or [review_gate['status']]))
-    package_hash: str | None = None
-
-    def finish(payload: dict[str, Any]) -> dict[str, Any]:
-        try:
-            if package_hash is not None and _sha256_stream(package) != package_hash:
-                raise ValueError('提交ZIP在验证过程中发生变化')
-            _check_read_set(root, project_read_set)
-            _check_read_set(SKILL_ROOT, observed['skill'])
-        except (OSError, ValueError, RuntimeError) as exc:
-            payload['issues'] = sorted(set([*payload['issues'], '提交包验证读集冲突: ' + str(exc)]))
-            payload['status'] = 'failed'
-        return payload
-
     if claim_gate['status'] == 'failed':
         issues.append(f'B2正式{gate_label}门未通过: ' + '; '.join(claim_gate['issues'][:8]))
     elif claim_gate['status'] == 'passed' and selected_policy and carrier_format == 'docx':
@@ -191,68 +260,68 @@ def validate_package(
     elif claim_gate['status'] == 'passed':
         from latex_delivery import recorded_input_snapshot, source_bundle_snapshot, verify_compile_report
 
-        if selected_policy:
-            latex_main = (root / str(paper_source['entrypoint'])).resolve()
-        else:
-            latex_main = (root / 'final_latex/main.tex').resolve()
-        latex_root = latex_main.parent
-        snapshot_options = ({
-            'project_root': root,
-            'allowed_external_graphics': {
-                row['image_token']: root / row['image_path']
-                for row in claim_gate['figure_graphic_bindings']
-            },
-        } if figure_policy else {})
-        skill_profile = 'core/compile_profiles.yaml'
-        profile_before = _sha256_stream(SKILL_ROOT / skill_profile)
-        if skill_profile in observed['skill'] and observed['skill'][skill_profile] != profile_before:
-            issues.append('B2读集与编译profile版本冲突')
-        observed['skill'][skill_profile] = profile_before
-        compile_path = latex_root / 'compile_report.yaml'
-        if not compile_path.is_file():
-            issues.append('B2正式文本门要求当前compile_report.yaml证明')
-        else:
-            project_read_set['final_latex/compile_report.yaml'] = _sha256_stream(compile_path)
-            compile_report = load_yaml(compile_path)
-            if not isinstance(compile_report, Mapping):
-                issues.append('B2正式文本门的compile_report.yaml结构无效')
+        try:
+            if selected_policy:
+                latex_main = (root / str(paper_source['entrypoint'])).resolve()
             else:
+                latex_main = (root / 'final_latex/main.tex').resolve()
+            latex_root = latex_main.parent
+            snapshot_options = ({
+                'project_root': root,
+                'allowed_external_graphics': {
+                    row['image_token']: root / row['image_path']
+                    for row in claim_gate['figure_graphic_bindings']
+                },
+            } if figure_policy else {})
+            skill_profile = 'core/compile_profiles.yaml'
+            profile_bytes = observe_file(SKILL_ROOT / skill_profile)
+            profile_before = sha256_bytes(profile_bytes) if profile_bytes is not None else None
+            if skill_profile in observed['skill'] and observed['skill'][skill_profile] != profile_before:
+                issues.append('B2读集与编译profile版本冲突')
+            compile_path = latex_root / 'compile_report.yaml'
+            if not compile_path.is_file():
+                issues.append('B2正式文本门要求当前compile_report.yaml证明')
+            else:
+                compile_report = load_yaml(compile_path, observe=observe)
+                if not isinstance(compile_report, Mapping):
+                    raise ValueError('B2正式文本门的compile_report.yaml结构无效')
                 bound_audit = Path(str(compile_report.get('latex_audit_report') or 'latex_audit_report.yaml'))
-                audit_path = bound_audit if bound_audit.is_absolute() else latex_root / bound_audit
-                if audit_path.is_file():
-                    if audit_path.resolve().is_relative_to(root):
-                        project_read_set[audit_path.resolve().relative_to(root).as_posix()] = _sha256_stream(audit_path)
+                observe_file(bound_audit if bound_audit.is_absolute() else latex_root / bound_audit)
+                for field in ('source_files', 'actual_input_files'):
+                    entries = compile_report.get(field) or []
+                    if not isinstance(entries, list):
+                        raise ValueError('compile_report.' + field + '必须是列表')
+                    for entry in entries:
+                        if isinstance(entry, Mapping) and isinstance(entry.get('path'), str):
+                            observe_file((root if figure_policy else latex_root) / entry['path'])
+                for field, fallback in (('recorder', latex_main.with_suffix('.fls').name),
+                                        ('log', latex_main.with_suffix('.log').name)):
+                    observe_file(latex_root / str(compile_report.get(field) or fallback))
+                observe_file(_current_compiled_pdf(root, state))
                 issues.extend(verify_compile_report(
                     project=latex_root, main=latex_main,
                     pdf=_current_compiled_pdf(root, state), report=compile_report,
                 ))
-                try:
-                    source_snapshot = source_bundle_snapshot(latex_main, **snapshot_options)
-                    input_snapshot = recorded_input_snapshot(latex_main, **snapshot_options)
-                    if (source_snapshot['source_bundle_sha256'] != compile_report.get('source_bundle_sha256')
-                            or input_snapshot['actual_input_files'] != compile_report.get('actual_input_files')):
-                        issues.append('B2证明输入在提交包验证期间变化')
-                    for field in (source_snapshot['source_files'], input_snapshot['actual_input_files']):
-                        for entry in field:
-                            relative = entry['path'] if figure_policy else 'final_latex/' + entry['path']
-                            raw_hash = _sha256_stream(root / relative)
-                            if relative in project_read_set and project_read_set[relative] != raw_hash:
-                                issues.append(f'B2读集与编译证明输入冲突: {relative}')
-                            project_read_set[relative] = raw_hash
-                    if source_bundle_snapshot(latex_main, **snapshot_options) != source_snapshot:
-                        issues.append('B2 LaTeX source bundle在提交包验证期间变化')
-                    recorder_path = latex_root / input_snapshot['recorder']
-                    if recorder_path.is_file():
-                        project_read_set[recorder_path.relative_to(root).as_posix()] = _sha256_stream(recorder_path)
-                    log_path = latex_root / str(
-                        compile_report.get('log') or latex_main.with_suffix('.log').name
-                    )
-                    if log_path.is_file() and log_path.resolve().is_relative_to(root):
-                        project_read_set[log_path.resolve().relative_to(root).as_posix()] = _sha256_stream(log_path)
-                    if _sha256_stream(SKILL_ROOT / skill_profile) != profile_before:
-                        issues.append('编译profile在提交包验证期间变化')
-                except (OSError, ValueError, TypeError, KeyError) as exc:
-                    issues.append('B2编译证明输入无法复核: ' + str(exc))
+                source_snapshot = source_bundle_snapshot(latex_main, **snapshot_options)
+                input_snapshot = recorded_input_snapshot(latex_main, **snapshot_options)
+                if (source_snapshot['source_bundle_sha256'] != compile_report.get('source_bundle_sha256')
+                        or input_snapshot['actual_input_files'] != compile_report.get('actual_input_files')):
+                    issues.append('B2证明输入在提交包验证期间变化')
+                for field in (source_snapshot['source_files'], input_snapshot['actual_input_files']):
+                    for entry in field:
+                        observe_file((root if figure_policy else latex_root) / entry['path'])
+                if source_bundle_snapshot(latex_main, **snapshot_options) != source_snapshot:
+                    issues.append('B2 LaTeX source bundle在提交包验证期间变化')
+                recorder_path = latex_root / input_snapshot['recorder']
+                observe_file(recorder_path)
+                log_path = latex_root / str(
+                    compile_report.get('log') or latex_main.with_suffix('.log').name
+                )
+                observe_file(log_path)
+                if _sha256_stream(SKILL_ROOT / skill_profile) != profile_before:
+                    issues.append('编译profile在提交包验证期间变化')
+        except (OSError, ValueError, TypeError, KeyError, AttributeError, UnicodeError, yaml.YAMLError) as exc:
+            issues.append('B2编译证明输入无法复核: ' + str(exc))
 
     try:
         package.relative_to(root)
@@ -286,6 +355,7 @@ def validate_package(
             issues.append("submission_manifest.files必须是列表")
             records = []
         declared_paths: list[str] = []
+        archived_hashes: dict[str, str] = {}
         for record in records:
             if not isinstance(record, Mapping):
                 issues.append("submission_manifest.files存在非法记录")
@@ -301,29 +371,36 @@ def validate_package(
             if relative in declared_paths:
                 issues.append(f"submission_manifest重复声明文件: {relative}")
             declared_paths.append(relative)
+            try:
+                current = _guarded_path(root, relative)
+            except (ValueError, RuntimeError):
+                issues.append(f"manifest路径无效或越出项目根目录: {relative}")
+                continue
             if relative not in names:
                 issues.append(f"manifest声明文件未进入ZIP: {relative}")
                 continue
-            archived_hash = sha256_bytes(archive.read(relative))
+            try:
+                archived_hash = sha256_bytes(archive.read(relative))
+            except (OSError, RuntimeError, zipfile.BadZipFile) as exc:
+                issues.append(f"无法读取ZIP声明文件: {relative}: {exc}")
+                continue
+            archived_hashes[relative] = archived_hash
             if archived_hash != recorded_hash:
                 issues.append(f"ZIP中文件哈希与manifest不一致: {relative}")
-            current = (root / relative).resolve()
-            try:
-                current.relative_to(root)
-            except ValueError:
-                issues.append(f"manifest路径越出项目根目录: {relative}")
-                continue
             if not current.is_file():
                 issues.append(f"manifest声明的项目文件当前不存在: {relative}")
             else:
-                current_hash = sha256_file(current)
+                try:
+                    current_bytes = observe_file(root / relative)
+                except OSError as exc:
+                    issues.append(f"无法读取manifest声明的项目文件: {relative}: {exc}")
+                    continue
+                if current_bytes is None:
+                    issues.append(f"manifest声明的项目文件当前不存在: {relative}")
+                    continue
+                current_hash = sha256_bytes(current_bytes)
                 if current_hash != archived_hash:
                     issues.append(f"提交包文件不是当前项目版本: {relative}")
-                else:
-                    if claim_gate['status'] == 'passed':
-                        if relative in project_read_set and project_read_set[relative] != current_hash:
-                            issues.append(f"B2读集与提交包项目文件版本冲突: {relative}")
-                        project_read_set[relative] = current_hash
 
         archived_payload = set(names) - {MANIFEST_NAME}
         if archived_payload != set(declared_paths):
@@ -338,38 +415,52 @@ def validate_package(
         if not compiled_pdf.is_file():
             issues.append(f"当前项目缺少正式编译PDF: {compiled_pdf}")
         else:
-            current_pdf_hash = sha256_file(compiled_pdf)
-            if claim_gate['status'] == 'passed' and compiled_pdf.is_relative_to(root):
-                relative_pdf = compiled_pdf.relative_to(root).as_posix()
-                if relative_pdf in project_read_set and project_read_set[relative_pdf] != current_pdf_hash:
-                    issues.append(f"B2读集与当前compiled_pdf版本冲突: {relative_pdf}")
-                project_read_set[relative_pdf] = current_pdf_hash
+            try:
+                current_pdf_bytes = observe_file(compiled_pdf)
+                current_pdf_hash = sha256_bytes(current_pdf_bytes) if current_pdf_bytes is not None else None
+            except OSError as exc:
+                current_pdf_hash = None
+                issues.append(f"无法读取当前正式编译PDF: {exc}")
             matching_pdf = [
                 path for path in declared_paths
                 if path.lower().endswith(".pdf")
                 and path in names
-                and sha256_bytes(archive.read(path)) == current_pdf_hash
+                and current_pdf_hash is not None
+                and archived_hashes.get(path) == current_pdf_hash
             ]
             if not matching_pdf:
                 issues.append("提交包未包含与当前compiled_pdf哈希一致的PDF")
 
         if kind == "official":
-            profile_payload = load_yaml(COMPETITION_PROFILES)
+            try:
+                profile_payload = load_yaml(COMPETITION_PROFILES, observe=observe)
+                if not isinstance(profile_payload, Mapping):
+                    raise ValueError('competition_profiles.yaml必须是映射结构')
+            except (OSError, ValueError, TypeError, UnicodeError, yaml.YAMLError) as exc:
+                issues.append(f"无法读取当前competition profile: {exc}")
+                profile_payload = {}
             token = competition or str(manifest.get("competition_profile") or (state.get("project") or {}).get("competition") or "")
             if not token:
                 issues.append("official提交包缺少competition profile")
             else:
                 try:
                     profile_name, profile = resolve_competition(token, profile_payload)
-                except ValueError as exc:
+                except (ValueError, TypeError) as exc:
                     issues.append(str(exc))
                 else:
                     rules = profile.get("edition_rules") or {}
+                    if not isinstance(rules, Mapping):
+                        issues.append(f"{profile_name} edition_rules必须是映射结构")
+                        rules = {}
                     if rules.get("verification_status") != "verified":
                         issues.append(f"{profile_name}当届提交规则尚未verified，不能验证official package")
                     if not rules.get("verified_at") or not rules.get("source"):
                         issues.append(f"{profile_name} verified规则缺少verified_at/source证据")
-                    patterns = [str(item) for item in (rules.get("submission_files") or [])]
+                    raw_patterns = rules.get("submission_files") or []
+                    if not isinstance(raw_patterns, list):
+                        issues.append(f"{profile_name} submission_files必须是列表")
+                        raw_patterns = []
+                    patterns = [str(item) for item in raw_patterns]
                     if not patterns:
                         issues.append(f"{profile_name} verified submission_files allowlist为空")
                     try:
@@ -395,10 +486,19 @@ def validate_package(
                     if manifest.get("submission_files_allowlist") != patterns:
                         issues.append("official package manifest记录的submission_files allowlist与当前规则不一致")
         elif kind == "reproducibility":
-            required, requirement_issues = reproducibility_requirements(root, state)
-            issues.extend(requirement_issues)
-            for relative in sorted(required - archived_payload):
-                issues.append(f"完整复现包缺少当前必需文件: {relative}")
+            try:
+                required, requirement_issues = reproducibility_requirements(root, state, observe=observe)
+                issues.extend(requirement_issues)
+                excluded, selection_issues = current_analysis_artifacts(
+                    root, state, required_files=required, observe=observe,
+                )
+                issues.extend(selection_issues)
+                for relative in sorted(archived_payload & excluded):
+                    issues.append(f"复现包夹带当前State未启用的03B旧产物: {relative}")
+                for relative in sorted(required - archived_payload):
+                    issues.append(f"完整复现包缺少当前必需文件: {relative}")
+            except (OSError, ValueError, TypeError, KeyError, AttributeError, UnicodeError, yaml.YAMLError) as exc:
+                issues.append('无法读取当前完整复现包要求: ' + str(exc))
 
     return finish({
         "status": "passed" if not issues else "failed",
@@ -418,11 +518,11 @@ def main() -> int:
     args = parser.parse_args()
 
     root = Path(args.project).resolve()
-    state = load_yaml(root / "state/project_state.yaml")
     if args.package:
         raw_package = Path(args.package)
         package = raw_package.resolve() if raw_package.is_absolute() else (root / raw_package).resolve()
     else:
+        state = load_yaml(root / "state/project_state.yaml")
         package = declared_package_path(root, state)
     report = validate_package(root, package, competition=args.competition)
     if args.json:

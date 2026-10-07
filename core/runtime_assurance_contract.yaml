@@ -88,6 +88,7 @@ intent_resolution:
   - selection_reason
   rules:
   - Inference is deterministic and explainable; every inferred candidate records matched keywords, matched keyword count, and specificity score.
+  - Apply core/workflow_router.yaml#paper_carrier_disambiguation to keyword eligibility before scoring; other route scores and explicit-intent priority remain unchanged.
   - When explicit intents exist, inferred keyword matches remain provenance only and cannot silently add routes.
   - Without explicit intent, only the highest-specificity candidate or tied highest-specificity candidates are selected; lower-scoring matches remain diagnostics only.
   - full_workflow retains dominance when it is among the selected top inferred candidates.

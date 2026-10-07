@@ -90,6 +90,7 @@ COMPARISON_AUTHORITY_VERSIONS = {
     "writing_reasoning": "1.11.0",
 }
 AUDIT_PATCH_AUTHORITY_VERSIONS = {**COMPARISON_AUTHORITY_VERSIONS, "skill": "10.18.1"}
+SUBMISSION_PATCH_AUTHORITY_VERSIONS = {**AUDIT_PATCH_AUTHORITY_VERSIONS, "skill": "10.18.2"}
 COMPARISON_WRITING_TRIGGER = "model_or_algorithm_comparison_claim_exceeds_accepted_evidence_scope"
 COMPARISON_WRITING_PREVIOUS_TRIGGERS = (
     "proposition_or_proof_is_being_created_or_revised",
@@ -981,6 +982,25 @@ def approved_audit_patch_carrier_change(identifier, old, new, candidate_authorit
     return projected, changes
 
 
+def approved_submission_patch_carrier_change(identifier, old, new, candidate_authority_versions):
+    """Register the exact patch carrier without waiving any ordinary behavior."""
+    if (candidate_authority_versions != SUBMISSION_PATCH_AUTHORITY_VERSIONS
+            or new.get("version") != SUBMISSION_PATCH_AUTHORITY_VERSIONS["skill"]):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    predecessor["version"] = AUDIT_PATCH_AUTHORITY_VERSIONS["skill"]
+    projected, changes = approved_audit_patch_carrier_change(
+        identifier, old, predecessor, deepcopy(AUDIT_PATCH_AUTHORITY_VERSIONS))
+    if projected != old or not changes:
+        return deepcopy(new), []
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = SUBMISSION_PATCH_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(SUBMISSION_PATCH_AUTHORITY_VERSIONS)
+            change["approval"] = "Exact 10.18.2 routing/submission patch carrier; ordinary behavior remains checked"
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -1070,6 +1090,9 @@ def compare(before, after):
         projected, audit_patch_changes = approved_audit_patch_carrier_change(
             a["id"], old, projected, b.get("authority_versions"))
         expected.extend(audit_patch_changes)
+        projected, submission_patch_changes = approved_submission_patch_carrier_change(
+            a["id"], old, projected, b.get("authority_versions"))
+        expected.extend(submission_patch_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,
@@ -1120,6 +1143,7 @@ def main():
         "approved_d2_authority_versions": D2_AUTHORITY_VERSIONS,
         "approved_e1_authority_versions": E1_AUTHORITY_VERSIONS,
         "approved_audit_patch_authority_versions": AUDIT_PATCH_AUTHORITY_VERSIONS,
+        "approved_submission_patch_authority_versions": SUBMISSION_PATCH_AUTHORITY_VERSIONS,
         "all_legacy_behavior_equal": all(r["legacy_behavior_equal"] for r in rows),
         "all_legacy_behavior_equal_except_approved_changes": all(r["legacy_behavior_equal_except_approved_changes"] for r in rows),
         "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before exact A3/A7/v9.7/v10/v10.1/A1/A2/B1/B2/B2b1/B2b2/B2b3a/B2b3b/B2b3c/B2 patch/B2b4/B2b5/B2b6/B2c/C1/Windows Python CI/Windows MATLAB CI/C2/Python CI performance/D1 carrier exceptions; B2b6, B2c, C1, both earlier CI patches, C2, the performance patch, D1, D2 and E1 require their exact Authority version sets. D1 and D2 keep the case corpus outside default runtime loading and their independent protocols outside default runtime Authority metadata. Each approved version, provenance or canonical solver projection is visible in expected_legacy_changes. No result qualification, classification value or existing list-order normalization is waived. Passing requires no unregistered field differences.",

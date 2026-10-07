@@ -597,7 +597,10 @@ class ContractAndDriftTests(unittest.TestCase):
         # B2c additionally binds the selected LaTeX entrypoint and blocks
         # DOCX submission until a supported rendered proof exists. C2 adds
         # only an explicit opt-in final-review receipt recheck at this gate.
-        "scripts/validate_submission_package.py": "f2eedd6b14ee6ed9731a6f2a74799ceb2b35e78f",
+        # v10.18.2 R2/R3 re-pins this planned consumer only: current-analysis
+        # selection and consumed-source read-set closure, including Windows
+        # short-path identities. All unrelated protected hashes stay fixed.
+        "scripts/validate_submission_package.py": "bac6b567cf2cd7272a21dce02bbe7c9c9eb9fe2f",
         # P0-B replaces silent filtering/fixed ordering with explicit evidence-preserving reads.
         # v10.0.1 removes unsupported ColorBar.FontUnits in the standalone fallback;
         # MATLAB syntax is parsed separately; source checks do not claim runtime execution.

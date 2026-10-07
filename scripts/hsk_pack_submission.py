@@ -2,8 +2,9 @@
 """Create attested official or reproducibility packages for a modeling project.
 
 Official packages use only a verified competition-profile allowlist. Reproducibility
-packages preserve the historical broad backup behavior, but now include a deterministic
-manifest with per-file SHA-256 hashes. Neither mode may silently masquerade as the other.
+packages exclude inactive contract-bound analysis artifacts and keep current source/input
+dependencies with a deterministic hash manifest. Projects without a current root backend
+retain legacy broad backup collection, not modern delivery qualification.
 Legacy invocations that omit ``--mode`` retain the historical output-path semantics.
 """
 from __future__ import annotations
@@ -21,8 +22,9 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
-from submission_requirements import bound_compile_files, expand_required_allowlist
+from submission_requirements import bound_compile_files, current_analysis_artifacts, expand_required_allowlist
 from project_transaction import LOCK_RELATIVE_PATH
+import stage_code as STAGE_CODE
 
 COMPETITION_PROFILES = ROOT / "config" / "competition_profiles.yaml"
 EXCLUDED_DIRS = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".venv", "venv", "submission"}
@@ -122,14 +124,30 @@ def official_files(root: Path, competition: str) -> tuple[list[Path], dict[str, 
 def reproducibility_files(root: Path, output: Path) -> list[Path]:
     root = root.resolve()
     state_path = root / "state/project_state.yaml"
-    state = (yaml.safe_load(state_path.read_text(encoding="utf-8")) or {}) if state_path.is_file() else {}
+    try:
+        state = yaml.safe_load(state_path.read_bytes()) if state_path.is_file() else {}
+    except (OSError, ValueError, yaml.YAMLError) as exc:
+        raise SystemExit("reproducibility package refused: 无法读取project State: " + str(exc)) from exc
+    if state is None:
+        state = {}
+    if not isinstance(state, dict):
+        raise SystemExit("reproducibility package refused: project State必须是映射")
+    excluded, issues = current_analysis_artifacts(root, state)
+    if issues:
+        raise SystemExit("reproducibility package refused: " + "; ".join(issues))
     bound, _ = bound_compile_files(root, state)
-    return [
-        path.resolve()
-        for path in sorted(root.rglob("*"))
-        if path.is_file() and path.resolve() != output.resolve()
-        and (not should_exclude(path, root, output) or path.resolve() in bound)
-    ]
+    files: list[Path] = []
+    for path in sorted(root.rglob("*")):
+        if not path.is_file() or (should_exclude(path, root, output) and path.resolve() not in bound):
+            continue
+        relative = path.relative_to(root).as_posix()
+        try:
+            current = STAGE_CODE._relative_path(root, relative)
+        except (ValueError, OSError) as exc:
+            raise SystemExit(f"reproducibility package refused: {relative}: {exc}") from exc
+        if current != output.resolve() and current.relative_to(root).as_posix() not in excluded:
+            files.append(current)
+    return files
 
 
 def build_manifest(root: Path, files: Iterable[Path], *, kind: str, metadata: dict[str, Any]) -> dict[str, Any]:
