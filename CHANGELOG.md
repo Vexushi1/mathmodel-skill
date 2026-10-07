@@ -1,6 +1,13 @@
 # Changelog
 
-## 10.18.1
+## 10.18.2
+
+- Route generic paper drafts through the default LaTeX writing path while preserving explicit Word/DOCX selection and explicit intent precedence. Keep carrier inference shared by the assured and legacy resolvers without granting execution or approval.
+- Select current reproducibility artifacts from the existing analysis disposition and output contract. Exclude inactive historical 03B outputs and reject manually repackaged inactive files, while retaining current sources, attachments, helpers and bound compile evidence; original files remain untouched.
+- Observe actually consumed package-validation inputs independently of opt-in B2 status, including current archive members, the compiled PDF and applicable rule/requirement sources. Preserve first-read identities and final read-set rechecks without caching qualification or changing B2/C2 acceptance.
+- Align the appendix template hint with the existing mathematical-role rule: essential proofs stay in the body. Preserve independent protocol versions, project layouts and workbook contracts; no user-project migration, main merge or Release publication is included.
+
+## Previous release: 10.18.1
 
 - Close audited source/receipt acceptance gaps: reject unverified Python import-search capabilities, reapply declared numerical thresholds to recomputed metrics, and validate the shared workbook Schema before current primary/analysis acceptance. Capture one workbook version and preserve guarded read-set/transaction semantics; empty discovery cannot pass or advance state.
 - Reject duplicate real question scopes and canonical mapping-key collisions without changing unaffected semantic serialization or hashes. Return controlled diagnostics for malformed consumed state containers; preserve user approval, historical read-only provenance, and project-wide backend policy.

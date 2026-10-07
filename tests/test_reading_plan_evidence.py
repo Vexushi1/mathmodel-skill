@@ -880,6 +880,34 @@ class AuditClosureProjectionTests(unittest.TestCase):
                 bad = {**carriers, "project_state": "8.17.0"}
                 self.assertEqual(EVIDENCE.approved_audit_patch_carrier_change(case, old, new, bad), (new, []))
 
+    def test_submission_patch_carrier_preserves_behavior_and_protocol_checks(self):
+        carriers = deepcopy(EVIDENCE.SUBMISSION_PATCH_AUTHORITY_VERSIONS)
+        for case in (*EVIDENCE.A7_HYDRATED_PROVENANCE_CASES, "facts_unscoped"):
+            with self.subTest(case=case):
+                old, new = self.pair(case)
+                self.prepare_b2c(old, new)
+                new["version"] = "10.18.2"
+                new["assurance"]["schema_version"] = "2.5.0"
+                original = deepcopy(new)
+                projected, changes = EVIDENCE.approved_submission_patch_carrier_change(
+                    case, old, new, carriers)
+                self.assertEqual(projected, old)
+                self.assertTrue(changes)
+                self.assertEqual(new, original)
+                for field, value in (("version", "10.18.3"), ("pre_delivery_gates", []),
+                                     ("formal_delivery", True), ("load_order", ["scripts/semantic_identity.py"])):
+                    changed = deepcopy(new)
+                    changed[field] = value
+                    self.assertEqual(EVIDENCE.approved_submission_patch_carrier_change(
+                        case, old, changed, carriers), (changed, []))
+                changed = deepcopy(new)
+                changed["assurance"]["qualification"] = "accepted"
+                self.assertEqual(EVIDENCE.approved_submission_patch_carrier_change(
+                    case, old, changed, carriers), (changed, []))
+                bad = {**carriers, "project_state": "8.17.0"}
+                self.assertEqual(EVIDENCE.approved_submission_patch_carrier_change(
+                    case, old, new, bad), (new, []))
+
     def comparison_writing_pair(self):
         old, new = self.pair("cumcm_writing")
         new.pop("solver_backend")

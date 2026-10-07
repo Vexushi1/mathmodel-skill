@@ -26,6 +26,7 @@ import conformance_gate as CONFORMANCE
 import stage_code as STAGE_CODE
 import state_transitions as STATE_TRANSITIONS
 from project_transaction import JOURNAL_RELATIVE_PATH, STATE_RELATIVE_PATH, ProjectTransactionError, state_generation
+from resolve_workflow import matched_inference_keywords
 
 FRAMEWORK_RELATIVE_PATH = "模型论文框架.md"
 QUALIFIED_ARTIFACT_ALIASES = {
@@ -519,23 +520,17 @@ def resolve_intent_assurance(
     router: dict[str, Any],
 ) -> tuple[list[str], dict[str, Any]]:
     explicit = _unique(explicit_intents)
-    text = request.strip().lower()
     candidates: list[dict[str, Any]] = []
-    if text:
-        for name, route in (router.get("routing", {}) or {}).items():
-            keywords = route.get("infer_keywords", route.get("triggers", []))
-            matched = _unique(
-                str(word) for word in keywords if str(word).lower() in text
-            )
-            if matched:
-                candidates.append(
-                    {
-                        "intent": str(name),
-                        "score": sum(max(1, len(word.strip())) for word in matched),
-                        "matched_keyword_count": len(matched),
-                        "matched_keywords": matched,
-                    }
-                )
+    for name, keywords in matched_inference_keywords(request, router).items():
+        matched = _unique(keywords)
+        candidates.append(
+            {
+                "intent": str(name),
+                "score": sum(max(1, len(word.strip())) for word in matched),
+                "matched_keyword_count": len(matched),
+                "matched_keywords": matched,
+            }
+        )
     candidates.sort(key=lambda item: (-int(item["score"]), str(item["intent"])))
     top_score = int(candidates[0]["score"]) if candidates else 0
     top = [item for item in candidates if int(item["score"]) == top_score]

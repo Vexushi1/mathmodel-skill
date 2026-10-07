@@ -1,4 +1,4 @@
-version: 10.18.1
+version: 10.18.2
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -131,6 +131,18 @@ runtime_segments:
     delivery_scope: submission
     pre_delivery_gates: [semantic_governance, project_sync, submission_package_validation]
     formal_delivery: true
+
+# Only disambiguate the paper carriers; other scores and legacy multi-intent
+# inference stay unchanged. Explicit API/CLI intents remain authoritative.
+paper_carrier_disambiguation:
+  explicit_keywords:
+    docx: [DOCX, Word]
+    latex: [LaTeX, PDF终稿, cumcmthesis]
+  generic_latex_keywords: [终稿论文, 编译论文, 草稿论文, 论文草稿]
+  rules:
+  - Match Word/DOCX as whole ASCII tokens, also allowing adjacent Chinese text.
+  - When only Word/DOCX is explicit, generic paper keywords do not add the LaTeX route.
+  - When both carriers are explicit, preserve existing specificity and multi-intent behavior.
 
 routing:
   case_memory_retrieve:
@@ -354,16 +366,16 @@ routing:
     delivery_scope: figures
 
   docx:
-    triggers: [DOCX, Word, 草稿论文]
-    infer_keywords: [DOCX, Word, 草稿论文, 论文草稿]
+    triggers: [DOCX, Word]
+    infer_keywords: [DOCX, Word]
     load: [core/writing_reasoning_contract.yaml, modules/05_writing/paper_writing_protocol.md, modules/05_writing/latex.md, modules/05_writing/docx.md, packs/artifact/docx.md, packs/artifact/algorithm_flow.md]
     terminal_outputs: [docx_draft, latex_migration_notes]
     formal_delivery: true
     delivery_scope: docx
 
   latex:
-    triggers: [LaTeX, PDF终稿, cumcmthesis, 终稿论文]
-    infer_keywords: [LaTeX, PDF终稿, cumcmthesis, 终稿论文, 编译论文]
+    triggers: [LaTeX, PDF终稿, cumcmthesis, 终稿论文, 草稿论文, 论文草稿]
+    infer_keywords: [LaTeX, PDF终稿, cumcmthesis, 终稿论文, 编译论文, 草稿论文, 论文草稿]
     load: [core/writing_reasoning_contract.yaml, core/writing_runtime_contract.yaml, modules/05_writing/paper_writing_protocol.md, modules/05_writing/latex.md, modules/05_writing/ai_cleanup.md, modules/05_latex_compile_quality.md, packs/artifact/latex.md, packs/artifact/algorithm_flow.md]
     load_semantics: resource_availability_only
     execution_sequence: core/writing_runtime_contract.yaml#template_first_progressive_authoring

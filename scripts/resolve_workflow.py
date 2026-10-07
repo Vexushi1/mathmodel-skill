@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import re
 from typing import Any, Iterable
 
 import yaml
@@ -66,14 +67,47 @@ def resolve_competition_pack(token: str | None, profiles: dict[str, Any]) -> str
     raise ValueError(f"unknown competition: {token}")
 
 
-def infer_intents(request: str, router: dict[str, Any]) -> list[str]:
+def matched_inference_keywords(request: str, router: dict[str, Any]) -> dict[str, list[str]]:
+    """Apply the router's bounded paper-carrier rule before either resolver scores."""
     text = request.strip().lower()
     if not text:
-        return []
+        return {}
+    policy = router.get("paper_carrier_disambiguation", {}) or {}
+    carrier_keywords = policy.get("explicit_keywords", {}) or {}
+    matches: dict[str, list[str]] = {}
+    for name, route in (router.get("routing", {}) or {}).items():
+        carrier_words = {str(word).lower() for word in carrier_keywords.get(name, [])}
+        matched = []
+        for word in route.get("infer_keywords", route.get("triggers", [])):
+            keyword = str(word)
+            normalized = keyword.lower()
+            if name == "docx" and normalized in carrier_words and normalized.isascii():
+                found = re.search(r"(?<![a-z0-9_])" + re.escape(normalized)
+                                  + r"(?![a-z0-9_])", text) is not None
+            else:
+                found = normalized in text
+            if found:
+                matched.append(keyword)
+        if matched:
+            matches[str(name)] = matched
+
+    explicit_carriers = {
+        str(name) for name, words in carrier_keywords.items()
+        if any(str(word).lower() in {item.lower() for item in matches.get(str(name), [])}
+               for word in words)
+    }
+    if explicit_carriers == {"docx"}:
+        generic = {str(word).lower() for word in policy.get("generic_latex_keywords", [])}
+        matches["latex"] = [word for word in matches.get("latex", []) if word.lower() not in generic]
+        if not matches["latex"]:
+            del matches["latex"]
+    return matches
+
+
+def infer_intents(request: str, router: dict[str, Any]) -> list[str]:
     matches: list[tuple[int, str]] = []
-    for name, route in router.get("routing", {}).items():
-        keywords = route.get("infer_keywords", route.get("triggers", []))
-        score = sum(1 for word in keywords if str(word).lower() in text)
+    for name, keywords in matched_inference_keywords(request, router).items():
+        score = len(keywords)
         if score:
             matches.append((score, name))
     if not matches:
@@ -479,7 +513,12 @@ def resolve_workflow(
         return taxonomy
 
     explicit_intents = [intents] if isinstance(intents, str) else list(intents or [])
-    resolved_intents = unique(explicit_intents + infer_intents(request or "", router))
+    inferred_intents = infer_intents(request or "", router)
+    paper_routes = set((router.get("paper_carrier_disambiguation", {}) or {}).get("explicit_keywords", {}))
+    if paper_routes.intersection(explicit_intents):
+        inferred_intents = [name for name in inferred_intents
+                            if name not in paper_routes or name in explicit_intents]
+    resolved_intents = unique(explicit_intents + inferred_intents)
     if not resolved_intents:
         raise ValueError("no workflow intent resolved; pass an intent or --request")
     unknown_intents = [name for name in resolved_intents if name not in router.get("routing", {})]

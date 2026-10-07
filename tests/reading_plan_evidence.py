@@ -90,6 +90,7 @@ COMPARISON_AUTHORITY_VERSIONS = {
     "writing_reasoning": "1.11.0",
 }
 AUDIT_PATCH_AUTHORITY_VERSIONS = {**COMPARISON_AUTHORITY_VERSIONS, "skill": "10.18.1"}
+SUBMISSION_PATCH_AUTHORITY_VERSIONS = {**AUDIT_PATCH_AUTHORITY_VERSIONS, "skill": "10.18.2"}
 COMPARISON_WRITING_TRIGGER = "model_or_algorithm_comparison_claim_exceeds_accepted_evidence_scope"
 COMPARISON_WRITING_PREVIOUS_TRIGGERS = (
     "proposition_or_proof_is_being_created_or_revised",
@@ -981,6 +982,25 @@ def approved_audit_patch_carrier_change(identifier, old, new, candidate_authorit
     return projected, changes
 
 
+def approved_submission_patch_carrier_change(identifier, old, new, candidate_authority_versions):
+    """Register the exact patch carrier without waiving any ordinary behavior."""
+    if (candidate_authority_versions != SUBMISSION_PATCH_AUTHORITY_VERSIONS
+            or new.get("version") != SUBMISSION_PATCH_AUTHORITY_VERSIONS["skill"]):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    predecessor["version"] = AUDIT_PATCH_AUTHORITY_VERSIONS["skill"]
+    projected, changes = approved_audit_patch_carrier_change(
+        identifier, old, predecessor, deepcopy(AUDIT_PATCH_AUTHORITY_VERSIONS))
+    if projected != old or not changes:
+        return deepcopy(new), []
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = SUBMISSION_PATCH_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(SUBMISSION_PATCH_AUTHORITY_VERSIONS)
+            change["approval"] = "Exact 10.18.2 routing/submission patch carrier; ordinary behavior remains checked"
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -1070,6 +1090,9 @@ def compare(before, after):
         projected, audit_patch_changes = approved_audit_patch_carrier_change(
             a["id"], old, projected, b.get("authority_versions"))
         expected.extend(audit_patch_changes)
+        projected, submission_patch_changes = approved_submission_patch_carrier_change(
+            a["id"], old, projected, b.get("authority_versions"))
+        expected.extend(submission_patch_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,
