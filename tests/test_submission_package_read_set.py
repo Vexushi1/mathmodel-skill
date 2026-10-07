@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import hashlib
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -31,7 +32,10 @@ class SubmissionPackageReadSetTests(unittest.TestCase):
 
         def check(base, expected):
             nonlocal changed
-            if base.resolve() == root.resolve() and not changed:
+            # B2 may recheck its own state-only read set before the validator
+            # has consumed the package. Wait for the final PDF observation.
+            if (base.resolve() == root.resolve() and "final_latex/main.pdf" in expected
+                    and not changed):
                 changed = True
                 change()
             return original(base, expected)
@@ -117,6 +121,88 @@ class SubmissionPackageReadSetTests(unittest.TestCase):
                     report = VALIDATOR.validate_package(root, package)
             self.assert_read_conflict(report, profile_path.name)
 
+    @unittest.skipUnless(os.name == "nt", "native 8.3 paths require Windows")
+    def test_native_short_source_path_passes_and_remains_observed(self):
+        import ctypes
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            complete_project(root)
+            authority = root / "profile-authority-with-long-name"
+            authority.mkdir()
+            profile_path = profile(authority, ["final_latex/main.pdf"])
+            shorten = ctypes.WinDLL("kernel32", use_last_error=True).GetShortPathNameW
+            shorten.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint32]
+            shorten.restype = ctypes.c_uint32
+            size = shorten(str(profile_path.resolve()), None, 0)
+            if not size:
+                self.skipTest("fixture volume does not provide a native 8.3 path")
+            buffer = ctypes.create_unicode_buffer(size)
+            written = shorten(str(profile_path.resolve()), buffer, size)
+            self.assertTrue(0 < written < size)
+            short = Path(buffer.value)
+            if short == profile_path.resolve():
+                self.skipTest("fixture volume has 8.3 name creation disabled")
+            self.assertEqual(short.resolve(), profile_path.resolve())
+            package = self.official_archive(root, short)
+            original = profile_path.read_bytes()
+            with patch.object(VALIDATOR, "COMPETITION_PROFILES", short):
+                stable = VALIDATOR.validate_package(root, package)
+                self.assertEqual(stable["status"], "passed", stable["issues"])
+                with self.finish_change(root, lambda: profile_path.write_bytes(original + b"\n# changed\n")):
+                    report = VALIDATOR.validate_package(root, package)
+            self.assert_read_conflict(report, "profile-authority-with-long-name/fixture-profiles.yaml")
+
+    def test_same_domain_source_symlink_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            complete_project(root)
+            profile_path = profile(root, ["final_latex/main.pdf"])
+            alias = root / "profile-alias.yaml"
+            try:
+                alias.symlink_to(profile_path.resolve())
+            except OSError as exc:
+                if isinstance(exc, PermissionError) or getattr(exc, "winerror", None) == 1314:
+                    self.skipTest("fixture symlink creation lacks operating-system privilege")
+                raise
+            package = self.official_archive(root, profile_path)
+            with patch.object(VALIDATOR, "COMPETITION_PROFILES", alias):
+                report = VALIDATOR.validate_package(root, package)
+            self.assertEqual(report["status"], "failed", report)
+            self.assertTrue(any("读集路径无效" in item and alias.name in item
+                                for item in report["issues"]), report["issues"])
+
+    def test_source_outside_project_and_skill_roots_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp, tempfile.TemporaryDirectory() as outside:
+            root = Path(temp)
+            complete_project(root)
+            profile_path = profile(Path(outside), ["final_latex/main.pdf"])
+            package = self.official_archive(root, profile_path)
+            with patch.object(VALIDATOR, "COMPETITION_PROFILES", profile_path):
+                report = VALIDATOR.validate_package(root, package)
+            self.assertEqual(report["status"], "failed", report)
+            self.assertTrue(any("outside the project and Skill roots" in item
+                                for item in report["issues"]), report["issues"])
+
+    def test_unregistered_external_root_symlink_cannot_alias_project_source(self):
+        with tempfile.TemporaryDirectory() as temp, tempfile.TemporaryDirectory() as outside:
+            root = Path(temp)
+            complete_project(root)
+            profile_path = profile(root, ["final_latex/main.pdf"])
+            alias = Path(outside) / "unregistered-project-alias"
+            try:
+                alias.symlink_to(root.resolve(), target_is_directory=True)
+            except OSError as exc:
+                if isinstance(exc, PermissionError) or getattr(exc, "winerror", None) == 1314:
+                    self.skipTest("fixture symlink creation lacks operating-system privilege")
+                raise
+            package = self.official_archive(root, profile_path)
+            with patch.object(VALIDATOR, "COMPETITION_PROFILES", alias / profile_path.name):
+                report = VALIDATOR.validate_package(root, package)
+            self.assertEqual(report["status"], "failed", report)
+            self.assertTrue(any("outside the project and Skill roots" in item
+                                for item in report["issues"]), report["issues"])
+
     def test_requirements_authority_retains_its_first_raw_observation(self):
         with tempfile.TemporaryDirectory() as temp, tempfile.TemporaryDirectory() as authority:
             root, skill = Path(temp), Path(authority)
@@ -131,6 +217,7 @@ class SubmissionPackageReadSetTests(unittest.TestCase):
                     stable = VALIDATOR.validate_package(root, package)
                     self.assertEqual(stable["status"], "passed", stable["issues"])
                     actual_requirements = VALIDATOR.reproducibility_requirements
+                    mutations = []
 
                     def consume(project, state, *, observe):
                         changed = False
@@ -138,14 +225,16 @@ class SubmissionPackageReadSetTests(unittest.TestCase):
                         def observe_and_change(path, payload):
                             nonlocal changed
                             observe(path, payload)
-                            if path == contract and not changed:
+                            if path.resolve() == contract.resolve() and not changed:
                                 changed = True
+                                mutations.append(path)
                                 contract.write_bytes(original + b"\n# changed after first read\n")
 
                         return actual_requirements(project, state, observe=observe_and_change)
 
                     with patch.object(VALIDATOR, "reproducibility_requirements", side_effect=consume):
                         report = VALIDATOR.validate_package(root, package)
+                    self.assertEqual(len(mutations), 1, "authority mutation hook must execute")
             self.assert_read_conflict(report, "core/output_contract.yaml")
 
     def test_b2_off_observes_consumed_compile_report_inputs(self):
@@ -159,6 +248,7 @@ class SubmissionPackageReadSetTests(unittest.TestCase):
             report_input = root / "final_latex/compile_report.yaml"
             original = report_input.read_bytes()
             actual_requirements = VALIDATOR.reproducibility_requirements
+            mutations = []
 
             def consume(project, current, *, observe):
                 changed = False
@@ -166,14 +256,16 @@ class SubmissionPackageReadSetTests(unittest.TestCase):
                 def observe_and_change(path, payload):
                     nonlocal changed
                     observe(path, payload)
-                    if path == report_input and not changed:
+                    if path.resolve() == report_input.resolve() and not changed:
                         changed = True
+                        mutations.append(path)
                         report_input.write_bytes(original + b"\n# report changed after observation\n")
 
                 return actual_requirements(project, current, observe=observe_and_change)
 
             with patch.object(VALIDATOR, "reproducibility_requirements", side_effect=consume):
                 report = VALIDATOR.validate_package(root, package)
+            self.assertEqual(len(mutations), 1, "compile-input mutation hook must execute")
             self.assert_read_conflict(report, "final_latex/compile_report.yaml")
 
     def test_state_and_zip_keep_their_existing_finish_protection(self):
@@ -190,7 +282,7 @@ class SubmissionPackageReadSetTests(unittest.TestCase):
 
                     def hash_and_change(current):
                         nonlocal calls
-                        if current == package:
+                        if current.resolve() == package.resolve():
                             calls += 1
                             if calls == 2:
                                 path.write_bytes(original + b"\nchanged\n")

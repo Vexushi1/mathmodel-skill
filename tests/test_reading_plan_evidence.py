@@ -800,7 +800,7 @@ class AuditClosureProjectionTests(unittest.TestCase):
 
     def test_current_comparison_runtime_metadata_excludes_independent_corpus_schema(self):
         self.assertEqual(EVIDENCE.authority_versions(EVIDENCE.HERE.parents[1]),
-                         EVIDENCE.AUDIT_PATCH_AUTHORITY_VERSIONS)
+                         EVIDENCE.SUBMISSION_PATCH_AUTHORITY_VERSIONS)
 
     def test_e1_patch_retains_d2_history_and_rejects_qualification_or_loading_drift(self):
         carriers = deepcopy(EVIDENCE.E1_AUTHORITY_VERSIONS)

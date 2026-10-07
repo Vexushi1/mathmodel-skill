@@ -1143,6 +1143,7 @@ def main():
         "approved_d2_authority_versions": D2_AUTHORITY_VERSIONS,
         "approved_e1_authority_versions": E1_AUTHORITY_VERSIONS,
         "approved_audit_patch_authority_versions": AUDIT_PATCH_AUTHORITY_VERSIONS,
+        "approved_submission_patch_authority_versions": SUBMISSION_PATCH_AUTHORITY_VERSIONS,
         "all_legacy_behavior_equal": all(r["legacy_behavior_equal"] for r in rows),
         "all_legacy_behavior_equal_except_approved_changes": all(r["legacy_behavior_equal_except_approved_changes"] for r in rows),
         "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before exact A3/A7/v9.7/v10/v10.1/A1/A2/B1/B2/B2b1/B2b2/B2b3a/B2b3b/B2b3c/B2 patch/B2b4/B2b5/B2b6/B2c/C1/Windows Python CI/Windows MATLAB CI/C2/Python CI performance/D1 carrier exceptions; B2b6, B2c, C1, both earlier CI patches, C2, the performance patch, D1, D2 and E1 require their exact Authority version sets. D1 and D2 keep the case corpus outside default runtime loading and their independent protocols outside default runtime Authority metadata. Each approved version, provenance or canonical solver projection is visible in expected_legacy_changes. No result qualification, classification value or existing list-order normalization is waived. Passing requires no unregistered field differences.",

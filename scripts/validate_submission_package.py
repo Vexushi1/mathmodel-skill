@@ -133,11 +133,14 @@ def validate_package(
     issues: list[str] = []
     warnings: list[str] = []
     from project_transaction import _check_read_set, _guarded_path
+    from stage_code import _expand_windows_short_path
 
     project_read_set: dict[str, str | None] = {}
     skill_read_set: dict[str, str | None] = {}
     observed = {'project': project_read_set, 'skill': skill_read_set}
     identities: dict[str, tuple[str, str]] = {}
+    declared_roots = {'project': _expand_windows_short_path(project_root.absolute()),
+                      'skill': _expand_windows_short_path(SKILL_ROOT.absolute())}
     package_hash: str | None = None
 
     def remember(path: Path, digest: str | None, *, domain: str | None = None) -> None:
@@ -146,11 +149,19 @@ def validate_package(
             if domain is not None and domain not in observed:
                 raise ValueError('unknown observed source domain: ' + domain)
             candidate = Path(path)
+            if '..' in candidate.parts:
+                raise ValueError('observed source contains a parent-path alias: ' + str(path))
             bases = ((domain, root if domain == 'project' else SKILL_ROOT.resolve()),) if domain else (
                 ('project', root), ('skill', SKILL_ROOT.resolve()),
             )
             for source_domain, base in bases:
                 absolute = candidate.absolute() if candidate.is_absolute() else base / candidate
+                # Expand native Windows 8.3 names without hiding symlinks from
+                # _guarded_path. Only the caller's own root alias is remapped.
+                absolute = _expand_windows_short_path(absolute)
+                declared = declared_roots[source_domain]
+                if not absolute.is_relative_to(base) and absolute.is_relative_to(declared):
+                    absolute = base / absolute.relative_to(declared)
                 if absolute.is_relative_to(base):
                     relative = absolute.relative_to(base).as_posix()
                     canonical = _guarded_path(base, relative)
@@ -360,6 +371,11 @@ def validate_package(
             if relative in declared_paths:
                 issues.append(f"submission_manifest重复声明文件: {relative}")
             declared_paths.append(relative)
+            try:
+                current = _guarded_path(root, relative)
+            except (ValueError, RuntimeError):
+                issues.append(f"manifest路径无效或越出项目根目录: {relative}")
+                continue
             if relative not in names:
                 issues.append(f"manifest声明文件未进入ZIP: {relative}")
                 continue
@@ -371,11 +387,6 @@ def validate_package(
             archived_hashes[relative] = archived_hash
             if archived_hash != recorded_hash:
                 issues.append(f"ZIP中文件哈希与manifest不一致: {relative}")
-            try:
-                current = _guarded_path(root, relative)
-            except (ValueError, RuntimeError):
-                issues.append(f"manifest路径无效或越出项目根目录: {relative}")
-                continue
             if not current.is_file():
                 issues.append(f"manifest声明的项目文件当前不存在: {relative}")
             else:
