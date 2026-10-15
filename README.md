@@ -9,7 +9,7 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 3. 模型设计先完成语义闭环、Model Challenge 和当前 `semantic_revision` / validated `semantic_identity_hash` 的 Human Model Approval。数据项目先审计，再按证据确定 `preprocessing_decision`；锁模不等于代码交付资格。
 4. 生成、核验和交付时执行 resolver 返回的完整且有序的 `pre_delivery_gates`。当前 `模型论文框架.md` 是语义工作记忆，`state/project_state.yaml` 是机器状态，accepted workbook 是具体数值事实；三者不能互相代替。
 
-运行前确认当前终端实际使用的 Python 路径、版本和阶段依赖；帮助命令及最小 resolver 成功读取后再进入项目。维护依赖见 `requirements-dev.txt`，用户数值项目依赖见 `templates/code/requirements.txt`。完整资源根必须保留 `core/`、`scripts/`、`templates/` 等目录；只复制嵌套 `skills/mathmodel-skill/` 不满足入口合同。仓库、Release、安装目录和会话实际加载版本分别核对；下载或建立 checkout 不等于 Skill 已安装或已被会话读取。具体 preflight 见 [Scripts 运行环境](scripts/README.md#运行环境与资源根)。
+赛题代码仍由用户在本地 Python/MATLAB 环境完整执行；**日常执行前不要求例行核对 Python 解释器路径、版本、依赖安装情况或运行 Skill 诊断命令**。出现缺包、解释器或路径错误时，再按 [Scripts 运行环境](scripts/README.md#运行环境与资源根) 的说明排查并自行修复。此调整不影响助手从正确 Skill 入口读取 `core/bootstrap.yaml`、调用 `scripts/resolve_runtime.py` 进行正式路由，或执行现有交付与回执验收门禁。维护依赖见 `requirements-dev.txt`，用户数值项目依赖见 `templates/code/requirements.txt`。完整 Skill 资源根仍须保留 `core/`、`scripts/`、`templates/` 等目录；仅复制嵌套的 `skills/mathmodel-skill/` 不满足入口合同。仓库、Release、安装目录与会话实际加载版本的对应关系应在安装或读取 Skill 时按需核对，而不是每次用户运行赛题代码时重复预检；下载或 checkout 不等于 Skill 已安装或被会话读取。
 
 ## 项目数值职责
 
