@@ -42,7 +42,20 @@ class WritingReasoningScopeTests(unittest.TestCase):
         )}
         for heading, digest in expected.items():
             with self.subTest(heading=heading):
-                self.assertEqual(hashlib.sha256(sections[heading].encode()).hexdigest(), digest)
+                body = sections[heading]
+                if heading == "10. 结果与验证的分层":
+                    # v10.18.3 adds exactly one authorized evidence-dependent CUMCM
+                    # second-level validation rule. The v8.4 chapter body remains
+                    # byte-pinned after projecting this single approved addition out.
+                    approved = (
+                        "只有真实且有证据支持的独立验证才设置相应二级标题：没有 comparator 时用“模型检验”，"
+                        "实际完成不同模型或同模型不同算法的可比对照时用“模型检验与对照”；"
+                        "都没有独立任务时不凑第四节。主计算收敛/离散精度说明可以就地属于“模型求解”，"
+                        "不自动解释成参数鲁棒性或多模型检验。\\n\\n"
+                    )
+                    self.assertEqual(body.count(approved), 1)
+                    body = body.replace(approved, "", 1)
+                self.assertEqual(hashlib.sha256(body.encode()).hexdigest(), digest)
 
     def test_template_adapter_and_proof_algorithm_forms_are_pinned(self):
         # The proof-body policy and approved Part F carrier mapping intentionally reopen the LaTeX adapter;

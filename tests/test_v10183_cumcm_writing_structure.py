@@ -84,7 +84,10 @@ class CUMCMQuestionWritingStructureTests(unittest.TestCase):
         self.assertIn("同一数学模型的不同算法", self.policy["comparison_naming_rule"])
         self.assertIn("accepted evidence", self.policy["comparison_naming_rule"])
         self.assertIn("不设置", self.policy["optional_validation_rule"])
-        self.assertIn("简单解析", self.policy["heading_choice_rule"])
+        self.assertIn(
+            "simple_analytic_or_direct_computation_no_independent_solve",
+            self.policy["documented_exception_categories"],
+        )
         self.assertIn("不要求使用完全相同字面标题", self.policy["heading_choice_rule"])
 
     def test_result_subheadings_and_detail_priority_are_adaptive(self):
@@ -96,7 +99,7 @@ class CUMCMQuestionWritingStructureTests(unittest.TestCase):
         self.assertFalse(self.reasoning["subsection_granularity"]["hard_count_limit"])
         self.assertFalse(self.reasoning["subsection_granularity"]["hard_title_length_limit"])
         detail = self.narrative["detail_allocation_governance"]
-        self.assertIn("关键推导", detail["role_allocation_review"])
+        self.assertIn("核心推导", detail["role_allocation_review"])
         self.assertTrue(detail["simple_problem_anti_bloat"])
         self.assertTrue(detail["no_word_count_rule"])
 

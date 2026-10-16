@@ -163,7 +163,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         self.assertIn("标准模型名", headings["method_name_rule"])
         self.assertIn("jargon_or_acronym_only_when_object_is_hidden", headings["title_minimality"]["avoid"])
         self.assertIn("无对象泛化标题", "\n".join(headings["rules"]))
-        self.assertIn("默认读者具有数学建模基础", self.protocol)
+        self.assertIn("默认读者有数学建模基础", self.protocol)
         self.assertIn("Judge Readability Test", self.protocol)
         self.assertIn("只剩“FV--BDF--Radau 一致性”", self.protocol)
         self.assertIn("Judge Readability Test", self.cleanup)

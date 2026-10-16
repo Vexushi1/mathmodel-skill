@@ -916,6 +916,55 @@ class AuditClosureProjectionTests(unittest.TestCase):
                 self.assertEqual(EVIDENCE.approved_submission_patch_carrier_change(
                     case, old, new, bad), (new, []))
 
+    def test_v10183_writing_patch_only_projects_exact_skill_carrier(self):
+        carriers = deepcopy(EVIDENCE.WRITING_PATCH_AUTHORITY_VERSIONS)
+        self.assertEqual(carriers, {
+            **EVIDENCE.SUBMISSION_PATCH_AUTHORITY_VERSIONS, "skill": "10.18.3"
+        })
+        for case in (*EVIDENCE.A7_HYDRATED_PROVENANCE_CASES, "facts_unscoped"):
+            with self.subTest(case=case):
+                old, new = self.pair(case)
+                self.prepare_b2c(old, new)
+                new["version"] = "10.18.3"
+                new["assurance"]["schema_version"] = "2.5.0"
+                original = deepcopy(new)
+                projected, changes = EVIDENCE.approved_writing_patch_carrier_change(
+                    case, old, new, carriers
+                )
+                self.assertEqual(projected, old)
+                self.assertEqual(new, original)
+                self.assertEqual([c["candidate"] for c in changes if c["path"] == "version"],
+                                 ["10.18.3"])
+                for field, value in (("version", "10.18.4"),
+                                     ("formal_delivery", True),
+                                     ("load_order", ["scripts/semantic_identity.py"]),
+                                     ("pre_delivery_gates", [])):
+                    altered = deepcopy(new)
+                    altered[field] = value
+                    self.assertEqual(EVIDENCE.approved_writing_patch_carrier_change(
+                        case, old, altered, carriers
+                    ), (altered, []))
+                altered = deepcopy(new)
+                altered["assurance"]["qualification"] = "accepted"
+                self.assertEqual(EVIDENCE.approved_writing_patch_carrier_change(
+                    case, old, altered, carriers
+                ), (altered, []))
+                for bad in ({**carriers, "project_state": "8.17.0"},
+                            {**carriers, "writing_reasoning": "1.12.0"},
+                            {**carriers, "skill": "10.18.4"}):
+                    self.assertEqual(EVIDENCE.approved_writing_patch_carrier_change(
+                        case, old, new, bad
+                    ), (new, []))
+                row = self.compare(
+                    {"id": case, "plan": old, "legacy_declared_bytes": 1},
+                    {"id": case, "plan": new, "legacy_declared_bytes": 1,
+                     "authority_versions": carriers},
+                )
+                self.assertTrue(row["legacy_behavior_equal_except_approved_changes"])
+                self.assertEqual(row["unexpected_legacy_changes"], [])
+                self.assertIn("10.18.3", [x["candidate"] for x in row["expected_legacy_changes"]
+                                          if x["path"] == "version"])
+
     def comparison_writing_pair(self):
         old, new = self.pair("cumcm_writing")
         new.pop("solver_backend")
