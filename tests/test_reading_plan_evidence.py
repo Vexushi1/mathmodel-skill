@@ -799,8 +799,16 @@ class AuditClosureProjectionTests(unittest.TestCase):
             "facts_current", wrong_baseline, new, carriers), (new, []))
 
     def test_current_comparison_runtime_metadata_excludes_independent_corpus_schema(self):
-        self.assertEqual(EVIDENCE.authority_versions(EVIDENCE.HERE.parents[1]),
-                         EVIDENCE.SUBMISSION_PATCH_AUTHORITY_VERSIONS)
+        # The 10.18.2 submission patch stays an immutable comparison checkpoint.
+        # A later Skill patch changes only the live Skill carrier, not the
+        # independently versioned protocol authorities or the historical fixture.
+        historical = EVIDENCE.SUBMISSION_PATCH_AUTHORITY_VERSIONS
+        self.assertEqual(historical["skill"], "10.18.2")
+        current = yaml.safe_load((EVIDENCE.HERE.parents[1] / "core/bootstrap.yaml").read_text(encoding="utf-8"))["skill_version"]
+        self.assertEqual(
+            EVIDENCE.authority_versions(EVIDENCE.HERE.parents[1]),
+            {**historical, "skill": str(current)},
+        )
 
     def test_e1_patch_retains_d2_history_and_rejects_qualification_or_loading_drift(self):
         carriers = deepcopy(EVIDENCE.E1_AUTHORITY_VERSIONS)

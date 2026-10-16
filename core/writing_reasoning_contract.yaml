@@ -590,6 +590,26 @@ model_establishment_solution_narrative:
     method_name_rule: >-
       标准模型名、方法名和必要专业术语可以保留；当它们承担区分不同任务、说明真实核心方法或避免歧义时不应强删。
       “评委可理解”不等于把准确术语改成泛化口语，也不要求所有标题都写成同一种句式。
+    cumcm_heading_level_precedence:
+      scope: cumcm_question_establishment_solution_subsections
+      second_level_default_authority: model_establishment_solution_narrative.within_question_subsection_architecture.cumcm_default_second_level
+      second_level_role: >-
+        常规复杂问的二级标题为非领域评委提供稳定的建模、求解、结果与分析及可选检验导航；
+        优先保留规范原文和数学依赖顺序，不因为 Heading Compression、算法名称或“更专业”任意改写。
+      third_level_role: >-
+        三级标题才重点回答“本节对什么对象完成了哪项具体数学任务”，
+        不以算法缩写、物理领域术语或多个方法名称堆叠代替任务说明。
+      readability_primary_target: third_level_heading
+      second_level_exception_boundary: >-
+        简单解析任务无独立求解、后问仅有真实增量、多独立模型难以用正常结构表示，
+        或实际数学依赖与官方模板发生冲突时，才可解释理由后调整二级；
+        “更简短”“避免重复”“展示算法名”不是充分例外。
+      heading_compression_scope: >-
+        CUMCM 问题章节的 Judge Readability 与 Heading Compression 重点应用于三级标题，
+        不把标题压缩测试用来删除正常二级的建模、求解、结果分析或有效检验功能。
+      mathematical_accuracy_invariant: >-
+        三级标题保留对数学正确性与不同任务区分必要的专业术语；
+        不为了通俗而把明确的对象、判据和边界写成“模型处理”“数据处理”“结果说明”。
     preferred_pattern: object_plus_mathematical_task
     alternative_patterns:
       - method_plus_current_task
@@ -599,6 +619,9 @@ model_establishment_solution_narrative:
     title_minimality:
       principle: >-
         标题只保留识别当前数学对象和任务所需的信息；父标题已经提供的“问题X、模型建立与求解、优化模型”等上下文默认不重复。
+      cumcm_scope_boundary: >-
+        对 CUMCM 问题章节重点优化三级标题；正常复杂问的二级标题先服从规范功能导航，
+        不因父标题重复或字号/长度偏好而改写，除非有真实数学或官方格式例外。
       heading_compression_test: >-
         删除上位研究背景、问题编号上下文或“基于/视角下/研究”等包装后，若当前数学任务仍完整，应优先采用压缩后的标题。
       avoid:
@@ -681,6 +704,103 @@ model_establishment_solution_narrative:
       - independent_mathematical_task
       - independent_solution_stage
       - independent_result_or_validation_role
+    cumcm_default_second_level:
+      scope: CUMCM_question_sections_with_independent_complex_tasks
+      governance_level: default
+      status: preferred_functional_structure_not_literal_heading_quota
+      template_title_authority: templates/latex/cumcm/hsk/template_manifest.yaml#cumcm_question_section
+      functional_order: [model, solve, result, validate]
+      heading_by_role:
+        model: "XX模型的建立"
+        solve: 模型求解
+        result: 模型求解结果与分析
+        validate_without_comparison: 模型检验
+        validate_with_comparison: 模型检验与对照
+      normal_title_preservation: >-
+        CUMCM 复杂问在 MODEL/SOLVE/RESULT 真实独立时优先保留“XX模型的建立”、
+        “模型求解”“模型求解结果与分析”的原文和顺序；
+        第四节仅在有独立有效检验或对照时出现。二级标题说明环节，三级标题说明具体数学任务。
+      non_arbitrary_rename_rule: >-
+        不能因为标题简短、父标题已有“建立及求解”、作者希望展示算法名，
+        就把“模型求解”改为算法名、把“模型求解结果与分析”拆成普通二级结果与分析；
+        XX 使用读者可识别的模型对象/类型，不能堆砌专业术语。
+      documented_exception_categories:
+        - simple_analytic_or_direct_computation_no_independent_solve
+        - inherited_or_compact_question_with_only_genuine_increment
+        - multiple_independent_models_not_recoverable_under_single_default_profile
+        - official_template_or_actual_math_dependency_conflict
+      exception_trace_rule: >-
+        发生例外时记录具体数学/模板事实、默认标题为何不能准确导航以及如何保留真实功能；
+        不因为四节形式而虚构算法、模型检验、替代方法对照或额外证据。
+      role_duties:
+        model: 说明当前数学缺口、为何选择该模型结构、关键关系的来源及最终模型的闭合。
+        solve: 说明当前模型为何适用所选求解方式、本题特定算法处理、关键精度与输出映射。
+        result: 先给出直接答案与决定性图表数值，再就地解释其题意；允许按独立结果任务使用三级标题。
+        validate: 针对真实风险或备选方法使用已验收证据检验结论、明确稳定范围及失效边界。
+      heading_choice_rule: >-
+        复杂问题优先按 MODEL→SOLVE→RESULT→可选 VALIDATE 组织，
+        正常情况保持 heading_by_role 的首选二级标题及顺序，不因三级标题任务化、术语压缩或
+        父标题重复而任意改名；XX 填入数学准确且易识别的模型对象。
+        只有 documented_exception_categories 对应的条件成立并能解释事实依据时，
+        才不要求使用完全相同字面标题；简单题可合并确实不存在的薄槽，
+        不得掩盖真实的关键推导、结果和检验。
+      optional_validation_rule: >-
+        只有独立且有真实证据支持的模型检验或对照任务才独立设置 VALIDATE；
+        两者均无必要时不设置该二级标题，也不虚构实验、检验图或 03B。
+      comparison_naming_rule: >-
+        已实际执行并验收可比较的替代数学模型或同一数学模型的不同算法对照时，
+        可使用“模型检验与对照”，并区分 model comparator 与 algorithm comparator；
+        只有参数变化、现实场景扰动或敏感性而无独立 comparator 时使用“模型检验”。
+        仅设想过其他模型/算法、没有 accepted evidence 时不得使用“与对照”冒充已完成比较。
+      local_result_rule: >-
+        “模型求解结果与分析”既呈现关键答案也解释决定性趋势、数值与问题含义；
+        不把主要结果解释挪到 VALIDATE，也不因结果图表多就机械拆分三级标题。
+    third_level_judge_readability:
+      scope: CUMCM_question_tertiary_headings_under_functional_second_level
+      governance_level: default
+      reader_assumption: mathematical_modeling_literate_not_domain_specialist
+      priority: task_recoverability_before_jargon_display_or_shortest_wording
+      selection_sequence:
+        - decide_whether_an_independent_mathematical_task_needs_a_third_level_heading
+        - locate_the_second_level_functional_role
+        - identify_concrete_object_and_mathematical_task
+        - retain_necessary_scope_output_or_distinguishing_method
+        - apply_judge_readability_then_heading_compression
+        - check_mathematical_accuracy_and_adjacent_heading_distinction
+      judge_readability_question: >-
+        非题目专业领域的数学建模评委看到三级标题，能否恢复对象是什么、
+        实际完成什么计算/判断，或者得到什么答案？不能时先补对象与数学任务，
+        再把非必需的算法缩写、机理名称放在正文。
+      necessary_terminology_exception: >-
+        KKT、Sobol、Pareto 等术语如确为区分研究对象、关键方法或准确数学结论所必需，
+        允许保留必要限定；不能为了“通俗”改成“数据处理”“模型处理”“结果说明”等空泛标题。
+      title_compression_order: >-
+        先说明对象、任务与必要限定，后删除“基于……的……研究”“在……视角下”等装饰；
+        不对首选二级标题运行三级任务型改名，不设字数/术语表/数量配额。
+      examples:
+        - original: FV-BDF-Radau 一致性
+          preferred: 状态方程求解结果的一致性检验
+          condition: 实际检查的是该方程不同数值方案输出的一致性
+        - original: Sobol 全局敏感性分解
+          preferred: 关键参数对最终结果的影响
+          condition: 实际计算并验收了相应输出指标的参数影响
+        - original: Pareto 前沿结构分析
+          preferred: 不同方案的成本与效果比较
+          condition: 实际有可比较的成本/效果指标且不夸大最优性
+        - original: 数据处理
+          preferred: 观测时间的统一
+          condition: 真实工作是将多源观测时间统一
+      accuracy_boundary: >-
+        示例不是自动术语替换表；仅概括已批准模型和 current 证据支持的实际任务，
+        不能以易读为由删除核心推导、改变数值/模型含义或制造未执行的实验。
+      machine_audit_scope:
+        may_review:
+          - tertiary_jargon_without_object_or_task
+          - tertiary_generic_heading_without_specific_task
+          - tertiary_necessary_mathematical_distinction_lost
+        must_not_claim:
+          - judge_understanding_from_title_length_or_keyword_only
+          - task_correctness_without_reading_actual_model_and_evidence
     adaptive_separation:
       separate_when_any:
         - independent_formula_group_or_nontrivial_definition
@@ -688,6 +808,7 @@ model_establishment_solution_narrative:
         - independent_structural_reduction
         - independent_numerical_parameter_evidence
         - independent_solver_stage
+        - independent_result_task_with_distinct_answer_or_interpretation
         - downstream_text_requires_clear_local_anchor
         - merged_long_argument_would_reduce_recoverability
       keep_continuous_when_all:
@@ -742,6 +863,12 @@ model_establishment_solution_narrative:
     principle: >-
       正文篇幅按“对模型成立、求解方法、结果可信和最终答案的决定性”分配，而不是平均分配给所有公式、算法和结果；
       详写意味着关键信息链完整，不等于字数更长。
+    role_allocation_review: >-
+      写作前先按独立数学任务分配 MODEL/SOLVE/RESULT/VALIDATE 内容，再确定需要三级标题的关键任务；
+      MODEL 优先保留非显然建模理由、公式桥接与决定性约束，SOLVE 优先说明本题特定 solver 适配与计算前提，
+      RESULT 优先呈现直接答案及其局部解释，VALIDATE 仅对实际证据支持的风险或对照展开。
+      不因普通变量定义、单一图表、通用算法知识占据篇幅而压缩核心推导与结果含义；
+      也不设置各功能槽的字数、图数和标题数量配额。
     expand_when_any:
       - determines_model_structure
       - determines_predicate_or_boundary
@@ -878,6 +1005,31 @@ model_establishment_solution_narrative:
     closure_rule: >-
       当图承担当前局部任务的关键证据且前文尚未完成 answer link 时，可用一句简短语言收回当前结论、参数区间、答案或下一步输入；
       若前一句已经完成收束，不重复总结。
+    cumcm_evidence_slot_placement:
+      principle: >-
+        优先将图表放在它首次支撑关键数学判断或答案的位置，而不是根据图型、文件名、
+        来源工作簿或 Figure level 机械分类；同一图表原则上在主要落点呈现一次，其他章节按编号回指。
+      default_by_primary_role:
+        model: 机理、几何、网络结构及关键约束来源示意，支撑模型关系和判据。
+        solve: 算法实际计算逻辑、必要的离散精度、残差、收敛和可行性证据。
+        result: 本问直接答案、最优方案、时空轨迹、预测、分布及决定性比较。
+        validate: 独立敏感性、鲁棒性、外样本、替代模型及同模型多算法对照证据。
+      exception_rule: >-
+        若当前图实际承担另一功能槽的核心推断，则按真实 Figure role 与正文消费位置就地放置；
+        同形态参数曲线可分别用于 SOLVE 的数值精度选择与 VALIDATE 的结论稳健性。
+        主计算内在数值合法性不自动等于 03B 结果深化；收敛图不能单独证明全局最优。
+      reuse_existing_evidence: >-
+        复用 current 模型论文框架的二/三级规划、论文与图表映射和既有 Figure ID、Figure Contract 的
+        Core conclusion、Paper location、Caption duty；不新增强制记录表、数据来源或语义位置校验器。
+        只有已验收的 current 数值/图证据可入文，03B 缺失时不得补造敏感性与对照图。
+      figure_table_prose_rule: >-
+        图表应紧邻首次有效引用与决定性解释；图题/表题识别对象及比较口径，
+        轴/图例/表头/表注负责读数，正文解释关键值、趋势、差异、题意与证据边界；
+        精确单点结果优先文字或表格，不机械将全部结果制成图，也不连续裸堆图表。
+      revision_boundary: >-
+        只修改图表论文落点、caption 或邻近正文时，不使已批准数学模型或 accepted 数值自动失效，
+        也不触发主计算或 03B 重算；但相应 Figure/Framework、LaTeX source bundle、
+        结果审计与编译证明须按已有 stale 和 hash 规则同步。
     placement_preferences:
       - introduce_local_role -> figure -> nearby_feature_value_question_link_reason -> next_local_task
       - short_introduction -> decisive_value_when_needed -> figure -> interpretation_and_closure
@@ -1066,6 +1218,11 @@ subsection_granularity:
     - model_solution
     - result_analysis
     - optional_validation_sensitivity_or_robustness
+  cumcm_default_second_level_authority: model_establishment_solution_narrative.within_question_subsection_architecture.cumcm_default_second_level
+  cumcm_third_level_readability_authority: model_establishment_solution_narrative.within_question_subsection_architecture.third_level_judge_readability
+  result_third_level_rule: >-
+    模型求解结果与分析允许在存在多个独立结果任务、不同方案或可单独回指的核心解释时设置三级标题；
+    只有一张普通结果图或单个数值时不因此独立设标题，不把结果解释全部推迟到模型检验。
   review_triggers:
     - more_than_four_second_level_subsections_without_independent_argument_need
     - subsection_contains_only_one_formula_table_or_figure
