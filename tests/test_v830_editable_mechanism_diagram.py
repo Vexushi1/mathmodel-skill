@@ -303,7 +303,7 @@ HANDOFF_AUTHORITY_REWRITES = {
         ("        预登记到正文的盘点、落位和实际引用回填统一消费 modules/05_writing/paper_writing_protocol.md#13.0-CUMCM-图表的正文落点先论证职责后图型，非 CUMCM 使用自身实际骨架。\n", ""),
     ),
     "modules/06_review_delivery.md": (
-        ("- 按 Protocol §13.0 核对本范围前期图表登记的实际去向：拟入文对象是否已采用或有明确合并、移位、省略、弃用／待办处置，实际章节、引用和邻近解释是否兑现支撑判断；缺项不冒充完成，单问复核不宣称全文闭合；\n", ""),
+        ("- 按 Protocol §13.0 核对预登记与入文；\n", ""),
     ),
 }
 

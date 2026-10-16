@@ -12,6 +12,11 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = str(ROOT / "scripts")
 if SCRIPTS not in sys.path:
     sys.path.insert(0, SCRIPTS)
+TESTS = str(Path(__file__).resolve().parent)
+if TESTS not in sys.path:
+    sys.path.insert(0, TESTS)
+
+from reading_plan_evidence import FIGURE_HANDOFF_AUTHORITY_VERSIONS, FIGURE_HANDOFF_WRITING_DELTAS
 
 
 def load_runtime():
@@ -48,6 +53,22 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
             self.assertNotIn(comparison_trigger, previous)
             self.assertEqual(writing.get("fallback_triggers"), [*previous[:-1], comparison_trigger, previous[-1]])
             writing["fallback_triggers"] = list(previous)
+            # v10.19.3 adds exactly three question-stage handoff declarations.
+            # Actual values come from the real resolver; expectations are the
+            # separately pinned deltas, whose old values must also match the
+            # unchanged historical golden before inverse projection.
+            self.assertEqual(plan.get("version"), FIGURE_HANDOFF_AUTHORITY_VERSIONS["skill"])
+            old_stage = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][4]
+            current_stage = writing["authoring_sequence"][4]
+            self.assertEqual(old_stage["id"], "question_model_solution_result_validation")
+            self.assertEqual(current_stage["id"], old_stage["id"])
+            for path, previous_value, current_value in FIGURE_HANDOFF_WRITING_DELTAS:
+                baseline, candidate = old_stage, current_stage
+                for key in path[:-1]:
+                    baseline, candidate = baseline[key], candidate[key]
+                self.assertEqual(baseline[path[-1]], previous_value)
+                self.assertEqual(candidate[path[-1]], current_value)
+                candidate[path[-1]] = copy.deepcopy(previous_value)
         return {
             "load_order": list(plan.get("load_order", [])),
             "contracts": list(plan.get("contracts", [])),
@@ -73,6 +94,57 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 kwargs = {"primary": "mechanism"} if intent == "full_workflow" else {}
                 actual = self.runtime.resolve_runtime(intent, competition="CUMCM", **kwargs)
                 self.assertEqual(self._projection(actual), expected)
+
+    def test_handoff_projection_preserves_resolver_and_golden_inputs(self):
+        plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
+        before = copy.deepcopy((plan, self.golden, FIGURE_HANDOFF_WRITING_DELTAS))
+        self.assertEqual(self._projection(plan), self.golden["routes"]["latex"])
+        self.assertEqual((plan, self.golden, FIGURE_HANDOFF_WRITING_DELTAS), before)
+
+    def test_handoff_projection_rejects_unregistered_question_changes(self):
+        plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
+        for mutation in ("extra_read", "read_order", "missing_read", "preflight_gate",
+                         "completion_gate", "dispatch", "stage_order", "version"):
+            with self.subTest(mutation=mutation):
+                altered = copy.deepcopy(plan)
+                writing = altered["writing_runtime"]
+                stage = writing["authoring_sequence"][4]
+                preflight = stage["before_write_preflight"]
+                if mutation == "extra_read":
+                    preflight["read_now"].append("core/writing_reasoning_contract.yaml")
+                elif mutation == "read_order":
+                    preflight["read_now"].reverse()
+                elif mutation == "missing_read":
+                    preflight["read_now"].pop()
+                elif mutation == "preflight_gate":
+                    preflight["gate"] += "未授权规则。"
+                elif mutation == "completion_gate":
+                    stage["gate"] = "已完成"
+                elif mutation == "dispatch":
+                    preflight["dispatch_from_project_state"] = False
+                elif mutation == "stage_order":
+                    writing["authoring_sequence"][3:5] = reversed(writing["authoring_sequence"][3:5])
+                else:
+                    altered["version"] = "10.19.4"
+                with self.assertRaises(AssertionError):
+                    self.assertEqual(self._projection(altered), self.golden["routes"]["latex"])
+
+    def test_handoff_projection_rejects_historical_baseline_drift(self):
+        plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
+        original = copy.deepcopy(self.golden)
+        try:
+            for path, _, _ in FIGURE_HANDOFF_WRITING_DELTAS:
+                with self.subTest(path=path):
+                    self.golden = copy.deepcopy(original)
+                    target = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][4]
+                    for key in path[:-1]:
+                        target = target[key]
+                    value = target[path[-1]]
+                    target[path[-1]] = [*value, "unapproved"] if isinstance(value, list) else value + "未授权规则。"
+                    with self.assertRaises(AssertionError):
+                        self._projection(plan)
+        finally:
+            self.golden = original
 
     def test_cumcm_aliases_keep_canonical_runtime_output(self):
         expected = self.golden["routes"]["latex"]
