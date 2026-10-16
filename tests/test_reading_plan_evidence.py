@@ -958,6 +958,19 @@ class AuditClosureProjectionTests(unittest.TestCase):
                 # This class has no compare() fixture helper. Exercise the real
                 # comparator directly so every approved version transition and
                 # every unrelated runtime field still receives strict checking.
+                # compare() validates the actual P2 reading-plan contract
+                # before projecting legacy fields. Supply the same complete
+                # plan fixture used by the existing full-comparison tests.
+                reading_plan = {
+                    "metrics": {
+                        "planned_skill_read_bytes": 1,
+                        "planned_project_read_bytes": 0,
+                    },
+                    "profile": "test",
+                    "status": "planned",
+                }
+                old["reading_plan"] = deepcopy(reading_plan)
+                new["reading_plan"] = deepcopy(reading_plan)
                 row = EVIDENCE.compare(
                     [{"id": case, "plan": old, "legacy_declared_bytes": 1}],
                     [{"id": case, "plan": new, "legacy_declared_bytes": 1,
