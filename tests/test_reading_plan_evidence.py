@@ -981,6 +981,114 @@ class AuditClosureProjectionTests(unittest.TestCase):
                 self.assertIn("10.18.3", [x["candidate"] for x in row["expected_legacy_changes"]
                                           if x["path"] == "version"])
 
+    def figure_handoff_pair(self, case):
+        if case == "cumcm_writing":
+            old, new = self.comparison_writing_pair()
+            for runtime in (new["writing_runtime"], new["runtime_plan"]["writing_runtime"]):
+                stage = runtime["authoring_sequence"][4]
+                for path, previous, current in EVIDENCE.FIGURE_HANDOFF_WRITING_DELTAS:
+                    target = stage
+                    for key in path[:-1]:
+                        target = target[key]
+                    self.assertEqual(target[path[-1]], previous)
+                    target[path[-1]] = deepcopy(current)
+        else:
+            old, new = self.pair(case)
+            self.prepare_b2c(old, new)
+            new["assurance"]["schema_version"] = "2.5.0"
+        new["version"] = "10.19.3"
+        for plan in (old, new):
+            plan["reading_plan"] = {
+                "metrics": {"planned_skill_read_bytes": 1, "planned_project_read_bytes": 0},
+                "profile": "test", "status": "planned",
+            }
+        return old, new
+
+    def test_v10193_handoff_carrier_composes_without_rewriting_history(self):
+        carriers = deepcopy(EVIDENCE.FIGURE_HANDOFF_AUTHORITY_VERSIONS)
+        self.assertEqual(carriers, {**EVIDENCE.WRITING_PATCH_AUTHORITY_VERSIONS, "skill": "10.19.3"})
+        self.assertEqual(EVIDENCE.WRITING_PATCH_AUTHORITY_VERSIONS["skill"], "10.18.3")
+        for case in (*sorted(EVIDENCE.A7_HYDRATED_PROVENANCE_CASES), "facts_unscoped", "cumcm_writing"):
+            with self.subTest(case=case):
+                old, new = self.figure_handoff_pair(case)
+                saved = deepcopy((old, new, carriers))
+                row = EVIDENCE.compare(
+                    [{"id": case, "plan": old, "legacy_declared_bytes": 1}],
+                    [{"id": case, "plan": new, "legacy_declared_bytes": 1,
+                      "authority_versions": carriers}],
+                )[0]
+                self.assertFalse(row["legacy_behavior_equal"])
+                self.assertTrue(row["legacy_behavior_equal_except_approved_changes"])
+                self.assertEqual(row["unexpected_legacy_changes"], [])
+                version_changes = [item for item in row["expected_legacy_changes"] if item["path"] == "version"]
+                self.assertEqual([item["candidate"] for item in version_changes], ["10.19.3"])
+                self.assertEqual(version_changes[0]["authority_versions"], carriers)
+                handoff_changes = [item for item in row["expected_legacy_changes"]
+                                   if "authoring_sequence.4." in item["path"]]
+                self.assertEqual(len(handoff_changes), 6 if case == "cumcm_writing" else 0)
+                self.assertEqual((old, new, carriers), saved)
+
+    def test_v10193_handoff_carrier_rejects_unregistered_decisions_and_versions(self):
+        carriers = deepcopy(EVIDENCE.FIGURE_HANDOFF_AUTHORITY_VERSIONS)
+        for case in ("facts_current", "cumcm_writing"):
+            with self.subTest(case=case):
+                old, new = self.figure_handoff_pair(case)
+                for bad in (None, {**carriers, "skill": "10.19.4"},
+                            {**carriers, "project_state": "8.17.0"},
+                            {**carriers, "writing_reasoning": "1.12.0"},
+                            {k: v for k, v in carriers.items() if k != "runtime_assurance"}):
+                    self.assertEqual(EVIDENCE.approved_figure_handoff_carrier_change(
+                        case, old, new, bad), (new, []))
+                for field, value in (("version", "10.19.4"), ("formal_delivery", True),
+                                     ("load_order", ["scripts/semantic_identity.py"]),
+                                     ("pre_delivery_gates", [])):
+                    changed = deepcopy(new)
+                    changed[field] = value
+                    self.assertEqual(EVIDENCE.approved_figure_handoff_carrier_change(
+                        case, old, changed, carriers), (changed, []))
+                changed = deepcopy(new)
+                changed["assurance"]["qualification"] = "accepted"
+                self.assertEqual(EVIDENCE.approved_figure_handoff_carrier_change(
+                    case, old, changed, carriers), (changed, []))
+                if case == "cumcm_writing":
+                    changed = deepcopy(new)
+                    changed["runtime_plan"]["writing_runtime"]["full_reasoning_authority_preloaded"] = True
+                    self.assertEqual(EVIDENCE.approved_figure_handoff_carrier_change(
+                        case, old, changed, carriers), (changed, []))
+        old, new = self.figure_handoff_pair("facts_current")
+        self.assertEqual(EVIDENCE.approved_figure_handoff_carrier_change(
+            "future_case", old, new, carriers), (new, []))
+
+    def test_v10193_handoff_projection_pins_each_leaf_and_keeps_other_stage_fields(self):
+        carriers = EVIDENCE.FIGURE_HANDOFF_AUTHORITY_VERSIONS
+        for location in ("top", "nested"):
+            for mutation in ("extra_read", "read_order", "missing_read", "preflight_gate",
+                             "completion_gate", "dispatch", "missing_stage", "old_gate"):
+                with self.subTest(location=location, mutation=mutation):
+                    old, new = self.figure_handoff_pair("cumcm_writing")
+                    runtime = new["writing_runtime"] if location == "top" else new["runtime_plan"]["writing_runtime"]
+                    stage = runtime["authoring_sequence"][4]
+                    preflight = stage["before_write_preflight"]
+                    if mutation == "extra_read":
+                        preflight["read_now"].append("core/writing_reasoning_contract.yaml")
+                    elif mutation == "read_order":
+                        preflight["read_now"].reverse()
+                    elif mutation == "missing_read":
+                        preflight["read_now"].pop()
+                    elif mutation == "preflight_gate":
+                        preflight["gate"] += "额外规则。"
+                    elif mutation == "completion_gate":
+                        stage["gate"] = "已完成"
+                    elif mutation == "dispatch":
+                        preflight["dispatch_from_project_state"] = False
+                    elif mutation == "missing_stage":
+                        runtime["authoring_sequence"].pop(4)
+                    else:
+                        baseline = old["writing_runtime"] if location == "top" else old["runtime_plan"]["writing_runtime"]
+                        baseline["authoring_sequence"][4]["gate"] += "未授权基线变化。"
+                    self.assertEqual(EVIDENCE.approved_figure_handoff_carrier_change(
+                        "cumcm_writing", old, new, carriers), (new, []))
+
     def comparison_writing_pair(self):
         old, new = self.pair("cumcm_writing")
         new.pop("solver_backend")

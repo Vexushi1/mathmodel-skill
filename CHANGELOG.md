@@ -1,6 +1,13 @@
 # Changelog
 
-## 10.18.3
+## 10.19.3
+
+- Connect figure/table preregistration to later paper writing through the existing Framework and Figure Contract: early registration records the question, supported judgment and expected function without requiring a draft, frozen subsection or fabricated source coordinate.
+- At each question's writing entry, inventory all relevant registrations, including global, shared, unresolved and pending items; use the current template and accepted evidence to assign concrete locations, then read and explain the relevant objects by section. Reconcile actual use, moves, merges, replacements, omissions and remaining work within the touched scope.
+- Reuse the existing writing preflight and figure/table review to inspect the handoff, actual references and explanatory role. Keep one detailed Authority in Paper Writing Protocol; do not add a state, schema, workbook field, machine gate, resolver row selector, standalone handoff file or extra image approval.
+- Preserve ordinary tables, early mechanism diagrams, conditional 03B evidence, legacy project scope and existing B2 bindings, selected-carrier requirements and human review boundaries. Position-only changes refresh affected paper evidence without reapproving models or rerunning accepted numerical work. Skill 10.19.3 is the user-specified target; independent protocol versions and historical release records remain unchanged.
+
+## Previous release: 10.18.3
 
 - Clarify the preferred CUMCM question-local MODEL → SOLVE → RESULT → optional VALIDATE subsection structure: “XX模型的建立”, “模型求解”, “模型求解结果与分析”, and evidence-conditioned “模型检验” or “模型检验与对照”. Keep the normal complex-question second-level titles and order stable for reviewer navigation while permitting justified compact, inherited and mathematical/template exceptions.
 - Allocate third-level headings and exposition by independent modeling, solver, result and validation tasks. Apply Judge Readability and Heading Compression primarily to tertiary headings: task and object first, retain essential technical distinctions, and avoid jargon-only or generic titles. Expand decisive derivations, model boundaries and result meaning; compress generic algorithm background and low-value formula/figure repetition without heading, word-count or chart quotas.

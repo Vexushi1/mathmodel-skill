@@ -25,6 +25,8 @@
 | Change class | pure_visual / semantic；semantic 必须与 current Authority 比较 |
 | Reviewer risk | 没有该图时评委可能质疑之处 |
 | Caption duty | 图注必须解释的机制、边界、推导或临界状态 |
-| Paper location | 正文章节位置 |
+| Paper location | 预登记对应小问／共享范围＋预期论证功能；具体小节未定可说明原因，写作时落实当前实际章节路径 |
 
 旧合同不强制补齐 draw.io 字段；只有新建或主动重绘的 draw.io 图使用这些可选项。Spec 与 `.drawio` 是渲染/编辑载体，不是模型或数值事实源。
+
+机理图可在求解前预登记；非数值图不为登记补造工作簿。实际引用只在入文后登记，预登记不自动形成入文批准；写作交接统一见 `modules/05_writing/paper_writing_protocol.md` §13.0。
