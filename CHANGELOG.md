@@ -1,6 +1,13 @@
 # Changelog
 
-## 10.18.2
+## 10.18.3
+
+- Clarify the preferred CUMCM question-local MODEL → SOLVE → RESULT → optional VALIDATE subsection structure: “XX模型的建立”, “模型求解”, “模型求解结果与分析”, and evidence-conditioned “模型检验” or “模型检验与对照”. Keep the normal complex-question second-level titles and order stable for reviewer navigation while permitting justified compact, inherited and mathematical/template exceptions.
+- Allocate third-level headings and exposition by independent modeling, solver, result and validation tasks. Apply Judge Readability and Heading Compression primarily to tertiary headings: task and object first, retain essential technical distinctions, and avoid jargon-only or generic titles. Expand decisive derivations, model boundaries and result meaning; compress generic algorithm background and low-value formula/figure repetition without heading, word-count or chart quotas.
+- Place figures and tables near the mathematical claim they actually support, using existing Figure Contract, accepted evidence and project Framework mapping. Keep main numerical validity distinct from conditional 03B sensitivity/comparator analysis; do not introduce new machine gates, workbook requirements or solver reruns.
+- Preserve the fixed CUMCM top-level template and maintained smoke examples, existing Writing Reasoning schema compatibility family, independent State/receipt protocol versions and accepted user-project artifacts; no forced project migration or GitHub Release publication.
+
+## Previous release: 10.18.2
 
 - Route generic paper drafts through the default LaTeX writing path while preserving explicit Word/DOCX selection and explicit intent precedence. Keep carrier inference shared by the assured and legacy resolvers without granting execution or approval.
 - Select current reproducibility artifacts from the existing analysis disposition and output contract. Exclude inactive historical 03B outputs and reject manually repackaged inactive files, while retaining current sources, attachments, helpers and bound compile evidence; original files remain untouched.

@@ -5,7 +5,9 @@ import unittest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED = "10.18.2"
+# P9 protects carrier synchronization and historical compatibility, not a frozen
+# current patch number. The exact current release is pinned by the version matrix.
+EXPECTED = str(yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))["skill_version"])
 
 
 class P9ReleaseCloseoutTests(unittest.TestCase):

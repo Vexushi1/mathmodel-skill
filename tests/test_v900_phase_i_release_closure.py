@@ -11,7 +11,10 @@ class PhaseII5ReleaseClosureTests(unittest.TestCase):
         bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
         matrix = yaml.safe_load((ROOT / "tests/fixtures/v900_phase_i_migration_matrix.yaml").read_text(encoding="utf-8"))
         contract = (ROOT / "docs/v900_migration_contract.md").read_text(encoding="utf-8")
-        self.assertEqual(str(bootstrap["skill_version"]), "10.18.2")
+        self.assertGreaterEqual(
+            tuple(int(part) for part in str(bootstrap["skill_version"]).split(".")),
+            (9, 0, 0),
+        )
         self.assertEqual(matrix["schema_version"], "1.3.0")
         self.assertEqual(matrix["baseline_skill_version"], "8.9.0")
         self.assertEqual(matrix["current_skill_version"], "9.0.0")

@@ -9,8 +9,10 @@ class TestV910PublicationRendering(unittest.TestCase):
     def test_v910_release_is_preserved_after_current_release(self):
         bootstrap = (ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8")
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        self.assertIn("skill_version: 10.18.2", bootstrap)
-        self.assertTrue(changelog.startswith("# Changelog\n\n## 10.18.2\n"))
+        current = re.search(r"(?m)^skill_version:\s*(\d+\.\d+\.\d+)\s*$", bootstrap)
+        self.assertIsNotNone(current)
+        self.assertTrue(changelog.startswith(f"# Changelog\n\n## {current.group(1)}\n"))
+        self.assertIn("## Previous release: 9.1.0", changelog)
         self.assertIn("## Previous release: 9.7.1", changelog)
         self.assertIn("## Previous release: 9.4.1", changelog)
         self.assertIn("## Previous release: 9.4.0", changelog)
