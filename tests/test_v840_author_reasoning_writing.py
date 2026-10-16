@@ -51,7 +51,7 @@ class WritingReasoningScopeTests(unittest.TestCase):
                         "只有真实且有证据支持的独立验证才设置相应二级标题：没有 comparator 时用“模型检验”，"
                         "实际完成不同模型或同模型不同算法的可比对照时用“模型检验与对照”；"
                         "都没有独立任务时不凑第四节。主计算收敛/离散精度说明可以就地属于“模型求解”，"
-                        "不自动解释成参数鲁棒性或多模型检验。\\n\\n"
+                        "不自动解释成参数鲁棒性或多模型检验。\n\n"
                     )
                     self.assertEqual(body.count(approved), 1)
                     body = body.replace(approved, "", 1)
