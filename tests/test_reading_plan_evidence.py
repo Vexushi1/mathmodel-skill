@@ -955,11 +955,14 @@ class AuditClosureProjectionTests(unittest.TestCase):
                     self.assertEqual(EVIDENCE.approved_writing_patch_carrier_change(
                         case, old, new, bad
                     ), (new, []))
-                row = self.compare(
-                    {"id": case, "plan": old, "legacy_declared_bytes": 1},
-                    {"id": case, "plan": new, "legacy_declared_bytes": 1,
-                     "authority_versions": carriers},
-                )
+                # This class has no compare() fixture helper. Exercise the real
+                # comparator directly so every approved version transition and
+                # every unrelated runtime field still receives strict checking.
+                row = EVIDENCE.compare(
+                    [{"id": case, "plan": old, "legacy_declared_bytes": 1}],
+                    [{"id": case, "plan": new, "legacy_declared_bytes": 1,
+                      "authority_versions": carriers}],
+                )[0]
                 self.assertTrue(row["legacy_behavior_equal_except_approved_changes"])
                 self.assertEqual(row["unexpected_legacy_changes"], [])
                 self.assertIn("10.18.3", [x["candidate"] for x in row["expected_legacy_changes"]
