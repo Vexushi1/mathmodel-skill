@@ -102,6 +102,8 @@ current Framework + Mechanism Contract
 
 每张结果图至少记录：Core conclusion、Evidence level、Primary question、Figure role、Available evidence dimensions、Evidence structure、Figure level、Candidate visual structures、Selected visual structure、Basic-form challenge、Composite encoding、Scientific Rendering Profile、In-figure title=`none`、论文 caption、Panel map、Layout decision、Split decision、Enhancement、Enhancement rationale、Source workbook、Worksheet、Required headers、Expected positions（可选）、MATLAB script、Statistics/error、Reviewer risk、Paper location 和 Caption duty。
 
+图表制作时，`Paper location` 先交接“对应小问或共享范围＋预期论证功能”，例如“问题一／求解精度依据；具体小节写作时确定”；归属待定时说明原因，正文尚未写成时不伪填实际引用或源码行号。`Figure role` 仍描述图形证据用途，不改作章节槽。写作如何消费预登记、落实位置并回填，统一服从 `modules/05_writing/paper_writing_protocol.md` §13.0；预登记不代表图片已生成、已导出或已批准入文。
+
 结果证据优先来自本问 current 合法工作簿集合：
 
 - 主结果、决策变量、状态轨迹、空间/网络状态、预测明细、基础误差和主质量证据来自必需的 `问题X求解结果.xlsx`；
@@ -457,4 +459,4 @@ end
 
 预处理图后正文必须解释原始问题、处理机制、关键参数、验证误差或信息保留情况，以及处理后数据为何可以进入后续模型；结果图后解释趋势、关键数值、机制、稳定范围或失效边界。正式图片进入 LaTeX 时按需人工导出。
 
-以同一 Figure ID 闭合当前 accepted 来源、工作表与精确字段、绘图脚本、实际入文图片、caption、邻近正文编号引用和框架登记；有真实记录键、配对或排序语义时一并保留其依据，单位与统计口径不得在调图中改变。计划中的文件名不等于已生成或已批准的图片。来源、脚本或图片变化后按既有同步与 stale 规则刷新受影响登记和引用，不凭静态检查自动恢复入文批准；普通正文组织仍服从 Writing Authority。
+以同一 Figure ID 闭合当前 accepted 来源、工作表与精确字段、绘图脚本、实际入文图片、caption、邻近正文编号引用和框架登记；有真实记录键、配对或排序语义时一并保留其依据，单位与统计口径不得在调图中改变。计划中的文件名不等于已生成或已批准的图片。来源、脚本或图片变化后按既有同步与 stale 规则刷新受影响登记和引用，不凭静态检查自动恢复入文批准；正文交接与位置调整按 Writing Protocol §13.0 执行。

@@ -1022,6 +1022,7 @@ model_establishment_solution_narrative:
         复用 current 模型论文框架的二/三级规划、论文与图表映射和既有 Figure ID、Figure Contract 的
         Core conclusion、Paper location、Caption duty；不新增强制记录表、数据来源或语义位置校验器。
         只有已验收的 current 数值/图证据可入文，03B 缺失时不得补造敏感性与对照图。
+        预登记到正文的盘点、落位和实际引用回填统一消费 modules/05_writing/paper_writing_protocol.md#13.0-CUMCM-图表的正文落点先论证职责后图型，非 CUMCM 使用自身实际骨架。
       figure_table_prose_rule: >-
         图表应紧邻首次有效引用与决定性解释；图题/表题识别对象及比较口径，
         轴/图例/表头/表注负责读数，正文解释关键值、趋势、差异、题意与证据边界；

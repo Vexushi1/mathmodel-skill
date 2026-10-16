@@ -31,9 +31,11 @@
 | Statistics/error | 误差线、区间、样本量和统计口径 |
 | Export files | 未导出时留空；用户实际运行、人工确认并按需导出后登记真实文件，如项目级 `figures/qx_*.pdf`、`.png` 或 `.svg`；预定名称留在图表计划中 |
 | Framework registry | `模型论文框架.md` 中的对应图表登记 |
-| Paper location | 正文章节 |
+| Paper location | 预登记对应小问／共享范围＋预期论证功能；具体小节未定可说明原因，写作时落实当前实际章节路径 |
 | Reviewer risk | 可能质疑点与处理 |
 
 Figure Contract 默认登记在 `模型论文框架.md`，不生成独立 `figure_evidence` 文件。以同一 Figure ID 复用来源、caption、实际入文文件与正文引用；静态检查和用户运行/外观确认的进度记入现有闭环表或框架待办，静态通过不等于 `approved_figures`。`Candidate visual structures / Basic-form challenge / Scientific value rationale` 只记录科研表达决策，不变成样式参数表；Enhancement 只记录决策与理由，**不记录 inset 坐标、透明度等 MATLAB 实现参数**。
+
+预登记不要求先写正文或提前确定源码行号，实际引用只在入文后登记；写作交接统一见 `modules/05_writing/paper_writing_protocol.md` §13.0。
 
 合同说明这张图如何充分、清楚地支持当前结论。清楚的单折线、点图或条形图可直接成为核心图；多编码或多面板只有真实互补且更易读时才采用。同一数据的线与点不登记成两份独立证据。

@@ -144,6 +144,30 @@ class B2b4FormalFigureGateTests(unittest.TestCase):
         self.assertEqual(gate['status'], 'failed', gate)
         self.assertEqual(gate['figure_graphic_bindings'], [])
 
+    def test_textual_handoff_disposition_cannot_discharge_a_bound_figure(self):
+        self.assertEqual(claims.formal_figure_gate(self.root)['status'], 'passed')
+        policy = deepcopy(self.state['paper_framework']['claim_consumption_policy'])
+        numerical = deepcopy(self.state['subproblems'])
+        self.registry_row = self.registry_row.replace(
+            'Q1 result', '已改用表格呈现，旧图不再入文')
+        self.latex.joinpath('result.tex').write_text(
+            'Result evidence 100.00 ratio.\n'
+            '\\begin{tabular}{lr}\nResult & 100.00 \\\\\n\\end{tabular}\n',
+            encoding='utf-8',
+        )
+        self.save_projection()
+        before = bytes_in(self.root)
+        gate = claims.formal_figure_gate(self.root)
+        self.assertEqual(gate['status'], 'failed', gate)
+        self.assertEqual(gate['b1_status'], 'evidence_checked', gate)
+        self.assertIn('Figure identity is not matched: Q1_F01', gate['issues'])
+        self.assertEqual(gate['figure_graphic_bindings'], [])
+        self.assertEqual(gate['figure_image_paths'], [])
+        self.assertEqual(
+            self.state['paper_framework']['claim_consumption_policy'], policy)
+        self.assertEqual(self.state['subproblems'], numerical)
+        self.assertEqual(bytes_in(self.root), before)
+
     def test_located_nonclaim_stale_fragment_preserves_text_gate_condition(self):
         self.fragments.append({
             'id': 'paper.context.q1', 'kind': 'paper_section', 'scope': 'Q1',

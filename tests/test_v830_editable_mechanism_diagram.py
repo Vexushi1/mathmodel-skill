@@ -281,6 +281,33 @@ Module 02 的 Comparator 按具体比较问题关联稳定检验 ID。数学／�
 }
 
 
+# Invert only the approved v10.19.3 handoff additions before applying the
+# historical projections. Each literal is required exactly once; unchanged
+# protected hashes still reject unrelated edits to these writing authorities.
+HANDOFF_AUTHORITY_REWRITES = {
+    "modules/05_writing/paper_writing_protocol.md": (
+        ("前期图表预登记是后续写作的输入。每问开始前按 §13.0 盘点相关登记并安排用途，不能只凭图型或聊天记忆临时找图。\n\n", ""),
+        ("""**预登记到写作的交接。** 图表可以先于论文制作；前期在现有“论文位置”／Paper location 中登记“所属小问或共享范围＋预期论证功能”，例如“问题二／结果与分析，具体小节写作时确定”。尚无正文时，“正文引用位置”留空，不预写物理行号、页码，不提前锁死三级标题；归属未定时在原位置或既有待办中说明。Figure role 保持原有证据用途定义，不改成章节槽位。
+
+1. **该问开始先盘点。** 结合当前模板、active 骨架和标题规划，读取本问全部相关登记，包括仅在全局证据链出现、跨问共享、位置空缺或待定的对象，复用同一 Figure ID／已有表标识及来源。不能先按“结果节图”筛选而漏掉未定项。全论文或跨聊天恢复仍按现行要求读取完整框架；随后再按本问与功能节定向读取。
+2. **安排后分节消费。** 按真实支撑判断和 current 证据确定主要展示位置及解释任务，再按标识检索必要登记行、表头、合同和证据。当前 resolver 不自动筛选图表行；这是现有项目文本的读取动作。未运行、未导出、未确认或缺相应 accepted 证据的对象只能保留待办或舍弃，不能因排好位置自动变成可入文。机理图沿用自身来源与审阅要求，不补造工作簿。
+3. **该问完成核对去向。** 对本范围拟入文对象明确采用、合并、拆分、移位、省略、弃用或仍待完成的实际处置；在现有映射、当前写作选择或待办中记必要理由，不新增记录表或状态枚举。采用后将“论文位置”更新为真实章节／小节标题路径，并回填实际 caption 与正文引用锚点；数字编号只作辅助。合并或拆分保留新旧对象及来源关系，其他章节回指主要展示位置，不重复计作新证据。省略时确认必要答案与证据仍有适当表达，不强迫全部图表入文；只写一问不宣称全文已闭合。
+
+普通表格沿用已有表标识、caption/label 或唯一名称，在现有标题规划／写作选择中承接用途和位置，不插入 Figure 九列表，不强制图片文件、MATLAB 绘图脚本或 B2 Figure 绑定。已启用 B2 的图片被替换或移除时，原绑定、Paper Fragment 和 policy 要求仍按原规则处理；文字处置或改成表格不等于原 Figure 门已通过，不自动关闭 policy。协议不能表达的替代保留为原流程未闭合项。
+
+旧项目不补造历史预登记，也不批量迁移；本次触及的写作范围按现有证据补充即可。归属裁决不增加逐图用户审批；图片本身的既有人工确认要求保持。上述交接适用于当前实际论文骨架，非 CUMCM 不强套本节列举的 CUMCM 字面标题。
+
+""", ""),
+    ),
+    "core/writing_reasoning_contract.yaml": (
+        ("        预登记到正文的盘点、落位和实际引用回填统一消费 modules/05_writing/paper_writing_protocol.md#13.0-CUMCM-图表的正文落点先论证职责后图型，非 CUMCM 使用自身实际骨架。\n", ""),
+    ),
+    "modules/06_review_delivery.md": (
+        ("- 按 Protocol §13.0 核对预登记与入文；\n", ""),
+    ),
+}
+
+
 class MechanismSpecTests(unittest.TestCase):
     def test_template_is_problem_specific_and_machine_readable(self):
         path = ROOT / "templates/figure/mechanism_drawio_spec.yaml"
@@ -619,6 +646,13 @@ class ContractAndDriftTests(unittest.TestCase):
         "scripts/validate_code_delivery.py": "2877ba23d4b52cedafb8508e47a5afe0b2ece975",
     }
 
+    def prior_handoff_text(self, relative):
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        for current, baseline in HANDOFF_AUTHORITY_REWRITES.get(relative, ()):
+            self.assertEqual(text.count(current), 1, (relative, current))
+            text = text.replace(current, baseline, 1)
+        return text
+
     def test_protected_authorities_have_not_drifted(self):
         # W1 proof-body preservation, judge-readable heading/terminology, Part D table/figure
         # readability, Part C derivation closure, Part E narrative, and approved Part F heading-depth changes
@@ -646,7 +680,7 @@ class ContractAndDriftTests(unittest.TestCase):
             with self.subTest(relative=relative):
                 path = ROOT / relative
                 if relative == protocol:
-                    text = path.read_text(encoding="utf-8")
+                    text = self.prior_handoff_text(relative)
                     for current, baseline in protocol_rewrites:
                         self.assertEqual(text.count(current), 1, current)
                         text = text.replace(current, baseline, 1)
@@ -662,11 +696,16 @@ class ContractAndDriftTests(unittest.TestCase):
                         b"blob " + str(len(data)).encode("ascii") + b"\0" + data
                     ).hexdigest()
                 elif relative in COMPARISON_AUTHORITY_REWRITES:
-                    text = path.read_text(encoding="utf-8")
+                    text = self.prior_handoff_text(relative)
                     for current, baseline in COMPARISON_AUTHORITY_REWRITES[relative]:
                         self.assertEqual(text.count(current), 1, (relative, current))
                         text = text.replace(current, baseline, 1)
                     data = text.encode("utf-8")
+                    actual = hashlib.sha1(
+                        b"blob " + str(len(data)).encode("ascii") + b"\0" + data
+                    ).hexdigest()
+                elif relative in HANDOFF_AUTHORITY_REWRITES:
+                    data = self.prior_handoff_text(relative).encode("utf-8")
                     actual = hashlib.sha1(
                         b"blob " + str(len(data)).encode("ascii") + b"\0" + data
                     ).hexdigest()

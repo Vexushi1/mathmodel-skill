@@ -92,6 +92,25 @@ COMPARISON_AUTHORITY_VERSIONS = {
 AUDIT_PATCH_AUTHORITY_VERSIONS = {**COMPARISON_AUTHORITY_VERSIONS, "skill": "10.18.1"}
 SUBMISSION_PATCH_AUTHORITY_VERSIONS = {**AUDIT_PATCH_AUTHORITY_VERSIONS, "skill": "10.18.2"}
 WRITING_PATCH_AUTHORITY_VERSIONS = {**SUBMISSION_PATCH_AUTHORITY_VERSIONS, "skill": "10.18.3"}
+FIGURE_HANDOFF_AUTHORITY_VERSIONS = {**WRITING_PATCH_AUTHORITY_VERSIONS, "skill": "10.19.3"}
+FIGURE_HANDOFF_WRITING_DELTAS = (
+    (("before_write_preflight", "read_now"),
+     ["current_question_evidence_bundle", "current_model_paper_framework#逐问写作能力预检"],
+     ["current_question_evidence_bundle", "current_model_paper_framework#逐问写作能力预检",
+      "modules/05_writing/paper_writing_protocol.md#13.0-CUMCM-图表的正文落点先论证职责后图型"]),
+    (("before_write_preflight", "gate"),
+     "本问 Formula roles、Core Model Summary、Proposition / Proof、Algorithm presentation 以及所需条件资源均已显式裁决； "
+     "missing/stale 不得静默降级，也不得依赖用户再次提醒能力名称。",
+     "本问 Formula roles、Core Model Summary、Proposition / Proof、Algorithm presentation 以及所需条件资源均已显式裁决； "
+     "图表登记按 Protocol §13.0 完成本问范围盘点与用途裁决，未完成项保留真实待办； "
+     "missing/stale 不得静默降级，也不得依赖用户再次提醒能力名称。"),
+    (("gate",),
+     "当前问题已通过 capability preflight，并完成模型建立理由/适用边界 → 模型闭合 → solver 前提与适配 → 求解结果 → 真实验证/边界 → 直接回答的局部闭环；"
+     "简单题可合并标题并省略已明确裁决为不适用的功能，但不得因未读取而删掉必要功能。",
+     "当前问题已通过 capability preflight，并完成模型建立理由/适用边界 → 模型闭合 → solver 前提与适配 → 求解结果 → 真实验证/边界 → 直接回答的局部闭环；"
+     "按 Protocol §13.0 核对拟入文图表去向并回填实际引用，待办不得冒充完成；"
+     "简单题可合并标题并省略已明确裁决为不适用的功能，但不得因未读取而删掉必要功能。"),
+)
 COMPARISON_WRITING_TRIGGER = "model_or_algorithm_comparison_claim_exceeds_accepted_evidence_scope"
 COMPARISON_WRITING_PREVIOUS_TRIGGERS = (
     "proposition_or_proof_is_being_created_or_revised",
@@ -1025,6 +1044,50 @@ def approved_writing_patch_carrier_change(identifier, old, new, candidate_author
     return projected, changes
 
 
+def approved_figure_handoff_carrier_change(identifier, old, new, candidate_authority_versions):
+    """Project the exact 10.19.3 carrier and six declared question-handoff leaves."""
+    if (candidate_authority_versions != FIGURE_HANDOFF_AUTHORITY_VERSIONS
+            or new.get("version") != FIGURE_HANDOFF_AUTHORITY_VERSIONS["skill"]):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    declaration_changes = []
+    if identifier == "cumcm_writing":
+        for prefix in (("writing_runtime", "authoring_sequence", 4),
+                       ("runtime_plan", "writing_runtime", "authoring_sequence", 4)):
+            for suffix, previous, current in FIGURE_HANDOFF_WRITING_DELTAS:
+                path = (*prefix, *suffix)
+                left, right, target = old, new, predecessor
+                try:
+                    for key in path[:-1]:
+                        left, right, target = left[key], right[key], target[key]
+                    if left[path[-1]] != previous or right[path[-1]] != current:
+                        return deepcopy(new), []
+                    target[path[-1]] = deepcopy(previous)
+                except (KeyError, IndexError, TypeError):
+                    return deepcopy(new), []
+                declaration_changes.append({
+                    "path": ".".join(map(str, path)), "baseline": deepcopy(previous),
+                    "candidate": deepcopy(current),
+                    "approval": "Exact v10.19.3 question figure/table handoff declaration; unrelated leaves remain checked",
+                })
+    predecessor["version"] = WRITING_PATCH_AUTHORITY_VERSIONS["skill"]
+    projected, changes = approved_writing_patch_carrier_change(
+        identifier, old, predecessor, deepcopy(WRITING_PATCH_AUTHORITY_VERSIONS)
+    )
+    if projected != old or not changes:
+        return deepcopy(new), []
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = FIGURE_HANDOFF_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(FIGURE_HANDOFF_AUTHORITY_VERSIONS)
+            change["approval"] = (
+                "Exact user-specified v10.19.3 carrier and declared question-handoff leaves; "
+                "no other runtime decision, qualification, input or delivery field waived"
+            )
+    changes.extend(declaration_changes)
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -1120,6 +1183,9 @@ def compare(before, after):
         projected, writing_patch_changes = approved_writing_patch_carrier_change(
             a["id"], old, projected, b.get("authority_versions"))
         expected.extend(writing_patch_changes)
+        projected, figure_handoff_changes = approved_figure_handoff_carrier_change(
+            a["id"], old, projected, b.get("authority_versions"))
+        expected.extend(figure_handoff_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,
@@ -1157,7 +1223,7 @@ def main():
         "schema_version": 1, "baseline_ref": args.baseline_ref, "candidate_ref": args.candidate_ref,
         "driver_sha256": hashlib.sha256(HERE.read_bytes()).hexdigest(),
         "cases_sha256": hashlib.sha256(HERE.with_name("reading_plan_cases.py").read_bytes()).hexdigest(),
-        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_b2b1_b2b2_b2b3a_b2b3b_b2b3c_b2_patch_b2b4_b2b5_b2b6_b2c_c1_windows_python_ci_windows_matlab_ci_c2_python_ci_performance_d1_d2_e1_v10183_exact_authority_carrier_transitions",
+        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_b2b1_b2b2_b2b3a_b2b3b_b2b3c_b2_patch_b2b4_b2b5_b2b6_b2c_c1_windows_python_ci_windows_matlab_ci_c2_python_ci_performance_d1_d2_e1_v10183_v10193_exact_authority_carrier_transitions",
         "expected_authority_changes": sorted(ALLOWED_CHANGED_AUTHORITIES),
         "approved_b2b6_authority_versions": B2B6_AUTHORITY_VERSIONS,
         "approved_b2c_authority_versions": B2C_AUTHORITY_VERSIONS,
@@ -1172,9 +1238,10 @@ def main():
         "approved_audit_patch_authority_versions": AUDIT_PATCH_AUTHORITY_VERSIONS,
         "approved_submission_patch_authority_versions": SUBMISSION_PATCH_AUTHORITY_VERSIONS,
         "approved_writing_patch_authority_versions": WRITING_PATCH_AUTHORITY_VERSIONS,
+        "approved_figure_handoff_authority_versions": FIGURE_HANDOFF_AUTHORITY_VERSIONS,
         "all_legacy_behavior_equal": all(r["legacy_behavior_equal"] for r in rows),
         "all_legacy_behavior_equal_except_approved_changes": all(r["legacy_behavior_equal_except_approved_changes"] for r in rows),
-        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before exact A3/A7/v9.7/v10/v10.1/A1/A2/B1/B2/B2b1/B2b2/B2b3a/B2b3b/B2b3c/B2 patch/B2b4/B2b5/B2b6/B2c/C1/Windows Python CI/Windows MATLAB CI/C2/Python CI performance/D1 carrier exceptions; B2b6, B2c, C1, both earlier CI patches, C2, the performance patch, D1, D2 and E1 require their exact Authority version sets. D1 and D2 keep the case corpus outside default runtime loading and their independent protocols outside default runtime Authority metadata. Each approved version, provenance or canonical solver projection is visible in expected_legacy_changes. No result qualification, classification value or existing list-order normalization is waived. The v10.18.3 writing patch changes only the exact Skill carrier, while all previous approved behavior projections and every unregistered field remain checked. Passing requires no unregistered field differences.",
+        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before exact A3/A7/v9.7/v10/v10.1/A1/A2/B1/B2/B2b1/B2b2/B2b3a/B2b3b/B2b3c/B2 patch/B2b4/B2b5/B2b6/B2c/C1/Windows Python CI/Windows MATLAB CI/C2/Python CI performance/D1 carrier exceptions; B2b6, B2c, C1, both earlier CI patches, C2, the performance patch, D1, D2 and E1 require their exact Authority version sets. D1 and D2 keep the case corpus outside default runtime loading and their independent protocols outside default runtime Authority metadata. Each approved version, provenance or canonical solver projection is visible in expected_legacy_changes. No result qualification, classification value or existing list-order normalization is waived. The v10.18.3 writing patch retains its exact Skill carrier; the user-specified v10.19.3 handoff registers its exact carrier and six pinned CUMCM question-handoff declaration leaves. All previous approved behavior projections and every unregistered field remain checked. Passing requires no unregistered field differences.",
         "cases": rows,
     }
     args.output.mkdir(parents=True, exist_ok=True)

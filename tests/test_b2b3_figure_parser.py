@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from claim_figure import inspect_static_figures, parse_framework_figure_rows
 from claim_tex import scan_static_latex
+from instantiate_model_paper_framework import instantiate
 
 
 HEADER = (
@@ -39,6 +40,31 @@ class FigureRegistryParserTests(unittest.TestCase):
         })
         self.assertEqual(parse_framework_figure_rows(framework(HEADER + "| | | | | | | | | |\n")), {})
         self.assertEqual(parse_framework_figure_rows(framework().replace("\n", "\r\n")), rows)
+
+    def test_current_compact_and_full_frameworks_keep_the_nine_column_registry(self):
+        pending_row = (
+            "| Q2_F01 | 最优调度方案 | result figure | 问题二求解/问题二求解结果.xlsx | "
+            "调度方案 / 时段、资源量 | 问题二求解/q2_plot.m |  | 识别瓶颈时段 |  |\n"
+        )
+        blank_row = "|  |  |  |  |  |  |  |  |  |\n"
+        for mode in ("compact", "full"):
+            with self.subTest(mode=mode):
+                text = instantiate(mode)
+                self.assertEqual(parse_framework_figure_rows(text), {})
+                before, marker, registry = text.partition("## 图表证据链\n")
+                self.assertTrue(marker)
+                self.assertIn(HEADER, registry)
+                self.assertIn(blank_row, registry)
+                text = before + marker + registry.replace(blank_row, pending_row, 1)
+                rows = parse_framework_figure_rows(text)
+                self.assertEqual(set(rows), {"Q2_F01"})
+                self.assertEqual(rows["Q2_F01"]["export_file"], "")
+                self.assertEqual(rows["Q2_F01"]["body_reference"], "")
+                self.assertEqual(rows["Q2_F01"]["body_support"], "识别瓶颈时段")
+                self.assertEqual(len(rows["Q2_F01"]), 9)
+                # Ordinary historical references retain their existing interpretation.
+                old = parse_framework_figure_rows(framework())["图1"]
+                self.assertEqual(old["body_reference"], "§3.1")
 
     def test_malformed_ambiguous_or_duplicate_registry_rejected(self):
         cases = (

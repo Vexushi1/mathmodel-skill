@@ -48,7 +48,7 @@ coverage:
     verification_mode: manual
     status: unverifiable
     rule_source: modules/06_review_delivery.md#Final-Submission-Compliance-Evidence-Sweep
-    evidence: "TODO: record redundancy and independent information-value findings."
+    evidence: "TODO: record preregistration disposition, actual placement/reference/explanation closure, redundancy and independent information-value findings."
   - check_family: reproducibility_and_package
     applicability: applicable
     verification_mode: hybrid

@@ -64,6 +64,72 @@ class TestV800WritingRuntime(unittest.TestCase):
         self.assertTrue(review["writing_runtime"]["full_reasoning_authority_preloaded"])
         self.assertIn("templates/latex/cumcm/hsk/template_manifest.yaml", review["load_order"])
 
+    def test_figure_handoff_is_dispatched_before_each_question_body(self):
+        handoff = (
+            "modules/05_writing/paper_writing_protocol.md"
+            "#13.0-CUMCM-图表的正文落点先论证职责后图型"
+        )
+        expected_stage = next(
+            stage
+            for stage in self.contract["template_first_progressive_authoring"]["stages"]
+            if stage["id"] == "question_model_solution_result_validation"
+        )
+        for intent, mode in (("latex", "compact"), ("review", "full_authority")):
+            with self.subTest(intent=intent):
+                plan = self.runtime.resolve_runtime(intent, competition="CUMCM")
+                writing = plan["writing_runtime"]
+                self.assertEqual(writing["mode"], mode)
+                stage = next(
+                    item for item in writing["authoring_sequence"]
+                    if item["id"] == "question_model_solution_result_validation"
+                )
+                self.assertEqual(stage, expected_stage)
+                self.assertTrue(stage["repeat_for_each_question_in_template_order"])
+                before = stage["before_write_preflight"]
+                self.assertTrue(before["required_before_write_now"])
+                self.assertTrue(before["dispatch_from_project_state"])
+                self.assertIn("current_question_evidence_bundle", before["read_now"])
+                self.assertIn(handoff, before["read_now"])
+                self.assertIn("current_question_section_file", stage["write_now"])
+                self.assertIn(
+                    "modules/05_writing/paper_writing_protocol.md#13-图结果叙事",
+                    stage["read_now"],
+                )
+                if intent == "latex":
+                    self.assertEqual(
+                        plan["reading_plan"]["delegated_writing_sequence"], writing
+                    )
+        bundle = self.contract["current_question_evidence_bundle"]
+        self.assertIn("current_question_figure_map", bundle["includes"])
+        self.assertIn(
+            "current_question_figure_map_has_been_reconciled_for_writing_scope",
+            self.contract["per_question_writing_capability_preflight"]["before_write_gate"],
+        )
+
+    def test_actual_handoff_section_is_reachable_without_whole_protocol_fallback(self):
+        # This checks real selector coverage, not the semantic correctness of a placement.
+        from reading_plan import SourceReader
+
+        path = "modules/05_writing/paper_writing_protocol.md"
+        heading = "### 13.0 CUMCM 图表的正文落点：先论证职责，后图型"
+        lines = self.protocol.splitlines(keepends=True)
+        begin = lines.index(heading + "\n") + 1
+        end = lines.index("## 14. 摘要\n")
+        reader = SourceReader(ROOT)
+        for selector in (heading, "## 13. 图结果叙事"):
+            with self.subTest(selector=selector):
+                row = reader.describe({"path": path, "headings": [selector]})
+                self.assertEqual(row["resolution"], "exact", row)
+                self.assertTrue(
+                    any(start <= begin and stop >= end for start, stop in row["ranges"]),
+                    row,
+                )
+                self.assertLess(row["planned_bytes"], row["source_bytes"])
+                selected = "".join(
+                    "".join(lines[start - 1:stop]) for start, stop in row["ranges"]
+                )
+                self.assertNotIn("## 14. 摘要", selected)
+
     def test_protocol_implements_v720_narrative_requirements(self):
         for token in (
             "Local Narrative Chain",
