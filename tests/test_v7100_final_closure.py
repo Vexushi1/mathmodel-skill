@@ -68,21 +68,23 @@ class TestV7100FinalClosure(unittest.TestCase):
     def test_normal_render_runs_one_formal_audit_and_persists_before_compiling(self):
         # Run the production render coordinator and audit writer. Stop at the
         # external compiler boundary: this unit fixture does not claim a TeX run.
+        # Use LF fixture bytes so independent raw hashes also match the existing
+        # normalized UTF-8/LF source-attestation hashes on Windows.
         with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
+            root = Path(temp).resolve()
             final = root / "final_latex"
             final.mkdir()
             main = final / "main.tex"
             main.write_text(
                 "\\documentclass{article}\n\\begin{document}\n"
                 "\\input{sections/result}\n\\end{document}\n",
-                encoding="utf-8",
+                encoding="utf-8", newline="\n",
             )
             (final / "sections").mkdir()
             result = final / "sections/result.tex"
-            result.write_text("A bounded result.\n", encoding="utf-8")
+            result.write_text("A bounded result.\n", encoding="utf-8", newline="\n")
             framework = root / "模型论文框架.md"
-            framework.write_text("# 模型论文框架\n", encoding="utf-8")
+            framework.write_text("# 模型论文框架\n", encoding="utf-8", newline="\n")
             profile = {"engine": "xelatex", "bibliography": "none", "sequence": ["xelatex"]}
             report_path = final / "latex_audit_report.yaml"
 
@@ -117,10 +119,13 @@ class TestV7100FinalClosure(unittest.TestCase):
 
     def test_normal_render_missing_framework_never_compiles_or_creates_attestation(self):
         with tempfile.TemporaryDirectory() as temp:
-            final = Path(temp) / "final_latex"
+            final = Path(temp).resolve() / "final_latex"
             final.mkdir()
             main = final / "main.tex"
-            main.write_text("\\documentclass{article}\\begin{document}x\\end{document}", encoding="utf-8")
+            main.write_text(
+                "\\documentclass{article}\\begin{document}x\\end{document}",
+                encoding="utf-8", newline="\n",
+            )
             profile = {"engine": "xelatex", "bibliography": "none", "sequence": ["xelatex"]}
             with patch.object(sys, "argv", ["render_paper.py", str(final), "--profile", "audit_test"]), \
                     patch.object(self.render, "load_profiles", return_value={"audit_test": profile}), \
@@ -132,15 +137,15 @@ class TestV7100FinalClosure(unittest.TestCase):
 
     def test_render_audit_persists_real_failure_and_blocks_compile(self):
         with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
+            root = Path(temp).resolve()
             final = root / "final_latex"
             final.mkdir()
             main = final / "main.tex"
             main.write_text(
                 "\\documentclass{article}\\begin{document}"
-                "\\label{same}\\label{same}x\\end{document}", encoding="utf-8",
+                "\\label{same}\\label{same}x\\end{document}", encoding="utf-8", newline="\n",
             )
-            (root / "模型论文框架.md").write_text("# 模型论文框架\n", encoding="utf-8")
+            (root / "模型论文框架.md").write_text("# 模型论文框架\n", encoding="utf-8", newline="\n")
             profile = {"engine": "xelatex", "bibliography": "none", "sequence": ["xelatex"]}
             with patch.object(sys, "argv", ["render_paper.py", str(final), "--profile", "audit_test"]), \
                     patch.object(self.render, "load_profiles", return_value={"audit_test": profile}), \

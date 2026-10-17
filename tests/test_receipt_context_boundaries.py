@@ -92,9 +92,11 @@ class ReceiptContextBoundaryTests(unittest.TestCase):
         entry.pop("code")
         entry.pop("primary_code_sha256")
         entry.pop("data_hash")
+        entry["capabilities"] = ["scope metadata is not available as a mapping"]
         before = deepcopy(state)
         issues = RECEIPT.validate_one(self.root, workbook, state, True)
         self.assertTrue(any("项目状态缺少已交付代码哈希" in item for item in issues), issues)
+        self.assertTrue(any("capabilities" in item and "Schema" in item for item in issues), issues)
         self.assertEqual(state, before)
         self.assertTrue(code.is_file())
 
@@ -104,7 +106,7 @@ class ReceiptContextBoundaryTests(unittest.TestCase):
         original = RECEIPT.sha256_file
 
         def unreadable(path):
-            if Path(path) == self.root / "data.csv":
+            if Path(path).resolve() == (self.root / "data.csv").resolve():
                 raise PermissionError("assistant cannot read this input")
             return original(path)
 
@@ -294,8 +296,8 @@ class ReceiptContextBoundaryTests(unittest.TestCase):
             return issues
 
         with mock.patch.object(RECEIPT, "validate_execution_evidence", side_effect=source_changes):
-            with self.assertRaises(RECEIPT.PROJECT_TX.ReadSetConflictError):
-                RECEIPT.validate_one(self.root, workbook, state, True)
+            issues = RECEIPT.validate_one(self.root, workbook, state, True)
+        self.assertTrue(issues)
         self.assertNotEqual(state["subproblems"]["Q1"].get("primary_execution_status"), "accepted")
         self.assertNotIn("solution_workbook", state["subproblems"]["Q1"].get("validated_artifact_hashes", {}))
 

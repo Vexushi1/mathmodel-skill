@@ -615,7 +615,10 @@ class SolverBackendTests(unittest.TestCase):
             code, report = self.delivery_cli(source)
         self.assertEqual(code, 0, report)
         self.assertEqual(report["status"], "passed")
-        self.assertEqual(visited, [(source, "synthetic-matlab"), (helper, "synthetic-matlab")])
+        self.assertEqual(len(visited), 2)
+        for (actual, executable), expected in zip(visited, (source, helper)):
+            self.assertTrue(actual.samefile(expected), (actual, expected))
+            self.assertEqual(executable, "synthetic-matlab")
         self.assertEqual(report["code_quality_metrics"][source.relative_to(self.root).as_posix()]["native_analysis_status"], "passed")
 
     def test_optional_helper_native_gap_does_not_hide_real_failure(self):
@@ -627,8 +630,8 @@ class SolverBackendTests(unittest.TestCase):
                 before = state_path.read_bytes()
 
                 def analyze(path, executable):
-                    return {"status": status if path == helper else "passed", "warnings": [],
-                            "issues": ["helper diagnostic"] if path == helper else [],
+                    return {"status": status if path.samefile(helper) else "passed", "warnings": [],
+                            "issues": ["helper diagnostic"] if path.samefile(helper) else [],
                             "source_sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
 
                 with patch.object(CODE.shutil, "which", return_value="synthetic-matlab"), patch.object(
@@ -655,7 +658,7 @@ class SolverBackendTests(unittest.TestCase):
                 before = state_path.read_bytes()
 
                 def analyze(path, executable):
-                    if path == source:
+                    if path.samefile(source):
                         target = {"entry": source, "helper": helper, "input": self.root / "data.csv"}[changed]
                         with target.open("ab") as stream:
                             stream.write(b"\n% changed while native tool was unavailable\n")
@@ -684,7 +687,7 @@ class SolverBackendTests(unittest.TestCase):
                     def analyze(path, executable):
                         result = {"status": "passed", "issues": [], "warnings": [],
                                   "source_sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
-                        if path != target:
+                        if not path.samefile(target):
                             return {**result, "status": "unverified", "issues": ["native unavailable for other source"]}
                         if finding == "error":
                             result.update(status="failed", issues=["actual native error"])
