@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.19.3
+当前 Skill 版本：10.20.3
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -414,6 +414,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_read_path_semantic_closure.py`
 - `tests/test_reading_plan.py`
 - `tests/test_reading_plan_evidence.py`
+- `tests/test_receipt_context_boundaries.py`
 - `tests/test_repository_hygiene.py`
 - `tests/test_result_io.py`
 - `tests/test_result_state_semantics.py`
