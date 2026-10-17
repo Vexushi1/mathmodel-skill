@@ -77,8 +77,9 @@ assistant_policy:
   - 为了让主工作簿看起来“验证充分”而把参数敏感性、压力场景、替代算法/结构、多seed稳健性、异质性或广义外样本稳定性提前写入主求解入口
   allowed:
   - 审题、通用数据审计、preprocessing_decision、模型设计、公式闭环、Primary Quality Specification和完整版代码生成
-  - 不导入赛题脚本的静态代码、依赖、语法和工程质量检查
-  - 读取用户返回的工作簿并执行Schema、哈希、质量门和主数值证据一致性校验
+  - 由助手完成不导入赛题脚本的静态代码、依赖、语法和工程质量检查，以及交付登记、项目同步和内部审计；execution_owner=user只约束题目专属数值运行
+  - 由助手读取用户返回的工作簿并执行Schema、哈希、质量门和主数值证据一致性校验；用户正常交接是实际产物与必要失败信息，不额外执行checker或提交独立校验报告
+  - 工具或必要材料不可用时报告具体未完成项，不把内部校验转交用户代跑、不授予新accepted或verified；仅有上下文不足不写结果失败，已观察到的真实错误和漂移仍按原规则处理
   - 在预处理工作簿accepted、主求解以及Gate=required时必要的结果深化分析完成后，于Figure Evidence阶段生成data_process.m；该MATLAB脚本只读工作簿绘图，不执行数值预处理
   - 运行本Skill仓库自身的lint、单元测试、索引生成和LaTeX模板CI
 full_fidelity_flags:

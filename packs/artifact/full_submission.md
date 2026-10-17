@@ -8,7 +8,7 @@
 
 当届规则核验后，`edition_rules.submission_files` 是机器可读 allowlist。例如赛事只要求最终 PDF 时，allowlist 只应解析到该 PDF；不得因为项目里存在 `模型论文框架.md`、state、Python、Excel、MATLAB、原始数据或内部检查材料而自动加入。
 
-正式生成：
+助手核对规则后内部生成：
 
 ```bash
 python scripts/hsk_pack_submission.py . \
@@ -21,7 +21,7 @@ ZIP 内自动写入 `submission_manifest.yaml`，记录 package kind、竞赛 pr
 
 ## 2. 完整复现包
 
-仅当用户明确要求“完整复现包 / 全套成果 / 内部归档”时使用 reproducibility mode：
+仅当用户明确要求“完整复现包 / 全套成果 / 内部归档”时，由助手使用 reproducibility mode：
 
 ```bash
 python scripts/hsk_pack_submission.py . \
@@ -53,21 +53,9 @@ Gate=`not_required` 且理由非空时，复现包不得为了凑固定结构伪
 
 ## 3. 包级 provenance gate
 
-生成 ZIP 不等于通过交付。正式提交范围还必须运行：
+packer 只生成 ZIP 和 manifest，不自动完成包验收。助手继续按 resolver 返回的顺序执行 `submission_package_validation`，接口见 `scripts/README.md`；用户获取完成验收的文件后按赛事渠道提交。
 
-```bash
-python scripts/validate_submission_package.py . --strict
-```
-
-验证器优先读取 `state/project_state.yaml -> artifacts.submission_package`。若 state 未声明，则只在 `submission/` 中**恰好存在一个 ZIP**时自动选取该唯一候选；若存在多个 ZIP，必须阻断并要求显式声明，不能猜测要验证哪个包；若没有候选 ZIP，才使用默认路径 `submission/submission.zip` 并据此报告缺失。验证器要求：
-
-- ZIP 中恰好一个 `submission_manifest.yaml`；
-- manifest 与 ZIP 文件集合完全一致，不允许未声明文件或重复路径；
-- 每个归档文件 SHA-256 与 manifest 一致，并与当前项目同路径文件一致；
-- 包内至少一个 PDF 的哈希必须等于当前 `compiled_pdf`；
-- official package 必须重新读取**当前**已核验 `edition_rules`，并与 `submission_files` allowlist 精确一致；
-- reproducibility package 至少包含当前 PDF、主求解代码、主结果工作簿和 MATLAB 脚本；Gate=`required` 时还必须包含 current 03B代码/workbook，Gate=`not_required` 时不得因其合法缺失失败；
-- 包内旧 PDF、旧代码或旧工作簿即使文件名正确，也不能通过当前性验证。
+验证器按 `core/output_contract.yaml` 与现有包级 gate 核对实际 ZIP、manifest、当前项目来源及 compiled PDF，并按 package mode 检查已核验官方 allowlist 或完整复现材料。优先读取 `artifacts.submission_package`；未声明时，仅在 `submission/` 恰好存在一个 ZIP 时选择该候选，存在多个 ZIP 则要求显式声明，没有候选时才检查默认 `submission/submission.zip`。
 
 `validated_submission_package` 只有在该 gate 成功后才视为可正式交付；不能用“ZIP 存在”替代 provenance 验证。
 
@@ -83,15 +71,14 @@ internal_metadata/
 
 `latex_audit_report.yaml`、`compile_report.yaml` 和 `submission_manifest.yaml` 属于正式交付证明链的机器元数据；它们用于审计和当前性验证，不机械写进论文正文，也不自动进入只允许 PDF 的官方提交包。
 
-## 5. 提交前检查
+## 5. 助手提交前检查
 
 1. 主结果质量门已通过；Analysis Necessity Gate 已有 current disposition：`required` 时 03B 质量/验收链通过且无 unresolved `redo_required`，`not_required` 时理由非空；
 2. 当前模型、工作簿、MATLAB 图、正文和 `模型论文框架.md` 一致且无 stale；
 3. 正式 LaTeX 已形成 current `latex_audit_report.yaml + compile_report.yaml + compiled_pdf` 证明链；
-4. `project_sync --delivery-scope submission` 通过；
+4. resolver 返回的同步与包级 gate 按顺序通过；
 5. 官方包按当前 verified rules 裁剪，复现包保持内部完整性并只收集 current 状态实际要求的 03B 产物；
-6. `validate_submission_package.py --strict` 对实际准备交付的 ZIP 通过；
-7. `Algorithm Trace` 与论文算法呈现闭合：`stepwise/pseudocode` 可追溯到当前模型/公式/命题/约束、真实代码实现和工作簿结果或验证证据；`not_needed` 不保留装饰性算法框；
-8. 命题 0--4 仅是默认正文阅读预算；P5+ 若保留，已完成必要性审查并记录 justification，不把默认预算恢复成 Hard 上限。
+6. `Algorithm Trace` 与论文算法呈现闭合：`stepwise/pseudocode` 可追溯到当前模型/公式/命题/约束、真实代码实现和工作簿结果或验证证据；`not_needed` 不保留装饰性算法框；
+7. 命题 0--4 仅是默认正文阅读预算；P5+ 若保留，已完成必要性审查并记录 justification，不把默认预算恢复成 Hard 上限。
 
 新项目不得创建 `结果数据表/`、`Python求解/`、`MATLAB绘图/` 等平行数值目录；每问只保留一个 `问题X求解/`。内部检查表和复现元数据不得机械进入论文正文。

@@ -141,28 +141,46 @@ class MatlabCodeChecksTests(unittest.TestCase):
             self.assertIn("report_exists=False", result["issues"][0])
             self.assertIn("No analysis report produced", "\n".join(result["issues"]))
 
-    def test_failed_native_evidence_reaches_strict_delivery_cli(self):
+    def test_unfinished_native_evidence_is_disclosed_without_blocking_delivery(self):
         import validate_code_delivery as delivery
+        from artifact_fingerprint import combined_hash
+
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             source = root / "问题一求解/q1_solver.m"
             source.parent.mkdir()
+            data = root / "input.json"
+            data.write_text("{}\n", encoding="utf-8")
             config = {"stage": "primary", "problem_name": "问题一", "solver_backend": "matlab",
-                      "data_paths": ["input.json"], "data_sha256": "a" * 64, "solver": "direct", "random_seed": 2026,
+                      "data_paths": ["input.json"], "data_sha256": combined_hash([data], root), "solver": "direct", "random_seed": 2026,
                       "tolerance": 1e-8, "iteration_or_time_limit": "direct", "expected_workbook": "问题一求解结果.xlsx",
                       "run_receipt_protocol_version": "1.1.0", "primary_quality_protocol_version": "1.0.0", "code_dependencies": []}
             source.write_text(matlab_source(config), encoding="utf-8")
+            state_path = root / "state/project_state.yaml"
+            state_path.parent.mkdir()
+            state_path.write_text(yaml.safe_dump({
+                "project": {"current_phase": "solve_validate"},
+                "preprocessing": {"decision": "not_needed"},
+                "execution": {"solver_backend": "matlab", "solver_backend_selection_reason": "合成维护案例"},
+                "subproblems": {"Q1": {"status": "designed"}}, "data": {},
+            }, allow_unicode=True), encoding="utf-8")
             failed = subprocess.CompletedProcess([], 7, "Launcher started", "License Manager Error -9")
             captured = io.StringIO()
             with patch.object(MATLAB.subprocess, "run", return_value=failed), patch.object(sys, "argv", [
-                    "validate_code_delivery.py", str(root), "--script", str(source), "--strict", "--matlab-command", "matlab"]), redirect_stdout(captured):
+                    "validate_code_delivery.py", str(root), "--script", str(source), "--write", "--strict",
+                    "--matlab-command", "matlab"]), redirect_stdout(captured):
                 code = delivery.main()
             report = yaml.safe_load(captured.getvalue())
-        self.assertEqual(code, 1)
-        self.assertEqual(report["status"], "failed")
+            entry = yaml.safe_load(state_path.read_text(encoding="utf-8"))["subproblems"]["Q1"]
+        self.assertEqual(code, 0)
+        self.assertEqual(report["status"], "passed")
+        self.assertEqual(report["issues"], [])
         self.assertFalse(report["task_code_executed"])
-        self.assertTrue(any("License Manager Error -9" in item for item in report["issues"]))
-        self.assertTrue(any("exit_code=7" in item for item in report["issues"]))
+        self.assertEqual(report["code_quality_metrics"]["问题一求解/q1_solver.m"]["native_analysis_status"], "unverified")
+        self.assertTrue(any("License Manager Error -9" in item for item in report["warnings"]))
+        self.assertTrue(any("exit_code=7" in item for item in report["warnings"]))
+        self.assertEqual(entry["primary_execution_status"], "awaiting_user_execution")
+        self.assertNotIn("validated_bundle_sha256", entry["solver_execution"]["primary"])
 
     def test_current_matlab_templates_have_parseable_unique_configs(self):
         for path in (ROOT / "templates/code/matlab").glob("q1_*.m"):

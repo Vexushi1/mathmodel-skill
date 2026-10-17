@@ -206,10 +206,13 @@ class AuxiliaryDownstreamTests(unittest.TestCase):
     def test_receipt_revalidation_does_not_promote_changed_auxiliary(self):
         entry = self.state["subproblems"]["Q1"]
         old_validated = deepcopy(entry["validated_artifact_hashes"])
+        before = deepcopy(self.state)
         (self.root / "constraints.json").unlink()
-        self.assertTrue(receipts.validate_one(self.root, self.root / entry["solution_workbook"], self.state, True))
-        self.assertEqual(entry["primary_execution_status"], "rejected")
+        issues = receipts.validate_one(self.root, self.root / entry["solution_workbook"], self.state, True)
+        self.assertTrue(any("验收资料不完整" in issue for issue in issues), issues)
+        self.assertEqual(self.state, before)
         self.assertEqual(entry["validated_artifact_hashes"], old_validated)
+        self.assertNotIn("accepted_solution_workbook", runtime_assurance.hydrate_project_context(self.root)["verified_artifacts"])
 
     def test_snapshot_input_issue_causes_data_stale_without_revoking_model_approval(self):
         entry = self.state["subproblems"]["Q1"]

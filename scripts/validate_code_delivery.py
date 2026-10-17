@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import ast
 import hashlib
+import shutil
 import sys
 from pathlib import Path
 from typing import Any, Mapping
@@ -358,6 +359,24 @@ def _decision_gate_issues(
     return list(dict.fromkeys(issues))
 
 
+def _native_delivery_analysis(
+    script: Path, matlab_command: str | None, *, require_native: bool,
+) -> dict[str, Any]:
+    """Keep optional native coverage separate from required delivery findings."""
+    if not require_native and not matlab_command:
+        return {
+            "status": "unverified", "issues": [],
+            "warnings": ["未选定可用的MATLAB Code Analyzer；原生分析未核验"],
+        }
+    native = MATLAB_CHECKS.native_code_analysis(script, matlab_command)
+    if native["status"] == "unverified" and not require_native:
+        return {
+            **native, "issues": [],
+            "warnings": [*native.get("warnings", []), *native["issues"]],
+        }
+    return native
+
+
 def validate_script(
     project_root: Path,
     script: Path,
@@ -367,6 +386,7 @@ def validate_script(
     require_native: bool = False,
     native_report: dict[str, Any] | None = None,
 ) -> tuple[list[str], dict[str, Any]]:
+    """Check source statically; CLI discovers MATLAB, internal callers opt in explicitly."""
     issues: list[str] = []
     try:
         problem, filename_stage = script_identity(script)
@@ -522,16 +542,15 @@ def validate_script(
     if backend == "matlab":
         quality_errors, _, _ = MATLAB_CHECKS.matlab_code_findings(
             text, config, contract=load_yaml(QUALITY_CONTRACT), filename=script.name)
-        if require_native or matlab_command:
-            native = MATLAB_CHECKS.native_code_analysis(script, matlab_command)
-            if native_report is not None:
-                native_report.update(native)
-            quality_errors.extend(native["issues"])
-            if native.get("source_sha256") and native["source_sha256"] != source_sha256:
-                quality_errors.append("MATLAB原生检查源码与本次配置/工程检查源码不一致")
-            for item in native.get("complexity_metrics", []):
-                if item["value"] > load_yaml(QUALITY_CONTRACT)["complexity"]["hard_max"]:
-                    quality_errors.append(f"MATLAB原生复杂度L{item['line']}={item['value']}超过硬上限")
+        native = _native_delivery_analysis(script, matlab_command, require_native=require_native)
+        if native_report is not None:
+            native_report.update(native)
+        quality_errors.extend(native["issues"])
+        if native.get("source_sha256") and native["source_sha256"] != source_sha256:
+            quality_errors.append("MATLAB原生检查源码与本次配置/工程检查源码不一致")
+        for item in native.get("complexity_metrics", []):
+            if item["value"] > load_yaml(QUALITY_CONTRACT)["complexity"]["hard_max"]:
+                quality_errors.append(f"MATLAB原生复杂度L{item['line']}={item['value']}超过硬上限")
     else:
         quality_errors, _, _ = code_quality_findings(text, config)
     issues.extend(quality_errors)
@@ -550,20 +569,18 @@ def validate_script(
             if helper.suffix.lower() == ".m":
                 errors, warnings, metrics = MATLAB_CHECKS.matlab_code_findings(
                     helper_text, {}, contract=load_yaml(QUALITY_CONTRACT), filename=helper.name)
-                native = None
-                if require_native or matlab_command:
-                    native = MATLAB_CHECKS.native_code_analysis(helper, matlab_command)
-                    errors.extend(native["issues"])
-                    warnings.extend(native.get("warnings", []))
-                    metrics["native_analysis_status"] = native["status"]
-                    metrics["native_release"] = native.get("release")
-                    metrics["native_source_sha256"] = native.get("source_sha256")
-                    metrics["native_complexity"] = native.get("complexity_metrics", [])
-                    if native.get("source_sha256") and native["source_sha256"] != record["sha256"]:
-                        errors.append("MATLAB依赖原生检查源码与本次bundle不一致")
-                    if any(item["value"] > load_yaml(QUALITY_CONTRACT)["complexity"]["hard_max"]
-                           for item in native.get("complexity_metrics", [])):
-                        errors.append("MATLAB依赖原生复杂度超过硬上限")
+                native = _native_delivery_analysis(helper, matlab_command, require_native=require_native)
+                errors.extend(native["issues"])
+                warnings.extend(native.get("warnings", []))
+                metrics["native_analysis_status"] = native["status"]
+                metrics["native_release"] = native.get("release")
+                metrics["native_source_sha256"] = native.get("source_sha256")
+                metrics["native_complexity"] = native.get("complexity_metrics", [])
+                if native.get("source_sha256") and native["source_sha256"] != record["sha256"]:
+                    errors.append("MATLAB依赖原生检查源码与本次bundle不一致")
+                if any(item["value"] > load_yaml(QUALITY_CONTRACT)["complexity"]["hard_max"]
+                       for item in native.get("complexity_metrics", [])):
+                    errors.append("MATLAB依赖原生复杂度超过硬上限")
             else:
                 errors, warnings, metrics = code_quality_findings(helper_text, {})
             issues.extend(f"{record['path']}: {error}" for error in errors)
@@ -862,6 +879,9 @@ def main() -> int:
     if not scripts:
         print("未发现可交付的当前阶段代码")
         return 1
+    matlab_command = args.matlab_command
+    if matlab_command is None and any(script.suffix.lower() == ".m" for script in scripts):
+        matlab_command = shutil.which("matlab")
     issues: list[str] = []
     warnings: list[str] = []
     metrics: dict[str, Any] = {}
@@ -871,8 +891,8 @@ def main() -> int:
         script = STAGE_CODE._expand_windows_short_path(script.absolute())
         checked_source_sha256 = sha256(script)
         native_report: dict[str, Any] = {}
-        item_issues, config = validate_script(root, script, args.stage, matlab_command=args.matlab_command,
-                                             require_native=args.write or args.strict, native_report=native_report)
+        item_issues, config = validate_script(root, script, args.stage, matlab_command=matlab_command,
+                                             native_report=native_report)
         issues.extend(f"{script.name}: {item}" for item in item_issues)
         if script.suffix.lower() == ".m":
             _, item_warnings, item_metrics = MATLAB_CHECKS.matlab_code_findings(
@@ -887,7 +907,12 @@ def main() -> int:
             _, item_warnings, item_metrics = code_quality_findings(script.read_text(encoding="utf-8"), config)
         if native_report.get("dependency_code_quality"):
             item_metrics["dependency_code_quality"] = native_report["dependency_code_quality"]
-            if any(item.get("native_analysis_status") == "unverified" for item in native_report["dependency_code_quality"].values()):
+            native_statuses = [item_metrics.get("native_analysis_status"), *(
+                item.get("native_analysis_status") for item in native_report["dependency_code_quality"].values()
+            )]
+            if "failed" in native_statuses:
+                item_metrics["native_analysis_status"] = "failed"
+            elif "unverified" in native_statuses:
                 item_metrics["native_analysis_status"] = "unverified"
             item_warnings.extend(native_report.get("dependency_warnings", []))
         warnings.extend(f"{script.name}: {item}" for item in item_warnings)
@@ -902,8 +927,7 @@ def main() -> int:
                 issues.append(f"{script.name}: {exc}")
 
     report = {
-        "status": ("failed" if issues else "unverified" if any(
-            item.get("native_analysis_status") == "unverified" for item in metrics.values()) else "passed"),
+        "status": "failed" if issues else "passed",
         "checked_scripts": checked,
         "issues": issues,
         "warnings": warnings,

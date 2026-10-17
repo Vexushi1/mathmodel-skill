@@ -117,18 +117,14 @@ Adapter 接收 Writing Protocol 已组织好的内容，并放入 manifest 指�
 
 ## 7. 审计与编译
 
-正式交付统一执行：
+助手负责内部模板检查与正式编译。模板 manifest 仍须单独校验：
 
 ```bash
 python scripts/validate_template_manifest.py templates/latex/cumcm/hsk/template_manifest.yaml
-python scripts/audit_latex_project.py final_latex/main.tex \
-  --bib final_latex/references.bib \
-  --framework 模型论文框架.md \
-  --strict
 python scripts/render_paper.py final_latex --profile cumcm --clean
 ```
 
-`audit_latex_project.py` 会递归展开当前 include graph，并消费 prose audit 与 v8 surface audit；编译顺序和正式 attestation 继续由 `core/compile_profiles.yaml`、`modules/05_latex_compile_quality.md` 和 `scripts/render_paper.py` 管理。
+`render_paper.py` 已调用正式 `audit_latex_project.py`，递归展开当前 include graph 并消费 prose audit 与 v8 surface audit，无需把独立 audit 重复列为常规步骤。独立审计接口供助手按需诊断；编译顺序和正式 attestation 继续由 `core/compile_profiles.yaml`、`modules/05_latex_compile_quality.md` 和 `scripts/render_paper.py` 管理。
 
 ## 8. v7 兼容索引（非 Authority）
 

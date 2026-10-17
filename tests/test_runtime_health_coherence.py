@@ -102,7 +102,10 @@ class RuntimeHealthCoherenceTests(unittest.TestCase):
             "semantic governance gate",
             "model approval gate",
             "生成所选主求解入口",
-            "validate_code_delivery.py",
+            "助手执行代码交付检查",
+            "用户本地full_fidelity运行",
+            "用户返回问题X求解结果.xlsx",
+            "助手验收",
         ])
 
 
