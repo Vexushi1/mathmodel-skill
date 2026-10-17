@@ -1,6 +1,13 @@
 # Changelog
 
-## 10.19.3
+## 10.20.3
+
+- Keep routine users focused on real full-fidelity numerical/plotting entrypoints, returning their artifacts and necessary human approvals. The assistant performs internal delivery checks, returned-artifact validation, synchronization, paper audit/compilation and package validation through available tools; do not require a separate user-run checker, synchronization command or machine report.
+- Separate required MATLAB static/source/input checks from native analyzer coverage on ordinary code delivery. Unavailable or incomplete native tools leave that coverage explicitly unverified without blocking otherwise valid delivery; real native errors, hard complexity limits, helper errors and observed source/input drift remain blocking. Explicit internal native requirements and native CI evidence remain strict.
+- Distinguish incomplete assistant-side materials or unfinished checking from actual evidence failures before negative result writes. Preserve historical accepted facts without granting new verification, and retain real Schema, identity, numerical, receipt and stale protections when a genuine defect is observed.
+- Reuse existing entrypoints and remove duplicated user-facing checker/audit steps while retaining real model approval, automatic RUN_RECEIPT, accepted workbook, conditional 03B and A2/B2/C requirements. Skill 10.20.3 is the user-specified target; independent protocols, historical release records and user projects are not mechanically migrated.
+
+## Previous release: 10.19.3
 
 - Connect figure/table preregistration to later paper writing through the existing Framework and Figure Contract: early registration records the question, supported judgment and expected function without requiring a draft, frozen subsection or fabricated source coordinate.
 - At each question's writing entry, inventory all relevant registrations, including global, shared, unresolved and pending items; use the current template and accepted evidence to assign concrete locations, then read and explain the relevant objects by section. Reconcile actual use, moves, merges, replacements, omissions and remaining work within the touched scope.

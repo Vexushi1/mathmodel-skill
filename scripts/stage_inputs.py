@@ -9,12 +9,23 @@ from artifact_fingerprint import combined_hash, sha256_file
 from execution_protocol import AUXILIARY_RECEIPT_VERSION, auxiliary_config_issues
 
 
+class InputUnavailableError(ValueError):
+    """A declared file is absent; this does not establish a bad numerical run."""
+
+    def __init__(self, message: str, *, paths: list[Path], missing: list[str]) -> None:
+        super().__init__(message)
+        self.paths = paths
+        self.missing = missing
+        self.observation: dict[str, Any] = {}
+
+
 def input_files(root: Path, declared: Any) -> list[Path]:
     """Resolve actual files without accepting escapes or filesystem aliases."""
     if not isinstance(declared, (list, tuple)) or not declared:
         raise ValueError("data_paths必须声明非空实际输入文件列表")
     root = root.resolve()
     files: list[Path] = []
+    missing: list[str] = []
     seen: set[str] = set()
     for relative in declared:
         if (not isinstance(relative, str) or not relative.strip() or "\\" in relative
@@ -37,11 +48,16 @@ def input_files(root: Path, declared: Any) -> list[Path]:
         path = path.resolve()
         if not path.is_relative_to(root):
             raise ValueError(f"输入文件路径越出项目根目录: {relative}")
+        if not path.exists():
+            missing.append(relative)
+            continue
         if not path.is_file():
             raise ValueError(f"输入文件不存在或不是文件: {relative}")
         if any(path.samefile(previous) for previous in files):
             raise ValueError(f"data_paths含同一文件的硬链接别名: {relative}")
         files.append(path)
+    if missing:
+        raise InputUnavailableError("输入文件不存在: " + ", ".join(missing), paths=files, missing=missing)
     return files
 
 
@@ -51,7 +67,11 @@ def observe_inputs(root: Path, config: Mapping[str, Any], state: Mapping[str, An
     configuration_issues = auxiliary_config_issues(config)
     if configuration_issues:
         raise ValueError("; ".join(configuration_issues))
-    files = input_files(root, config.get("data_paths"))
+    try:
+        files = input_files(root, config.get("data_paths"))
+    except InputUnavailableError as exc:
+        exc.observation = {"paths": [path.relative_to(root).as_posix() for path in exc.paths], "issues": []}
+        raise
     mode = config.get("data_identity_mode", "combined")
     preprocessing = state.get("preprocessing") or {}
     issues: list[str] = []
@@ -77,7 +97,14 @@ def observe_inputs(root: Path, config: Mapping[str, Any], state: Mapping[str, An
     result = {"paths": [path.relative_to(root).as_posix() for path in files],
               "data_sha256": digest, "data_identity_mode": mode, "issues": issues}
     if config.get("run_receipt_protocol_version") == AUXILIARY_RECEIPT_VERSION:
-        auxiliaries = input_files(root, config["auxiliary_data_paths"])
+        try:
+            auxiliaries = input_files(root, config["auxiliary_data_paths"])
+        except InputUnavailableError as exc:
+            # Preserve observations already made before discovering an absent
+            # auxiliary; absence must not hide a real change to the base input.
+            exc.observation = {**result, "auxiliary_data_paths": [
+                path.relative_to(root).as_posix() for path in exc.paths]}
+            raise
         if any(aux.samefile(base) for aux in auxiliaries for base in files):
             raise ValueError("auxiliary_data_paths不得重复主数据文件或其别名")
         covered = preprocessing.get("covered_raw_sources")

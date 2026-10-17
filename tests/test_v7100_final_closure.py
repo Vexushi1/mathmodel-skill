@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 
@@ -63,10 +65,93 @@ class TestV7100FinalClosure(unittest.TestCase):
                 findings,
             )
 
-    def test_canonical_formal_audit_command_persists_attestation(self):
-        text = (ROOT / "packs/artifact/latex.md").read_text(encoding="utf-8")
-        for token in ("--mode formal", "--require-framework", "--write-report", "--strict"):
-            self.assertIn(token, text)
+    def test_normal_render_runs_one_formal_audit_and_persists_before_compiling(self):
+        # Run the production render coordinator and audit writer. Stop at the
+        # external compiler boundary: this unit fixture does not claim a TeX run.
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            final = root / "final_latex"
+            final.mkdir()
+            main = final / "main.tex"
+            main.write_text(
+                "\\documentclass{article}\n\\begin{document}\n"
+                "\\input{sections/result}\n\\end{document}\n",
+                encoding="utf-8",
+            )
+            (final / "sections").mkdir()
+            result = final / "sections/result.tex"
+            result.write_text("A bounded result.\n", encoding="utf-8")
+            framework = root / "模型论文框架.md"
+            framework.write_text("# 模型论文框架\n", encoding="utf-8")
+            profile = {"engine": "xelatex", "bibliography": "none", "sequence": ["xelatex"]}
+            report_path = final / "latex_audit_report.yaml"
+
+            class CompilerBoundaryReached(RuntimeError):
+                pass
+
+            def stop_at_compiler(*args):
+                self.assertTrue(report_path.is_file())
+                report = yaml.safe_load(report_path.read_text(encoding="utf-8"))
+                self.assertEqual(report["status"], "passed", report)
+                self.assertEqual(report["mode"], "formal")
+                self.assertEqual(report["main"], "main.tex")
+                self.assertEqual(report["framework_sha256"], hashlib.sha256(framework.read_bytes()).hexdigest())
+                sources = {item["path"]: item["sha256"] for item in report["source_files"]}
+                self.assertEqual(sources["main.tex"], hashlib.sha256(main.read_bytes()).hexdigest())
+                self.assertEqual(sources["sections/result.tex"], hashlib.sha256(result.read_bytes()).hexdigest())
+                raise CompilerBoundaryReached
+
+            with patch.object(sys, "argv", ["render_paper.py", str(final), "--profile", "audit_test"]), \
+                    patch.object(self.render, "load_profiles", return_value={"audit_test": profile}), \
+                    patch.object(self.render, "audit_project", wraps=self.render.audit_project) as audit, \
+                    patch.object(self.render, "write_audit_report", wraps=self.render.write_audit_report) as writer, \
+                    patch.object(self.render, "compile_project", side_effect=stop_at_compiler) as compiler, \
+                    patch.object(self.render, "write_compile_report") as compile_writer:
+                with self.assertRaises(CompilerBoundaryReached):
+                    self.render.main()
+            audit.assert_called_once_with(main, framework_path=framework, require_framework=True, formal=True)
+            self.assertEqual(writer.call_count, 1)
+            self.assertEqual(writer.call_args.kwargs["mode"], "formal")
+            compiler.assert_called_once()
+            compile_writer.assert_not_called()
+
+    def test_normal_render_missing_framework_never_compiles_or_creates_attestation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            final = Path(temp) / "final_latex"
+            final.mkdir()
+            main = final / "main.tex"
+            main.write_text("\\documentclass{article}\\begin{document}x\\end{document}", encoding="utf-8")
+            profile = {"engine": "xelatex", "bibliography": "none", "sequence": ["xelatex"]}
+            with patch.object(sys, "argv", ["render_paper.py", str(final), "--profile", "audit_test"]), \
+                    patch.object(self.render, "load_profiles", return_value={"audit_test": profile}), \
+                    patch.object(self.render, "compile_project") as compiler:
+                with self.assertRaisesRegex(SystemExit, "requires current framework"):
+                    self.render.main()
+            compiler.assert_not_called()
+            self.assertFalse((final / "latex_audit_report.yaml").exists())
+
+    def test_render_audit_persists_real_failure_and_blocks_compile(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            final = root / "final_latex"
+            final.mkdir()
+            main = final / "main.tex"
+            main.write_text(
+                "\\documentclass{article}\\begin{document}"
+                "\\label{same}\\label{same}x\\end{document}", encoding="utf-8",
+            )
+            (root / "模型论文框架.md").write_text("# 模型论文框架\n", encoding="utf-8")
+            profile = {"engine": "xelatex", "bibliography": "none", "sequence": ["xelatex"]}
+            with patch.object(sys, "argv", ["render_paper.py", str(final), "--profile", "audit_test"]), \
+                    patch.object(self.render, "load_profiles", return_value={"audit_test": profile}), \
+                    patch.object(self.render, "compile_project") as compiler:
+                with self.assertRaisesRegex(SystemExit, "LaTeX project audit failed"):
+                    self.render.main()
+            compiler.assert_not_called()
+            report = yaml.safe_load((final / "latex_audit_report.yaml").read_text(encoding="utf-8"))
+            self.assertEqual(report["status"], "failed")
+            self.assertEqual(report["mode"], "formal")
+            self.assertTrue(any(item["code"] == "duplicate_label" for item in report["findings"]))
 
     def test_submission_pack_documents_unique_zip_fallback(self):
         text = (ROOT / "packs/artifact/full_submission.md").read_text(encoding="utf-8")

@@ -1089,6 +1089,70 @@ class AuditClosureProjectionTests(unittest.TestCase):
                     self.assertEqual(EVIDENCE.approved_figure_handoff_carrier_change(
                         "cumcm_writing", old, new, carriers), (new, []))
 
+    def test_v10203_workflow_carrier_preserves_handoff_history_and_input_identity(self):
+        carriers = deepcopy(EVIDENCE.USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS)
+        self.assertEqual(carriers, {**EVIDENCE.FIGURE_HANDOFF_AUTHORITY_VERSIONS, "skill": "10.20.3"})
+        self.assertEqual(EVIDENCE.FIGURE_HANDOFF_AUTHORITY_VERSIONS["skill"], "10.19.3")
+        for case in (*sorted(EVIDENCE.A7_HYDRATED_PROVENANCE_CASES), "facts_unscoped", "cumcm_writing"):
+            with self.subTest(case=case):
+                old, new = self.figure_handoff_pair(case)
+                new["version"] = "10.20.3"
+                saved = deepcopy((old, new, carriers))
+                row = EVIDENCE.compare(
+                    [{"id": case, "plan": old, "legacy_declared_bytes": 1}],
+                    [{"id": case, "plan": new, "legacy_declared_bytes": 1,
+                      "authority_versions": carriers}],
+                )[0]
+                self.assertFalse(row["legacy_behavior_equal"])
+                self.assertTrue(row["legacy_behavior_equal_except_approved_changes"])
+                self.assertEqual(row["unexpected_legacy_changes"], [])
+                version_changes = [item for item in row["expected_legacy_changes"] if item["path"] == "version"]
+                self.assertEqual([item["candidate"] for item in version_changes], ["10.20.3"])
+                self.assertEqual(version_changes[0]["authority_versions"], carriers)
+                handoff_changes = [item for item in row["expected_legacy_changes"]
+                                   if "authoring_sequence.4." in item["path"]]
+                self.assertEqual(len(handoff_changes), 6 if case == "cumcm_writing" else 0)
+                self.assertEqual((old, new, carriers), saved)
+
+    def test_v10203_workflow_carrier_does_not_waive_runtime_or_authority_changes(self):
+        carriers = EVIDENCE.USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS
+        for case in ("facts_current", "cumcm_writing"):
+            with self.subTest(case=case):
+                old, new = self.figure_handoff_pair(case)
+                new["version"] = "10.20.3"
+                for bad in (None, {**carriers, "skill": "10.20.4"},
+                            {**carriers, "project_state": "8.17.0"},
+                            {**carriers, "writing_reasoning": "1.12.0"},
+                            {k: v for k, v in carriers.items() if k != "runtime_assurance"}):
+                    self.assertEqual(EVIDENCE.approved_user_checker_workflow_carrier_change(
+                        case, old, new, bad), (new, []))
+                for field, value in (("version", "10.20.4"), ("formal_delivery", True),
+                                     ("load_order", ["scripts/semantic_identity.py"]),
+                                     ("pre_delivery_gates", [])):
+                    changed = deepcopy(new)
+                    changed[field] = value
+                    self.assertEqual(EVIDENCE.approved_user_checker_workflow_carrier_change(
+                        case, old, changed, carriers), (changed, []))
+                changed = deepcopy(new)
+                changed["assurance"]["qualification"] = "accepted"
+                self.assertEqual(EVIDENCE.approved_user_checker_workflow_carrier_change(
+                    case, old, changed, carriers), (changed, []))
+                if case == "cumcm_writing":
+                    for runtime_path in (("writing_runtime",), ("runtime_plan", "writing_runtime")):
+                        for suffix, _, _ in EVIDENCE.FIGURE_HANDOFF_WRITING_DELTAS:
+                            changed = deepcopy(new)
+                            target = changed
+                            for key in (*runtime_path, "authoring_sequence", 4, *suffix[:-1]):
+                                target = target[key]
+                            value = target[suffix[-1]]
+                            target[suffix[-1]] = [*value, "unapproved"] if isinstance(value, list) else value + "未授权规则。"
+                            self.assertEqual(EVIDENCE.approved_user_checker_workflow_carrier_change(
+                                case, old, changed, carriers), (changed, []))
+        old, new = self.figure_handoff_pair("facts_current")
+        new["version"] = "10.20.3"
+        self.assertEqual(EVIDENCE.approved_user_checker_workflow_carrier_change(
+            "future_case", old, new, carriers), (new, []))
+
     def comparison_writing_pair(self):
         old, new = self.pair("cumcm_writing")
         new.pop("solver_backend")

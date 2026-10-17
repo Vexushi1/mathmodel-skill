@@ -16,7 +16,11 @@ TESTS = str(Path(__file__).resolve().parent)
 if TESTS not in sys.path:
     sys.path.insert(0, TESTS)
 
-from reading_plan_evidence import FIGURE_HANDOFF_AUTHORITY_VERSIONS, FIGURE_HANDOFF_WRITING_DELTAS
+from reading_plan_evidence import (
+    FIGURE_HANDOFF_AUTHORITY_VERSIONS,
+    FIGURE_HANDOFF_WRITING_DELTAS,
+    USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS,
+)
 
 
 def load_runtime():
@@ -57,7 +61,12 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
             # Actual values come from the real resolver; expectations are the
             # separately pinned deltas, whose old values must also match the
             # unchanged historical golden before inverse projection.
-            self.assertEqual(plan.get("version"), FIGURE_HANDOFF_AUTHORITY_VERSIONS["skill"])
+            # v10.20.3 changes only the registered release carrier on this
+            # writing path; its stage leaves keep the exact v10.19.3 values.
+            self.assertIn(plan.get("version"), (
+                FIGURE_HANDOFF_AUTHORITY_VERSIONS["skill"],
+                USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS["skill"],
+            ))
             old_stage = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][4]
             current_stage = writing["authoring_sequence"][4]
             self.assertEqual(old_stage["id"], "question_model_solution_result_validation")
@@ -100,6 +109,20 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
         before = copy.deepcopy((plan, self.golden, FIGURE_HANDOFF_WRITING_DELTAS))
         self.assertEqual(self._projection(plan), self.golden["routes"]["latex"])
         self.assertEqual((plan, self.golden, FIGURE_HANDOFF_WRITING_DELTAS), before)
+
+    def test_projection_admits_only_exact_handoff_and_workflow_carriers(self):
+        plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
+        for version in ("10.19.3", "10.20.3"):
+            with self.subTest(version=version):
+                declared = copy.deepcopy(plan)
+                declared["version"] = version
+                self.assertEqual(self._projection(declared), self.golden["routes"]["latex"])
+        for version in (None, "10.19.4", "10.20.4", "11.0.0"):
+            with self.subTest(version=version):
+                altered = copy.deepcopy(plan)
+                altered["version"] = version
+                with self.assertRaises(AssertionError):
+                    self._projection(altered)
 
     def test_handoff_projection_rejects_unregistered_question_changes(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")

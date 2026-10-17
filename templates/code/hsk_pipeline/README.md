@@ -10,7 +10,7 @@
 
 `framework_sync_hook` 参数及 `_write_state` / `_update_primary_state` / `_update_analysis_state` 路径已经退出。旧调用传入框架钩子会在计算前报错，不静默忽略；应移除回调，让既有交付、回执及同步控制面登记状态和框架。`ResultAnalysisResult` 中的回退阶段/失效建议只是兼容返回数据，不表示已经写入项目。任意题目自定义数学钩子仍需静态审查；本库不是限制任意 Python 写文件行为的沙箱。
 
-题目专属的实际激活阶段脚本在各自交付前都必须通过 `scripts/validate_code_delivery.py`；工程质量细则只由 `core/code_quality_contract.yaml` 定义，本管线不复制阈值。用户执行、`full_fidelity`、禁止降级/静默 fallback 与版本化 RUN_RECEIPT 的全局政策只由 `core/user_execution_contract.yaml` 定义，`PipelineConfig` 不重复承载这些不可变政策字段。
+助手在各阶段交付前检查实际激活的脚本，并在用户返回工作簿后验收；分工和回执只服从 `core/user_execution_contract.yaml`，工程要求只由 `core/code_quality_contract.yaml` 定义。本管线不复制阈值，`PipelineConfig` 不重复承载全局不可变政策字段。
 
 ## 推荐复制结构
 
@@ -33,7 +33,7 @@
 
 新生成 03A/03B 脚本使用唯一顶层 `RUN_CONFIG` 声明 stage/problem/data/hash/solver/seed/tolerance/limit/workbook/protocol 等任务输入，写 `solver_backend="python"`、`run_receipt_protocol_version="1.1.0"`；以 `code_dependencies=[{"path": "项目内相对源码路径", "sha256": "文件摘要"}]` 声明实际源码闭包（不含入口自身），包括复制到项目中的实际 `hsk_pipeline` 依赖。不重复 owner/profile/六个 no-degradation 字段，不把 `solver_version` 当运行前必填参数，也不把最终 bundle 摘要写回入口。旧 1.0、P5a 与 `FULL_FIDELITY_CONFIG` / `FULL_RUN_CONFIG` 只按原历史分支兼容；项目级 Python 预处理仍使用 1.0。
 
-用户运行后构造逻辑 `RUN_RECEIPT`，**仍序列化到既有工作簿 `运行配置(项目, 值)`**，不新增回执工作表或独立 YAML/JSON。新 03A/03B 写 `run_receipt_version="1.1.0"`、`solver_backend="python"`、`code_sha256` 和 `code_bundle_sha256`，记录 owner/profile、solver/version、实际停止原因、平台、fallback 和 no-degradation 标志，并回显配置任务字段。入口必须在执行前绑定源码和输入、写出前复核；完整身份序列化只服从执行 Authority。未知或不匹配版本 fail closed。
+用户运行时由代码自动构造逻辑 `RUN_RECEIPT`，**仍序列化到既有工作簿 `运行配置(项目, 值)`**，不新增回执工作表或独立 YAML/JSON。新 03A/03B 写 `run_receipt_version="1.1.0"`、`solver_backend="python"`、`code_sha256` 和 `code_bundle_sha256`，记录 owner/profile、solver/version、实际停止原因、平台、fallback 和 no-degradation 标志，并回显配置任务字段。入口必须在执行前绑定源码和输入、写出前复核；完整身份序列化只服从执行 Authority。未知或不匹配版本 fail closed。
 
 保留的 PipelineConfig 和题型 starter 是数学/IO骨架，不会自动升级为 1.1 交付入口；旧连跑 API 已停止执行。实例化时须补齐上述运行配置与真实回执，并把 `运行配置` 工作表交给共用 `result_io.write_workbook()`；writer 接受该表的新字段，但不替调用方生成后端/bundle 证明。用户运行代码只依赖交付到项目内的源码与声明环境，不依赖 Skill 安装路径。
 
@@ -42,7 +42,8 @@
 ## 主求解阶段
 
 ```text
-主代码工程质量门
+助手完成代码交付检查
+→ 用户运行主入口，由代码执行以下数值步骤
 → config.validate
 → set_random_seed
 → load_data / preprocess / build_features
@@ -50,12 +51,10 @@
 → evaluate_primary_quality
 → 构造RUN_RECEIPT并写入运行配置、核心指标、数据审计、主结果质量门和底层表
 → 问题一求解/问题一求解结果.xlsx
-→ validate_user_execution.py
-→ RUN_CONFIG↔RUN_RECEIPT握手 / 数值证据验收
-→ accepted / solved
-→ 冻结问题一求解.py
-→ Analysis Necessity Gate
+→ 用户返回工作簿，由助手验收
 ```
+
+返回验收、主代码冻结及 Analysis Necessity Gate 继续按 Module 03A／03B 和执行 Authority 处理，不属于用户另跑的管线步骤。
 
 `run_receipt_protocol_version` 只标识运行事实协议，不替代主求解专用 `primary_quality_protocol_version`。新 primary RUN_CONFIG 同时携带两者；前者约束 RUN_RECEIPT，后者约束主数值证据复核。
 

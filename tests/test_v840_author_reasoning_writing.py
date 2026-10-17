@@ -26,6 +26,58 @@ def read(path):
     return (ROOT / path).read_text(encoding="utf-8")
 
 
+# The v10.20.3 adapter change removes only the duplicate standalone audit
+# instruction. Keep the pre-existing whole-file guard after this exact inverse.
+CHECKER_ADAPTER_REWRITES = (
+    (
+        (
+            "\n"
+            "助手负责内部模板检查与正式编译。模板 manifest 仍须单独校验：\n"
+            "\n"
+        ),
+        (
+            "\n"
+            "正式交付统一执行：\n"
+            "\n"
+        ),
+    ),
+    (
+        (
+            "python scripts/validate_template_manifest.py templates/latex/cumcm/hsk/template_manifest.yaml\n"
+            "python scripts/render_paper.py final_latex --profile cumcm --clean\n"
+        ),
+        (
+            "python scripts/validate_template_manifest.py templates/latex/cumcm/hsk/template_manifest.yaml\n"
+            "python scripts/audit_latex_project.py final_latex/main.tex \\\n"
+            "  --bib final_latex/references.bib \\\n"
+            "  --framework 模型论文框架.md \\\n"
+            "  --strict\n"
+            "python scripts/render_paper.py final_latex --profile cumcm --clean\n"
+        ),
+    ),
+    (
+        (
+            "\n"
+            "`render_paper.py` 已调用正式 `audit_latex_project.py`，递归展开当前 include graph 并消费 prose audit 与 v8 surface audit，无需把独立 audit 重复列为常规步骤。独立审计接口供助手按需诊断；编译顺序和正式 attestation 继续由 `core/compile_profiles.yaml`、`modules/05_latex_compile_quality.md` 和 `scripts/render_paper.py` 管理。\n"
+            "\n"
+        ),
+        (
+            "\n"
+            "`audit_latex_project.py` 会递归展开当前 include graph，并消费 prose audit 与 v8 surface audit；编译顺序和正式 attestation 继续由 `core/compile_profiles.yaml`、`modules/05_latex_compile_quality.md` 和 `scripts/render_paper.py` 管理。\n"
+            "\n"
+        ),
+    ),
+)
+
+
+def prior_checker_adapter(text: str) -> str:
+    for current, baseline in CHECKER_ADAPTER_REWRITES:
+        if text.count(current) != 1:
+            raise ValueError("authorized adapter audit delta is missing or duplicated")
+        text = text.replace(current, baseline, 1)
+    return text
+
+
 class WritingReasoningScopeTests(unittest.TestCase):
     def test_unreopened_chapter_snapshots_remain_pinned(self):
         # v8.6 intentionally changes §§2, 3, 7, 8, 12, 15, 18 and related text.
@@ -80,7 +132,7 @@ class WritingReasoningScopeTests(unittest.TestCase):
         # v8.7.1 R6 intentionally reopens only active release-label/provenance lines.
         # Normalize those exact lines back to the pre-R6 representation, then keep the
         # old whole-file snapshot as a guard against unrelated Adapter/template drift.
-        adapter = read("modules/05_writing/latex.md")
+        adapter = prior_checker_adapter(read("modules/05_writing/latex.md"))
         self.assertTrue(adapter.startswith("# Module 05B：LaTeX Adapter\n"))
         self.assertIn("Template-First adapter architecture introduced in v8.0.1", adapter)
         self.assertIn("当前 Skill release 版本只由活动 release carriers", adapter)
@@ -141,6 +193,19 @@ class WritingReasoningScopeTests(unittest.TestCase):
         self.assertTrue(fixed["objective_before_constraints"])
         self.assertTrue(fixed["objective_outside_constraint_brace"])
         self.assertFalse(fixed["runtime_semantic_authority"])
+
+    def test_adapter_inverse_projection_rejects_missing_or_duplicate_authorized_blocks(self):
+        text = read("modules/05_writing/latex.md")
+        for current, _ in CHECKER_ADAPTER_REWRITES:
+            for changed in (text.replace(current, "unauthorized replacement\n", 1), text + current):
+                with self.assertRaises(ValueError):
+                    prior_checker_adapter(changed)
+        unrelated = "\nunauthorized unrelated change\n"
+        self.assertEqual(
+            prior_checker_adapter(text + unrelated),
+            prior_checker_adapter(text) + unrelated,
+        )
+        self.assertEqual(read("modules/05_writing/latex.md"), text)
 
     def test_v85_author_reasoning_voice_semantics_remain_pinned(self):
         contract = yaml.safe_load(read("core/writing_reasoning_contract.yaml"))
