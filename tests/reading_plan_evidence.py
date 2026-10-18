@@ -94,6 +94,12 @@ SUBMISSION_PATCH_AUTHORITY_VERSIONS = {**AUDIT_PATCH_AUTHORITY_VERSIONS, "skill"
 WRITING_PATCH_AUTHORITY_VERSIONS = {**SUBMISSION_PATCH_AUTHORITY_VERSIONS, "skill": "10.18.3"}
 FIGURE_HANDOFF_AUTHORITY_VERSIONS = {**WRITING_PATCH_AUTHORITY_VERSIONS, "skill": "10.19.3"}
 USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS = {**FIGURE_HANDOFF_AUTHORITY_VERSIONS, "skill": "10.20.3"}
+PDF_REVIEW_AUTHORITY_VERSIONS = {**USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS, "skill": "10.20.4"}
+PDF_REVIEW_WRITING_DELTAS = (
+    (("run_now",),
+     ["scripts/validate_template_manifest.py", "scripts/audit_latex_project.py", "scripts/render_paper.py"],
+     ["scripts/validate_template_manifest.py", "scripts/render_paper.py"]),
+)
 FIGURE_HANDOFF_WRITING_DELTAS = (
     (("before_write_preflight", "read_now"),
      ["current_question_evidence_bundle", "current_model_paper_framework#逐问写作能力预检"],
@@ -1112,6 +1118,55 @@ def approved_user_checker_workflow_carrier_change(identifier, old, new, candidat
     return projected, changes
 
 
+def approved_pdf_review_carrier_change(identifier, old, new, candidate_authority_versions):
+    """Project only the exact 10.20.4 carrier and two assembly run-now leaves."""
+    if (candidate_authority_versions != PDF_REVIEW_AUTHORITY_VERSIONS
+            or new.get("version") != PDF_REVIEW_AUTHORITY_VERSIONS["skill"]):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    declaration_changes = []
+    if identifier == "cumcm_writing":
+        for prefix in (("writing_runtime", "authoring_sequence", 9),
+                       ("runtime_plan", "writing_runtime", "authoring_sequence", 9)):
+            try:
+                baseline, candidate, target = old, new, predecessor
+                for key in prefix:
+                    baseline, candidate, target = baseline[key], candidate[key], target[key]
+                if (baseline["id"] != "latex_assembly_audit_and_compile"
+                        or candidate["id"] != baseline["id"]):
+                    return deepcopy(new), []
+                for suffix, previous, current in PDF_REVIEW_WRITING_DELTAS:
+                    left, right, destination = baseline, candidate, target
+                    for key in suffix[:-1]:
+                        left, right, destination = left[key], right[key], destination[key]
+                    if left[suffix[-1]] != previous or right[suffix[-1]] != current:
+                        return deepcopy(new), []
+                    destination[suffix[-1]] = deepcopy(previous)
+                    declaration_changes.append({
+                        "path": ".".join(map(str, (*prefix, *suffix))),
+                        "baseline": deepcopy(previous), "candidate": deepcopy(current),
+                        "approval": "Exact v10.20.4 assembly command deduplication; render still owns the formal audit",
+                    })
+            except (KeyError, IndexError, TypeError):
+                return deepcopy(new), []
+    predecessor["version"] = USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS["skill"]
+    projected, changes = approved_user_checker_workflow_carrier_change(
+        identifier, old, predecessor, deepcopy(USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS)
+    )
+    if projected != old or not changes:
+        return deepcopy(new), []
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = PDF_REVIEW_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(PDF_REVIEW_AUTHORITY_VERSIONS)
+            change["approval"] = (
+                "Exact v10.20.4 PDF review carrier and two assembly run-now leaves; "
+                "all other declarations, runtime decisions and qualifications remain checked"
+            )
+    changes.extend(declaration_changes)
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -1213,6 +1268,9 @@ def compare(before, after):
         projected, user_checker_workflow_changes = approved_user_checker_workflow_carrier_change(
             a["id"], old, projected, b.get("authority_versions"))
         expected.extend(user_checker_workflow_changes)
+        projected, pdf_review_changes = approved_pdf_review_carrier_change(
+            a["id"], old, projected, b.get("authority_versions"))
+        expected.extend(pdf_review_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,
@@ -1267,9 +1325,10 @@ def main():
         "approved_writing_patch_authority_versions": WRITING_PATCH_AUTHORITY_VERSIONS,
         "approved_figure_handoff_authority_versions": FIGURE_HANDOFF_AUTHORITY_VERSIONS,
         "approved_user_checker_workflow_authority_versions": USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS,
+        "approved_pdf_review_authority_versions": PDF_REVIEW_AUTHORITY_VERSIONS,
         "all_legacy_behavior_equal": all(r["legacy_behavior_equal"] for r in rows),
         "all_legacy_behavior_equal_except_approved_changes": all(r["legacy_behavior_equal_except_approved_changes"] for r in rows),
-        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before exact A3/A7/v9.7/v10/v10.1/A1/A2/B1/B2/B2b1/B2b2/B2b3a/B2b3b/B2b3c/B2 patch/B2b4/B2b5/B2b6/B2c/C1/Windows Python CI/Windows MATLAB CI/C2/Python CI performance/D1 carrier exceptions; B2b6, B2c, C1, both earlier CI patches, C2, the performance patch, D1, D2 and E1 require their exact Authority version sets. D1 and D2 keep the case corpus outside default runtime loading and their independent protocols outside default runtime Authority metadata. Each approved version, provenance or canonical solver projection is visible in expected_legacy_changes. No result qualification, classification value or existing list-order normalization is waived. The v10.18.3 writing patch retains its exact Skill carrier; the user-specified v10.19.3 handoff registers its exact carrier and six pinned CUMCM question-handoff declaration leaves. The user-specified v10.20.3 workflow registers only its exact carrier and preserves those historical projections. All previous approved behavior projections and every unregistered field remain checked. Passing requires no unregistered field differences.",
+        "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before exact A3/A7/v9.7/v10/v10.1/A1/A2/B1/B2/B2b1/B2b2/B2b3a/B2b3b/B2b3c/B2 patch/B2b4/B2b5/B2b6/B2c/C1/Windows Python CI/Windows MATLAB CI/C2/Python CI performance/D1 carrier exceptions; B2b6, B2c, C1, both earlier CI patches, C2, the performance patch, D1, D2 and E1 require their exact Authority version sets. D1 and D2 keep the case corpus outside default runtime loading and their independent protocols outside default runtime Authority metadata. Each approved version, provenance or canonical solver projection is visible in expected_legacy_changes. No result qualification, classification value or existing list-order normalization is waived. The v10.18.3 writing patch retains its exact Skill carrier; the user-specified v10.19.3 handoff registers its exact carrier and six pinned CUMCM question-handoff declaration leaves. The user-specified v10.20.3 workflow registers only its exact carrier and preserves those historical projections. The v10.20.4 PDF review patch registers its exact carrier and two pinned assembly run-now leaves, preserving the template check and render order. All previous approved behavior projections and every unregistered field remain checked. Passing requires no unregistered field differences.",
         "cases": rows,
     }
     args.output.mkdir(parents=True, exist_ok=True)

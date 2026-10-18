@@ -126,6 +126,8 @@ Title Claim 中的主方法/机制必须在正文实质使用并有结果证据�
 
 正式交付消费最新 LaTeX audit、compile report、PDF、project sync 和 submission package validation。每问条件 3+2 文件及目录/包边界只核对 `core/output_contract.yaml#per_question` 和 Artifact Packs；Review 不复制清单。任何 stale source bundle、未解析引用、编译错误、manifest/hash 不一致按既有 gate 处理。
 
+当前 PDF 的逐页视觉检查由助手按 `modules/05_latex_compile_quality.md#终稿检查` 执行，并在既有 `rendered_page_surface` coverage 中闭合。
+
 ## 九、Final Submission Compliance & Evidence Sweep
 
 ### 1. 恢复终审上下文
@@ -149,6 +151,8 @@ finding 定位到最小可修复对象，并记录 evidence/authority/severity/r
 ### 5. 机器与人工边界
 
 机器检查文件、hash、引用、状态、Schema、coverage 与显式冲突；人工作数学合理性、因果/机制、claim 支持、正文连续性与视觉质量判断。机器不得把“检查脚本成功”当论文内容正确的证明。
+
+PDF 逐页视觉检查由助手按 Module 05D 实际执行；此项 `manual / hybrid` 表示检查方法，不表示用户本地任务，也不能据此声称 C1 的 `human_review` 来源。
 
 ## 十、返修优先级
 

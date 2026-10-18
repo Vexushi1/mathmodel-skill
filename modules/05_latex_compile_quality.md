@@ -43,4 +43,10 @@ Times New Roman 缺失时回退 TeX Gyre Termes；SimSun 缺失时回退 FandolS
 
 ## 终稿检查
 
-无 Error、未定义引用、缺失文献、缺图、字体错误、不可接受的 Overfull box 和表格越界；目录页码正确；摘要、图表、命题和附录编号正确；PDF 必须逐页检查。正式交付时以 `latex_audit_report.yaml + compile_report.yaml + 当前 PDF` 的哈希证明链为机器证据，不以“文件存在”代替当前性检查。
+无 Error、未定义引用、缺失文献、缺图、字体错误、不可接受的 Overfull box 和表格越界；目录页码正确；摘要、图表、命题和附录编号正确；PDF 由助手负责逐页检查。正式交付时以 `latex_audit_report.yaml + compile_report.yaml + 当前 PDF` 的哈希证明链为机器证据，不以“文件存在”代替当前性检查。
+
+助手须使用能够查看 PDF 页面的工具，按实际页序检查当前 PDF 的全部页面，包括分页、越界、遮挡、裁剪、缺图、字体及编号呈现；不能只抽查章节，也不能以编译成功、日志、文本抽取或哈希一致代替页面视觉检查。检查对象须与现有终审矩阵 `review_context.compiled_pdf_sha256` 对应；PDF 变化后，不得直接将旧检查记为当前通过。
+
+检查证据复用 `templates/review/final_review_matrix.yaml` 的 `rendered_page_surface` coverage 与既有 finding：记录实际检查页码范围、发现、返修及未覆盖范围，不新增报告或用户表单。`manual / hybrid` 表示检查方法，不表示由用户执行，也不能据此声称 C1 的 `human_review` 来源。
+
+缺少 PDF、页面查看工具或部分页面不可查看时，助手说明缺失条件和未覆盖范围，保持该 coverage 为 `unverifiable`，不得标记为 `passed` 或宣称终审完成，也不得自动要求用户在本地代跑编译、checker 或逐页预览。工具和材料齐备后，由助手补齐检查。

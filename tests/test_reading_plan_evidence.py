@@ -1153,6 +1153,126 @@ class AuditClosureProjectionTests(unittest.TestCase):
         self.assertEqual(EVIDENCE.approved_user_checker_workflow_carrier_change(
             "future_case", old, new, carriers), (new, []))
 
+    def pdf_review_pair(self, case):
+        old, new = self.figure_handoff_pair(case)
+        new["version"] = "10.20.4"
+        if case == "cumcm_writing":
+            for runtime in (new["writing_runtime"], new["runtime_plan"]["writing_runtime"]):
+                stage = runtime["authoring_sequence"][9]
+                self.assertEqual(stage["id"], "latex_assembly_audit_and_compile")
+                self.assertEqual(stage["run_now"], [
+                    "scripts/validate_template_manifest.py", "scripts/audit_latex_project.py",
+                    "scripts/render_paper.py",
+                ])
+                stage["run_now"] = ["scripts/validate_template_manifest.py", "scripts/render_paper.py"]
+        return old, new
+
+    def test_v10204_pdf_review_carrier_projects_only_two_assembly_lists(self):
+        carriers = deepcopy(EVIDENCE.PDF_REVIEW_AUTHORITY_VERSIONS)
+        self.assertEqual(carriers, {**EVIDENCE.USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS, "skill": "10.20.4"})
+        self.assertEqual(EVIDENCE.USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS["skill"], "10.20.3")
+        self.assertEqual(EVIDENCE.PDF_REVIEW_WRITING_DELTAS, (
+            (("run_now",),
+             ["scripts/validate_template_manifest.py", "scripts/audit_latex_project.py", "scripts/render_paper.py"],
+             ["scripts/validate_template_manifest.py", "scripts/render_paper.py"]),
+        ))
+        for case in (*sorted(EVIDENCE.A7_HYDRATED_PROVENANCE_CASES), "facts_unscoped", "cumcm_writing"):
+            with self.subTest(case=case):
+                old, new = self.pdf_review_pair(case)
+                saved = deepcopy((old, new, carriers, EVIDENCE.PDF_REVIEW_WRITING_DELTAS))
+                row = EVIDENCE.compare(
+                    [{"id": case, "plan": old, "legacy_declared_bytes": 1}],
+                    [{"id": case, "plan": new, "legacy_declared_bytes": 1,
+                      "authority_versions": carriers}],
+                )[0]
+                self.assertFalse(row["legacy_behavior_equal"])
+                self.assertTrue(row["legacy_behavior_equal_except_approved_changes"])
+                self.assertEqual(row["unexpected_legacy_changes"], [])
+                versions = [item for item in row["expected_legacy_changes"] if item["path"] == "version"]
+                self.assertEqual([item["candidate"] for item in versions], ["10.20.4"])
+                self.assertEqual(versions[0]["authority_versions"], carriers)
+                assembly = [item for item in row["expected_legacy_changes"]
+                            if "authoring_sequence.9." in item["path"]]
+                self.assertEqual([item["path"] for item in assembly], [
+                    "writing_runtime.authoring_sequence.9.run_now",
+                    "runtime_plan.writing_runtime.authoring_sequence.9.run_now",
+                ] if case == "cumcm_writing" else [])
+                handoff = [item for item in row["expected_legacy_changes"]
+                           if "authoring_sequence.4." in item["path"]]
+                self.assertEqual(len(handoff), 6 if case == "cumcm_writing" else 0)
+                self.assertEqual((old, new, carriers, EVIDENCE.PDF_REVIEW_WRITING_DELTAS), saved)
+
+    def test_v10204_pdf_review_carrier_requires_exact_authority_and_unchanged_runtime(self):
+        carriers = EVIDENCE.PDF_REVIEW_AUTHORITY_VERSIONS
+        for case in ("facts_current", "cumcm_writing"):
+            with self.subTest(case=case):
+                old, new = self.pdf_review_pair(case)
+                for bad in (None, {**carriers, "skill": "10.20.3"},
+                            {**carriers, "skill": "10.20.5"},
+                            {**carriers, "project_state": "8.17.0"},
+                            {**carriers, "writing_reasoning": "1.12.0"},
+                            {**carriers, "undeclared_authority": "1.0.0"},
+                            {key: value for key, value in carriers.items() if key != "runtime_assurance"}):
+                    self.assertEqual(EVIDENCE.approved_pdf_review_carrier_change(
+                        case, old, new, bad), (new, []))
+                for field, value in (("version", "10.20.3"), ("version", "10.20.5"),
+                                     ("formal_delivery", True), ("pre_delivery_gates", []),
+                                     ("load_order", ["scripts/render_paper.py"])):
+                    altered = deepcopy(new)
+                    altered[field] = value
+                    self.assertEqual(EVIDENCE.approved_pdf_review_carrier_change(
+                        case, old, altered, carriers), (altered, []))
+                altered = deepcopy(new)
+                altered["assurance"]["qualification"] = "accepted"
+                self.assertEqual(EVIDENCE.approved_pdf_review_carrier_change(
+                    case, old, altered, carriers), (altered, []))
+        old, new = self.pdf_review_pair("facts_current")
+        self.assertEqual(EVIDENCE.approved_pdf_review_carrier_change(
+            "future_case", old, new, carriers), (new, []))
+
+    def test_v10204_pdf_review_projection_pins_both_mirrors_and_stage_fields(self):
+        carriers = EVIDENCE.PDF_REVIEW_AUTHORITY_VERSIONS
+        for location in ("top", "nested"):
+            for mutation in ("legacy_list", "reversed_list", "missing_manifest", "missing_render",
+                             "extra_command", "duplicate_render", "gate", "read_now", "write_now",
+                             "stage_id", "missing_stage", "stage_order", "baseline_list", "baseline_id"):
+                with self.subTest(location=location, mutation=mutation):
+                    old, new = self.pdf_review_pair("cumcm_writing")
+                    runtime = new["writing_runtime"] if location == "top" else new["runtime_plan"]["writing_runtime"]
+                    baseline = old["writing_runtime"] if location == "top" else old["runtime_plan"]["writing_runtime"]
+                    stage = runtime["authoring_sequence"][9]
+                    commands = stage["run_now"]
+                    if mutation == "legacy_list":
+                        commands.insert(1, "scripts/audit_latex_project.py")
+                    elif mutation == "reversed_list":
+                        commands.reverse()
+                    elif mutation == "missing_manifest":
+                        commands.pop(0)
+                    elif mutation == "missing_render":
+                        commands.pop()
+                    elif mutation == "extra_command":
+                        commands.append("scripts/audit_paper_prose.py")
+                    elif mutation == "duplicate_render":
+                        commands.append(commands[-1])
+                    elif mutation == "gate":
+                        stage["gate"] = "全部通过"
+                    elif mutation in ("read_now", "write_now"):
+                        stage[mutation] = []
+                    elif mutation == "stage_id":
+                        stage["id"] = "another_compile_stage"
+                    elif mutation == "missing_stage":
+                        runtime["authoring_sequence"].pop(9)
+                    elif mutation == "stage_order":
+                        runtime["authoring_sequence"][8:10] = reversed(runtime["authoring_sequence"][8:10])
+                    elif mutation == "baseline_list":
+                        baseline["authoring_sequence"][9]["run_now"].reverse()
+                    else:
+                        baseline["authoring_sequence"][9]["id"] = "another_compile_stage"
+                    saved = deepcopy((old, new, carriers))
+                    self.assertEqual(EVIDENCE.approved_pdf_review_carrier_change(
+                        "cumcm_writing", old, new, carriers), (new, []))
+                    self.assertEqual((old, new, carriers), saved)
+
     def comparison_writing_pair(self):
         old, new = self.pair("cumcm_writing")
         new.pop("solver_backend")

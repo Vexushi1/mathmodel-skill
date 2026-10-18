@@ -1,6 +1,12 @@
 # Changelog
 
-## 10.20.3
+## 10.20.4
+
+- Assign actual page-by-page inspection of the current compiled PDF to the assistant, with the detailed authority in Module 05D and short references from final review, the LaTeX Pack and the review matrix. Reuse existing evidence and current-PDF identity; unavailable pages or tools leave inspection incomplete rather than passed or delegated to a user-run checker.
+- Align the writing runtime and CUMCM template instructions with the existing render entrypoint, which performs and persists formal LaTeX audit before compilation. Remove the duplicated standalone audit invocation while preserving manifest validation, audit/compile evidence and page inspection.
+- Preserve independent protocol versions, review modes and human-review provenance requirements, existing numerical/plot execution and model approval boundaries, and user-project compatibility. No new gate, form, report or migration is introduced.
+
+## Previous release: 10.20.3
 
 - Keep routine users focused on real full-fidelity numerical/plotting entrypoints, returning their artifacts and necessary human approvals. The assistant performs internal delivery checks, returned-artifact validation, synchronization, paper audit/compilation and package validation through available tools; do not require a separate user-run checker, synchronization command or machine report.
 - Separate required MATLAB static/source/input checks from native analyzer coverage on ordinary code delivery. Unavailable or incomplete native tools leave that coverage explicitly unverified without blocking otherwise valid delivery; real native errors, hard complexity limits, helper errors and observed source/input drift remain blocking. Explicit internal native requirements and native CI evidence remain strict.

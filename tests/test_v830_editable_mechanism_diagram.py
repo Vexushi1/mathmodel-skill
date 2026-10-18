@@ -308,6 +308,23 @@ HANDOFF_AUTHORITY_REWRITES = {
 }
 
 
+# v10.20.4 assigns the existing PDF visual review to the assistant and clarifies
+# its method versus reviewer provenance. Project only these exact additions
+# back to v10.20.3; keep every historical PROTECTED hash unchanged.
+PDF_REVIEW_OWNER_REWRITES = {
+    "modules/06_review_delivery.md": (
+        (
+            "当前 PDF 的逐页视觉检查由助手按 `modules/05_latex_compile_quality.md#终稿检查` 执行，并在既有 `rendered_page_surface` coverage 中闭合。\n\n",
+            "",
+        ),
+        (
+            "PDF 逐页视觉检查由助手按 Module 05D 实际执行；此项 `manual / hybrid` 表示检查方法，不表示用户本地任务，也不能据此声称 C1 的 `human_review` 来源。\n\n",
+            "",
+        ),
+    ),
+}
+
+
 # v10.20.3 reopens only optional MATLAB native coverage and explicit checker
 # ownership. Invert these exact blocks to c2181e8 before the older projections;
 # the unchanged PROTECTED hashes still reject every unrelated byte change.
@@ -913,9 +930,11 @@ class ContractAndDriftTests(unittest.TestCase):
     }
 
     def prior_handoff_text(self, relative):
-        text = inverse_user_checker_changes(
-            relative, (ROOT / relative).read_text(encoding="utf-8"),
-        )
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        for current, baseline in PDF_REVIEW_OWNER_REWRITES.get(relative, ()):
+            self.assertEqual(text.count(current), 1, (relative, current))
+            text = text.replace(current, baseline, 1)
+        text = inverse_user_checker_changes(relative, text)
         for current, baseline in HANDOFF_AUTHORITY_REWRITES.get(relative, ()):
             self.assertEqual(text.count(current), 1, (relative, current))
             text = text.replace(current, baseline, 1)

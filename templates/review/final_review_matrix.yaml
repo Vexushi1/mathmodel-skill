@@ -41,8 +41,8 @@ coverage:
     applicability: applicable
     verification_mode: manual
     status: unverifiable
-    rule_source: modules/06_review_delivery.md#Final-Submission-Compliance-Evidence-Sweep
-    evidence: "TODO: record the page-by-page final PDF inspection."
+    rule_source: modules/05_latex_compile_quality.md#终稿检查
+    evidence: "TODO: assistant records actual page coverage, findings/repairs and any uncovered pages for the current review_context.compiled_pdf_sha256; unavailable viewing remains unverifiable."
   - check_family: figure_table_information_value
     applicability: applicable
     verification_mode: manual
