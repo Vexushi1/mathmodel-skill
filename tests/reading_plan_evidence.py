@@ -1308,7 +1308,7 @@ def main():
         "schema_version": 1, "baseline_ref": args.baseline_ref, "candidate_ref": args.candidate_ref,
         "driver_sha256": hashlib.sha256(HERE.read_bytes()).hexdigest(),
         "cases_sha256": hashlib.sha256(HERE.with_name("reading_plan_cases.py").read_bytes()).hexdigest(),
-        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_b2b1_b2b2_b2b3a_b2b3b_b2b3c_b2_patch_b2b4_b2b5_b2b6_b2c_c1_windows_python_ci_windows_matlab_ci_c2_python_ci_performance_d1_d2_e1_v10183_v10193_v10203_exact_authority_carrier_transitions",
+        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_b2b1_b2b2_b2b3a_b2b3b_b2b3c_b2_patch_b2b4_b2b5_b2b6_b2c_c1_windows_python_ci_windows_matlab_ci_c2_python_ci_performance_d1_d2_e1_v10183_v10193_v10203_v10204_exact_authority_carrier_transitions",
         "expected_authority_changes": sorted(ALLOWED_CHANGED_AUTHORITIES),
         "approved_b2b6_authority_versions": B2B6_AUTHORITY_VERSIONS,
         "approved_b2c_authority_versions": B2C_AUTHORITY_VERSIONS,
