@@ -308,6 +308,19 @@ HANDOFF_AUTHORITY_REWRITES = {
 }
 
 
+# v10.20.4 assigns the existing PDF visual review to the assistant. Project
+# only this compact delivery paragraph, preserving the existing byte budget,
+# back to v10.20.3; keep every historical PROTECTED hash unchanged.
+PDF_REVIEW_OWNER_REWRITES = {
+    "modules/06_review_delivery.md": (
+        (
+            "交付须用最新 LaTeX audit、compile report、PDF、project sync、submission package validation。每问条件 3+2 文件及目录/包边界依 `core/output_contract.yaml#per_question` 与 Artifact Packs，不复列；stale source bundle、未解析引用、编译错误、manifest/hash 不一致依既有 gate。PDF 逐页检查由助手按 Module 05D 执行。",
+            "正式交付消费最新 LaTeX audit、compile report、PDF、project sync 和 submission package validation。每问条件 3+2 文件及目录/包边界只核对 `core/output_contract.yaml#per_question` 和 Artifact Packs；Review 不复制清单。任何 stale source bundle、未解析引用、编译错误、manifest/hash 不一致按既有 gate 处理。",
+        ),
+    ),
+}
+
+
 # v10.20.3 reopens only optional MATLAB native coverage and explicit checker
 # ownership. Invert these exact blocks to c2181e8 before the older projections;
 # the unchanged PROTECTED hashes still reject every unrelated byte change.
@@ -913,9 +926,11 @@ class ContractAndDriftTests(unittest.TestCase):
     }
 
     def prior_handoff_text(self, relative):
-        text = inverse_user_checker_changes(
-            relative, (ROOT / relative).read_text(encoding="utf-8"),
-        )
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        for current, baseline in PDF_REVIEW_OWNER_REWRITES.get(relative, ()):
+            self.assertEqual(text.count(current), 1, (relative, current))
+            text = text.replace(current, baseline, 1)
+        text = inverse_user_checker_changes(relative, text)
         for current, baseline in HANDOFF_AUTHORITY_REWRITES.get(relative, ()):
             self.assertEqual(text.count(current), 1, (relative, current))
             text = text.replace(current, baseline, 1)

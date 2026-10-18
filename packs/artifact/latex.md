@@ -139,8 +139,10 @@ model_review  -> final_latex/sections/09_evaluation.tex
 → 可选局部 preview
 → main.tex 全量 project/prose/BibTeX audit
 → main.tex 全量正式编译
-→ PDF 逐页检查
+→ 助手按 Module 05D 检查当前 PDF 的全部页面
 ```
+
+逐页检查的承担人、证据和工具不足处理统一见 `modules/05_latex_compile_quality.md#终稿检查`。
 
 ## 四、LaTeX 特有排版要求
 
@@ -190,6 +192,6 @@ model_review  -> final_latex/sections/09_evaluation.tex
 - 编译日志无 Error、未定义引用、缺失文献、缺图、字体错误和不可接受的 Overfull box；
 - 目录、页码、摘要、命题、图表和附录编号正确；
 - CUMCM、MCM/ICM、电工杯模板通过仓库 CI smoke build；
-- PDF 逐页检查，正文数值、命题、图表和参考文献与当前框架/工作簿一致。
+- 助手已按 `modules/05_latex_compile_quality.md#终稿检查` 完成当前 PDF 逐页检查，正文数值、命题、图表和参考文献与当前框架/工作簿一致。
 
 命题超过默认 0--4 预算、优点/缺点数量关系、简单问题未单列“核心模型汇总”等写作选择不在 Artifact Pack 中重新判定；统一交给 Authority 与终审分级处理。

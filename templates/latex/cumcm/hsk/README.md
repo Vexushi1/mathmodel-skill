@@ -204,13 +204,14 @@ final_latex/
 
 ## 8. 审计与编译
 
-推荐从仓库根目录执行：
+以下由助手在可用工具中从仓库根目录执行，属于内部审计与编译流程：
 
 ```bash
 python scripts/validate_template_manifest.py templates/latex/cumcm/hsk/template_manifest.yaml
-python scripts/audit_latex_project.py final_latex/main.tex --bib final_latex/references.bib --framework 模型论文框架.md --strict
 python scripts/render_paper.py final_latex --profile cumcm --clean
 ```
+
+`render_paper.py` 已内置正式 LaTeX 审计并先保存审计报告，再执行编译。助手随后按 [Module 05D 的终稿检查](../../../../modules/05_latex_compile_quality.md#终稿检查) 实际逐页查看当前 PDF，并复用现有终审记录登记覆盖与发现。
 
 实际编译顺序由 `core/compile_profiles.yaml` 控制：
 

@@ -124,7 +124,7 @@ Title Claim 中的主方法/机制必须在正文实质使用并有结果证据�
 
 ## 八、编译、复现与提交包
 
-正式交付消费最新 LaTeX audit、compile report、PDF、project sync 和 submission package validation。每问条件 3+2 文件及目录/包边界只核对 `core/output_contract.yaml#per_question` 和 Artifact Packs；Review 不复制清单。任何 stale source bundle、未解析引用、编译错误、manifest/hash 不一致按既有 gate 处理。
+交付须用最新 LaTeX audit、compile report、PDF、project sync、submission package validation。每问条件 3+2 文件及目录/包边界依 `core/output_contract.yaml#per_question` 与 Artifact Packs，不复列；stale source bundle、未解析引用、编译错误、manifest/hash 不一致依既有 gate。PDF 逐页检查由助手按 Module 05D 执行。
 
 ## 九、Final Submission Compliance & Evidence Sweep
 

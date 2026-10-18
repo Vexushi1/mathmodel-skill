@@ -19,6 +19,8 @@ if TESTS not in sys.path:
 from reading_plan_evidence import (
     FIGURE_HANDOFF_AUTHORITY_VERSIONS,
     FIGURE_HANDOFF_WRITING_DELTAS,
+    PDF_REVIEW_AUTHORITY_VERSIONS,
+    PDF_REVIEW_WRITING_DELTAS,
     USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS,
 )
 
@@ -66,6 +68,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
             self.assertIn(plan.get("version"), (
                 FIGURE_HANDOFF_AUTHORITY_VERSIONS["skill"],
                 USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS["skill"],
+                PDF_REVIEW_AUTHORITY_VERSIONS["skill"],
             ))
             old_stage = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][4]
             current_stage = writing["authoring_sequence"][4]
@@ -77,6 +80,20 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                     baseline, candidate = baseline[key], candidate[key]
                 self.assertEqual(baseline[path[-1]], previous_value)
                 self.assertEqual(candidate[path[-1]], current_value)
+                candidate[path[-1]] = copy.deepcopy(previous_value)
+            # v10.20.4 removes only the redundant standalone audit command;
+            # old carriers must retain the original three-command shape.
+            old_assembly = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][9]
+            current_assembly = writing["authoring_sequence"][9]
+            self.assertEqual(old_assembly["id"], "latex_assembly_audit_and_compile")
+            self.assertEqual(current_assembly["id"], old_assembly["id"])
+            for path, previous_value, current_value in PDF_REVIEW_WRITING_DELTAS:
+                baseline, candidate = old_assembly, current_assembly
+                for key in path[:-1]:
+                    baseline, candidate = baseline[key], candidate[key]
+                self.assertEqual(baseline[path[-1]], previous_value)
+                expected = current_value if plan["version"] == PDF_REVIEW_AUTHORITY_VERSIONS["skill"] else previous_value
+                self.assertEqual(candidate[path[-1]], expected)
                 candidate[path[-1]] = copy.deepcopy(previous_value)
         return {
             "load_order": list(plan.get("load_order", [])),
@@ -106,23 +123,77 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
 
     def test_handoff_projection_preserves_resolver_and_golden_inputs(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
-        before = copy.deepcopy((plan, self.golden, FIGURE_HANDOFF_WRITING_DELTAS))
+        before = copy.deepcopy((plan, self.golden, FIGURE_HANDOFF_WRITING_DELTAS, PDF_REVIEW_WRITING_DELTAS))
         self.assertEqual(self._projection(plan), self.golden["routes"]["latex"])
-        self.assertEqual((plan, self.golden, FIGURE_HANDOFF_WRITING_DELTAS), before)
+        self.assertEqual((plan, self.golden, FIGURE_HANDOFF_WRITING_DELTAS, PDF_REVIEW_WRITING_DELTAS), before)
 
-    def test_projection_admits_only_exact_handoff_and_workflow_carriers(self):
+    def test_projection_binds_exact_carriers_to_their_assembly_command_shape(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
-        for version in ("10.19.3", "10.20.3"):
+        historical = ["scripts/validate_template_manifest.py", "scripts/audit_latex_project.py", "scripts/render_paper.py"]
+        current = ["scripts/validate_template_manifest.py", "scripts/render_paper.py"]
+        for version in ("10.19.3", "10.20.3", "10.20.4"):
             with self.subTest(version=version):
                 declared = copy.deepcopy(plan)
                 declared["version"] = version
+                stage = declared["writing_runtime"]["authoring_sequence"][9]
+                stage["run_now"] = list(current if version == "10.20.4" else historical)
                 self.assertEqual(self._projection(declared), self.golden["routes"]["latex"])
-        for version in (None, "10.19.4", "10.20.4", "11.0.0"):
+                stage["run_now"] = list(historical if version == "10.20.4" else current)
+                with self.assertRaises(AssertionError):
+                    self._projection(declared)
+        for version in (None, "10.19.4", "10.20.5", "11.0.0"):
             with self.subTest(version=version):
                 altered = copy.deepcopy(plan)
                 altered["version"] = version
                 with self.assertRaises(AssertionError):
                     self._projection(altered)
+
+    def test_assembly_projection_preserves_manifest_render_order_and_other_stage_fields(self):
+        plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
+        for mutation in ("reversed", "missing_manifest", "missing_render", "duplicate_render",
+                         "extra_command", "gate", "read_now", "write_now", "stage_id", "stage_order"):
+            with self.subTest(mutation=mutation):
+                altered = copy.deepcopy(plan)
+                writing = altered["writing_runtime"]
+                stage = writing["authoring_sequence"][9]
+                commands = stage["run_now"]
+                if mutation == "reversed":
+                    commands.reverse()
+                elif mutation == "missing_manifest":
+                    commands.pop(0)
+                elif mutation == "missing_render":
+                    commands.pop()
+                elif mutation == "duplicate_render":
+                    commands.append(commands[-1])
+                elif mutation == "extra_command":
+                    commands.append("scripts/audit_paper_prose.py")
+                elif mutation == "gate":
+                    stage["gate"] = "全部通过"
+                elif mutation in ("read_now", "write_now"):
+                    stage[mutation] = []
+                elif mutation == "stage_id":
+                    stage["id"] = "another_compile_stage"
+                else:
+                    writing["authoring_sequence"][8:10] = reversed(writing["authoring_sequence"][8:10])
+                with self.assertRaises(AssertionError):
+                    self.assertEqual(self._projection(altered), self.golden["routes"]["latex"])
+
+    def test_assembly_projection_rejects_changed_historical_baseline(self):
+        plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
+        original = copy.deepcopy(self.golden)
+        try:
+            for mutation in ("list", "id"):
+                with self.subTest(mutation=mutation):
+                    self.golden = copy.deepcopy(original)
+                    stage = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][9]
+                    if mutation == "list":
+                        stage["run_now"].reverse()
+                    else:
+                        stage["id"] = "another_compile_stage"
+                    with self.assertRaises(AssertionError):
+                        self._projection(plan)
+        finally:
+            self.golden = original
 
     def test_handoff_projection_rejects_unregistered_question_changes(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
