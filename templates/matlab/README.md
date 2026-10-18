@@ -182,7 +182,7 @@ set(hLine, "Color", palette.primary);
 2. 在脚本头部显式填写 `seriesColors`，按当前图调整字号、线宽、marker、网格、边框和必要坐标范围；
 3. 助手完成静态语法、字段引用和接口检查，明确实际检查范围；仅做静态检查时写“未验证 MATLAB 运行”，确知未运行时再写“MATLAB 未运行”，不写运行或外观已通过；
 4. 用户在 MATLAB 中运行脚本并打开图窗，手动检查、调整标签/图例和版面；需要保留的设置写回脚本参数区或基础样式后的局部覆盖；
-5. 需要入文时再人工确认并按需导出，按同一 Figure ID 同步实际文件、caption、邻近正文引用和框架登记。未导出时 Export files 留空；静态检查不自动将任何文件加入 `artifacts.approved_figures`。
+5. 需要入文时再人工确认并按需导出；助手按同一 Figure ID 同步实际文件、caption、邻近正文引用和框架登记。未导出时 Export files 留空；静态检查不自动将任何文件加入 `artifacts.approved_figures`。
 
 高价值 publication patterns：Multi-Metric Comparison Strip、Dedicated Legend Tile、Ordered Ablation Ladder、Composition/Decomposition、Evidence Matrix、Milestone-aware Trend、Normalized Radar（严格准入）、Density/State-Space、Comparative Performance Matrix。实现边界见 `templates/figure/figure_enhancement_patterns.md`。
 
@@ -241,7 +241,7 @@ Figure Contract 记录 `Enhancement / Enhancement rationale`，不把 inset 坐�
 
 每张图的源工作簿、工作表、真实表头、脚本、论文 caption、Evidence level、Primary question、Evidence structure、Figure level、Selected visual structure、Composite encoding、Scientific Rendering Profile、Layout decision、Split decision、Enhancement / Enhancement rationale 和正文位置同步登记到 `模型论文框架.md`；默认不生成独立 `figure_evidence` 文件。
 
-图表交付前执行 `python scripts/sync_project.py <project_root> --write --strict --delivery-scope figures`。同步器检查 current required workbook set、`qX_plot.m` 的真实引用、正式图内无整体 `title/sgtitle` 和证据链；Gate=`not_required` 时不因合法缺少 03B workbook 失败，Gate=`required` 且 Figure 使用 03B 时则必须保持 fail closed。默认不要求导出图片已经存在。
+图表交付前由助手执行 resolver 返回的内部同步检查，接口见 `scripts/README.md`；适用工作簿与来源要求服从 Figure／输出 Authority，默认不要求导出图片已经存在。
 
 ## 按需参考的绘图技巧
 

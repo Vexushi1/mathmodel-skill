@@ -4,11 +4,11 @@
 
 若项目根目录已有 current `模型论文框架.md`，正式生成本问代码前必须先读取“当前有效口径”、本问“当前模型口径/求解与验证方案/模型挑战与人工锁模”以及必要前问依赖，用它恢复当前模型语义；不得仅凭聊天记忆重建变量、参数、目标或约束。具体输入数值和已验收结果仍回到当前数据事实源/标准工作簿核验。
 
-进入本模块前，当前小问必须依次通过 `scripts/validate_semantic_governance.py` 与 `scripts/validate_model_approval.py`。前者负责当前题意/语义/复杂度与 stale 一致性，后者是 Challenge/Human Approval 的唯一字段级运行门；具体批准状态、revision/structured identity 绑定与失效条件只服从 `core/model_approval_contract.yaml`，本模块不复制第二套检查清单。
+进入本模块前，助手为当前小问依次执行 `scripts/validate_semantic_governance.py` 与 `scripts/validate_model_approval.py`。前者负责当前题意/语义/复杂度与 stale 一致性，后者是 Challenge/Human Approval 的唯一字段级运行门；具体批准状态、revision/structured identity 绑定与失效条件只服从 `core/model_approval_contract.yaml`，本模块不复制第二套检查清单。
 
 任一 gate 未通过都不得生成正式主求解代码；Model Approval 未通过时返回 Module 02，并停在 `awaiting_model_approval`。
 
-正式交付前必须从项目根恢复并核验唯一求解后端；缺失、冲突或 `auto` 均不得交付，也不得为本问另选语言。按 resolver 的后端资源映射读取该语言模板，不同时生成两份求解器。配置、1.1 回执、主入口 SHA 与源码 bundle 的绑定只服从 `core/user_execution_contract.yaml`；工程检查按 `core/code_quality_contract.yaml` 分流。MATLAB 无原生分析器时明确未核验项，不把静态字符串检查当作正式工程验收。
+正式交付前必须从项目根恢复并核验唯一求解后端；缺失、冲突或 `auto` 均不得交付，也不得为本问另选语言。按 resolver 的后端资源映射读取该语言模板，不同时生成两份求解器。配置、1.1 回执、主入口 SHA 与源码 bundle 的绑定只服从 `core/user_execution_contract.yaml`；助手按 `core/code_quality_contract.yaml` 完成必需工程检查，并如实报告 MATLAB 原生分析的实际覆盖。
 
 ## 数据事实源分流
 
@@ -111,7 +111,7 @@
 
 v7.14 新生成的严格主质量轨迹应在 `运行配置` 中写入 `primary_quality_protocol_version=1.0.0`，并在 `主结果质量门` 中使用 `Verification ID / 判定关系 / 阈值或容差 / 实际值 / 证据工作表 / 阈值来源` 追溯到底层证据。`离散精度` 与 `收敛诊断` 若由机器重算主判据，应使用 `用于主判定` 标记真正决定当前主结果是否可接受的证据行，避免把探索性粗网格或过程记录误当最终门槛。
 
-返回工作簿时 `scripts/validate_user_execution.py` 先核验执行所有权、full-fidelity 配置和代码/数据哈希，再调用 `scripts/validate_numerical_evidence.py` 独立复核适用主数值证据；工作簿自行写出的“是否通过”不能替代机器可重算的证据一致性。v7.13 历史工作簿保持只读兼容；旧项目重新进入当前主求解时应按 v7.14 轨迹生成本问新工作簿。
+用户返回工作簿后，助手通过 `scripts/validate_user_execution.py` 核验执行所有权、full-fidelity 配置和代码/数据哈希，并由其调用 `scripts/validate_numerical_evidence.py` 独立复核适用主数值证据；工作簿自行写出的“是否通过”不能替代机器可重算的证据一致性。v7.13 历史工作簿保持只读兼容；旧项目重新进入当前主求解时应按 v7.14 轨迹生成本问新工作簿。
 
 ```text
 题意口径冻结
@@ -129,10 +129,10 @@ v7.14 新生成的严格主质量轨迹应在 `运行配置` 中写入 `primary_
    ├─ question_local → 原始数据 + 本问局部变换
    └─ project_level  → Module 03P → 统一工作簿质量门
 → 生成所选主求解入口前锁定 Primary Evidence Capture 项
-→ validate_code_delivery.py：执行配置 + 代码工程质量门
+→ 助手执行代码交付检查：执行配置 + 代码工程质量门
 → 用户本地full_fidelity运行，同时保存最终答案 + 真实状态/过程/结构证据
-→ 问题X求解结果.xlsx
-→ validate_user_execution.py：运行配置/哈希 + 主结果质量门 + numerical evidence独立复核
+→ 用户返回问题X求解结果.xlsx
+→ 助手验收：运行配置/哈希 + 主结果质量门 + numerical evidence独立复核
 → accepted后冻结所选主求解入口及其声明源码依赖
 → 才允许建立result_analysis_plan并进入Module 03B
 ```

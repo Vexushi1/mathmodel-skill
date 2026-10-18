@@ -1,6 +1,6 @@
 # Scripts
 
-本目录只保存活动运行/维护脚本。行为以各脚本实现及其 Authority/contract 为准；本文件只提供稳定导航，不保留旧版本的行为快照。
+本目录只保存活动运行/维护脚本，是助手与维护者的工具接口导航；用户的实际数值运行与产物交接见 `core/user_execution_contract.yaml`。行为以各脚本实现及其 Authority/contract 为准，不保留旧版本的行为快照。
 
 ## 运行环境与资源根
 
@@ -37,7 +37,7 @@ python scripts/resolve_runtime.py problem_analysis --objective explanation
 - `execution_protocol.py`：执行 Authority 的共享回执版本与辅助字段形状检查；无 I/O、不设第二套模型政策。
 - `stage_inputs.py`：只读观察实际主输入和可选 1.2 辅助输入，供 runtime/交付/回执/同步/打包共同消费；不刷新已验收哈希。
 - `stage_code.py`：依据项目根唯一后端选择及执行/输出 Authority 解析阶段入口、配置和源码 bundle，供交付/回执/同步/打包/runtime 共享；`RUN_CONFIG` / `RUN_RECEIPT` 的后端仅是须与根策略相符的实际执行事实，本脚本不写项目状态。
-- `matlab_code_checks.py`：MATLAB 受限静态语法与工程检查适配，原生分析器未执行时如实报告未核验。
+- `matlab_code_checks.py`：MATLAB 受限静态语法与工程检查适配；助手工具可用时执行原生分析，不可用时如实报告未核验，真实错误按工程 Authority 处理。
 - `validate_code_delivery.py`：按 `preprocessing / primary / analysis` 阶段静态校验题目专属 Python/MATLAB 的完整运行配置、代码质量和阶段边界；不执行赛题代码。RUN_CONFIG/FULL_* 的静态语法抽取委托 `run_config_parser.py`，字段要求仍在本 validator 与 User Execution Authority 中判定。
 - `validate_user_execution.py`：按当前 `preprocessing_decision` 与已激活阶段验收适用的预处理工作簿、主求解工作簿和条件存在的结果深化分析工作簿，并核对运行配置、代码/数据哈希和对应质量门；读取已交付阶段代码时复用同一语法级 config parser，但保留本调用面的 receipt/echo/错误边界。
 
@@ -53,7 +53,7 @@ python scripts/resolve_runtime.py problem_analysis --objective explanation
 - `review_receipt_consumption.py`：C2 显式 `review_receipt_policy` 的有界门禁消费内核，供原模型批准门和提交阶段同步/包检查复用；仅报告所声明 gate、小问和对象的回执资格，不产生回执、不执行审查命令，也不授予 Human Model Approval、数值复现或最终交付。协议见 `core/review_receipt_consumption_contract.yaml`。
 - `validate_project_state.py`：校验 `state/project_state.yaml` 的机器状态、分类兼容、哈希和 stale 语义。
 - `validate_model_paper_framework.py`：校验 current `模型论文框架.md` 的 compact/full 结构、命题预算、Terminology/Numeric/Title/Paper Fragment 记录以及 Algorithm Trace 的确定性闭环。对 `stepwise/pseudocode` 检查关联 Algorithm ID、必填字段、模式/current 状态和已求解后的 实际代码锚点；`not_needed` 不要求算法框。该脚本不从步骤文字推断算法正确性、收敛性或与实现的数学等价性。
-- `audit_latex_project.py`：正式 LaTeX 项目审计入口。递归展开 active `\input/\include`、检查 fragment/source-file 工程闭环，再委托 `audit_paper_prose.py` 完成 prose/structure/BibTeX/framework 审查；兼容单文件工程自然退化为单文件模式。
+- `audit_latex_project.py`：正式 LaTeX 项目审计入口。递归展开 active `\input/\include`、检查 fragment/source-file 工程闭环，再委托 `audit_paper_prose.py` 完成 prose/structure/BibTeX/framework 审查；兼容单文件工程自然退化为单文件模式。助手按需独立诊断并持久化正式证明时使用 `--mode formal --require-framework --write-report --strict`，正常编译由 `render_paper.py` 调用。
 - `audit_paper_prose.py`：底层非破坏性成稿审计实现；结果分为 `blocking / review_required / warning`。它保留维护级直接调用能力，但不是活动 LaTeX route 的默认入口。机器不推断数学正确性、定理适用性、术语语义等价、参数最优性或 citation 是否真正支持 claim。
 
 正文结构与表达由 `modules/05_writing/paper_writing_protocol.md` 管理，`modules/05_writing/latex.md` 只负责 LaTeX 载体适配；跨竞赛 Formula Trace、Algorithm Trace、Hard/Default/Recommendation、命题、Terminology、Numeric Style、Title Claim、深化证据处置、Paragraph Necessity、Paper Fragment stale 与 Citation Evidence 由 `core/writing_reasoning_contract.yaml` 管理。脚本只执行可确定性检查，不建立第二套正文规则。
@@ -61,7 +61,7 @@ python scripts/resolve_runtime.py problem_analysis --objective explanation
 ## LaTeX、评分与打包
 
 - `latex_delivery.py`：计算并核验 formal source bundle、audit report、compile profile、编译日志与 PDF 的证明链哈希；供正式编译和同步门复用。
-- `render_paper.py`：按 `core/compile_profiles.yaml` 执行正式 LaTeX audit → compile → compile-report 链；模板 smoke build 不等价于正式交付证明。
+- `render_paper.py`：助手按 `core/compile_profiles.yaml` 执行正式 LaTeX audit → compile → compile-report 链，无需在正常编译前重复独立 audit；模板 manifest 校验仍是独立内部检查，模板 smoke build 不等价于正式交付证明。
 - `prepare_cumcm_class.py`：为 CUMCM CI/编译准备 class 依赖。
 - `score_submission.py`：按 `config/review_weights.json` 执行评委式评分；Hard 否决不能被总分掩盖。
 - `hsk_pack_submission.py`：按当前竞赛 profile 和提交边界生成 official / reproducibility 提交包及 `submission_manifest.yaml`；内部项目记忆/检查材料不得因为 Skill 存在就自动进入官方提交包。
@@ -138,7 +138,7 @@ python scripts/resolve_runtime.py --help
 
 新Schema或原检查依据变动后，A2仍完整比较原Authority摘要。B1提供旧/当前摘要和现有命令的参数数组，不能自动更新旧绑定，也不会猜测缺失的旧逐文件摘要。先复核输入、源码和工作簿是否仍与原执行证据相同；原门判断必须重跑时不能通过重算哈希绕过。
 
-需要恢复时按项目依赖顺序，由原 `validate_code_delivery.py --write --strict` 与 `validate_user_execution.py --write --strict` 重新检查主结果。主结果重新交付可能按原状态规则清空深化必要性理由，随后必须显式重新裁决现有Analysis Necessity Gate，再按原协调器处理深化。仅analysis启用A2时不要求primary补A2声明；MATLAB交付还须使用实际Code Analyzer支持的`--matlab-command`。
+需要恢复时，助手按项目依赖顺序通过原 `validate_code_delivery.py --write --strict` 与 `validate_user_execution.py --write --strict` 重新检查主结果。主结果重新交付可能按原状态规则清空深化必要性理由，随后必须显式重新裁决现有Analysis Necessity Gate，再按原协调器处理深化。仅analysis启用A2时不要求primary补A2声明；`--matlab-command` 用于助手选择已有原生工具，覆盖与严格调用要求服从工程 Authority。
 
 只有原源码、数据、工作簿及执行证据保持且原门允许时，才可复核同一个旧工作簿而不重新执行数值模型。复验不更改工作簿，不伪称新运行或新数学批准；B1本身不执行上述命令。B2的正文定位与失效写入不在本阶段。
 

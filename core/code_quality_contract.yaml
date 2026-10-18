@@ -15,7 +15,7 @@ language_checks:
   matlab:
     static_adapter: scripts/matlab_code_checks.py
     native_analyzer: checkcode
-    native_analysis_required_for_formal_delivery: true
+    native_analysis_required_for_formal_delivery: false
     unavailable_analyzer_status: unverified
     checks: [matching_main_function, syntax_and_structure, function_size, parameter_count, complexity, swallowed_errors, path_pollution, config_override, figure_calls, input_paths]
     input_readers: [readtable, readcell, readmatrix, load]
@@ -23,7 +23,8 @@ language_checks:
     rules:
     - Never execute or import task code to extract config; use the execution Authority's restricted literal representation.
     - Apply common size and complexity budgets to the active implementation and declared helpers; splitting files cannot evade quality checks.
-    - When MATLAB or Code Analyzer is unavailable, report the unverified checks; static text checks alone do not establish formal MATLAB engineering acceptance.
+    - The assistant runs native analysis automatically when available. Required static checks may authorize code delivery when native coverage is unverified; report its reasons without asking the user to run another checker.
+    - Overall delivery passed covers the required checks only; it does not promote native_analysis_status or numerical acceptance. Native errors, hard complexity limits and source drift still block delivery; explicit internal require_native=true calls retain mandatory native verification.
     - Input readers obey preprocessing_decision and covered_raw_sources; unsupported dynamic paths do not count as verified safe reads.
 line_count:
   metric: nonblank_physical_lines

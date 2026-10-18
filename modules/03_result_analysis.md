@@ -46,10 +46,10 @@ Gate=`required` 后按 `core/user_execution_contract.yaml#solver_backends` 继�
 → 为每项计划声明target claim与判定准则
 → 按项目根后端新建本问独立深化入口
 → 读取当前数据事实源 + 已验收问题X求解结果.xlsx + 必要前问标准工作簿
-→ validate_code_delivery.py静态验收analysis阶段代码
+→ 助手静态验收analysis阶段代码
 → 用户本地full_fidelity运行
-→ 同目录问题X结果深化分析.xlsx
-→ validate_user_execution.py验收
+→ 用户返回同目录问题X结果深化分析.xlsx
+→ 助手按执行Authority验收返回工作簿
 → 对每项证据给出support / modify / reject
 → analyzed或redo_required
 ```

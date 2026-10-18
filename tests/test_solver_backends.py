@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from unittest.mock import patch
 from pathlib import Path
 
@@ -78,6 +80,14 @@ class SolverBackendTests(unittest.TestCase):
         directory.mkdir(exist_ok=True)
         (directory / "project_state.yaml").write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
         return state
+
+    def delivery_cli(self, source):
+        captured = io.StringIO()
+        with patch.object(sys, "argv", [
+            "validate_code_delivery.py", str(self.root), "--script", str(source), "--write", "--strict",
+        ]), redirect_stdout(captured):
+            code = CODE.main()
+        return code, yaml.safe_load(captured.getvalue())
 
     def test_python_and_matlab_identity_and_plot_rejection(self):
         for backend in ("python", "matlab"):
@@ -552,7 +562,7 @@ class SolverBackendTests(unittest.TestCase):
             issues, _ = CODE.validate_script(self.root, source, require_native=True)
         self.assertTrue(any("bundle在工程/原生检查期间改变" in item for item in issues))
 
-    def test_helper_native_failure_or_unavailability_blocks_formal_delivery(self):
+    def test_explicit_native_requirement_blocks_helper_failure_or_unavailability(self):
         self.state(backend="matlab")
         source, helper, _ = self.helper_source()
         for status in ("failed", "unverified"):
@@ -561,6 +571,143 @@ class SolverBackendTests(unittest.TestCase):
                         "source_sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
             with patch.object(CODE.MATLAB_CHECKS, "native_code_analysis", side_effect=analyze):
                 self.assertTrue(any("helper not verified" in item for item in CODE.validate_script(self.root, source, require_native=True)[0]))
+
+    def test_delivery_without_matlab_preserves_native_gap_and_delivered_identity(self):
+        self.state(backend="matlab")
+        source, helper, config = self.helper_source()
+        with patch.object(CODE.shutil, "which", return_value=None), patch.object(
+            CODE.MATLAB_CHECKS, "native_code_analysis"
+        ) as native:
+            code, report = self.delivery_cli(source)
+        native.assert_not_called()
+        self.assertEqual(code, 0, report)
+        self.assertEqual(report["status"], "passed")
+        self.assertEqual(report["issues"], [])
+        self.assertFalse(report["task_code_executed"])
+        self.assertTrue(any("原生分析未核验" in warning for warning in report["warnings"]))
+        metrics = report["code_quality_metrics"][source.relative_to(self.root).as_posix()]
+        self.assertEqual(metrics["native_analysis_status"], "unverified")
+        self.assertEqual(metrics["dependency_code_quality"][helper.relative_to(self.root).as_posix()]["native_analysis_status"], "unverified")
+        state = yaml.safe_load((self.root / "state/project_state.yaml").read_text(encoding="utf-8"))
+        entry = state["subproblems"]["Q1"]
+        expected = STAGE.stage_code_fingerprint(self.root, source, config["code_dependencies"])
+        self.assertEqual(entry["primary_code_sha256"], expected["entry_sha256"])
+        self.assertEqual(entry["solver_execution"]["primary"]["bundle_sha256"], expected["bundle_sha256"])
+        self.assertEqual(entry["primary_execution_status"], "awaiting_user_execution")
+        self.assertNotIn("validated_bundle_sha256", entry["solver_execution"]["primary"])
+        workbook = self.primary_workbook(source, config, expected["bundle_sha256"])
+        self.assertEqual(RECEIPT.validate_one(self.root, workbook, state, True), [])
+        self.assertEqual(entry["primary_execution_status"], "accepted")
+
+    def test_delivery_automatically_checks_available_native_tool_and_all_helpers(self):
+        self.state(backend="matlab")
+        source, helper, _ = self.helper_source()
+        visited = []
+
+        def analyze(path, executable):
+            visited.append((path, executable))
+            return {"status": "passed", "issues": [], "warnings": [], "release": "test-only-mock",
+                    "source_sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+
+        with patch.object(CODE.shutil, "which", return_value="synthetic-matlab"), patch.object(
+            CODE.MATLAB_CHECKS, "native_code_analysis", side_effect=analyze
+        ):
+            code, report = self.delivery_cli(source)
+        self.assertEqual(code, 0, report)
+        self.assertEqual(report["status"], "passed")
+        self.assertEqual(len(visited), 2)
+        for (actual, executable), expected in zip(visited, (source, helper)):
+            self.assertTrue(actual.samefile(expected), (actual, expected))
+            self.assertEqual(executable, "synthetic-matlab")
+        self.assertEqual(report["code_quality_metrics"][source.relative_to(self.root).as_posix()]["native_analysis_status"], "passed")
+
+    def test_optional_helper_native_gap_does_not_hide_real_failure(self):
+        for status in ("unverified", "failed"):
+            with self.subTest(status=status):
+                self.state(backend="matlab")
+                source, helper, _ = self.helper_source()
+                state_path = self.root / "state/project_state.yaml"
+                before = state_path.read_bytes()
+
+                def analyze(path, executable):
+                    return {"status": status if path.samefile(helper) else "passed", "warnings": [],
+                            "issues": ["helper diagnostic"] if path.samefile(helper) else [],
+                            "source_sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+
+                with patch.object(CODE.shutil, "which", return_value="synthetic-matlab"), patch.object(
+                    CODE.MATLAB_CHECKS, "native_code_analysis", side_effect=analyze
+                ):
+                    code, report = self.delivery_cli(source)
+                self.assertEqual(code, 1 if status == "failed" else 0, report)
+                self.assertEqual(report["status"], "failed" if status == "failed" else "passed")
+                metrics = report["code_quality_metrics"][source.relative_to(self.root).as_posix()]
+                self.assertEqual(metrics["native_analysis_status"], status)
+                if status == "failed":
+                    self.assertEqual(state_path.read_bytes(), before)
+                    self.assertTrue(any("helper diagnostic" in issue for issue in report["issues"]))
+                else:
+                    self.assertEqual(report["issues"], [])
+                    self.assertTrue(any("helper diagnostic" in warning for warning in report["warnings"]))
+
+    def test_unfinished_optional_native_check_cannot_hide_source_or_input_drift(self):
+        for changed in ("entry", "helper", "input"):
+            with self.subTest(changed=changed):
+                self.state(backend="matlab")
+                source, helper, _ = self.helper_source()
+                state_path = self.root / "state/project_state.yaml"
+                before = state_path.read_bytes()
+
+                def analyze(path, executable):
+                    if path.samefile(source):
+                        target = {"entry": source, "helper": helper, "input": self.root / "data.csv"}[changed]
+                        with target.open("ab") as stream:
+                            stream.write(b"\n% changed while native tool was unavailable\n")
+                    return {"status": "unverified", "issues": ["tool did not finish"], "warnings": []}
+
+                with patch.object(CODE.shutil, "which", return_value="synthetic-matlab"), patch.object(
+                    CODE.MATLAB_CHECKS, "native_code_analysis", side_effect=analyze
+                ):
+                    code, report = self.delivery_cli(source)
+                self.assertEqual(code, 1, report)
+                self.assertEqual(report["status"], "failed")
+                self.assertEqual(state_path.read_bytes(), before)
+                self.assertTrue(report["issues"])
+                self.assertTrue(any("tool did not finish" in warning for warning in report["warnings"]))
+
+    def test_optional_native_errors_limits_and_wrong_source_still_block_delivery(self):
+        for target_name in ("entry", "helper"):
+            for finding in ("error", "complexity", "source"):
+                with self.subTest(target=target_name, finding=finding):
+                    self.state(backend="matlab")
+                    source, helper, _ = self.helper_source()
+                    state_path = self.root / "state/project_state.yaml"
+                    before = state_path.read_bytes()
+                    target = source if target_name == "entry" else helper
+
+                    def analyze(path, executable):
+                        result = {"status": "passed", "issues": [], "warnings": [],
+                                  "source_sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+                        if not path.samefile(target):
+                            return {**result, "status": "unverified", "issues": ["native unavailable for other source"]}
+                        if finding == "error":
+                            result.update(status="failed", issues=["actual native error"])
+                        elif finding == "complexity":
+                            result["complexity_metrics"] = [{"line": 1, "value": 26}]
+                        else:
+                            result["source_sha256"] = "f" * 64
+                        return result
+
+                    with patch.object(CODE.shutil, "which", return_value="synthetic-matlab"), patch.object(
+                        CODE.MATLAB_CHECKS, "native_code_analysis", side_effect=analyze
+                    ):
+                        code, report = self.delivery_cli(source)
+                    self.assertEqual(code, 1, report)
+                    self.assertEqual(report["status"], "failed")
+                    self.assertTrue(report["issues"])
+                    self.assertEqual(state_path.read_bytes(), before)
+                    if finding == "error":
+                        metrics = report["code_quality_metrics"][source.relative_to(self.root).as_posix()]
+                        self.assertEqual(metrics["native_analysis_status"], "failed")
 
     def test_python_shell_or_matlab_launch_does_not_form_a_single_solver(self):
         for body in ("import subprocess as sp\nsp.run(['matlab'])", "from os import system as launch\nlaunch('matlab')",

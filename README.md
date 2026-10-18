@@ -1,15 +1,17 @@
-# mathmodel-skill v10.19.3
+# mathmodel-skill v10.20.3
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值语言由项目根策略统一选择。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。
 
 ## 最短启动
 
 1. 从根目录 `SKILL.md` 或打包入口 `skills/mathmodel-skill/SKILL.md` 进入，先读 `core/bootstrap.yaml`，再按 `core/workflow_router.yaml` 加载全局政策。
-2. 运行 `scripts/resolve_runtime.py`，按任务和当前项目恢复最小 `reading_plan`、Authority 与 `pre_delivery_gates`。已有项目传入 `--project-root`，需要定位小问时传入 `--question`；只读取 resolver 当前返回的资源。
+2. 助手运行 `scripts/resolve_runtime.py`，按任务和当前项目恢复最小 `reading_plan`、Authority 与 `pre_delivery_gates`。已有项目传入 `--project-root`，需要定位小问时传入 `--question`；只读取 resolver 当前返回的资源。
 3. 模型设计先完成语义闭环、Model Challenge 和当前 `semantic_revision` / validated `semantic_identity_hash` 的 Human Model Approval。数据项目先审计，再按证据确定 `preprocessing_decision`；锁模不等于代码交付资格。
-4. 生成、核验和交付时执行 resolver 返回的完整且有序的 `pre_delivery_gates`。当前 `模型论文框架.md` 是语义工作记忆，`state/project_state.yaml` 是机器状态，accepted workbook 是具体数值事实；三者不能互相代替。
+4. 助手在生成、核验和交付时执行 resolver 返回的完整且有序的 `pre_delivery_gates`。当前 `模型论文框架.md` 是语义工作记忆，`state/project_state.yaml` 是机器状态，accepted workbook 是具体数值事实；三者不能互相代替。
 
-赛题代码仍由用户在本地 Python/MATLAB 环境完整执行；**日常执行前不要求例行核对 Python 解释器路径、版本、依赖安装情况或运行 Skill 诊断命令**。出现缺包、解释器或路径错误时，再按 [Scripts 运行环境](scripts/README.md#运行环境与资源根) 的说明排查并自行修复。此调整不影响助手从正确 Skill 入口读取 `core/bootstrap.yaml`、调用 `scripts/resolve_runtime.py` 进行正式路由，或执行现有交付与回执验收门禁。维护依赖见 `requirements-dev.txt`，用户数值项目依赖见 `templates/code/requirements.txt`。完整 Skill 资源根仍须保留 `core/`、`scripts/`、`templates/` 等目录；仅复制嵌套的 `skills/mathmodel-skill/` 不满足入口合同。仓库、Release、安装目录与会话实际加载版本的对应关系应在安装或读取 Skill 时按需核对，而不是每次用户运行赛题代码时重复预检；下载或 checkout 不等于 Skill 已安装或被会话读取。
+用户按 `full_fidelity` 运行实际 Python/MATLAB 数值入口并返回工作簿；绘图时运行脚本、查看图窗、调整并按需导出。交付检查、返回验收、同步、论文审计／编译和包验证由助手完成，分工统一见 [执行 Authority](core/user_execution_contract.yaml)。日常无需另装 Skill 校验环境或提交 checker 报告；求解入口出现缺包或路径错误时，再针对实际问题排查。
+
+用户数值项目依赖见 `templates/code/requirements.txt`，助手工具与维护环境见 [Scripts 运行环境](scripts/README.md#运行环境与资源根)。Skill 安装和会话读取须按实际入口核对完整资源根，不能仅复制嵌套的 `skills/mathmodel-skill/`；下载或 checkout 不等于会话已加载该版本。
 
 ## 项目数值职责
 
