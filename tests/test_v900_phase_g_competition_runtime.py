@@ -17,6 +17,7 @@ if TESTS not in sys.path:
     sys.path.insert(0, TESTS)
 
 from reading_plan_evidence import (
+    BODY_READING_AUTHORITY_VERSIONS,
     FIGURE_HANDOFF_AUTHORITY_VERSIONS,
     FIGURE_HANDOFF_WRITING_DELTAS,
     PDF_REVIEW_AUTHORITY_VERSIONS,
@@ -71,6 +72,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS["skill"],
                 PDF_REVIEW_AUTHORITY_VERSIONS["skill"],
                 STAGE_READING_AUTHORITY_VERSIONS["skill"],
+                BODY_READING_AUTHORITY_VERSIONS["skill"],
             ))
             old_stage = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][4]
             current_stage = writing["authoring_sequence"][4]
@@ -98,6 +100,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 expected = current_value if plan["version"] in (
                 PDF_REVIEW_AUTHORITY_VERSIONS["skill"],
                 STAGE_READING_AUTHORITY_VERSIONS["skill"],
+                BODY_READING_AUTHORITY_VERSIONS["skill"],
             ) else previous_value
                 self.assertEqual(candidate[path[-1]], expected)
                 candidate[path[-1]] = copy.deepcopy(previous_value)
@@ -137,7 +140,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
         historical = ["scripts/validate_template_manifest.py", "scripts/audit_latex_project.py", "scripts/render_paper.py"]
         current = ["scripts/validate_template_manifest.py", "scripts/render_paper.py"]
-        for version in ("10.19.3", "10.20.3", "10.20.4", STAGE_READING_AUTHORITY_VERSIONS["skill"]):
+        for version in ("10.19.3", "10.20.3", "10.20.4", STAGE_READING_AUTHORITY_VERSIONS["skill"], BODY_READING_AUTHORITY_VERSIONS["skill"]):
             with self.subTest(version=version):
                 declared = copy.deepcopy(plan)
                 declared["version"] = version
@@ -145,15 +148,17 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 stage["run_now"] = list(current if version in (
                     PDF_REVIEW_AUTHORITY_VERSIONS["skill"],
                     STAGE_READING_AUTHORITY_VERSIONS["skill"],
+                    BODY_READING_AUTHORITY_VERSIONS["skill"],
                 ) else historical)
                 self.assertEqual(self._projection(declared), self.golden["routes"]["latex"])
                 stage["run_now"] = list(historical if version in (
                     PDF_REVIEW_AUTHORITY_VERSIONS["skill"],
                     STAGE_READING_AUTHORITY_VERSIONS["skill"],
+                    BODY_READING_AUTHORITY_VERSIONS["skill"],
                 ) else current)
                 with self.assertRaises(AssertionError):
                     self._projection(declared)
-        for version in (None, "10.19.4", "10.20.6", "11.0.0"):
+        for version in (None, "10.19.4", "10.20.6", "10.21.1", "11.0.0"):
             with self.subTest(version=version):
                 altered = copy.deepcopy(plan)
                 altered["version"] = version

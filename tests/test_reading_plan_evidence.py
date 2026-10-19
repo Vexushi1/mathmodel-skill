@@ -1346,6 +1346,65 @@ class AuditClosureProjectionTests(unittest.TestCase):
             (altered, []),
         )
 
+    def body_reading_pair(self, case):
+        old, new = self.stage_reading_pair(case)
+        new["version"] = "10.21.0"
+        return old, new
+
+    def test_v10210_body_reading_carrier_only_projects_exact_version(self):
+        carriers = deepcopy(EVIDENCE.BODY_READING_AUTHORITY_VERSIONS)
+        self.assertEqual(carriers, {
+            **EVIDENCE.STAGE_READING_AUTHORITY_VERSIONS, "skill": "10.21.0"
+        })
+        for case in (*sorted(EVIDENCE.A7_HYDRATED_PROVENANCE_CASES), "facts_unscoped", "cumcm_writing"):
+            with self.subTest(case=case):
+                old, new = self.body_reading_pair(case)
+                saved = deepcopy((old, new, carriers))
+                row = EVIDENCE.compare(
+                    [{"id": case, "plan": old, "legacy_declared_bytes": 1}],
+                    [{"id": case, "plan": new, "legacy_declared_bytes": 1,
+                      "authority_versions": carriers}],
+                )[0]
+                self.assertFalse(row["legacy_behavior_equal"])
+                self.assertTrue(row["legacy_behavior_equal_except_approved_changes"])
+                self.assertEqual(row["unexpected_legacy_changes"], [])
+                versions = [item for item in row["expected_legacy_changes"]
+                            if item["path"] == "version" and item["candidate"] == "10.21.0"]
+                self.assertEqual(len(versions), 1)
+                self.assertEqual(versions[0]["authority_versions"], carriers)
+                assembly = [item for item in row["expected_legacy_changes"]
+                            if "authoring_sequence.9." in item["path"]]
+                self.assertEqual(len(assembly), 2 if case == "cumcm_writing" else 0)
+                self.assertEqual((old, new, carriers), saved)
+
+    def test_v10210_body_reading_carrier_rejects_unknown_authority_and_behavior(self):
+        old, new = self.body_reading_pair("facts_current")
+        carriers = EVIDENCE.BODY_READING_AUTHORITY_VERSIONS
+        for bad in (
+            None, {**carriers, "skill": "10.20.5"},
+            {**carriers, "runtime_assurance": "2.5.1"},
+            {**carriers, "project_state": "8.17.0"},
+        ):
+            self.assertEqual(
+                EVIDENCE.approved_body_reading_carrier_change(
+                    "facts_current", old, new, bad
+                ),
+                (new, []),
+            )
+        for field, value in (
+            ("version", "10.20.5"),
+            ("pre_delivery_gates", []),
+            ("load_order", ["scripts/read_stage.py"]),
+        ):
+            altered = deepcopy(new)
+            altered[field] = value
+            self.assertEqual(
+                EVIDENCE.approved_body_reading_carrier_change(
+                    "facts_current", old, altered, carriers
+                ),
+                (altered, []),
+            )
+
     def comparison_writing_pair(self):
         old, new = self.pair("cumcm_writing")
         new.pop("solver_backend")

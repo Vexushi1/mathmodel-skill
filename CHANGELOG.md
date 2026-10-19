@@ -1,6 +1,12 @@
 # Changelog
 
-## 10.20.5
+## 10.21.0
+
+- Introduce a read-only source-text adapter for existing resolver reading rows and CUMCM writing stages, returning actual bounded chunks, selected source identity and missing-range evidence. Unadjudicated conditional facts remain unresolved and the adapter cannot approve artifacts or execute gates.
+- Generate `core/stage_reading_guide.md` from the existing reading policy and writing-stage definitions through the maintained GitHub metadata generator; it is navigational, not a duplicate Authority or a source-consumption attestation.
+- Add focused checks for source reconstruction, conditional-trigger handling, source drift, split chunks and writing-stage selectors. Keep State/Workbook Schema, model approval, user numerical execution and resolver gate order unchanged. The Module 06 split and all-project rollout remain later work; no Release is included.
+
+## Previous release: 10.20.5
 
 - Define the canonical reading-plan consumer protocol for stage, subproblem, chapter, figure-design and cross-chat recovery boundaries. Treat `read_now` and triggered `conditional` resources as source-text retrieval instructions; `load_order` remains a compatibility inventory, not proof of consumption.
 - Specify ranged/chunked read completeness, source identity, unknown-condition handling and the separation between reading, artifact review and resolver-owned delivery gates. Keep the reading-plan output schema, existing writing-stage order, project state, approval, user execution and gate order unchanged.
