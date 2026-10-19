@@ -193,7 +193,7 @@ class ChunkCoverageTests(unittest.TestCase):
             [[1, 2]], [self.chunk(1, 2, "one\ntwo", sha=None, blob="blob-a")]
         )
         self.assertTrue(result["complete"])
-        self.assertIsNone(self.chunk(1, 2, "one\ntwo", sha=None)["source_sha256"])
+        self.assertEqual(result["issues"], [])
 
     def test_empty_or_malformed_ranges_never_pass(self):
         self.assertFalse(READING.validate_chunk_coverage([], [])["complete"])
@@ -255,7 +255,7 @@ class ReadingPlanTests(unittest.TestCase):
         )
         protocol = contract["reading_plan"]["consumer_protocol"]
         self.assertEqual(
-            protocol["stage_sequence_authority"],
+            protocol["writing_stage_sequence_authority"],
             "core/writing_runtime_contract.yaml#template_first_progressive_authoring.stages",
         )
         self.assertEqual(protocol["selection_authority"], "core/workflow_router.yaml#reading_policy")
