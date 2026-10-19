@@ -71,6 +71,22 @@ class StageTextExtractionTests(unittest.TestCase):
         mixed[-1]["source_commit"] = "b" * 40
         self.assertFalse(validate_chunk_coverage(self.row["ranges"], mixed)["complete"])
 
+    def test_utf8_bom_and_crlf_keep_byte_identity_with_safe_heading_fallback(self):
+        raw = b"\\xef\\xbb\\xbf# Title\\r\\n## Evidence\\r\\nbody\\r\\n"
+        self.path.write_bytes(raw)
+        reader = SourceReader(self.root)
+        row = reader.describe({"path": "core/source.md", "headings": ["# Title"]})
+        expected_sha = hashlib.sha256(raw).hexdigest()
+        self.assertEqual(row["resolution"], "whole_file_fallback")
+        self.assertTrue(row["fallback_reason"])
+        self.assertEqual(row["sha256"], expected_sha)
+
+        chunks = READER.source_chunks(self.root, row, COMMIT, chunk_lines=2)
+        coverage = validate_chunk_coverage(row["ranges"], chunks)
+        self.assertTrue(coverage["complete"], coverage)
+        self.assertEqual("".join(chunk["text"] for chunk in chunks), raw.decode("utf-8"))
+        self.assertTrue(all(chunk["source_sha256"] == expected_sha for chunk in chunks))
+
     def test_source_changed_after_plan_is_blocked_even_for_same_commit_claim(self):
         self.path.write_text(self.text.replace("四", "改"), encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "SHA-256 differs"):
