@@ -233,8 +233,8 @@ def stage_reading_guide_text() -> str:
     lines = [
         "# Stage Reading Guide (generated navigation)",
         "",
-        "Generated from \`core/workflow_router.yaml#reading_policy\` and",
-        "\`core/writing_runtime_contract.yaml#template_first_progressive_authoring.stages\`.",
+        "Generated from `core/workflow_router.yaml#reading_policy` and",
+        "`core/writing_runtime_contract.yaml#template_first_progressive_authoring.stages`.",
         "This is a source and conditional pointer inventory, not source text,",
         "a duplicate phase registry, proof of reading, an approval, or a gate result.",
         "Resolve current project facts and use the selected commit of the original Authority.",
@@ -245,13 +245,13 @@ def stage_reading_guide_text() -> str:
 
     def render(entry: str | dict, kind: str) -> str:
         if isinstance(entry, str):
-            return f"- {kind}: \`{entry}\`"
+            return f"- {kind}: `{entry}`"
         if not isinstance(entry, dict) or "path" not in entry:
             raise ValueError("reading source entry has no path")
         selector = entry.get("headings") or entry.get("yaml_paths") or []
         suffix = f"; selector={selector!r}" if selector else ""
         condition = f"; when={entry['when']}" if entry.get("when") else ""
-        return f"- {kind}: \`{entry['path']}\`{suffix}{condition}"
+        return f"- {kind}: `{entry['path']}`{suffix}{condition}"
 
     for entry in reading.get("common_reads", []):
         lines.append(render(entry, "read_now"))
@@ -272,7 +272,7 @@ def stage_reading_guide_text() -> str:
         for entry in stage.get("read_now", []):
             lines.append(render(entry, "read_now"))
         for name, branch in (stage.get("conditional_reads_before_relevant_passage") or {}).items():
-            lines.append(f"- conditional branch: \`{name}\`; when={branch.get('when', 'unresolved')}")
+            lines.append(f"- conditional branch: `{name}`; when={branch.get('when', 'unresolved')}")
             for entry in branch.get("read", []):
                 lines.append(render(entry, "conditional source"))
         lines.append("")

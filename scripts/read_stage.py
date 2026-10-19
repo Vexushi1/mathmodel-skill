@@ -67,7 +67,12 @@ def _selector_spec(root: Path, resource: str) -> dict[str, Any] | None:
     if not match:
         return None
     number = match.group(1)
-    lines = (root / path).read_text(encoding="utf-8").splitlines()
+    candidate = (root / path).resolve()
+    if not candidate.is_relative_to(root.resolve()):
+        raise ValueError(f"reading source escapes root: {path}")
+    if not candidate.is_file():
+        raise FileNotFoundError(candidate)
+    lines = candidate.read_text(encoding="utf-8").splitlines()
     headings = [line for line in lines if re.match(
         r"^#{1,6}\s+" + re.escape(number) + r"(?=[.\s:：-])", line
     )]

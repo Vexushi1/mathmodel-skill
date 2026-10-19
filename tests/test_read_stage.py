@@ -170,6 +170,7 @@ class GeneratedStageNavigationTests(unittest.TestCase):
         self.assertIn("proposition_or_proof", guide)
         self.assertIn("stepwise_or_pseudocode", guide)
         self.assertIn("not source text", guide)
+        self.assertNotIn("\\`", guide)
         self.assertIn(
             generate_indexes.STAGE_GUIDE,
             generate_indexes.generated_payloads(),
