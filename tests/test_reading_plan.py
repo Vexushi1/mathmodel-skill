@@ -262,6 +262,10 @@ class ReadingPlanTests(unittest.TestCase):
         self.assertIn("cross_chat_resume", protocol["re_read_triggers"])
         self.assertIn("paper_chapter_change", protocol["re_read_triggers"])
         self.assertEqual(protocol["source_consumption"]["unknown_condition"], "unresolved_not_false")
+        self.assertEqual(protocol["source_consumption"]["applicability_context"], "reading_plan.applicability_context")
+        self.assertEqual(protocol["source_consumption"]["selector_failure"], "reading_plan.selector_failure")
+        self.assertEqual(protocol["source_consumption"]["missing_source"], "reading_plan.missing_source")
+        self.assertEqual(protocol["ranged_or_chunked_reads"]["source_identity"], "same_reading_plan.source_identity_for_every_chunk")
         self.assertTrue(protocol["source_consumption"]["plan_or_hash_is_not_consumption_evidence"])
         self.assertEqual(
             contract["reading_plan"]["fields"],

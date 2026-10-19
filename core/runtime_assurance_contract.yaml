@@ -303,13 +303,13 @@ reading_plan:
       read_now: retrieve_actual_source_text_before_current_action
       conditional: resolve_trigger_from_current_facts_and_retrieve_before_relevant_action
       unknown_condition: unresolved_not_false
-      applicability_context: document_preamble_and_ancestor_applicability
-      selector_failure: whole_existing_file_fallback_with_reason
-      missing_source: error_never_empty_rule
+      applicability_context: reading_plan.applicability_context
+      selector_failure: reading_plan.selector_failure
+      missing_source: reading_plan.missing_source
       plan_or_hash_is_not_consumption_evidence: true
     ranged_or_chunked_reads:
       line_ranges: one_based_inclusive
-      source_identity: same_selected_commit_and_source_identity_for_all_chunks
+      source_identity: same_reading_plan.source_identity_for_every_chunk
       sha256: calculate_full_source_sha256_when_available_otherwise_mark_unavailable
       blob_id: distinct_from_sha256
       completeness_checks:
@@ -326,7 +326,7 @@ reading_plan:
       reading_plan: source_selection_only
       returned_source_text: proves_only_the_returned_ranges_are_available
       artifact_review: separate_from_source_reading
-  source_identity: exact_relative_path_and_full_file_sha256_plus_1_based_inclusive_line_ranges
+  source_identity: exact_relative_path_and_selected_commit_and_full_file_sha256_when_available_plus_1_based_inclusive_line_ranges
   applicability_context: include_document_preamble_and_ancestor_introductions_for_Markdown_and_parent_mapping_headers_for_YAML
   selector_failure: whole_existing_file_with_explicit_fallback_reason
   missing_source: error_never_empty_rule
