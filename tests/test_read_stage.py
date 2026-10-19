@@ -72,7 +72,7 @@ class StageTextExtractionTests(unittest.TestCase):
         self.assertFalse(validate_chunk_coverage(self.row["ranges"], mixed)["complete"])
 
     def test_utf8_bom_and_crlf_keep_byte_identity_with_safe_heading_fallback(self):
-        raw = b"\\xef\\xbb\\xbf# Title\\r\\n## Evidence\\r\\nbody\\r\\n"
+        raw = b"\xef\xbb\xbf# Title\r\n## Evidence\r\nbody\r\n"
         self.path.write_bytes(raw)
         reader = SourceReader(self.root)
         row = reader.describe({"path": "core/source.md", "headings": ["# Title"]})
