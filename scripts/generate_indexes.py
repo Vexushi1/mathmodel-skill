@@ -280,8 +280,21 @@ def stage_reading_guide_text() -> str:
 
 def generated_payloads() -> dict[Path, str]:
     version = current_skill_version()
-    guide_payload = stage_reading_guide_text()
+    guide_sources = (
+        ROOT / "core" / "workflow_router.yaml",
+        ROOT / "core" / "writing_runtime_contract.yaml",
+    )
+    # Archived and isolated roots may predate this guide's two canonical sources.
+    # Preserve their legacy generated-output contract; a partially available but
+    # malformed authority still fails closed inside stage_reading_guide_text().
+    guide_payload = (
+        stage_reading_guide_text()
+        if all(path.is_file() for path in guide_sources)
+        else None
+    )
     files = iter_files()
+    if guide_payload is None:
+        files = [path for path in files if path != STAGE_GUIDE.relative_to(ROOT)]
     corpus_root = ROOT / "knowledge" / "case_memory"
     case_relative = Path("knowledge/case_memory/index.json")
     case_payloads = {}
@@ -311,18 +324,21 @@ def generated_payloads() -> dict[Path, str]:
         TEMPLATE_INDEX.relative_to(ROOT): template_payload,
         LEGACY_SKILL_INDEX.relative_to(ROOT): legacy_skill_payload,
         LEGACY_TEMPLATE_INDEX.relative_to(ROOT): legacy_template_payload,
-        STAGE_GUIDE.relative_to(ROOT): guide_payload,
         **case_payloads,
     }
-    return {
+    if guide_payload is not None:
+        overrides[STAGE_GUIDE.relative_to(ROOT)] = guide_payload
+    payloads = {
         SKILL_INDEX: skill_payload,
         TEMPLATE_INDEX: template_payload,
         LEGACY_SKILL_INDEX: legacy_skill_payload,
         LEGACY_TEMPLATE_INDEX: legacy_template_payload,
-        STAGE_GUIDE: guide_payload,
         **{ROOT / path: payload for path, payload in case_payloads.items()},
-        MANIFEST: manifest_text(files, overrides),
     }
+    if guide_payload is not None:
+        payloads[STAGE_GUIDE] = guide_payload
+    payloads[MANIFEST] = manifest_text(files, overrides)
+    return payloads
 
 
 def write_lf_text(path: Path, text: str) -> None:

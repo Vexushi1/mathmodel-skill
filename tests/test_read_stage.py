@@ -52,7 +52,10 @@ class StageTextExtractionTests(unittest.TestCase):
         chunks = [self._extract(index=i)["returned_chunk"] for i in range(first["chunk_count"])]
         coverage = validate_chunk_coverage(self.row["ranges"], chunks)
         self.assertTrue(coverage["complete"], coverage)
-        raw = self.path.read_text(encoding="utf-8").splitlines(keepends=True)
+        # Preserve the exact on-disk newline bytes. Path.read_text() performs
+        # universal-newline translation on Windows and would test normalized text,
+        # not the original source returned by the reader.
+        raw = self.path.read_bytes().decode("utf-8").splitlines(keepends=True)
         expected = "".join("".join(raw[a - 1:b]) for a, b in self.row["ranges"])
         self.assertEqual("".join(chunk["text"] for chunk in chunks), expected)
         self.assertIn("Scope", expected)
