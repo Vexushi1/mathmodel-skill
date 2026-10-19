@@ -21,6 +21,7 @@ from reading_plan_evidence import (
     FIGURE_HANDOFF_WRITING_DELTAS,
     PDF_REVIEW_AUTHORITY_VERSIONS,
     PDF_REVIEW_WRITING_DELTAS,
+    STAGE_READING_AUTHORITY_VERSIONS,
     USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS,
 )
 
@@ -69,6 +70,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 FIGURE_HANDOFF_AUTHORITY_VERSIONS["skill"],
                 USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS["skill"],
                 PDF_REVIEW_AUTHORITY_VERSIONS["skill"],
+                STAGE_READING_AUTHORITY_VERSIONS["skill"],
             ))
             old_stage = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][4]
             current_stage = writing["authoring_sequence"][4]
@@ -82,7 +84,8 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 self.assertEqual(candidate[path[-1]], current_value)
                 candidate[path[-1]] = copy.deepcopy(previous_value)
             # v10.20.4 removes only the redundant standalone audit command;
-            # old carriers must retain the original three-command shape.
+            # v10.20.5 changes reading consumption only and preserves that two-command shape.
+            # Older carriers must retain the original three-command shape.
             old_assembly = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][9]
             current_assembly = writing["authoring_sequence"][9]
             self.assertEqual(old_assembly["id"], "latex_assembly_audit_and_compile")
@@ -92,7 +95,10 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 for key in path[:-1]:
                     baseline, candidate = baseline[key], candidate[key]
                 self.assertEqual(baseline[path[-1]], previous_value)
-                expected = current_value if plan["version"] == PDF_REVIEW_AUTHORITY_VERSIONS["skill"] else previous_value
+                expected = current_value if plan["version"] in (
+                PDF_REVIEW_AUTHORITY_VERSIONS["skill"],
+                STAGE_READING_AUTHORITY_VERSIONS["skill"],
+            ) else previous_value
                 self.assertEqual(candidate[path[-1]], expected)
                 candidate[path[-1]] = copy.deepcopy(previous_value)
         return {
@@ -131,17 +137,23 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
         historical = ["scripts/validate_template_manifest.py", "scripts/audit_latex_project.py", "scripts/render_paper.py"]
         current = ["scripts/validate_template_manifest.py", "scripts/render_paper.py"]
-        for version in ("10.19.3", "10.20.3", "10.20.4"):
+        for version in ("10.19.3", "10.20.3", "10.20.4", STAGE_READING_AUTHORITY_VERSIONS["skill"]):
             with self.subTest(version=version):
                 declared = copy.deepcopy(plan)
                 declared["version"] = version
                 stage = declared["writing_runtime"]["authoring_sequence"][9]
-                stage["run_now"] = list(current if version == "10.20.4" else historical)
+                stage["run_now"] = list(current if version in (
+                    PDF_REVIEW_AUTHORITY_VERSIONS["skill"],
+                    STAGE_READING_AUTHORITY_VERSIONS["skill"],
+                ) else historical)
                 self.assertEqual(self._projection(declared), self.golden["routes"]["latex"])
-                stage["run_now"] = list(historical if version == "10.20.4" else current)
+                stage["run_now"] = list(historical if version in (
+                    PDF_REVIEW_AUTHORITY_VERSIONS["skill"],
+                    STAGE_READING_AUTHORITY_VERSIONS["skill"],
+                ) else current)
                 with self.assertRaises(AssertionError):
                     self._projection(declared)
-        for version in (None, "10.19.4", "10.20.5", "11.0.0"):
+        for version in (None, "10.19.4", "10.20.6", "11.0.0"):
             with self.subTest(version=version):
                 altered = copy.deepcopy(plan)
                 altered["version"] = version

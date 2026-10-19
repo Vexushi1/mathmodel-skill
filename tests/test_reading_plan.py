@@ -134,6 +134,76 @@ class SelectorTests(unittest.TestCase):
                 reader.describe({"path": "link"})
 
 
+class ChunkCoverageTests(unittest.TestCase):
+    @staticmethod
+    def chunk(start, end, text, *, sha="a" * 64, blob="blob-a", commit="commit-a", path="core/example.md"):
+        return {
+            "path": path,
+            "source_commit": commit,
+            "source_sha256": sha,
+            "source_blob_sha": blob,
+            "start_line": start,
+            "end_line": end,
+            "text": text,
+        }
+
+    def test_complete_split_and_disjoint_ranges_pass(self):
+        result = READING.validate_chunk_coverage(
+            [[1, 4], [8, 10]],
+            [
+                self.chunk(1, 2, "one\ntwo"),
+                self.chunk(3, 4, "three\nfour"),
+                self.chunk(8, 10, "eight\nnine\nten"),
+            ],
+        )
+        self.assertTrue(result["complete"])
+        self.assertEqual(result["missing_ranges"], [])
+        self.assertEqual(result["issues"], [])
+
+    def test_missing_chunk_reports_exact_missing_range(self):
+        result = READING.validate_chunk_coverage(
+            [[1, 6]], [self.chunk(1, 2, "one\ntwo"), self.chunk(5, 6, "five\nsix")]
+        )
+        self.assertFalse(result["complete"])
+        self.assertEqual(result["missing_ranges"], [[3, 4]])
+
+    def test_truncated_chunk_fails_even_when_declared_ranges_cover_source(self):
+        result = READING.validate_chunk_coverage([[1, 3]], [self.chunk(1, 3, "one\ntwo")])
+        self.assertFalse(result["complete"])
+        self.assertTrue(any("line count mismatch" in issue for issue in result["issues"]))
+
+    def test_overlapping_chunks_are_not_silently_counted_as_complete(self):
+        result = READING.validate_chunk_coverage(
+            [[1, 4]], [self.chunk(1, 3, "one\ntwo\nthree"),
+                       self.chunk(3, 4, "three\nfour")]
+        )
+        self.assertFalse(result["complete"])
+        self.assertTrue(any("overlapping chunk range" in issue for issue in result["issues"]))
+
+    def test_mixed_source_identity_fails_closed(self):
+        result = READING.validate_chunk_coverage(
+            [[1, 4]], [self.chunk(1, 2, "one\ntwo"),
+                       self.chunk(3, 4, "three\nfour", sha="b" * 64)]
+        )
+        self.assertFalse(result["complete"])
+        self.assertTrue(any("source identity differs" in issue for issue in result["issues"]))
+
+    def test_unavailable_sha256_is_not_replaced_with_blob_id(self):
+        result = READING.validate_chunk_coverage(
+            [[1, 2]], [self.chunk(1, 2, "one\ntwo", sha=None, blob="blob-a")]
+        )
+        self.assertTrue(result["complete"])
+        self.assertEqual(result["issues"], [])
+
+    def test_empty_or_malformed_ranges_never_pass(self):
+        self.assertFalse(READING.validate_chunk_coverage([], [])["complete"])
+        result = READING.validate_chunk_coverage(
+            [[0, 2]], [self.chunk(1, 2, "one\ntwo")]
+        )
+        self.assertFalse(result["complete"])
+        self.assertTrue(result["issues"])
+
+
 class ReadingPlanTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -178,6 +248,50 @@ class ReadingPlanTests(unittest.TestCase):
                     self.assertEqual({k: tools[gate["name"]][k] for k in gate}, gate)
                 self.assertIsNone(reading["metrics"]["actual_read_tokens"])
                 self.assertIsNone(reading["metrics"]["actual_read_bytes"])
+
+    def test_consumer_protocol_uses_existing_authorities_without_parallel_stage_registry(self):
+        contract = yaml.safe_load(
+            (ROOT / "core/runtime_assurance_contract.yaml").read_text(encoding="utf-8")
+        )
+        protocol = contract["reading_plan"]["consumer_protocol"]
+        self.assertEqual(
+            protocol["writing_stage_sequence_authority"],
+            "core/writing_runtime_contract.yaml#template_first_progressive_authoring.stages",
+        )
+        self.assertEqual(protocol["selection_authority"], "core/workflow_router.yaml#reading_policy")
+        self.assertIn("cross_chat_resume", protocol["re_read_triggers"])
+        self.assertIn("paper_chapter_change", protocol["re_read_triggers"])
+        self.assertEqual(protocol["source_consumption"]["unknown_condition"], "unresolved_not_false")
+        self.assertEqual(protocol["source_consumption"]["applicability_context"], "reading_plan.applicability_context")
+        self.assertEqual(protocol["source_consumption"]["selector_failure"], "reading_plan.selector_failure")
+        self.assertEqual(protocol["source_consumption"]["missing_source"], "reading_plan.missing_source")
+        self.assertEqual(protocol["ranged_or_chunked_reads"]["source_identity"], "same_reading_plan.source_identity_for_every_chunk")
+        self.assertTrue(protocol["source_consumption"]["plan_or_hash_is_not_consumption_evidence"])
+        self.assertEqual(
+            contract["reading_plan"]["fields"],
+            ["schema_version", "profile", "status", "reasons", "read_now", "conditional",
+             "tool_interfaces", "project_backend_navigation", "project_sources", "machine_dependencies",
+             "authority_fingerprint", "metrics"],
+        )
+        self.assertNotIn("stages", protocol)
+        writing = yaml.safe_load(
+            (ROOT / "core/writing_runtime_contract.yaml").read_text(encoding="utf-8")
+        )
+        self.assertTrue(writing["template_first_progressive_authoring"]["stages"])
+
+    def test_distinct_conditional_triggers_for_same_source_are_preserved(self):
+        plan = deepcopy(self.plans["new_field"])
+        router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8"))
+        manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
+        path = "templates/figure/figure_enhancement_patterns.md"
+        router["reading_policy"]["profiles"]["figure_design"]["conditional"] = [
+            {"path": path, "when": "trigger_alpha"},
+            {"path": path, "when": "trigger_beta"},
+        ]
+        reading = READING.build_reading_plan(ROOT, plan, router, manifest)
+        rows = [row for row in reading["conditional"] if row["path"] == path]
+        triggers = {row["when"] for row in rows}
+        self.assertTrue({"trigger_alpha", "trigger_beta"}.issubset(triggers))
 
     def test_tool_routes_do_not_preload_implementation(self):
         for case in ("project_sync", "receipt"):
