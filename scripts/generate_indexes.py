@@ -17,7 +17,8 @@ TEMPLATE_INDEX = ROOT / "TEMPLATE_INDEX.md"
 LEGACY_SKILL_INDEX = ROOT / "HSK_SKILL_FILE_INDEX_V622.md"
 LEGACY_TEMPLATE_INDEX = ROOT / "HSK_TEMPLATE_INDEX_V622.md"
 MANIFEST = ROOT / "MANIFEST.sha256"
-STAGE_GUIDE = ROOT / "core" / "stage_reading_guide.md"
+STAGE_GUIDE_RELATIVE = Path("core") / "stage_reading_guide.md"
+STAGE_GUIDE = ROOT / STAGE_GUIDE_RELATIVE
 EXCLUDED_DIRS = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".venv", "venv"}
 EXCLUDED_FILE_SUFFIXES = {".log"}
 ACTIVE_ARCHIVE_POINTERS = {Path("legacy/README.md")}
@@ -42,7 +43,7 @@ GENERATED_RELATIVE = {
     SKILL_INDEX.relative_to(ROOT),
     TEMPLATE_INDEX.relative_to(ROOT),
     MANIFEST.relative_to(ROOT),
-    STAGE_GUIDE.relative_to(ROOT),
+    STAGE_GUIDE_RELATIVE,
 }
 
 CURRENT_REFERENCE_DOCS = {
@@ -294,7 +295,7 @@ def generated_payloads() -> dict[Path, str]:
     )
     files = iter_files()
     if guide_payload is None:
-        files = [path for path in files if path != STAGE_GUIDE.relative_to(ROOT)]
+        files = [path for path in files if path != STAGE_GUIDE_RELATIVE]
     corpus_root = ROOT / "knowledge" / "case_memory"
     case_relative = Path("knowledge/case_memory/index.json")
     case_payloads = {}
@@ -327,7 +328,7 @@ def generated_payloads() -> dict[Path, str]:
         **case_payloads,
     }
     if guide_payload is not None:
-        overrides[STAGE_GUIDE.relative_to(ROOT)] = guide_payload
+        overrides[STAGE_GUIDE_RELATIVE] = guide_payload
     payloads = {
         SKILL_INDEX: skill_payload,
         TEMPLATE_INDEX: template_payload,
@@ -336,7 +337,7 @@ def generated_payloads() -> dict[Path, str]:
         **{ROOT / path: payload for path, payload in case_payloads.items()},
     }
     if guide_payload is not None:
-        payloads[STAGE_GUIDE] = guide_payload
+        payloads[ROOT / STAGE_GUIDE_RELATIVE] = guide_payload
     payloads[MANIFEST] = manifest_text(files, overrides)
     return payloads
 
