@@ -1283,7 +1283,7 @@ class AuditClosureProjectionTests(unittest.TestCase):
         self.assertEqual(carriers, {
             **EVIDENCE.PDF_REVIEW_AUTHORITY_VERSIONS,
             "skill": "10.20.5",
-            "runtime_assurance": "2.5.1",
+            "runtime_assurance": "2.5.0",
         })
         for case in (*sorted(EVIDENCE.A7_HYDRATED_PROVENANCE_CASES), "facts_unscoped", "cumcm_writing"):
             with self.subTest(case=case):
@@ -1316,7 +1316,7 @@ class AuditClosureProjectionTests(unittest.TestCase):
         for bad in (
             None,
             {**carriers, "skill": "10.20.4"},
-            {**carriers, "runtime_assurance": "2.5.0"},
+            {**carriers, "runtime_assurance": "2.5.1"},
             {**carriers, "project_state": "8.17.0"},
             {key: value for key, value in carriers.items() if key != "runtime_assurance"},
         ):

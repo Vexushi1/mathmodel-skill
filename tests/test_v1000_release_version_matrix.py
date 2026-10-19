@@ -57,7 +57,7 @@ class V1000ReleaseVersionMatrixTests(unittest.TestCase):
         self.assertEqual(case_schema["introduced_in_skill_version"], "10.16.0")
         self.assertEqual(load("core/case_memory_retrieval_contract.yaml")["version"], "1.0.0")
         self.assertEqual(execution["version"], "3.3.0")
-        self.assertEqual(load("core/runtime_assurance_contract.yaml")["version"], "2.5.1")
+        self.assertEqual(load("core/runtime_assurance_contract.yaml")["version"], "2.5.0")
         self.assertEqual(load("core/state_transition_contract.yaml")["version"], "1.7.0")
         self.assertEqual(load("core/claim_consumption_contract.yaml")["version"], "1.8.0")
         self.assertEqual(load("core/writing_reasoning_contract.yaml")["schema_version"], "1.11.0")
