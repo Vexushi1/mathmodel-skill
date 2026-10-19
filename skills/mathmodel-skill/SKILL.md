@@ -20,9 +20,9 @@ metadata:
 2. 由 `core/workflow_router.yaml` 的 `default_load` 加载 `core/hsk_core_policy.md`；
 3. 使用 `scripts/resolve_runtime.py` 根据当前意图、竞赛和项目状态解析 `read_now`、`conditional`、运行时 assurance 与 `pre_delivery_gates`；`load_order` 保留为兼容资源清单，不表示本次正文已读取或门禁已执行。模型批准、条件式预处理与主数值验证分别委托 `core/model_approval_contract.yaml`、`core/global_preprocessing_contract.yaml`、`core/numerical_verification_contract.yaml`；
 4. 按 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol`，在当前动作前取得 `read_now` 的实际完整适用正文并评估 `conditional`；进入新阶段／小问／章节／图设计范围、跨聊天恢复或来源／证据范围变化时重新取读，即使版本／哈希相同。分段返回必须核对范围覆盖并补齐缺口；路径、标题、哈希和计划字节不代表正文已消费。只加载当前适用资源，不预载整个仓库；
-6. 需要项目语义时读取 current `模型论文框架.md`，生命周期 revision/structured identity/text provenance/stale 服从 `state/project_state.yaml`，具体数值回到 accepted workbook；
-7. 普通写作由 Template Manifest、Paper Writing Protocol 和 compact writing runtime 渐进加载，并按最终 active assembly 执行 Cross-File Chapter Handoff；复杂数学/证据裁决按 resolver 补读 `core/writing_reasoning_contract.yaml`，终审再读取 `modules/06_review_delivery.md` 与 `templates/review/final_review_matrix.yaml`；
-8. `legacy/` 不进入默认执行链，旧 `scripts/resolve_workflow.py` 只保留无状态/兼容入口。
+5. 需要项目语义时读取 current `模型论文框架.md`，生命周期 revision/structured identity/text provenance/stale 服从 `state/project_state.yaml`，具体数值回到 accepted workbook；
+6. 普通写作由 Template Manifest、Paper Writing Protocol 和 compact writing runtime 渐进加载，并按最终 active assembly 执行 Cross-File Chapter Handoff；复杂数学/证据裁决按 resolver 补读 `core/writing_reasoning_contract.yaml`，终审再读取 `modules/06_review_delivery.md` 与 `templates/review/final_review_matrix.yaml`；
+7. `legacy/` 不进入默认执行链，旧 `scripts/resolve_workflow.py` 只保留无状态/兼容入口。
 
 本节只声明入口委托关系，**不作为模型、预处理、求解、绘图或写作规则的独立权威**；任何冲突都以 `core/bootstrap.yaml` 指向的 current Authority 与 resolver 输出为准。
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_END -->
