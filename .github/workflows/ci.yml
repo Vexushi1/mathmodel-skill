@@ -893,6 +893,7 @@ jobs:
             HSK_SKILL_FILE_INDEX_V622.md
             HSK_TEMPLATE_INDEX_V622.md
             MANIFEST.sha256
+            core/stage_reading_guide.md
             knowledge/case_memory/index.json
       - name: Reject stale generated files
         shell: bash
@@ -903,5 +904,6 @@ jobs:
             HSK_SKILL_FILE_INDEX_V622.md \
             HSK_TEMPLATE_INDEX_V622.md \
             MANIFEST.sha256 \
+            core/stage_reading_guide.md \
             knowledge/case_memory/index.json
-          test -z "$(git ls-files --others --exclude-standard -- knowledge/case_memory/index.json)"
+          test -z "$(git ls-files --others --exclude-standard -- knowledge/case_memory/index.json core/stage_reading_guide.md)"
