@@ -44,6 +44,123 @@ def _merge_ranges(ranges: list[tuple[int, int]]) -> list[tuple[int, int]]:
     return merged
 
 
+def validate_chunk_coverage(
+    expected_ranges: list[list[int] | tuple[int, int]],
+    chunks: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Validate returned source chunks against a planned 1-based inclusive read set.
+
+    This pure helper validates transport completeness only. It neither fetches text nor
+    establishes semantic review, approval, artifact acceptance, or delivery-gate status.
+    Each chunk must carry path, selected commit, an explicit SHA-256 value (or None when
+    unavailable), a separately named blob ID, its inclusive line range, and returned text.
+    """
+    issues: list[str] = []
+    expected_raw: list[tuple[int, int]] = []
+    for index, interval in enumerate(expected_ranges):
+        if (not isinstance(interval, (list, tuple)) or len(interval) != 2
+                or any(not isinstance(value, int) or isinstance(value, bool) for value in interval)):
+            issues.append(f"invalid expected range at index {index}")
+            continue
+        start, end = interval
+        if start < 1 or end < start:
+            issues.append(f"invalid expected range at index {index}: {start}-{end}")
+            continue
+        expected_raw.append((start, end))
+    if not expected_raw:
+        return {
+            "complete": False,
+            "missing_ranges": [],
+            "issues": issues + ["no valid required ranges declared"],
+        }
+
+    expected = [
+        (start + 1, end)
+        for start, end in _merge_ranges([(start - 1, end) for start, end in expected_raw])
+    ]
+    normalized_chunks: list[tuple[int, int, int, dict[str, Any]]] = []
+    identities: set[tuple[Any, ...]] = set()
+    required_fields = {
+        "path", "source_commit", "source_sha256", "source_blob_sha",
+        "start_line", "end_line", "text",
+    }
+    for index, chunk in enumerate(chunks):
+        if not isinstance(chunk, dict):
+            issues.append(f"chunk {index} is not a mapping")
+            continue
+        missing_fields = sorted(required_fields - set(chunk))
+        if missing_fields:
+            issues.append(f"chunk {index} missing fields: {', '.join(missing_fields)}")
+            continue
+        start, end = chunk["start_line"], chunk["end_line"]
+        if (not isinstance(start, int) or isinstance(start, bool)
+                or not isinstance(end, int) or isinstance(end, bool)
+                or start < 1 or end < start):
+            issues.append(f"chunk {index} has an invalid line range")
+            continue
+        if not isinstance(chunk["text"], str):
+            issues.append(f"chunk {index} text is not a string")
+            continue
+        if not isinstance(chunk["path"], str) or not chunk["path"]:
+            issues.append(f"chunk {index} has no source path")
+        if not isinstance(chunk["source_commit"], str) or not chunk["source_commit"]:
+            issues.append(f"chunk {index} has no selected commit")
+        source_sha256 = chunk["source_sha256"]
+        if source_sha256 is not None and (
+            not isinstance(source_sha256, str) or re.fullmatch(r"[0-9a-fA-F]{64}", source_sha256) is None
+        ):
+            issues.append(f"chunk {index} has an invalid source SHA-256; blob IDs are not substitutes")
+        if chunk["source_blob_sha"] is not None and not isinstance(chunk["source_blob_sha"], str):
+            issues.append(f"chunk {index} has an invalid blob ID")
+        actual_lines = len(chunk["text"].splitlines())
+        expected_lines = end - start + 1
+        if actual_lines != expected_lines:
+            issues.append(
+                f"chunk {index} line count mismatch for {start}-{end}: "
+                f"expected {expected_lines}, received {actual_lines}"
+            )
+        identities.add((
+            chunk["path"], chunk["source_commit"], source_sha256, chunk["source_blob_sha"],
+        ))
+        normalized_chunks.append((start, end, index, chunk))
+
+    if len(identities) > 1:
+        issues.append("source identity differs across chunks")
+    for start, end, index, _ in normalized_chunks:
+        if not any(left <= start and end <= right for left, right in expected):
+            issues.append(f"chunk {index} range {start}-{end} is outside the required ranges")
+
+    missing_ranges: list[list[int]] = []
+    for required_start, required_end in expected:
+        covered = sorted(
+            (start, end, index)
+            for start, end, index, _ in normalized_chunks
+            if required_start <= start and end <= required_end
+        )
+        cursor = required_start
+        for start, end, index in covered:
+            if start < cursor:
+                issues.append(f"overlapping chunk range at {start}-{end}")
+                cursor = max(cursor, end + 1)
+            elif start > cursor:
+                missing_ranges.append([cursor, start - 1])
+                cursor = end + 1
+            else:
+                cursor = end + 1
+        if cursor <= required_end:
+            missing_ranges.append([cursor, required_end])
+
+    missing_ranges = [
+        [start + 1, end]
+        for start, end in _merge_ranges([(start - 1, end) for start, end in missing_ranges])
+    ]
+    return {
+        "complete": bool(normalized_chunks) and not missing_ranges and not issues,
+        "missing_ranges": missing_ranges,
+        "issues": issues,
+    }
+
+
 def _headings(lines: list[str]) -> list[tuple[int, int, str]]:
     result = []
     fence: str | None = None

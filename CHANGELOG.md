@@ -1,5 +1,11 @@
 # Changelog
 
+## 10.20.5
+
+- Define the canonical reading-plan consumer protocol for stage, subproblem, chapter, figure-design and cross-chat recovery boundaries. Treat `read_now` and triggered `conditional` resources as source-text retrieval instructions; `load_order` remains a compatibility inventory, not proof of consumption.
+- Specify ranged/chunked read completeness, source identity, unknown-condition handling and the separation between reading, artifact review and resolver-owned delivery gates. Keep the reading-plan output schema, existing writing-stage order, project state, approval, user execution and gate order unchanged.
+- Add range-coverage validation and regression cases for missing/truncated chunks, overlaps, mixed source identity and conditional-trigger preservation. The body-output adapter, generated stage guide, Module 06 split and end-to-end trial remain later work packages; no Release or user-project migration is included.
+
 ## 10.20.4
 
 - Assign actual page-by-page inspection of the current compiled PDF to the assistant, with the detailed authority in Module 05D and short references from final review, the LaTeX Pack and the review matrix. Reuse existing evidence and current-PDF identity; unavailable pages or tools leave inspection incomplete rather than passed or delegated to a user-run checker.

@@ -1273,6 +1273,79 @@ class AuditClosureProjectionTests(unittest.TestCase):
                         "cumcm_writing", old, new, carriers), (new, []))
                     self.assertEqual((old, new, carriers), saved)
 
+    def stage_reading_pair(self, case):
+        old, new = self.pdf_review_pair(case)
+        new["version"] = "10.20.5"
+        return old, new
+
+    def test_v10205_stage_reading_carrier_projects_only_exact_protocol_versions(self):
+        carriers = deepcopy(EVIDENCE.STAGE_READING_AUTHORITY_VERSIONS)
+        self.assertEqual(carriers, {
+            **EVIDENCE.PDF_REVIEW_AUTHORITY_VERSIONS,
+            "skill": "10.20.5",
+            "runtime_assurance": "2.5.1",
+        })
+        for case in (*sorted(EVIDENCE.A7_HYDRATED_PROVENANCE_CASES), "facts_unscoped", "cumcm_writing"):
+            with self.subTest(case=case):
+                old, new = self.stage_reading_pair(case)
+                saved = deepcopy((old, new, carriers))
+                row = EVIDENCE.compare(
+                    [{"id": case, "plan": old, "legacy_declared_bytes": 1}],
+                    [{"id": case, "plan": new, "legacy_declared_bytes": 1,
+                      "authority_versions": carriers}],
+                )[0]
+                self.assertFalse(row["legacy_behavior_equal"])
+                self.assertTrue(row["legacy_behavior_equal_except_approved_changes"])
+                self.assertEqual(row["unexpected_legacy_changes"], [])
+                version_changes = [
+                    item for item in row["expected_legacy_changes"]
+                    if item["path"] == "version" and item["candidate"] == "10.20.5"
+                ]
+                self.assertEqual(len(version_changes), 1)
+                self.assertEqual(version_changes[0]["authority_versions"], carriers)
+                assembly = [
+                    item for item in row["expected_legacy_changes"]
+                    if "authoring_sequence.9." in item["path"]
+                ]
+                self.assertEqual(len(assembly), 2 if case == "cumcm_writing" else 0)
+                self.assertEqual((old, new, carriers), saved)
+
+    def test_v10205_stage_reading_carrier_rejects_unregistered_versions_and_behavior(self):
+        carriers = EVIDENCE.STAGE_READING_AUTHORITY_VERSIONS
+        old, new = self.stage_reading_pair("facts_current")
+        for bad in (
+            None,
+            {**carriers, "skill": "10.20.4"},
+            {**carriers, "runtime_assurance": "2.5.0"},
+            {**carriers, "project_state": "8.17.0"},
+            {key: value for key, value in carriers.items() if key != "runtime_assurance"},
+        ):
+            self.assertEqual(
+                EVIDENCE.approved_stage_reading_carrier_change("facts_current", old, new, bad),
+                (new, []),
+            )
+        for field, value in (
+            ("version", "10.20.4"),
+            ("pre_delivery_gates", []),
+            ("load_order", ["scripts/render_paper.py"]),
+        ):
+            altered = deepcopy(new)
+            altered[field] = value
+            self.assertEqual(
+                EVIDENCE.approved_stage_reading_carrier_change(
+                    "facts_current", old, altered, carriers
+                ),
+                (altered, []),
+            )
+        altered = deepcopy(new)
+        altered["assurance"]["qualification"] = "accepted"
+        self.assertEqual(
+            EVIDENCE.approved_stage_reading_carrier_change(
+                "facts_current", old, altered, carriers
+            ),
+            (altered, []),
+        )
+
     def comparison_writing_pair(self):
         old, new = self.pair("cumcm_writing")
         new.pop("solver_backend")
