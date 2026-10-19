@@ -8,6 +8,8 @@ import json
 import sys
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parent.parent
 BOOTSTRAP = ROOT / "core" / "bootstrap.yaml"
 SKILL_INDEX = ROOT / "SKILL_FILE_INDEX.md"
@@ -15,6 +17,7 @@ TEMPLATE_INDEX = ROOT / "TEMPLATE_INDEX.md"
 LEGACY_SKILL_INDEX = ROOT / "HSK_SKILL_FILE_INDEX_V622.md"
 LEGACY_TEMPLATE_INDEX = ROOT / "HSK_TEMPLATE_INDEX_V622.md"
 MANIFEST = ROOT / "MANIFEST.sha256"
+STAGE_GUIDE = ROOT / "core" / "stage_reading_guide.md"
 EXCLUDED_DIRS = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".venv", "venv"}
 EXCLUDED_FILE_SUFFIXES = {".log"}
 ACTIVE_ARCHIVE_POINTERS = {Path("legacy/README.md")}
@@ -39,6 +42,7 @@ GENERATED_RELATIVE = {
     SKILL_INDEX.relative_to(ROOT),
     TEMPLATE_INDEX.relative_to(ROOT),
     MANIFEST.relative_to(ROOT),
+    STAGE_GUIDE.relative_to(ROOT),
 }
 
 CURRENT_REFERENCE_DOCS = {
@@ -218,8 +222,65 @@ def manifest_text(files: list[Path], overrides: dict[Path, str]) -> str:
     return "\n".join(lines) + "\n"
 
 
+
+
+def stage_reading_guide_text() -> str:
+    """Generate navigation from existing routing/writing authorities, never copied rules."""
+    router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8"))
+    writing = yaml.safe_load((ROOT / "core/writing_runtime_contract.yaml").read_text(encoding="utf-8"))
+    reading = router["reading_policy"]
+    stages = writing["template_first_progressive_authoring"]["stages"]
+    lines = [
+        "# Stage Reading Guide (generated navigation)",
+        "",
+        "Generated from \`core/workflow_router.yaml#reading_policy\` and",
+        "\`core/writing_runtime_contract.yaml#template_first_progressive_authoring.stages\`.",
+        "This is a source and conditional pointer inventory, not source text,",
+        "a duplicate phase registry, proof of reading, an approval, or a gate result.",
+        "Resolve current project facts and use the selected commit of the original Authority.",
+        "",
+        "## Common source selectors",
+        "",
+    ]
+
+    def render(entry: str | dict, kind: str) -> str:
+        if isinstance(entry, str):
+            return f"- {kind}: \`{entry}\`"
+        if not isinstance(entry, dict) or "path" not in entry:
+            raise ValueError("reading source entry has no path")
+        selector = entry.get("headings") or entry.get("yaml_paths") or []
+        suffix = f"; selector={selector!r}" if selector else ""
+        condition = f"; when={entry['when']}" if entry.get("when") else ""
+        return f"- {kind}: \`{entry['path']}\`{suffix}{condition}"
+
+    for entry in reading.get("common_reads", []):
+        lines.append(render(entry, "read_now"))
+    lines += ["", "## Routing profiles (selection belongs to the resolver)", ""]
+    for name, profile in reading.get("profiles", {}).items():
+        lines += [f"### {name}", ""]
+        for entry in profile.get("read_now", []):
+            lines.append(render(entry, "read_now"))
+        for entry in profile.get("conditional", []):
+            lines.append(render(entry, "conditional"))
+        lines.append("")
+    lines += ["## CUMCM writing stages (order belongs to writing runtime)", ""]
+    for stage in stages:
+        lines += [f"### {stage['id']}", ""]
+        preflight = stage.get("before_write_preflight") or {}
+        for entry in preflight.get("read_now", []):
+            lines.append(render(entry, "preflight"))
+        for entry in stage.get("read_now", []):
+            lines.append(render(entry, "read_now"))
+        for name, branch in (stage.get("conditional_reads_before_relevant_passage") or {}).items():
+            lines.append(f"- conditional branch: \`{name}\`; when={branch.get('when', 'unresolved')}")
+            for entry in branch.get("read", []):
+                lines.append(render(entry, "conditional source"))
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
 def generated_payloads() -> dict[Path, str]:
     version = current_skill_version()
+    guide_payload = stage_reading_guide_text()
     files = iter_files()
     corpus_root = ROOT / "knowledge" / "case_memory"
     case_relative = Path("knowledge/case_memory/index.json")
@@ -250,6 +311,7 @@ def generated_payloads() -> dict[Path, str]:
         TEMPLATE_INDEX.relative_to(ROOT): template_payload,
         LEGACY_SKILL_INDEX.relative_to(ROOT): legacy_skill_payload,
         LEGACY_TEMPLATE_INDEX.relative_to(ROOT): legacy_template_payload,
+        STAGE_GUIDE.relative_to(ROOT): guide_payload,
         **case_payloads,
     }
     return {
@@ -257,6 +319,7 @@ def generated_payloads() -> dict[Path, str]:
         TEMPLATE_INDEX: template_payload,
         LEGACY_SKILL_INDEX: legacy_skill_payload,
         LEGACY_TEMPLATE_INDEX: legacy_template_payload,
+        STAGE_GUIDE: guide_payload,
         **{ROOT / path: payload for path, payload in case_payloads.items()},
         MANIFEST: manifest_text(files, overrides),
     }
