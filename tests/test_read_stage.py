@@ -175,6 +175,96 @@ class WritingStageSourceTests(unittest.TestCase):
         self.assertTrue(any(x["status"] == "requires_current_project_fact_adjudication" for x in activated))
 
 
+    def test_draft_review_stage_resolves_named_and_chinese_heading_anchors(self):
+        file = self.root / "modules" / "06_review_delivery.md"
+        file.write_text(
+            "# Final Review\\nGlobal context.\\n"
+            "## 二、题意、框架与局部 stale 审查\\nScope.\\n"
+            "### Cross-File Assembled Seam Sweep\\nSeam review.\\n"
+            "## 三、公式、模型角色、算法、命题与数值证据审查\\nMath review.\\n"
+            "## 五、Title Claim、正文结构与 Paragraph Necessity\\nStructure.\\n"
+            "### v7.20/v8.0.1 章节能力保全检查\\nPreservation.\\n",
+            encoding="utf-8",
+        )
+        anchors = [
+            "modules/06_review_delivery.md#三-公式模型角色算法命题与数值证据审查",
+            "modules/06_review_delivery.md#Cross-File-Assembled-Seam-Sweep",
+            "modules/06_review_delivery.md#五-Title-Claim-正文结构与-Paragraph-Necessity",
+            "modules/06_review_delivery.md#v7.20-v8.0.1-章节能力保全检查",
+        ]
+        plan = {"reading_plan": {}, "writing_runtime": {"authoring_sequence": [{
+            "id": "draft_semantic_review", "read_now": anchors,
+        }]}}
+        rows, unresolved = READER.select_sources(
+            plan, self.root, "writing_stage", stage_id="draft_semantic_review"
+        )
+        self.assertFalse(unresolved)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["path"], "modules/06_review_delivery.md")
+        self.assertEqual(rows[0]["resolution"], "exact", rows[0]["fallback_reason"])
+        raw = file.read_text(encoding="utf-8").splitlines(keepends=True)
+        selected = "".join("".join(raw[a - 1:b]) for a, b in rows[0]["ranges"])
+        for phrase in ("Seam review.", "Math review.", "Structure.", "Preservation."):
+            self.assertIn(phrase, selected)
+
+        # Ambiguous equivalent headings must fail into the explicit full-file
+        # fallback, not silently choose a sibling heading or a symbolic alias.
+        file.write_text(file.read_text(encoding="utf-8") +
+                        "### Cross File Assembled Seam Sweep\\nDuplicate.\\n",
+                        encoding="utf-8")
+        rows, unresolved = READER.select_sources(
+            plan, self.root, "writing_stage", stage_id="draft_semantic_review"
+        )
+        self.assertFalse(unresolved)
+        self.assertEqual(rows[0]["resolution"], "whole_file_fallback")
+        self.assertIn("Heading not unique", rows[0]["fallback_reason"])
+
+    def test_writing_stage_bytes_are_verified_against_selected_git_commit(self):
+        file = self.root / "modules" / "05_writing" / "paper_writing_protocol.md"
+        baseline = file.read_bytes()
+        plan = {"reading_plan": {}, "writing_runtime": {"authoring_sequence": [{
+            "id": "problem_restatement",
+            "read_now": ["modules/05_writing/paper_writing_protocol.md#6.1-问题重述"],
+        }]}}
+        committed = mock.Mock(returncode=0, stdout=baseline)
+        with mock.patch.object(READER, "verify_checkout", return_value=COMMIT), \\
+                mock.patch.object(READER.subprocess, "run", return_value=committed) as git:
+            result = READER.extract(
+                plan, self.root, COMMIT, "writing_stage",
+                "modules/05_writing/paper_writing_protocol.md",
+            )
+        self.assertEqual(result["source_identity"]["sha256"],
+                         hashlib.sha256(baseline).hexdigest())
+        self.assertEqual(result["resolution"], "exact")
+        self.assertEqual(git.call_args.args[0][-1],
+                         f"{COMMIT}:modules/05_writing/paper_writing_protocol.md")
+
+        # HEAD may be unchanged while the source in the working tree is dirty.
+        # A fresh dynamically computed row digest must not approve those bytes.
+        file.write_bytes(baseline.replace(b"Selected.", b"Tampered."))
+        with mock.patch.object(READER, "verify_checkout", return_value=COMMIT), \\
+                mock.patch.object(READER.subprocess, "run", return_value=committed):
+            with self.assertRaisesRegex(ValueError, "differs from selected commit"):
+                READER.extract(
+                    plan, self.root, COMMIT, "writing_stage",
+                    "modules/05_writing/paper_writing_protocol.md",
+                )
+
+    def test_writing_stage_unavailable_committed_blob_fails_closed(self):
+        plan = {"reading_plan": {}, "writing_runtime": {"authoring_sequence": [{
+            "id": "problem_restatement",
+            "read_now": ["modules/05_writing/paper_writing_protocol.md#6.1-问题重述"],
+        }]}}
+        missing = mock.Mock(returncode=128, stdout=b"", stderr=b"missing")
+        with mock.patch.object(READER, "verify_checkout", return_value=COMMIT), \\
+                mock.patch.object(READER.subprocess, "run", return_value=missing):
+            with self.assertRaisesRegex(ValueError, "could not be verified"):
+                READER.extract(
+                    plan, self.root, COMMIT, "writing_stage",
+                    "modules/05_writing/paper_writing_protocol.md",
+                )
+
+
 class GeneratedStageNavigationTests(unittest.TestCase):
     def test_guide_uses_existing_router_and_writing_stages(self):
         import generate_indexes
