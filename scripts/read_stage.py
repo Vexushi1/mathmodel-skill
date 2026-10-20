@@ -7,6 +7,7 @@ project eligibility and gates. This read-only adapter does not execute those gat
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -61,21 +62,28 @@ def _selector_spec(root: Path, resource: str) -> dict[str, Any] | None:
         return spec
     if Path(path).suffix.lower() != ".md":
         return None
-    # Writing runtime anchors refer to numbered Protocol/adapter sections.
-    # Match their actual heading, never retype their contents as a shadow rule.
-    match = re.match(r"^(\d+(?:\.\d+)?[A-Za-z]?)(?:-|$)", anchor)
-    if not match:
-        return None
-    number = match.group(1)
+    # Writing-stage references include Chinese-numbered, English, v7.x and
+    # decimal-numbered headings. Match the *complete* declared anchor to a
+    # unique real heading, rather than assuming an ASCII numeric prefix.
+    # Punctuation and whitespace are presentation-only (e.g. 三、 versus 三-;
+    # v7.20/v8.0.1 versus v7.20-v8.0.1). A collision is never guessed.
+    def anchor_key(value: str) -> str:
+        return "".join(char.casefold() for char in value if char.isalnum())
+
+    key = anchor_key(anchor)
+    if not key:
+        raise ValueError(f"empty Markdown heading anchor: {resource}")
     candidate = (root / path).resolve()
     if not candidate.is_relative_to(root.resolve()):
         raise ValueError(f"reading source escapes root: {path}")
     if not candidate.is_file():
         raise FileNotFoundError(candidate)
     lines = candidate.read_text(encoding="utf-8").splitlines()
-    headings = [line for line in lines if re.match(
-        r"^#{1,6}\s+" + re.escape(number) + r"(?=[.\s:：-])", line
-    )]
+    headings = []
+    for line in lines:
+        match = re.match(r"^(#{1,6})\s+(.+?)\s*#*\s*$", line)
+        if match and anchor_key(match.group(2)) == key:
+            headings.append(line)
     if len(headings) != 1:
         # Fail safely into existing SourceReader whole-file fallback,
         # not into an unverified substring selection.
@@ -138,6 +146,25 @@ def select_sources(
     return reader.consolidate(candidates), symbolic
 
 
+def verify_writing_source_commit(
+    root: Path, row: dict[str, Any], selected_commit: str,
+) -> None:
+    """Bind dynamically selected writing-stage bytes to the pinned Git commit.
+
+    Writing stages list symbolic paths/anchors rather than a resolver-produced
+    source digest. A digest captured from the current working tree would only
+    compare that tree to itself, allowing dirty files to impersonate HEAD.
+    """
+    result = subprocess.run(
+        ["git", "-C", str(root), "show", f"{selected_commit}:{row['path']}"],
+        capture_output=True, check=False,
+    )
+    if result.returncode != 0:
+        raise ValueError(f"selected commit source could not be verified: {row['path']}")
+    if hashlib.sha256(result.stdout).hexdigest() != row["sha256"]:
+        raise ValueError(f"writing-stage source SHA-256 differs from selected commit: {row['path']}")
+
+
 def source_chunks(
     root: Path, row: dict[str, Any], selected_commit: str, chunk_lines: int
 ) -> list[dict[str, Any]]:
@@ -184,6 +211,8 @@ def extract(
     row = candidates[0]
     if row.get("origin") == "project":
         raise ValueError("project source requires its separate verified project root")
+    if surface == "writing_stage":
+        verify_writing_source_commit(root, row, selected_commit)
     chunks = source_chunks(root, row, selected_commit, chunk_lines)
     if chunk_index < 0 or chunk_index >= len(chunks):
         raise ValueError("chunk_index out of range")
