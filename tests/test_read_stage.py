@@ -249,7 +249,7 @@ class WritingStageSourceTests(unittest.TestCase):
                 READER.extract(
                     plan, self.root, COMMIT, "writing_stage",
                     "modules/05_writing/paper_writing_protocol.md",
-                stage_id="problem_restatement",
+                    stage_id="problem_restatement",
                 )
 
     def test_writing_stage_unavailable_committed_blob_fails_closed(self):
@@ -264,7 +264,7 @@ class WritingStageSourceTests(unittest.TestCase):
                 READER.extract(
                     plan, self.root, COMMIT, "writing_stage",
                     "modules/05_writing/paper_writing_protocol.md",
-                stage_id="problem_restatement",
+                    stage_id="problem_restatement",
                 )
 
 
