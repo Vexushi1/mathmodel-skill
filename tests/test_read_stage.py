@@ -178,12 +178,12 @@ class WritingStageSourceTests(unittest.TestCase):
     def test_draft_review_stage_resolves_named_and_chinese_heading_anchors(self):
         file = self.root / "modules" / "06_review_delivery.md"
         file.write_text(
-            "# Final Review\\nGlobal context.\\n"
-            "## 二、题意、框架与局部 stale 审查\\nScope.\\n"
-            "### Cross-File Assembled Seam Sweep\\nSeam review.\\n"
-            "## 三、公式、模型角色、算法、命题与数值证据审查\\nMath review.\\n"
-            "## 五、Title Claim、正文结构与 Paragraph Necessity\\nStructure.\\n"
-            "### v7.20/v8.0.1 章节能力保全检查\\nPreservation.\\n",
+            "# Final Review\nGlobal context.\n"
+            "## 二、题意、框架与局部 stale 审查\nScope.\n"
+            "### Cross-File Assembled Seam Sweep\nSeam review.\n"
+            "## 三、公式、模型角色、算法、命题与数值证据审查\nMath review.\n"
+            "## 五、Title Claim、正文结构与 Paragraph Necessity\nStructure.\n"
+            "### v7.20/v8.0.1 章节能力保全检查\nPreservation.\n",
             encoding="utf-8",
         )
         anchors = [
@@ -210,7 +210,7 @@ class WritingStageSourceTests(unittest.TestCase):
         # Ambiguous equivalent headings must fail into the explicit full-file
         # fallback, not silently choose a sibling heading or a symbolic alias.
         file.write_text(file.read_text(encoding="utf-8") +
-                        "### Cross File Assembled Seam Sweep\\nDuplicate.\\n",
+                        "### Cross File Assembled Seam Sweep\nDuplicate.\n",
                         encoding="utf-8")
         rows, unresolved = READER.select_sources(
             plan, self.root, "writing_stage", stage_id="draft_semantic_review"
@@ -227,7 +227,7 @@ class WritingStageSourceTests(unittest.TestCase):
             "read_now": ["modules/05_writing/paper_writing_protocol.md#6.1-问题重述"],
         }]}}
         committed = mock.Mock(returncode=0, stdout=baseline)
-        with mock.patch.object(READER, "verify_checkout", return_value=COMMIT), \\
+        with mock.patch.object(READER, "verify_checkout", return_value=COMMIT), \
                 mock.patch.object(READER.subprocess, "run", return_value=committed) as git:
             result = READER.extract(
                 plan, self.root, COMMIT, "writing_stage",
@@ -242,7 +242,7 @@ class WritingStageSourceTests(unittest.TestCase):
         # HEAD may be unchanged while the source in the working tree is dirty.
         # A fresh dynamically computed row digest must not approve those bytes.
         file.write_bytes(baseline.replace(b"Selected.", b"Tampered."))
-        with mock.patch.object(READER, "verify_checkout", return_value=COMMIT), \\
+        with mock.patch.object(READER, "verify_checkout", return_value=COMMIT), \
                 mock.patch.object(READER.subprocess, "run", return_value=committed):
             with self.assertRaisesRegex(ValueError, "differs from selected commit"):
                 READER.extract(
@@ -256,7 +256,7 @@ class WritingStageSourceTests(unittest.TestCase):
             "read_now": ["modules/05_writing/paper_writing_protocol.md#6.1-问题重述"],
         }]}}
         missing = mock.Mock(returncode=128, stdout=b"", stderr=b"missing")
-        with mock.patch.object(READER, "verify_checkout", return_value=COMMIT), \\
+        with mock.patch.object(READER, "verify_checkout", return_value=COMMIT), \
                 mock.patch.object(READER.subprocess, "run", return_value=missing):
             with self.assertRaisesRegex(ValueError, "could not be verified"):
                 READER.extract(
