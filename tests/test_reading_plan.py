@@ -46,6 +46,21 @@ class SelectorTests(unittest.TestCase):
         self.assertEqual(row["resolution"], "exact")
         self.assertLess(row["planned_bytes"], row["source_bytes"])
 
+    def test_sibling_and_its_descendants_are_not_target_ancestors(self):
+        text = (
+            "# Title\nGlobal applicability.\n"
+            "## Previous\nUnrelated sibling introduction.\n"
+            "### Previous child\nUnrelated child introduction.\n"
+            "## Target\nCurrent required rules.\n"
+        )
+        row = self.describe(text, headings=["## Target"])
+        selected = "".join("".join(text.splitlines(keepends=True)[a-1:b])
+                           for a, b in row["ranges"])
+        self.assertIn("Global applicability.", selected)
+        self.assertIn("Current required rules.", selected)
+        self.assertNotIn("Unrelated sibling introduction.", selected)
+        self.assertNotIn("Unrelated child introduction.", selected)
+
     def test_missing_duplicate_or_empty_selectors_expand_whole_file(self):
         for text, selectors in (("# A\n## B\nx\n", ["## missing"]),
                                 ("# A\n## B\nx\n## B\ny\n", ["## B"]),

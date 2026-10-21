@@ -203,6 +203,10 @@ def _markdown_ranges(lines: list[str], selectors: list[str]) -> list[tuple[int, 
             while stack and stack[-1][1] >= item[1]:
                 stack.pop()
             stack.append(item)
+        # The target was not pushed above. Discard its preceding siblings and
+        # their descendants before retaining only true ancestor introductions.
+        while stack and stack[-1][1] >= level:
+            stack.pop()
         for ancestor, _, _ in stack:
             next_heading = next((i for i, _, _ in headings if i > ancestor), len(lines))
             ranges.append((ancestor, next_heading))
