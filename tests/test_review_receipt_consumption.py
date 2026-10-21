@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
+import shutil
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import yaml
 from jsonschema import Draft202012Validator
@@ -174,6 +176,25 @@ class ReviewReceiptConsumptionTests(unittest.TestCase):
     def inspect(self, gate: str, questions: list[str] | None = None) -> dict:
         return CONSUMPTION.evaluate_gate(self.root, gate, questions=questions)
 
+    def isolated_skill_sources(self) -> Path:
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        skill = Path(temp.name)
+        paths = {
+            REVIEW.SCHEMA, REVIEW.CONTRACT, CONSUMPTION.CONTRACT,
+            CONSUMPTION.MODEL_CONTRACT, CONSUMPTION.FINAL_MATRIX,
+            "scripts/safe_yaml.py",
+        }
+        paths.update(self.c1_contract["required_authority_paths"])
+        for spec in self.c1_contract["gate_authorities"].values():
+            paths.update(spec.get("required_paths", []))
+            paths.update(spec.get("latex_required_paths", []))
+        for relative in sorted(paths):
+            destination = skill / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / relative, destination)
+        return skill
+
     def test_optional_policy_is_closed_and_legacy_state_is_unchanged(self) -> None:
         schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
         self.assertEqual(schema["version"], "8.16.0")
@@ -252,6 +273,119 @@ class ReviewReceiptConsumptionTests(unittest.TestCase):
         requirement["roles"][0]["check_ids"] = ["edition_compliance"]
         self.save()
         self.assertEqual(self.inspect("final_review_and_delivery")["status"], "failed")
+
+    def test_split_review_changed_or_missing_leaf_cannot_keep_c2_eligible(self) -> None:
+        skill = self.isolated_skill_sources()
+        entry = skill / "modules/06_review_delivery.md"
+        entry_bytes = entry.read_bytes()
+        with patch.object(REVIEW, "ROOT", skill), patch.object(CONSUMPTION, "ROOT", skill):
+            for relative in (
+                "modules/06_review/content_review.md",
+                "modules/06_review/final_delivery.md",
+            ):
+                for change in ("changed", "missing"):
+                    with self.subTest(relative=relative, change=change):
+                        self.install_pair("final_review_and_delivery")
+                        initial = self.inspect("final_review_and_delivery")
+                        self.assertEqual(initial["status"], "passed", initial)
+                        path = skill / relative
+                        original = path.read_bytes()
+                        self.assertEqual(initial["observed_sources"]["skill"][relative],
+                                         sha256(path))
+                        state_before = (self.root / "state/project_state.yaml").read_bytes()
+                        if change == "changed":
+                            path.write_bytes(original + b"\n<!-- changed canonical review body -->\n")
+                        else:
+                            path.unlink()
+                        try:
+                            result = self.inspect("final_review_and_delivery")
+                            self.assertEqual(result["status"], "failed", result)
+                            self.assertEqual(result["qualification"], "not_granted")
+                            self.assertEqual(result["receipt_ids"], [])
+                            self.assertEqual(result["selected_snapshots"], [])
+                            observed = result["observed_sources"]["skill"][relative]
+                            self.assertEqual(observed, sha256(path) if path.is_file() else None)
+                            self.assertEqual(entry.read_bytes(), entry_bytes)
+                            self.assertEqual(
+                                (self.root / "state/project_state.yaml").read_bytes(),
+                                state_before,
+                            )
+                        finally:
+                            path.write_bytes(original)
+
+    def test_review_mapping_change_cannot_keep_paper_c2_eligible(self) -> None:
+        skill = self.isolated_skill_sources()
+        review_bytes = {
+            relative: (skill / relative).read_bytes()
+            for relative in (
+                "modules/06_review_delivery.md", "modules/06_review/content_review.md",
+                "modules/06_review/final_delivery.md",
+            )
+        }
+        path = skill / "core/module_manifest.yaml"
+        original = path.read_bytes()
+        with patch.object(REVIEW, "ROOT", skill), patch.object(CONSUMPTION, "ROOT", skill):
+            for gate in ("draft_semantic_review", "final_review_and_delivery"):
+                with self.subTest(gate=gate):
+                    self.install_pair(gate)
+                    self.assertEqual(self.inspect(gate)["status"], "passed")
+                    manifest = yaml.safe_load(original.decode("utf-8"))
+                    headings = manifest["modules"]["review_delivery"]["reading_sources"]["entry_headings"]
+                    self.assertIn("## 十一、Blocking 条件", headings)
+                    headings.remove("## 十一、Blocking 条件")
+                    path.write_text(
+                        yaml.safe_dump(manifest, allow_unicode=True, sort_keys=False),
+                        encoding="utf-8",
+                    )
+                    state_before = (self.root / "state/project_state.yaml").read_bytes()
+                    try:
+                        result = self.inspect(gate)
+                        self.assertEqual(result["status"], "failed", result)
+                        self.assertEqual(result["qualification"], "not_granted")
+                        self.assertEqual(result["receipt_ids"], [])
+                        self.assertEqual(result["selected_snapshots"], [])
+                        self.assertEqual(
+                            result["observed_sources"]["skill"]["core/module_manifest.yaml"],
+                            sha256(path),
+                        )
+                        self.assertEqual(
+                            {relative: (skill / relative).read_bytes() for relative in review_bytes},
+                            review_bytes,
+                        )
+                        self.assertEqual(
+                            (self.root / "state/project_state.yaml").read_bytes(), state_before)
+                    finally:
+                        path.write_bytes(original)
+
+    def test_split_review_old_snapshot_missing_source_cannot_be_promoted_by_c2(self) -> None:
+        skill = self.isolated_skill_sources()
+        with patch.object(REVIEW, "ROOT", skill), patch.object(CONSUMPTION, "ROOT", skill):
+            for relative in (
+                "modules/06_review/content_review.md",
+                "modules/06_review/final_delivery.md",
+                "core/module_manifest.yaml",
+            ):
+                with self.subTest(relative=relative):
+                    first, _ = self.install_pair("final_review_and_delivery")
+                    self.assertEqual(self.inspect("final_review_and_delivery")["status"], "passed")
+                    snapshot = first["snapshot"]
+                    snapshot["authorities"] = [
+                        row for row in snapshot["authorities"] if row["path"] != relative]
+                    snapshot["fingerprint_sha256"] = REVIEW.snapshot_fingerprint(
+                        snapshot["state_fields"], snapshot["project_files"],
+                        snapshot["authorities"], gate=first["gate"], role=first["role"],
+                        scope=first["scope"], criteria_version=first["criteria_version"],
+                    )
+                    self.save()
+                    state_before = (self.root / "state/project_state.yaml").read_bytes()
+                    result = self.inspect("final_review_and_delivery")
+                    self.assertEqual(result["status"], "failed", result)
+                    self.assertEqual(result["qualification"], "not_granted")
+                    self.assertEqual(result["receipt_ids"], [])
+                    self.assertEqual(result["selected_snapshots"], [])
+                    self.assertEqual(
+                        (self.root / "state/project_state.yaml").read_bytes(), state_before)
+                    self.assertNotIn(relative, {row["path"] for row in snapshot["authorities"]})
 
     def test_active_approved_figure_requires_both_role_object_coverage(self) -> None:
         image = self.root / "figures/q1.png"

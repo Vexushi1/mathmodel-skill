@@ -22,8 +22,11 @@ from reading_plan_evidence import (
     FIGURE_HANDOFF_WRITING_DELTAS,
     PDF_REVIEW_AUTHORITY_VERSIONS,
     PDF_REVIEW_WRITING_DELTAS,
+    REVIEW_SPLIT_AUTHORITY_VERSIONS,
+    REVIEW_SPLIT_WRITING_DELTAS,
     STAGE_READING_AUTHORITY_VERSIONS,
     USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS,
+    review_split_writing_predecessor,
 )
 
 
@@ -73,7 +76,15 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 PDF_REVIEW_AUTHORITY_VERSIONS["skill"],
                 STAGE_READING_AUTHORITY_VERSIONS["skill"],
                 BODY_READING_AUTHORITY_VERSIONS["skill"],
+                REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"],
             ))
+            if plan["version"] == REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"]:
+                try:
+                    writing = review_split_writing_predecessor(
+                        self.golden["routes"]["latex"]["writing_runtime"], writing,
+                    )
+                except ValueError as exc:
+                    self.fail(str(exc))
             old_stage = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][4]
             current_stage = writing["authoring_sequence"][4]
             self.assertEqual(old_stage["id"], "question_model_solution_result_validation")
@@ -98,10 +109,11 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                     baseline, candidate = baseline[key], candidate[key]
                 self.assertEqual(baseline[path[-1]], previous_value)
                 expected = current_value if plan["version"] in (
-                PDF_REVIEW_AUTHORITY_VERSIONS["skill"],
-                STAGE_READING_AUTHORITY_VERSIONS["skill"],
-                BODY_READING_AUTHORITY_VERSIONS["skill"],
-            ) else previous_value
+                    PDF_REVIEW_AUTHORITY_VERSIONS["skill"],
+                    STAGE_READING_AUTHORITY_VERSIONS["skill"],
+                    BODY_READING_AUTHORITY_VERSIONS["skill"],
+                    REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"],
+                ) else previous_value
                 self.assertEqual(candidate[path[-1]], expected)
                 candidate[path[-1]] = copy.deepcopy(previous_value)
         return {
@@ -136,29 +148,70 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
         self.assertEqual(self._projection(plan), self.golden["routes"]["latex"])
         self.assertEqual((plan, self.golden, FIGURE_HANDOFF_WRITING_DELTAS, PDF_REVIEW_WRITING_DELTAS), before)
 
+    def test_review_split_projection_binds_canonical_scopes_without_waiving_stage_fields(self):
+        plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
+        self.assertEqual(plan["version"], REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"])
+        saved = copy.deepcopy((plan, self.golden, REVIEW_SPLIT_WRITING_DELTAS))
+        for index, stage_id, previous_reads, current_reads in REVIEW_SPLIT_WRITING_DELTAS:
+            historical = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][index]
+            stage = plan["writing_runtime"]["authoring_sequence"][index]
+            self.assertEqual(historical["id"], stage_id)
+            self.assertEqual(historical["read_now"], previous_reads)
+            self.assertEqual(stage["id"], stage_id)
+            self.assertEqual(stage["read_now"], current_reads)
+        self.assertEqual(self._projection(plan), self.golden["routes"]["latex"])
+        self.assertEqual((plan, self.golden, REVIEW_SPLIT_WRITING_DELTAS), saved)
+        for index, _, _, _ in REVIEW_SPLIT_WRITING_DELTAS:
+            for mutation in ("missing_content", "extra", "order", "id", "gate", "write_now"):
+                with self.subTest(index=index, mutation=mutation):
+                    altered = copy.deepcopy(plan)
+                    stage = altered["writing_runtime"]["authoring_sequence"][index]
+                    if mutation == "missing_content":
+                        stage["read_now"].remove("modules/06_review/content_review.md")
+                    elif mutation == "extra":
+                        stage["read_now"].append("modules/06_review/final_delivery.md")
+                    elif mutation == "order":
+                        stage["read_now"].reverse()
+                    elif mutation == "id":
+                        stage["id"] = "unregistered_review"
+                    elif mutation == "gate":
+                        stage["gate"] = "passed"
+                    else:
+                        stage["write_now"] = ["unregistered_output"]
+                    with self.assertRaises(AssertionError):
+                        self.assertEqual(self._projection(altered), self.golden["routes"]["latex"])
+
     def test_projection_binds_exact_carriers_to_their_assembly_command_shape(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
         historical = ["scripts/validate_template_manifest.py", "scripts/audit_latex_project.py", "scripts/render_paper.py"]
         current = ["scripts/validate_template_manifest.py", "scripts/render_paper.py"]
-        for version in ("10.19.3", "10.20.3", "10.20.4", STAGE_READING_AUTHORITY_VERSIONS["skill"], BODY_READING_AUTHORITY_VERSIONS["skill"]):
+        for version in ("10.19.3", "10.20.3", "10.20.4",
+                        STAGE_READING_AUTHORITY_VERSIONS["skill"],
+                        BODY_READING_AUTHORITY_VERSIONS["skill"],
+                        REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"]):
             with self.subTest(version=version):
                 declared = copy.deepcopy(plan)
                 declared["version"] = version
+                if version != REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"]:
+                    for index, _, previous_reads, _ in REVIEW_SPLIT_WRITING_DELTAS:
+                        declared["writing_runtime"]["authoring_sequence"][index]["read_now"] = copy.deepcopy(previous_reads)
                 stage = declared["writing_runtime"]["authoring_sequence"][9]
                 stage["run_now"] = list(current if version in (
                     PDF_REVIEW_AUTHORITY_VERSIONS["skill"],
                     STAGE_READING_AUTHORITY_VERSIONS["skill"],
                     BODY_READING_AUTHORITY_VERSIONS["skill"],
+                    REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"],
                 ) else historical)
                 self.assertEqual(self._projection(declared), self.golden["routes"]["latex"])
                 stage["run_now"] = list(historical if version in (
                     PDF_REVIEW_AUTHORITY_VERSIONS["skill"],
                     STAGE_READING_AUTHORITY_VERSIONS["skill"],
                     BODY_READING_AUTHORITY_VERSIONS["skill"],
+                    REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"],
                 ) else current)
                 with self.assertRaises(AssertionError):
                     self._projection(declared)
-        for version in (None, "10.19.4", "10.20.6", "10.21.1", "11.0.0"):
+        for version in (None, "10.19.4", "10.20.6", "10.21.1", "10.22.1", "11.0.0"):
             with self.subTest(version=version):
                 altered = copy.deepcopy(plan)
                 altered["version"] = version

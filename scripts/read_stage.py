@@ -16,7 +16,10 @@ from typing import Any
 
 import yaml
 
-from reading_plan import SourceReader, validate_chunk_coverage
+from reading_plan import (
+    SourceReader, canonical_rolepaths, describe_resources,
+    validate_chunk_coverage, validate_review_rows,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -106,8 +109,9 @@ def select_sources(
             # A conditional resource cannot be activated by its mere presence.
             return [], [{"source": "reading_plan.conditional", "status": "unresolved_condition"}]
         rows = reading.get(surface) or []
-        return ([row for row in rows if surface != "conditional" or row.get("when") == condition],
-                symbolic)
+        selected = [row for row in rows if surface != "conditional" or row.get("when") == condition]
+        validate_review_rows(root, selected)
+        return selected, symbolic
 
     if surface != "writing_stage" or not stage_id:
         raise ValueError("writing_stage requires the current stage_id")
@@ -142,8 +146,10 @@ def select_sources(
         if spec is None:
             symbolic.append({"source": entry, "status": "project_fact_or_conditional_input"})
         else:
-            candidates.append(reader.describe(spec))
-    return reader.consolidate(candidates), symbolic
+            candidates.extend(describe_resources(reader, spec, stage_id=stage_id))
+    selected = reader.consolidate(candidates)
+    validate_review_rows(root, selected)
+    return selected, symbolic
 
 
 def verify_writing_source_commit(
@@ -155,6 +161,9 @@ def verify_writing_source_commit(
     source digest. A digest captured from the current working tree would only
     compare that tree to itself, allowing dirty files to impersonate HEAD.
     """
+    actual = SourceReader(root).describe({"path": row["path"]})
+    if actual["sha256"] != row["sha256"]:
+        raise ValueError(f"writing-stage source SHA-256 differs from reading plan: {row['path']}")
     result = subprocess.run(
         ["git", "-C", str(root), "show", f"{selected_commit}:{row['path']}"],
         capture_output=True, check=False,
@@ -213,6 +222,16 @@ def extract(
         raise ValueError("project source requires its separate verified project root")
     if surface == "writing_stage":
         verify_writing_source_commit(root, row, selected_commit)
+    review_binding = validate_review_rows(root, rows)
+    if review_binding is not None:
+        # Legacy-plan rows cannot invent leaf hashes at extraction time. New
+        # plans carry them, and every declared review source plus its sole map
+        # must still match the fixed commit, including dirty working trees.
+        verify_writing_source_commit(root, review_binding, selected_commit)
+        rolepaths = set((canonical_rolepaths(root) or {}).values())
+        for current in rows:
+            if current["path"] in rolepaths and not (surface == "writing_stage" and current is row):
+                verify_writing_source_commit(root, current, selected_commit)
     chunks = source_chunks(root, row, selected_commit, chunk_lines)
     if chunk_index < 0 or chunk_index >= len(chunks):
         raise ValueError("chunk_index out of range")

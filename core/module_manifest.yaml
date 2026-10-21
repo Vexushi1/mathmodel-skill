@@ -1,4 +1,4 @@
-version: 10.21.0
+version: 10.22.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -199,6 +199,14 @@ modules:
     outputs: [latex_audit_report, compiled_pdf, compile_report]
   review_delivery:
     path: modules/06_review_delivery.md
+    reading_sources:
+      entry: modules/06_review_delivery.md
+      content: modules/06_review/content_review.md
+      final: modules/06_review/final_delivery.md
+      entry_headings: ["## 一、评审分级", "## 十、返修优先级", "## 十一、Blocking 条件"]
+      stages:
+        draft_semantic_review: [entry, content]
+        final_review_and_delivery: [entry, content, final]
     inputs: [all_requested_artifacts, proposition_plan, model_paper_framework, output_contract, workbook_schema, compile_profile, compile_report]
     outputs: [review_report, submission_package]
 utility_gates:

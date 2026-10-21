@@ -99,6 +99,39 @@ STAGE_READING_AUTHORITY_VERSIONS = {
     **PDF_REVIEW_AUTHORITY_VERSIONS, "skill": "10.20.5", "runtime_assurance": "2.5.0",
 }
 BODY_READING_AUTHORITY_VERSIONS = {**STAGE_READING_AUTHORITY_VERSIONS, "skill": "10.21.0"}
+REVIEW_SPLIT_AUTHORITY_VERSIONS = {**BODY_READING_AUTHORITY_VERSIONS, "skill": "10.22.0"}
+# Only these two read-list migrations are registered. Business text is separately
+# reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
+REVIEW_SPLIT_WRITING_DELTAS = (
+    (7, "draft_semantic_review",
+     ["core/writing_reasoning_contract.yaml",
+      "modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test",
+      "modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释",
+      "modules/06_review_delivery.md#三-公式模型角色算法命题与数值证据审查",
+      "modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff",
+      "current_model_paper_framework#Chapter-Handoff-Map",
+      "modules/06_review_delivery.md#Cross-File-Assembled-Seam-Sweep",
+      "modules/06_review_delivery.md#五-Title-Claim-正文结构与-Paragraph-Necessity",
+      "modules/06_review_delivery.md#v7.20-v8.0.1-章节能力保全检查"],
+     ["core/writing_reasoning_contract.yaml",
+      "modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test",
+      "modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释",
+      "modules/06_review_delivery.md",
+      "modules/06_review/content_review.md",
+      "modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff",
+      "current_model_paper_framework#Chapter-Handoff-Map"]),
+    (10, "final_review_and_delivery",
+     ["core/writing_reasoning_contract.yaml",
+      "modules/06_review_delivery.md",
+      "templates/review/final_review_matrix.yaml",
+      "current_latex_audit_and_compile_reports"],
+     ["core/writing_reasoning_contract.yaml",
+      "modules/06_review_delivery.md",
+      "modules/06_review/content_review.md",
+      "modules/06_review/final_delivery.md",
+      "templates/review/final_review_matrix.yaml",
+      "current_latex_audit_and_compile_reports"]),
+)
 PDF_REVIEW_WRITING_DELTAS = (
     (("run_now",),
      ["scripts/validate_template_manifest.py", "scripts/audit_latex_project.py", "scripts/render_paper.py"],
@@ -1217,6 +1250,65 @@ def approved_body_reading_carrier_change(identifier, old, new, candidate_authori
     return projected, changes
 
 
+def review_split_writing_predecessor(previous, candidate):
+    """Inverse only the pinned review read lists, preserving all other data."""
+    projected = deepcopy(candidate)
+    for index, stage_id, old_reads, new_reads in REVIEW_SPLIT_WRITING_DELTAS:
+        try:
+            baseline = previous["authoring_sequence"][index]
+            current = candidate["authoring_sequence"][index]
+            target = projected["authoring_sequence"][index]
+            if (baseline["id"] != stage_id or current["id"] != stage_id
+                    or baseline["read_now"] != old_reads or current["read_now"] != new_reads):
+                raise ValueError("review-source migration does not match the pinned stage declaration")
+            target["read_now"] = deepcopy(old_reads)
+        except (KeyError, IndexError, TypeError) as exc:
+            raise ValueError("review-source migration is missing its declared stage") from exc
+    return projected
+
+
+def approved_review_split_carrier_change(identifier, old, new, candidate_authority_versions):
+    """Register v10.22.0 plus four exact read-list leaves across both mirrors."""
+    if (candidate_authority_versions != REVIEW_SPLIT_AUTHORITY_VERSIONS
+            or new.get("version") != REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"]):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    declaration_changes = []
+    if identifier == "cumcm_writing":
+        for prefix in (("writing_runtime",), ("runtime_plan", "writing_runtime")):
+            try:
+                baseline, candidate, destination = old, new, predecessor
+                for key in prefix[:-1]:
+                    baseline, candidate, destination = baseline[key], candidate[key], destination[key]
+                destination[prefix[-1]] = review_split_writing_predecessor(
+                    baseline[prefix[-1]], candidate[prefix[-1]],
+                )
+            except (KeyError, TypeError, ValueError):
+                return deepcopy(new), []
+            for index, _, old_reads, new_reads in REVIEW_SPLIT_WRITING_DELTAS:
+                declaration_changes.append({
+                    "path": ".".join(map(str, (*prefix, "authoring_sequence", index, "read_now"))),
+                    "baseline": deepcopy(old_reads), "candidate": deepcopy(new_reads),
+                    "approval": "Exact v10.22.0 canonical review-source declaration; business text remains independently preserved",
+                })
+    predecessor["version"] = BODY_READING_AUTHORITY_VERSIONS["skill"]
+    projected, changes = approved_body_reading_carrier_change(
+        identifier, old, predecessor, deepcopy(BODY_READING_AUTHORITY_VERSIONS),
+    )
+    if projected != old or not changes:
+        return deepcopy(new), []
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(REVIEW_SPLIT_AUTHORITY_VERSIONS)
+            change["approval"] = (
+                "Exact v10.22.0 modular review carrier and pinned source declarations; "
+                "no gate, qualification, route order or unrelated stage field is waived"
+            )
+    changes.extend(declaration_changes)
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -1327,6 +1419,9 @@ def compare(before, after):
         projected, body_reading_changes = approved_body_reading_carrier_change(
             a["id"], old, projected, b.get("authority_versions"))
         expected.extend(body_reading_changes)
+        projected, review_split_changes = approved_review_split_carrier_change(
+            a["id"], old, projected, b.get("authority_versions"))
+        expected.extend(review_split_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,
@@ -1364,7 +1459,7 @@ def main():
         "schema_version": 1, "baseline_ref": args.baseline_ref, "candidate_ref": args.candidate_ref,
         "driver_sha256": hashlib.sha256(HERE.read_bytes()).hexdigest(),
         "cases_sha256": hashlib.sha256(HERE.with_name("reading_plan_cases.py").read_bytes()).hexdigest(),
-        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_b2b1_b2b2_b2b3a_b2b3b_b2b3c_b2_patch_b2b4_b2b5_b2b6_b2c_c1_windows_python_ci_windows_matlab_ci_c2_python_ci_performance_d1_d2_e1_v10183_v10193_v10203_v10204_v10205_v10210_exact_authority_carrier_transitions",
+        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_b2b1_b2b2_b2b3a_b2b3b_b2b3c_b2_patch_b2b4_b2b5_b2b6_b2c_c1_windows_python_ci_windows_matlab_ci_c2_python_ci_performance_d1_d2_e1_v10183_v10193_v10203_v10204_v10205_v10210_v10220_exact_authority_carrier_transitions",
         "expected_authority_changes": sorted(ALLOWED_CHANGED_AUTHORITIES),
         "approved_b2b6_authority_versions": B2B6_AUTHORITY_VERSIONS,
         "approved_b2c_authority_versions": B2C_AUTHORITY_VERSIONS,
@@ -1384,6 +1479,13 @@ def main():
         "approved_pdf_review_authority_versions": PDF_REVIEW_AUTHORITY_VERSIONS,
         "approved_stage_reading_authority_versions": STAGE_READING_AUTHORITY_VERSIONS,
         "approved_body_reading_authority_versions": BODY_READING_AUTHORITY_VERSIONS,
+        "approved_review_split_authority_versions": REVIEW_SPLIT_AUTHORITY_VERSIONS,
+        "review_split_projection": (
+            "v10.22.0 registers only its exact carrier and draft/final read_now lists "
+            "in both writing-runtime mirrors. Canonical Module 06 business text is "
+            "independently reconstructed against the a944de2 source snapshot; "
+            "no route, gate, qualification, dependency path or other stage leaf is waived."
+        ),
         "all_legacy_behavior_equal": all(r["legacy_behavior_equal"] for r in rows),
         "all_legacy_behavior_equal_except_approved_changes": all(r["legacy_behavior_equal_except_approved_changes"] for r in rows),
         "interpretation": "Initial planned ranges, not actual reads/tokens or total task cost. Existing Authority hash, P7 prerequisite and registered release-carrier exceptions remain. legacy_behavior_equal is measured before exact A3/A7/v9.7/v10/v10.1/A1/A2/B1/B2/B2b1/B2b2/B2b3a/B2b3b/B2b3c/B2 patch/B2b4/B2b5/B2b6/B2c/C1/Windows Python CI/Windows MATLAB CI/C2/Python CI performance/D1 carrier exceptions; B2b6, B2c, C1, both earlier CI patches, C2, the performance patch, D1, D2 and E1 require their exact Authority version sets. D1 and D2 keep the case corpus outside default runtime loading and their independent protocols outside default runtime Authority metadata. Each approved version, provenance or canonical solver projection is visible in expected_legacy_changes. No result qualification, classification value or existing list-order normalization is waived. The v10.18.3 writing patch retains its exact Skill carrier; the user-specified v10.19.3 handoff registers its exact carrier and six pinned CUMCM question-handoff declaration leaves. The user-specified v10.20.3 workflow registers only its exact carrier and preserves those historical projections. The v10.20.4 PDF review patch registers its exact carrier and two pinned assembly run-now leaves, preserving the template check and render order. The v10.20.5 stage-reading patch registers only the exact Skill/runtime-assurance carrier; v10.21.0 adds only a source-body adapter and generated guide while reading-plan output and all legacy resolver fields remain checked. All previous approved behavior projections and every unregistered field remain checked. Passing requires no unregistered field differences.",

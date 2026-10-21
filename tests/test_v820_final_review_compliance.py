@@ -6,6 +6,8 @@ import sys
 import unittest
 from pathlib import Path
 
+from module06_sources import review_text
+
 import yaml
 
 
@@ -104,7 +106,7 @@ class TestV820FinalReviewCompliance(unittest.TestCase):
             self.assertNotIn(forbidden, text)
 
     def test_table_figure_readability_reuses_existing_review_family(self):
-        review = (ROOT / "modules/06_review_delivery.md").read_text(encoding="utf-8")
+        review = review_text(ROOT)
         self.assertIn("figure_table_information_value", review)
         self.assertIn("不新增新的可读性检查族", review)
         self.assertIn("accepted 数值", review)
@@ -113,7 +115,7 @@ class TestV820FinalReviewCompliance(unittest.TestCase):
         self.assertEqual(FAMILIES.count("figure_table_information_value"), 1)
 
     def test_readability_reuses_existing_review_pipeline_without_new_gate_or_state(self):
-        review = (ROOT / "modules/06_review_delivery.md").read_text(encoding="utf-8")
+        review = review_text(ROOT)
         cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
         runtime = (ROOT / "core/writing_runtime_contract.yaml").read_text(encoding="utf-8")
         matrix = (ROOT / "templates/review/final_review_matrix.yaml").read_text(encoding="utf-8")

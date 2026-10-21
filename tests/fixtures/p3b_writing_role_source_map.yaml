@@ -7,6 +7,12 @@ baseline:
 consumer_caps:
   ai_cleanup_max_bytes: 15000
   review_delivery_max_bytes: 16000
+review_split_baseline:
+  source_commit: a944de224ac967b7d4b76f8ce411eaef9a71e7b2
+  source: tests/fixtures/module06_v10210_source.md
+  normalized_utf8_bytes: 15998
+  normalized_sha256: e78903a21d92bf040bbf13e71a031b0629d86e675b891995f6d99b3dc75a95fe
+  measurement: Entry cap is unchanged; measure current draft/final range unions and full compatibility closure separately. No per-leaf 16 KB allowance or observed-token claim.
 authorities:
   complex_semantics: core/writing_reasoning_contract.yaml
   ordinary_prose: modules/05_writing/paper_writing_protocol.md

@@ -13,6 +13,8 @@ from pathlib import Path
 
 import yaml
 
+from module06_sources import historical_review_text
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -926,7 +928,11 @@ class ContractAndDriftTests(unittest.TestCase):
     }
 
     def prior_handoff_text(self, relative):
-        text = (ROOT / relative).read_text(encoding="utf-8")
+        # P3 moves the same business sections to canonical leaves. Reconstruct
+        # those live bytes before applying the unchanged historical projections;
+        # neither the old protected blob hash nor its inverse rules are waived.
+        text = (historical_review_text(ROOT) if relative == "modules/06_review_delivery.md"
+                else (ROOT / relative).read_text(encoding="utf-8"))
         for current, baseline in PDF_REVIEW_OWNER_REWRITES.get(relative, ()):
             self.assertEqual(text.count(current), 1, (relative, current))
             text = text.replace(current, baseline, 1)

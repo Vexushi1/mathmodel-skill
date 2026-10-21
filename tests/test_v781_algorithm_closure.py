@@ -5,6 +5,8 @@ import sys
 import unittest
 from pathlib import Path
 
+from module06_sources import review_text
+
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,7 +29,7 @@ class TestV781AlgorithmClosure(unittest.TestCase):
         )
         cls.router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8"))
         cls.full_submission = (ROOT / "packs/artifact/full_submission.md").read_text(encoding="utf-8")
-        cls.review_module = (ROOT / "modules/06_review_delivery.md").read_text(encoding="utf-8")
+        cls.review_module = review_text(ROOT)
         cls.review_pack = (ROOT / "packs/artifact/review.md").read_text(encoding="utf-8")
 
     @staticmethod

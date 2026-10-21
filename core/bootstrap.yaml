@@ -1,4 +1,4 @@
-skill_version: 10.21.0
+skill_version: 10.22.0
 bootstrap_schema_version: 1.1.0
 purpose: >-
   Read first, load workflow_router.default_load, and use
@@ -26,6 +26,8 @@ authoritative_sources:
   writing_runtime: core/writing_runtime_contract.yaml
   figure_evidence: modules/04_figure_evidence.md
   review_delivery: modules/06_review_delivery.md
+  review_content: modules/06_review/content_review.md
+  review_final: modules/06_review/final_delivery.md
   cumcm_template: templates/latex/cumcm/hsk/template_manifest.yaml
   numerical_verification: core/numerical_verification_contract.yaml
   semantic_governance: scripts/validate_semantic_governance.py

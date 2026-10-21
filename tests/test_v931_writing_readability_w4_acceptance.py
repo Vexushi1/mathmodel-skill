@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from module06_sources import review_text
+
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -58,7 +60,7 @@ class TestWritingReadabilityW4Acceptance(unittest.TestCase):
         )
         runtime = (ROOT / "core/writing_runtime_contract.yaml").read_text(encoding="utf-8")
         project_state = (ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8")
-        review = (ROOT / "modules/06_review_delivery.md").read_text(encoding="utf-8")
+        review = review_text(ROOT)
         self.assertNotIn("readability_status", runtime)
         self.assertNotIn("readability_status", project_state)
         self.assertIn("不新增新的可读性检查族", review)
@@ -233,7 +235,7 @@ class TestWritingReadabilityW4Acceptance(unittest.TestCase):
         self.assertEqual(severities.get("duplicate_label"), "blocking")
         self.assertEqual(severities.get("missing_ref_label"), "blocking")
 
-        review = (ROOT / "modules/06_review_delivery.md").read_text(encoding="utf-8")
+        review = review_text(ROOT)
         self.assertIn("blocking → review_required → warning", review)
         self.assertIn("必要模型/公式/约束、非显然核心推导或证明逻辑断裂", review)
 

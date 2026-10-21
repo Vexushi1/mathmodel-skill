@@ -16,6 +16,8 @@ gate_authorities:
   draft_semantic_review:
     required_paths:
     - modules/06_review_delivery.md
+    - core/module_manifest.yaml
+    - modules/06_review/content_review.md
     - modules/05_writing/paper_writing_protocol.md
     - core/writing_reasoning_contract.yaml
     - core/writing_runtime_contract.yaml
@@ -27,6 +29,9 @@ gate_authorities:
   final_review_and_delivery:
     required_paths:
     - modules/06_review_delivery.md
+    - core/module_manifest.yaml
+    - modules/06_review/content_review.md
+    - modules/06_review/final_delivery.md
     - modules/05_writing/paper_writing_protocol.md
     - core/writing_reasoning_contract.yaml
     - core/writing_runtime_contract.yaml

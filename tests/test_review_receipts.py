@@ -300,6 +300,148 @@ class ReviewReceiptTests(unittest.TestCase):
         report = self.inspect()
         self.assertEqual(self.row(report, "R1")["applicability"], "stale", report)
 
+    def test_split_review_leaf_changes_follow_draft_and_final_source_scope(self):
+        common = "modules/06_review/content_review.md"
+        final_only = "modules/06_review/final_delivery.md"
+        entry = self.skill / "modules/06_review_delivery.md"
+        entry_bytes = entry.read_bytes()
+        for relative, draft_status in ((common, "stale"), (final_only, "current")):
+            with self.subTest(relative=relative):
+                draft = self.receipt(
+                    "D1", gate="draft_semantic_review", role="semantic_reviewer",
+                    pass_id="draft-pass")
+                final = self.receipt(
+                    "F1", gate="final_review_and_delivery", role="final_reviewer",
+                    pass_id="final-pass")
+                draft_paths = {row["path"] for row in draft["snapshot"]["authorities"]}
+                final_paths = {row["path"] for row in final["snapshot"]["authorities"]}
+                self.assertIn(common, draft_paths)
+                self.assertNotIn(final_only, draft_paths)
+                self.assertTrue({common, final_only}.issubset(final_paths))
+                self.install(draft, final)
+                self.assertEqual(self.inspect()["status"], "current")
+                path = self.skill / relative
+                original = path.read_bytes()
+                state_before = self.state_path.read_bytes()
+                path.write_bytes(original + b"\n<!-- changed canonical review body -->\n")
+                try:
+                    report = self.inspect()
+                    self.assertEqual(self.row(report, "D1")["applicability"], draft_status, report)
+                    self.assertEqual(self.row(report, "F1")["applicability"], "stale", report)
+                    self.assertEqual(report["observed_sources"]["skill"][relative], sha256(path))
+                    self.assertEqual(entry.read_bytes(), entry_bytes)
+                    self.assertEqual(self.state_path.read_bytes(), state_before)
+                finally:
+                    path.write_bytes(original)
+
+    def test_split_review_missing_leaf_cannot_preserve_current_receipt(self):
+        entry = self.skill / "modules/06_review_delivery.md"
+        entry_bytes = entry.read_bytes()
+        for gate, relative in (
+            ("draft_semantic_review", "modules/06_review/content_review.md"),
+            ("final_review_and_delivery", "modules/06_review/content_review.md"),
+            ("final_review_and_delivery", "modules/06_review/final_delivery.md"),
+        ):
+            with self.subTest(gate=gate, relative=relative):
+                self.install(self.receipt(gate=gate, role="semantic_reviewer"))
+                self.assertEqual(self.inspect()["status"], "current")
+                path = self.skill / relative
+                original = path.read_bytes()
+                path.unlink()
+                try:
+                    report = self.inspect()
+                    self.assertEqual(report["status"], "needs_review", report)
+                    self.assertEqual(self.row(report, "R1")["applicability"], "stale", report)
+                    self.assertIsNone(report["observed_sources"]["skill"][relative])
+                    self.assertEqual(entry.read_bytes(), entry_bytes)
+                finally:
+                    path.write_bytes(original)
+
+    def test_split_review_snapshot_cannot_omit_required_source(self):
+        for gate, relative in (
+            ("draft_semantic_review", "modules/06_review/content_review.md"),
+            ("draft_semantic_review", "core/module_manifest.yaml"),
+            ("final_review_and_delivery", "modules/06_review/content_review.md"),
+            ("final_review_and_delivery", "modules/06_review/final_delivery.md"),
+            ("final_review_and_delivery", "core/module_manifest.yaml"),
+        ):
+            with self.subTest(gate=gate, relative=relative):
+                record = self.receipt(gate=gate, role="semantic_reviewer")
+                record["snapshot"]["authorities"] = [
+                    row for row in record["snapshot"]["authorities"] if row["path"] != relative]
+                # A valid fingerprint of an old/incomplete source set must not
+                # grant currentness after canonical review bodies are split.
+                self.rebind(record)
+                self.install(record)
+                state_before = self.state_path.read_bytes()
+                report = self.inspect()
+                self.assertEqual(report["status"], "needs_review", report)
+                self.assertEqual(self.row(report, "R1")["applicability"], "unverified", report)
+                self.assertIn(f"required review Authority omitted: {relative}",
+                              self.row(report, "R1")["issues"])
+                self.assertEqual(self.state_path.read_bytes(), state_before)
+
+    def test_review_mapping_change_invalidates_paper_receipts_but_not_model(self):
+        model = self.receipt("M1", pass_id="model-pass")
+        draft = self.receipt("D1", gate="draft_semantic_review", role="semantic_reviewer",
+                             pass_id="draft-pass")
+        final = self.receipt("F1", gate="final_review_and_delivery", role="final_reviewer",
+                             pass_id="final-pass")
+        for record in (draft, final):
+            self.assertIn("core/module_manifest.yaml",
+                          {row["path"] for row in record["snapshot"]["authorities"]})
+        self.assertNotIn("core/module_manifest.yaml",
+                         {row["path"] for row in model["snapshot"]["authorities"]})
+        self.install(model, draft, final)
+        self.assertEqual(self.inspect()["status"], "current")
+        review_bytes = {
+            relative: (self.skill / relative).read_bytes()
+            for relative in (
+                "modules/06_review_delivery.md", "modules/06_review/content_review.md",
+                "modules/06_review/final_delivery.md",
+            )
+        }
+        path = self.skill / "core/module_manifest.yaml"
+        manifest = yaml.safe_load(path.read_text(encoding="utf-8"))
+        headings = manifest["modules"]["review_delivery"]["reading_sources"]["entry_headings"]
+        self.assertIn("## 十一、Blocking 条件", headings)
+        headings.remove("## 十一、Blocking 条件")
+        path.write_text(yaml.safe_dump(manifest, allow_unicode=True, sort_keys=False),
+                        encoding="utf-8")
+        state_before = self.state_path.read_bytes()
+        report = self.inspect()
+        self.assertEqual(self.row(report, "M1")["applicability"], "current", report)
+        for review_id in ("D1", "F1"):
+            self.assertEqual(self.row(report, review_id)["applicability"], "stale", report)
+            self.assertIn("review Authority changed: core/module_manifest.yaml",
+                          self.row(report, review_id)["issues"])
+        self.assertEqual(report["observed_sources"]["skill"]["core/module_manifest.yaml"],
+                         sha256(path))
+        self.assertEqual(
+            {relative: (self.skill / relative).read_bytes() for relative in review_bytes},
+            review_bytes,
+        )
+        self.assertEqual(self.state_path.read_bytes(), state_before)
+
+    def test_receipt_contract_change_still_invalidates_every_bound_review_gate(self):
+        self.install(
+            self.receipt("M1", pass_id="model-pass"),
+            self.receipt("D1", gate="draft_semantic_review", role="semantic_reviewer",
+                         pass_id="draft-pass"),
+            self.receipt("F1", gate="final_review_and_delivery", role="final_reviewer",
+                         pass_id="final-pass"),
+        )
+        self.assertEqual(self.inspect()["status"], "current")
+        contract = self.skill / "core/review_receipt_contract.yaml"
+        contract.write_bytes(contract.read_bytes() + b"\n# changed bound source declarations\n")
+        report = self.inspect()
+        for review_id in ("M1", "D1", "F1"):
+            with self.subTest(review_id=review_id):
+                self.assertEqual(self.row(report, review_id)["applicability"], "stale", report)
+                self.assertIn("review Authority changed: core/review_receipt_contract.yaml",
+                              self.row(report, review_id)["issues"])
+        self.assertEqual(report["qualification"], "not_granted")
+
     def test_paper_review_binds_selected_main_not_a_decoy(self):
         record = self.receipt(gate="draft_semantic_review", role="semantic_reviewer")
         self.install(record)

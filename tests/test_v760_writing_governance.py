@@ -41,6 +41,8 @@ class TestV760WritingGovernance(unittest.TestCase):
             ROOT / "modules/05_writing/docx.md",
             ROOT / "modules/05_writing/ai_cleanup.md",
             ROOT / "modules/06_review_delivery.md",
+            ROOT / "modules/06_review/content_review.md",
+            ROOT / "modules/06_review/final_delivery.md",
             ROOT / "packs/artifact/latex.md",
             ROOT / "packs/artifact/docx.md",
             ROOT / "packs/artifact/proposition_proof.md",

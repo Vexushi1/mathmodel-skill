@@ -1,6 +1,6 @@
 # 审查交付适配器
 
-本 Pack 只适配 `modules/06_review_delivery.md` 的终审语义，不复制检查规则。审查报告先按致命、重要、一般问题排序，再给六维评分；每个 finding 必须给出规则来源、验证方式、位置、证据、原因和可执行修复动作，不能只给总分。
+本 Pack 只适配 `modules/06_review_delivery.md` 及 `core/module_manifest.yaml#modules.review_delivery.reading_sources` 声明的终审来源，不复制检查规则。审查报告先按致命、重要、一般问题排序，再给六维评分；每个 finding 必须给出规则来源、验证方式、位置、证据、原因和可执行修复动作，不能只给总分。
 
 审查前执行：
 
@@ -12,7 +12,7 @@ python scripts/sync_project.py . --write --strict --delivery-scope submission
 
 重点核对：当前模型口径、Formula Trace、Algorithm Trace 与 `not_needed / stepwise / pseudocode` 呈现选择、命题与证明、条件式预处理、主结果质量门、Analysis Necessity Gate 与条件式独立结果深化分析、代码—工作簿—MATLAB—正文证据链、LaTeX 编译和提交包内容。
 
-执行 `final_review_and_delivery` 时读取当前 competition profile、competition Pack、edition rule verification、最终 PDF、`latex_audit_report.yaml` 与 `compile_report.yaml`，并按 `modules/06_review_delivery.md#Final-Submission-Compliance-Evidence-Sweep` 完成八类动态 coverage。新生成的正式终审报告使用 `templates/review/final_review_matrix.yaml`；旧 `scores + hard_fail + evidence` 报告仍可作为兼容输入。
+执行 `final_review_and_delivery` 时读取当前 competition profile、competition Pack、edition rule verification、最终 PDF、`latex_audit_report.yaml` 与 `compile_report.yaml`，并按 `modules/06_review/final_delivery.md#九final-submission-compliance--evidence-sweep` 完成八类动态 coverage，同时消费共用内容审查。新生成的正式终审报告使用 `templates/review/final_review_matrix.yaml`；旧 `scores + hard_fail + evidence` 报告仍可作为兼容输入。
 
 Matrix 中 `unverifiable` 不得改写成 `passed`；未解决 `blocking` 必须有允许的 Hard Fail code；`review_required` 和 warning 均保留证据与处置状态。评分继续使用显式六维分数，不按 finding 数量自动扣分。
 

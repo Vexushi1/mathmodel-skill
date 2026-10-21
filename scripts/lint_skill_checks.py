@@ -30,6 +30,7 @@ REQUIRED = [
     "modules/03_solve_validate.md", "modules/03_result_analysis.md", "modules/04_figure_evidence.md",
     "modules/05_latex_compile_quality.md", "modules/05_writing/docx.md", "modules/05_writing/latex.md",
     "modules/05_writing/ai_cleanup.md", "modules/06_review_delivery.md",
+    "modules/06_review/content_review.md", "modules/06_review/final_delivery.md",
     "packs/task/classifier.md", "packs/task/advanced_method_gate.md",
     "packs/artifact/proposition_proof.md", "packs/artifact/algorithm_flow.md", "templates/model/model_paper_framework.md",
     "templates/review/final_review_matrix.yaml",
@@ -70,6 +71,28 @@ def read_text(path: Path) -> str:
 
 def load_structured(path: Path) -> Any:
     return json.loads(read_text(path)) if path.suffix == ".json" else yaml.safe_load(read_text(path))
+
+
+def review_source_text() -> str:
+    """Inspect the declared canonical review closure, not compatibility stubs."""
+    manifest = load_structured(ROOT / "core/module_manifest.yaml") or {}
+    sources = manifest.get("modules", {}).get("review_delivery", {}).get("reading_sources")
+    if not isinstance(sources, dict):
+        raise ValueError("review reading_sources declaration is missing")
+    stages = sources.get("stages") or {}
+    if (stages.get("draft_semantic_review") != ["entry", "content"]
+            or stages.get("final_review_and_delivery") != ["entry", "content", "final"]):
+        raise ValueError("review stages must preserve their canonical source closure")
+    paths = [sources.get(role) for role in ("entry", "content", "final")]
+    if any(not isinstance(path, str) for path in paths) or len(set(paths)) != 3:
+        raise ValueError("review canonical source paths must be three unique files")
+    texts = []
+    for relative in paths:
+        path = (ROOT / relative).resolve()
+        if Path(relative).is_absolute() or not path.is_relative_to(ROOT.resolve()):
+            raise ValueError("review canonical source escapes repository")
+        texts.append(read_text(path))
+    return "\n".join(texts)
 
 
 def load_module(name: str, path: Path):
@@ -1184,7 +1207,7 @@ def check_templates(errors: list[str]) -> None:
     cleanup = read_text(ROOT / "modules/05_writing/ai_cleanup.md")
     proposition_pack = read_text(ROOT / "packs/artifact/proposition_proof.md")
     algorithm_pack = read_text(ROOT / "packs/artifact/algorithm_flow.md")
-    review_module = read_text(ROOT / "modules/06_review_delivery.md")
+    review_module = review_source_text()
     review_pack = read_text(ROOT / "packs/artifact/review.md")
     full_submission = read_text(ROOT / "packs/artifact/full_submission.md")
     caption_contract = read_text(ROOT / "templates/writing/caption_explanation.md")
@@ -1270,7 +1293,7 @@ def check_final_review_compliance(errors: list[str]) -> None:
         "reproducibility_and_package",
         "cross_question_dynamic_coverage",
     }
-    module = read_text(ROOT / "modules/06_review_delivery.md")
+    module = review_source_text()
     pack = read_text(ROOT / "packs/artifact/review.md")
     template_path = ROOT / "templates/review/final_review_matrix.yaml"
     template_text = read_text(template_path)
@@ -1292,7 +1315,7 @@ def check_final_review_compliance(errors: list[str]) -> None:
         if family not in module:
             errors.append(f"review authority lacks final-review family: {family}")
     for token in (
-        "modules/06_review_delivery.md#Final-Submission-Compliance-Evidence-Sweep",
+        "modules/06_review/final_delivery.md#九final-submission-compliance--evidence-sweep",
         "templates/review/final_review_matrix.yaml",
         "不按 finding 数量自动扣分",
         "不自动进入 official package",

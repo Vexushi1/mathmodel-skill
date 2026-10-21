@@ -242,6 +242,7 @@ class SourceReader:
         self.root = root.resolve()
         self.origin = origin
         self.cache: dict[str, tuple[bytes, list[str]]] = {}
+        self._review_source_declaration: tuple[dict[str, Any] | None, dict[str, str] | None] | None = None
 
     def seed(self, path: str, raw: bytes) -> None:
         """Use already captured bytes, retaining the normal relative-path boundary."""
@@ -297,6 +298,216 @@ class SourceReader:
             if row["fallback_reason"]:
                 item["resolution"], item["fallback_reason"] = "whole_file_fallback", row["fallback_reason"]
         return list(grouped.values())
+
+
+REVIEW_SOURCE_MANIFEST = "core/module_manifest.yaml"
+
+
+def _review_declaration(
+    reader: SourceReader, manifest: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any] | None, dict[str, str] | None]:
+    """Read the sole review-source declaration from captured repository bytes.
+
+    Old isolated roots remain readable. Once bootstrap registers modular review
+    sources, removing their declaration is a configuration error, not permission
+    to read only the compatibility entry file.
+    """
+    if reader.origin != "skill":
+        return None, None
+    if reader._review_source_declaration is None:
+        path = reader.root / REVIEW_SOURCE_MANIFEST
+        payload: dict[str, Any] = {}
+        binding = None
+        if path.is_file():
+            row = reader.describe({"path": REVIEW_SOURCE_MANIFEST})
+            payload = yaml.safe_load(reader.cache[REVIEW_SOURCE_MANIFEST][0].decode("utf-8")) or {}
+            if not isinstance(payload, dict):
+                raise ValueError("review reading manifest must be a mapping")
+            binding = {"path": REVIEW_SOURCE_MANIFEST, "sha256": row["sha256"]}
+        modules = payload.get("modules") or {}
+        if not isinstance(modules, dict):
+            raise ValueError("review manifest modules must be a mapping")
+        module = modules.get("review_delivery") or {}
+        if not isinstance(module, dict):
+            raise ValueError("review module declaration must be a mapping")
+        declaration = module.get("reading_sources")
+        if declaration is None:
+            bootstrap = reader.root / "core/bootstrap.yaml"
+            registered = {}
+            if bootstrap.is_file():
+                bootstrap_payload = yaml.safe_load(bootstrap.read_bytes().decode("utf-8")) or {}
+                if not isinstance(bootstrap_payload, dict):
+                    raise ValueError("bootstrap must be a mapping")
+                registered = bootstrap_payload.get("authoritative_sources") or {}
+                if not isinstance(registered, dict):
+                    raise ValueError("bootstrap authoritative_sources must be a mapping")
+            if registered.get("review_content") or registered.get("review_final"):
+                raise ValueError("registered review sources have no reading_sources declaration")
+            reader._review_source_declaration = None, None
+        else:
+            if not isinstance(declaration, dict):
+                raise ValueError("review reading_sources must be a mapping")
+            roles = {role: declaration.get(role) for role in ("entry", "content", "final")}
+            if any(not isinstance(value, str) or not value for value in roles.values()):
+                raise ValueError("review reading_sources must declare entry, content and final")
+            if len(set(roles.values())) != len(roles):
+                raise ValueError("review source roles must not alias or cycle")
+            if module.get("path") != roles["entry"]:
+                raise ValueError("review entry does not match its module path")
+            resolved_sources = []
+            for value in roles.values():
+                if Path(value).suffix.lower() != ".md":
+                    raise ValueError("review sources must be Markdown files")
+                resolved_sources.append(_inside(reader.root, value))
+            if len(set(resolved_sources)) != len(resolved_sources) or any(
+                left.samefile(right)
+                for index, left in enumerate(resolved_sources)
+                for right in resolved_sources[index + 1:]
+            ):
+                raise ValueError("review source roles resolve to the same file or cycle")
+            stages = declaration.get("stages")
+            if not isinstance(stages, dict) or not stages:
+                raise ValueError("review reading_sources must declare its consumer stages")
+            for identifier, stage_roles in stages.items():
+                if (not isinstance(identifier, str) or not identifier or not isinstance(stage_roles, list)
+                        or not stage_roles or any(not isinstance(role, str) for role in stage_roles)
+                        or stage_roles[0] != "entry"
+                        or len(stage_roles) != len(set(stage_roles))
+                        or any(role not in roles for role in stage_roles)):
+                    raise ValueError("invalid review stage source roles")
+            entry_headings = declaration.get("entry_headings")
+            if (not isinstance(entry_headings, list) or not entry_headings
+                    or any(not isinstance(heading, str) or not heading for heading in entry_headings)):
+                raise ValueError("review entry boundaries must be explicitly declared")
+            reader._review_source_declaration = deepcopy(declaration), binding
+    declaration, binding = reader._review_source_declaration
+    if manifest is not None:
+        supplied = (((manifest.get("modules") or {}).get("review_delivery") or {}).get("reading_sources"))
+        if supplied != declaration:
+            raise ValueError("review source declaration differs from captured manifest bytes")
+    return declaration, binding
+
+
+def canonical_rolepaths(
+    root: Path, *, manifest: dict[str, Any] | None = None,
+) -> dict[str, str] | None:
+    """Return declared source roles for diagnostics, never a second workflow."""
+    declaration, _ = _review_declaration(SourceReader(root), manifest)
+    if declaration is None:
+        return None
+    return {role: declaration[role] for role in ("entry", "content", "final")}
+
+
+def validate_review_rows(root: Path, rows: list[dict[str, Any]]) -> dict[str, str] | None:
+    """Reject an old/incomplete plan rather than inventing new leaf identities.
+
+    The returned manifest identity must also be checked against the selected
+    commit by a body-text consumer. This checks source-plan closure only.
+    """
+    bound = [row for row in rows
+             if "reading_source_manifest" in row or "review_source_closure" in row]
+    if any(row.get("origin", "skill") != "skill" for row in bound):
+        raise ValueError("review source binding cannot be transferred to a project source")
+    declaration, binding = _review_declaration(SourceReader(root))
+    if declaration is None:
+        if bound:
+            raise ValueError("bound review reading plan lost its source declaration; rerun resolver")
+        return None
+    paths = {declaration[role] for role in ("entry", "content", "final")}
+    skill_rows = [row for row in rows if row.get("origin", "skill") == "skill"]
+    selected = {row.get("path") for row in skill_rows}
+    relevant = [row for row in skill_rows
+                if row.get("path") in paths or "reading_source_manifest" in row
+                or "review_source_closure" in row]
+    if not relevant:
+        return None
+    for row in relevant:
+        closure = row.get("review_source_closure")
+        if (row.get("reading_source_manifest") != binding or not isinstance(closure, list)
+                or any(not isinstance(path, str) or path not in paths for path in closure)
+                or len(closure) != len(set(closure))
+                or not {declaration["entry"], declaration["content"]}.issubset(closure)
+                or not set(closure).issubset(selected)
+                or row["path"] not in closure
+                or (row["path"] == declaration["final"] and declaration["final"] not in closure)):
+            raise ValueError("review reading plan lacks its current canonical source closure; rerun resolver")
+    return deepcopy(binding)
+
+
+def describe_resources(
+    reader: SourceReader, spec: dict[str, Any], *,
+    manifest: dict[str, Any] | None = None, stage_id: str | None = None,
+) -> list[dict[str, Any]]:
+    """Expand the legacy review entry into actual canonical source ranges.
+
+    ``describe`` remains the raw single-file API. Real consumption uses this
+    additive projection so a compatibility heading or entry cannot replace its
+    moved rules. Resource/stage definitions remain in the module manifest.
+    """
+    declaration, binding = _review_declaration(reader, manifest)
+    path = str(spec["path"])
+    if declaration is None or path not in {declaration[role] for role in ("entry", "content", "final")}:
+        return [reader.describe(spec)]
+    roles = {role: declaration[role] for role in ("entry", "content", "final")}
+    known_stage = stage_id in declaration["stages"]
+    stage_roles = declaration["stages"][stage_id] if known_stage else list(roles)
+    entry_spec: dict[str, Any] = {"path": roles["entry"]}
+    if known_stage:
+        entry_spec["headings"] = list(declaration["entry_headings"])
+    if spec.get("when") is not None:
+        entry_spec["when"] = spec["when"]
+    selected: list[dict[str, Any]] = [entry_spec]
+    fallback = None
+    if path != roles["entry"]:
+        role = next(role for role, value in roles.items() if value == path)
+        if known_stage and role not in stage_roles:
+            raise ValueError(f"review source {role} is outside declared stage {stage_id}")
+        # A final-specific source always retains the common review context.
+        if role == "final":
+            selected.append({"path": roles["content"], "when": spec.get("when")})
+        selected.append(deepcopy(spec))
+    elif not spec.get("headings") and not spec.get("yaml_paths"):
+        selected.extend({"path": roles[role], "when": spec.get("when")}
+                        for role in stage_roles if role != "entry")
+    else:
+        requested = spec.get("headings")
+        if not isinstance(requested, list) or not requested or spec.get("yaml_paths"):
+            fallback = "legacy review selector cannot be mapped uniquely"
+        else:
+            for heading in requested:
+                found: list[tuple[str, str]] = []
+                for role in ("content", "final"):
+                    reader.describe({"path": roles[role]})
+                    for _, _, actual in _headings(reader.cache[roles[role]][1]):
+                        if actual == heading:
+                            found.append((role, actual))
+                if len(found) > 1:
+                    raise ValueError(f"ambiguous canonical review heading: {heading}")
+                if not found:
+                    # This includes retained entry headings and unknown legacy
+                    # aliases. Conservatively return the complete real closure.
+                    fallback = f"legacy review heading requires complete source closure: {heading}"
+                    break
+                role, actual = found[0]
+                if known_stage and role not in stage_roles:
+                    raise ValueError(f"review heading is outside declared stage {stage_id}: {heading}")
+                if role == "final":
+                    selected.append({"path": roles["content"], "when": spec.get("when")})
+                selected.append({"path": roles[role], "headings": [actual], "when": spec.get("when")})
+        if fallback:
+            selected = [{"path": roles[role], "when": spec.get("when")} for role in stage_roles]
+    rows = reader.consolidate([reader.describe(item) for item in selected])
+    # An invalid declared entry boundary must not degrade into a stub-only read.
+    if known_stage and rows[0]["resolution"] != "exact":
+        raise ValueError(f"review entry boundary is unavailable: {rows[0]['fallback_reason']}")
+    closure = [row["path"] for row in rows]
+    for row in rows:
+        row["reading_source_manifest"] = deepcopy(binding)
+        row["review_source_closure"] = list(closure)
+        if fallback:
+            row["resolution"] = "whole_file_fallback"
+            row["fallback_reason"] = fallback
+    return rows
 
 
 def _current_project(
@@ -564,7 +775,10 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
     # A2's consumer contract is relevant now only for explicitly scoped opt-in work.
     for path in (plan.get("conformance_integration") or {}).get("resources", []):
         specs.append({"path": path})
-    read_now = reader.consolidate([reader.describe(spec) for spec in specs])
+    read_now = reader.consolidate([
+        row for spec in specs
+        for row in describe_resources(reader, spec, manifest=manifest)
+    ])
     deferred = []
     conditions = policy.get("deferred_conditions", {})
     for path in plan["load_order"]:
@@ -574,8 +788,11 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
         when = conditions.get(path, "relevant_stage_or_scope_expansion_requires_this_resource")
         if path.startswith("scripts/"):
             when = "tool_failure_or_explicit_implementation_review_requires_source"
-        deferred.append(reader.describe({"path": path, "when": when}))
-    deferred.extend(reader.describe(spec) for spec in config.get("conditional", []))
+        deferred.extend(describe_resources(
+            reader, {"path": path, "when": when}, manifest=manifest,
+        ))
+    deferred.extend(row for spec in config.get("conditional", [])
+                    for row in describe_resources(reader, spec, manifest=manifest))
     if backend_interface is not None:
         deferred.append(reader.describe({
             "path": backend_interface["path"],
@@ -594,7 +811,11 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
         tool["implementation_sha256"] = reader.describe({"path": tool["path"]})["sha256"]
         tool["interface_source"] = "resolved_pre_delivery_gates_or_existing_module_manifest"
         tool["success_policy"] = "inspect_real_exit_status_and_report_never_infer_execution_from_plan"
-    inventory = reader.consolidate([reader.describe({"path": p}) for p in plan["load_order"]])
+    legacy_inventory = reader.consolidate([reader.describe({"path": p}) for p in plan["load_order"]])
+    inventory = reader.consolidate([
+        row for path in plan["load_order"]
+        for row in describe_resources(reader, {"path": path}, manifest=manifest)
+    ])
     result = {
         "schema_version": policy.get("schema_version", "1.1.0"),
         "profile": profile, "status": status, "reasons": reasons,
@@ -605,7 +826,8 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
         "machine_dependencies": deepcopy(plan["assurance"]["dependency_closure"]),
         "authority_fingerprint": deepcopy(plan["assurance"]["authority_fingerprint"]),
         "metrics": {
-            "legacy_declared_resource_bytes": sum(row["source_bytes"] for row in inventory),
+            "legacy_declared_resource_bytes": sum(row["source_bytes"] for row in legacy_inventory),
+            "canonical_resource_bytes": sum(row["source_bytes"] for row in inventory),
             "planned_skill_read_bytes": sum(row["planned_bytes"] for row in read_now),
             "planned_project_read_bytes": sum(row["planned_bytes"] for row in project_rows),
             "actual_read_tokens": None, "actual_read_bytes": None,
