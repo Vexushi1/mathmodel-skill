@@ -1,7 +1,7 @@
 # Module 06 来源迁移与 P3 验收记录
 
 > 维护记录，不是新的运行时 Authority。本次只实施计划的 P3，目标 v10.22.0；P4 保持后续范围。
-> 基线：v10.21.0，main a944de224ac967b7d4b76f8ce411eaef9a71e7b2。P2 合并后 CI #39552530400 已成功。本次最终验收与合并状态尚待填写。
+> 基线：v10.21.0，main a944de224ac967b7d4b76f8ce411eaef9a71e7b2。P2 合并后 CI #39552530400 已成功。本次候选、最终 head 验收与合并状态以 [PR #274](https://github.com/Vexushi1/mathmodel-skill/pull/274) 的实际记录为准。
 
 ## 1. 唯一来源与原文保全
 
