@@ -206,6 +206,8 @@ contract_dependency_closure:
     modules/05_writing/ai_cleanup.md: [writing_runtime, writing_protocol]
     modules/05_latex_compile_quality.md: [compile_profiles]
     modules/06_review_delivery.md: [writing_reasoning, output, workbook]
+    modules/06_review/content_review.md: [writing_reasoning, output, workbook]
+    modules/06_review/final_delivery.md: [writing_reasoning, output, workbook]
     gate:semantic_governance: [project_state, state_transition]
     gate:model_approval: [project_state, model_approval]
     gate:code_delivery: [code_quality, state_transition]
@@ -276,6 +278,13 @@ compatibility:
 
 
 reading_plan:
+  modular_review_sources: core/module_manifest.yaml#modules.review_delivery.reading_sources
+  modular_review_consumption: >-
+    Resolve legacy review entry and heading requests to the declared canonical
+    source closure. Draft review consumes entry plus common content; final review
+    also consumes final-delivery content. Missing or ambiguous source mappings
+    cannot establish complete reading. Source hashes and C1 snapshots cover the
+    actual canonical files; reading never grants review or delivery qualification.
   schema_version: 1.1.0
   selection_authority: core/workflow_router.yaml#reading_policy
   producer: scripts/reading_plan.py

@@ -3,6 +3,8 @@ import sys
 import unittest
 from pathlib import Path
 
+from module06_sources import review_text
+
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,7 +31,7 @@ class TestV716PaperWritingSpec(unittest.TestCase):
         self.cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
         self.framework = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
         self.optimization = (ROOT / "packs/task/optimization.md").read_text(encoding="utf-8")
-        self.review = (ROOT / "modules/06_review_delivery.md").read_text(encoding="utf-8")
+        self.review = review_text(ROOT)
 
     def test_model_solver_validator_are_explicitly_separated(self):
         roles = self.contract["model_solver_validator_roles"]

@@ -8,6 +8,8 @@ import sys
 import unittest
 from pathlib import Path
 
+from module06_sources import review_text
+
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,7 +45,8 @@ class AuthorReasoningVoiceTests(unittest.TestCase):
             self.reasoning["prose_style"]["human_reasoning_trace"]["prose_authority"], AUTHORITY
         )
         for consumer in ("modules/05_writing/ai_cleanup.md", "modules/06_review_delivery.md"):
-            self.assertIn(AUTHORITY.split("modules/05_writing/", 1)[1], read(consumer))
+            text = review_text(ROOT) if consumer == "modules/06_review_delivery.md" else read(consumer)
+            self.assertIn(AUTHORITY.split("modules/05_writing/", 1)[1], text)
         self.assertIn("### 7.3 作者视角与建模解释", self.protocol)
 
     def test_reasoning_information_is_not_a_fixed_voice_template(self):

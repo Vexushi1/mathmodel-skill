@@ -1405,6 +1405,138 @@ class AuditClosureProjectionTests(unittest.TestCase):
                 (altered, []),
             )
 
+    def review_split_pair(self, case):
+        old, new = self.body_reading_pair(case)
+        new["version"] = EVIDENCE.REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"]
+        if case == "cumcm_writing":
+            for runtime in (new["writing_runtime"], new["runtime_plan"]["writing_runtime"]):
+                for index, stage_id, previous, current in EVIDENCE.REVIEW_SPLIT_WRITING_DELTAS:
+                    stage = runtime["authoring_sequence"][index]
+                    self.assertEqual(stage["id"], stage_id)
+                    self.assertEqual(stage["read_now"], previous)
+                    stage["read_now"] = deepcopy(current)
+        return old, new
+
+    def test_v10220_review_split_carrier_projects_only_four_exact_read_lists(self):
+        carriers = deepcopy(EVIDENCE.REVIEW_SPLIT_AUTHORITY_VERSIONS)
+        self.assertEqual(carriers, {
+            **EVIDENCE.BODY_READING_AUTHORITY_VERSIONS, "skill": "10.22.0",
+        })
+        self.assertEqual(EVIDENCE.BODY_READING_AUTHORITY_VERSIONS["skill"], "10.21.0")
+        for case in (*sorted(EVIDENCE.A7_HYDRATED_PROVENANCE_CASES), "facts_unscoped", "cumcm_writing"):
+            with self.subTest(case=case):
+                old, new = self.review_split_pair(case)
+                saved = deepcopy((old, new, carriers, EVIDENCE.REVIEW_SPLIT_WRITING_DELTAS))
+                row = EVIDENCE.compare(
+                    [{"id": case, "plan": old, "legacy_declared_bytes": 1}],
+                    [{"id": case, "plan": new, "legacy_declared_bytes": 1,
+                      "authority_versions": carriers}],
+                )[0]
+                self.assertFalse(row["legacy_behavior_equal"])
+                self.assertTrue(row["legacy_behavior_equal_except_approved_changes"])
+                self.assertEqual(row["unexpected_legacy_changes"], [])
+                versions = [item for item in row["expected_legacy_changes"]
+                            if item["path"] == "version" and item["candidate"] == "10.22.0"]
+                self.assertEqual(len(versions), 1)
+                self.assertEqual(versions[0]["authority_versions"], carriers)
+                reviews = [item for item in row["expected_legacy_changes"]
+                           if item["path"].endswith((
+                               "authoring_sequence.7.read_now", "authoring_sequence.10.read_now",
+                           ))]
+                self.assertEqual([item["path"] for item in reviews], [
+                    "writing_runtime.authoring_sequence.7.read_now",
+                    "writing_runtime.authoring_sequence.10.read_now",
+                    "runtime_plan.writing_runtime.authoring_sequence.7.read_now",
+                    "runtime_plan.writing_runtime.authoring_sequence.10.read_now",
+                ] if case == "cumcm_writing" else [])
+                self.assertEqual((old, new, carriers, EVIDENCE.REVIEW_SPLIT_WRITING_DELTAS), saved)
+
+    def test_v10220_review_split_requires_exact_carriers_and_unchanged_qualification(self):
+        carriers = EVIDENCE.REVIEW_SPLIT_AUTHORITY_VERSIONS
+        for case in ("facts_current", "cumcm_writing"):
+            old, new = self.review_split_pair(case)
+            for bad in (
+                None, {**carriers, "skill": "10.21.0"},
+                {**carriers, "skill": "10.22.1"},
+                {**carriers, "runtime_assurance": "2.5.1"},
+                {**carriers, "project_state": "8.17.0"},
+                {**carriers, "review_receipts": "1.1.0"},
+                {key: value for key, value in carriers.items() if key != "runtime_assurance"},
+            ):
+                with self.subTest(case=case, bad=bad):
+                    self.assertEqual(EVIDENCE.approved_review_split_carrier_change(
+                        case, old, new, bad,
+                    ), (new, []))
+            for field, value in (
+                ("version", "10.22.1"), ("formal_delivery", True),
+                ("pre_delivery_gates", []),
+                ("load_order", ["modules/06_review/content_review.md"]),
+            ):
+                changed = deepcopy(new)
+                changed[field] = value
+                self.assertEqual(EVIDENCE.approved_review_split_carrier_change(
+                    case, old, changed, carriers,
+                ), (changed, []))
+            changed = deepcopy(new)
+            changed["assurance"]["qualification"] = "accepted"
+            self.assertEqual(EVIDENCE.approved_review_split_carrier_change(
+                case, old, changed, carriers,
+            ), (changed, []))
+        old, new = self.review_split_pair("facts_current")
+        self.assertEqual(EVIDENCE.approved_review_split_carrier_change(
+            "future_case", old, new, carriers,
+        ), (new, []))
+
+    def test_v10220_review_split_rejects_list_stage_and_mirror_drift(self):
+        carriers = EVIDENCE.REVIEW_SPLIT_AUTHORITY_VERSIONS
+        for location in ("top", "nested"):
+            for index, _, previous, _ in EVIDENCE.REVIEW_SPLIT_WRITING_DELTAS:
+                for mutation in ("extra", "duplicate", "missing", "order", "stage_id", "gate",
+                                 "write_now", "run_now", "missing_stage", "stage_order",
+                                 "baseline_list", "baseline_id", "old_list"):
+                    with self.subTest(location=location, index=index, mutation=mutation):
+                        old, new = self.review_split_pair("cumcm_writing")
+                        runtime = new["writing_runtime"] if location == "top" else new["runtime_plan"]["writing_runtime"]
+                        baseline = old["writing_runtime"] if location == "top" else old["runtime_plan"]["writing_runtime"]
+                        stage = runtime["authoring_sequence"][index]
+                        if mutation == "extra":
+                            stage["read_now"].append("core/user_execution_contract.yaml")
+                        elif mutation == "duplicate":
+                            stage["read_now"].append(stage["read_now"][1])
+                        elif mutation == "missing":
+                            stage["read_now"].pop(1)
+                        elif mutation == "order":
+                            stage["read_now"].reverse()
+                        elif mutation == "stage_id":
+                            stage["id"] = "unregistered_review_stage"
+                        elif mutation == "gate":
+                            stage["gate"] = "passed"
+                        elif mutation in ("write_now", "run_now"):
+                            stage[mutation] = ["unregistered_action"]
+                        elif mutation == "missing_stage":
+                            runtime["authoring_sequence"].pop(index)
+                        elif mutation == "stage_order":
+                            runtime["authoring_sequence"][index - 1:index + 1] = reversed(
+                                runtime["authoring_sequence"][index - 1:index + 1],
+                            )
+                        elif mutation == "baseline_list":
+                            baseline["authoring_sequence"][index]["read_now"].reverse()
+                        elif mutation == "baseline_id":
+                            baseline["authoring_sequence"][index]["id"] = "unregistered_baseline"
+                        else:
+                            stage["read_now"] = deepcopy(previous)
+                        saved = deepcopy((old, new, carriers))
+                        self.assertEqual(EVIDENCE.approved_review_split_carrier_change(
+                            "cumcm_writing", old, new, carriers,
+                        ), (new, []))
+                        self.assertEqual((old, new, carriers), saved)
+        for key in ("writing_runtime", "runtime_plan"):
+            old, new = self.review_split_pair("cumcm_writing")
+            new.pop(key)
+            self.assertEqual(EVIDENCE.approved_review_split_carrier_change(
+                "cumcm_writing", old, new, carriers,
+            ), (new, []))
+
     def comparison_writing_pair(self):
         old, new = self.pair("cumcm_writing")
         new.pop("solver_backend")

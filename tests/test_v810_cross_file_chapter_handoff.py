@@ -3,6 +3,8 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from module06_sources import review_text
+
 import yaml
 
 
@@ -52,7 +54,7 @@ class TestV810CrossFileChapterHandoff(unittest.TestCase):
         cls.protocol = read("modules/05_writing/paper_writing_protocol.md")
         cls.runtime = load_yaml("core/writing_runtime_contract.yaml")
         cls.framework = read("templates/model/model_paper_framework.md")
-        cls.review = read("modules/06_review_delivery.md")
+        cls.review = review_text(ROOT)
         cls.manifest = load_yaml("templates/latex/cumcm/hsk/template_manifest.yaml")
         cls.reasoning = load_yaml("core/writing_reasoning_contract.yaml")
         cls.project_state = read("core/project_state.schema.yaml")

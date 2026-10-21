@@ -3,6 +3,8 @@ import sys
 import unittest
 from pathlib import Path
 
+from module06_sources import review_text
+
 import yaml
 
 
@@ -13,7 +15,6 @@ OUTPUT = ROOT / "core" / "output_contract.yaml"
 FIXTURE = ROOT / "tests" / "fixtures" / "writing_capability_preflight_cases.yaml"
 PROTOCOL = ROOT / "modules" / "05_writing" / "paper_writing_protocol.md"
 CLEANUP = ROOT / "modules" / "05_writing" / "ai_cleanup.md"
-REVIEW = ROOT / "modules" / "06_review_delivery.md"
 FRAMEWORK = ROOT / "templates" / "model" / "model_paper_framework.md"
 RESOLVER = ROOT / "scripts" / "resolve_runtime.py"
 
@@ -35,7 +36,7 @@ class TestV870QuestionWritingCapabilityPreflight(unittest.TestCase):
         cls.cases = load_yaml(FIXTURE)["cases"]
         cls.protocol = read(PROTOCOL)
         cls.cleanup = read(CLEANUP)
-        cls.review = read(REVIEW)
+        cls.review = review_text(ROOT)
         cls.framework = read(FRAMEWORK)
         cls.preflight = cls.runtime["per_question_writing_capability_preflight"]
         cls.activation = cls.preflight["activation"]

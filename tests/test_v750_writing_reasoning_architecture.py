@@ -1,4 +1,6 @@
 from pathlib import Path
+
+from module06_sources import review_text
 import unittest
 
 import yaml
@@ -69,7 +71,7 @@ class TestV750WritingReasoningArchitecture(unittest.TestCase):
 
         protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
         cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
-        review = (ROOT / "modules/06_review_delivery.md").read_text(encoding="utf-8")
+        review = review_text(ROOT)
         self.assertIn("Core Derivation Body Closure", protocol)
         self.assertIn("外置前必须检查", protocol)
         self.assertIn("Core Derivation Body Closure Test", cleanup)

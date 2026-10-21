@@ -135,12 +135,10 @@ Resolve current project facts and use the selected commit of the original Author
 - read_now: `core/writing_reasoning_contract.yaml`
 - read_now: `modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test`
 - read_now: `modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释`
-- read_now: `modules/06_review_delivery.md#三-公式模型角色算法命题与数值证据审查`
+- read_now: `modules/06_review_delivery.md`
+- read_now: `modules/06_review/content_review.md`
 - read_now: `modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff`
 - read_now: `current_model_paper_framework#Chapter-Handoff-Map`
-- read_now: `modules/06_review_delivery.md#Cross-File-Assembled-Seam-Sweep`
-- read_now: `modules/06_review_delivery.md#五-Title-Claim-正文结构与-Paragraph-Necessity`
-- read_now: `modules/06_review_delivery.md#v7.20-v8.0.1-章节能力保全检查`
 
 ### ai_cleanup
 
@@ -159,5 +157,7 @@ Resolve current project facts and use the selected commit of the original Author
 
 - read_now: `core/writing_reasoning_contract.yaml`
 - read_now: `modules/06_review_delivery.md`
+- read_now: `modules/06_review/content_review.md`
+- read_now: `modules/06_review/final_delivery.md`
 - read_now: `templates/review/final_review_matrix.yaml`
 - read_now: `current_latex_audit_and_compile_reports`

@@ -5,6 +5,8 @@ facts. They do not score prose quality, infer mathematical validity from strings
 or impose heading-count/length quotas.
 """
 from pathlib import Path
+
+from module06_sources import review_text
 import unittest
 
 import yaml
@@ -14,7 +16,6 @@ CONTRACT = ROOT / "core/writing_reasoning_contract.yaml"
 MODEL_DESIGN = ROOT / "modules/02_model_design.md"
 PROTOCOL = ROOT / "modules/05_writing/paper_writing_protocol.md"
 CLEANUP = ROOT / "modules/05_writing/ai_cleanup.md"
-REVIEW = ROOT / "modules/06_review_delivery.md"
 EXAMPLES = ROOT / "modules/05_writing/references/model_construction_solution_rationale_examples.md"
 FIXTURE = ROOT / "tests/fixtures/model_construction_solution_cases.yaml"
 
@@ -30,7 +31,7 @@ class ModelConstructionRationaleContractTests(unittest.TestCase):
         cls.model_design = read(MODEL_DESIGN)
         cls.protocol = read(PROTOCOL)
         cls.cleanup = read(CLEANUP)
-        cls.review = read(REVIEW)
+        cls.review = review_text(ROOT)
         cls.examples = read(EXAMPLES)
 
     def test_schema_and_single_reasoning_authority(self):

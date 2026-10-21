@@ -1,6 +1,14 @@
 # Changelog
 
-## 10.21.0
+## 10.22.0
+
+- Split Module 06 into a stable review entry, shared content review, and final-delivery review. Preserve the existing review actions, severity, repair order, eight coverage families and Module 05D ownership of actual PDF page inspection.
+- Expand legacy review paths and headings to real canonical source text through the existing reading plan and stage adapter. Draft review consumes common content; final review consumes both common and final content. Missing or ambiguous sources cannot be treated as completed reading.
+- Keep only true ancestor introductions when selecting Markdown sections; preceding siblings and their descendants are not applicability context for the current section.
+- Bind the moved sources into existing C1 snapshots and read sets without a new receipt or project schema. Preserve numerical execution, model approval, existing gates and historical read-only records; existing policies determine whether changed review sources require reassessment.
+- Preserve review behavior by reconstructing the exact pre-split source from canonical sections and retaining the original historical protection baseline. Measure entry size separately from complete and stage-specific source unions.
+
+## Previous release: 10.21.0
 
 - Introduce a read-only source-text adapter for existing resolver reading rows and CUMCM writing stages, returning actual bounded chunks, selected source identity and missing-range evidence. Unadjudicated conditional facts remain unresolved and the adapter cannot approve artifacts or execute gates.
 - Generate `core/stage_reading_guide.md` from the existing reading policy and writing-stage definitions through the maintained GitHub metadata generator; it is navigational, not a duplicate Authority or a source-consumption attestation.

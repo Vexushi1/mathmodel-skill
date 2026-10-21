@@ -1,6 +1,8 @@
 import unittest
 from pathlib import Path
 
+from module06_sources import review_text
+
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -198,7 +200,7 @@ class TestContentPacks(unittest.TestCase):
         self.assertIn("核心证明", appendix["note"])
         self.assertIn("不能单独构成", appendix["note"])
 
-        review = (ROOT / "modules/06_review_delivery.md").read_text(encoding="utf-8")
+        review = review_text(ROOT)
         self.assertIn("不能仅因篇幅、难度、数量预算或版式", review)
 
     def test_docx_checklist_is_framework_aware_without_redefining_hard_rules(self):

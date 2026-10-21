@@ -3,6 +3,8 @@ import sys
 import unittest
 from pathlib import Path
 
+from module06_sources import review_text
+
 import yaml
 
 
@@ -40,7 +42,7 @@ class TestV801ChapterCapabilityPreservation(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.protocol = read("modules/05_writing/paper_writing_protocol.md")
-        cls.review = read("modules/06_review_delivery.md")
+        cls.review = review_text(ROOT)
         cls.audit_doc = read("docs/v801_chapter_capability_preservation_audit.md")
         cls.runtime = yaml.safe_load(read("core/writing_runtime_contract.yaml"))
         cls.reasoning = yaml.safe_load(read("core/writing_reasoning_contract.yaml"))

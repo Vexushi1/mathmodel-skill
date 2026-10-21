@@ -1,4 +1,4 @@
-version: 10.21.0
+version: 10.22.0
 role: >-
   普通论文写作的最小运行时映射。它不建立第二套数学写作 Authority，只声明普通论文写作真正需要加载的
   模板、项目事实、证据和 writing_reasoning_contract 中的语义能力，从而避免每次写作预载完整建模、数值与项目治理上下文。
@@ -479,12 +479,10 @@ template_first_progressive_authoring:
         - core/writing_reasoning_contract.yaml
         - modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test
         - modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释
-        - modules/06_review_delivery.md#三-公式模型角色算法命题与数值证据审查
+        - modules/06_review_delivery.md
+        - modules/06_review/content_review.md
         - modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff
         - current_model_paper_framework#Chapter-Handoff-Map
-        - modules/06_review_delivery.md#Cross-File-Assembled-Seam-Sweep
-        - modules/06_review_delivery.md#五-Title-Claim-正文结构与-Paragraph-Necessity
-        - modules/06_review_delivery.md#v7.20-v8.0.1-章节能力保全检查
       run_now:
         - assembled_seam_sweep
         - scripts/audit_v8_writing_surface.py
@@ -518,6 +516,8 @@ template_first_progressive_authoring:
       read_now:
         - core/writing_reasoning_contract.yaml
         - modules/06_review_delivery.md
+        - modules/06_review/content_review.md
+        - modules/06_review/final_delivery.md
         - templates/review/final_review_matrix.yaml
         - current_latex_audit_and_compile_reports
       write_now:

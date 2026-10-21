@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from module06_sources import review_text
+
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -114,7 +116,7 @@ class TestV770PaperSemanticGovernance(unittest.TestCase):
 
         protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
         cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
-        review = (ROOT / "modules/06_review_delivery.md").read_text(encoding="utf-8")
+        review = review_text(ROOT)
         self.assertIn("专业术语首次说明", protocol)
         self.assertIn("不预设其熟悉当前题目的行业术语", protocol)
         self.assertIn("不得为了“更简洁”删成裸术语/裸缩写", cleanup)

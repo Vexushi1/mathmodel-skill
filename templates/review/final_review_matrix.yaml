@@ -23,7 +23,7 @@ coverage:
     applicability: applicable
     verification_mode: hybrid
     status: unverifiable
-    rule_source: modules/06_review_delivery.md#Final-Submission-Compliance-Evidence-Sweep
+    rule_source: modules/06_review/final_delivery.md#九final-submission-compliance--evidence-sweep
     evidence: "TODO: record the PDF/source metadata and visible identity inspection."
   - check_family: ai_disclosure
     applicability: applicable
@@ -47,7 +47,7 @@ coverage:
     applicability: applicable
     verification_mode: manual
     status: unverifiable
-    rule_source: modules/06_review_delivery.md#Final-Submission-Compliance-Evidence-Sweep
+    rule_source: modules/06_review/content_review.md#六深化分析图表与结果证据审查
     evidence: "TODO: record preregistration disposition, actual placement/reference/explanation closure, redundancy and independent information-value findings."
   - check_family: reproducibility_and_package
     applicability: applicable
@@ -59,7 +59,7 @@ coverage:
     applicability: applicable
     verification_mode: hybrid
     status: unverifiable
-    rule_source: modules/06_review_delivery.md#Final-Submission-Compliance-Evidence-Sweep
+    rule_source: modules/06_review/final_delivery.md#九final-submission-compliance--evidence-sweep
     evidence: "TODO: record actual question/model/dependency coverage or a not-applicable reason."
 
 findings: []

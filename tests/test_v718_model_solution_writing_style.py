@@ -1,6 +1,8 @@
 import unittest
 from pathlib import Path
 
+from module06_sources import review_text
+
 import yaml
 
 
@@ -15,7 +17,7 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         cls.contract = yaml.safe_load(cls.contract_text)
         cls.protocol = (ROOT / "modules/05_writing/paper_writing_protocol.md").read_text(encoding="utf-8")
         cls.cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
-        cls.review = (ROOT / "modules/06_review_delivery.md").read_text(encoding="utf-8")
+        cls.review = review_text(ROOT)
         cls.module02 = (ROOT / "modules/02_model_design.md").read_text(encoding="utf-8")
         cls.taxonomy = (ROOT / "core/task_taxonomy.yaml").read_text(encoding="utf-8")
         cls.numerical = (ROOT / "core/numerical_verification_contract.yaml").read_text(encoding="utf-8")

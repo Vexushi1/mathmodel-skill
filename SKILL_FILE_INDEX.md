@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.21.0
+当前 Skill 版本：10.22.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -96,6 +96,8 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `modules/05_writing/paper_writing_protocol.md`
 - `modules/05_writing/references/model_construction_solution_rationale_examples.md`
 - `modules/05_writing/references/model_solution_reasoning_examples.md`
+- `modules/06_review/content_review.md`
+- `modules/06_review/final_delivery.md`
 - `modules/06_review_delivery.md`
 - `packs/artifact/algorithm_flow.md`
 - `packs/artifact/case_memory_retrieval.md`
@@ -292,6 +294,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/claim_evidence/a2_baseline_provenance.json`
 - `tests/fixtures/claim_evidence/a2_baseline_synthetic.zip`
 - `tests/fixtures/model_construction_solution_cases.yaml`
+- `tests/fixtures/module06_v10210_source.md`
 - `tests/fixtures/p3a_global_policy_source_map.yaml`
 - `tests/fixtures/p3b_writing_role_source_map.yaml`
 - `tests/fixtures/phase_g_cumcm_runtime_golden.yaml`
@@ -309,6 +312,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/matlab/p6b_publication_preview.m`
 - `tests/matlab/run_solver_backend_mixed_smoke.m`
 - `tests/matlab/run_solver_backend_smoke.m`
+- `tests/module06_sources.py`
 - `tests/optimization_baseline.py`
 - `tests/reading_plan_cases.py`
 - `tests/reading_plan_evidence.py`
@@ -387,6 +391,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_matlab_code_checks.py`
 - `tests/test_mechanism_template_compat_hygiene.py`
 - `tests/test_model_code_conformance.py`
+- `tests/test_module06_preservation.py`
 - `tests/test_numerical_source_retirement.py`
 - `tests/test_optimization_baseline.py`
 - `tests/test_p3a_core_policy.py`
@@ -415,6 +420,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_python_reference_followup.py`
 - `tests/test_read_path_semantic_closure.py`
 - `tests/test_read_stage.py`
+- `tests/test_reading_module06.py`
 - `tests/test_reading_plan.py`
 - `tests/test_reading_plan_evidence.py`
 - `tests/test_receipt_context_boundaries.py`
@@ -556,6 +562,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 
 ## Migration / Compatibility Records
 
+- `docs/module06_source_migration.md`
 - `docs/p5a_run_config_migration.md`
 - `docs/phase_e_artifact_identity_inventory.md`
 - `docs/phase_f_transaction_writer_inventory.md`

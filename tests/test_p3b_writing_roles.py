@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import sys
 import unittest
@@ -7,10 +8,18 @@ from pathlib import Path
 
 import yaml
 
+from module06_sources import (
+    BASELINE_COMMIT, BASELINE_PATH, BASELINE_SHA256, CANONICAL_PATHS, CONTENT,
+    ENTRY, FINAL, baseline_text, review_text,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = str(ROOT / "scripts")
 if SCRIPTS not in sys.path:
     sys.path.insert(0, SCRIPTS)
+
+import reading_plan as READING
+from read_stage import select_sources
 
 
 def read(relative: str) -> str:
@@ -37,7 +46,8 @@ class P3BWritingRoleTests(unittest.TestCase):
     def setUpClass(cls):
         cls.runtime_contract = load_yaml("core/writing_runtime_contract.yaml")
         cls.cleanup = read("modules/05_writing/ai_cleanup.md")
-        cls.review = read("modules/06_review_delivery.md")
+        cls.review_entry = read(ENTRY)
+        cls.review = review_text(ROOT)
         cls.protocol = read("modules/05_writing/paper_writing_protocol.md")
         cls.fixture = load_yaml("tests/fixtures/p3b_writing_role_source_map.yaml")
         cls.resolver = load_runtime_module()
@@ -45,10 +55,70 @@ class P3BWritingRoleTests(unittest.TestCase):
     def test_consumer_surfaces_are_materially_smaller_without_shrinking_primary_protocol(self):
         caps = self.fixture["consumer_caps"]
         self.assertLess(len(self.cleanup.encode("utf-8")), caps["ai_cleanup_max_bytes"])
-        self.assertLess(len(self.review.encode("utf-8")), caps["review_delivery_max_bytes"])
+        # The historical 16 KB cap constrains the stable entry. Moving text to
+        # leaves does not give each leaf a fresh copy of that byte allowance.
+        self.assertLess(len(self.review_entry.encode("utf-8")), caps["review_delivery_max_bytes"])
         self.assertGreater(len(self.protocol.encode("utf-8")), 50000)
         self.assertLess(len(self.cleanup.encode("utf-8")), self.fixture["baseline"]["ai_cleanup_bytes"])
         self.assertLess(len(self.review.encode("utf-8")), self.fixture["baseline"]["review_delivery_bytes"])
+
+    def test_split_baseline_is_the_frozen_pre_split_business_source(self):
+        baseline = self.fixture["review_split_baseline"]
+        self.assertEqual(baseline["source_commit"], BASELINE_COMMIT)
+        self.assertEqual(baseline["source"], BASELINE_PATH)
+        self.assertEqual(baseline["normalized_sha256"], BASELINE_SHA256)
+        self.assertEqual(baseline["normalized_utf8_bytes"], len(baseline_text().encode("utf-8")))
+
+    def review_read_bytes(self, rows):
+        """Measure the actual selected range union, including compatibility reads."""
+        selected = {}
+        contents = {}
+        for row in rows:
+            if row.get("origin") != "skill" or row["path"] not in CANONICAL_PATHS:
+                continue
+            path = row["path"]
+            if path not in contents:
+                raw = (ROOT / path).read_bytes()
+                contents[path] = raw, raw.decode("utf-8").splitlines(keepends=True)
+            raw, lines = contents[path]
+            self.assertEqual(row["sha256"], hashlib.sha256(raw).hexdigest())
+            indices = selected.setdefault(path, set())
+            row_indices = set()
+            for start, end in row["ranges"]:
+                self.assertGreaterEqual(start, 1)
+                self.assertLessEqual(start, end)
+                self.assertLessEqual(end, len(lines))
+                indices.update(range(start - 1, end))
+                row_indices.update(range(start - 1, end))
+            self.assertEqual(row["planned_bytes"], len("".join(lines[i] for i in sorted(row_indices)).encode("utf-8")))
+        return sum(
+            len("".join(contents[path][1][i] for i in sorted(indices)).encode("utf-8"))
+            for path, indices in selected.items()
+        )
+
+    def test_review_stage_budgets_measure_real_source_unions_and_full_compatibility(self):
+        plan = self.resolver.resolve_runtime("latex", competition="CUMCM")
+        draft, _ = select_sources(plan, ROOT, "writing_stage", stage_id="draft_semantic_review")
+        final, _ = select_sources(plan, ROOT, "writing_stage", stage_id="final_review_and_delivery")
+        review_paths = lambda rows: {row["path"] for row in rows if row["path"] in CANONICAL_PATHS}
+        self.assertEqual(review_paths(draft), {ENTRY, CONTENT})
+        self.assertEqual(review_paths(final), set(CANONICAL_PATHS))
+        self.assertNotIn(FINAL, review_paths(draft))
+
+        # Old no-scope whole-file requests must expand to all canonical review
+        # sources. They cannot report the small stub entry as the full cost.
+        legacy = READING.describe_resources(READING.SourceReader(ROOT), {"path": ENTRY})
+        self.assertEqual(review_paths(legacy), set(CANONICAL_PATHS))
+        draft_bytes = self.review_read_bytes(draft)
+        final_bytes = self.review_read_bytes(final)
+        legacy_bytes = self.review_read_bytes(legacy)
+        self.assertGreater(draft_bytes, 0)
+        self.assertLess(draft_bytes, final_bytes)
+        self.assertLess(final_bytes, legacy_bytes)
+        self.assertGreater(legacy_bytes, len(self.review_entry.encode("utf-8")))
+        # Adding duplicate rows changes neither the actual selected set nor its
+        # byte measure. No planned/token-savings claim comes from file sizes.
+        self.assertEqual(self.review_read_bytes(final + final), final_bytes)
 
     def test_source_map_markers_remain_reachable(self):
         texts = {"cleanup": self.cleanup, "review": self.review, "protocol": self.protocol}

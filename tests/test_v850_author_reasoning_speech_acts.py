@@ -5,6 +5,8 @@ not prose-quality scores, pronoun quotas, authorship detectors or mathematical
 validity judges.
 """
 from pathlib import Path
+
+from module06_sources import review_text
 import unittest
 
 import yaml
@@ -14,7 +16,6 @@ PROTOCOL = ROOT / "modules/05_writing/paper_writing_protocol.md"
 CONTRACT = ROOT / "core/writing_reasoning_contract.yaml"
 EXAMPLES = ROOT / "modules/05_writing/references/model_solution_reasoning_examples.md"
 CLEANUP = ROOT / "modules/05_writing/ai_cleanup.md"
-REVIEW = ROOT / "modules/06_review_delivery.md"
 FIXTURE = ROOT / "tests/fixtures/writing_reasoning_voice_cases.yaml"
 AUTHORITY = "modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释"
 
@@ -30,7 +31,7 @@ class AuthorReasoningContractTests(unittest.TestCase):
         cls.protocol = read(PROTOCOL)
         cls.examples = read(EXAMPLES)
         cls.cleanup = read(CLEANUP)
-        cls.review = read(REVIEW)
+        cls.review = review_text(ROOT)
         cls.trace = cls.reasoning["prose_style"]["human_reasoning_trace"]
 
     def test_schema_and_single_prose_authority(self):
