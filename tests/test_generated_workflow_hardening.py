@@ -37,6 +37,21 @@ class TestGeneratedWorkflowHardening(unittest.TestCase):
         commands = "\n".join(step.get("run", "") for step in ci_job["steps"])
         self.assertIn("git ls-files --others --exclude-standard -- " + path, commands)
 
+    def test_derived_stage_guide_is_committed_and_checked_by_existing_generator_chain(self):
+        path = "core/stage_reading_guide.md"
+        events = self.workflow.get("on", self.workflow.get(True))
+        self.assertIn(path, events["push"]["paths-ignore"])
+        script = next(step["run"] for step in self.jobs["refresh-feature-branch"]["steps"]
+                      if step.get("name") == "Commit generated metadata and validate final head")
+        self.assertIn(path, next(line for line in script.splitlines() if "git add " in line))
+        self.assertIn(path, next(line for line in script.splitlines() if "git status --porcelain" in line))
+        ci_job = yaml.safe_load(self.ci_text)["jobs"]["generated-files"]
+        artifact = next(step for step in ci_job["steps"] if step.get("uses", "").startswith("actions/upload-artifact@"))
+        self.assertIn(path, artifact["with"]["path"])
+        commands = "\n".join(step.get("run", "") for step in ci_job["steps"])
+        self.assertIn(path, commands)
+        self.assertIn("git ls-files --others --exclude-standard --", commands)
+
     def test_every_corpus_generator_job_installs_only_its_light_dependencies(self):
         ci_job = yaml.safe_load(self.ci_text)["jobs"]["generated-files"]
         for job in (self.jobs["refresh-feature-branch"], self.jobs["verify-main"], ci_job):

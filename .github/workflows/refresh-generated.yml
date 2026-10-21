@@ -16,6 +16,7 @@ on:
       - HSK_SKILL_FILE_INDEX_V622.md
       - HSK_TEMPLATE_INDEX_V622.md
       - MANIFEST.sha256
+      - core/stage_reading_guide.md
       - knowledge/case_memory/index.json
   workflow_dispatch:
 
@@ -51,12 +52,12 @@ jobs:
         run: |
           set -euo pipefail
           generated_changed=false
-          if [[ -z "$(git status --porcelain -- SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256 knowledge/case_memory/index.json)" ]]; then
+          if [[ -z "$(git status --porcelain -- SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256 knowledge/case_memory/index.json core/stage_reading_guide.md)" ]]; then
             echo "Generated metadata is current."
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256 knowledge/case_memory/index.json
+            git add SKILL_FILE_INDEX.md TEMPLATE_INDEX.md HSK_SKILL_FILE_INDEX_V622.md HSK_TEMPLATE_INDEX_V622.md MANIFEST.sha256 knowledge/case_memory/index.json core/stage_reading_guide.md
             git commit -m "chore: refresh generated repository metadata"
             git push
             generated_changed=true

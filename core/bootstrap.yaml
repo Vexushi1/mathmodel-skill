@@ -1,4 +1,4 @@
-skill_version: 10.20.5
+skill_version: 10.21.0
 bootstrap_schema_version: 1.1.0
 purpose: >-
   Read first, load workflow_router.default_load, and use
@@ -54,6 +54,7 @@ hard_invariants:
   - legacy/ remains outside default execution; compatibility pointers are read-only bridges and may not become active dependencies.
 entrypoints:
   resolve: python scripts/resolve_runtime.py
+  read_stage: python scripts/read_stage.py
   resolve_legacy: python scripts/resolve_workflow.py
   project_solver_backend: python scripts/project_solver_backend.py
   instantiate_framework: python scripts/instantiate_model_paper_framework.py
