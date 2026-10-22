@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.22.0
+当前 Skill 版本：10.23.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -302,6 +302,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/solver_backends/input.json`
 - `tests/fixtures/solver_backends/python_auxiliary.py`
 - `tests/fixtures/solver_backends/python_primary.py`
+- `tests/fixtures/stage_reading_session/模型论文框架.md`
 - `tests/fixtures/v900_phase_h_empty_sync_golden.yaml`
 - `tests/fixtures/v900_phase_i_migration_matrix.yaml`
 - `tests/fixtures/v900_phase_i_writer_retirement_inventory.yaml`
@@ -445,6 +446,8 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_solver_backend_source_closure.py`
 - `tests/test_solver_backends.py`
 - `tests/test_split_pipeline_runtime.py`
+- `tests/test_stage_reading_guide_lifecycle.py`
+- `tests/test_stage_reading_lifecycle.py`
 - `tests/test_starter_templates.py`
 - `tests/test_structure.py`
 - `tests/test_submission_current_artifacts.py`
@@ -613,6 +616,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/project_solver_backend_redefinition_plan.md`
 - `docs/repository_audit_and_handoff_refactor_plan.md`
 - `docs/stage_reading_execution_refactor_plan.md`
+- `docs/stage_reading_p4_validation.md`
 - `docs/user_checker_workflow_plan.md`
 - `docs/v1010_audit_closure_remediation_plan.md`
 - `docs/v1010_input_identity_protocol_decision.md`
