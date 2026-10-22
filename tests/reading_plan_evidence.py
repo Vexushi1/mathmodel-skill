@@ -100,6 +100,7 @@ STAGE_READING_AUTHORITY_VERSIONS = {
 }
 BODY_READING_AUTHORITY_VERSIONS = {**STAGE_READING_AUTHORITY_VERSIONS, "skill": "10.21.0"}
 REVIEW_SPLIT_AUTHORITY_VERSIONS = {**BODY_READING_AUTHORITY_VERSIONS, "skill": "10.22.0"}
+FULL_WORKFLOW_READING_AUTHORITY_VERSIONS = {**REVIEW_SPLIT_AUTHORITY_VERSIONS, "skill": "10.23.0"}
 # Only these two read-list migrations are registered. Business text is separately
 # reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
 REVIEW_SPLIT_WRITING_DELTAS = (
@@ -1309,6 +1310,29 @@ def approved_review_split_carrier_change(identifier, old, new, candidate_authori
     return projected, changes
 
 
+def approved_full_workflow_reading_carrier_change(identifier, old, new, candidate_authority_versions):
+    """Register only v10.23.0; retain every pinned predecessor behavior check."""
+    if (candidate_authority_versions != FULL_WORKFLOW_READING_AUTHORITY_VERSIONS
+            or new.get("version") != FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"]):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    predecessor["version"] = REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"]
+    projected, changes = approved_review_split_carrier_change(
+        identifier, old, predecessor, deepcopy(REVIEW_SPLIT_AUTHORITY_VERSIONS),
+    )
+    if projected != old or not changes:
+        return deepcopy(new), []
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(FULL_WORKFLOW_READING_AUTHORITY_VERSIONS)
+            change["approval"] = (
+                "Exact v10.23.0 full-workflow source-navigation and fixed-source reading carrier; "
+                "no resolver decision, pause, selected read, qualification or gate is waived"
+            )
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -1422,6 +1446,9 @@ def compare(before, after):
         projected, review_split_changes = approved_review_split_carrier_change(
             a["id"], old, projected, b.get("authority_versions"))
         expected.extend(review_split_changes)
+        projected, full_workflow_reading_changes = approved_full_workflow_reading_carrier_change(
+            a["id"], old, projected, b.get("authority_versions"))
+        expected.extend(full_workflow_reading_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,

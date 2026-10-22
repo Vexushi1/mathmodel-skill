@@ -344,6 +344,7 @@ reading_plan:
   rules:
     - The reading_plan schema is versioned independently; building a reading plan preserves the resolved assurance envelope and does not set or downgrade its version or fields.
     - read_now and conditional are consumption instructions, not passed review, authorization, or evidence that text was actually read.
+    - Every Skill-origin source returned by the body reader, on read_now, conditional or writing_stage, must match the selected Git commit's source blob as well as its captured plan hash; hashing already-dirty working-tree bytes cannot establish the pinned source identity.
     - project_backend_navigation is non-executable guidance for the sole inspect/select/migrate CLI when a current project selection needs review; it is not a pre_delivery_gate and never supplies migration confirmation.
     - Need for human semantic/visual review remains; byte/path/hash checks cannot decide mathematical correctness or visual quality.
     - The legacy resource plan and complete machine closure remain available to old clients; new clients must not run fewer gates.

@@ -10,6 +10,8 @@
 
 ## 启动
 
+以下是执行工具、同版本完整资源根、依赖和必要材料齐备时的 resolver 路径。GitHub-only 按下方读取协议取得固定 commit 的原文，不把导航中的候选来源当作当前 effective plan，也不声称执行了不可用的工具。
+
 ```text
 读取 core/bootstrap.yaml
 → 调用 scripts/resolve_runtime.py
@@ -29,7 +31,9 @@
 
 默认 resolver 另返回 `reading_plan`，语义由 `core/runtime_assurance_contract.yaml#reading_plan` 管理，选择配置只在 `core/workflow_router.yaml#reading_policy`。它是读取安排，不是执行批准，也不替代现有 module/gate/output 计划。
 
-先按 `read_now` 的路径、SHA-256 和行范围读取；进入后续工作前评估 `conditional` 中与实际阶段相关的条件，条件成立就读取相应资源。校验工具只需先读取接口、实际执行并检查报告；只有失败排查或显式源码审查才读取实现。`tool_interfaces` 保留全部现有校验门，不能用“未读工具源码”作为不执行检查的理由。`project_backend_navigation` 仅列出项目后端 `inspect/select/migrate` 的唯一 CLI 与权威段，`execute: false` 不触发命令，也不构成选择、迁移确认或交付门。
+当前动作前，按 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol` 取得 `read_now` 的实际完整适用正文，并评估 `conditional` 中与实际阶段相关的条件；进入新阶段／小问／章节／图设计或恢复任务时按该协议重取，不能凭“先前读过”继续。GitHub-only 用 `core/stage_reading_guide.md` 定位原 Authority 后分段取齐；同版本资源根和 resolver YAML 可用 `scripts/read_stage.py`，用法见 `scripts/README.md#阶段正文读取`。取得正文后仍须对照实际成果检查，读取不授予批准、accepted 资格或 gate PASS。
+
+校验工具只需先读取接口、实际执行并检查报告；只有失败排查或显式源码审查才读取实现。`tool_interfaces` 保留全部现有校验门，不能用“未读工具源码”作为不执行检查的理由；工具或必要材料不足时报告未完成范围。`project_backend_navigation` 仅列出项目后端 `inspect/select/migrate` 的唯一 CLI 与权威段，`execute: false` 不触发命令，也不构成选择、迁移确认或交付门。
 
 片段范围只对声明的完整文件 SHA 有效，文件变化后重新解析。标题或 YAML 路径缺失、重复、别名等无法安全定位时，读取完整存在的源文件；源文件本身缺失则报错，不返回空规则。
 

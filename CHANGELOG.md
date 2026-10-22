@@ -1,6 +1,12 @@
 # Changelog
 
-## 10.22.0
+## 10.23.0
+
+- Extend generated reading navigation to the existing runtime routes, conditional execution boundaries and project-memory recovery rules. Keep route inventories distinct from the current resolved read set; preserve legitimate full-reading fallbacks and existing approval, user-execution and delivery gates.
+- Verify selected Git source bytes for ordinary read_now and conditional extraction as well as writing stages. A plan captured from an already-dirty source cannot impersonate the pinned commit; the body-reader CLI and response fields remain compatible.
+- Exercise source consumption across workflow and recovery boundaries, including conditional activation and incomplete chunks, without granting review or artifact qualification from reading alone. Align GitHub-only instructions and the existing GPT global instruction with the maintained navigation and original Authorities.
+
+## Previous release: 10.22.0
 
 - Split Module 06 into a stable review entry, shared content review, and final-delivery review. Preserve the existing review actions, severity, repair order, eight coverage families and Module 05D ownership of actual PDF page inspection.
 - Expand legacy review paths and headings to real canonical source text through the existing reading plan and stage adapter. Draft review consumes common content; final review consumes both common and final content. Missing or ambiguous sources cannot be treated as completed reading.

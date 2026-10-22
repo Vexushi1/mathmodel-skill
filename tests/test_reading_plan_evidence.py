@@ -1537,6 +1537,109 @@ class AuditClosureProjectionTests(unittest.TestCase):
                 "cumcm_writing", old, new, carriers,
             ), (new, []))
 
+    def full_workflow_reading_pair(self, case):
+        old, new = self.review_split_pair(case)
+        new["version"] = EVIDENCE.FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"]
+        return old, new
+
+    def test_v10230_full_workflow_reading_carrier_preserves_pinned_predecessor_changes(self):
+        carriers = deepcopy(EVIDENCE.FULL_WORKFLOW_READING_AUTHORITY_VERSIONS)
+        self.assertEqual(carriers, {
+            **EVIDENCE.REVIEW_SPLIT_AUTHORITY_VERSIONS, "skill": "10.23.0",
+        })
+        self.assertEqual(EVIDENCE.REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"], "10.22.0")
+        for case in (*sorted(EVIDENCE.A7_HYDRATED_PROVENANCE_CASES), "facts_unscoped", "cumcm_writing"):
+            with self.subTest(case=case):
+                old, new = self.full_workflow_reading_pair(case)
+                saved = deepcopy((old, new, carriers, EVIDENCE.REVIEW_SPLIT_WRITING_DELTAS))
+                row = EVIDENCE.compare(
+                    [{"id": case, "plan": old, "legacy_declared_bytes": 1}],
+                    [{"id": case, "plan": new, "legacy_declared_bytes": 1,
+                      "authority_versions": carriers}],
+                )[0]
+                self.assertFalse(row["legacy_behavior_equal"])
+                self.assertTrue(row["legacy_behavior_equal_except_approved_changes"])
+                self.assertEqual(row["unexpected_legacy_changes"], [])
+                versions = [item for item in row["expected_legacy_changes"] if item["path"] == "version"]
+                self.assertEqual([item["candidate"] for item in versions], ["10.23.0"])
+                self.assertEqual(versions[0]["authority_versions"], carriers)
+                reviews = [item["path"] for item in row["expected_legacy_changes"]
+                           if item["path"].endswith((
+                               "authoring_sequence.7.read_now", "authoring_sequence.10.read_now",
+                           ))]
+                self.assertEqual(reviews, [
+                    "writing_runtime.authoring_sequence.7.read_now",
+                    "writing_runtime.authoring_sequence.10.read_now",
+                    "runtime_plan.writing_runtime.authoring_sequence.7.read_now",
+                    "runtime_plan.writing_runtime.authoring_sequence.10.read_now",
+                ] if case == "cumcm_writing" else [])
+                self.assertEqual((old, new, carriers, EVIDENCE.REVIEW_SPLIT_WRITING_DELTAS), saved)
+
+    def test_v10230_full_workflow_carrier_rejects_unknown_carriers_and_runtime_changes(self):
+        carriers = EVIDENCE.FULL_WORKFLOW_READING_AUTHORITY_VERSIONS
+        for case in ("facts_current", "cumcm_writing"):
+            old, new = self.full_workflow_reading_pair(case)
+            for bad in (
+                None, {**carriers, "skill": "10.22.0"},
+                {**carriers, "skill": "10.23.1"},
+                {**carriers, "runtime_assurance": "2.5.1"},
+                {**carriers, "project_state": "8.17.0"},
+                {**carriers, "undeclared_authority": "1.0.0"},
+                {key: value for key, value in carriers.items() if key != "runtime_assurance"},
+            ):
+                with self.subTest(case=case, bad=bad):
+                    self.assertEqual(EVIDENCE.approved_full_workflow_reading_carrier_change(
+                        case, old, new, bad,
+                    ), (new, []))
+            for field, value in (
+                ("version", "10.23.1"), ("version", "10.24.0"),
+                ("formal_delivery", True), ("pause_state", "ready"),
+                ("pre_delivery_gates", []), ("load_order", ["scripts/read_stage.py"]),
+                ("modules", ["review_delivery"]),
+            ):
+                with self.subTest(case=case, field=field, value=value):
+                    changed = deepcopy(new)
+                    changed[field] = value
+                    self.assertEqual(EVIDENCE.approved_full_workflow_reading_carrier_change(
+                        case, old, changed, carriers,
+                    ), (changed, []))
+            changed = deepcopy(new)
+            changed["assurance"]["qualification"] = "accepted"
+            self.assertEqual(EVIDENCE.approved_full_workflow_reading_carrier_change(
+                case, old, changed, carriers,
+            ), (changed, []))
+        old, new = self.full_workflow_reading_pair("facts_current")
+        self.assertEqual(EVIDENCE.approved_full_workflow_reading_carrier_change(
+            "future_case", old, new, carriers,
+        ), (new, []))
+
+    def test_v10230_full_workflow_carrier_keeps_both_review_mirrors_strict(self):
+        carriers = EVIDENCE.FULL_WORKFLOW_READING_AUTHORITY_VERSIONS
+        for location in ("top", "nested"):
+            for index, _, previous, _ in EVIDENCE.REVIEW_SPLIT_WRITING_DELTAS:
+                for mutation in ("missing_content", "old_list", "extra", "order", "gate", "run_now"):
+                    with self.subTest(location=location, index=index, mutation=mutation):
+                        old, new = self.full_workflow_reading_pair("cumcm_writing")
+                        runtime = new["writing_runtime"] if location == "top" else new["runtime_plan"]["writing_runtime"]
+                        stage = runtime["authoring_sequence"][index]
+                        if mutation == "missing_content":
+                            stage["read_now"].remove("modules/06_review/content_review.md")
+                        elif mutation == "old_list":
+                            stage["read_now"] = deepcopy(previous)
+                        elif mutation == "extra":
+                            stage["read_now"].append("core/user_execution_contract.yaml")
+                        elif mutation == "order":
+                            stage["read_now"].reverse()
+                        elif mutation == "gate":
+                            stage["gate"] = "passed"
+                        else:
+                            stage["run_now"] = ["unregistered_action"]
+                        saved = deepcopy((old, new, carriers))
+                        self.assertEqual(EVIDENCE.approved_full_workflow_reading_carrier_change(
+                            "cumcm_writing", old, new, carriers,
+                        ), (new, []))
+                        self.assertEqual((old, new, carriers), saved)
+
     def comparison_writing_pair(self):
         old, new = self.pair("cumcm_writing")
         new.pop("solver_backend")

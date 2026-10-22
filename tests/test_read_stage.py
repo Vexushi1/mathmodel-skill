@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -26,12 +27,15 @@ class StageTextExtractionTests(unittest.TestCase):
         self.path.parent.mkdir()
         self.text = "# Title\nPreamble\n## Parent\nScope\n### Evidence\n一\n二\n三\n四\n### Other\nNot selected\n"
         self.path.write_text(self.text, encoding="utf-8")
+        self.committed_bytes = self.path.read_bytes()
         self.reader = SourceReader(self.root)
         self.row = self.reader.describe({"path": "core/source.md", "headings": ["### Evidence"]})
         self.plan = {"reading_plan": {"read_now": [self.row], "conditional": []}}
 
     def _extract(self, *, index=0, length=2, plan=None):
-        with mock.patch.object(READER, "verify_checkout", return_value=COMMIT):
+        committed = mock.Mock(returncode=0, stdout=self.committed_bytes)
+        with mock.patch.object(READER, "verify_checkout", return_value=COMMIT), \
+                mock.patch.object(READER.subprocess, "run", return_value=committed):
             return READER.extract(
                 plan or self.plan, self.root, COMMIT, "read_now",
                 "core/source.md", chunk_lines=length, chunk_index=index,
@@ -98,7 +102,9 @@ class StageTextExtractionTests(unittest.TestCase):
         rows, unresolved = READER.select_sources(plan, self.root, "conditional")
         self.assertFalse(rows)
         self.assertEqual(unresolved[0]["status"], "unresolved_condition")
-        with mock.patch.object(READER, "verify_checkout", return_value=COMMIT):
+        committed = mock.Mock(returncode=0, stdout=self.committed_bytes)
+        with mock.patch.object(READER, "verify_checkout", return_value=COMMIT), \
+                mock.patch.object(READER.subprocess, "run", return_value=committed):
             with self.assertRaisesRegex(ValueError, "not uniquely selected"):
                 READER.extract(plan, self.root, COMMIT, "conditional", "core/source.md")
             chosen = READER.extract(
@@ -115,6 +121,79 @@ class StageTextExtractionTests(unittest.TestCase):
                 READER.verify_checkout(self.root, COMMIT)
         with self.assertRaisesRegex(ValueError, "40-character"):
             READER.verify_checkout(self.root, "main")
+
+
+class PinnedReadingSurfaceTests(unittest.TestCase):
+    """Exercise real Git identity instead of trusting a current-tree digest."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        self.path = self.root / "core" / "source.md"
+        self.path.parent.mkdir()
+        self.committed_bytes = "# Source\nFixed applicability.\n## Evidence\n原文。\n".encode("utf-8")
+        self.path.write_bytes(self.committed_bytes)
+        self.git("init", "--quiet")
+        self.git("config", "core.autocrlf", "false")
+        self.git("add", "core/source.md")
+        self.git(
+            "-c", "user.name=Stage reader test",
+            "-c", "user.email=stage-reader@example.invalid",
+            "-c", "commit.gpgsign=false",
+            "-c", "core.hooksPath=.git/no-hooks",
+            "commit", "--quiet", "-m", "Freeze source fixture",
+        )
+        self.commit = self.git("rev-parse", "HEAD").stdout.strip()
+
+    def git(self, *arguments):
+        return subprocess.run(
+            ["git", "-C", str(self.root), *arguments],
+            capture_output=True, text=True, encoding="utf-8", check=True,
+        )
+
+    def extract(self, surface, *, path="core/source.md"):
+        row = SourceReader(self.root).describe({"path": path})
+        condition = "current_scope_requires_source" if surface == "conditional" else None
+        if condition:
+            row["when"] = condition
+        plan = {"reading_plan": {surface: [row]}}
+        return READER.extract(
+            plan, self.root, self.commit, surface, path,
+            condition=condition, chunk_lines=200,
+        )
+
+    def test_committed_bytes_are_accepted_on_each_nonwriting_surface(self):
+        for surface in ("read_now", "conditional"):
+            with self.subTest(surface=surface):
+                out = self.extract(surface)
+                self.assertEqual(out["source_identity"]["selected_commit"], self.commit)
+                self.assertEqual(
+                    out["source_identity"]["sha256"],
+                    hashlib.sha256(self.committed_bytes).hexdigest(),
+                )
+                self.assertEqual(out["returned_chunk"]["text"].encode("utf-8"),
+                                 self.committed_bytes)
+                self.assertTrue(out["all_required_ranges_returned_in_this_response"])
+                self.assertEqual(out["gate_status"], "not_executed_by_reader")
+                self.assertEqual(out["status"], "source_text_returned_not_stage_or_gate_passed")
+
+    def test_dirty_source_before_plan_cannot_impersonate_the_selected_commit(self):
+        self.path.write_bytes(self.committed_bytes + b"Uncommitted rule.\n")
+        for surface in ("read_now", "conditional"):
+            with self.subTest(surface=surface):
+                # extract() builds the plan from the already-dirty bytes. Its
+                # fresh digest must not authorize the unchanged Git HEAD.
+                with self.assertRaisesRegex(ValueError, "differs from selected commit"):
+                    self.extract(surface)
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), self.commit)
+
+    def test_existing_source_missing_from_selected_commit_fails_closed(self):
+        (self.root / "core" / "untracked.md").write_bytes(b"# Untracked source\nRule.\n")
+        for surface in ("read_now", "conditional"):
+            with self.subTest(surface=surface):
+                with self.assertRaisesRegex(ValueError, "could not be verified"):
+                    self.extract(surface, path="core/untracked.md")
 
 
 class WritingStageSourceTests(unittest.TestCase):
