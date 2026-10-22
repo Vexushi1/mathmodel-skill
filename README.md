@@ -1,15 +1,15 @@
-# mathmodel-skill v10.22.0
+# mathmodel-skill v10.23.0
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值语言由项目根策略统一选择。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。
 
 ## 最短启动
 
-1. 从根目录 `SKILL.md` 或打包入口 `skills/mathmodel-skill/SKILL.md` 进入，先读 `core/bootstrap.yaml`，再按 `core/workflow_router.yaml` 加载全局政策。
-2. 助手运行 `scripts/resolve_runtime.py`，按任务和当前项目恢复最小 `reading_plan`、Authority 与 `pre_delivery_gates`。已有项目传入 `--project-root`，需要定位小问时传入 `--question`；只读取 resolver 当前返回的资源。
+1. 从根目录 `SKILL.md` 或打包入口 `skills/mathmodel-skill/SKILL.md` 进入，确认本项目使用的版本／commit，先读 `core/bootstrap.yaml`，再按 `core/workflow_router.yaml` 加载全局政策。
+2. 具备执行工具、同版本完整 Skill 根、依赖及必要项目材料时，助手运行 `scripts/resolve_runtime.py`，按任务和当前项目恢复最小 `reading_plan`、Authority 与 `pre_delivery_gates`。已有项目传入 `--project-root`，需要定位小问时传入 `--question`；GitHub-only 按下文导航取得当前适用正文，不虚构 resolver 输出。
 3. 模型设计先完成语义闭环、Model Challenge 和当前 `semantic_revision` / validated `semantic_identity_hash` 的 Human Model Approval。数据项目先审计，再按证据确定 `preprocessing_decision`；锁模不等于代码交付资格。
-4. 助手在生成、核验和交付时执行 resolver 返回的完整且有序的 `pre_delivery_gates`。当前 `模型论文框架.md` 是语义工作记忆，`state/project_state.yaml` 是机器状态，accepted workbook 是具体数值事实；三者不能互相代替。
+4. 助手在生成、核验和交付时执行 resolver 返回的完整且有序的 `pre_delivery_gates`；工具或必要材料不足时如实保留未完成范围，不宣称交付通过。当前 `模型论文框架.md` 是语义工作记忆，`state/project_state.yaml` 是机器状态，accepted workbook 是具体数值事实；三者不能互相代替。
 
-阶段规则正文按当前 `reading_plan.read_now` 和经过事实裁决的 `conditional` 取得。GitHub-only 读取可参考 [自动阶段导航](core/stage_reading_guide.md) 定位原始 Authority，再用固定提交的逐行读取补齐全文；具备完整本地 Skill 根及 resolver YAML 时，助手可用只读 `scripts/read_stage.py` 返回原文、源身份与缺段。导航或源文本返回不代表审查、批准或门禁 PASS，也不要求用户另跑读取器。
+阶段规则正文按 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol` 取得：当前 `read_now` 和经事实裁决的 `conditional` 均需实际正文，进入新阶段／小问／章节／图设计或恢复任务时重新取读。GitHub-only 使用 [自动阶段导航](core/stage_reading_guide.md) 定位所选固定 commit 的原始 Authority，并分段补齐；候选来源清单不越过当前批准／执行等待点。有同版本资源根和真实 resolver YAML 时，助手可按 [正文接口用法](scripts/README.md#阶段正文读取) 返回原文、源身份与缺段。导航或源文本返回不代表审查、批准或门禁 PASS，也不要求用户另跑读取器。可复制的 GPT 全局指令统一见 [计划 §13](docs/stage_reading_execution_refactor_plan.md#132-可复制正文)。
 
 用户按 `full_fidelity` 运行实际 Python/MATLAB 数值入口并返回工作簿；绘图时运行脚本、查看图窗、调整并按需导出。交付检查、返回验收、同步、论文审计／编译和包验证由助手完成，分工统一见 [执行 Authority](core/user_execution_contract.yaml)。日常无需另装 Skill 校验环境或提交 checker 报告；求解入口出现缺包或路径错误时，再针对实际问题排查。
 

@@ -2,12 +2,12 @@
 name: mathmodel-skill
 description: Guide mathematical-modeling competition work from problem analysis and model design through user-run computation, accepted-workbook figures, paper writing and delivery review. Use for CUMCM, MCM/ICM and related modeling projects, including targeted work on an existing modeling project.
 metadata:
-  version: 10.22.0
+  version: 10.23.0
   summary: HSK mathematical-modeling workflow with bootstrap-first task routing, Problem Contract freezing, condition-driven structural reduction and minimal-sufficient main-model generation before solver selection, independent Model Challenge, explicit Human Model Approval bound to the current semantic revision and validated structured identity, one project-wide Python/MATLAB numerical backend choice and user-owned full-fidelity numerical execution, evidence-checked workbooks, MATLAB evidence visualization, editable draw.io mechanism diagrams with deterministic structural checks and required rendered review, model-construction rationale with solver-precondition evidence, Template-First paper authoring with state-driven per-question writing capability preflight and final-order Cross-File Chapter Handoff, formal LaTeX attestation, evidence-traceable final review compliance, and validated delivery provenance.
   triggers: [数学建模, 数模, CUMCM, 国赛, MCM, ICM, 电工杯, 认证杯, 审题, 问题分析, 建模思路, 建模方案, 模型比较, 完整求解, 全流程, 建模论文, 模型论文框架, 模型锁定, 模型审查, 算法流程, 伪代码, 数据预处理, 数据清洗, 主结果质量, 数值有效性, 结果分析, 结果深化分析, Python求解, MATLAB求解, MATLAB绘图, 可编辑机理图, draw.io, drawio, LaTeX, DOCX, 终审, 提交包]
 ---
 
-# HSK 数学建模模块化工作流 v10.22.0
+# HSK 数学建模模块化工作流 v10.23.0
 
 <!-- HSK_RUNTIME_ENTRY_CONTRACT_START -->
 ## 运行时入口合同（非权威摘要）
@@ -18,9 +18,9 @@ metadata:
 
 1. 首先读取 `core/bootstrap.yaml`；
 2. 由 `core/workflow_router.yaml` 的 `default_load` 加载 `core/hsk_core_policy.md`；
-3. 使用 `scripts/resolve_runtime.py` 根据当前意图、竞赛和项目状态解析 `read_now`、`conditional`、运行时 assurance 与 `pre_delivery_gates`；`load_order` 保留为兼容资源清单，不表示本次正文已读取或门禁已执行。模型批准、条件式预处理与主数值验证分别委托 `core/model_approval_contract.yaml`、`core/global_preprocessing_contract.yaml`、`core/numerical_verification_contract.yaml`；
+3. 执行工具、同版本完整资源根、依赖及必要项目材料齐备时，使用 `scripts/resolve_runtime.py` 根据当前意图、竞赛和项目状态解析 `read_now`、`conditional`、运行时 assurance 与 `pre_delivery_gates`；`load_order` 保留为兼容资源清单，不表示本次正文已读取或门禁已执行。模型批准、条件式预处理与主数值验证分别委托 `core/model_approval_contract.yaml`、`core/global_preprocessing_contract.yaml`、`core/numerical_verification_contract.yaml`；
 4. 按 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol`，在当前动作前取得 `read_now` 的实际完整适用正文并评估 `conditional`；进入新阶段／小问／章节／图设计范围、跨聊天恢复或来源／证据范围变化时重新取读，即使版本／哈希相同。分段返回必须核对范围覆盖并补齐缺口；路径、标题、哈希和计划字节不代表正文已消费。只加载当前适用资源，不预载整个仓库；
-5. GitHub-only 可以使用由现有生成链维护的 `core/stage_reading_guide.md` 定位固定 commit 上的原 Authority 并分段取读；同版本资源根及 resolver YAML 可使用只读 `scripts/read_stage.py` 返回正文与缺口。导航、读取结果都不代表审批或 gate 执行；
+5. GitHub-only 使用由现有生成链维护的 `core/stage_reading_guide.md` 定位所选固定 commit 的原 Authority 并分段取读；同版本资源根及真实 resolver YAML 可使用只读 `scripts/read_stage.py` 返回正文与缺口。导航中的候选来源不越过当前批准／执行等待点；工具或必要材料不足时保留未执行／未核验范围，不虚构 resolver 输出。导航、读取结果都不代表审批或 gate 执行；
 6. 需要项目语义时读取 current `模型论文框架.md`，生命周期 revision/structured identity/text provenance/stale 服从 `state/project_state.yaml`，具体数值回到 accepted workbook；
 7. 普通写作由 Template Manifest、Paper Writing Protocol 和 compact writing runtime 渐进加载，并按最终 active assembly 执行 Cross-File Chapter Handoff；复杂数学/证据裁决按 resolver 补读 `core/writing_reasoning_contract.yaml`，终审再读取 `modules/06_review_delivery.md` 与 `templates/review/final_review_matrix.yaml`；
 8. `legacy/` 不进入默认执行链，旧 `scripts/resolve_workflow.py` 只保留无状态/兼容入口。

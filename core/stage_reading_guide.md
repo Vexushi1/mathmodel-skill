@@ -1,6 +1,6 @@
 # Stage Reading Guide (generated navigation)
 
-Generated from `core/workflow_router.yaml#reading_policy` and
+Generated from `core/workflow_router.yaml` and
 `core/writing_runtime_contract.yaml#template_first_progressive_authoring.stages`.
 This is a source and conditional pointer inventory, not source text,
 a duplicate phase registry, proof of reading, an approval, or a gate result.
@@ -11,6 +11,84 @@ Resolve current project facts and use the selected commit of the original Author
 - read_now: `core/bootstrap.yaml`
 - read_now: `core/hsk_core_policy.md`
 - read_now: `core/workflow_router.yaml`; selector=['reading_policy.boundaries']
+
+## Whole-workflow navigation (original router owns selection and boundaries)
+
+Derived from the original `core/workflow_router.yaml` sections below.
+Route `load` / `then` and segment resource lists are raw availability inventories,
+not the effective `read_now`. Current evidence, boundary truncation, conditional packs,
+backend/template adaptation and dependency closure still belong to the existing resolver.
+Use its current `reading_plan.read_now`, `conditional`, `reasons`, `pause_state` and
+ordered `pre_delivery_gates`; this table does not compute a profile or a gate list.
+With GitHub-only access, read the original route, applicable boundaries and project facts;
+do not invent resolver output, accepted evidence or a completed gate.
+Default inventory and loading boundaries: `core/workflow_router.yaml#default_load` and
+`core/workflow_router.yaml#load_policy`. Full-fallback reasons come from the actual
+`reading_plan.reasons`; an unlisted or unresolved narrow scope remains conservative.
+
+### Route authority pointers
+
+Read each route's original `load` / `then`; conditional flags below point back to
+that route and do not preload their resources or establish qualification.
+
+| Route | Original source | Declared roles / conditions / delegation |
+|---|---|---|
+| `case_memory_retrieve` | `core/workflow_router.yaml#routing.case_memory_retrieve` | — |
+| `claim_consumption_audit` | `core/workflow_router.yaml#routing.claim_consumption_audit` | — |
+| `claim_evidence_audit` | `core/workflow_router.yaml#routing.claim_evidence_audit` | — |
+| `conformance_audit` | `core/workflow_router.yaml#routing.conformance_audit` | — |
+| `new_problem_design` | `core/workflow_router.yaml#routing.new_problem_design` | roles=`model_approval`; load_classified_task_packs=`true`; load_competition_pack=`true` |
+| `framework_sync` | `core/workflow_router.yaml#routing.framework_sync` | — |
+| `project_sync` | `core/workflow_router.yaml#routing.project_sync` | — |
+| `proposition_proof` | `core/workflow_router.yaml#routing.proposition_proof` | load_proposition_pack=`true` |
+| `algorithm_presentation` | `core/workflow_router.yaml#routing.algorithm_presentation` | — |
+| `data_preprocessing` | `core/workflow_router.yaml#routing.data_preprocessing` | roles=`model_approval, preprocessing`; pause_for_user_execution=`true` |
+| `full_solution` | `core/workflow_router.yaml#routing.full_solution` | roles=`model_approval, preprocessing, primary_execution`; when=`preprocessing_decision == project_level`; module=`modules/03_data_preprocessing.md`; insert_before=`modules/03_solve_validate.md`; pause_state=`awaiting_user_preprocessing`; pause_for_user_execution=`true`; load_classified_task_packs=`true`; load_competition_pack=`true` |
+| `full_workflow` | `core/workflow_router.yaml#routing.full_workflow` | roles=`model_approval, preprocessing, primary_execution, full_workflow_resume`; when=`preprocessing_decision == project_level`; module=`modules/03_data_preprocessing.md`; insert_before=`modules/03_solve_validate.md`; pause_state=`awaiting_user_preprocessing`; pause_for_user_execution=`true`; load_classified_task_packs=`true`; load_competition_pack=`true`; writing_execution_sequence=`core/writing_runtime_contract.yaml#template_first_progressive_authoring` |
+| `problem_analysis` | `core/workflow_router.yaml#routing.problem_analysis` | — |
+| `model_selection` | `core/workflow_router.yaml#routing.model_selection` | roles=`model_approval`; load_classified_task_packs=`true` |
+| `advanced_method` | `core/workflow_router.yaml#routing.advanced_method` | roles=`model_approval`; load_classified_task_packs=`true` |
+| `code_and_solution` | `core/workflow_router.yaml#routing.code_and_solution` | roles=`model_approval, preprocessing, primary_execution`; when=`preprocessing_decision == project_level`; module=`modules/03_data_preprocessing.md`; insert_before=`modules/03_solve_validate.md`; pause_state=`awaiting_user_preprocessing`; pause_for_user_execution=`true`; load_classified_task_packs=`true` |
+| `result_analysis` | `core/workflow_router.yaml#routing.result_analysis` | roles=`model_approval, analysis_execution`; pause_for_user_execution=`true`; load_classified_task_packs=`true` |
+| `returned_workbook_validation` | `core/workflow_router.yaml#routing.returned_workbook_validation` | — |
+| `validation` | `core/workflow_router.yaml#routing.validation` | roles=`model_approval, analysis_execution`; pause_for_user_execution=`true`; load_classified_task_packs=`true` |
+| `figures` | `core/workflow_router.yaml#routing.figures` | — |
+| `editable_mechanism_diagram` | `core/workflow_router.yaml#routing.editable_mechanism_diagram` | — |
+| `docx` | `core/workflow_router.yaml#routing.docx` | — |
+| `latex` | `core/workflow_router.yaml#routing.latex` | load_competition_pack=`true`; execution_sequence=`core/writing_runtime_contract.yaml#template_first_progressive_authoring` |
+| `full_submission` | `core/workflow_router.yaml#routing.full_submission` | load_competition_pack=`true` |
+| `review` | `core/workflow_router.yaml#routing.review` | load_competition_pack=`true` |
+
+### Runtime-boundary authority pointers
+
+These are declarations, not the current phase. Read each original `satisfied_when`,
+`required_load` / `final_load` and canonical route against current verified evidence.
+A declared condition or pause does not prove it was satisfied or that approval occurred.
+
+| Segment | Original source | Declared stage / stop / pause |
+|---|---|---|
+| `model_approval_pending` | `core/workflow_router.yaml#runtime_segments.model_approval_pending` | role=`model_approval`; stop_before_module=`data_preprocessing`; pause_state=`awaiting_model_approval` |
+| `preprocessing` | `core/workflow_router.yaml#runtime_segments.preprocessing` | role=`preprocessing`; canonical_route=`data_preprocessing`; stage_module=`data_preprocessing`; stop_before_module=`solve_validate` |
+| `primary_execution` | `core/workflow_router.yaml#runtime_segments.primary_execution` | role=`primary_execution`; canonical_route=`code_and_solution`; stage_module=`solve_validate`; stop_before_module=`result_analysis` |
+| `analysis_execution` | `core/workflow_router.yaml#runtime_segments.analysis_execution` | role=`analysis_execution`; canonical_route=`result_analysis`; stage_module=`result_analysis`; reset_from_module=`solve_validate` |
+| `full_workflow_resume` | `core/workflow_router.yaml#runtime_segments.full_workflow_resume` | role=`full_workflow_resume` |
+
+### Project-memory and recovery authority pointers
+
+Source: `core/workflow_router.yaml#project_memory_contract`; its rules own recovery.
+
+- project_file: `模型论文框架.md`
+- numeric_fact_source: `accepted_standard_workbooks`
+- machine_state_source: `state/project_state.yaml`
+- read_before_modules: `data_preprocessing`, `solve_validate`, `result_analysis`, `figure_evidence`, `writing_docx`, `writing_latex`, `review_delivery`
+- targeted_read_sections: `当前有效口径`, `relevant_subproblem`, `required_dependencies`, `Model Challenge`, `Human Model Approval`, `relevant_result_summary`, `Algorithm Trace`, `Terminology Registry`, `Numeric Profile`, `待办与缺口`
+- full_read_when: `cross_chat_handoff`, `long_context_recovery`, `full_paper_writing`, `cross_question_synthesis`, `final_review`
+
+Apply the original full-read events to the current complete framework; ordinary
+targeted reads retain their original scope. Recovering source text does not recover
+approval, numeric acceptance or gate PASS from a chat summary. This navigation does
+not detect context compression or substitute for checking current project evidence.
+
 
 ## Routing profiles (selection belongs to the resolver)
 

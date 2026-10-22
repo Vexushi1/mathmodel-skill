@@ -225,16 +225,180 @@ def manifest_text(files: list[Path], overrides: dict[Path, str]) -> str:
 
 
 
+def _navigation_registrations() -> tuple[bool, bool]:
+    """Read existing bootstrap pointers, without a new feature or version marker."""
+    bootstrap = ROOT / "core/bootstrap.yaml"
+    if not bootstrap.exists():
+        return False, False  # Standalone old/fake roots need not have bootstrap.
+    if not bootstrap.is_file():
+        raise ValueError("navigation bootstrap must be a file")
+    declaration = yaml.safe_load(bootstrap.read_text(encoding="utf-8-sig"))
+    if not isinstance(declaration, dict):
+        raise ValueError("navigation bootstrap must be a mapping")
+    registrations = []
+    for section, key in (("authoritative_sources", "routing"), ("entrypoints", "read_stage")):
+        owner = declaration.get(section, {})
+        if not isinstance(owner, dict):
+            raise ValueError(f"navigation bootstrap {section} must be a mapping")
+        if key in owner:
+            pointer = owner[key]
+            if not isinstance(pointer, str) or not pointer.strip():
+                raise ValueError(f"navigation bootstrap {section}.{key} must be non-empty")
+        registrations.append(key in owner)
+    return registrations[0], registrations[1]
+
+
+def lifecycle_navigation(router: dict, *, registered: bool = False) -> list[str]:
+    """Project existing lifecycle pointers without selecting a route or a phase."""
+    def mapping(owner: dict, key: str) -> dict | None:
+        if key not in owner:
+            return None  # Isolated roots may predate the lifecycle authorities.
+        value = owner[key]
+        if not isinstance(value, dict):
+            raise ValueError(f"navigation source {key} must be a mapping")
+        return value
+
+    def text(value: object, source: str) -> str:
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"navigation source {source} must be a non-empty string")
+        return value.replace("`", "&#96;").replace("|", "\\|").replace("\n", " ")
+
+    def string_list(owner: dict, key: str, source: str) -> list[str]:
+        value = owner.get(key, [])
+        if not isinstance(value, list):
+            raise ValueError(f"navigation source {source}.{key} must be a list")
+        return [text(item, f"{source}.{key}") for item in value]
+
+    def scalar_parts(owner: dict, keys: tuple[str, ...], source: str) -> list[str]:
+        return [f"{key}=`{text(owner[key], f'{source}.{key}')}`" for key in keys if key in owner]
+
+    def boolean_part(owner: dict, key: str, source: str) -> list[str]:
+        if key not in owner:
+            return []
+        if not isinstance(owner[key], bool):
+            raise ValueError(f"navigation source {source}.{key} must be boolean")
+        return [f"{key}=`{str(owner[key]).lower()}`"]
+
+    routes = mapping(router, "routing")
+    segments = mapping(router, "runtime_segments")
+    memory = mapping(router, "project_memory_contract")
+    if registered:
+        for name, section in (("routing", routes), ("runtime_segments", segments),
+                              ("project_memory_contract", memory)):
+            if not section:
+                raise ValueError(f"registered routing requires non-empty {name}")
+    if routes is None and segments is None and memory is None:
+        return []
+    lines = [
+        "## Whole-workflow navigation (original router owns selection and boundaries)",
+        "",
+        "Derived from the original `core/workflow_router.yaml` sections below.",
+        "Route `load` / `then` and segment resource lists are raw availability inventories,",
+        "not the effective `read_now`. Current evidence, boundary truncation, conditional packs,",
+        "backend/template adaptation and dependency closure still belong to the existing resolver.",
+        "Use its current `reading_plan.read_now`, `conditional`, `reasons`, `pause_state` and",
+        "ordered `pre_delivery_gates`; this table does not compute a profile or a gate list.",
+        "With GitHub-only access, read the original route, applicable boundaries and project facts;",
+        "do not invent resolver output, accepted evidence or a completed gate.",
+        "Default inventory and loading boundaries: `core/workflow_router.yaml#default_load` and",
+        "`core/workflow_router.yaml#load_policy`. Full-fallback reasons come from the actual",
+        "`reading_plan.reasons`; an unlisted or unresolved narrow scope remains conservative.",
+        "",
+    ]
+    if routes is not None:
+        lines += [
+            "### Route authority pointers", "",
+            "Read each route's original `load` / `then`; conditional flags below point back to",
+            "that route and do not preload their resources or establish qualification.", "",
+            "| Route | Original source | Declared roles / conditions / delegation |",
+            "|---|---|---|",
+        ]
+        for name, route in routes.items():
+            name = text(name, "routing key")
+            if not isinstance(route, dict):
+                raise ValueError(f"navigation source routing.{name} must be a mapping")
+            source = f"routing.{name}"
+            for key in ("load", "then"):
+                string_list(route, key, source)
+            roles = string_list(route, "boundary_roles", source)
+            details = [f"roles=`{', '.join(roles)}`"] if roles else []
+            conditional = mapping(route, "conditional_stage")
+            if conditional is not None:
+                if not all(key in conditional for key in ("when", "module", "insert_before")):
+                    raise ValueError(f"navigation source {source}.conditional_stage is incomplete")
+                details.extend(scalar_parts(conditional, ("when", "module", "insert_before", "pause_state"),
+                                            f"{source}.conditional_stage"))
+            for key in ("pause_for_user_execution", "load_classified_task_packs",
+                        "load_competition_pack", "load_proposition_pack"):
+                details.extend(boolean_part(route, key, source))
+            details.extend(scalar_parts(route, ("execution_sequence", "writing_execution_sequence"), source))
+            lines.append(f"| `{name}` | `core/workflow_router.yaml#{source}` | {'; '.join(details) or '—'} |")
+        lines.append("")
+    if segments is not None:
+        lines += [
+            "### Runtime-boundary authority pointers", "",
+            "These are declarations, not the current phase. Read each original `satisfied_when`,",
+            "`required_load` / `final_load` and canonical route against current verified evidence.",
+            "A declared condition or pause does not prove it was satisfied or that approval occurred.", "",
+            "| Segment | Original source | Declared stage / stop / pause |",
+            "|---|---|---|",
+        ]
+        for name, segment in segments.items():
+            name = text(name, "runtime_segments key")
+            if not isinstance(segment, dict):
+                raise ValueError(f"navigation source runtime_segments.{name} must be a mapping")
+            source = f"runtime_segments.{name}"
+            for key in ("required_load", "final_load"):
+                string_list(segment, key, source)
+            condition = mapping(segment, "satisfied_when")
+            if condition is not None:
+                string_list(condition, "any", f"{source}.satisfied_when")
+                groups = condition.get("all_groups", [])
+                if not isinstance(groups, list):
+                    raise ValueError(f"navigation source {source}.satisfied_when.all_groups must be a list")
+                for group in groups:
+                    string_list({"group": group}, "group", f"{source}.satisfied_when.all_groups")
+            details = scalar_parts(segment, ("role", "canonical_route", "stage_module", "stop_before_module",
+                                             "reset_from_module", "pause_state"), source)
+            details.extend(boolean_part(segment, "pause_for_user_execution", source))
+            lines.append(f"| `{name}` | `core/workflow_router.yaml#{source}` | {'; '.join(details) or '—'} |")
+        lines.append("")
+    if memory is not None:
+        source = "project_memory_contract"
+        lines += ["### Project-memory and recovery authority pointers", "",
+                  "Source: `core/workflow_router.yaml#project_memory_contract`; its rules own recovery.", ""]
+        for key in ("project_file", "numeric_fact_source", "machine_state_source"):
+            lines.append(f"- {key}: `{text(memory.get(key), f'{source}.{key}')}`")
+        for key in ("read_before_modules", "targeted_read_sections", "full_read_when"):
+            if key == "full_read_when" and key not in memory:
+                raise ValueError("navigation source project_memory_contract.full_read_when is missing")
+            values = string_list(memory, key, source)
+            lines.append(f"- {key}: {', '.join(f'`{value}`' for value in values) or '—'}")
+        lines += [
+            "", "Apply the original full-read events to the current complete framework; ordinary",
+            "targeted reads retain their original scope. Recovering source text does not recover",
+            "approval, numeric acceptance or gate PASS from a chat summary. This navigation does",
+            "not detect context compression or substitute for checking current project evidence.", "",
+        ]
+    return lines
+
+
 def stage_reading_guide_text() -> str:
     """Generate navigation from existing routing/writing authorities, never copied rules."""
     router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8"))
     writing = yaml.safe_load((ROOT / "core/writing_runtime_contract.yaml").read_text(encoding="utf-8"))
+    if not isinstance(router, dict) or not isinstance(writing, dict):
+        raise ValueError("stage navigation authorities must be mappings")
     reading = router["reading_policy"]
     stages = writing["template_first_progressive_authoring"]["stages"]
+    # A registered lifecycle cannot silently downgrade to a pre-lifecycle root.
+    registered, _ = _navigation_registrations()
+    lifecycle = lifecycle_navigation(router, registered=registered)
+    router_source = "core/workflow_router.yaml" if lifecycle else "core/workflow_router.yaml#reading_policy"
     lines = [
         "# Stage Reading Guide (generated navigation)",
         "",
-        "Generated from `core/workflow_router.yaml#reading_policy` and",
+        f"Generated from `{router_source}` and",
         "`core/writing_runtime_contract.yaml#template_first_progressive_authoring.stages`.",
         "This is a source and conditional pointer inventory, not source text,",
         "a duplicate phase registry, proof of reading, an approval, or a gate result.",
@@ -256,6 +420,8 @@ def stage_reading_guide_text() -> str:
 
     for entry in reading.get("common_reads", []):
         lines.append(render(entry, "read_now"))
+    if lifecycle:
+        lines += [""] + lifecycle
     lines += ["", "## Routing profiles (selection belongs to the resolver)", ""]
     for name, profile in reading.get("profiles", {}).items():
         lines += [f"### {name}", ""]
@@ -285,12 +451,19 @@ def generated_payloads() -> dict[Path, str]:
         ROOT / "core" / "workflow_router.yaml",
         ROOT / "core" / "writing_runtime_contract.yaml",
     )
+    _, body_interface_registered = _navigation_registrations()
+    sources_present = all(path.is_file() for path in guide_sources)
+    if body_interface_registered and not sources_present:
+        missing = ", ".join(path.relative_to(ROOT).as_posix()
+                            for path in guide_sources if not path.is_file())
+        raise FileNotFoundError(f"registered read_stage interface requires guide source: {missing}")
     # Archived and isolated roots may predate this guide's two canonical sources.
-    # Preserve their legacy generated-output contract; a partially available but
-    # malformed authority still fails closed inside stage_reading_guide_text().
+    # A historical routing pointer alone does not register the later body reader.
+    # Preserve their legacy output; registered missing sources fail above and
+    # malformed available authorities fail inside stage_reading_guide_text().
     guide_payload = (
         stage_reading_guide_text()
-        if all(path.is_file() for path in guide_sources)
+        if sources_present
         else None
     )
     files = iter_files()

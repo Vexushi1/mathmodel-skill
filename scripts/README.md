@@ -23,6 +23,7 @@ python scripts/resolve_runtime.py problem_analysis --objective explanation
 
 - `resolve_runtime.py`：默认 assured runtime 入口。在兼容旧 plan 字段及 `objective / structures / capabilities` 分类轴的基础上，可选读取 `--project-root` / `--question` 恢复 current project state，先检查全题项目后端策略，再按本次问题及实际恢复阶段验证 artifact hash，输出 intent provenance、ambiguity、declarative contract closure、authority fingerprint 与 `runtime_plan/assurance`；`auto` 或无状态兼容默认不写入项目选择。
 - `reading_plan.py`：由默认 resolver 调用，使用同一次 hydration 的原始状态快照生成带文件哈希与行范围的初始读取、条件资料和工具接口清单；读取选择服从 `core/workflow_router.yaml#reading_policy`，不改旧计划、不执行校验门、不写项目。
+- `read_stage.py`：只读消费现有 resolver 读取计划或写作阶段来源，返回指定文件的实际正文块、源身份和缺口；不裁决条件、不执行 gate、不写项目，使用边界见下节。
 - `resolve_workflow.py`：保留的无状态兼容 resolver；仍可直接解析显式 intent/classification/artifact-name 输入，但不负责 project-state hydration 或 artifact hash assurance。
 - `validate_semantic_governance.py`：检查 Problem Contract、题面—数学—代码—输出语义闭环、Complexity Sanity Check、semantic revision、跨问 typed dependency 与 paper-fragment stale；不运行赛题代码，也不恢复数值有效性。
 - `validate_model_approval.py`：在项目级预处理或主求解代码交付前，检查 `model_challenge_status=passed`、`human_model_approval_status=approved`，并要求 approved semantic revision / structured identity 与当前 semantic revision / structured identity 完全一致；旧 approved 记录发生语义漂移后只能作为 provenance，不能继续授权新主求解。
@@ -30,6 +31,18 @@ python scripts/resolve_runtime.py problem_analysis --objective explanation
 - `state_transitions.py`：纯内存执行 `core/state_transition_contract.yaml`；新增主求解／深化数值来源退役事件用于显式项目迁移的失效预览与传播，不选择后端、不归档、不撤换当前绑定，也不授权迁移。
 - `project_transaction.py`：复用项目锁、候选验证、generation 和可恢复日志；`commit_project_state` 可选接收 `expected_file_hashes`，绑定 state、所有伴随写入目标和已声明只读来源的原始字节（值为 null 表示必须不存在）。传入时要求规范项目相对路径；存在未清理事务日志先阻断，须明确恢复后重新捕获快照。省略参数的历史调用保持原恢复行为。准备日志后仍按已有 roll-forward 恢复；保护限于声明读集合及协作式锁，不代表数值验收或文件系统级全局原子快照。
 - `project_transaction.py` 的 `prepare_history_archive` / `verify_history_archive`：显式读集合的流式原始字节归档与只读复核，布局委托 `core/output_contract.yaml#backend_migration_history`，不识别数学资格或批准。准备失败保留并报告本次目录，不递归删除历史。`commit_project_state(preserved_archives=...)` 要求同时使用字节读集合，并以 journal v2 持久保存归档引用，在提交及恢复边界复核；无归档事务仍用 v1。恢复后再次读旧原始路径不是归档复核的前提；旧实现不支持 v2，存在 v2 日志时不得先降级。`project_solver_backend.py migrate` 同事务登记归档与报告引用至当前 `execution.backend_migration_history`。
+
+## 阶段正文读取
+
+读取与恢复统一服从 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol`。仅在助手具备执行工具、同版本完整 Skill 根和真实 resolver YAML 时使用下列接口；这不是用户本地 checker。`--source-commit` 使用该 Skill checkout 的完整 40 位 commit，`--path` 来自当前选定的来源：
+
+```text
+python scripts/read_stage.py --root <同版本Skill根> --plan <当前resolver.yaml> --source-commit <40位commit> --surface read_now --path core/hsk_core_policy.md --chunk-index 0
+```
+
+按返回的 `chunk_count` 逐块取得，并核对 `required_ranges` 与全部已返回块的累计覆盖、源身份及 `coverage_issues`；单个块的 `remaining_ranges` 只描述该次返回的缺口。`writing_stage` 还需传入现有写作阶段的 `--stage-id`，`conditional` 需传入已按当前事实裁决的 `--condition`；未知条件仍为未解决。接口只返回正文，不执行门禁，也不以退出码 0 证明整个阶段通过。
+
+只有 GitHub 读取工具时，用同一固定 commit 的 `core/stage_reading_guide.md` 定位原 Authority，保留前言／父级适用语并分段补齐；导航中的 raw 候选来源不替代当前批准、执行等待点或实际项目事实。可复制的 GPT 全局指令仅维护于 [计划 §13](../docs/stage_reading_execution_refactor_plan.md#132-可复制正文)。
 
 ## 代码与用户执行
 

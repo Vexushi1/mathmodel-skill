@@ -4,9 +4,9 @@
 
 ## 启动与恢复
 
-1. 先读 `core/bootstrap.yaml`，再运行 `scripts/resolve_runtime.py` 解析当前意图；只加载 resolver 命中的 contracts、modules、packs 和 templates。`scripts/resolve_workflow.py` 仅作无状态兼容入口。
-2. 已有项目时把 project root 交给 runtime resolver。当前语义与证据位置优先从 `模型论文框架.md` 恢复；revision/structured identity/text provenance/stale 以 `state/project_state.yaml` 为准；具体数值必须回到 accepted workbook 核对。
-3. 不依据旧聊天、历史计划或 `legacy/` 猜测 current 规则；legacy 只用于追溯和兼容。
+1. 先确认本项目使用的固定版本／commit 并读 `core/bootstrap.yaml`。具备执行工具、同版本完整资源根、依赖及必要项目材料时，再运行 `scripts/resolve_runtime.py` 解析当前意图；只加载当前适用的 contracts、modules、packs 和 templates。只有 GitHub 读取工具时，用 `core/stage_reading_guide.md` 定位该 commit 的原 Authority，不虚构 resolver 输出或已执行的 gate。`scripts/resolve_workflow.py` 仅作无状态兼容入口。
+2. 已有项目且 resolver 可执行时传入 project root。当前语义与证据位置优先从 `模型论文框架.md` 恢复；revision/structured identity/text provenance/stale 以 `state/project_state.yaml` 为准；具体数值必须回到 accepted workbook 核对。
+3. 当前动作的实际正文、条件补读及新阶段／问／章、图设计和恢复时重取，统一遵守 `core/runtime_assurance_contract.yaml#reading_plan.consumer_protocol`；正文工具用法见 `scripts/README.md#阶段正文读取`。不依据旧聊天、历史计划或 `legacy/` 猜测 current 规则；legacy 只用于追溯和兼容。可复制的 GPT 全局指令见 [计划 §13](docs/stage_reading_execution_refactor_plan.md#132-可复制正文)，不在这里另维护一份。
 
 ## 执行硬边界
 

@@ -155,15 +155,16 @@ def select_sources(
 def verify_writing_source_commit(
     root: Path, row: dict[str, Any], selected_commit: str,
 ) -> None:
-    """Bind dynamically selected writing-stage bytes to the pinned Git commit.
+    """Bind selected Skill source bytes to the pinned Git commit.
 
-    Writing stages list symbolic paths/anchors rather than a resolver-produced
-    source digest. A digest captured from the current working tree would only
-    compare that tree to itself, allowing dirty files to impersonate HEAD.
+    Keep the compatibility name for existing callers. Every reading surface
+    needs this check: a digest captured from the current working tree would
+    otherwise compare that tree to itself, allowing dirty files to impersonate
+    HEAD even when the plan was built after the source became dirty.
     """
     actual = SourceReader(root).describe({"path": row["path"]})
     if actual["sha256"] != row["sha256"]:
-        raise ValueError(f"writing-stage source SHA-256 differs from reading plan: {row['path']}")
+        raise ValueError(f"source SHA-256 differs from reading plan: {row['path']}")
     result = subprocess.run(
         ["git", "-C", str(root), "show", f"{selected_commit}:{row['path']}"],
         capture_output=True, check=False,
@@ -171,7 +172,7 @@ def verify_writing_source_commit(
     if result.returncode != 0:
         raise ValueError(f"selected commit source could not be verified: {row['path']}")
     if hashlib.sha256(result.stdout).hexdigest() != row["sha256"]:
-        raise ValueError(f"writing-stage source SHA-256 differs from selected commit: {row['path']}")
+        raise ValueError(f"source SHA-256 differs from selected commit: {row['path']}")
 
 
 def source_chunks(
@@ -220,8 +221,7 @@ def extract(
     row = candidates[0]
     if row.get("origin") == "project":
         raise ValueError("project source requires its separate verified project root")
-    if surface == "writing_stage":
-        verify_writing_source_commit(root, row, selected_commit)
+    verify_writing_source_commit(root, row, selected_commit)
     review_binding = validate_review_rows(root, rows)
     if review_binding is not None:
         # Legacy-plan rows cannot invent leaf hashes at extraction time. New
@@ -230,7 +230,7 @@ def extract(
         verify_writing_source_commit(root, review_binding, selected_commit)
         rolepaths = set((canonical_rolepaths(root) or {}).values())
         for current in rows:
-            if current["path"] in rolepaths and not (surface == "writing_stage" and current is row):
+            if current["path"] in rolepaths and current is not row:
                 verify_writing_source_commit(root, current, selected_commit)
     chunks = source_chunks(root, row, selected_commit, chunk_lines)
     if chunk_index < 0 or chunk_index >= len(chunks):
