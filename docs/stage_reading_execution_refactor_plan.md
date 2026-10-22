@@ -473,7 +473,7 @@ modules/06_review/final_delivery.md      拟新增：仅终稿的上下文、覆
 | P1 读取边界与唯一来源 | 已完成并合并：PR #272，合并提交 `05b873bf3eb7944cf702ab1585f03a1587b8102c`，合并后 CI run #39214790013 通过 | 如发现来源映射或兼容缺陷，按实际影响单独修复，不重复实施已完成范围 |
 | P2 提取与绘图／写作试点 | 已完成并合并：PR #273，v10.21.0，merge `a944de224ac967b7d4b76f8ce411eaef9a71e7b2`；最终 head full CI #39541737189、Optimization #39541737186 及合并后 main CI #39552530400 均成功 | 来源读取不代表项目条件已裁决；缺少 State 的 conditional 仍不能推定不适用 |
 | P3 Module 06 拆分 | 已完成并合并：[PR #274](https://github.com/Vexushi1/mathmodel-skill/pull/274)，v10.22.0，merge `e346d1a1919272a8bfd5344ad8c7d446ed02e7be`；最终 head full CI #39587360559、Optimization #39587360494 及 main CI #39590192042 均成功；详见 [来源迁移](module06_source_migration.md) | 不重复拆分；仍保留全部质量标准、旧入口及真实正文闭包 |
-| P4 全流程覆盖、恢复验证与发布收口 | 用户已授权；目标 v10.23.0，基线 e346d1a；范围、受控试用与实际验收索引见 [P4 验证记录](stage_reading_p4_validation.md) | 以该记录关联 PR 的最终 head／合并／main 实际结果判定完成；保留合法全量回退，Release／tag 未包含在本批授权内 |
+| P4 全流程覆盖、恢复验证与发布收口 | 用户已授权；目标 v10.23.0，基线 e346d1a；实现与验收见 [PR #275](https://github.com/Vexushi1/mathmodel-skill/pull/275)，范围与受控试用索引见 [P4 验证记录](stage_reading_p4_validation.md) | 以关联 PR 的最终 head／合并／main 实际结果判定完成；保留合法全量回退，Release／tag 未包含在本批授权内 |
 
 下一次接手可使用：
 
