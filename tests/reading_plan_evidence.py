@@ -1369,11 +1369,17 @@ def approved_v10231_design_scope_gate_changes(identifier, old, new):
         return result
 
     try:
+        available_after_plan = without_once(old["available_after_plan"], removed_outputs)
+        if identifier == "facts_hash_drift" and available_after_plan is not None:
+            available_after_plan = without_once(
+                available_after_plan,
+                ("accepted_result_analysis_workbook", "result_analysis_workbook", "validated_results"),
+            )
         expected_specs = [
             (("pre_delivery_gates",), []),
             (("sync_required_before_delivery",), False),
             (("terminal_outputs",), without_once(old["terminal_outputs"], removed_outputs)),
-            (("available_after_plan",), without_once(old["available_after_plan"], removed_outputs)),
+            (("available_after_plan",), available_after_plan),
             (("contracts",), replace_before(
                 old["contracts"], removed_contracts, "core/user_execution_contract.yaml",
                 "core/numerical_verification_contract.yaml",
@@ -1425,11 +1431,18 @@ def approved_v10231_design_scope_gate_changes(identifier, old, new):
         for key in path[:-1]:
             target = target[key]
         target[path[-1]] = deepcopy(baseline)
+        path_approval = approval
+        if identifier == "facts_hash_drift" and path == ("available_after_plan",):
+            path_approval = (
+                "Exact composition of A3 AUD-03 hash-drift revocation and the v10.23.1 "
+                "framework_sync/design-scope gate projection; only declared revoked artifacts "
+                "and the two gate-derived outputs are removed"
+            )
         changes.append({
             "path": ".".join(map(str, path)),
             "baseline": deepcopy(baseline),
             "candidate": deepcopy(candidate),
-            "approval": approval,
+            "approval": path_approval,
         })
     return projected, changes
 

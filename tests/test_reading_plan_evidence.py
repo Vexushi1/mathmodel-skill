@@ -1674,6 +1674,23 @@ class AuditClosureProjectionTests(unittest.TestCase):
             self.assertEqual(left, right, path)
         self.assertEqual({item["path"] for item in changes}, expected_paths)
         self.assertTrue(all("framework_sync/design-scope" in item["approval"] for item in changes))
+
+        old_hash = deepcopy(old)
+        new_hash = deepcopy(new)
+        revoked = {"accepted_result_analysis_workbook", "result_analysis_workbook", "validated_results"}
+        gate_outputs = {"semantic_governance_report", "project_state", "sync_report"}
+        old_hash["available_after_plan"] = [*revoked, *old_hash["available_after_plan"]]
+        new_hash["available_after_plan"] = [
+            item for item in old_hash["available_after_plan"] if item not in revoked | gate_outputs
+        ]
+        projected_hash, hash_changes = EVIDENCE.approved_v10231_design_scope_gate_changes(
+            "facts_hash_drift", old_hash, new_hash,
+        )
+        self.assertEqual(projected_hash["available_after_plan"], old_hash["available_after_plan"])
+        hash_available_change = next(item for item in hash_changes if item["path"] == "available_after_plan")
+        self.assertIn("A3 AUD-03", hash_available_change["approval"])
+        self.assertEqual({item["path"] for item in hash_changes}, expected_paths)
+
         partial = deepcopy(new)
         partial["sync_required_before_delivery"] = True
         self.assertEqual(EVIDENCE.approved_v10231_design_scope_gate_changes(
