@@ -1,4 +1,4 @@
-skill_version: 10.23.0
+skill_version: 10.23.1
 bootstrap_schema_version: 1.1.0
 purpose: >-
   Read first, load workflow_router.default_load, and use
@@ -39,6 +39,7 @@ startup_contract:
   rules:
     - Bootstrap stores startup pointers; global rules live in core/hsk_core_policy.md.
     - Load route contracts only when needed.
+    - Competition profiles, competition packs and templates are optional adapters; missing contest-specific resources must fall back to generic modeling/writing rules rather than block problem analysis or solving.
     - For reading_plan, use read_now then conditional triggers; load_order remains compatibility inventory. Execute every pre_delivery_gate. See core/runtime_assurance_contract.yaml#reading_plan.
     - Context hydration, intent provenance, artifact assurance and contract closure follow core/runtime_assurance_contract.yaml.
     - Load resolver manifests and taxonomies only when the route needs them.
