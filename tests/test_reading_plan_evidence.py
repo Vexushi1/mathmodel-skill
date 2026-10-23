@@ -1542,7 +1542,7 @@ class AuditClosureProjectionTests(unittest.TestCase):
         new["version"] = EVIDENCE.FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"]
         return old, new
 
-    def test_v10230_full_workflow_reading_carrier_preserves_pinned_predecessor_changes(self):
+    def test_v10231_full_workflow_reading_carrier_preserves_pinned_predecessor_changes(self):
         carriers = deepcopy(EVIDENCE.FULL_WORKFLOW_READING_AUTHORITY_VERSIONS)
         self.assertEqual(carriers, {
             **EVIDENCE.REVIEW_SPLIT_AUTHORITY_VERSIONS, "skill": "10.23.1",
@@ -1561,7 +1561,7 @@ class AuditClosureProjectionTests(unittest.TestCase):
                 self.assertTrue(row["legacy_behavior_equal_except_approved_changes"])
                 self.assertEqual(row["unexpected_legacy_changes"], [])
                 versions = [item for item in row["expected_legacy_changes"] if item["path"] == "version"]
-                self.assertEqual([item["candidate"] for item in versions], ["10.23.0"])
+                self.assertEqual([item["candidate"] for item in versions], ["10.23.1"])
                 self.assertEqual(versions[0]["authority_versions"], carriers)
                 reviews = [item["path"] for item in row["expected_legacy_changes"]
                            if item["path"].endswith((
@@ -1575,7 +1575,7 @@ class AuditClosureProjectionTests(unittest.TestCase):
                 ] if case == "cumcm_writing" else [])
                 self.assertEqual((old, new, carriers, EVIDENCE.REVIEW_SPLIT_WRITING_DELTAS), saved)
 
-    def test_v10230_full_workflow_carrier_rejects_unknown_carriers_and_runtime_changes(self):
+    def test_v10231_full_workflow_carrier_rejects_unknown_carriers_and_runtime_changes(self):
         carriers = EVIDENCE.FULL_WORKFLOW_READING_AUTHORITY_VERSIONS
         for case in ("facts_current", "cumcm_writing"):
             old, new = self.full_workflow_reading_pair(case)
