@@ -283,10 +283,15 @@ def resolve_runtime(
         field_provenance["competition"] = "explicit"
         state_competition = hydration.get("competition")
         profiles = load_yaml(COMPETITION_PROFILES_PATH)
-        if state_competition and _resolve_competition_profile(str(state_competition), profiles)[0] != _resolve_competition_profile(competition, profiles)[0]:
-            context_conflicts.append(
-                f"explicit competition {competition} differs from project state {state_competition}"
-            )
+        if state_competition:
+            state_profile = _resolve_competition_profile(str(state_competition), profiles)
+            explicit_profile = _resolve_competition_profile(competition, profiles)
+            state_name = state_profile[0] if state_profile else str(state_competition).strip().lower()
+            explicit_name = explicit_profile[0] if explicit_profile else competition.strip().lower()
+            if state_name != explicit_name:
+                context_conflicts.append(
+                    f"explicit competition {competition} differs from project state {state_competition}"
+                )
 
     if preprocessing_decision is None and hydration.get("preprocessing_decision"):
         preprocessing_decision = str(hydration["preprocessing_decision"])
