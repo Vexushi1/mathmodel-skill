@@ -1311,7 +1311,7 @@ def approved_review_split_carrier_change(identifier, old, new, candidate_authori
 
 
 def approved_full_workflow_reading_carrier_change(identifier, old, new, candidate_authority_versions):
-    """Register only v10.23.0; retain every pinned predecessor behavior check."""
+    """Register only v10.23.1; retain every pinned predecessor behavior check."""
     if (candidate_authority_versions != FULL_WORKFLOW_READING_AUTHORITY_VERSIONS
             or new.get("version") != FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"]):
         return deepcopy(new), []
@@ -1327,7 +1327,7 @@ def approved_full_workflow_reading_carrier_change(identifier, old, new, candidat
             change["candidate"] = FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"]
             change["authority_versions"] = deepcopy(FULL_WORKFLOW_READING_AUTHORITY_VERSIONS)
             change["approval"] = (
-                "Exact v10.23.0 full-workflow source-navigation and fixed-source reading carrier; "
+                "Exact v10.23.1 full-workflow source-navigation and fixed-source reading carrier; "
                 "no resolver decision, pause, selected read, qualification or gate is waived"
             )
     return projected, changes
