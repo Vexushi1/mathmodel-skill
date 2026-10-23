@@ -1575,6 +1575,110 @@ class AuditClosureProjectionTests(unittest.TestCase):
                 ] if case == "cumcm_writing" else [])
                 self.assertEqual((old, new, carriers, EVIDENCE.REVIEW_SPLIT_WRITING_DELTAS), saved)
 
+    def test_v10231_design_scope_gate_delta_is_exact_and_case_pinned(self):
+        old = {
+            "version": "10.22.0",
+            "intents": ["framework_sync"],
+            "delivery_scope": "design",
+            "pre_delivery_gates": [
+                {"name": "semantic_governance", "delivery_scope": "design"},
+                {"name": "project_sync", "delivery_scope": "design"},
+            ],
+            "sync_required_before_delivery": True,
+            "terminal_outputs": [
+                "model_paper_framework", "semantic_governance_report", "project_state", "sync_report",
+            ],
+            "available_after_plan": [
+                "model_paper_framework", "semantic_governance_report", "project_state", "sync_report",
+            ],
+            "contracts": [
+                "core/bootstrap.yaml", "core/model_approval_contract.yaml",
+                "core/numerical_verification_contract.yaml", "core/project_state.schema.yaml",
+                "core/state_transition_contract.yaml", "core/output_contract.yaml",
+            ],
+            "load_order": [
+                "core/bootstrap.yaml", "core/model_approval_contract.yaml",
+                "core/numerical_verification_contract.yaml", "core/project_state.schema.yaml",
+                "core/state_transition_contract.yaml", "core/output_contract.yaml",
+                "modules/01_problem_audit.md",
+            ],
+            "runtime_plan": {
+                "pre_delivery_gate_names": ["semantic_governance", "project_sync"],
+                "terminal_outputs": [
+                    "model_paper_framework", "semantic_governance_report", "project_state", "sync_report",
+                ],
+            },
+            "assurance": {"dependency_closure": {
+                "added_paths": [
+                    "core/task_taxonomy.yaml", "core/model_approval_contract.yaml",
+                    "core/numerical_verification_contract.yaml", "core/project_state.schema.yaml",
+                    "core/state_transition_contract.yaml", "core/output_contract.yaml",
+                ],
+                "required_aliases": [
+                    "taxonomy", "model_approval", "writing_reasoning", "numerical_verification",
+                    "project_state", "state_transition", "output",
+                ],
+                "required_paths": [
+                    "core/task_taxonomy.yaml", "core/model_approval_contract.yaml",
+                    "core/writing_reasoning_contract.yaml", "core/numerical_verification_contract.yaml",
+                    "core/project_state.schema.yaml", "core/state_transition_contract.yaml",
+                    "core/output_contract.yaml",
+                ],
+            }},
+        }
+        new = deepcopy(old)
+        new["version"] = "10.23.1"
+        new["pre_delivery_gates"] = []
+        new["sync_required_before_delivery"] = False
+        new["terminal_outputs"] = ["model_paper_framework"]
+        new["available_after_plan"] = ["model_paper_framework"]
+        new["contracts"] = [
+            "core/bootstrap.yaml", "core/model_approval_contract.yaml",
+            "core/user_execution_contract.yaml", "core/numerical_verification_contract.yaml",
+        ]
+        new["load_order"] = [
+            "core/bootstrap.yaml", "core/model_approval_contract.yaml",
+            "core/user_execution_contract.yaml", "core/numerical_verification_contract.yaml",
+            "modules/01_problem_audit.md",
+        ]
+        new["runtime_plan"]["pre_delivery_gate_names"] = []
+        new["runtime_plan"]["terminal_outputs"] = ["model_paper_framework"]
+        dependency = new["assurance"]["dependency_closure"]
+        dependency["added_paths"] = [
+            "core/task_taxonomy.yaml", "core/model_approval_contract.yaml",
+            "core/user_execution_contract.yaml", "core/numerical_verification_contract.yaml",
+        ]
+        dependency["required_aliases"] = [
+            "taxonomy", "model_approval", "user_execution", "writing_reasoning", "numerical_verification",
+        ]
+        dependency["required_paths"] = [
+            "core/task_taxonomy.yaml", "core/model_approval_contract.yaml",
+            "core/user_execution_contract.yaml", "core/writing_reasoning_contract.yaml",
+            "core/numerical_verification_contract.yaml",
+        ]
+        saved = deepcopy((old, new))
+        projected, changes = EVIDENCE.approved_v10231_design_scope_gate_changes(
+            "facts_current", old, new,
+        )
+        expected_paths = {
+            "pre_delivery_gates", "sync_required_before_delivery", "terminal_outputs",
+            "available_after_plan", "contracts", "load_order", "runtime_plan.pre_delivery_gate_names",
+            "runtime_plan.terminal_outputs", "assurance.dependency_closure.added_paths",
+            "assurance.dependency_closure.required_aliases", "assurance.dependency_closure.required_paths",
+        }
+        self.assertEqual(projected, old)
+        self.assertEqual({item["path"] for item in changes}, expected_paths)
+        self.assertTrue(all("framework_sync/design-scope" in item["approval"] for item in changes))
+        partial = deepcopy(new)
+        partial["sync_required_before_delivery"] = True
+        self.assertEqual(EVIDENCE.approved_v10231_design_scope_gate_changes(
+            "facts_current", old, partial,
+        ), (partial, []))
+        self.assertEqual(EVIDENCE.approved_v10231_design_scope_gate_changes(
+            "future_case", old, new,
+        ), (new, []))
+        self.assertEqual((old, new), saved)
+
     def test_v10231_full_workflow_carrier_rejects_unknown_carriers_and_runtime_changes(self):
         carriers = EVIDENCE.FULL_WORKFLOW_READING_AUTHORITY_VERSIONS
         for case in ("facts_current", "cumcm_writing"):

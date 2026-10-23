@@ -1310,12 +1310,139 @@ def approved_review_split_carrier_change(identifier, old, new, candidate_authori
     return projected, changes
 
 
+def approved_v10231_design_scope_gate_changes(identifier, old, new):
+    """Project only the pinned v10.23.1 framework_sync/design gate-scope transition."""
+    approved_cases = {
+        "facts_current", "facts_unscoped", "facts_model_change", "facts_ambiguous",
+        "facts_stale_framework", "facts_hash_drift", "facts_identity_drift",
+        "facts_stale_dependency",
+    }
+    if (
+        identifier not in approved_cases
+        or old.get("intents") != ["framework_sync"]
+        or new.get("intents") != ["framework_sync"]
+        or old.get("delivery_scope") != "design"
+        or new.get("delivery_scope") != "design"
+        or new.get("version") != FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"]
+    ):
+        return deepcopy(new), []
+
+    old_gates = old.get("pre_delivery_gates")
+    if (
+        not isinstance(old_gates, list)
+        or len(old_gates) != 2
+        or not all(isinstance(gate, dict) for gate in old_gates)
+        or [gate.get("name") for gate in old_gates] != ["semantic_governance", "project_sync"]
+        or any(gate.get("delivery_scope") != "design" for gate in old_gates)
+        or old.get("sync_required_before_delivery") is not True
+    ):
+        return deepcopy(new), []
+
+    removed_outputs = ("semantic_governance_report", "project_state", "sync_report")
+    removed_contracts = (
+        "core/project_state.schema.yaml",
+        "core/state_transition_contract.yaml",
+        "core/output_contract.yaml",
+    )
+    removed_aliases = ("project_state", "state_transition", "output")
+
+    def at(root, path):
+        value = root
+        for key in path:
+            value = value[key]
+        return value
+
+    def without_once(values, removed):
+        if not isinstance(values, list) or any(values.count(item) != 1 for item in removed):
+            return None
+        return [item for item in values if item not in removed]
+
+    def replace_before(values, removed, replacement, anchor):
+        result = without_once(values, removed)
+        if result is None or replacement in result:
+            return None
+        try:
+            index = result.index(anchor)
+        except ValueError:
+            return None
+        result.insert(index, replacement)
+        return result
+
+    try:
+        expected_specs = [
+            (("pre_delivery_gates",), []),
+            (("sync_required_before_delivery",), False),
+            (("terminal_outputs",), without_once(old["terminal_outputs"], removed_outputs)),
+            (("available_after_plan",), without_once(old["available_after_plan"], removed_outputs)),
+            (("contracts",), replace_before(
+                old["contracts"], removed_contracts, "core/user_execution_contract.yaml",
+                "core/numerical_verification_contract.yaml",
+            )),
+            (("load_order",), replace_before(
+                old["load_order"], removed_contracts, "core/user_execution_contract.yaml",
+                "core/numerical_verification_contract.yaml",
+            )),
+            (("runtime_plan", "pre_delivery_gate_names"), []),
+            (("runtime_plan", "terminal_outputs"), without_once(
+                old["runtime_plan"]["terminal_outputs"], removed_outputs,
+            )),
+            (("assurance", "dependency_closure", "added_paths"), replace_before(
+                old["assurance"]["dependency_closure"]["added_paths"], removed_contracts,
+                "core/user_execution_contract.yaml", "core/numerical_verification_contract.yaml",
+            )),
+            (("assurance", "dependency_closure", "required_aliases"), replace_before(
+                old["assurance"]["dependency_closure"]["required_aliases"], removed_aliases,
+                "user_execution", "writing_reasoning",
+            )),
+            (("assurance", "dependency_closure", "required_paths"), replace_before(
+                old["assurance"]["dependency_closure"]["required_paths"], removed_contracts,
+                "core/user_execution_contract.yaml", "core/writing_reasoning_contract.yaml",
+            )),
+        ]
+        baseline_values = [at(old, path) for path, _ in expected_specs]
+        actual_values = [at(new, path) for path, _ in expected_specs]
+    except (KeyError, IndexError, TypeError):
+        return deepcopy(new), []
+
+    if any(expected is None for _, expected in expected_specs):
+        return deepcopy(new), []
+    if all(actual == baseline for actual, baseline in zip(actual_values, baseline_values)):
+        return deepcopy(new), []
+    if any(actual != expected for actual, (_, expected) in zip(actual_values, expected_specs)):
+        return deepcopy(new), []
+
+    approval = (
+        "Exact v10.23.1 framework_sync/design-scope transition: remove only the declared "
+        "semantic_governance/project_sync gates and their derived contract/output projections; "
+        "all other resolver decisions and delivery gates remain checked"
+    )
+    projected = deepcopy(new)
+    changes = []
+    for (path, _), baseline, candidate in zip(expected_specs, baseline_values, actual_values):
+        if baseline == candidate:
+            continue
+        target = projected
+        for key in path[:-1]:
+            target = target[key]
+        target[path[-1]] = deepcopy(baseline)
+        changes.append({
+            "path": ".".join(map(str, path)),
+            "baseline": deepcopy(baseline),
+            "candidate": deepcopy(candidate),
+            "approval": approval,
+        })
+    return projected, changes
+
+
 def approved_full_workflow_reading_carrier_change(identifier, old, new, candidate_authority_versions):
-    """Register only v10.23.1; retain every pinned predecessor behavior check."""
+    """Register v10.23.1 plus only its exact framework_sync/design gate-scope delta."""
     if (candidate_authority_versions != FULL_WORKFLOW_READING_AUTHORITY_VERSIONS
             or new.get("version") != FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"]):
         return deepcopy(new), []
     predecessor = deepcopy(new)
+    predecessor, gate_changes = approved_v10231_design_scope_gate_changes(
+        identifier, old, predecessor,
+    )
     predecessor["version"] = REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"]
     projected, changes = approved_review_split_carrier_change(
         identifier, old, predecessor, deepcopy(REVIEW_SPLIT_AUTHORITY_VERSIONS),
@@ -1327,9 +1454,11 @@ def approved_full_workflow_reading_carrier_change(identifier, old, new, candidat
             change["candidate"] = FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"]
             change["authority_versions"] = deepcopy(FULL_WORKFLOW_READING_AUTHORITY_VERSIONS)
             change["approval"] = (
-                "Exact v10.23.1 full-workflow source-navigation and fixed-source reading carrier; "
-                "no resolver decision, pause, selected read, qualification or gate is waived"
+                "Exact v10.23.1 full-workflow source-navigation carrier plus the pinned "
+                "framework_sync/design gate-scope delta; no other resolver decision, pause, "
+                "selected read, qualification or gate is waived"
             )
+    changes.extend(gate_changes)
     return projected, changes
 
 
