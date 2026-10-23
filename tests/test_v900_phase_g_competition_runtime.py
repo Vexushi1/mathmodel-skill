@@ -223,7 +223,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 ) else current)
                 with self.assertRaises(AssertionError):
                     self._projection(declared)
-        for version in (None, "10.19.4", "10.20.6", "10.21.1", "10.22.1", "10.23.1", "10.24.0", "11.0.0"):
+        for version in (None, "10.19.4", "10.20.6", "10.21.1", "10.22.1", "10.23.0", "10.24.0", "11.0.0"):
             with self.subTest(version=version):
                 altered = copy.deepcopy(plan)
                 altered["version"] = version
@@ -337,6 +337,27 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 self.assertIn("core/writing_reasoning_contract.yaml", plan["load_order"])
                 self.assertNotIn("templates/latex/cumcm/hsk/template_manifest.yaml", plan["load_order"])
                 self.assertNotEqual((plan.get("writing_runtime") or {}).get("mode"), "compact")
+
+    def test_unknown_competition_uses_generic_writing_authority(self):
+        plan = self.runtime.resolve_runtime("latex", competition="Synthetic Contest")
+        self.assertIn("core/writing_reasoning_contract.yaml", plan["load_order"])
+        self.assertIn("packs/competition/auto.md", plan["packs"])
+        self.assertNotIn(
+            "templates/latex/cumcm/hsk/template_manifest.yaml",
+            plan["load_order"],
+        )
+        self.assertNotEqual((plan.get("writing_runtime") or {}).get("mode"), "compact")
+
+    def test_nonwriting_route_does_not_require_competition_writing_profile(self):
+        plan = self.runtime.resolve_runtime(
+            "new_problem_design",
+            competition="Synthetic Contest",
+        )
+        self.assertIn("packs/competition/auto.md", plan["packs"])
+        self.assertNotIn(
+            "templates/latex/cumcm/hsk/template_manifest.yaml",
+            plan["load_order"],
+        )
 
     def test_profiles_declare_runtime_modes(self):
         profiles = self.profiles["profiles"]
