@@ -64,7 +64,9 @@ def resolve_competition_pack(token: str | None, profiles: dict[str, Any]) -> str
         aliases = [name, *config.get("aliases", [])]
         if normalized in {str(item).lower() for item in aliases}:
             return config.get("stable", {}).get("competition_pack")
-    raise ValueError(f"unknown competition: {token}")
+    # Competition-specific packs are optional adapters. The caller already has a
+    # generic pack fallback; an unknown competition must not block mathematical work.
+    return None
 
 
 def matched_inference_keywords(request: str, router: dict[str, Any]) -> dict[str, list[str]]:
@@ -580,9 +582,9 @@ def resolve_workflow(
         if route.get("load_competition_pack"):
             pack = resolve_competition_pack(competition, load_yaml(competition_path))
             paths.append(pack or "packs/competition/auto.md")
-        if route.get("load_classified_task_packs"):
-            if not task_packs:
-                raise ValueError(f"intent {intent} requires objective/structures or legacy primary label")
+        if route.get("load_classified_task_packs") and task_packs:
+            # Task packs refine the general classifier; explicit classification is not
+            # a prerequisite for starting a fresh problem analysis/model-design route.
             paths.extend(f"packs/task/{label}.md" for label in task_packs)
     if any(router["routing"][name].get("load_proposition_pack") for name in resolved_intents):
         paths.append("packs/artifact/proposition_proof.md")
@@ -653,10 +655,13 @@ def resolve_workflow(
         paths.extend(module_paths)
     non_modules = [path for path in unique(paths) if not path.startswith("modules/")]
     ordered = unique([*non_modules, *module_paths])
+    delivery_scope = highest_scope(route_scopes)
     if formal_delivery:
         module_terminal_outputs.append("model_paper_framework")
-        explicit_gates.extend(router.get("execution_contract", {}).get("formal_delivery_gates", []))
-    delivery_scope = highest_scope(route_scopes)
+        # Design/framework outputs are intermediate work products, not final delivery.
+        # Run generic formal-delivery gates only for actual paper/review/submission scopes.
+        if delivery_scope != "design":
+            explicit_gates.extend(router.get("execution_contract", {}).get("formal_delivery_gates", []))
     gates = gate_plan(explicit_gates, manifest, delivery_scope)
 
     missing, produced_after_modules = prerequisite_report(
