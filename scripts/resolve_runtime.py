@@ -76,9 +76,11 @@ def _apply_profile_writing_runtime(
     if not intents or not competition:
         return plan
 
-    # Do not resolve competition writing configuration for non-writing routes.
-    # This keeps an optional template/profile from becoming a solver prerequisite.
+    # Template-first runtime is specific to the LaTeX adapter. Do not even load
+    # writing-runtime configuration for non-LaTeX routes.
     load_order = list(plan.get("load_order", []))
+    if "modules/05_writing/latex.md" not in load_order:
+        return plan
     runtime = load_yaml(WRITING_RUNTIME_PATH)
     writing_module = runtime.get("writing_module", {}) or {}
     adapter = str(writing_module.get("latex_adapter") or "")
