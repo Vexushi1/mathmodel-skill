@@ -89,6 +89,29 @@ class TestRouterContract(unittest.TestCase):
         self.assertTrue(plan["pause_for_user_execution"])
         self.assertEqual(plan["pause_state"], "awaiting_user_execution")
 
+    def test_unknown_competition_and_unclassified_problem_use_generic_fallback(self):
+        plan = self.resolver.resolve_workflow(
+            "new_problem_design",
+            competition="Synthetic Contest",
+        )
+        self.assertIn("packs/competition/auto.md", plan["packs"])
+        self.assertIn("packs/task/classifier.md", plan["packs"])
+        self.assertFalse(plan["sync_required_before_delivery"])
+        self.assertNotIn(
+            "project_sync",
+            [item["name"] for item in plan["pre_delivery_gates"]],
+        )
+
+    def test_design_scope_does_not_run_final_delivery_gates(self):
+        plan = self.resolver.resolve_workflow(
+            "new_problem_design",
+            competition="Synthetic Contest",
+            available_artifacts=["locked_model_spec"],
+        )
+        self.assertEqual(plan["delivery_scope"], "design")
+        self.assertEqual(plan["pre_delivery_gates"], [])
+        self.assertFalse(plan["sync_required_before_delivery"])
+
     def test_nonformal_route_has_no_gate(self):
         plan = self.resolver.resolve_workflow("problem_analysis")
         self.assertEqual(plan["pre_delivery_gates"], [])
