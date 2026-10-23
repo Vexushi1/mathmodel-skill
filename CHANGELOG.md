@@ -7,7 +7,7 @@
 - Restrict generic formal-delivery gates to non-design scopes so intermediate model/framework work does not trigger final-delivery synchronization gates.
 - Add focused regressions for unknown competitions, missing classification, generic writing fallback and design-scope gate applicability.
 
-## 10.23.0
+## Previous release: 10.23.0
 
 - Extend generated reading navigation to the existing runtime routes, conditional execution boundaries and project-memory recovery rules. Keep route inventories distinct from the current resolved read set; preserve legitimate full-reading fallbacks and existing approval, user-execution and delivery gates.
 - Verify selected Git source bytes for ordinary read_now and conditional extraction as well as writing stages. A plan captured from an already-dirty source cannot impersonate the pinned commit; the body-reader CLI and response fields remain compatible.
