@@ -37,7 +37,7 @@ that route and do not preload their resources or establish qualification.
 | `claim_consumption_audit` | `core/workflow_router.yaml#routing.claim_consumption_audit` | — |
 | `claim_evidence_audit` | `core/workflow_router.yaml#routing.claim_evidence_audit` | — |
 | `conformance_audit` | `core/workflow_router.yaml#routing.conformance_audit` | — |
-| `new_problem_design` | `core/workflow_router.yaml#routing.new_problem_design` | roles=`model_approval`; task-specific packs load when classification is available; otherwise use the generic classifier; unknown competition falls back to `packs/competition/auto.md` |
+| `new_problem_design` | `core/workflow_router.yaml#routing.new_problem_design` | roles=`model_approval`; load_classified_task_packs=`true`; load_competition_pack=`true` |
 | `framework_sync` | `core/workflow_router.yaml#routing.framework_sync` | — |
 | `project_sync` | `core/workflow_router.yaml#routing.project_sync` | — |
 | `proposition_proof` | `core/workflow_router.yaml#routing.proposition_proof` | load_proposition_pack=`true` |
