@@ -409,7 +409,7 @@ PR #276 已于 2026-10-23T18:01:38Z 合并，合并提交为 `75d772c84b75290f59
 - [x] PR #276 最终源 head 与 PR diff 已复核；完整 CI 与适用 Optimization baseline 均通过。
 - [x] 自动生成元数据刷新成功，合并后 main 为 `75d772c84b75290f59f79b4d3e1eb2747e4eb3ec`，Skill 版本为 v10.23.1。
 - [x] PR #276 已合并；最新 Release 仍为 v10.23.0，未创建新 Release。
-- [ ] 合并后 main 的完整 CI `39999918643` 完成并通过。
+- [x] 合并后 main 的完整 CI `39999918643` 已完成并通过（完整 Python 3.10/3.14 汇总、MATLAB 原生契约、LaTeX 专项、静态与生成检查均成功）。
 - [ ] 更新并合并本计划 PR #277；随后从经核验的最新 main 创建阶段 B 实现分支。
 
 PR #276 合并后，阶段 A 的代码验收和合并动作已完成；在 main CI 与计划分支同步完成前，不把整个前置阶段标记为完全关闭。
@@ -515,7 +515,7 @@ PR #276 合并后，阶段 A 的代码验收和合并动作已完成；在 main 
 | 最新 Release | `v10.23.0`，仍指向 `2c79599b80763a8840a4b0ee79f85271f9234c6a`；v10.23.1 尚未发布 |
 | 前置 PR #276 | 源 head `b049ca8cd9718d50a070ad0d9b33a2a3351cebed`；合并 SHA `75d772c84b75290f59f79b4d3e1eb2747e4eb3ec` |
 | PR #276 源 head 验收 | [HSK Skill CI #39991170816](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39991170816) 与 [Optimization baseline #39991174320](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39991174320) 均通过 |
-| 合并后验证 | [main CI #39999918643](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39999918643) 在记录编写时仍在执行；[生成元数据刷新 #39999918645](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39999918645) 已通过 |
+| 合并后验证（记录时） | [main CI #39999918643](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39999918643) 当时仍在执行；[生成元数据刷新 #39999918645](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39999918645) 已通过 |
 | 开放 PR | 仅 PR #277（本计划文档），Draft，基于旧 main；其源文件为本计划，另含生成的 `MANIFEST.sha256` 与 `SKILL_FILE_INDEX.md` |
 | 相关旧分支 | `fix/v10.20.5-stage-reading-consumption` 与 `refactor/v900-state-transition-engine` 有历史 diff，但均无开放 PR、相对 main 已明显落后；不自动合并、不作为新实现基线 |
 | 重叠顺序 | 先同步并完成计划 PR #277，再创建阶段 B 代码分支；所有生成文件由 `refresh-generated` 维护，不手工编辑 |
@@ -568,3 +568,18 @@ PR #276 合并后，阶段 A 的代码验收和合并动作已完成；在 main 
 3. 默认 `resolve_runtime.py` 通过 `resolve_intent_assurance` 保持显式 intent 权威；旧 `resolve_workflow.py` 仍保留经测试的兼容性推断并集与 paper-carrier 例外。不能仅为统一代码风格而抹平二者的既有边界。
 4. route/runtime-segment 存在部分相同的 gate 声明，但 resolver 按当前有效边界组合并去重；下一阶段只修复有可复现行为差异或真实重复副作用的路径，不根据文本重复直接删声明。
 5. 本记录不是阶段 B 通过证明。阶段 B 仍须建立独立代码 PR，并以 G01—G18、R01—R06、原路由回归和六领域验收作为证据；所有未执行检查保持未完成状态。
+
+
+### 11.6 合并后核验与阶段 B 的首个可复现缺陷
+
+**合并后 main 核验已完成：** [HSK Skill CI #39999918643](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39999918643) 最终结论为 `success`，实际 checkout 的 source head 与 main 合并 SHA 一致。完整 Python 3.10/3.14 shard 汇总、MATLAB R2024b native solver contracts、Production LaTeX attestation、LaTeX CUMCM/MCM-ICM/Diangong、Static contract lint 与 Generated file contract 均通过；没有失败 job。至此，PR #276 的合并后验收完成。
+
+阶段 B 审计确认一个可复现的策略冲突，作为首个最小实现目标：
+
+- `core/writing_runtime_contract.yaml#cross_file_chapter_handoff.activation.non_cumcm_or_missing_manifest` 明确声明 `full_reasoning_fallback`。
+- 当前 `scripts/resolve_runtime.py::_apply_profile_writing_runtime` 在已识别的 Template-First profile 指向一个不存在的 manifest 时抛出 `ValueError`，使可选模板资源缺失阻断整个 LaTeX route；这与现有 Authority 不一致。
+- 修复边界：manifest **字段未声明**或 runtime profile 不完整时仍按现有 fail-closed 规则处理；仅当 manifest 路径已声明但文件不存在时，保留通用 `core/writing_reasoning_contract.yaml`，不注册缺失 manifest、不进入 compact runtime，并按通用写作 Authority 继续。
+- 新回归必须覆盖缺失文件场景，并保持现有 CUMCM manifest 存在时的 compact runtime、其他竞赛的 full reasoning fallback、非写作路由延迟加载行为不变。
+- 门禁审计没有发现足以支持删除 gate 声明的重复副作用证据。当前 resolver 按首次出现顺序去重，reading plan 保留有效 gate 列表；阶段 B 将增加 G17 多正式意图场景的顺序/去重回归，不改变 gate 适用性或削弱检查。
+
+阶段 B 的实现分支必须从通过合并后 CI 的 `main@75d772c84b75290f59f79b4d3e1eb2747e4eb3ec` 起建；本计划 PR 只维护文档，禁止在此分支叠加运行时代码。
