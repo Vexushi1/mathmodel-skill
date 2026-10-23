@@ -1,5 +1,12 @@
 # Changelog
 
+## 10.23.1
+
+- Make competition-specific packs and writing profiles optional adapters: unknown competitions use the generic competition pack and generic writing authority instead of blocking modeling or solving.
+- Allow fresh problem-design routes to proceed with the general classifier when explicit task classification is not yet available.
+- Restrict generic formal-delivery gates to non-design scopes so intermediate model/framework work does not trigger final-delivery synchronization gates.
+- Add focused regressions for unknown competitions, missing classification, generic writing fallback and design-scope gate applicability.
+
 ## 10.23.0
 
 - Extend generated reading navigation to the existing runtime routes, conditional execution boundaries and project-memory recovery rules. Keep route inventories distinct from the current resolved read set; preserve legitimate full-reading fallbacks and existing approval, user-execution and delivery gates.
