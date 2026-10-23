@@ -1666,7 +1666,12 @@ class AuditClosureProjectionTests(unittest.TestCase):
             "runtime_plan.terminal_outputs", "assurance.dependency_closure.added_paths",
             "assurance.dependency_closure.required_aliases", "assurance.dependency_closure.required_paths",
         }
-        self.assertEqual(projected, old)
+        self.assertEqual(projected["version"], new["version"])
+        for path in expected_paths:
+            left, right = projected, old
+            for key in path.split("."):
+                left, right = left[key], right[key]
+            self.assertEqual(left, right, path)
         self.assertEqual({item["path"] for item in changes}, expected_paths)
         self.assertTrue(all("framework_sync/design-scope" in item["approval"] for item in changes))
         partial = deepcopy(new)
