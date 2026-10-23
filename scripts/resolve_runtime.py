@@ -42,7 +42,7 @@ def _unique(items: Iterable[str | None]) -> list[str]:
 
 def _resolve_competition_profile(
     token: str, profiles: dict[str, Any]
-) -> tuple[str, dict[str, Any], dict[str, Any]]:
+) -> tuple[str, dict[str, Any], dict[str, Any]] | None:
     normalized = token.strip().lower()
     for name, config in (profiles.get("profiles", {}) or {}).items():
         aliases = [name, *(config.get("aliases", []) or [])]
@@ -56,7 +56,9 @@ def _resolve_competition_profile(
                 "declare template_first_progressive or full_reasoning_fallback"
             )
         return str(name), config, runtime_profile
-    raise ValueError(f"unknown competition profile for writing runtime: {token}")
+    # An unknown competition uses the generic writing authority already declared by
+    # the route. Competition-specific template-first behavior is an optional adapter.
+    return None
 
 
 def _apply_profile_writing_runtime(
@@ -74,10 +76,24 @@ def _apply_profile_writing_runtime(
     if not intents or not competition:
         return plan
 
+    # Template-first runtime is specific to the LaTeX adapter. Do not even load
+    # writing-runtime configuration for non-LaTeX routes.
+    load_order = list(plan.get("load_order", []))
+    if "modules/05_writing/latex.md" not in load_order:
+        return plan
+    runtime = load_yaml(WRITING_RUNTIME_PATH)
+    writing_module = runtime.get("writing_module", {}) or {}
+    adapter = str(writing_module.get("latex_adapter") or "")
+    if not adapter or adapter not in load_order:
+        return plan
+
     profile_payload = profiles if profiles is not None else load_yaml(COMPETITION_PROFILES_PATH)
-    profile_name, _profile, runtime_profile = _resolve_competition_profile(
-        competition, profile_payload
-    )
+    profile_result = _resolve_competition_profile(competition, profile_payload)
+    if profile_result is None:
+        # The generic route already loads full writing reasoning authority. Leave that
+        # route intact rather than failing because no competition-specific profile exists.
+        return plan
+    profile_name, _profile, runtime_profile = profile_result
     mode = str(runtime_profile.get("mode") or "").strip()
     if mode == "full_reasoning_fallback":
         return plan
@@ -95,13 +111,6 @@ def _apply_profile_writing_runtime(
             f"competition profile {profile_name} compact_intents must be a subset of supported_intents"
         )
     if not intents.intersection(supported):
-        return plan
-
-    runtime = load_yaml(WRITING_RUNTIME_PATH)
-    writing_module = runtime.get("writing_module", {}) or {}
-    adapter = str(writing_module.get("latex_adapter") or "")
-    load_order = list(plan.get("load_order", []))
-    if not adapter or adapter not in load_order:
         return plan
 
     template_manifest = str(runtime_profile.get("template_manifest") or "").strip()
@@ -276,10 +285,15 @@ def resolve_runtime(
         field_provenance["competition"] = "explicit"
         state_competition = hydration.get("competition")
         profiles = load_yaml(COMPETITION_PROFILES_PATH)
-        if state_competition and _resolve_competition_profile(str(state_competition), profiles)[0] != _resolve_competition_profile(competition, profiles)[0]:
-            context_conflicts.append(
-                f"explicit competition {competition} differs from project state {state_competition}"
-            )
+        if state_competition:
+            state_profile = _resolve_competition_profile(str(state_competition), profiles)
+            explicit_profile = _resolve_competition_profile(competition, profiles)
+            state_name = state_profile[0] if state_profile else str(state_competition).strip().lower()
+            explicit_name = explicit_profile[0] if explicit_profile else competition.strip().lower()
+            if state_name != explicit_name:
+                context_conflicts.append(
+                    f"explicit competition {competition} differs from project state {state_competition}"
+                )
 
     if preprocessing_decision is None and hydration.get("preprocessing_decision"):
         preprocessing_decision = str(hydration["preprocessing_decision"])
