@@ -1581,7 +1581,7 @@ class AuditClosureProjectionTests(unittest.TestCase):
             old, new = self.full_workflow_reading_pair(case)
             for bad in (
                 None, {**carriers, "skill": "10.22.0"},
-                {**carriers, "skill": "10.23.1"},
+                {**carriers, "skill": "10.23.0"},
                 {**carriers, "runtime_assurance": "2.5.1"},
                 {**carriers, "project_state": "8.17.0"},
                 {**carriers, "undeclared_authority": "1.0.0"},
