@@ -42,7 +42,7 @@ def _unique(items: Iterable[str | None]) -> list[str]:
 
 def _resolve_competition_profile(
     token: str, profiles: dict[str, Any]
-) -> tuple[str, dict[str, Any], dict[str, Any]]:
+) -> tuple[str, dict[str, Any], dict[str, Any]] | None:
     normalized = token.strip().lower()
     for name, config in (profiles.get("profiles", {}) or {}).items():
         aliases = [name, *(config.get("aliases", []) or [])]
@@ -56,7 +56,9 @@ def _resolve_competition_profile(
                 "declare template_first_progressive or full_reasoning_fallback"
             )
         return str(name), config, runtime_profile
-    raise ValueError(f"unknown competition profile for writing runtime: {token}")
+    # An unknown competition uses the generic writing authority already declared by
+    # the route. Competition-specific template-first behavior is an optional adapter.
+    return None
 
 
 def _apply_profile_writing_runtime(
@@ -74,10 +76,22 @@ def _apply_profile_writing_runtime(
     if not intents or not competition:
         return plan
 
+    # Do not resolve competition writing configuration for non-writing routes.
+    # This keeps an optional template/profile from becoming a solver prerequisite.
+    load_order = list(plan.get("load_order", []))
+    runtime = load_yaml(WRITING_RUNTIME_PATH)
+    writing_module = runtime.get("writing_module", {}) or {}
+    adapter = str(writing_module.get("latex_adapter") or "")
+    if not adapter or adapter not in load_order:
+        return plan
+
     profile_payload = profiles if profiles is not None else load_yaml(COMPETITION_PROFILES_PATH)
-    profile_name, _profile, runtime_profile = _resolve_competition_profile(
-        competition, profile_payload
-    )
+    profile_result = _resolve_competition_profile(competition, profile_payload)
+    if profile_result is None:
+        # The generic route already loads full writing reasoning authority. Leave that
+        # route intact rather than failing because no competition-specific profile exists.
+        return plan
+    profile_name, _profile, runtime_profile = profile_result
     mode = str(runtime_profile.get("mode") or "").strip()
     if mode == "full_reasoning_fallback":
         return plan
@@ -95,13 +109,6 @@ def _apply_profile_writing_runtime(
             f"competition profile {profile_name} compact_intents must be a subset of supported_intents"
         )
     if not intents.intersection(supported):
-        return plan
-
-    runtime = load_yaml(WRITING_RUNTIME_PATH)
-    writing_module = runtime.get("writing_module", {}) or {}
-    adapter = str(writing_module.get("latex_adapter") or "")
-    load_order = list(plan.get("load_order", []))
-    if not adapter or adapter not in load_order:
         return plan
 
     template_manifest = str(runtime_profile.get("template_manifest") or "").strip()
