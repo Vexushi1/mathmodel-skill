@@ -1592,7 +1592,7 @@ class AuditClosureProjectionTests(unittest.TestCase):
                         case, old, new, bad,
                     ), (new, []))
             for field, value in (
-                ("version", "10.23.1"), ("version", "10.24.0"),
+                ("version", "10.23.0"), ("version", "10.24.0"),
                 ("formal_delivery", True), ("pause_state", "ready"),
                 ("pre_delivery_gates", []), ("load_order", ["scripts/read_stage.py"]),
                 ("modules", ["review_delivery"]),
