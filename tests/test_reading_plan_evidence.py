@@ -1545,7 +1545,7 @@ class AuditClosureProjectionTests(unittest.TestCase):
     def test_v10230_full_workflow_reading_carrier_preserves_pinned_predecessor_changes(self):
         carriers = deepcopy(EVIDENCE.FULL_WORKFLOW_READING_AUTHORITY_VERSIONS)
         self.assertEqual(carriers, {
-            **EVIDENCE.REVIEW_SPLIT_AUTHORITY_VERSIONS, "skill": "10.23.0",
+            **EVIDENCE.REVIEW_SPLIT_AUTHORITY_VERSIONS, "skill": "10.23.1",
         })
         self.assertEqual(EVIDENCE.REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"], "10.22.0")
         for case in (*sorted(EVIDENCE.A7_HYDRATED_PROVENANCE_CASES), "facts_unscoped", "cumcm_writing"):
