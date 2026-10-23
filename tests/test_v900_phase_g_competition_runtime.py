@@ -338,6 +338,27 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 self.assertNotIn("templates/latex/cumcm/hsk/template_manifest.yaml", plan["load_order"])
                 self.assertNotEqual((plan.get("writing_runtime") or {}).get("mode"), "compact")
 
+    def test_unknown_competition_uses_generic_writing_authority(self):
+        plan = self.runtime.resolve_runtime("latex", competition="Synthetic Contest")
+        self.assertIn("core/writing_reasoning_contract.yaml", plan["load_order"])
+        self.assertIn("packs/competition/auto.md", plan["packs"])
+        self.assertNotIn(
+            "templates/latex/cumcm/hsk/template_manifest.yaml",
+            plan["load_order"],
+        )
+        self.assertNotEqual((plan.get("writing_runtime") or {}).get("mode"), "compact")
+
+    def test_nonwriting_route_does_not_require_competition_writing_profile(self):
+        plan = self.runtime.resolve_runtime(
+            "new_problem_design",
+            competition="Synthetic Contest",
+        )
+        self.assertIn("packs/competition/auto.md", plan["packs"])
+        self.assertNotIn(
+            "templates/latex/cumcm/hsk/template_manifest.yaml",
+            plan["load_order"],
+        )
+
     def test_profiles_declare_runtime_modes(self):
         profiles = self.profiles["profiles"]
         self.assertEqual(profiles["cumcm"]["stable"]["writing_runtime"]["mode"], "template_first_progressive")
