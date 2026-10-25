@@ -282,26 +282,26 @@ PR #276 已于 2026-10-23T18:01:38Z 合并，合并提交为 `75d772c84b75290f59
 
 | 业务边界 | 当前实际要证明的事实 | 校验策略与阻断对象 |
 |---|---|---|
-| **首次交付代码、用户真实运行和主/深化工作簿第一次 accepted** | 哪份已批准模型、执行源码/依赖、输入、RUN_CONFIG/RUN_RECEIPT 实际产生何种数值证据 | **严格一次**：保留当前源码/输入/回执字节身份、适用代码质量/数值质量和一致性检查；发现真实问题不得放行 |
-| **accepted 之后的注释整理、代码精简、无关文件重命名及提交前清理** | 当前整理文件是否可读、基本语法/入口/必要依赖是否明显损坏；是否仍在声明原 accepted 结果 | **轻量**：只运行与本次整理直接有关的静态/文件检查，必要时提示差异；**不**把普通字节/路径漂移直接当作新数值执行，**不**因此自动使原工作簿及其数据图失效、强制回到 solve_validate、重新 Model Approval 或要求用户重跑。精简不代表已经证明与原计算逐字节或语义等价 |
+| **首次交付代码、用户真实运行和主/深化工作簿第一次 accepted** | 哪份已批准模型、执行源码/依赖、输入、RUN_CONFIG/RUN_RECEIPT 实际产生何种数值证据 | **每个新结果版本严格验收一次**：保留当前源码/输入/回执字节身份、适用代码质量/数值质量和一致性检查；发现真实问题不得放行。后续每次实质计算更新都建立新的运行身份并重新验收，不得把“只验收一次”理解为永久免检 |
+| **accepted 之后的注释整理、代码精简、无关文件重命名及提交前清理** | 当前整理文件是否可读、基本语法/入口/必要依赖是否明显损坏；是否仍在声明原 accepted 结果 | **轻量（不重跑模型/数值）**：只在最终整理版本上集中执行一次与本次交付有关的现有静态/文件检查。若求解源码将作为正式代码交付，仍执行 `core/code_quality_contract.yaml` 适用的静态质量检查；这不是重新进行模型挑战、人工批准、用户数值执行或主结果/深化分析质量门。**不**把普通字节/路径漂移直接当作新数值执行，**不**因此自动使原工作簿及其数据图失效、强制回到 `solve_validate`、重新 Model Approval 或要求用户重跑。精简不代表已经证明与原计算逐字节或语义等价 |
 | **绘图（含改色、版式、美化及导出）** | 实际读取的原 accepted 工作簿是否仍存在且身份、题号、表、字段、单位和数据语义正确；图是否忠实展示并符合当次需求 | **按图轻检**：读取工作簿及必要来源、检查必要字段/数值映射、图像可读性与真实输出；不重新执行求解代码、不默认触发代码交付/整套 gate，也不要求当前整理后的源码 hash 等于旧运行源码。正式图仍按实际证据/视觉要求审查，不额外重复审查无变化内容 |
 | **明确修改模型、公式/约束、计算算法、求解配置、数据或声称用新代码得出新结果** | 新计算世界是否有现行模型批准、输入、源码、回执及数值依据 | **按实际影响重新严格验收**：保留旧版本身份与结果作为历史证据，新版本走新的真实执行链；仅受影响小问和依赖下游重验，不因单个小问变化无差别全题重算 |
-| **最终提交源码或复现包** | 整理后的代码能否作为可读交付物，以及比赛是否要求用提交源码真正复现数值 | **分离检查**：普通代码附件做一次轻量可读性、语法/入口/必要文件检查，不要求与旧运行代码原始哈希相等；若声称已由该提交源码复现，或官方/复现包规则要求执行同一源码，则必须保留可核验的原运行版本或取得清理后源码的实际执行证据。官方 allowlist 和 manifest/zip 绑定仍按当前独立 Authority 验收，不为减负绕过赛规 |
+| **最终提交源码或复现包** | 整理后的代码能否作为可读交付物，以及比赛是否要求用提交源码真正复现数值 | **分离检查**：普通代码附件不必与旧运行代码原始哈希相等，但最终求解源码仍须通过 `core/code_quality_contract.yaml` 适用的现有静态质量检查；该检查不等于重新运行模型或数值质量门。若声称由提交源码复现，或官方/复现包规则要求提交源码与结果来自同一次执行，则必须保留可核验的原运行版本或取得整理后源码的实际执行证据。官方 allowlist 和 manifest/ZIP 绑定仍按当前独立 Authority 验收，不为减负绕过赛规 |
 
-**关键的数据生命周期**：一份 accepted 工作簿应保有“产生它的实际运行身份”（原代码/依赖/数据 SHA、回执及工作簿自身哈希）。日常编辑的是“整理/提交代码”，不自动覆盖该运行身份。绘图消费的是经核对后仍适用于当前主张的**既有已验收数值结果**，而不是声称“整理后的代码已经重新运行”。如无旧源码快照，仍可在有原工作簿/回执和当前数学主张适配证据时如实使用已有结果，但不得标榜整理后的源码是经该回执验证的精确复现版本。
+**关键的数据生命周期与身份不变量**：`primary_code_sha256`/`analysis_code_sha256` 与 `solver_execution.<stage>.bundle_sha256` 表示当前已交付源码身份；`solver_execution.<stage>.validated_bundle_sha256`、原 `RUN_RECEIPT`、工作簿自身 SHA-256 与相应已验证工作簿哈希绑定最后一次真实 accepted 执行。两类身份不能相互覆盖。清理后源码可有新哈希，但不得把旧回执重签为新代码、不得清空旧 `validated_bundle_sha256` 来掩盖身份差异，也不得把“最后一次执行 accepted”描述成“当前整理后的源码已执行”。绘图消费的是经核对后仍适用于当前数学主张的**既有 accepted 工作簿**；若没有旧源码字节快照，原 SHA 仍能标识运行身份，但不能单独保证重新复现。
 
-**最小实施原则**：优先在既有 resolver 的 delivery scope、`sync_project` 状态失效调用与 Figure 消费路径中区分“新执行资格”与“已验收结果只读消费”；重验触发由**真实计算更新请求、输入或结果事实改变**及原契约强阻断决定。不要把 Python AST/Matlab token 等价比较升级为每次精简/绘图必跑的新门禁，不新增每次编辑的豁免申请、人工签字、缓存 PASS 或第二套 state。无法判断整理是否改变数学行为时，可用旧工作簿做已限定来源的图和报告，但不能把未知的新代码版本宣称为已验收求解源码；是否需要重跑取决于用户是否要求**用新版本重新求解/提交可证明复现的执行链**及真实赛规，而非默认阻断所有后续工作。
+**最小实施原则**：优先在既有 resolver/交付 scope、`validate_code_delivery.py`、`sync_project.py`、`project_snapshot.py` 与 Figure 消费路径中区分“当前交付源码身份”“最后一次 accepted 执行身份”与“只读消费旧 accepted 工作簿”。只有当前任务明确属于非计算性整理、且模型语义身份/输入/原 accepted 工作簿未变时，才走轻量整理路径；不从哈希差异本身推断等价，也不将普通字节漂移自动当作一次新求解。若整理后的代码是否改变计算行为无法确定，旧工作簿只能作为**原 accepted 运行的证据**使用，不能声称新代码产生了这些结果；若当前模型/算法/输入或论文主张改变，走现有严格语义与数值验收路径。不得增加每次编辑的豁免申请、人工签字、缓存 PASS 或第二套 state。
 
 **问题来源与已确认调用链（2026-10-25 独立复核 main）：**
 
 - `core/user_execution_contract.yaml#code_bundle` 对入口、依赖的**原始字节与路径**计算哈希；代码交付、版本化回执和数值验收须匹配。本设计对新运行的来源追踪有独立价值，不允许删除或弱化。
 - `scripts/validate_code_delivery.py::update_state` 在 accepted 主求解的旧/新入口哈希不同或绑定变化且当前 phase 非 `solve_validate` 时拒绝重新交付；即使差异仅为注释，原始字节哈希也不同。
 - `scripts/validate_user_execution.py` 在接收回执时复核已交付源码、源码依赖、输入及代码 bundle；此处是**新计算验收**的原始来源校验，不应为了让旧工作簿画图而绕过。
-- `scripts/sync_project.py::_code_hash_mismatches/_snapshot_transition_events` 观察源码当前字节/路径与已交付身份差异后，可产生 `primary_code_changed` / `analysis_code_changed`；`core/state_transition_contract.yaml#profiles.primary_result` 会使主工作簿、深化分析、`matlab_script`、图集和框架进入 stale。此处可能把**非计算性文件变化**放大为下游重算/重验，须实测并改正适用范围。
+- `scripts/sync_project.py::_code_hash_mismatches/_snapshot_transition_events` 观察源码当前字节/路径与已交付身份差异后，可产生 `primary_code_changed` / `analysis_code_changed`；`core/state_transition_contract.yaml#profiles.primary_result` 与 `core/output_contract.yaml#project_sync.stale_propagation.primary_code` 会把主工作簿、深化分析、`matlab_script`、图集和框架传播为 stale。另一个阻断点是 `scripts/project_snapshot.py::_solver_observations` 在 accepted 状态下以 `require_validated=True` 调用 `stage_code.validate_stage_binding`，并将源码与已验收 bundle 不一致记为正式 figures scope 的错误。P6 必须同时审查这些 Authority 与消费者；不能只修 `validate_code_delivery.py` 或仅忽略一个检查器。
 - `scripts/stage_code.py::script_identity/resolve_stage_code` 和 `core/output_contract.yaml#per_question.solver_scripts` 明确标准求解入口文件名；`core/workbook_schema.yaml`、`core/user_execution_contract.yaml` 明确标准工作簿文件名与目录。当前路径并非单纯装饰属性，任意改名可能破坏阶段识别、输入路径、导入、MATLAB 调用和交付兼容。
 - `modules/04_figure_evidence.md` 已要求 `qX_plot.m` 直接消费实际合法的 accepted 工作簿（必要时条件消费 03B），不得重新运行主求解。因此**绘图读取事实**和**宣称新源码已经完成数值执行**是两种不同判断。
 
-**目标行为**：减少与当前数值结论无关的重复代码身份阻断；已验收工作簿未变、原计算结论仍适用于当前主张时，可直接作为真实数值证据绘制诊断图及正式论文图，不因后续提交代码的普通清理而强制重跑。正式图仍需工作簿来源、所用字段/单位/映射、实际导出和必要视觉审查；原运行身份保留，不将整理后的代码冒充已执行源码。用户通常不修改接口是减负偏好，不是自动证明实质改动无风险。
+**目标行为**：当任务明确是非计算性整理、当前模型语义身份与输入未变、原 accepted 工作簿/回执仍有效且论文主张仍对应原运行时，可直接把该工作簿用于诊断图及正式论文图，不因当前源码 SHA 变化而强制重跑。正式图仍需工作簿身份、质量门、字段/单位/映射、必要 03B 条件、实际导出和适用视觉审查。仅豁免“当前求解源码必须等于旧 accepted 执行源码”这一项；不得一揽子忽略 `project_snapshot` 的其他错误、输入变化、缺失/错误工作簿、质量门失败或语义身份 stale。原运行身份必须保留，不得把整理后的代码冒充已执行源码。
 
 **变更分级（仅在需要判断当前新代码能否取代原求解来源、或需要触发重算时使用；普通已验收工作簿绘图不以此分类为前置）：**
 
@@ -314,21 +314,22 @@ PR #276 已于 2026-10-23T18:01:38Z 合并，合并提交为 `75d772c84b75290f59
 
 **待实施的技术决策与边界：**
 
-1. **必须保留两种身份，而不是改用一个“语义哈希”替代所有字节哈希。** 原始源码+helper+输入+回执的精确绑定继续证明**当时运行了哪一版本**；若增加有限的非计算性分类，只用于判断是否有必要扩张 stale 与重算，不得把原 receipt 的哈希重写为新代码哈希。
-2. **分离执行证明、原结果复用与提交整理**：A) 新数值执行/回执验收仍校验本次真实源码字节、输入和计算结果；B) 对仍适用于当前主张的原 accepted 工作簿直接绘图和写论文，不因当前源码清理产生的字节变化一律回退为未验收；C) 最终整理源码只做必要的轻量工程/文件核对，不自动获得新执行证明。真实模型、数据或数值语义改变时才通过原状态转换精准处理失效，不擅自清除已发生的 genuine stale。
-3. **优先无新状态字段的最小修复**：先证实读图消费者误调用了何种代码门，或某状态失效传播过宽；考虑只读图形候选阶段放宽无关的**当前源码一致性前置条件**，并保留明确的旧运行 provenance。仅当 existing State 无法表达必要区别时，另立兼容/迁移明确的 Schema 方案，禁止为每次文本修改增加审批登记或“等价 PASS 缓存”。
-4. **不创建日常的“代码语义等价认证门”**。只有明确要求新提交源码取代原运行来源、或存在重要算法/配置修改时才分析差异；Python AST 或 MATLAB token/注释扫描最多是受限辅助诊断，不能单凭它们判定结果等价。普通精简/重命名/绘图不因无法提供该证明而被迫重跑。正式可复现声明仍须真实、可追溯的执行证据。
+1. **必须保留两种执行身份，而不是改用一个“语义哈希”替代所有字节哈希。** 当前交付源码的 SHA/bundle 与最后一次真实 accepted 执行的 `validated_bundle_sha256`、原 `RUN_RECEIPT` 和 accepted 工作簿哈希必须能同时追溯；任何新执行仍以实际源码/依赖/输入与回执一致为准。
+2. **分离执行证明、原结果复用与提交整理**：A) 新数值执行/回执验收仍校验本次真实源码字节、输入和计算结果；B) 在符合上述前提的只读绘图 scope 中，保留原 accepted 工作簿的可消费性，但明确它是原运行结果；C) 最终整理源码不自动获得新执行证明。真实模型语义、算法/求解配置、输入或数值主张改变时，必须走现有严格路径，不得继续将旧工作簿当作新结果。
+3. **先证明现有 State 能安全表达两种身份，再决定是否需要 Schema。** 当前源码检查已涉及 `primary_code_sha256`/`analysis_code_sha256`、`solver_execution.<stage>.bundle_sha256` 与 `validated_bundle_sha256`，但现有 `validate_code_delivery.update_state` 会在标准重交付时重置执行状态，而 `sync_project`/`project_snapshot` 会把源码 bundle 不一致变成 stale 或正式图错误。实现前必须以 K01/K11 回归证明：清理路径不会清空旧 accepted 执行身份/回执、不会把旧工作簿误标为新源码结果，也不会绕过新执行的 hash/receipt 检查。如果现有字段/状态语义无法同时表达两种身份，立即暂停 P6 实施，先提出独立的最小 Schema/归档方案；不得用清除哈希、复用旧 PASS 或把代码 hash 填进 validated 字段来规避问题。
+4. **精确限定绘图豁免和保留代码质量检查。** 只在明确的非计算性整理/只读图表消费 scope 中，将“当前求解源码 bundle 必须等于旧 accepted bundle”的单一不匹配作为 provenance warning；不得忽略其他 `project_snapshot`/`sync_project` 问题，特别是缺失或错位源码/工作簿、输入身份变化、RUN_CONFIG/RUN_RECEIPT 不一致、质量门失败、语义身份 stale、必需 03B 缺失和图表映射错误。若整理后的求解源码作为正式代码交付，仍运行 `core/code_quality_contract.yaml` 适用的现有静态检查；不因此重跑模型或数值验收。
+5. **不创建日常的“代码语义等价认证门”**。不要求每次精简都执行 AST/词法等价比较；只有用户要求新提交源码作为已复现求解版本，或当前任务涉及算法/配置/数据实质变化时，才按现有语义与执行 Authority 处理。普通精简/绘图不因无法证明字节等价而被迫重跑；正式可复现声明仍须真实、可追溯的执行证据。
 5. **不突破正式命名合同**。新项目保留标准工作簿和 `qX_plot.m` 的唯一绑定；确有重命名需求，先证明源路径搬迁、读者引用、相对导入/依赖、输出路径、旧回执定位以及兼容映射均正确，再设计单次迁移或友好的问题诊断；不可通过关闭阶段识别让错误文件冒充当前小问结果。
 6. **精准影响范围**：分析代码只影响 03B 和实际依赖其证据的图，不使主 03A 工作簿重新计算；仅 `qX_plot.m` 的注释/样式变化不使求解工作簿失效，但图本身若改变仍需必要的渲染/视觉复核。旧代码改名不等于新算法运行，也不自动触发整题模型双审。
 7. **保留真错误的强阻断**：原始输入改变、求解脚本执行配置改变、所需 helper 变化、运行回执不匹配、工作簿自身缺失/字段/质量门失败、工作簿与当前主张/小问错配时仍 fail closed。用户选择从旧工作簿出图不能把这些风险变成成功验收。
-8. **不要求用户为日常清理和绘图额外操作**：已验收结果仍适用时自动复用其现有工作簿证据，仅对改动的图做必要 QA；新求解或真实依赖变更时重验受影响范围。说明清楚“结果来源于旧验收运行、提交代码仅整理过”即可，不新增机器资格、状态字段、例行签字或额外豁免表。报告用原始实际事实，不发明 `current_accepted`、`historical_run_readable` 等新 State 枚举。
+8. **不要求用户为明确的日常清理和绘图额外操作**：按当前任务意图与既有 scope 自动复用仍适用的 accepted 工作簿，仅对改动的图做必要 QA；新求解或真实依赖/模型变化时重验受影响范围。如果“只是清理”还是“改变计算行为”无法从当前请求和已知变更范围确定，不得擅自走轻量路径或把旧结果说成当前新代码的输出；只在确实影响当前结果主张时询问一个直接澄清问题。无需新增每次编辑的签字/豁免表或新 State 枚举。
 
 **专项回归（复用现有测试类，新增必要的独立反例）：**
 
 | ID | 场景 | 必须证明的行为 |
 |---|---|---|
 | K01 | 已验收主工作簿未改，求解源码只改变普通注释/清理日志 | 可依原 accepted 工作簿直接制作诊断或适用正式图；旧回执/输入/源码身份未被重签，不以新源码哈希不等为由触发整套求解重验 |
-| K02 | 求解源码改了表达式、约束、容差、配置或依赖 helper | 当前计算/交付资格按原合同失效，正式图不得冒充新代码运行结果 |
+| K02 | 求解源码改了表达式、约束、容差、配置或依赖 helper | 不走 cleanup-only 路径；当前计算/交付资格按原合同失效，旧结果只保留为历史证据，不能作为新算法/配置的当前结果；新结果必须走 `solve_validate` 与真实回执/数值验收 |
 | K03 | Python 注释/字符串/docstring、MATLAB `...`/`%` 混合边界 | 不把静态比较当作新源码计算等价 PASS；同时不得因此阻断原 accepted 工作簿的合法只读绘图 |
 | K04 | 最终整理代码改名/移动，标准入口或导入路径不再符合合同 | 允许旧结果工作簿继续合法绘图；若作为可运行正式入口交付，给出明确的标准路径/依赖修复提示，不将不可执行源码冒充已复现 |
 | K05 | 仅改变正式图导出名、caption、配色或绘图脚本样式 | 不重算主/深化数值或重查旧代码 bundle；仅核对图读取映射、实际导出及受影响图形证据与正式引用 |
@@ -337,12 +338,12 @@ PR #276 已于 2026-10-23T18:01:38Z 合并，合并提交为 `75d772c84b75290f59
 | K08 | workbook 本身被改名/移动/改表头/改数据 | 区分标准路径/兼容身份与数值证据变化；不得静默接受错题、错表或过期数据 |
 | K09 | 新 `RUN_RECEIPT` 与实际运行源码字节/输入不一致 | 必须拒绝**新结果** accepted；不能以“代码已精简”或历史画图便利规则越权 |
 | K10 | 旧项目只读兼容/历史 accepted，或人工批准但尚未执行 | 前者不批量迁移与重新签署，后者不得因代码清理/注释变化虚构已运行或首次验收 |
-| K11 | 用户在 accepted 后精简代码并提交，原源码 bundle 已变化、工作簿不变 | 一次轻量源码可读性/入口检查通过即可交付整理版本（不宣称新的数值复现）；原工作簿和图表不因新源码 hash 被重签或清零 |
+| K11 | 用户在 accepted 后明确只做非计算性代码整理并提交，原源码 bundle 已变化、工作簿不变 | 最终求解源码执行 `core/code_quality_contract.yaml` 适用的现有静态质量检查，但不重跑模型/数值质量门；保留旧 `validated_bundle_sha256`、RUN_RECEIPT 与工作簿哈希，不把新源码宣称为已执行。Figure/submission scope 可消费仍适用的旧 accepted 工作簿；新执行必须匹配当前源码新 bundle 并走严格验收。若现有状态无法保留两种身份，则停止实施并另行审查最小 Schema/归档方案 |
 | K12 | 仅处理图配色/版式并重复导出，数据/结论/表映射未改 | 只复核变动的图和最终图片可读性，不重复整题 Model Challenge、完整代码质量门、数值证据重验及未变图的人工审查 |
 | K13 | 已验收 Q1 后真实修改模型、算法或原始数据并重新求解 | 原 Q1 哈希/回执/工作簿保留为历史，新的当前模型与工作簿按严格流程验收；仅重跑受影响及依赖部分 |
 | K14 | 最终提交/复现包要求用提交代码复现，但整理后源码与原运行源码不同 | 不将旧 RUN_RECEIPT 当作整理后源码的运行证明；按赛规验证新版本执行，或在允许时提交原运行版本及真实来源说明；官方 allowlist 不放宽 |
 
-**验收要求**：优先覆盖 `tests/test_user_execution_contract.py`、`tests/test_solver_backend_integration.py`、`tests/test_v900_state_transitions.py`、`tests/test_v900_artifact_identity.py` 及 source/stage/figure/sync 现有测试；先写能证明实际失效错误的回归，再以最小改动修复。最终 head 仍须 GitHub 完整 CI；不得通过停用哈希、删除成功回执字段、弱化 accepted 质量门、自动清 stale 或直接修改历史结果获得绿灯。
+**验收要求**：优先覆盖 `tests/test_user_execution_contract.py`、`tests/test_code_quality_contract.py`、`tests/test_solver_backend_integration.py`、`tests/test_v900_state_transitions.py`、`tests/test_v900_artifact_identity.py`、`tests/test_project_state_read_snapshot.py`、`tests/test_sync_project.py`、`tests/test_submission_current_artifacts.py`、`tests/test_submission_package_read_set.py` 及相关 Figure/source/stage/sync 测试；同时保留适用数值证据、RUN_RECEIPT 和模型语义回归。先写能证明真实失效错误的回归，再以最小改动修复。最终 head 仍须 GitHub 完整 CI；不得通过停用哈希、删除成功回执字段、跳过适用静态代码质量检查、弱化 accepted 质量门、自动清 stale 或直接修改历史结果获得绿灯。
 
 ## 6. 实施文件范围与触碰纪律
 
@@ -355,7 +356,7 @@ PR #276 已于 2026-10-23T18:01:38Z 合并，合并提交为 `75d772c84b75290f59
 | 运行时保证 | `core/runtime_assurance_contract.yaml`、`scripts/runtime_assurance.py`、`scripts/resolve_runtime.py`、`scripts/resolve_workflow.py`、`scripts/reading_plan.py` | 修复实际的路由/门禁/读取行为；保持输出契约和旧兼容路径，除非另有迁移批准 |
 | 模块与产物 | `core/module_manifest.yaml`、`core/output_contract.yaml` | 清除重复或范围错误的声明；不降低真实交付所需产物与验证 |
 | 项目状态 | `core/project_state.schema.yaml`、`core/state_transition_contract.yaml`、`scripts/validate_project_state.py`、`scripts/sync_project.py` 及实际消费者 | 仅在事实所有权分析证明重复时归并；保持 stale、身份和事务保护 |
-| 源码/工作簿身份与绘图资格 | `core/user_execution_contract.yaml`、`scripts/stage_code.py`、`scripts/validate_code_delivery.py`、`scripts/validate_user_execution.py`、`scripts/sync_project.py`、`scripts/project_snapshot.py`、`core/state_transition_contract.yaml`、`modules/04_figure_evidence.md` | 仅按 P6 修复已证实的误阻断；仍保存实际运行原 SHA-256、数据和回执，保证旧项目兼容及当前数值真伪边界 |
+| 源码/工作簿身份与绘图资格 | `core/user_execution_contract.yaml`、`core/code_quality_contract.yaml`、`core/output_contract.yaml#project_sync.stale_propagation`、`scripts/stage_code.py`、`scripts/validate_code_delivery.py`、`scripts/validate_user_execution.py`、`scripts/sync_project.py`、`scripts/project_snapshot.py`、`scripts/validate_submission_package.py`、`core/state_transition_contract.yaml`、`modules/04_figure_evidence.md` | 仅按 P6 修复已证实的误阻断；仍保存实际运行原 SHA-256、数据和回执，保留适用的静态代码质量检查，保证旧项目兼容及当前数值真伪边界 |
 | 模型批准/数值保护 | `core/model_approval_contract.yaml`、`core/numerical_verification_contract.yaml`、相关验证脚本 | 原则上不改业务语义；只修复因路由/门禁编排导致的调用时机问题，并以独立测试证明行为保全 |
 | 绘图/论文读取 | `modules/04_figure_evidence.md`、`core/runtime_assurance_contract.yaml`、`scripts/reading_plan.py`、`tests/test_stage_reading_guide_lifecycle.py` 等现有测试 | 只修复混合意图读取与相关回归；不新建第二套 Figure Authority 或批准机制 |
 | 测试 | `tests/test_router_contract.py`、`tests/test_v10_project_runtime_policy.py`、`tests/test_v712_runtime_assurance.py`、`tests/test_v632_delivery_gate_closure.py`、`tests/test_v633_gate_hardening.py`、`tests/test_stage_reading_lifecycle.py`、`tests/test_stage_reading_guide_lifecycle.py` 及经盘点确认的关联测试 | 优先扩展有实际行为覆盖价值的现有测试；必要时新增少量专项测试 |
@@ -418,7 +419,7 @@ PR #276 已于 2026-10-23T18:01:38Z 合并，合并提交为 `75d772c84b75290f59
 | C02 | AUD-01—AUD-18 的既有回归 | 原有修复不回退；任何未复验项目如实标记 |
 | C03 | 任意失败/缺源/未执行/未知条件 | 状态明确为未完成或 review_required，不将未知转换成 PASS |
 
-P6 代码身份与绘图解耦专项另见 **K01—K10**。这些用例不是降低本表中 G07—G09 的新代码交付、用户真实执行或数值验收要求；只检查原有合法工作簿的消费是否被无关源码编辑错误阻断。
+P6 代码身份与绘图解耦专项另见 **K01—K14**。这些用例不是降低本表中 G07—G09 的新代码交付、用户真实执行或数值验收要求；只检查原有合法工作簿的消费是否被无关源码编辑错误阻断。
 
 ## 8. 六领域重新审查清单
 
@@ -499,7 +500,7 @@ PR #276 的代码验收、合并及合并后 main CI 均已完成；阶段 A 尚
 ### 阶段 B2：代码身份误阻断与工作簿绘图解耦（独立实施 PR）
 
 - 新增 P6 来源于对 current main 的独立审查，不是 PR #276 已解决的问题；与阶段 B 的写作 manifest fallback 和 G17 门禁计划去重**分开实施**，保持单主题 PR 和可单独回滚。
-- 先基于真实调用链说明 `validate_code_delivery`、`validate_user_execution`、`sync_project`、`stage_code`、项目状态转换和 Figure 消费中各自必须保护的风险，给出 K01—K10 的受控反例。
+- 先基于真实调用链说明 `validate_code_delivery`、`validate_user_execution`、`sync_project`、`stage_code`、项目状态转换和 Figure 消费中各自必须保护的风险，给出 K01—K14 的受控反例。
 - 首选方案是**首次/新计算严格、验收后代码整理与绘图轻量、实质改动重新严格**；只读绘图消费资格与整理后源码的执行资格分离，保留所有原始代码/输入/回执哈希；不要求为每次非计算性整理先完成 AST/词法等价认证。
 - 若需新增持久 provenance 或 State 字段，先单独提交兼容性、迁移/回滚与消费者影响审计，取得明确实施边界；不得在 P6 未证实前直接升级 Schema。
 - K01—K14 专项通过后仍须与 G07—G09、G13—G18、原工作簿与主数值证据、图形视觉验收联动，防止把“有文件可以画图”误当成“当前新计算已经验收”。提交包依照已核实赛规区分普通源码附件与真实复现要求。
@@ -552,7 +553,7 @@ PR #276 的代码验收、合并及合并后 main CI 均已完成；阶段 A 尚
 | 过度归并状态破坏旧项目 | 明确事实所有者、兼容字段与迁移策略；不覆盖历史批准 | 旧项目恢复/只读兼容失败时回滚 Schema/状态改动 |
 | 同一请求多意图只保留一个 | 多意图并集测试，尤其绘图“改色+新增图” | 任一意图的必需规则被吞掉时，不发布该实现 |
 | 为减少重复调用而复用过期 PASS | 不保存可跨输入变化复用的 gate PASS；以当前身份和原契约决定重验 | 出现输入变化后仍放行，立即回滚并修复失效检测 |
-| 把注释/路径编辑误判为新执行，或反向忽略真实源码漂移 | 保留不可变 RUN_RECEIPT 与原运行哈希；将只读绘图候选与正式 current 验收分开；K01—K10 反例 | 旧计算被重签为新代码结果、漏报真实输入/算法变化、或错误把图批准时立即回滚 |
+| 把注释/路径编辑误判为新执行，或反向忽略真实源码漂移 | 保留不可变 RUN_RECEIPT 与原运行哈希；将只读绘图候选与正式 current 验收分开；K01—K14 反例 | 旧计算被重签为新代码结果、漏报真实输入/算法变化、或错误把图批准时立即回滚 |
 | 路由简化改变六领域能力 | 六领域完整回归，不仅运行 router 单测 | 任一专业领域的保护条件回归则不得合并 |
 | 多 PR 相互覆盖 | 前置 PR 先合并，后续分支基于最新 main，严格单主题 | 发现重叠未解决则停止写入并重建分支 |
 | 计划与实际实施漂移 | 每个阶段更新实施记录、PR 与证据链接；未执行项明确标注 | 计划未更新前不得宣称与计划完全一致 |
@@ -714,6 +715,6 @@ PR #276 的代码验收、合并及合并后 main CI 均已完成；阶段 A 尚
 | 是否存在易发生的源码字节/下游资格误阻断 | **存在可定位的潜在过度失效链**：`validate_code_delivery.py` 的 exact SHA/phase 条件、`sync_project.py` 的 `_code_hash_mismatches`、`state_transition_contract.yaml` 的 `primary_result` 范围，与只读 accepted 工作簿的 Figure 用途不完全一致。当前审计是**静态源码证据**，尚未实际运行“仅改注释→用户无法画图”端到端复现；实施前需 K01 形成可重复测试 |
 | 是否可直接取消源码哈希与标准文件名 | **不可**。正式 RUN_RECEIPT、新执行的源码依赖、数据和 workbook 身份必须一致；`stage_code.py` 的命名承担阶段/后端识别，不是纯装饰。粗暴放宽将破坏可复现性 |
 | 是否需要新一套校验或第二个状态机 | **不需要**。优先在既有 Authority 和消费者内修复实际错误阻断；如确认存在新的不可表达身份状态，再独立审查字段与迁移 |
-| 原计划还缺什么 | P6/阶段 B2：区分新执行来源绑定与既有工作簿只读绘图、文本非计算性变更与计算性变更、代码入口重命名与图导出重命名。实施须有 K01—K10 和完整回归 |
+| 原计划还缺什么 | P6/阶段 B2：区分新执行来源绑定与既有工作簿只读绘图、文本非计算性变更与计算性变更、代码入口重命名与图导出重命名。实施须有 K01—K14 和完整回归 |
 
 **最终设计裁决（待实施验证）：** 当前计划整体合理但不能仅凭门禁文字重复追求删减；P6 按“首次/新计算严格 → accepted 后精简代码和绘图轻量 → 模型/算法/数据实质变化再严审”的阶段式策略推进。首要目标是让既有 accepted 结果在后续代码整理、提交与图表美化中继续合法使用，不取消新数值提交时的确切源码/数据/回执绑定。此计划不将最终清理过的代码自动宣称为原运行版本。独立代码 PR 实施前先实测阻断位置和修复方案的受影响消费者；本计划修订不改变现有运行态。
