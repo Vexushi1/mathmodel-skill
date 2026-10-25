@@ -264,6 +264,41 @@ class ReadingPlanTests(unittest.TestCase):
                 self.assertIsNone(reading["metrics"]["actual_read_tokens"])
                 self.assertIsNone(reading["metrics"]["actual_read_bytes"])
 
+    def test_g17_multi_formal_intents_preserve_gate_sequence_and_distinct_inputs(self):
+        plan = resolve_runtime(["figures", "full_submission"], competition="CUMCM")
+        expected = [
+            "semantic_governance",
+            "project_sync",
+            "submission_package_validation",
+        ]
+        gate_names = [gate["name"] for gate in plan["pre_delivery_gates"]]
+        reading_names = [
+            tool["name"] for tool in plan["reading_plan"]["tool_interfaces"]
+        ]
+
+        self.assertEqual(gate_names, expected)
+        self.assertEqual(reading_names, expected)
+        self.assertEqual(len(gate_names), len(set(gate_names)))
+        self.assertEqual(plan["delivery_scope"], "submission")
+
+        tools = {tool["name"]: tool for tool in plan["reading_plan"]["tool_interfaces"]}
+        for gate in plan["pre_delivery_gates"]:
+            with self.subTest(gate=gate["name"]):
+                self.assertEqual(
+                    {key: tools[gate["name"]][key] for key in gate},
+                    gate,
+                )
+        project_sync = next(
+            gate for gate in plan["pre_delivery_gates"]
+            if gate["name"] == "project_sync"
+        )
+        package_validation = next(
+            gate for gate in plan["pre_delivery_gates"]
+            if gate["name"] == "submission_package_validation"
+        )
+        self.assertNotEqual(project_sync["inputs"], package_validation["inputs"])
+        self.assertNotEqual(project_sync["path"], package_validation["path"])
+
     def test_consumer_protocol_uses_existing_authorities_without_parallel_stage_registry(self):
         contract = yaml.safe_load(
             (ROOT / "core/runtime_assurance_contract.yaml").read_text(encoding="utf-8")
