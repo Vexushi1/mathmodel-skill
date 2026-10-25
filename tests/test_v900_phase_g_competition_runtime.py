@@ -328,6 +328,12 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
             with self.subTest(token=token):
                 plan = self.runtime.resolve_runtime("latex", competition=token)
                 self.assertEqual(self._projection(plan), expected)
+                self.assertEqual(plan["writing_runtime"]["mode"], "compact")
+                self.assertIn(
+                    "templates/latex/cumcm/hsk/template_manifest.yaml",
+                    plan["load_order"],
+                )
+                self.assertIn("templates/latex/cumcm/hsk/hsk_main.tex", plan["load_order"])
                 self.assertEqual(plan["writing_runtime"]["competition"], "CUMCM")
 
     def test_non_cumcm_profiles_keep_full_reasoning_fallback(self):
@@ -367,6 +373,74 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 profiles[name]["stable"]["writing_runtime"]["mode"],
                 "full_reasoning_fallback",
             )
+
+    def test_declared_but_missing_template_manifest_uses_full_reasoning_fallback(self):
+        missing_manifest = "templates/latex/cumcm/hsk/__missing_manifest_fixture__.yaml"
+        self.assertFalse((ROOT / missing_manifest).is_file())
+
+        synthetic = copy.deepcopy(self.profiles)
+        synthetic["profiles"]["cumcm"]["stable"]["writing_runtime"][
+            "template_manifest"
+        ] = missing_manifest
+        canonical_manifest = "templates/latex/cumcm/hsk/template_manifest.yaml"
+        canonical_entry = "templates/latex/cumcm/hsk/hsk_main.tex"
+        plan = {
+            "intents": ["full_submission"],
+            "competition": "CUMCM",
+            "load_order": [
+                "core/hsk_core_policy.md",
+                "core/writing_runtime_contract.yaml",
+                canonical_manifest,
+                canonical_entry,
+                "modules/05_writing/paper_writing_protocol.md",
+                "modules/05_writing/latex.md",
+            ],
+            "contracts": [
+                "core/hsk_core_policy.md",
+                "core/writing_runtime_contract.yaml",
+            ],
+            "templates": [canonical_manifest, canonical_entry],
+        }
+
+        self.runtime._apply_profile_writing_runtime(plan, profiles=synthetic)
+
+        self.assertIn("core/writing_reasoning_contract.yaml", plan["load_order"])
+        self.assertIn("modules/05_writing/paper_writing_protocol.md", plan["load_order"])
+        self.assertIn("modules/05_writing/latex.md", plan["load_order"])
+        for path in (missing_manifest, canonical_manifest, canonical_entry):
+            with self.subTest(path=path):
+                self.assertNotIn(path, plan["load_order"])
+                self.assertNotIn(path, plan["templates"])
+        self.assertNotIn("writing_runtime", plan)
+        self.assertEqual(
+            plan["contracts"],
+            [path for path in plan["load_order"] if path.startswith("core/")],
+        )
+        self.assertEqual(
+            plan["templates"],
+            [path for path in plan["load_order"] if path.startswith("templates/")],
+        )
+
+    def test_empty_or_missing_template_manifest_still_fails_closed(self):
+        for missing_value in ("absent", "empty"):
+            with self.subTest(missing_value=missing_value):
+                synthetic = copy.deepcopy(self.profiles)
+                runtime_profile = synthetic["profiles"]["cumcm"]["stable"]["writing_runtime"]
+                if missing_value == "absent":
+                    runtime_profile.pop("template_manifest", None)
+                else:
+                    runtime_profile["template_manifest"] = ""
+                plan = {
+                    "intents": ["full_submission"],
+                    "competition": "CUMCM",
+                    "load_order": [
+                        "core/hsk_core_policy.md",
+                        "core/writing_runtime_contract.yaml",
+                        "modules/05_writing/latex.md",
+                    ],
+                }
+                with self.assertRaisesRegex(ValueError, "requires template_manifest"):
+                    self.runtime._apply_profile_writing_runtime(plan, profiles=synthetic)
 
     def test_missing_writing_runtime_profile_fails_closed(self):
         plan = {

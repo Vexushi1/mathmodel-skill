@@ -228,6 +228,36 @@ class TestRouterContract(unittest.TestCase):
         self.assertTrue(plan["sync_required_before_delivery"])
         self.assertIn("validated_submission_package", plan["terminal_outputs"])
 
+    def test_g17_multi_formal_intents_deduplicate_only_identical_gate_names(self):
+        plan = self.resolver.resolve_workflow(
+            ["figures", "full_submission"],
+            competition="CUMCM",
+        )
+        gates = plan["pre_delivery_gates"]
+        gate_names = [gate["name"] for gate in gates]
+        expected = [
+            "semantic_governance",
+            "project_sync",
+            "submission_package_validation",
+        ]
+
+        self.assertEqual(gate_names, expected)
+        self.assertEqual(len(gate_names), len(set(gate_names)))
+        self.assertEqual(plan["delivery_scope"], "submission")
+        self.assertEqual(
+            [gate["delivery_scope"] for gate in gates],
+            ["submission"] * len(expected),
+        )
+        by_name = {gate["name"]: gate for gate in gates}
+        self.assertNotEqual(
+            by_name["project_sync"]["inputs"],
+            by_name["submission_package_validation"]["inputs"],
+        )
+        self.assertNotEqual(
+            by_name["project_sync"]["path"],
+            by_name["submission_package_validation"]["path"],
+        )
+
     def test_legacy_labels_remain_compatible(self):
         plan = self.resolver.resolve_workflow(
             "full_solution", primary="mechanism", secondary=["optimization"]

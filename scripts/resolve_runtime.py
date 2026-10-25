@@ -118,16 +118,51 @@ def _apply_profile_writing_runtime(
         raise ValueError(
             f"competition profile {profile_name} template_first_progressive mode requires template_manifest"
         )
-    if not (ROOT / template_manifest).is_file():
-        raise ValueError(
-            f"competition profile {profile_name} template manifest does not exist: {template_manifest}"
-        )
 
     old_authority = str(
         (runtime.get("full_authority_fallback", {}) or {}).get(
             "authority", "core/writing_reasoning_contract.yaml"
         )
     )
+    if not (ROOT / template_manifest).is_file():
+        writing_sequence = runtime.get("template_first_progressive_authoring", {}) or {}
+        chapter_handoff = writing_sequence.get("cross_file_chapter_handoff", {}) or {}
+        activation = chapter_handoff.get("activation", {}) or {}
+        missing_manifest_policy = activation.get("non_cumcm_or_missing_manifest")
+        if missing_manifest_policy != "full_reasoning_fallback":
+            raise ValueError(
+                f"competition profile {profile_name} template manifest does not exist and "
+                f"fallback is not authorized by core/writing_runtime_contract.yaml: "
+                f"{template_manifest}"
+            )
+
+        canonical_template = runtime.get("canonical_template", {}) or {}
+        unavailable_template_resources = {
+            template_manifest,
+            str(canonical_template.get("manifest") or "").strip(),
+            str(canonical_template.get("executable_entry") or "").strip(),
+        }
+        unavailable_template_resources.discard("")
+        load_order = [
+            item for item in load_order if item not in unavailable_template_resources
+        ]
+        default_policy = "core/hsk_core_policy.md"
+        if old_authority not in load_order:
+            insertion_point = (
+                load_order.index(default_policy) + 1 if default_policy in load_order else 0
+            )
+            load_order.insert(insertion_point, old_authority)
+
+        plan["load_order"] = _unique(load_order)
+        plan["contracts"] = [
+            item for item in plan["load_order"] if item.startswith("core/")
+        ]
+        plan["templates"] = [
+            item for item in plan["load_order"] if item.startswith("templates/")
+        ]
+        plan.pop("writing_runtime", None)
+        return plan
+
     runtime_order = _unique(runtime.get("ordinary_writing_resource_order", []))
     default_policy = "core/hsk_core_policy.md"
     if default_policy in runtime_order:
