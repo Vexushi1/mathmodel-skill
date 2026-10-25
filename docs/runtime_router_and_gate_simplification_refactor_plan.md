@@ -2,10 +2,10 @@
 
 > **文件性质：** 仓库维护计划，不是 Runtime Authority，不直接改变 Skill 的运行行为，也不代表任何测试已执行或通过。  
 > **编制日期：** 2026-10-23（北京时间）。  
-> **执行记录更新：** 2026-10-24（北京时间）。  
+> **执行记录更新：** 2026-10-25（北京时间）；P0 审计主体形成于 2026-10-24。  
 > **当前基线：** `Vexushi1/mathmodel-skill` 的 `main@75d772c84b75290f59f79b4d3e1eb2747e4eb3ec`，Skill v10.23.1。  
 > **正式发布基线：** GitHub 最新 Release 仍为 v10.23.0，指向旧提交 `2c79599b80763a8840a4b0ee79f85271f9234c6a`；v10.23.1 尚未发布。  
-> **前置事项：** PR #276 已合并至上述 main；其最终源 head `b049ca8cd9718d50a070ad0d9b33a2a3351cebed` 的完整 CI 与 Optimization baseline 均通过。合并后的 main CI `39999918643` 在本记录编写时仍在执行，必须确认后才能启动阶段 B 实现。
+> **前置事项：** PR #276 已合并至上述 main；其最终源 head `b049ca8cd9718d50a070ad0d9b33a2a3351cebed` 的完整 CI 与 Optimization baseline 均通过，合并后 main CI [`39999918643`](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39999918643) 也已通过。当前 PR #277 只负责计划及 P0 记录；合并并核对最新 main 后，阶段 B 须另建实现分支。
 
 本计划只把用户已经明确提出的目标转化为可实施、可审查、可回滚的工作流程。实现期间不得自行扩展为新建一套数学建模流程、额外审批系统或另一套门禁系统。
 
@@ -111,12 +111,12 @@ PR #276 已覆盖以下拟议范围的一部分：
 3. 非 LaTeX 路由不应提前解析写作 profile。
 4. design/framework 等中间产物不应触发不适用的正式终稿/提交级同步门。
 
-PR #276 已于 2026-10-23T18:01:38Z 合并，合并提交为 `75d772c84b75290f59f79b4d3e1eb2747e4eb3ec`；其源 head 为 `b049ca8cd9718d50a070ad0d9b33a2a3351cebed`。正式验收证据：完整 CI [#39991170816](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39991170816) 通过，适用 Optimization baseline [#39991174320](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39991174320) 通过；合并后 main CI [#39999918643](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39999918643) 在本记录编写时仍在执行，生成元数据刷新 [#39999918645](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39999918645) 已通过。
+PR #276 已于 2026-10-23T18:01:38Z 合并，合并提交为 `75d772c84b75290f59f79b4d3e1eb2747e4eb3ec`；其源 head 为 `b049ca8cd9718d50a070ad0d9b33a2a3351cebed`。正式验收证据：完整 CI [#39991170816](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39991170816) 通过，适用 Optimization baseline [#39991174320](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39991174320) 通过；合并后 main CI [#39999918643](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39999918643) 已完成并通过，生成元数据刷新 [#39999918645](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39999918645) 也已通过。
 
 后续约束：
 
 - PR #276 已进入 main；不要再次复制其未知竞赛通用回退、缺少分类时启动通用分析、非 LaTeX 路由延迟加载写作 profile，以及 design scope 不触发最终交付同步门等修复。
-- 先完成合并后 main 的正式 CI 核验，再从该最新 main 创建独立的阶段 B 实现分支。
+- 合并后 main 的正式 CI 已核验通过；待 PR #277 计划合并并复核最新 main 后，再创建独立的阶段 B 实现分支。
 - PR #276 的局部修复不代表状态事实所有权、门禁生命周期和混合绘图意图问题已经全部解决。
 
 ### 3.4 既有全仓库审查问题的处理
@@ -412,7 +412,7 @@ PR #276 已于 2026-10-23T18:01:38Z 合并，合并提交为 `75d772c84b75290f59
 - [x] 合并后 main 的完整 CI `39999918643` 已完成并通过（完整 Python 3.10/3.14 汇总、MATLAB 原生契约、LaTeX 专项、静态与生成检查均成功）。
 - [ ] 更新并合并本计划 PR #277；随后从经核验的最新 main 创建阶段 B 实现分支。
 
-PR #276 合并后，阶段 A 的代码验收和合并动作已完成；在 main CI 与计划分支同步完成前，不把整个前置阶段标记为完全关闭。
+PR #276 的代码验收、合并及合并后 main CI 均已完成；阶段 A 尚待 PR #277 计划文件最终 head 的远端验收及合并。
 
 ### 阶段 B：路由与门禁生命周期重构
 
@@ -422,6 +422,7 @@ PR #276 合并后，阶段 A 的代码验收和合并动作已完成；在 main 
 - 对照门禁适用性表落实范围和时机。
 - 不同时引入 Schema 迁移；如果发现状态字段问题，先以事实表确认其是否可在同一主题内安全处理。
 - 以 G01—G18、R01—R06 和原路由回归测试为专项验收依据。
+- 已证实的首个施工项及 G17 回归写在第 14.7 节；第 14.8 节列出的待核证门禁不得在缺少实际副作用证据时预先删除。
 
 ### 阶段 C：状态事实所有权归并（仅在盘点确认有必要时启动）
 
@@ -504,9 +505,9 @@ PR #276 合并后，阶段 A 的代码验收和合并动作已完成；在 main 
 
 ---
 
-## 11. 执行记录（2026-10-24）
+## 14. P0 审计与执行记录（2026-10-24 起）
 
-### 11.1 基线冻结与开放工作
+### 14.1 基线冻结与开放工作
 
 | 项目 | 核验结果 |
 |---|---|
@@ -515,12 +516,12 @@ PR #276 合并后，阶段 A 的代码验收和合并动作已完成；在 main 
 | 最新 Release | `v10.23.0`，仍指向 `2c79599b80763a8840a4b0ee79f85271f9234c6a`；v10.23.1 尚未发布 |
 | 前置 PR #276 | 源 head `b049ca8cd9718d50a070ad0d9b33a2a3351cebed`；合并 SHA `75d772c84b75290f59f79b4d3e1eb2747e4eb3ec` |
 | PR #276 源 head 验收 | [HSK Skill CI #39991170816](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39991170816) 与 [Optimization baseline #39991174320](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39991174320) 均通过 |
-| 合并后验证（记录时） | [main CI #39999918643](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39999918643) 当时仍在执行；[生成元数据刷新 #39999918645](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39999918645) 已通过 |
-| 开放 PR | 仅 PR #277（本计划文档），Draft，基于旧 main；其源文件为本计划，另含生成的 `MANIFEST.sha256` 与 `SKILL_FILE_INDEX.md` |
+| 合并后验证（截至 2026-10-25 核对） | [main CI #39999918643](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39999918643) 已通过；[生成元数据刷新 #39999918645](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39999918645) 已通过 |
+| 开放 PR（截至 2026-10-25 核对） | 仅 PR #277（本计划），**Open、非 Draft**，基于已验收 `main@75d772c84b75290f59f79b4d3e1eb2747e4eb3ec`；变更包括本计划及由 GitHub 维护的 `MANIFEST.sha256`、`SKILL_FILE_INDEX.md`。后续任何新提交须重新确认最终 head 与检查结果 |
 | 相关旧分支 | `fix/v10.20.5-stage-reading-consumption` 与 `refactor/v900-state-transition-engine` 有历史 diff，但均无开放 PR、相对 main 已明显落后；不自动合并、不作为新实现基线 |
 | 重叠顺序 | 先同步并完成计划 PR #277，再创建阶段 B 代码分支；所有生成文件由 `refresh-generated` 维护，不手工编辑 |
 
-### 11.2 文件—职责—消费者表
+### 14.2 文件—职责—消费者表
 
 | 文件 / Authority | 唯一职责 | 主要消费者 / 边界 |
 |---|---|---|
@@ -536,7 +537,7 @@ PR #276 合并后，阶段 A 的代码验收和合并动作已完成；在 main 
 | `AGENTS.md`、`RUNTIME_ROUTER.md` | 人类/Agent 操作说明与兼容边界 | 只说明并链接 Authority；不得与 Router、State、Workbook 或 gate catalog 争夺事实所有权 |
 | 路由与 assurance 测试 | 锁定行为、兼容和失败边界 | `tests/test_router_contract.py`、`tests/test_v10182_paper_routing.py`、`tests/test_v712_runtime_assurance.py`、`tests/test_v900_phase_g_competition_runtime.py` 及其跨领域回归 |
 
-### 11.3 门禁适用性与执行边界表
+### 14.3 门禁适用性与执行边界表
 
 | Gate | Authority / 实现 | 适用触发与职责 | 不允许的简化 |
 |---|---|---|---|
@@ -550,7 +551,7 @@ PR #276 合并后，阶段 A 的代码验收和合并动作已完成；在 main 
 
 **顺序裁决：** Router 与经过边界处理的 resolver 输出拥有本次调用的有效 gate 顺序；`gate_plan` 按首次出现顺序去重。Manifest 只定义 gate 实现/输入/输出，Runtime Assurance Contract 只补充必要契约依赖，Output Contract 只定义交付语义。Reading Plan 明确保留 `pre_delivery_gates`，Bootstrap 要求按 resolver 顺序执行所有返回 gate。重复文本声明本身不证明存在重复执行；必须沿消费者链验证实际调用与副作用。
 
-### 11.4 状态事实所有权表
+### 14.4 状态事实所有权表
 
 | 事实类别 | 唯一机器事实源 | 写入 / 消费者 | 不可替代项 |
 |---|---|---|---|
@@ -561,7 +562,7 @@ PR #276 合并后，阶段 A 的代码验收和合并动作已完成；在 main 
 | 人工模型/数学/视觉/论文审查 | 对应的 Model Challenge、Human Model Approval、作用范围明确的 review receipt 与人工审查记录 | 相关代码交付、图表和正式论文/提交边界 | 机器 schema、解析器、来源哈希和阅读计划不能替代人工语义或视觉判断 |
 | Skill 仓库生成索引与 Manifest | 源文件为输入，`scripts/generate_indexes.py` 生成 | GitHub `refresh-generated` 工作流 | 生成文件不反向成为业务 Authority；禁止手工改哈希/索引 |
 
-### 11.5 P0 结论与阶段 B 约束
+### 14.5 P0 结论与阶段 B 约束
 
 1. P0 的基线、开放 PR、文件职责、gate 消费链与状态事实所有权盘点已完成；没有证据支持现在进行 State Schema 迁移，因此不启动阶段 C。
 2. PR #276 已实现的通用竞赛回退、分类可选启动、非 LaTeX 写作 profile 延迟解析及 design scope 门禁边界已进入 main；阶段 B 不重复实现这些行为。
@@ -570,7 +571,7 @@ PR #276 合并后，阶段 A 的代码验收和合并动作已完成；在 main 
 5. 本记录不是阶段 B 通过证明。阶段 B 仍须建立独立代码 PR，并以 G01—G18、R01—R06、原路由回归和六领域验收作为证据；所有未执行检查保持未完成状态。
 
 
-### 11.6 合并后核验与阶段 B 的首个可复现缺陷
+### 14.6 合并后核验与阶段 B 的首个可复现缺陷
 
 **合并后 main 核验已完成：** [HSK Skill CI #39999918643](https://github.com/Vexushi1/mathmodel-skill/actions/runs/39999918643) 最终结论为 `success`，实际 checkout 的 source head 与 main 合并 SHA 一致。完整 Python 3.10/3.14 shard 汇总、MATLAB R2024b native solver contracts、Production LaTeX attestation、LaTeX CUMCM/MCM-ICM/Diangong、Static contract lint 与 Generated file contract 均通过；没有失败 job。至此，PR #276 的合并后验收完成。
 
@@ -583,3 +584,39 @@ PR #276 合并后，阶段 A 的代码验收和合并动作已完成；在 main 
 - 门禁审计没有发现足以支持删除 gate 声明的重复副作用证据。当前 resolver 按首次出现顺序去重，reading plan 保留有效 gate 列表；阶段 B 将增加 G17 多正式意图场景的顺序/去重回归，不改变 gate 适用性或削弱检查。
 
 阶段 B 的实现分支必须从通过合并后 CI 的 `main@75d772c84b75290f59f79b4d3e1eb2747e4eb3ec` 起建；本计划 PR 只维护文档，禁止在此分支叠加运行时代码。
+
+### 14.7 阶段 B 的最小可执行施工卡（计划，不是已完成实现）
+
+**B-01：已声明的 LaTeX Template Manifest 文件缺失时的通用回退。**
+
+| 项目 | 施工要求 |
+|---|---|
+| 确认来源 | `core/writing_runtime_contract.yaml#cross_file_chapter_handoff.activation.non_cumcm_or_missing_manifest` 已声明 `full_reasoning_fallback`；`scripts/resolve_runtime.py::_apply_profile_writing_runtime` 当前对已声明但不存在的 `template_manifest` 抛出 `ValueError` |
+| 触发条件 | 已识别竞赛；适用 LaTeX 写作路由；profile 为 `template_first_progressive`；`supported_intents` / `compact_intents` 校验通过；`template_manifest` 字段有非空路径，但对应文件不存在 |
+| 唯一拟改动入口 | `scripts/resolve_runtime.py::_apply_profile_writing_runtime` 的 manifest 文件存在性分支；必要时补充其已有专项测试，**不**在 Router、Bootstrap 或新配置层另写一套规则 |
+| 现有行为 | 在此缺文件场景直接报错，中断本应允许通用 Authority 继续的 LaTeX 请求 |
+| 目标行为 | 保留/补入实际适用的 `core/writing_reasoning_contract.yaml` 通用 Authority 及既有适用写作资源；不把不存在的 manifest 加入 `load_order` / `templates`，不构造 `compact` writing runtime，也不伪装模板已存在或审查已通过 |
+| 不得放宽 | `template_manifest` **字段缺失或为空**、`stable.writing_runtime` 缺失、mode 不合法、supported/compact intents 配置无效，仍按当前 fail-closed 行为报错；真实 manifest 存在时 CUMCM Template-First 的 progressive/compact 行为保持 |
+| 测试落点 | 优先扩展 `tests/test_v900_phase_g_competition_runtime.py` 并复核既有 paper-routing 测试；使用确定性缺失文件路径，不改/删实际模板文件，也不削弱原异常断言 |
+| 通过证据 | 缺文件场景不异常、泛用写作 Authority 可读且缺失 manifest 未注册；已存在模板、未知竞赛、非 LaTeX 路由、非法 profile 场景各维持预期；最终 PR head 远端专项与正式 CI 通过 |
+
+**B-02：G17 多正式意图的有效门禁序列/去重回归（先测试，非预定删门禁）。**
+
+| 项目 | 施工要求 |
+|---|---|
+| 现状判断 | Router/runtime segment 存在部分同名 gate 声明，但当前 resolver 已按首次出现顺序去重；P0 **未证明**同一操作真的重复执行了检查 |
+| 测试落点 | 优先扩展 `tests/test_router_contract.py` 和相关 runtime/reading-plan 回归，选取两个确有适用门禁交集的正式意图组合 |
+| 断言 | 解析出的 `pre_delivery_gates` 顺序遵循当前 Authority，每个同一操作/同一输入的 gate 只出现一次；reading plan 保留完整有效序列；不同作用范围/不同输入不得误合并；G18 输入或语义身份变化后不能复用旧 PASS |
+| 修改边界 | 若回归已通过，只记录“现状满足、无需实现”；只有复现真实顺序错误、重复调用或副作用，才能以具体消费者和失败用例为依据作最小改动，保留正式交付的全部必要门禁 |
+
+上述 B-01/B-02 只是阶段 B 的**首批可验证任务**，不是承诺把 P1/P2 所有待审机制一次性改写，也不构成对阶段 C/D/E 的提前完成声明。
+
+### 14.8 尚未证实的重复机制：不得预设删除
+
+| 待核问题 | 目前证据边界 | 后续处理 |
+|---|---|---|
+| Router、runtime segments 与 Manifest 文字上出现同名 gate | 已观察到声明重合；resolver 当前具有有序去重，**尚无实际重复执行副作用证据** | 先以调用链、消费者、真实执行范围和 G17 反例证明问题；未复现则保留，不按文本重复机械删除 |
+| `模型论文框架.md` 与 `project_state.yaml` 记录相似信息 | 已明确人工可读语义摘要和机器状态的不同事实所有权；**未证明需要 State Schema 迁移** | 优先维护单一事实源及展示投影；仅在发现多处竞争写入、兼容与 stale 缺陷时另建阶段 C 专题 PR |
+| 其他日常 checker、同步器或中间阶段门禁 | PR #276 已修复部分错误前置；其余尚未形成明确重复调用/错误阻断反例 | 逐项记录输入、触发阶段、消费者和独立风险覆盖；没有证据不删除或降级；后续源/语义/产物改变须重验 |
+
+**执行与状态口径：** P0 审计及 PR #276 的合并后验证已完成；B-01、B-02 和阶段 C/D/E 均**尚未实施或验收**。本 PR 只交付文档，修改后 GitHub `refresh-generated` 负责受管索引/Manifest；以生成提交稳定后的**新最终 head**重新核对所需 CI，不沿用旧 head 的 PASS。
