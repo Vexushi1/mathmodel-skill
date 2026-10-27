@@ -8,7 +8,6 @@ from typing import Any, Mapping
 import artifact_identity as ARTIFACT_IDENTITY
 import conformance_gate as CONFORMANCE
 import stage_code as STAGE_CODE
-import execution_provenance as EXECUTION_PROVENANCE
 import analysis_comparison_gate as COMPARISON
 from stage_inputs import observe_inputs
 from execution_protocol import is_source_receipt, auxiliary_config_issues
@@ -73,24 +72,8 @@ def stage_input_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str,
         return [f"{stage} input: {exc}"]
 
 
-def primary_source_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, Any], *,
-                          require_project_policy: bool = False) -> list[str]:
-    """Validate the current primary source for an operation that may execute it."""
-    if not isinstance(entry, Mapping):
-        return ["subproblem must be a mapping"]
-    issues: list[str] = []
-    backend, policy_issues = _project_backend(state, required=require_project_policy)
-    issues.extend(policy_issues)
-    if not policy_issues:
-        issues.extend(STAGE_CODE.validate_stage_binding(
-            root, entry, "primary", require_validated=False, project_backend=backend))
-        issues.extend(stage_input_issues(root, state, entry, "primary"))
-    return list(dict.fromkeys(issues))
-
-
 def primary_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, Any], *,
                    require_project_policy: bool = False) -> list[str]:
-    """Validate the accepted primary result, not whether today's code produced it."""
     if not isinstance(entry, Mapping):
         return ["subproblem must be a mapping"]
     preprocessing = state.get("preprocessing")
@@ -101,14 +84,13 @@ def primary_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, Any
     except ARTIFACT_IDENTITY.ArtifactIdentityError as exc:
         return [str(exc)]
     issues: list[str] = []
-    _, policy_issues = _project_backend(state, required=require_project_policy)
+    backend, policy_issues = _project_backend(state, required=require_project_policy)
     issues.extend(policy_issues)
-    accepted_issues, _ = EXECUTION_PROVENANCE.accepted_result_issues(
-        root, state, entry, "primary")
-    issues.extend(accepted_issues)
-    issues.extend(CONFORMANCE.read_issues(root, state, entry, "primary", boundary="accepted_result"))
-    if entry.get("result_quality_status") != "passed":
-        issues.append("主结果质量未passed")
+    if not policy_issues:
+        issues.extend(STAGE_CODE.validate_stage_binding(
+            root, entry, "primary", require_validated=True, project_backend=backend))
+    if entry.get("primary_execution_status") != "accepted" or entry.get("result_quality_status") != "passed":
+        issues.append("主工作簿未accepted或主结果质量未passed")
     layers = set(ARTIFACT_IDENTITY.normalize_stale_layers(entry.get("stale_layers", []) or []))
     relevant = layers & {"data", "primary_code", "solution_workbook"}
     if relevant or (entry.get("artifacts_stale") is True and not layers):
@@ -117,9 +99,14 @@ def primary_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, Any
         current, validated = _hashes(entry)
     except ARTIFACT_IDENTITY.ArtifactIdentityError as exc:
         return [*issues, f"artifact identity alias conflict: {exc}"]
-    for layer in ("data", "solution_workbook"):
+    for layer in ("data", "primary_code", "solution_workbook"):
         if layer in current and layer in validated and str(current[layer]).lower() != str(validated[layer]).lower():
             issues.append(f"主结果{layer}当前与已验收哈希不一致")
+    issues.extend(_file_issues(root, entry.get("solution_workbook"),
+                              validated.get("solution_workbook") or current.get("solution_workbook"), "主工作簿"))
+    if entry.get("code"):
+        issues.extend(_file_issues(root, entry["code"], validated.get("primary_code") or
+                                  entry.get("primary_code_sha256") or current.get("primary_code"), "主求解代码"))
     if entry.get("validated_data_hash") and entry.get("data_hash") != entry["validated_data_hash"]:
         issues.append("当前data_hash与已验收主结果数据不一致")
     preprocessing = state.get("preprocessing") or {}
@@ -130,6 +117,8 @@ def primary_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, Any
         issues.extend(_file_issues(root, preprocessing.get("workbook"), digest, "预处理工作簿"))
         if not digest or str(entry.get("data_hash", "")).lower() != str(digest).lower():
             issues.append("主结果数据身份必须绑定已验收预处理工作簿")
+    issues.extend(stage_input_issues(root, state, entry, "primary"))
+    issues.extend(CONFORMANCE.read_issues(root, state, entry, "primary"))
     return list(dict.fromkeys(issues))
 
 
