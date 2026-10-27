@@ -47,6 +47,9 @@ def accepted_primary_entry(workbook: Path, workbook_hash: str, data_hash: str, c
     return {
         "status": "solved",
         "framework_section": "## Q1",
+        "semantic_identity_hash": sha("validated semantic identity"),
+        "validated_semantic_identity_hash": sha("validated semantic identity"),
+        "approved_semantic_identity_hash": sha("validated semantic identity"),
         "primary_execution_status": "accepted",
         "result_quality_status": "passed",
         "solution_workbook": workbook.relative_to(workbook.parents[1]).as_posix(),
@@ -76,6 +79,23 @@ def accepted_primary_entry(workbook: Path, workbook_hash: str, data_hash: str, c
 
 
 class ExecutionProvenanceTests(unittest.TestCase):
+    def test_read_only_consumption_requires_fully_verified_semantics(self):
+        entry = {
+            "status": "solved",
+            "primary_execution_status": "awaiting_user_execution",
+            "result_quality_status": "passed",
+            "solution_workbook": "result.xlsx",
+            "validated_artifact_hashes": {"solution_workbook": sha("workbook")},
+            "stale_layers": [],
+            "artifacts_stale": False,
+        }
+        self.assertFalse(PROVENANCE.can_consume_accepted_result(entry, "primary"))
+        semantic_hash = sha("validated semantic identity")
+        entry["semantic_identity_hash"] = semantic_hash
+        entry["validated_semantic_identity_hash"] = semantic_hash
+        entry["approved_semantic_identity_hash"] = semantic_hash
+        self.assertTrue(PROVENANCE.can_consume_accepted_result(entry, "primary"))
+
     def test_source_only_hash_drift_is_not_numerical_result_staleness(self):
         old_code, new_code = sha("old source"), sha("cleaned source")
         state = {
