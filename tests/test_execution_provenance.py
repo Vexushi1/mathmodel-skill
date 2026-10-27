@@ -252,6 +252,32 @@ class ExecutionProvenanceTests(unittest.TestCase):
             issues, _ = PROVENANCE.accepted_result_issues(root, state, entry, "primary")
             self.assertTrue(any("bytes differ" in issue for issue in issues), issues)
 
+    def test_framework_section_change_blocks_accepted_result(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            result_dir = root / "问题一求解"
+            result_dir.mkdir()
+            workbook = result_dir / "问题一求解结果.xlsx"
+            data_file = root / "data.csv"
+            data_file.write_text("x,y\n1,2\n", encoding="utf-8")
+            data_hash = combined_hash([data_file], root)
+            code_hash, bundle_hash = sha("accepted code"), sha("accepted bundle")
+            workbook_hash = write_receipt_workbook(workbook, {
+                "stage": "primary",
+                "run_receipt_protocol_version": "1.1.0",
+                "run_receipt_version": "1.1.0",
+                "code_sha256": code_hash,
+                "code_bundle_sha256": bundle_hash,
+                "data_paths": ["data.csv"],
+                "data_identity_mode": "combined",
+                "data_sha256": data_hash,
+            })
+            entry = accepted_primary_entry(workbook, workbook_hash, data_hash, code_hash, bundle_hash)
+            state = {"subproblems": {"Q1": entry}}
+            (root / "模型论文框架.md").write_text("## Q1\nA changed framework claim.\n", encoding="utf-8")
+            issues, _ = PROVENANCE.accepted_result_issues(root, state, entry, "primary")
+            self.assertTrue(any("framework section differs" in issue for issue in issues), issues)
+
 
 if __name__ == "__main__":
     unittest.main()
