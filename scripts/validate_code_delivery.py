@@ -781,7 +781,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
             )
         )
         cleanup_only = bool(
-            accepted and source_changed and same_conformance_declaration
+            accepted and (source_changed or conformance_changed) and same_conformance_declaration
             and EXECUTION_PROVENANCE.is_cleanup_phase(phase)
             and phase not in {"review_delivery", "completed"}
             and EXECUTION_PROVENANCE.semantic_identity_is_fully_verified(entry)
@@ -802,7 +802,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
         entry.setdefault("analysis_execution_status", "pending")
         if not unchanged_accepted:
             entry["primary_execution_status"] = "awaiting_user_execution"
-        if source_changed and cleanup_only:
+        if cleanup_only:
             # Current delivery identity advances; validated_bundle_sha256 and the
             # accepted workbook remain bound to the previous real execution.
             pass
