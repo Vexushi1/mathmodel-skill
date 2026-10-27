@@ -828,7 +828,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
         # analysis_issues() already verifies that the accepted primary workbook,
         # not the current primary source bytes, is the required upstream artifact.
         old_hash = entry.get("analysis_code_sha256")
-        source_changed = bool(old_hash and (old_hash != new_hash or binding_changed))
+        source_changed = bool(old_hash != new_hash or binding_changed)
         accepted_analysis = (
             entry.get("analysis_execution_status") == "accepted"
             and entry.get("result_analysis_status") == "passed"
@@ -850,7 +850,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
             entry.get("validated_data_hash") or validated_hashes.get("data") or entry.get("data_hash") or ""
         ).lower()
         cleanup_only = bool(
-            accepted_analysis and source_changed and same_conformance_declaration
+            accepted_analysis and (source_changed or conformance_changed) and same_conformance_declaration
             and EXECUTION_PROVENANCE.is_cleanup_phase(phase)
             and phase not in {"review_delivery", "completed"}
             and EXECUTION_PROVENANCE.semantic_identity_is_fully_verified(entry)
