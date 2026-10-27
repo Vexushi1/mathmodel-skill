@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import execution_provenance as PROVENANCE
 import validate_project_state as STATE
-from artifact_fingerprint import combined_hash
+from artifact_fingerprint import combined_hash, framework_section_hash
 
 
 def load_syncer():
@@ -40,8 +40,13 @@ def write_receipt_workbook(path: Path, config: dict[str, object]) -> str:
 
 
 def accepted_primary_entry(workbook: Path, workbook_hash: str, data_hash: str, code_hash: str, bundle_hash: str):
+    root = workbook.parents[1]
+    framework_path = root / "模型论文框架.md"
+    framework_path.write_text("## Q1\nAccepted framework content.\n", encoding="utf-8")
+    framework_hash = framework_section_hash(framework_path, "## Q1")
     return {
         "status": "solved",
+        "framework_section": "## Q1",
         "primary_execution_status": "accepted",
         "result_quality_status": "passed",
         "solution_workbook": workbook.relative_to(workbook.parents[1]).as_posix(),
@@ -51,12 +56,13 @@ def accepted_primary_entry(workbook: Path, workbook_hash: str, data_hash: str, c
             "data": data_hash,
             "primary_code": code_hash,
             "solution_workbook": workbook_hash,
+            "framework": framework_hash,
         },
         "validated_artifact_hashes": {
             "data": data_hash,
             "primary_code": code_hash,
             "solution_workbook": workbook_hash,
-            "framework": sha("framework"),
+            "framework": framework_hash,
         },
         "stale_layers": [],
         "artifacts_stale": False,
