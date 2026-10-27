@@ -294,7 +294,7 @@ def inspect_gate(root: Path, state: Mapping[str, Any], question: str, *, boundar
                 if marker in raw:
                     result["enabled"] = True
                     BOUNDED._read(root, "模型论文框架.md", 2 * 1024 * 1024, observed["project"])
-        if not result["enabled"] and config is None and boundary != "plan" and entry.get("result_analysis_code"):
+        if not result["enabled"] and config is None and boundary not in {"plan", "accepted_result"} and entry.get("result_analysis_code"):
             try:
                 _, probe = stage_code.parse_stage_config(stage_code._relative_path(root, entry["result_analysis_code"]))
                 result["enabled"] = present(entry, probe, receipt)
