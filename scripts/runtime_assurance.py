@@ -23,6 +23,7 @@ import artifact_identity as ARTIFACT_IDENTITY
 import analysis_prerequisites as ANALYSIS_PREREQUISITES
 import analysis_comparison_gate as COMPARISON
 import conformance_gate as CONFORMANCE
+import execution_provenance as EXECUTION_PROVENANCE
 import stage_code as STAGE_CODE
 import state_transitions as STATE_TRANSITIONS
 from project_transaction import JOURNAL_RELATIVE_PATH, STATE_RELATIVE_PATH, ProjectTransactionError, state_generation
@@ -996,7 +997,7 @@ def hydrate_project_context(
         rejection = structured_rejections.get(str(q), {})
         primary_issues.extend(rejection.get("primary_reasons", []) or [])
         primary_ok = (
-            item.get("primary_execution_status") == "accepted"
+            item.get("primary_execution_status") in {"accepted", "awaiting_user_execution"}
             and item.get("result_quality_status") == "passed"
             and not rejection.get("blocks_primary")
         )
@@ -1015,11 +1016,15 @@ def hydrate_project_context(
         )
         if primary_row["status"] == "verified" and primary_issues:
             primary_row.update(status="not_accepted", reason="; ".join(primary_issues))
+        if primary_row["status"] == "verified" and item.get("primary_execution_status") == "awaiting_user_execution":
+            primary_row["provenance_warnings"] = [
+                "当前主求解源码尚未执行；此工作簿仍只代表此前已验收的真实运行"
+            ]
         primary_rows.append(primary_row)
 
         analysis_ok = (
             primary_row["status"] == "verified"
-            and item.get("analysis_execution_status") == "accepted"
+            and item.get("analysis_execution_status") in {"accepted", "awaiting_user_execution"}
             and item.get("result_analysis_status") == "passed"
             and not stale.intersection({"analysis_code", "result_analysis_workbook"})
         )
@@ -1039,16 +1044,20 @@ def hydrate_project_context(
         if analysis_row["status"] == "verified" and (
             project_backend is not None or item.get("result_analysis_code") or selections.get("analysis")
         ):
-            binding_issues = STAGE_CODE.validate_stage_binding(
-                root, item, "analysis", require_validated=True, project_backend=project_backend,
+            binding_issues, _ = EXECUTION_PROVENANCE.accepted_result_issues(
+                root, state, item, "analysis",
             )
-            binding_issues.extend(ANALYSIS_PREREQUISITES.stage_input_issues(root, state, item, "analysis"))
-            from conformance_gate import read_issues
-            binding_issues.extend(read_issues(root, state, item, "analysis"))
+            binding_issues.extend(CONFORMANCE.read_issues(
+                root, state, item, "analysis", boundary="accepted_result",
+            ))
             if binding_issues:
                 analysis_row.update(status="not_accepted", reason="; ".join(binding_issues))
         if analysis_row["status"] == "verified":
-            comparison = COMPARISON.inspect_gate(root, state, q, boundary="current")
+            if item.get("analysis_execution_status") == "awaiting_user_execution":
+                analysis_row["provenance_warnings"] = [
+                    "当前深化分析源码尚未执行；此工作簿仍只代表此前已验收的真实运行"
+                ]
+            comparison = COMPARISON.inspect_gate(root, state, q, boundary="accepted_result")
             CONFORMANCE.merge_read_sets(comparison_read_set, comparison["observed_sources"])
             if comparison["issues"]:
                 analysis_row.update(status="not_accepted", reason="; ".join(comparison["issues"]))

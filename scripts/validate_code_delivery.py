@@ -22,6 +22,7 @@ import project_transaction as PROJECT_TX  # noqa: E402
 import run_config_parser as RUN_CONFIG_PARSER  # noqa: E402
 import analysis_prerequisites as ANALYSIS_PREREQUISITES  # noqa: E402
 import stage_code as STAGE_CODE  # noqa: E402
+import execution_provenance as EXECUTION_PROVENANCE  # noqa: E402
 import conformance_gate as CONFORMANCE  # noqa: E402
 import analysis_comparison_gate as COMPARISON  # noqa: E402
 from execution_protocol import SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, comparison_config_issues
@@ -747,24 +748,61 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
         ARTIFACT_IDENTITY.canonicalize_entry_hashes(entry)
     except ARTIFACT_IDENTITY.ArtifactIdentityError as exc:
         raise ValueError(f"artifact identity alias conflict: {exc}") from exc
+    phase = str((state.get("project") or {}).get("current_phase", ""))
+    cleanup_only = False
     if stage == "primary":
-        entry["data_hash"] = str(config["data_sha256"]).lower()
         old_hash = entry.get("primary_code_sha256")
-        accepted = entry.get("primary_execution_status") == "accepted"
+        accepted = (
+            entry.get("primary_execution_status") == "accepted"
+            and entry.get("result_quality_status") == "passed"
+        )
         unchanged_conformance = not conformance_binding or (
             selection.get(CONFORMANCE.DELIVERY) == conformance_binding
             and (selection.get(CONFORMANCE.ACCEPTANCE) or {}).get("applicability") == "current")
-        unchanged_accepted = accepted and old_hash == new_hash and not binding_changed and unchanged_conformance
-        phase = str((state.get("project") or {}).get("current_phase", ""))
-        if accepted and old_hash and (old_hash != new_hash or binding_changed) and phase != "solve_validate":
-            raise ValueError("主求解脚本已accepted并冻结；如需修改必须先显式回退solve_validate")
+        source_changed = bool(old_hash != new_hash or binding_changed)
+        validated_hashes = entry.get("validated_artifact_hashes") or {}
+        accepted_data_hash = str(
+            entry.get("validated_data_hash") or validated_hashes.get("data") or entry.get("data_hash") or ""
+        ).lower()
+        accepted_issues, _ = (
+            EXECUTION_PROVENANCE.accepted_result_issues(project_root, state, entry, "primary")
+            if accepted else (["no accepted primary result"], [])
+        )
+        old_conformance = selection.get(CONFORMANCE.DELIVERY) or {}
+        same_conformance_declaration = (
+            not conformance_binding
+            or (
+                isinstance(old_conformance, Mapping)
+                and old_conformance.get("declaration_sha256") == conformance_binding.get("declaration_sha256")
+            )
+        )
+        cleanup_only = bool(
+            accepted and source_changed and same_conformance_declaration
+            and EXECUTION_PROVENANCE.is_cleanup_phase(phase)
+            and phase not in {"review_delivery", "completed"}
+            and EXECUTION_PROVENANCE.semantic_identity_is_current(entry)
+            and not accepted_issues
+            and accepted_data_hash
+            and str(config.get("data_sha256") or "").lower() == accepted_data_hash
+        )
+        unchanged_accepted = accepted and not source_changed and unchanged_conformance
+        if accepted and source_changed and phase != "solve_validate" and not cleanup_only:
+            raise ValueError(
+                "已验收主求解源码发生变化；仅在已验收结果、数据身份和模型语义仍有效的整理阶段保留旧结果，"
+                "否则必须先回到solve_validate"
+            )
+        entry["data_hash"] = str(config["data_sha256"]).lower()
         entry["code"] = relative
         entry["primary_code_sha256"] = new_hash
         entry.setdefault("artifact_hashes", {})["primary_code"] = new_hash
         entry.setdefault("analysis_execution_status", "pending")
         if not unchanged_accepted:
             entry["primary_execution_status"] = "awaiting_user_execution"
-        if old_hash and (old_hash != new_hash or binding_changed):
+        if source_changed and cleanup_only:
+            # Current delivery identity advances; validated_bundle_sha256 and the
+            # accepted workbook remain bound to the previous real execution.
+            pass
+        elif source_changed:
             transition_reports.append(
                 STATE_TRANSITIONS.apply_transition(
                     state,
@@ -783,13 +821,43 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
             entry["primary_execution_status"] = "awaiting_user_execution"
             state.setdefault("project", {})["current_phase"] = "solve_validate"
     else:
-        if entry.get("primary_execution_status") != "accepted":
-            raise ValueError("主工作簿未accepted，禁止交付最终结果深化分析脚本")
+        # analysis_issues() already verifies that the accepted primary workbook,
+        # not the current primary source bytes, is the required upstream artifact.
         old_hash = entry.get("analysis_code_sha256")
+        source_changed = bool(old_hash and (old_hash != new_hash or binding_changed))
+        accepted_analysis = (
+            entry.get("analysis_execution_status") == "accepted"
+            and entry.get("result_analysis_status") == "passed"
+        )
+        accepted_issues, _ = (
+            EXECUTION_PROVENANCE.accepted_result_issues(project_root, state, entry, "analysis")
+            if accepted_analysis else (["no accepted analysis result"], [])
+        )
+        old_conformance = selection.get(CONFORMANCE.DELIVERY) or {}
+        same_conformance_declaration = (
+            not conformance_binding
+            or (
+                isinstance(old_conformance, Mapping)
+                and old_conformance.get("declaration_sha256") == conformance_binding.get("declaration_sha256")
+            )
+        )
+        validated_hashes = entry.get("validated_artifact_hashes") or {}
+        accepted_data_hash = str(
+            entry.get("validated_data_hash") or validated_hashes.get("data") or entry.get("data_hash") or ""
+        ).lower()
+        cleanup_only = bool(
+            accepted_analysis and source_changed and same_conformance_declaration
+            and EXECUTION_PROVENANCE.is_cleanup_phase(phase)
+            and phase not in {"review_delivery", "completed"}
+            and EXECUTION_PROVENANCE.semantic_identity_is_current(entry)
+            and not accepted_issues
+            and accepted_data_hash
+            and str(config.get("data_sha256") or "").lower() == accepted_data_hash
+        )
         entry["result_analysis_code"] = relative
         entry["analysis_code_sha256"] = new_hash
         entry.setdefault("artifact_hashes", {})["analysis_code"] = new_hash
-        if old_hash != new_hash or binding_changed:
+        if source_changed and not cleanup_only:
             transition_reports.append(
                 STATE_TRANSITIONS.apply_transition(
                     state,
@@ -800,7 +868,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
             )
             entry["status"] = "solved"
             state.setdefault("project", {})["current_phase"] = "result_analysis"
-        elif conformance_changed:
+        elif conformance_changed and not cleanup_only:
             transition_reports.append(STATE_TRANSITIONS.apply_transition(
                 state, event="analysis_conformance_changed", source_question=key,
                 contract=STATE_TRANSITION_CONTRACT))
@@ -811,8 +879,9 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
     if modern:
         target = entry.setdefault("solver_execution", {}).setdefault(stage, {})
         target["bundle_sha256"] = fingerprint["bundle_sha256"]
-        if str(target.get("validated_bundle_sha256", "")).lower() != fingerprint["bundle_sha256"]:
-            target.pop("validated_bundle_sha256", None)
+        # This is immutable provenance for the last successful real execution.
+        # Only validate_user_execution may replace it after a matching receipt and
+        # numerical acceptance; source delivery must never erase that history.
 
     if sha256(script) != new_hash or (modern and STAGE_CODE.stage_code_fingerprint(
             project_root, script, config.get("code_dependencies", [])) != fingerprint):
@@ -821,7 +890,12 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
         final_input_issues = observe_inputs(project_root, config, state)["issues"]
         if final_input_issues:
             raise ValueError("; ".join(final_input_issues))
-    if conformance_binding:
+    if conformance_binding and cleanup_only:
+        # Retain the delivery/acceptance pair for the original accepted run.
+        # The new bundle is not authorized for execution until a strict delivery
+        # and a matching user-run receipt are completed in solve_validate.
+        pass
+    elif conformance_binding:
         target = entry["solver_execution"][stage]
         if CONFORMANCE.ACCEPTANCE in target and (
                 target.get(CONFORMANCE.DELIVERY) != conformance_binding

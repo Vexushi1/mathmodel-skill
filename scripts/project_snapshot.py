@@ -10,6 +10,7 @@ from typing import Any, Iterable, Mapping
 
 import artifact_fingerprint as ARTIFACT_FINGERPRINT
 import stage_code as STAGE_CODE
+import execution_provenance as EXECUTION_PROVENANCE
 import analysis_comparison_gate as COMPARISON
 from stage_inputs import observe_inputs
 
@@ -180,12 +181,19 @@ def _python_files(root: Path, chinese_name: str) -> list[Path]:
 def _solver_observations(
     root: Path, question: str, entry: Mapping[str, Any],
     *, project_backend: str | None = None, current_state: bool = False,
+    delivery_scope: str | None = None, read_only_result_consumption: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Path | None], list[str]]:
-    """Observe current implementation bytes without updating delivered identities."""
+    """Observe current source separately from the accepted execution identity.
+
+    Read-only result consumers may use an unchanged accepted workbook even when
+    the current source was cleaned, moved, or is not the source that produced it.
+    Such drift is recorded as provenance, never promoted to a new execution proof.
+    """
     root = root.resolve()
     observed: dict[str, Any] = {}
     paths: dict[str, Path | None] = {"primary": None, "analysis": None}
     issues: list[str] = []
+    read_only = read_only_result_consumption
     selections = entry.get("solver_execution", {})
     if not isinstance(selections, Mapping):
         return observed, paths, ["solver_execution必须为映射"]
@@ -214,9 +222,12 @@ def _solver_observations(
         if current_state and (project_backend is None or not all((
             entry.get(field), entry.get(hash_field), selection.get("bundle_sha256"),
         ))):
-            issue = f"{stage}当前交付需要项目后端及完整登记的入口、SHA-256和bundle"
-            observed[stage] = {"binding_issues": [issue]}
-            issues.append(issue)
+            issue = f"{stage}当前源码缺少完整入口/哈希/bundle登记"
+            if read_only:
+                observed[stage] = {"provenance_warnings": [issue]}
+            else:
+                observed[stage] = {"binding_issues": [issue]}
+                issues.append(issue)
             continue
         try:
             code = STAGE_CODE.resolve_stage_code(
@@ -233,21 +244,40 @@ def _solver_observations(
                     root, code.path, config.get("code_dependencies", []), check_declared_hashes=False,
                 ))
                 if registered:
-                    binding_issues = STAGE_CODE.validate_stage_binding(
-                        root, entry, stage,
-                        require_validated=entry.get(f"{stage}_execution_status") == "accepted",
-                        project_backend=project_backend,
-                    )
-                    record["binding_issues"] = binding_issues
-                    issues.extend(f"{stage}: {issue}" for issue in binding_issues)
+                    if read_only:
+                        warnings: list[str] = []
+                        current_entry_hash = str(record.get("entry_sha256") or "").lower()
+                        delivered_entry_hash = str(entry.get(hash_field) or "").lower()
+                        if delivered_entry_hash and current_entry_hash != delivered_entry_hash:
+                            warnings.append("当前源码字节与最近一次代码登记不同")
+                        accepted_bundle = str(selection.get("validated_bundle_sha256") or "").lower()
+                        current_bundle = str(record.get("bundle_sha256") or "").lower()
+                        if accepted_bundle and current_bundle != accepted_bundle:
+                            warnings.append("当前源码bundle与产生accepted工作簿的执行bundle不同")
+                        if warnings:
+                            record["provenance_warnings"] = warnings
+                    else:
+                        binding_issues = STAGE_CODE.validate_stage_binding(
+                            root, entry, stage,
+                            require_validated=entry.get(f"{stage}_execution_status") == "accepted",
+                            project_backend=project_backend,
+                        )
+                        record["binding_issues"] = binding_issues
+                        issues.extend(f"{stage}: {issue}" for issue in binding_issues)
             observed[stage] = record
         except STAGE_CODE.StageCodeMissingError as exc:
             if registered:
+                if read_only:
+                    observed[stage] = {"provenance_warnings": [str(exc)]}
+                else:
+                    observed[stage] = {"binding_issues": [str(exc)]}
+                    issues.append(f"{stage}: {exc}")
+        except (ValueError, OSError, TypeError) as exc:
+            if read_only:
+                observed[stage] = {"provenance_warnings": [str(exc)]}
+            else:
                 observed[stage] = {"binding_issues": [str(exc)]}
                 issues.append(f"{stage}: {exc}")
-        except (ValueError, OSError, TypeError) as exc:
-            observed[stage] = {"binding_issues": [str(exc)]}
-            issues.append(f"{stage}: {exc}")
     return observed, paths, issues
 
 def _analysis_path(result_dir: Path, chinese_name: str) -> tuple[Path, bool]:
@@ -465,9 +495,21 @@ def _snapshot_question(
     else:
         solution = expected_solution
         analysis_workbook, legacy_analysis_workbook = _analysis_path(result_dir, chinese_name)
+    provenance_warnings: list[str] = []
+    read_only_result_consumption = (
+        current_state
+        and EXECUTION_PROVENANCE.is_read_only_result_scope(delivery_scope)
+        and EXECUTION_PROVENANCE.is_cleanup_phase(
+            str(((state or {}).get("project") or {}).get("current_phase", ""))
+        )
+    )
     implementations, code_paths, code_issues = _solver_observations(
         root, chinese_name, entry, project_backend=project_backend, current_state=current_state,
+        delivery_scope=delivery_scope,
+        read_only_result_consumption=read_only_result_consumption,
     )
+    for stage, record in implementations.items():
+        provenance_warnings.extend(f"{stage}: {item}" for item in record.get("provenance_warnings", []))
     primary_code, analysis_code = code_paths["primary"], code_paths["analysis"]
     legacy_single_code = bool(primary_code and primary_code.suffix == ".py" and not analysis_code)
     number = question_number(chinese_name)
@@ -503,23 +545,85 @@ def _snapshot_question(
             elif str(config.get("data_sha256", "")).lower() != str(entry.get("data_hash", "")).lower():
                 input_issues.append("analysis data_sha256必须继承主结果data_hash，不得覆盖主数据身份")
         except (ValueError, OSError, TypeError) as exc:
-            input_issues.append(f"{stage}输入身份: {exc}")
+            if EXECUTION_PROVENANCE.is_read_only_result_scope(delivery_scope):
+                provenance_warnings.append(
+                    f"{stage}当前源码/输入配置无法用于重新验收；继续核验原accepted工作簿: {exc}")
+            else:
+                input_issues.append(f"{stage}输入身份: {exc}")
             implementations.setdefault(stage, {})["inputs"] = {"issues": [str(exc)], "paths": []}
+    read_only_results = read_only_result_consumption
+    if read_only_results:
+        if solution and solution.is_file():
+            accepted_issues, accepted_warnings = EXECUTION_PROVENANCE.accepted_result_issues(
+                root, state or {}, entry, "primary", solution)
+            workbook_issues.extend(accepted_issues)
+            provenance_warnings.extend(accepted_warnings)
+        if not analysis_not_required and analysis_workbook and analysis_workbook.is_file():
+            accepted_issues, accepted_warnings = EXECUTION_PROVENANCE.accepted_result_issues(
+                root, state or {}, entry, "analysis", analysis_workbook)
+            workbook_issues.extend(accepted_issues)
+            provenance_warnings.extend(accepted_warnings)
+        if primary_code is None or data_hash is None:
+            accepted_data_hash, accepted_input_issues, accepted_input_warnings = (
+                EXECUTION_PROVENANCE.accepted_workbook_data_identity(
+                    root, state or {}, entry, "primary", solution)
+                if solution and solution.is_file() else (None, [], [])
+            )
+            workbook_issues.extend(accepted_input_issues)
+            provenance_warnings.extend(accepted_input_warnings)
+            if accepted_data_hash:
+                data_hash = accepted_data_hash
+    strict_result_source_scope = current_state and (
+        delivery_scope in {"results", "submission"}
+        or (
+            EXECUTION_PROVENANCE.is_read_only_result_scope(delivery_scope)
+            and not read_only_result_consumption
+        )
+    )
+    if strict_result_source_scope:
+        for stage in ("primary", "analysis"):
+            if stage == "analysis" and analysis_not_required:
+                continue
+            field = "code" if stage == "primary" else "result_analysis_code"
+            stage_status = entry.get(f"{stage}_execution_status")
+            slot = (entry.get("solver_execution") or {}).get(stage, {})
+            modern_binding = isinstance(slot, Mapping) and bool(
+                slot.get("bundle_sha256") or slot.get("validated_bundle_sha256")
+                or STAGE_CODE.requires_bundle_binding(
+                    root, entry, stage, project_backend=project_backend,
+                )
+            )
+            if stage == "analysis" and not entry.get(field) and not modern_binding:
+                continue
+            if modern_binding:
+                accepted_bundle = str(slot.get("validated_bundle_sha256") or "").lower()
+                current_bundle = str(slot.get("bundle_sha256") or "").lower()
+                if stage_status != "accepted":
+                    workbook_issues.append(
+                        f"{stage} source bundle has not been accepted by a matching real execution; "
+                        "strict results/submission scopes cannot use a previous workbook as current output"
+                    )
+                if not accepted_bundle or current_bundle != accepted_bundle:
+                    workbook_issues.append(
+                        f"{stage} current source bundle differs from the accepted execution bundle "
+                        "at a strict results/submission boundary"
+                    )
     require_solution = status in SOLVED_STATUSES
     require_analysis = status in ANALYZED_STATUSES and not analysis_not_required
     require_analysis_code = (
         status in ANALYZED_STATUSES
         and not analysis_not_required
         and bool(entry.get("analysis_code_sha256"))
+        and not read_only_results
     )
     if delivery_scope in {"results", "figures", "docx"}:
         require_solution = True
         require_analysis = not analysis_not_required
-        require_analysis_code = not analysis_not_required
+        require_analysis_code = not analysis_not_required and not read_only_results
 
     formal_figures = delivery_scope in {"figures", "docx", "latex", "submission"}
     issues: list[str] = [*workbook_issues, *code_issues, *input_issues, *(figure_issues if formal_figures else [])]
-    warnings: list[str] = [] if formal_figures else list(figure_issues)
+    warnings: list[str] = [*provenance_warnings, *([] if formal_figures else figure_issues)]
     if entry.get("result_analysis_status") == "not_required" and not analysis_not_required:
         issues.append("result_analysis_status=not_required必须提供非空result_analysis_requirement_reason")
     if analysis_not_required and COMPARISON.required_ids(entry):
