@@ -998,6 +998,10 @@ def hydrate_project_context(
             primary_issues, _ = EXECUTION_PROVENANCE.accepted_result_issues(
                 root, state, item, "primary",
             )
+            if not EXECUTION_PROVENANCE.can_consume_accepted_result(item, "primary"):
+                primary_issues.append(
+                    "read-only cleanup requires a fully validated semantic identity and eligible accepted result"
+                )
         else:
             primary_issues = ANALYSIS_PREREQUISITES.primary_issues(
                 root, state, item, require_project_policy=True,
@@ -1066,6 +1070,10 @@ def hydrate_project_context(
                 binding_issues.extend(CONFORMANCE.read_issues(
                     root, state, item, "analysis", boundary="accepted_result",
                 ))
+                if not EXECUTION_PROVENANCE.can_consume_accepted_result(item, "analysis"):
+                    binding_issues.append(
+                        "read-only cleanup requires a fully validated semantic identity and eligible accepted result"
+                    )
             else:
                 binding_issues = STAGE_CODE.validate_stage_binding(
                     root, item, "analysis", require_validated=True, project_backend=project_backend,
