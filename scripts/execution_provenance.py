@@ -39,27 +39,47 @@ def is_cleanup_phase(phase: str | None) -> bool:
 
 
 def semantic_identity_is_current(entry: Mapping[str, Any]) -> bool:
-    """Require any persisted current/validated/approved semantic identities to agree."""
+    """Reject known semantic drift; missing legacy comparison fields remain read-only compatible."""
     identity = entry.get("semantic_identity_hash")
     validated_identity = entry.get("validated_semantic_identity_hash")
     approved_identity = entry.get("approved_semantic_identity_hash")
-    if identity is not None or validated_identity is not None or approved_identity is not None:
-        if not isinstance(identity, str) or not SHA256_RE.fullmatch(identity):
-            return False
-        if not isinstance(validated_identity, str) or identity.lower() != validated_identity.lower():
-            return False
-        if approved_identity is not None and (
-            not isinstance(approved_identity, str) or identity.lower() != approved_identity.lower()
-        ):
-            return False
+    if identity is not None and (not isinstance(identity, str) or not SHA256_RE.fullmatch(identity)):
+        return False
+    if validated_identity is not None and (
+        not isinstance(validated_identity, str) or not SHA256_RE.fullmatch(validated_identity)
+    ):
+        return False
+    if identity is not None and validated_identity is not None and identity.lower() != validated_identity.lower():
+        return False
+    if identity is not None and approved_identity is not None and (
+        not isinstance(approved_identity, str) or identity.lower() != approved_identity.lower()
+    ):
+        return False
     revision = entry.get("semantic_revision")
     validated_revision = entry.get("validated_semantic_revision")
     approved_revision = entry.get("approved_semantic_revision")
-    if revision is not None or validated_revision is not None or approved_revision is not None:
-        if revision is None or validated_revision != revision:
-            return False
-        if approved_revision is not None and approved_revision != revision:
-            return False
+    if revision is not None and validated_revision is not None and validated_revision != revision:
+        return False
+    if revision is not None and approved_revision is not None and approved_revision != revision:
+        return False
+    return True
+
+
+def semantic_identity_is_fully_verified(entry: Mapping[str, Any]) -> bool:
+    """Cleanup-only code delivery needs a complete validated semantic hash, not legacy absence."""
+    identity = entry.get("semantic_identity_hash")
+    validated_identity = entry.get("validated_semantic_identity_hash")
+    if (
+        not isinstance(identity, str) or not SHA256_RE.fullmatch(identity)
+        or not isinstance(validated_identity, str) or not SHA256_RE.fullmatch(validated_identity)
+        or identity.lower() != validated_identity.lower()
+    ):
+        return False
+    approved_identity = entry.get("approved_semantic_identity_hash")
+    if approved_identity is not None and (
+        not isinstance(approved_identity, str) or identity.lower() != approved_identity.lower()
+    ):
+        return False
     return True
 
 
@@ -208,6 +228,8 @@ def accepted_result_issues(
         issues.append(f"project status does not retain an accepted {stage} result")
     if not semantic_identity_is_current(entry):
         issues.append("current model semantic identity differs from its validated/approved identity")
+    elif not semantic_identity_is_fully_verified(entry):
+        warnings.append("legacy accepted result has no complete validated semantic hash; no current-source equivalence is inferred")
     raw_path = entry.get(workbook_field)
     if not isinstance(raw_path, str) or not raw_path.strip():
         return [*issues, f"{stage} accepted workbook path is missing"], warnings
