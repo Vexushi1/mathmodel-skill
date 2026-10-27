@@ -524,6 +524,10 @@ USER_CHECKER_AUTHORITY_REWRITES = {
          "    if conformance_binding:"),
         ("        entry[\"data_hash\"] = str(config[\"data_sha256\"]).lower()\n        entry[\"code\"] = relative",
          "        entry[\"code\"] = relative"),
+        ("        conformance = CONFORMANCE.inspect_gate(\n            project_root, state, _question_key(problem), stage, boundary=\"delivery\",\n        )",
+         "        conformance = CONFORMANCE.inspect_gate(project_root, state, _question_key(problem), stage)"),
+        ("    conformance = CONFORMANCE.inspect_gate(\n        project_root, state, key, stage, boundary=\"delivery\",\n    )",
+         "    conformance = CONFORMANCE.inspect_gate(project_root, state, key, stage)"),
     ),
     "modules/03_solve_validate.md": (
         (
