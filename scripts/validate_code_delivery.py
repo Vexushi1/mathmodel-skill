@@ -780,7 +780,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
             accepted and source_changed and same_conformance_declaration
             and EXECUTION_PROVENANCE.is_cleanup_phase(phase)
             and phase not in {"review_delivery", "completed"}
-            and EXECUTION_PROVENANCE.semantic_identity_is_current(entry)
+            and EXECUTION_PROVENANCE.semantic_identity_is_fully_verified(entry)
             and not accepted_issues
             and accepted_data_hash
             and str(config.get("data_sha256") or "").lower() == accepted_data_hash
