@@ -603,7 +603,9 @@ def validate_script(
         issues.append(f"源码在代码检查期间无法读取: {exc}")
     if stage in {"primary", "analysis"}:
         state = load_yaml(state_path) if state_path.is_file() else {}
-        conformance = CONFORMANCE.inspect_gate(project_root, state, _question_key(problem), stage)
+        conformance = CONFORMANCE.inspect_gate(
+            project_root, state, _question_key(problem), stage, boundary="delivery",
+        )
         issues.extend(conformance["issues"])
         binding = conformance.get("delivery_candidate")
         if binding and binding["entrypoint"] != script.relative_to(project_root).as_posix():
@@ -717,7 +719,9 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
 
     key = _question_key(problem)
     entry = state.setdefault("subproblems", {}).setdefault(key, {})
-    conformance = CONFORMANCE.inspect_gate(project_root, state, key, stage)
+    conformance = CONFORMANCE.inspect_gate(
+        project_root, state, key, stage, boundary="delivery",
+    )
     if conformance["issues"]:
         raise ValueError("; ".join(conformance["issues"]))
     conformance_binding = conformance.get("delivery_candidate")
