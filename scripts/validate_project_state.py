@@ -1161,7 +1161,10 @@ def validate_state_payload(
                         accepted_issues, _ = EXECUTION_PROVENANCE.accepted_result_issues(
                             project_root, payload, state, stage,
                         )
-                        accepted_result_ok = not accepted_issues
+                        accepted_result_ok = (
+                            not accepted_issues
+                            and EXECUTION_PROVENANCE.semantic_identity_is_fully_verified(state)
+                        )
                     if not accepted_result_ok:
                         issues.extend(f"{name}: {issue}" for issue in STAGE_CODE.validate_stage_binding(
                             project_root, state, stage, require_validated=execution_status == "accepted",
