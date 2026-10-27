@@ -130,7 +130,11 @@ def can_consume_accepted_result(entry: Mapping[str, Any], stage: str) -> bool:
     validated = entry.get("validated_artifact_hashes") or {}
     if not isinstance(validated, Mapping) or not SHA256_RE.fullmatch(str(validated.get(layer) or "")):
         return False
-    if not entry.get(workbook_field) or not semantic_identity_is_current(entry):
+    if (
+        not entry.get(workbook_field)
+        or not semantic_identity_is_current(entry)
+        or not semantic_identity_is_fully_verified(entry)
+    ):
         return False
     try:
         stale = set(ARTIFACT_IDENTITY.normalize_stale_layers(entry.get("stale_layers", []) or []))
