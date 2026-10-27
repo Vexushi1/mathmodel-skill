@@ -522,6 +522,8 @@ USER_CHECKER_AUTHORITY_REWRITES = {
          "        if str(target.get(\"validated_bundle_sha256\", \"\")).lower() != fingerprint[\"bundle_sha256\"]:\n            target.pop(\"validated_bundle_sha256\", None)"),
         ("    if conformance_binding and cleanup_only:\n        # Retain the delivery/acceptance pair for the original accepted run.\n        # The new bundle is not authorized for execution until a strict delivery\n        # and a matching user-run receipt are completed in solve_validate.\n        pass\n    elif conformance_binding:",
          "    if conformance_binding:"),
+        ("        entry[\"data_hash\"] = str(config[\"data_sha256\"]).lower()\n        entry[\"code\"] = relative",
+         "        entry[\"code\"] = relative"),
     ),
     "modules/03_solve_validate.md": (
         (
