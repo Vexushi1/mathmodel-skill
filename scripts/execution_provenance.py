@@ -252,12 +252,14 @@ def accepted_result_issues(
     expected_framework = validated.get("framework") if isinstance(validated, Mapping) else None
     framework_path = root / "模型论文框架.md"
     framework_anchor = str(entry.get("framework_section") or "")
-    if expected_framework:
+    if expected_framework and framework_anchor:
         actual_framework = ARTIFACT_FINGERPRINT.framework_section_hash(framework_path, framework_anchor)
         if not actual_framework:
             issues.append("accepted result framework section is missing or cannot be hashed")
         elif str(actual_framework).lower() != str(expected_framework).lower():
             issues.append("current paper-framework section differs from the accepted result framework identity")
+    elif expected_framework:
+        warnings.append("accepted result has a framework hash but no section anchor for independent read-only verification")
     else:
         warnings.append("accepted result has no validated framework-section identity")
     selections = entry.get("solver_execution") or {}
