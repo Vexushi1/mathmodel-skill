@@ -919,6 +919,9 @@ def hydrate_project_context(
     ambiguities.extend(classification_ambiguities)
     structured_rejections = _current_structured_rejections(state, questions)
     project = state.get("project", {}) or {}
+    read_only_result_consumption = EXECUTION_PROVENANCE.is_cleanup_phase(
+        str(project.get("current_phase", ""))
+    )
     preprocessing = state.get("preprocessing", {}) or {}
     evidence: list[dict[str, Any]] = []
     verified: set[str] = set()
@@ -991,13 +994,20 @@ def hydrate_project_context(
             selections = {}
         conflicts.extend(ARTIFACT_IDENTITY.entry_alias_issues(item, scope=q))
         stale = set(ARTIFACT_IDENTITY.normalize_stale_layers(item.get("stale_layers")))
-        primary_issues = ANALYSIS_PREREQUISITES.primary_issues(
-            root, state, item, require_project_policy=True,
-        )
+        if read_only_result_consumption and item.get("primary_execution_status") in {"accepted", "awaiting_user_execution"}:
+            primary_issues, _ = EXECUTION_PROVENANCE.accepted_result_issues(
+                root, state, item, "primary",
+            )
+        else:
+            primary_issues = ANALYSIS_PREREQUISITES.primary_issues(
+                root, state, item, require_project_policy=True,
+            )
         rejection = structured_rejections.get(str(q), {})
         primary_issues.extend(rejection.get("primary_reasons", []) or [])
+        primary_status = item.get("primary_execution_status")
         primary_ok = (
-            item.get("primary_execution_status") in {"accepted", "awaiting_user_execution"}
+            (primary_status == "accepted"
+             or (read_only_result_consumption and primary_status == "awaiting_user_execution"))
             and item.get("result_quality_status") == "passed"
             and not rejection.get("blocks_primary")
         )
@@ -1016,15 +1026,20 @@ def hydrate_project_context(
         )
         if primary_row["status"] == "verified" and primary_issues:
             primary_row.update(status="not_accepted", reason="; ".join(primary_issues))
-        if primary_row["status"] == "verified" and item.get("primary_execution_status") == "awaiting_user_execution":
+        if primary_row["status"] == "verified" and (
+            item.get("primary_execution_status") == "awaiting_user_execution"
+            or (read_only_result_consumption and EXECUTION_PROVENANCE.current_source_differs_from_accepted(item, "primary"))
+        ):
             primary_row["provenance_warnings"] = [
-                "当前主求解源码尚未执行；此工作簿仍只代表此前已验收的真实运行"
+                "当前主求解源码尚未执行或与原验收源码不同；此工作簿仍只代表此前已验收的真实运行"
             ]
         primary_rows.append(primary_row)
 
+        analysis_status = item.get("analysis_execution_status")
         analysis_ok = (
             primary_row["status"] == "verified"
-            and item.get("analysis_execution_status") in {"accepted", "awaiting_user_execution"}
+            and (analysis_status == "accepted"
+                 or (read_only_result_consumption and analysis_status == "awaiting_user_execution"))
             and item.get("result_analysis_status") == "passed"
             and not stale.intersection({"analysis_code", "result_analysis_workbook"})
         )
@@ -1044,20 +1059,33 @@ def hydrate_project_context(
         if analysis_row["status"] == "verified" and (
             project_backend is not None or item.get("result_analysis_code") or selections.get("analysis")
         ):
-            binding_issues, _ = EXECUTION_PROVENANCE.accepted_result_issues(
-                root, state, item, "analysis",
-            )
-            binding_issues.extend(CONFORMANCE.read_issues(
-                root, state, item, "analysis", boundary="accepted_result",
-            ))
+            if read_only_result_consumption:
+                binding_issues, _ = EXECUTION_PROVENANCE.accepted_result_issues(
+                    root, state, item, "analysis",
+                )
+                binding_issues.extend(CONFORMANCE.read_issues(
+                    root, state, item, "analysis", boundary="accepted_result",
+                ))
+            else:
+                binding_issues = STAGE_CODE.validate_stage_binding(
+                    root, item, "analysis", require_validated=True, project_backend=project_backend,
+                )
+                binding_issues.extend(ANALYSIS_PREREQUISITES.stage_input_issues(root, state, item, "analysis"))
+                binding_issues.extend(CONFORMANCE.read_issues(root, state, item, "analysis"))
             if binding_issues:
                 analysis_row.update(status="not_accepted", reason="; ".join(binding_issues))
         if analysis_row["status"] == "verified":
-            if item.get("analysis_execution_status") == "awaiting_user_execution":
+            if item.get("analysis_execution_status") == "awaiting_user_execution" or (
+                read_only_result_consumption
+                and EXECUTION_PROVENANCE.current_source_differs_from_accepted(item, "analysis")
+            ):
                 analysis_row["provenance_warnings"] = [
-                    "当前深化分析源码尚未执行；此工作簿仍只代表此前已验收的真实运行"
+                    "当前深化分析源码尚未执行或与原验收源码不同；此工作簿仍只代表此前已验收的真实运行"
                 ]
-            comparison = COMPARISON.inspect_gate(root, state, q, boundary="accepted_result")
+            comparison = COMPARISON.inspect_gate(
+                root, state, q,
+                boundary="accepted_result" if read_only_result_consumption else "current",
+            )
             CONFORMANCE.merge_read_sets(comparison_read_set, comparison["observed_sources"])
             if comparison["issues"]:
                 analysis_row.update(status="not_accepted", reason="; ".join(comparison["issues"]))
