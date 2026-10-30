@@ -636,9 +636,13 @@ def inverse_user_checker_changes(relative: str, text: str) -> str:
         if text.count(current) != 1:
             raise ValueError(f"{relative}: P6 source-provenance delta is missing or duplicated")
         text = text.replace(current, baseline, 1)
-    for current, baseline in USER_CHECKER_AUTHORITY_REWRITES.get(relative, ()):
-        if text.count(current) != 1:
-            raise ValueError(f"{relative}: authorized checker delta is missing or duplicated")
+    for index, (current, baseline) in enumerate(USER_CHECKER_AUTHORITY_REWRITES.get(relative, ())):
+        matches = text.count(current)
+        if matches != 1:
+            raise ValueError(
+                f"{relative}: authorized checker delta #{index + 1} is missing or duplicated "
+                f"(matches={matches}; anchor={current[:80]!r})"
+            )
         text = text.replace(current, baseline, 1)
     return text
 
