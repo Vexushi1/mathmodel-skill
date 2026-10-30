@@ -1,4 +1,5 @@
 import hashlib
+import json
 import importlib.util
 import sys
 import tempfile
@@ -19,8 +20,15 @@ def load_syncer():
     spec = importlib.util.spec_from_file_location("sync_project", ROOT / "scripts/sync_project.py")
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
+    previous = sys.modules.get(spec.name)
+    try:
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+    finally:
+        if previous is None:
+            sys.modules.pop(spec.name, None)
+        else:
+            sys.modules[spec.name] = previous
     return module
 
 
@@ -34,7 +42,7 @@ def write_receipt_workbook(path: Path, config: dict[str, object]) -> str:
     sheet.title = "运行配置"
     sheet.append(["项目", "值"])
     for key, value in config.items():
-        sheet.append([key, value])
+        sheet.append([key, json.dumps(value, ensure_ascii=False) if isinstance(value, (list, dict)) else value])
     book.save(path)
     return hashlib.sha256(path.read_bytes()).hexdigest()
 

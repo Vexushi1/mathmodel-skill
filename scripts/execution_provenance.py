@@ -7,13 +7,11 @@ accepted workbook and its recorded run identity independently of today's source.
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import zipfile
 from pathlib import Path
 from typing import Any, Mapping
-
-import openpyxl
-from openpyxl.utils.exceptions import InvalidFileException
 
 from execution_protocol import is_source_receipt
 import artifact_identity as ARTIFACT_IDENTITY
@@ -151,7 +149,12 @@ def can_consume_accepted_result(entry: Mapping[str, Any], stage: str) -> bool:
 def _workbook_config(path: Path) -> tuple[dict[str, Any], list[str]]:
     if not path.is_file():
         return {}, ["accepted workbook is missing"]
-    book = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    from openpyxl import load_workbook
+    from openpyxl.utils.exceptions import InvalidFileException
+    try:
+        book = load_workbook(path, read_only=True, data_only=True)
+    except InvalidFileException as exc:
+        raise ValueError(f"invalid accepted workbook format: {exc}") from exc
     try:
         if "运行配置" not in book.sheetnames:
             return {}, ["accepted workbook has no RUN_CONFIG/RUN_RECEIPT sheet"]
@@ -167,7 +170,13 @@ def _workbook_config(path: Path) -> tuple[dict[str, Any], list[str]]:
             key = str(row[0]).strip()
             if key in mapping:
                 issues.append(f"accepted workbook repeats run-configuration field: {key}")
-            mapping[key] = row[1] if len(row) > 1 else None
+            value = row[1] if len(row) > 1 else None
+            if key in {"data_paths", "auxiliary_data_paths", "code_dependencies"} and isinstance(value, str):
+                try:
+                    value = json.loads(value)
+                except json.JSONDecodeError:
+                    issues.append(f"accepted workbook has malformed JSON path list: {key}")
+            mapping[key] = value
         return mapping, issues
     finally:
         book.close()
@@ -188,7 +197,7 @@ def accepted_workbook_data_identity(
         return None, ["accepted workbook path escapes project root"], []
     try:
         config, config_issues = _workbook_config(path)
-    except (OSError, ValueError, TypeError, KeyError, IndexError, zipfile.BadZipFile, InvalidFileException) as exc:
+    except (OSError, ValueError, TypeError, KeyError, IndexError, zipfile.BadZipFile) as exc:
         return None, [f"accepted workbook receipt cannot be read: {exc}"], []
     if config_issues:
         if "no RUN_CONFIG/RUN_RECEIPT sheet" in "; ".join(config_issues):
