@@ -913,7 +913,7 @@ class ContractAndDriftTests(unittest.TestCase):
                             inverse_user_checker_changes(relative, changed)
 
     def test_checker_inverse_projection_does_not_erase_unrelated_changes(self):
-        for relative in USER_CHECKER_AUTHORITY_REWRITES:
+        for relative in set(USER_CHECKER_AUTHORITY_REWRITES) | set(P6_SOURCE_PROVENANCE_REWRITES):
             text = (ROOT / relative).read_text(encoding="utf-8")
             changed = text + "\nunauthorized unrelated change\n"
             projected = inverse_user_checker_changes(relative, text)
