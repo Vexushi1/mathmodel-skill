@@ -616,7 +616,16 @@ def _scope(plan: dict[str, Any], request: str, policy: dict[str, Any]) -> tuple[
     if intent == "editable_mechanism_diagram" or (intent == "figures" and re.search(signals["mechanism"], request)):
         return "mechanism", "planned", []
     if intent == "figures":
-        if re.search(signals["style_only"], request):
+        style = bool(re.search(signals["style_only"], request))
+        new_figure = bool(re.search(signals["new_figure"], request))
+        if style and new_figure:
+            # A new figure is a new reading scope, not a change to the
+            # mathematical model. Still reject unrelated semantic changes.
+            remaining = re.sub(signals["new_figure"], "", clean)
+            if re.search(signals["semantic_risk"], remaining):
+                return "full", "semantic_change_or_adjudication", ["mixed figure request also changes mathematical semantics"]
+            return "figure_style_and_design", "candidate", []
+        if style:
             if semantic_risk:
                 return "full", "semantic_change_or_adjudication", ["style request also changes data/coordinate/claim semantics"]
             return "figure_style", "candidate", []
@@ -705,7 +714,22 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
     reader = SourceReader(root)
     profile, status, reasons = (_scope(plan, request, policy) if policy else
                                 ("full", "conservative_fallback", ["no reading policy declared"]))
-    config = policy.get("profiles", {}).get(profile, {})
+    profiles = policy.get("profiles", {})
+    config = profiles.get(profile, {})
+    if profile == "figure_style_and_design":
+        # Reuse the existing two reading profiles; no parallel Figure Authority
+        # or copy of their selector lists is introduced.
+        style_config = profiles.get("figure_style", {})
+        design_config = profiles.get("figure_design", {})
+        if style_config.get("read_now") and design_config.get("read_now"):
+            config = {
+                **deepcopy(style_config),
+                "read_now": deepcopy(style_config["read_now"]) + deepcopy(design_config["read_now"]),
+                "conditional": deepcopy(style_config.get("conditional", []))
+                + deepcopy(design_config.get("conditional", [])),
+            }
+        else:
+            config = {}
     if policy and policy.get("schema_version") != "1.1.0":
         raise ValueError("Unsupported reading_policy schema")
     if profile not in {"full", "progressive_writing"} and not config.get("read_now"):
@@ -750,12 +774,17 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
         if not issues and config.get("needs_approved_figure_binding"):
             issues.extend(_figure_binding(project_root, state, context["question"]))
         if issues:
-            profile, status, config = "full", "evidence_required", {}
+            if profile == "figure_style_and_design":
+                # Missing old-figure approval blocks the style shortcut, but
+                # must not discard the independent new-figure design reads.
+                profile, status, config = "figure_design", "evidence_required", profiles["figure_design"]
+            else:
+                profile, status, config = "full", "evidence_required", {}
             reasons.extend(issues)
         else:
             status = "planned"
             project_rows = _project_reads(
-                project_root, state, context["question"], style=profile == "figure_style",
+                project_root, state, context["question"], style=profile in {"figure_style", "figure_style_and_design"},
                 state_snapshot=state_snapshot,
             )
 
