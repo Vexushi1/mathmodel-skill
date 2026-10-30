@@ -854,7 +854,9 @@ class ContractAndDriftTests(unittest.TestCase):
                     actual = hashlib.sha1(
                         b"blob " + str(len(data)).encode("ascii") + b"\0" + data
                     ).hexdigest()
-                elif relative in HANDOFF_AUTHORITY_REWRITES or relative in USER_CHECKER_AUTHORITY_REWRITES:
+                elif (relative in HANDOFF_AUTHORITY_REWRITES
+                      or relative in USER_CHECKER_AUTHORITY_REWRITES
+                      or relative in P6_SOURCE_PROVENANCE_REWRITES):
                     data = self.prior_handoff_text(relative).encode("utf-8")
                     actual = hashlib.sha1(
                         b"blob " + str(len(data)).encode("ascii") + b"\0" + data
