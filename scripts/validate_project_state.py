@@ -926,9 +926,12 @@ def _validate_hashes(
     if invalid_layers:
         issues.append(f"{name}.stale_layers contains invalid layers: {sorted(invalid_layers)}")
     mismatched = {key for key, value in validated.items() if current.get(key) != value}
-    # Source identity can advance without asserting that the new source produced the
-    # existing workbook. Only result-layer mismatches prove numerical result staleness.
-    result_mismatched = mismatched - EXECUTION_PROVENANCE.SOURCE_LAYERS
+    # Source drift is tolerated only by an explicitly scoped read-only consumer;
+    # strict code/results/submission validation retains the original freeze.
+    result_mismatched = (
+        mismatched - EXECUTION_PROVENANCE.SOURCE_LAYERS
+        if allow_read_only_source_drift else mismatched
+    )
     stale_flag = state.get("artifacts_stale") is True
     semantic_stale = (
         state.get("result_quality_status") == "failed"

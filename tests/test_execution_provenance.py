@@ -122,9 +122,12 @@ class ExecutionProvenanceTests(unittest.TestCase):
             "stale_layers": [],
             "artifacts_stale": False,
         }
-        issues = STATE._validate_hashes("Q1", state, "solved")
-        self.assertFalse(any("artifacts_stale must be true" in item for item in issues), issues)
-        self.assertFalse(any("validated result artifact hashes are stale" in item for item in issues), issues)
+        read_only_issues = STATE._validate_hashes(
+            "Q1", state, "solved", allow_read_only_source_drift=True,
+        )
+        strict_issues = STATE._validate_hashes("Q1", state, "solved")
+        self.assertFalse(any("artifacts_stale must be true" in item for item in read_only_issues), read_only_issues)
+        self.assertTrue(any("artifacts_stale must be true" in item for item in strict_issues), strict_issues)
 
         missing_current_source = {
             "artifact_hashes": {
