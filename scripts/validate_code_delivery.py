@@ -756,10 +756,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
     cleanup_only = False
     if stage == "primary":
         old_hash = entry.get("primary_code_sha256")
-        accepted = (
-            entry.get("primary_execution_status") == "accepted"
-            and entry.get("result_quality_status") == "passed"
-        )
+        accepted = entry.get("primary_execution_status") == "accepted"
         unchanged_conformance = not conformance_binding or (
             selection.get(CONFORMANCE.DELIVERY) == conformance_binding
             and (selection.get(CONFORMANCE.ACCEPTANCE) or {}).get("applicability") == "current")
@@ -781,7 +778,8 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
             )
         )
         cleanup_only = bool(
-            accepted and (source_changed or conformance_changed) and same_conformance_declaration
+            accepted and entry.get("result_quality_status") == "passed"
+            and (source_changed or conformance_changed) and same_conformance_declaration
             and EXECUTION_PROVENANCE.is_cleanup_phase(phase)
             and phase not in {"review_delivery", "completed"}
             and EXECUTION_PROVENANCE.semantic_identity_is_fully_verified(entry)
@@ -792,8 +790,8 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
         unchanged_accepted = accepted and not source_changed and unchanged_conformance
         if accepted and source_changed and phase != "solve_validate" and not cleanup_only:
             raise ValueError(
-                "已验收主求解源码发生变化；仅在已验收结果、数据身份和模型语义仍有效的整理阶段保留旧结果，"
-                "否则必须先回到solve_validate"
+                "主求解脚本已accepted并冻结；仅在已验收结果、数据身份和模型语义仍有效的整理阶段"
+                "允许保留旧结果，否则必须先回到solve_validate"
             )
         entry["data_hash"] = str(config["data_sha256"]).lower()
         entry["code"] = relative
@@ -829,10 +827,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
         # not the current primary source bytes, is the required upstream artifact.
         old_hash = entry.get("analysis_code_sha256")
         source_changed = bool(old_hash != new_hash or binding_changed)
-        accepted_analysis = (
-            entry.get("analysis_execution_status") == "accepted"
-            and entry.get("result_analysis_status") == "passed"
-        )
+        accepted_analysis = entry.get("analysis_execution_status") == "accepted"
         accepted_issues, _ = (
             EXECUTION_PROVENANCE.accepted_result_issues(project_root, state, entry, "analysis")
             if accepted_analysis else (["no accepted analysis result"], [])
@@ -850,7 +845,8 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
             entry.get("validated_data_hash") or validated_hashes.get("data") or entry.get("data_hash") or ""
         ).lower()
         cleanup_only = bool(
-            accepted_analysis and (source_changed or conformance_changed) and same_conformance_declaration
+            accepted_analysis and entry.get("result_analysis_status") == "passed"
+            and (source_changed or conformance_changed) and same_conformance_declaration
             and EXECUTION_PROVENANCE.is_cleanup_phase(phase)
             and phase not in {"review_delivery", "completed"}
             and EXECUTION_PROVENANCE.semantic_identity_is_fully_verified(entry)
