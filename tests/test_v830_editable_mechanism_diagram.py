@@ -327,208 +327,6 @@ PDF_REVIEW_OWNER_REWRITES = {
 # ownership. Invert these exact blocks to c2181e8 before the older projections;
 # the unchanged PROTECTED hashes still reject every unrelated byte change.
 USER_CHECKER_AUTHORITY_REWRITES = {
-    "scripts/validate_code_delivery.py": (
-        (
-            (
-                "import hashlib\n"
-                "import shutil\n"
-                "import sys\n"
-            ),
-            (
-                "import hashlib\n"
-                "import sys\n"
-            ),
-        ),
-        (
-            (
-                "\n"
-                "def _native_delivery_analysis(\n"
-                "    script: Path, matlab_command: str | None, *, require_native: bool,\n"
-                ") -> dict[str, Any]:\n"
-                "    \"\"\"Keep optional native coverage separate from required delivery findings.\"\"\"\n"
-                "    if not require_native and not matlab_command:\n"
-                "        return {\n"
-                "            \"status\": \"unverified\", \"issues\": [],\n"
-                "            \"warnings\": [\"未选定可用的MATLAB Code Analyzer；原生分析未核验\"],\n"
-                "        }\n"
-                "    native = MATLAB_CHECKS.native_code_analysis(script, matlab_command)\n"
-                "    if native[\"status\"] == \"unverified\" and not require_native:\n"
-                "        return {\n"
-                "            **native, \"issues\": [],\n"
-                "            \"warnings\": [*native.get(\"warnings\", []), *native[\"issues\"]],\n"
-                "        }\n"
-                "    return native\n"
-                "\n"
-                "\n"
-                "def validate_script(\n"
-            ),
-            (
-                "\n"
-                "def validate_script(\n"
-            ),
-        ),
-        (
-            (
-                ") -> tuple[list[str], dict[str, Any]]:\n"
-                "    \"\"\"Check source statically; CLI discovers MATLAB, internal callers opt in explicitly.\"\"\"\n"
-                "    issues: list[str] = []\n"
-            ),
-            (
-                ") -> tuple[list[str], dict[str, Any]]:\n"
-                "    issues: list[str] = []\n"
-            ),
-        ),
-        (
-            (
-                "            text, config, contract=load_yaml(QUALITY_CONTRACT), filename=script.name)\n"
-                "        native = _native_delivery_analysis(script, matlab_command, require_native=require_native)\n"
-                "        if native_report is not None:\n"
-                "            native_report.update(native)\n"
-                "        quality_errors.extend(native[\"issues\"])\n"
-                "        if native.get(\"source_sha256\") and native[\"source_sha256\"] != source_sha256:\n"
-                "            quality_errors.append(\"MATLAB原生检查源码与本次配置/工程检查源码不一致\")\n"
-                "        for item in native.get(\"complexity_metrics\", []):\n"
-                "            if item[\"value\"] > load_yaml(QUALITY_CONTRACT)[\"complexity\"][\"hard_max\"]:\n"
-                "                quality_errors.append(f\"MATLAB原生复杂度L{item['line']}={item['value']}超过硬上限\")\n"
-                "    else:\n"
-            ),
-            (
-                "            text, config, contract=load_yaml(QUALITY_CONTRACT), filename=script.name)\n"
-                "        if require_native or matlab_command:\n"
-                "            native = MATLAB_CHECKS.native_code_analysis(script, matlab_command)\n"
-                "            if native_report is not None:\n"
-                "                native_report.update(native)\n"
-                "            quality_errors.extend(native[\"issues\"])\n"
-                "            if native.get(\"source_sha256\") and native[\"source_sha256\"] != source_sha256:\n"
-                "                quality_errors.append(\"MATLAB原生检查源码与本次配置/工程检查源码不一致\")\n"
-                "            for item in native.get(\"complexity_metrics\", []):\n"
-                "                if item[\"value\"] > load_yaml(QUALITY_CONTRACT)[\"complexity\"][\"hard_max\"]:\n"
-                "                    quality_errors.append(f\"MATLAB原生复杂度L{item['line']}={item['value']}超过硬上限\")\n"
-                "    else:\n"
-            ),
-        ),
-        (
-            (
-                "                    helper_text, {}, contract=load_yaml(QUALITY_CONTRACT), filename=helper.name)\n"
-                "                native = _native_delivery_analysis(helper, matlab_command, require_native=require_native)\n"
-                "                errors.extend(native[\"issues\"])\n"
-                "                warnings.extend(native.get(\"warnings\", []))\n"
-                "                metrics[\"native_analysis_status\"] = native[\"status\"]\n"
-                "                metrics[\"native_release\"] = native.get(\"release\")\n"
-                "                metrics[\"native_source_sha256\"] = native.get(\"source_sha256\")\n"
-                "                metrics[\"native_complexity\"] = native.get(\"complexity_metrics\", [])\n"
-                "                if native.get(\"source_sha256\") and native[\"source_sha256\"] != record[\"sha256\"]:\n"
-                "                    errors.append(\"MATLAB依赖原生检查源码与本次bundle不一致\")\n"
-                "                if any(item[\"value\"] > load_yaml(QUALITY_CONTRACT)[\"complexity\"][\"hard_max\"]\n"
-                "                       for item in native.get(\"complexity_metrics\", [])):\n"
-                "                    errors.append(\"MATLAB依赖原生复杂度超过硬上限\")\n"
-                "            else:\n"
-            ),
-            (
-                "                    helper_text, {}, contract=load_yaml(QUALITY_CONTRACT), filename=helper.name)\n"
-                "                native = None\n"
-                "                if require_native or matlab_command:\n"
-                "                    native = MATLAB_CHECKS.native_code_analysis(helper, matlab_command)\n"
-                "                    errors.extend(native[\"issues\"])\n"
-                "                    warnings.extend(native.get(\"warnings\", []))\n"
-                "                    metrics[\"native_analysis_status\"] = native[\"status\"]\n"
-                "                    metrics[\"native_release\"] = native.get(\"release\")\n"
-                "                    metrics[\"native_source_sha256\"] = native.get(\"source_sha256\")\n"
-                "                    metrics[\"native_complexity\"] = native.get(\"complexity_metrics\", [])\n"
-                "                    if native.get(\"source_sha256\") and native[\"source_sha256\"] != record[\"sha256\"]:\n"
-                "                        errors.append(\"MATLAB依赖原生检查源码与本次bundle不一致\")\n"
-                "                    if any(item[\"value\"] > load_yaml(QUALITY_CONTRACT)[\"complexity\"][\"hard_max\"]\n"
-                "                           for item in native.get(\"complexity_metrics\", [])):\n"
-                "                        errors.append(\"MATLAB依赖原生复杂度超过硬上限\")\n"
-                "            else:\n"
-            ),
-        ),
-        (
-            (
-                "        return 1\n"
-                "    matlab_command = args.matlab_command\n"
-                "    if matlab_command is None and any(script.suffix.lower() == \".m\" for script in scripts):\n"
-                "        matlab_command = shutil.which(\"matlab\")\n"
-                "    issues: list[str] = []\n"
-            ),
-            (
-                "        return 1\n"
-                "    issues: list[str] = []\n"
-            ),
-        ),
-        (
-            (
-                "        native_report: dict[str, Any] = {}\n"
-                "        item_issues, config = validate_script(root, script, args.stage, matlab_command=matlab_command,\n"
-                "                                             native_report=native_report)\n"
-                "        issues.extend(f\"{script.name}: {item}\" for item in item_issues)\n"
-            ),
-            (
-                "        native_report: dict[str, Any] = {}\n"
-                "        item_issues, config = validate_script(root, script, args.stage, matlab_command=args.matlab_command,\n"
-                "                                             require_native=args.write or args.strict, native_report=native_report)\n"
-                "        issues.extend(f\"{script.name}: {item}\" for item in item_issues)\n"
-            ),
-        ),
-        (
-            (
-                "            item_metrics[\"dependency_code_quality\"] = native_report[\"dependency_code_quality\"]\n"
-                "            native_statuses = [item_metrics.get(\"native_analysis_status\"), *(\n"
-                "                item.get(\"native_analysis_status\") for item in native_report[\"dependency_code_quality\"].values()\n"
-                "            )]\n"
-                "            if \"failed\" in native_statuses:\n"
-                "                item_metrics[\"native_analysis_status\"] = \"failed\"\n"
-                "            elif \"unverified\" in native_statuses:\n"
-                "                item_metrics[\"native_analysis_status\"] = \"unverified\"\n"
-            ),
-            (
-                "            item_metrics[\"dependency_code_quality\"] = native_report[\"dependency_code_quality\"]\n"
-                "            if any(item.get(\"native_analysis_status\") == \"unverified\" for item in native_report[\"dependency_code_quality\"].values()):\n"
-                "                item_metrics[\"native_analysis_status\"] = \"unverified\"\n"
-            ),
-        ),
-        (
-            (
-                "    report = {\n"
-                "        \"status\": \"failed\" if issues else \"passed\",\n"
-                "        \"checked_scripts\": checked,\n"
-            ),
-            (
-                "    report = {\n"
-                "        \"status\": (\"failed\" if issues else \"unverified\" if any(\n"
-                "            item.get(\"native_analysis_status\") == \"unverified\" for item in metrics.values()) else \"passed\"),\n"
-                "        \"checked_scripts\": checked,\n"
-            ),
-        ),
-        ("import stage_code as STAGE_CODE  # noqa: E402\nimport execution_provenance as EXECUTION_PROVENANCE  # noqa: E402\nimport conformance_gate as CONFORMANCE  # noqa: E402",
-         "import stage_code as STAGE_CODE  # noqa: E402\nimport conformance_gate as CONFORMANCE  # noqa: E402"),
-        ("    phase = str((state.get(\"project\") or {}).get(\"current_phase\", \"\"))\n    cleanup_only = False\n    if stage == \"primary\":\n        old_hash = entry.get(\"primary_code_sha256\")",
-         "    if stage == \"primary\":\n        entry[\"data_hash\"] = str(config[\"data_sha256\"]).lower()\n        old_hash = entry.get(\"primary_code_sha256\")"),
-        ("        accepted = (\n            entry.get(\"primary_execution_status\") == \"accepted\"\n            and entry.get(\"result_quality_status\") == \"passed\"\n        )",
-         "        accepted = entry.get(\"primary_execution_status\") == \"accepted\""),
-        ("        source_changed = bool(old_hash != new_hash or binding_changed)\n        validated_hashes = entry.get(\"validated_artifact_hashes\") or {}\n        accepted_data_hash = str(\n            entry.get(\"validated_data_hash\") or validated_hashes.get(\"data\") or entry.get(\"data_hash\") or \"\"\n        ).lower()\n        accepted_issues, _ = (\n            EXECUTION_PROVENANCE.accepted_result_issues(project_root, state, entry, \"primary\")\n            if accepted else ([\"no accepted primary result\"], [])\n        )\n        old_conformance = selection.get(CONFORMANCE.DELIVERY) or {}\n        same_conformance_declaration = (\n            not conformance_binding\n            or (\n                isinstance(old_conformance, Mapping)\n                and old_conformance.get(\"declaration_sha256\") == conformance_binding.get(\"declaration_sha256\")\n            )\n        )\n        cleanup_only = bool(\n            accepted and (source_changed or conformance_changed) and same_conformance_declaration\n            and EXECUTION_PROVENANCE.is_cleanup_phase(phase)\n            and phase not in {\"review_delivery\", \"completed\"}\n            and EXECUTION_PROVENANCE.semantic_identity_is_fully_verified(entry)\n            and not accepted_issues\n            and accepted_data_hash\n            and str(config.get(\"data_sha256\") or \"\").lower() == accepted_data_hash\n        )\n",
-         ""),
-        ("        unchanged_accepted = accepted and not source_changed and unchanged_conformance\n        if accepted and source_changed and phase != \"solve_validate\" and not cleanup_only:\n            raise ValueError(\n                \"已验收主求解源码发生变化；仅在已验收结果、数据身份和模型语义仍有效的整理阶段保留旧结果，\"\n                \"否则必须先回到solve_validate\"\n            )",
-         "        unchanged_accepted = accepted and old_hash == new_hash and not binding_changed and unchanged_conformance\n        phase = str((state.get(\"project\") or {}).get(\"current_phase\", \"\"))\n        if accepted and old_hash and (old_hash != new_hash or binding_changed) and phase != \"solve_validate\":\n            raise ValueError(\"主求解脚本已accepted并冻结；如需修改必须先显式回退solve_validate\")"),
-        ("        if cleanup_only:\n            # Current delivery identity advances; validated_bundle_sha256 and the\n            # accepted workbook remain bound to the previous real execution.\n            pass\n        elif source_changed:",
-         "        if old_hash and (old_hash != new_hash or binding_changed):"),
-        ("        # analysis_issues() already verifies that the accepted primary workbook,\n        # not the current primary source bytes, is the required upstream artifact.\n        old_hash = entry.get(\"analysis_code_sha256\")\n        source_changed = bool(old_hash != new_hash or binding_changed)\n        accepted_analysis = (\n            entry.get(\"analysis_execution_status\") == \"accepted\"\n            and entry.get(\"result_analysis_status\") == \"passed\"\n        )\n        accepted_issues, _ = (\n            EXECUTION_PROVENANCE.accepted_result_issues(project_root, state, entry, \"analysis\")\n            if accepted_analysis else ([\"no accepted analysis result\"], [])\n        )\n        old_conformance = selection.get(CONFORMANCE.DELIVERY) or {}\n        same_conformance_declaration = (\n            not conformance_binding\n            or (\n                isinstance(old_conformance, Mapping)\n                and old_conformance.get(\"declaration_sha256\") == conformance_binding.get(\"declaration_sha256\")\n            )\n        )\n        validated_hashes = entry.get(\"validated_artifact_hashes\") or {}\n        accepted_data_hash = str(\n            entry.get(\"validated_data_hash\") or validated_hashes.get(\"data\") or entry.get(\"data_hash\") or \"\"\n        ).lower()\n        cleanup_only = bool(\n            accepted_analysis and (source_changed or conformance_changed) and same_conformance_declaration\n            and EXECUTION_PROVENANCE.is_cleanup_phase(phase)\n            and phase not in {\"review_delivery\", \"completed\"}\n            and EXECUTION_PROVENANCE.semantic_identity_is_fully_verified(entry)\n            and not accepted_issues\n            and accepted_data_hash\n            and str(config.get(\"data_sha256\") or \"\").lower() == accepted_data_hash\n        )\n",
-         "        if entry.get(\"primary_execution_status\") != \"accepted\":\n            raise ValueError(\"主工作簿未accepted，禁止交付最终结果深化分析脚本\")\n        old_hash = entry.get(\"analysis_code_sha256\")\n"),
-        ("        if source_changed and not cleanup_only:",
-         "        if old_hash != new_hash or binding_changed:"),
-        ("        elif conformance_changed and not cleanup_only:",
-         "        elif conformance_changed:"),
-        ("        # This is immutable provenance for the last successful real execution.\n        # Only validate_user_execution may replace it after a matching receipt and\n        # numerical acceptance; source delivery must never erase that history.",
-         "        if str(target.get(\"validated_bundle_sha256\", \"\")).lower() != fingerprint[\"bundle_sha256\"]:\n            target.pop(\"validated_bundle_sha256\", None)"),
-        ("    if conformance_binding and cleanup_only:\n        # Retain the delivery/acceptance pair for the original accepted run.\n        # The new bundle is not authorized for execution until a strict delivery\n        # and a matching user-run receipt are completed in solve_validate.\n        pass\n    elif conformance_binding:",
-         "    if conformance_binding:"),
-        ("        entry[\"data_hash\"] = str(config[\"data_sha256\"]).lower()\n        entry[\"code\"] = relative",
-         "        entry[\"code\"] = relative"),
-        ("        conformance = CONFORMANCE.inspect_gate(\n            project_root, state, _question_key(problem), stage, boundary=\"delivery\",\n        )",
-         "        conformance = CONFORMANCE.inspect_gate(project_root, state, _question_key(problem), stage)"),
-        ("    conformance = CONFORMANCE.inspect_gate(\n        project_root, state, key, stage, boundary=\"delivery\",\n    )",
-         "    conformance = CONFORMANCE.inspect_gate(project_root, state, key, stage)"),
-    ),
     "modules/03_solve_validate.md": (
         (
             (
@@ -636,6 +434,10 @@ def inverse_user_checker_changes(relative: str, text: str) -> str:
         if text.count(current) != 1:
             raise ValueError(f"{relative}: P6 source-provenance delta is missing or duplicated")
         text = text.replace(current, baseline, 1)
+    # The P6 source is pinned to the entire pre-P6 main blob in PROTECTED.
+    # Reversing older historical checker deltas again would undo valid main changes.
+    if relative == "scripts/validate_code_delivery.py":
+        return text
     for index, (current, baseline) in enumerate(USER_CHECKER_AUTHORITY_REWRITES.get(relative, ())):
         matches = text.count(current)
         if matches != 1:
@@ -981,8 +783,9 @@ class ContractAndDriftTests(unittest.TestCase):
         # v9.7.1 A02 changes only Evidence Capture's producer from Python to the selected solver.
         "templates/figure/chart_selection.md": "8b87b79d55e23f1b581c1ceca9e4d609fd11ba26",
         "templates/figure/figure_enhancement_patterns.md": "fa9db83323c4dcbe430e8afdca82df806e3db9de",
-        # Delivery checks the root policy again against the state being committed.
-        "scripts/validate_code_delivery.py": "2877ba23d4b52cedafb8508e47a5afe0b2ece975",
+        # P6 replays only its approved source changes onto the exact pre-P6 main blob.
+        # This pins every earlier approved checker change, without repeating its old inverse maps.
+        "scripts/validate_code_delivery.py": "6dafe830b6d1ab20b680200d7648b61c14454c8c",
     }
 
     def prior_handoff_text(self, relative):
@@ -1094,7 +897,12 @@ class ContractAndDriftTests(unittest.TestCase):
                 self.assertEqual(actual, expected)
 
     def test_checker_inverse_projection_rejects_missing_or_duplicate_authorized_blocks(self):
-        for relative, replacements in USER_CHECKER_AUTHORITY_REWRITES.items():
+        # P6 and older documentation deltas both reject a missing or duplicate
+        # authorized segment. Source bytes outside those segments are hash-pinned.
+        for relative, replacements in (
+            *P6_SOURCE_PROVENANCE_REWRITES.items(),
+            *USER_CHECKER_AUTHORITY_REWRITES.items(),
+        ):
             text = (ROOT / relative).read_text(encoding="utf-8")
             for current, _ in replacements:
                 for changed in (text.replace(current, "unauthorized replacement\n", 1), text + current):
