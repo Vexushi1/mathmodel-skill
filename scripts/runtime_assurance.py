@@ -994,7 +994,14 @@ def hydrate_project_context(
             selections = {}
         conflicts.extend(ARTIFACT_IDENTITY.entry_alias_issues(item, scope=q))
         stale = set(ARTIFACT_IDENTITY.normalize_stale_layers(item.get("stale_layers")))
-        if read_only_result_consumption and item.get("primary_execution_status") in {"accepted", "awaiting_user_execution"}:
+        primary_provenance_drift = (
+            read_only_result_consumption
+            and (
+                item.get("primary_execution_status") == "awaiting_user_execution"
+                or EXECUTION_PROVENANCE.current_source_differs_from_accepted(item, "primary")
+            )
+        )
+        if primary_provenance_drift:
             primary_issues, _ = EXECUTION_PROVENANCE.accepted_result_issues(
                 root, state, item, "primary",
             )
@@ -1063,7 +1070,14 @@ def hydrate_project_context(
         if analysis_row["status"] == "verified" and (
             project_backend is not None or item.get("result_analysis_code") or selections.get("analysis")
         ):
-            if read_only_result_consumption:
+            analysis_provenance_drift = (
+                read_only_result_consumption
+                and (
+                    analysis_status == "awaiting_user_execution"
+                    or EXECUTION_PROVENANCE.current_source_differs_from_accepted(item, "analysis")
+                )
+            )
+            if analysis_provenance_drift:
                 binding_issues, _ = EXECUTION_PROVENANCE.accepted_result_issues(
                     root, state, item, "analysis",
                 )

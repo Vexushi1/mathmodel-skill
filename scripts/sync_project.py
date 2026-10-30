@@ -1407,10 +1407,15 @@ def synchronize(
                     if relative in sync_read_set and sync_read_set[relative] != digest:
                         raise PROJECT_TX.ReadSetConflictError("conformance sync read-set conflict: " + relative)
                     sync_read_set[relative] = digest
-        accepted_analysis_issues, _ = EXECUTION_PROVENANCE.accepted_result_issues(
-            root, state, entry, "analysis",
-        )
-        if (readonly_cleanup and accepted_result_source_drift and not accepted_analysis_issues
+        # A strict/unchanged project must not read an unrelated legacy analysis
+        # workbook merely to choose its comparison gate.
+        accepted_analysis_issues = ["not a read-only provenance transition"]
+        if readonly_cleanup and "analysis" in accepted_result_source_drift:
+            accepted_analysis_issues, _ = EXECUTION_PROVENANCE.accepted_result_issues(
+                root, state, entry, "analysis",
+            )
+        if (readonly_cleanup and "analysis" in accepted_result_source_drift
+                and not accepted_analysis_issues
                 and EXECUTION_PROVENANCE.can_consume_accepted_result(entry, "analysis")):
             comparison_boundary = "accepted_result"
         else:

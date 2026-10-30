@@ -496,7 +496,7 @@ def _snapshot_question(
         solution = expected_solution
         analysis_workbook, legacy_analysis_workbook = _analysis_path(result_dir, chinese_name)
     provenance_warnings: list[str] = []
-    read_only_result_consumption = (
+    read_only_candidate = (
         current_state
         and EXECUTION_PROVENANCE.is_read_only_result_scope(delivery_scope)
         and EXECUTION_PROVENANCE.is_cleanup_phase(
@@ -505,9 +505,41 @@ def _snapshot_question(
     )
     implementations, code_paths, code_issues = _solver_observations(
         root, chinese_name, entry, project_backend=project_backend, current_state=current_state,
-        delivery_scope=delivery_scope,
-        read_only_result_consumption=read_only_result_consumption,
+        delivery_scope=read_only_candidate and delivery_scope,
+        read_only_result_consumption=read_only_candidate,
     )
+    # The P6 exception is only for a *proven* accepted run whose current
+    # source has actually drifted. Unchanged/legacy projects retain their
+    # pre-P6 strict validation, including their existing Figure/claim gates.
+    provenance_stages: set[str] = set()
+    if read_only_candidate:
+        for stage, record in implementations.items():
+            slot = (entry.get("solver_execution") or {}).get(stage, {})
+            accepted_bundle = slot.get("validated_bundle_sha256") if isinstance(slot, Mapping) else None
+            observed_source_drift = (
+                EXECUTION_PROVENANCE.current_source_differs_from_accepted(
+                    entry, stage,
+                    observed_bundle=record.get("bundle_sha256"),
+                    observed_entry_sha256=record.get("entry_sha256"),
+                )
+                or (
+                    bool(accepted_bundle)
+                    and bool(record.get("provenance_warnings"))
+                )
+            )
+            if not observed_source_drift or not EXECUTION_PROVENANCE.can_consume_accepted_result(entry, stage):
+                continue
+            accepted_issues, _ = EXECUTION_PROVENANCE.accepted_result_issues(
+                root, state or {}, entry, stage,
+            )
+            if not accepted_issues:
+                provenance_stages.add(stage)
+    read_only_result_consumption = bool(provenance_stages)
+    if not read_only_result_consumption and read_only_candidate:
+        implementations, code_paths, code_issues = _solver_observations(
+            root, chinese_name, entry, project_backend=project_backend, current_state=current_state,
+            delivery_scope=delivery_scope, read_only_result_consumption=False,
+        )
     for stage, record in implementations.items():
         provenance_warnings.extend(f"{stage}: {item}" for item in record.get("provenance_warnings", []))
     primary_code, analysis_code = code_paths["primary"], code_paths["analysis"]
@@ -545,7 +577,7 @@ def _snapshot_question(
             elif str(config.get("data_sha256", "")).lower() != str(entry.get("data_hash", "")).lower():
                 input_issues.append("analysis data_sha256必须继承主结果data_hash，不得覆盖主数据身份")
         except (ValueError, OSError, TypeError) as exc:
-            if EXECUTION_PROVENANCE.is_read_only_result_scope(delivery_scope):
+            if stage in provenance_stages:
                 provenance_warnings.append(
                     f"{stage}当前源码/输入配置无法用于重新验收；继续核验原accepted工作簿: {exc}")
             else:
@@ -553,17 +585,17 @@ def _snapshot_question(
             implementations.setdefault(stage, {})["inputs"] = {"issues": [str(exc)], "paths": []}
     read_only_results = read_only_result_consumption
     if read_only_results:
-        if solution and solution.is_file():
+        if "primary" in provenance_stages and solution and solution.is_file():
             accepted_issues, accepted_warnings = EXECUTION_PROVENANCE.accepted_result_issues(
                 root, state or {}, entry, "primary", solution)
             workbook_issues.extend(accepted_issues)
             provenance_warnings.extend(accepted_warnings)
-        if not analysis_not_required and analysis_workbook and analysis_workbook.is_file():
+        if "analysis" in provenance_stages and not analysis_not_required and analysis_workbook and analysis_workbook.is_file():
             accepted_issues, accepted_warnings = EXECUTION_PROVENANCE.accepted_result_issues(
                 root, state or {}, entry, "analysis", analysis_workbook)
             workbook_issues.extend(accepted_issues)
             provenance_warnings.extend(accepted_warnings)
-        if primary_code is None or data_hash is None:
+        if "primary" in provenance_stages and (primary_code is None or data_hash is None):
             accepted_data_hash, accepted_input_issues, accepted_input_warnings = (
                 EXECUTION_PROVENANCE.accepted_workbook_data_identity(
                     root, state or {}, entry, "primary", solution)
@@ -614,12 +646,12 @@ def _snapshot_question(
         status in ANALYZED_STATUSES
         and not analysis_not_required
         and bool(entry.get("analysis_code_sha256"))
-        and not read_only_results
+        and "analysis" not in provenance_stages
     )
     if delivery_scope in {"results", "figures", "docx"}:
         require_solution = True
         require_analysis = not analysis_not_required
-        require_analysis_code = not analysis_not_required and not read_only_results
+        require_analysis_code = not analysis_not_required and "analysis" not in provenance_stages
 
     formal_figures = delivery_scope in {"figures", "docx", "latex", "submission"}
     issues: list[str] = [*workbook_issues, *code_issues, *input_issues, *(figure_issues if formal_figures else [])]
