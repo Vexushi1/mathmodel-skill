@@ -1354,7 +1354,7 @@ def synchronize(
         )
         snapshot = _snapshot_question(
             root, chinese_name, entry, schema, data_hash,
-            scope,
+            scope if explicit_delivery_scope else None,
             state=state, project_backend=project_backend,
         )
         accepted_result_source_drift: list[str] = []
