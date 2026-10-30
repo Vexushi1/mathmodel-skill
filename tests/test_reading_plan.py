@@ -281,8 +281,10 @@ class ReadingPlanTests(unittest.TestCase):
                      "templates/figure/figure_enhancement_patterns.md"):
             self.assertTrue(any(row["path"] == path and row["when"]
                                 for row in reading["conditional"]))
-        self.assertEqual(reading["tool_interfaces"],
-                         [dict(tool) for tool in reading["tool_interfaces"]])
+        self.assertEqual(
+            [tool["name"] for tool in reading["tool_interfaces"]],
+            [gate["name"] for gate in plan["pre_delivery_gates"]],
+        )
 
     def test_mixed_figure_unapproved_old_figure_keeps_new_design_readable(self):
         request = "只修改现有图的配色，另外补充一张新图，保持数据和坐标口径不变。"
