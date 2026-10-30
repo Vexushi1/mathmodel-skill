@@ -605,11 +605,24 @@ def _snapshot_question(
             provenance_warnings.extend(accepted_input_warnings)
             if accepted_data_hash:
                 data_hash = accepted_data_hash
+    # Unchanged accepted projects keep their historical read-only validation.
+    # Strict re-execution identity is required at a formal result/submission
+    # boundary, or when an unqualified source drift tries to use a read-only scope.
+    unqualified_source_drift = any(
+        entry.get(f"{stage}_execution_status") == "awaiting_user_execution"
+        or EXECUTION_PROVENANCE.current_source_differs_from_accepted(
+            entry, stage,
+            observed_bundle=(implementations.get(stage) or {}).get("bundle_sha256"),
+            observed_entry_sha256=(implementations.get(stage) or {}).get("entry_sha256"),
+        )
+        for stage in ("primary", "analysis")
+    )
     strict_result_source_scope = current_state and (
         delivery_scope in {"results", "submission"}
         or (
             EXECUTION_PROVENANCE.is_read_only_result_scope(delivery_scope)
             and not read_only_result_consumption
+            and unqualified_source_drift
         )
     )
     if strict_result_source_scope:
