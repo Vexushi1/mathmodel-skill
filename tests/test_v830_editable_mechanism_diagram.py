@@ -845,6 +845,13 @@ class ContractAndDriftTests(unittest.TestCase):
                     actual = hashlib.sha1(
                         b"blob " + str(len(data)).encode("ascii") + b"\0" + data
                     ).hexdigest()
+                elif relative in P6_SOURCE_PROVENANCE_REWRITES:
+                    # P6 is pinned to the exact pre-P6 main blob. Do not replay
+                    # earlier comparison/checker inverse maps a second time.
+                    data = self.prior_handoff_text(relative).encode("utf-8")
+                    actual = hashlib.sha1(
+                        b"blob " + str(len(data)).encode("ascii") + b"\0" + data
+                    ).hexdigest()
                 elif relative in COMPARISON_AUTHORITY_REWRITES:
                     text = self.prior_handoff_text(relative)
                     for current, baseline in COMPARISON_AUTHORITY_REWRITES[relative]:
