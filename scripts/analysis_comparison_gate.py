@@ -294,7 +294,7 @@ def inspect_gate(root: Path, state: Mapping[str, Any], question: str, *, boundar
                 if marker in raw:
                     result["enabled"] = True
                     BOUNDED._read(root, "模型论文框架.md", 2 * 1024 * 1024, observed["project"])
-        if not result["enabled"] and config is None and boundary != "plan" and entry.get("result_analysis_code"):
+        if not result["enabled"] and config is None and boundary not in {"plan", "accepted_result"} and entry.get("result_analysis_code"):
             try:
                 _, probe = stage_code.parse_stage_config(stage_code._relative_path(root, entry["result_analysis_code"]))
                 result["enabled"] = present(entry, probe, receipt)
@@ -303,7 +303,7 @@ def inspect_gate(root: Path, state: Mapping[str, Any], question: str, *, boundar
         # New sheet presence is also a strict activation source, never a legacy bypass.
         if not result["enabled"] and analysis_bytes is None:
             candidate_path = workbook
-            if candidate_path is None and boundary == "current" and entry.get("result_analysis_workbook"):
+            if candidate_path is None and boundary in {"current", "accepted_result"} and entry.get("result_analysis_workbook"):
                 # Discovery preserves the existing artifact reader's native-path
                 # compatibility. Activated comparisons use strict paths below.
                 candidate_path = (root / Path(entry["result_analysis_workbook"]).expanduser()).resolve()
@@ -336,9 +336,21 @@ def inspect_gate(root: Path, state: Mapping[str, Any], question: str, *, boundar
         approval_issues = validate_comparison_approval(
             root, state, entry, question, specs=framework.decode("utf-8"), review_report=review)
         result["issues"].extend(approval_issues)
+        if boundary == "accepted_result" and analysis_bytes is None:
+            relative = entry.get("result_analysis_workbook")
+            if not isinstance(relative, str) or not relative:
+                raise ValueError("accepted comparison result has no registered analysis workbook")
+            analysis_bytes = BOUNDED._read(root, relative, 32 * 1024 * 1024, observed["project"])
+            candidate_preflight(analysis_bytes, observed)
+            accepted_receipt, accepted_receipt_issues = receipt_from_bytes(analysis_bytes)
+            result["issues"].extend(accepted_receipt_issues)
+            if config is not None and config != accepted_receipt:
+                result["issues"].append("accepted comparison receipt differs from an explicitly supplied config")
+            config = accepted_receipt
         delivered = config
-        # Capture both stage source bundles and inputs before callers read/check them again.
-        for stage in (() if boundary == "plan" else ("primary", "analysis")):
+        # New executions bind current source bundles and inputs. Read-only result
+        # consumption binds the accepted workbook receipt instead of current code.
+        for stage in (() if boundary in {"plan", "accepted_result"} else ("primary", "analysis")):
             relative = entry.get("code" if stage == "primary" else "result_analysis_code")
             if stage == "analysis" and code_path is not None:
                 relative = Path(code_path).resolve().relative_to(root).as_posix()
@@ -377,23 +389,23 @@ def inspect_gate(root: Path, state: Mapping[str, Any], question: str, *, boundar
         result["plan_issues"] = [*approval_issues, *plan_result["issues"]]
         result["issues"].extend(plan_result["issues"])
         primary_bytes = None
-        if boundary in {"delivery", "receipt", "current"}:
+        if boundary in {"delivery", "receipt", "current", "accepted_result"}:
             primary = entry.get("solution_workbook")
             primary_bytes = BOUNDED._read(root, primary, 32 * 1024 * 1024, observed["project"])
             accepted = (entry.get("validated_artifact_hashes") or {}).get("solution_workbook")
-            if boundary in {"delivery", "current"}:
+            if boundary in {"delivery", "current", "accepted_result"}:
                 captured_accepted = (captured_entry.get("validated_artifact_hashes") or {}).get("solution_workbook")
                 if str(accepted or "").lower() != str(captured_accepted or "").lower():
                     result["issues"].append("comparison caller primary accepted hash differs from captured State")
                 accepted = captured_accepted
             if not accepted or hashlib.sha256(primary_bytes).hexdigest() != str(accepted).lower():
                 result["issues"].append("comparison baseline bytes differ from the accepted primary workbook")
-        if boundary in {"receipt", "current"}:
+        if boundary in {"receipt", "current", "accepted_result"}:
             if analysis_bytes is None:
                 relative = entry.get("result_analysis_workbook")
                 analysis_bytes = BOUNDED._read(root, relative, 32 * 1024 * 1024, observed["project"])
                 candidate_preflight(analysis_bytes, observed)
-            if boundary == "current":
+            if boundary in {"current", "accepted_result"}:
                 accepted_analysis = (captured_entry.get("validated_artifact_hashes") or {}).get("result_analysis_workbook")
                 caller_analysis = (entry.get("validated_artifact_hashes") or {}).get("result_analysis_workbook")
                 if str(caller_analysis or "").lower() != str(accepted_analysis or "").lower():
@@ -415,7 +427,7 @@ def inspect_gate(root: Path, state: Mapping[str, Any], question: str, *, boundar
                     comparison_rules=safe_yaml.safe_load(authorities["core/claim_evidence_contract.yaml"]))
                 result.update({key: value for key, value in evidence.items() if key != "issues"})
                 result["issues"].extend(evidence["issues"])
-                if boundary == "current" and current_actions(entry):
+                if boundary in {"current", "accepted_result"} and current_actions(entry):
                     closure = action_fragment_closure(state, entry)
                     result["issues"].extend(closure["issues"])
                     result["issues"].append("comparison claim actions remain current; revise the claim and mark its existing disposition resolved before formal consumption")

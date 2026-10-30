@@ -271,6 +271,21 @@ project_sync:
       condition: preprocessing_decision in [not_needed, question_local]
       forbidden_required_artifacts: [preprocessing_code, preprocessing_workbook, preprocessing_matlab_script]
   artifact_hash_layers: [raw_data, preprocessing_decision, preprocessing_code, preprocessing_workbook, preprocessing_matlab_script, primary_code, analysis_code, solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, framework]
+  source_identity_lifecycle:
+    current_source_identity: [primary_code_sha256, analysis_code_sha256, solver_execution.bundle_sha256, artifact_hashes.primary_code, artifact_hashes.analysis_code]
+    accepted_execution_identity: [solver_execution.validated_bundle_sha256, original_RUN_RECEIPT, validated_artifact_hashes.solution_workbook, validated_artifact_hashes.result_analysis_workbook, validated_data_hash]
+    rule: current delivered source and last accepted execution are distinct identities; never erase validated_bundle_sha256 when delivering source
+    read_only_result_consumption:
+      scopes: [figures, docx, latex]
+      phases: [figure_evidence, writing_docx, writing_latex, ai_cleanup, latex_compile_quality]
+      conditions:
+      - original accepted workbook bytes still match the validated workbook SHA-256
+      - original RUN_RECEIPT bundle and data identity still match validated execution provenance
+      - declared inputs can be rechecked and remain unchanged
+      - current model semantic identity remains validated/approved
+      - no relevant stale result layer or unresolved claim/comparison action blocks consumption
+      behavior: do not emit primary_code_changed/analysis_code_changed solely for source-only drift; report provenance warning and keep the original accepted workbook as the numerical evidence source
+      strict_scopes: [code, results, submission]
   stale_propagation:
     raw_data: [preprocessing_workbook, preprocessing_matlab_script, solution_workbook, result_quality, result_analysis_workbook, result_analysis, matlab_script, figure_bundle, result_summary]
     preprocessing_decision_or_project_level_preprocessing: [preprocessing_matlab_script, solution_workbook, result_quality, result_analysis_workbook, result_analysis, matlab_script, figure_bundle, result_summary]
@@ -330,6 +345,7 @@ project_sync:
     primary_code: subproblem.primary_code_sha256记录已交付主求解脚本哈希
     analysis_code: subproblem.analysis_code_sha256记录已交付结果深化分析脚本哈希；Gate=not_required时该层可不存在
     primary_code_layer: subproblem.artifact_hashes.primary_code只记录主求解入口的当前观察哈希，不包含分析入口，也不能替代primary_code_sha256的已交付身份或数学模型语义身份
+    accepted_source_bundle: solver_execution.<stage>.validated_bundle_sha256记录最后一次真实验收执行的源码bundle；交付新源码只更新bundle_sha256，不删除或覆盖validated_bundle_sha256
   data_hash_policy:
     solver_protocol_1_1:
       authority: core/user_execution_contract.yaml#code_delivery.data_identity_mode

@@ -59,7 +59,8 @@ code_bundle:
   - Cross-check statically discoverable project imports/calls and actual runtime resolution; unsupported dynamic loading is unverified, not a proven dependency closure.
   - Current MATLAB templates can verify ordinary same-directory or project-root .m helpers. Any +package/private resolution not verified by the current template/checker must remain unverified and cannot pass formal source-closure checks; a matching filename alone does not prove resolution.
   - Bind source/data identities before the run and recheck before writing a successful receipt; changed inputs or cached/shadowed MATLAB functions must not acquire a successful new receipt.
-  - Only successful stage receipt and numerical acceptance may update validated_bundle_sha256; sync observes and invalidates without refreshing delivered or validated identities.
+  - Only successful stage receipt and numerical acceptance may update validated_bundle_sha256; code delivery and sync never delete or refresh it.
+  - Source-only drift triggers existing code-change invalidation at strict code/results/submission boundaries. During figure_evidence, writing_docx, writing_latex, ai_cleanup or latex_compile_quality read-only result consumption, preserve the original accepted workbook only when its bytes, RUN_RECEIPT bundle, declared inputs and validated semantic identity remain current; this is not evidence that the current source has executed.
   - Existing Python code without the new protocol remains readable by its historical contract; new MATLAB cannot use missing-metadata compatibility.
 
 default_mode:

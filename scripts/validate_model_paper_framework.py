@@ -577,7 +577,7 @@ def _implementation_anchor_issues(
         stage = "primary" if raw == subproblem.get("code") else "analysis"
         issues.extend(STAGE_CODE.validate_stage_binding(
             project_root, subproblem, stage,
-            require_validated=True, project_backend=project_backend,
+            require_validated=False, project_backend=project_backend,
         ))
     return issues
 

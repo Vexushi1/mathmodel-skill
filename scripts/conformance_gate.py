@@ -119,7 +119,7 @@ def inspect_gate(root: Path, state: Mapping[str, Any], question: str, stage: str
         return result
     result.update(enabled=True, status='blocked')
     try:
-        if stage not in STAGES or boundary not in ('delivery', 'receipt', 'current'):
+        if stage not in STAGES or boundary not in ('delivery', 'receipt', 'current', 'accepted_result'):
             raise ValueError('conformance: unsupported stage/boundary')
         issues = policy_issues(entry)
         if issues:
@@ -143,6 +143,67 @@ def inspect_gate(root: Path, state: Mapping[str, Any], question: str, stage: str
         original = audit._yaml(raw.decode('utf-8'), 32)
         if digest('A2-context', _context(original, question)) != digest('A2-context', _context(state, question)):
             raise ValueError('conformance: candidate model/source/declaration differs from captured state')
+        if boundary == 'accepted_result':
+            # Verify the historical run certificate without qualifying current solver
+            # bytes. Current code must still pass the strict delivery/receipt boundary
+            # before it can produce a replacement accepted workbook.
+            for path in EXTRA_SOURCES:
+                audit._read(ROOT, path, 8 * 1024 * 1024, observed['skill'])
+            # Track the new read-only helper for transaction consistency without
+            # silently changing the authority set used by old accepted certificates.
+            audit._read(ROOT, 'scripts/execution_provenance.py', 8 * 1024 * 1024, observed['skill'])
+            record = (entry.get('implementation_conformance') or {}).get(stage)
+            slot = (entry.get('solver_execution') or {}).get(stage, {})
+            delivery = slot.get(DELIVERY) if isinstance(slot, Mapping) else None
+            accepted = slot.get(ACCEPTANCE) if isinstance(slot, Mapping) else None
+            if not isinstance(record, Mapping) or not isinstance(delivery, Mapping) or not isinstance(accepted, Mapping):
+                raise ValueError('accepted-result conformance requires original delivery and acceptance records')
+            result['delivery_candidate'] = dict(delivery)
+            result['structure_status'] = 'accepted_result_provenance'
+            if delivery.get('question') != question or delivery.get('stage') != stage:
+                raise ValueError('accepted-result conformance binding has the wrong question/stage')
+            if delivery.get('declaration_sha256') != digest('HSK-conformance-declaration-v1', record):
+                raise ValueError('current implementation-conformance declaration differs from accepted run')
+            accepted_bundle = str(slot.get('validated_bundle_sha256') or '').lower()
+            if not accepted_bundle or accepted_bundle != str(delivery.get('source_bundle_sha256') or '').lower():
+                raise ValueError('accepted-result conformance bundle differs from validated execution provenance')
+            layer = 'solution_workbook' if stage == 'primary' else 'result_analysis_workbook'
+            expected_workbook = str((entry.get('validated_artifact_hashes') or {}).get(layer) or '').lower()
+            if not expected_workbook:
+                raise ValueError('accepted-result conformance has no validated workbook identity')
+            if accepted != acceptance_binding(delivery, expected_workbook):
+                raise ValueError('accepted-result conformance acceptance does not bind original delivery/workbook')
+            from stage_code import _relative_path
+            from execution_provenance import accepted_result_issues, _workbook_config
+            workbook_relative = entry.get(layer)
+            if not isinstance(workbook_relative, str) or not workbook_relative:
+                raise ValueError('accepted-result conformance workbook path is missing')
+            workbook_path = _relative_path(root, workbook_relative)
+            audit._read(root, workbook_relative, 32 * 1024 * 1024, observed['project'])
+            result_issues, result_warnings = accepted_result_issues(root, state, entry, stage, workbook_path)
+            result['warnings'] = list(result_warnings)
+            if result_issues:
+                result['issues'].extend(result_issues)
+                result['issues'].insert(0, f'conformance {question}.{stage} accepted-result boundary failed')
+                result['status'] = 'blocked'
+                return result
+            config, config_issues = _workbook_config(workbook_path)
+            result['issues'].extend(config_issues)
+            if config:
+                from execution_protocol import declared_input_paths
+                from stage_inputs import input_files
+                for input_path in input_files(root, declared_input_paths(config)):
+                    audit._read(root, input_path.relative_to(root).as_posix(), 512 * 1024 * 1024, observed['project'])
+            # This hash identifies the authority snapshot used for the accepted run.
+            # A changed authority is reported, not re-signed during read-only consumption.
+            authority_snapshot = {path: observed['skill'][path] for path in EXTRA_SOURCES}
+            if delivery.get('authority_sha256') != digest('HSK-conformance-authorities-v1', authority_snapshot):
+                result['warnings'].append('accepted-result conformance retains its original authority snapshot; current code was not re-accepted')
+            result['status'] = 'satisfied' if not result['issues'] else 'blocked'
+            if result['issues']:
+                result['issues'].insert(0, f'conformance {question}.{stage} accepted-result boundary failed')
+            return result
+
         report = audit.inspect_project(root, question, stage)
         result['structure_status'] = report['status']
         merge_read_sets(observed, report['observed_sources'])
@@ -347,7 +408,15 @@ def stored_issues(entry: Mapping[str, Any], question: str) -> list[str]:
         if certificate is not None:
             if certificate.get('question') != question or certificate.get('stage') != stage:
                 errors.append(f'conformance {question}.{stage}: cross-question/stage delivery binding')
-            if certificate.get('applicability') == 'current':
+            lifecycle = entry.get(f'{stage}_execution_status')
+            historical_accepted_binding = bool(
+                lifecycle == 'awaiting_user_execution'
+                and accepted
+                and accepted.get('applicability') == 'current'
+                and str(slot.get('validated_bundle_sha256', '')).lower()
+                    == str(certificate.get('source_bundle_sha256', '')).lower()
+            )
+            if certificate.get('applicability') == 'current' and not historical_accepted_binding:
                 record = (entry.get('implementation_conformance') or {}).get(stage)
                 field = 'code' if stage == 'primary' else 'result_analysis_code'
                 identities = {'entrypoint': entry.get(field), 'source_bundle_sha256': str(slot.get('bundle_sha256', '')).lower(),

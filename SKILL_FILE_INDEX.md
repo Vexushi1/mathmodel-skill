@@ -151,6 +151,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/conformance_gate.py`
 - `scripts/conformance_source.py`
 - `scripts/execution_protocol.py`
+- `scripts/execution_provenance.py`
 - `scripts/generate_indexes.py`
 - `scripts/generate_mechanism_drawio.py`
 - `scripts/hsk_pack_submission.py`
@@ -385,6 +386,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_current_skill_health.py`
 - `tests/test_e1_cross_module_acceptance.py`
 - `tests/test_e1_resource_measurement.py`
+- `tests/test_execution_provenance.py`
 - `tests/test_framework_project_memory_contract.py`
 - `tests/test_generated_workflow_hardening.py`
 - `tests/test_latex_first_versionless_docs.py`

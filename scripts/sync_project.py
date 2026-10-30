@@ -29,6 +29,7 @@ import runtime_assurance as RUNTIME_ASSURANCE  # noqa: E402
 import artifact_fingerprint as ARTIFACT_FINGERPRINT  # noqa: E402
 import project_snapshot as PROJECT_SNAPSHOT  # noqa: E402
 import stage_code as STAGE_CODE  # noqa: E402
+import execution_provenance as EXECUTION_PROVENANCE  # noqa: E402
 import conformance_gate as CONFORMANCE  # noqa: E402
 import analysis_comparison_gate as COMPARISON  # noqa: E402
 from execution_protocol import declared_input_paths
@@ -401,6 +402,14 @@ def contract_preflight_issues(
     candidate_framework_text: str | None = None,
 ) -> list[str]:
     issues: list[str] = []
+    scope_state = candidate_state
+    if scope_state is None and state_path.is_file():
+        scope_state = load_yaml(state_path)
+    scope_phase = str(((scope_state or {}).get("project") or {}).get("current_phase", ""))
+    allow_read_only_source_drift = (
+        EXECUTION_PROVENANCE.is_read_only_result_scope(scope)
+        and EXECUTION_PROVENANCE.is_cleanup_phase(scope_phase)
+    )
     required = set(stage_requirements(scope, output_contract))
     if "project_state" in required and not state_path.is_file():
         issues.append("项目状态校验: 缺少 state/project_state.yaml")
@@ -411,9 +420,13 @@ def contract_preflight_issues(
                 STATE_VALIDATION.validate_state_payload(
                     candidate_state, project_root=root,
                     framework_text_override=candidate_framework_text,
+                    allow_read_only_source_drift=allow_read_only_source_drift,
                 )
                 if candidate_state is not None
-                else STATE_VALIDATION.validate_state_file(state_path, project_root=root)
+                else STATE_VALIDATION.validate_state_file(
+                    state_path, project_root=root,
+                    allow_read_only_source_drift=allow_read_only_source_drift,
+                )
             )
         )
     if "model_paper_framework" in required and not framework_path.is_file():
@@ -491,26 +504,42 @@ LAYER_TRANSITION_EVENTS = {
 }
 
 
-def _snapshot_transition_events(entry: Mapping[str, Any], snapshot: Mapping[str, Any]) -> list[str]:
+def _snapshot_transition_events(
+    entry: Mapping[str, Any], snapshot: Mapping[str, Any], *,
+    delivery_scope: str | None = None, current_phase: str | None = None,
+) -> list[str]:
     current = dict(snapshot.get("artifact_hashes", {}))
     primary_changed, analysis_changed = _code_hash_mismatches(entry, snapshot)
+    accepted_result_source_drift = set(snapshot.get("accepted_result_source_drift", []) or [])
+    readonly_cleanup = (
+        EXECUTION_PROVENANCE.is_read_only_result_scope(delivery_scope)
+        and EXECUTION_PROVENANCE.is_cleanup_phase(current_phase)
+    )
+    suppress_primary = readonly_cleanup and "primary" in accepted_result_source_drift
+    suppress_analysis = readonly_cleanup and "analysis" in accepted_result_source_drift
     events: list[str] = []
     observed_inputs = snapshot.get("solver_execution_observed") or {}
     for stage, event in (("primary", "data_changed"), ("analysis", "analysis_inputs_changed")):
         if ((observed_inputs.get(stage) or {}).get("inputs") or {}).get("issues"):
             events.append(event)
-    if primary_changed:
+    if primary_changed and not suppress_primary:
         events.append("primary_code_changed")
-    if analysis_changed:
+    if analysis_changed and not suppress_analysis:
         events.append("analysis_code_changed")
     for stage, observation in (snapshot.get("conformance_observed") or {}).items():
         field = "code" if stage == "primary" else "result_analysis_code"
-        if observation.get("issues") and entry.get(field):
+        if observation.get("issues") and entry.get(field) and not (
+            readonly_cleanup and stage in accepted_result_source_drift
+        ):
             events.append(f"{stage}_conformance_changed")
     comparison = snapshot.get("analysis_comparison_observed") or {}
     if comparison.get("plan_issues") and entry.get("result_analysis_code"):
         events.append("analysis_comparison_plan_changed")
     for layer in sorted(_mismatched_layers(entry, current)):
+        if layer == "primary_code" and suppress_primary:
+            continue
+        if layer == "analysis_code" and suppress_analysis:
+            continue
         event = LAYER_TRANSITION_EVENTS.get(layer)
         if event and event not in events:
             events.append(event)
@@ -518,7 +547,8 @@ def _snapshot_transition_events(entry: Mapping[str, Any], snapshot: Mapping[str,
 
 
 def _apply_snapshot_to_state(
-    root: Path, state: dict[str, Any], snapshot: Mapping[str, Any]
+    root: Path, state: dict[str, Any], snapshot: Mapping[str, Any], *,
+    delivery_scope: str | None = None, current_phase: str | None = None,
 ) -> tuple[set[str], list[dict[str, Any]]]:
     key = str(snapshot["key"])
     subproblems = state.get("subproblems") or {}
@@ -528,7 +558,9 @@ def _apply_snapshot_to_state(
     ARTIFACT_IDENTITY.canonicalize_entry_hashes(entry)
     current = dict(snapshot.get("artifact_hashes", {}))
     transition_reports: list[dict[str, Any]] = []
-    for event in _snapshot_transition_events(entry, snapshot):
+    for event in _snapshot_transition_events(
+        entry, snapshot, delivery_scope=delivery_scope, current_phase=current_phase,
+    ):
         transition_reports.append(
             STATE_TRANSITIONS.apply_transition(
                 state,
@@ -1325,12 +1357,44 @@ def synchronize(
             scope if explicit_delivery_scope else None,
             state=state, project_backend=project_backend,
         )
+        accepted_result_source_drift: list[str] = []
+        readonly_cleanup = (
+            EXECUTION_PROVENANCE.is_read_only_result_scope(scope)
+            and EXECUTION_PROVENANCE.is_cleanup_phase(phase)
+        )
+        if readonly_cleanup:
+            for stage in ("primary", "analysis"):
+                observed_stage = (snapshot.get("solver_execution_observed") or {}).get(stage, {})
+                source_drift = (
+                    EXECUTION_PROVENANCE.current_source_differs_from_accepted(
+                        entry, stage,
+                        observed_bundle=observed_stage.get("bundle_sha256"),
+                        observed_entry_sha256=observed_stage.get("entry_sha256"),
+                    )
+                    or bool(observed_stage.get("provenance_warnings"))
+                )
+                if not source_drift or not EXECUTION_PROVENANCE.can_consume_accepted_result(entry, stage):
+                    continue
+                accepted_issues, accepted_warnings = EXECUTION_PROVENANCE.accepted_result_issues(
+                    root, state, entry, stage,
+                )
+                if accepted_issues:
+                    continue
+                accepted_result_source_drift.append(stage)
+                snapshot["warnings"].append(
+                    f"{stage}: 保留原accepted执行身份并只读消费原工作簿；当前源码变化不被视为新执行"
+                )
+                snapshot["warnings"].extend(accepted_warnings)
+        snapshot["accepted_result_source_drift"] = accepted_result_source_drift
         if CONFORMANCE.present(entry):
             snapshot["conformance_observed"] = {}
             for stage in CONFORMANCE.STAGES:
                 slot = (entry.get("solver_execution") or {}).get(stage, {})
-                boundary = ("current" if entry.get(f"{stage}_execution_status") == "accepted"
-                            else "receipt" if slot.get(CONFORMANCE.DELIVERY) or slot.get("bundle_sha256") else "delivery")
+                if stage in accepted_result_source_drift:
+                    boundary = "accepted_result"
+                else:
+                    boundary = ("current" if entry.get(f"{stage}_execution_status") == "accepted"
+                                else "receipt" if slot.get(CONFORMANCE.DELIVERY) or slot.get("bundle_sha256") else "delivery")
                 check = CONFORMANCE.inspect_gate(root, state, key, stage, boundary=boundary)
                 if check["enabled"]:
                     snapshot["conformance_observed"][stage] = {
@@ -1343,9 +1407,21 @@ def synchronize(
                     if relative in sync_read_set and sync_read_set[relative] != digest:
                         raise PROJECT_TX.ReadSetConflictError("conformance sync read-set conflict: " + relative)
                     sync_read_set[relative] = digest
-        comparison_boundary = (("current" if scope in {"figures", "docx", "latex", "submission"} else "receipt")
-                               if entry.get("analysis_execution_status") == "accepted"
-                               else "delivery" if entry.get("result_analysis_code") else "plan")
+        # A strict/unchanged project must not read an unrelated legacy analysis
+        # workbook merely to choose its comparison gate.
+        accepted_analysis_issues = ["not a read-only provenance transition"]
+        if readonly_cleanup and "analysis" in accepted_result_source_drift:
+            accepted_analysis_issues, _ = EXECUTION_PROVENANCE.accepted_result_issues(
+                root, state, entry, "analysis",
+            )
+        if (readonly_cleanup and "analysis" in accepted_result_source_drift
+                and not accepted_analysis_issues
+                and EXECUTION_PROVENANCE.can_consume_accepted_result(entry, "analysis")):
+            comparison_boundary = "accepted_result"
+        else:
+            comparison_boundary = (("current" if scope in {"figures", "docx", "latex", "submission"} else "receipt")
+                                   if entry.get("analysis_execution_status") == "accepted"
+                                   else "delivery" if entry.get("result_analysis_code") else "plan")
         comparison = COMPARISON.inspect_gate(root, state, key, boundary=comparison_boundary)
         if comparison["enabled"]:
             snapshot["analysis_comparison_observed"] = {
@@ -1379,7 +1455,11 @@ def synchronize(
     transition_state = state if write else deepcopy(state)
     if state_present and not policy_error:
         for snapshot in snapshots.values():
-            stale, reports = _apply_snapshot_to_state(root, transition_state, snapshot)
+            stale, reports = _apply_snapshot_to_state(
+                root, transition_state, snapshot,
+                delivery_scope=scope,
+                current_phase=str(((transition_state.get("project") or {}).get("current_phase", ""))),
+            )
             transition_reports.extend(reports)
             question = str(snapshot["key"])
             comparison_entry = (transition_state.get("subproblems") or {}).get(question, {})

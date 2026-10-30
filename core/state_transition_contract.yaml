@@ -230,7 +230,7 @@ transition_events:
       data_scope: [data]
       preprocessing: [data]
   primary_code_changed:
-    implementation_binding: primary backend, entry path, entry bytes or declared code dependency set/bytes changed
+    implementation_binding: primary backend, entry path, entry bytes or declared code dependency set/bytes changed at a strict code/results/submission boundary; read-only cleanup scopes retain a verified accepted workbook without emitting this event for source-only drift
     own_profile: primary_result
     emitted_impacts: [result]
   analysis_inputs_changed:
@@ -242,7 +242,7 @@ transition_events:
     own_profile: analysis_result
     emitted_impacts: []
   analysis_code_changed:
-    implementation_binding: analysis backend, entry path, entry bytes or declared code dependency set/bytes changed
+    implementation_binding: analysis backend, entry path, entry bytes or declared code dependency set/bytes changed at a strict code/results/submission boundary; read-only cleanup scopes retain a verified accepted workbook without emitting this event for source-only drift
     own_profile: analysis_result
     emitted_impacts: []
   primary_numerical_source_retired:

@@ -18,6 +18,7 @@ import analysis_comparison as COMPARISON
 import analysis_comparison_gate as COMPARISON_GATE
 import runtime_assurance as RUNTIME_ASSURANCE
 import stage_code as STAGE_CODE
+import execution_provenance as EXECUTION_PROVENANCE
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = ROOT / "core/project_state.schema.yaml"
@@ -904,7 +905,10 @@ def _contract_stale_coverage(state: Mapping[str, Any], stale_layers: set[str]) -
     return covered
 
 
-def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[str]:
+def _validate_hashes(
+    name: str, state: Mapping[str, Any], status: str, *,
+    allow_read_only_source_drift: bool = False,
+) -> list[str]:
     issues: list[str] = []
     current, validated, alias_issues = _normalized_hashes(state)
     issues.extend(f"{name}.{item}" for item in alias_issues)
@@ -922,13 +926,22 @@ def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[s
     if invalid_layers:
         issues.append(f"{name}.stale_layers contains invalid layers: {sorted(invalid_layers)}")
     mismatched = {key for key, value in validated.items() if current.get(key) != value}
+    # Source drift is tolerated only by an explicitly scoped read-only consumer;
+    # strict code/results/submission validation retains the original freeze.
+    result_mismatched = (
+        mismatched - EXECUTION_PROVENANCE.SOURCE_LAYERS
+        if allow_read_only_source_drift else mismatched
+    )
     stale_flag = state.get("artifacts_stale") is True
     semantic_stale = (
         state.get("result_quality_status") == "failed"
         or state.get("result_analysis_status") == "redo_required"
     )
-    if mismatched and not stale_flag:
-        issues.append(f"{name}.artifacts_stale must be true while validated hashes differ: {sorted(mismatched)}")
+    if result_mismatched and not stale_flag:
+        issues.append(
+            f"{name}.artifacts_stale must be true while validated result hashes differ: "
+            f"{sorted(result_mismatched)}"
+        )
     if stale_flag:
         if semantic_stale:
             if not stale_layers:
@@ -942,17 +955,24 @@ def _validate_hashes(name: str, state: Mapping[str, Any], status: str) -> list[s
     if not stale_flag and stale_layers:
         issues.append(f"{name}.stale_layers must be empty while artifacts_stale is false")
     if status in SOLVED_STATUSES:
-        required = {"data", "primary_code", "solution_workbook", "framework"}
-        missing = sorted(key for key in required if key not in current or key not in validated)
-        if missing:
-            issues.append(f"{name} solved status requires current and validated hashes for: {missing}")
+        required_current = {"data", "primary_code", "solution_workbook", "framework"}
+        required_validated = {"data", "solution_workbook", "framework"}
+        if allow_read_only_source_drift:
+            required_current.discard("primary_code")
+        missing_current = sorted(key for key in required_current if key not in current)
+        missing_validated = sorted(key for key in required_validated if key not in validated)
+        if missing_current or missing_validated:
+            issues.append(
+                f"{name} solved status requires current result/source observations and validated result hashes; "
+                f"missing current={missing_current}, missing validated={missing_validated}"
+            )
     if status in ANALYZED_STATUSES and state.get("result_analysis_status") != "not_required":
         required = {"result_analysis_workbook"}
         missing = sorted(key for key in required if key not in current or key not in validated)
         if missing:
             issues.append(f"{name} analyzed status requires current and validated hashes for: {missing}")
-    if status in VALIDATED_STATUSES and mismatched:
-        issues.append(f"{name} validated artifact hashes are stale: {sorted(mismatched)}")
+    if status in VALIDATED_STATUSES and result_mismatched:
+        issues.append(f"{name} validated result artifact hashes are stale: {sorted(result_mismatched)}")
     return issues
 
 
@@ -962,6 +982,7 @@ def validate_state_payload(
     framework_path_override: Path | None = None,
     framework_text_override: str | None = None,
     report_path_overrides: Mapping[str, Path] | None = None,
+    allow_read_only_source_drift: bool = False,
 ) -> list[str]:
     if not isinstance(payload, Mapping):
         return ["schema <root>: project state must be a mapping"]
@@ -1097,7 +1118,10 @@ def validate_state_payload(
         quality_status = state.get("result_quality_status")
         analysis_status = state.get("result_analysis_status")
         issues.extend(_validate_classification_aliases(name, state, taxonomy))
-        issues.extend(_validate_hashes(name, state, status))
+        issues.extend(_validate_hashes(
+            name, state, status,
+            allow_read_only_source_drift=allow_read_only_source_drift,
+        ))
         issues.extend(_validate_analysis_dispositions(
             name, state, structured_rejection=structured_rejection or str(name) in comparison_questions,
         ))
@@ -1113,10 +1137,13 @@ def validate_state_payload(
                 comparison_result = COMPARISON.inspect_plan(
                     state, question=str(name), specs=comparison_text)
                 issues.extend(f"{name}: {item}" for item in comparison_result["issues"])
-                if analysis_status == "passed" and state.get("analysis_execution_status") == "accepted":
+                if analysis_status == "passed" and state.get("analysis_execution_status") in {"accepted", "awaiting_user_execution"}:
+                    if allow_read_only_source_drift:
+                        comparison_boundary = "accepted_result"
+                    else:
+                        comparison_boundary = "current" if phase in {"review_delivery", "completed"} else "receipt"
                     current_comparison = COMPARISON_GATE.inspect_gate(
-                        project_root, payload, str(name),
-                        boundary="current" if phase in {"review_delivery", "completed"} else "receipt")
+                        project_root, payload, str(name), boundary=comparison_boundary)
                     issues.extend(f"{name}: {item}" for item in current_comparison["issues"])
             except (OSError, ValueError, TypeError, KeyError) as exc:
                 issues.append(f"{name}: comparison validation unavailable: {exc}")
@@ -1132,10 +1159,20 @@ def validate_state_payload(
                     "code_delivered", "awaiting_user_execution", "workbook_received", "accepted",
                 }
                 if new_code and delivered and project_backend is not None:
-                    issues.extend(f"{name}: {issue}" for issue in STAGE_CODE.validate_stage_binding(
-                        project_root, state, stage, require_validated=execution_status == "accepted",
-                        project_backend=project_backend,
-                    ))
+                    accepted_result_ok = False
+                    if allow_read_only_source_drift:
+                        accepted_issues, _ = EXECUTION_PROVENANCE.accepted_result_issues(
+                            project_root, payload, state, stage,
+                        )
+                        accepted_result_ok = (
+                            not accepted_issues
+                            and EXECUTION_PROVENANCE.semantic_identity_is_fully_verified(state)
+                        )
+                    if not accepted_result_ok:
+                        issues.extend(f"{name}: {issue}" for issue in STAGE_CODE.validate_stage_binding(
+                            project_root, state, stage, require_validated=execution_status == "accepted",
+                            project_backend=project_backend,
+                        ))
         section_hash = (state.get("artifact_hashes", {}) or {}).get("framework")
         if section_hash and framework_path.is_file():
             actual_section_hash = _framework_section_hash(framework_path, framework_section)
@@ -1226,17 +1263,26 @@ def validate_state_payload(
     return issues
 
 
-def validate_state_file(path: Path, *, project_root: Path | None = None) -> list[str]:
+def validate_state_file(
+    path: Path, *, project_root: Path | None = None,
+    allow_read_only_source_drift: bool = False,
+) -> list[str]:
     root = (project_root or path.parent.parent).resolve()
     if path.resolve() == (root / "state/project_state.yaml").resolve():
         try:
             snapshot = RUNTIME_ASSURANCE.ProjectStateSnapshot.capture(root)
-            issues = validate_state_payload(snapshot.payload(), project_root=root)
+            issues = validate_state_payload(
+                snapshot.payload(), project_root=root,
+                allow_read_only_source_drift=allow_read_only_source_drift,
+            )
             snapshot.assert_current()
             return issues
         except RUNTIME_ASSURANCE.ProjectStateReadError as exc:
             return [str(exc)]
-    return validate_state_payload(load_yaml(path), project_root=root)
+    return validate_state_payload(
+        load_yaml(path), project_root=root,
+        allow_read_only_source_drift=allow_read_only_source_drift,
+    )
 
 
 def main() -> int:
