@@ -590,6 +590,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/cumcm_question_writing_refinement_plan.md`
 - `docs/figure_paper_handoff_plan.md`
 - `docs/figure_technique_and_handoff_refactor_plan.md`
+- `docs/final_acceptance_traceability_matrix.md`
 - `docs/main-branch-protection-hardening-plan.md`
 - `docs/matlab_publication_rendering_v91_plan.md`
 - `docs/modeling_intelligence_a0_decisions.md`
