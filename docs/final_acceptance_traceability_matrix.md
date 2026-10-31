@@ -87,7 +87,7 @@ Authority 缩写：`RT` = `core/workflow_router.yaml`；`CR` = `config/competiti
 
 | 领域 | 业务 Authority / 消费者 | 当前机器保护证据 | 保留的真实项目审查 |
 |---|---|---|---|
-| 题目分析 | `core/task_taxonomy.yaml`、`core/workflow_router.yaml`、`modules/01_problem_analysis.md` → resolver、Problem Contract | R02/R03/G01，路由通用回退与 design scope 反例 | **PENDING_MANUAL**：真实题目条件、依赖、数据、目标与候选结构是否正确 |
+| 题目分析 | `core/task_taxonomy.yaml`、`core/workflow_router.yaml`、`modules/01_problem_audit.md` → resolver、Problem Contract | R02/R03/G01，路由通用回退与 design scope 反例 | **PENDING_MANUAL**：真实题目条件、依赖、数据、目标与候选结构是否正确 |
 | 模型分析与建立 | `core/model_approval_contract.yaml`、`core/project_state.schema.yaml`、`modules/02_model_design.md` → semantic governance / model approval | G02–G07，双挑战声明、blocking finding、revision/identity stale | **PENDING_MANUAL**：公式/约束/候选模型优劣、两个独立 Challenge 的实际内容、用户明确批准 |
 | 求解精度 | `core/numerical_verification_contract.yaml`、`core/workbook_schema.yaml` → `validate_user_execution.py` | G09/G18、`NV.test_residual_actual_is_recomputed_from_bottom_level_evidence`、MATLAB native 合成作业 | **PENDING_MANUAL**：真实数据、容差/收敛、数值稳定性、边界可行性与可信精度 |
 | 求解规范 | `core/user_execution_contract.yaml`、`core/code_quality_contract.yaml`、`core/model_code_conformance_contract.yaml` → code delivery / receipt | G07–G09、K01–K14 的身份与阶段合同、Python/MATLAB CI | **PENDING_MANUAL**：用户 full-fidelity 执行、真实源码/依赖/数据/RUN_CONFIG/RUN_RECEIPT 与工作簿绑定 |
