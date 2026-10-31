@@ -1,6 +1,12 @@
 # Changelog
 
-## 10.23.1
+## 10.23.2
+
+- Preserve both existing-figure style and independent new-figure design source reads when a single figures request combines the two intents; no new Figure Authority or approval state is introduced.
+- Keep original figure binding and verified-result prerequisites for the style shortcut. When old-figure approval is unavailable, retain the new design source/conditional reads while marking the old style evidence unresolved.
+- Add mixed-intent reading regressions for valid old approval, absent approval and a genuine model-constraint change; preserve existing gates, numerical provenance and visual review requirements.
+
+## Previous release: 10.23.1
 
 - Make competition-specific packs and writing profiles optional adapters: unknown competitions use the generic competition pack and generic writing authority instead of blocking modeling or solving.
 - Allow fresh problem-design routes to proceed with the general classifier when explicit task classification is not yet available.

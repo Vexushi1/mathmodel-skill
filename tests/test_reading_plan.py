@@ -251,6 +251,67 @@ class ReadingPlanTests(unittest.TestCase):
             with self.subTest(case=case):
                 self.assertEqual(self.plans[case]["reading_plan"]["profile"], "full")
 
+    def test_mixed_style_and_new_figure_reads_both_actual_authorities(self):
+        request = "只修改现有图的配色，另外补充一张新图，保持数据和坐标口径不变。"
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            build_project(ROOT, project, "current")
+            plan = resolve_runtime(
+                "figures", competition="CUMCM", request=request,
+                project_root=project, question="Q1",
+            )
+        reading = plan["reading_plan"]
+        self.assertEqual(reading["profile"], "figure_style_and_design")
+        self.assertEqual(reading["status"], "planned")
+        figures = [row for row in reading["read_now"]
+                   if row["path"] == "modules/04_figure_evidence.md"]
+        self.assertEqual(len(figures), 1)
+        source = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
+        source_lines = source.splitlines(keepends=True)
+        selected = "".join(
+            "".join(source_lines[start - 1:end])
+            for start, end in figures[0]["ranges"]
+        )
+        self.assertIn("视觉修改与语义修改分流", selected)
+        self.assertIn("Scientific Figure Synthesis Gate", selected)
+        paths = {row["path"] for row in reading["read_now"]}
+        self.assertIn("templates/figure/result_figure_contract.md", paths)
+        self.assertIn("templates/figure/result_figure_qa.md", paths)
+        self.assertIn("模型论文框架.md", paths)
+        self.assertIn("state/project_state.yaml", paths)
+        self.assertIn("问题一求解/q1_plot.m", {path.replace("\\", "/") for path in paths})
+        for path in ("templates/figure/chart_selection.md",
+                     "templates/figure/figure_enhancement_patterns.md"):
+            self.assertTrue(any(row["path"] == path and row["when"]
+                                for row in reading["conditional"]))
+        self.assertEqual(
+            [tool["name"] for tool in reading["tool_interfaces"]],
+            [gate["name"] for gate in plan["pre_delivery_gates"]],
+        )
+
+    def test_mixed_figure_unapproved_old_figure_keeps_new_design_readable(self):
+        request = "只修改现有图的配色，另外补充一张新图，保持数据和坐标口径不变。"
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            build_project(ROOT, project, "no_figure_approval")
+            plan = resolve_runtime(
+                "figures", competition="CUMCM", request=request,
+                project_root=project, question="Q1",
+            )
+        reading = plan["reading_plan"]
+        self.assertEqual(reading["profile"], "figure_design")
+        self.assertEqual(reading["status"], "evidence_required")
+        self.assertTrue(any("approval" in reason for reason in reading["reasons"]))
+        paths = {row["path"] for row in reading["read_now"]}
+        self.assertIn("modules/04_figure_evidence.md", paths)
+        self.assertIn("templates/figure/result_figure_contract.md", paths)
+        self.assertNotIn("问题一求解/q1_plot.m", paths)
+
+    def test_mixed_figure_with_real_semantic_change_stays_full(self):
+        request = "只修改现有图的配色，新增模型约束，并补充一张新图。"
+        plan = resolve_runtime("figures", competition="CUMCM", request=request)
+        self.assertEqual(plan["reading_plan"]["profile"], "full")
+
     def test_machine_closure_and_gates_preserved_exactly(self):
         for identifier, plan in self.plans.items():
             with self.subTest(case=identifier):

@@ -1766,6 +1766,73 @@ class AuditClosureProjectionTests(unittest.TestCase):
                         ), (new, []))
                         self.assertEqual((old, new, carriers), saved)
 
+    def test_v10232_p2_carrier_projects_only_version_for_existing_cases(self):
+        carriers = deepcopy(EVIDENCE.MIXED_FIGURE_READING_AUTHORITY_VERSIONS)
+        self.assertEqual(carriers, {
+            **EVIDENCE.FULL_WORKFLOW_READING_AUTHORITY_VERSIONS, "skill": "10.23.2",
+        })
+        for case in (*sorted(EVIDENCE.A7_HYDRATED_PROVENANCE_CASES),
+                     "facts_unscoped", "style_current", "style_data_change",
+                     "style_figure_drift", "style_no_approval", "mixed", "cumcm_writing"):
+            with self.subTest(case=case):
+                old, new = self.full_workflow_reading_pair(case)
+                new["version"] = "10.23.2"
+                saved = deepcopy((old, new, carriers))
+                row = EVIDENCE.compare(
+                    [{"id": case, "plan": old, "legacy_declared_bytes": 1}],
+                    [{"id": case, "plan": new, "legacy_declared_bytes": 1,
+                      "authority_versions": carriers}],
+                )[0]
+                self.assertTrue(row["legacy_behavior_equal_except_approved_changes"])
+                self.assertEqual(row["unexpected_legacy_changes"], [])
+                version_changes = [item for item in row["expected_legacy_changes"]
+                                   if item["path"] == "version"]
+                self.assertEqual([item["candidate"] for item in version_changes], ["10.23.2"])
+                self.assertEqual(version_changes[0]["authority_versions"], carriers)
+                self.assertEqual((old, new, carriers), saved)
+
+    def test_v10232_p2_carrier_rejects_unknown_metadata_and_runtime_drift(self):
+        carriers = deepcopy(EVIDENCE.MIXED_FIGURE_READING_AUTHORITY_VERSIONS)
+        for case in ("facts_current", "style_current", "mixed", "cumcm_writing"):
+            old, new = self.full_workflow_reading_pair(case)
+            new["version"] = "10.23.2"
+            for bad in (
+                None, {**carriers, "skill": "10.23.1"},
+                {**carriers, "skill": "10.23.3"},
+                {**carriers, "runtime_assurance": "2.5.1"},
+                {**carriers, "project_state": "8.17.0"},
+                {**carriers, "unregistered_authority": "1.0.0"},
+                {key: value for key, value in carriers.items() if key != "runtime_assurance"},
+            ):
+                with self.subTest(case=case, bad=bad):
+                    self.assertEqual(EVIDENCE.approved_mixed_figure_reading_carrier_change(
+                        case, old, new, bad), (new, []))
+            for field, value in (
+                ("version", "10.23.3"), ("formal_delivery", not new.get("formal_delivery")),
+                ("pause_state", "unregistered_pause"),
+                ("pre_delivery_gates", [{"name": "unregistered_gate"}]),
+                ("load_order", ["scripts/unregistered_runtime.py"]),
+            ):
+                with self.subTest(case=case, field=field):
+                    changed = deepcopy(new)
+                    changed[field] = value
+                    self.assertEqual(EVIDENCE.approved_mixed_figure_reading_carrier_change(
+                        case, old, changed, carriers), (changed, []))
+            changed = deepcopy(new)
+            changed["assurance"]["qualification"] = "accepted"
+            self.assertEqual(EVIDENCE.approved_mixed_figure_reading_carrier_change(
+                case, old, changed, carriers), (changed, []))
+            changed = deepcopy(new)
+            changed["runtime_plan"]["pre_delivery_gate_names"] = ["unregistered_gate"]
+            self.assertEqual(EVIDENCE.approved_mixed_figure_reading_carrier_change(
+                case, old, changed, carriers), (changed, []))
+            missing = EVIDENCE.compare(
+                [{"id": case, "plan": old, "legacy_declared_bytes": 1}],
+                [{"id": case, "plan": new, "legacy_declared_bytes": 1}],
+            )[0]
+            self.assertFalse(missing["legacy_behavior_equal_except_approved_changes"])
+            self.assertIn("version", missing["unexpected_legacy_changes"])
+
     def comparison_writing_pair(self):
         old, new = self.pair("cumcm_writing")
         new.pop("solver_backend")
