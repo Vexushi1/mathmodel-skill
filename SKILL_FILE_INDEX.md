@@ -570,6 +570,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/module06_source_migration.md`
 - `docs/p5a_run_config_migration.md`
 - `docs/phase_e_artifact_identity_inventory.md`
+- `docs/phase_e_six_domain_regression_audit.md`
 - `docs/phase_f_transaction_writer_inventory.md`
 - `docs/phase_i_artifact_alias_retirement.md`
 - `docs/phase_i_artifact_state_surface_removal.md`
