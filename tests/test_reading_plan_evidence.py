@@ -1808,9 +1808,10 @@ class AuditClosureProjectionTests(unittest.TestCase):
                     self.assertEqual(EVIDENCE.approved_mixed_figure_reading_carrier_change(
                         case, old, new, bad), (new, []))
             for field, value in (
-                ("version", "10.23.3"), ("formal_delivery", True),
-                ("pause_state", "ready"), ("pre_delivery_gates", []),
-                ("load_order", ["scripts/read_stage.py"]),
+                ("version", "10.23.3"), ("formal_delivery", not new.get("formal_delivery")),
+                ("pause_state", "unregistered_pause"),
+                ("pre_delivery_gates", [{"name": "unregistered_gate"}]),
+                ("load_order", ["scripts/unregistered_runtime.py"]),
             ):
                 with self.subTest(case=case, field=field):
                     changed = deepcopy(new)
