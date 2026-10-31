@@ -94,3 +94,68 @@
 1. 本文件仅记录已完成的远端检查和代码/测试静态证据；对 R/G/S/W/C、K01–K14、AUD-01–AUD-18 建立逐项测试方法与原始日志的交叉索引后，再判断历史回归审查是否闭合。
 2. 需要真实项目实例才能验证的数学审查、用户数值执行、视觉审查、PDF 页面检查和赛规，不得由 CI 自动标记通过；如发现具体可复现的跨模块缺陷，按单主题独立修复 PR、自动生成元数据、专项、Ready、最终 head 正式 full、合并后 main 复核。
 3. 本次 docs-only 审计 PR 不改变 Authority、gate、Schema、CLI、版本、生成索引或测试；应由 GitHub 自动刷新生成文件并按治理完成适用远端检查。正式通过前本文件只是待复核记录。
+
+## 7. 2026-10-31 最终 HEAD 的 AUD-01–AUD-18 实际执行证据补充
+
+本节补充原第 3.1 节静态交叉索引的远端执行证据。原第 1 节的 `main@3901a934` 是阶段 E 审计启动时的基线；本节另行记录 PR #281 合并后的最新 HEAD，不覆盖历史基线。
+
+### 7.1 最终 HEAD 与合并后工作流
+
+- PR #281（本审计文档）已合并；合并提交为 `6b20a216f365f9458e554b00f7215c2f77e786bf`，对应 Skill `10.23.2`。本次复核时未发现开放 PR。
+- 合并后 HSK Skill CI [#41187493893](https://github.com/Vexushi1/mathmodel-skill/actions/runs/41187493893)：Static contract lint、Generated file contract、Regression mode、Python 3.10/3.14 四分片及汇总、MATLAB R2024b native、LaTeX 三模板、Production LaTeX attestation 均为 `success`。Windows targeted checks 为条件 `skipped`，不计 PASS。
+- 合并后 Refresh generated [#41187493897](https://github.com/Vexushi1/mathmodel-skill/actions/runs/41187493897)：`verify-main=success`；`refresh-feature-branch=skipped`（main 事件下不适用），不计 PASS。
+- Python 3.10 和 3.14 的八个分片 job 均实际 checkout 上述 `6b20a216...`，各自记录 `Shard result: success`。对应的 Python 3.10 与 Python 3.14 汇总 job 均为 `success`。
+
+### 7.2 测试产物与计数
+
+从 HSK CI #41187493893 下载并检查了八个分片 Artifact。每个 Artifact 均包含 `unittest.log` 与 `timings.json`：
+
+| Python 版本 | 分片 | GitHub Job ID | Artifact ID | unittest 日志结果 |
+|---|---:|---:|---:|---|
+| 3.10 | 0 | `124497320081` | `13038151585` | success |
+| 3.10 | 1 | `124497320045` | `13037228777` | success |
+| 3.10 | 2 | `124497320059` | `13037389610` | success |
+| 3.10 | 3 | `124497320036` | `13037379935` | success |
+| 3.14 | 0 | `124497320097` | `13037079674` | success |
+| 3.14 | 1 | `124497320035` | `13037249286` | success |
+| 3.14 | 2 | `124497320128` | `13037134127` | success |
+| 3.14 | 3 | `124497320279` | `13037583529` | success |
+
+逐行解析八份 `unittest.log`：Python 3.10 共记录 2,753 条 `... ok` 测试结果，Python 3.14 亦为 2,753 条；两种版本均未发现 `FAIL` 或 `ERROR` 条目。四分片计数分别为 597、808、623、725。该计数是分片日志中的测试方法执行条目数，不将 subTest 场景另算为独立测试方法。
+
+### 7.3 AUD-01–AUD-18 对应测试方法的执行映射
+
+测试方法名称与原第 3.1 节逐项索引一致。下表记录这些代表性方法在两种 Python 版本中的实际分片位置；每个对应方法在两个版本的日志中均以 `... ok` 结束。
+
+| 历史 ID | Python 3.10 | Python 3.14 | 结论 |
+|---|---|---|---|
+| AUD-01 | shard 3 | shard 3 | 对应 2 个方法均通过 |
+| AUD-02 | shard 1 | shard 1 | 对应 1 个方法通过 |
+| AUD-03 | shard 3 | shard 3 | 对应 1 个方法通过 |
+| AUD-04 | shard 3 | shard 3 | 对应 2 个方法均通过 |
+| AUD-05 | shard 2 | shard 2 | 对应 1 个方法通过 |
+| AUD-06 | shard 3 | shard 3 | 对应 1 个方法通过 |
+| AUD-07 | shard 3 | shard 3 | 对应 2 个方法均通过 |
+| AUD-08 | shard 2 | shard 2 | 对应 1 个方法通过 |
+| AUD-09 | shard 2 | shard 2 | 对应 1 个方法通过 |
+| AUD-10 | shard 2 | shard 2 | 对应 2 个方法均通过 |
+| AUD-11 | shard 2 | shard 2 | 对应 1 个方法通过 |
+| AUD-12 | shard 2 | shard 2 | 对应 1 个方法通过 |
+| AUD-13 | shard 2 | shard 2 | 对应 2 个方法均通过 |
+| AUD-14 | shard 3 | shard 3 | 对应 2 个方法均通过 |
+| AUD-15 | shard 3 | shard 3 | 对应 2 个方法均通过 |
+| AUD-16 | shard 3 | shard 3 | 对应 2 个方法均通过 |
+| AUD-17 | shard 3 | shard 3 | 对应 2 个方法均通过 |
+| AUD-18 | shard 3 | shard 3 | 对应 1 个方法通过 |
+
+**本节结论：** AUD-01–AUD-18 的代表性测试映射已从“静态存在”推进到“最终 main HEAD 上的 Python 3.10/3.14 双版本实际执行成功”。对应测试源码也已抽查，确认断言覆盖了各自登记的核心风险和关键反例。该结论不等于历史 AUD 每项的所有相关测试方法均已逐一列出，也不等于真实用户项目的 18 项端到端人工复演。
+
+### 7.4 阶段 E 的剩余边界与后续执行顺序
+
+1. **R/G/K/S/W/C 矩阵逐项闭环：** 对照原计划第 7 节逐项核对每个 ID 的 Authority、消费者、代表性正反例、实际分片/专项日志、未覆盖输入和结论；不能用 AUD 表替代其他矩阵。
+2. **六领域实例审查：** 分开记录仓库自动化能力与真实项目专业审查。真实公式/约束、模型批准、用户 full-fidelity 数值执行、结果深化分析、图表视觉批准、PDF 逐页检查，必须有实际项目材料和对应人工证据；缺少项目实例时保持 pending，不伪造 PASS。
+3. **门禁与状态所有权终审：** 复核第 4、5 节删/并/移/保留及阶段 C 裁决，确认无新消费者、双写或独立风险丢失证据；无可复现问题则保持不立项、不迁移。
+4. **兼容性场景审查：** 核对旧项目读取、legacy resolver、未知竞赛/缺失可选模板、未分类通用启动、混合图表意图、accepted 结果只读消费和新执行来源绑定等正反例。
+5. **最终验收与关闭：** 汇总各矩阵的 PASS / NOT APPLICABLE / PENDING / BLOCKED，记录证据 SHA 与链接；只有所有适用的仓库验收项闭合且人工/实例边界被如实披露，才形成最终结论。任何新代码修复仍须独立单主题 PR、最终 HEAD 正式验收和合并后 main 复核。
+
+上述补充只增加维护审计证据，不修改运行时 Authority、Schema、CLI、测试或实际 gate；不重开 PR #279/P6、PR #280/P4，也不改变阶段 C 的立项条件。
