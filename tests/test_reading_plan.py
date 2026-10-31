@@ -279,7 +279,7 @@ class ReadingPlanTests(unittest.TestCase):
         self.assertIn("templates/figure/result_figure_qa.md", paths)
         self.assertIn("模型论文框架.md", paths)
         self.assertIn("state/project_state.yaml", paths)
-        self.assertIn("问题一求解/q1_plot.m", paths)
+        self.assertIn("问题一求解/q1_plot.m", {path.replace("\\", "/") for path in paths})
         for path in ("templates/figure/chart_selection.md",
                      "templates/figure/figure_enhancement_patterns.md"):
             self.assertTrue(any(row["path"] == path and row["when"]
