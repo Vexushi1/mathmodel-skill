@@ -1,5 +1,7 @@
 # 运行时路由与门禁简化完整重构计划
 
+> **2026-10-31 最新执行状态（历史基线不覆盖）：** 当前 `main@eefca0175d06fe62445943eec20092925a373555`，Skill `10.23.2`；PR #279/#280/#281/#282 均已合并，合并后 [HSK CI #41205006994](https://github.com/Vexushi1/mathmodel-skill/actions/runs/41205006994) 与 [Refresh #41205007022](https://github.com/Vexushi1/mathmodel-skill/actions/runs/41205007022) 已完成且适用检查成功。下文的 `v10.23.1/main@75d772...` 是原计划编制时的历史基线，不能当成当前事实。50 项 F2 追溯与剩余人工边界见 [Final Acceptance 追溯矩阵](final_acceptance_traceability_matrix.md)；该文档 PR 尚待其自身远端验收，不等于最终关闭。
+
 > **文件性质：** 仓库维护计划，不是 Runtime Authority，不直接改变 Skill 的运行行为，也不代表任何测试已执行或通过。  
 > **编制日期：** 2026-10-23（北京时间）。  
 > **执行记录更新：** 2026-10-25（北京时间）；P0 审计主体形成于 2026-10-24。  
@@ -725,3 +727,23 @@ PR #276 与 PR #277 的合并后验收均已完成。阶段 B 首批实现独立
 | 原计划还缺什么 | P6/阶段 B2：区分新执行来源绑定与既有工作簿只读绘图、文本非计算性变更与计算性变更、代码入口重命名与图导出重命名。实施须有 K01—K14 和完整回归 |
 
 **最终设计裁决（待实施验证）：** 当前计划整体合理但不能仅凭门禁文字重复追求删减；P6 按“首次/新计算严格 → accepted 后精简代码和绘图轻量 → 模型/算法/数据实质变化再严审”的阶段式策略推进。首要目标是让既有 accepted 结果在后续代码整理、提交与图表美化中继续合法使用，不取消新数值提交时的确切源码/数据/回执绑定。此计划不将最终清理过的代码自动宣称为原运行版本。独立代码 PR 实施前先实测阻断位置和修复方案的受影响消费者；本计划修订不改变现有运行态。
+
+---
+
+## 15. Final Acceptance 证据闭环更新（2026-10-31，待 docs-only PR 验收）
+
+本节是原计划的**执行状态记录**，不改变第 7 节场景定义、第 8 节六领域 Authority 或任何运行时门禁。详细逐项映射、Job/Artifact、正反例与未覆盖边界只维护在 [`docs/final_acceptance_traceability_matrix.md`](final_acceptance_traceability_matrix.md)；历史 AUD-01–AUD-18 的原始分片日志仍以 [阶段 E 审计第 7 节](phase_e_six_domain_regression_audit.md) 为准，不复制第二套执行事实。
+
+| 阶段 | 截至 `main@eefca017` 的事实 | 关闭裁决 |
+|---|---|---|
+| F0：基线与 PR #282 | PR #279/#280/#281/#282 均 MERGED；PR #282 final head `a0d062d2800082413e9611565f4663612ab1fa7f`，merge `eefca0175d06fe62445943eec20092925a373555`；Ready 正式 CI [#41199230209](https://github.com/Vexushi1/mathmodel-skill/actions/runs/41199230209) 成功；合并后 main CI [#41205006994](https://github.com/Vexushi1/mathmodel-skill/actions/runs/41205006994) 与 Refresh [#41205007022](https://github.com/Vexushi1/mathmodel-skill/actions/runs/41205007022) 成功；main HEAD 未漂移、Skill `10.23.2` | **PASS（仓库级 F0）** |
+| F1：AUD-01–AUD-18 | [CI #41187493893](https://github.com/Vexushi1/mathmodel-skill/actions/runs/41187493893) 双 Python 版本各 2,753 个方法级 `ok`，AUD 每项代表性方法均有实际分片日志；`6b20a216...eefca017` 仅审计文档与自动生成 MANIFEST 变化 | **PASS（代表性机器回归）；真实项目复演 PENDING_MANUAL** |
+| F2：R/G/K/S/W/C 50 场景 | 已逐项建立 Authority、消费者、代表性正反例与 `main@eefca017` 正式 CI 的对应关系；部分场景仅覆盖机器合同或合成 fixture，见矩阵中的 PARTIAL / PENDING_MANUAL | **PARTIAL（需继续检查未覆盖的独立失败模式；不为覆盖率盲目加门禁）** |
+| F3：六领域 | 六领域机器合同均有现有回归和正式 GitHub CI；真实公式/约束、双挑战与人工批准、full-fidelity 用户运行、收敛精度、Analysis Necessity、图表视觉、PDF 逐页及赛规均没有指定真实项目材料 | **PASS_MACHINE / PENDING_MANUAL 分开记录** |
+| F4：Gate / 状态事实 | 现有 Authority/consumer 及触发 scope 已复核；未发现有证据支持删除其他 gate 或多个消费者竞争写入同一机器事实；阶段 C 不立项、不迁移 State Schema | **PASS（当前证据范围内不改代码）；有新反例时重开专项审查** |
+| F5：兼容性 | 未知竞赛/无模板、无分类、显式 intent、legacy、gate 去重、design scope、旧 accepted 只读、混合图表、历史 workbook 均有对应测试；真实旧项目/图片/PDF 未实地复演 | **PASS_MACHINE / PARTIAL** |
+| F6：最终关闭 | 当前本 docs-only 维护 PR 尚未完成自身 refresh-generated、最终 head 正式 full CI、合并后 main 复核；原第 12 节涉及真实专业/人工实例的条件仍未满足 | **PENDING（不得宣布全项完成）** |
+
+**审查结论：** 阶段 C 继续不立项，保留 Model Approval、公式与约束审核、数值质量、用户执行回执、正式交付与提交包检查。仓库 CI 成功仅代表软件合同和合成回归，不能证明任何真实赛题的模型正确性或论文视觉质量。当前 Release 仍为 `v10.23.0`；Skill 版本 `10.23.2` 未在本 docs-only 维护中升级，Release 状态与 main 版本不能混称。
+
+**关闭前操作：** 本 docs-only PR 先完成远端 refresh-generated、Draft 专项、最终 head Ready 完整 CI 与适用 Optimization baseline 判定，再合并并复核 main；若发现独立未保护的失败模式，先判断现有等价测试，只有复现缺陷时另建单主题代码 PR。若后续指定真实项目，按矩阵所列原始题目/附件、当前模型框架/状态、双挑战/人工批准、执行源码与完整回执、accepted 工作簿、图表、PDF、赛规/提交包材料另行完成人工实例审查；不把缺少这些材料算作仓库 CI 失败，也不伪造 PASS。
