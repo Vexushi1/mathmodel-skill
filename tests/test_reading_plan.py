@@ -267,8 +267,11 @@ class ReadingPlanTests(unittest.TestCase):
                    if row["path"] == "modules/04_figure_evidence.md"]
         self.assertEqual(len(figures), 1)
         source = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
-        selected = "".join(source.splitlines(keepends=True)[start - 1:end]
-                           for start, end in figures[0]["ranges"])
+        source_lines = source.splitlines(keepends=True)
+        selected = "".join(
+            "".join(source_lines[start - 1:end])
+            for start, end in figures[0]["ranges"]
+        )
         self.assertIn("视觉修改与语义修改分流", selected)
         self.assertIn("Scientific Figure Synthesis Gate", selected)
         paths = {row["path"] for row in reading["read_now"]}
