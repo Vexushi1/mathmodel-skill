@@ -33,6 +33,43 @@
 - **W01–W05 / C01–C03：** `test_v10182_paper_routing.py`、`test_v7100_delivery_attestation.py`、`test_submission_current_artifacts.py`、`test_v820_final_review_compliance.py`、历史兼容相关测试为入口。人工 PDF 逐页审查与官方赛规核验仍需真实交付时执行。
 - **AUD-01–AUD-18：** `docs/repository_audit_and_handoff_refactor_plan.md` 的 A1–A7 历史记录分别列出原缺陷和已验证结果；当前 main 包含 `tests/test_audit_*.py`、`tests/test_v714_numerical_verification.py`、`tests/test_v7100_delivery_attestation.py` 等对应测试族，并完成本次全量回归。**本轮尚未逐个 AUD ID 重新追踪到唯一测试断言及日志行**，因此仅确认回归族运行，不宣称 18 项均已单项人工复核。
 
+### 3.1 AUD-01–AUD-18：当前源码到可执行断言的交叉索引
+
+下表依据 `docs/repository_audit_and_handoff_refactor_plan.md` 的 A8「18 项问题的最终实现索引」，再逐一读取当前 `main@3901a934` 的对应测试文件并确认测试方法实际存在。每行列出至少一个代表性正/反例；**这不是重新运行 18 个真实项目场景**。上述合并后 full CI 覆盖当前测试族，但仅在对应 job 的当前 checkout 与分片汇总被核实时才构成远端执行证据。
+
+| 历史 ID | 原风险 / 当前生产边界 | 已确认存在的回归测试方法（均位于 `tests/`） |
+|---|---|---|
+| AUD-01 | 事务 staging/Windows 文件写入与恢复 | `test_v900_project_transaction.py::test_partial_staging_failures_cleanup_unjournaled_files`；`::test_concurrent_same_generation_writer_is_rejected_after_lock_handoff` |
+| AUD-02 | False 布尔证据不得被数值比较放行 | `test_v714_numerical_verification.py::test_failed_boolean_evidence_cannot_pass_a_numeric_relation` |
+| AUD-03 | 03B 不能越过 accepted primary / Gate | `test_audit_analysis_boundaries.py::test_delivery_and_receipt_reject_invalid_primary_and_gate_without_mutation` |
+| AUD-04 | 合法 `not_required` 不虚构 03B | `test_audit_analysis_boundaries.py::test_not_required_allows_later_states_without_analysis_artifacts`；`::test_not_required_is_not_analyzed_and_needs_accepted_primary_and_reason` |
+| AUD-05 | artifact alias 不得清除无效当前证据 | `test_audit_runtime_qualification.py::test_primary_aliases_cannot_clear_known_invalid_current_state` |
+| AUD-06 | 同次 stale 传播必须先于交付裁决 | `test_audit_current_artifacts.py::test_first_source_change_fails_same_formal_check_in_read_and_write_modes` |
+| AUD-07 | 根目录 Figure ID / hash / 失效传播 | `test_audit_current_artifacts.py::test_root_figure_mapping_is_hashed_and_changes_invalidate_without_reapproval`；`::test_declared_export_deletion_and_escape_are_diagnosed` |
+| AUD-08 | 复现 ZIP 不得漏问或漏必需阶段 | `test_audit_package_completeness.py::test_two_question_required_analysis_package_rejects_omitted_question_and_stage` |
+| AUD-09 | official 精确必需文件不得静默缺失 | `test_audit_package_completeness.py::test_official_missing_exact_file_is_rejected_by_generator_and_independent_validator` |
+| AUD-10 | LaTeX 实际输入 / recorder / 来源哈希 | `test_audit_a6_latex_boundaries.py::test_conditional_support_appearance_change_and_deletion_change_snapshot`；`::test_v4_recorder_hash_and_input_hash_are_verified` |
+| AUD-11 | `includeonly` 局部预览不得冒充正式全文 | `test_audit_a6_latex_boundaries.py::test_includeonly_formal_rejected_but_preview_and_comments_remain_legal` |
+| AUD-12 | 正文合法引用附录不能误报 | `test_audit_a6_latex_boundaries.py::test_appendix_labels_share_the_document_namespace` |
+| AUD-13 | claim 按问题作用域、否定/不确定语义 | `test_audit_a6_latex_boundaries.py::test_claim_conflict_is_question_scoped_and_uses_declared_claims`；`::test_ambiguous_claim_is_reviewed_not_declared_a_proven_conflict` |
+| AUD-14 | 工作簿成功/提前返回/异常都须释放句柄 | `test_audit_workbook_lifecycle.py::test_configuration_early_returns_release_file`；`::test_read_exceptions_propagate_after_releasing_file` |
+| AUD-15 | 独立支持包 fallback 与 canonical workbook 一致 | `test_audit_a7_entry_consistency.py::test_standalone_support_package_matches_canonical_workbook_validation`；`::test_fallback_validation_projection_stays_aligned_with_authority` |
+| AUD-16 | 双入口宿主字段、description、兼容元数据 | `test_audit_a7_entry_consistency.py::test_entrypoints_have_host_fields_and_preserved_metadata`；`::test_entry_lint_rejects_missing_or_placeholder_description` |
+| AUD-17 | 显式分类冲突/别名等价/未指定轴 | `test_audit_a7_entry_consistency.py::test_partial_explicit_classification_reports_conflict_and_preserves_other_fields`；`::test_equal_sets_and_competition_alias_do_not_conflict` |
+| AUD-18 | 算法与图注模板回到唯一正文 Authority | `test_audit_a7_entry_consistency.py::test_prose_pointers_delegate_to_protocol` |
+
+这份交叉索引完成了「历史缺陷 → 当前生产边界 → 可执行测试入口」的**静态追溯**；并未为每项提取独立测试日志行或执行真实赛题。后续如需逐断言运行结果，必须从最终 HEAD 的 GitHub Actions 分片报告、原始日志和 checkout SHA 取证，不能将旧 A8 或本表视作新运行 PASS。
+
+### 3.2 P6/K01–K14 与 D/G13–G18 的跨模块边界复核
+
+- **K01–K04、K10–K11：** `test_execution_provenance.py::test_source_only_hash_drift_is_not_numerical_result_staleness`、`::test_read_only_cleanup_suppresses_only_code_transition`、`::test_read_only_consumption_requires_fully_verified_semantics` 对照 `scripts/execution_provenance.py`、`project_snapshot.py`、`validate_code_delivery.py`；静态/合成测试不证明任意新源码与旧数值等价。
+- **K05–K08、K12：** `test_execution_provenance.py::test_changed_accepted_workbook_bytes_block_consumption`、`test_audit_current_artifacts.py::test_root_figure_mapping_is_hashed_and_changes_invalidate_without_reapproval` 和 `test_reading_plan.py::test_mixed_style_and_new_figure_reads_both_actual_authorities` 分别保护原工作簿身份、图映射与混合读取；真实图片导出和视觉审查仍需项目证据。
+- **K09、K13–K14：** `test_user_execution_contract.py::test_accepted_primary_is_frozen_outside_solve_validate`、`test_audit_package_completeness.py::test_two_question_required_analysis_package_rejects_omitted_question_and_stage`、`test_execution_provenance.py::test_real_input_drift_is_not_suppressed_by_source_cleanup` 保护新回执、真实输入变化及提交包边界；不以旧 RUN_RECEIPT 证明整理后源码已执行。
+- **G13–G16：** `test_reading_plan.py::test_verified_facts_and_style_are_narrow`、`::test_new_figure_keeps_selection_and_enhancement_available`、`::test_mixed_figure_unapproved_old_figure_keeps_new_design_readable`、`::test_mixed_figure_with_real_semantic_change_stays_full`；新图仍需独立设计/批准/视觉证据。
+- **G17–G18：** `test_reading_plan.py::test_g17_multi_formal_intents_preserve_gate_sequence_and_distinct_inputs`、`::test_distinct_conditional_triggers_for_same_source_are_preserved`，结合 `test_v900_transactional_writers.py::test_repeated_sync_is_transition_idempotent_and_generation_monotonic`；去重仅限同次同输入，不复用跨阶段 PASS。
+
+本节只增加维护证据索引，不重开 P6/P4，不改变任何 Gate 的执行或批准含义。
+
 ## 4. 门禁删 / 并 / 移 / 保留清单（不创建新运行时 Schema）
 
 | Gate 或机制 | 当前 Authority / 消费者 | 本次裁决 | 证据及不可突破边界 |
