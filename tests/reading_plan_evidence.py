@@ -1477,6 +1477,34 @@ def approved_full_workflow_reading_carrier_change(identifier, old, new, candidat
     return projected, changes
 
 
+
+def approved_mixed_figure_reading_carrier_change(identifier, old, new, candidate_authority_versions):
+    """Project only the exact v10.23.2 carrier; legacy runtime behavior remains strict.
+
+    The new mixed style-plus-design request is covered by the reading-plan
+    regressions. Existing P2 cases must preserve all their runtime fields.
+    """
+    if (candidate_authority_versions != MIXED_FIGURE_READING_AUTHORITY_VERSIONS
+            or new.get("version") != MIXED_FIGURE_READING_AUTHORITY_VERSIONS["skill"]):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    predecessor["version"] = FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"]
+    projected, changes = approved_full_workflow_reading_carrier_change(
+        identifier, old, predecessor, deepcopy(FULL_WORKFLOW_READING_AUTHORITY_VERSIONS),
+    )
+    if projected != old or not changes:
+        return deepcopy(new), []
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = MIXED_FIGURE_READING_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(MIXED_FIGURE_READING_AUTHORITY_VERSIONS)
+            change["approval"] = (
+                "Exact v10.23.2 mixed-figure reading carrier; existing P2 routes, "
+                "gates, approvals, qualifications and runtime fields remain unchanged"
+            )
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -1593,6 +1621,9 @@ def compare(before, after):
         projected, full_workflow_reading_changes = approved_full_workflow_reading_carrier_change(
             a["id"], old, projected, b.get("authority_versions"))
         expected.extend(full_workflow_reading_changes)
+        projected, mixed_figure_reading_changes = approved_mixed_figure_reading_carrier_change(
+            a["id"], old, projected, b.get("authority_versions"))
+        expected.extend(mixed_figure_reading_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,
@@ -1651,6 +1682,11 @@ def main():
         "approved_stage_reading_authority_versions": STAGE_READING_AUTHORITY_VERSIONS,
         "approved_body_reading_authority_versions": BODY_READING_AUTHORITY_VERSIONS,
         "approved_review_split_authority_versions": REVIEW_SPLIT_AUTHORITY_VERSIONS,
+        "mixed_figure_reading_carrier": (
+            "v10.23.2 projects only the exact version carrier for the existing P2 "
+            "corpus. The new style-plus-design reading union is tested independently; "
+            "no P2 route, gate, approval, qualification or unrelated runtime field is waived."
+        ),
         "review_split_projection": (
             "v10.22.0 registers only its exact carrier and draft/final read_now lists "
             "in both writing-runtime mirrors. Canonical Module 06 business text is "
