@@ -32,6 +32,12 @@ from reading_plan_evidence import (
 )
 
 
+# Current v10.23.3 carrier; historical v10.23.2 evidence remains immutable.
+CUMCM_HEADING_AUTHORITY_VERSIONS = {
+    **MIXED_FIGURE_READING_AUTHORITY_VERSIONS, "skill": "10.23.3",
+}
+
+
 def load_runtime():
     path = ROOT / "scripts/resolve_runtime.py"
     spec = importlib.util.spec_from_file_location("resolve_runtime_phase_g", path)
@@ -66,6 +72,20 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
             self.assertNotIn(comparison_trigger, previous)
             self.assertEqual(writing.get("fallback_triggers"), [*previous[:-1], comparison_trigger, previous[-1]])
             writing["fallback_triggers"] = list(previous)
+            # v10.23.3 adds one manifest selector to each of two CUMCM
+            # writing stages. Verify the exact read list before projecting
+            # back to the unchanged historical Phase G golden.
+            selector = "templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton"
+            for index, stage_id in (
+                (2, "problem_analysis"),
+                (5, "evaluation_references_conclusion_appendix"),
+            ):
+                historical = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][index]
+                current = writing["authoring_sequence"][index]
+                self.assertEqual(historical["id"], stage_id)
+                self.assertEqual(current["id"], stage_id)
+                self.assertEqual(current["read_now"], [selector, *historical["read_now"]])
+                current["read_now"] = copy.deepcopy(historical["read_now"])
             # v10.19.3 adds exactly three question-stage handoff declarations.
             # Actual values come from the real resolver; expectations are the
             # separately pinned deltas, whose old values must also match the
@@ -81,11 +101,13 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"],
                 FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"],
                 MIXED_FIGURE_READING_AUTHORITY_VERSIONS["skill"],
+                CUMCM_HEADING_AUTHORITY_VERSIONS["skill"],
             ))
             if plan["version"] in (
                 REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"],
                 FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"],
                 MIXED_FIGURE_READING_AUTHORITY_VERSIONS["skill"],
+                CUMCM_HEADING_AUTHORITY_VERSIONS["skill"],
             ):
                 try:
                     writing = review_split_writing_predecessor(
@@ -123,6 +145,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                     REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"],
                     FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"],
                     MIXED_FIGURE_READING_AUTHORITY_VERSIONS["skill"],
+                CUMCM_HEADING_AUTHORITY_VERSIONS["skill"],
                 ) else previous_value
                 self.assertEqual(candidate[path[-1]], expected)
                 candidate[path[-1]] = copy.deepcopy(previous_value)
@@ -160,7 +183,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
 
     def test_review_split_projection_binds_canonical_scopes_without_waiving_stage_fields(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
-        self.assertEqual(plan["version"], MIXED_FIGURE_READING_AUTHORITY_VERSIONS["skill"])
+        self.assertEqual(plan["version"], CUMCM_HEADING_AUTHORITY_VERSIONS["skill"])
         saved = copy.deepcopy((plan, self.golden, REVIEW_SPLIT_WRITING_DELTAS))
         for index, stage_id, previous_reads, current_reads in REVIEW_SPLIT_WRITING_DELTAS:
             historical = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][index]
@@ -208,6 +231,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                     REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"],
                     FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"],
                     MIXED_FIGURE_READING_AUTHORITY_VERSIONS["skill"],
+                CUMCM_HEADING_AUTHORITY_VERSIONS["skill"],
                 ):
                     for index, _, previous_reads, _ in REVIEW_SPLIT_WRITING_DELTAS:
                         declared["writing_runtime"]["authoring_sequence"][index]["read_now"] = copy.deepcopy(previous_reads)
@@ -219,6 +243,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                     REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"],
                     FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"],
                     MIXED_FIGURE_READING_AUTHORITY_VERSIONS["skill"],
+                CUMCM_HEADING_AUTHORITY_VERSIONS["skill"],
                 ) else historical)
                 self.assertEqual(self._projection(declared), self.golden["routes"]["latex"])
                 stage["run_now"] = list(historical if version in (
@@ -228,6 +253,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                     REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"],
                     FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"],
                     MIXED_FIGURE_READING_AUTHORITY_VERSIONS["skill"],
+                CUMCM_HEADING_AUTHORITY_VERSIONS["skill"],
                 ) else current)
                 with self.assertRaises(AssertionError):
                     self._projection(declared)
