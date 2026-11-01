@@ -153,6 +153,7 @@ not detect context compression or substitute for checking current project eviden
 
 ### problem_analysis
 
+- read_now: `templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton`
 - read_now: `modules/05_writing/paper_writing_protocol.md#6.2-问题分析`
 - read_now: `current_problem_contract`
 - read_now: `current_classification_and_cross_question_dependencies`
@@ -198,6 +199,7 @@ not detect context compression or substitute for checking current project eviden
 
 ### evaluation_references_conclusion_appendix
 
+- read_now: `templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton`
 - read_now: `modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录`
 - read_now: `modules/05_writing/paper_writing_protocol.md#16-引用与正文语言`
 - read_now: `current_citation_evidence_and_final_question_answers`
