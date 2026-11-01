@@ -1,5 +1,12 @@
 # Changelog
 
+## 10.23.3
+
+- CUMCM HSK 问题分析按当前小问固定“问题X的分析”二级标题；附录为唯一一级总标题，A/B/C 为连续二级标题，默认仍条件关闭。
+- 统一 Template Manifest、Writing Protocol、阶段读取与 LaTeX 模板；保留问题模型章节内部标题的自适应策略。
+- 扩展模板 validator 和实际论文审计，修复 appendices 环境正文边界识别，并在原 LaTeX 工作流增加附录激活编译回归。
+- 不改变模型审批、数值执行、工作簿、图表证据和历史项目状态。
+
 ## 10.23.2
 
 - Preserve both existing-figure style and independent new-figure design source reads when a single figures request combines the two intents; no new Figure Authority or approval state is introduced.

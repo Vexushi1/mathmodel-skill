@@ -46,7 +46,9 @@ class TestV800TemplateAuthority(unittest.TestCase):
         self.assertIn("ai_disclosure_slot_placement", owned)
         self.assertIn("choose_model", forbidden)
         self.assertIn("choose_solver", forbidden)
-        self.assertIn("force_internal_subsection_names", forbidden)
+        self.assertIn("force_question_model_section_internal_subsection_names", forbidden)
+        self.assertIn("problem_analysis_subsection_heading_structure", owned)
+        self.assertIn("appendix_parent_child_heading_structure", owned)
         self.assertIn("invent_ai_use_fact", forbidden)
 
     def test_cumcm_question_title_is_locked_but_internal_structure_is_adaptive(self):

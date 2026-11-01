@@ -1,4 +1,4 @@
-version: 10.23.2
+version: 10.23.3
 role: >-
   普通论文写作的最小运行时映射。它不建立第二套数学写作 Authority，只声明普通论文写作真正需要加载的
   模板、项目事实、证据和 writing_reasoning_contract 中的语义能力，从而避免每次写作预载完整建模、数值与项目治理上下文。
@@ -374,6 +374,7 @@ template_first_progressive_authoring:
       gate: 不照抄或逐句同义替换原题，同时完整保留对象、条件、量词、单位、边界和所求输出，且不提前写模型、算法或结果。
     - id: problem_analysis
       read_now:
+        - templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton
         - modules/05_writing/paper_writing_protocol.md#6.2-问题分析
         - current_problem_contract
         - current_classification_and_cross_question_dependencies
@@ -457,6 +458,7 @@ template_first_progressive_authoring:
       gate: 当前问题已通过 capability preflight，并完成模型建立理由/适用边界 → 模型闭合 → solver 前提与适配 → 求解结果 → 真实验证/边界 → 直接回答的局部闭环；按 Protocol §13.0 核对拟入文图表去向并回填实际引用，待办不得冒充完成；简单题可合并标题并省略已明确裁决为不适用的功能，但不得因未读取而删掉必要功能。
     - id: evaluation_references_conclusion_appendix
       read_now:
+        - templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton
         - modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录
         - modules/05_writing/paper_writing_protocol.md#16-引用与正文语言
         - current_citation_evidence_and_final_question_answers

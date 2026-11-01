@@ -21,6 +21,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
 
+import yaml
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
@@ -125,7 +127,9 @@ def _plain_paragraphs(body: str) -> list[str]:
 
 
 def _main_text_before_appendix(body: str) -> str:
-    return body.split("\\appendix", 1)[0]
+    # The caller has already removed LaTeX comments.
+    marker = re.search(r"\\appendix(?![A-Za-z@])|\\begin\{appendices\}", body)
+    return body[:marker.start()] if marker else body
 
 
 def _section_content(body: str, title: str) -> str | None:
@@ -495,10 +499,72 @@ def audit_framework_consistency(tex_text: str, framework_text: str | None) -> li
     return findings
 
 
+def _audit_cumcm_heading_structure(main: str, body: str) -> list[Finding]:
+    """Review recognizable CUMCM papers without gating unrelated contest templates."""
+    question_numbers = [
+        match.group(1) for match in re.finditer(
+            r"\\section\{问题([一二三四五六七八九十百0-9]+)模型建立及求解\}", main
+        )
+    ]
+    analysis = _section_content(main, "问题分析")
+    if analysis is None and not question_numbers:
+        return []
+    manifest_path = SCRIPT_DIR.parent / "templates/latex/cumcm/hsk/template_manifest.yaml"
+    manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
+    slots = {s["id"]: s for s in manifest["paper_skeleton"]["ordered_slots"]}
+    findings: list[Finding] = []
+
+    if analysis is not None and question_numbers:
+        pattern = slots["problem_analysis"]["heading_structure"]["title_pattern"]
+        expected = [pattern.replace("{N}", n) for n in question_numbers]
+        observed = re.findall(r"\\subsection\*?\{([^{}]+)\}", analysis)
+        if observed != expected:
+            findings.append(Finding(
+                "review_required", "cumcm_problem_analysis_heading_mismatch",
+                "问题分析的二级标题须与实际问题章节一一对应，名称与顺序按 CUMCM Manifest。",
+                f"expected={expected}; observed={observed}",
+            ))
+
+    boundary = re.search(r"\\appendix(?![A-Za-z@])|\\begin\{appendices\}", body)
+    if boundary:
+        appendix = body[boundary.start():]
+        spec = slots["appendix"]["heading_structure"]
+        parent_titles = re.findall(r"\\section\*?\{([^{}]+)\}", appendix)
+        item_matches = list(re.finditer(r"\\subsection\*?\{([^{}]+)\}", appendix))
+        item_titles = [m.group(1) for m in item_matches]
+        expected_items = [
+            spec["child_title_pattern"].replace("{letter}", chr(ord("A") + i))
+            for i in range(len(item_titles))
+        ]
+        if parent_titles != [spec["parent_title"]]:
+            findings.append(Finding(
+                "review_required", "cumcm_appendix_parent_heading",
+                "附录必须只有一个一级总标题，附录条目不能分别作为一级标题。",
+                str(parent_titles),
+            ))
+        if not item_titles or item_titles != expected_items:
+            findings.append(Finding(
+                "review_required", "cumcm_appendix_child_headings",
+                "附录条目须为连续的 A/B/C 二级标题，不可跳号、错序或使用三级标题。",
+                str(item_titles),
+            ))
+        for i, item in enumerate(item_matches):
+            end = item_matches[i + 1].start() if i + 1 < len(item_matches) else len(appendix)
+            content = appendix[item.end():end]
+            content = re.sub(r"\\end\{appendices\}|\\label\{[^{}]+\}", "", content).strip()
+            if not content:
+                findings.append(Finding(
+                    "review_required", "cumcm_empty_appendix_item",
+                    "附录条目缺少真实材料，不能仅生成空标题。", item.group(1),
+                ))
+    return findings
+
+
 def audit_text(text: str) -> list[Finding]:
     body = _document_body(text)
     main = _main_text_before_appendix(body)
     findings: list[Finding] = []
+    findings.extend(_audit_cumcm_heading_structure(main, body))
 
     labels = LABEL_ANY_RE.findall(body)
     duplicates = sorted({label for label in labels if labels.count(label) > 1})

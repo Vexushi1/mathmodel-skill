@@ -49,6 +49,8 @@ authority_boundary:
     - documentclass_and_global_layout
     - top_level_paper_skeleton
     - top_level_section_order
+    - problem_analysis_subsection_heading_structure
+    - appendix_parent_child_heading_structure
     - cumcm_question_section_title_pattern
     - latex_file_composition
     - figure_table_equation_proposition_algorithm_environments
@@ -79,7 +81,7 @@ authority_boundary:
     - invent_formula
     - invent_result
     - invent_ai_use_fact
-    - force_internal_subsection_names
+    - force_question_model_section_internal_subsection_names
     - force_validation_for_simple_question
     - force_page_count_by_content_inflation
     - generate_body_during_template_inspection
@@ -103,6 +105,12 @@ paper_skeleton:
       source: sections/02_problem_analysis.tex
       required: true
       default_active: true
+      heading_structure:
+        level: subsection
+        title_pattern: "问题{N}的分析"
+        number_source: current_problem_contract
+        order_source: current_problem_contract
+        exactly_one_per_question: true
       default_internal_roles:
         - per_question_analysis
     - id: assumptions
@@ -156,6 +164,14 @@ paper_skeleton:
       source: appendices/appendices.tex
       required: false
       default_active: false
+      heading_structure:
+        parent_level: section
+        parent_title: 附录
+        child_level: subsection
+        child_title_pattern: "附录{letter}"
+        numbering: uppercase_latin_sequential
+        unnumbered_latex_commands: true
+        only_actual_material: true
       activation: official_rule_requires_appendix_or_material_supporting_content_is_justifiably_kept_out_of_body
       role: conditional_supporting_material
       note: >-

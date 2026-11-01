@@ -210,6 +210,51 @@ def validate_template_manifest(path: str | Path) -> list[str]:
         if not resolved.exists():
             errors.append(f"declared template source missing: {source}")
 
+
+    slot_by_id = {slot.get("id"): slot for slot in skeleton}
+    analysis_slot = slot_by_id.get("problem_analysis", {})
+    analysis_spec = analysis_slot.get("heading_structure", {}) or {}
+    analysis_pattern = analysis_spec.get("title_pattern", "")
+    if (analysis_spec.get("level") != "subsection"
+            or "{N}" not in analysis_pattern
+            or analysis_spec.get("number_source") != "current_problem_contract"
+            or analysis_spec.get("order_source") != "current_problem_contract"
+            or analysis_spec.get("exactly_one_per_question") is not True):
+        errors.append("problem_analysis heading_structure must define ordered, one-per-question subsections")
+    analysis_path = template_root / str(analysis_slot.get("source", ""))
+    if analysis_path.is_file():
+        analysis_tex = _strip_tex_comments(analysis_path.read_text(encoding="utf-8"))
+        expected = [str(analysis_pattern).replace("{N}", n) for n in ("一", "二")]
+        headings = re.findall(r"\\subsection\*?\{([^{}]+)\}", analysis_tex)
+        if r"\section{问题分析}" not in analysis_tex or headings != expected:
+            errors.append("problem_analysis template headings must be exact ordered Q1/Q2 subsections")
+
+    appendix_slot = slot_by_id.get("appendix", {})
+    appendix_spec = appendix_slot.get("heading_structure", {}) or {}
+    parent = appendix_spec.get("parent_title", "")
+    child_pattern = appendix_spec.get("child_title_pattern", "")
+    if (appendix_slot.get("required") is not False
+            or appendix_slot.get("default_active") is not False
+            or not appendix_slot.get("activation")
+            or appendix_spec.get("parent_level") != "section"
+            or appendix_spec.get("child_level") != "subsection"
+            or appendix_spec.get("numbering") != "uppercase_latin_sequential"
+            or appendix_spec.get("unnumbered_latex_commands") is not True
+            or appendix_spec.get("only_actual_material") is not True
+            or "{letter}" not in child_pattern):
+        errors.append("appendix must be conditional with one unnumbered parent and sequential unnumbered subsections")
+    appendix_path = template_root / str(appendix_slot.get("source", ""))
+    if appendix_path.is_file():
+        appendix_tex = _strip_tex_comments(appendix_path.read_text(encoding="utf-8"))
+        parents = re.findall(r"\\section\*?\{([^{}]+)\}", appendix_tex)
+        children = re.findall(r"\\subsection\*?\{([^{}]+)\}", appendix_tex)
+        expected_children = [str(child_pattern).replace("{letter}", c) for c in ("A", "B")]
+        if (parents != [parent] or children != expected_children
+                or re.search(r"\\section\{", appendix_tex)
+                or re.search(r"\\subsection\{", appendix_tex)
+                or r"\begin{appendices}" not in appendix_tex):
+            errors.append("appendix template must render one starred parent and ordered starred A/B subsections")
+
     checks = manifest.get("fixed_template_checks", {})
     example = checks.get("question_example")
     if not example:
