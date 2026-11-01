@@ -623,6 +623,36 @@ jobs:
           test -f "$log"
           test -f "templates/latex/cumcm/hsk-appendix-smoke/hsk_main.pdf"
           ! grep -E "Undefined control sequence|LaTeX Error|Citation .* undefined|There were undefined references" "$log"
+      - name: Verify CUMCM appendix-active PDF heading text
+        if: matrix.name == 'CUMCM'
+        shell: bash
+        run: |
+          pdf="templates/latex/cumcm/hsk-appendix-smoke/hsk_main.pdf"
+          command -v pdftotext
+          pdftotext -enc UTF-8 -layout "$pdf" appendix-active-pdf.txt
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          lines = [
+              re.sub(r"\s+", "", line)
+              for line in Path("appendix-active-pdf.txt").read_text(encoding="utf-8").splitlines()
+          ]
+          expected = ("附录", "附录A", "附录B")
+          positions = []
+          for title in expected:
+              hits = [i for i, line in enumerate(lines) if line == title]
+              assert len(hits) == 1, (title, hits)
+              positions.append(hits[0])
+          assert positions == sorted(positions), positions
+          assert not any("附录附录" in line for line in lines)
+          PY
+      - name: Upload CUMCM appendix-active PDF evidence
+        if: matrix.name == 'CUMCM'
+        uses: actions/upload-artifact@v7
+        with:
+          name: cumcm-appendix-active-pdf
+          path: templates/latex/cumcm/hsk-appendix-smoke/hsk_main.pdf
+          if-no-files-found: error
       - name: Collect LaTeX diagnostics
         if: failure()
         shell: bash
