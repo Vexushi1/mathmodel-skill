@@ -1,8 +1,8 @@
 # CUMCM 问题分析与附录标题层级统一实施计划
 
-> **文档状态：** \`plan_only / not_implemented\`。本文是后续仓库实现的实施蓝图，不是已经生效的运行时规范。  
+> **文档状态：** `plan_only / not_implemented`。本文是后续仓库实现的实施蓝图，不是已经生效的运行时规范。  
 > **本次 PR 边界：** 只新增本计划文件；不修改 Skill Authority、模板、脚本、测试、CI 或版本文件。  
-> **后续实施原则：** 必须在实施时重新读取最新 \`main\` 的 \`core/bootstrap.yaml\`、\`SKILL_CHANGE_GOVERNANCE.md\` 和本计划，重新核对版本、PR、权威文件与测试，不得把本文基线当作未来的实时仓库状态。
+> **后续实施原则：** 必须在实施时重新读取最新 `main` 的 `core/bootstrap.yaml`、`SKILL_CHANGE_GOVERNANCE.md` 和本计划，重新核对版本、PR、权威文件与测试，不得把本文基线当作未来的实时仓库状态。
 
 ---
 
@@ -10,24 +10,24 @@
 
 | 治理字段 | 本计划确定内容 |
 |---|---|
-| 仓库 | \`Vexushi1/mathmodel-skill\` |
-| 本计划编制基线 | Skill \`10.23.2\`；\`main\` commit \`9e029966a691e8858fdea740ca821cdf5e77dce5\` |
+| 仓库 | `Vexushi1/mathmodel-skill` |
+| 本计划编制基线 | Skill `10.23.2`；`main` commit `9e029966a691e8858fdea740ca821cdf5e77dce5` |
 | 编制日期 | 2026-11-01 |
 | 编制时未合并 PR | 无 |
-| 本计划文件 | \`docs/cumcm_problem_analysis_appendix_heading_hierarchy_plan.md\` |
-| 本计划分支 | \`docs/cumcm-problem-analysis-appendix-heading-plan\` |
-| 本计划变更等级 | \`docs\`；仅增加实施计划，不改变运行行为，不升级 Skill 版本 |
+| 本计划文件 | `docs/cumcm_problem_analysis_appendix_heading_hierarchy_plan.md` |
+| 本计划分支 | `docs/cumcm-problem-analysis-appendix-heading-plan` |
+| 本计划变更等级 | `docs`；仅增加实施计划，不改变运行行为，不升级 Skill 版本 |
 | 后续实现主题 | CUMCM 问题分析标题与附录标题层级统一 |
-| 后续目标版本候选 | \`10.23.3\` |
-| 后续实现等级候选 | \`patch\`；实施前按当时治理规则复核 |
-| 后续实现分支候选 | \`fix/v10.23.3-cumcm-frontmatter-appendix-heading-hierarchy\` |
-| 后续实现 PR 标题候选 | \`fix: standardize CUMCM problem-analysis and appendix heading hierarchy\` |
-| 唯一结构 Authority | \`templates/latex/cumcm/hsk/template_manifest.yaml\` |
-| 写作执行说明 | \`modules/05_writing/paper_writing_protocol.md\` |
-| 阶段读取 Authority | \`core/writing_runtime_contract.yaml\` |
-| 模板静态校验 | \`scripts/validate_template_manifest.py\` |
-| 实际论文结构审计 | \`scripts/audit_paper_prose.py\`，由 \`scripts/audit_latex_project.py\` 对模块化 LaTeX 源码展开后调用 |
-| 生成文件 | 仅由现有 GitHub \`refresh-generated\` 流程更新 |
+| 后续目标版本候选 | `10.23.3` |
+| 后续实现等级候选 | `patch`；实施前按当时治理规则复核 |
+| 后续实现分支候选 | `fix/v10.23.3-cumcm-frontmatter-appendix-heading-hierarchy` |
+| 后续实现 PR 标题候选 | `fix: standardize CUMCM problem-analysis and appendix heading hierarchy` |
+| 唯一结构 Authority | `templates/latex/cumcm/hsk/template_manifest.yaml` |
+| 写作执行说明 | `modules/05_writing/paper_writing_protocol.md` |
+| 阶段读取 Authority | `core/writing_runtime_contract.yaml` |
+| 模板静态校验 | `scripts/validate_template_manifest.py` |
+| 实际论文结构审计 | `scripts/audit_paper_prose.py`，由 `scripts/audit_latex_project.py` 对模块化 LaTeX 源码展开后调用 |
+| 生成文件 | 仅由现有 GitHub `refresh-generated` 流程更新 |
 
 **直接目标：**
 
@@ -45,8 +45,8 @@
 - 不批量重写历史论文，不自动迁移用户已有 LaTeX 项目。
 - 不把附录设为必选章节，不为“结构完整”生成空附录。
 - 不修改 MCM/ICM、电工杯或其他竞赛模板。
-- 不修改 \`legacy/\`，不修改参考论文文件及其 SHA256 来源记录。
-- 不手工修改 \`MANIFEST.sha256\`、\`SKILL_FILE_INDEX.md\`、\`TEMPLATE_INDEX.md\` 或生成的阶段读取导航。
+- 不修改 `legacy/`，不修改参考论文文件及其 SHA256 来源记录。
+- 不手工修改 `MANIFEST.sha256`、`SKILL_FILE_INDEX.md`、`TEMPLATE_INDEX.md` 或生成的阶段读取导航。
 
 **核心兼容要求：** 新规则只作用于 CUMCM HSK 模板的前置“问题分析”结构和条件式“附录”结构；各问题模型章节仍保留真实任务驱动的标题自适应。旧项目不自动重排，既有模型批准、数值验收和证据资格不因本次标题规范变化而失效。
 
@@ -58,48 +58,48 @@
 
 当前模板文件：
 
-\`templates/latex/cumcm/hsk/sections/02_problem_analysis.tex\`
+`templates/latex/cumcm/hsk/sections/02_problem_analysis.tex`
 
 已经包含：
 
-- \`\\section{问题分析}\`
-- \`\\subsection{问题一的分析}\`
-- \`\\subsection{问题二的分析}\`
+- `\section{问题分析}`
+- `\subsection{问题一的分析}`
+- `\subsection{问题二的分析}`
 - 问题三及以后按实际小问数量扩展的注释示例。
 
 因此，本次不是重新设计问题分析的写作内容，而是把现有示例提升为可执行、可检查的正式标题规则。
 
 目前缺口：
 
-1. \`template_manifest.yaml\` 的 \`paper_skeleton.ordered_slots.problem_analysis\` 只声明 \`default_internal_roles: per_question_analysis\`，没有正式规定二级标题的精确模式、数量、顺序和编号方式。
-2. Manifest 的 \`authority_boundary.forbidden_template_authority\` 仍有宽泛的 \`force_internal_subsection_names\`，没有区分“问题分析的固定标题”与“各问题模型章节的自适应标题”。
-3. \`templates/latex/cumcm/hsk/README.md\` 已经展示“问题一的分析”“问题二的分析”，但其 Template/Writing 职责边界没有把这一固定结构例外表达清楚。
-4. \`modules/05_writing/paper_writing_protocol.md\` 的 §6.2 已要求多问论文按问分小节，但没有把标题字面形式固定下来。
-5. \`core/writing_runtime_contract.yaml\` 的 \`problem_analysis\` 阶段目前读取 Protocol §6.2、Problem Contract 和跨问依赖，没有显式读取 Manifest 中的标题结构依据。
+1. `template_manifest.yaml` 的 `paper_skeleton.ordered_slots.problem_analysis` 只声明 `default_internal_roles: per_question_analysis`，没有正式规定二级标题的精确模式、数量、顺序和编号方式。
+2. Manifest 的 `authority_boundary.forbidden_template_authority` 仍有宽泛的 `force_internal_subsection_names`，没有区分“问题分析的固定标题”与“各问题模型章节的自适应标题”。
+3. `templates/latex/cumcm/hsk/README.md` 已经展示“问题一的分析”“问题二的分析”，但其 Template/Writing 职责边界没有把这一固定结构例外表达清楚。
+4. `modules/05_writing/paper_writing_protocol.md` 的 §6.2 已要求多问论文按问分小节，但没有把标题字面形式固定下来。
+5. `core/writing_runtime_contract.yaml` 的 `problem_analysis` 阶段目前读取 Protocol §6.2、Problem Contract 和跨问依赖，没有显式读取 Manifest 中的标题结构依据。
 
 ### 1.2 附录：当前是多个一级节，不符合目标层级
 
 当前模板文件：
 
-\`templates/latex/cumcm/hsk/appendices/appendices.tex\`
+`templates/latex/cumcm/hsk/appendices/appendices.tex`
 
 目前采用：
 
-- 一个 \`appendices\` 环境；
-- 环境内多个 \`\\section{核心代码与复现说明}\`、\`\\section{补充推导与图表}\`。
+- 一个 `appendices` 环境；
+- 环境内多个 `\section{核心代码与复现说明}`、`\section{补充推导与图表}`。
 
 这会把每个附录材料作为一级 section，而不是“附录”总标题下的二级标题。
 
 当前主文件：
 
-\`templates/latex/cumcm/hsk/hsk_main.tex\`
+`templates/latex/cumcm/hsk/hsk_main.tex`
 
 已经将附录设置为条件槽位，默认注释关闭；这一行为必须保留。
 
 当前 Manifest 的 appendix slot 也已明确：
 
-- \`required: false\`
-- \`default_active: false\`
+- `required: false`
+- `default_active: false`
 - 仅在官方规则要求或确有必要的支持材料时启用。
 
 因此，本次只调整附录内部层级，不改变附录的条件启用逻辑。
@@ -108,49 +108,49 @@
 
 当前 CUMCM 类文件：
 
-\`templates/latex/cumcm/cumcmthesis/cumcmthesis.cls\`
+`templates/latex/cumcm/cumcmthesis/cumcmthesis.cls`
 
 加载：
 
-\`\\RequirePackage[titletoc,title]{appendix}\`
+`\RequirePackage[titletoc,title]{appendix}`
 
-没有启用 \`page\` 选项。
+没有启用 `page` 选项。
 
 根据 appendix 宏包文档：
 
-- \`title\` 用于在每个附录标题前增加附录名称；
-- \`page\` 才会在 appendices 环境开始处生成独立的附录总标题；
-- \`appendices\` 环境可以替代单独的 \`\\appendix\` 命令。
+- `title` 用于在每个附录标题前增加附录名称；
+- `page` 才会在 appendices 环境开始处生成独立的附录总标题；
+- `appendices` 环境可以替代单独的 `\appendix` 命令。
 
 参考：<https://tug.org/docs/latex/appendix/appendix.pdf>。
 
 这解释了当前模板为什么只有 A、B 等独立附录节，而没有统一的“附录”总标题。
 
-**实施时不得仅凭宏包选项推断 PDF 最终外观。** 必须对“附录总标题 + 二级附录标题”方案进行真实 LaTeX 编译，检查是否出现重复“附录”、错误编号、标题级别错位或目录异常。默认优先复用现有 class、宏包和 \`appendices\` 环境，不轻易修改官方 class 或全局宏包。
+**实施时不得仅凭宏包选项推断 PDF 最终外观。** 必须对“附录总标题 + 二级附录标题”方案进行真实 LaTeX 编译，检查是否出现重复“附录”、错误编号、标题级别错位或目录异常。默认优先复用现有 class、宏包和 `appendices` 环境，不轻易修改官方 class 或全局宏包。
 
 ### 1.4 论文审计存在附录边界识别不一致
 
 当前：
 
-\`scripts/audit_paper_prose.py\`
+`scripts/audit_paper_prose.py`
 
-函数 \`_main_text_before_appendix\` 只通过 \`\\appendix\` 字符串截断正文。
+函数 `_main_text_before_appendix` 只通过 `\appendix` 字符串截断正文。
 
 但当前模板实际使用的是：
 
-\`\\begin{appendices} ... \\end{appendices}\`
+`\begin{appendices} ... \end{appendices}`
 
 两者并不相同。于是模块化 LaTeX 被展开后，审计器仍可能把 appendices 环境中的内容留在正文文本范围内。
 
-另外，当前审计器的 \`SECTION_RE\`、\`SUBSECTION_RE\` 主要匹配未带星号的标题命令；如果新模板采用 \`\\section*{附录}\` 与 \`\\subsection*{附录A}\`，就需要为附录结构检查提供对星号标题的明确解析能力。
+另外，当前审计器的 `SECTION_RE`、`SUBSECTION_RE` 主要匹配未带星号的标题命令；如果新模板采用 `\section*{附录}` 与 `\subsection*{附录A}`，就需要为附录结构检查提供对星号标题的明确解析能力。
 
-\`scripts/audit_latex_project.py\` 已负责展开模块化 \`\\input\`/\`\\include\`，并将展开文本交给 \`audit_paper_prose.audit_text\`。实施时应沿用这条真实审计链，不另建一套只检查主文件的审计器。
+`scripts/audit_latex_project.py` 已负责展开模块化 `\input`/`\include`，并将展开文本交给 `audit_paper_prose.audit_text`。实施时应沿用这条真实审计链，不另建一套只检查主文件的审计器。
 
 ### 1.5 模板校验器尚未覆盖这两项结构
 
 当前：
 
-\`scripts/validate_template_manifest.py\`
+`scripts/validate_template_manifest.py`
 
 已检查：
 
@@ -173,19 +173,19 @@
 
 当前：
 
-- \`core/writing_runtime_contract.yaml\` 是 CUMCM 写作阶段读取顺序的 Authority；
-- \`core/stage_reading_guide.md\` 是由 \`scripts/generate_indexes.py\` 生成的导航文件；
-- \`scripts/read_stage.py\` 支持字符串形式的 YAML selector，例如 \`templates/.../template_manifest.yaml#paper_skeleton\`；
-- \`read_stage.py\` 对非字符串阶段条目会记为 unresolved，因此本次新增读取项必须继续使用现有字符串路径/selector，不引入字典式自定义读取条目。
+- `core/writing_runtime_contract.yaml` 是 CUMCM 写作阶段读取顺序的 Authority；
+- `core/stage_reading_guide.md` 是由 `scripts/generate_indexes.py` 生成的导航文件；
+- `scripts/read_stage.py` 支持字符串形式的 YAML selector，例如 `templates/.../template_manifest.yaml#paper_skeleton`；
+- `read_stage.py` 对非字符串阶段条目会记为 unresolved，因此本次新增读取项必须继续使用现有字符串路径/selector，不引入字典式自定义读取条目。
 
-因此，阶段读取问题通过补齐 Runtime 的 source mapping 解决；不得手工编辑 \`stage_reading_guide.md\`，也不得新增另一套读取流程。
+因此，阶段读取问题通过补齐 Runtime 的 source mapping 解决；不得手工编辑 `stage_reading_guide.md`，也不得新增另一套读取流程。
 
 ### 1.7 现有计划与本次范围的关系
 
 以下计划已存在：
 
-- \`docs/cumcm_question_writing_refinement_plan.md\`
-- \`docs/v10183_cumcm_heading_hierarchy_readability_completion_plan.md\`
+- `docs/cumcm_question_writing_refinement_plan.md`
+- `docs/v10183_cumcm_heading_hierarchy_readability_completion_plan.md`
 
 它们主要讨论各问题模型章节内部的 MODEL / SOLVE / RESULT / VALIDATE 功能标题、三级标题可读性、论证详略和图表落位。
 
@@ -211,7 +211,7 @@
 | 问题分析结构 Authority | 有缺口 | 模板有示例，Manifest 未定义固定标题模式 |
 | 附录层级 | 不符合目标 | 当前多个一级 section，没有独立总标题 |
 | 阶段读取 | 局部缺口 | 问题分析与附录阶段没有显式读取对应 Manifest 结构 |
-| 正文/附录边界 | 有缺口 | 审计器只识别 \`\\appendix\`，未识别当前 \`appendices\` 环境 |
+| 正文/附录边界 | 有缺口 | 审计器只识别 `\appendix`，未识别当前 `appendices` 环境 |
 | 附录编译覆盖 | 不充分 | 现有 CUMCM smoke 默认关闭附录，未单独证明激活后的结构可编译 |
 
 健康检查结论仅覆盖本次相关入口和关联链路，不代表对所有 Skill 模块重新完成了全仓库审计。现有 Bootstrap、Router、模型批准、数值执行、结果深化、图表证据和交付主流程没有发现需要随本次修改重构的依据。
@@ -224,25 +224,25 @@
 
 正式结构：
 
-\`\`\`text
+```text
 二、问题分析
     2.1 问题一的分析
     2.2 问题二的分析
     2.3 问题三的分析
     ...
-\`\`\`
+```
 
 LaTeX 结构：
 
-\`\`\`latex
-\\section{问题分析}
+```latex
+\section{问题分析}
 
-\\subsection{问题一的分析}
+\subsection{问题一的分析}
 % 问题一的分析正文
 
-\\subsection{问题二的分析}
+\subsection{问题二的分析}
 % 问题二的分析正文
-\`\`\`
+```
 
 规则：
 
@@ -260,29 +260,29 @@ LaTeX 结构：
 
 正式结构：
 
-\`\`\`text
+```text
 附录
     附录A
     附录B
     附录C
     ...
-\`\`\`
+```
 
 建议的 LaTeX 目标层级：
 
-\`\`\`latex
-\\begin{appendices}
+```latex
+\begin{appendices}
 
-\\section*{附录}
+\section*{附录}
 
-\\subsection*{附录A}
+\subsection*{附录A}
 % 附录A的实际材料
 
-\\subsection*{附录B}
+\subsection*{附录B}
 % 附录B的实际材料
 
-\\end{appendices}
-\`\`\`
+\end{appendices}
+```
 
 规则：
 
@@ -299,20 +299,20 @@ LaTeX 结构：
 
 目标语义层级是：
 
-- 一级：\`section\`；
-- 二级：\`subsection\`。
+- 一级：`section`；
+- 二级：`subsection`。
 
 附录的“附录”总标题和“附录A/B”条目建议使用星号形式，避免继承正文 section 编号后产生“9.1 附录A”等不符合要求的编号。
 
 但实施时必须先用当前 CUMCM class 与 appendix 宏包进行编译验证：
 
-- 检查 \`appendices\` 环境与星号标题是否兼容；
-- 检查 \`title\` 选项是否给星号标题重复添加“附录”前缀；
+- 检查 `appendices` 环境与星号标题是否兼容；
+- 检查 `title` 选项是否给星号标题重复添加“附录”前缀；
 - 检查 PDF 中总标题与 A/B 标题的视觉层级；
 - 检查引用、书签和目录（若当前项目启用目录）；
 - 检查环境结束后正文 section 状态是否恢复。
 
-若当前环境无法无冲突地实现目标层级，先在实施 PR 中比较 \`appendices\` 环境与显式 \`\\appendix\` 的最小实现；不得直接修改 \`cumcmthesis.cls\` 或移除宏包选项来绕过问题。
+若当前环境无法无冲突地实现目标层级，先在实施 PR 中比较 `appendices` 环境与显式 `\appendix` 的最小实现；不得直接修改 `cumcmthesis.cls` 或移除宏包选项来绕过问题。
 
 ---
 
@@ -322,11 +322,11 @@ LaTeX 结构：
 
 正式结构规则只在：
 
-\`templates/latex/cumcm/hsk/template_manifest.yaml\`
+`templates/latex/cumcm/hsk/template_manifest.yaml`
 
 定义。
 
-建议在 \`paper_skeleton.ordered_slots\` 对应的 \`problem_analysis\` 和 \`appendix\` slot 中分别增加结构字段，字段名最终以现有 YAML 风格和校验器实现为准。
+建议在 `paper_skeleton.ordered_slots` 对应的 `problem_analysis` 和 `appendix` slot 中分别增加结构字段，字段名最终以现有 YAML 风格和校验器实现为准。
 
 问题分析结构至少表达：
 
@@ -348,7 +348,7 @@ LaTeX 结构：
 
 ### 3.2 收窄 Template/Writing 职责边界
 
-Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsection_names\` 过于宽泛，与本次固定问题分析标题的目标冲突。
+Manifest 当前 `forbidden_template_authority` 中的 `force_internal_subsection_names` 过于宽泛，与本次固定问题分析标题的目标冲突。
 
 实施时应明确：
 
@@ -385,32 +385,32 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 | Paper Prose Audit | 实际论文结构审计 | 检查真实论文是否遵循标题层级 |
 | Model Paper Framework | 项目级事实与实际选择 | 仅记录当前项目真实章节选择，不复制通用规则 |
 
-不修改 \`core/writing_reasoning_contract.yaml\` 的模型章节标题 Authority；它继续管理各问题模型章节的专业标题、自适应拆分和三级标题可读性。本次不新增第二份标题语义合同。
+不修改 `core/writing_reasoning_contract.yaml` 的模型章节标题 Authority；它继续管理各问题模型章节的专业标题、自适应拆分和三级标题可读性。本次不新增第二份标题语义合同。
 
 ---
 
 ## 4. 逐文件修改计划
 
-### 4.1 \`templates/latex/cumcm/hsk/template_manifest.yaml\`
+### 4.1 `templates/latex/cumcm/hsk/template_manifest.yaml`
 
 **必须修改。**
 
-1. 为 \`problem_analysis\` slot 增加固定逐问二级标题规则。
-2. 为 \`appendix\` slot 增加一级/二级标题层级规则。
-3. 更新 \`authority_boundary.template_owns\`，显式包含问题分析逐问标题和附录层级。
-4. 收窄 \`forbidden_template_authority\` 中过宽的内部标题禁止项，保留问题模型章节内部标题自适应。
-5. 保留 \`appendix.required: false\`、\`default_active: false\` 和原 activation 条件。
-6. 保留 \`cumcm_question_section.internal_structure: adaptive\`。
-7. 保留 \`cumcm_question_section.default_complex_question_headings_role: maintained_example_profile_only\`；该字段仍只管理问题模型章节示例，不应被本次前置标题规则混淆。
+1. 为 `problem_analysis` slot 增加固定逐问二级标题规则。
+2. 为 `appendix` slot 增加一级/二级标题层级规则。
+3. 更新 `authority_boundary.template_owns`，显式包含问题分析逐问标题和附录层级。
+4. 收窄 `forbidden_template_authority` 中过宽的内部标题禁止项，保留问题模型章节内部标题自适应。
+5. 保留 `appendix.required: false`、`default_active: false` 和原 activation 条件。
+6. 保留 `cumcm_question_section.internal_structure: adaptive`。
+7. 保留 `cumcm_question_section.default_complex_question_headings_role: maintained_example_profile_only`；该字段仍只管理问题模型章节示例，不应被本次前置标题规则混淆。
 8. 不修改外部参考文件路径、来源哈希和 reference provenance。
 
 版本处理：
 
-- \`template_id: hsk_cumcm_v8\` 保持不变。
-- 当前 \`schema_version: 1.0.0\` 默认保持不变，因为本次是现有 slot 的向后兼容结构元数据补充；现有校验器明确要求该版本。
+- `template_id: hsk_cumcm_v8` 保持不变。
+- 当前 `schema_version: 1.0.0` 默认保持不变，因为本次是现有 slot 的向后兼容结构元数据补充；现有校验器明确要求该版本。
 - 只有当实施发现 Manifest schema 本身必须新增强制解析语义时，才另行说明 schema 版本升级理由，并同步 validator 与测试；不得为了新增几个可选字段机械升级。
 
-### 4.2 \`templates/latex/cumcm/hsk/sections/02_problem_analysis.tex\`
+### 4.2 `templates/latex/cumcm/hsk/sections/02_problem_analysis.tex`
 
 **必须核查，按需做最小修改。**
 
@@ -418,28 +418,28 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 
 实施要求：
 
-1. 保留 \`\\section{问题分析}\`。
+1. 保留 `\section{问题分析}`。
 2. 保留 Q1/Q2 的准确二级标题。
 3. 将注释改为清晰的动态扩展说明：实际有几问就生成几个标题，按 Problem Contract 顺序，不预留空标题。
 4. Q3+ 只保留注释示例或按实际问题生成，不把示例数量固定成五问。
 5. 不在模板中预填任何题目专属正文、模型名称、公式或结果。
 6. 不添加无必要的三级标题。
 
-### 4.3 \`templates/latex/cumcm/hsk/appendices/appendices.tex\`
+### 4.3 `templates/latex/cumcm/hsk/appendices/appendices.tex`
 
 **必须修改。**
 
-将当前多个一级 \`\\section\` 调整为：
+将当前多个一级 `\section` 调整为：
 
 - 一个“附录”一级标题；
 - “附录A”“附录B”作为二级标题；
 - 实际需要几个附录就生成几个，不预留空白项。
 
-默认优先保留现有 \`appendices\` 环境和官方 class，不修改 \`cumcmthesis.cls\` 与全局宏包。建议先试验 §2.3 中的星号标题形式，再根据实际编译结果确定最小可行写法。
+默认优先保留现有 `appendices` 环境和官方 class，不修改 `cumcmthesis.cls` 与全局宏包。建议先试验 §2.3 中的星号标题形式，再根据实际编译结果确定最小可行写法。
 
 现有“核心代码与复现说明”“补充推导与图表”只作为材料内容示例，不再作为多个一级附录节。附录 A/B 的具体内容分配必须由实际材料决定。
 
-### 4.4 \`templates/latex/cumcm/hsk/README.md\`
+### 4.4 `templates/latex/cumcm/hsk/README.md`
 
 **必须做小范围同步。**
 
@@ -451,7 +451,7 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 4. 明确附录仍是条件章节，默认关闭。
 5. 不复制 Manifest 的完整 YAML 字段，不在 README 再定义一套标题模式。
 
-### 4.5 \`modules/05_writing/paper_writing_protocol.md\`
+### 4.5 `modules/05_writing/paper_writing_protocol.md`
 
 **必须做局部同步。**
 
@@ -469,15 +469,15 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 
 不得将完整标题规则再抄一遍到 Protocol；不得修改各问题模型章节的标题自适应规则。
 
-### 4.6 \`core/writing_runtime_contract.yaml\`
+### 4.6 `core/writing_runtime_contract.yaml`
 
 **必须做局部同步。**
 
-在当前 \`problem_analysis\` 阶段的 \`read_now\` 中增加：
+在当前 `problem_analysis` 阶段的 `read_now` 中增加：
 
-\`templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton\`
+`templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton`
 
-在当前 \`evaluation_references_conclusion_appendix\` 阶段的 \`read_now\` 中增加同一结构来源，确保附录启用与标题组织时能够读取当前结构 Authority。
+在当前 `evaluation_references_conclusion_appendix` 阶段的 `read_now` 中增加同一结构来源，确保附录启用与标题组织时能够读取当前结构 Authority。
 
 约束：
 
@@ -487,20 +487,20 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 - 不新增 Project State 字段；
 - 不将模板结构读取变成新的审批或交付门禁。
 
-### 4.7 \`core/stage_reading_guide.md\`
+### 4.7 `core/stage_reading_guide.md`
 
 **禁止手工修改。**
 
-该文件由 \`scripts/generate_indexes.py\` 从 Runtime 派生。实施后应检查生成结果是否在：
+该文件由 `scripts/generate_indexes.py` 从 Runtime 派生。实施后应检查生成结果是否在：
 
-- \`problem_analysis\`
-- \`evaluation_references_conclusion_appendix\`
+- `problem_analysis`
+- `evaluation_references_conclusion_appendix`
 
 两个阶段显示新增的 Manifest selector。
 
 如果生成结果没有更新，检查 generator 的既有读取逻辑和生成契约；不得直接编辑生成文件伪造读取完成。
 
-### 4.8 \`scripts/validate_template_manifest.py\`
+### 4.8 `scripts/validate_template_manifest.py`
 
 **必须扩展现有校验器。**
 
@@ -519,31 +519,31 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 **附录模板检查：**
 
 - Manifest 中 appendix 仍为 conditional；
-- \`required\` 和 \`default_active\` 仍为 false；
+- `required` 和 `default_active` 仍为 false；
 - 附录模板存在唯一一级总标题“附录”；
 - 附录 A/B 为二级标题；
 - A/B 顺序连续；
 - 不再出现将附录 A/B 分别作为一级标题的旧结构；
-- \`hsk_main.tex\` 中附录输入仍默认关闭。
+- `hsk_main.tex` 中附录输入仍默认关闭。
 
 校验器只检查模板文件和 Manifest 的确定性一致性，不负责判断某个真实项目是否应该启用附录。
 
-### 4.9 \`scripts/audit_paper_prose.py\`
+### 4.9 `scripts/audit_paper_prose.py`
 
 **必须扩展现有论文审计逻辑。**
 
 #### A. 附录边界识别
 
-将 \`_main_text_before_appendix\` 的边界识别扩展为兼容：
+将 `_main_text_before_appendix` 的边界识别扩展为兼容：
 
-- \`\\appendix\`
-- \`\\begin{appendices}\`
+- `\appendix`
+- `\begin{appendices}`
 
 取正文中最先出现的有效附录起点。识别前应排除注释，不能因为注释示例中的命令提前截断正文。
 
 #### B. 问题分析标题审计
 
-复用现有 \`QUESTION_SECTION_RE\` 识别当前论文的问题章节，不新增独立题号解析体系。
+复用现有 `QUESTION_SECTION_RE` 识别当前论文的问题章节，不新增独立题号解析体系。
 
 检查：
 
@@ -569,15 +569,15 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 #### D. Finding 严重度
 
 - canonical template 与 Manifest 不一致：由模板 validator 报错。
-- 实际论文偏离默认标题结构：沿用现有 \`Finding\` 和 \`review_required\` 体系，不新增独立严重度。
+- 实际论文偏离默认标题结构：沿用现有 `Finding` 和 `review_required` 体系，不新增独立严重度。
 - 不因为某个附录未启用而报错。
 - 不把结构偏离自动判成数学模型错误，不修改论文正文，不自动重命名标题。
 
-### 4.10 \`scripts/audit_latex_project.py\`
+### 4.10 `scripts/audit_latex_project.py`
 
 **默认只核查，不预设修改。**
 
-该脚本已展开模块化 LaTeX include graph，再调用 \`audit_paper_prose.audit_text\`。实施时应通过集成测试确认新结构审计确实作用于展开后的问题分析和附录文件。
+该脚本已展开模块化 LaTeX include graph，再调用 `audit_paper_prose.audit_text`。实施时应通过集成测试确认新结构审计确实作用于展开后的问题分析和附录文件。
 
 只有测试证明当前调用链遗漏新 finding 时，才做最小必要修改；不得另建平行 LaTeX 审计入口。
 
@@ -585,28 +585,28 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 
 建议新增：
 
-\`tests/test_v10233_cumcm_problem_analysis_appendix_headings.py\`
+`tests/test_v10233_cumcm_problem_analysis_appendix_headings.py`
 
 并按实际影响扩展现有测试：
 
-- \`tests/test_v800_template_authority.py\`
-- \`tests/test_v800_writing_runtime.py\`
-- \`tests/test_read_stage.py\`
-- \`tests/test_stage_reading_guide_lifecycle.py\`
-- \`tests/test_p7_conditional_analysis_appendix.py\`
-- \`tests/test_v745_prose_audit.py\`
-- \`tests/test_v872_template_assembly_consistency.py\`
-- \`tests/test_v1000_release_version_matrix.py\`
+- `tests/test_v800_template_authority.py`
+- `tests/test_v800_writing_runtime.py`
+- `tests/test_read_stage.py`
+- `tests/test_stage_reading_guide_lifecycle.py`
+- `tests/test_p7_conditional_analysis_appendix.py`
+- `tests/test_v745_prose_audit.py`
+- `tests/test_v872_template_assembly_consistency.py`
+- `tests/test_v1000_release_version_matrix.py`
 
 测试只覆盖实际变化，不重复创建现有测试已经证明的行为。
 
-### 4.12 \`.github/workflows/ci.yml\`
+### 4.12 `.github/workflows/ci.yml`
 
 **需要评估并扩展现有 CUMCM LaTeX smoke。**
 
-当前 \`latex-smoke\` 的 CUMCM 模板编译默认附录关闭，因此不能证明激活附录后的层级能够正常编译。
+当前 `latex-smoke` 的 CUMCM 模板编译默认附录关闭，因此不能证明激活附录后的层级能够正常编译。
 
-建议在现有 \`latex-smoke\` 工作流中增加一个 CUMCM appendix-active smoke：
+建议在现有 `latex-smoke` 工作流中增加一个 CUMCM appendix-active smoke：
 
 1. 在临时副本或临时主文件中启用附录输入；
 2. 编译包含“附录”“附录A”“附录B”的结构；
@@ -624,7 +624,7 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 
 当前基线为 10.23.2。若实施时仍以 10.23.2 为当前 main 版本，候选发布版本为：
 
-\`10.23.3\`（patch）。
+`10.23.3`（patch）。
 
 理由：
 
@@ -640,19 +640,19 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 
 后续若按 10.23.3 发布，至少核对并按版本矩阵同步：
 
-- \`core/bootstrap.yaml\`
-- \`.codex-plugin/plugin.json\`
-- \`core/workflow_router.yaml\`
-- \`core/module_manifest.yaml\`
-- \`core/output_contract.yaml\`
-- \`core/writing_runtime_contract.yaml\`
-- \`config/prose_audit_patterns.yaml\`
-- \`core/hsk_core_policy.md\`
-- 根目录 \`SKILL.md\`
-- \`skills/mathmodel-skill/SKILL.md\`
-- \`README.md\`
-- \`CHANGELOG.md\`
-- \`tests/test_v1000_release_version_matrix.py\`
+- `core/bootstrap.yaml`
+- `.codex-plugin/plugin.json`
+- `core/workflow_router.yaml`
+- `core/module_manifest.yaml`
+- `core/output_contract.yaml`
+- `core/writing_runtime_contract.yaml`
+- `config/prose_audit_patterns.yaml`
+- `core/hsk_core_policy.md`
+- 根目录 `SKILL.md`
+- `skills/mathmodel-skill/SKILL.md`
+- `README.md`
+- `CHANGELOG.md`
+- `tests/test_v1000_release_version_matrix.py`
 
 以上是当前版本矩阵中已声明的 Skill 版本载体。实施时必须重新读取测试，不能照抄本文而漏掉届时新增的载体。
 
@@ -660,21 +660,21 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 
 不因 Skill patch 而盲目升级：
 
-- Template Manifest 的 \`schema_version\`
-- Writing Reasoning 的 \`schema_version\`
+- Template Manifest 的 `schema_version`
+- Writing Reasoning 的 `schema_version`
 - Writing Runtime 之外的项目状态、工作簿、执行回执等独立协议版本。
 
 只有对应 schema 本身发生不兼容或有明确版本治理要求时才升级，并提供迁移说明。
 
 ### 5.4 生成文件
 
-以下文件由 GitHub \`refresh-generated\` 更新，不得人工提交伪造版本：
+以下文件由 GitHub `refresh-generated` 更新，不得人工提交伪造版本：
 
-- \`MANIFEST.sha256\`
-- \`SKILL_FILE_INDEX.md\`
-- \`TEMPLATE_INDEX.md\`
-- \`core/stage_reading_guide.md\`
-- 其他由 \`scripts/generate_indexes.py\` 管理的受管文件。
+- `MANIFEST.sha256`
+- `SKILL_FILE_INDEX.md`
+- `TEMPLATE_INDEX.md`
+- `core/stage_reading_guide.md`
+- 其他由 `scripts/generate_indexes.py` 管理的受管文件。
 
 ---
 
@@ -684,8 +684,8 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 
 实施开始前必须重新：
 
-1. 读取最新 main 的 \`core/bootstrap.yaml\`；
-2. 读取最新 main 的 \`SKILL_CHANGE_GOVERNANCE.md\`；
+1. 读取最新 main 的 `core/bootstrap.yaml`；
+2. 读取最新 main 的 `SKILL_CHANGE_GOVERNANCE.md`；
 3. 确认当前 Skill 版本、main commit、open PR 和相关分支；
 4. 检查本计划涉及的 Authority 与文件是否已经被其他 PR 修改；
 5. 重新确认 Manifest、模板、Runtime、审计器和 CI 的现状；
@@ -702,8 +702,8 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 
 1. 修改 Template Manifest 中问题分析和 appendix slot 的结构策略；
 2. 修正 Template/Writing authority boundary；
-3. 修改 \`02_problem_analysis.tex\` 的注释/动态扩展说明；
-4. 重构 \`appendices.tex\` 的标题层级；
+3. 修改 `02_problem_analysis.tex` 的注释/动态扩展说明；
+4. 重构 `appendices.tex` 的标题层级；
 5. 同步模板 README。
 
 **完成条件：**
@@ -722,8 +722,8 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 2. 修改 Protocol §15；
 3. 在 Writing Runtime 的问题分析阶段加入 Manifest selector；
 4. 在评价/引用/附录阶段加入 Manifest selector；
-5. 通过现有 \`read_stage.py\` 验证两个阶段能读取完整的 \`paper_skeleton\`；
-6. 运行现有生成逻辑，核对 \`stage_reading_guide.md\` 自动反映变化。
+5. 通过现有 `read_stage.py` 验证两个阶段能读取完整的 `paper_skeleton`；
+6. 运行现有生成逻辑，核对 `stage_reading_guide.md` 自动反映变化。
 
 **完成条件：**
 
@@ -736,12 +736,12 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 
 顺序：
 
-1. 扩展 \`validate_template_manifest.py\` 的问题分析模板检查；
+1. 扩展 `validate_template_manifest.py` 的问题分析模板检查；
 2. 扩展该校验器的附录层级和条件性检查；
-3. 修复 \`audit_paper_prose.py\` 的附录边界识别；
+3. 修复 `audit_paper_prose.py` 的附录边界识别；
 4. 增加实际论文的问题分析标题一一对应检查；
 5. 增加实际论文的附录总标题与 A/B 层级检查；
-6. 通过 \`audit_latex_project.py\` 对模块化 LaTeX 进行集成验证；
+6. 通过 `audit_latex_project.py` 对模块化 LaTeX 进行集成验证；
 7. 检查现有 Finding 级别与历史项目兼容性。
 
 **完成条件：** 模板自身错误能够被确定性发现，实际论文偏离结构能够被现有审计流程发现，附录正文不会再被错误混入正文范围。
@@ -766,7 +766,7 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 2. 更新 Changelog；
 3. 只提交源文件；
 4. 推送实现分支；
-5. 等待 GitHub \`refresh-generated\`；
+5. 等待 GitHub `refresh-generated`；
 6. 审查 bot 生成提交和最终 PR head；
 7. Draft 阶段先运行受影响专项检查；
 8. PR 冻结为 ready 后，在最终 head 运行正式完整验证；
@@ -810,15 +810,15 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 | AP-08 | 附录字母跳号或倒序 | 审计能够发现 |
 | AP-09 | 存在空附录标题 | 审计能够发现 |
 | AP-10 | 只有附录材料，没有核心证明外移 | 通过结构检查 |
-| AP-11 | 通过 \`appendices\` 环境启用 | 正确识别正文/附录边界 |
-| AP-12 | 旧式 \`\\appendix\` 项目 | 边界识别保持兼容；结构偏离按现有 Finding 规则提示 |
+| AP-11 | 通过 `appendices` 环境启用 | 正确识别正文/附录边界 |
+| AP-12 | 旧式 `\appendix` 项目 | 边界识别保持兼容；结构偏离按现有 Finding 规则提示 |
 
 ### 7.3 阶段读取与语义一致性
 
 | ID | 测试 | 预期结果 |
 |---|---|---|
-| RD-01 | \`problem_analysis\` 读取 | Manifest 的 \`paper_skeleton\` 被选中 |
-| RD-02 | \`evaluation_references_conclusion_appendix\` 读取 | Manifest 的 \`paper_skeleton\` 被选中 |
+| RD-01 | `problem_analysis` 读取 | Manifest 的 `paper_skeleton` 被选中 |
+| RD-02 | `evaluation_references_conclusion_appendix` 读取 | Manifest 的 `paper_skeleton` 被选中 |
 | RD-03 | YAML selector | 正确解析，无 unresolved |
 | RD-04 | Stage Reading Guide 生成 | 两阶段均出现新来源 |
 | RD-05 | README / Protocol / Manifest | 无互相冲突的标题规定 |
@@ -891,17 +891,17 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 
 ### 8.3 读取失效/失败
 
-- [ ] 问题分析阶段可以读取 Manifest 的 \`paper_skeleton\`。
-- [ ] 附录阶段可以读取 Manifest 的 \`paper_skeleton\`。
+- [ ] 问题分析阶段可以读取 Manifest 的 `paper_skeleton`。
+- [ ] 附录阶段可以读取 Manifest 的 `paper_skeleton`。
 - [ ] 所有新增 read_now 条目均为现有读取器支持的字符串路径/selector。
 - [ ] 不新增 dict 型 read_now 条目。
 - [ ] 不手工修改生成的 Stage Reading Guide。
-- [ ] 通过 \`read_stage.py\` 的实际选择结果验证来源，不仅检查文本中存在路径。
+- [ ] 通过 `read_stage.py` 的实际选择结果验证来源，不仅检查文本中存在路径。
 
 ### 8.4 模板、审计和编译
 
 - [ ] 模板校验器能够识别错误结构。
-- [ ] 正文审计器能够识别 \`appendices\` 环境。
+- [ ] 正文审计器能够识别 `appendices` 环境。
 - [ ] 附录内容不再错误进入正文范围检查。
 - [ ] 星号标题能够被附录结构审计解析。
 - [ ] CUMCM 附录激活后实际编译。
@@ -937,7 +937,7 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 
 ### 9.2 历史项目处理
 
-旧论文可能采用多个一级附录节。实施后，实际论文审计可以按现有 \`review_required\` 体系提示其偏离当前默认结构，但不得自动改写旧文件。
+旧论文可能采用多个一级附录节。实施后，实际论文审计可以按现有 `review_required` 体系提示其偏离当前默认结构，但不得自动改写旧文件。
 
 用户明确要求继续维护或重新提交旧论文时，再根据当届官方模板和当前项目需要决定是否调整。不得把新规则追溯性地改成所有历史项目的自动迁移任务。
 
@@ -946,7 +946,7 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 如果新模板或审计逻辑产生误判：
 
 1. 通过单主题 revert PR 回滚相关源文件；
-2. 由 GitHub \`refresh-generated\` 恢复受管文件；
+2. 由 GitHub `refresh-generated` 恢复受管文件；
 3. 在最新 PR head 重新执行适用的 GitHub Actions；
 4. 合并后复核 main；
 5. 不回滚或修改用户项目的工作簿、模型批准、数值结果和项目状态。
@@ -961,7 +961,7 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 
 本次只新增：
 
-\`docs/cumcm_problem_analysis_appendix_heading_hierarchy_plan.md\`
+`docs/cumcm_problem_analysis_appendix_heading_hierarchy_plan.md`
 
 允许 GitHub 自动生成受管索引/MANIFEST 变化；不修改任何活动 Authority 或执行文件。
 
@@ -988,7 +988,7 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 
 ### 10.3 GitHub 验收
 
-严格遵循当前 \`SKILL_CHANGE_GOVERNANCE.md\`：
+严格遵循当前 `SKILL_CHANGE_GOVERNANCE.md`：
 
 - Draft 阶段优先受影响专项测试和基础检查；
 - ready PR 冻结后执行正式完整验证；
@@ -1013,7 +1013,7 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 
 1. 最新 main 已改变 Manifest 的结构 Authority，导致本计划字段位置不再适用。
 2. 存在其他未合并 PR 同时修改 Manifest、Writing Runtime、CUMCM 模板或论文审计器。
-3. 当前 \`appendices\` 环境与目标星号标题层级无法兼容，且最小替代实现需要修改官方 class 或全局宏包。
+3. 当前 `appendices` 环境与目标星号标题层级无法兼容，且最小替代实现需要修改官方 class 或全局宏包。
 4. 实际论文题号无法从现有 Problem Contract/问题章节结构可靠恢复。
 5. 新的标题审计会误伤非 CUMCM 模板或无附录项目。
 6. 需要新增 Project State、审批流程、模型语义字段或数值验收规则才能实现本次需求。
@@ -1028,8 +1028,8 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 
 后续新聊天或 Codex 接手时，按以下指令执行：
 
-> 目标仓库：\`Vexushi1/mathmodel-skill\`。  
-> 先从最新 \`main\` 读取 \`core/bootstrap.yaml\`、\`SKILL_CHANGE_GOVERNANCE.md\)，确认版本、main SHA、未合并 PR 和本计划文件。随后完整读取 \`docs/cumcm_problem_analysis_appendix_heading_hierarchy_plan.md\`，按 Phase 0—5 实施。
+> 目标仓库：`Vexushi1/mathmodel-skill`。  
+> 先从最新 `main` 读取 `core/bootstrap.yaml`、`SKILL_CHANGE_GOVERNANCE.md\)，确认版本、main SHA、未合并 PR 和本计划文件。随后完整读取 `docs/cumcm_problem_analysis_appendix_heading_hierarchy_plan.md`，按 Phase 0—5 实施。
 >
 > 本次行为目标仅为：  
 > 1. CUMCM “问题分析”一级章节下，每个实际小问对应一个固定二级标题“问题X的分析”；  
@@ -1039,7 +1039,7 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 >
 > Template Manifest 是唯一结构 Authority。Protocol 只说明写作行为；Runtime 声明阶段读取；LaTeX 文件落实结构；模板 validator 检查模板；paper audit 检查实际论文；Stage Reading Guide 由生成器更新。不得重复定义规则，不得手改生成文件。
 >
-> 必须修复 \`audit_paper_prose.py\` 对 \`\\begin{appendices}\` 的正文边界识别，并测试星号标题；必须确认模块化 LaTeX audit 经过 include 展开后能看到问题分析和附录。必须在现有 CUMCM LaTeX smoke 中覆盖附录激活编译。
+> 必须修复 `audit_paper_prose.py` 对 `\begin{appendices}` 的正文边界识别，并测试星号标题；必须确认模块化 LaTeX audit 经过 include 展开后能看到问题分析和附录。必须在现有 CUMCM LaTeX smoke 中覆盖附录激活编译。
 >
 > 不修改数值求解、模型批准、工作簿、Project State、Figure Evidence、03A/03B 或其他竞赛模板。不得批量重写历史论文。任何超出本计划范围的发现先报告，不擅自扩大。
 >
@@ -1073,32 +1073,32 @@ Manifest 当前 \`forbidden_template_authority\` 中的 \`force_internal_subsect
 
 ## 14. 本次核查的主要仓库来源
 
-- \`AGENTS.md\`
-- \`PROJECT_INSTRUCTIONS.md\`
-- \`SKILL_CHANGE_GOVERNANCE.md\`
-- \`core/bootstrap.yaml\`
-- \`templates/latex/cumcm/hsk/template_manifest.yaml\`
-- \`templates/latex/cumcm/hsk/hsk_main.tex\`
-- \`templates/latex/cumcm/hsk/sections/02_problem_analysis.tex\`
-- \`templates/latex/cumcm/hsk/appendices/appendices.tex\`
-- \`templates/latex/cumcm/hsk/README.md\`
-- \`templates/latex/cumcm/hsk/config/preamble.tex\`
-- \`templates/latex/cumcm/cumcmthesis/cumcmthesis.cls\`
-- \`modules/05_writing/paper_writing_protocol.md\`
-- \`core/writing_runtime_contract.yaml\`
-- \`core/stage_reading_guide.md\`（生成文件，只读核对）
-- \`scripts/read_stage.py\`
-- \`scripts/generate_indexes.py\`
-- \`scripts/validate_template_manifest.py\`
-- \`scripts/audit_paper_prose.py\`
-- \`scripts/audit_latex_project.py\`
-- \`tests/test_v10183_cumcm_writing_structure.py\`
-- \`tests/test_p7_conditional_analysis_appendix.py\`
-- \`tests/test_v800_writing_runtime.py\`
-- \`tests/test_v1000_release_version_matrix.py\`
-- \`.github/workflows/ci.yml\`
-- \`docs/cumcm_question_writing_refinement_plan.md\`
-- \`docs/v10183_cumcm_heading_hierarchy_readability_completion_plan.md\`
+- `AGENTS.md`
+- `PROJECT_INSTRUCTIONS.md`
+- `SKILL_CHANGE_GOVERNANCE.md`
+- `core/bootstrap.yaml`
+- `templates/latex/cumcm/hsk/template_manifest.yaml`
+- `templates/latex/cumcm/hsk/hsk_main.tex`
+- `templates/latex/cumcm/hsk/sections/02_problem_analysis.tex`
+- `templates/latex/cumcm/hsk/appendices/appendices.tex`
+- `templates/latex/cumcm/hsk/README.md`
+- `templates/latex/cumcm/hsk/config/preamble.tex`
+- `templates/latex/cumcm/cumcmthesis/cumcmthesis.cls`
+- `modules/05_writing/paper_writing_protocol.md`
+- `core/writing_runtime_contract.yaml`
+- `core/stage_reading_guide.md`（生成文件，只读核对）
+- `scripts/read_stage.py`
+- `scripts/generate_indexes.py`
+- `scripts/validate_template_manifest.py`
+- `scripts/audit_paper_prose.py`
+- `scripts/audit_latex_project.py`
+- `tests/test_v10183_cumcm_writing_structure.py`
+- `tests/test_p7_conditional_analysis_appendix.py`
+- `tests/test_v800_writing_runtime.py`
+- `tests/test_v1000_release_version_matrix.py`
+- `.github/workflows/ci.yml`
+- `docs/cumcm_question_writing_refinement_plan.md`
+- `docs/v10183_cumcm_heading_hierarchy_readability_completion_plan.md`
 
 外部宏包行为参考：
 
