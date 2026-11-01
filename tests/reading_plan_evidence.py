@@ -103,6 +103,7 @@ REVIEW_SPLIT_AUTHORITY_VERSIONS = {**BODY_READING_AUTHORITY_VERSIONS, "skill": "
 FULL_WORKFLOW_READING_AUTHORITY_VERSIONS = {**REVIEW_SPLIT_AUTHORITY_VERSIONS, "skill": "10.23.1"}
 # v10.23.2 changes only mixed-figure reading; preserve the v10.23.1 historical carrier.
 MIXED_FIGURE_READING_AUTHORITY_VERSIONS = {**FULL_WORKFLOW_READING_AUTHORITY_VERSIONS, "skill": "10.23.2"}
+CUMCM_HEADING_AUTHORITY_VERSIONS = {**MIXED_FIGURE_READING_AUTHORITY_VERSIONS, "skill": "10.23.3"}
 # Only these two read-list migrations are registered. Business text is separately
 # reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
 REVIEW_SPLIT_WRITING_DELTAS = (
@@ -1505,6 +1506,72 @@ def approved_mixed_figure_reading_carrier_change(identifier, old, new, candidate
     return projected, changes
 
 
+# The v10.23.3 CUMCM heading patch changes exactly two stage read lists,
+# mirrored in the top-level and runtime_plan writing declarations. It does
+# not authorize a new route, approval, numerical gate or unrelated P2 change.
+CUMCM_HEADING_READ_DELTAS = (
+    (2, "problem_analysis", [
+        "templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton",
+        "modules/05_writing/paper_writing_protocol.md#6.2-问题分析",
+        "current_problem_contract",
+        "current_classification_and_cross_question_dependencies",
+    ]),
+    (5, "evaluation_references_conclusion_appendix", [
+        "templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton",
+        "modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录",
+        "modules/05_writing/paper_writing_protocol.md#16-引用与正文语言",
+        "current_citation_evidence_and_final_question_answers",
+    ]),
+)
+
+
+def approved_cumcm_heading_carrier_change(identifier, old, new, candidate_authority_versions):
+    """Register only v10.23.3 carrier and exact two CUMCM stage-read additions."""
+    if (candidate_authority_versions != CUMCM_HEADING_AUTHORITY_VERSIONS
+            or new.get("version") != CUMCM_HEADING_AUTHORITY_VERSIONS["skill"]):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    declaration_changes = []
+    if identifier == "cumcm_writing":
+        for prefix in (("writing_runtime",), ("runtime_plan", "writing_runtime")):
+            try:
+                source, target = new, predecessor
+                for key in prefix:
+                    source, target = source[key], target[key]
+                source_stages = source["authoring_sequence"]
+                target_stages = target["authoring_sequence"]
+                for index, stage_id, expected_reads in CUMCM_HEADING_READ_DELTAS:
+                    if (source_stages[index]["id"] != stage_id
+                            or target_stages[index]["id"] != stage_id
+                            or source_stages[index]["read_now"] != expected_reads):
+                        return deepcopy(new), []
+                    target_stages[index]["read_now"] = deepcopy(expected_reads[1:])
+                    declaration_changes.append({
+                        "path": ".".join(map(str, (*prefix, "authoring_sequence", index, "read_now"))),
+                        "baseline": deepcopy(expected_reads[1:]),
+                        "candidate": deepcopy(expected_reads),
+                        "approval": "v10.23.3: exact CUMCM Template Manifest selector addition; other stage fields unchanged",
+                    })
+            except (KeyError, IndexError, TypeError):
+                return deepcopy(new), []
+    predecessor["version"] = MIXED_FIGURE_READING_AUTHORITY_VERSIONS["skill"]
+    projected, changes = approved_mixed_figure_reading_carrier_change(
+        identifier, old, predecessor, deepcopy(MIXED_FIGURE_READING_AUTHORITY_VERSIONS),
+    )
+    if projected != old or not changes:
+        return deepcopy(new), []
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = CUMCM_HEADING_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(CUMCM_HEADING_AUTHORITY_VERSIONS)
+            change["approval"] = (
+                "Exact v10.23.3 CUMCM heading carrier; only two pinned read_now additions "
+                "in both writing-runtime mirrors are permitted"
+            )
+    changes.extend(declaration_changes)
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -1624,6 +1691,9 @@ def compare(before, after):
         projected, mixed_figure_reading_changes = approved_mixed_figure_reading_carrier_change(
             a["id"], old, projected, b.get("authority_versions"))
         expected.extend(mixed_figure_reading_changes)
+        projected, cumcm_heading_changes = approved_cumcm_heading_carrier_change(
+            a["id"], old, projected, b.get("authority_versions"))
+        expected.extend(cumcm_heading_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,

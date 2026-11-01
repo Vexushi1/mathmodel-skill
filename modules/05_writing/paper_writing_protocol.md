@@ -237,6 +237,8 @@ Chapter Handoff Map 属于 writing-only 项目记忆，不属于模型语义哈�
 
 ### 6.2 问题分析
 
+CUMCM HSK 的逐问二级标题遵循 `templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton`，按当前 Problem Contract 的实际小问数量和顺序命名；固定标题不改变下述连续数学分析的内容要求。
+
 逐问写清：
 
 ```text
@@ -745,6 +747,8 @@ solver 的跨问递进也要与结构增量一致：若继续使用前问 solver
 独立算法未发现更优不自动等于全局最优；若只有启发式或局部数值证据，应收窄 Claim Strength。
 
 ## 15. 模型评价、逐问结论与附录
+
+CUMCM 附录的总标题与逐项二级标题以 `templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton` 为准；未激活附录时不补空标题，启用后仅为真实支持材料设置子节。
 
 模型评价只评价本文实际建立和验证过的模型：优势要绑定具体结构、机制、计算性质或结果证据；不足要说明影响哪个结果、参数范围、场景或适用边界；改进方向应与不足一一对应。推广只有在存在明确可迁移对象时保留，并说明可继承的结构、需要重新标定的参数/约束以及不能直接迁移的条件。
 

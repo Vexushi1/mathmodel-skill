@@ -95,6 +95,12 @@ class WritingReasoningScopeTests(unittest.TestCase):
         for heading, digest in expected.items():
             with self.subTest(heading=heading):
                 body = sections[heading]
+                if heading == "6. 前置章节内容":
+                    # v10.23.3 adds one Manifest pointer for fixed analysis
+                    # headings; preserve the frozen historical chapter otherwise.
+                    approved = "CUMCM HSK 的逐问二级标题遵循 `templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton`，按当前 Problem Contract 的实际小问数量和顺序命名；固定标题不改变下述连续数学分析的内容要求。\n\n"
+                    self.assertEqual(body.count(approved), 1)
+                    body = body.replace(approved, "", 1)
                 if heading == "10. 结果与验证的分层":
                     # v10.18.3 adds exactly one authorized evidence-dependent CUMCM
                     # second-level validation rule. The v8.4 chapter body remains

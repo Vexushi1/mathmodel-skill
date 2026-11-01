@@ -586,6 +586,78 @@ jobs:
           log="${log%.tex}.log"
           test -f "$log"
           ! grep -E "Undefined control sequence|LaTeX Error|Citation .* undefined|There were undefined references" "$log"
+      - name: Prepare CUMCM appendix-active smoke
+        if: matrix.name == 'CUMCM'
+        shell: bash
+        run: |
+          cp -a templates/latex/cumcm/hsk templates/latex/cumcm/hsk-appendix-smoke
+          python - <<'PY'
+          from pathlib import Path
+          root = Path("templates/latex/cumcm/hsk-appendix-smoke")
+          main = root / "hsk_main.tex"
+          source = main.read_text(encoding="utf-8")
+          marker = r"% \input{appendices/appendices}"
+          assert source.count(marker) == 1
+          main.write_text(source.replace(marker, r"\input{appendices/appendices}", 1), encoding="utf-8")
+          appendix = root / "appendices/appendices.tex"
+          source = appendix.read_text(encoding="utf-8")
+          for number, content in (("A", "附录A记录可复现的输入和步骤。"), ("B", "附录B记录补充的辅助材料。")):
+              marker = rf"\subsection*{{附录{number}}}"
+              assert source.count(marker) == 1
+              source = source.replace(marker, marker + "\n" + content, 1)
+          appendix.write_text(source, encoding="utf-8")
+          PY
+      - name: Compile CUMCM appendix-active template
+        if: matrix.name == 'CUMCM'
+        uses: xu-cheng/latex-action@v4
+        with:
+          root_file: hsk_main.tex
+          working_directory: templates/latex/cumcm/hsk-appendix-smoke
+          latexmk_use_xelatex: true
+          args: -file-line-error -halt-on-error -interaction=nonstopmode
+      - name: Reject appendix-active LaTeX errors
+        if: matrix.name == 'CUMCM'
+        shell: bash
+        run: |
+          log="templates/latex/cumcm/hsk-appendix-smoke/hsk_main.log"
+          test -f "$log"
+          test -f "templates/latex/cumcm/hsk-appendix-smoke/hsk_main.pdf"
+          ! grep -E "Undefined control sequence|LaTeX Error|Citation .* undefined|There were undefined references" "$log"
+      - name: Verify CUMCM appendix-active PDF heading text
+        if: matrix.name == 'CUMCM'
+        shell: bash
+        run: |
+          pdf="templates/latex/cumcm/hsk-appendix-smoke/hsk_main.pdf"
+          # GitHub Ubuntu runner images do not guarantee poppler-utils.
+          if ! command -v pdftotext >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y poppler-utils
+          fi
+          command -v pdftotext
+          pdftotext -enc UTF-8 -layout "$pdf" appendix-active-pdf.txt
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          lines = [
+              re.sub(r"\s+", "", line)
+              for line in Path("appendix-active-pdf.txt").read_text(encoding="utf-8").splitlines()
+          ]
+          expected = ("附录", "附录A", "附录B")
+          positions = []
+          for title in expected:
+              hits = [i for i, line in enumerate(lines) if line == title]
+              assert len(hits) == 1, (title, hits)
+              positions.append(hits[0])
+          assert positions == sorted(positions), positions
+          assert not any("附录附录" in line for line in lines)
+          PY
+      - name: Upload CUMCM appendix-active PDF evidence
+        if: matrix.name == 'CUMCM'
+        uses: actions/upload-artifact@v7
+        with:
+          name: cumcm-appendix-active-pdf
+          path: templates/latex/cumcm/hsk-appendix-smoke/hsk_main.pdf
+          if-no-files-found: error
       - name: Collect LaTeX diagnostics
         if: failure()
         shell: bash
