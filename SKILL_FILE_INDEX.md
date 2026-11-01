@@ -587,6 +587,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 
 ## Historical Maintenance Provenance
 
+- `docs/cumcm_problem_analysis_appendix_heading_hierarchy_plan.md`
 - `docs/cumcm_question_writing_refinement_plan.md`
 - `docs/figure_paper_handoff_plan.md`
 - `docs/figure_technique_and_handoff_refactor_plan.md`
