@@ -71,7 +71,7 @@
 
 目前缺口：
 
-1. `template_manifest.yaml` 的 `paper_skeleton.ordered_slots.problem_analysis` 只声明 `default_internal_roles: per_question_analysis`，没有正式规定二级标题的精确模式、数量、顺序和编号方式。
+1. `template_manifest.yaml` 的 `paper_skeleton.ordered_slots` 中 `id: problem_analysis` 的 slot 只声明 `default_internal_roles: per_question_analysis`，没有正式规定二级标题的精确模式、数量、顺序和编号方式。
 2. Manifest 的 `authority_boundary.forbidden_template_authority` 仍有宽泛的 `force_internal_subsection_names`，没有区分“问题分析的固定标题”与“各问题模型章节的自适应标题”。
 3. `templates/latex/cumcm/hsk/README.md` 已经展示“问题一的分析”“问题二的分析”，但其 Template/Writing 职责边界没有把这一固定结构例外表达清楚。
 4. `modules/05_writing/paper_writing_protocol.md` 的 §6.2 已要求多问论文按问分小节，但没有把标题字面形式固定下来。
