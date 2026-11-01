@@ -7,7 +7,7 @@
 - 扩展模板 validator 和实际论文审计，修复 appendices 环境正文边界识别，并在原 LaTeX 工作流增加附录激活编译回归。
 - 不改变模型审批、数值执行、工作簿、图表证据和历史项目状态。
 
-## 10.23.2
+## Previous release: 10.23.2
 
 - Preserve both existing-figure style and independent new-figure design source reads when a single figures request combines the two intents; no new Figure Authority or approval state is introduced.
 - Keep original figure binding and verified-result prerequisites for the style shortcut. When old-figure approval is unavailable, retain the new design source/conditional reads while marking the old style evidence unresolved.

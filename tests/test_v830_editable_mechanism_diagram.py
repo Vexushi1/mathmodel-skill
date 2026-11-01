@@ -810,6 +810,16 @@ class ContractAndDriftTests(unittest.TestCase):
         protocol = "modules/05_writing/paper_writing_protocol.md"
         competition_profiles = "config/competition_profiles.yaml"
         protocol_rewrites = (
+            # v10.23.3 explicitly adds these two Manifest pointers. Remove only
+            # the exact approved additions before checking the historical blob.
+            (
+                "CUMCM HSK 的逐问二级标题遵循 `templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton`，按当前 Problem Contract 的实际小问数量和顺序命名；固定标题不改变下述连续数学分析的内容要求。\\n\\n",
+                "",
+            ),
+            (
+                "CUMCM 附录的总标题与逐项二级标题以 `templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton` 为准；未激活附录时不补空标题，启用后仅为真实支持材料设置子节。\\n\\n",
+                "",
+            ),
             (
                 "# Module 05A：Paper Writing Protocol",
                 "# Module 05A：Paper Writing Protocol（v8.7.0）",
