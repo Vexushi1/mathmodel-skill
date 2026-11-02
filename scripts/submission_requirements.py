@@ -336,7 +336,7 @@ def reproducibility_requirements(root: Path, state: Mapping[str, Any], *,
                         root, state, str(key), question, number,
                     )
                     if not ref.path.is_file():
-                        issues.append(f"{key}: 当前Python绘图源码不存在: {ref.relative}")
+                        issues.append(f"{key}: plot_script当前Python绘图源码不存在: {ref.relative}")
                     else:
                         validated = (entry.get("validated_artifact_hashes") or {}).get(ref.hash_field)
                         if not isinstance(validated, str) or len(validated) != 64 or any(
