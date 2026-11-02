@@ -784,6 +784,11 @@ def _snapshot_question(
         issues.append("结果深化分析工作簿缺少分析设计或结论稳定性汇总")
 
     plot_has_title, workbook_refs, exports = _parse_plot(plot)
+    if formal_figures and plot_field == "plot_script" and plot.is_file():
+        forbidden = python_figure_forbidden_calls(plot)
+        if forbidden:
+            issues.append("Python正式Figure源码不得重算模型、清洗证据或写回工作簿: "
+                          + ", ".join(forbidden))
     if delivery_scope == "figures":
         if not plot.is_file():
             issues.append("图表交付缺少Python脚本" if plot_field == "plot_script" else "图表交付缺少MATLAB脚本")
