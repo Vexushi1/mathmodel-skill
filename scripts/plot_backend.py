@@ -148,34 +148,87 @@ def select_project_plot_backend(project_root: str | Path, *,
         old = state["plotting"]
         if old["backend"] != backend or old["selection_reason"].strip() != reason.strip():
             raise PlotBackendError("Plot backend is already selected; use an explicit migration preview")
-        snapshot.assert_current()
-        return {"status": "unchanged", "backend": backend, "state_generation": generation}
     if not state.get("subproblems"):
         raise PlotBackendError("Choose the Figure backend after the whole-question scope is registered")
+    requirements = state.get("requirements") or {}
+    if isinstance(requirements, Mapping):
+        declared = {q for key in ("completed", "pending")
+                    for q in requirements.get(key, []) if isinstance(q, str)
+                    and re.fullmatch(r"Q[1-9][0-9]*", q)}
+        absent = declared - set(state["subproblems"])
+        if absent:
+            raise PlotBackendError(f"Figure backend selection lacks whole-project question records: {sorted(absent)}")
+
+    import hashlib
+    import sync_project
+    import validate_model_paper_framework as framework_validator
+
+    framework = state.get("paper_framework")
+    if not isinstance(framework, Mapping) or not isinstance(framework.get("path"), str):
+        raise PlotBackendError("Figure selection requires a registered model framework")
+    framework_relative = framework["path"]
+    framework_path = transaction._guarded_path(root, framework_relative)
+    if not framework_path.is_file():
+        raise PlotBackendError(f"registered model framework is missing: {framework_relative}")
+    framework_raw = framework_path.read_bytes()
+    try:
+        framework_text = framework_raw.decode("utf-8")
+    except UnicodeError as exc:
+        raise PlotBackendError("model framework must be UTF-8") from exc
+    baseline_issues = state_validator.validate_state_payload(state, project_root=root)
+    baseline_issues.extend(framework_validator.validate_framework_text(
+        framework_text, state=state, project_root=root,
+    ))
+    if baseline_issues:
+        raise PlotBackendError(
+            "current project state/framework validation failed: " + "; ".join(baseline_issues)
+        )
+
     candidate = deepcopy(state)
     candidate["plotting"] = {"backend": backend, "selection_reason": reason.strip()}
-    raw = snapshot.describe()["sha256"]
-    read_set = {transaction.STATE_RELATIVE_PATH: raw}
+    rendered = sync_project.render_project_plot_backend_memory(framework_text, candidate)
+    candidate["paper_framework"]["sha256"] = framework_validator.sha256_text(rendered)
+    read_set = {
+        transaction.STATE_RELATIVE_PATH: snapshot.describe()["sha256"],
+        framework_relative: hashlib.sha256(framework_raw).hexdigest(),
+    }
     snapshot.assert_current()
     transaction._check_read_set(root, read_set)
 
     def validate_candidate(staged: Mapping[str, Path]) -> None:
         import yaml
+        staged_framework = staged[framework_relative]
         new_state = yaml.safe_load(
             staged[transaction.STATE_RELATIVE_PATH].read_text(encoding="utf-8")
         )
-        problems = state_validator.validate_state_payload(new_state, project_root=root)
+        problems = state_validator.validate_state_payload(
+            new_state, project_root=root, framework_path_override=staged_framework,
+        )
+        problems.extend(framework_validator.validate_framework_text(
+            staged_framework.read_text(encoding="utf-8"),
+            state=new_state, project_root=root,
+        ))
         if problems:
-            raise PlotBackendError("Candidate project Figure selection invalid: " + "; ".join(problems))
+            raise PlotBackendError(
+                "Candidate project Figure selection invalid: " + "; ".join(problems)
+            )
+
+    if candidate == state and rendered == framework_text:
+        # A repeated identical request is genuinely read-only.
+        snapshot.assert_current()
+        transaction._check_read_set(root, read_set)
+        return {"status": "unchanged", "backend": backend, "state_generation": generation}
 
     result = transaction.commit_project_state(
         root, candidate, expected_generation=generation,
-        expected_file_hashes=read_set, validators=[validate_candidate],
+        expected_file_hashes=read_set,
+        writes_before_state=[(framework_relative, rendered)],
+        validators=[validate_candidate],
     )
     return {"status": result["status"], "backend": backend,
             "state_generation": result["target_generation"],
+            "framework_path": framework_relative,
             "environment_verified": False, "figure_approved": False}
-
 
 
 def main() -> int:
