@@ -109,7 +109,7 @@ class FigureSourceTests(unittest.TestCase):
         script.write_text(script.read_text(encoding="utf-8") + "# changed\n", encoding="utf-8")
         changed, _ = self.inspect()
         self.assertEqual(changed["approval_freshness"], "not_assessed", changed)
-        self.assertTrue(any("Python script differs" in issue for issue in changed["issues"]), changed)
+        self.assertTrue(any("Python Figure script differs" in issue for issue in changed["issues"]), changed)
 
     def test_extra_framework_header_or_missing_actual_header_needs_review(self):
         self.registry_row = self.registry_row.replace('核心指标/数值', '核心指标/数值;核心指标/虚构列')
