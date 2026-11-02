@@ -882,6 +882,150 @@ class ContractAndDriftTests(unittest.TestCase):
                     from claim_schema_reference import previous_d2_schema
 
                     text = path.read_text(encoding="utf-8")
+                    # The protected pre-v10.24 Figure authority SHA still applies:
+                    # reverse only the independently approved optional Figure fields,
+                    # then run the original predecessor byte/hash checks unchanged.
+                    if "  plotting:\n" in text:
+                        additions = (
+                            "  plotting:\n"
+                            "    description: Project-wide Figure rendering backend; absent in older MATLAB projects.\n"
+                            "    type: object\n"
+                            "    additionalProperties: false\n"
+                            "    required: [backend, selection_reason]\n"
+                            "    properties:\n"
+                            "      backend: {type: string, enum: [python, matlab]}\n"
+                            "      selection_reason: {type: string, minLength: 1, pattern: '\\S'}\n",
+                            "      plot_script: {type: string, pattern: '^[0-9a-fA-F]{64}
+                        from claim_schema_reference import previous_comparison_schema
+                        schema = previous_comparison_schema(schema)
+                        begin = "# analysis comparison definitions BEGIN\n"
+                        end = "# analysis comparison definitions END\n"
+                        self.assertEqual(text.count(begin), 1)
+                        self.assertEqual(text.count(end), 1)
+                        start = text.rfind("\n", 0, text.index(begin)) + 1
+                        stop = text.index(end, start) + len(end)
+                        text = text[:start] + text[stop:]
+                        reference = "        analysis_comparison: {$ref: '#/$defs/analysis_comparison'}\n"
+                        self.assertEqual(text.count(reference), 1)
+                        self.assertEqual(text.count("version: 8.16.0\n"), 1)
+                        text = text.replace(reference, "", 1).replace("version: 8.16.0\n", "version: 8.15.0\n", 1)
+                    if schema["version"] == "8.15.0":
+                        # Only the pinned D2 additions may project back to the frozen C2 bytes.
+                        previous_d2_schema(schema)
+                        start = text.index("  case_references:\n")
+                        end = text.index("  review_receipt_policy:\n", start)
+                        text = text[:start] + text[end:]
+                        reference = "        case_references: {$ref: '#/$defs/case_references'}\n"
+                        self.assertEqual(text.count(reference), 1)
+                        self.assertEqual(text.count("version: 8.15.0\n"), 1)
+                        text = text.replace(reference, "", 1).replace("version: 8.15.0\n", "version: 8.14.0\n", 1)
+                    data = text.encode("utf-8")
+                    actual = hashlib.sha1(
+                        b"blob " + str(len(data)).encode("ascii") + b"\0" + data
+                    ).hexdigest()
+                else:
+                    actual = git_blob_sha(path)
+                self.assertEqual(actual, expected)
+
+    def test_checker_inverse_projection_rejects_missing_or_duplicate_authorized_blocks(self):
+        # P6 and older documentation deltas both reject a missing or duplicate
+        # authorized segment. Source bytes outside those segments are hash-pinned.
+        for relative, replacements in (
+            *P6_SOURCE_PROVENANCE_REWRITES.items(),
+            *USER_CHECKER_AUTHORITY_REWRITES.items(),
+        ):
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            for current, _ in replacements:
+                for changed in (text.replace(current, "unauthorized replacement\n", 1), text + current):
+                    with self.subTest(relative=relative, current=current[:80]):
+                        with self.assertRaises(ValueError):
+                            inverse_user_checker_changes(relative, changed)
+
+    def test_checker_inverse_projection_does_not_erase_unrelated_changes(self):
+        for relative in set(USER_CHECKER_AUTHORITY_REWRITES) | set(P6_SOURCE_PROVENANCE_REWRITES):
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            changed = text + "\nunauthorized unrelated change\n"
+            projected = inverse_user_checker_changes(relative, text)
+            self.assertEqual(
+                inverse_user_checker_changes(relative, changed),
+                projected + "\nunauthorized unrelated change\n",
+            )
+            self.assertEqual((ROOT / relative).read_text(encoding="utf-8"), text)
+
+    def test_matlab_ownership_and_conditional_per_question_layout_are_explicit(self):
+        output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
+        self.assertIn("draw.io", output["ownership"]["other_figure_tools"])
+        per_question = output["per_question"]
+        base = per_question["base_default_files"]
+        analysis = per_question["analysis_required_additional_files"]
+        self.assertEqual(len(base), 3)
+        self.assertEqual(len(analysis), 2)
+        self.assertTrue(set(base).isdisjoint(analysis))
+        self.assertEqual(len(set(base + analysis)), 5)
+        self.assertIn("q{阿拉伯序号}_plot.m", base)
+        self.assertNotIn("问题{中文序号}结果深化分析.py", base)
+        self.assertIn("问题{中文序号}结果深化分析.py", analysis)
+        self.assertNotIn("matplotlib", (ROOT / "templates/code").read_text(encoding="utf-8") if (ROOT / "templates/code").is_file() else "")
+
+    def test_figure_authority_and_adapter_boundaries_are_explicit(self):
+        module = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
+        pack = (ROOT / "packs/artifact/figure.md").read_text(encoding="utf-8")
+        for token in ("Mechanism Diagram Backend Selection Gate", "structure_checked", "approved_for_paper", "不判断箭头方向是否符合真实机制"):
+            self.assertIn(token, module)
+        self.assertIn("templates/figure/mechanism_drawio_spec.yaml", pack)
+        self.assertIn("modules/04_figure_evidence.md", pack)
+
+    def test_route_loads_drawio_resources_only_for_precise_trigger(self):
+        router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8"))
+        general = router["routing"]["figures"]
+        precise = router["routing"]["editable_mechanism_diagram"]
+        self.assertNotIn("templates/figure/mechanism_drawio_patterns.md", general["load"])
+        self.assertIn("可编辑机理图", precise["triggers"])
+        self.assertIn("templates/figure/mechanism_drawio_patterns.md", precise["load"])
+
+    def test_natural_language_routing_keeps_drawio_resources_conditional(self):
+        def resolve(request: str) -> dict:
+            result = subprocess.run(
+                [sys.executable, str(ROOT / "scripts/resolve_workflow.py"), "--request", request],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            return yaml.safe_load(result.stdout)
+
+        editable = resolve("请用 draw.io 生成一张可编辑机理图")
+        ordinary = resolve("请根据结果工作簿生成结果图")
+        resource = "templates/figure/mechanism_drawio_patterns.md"
+        self.assertIn(resource, editable["load_order"])
+        self.assertNotIn(resource, ordinary["load_order"])
+
+    def test_current_release_carriers_and_skill_entrypoints_match(self):
+        bootstrap = yaml.safe_load((ROOT / "core/bootstrap.yaml").read_text(encoding="utf-8"))
+        plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
+        root_skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        packaged = (ROOT / "skills/mathmodel-skill/SKILL.md").read_text(encoding="utf-8")
+        self.assertEqual(str(plugin["version"]), str(bootstrap["skill_version"]))
+        self.assertEqual(root_skill, packaged)
+        self.assertIn("Editable Mechanism Diagram", root_skill)
+
+
+if __name__ == "__main__":
+    unittest.main()
+}\n",
+                            "        plot_script: {type: string, description: New Python Figure entry; MATLAB retains matlab_script}\n",
+                        )
+                        for addition in additions:
+                            self.assertEqual(text.count(addition), 1, addition)
+                            text = text.replace(addition, "", 1)
+                        predecessor = (
+                            "robustness_workbook, matlab_script, plot_script, figure_bundle, framework]"
+                        )
+                        self.assertEqual(text.count(predecessor), 1)
+                        text = text.replace(
+                            predecessor,
+                            "robustness_workbook, matlab_script, figure_bundle, framework]", 1
+                        )
                     schema = yaml.safe_load(text)
                     if schema["version"] == "8.16.0":
                         from claim_schema_reference import previous_comparison_schema
