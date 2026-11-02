@@ -73,7 +73,7 @@ class ProjectPlotBackendTests(unittest.TestCase):
             directory = root / "问题一求解"
             directory.mkdir()
             script = directory / "q1_plot.py"
-            script.write_text("print('Figure only')\\n", encoding="utf-8")
+            script.write_text("print('Figure only')\n", encoding="utf-8")
             relative = "问题一求解/q1_plot.py"
             digest = hashlib.sha256(script.read_bytes()).hexdigest()
             state = {
@@ -97,10 +97,10 @@ class ProjectPlotBackendTests(unittest.TestCase):
             self.assertIn(script.resolve(), observed)
             self.assertFalse([issue for issue in issues if "plot_script" in issue], issues)
 
-            script.write_text("print('Changed Figure')\\n", encoding="utf-8")
+            script.write_text("print('Changed Figure')\n", encoding="utf-8")
             _, issues = reproducibility_requirements(root, state)
             self.assertTrue(any("plot_script" in issue and "SHA-256" in issue for issue in issues), issues)
-            script.write_text("print('Figure only')\\n", encoding="utf-8")
+            script.write_text("print('Figure only')\n", encoding="utf-8")
 
             del state["subproblems"]["Q1"]["validated_artifact_hashes"]["plot_script"]
             _, issues = reproducibility_requirements(root, state)
@@ -108,7 +108,7 @@ class ProjectPlotBackendTests(unittest.TestCase):
             state["subproblems"]["Q1"]["validated_artifact_hashes"]["plot_script"] = digest
 
             state["subproblems"]["Q1"]["plot_script"] = "问题一求解/other.py"
-            (directory / "other.py").write_text("print('Unrelated')\\n", encoding="utf-8")
+            (directory / "other.py").write_text("print('Unrelated')\n", encoding="utf-8")
             _, issues = reproducibility_requirements(root, state)
             self.assertTrue(any("plot_script" in issue and "当前身份不合法" in issue for issue in issues), issues)
             state["subproblems"]["Q1"]["plot_script"] = relative
