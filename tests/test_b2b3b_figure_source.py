@@ -75,6 +75,42 @@ class FigureSourceTests(unittest.TestCase):
         self.assertIn('figures/q1_f01.png', observed['project'])
         self.assertEqual(figure_source.recheck_source_discovery(self.root, self.state, [check]), [])
 
+    def test_python_figure_uses_the_same_b2_source_and_approval_chain(self):
+        """Python is an alternate rendering backend, never an alternate approval."""
+        entry = self.state["subproblems"]["Q1"]
+        self.state["plotting"] = {
+            "backend": "python", "selection_reason": "Whole-project Figure evidence review",
+        }
+        old = entry.pop("matlab_script")
+        entry["artifact_hashes"].pop("matlab_script")
+        entry["validated_artifact_hashes"].pop("matlab_script")
+        new = "问题一求解/q1_plot.py"
+        script = self.root / new
+        script.write_text(
+            "from pathlib import Path\n"
+            "workbook = Path('问题一求解结果.xlsx')\n"
+            "output = Path('../figures/q1_f01.png')\n"
+            "# This fixture binds source bytes; it does not claim a visual review.\n",
+            encoding="utf-8",
+        )
+        digest = hashlib.sha256(script.read_bytes()).hexdigest()
+        entry["plot_script"] = new
+        entry["artifact_hashes"]["plot_script"] = digest
+        entry["validated_artifact_hashes"]["plot_script"] = digest
+        self.registry_row = self.registry_row.replace(old, new)
+        self.save_projection()
+        check, observed = self.inspect()
+        self.assertEqual(check["status"], "current", check)
+        self.assertEqual(check["approval_freshness"], "current", check)
+        self.assertEqual(check["visual_and_caption_semantics"], "not_assessed")
+        self.assertIn(new, observed["project"])
+        self.assertEqual(figure_source.recheck_source_discovery(self.root, self.state, [check]), [])
+
+        script.write_text(script.read_text(encoding="utf-8") + "# changed\n", encoding="utf-8")
+        changed, _ = self.inspect()
+        self.assertEqual(changed["approval_freshness"], "not_assessed", changed)
+        self.assertTrue(any("Python script differs" in issue for issue in changed["issues"]), changed)
+
     def test_extra_framework_header_or_missing_actual_header_needs_review(self):
         self.registry_row = self.registry_row.replace('核心指标/数值', '核心指标/数值;核心指标/虚构列')
         self.save_projection()
