@@ -844,7 +844,9 @@ def _snapshot_question(
                               else "MATLAB脚本未发现标准工作簿引用")
             for item in exports:
                 export_path = (plot.parent / item).resolve()
-                if not export_path.is_file():
+                if plot_field == "plot_script" and not export_path.is_relative_to(result_dir):
+                    issues.append(f"Python Figure声明导出的图越出当前问题目录: {item}")
+                elif not export_path.is_file():
                     shown = export_path.relative_to(root).as_posix() if export_path.is_relative_to(root) else export_path.as_posix()
                     issues.append(f"{'Python' if plot_field == 'plot_script' else 'MATLAB'}声明导出的图不存在: {shown}")
 
