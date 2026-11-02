@@ -39,7 +39,7 @@ def inspect_plotting(state: Mapping[str, Any]) -> dict[str, Any]:
             issues.append("plotting must be a mapping")
         else:
             selected = setting.get("backend")
-            if selected not in BACKENDS:
+            if not isinstance(selected, str) or selected not in BACKENDS:
                 issues.append("plotting.backend must be python or matlab")
             reason = setting.get("selection_reason")
             if not isinstance(reason, str) or not reason.strip():
@@ -108,3 +108,70 @@ def resolve_question_script(root: str | Path, state: Mapping[str, Any],
         backend=backend, relative=relative, path=path, hash_field=field,
         origin=report["kind"] if report["kind"] != "unselected" else "legacy_observation",
     )
+
+
+def select_project_plot_backend(project_root: str | Path, *,
+                                backend: str, reason: str,
+                                expected_generation: int) -> dict[str, Any]:
+    """Commit a first project plotting choice through the existing CAS transaction.
+
+    A previously selected or historical active MATLAB project cannot be
+    silently converted. The request never changes the numerical solver backend.
+    """
+    from copy import deepcopy
+    import project_transaction as transaction
+    import validate_project_state as state_validator
+    from runtime_assurance import ProjectStateSnapshot
+
+    if backend not in BACKENDS or not isinstance(reason, str) or not reason.strip():
+        raise PlotBackendError("Selection requires python/matlab and nonempty reason")
+    if isinstance(expected_generation, bool) or not isinstance(expected_generation, int) or expected_generation < 0:
+        raise PlotBackendError("expected_generation must be a nonnegative integer")
+    snapshot = ProjectStateSnapshot.capture(project_root)
+    if snapshot.raw is None:
+        raise PlotBackendError("Project state must exist before choosing a Figure backend")
+    root, state = snapshot.root, snapshot.payload()
+    generation = snapshot.describe()["state_generation"]
+    if generation != expected_generation:
+        raise transaction.GenerationConflictError(
+            f"Plot backend generation changed: expected {expected_generation}, live {generation}"
+        )
+    report = inspect_plotting(state)
+    if report["issues"]:
+        raise PlotBackendError("; ".join(report["issues"]))
+    if report["kind"] == "historical_matlab":
+        if backend != "matlab":
+            raise PlotBackendError("Historical MATLAB Figure identity requires explicit migration")
+        snapshot.assert_current()
+        return {"status": "unchanged", "backend": "matlab", "state_generation": generation}
+    if report["kind"] == "selected":
+        old = state["plotting"]
+        if old["backend"] != backend or old["selection_reason"].strip() != reason.strip():
+            raise PlotBackendError("Plot backend is already selected; use an explicit migration preview")
+        snapshot.assert_current()
+        return {"status": "unchanged", "backend": backend, "state_generation": generation}
+    if not state.get("subproblems"):
+        raise PlotBackendError("Choose the Figure backend after the whole-question scope is registered")
+    candidate = deepcopy(state)
+    candidate["plotting"] = {"backend": backend, "selection_reason": reason.strip()}
+    raw = snapshot.describe()["sha256"]
+    read_set = {transaction.STATE_RELATIVE_PATH: raw}
+    snapshot.assert_current()
+    transaction._check_read_set(root, read_set)
+
+    def validate_candidate(staged: Mapping[str, Path]) -> None:
+        import yaml
+        new_state = yaml.safe_load(
+            staged[transaction.STATE_RELATIVE_PATH].read_text(encoding="utf-8")
+        )
+        problems = state_validator.validate_state_payload(new_state, project_root=root)
+        if problems:
+            raise PlotBackendError("Candidate project Figure selection invalid: " + "; ".join(problems))
+
+    result = transaction.commit_project_state(
+        root, candidate, expected_generation=generation,
+        expected_file_hashes=read_set, validators=[validate_candidate],
+    )
+    return {"status": result["status"], "backend": backend,
+            "state_generation": result["target_generation"],
+            "environment_verified": False, "figure_approved": False}
