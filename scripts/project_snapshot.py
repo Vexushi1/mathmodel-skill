@@ -757,7 +757,12 @@ def _snapshot_question(
                 f"{chinese_name}结果深化分析.xlsx",
                 f"{chinese_name}敏感性与鲁棒性结果.xlsx",
             }
-            if not {Path(item).name for item in workbook_refs}.intersection(standard):
+            referenced = {Path(item).name for item in workbook_refs}
+            if plot_field == "plot_script":
+                # Standalone Python entry can construct "问题一" + "求解结果.xlsx".
+                referenced.update(chinese_name + item for item in list(referenced)
+                                  if item in {"求解结果.xlsx", "结果深化分析.xlsx"})
+            if not referenced.intersection(standard):
                 issues.append("绘图脚本未发现标准工作簿引用" if plot_field == "plot_script"
                               else "MATLAB脚本未发现标准工作簿引用")
             for item in exports:
