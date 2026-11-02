@@ -126,6 +126,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `packs/task/spatial.md`
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
+- `requirements-plot-python.txt`
 - `scripts/README.md`
 - `scripts/analysis_comparison.py`
 - `scripts/analysis_comparison_gate.py`
@@ -165,6 +166,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/measure_infrastructure.py`
 - `scripts/measure_writing_validation.py`
 - `scripts/model_code_conformance.py`
+- `scripts/plot_backend.py`
 - `scripts/prepare_cumcm_class.py`
 - `scripts/project_snapshot.py`
 - `scripts/project_solver_backend.py`
@@ -274,6 +276,9 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `templates/model/model_approval_section.md`
 - `templates/model/model_paper_framework.md`
 - `templates/model/variable_table.md`
+- `templates/plot/python/README.md`
+- `templates/plot/python/data_process.py`
+- `templates/plot/python/q1_plot.py`
 - `templates/problem/data_schema_audit.md`
 - `templates/problem/model_route_compare.md`
 - `templates/problem/requirement_coverage.md`
@@ -316,6 +321,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/matlab/run_solver_backend_smoke.m`
 - `tests/module06_sources.py`
 - `tests/optimization_baseline.py`
+- `tests/plot_render_smoke.py`
 - `tests/reading_plan_cases.py`
 - `tests/reading_plan_evidence.py`
 - `tests/solver_backend_hash_smoke.py`
@@ -414,6 +420,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_project_backend_migration_preview.py`
 - `tests/test_project_backend_policy_shared.py`
 - `tests/test_project_history_archive.py`
+- `tests/test_project_plot_backend.py`
 - `tests/test_project_solver_backend_inspect.py`
 - `tests/test_project_solver_backend_select.py`
 - `tests/test_project_state_read_snapshot.py`
