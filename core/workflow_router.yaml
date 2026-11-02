@@ -355,7 +355,11 @@ routing:
     triggers: [图表, 可视化, 机理图, 推导图, Nature, SCI, MATLAB图标题, 数据预处理图, 处理前后对比图, 局部放大, 分面图, 联合诊断图]
     infer_keywords: [MATLAB绘图, MATLAB 绘图, 结果图, 敏感性图, 鲁棒性图, 机理图, 推导图, 可视化, 图表, data_process, 预处理图, 局部放大, inset, small multiples, 分面图, 联合诊断]
     load: [modules/04_figure_evidence.md, packs/artifact/figure.md, templates/figure/chart_selection.md, templates/figure/figure_enhancement_patterns.md]
-    terminal_outputs: [preprocessing_matlab_script, preprocessing_figures, matlab_scripts, figure_contracts, approved_figures, model_paper_framework]
+    terminal_outputs: [preprocessing_matlab_script, preprocessing_figures, matlab_scripts, figure_contracts, approved_figures, model_paper_framework]  # MATLAB historical projection
+    project_plotting_outputs:
+      python: [preprocessing_python_plot_script, preprocessing_figures, plot_scripts, figure_contracts, approved_figures, model_paper_framework]
+      matlab: [preprocessing_matlab_script, preprocessing_figures, matlab_scripts, figure_contracts, approved_figures, model_paper_framework]
+      condition: preprocessing_python_plot_script_is_project_level_only
     formal_delivery: true
     delivery_scope: figures
 
