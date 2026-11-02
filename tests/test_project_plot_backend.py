@@ -79,11 +79,11 @@ class ProjectPlotBackendTests(unittest.TestCase):
             state = {"preprocessing": {"decision": "project_level"}}
             required = {"preprocessing_python_plot_script"}
             source.write_text(
-                '# 数据预处理结果.xlsx in a comment is not evidence of a workbook reference\\n'
-                'import matplotlib.pyplot as plt\\n'
-                'fig, ax = plt.subplots()\\n'
-                'ax.set_title("forbidden overall title")\\n'
-                'fig.savefig("not_yet_created.svg")\\n',
+                '# 数据预处理结果.xlsx in a comment is not evidence of a workbook reference\n'
+                'import matplotlib.pyplot as plt\n'
+                'fig, ax = plt.subplots()\n'
+                'ax.set_title("forbidden overall title")\n'
+                'fig.savefig("not_yet_created.svg")\n',
                 encoding="utf-8",
             )
             problems = _preprocessing_artifact_issues(root, required, state)
@@ -92,10 +92,10 @@ class ProjectPlotBackendTests(unittest.TestCase):
             self.assertTrue(any("不存在" in issue for issue in problems), problems)
 
             source.write_text(
-                'from openpyxl import load_workbook\\n'
-                'from pathlib import Path\\n'
-                'book = load_workbook(Path(__file__).parent / "数据预处理结果.xlsx", read_only=True)\\n'
-                '# ax.set_title("comment is not a title call")\\n',
+                'from openpyxl import load_workbook\n'
+                'from pathlib import Path\n'
+                'book = load_workbook(Path(__file__).parent / "数据预处理结果.xlsx", read_only=True)\n'
+                '# ax.set_title("comment is not a title call")\n',
                 encoding="utf-8",
             )
             self.assertEqual(_preprocessing_artifact_issues(root, required, state), [])
@@ -109,9 +109,9 @@ class ProjectPlotBackendTests(unittest.TestCase):
             folder.mkdir(parents=True)
             source = folder / "data_process.py"
             source.write_text(
-                'from openpyxl import load_workbook\\n'
-                'load_workbook("数据预处理结果.xlsx", read_only=True)\\n'
-                'fig.savefig("../../outside.svg")\\n',
+                'from openpyxl import load_workbook\n'
+                'load_workbook("数据预处理结果.xlsx", read_only=True)\n'
+                'fig.savefig("../../outside.svg")\n',
                 encoding="utf-8",
             )
             problems = _preprocessing_artifact_issues(
