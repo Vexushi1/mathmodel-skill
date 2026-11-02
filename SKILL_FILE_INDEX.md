@@ -618,6 +618,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/p8d_lint_function_measurement.md`
 - `docs/p8e_validator_split_decision.md`
 - `docs/p9_release_closeout.md`
+- `docs/project_level_dual_plotting_backend_plan.md`
 - `docs/project_solver_backend_redefinition_p1_audit.md`
 - `docs/project_solver_backend_redefinition_plan.md`
 - `docs/repository_audit_and_handoff_refactor_plan.md`
