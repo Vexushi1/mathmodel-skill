@@ -198,6 +198,75 @@ def inset_with_grounded_limits(ax, x_limits: tuple[float, float],
     return inset
 
 
+
+def small_multiples_lines(series: Mapping[str, tuple[Sequence[float], Sequence[float]]],
+                          *, colors: Mapping[str, Sequence[float]],
+                          ncols: int = 2, shared_axes: bool = True,
+                          x_label: str = "", y_label: str = ""):
+    """Small Multiples Z2: same accepted records, one series per readable panel.
+
+    Shared axes are appropriate for magnitude comparisons; disable only when
+    the Figure Contract compares shapes rather than amplitudes. No interpolation,
+    smoothing, reordering or dropping missing positions is performed.
+    """
+    if not series or set(colors) != set(series):
+        raise ValueError("Every recorded series needs one explicit RGB color")
+    if not isinstance(ncols, int) or isinstance(ncols, bool) or ncols < 1:
+        raise ValueError("ncols must be a positive integer chosen for the evidence")
+    count = len(series)
+    ncols = min(ncols, count)
+    nrows = math.ceil(count / ncols)
+    fig, axes = plt.subplots(
+        nrows, ncols, squeeze=False, sharex=shared_axes,
+        sharey=shared_axes, figsize=(4.4 * ncols, 2.9 * nrows),
+        layout="constrained",
+    )
+    for ax, (label, (x_values, y_values)) in zip(axes.flat, series.items()):
+        x = _vector(x_values, name=f"{label} x")
+        y = _vector(y_values, name=f"{label} y", allow_nan=True)
+        if len(x) != len(y) or not np.isfinite(y).any():
+            raise ValueError(f"{label}: aligned records with observed values required")
+        ax.plot(x, y, color=_rgb(colors[label]), linewidth=1.5)
+        ax.text(.03, .96, str(label), transform=ax.transAxes,
+                ha="left", va="top", fontsize=10, weight="medium")
+        ax.set_xlabel(x_label)
+        ax.set_ylabel(y_label)
+        apply_publication_frame(ax)
+    for ax in list(axes.flat)[count:]:
+        ax.set_visible(False)
+    # A formal Figure caption is owned by the paper; no figure/axes title.
+    return fig, axes
+
+
+def recorded_surface_3d(ax, x, y, z, *, cmap: str,
+                        x_label: str, y_label: str, z_label: str):
+    """Conditional 3D: render an already accepted 2-factor response grid.
+
+    Module 04 must establish the physical/mathematical meaning of the third
+    dimension and why a 2-D projection loses evidence before this is used.
+    The renderer never interpolates, estimates or extrapolates a surface.
+    """
+    if getattr(ax, "name", "") != "3d":
+        raise ValueError("Conditional 3D requires a genuine 3-D axes")
+    x = _vector(x, name="x")
+    y = _vector(y, name="y")
+    field = np.asarray(z, dtype=float)
+    if field.shape != (len(y), len(x)) or not np.isfinite(field).all():
+        raise ValueError("3-D surface requires the finite accepted (y, x) grid")
+    if len(x) < 2 or len(y) < 2:
+        raise ValueError("3-D surface requires at least two measured positions per axis")
+    if not all(isinstance(v, str) and v.strip()
+               for v in (x_label, y_label, z_label)):
+        raise ValueError("Every physically meaningful axis needs a unit-aware label")
+    xx, yy = np.meshgrid(x, y)
+    surface = ax.plot_surface(xx, yy, field, cmap=cmap, linewidth=0,
+                              antialiased=False)
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    ax.set_zlabel(z_label)
+    return surface
+
+
 def export_after_visual_review(fig, path: str | Path, *,
                                dpi: int = 300):
     """Vector-first publication output; actual run is not Figure approval."""
