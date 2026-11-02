@@ -27,6 +27,47 @@ class ProjectPlotBackendTests(unittest.TestCase):
             self.assertEqual(ref.hash_field, "matlab_script")
             self.assertEqual(ref.relative, "问题一求解/q1_plot.m")
 
+    def test_output_contract_selected_figure_roles_all_solver_combinations(self):
+        # Legacy YAML role names are projected at the actual scope consumer.
+        # All four solver x Figure combinations must select exactly one renderer.
+        from sync_project import stage_requirements
+
+        output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))
+        projection = output["project_sync"]["plotting_backend_contract"]
+        self.assertEqual(projection["stage_role_projection"], "scripts/sync_project.py#stage_requirements")
+        self.assertEqual(projection["active_script_resolution"], "scripts/plot_backend.py#resolve_question_script")
+        for solver in ("python", "matlab"):
+            for plot in ("python", "matlab"):
+                with self.subTest(solver=solver, plot=plot):
+                    state = {
+                        "execution": {"solver_backend": solver},
+                        "plotting": {"backend": plot, "selection_reason": "whole-project Figure plan"},
+                        "preprocessing": {"decision": "project_level"},
+                        "subproblems": {"Q1": {}},
+                    }
+                    expected = "preprocessing_python_plot_script" if plot == "python" else "preprocessing_matlab_script"
+                    excluded = "preprocessing_matlab_script" if plot == "python" else "preprocessing_python_plot_script"
+                    for scope in ("figures", "docx", "latex", "submission"):
+                        roles = stage_requirements(scope, output, state)
+                        self.assertIn(expected, roles, (scope, solver, plot))
+                        self.assertNotIn(excluded, roles, (scope, solver, plot))
+                        if scope == "figures":
+                            self.assertIn("plot_scripts" if plot == "python" else "matlab_scripts", roles)
+                            self.assertNotIn("matlab_scripts" if plot == "python" else "plot_scripts", roles)
+                    state["preprocessing"]["decision"] = "not_needed"
+                    for scope in ("figures", "docx", "latex", "submission"):
+                        roles = stage_requirements(scope, output, state)
+                        self.assertNotIn("preprocessing_matlab_script", roles)
+                        self.assertNotIn("preprocessing_python_plot_script", roles)
+
+        historical = {
+            "preprocessing": {"decision": "project_level"},
+            "subproblems": {"Q1": {"matlab_script": "问题一求解/q1_plot.m"}},
+        }
+        self.assertIn("matlab_scripts", stage_requirements("figures", output, historical))
+        self.assertIn("preprocessing_matlab_script",
+                      stage_requirements("figures", output, historical))
+
     def test_plot_backend_not_inferred_from_solver(self):
         state = {"execution": {"solver_backend": "matlab"},
                  "plotting": {"backend": "python", "selection_reason": "whole-project Figure requirements"},
