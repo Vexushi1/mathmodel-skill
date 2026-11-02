@@ -18,6 +18,7 @@ import analysis_comparison as COMPARISON
 import analysis_comparison_gate as COMPARISON_GATE
 import runtime_assurance as RUNTIME_ASSURANCE
 import stage_code as STAGE_CODE
+import plot_backend as PLOT_BACKEND
 import execution_provenance as EXECUTION_PROVENANCE
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -40,7 +41,7 @@ CURRENT_PROPOSITION_REQUIRED_FIELDS = (
 )
 ARTIFACT_LAYERS = {
     "data", "model", "primary_code", "analysis_code", "solution_workbook",
-    "result_analysis_workbook", "robustness_workbook", "matlab_script",
+    "result_analysis_workbook", "robustness_workbook", "matlab_script", "plot_script",
     "figure_bundle", "framework",
 }
 HIGH_PRECISION_BASES = {"prompt", "official", "reviewer", "project_high_precision"}
@@ -1023,6 +1024,10 @@ def validate_state_payload(
                 if (entry.get("primary_code_sha256") or entry.get("analysis_code_sha256") or has_numeric_hash):
                     issues.append(f"{name}: numerical delivery identity requires explicit project backend selection")
 
+    plot_report = PLOT_BACKEND.inspect_plotting(payload)
+    issues.extend("project Figure backend: " + item for item in plot_report["issues"])
+    # Old MATLAB projects without plotting remain fully readable and writable.
+    # New Python Figure scripts require a single explicit project-wide selection.
     requirements = payload.get("requirements", {})
     completed = set(requirements.get("completed", []))
     pending = set(requirements.get("pending", []))
