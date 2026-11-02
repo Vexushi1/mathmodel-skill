@@ -17,6 +17,7 @@ from claim_values import EvidenceError
 import model_code_conformance as bounded
 import project_snapshot
 import stage_code
+import plot_backend
 
 
 MAX_BINDINGS = 8
@@ -104,7 +105,7 @@ def _header_issues(book: Workbook, source: Mapping[str, Any], sheet: str,
 
 def _stale_issues(entry: Mapping[str, Any], stages: set[str]) -> list[str]:
     stale = set(entry.get("stale_layers") or [])
-    relevant = {"data", "primary_code", "solution_workbook", "matlab_script",
+    relevant = {"data", "primary_code", "solution_workbook", "matlab_script", "plot_script",
                 "figure_bundle", "framework"}
     if "analysis" in stages:
         relevant.update({"analysis_code", "result_analysis_workbook", "robustness_workbook"})
@@ -295,25 +296,39 @@ def inspect_source_binding(root: Path, state: dict, binding: dict,
         if stale_issues:
             freshness_ok = False
             issues.extend(stale_issues)
-        script_relative = entry.get("matlab_script")
+        try:
+            name = project_snapshot.chinese_question_name(question)
+            number = project_snapshot.question_number(name)
+            ref = plot_backend.resolve_question_script(
+                root, state, question, name, number or 0,
+            )
+        except (plot_backend.PlotBackendError, ValueError, KeyError) as exc:
+            issues.append("Current Figure backend cannot be resolved: " + str(exc))
+            return result
+        field = ref.hash_field
+        script_relative = entry.get(field)
         if not isinstance(script_relative, str) or not script_relative:
             issues.append("State has no current Figure plotting script")
             return result
         if _items(registry_row["plotting_program"]) != [script_relative]:
-            issues.append("Framework plotting program differs from State MATLAB script")
+            issues.append("Framework plotting program differs from State MATLAB script"
+                          if field == "matlab_script" else "Framework plotting program differs from State Python script")
         script = _project_path(root, script_relative)
-        if script.suffix.lower() != ".m":
-            issues.append("Figure plotting program is not a MATLAB source")
+        if script.suffix.lower() != (".py" if field == "plot_script" else ".m"):
+            issues.append("Figure plotting program is not a MATLAB source"
+                          if field == "matlab_script" else "Figure plotting program is not a Python source")
             return result
         script_hash = _cached_script(root, script_relative, observed, cache)
         validated = entry.get("validated_artifact_hashes") or {}
         current = entry.get("artifact_hashes") or {}
-        if validated.get("matlab_script") != script_hash:
+        if validated.get(field) != script_hash:
             freshness_ok = False
-            issues.append("Current MATLAB script differs from its existing validated hash")
-        if current.get("matlab_script") and current["matlab_script"] != script_hash:
+            issues.append("Current MATLAB script differs from its existing validated hash"
+                          if field == "matlab_script" else "Current Python Figure script differs from validated hash")
+        if current.get(field) and current[field] != script_hash:
             freshness_ok = False
-            issues.append("State MATLAB script observation differs from current bytes")
+            issues.append("State MATLAB script observation differs from current bytes"
+                          if field == "matlab_script" else "State Python Figure script observation differs from current bytes")
         figures, discovery_issues = _cached_discovery(
             root, question, script, script_hash, entry, cache)
         if discovery_issues:
