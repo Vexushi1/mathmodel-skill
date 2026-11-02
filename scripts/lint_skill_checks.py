@@ -929,7 +929,7 @@ def check_contracts(errors: list[str]) -> None:
         errors.append("project_sync must define additive conditional preprocessing semantics separately")
     expected_layers = {
         "raw_data", "preprocessing_decision", "preprocessing_code", "preprocessing_workbook",
-        "preprocessing_matlab_script", "primary_code", "analysis_code", "solution_workbook", "result_analysis_workbook", "matlab_script", "figure_bundle", "framework",
+        "preprocessing_matlab_script", "preprocessing_python_plot_script", "primary_code", "analysis_code", "solution_workbook", "result_analysis_workbook", "matlab_script", "plot_script", "figure_bundle", "framework",
     }
     if set(sync.get("artifact_hash_layers", [])) != expected_layers:
         errors.append("project_sync artifact hash layers are incomplete")
@@ -969,8 +969,8 @@ def check_contracts(errors: list[str]) -> None:
 def check_project_state_and_framework(errors: list[str]) -> None:
     schema = load_structured(ROOT / "core/project_state.schema.yaml")
     Draft202012Validator.check_schema(schema)
-    if schema.get("version") != "8.16.0":
-        errors.append("v10.18 analysis comparisons require independent schema 8.16.0")
+    if schema.get("version") != "8.17.0":
+        errors.append("project plotting backend requires schema 8.17.0 with preserved analysis comparisons")
     policy = schema.get("$defs", {}).get("claim_consumption_policy", {})
     if policy.get("oneOf", [])[:3] != [
             {"properties": {"protocol_version": {"const": "1.0.0"}, "mode": {"const": "observe"},
