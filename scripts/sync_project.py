@@ -950,6 +950,10 @@ def _preprocessing_artifact_issues(
                     issues.append("data_process.py正式论文图不得设置整体title/suptitle/set_title；图名由论文caption承担")
                 if "数据预处理结果.xlsx" not in {Path(value).name for value in workbook_refs}:
                     issues.append("data_process.py必须引用已验收数据预处理结果.xlsx")
+                blocked = PROJECT_SNAPSHOT.python_figure_forbidden_calls(python_plot)
+                if blocked:
+                    issues.append("data_process.py contains non-rendering computation/write calls: "
+                                  + ", ".join(blocked))
                 for value in exports:
                     exported = (python_plot.parent / value).resolve()
                     if not exported.is_relative_to(root.resolve()):
