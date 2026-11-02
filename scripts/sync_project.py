@@ -28,6 +28,7 @@ import project_transaction as PROJECT_TX  # noqa: E402
 import runtime_assurance as RUNTIME_ASSURANCE  # noqa: E402
 import artifact_fingerprint as ARTIFACT_FINGERPRINT  # noqa: E402
 import project_snapshot as PROJECT_SNAPSHOT  # noqa: E402
+import plot_backend as PLOT_BACKEND  # noqa: E402
 import stage_code as STAGE_CODE  # noqa: E402
 import execution_provenance as EXECUTION_PROVENANCE  # noqa: E402
 import conformance_gate as CONFORMANCE  # noqa: E402
@@ -45,7 +46,7 @@ PHASE_SCOPE = {
 }
 HASH_KEYS = (
     "data", "primary_code", "analysis_code", "solution_workbook", "result_analysis_workbook",
-    "matlab_script", "figure_bundle", "framework",
+    "matlab_script", "plot_script", "figure_bundle", "framework",
 )
 MATLAB_PREPROCESSING_FORBIDDEN_FUNCTIONS = (
     "interp1", "interp2", "interp3", "interpn", "griddedInterpolant", "scatteredInterpolant",
@@ -382,12 +383,20 @@ def stage_requirements(
 ) -> list[str]:
     sync = output_contract.get("project_sync") or {}
     required = list((sync.get("stage_requirements") or {}).get(scope, []))
+    plotting = PLOT_BACKEND.inspect_plotting(state or {})
+    is_python_plot = plotting["kind"] == "selected" and plotting["backend"] == "python"
+    if is_python_plot:
+        required = ["plot_scripts" if name == "matlab_scripts" else name for name in required]
     if state is not None and preprocessing_decision(state) == "project_level":
         conditional = (
             (sync.get("conditional_stage_requirements") or {})
             .get("preprocessing_decision_project_level", {})
         )
-        required.extend((conditional or {}).get(scope, []) or [])
+        extras = (conditional or {}).get(scope, []) or []
+        if is_python_plot:
+            extras = ["preprocessing_python_plot_script" if name == "preprocessing_matlab_script"
+                      else name for name in extras]
+        required.extend(extras)
     return unique(required)
 
 
@@ -499,6 +508,7 @@ LAYER_TRANSITION_EVENTS = {
     "solution_workbook": "solution_workbook_changed",
     "result_analysis_workbook": "analysis_workbook_changed",
     "matlab_script": "matlab_script_changed",
+    "plot_script": "plot_script_changed",
     "figure_bundle": "figure_bundle_changed",
     "framework": "paper_fragment_changed",
 }
@@ -575,7 +585,7 @@ def _apply_snapshot_to_state(
         entry["code"] = snapshot["primary_code"]
     if snapshot.get("result_analysis_code"):
         entry["result_analysis_code"] = snapshot["result_analysis_code"]
-    for field in ("solution_workbook", "result_analysis_workbook", "matlab_script"):
+    for field in ("solution_workbook", "result_analysis_workbook", "matlab_script", "plot_script"):
         if snapshot.get(field):
             entry[field] = snapshot[field]
 
@@ -927,6 +937,19 @@ def _preprocessing_artifact_issues(
             issues.append("project_level正式交付缺少数据预处理/数据预处理结果.xlsx")
         if preprocessing.get("status") != "accepted" or preprocessing.get("quality_status") != "passed":
             issues.append("project_level正式交付要求预处理工作簿accepted且预处理质量门passed")
+    if "preprocessing_python_plot_script" in required:
+        python_plot = root / "数据预处理/data_process.py"
+        if not python_plot.is_file():
+            issues.append("project_level Python图表交付缺少数据预处理/data_process.py")
+        else:
+            import ast
+            try:
+                code = python_plot.read_text(encoding="utf-8")
+                ast.parse(code)
+                if "数据预处理结果.xlsx" not in code:
+                    issues.append("data_process.py必须读取已验收数据预处理结果.xlsx")
+            except (OSError, UnicodeError, SyntaxError) as exc:
+                issues.append(f"data_process.py不可解析: {exc}")
     if "preprocessing_matlab_script" in required:
         if not matlab.is_file():
             issues.append("project_level图表及论文交付缺少数据预处理/data_process.m")
@@ -987,6 +1010,10 @@ def _scope_artifact_issues(
     issues.extend(_preprocessing_artifact_issues(root, required, state))
     if required.intersection({"python_code", "primary_code"}) and not all(snapshot.get("primary_code") for snapshot in snapshots.values()):
         issues.append("正式交付缺少标准主求解脚本")
+    if "plot_scripts" in required:
+        for key, snapshot in snapshots.items():
+            if not snapshot.get("plot_script"):
+                issues.append(f"{key}: 当前Python Figure交付缺少已选择的qN_plot.py")
     if "result_analysis_code" in required:
         for key, snapshot in snapshots.items():
             if not snapshot.get("result_analysis_code"):
@@ -1015,7 +1042,7 @@ def _scope_artifact_issues(
         package = root / str(artifacts.get("submission_package") or "submission/submission.zip")
         package_paths, package_issues = reproducibility_requirements(root, state)
         issues.extend(package_issues)
-        issues.extend(_submission_zip_issues(package, require_matlab=True, required_paths=package_paths))
+        issues.extend(_submission_zip_issues(package, require_matlab=False, required_paths=package_paths))
     return issues
 
 
@@ -1146,7 +1173,7 @@ def _verify_sync_question_sources(
     ):
         if snapshot.get(field) and snapshot.get(digest_field):
             observed[snapshot[field]] = snapshot[digest_field]
-    for field in ("solution_workbook", "result_analysis_workbook", "matlab_script"):
+    for field in ("solution_workbook", "result_analysis_workbook", "matlab_script", "plot_script"):
         relative = snapshot.get(field)
         if relative and (digest := (snapshot.get("artifact_hashes") or {}).get(field)):
             observed[relative] = digest
