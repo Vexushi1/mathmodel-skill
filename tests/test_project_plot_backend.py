@@ -12,7 +12,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from plot_backend import (PlotBackendError, inspect_plotting, resolve_question_script, select_project_plot_backend)
+from plot_backend import (PlotBackendError, inspect_plotting, resolve_question_script, select_project_plot_backend, preview_project_plot_backend_migration)
 from project_transaction import GenerationConflictError, ReadSetConflictError, JOURNAL_RELATIVE_PATH
 
 
@@ -317,6 +317,66 @@ class ProjectPlotBackendTests(unittest.TestCase):
                                  "- 项目绘图后端：`matlab`\n- 项目绘图后端：`matlab`"),
                 state,
             )
+
+
+    def test_read_only_migration_preview_lists_entire_figure_and_paper_impact(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            state_path, framework_path, _ = self.selection_fixture(root)
+            select_project_plot_backend(root, backend="python",
+                                        reason="Whole project Figure", expected_generation=0)
+            current = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+            figure = root / "问题一求解" / "q1.svg"
+            figure.parent.mkdir()
+            figure.write_text("<svg/>", encoding="utf-8")
+            script = figure.parent / "q1_plot.py"
+            script.write_text("print('Figure only')\n", encoding="utf-8")
+            current["subproblems"]["Q1"]["plot_script"] = "问题一求解/q1_plot.py"
+            current["subproblems"]["Q1"]["solution_workbook"] = "问题一求解/问题一求解结果.xlsx"
+            current["artifacts"]["approved_figures"] = ["问题一求解/q1.svg"]
+            current["artifacts"]["papers"] = ["论文.pdf"]
+            (root / "论文.pdf").write_bytes(b"synthetic paper placeholder")
+            current["preprocessing"]["decision"] = "project_level"
+            shared = root / "数据预处理" / "data_process.py"
+            shared.parent.mkdir()
+            shared.write_text("# shared Figure\n", encoding="utf-8")
+            state_path.write_text(yaml.safe_dump(current, allow_unicode=True), encoding="utf-8")
+            before = state_path.read_bytes(), framework_path.read_bytes()
+            report = preview_project_plot_backend_migration(root, target_backend="matlab")
+            self.assertEqual(report["status"], "preview_only")
+            self.assertEqual(report["current_backend"], "python")
+            self.assertEqual(report["target_backend"], "matlab")
+            self.assertEqual(report["question_scripts"][0]["current"], "问题一求解/q1_plot.py")
+            self.assertEqual(report["question_scripts"][0]["target"], "问题一求解/q1_plot.m")
+            self.assertTrue(report["question_scripts"][0]["current_exists"])
+            self.assertEqual(report["shared_preprocessing_figure"]["target"],
+                             "数据预处理/data_process.m")
+            self.assertTrue(report["shared_preprocessing_figure"]["current_exists"])
+            self.assertEqual(report["approved_figures_to_revalidate"][0]["path"],
+                             "问题一求解/q1.svg")
+            self.assertTrue(any(row["path"] == "模型论文框架.md"
+                                for row in report["paper_dependencies_to_review"]))
+            self.assertTrue(any(row["path"] == "论文.pdf"
+                                for row in report["paper_dependencies_to_review"]))
+            self.assertIn("问题一求解/问题一求解结果.xlsx",
+                          report["numerical_workbooks_to_preserve"])
+            self.assertFalse(report["execution_authorized"])
+            self.assertFalse(report["accepted_numerical_results_changed"])
+            self.assertEqual((state_path.read_bytes(), framework_path.read_bytes()), before)
+            self.assertEqual(preview_project_plot_backend_migration(
+                root, target_backend="python")["status"], "unchanged")
+
+    def test_migration_preview_requires_active_nonconflicting_backend(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            state_path, _, state = self.selection_fixture(root)
+            with self.assertRaisesRegex(PlotBackendError, "No active"):
+                preview_project_plot_backend_migration(root, target_backend="python")
+            state["plotting"] = {"backend": "python", "selection_reason": "whole project"}
+            state["subproblems"]["Q1"]["matlab_script"] = "问题一求解/q1_plot.m"
+            state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
+            with self.assertRaisesRegex(PlotBackendError, "conflicts"):
+                preview_project_plot_backend_migration(root, target_backend="matlab")
 
 
 if __name__ == "__main__":
