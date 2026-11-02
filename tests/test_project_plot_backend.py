@@ -127,18 +127,18 @@ class ProjectPlotBackendTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             script = Path(temp) / "q1_plot.py"
             script.write_text(
-                '# model.fit(X, y) is only a comment\\n'
-                'note = "predict() appears in an annotation, not a call"\\n'
-                'ax.plot(x, y)\\n'
-                'np.asarray(x)\\n'
-                'fig.savefig("q1.svg")\\n',
+                '# model.fit(X, y) is only a comment\n'
+                'note = "predict() appears in an annotation, not a call"\n'
+                'ax.plot(x, y)\n'
+                'np.asarray(x)\n'
+                'fig.savefig("q1.svg")\n',
                 encoding="utf-8",
             )
             self.assertEqual(python_figure_forbidden_calls(script), [])
             script.write_text(
-                'model.fit(X, y)\\n'
-                'clean = df.fillna(0)\\n'
-                'wb.save("问题一求解结果.xlsx")\\n',
+                'model.fit(X, y)\n'
+                'clean = df.fillna(0)\n'
+                'wb.save("问题一求解结果.xlsx")\n',
                 encoding="utf-8",
             )
             self.assertEqual(
