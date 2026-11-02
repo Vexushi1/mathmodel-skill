@@ -54,6 +54,21 @@ def _numeric(value: object, *, missing: bool, context: str) -> float:
     return numeric
 
 
+def _validate_missing_tokens() -> None:
+    """Textual gaps must never reinterpret real measured zero/infinity as missing."""
+    if len(set(MISSING_TOKENS)) != len(MISSING_TOKENS):
+        raise ValueError("Missing tokens must be unique")
+    for token in MISSING_TOKENS:
+        if not isinstance(token, str) or not token.strip() or token != token.strip():
+            raise ValueError("Missing tokens must be nonempty normalized text")
+        try:
+            numeric = float(token)
+        except ValueError:
+            continue
+        if math.isfinite(numeric) or math.isinf(numeric):
+            raise ValueError("Missing token must not encode a finite number or infinity")
+
+
 def read_xy(workbook: Path, sheet: str, x_header: str, y_header: str,
             *, allow_y_missing: bool = False) -> tuple[np.ndarray, np.ndarray]:
     """Read actual first-row headers, preserving input row positions and NaN gaps."""
@@ -61,6 +76,9 @@ def read_xy(workbook: Path, sheet: str, x_header: str, y_header: str,
         raise FileNotFoundError(f"Figure workbook is missing: {workbook}")
     if not sheet or not x_header.strip() or not y_header.strip():
         raise ValueError("Actual worksheet and column headers are required")
+    if x_header.strip() == y_header.strip():
+        raise ValueError("Figure x/y evidence headers must be distinct")
+    _validate_missing_tokens()
     book = load_workbook(workbook, read_only=True, data_only=True)
     try:
         if sheet not in book.sheetnames:
