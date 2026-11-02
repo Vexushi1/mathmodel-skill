@@ -27,6 +27,8 @@
 - C3 动态/区间：`line_with_recorded_interval`，线+**真实记录的**上下界，缺测保持断开。
 - C5 参数场：`heatmap_with_real_boundary`，已验收真实网格+真实边界阈值，禁止在图形函数中插值。
 - C6 多目标：`pareto_with_choice`，只显示已确认的 Pareto 候选和推荐点，不在绘图层计算支配关系。
+- Z2 Small Multiples：`small_multiples_lines`，按真实序列分面、保留缺测断线；只有跨面板比较量级时共享坐标范围。
+- Conditional 3D：`recorded_surface_3d`，只渲染已验收的二维参数网格，第三维必须有真实数学/物理意义且二维投影不足；禁止生成虚假连续曲面。
 - Z1 关键细节：`inset_with_grounded_limits`，只用用户根据数据选择的 ROI；局部放大不能制造新证据。
 - L3 论文框架：`apply_publication_frame`，数据图层全部建立之后一次应用、随后允许各 panel 局部覆盖；不使用默认颜色循环。
 - 正式导出：`export_after_visual_review`，选 PDF/SVG/PNG，检查裁切、字体、图例与实际输出，不能把导出当图审通过。
