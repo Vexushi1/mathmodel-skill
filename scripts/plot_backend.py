@@ -75,7 +75,7 @@ def inspect_plotting(state: Mapping[str, Any]) -> dict[str, Any]:
         selected = "matlab"
     else:
         kind = "unselected"
-    return {"kind": kind, "backend": selected if selected in BACKENDS else None,
+    return {"kind": kind, "backend": selected if isinstance(selected, str) and selected in BACKENDS else None,
             "issues": issues}
 
 
@@ -123,7 +123,7 @@ def select_project_plot_backend(project_root: str | Path, *,
     import validate_project_state as state_validator
     from runtime_assurance import ProjectStateSnapshot
 
-    if backend not in BACKENDS or not isinstance(reason, str) or not reason.strip():
+    if not isinstance(backend, str) or backend not in BACKENDS or not isinstance(reason, str) or not reason.strip():
         raise PlotBackendError("Selection requires python/matlab and nonempty reason")
     if isinstance(expected_generation, bool) or not isinstance(expected_generation, int) or expected_generation < 0:
         raise PlotBackendError("expected_generation must be a nonnegative integer")
@@ -182,6 +182,7 @@ def main() -> int:
     """Inspect or select one backend; returns real state facts, never approvals."""
     import argparse
     import json
+    import project_transaction as transaction
     from runtime_assurance import ProjectStateSnapshot
 
     parser = argparse.ArgumentParser(description="Project-level Figure backend control")
@@ -207,7 +208,7 @@ def main() -> int:
             )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0 if args.action != "inspect" or not result["plotting"]["issues"] else 2
-    except (OSError, ValueError) as exc:
+    except (OSError, ValueError, transaction.ProjectTransactionError) as exc:
         print(json.dumps({"status": "blocked", "issues": [str(exc)]}, ensure_ascii=False))
         return 2
 
