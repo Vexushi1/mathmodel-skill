@@ -418,6 +418,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_project_backend_migration_preview.py`
 - `tests/test_project_backend_policy_shared.py`
 - `tests/test_project_history_archive.py`
+- `tests/test_project_plot_backend.py`
 - `tests/test_project_solver_backend_inspect.py`
 - `tests/test_project_solver_backend_select.py`
 - `tests/test_project_state_read_snapshot.py`
