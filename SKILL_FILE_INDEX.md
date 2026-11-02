@@ -165,6 +165,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/measure_infrastructure.py`
 - `scripts/measure_writing_validation.py`
 - `scripts/model_code_conformance.py`
+- `scripts/plot_backend.py`
 - `scripts/prepare_cumcm_class.py`
 - `scripts/project_snapshot.py`
 - `scripts/project_solver_backend.py`
