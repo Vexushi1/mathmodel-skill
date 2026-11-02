@@ -327,6 +327,26 @@ def reproducibility_requirements(root: Path, state: Mapping[str, Any], *,
             patterns = (per_question.get("plot_scripts") or {})
             question_path("plot_script", patterns.get("python", "q{阿拉伯序号}_plot.py"),
                           allow_default=False)
+            if entry.get("plot_script") and number is not None:
+                # Formal reproduction must bind the *selected* Figure source,
+                # not merely include any .py file named by the project state.
+                # The same bytes enter the submission read-set via observe.
+                try:
+                    ref = PLOT_BACKEND.resolve_question_script(
+                        root, state, str(key), question, number,
+                    )
+                    if not ref.path.is_file():
+                        issues.append(f"{key}: 当前Python绘图源码不存在: {ref.relative}")
+                    else:
+                        validated = (entry.get("validated_artifact_hashes") or {}).get(ref.hash_field)
+                        if not isinstance(validated, str) or len(validated) != 64 or any(
+                            char not in "0123456789abcdefABCDEF" for char in validated
+                        ):
+                            issues.append(f"{key}: plot_script缺少已验收SHA-256绑定")
+                        elif hashlib.sha256(_read_bytes(ref.path, observe)).hexdigest() != validated.lower():
+                            issues.append(f"{key}: plot_script当前源码与已验收SHA-256绑定不一致")
+                except (PLOT_BACKEND.PlotBackendError, ValueError, OSError, TypeError) as exc:
+                    issues.append(f"{key}: plot_script当前身份不合法: {exc}")
         else:
             question_path("matlab_script", per_question["matlab_script"], allow_default=True)
         status = entry.get("result_analysis_status")
