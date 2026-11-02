@@ -894,7 +894,11 @@ def _contract_stale_coverage(state: Mapping[str, Any], stale_layers: set[str]) -
             accepted_updates[execution] = state[execution]
     covered: set[str] = set()
     for profile in (contract.get("profiles") or {}).values():
-        layers = set(profile.get("stale_layers", []) or []) - closed
+        layers = set(profile.get("stale_layers", []) or [])
+        if "matlab_script" in layers and state.get("plot_script"):
+            layers.remove("matlab_script")
+            layers.add("plot_script")
+        layers -= closed
         updates = {**(profile.get("set") or {}), **{
             key: value for key, value in (profile.get("set_if_present") or {}).items() if key in state
         }}
