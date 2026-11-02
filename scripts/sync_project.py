@@ -1097,6 +1097,7 @@ def _formal_compile_paths(root: Path, state: Mapping[str, Any], scope: str, *,
 
 def _capture_sync_question_sources(
     root: Path, name: str, entry: Mapping[str, Any], read_set: dict[str, str | None],
+    *, state: Mapping[str, Any] | None = None,
 ) -> set[str]:
     """Capture registered numerical sources and standard observation candidates."""
     result_dir = _question_dir(root, name)
@@ -1144,7 +1145,9 @@ def _capture_sync_question_sources(
                 _capture_sync_source(root, read_set, STAGE_CODE._relative_path(root, relative))
             except STAGE_CODE.StageCodeError:
                 pass
-    plot = result_dir / (f"q{number}_plot.m" if number else "q_plot.m")
+    plot = PLOT_BACKEND.resolve_question_script(
+        root, state or {}, question_key(name), name, number or 0,
+    ).path
     _capture_sync_source(root, read_set, plot)
     _capture_sync_source(root, read_set, result_dir / "figure_evidence.yaml")
     figures, _ = PROJECT_SNAPSHOT.scoped_figure_files(root, plot, entry)
@@ -1376,7 +1379,7 @@ def synchronize(
         key = question_key(chinese_name)
         entry = subproblems.get(key) or subproblems.get(chinese_name) or {}
         captured_figures = (
-            _capture_sync_question_sources(root, chinese_name, entry, sync_read_set)
+            _capture_sync_question_sources(root, chinese_name, entry, sync_read_set, state=state)
             if sync_read_set is not None else set()
         )
         snapshot = _snapshot_question(
