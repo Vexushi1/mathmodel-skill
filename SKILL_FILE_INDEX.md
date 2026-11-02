@@ -126,6 +126,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `packs/task/spatial.md`
 - `packs/task/statistics_ml.md`
 - `requirements-dev.txt`
+- `requirements-plot-python.txt`
 - `scripts/README.md`
 - `scripts/analysis_comparison.py`
 - `scripts/analysis_comparison_gate.py`
@@ -320,6 +321,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/matlab/run_solver_backend_smoke.m`
 - `tests/module06_sources.py`
 - `tests/optimization_baseline.py`
+- `tests/plot_render_smoke.py`
 - `tests/reading_plan_cases.py`
 - `tests/reading_plan_evidence.py`
 - `tests/solver_backend_hash_smoke.py`
