@@ -270,7 +270,18 @@ project_sync:
     preprocessing_decision_not_needed_or_question_local:
       condition: preprocessing_decision in [not_needed, question_local]
       forbidden_required_artifacts: [preprocessing_code, preprocessing_workbook, preprocessing_matlab_script]
-  artifact_hash_layers: [raw_data, preprocessing_decision, preprocessing_code, preprocessing_workbook, preprocessing_matlab_script, primary_code, analysis_code, solution_workbook, result_analysis_workbook, matlab_script, figure_bundle, framework]
+  artifact_hash_layers: [raw_data, preprocessing_decision, preprocessing_code, preprocessing_workbook, preprocessing_matlab_script, preprocessing_python_plot_script, primary_code, analysis_code, solution_workbook, result_analysis_workbook, matlab_script, plot_script, figure_bundle, framework]
+  plotting_backend_contract:
+    source: state/project_state.yaml#plotting.backend
+    allowed: [python, matlab]
+    one_backend_per_project: true
+    numerical_solver_independent: true
+    old_matlab_without_root_field: writable_compatibility
+    python_per_question_role: plot_script
+    matlab_per_question_role: matlab_script
+    project_level_python_role: preprocessing_python_plot_script
+    project_level_matlab_role: preprocessing_matlab_script
+    activation: first_formal_figure_script_generation
   source_identity_lifecycle:
     current_source_identity: [primary_code_sha256, analysis_code_sha256, solver_execution.bundle_sha256, artifact_hashes.primary_code, artifact_hashes.analysis_code]
     accepted_execution_identity: [solver_execution.validated_bundle_sha256, original_RUN_RECEIPT, validated_artifact_hashes.solution_workbook, validated_artifact_hashes.result_analysis_workbook, validated_data_hash]
@@ -297,6 +308,8 @@ project_sync:
     solution_workbook: [result_quality, result_analysis_workbook, result_analysis, matlab_script, figure_bundle, result_summary]
     result_analysis_workbook: [result_analysis, matlab_script, figure_bundle, result_summary]
     matlab_script: [figure_bundle, paper_figure_evidence]
+    plot_script: [figure_bundle, paper_figure_evidence]
+    preprocessing_python_plot_script: [figure_bundle, paper_figure_evidence]
     figure_bundle: [paper_figure_evidence]
     paper_fragment_dependency: [only_fragments_with_real_dependency]
   write_order:
@@ -408,6 +421,7 @@ global_preprocessing:
   python_script: 数据预处理.py
   workbook: 数据预处理结果.xlsx
   matlab_script: data_process.m
+  python_plot_script: data_process.py  # New Figure backend; not the preprocessing numeric code
   exact_default_files: [数据预处理.py, 数据预处理结果.xlsx, data_process.m]
   no_auxiliary_files_by_default: true
   raw_data_reader_exclusive_when_project_level: true
@@ -436,6 +450,9 @@ per_question:
       path: 问题{中文序号}结果深化分析.xlsx
       when: result_analysis_status == passed
   matlab_script: q{阿拉伯序号}_plot.m
+  plot_scripts:
+    python: q{阿拉伯序号}_plot.py
+    matlab: q{阿拉伯序号}_plot.m
   # Legacy Python projection; resolve the selected backend for active default files.
   base_default_files: ["问题{中文序号}求解.py", "问题{中文序号}求解结果.xlsx", "q{阿拉伯序号}_plot.m"]
   analysis_required_additional_files: ["问题{中文序号}结果深化分析.py", "问题{中文序号}结果深化分析.xlsx"]
