@@ -1437,8 +1437,23 @@ def check_editable_mechanism_diagrams(errors: list[str]) -> None:
         errors.append("output contract must require preview before figure approval")
     if mechanism.get("per_question_five_file_layout_unchanged") is not False:
         errors.append("draw.io integration must acknowledge conditional rather than fixed five-file layout")
-    if "工作簿驱动结果图继续归MATLAB" not in str((output.get("ownership") or {}).get("other_figure_tools", "")):
-        errors.append("draw.io integration must preserve MATLAB data-figure ownership")
+    # Data-driven Figures belong to the single project-selected Python/MATLAB
+    # renderer, never to the mechanism-only draw.io backend. The historical
+    # MATLAB-only wording is no longer the v10.24 Output Contract.
+    figure_owner = str((output.get("ownership") or {}).get("other_figure_tools", ""))
+    plot_contract = (output.get("project_sync") or {}).get("plotting_backend_contract") or {}
+    if not (
+        plot_contract.get("source") == "state/project_state.yaml#plotting.backend"
+        and plot_contract.get("one_backend_per_project") is True
+        and plot_contract.get("numerical_solver_independent") is True
+        and set(plot_contract.get("allowed") or []) == {"python", "matlab"}
+    ):
+        errors.append("draw.io integration must preserve the single project-selected Python/MATLAB Figure backend")
+    if not all(part in figure_owner for part in (
+        "非数据驱动机理图", "draw.io", "mechanism_drawio_contract",
+        "工作簿驱动结果图", "项目根", "Python", "MATLAB",
+    )):
+        errors.append("draw.io integration must keep mechanism diagrams separate from project-selected data Figures")
 
     for origin, text in (("generator", generator), ("validator", validator)):
         for forbidden in ("matplotlib", "pandas", "read_excel", "read_csv", "requests", "selenium"):
