@@ -1,5 +1,13 @@
 # Changelog
 
+## 10.24.0
+
+- 新增独立于数值求解后端的项目级 Python/MATLAB 科研 Figure Rendering Backend；一个竞赛项目仅选择一次，历史 MATLAB 项目保留原路径和当前维护能力。
+- Python 继承 Module 04 的 Scientific Figure Synthesis、Basic-form Challenge、Scientific Rendering Profiles、Composite Encoding、Figure Layout/Enhancement、Publication Rendering 与人工审图，不建立第二套 Figure Authority。
+- 新增 Python 工作簿只读绘图模板、科研模式参考及 Windows Python 3.10/3.14 实际 Matplotlib 渲染烟测；保留原始表头唯一性、缺失断线、真实区间与图内无整体标题。
+- 将项目状态、Figure Source/B2、Snapshot/Sync/reading plan、共享预处理图及复现包按实际选定的绘图后端路由，保持数值 accepted、人工批准和图片/脚本哈希绑定不变。
+- 原 MATLAB 绘图模板、数值求解、03A/03B 工作簿和论文交付链继续按既有 Authority 验收。
+
 ## 10.23.3
 
 - CUMCM HSK 问题分析按当前小问固定“问题X的分析”二级标题；附录为唯一一级总标题，A/B/C 为连续二级标题，默认仍条件关闭。

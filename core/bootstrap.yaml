@@ -1,4 +1,4 @@
-skill_version: 10.23.3
+skill_version: 10.24.0
 bootstrap_schema_version: 1.1.0
 purpose: >-
   Read first, load workflow_router.default_load, and use
@@ -59,6 +59,7 @@ entrypoints:
   read_stage: python scripts/read_stage.py
   resolve_legacy: python scripts/resolve_workflow.py
   project_solver_backend: python scripts/project_solver_backend.py
+  project_plot_backend: python scripts/plot_backend.py
   instantiate_framework: python scripts/instantiate_model_paper_framework.py
   semantic_governance: python scripts/validate_semantic_governance.py
   model_approval: python scripts/validate_model_approval.py
