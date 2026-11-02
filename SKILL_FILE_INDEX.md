@@ -274,6 +274,9 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `templates/model/model_approval_section.md`
 - `templates/model/model_paper_framework.md`
 - `templates/model/variable_table.md`
+- `templates/plot/python/README.md`
+- `templates/plot/python/data_process.py`
+- `templates/plot/python/q1_plot.py`
 - `templates/problem/data_schema_audit.md`
 - `templates/problem/model_route_compare.md`
 - `templates/problem/requirement_coverage.md`
