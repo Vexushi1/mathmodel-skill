@@ -32,9 +32,14 @@ from reading_plan_evidence import (
 )
 
 
-# Current v10.23.3 carrier; historical v10.23.2 evidence remains immutable.
+# Frozen CUMCM writing carrier and its historical Phase G golden stay unchanged.
 CUMCM_HEADING_AUTHORITY_VERSIONS = {
     **MIXED_FIGURE_READING_AUTHORITY_VERSIONS, "skill": "10.23.3",
+}
+# v10.24.0 changes the Figure backend only. Pin this new carrier explicitly
+# while requiring the exact existing CUMCM writing projection to remain equal.
+PLOT_BACKEND_RELEASE_VERSIONS = {
+    **CUMCM_HEADING_AUTHORITY_VERSIONS, "skill": "10.24.0",
 }
 
 
@@ -102,12 +107,14 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"],
                 MIXED_FIGURE_READING_AUTHORITY_VERSIONS["skill"],
                 CUMCM_HEADING_AUTHORITY_VERSIONS["skill"],
+                PLOT_BACKEND_RELEASE_VERSIONS["skill"],
             ))
             if plan["version"] in (
                 REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"],
                 FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"],
                 MIXED_FIGURE_READING_AUTHORITY_VERSIONS["skill"],
                 CUMCM_HEADING_AUTHORITY_VERSIONS["skill"],
+                PLOT_BACKEND_RELEASE_VERSIONS["skill"],
             ):
                 try:
                     writing = review_split_writing_predecessor(
@@ -146,6 +153,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                     FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"],
                     MIXED_FIGURE_READING_AUTHORITY_VERSIONS["skill"],
                 CUMCM_HEADING_AUTHORITY_VERSIONS["skill"],
+                PLOT_BACKEND_RELEASE_VERSIONS["skill"],
                 ) else previous_value
                 self.assertEqual(candidate[path[-1]], expected)
                 candidate[path[-1]] = copy.deepcopy(previous_value)
@@ -183,7 +191,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
 
     def test_review_split_projection_binds_canonical_scopes_without_waiving_stage_fields(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
-        self.assertEqual(plan["version"], CUMCM_HEADING_AUTHORITY_VERSIONS["skill"])
+        self.assertEqual(plan["version"], PLOT_BACKEND_RELEASE_VERSIONS["skill"])
         saved = copy.deepcopy((plan, self.golden, REVIEW_SPLIT_WRITING_DELTAS))
         for index, stage_id, previous_reads, current_reads in REVIEW_SPLIT_WRITING_DELTAS:
             historical = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][index]
@@ -223,7 +231,9 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                         BODY_READING_AUTHORITY_VERSIONS["skill"],
                         REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"],
                         FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"],
-                        MIXED_FIGURE_READING_AUTHORITY_VERSIONS["skill"]):
+                        MIXED_FIGURE_READING_AUTHORITY_VERSIONS["skill"],
+                         CUMCM_HEADING_AUTHORITY_VERSIONS["skill"],
+                         PLOT_BACKEND_RELEASE_VERSIONS["skill"]):
             with self.subTest(version=version):
                 declared = copy.deepcopy(plan)
                 declared["version"] = version
@@ -232,6 +242,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                     FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"],
                     MIXED_FIGURE_READING_AUTHORITY_VERSIONS["skill"],
                 CUMCM_HEADING_AUTHORITY_VERSIONS["skill"],
+                PLOT_BACKEND_RELEASE_VERSIONS["skill"],
                 ):
                     for index, _, previous_reads, _ in REVIEW_SPLIT_WRITING_DELTAS:
                         declared["writing_runtime"]["authoring_sequence"][index]["read_now"] = copy.deepcopy(previous_reads)
@@ -244,6 +255,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                     FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"],
                     MIXED_FIGURE_READING_AUTHORITY_VERSIONS["skill"],
                 CUMCM_HEADING_AUTHORITY_VERSIONS["skill"],
+                PLOT_BACKEND_RELEASE_VERSIONS["skill"],
                 ) else historical)
                 self.assertEqual(self._projection(declared), self.golden["routes"]["latex"])
                 stage["run_now"] = list(historical if version in (
@@ -254,10 +266,11 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                     FULL_WORKFLOW_READING_AUTHORITY_VERSIONS["skill"],
                     MIXED_FIGURE_READING_AUTHORITY_VERSIONS["skill"],
                 CUMCM_HEADING_AUTHORITY_VERSIONS["skill"],
+                PLOT_BACKEND_RELEASE_VERSIONS["skill"],
                 ) else current)
                 with self.assertRaises(AssertionError):
                     self._projection(declared)
-        for version in (None, "10.19.4", "10.20.6", "10.21.1", "10.22.1", "10.23.0", "10.24.0", "11.0.0"):
+        for version in (None, "10.19.4", "10.20.6", "10.21.1", "10.22.1", "10.23.0", "10.24.1", "11.0.0"):
             with self.subTest(version=version):
                 altered = copy.deepcopy(plan)
                 altered["version"] = version
