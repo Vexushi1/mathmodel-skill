@@ -8,7 +8,7 @@
 - 将项目状态、Figure Source/B2、Snapshot/Sync/reading plan、共享预处理图及复现包按实际选定的绘图后端路由，保持数值 accepted、人工批准和图片/脚本哈希绑定不变。
 - 原 MATLAB 绘图模板、数值求解、03A/03B 工作簿和论文交付链继续按既有 Authority 验收。
 
-## 10.23.3
+## Previous release: 10.23.3
 
 - CUMCM HSK 问题分析按当前小问固定“问题X的分析”二级标题；附录为唯一一级总标题，A/B/C 为连续二级标题，默认仍条件关闭。
 - 统一 Template Manifest、Writing Protocol、阶段读取与 LaTeX 模板；保留问题模型章节内部标题的自适应策略。
