@@ -67,6 +67,49 @@ class PythonScientificFigurePatterns(unittest.TestCase):
             patterns.heatmap_with_real_boundary(ax, x, y, [[1., 2.]], cmap="viridis")
         plt.close(fig)
 
+    def test_small_multiples_keep_each_original_series_and_nan_gap(self):
+        data = {
+            "A": ([0, 1, 2, 3], [1, 2, np.nan, 4]),
+            "B": ([0, 1, 2, 3], [2, 4, 6, 8]),
+            "C": ([0, 1, 2, 3], [3, 5, 7, 9]),
+        }
+        palette = {"A": (.2, .4, .6), "B": (.7, .3, .2), "C": (.2, .5, .3)}
+        fig, axes = patterns.small_multiples_lines(
+            data, colors=palette, ncols=2, shared_axes=True,
+            x_label="Time / s", y_label="Measured value",
+        )
+        self.assertEqual(axes.shape, (2, 2))
+        self.assertFalse(axes[1, 1].get_visible())
+        self.assertTrue(np.isnan(axes[0, 0].lines[0].get_ydata()[2]))
+        self.assertEqual(axes[0, 1].lines[0].get_ydata().tolist(), [2, 4, 6, 8])
+        self.assertEqual([ax.get_title() for ax in axes.flat], [""] * 4)
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "small_multiples.pdf"
+            patterns.export_after_visual_review(fig, destination)
+            self.assertGreater(destination.stat().st_size, 1000)
+        plt.close(fig)
+
+    def test_conditional_3d_uses_only_real_response_grid(self):
+        fig = plt.figure(figsize=(6, 4))
+        ax = fig.add_subplot(111, projection="3d")
+        x, y = [0., 1., 2.], [10., 20.]
+        z = np.array([[1., 2., 3.], [4., 5., 6.]])
+        patterns.recorded_surface_3d(
+            ax, x, y, z, cmap="viridis",
+            x_label="Factor A", y_label="Factor B", z_label="Response",
+        )
+        self.assertEqual(ax.get_title(), "")
+        with self.assertRaisesRegex(ValueError, "accepted"):
+            patterns.recorded_surface_3d(
+                ax, x, y, [[1., 2.]], cmap="viridis",
+                x_label="A", y_label="B", z_label="C",
+            )
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "true_surface.svg"
+            patterns.export_after_visual_review(fig, destination)
+            self.assertGreater(destination.stat().st_size, 1000)
+        plt.close(fig)
+
     def test_local_zoom_is_grounded_and_reuses_samples(self):
         fig, ax = plt.subplots()
         x = np.arange(6.)
