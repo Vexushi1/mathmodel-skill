@@ -197,6 +197,71 @@ class ProjectPlotBackendTests(unittest.TestCase):
             )
             self.assertEqual(_preprocessing_artifact_issues(root, required, state), [])
 
+    def test_python_declared_export_alias_is_verified_without_evaluating_code(self):
+        from project_snapshot import _parse_python_plot
+        from sync_project import _preprocessing_artifact_issues
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            folder = root / "数据预处理"
+            folder.mkdir()
+            source = folder / "data_process.py"
+            source.write_text(
+                'from pathlib import Path\n'
+                'from openpyxl import load_workbook\n'
+                'EXPORT_FILE = "data_process_evidence.svg"\n'
+                'directory = Path(__file__).resolve().parent\n'
+                'out = (directory / EXPORT_FILE).resolve()\n'
+                'load_workbook("数据预处理结果.xlsx", read_only=True)\n'
+                'if EXPORT_FILE:\n'
+                '    fig.savefig(out)\n',
+                encoding="utf-8",
+            )
+            title, refs, exports = _parse_python_plot(source)
+            self.assertFalse(title)
+            self.assertIn("数据预处理结果.xlsx", refs)
+            self.assertEqual(exports, ["data_process_evidence.svg"])
+            required = {"preprocessing_python_plot_script"}
+            state = {"preprocessing": {"decision": "project_level"}}
+            missing = _preprocessing_artifact_issues(root, required, state)
+            self.assertTrue(any("声明导出的图不存在" in issue for issue in missing), missing)
+            (folder / "data_process_evidence.svg").write_text("<svg/>", encoding="utf-8")
+            self.assertFalse(any("声明导出的图不存在" in issue
+                                 for issue in _preprocessing_artifact_issues(root, required, state)))
+
+            source.write_text(
+                'EXPORT_FILE = None\n'
+                'directory = Path(__file__).parent\n'
+                'out = (directory / EXPORT_FILE).resolve()\n'
+                'fig.savefig(out)\n',
+                encoding="utf-8",
+            )
+            self.assertEqual(_parse_python_plot(source)[2], [])
+
+            source.write_text(
+                'EXPORT_FILE = "unused.svg"\n'
+                'fig.savefig("actual.svg")\n'
+                'fig.savefig(fname="keyword.svg")\n',
+                encoding="utf-8",
+            )
+            self.assertEqual(_parse_python_plot(source)[2], ["actual.svg", "keyword.svg"])
+
+    def test_question_python_declared_export_path_is_detected(self):
+        from project_snapshot import _parse_python_plot
+
+        with tempfile.TemporaryDirectory() as temp:
+            script = Path(temp) / "q1_plot.py"
+            script.write_text(
+                'from pathlib import Path\n'
+                'EXPORT_FILE = "q1_result.pdf"\n'
+                'result_dir = Path(__file__).resolve().parent\n'
+                'out = (result_dir / EXPORT_FILE).resolve()\n'
+                'if EXPORT_FILE:\n'
+                '    fig.savefig(out, bbox_inches="tight")\n',
+                encoding="utf-8",
+            )
+            self.assertEqual(_parse_python_plot(script)[2], ["q1_result.pdf"])
+
     def test_shared_python_preprocessing_export_cannot_escape_project(self):
         from sync_project import _preprocessing_artifact_issues
 
