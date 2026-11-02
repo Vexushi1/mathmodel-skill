@@ -5,6 +5,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 import matplotlib
 matplotlib.use("Agg")
@@ -61,6 +62,36 @@ class PlotRenderingSmoke(unittest.TestCase):
             self._book(path, ["时间", "时间", "能耗"], [[0, 0, 5.2]])
             with self.assertRaisesRegex(ValueError, "duplicate"):
                 plot.read_xy(path, "逐时结果", "时间", "能耗")
+
+    def test_result_figure_rejects_identical_x_y_headers(self):
+        plot = module("q1_plot")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "one_column.xlsx"
+            self._book(path, ["时刻", "能耗"], [[0, 2.], [1, 3.]])
+            with self.assertRaisesRegex(ValueError, "distinct"):
+                plot.read_xy(path, "逐时结果", "能耗", "能耗")
+
+    def test_result_figure_missing_tokens_preserve_real_zeros(self):
+        plot = module("q1_plot")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "missing_tokens.xlsx"
+            self._book(path, ["时刻", "误差率"], [
+                [0, "缺测"], [1, 0.], [2, 2.5],
+            ])
+            with mock.patch.object(plot, "MISSING_TOKENS", ("0",)):
+                with self.assertRaisesRegex(ValueError, "finite number"):
+                    plot.read_xy(path, "逐时结果", "时刻", "误差率",
+                                 allow_y_missing=True)
+            with mock.patch.object(plot, "MISSING_TOKENS", ("缺测", "缺测")):
+                with self.assertRaisesRegex(ValueError, "unique"):
+                    plot.read_xy(path, "逐时结果", "时刻", "误差率",
+                                 allow_y_missing=True)
+            with mock.patch.object(plot, "MISSING_TOKENS", ("缺测",)):
+                x, y = plot.read_xy(path, "逐时结果", "时刻", "误差率",
+                                    allow_y_missing=True)
+                self.assertEqual(x.tolist(), [0., 1., 2.])
+                self.assertTrue(np.isnan(y[0]))
+                self.assertEqual(y[1:].tolist(), [0., 2.5])
 
     def test_missing_analysis_workbook_fails_without_main_fallback(self):
         plot = module("q1_plot")
