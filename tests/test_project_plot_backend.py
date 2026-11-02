@@ -262,6 +262,39 @@ class ProjectPlotBackendTests(unittest.TestCase):
             )
             self.assertEqual(_parse_python_plot(script)[2], ["q1_result.pdf"])
 
+    def test_question_python_export_cannot_escape_registered_question_directory(self):
+        from project_snapshot import _snapshot_question
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            folder = root / "问题一求解"
+            folder.mkdir()
+            script = folder / "q1_plot.py"
+            script.write_text(
+                'from pathlib import Path\n'
+                'EXPORT_FILE = "../unrelated.svg"\n'
+                'result_dir = Path(__file__).resolve().parent\n'
+                'out = (result_dir / EXPORT_FILE).resolve()\n'
+                'load_workbook("问题一求解结果.xlsx")\n'
+                'fig.savefig(out)\n',
+                encoding="utf-8",
+            )
+            # Even a real file outside this question must not be treated as
+            # an approved output of its current Figure source.
+            (root / "unrelated.svg").write_text("<svg/>", encoding="utf-8")
+            state = {
+                "plotting": {"backend": "python", "selection_reason": "whole-project Figure"},
+                "subproblems": {"Q1": {}},
+            }
+            snapshot = _snapshot_question(
+                root, "问题一", {}, {}, None, "figures",
+                state=state, project_backend="python",
+            )
+            self.assertTrue(
+                any("越出当前问题目录" in issue for issue in snapshot["issues"]),
+                snapshot["issues"],
+            )
+
     def test_shared_python_preprocessing_export_cannot_escape_project(self):
         from sync_project import _preprocessing_artifact_issues
 
