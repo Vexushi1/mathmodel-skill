@@ -1,6 +1,15 @@
-# Module 04：MATLAB 结果图、预处理图证据与机理图精修
+# Module 04：科研结果图、预处理图证据与机理图精修
 
-本模块是当前 Figure Evidence 的单一通用 Authority。`packs/artifact/figure.md`、`templates/figure/*.md` 与 MATLAB 模板只能引用或实现这里的规则，不得建立第二套绘图决策权威。
+本模块是当前 Figure Evidence 的单一通用 Authority。`packs/artifact/figure.md`、`templates/figure/*.md` 及 Python/MATLAB 渲染模板只能引用或实现这里的规则，不得建立第二套绘图决策权威。
+
+
+### 项目级 Python / MATLAB 渲染后端（新增实现适配）
+
+- **Figure Evidence 设计 Authority 不变**：Scientific Figure Synthesis、Basic-form Challenge、Composite Encoding、Publication Rendering Grammar、Figure Layout/Enhancement、图证据级别、Caption 和人工批准均由本模块原有章节决定，不因后端不同出现第二套判断标准。
+- 在首份正式结果/预处理绘图脚本生成之前，按全赛题完整需求**一次性选择**项目根 `plotting.backend=python|matlab`，无需逐问重新选择；数值求解后端独立。对已锁定后端的改选请求先给全项目影响预览，不自动切换。
+- Python 渲染执行模板位于 `templates/plot/python/`；MATLAB 现有执行模板位于 `templates/matlab/`。全题 `qN_plot.*` 与条件式 `data_process.*` 使用同一扩展名。历史 MATLAB 项目无需迁移，继续沿原脚本状态与审计路径维护。
+- 图表代码始终只消费当前 Figure Contract 允许的真实数据源：已验收求解工作簿、按需 03B 工作簿，以及 `not_needed/question_local` 的合法原始附件等；`project_level` 的覆盖原始数据改用统一预处理工作簿。禁止在渲染代码中重新执行预处理、拟合或数值求解。
+- Python 实现不会在正式图内额外增加整体 title；用户实际运行、手动检查外观、按需导出后，仍走原 Figure Source/Caption/论文证据链。Python AST 只能提供有限静态检查，不能替代实际图像/图片哈希/人工批准。
 
 ## 正确顺序
 
@@ -10,7 +19,7 @@
 2. 已选求解实现完成完整主求解并通过主结果质量门；03A 应已经保存本次主计算真实产生且具有解释/绘图/验证价值的状态、过程与结构证据；
 3. 主工作簿 accepted 后执行 Analysis Necessity Gate：Gate=`required` 时，已选深化实现基于题目风险完成实际需要的结果深化分析并验收 `问题X结果深化分析.xlsx`；Gate=`not_required` 时必须记录非空理由，不生成或要求 03B 代码/工作簿，也不得据此声称稳健性、稳定性或替代方法一致性已经验证；
 4. 只有上述数值阶段完成后才进入 Figure Evidence；这里“完成”按 current Analysis Necessity Gate disposition 解释：Gate=`required` 时包含实际 03B 验收，Gate=`not_required` 时包含非空理由而不运行 03B。进入后先明确每张图读取原始数据、统一预处理工作簿、主工作簿或条件存在的 03B 工作簿中的哪一种事实源。只有 Figure Contract 实际消费 03B evidence 时才要求该工作簿存在，缺失必须 fail closed；
-5. 若为 `project_level`，此时生成并人工检查 `数据预处理/data_process.m`，只把已验收预处理工作簿中的底层证据转成图；
+5. 若为 `project_level`，此时按项目根已选绘图后端生成并人工检查 `数据预处理/data_process.py` 或 `数据预处理/data_process.m`，只把已验收预处理工作簿中的底层证据转成图；
 6. 为每个候选 Figure 先写 Core conclusion、Evidence level、Primary question、Available evidence dimensions；
 7. 先执行 **Scientific Figure Synthesis Gate**，识别证据结构并设计候选视觉结构；不得先问“bar 还是 line”；
 8. 对候选核心图执行 **Basic-form Challenge**，检查当前表达是否遗漏支撑结论的必要关系；清楚的 plain bar / plain line / plain scatter / plain box / plain histogram 可以直接承担核心论证；
@@ -18,9 +27,9 @@
 10. 选定视觉结构后进入对应 **Scientific Rendering Profile**；
 11. 再通过 Figure Layout Gate 动态选择单图、1×2、2×1、1×3、2×2 或拆分为多张 Figure；不得先决定版式再硬塞证据；
 12. 基础布局确定后执行 Figure Enhancement Gate；只有在增加可验证信息、降低视觉搜索成本或强化关键证据时增加 Local Zoom、Small Multiples、Focus Highlighting、Semantic Background、Composite Diagnostic 或 Conditional 3D；
-13. 生成 MATLAB 绘图代码前实际读取工作簿，锁定工作簿名、工作表名、真实表头、单位和数据类型；
+13. 生成当前项目选定后端的绘图代码前实际读取工作簿，锁定工作簿名、工作表名、真实表头、单位和数据类型；
 14. 拟定 DOCX/LaTeX 正式 caption；正式论文图不设置整体 `title` / `sgtitle`，多面板按需只保留 a/b/c/d 等 panel label；
-15. 将各问 `q{x}_plot.m` 与主求解代码、主工作簿放在同一 `问题X求解/`；仅 Gate=`required` 时同目录追加独立 03B代码 与 03B 工作簿。每问最终文件集合只服从 `core/output_contract.yaml` 的 conditional per-question layout；项目级预处理图脚本固定为 `数据预处理/data_process.m`；
+15. 将各问 `q{x}_plot.py`（Python 项目）或 `q{x}_plot.m`（MATLAB 项目）与主求解代码、主工作簿放在同一 `问题X求解/`；仅 Gate=`required` 时同目录追加独立 03B代码 与 03B 工作簿。每问最终文件集合只服从 `core/output_contract.yaml` 的 conditional per-question layout；项目级预处理图脚本按项目根统一后端为 `数据预处理/data_process.py` 或 `数据预处理/data_process.m`；
 16. 完成当前阶段可核验的单图 QA 后执行 **Figure Portfolio Scientific Quality Gate**，检查论证覆盖、必要证据缺口、跨图一致性与重复表达；尚未实际运行或人工确认的事项按后述交付边界如实保留；
 17. 检查核心结论是否有图或表证据，并同步 `模型论文框架.md`；
 18. 默认只保留图窗供人工检查，不自动创建图表子目录或批量导出图片。
@@ -42,7 +51,7 @@
 | 证据结构 | 首选后端 | 准入理由 |
 |---|---|---|
 | 题目对象关系、机制作用链、反馈、状态切换、约束来源，且赛中需要快速修改对象/箭头/文字 | draw.io | 离散关系适合可编辑矢量图元 |
-| 工作簿驱动的主结果、分布、误差、敏感性、空间场、Pareto 或网络权重 | MATLAB | 数值、坐标、统计量和区间必须来自已验收事实源 |
+| 工作簿驱动的主结果、分布、误差、敏感性、空间场、Pareto 或网络权重 | 项目级唯一选择的 Python / MATLAB | 数值、坐标、统计量和区间必须来自已验收事实源 |
 | 精确二维几何、连续函数、切线、坐标变换或按比例边界 | MATLAB / TikZ / GeoGebra | 需要解析或坐标精度 |
 | 简短公式依赖且必须与 LaTeX 字体一致 | TikZ | 直接服从论文公式环境 |
 | 临时讨论草图 | PPT / 手绘 | 只能作为草案，入文前转为正式后端 |
@@ -92,7 +101,7 @@ current Framework + Mechanism Contract
 
 ## B 类：项目级预处理证据图
 
-当 `preprocessing_decision=project_level` 时，必须生成独立 MATLAB 脚本 `数据预处理/data_process.m`，只读取 `数据预处理/数据预处理结果.xlsx`。其职责是把 Python 已经保存的处理前/后、诊断和验证底层数据转成论文证据图。data_process.m 不允许重新清洗、插值、滤波、重采样、预测填补、训练模型或重新确定参数。
+当 `preprocessing_decision=project_level` 时，必须依据项目根唯一绘图后端生成独立脚本 `数据预处理/data_process.py` 或 `数据预处理/data_process.m`，只读取 `数据预处理/数据预处理结果.xlsx`。其职责是把 Python 已经保存的处理前/后、诊断和验证底层数据转成论文证据图。data_process.py/m 都不允许重新清洗、插值、滤波、重采样、预测填补、训练模型或重新确定参数。
 
 至少有一张图直接回答下列问题之一：为什么原始数据需要处理；当前处理是否解决已审计问题；插值/填补恢复误差是否可接受；滤波是否保留所需信息；重采样/时间/空间对齐是否满足模型输入；异常处理是否有清晰边界并避免误删真实结构。
 
@@ -100,7 +109,7 @@ current Framework + Mechanism Contract
 
 ## C 类：各问结果图合同
 
-每张结果图至少记录：Core conclusion、Evidence level、Primary question、Figure role、Available evidence dimensions、Evidence structure、Figure level、Candidate visual structures、Selected visual structure、Basic-form challenge、Composite encoding、Scientific Rendering Profile、In-figure title=`none`、论文 caption、Panel map、Layout decision、Split decision、Enhancement、Enhancement rationale、Source workbook、Worksheet、Required headers、Expected positions（可选）、MATLAB script、Statistics/error、Reviewer risk、Paper location 和 Caption duty。
+每张结果图至少记录：Core conclusion、Evidence level、Primary question、Figure role、Available evidence dimensions、Evidence structure、Figure level、Candidate visual structures、Selected visual structure、Basic-form challenge、Composite encoding、Scientific Rendering Profile、In-figure title=`none`、论文 caption、Panel map、Layout decision、Split decision、Enhancement、Enhancement rationale、Source workbook、Worksheet、Required headers、Expected positions（可选）、当前后端的 Plot script、Statistics/error、Reviewer risk、Paper location 和 Caption duty。
 
 图表制作时，`Paper location` 先交接“对应小问或共享范围＋预期论证功能”，例如“问题一／求解精度依据；具体小节写作时确定”；归属待定时说明原因，正文尚未写成时不伪填实际引用或源码行号。`Figure role` 仍描述图形证据用途，不改作章节槽。写作如何消费预登记、落实位置并回填，统一服从 `modules/05_writing/paper_writing_protocol.md` §13.0；预登记不代表图片已生成、已导出或已批准入文。
 
@@ -338,7 +347,7 @@ Scientific Figure Synthesis、Scientific Rendering Profile、Figure Layout 与 F
 
 字号按最终显示尺寸和信息层级选择，保证坐标、单位、legend 与 colorbar 可读；不要求所有图固定 tick 16 / axis label 18，也不以过小字号容纳过多内容。panel label 只承担 a/b/c/d 导航。中文字体执行稳定 fallback，不把特定本机字体作为唯一依赖。
 
-颜色、字号、数据线宽、轴线宽、网格和边框放在脚本的集中参数区，便于用户在 MATLAB 中手调。对象、标签、legend/colorbar 创建完成后，基础样式只调用一次，再进行当前图的局部覆盖；重复套用基础样式会覆盖这些局部选择。接口示例：`hsk_apply_scientific_style(fig, "", style)` 只应用基础字体与框架，不设置数据颜色、`ColorOrder` 或 colormap；`hsk_publication_profile()` 的 palette 为空。显式候选例如 `hsk_publication_profile("journal_balanced")` 只提供可选择的 RGB，不会自动为图形对象着色。具体参数与实现示例见模板。
+颜色、字号、数据线宽、轴线宽、网格和边框放在脚本的集中参数区，便于用户在选定的 MATLAB 或 Python 工具中手调。对象、标签、legend/colorbar 创建完成后，基础样式只调用一次，再进行当前图的局部覆盖；重复套用基础样式会覆盖这些局部选择。接口示例：`hsk_apply_scientific_style(fig, "", style)` 只应用基础字体与框架，不设置数据颜色、`ColorOrder` 或 colormap；`hsk_publication_profile()` 的 palette 为空。显式候选例如 `hsk_publication_profile("journal_balanced")` 只提供可选择的 RGB，不会自动为图形对象着色。具体参数与实现示例见模板。
 
 ### 3. Adaptive Canvas / Panel Geometry
 
@@ -426,9 +435,9 @@ end
 
 数据驱动结果图的颜色与排版按前述 Publication Rendering Grammar 逐图选择；没有默认色板、蓝红优先或强制中高饱和要求。中文坐标轴、单位、图例与必要直接标注保持清晰，实际颜色、字号、线宽、网格和边框由脚本集中配置。A 类正式机理/推导图仍遵循前述 monochrome-first 规则。
 
-外观由用户在 MATLAB 中人工调整和确认；静态代码检查只核对接口、参数与契约，不代表已确认图形美观，也不新增自动视觉检查。
+外观由用户在项目选定的绘图工具中人工调整和确认；静态代码检查只核对接口、参数与契约，不代表已确认图形美观，也不新增自动视觉检查。
 
-脚本静态交付、用户实际运行、人工外观确认和正式图片入文分别据实记录。只完成静态检查时明确写“仅静态检查，未验证 MATLAB 运行”；确知尚未运行时可写“MATLAB 未运行”。可交付已完成静态检查的脚本并保留待办；不得据此声称运行通过、图形已验收或将其列为 `approved_figures`。用户在 MATLAB 中打开图窗、手动调整并按需导出，不要求提交截图或填写额外审美表单。现有项目状态字段和待办记录的用法见框架模板，不另建图形状态体系。
+脚本静态交付、用户实际运行、人工外观确认和正式图片入文分别据实记录。只完成静态检查时明确写“仅静态检查，未验证实际绘图运行”；确知尚未运行时注明“绘图脚本未运行”。可交付已完成静态检查的脚本并保留待办；不得据此声称运行通过、图形已验收或将其列为 `approved_figures`。用户在 MATLAB 中打开图窗、手动调整并按需导出，不要求提交截图或填写额外审美表单。现有项目状态字段和待办记录的用法见框架模板，不另建图形状态体系。
 
 图窗默认可见，不批量自动导出。
 
