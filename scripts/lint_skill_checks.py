@@ -969,8 +969,8 @@ def check_contracts(errors: list[str]) -> None:
 def check_project_state_and_framework(errors: list[str]) -> None:
     schema = load_structured(ROOT / "core/project_state.schema.yaml")
     Draft202012Validator.check_schema(schema)
-    if schema.get("version") != "8.17.0":
-        errors.append("project plotting backend requires schema 8.17.0 with preserved analysis comparisons")
+    if schema.get("version") != "8.16.0":
+        errors.append("v10.18 analysis comparisons require independent schema 8.16.0")
     policy = schema.get("$defs", {}).get("claim_consumption_policy", {})
     if policy.get("oneOf", [])[:3] != [
             {"properties": {"protocol_version": {"const": "1.0.0"}, "mode": {"const": "observe"},
