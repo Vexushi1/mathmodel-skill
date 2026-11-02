@@ -68,6 +68,59 @@ class ProjectPlotBackendTests(unittest.TestCase):
                 ast.parse((folder / name).read_text(encoding="utf-8"), filename=name)
 
 
+    def test_shared_python_preprocessing_figure_checks_actual_ast_not_comments(self):
+        from sync_project import _preprocessing_artifact_issues
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            folder = root / "数据预处理"
+            folder.mkdir()
+            source = folder / "data_process.py"
+            state = {"preprocessing": {"decision": "project_level"}}
+            required = {"preprocessing_python_plot_script"}
+            source.write_text(
+                '# 数据预处理结果.xlsx in a comment is not evidence of a workbook reference\\n'
+                'import matplotlib.pyplot as plt\\n'
+                'fig, ax = plt.subplots()\\n'
+                'ax.set_title("forbidden overall title")\\n'
+                'fig.savefig("not_yet_created.svg")\\n',
+                encoding="utf-8",
+            )
+            problems = _preprocessing_artifact_issues(root, required, state)
+            self.assertTrue(any("title" in issue for issue in problems), problems)
+            self.assertTrue(any("必须引用" in issue for issue in problems), problems)
+            self.assertTrue(any("不存在" in issue for issue in problems), problems)
+
+            source.write_text(
+                'from openpyxl import load_workbook\\n'
+                'from pathlib import Path\\n'
+                'book = load_workbook(Path(__file__).parent / "数据预处理结果.xlsx", read_only=True)\\n'
+                '# ax.set_title("comment is not a title call")\\n',
+                encoding="utf-8",
+            )
+            self.assertEqual(_preprocessing_artifact_issues(root, required, state), [])
+
+    def test_shared_python_preprocessing_export_cannot_escape_project(self):
+        from sync_project import _preprocessing_artifact_issues
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "project"
+            folder = root / "数据预处理"
+            folder.mkdir(parents=True)
+            source = folder / "data_process.py"
+            source.write_text(
+                'from openpyxl import load_workbook\\n'
+                'load_workbook("数据预处理结果.xlsx", read_only=True)\\n'
+                'fig.savefig("../../outside.svg")\\n',
+                encoding="utf-8",
+            )
+            problems = _preprocessing_artifact_issues(
+                root, {"preprocessing_python_plot_script"},
+                {"preprocessing": {"decision": "project_level"}},
+            )
+            self.assertTrue(any("越出项目根目录" in issue for issue in problems), problems)
+
+
     def test_first_plot_choice_uses_existing_transaction(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
