@@ -467,6 +467,34 @@ def _parse_python_plot(script: Path) -> tuple[bool, list[str], list[str]]:
     has_title = False
     workbook_refs: list[str] = []
     exports: list[str] = []
+
+    # The shipped Python templates declare EXPORT_FILE as a literal and pass
+    # (directory / EXPORT_FILE).resolve() to savefig via a local variable.
+    # Resolve that narrow, auditable pattern instead of pretending arbitrary
+    # Python expressions can be statically evaluated.
+    declared_exports = [
+        stmt.value.value
+        for stmt in root.body
+        if isinstance(stmt, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == "EXPORT_FILE"
+                for target in stmt.targets)
+        and isinstance(stmt.value, ast.Constant)
+        and isinstance(stmt.value.value, str)
+    ]
+    declared_export = declared_exports[0] if len(declared_exports) == 1 else None
+    export_aliases: set[str] = set()
+    for node in ast.walk(root):
+        if not isinstance(node, ast.Assign):
+            continue
+        value = node.value
+        if (isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute)
+                and value.func.attr == "resolve" and not value.args):
+            value = value.func.value
+        if (isinstance(value, ast.BinOp) and isinstance(value.op, ast.Div)
+                and isinstance(value.right, ast.Name)
+                and value.right.id == "EXPORT_FILE"):
+            export_aliases.update(target.id for target in node.targets
+                                  if isinstance(target, ast.Name))
     for node in ast.walk(root):
         if isinstance(node, ast.Constant) and isinstance(node.value, str):
             if node.value.lower().endswith(".xlsx"):
@@ -479,10 +507,15 @@ def _parse_python_plot(script: Path) -> tuple[bool, list[str], list[str]]:
         )
         if name in {"title", "suptitle", "set_title"}:
             has_title = True
-        if name in {"savefig", "imsave"} and node.args:
-            arg = node.args[0]
+        if name in {"savefig", "imsave"}:
+            arg = node.args[0] if node.args else next(
+                (kw.value for kw in node.keywords if kw.arg in {"fname", "path"}), None
+            )
             if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
                 exports.append(arg.value)
+            elif (isinstance(arg, ast.Name) and arg.id in export_aliases
+                  and declared_export is not None):
+                exports.append(declared_export)
     return has_title, workbook_refs, exports
 
 
