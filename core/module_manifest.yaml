@@ -176,7 +176,11 @@ modules:
         when: preprocessing_decision == project_level
       result_analysis_workbook:
         when: result_analysis_status == passed
-    outputs: [preprocessing_matlab_script, preprocessing_figures, matlab_scripts, result_figures, refined_mechanism_figures, mechanism_diagram_spec, editable_mechanism_source, mechanism_preview, mechanism_exports, figure_contracts, approved_figures, evidence_map, model_paper_framework]
+    outputs: [preprocessing_matlab_script, preprocessing_figures, matlab_scripts, result_figures, refined_mechanism_figures, mechanism_diagram_spec, editable_mechanism_source, mechanism_preview, mechanism_exports, figure_contracts, approved_figures, evidence_map, model_paper_framework]  # legacy MATLAB projection
+    selected_backend_outputs:
+      python: [preprocessing_python_plot_script, plot_scripts]
+      matlab: [preprocessing_matlab_script, matlab_scripts]
+    selected_backend_rule: single_project_level_choice_no_per_question_mixing
   writing_docx:
     path: modules/05_writing/docx.md
     inputs: [model_paper_framework, proposition_plan, locked_model_spec, validated_results, figure_contracts]
