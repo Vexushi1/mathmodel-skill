@@ -33,9 +33,40 @@ COMPARISON_DEFINITIONS = (
     'comparison_check', 'comparison_review', 'comparison_approval', 'analysis_comparison',
 )
 
+def previous_plotting_schema(schema):
+    """Remove only v10.24 optional Figure fields, then use pinned historical digests.
+
+    An unexpected field shape is a regression, not a reason to update the hash.
+    """
+    schema = deepcopy(schema)
+    plotting = schema["properties"].pop("plotting")
+    assert plotting == {
+        "description": "Project-wide Figure rendering backend; absent in older MATLAB projects.",
+        "type": "object", "additionalProperties": False,
+        "required": ["backend", "selection_reason"],
+        "properties": {
+            "backend": {"type": "string", "enum": ["python", "matlab"]},
+            "selection_reason": {"type": "string", "minLength": 1, "pattern": r"\S"},
+        },
+    }
+    fields = schema["properties"]["subproblems"]["additionalProperties"]["properties"]
+    assert fields.pop("plot_script") == {
+        "type": "string",
+        "description": "New Python Figure entry; MATLAB retains matlab_script",
+    }
+    hashes = schema["$defs"]["artifact_hashes"]["properties"]
+    assert hashes.pop("plot_script") == {
+        "type": "string", "pattern": "^[0-9a-fA-F]{64}$",
+    }
+    layers = schema["$defs"]["artifact_layer"]["enum"]
+    assert layers.count("plot_script") == 1
+    layers.remove("plot_script")
+    return schema
+
+
 def previous_comparison_schema(schema):
     """Remove only this optional extension; retain every pinned predecessor check."""
-    schema = deepcopy(schema)
+    schema = previous_plotting_schema(schema) if "plotting" in schema["properties"] else deepcopy(schema)
     assert schema['version'] == '8.16.0'
     fields = schema['properties']['subproblems']['additionalProperties']['properties']
     assert fields.pop('analysis_comparison') == {'$ref': '#/$defs/analysis_comparison'}
