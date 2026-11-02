@@ -746,6 +746,71 @@ def render_project_backend_memory(text: str, candidate_state: Mapping[str, Any])
     return newline.join(lines)
 
 
+
+def render_project_plot_backend_memory(text: str, candidate_state: Mapping[str, Any]) -> str:
+    """Project Figure backend projection, beside (not inside) numerical backend memory.
+
+    Keep all question Figure/claim records untouched. This is a compact view of
+    the one project-root plotting choice, not a new Figure design Authority.
+    """
+    report = PLOT_BACKEND.inspect_plotting(candidate_state)
+    if report["kind"] != "selected" or report["issues"]:
+        raise ValueError("project Figure backend must be explicitly selected")
+    reason = candidate_state["plotting"]["selection_reason"]
+    if (not isinstance(reason, str) or not reason.strip() or len(reason.splitlines()) != 1
+            or any(ord(char) < 32 for char in reason)):
+        raise ValueError("project Figure selection reason must be one non-empty text line")
+    without_crlf = text.replace("\r\n", "")
+    if "\r" in without_crlf or ("\r\n" in text and "\n" in without_crlf):
+        raise ValueError("framework has unsupported mixed line endings")
+    newline = "\r\n" if "\r\n" in text else "\n"
+    lines = text.split(newline)
+    start_positions = [i for i, line in enumerate(lines) if line == "## 当前有效口径"]
+    if len(start_positions) != 1:
+        raise ValueError("framework requires one exact current-state heading")
+    start = start_positions[0]
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("## ")), len(lines))
+    heading = "### 全项目科研绘图"
+    matches = [i for i, line in enumerate(lines) if line == heading]
+    if len(matches) > 1 or (matches and not start < matches[0] < end):
+        raise ValueError("ambiguous project Figure backend section")
+    if any(line.startswith(heading) and line != heading for line in lines):
+        raise ValueError("ambiguous project Figure backend heading")
+    backend_line = f"- 项目绘图后端：{chr(96)}{report['backend']}{chr(96)}"
+    reason_line = f"- 项目绘图选择理由：{reason.strip()}"
+    prefixes = ("- 项目绘图后端：", "- 项目绘图选择理由：")
+    if not matches:
+        if any(line.startswith(prefixes) for line in lines):
+            raise ValueError("project Figure backend fields appear outside their section")
+        # Place next to project-wide numerical backend, not inside a Q1 Figure record.
+        numeric = next((i for i in range(start + 1, end)
+                        if lines[i] == "### 全项目数值实现"), None)
+        if numeric is None:
+            insert_at = start + 1
+        else:
+            insert_at = next((i for i in range(numeric + 1, end)
+                              if lines[i].startswith("### ")), end)
+        lines[insert_at:insert_at] = [heading, "", backend_line, reason_line, ""]
+    else:
+        index = matches[0]
+        block_end = next((i for i in range(index + 1, end)
+                          if lines[i].startswith("### ")), end)
+        if any(line.startswith(prefixes) for i, line in enumerate(lines)
+               if not index < i < block_end):
+            raise ValueError("project Figure backend fields appear outside their section")
+        body = lines[index + 1:block_end]
+        counts = [sum(line.startswith(prefix) for line in body) for prefix in prefixes]
+        if any(count > 1 for count in counts):
+            raise ValueError("duplicate project Figure backend field")
+        retained = [line for line in body if not line.startswith(prefixes)]
+        while retained and retained[0] == "":
+            retained.pop(0)
+        lines[index + 1:block_end] = [
+            "", backend_line, reason_line, "", *retained,
+        ]
+    return newline.join(lines)
+
+
 def _approved_figure_issues(
     root: Path, state: Mapping[str, Any], snapshots: Mapping[str, Mapping[str, Any]],
 ) -> tuple[list[str], list[str]]:
