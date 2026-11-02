@@ -62,6 +62,61 @@ class ProjectPlotBackendTests(unittest.TestCase):
             with self.assertRaises(PlotBackendError):
                 resolve_question_script(temporary, state, "Q1", "问题一", 1)
 
+    def test_submission_python_figure_source_must_be_canonical_and_validated(self):
+        # Package collection is not Figure approval, but it must not accept an
+        # arbitrary Python file or a changed source under an old Figure hash.
+        import hashlib
+        from submission_requirements import reproducibility_requirements
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            directory = root / "问题一求解"
+            directory.mkdir()
+            script = directory / "q1_plot.py"
+            script.write_text("print('Figure only')\\n", encoding="utf-8")
+            relative = "问题一求解/q1_plot.py"
+            digest = hashlib.sha256(script.read_bytes()).hexdigest()
+            state = {
+                "plotting": {"backend": "python", "selection_reason": "whole-project Figure"},
+                "execution": {"solver_backend": "python"},
+                "preprocessing": {"decision": "not_needed"},
+                "paper_framework": {"path": "模型论文框架.md"},
+                "artifacts": {},
+                "subproblems": {
+                    "Q1": {
+                        "plot_script": relative,
+                        "validated_artifact_hashes": {"plot_script": digest},
+                    },
+                },
+            }
+            observed = []
+            required, issues = reproducibility_requirements(
+                root, state, observe=lambda path, raw: observed.append(path.resolve())
+            )
+            self.assertIn(relative, required)
+            self.assertIn(script.resolve(), observed)
+            self.assertFalse([issue for issue in issues if "plot_script" in issue], issues)
+
+            script.write_text("print('Changed Figure')\\n", encoding="utf-8")
+            _, issues = reproducibility_requirements(root, state)
+            self.assertTrue(any("plot_script" in issue and "SHA-256" in issue for issue in issues), issues)
+            script.write_text("print('Figure only')\\n", encoding="utf-8")
+
+            del state["subproblems"]["Q1"]["validated_artifact_hashes"]["plot_script"]
+            _, issues = reproducibility_requirements(root, state)
+            self.assertTrue(any("plot_script" in issue and "缺少已验收" in issue for issue in issues), issues)
+            state["subproblems"]["Q1"]["validated_artifact_hashes"]["plot_script"] = digest
+
+            state["subproblems"]["Q1"]["plot_script"] = "问题一求解/other.py"
+            (directory / "other.py").write_text("print('Unrelated')\\n", encoding="utf-8")
+            _, issues = reproducibility_requirements(root, state)
+            self.assertTrue(any("plot_script" in issue and "当前身份不合法" in issue for issue in issues), issues)
+            state["subproblems"]["Q1"]["plot_script"] = relative
+
+            script.unlink()
+            _, issues = reproducibility_requirements(root, state)
+            self.assertTrue(any("plot_script" in issue and "不存在" in issue for issue in issues), issues)
+
     def test_python_templates_are_valid_source_files(self):
         folder = ROOT / "templates" / "plot" / "python"
         for name in ("q1_plot.py", "data_process.py"):
