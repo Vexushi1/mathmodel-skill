@@ -270,12 +270,6 @@ result_analysis_workbook:
     结论稳定性汇总:
       required_columns: [核心结论, 分析方法, 稳定范围, 是否保持]
       optional_columns: [失效边界, 证据工作表, 论文位置, 说明]
-python_figure_handoff:
-  status: optional_project_selected_backend
-  same_source_validation: matlab_handoff.field_resolution
-  required_mapping_fields: [figure_id, paper_caption, workbook, worksheet, required_headers, plot_script, framework_registry]
-  evidence_chain: existing_figure_evidence_and_approved_figures
-  explicit_companion_file_required: false
 matlab_handoff:
   required_mapping_fields: [figure_id, paper_caption, workbook, worksheet, required_headers, matlab_script, framework_registry]
   optional_mapping_fields: [expected_column_positions, units, schema_hash]
