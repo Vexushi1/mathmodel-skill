@@ -231,6 +231,104 @@ def select_project_plot_backend(project_root: str | Path, *,
             "environment_verified": False, "figure_approved": False}
 
 
+
+def preview_project_plot_backend_migration(project_root: str | Path, *,
+                                           target_backend: str) -> dict[str, Any]:
+    """Read-only whole-project Figure migration impact; never execute migration.
+
+    Enumerate registered evidence and publication dependencies without treating
+    an unregistered file as an approved Figure or changing numerical acceptance.
+    """
+    import project_transaction as transaction
+    import stage_code as stage
+    from runtime_assurance import ProjectStateSnapshot
+
+    if target_backend not in BACKENDS:
+        raise PlotBackendError("Migration target must be python or matlab")
+    snapshot = ProjectStateSnapshot.capture(project_root)
+    if snapshot.raw is None:
+        raise PlotBackendError("Migration preview requires existing project state")
+    root, state = snapshot.root, snapshot.payload()
+    report = inspect_plotting(state)
+    if report["issues"]:
+        raise PlotBackendError("; ".join(report["issues"]))
+    if report["kind"] == "unselected":
+        raise PlotBackendError("No active Figure backend; use first-selection transaction")
+    current = report["backend"]
+    if target_backend == current:
+        snapshot.assert_current()
+        return {"status": "unchanged", "backend": current,
+                "state_generation": snapshot.describe()["state_generation"]}
+
+    question_scripts = []
+    numerical_workbooks = []
+    for question in sorted(state.get("subproblems") or {}):
+        name = stage.question_name(question)
+        number = stage.question_number(name)
+        if number is None:
+            raise PlotBackendError(f"Cannot resolve Figure scope: {question}")
+        ref = resolve_question_script(root, state, question, name, number)
+        target = f"{name}求解/q{number}_plot.{ 'py' if target_backend == 'python' else 'm'}"
+        question_scripts.append({
+            "question": question, "current": ref.relative,
+            "current_exists": ref.path.is_file(), "target": target,
+            "current_hash_field": ref.hash_field,
+        })
+        entry = state["subproblems"][question]
+        for field in ("solution_workbook", "result_analysis_workbook", "robustness_workbook"):
+            if entry.get(field):
+                numerical_workbooks.append(entry[field])
+
+    artifacts = state.get("artifacts") or {}
+    approved = artifacts.get("approved_figures") or []
+    if not isinstance(approved, list):
+        raise PlotBackendError("approved_figures must be an array")
+    approved_figures = []
+    for relative in approved:
+        path = transaction._guarded_path(root, relative)
+        approved_figures.append({"path": relative, "exists": path.is_file()})
+    publication = set()
+    for field in ("papers", "docx"):
+        entries = artifacts.get(field) or []
+        if not isinstance(entries, list):
+            raise PlotBackendError(f"artifacts.{field} must be an array")
+        publication.update(item for item in entries if isinstance(item, str) and item)
+    for field in ("latex_source", "compiled_pdf", "compile_report"):
+        if artifacts.get(field):
+            publication.add(artifacts[field])
+    framework = (state.get("paper_framework") or {}).get("path")
+    if framework:
+        publication.add(framework)
+    paper_dependencies = [
+        {"path": relative, "exists": transaction._guarded_path(root, relative).is_file()}
+        for relative in sorted(publication)
+    ]
+    preprocessing = state.get("preprocessing") or {}
+    shared = None
+    if preprocessing.get("decision") == "project_level":
+        current_ext = "py" if current == "python" else "m"
+        target_ext = "py" if target_backend == "python" else "m"
+        source = f"数据预处理/data_process.{current_ext}"
+        shared = {"current": source,
+                  "current_exists": transaction._guarded_path(root, source).is_file(),
+                  "target": f"数据预处理/data_process.{target_ext}"}
+    snapshot.assert_current()
+    return {
+        "status": "preview_only", "current_backend": current,
+        "target_backend": target_backend,
+        "state_generation": snapshot.describe()["state_generation"],
+        "question_scripts": question_scripts,
+        "shared_preprocessing_figure": shared,
+        "approved_figures_to_revalidate": approved_figures,
+        "paper_dependencies_to_review": paper_dependencies,
+        "numerical_workbooks_to_preserve": sorted(set(numerical_workbooks)),
+        "requires_new_figure_review": True,
+        "execution_authorized": False,
+        "model_approval_changed": False,
+        "accepted_numerical_results_changed": False,
+    }
+
+
 def main() -> int:
     """Inspect or select one backend; returns real state facts, never approvals."""
     import argparse
@@ -247,6 +345,9 @@ def main() -> int:
     select.add_argument("--backend", choices=sorted(BACKENDS), required=True)
     select.add_argument("--reason", required=True)
     select.add_argument("--expected-generation", required=True, type=int)
+    preview = commands.add_parser("preview", help="Read-only whole-project Figure migration impact")
+    preview.add_argument("project_root", type=Path)
+    preview.add_argument("--target-backend", choices=sorted(BACKENDS), required=True)
     args = parser.parse_args()
     try:
         if args.action == "inspect":
@@ -254,6 +355,10 @@ def main() -> int:
             result = {"plotting": inspect_plotting(snap.payload()),
                       "state_snapshot": snap.describe()}
             snap.assert_current()
+        elif args.action == "preview":
+            result = preview_project_plot_backend_migration(
+                args.project_root, target_backend=args.target_backend,
+            )
         else:
             result = select_project_plot_backend(
                 args.project_root, backend=args.backend,
