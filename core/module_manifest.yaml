@@ -111,7 +111,9 @@ artifact_catalog:
   result_analysis_report: 结果分析逻辑完成标记；required分支指实际深化分析报告并要求target claim及support/modify/reject处置，not_required分支由project_state中的非空result_analysis_requirement_reason提供明确判定，不伪造工作簿
   validated_results: 每个作用域小问均有accepted主结果，并且要么accepted且passed的结果深化分析，要么result_analysis_status=not_required且存在非空requirement reason；not_required不支持任何新增鲁棒性/稳定性主张
   evidence_map: 结论到公式、代码、表和图的证据映射
-  matlab_scripts: MATLAB绘图脚本集合；project_level包含data_process.m，每问包含qX_plot.m
+  matlab_scripts: MATLAB绘图脚本集合；旧项目及新MATLAB项目依然合法，project_level包含data_process.m，每问包含qX_plot.m
+  plot_scripts: 项目根一赛题唯一后端的正式结果绘图脚本集合；Python为qN_plot.py，MATLAB继续qN_plot.m；数值求解语言独立
+  preprocessing_python_plot_script: project_level且绘图后端为python时由Figure Evidence阶段生成data_process.py，只读accepted预处理工作簿
   result_figures: 工作簿驱动、经Scientific Figure Synthesis与Basic-form Challenge选择充分清楚的表达，按真实信息增益使用互补编码或全局—局部组织；正式图名由DOCX/LaTeX caption承担且不嵌入重复整体title/sgtitle的正式结果图
   refined_mechanism_figures: 精修后的S/A级机理图
   figure_contracts: 预处理图、结果图和机理图合同
@@ -132,7 +134,7 @@ artifact_catalog:
   validated_submission_package: submission_package_validation gate通过后的正式可交付提交包
   project_state: 项目机器状态
   sync_report: 项目同步器生成的发现、Schema校验、分层哈希、stale和证据链报告
-  figure_evidence: 由当前数据事实源、预处理/结果工作簿与对应MATLAB脚本形成的逻辑证据，不默认生成独立文件
+  figure_evidence: 由当前数据事实源、预处理/结果工作簿与对应项目级Python/MATLAB绘图脚本形成的逻辑证据，不默认生成独立文件
   accepted_solution_workbook: 通过运行配置、哈希、主结果质量门以及适用v7.14主数值证据独立复核的主工作簿
   accepted_result_analysis_workbook: Gate=required时通过运行配置和结论稳定性验收的真实结果深化工作簿
 modules:
