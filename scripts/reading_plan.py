@@ -574,16 +574,27 @@ def _figure_binding(root: Path, state: dict[str, Any], question: str) -> list[st
     hashes = item.get("validated_artifact_hashes") or {}
     try:
         root = root.resolve()
-        from project_snapshot import chinese_question_name, question_number
-        name = chinese_question_name(question)
-        ref = PLOT_BACKEND.resolve_question_script(
-            root, state, question, name, question_number(name) or 0,
-        )
-        script = _inside(root, item.get(ref.hash_field, ""))
-        if script != ref.path:
-            return ["validated Figure script does not match the selected project backend"]
-        if hashes.get(ref.hash_field) != sha256_file(script):
-            return ["current Figure script is not bound to its validated hash"]
+        if state.get("plotting") is None:
+            # Preserve exactly the established historical MATLAB read path.
+            # Neither change existing Style approvals nor infer a new backend.
+            field = "matlab_script"
+            script = _inside(root, item.get(field, ""))
+            if script.suffix.lower() != ".m":
+                return ["validated figure script is not a MATLAB source"]
+            if hashes.get(field) != sha256_file(script):
+                return ["current MATLAB script is not bound to its validated hash"]
+        else:
+            from project_snapshot import chinese_question_name, question_number
+            name = chinese_question_name(question)
+            ref = PLOT_BACKEND.resolve_question_script(
+                root, state, question, name, question_number(name) or 0,
+            )
+            field = ref.hash_field
+            script = _inside(root, item.get(field, ""))
+            if script != ref.path:
+                return ["validated Figure script does not match the selected project backend"]
+            if hashes.get(field) != sha256_file(script):
+                return ["current Figure script is not bound to its validated hash"]
         approved = {_inside(root, p) for p in state.get("artifacts", {}).get("approved_figures", [])}
         figures, discovery_issues = scoped_figure_files(root, script, item)
         if discovery_issues:
