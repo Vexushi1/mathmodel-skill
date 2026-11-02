@@ -486,6 +486,45 @@ def _parse_python_plot(script: Path) -> tuple[bool, list[str], list[str]]:
     return has_title, workbook_refs, exports
 
 
+# Figure scripts may render accepted values but must not silently re-run a
+# model, re-impute observations, or overwrite the accepted workbook. The parser
+# recognizes actual AST calls (not comments/docstrings), and deliberately does
+# not reject normal plotting/NumPy array conversion or raw-source reading.
+PYTHON_FIGURE_FORBIDDEN_CALLS = frozenset({
+    "fit", "fit_transform", "fit_predict", "predict", "train",
+    "fillna", "dropna", "interpolate", "interp", "interp1d", "interp2d",
+    "griddata", "nan_to_num", "resample", "fit_resample",
+    "savgol_filter", "gaussian_filter", "to_excel", "to_csv",
+    "eval", "exec",
+})
+
+
+def python_figure_forbidden_calls(script: Path) -> list[str]:
+    """Detect unambiguous computation/writeback calls in a Python Figure source.
+
+    This is a targeted static signal, not a proof that arbitrary Python code
+    cannot perform computation; Figure source approval remains human-owned.
+    """
+    tree = ast.parse(script.read_text(encoding="utf-8"), filename=str(script))
+    matches: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        name = func.attr if isinstance(func, ast.Attribute) else (
+            func.id if isinstance(func, ast.Name) else ""
+        )
+        if name in PYTHON_FIGURE_FORBIDDEN_CALLS:
+            matches.add(name)
+        if isinstance(func, ast.Attribute) and func.attr == "save":
+            receiver = func.value
+            if isinstance(receiver, ast.Name) and receiver.id.lower() in {
+                "wb", "book", "workbook", "excel", "writer",
+            }:
+                matches.add("workbook.save")
+    return sorted(matches)
+
+
 def _parse_plot(script: Path) -> tuple[bool, list[str], list[str]]:
     return _parse_python_plot(script) if script.suffix.lower() == ".py" else _parse_matlab(script)
 
