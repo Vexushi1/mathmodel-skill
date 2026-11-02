@@ -121,6 +121,31 @@ class ProjectPlotBackendTests(unittest.TestCase):
             self.assertTrue(any("越出项目根目录" in issue for issue in problems), problems)
 
 
+    def test_python_figure_ast_detects_actual_recomputation_not_plotting(self):
+        from project_snapshot import python_figure_forbidden_calls
+
+        with tempfile.TemporaryDirectory() as temp:
+            script = Path(temp) / "q1_plot.py"
+            script.write_text(
+                '# model.fit(X, y) is only a comment\\n'
+                'note = "predict() appears in an annotation, not a call"\\n'
+                'ax.plot(x, y)\\n'
+                'np.asarray(x)\\n'
+                'fig.savefig("q1.svg")\\n',
+                encoding="utf-8",
+            )
+            self.assertEqual(python_figure_forbidden_calls(script), [])
+            script.write_text(
+                'model.fit(X, y)\\n'
+                'clean = df.fillna(0)\\n'
+                'wb.save("问题一求解结果.xlsx")\\n',
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                python_figure_forbidden_calls(script),
+                ["fillna", "fit", "workbook.save"],
+            )
+
     def test_first_plot_choice_uses_existing_transaction(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
