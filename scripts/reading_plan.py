@@ -18,6 +18,7 @@ from yaml.tokens import AliasToken
 from artifact_fingerprint import combined_hash, sha256_file
 from runtime_assurance import ProjectStateReadError, ProjectStateSnapshot
 from project_transaction import STATE_RELATIVE_PATH
+import plot_backend as PLOT_BACKEND
 
 
 def _inside(root: Path, relative: str) -> Path:
@@ -573,11 +574,16 @@ def _figure_binding(root: Path, state: dict[str, Any], question: str) -> list[st
     hashes = item.get("validated_artifact_hashes") or {}
     try:
         root = root.resolve()
-        script = _inside(root, item.get("matlab_script", ""))
-        if script.suffix.lower() != ".m":
-            return ["validated figure script is not a MATLAB source"]
-        if hashes.get("matlab_script") != sha256_file(script):
-            return ["current MATLAB script is not bound to its validated hash"]
+        from project_snapshot import chinese_question_name, question_number
+        name = chinese_question_name(question)
+        ref = PLOT_BACKEND.resolve_question_script(
+            root, state, question, name, question_number(name) or 0,
+        )
+        script = _inside(root, item.get(ref.hash_field, ""))
+        if script != ref.path:
+            return ["validated Figure script does not match the selected project backend"]
+        if hashes.get(ref.hash_field) != sha256_file(script):
+            return ["current Figure script is not bound to its validated hash"]
         approved = {_inside(root, p) for p in state.get("artifacts", {}).get("approved_figures", [])}
         figures, discovery_issues = scoped_figure_files(root, script, item)
         if discovery_issues:
@@ -700,7 +706,11 @@ def _project_reads(
         spec["headings"] = headings
     rows = [reader.describe(spec), reader.describe({"path": "state/project_state.yaml"})]
     if style:
-        rows.append(reader.describe({"path": state["subproblems"][question]["matlab_script"]}))
+        report = PLOT_BACKEND.inspect_plotting(state)
+        if report["issues"]:
+            raise ValueError("Figure backend conflict: " + "; ".join(report["issues"]))
+        role = "plot_script" if report["backend"] == "python" else "matlab_script"
+        rows.append(reader.describe({"path": state["subproblems"][question][role]}))
     return reader.consolidate(rows)
 
 
