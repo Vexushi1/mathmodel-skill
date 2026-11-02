@@ -942,13 +942,21 @@ def _preprocessing_artifact_issues(
         if not python_plot.is_file():
             issues.append("project_level Python图表交付缺少数据预处理/data_process.py")
         else:
-            import ast
             try:
-                code = python_plot.read_text(encoding="utf-8")
-                ast.parse(code)
-                if "数据预处理结果.xlsx" not in code:
-                    issues.append("data_process.py必须读取已验收数据预处理结果.xlsx")
-            except (OSError, UnicodeError, SyntaxError) as exc:
+                # Reuse the same AST-based Figure source parser as each qN_plot.py.
+                # String searches also match comments and cannot detect a real title.
+                has_title, workbook_refs, exports = PROJECT_SNAPSHOT._parse_python_plot(python_plot)
+                if has_title:
+                    issues.append("data_process.py正式论文图不得设置整体title/suptitle/set_title；图名由论文caption承担")
+                if "数据预处理结果.xlsx" not in {Path(value).name for value in workbook_refs}:
+                    issues.append("data_process.py必须引用已验收数据预处理结果.xlsx")
+                for value in exports:
+                    exported = (python_plot.parent / value).resolve()
+                    if not exported.is_relative_to(root.resolve()):
+                        issues.append(f"data_process.py声明导出的图越出项目根目录: {value}")
+                    elif not exported.is_file():
+                        issues.append(f"data_process.py声明导出的图不存在: {value}")
+            except (OSError, UnicodeError, SyntaxError, ValueError) as exc:
                 issues.append(f"data_process.py不可解析: {exc}")
     if "preprocessing_matlab_script" in required:
         if not matlab.is_file():
