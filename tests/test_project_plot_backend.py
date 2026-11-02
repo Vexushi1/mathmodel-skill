@@ -6,13 +6,14 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from plot_backend import (PlotBackendError, inspect_plotting, resolve_question_script, select_project_plot_backend)
-from project_transaction import GenerationConflictError
+from project_transaction import GenerationConflictError, ReadSetConflictError, JOURNAL_RELATIVE_PATH
 
 
 class ProjectPlotBackendTests(unittest.TestCase):
@@ -165,39 +166,157 @@ class ProjectPlotBackendTests(unittest.TestCase):
                 ["fillna", "fit", "workbook.save"],
             )
 
-    def test_first_plot_choice_uses_existing_transaction(self):
+    @staticmethod
+    def selection_fixture(root: Path):
+        path = root / "state" / "project_state.yaml"
+        path.parent.mkdir(parents=True)
+        state = yaml.safe_load(
+            (ROOT / "state" / "project_state.example.yaml").read_text(encoding="utf-8")
+        )
+        state["requirements"].update(total=1, completed=["Q1"], pending=[])
+        path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False),
+                        encoding="utf-8")
+        framework_path = root / "模型论文框架.md"
+        framework = (ROOT / "templates/model/model_paper_framework.md").read_text(encoding="utf-8")
+        framework = framework.replace("### Q1：__QUESTION_NAME__", "### Q1：填写问题名称")
+        framework = "\n".join(line for line in framework.splitlines()
+                              if not line.startswith(("| T1 |", "| N1 |", "| TC1 |",
+                                                      "| paper.abstract.q1 |"))) + "\n"
+        framework_path.write_text(framework, encoding="utf-8")
+        return path, framework_path, state
+
+    def test_first_plot_choice_uses_existing_atomic_state_framework_transaction(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            path = root / "state" / "project_state.yaml"
-            path.parent.mkdir(parents=True)
-            state = yaml.safe_load((ROOT / "state" / "project_state.example.yaml").read_text(encoding="utf-8"))
-            state["requirements"].update(total=1, completed=["Q1"], pending=[])
-            path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False),
-                            encoding="utf-8")
+            path, framework_path, state = self.selection_fixture(root)
             before_questions = yaml.safe_dump(state["subproblems"], allow_unicode=True)
-            result = select_project_plot_backend(root, backend="python",
-                                                 reason="Full-project Figure needs",
-                                                 expected_generation=0)
+            before_framework = framework_path.read_text(encoding="utf-8")
+            result = select_project_plot_backend(
+                root, backend="python", reason="Full-project Figure needs",
+                expected_generation=0,
+            )
             current = yaml.safe_load(path.read_text(encoding="utf-8"))
+            updated_framework = framework_path.read_text(encoding="utf-8")
             self.assertEqual(result["status"], "committed")
+            self.assertEqual(result["framework_path"], "模型论文框架.md")
             self.assertEqual(current["plotting"]["backend"], "python")
             self.assertEqual(current["project"]["state_generation"], 1)
             self.assertEqual(yaml.safe_dump(current["subproblems"], allow_unicode=True),
                              before_questions)
-            before_bytes = path.read_bytes()
-            repeated = select_project_plot_backend(root, backend="python",
-                                                   reason="Full-project Figure needs",
-                                                   expected_generation=1)
+            self.assertEqual(current["subproblems"]["Q1"]["human_model_approval_status"],
+                             state["subproblems"]["Q1"]["human_model_approval_status"])
+            self.assertIn("### 全项目科研绘图", updated_framework)
+            self.assertIn("- 项目绘图后端：", updated_framework)
+            self.assertIn("Full-project Figure needs", updated_framework)
+            self.assertIn("## 图表证据链", updated_framework)
+            self.assertIn("## 图表证据链", before_framework)
+            import validate_project_state as STATE
+            import validate_model_paper_framework as FRAMEWORK
+            self.assertEqual(STATE.validate_state_payload(current, project_root=root), [])
+            self.assertEqual(FRAMEWORK.validate_framework_text(
+                updated_framework, state=current, project_root=root), [])
+            self.assertEqual(current["paper_framework"]["sha256"],
+                             FRAMEWORK.sha256_text(updated_framework))
+            self.assertFalse((root / JOURNAL_RELATIVE_PATH).exists())
+
+            before_bytes = path.read_bytes(), framework_path.read_bytes()
+            repeated = select_project_plot_backend(
+                root, backend="python", reason="Full-project Figure needs",
+                expected_generation=1,
+            )
             self.assertEqual(repeated["status"], "unchanged")
-            self.assertEqual(path.read_bytes(), before_bytes)
+            self.assertEqual((path.read_bytes(), framework_path.read_bytes()), before_bytes)
             with self.assertRaises(GenerationConflictError):
-                select_project_plot_backend(root, backend="python",
-                                            reason="Full-project Figure needs",
-                                            expected_generation=0)
+                select_project_plot_backend(
+                    root, backend="python", reason="Full-project Figure needs",
+                    expected_generation=0,
+                )
             with self.assertRaises(PlotBackendError):
-                select_project_plot_backend(root, backend="matlab",
-                                            reason="Opposite after first Figure choice",
-                                            expected_generation=1)
+                select_project_plot_backend(
+                    root, backend="matlab", reason="Opposite after first Figure choice",
+                    expected_generation=1,
+                )
+            self.assertEqual((path.read_bytes(), framework_path.read_bytes()), before_bytes)
+
+    def test_figure_choice_rejects_missing_or_drifted_framework_without_state_write(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path, framework_path, state = self.selection_fixture(root)
+            original = path.read_bytes()
+            framework_path.unlink()
+            with self.assertRaisesRegex(PlotBackendError, "framework is missing"):
+                select_project_plot_backend(root, backend="python", reason="Whole project",
+                                            expected_generation=0)
+            self.assertEqual(path.read_bytes(), original)
+            framework_path.write_text("invalid", encoding="utf-8")
+            state["paper_framework"]["sha256"] = "0" * 64
+            path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
+            with self.assertRaisesRegex(PlotBackendError, "current project state/framework"):
+                select_project_plot_backend(root, backend="python", reason="Whole project",
+                                            expected_generation=0)
+
+    def test_figure_selection_framework_read_set_conflict_preserves_third_party_edit(self):
+        import sync_project as SYNC
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path, framework_path, _ = self.selection_fixture(root)
+            before = path.read_bytes()
+            render = SYNC.render_project_plot_backend_memory
+
+            def concurrent_edit(text, state):
+                result = render(text, state)
+                framework_path.write_text(text + "\nthird-party change\n", encoding="utf-8")
+                return result
+
+            with mock.patch.object(SYNC, "render_project_plot_backend_memory",
+                                   side_effect=concurrent_edit):
+                with self.assertRaises(ReadSetConflictError):
+                    select_project_plot_backend(root, backend="python",
+                                                reason="Whole project", expected_generation=0)
+            self.assertEqual(path.read_bytes(), before)
+            self.assertIn("third-party change", framework_path.read_text(encoding="utf-8"))
+            self.assertFalse((root / JOURNAL_RELATIVE_PATH).exists())
+
+    def test_figure_selection_invalid_staged_framework_rolls_back_both_files(self):
+        import sync_project as SYNC
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path, framework_path, _ = self.selection_fixture(root)
+            before = path.read_bytes(), framework_path.read_bytes()
+            render = SYNC.render_project_plot_backend_memory
+
+            def invalid_render(text, state):
+                return render(text, state).replace(
+                    "## 当前有效口径", "## broken current-state heading"
+                )
+
+            with mock.patch.object(SYNC, "render_project_plot_backend_memory",
+                                   side_effect=invalid_render):
+                with self.assertRaisesRegex(PlotBackendError, "Candidate project Figure selection"):
+                    select_project_plot_backend(root, backend="python",
+                                                reason="Whole project", expected_generation=0)
+            self.assertEqual((path.read_bytes(), framework_path.read_bytes()), before)
+            self.assertFalse((root / JOURNAL_RELATIVE_PATH).exists())
+
+    def test_plot_framework_projection_is_idempotent_and_rejects_duplicate_memory(self):
+        import sync_project as SYNC
+        state = {"plotting": {"backend": "matlab", "selection_reason": "Unified plots"},
+                 "subproblems": {"Q1": {}}}
+        original = "## 当前有效口径\n\n### 全项目数值实现\n\n- 项目求解后端：`python`\n\n### 题目对象与核心关系\n\n## 各问模型与结果\n"
+        rendered = SYNC.render_project_plot_backend_memory(original, state)
+        self.assertEqual(SYNC.render_project_plot_backend_memory(rendered, state), rendered)
+        self.assertIn("- 项目求解后端：`python`", rendered)
+        self.assertIn("- 项目绘图后端：`matlab`", rendered)
+        with self.assertRaisesRegex(ValueError, "outside"):
+            SYNC.render_project_plot_backend_memory(
+                original + "- 项目绘图后端：`python`\n", state
+            )
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            SYNC.render_project_plot_backend_memory(
+                rendered.replace("- 项目绘图后端：`matlab`",
+                                 "- 项目绘图后端：`matlab`\n- 项目绘图后端：`matlab`"),
+                state,
+            )
 
 
 if __name__ == "__main__":
