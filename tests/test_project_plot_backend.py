@@ -121,6 +121,25 @@ class ProjectPlotBackendTests(unittest.TestCase):
             self.assertTrue(any("越出项目根目录" in issue for issue in problems), problems)
 
 
+    def test_shared_python_preprocessing_rejects_actual_imputation(self):
+        from sync_project import _preprocessing_artifact_issues
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            folder = root / "数据预处理"
+            folder.mkdir()
+            (folder / "data_process.py").write_text(
+                'from openpyxl import load_workbook\n'
+                'book = load_workbook("数据预处理结果.xlsx", read_only=True)\n'
+                'cleaned = df.fillna(0)\n',
+                encoding="utf-8",
+            )
+            issues = _preprocessing_artifact_issues(
+                root, {"preprocessing_python_plot_script"},
+                {"preprocessing": {"decision": "project_level"}},
+            )
+            self.assertTrue(any("fillna" in issue for issue in issues), issues)
+
     def test_python_figure_ast_detects_actual_recomputation_not_plotting(self):
         from project_snapshot import python_figure_forbidden_calls
 
