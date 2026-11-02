@@ -6,11 +6,13 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from plot_backend import (PlotBackendError, inspect_plotting, resolve_question_script)
+from plot_backend import (PlotBackendError, inspect_plotting, resolve_question_script, select_project_plot_backend)
+from project_transaction import GenerationConflictError
 
 
 class ProjectPlotBackendTests(unittest.TestCase):
@@ -64,6 +66,41 @@ class ProjectPlotBackendTests(unittest.TestCase):
         for name in ("q1_plot.py", "data_process.py"):
             with self.subTest(name=name):
                 ast.parse((folder / name).read_text(encoding="utf-8"), filename=name)
+
+
+    def test_first_plot_choice_uses_existing_transaction(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = root / "state" / "project_state.yaml"
+            path.parent.mkdir(parents=True)
+            state = yaml.safe_load((ROOT / "state" / "project_state.example.yaml").read_text(encoding="utf-8"))
+            state["requirements"].update(total=1, completed=["Q1"], pending=[])
+            path.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False),
+                            encoding="utf-8")
+            before_questions = yaml.safe_dump(state["subproblems"], allow_unicode=True)
+            result = select_project_plot_backend(root, backend="python",
+                                                 reason="Full-project Figure needs",
+                                                 expected_generation=0)
+            current = yaml.safe_load(path.read_text(encoding="utf-8"))
+            self.assertEqual(result["status"], "committed")
+            self.assertEqual(current["plotting"]["backend"], "python")
+            self.assertEqual(current["project"]["state_generation"], 1)
+            self.assertEqual(yaml.safe_dump(current["subproblems"], allow_unicode=True),
+                             before_questions)
+            before_bytes = path.read_bytes()
+            repeated = select_project_plot_backend(root, backend="python",
+                                                   reason="Full-project Figure needs",
+                                                   expected_generation=1)
+            self.assertEqual(repeated["status"], "unchanged")
+            self.assertEqual(path.read_bytes(), before_bytes)
+            with self.assertRaises(GenerationConflictError):
+                select_project_plot_backend(root, backend="python",
+                                            reason="Full-project Figure needs",
+                                            expected_generation=0)
+            with self.assertRaises(PlotBackendError):
+                select_project_plot_backend(root, backend="matlab",
+                                            reason="Opposite after first Figure choice",
+                                            expected_generation=1)
 
 
 if __name__ == "__main__":
