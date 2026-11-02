@@ -175,3 +175,42 @@ def select_project_plot_backend(project_root: str | Path, *,
     return {"status": result["status"], "backend": backend,
             "state_generation": result["target_generation"],
             "environment_verified": False, "figure_approved": False}
+
+
+
+def main() -> int:
+    """Inspect or select one backend; returns real state facts, never approvals."""
+    import argparse
+    import json
+    from runtime_assurance import ProjectStateSnapshot
+
+    parser = argparse.ArgumentParser(description="Project-level Figure backend control")
+    commands = parser.add_subparsers(dest="action", required=True)
+    inspect = commands.add_parser("inspect", help="Read current Figure backend choice")
+    inspect.add_argument("project_root", type=Path)
+    select = commands.add_parser("select", help="Choose Python/MATLAB once using CAS")
+    select.add_argument("project_root", type=Path)
+    select.add_argument("--backend", choices=sorted(BACKENDS), required=True)
+    select.add_argument("--reason", required=True)
+    select.add_argument("--expected-generation", required=True, type=int)
+    args = parser.parse_args()
+    try:
+        if args.action == "inspect":
+            snap = ProjectStateSnapshot.capture(args.project_root)
+            result = {"plotting": inspect_plotting(snap.payload()),
+                      "state_snapshot": snap.describe()}
+            snap.assert_current()
+        else:
+            result = select_project_plot_backend(
+                args.project_root, backend=args.backend,
+                reason=args.reason, expected_generation=args.expected_generation,
+            )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if args.action != "inspect" or not result["plotting"]["issues"] else 2
+    except (OSError, ValueError) as exc:
+        print(json.dumps({"status": "blocked", "issues": [str(exc)]}, ensure_ascii=False))
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
