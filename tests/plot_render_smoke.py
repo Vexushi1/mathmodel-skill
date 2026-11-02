@@ -76,12 +76,65 @@ class PlotRenderingSmoke(unittest.TestCase):
             self._book(path, ["时刻", "处理前", "处理后"], [
                 [0, 12, 10], [1, None, 13], [2, 15, 14],
             ])
+            with self.assertRaisesRegex(ValueError, "missing"):
+                plot.read_before_after(
+                    path, "逐时结果", "时刻", "处理前", "处理后"
+                )
             x, before, after = plot.read_before_after(
-                path, "逐时结果", "时刻", "处理前", "处理后"
+                path, "逐时结果", "时刻", "处理前", "处理后",
+                allow_missing_headers=("处理前",),
             )
             self.assertEqual(x, [0.0, 1.0, 2.0])
             self.assertTrue(np.isnan(before[1]))
             self.assertEqual(after, [10.0, 13.0, 14.0])
+
+            self.assertEqual(plot.recorded_order(
+                [2., 0., 1.], [12., 10., 11.], [9., 7., 8.],
+                sort_by_x=True, sort_reason="recorded chronological order",
+            ), ([0., 1., 2.], [10., 11., 12.], [7., 8., 9.]))
+            with self.assertRaisesRegex(ValueError, "unique"):
+                plot.recorded_order(
+                    [1., 1.], [2., 3.], [4., 5.],
+                    sort_by_x=True, sort_reason="chronology",
+                )
+            self.assertEqual(
+                plot.visible_marker_indices([1., float("nan"), 3., float("nan"), 5.],
+                                            connected=True, every=10),
+                [0, 2, 4],
+            )
+            self.assertEqual(
+                plot.visible_marker_indices([1., float("nan"), 3.],
+                                            connected=False, every=10),
+                [0, 1, 2],
+            )
+
+    def test_preprocessing_declared_missing_tokens_are_strict(self):
+        plot = module("data_process")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "数据预处理结果.xlsx"
+            self._book(path, ["时刻", "处理前", "处理后"],
+                       [[0, "缺测", 3.], [1, 4., 5.]])
+            with self.assertRaisesRegex(ValueError, "not numeric"):
+                plot.read_before_after(
+                    path, "逐时结果", "时刻", "处理前", "处理后",
+                    allow_missing_headers=("处理前",),
+                )
+            x, before, after = plot.read_before_after(
+                path, "逐时结果", "时刻", "处理前", "处理后",
+                allow_missing_headers=("处理前",), missing_tokens=("缺测",),
+            )
+            self.assertTrue(np.isnan(before[0]))
+            self.assertEqual((x, after), ([0., 1.], [3., 5.]))
+            with self.assertRaisesRegex(ValueError, "finite number"):
+                plot.read_before_after(
+                    path, "逐时结果", "时刻", "处理前", "处理后",
+                    allow_missing_headers=("处理前",), missing_tokens=("0",),
+                )
+            with self.assertRaisesRegex(ValueError, "unique"):
+                plot.read_before_after(
+                    path, "逐时结果", "时刻", "处理前", "处理前",
+                )
+
 
 
 if __name__ == "__main__":
