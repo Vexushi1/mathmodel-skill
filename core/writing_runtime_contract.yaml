@@ -280,8 +280,6 @@ template_first_progressive_authoring:
         bridge_default: not_needed
       structural_terminal:
         bridge_default: not_needed
-        record_policy: no_persistent_handoff_row_for_pure_structural_adjacency
-        examples: [evaluation_to_ai_declaration, ai_declaration_to_references, references_to_appendix]
       cross_question_increment:
         parent: narrative
         activate_when: actual_dependency_exists
