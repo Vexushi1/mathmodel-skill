@@ -464,8 +464,8 @@ template_first_progressive_authoring:
         - current_citation_evidence_and_final_question_answers
       write_now:
         - templates/latex/cumcm/hsk/sections/09_evaluation.tex
-        - templates/latex/cumcm/hsk/references.bib
         - templates/latex/cumcm/hsk/sections/10_ai_tool_statement.tex when verified_2026_cumcm
+        - templates/latex/cumcm/hsk/references.bib
         - templates/latex/cumcm/hsk/appendices/appendices.tex when verified_2026_cumcm_or_other_required_material
       gate: 评价不替代验证，结论不新增主张，外部事实有真实 citation key，正文论证主体未被移入附录。
     - id: abstract_title_and_keywords
