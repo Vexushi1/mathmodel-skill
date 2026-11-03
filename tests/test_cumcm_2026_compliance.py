@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import jsonschema
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,6 +87,35 @@ class Cumcm2026FormalComplianceTests(unittest.TestCase):
         self.assertEqual(set(), self._codes(self._paper(ai="", appendix="")))
         self._state("2027")
         self.assertEqual(set(), self._codes(self._paper(ai="", appendix="")))
+
+    def test_competition_edition_is_optional_and_accepts_four_digit_year(self):
+        schema = yaml.safe_load((ROOT / "core/project_state.schema.yaml").read_text(encoding="utf-8"))
+        project_schema = schema["properties"]["project"]
+        self.assertNotIn("competition_edition", project_schema["required"])
+        self.assertEqual(
+            project_schema["properties"]["competition_edition"],
+            {
+                "type": "string",
+                "pattern": "^[0-9]{4}$",
+                "description": "Optional four-digit contest year; historical projects may omit it.",
+            },
+        )
+        state = yaml.safe_load((ROOT / "state/project_state.example.yaml").read_text(encoding="utf-8"))
+        validator = jsonschema.Draft202012Validator(schema)
+        validator.validate(state)
+        state["project"]["competition_edition"] = "2026"
+        validator.validate(state)
+        state["project"]["competition_edition"] = "26"
+        self.assertTrue(list(validator.iter_errors(state)))
+
+    def test_profile_uses_official_2026_ai_rule_source(self):
+        profiles = yaml.safe_load(
+            (ROOT / "config/competition_profiles.yaml").read_text(encoding="utf-8")
+        )["profiles"]
+        rules = profiles["cumcm"]["edition_rules"]
+        self.assertEqual(rules["ai_rule_source"],
+                         "https://dxs.moe.gov.cn/zx/a/hd_sxjm_gsyw/260807/2051819.shtml")
+        self.assertEqual(rules["verification_status"], "verified")
 
     def test_other_competition_and_template_smoke_not_scoped(self):
         self._state(edition=None, competition="MCM")
