@@ -39,6 +39,12 @@ def previous_plotting_schema(schema):
     An unexpected field shape is a regression, not a reason to update the hash.
     """
     schema = deepcopy(schema)
+    if "competition_edition" in schema["properties"]:
+        assert schema["properties"].pop("competition_edition") == {
+            "type": "string",
+            "pattern": "^[0-9]{4}$",
+            "description": "Optional four-digit contest year; historical projects may omit it.",
+        }
     plotting = schema["properties"].pop("plotting")
     assert plotting == {
         "description": "Project-wide Figure rendering backend; absent in older MATLAB projects.",
