@@ -856,7 +856,7 @@ class ContractAndDriftTests(unittest.TestCase):
                         "      verification_status: verified\n"
                         "      verified_at: \"2026-11-03\"\n"
                         "      source: https://dxs.moe.gov.cn/zx/a/hd_sxjm_gsyw/260702/2046411.shtml\n"
-                        "      ai_rule_source: https://www.cmathc.org.cn/mcm/tz/602.html\n"
+                        "      ai_rule_source: https://dxs.moe.gov.cn/zx/a/hd_sxjm_gsyw/260807/2051819.shtml\n"
                         "      page_limit: 30\n"
                         "      anonymity: true\n"
                         "      # A2 will define official external exports. Keep the legacy internal-ZIP\n"
