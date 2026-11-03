@@ -324,7 +324,7 @@ template_first_progressive_authoring:
         - update_reused_fragment_or_result_anchors
         - stale_only_real_downstream_dependencies
       stage_gate:
-        - required_handoff_record_exists_only_for_real_semantic_dependency_or_seam_is_not_applicable
+        - required_handoff_record_exists_or_seam_is_not_applicable
         - bridge_need_is_semantically_adjudicated
         - object_symbol_term_dependency_claim_and_duplication_continuity_are_reviewed
       draft_semantic_review: assembled_seam_sweep_in_final_active_order
