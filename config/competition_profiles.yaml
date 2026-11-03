@@ -29,7 +29,7 @@ profiles:
       verification_status: verified
       verified_at: "2026-11-03"
       source: https://dxs.moe.gov.cn/zx/a/hd_sxjm_gsyw/260702/2046411.shtml
-      ai_rule_source: https://www.cmathc.org.cn/mcm/tz/602.html
+      ai_rule_source: https://dxs.moe.gov.cn/zx/a/hd_sxjm_gsyw/260807/2051819.shtml
       page_limit: 30
       anonymity: true
       # A2 will define official external exports. Keep the legacy internal-ZIP
