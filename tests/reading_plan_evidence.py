@@ -1609,9 +1609,10 @@ def approved_v10240_plot_backend_carrier_change(identifier, old, new, candidate_
 def approved_v10250_cumcm_ai_appendix_carrier_change(
         identifier, old, new, candidate_authority_versions):
     """Allow only one edition-specific writing-stage output change; no broad P2 waiver."""
-    if (candidate_authority_versions != CUMCM_A1_AUTHORITY_VERSIONS
-            or new.get("version") != CUMCM_A1_AUTHORITY_VERSIONS["skill"]):
-        return deepcopy(new), []
+    if candidate_authority_versions != CUMCM_A1_AUTHORITY_VERSIONS:
+        raise ValueError(f"A1 authority version mismatch: {candidate_authority_versions!r}")
+    if new.get("version") != CUMCM_A1_AUTHORITY_VERSIONS["skill"]:
+        raise ValueError(f"A1 plan version mismatch: {new.get('version')!r}")
     predecessor = deepcopy(new)
     declared = []
     if identifier == "cumcm_writing":
@@ -1634,9 +1635,9 @@ def approved_v10250_cumcm_ai_appendix_carrier_change(
                 source_stages = source["authoring_sequence"]
                 target_stages = target["authoring_sequence"]
                 if source_stages[5]["id"] != "evaluation_references_conclusion_appendix":
-                    return deepcopy(new), []
+                    raise ValueError(f"A1 stage id mismatch at {prefix}: {source_stages[5]['id']!r}")
                 if source_stages[5]["write_now"] != new_stage:
-                    return deepcopy(new), []
+                    raise ValueError(f"A1 write_now mismatch at {prefix}: {source_stages[5]['write_now']!r}")
                 target_stages[5]["write_now"] = deepcopy(old_stage)
                 declared.append({
                     "path": ".".join(map(str, (*prefix, "authoring_sequence", 5, "write_now"))),
@@ -1651,7 +1652,8 @@ def approved_v10250_cumcm_ai_appendix_carrier_change(
         identifier, old, predecessor, deepcopy(PLOT_BACKEND_AUTHORITY_VERSIONS),
     )
     if projected != old or not changes:
-        return deepcopy(new), []
+        changed = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
+        raise ValueError(f"A1 predecessor projection failed for {identifier}: {changed}; changes={changes!r}")
     for change in changes:
         if change["path"] == "version":
             change["candidate"] = CUMCM_A1_AUTHORITY_VERSIONS["skill"]
