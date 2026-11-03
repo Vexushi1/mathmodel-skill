@@ -424,6 +424,14 @@ Handoff 减重必须逐项分析产生者、消费者、真实 stale 传播与�
 
 **程序附录的另一个隐患：** 若采用 `\\lstinputlisting` 等包含实际代码，须确认 `scripts/latex_delivery.py#source_bundle_snapshot`、`actual_input_files`、compile report 是否跟踪该外部源码；不能只因为 PDF 成功编译就判定附录打印代码与实际 accepted 脚本一致。代码/图源、附录、支撑 ZIP 三者需在同一可追溯清单中关联；不要复制并维护第二套哈希状态机。
 
+**三处必须在功能 PR 中同步修复的确定性接口（非可选建议）：**
+
+1. **标题旧 lint 与虚拟装配：** `scripts/lint_skill_checks.py` 的 `CUMCM/Diangong` 共同分支仍要求 `\\subsection{求解结果}`。而 `scripts/lint_skill.py#_module_aware_read_text` 会将 `hsk_main.tex`、preamble、问题重述和 `sections/06_question1.tex` 拼接为 lint 的虚拟 CUMCM 文档。Phase B 修改二级标题时，必须同步修改 **`lint_skill_checks.py` 的按竞赛区分的 token 判定**、复核 `lint_skill.py` 的真实拼装、更新 Manifest/模板检查器和 `tests/test_v10183_cumcm_writing_structure.py` 等测试。不得通过添加注释或隐藏旧标题假装合规；Diangong 原有标题不得被 CUMCM 新规则误伤。
+2. **年份字段确实不存在：** `core/project_state.schema.yaml#properties.project` 当前具有 `additionalProperties:false`，没有定义 `competition_edition`；`project.version` 不能替代参赛届次。Phase A1 建议用单个**非必填、兼容旧项目的** `project.competition_edition: "2026"` 承载事实，现有 `edition_rules.edition`、`final_review_matrix.review_context.edition`、`hsk_pack_submission.py` 与 `validate_submission_package.py` 消费同一来源。旧项目缺此字段时仍可正常读取，但**未确认年份的正式竞赛合规不能给 verified PASS**。若实施时发现更小的既有等价事实源，先以测试证明等价，再免除 Schema 扩展；禁止平行存储两份年份状态。
+3. **Phase A1 必须提前处理新增末尾章节的 Handoff：** 2026 正式论文 AI 声明与附录均变为 active，`writing_runtime_contract.yaml#cross_file_chapter_handoff` 将据实际活动文件重新组装相邻关系。Phase A1 必须把“普通结构性末尾邻接无需语言桥接/重复登记”落实到现有 `structural_terminal` profile、Runtime 读取/写入时机和 `tests/test_v810_cross_file_chapter_handoff.py`；不能等 Phase C 再消除由模板启用新增的错误 stage gate。真实跨问模型/公式/结果依赖仍保持原有检查。
+
+**这三项与已确认的 `.github/workflows/ci.yml` 旧附录 smoke 一起构成 A1/B 的强制“生产者—消费者—测试”闭环；不能只改 MD/TEX，不能为了 CI 通过删掉有效检查。**
+
 ### 13.3 v10.24.0 新增回归案例
 
 | ID | 真实场景 | 验收 |
@@ -440,6 +448,11 @@ Handoff 减重必须逐项分析产生者、消费者、真实 stale 传播与�
 | V24-10 | 新写作计划不涉及绘图实现 | Python Figure rendering Windows 3.10/3.14、MATLAB 与正式 LaTeX CI 不回退 |
 | V24-11 | 对外官方支撑 ZIP 有 Python Figure 源文件 | 只收选定后端实际使用文件，与附录清单一致；不把内部证明 ZIP 当官方上传 |
 | V24-12 | 基于 10.23.3 的旧计划 PR | 在 v10.24.0 主干安全变基、GitHub 自动刷新受管索引，最终 head CI 独立验收 |
+| V24-13 | CUMCM 默认二级标题改为“模型求解结果与分析” | 虚拟拼装 lint 与 Manifest 同步且不需要旧 `\\subsection{求解结果}` token；Diangong 不回归 |
+| V24-14 | 2026 项目、旧项目未知届次、2027 未核验 | 正式规则仅绑定实际参赛届次；可选 `project.competition_edition` 不破坏历史 State |
+| V24-15 | AI 声明与附录由 inactive 变 active | 当届末尾实际文件相邻、structural-terminal seam 和 Review 读取不因冗余状态失败 |
+| V24-16 | 四种 solver × plotting 配对及旧 MATLAB | 每个项目唯一图源，附录/支持材料不从 solver 推断绘图语言 |
+
 
 ## 14. 最新版实施路线与结论
 
