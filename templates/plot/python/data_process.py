@@ -46,9 +46,12 @@ def _value(raw: object, *, missing: bool, row: int, header: str,
                 return float("nan")
             raise ValueError(f"{header}, data row {row}: missing token not permitted")
         try:
-            raw = float(raw)
+            numeric_text = float(raw)
         except ValueError as exc:
             raise ValueError(f"{header}, data row {row}: not numeric") from exc
+        if math.isnan(numeric_text):
+            raise ValueError(f"{header}, data row {row}: text NaN requires a declared missing token")
+        raw = numeric_text
     if not isinstance(raw, numbers.Real):
         raise ValueError(f"{header}, data row {row}: expected real scalar")
     val = float(raw)

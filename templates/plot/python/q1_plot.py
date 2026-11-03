@@ -41,9 +41,12 @@ def _numeric(value: object, *, missing: bool, context: str) -> float:
         if value in MISSING_TOKENS and missing:
             return float("nan")
         try:
-            value = float(value)
+            numeric_text = float(value)
         except ValueError as exc:
             raise ValueError(f"{context}: not a numeric value: {value!r}") from exc
+        if math.isnan(numeric_text):
+            raise ValueError(f"{context}: text NaN requires an explicit MISSING_TOKENS declaration")
+        value = numeric_text
     if isinstance(value, bool) or not isinstance(value, numbers.Real):
         raise ValueError(f"{context}: finite real scalar expected")
     numeric = float(value)

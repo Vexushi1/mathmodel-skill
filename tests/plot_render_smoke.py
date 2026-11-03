@@ -168,5 +168,40 @@ class PlotRenderingSmoke(unittest.TestCase):
 
 
 
+    def test_result_figure_text_nan_requires_explicit_missing_token(self):
+        plot = module("q1_plot")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "text_nan.xlsx"
+            self._book(path, ["时刻", "误差率"], [[0, "NaN"], [1, 0.], [2, 2.5]])
+            with self.assertRaisesRegex(ValueError, "text NaN"):
+                plot.read_xy(path, "逐时结果", "时刻", "误差率",
+                             allow_y_missing=True)
+            with mock.patch.object(plot, "MISSING_TOKENS", ("NaN",)):
+                x, y = plot.read_xy(path, "逐时结果", "时刻", "误差率",
+                                    allow_y_missing=True)
+            self.assertEqual(x.tolist(), [0., 1., 2.])
+            self.assertTrue(np.isnan(y[0]))
+            self.assertEqual(y[1:].tolist(), [0., 2.5])
+
+    def test_preprocessing_text_nan_requires_explicit_missing_token(self):
+        plot = module("data_process")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "text_nan_preprocessing.xlsx"
+            self._book(path, ["时刻", "处理前", "处理后"],
+                       [[0, "NaN", 3.], [1, 0., 5.]])
+            with self.assertRaisesRegex(ValueError, "text NaN"):
+                plot.read_before_after(
+                    path, "逐时结果", "时刻", "处理前", "处理后",
+                    allow_missing_headers=("处理前",),
+                )
+            x, before, after = plot.read_before_after(
+                path, "逐时结果", "时刻", "处理前", "处理后",
+                allow_missing_headers=("处理前",), missing_tokens=("NaN",),
+            )
+            self.assertEqual((x, after), ([0., 1.], [3., 5.]))
+            self.assertTrue(np.isnan(before[0]))
+            self.assertEqual(before[1], 0.)
+
+
 if __name__ == "__main__":
     unittest.main()
