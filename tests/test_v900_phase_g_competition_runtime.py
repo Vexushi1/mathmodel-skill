@@ -89,8 +89,8 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                     stage["write_now"],
                     [
                         "templates/latex/cumcm/hsk/sections/09_evaluation.tex",
-                        "templates/latex/cumcm/hsk/references.bib",
                         "templates/latex/cumcm/hsk/sections/10_ai_tool_statement.tex when verified_2026_cumcm",
+                        "templates/latex/cumcm/hsk/references.bib",
                         "templates/latex/cumcm/hsk/appendices/appendices.tex when verified_2026_cumcm_or_other_required_material",
                     ],
                 )
