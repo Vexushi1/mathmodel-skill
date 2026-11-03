@@ -192,7 +192,7 @@ modules:
     outputs: [latex_source_draft, paper_text]
     rules:
     - CUMCM 新论文先检查 Template Manifest 和 main 编排，只确定骨架，不在模板检查阶段生成正文。
-    - 正文按 problem_restatement、problem_analysis、assumptions_symbols_and_preparation、逐问 model/solve/result/validate、评价/引用/依当届规则启用的 AI 声明与附录、最后摘要的 read_now → write_now → gate 顺序推进。
+    - 正文按 problem_restatement、problem_analysis、assumptions_symbols_and_preparation、逐问 model/solve/result/validate、评价/引用/条件式附录、最后摘要的 read_now → write_now → gate 顺序推进。
     - 命题证明与 stepwise/pseudocode 分别按条件读取 proposition_proof 与 algorithm_flow pack；不得遗忘，也不得在 not_needed 时强制生成。
     - draft semantic review 先于 AI Cleanup；Adapter 装配、审计和编译后再执行 final review。
   ai_cleanup:
