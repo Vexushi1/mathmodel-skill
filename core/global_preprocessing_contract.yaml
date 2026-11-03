@@ -193,7 +193,10 @@ paper_evidence_contract:
   project_level_location: 论文设置实质“数据预处理”章节或节，集中写公共方法、公式、验证和data_process图证据，后续各问引用该统一数据口径，不重复全文推导。
 
 preprocessing_figure_contract:
-  project_level_script: 数据预处理/data_process.m
+  project_level_script: 数据预处理/data_process.m  # Historical MATLAB; remains supported
+  project_level_python_plot_script: 数据预处理/data_process.py
+  selected_backend_source: state/project_state.yaml#plotting.backend
+  project_level_plot_backend_policy: one_selected_backend_for_all_workbook_driven_figures
   export_stem: data_process
   required_when: preprocessing_decision.decision == project_level
   role: 只读取数据预处理结果.xlsx中Python已持久化的处理前/后、诊断和验证数据，绘制预处理证据图；不得在MATLAB中重新清洗、插值、滤波、重采样或估计参数。
@@ -209,7 +212,7 @@ preprocessing_figure_contract:
   - 人工掩蔽或留出样本的真实值—恢复值对比与误差分布
   - 重采样前后网格/采样间隔/覆盖变化
   - 异常判定边界与保留/处理样本对比
-  style: 完全服从modules/04_figure_evidence.md的MATLAB科研绘图总规范；本合同不另定义配色、整体标题或网格规则。正式data_process论文图采用caption-owned的正式图名语义，MATLAB图内不设置整体title/sgtitle；默认不自动导出。
+  style: 完全服从modules/04_figure_evidence.md现有科研绘图总规范；本合同不另定义配色、整体标题或网格规则。正式data_process论文图采用caption-owned的正式图名语义，MATLAB图内不设置整体title/sgtitle；默认不自动导出。
   filename_rule: MATLAB脚本固定为data_process.m；需要导出正式图片时文件基名使用data_process或data_process_<evidence>，不得使用中文文件名。
 
 source_policy:

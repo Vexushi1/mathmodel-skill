@@ -104,6 +104,7 @@ FULL_WORKFLOW_READING_AUTHORITY_VERSIONS = {**REVIEW_SPLIT_AUTHORITY_VERSIONS, "
 # v10.23.2 changes only mixed-figure reading; preserve the v10.23.1 historical carrier.
 MIXED_FIGURE_READING_AUTHORITY_VERSIONS = {**FULL_WORKFLOW_READING_AUTHORITY_VERSIONS, "skill": "10.23.2"}
 CUMCM_HEADING_AUTHORITY_VERSIONS = {**MIXED_FIGURE_READING_AUTHORITY_VERSIONS, "skill": "10.23.3"}
+PLOT_BACKEND_AUTHORITY_VERSIONS = {**CUMCM_HEADING_AUTHORITY_VERSIONS, "skill": "10.24.0"}
 # Only these two read-list migrations are registered. Business text is separately
 # reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
 REVIEW_SPLIT_WRITING_DELTAS = (
@@ -1572,6 +1573,37 @@ def approved_cumcm_heading_carrier_change(identifier, old, new, candidate_author
     return projected, changes
 
 
+def approved_v10240_plot_backend_carrier_change(identifier, old, new, candidate_authority_versions):
+    """Recognize v10.24.0 only when existing P2 behavior is bit-for-bit unchanged.
+
+    The project-level Figure backend is additive: the historical P2 cases do
+    not select Python plotting. Reuse the exact v10.23.3 projection rather
+    than permit arbitrary newly changed read sets, routes or gate outcomes.
+    A future legitimate P2 delta must receive its own narrowly specified
+    approval with negative regression tests.
+    """
+    if (candidate_authority_versions != PLOT_BACKEND_AUTHORITY_VERSIONS
+            or new.get("version") != PLOT_BACKEND_AUTHORITY_VERSIONS["skill"]):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    predecessor["version"] = CUMCM_HEADING_AUTHORITY_VERSIONS["skill"]
+    projected, changes = approved_cumcm_heading_carrier_change(
+        identifier, old, predecessor, deepcopy(CUMCM_HEADING_AUTHORITY_VERSIONS),
+    )
+    if projected != old or not changes:
+        return deepcopy(new), []
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = PLOT_BACKEND_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(PLOT_BACKEND_AUTHORITY_VERSIONS)
+            change["approval"] = (
+                "Exact v10.24.0 project Figure backend release carrier: legacy "
+                "P2 routing, reads, authority dependencies, gates and decisions "
+                "must match all previously approved v10.23.3 behavior"
+            )
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -1694,6 +1726,9 @@ def compare(before, after):
         projected, cumcm_heading_changes = approved_cumcm_heading_carrier_change(
             a["id"], old, projected, b.get("authority_versions"))
         expected.extend(cumcm_heading_changes)
+        projected, plot_backend_changes = approved_v10240_plot_backend_carrier_change(
+            a["id"], old, projected, b.get("authority_versions"))
+        expected.extend(plot_backend_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,

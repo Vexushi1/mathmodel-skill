@@ -642,6 +642,7 @@ $defs:
         type: string
         pattern: '^[0-9a-fA-F]{64}$'
       matlab_script: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
+      plot_script: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
       figure_bundle: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
       framework: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
   solver_stage_execution:
@@ -683,7 +684,7 @@ $defs:
       report_sha256: {type: string, pattern: '^[0-9a-fA-F]{64}$'}
   artifact_layer:
     type: string
-    enum: [data, primary_code, analysis_code, solution_workbook, result_analysis_workbook, robustness_workbook, matlab_script, figure_bundle, framework]
+    enum: [data, primary_code, analysis_code, solution_workbook, result_analysis_workbook, robustness_workbook, matlab_script, plot_script, figure_bundle, framework]
   proposition_entry:
     type: object
     additionalProperties: false
@@ -1675,6 +1676,14 @@ properties:
         items: {$ref: '#/$defs/objective'}
       version: {type: string}
       updated_at: {type: string, format: date-time}
+  plotting:
+    description: Project-wide Figure rendering backend; absent in older MATLAB projects.
+    type: object
+    additionalProperties: false
+    required: [backend, selection_reason]
+    properties:
+      backend: {type: string, enum: [python, matlab]}
+      selection_reason: {type: string, minLength: 1, pattern: '\S'}
   requirements:
     type: object
     additionalProperties: false
@@ -1874,6 +1883,7 @@ properties:
         result_quality_report: {type: string}
         result_analysis_report: {type: string}
         matlab_script: {type: string}
+        plot_script: {type: string, description: New Python Figure entry; MATLAB retains matlab_script}
         paper_source: {type: string}
         solver_status: {type: string}
         optimality_claim: {type: string, enum: [none, local, heuristic, bounded, proven_optimal, global], default: none}

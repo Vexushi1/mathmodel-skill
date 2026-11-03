@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import ast
 import re
 import sys
 from pathlib import Path
@@ -12,6 +13,7 @@ import artifact_fingerprint as ARTIFACT_FINGERPRINT
 import stage_code as STAGE_CODE
 import execution_provenance as EXECUTION_PROVENANCE
 import analysis_comparison_gate as COMPARISON
+import plot_backend as PLOT_BACKEND
 from stage_inputs import observe_inputs
 
 SKILL_ROOT = Path(__file__).resolve().parent.parent
@@ -367,7 +369,7 @@ def scoped_figure_files(
         return [], ["图表映射脚本越出项目根目录"]
     for path in _figure_files(script.parent):
         add(str(path), root)
-    for raw in _parse_matlab(script)[2]:
+    for raw in _parse_plot(script)[2]:
         add(raw, script.parent)
     framework = root / "模型论文框架.md"
     text = ARTIFACT_FINGERPRINT.framework_section_text(framework, "## 图表证据链") or ""
@@ -455,6 +457,110 @@ def _parse_matlab(script: Path) -> tuple[bool, list[str], list[str]]:
         WORKBOOK_REF_RE.findall(code_text),
         EXPORT_RE.findall(code_text),
     )
+
+def _parse_python_plot(script: Path) -> tuple[bool, list[str], list[str]]:
+    """Inspect only statically visible Python Figure calls; no execution/approval."""
+    if not script.is_file():
+        return False, [], []
+    source = script.read_text(encoding="utf-8")
+    root = ast.parse(source, filename=str(script))
+    has_title = False
+    workbook_refs: list[str] = []
+    exports: list[str] = []
+
+    # The shipped Python templates declare EXPORT_FILE as a literal and pass
+    # (directory / EXPORT_FILE).resolve() to savefig via a local variable.
+    # Resolve that narrow, auditable pattern instead of pretending arbitrary
+    # Python expressions can be statically evaluated.
+    declared_exports = [
+        stmt.value.value
+        for stmt in root.body
+        if isinstance(stmt, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == "EXPORT_FILE"
+                for target in stmt.targets)
+        and isinstance(stmt.value, ast.Constant)
+        and isinstance(stmt.value.value, str)
+    ]
+    declared_export = declared_exports[0] if len(declared_exports) == 1 else None
+    export_aliases: set[str] = set()
+    for node in ast.walk(root):
+        if not isinstance(node, ast.Assign):
+            continue
+        value = node.value
+        if (isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute)
+                and value.func.attr == "resolve" and not value.args):
+            value = value.func.value
+        if (isinstance(value, ast.BinOp) and isinstance(value.op, ast.Div)
+                and isinstance(value.right, ast.Name)
+                and value.right.id == "EXPORT_FILE"):
+            export_aliases.update(target.id for target in node.targets
+                                  if isinstance(target, ast.Name))
+    for node in ast.walk(root):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            if node.value.lower().endswith(".xlsx"):
+                workbook_refs.append(node.value)
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        name = func.attr if isinstance(func, ast.Attribute) else (
+            func.id if isinstance(func, ast.Name) else ""
+        )
+        if name in {"title", "suptitle", "set_title"}:
+            has_title = True
+        if name in {"savefig", "imsave"}:
+            arg = node.args[0] if node.args else next(
+                (kw.value for kw in node.keywords if kw.arg in {"fname", "path"}), None
+            )
+            if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                exports.append(arg.value)
+            elif (isinstance(arg, ast.Name) and arg.id in export_aliases
+                  and declared_export is not None):
+                exports.append(declared_export)
+    return has_title, workbook_refs, exports
+
+
+# Figure scripts may render accepted values but must not silently re-run a
+# model, re-impute observations, or overwrite the accepted workbook. The parser
+# recognizes actual AST calls (not comments/docstrings), and deliberately does
+# not reject normal plotting/NumPy array conversion or raw-source reading.
+PYTHON_FIGURE_FORBIDDEN_CALLS = frozenset({
+    "fit", "fit_transform", "fit_predict", "predict", "train",
+    "fillna", "dropna", "interpolate", "interp", "interp1d", "interp2d",
+    "griddata", "nan_to_num", "resample", "fit_resample",
+    "savgol_filter", "gaussian_filter", "to_excel", "to_csv",
+    "eval", "exec",
+})
+
+
+def python_figure_forbidden_calls(script: Path) -> list[str]:
+    """Detect unambiguous computation/writeback calls in a Python Figure source.
+
+    This is a targeted static signal, not a proof that arbitrary Python code
+    cannot perform computation; Figure source approval remains human-owned.
+    """
+    tree = ast.parse(script.read_text(encoding="utf-8"), filename=str(script))
+    matches: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        name = func.attr if isinstance(func, ast.Attribute) else (
+            func.id if isinstance(func, ast.Name) else ""
+        )
+        if name in PYTHON_FIGURE_FORBIDDEN_CALLS:
+            matches.add(name)
+        if isinstance(func, ast.Attribute) and func.attr == "save":
+            receiver = func.value
+            if isinstance(receiver, ast.Name) and receiver.id.lower() in {
+                "wb", "book", "workbook", "excel", "writer",
+            }:
+                matches.add("workbook.save")
+    return sorted(matches)
+
+
+def _parse_plot(script: Path) -> tuple[bool, list[str], list[str]]:
+    return _parse_python_plot(script) if script.suffix.lower() == ".py" else _parse_matlab(script)
+
 
 def _snapshot_question(
     root: Path,
@@ -545,8 +651,18 @@ def _snapshot_question(
     primary_code, analysis_code = code_paths["primary"], code_paths["analysis"]
     legacy_single_code = bool(primary_code and primary_code.suffix == ".py" and not analysis_code)
     number = question_number(chinese_name)
-    matlab = result_dir / f"q{number}_plot.m" if number else result_dir / "q_plot.m"
-    figures, figure_issues = scoped_figure_files(root, matlab, entry)
+    try:
+        plot_ref = PLOT_BACKEND.resolve_question_script(root, state or {}, key, chinese_name, number or 0)
+        plot = plot_ref.path
+        plot_field = plot_ref.hash_field
+        plot_backend_issue = None
+    except PLOT_BACKEND.PlotBackendError as exc:
+        plot = result_dir / (f"q{number}_plot.m" if number else "q_plot.m")
+        plot_field = "matlab_script"
+        plot_backend_issue = str(exc)
+    figures, figure_issues = scoped_figure_files(root, plot, entry)
+    if plot_backend_issue:
+        figure_issues.append(plot_backend_issue)
     status = str(entry.get("status", "pending"))
     analysis_not_required = (
         entry.get("result_analysis_status") == "not_required"
@@ -700,25 +816,39 @@ def _snapshot_question(
     if require_analysis and not analysis_report_exists:
         issues.append("结果深化分析工作簿缺少分析设计或结论稳定性汇总")
 
-    matlab_has_title, workbook_refs, exports = _parse_matlab(matlab)
+    plot_has_title, workbook_refs, exports = _parse_plot(plot)
+    if formal_figures and plot_field == "plot_script" and plot.is_file():
+        forbidden = python_figure_forbidden_calls(plot)
+        if forbidden:
+            issues.append("Python正式Figure源码不得重算模型、清洗证据或写回工作簿: "
+                          + ", ".join(forbidden))
     if delivery_scope == "figures":
-        if not matlab.is_file():
-            issues.append("图表交付缺少MATLAB脚本")
+        if not plot.is_file():
+            issues.append("图表交付缺少Python脚本" if plot_field == "plot_script" else "图表交付缺少MATLAB脚本")
         else:
-            if matlab_has_title:
-                issues.append("MATLAB正式论文图不得设置整体title或sgtitle；正式图名由LaTeX/DOCX caption承担")
+            if plot_has_title:
+                issues.append("Python正式论文图不应设置整体标题" if plot_field == "plot_script"
+                              else "MATLAB正式论文图不得设置整体title或sgtitle；正式图名由LaTeX/DOCX caption承担")
             standard = {
                 f"{chinese_name}求解结果.xlsx",
                 f"{chinese_name}结果深化分析.xlsx",
                 f"{chinese_name}敏感性与鲁棒性结果.xlsx",
             }
-            if not {Path(item).name for item in workbook_refs}.intersection(standard):
-                issues.append("MATLAB脚本未发现标准工作簿引用")
+            referenced = {Path(item).name for item in workbook_refs}
+            if plot_field == "plot_script":
+                # Standalone Python entry can construct "问题一" + "求解结果.xlsx".
+                referenced.update(chinese_name + item for item in list(referenced)
+                                  if item in {"求解结果.xlsx", "结果深化分析.xlsx"})
+            if not referenced.intersection(standard):
+                issues.append("绘图脚本未发现标准工作簿引用" if plot_field == "plot_script"
+                              else "MATLAB脚本未发现标准工作簿引用")
             for item in exports:
-                export_path = (matlab.parent / item).resolve()
-                if not export_path.is_file():
+                export_path = (plot.parent / item).resolve()
+                if plot_field == "plot_script" and not export_path.is_relative_to(result_dir):
+                    issues.append(f"Python Figure声明导出的图越出当前问题目录: {item}")
+                elif not export_path.is_file():
                     shown = export_path.relative_to(root).as_posix() if export_path.is_relative_to(root) else export_path.as_posix()
-                    issues.append(f"MATLAB声明导出的图不存在: {shown}")
+                    issues.append(f"{'Python' if plot_field == 'plot_script' else 'MATLAB'}声明导出的图不存在: {shown}")
 
     framework = root / "模型论文框架.md"
     hashes = {
@@ -727,7 +857,7 @@ def _snapshot_question(
         "analysis_code": sha256_file(analysis_code) if analysis_code else None,
         "solution_workbook": sha256_file(solution) if solution and solution.is_file() else None,
         "result_analysis_workbook": sha256_file(analysis_workbook) if analysis_workbook and analysis_workbook.is_file() else None,
-        "matlab_script": sha256_file(matlab) if matlab.is_file() else None,
+        plot_field: sha256_file(plot) if plot.is_file() else None,
         "figure_bundle": combined_hash(figures, root),
         "framework": framework_section_hash(framework, str(entry.get("framework_section", ""))),
     }
@@ -751,8 +881,12 @@ def _snapshot_question(
         "legacy_analysis_workbook": legacy_analysis_workbook,
         "result_quality_report": quality_exists,
         "result_analysis_report": analysis_report_exists,
-        "matlab_script": matlab.relative_to(root).as_posix() if matlab.is_file() else None,
-        "matlab_has_title": matlab_has_title,
+        "matlab_script": plot.relative_to(root).as_posix()
+            if plot_field == "matlab_script" and plot.is_file() else None,
+        "plot_script": plot.relative_to(root).as_posix()
+            if plot_field == "plot_script" and plot.is_file() else None,
+        "matlab_has_title": plot_has_title if plot_field == "matlab_script" else False,
+        "plot_has_title": plot_has_title,
         "workbook_references": workbook_refs,
         "declared_exports": exports,
         "figures": [path.relative_to(root).as_posix() for path in figures],

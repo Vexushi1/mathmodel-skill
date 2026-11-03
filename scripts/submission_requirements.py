@@ -14,6 +14,7 @@ import yaml
 import run_config_parser
 import safe_yaml
 import stage_code as STAGE_CODE
+import plot_backend as PLOT_BACKEND
 from stage_inputs import input_files, observe_inputs
 
 from project_snapshot import chinese_question_name, data_source_files, question_number
@@ -319,7 +320,35 @@ def reproducibility_requirements(root: Path, state: Mapping[str, Any], *,
         if entry.get("primary_execution_status") != "accepted":
             issues.append(f"{key}: 正式包要求已验收主求解执行状态")
         verified_workbook("solution_workbook", per_question["mandatory_workbooks"]["solution"])
-        question_path("matlab_script", per_question["matlab_script"], allow_default=True)
+        figure_report = PLOT_BACKEND.inspect_plotting(state)
+        if figure_report["issues"]:
+            issues.extend(f"{key}: plotting: {item}" for item in figure_report["issues"])
+        elif figure_report["backend"] == "python":
+            patterns = (per_question.get("plot_scripts") or {})
+            question_path("plot_script", patterns.get("python", "q{阿拉伯序号}_plot.py"),
+                          allow_default=False)
+            if entry.get("plot_script") and number is not None:
+                # Formal reproduction must bind the *selected* Figure source,
+                # not merely include any .py file named by the project state.
+                # The same bytes enter the submission read-set via observe.
+                try:
+                    ref = PLOT_BACKEND.resolve_question_script(
+                        root, state, str(key), question, number,
+                    )
+                    if not ref.path.is_file():
+                        issues.append(f"{key}: plot_script当前Python绘图源码不存在: {ref.relative}")
+                    else:
+                        validated = (entry.get("validated_artifact_hashes") or {}).get(ref.hash_field)
+                        if not isinstance(validated, str) or len(validated) != 64 or any(
+                            char not in "0123456789abcdefABCDEF" for char in validated
+                        ):
+                            issues.append(f"{key}: plot_script缺少已验收SHA-256绑定")
+                        elif hashlib.sha256(_read_bytes(ref.path, observe)).hexdigest() != validated.lower():
+                            issues.append(f"{key}: plot_script当前源码与已验收SHA-256绑定不一致")
+                except (PLOT_BACKEND.PlotBackendError, ValueError, OSError, TypeError) as exc:
+                    issues.append(f"{key}: plot_script当前身份不合法: {exc}")
+        else:
+            question_path("matlab_script", per_question["matlab_script"], allow_default=True)
         status = entry.get("result_analysis_status")
         reason = str(entry.get("result_analysis_requirement_reason") or "").strip()
         if status == "not_required":
@@ -342,8 +371,14 @@ def reproducibility_requirements(root: Path, state: Mapping[str, Any], *,
     preprocessing = state.get("preprocessing") or {}
     if preprocessing.get("decision") == "project_level":
         layout = contract["global_preprocessing"]
-        for field, filename in (("code", "python_script"), ("workbook", "workbook"), (None, "matlab_script")):
+        for field, filename in (("code", "python_script"), ("workbook", "workbook")):
             require(preprocessing.get(field) or layout["directory"] + layout[filename])
+        plot_report = PLOT_BACKEND.inspect_plotting(state)
+        if plot_report["issues"]:
+            issues.extend("plotting: " + item for item in plot_report["issues"])
+        else:
+            role = "python_plot_script" if plot_report["backend"] == "python" else "matlab_script"
+            require(layout["directory"] + layout[role])
     elif preprocessing.get("decision") not in {"not_needed", "question_local"}:
         issues.append("preprocessing.decision尚未明确，无法确认项目级预处理必需集合；请登记当前决策后重新验证")
     return required, issues

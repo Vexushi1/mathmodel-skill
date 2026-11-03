@@ -144,6 +144,11 @@ profiles:
     set:
       validation_status: pending
       result_summary_status: stale
+  python_plot:
+    stale_layers: [plot_script, figure_bundle, framework]
+    set:
+      validation_status: pending
+      result_summary_status: stale
   figure:
     stale_layers: [figure_bundle, framework]
     set:
@@ -266,6 +271,9 @@ transition_events:
     emitted_impacts: []
   matlab_script_changed:
     own_profile: matlab
+    emitted_impacts: []
+  plot_script_changed:
+    own_profile: python_plot
     emitted_impacts: []
   figure_bundle_changed:
     own_profile: figure

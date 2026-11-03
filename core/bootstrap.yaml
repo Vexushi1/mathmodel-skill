@@ -1,4 +1,4 @@
-skill_version: 10.23.3
+skill_version: 10.24.0
 bootstrap_schema_version: 1.1.0
 purpose: >-
   Read first, load workflow_router.default_load, and use
@@ -39,7 +39,7 @@ startup_contract:
   rules:
     - Bootstrap stores startup pointers; global rules live in core/hsk_core_policy.md.
     - Load route contracts only when needed.
-    - For reading_plan, use read_now then conditional triggers; load_order remains compatibility inventory. Execute every pre_delivery_gate. See core/runtime_assurance_contract.yaml#reading_plan.
+    - Reading plans and resolver-owned gates follow core/runtime_assurance_contract.yaml#reading_plan.
     - Context hydration, intent provenance, artifact assurance and contract closure follow core/runtime_assurance_contract.yaml.
     - Load resolver manifests and taxonomies only when the route needs them.
     - Current project semantics are restored from current 模型论文框架.md when available; numerical facts still come from accepted workbooks and machine state from project_state.
@@ -59,6 +59,7 @@ entrypoints:
   read_stage: python scripts/read_stage.py
   resolve_legacy: python scripts/resolve_workflow.py
   project_solver_backend: python scripts/project_solver_backend.py
+  project_plot_backend: python scripts/plot_backend.py
   instantiate_framework: python scripts/instantiate_model_paper_framework.py
   semantic_governance: python scripts/validate_semantic_governance.py
   model_approval: python scripts/validate_model_approval.py

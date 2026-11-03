@@ -28,6 +28,7 @@ import project_transaction as PROJECT_TX  # noqa: E402
 import runtime_assurance as RUNTIME_ASSURANCE  # noqa: E402
 import artifact_fingerprint as ARTIFACT_FINGERPRINT  # noqa: E402
 import project_snapshot as PROJECT_SNAPSHOT  # noqa: E402
+import plot_backend as PLOT_BACKEND  # noqa: E402
 import stage_code as STAGE_CODE  # noqa: E402
 import execution_provenance as EXECUTION_PROVENANCE  # noqa: E402
 import conformance_gate as CONFORMANCE  # noqa: E402
@@ -45,7 +46,7 @@ PHASE_SCOPE = {
 }
 HASH_KEYS = (
     "data", "primary_code", "analysis_code", "solution_workbook", "result_analysis_workbook",
-    "matlab_script", "figure_bundle", "framework",
+    "matlab_script", "plot_script", "figure_bundle", "framework",
 )
 MATLAB_PREPROCESSING_FORBIDDEN_FUNCTIONS = (
     "interp1", "interp2", "interp3", "interpn", "griddedInterpolant", "scatteredInterpolant",
@@ -382,12 +383,20 @@ def stage_requirements(
 ) -> list[str]:
     sync = output_contract.get("project_sync") or {}
     required = list((sync.get("stage_requirements") or {}).get(scope, []))
+    plotting = PLOT_BACKEND.inspect_plotting(state or {})
+    is_python_plot = plotting["kind"] == "selected" and plotting["backend"] == "python"
+    if is_python_plot:
+        required = ["plot_scripts" if name == "matlab_scripts" else name for name in required]
     if state is not None and preprocessing_decision(state) == "project_level":
         conditional = (
             (sync.get("conditional_stage_requirements") or {})
             .get("preprocessing_decision_project_level", {})
         )
-        required.extend((conditional or {}).get(scope, []) or [])
+        extras = (conditional or {}).get(scope, []) or []
+        if is_python_plot:
+            extras = ["preprocessing_python_plot_script" if name == "preprocessing_matlab_script"
+                      else name for name in extras]
+        required.extend(extras)
     return unique(required)
 
 
@@ -499,6 +508,7 @@ LAYER_TRANSITION_EVENTS = {
     "solution_workbook": "solution_workbook_changed",
     "result_analysis_workbook": "analysis_workbook_changed",
     "matlab_script": "matlab_script_changed",
+    "plot_script": "plot_script_changed",
     "figure_bundle": "figure_bundle_changed",
     "framework": "paper_fragment_changed",
 }
@@ -575,7 +585,7 @@ def _apply_snapshot_to_state(
         entry["code"] = snapshot["primary_code"]
     if snapshot.get("result_analysis_code"):
         entry["result_analysis_code"] = snapshot["result_analysis_code"]
-    for field in ("solution_workbook", "result_analysis_workbook", "matlab_script"):
+    for field in ("solution_workbook", "result_analysis_workbook", "matlab_script", "plot_script"):
         if snapshot.get(field):
             entry[field] = snapshot[field]
 
@@ -732,6 +742,71 @@ def render_project_backend_memory(text: str, candidate_state: Mapping[str, Any])
             retained.insert(0, "")
         lines[heading + 1:block_end] = [
             "", backend_line, reason_line, *([history_note] if converted else []), *retained,
+        ]
+    return newline.join(lines)
+
+
+
+def render_project_plot_backend_memory(text: str, candidate_state: Mapping[str, Any]) -> str:
+    """Project Figure backend projection, beside (not inside) numerical backend memory.
+
+    Keep all question Figure/claim records untouched. This is a compact view of
+    the one project-root plotting choice, not a new Figure design Authority.
+    """
+    report = PLOT_BACKEND.inspect_plotting(candidate_state)
+    if report["kind"] != "selected" or report["issues"]:
+        raise ValueError("project Figure backend must be explicitly selected")
+    reason = candidate_state["plotting"]["selection_reason"]
+    if (not isinstance(reason, str) or not reason.strip() or len(reason.splitlines()) != 1
+            or any(ord(char) < 32 for char in reason)):
+        raise ValueError("project Figure selection reason must be one non-empty text line")
+    without_crlf = text.replace("\r\n", "")
+    if "\r" in without_crlf or ("\r\n" in text and "\n" in without_crlf):
+        raise ValueError("framework has unsupported mixed line endings")
+    newline = "\r\n" if "\r\n" in text else "\n"
+    lines = text.split(newline)
+    start_positions = [i for i, line in enumerate(lines) if line == "## 当前有效口径"]
+    if len(start_positions) != 1:
+        raise ValueError("framework requires one exact current-state heading")
+    start = start_positions[0]
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("## ")), len(lines))
+    heading = "### 全项目科研绘图"
+    matches = [i for i, line in enumerate(lines) if line == heading]
+    if len(matches) > 1 or (matches and not start < matches[0] < end):
+        raise ValueError("ambiguous project Figure backend section")
+    if any(line.startswith(heading) and line != heading for line in lines):
+        raise ValueError("ambiguous project Figure backend heading")
+    backend_line = f"- 项目绘图后端：{chr(96)}{report['backend']}{chr(96)}"
+    reason_line = f"- 项目绘图选择理由：{reason.strip()}"
+    prefixes = ("- 项目绘图后端：", "- 项目绘图选择理由：")
+    if not matches:
+        if any(line.startswith(prefixes) for line in lines):
+            raise ValueError("project Figure backend fields appear outside their section")
+        # Place next to project-wide numerical backend, not inside a Q1 Figure record.
+        numeric = next((i for i in range(start + 1, end)
+                        if lines[i] == "### 全项目数值实现"), None)
+        if numeric is None:
+            insert_at = start + 1
+        else:
+            insert_at = next((i for i in range(numeric + 1, end)
+                              if lines[i].startswith("### ")), end)
+        lines[insert_at:insert_at] = [heading, "", backend_line, reason_line, ""]
+    else:
+        index = matches[0]
+        block_end = next((i for i in range(index + 1, end)
+                          if lines[i].startswith("### ")), end)
+        if any(line.startswith(prefixes) for i, line in enumerate(lines)
+               if not index < i < block_end):
+            raise ValueError("project Figure backend fields appear outside their section")
+        body = lines[index + 1:block_end]
+        counts = [sum(line.startswith(prefix) for line in body) for prefix in prefixes]
+        if any(count > 1 for count in counts):
+            raise ValueError("duplicate project Figure backend field")
+        retained = [line for line in body if not line.startswith(prefixes)]
+        while retained and retained[0] == "":
+            retained.pop(0)
+        lines[index + 1:block_end] = [
+            "", backend_line, reason_line, "", *retained,
         ]
     return newline.join(lines)
 
@@ -927,6 +1002,31 @@ def _preprocessing_artifact_issues(
             issues.append("project_level正式交付缺少数据预处理/数据预处理结果.xlsx")
         if preprocessing.get("status") != "accepted" or preprocessing.get("quality_status") != "passed":
             issues.append("project_level正式交付要求预处理工作簿accepted且预处理质量门passed")
+    if "preprocessing_python_plot_script" in required:
+        python_plot = root / "数据预处理/data_process.py"
+        if not python_plot.is_file():
+            issues.append("project_level Python图表交付缺少数据预处理/data_process.py")
+        else:
+            try:
+                # Reuse the same AST-based Figure source parser as each qN_plot.py.
+                # String searches also match comments and cannot detect a real title.
+                has_title, workbook_refs, exports = PROJECT_SNAPSHOT._parse_python_plot(python_plot)
+                if has_title:
+                    issues.append("data_process.py正式论文图不得设置整体title/suptitle/set_title；图名由论文caption承担")
+                if "数据预处理结果.xlsx" not in {Path(value).name for value in workbook_refs}:
+                    issues.append("data_process.py必须引用已验收数据预处理结果.xlsx")
+                blocked = PROJECT_SNAPSHOT.python_figure_forbidden_calls(python_plot)
+                if blocked:
+                    issues.append("data_process.py contains non-rendering computation/write calls: "
+                                  + ", ".join(blocked))
+                for value in exports:
+                    exported = (python_plot.parent / value).resolve()
+                    if not exported.is_relative_to(root.resolve()):
+                        issues.append(f"data_process.py声明导出的图越出项目根目录: {value}")
+                    elif not exported.is_file():
+                        issues.append(f"data_process.py声明导出的图不存在: {value}")
+            except (OSError, UnicodeError, SyntaxError, ValueError) as exc:
+                issues.append(f"data_process.py不可解析: {exc}")
     if "preprocessing_matlab_script" in required:
         if not matlab.is_file():
             issues.append("project_level图表及论文交付缺少数据预处理/data_process.m")
@@ -987,6 +1087,10 @@ def _scope_artifact_issues(
     issues.extend(_preprocessing_artifact_issues(root, required, state))
     if required.intersection({"python_code", "primary_code"}) and not all(snapshot.get("primary_code") for snapshot in snapshots.values()):
         issues.append("正式交付缺少标准主求解脚本")
+    if "plot_scripts" in required:
+        for key, snapshot in snapshots.items():
+            if not snapshot.get("plot_script"):
+                issues.append(f"{key}: 当前Python Figure交付缺少已选择的qN_plot.py")
     if "result_analysis_code" in required:
         for key, snapshot in snapshots.items():
             if not snapshot.get("result_analysis_code"):
@@ -1015,7 +1119,7 @@ def _scope_artifact_issues(
         package = root / str(artifacts.get("submission_package") or "submission/submission.zip")
         package_paths, package_issues = reproducibility_requirements(root, state)
         issues.extend(package_issues)
-        issues.extend(_submission_zip_issues(package, require_matlab=True, required_paths=package_paths))
+        issues.extend(_submission_zip_issues(package, require_matlab=False, required_paths=package_paths))
     return issues
 
 
@@ -1070,6 +1174,7 @@ def _formal_compile_paths(root: Path, state: Mapping[str, Any], scope: str, *,
 
 def _capture_sync_question_sources(
     root: Path, name: str, entry: Mapping[str, Any], read_set: dict[str, str | None],
+    *, state: Mapping[str, Any] | None = None,
 ) -> set[str]:
     """Capture registered numerical sources and standard observation candidates."""
     result_dir = _question_dir(root, name)
@@ -1117,7 +1222,9 @@ def _capture_sync_question_sources(
                 _capture_sync_source(root, read_set, STAGE_CODE._relative_path(root, relative))
             except STAGE_CODE.StageCodeError:
                 pass
-    plot = result_dir / (f"q{number}_plot.m" if number else "q_plot.m")
+    plot = PLOT_BACKEND.resolve_question_script(
+        root, state or {}, question_key(name), name, number or 0,
+    ).path
     _capture_sync_source(root, read_set, plot)
     _capture_sync_source(root, read_set, result_dir / "figure_evidence.yaml")
     figures, _ = PROJECT_SNAPSHOT.scoped_figure_files(root, plot, entry)
@@ -1146,7 +1253,7 @@ def _verify_sync_question_sources(
     ):
         if snapshot.get(field) and snapshot.get(digest_field):
             observed[snapshot[field]] = snapshot[digest_field]
-    for field in ("solution_workbook", "result_analysis_workbook", "matlab_script"):
+    for field in ("solution_workbook", "result_analysis_workbook", "matlab_script", "plot_script"):
         relative = snapshot.get(field)
         if relative and (digest := (snapshot.get("artifact_hashes") or {}).get(field)):
             observed[relative] = digest
@@ -1349,7 +1456,7 @@ def synchronize(
         key = question_key(chinese_name)
         entry = subproblems.get(key) or subproblems.get(chinese_name) or {}
         captured_figures = (
-            _capture_sync_question_sources(root, chinese_name, entry, sync_read_set)
+            _capture_sync_question_sources(root, chinese_name, entry, sync_read_set, state=state)
             if sync_read_set is not None else set()
         )
         snapshot = _snapshot_question(

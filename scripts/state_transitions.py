@@ -289,7 +289,12 @@ def _apply_profile(
     contract: Mapping[str, Any],
 ) -> tuple[list[str], dict[str, Any]]:
     profile = _profile(contract, profile_name)
-    stale_layers = sorted({str(item) for item in profile.get("stale_layers", []) or []})
+    layer_set = {str(item) for item in profile.get("stale_layers", []) or []}
+    if "matlab_script" in layer_set and entry.get("plot_script"):
+        # Python uses the corresponding current Figure layer; preserve legacy MATLAB otherwise.
+        layer_set.remove("matlab_script")
+        layer_set.add("plot_script")
+    stale_layers = sorted(layer_set)
     if stale_layers:
         previous = set(entry.get("stale_layers", []) or [])
         entry["stale_layers"] = sorted(previous | set(stale_layers))

@@ -882,6 +882,31 @@ class ContractAndDriftTests(unittest.TestCase):
                     from claim_schema_reference import previous_d2_schema
 
                     text = path.read_text(encoding="utf-8")
+                    # Revert only the optional Figure schema extension, byte-for-byte.
+                    # Keep every original pinned predecessor hash and assertion.
+                    if "  plotting:\n" in text:
+                        additions = (
+                            "  plotting:\n"
+                            "    description: Project-wide Figure rendering backend; absent in older MATLAB projects.\n"
+                            "    type: object\n"
+                            "    additionalProperties: false\n"
+                            "    required: [backend, selection_reason]\n"
+                            "    properties:\n"
+                            "      backend: {type: string, enum: [python, matlab]}\n"
+                            "      selection_reason: {type: string, minLength: 1, pattern: '\\S'}\n",
+                            "      plot_script: {type: string, pattern: '^[0-9a-fA-F]{64}$'}\n",
+                            "        plot_script: {type: string, description: New Python Figure entry; MATLAB retains matlab_script}\n",
+                        )
+                        for addition in additions:
+                            self.assertEqual(text.count(addition), 1, addition)
+                            text = text.replace(addition, "", 1)
+                        extended = "robustness_workbook, matlab_script, plot_script, figure_bundle, framework]"
+                        self.assertEqual(text.count(extended), 1)
+                        text = text.replace(
+                            extended,
+                            "robustness_workbook, matlab_script, figure_bundle, framework]",
+                            1,
+                        )
                     schema = yaml.safe_load(text)
                     if schema["version"] == "8.16.0":
                         from claim_schema_reference import previous_comparison_schema

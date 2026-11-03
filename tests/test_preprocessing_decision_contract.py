@@ -349,7 +349,10 @@ class TestPreprocessingDecisionContract(unittest.TestCase):
         primary = text.index("已选求解实现完成完整主求解")
         analysis = text.index("已选深化实现基于题目风险完成实际需要的结果深化分析")
         enter_figures = text.index("只有上述数值阶段完成后才进入 Figure Evidence")
-        data_process = text.index("此时生成并人工检查 `数据预处理/data_process.m`")
+        data_process = text.index("此时按项目根已选绘图后端生成并人工检查")
+        figure_stage = text[data_process:text.index("为每个候选 Figure 先写", data_process)]
+        self.assertIn("数据预处理/data_process.py", figure_stage)
+        self.assertIn("数据预处理/data_process.m", figure_stage)
         self.assertLess(primary, analysis)
         self.assertLess(analysis, enter_figures)
         self.assertLess(enter_figures, data_process)

@@ -1,6 +1,6 @@
 # HSK Active Template Index
 
-当前 Skill 版本：10.23.3
+当前 Skill 版本：10.24.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 
@@ -78,6 +78,10 @@
 - `templates/model/model_approval_section.md`
 - `templates/model/model_paper_framework.md`
 - `templates/model/variable_table.md`
+- `templates/plot/python/README.md`
+- `templates/plot/python/data_process.py`
+- `templates/plot/python/figure_patterns.py`
+- `templates/plot/python/q1_plot.py`
 - `templates/problem/data_schema_audit.md`
 - `templates/problem/model_route_compare.md`
 - `templates/problem/requirement_coverage.md`
