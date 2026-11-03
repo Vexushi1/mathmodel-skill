@@ -98,6 +98,15 @@ def resolve_question_script(root: str | Path, state: Mapping[str, Any],
     relative = f"{chinese_name}求解/q{number}_plot{extension}"
     entry = (state.get("subproblems") or {}).get(question) or {}
     declared = entry.get(field)
+    # Historical v6.x Figure scripts lived beside accepted result workbooks.
+    # Keep only that real MATLAB source observable; current and explicitly
+    # registered paths remain authoritative, and Python never uses this fallback.
+    if backend == "matlab" and report["kind"] in {"historical_matlab", "unselected"}:
+        legacy = f"结果数据表/{chinese_name}/q{number}_plot.m"
+        if ((not declared or declared == legacy)
+                and not (Path(root) / f"{chinese_name}求解").is_dir()
+                and (Path(root) / legacy).is_file()):
+            relative = legacy
     if declared and declared != relative:
         raise PlotBackendError(f"{question}: expected {field}={relative!r}, got {declared!r}")
     project_root = Path(root).resolve()

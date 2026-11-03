@@ -27,6 +27,23 @@ class ProjectPlotBackendTests(unittest.TestCase):
             self.assertEqual(ref.hash_field, "matlab_script")
             self.assertEqual(ref.relative, "问题一求解/q1_plot.m")
 
+    def test_legacy_result_directory_matlab_is_not_lost_by_resolver(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            legacy = root / "结果数据表/问题一/q1_plot.m"
+            legacy.parent.mkdir(parents=True)
+            legacy.write_text('readcell("问题一求解结果.xlsx");\n', encoding="utf-8")
+            state = {"subproblems": {"Q1": {}}}
+            ref = resolve_question_script(root, state, "Q1", "问题一", 1)
+            self.assertEqual(ref.relative, "结果数据表/问题一/q1_plot.m")
+            self.assertEqual(ref.hash_field, "matlab_script")
+            state["subproblems"]["Q1"]["matlab_script"] = ref.relative
+            self.assertEqual(resolve_question_script(root, state, "Q1", "问题一", 1).relative, ref.relative)
+            # A modern explicitly registered source must not be silently replaced.
+            state["subproblems"]["Q1"]["matlab_script"] = "问题一求解/q1_plot.m"
+            self.assertEqual(resolve_question_script(root, state, "Q1", "问题一", 1).relative,
+                             "问题一求解/q1_plot.m")
+
     def test_output_contract_selected_figure_roles_all_solver_combinations(self):
         # Legacy YAML role names are projected at the actual scope consumer.
         # All four solver x Figure combinations must select exactly one renderer.
