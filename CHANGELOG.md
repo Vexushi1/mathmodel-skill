@@ -1,5 +1,12 @@
 # Changelog
 
+## 10.25.0
+
+- 为 2026 CUMCM 论文提供默认电子版无前置页模板，AI 使用声明（使用/未使用均必需）与附录按当届要求启用；保留中性可见占位，正式审计阻断未填或无根据内容。
+- 增加 2026 年可核验赛事规则与可选项目届次字段，对旧项目保持只读兼容，未知届次不能默认通过当届合规核验。
+- 协同更新 LaTeX Template Manifest、写作 Runtime/structural Handoff、模板 Validator、GitHub 附录 smoke 和正式 LaTeX 审计测试。
+- 本阶段不改主求解、03B、accepted workbook、模型审批、双绘图后端；对外独立提交文件/支撑包由后续 A2 完成。
+
 ## 10.24.0
 
 - 新增独立于数值求解后端的项目级 Python/MATLAB 科研 Figure Rendering Backend；一个竞赛项目仅选择一次，历史 MATLAB 项目保留原路径和当前维护能力。

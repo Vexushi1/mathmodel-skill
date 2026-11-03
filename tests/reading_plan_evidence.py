@@ -105,6 +105,7 @@ FULL_WORKFLOW_READING_AUTHORITY_VERSIONS = {**REVIEW_SPLIT_AUTHORITY_VERSIONS, "
 MIXED_FIGURE_READING_AUTHORITY_VERSIONS = {**FULL_WORKFLOW_READING_AUTHORITY_VERSIONS, "skill": "10.23.2"}
 CUMCM_HEADING_AUTHORITY_VERSIONS = {**MIXED_FIGURE_READING_AUTHORITY_VERSIONS, "skill": "10.23.3"}
 PLOT_BACKEND_AUTHORITY_VERSIONS = {**CUMCM_HEADING_AUTHORITY_VERSIONS, "skill": "10.24.0"}
+CUMCM_A1_AUTHORITY_VERSIONS = {**PLOT_BACKEND_AUTHORITY_VERSIONS, "skill": "10.25.0"}
 # Only these two read-list migrations are registered. Business text is separately
 # reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
 REVIEW_SPLIT_WRITING_DELTAS = (
@@ -1604,6 +1605,62 @@ def approved_v10240_plot_backend_carrier_change(identifier, old, new, candidate_
     return projected, changes
 
 
+
+def approved_v10250_cumcm_ai_appendix_carrier_change(
+        identifier, old, new, candidate_authority_versions):
+    """Allow only one edition-specific writing-stage output change; no broad P2 waiver."""
+    if (candidate_authority_versions != CUMCM_A1_AUTHORITY_VERSIONS
+            or new.get("version") != CUMCM_A1_AUTHORITY_VERSIONS["skill"]):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    declared = []
+    if identifier == "cumcm_writing":
+        old_stage = [
+            "templates/latex/cumcm/hsk/sections/09_evaluation.tex",
+            "templates/latex/cumcm/hsk/references.bib",
+            "templates/latex/cumcm/hsk/appendices/appendices.tex when needed",
+        ]
+        new_stage = [
+            "templates/latex/cumcm/hsk/sections/09_evaluation.tex",
+            "templates/latex/cumcm/hsk/references.bib",
+            "templates/latex/cumcm/hsk/sections/10_ai_tool_statement.tex when verified_2026_cumcm",
+            "templates/latex/cumcm/hsk/appendices/appendices.tex when verified_2026_cumcm_or_other_required_material",
+        ]
+        for prefix in (("writing_runtime",), ("runtime_plan", "writing_runtime")):
+            source, target = new, predecessor
+            try:
+                for key in prefix:
+                    source, target = source[key], target[key]
+                source_stages = source["authoring_sequence"]
+                target_stages = target["authoring_sequence"]
+                if source_stages[5]["id"] != "evaluation_references_conclusion_appendix":
+                    return deepcopy(new), []
+                if source_stages[5]["write_now"] != new_stage:
+                    return deepcopy(new), []
+                target_stages[5]["write_now"] = deepcopy(old_stage)
+                declared.append({
+                    "path": ".".join(map(str, (*prefix, "authoring_sequence", 5, "write_now"))),
+                    "baseline": deepcopy(old_stage),
+                    "candidate": deepcopy(new_stage),
+                    "approval": "v10.25.0 CUMCM 2026 required AI/appendix writing outputs only",
+                })
+            except (KeyError, IndexError, TypeError):
+                return deepcopy(new), []
+    predecessor["version"] = PLOT_BACKEND_AUTHORITY_VERSIONS["skill"]
+    projected, changes = approved_v10240_plot_backend_carrier_change(
+        identifier, old, predecessor, deepcopy(PLOT_BACKEND_AUTHORITY_VERSIONS),
+    )
+    if projected != old or not changes:
+        return deepcopy(new), []
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = CUMCM_A1_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(CUMCM_A1_AUTHORITY_VERSIONS)
+            change["approval"] = "Exact v10.25.0 2026 CUMCM A1 edition carrier; all other legacy evidence checked"
+    changes.extend(declared)
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -1729,6 +1786,9 @@ def compare(before, after):
         projected, plot_backend_changes = approved_v10240_plot_backend_carrier_change(
             a["id"], old, projected, b.get("authority_versions"))
         expected.extend(plot_backend_changes)
+        projected, cumcm_a1_changes = approved_v10250_cumcm_ai_appendix_carrier_change(
+            a["id"], old, projected, b.get("authority_versions"))
+        expected.extend(cumcm_a1_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,

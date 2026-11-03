@@ -38,11 +38,12 @@ class TestV872TemplateAssemblyConsistency(unittest.TestCase):
         errors = VALIDATOR.validate_template_manifest(TEMPLATE_ROOT / "template_manifest.yaml")
         self.assertEqual([], errors, errors)
 
-    def test_current_ai_disclosure_input_is_declared_but_inactive(self):
+    def test_current_ai_disclosure_and_appendix_are_active_in_2026(self):
         main = (TEMPLATE_ROOT / "hsk_main.tex").read_text(encoding="utf-8")
         active_inputs = VALIDATOR._extract_active_body_inputs(main)
-        self.assertNotIn("sections/10_ai_tool_statement.tex", active_inputs)
-        self.assertIn("% \\input{sections/10_ai_tool_statement}", main)
+        self.assertIn("sections/10_ai_tool_statement.tex", active_inputs)
+        self.assertIn("appendices/appendices.tex", active_inputs)
+        self.assertIn(r"\documentclass[withoutpreface]{cumcmthesis}", main)
 
     def test_undeclared_active_body_input_fails(self):
         temp, target = self._copy_template()
@@ -71,29 +72,37 @@ class TestV872TemplateAssemblyConsistency(unittest.TestCase):
         errors = VALIDATOR.validate_template_manifest(target / "template_manifest.yaml")
         self.assertFalse(any("commented_only" in error for error in errors), errors)
 
-    def test_declared_conditional_ai_disclosure_can_be_activated(self):
+    def test_2026_required_ai_disclosure_cannot_be_disabled(self):
         temp, target = self._copy_template()
         self.addCleanup(temp.cleanup)
-        main_path = target / "hsk_main.tex"
-        main = main_path.read_text(encoding="utf-8").replace(
-            "% \\input{sections/10_ai_tool_statement}",
+        path = target / "hsk_main.tex"
+        main = path.read_text(encoding="utf-8")
+        main = main.replace(
             r"\input{sections/10_ai_tool_statement}",
+            r"% \input{sections/10_ai_tool_statement}",
+            1,
         )
-        main_path.write_text(main, encoding="utf-8")
+        path.write_text(main, encoding="utf-8")
+        errors = VALIDATOR.validate_template_manifest(target / "template_manifest.yaml")
+        self.assertTrue(any("active main template token missing" in x for x in errors), errors)
 
-        manifest_path = target / "template_manifest.yaml"
-        manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
-        token = r"\input{sections/10_ai_tool_statement}"
-        inactive = manifest["fixed_template_checks"]["optional_default_inactive_tokens"]
-        manifest["fixed_template_checks"]["optional_default_inactive_tokens"] = [
-            item for item in inactive if item != token
-        ]
-        manifest_path.write_text(yaml.safe_dump(manifest, allow_unicode=True, sort_keys=False), encoding="utf-8")
-
-        errors = VALIDATOR.validate_template_manifest(manifest_path)
-        self.assertEqual([], errors, errors)
-        active_inputs = VALIDATOR._extract_active_body_inputs(main)
-        self.assertIn("sections/10_ai_tool_statement.tex", active_inputs)
+    def test_appendix_allows_one_child_or_only_no_material_statements(self):
+        samples = (
+            r"\begin{appendices}" + "\n" + r"\section*{附录}" + "\n"
+            + "本论文没有用到程序。本论文没有支撑材料。\n"
+            + r"\end{appendices}",
+            r"\begin{appendices}" + "\n" + r"\section*{附录}" + "\n"
+            + r"\subsection*{附录A}" + "\n"
+            + "附录A记录真实源程序。\n" + r"\end{appendices}",
+        )
+        for sample in samples:
+            with self.subTest(sample=sample):
+                temp, target = self._copy_template()
+                self.addCleanup(temp.cleanup)
+                (target / "appendices/appendices.tex").write_text(
+                    sample, encoding="utf-8")
+                self.assertEqual([], VALIDATOR.validate_template_manifest(
+                    target / "template_manifest.yaml"))
 
     def test_infrastructure_inputs_before_document_are_not_body_slots(self):
         main = (TEMPLATE_ROOT / "hsk_main.tex").read_text(encoding="utf-8")

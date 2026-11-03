@@ -25,14 +25,30 @@ profiles:
         supported_intents: [latex, review, full_submission, full_workflow]
         compact_intents: [latex]
     edition_rules:
-      edition: current
-      verification_status: unverified
-      verified_at: null
-      source: null
-      page_limit: null
-      anonymity: null
+      edition: "2026"
+      verification_status: verified
+      verified_at: "2026-11-03"
+      source: https://dxs.moe.gov.cn/zx/a/hd_sxjm_gsyw/260702/2046411.shtml
+      ai_rule_source: https://www.cmathc.org.cn/mcm/tz/602.html
+      page_limit: 30
+      anonymity: true
+      # A2 will define official external exports. Keep the legacy internal-ZIP
+      # allowlist empty in A1 so hsk_pack_submission.py refuses unsafe PASS.
       submission_files: []
-      ai_disclosure: null
+      ai_disclosure: required_used_or_not_used_before_references
+      paper:
+        electronic_first_page: abstract
+        electronic_forbidden_frontmatter: [promise_page, team_number_page, table_of_contents]
+        electronic_single_file_formats: [pdf, docx]
+        max_paper_mb: 20
+        max_support_mb: 20
+        appendix_required: true
+        appendix_complete_runnable_programs: true
+        no_program_statement: 本论文没有用到程序
+        no_support_statement: 本论文没有支撑材料
+        ai_detail_file_when_used: AI工具使用详情.pdf
+        print_promise_and_number_pages: required
+        body_max_pages: 30
 
   mcm_icm:
     aliases: [MCM, ICM, mcm, icm]

@@ -41,7 +41,7 @@ def active_sources(
             if model_preparation:
                 result.append(slot["source"])
         elif slot_id == "ai_disclosure":
-            if ai_disclosure:
+            if ai_disclosure or slot.get("required") or slot.get("default_active"):
                 result.append(slot["source"])
         elif slot.get("required") or slot.get("default_active"):
             result.append(slot["source"])
@@ -103,7 +103,9 @@ class TestV810CrossFileChapterHandoff(unittest.TestCase):
                 "sections/04_symbols.tex",
                 "sections/06_question1.tex",
                 "sections/09_evaluation.tex",
+                "sections/10_ai_tool_statement.tex",
                 "references.bib",
+                "appendices/appendices.tex",
             ],
         )
 
@@ -172,9 +174,11 @@ class TestV810CrossFileChapterHandoff(unittest.TestCase):
         evaluation = "sections/09_evaluation.tex"
         disclosure = "sections/10_ai_tool_statement.tex"
         references = "references.bib"
-        self.assertEqual(inactive[inactive.index(evaluation) + 1], references)
+        self.assertEqual(inactive[inactive.index(evaluation) + 1], disclosure)
         self.assertEqual(active[active.index(evaluation) + 1], disclosure)
         self.assertEqual(active[active.index(disclosure) + 1], references)
+        self.assertEqual(inactive[-1], "appendices/appendices.tex")
+        self.assertEqual(active[-1], "appendices/appendices.tex")
 
     def test_q1_q2_q3_keep_final_adjacency_without_forced_dependency(self):
         sources = active_sources(

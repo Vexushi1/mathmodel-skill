@@ -596,16 +596,23 @@ jobs:
           root = Path("templates/latex/cumcm/hsk-appendix-smoke")
           main = root / "hsk_main.tex"
           source = main.read_text(encoding="utf-8")
-          marker = r"% \input{appendices/appendices}"
-          assert source.count(marker) == 1
-          main.write_text(source.replace(marker, r"\input{appendices/appendices}", 1), encoding="utf-8")
+          assert source.count(r"\input{appendices/appendices}") == 1
+          assert not any(line.lstrip().startswith("% " + r"\input{appendices/appendices}")
+                         for line in source.splitlines())
           appendix = root / "appendices/appendices.tex"
-          source = appendix.read_text(encoding="utf-8")
-          for number, content in (("A", "附录A记录可复现的输入和步骤。"), ("B", "附录B记录补充的辅助材料。")):
-              marker = rf"\subsection*{{附录{number}}}"
-              assert source.count(marker) == 1
-              source = source.replace(marker, marker + "\n" + content, 1)
-          appendix.write_text(source, encoding="utf-8")
+          appendix.write_text(
+              r"\begin{appendices}" + "\n"
+              + r"\section*{附录}" + "\n"
+              + r"\subsection*{附录A}" + "\n" + "附录A记录真实程序清单和复现步骤。\n"
+              + r"\subsection*{附录B}" + "\n" + "附录B记录补充的辅助材料。\n"
+              + r"\end{appendices}" + "\n", encoding="utf-8"
+          )
+          declaration = root / "sections/10_ai_tool_statement.tex"
+          declaration.write_text(
+              r"\section*{AI工具使用声明}" + "\n"
+              + "本参赛队在竞赛过程中未使用任何AI工具。\n",
+              encoding="utf-8",
+          )
           PY
       - name: Compile CUMCM appendix-active template
         if: matrix.name == 'CUMCM'

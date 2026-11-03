@@ -53,8 +53,8 @@ class CUMCMHeadingHierarchyTests(unittest.TestCase):
         self.assertTrue(analysis["exactly_one_per_question"])
         self.assertEqual(appendix["parent_title"], "附录")
         self.assertEqual(appendix["child_title_pattern"], "附录{letter}")
-        self.assertFalse(slots["appendix"]["required"])
-        self.assertFalse(slots["appendix"]["default_active"])
+        self.assertTrue(slots["appendix"]["required"])
+        self.assertTrue(slots["appendix"]["default_active"])
         self.assertEqual(self.validator.validate_template_manifest(MANIFEST), [])
 
     def test_variable_question_counts(self):

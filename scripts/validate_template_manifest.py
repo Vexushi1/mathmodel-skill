@@ -233,8 +233,13 @@ def validate_template_manifest(path: str | Path) -> list[str]:
     appendix_spec = appendix_slot.get("heading_structure", {}) or {}
     parent = appendix_spec.get("parent_title", "")
     child_pattern = appendix_spec.get("child_title_pattern", "")
-    if (appendix_slot.get("required") is not False
-            or appendix_slot.get("default_active") is not False
+    ai_slot = slot_by_id.get("ai_disclosure", {})
+    if (ai_slot.get("required") is not True
+            or ai_slot.get("default_active") is not True
+            or not ai_slot.get("activation")):
+        errors.append("2026 CUMCM AI disclosure must be active and required even when no AI was used")
+    if (appendix_slot.get("required") is not True
+            or appendix_slot.get("default_active") is not True
             or not appendix_slot.get("activation")
             or appendix_spec.get("parent_level") != "section"
             or appendix_spec.get("child_level") != "subsection"
@@ -242,18 +247,25 @@ def validate_template_manifest(path: str | Path) -> list[str]:
             or appendix_spec.get("unnumbered_latex_commands") is not True
             or appendix_spec.get("only_actual_material") is not True
             or "{letter}" not in child_pattern):
-        errors.append("appendix must be conditional with one unnumbered parent and sequential unnumbered subsections")
+        errors.append("2026 CUMCM appendix must be active, with one starred parent and actual sequential children")
     appendix_path = template_root / str(appendix_slot.get("source", ""))
     if appendix_path.is_file():
         appendix_tex = _strip_tex_comments(appendix_path.read_text(encoding="utf-8"))
         parents = re.findall(r"\\section\*?\{([^{}]+)\}", appendix_tex)
         children = re.findall(r"\\subsection\*?\{([^{}]+)\}", appendix_tex)
-        expected_children = [str(child_pattern).replace("{letter}", c) for c in ("A", "B")]
+        expected_children = [str(child_pattern).replace("{letter}", chr(65 + i)) for i in range(len(children))]
         if (parents != [parent] or children != expected_children
                 or re.search(r"\\section\{", appendix_tex)
                 or re.search(r"\\subsection\{", appendix_tex)
                 or r"\begin{appendices}" not in appendix_tex):
-            errors.append("appendix template must render one starred parent and ordered starred A/B subsections")
+            errors.append("appendix template needs one starred parent and ordered actual A/B/C subsections")
+        if not children and not re.search(r"\\section\*\{附录\}\s*\S", appendix_tex):
+            errors.append("appendix must contain a real explanation or maintenance placeholder when there are no child headings")
+    ai_path = template_root / str(ai_slot.get("source", ""))
+    if ai_path.is_file():
+        ai_tex = _strip_tex_comments(ai_path.read_text(encoding="utf-8"))
+        if r"\section*{AI工具使用声明}" not in ai_tex or "【待填写" not in ai_tex:
+            errors.append("canonical AI declaration must expose a visible neutral placeholder, never a fabricated usage fact")
 
     checks = manifest.get("fixed_template_checks", {})
     example = checks.get("question_example")

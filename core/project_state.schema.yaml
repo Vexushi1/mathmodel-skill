@@ -1675,6 +1675,10 @@ properties:
         uniqueItems: true
         items: {$ref: '#/$defs/objective'}
       version: {type: string}
+      competition_edition:
+        type: string
+        pattern: "^[0-9]{4}$"
+        description: Optional four-digit contest year; historical projects may omit it.
       updated_at: {type: string, format: date-time}
   plotting:
     description: Project-wide Figure rendering backend; absent in older MATLAB projects.
