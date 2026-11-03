@@ -327,10 +327,10 @@ def audit_cumcm_2026_compliance(main_file: Path, flattened: str) -> list[Finding
 
     year = str(record.get("competition_edition") or "").strip()
     if not year:
-        return [Finding(
-            "review_required", "cumcm_edition_unknown",
-            "CUMCM 正式论文缺少项目参赛届次；不能推断适用 2026 年规则并认定合规。"
-        )]
+        # Unlabelled legacy projects remain readable and are not assigned a
+        # fabricated edition. Absence is not evidence of 2026 compliance;
+        # official package admission must require an explicit verified edition.
+        return []
     if year != "2026":
         return []  # Historical/other editions require their own verified rules.
 
