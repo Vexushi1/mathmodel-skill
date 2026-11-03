@@ -141,7 +141,7 @@ class TestP7ConditionalAnalysisAppendix(unittest.TestCase):
         self.assertTrue(disclosure["required"])
         self.assertTrue(disclosure["default_active"])
         main = (ROOT / "templates/latex/cumcm/hsk/hsk_main.tex").read_text(encoding="utf-8")
-        active = "\\n".join(line.split("%", 1)[0] for line in main.splitlines())
+        active = "\n".join(line.split("%", 1)[0] for line in main.splitlines())
         self.assertIn(r"\input{sections/10_ai_tool_statement}", active)
         self.assertIn(r"\input{appendices/appendices}", active)
 
