@@ -351,6 +351,7 @@ def audit_cumcm_2026_compliance(main_file: Path, flattened: str) -> list[Finding
     reference = r"\printbibliography"
     appendix_heading = r"\section*{附录}"
     appendix_begin = r"\begin{appendices}"
+    appendix_end = r"\end{appendices}"
     if flattened.count(ai_heading) != 1 or reference not in flattened:
         findings.append(Finding("blocking", "cumcm_2026_ai_missing",
                                 "2026 CUMCM 论文必须有且只有一个 AI工具使用声明，且位于参考文献之前。"))
@@ -372,13 +373,18 @@ def audit_cumcm_2026_compliance(main_file: Path, flattened: str) -> list[Finding
                 findings.append(Finding("blocking", "cumcm_2026_ai_unfilled_or_conflicting",
                                         "必须由参赛队据实填写官方 AI 声明两种文本之一，不能提交占位或相互矛盾的声明。"))
     if (flattened.count(appendix_begin) != 1
+            or flattened.count(appendix_end) != 1
             or flattened.count(appendix_heading) != 1
             or reference not in flattened
-            or flattened.index(appendix_begin) <= flattened.index(reference)):
+            or flattened.index(appendix_begin) <= flattened.index(reference)
+            or flattened.index(appendix_end) <= flattened.index(appendix_begin)):
         findings.append(Finding("blocking", "cumcm_2026_appendix_missing_or_order",
                                 "2026 CUMCM 必须在参考文献后保留一级附录和相应实际内容。"))
     else:
-        body = flattened[flattened.index(appendix_heading) + len(appendix_heading):]
+        body = flattened[
+            flattened.index(appendix_heading) + len(appendix_heading):
+            flattened.index(appendix_end)
+        ]
         if any(token in body for token in ("【待填写", "TODO", "【据实填写")):
             findings.append(Finding("blocking", "cumcm_2026_appendix_unfilled",
                                     "附录尚有维护占位；必须填入真实材料和完整源程序或官方无材料说明。"))
