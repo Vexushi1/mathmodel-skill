@@ -7,7 +7,7 @@
 - 协同更新 LaTeX Template Manifest、写作 Runtime/structural Handoff、模板 Validator、GitHub 附录 smoke 和正式 LaTeX 审计测试。
 - 本阶段不改主求解、03B、accepted workbook、模型审批、双绘图后端；对外独立提交文件/支撑包由后续 A2 完成。
 
-## 10.24.0
+## Previous release: 10.24.0
 
 - 新增独立于数值求解后端的项目级 Python/MATLAB 科研 Figure Rendering Backend；一个竞赛项目仅选择一次，历史 MATLAB 项目保留原路径和当前维护能力。
 - Python 继承 Module 04 的 Scientific Figure Synthesis、Basic-form Challenge、Scientific Rendering Profiles、Composite Encoding、Figure Layout/Enhancement、Publication Rendering 与人工审图，不建立第二套 Figure Authority。
