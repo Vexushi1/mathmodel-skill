@@ -119,7 +119,7 @@ class TestP7ConditionalAnalysisAppendix(unittest.TestCase):
             issues = SYNC._formal_state_issues({"result_analysis_report"}, state)
             self.assertTrue(any("requirement_reason" in item for item in issues))
 
-    def test_contracts_make_analysis_and_appendix_conditional(self):
+    def test_2026_cumcm_requires_ai_disclosure_and_appendix(self):
         router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_text(encoding="utf-8"))
         manifest = yaml.safe_load((ROOT / "core/module_manifest.yaml").read_text(encoding="utf-8"))
         template = yaml.safe_load((ROOT / "templates/latex/cumcm/hsk/template_manifest.yaml").read_text(encoding="utf-8"))
