@@ -586,6 +586,25 @@ jobs:
           log="${log%.tex}.log"
           test -f "$log"
           ! grep -E "Undefined control sequence|LaTeX Error|Citation .* undefined|There were undefined references" "$log"
+      - name: Verify CUMCM 2026 electronic abstract-first PDF
+        if: matrix.name == 'CUMCM'
+        shell: bash
+        run: |
+          pdf="templates/latex/cumcm/hsk/hsk_main.pdf"
+          test -f "$pdf"
+          if ! command -v pdftotext >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y poppler-utils
+          fi
+          pdftotext -f 1 -l 1 -enc UTF-8 -layout "$pdf" cumcm-first-page.txt
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          page = re.sub(r"\s+", "", Path("cumcm-first-page.txt").read_text(encoding="utf-8"))
+          assert "关键词" in page, "CUMCM electronic first page must contain abstract keywords"
+          assert "承诺书" not in page and "编号专用页" not in page
+          assert "问题重述" not in page, "Abstract must occupy the electronic first page"
+          PY
       - name: Prepare CUMCM appendix-active smoke
         if: matrix.name == 'CUMCM'
         shell: bash
