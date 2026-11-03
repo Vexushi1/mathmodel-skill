@@ -495,8 +495,18 @@ def _check_templates(errors: list[str]) -> None:
     ai_scaffold = _ORIGINAL_READ_TEXT(_CUMCM_ROOT / "sections/10_ai_tool_statement.tex")
     if "本参赛队在论文撰写、程序开发与结果整理过程中合理使用了 AI" in ai_scaffold:
         errors.append("CUMCM AI-disclosure scaffold must not fabricate project AI-use facts")
-    if r"\input{sections/10_ai_tool_statement}" in _latex_executable_code(main_text):
-        errors.append("CUMCM generic main must keep the AI-disclosure slot inactive by default")
+    manifest = checks.load_structured(_CUMCM_ROOT / "template_manifest.yaml") or {}
+    slots = {row.get("id"): row for row in
+             (manifest.get("paper_skeleton", {}).get("ordered_slots") or [])}
+    ai_slot = slots.get("ai_disclosure") or {}
+    active = r"\input{sections/10_ai_tool_statement}" in _latex_executable_code(main_text)
+    if ai_slot.get("required") and ai_slot.get("default_active"):
+        if not active:
+            errors.append("2026 CUMCM canonical template must include required AI disclosure")
+        if "【待填写" not in _latex_executable_code(ai_scaffold):
+            errors.append("2026 CUMCM AI scaffold must preserve a visible neutral placeholder")
+    elif active:
+        errors.append("conditional CUMCM AI disclosure must not be active without verified rules")
 
 
 checks.check_templates = _check_templates

@@ -586,6 +586,25 @@ jobs:
           log="${log%.tex}.log"
           test -f "$log"
           ! grep -E "Undefined control sequence|LaTeX Error|Citation .* undefined|There were undefined references" "$log"
+      - name: Verify CUMCM 2026 electronic abstract-first PDF
+        if: matrix.name == 'CUMCM'
+        shell: bash
+        run: |
+          pdf="templates/latex/cumcm/hsk/hsk_main.pdf"
+          test -f "$pdf"
+          if ! command -v pdftotext >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y poppler-utils
+          fi
+          pdftotext -f 1 -l 1 -enc UTF-8 -layout "$pdf" cumcm-first-page.txt
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          page = re.sub(r"\s+", "", Path("cumcm-first-page.txt").read_text(encoding="utf-8"))
+          assert "关键词" in page, "CUMCM electronic first page must contain abstract keywords"
+          assert "承诺书" not in page and "编号专用页" not in page
+          assert "问题重述" not in page, "Abstract must occupy the electronic first page"
+          PY
       - name: Prepare CUMCM appendix-active smoke
         if: matrix.name == 'CUMCM'
         shell: bash
@@ -596,16 +615,30 @@ jobs:
           root = Path("templates/latex/cumcm/hsk-appendix-smoke")
           main = root / "hsk_main.tex"
           source = main.read_text(encoding="utf-8")
-          marker = r"% \input{appendices/appendices}"
-          assert source.count(marker) == 1
-          main.write_text(source.replace(marker, r"\input{appendices/appendices}", 1), encoding="utf-8")
+          assert source.splitlines()[0] == r"\documentclass[withoutpreface]{cumcmthesis}"
+          assert source.count(r"\input{appendices/appendices}") == 1
+          assert not any(line.lstrip().startswith("% " + r"\input{appendices/appendices}")
+                         for line in source.splitlines())
+          # Reuse this existing second compilation to exercise the paper preface.
+          main.write_text(
+              source.replace(r"\documentclass[withoutpreface]{cumcmthesis}",
+                             r"\documentclass{cumcmthesis}", 1),
+              encoding="utf-8",
+          )
           appendix = root / "appendices/appendices.tex"
-          source = appendix.read_text(encoding="utf-8")
-          for number, content in (("A", "附录A记录可复现的输入和步骤。"), ("B", "附录B记录补充的辅助材料。")):
-              marker = rf"\subsection*{{附录{number}}}"
-              assert source.count(marker) == 1
-              source = source.replace(marker, marker + "\n" + content, 1)
-          appendix.write_text(source, encoding="utf-8")
+          appendix.write_text(
+              r"\begin{appendices}" + "\n"
+              + r"\section*{附录}" + "\n"
+              + r"\subsection*{附录A}" + "\n" + "附录A记录真实程序清单和复现步骤。\n"
+              + r"\subsection*{附录B}" + "\n" + "附录B记录补充的辅助材料。\n"
+              + r"\end{appendices}" + "\n", encoding="utf-8"
+          )
+          declaration = root / "sections/10_ai_tool_statement.tex"
+          declaration.write_text(
+              r"\section*{AI工具使用声明}" + "\n"
+              + "本参赛队在竞赛过程中未使用任何AI工具。\n",
+              encoding="utf-8",
+          )
           PY
       - name: Compile CUMCM appendix-active template
         if: matrix.name == 'CUMCM'
@@ -635,6 +668,7 @@ jobs:
           fi
           command -v pdftotext
           pdftotext -enc UTF-8 -layout "$pdf" appendix-active-pdf.txt
+          pdftotext -f 1 -l 3 -enc UTF-8 -layout "$pdf" cumcm-print-first-three.txt
           python - <<'PY'
           import re
           from pathlib import Path
@@ -642,6 +676,10 @@ jobs:
               re.sub(r"\s+", "", line)
               for line in Path("appendix-active-pdf.txt").read_text(encoding="utf-8").splitlines()
           ]
+          # Paper version retains promise/number preface and puts the abstract on page three.
+          pages = Path("cumcm-print-first-three.txt").read_text(encoding="utf-8").split("\f")
+          assert len(pages) >= 3, "paper mode must render its three preliminary pages"
+          assert "关键词" in re.sub(r"\s+", "", pages[2]), "paper page 3 must contain abstract keywords"
           expected = ("附录", "附录A", "附录B")
           positions = []
           for title in expected:

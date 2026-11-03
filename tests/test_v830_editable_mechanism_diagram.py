@@ -850,6 +850,46 @@ class ContractAndDriftTests(unittest.TestCase):
                     ).hexdigest()
                 elif relative == competition_profiles:
                     text = path.read_text(encoding="utf-8")
+                    current_2026_rules = (
+                        "    edition_rules:\n"
+                        "      edition: \"2026\"\n"
+                        "      verification_status: verified\n"
+                        "      verified_at: \"2026-11-03\"\n"
+                        "      source: https://dxs.moe.gov.cn/zx/a/hd_sxjm_gsyw/260702/2046411.shtml\n"
+                        "      ai_rule_source: https://dxs.moe.gov.cn/zx/a/hd_sxjm_gsyw/260807/2051819.shtml\n"
+                        "      page_limit: 30\n"
+                        "      anonymity: true\n"
+                        "      # A2 will define official external exports. Keep the legacy internal-ZIP\n"
+                        "      # allowlist empty in A1 so hsk_pack_submission.py refuses unsafe PASS.\n"
+                        "      submission_files: []\n"
+                        "      ai_disclosure: required_used_or_not_used_before_references\n"
+                        "      paper:\n"
+                        "        electronic_first_page: abstract\n"
+                        "        electronic_forbidden_frontmatter: [promise_page, team_number_page, table_of_contents]\n"
+                        "        electronic_single_file_formats: [pdf, docx]\n"
+                        "        max_paper_mb: 20\n"
+                        "        max_support_mb: 20\n"
+                        "        appendix_required: true\n"
+                        "        appendix_complete_runnable_programs: true\n"
+                        "        no_program_statement: 本论文没有用到程序\n"
+                        "        no_support_statement: 本论文没有支撑材料\n"
+                        "        ai_detail_file_when_used: AI工具使用详情.pdf\n"
+                        "        print_promise_and_number_pages: required\n"
+                        "        body_max_pages: 30"
+                    )
+                    legacy_rules = (
+                        "    edition_rules:\n"
+                        "      edition: current\n"
+                        "      verification_status: unverified\n"
+                        "      verified_at: null\n"
+                        "      source: null\n"
+                        "      page_limit: null\n"
+                        "      anonymity: null\n"
+                        "      submission_files: []\n"
+                        "      ai_disclosure: null"
+                    )
+                    self.assertEqual(text.count(current_2026_rules), 1)
+                    text = text.replace(current_2026_rules, legacy_rules, 1)
                     self.assertEqual(text.count(competition_lineage_comment), 1)
                     data = text.replace(competition_lineage_comment, "", 1).encode("utf-8")
                     actual = hashlib.sha1(
@@ -884,6 +924,14 @@ class ContractAndDriftTests(unittest.TestCase):
                     text = path.read_text(encoding="utf-8")
                     # Revert only the optional Figure schema extension, byte-for-byte.
                     # Keep every original pinned predecessor hash and assertion.
+                    edition_addition = (
+                        "      competition_edition:\n"
+                        "        type: string\n"
+                        "        pattern: \"^[0-9]{4}$\"\n"
+                        "        description: Optional four-digit contest year; historical projects may omit it.\n"
+                    )
+                    self.assertEqual(text.count(edition_addition), 1)
+                    text = text.replace(edition_addition, "", 1)
                     if "  plotting:\n" in text:
                         additions = (
                             "  plotting:\n"

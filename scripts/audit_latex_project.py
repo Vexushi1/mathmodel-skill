@@ -304,6 +304,101 @@ def audit_paper_fragment_sources(
     return findings
 
 
+
+def audit_cumcm_2026_compliance(main_file: Path, flattened: str) -> list[Finding]:
+    """Check edition-scoped official structure; never infer actual AI/program use.
+
+    Project-free canonical template smoke is not a contestant submission.
+    Evidence of program completeness and external supporting ZIP belongs to
+    existing final-delivery and submission validators.
+    """
+    project = _project_root_for_main(main_file)
+    state_path = project / "state/project_state.yaml"
+    if not state_path.is_file():
+        return []
+    try:
+        state = yaml.safe_load(state_path.read_text(encoding="utf-8")) or {}
+    except (OSError, UnicodeError, yaml.YAMLError) as exc:
+        return [Finding("blocking", "cumcm_2026_state_unreadable", str(exc))]
+    record = state.get("project") if isinstance(state, dict) else None
+    if not isinstance(record, dict) or str(record.get("competition", "")).strip().lower() not in {
+            "cumcm", "国赛", "全国大学生数学建模竞赛"}:
+        return []
+
+    year = str(record.get("competition_edition") or "").strip()
+    if not year:
+        # Unlabelled legacy projects remain readable and are not assigned a
+        # fabricated edition. Absence is not evidence of 2026 compliance;
+        # official package admission must require an explicit verified edition.
+        return []
+    if year != "2026":
+        return []  # Historical/other editions require their own verified rules.
+
+    rules_path = Path(__file__).resolve().parents[1] / "config/competition_profiles.yaml"
+    try:
+        rules = (yaml.safe_load(rules_path.read_text(encoding="utf-8"))
+                 ["profiles"]["cumcm"]["edition_rules"])
+    except (OSError, UnicodeError, yaml.YAMLError, KeyError, TypeError) as exc:
+        return [Finding("blocking", "cumcm_2026_rules_missing", str(exc))]
+    if (str(rules.get("edition")) != year or rules.get("verification_status") != "verified"
+            or not rules.get("verified_at") or not rules.get("source")
+            or not rules.get("ai_rule_source")):
+        return [Finding("blocking", "cumcm_2026_rules_unverified",
+                        "2026 CUMCM 官方格式和 AI 规则未核验或项目届次不匹配。")]
+
+    findings: list[Finding] = []
+    ai_heading = r"\section*{AI工具使用声明}"
+    reference = r"\printbibliography"
+    appendix_heading = r"\section*{附录}"
+    appendix_begin = r"\begin{appendices}"
+    appendix_end = r"\end{appendices}"
+    if flattened.count(ai_heading) != 1 or reference not in flattened:
+        findings.append(Finding("blocking", "cumcm_2026_ai_missing",
+                                "2026 CUMCM 论文必须有且只有一个 AI工具使用声明，且位于参考文献之前。"))
+    else:
+        position = flattened.index(ai_heading)
+        bibliography = flattened.index(reference)
+        if position >= bibliography:
+            findings.append(Finding("blocking", "cumcm_2026_ai_order",
+                                    "AI工具使用声明必须出现在参考文献之前。"))
+        else:
+            text = re.sub(r"\s+", "", flattened[position + len(ai_heading):bibliography])
+            no_use = "本参赛队在竞赛过程中未使用任何AI工具。" in text
+            used = re.search(
+                r"本参赛队在竞赛过程中使用了AI工具，主要用于(.+?)，详细使用情况见支撑材料。",
+                text,
+            )
+            placeholder = any(token in text for token in ("【待填写", "【据实填写", "〖", "TODO", "待确认"))
+            if placeholder or no_use == bool(used):
+                findings.append(Finding("blocking", "cumcm_2026_ai_unfilled_or_conflicting",
+                                        "必须由参赛队据实填写官方 AI 声明两种文本之一，不能提交占位或相互矛盾的声明。"))
+    if (flattened.count(appendix_begin) != 1
+            or flattened.count(appendix_end) != 1
+            or flattened.count(appendix_heading) != 1
+            or reference not in flattened
+            or flattened.index(appendix_begin) <= flattened.index(reference)
+            or flattened.index(appendix_end) <= flattened.index(appendix_begin)):
+        findings.append(Finding("blocking", "cumcm_2026_appendix_missing_or_order",
+                                "2026 CUMCM 必须在参考文献后保留一级附录和相应实际内容。"))
+    else:
+        body = flattened[
+            flattened.index(appendix_heading) + len(appendix_heading):
+            flattened.index(appendix_end)
+        ]
+        if any(token in body for token in ("【待填写", "TODO", "【据实填写")):
+            findings.append(Finding("blocking", "cumcm_2026_appendix_unfilled",
+                                    "附录尚有维护占位；必须填入真实材料和完整源程序或官方无材料说明。"))
+        # A standalone "附录" section may carry the official no-material statements.
+        nonstructural = re.sub(
+            r"\\(?:begin|end)\{appendices\}|\\(?:subsection|section)\*?\{[^{}]+\}",
+            "", body,
+        ).strip()
+        if not nonstructural:
+            findings.append(Finding("blocking", "cumcm_2026_appendix_empty",
+                                    "附录不得仅包含标题；无程序或无支撑材料时须明确书面说明。"))
+    return findings
+
+
 def audit_project(
     main_file: Path,
     *,
@@ -319,6 +414,8 @@ def audit_project(
         return findings
 
     flattened = flatten_tex(main_file, files)
+    if formal:
+        findings.extend(audit_cumcm_2026_compliance(main_file, flattened))
     findings.extend(audit_formal_heading_depth(flattened))
     findings.extend(audit_text(flattened))
 

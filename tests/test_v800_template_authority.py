@@ -72,20 +72,20 @@ class TestV800TemplateAuthority(unittest.TestCase):
         self.assertFalse(slots["model_preparation"]["default_active"])
         self.assertIn("% \\input{sections/05_model_preparation}", self.main)
 
-    def test_ai_disclosure_is_conditional_truth_bound_slot_before_references(self):
+    def test_ai_disclosure_is_required_truth_bound_slot_before_references(self):
         ordered = self.manifest["paper_skeleton"]["ordered_slots"]
         ids = [slot["id"] for slot in ordered]
         self.assertLess(ids.index("evaluation"), ids.index("ai_disclosure"))
         self.assertLess(ids.index("ai_disclosure"), ids.index("references"))
         slot = next(slot for slot in ordered if slot["id"] == "ai_disclosure")
         self.assertEqual(slot["source"], "sections/10_ai_tool_statement.tex")
-        self.assertFalse(slot["required"])
-        self.assertFalse(slot["default_active"])
-        self.assertIn("verified_current_edition_rule", slot["activation"])
-        self.assertIn("confirmed_actual_use_facts", slot["activation"])
-        self.assertIn("% \\input{sections/10_ai_tool_statement}", self.main)
+        self.assertTrue(slot["required"])
+        self.assertTrue(slot["default_active"])
+        self.assertIn("cumcm_2026", slot["activation"])
+        self.assertIn(r"\input{sections/10_ai_tool_statement}", self.main)
+        self.assertIn(r"\section*{AI工具使用声明}", self.ai_statement)
+        self.assertIn("【待填写", self.ai_statement)
         self.assertNotIn("本参赛队在论文撰写、程序开发与结果整理过程中合理使用了 AI", self.ai_statement)
-        self.assertIn("不陈述任何具体参赛队的 AI 使用事实", self.ai_statement)
 
     def test_core_model_summary_is_rendering_mode_not_named_subsection(self):
         rendering = self.manifest["core_model_summary_rendering"]

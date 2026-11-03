@@ -149,21 +149,23 @@ paper_skeleton:
       default_title: 模型的评价与推广
     - id: ai_disclosure
       source: sections/10_ai_tool_statement.tex
-      required: false
-      default_active: false
-      activation: verified_current_edition_rule_and_confirmed_actual_use_facts_make_disclosure_applicable
+      required: true
+      default_active: true
+      activation: cumcm_2026_requires_disclosure_for_both_used_and_not_used
       role: competition_compliance_disclosure
       note: >-
-        仅在当届 AI 披露规则已核验、当前项目真实 AI 使用事实已确认且披露对当前项目适用时启用；
-        模板文件只提供非事实性填写边界，不得默认声称参赛队使用了 AI。
+        2026 CUMCM 官方规则要求所有参赛队在参考文献前据实声明使用或未使用 AI。
+        canonical 模板保持可见待填写占位，仅供维护编译；正式实例必须确认真实事实、
+        用官方二选一文字替换占位，使用 AI 时另交 AI工具使用详情.pdf。
+        历史项目和未来未核验年度不得直接套用本模板默认槽位。
     - id: references
       source: references.bib
       required: true
       default_active: true
     - id: appendix
       source: appendices/appendices.tex
-      required: false
-      default_active: false
+      required: true
+      default_active: true
       heading_structure:
         parent_level: section
         parent_title: 附录
@@ -172,12 +174,15 @@ paper_skeleton:
         numbering: uppercase_latin_sequential
         unnumbered_latex_commands: true
         only_actual_material: true
-      activation: official_rule_requires_appendix_or_material_supporting_content_is_justifiably_kept_out_of_body
-      role: conditional_supporting_material
+      activation: cumcm_2026_requires_appendix_with_real_material_or_official_no_material_statements
+      role: required_2026_supporting_material_and_complete_source
       note: >-
-        附录不是结构完整性的必填章节。仅当官方规则要求，或确有长代码、不承担正文主论证闭环的技术引理/
-        补充推导/扩展证明、扩展表格、复现说明等支持材料需要保留时启用；没有真实材料时不得生成空附录。
-        篇幅长、证明难或命题框放不下都不能单独构成核心推导/核心证明外移依据；核心证明应按 Writing Reasoning Authority 留在正文完整可恢复。
+        2026 CUMCM 的一级“附录”必需；有实际代码/支撑材料时列出文件列表、
+        全部完整可运行源程序和 EXCEL/SPSS 等软件交互命令。
+        确无程序时按官方文本写“本论文没有用到程序”；确无支撑材料时写“本论文没有支撑材料”。
+        A/B/C 子节只随实际材料动态生成，不能保留空子节；canonical 中性占位必须在正式提交前替换。
+        附录材料用于补充复现与支撑，不能单独构成模型论证的替代。
+        核心证明、核心数学推导与必要证明不得仅因篇幅而移出正文；证明位置由数学作用决定。
 
 cumcm_question_section:
   title_pattern: "问题{N}模型建立及求解"
@@ -278,8 +283,6 @@ fixed_template_checks:
     - "\\input{sections/05_model_preparation}"
     - "\\input{sections/07_question2}"
     - "\\input{sections/08_question3}"
-    - "\\input{sections/10_ai_tool_statement}"
-    - "\\input{appendices/appendices}"
   active_main_order:
     - "\\input{frontmatter/abstract}"
     - "\\input{sections/01_problem_statement}"
@@ -288,7 +291,9 @@ fixed_template_checks:
     - "\\input{sections/04_symbols}"
     - "\\input{sections/06_question1}"
     - "\\input{sections/09_evaluation}"
+    - "\\input{sections/10_ai_tool_statement}"
     - "\\printbibliography"
+    - "\\input{appendices/appendices}"
   required_evaluation_token: "\\section{模型的评价与推广}"
 
 runtime_contract:
@@ -300,8 +305,8 @@ runtime_contract:
     - optional_validation_subsection
     - activate_or_remove_model_preparation_based_on_real_shared_structure
     - activate_or_remove_data_section_based_on_real_data_method_need
-    - activate_or_remove_ai_disclosure_based_on_verified_rule_and_confirmed_actual_use_facts
-    - activate_or_remove_appendix_based_on_verified_rule_or_real_supporting_material_need
+    - fill_required_2026_ai_disclosure_using_confirmed_actual_use_facts
+    - populate_required_2026_appendix_with_material_or_official_no_material_statements
   prose_writer_may_not_change_without_template_or_competition_switch:
     - documentclass
     - top_level_section_order

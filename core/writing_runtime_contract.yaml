@@ -1,4 +1,4 @@
-version: 10.24.0
+version: 10.25.0
 role: >-
   普通论文写作的最小运行时映射。它不建立第二套数学写作 Authority，只声明普通论文写作真正需要加载的
   模板、项目事实、证据和 writing_reasoning_contract 中的语义能力，从而避免每次写作预载完整建模、数值与项目治理上下文。
@@ -464,8 +464,9 @@ template_first_progressive_authoring:
         - current_citation_evidence_and_final_question_answers
       write_now:
         - templates/latex/cumcm/hsk/sections/09_evaluation.tex
+        - templates/latex/cumcm/hsk/sections/10_ai_tool_statement.tex when verified_2026_cumcm
         - templates/latex/cumcm/hsk/references.bib
-        - templates/latex/cumcm/hsk/appendices/appendices.tex when needed
+        - templates/latex/cumcm/hsk/appendices/appendices.tex when verified_2026_cumcm_or_other_required_material
       gate: 评价不替代验证，结论不新增主张，外部事实有真实 citation key，正文论证主体未被移入附录。
     - id: abstract_title_and_keywords
       read_now:

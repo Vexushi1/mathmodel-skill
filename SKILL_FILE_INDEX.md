@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.24.0
+当前 Skill 版本：10.25.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -391,6 +391,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_content_packs.py`
 - `tests/test_contract_closure.py`
 - `tests/test_copied_support_source_closure.py`
+- `tests/test_cumcm_2026_compliance.py`
 - `tests/test_current_skill_health.py`
 - `tests/test_e1_cross_module_acceptance.py`
 - `tests/test_e1_resource_measurement.py`
