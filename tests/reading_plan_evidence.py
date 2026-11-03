@@ -472,6 +472,14 @@ def approved_v1010_audit_changes(identifier, old, new):
         register(("assurance", "context", "backend_policy"), None, absent=True)
         register(("assurance", "context", "field_provenance", "solver_backend"),
                  "unresolved", absent=True)
+    # Complete the exact v10 project-backend predecessor projection after
+    # AUD-04 has removed its own fields. This keeps the historical chain
+    # compositional instead of leaving canonical backend policy/provenance
+    # fields stranded when the current Authority version has advanced.
+    projected, backend_changes = approved_v10_project_backend_changes(
+        identifier, old, projected,
+    )
+    changes.extend(backend_changes)
     return projected, changes
 
 
@@ -1606,15 +1614,44 @@ def approved_v10240_plot_backend_carrier_change(identifier, old, new, candidate_
 
 
 
+CUMCM_A1_PROFILE_BASELINE_SHA256 = "c3e2bf1ae4a5ff21ed3169066b0164cbc1ee23e1ded9650fa551197c0dbd175b"
+CUMCM_A1_PROFILE_SHA256 = "9e09f3076b7246e4e571ccdf8f9b175d1351fe41c19a3c54048c3c12c1ac4a0e"
+
+
 def approved_v10250_cumcm_ai_appendix_carrier_change(
         identifier, old, new, candidate_authority_versions):
-    """Allow only one edition-specific writing-stage output change; no broad P2 waiver."""
-    if candidate_authority_versions != CUMCM_A1_AUTHORITY_VERSIONS:
-        raise ValueError(f"A1 authority version mismatch: {candidate_authority_versions!r}")
-    if new.get("version") != CUMCM_A1_AUTHORITY_VERSIONS["skill"]:
-        raise ValueError(f"A1 plan version mismatch: {new.get('version')!r}")
+    """Project only the exact CUMCM 2026 profile and writing-output additions."""
+    if (candidate_authority_versions != CUMCM_A1_AUTHORITY_VERSIONS
+            or new.get("version") != CUMCM_A1_AUTHORITY_VERSIONS["skill"]):
+        return deepcopy(new), []
+
     predecessor = deepcopy(new)
     declared = []
+
+    # The 2026 edition profile is read by the runtime authority fingerprint
+    # for every CUMCM case. Permit only this exact profile-file carrier; do not
+    # broadly whitelist config/competition_profiles.yaml.
+    old_sources = ((old.get("assurance") or {}).get("authority_fingerprint") or {}).get("sources") or []
+    new_sources = ((predecessor.get("assurance") or {}).get("authority_fingerprint") or {}).get("sources") or []
+    old_profile = [row for row in old_sources if row.get("path") == "config/competition_profiles.yaml"]
+    new_profile = [row for row in new_sources if row.get("path") == "config/competition_profiles.yaml"]
+    if len(old_profile) != 1 or len(new_profile) != 1:
+        raise ValueError("A1 CUMCM profile fingerprint row is missing or duplicated")
+    if (old_profile[0].get("sha256") != CUMCM_A1_PROFILE_BASELINE_SHA256
+            or new_profile[0].get("sha256") != CUMCM_A1_PROFILE_SHA256):
+        raise ValueError(
+            "A1 CUMCM profile fingerprint mismatch: "
+            f"baseline={old_profile[0].get('sha256')!r}, "
+            f"candidate={new_profile[0].get('sha256')!r}"
+        )
+    new_profile[0]["sha256"] = old_profile[0]["sha256"]
+    declared.append({
+        "path": "assurance.authority_fingerprint.sources[config/competition_profiles.yaml].sha256",
+        "baseline": CUMCM_A1_PROFILE_BASELINE_SHA256,
+        "candidate": CUMCM_A1_PROFILE_SHA256,
+        "approval": "Exact v10.25.0 CUMCM 2026 edition_rules addition; all other profile data remains pinned",
+    })
+
     if identifier == "cumcm_writing":
         old_stage = [
             "templates/latex/cumcm/hsk/sections/09_evaluation.tex",
@@ -1634,19 +1671,25 @@ def approved_v10250_cumcm_ai_appendix_carrier_change(
                     source, target = source[key], target[key]
                 source_stages = source["authoring_sequence"]
                 target_stages = target["authoring_sequence"]
-                if source_stages[5]["id"] != "evaluation_references_conclusion_appendix":
-                    raise ValueError(f"A1 stage id mismatch at {prefix}: {source_stages[5]['id']!r}")
-                if source_stages[5]["write_now"] != new_stage:
-                    raise ValueError(f"A1 write_now mismatch at {prefix}: {source_stages[5]['write_now']!r}")
-                target_stages[5]["write_now"] = deepcopy(old_stage)
+                matches = [i for i, stage in enumerate(source_stages)
+                           if stage.get("id") == "evaluation_references_conclusion_appendix"]
+                if len(matches) != 1:
+                    raise ValueError(f"A1 writing stage missing or duplicated at {prefix}")
+                index = matches[0]
+                if source_stages[index].get("write_now") != new_stage:
+                    raise ValueError(
+                        f"A1 write_now mismatch at {prefix}: {source_stages[index].get('write_now')!r}"
+                    )
+                target_stages[index]["write_now"] = deepcopy(old_stage)
                 declared.append({
-                    "path": ".".join(map(str, (*prefix, "authoring_sequence", 5, "write_now"))),
+                    "path": ".".join(map(str, (*prefix, "authoring_sequence", index, "write_now"))),
                     "baseline": deepcopy(old_stage),
                     "candidate": deepcopy(new_stage),
                     "approval": "v10.25.0 CUMCM 2026 required AI/appendix writing outputs only",
                 })
-            except (KeyError, IndexError, TypeError):
-                return deepcopy(new), []
+            except (KeyError, IndexError, TypeError) as exc:
+                raise ValueError(f"A1 writing-runtime mirror mismatch at {prefix}: {exc}") from exc
+
     predecessor["version"] = PLOT_BACKEND_AUTHORITY_VERSIONS["skill"]
     projected, changes = approved_v10240_plot_backend_carrier_change(
         identifier, old, predecessor, deepcopy(PLOT_BACKEND_AUTHORITY_VERSIONS),
@@ -1828,7 +1871,7 @@ def main():
         "schema_version": 1, "baseline_ref": args.baseline_ref, "candidate_ref": args.candidate_ref,
         "driver_sha256": hashlib.sha256(HERE.read_bytes()).hexdigest(),
         "cases_sha256": hashlib.sha256(HERE.with_name("reading_plan_cases.py").read_bytes()).hexdigest(),
-        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_b2b1_b2b2_b2b3a_b2b3b_b2b3c_b2_patch_b2b4_b2b5_b2b6_b2c_c1_windows_python_ci_windows_matlab_ci_c2_python_ci_performance_d1_d2_e1_v10183_v10193_v10203_v10204_v10205_v10210_v10220_exact_authority_carrier_transitions",
+        "comparison_scope": "all_legacy_fields_with_declared_authority_hash_p7_prerequisite_p9_carrier_exceptions_and_exact_a3_a7_v970_v10_v1010_a1_a2_b1_b2_b2b1_b2b2_b2b3a_b2b3b_b2b3c_b2_patch_b2b4_b2b5_b2b6_b2c_c1_windows_python_ci_windows_matlab_ci_c2_python_ci_performance_d1_d2_e1_v10183_v10193_v10203_v10204_v10205_v10210_v10220_v10250_exact_cumcm_2026_profile_ai_appendix_carrier_transitions",
         "expected_authority_changes": sorted(ALLOWED_CHANGED_AUTHORITIES),
         "approved_b2b6_authority_versions": B2B6_AUTHORITY_VERSIONS,
         "approved_b2c_authority_versions": B2C_AUTHORITY_VERSIONS,
