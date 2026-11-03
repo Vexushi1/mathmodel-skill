@@ -79,7 +79,9 @@ class Cumcm2026FormalComplianceTests(unittest.TestCase):
 
     def test_edition_unknown_cannot_qualify_and_historical_not_forced(self):
         self._state(None)
-        self.assertIn("cumcm_edition_unknown", self._codes(self._paper()))
+        # Missing edition means no year-specific rules are inferred; it does
+        # not mean that the project has been verified against 2026 rules.
+        self.assertEqual(set(), self._codes(self._paper()))
         self._state("2025")
         self.assertEqual(set(), self._codes(self._paper(ai="", appendix="")))
         self._state("2027")
