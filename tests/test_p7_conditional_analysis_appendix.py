@@ -131,12 +131,19 @@ class TestP7ConditionalAnalysisAppendix(unittest.TestCase):
             manifest["modules"]["figure_evidence"]["conditional_inputs"]["result_analysis_workbook"]["when"],
             "result_analysis_status == passed",
         )
+        rules = yaml.safe_load((ROOT / "config/competition_profiles.yaml").read_text(encoding="utf-8"))["profiles"]["cumcm"]["edition_rules"]
+        self.assertEqual(rules["edition"], "2026")
+        self.assertEqual(rules["verification_status"], "verified")
         appendix = next(item for item in template["paper_skeleton"]["ordered_slots"] if item["id"] == "appendix")
-        self.assertFalse(appendix["required"])
-        self.assertFalse(appendix["default_active"])
+        disclosure = next(item for item in template["paper_skeleton"]["ordered_slots"] if item["id"] == "ai_disclosure")
+        self.assertTrue(appendix["required"])
+        self.assertTrue(appendix["default_active"])
+        self.assertTrue(disclosure["required"])
+        self.assertTrue(disclosure["default_active"])
         main = (ROOT / "templates/latex/cumcm/hsk/hsk_main.tex").read_text(encoding="utf-8")
-        active_appendix = [line for line in main.splitlines() if line.strip() == r"\input{appendices/appendices}"]
-        self.assertEqual(active_appendix, [])
+        active = "\\n".join(line.split("%", 1)[0] for line in main.splitlines())
+        self.assertIn(r"\input{sections/10_ai_tool_statement}", active)
+        self.assertIn(r"\input{appendices/appendices}", active)
 
     def test_user_execution_and_matlab_template_follow_conditional_analysis(self):
         execution = yaml.safe_load((ROOT / "core/user_execution_contract.yaml").read_text(encoding="utf-8"))
