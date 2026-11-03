@@ -162,19 +162,49 @@ class WritingReasoningScopeTests(unittest.TestCase):
             "e726af01b282c2265d02285b4bf2e9cf7ca990a9",
         )
 
-        # v8.7.2 keeps the CUMCM AI-disclosure source in the canonical project but
-        # makes its input conditional/truth-bound by default. Keep the exact current
-        # orchestration pinned so an unconditional reactivation or unrelated drift fails closed.
+        # v8.7.2 is an immutable predecessor. The current 2026 CUMCM template
+        # activates the verified AI declaration and appendix, and defaults to
+        # the electronic abstract-first class option. Projecting only these
+        # exact edition-specific changes must reproduce the pinned predecessor.
         main = read("templates/latex/cumcm/hsk/hsk_main.tex")
         provenance = (
             "% Template-First canonical layout lineage: introduced in v8.0.1 from the A196-inspired template work.\n"
             "% This comment records provenance only; the current Skill release is declared by active release carriers."
         )
         self.assertIn(provenance, main)
-        self.assertIn(r"% \input{sections/10_ai_tool_statement}", main)
         active_main = "\n".join(line.split("%", 1)[0] for line in main.splitlines())
-        self.assertNotIn(r"\input{sections/10_ai_tool_statement}", active_main)
+        self.assertIn(r"\input{sections/10_ai_tool_statement}", active_main)
+        self.assertIn(r"\input{appendices/appendices}", active_main)
         normalized_main = main.replace(
+            r"\documentclass[withoutpreface]{cumcmthesis}",
+            r"\documentclass{cumcmthesis}",
+            1,
+        )
+        normalized_main = normalized_main.replace(
+            "% CUMCM 2026 电子版必须从摘要开始，无承诺书和编号专用页。\n"
+            "% 仅当明确生成纸质版时，将上述类选项替换为 \\documentclass{cumcmthesis}。\n",
+            "% 电子版提交时通常可使用：\\documentclass[withoutpreface]{cumcmthesis}\n",
+            1,
+        )
+        normalized_main = normalized_main.replace(
+            "% CUMCM 2026 必需：先据实填写官方“使用”或“未使用”两种声明之一。\n"
+            "% canonical 文件只有明确待填写占位；正式交付不得保留占位。\n"
+            + r"\input{sections/10_ai_tool_statement}",
+            "% AI 工具使用声明是条件合规槽位。只有当届规则已核验、当前项目真实 AI 使用事实已确认，\n"
+            "且披露在当前项目中适用时，先据实填写 sections/10_ai_tool_statement.tex，再取消下一行注释。\n"
+            "% " + r"\input{sections/10_ai_tool_statement}",
+            1,
+        )
+        normalized_main = normalized_main.replace(
+            "% CUMCM 2026 附录必需：支撑材料列表、完整可运行源代码；确无程序/材料按官方文字说明。\n"
+            "% 维护模板仅有中性待填写提示，正式交付必须根据当前项目真实事实替换。\n"
+            + r"\input{appendices/appendices}",
+            "% 附录默认关闭。仅当官方规则要求，或确有不宜占据正文但需要保留的复现/证明/长表/代码材料时启用；\n"
+            "不得为“论文结构完整”生成空附录。\n"
+            "% " + r"\input{appendices/appendices}",
+            1,
+        )
+        normalized_main = normalized_main.replace(
             provenance,
             "% v8.0.1 A196-inspired canonical template:",
             1,
