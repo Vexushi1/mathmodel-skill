@@ -66,8 +66,9 @@ class TestV800TemplateAuthority(unittest.TestCase):
         self.assertIn("model_preparation", slots)
         self.assertFalse(slots["model_preparation"]["required"])
         self.assertIn(r"\input{sections/05_model_preparation}", self.main)
-        for heading in ("模型建立", "模型求解", "求解结果", "结果的分析与验证"):
+        for heading in ("优化模型的建立", "模型求解", "模型求解结果与分析"):
             self.assertIn(rf"\subsection{{{heading}}}", self.question)
+        self.assertNotIn(r"\subsection{求解结果}", self.question)
         self.assertIn(r"\section{模型的评价与推广}", self.evaluation)
         self.assertFalse(slots["model_preparation"]["default_active"])
         self.assertIn("% \\input{sections/05_model_preparation}", self.main)

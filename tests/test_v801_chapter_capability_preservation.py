@@ -229,8 +229,9 @@ class TestV801ChapterCapabilityPreservation(unittest.TestCase):
             text = read(f"templates/latex/cumcm/hsk/{source}")
             self.assertIn(f"\\section{{问题{number}模型建立及求解}}", text)
             self.assertIn("模型求解", text)
-            self.assertIn("求解结果", text)
-            self.assertIn("结果的分析与验证", text)
+            self.assertIn(r"\subsection{模型求解结果与分析}", text)
+            self.assertIn("模型检验", text)
+            self.assertNotIn(r"\subsection{结果的分析与验证}", text)
 
     def test_explicit_stage_order_reversal_is_reported(self):
         tex = r"""

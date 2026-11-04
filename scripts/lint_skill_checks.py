@@ -1251,8 +1251,10 @@ def check_templates(errors: list[str]) -> None:
             errors.append(f"{name} active template must use 问题提出 instead of 问题要求")
         if "\\subsection{问题提出}" not in text:
             errors.append(f"{name} active template lacks 问题提出")
-        if "\\subsection{求解结果}" not in text:
-            errors.append(f"{name} active template lacks 求解结果")
+        required_result = ("\\subsection{模型求解结果与分析}" if name == "CUMCM HSK"
+                           else "\\subsection{求解结果}")
+        if required_result not in text:
+            errors.append(f"{name} active template lacks expected result heading {required_result}")
     if "\\renewcommand{\\theproposition}{\\arabic{section}.\\arabic{proposition}}" not in cumcm:
         errors.append("CUMCM HSK template must force Arabic proposition numbering")
     if "模板 v6.2.2" in diangong or "\\section{模型假设与符号说明}" in diangong:

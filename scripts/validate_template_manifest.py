@@ -318,9 +318,16 @@ def validate_template_manifest(path: str | Path) -> list[str]:
         expected_title = rf"\section{{问题{number}模型建立及求解}}"
         if not number or expected_title not in example_text:
             errors.append(f"maintained question title drifted: {source}")
-        for functional_token in ("模型建立", "模型求解", "求解结果", "结果的分析与验证"):
-            if functional_token not in example_text:
-                errors.append(f"maintained question capability missing {functional_token}: {source}")
+        # Maintained smoke examples only; user papers retain adaptive headings.
+        # Comments must not masquerade as active optional validation.
+        active_example = _strip_tex_comments(example_text)
+        headings = re.findall(r"\\subsection\*?\{([^{}]+)\}", active_example)
+        if (len(headings) not in (3, 4)
+                or re.fullmatch(r".+模型的建立", headings[0]) is None
+                or headings[1:3] != ["模型求解", "模型求解结果与分析"]
+                or (len(headings) == 4
+                    and headings[3] not in ("模型检验", "模型检验与对照"))):
+            errors.append(f"maintained question example heading roles/order drifted: {source}")
 
     if entry_path and entry_path.exists():
         main_text = entry_path.read_text(encoding="utf-8")

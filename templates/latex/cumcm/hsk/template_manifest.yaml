@@ -205,11 +205,12 @@ cumcm_question_section:
       question_number: 三
       profile: later_question_inheritance_and_extension
   default_complex_question_headings:
-    - 模型建立
+    - XX模型的建立
     - 模型求解
-    - 求解结果
-    - 结果的分析与验证
+    - 模型求解结果与分析
+  optional_validation_headings: [模型检验, 模型检验与对照]
   default_complex_question_headings_role: maintained_example_profile_only
+  default_heading_authority: core/writing_reasoning_contract.yaml#model_establishment_solution_narrative.within_question_subsection_architecture.cumcm_default_second_level
   runtime_internal_heading_policy_authority: core/writing_reasoning_contract.yaml#model_establishment_solution_narrative
   common_model_subroles_for_optimization:
     - decision_variables
@@ -257,10 +258,9 @@ fixed_template_checks:
   question_example: sections/06_question1.tex
   required_question_tokens:
     - "\\section{问题一模型建立及求解}"
-    - "\\subsection{模型建立}"
+    - "\\subsection{优化模型的建立}"
     - "\\subsection{模型求解}"
-    - "\\subsection{求解结果}"
-    - "\\subsection{结果的分析与验证}"
+    - "\\subsection{模型求解结果与分析}"
     - "\\min_{\\mathbf{x}}"
     - "\\text{s.t.}\\quad"
   forbidden_question_tokens:
