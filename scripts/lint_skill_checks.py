@@ -1196,9 +1196,13 @@ def check_templates(errors: list[str]) -> None:
     closure = algorithm_reasoning.get("closure_chain") or []
     if closure != ["model_structure", "algorithm_trace", "paper_algorithm_presentation", "code_implementation", "workbook_result_or_validation"]:
         errors.append("Algorithm Trace closure must connect model, paper algorithm, code implementation and workbook evidence")
-    digits = (((reasoning.get("numeric_style_contract") or {}).get("high_precision_default") or {}).get("preferred_decimal_places_when_not_otherwise_specified"))
+    numeric_style = reasoning.get("numeric_style_contract") or {}
+    digits = ((numeric_style.get("high_precision_default") or {}).get("preferred_decimal_places_when_not_otherwise_specified"))
     if digits != [6, 7]:
         errors.append("numeric style contract must default scoring-sensitive continuous results to 6--7 decimals when no more specific rule exists")
+    ordinary = numeric_style.get("ordinary_display_default") or {}
+    if ordinary.get("decimal_places") != 2 or ordinary.get("governance_level") != "recommendation":
+        errors.append("numeric style must recommend two decimals only for ordinary noncritical explanatory values")
     if (reasoning.get("model_evaluation") or {}).get("count_relation_required") is not False:
         errors.append("writing reasoning contract must not require strengths to outnumber weaknesses")
 
