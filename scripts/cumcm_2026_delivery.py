@@ -290,6 +290,11 @@ def verify(plan: Mapping[str, Any], output_dir: Path) -> dict[str, Any]:
     root = plan["root"]
     paper = output_dir / PAPER_NAME
     support = output_dir / SUPPORT_NAME
+    if _sha(plan["pdf"]) != plan["pdf_sha256"]:
+        raise DeliveryError("当前正式 PDF 在交付准备之后发生变化，必须重新验收")
+    for relative, expected_sha in plan["support_sha256"].items():
+        if _sha(_inside(root, relative, support=True)) != expected_sha:
+            raise DeliveryError(f"当前支撑文件内容已变化: {relative}")
     if not paper.is_file() or _sha(paper) != plan["pdf_sha256"]:
         raise DeliveryError("对外 PDF 缺失或已与当前已编译 PDF 不一致")
     max_paper = int(plan["rules"]["paper"]["max_paper_mb"]) * 1024 * 1024
