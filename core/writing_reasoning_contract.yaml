@@ -1364,8 +1364,8 @@ numerical_parameter_evidence:
 numeric_style_contract:
   governance_level: default
   principle: >-
-    一般说明性连续数值使用可读的展示精度；关键答案仍服从题面、官方格式、评分粒度和科学分辨率。
-    不得为版面整齐而修改已验收事实。若精确到小数后 6--7 位可能影响评分，
+    数学建模竞赛中的核心答案数值必须按题目、官方格式、评分粒度和结果敏感性保持足够高的展示精度；
+    不得为了版面简洁或“可读性”擅自把已验收结果粗略舍入。若精确到小数后 6--7 位可能影响结果分，
     摘要、正文直接答案和关键结果表必须保留相应高精度，并与标准工作簿同源。
   ordinary_display_default:
     governance_level: recommendation
