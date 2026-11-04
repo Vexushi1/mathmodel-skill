@@ -617,6 +617,8 @@ def _scope(plan: dict[str, Any], request: str, policy: dict[str, Any]) -> tuple[
     intent = intents[0]
     if intent in {"project_sync", "returned_workbook_validation", "case_memory_retrieve"}:
         return intent, "planned", []
+    if intent == "review":
+        return "review", "planned", []
     if intent == "latex" and (plan.get("writing_runtime") or {}).get("mode") == "compact":
         return "progressive_writing", "delegated", []
     signals = policy["scope_signals"]
@@ -821,6 +823,14 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
     elif profile == "progressive_writing":
         # Existing writing Authority owns stages/preflight; no parallel chapter planner.
         specs = [{"path": path} for path in plan["writing_runtime"]["initial_read_order"]]
+    elif profile == "review":
+        # Preserve the route-selected competition pack while reading only the
+        # declared Review authorities and selectors at the initial pass.
+        specs = list(config.get("read_now", []))
+        specs.extend(
+            {"path": path} for path in plan.get("load_order", [])
+            if isinstance(path, str) and path.startswith("packs/competition/")
+        )
     else:
         specs = list(config.get("read_now", []))
     specs = list(policy.get("common_reads", [])) + specs

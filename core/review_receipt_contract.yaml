@@ -1,4 +1,4 @@
-version: 1.0.0
+version: 1.1.0
 status: active_opt_in_read_only
 introduced_in_skill_version: 10.14.0
 purpose: Record the actual scope, execution method, findings, and input snapshot of a review without granting independent-review or delivery qualification.
@@ -40,7 +40,8 @@ gate_authorities:
     - core/workbook_schema.yaml
     - modules/04_figure_evidence.md
     - templates/review/final_review_matrix.yaml
-    latex_required_paths: [templates/latex/cumcm/hsk/template_manifest.yaml]
+    - config/competition_profiles.yaml
+    latex_required_paths: [templates/latex/cumcm/hsk/template_manifest.yaml, modules/05_latex_compile_quality.md, core/compile_profiles.yaml]
 gate_inputs:
   model_challenge:
     required_state_pointers_per_question:

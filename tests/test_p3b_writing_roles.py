@@ -120,6 +120,44 @@ class P3BWritingRoleTests(unittest.TestCase):
         # byte measure. No planned/token-savings claim comes from file sizes.
         self.assertEqual(self.review_read_bytes(final + final), final_bytes)
 
+    def selected_source_text(self, rows, relative):
+        row = next(row for row in rows if row.get("origin") == "skill" and row["path"] == relative)
+        lines = read(relative).splitlines(keepends=True)
+        return "".join("".join(lines[start - 1:end]) for start, end in row["ranges"])
+
+    def test_review_stages_consume_delegated_authorities_and_final_pdf_rules(self):
+        plan = self.resolver.resolve_runtime("latex", competition="CUMCM")
+        draft, _ = select_sources(plan, ROOT, "writing_stage", stage_id="draft_semantic_review")
+        final, _ = select_sources(plan, ROOT, "writing_stage", stage_id="final_review_and_delivery")
+        draft_paths = {row["path"] for row in draft}
+        final_paths = {row["path"] for row in final}
+        protocol = "modules/05_writing/paper_writing_protocol.md"
+        figure = "modules/04_figure_evidence.md"
+        manifest = "templates/latex/cumcm/hsk/template_manifest.yaml"
+        pdf_rules = "modules/05_latex_compile_quality.md"
+        common = {protocol, figure, manifest, "core/output_contract.yaml", "core/workbook_schema.yaml"}
+        self.assertTrue(common.issubset(draft_paths))
+        self.assertTrue(common.issubset(final_paths))
+        self.assertNotIn(pdf_rules, draft_paths)
+        self.assertIn(pdf_rules, final_paths)
+        protocol_text = self.selected_source_text(draft, protocol)
+        self.assertIn("5A. Cross-File Chapter Handoff", protocol_text)
+        self.assertIn("13.0 CUMCM 图表的正文落点", protocol_text)
+        self.assertIn("7.0 Model Construction Rationale", protocol_text)
+        figure_text = self.selected_source_text(draft, figure)
+        self.assertIn("Figure Portfolio Scientific Quality Gate", figure_text)
+        self.assertIn("Missing Scientific Evidence Check", figure_text)
+        manifest_text = self.selected_source_text(draft, manifest)
+        self.assertIn("paper_skeleton:", manifest_text)
+        pdf_text = self.selected_source_text(final, pdf_rules)
+        self.assertIn("按实际页序检查当前 PDF 的全部页面", pdf_text)
+        self.assertIn("rendered_page_surface", pdf_text)
+        final_stage = next(row for row in self.runtime_contract["template_first_progressive_authoring"]["stages"]
+                           if row["id"] == "final_review_and_delivery")
+        self.assertIn("assembled_seam_sweep", final_stage.get("run_now", []))
+        self.assertIn("config/competition_profiles.yaml", final_paths)
+        self.assertIn("packs/competition/cumcm.md", final_paths)
+        self.assertIn("core/compile_profiles.yaml", final_paths)
     def test_source_map_markers_remain_reachable(self):
         texts = {"cleanup": self.cleanup, "review": self.review, "protocol": self.protocol}
         for group, markers in self.fixture["protected_markers"].items():

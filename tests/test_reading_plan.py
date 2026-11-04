@@ -418,6 +418,42 @@ class ReadingPlanTests(unittest.TestCase):
         for path in ("templates/figure/chart_selection.md", "templates/figure/figure_enhancement_patterns.md"):
             self.assertTrue(any(r["path"] == path and r["when"] for r in reading["conditional"]))
 
+    def test_review_profile_reads_delegated_authorities_and_preserves_competition_pack(self):
+        cases = (("CUMCM", "packs/competition/cumcm.md"), ("MCM", "packs/competition/mcm_icm.md"))
+        for competition, competition_pack in cases:
+            with self.subTest(competition=competition):
+                plan = resolve_runtime("review", competition=competition)
+                reading = plan["reading_plan"]
+                self.assertEqual(reading["profile"], "review")
+                paths = {row["path"] for row in reading["read_now"]}
+                self.assertTrue({
+                    "modules/06_review_delivery.md",
+                    "modules/06_review/content_review.md",
+                    "modules/06_review/final_delivery.md",
+                    "modules/05_writing/paper_writing_protocol.md",
+                    "modules/04_figure_evidence.md",
+                    "core/writing_reasoning_contract.yaml",
+                    "core/output_contract.yaml",
+                    "core/workbook_schema.yaml",
+                    "config/competition_profiles.yaml",
+                    competition_pack,
+                }.issubset(paths))
+                self.assertNotIn("templates/latex/cumcm/hsk/template_manifest.yaml", paths)
+                conditional = reading["conditional"]
+                self.assertTrue(any(row["path"] == "templates/latex/cumcm/hsk/template_manifest.yaml"
+                                    and row["when"] == "current_cumcm_modular_latex_review"
+                                    for row in conditional))
+                self.assertTrue(any(row["path"] == "modules/05_latex_compile_quality.md"
+                                    and row["when"] == "final_latex_pdf_review"
+                                    for row in conditional))
+                self.assertTrue(any(row["path"] == "modules/05_writing/paper_writing_protocol.md"
+                                    and row["when"] == "current_cumcm_modular_latex_review"
+                                    for row in conditional))
+                self.assertEqual(reading["machine_dependencies"], plan["assurance"]["dependency_closure"])
+                self.assertEqual(reading["authority_fingerprint"], plan["assurance"]["authority_fingerprint"])
+                gate_names = [row["name"] for row in plan["pre_delivery_gates"]]
+                tool_names = [row["name"] for row in reading["tool_interfaces"]]
+                self.assertEqual(tool_names, gate_names)
     def test_progressive_writing_delegates_existing_preflight(self):
         plan = self.plans["cumcm_writing"]
         self.assertEqual(plan["reading_plan"]["delegated_writing_sequence"], plan["writing_runtime"])
