@@ -253,7 +253,9 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         self.assertTrue(narrative_risks.isdisjoint(set(audit["may_block"])))
         # CUMCM D: Cleanup no longer independently judges mathematical narrative.
         self.assertIn("机器审计不得自动重写正文", self.cleanup)
-        self.assertIn("仅编辑**不承担定义、证明、约束、数值、事实或证据功能**的句子", self.cleanup)
+        self.assertIn("仅编辑普通自然语言的表达层，不编辑其承载的数学、数值或证据实体", self.cleanup)
+        self.assertIn("已被当前结果、图表或引用支持的结果说明", self.cleanup)
+        self.assertNotIn("仅编辑**不承担定义、证明、约束、数值、事实或证据功能**的句子", self.cleanup)
         self.assertIn("narrative_quality_from_connector_words_only", audit["must_not_claim"])
         self.assertIn("heading_quality_from_character_count_only", audit["must_not_claim"])
 

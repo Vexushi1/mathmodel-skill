@@ -55,6 +55,8 @@ class TestWritingExpressionProtocol(unittest.TestCase):
             "算法百科", "本文/本问/该模型", "Terminology Registry", "Numeric Profile", "Citation Evidence", "BibTeX",
         ):
             self.assertIn(token, cleanup)
+        self.assertIn("不是禁词", cleanup)
+        self.assertIn("不按词表机械清除", cleanup)
         self.assertNotIn("99.", cleanup)
 
     def test_cleanup_keeps_machine_semantic_boundary(self):

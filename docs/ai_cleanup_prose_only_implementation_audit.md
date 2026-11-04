@@ -63,3 +63,15 @@ PR 仅推送源文件，`refresh-generated` 自动更新 MANIFEST/索引；以�
 ## 结果叙述的语言编辑边界
 
 计划 §2.1 明确允许调整已经被当前结果、图表或引用支持的结果说明，只要主张强度不变。初版 05C 的“不得编辑任何事实句”表述过窄，容易误禁正常的结果叙述润色。本次收敛为：可以调整已支持结果叙述的句式、语序和标点，但对象、数值、范围、条件、比较基准、指标方向、引用范围与 Claim Strength 必须保持不变；混合推理依赖或无法分离的事实载荷仍只读并回报。此项不开放数学推导、数值格式、图表实体或证据范围修改权限。
+
+
+## 最终 PR 全量 CI 中发现的消费者断言迁移（follow-up 2）
+
+最终 Ready head `07e4110318f199583ebd95125f7c2e814316c038` 的正式 CI 已完成，失败均定位为 05C 改写后未迁移的历史消费者断言，不涉及数学源码、运行时路由、MATLAB 或 LaTeX 编译：
+- `test_v718_model_solution_writing_style` 仍要求旧句“仅编辑不承担事实/证据功能的句子”。这与计划 §2.1 允许润色已被当前结果、图表或引用支持的结果说明冲突。现改为检查新的自然语言编辑边界、证据支持的结果说明许可，以及旧过窄措辞不再出现。
+- `test_v730_writing_expression_protocol` 要求 05C 明确处理“本文/本问/该模型”段首重复。补充其不是禁词、应按语境与信息增益判断、不得按词表机械清除；并加强测试对该边界的断言。
+- `test_v790_runtime_closure` 要求 05C 保留正式 LaTeX 工程审计入口指针。补回 `scripts/audit_latex_project.py` 的引用，明确 Cleanup 不替代该审计。
+- `test_v830_editable_mechanism_diagram` 的 05C 冻结 blob hash 仅按本次实际源文件变更更新；其余历史保护哈希保持不变。
+- `MANIFEST.sha256` 与索引仍由 GitHub `refresh-generated` 生成，不手工改写。
+
+这组失败在 targeted suite 与正式 3.10/3.14 分片中重复出现；按新 Authority 迁移消费者，不恢复旧数学/结构编辑权限，不删除有效测试，也不扩大 Runtime gate。

@@ -767,7 +767,7 @@ class ContractAndDriftTests(unittest.TestCase):
         "modules/03_result_analysis.md": "d63db5f2acdba56d006cff5de6de2f76df02364a",
         "modules/05_writing/paper_writing_protocol.md": "80337757bab0a3e2a0d26442f4d4b6120001fe87",
         # v10.26.2 re-pins only the separately audited prose-only 05C consumer.
-        "modules/05_writing/ai_cleanup.md": "41cd11e0d4ad538e1f9ca21fb2cd79f9c8a57b14",
+        "modules/05_writing/ai_cleanup.md": "1f6ce51c26a891db1a94a875550bfeba629ad2de",
         # C1 distinguishes optional receipt metadata from the internal review matrix.
         "modules/06_review_delivery.md": "4d2bc78193c14f2ee72983db7d58b1870e9ca59f",
         "config/competition_profiles.yaml": "0cfe08e2edac99f07f2e527643499b8bc73c0479",
