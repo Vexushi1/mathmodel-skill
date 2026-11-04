@@ -118,6 +118,8 @@ class CUMCMQuestionWritingStructureTests(unittest.TestCase):
         self.assertEqual(t["title_pattern"], "问题{N}模型建立及求解")
         self.assertEqual(t["functional_slots"], ["model", "solve", "result", "validate"])
         self.assertEqual(t["default_complex_question_headings_role"], "maintained_example_profile_only")
+        self.assertEqual(t["default_complex_question_headings"], ["XX模型的建立", "模型求解", "模型求解结果与分析"])
+        self.assertEqual(t["optional_validation_headings"], ["模型检验", "模型检验与对照"])
         self.assertIn("runtime_required_headings", self.template["fixed_template_checks"]["must_not_infer"])
         self.assertEqual(self.architecture["formal_heading_depth_policy"]["maximum_semantic_level"], 3)
 

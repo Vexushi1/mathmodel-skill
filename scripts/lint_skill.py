@@ -408,7 +408,8 @@ def _check_templates(errors: list[str]) -> None:
     main_text = _ORIGINAL_READ_TEXT(_CUMCM_ROOT / "hsk_main.tex")
     if "兼容旧版静态合同检查" in main_text:
         errors.append("CUMCM main must not carry comment-only compatibility markers for lint")
-    if "\\subsection{问题提出}" in main_text or "\\subsection{求解结果}" in main_text:
+    if any(token in main_text for token in ("\\subsection{问题提出}", "\\subsection{求解结果}",
+                                             "\\subsection{模型求解结果与分析}")):
         errors.append("CUMCM main must remain orchestration-only; semantic section tokens belong in child modules")
 
     _original_check_templates(errors)

@@ -739,6 +739,10 @@ class ContractAndDriftTests(unittest.TestCase):
     # corresponding code-delivery consumer; the other authority guards remain fixed.
     # v10.1 AUD-01/03 intentionally re-pin input qualification and strict revision
     # checks; behavioral regressions live in test_audit_closure_regressions.
+    # v10.26.0 B intentionally re-pins only Writing Reasoning, Paper Writing
+    # Protocol and AI Cleanup after inspecting the exact authorized diff.
+    # The original historical inverse projections and every other PROTECTED
+    # digest remain unchanged; future unrelated edits still fail this guard.
     # v10.18.3 approved CUMCM writing clarification and documented follow-up
     # pin only the two touched writing Authority projections below. The exact
     # projected Git blob SHA-1 values were recomputed from final GitHub source
@@ -758,11 +762,11 @@ class ContractAndDriftTests(unittest.TestCase):
         # C2 adds only the opt-in reviewer receipt policy after C1; the
         # predecessor policy shapes remain protected by dedicated regressions.
         "core/project_state.schema.yaml": "9be39d30d5acf7e88d67bf2ccee89031e5135568",
-        "core/writing_reasoning_contract.yaml": "b17c4f5f9555a3be873761f46e94cdf77e86d40e",
+        "core/writing_reasoning_contract.yaml": "2c84fd56b6444301bcdafb931d0fa8cfb8d9cf71",
         "modules/03_solve_validate.md": "cfbe8091f0434b8531ec97cbccde013895e18228",
         "modules/03_result_analysis.md": "d63db5f2acdba56d006cff5de6de2f76df02364a",
-        "modules/05_writing/paper_writing_protocol.md": "5c8bca56733cd0feabf82ba0daa3aea780a79a0c",
-        "modules/05_writing/ai_cleanup.md": "3e6249d17a0a91091bf7c61c49aeb9245ccc41e1",
+        "modules/05_writing/paper_writing_protocol.md": "80337757bab0a3e2a0d26442f4d4b6120001fe87",
+        "modules/05_writing/ai_cleanup.md": "d35fce259909e524e1b7a01d6c6f7f31eca6163a",
         # C1 distinguishes optional receipt metadata from the internal review matrix.
         "modules/06_review_delivery.md": "4d2bc78193c14f2ee72983db7d58b1870e9ca59f",
         "config/competition_profiles.yaml": "0cfe08e2edac99f07f2e527643499b8bc73c0479",

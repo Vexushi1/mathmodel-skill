@@ -74,16 +74,16 @@ AI工具使用声明                    [2026 必需；按真实 AI 使用事实
 问题X模型建立及求解
 ```
 
-canonical complex-question smoke 示例目前展示：
+canonical complex-question smoke 示例按当前 Writing Reasoning 的二级语义维护：
 
 ```text
-模型建立
+XX模型的建立（示例中按优化/扩展模型具象化）
 → 模型求解
-→ 求解结果
-→ 结果的分析与验证
+→ 模型求解结果与分析
+→ 模型检验 / 模型检验与对照（独立已验收证据存在时）
 ```
 
-这四个名称只属于 maintained example / LaTeX smoke profile，不是 runtime 的逐字标题要求，也不构成固定四小节数量。真正的小节拆分服从 Adaptive Subsection Separation：若题目对象更适合专业标题，例如“遮蔽几何关系建立”“多目标优化求解”“轨迹参数与有效时长结果”“离散精度与参数扰动检验”，可直接替换、合并或增加真实独立任务对应的二/三级标题。
+维护示例的前三节是复杂问首选，第四节默认注释，不因为模板结构虚构检验。上述是 maintained example 而非实际论文固定四节配额；简单解析、继承增量和多独立模型等例外按 Writing Protocol §3.1 裁决。三级标题承担真实数学对象/任务的可读导航。
 
 简单解析题、直接计算题可以合并或删除不必要的小节，不为模板对称强行保留四段。
 

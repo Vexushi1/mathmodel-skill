@@ -1196,9 +1196,13 @@ def check_templates(errors: list[str]) -> None:
     closure = algorithm_reasoning.get("closure_chain") or []
     if closure != ["model_structure", "algorithm_trace", "paper_algorithm_presentation", "code_implementation", "workbook_result_or_validation"]:
         errors.append("Algorithm Trace closure must connect model, paper algorithm, code implementation and workbook evidence")
-    digits = (((reasoning.get("numeric_style_contract") or {}).get("high_precision_default") or {}).get("preferred_decimal_places_when_not_otherwise_specified"))
+    numeric_style = reasoning.get("numeric_style_contract") or {}
+    digits = ((numeric_style.get("high_precision_default") or {}).get("preferred_decimal_places_when_not_otherwise_specified"))
     if digits != [6, 7]:
         errors.append("numeric style contract must default scoring-sensitive continuous results to 6--7 decimals when no more specific rule exists")
+    ordinary = numeric_style.get("ordinary_display_default") or {}
+    if ordinary.get("decimal_places") != 2 or ordinary.get("governance_level") != "recommendation":
+        errors.append("numeric style must recommend two decimals only for ordinary noncritical explanatory values")
     if (reasoning.get("model_evaluation") or {}).get("count_relation_required") is not False:
         errors.append("writing reasoning contract must not require strengths to outnumber weaknesses")
 
@@ -1251,8 +1255,10 @@ def check_templates(errors: list[str]) -> None:
             errors.append(f"{name} active template must use 问题提出 instead of 问题要求")
         if "\\subsection{问题提出}" not in text:
             errors.append(f"{name} active template lacks 问题提出")
-        if "\\subsection{求解结果}" not in text:
-            errors.append(f"{name} active template lacks 求解结果")
+        required_result = ("\\subsection{模型求解结果与分析}" if name == "CUMCM HSK"
+                           else "\\subsection{求解结果}")
+        if required_result not in text:
+            errors.append(f"{name} active template lacks expected result heading {required_result}")
     if "\\renewcommand{\\theproposition}{\\arabic{section}.\\arabic{proposition}}" not in cumcm:
         errors.append("CUMCM HSK template must force Arabic proposition numbering")
     if "模板 v6.2.2" in diangong or "\\section{模型假设与符号说明}" in diangong:

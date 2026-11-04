@@ -106,6 +106,7 @@ MIXED_FIGURE_READING_AUTHORITY_VERSIONS = {**FULL_WORKFLOW_READING_AUTHORITY_VER
 CUMCM_HEADING_AUTHORITY_VERSIONS = {**MIXED_FIGURE_READING_AUTHORITY_VERSIONS, "skill": "10.23.3"}
 PLOT_BACKEND_AUTHORITY_VERSIONS = {**CUMCM_HEADING_AUTHORITY_VERSIONS, "skill": "10.24.0"}
 CUMCM_A1_AUTHORITY_VERSIONS = {**PLOT_BACKEND_AUTHORITY_VERSIONS, "skill": "10.25.0"}
+CUMCM_B_WRITING_AUTHORITY_VERSIONS = {**CUMCM_A1_AUTHORITY_VERSIONS, "skill": "10.26.0"}
 # Only these two read-list migrations are registered. Business text is separately
 # reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
 REVIEW_SPLIT_WRITING_DELTAS = (
@@ -1706,6 +1707,29 @@ def approved_v10250_cumcm_ai_appendix_carrier_change(
     return projected, changes
 
 
+def approved_v10260_cumcm_writing_carrier_change(identifier, old, new, candidate_authority_versions):
+    """Approve only the B writing release carrier after full A1 inverse projection.
+
+    B updates maintained LaTeX examples and writing prose, not resolved route
+    fields, runtime reads or gates. Never mask an unregistered delta.
+    """
+    if (candidate_authority_versions != CUMCM_B_WRITING_AUTHORITY_VERSIONS
+            or new.get("version") != CUMCM_B_WRITING_AUTHORITY_VERSIONS["skill"]):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    predecessor["version"] = CUMCM_A1_AUTHORITY_VERSIONS["skill"]
+    projected, changes = approved_v10250_cumcm_ai_appendix_carrier_change(
+        identifier, old, predecessor, deepcopy(CUMCM_A1_AUTHORITY_VERSIONS))
+    if projected != old or not changes:
+        return deepcopy(new), []
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = CUMCM_B_WRITING_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(CUMCM_B_WRITING_AUTHORITY_VERSIONS)
+            change["approval"] = "v10.26 B writing only; all prior P2 behavior still pinned"
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -1834,6 +1858,9 @@ def compare(before, after):
         projected, cumcm_a1_changes = approved_v10250_cumcm_ai_appendix_carrier_change(
             a["id"], old, projected, b.get("authority_versions"))
         expected.extend(cumcm_a1_changes)
+        projected, cumcm_b_changes = approved_v10260_cumcm_writing_carrier_change(
+            a["id"], old, projected, b.get("authority_versions"))
+        expected.extend(cumcm_b_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,

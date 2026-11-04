@@ -1367,6 +1367,23 @@ numeric_style_contract:
     数学建模竞赛中的核心答案数值必须按题目、官方格式、评分粒度和结果敏感性保持足够高的展示精度；
     不得为了版面简洁或“可读性”擅自把已验收结果粗略舍入。若精确到小数后 6--7 位可能影响结果分，
     摘要、正文直接答案和关键结果表必须保留相应高精度，并与标准工作簿同源。
+  ordinary_display_default:
+    governance_level: recommendation
+    decimal_places: 2
+    applies_when_all:
+      - explanatory_continuous_value
+      - not_scoring_sensitive_or_decision_critical
+      - no_prompt_official_or_metric_numeric_profile_override
+    exceptions:
+      - core_answers_or_submission_values
+      - objectives_decision_variables_coordinates_or_times
+      - probability_threshold_error_or_tiny_values
+      - confidence_intervals_or_uncertainty_sensitive_values
+      - integer_counts_or_values_requiring_scientific_notation
+    rules:
+      - 两位小数只影响合法正文展示，不改变 accepted workbook 原值、后续计算、容差或提交答案。
+      - 题目、官方、指标级 Numeric Profile、测量分辨率和统计不确定性优先；不得舍掉真实差别。
+      - 百分数/百分点分别按含义和必要分辨率表达，不机械把所有比例格式固定两位小数。
   high_precision_default:
     applies_when_any:
       - exact_numeric_answer_is_scored
@@ -1796,9 +1813,11 @@ problem_background:
 model_evaluation:
   governance_level: recommendation
   strengths_typical: [2, 4]
+  strengths_usual_target: 3
   weaknesses_typical: [1, 2]
   count_relation_required: false
-  rule: 优点有证据、缺点说明影响对象与边界；数量按实际模型决定，不检查“优点必须多于缺点”。
+  concise_transfer_rule: 仅在确有迁移对象时简述可继承的结构、需要重新标定的参数或约束和适用边界，避免空泛应用罗列。
+  rule: 优点结合真实模型结构与求解性质，局限说明受影响的结果及范围；数量按实际模型决定，不检查“优点必须多于缺点”，也不机械增加推广小节。
 
 machine_audit_boundary:
   report_only_for_semantic_style_risks: true
