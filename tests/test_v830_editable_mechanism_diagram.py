@@ -1042,7 +1042,7 @@ class ContractAndDriftTests(unittest.TestCase):
         for relative in DEFENSIVE_WRITING_AUTHORITY_REWRITES:
             source = (ROOT / relative).read_text(encoding="utf-8")
             projected = inverse_defensive_writing_changes(relative, source)
-            unrelated = "\\nunauthorized unrelated authority change\\n"
+            unrelated = "\nunauthorized unrelated authority change\n"
             self.assertEqual(
                 inverse_defensive_writing_changes(relative, source + unrelated),
                 projected + unrelated,
