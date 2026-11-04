@@ -1,0 +1,49 @@
+schema_version: 1.0.0
+purpose: >-
+  Fixed positive and negative examples for bounded removal of defensive prose.
+  These examples define preservation boundaries; they do not claim to test or
+  prove arbitrary model-generated rewrites.
+cases:
+  - id: apology_wrapper_only
+    operation: remove_noninformative_apology_only
+    input: "遗憾的是，该方法仅取得一定效果。"
+    safe_example: "该方法仅取得一定效果。"
+    must_preserve: ["该方法", "仅取得一定效果"]
+  - id: measured_negative_comparison
+    operation: remove_noninformative_apology_only
+    input: "遗憾的是，该方法在测试集 B 上的 MAE 比基线高 12%。"
+    safe_example: "该方法在测试集 B 上的 MAE 比基线高 12%。"
+    must_preserve: ["测试集 B", "MAE", "比基线高 12%"]
+  - id: mathematical_condition
+    operation: keep_verbatim
+    input: "仅当 x>0 时，公式才成立。"
+    safe_example: "仅当 x>0 时，公式才成立。"
+    must_preserve: ["仅当 x>0", "公式才成立"]
+  - id: scoped_non_significance
+    operation: keep_verbatim
+    input: "在当前测试范围内尚未观察到显著差异。"
+    safe_example: "在当前测试范围内尚未观察到显著差异。"
+    must_preserve: ["当前测试范围内", "尚未观察到显著差异"]
+  - id: required_metric_comparison
+    operation: keep_verbatim
+    input: "按题目要求，模型 A 的召回率低于模型 B。"
+    safe_example: "按题目要求，模型 A 的召回率低于模型 B。"
+    must_preserve: ["按题目要求", "召回率", "低于", "模型 B"]
+  - id: applicability_limit
+    operation: keep_verbatim
+    input: "该模型仅适用于输入变量非负且样本范围覆盖当前区间的情形。"
+    safe_example: "该模型仅适用于输入变量非负且样本范围覆盖当前区间的情形。"
+    must_preserve: ["仅适用于", "输入变量非负", "当前区间"]
+  - id: unperformed_validation
+    operation: keep_verbatim
+    input: "本研究未开展敏感性分析。"
+    safe_example: "本研究未开展敏感性分析。"
+    must_preserve: ["未开展", "敏感性分析"]
+prohibited_operations:
+  - invent_metrics
+  - upgrade_claim_strength
+  - delete_negative_result
+  - delete_required_comparison
+  - replace_required_metric
+  - erase_applicability_limit
+  - invent_unperformed_validation
