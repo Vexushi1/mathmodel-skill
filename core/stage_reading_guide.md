@@ -102,6 +102,26 @@ not detect context compression or substitute for checking current project eviden
 - read_now: `modules/02_model_design.md`; selector=['## 8. 模型语义修订、审批失效与跨问传播', '## 10. `模型论文框架.md`']
 - read_now: `core/writing_reasoning_contract.yaml`; selector=['schema_version', 'role', 'scope', 'rule_governance', 'analysis_evidence_disposition', 'paper_fragment_stale_governance', 'numeric_style_contract']
 
+### review
+
+- read_now: `modules/06_review_delivery.md`
+- read_now: `core/writing_reasoning_contract.yaml`
+- read_now: `core/output_contract.yaml`; selector=['per_question']
+- read_now: `core/workbook_schema.yaml`
+- read_now: `modules/05_writing/paper_writing_protocol.md`; selector=['## 2. 模板与写作职责', '## 3. 每问的四个功能槽', '## 4. Local Narrative Chain', '## 5. Paragraph Handoff Test', '## 6. 前置章节内容', '## 7. 模型建立', '## 8. 模型求解', '## 9. 求解结果、数值与术语', '## 10. 结果与验证的分层', '## 11. Result → Validation Bridge', '## 12. 跨问递进', '## 14. 摘要', '## 15. 模型评价、逐问结论与附录', '## 16. 引用与正文语言']
+- read_now: `modules/04_figure_evidence.md`; selector=['## C 类：各问结果图合同', '## Figure Evidence 层级', '## Figure Portfolio Scientific Quality Gate', '## Missing Scientific Evidence Check', '## 图题、配色与风格', '## 入文闭环']
+- read_now: `config/competition_profiles.yaml`
+- read_now: `packs/artifact/review.md`
+- read_now: `templates/review/final_review_matrix.yaml`
+- read_now: `packs/artifact/algorithm_flow.md`
+- conditional: `modules/05_writing/paper_writing_protocol.md`; selector=['## 5A. Cross-File Chapter Handoff']; when=current_cumcm_modular_latex_review
+- conditional: `modules/05_writing/paper_writing_protocol.md`; selector=['### 13.0 CUMCM 图表的正文落点：先论证职责，后图型']; when=current_cumcm_review
+- conditional: `templates/latex/cumcm/hsk/template_manifest.yaml`; selector=['paper_skeleton']; when=current_cumcm_modular_latex_review
+- conditional: `core/writing_runtime_contract.yaml`; selector=['per_question_writing_capability_preflight']; when=current_cumcm_progressive_writing_review
+- conditional: `modules/05_latex_compile_quality.md`; selector=['## 终稿检查']; when=final_latex_pdf_review
+- conditional: `core/compile_profiles.yaml`; when=final_latex_pdf_review
+- conditional: `modules/05_writing/latex.md`; selector=['## 5. 图、表、命题和算法环境']; when=algorithm_presentation_review_in_scope
+
 ### figure_style
 
 - read_now: `modules/04_figure_evidence.md`; selector=['## 正确顺序', '### 视觉修改与语义修改分流', '## C 类：各问结果图合同', '## Publication Rendering Grammar：成熟论文图实现层', '## 实表读取规则', '## 图题、配色与风格', '## 入文闭环']
@@ -213,10 +233,27 @@ not detect context compression or substitute for checking current project eviden
 ### draft_semantic_review
 
 - read_now: `core/writing_reasoning_contract.yaml`
+- read_now: `core/output_contract.yaml#per_question`
+- read_now: `core/workbook_schema.yaml`
+- read_now: `modules/05_writing/paper_writing_protocol.md#2-模板与写作职责`
+- read_now: `modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽`
+- read_now: `modules/05_writing/paper_writing_protocol.md#4-Local-Narrative-Chain`
 - read_now: `modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test`
-- read_now: `modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释`
+- read_now: `modules/05_writing/paper_writing_protocol.md#6-前置章节内容`
+- read_now: `modules/05_writing/paper_writing_protocol.md#7-模型建立`
+- read_now: `modules/05_writing/paper_writing_protocol.md#8-模型求解`
+- read_now: `modules/05_writing/paper_writing_protocol.md#9-求解结果数值与术语`
+- read_now: `modules/05_writing/paper_writing_protocol.md#10-结果与验证的分层`
+- read_now: `modules/05_writing/paper_writing_protocol.md#11-Result-Validation-Bridge`
+- read_now: `modules/05_writing/paper_writing_protocol.md#12-跨问递进`
+- read_now: `modules/05_writing/paper_writing_protocol.md#13.0-CUMCM-图表的正文落点先论证职责后图型`
+- read_now: `modules/05_writing/paper_writing_protocol.md#14-摘要`
+- read_now: `modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录`
+- read_now: `modules/05_writing/paper_writing_protocol.md#16-引用与正文语言`
 - read_now: `modules/06_review_delivery.md`
 - read_now: `modules/06_review/content_review.md`
+- read_now: `modules/04_figure_evidence.md`; selector=['## C 类：各问结果图合同', '## Figure Evidence 层级', '## Figure Portfolio Scientific Quality Gate', '## Missing Scientific Evidence Check', '## 图题、配色与风格', '## 入文闭环']
+- read_now: `templates/latex/cumcm/hsk/template_manifest.yaml`; selector=['paper_skeleton']
 - read_now: `modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff`
 - read_now: `current_model_paper_framework#Chapter-Handoff-Map`
 
@@ -236,8 +273,33 @@ not detect context compression or substitute for checking current project eviden
 ### final_review_and_delivery
 
 - read_now: `core/writing_reasoning_contract.yaml`
+- read_now: `core/output_contract.yaml#per_question`
+- read_now: `core/workbook_schema.yaml`
+- read_now: `modules/05_writing/paper_writing_protocol.md#2-模板与写作职责`
+- read_now: `modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽`
+- read_now: `modules/05_writing/paper_writing_protocol.md#4-Local-Narrative-Chain`
+- read_now: `modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test`
+- read_now: `modules/05_writing/paper_writing_protocol.md#6-前置章节内容`
+- read_now: `modules/05_writing/paper_writing_protocol.md#7-模型建立`
+- read_now: `modules/05_writing/paper_writing_protocol.md#8-模型求解`
+- read_now: `modules/05_writing/paper_writing_protocol.md#9-求解结果数值与术语`
+- read_now: `modules/05_writing/paper_writing_protocol.md#10-结果与验证的分层`
+- read_now: `modules/05_writing/paper_writing_protocol.md#11-Result-Validation-Bridge`
+- read_now: `modules/05_writing/paper_writing_protocol.md#12-跨问递进`
+- read_now: `modules/05_writing/paper_writing_protocol.md#13.0-CUMCM-图表的正文落点先论证职责后图型`
+- read_now: `modules/05_writing/paper_writing_protocol.md#14-摘要`
+- read_now: `modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录`
+- read_now: `modules/05_writing/paper_writing_protocol.md#16-引用与正文语言`
+- read_now: `modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff`
+- read_now: `current_model_paper_framework#Chapter-Handoff-Map`
 - read_now: `modules/06_review_delivery.md`
 - read_now: `modules/06_review/content_review.md`
 - read_now: `modules/06_review/final_delivery.md`
+- read_now: `modules/04_figure_evidence.md`; selector=['## C 类：各问结果图合同', '## Figure Evidence 层级', '## Figure Portfolio Scientific Quality Gate', '## Missing Scientific Evidence Check', '## 图题、配色与风格', '## 入文闭环']
+- read_now: `templates/latex/cumcm/hsk/template_manifest.yaml`; selector=['paper_skeleton']
+- read_now: `modules/05_latex_compile_quality.md`; selector=['## 终稿检查']
+- read_now: `core/compile_profiles.yaml`
+- read_now: `config/competition_profiles.yaml`
+- read_now: `packs/competition/cumcm.md`
 - read_now: `templates/review/final_review_matrix.yaml`
 - read_now: `current_latex_audit_and_compile_reports`
