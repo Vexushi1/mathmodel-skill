@@ -151,6 +151,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/claim_workbook.py`
 - `scripts/conformance_gate.py`
 - `scripts/conformance_source.py`
+- `scripts/cumcm_2026_delivery.py`
 - `scripts/execution_protocol.py`
 - `scripts/execution_provenance.py`
 - `scripts/generate_indexes.py`
