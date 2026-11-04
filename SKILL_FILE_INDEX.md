@@ -300,6 +300,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/conformance_a2_smoke.py`
 - `tests/fixtures/claim_evidence/a2_baseline_provenance.json`
 - `tests/fixtures/claim_evidence/a2_baseline_synthetic.zip`
+- `tests/fixtures/defensive_writing_expression_cases.yaml`
 - `tests/fixtures/model_construction_solution_cases.yaml`
 - `tests/fixtures/module06_v10210_source.md`
 - `tests/fixtures/p3a_global_policy_source_map.yaml`
