@@ -33,8 +33,11 @@ import run_config_parser
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 PROFILE = SKILL_ROOT / "config/competition_profiles.yaml"
-PAPER_NAME = "cumcm2026_paper.pdf"
-SUPPORT_NAME = "cumcm2026_support.zip"
+OUTPUT_POLICY = yaml.safe_load(
+    (SKILL_ROOT / "core/output_contract.yaml").read_text(encoding="utf-8")
+)["delivery_attestation"]["cumcm_2026_external_upload"]
+PAPER_NAME = OUTPUT_POLICY["paper_name"]
+SUPPORT_NAME = OUTPUT_POLICY["support_name"]
 FORBIDDEN_PARTS = {"state", "submission", ".git", "__pycache__", ".venv", "venv"}
 SENSITIVE = (
     re.compile(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}"),
@@ -200,6 +203,7 @@ def _appendix_and_ai(main: Path, state: Mapping[str, Any]) -> tuple[str, bool]:
 
 
 def prepare(root: Path, *, extra_files: tuple[str, ...], anonymous_confirmed: bool,
+            program_files: tuple[str, ...] = (),
             formal: bool = True) -> dict[str, Any]:
     """Derive exact external upload requirements; never scan all project files."""
     root = root.resolve()
@@ -241,6 +245,10 @@ def prepare(root: Path, *, extra_files: tuple[str, ...], anonymous_confirmed: bo
             support.add(_relative(root, _inside(root, str(row["path"]), support=True)))
     for name in extra_files:
         support.add(_relative(root, _inside(root, name, support=True)))
+    for name in program_files:
+        relative = _relative(root, _inside(root, name, support=True))
+        program_names.add(relative)
+        support.add(relative)
     if support & raw_problem:
         raise DeliveryError("官方支撑包不得重新收录赛题提供的原始附件: " + str(sorted(support & raw_problem)))
     program_names.update(name for name in support if Path(name).suffix.lower()
@@ -275,7 +283,10 @@ def prepare(root: Path, *, extra_files: tuple[str, ...], anonymous_confirmed: bo
     for name in sorted(program_names):
         if name not in included:
             raise DeliveryError(f"附录必须使用完整可执行源程序引用（\\lstinputlisting）: {name}")
+    for name in sorted(included - program_names):
+        raise DeliveryError(f"附录引用了未纳入活动支撑代码清单的程序: {name}")
     for name in listed:
+        _scan_personal_data(name, "支撑材料路径")
         path = _inside(root, name, support=True)
         if path.suffix.lower() in {".py", ".m", ".txt", ".r", ".csv", ".json", ".yaml"}:
             _scan_personal_data(path.read_text(encoding="utf-8-sig"), name)
@@ -353,14 +364,17 @@ def main() -> int:
     parser.add_argument("project", nargs="?", default=".")
     parser.add_argument("--verify", action="store_true", help="Validate, do not generate")
     parser.add_argument("--extra-file", action="append", default=[],
-                        help="A necessary independent dataset, command or support material")
+                        help="Necessary independent dataset or supporting material")
+    parser.add_argument("--program-file", action="append", default=[],
+                        help="Explicit extra executable/interactivity commands in appendix")
     parser.add_argument("--anonymous-confirmed", action="store_true",
                         help="Contestants personally checked PDF and every support file")
-    parser.add_argument("--output-dir", default="submission/cumcm2026_external")
+    parser.add_argument("--output-dir", default=OUTPUT_POLICY["directory"])
     args = parser.parse_args()
     try:
         root = Path(args.project).resolve()
         plan = prepare(root, extra_files=tuple(args.extra_file),
+                       program_files=tuple(args.program_file),
                        anonymous_confirmed=args.anonymous_confirmed)
         directory = (root / args.output_dir).resolve()
         if not directory.is_relative_to(root):
