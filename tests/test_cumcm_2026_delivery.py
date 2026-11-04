@@ -129,6 +129,22 @@ class Cumcm2026ExternalDeliveryTests(unittest.TestCase):
         self.assertIn("命令/analysis.sps", plan["programs"])
         self.assertEqual("passed", DELIVERY.build(plan, self.output)["status"])
 
+    def test_explicit_excel_command_text_is_treated_as_program(self) -> None:
+        path = self.root / "命令/Excel交互命令.txt"
+        path.parent.mkdir()
+        path.write_text("=SUM(A1:A10)\n", encoding="utf-8")
+        self._paper(appendix=(
+            "支撑材料文件：命令/Excel交互命令.txt\n"
+            + r"\lstinputlisting{../命令/Excel交互命令.txt}"
+        ))
+        plan = DELIVERY.prepare(
+            self.root, extra_files=(),
+            program_files=("命令/Excel交互命令.txt",),
+            anonymous_confirmed=True, formal=False,
+        )
+        self.assertIn("命令/Excel交互命令.txt", plan["programs"])
+        self.assertEqual("passed", DELIVERY.build(plan, self.output)["status"])
+
     def test_incomplete_program_listing_and_false_no_program_are_blocked(self) -> None:
         code = self.root / "源码/q1.py"
         code.parent.mkdir()

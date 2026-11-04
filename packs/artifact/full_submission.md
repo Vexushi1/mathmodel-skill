@@ -17,7 +17,26 @@ python scripts/hsk_pack_submission.py . \
   --output submission/submission.zip
 ```
 
-ZIP 内自动写入 `submission_manifest.yaml`，记录 package kind、竞赛 profile、规则核验时间/来源、allowlist，以及每个实际文件的 SHA-256。
+ZIP 内自动写入 `submission_manifest.yaml`，记录 package kind、竞赛 profile、规则核验时间/来源、allowlist，以及每个实际文件的 SHA-256。这是**内部证据包**，不能作为 CUMCM 2026 对外上传文件。
+
+### 2026 CUMCM 的独立对外上传（A2）
+
+使用 `config/competition_profiles.yaml#profiles.cumcm.edition_rules` 和 `core/output_contract.yaml#delivery_attestation.cumcm_2026_external_upload`；实际工具为 `scripts/cumcm_2026_delivery.py`。**不改变旧内部包命令**。完成当前项目正式 LaTeX 编译及 03A/03B 验收后，人工确认 PDF 与全部支撑材料匿名，并执行：
+
+```bash
+python scripts/cumcm_2026_delivery.py <项目目录> --anonymous-confirmed \
+  --extra-file "资料/自主查阅数据.csv" \
+  --program-file "命令/Excel交互命令.txt"
+python scripts/cumcm_2026_delivery.py <项目目录> --anonymous-confirmed \
+  --extra-file "资料/自主查阅数据.csv" \
+  --program-file "命令/Excel交互命令.txt" --verify
+```
+
+参数按实际需要使用；没有独立数据和交互命令时不添加对应参数。程序入口从已验收 State、活动求解/03B 阶段、项目选定 Python/MATLAB 绘图脚本及真实源码依赖获取，数据来源从已登记的独立/公开来源或明确的 `--extra-file` 获取；其他文字命令等可通过 `--program-file` 由参赛队显式指定。程序必须在论文附录以完整 `\\lstinputlisting{...}` 引用，并精确列示 ZIP 中每个文件的相对路径；不能用摘录或固定 A/B 占位代替。
+
+输出目录只包含可对外提交的 `cumcm2026_paper.pdf` 及**当确有程序、独立数据、AI 使用详情或其他支撑材料时**才存在的 `cumcm2026_support.zip`。支撑 ZIP 内使用项目相对路径、不附带内部 manifest、`state/`、内部 ZIP、过期文件或赛题原始附件；两件分别不得超过 20MB。使用过 AI 时必需包含准确文件名 `AI工具使用详情.pdf` 且被附录列示；未使用 AI、确无程序或支撑材料时按官方要求保留相应声明，不伪造 ZIP。最终 `--verify` 再比对真实 ZIP 内各项 SHA-256、PDF 正式编译身份、活动源程序及当前附录清单，另需参赛队人工核实匿名与内容真实性。
+
+这条外部文件校验是原有 `edition_compliance`、`anonymity_and_metadata`、`ai_disclosure`、`reproducibility_and_package` 检查族的 CUMCM 2026 消费接口，不创建第二套项目状态，也不将工具输出解释成数学正确性证明。
 
 ## 2. 完整复现包
 

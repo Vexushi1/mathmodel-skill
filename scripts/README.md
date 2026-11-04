@@ -79,6 +79,7 @@ python scripts/read_stage.py --root <同版本Skill根> --plan <当前resolver.y
 - `score_submission.py`：按 `config/review_weights.json` 执行评委式评分；Hard 否决不能被总分掩盖。
 - `hsk_pack_submission.py`：按当前竞赛 profile 和提交边界生成 official / reproducibility 提交包及 `submission_manifest.yaml`；内部项目记忆/检查材料不得因为 Skill 存在就自动进入官方提交包。
 - `validate_submission_package.py`：对 manifest、ZIP 实际内容、当前项目同路径文件与 compiled PDF 哈希做最终包级验证；ZIP 存在本身不等价于 `validated_submission_package`。
+- `cumcm_2026_delivery.py`：对**2026 CUMCM 官方对外**独立论文 PDF 和条件支撑 ZIP 做生成与当前性核验；复用 LaTeX v4/v5 编译、State、已验收代码和当前选定 Python/MATLAB 绘图源，检查附录及 AI 详情匹配、20MB/匿名确认。它不是内部 `submission/submission.zip`，不会为其他竞赛开放已核验官方交付资格。命令与范围见 `packs/artifact/full_submission.md`。
 
 ## 仓库维护
 

@@ -4,7 +4,7 @@
 
 ## 八、编译、复现与提交包
 
-交付须用最新 LaTeX audit、compile report、PDF、project sync、submission package validation。每问条件 3+2 文件及目录/包边界依 `core/output_contract.yaml#per_question` 与 Artifact Packs，不复列；stale source bundle、未解析引用、编译错误、manifest/hash 不一致依既有 gate。PDF 逐页检查由助手按 Module 05D 执行。
+交付须用最新 LaTeX audit、compile report、PDF、project sync、submission package validation。每问条件 3+2 文件及目录/包边界依 `core/output_contract.yaml#per_question` 与 Artifact Packs，不复列；stale source bundle、未解析引用、编译错误、manifest/hash 不一致依既有 gate。PDF 逐页检查由助手按 Module 05D 执行。2026 CUMCM 的对外**独立 PDF 与条件支撑 ZIP**另由 `scripts/cumcm_2026_delivery.py` 在既有终审检查族中核验：参赛届次、实时编译证明、活动源码及附录精确清单、AI 详情、20MB 及人工匿名确认；不将内部带 manifest 的 ZIP 冒充官方上传。路径与职责见 Output Contract 的 `cumcm_2026_external_upload`，不新增独立终审评分门。
 
 ## 九、Final Submission Compliance & Evidence Sweep
 

@@ -140,6 +140,16 @@ delivery_attestation:
   package_manifest: submission_manifest.yaml
   package_validator: scripts/validate_submission_package.py
   validated_submission_semantics: ZIP生成本身不代表validated；submission_package_validation gate通过后才可正式交付。
+  cumcm_2026_external_upload:
+    adapter: scripts/cumcm_2026_delivery.py
+    directory: submission/cumcm2026_external
+    paper_name: cumcm2026_paper.pdf
+    support_name: cumcm2026_support.zip
+    source_authority: config/competition_profiles.yaml#profiles.cumcm.edition_rules
+    evidence: current_state_and_formal_latex_compile_report_and_active_code_identities
+    official_files: standalone_paper_pdf_and_conditional_support_zip_only
+    forbid: [internal_submission_manifest, nested_reproducibility_archive, stale_source, contest_raw_attachments]
+    note: 内部official/reproducibility ZIP仍使用原提交验收链；外部CUMCM双文件只由本适配层生成与核验，绝不冒充其manifest。
 execution_policy:
   role: delivery_integration_only
   user_execution_authority: core/user_execution_contract.yaml
