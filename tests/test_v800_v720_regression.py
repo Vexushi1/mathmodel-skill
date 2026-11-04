@@ -42,9 +42,18 @@ class TestV800V720Regression(unittest.TestCase):
 
     def test_result_validation_bridge_is_required_when_validation_is_separate(self):
         self.assertIn("Result → Validation Bridge", self.protocol)
-        self.assertIn("当前结果已经回答什么", self.protocol)
-        self.assertIn("仍可能受哪个因素影响", self.protocol)
-        self.assertIn("下一段检验什么", self.protocol)
+        # B2 preserves the bridge as an evidence-backed four-part narrative,
+        # not a frozen legacy three-question wording template.
+        for required in (
+            "只有存在真实后续分析任务与有效证据时",
+            "主结果 → 分析动机 → 真实证据 → 结论回收",
+            "主结果已回答什么、风险何在、下一段实际检验什么",
+            "已验收主求解证据",
+            "影响核心答案时同步修改摘要",
+            "不为了语言衔接生成新 03B",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, self.protocol)
 
     def test_optimization_summary_renders_objective_outside_brace(self):
         rendering = self.manifest["core_model_summary_rendering"]["optimization_example"]
