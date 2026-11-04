@@ -1,13 +1,19 @@
 # Changelog
 
-## 10.26.0
+## 10.26.1
+
+- Phase C：Cross-File Handoff 全部 active physical-file 邻接仍在 draft/final 审核；普通叙事、摘要及结构尾部不再强制逐 seam 持久登记。
+- 仅真实跨文件模型/结果/证据依赖、未闭合冲突或跨阶段恢复需求继续使用原 Chapter Handoff Map、Paper Fragment/Formula/Result 锚点与 stale 传播；旧框架增量兼容不变。
+- 同步 Runtime、Protocol、Framework、Review 及精确历史逆投影回归；保留非 CUMCM/单文件 fallback、B 阶段结果深化、现有正式 CI，Release 后续统一发布。
+
+## Previous development version (unreleased): 10.26.0
 
 - CUMCM 问题章节 Q1/Q2/Q3 维护示例、Template Manifest、Validator 与 lint 同步现有 MODEL→SOLVE→RESULT→条件式 VALIDATE 写作语义，保留真实问题内部小节自适应和电工杯模板独立性。
 - 在已有 Writing Protocol 内完善主结果→分析动机→真实深化证据→结论回收；不为叙事造新结果深化任务、状态、门禁或虚假全局最优性论证。
 - 模型评价按实际证据简短组织；普通非关键说明性连续数值建议展示两位小数，可评分核心结果及 Numeric Profile 的必要高精度不变。
 - 继承 v10.25.0 的 CUMCM 2026 AI 声明与附录合规；已取消的 A2 对外支撑 ZIP 不恢复；Release 按用户安排后续统一发布。
 
-## Previous release: 10.25.0
+## Previous development version (unreleased): 10.25.0
 
 - 为 2026 CUMCM 论文提供默认电子版无前置页模板，AI 使用声明（使用/未使用均必需）与附录按当届要求启用；保留中性可见占位，正式审计阻断未填或无根据内容。
 - 增加 2026 年可核验赛事规则与可选项目届次字段，对旧项目保持只读兼容，未知届次不能默认通过当届合规核验。

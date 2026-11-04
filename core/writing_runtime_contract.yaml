@@ -1,4 +1,4 @@
-version: 10.26.0
+version: 10.26.1
 role: >-
   普通论文写作的最小运行时映射。它不建立第二套数学写作 Authority，只声明普通论文写作真正需要加载的
   模板、项目事实、证据和 writing_reasoning_contract 中的语义能力，从而避免每次写作预载完整建模、数值与项目治理上下文。
@@ -257,8 +257,8 @@ template_first_progressive_authoring:
     authority: modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff
     project_memory: templates/model/model_paper_framework.md#Chapter-Handoff-Map
     role: >-
-      解析最终 active physical-file adjacency，按阶段读取和更新项目 handoff 记录，并把 seam gate 接入 draft/final review；
-      不在 Runtime 复制 prose 规则，不建立第二套正文 Authority。
+      解析最终 active physical-file adjacency；所有边界均在 draft/final review 进行 assembled seam sweep，
+      仅真实跨文件依赖、未闭合冲突或跨阶段数学/证据承接需要持久记录；不建立第二套正文 Authority。
     activation:
       requires: modular_latex_with_multiple_active_physical_files
       single_file: not_applicable
@@ -304,7 +304,9 @@ template_first_progressive_authoring:
         - numeric_profile
         - claim_strength
         - paper_fragment_dependency_map
-      prohibition: 不复制 source/target 全文，不建立平行正文依赖图，不把内部字段机械打印进论文。
+      persistence: only_when_real_dependency_unresolved_conflict_or_cross_stage_evidence_requires_tracking
+      empty_map_is_valid: true
+      prohibition: 不复制 source/target 全文，不建立平行正文依赖图；普通叙事、摘要前言和结构尾部不强制逐 seam 填表。
     relevant_authoring_stages:
       - problem_restatement
       - problem_analysis
@@ -315,16 +317,16 @@ template_first_progressive_authoring:
     timing:
       before_write:
         - read_current_project_facts
-        - read_relevant_assembled_predecessor_handoff
+        - read_existing_tracked_predecessor_handoff_if_any
         - read_relevant_cross_question_or_shared_dependency
         - point_read_source_tail_and_target_head_only_when_record_is_missing_or_conflicted
       after_write:
-        - update_current_incoming_seam_status
-        - update_outgoing_handoff_for_assembled_successor
+        - update_tracked_incoming_seam_if_any
+        - update_tracked_outgoing_seam_if_any
         - update_reused_fragment_or_result_anchors
         - stale_only_real_downstream_dependencies
       stage_gate:
-        - required_handoff_record_exists_or_seam_is_not_applicable
+        - tracked_dependency_or_unresolved_conflict_has_current_record_when_needed
         - bridge_need_is_semantically_adjudicated
         - object_symbol_term_dependency_claim_and_duplication_continuity_are_reviewed
       draft_semantic_review: assembled_seam_sweep_in_final_active_order
@@ -349,6 +351,7 @@ template_first_progressive_authoring:
       rule: 上游真实模型、结果或依赖变化仍按既有机制使相关 fragment 与 seam stale；纯措辞变化不得反向污染模型状态。
     compatibility:
       missing_map: initialize_incrementally_on_next_writing_route
+      initialize_only_when_tracking_is_needed: true
       rewrite_existing_body: false
       require_model_redesign_or_resolve: false
       inactive_conditional_slots_in_current_map: forbidden

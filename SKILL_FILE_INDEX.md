@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.26.0
+当前 Skill 版本：10.26.1
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -599,6 +599,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 
 ## Historical Maintenance Provenance
 
+- `docs/cumcm_cross_file_handoff_c_consumer_audit.md`
 - `docs/cumcm_paper_writing_compliance_narrative_refactor_plan.md`
 - `docs/cumcm_problem_analysis_appendix_heading_hierarchy_plan.md`
 - `docs/cumcm_question_writing_refinement_plan.md`

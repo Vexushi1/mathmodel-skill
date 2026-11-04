@@ -10,9 +10,9 @@
 
 ### Cross-File Assembled Seam Sweep
 
-本检查**只消费** Protocol §5A、Template Manifest 与 current Chapter Handoff Map。draft review 与 final review 均执行 `assembled seam sweep`：按最终 active physical-file 顺序逐对检查实际邻接；inactive slot 不建立虚假 seam；摘要按最终阅读位置检查，不按最后写作位置连接评价章。
+本检查**只消费** Protocol §5A、Template Manifest、当前论文与已存在的 Chapter Handoff Map（如有）。draft review 与 final review 均执行 `assembled seam sweep`：按最终 active physical-file 顺序逐对检查实际邻接；普通边界无 map 记录不构成缺项；inactive slot 不建立虚假 seam；摘要按最终阅读位置检查，不按最后写作位置连接评价章。
 
-对每个 seam 检查对象、符号/术语、真实依赖、claim、重复与 bridge_need。`bridge_need=required` 需要真实语义桥，但不强制独立“过渡段”；独立小问不虚构跨问继承。机器可核文件/记录/stale 冲突，不能由物理邻接、连接词或 token 相似断言语义连续。
+对每个 seam 检查对象、符号/术语、真实依赖、claim、重复与 bridge_need；真正需跨阶段追踪的依赖或未闭合冲突仍应有 current 锚点/记录，不能因空表或缺少普通叙事行跳过审查。`bridge_need=required` 需要真实语义桥，但不强制独立“过渡段”；独立小问不虚构跨问继承。机器可核文件/记录/stale 冲突，不能由物理邻接、连接词或 token 相似断言语义连续。
 
 ## 三、公式、模型角色、算法、命题与数值证据审查
 

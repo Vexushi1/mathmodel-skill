@@ -8,6 +8,7 @@ from pathlib import Path
 
 from module06_sources import (
     BASELINE_PATH, CANONICAL_PATHS, CONTENT, ENTRY, FINAL, ROOT, SECTION_SOURCES,
+    PHASE_C_CONTENT_REVIEW_REWRITES,
     assert_preserved_review, baseline_text, historical_review_text, review_text,
     split_sections,
 )
@@ -38,7 +39,12 @@ class Module06PreservationTests(unittest.TestCase):
         _, sections = split_sections(baseline_text())
         for heading, body in sections:
             with self.subTest(heading=heading):
-                self.assertEqual(combined.count(body), 1)
+                canonical_body = body
+                if heading == "## 二、题意、框架与局部 stale 审查":
+                    for current, previous in PHASE_C_CONTENT_REVIEW_REWRITES:
+                        self.assertEqual(canonical_body.count(previous), 1)
+                        canonical_body = canonical_body.replace(previous, current, 1)
+                self.assertEqual(combined.count(canonical_body), 1)
 
     def test_missing_leaf_or_section_does_not_restore_text_from_the_fixture(self):
         for relative in (CONTENT, FINAL):

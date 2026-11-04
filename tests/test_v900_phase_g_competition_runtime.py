@@ -47,6 +47,9 @@ CUMCM_2026_A1_RELEASE_VERSIONS = {
 CUMCM_B_WRITING_RELEASE_VERSIONS = {
     **CUMCM_2026_A1_RELEASE_VERSIONS, "skill": "10.26.0",
 }
+CUMCM_C_HANDOFF_RELEASE_VERSIONS = {
+    **CUMCM_B_WRITING_RELEASE_VERSIONS, "skill": "10.26.1",
+}
 
 
 def load_runtime():
@@ -84,7 +87,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
             self.assertEqual(writing.get("fallback_triggers"), [*previous[:-1], comparison_trigger, previous[-1]])
             writing["fallback_triggers"] = list(previous)
             # v10.25.0 adds exactly two CUMCM edition-specific write targets.
-            if plan["version"] in (CUMCM_2026_A1_RELEASE_VERSIONS["skill"], CUMCM_B_WRITING_RELEASE_VERSIONS["skill"]):
+            if plan["version"] in (CUMCM_2026_A1_RELEASE_VERSIONS["skill"], CUMCM_B_WRITING_RELEASE_VERSIONS["skill"], CUMCM_C_HANDOFF_RELEASE_VERSIONS["skill"]):
                 stage = writing["authoring_sequence"][5]
                 historical = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][5]
                 self.assertEqual(stage["id"], "evaluation_references_conclusion_appendix")
@@ -131,6 +134,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 PLOT_BACKEND_RELEASE_VERSIONS["skill"],
                 CUMCM_2026_A1_RELEASE_VERSIONS["skill"],
                 CUMCM_B_WRITING_RELEASE_VERSIONS["skill"],
+                CUMCM_C_HANDOFF_RELEASE_VERSIONS["skill"],
             ))
             if plan["version"] in (
                 REVIEW_SPLIT_AUTHORITY_VERSIONS["skill"],
@@ -140,6 +144,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 PLOT_BACKEND_RELEASE_VERSIONS["skill"],
                 CUMCM_2026_A1_RELEASE_VERSIONS["skill"],
                 CUMCM_B_WRITING_RELEASE_VERSIONS["skill"],
+                CUMCM_C_HANDOFF_RELEASE_VERSIONS["skill"],
             ):
                 try:
                     writing = review_split_writing_predecessor(
@@ -181,6 +186,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 PLOT_BACKEND_RELEASE_VERSIONS["skill"],
                 CUMCM_2026_A1_RELEASE_VERSIONS["skill"],
                 CUMCM_B_WRITING_RELEASE_VERSIONS["skill"],
+                CUMCM_C_HANDOFF_RELEASE_VERSIONS["skill"],
                 ) else previous_value
                 self.assertEqual(candidate[path[-1]], expected)
                 candidate[path[-1]] = copy.deepcopy(previous_value)
@@ -218,7 +224,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
 
     def test_review_split_projection_binds_canonical_scopes_without_waiving_stage_fields(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
-        self.assertEqual(plan["version"], CUMCM_B_WRITING_RELEASE_VERSIONS["skill"])
+        self.assertEqual(plan["version"], CUMCM_C_HANDOFF_RELEASE_VERSIONS["skill"])
         saved = copy.deepcopy((plan, self.golden, REVIEW_SPLIT_WRITING_DELTAS))
         for index, stage_id, previous_reads, current_reads in REVIEW_SPLIT_WRITING_DELTAS:
             historical = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][index]
@@ -265,7 +271,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
             with self.subTest(version=version):
                 declared = copy.deepcopy(plan)
                 declared["version"] = version
-                if version not in (CUMCM_2026_A1_RELEASE_VERSIONS["skill"], CUMCM_B_WRITING_RELEASE_VERSIONS["skill"]):
+                if version not in (CUMCM_2026_A1_RELEASE_VERSIONS["skill"], CUMCM_B_WRITING_RELEASE_VERSIONS["skill"], CUMCM_C_HANDOFF_RELEASE_VERSIONS["skill"]):
                     stage = declared["writing_runtime"]["authoring_sequence"][5]
                     stage["write_now"] = copy.deepcopy(
                         self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][5]["write_now"]
@@ -278,6 +284,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 PLOT_BACKEND_RELEASE_VERSIONS["skill"],
                 CUMCM_2026_A1_RELEASE_VERSIONS["skill"],
                 CUMCM_B_WRITING_RELEASE_VERSIONS["skill"],
+                CUMCM_C_HANDOFF_RELEASE_VERSIONS["skill"],
                 ):
                     for index, _, previous_reads, _ in REVIEW_SPLIT_WRITING_DELTAS:
                         declared["writing_runtime"]["authoring_sequence"][index]["read_now"] = copy.deepcopy(previous_reads)
@@ -293,6 +300,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 PLOT_BACKEND_RELEASE_VERSIONS["skill"],
                 CUMCM_2026_A1_RELEASE_VERSIONS["skill"],
                 CUMCM_B_WRITING_RELEASE_VERSIONS["skill"],
+                CUMCM_C_HANDOFF_RELEASE_VERSIONS["skill"],
                 ) else historical)
                 self.assertEqual(self._projection(declared), self.golden["routes"]["latex"])
                 stage["run_now"] = list(historical if version in (
@@ -306,6 +314,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 PLOT_BACKEND_RELEASE_VERSIONS["skill"],
                 CUMCM_2026_A1_RELEASE_VERSIONS["skill"],
                 CUMCM_B_WRITING_RELEASE_VERSIONS["skill"],
+                CUMCM_C_HANDOFF_RELEASE_VERSIONS["skill"],
                 ) else current)
                 with self.assertRaises(AssertionError):
                     self._projection(declared)
