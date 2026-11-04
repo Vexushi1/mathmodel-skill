@@ -661,6 +661,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/writing_readability_validation_slimming_plan.md`
 - `docs/writing_readability_w4_acceptance.md`
 - `docs/writing_readability_w5_release_closeout.md`
+- `docs/writing_review_ownership_refactor_plan.md`
 - `docs/writing_validation_w0_baseline.md`
 
 ## Legacy Navigation
