@@ -1,6 +1,12 @@
 # Changelog
 
-## 10.26.1
+## 10.26.2
+
+- AI Cleanup 改为只处理普通自然语言：去除模板化、空话及纯重复；已定稿公式、中文推导、证明、伪代码、全部数值显示、术语定义、引用、图表与章节结构严格只读。
+- 数学正确性、Formula Role 压缩/迁移、Numeric Profile 舍入、标题 Split/Merge 和证据修复回到原有 Writing/Reasoning/Review 阶段，发现缺口只报告，不在 Cleanup 中擅自修复。
+- 不新增 Checker、项目状态、审批或 Delivery Gate；保留 draft review → cleanup → LaTeX → final review，旧项目、CUMCM/MCM-ICM/DOCX fallback 继续兼容；完成版本统一发布而不逐阶段创建 Release。
+
+## Previous development version (unreleased): 10.26.1
 
 - Phase C：Cross-File Handoff 全部 active physical-file 邻接仍在 draft/final 审核；普通叙事、摘要及结构尾部不再强制逐 seam 持久登记。
 - 仅真实跨文件模型/结果/证据依赖、未闭合冲突或跨阶段恢复需求继续使用原 Chapter Handoff Map、Paper Fragment/Formula/Result 锚点与 stale 传播；旧框架增量兼容不变。

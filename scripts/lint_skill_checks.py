@@ -1238,6 +1238,23 @@ def check_templates(errors: list[str]) -> None:
     for token in ("Integrity / Hard boundary", "Evidence closure", "Style & Necessity", "Optional machine diagnostics", "Skill 负责原则，脚本负责穷举"):
         if token not in cleanup:
             errors.append(f"AI cleanup lacks v7.7 layered-governance token: {token}")
+    # v10.26.2: preserve text-only permissions, not obsolete mathematical decisions.
+    for token in (
+        "普通自然语言润色消费者", "本阶段数学与事实只读", "公式与中文推导",
+        "不舍入、不重写、不改变显示格式", "只报告给上游",
+        "连按其他理由主动拆合标题也没有权限", "LaTeX 源码有真实文字变更时",
+    ):
+        if token not in cleanup:
+            errors.append(f"AI cleanup prose-only invariant missing: {token}")
+    for token in (
+        "再决定 Keep / Compress / Re-locate / Delete",
+        "routine_algebra`：优先压缩或删除",
+        "执行 **Core Derivation Body Closure Test** 后才能 Compress",
+        "只调整问题章节内部二级/三级标题",
+        "过宽表优先拆分真实比较维度",
+    ):
+        if token in cleanup:
+            errors.append(f"AI cleanup retains unauthorized mathematical/structural edit: {token}")
     if "分段优先，分点按需" not in proposition_pack:
         errors.append("proposition pack must be paragraph-first and number steps only when needed")
     if "显式编号引用" not in caption_contract:

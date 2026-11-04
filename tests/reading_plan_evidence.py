@@ -108,6 +108,7 @@ PLOT_BACKEND_AUTHORITY_VERSIONS = {**CUMCM_HEADING_AUTHORITY_VERSIONS, "skill": 
 CUMCM_A1_AUTHORITY_VERSIONS = {**PLOT_BACKEND_AUTHORITY_VERSIONS, "skill": "10.25.0"}
 CUMCM_B_WRITING_AUTHORITY_VERSIONS = {**CUMCM_A1_AUTHORITY_VERSIONS, "skill": "10.26.0"}
 CUMCM_C_HANDOFF_AUTHORITY_VERSIONS = {**CUMCM_B_WRITING_AUTHORITY_VERSIONS, "skill": "10.26.1"}
+CUMCM_D_CLEANUP_AUTHORITY_VERSIONS = {**CUMCM_C_HANDOFF_AUTHORITY_VERSIONS, "skill": "10.26.2"}
 # Only these two read-list migrations are registered. Business text is separately
 # reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
 REVIEW_SPLIT_WRITING_DELTAS = (
@@ -1750,6 +1751,53 @@ def approved_v10261_cumcm_handoff_carrier_change(identifier, old, new, candidate
     return projected, changes
 
 
+# v10.26.2 authorizes only the AI Cleanup stage gate and release carrier.
+CUMCM_D_CLEANUP_GATE_OLD = "只清除模板感、空话、机械重复和证据越界，不删除章节必要建模理由/适用边界、推导、约束、solver 前提、命题、伪代码、结果或验证内容，也不按标题数量/字数机械合并或拆分。"
+CUMCM_D_CLEANUP_GATE_NEW = "只清除普通自然语言中的模板感、空话及纯重复；公式、中文推导、证明、伪代码、算法、数值及显示格式、术语定义、引用、图表实体、章节标题与层级均只读。数学或证据问题返回既有前置审查，不在 Cleanup 改写；改后在原有 Review 中复核受保护内容，不新增门禁。"
+
+
+def approved_v10262_prose_only_cleanup_carrier_change(identifier, old, new, candidate_authority_versions):
+    """Inverse-project exactly the new Cleanup gate; never whitelist other P2 fields."""
+    if (candidate_authority_versions != CUMCM_D_CLEANUP_AUTHORITY_VERSIONS
+            or new.get("version") != CUMCM_D_CLEANUP_AUTHORITY_VERSIONS["skill"]):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    deltas = []
+    for prefix in (("writing_runtime",), ("runtime_plan", "writing_runtime")):
+        node = predecessor
+        for key in prefix:
+            if not isinstance(node, dict) or key not in node:
+                node = None
+                break
+            node = node[key]
+        if node is None:
+            continue
+        if not isinstance(node, dict) or not isinstance(node.get("authoring_sequence"), list):
+            return deepcopy(new), []
+        stages = [stage for stage in node["authoring_sequence"]
+                  if isinstance(stage, dict) and stage.get("id") == "ai_cleanup"]
+        if len(stages) != 1 or stages[0].get("gate") != CUMCM_D_CLEANUP_GATE_NEW:
+            return deepcopy(new), []
+        stages[0]["gate"] = CUMCM_D_CLEANUP_GATE_OLD
+        deltas.append({
+            "path": ".".join(prefix) + ".authoring_sequence[ai_cleanup].gate",
+            "baseline": CUMCM_D_CLEANUP_GATE_OLD,
+            "candidate": CUMCM_D_CLEANUP_GATE_NEW,
+            "approval": "Exactly AI Cleanup scope; all other stage fields remain pinned",
+        })
+    predecessor["version"] = CUMCM_C_HANDOFF_AUTHORITY_VERSIONS["skill"]
+    projected, approved = approved_v10261_cumcm_handoff_carrier_change(
+        identifier, old, predecessor, deepcopy(CUMCM_C_HANDOFF_AUTHORITY_VERSIONS))
+    if projected != old or not approved:
+        return deepcopy(new), []
+    for change in approved:
+        if change["path"] == "version":
+            change["candidate"] = CUMCM_D_CLEANUP_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(CUMCM_D_CLEANUP_AUTHORITY_VERSIONS)
+            change["approval"] = "v10.26.2 prose-only Cleanup; historical fields retained"
+    return projected, approved + deltas
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -1884,6 +1932,9 @@ def compare(before, after):
         projected, cumcm_c_changes = approved_v10261_cumcm_handoff_carrier_change(
             a["id"], old, projected, b.get("authority_versions"))
         expected.extend(cumcm_c_changes)
+        projected, cumcm_d_changes = approved_v10262_prose_only_cleanup_carrier_change(
+            a["id"], old, projected, b.get("authority_versions"))
+        expected.extend(cumcm_d_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,

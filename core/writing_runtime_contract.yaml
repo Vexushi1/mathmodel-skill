@@ -1,4 +1,4 @@
-version: 10.26.1
+version: 10.26.2
 role: >-
   普通论文写作的最小运行时映射。它不建立第二套数学写作 Authority，只声明普通论文写作真正需要加载的
   模板、项目事实、证据和 writing_reasoning_contract 中的语义能力，从而避免每次写作预载完整建模、数值与项目治理上下文。
@@ -248,7 +248,7 @@ template_first_progressive_authoring:
     - 每写一问前必须先执行本问 capability preflight；缺失状态必须裁决，不能因为用户未提醒“汇总/命题/伪代码”而跳过已有项目状态。
     - 问题章节按问题顺序逐问执行；一问未完成模型—求解—结果—验证的真实闭环前，不预写下一问正文。
     - 摘要虽然位于成品前部，但在逐问结果、评价和结论口径稳定后再写，避免从计划或旧结果虚构摘要。
-    - draft_semantic_review 必须早于 ai_cleanup；AI Cleanup 只能修改表达和必要性，不能替代章节完整性、数学语义或证据审查。
+    - draft_semantic_review 必须早于 ai_cleanup；AI Cleanup 只能修订非数学、非证据、非结构的普通自然语言，不能重新裁决章节必要性、数学语义或证据完整性。
     - LaTeX Adapter 只在内容进入模板槽和正式审计/编译时读取，不参与前置章节的内容决策。
     - Cross-File Chapter Handoff 只对最终装配顺序中的 actual active physical files 生效；authoring order 不得替代 assembled order。
     - Chapter Handoff Map 是 writing-only 项目记忆；纯 handoff 修改不得递增模型 semantic revision、使 locked model stale 或触发 Model Approval/primary solve。
@@ -503,7 +503,7 @@ template_first_progressive_authoring:
         - resolved_draft_review_findings
       write_now:
         - cleaned_paper_text
-      gate: 只清除模板感、空话、机械重复和证据越界，不删除章节必要建模理由/适用边界、推导、约束、solver 前提、命题、伪代码、结果或验证内容，也不按标题数量/字数机械合并或拆分。
+      gate: 只清除普通自然语言中的模板感、空话及纯重复；公式、中文推导、证明、伪代码、算法、数值及显示格式、术语定义、引用、图表实体、章节标题与层级均只读。数学或证据问题返回既有前置审查，不在 Cleanup 改写；改后在原有 Review 中复核受保护内容，不新增门禁。
     - id: latex_assembly_audit_and_compile
       read_now:
         - modules/05_writing/latex.md
