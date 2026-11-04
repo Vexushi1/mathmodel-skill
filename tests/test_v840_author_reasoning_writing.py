@@ -95,6 +95,15 @@ class WritingReasoningScopeTests(unittest.TestCase):
         for heading, digest in expected.items():
             with self.subTest(heading=heading):
                 body = sections[heading]
+                if heading == "5A. Cross-File Chapter Handoff":
+                    # Phase C deliberately reopens only persistence policy;
+                    # project the exact two new strings to historical source.
+                    for current, prior in (
+                        ("只对真实跨文件依赖、尚未闭合的语义冲突或必须跨阶段恢复的数学/证据承接登记 Chapter Handoff Map。普通 `narrative`、`frontmatter_consistency` 与 `structural_terminal` 邻接依据当前相邻正文和既有锚点直接审阅，不为每条物理边界持久填表。需要登记时，项目记录只保留推动衔接所需的事实：", "每个 actual seam 的项目记录只保留推动相邻文件衔接所需的事实："),
+                        ("写当前文件前先读取当前项目事实与必要的 fragment/result anchors；仅在相关 handoff 记录已存在时消费，普通叙事 seam 没有记录不构成写作阻断。依赖、对象、符号或证据不清以及记录冲突时，定点回读 source 文件尾部与 target 文件开头，不预载整篇论文。写完后只更新确需追踪的 incoming/outgoing seam 与已有依赖锚点；**全部 actual active seam 仍在 draft/final review 接受 assembled seam sweep**。真实依赖缺口、引用 stale 或未闭合争议不得借“可选记录”逃避修复。", "写当前文件前，优先读取 relevant assembled predecessor handoff、当前项目事实及必要的 fragment/result anchors；信息不足或冲突时，定点回读 source 文件尾部与 target 文件开头，不预载整篇论文。写完后更新 incoming seam 状态和面向 assembled successor 的 outgoing handoff；若上游真实模型、结果或依赖变化，只标记实际受影响的 handoff/fragment stale。"),
+                    ):
+                        self.assertEqual(body.count(current), 1)
+                        body = body.replace(current, prior, 1)
                 if heading == "6. 前置章节内容":
                     # v10.23.3 adds one Manifest pointer for fixed analysis
                     # headings; preserve the frozen historical chapter otherwise.

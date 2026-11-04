@@ -276,11 +276,30 @@ class TestV810CrossFileChapterHandoff(unittest.TestCase):
             "initialize_incrementally_on_next_writing_route",
         )
         self.assertFalse(compatibility["rewrite_existing_body"])
+        self.assertTrue(compatibility["initialize_only_when_tracking_is_needed"])
+        self.assertTrue(handoff["record"]["empty_map_is_valid"])
+        self.assertEqual(
+            handoff["record"]["persistence"],
+            "only_when_real_dependency_unresolved_conflict_or_cross_stage_evidence_requires_tracking",
+        )
         self.assertEqual(handoff["activation"]["single_file"], "not_applicable")
         self.assertEqual(
             handoff["activation"]["non_cumcm_or_missing_manifest"],
             "full_reasoning_fallback",
         )
+
+    def test_plain_narrative_seams_are_reviewed_without_persistent_map_rows(self):
+        handoff = self.runtime["template_first_progressive_authoring"]["cross_file_chapter_handoff"]
+        self.assertIn("read_existing_tracked_predecessor_handoff_if_any", handoff["timing"]["before_write"])
+        self.assertIn("update_tracked_outgoing_seam_if_any", handoff["timing"]["after_write"])
+        self.assertNotIn("required_handoff_record_exists_or_seam_is_not_applicable", handoff["timing"]["stage_gate"])
+        self.assertIn("tracked_dependency_or_unresolved_conflict_has_current_record_when_needed",
+                      handoff["timing"]["stage_gate"])
+        self.assertIn("普通叙事", self.protocol)
+        self.assertIn("没有需要追踪的 seam 时允许空表", self.framework)
+        self.assertIn("全部 actual active seam 仍在 draft/final review", self.protocol)
+        self.assertIn("普通边界无 map 记录不构成缺项", self.review)
+        self.assertNotIn("seam.abstract_problem_statement |", self.framework)
 
     def test_no_forced_transition_or_connector_frequency_gate(self):
         handoff = self.runtime["template_first_progressive_authoring"]["cross_file_chapter_handoff"]

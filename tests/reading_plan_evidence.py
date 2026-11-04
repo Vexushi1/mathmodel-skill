@@ -107,6 +107,7 @@ CUMCM_HEADING_AUTHORITY_VERSIONS = {**MIXED_FIGURE_READING_AUTHORITY_VERSIONS, "
 PLOT_BACKEND_AUTHORITY_VERSIONS = {**CUMCM_HEADING_AUTHORITY_VERSIONS, "skill": "10.24.0"}
 CUMCM_A1_AUTHORITY_VERSIONS = {**PLOT_BACKEND_AUTHORITY_VERSIONS, "skill": "10.25.0"}
 CUMCM_B_WRITING_AUTHORITY_VERSIONS = {**CUMCM_A1_AUTHORITY_VERSIONS, "skill": "10.26.0"}
+CUMCM_C_HANDOFF_AUTHORITY_VERSIONS = {**CUMCM_B_WRITING_AUTHORITY_VERSIONS, "skill": "10.26.1"}
 # Only these two read-list migrations are registered. Business text is separately
 # reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
 REVIEW_SPLIT_WRITING_DELTAS = (
@@ -1730,6 +1731,25 @@ def approved_v10260_cumcm_writing_carrier_change(identifier, old, new, candidate
     return projected, changes
 
 
+def approved_v10261_cumcm_handoff_carrier_change(identifier, old, new, candidate_authority_versions):
+    """C narrows optional handoff memory, not resolved P2 route fields."""
+    if (candidate_authority_versions != CUMCM_C_HANDOFF_AUTHORITY_VERSIONS
+            or new.get("version") != CUMCM_C_HANDOFF_AUTHORITY_VERSIONS["skill"]):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    predecessor["version"] = CUMCM_B_WRITING_AUTHORITY_VERSIONS["skill"]
+    projected, changes = approved_v10260_cumcm_writing_carrier_change(
+        identifier, old, predecessor, deepcopy(CUMCM_B_WRITING_AUTHORITY_VERSIONS))
+    if projected != old or not changes:
+        return deepcopy(new), []
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = CUMCM_C_HANDOFF_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(CUMCM_C_HANDOFF_AUTHORITY_VERSIONS)
+            change["approval"] = "v10.26.1 C persistence scope; all prior resolver fields remain pinned"
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -1861,6 +1881,9 @@ def compare(before, after):
         projected, cumcm_b_changes = approved_v10260_cumcm_writing_carrier_change(
             a["id"], old, projected, b.get("authority_versions"))
         expected.extend(cumcm_b_changes)
+        projected, cumcm_c_changes = approved_v10261_cumcm_handoff_carrier_change(
+            a["id"], old, projected, b.get("authority_versions"))
+        expected.extend(cumcm_c_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({
             "id": a["id"], "legacy_behavior_equal": old == new,

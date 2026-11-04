@@ -178,7 +178,7 @@ previous_output
 Cross-File seam 以 Template Manifest 解析出的**最终实际活动文件顺序**为准，而不是写作顺序。摘要即使最后生成，仍只检查
 `frontmatter/abstract.tex → sections/01_problem_statement.tex`；不得把评价章到摘要的 authoring 邻接当作成品 seam。条件章节关闭后，只检查剩余 active source files 的真实邻接，不为 inactive 文件创建虚假记录。单文件论文为 `not_applicable`。
 
-每个 actual seam 的项目记录只保留推动相邻文件衔接所需的事实：
+只对真实跨文件依赖、尚未闭合的语义冲突或必须跨阶段恢复的数学/证据承接登记 Chapter Handoff Map。普通 `narrative`、`frontmatter_consistency` 与 `structural_terminal` 邻接依据当前相邻正文和既有锚点直接审阅，不为每条物理边界持久填表。需要登记时，项目记录只保留推动衔接所需的事实：
 
 ```text
 source_closure
@@ -212,7 +212,7 @@ source_closure
 
 `bridge_need` 使用 `required / optional / not_needed`。即使为 `required`，也只要求真实语义承接，不要求单独设置过渡段；可以由上一段收束句、下一段进入句或同一段中的关系完成。**不建立连接词词库，不要求每个 physical-file seam 都出现正文过渡句**，也不得按“因此、下面、接下来”等词的出现频率判定连续性。
 
-写当前文件前，优先读取 relevant assembled predecessor handoff、当前项目事实及必要的 fragment/result anchors；信息不足或冲突时，定点回读 source 文件尾部与 target 文件开头，不预载整篇论文。写完后更新 incoming seam 状态和面向 assembled successor 的 outgoing handoff；若上游真实模型、结果或依赖变化，只标记实际受影响的 handoff/fragment stale。
+写当前文件前先读取当前项目事实与必要的 fragment/result anchors；仅在相关 handoff 记录已存在时消费，普通叙事 seam 没有记录不构成写作阻断。依赖、对象、符号或证据不清以及记录冲突时，定点回读 source 文件尾部与 target 文件开头，不预载整篇论文。写完后只更新确需追踪的 incoming/outgoing seam 与已有依赖锚点；**全部 actual active seam 仍在 draft/final review 接受 assembled seam sweep**。真实依赖缺口、引用 stale 或未闭合争议不得借“可选记录”逃避修复。
 
 Chapter Handoff Map 属于 writing-only 项目记忆，不属于模型语义哈希区。桥接措辞、handoff wording、纯术语统一、边界重复删除或 seam status 更新不得递增 `semantic_revision`，不得使 `locked_model_spec` stale，也不得触发 Model Approval、03A 重算或新的数值验收；上游真实语义变化仍按既有状态机制向相关 handoff 传播 stale。
 
