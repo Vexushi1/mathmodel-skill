@@ -68,6 +68,17 @@ def review_text(root: Path = ROOT) -> str:
     return "\n".join((root / path).read_text(encoding="utf-8") for path in CANONICAL_PATHS) + "\n"
 
 
+# Phase C adjusts exactly two Handoff-consumer sentences while preserving
+# all eleven historical business sections byte-for-byte after projection.
+# The fixture remains immutable evidence; unrelated current changes still fail.
+PHASE_C_CONTENT_REVIEW_REWRITES = (
+    ("本检查**只消费** Protocol §5A、Template Manifest、当前论文与已存在的 Chapter Handoff Map（如有）。draft review 与 final review 均执行 `assembled seam sweep`：按最终 active physical-file 顺序逐对检查实际邻接；普通边界无 map 记录不构成缺项；inactive slot 不建立虚假 seam；摘要按最终阅读位置检查，不按最后写作位置连接评价章。",
+     "本检查**只消费** Protocol §5A、Template Manifest 与 current Chapter Handoff Map。draft review 与 final review 均执行 `assembled seam sweep`：按最终 active physical-file 顺序逐对检查实际邻接；inactive slot 不建立虚假 seam；摘要按最终阅读位置检查，不按最后写作位置连接评价章。"),
+    ("对每个 seam 检查对象、符号/术语、真实依赖、claim、重复与 bridge_need；真正需跨阶段追踪的依赖或未闭合冲突仍应有 current 锚点/记录，不能因空表或缺少普通叙事行跳过审查。`bridge_need=required` 需要真实语义桥，但不强制独立“过渡段”；独立小问不虚构跨问继承。机器可核文件/记录/stale 冲突，不能由物理邻接、连接词或 token 相似断言语义连续。",
+     "对每个 seam 检查对象、符号/术语、真实依赖、claim、重复与 bridge_need。`bridge_need=required` 需要真实语义桥，但不强制独立“过渡段”；独立小问不虚构跨问继承。机器可核文件/记录/stale 冲突，不能由物理邻接、连接词或 token 相似断言语义连续。"),
+)
+
+
 def historical_review_text(root: Path = ROOT) -> str:
     """Reconstruct the old business document from the current canonical owners."""
     documents = {path: split_sections((root / path).read_text(encoding="utf-8"))
@@ -78,6 +89,11 @@ def historical_review_text(root: Path = ROOT) -> str:
         if len(matches) != 1:
             raise ValueError(f"review section must have one canonical owner: {path}#{heading}")
         body = matches[0]
+        if heading == "## 二、题意、框架与局部 stale 审查" and path == CONTENT:
+            for current, previous in PHASE_C_CONTENT_REVIEW_REWRITES:
+                if body.count(current) != 1:
+                    raise ValueError("Phase C review handoff delta is missing or duplicated")
+                body = body.replace(current, previous, 1)
         # These two sections moved from an internal boundary to a file end.
         # The files keep one final newline; restore only the old section
         # separator, never words or rules from the historical fixture.
