@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.25.0
+当前 Skill 版本：10.26.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -474,6 +474,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_v10182_paper_routing.py`
 - `tests/test_v10183_cumcm_writing_structure.py`
 - `tests/test_v10233_cumcm_problem_analysis_appendix_headings.py`
+- `tests/test_v10260_cumcm_writing_narrative_b.py`
 - `tests/test_v10_project_delivery_receipt.py`
 - `tests/test_v10_project_policy_core.py`
 - `tests/test_v10_project_runtime_policy.py`
