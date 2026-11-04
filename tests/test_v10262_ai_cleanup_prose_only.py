@@ -126,6 +126,67 @@ class ProseOnlyCleanupContractTests(unittest.TestCase):
         ):
             self.assertIn(protected, self.cleanup)
 
+    def test_defensive_wording_examples_preserve_results_and_qualifiers(self):
+        protocol_section = self.protocol.split(
+            "### 7.3.7 事实来源、团队经历与反模板边界", 1
+        )[1].split("## 8.", 1)[0]
+        for phrase in (
+            "不承载事实的道歉或自我辩解前缀",
+            "真实负向结果",
+            "题目指定指标",
+            "不得把未开展的验证写成已完成",
+        ):
+            self.assertIn(phrase, protocol_section)
+
+        cleanup_section = self.cleanup.split("### C1. 普通自然语言去模板化", 1)[1].split("### C2.", 1)[0]
+        for phrase in (
+            "只允许移除包装，不得顺带改写其后的事实",
+            "差异方向与数值",
+            "不是禁词",
+            "真实负面结果",
+            "题目要求的指标比较",
+            "Keep 并报告",
+        ):
+            self.assertIn(phrase, cleanup_section)
+
+        fixture = yaml.safe_load(
+            (ROOT / "tests/fixtures/defensive_writing_expression_cases.yaml").read_text(encoding="utf-8")
+        )
+        cases = {case["id"]: case for case in fixture["cases"]}
+        self.assertEqual(
+            set(cases),
+            {
+                "apology_wrapper_only",
+                "measured_negative_comparison",
+                "mathematical_condition",
+                "scoped_non_significance",
+                "required_metric_comparison",
+                "applicability_limit",
+                "unperformed_validation",
+            },
+        )
+        for case in cases.values():
+            for fragment in case["must_preserve"]:
+                self.assertIn(fragment, case["input"])
+                self.assertIn(fragment, case["safe_example"])
+        for case_id in (
+            "mathematical_condition",
+            "scoped_non_significance",
+            "required_metric_comparison",
+            "applicability_limit",
+            "unperformed_validation",
+        ):
+            self.assertEqual(cases[case_id]["safe_example"], cases[case_id]["input"])
+        for case_id in ("apology_wrapper_only", "measured_negative_comparison"):
+            self.assertEqual(
+                cases[case_id]["input"].replace("遗憾的是，", ""),
+                cases[case_id]["safe_example"],
+            )
+        self.assertIn("invent_metrics", fixture["prohibited_operations"])
+        self.assertIn("delete_negative_result", fixture["prohibited_operations"])
+        self.assertIn("replace_required_metric", fixture["prohibited_operations"])
+        self.assertIn("invent_unperformed_validation", fixture["prohibited_operations"])
+
     def test_existing_runtime_sequence_and_stage_interface_are_preserved(self):
         stages = self.runtime["template_first_progressive_authoring"]["stages"]
         ids = [stage["id"] for stage in stages]
