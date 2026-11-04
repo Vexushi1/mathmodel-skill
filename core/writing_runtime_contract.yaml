@@ -483,7 +483,8 @@ template_first_progressive_authoring:
     - id: draft_semantic_review
       read_now:
         - core/writing_reasoning_contract.yaml
-        - core/output_contract.yaml#per_question
+        - path: core/output_contract.yaml
+          yaml_paths: [per_question]
         - core/workbook_schema.yaml
         - modules/05_writing/paper_writing_protocol.md#2-模板与写作职责
         - modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽
@@ -540,7 +541,8 @@ template_first_progressive_authoring:
     - id: final_review_and_delivery
       read_now:
         - core/writing_reasoning_contract.yaml
-        - core/output_contract.yaml#per_question
+        - path: core/output_contract.yaml
+          yaml_paths: [per_question]
         - core/workbook_schema.yaml
         - modules/05_writing/paper_writing_protocol.md#2-模板与写作职责
         - modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽

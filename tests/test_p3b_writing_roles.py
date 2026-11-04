@@ -121,9 +121,14 @@ class P3BWritingRoleTests(unittest.TestCase):
         self.assertEqual(self.review_read_bytes(final + final), final_bytes)
 
     def selected_source_text(self, rows, relative):
-        row = next(row for row in rows if row.get("origin") == "skill" and row["path"] == relative)
+        matching = [row for row in rows if row.get("origin") == "skill" and row["path"] == relative]
+        self.assertTrue(matching, relative)
         lines = read(relative).splitlines(keepends=True)
-        return "".join("".join(lines[start - 1:end]) for start, end in row["ranges"])
+        selected = set()
+        for row in matching:
+            for start, end in row["ranges"]:
+                selected.update(range(start - 1, end))
+        return "".join(lines[index] for index in sorted(selected))
 
     def test_review_stages_consume_delegated_authorities_and_final_pdf_rules(self):
         plan = self.resolver.resolve_runtime("latex", competition="CUMCM")
