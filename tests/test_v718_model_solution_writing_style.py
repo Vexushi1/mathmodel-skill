@@ -251,7 +251,11 @@ class TestV718ModelSolutionWritingStyle(unittest.TestCase):
         review_or_warn = set(audit["may_review"]) | set(audit["may_warn"])
         self.assertTrue(narrative_risks <= review_or_warn)
         self.assertTrue(narrative_risks.isdisjoint(set(audit["may_block"])))
-        self.assertIn("不得仅凭连接词、标题语法、算法名、段落距离、小节数量、标题字数、正文长度、公式数、图引用关键词或表面顺序判断叙事/详略质量", self.cleanup)
+        # CUMCM D: Cleanup no longer independently judges mathematical narrative.
+        self.assertIn("机器审计不得自动重写正文", self.cleanup)
+        self.assertIn("仅编辑普通自然语言的表达层，不编辑其承载的数学、数值或证据实体", self.cleanup)
+        self.assertIn("已被当前结果、图表或引用支持的结果说明", self.cleanup)
+        self.assertNotIn("仅编辑**不承担定义、证明、约束、数值、事实或证据功能**的句子", self.cleanup)
         self.assertIn("narrative_quality_from_connector_words_only", audit["must_not_claim"])
         self.assertIn("heading_quality_from_character_count_only", audit["must_not_claim"])
 

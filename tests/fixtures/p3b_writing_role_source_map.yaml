@@ -27,6 +27,9 @@ protected_markers:
     - routine_algebra
     - 不能仅因“不是最终模型公式”删除
     - 用户本轮没有再次提到这些能力
+    - 本阶段数学与事实只读
+    - 不舍入、不重写、不改变显示格式
+    - 连按其他理由主动拆合标题也没有权限
     - paper_writing_protocol.md#7.3-作者视角与建模解释
   review:
     - Question Writing Capability Activation Review

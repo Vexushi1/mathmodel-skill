@@ -96,8 +96,12 @@ class AuthorReasoningContractTests(unittest.TestCase):
             self.assertIn("human_like_score", text)
             self.assertIn("AI_like_score", text)
             self.assertIn("不得", text)
-        for phrase in ("Keep / Compress / Re-subject / Delete", "Problem-Specificity"):
-            self.assertIn(phrase, self.cleanup)
+        self.assertIn("Keep / Compress / Re-subject / Delete", self.cleanup)
+        # Problem-Specificity remains a semantic Protocol check; Cleanup consumes
+        # that Authority but does not execute a second semantic review.
+        self.assertIn("Problem-Specificity", self.protocol)
+        self.assertIn("Paragraph Necessity、Model Rationale 与 Detail Allocation", self.cleanup)
+        self.assertNotIn("Problem-Specificity", self.cleanup)
         for phrase in ("Author Reasoning Semantic Review", "Question Closure"):
             self.assertIn(phrase, self.review)
 

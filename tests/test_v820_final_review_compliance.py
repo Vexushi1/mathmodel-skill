@@ -124,7 +124,8 @@ class TestV820FinalReviewCompliance(unittest.TestCase):
 
         self.assertIn("draft_semantic_review", review)
         self.assertIn("final_review_and_delivery", review)
-        self.assertIn("Cleanup 只在 `draft_semantic_review`", cleanup)
+        self.assertIn("draft_semantic_review 已闭合之后", cleanup)
+        self.assertIn("未解决 blocking/review_required", cleanup)
         self.assertLess(runtime.index("- id: draft_semantic_review"), runtime.index("- id: ai_cleanup"))
         self.assertLess(runtime.index("- id: ai_cleanup"), runtime.index("- id: final_review_and_delivery"))
         self.assertIn("八类动态 coverage", runtime)
