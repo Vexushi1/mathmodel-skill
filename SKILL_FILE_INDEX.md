@@ -393,6 +393,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_contract_closure.py`
 - `tests/test_copied_support_source_closure.py`
 - `tests/test_cumcm_2026_compliance.py`
+- `tests/test_cumcm_2026_delivery.py`
 - `tests/test_current_skill_health.py`
 - `tests/test_e1_cross_module_acceptance.py`
 - `tests/test_e1_resource_measurement.py`
