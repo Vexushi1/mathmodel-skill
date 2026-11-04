@@ -62,7 +62,8 @@ template_inspection
 | 普通学术表达与润色 | Protocol §7.3、§16；Cleanup §C；Content Review 的 Author Reasoning | **规范—执行—验收分开**：Protocol 定义写作质量，Cleanup 只编辑可改语言，Review 只审查是否符合规范 |
 | 数学/证据边界 | Reasoning Contract；Protocol §7–§11；Cleanup §A–§B；Content Review §三–§四 | Reasoning 保持唯一复杂语义 Authority；Protocol 保留必要写作应用；Cleanup 保留只读边界，不重新证明；Review 消费既有 Authority |
 | 工作流治理词泄漏 | Protocol §17；core/writing_runtime_contract.yaml#runtime_vocabulary_firewall；config/prose_audit_patterns.yaml；scripts/audit_v8_writing_surface.py | 保留写作原则与机器定位的分工；词项统一由现有配置维护，避免多地逐字手抄后漂移；现有 warning 不升为默认 Hard |
-| 段落/章节衔接 | Protocol §4、§5、§5A；Runtime seam 时机；Content Review 的 assembled seam sweep | Protocol 定义合格叙事，Runtime 只决定何时读取/检查，Review 只执行审查；不增加 Handoff 必填表 |
+| **单问内部衔接（B 阶段）** | Protocol §3、§4、§5、§10、§11；Reasoning 的 within_question_subsection_architecture；逐问 Runtime 的 read_now | **05A 负责写作与就地自检，06 负责内容审查**。保留 Model→Solve→Result→Validate、段落前后承接与主结果→动机→证据→回收，不移动到 05C/§5A，不额外造注册表或门禁。 |
+| **跨文件/跨章节衔接（C 阶段）** | Protocol §5A；Runtime cross_file_chapter_handoff；Content Review 的 assembled seam sweep | 05A 定义正式装配后的真实邻接，Runtime 调用，06 验证。只在真实跨文件依赖/冲突时登记；不代替单问内部叙事。 |
 | 图表叙事与信息价值 | Protocol §13；Figure Authority；Content Review §六；Final Matrix figure_table_information_value | 写作位置与解释归 Protocol；图的制作/视觉证据归 Figure Authority；Review 验证论文内证据作用，不新造图形质量规则 |
 | LaTeX 审计及 PDF | 05B §7、05D；scripts/render_paper.py → audit_latex_project.py；Final Delivery 与 Matrix | 05B 只装配，05D 负责实际工程审计/编译/逐页检查，06 消费当前 PDF 的有效检查证据并作交付决定 |
 | 初稿与终稿的共用检查 | Module 06 入口 + content_review.md + final_delivery.md | 保留 **同一个共用内容审查文件**，区分首次核查与最终当前性/变化影响复核；不因此新建独立 Review 模块 |
@@ -126,8 +127,8 @@ template_inspection
 
 | 文件 / 部位 | 保留 | 计划操作 | 不做 |
 |---|---|---|---|
-| modules/05_writing/paper_writing_protocol.md §0–§6、§8–§15、§18–§19 | 逐章节写作、Preflight、局部闭环、题目与结果叙事 | 只审计职责重叠；无缺口不删 | 不把本文件压缩成只有原则的短文 |
-| 05A §7.3、§16 | 作者判断、事实依据、朴素学术表达 | 定位防御性叙事预防与具体语言例子；避免同一表达原则多地复制 | 不建立新的实验或指标选择权 |
+| modules/05_writing/paper_writing_protocol.md §0–§6、§8–§15、§18–§19 | 逐阶段写作、Preflight、**§3/§4/§5 单问内部逻辑**、**§10/§11 结果→检验衔接**、跨问/跨文件 Handoff、题意与结果叙事 | 只审计职责重叠；优先保留 B 阶段写作与 Result→Validation Bridge 原文能力，无真实缺口不删 | 不把 B 阶段内部衔接移给 05C/Module 06；不把本文件压缩成只有原则的短文 |
+| 05A §7.3、§16（及当前实际读到的章节规范） | 作者判断、事实依据、朴素学术表达 | 把防御性叙事预防规则落到**当前 Runtime 真实读取的地方**：逐问必读 §7.3；§16 目前在评价/引用阶段读取，不能假设每个前置章节自动消费它。必要时使用已有章节局部短引用或经验证的精准 selector 补读 | 不建立新的实验或指标选择权；不因通用表达规范开篇全量预读 05A |
 | 05A §17 | 内部词汇不得进入正文 | 引用统一诊断配置；减少多位置同词项静态复制 | 不删合法技术术语 |
 | modules/05_writing/ai_cleanup.md §A–§D | Prose-Only、数学/事实/结构只读、局部修改、受保护内容复核 | 减少多余的业务定义解释；在 §C 加入去防御性语言执行规则和例外 | 不恢复数学压缩、标题改写、表格/图注编辑权限 |
 | modules/06_review_delivery.md | 两种消费时机、severity、finding、返修排序、blocking | 保留入口/历史锚点，清晰化“只负责调度与裁决” | 不把两个真实叶文件合并回入口 |
@@ -176,13 +177,33 @@ template_inspection
 
 ## 6. 渐进读取与跨竞赛兼容：必须不变
 
-- 保持原 authoring_sequence 的所有 stage ID、stage order、当前 read_now/write_now/gate 语义及阶段输出名称。逐章采用“读本章 → 写本章 → 原有适用检查 → 下一章”，不能提前全读整个 05A/05C/06。
+- 保持原 authoring_sequence 的所有 stage ID、stage order、当前 read_now/write_now/gate 语义及阶段输出名称。**按既有阶段和当前小问渐进读取**：实际一个阶段可能同时消费若干相互依赖的 Protocol 章节（如逐问阶段读取 §3/§4/§5/§7–§13），不是机械的一节只读一个文件标题；不能因此提前全读整个 05A/05C/06。
 - 不提前读取初稿 Review、Final Review、05D 的全部正文来决定某章句子风格；05A 的防御性叙事原则按 §7.3、§16 和本章实际读集局部读取。
 - Proposition/Proof、Algorithm Trace stepwise/pseudocode、Formula Role、跨问真实依赖、当前图表候选的条件激活完全保留；必要时 full Reasoning fallback，不能因压缩 rule 文案漏读。
 - MCM/ICM、DOCX 及缺少可验证 CUMCM narrow-read 支持的路径保持现有回退；不能硬套 CUMCM 二级标题/模板。
 - Cross-File Assembled Seam Sweep 保留初稿和终稿的最终活动文件顺序，摘要按最终读序；普通邻接不强制建立新的持久 Handoff 表。
 - Review 来源仍按 core/module_manifest.yaml 的 entry/content/final 闭包：draft=[entry,content]，final=[entry,content,final]。旧路径和锚点必须取回叶文件真实正文，而非仅返回指针。
 - Model Approval、用户 full-fidelity 运行、accepted workbook、项目 State/typed stale、C1/C2 回执资格与全部 resolver-gates 保持不变。规范文件来源变化对回执有效性造成的真实影响必须如实处理，不“刷新 hash”绕过。
+
+
+### 6.1 B 阶段“问题内部衔接”的专门保护（本次复审核实）
+
+该功能已经在 [PR #292](https://github.com/Vexushi1/mathmodel-skill/pull/292) 的 B 阶段形成，并在现行 `modules/05_writing/paper_writing_protocol.md` 和 `core/writing_runtime_contract.yaml` 中可直接定位；[PR #294](https://github.com/Vexushi1/mathmodel-skill/pull/294) 的 C 阶段解决的是**跨 physical-file seam 的登记负担**。两者不能合并迁移或互相替代。
+
+| 情形 | 既有 Authority | 调度 / 验收边界 |
+|---|---|---|
+| 单问四功能：MODEL→SOLVE→RESULT→VALIDATE、复杂问规范二级标题及必要例外 | 05A §3/§3.1；复杂数学章节语义来自 `core/writing_reasoning_contract.yaml#model_establishment_solution_narrative.within_question_subsection_architecture` | writing_runtime 的 `question_model_solution_result_validation` 读取当前章组；06 核对写法与实际题意，不机械强制所有问四节 |
+| 同一问相邻段落的数学接续与删段必要性 | **05A §4 Local Narrative Chain、§5 Paragraph Handoff Test** | 05A 逐段使用真实对象、gap、operation、output、next_use；06 审查是否断裂；05C 只能清理可分离的空话，不删除桥接关系 |
+| 主结果→检验/深化：主结果→分析动机→真实证据→结论回收 | **05A §10、§11 Result → Validation Bridge** | 必须由真实 accepted 主结果与适用 03B/直接证据支撑，不补造验证，不重复求解；06 核验真实 evidence closure |
+| 同问图表定位与邻近解释 | 05A §9、§13，Figure Authority 负责图本体 | 每张核心图在真实角色位置解释，不把正文叙事职能转给绘图/LaTeX Adapter |
+| Q1→Q2 的真实继承 | 05A §12 + Reasoning 的 cross_question_progression | 仅当实际依赖存在才桥接，不虚构增量 |
+| 最终活动 LaTeX 文件边界 | **05A §5A Cross-File Chapter Handoff** | 按 final assembled physical order 审；真实依赖登记，普通邻接不强制新表。**这是 C 阶段，区别于前五项。** |
+
+**必须保持的回归**：在 Plan 的 WR-01 之外，正式实施必须补充 `tests/test_v10260_cumcm_writing_narrative_b.py`、`tests/test_v719_intra_question_writing_closure.py`、`tests/test_v10183_cumcm_writing_structure.py` 的相关断言；审查中抽取真实段落例子，不能只靠“文本含 Result→Validation Bridge”证明逻辑成立。**不得把 B 阶段单问衔接并入 C 阶段物理边界登记。**
+
+### 6.2 新表达规则的“实际可读”约束
+
+目前 Runtime 的逐问阶段显式读取 §4/§5/§7.3/§10/§11；§16 不在该阶段的 `read_now` 中，而在后续评价/文献阶段取读。故“把某项语言原则写进 §16”**并不自动意味着前面每章都读到了**。实施时须先验证对应 stage selector 与 `core/stage_reading_guide.md` 的映射，再选择最小合法落点：逐问规则优先 §7.3，前置章节按该章现有 §6.x 权威处理；只有真实漏读才对现有 read_now 作精准修复，保留窄读且不增加全量 preload。变更需用真实 reading-plan/selector 结果与专项测试证明，而不能凭文件存在推断正文已被消费。
 
 ## 7. 分批实施计划（每批可独立回滚）
 
@@ -194,7 +215,7 @@ template_inspection
 - 专项关注公式/中文推导/证明/伪代码/数字/Caption/结构只读，当前结果说明的限定与 Claim Strength 不漂移。
 
 **实施批次 B — Review 职责与检查复用：**
-- 调整入口与两个叶文件的职责描述，区分 draft 实质审查和 final 当前性/增量复核；保留八类 coverage 和 full active scope。
+- **先评估是否真正有必要改 Module 06 既有正文**；现有入口/叶文件已经明确只消费 Authority。只有真实职责冲突才修改入口与叶文件，区分 draft 实质审查和 final 当前性/增量复核；保留八类 coverage 和 full active scope。现有冻结原文测试须先列出影响与兼容方案，不能把旧历史保护当作普通文本断言随意移除。
 - 同一 PR 处理与 Module 06 历史文字重组、来源快照、阅读计划、Review receipts、Final Matrix 关联的测试；不得通过改冻结 fixture 或放松检查消除失败。
 - 05D/Final 的 PDF 证据消费接口确有缺口才做最小文字/消费者修正，避免引入并行 report。
 
@@ -209,7 +230,7 @@ template_inspection
 
 | ID | 场景/断言 | 关联测试和检查 |
 |---|---|---|
-| WR-01 | CUMCM 普通逐章只读当前 Protocol sections，章节次序、read/write/gate 不变 | tests/test_v800_writing_runtime.py、test_reading_plan.py、test_reading_plan_evidence.py、test_p3b_writing_roles.py |
+| WR-01 | CUMCM **按当前 stage/question 的原有 read_now 和 conditional_reads** 渐进取读；不丢应读 §4/§5/§10/§11，不提前装载 05C/06，stage 顺序/read/write/gate 不变 | tests/test_v800_writing_runtime.py、test_reading_plan.py、test_reading_plan_evidence.py、test_p3b_writing_roles.py |
 | WR-02 | 命题 planned/current、Algorithm stepwise/pseudocode 条件资源照常激活；missing 不静默 not_needed | test_v870_question_writing_capability_preflight.py、test_p3b_writing_roles.py |
 | WR-03 | 局部润色不预载/修改无关章节，跨问真实依赖才扩围 | test_v10262_ai_cleanup_prose_only.py、test_p3b_writing_roles.py |
 | WR-04 | Cleanup 不能改公式、中文推导、证明、伪代码、限制条件、数字/单位、术语、引用、caption、结构 | test_v10262_ai_cleanup_prose_only.py + 代表性正反例审阅 |
@@ -263,3 +284,48 @@ template_inspection
 - [ ] 最终功能回归、版本发布与 main 合并后复核：尚未进行。
 
 **审阅口径：** 认可此计划仅表示认可分工方向；具体功能改动应先在实施 PR 展示真实 diff、测试证据及影响范围。
+
+## 11. 首轮细致复审与修订结论（2026-11-04）
+
+此复审基于 main@87c7cbef3ca59fd3e6c5771e7fa8952f04bef0da、现行读集、05A/05C/06 原文、既有 PR #292/#294、Review frozen-source 测试与 C1/C2 契约。**仅发现/约束实施风险，不等于已验证未来代码或未来论文语义。**
+
+### R1 — 已纠正：单问内部衔接与跨文件 Handoff 原计划混写（高优先级）
+
+原计划的“段落/章节衔接”合成一行，容易使维护者把 05A §4/§5/§10/§11 的 B 阶段能力误迁到 §5A 或审查模块。本轮将其拆分为单问内部 vs 跨文件两行，并补充 §6.1 的所有者、读集及专项回归。**05A 直接写出衔接、06 独立核验，05C 不新增/删除数学逻辑桥。**
+
+### R2 — 已纠正：错误暗示每阶段只读一个写作小节（高优先级）
+
+实际 `question_model_solution_result_validation.read_now` 同时包含多项 Protocol section。不能强制“每章只读该章一个 §”，否则会遗漏本问必要的前置结果、求解、解释或验证规则。本轮修正 §6 和 WR-01：保留已有 stage/question read_now+conditional_reads，禁止默认扩大为全量资源。
+
+### R3 — 已补充：防御性写作规则必须在正确的写作时机真正被读取（高优先级）
+
+将原则放入 05A §16 而希望所有问题章节自然生效的方案不严谨：该 section 目前在后置评价/引用阶段取读。优先让逐问作者表达落在 §7.3，其他阶段用对应本地规则；若确有缺读才改精准 selector / reading guide。不得以新增统一全局预读解决。详见 §6.2。
+
+### R4 — 尚待实施时解决：Module 06 历史冻结原文与职责修改存在显式冲突（高优先级）
+
+`tests/module06_sources.py#historical_review_text` 把三个真实源按固定十一节重组，再与不可变的 `tests/fixtures/module06_v10210_source.md` 比较。当前已有 C 阶段两处精确逆投影；直接更改这些业务段落会触发冻结测试。**不允许简单替换历史快照、新算 hash、删除断言或让测试依旧 PASS 却失去覆盖。**
+
+实施 B 时按优先顺序处理：① 先检查现有 Module 06 文字是否已经满足单一职责，能不改就不改；② 只有真缺口才修改规范，逐项列明相对历史规则的授权语义差分，确定旧消费者的兼容读取和检验策略；③ 如确需更新测试侧的历史→当前解释映射，保留历史 fixture 不可变，采用**有边界、明确列出的 exact old/new delta** 及独立能力回归，防止隐藏数学/coverage 规则削弱；④ 同步 `tests/test_reading_module06.py`、`tests/test_p3b_writing_roles.py`、`tests/test_review_receipts.py` 和实际内容审查测试。不能为通过旧测试而加入无用历史段落或额外新文件。
+
+### R5 — 已明确：审查证据的复用须服从实际 C1/C2 绑定，而非局部 hash 猜测（高优先级）
+
+`core/review_receipt_contract.yaml` 对 draft/final 声明了各自的 required Authority paths、选定论文源码及活动 include/image 范围；`core/review_receipt_consumption_contract.yaml` 对显式启用的记录要求两类角色、当前范围以及 supersession/recheck 等。05A/06/Runtime 等来源调整可能真实影响现有 receipt 资格；**只在旧证据满足现有相同 criteria、source/read-set、输入状态和对象范围时复用**。不能在规范来源已变化时直接复制“以前审核 PASS”，也不能用 partial recheck 代替有缺口的整篇终审。对本次未来仓库更新，必要回执重新评估而非批量迁移旧项目或自动补写 State。
+
+### R6 — 已明确：语言润色不等于全文反证消除（中优先级）
+
+`05C §A` 的数学/中文推导/命题/伪代码/数字/标题/caption 保护已有 v10.26.2 测试固定。为减少重复解释可以压缩治理性描述，**但不能把精确只读禁令抽象成“数学不动”一句话**，更不能让外部 anti-defensive-writing 的“换指标、不说输”越过题意/Claim Strength。对表面表达检查仅保留 warning 或由真实证据上升既有 review_required，不能创造词频硬门禁。
+
+### R7 — 已明确：PDF 的执行与消费不能偷换（中优先级）
+
+05D 的逐页 PDF 视觉审查由助手按当前编译 PDF 实施，`render_paper.py` 自身成功不等于完成了逐页人审；Final Review 依 current PDF SHA、范围和真实审阅记录核验，不需同版无意义重做，但**全页覆盖未证明或 PDF 改动后必须补齐实际逐页审阅**。不得用旧 PDF、旧 report 或“仅抽查几页”宣称全文完成。
+
+### R8 — 其他暂不改动项
+
+已审视 05B Adapter、05D 编译入口、Reasoning、Template Manifest、Runtime、Final Matrix 等关联；没有足够证据支持本轮同时重做这些业务规则。现有 B/C 成果和八类终审检查应尽量保持原样。实施 PR 应以最小有效改动为目标，发现真实矛盾再按单主题分别处理。
+
+### 更新后的实施顺序建议
+
+1. A：优先只改 05A/05C 及必要测试，明确 B 阶段单问衔接完全保持，新增去防御性表达正反例；先不碰 06 的历史正文。
+2. B：先做 Module 06 的“无需改业务段落是否已经足够”核查；不够时按 R4 的授权差分与完整回归做最小修订；不得同时重做数学 Authority。
+3. C：仅处理有证据的 Runtime 读取/引用漂移，验证 CUMCM、MCM/ICM、DOCX、C1/C2 当前性和 PDF 完整覆盖；不新建 gate。
+4. 每批维持独立 PR/远端专项测试/最终 head 正式验收，不以本计划文档通过代替功能测试。计划 PR 仍为 Draft、docs/no bump。
