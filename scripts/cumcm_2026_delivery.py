@@ -104,7 +104,7 @@ def _code_selection(root: Path, state: Mapping[str, Any]) -> set[str]:
         if not isinstance(row, Mapping) or not re.fullmatch(r"Q[1-9]\d*", str(key)):
             raise DeliveryError(f"问题状态非法: {key}")
         n = int(str(key)[1:])
-        cn = STAGE_CODE.chinese_question_name(str(key))
+        cn = STAGE_CODE.question_name(str(key))
         for stage, field, status_field in (
             ("primary", "code", "primary_execution_status"),
             ("analysis", "result_analysis_code", "analysis_execution_status"),
@@ -222,8 +222,11 @@ def prepare(root: Path, *, extra_files: tuple[str, ...], anonymous_confirmed: bo
         raise DeliveryError("正式论文不是有效 PDF 文件头")
     if pdf.stat().st_size > int(rules["paper"]["max_paper_mb"]) * 1024 * 1024:
         raise DeliveryError("论文 PDF 超过 20MB")
-    if "withoutpreface" not in main.read_text(encoding="utf-8"):
-        raise DeliveryError("电子版必须使用摘要首页模式，不能包含承诺书与编号专用页")
+    active_main = "\n".join(
+        line.split("%", 1)[0] for line in main.read_text(encoding="utf-8").splitlines()
+    )
+    if not re.search(r"\\documentclass\s*\[\s*withoutpreface\s*\]\s*\{cumcmthesis\}", active_main):
+        raise DeliveryError("电子版必须实际启用摘要首页模式，不能包含承诺书与编号专用页")
     appendix, ai_used = _appendix_and_ai(main, state)
     program_names = _code_selection(root, state)
     support: set[str] = set(program_names)
@@ -240,6 +243,8 @@ def prepare(root: Path, *, extra_files: tuple[str, ...], anonymous_confirmed: bo
         support.add(_relative(root, _inside(root, name, support=True)))
     if support & raw_problem:
         raise DeliveryError("官方支撑包不得重新收录赛题提供的原始附件: " + str(sorted(support & raw_problem)))
+    program_names.update(name for name in support if Path(name).suffix.lower()
+                         in {".py", ".m", ".r", ".do", ".sps", ".jl", ".c", ".cpp", ".sh"})
     ai_name = str(rules["paper"]["ai_detail_file_when_used"])
     if ai_used:
         support.add(_relative(root, _inside(root, ai_name, support=True)))
@@ -321,6 +326,8 @@ def build(plan: Mapping[str, Any], output_dir: Path) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     paper = output_dir / PAPER_NAME
     support = output_dir / SUPPORT_NAME
+    if not plan["support"] and support.exists():
+        raise DeliveryError("发现旧支撑 ZIP，必须先由参赛队核对后再选择无支撑材料交付")
     with tempfile.TemporaryDirectory(prefix="cumcm_a2_", dir=output_dir) as tempdir:
         temp = Path(tempdir)
         staged_pdf = temp / PAPER_NAME
@@ -333,8 +340,6 @@ def build(plan: Mapping[str, Any], output_dir: Path) -> dict[str, Any]:
         os.replace(staged_pdf, paper)
         if plan["support"]:
             os.replace(temp / SUPPORT_NAME, support)
-        elif support.exists():
-            raise DeliveryError("发现旧支撑 ZIP，已拒绝覆盖为“无支撑材料”")
         return verify(plan, output_dir)
 
 
