@@ -116,9 +116,11 @@ class ProseOnlyCleanupContractTests(unittest.TestCase):
 
     def test_plain_style_actions_only_touch_separable_non_factual_text(self):
         for protected in (
-            "仅编辑**不承担定义、证明、约束、数值、事实或证据功能**的句子",
+            "仅编辑普通自然语言的表达层",
+            "已被当前结果、图表或引用支持的结果说明",
+            "保持对象、数值、范围、条件、比较基准、指标方向、引用范围与 Claim Strength 不变",
             "Keep / Compress / Re-subject / Delete",
-            "只操作与受保护内容可明确分离的过渡句",
+            "只操作与受保护内容可明确分离的过渡句、纯冗余句、语序，以及上述已被证据支持的结果叙述",
             "原研究对象、事实、语气、结论强度",
             "无法证明可分离时，不作局部替换",
         ):

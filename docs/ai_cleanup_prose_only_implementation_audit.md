@@ -58,3 +58,8 @@ PR 仅推送源文件，`refresh-generated` 自动更新 MANIFEST/索引；以�
 - 将新增的 `test_v10262_ai_cleanup_prose_only` 纳入 Windows targeted suite，确保新权限边界测试不只存在于全量发现中。
 
 不以增加旧禁令句子或恢复数学/结构编辑权来消除失败。正式验收仍以修复后最终 head 的完整 Windows Python 3.10/3.14、Static/Generated、MATLAB、LaTeX、Production attestation、Figure 及适用 Optimization 证据为准。
+
+
+## 结果叙述的语言编辑边界
+
+计划 §2.1 明确允许调整已经被当前结果、图表或引用支持的结果说明，只要主张强度不变。初版 05C 的“不得编辑任何事实句”表述过窄，容易误禁正常的结果叙述润色。本次收敛为：可以调整已支持结果叙述的句式、语序和标点，但对象、数值、范围、条件、比较基准、指标方向、引用范围与 Claim Strength 必须保持不变；混合推理依赖或无法分离的事实载荷仍只读并回报。此项不开放数学推导、数值格式、图表实体或证据范围修改权限。
