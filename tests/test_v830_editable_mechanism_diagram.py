@@ -951,7 +951,8 @@ class ContractAndDriftTests(unittest.TestCase):
                     ).hexdigest()
                 elif (relative in HANDOFF_AUTHORITY_REWRITES
                       or relative in USER_CHECKER_AUTHORITY_REWRITES
-                      or relative in P6_SOURCE_PROVENANCE_REWRITES):
+                      or relative in P6_SOURCE_PROVENANCE_REWRITES
+                      or relative in DEFENSIVE_WRITING_AUTHORITY_REWRITES):
                     data = self.prior_handoff_text(relative).encode("utf-8")
                     actual = hashlib.sha1(
                         b"blob " + str(len(data)).encode("ascii") + b"\0" + data
