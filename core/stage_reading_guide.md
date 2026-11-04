@@ -233,7 +233,7 @@ not detect context compression or substitute for checking current project eviden
 ### draft_semantic_review
 
 - read_now: `core/writing_reasoning_contract.yaml`
-- read_now: `core/output_contract.yaml#per_question`
+- read_now: `core/output_contract.yaml`; selector=['per_question']
 - read_now: `core/workbook_schema.yaml`
 - read_now: `modules/05_writing/paper_writing_protocol.md#2-模板与写作职责`
 - read_now: `modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽`
@@ -273,7 +273,7 @@ not detect context compression or substitute for checking current project eviden
 ### final_review_and_delivery
 
 - read_now: `core/writing_reasoning_contract.yaml`
-- read_now: `core/output_contract.yaml#per_question`
+- read_now: `core/output_contract.yaml`; selector=['per_question']
 - read_now: `core/workbook_schema.yaml`
 - read_now: `modules/05_writing/paper_writing_protocol.md#2-模板与写作职责`
 - read_now: `modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽`
