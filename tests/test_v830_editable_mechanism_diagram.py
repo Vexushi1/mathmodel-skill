@@ -310,6 +310,19 @@ HANDOFF_AUTHORITY_REWRITES = {
 }
 
 
+# Batch A adds only two evidence-preserving prose rules. Invert these exact
+# paragraphs before the unchanged historical authority projections; the old
+# protected hashes continue to reject every unrelated byte change.
+DEFENSIVE_WRITING_AUTHORITY_REWRITES = {
+    "modules/05_writing/paper_writing_protocol.md": (
+        ("表达结果、比较与局限时，优先直接写明研究对象、适用条件、比较基准、实际结果及其影响范围。对于“遗憾的是”等不承载事实的道歉或自我辩解前缀，可以省去；若其后内容涉及真实负向结果、失败检验、数据缺口或适用限制，应保留相应事实。“仅”“尚未”“未显著”“局部”“可能”“在当前样本/测试范围内”“受限于”等表达按事实功能判断，不作通用禁词；它们承载数学条件、范围、统计状态、证据等级或适用边界时必须保留。不得为突出优势而改换题目指定指标、删去必要比较或把局部结果推广为整体结论，也不得把未开展的验证写成已完成。\n\n", ""),
+    ),
+    "modules/05_writing/ai_cleanup.md": (
+        ("对无信息价值的自我削弱包装，只允许移除包装，不得顺带改写其后的事实。例如，“遗憾的是，该方法在测试集 B 上的 MAE 比基线高 12%”可以去掉“遗憾的是”，但必须保留测试集、指标、基线、差异方向与数值；“遗憾的是，该方法仅取得一定效果”最多去掉道歉前缀，“仅取得一定效果”仍须保留，不得补造量化指标。\n“仅”“尚未”“未通过/未观察到显著差异”“局部”“可能”“在当前样本/测试范围内”“受限于”等词不是禁词。它们承载数学前提、比较范围、统计状态、未完成事项、适用条件或证据等级时必须保留其限定作用；不得改写成更强或更弱的主张。真实负面结果、失败实验、题目要求的指标比较、模型适用边界与失效范围不得删除、淡化、换指标或移出必要论证位置。若去除措辞后会改变事实、比较或限定，Keep 并报告；需要改变评价目标、解释原因或调整结论时返回上游，不由 Cleanup 决定。\n\n", ""),
+    ),
+}
+
+
 # v10.20.4 assigns the existing PDF visual review to the assistant. Project
 # only this compact delivery paragraph, preserving the existing byte budget,
 # back to v10.20.3; keep every historical PROTECTED hash unchanged.
@@ -443,6 +456,21 @@ def inverse_user_checker_changes(relative: str, text: str) -> str:
         if matches != 1:
             raise ValueError(
                 f"{relative}: authorized checker delta #{index + 1} is missing or duplicated "
+                f"(matches={matches}; anchor={current[:80]!r})"
+            )
+        text = text.replace(current, baseline, 1)
+    return text
+
+
+def inverse_defensive_writing_changes(relative: str, text: str) -> str:
+    """Project only the exact Batch A prose additions back to the pinned predecessor."""
+    for index, (current, baseline) in enumerate(
+        DEFENSIVE_WRITING_AUTHORITY_REWRITES.get(relative, ())
+    ):
+        matches = text.count(current)
+        if matches != 1:
+            raise ValueError(
+                f"{relative}: Batch A authority delta #{index + 1} is missing or duplicated "
                 f"(matches={matches}; anchor={current[:80]!r})"
             )
         text = text.replace(current, baseline, 1)
@@ -806,6 +834,7 @@ class ContractAndDriftTests(unittest.TestCase):
         for current, baseline in HANDOFF_AUTHORITY_REWRITES.get(relative, ()):
             self.assertEqual(text.count(current), 1, (relative, current))
             text = text.replace(current, baseline, 1)
+        text = inverse_defensive_writing_changes(relative, text)
         return text
 
     def test_protected_authorities_have_not_drifted(self):
@@ -996,6 +1025,28 @@ class ContractAndDriftTests(unittest.TestCase):
                 else:
                     actual = git_blob_sha(path)
                 self.assertEqual(actual, expected)
+
+    def test_defensive_writing_inverse_projection_rejects_missing_or_duplicate_blocks(self):
+        for relative, replacements in DEFENSIVE_WRITING_AUTHORITY_REWRITES.items():
+            source = (ROOT / relative).read_text(encoding="utf-8")
+            for current, _ in replacements:
+                for changed in (
+                    source.replace(current, "", 1),
+                    source + current,
+                ):
+                    with self.subTest(relative=relative, current=current[:80]):
+                        with self.assertRaises(ValueError):
+                            inverse_defensive_writing_changes(relative, changed)
+
+    def test_defensive_writing_inverse_projection_preserves_unrelated_changes(self):
+        for relative in DEFENSIVE_WRITING_AUTHORITY_REWRITES:
+            source = (ROOT / relative).read_text(encoding="utf-8")
+            projected = inverse_defensive_writing_changes(relative, source)
+            unrelated = "\\nunauthorized unrelated authority change\\n"
+            self.assertEqual(
+                inverse_defensive_writing_changes(relative, source + unrelated),
+                projected + unrelated,
+            )
 
     def test_checker_inverse_projection_rejects_missing_or_duplicate_authorized_blocks(self):
         # P6 and older documentation deltas both reject a missing or duplicate
