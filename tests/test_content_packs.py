@@ -181,7 +181,8 @@ class TestContentPacks(unittest.TestCase):
         self.assertIn("核心证明不能仅因篇幅较长", protocol)
 
         cleanup = (ROOT / "modules/05_writing/ai_cleanup.md").read_text(encoding="utf-8")
-        self.assertIn("不能把完整证明降成“关键链 + 见附录”", cleanup)
+        self.assertIn("公式来源、推导、命题证明、伪代码及求解细节", cleanup)
+        self.assertIn("Cleanup 不缩减、迁移、重排或删除", cleanup)
 
         latex = (ROOT / "modules/05_writing/latex.md").read_text(encoding="utf-8")
         self.assertIn("普通正文流中紧接 `hskproof`", latex)

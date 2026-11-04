@@ -47,3 +47,14 @@
 ## 生成与正式证据
 
 PR 仅推送源文件，`refresh-generated` 自动更新 MANIFEST/索引；以最终 PR head 检查 Windows Python 3.10/3.14 全分片与汇总、Static/Generated、MATLAB Native、三个 LaTeX、Production attestation、两个 Python Figure 和适用 Optimization baseline。正式 CI/合并后 main CI 未结束时**不报告 PASS**。Release 继续按用户统一发布安排。
+
+
+## CI 回归断言迁移（v10.26.2 follow-up）
+
+首次 Windows targeted run 在 1501 项测试中发现 3 项旧断言仍要求 Cleanup 执行其现已撤销的职责。它们不是数学内容回归，而是旧消费者测试未迁移：
+- `test_content_packs`：从“完整证明不能压成关键链+附录”的旧措辞，改为验证正文证明/求解细节在 Cleanup 中只读、不得缩减或迁移。
+- `test_v820_final_review_compliance`：从旧 gate 文案改为验证 draft semantic review 已闭合且未决 blocking/review_required 不能进入 Cleanup；原 Runtime 顺序断言继续保留。
+- `test_v850_author_reasoning_speech_acts`：Problem-Specificity 继续由 Paper Writing Protocol §7.3 持有；Cleanup 只消费该 Authority，不重复执行语义审查。Keep / Compress / Re-subject / Delete 的普通语言权限仍保留。
+- 将新增的 `test_v10262_ai_cleanup_prose_only` 纳入 Windows targeted suite，确保新权限边界测试不只存在于全量发现中。
+
+不以增加旧禁令句子或恢复数学/结构编辑权来消除失败。正式验收仍以修复后最终 head 的完整 Windows Python 3.10/3.14、Static/Generated、MATLAB、LaTeX、Production attestation、Figure 及适用 Optimization 证据为准。
