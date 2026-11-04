@@ -598,6 +598,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 
 ## Historical Maintenance Provenance
 
+- `docs/ai_cleanup_prose_only_safety_refactor_plan.md`
 - `docs/cumcm_paper_writing_compliance_narrative_refactor_plan.md`
 - `docs/cumcm_problem_analysis_appendix_heading_hierarchy_plan.md`
 - `docs/cumcm_question_writing_refinement_plan.md`
