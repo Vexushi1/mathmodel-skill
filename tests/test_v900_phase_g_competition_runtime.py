@@ -53,6 +53,82 @@ CUMCM_C_HANDOFF_RELEASE_VERSIONS = {
 CUMCM_D_CLEANUP_RELEASE_VERSIONS = {
     **CUMCM_C_HANDOFF_RELEASE_VERSIONS, "skill": "10.26.2",
 }
+# Phase C: pin the exact review reads separately from the historical
+# Review Split migration and unchanged Phase G golden. Unregistered additions,
+# removals, order changes, or selector substitutions must fail projection.
+C_REVIEW_STAGE_PINNED_READS = {
+    "draft_semantic_review": [
+        "core/writing_reasoning_contract.yaml",
+        "core/output_contract.yaml#per_question",
+        "core/workbook_schema.yaml",
+        "modules/05_writing/paper_writing_protocol.md#2-模板与写作职责",
+        "modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽",
+        "modules/05_writing/paper_writing_protocol.md#4-Local-Narrative-Chain",
+        "modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test",
+        "modules/05_writing/paper_writing_protocol.md#6-前置章节内容",
+        "modules/05_writing/paper_writing_protocol.md#7-模型建立",
+        "modules/05_writing/paper_writing_protocol.md#8-模型求解",
+        "modules/05_writing/paper_writing_protocol.md#9-求解结果数值与术语",
+        "modules/05_writing/paper_writing_protocol.md#10-结果与验证的分层",
+        "modules/05_writing/paper_writing_protocol.md#11-Result-Validation-Bridge",
+        "modules/05_writing/paper_writing_protocol.md#12-跨问递进",
+        "modules/05_writing/paper_writing_protocol.md#13.0-CUMCM-图表的正文落点先论证职责后图型",
+        "modules/05_writing/paper_writing_protocol.md#14-摘要",
+        "modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录",
+        "modules/05_writing/paper_writing_protocol.md#16-引用与正文语言",
+        "modules/06_review_delivery.md",
+        "modules/06_review/content_review.md",
+        "modules/04_figure_evidence.md#C 类：各问结果图合同",
+        "modules/04_figure_evidence.md#Figure Evidence 层级",
+        "modules/04_figure_evidence.md#Figure Portfolio Scientific Quality Gate",
+        "modules/04_figure_evidence.md#Missing Scientific Evidence Check",
+        "modules/04_figure_evidence.md#图题、配色与风格",
+        "modules/04_figure_evidence.md#入文闭环",
+        "templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton",
+        "modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff",
+        "current_model_paper_framework#Chapter-Handoff-Map"
+    ],
+    "final_review_and_delivery": [
+        "core/writing_reasoning_contract.yaml",
+        "core/output_contract.yaml#per_question",
+        "core/workbook_schema.yaml",
+        "modules/05_writing/paper_writing_protocol.md#2-模板与写作职责",
+        "modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽",
+        "modules/05_writing/paper_writing_protocol.md#4-Local-Narrative-Chain",
+        "modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test",
+        "modules/05_writing/paper_writing_protocol.md#6-前置章节内容",
+        "modules/05_writing/paper_writing_protocol.md#7-模型建立",
+        "modules/05_writing/paper_writing_protocol.md#8-模型求解",
+        "modules/05_writing/paper_writing_protocol.md#9-求解结果数值与术语",
+        "modules/05_writing/paper_writing_protocol.md#10-结果与验证的分层",
+        "modules/05_writing/paper_writing_protocol.md#11-Result-Validation-Bridge",
+        "modules/05_writing/paper_writing_protocol.md#12-跨问递进",
+        "modules/05_writing/paper_writing_protocol.md#13.0-CUMCM-图表的正文落点先论证职责后图型",
+        "modules/05_writing/paper_writing_protocol.md#14-摘要",
+        "modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录",
+        "modules/05_writing/paper_writing_protocol.md#16-引用与正文语言",
+        "modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff",
+        "current_model_paper_framework#Chapter-Handoff-Map",
+        "modules/06_review_delivery.md",
+        "modules/06_review/content_review.md",
+        "modules/06_review/final_delivery.md",
+        "modules/04_figure_evidence.md#C 类：各问结果图合同",
+        "modules/04_figure_evidence.md#Figure Evidence 层级",
+        "modules/04_figure_evidence.md#Figure Portfolio Scientific Quality Gate",
+        "modules/04_figure_evidence.md#Missing Scientific Evidence Check",
+        "modules/04_figure_evidence.md#图题、配色与风格",
+        "modules/04_figure_evidence.md#入文闭环",
+        "templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton",
+        "modules/05_latex_compile_quality.md#终稿检查",
+        "core/compile_profiles.yaml",
+        "config/competition_profiles.yaml",
+        "packs/competition/cumcm.md",
+        "templates/review/final_review_matrix.yaml",
+        "current_latex_audit_and_compile_reports"
+    ]
+}
+
+
 CUMCM_D_CLEANUP_GATE_OLD = "只清除模板感、空话、机械重复和证据越界，不删除章节必要建模理由/适用边界、推导、约束、solver 前提、命题、伪代码、结果或验证内容，也不按标题数量/字数机械合并或拆分。"
 CUMCM_D_CLEANUP_GATE_NEW = "只清除普通自然语言中的模板感、空话及纯重复；公式、中文推导、证明、伪代码、算法、数值及显示格式、术语定义、引用、图表实体、章节标题与层级均只读。数学或证据问题返回既有前置审查，不在 Cleanup 改写；改后在原有 Review 中复核受保护内容，不新增门禁。"
 
@@ -82,6 +158,20 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
     def _projection(self, plan):
         writing = copy.deepcopy(plan.get("writing_runtime"))
         if writing is not None:
+            # Phase C review-read integration is a separate, exact reversible
+            # delta. Keep the original v10.22 Review Split golden and historical
+            # projection immutable, including stage gates and output targets.
+            for stage_id, expected_reads in C_REVIEW_STAGE_PINNED_READS.items():
+                candidates = [stage for stage in writing["authoring_sequence"] if stage["id"] == stage_id]
+                self.assertEqual(len(candidates), 1)
+                self.assertEqual(candidates[0]["read_now"], expected_reads)
+                predecessors = [current for _, name, _, current in REVIEW_SPLIT_WRITING_DELTAS
+                                if name == stage_id]
+                self.assertEqual(len(predecessors), 1)
+                candidates[0]["read_now"] = copy.deepcopy(predecessors[0])
+            final_review = next(stage for stage in writing["authoring_sequence"]
+                                if stage["id"] == "final_review_and_delivery")
+            self.assertEqual(final_review.pop("run_now", None), ["assembled_seam_sweep"])
             # v10.18 adds one declared fallback condition, not a changed route or
             # an actual fallback decision. Require the exact new list before
             # projecting that clause back to the frozen Phase G metadata.
@@ -248,7 +338,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
             self.assertEqual(historical["id"], stage_id)
             self.assertEqual(historical["read_now"], previous_reads)
             self.assertEqual(stage["id"], stage_id)
-            self.assertEqual(stage["read_now"], current_reads)
+            self.assertEqual(stage["read_now"], C_REVIEW_STAGE_PINNED_READS[stage_id])
         self.assertEqual(self._projection(plan), self.golden["routes"]["latex"])
         self.assertEqual((plan, self.golden, REVIEW_SPLIT_WRITING_DELTAS), saved)
         for index, _, _, _ in REVIEW_SPLIT_WRITING_DELTAS:
