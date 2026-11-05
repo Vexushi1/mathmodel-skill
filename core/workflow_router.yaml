@@ -138,7 +138,7 @@ runtime_segments:
 # inference stay unchanged. Explicit API/CLI intents remain authoritative.
 review_action_policy:
   review_words: [终审, 审稿, 审阅, 审查, 论文检查]
-  edit_words: [修改, 改写, 重写, 修订, 润色, 生成, 编译, 调整, 创建]
+  edit_words: [修改, 改写, 重写, 修订, 修复, 更正, 润色, 生成, 编译, 调整, 创建, 新增, 删除, 补充]
   rule: Review actions consume the named carrier; a carrier token alone does not authorize authoring. Explicit conflicting intents fail before executable write planning.
 
 paper_carrier_disambiguation:

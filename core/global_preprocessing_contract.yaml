@@ -91,7 +91,8 @@ workflow_position:
 project_directory:
   create_only_when: preprocessing_decision.decision == project_level
   path: 数据预处理/
-  exact_default_files:
+  selected_files_authority: core/output_contract.yaml#global_preprocessing
+  exact_default_files:  # Historical MATLAB projection; use Output Authority for selected backend.
   - 数据预处理.py
   - 数据预处理结果.xlsx
   - data_process.m

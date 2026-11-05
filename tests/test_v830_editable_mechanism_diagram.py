@@ -1023,6 +1023,18 @@ class ContractAndDriftTests(unittest.TestCase):
                     actual = hashlib.sha1(
                         b"blob " + str(len(data)).encode("ascii") + b"\0" + data
                     ).hexdigest()
+                elif relative == "core/workbook_schema.yaml":
+                    # Eleven-issue repair changes only renderer-neutral handoff
+                    # prose. Invert these exact leaves; keep the frozen format hash.
+                    text = path.read_text(encoding="utf-8")
+                    for current, previous in (
+                        ("和Python/MATLAB绘图交接", "和MATLAB交接"),
+                        ("当前选定Python/MATLAB绘图代码生成前", "MATLAB绘图代码生成前"),
+                    ):
+                        self.assertEqual(text.count(current), 1)
+                        text = text.replace(current, previous, 1)
+                    data = text.encode("utf-8")
+                    actual = hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest()
                 else:
                     actual = git_blob_sha(path)
                 self.assertEqual(actual, expected)

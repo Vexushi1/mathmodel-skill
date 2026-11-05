@@ -33,9 +33,12 @@ def verify_plan_context(root: Path, plan: dict[str, Any], selected_commit: str) 
     """
     bootstrap_path = root / "core/bootstrap.yaml"
     if not bootstrap_path.is_file():
+        if (root / "core/runtime_assurance_contract.yaml").is_file() or (root / ".codex-plugin/plugin.json").is_file():
+            raise ValueError("registered Skill bootstrap is missing; reading incomplete")
         return
     bootstrap = yaml.safe_load(bootstrap_path.read_bytes()) or {}
-    if not (bootstrap.get("entrypoints") or {}).get("read_stage"):
+    if (not (bootstrap.get("entrypoints") or {}).get("read_stage")
+            and not (root / "core/runtime_assurance_contract.yaml").is_file()):
         return
     reading = plan.get("reading_plan") or {}
     contract = yaml.safe_load((root / "core/runtime_assurance_contract.yaml").read_bytes())

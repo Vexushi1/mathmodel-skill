@@ -34,7 +34,8 @@ def file_bytes(root):
 
 class ActionAndProjectionTests(unittest.TestCase):
     def test_review_carrier_is_not_an_authoring_intent(self):
-        for request in ("终审 LaTeX 论文，只审查，不修改", "审稿 Word 论文", "只审查 LaTeX，不修改", "请审查数学建模论文"):
+        for request in ("终审 LaTeX 论文，只审查，不修改", "审稿 Word 论文", "只审查 LaTeX，不修改", "请审查数学建模论文",
+                        "审查Python绘图脚本，只读", "审阅MATLAB代码，给出修改建议，不修改文件"):
             with self.subTest(request=request):
                 plan = resolve_runtime(request=request, competition="CUMCM")
                 self.assertEqual(plan["intents"], ["review"])

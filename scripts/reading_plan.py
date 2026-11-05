@@ -130,7 +130,8 @@ def validate_chunk_coverage(
         identities.add((
             chunk["path"], chunk["source_commit"], source_sha256, chunk["source_blob_sha"],
             origin, chunk.get("project_root"),
-            str(project_snapshot) if project_snapshot is not None else None,
+            tuple(project_snapshot.get(key) for key in ("path", "sha256", "state_generation", "present"))
+            if isinstance(project_snapshot, dict) else None,
         ))
         normalized_chunks.append((start, end, index, chunk))
 

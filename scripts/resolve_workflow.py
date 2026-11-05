@@ -81,6 +81,7 @@ def review_only_request(request: str, router: dict[str, Any]) -> bool:
     text = request.casefold()
     for word in [*review_words, *edit_words]:
         text = re.sub(r"(?:不要|不必|无需|不)\s*" + re.escape(word), "", text)
+    text = re.sub(r"(?:修改|修复|改写)(?:建议|方案|清单|意见)", "", text)
     return (any(word in text for word in review_words)
             and not any(word in text for word in edit_words))
 
@@ -140,8 +141,7 @@ def matched_inference_keywords(request: str, router: dict[str, Any]) -> dict[str
             del matches["latex"]
     if review_only_request(request, router):
         # Carrier keywords remain in the request; they are not authoring actions.
-        for name in carrier_keywords:
-            matches.pop(str(name), None)
+        matches = {name: words for name, words in matches.items() if name == "review"}
     return matches
 
 
