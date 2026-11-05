@@ -1,4 +1,4 @@
-version: 10.26.3
+version: 10.27.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -84,13 +84,14 @@ artifact_catalog:
   editable_mechanism_source: 由确定性生成器产生并通过结构检查的未压缩可编辑.drawio源；不能替代渲染预览和人工语义QA
   mechanism_preview: 与当前drawio hash绑定、供人工语义与版式复核的渲染预览；没有预览不得批准入文
   mechanism_exports: 人工复核后从可编辑源导出的项目级PDF/SVG/PNG正式机理图
+  mechanism_delivery_report: 现有同步器返回的非数值机理图只读检查报告，不写入project_state或sync_report.yaml
   validation_plan: 建模阶段的验证规划；其中Primary Quality Specification只定义当前主计算的最低数值有效性要求，参数敏感性、压力场景、替代算法/结构、异质性等仅作为下游风险提示，正式result_analysis_plan必须等主工作簿accepted后并经Analysis Necessity Gate判定required再建立
   semantic_governance_report: 聊天或标准输出中的Problem Contract、语义闭环、复杂度复审、structured identity/text provenance、跨问和paper-fragment stale校验结果
   preprocessing_code: 仅decision=project_level时生成的数据预处理/数据预处理.py；共享原始数据唯一公共处理入口
   preprocessing_workbook: 仅decision=project_level时生成的数据预处理/数据预处理结果.xlsx；依赖小问的统一数值数据入口，同时保存论文方法验证和MATLAB绘图底层证据
   preprocessing_quality_report: 仅project_level时适用的统一工作簿预处理质量门及聊天/标准输出验收结论
   preprocessing_matlab_script: 仅project_level在figure_evidence阶段生成的数据预处理/data_process.m；只读预处理工作簿绘制处理前后与验证证据
-  preprocessing_figures: 由data_process.m形成并人工确认的预处理必要性/有效性证据图；默认不要求自动导出文件
+  preprocessing_figures: 由项目选定data_process.py或data_process.m形成并人工确认的预处理必要性/有效性证据图；默认不要求自动导出文件
   awaiting_user_preprocessing: decision=project_level且预处理代码已交付后等待用户本地运行的暂停状态
   primary_code: 按output_contract.per_question.solver_scripts与已选后端确定的主求解入口；负责主求解、内在数值有效性检查及Primary Evidence Capture，accepted后冻结
   python_code: 旧Python调用的primary_code兼容投影；不用于标记MATLAB实现
@@ -179,6 +180,8 @@ modules:
       result_analysis_workbook:
         when: result_analysis_status == passed
     outputs: [preprocessing_matlab_script, preprocessing_figures, matlab_scripts, result_figures, refined_mechanism_figures, mechanism_diagram_spec, editable_mechanism_source, mechanism_preview, mechanism_exports, figure_contracts, approved_figures, evidence_map, model_paper_framework]  # legacy MATLAB projection
+    output_profiles:
+      mechanism: [mechanism_diagram_spec, editable_mechanism_source, mechanism_preview, mechanism_exports, figure_contracts, approved_figures, model_paper_framework]
     selected_backend_outputs:
       python: [preprocessing_python_plot_script, plot_scripts]
       matlab: [preprocessing_matlab_script, matlab_scripts]
@@ -318,6 +321,8 @@ utility_gates:
     command: python scripts/sync_project.py <project_root> --write --strict --delivery-scope <delivery_scope>
     inputs: [existing_project_state, existing_model_paper_framework, discovered_artifacts, workbook_schema, output_contract]
     outputs: [project_state, sync_report]
+    outputs_by_delivery_scope:
+      mechanism: [mechanism_delivery_report]
     delivery_scopes: [design, mechanism, code, results, figures, docx, latex, submission]
     stage_requirements_source: core/output_contract.yaml#project_sync.stage_requirements
     rules:

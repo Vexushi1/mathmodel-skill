@@ -109,8 +109,16 @@ def validate_chunk_coverage(
         if origin == "project":
             if (chunk["source_commit"] is not None or not isinstance(project_snapshot, dict)
                     or not re.fullmatch(r"[0-9a-f]{64}", str(project_snapshot.get("sha256", "")))
-                    or not isinstance(chunk.get("project_root"), str) or not chunk["project_root"]):
+                    or project_snapshot.get("path") != "state/project_state.yaml"
+                    or project_snapshot.get("present") is not True
+                    or type(project_snapshot.get("state_generation")) is not int
+                    or project_snapshot["state_generation"] < 0
+                    or not re.fullmatch(r"[0-9a-f]{64}", str(chunk["source_sha256"]))
+                    or chunk["source_blob_sha"] is not None
+                    or not isinstance(chunk.get("project_root"), str) or not chunk["project_root"]
+                    or not Path(chunk["project_root"]).is_absolute()):
                 issues.append(f"chunk {index} has no verified project snapshot identity")
+                continue
         elif origin != "skill" or not isinstance(chunk["source_commit"], str) or not chunk["source_commit"]:
             issues.append(f"chunk {index} has no selected commit")
         source_sha256 = chunk["source_sha256"]

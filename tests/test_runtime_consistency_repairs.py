@@ -22,6 +22,7 @@ from resolve_runtime import resolve_runtime
 import resolve_workflow
 import plot_backend
 import sync_project
+import reading_plan_evidence as plan_evidence
 from reading_plan_cases import build_project
 from test_v900_semantic_identity_binding import identity, structured_question, framework
 from test_sync_project import write_state, framework_text
@@ -30,6 +31,38 @@ from test_v830_editable_mechanism_diagram import base_spec, GENERATOR
 
 def file_bytes(root):
     return {p.relative_to(root).as_posix(): p.read_bytes() for p in root.rglob("*") if p.is_file()}
+
+
+class HistoricalProjectionTests(unittest.TestCase):
+    def test_registered_inverse_preserves_unregistered_differences(self):
+        for index in (0, 9, 14, 18):
+            after = plan_evidence.worker(ROOT, index)
+            candidate = plan_evidence.legacy_projection(after["plan"])
+            predecessor, changes = plan_evidence.runtime_consistency_predecessor(
+                after["id"], candidate, after["authority_versions"])
+            self.assertTrue(changes, after["id"])
+            self.assertEqual(predecessor["version"], "10.26.3")
+            saved = deepcopy(after)
+            for mutation in ("source_hash", "source_order", "gate", "artifact", "scope", "version"):
+                altered = deepcopy(after)
+                plan = altered["plan"]
+                if mutation == "source_hash":
+                    plan["assurance"]["authority_fingerprint"]["sources"][-1]["sha256"] = "0" * 64
+                elif mutation == "source_order":
+                    plan["assurance"]["authority_fingerprint"]["sources"].reverse()
+                elif mutation == "gate":
+                    plan["pre_delivery_gates"] = [{"name": "unregistered_gate"}]
+                elif mutation == "artifact":
+                    plan["terminal_outputs"].append("unregistered_qualification")
+                elif mutation == "scope":
+                    plan["delivery_scope"] = "submission"
+                else:
+                    plan["version"] = "10.27.1"
+                with self.subTest(case=after["id"], mutation=mutation):
+                    projected, _ = plan_evidence.runtime_consistency_predecessor(
+                        after["id"], plan_evidence.legacy_projection(plan), after["authority_versions"])
+                    self.assertNotEqual(projected, predecessor)
+            self.assertEqual(after, saved)
 
 
 class ActionAndProjectionTests(unittest.TestCase):
@@ -156,6 +189,10 @@ class CurrentPlanReaderTests(unittest.TestCase):
                     self.assertIsNone(first["source_identity"]["selected_commit"])
                     self.assertEqual(first["source_identity"]["skill_source_commit"], self.commit)
                     self.assertTrue(validate_chunk_coverage(first["required_ranges"], chunks)["complete"])
+                    for field in ("source_sha256", "project_root", "project_snapshot"):
+                        altered = deepcopy(chunks)
+                        altered[0][field] = None
+                        self.assertFalse(validate_chunk_coverage(first["required_ranges"], altered)["complete"])
             self.assertEqual(file_bytes(project), before)
             with self.assertRaisesRegex(ValueError, "project-root"):
                 read_stage.extract(plan, ROOT, self.commit, "read_now", "模型论文框架.md")
@@ -203,10 +240,16 @@ class MechanismScopeTests(unittest.TestCase):
             plan = resolve_runtime("editable_mechanism_diagram", project_root=root, question="Q1")
             self.assertEqual(plan["delivery_scope"], "mechanism")
             self.assertNotIn("figure_evidence:solution_workbook", plan["missing_prerequisites"])
+            for artifact in ("matlab_scripts", "plot_scripts", "result_figures", "sync_report"):
+                self.assertNotIn(artifact, plan["available_after_plan"])
+            self.assertIn("mechanism_delivery_report", plan["terminal_outputs"])
             report = sync_project.synchronize(root, delivery_scope="mechanism", write=True)
             self.assertEqual(report["status"], "passed", report["issues"])
             self.assertFalse(report["write"])
             self.assertEqual(file_bytes(root), before)
+            mixed = resolve_runtime(["editable_mechanism_diagram", "figures"], project_root=root, question="Q1")
+            self.assertEqual(mixed["delivery_scope"], "figures")
+            self.assertIn("figure_evidence:solution_workbook", mixed["missing_prerequisites"])
 
     def test_numeric_evidence_and_unreviewed_preview_cannot_use_exemption(self):
         for mutation in ("numeric", "review", "preview"):

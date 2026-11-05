@@ -630,23 +630,23 @@ python scripts/read_stage.py
 
 **20. 最终关闭台账**
 
-实施时为每条补齐实际记录，当前全部保持待实施：
+实际修改集中在 [PR #301](https://github.com/Vexushi1/mathmodel-skill/pull/301)，下表记录实现落点；正式验证以该 PR 最新 head 的 GitHub Checks 为准。
 
 | 问题 | 实施 PR / commit | 专项用例与反例 | 最终 head CI | 文档/模板一致 | 状态 |
 |---|---|---|---|---|---|
-| I01 | 待填写 | E01–E04 | 待验证 | 待核对 | 待实施 |
-| I02 | 待填写 | E05、E07、E08 | 待验证 | 待核对 | 待实施 |
-| I03 | 待填写 | E06–E08 | 待验证 | 待核对 | 待实施 |
-| I04 | 待填写 | E09、E10 | 待验证 | 待核对 | 待实施 |
-| I05 | 待填写 | E11–E14 | 待验证 | 待核对 | 待实施 |
-| I06 | 待填写 | E14–E17 | 待验证 | 待核对 | 待实施 |
-| I07 | 待填写 | E06、E08、E25、E26 | 待验证 | 待核对 | 待实施 |
-| I08 | 待填写 | E23 | 待验证 | 待核对 | 待实施 |
-| I09 | 待填写 | E18–E20、E25 | 待验证 | 待核对 | 待实施 |
-| I10 | 待填写 | E21、E22 | 待验证 | 待核对 | 待实施 |
-| I11 | 待填写 | E24、E25 | 待验证 | 待核对 | 待实施 |
+| I01 | router review_action_policy；两个 resolver 共用动作判定；review Pack 移除固定写命令 | 审阅 Word/LaTeX/绘图；否定审阅；显式编辑冲突 | PR 最新 Checks | 已核对直接消费者 | 已实现，待正式验收 |
+| I02 | router figures infer_keywords 与空白归一 | Python绘图、Python 绘图、双空格、MATLAB绘图 | PR 最新 Checks | 已同步 | 已实现，待正式验收 |
+| I03 | plot_backend.project_figure_roles；resolver/sync 复用 | 24 组元数据组合；真实计划 Python/MATLAB 两分支 | PR 最新 Checks | 已同步通用交接 | 已实现，待正式验收 |
+| I04 | Module 04 后端规则改为适用前言 | figures/review 实际返回正文包含 plotting.backend | PR 最新 Checks | 原 selector 保留 | 已实现，待正式验收 |
+| I05 | read_stage.verify_plan_context；Authority 指纹纳入读取/投影实现 | 旧版本、旧指纹、旧 schema、改动阶段列表拒绝 | PR 最新 Checks | 重取计划说明已补 | 已实现，待正式验收 |
+| I06 | read_stage --project-root/--origin；项目快照与文件 hash | 框架/状态/绘图源码分块；无根、同 generation 改字节拒绝 | PR 最新 Checks | CLI/覆盖身份已补 | 已实现，待正式验收 |
+| I07 | 全局入口、预处理、绘图/LaTeX/审阅 Pack 与活动模板 | 原 content/semantic drift/历史格式保护回归 | PR 最新 Checks | 专用 MATLAB 实现保留 | 已实现，待正式验收 |
+| I08 | global_preprocessing 两个下游指针；lint 注册该 Authority | 精确 fragment 解析与原坏指针检查 | PR 最新 Checks | 说明改为注释 | 已实现，待正式验收 |
+| I09 | mechanism scope、模块输入输出 profile、现有 sync 只读分支 | current model-only 通过；数值依赖/未审预览拒绝；混合范围保留数值门 | PR 最新 Checks | Module/Manifest/Output/CLI/lint 已适配 | 已实现，待正式验收 |
+| I10 | available_competition_pack | 缺失专用 Pack 回退；越界路径拒绝 | PR 最新 Checks | 回退原因显式返回 | 已实现，待正式验收 |
+| I11 | model_approval_section 当前结构化身份字段 | 当前/validated/approved identity 及旧格式保护回归 | PR 最新 Checks | legacy 只读说明 | 已实现，待正式验收 |
 
-只有全部问题闭合、跨层综合回归与正式最终 head 检查通过、生成物核对完毕且合并后 main 复核完成，才能将本计划标为实施完成。本文件当前仅表示修复方案和验收要求已经写出。
+只有全部问题闭合、跨层综合回归与正式最终 head 检查通过、生成物核对完毕且合并后 main 复核完成，才能宣称 main 修复完成。源码实现记录与 PR/合并状态分开；本次没有创建发布 tag 或 Release。
 
 
 
@@ -655,7 +655,15 @@ python scripts/read_stage.py
 - 最新 main 重新核对为 e48e4654，当前没有开放 PR。已读取该 main 的 bootstrap、AGENTS 与治理规范。
 - 用户授权把本计划推送到仓库并实施，明确允许在实施时纠正方案。
 - 遵守当前 AGENTS 的单分支、单主题 PR 要求，原四组串行 PR 调整为同一 `fix/runtime-consistency-11` 分支上的分阶段提交。统一主题为“当前运行计划、正文来源、后端产物与交付前置链一致性”。相关消费者共享 router/manifest/output/reading Authorities，需要在同一最终 head 上验证。
-- 版本号、是否增加独立 mechanism scope、计划来源字段形状及兼容策略，须结合实际代码和现有回归复核；不得因为原计划列过方案就强行采用。
+- 新增可选 CLI 参数和兼容交付范围，按 minor 准备 `10.27.0`，同步全部活动 release carriers；独立协议号保持原值。未发布 tag 或 Release。
+- I05 不增加另一套 source_context 或强制 schema 升级：现有 plan.version、reading/assurance authority_fingerprint、当前 canonical writing stages 和选定 commit 已能表达必要绑定。将直接影响读取和产物选择的五个实现文件加入已有指纹，防止“配置未变但解释器已变”的旧计划继续使用。
+- I04 把后端规则放入既有选读机制自动保留的适用前言，保留冻结的 stage ID、顺序和 selector；没有扩大为默认整文件读取。
+- I09 使用现有同步器的只读 mechanism 分支，不增设独立 checker 或写状态流程。模块候选输出及 gate 输出同时收窄，避免没有生成的数值脚本或 sync_report 被列为本次交付。含 result_evidence 的 draw.io 图必须回到 figures scope。
+- I03 的 24 组覆盖是求解/绘图后端、预处理及 analysis disposition 的纯角色组合，不声称执行了 24 次数值求解或人工审图；两个实际项目读取分支另测。
+- I07 复核中发现 review Pack 的固定 submission --write 命令及 LaTeX/机理图检查模板中的 MATLAB-only 指令，同属本次直接消费者，已一并修正。
 - 本次不改变用户项目或持久工作簿格式，不迁移求解/绘图后端，不替代 Human Approval、accepted workbook 或图片人工审阅。
 - 正式验收只使用 GitHub 的最终 head 证据；受管文件交由 refresh-generated。开发阶段先专项，冻结后完整验证。
-- 当前状态：计划首次提交，源码尚未修改；各项实际实现与验证结果待后续提交更新。
+- 历史保护不通过重置 Golden 或删除断言处理：工作簿契约仅逆向还原两处经过审查的交接措辞后检查原 blob hash；P2 历史对比用 `tests/fixtures/runtime_consistency_v10270_projection.yaml` 公开记录精确指纹扩展、条件产物及 mechanism 差异，其他字段仍须逐一相等。新增反例确认无关源 hash、顺序、门禁、产物和 scope 的变化不会被抹掉。
+- 开发诊断：新行为复现、已有读取器、图表/路由/内容保护等专项已运行；19 个既有 P2 场景在登记本次必要差异后没有未登记变化。它们不替代远端正式检查。
+- 开发阶段曾发现并修正 lint 的旧 scope allowlist、旧 MATLAB-only 测试断言及工作簿措辞逆投影位置；生成文件在源码 head 上暂时落后须等待 refresh-generated，不能借手工改 hash 通过。
+- 当前状态：11 项源码及直接消费者已实现，PR #301 跟踪生成提交、Windows 专项、冻结后的完整双版本分片、MATLAB/Python Figure/LaTeX 与适用 Optimization baseline。最终 head、工作流与合并结果以 PR 描述及 GitHub Checks 的实际记录为准。

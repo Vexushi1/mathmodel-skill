@@ -906,7 +906,7 @@ def check_contracts(errors: list[str]) -> None:
         if token not in acceptance_rules:
             errors.append(f"returned-workbook contract lacks identity/protocol binding token: {token}")
     sync = output.get("project_sync", {})
-    expected_scopes = {"design", "code", "results", "figures", "docx", "latex", "submission"}
+    expected_scopes = {"design", "mechanism", "code", "results", "figures", "docx", "latex", "submission"}
     requirements = sync.get("stage_requirements", {}) or {}
     if set(requirements) != expected_scopes or any(not isinstance(value, list) or not value for value in requirements.values()):
         errors.append("output contract must define every exact delivery scope")

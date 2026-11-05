@@ -236,7 +236,7 @@ def close_module_dependencies(
     for name, spec in module_specs.items():
         if not isinstance(spec, dict):
             continue
-        for artifact in spec.get("outputs", []):
+        for artifact in spec.get("output_profiles", {}).get(input_profile, spec.get("outputs", [])):
             producers.setdefault(str(artifact), []).append(name)
     selected = set(modules)
     external = set(manifest.get("external_artifacts", []))
@@ -258,7 +258,7 @@ def close_module_dependencies(
                 if producer_path and producer_path not in selected:
                     selected.add(producer_path)
                     changed = True
-            produced.update(spec.get("outputs", []))
+            produced.update(spec.get("output_profiles", {}).get(input_profile, spec.get("outputs", [])))
         if not changed:
             return ordered_modules(selected, manifest, workflow_order)
 
@@ -287,7 +287,7 @@ def prerequisite_report(
             conditional = spec.get("conditional_inputs", {}) or {}
             if "preprocessing_workbook" in conditional and "preprocessing_workbook" not in produced:
                 missing.append(f"{name}:preprocessing_workbook")
-        produced.update(spec.get("outputs", []))
+        produced.update(spec.get("output_profiles", {}).get(input_profile, spec.get("outputs", [])))
     return unique(missing), sorted(produced)
 
 
@@ -317,7 +317,7 @@ def gate_plan(
             "command": command,
             "delivery_scope": delivery_scope,
             "inputs": list(spec.get("inputs", [])),
-            "outputs": list(spec.get("outputs", [])),
+            "outputs": list(spec.get("outputs_by_delivery_scope", {}).get(delivery_scope, spec.get("outputs", []))),
         })
     return plans
 
