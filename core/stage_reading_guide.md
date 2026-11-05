@@ -233,7 +233,7 @@ not detect context compression or substitute for checking current project eviden
 ### draft_semantic_review
 
 - read_now: `core/writing_reasoning_contract.yaml`
-- read_now: `core/output_contract.yaml`; selector=['per_question']
+- read_now: `core/output_contract.yaml#per_question`
 - read_now: `core/workbook_schema.yaml`
 - read_now: `modules/05_writing/paper_writing_protocol.md#2-模板与写作职责`
 - read_now: `modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽`
@@ -252,8 +252,13 @@ not detect context compression or substitute for checking current project eviden
 - read_now: `modules/05_writing/paper_writing_protocol.md#16-引用与正文语言`
 - read_now: `modules/06_review_delivery.md`
 - read_now: `modules/06_review/content_review.md`
-- read_now: `modules/04_figure_evidence.md`; selector=['## C 类：各问结果图合同', '## Figure Evidence 层级', '## Figure Portfolio Scientific Quality Gate', '## Missing Scientific Evidence Check', '## 图题、配色与风格', '## 入文闭环']
-- read_now: `templates/latex/cumcm/hsk/template_manifest.yaml`; selector=['paper_skeleton']
+- read_now: `modules/04_figure_evidence.md#C 类：各问结果图合同`
+- read_now: `modules/04_figure_evidence.md#Figure Evidence 层级`
+- read_now: `modules/04_figure_evidence.md#Figure Portfolio Scientific Quality Gate`
+- read_now: `modules/04_figure_evidence.md#Missing Scientific Evidence Check`
+- read_now: `modules/04_figure_evidence.md#图题、配色与风格`
+- read_now: `modules/04_figure_evidence.md#入文闭环`
+- read_now: `templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton`
 - read_now: `modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff`
 - read_now: `current_model_paper_framework#Chapter-Handoff-Map`
 
@@ -273,7 +278,7 @@ not detect context compression or substitute for checking current project eviden
 ### final_review_and_delivery
 
 - read_now: `core/writing_reasoning_contract.yaml`
-- read_now: `core/output_contract.yaml`; selector=['per_question']
+- read_now: `core/output_contract.yaml#per_question`
 - read_now: `core/workbook_schema.yaml`
 - read_now: `modules/05_writing/paper_writing_protocol.md#2-模板与写作职责`
 - read_now: `modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽`
@@ -295,9 +300,14 @@ not detect context compression or substitute for checking current project eviden
 - read_now: `modules/06_review_delivery.md`
 - read_now: `modules/06_review/content_review.md`
 - read_now: `modules/06_review/final_delivery.md`
-- read_now: `modules/04_figure_evidence.md`; selector=['## C 类：各问结果图合同', '## Figure Evidence 层级', '## Figure Portfolio Scientific Quality Gate', '## Missing Scientific Evidence Check', '## 图题、配色与风格', '## 入文闭环']
-- read_now: `templates/latex/cumcm/hsk/template_manifest.yaml`; selector=['paper_skeleton']
-- read_now: `modules/05_latex_compile_quality.md`; selector=['## 终稿检查']
+- read_now: `modules/04_figure_evidence.md#C 类：各问结果图合同`
+- read_now: `modules/04_figure_evidence.md#Figure Evidence 层级`
+- read_now: `modules/04_figure_evidence.md#Figure Portfolio Scientific Quality Gate`
+- read_now: `modules/04_figure_evidence.md#Missing Scientific Evidence Check`
+- read_now: `modules/04_figure_evidence.md#图题、配色与风格`
+- read_now: `modules/04_figure_evidence.md#入文闭环`
+- read_now: `templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton`
+- read_now: `modules/05_latex_compile_quality.md#终稿检查`
 - read_now: `core/compile_profiles.yaml`
 - read_now: `config/competition_profiles.yaml`
 - read_now: `packs/competition/cumcm.md`
