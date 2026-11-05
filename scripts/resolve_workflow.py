@@ -81,13 +81,14 @@ def review_only_request(request: str, router: dict[str, Any]) -> bool:
     text = request.casefold()
     for word in [*review_words, *edit_words]:
         text = re.sub(r"(?:不要|不必|无需|不)\s*" + re.escape(word), "", text)
+    has_review_action = any(word in text for word in review_words)
     text = re.sub(
-        r"(?:生成|输出|列出|给出)(?:一份|一个)?(?:审查报告|审阅报告|审稿报告|终审报告|修改建议|修复建议|问题清单)",
+        r"(?:生成|输出|列出|给出)(?:一份|一个)?\s*(?:(?:word|docx|latex)\s*)?(?:论文)?"
+        r"(?:审查报告|审阅报告|审稿报告|终审报告|评分报告|修改建议|修复建议|问题清单)",
         "", text,
     )
     text = re.sub(r"(?:修改|修复|改写)(?:建议|方案|清单|意见)", "", text)
-    return (any(word in text for word in review_words)
-            and not any(word in text for word in edit_words))
+    return has_review_action and not any(word in text for word in edit_words)
 
 
 def available_competition_pack(token: str | None, profiles: dict[str, Any]) -> tuple[str | None, dict | None]:
