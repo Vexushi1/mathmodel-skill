@@ -7,7 +7,7 @@
 - `per_question.solver_scripts` 中项目根后端对应的主入口：主求解程序，按 applicable approval/data gates 交付；
 - 同一项目后端对应的独立深化入口：仅在主工作簿 accepted 且 Analysis Necessity Gate=`required` 时交付的独立深化分析程序。
 
-基础布局是主求解代码、`问题X求解结果.xlsx` 与 `qX_plot.m`；Gate=`required` 时再追加结果深化分析代码与 `问题X结果深化分析.xlsx`。因此只有 Gate=`required` 路径才具有两个阶段明确的代码入口；Gate=`not_required` 时仅保留主求解代码。Gate=`required` 的兼容五文件路径中会形成同目录两个真实工作簿（主工作簿 + 03B 工作簿）；该表述仅描述被 Gate 激活的路径，不适用于 Gate=`not_required`。主工作簿 accepted 后冻结主求解脚本，不用深化分析代码覆盖它。Gate=`not_required` 时记录非空理由，不生成 03B 代码/工作簿，也不得把缺少 03B 解释为稳健性或稳定性已验证。
+基础布局是主求解代码、`问题X求解结果.xlsx` 与已选绘图后端的 `qX_plot.py` 或 `qX_plot.m`；Gate=`required` 时再追加结果深化分析代码与 `问题X结果深化分析.xlsx`。因此只有 Gate=`required` 路径才具有两个阶段明确的代码入口；Gate=`not_required` 时仅保留主求解代码。Gate=`required` 的兼容五文件路径中会形成同目录两个真实工作簿（主工作簿 + 03B 工作簿）；该表述仅描述被 Gate 激活的路径，不适用于 Gate=`not_required`。主工作簿 accepted 后冻结主求解脚本，不用深化分析代码覆盖它。Gate=`not_required` 时记录非空理由，不生成 03B 代码/工作簿，也不得把缺少 03B 解释为稳健性或稳定性已验证。
 
 本 Pack 只描述代码交付边界，不重新定义数据事实源。数据读取必须继承 current `preprocessing_decision`，以 `core/global_preprocessing_contract.yaml` 与对应阶段模块为准：
 

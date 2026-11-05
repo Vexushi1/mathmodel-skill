@@ -104,7 +104,14 @@ def validate_chunk_coverage(
             continue
         if not isinstance(chunk["path"], str) or not chunk["path"]:
             issues.append(f"chunk {index} has no source path")
-        if not isinstance(chunk["source_commit"], str) or not chunk["source_commit"]:
+        origin = chunk.get("origin", "skill")
+        project_snapshot = chunk.get("project_snapshot")
+        if origin == "project":
+            if (chunk["source_commit"] is not None or not isinstance(project_snapshot, dict)
+                    or not re.fullmatch(r"[0-9a-f]{64}", str(project_snapshot.get("sha256", "")))
+                    or not isinstance(chunk.get("project_root"), str) or not chunk["project_root"]):
+                issues.append(f"chunk {index} has no verified project snapshot identity")
+        elif origin != "skill" or not isinstance(chunk["source_commit"], str) or not chunk["source_commit"]:
             issues.append(f"chunk {index} has no selected commit")
         source_sha256 = chunk["source_sha256"]
         if source_sha256 is not None and (
@@ -122,6 +129,8 @@ def validate_chunk_coverage(
             )
         identities.add((
             chunk["path"], chunk["source_commit"], source_sha256, chunk["source_blob_sha"],
+            origin, chunk.get("project_root"),
+            str(project_snapshot) if project_snapshot is not None else None,
         ))
         normalized_chunks.append((start, end, index, chunk))
 
@@ -901,5 +910,6 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
     if profile == "progressive_writing":
         result["delegated_writing_sequence"] = deepcopy(plan["writing_runtime"])
     if state_snapshot is not None:
+        result["project_snapshot"] = state_snapshot.describe()
         state_snapshot.assert_current()
     return result

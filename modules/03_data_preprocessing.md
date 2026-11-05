@@ -172,7 +172,7 @@ $$
 
 ### 6.2 `data_process.m`
 
-这是**项目级预处理证据的固定 MATLAB 绘图脚本名**；文件归属 `数据预处理/`，但仅在后续 Figure Evidence 阶段、主求解与结果深化分析完成后生成。它只能读取 `数据预处理结果.xlsx` 中 Python 已持久化的数据，负责：
+项目根 `plotting.backend=python` 使用 `数据预处理/data_process.py`，`matlab` 使用 `数据预处理/data_process.m`。以下 data_process.m 是**历史 MATLAB 绘图接口投影**；文件归属 `数据预处理/`，但仅在后续 Figure Evidence 阶段、主求解与结果深化分析完成后生成。它只能读取 `数据预处理结果.xlsx` 中 Python 已持久化的数据，负责：
 
 - 处理前后时序/空间/剖面/轨迹对比；
 - 缺失位置、覆盖和填补结果；
@@ -228,7 +228,7 @@ $$
 
 ### `question_local`
 
-局部变换由项目根后端对应的本问主求解实现计算；若需要预处理证据图，由该问 `qX_plot.m` 读取本问求解实现输出的底层数据绘制。
+局部变换由项目根后端对应的本问主求解实现计算；若需要预处理证据图，由该问所选 `qX_plot.py` 或 `qX_plot.m` 读取本问求解实现输出的底层数据绘制。
 
 ### `project_level`
 

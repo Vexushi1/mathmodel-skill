@@ -16,6 +16,19 @@ from typing import Any
 BACKENDS = {"python", "matlab"}
 
 
+def project_figure_roles(roles, output_contract, backend, preprocessing_decision):
+    """Project exact artifact roles using the sole Output Authority mapping."""
+    policy = output_contract["project_sync"]["plotting_backend_contract"]
+    aliases = (dict(zip(policy["legacy_stage_names"], policy["python_stage_names"]))
+               if backend == "python" else {})
+    conditional = set(policy.get("project_level_only_outputs", []))
+    return list(dict.fromkeys(
+        aliases.get(role, role) for role in roles
+        if preprocessing_decision not in {"not_needed", "question_local"}
+        or role not in conditional
+    ))
+
+
 class PlotBackendError(ValueError):
     """Project-wide plotting backend declarations are invalid or ambiguous."""
 

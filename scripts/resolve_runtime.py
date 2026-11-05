@@ -10,7 +10,7 @@ import yaml
 import safe_yaml
 import stage_code as STAGE_CODE
 
-from resolve_workflow import TAXONOMY_PATH, add_solver_resources, code_artifact_projection, legacy_to_axes, resolve_workflow
+from resolve_workflow import TAXONOMY_PATH, add_solver_resources, code_artifact_projection, legacy_to_axes, resolve_workflow, review_only_request
 from reading_plan import build_reading_plan
 from runtime_assurance import (
     ProjectStateSnapshot,
@@ -291,6 +291,8 @@ def resolve_runtime(
     )
     if not selected_intents:
         raise ValueError("no workflow intent resolved; pass an intent or --request")
+    if review_only_request(request or "", router) and set(explicit_intents) - {"review"}:
+        raise ValueError("explicit intent conflicts with review-only request; resolve review without write actions")
 
     state_snapshot = ProjectStateSnapshot.capture(project_root) if project_root else None
     hydration = (
@@ -481,6 +483,15 @@ def resolve_runtime(
     # old module dependencies still know the v7 authority graph. Apply the v8 compact
     # projection afterwards so pure prose-generation routes do not preload that file.
     plan = _apply_profile_writing_runtime(plan)
+    if state_snapshot is not None:
+        import plot_backend
+        plot = plot_backend.inspect_plotting(state_snapshot.payload())
+        context_conflicts.extend(plot["issues"])
+        output = load_yaml(ROOT / "core/output_contract.yaml")
+        for field in ("module_terminal_outputs", "terminal_outputs", "available_after_modules", "available_after_plan"):
+            plan[field] = plot_backend.project_figure_roles(
+                plan[field], output, plot["backend"], preprocessing_decision,
+            )
 
     fingerprint_sources = (
         assurance_contract.get("authority_fingerprint", {}) or {}

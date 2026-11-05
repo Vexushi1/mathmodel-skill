@@ -5,9 +5,14 @@
 - Model Challenge：`pending / passed / revision_required / stale`
 - Human Model Approval：`pending / approved / revision_required / stale`
 - 当前 semantic revision：
-- 当前 semantic hash：
+- Semantic identity schema version：
+- 当前 semantic identity hash：
+- Validated semantic identity hash：
 - Approved semantic revision：
-- Approved semantic hash：
+- Approved semantic identity hash：
+- Legacy semantic/text hash（只读兼容，不授权新代码）：
+
+当前身份字段服从 `core/model_approval_contract.yaml` 与 current SIB。空字段不是验证或批准；legacy hash 不用于建立 current 锁模资格。
 
 **Model Reviewer**
 

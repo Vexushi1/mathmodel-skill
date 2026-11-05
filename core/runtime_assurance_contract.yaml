@@ -88,6 +88,7 @@ intent_resolution:
   - selection_reason
   rules:
   - Inference is deterministic and explainable; every inferred candidate records matched keywords, matched keyword count, and specificity score.
+  - Apply routing Authority review_action_policy before carrier scoring. Review-only actions consume the named carrier without authoring; conflicting explicit intents fail before write planning.
   - Apply core/workflow_router.yaml#paper_carrier_disambiguation to keyword eligibility before scoring; other route scores and explicit-intent priority remain unchanged.
   - When explicit intents exist, inferred keyword matches remain provenance only and cannot silently add routes.
   - Without explicit intent, only the highest-specificity candidate or tied highest-specificity candidates are selected; lower-scoring matches remain diagnostics only.
@@ -262,6 +263,11 @@ authority_fingerprint:
   - core/writing_runtime_contract.yaml
   - templates/latex/cumcm/hsk/template_manifest.yaml
   - modules/05_writing/paper_writing_protocol.md
+  - scripts/resolve_workflow.py
+  - scripts/resolve_runtime.py
+  - scripts/reading_plan.py
+  - scripts/read_stage.py
+  - scripts/plot_backend.py
   purpose: Bind one runtime plan to the authority files that produced its routing, writing package, and assurance semantics.
 
 compatibility:
@@ -343,6 +349,8 @@ reading_plan:
   narrow_evidence_source: existing_file_backed_artifact_assurance_and_current_framework_binding
   rules:
     - The reading_plan schema is versioned independently; building a reading plan preserves the resolved assurance envelope and does not set or downgrade its version or fields.
+    - The body reader verifies the current Skill version, reading schema, complete current Authority fingerprint including producer/reader implementations, and canonical writing stages before returning text; obsolete plans require a fresh resolver call.
+    - Optional reading_plan.project_snapshot binds project rows to the hydrated state bytes and generation. Project-origin chunks use separate root/snapshot identity and no Skill commit as their source commit; changed state or source requires replanning, without any reader writes.
     - read_now and conditional are consumption instructions, not passed review, authorization, or evidence that text was actually read.
     - Every Skill-origin source returned by the body reader, on read_now, conditional or writing_stage, must match the selected Git commit's source blob as well as its captured plan hash; hashing already-dirty working-tree bytes cannot establish the pinned source identity.
     - project_backend_navigation is non-executable guidance for the sole inspect/select/migrate CLI when a current project selection needs review; it is not a pre_delivery_gate and never supplies migration confirmation.

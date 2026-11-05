@@ -384,20 +384,17 @@ def stage_requirements(
     sync = output_contract.get("project_sync") or {}
     required = list((sync.get("stage_requirements") or {}).get(scope, []))
     plotting = PLOT_BACKEND.inspect_plotting(state or {})
-    is_python_plot = plotting["kind"] == "selected" and plotting["backend"] == "python"
-    if is_python_plot:
-        required = ["plot_scripts" if name == "matlab_scripts" else name for name in required]
     if state is not None and preprocessing_decision(state) == "project_level":
         conditional = (
             (sync.get("conditional_stage_requirements") or {})
             .get("preprocessing_decision_project_level", {})
         )
         extras = (conditional or {}).get(scope, []) or []
-        if is_python_plot:
-            extras = ["preprocessing_python_plot_script" if name == "preprocessing_matlab_script"
-                      else name for name in extras]
         required.extend(extras)
-    return unique(required)
+    return PLOT_BACKEND.project_figure_roles(
+        required, output_contract, plotting["backend"],
+        preprocessing_decision(state) if state is not None else None,
+    )
 
 
 def contract_preflight_issues(
@@ -1263,6 +1260,77 @@ def _verify_sync_question_sources(
             raise PROJECT_TX.ReadSetConflictError(f"sync observation differs from captured source: {relative}")
 
 
+def inspect_mechanism_delivery(root: Path, snapshot, output_contract, *, write_requested: bool) -> dict[str, Any]:
+    """Recheck existing nonnumerical draw.io evidence without numeric discovery.
+
+    This scope never writes or promotes approval. Numerical Figure dependencies
+    must use the ordinary figures scope, even when their source is a draw.io file.
+    """
+    from generate_mechanism_drawio import validate_spec
+    from validate_drawio_figure import validate_drawio_bytes, _preview_format_is_valid
+
+    state = snapshot.payload()
+    observed = {PROJECT_TX.STATE_RELATIVE_PATH: snapshot.describe()["sha256"]}
+    issues = contract_preflight_issues(
+        root, "mechanism", root / PROJECT_TX.STATE_RELATIVE_PATH,
+        root / "模型论文框架.md", output_contract,
+    )
+    def read(relative):
+        path = PROJECT_TX._guarded_path(root, relative)
+        raw = path.read_bytes()
+        digest = hashlib.sha256(raw).hexdigest()
+        if relative in observed and observed[relative] != digest:
+            raise PROJECT_TX.ReadSetConflictError("mechanism source changed: " + relative)
+        observed[relative] = digest
+        return raw
+
+    read("模型论文框架.md")
+    specs = sorted(root.glob("figures/source/*.mechanism.yaml"))
+    if not specs:
+        issues.append("mechanism交付缺少figures/source/*.mechanism.yaml")
+    approved = set((state.get("artifacts") or {}).get("approved_figures") or [])
+    for path in specs:
+        relative = path.relative_to(root).as_posix()
+        try:
+            spec = validate_spec(yaml.safe_load(read(relative)))
+            if spec["semantic_anchors"]["result_evidence"]:
+                raise ValueError("数值证据机理图须使用figures scope，不可豁免accepted工作簿")
+            question = spec["question_id"]
+            hydration = RUNTIME_ASSURANCE.hydrate_project_context(root, question, state_snapshot=snapshot)
+            if "locked_model_spec" not in hydration["verified_artifacts"]:
+                raise ValueError(f"{question}: mechanism要求current已批准模型身份")
+            artifact = spec["artifact"]
+            if artifact["spec_source"] != relative:
+                raise ValueError("mechanism spec_source不匹配当前文件")
+            xml = read(artifact["editable_source"])
+            if artifact.get("preview"):
+                preview_raw = read(artifact["preview"])
+                if hashlib.sha256(preview_raw).hexdigest() != artifact.get("preview_sha256"):
+                    raise ValueError("mechanism预览hash不匹配当前已审查预览")
+            for item in validate_drawio_bytes(xml, spec=spec, spec_path=path):
+                if item.severity in {"blocking", "review_required"}:
+                    issues.append(f"{relative}: {item.code}: {item.message}")
+            if not all(artifact.get(key) for key in ("spec_sha256", "drawio_sha256", "preview", "preview_sha256")):
+                raise ValueError("mechanism交付要求当前spec/drawio/preview身份和真实预览")
+            read(artifact["preview"])
+            if not artifact["final_exports"]:
+                raise ValueError("mechanism正式交付缺少实际final_exports")
+            for exported in artifact["final_exports"]:
+                raw = read(exported)
+                if exported not in approved or not _preview_format_is_valid(root / exported, raw):
+                    raise ValueError("mechanism导出必须为当前approved_figures中的真实图片: " + exported)
+        except (OSError, ValueError, TypeError, KeyError, yaml.YAMLError) as exc:
+            issues.append(f"{relative}: {exc}")
+    if specs != sorted(root.glob("figures/source/*.mechanism.yaml")):
+        raise PROJECT_TX.ReadSetConflictError("mechanism source discovery changed")
+    snapshot.assert_current()
+    PROJECT_TX._check_read_set(root, observed)
+    return {"status": "failed" if issues else "passed", "delivery_scope": "mechanism",
+            "formal_delivery_scope": True, "issues": issues, "warnings": [],
+            "write_requested": write_requested, "write": False, "write_performed": False,
+            "observed_sources": observed, "semantic_visual_review": "not_assessed_by_machine"}
+
+
 def synchronize(
     project_root: Path,
     *,
@@ -1296,6 +1364,8 @@ def synchronize(
                         _capture_sync_source(root, sync_read_set, root / relative)
     schema = load_yaml(Path(schema_path))
     output_contract = load_yaml(Path(output_contract_path))
+    if delivery_scope == "mechanism":
+        return inspect_mechanism_delivery(root, state_snapshot, output_contract, write_requested=write)
     phase = str((state.get("project") or {}).get("current_phase", "model_design"))
     explicit_delivery_scope = delivery_scope is not None
     scope = delivery_scope or PHASE_SCOPE.get(phase, "design")
@@ -1925,7 +1995,7 @@ def main() -> int:
     parser.add_argument("--strict", action="store_true")
     parser.add_argument(
         "--delivery-scope",
-        choices=["design", "code", "results", "figures", "docx", "latex", "submission"],
+        choices=["design", "mechanism", "code", "results", "figures", "docx", "latex", "submission"],
     )
     args = parser.parse_args()
     try:

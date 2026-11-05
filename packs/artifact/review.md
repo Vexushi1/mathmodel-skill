@@ -10,7 +10,7 @@ python scripts/validate_project_state.py state/project_state.yaml --project-root
 python scripts/sync_project.py . --write --strict --delivery-scope submission
 ```
 
-重点核对：当前模型口径、Formula Trace、Algorithm Trace 与 `not_needed / stepwise / pseudocode` 呈现选择、命题与证明、条件式预处理、主结果质量门、Analysis Necessity Gate 与条件式独立结果深化分析、代码—工作簿—MATLAB—正文证据链、LaTeX 编译和提交包内容。
+重点核对：当前模型口径、Formula Trace、Algorithm Trace 与 `not_needed / stepwise / pseudocode` 呈现选择、命题与证明、条件式预处理、主结果质量门、Analysis Necessity Gate 与条件式独立结果深化分析、代码—工作簿—当前 Python/MATLAB 绘图入口—正文证据链、LaTeX 编译和提交包内容。
 
 执行 `final_review_and_delivery` 时读取当前 competition profile、competition Pack、edition rule verification、最终 PDF、`latex_audit_report.yaml` 与 `compile_report.yaml`，并按 `modules/06_review/final_delivery.md#九final-submission-compliance--evidence-sweep` 完成八类动态 coverage，同时消费共用内容审查。新生成的正式终审报告使用 `templates/review/final_review_matrix.yaml`；旧 `scores + hard_fail + evidence` 报告仍可作为兼容输入。
 
@@ -24,7 +24,7 @@ Matrix 中 `unverifiable` 不得改写成 `passed`；未解决 `blocking` 必须
 问题X求解/
 ├─ <项目后端对应主入口：问题X求解.py 或 qX_solver.m>
 ├─ 问题X求解结果.xlsx
-├─ qX_plot.m
+├─ <绘图后端对应 qX_plot.py 或 qX_plot.m>
 ├─ [同一项目后端对应深化入口：问题X结果深化分析.py 或 qX_analysis.m]    # only Gate=required
 └─ [问题X结果深化分析.xlsx]  # only Gate=required and analysis executed
 ```

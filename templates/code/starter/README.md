@@ -18,7 +18,7 @@
 ├─ 问题一求解/
 │  ├─ 问题一求解.py
 │  ├─ 问题一求解结果.xlsx
-│  ├─ q1_plot.m
+│  ├─ <绘图后端对应 q1_plot.py 或 q1_plot.m>
 │  ├─ [问题一结果深化分析.py]
 │  └─ [问题一结果深化分析.xlsx]
 ├─ 模型论文框架.md
@@ -39,7 +39,7 @@
 10. 主工作簿 accepted 后冻结 `问题一求解.py`，执行 Analysis Necessity Gate。Gate=`not_required` 时记录非空 `result_analysis_requirement_reason`，不生成 `问题一结果深化分析.py/.xlsx`，也不得声称稳健性/稳定性已经验证；Gate=`required` 时依据真实主结果和评委风险单独生成 `问题一结果深化分析.py`；
 11. 仅 Gate=`required` 且项目根已锁定 Python 后端时，深化分析脚本使用唯一顶层 `RUN_CONFIG`，写 `stage="analysis"`、`solver_backend="python"`、`run_receipt_protocol_version="1.1.0"` 及本阶段 `code_dependencies`，不写 `primary_quality_protocol_version`，以 `primary_workbook_sha256` 绑定已验收主工作簿。它继承当前数据事实源，只实现题目专属敏感性、鲁棒性、多算法、阈值、结构或场景分析；逐参数/逐场景/逐 seed/逐算法/逐区域/逐阈值真实底层数据也应落入分析工作簿，而不是只输出“稳定”；
 12. Gate=`required` 时，深化分析脚本再次通过代码交付质量门后由用户运行，并返回 `问题一结果深化分析.xlsx`；该工作簿以 `run_receipt_version="1.1.0"` 记录本阶段后端、入口/bundle 摘要、主工作簿摘要和其他运行事实。原 1.0、P5a 与旧 `FULL_*` 只按原历史分支兼容；新 03A/03B 不主动写旧版本或省略握手，项目级 Python 预处理仍使用 1.0；
-13. Figure 阶段生成同目录 `q1_plot.m`。主结果图可只读 accepted 主工作簿；若目标 Figure 明确使用 03B evidence，则必须读取真实、current 的 `问题一结果深化分析.xlsx`，缺失时 fail closed。qX_plot.m 只读工作簿绘图，并按 Scientific Figure Synthesis / Composite Encoding / Rendering Profile 选择科研表达。
+13. Figure 阶段按项目绘图后端生成同目录 `q1_plot.py` 或 `q1_plot.m`。主结果图可只读 accepted 主工作簿；若目标 Figure 明确使用 03B evidence，则必须读取真实、current 的 `问题一结果深化分析.xlsx`，缺失时 fail closed。当前 qX_plot.py/m 只读工作簿绘图，并按 Scientific Figure Synthesis / Composite Encoding / Rendering Profile 选择科研表达。
 
 边界判据：若某检查失败会使**当前这一次主计算本身不能 accepted**，它属于主求解质量；若当前结果本身仍然有效，只是在参数扰动、替代方法、压力条件或更广范围下的结论稳定性可能需要研究，则先进入 Analysis Necessity Gate，再决定是否激活结果深化分析。Primary Evidence Capture 只是把当前运行已经得到的真实状态保存下来，不是提前执行深化分析。
 
