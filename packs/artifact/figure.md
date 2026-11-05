@@ -4,7 +4,7 @@
 
 两类新增比较图按 `modules/03_result_analysis.md` 消费 current accepted 的 `多模型检验`／`同模型多算法检验`，准入仍由 Figure Evidence Authority 定义。检验 ID 与真实记录键应保留到数据读取，不从摘要数字重造比较序列。
 
-用户要求结果图、敏感性图、鲁棒性图、多算法图、机理图或 MATLAB 绘图代码时加载。图表必须服务明确结论，不以复杂图型、固定版式或面板数量替代证据。
+用户要求结果图、敏感性图、鲁棒性图、多算法图、机理图或 Python/MATLAB 绘图代码时加载。图表必须服务明确结论，不以复杂图型、固定版式或面板数量替代证据。
 
 本 Pack 只做阶段摘要，不重新定义 Figure Evidence 规则。Scientific Figure Synthesis、Basic-form Challenge、Composite Encoding、Scientific Rendering Profiles、布局、证据层级、数据事实源、Figure Enhancement Gate、配色、Portfolio Gate 和 Figure Contract 的**唯一权威为 `modules/04_figure_evidence.md`**；每问文件是否存在只服从 `core/output_contract.yaml` 与 current project state。若本文件与这些 Authority 不一致，以 Authority 为准。高级增强的实现模式集中在 `templates/figure/figure_enhancement_patterns.md`，该模板只提供实现参考，不拥有独立决策权。
 
@@ -25,9 +25,9 @@ Gate=`not_required` 且有非空理由时，缺少 03B workbook 是合法状态�
 
 深化分析方法只在 Gate=`required` 时根据具体风险选择，可包括参数敏感性、阈值与失效边界、场景压力测试、多算法一致性、结构稳健性、异质性和误差分解。未执行某类分析时不得生成对应占位图；深化分析要求回退重算时不得继续绘图。
 
-## MATLAB 规则
+## Python / MATLAB 渲染规则
 
-- 每问入口统一为 `问题X求解/qX_plot.m`；通用模板记为 `q{x}_plot.m`；
+- 每问入口按项目根 `plotting.backend` 唯一选择 `问题X求解/qX_plot.py` 或 `问题X求解/qX_plot.m`；数值求解后端独立。
 - 生成代码前确认真实工作簿名、工作表、表头、单位和数据类型；
 - 字段定位采用精确表头唯一匹配，列号只作结构漂移警告；
 - 禁止模糊匹配、别名猜测、自动回退和在绘图入口中重新求解/重新做深化分析；
@@ -61,6 +61,6 @@ Figure Portfolio Scientific Quality Gate 检查整篇核心论证的图/表覆�
 
 正式机理图服从 Module 04 的 **monochrome-first** 规则：白底、黑/深灰线条和文字为主，灰度、线型、线宽与规则几何形状承担主要区分；默认不使用蓝/绿/红多色语义填充。只有确有证据增益时才允许 1 个强调色，极少数复杂图最多 2 个，并须保证黑白打印仍可辨识。对象优先画成圆/椭圆、矩形、三角形、四边形/多边形、圆柱投影、球体轮廓等题意一致的规则几何图形，禁止渐变、拟物阴影和装饰性 3D。
 
-需要可编辑的非数据驱动对象关系、约束关系、反馈或临界状态图时，先按 `modules/04_figure_evidence.md` 的 Mechanism Diagram Backend Selection Gate 判断是否进入 draw.io 路径。选中后读取 `templates/figure/mechanism_contract.md` 与 `templates/figure/mechanism_drawio_spec.yaml`；只有实际生成或返修 draw.io 时再读取 `templates/figure/mechanism_drawio_patterns.md`。数据、坐标、误差、区间与工作簿结果仍由 MATLAB 路径负责。
+需要可编辑的非数据驱动对象关系、约束关系、反馈或临界状态图时，先按 `modules/04_figure_evidence.md` 的 Mechanism Diagram Backend Selection Gate 判断是否进入 draw.io 路径。选中后读取 `templates/figure/mechanism_contract.md` 与 `templates/figure/mechanism_drawio_spec.yaml`；只有实际生成或返修 draw.io 时再读取 `templates/figure/mechanism_drawio_patterns.md`。数据、坐标、误差、区间与工作簿结果仍由项目选定的 Python/MATLAB 路径负责。
 
 draw.io 的 `Spec → generate → validate → preview → semantic/visual QA → export` 只是一条实现链。静态检查通过不表示箭头、公式或机制正确；没有查看最新渲染预览时不得把图登记为 `approved_figures`。

@@ -1,4 +1,4 @@
-# mathmodel-skill v10.26.3
+# mathmodel-skill v10.27.0
 
 本版本聚焦证据约束下的论文表达边界与 Review 读取路径修复，保持既有模型、数值求解、LaTeX、独立协议和历史项目兼容性不变。
 

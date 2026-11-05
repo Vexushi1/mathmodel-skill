@@ -5,7 +5,7 @@
 ## 1. 使用顺序
 
 1. 从 current `模型论文框架.md` 和 Mechanism Contract 恢复对象、变量、公式、约束、判断条件与结论。
-2. 通过 Module 04 的 Mechanism Diagram Backend Selection Gate。数据驱动图继续由 MATLAB 从已验收工作簿绘制。
+2. 通过 Module 04 的 Mechanism Diagram Backend Selection Gate。数据驱动图继续由项目选定的 Python/MATLAB 从已验收工作簿绘制。
 3. 复制 Spec 模板到项目级 `figures/source/qX_<slug>.mechanism.yaml`，替换其中全部题目专属内容。
 4. 运行生成器产生未压缩、可编辑 `.drawio`。
 5. 运行静态校验器，只采信其结构、几何和安全检查。
@@ -33,7 +33,7 @@ python scripts/validate_drawio_figure.py \
 | 证据结构 | 首选后端 | 判断依据 |
 |---|---|---|
 | 对象关系、机制链、反馈、状态切换、约束来源 | draw.io | 关系离散且赛中需要快速编辑节点、箭头和文字 |
-| 工作簿驱动的结果、敏感性、误差、空间场 | MATLAB | 坐标、数值、区间和统计量必须来自真实表格 |
+| 工作簿驱动的结果、敏感性、误差、空间场 | 项目选定的 Python/MATLAB | 坐标、数值、区间和统计量必须来自真实表格 |
 | 精确二维几何、连续曲线、切线或坐标推导 | MATLAB / TikZ / GeoGebra | 需要比例、坐标或解析几何精度 |
 | 简短公式依赖且需紧贴 LaTeX 字体 | TikZ | 与公式排版直接一致 |
 | 临时讨论草图 | PPT / 手绘 | 只能作为草案，入文前转为正式后端 |

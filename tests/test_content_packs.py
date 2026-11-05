@@ -86,12 +86,13 @@ class TestContentPacks(unittest.TestCase):
         module = (ROOT / "modules/04_figure_evidence.md").read_text(encoding="utf-8")
         matlab_readme = (ROOT / "templates/matlab/README.md").read_text(encoding="utf-8")
         for text in (pack, module, matlab_readme):
-            self.assertIn("q{x}_plot.m", text)
+            self.assertRegex(text, r"q(?:X|\{x\})_plot\.m")
             self.assertIn("模型论文框架.md", text)
             self.assertIn("caption", text)
             self.assertIn("title", text)
             self.assertIn("sgtitle", text)
         for text in (pack, module):
+            self.assertRegex(text, r"q(?:X|\{x\})_plot\.py")
             self.assertIn("问题X求解结果.xlsx", text)
             self.assertIn("问题X结果深化分析.xlsx", text)
             self.assertIn("阈值", text)

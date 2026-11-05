@@ -104,7 +104,22 @@ def validate_chunk_coverage(
             continue
         if not isinstance(chunk["path"], str) or not chunk["path"]:
             issues.append(f"chunk {index} has no source path")
-        if not isinstance(chunk["source_commit"], str) or not chunk["source_commit"]:
+        origin = chunk.get("origin", "skill")
+        project_snapshot = chunk.get("project_snapshot")
+        if origin == "project":
+            if (chunk["source_commit"] is not None or not isinstance(project_snapshot, dict)
+                    or not re.fullmatch(r"[0-9a-f]{64}", str(project_snapshot.get("sha256", "")))
+                    or project_snapshot.get("path") != "state/project_state.yaml"
+                    or project_snapshot.get("present") is not True
+                    or type(project_snapshot.get("state_generation")) is not int
+                    or project_snapshot["state_generation"] < 0
+                    or not re.fullmatch(r"[0-9a-f]{64}", str(chunk["source_sha256"]))
+                    or chunk["source_blob_sha"] is not None
+                    or not isinstance(chunk.get("project_root"), str) or not chunk["project_root"]
+                    or not Path(chunk["project_root"]).is_absolute()):
+                issues.append(f"chunk {index} has no verified project snapshot identity")
+                continue
+        elif origin != "skill" or not isinstance(chunk["source_commit"], str) or not chunk["source_commit"]:
             issues.append(f"chunk {index} has no selected commit")
         source_sha256 = chunk["source_sha256"]
         if source_sha256 is not None and (
@@ -122,6 +137,9 @@ def validate_chunk_coverage(
             )
         identities.add((
             chunk["path"], chunk["source_commit"], source_sha256, chunk["source_blob_sha"],
+            origin, chunk.get("project_root"),
+            tuple(project_snapshot.get(key) for key in ("path", "sha256", "state_generation", "present"))
+            if isinstance(project_snapshot, dict) else None,
         ))
         normalized_chunks.append((start, end, index, chunk))
 
@@ -901,5 +919,6 @@ def build_reading_plan(root: Path, plan: dict[str, Any], router: dict[str, Any],
     if profile == "progressive_writing":
         result["delegated_writing_sequence"] = deepcopy(plan["writing_runtime"])
     if state_snapshot is not None:
+        result["project_snapshot"] = state_snapshot.describe()
         state_snapshot.assert_current()
     return result

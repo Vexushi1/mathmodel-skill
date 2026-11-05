@@ -110,6 +110,8 @@ CUMCM_B_WRITING_AUTHORITY_VERSIONS = {**CUMCM_A1_AUTHORITY_VERSIONS, "skill": "1
 CUMCM_C_HANDOFF_AUTHORITY_VERSIONS = {**CUMCM_B_WRITING_AUTHORITY_VERSIONS, "skill": "10.26.1"}
 CUMCM_D_CLEANUP_AUTHORITY_VERSIONS = {**CUMCM_C_HANDOFF_AUTHORITY_VERSIONS, "skill": "10.26.2"}
 V10263_RELEASE_AUTHORITY_VERSIONS = {**CUMCM_D_CLEANUP_AUTHORITY_VERSIONS, "skill": "10.26.3"}
+RUNTIME_CONSISTENCY_PROJECTION = yaml.safe_load(
+    (HERE.parent / "fixtures/runtime_consistency_v10270_projection.yaml").read_text(encoding="utf-8"))
 # Only these two read-list migrations are registered. Business text is separately
 # reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
 REVIEW_SPLIT_WRITING_DELTAS = (
@@ -1945,6 +1947,61 @@ def approved_v10263_release_carrier_change(identifier, old, new, candidate_autho
     return projected, review_changes + changes
 
 
+def runtime_consistency_predecessor(identifier, new, candidate_authority_versions):
+    """Reverse only measured repair leaves, preserving all unrelated differences.
+
+    The inherited historical comparison still has to match every predecessor
+    field. This is a visible behavior transition, never an equality waiver.
+    """
+    fixture = RUNTIME_CONSISTENCY_PROJECTION
+    if (candidate_authority_versions != fixture["authority_versions"]
+            or new.get("version") != fixture["authority_versions"]["skill"]):
+        return deepcopy(new), []
+    projected = deepcopy(new)
+    changes = []
+    try:
+        fingerprint = projected["assurance"]["authority_fingerprint"]
+        if fingerprint["sources"] != fixture["fingerprint"]["candidate"]:
+            return deepcopy(new), []
+        fingerprint["sources"] = deepcopy(fixture["fingerprint"]["baseline"])
+        changes.append({"path": "assurance.authority_fingerprint.sources",
+                        "baseline": fixture["fingerprint"]["baseline"],
+                        "candidate": fixture["fingerprint"]["candidate"],
+                        "approval": "v10.27.0 pins the exact current-plan implementation read set"})
+        for group in fixture["groups"]:
+            if identifier not in group["case_ids"]:
+                continue
+            for delta in group["deltas"]:
+                parent = projected
+                for key in delta["path"][:-1]:
+                    parent = parent[key]
+                key = delta["path"][-1]
+                candidate = deepcopy(parent[key])
+                if "insertions" in delta:
+                    if not isinstance(candidate, list):
+                        return deepcopy(new), []
+                    baseline = deepcopy(candidate)
+                    for item in delta["insertions"]:
+                        if item["value"] in baseline or item["index"] > len(baseline):
+                            return deepcopy(new), []
+                        baseline.insert(item["index"], item["value"])
+                else:
+                    if candidate != delta["candidate"]:
+                        return deepcopy(new), []
+                    baseline = deepcopy(delta["baseline"])
+                parent[key] = baseline
+                changes.append({"path": ".".join(map(str, delta["path"])),
+                                "baseline": baseline, "candidate": candidate,
+                                "approval": "v10.27.0 exact conditional Figure/mechanism repair"})
+    except (KeyError, IndexError, TypeError):
+        return deepcopy(new), []
+    projected["version"] = V10263_RELEASE_AUTHORITY_VERSIONS["skill"]
+    changes.append({"path": "version", "baseline": projected["version"],
+                    "candidate": new["version"],
+                    "approval": "v10.27.0 compatible runtime repair; historical projections remain checked"})
+    return projected, changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -1955,7 +2012,11 @@ def compare(before, after):
             raise ValueError(f"P2 reading plan missing: {b['id']}")
         old = legacy_projection(a["plan"])
         new = legacy_projection(b["plan"])
-        projected, expected = approved_a3_changes(a["id"], old, new)
+        projected, expected = runtime_consistency_predecessor(a["id"], new, b.get("authority_versions"))
+        candidate_authority_versions = (V10263_RELEASE_AUTHORITY_VERSIONS
+                                       if expected else b.get("authority_versions"))
+        projected, a3_changes = approved_a3_changes(a["id"], old, projected)
+        expected.extend(a3_changes)
         projected, a7_changes = approved_a7_changes(a["id"], old, projected)
         expected.extend(a7_changes)
         projected, solver_changes = approved_solver_changes(old, projected)
@@ -1989,104 +2050,104 @@ def compare(before, after):
         projected, b2b5_changes = approved_b2b5_carrier_change(a["id"], old, projected)
         expected.extend(b2b5_changes)
         projected, b2b6_changes = approved_b2b6_carrier_change(
-            a["id"], old, projected, b.get("authority_versions")
+            a["id"], old, projected, candidate_authority_versions
         )
         expected.extend(b2b6_changes)
         projected, b2c_changes = approved_b2c_carrier_change(
-            a["id"], old, projected, b.get("authority_versions")
+            a["id"], old, projected, candidate_authority_versions
         )
         expected.extend(b2c_changes)
         projected, c1_changes = approved_c1_carrier_change(
-            a["id"], old, projected, b.get("authority_versions")
+            a["id"], old, projected, candidate_authority_versions
         )
         expected.extend(c1_changes)
         projected, windows_ci_changes = approved_windows_python_ci_carrier_change(
-            a["id"], old, projected, b.get("authority_versions")
+            a["id"], old, projected, candidate_authority_versions
         )
         expected.extend(windows_ci_changes)
         projected, windows_matlab_ci_changes = approved_windows_matlab_ci_carrier_change(
-            a["id"], old, projected, b.get("authority_versions")
+            a["id"], old, projected, candidate_authority_versions
         )
         expected.extend(windows_matlab_ci_changes)
         projected, c2_changes = approved_c2_carrier_change(
-            a["id"], old, projected, b.get("authority_versions")
+            a["id"], old, projected, candidate_authority_versions
         )
         expected.extend(c2_changes)
         projected, python_ci_performance_changes = approved_python_ci_performance_carrier_change(
-            a["id"], old, projected, b.get("authority_versions")
+            a["id"], old, projected, candidate_authority_versions
         )
         expected.extend(python_ci_performance_changes)
         projected, d1_changes = approved_d1_carrier_change(
-            a["id"], old, projected, b.get("authority_versions")
+            a["id"], old, projected, candidate_authority_versions
         )
         expected.extend(d1_changes)
         projected, d2_changes = approved_d2_carrier_change(
-            a["id"], old, projected, b.get("authority_versions")
+            a["id"], old, projected, candidate_authority_versions
         )
         expected.extend(d2_changes)
         projected, e1_changes = approved_e1_carrier_change(
-            a["id"], old, projected, b.get("authority_versions")
+            a["id"], old, projected, candidate_authority_versions
         )
         expected.extend(e1_changes)
         projected, comparison_changes = approved_comparison_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(comparison_changes)
         projected, audit_patch_changes = approved_audit_patch_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(audit_patch_changes)
         projected, submission_patch_changes = approved_submission_patch_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(submission_patch_changes)
         projected, writing_patch_changes = approved_writing_patch_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(writing_patch_changes)
         projected, figure_handoff_changes = approved_figure_handoff_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(figure_handoff_changes)
         projected, user_checker_workflow_changes = approved_user_checker_workflow_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(user_checker_workflow_changes)
         projected, pdf_review_changes = approved_pdf_review_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(pdf_review_changes)
         projected, stage_reading_changes = approved_stage_reading_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(stage_reading_changes)
         projected, body_reading_changes = approved_body_reading_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(body_reading_changes)
         projected, review_split_changes = approved_review_split_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(review_split_changes)
         projected, full_workflow_reading_changes = approved_full_workflow_reading_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(full_workflow_reading_changes)
         projected, mixed_figure_reading_changes = approved_mixed_figure_reading_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(mixed_figure_reading_changes)
         projected, cumcm_heading_changes = approved_cumcm_heading_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(cumcm_heading_changes)
         projected, plot_backend_changes = approved_v10240_plot_backend_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(plot_backend_changes)
         projected, cumcm_a1_changes = approved_v10250_cumcm_ai_appendix_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(cumcm_a1_changes)
         projected, cumcm_b_changes = approved_v10260_cumcm_writing_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(cumcm_b_changes)
         projected, cumcm_c_changes = approved_v10261_cumcm_handoff_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(cumcm_c_changes)
         projected, release_changes = approved_v10263_release_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(release_changes)
         projected, cumcm_c_review_changes = approved_c_review_read_paths_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(cumcm_c_review_changes)
         projected, cumcm_d_changes = approved_v10262_prose_only_cleanup_carrier_change(
-            a["id"], old, projected, b.get("authority_versions"))
+            a["id"], old, projected, candidate_authority_versions)
         expected.extend(cumcm_d_changes)
         changed_keys = sorted(k for k in set(old) | set(projected) if old.get(k) != projected.get(k))
         rows.append({

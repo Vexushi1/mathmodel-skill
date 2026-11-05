@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.26.3
+当前 Skill 版本：10.27.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -306,6 +306,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/p3a_global_policy_source_map.yaml`
 - `tests/fixtures/p3b_writing_role_source_map.yaml`
 - `tests/fixtures/phase_g_cumcm_runtime_golden.yaml`
+- `tests/fixtures/runtime_consistency_v10270_projection.yaml`
 - `tests/fixtures/skill_optimization_cases.yaml`
 - `tests/fixtures/solver_backends/input.json`
 - `tests/fixtures/solver_backends/python_auxiliary.py`
@@ -445,6 +446,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_review_receipt_schema.py`
 - `tests/test_review_receipts.py`
 - `tests/test_router_contract.py`
+- `tests/test_runtime_consistency_repairs.py`
 - `tests/test_runtime_health_coherence.py`
 - `tests/test_safe_yaml.py`
 - `tests/test_schemas.py`
@@ -638,6 +640,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/project_solver_backend_redefinition_p1_audit.md`
 - `docs/project_solver_backend_redefinition_plan.md`
 - `docs/repository_audit_and_handoff_refactor_plan.md`
+- `docs/runtime_consistency_11_issue_repair_plan.md`
 - `docs/runtime_router_and_gate_simplification_refactor_plan.md`
 - `docs/stage_reading_execution_refactor_plan.md`
 - `docs/stage_reading_p4_validation.md`

@@ -42,6 +42,12 @@ python scripts/read_stage.py --root <同版本Skill根> --plan <当前resolver.y
 
 按返回的 `chunk_count` 逐块取得，并核对 `required_ranges` 与全部已返回块的累计覆盖、源身份及 `coverage_issues`；单个块的 `remaining_ranges` 只描述该次返回的缺口。`writing_stage` 还需传入现有写作阶段的 `--stage-id`，`conditional` 需传入已按当前事实裁决的 `--condition`；未知条件仍为未解决。接口只返回正文，不执行门禁，也不以退出码 0 证明整个阶段通过。
 
+当前资源根的 reader 先核对计划版本、reading schema、现有 Authority fingerprint（含 resolver/reader 实现）及 canonical 写作阶段声明；旧计划或来源失配由助手重新运行 resolver，不能只改 YAML 的版本字段。单来源完整不代表整个阶段通过。已登记但缺失的可选竞赛 Pack 回退实际存在的通用来源，并报告 `resource_fallbacks`；必需 Authority、坏配置和越界路径仍阻断。
+
+读取 `origin=project` 的框架、状态或当前绘图源码时，另传 `--project-root <项目根>`；可用 `--origin project` 消除同路径歧义。项目根和当前状态字节/generation 必须与 `reading_plan.project_snapshot` 一致，读取前后重检来源。项目正文用 project snapshot 和文件摘要标识，`selected_commit` 为 null，`skill_source_commit` 仅标识规则来源；不能把 Skill commit 当作项目文件的 commit。没有唯一项目映射的符号别名继续报告 unresolved。接口不写文件或恢复未完成事务。
+
+纯非数值 draw.io 机理图的 `project_sync --delivery-scope mechanism` 只读复核当前已批准模型、Spec/source、真实预览和已登记导出，不发现/要求数值求解目录，也不改写项目状态。预览或人工批准未完成、模型身份过期、`result_evidence` 声明数值依赖时不能通过；数值图和混合请求保留原 figures/后续 scope。该机器结果不证明图形数学语义或人工视觉审查已由机器执行。
+
 只有 GitHub 读取工具时，用同一固定 commit 的 `core/stage_reading_guide.md` 定位原 Authority，保留前言／父级适用语并分段补齐；导航中的 raw 候选来源不替代当前批准、执行等待点或实际项目事实。可复制的 GPT 全局指令仅维护于 [计划 §13](../docs/stage_reading_execution_refactor_plan.md#132-可复制正文)。
 
 ## 代码与用户执行

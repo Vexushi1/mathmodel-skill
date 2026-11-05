@@ -1,6 +1,14 @@
 # Changelog
 
-## 10.26.3
+## 10.27.0
+
+- 修复审阅动作被 Word/LaTeX/绘图载体词覆盖、Python 绘图表达遗漏和可选竞赛 Pack 缺失中断；明确编辑动作仍保留原工作流。
+- resolver 与同步器共用已选绘图后端的产物投影，条件式预处理不会无条件要求绘图产物；通用交接与模板同步双后端语义。
+- 正文读取先核对当前版本、Authority 指纹、选定 commit 与写作阶段；支持显式项目根的框架、状态及源码读取，并绑定状态快照和文件哈希。旧计划失效时须重新运行 resolver。
+- 非数值可编辑机理图增加只读 `mechanism` 交付范围，核验当前已批准模型、spec/drawio/预览身份、人工审图声明及真实导出；含数值结果证据的图继续使用 `figures` 范围和原数值门禁。
+- 修复预处理下游 YAML 指针和独立锁模模板的过时身份术语；保持用户项目、工作簿格式、求解/绘图后端选择及独立协议版本兼容。本分支版本尚未发布 tag 或 Release。
+
+## Previous release: 10.26.3
 
 - 完善证据约束下的论文直接表达规则；清理无事实信息的道歉、自我辩护和机械包装，同时保留比较基准、方向、数值、统计状态、数学条件、适用范围和未执行验证状态。
 - 修复逐章 Draft Review 与 Final Review 的实际读取路径，增加独立 Review reading profile；保留历史 Review receipt 1.0.0、原 required_paths、LaTeX load order、stage ID、顺序、Gate、C1/C2 资格及历史 Golden 兼容。

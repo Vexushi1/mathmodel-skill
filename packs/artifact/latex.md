@@ -18,7 +18,7 @@
 
 - 中文国赛保留 `cumcmthesis` 模板体系；MCM/ICM、电工杯使用对应模板；
 - 工程根目录、主文件、图片和文献数据库使用 ASCII 文件名与路径；
-- 正式结果图来自标准工作簿与 MATLAB 脚本；
+- 正式结果图来自标准工作簿与项目选定的 Python/MATLAB 绘图脚本；
 - 当前模型、逐问结果摘要、图表映射、命题和 Citation Evidence 从 `模型论文框架.md` 恢复；
 - 摘要、正文、表格和附录的具体数值重新从工作簿复核。
 
@@ -152,7 +152,7 @@ model_review  -> final_latex/sections/09_evaluation.tex
 - 公式、命题、图、表和文献使用可维护的 label/ref/cite 体系；
 - 三线表不使用 `resizebox` 粗暴缩小整表字号；
 - 图题在下、表题在上；
-- 正式论文图不设置重复的整体 MATLAB `title/sgtitle`；LaTeX `\caption` 负责正式编号和图名，多面板按需仅保留 panel label；
+- 正式论文图不设置重复的整体 Python/MATLAB `title/suptitle/sgtitle`；LaTeX `\caption` 负责正式编号和图名，多面板按需仅保留 panel label；
 - 正文不放完整代码，完整 Python/MATLAB 放附录或附件；
 - 命题正文与短证明使用项目约定环境，呈现规则由 `packs/artifact/proposition_proof.md` 负责；
 - `references.bib` 中 citation key 与正文 `\cite{}` 闭合。
@@ -186,7 +186,7 @@ model_review  -> final_latex/sections/09_evaluation.tex
 - 模块化工程的 `main.tex` 主要承担 orchestration，不回退成大段正文容器；单文件兼容工程不因此被机械判错；
 - 框架通过 `scripts/validate_model_paper_framework.py`；
 - 模块化项目由 `audit_latex_project.py` 递归覆盖 `main.tex` 引用的全部当前 `.tex` fragment，且未留下 blocking，未解释的 review_required 已处理；
-- 正文核心图表有显式引用并与真实工作簿/MATLAB 来源一致；
+- 正文核心图表有显式引用并与真实工作簿及所选 Python/MATLAB 绘图来源一致；
 - citation key 全部可解析，参考文献数据库无结构性冲突；
 - `scripts/render_paper.py` 自动生成的 `compile_report.yaml` 为 passed，当前 source bundle/PDF hash 与编译时记录一致；
 - 编译日志无 Error、未定义引用、缺失文献、缺图、字体错误和不可接受的 Overfull box；

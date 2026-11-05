@@ -1,4 +1,4 @@
-# HSK Core Policy v10.26.3
+# HSK Core Policy v10.27.0
 
 本文件只定义**跨阶段硬不变量**。任何阶段的目录、字段、工作表、图型、论文小节、算法展示、兼容迁移或工具参数，均以 `core/bootstrap.yaml` 指向的 current Authority 为准；本文件不复制这些阶段合同的完整实现。
 
@@ -56,7 +56,7 @@ P2 `reading_plan` 可以缩小本轮初始阅读范围，但不能缩小机器�
 4. **主求解只回答当前计算能否 accepted。** Primary Quality Specification、Verification ID、残差、可行性、离散/收敛和其它主数值证据只用于判断当前 locked model 与声明数值方法下的本次计算是否有效；参数敏感性、压力场景、替代算法/结构、多 seed/初值结论稳定性、异质性和广义 claim stability 属于 accepted 之后的独立结果深化分析。
 5. **Primary Evidence Capture 只保存当前运行真实产生的高价值状态。** 不能为了图或分析改变参数、场景、seed、初值、算法、结构或验证窗口去制造另一个计算世界。
 6. **预期身份与实际执行证据都要保留。** 代码/数据指纹、实际停止原因、真实运行范围与质量证据按 user-execution / numerical-verification Authority 核验；工作簿自行写出的 `passed` 不能替代机器可复算证据。
-7. **绘图入口只做证据可视化。** `data_process.m` 与 `qX_plot.m` 不重新预处理、求解或生成未执行的敏感性/稳健性结论；具体 Figure Evidence 规则只读 `modules/04_figure_evidence.md`。
+7. **绘图入口只做证据可视化。** 按 `plotting.backend` 选择的 `data_process.py` / `data_process.m` 与 `qX_plot.py` / `qX_plot.m` 不重新预处理、求解或生成未执行的敏感性/稳健性结论；具体 Figure Evidence 规则只读 `modules/04_figure_evidence.md`。
 
 具体目录、工作簿字段、每问文件集合与 stage requirements 只由 `core/output_contract.yaml`、`core/workbook_schema.yaml` 和相应 Module 定义，不在全局政策重复维护。
 

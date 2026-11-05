@@ -1,7 +1,7 @@
 version: 1.3.0
 introduced_in_skill_version: 7.4.2
 skill_compatibility: '>=7.4.2,<11.0.0'
-purpose: 规定跨赛题通用的数据质量审计、预处理必要性判定、项目级统一预处理、论文数学证据、MATLAB预处理图证据与下游读取边界。任何数据题都先判断原始数据能否正确、充分且无信息泄漏地支撑当前模型；只有真实数据问题或模型输入要求提供证据时才修改数据。共享数据、特定题型或某一次赛题经验都不能单独触发清洗、插值、预测填补、滤波或统一工作簿。
+purpose: 规定跨赛题通用的数据质量审计、预处理必要性判定、项目级统一预处理、论文数学证据、Python/MATLAB预处理图证据与下游读取边界。任何数据题都先判断原始数据能否正确、充分且无信息泄漏地支撑当前模型；只有真实数据问题或模型输入要求提供证据时才修改数据。共享数据、特定题型或某一次赛题经验都不能单独触发清洗、插值、预测填补、滤波或统一工作簿。
 
 decision_gate:
   required_for_any_data_project: true
@@ -91,7 +91,8 @@ workflow_position:
 project_directory:
   create_only_when: preprocessing_decision.decision == project_level
   path: 数据预处理/
-  exact_default_files:
+  selected_files_authority: core/output_contract.yaml#global_preprocessing
+  exact_default_files:  # Historical MATLAB projection; use Output Authority for selected backend.
   - 数据预处理.py
   - 数据预处理结果.xlsx
   - data_process.m
@@ -189,7 +190,7 @@ paper_evidence_contract:
   - 处理后数据如何进入后续模型的变量/公式/代码接口
   - 至少一张真正支撑处理必要性或有效性的预处理图；不得用装饰性图替代证据
   formal_proof_boundary: 只有存在可证明的等价性、守恒性、单调性、误差界或可行性保持命题时才写形式证明；经验型清洗不得编造数学证明，应使用可复验的统计/物理验证。
-  question_local_location: 写入对应小问的数据处理或模型输入构造段，并由该问qX_plot.m承接必要图证据。
+  question_local_location: 写入对应小问的数据处理或模型输入构造段，并由该问选定qX_plot.py或qX_plot.m承接必要图证据。
   project_level_location: 论文设置实质“数据预处理”章节或节，集中写公共方法、公式、验证和data_process图证据，后续各问引用该统一数据口径，不重复全文推导。
 
 preprocessing_figure_contract:
@@ -199,10 +200,11 @@ preprocessing_figure_contract:
   project_level_plot_backend_policy: one_selected_backend_for_all_workbook_driven_figures
   export_stem: data_process
   required_when: preprocessing_decision.decision == project_level
-  role: 只读取数据预处理结果.xlsx中Python已持久化的处理前/后、诊断和验证数据，绘制预处理证据图；不得在MATLAB中重新清洗、插值、滤波、重采样或估计参数。
+  role: 只读取数据预处理结果.xlsx中Python已持久化的处理前/后、诊断和验证数据，绘制预处理证据图；不得在Python/MATLAB绘图入口中重新清洗、插值、滤波、重采样或估计参数。
   runtime_forbidden_matlab_functions: [interp1, interp2, interp3, interpn, griddedInterpolant, scatteredInterpolant, fillmissing, rmmissing, standardizeMissing, filloutliers, rmoutliers, isoutlier, smooth, smoothdata, movmean, movmedian, resample, interpft, decimate, downsample, upsample, retime, synchronize, detrend, normalize, rescale, zscore, filter, filtfilt, designfilt, lowpass, highpass, bandpass, bandstop, butter, cheby1, cheby2, ellip, fir1, fir2, fit, fitlm, fitrlinear, fitrgp, fitrensemble, fitrtree, predict, trainNetwork, trainnet]
   runtime_forbidden_matlab_dispatch_functions: [eval, evalin, feval, str2func, builtin]
-  runtime_gate_rule: figures及后续正式交付时，sync_project必须对data_process.m剥离行尾/整行注释后的实际代码执行函数调用扫描；命中上述预处理函数、动态调度函数或被禁止函数句柄即拒绝交付，避免通过feval/str2func/@function等方式绕过绘图职责边界。
+  python_runtime_gate: scripts/project_snapshot.py#python_figure_forbidden_calls
+  runtime_gate_rule: MATLAB项目的figures及后续正式交付时，sync_project必须对data_process.m剥离行尾/整行注释后的实际代码执行函数调用扫描；命中上述预处理函数、动态调度函数或被禁止函数句柄即拒绝交付，避免通过feval/str2func/@function等方式绕过绘图职责边界。
   minimum_evidence: 至少一张图直接回答“为什么需要处理”或“处理是否合理”；变换较多时按证据职责组织多面板，不为凑图重复画同一结论。
   candidate_figures:
   - 缺失位置/覆盖与填补结果对比
@@ -212,8 +214,8 @@ preprocessing_figure_contract:
   - 人工掩蔽或留出样本的真实值—恢复值对比与误差分布
   - 重采样前后网格/采样间隔/覆盖变化
   - 异常判定边界与保留/处理样本对比
-  style: 完全服从modules/04_figure_evidence.md现有科研绘图总规范；本合同不另定义配色、整体标题或网格规则。正式data_process论文图采用caption-owned的正式图名语义，MATLAB图内不设置整体title/sgtitle；默认不自动导出。
-  filename_rule: MATLAB脚本固定为data_process.m；需要导出正式图片时文件基名使用data_process或data_process_<evidence>，不得使用中文文件名。
+  style: 完全服从modules/04_figure_evidence.md现有科研绘图总规范；本合同不另定义配色、整体标题或网格规则。正式data_process论文图采用caption-owned的正式图名语义，Python/MATLAB图内不设置整体title/suptitle/sgtitle；默认不自动导出。
+  filename_rule: 按项目绘图后端固定为data_process.py或data_process.m；需要导出正式图片时文件基名使用data_process或data_process_<evidence>，不得使用中文文件名。
 
 source_policy:
   raw_data_role: immutable_source
@@ -231,7 +233,7 @@ source_policy:
       independent_raw_sources_allowed: true
       independent_input_identity_authority: core/user_execution_contract.yaml#code_delivery.auxiliary_inputs
       downstream_raw_read_forbidden: true
-      rule: 统一工作簿通过质量门后，state.preprocessing.covered_raw_sources中列出的原始源由统一工作簿替代，依赖该公共口径的主求解、深化分析和数据型MATLAB流程不得再次直接读取这些源；未列入covered_raw_sources的独立辅助附件可按题意继续读取。如需改变覆盖范围或公共口径必须回退本阶段并传播stale。
+      rule: 统一工作簿通过质量门后，state.preprocessing.covered_raw_sources中列出的原始源由统一工作簿替代，依赖该公共口径的主求解、深化分析和选定Python/MATLAB数据型绘图流程不得再次直接读取这些源；未列入covered_raw_sources的独立辅助附件可按题意继续读取。如需改变覆盖范围或公共口径必须回退本阶段并传播stale。
 
 preprocessing_script:
   filename: 数据预处理.py
@@ -242,7 +244,7 @@ preprocessing_script:
   - 仅执行preprocessing_decision中已批准且有依据的公共操作
   - 对插值、填补或预测修复输出独立验证证据和适用边界
   - 保留不可逆处理前后的统计证据，不覆盖原始文件
-  - 为data_process.m持久化足够的处理前后底层数据、诊断数据和验证数据，MATLAB不得根据摘要数字反推
+  - 为选定data_process.py或data_process.m持久化足够的处理前后底层数据、诊断数据和验证数据，绘图入口不得根据摘要数字反推
   - 输出统一工作簿、运行配置、数据哈希与预处理质量门
   forbidden:
   - 因为数据被多问共享就自动清洗、插值、滤波或标准化
@@ -255,7 +257,7 @@ preprocessing_script:
 
 workbook:
   filename: 数据预处理结果.xlsx
-  role: decision=project_level时的全项目统一数值数据入口，同时保存论文公式参数、方法验证和data_process.m绘图所需底层证据
+  role: decision=project_level时的全项目统一数值数据入口，同时保存论文公式参数、方法验证和选定data_process.py或data_process.m绘图所需底层证据
   common_required_sheets:
     运行配置:
       required_columns: [项目, 值]
@@ -275,7 +277,7 @@ workbook:
     预处理质量门:
       required_columns: [检查项, 是否通过, 证据]
   task_specific_data_sheets:
-    rule: 由题目真实数据对象决定，使用中文描述性工作表名并记录行列、单位、主键与处理状态；必须保留data_process.m所需的处理前后或验证底层数据，不得只保存摘要统计，不得把不同物理对象硬拼成超宽表。
+    rule: 由题目真实数据对象决定，使用中文描述性工作表名并记录行列、单位、主键与处理状态；必须保留选定data_process.py或data_process.m所需的处理前后或验证底层数据，不得只保存摘要统计，不得把不同物理对象硬拼成超宽表。
   quality_gate:
     must_pass_before_downstream: true
     checks:
@@ -290,7 +292,7 @@ workbook:
     - 插值、统计填补或预测填补在适用时具有人工掩蔽、留出样本、物理约束或其他独立验证证据
     - 任何学习型预处理均未跨越训练验证或时间因果边界造成信息泄漏
     - 预处理方法证据、处理前后对比和绘图数据索引与实际执行步骤一致
-    - data_process.m所需底层证据已保存，MATLAB无需重新计算预处理
+    - 当前data_process.py或data_process.m所需底层证据已保存，绘图入口无需重新计算预处理
 
 question_local:
   allowed_examples: [对数变换, 本问标准化, 滞后变量, 滑动窗口, 本问专属派生特征, 仅服务本问算法的编码, 只影响本问输入且有依据的局部缺失处理]
@@ -300,7 +302,7 @@ question_local:
   - 不得包含本应统一的坐标修正、公共单位换算或跨问共享清洗。
   - 若局部填补或预测会学习数据分布，仍必须遵守训练验证边界与信息泄漏检查。
   - 只要局部处理会实质改变模型输入，就必须在该问正文给出方法公式/定义、参数依据和验证，不得以“简单预处理”省略。
-  - 需要处理前后图证据时，由该问qX_plot.m读取本问求解实现已输出的底层数据绘制，不在MATLAB中重新处理。
+  - 需要处理前后图证据时，由该问选定qX_plot.py或qX_plot.m读取本问求解实现已输出的底层数据绘制，不在绘图入口中重新处理。
 
 semantic_governance:
   preprocessing_decision_is_semantic: true
@@ -308,9 +310,10 @@ semantic_governance:
   stale_policy: decision、公共处理操作、参数、源数据或统一工作簿发生变化时，只对实际依赖该公共数据口径的小问及其下游传播stale；not_needed或question_local项目不得因不存在的统一工作簿变化而失效。
 
 downstream_contract:
-  solve_scripts: core/output_contract.yaml#per_question.solver_scripts中项目根唯一已选数值后端对应的主求解入口
-  analysis_scripts: core/output_contract.yaml#per_question.solver_scripts中继承同一项目根数值后端的独立深化入口，仅Analysis Necessity Gate=required时激活
-  matlab_scripts:
+  solve_scripts: core/output_contract.yaml#per_question.solver_scripts  # 项目根唯一已选数值后端对应主入口
+  analysis_scripts: core/output_contract.yaml#per_question.solver_scripts  # 同一数值后端的独立深化入口；仅Gate=required
+  plot_scripts: core/output_contract.yaml#per_question.plot_scripts
+  matlab_scripts:  # Historical MATLAB projection only; active consumers use selected plot_scripts.
     project_level_preprocessing: 数据预处理/data_process.m
     per_question: 问题X求解/qX_plot.m
   source_selection:
@@ -320,7 +323,7 @@ downstream_contract:
   rules:
   - 下游必须先读取preprocessing_decision，再决定原始数据或统一工作簿作为事实源。
   - 只有decision=project_level时才禁止下游直接读取共享原始数据。
-  - project_level的data_process.m只读取统一预处理工作簿中的处理前后/验证证据；它不是数据事实源也不得重新生成统一数据。
+  - project_level的当前data_process.py或data_process.m只读取统一预处理工作簿中的处理前后/验证证据；它不是数据事实源也不得重新生成统一数据。
   - 若某小问需要改变公共预处理口径，必须回退本阶段；若只新增本问派生特征，则保持question_local并在本问语义闭环中说明。
 
 seismic_guidance:

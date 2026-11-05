@@ -6,7 +6,7 @@
 | 对应问题 | 问题一 / 问题二 / ... |
 | 图类型 | 题目对象关系图 / 机理推导图 / 几何截面图 / 临界状态图 / 模型选择说明图 / 结果验证图 |
 | Figure role | mechanism / derivation / boundary / counterexample / validation / decision |
-| Backend selection | MATLAB / TikZ / GeoGebra / PPT / draw.io / manual；为什么该后端比其他候选更适配 |
+| Backend selection | Python / MATLAB / TikZ / GeoGebra / PPT / draw.io / manual；为什么该后端比其他候选更适配 |
 | Diagram type | object_relation / mechanism_relation / constraint_logic / critical_state / strategy_switch / comparison_boundary（draw.io 路径） |
 | Core question | 该图回答的建模疑问，例如“为什么遮蔽不能只看目标中心线？” |
 | Core conclusion | 该图支撑的一句话结论 |

@@ -827,6 +827,15 @@ class ContractAndDriftTests(unittest.TestCase):
         # neither the old protected blob hash nor its inverse rules are waived.
         text = (historical_review_text(ROOT) if relative == "modules/06_review_delivery.md"
                 else (ROOT / relative).read_text(encoding="utf-8"))
+        if relative == "core/workbook_schema.yaml":
+            # Renderer-neutral handoff wording does not change the workbook
+            # format. Reverse only these exact leaves before the old projections.
+            for current, baseline in (
+                ("和Python/MATLAB绘图交接", "和MATLAB交接"),
+                ("当前选定Python/MATLAB绘图代码生成前", "MATLAB绘图代码生成前"),
+            ):
+                self.assertEqual(text.count(current), 1, (relative, current))
+                text = text.replace(current, baseline, 1)
         for current, baseline in PDF_REVIEW_OWNER_REWRITES.get(relative, ()):
             self.assertEqual(text.count(current), 1, (relative, current))
             text = text.replace(current, baseline, 1)

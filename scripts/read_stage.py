@@ -20,8 +20,47 @@ from reading_plan import (
     SourceReader, canonical_rolepaths, describe_resources,
     validate_chunk_coverage, validate_review_rows,
 )
+from runtime_assurance import ProjectStateSnapshot, authority_fingerprint
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def verify_plan_context(root: Path, plan: dict[str, Any], selected_commit: str) -> None:
+    """Validate existing plan bindings; never silently re-route an obsolete plan.
+
+    Tiny isolated legacy roots without the registered runtime keep the raw
+    source-reader API. A current Skill root cannot opt out by removing plan keys.
+    """
+    bootstrap_path = root / "core/bootstrap.yaml"
+    if not bootstrap_path.is_file():
+        if (root / "core/runtime_assurance_contract.yaml").is_file() or (root / ".codex-plugin/plugin.json").is_file():
+            raise ValueError("registered Skill bootstrap is missing; reading incomplete")
+        return
+    bootstrap = yaml.safe_load(bootstrap_path.read_bytes()) or {}
+    if (not (bootstrap.get("entrypoints") or {}).get("read_stage")
+            and not (root / "core/runtime_assurance_contract.yaml").is_file()):
+        return
+    reading = plan.get("reading_plan") or {}
+    contract = yaml.safe_load((root / "core/runtime_assurance_contract.yaml").read_bytes())
+    router = yaml.safe_load((root / "core/workflow_router.yaml").read_bytes())
+    sources = contract["authority_fingerprint"]["ordered_sources"]
+    current = authority_fingerprint(root, sources)
+    if (plan.get("version") != bootstrap.get("skill_version")
+            or reading.get("schema_version") != router["reading_policy"]["schema_version"]
+            or reading.get("authority_fingerprint") != current
+            or (plan.get("assurance") or {}).get("authority_fingerprint") != current):
+        raise ValueError("reading plan Authority/version changed; rerun resolve_runtime")
+    result = subprocess.run(
+        ["git", "-C", str(root), "diff", "--quiet", selected_commit, "--", *sources],
+        capture_output=True, check=False,
+    )
+    if result.returncode:
+        raise ValueError("reading plan Authority differs from selected commit; rerun resolve_runtime")
+    writing = reading.get("delegated_writing_sequence") or plan.get("writing_runtime")
+    if isinstance(writing, dict):
+        canonical = yaml.safe_load((root / "core/writing_runtime_contract.yaml").read_bytes())
+        if writing.get("authoring_sequence") != canonical["template_first_progressive_authoring"]["stages"]:
+            raise ValueError("writing stage selection changed; rerun resolve_runtime")
 
 
 def verify_checkout(root: Path, selected_commit: str) -> str:
@@ -176,7 +215,8 @@ def verify_writing_source_commit(
 
 
 def source_chunks(
-    root: Path, row: dict[str, Any], selected_commit: str, chunk_lines: int
+    root: Path, row: dict[str, Any], selected_commit: str | None, chunk_lines: int,
+    *, project_snapshot: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     if chunk_lines < 1:
         raise ValueError("chunk_lines must be positive")
@@ -201,6 +241,9 @@ def source_chunks(
                 "end_line": end,
                 "text": "".join(lines[start - 1:end]),
             })
+            if row.get("origin") == "project":
+                chunks[-1].update(origin="project", project_root=str(root.resolve()),
+                                  project_snapshot=project_snapshot)
     if not chunks:
         raise ValueError("empty source is not a completed reading")
     return chunks
@@ -210,18 +253,35 @@ def extract(
     plan: dict[str, Any], root: Path, selected_commit: str, surface: str, path: str,
     *, stage_id: str | None = None, condition: str | None = None,
     chunk_lines: int = 120, chunk_index: int = 0,
+    project_root: Path | None = None, origin: str | None = None,
 ) -> dict[str, Any]:
     verify_checkout(root, selected_commit)
+    verify_plan_context(root, plan, selected_commit)
     rows, symbolic = select_sources(
         plan, root, surface, stage_id=stage_id, condition=condition
     )
-    candidates = [row for row in rows if row["path"] == path]
+    requested_path = Path(path).as_posix()
+    candidates = [row for row in rows if Path(row["path"]).as_posix() == requested_path
+                  and (origin is None or row.get("origin", "skill") == origin)]
     if len(candidates) != 1:
         raise ValueError(f"required source was not uniquely selected: {path}")
     row = candidates[0]
+    snapshot = None
+    source_root = root
+    source_commit = selected_commit
     if row.get("origin") == "project":
-        raise ValueError("project source requires its separate verified project root")
-    verify_writing_source_commit(root, row, selected_commit)
+        if project_root is None:
+            raise ValueError("project source requires --project-root")
+        snapshot = ProjectStateSnapshot.capture(project_root)
+        context = (plan.get("assurance") or {}).get("context") or {}
+        if (not context.get("project_root")
+                or snapshot.root != Path(context["project_root"]).resolve()
+                or snapshot.describe() != (plan.get("reading_plan") or {}).get("project_snapshot")
+                or snapshot.raw is None):
+            raise ValueError("project snapshot changed or belongs to another root; rerun resolve_runtime")
+        source_root, source_commit = snapshot.root, None
+    else:
+        verify_writing_source_commit(root, row, selected_commit)
     review_binding = validate_review_rows(root, rows)
     if review_binding is not None:
         # Legacy-plan rows cannot invent leaf hashes at extraction time. New
@@ -232,7 +292,13 @@ def extract(
         for current in rows:
             if current["path"] in rolepaths and current is not row:
                 verify_writing_source_commit(root, current, selected_commit)
-    chunks = source_chunks(root, row, selected_commit, chunk_lines)
+    chunks = source_chunks(source_root, row, source_commit, chunk_lines,
+                           project_snapshot=snapshot.describe() if snapshot else None)
+    if snapshot is not None:
+        snapshot.assert_current()
+        fresh = SourceReader(source_root, "project").describe({"path": row["path"]})
+        if fresh["sha256"] != row["sha256"]:
+            raise ValueError("project source changed during reading; rerun resolve_runtime")
     if chunk_index < 0 or chunk_index >= len(chunks):
         raise ValueError("chunk_index out of range")
     emitted = chunks[chunk_index]
@@ -243,8 +309,11 @@ def extract(
         "stage_id": stage_id,
         "condition": condition,
         "source_identity": {
-            "path": row["path"], "selected_commit": selected_commit,
+            "path": row["path"], "selected_commit": source_commit,
             "sha256": row["sha256"], "blob_id": None,
+            **({"origin": "project", "project_root": str(source_root),
+                "project_snapshot": snapshot.describe(), "skill_source_commit": selected_commit}
+               if snapshot else {}),
         },
         "resolution": row.get("resolution"),
         "fallback_reason": row.get("fallback_reason"),
@@ -269,6 +338,8 @@ def main() -> int:
     parser.add_argument("--stage-id")
     parser.add_argument("--condition", help="explicitly adjudicated conditional trigger")
     parser.add_argument("--path", required=True, help="one selected source per tool call")
+    parser.add_argument("--project-root", type=Path, help="separate root for a planned project source")
+    parser.add_argument("--origin", choices=["skill", "project"], help="disambiguate a source path")
     parser.add_argument("--chunk-lines", type=int, default=120)
     parser.add_argument("--chunk-index", type=int, default=0)
     args = parser.parse_args()
@@ -280,6 +351,7 @@ def main() -> int:
             plan, args.root.resolve(), args.source_commit, args.surface, args.path,
             stage_id=args.stage_id, condition=args.condition,
             chunk_lines=args.chunk_lines, chunk_index=args.chunk_index,
+            project_root=args.project_root, origin=args.origin,
         )
     except (ValueError, FileNotFoundError, UnicodeError, yaml.YAMLError) as exc:
         parser.exit(2, f"reading incomplete: {exc}\n")

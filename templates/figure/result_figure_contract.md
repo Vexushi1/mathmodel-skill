@@ -26,7 +26,7 @@
 | Worksheet | 中文工作表名 |
 | Required headers | 绘图所需精确唯一表头及单位；按实际证据登记真实记录键、配对/排序字段与依据，不造键、不以行序冒充配对 |
 | Expected positions | 可选列号，仅作结构漂移警告 |
-| MATLAB script | `问题X求解/qX_plot.m` |
+| Plot script / backend | 按项目根 `plotting.backend` 填 `问题X求解/qX_plot.py` 或 `问题X求解/qX_plot.m`；旧 MATLAB script 字段只读兼容 |
 | Panel map | a/b/c/d 或其他 axes 的证据职责；无多面板时写单图职责 |
 | Statistics/error | 误差线、区间、样本量和统计口径 |
 | Export files | 未导出时留空；用户实际运行、人工确认并按需导出后登记真实文件，如项目级 `figures/qx_*.pdf`、`.png` 或 `.svg`；预定名称留在图表计划中 |
@@ -34,7 +34,7 @@
 | Paper location | 预登记对应小问／共享范围＋预期论证功能；具体小节未定可说明原因，写作时落实当前实际章节路径 |
 | Reviewer risk | 可能质疑点与处理 |
 
-Figure Contract 默认登记在 `模型论文框架.md`，不生成独立 `figure_evidence` 文件。以同一 Figure ID 复用来源、caption、实际入文文件与正文引用；静态检查和用户运行/外观确认的进度记入现有闭环表或框架待办，静态通过不等于 `approved_figures`。`Candidate visual structures / Basic-form challenge / Scientific value rationale` 只记录科研表达决策，不变成样式参数表；Enhancement 只记录决策与理由，**不记录 inset 坐标、透明度等 MATLAB 实现参数**。
+Figure Contract 默认登记在 `模型论文框架.md`，不生成独立 `figure_evidence` 文件。以同一 Figure ID 复用来源、caption、实际入文文件与正文引用；静态检查和用户运行/外观确认的进度记入现有闭环表或框架待办，静态通过不等于 `approved_figures`。`Candidate visual structures / Basic-form challenge / Scientific value rationale` 只记录科研表达决策，不变成样式参数表；Enhancement 只记录决策与理由，**不记录 inset 坐标、透明度等 Python/MATLAB 实现参数**。
 
 预登记不要求先写正文或提前确定源码行号，实际引用只在入文后登记；写作交接统一见 `modules/05_writing/paper_writing_protocol.md` §13.0。
 

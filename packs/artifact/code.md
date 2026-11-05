@@ -7,7 +7,7 @@
 - `per_question.solver_scripts` 中项目根后端对应的主入口：主求解程序，按 applicable approval/data gates 交付；
 - 同一项目后端对应的独立深化入口：仅在主工作簿 accepted 且 Analysis Necessity Gate=`required` 时交付的独立深化分析程序。
 
-基础布局是主求解代码、`问题X求解结果.xlsx` 与 `qX_plot.m`；Gate=`required` 时再追加结果深化分析代码与 `问题X结果深化分析.xlsx`。因此只有 Gate=`required` 路径才具有两个阶段明确的代码入口；Gate=`not_required` 时仅保留主求解代码。Gate=`required` 的兼容五文件路径中会形成同目录两个真实工作簿（主工作簿 + 03B 工作簿）；该表述仅描述被 Gate 激活的路径，不适用于 Gate=`not_required`。主工作簿 accepted 后冻结主求解脚本，不用深化分析代码覆盖它。Gate=`not_required` 时记录非空理由，不生成 03B 代码/工作簿，也不得把缺少 03B 解释为稳健性或稳定性已验证。
+基础布局是主求解代码、`问题X求解结果.xlsx` 与已选绘图后端的 `qX_plot.py` 或 `qX_plot.m`；Gate=`required` 时再追加结果深化分析代码与 `问题X结果深化分析.xlsx`。因此只有 Gate=`required` 路径才具有两个阶段明确的代码入口；Gate=`not_required` 时仅保留主求解代码。Gate=`required` 的兼容五文件路径中会形成同目录两个真实工作簿（主工作簿 + 03B 工作簿）；该表述仅描述被 Gate 激活的路径，不适用于 Gate=`not_required`。主工作簿 accepted 后冻结主求解脚本，不用深化分析代码覆盖它。Gate=`not_required` 时记录非空理由，不生成 03B 代码/工作簿，也不得把缺少 03B 解释为稳健性或稳定性已验证。
 
 本 Pack 只描述代码交付边界，不重新定义数据事实源。数据读取必须继承 current `preprocessing_decision`，以 `core/global_preprocessing_contract.yaml` 与对应阶段模块为准：
 
@@ -24,4 +24,4 @@
 - **工程质量门**：`core/code_quality_contract.yaml` + `scripts/validate_code_delivery.py`，按语言分派共同规模/复杂度和对应工程检查；MATLAB 原生分析未完成时不能宣称完整工程验收；
 - **数值结果质量门**：用户运行后由工作簿 Schema 与 `validate_user_execution.py` 检查运行配置、对应阶段代码哈希、可行性、残差、收敛、外样本或题型专项证据。
 
-代码精简不得删除随机种子、目标函数、约束、质量检查、结果输出或复现信息。Gate=`required` 时，深化分析脚本应读取已验收主工作簿和当前允许的数据事实源，不复制完整主求解流程。主求解/深化入口不生成论文结果图；MATLAB 主结果图默认只需同目录主工作簿，只有 Figure Evidence 明确消费真实 03B 证据时才读取条件存在的深化工作簿；必须精确匹配表头，不得重新求解。旧 v6.6.x 单脚本四文件项目与旧 `结果数据表/问题X/` 仅作**只读兼容**。
+代码精简不得删除随机种子、目标函数、约束、质量检查、结果输出或复现信息。Gate=`required` 时，深化分析脚本应读取已验收主工作簿和当前允许的数据事实源，不复制完整主求解流程。主求解/深化入口不生成论文结果图；项目选定的 Python/MATLAB 主结果图默认只需同目录主工作簿，只有 Figure Evidence 明确消费真实 03B 证据时才读取条件存在的深化工作簿；必须精确匹配表头，不得重新求解。旧 v6.6.x 单脚本四文件项目与旧 `结果数据表/问题X/` 仅作**只读兼容**。

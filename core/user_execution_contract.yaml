@@ -30,7 +30,7 @@ solver_backends:
   rules:
   - Record one concrete backend and non-empty selection reason at the project root before any current numerical code delivery. auto is a request only and cannot authorize code delivery. The choice covers all questions and both numerical stages.
   - Include the concrete solver, dependencies and unresolved environment conditions in the existing Model Approval Brief implementation scope; do not add a separate approval gate.
-  - Do not map a task type directly to a language or prefer MATLAB merely because formal figures use MATLAB.
+  - Do not map a task type directly to a language or prefer MATLAB merely because a Figure rendering backend is MATLAB.
   - Current question stages carry source-bundle and acceptance identities, never a second backend or selection reason. Primary and analysis must both match the project backend; analysis consumes the current accepted primary workbook.
   - Project-level preprocessing remains Python with receipt 1.0 and existing state; question-local mathematical transformations follow the one project backend.
   - Historical per-stage selections are read-only migration evidence. A consistent historical selection is only a candidate, not a current project choice; mixed or conflicting history requires explicit review and migration.
@@ -81,7 +81,7 @@ assistant_policy:
   - 由助手完成不导入赛题脚本的静态代码、依赖、语法和工程质量检查，以及交付登记、项目同步和内部审计；execution_owner=user只约束题目专属数值运行
   - 由助手读取用户返回的工作簿并执行Schema、哈希、质量门和主数值证据一致性校验；用户正常交接是实际产物与必要失败信息，不额外执行checker或提交独立校验报告
   - 工具或必要材料不可用时报告具体未完成项，不把内部校验转交用户代跑、不授予新accepted或verified；仅有上下文不足不写结果失败，已观察到的真实错误和漂移仍按原规则处理
-  - 在预处理工作簿accepted、主求解以及Gate=required时必要的结果深化分析完成后，于Figure Evidence阶段生成data_process.m；该MATLAB脚本只读工作簿绘图，不执行数值预处理
+  - 在预处理工作簿accepted、主求解以及Gate=required时必要的结果深化分析完成后，于Figure Evidence阶段按绘图后端生成data_process.py或data_process.m；该绘图脚本只读工作簿绘图，不执行数值预处理
   - 运行本Skill仓库自身的lint、单元测试、索引生成和LaTeX模板CI
 full_fidelity_flags:
   execution_profile: full_fidelity
@@ -271,7 +271,7 @@ three_stage_policy:
   analysis:
     activation: 主工作簿accepted后先执行Analysis Necessity Gate；仅Gate=required时激活
     role: Gate=required时按已选后端新建独立深化分析入口，继承同一preprocessing_decision与数据事实源，依据真实主结果执行敏感性、稳健性、阈值、替代方法/结构、异质性等深化分析，输出问题X结果深化分析.xlsx；Gate=not_required时记录非空理由且不生成03B代码/工作簿。
-  isolation: 修改深化分析脚本不得改变主求解代码哈希、主工作簿或主结果质量状态；修改主求解脚本则主结果及其全部下游重新进入待验收状态；修改project_level预处理则依赖该数据口径的小问进入stale；修改data_process.m只影响预处理图表/论文层。
+  isolation: 修改深化分析脚本不得改变主求解代码哈希、主工作簿或主结果质量状态；修改主求解脚本则主结果及其全部下游重新进入待验收状态；修改project_level预处理则依赖该数据口径的小问进入stale；修改所选data_process.py或data_process.m只影响预处理图表/论文层。
 execution_states:
   preprocessing:
   - not_applicable
@@ -465,7 +465,7 @@ returned_workbook:
   - 主/深化工作簿实际路径与标准文件名必须解析出唯一problem_name和stage，再与运行配置完全一致；当前项目只接受问题X求解/中的两个标准工作簿，旧结果数据表/问题X/仅作只读兼容。
   - preprocessing工作簿code_sha256必须与已交付数据预处理.py一致；主工作簿与深化工作簿分别绑定两阶段小问代码入口哈希及适用的bundle身份。
   - data_sha256必须与对应阶段代码交付时锁定的数据哈希完全一致。
-  - preprocessing工作簿必须通过预处理质量门，并包含预处理方法证据、处理前后对比、绘图数据索引以及供data_process.m使用的真实底层数据。
+  - preprocessing工作簿必须通过预处理质量门，并包含预处理方法证据、处理前后对比、绘图数据索引以及供所选data_process.py或data_process.m使用的真实底层数据。
   - 新v7.14主求解验收时，receipt必须静态读取项目状态登记的已交付主求解代码，先核对其实际SHA-256与primary_code_sha256，再从该代码唯一RUN_CONFIG（旧项目可只读FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG）读取primary_quality_protocol_version；返回主工作簿必须携带同一协议版本。不得通过省略工作簿协议标记或Verification ID降级为legacy质量门。
   - 主结果工作簿必须通过主结果质量门；当已交付代码绑定v7.14协议、运行配置声明primary_quality_protocol_version或主结果质量门出现Verification ID时，还必须按core/numerical_verification_contract.yaml独立复核适用底层数值证据，不能只相信工作簿自报Boolean。
   - 结果深化分析工作簿仅在Analysis Necessity Gate=required时存在，并必须在主工作簿accepted后验收，包含分析设计和结论稳定性汇总；其参数敏感性、压力场景、替代方法/结构、多seed/多初值、异质性等证据不得被主结果质量门替代或提前吸收。
@@ -474,7 +474,8 @@ filenames:
   preprocessing_directory: 数据预处理/
   preprocessing_python_code: 数据预处理/数据预处理.py
   preprocessing_workbook: 数据预处理/数据预处理结果.xlsx
-  preprocessing_matlab_script: 数据预处理/data_process.m
+  preprocessing_matlab_script: 数据预处理/data_process.m  # Historical MATLAB projection
+  selected_plot_filenames: core/output_contract.yaml#filenames.plot_scripts
   question_directory: 问题X求解/
   stage_code_authority: core/output_contract.yaml#per_question.solver_scripts
   primary_python_code: 问题X求解/问题X求解.py

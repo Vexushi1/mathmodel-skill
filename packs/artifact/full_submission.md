@@ -44,7 +44,7 @@ python scripts/hsk_pack_submission.py . \
 问题X求解/
 ├─ <项目后端对应主入口：问题X求解.py 或 qX_solver.m>
 ├─ 问题X求解结果.xlsx
-├─ qX_plot.m
+├─ <绘图后端对应 qX_plot.py 或 qX_plot.m>
 ├─ [同一项目后端对应深化入口：问题X结果深化分析.py 或 qX_analysis.m]    # only Gate=required
 └─ [问题X结果深化分析.xlsx]  # only Gate=required and analysis executed
 ```
@@ -74,7 +74,7 @@ internal_metadata/
 ## 5. 助手提交前检查
 
 1. 主结果质量门已通过；Analysis Necessity Gate 已有 current disposition：`required` 时 03B 质量/验收链通过且无 unresolved `redo_required`，`not_required` 时理由非空；
-2. 当前模型、工作簿、MATLAB 图、正文和 `模型论文框架.md` 一致且无 stale；
+2. 当前模型、工作簿、所选 Python/MATLAB 结果图、正文和 `模型论文框架.md` 一致且无 stale；
 3. 正式 LaTeX 已形成 current `latex_audit_report.yaml + compile_report.yaml + compiled_pdf` 证明链；
 4. resolver 返回的同步与包级 gate 按顺序通过；
 5. 官方包按当前 verified rules 裁剪，复现包保持内部完整性并只收集 current 状态实际要求的 03B 产物；

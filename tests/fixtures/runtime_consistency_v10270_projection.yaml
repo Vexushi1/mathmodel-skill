@@ -1,0 +1,62 @@
+# Measured inverse of the reviewed runtime repair on the unchanged P2 case corpus.
+# Hashes/paths, exact leaves and ordered insertions are pinned; no other field is waived.
+schema_version: 1
+baseline_commit: e48e4654cf3460a6a4b9785b0eee6877df9ea257
+authority_versions: {"skill": "10.27.0", "project_state": "8.16.0", "claim_consumption": "1.8.0", "state_transition": "1.7.0", "writing_reasoning": "1.11.0", "runtime_assurance": "2.5.0", "review_receipt_consumption": "1.0.0"}
+fingerprint:
+  baseline:
+    - {"path": "core/bootstrap.yaml", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "core/workflow_router.yaml", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "core/module_manifest.yaml", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "core/project_state.schema.yaml", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "config/competition_profiles.yaml", "sha256": "9e09f3076b7246e4e571ccdf8f9b175d1351fe41c19a3c54048c3c12c1ac4a0e"}
+    - {"path": "core/runtime_assurance_contract.yaml", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "core/state_transition_contract.yaml", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "core/user_execution_contract.yaml", "sha256": "6c4846b7a69ce6ec95b393a37893fef611bb8a4023f16a5224a9db0f9f7f7f56"}
+    - {"path": "core/output_contract.yaml", "sha256": "b0c03ff69cc2f7589767c827638028183250f8135999a94455ec5ceaf134125a"}
+    - {"path": "core/code_quality_contract.yaml", "sha256": "701879f5af14ab2b56c5257f3e63d8c4ed3bcaeeff18af24af8c4555700f6771"}
+    - {"path": "core/writing_reasoning_contract.yaml", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "core/writing_runtime_contract.yaml", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "templates/latex/cumcm/hsk/template_manifest.yaml", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "modules/05_writing/paper_writing_protocol.md", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+  candidate:
+    - {"path": "core/bootstrap.yaml", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "core/workflow_router.yaml", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "core/module_manifest.yaml", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "core/project_state.schema.yaml", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "config/competition_profiles.yaml", "sha256": "9e09f3076b7246e4e571ccdf8f9b175d1351fe41c19a3c54048c3c12c1ac4a0e"}
+    - {"path": "core/runtime_assurance_contract.yaml", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "core/state_transition_contract.yaml", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "core/user_execution_contract.yaml", "sha256": "b05f8a41a521fa5df10f0f2369b1308f14959abad07701712f185cea3924b795"}
+    - {"path": "core/output_contract.yaml", "sha256": "5e86deac2ab65cfaa31645fb5dc4949429d512ef81d81e2afb35cea3deaee041"}
+    - {"path": "core/code_quality_contract.yaml", "sha256": "8152402e1fa0fb0018dae7d7ba3a951ec254a60a48761bc818c44ea27de60191"}
+    - {"path": "core/writing_reasoning_contract.yaml", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "core/writing_runtime_contract.yaml", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "templates/latex/cumcm/hsk/template_manifest.yaml", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "modules/05_writing/paper_writing_protocol.md", "sha256": "<EXPECTED_APPROVED_AUTHORITY_CHANGE>"}
+    - {"path": "scripts/resolve_workflow.py", "sha256": "71d643bf950036993564746cd71951e05c1e08aba20f050cbc1fa8942c05ea6b"}
+    - {"path": "scripts/resolve_runtime.py", "sha256": "767c539f88efcad274eda13d0b8246ceb02e6f1f306a99e4122a80a790cfddc4"}
+    - {"path": "scripts/reading_plan.py", "sha256": "eaf7b917dee8726cfc0fa88aa4e2e9018f670201f86d7dd51c8b43ba60e20d53"}
+    - {"path": "scripts/read_stage.py", "sha256": "3ba04f8d8798ea08155df64546cc1074489241c4fdfd81d8522df15ae9d0b86d"}
+    - {"path": "scripts/plot_backend.py", "sha256": "2998d37633bc9ce9e10d188804ee0fa6e3b3db6d16439d0156a83d5f0b1b4c41"}
+groups:
+  - case_ids: ["style_current", "style_data_change", "style_figure_drift", "style_no_approval", "mixed"]
+    deltas:
+      - {"path": ["available_after_modules"], "insertions": [{"index": 23, "value": "preprocessing_figures"}, {"index": 24, "value": "preprocessing_matlab_script"}]}
+      - {"path": ["available_after_plan"], "insertions": [{"index": 23, "value": "preprocessing_figures"}, {"index": 24, "value": "preprocessing_matlab_script"}]}
+      - {"path": ["module_terminal_outputs"], "insertions": [{"index": 0, "value": "preprocessing_matlab_script"}, {"index": 1, "value": "preprocessing_figures"}]}
+      - {"path": ["runtime_plan", "terminal_outputs"], "insertions": [{"index": 0, "value": "preprocessing_matlab_script"}, {"index": 1, "value": "preprocessing_figures"}]}
+      - {"path": ["terminal_outputs"], "insertions": [{"index": 0, "value": "preprocessing_matlab_script"}, {"index": 1, "value": "preprocessing_figures"}]}
+  - case_ids: ["mechanism"]
+    deltas:
+      - {"path": ["available_after_modules"], "insertions": [{"index": 2, "value": "evidence_map"}, {"index": 4, "value": "matlab_scripts"}, {"index": 9, "value": "preprocessing_figures"}, {"index": 10, "value": "preprocessing_matlab_script"}, {"index": 11, "value": "refined_mechanism_figures"}, {"index": 12, "value": "result_figures"}]}
+      - {"path": ["available_after_plan"], "baseline": ["approved_figures", "editable_mechanism_source", "evidence_map", "figure_contracts", "matlab_scripts", "mechanism_diagram_spec", "mechanism_exports", "mechanism_preview", "model_paper_framework", "preprocessing_figures", "preprocessing_matlab_script", "project_state", "refined_mechanism_figures", "result_figures", "semantic_governance_report", "sync_report"], "candidate": ["approved_figures", "editable_mechanism_source", "figure_contracts", "mechanism_delivery_report", "mechanism_diagram_spec", "mechanism_exports", "mechanism_preview", "model_paper_framework", "project_state", "semantic_governance_report"]}
+      - {"path": ["delivery_scope"], "baseline": "figures", "candidate": "mechanism"}
+      - {"path": ["missing_prerequisites"], "insertions": [{"index": 0, "value": "figure_evidence:preprocessing_decision"}, {"index": 1, "value": "figure_evidence:solution_workbook"}]}
+      - {"path": ["pre_delivery_gates", 0, "delivery_scope"], "baseline": "figures", "candidate": "mechanism"}
+      - {"path": ["pre_delivery_gates", 1, "command"], "baseline": "python scripts/sync_project.py <project_root> --write --strict --delivery-scope figures", "candidate": "python scripts/sync_project.py <project_root> --strict --delivery-scope mechanism"}
+      - {"path": ["pre_delivery_gates", 1, "delivery_scope"], "baseline": "figures", "candidate": "mechanism"}
+      - {"path": ["pre_delivery_gates", 1, "outputs"], "baseline": ["project_state", "sync_report"], "candidate": ["mechanism_delivery_report"]}
+      - {"path": ["runtime_plan", "delivery_scope"], "baseline": "figures", "candidate": "mechanism"}
+      - {"path": ["runtime_plan", "terminal_outputs"], "baseline": ["mechanism_diagram_spec", "editable_mechanism_source", "mechanism_preview", "mechanism_exports", "figure_contracts", "approved_figures", "model_paper_framework", "semantic_governance_report", "project_state", "sync_report"], "candidate": ["mechanism_diagram_spec", "editable_mechanism_source", "mechanism_preview", "mechanism_exports", "figure_contracts", "approved_figures", "model_paper_framework", "semantic_governance_report", "project_state", "mechanism_delivery_report"]}
+      - {"path": ["terminal_outputs"], "baseline": ["mechanism_diagram_spec", "editable_mechanism_source", "mechanism_preview", "mechanism_exports", "figure_contracts", "approved_figures", "model_paper_framework", "semantic_governance_report", "project_state", "sync_report"], "candidate": ["mechanism_diagram_spec", "editable_mechanism_source", "mechanism_preview", "mechanism_exports", "figure_contracts", "approved_figures", "model_paper_framework", "semantic_governance_report", "project_state", "mechanism_delivery_report"]}

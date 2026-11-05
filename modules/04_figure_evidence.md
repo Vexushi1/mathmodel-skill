@@ -3,7 +3,9 @@
 本模块是当前 Figure Evidence 的单一通用 Authority。`packs/artifact/figure.md`、`templates/figure/*.md` 及 Python/MATLAB 渲染模板只能引用或实现这里的规则，不得建立第二套绘图决策权威。
 
 
-### 项目级 Python / MATLAB 渲染后端（新增实现适配）
+**项目级 Python / MATLAB 渲染后端（模块适用前言）**
+
+本段属于适用前言，相关结果图与审阅选读均保留。项目级渲染后端用于工作簿驱动的结果图和预处理证据图；非数据驱动机制图仍按独立 Backend Selection Gate 选择工具。
 
 - **Figure Evidence 设计 Authority 不变**：Scientific Figure Synthesis、Basic-form Challenge、Composite Encoding、Publication Rendering Grammar、Figure Layout/Enhancement、图证据级别、Caption 和人工批准均由本模块原有章节决定，不因后端不同出现第二套判断标准。
 - 在首份正式结果/预处理绘图脚本生成之前，按全赛题完整需求**一次性选择**项目根 `plotting.backend=python|matlab`，无需逐问重新选择；数值求解后端独立。对已锁定后端的改选请求先给全项目影响预览，不自动切换。
@@ -12,6 +14,8 @@
 - Python 实现不会在正式图内额外增加整体 title；用户实际运行、手动检查外观、按需导出后，仍走原 Figure Source/Caption/论文证据链。Python AST 只能提供有限静态检查，不能替代实际图像/图片哈希/人工批准。
 
 ## 正确顺序
+
+以下工作簿与预处理顺序适用于数值结果图、预处理证据图；纯非数值机理图沿 A 类的 `mechanism` 范围检查，不因本节要求创建数值工作簿或绘图脚本。
 
 进入本模块时先读取 current `模型论文框架.md` 中的当前有效口径、相关小问结果摘要、待办缺口和既有图表映射，用于确定“哪些结论需要图证据”；随后再从真实工作簿读取具体数值和底层序列。不得仅凭聊天记忆或框架摘要数字反推图数据。
 
@@ -35,6 +39,8 @@
 18. 默认只保留图窗供人工检查，不自动创建图表子目录或批量导出图片。
 
 ## A 类：机理与推导图
+
+明确的非数值 draw.io 交付使用 `mechanism` scope：当前已批准模型、Spec、可编辑源、真实且 hash 绑定的预览及已登记正式导出由原 `sync_project.py` 只读复核，不要求主工作簿、03B 或 qN_plot.*。有 `result_evidence` 的图以及与数值结果图混合的请求仍使用原数值 Figure 前置链；不得以 draw.io 扩展名免除 accepted 证据。机器通过不替代人工语义/视觉批准。
 
 优先表达公式来源、约束来源、临界状态和策略机制。图内只放对象、变量、方向、边界、距离、角度、流向和临界状态，完整推导留在正文。禁止用通用“输入—模型—输出”流程图替代题目专属机理图。
 

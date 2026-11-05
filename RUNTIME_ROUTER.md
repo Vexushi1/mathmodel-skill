@@ -94,8 +94,8 @@ problem_audit
    │    → 深化工作簿 accepted ───────────────────────┐
    └─ not_required + 非空 requirement reason ─────────┘
 → figure_evidence
-   ├─ [project_level] data_process.m
-   └─ qX_plot.m / 机理图
+   ├─ [project_level] 所选 data_process.py 或 data_process.m
+   └─ 所选 qX_plot.py 或 qX_plot.m / 机理图
 → writing_latex（按需消费 Algorithm Trace / algorithm_flow Pack）
 → ai_cleanup
 → LaTeX project/prose/BibTeX/framework audit（scripts/audit_latex_project.py + framework validator）
@@ -110,7 +110,7 @@ Problem Contract 冻结、Semantic Closure 通过和 Complexity Sanity 通过都
 
 `data_preprocessing` 是条件阶段，不因“多问共享数据”自动启用。`not_needed` 直接使用原始数据；`question_local` 仅允许项目后端对应的本问主求解实现执行当前数学层已经定义的局部变换；只有 `project_level` 才在主求解前暂停，等待固定 Python 预处理入口生成的统一工作簿通过质量门。
 
-`data_process.m` 虽属于 `数据预处理/`，但它在后续 Figure Evidence 阶段生成，只读取已验收 `数据预处理结果.xlsx` 的底层证据绘图，不是主求解前置。
+所选 `data_process.py` 或 `data_process.m` 虽属于 `数据预处理/`，但它在后续 Figure Evidence 阶段生成，只读取已验收 `数据预处理结果.xlsx` 的底层证据绘图，不是主求解前置。
 
 `solve_validate` 表示主求解代码交付与主结果质量门；主工作簿 accepted 后先执行 Analysis Necessity Gate。只有 Gate=`required` 时才激活 `result_analysis`，按 `core/output_contract.yaml#per_question.solver_scripts` 生成项目根后端对应的独立深化入口，并选择题目专属深化分析方法；Gate=`not_required` 时必须记录非空 `result_analysis_requirement_reason`，不生成 03B 代码/工作簿，也不得据此声称稳健性或稳定性已经验证。03A 与被激活的 03B 使用同一项目后端，不得倒序，也不得通过覆盖当前主入口合并。已有 accepted 主工作簿的历史项目进入被激活的独立 `result_analysis` 时，不要求为了分析阶段追溯补做当时不存在的 Human Model Approval；只有重新进入当前模型设计、项目级预处理、主求解或语义变化后的重算才迁入该门。
 

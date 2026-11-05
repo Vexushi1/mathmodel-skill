@@ -30,6 +30,7 @@ _CUMCM_LINT_PARTS = (
 _CRITICAL_POINTER_REGISTRIES = (
     ROOT / "core/bootstrap.yaml",
     ROOT / "core/output_contract.yaml",
+    ROOT / "core/global_preprocessing_contract.yaml",
     ROOT / "core/writing_runtime_contract.yaml",
     ROOT / "templates/latex/cumcm/hsk/template_manifest.yaml",
     ROOT / "templates/review/final_review_matrix.yaml",

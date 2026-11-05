@@ -18,7 +18,7 @@ TAXONOMY_PATH = ROOT / "core" / "task_taxonomy.yaml"
 COMPETITION_PATH = ROOT / "config" / "competition_profiles.yaml"
 EXECUTION_PATH = ROOT / "core" / "user_execution_contract.yaml"
 OUTPUT_PATH = ROOT / "core" / "output_contract.yaml"
-SCOPE_RANK = {"design": 0, "code": 1, "results": 2, "figures": 3, "docx": 4, "latex": 5, "submission": 6}
+SCOPE_RANK = {"design": 0, "mechanism": 0.5, "code": 1, "results": 2, "figures": 3, "docx": 4, "latex": 5, "submission": 6}
 VALID_PREPROCESSING_DECISIONS = {"not_needed", "question_local", "project_level"}
 
 
@@ -69,13 +69,56 @@ def resolve_competition_pack(token: str | None, profiles: dict[str, Any]) -> str
     return None
 
 
+def review_only_request(request: str, router: dict[str, Any]) -> bool:
+    """Keep a review action distinct from the carrier being inspected.
+
+    Negative clauses are removed only for the declared action verbs. In
+    particular, 'do not change the model, adjust the figure' is still an edit.
+    """
+    policy = router.get("review_action_policy") or {}
+    review_words = policy.get("review_words", [])
+    edit_words = policy.get("edit_words", [])
+    text = request.casefold()
+    for word in [*review_words, *edit_words]:
+        text = re.sub(r"(?:不要|不必|无需|不)\s*" + re.escape(word), "", text)
+    has_review_action = any(word in text for word in review_words)
+    text = re.sub(
+        r"(?:生成|输出|列出|给出)(?:一份|一个)?\s*(?:(?:word|docx|latex)\s*)?(?:论文)?"
+        r"(?:审查报告|审阅报告|审稿报告|终审报告|评分报告|修改建议|修复建议|问题清单)",
+        "", text,
+    )
+    text = re.sub(r"(?:修改|修复|改写)(?:建议|方案|清单|意见)", "", text)
+    return has_review_action and not any(word in text for word in edit_words)
+
+
+def available_competition_pack(token: str | None, profiles: dict[str, Any]) -> tuple[str | None, dict | None]:
+    """Fallback only for absent optional packs, never for unsafe resource paths."""
+    declared = resolve_competition_pack(token, profiles)
+    preferred = declared or "packs/competition/auto.md"
+    path = (ROOT / preferred).resolve()
+    if not path.is_relative_to((ROOT / "packs/competition").resolve()):
+        raise ValueError(f"competition pack escapes its resource directory: {preferred}")
+    if path.is_file():
+        return preferred, None
+    if path.exists():
+        raise ValueError(f"competition pack is not a file: {preferred}")
+    fallback = "packs/competition/auto.md"
+    effective = fallback if (ROOT / fallback).is_file() else None
+    return effective, {"requested": preferred, "effective": effective,
+                       "reason": "optional_competition_pack_missing_generic_authorities_retained"}
+
+
 def matched_inference_keywords(request: str, router: dict[str, Any]) -> dict[str, list[str]]:
     """Apply the router's bounded paper-carrier rule before either resolver scores."""
     text = request.strip().lower()
+    text = re.sub(r"(python|matlab)\s+(?=绘图)", r"\1 ", text)
     if not text:
         return {}
     policy = router.get("paper_carrier_disambiguation", {}) or {}
     carrier_keywords = policy.get("explicit_keywords", {}) or {}
+    review_text = text
+    for word in (router.get("review_action_policy") or {}).get("review_words", []):
+        review_text = re.sub(r"(?:不要|不必|无需|不)\s*" + re.escape(word), "", review_text)
     matches: dict[str, list[str]] = {}
     for name, route in (router.get("routing", {}) or {}).items():
         carrier_words = {str(word).lower() for word in carrier_keywords.get(name, [])}
@@ -87,7 +130,7 @@ def matched_inference_keywords(request: str, router: dict[str, Any]) -> dict[str
                 found = re.search(r"(?<![a-z0-9_])" + re.escape(normalized)
                                   + r"(?![a-z0-9_])", text) is not None
             else:
-                found = normalized in text
+                found = normalized in (review_text if name == "review" else text)
             if found:
                 matched.append(keyword)
         if matched:
@@ -103,6 +146,9 @@ def matched_inference_keywords(request: str, router: dict[str, Any]) -> dict[str
         matches["latex"] = [word for word in matches.get("latex", []) if word.lower() not in generic]
         if not matches["latex"]:
             del matches["latex"]
+    if review_only_request(request, router):
+        # Carrier keywords remain in the request; they are not authoring actions.
+        matches = {name: words for name, words in matches.items() if name == "review"}
     return matches
 
 
@@ -186,6 +232,7 @@ def close_module_dependencies(
     available_artifacts: set[str],
     manifest: dict[str, Any],
     workflow_order: Iterable[str],
+    input_profile: str | None = None,
 ) -> list[str]:
     """Add unique unconditional upstream producers when current artifact state is supplied."""
     module_specs = manifest.get("modules", {})
@@ -196,7 +243,7 @@ def close_module_dependencies(
     for name, spec in module_specs.items():
         if not isinstance(spec, dict):
             continue
-        for artifact in spec.get("outputs", []):
+        for artifact in spec.get("output_profiles", {}).get(input_profile, spec.get("outputs", [])):
             producers.setdefault(str(artifact), []).append(name)
     selected = set(modules)
     external = set(manifest.get("external_artifacts", []))
@@ -208,7 +255,7 @@ def close_module_dependencies(
             if not name:
                 continue
             spec = module_specs[name]
-            for artifact in spec.get("inputs", []):
+            for artifact in spec.get("input_profiles", {}).get(input_profile, spec.get("inputs", [])):
                 if artifact in produced or artifact in external:
                     continue
                 candidates = producers.get(str(artifact), [])
@@ -218,7 +265,7 @@ def close_module_dependencies(
                 if producer_path and producer_path not in selected:
                     selected.add(producer_path)
                     changed = True
-            produced.update(spec.get("outputs", []))
+            produced.update(spec.get("output_profiles", {}).get(input_profile, spec.get("outputs", [])))
         if not changed:
             return ordered_modules(selected, manifest, workflow_order)
 
@@ -228,6 +275,7 @@ def prerequisite_report(
     available_artifacts: set[str],
     manifest: dict[str, Any],
     preprocessing_decision: str | None = None,
+    input_profile: str | None = None,
 ) -> tuple[list[str], list[str]]:
     missing: list[str] = []
     produced = set(available_artifacts)
@@ -239,14 +287,14 @@ def prerequisite_report(
         if not name:
             continue
         spec = manifest["modules"][name]
-        for artifact in spec.get("inputs", []):
+        for artifact in spec.get("input_profiles", {}).get(input_profile, spec.get("inputs", [])):
             if artifact not in produced and artifact not in manifest.get("external_artifacts", []):
                 missing.append(f"{name}:{artifact}")
-        if preprocessing_decision == "project_level":
+        if preprocessing_decision == "project_level" and input_profile != "mechanism":
             conditional = spec.get("conditional_inputs", {}) or {}
             if "preprocessing_workbook" in conditional and "preprocessing_workbook" not in produced:
                 missing.append(f"{name}:preprocessing_workbook")
-        produced.update(spec.get("outputs", []))
+        produced.update(spec.get("output_profiles", {}).get(input_profile, spec.get("outputs", [])))
     return unique(missing), sorted(produced)
 
 
@@ -268,13 +316,15 @@ def gate_plan(
         command = str(spec.get("command", ""))
         if delivery_scope:
             command = command.replace("<delivery_scope>", delivery_scope)
+        if delivery_scope in spec.get("read_only_delivery_scopes", []):
+            command = command.replace(" --write", "")
         plans.append({
             "name": name,
             "path": spec.get("path"),
             "command": command,
             "delivery_scope": delivery_scope,
             "inputs": list(spec.get("inputs", [])),
-            "outputs": list(spec.get("outputs", [])),
+            "outputs": list(spec.get("outputs_by_delivery_scope", {}).get(delivery_scope, spec.get("outputs", []))),
         })
     return plans
 
@@ -521,6 +571,8 @@ def resolve_workflow(
         inferred_intents = [name for name in inferred_intents
                             if name not in paper_routes or name in explicit_intents]
     resolved_intents = unique(explicit_intents + inferred_intents)
+    if review_only_request(request or "", router) and set(explicit_intents) - {"review"}:
+        raise ValueError("explicit intent conflicts with review-only request; resolve review without write actions")
     if not resolved_intents:
         raise ValueError("no workflow intent resolved; pass an intent or --request")
     unknown_intents = [name for name in resolved_intents if name not in router.get("routing", {})]
@@ -568,6 +620,7 @@ def resolve_workflow(
     route_scopes: list[str] = []
     explicit_gates: list[str] = []
     pause_for_user_execution = False
+    resource_fallbacks = []
     for intent in resolved_intents:
         route = router["routing"][intent]
         paths.extend(router.get("default_load", []))
@@ -580,8 +633,11 @@ def resolve_workflow(
         explicit_gates.extend(route.get("pre_delivery_gates", []))
         pause_for_user_execution = pause_for_user_execution or bool(route.get("pause_for_user_execution"))
         if route.get("load_competition_pack"):
-            pack = resolve_competition_pack(competition, load_yaml(competition_path))
-            paths.append(pack or "packs/competition/auto.md")
+            pack, fallback = available_competition_pack(competition, load_yaml(competition_path))
+            if pack:
+                paths.append(pack)
+            if fallback and fallback not in resource_fallbacks:
+                resource_fallbacks.append(fallback)
         if route.get("load_classified_task_packs") and task_packs:
             # Task packs refine the general classifier; explicit classification is not
             # a prerequisite for starting a fresh problem analysis/model-design route.
@@ -648,14 +704,18 @@ def resolve_workflow(
                 manifest,
                 workflow_order,
             )
+    delivery_scope = highest_scope(route_scopes)
+    artifact_profile = "mechanism" if delivery_scope == "mechanism" else None
     module_paths = ordered_modules(paths, manifest, workflow_order)
     dependency_closure_applied = available_artifacts is not None
     if dependency_closure_applied:
-        module_paths = close_module_dependencies(module_paths, available_set, manifest, workflow_order)
+        module_paths = close_module_dependencies(
+            module_paths, available_set, manifest, workflow_order,
+            input_profile=artifact_profile,
+        )
         paths.extend(module_paths)
     non_modules = [path for path in unique(paths) if not path.startswith("modules/")]
     ordered = unique([*non_modules, *module_paths])
-    delivery_scope = highest_scope(route_scopes)
     if formal_delivery:
         module_terminal_outputs.append("model_paper_framework")
         # Design/framework outputs are intermediate work products, not final delivery.
@@ -665,7 +725,8 @@ def resolve_workflow(
     gates = gate_plan(explicit_gates, manifest, delivery_scope)
 
     missing, produced_after_modules = prerequisite_report(
-        module_paths, available_set, manifest, preprocessing_decision
+        module_paths, available_set, manifest, preprocessing_decision,
+        input_profile=artifact_profile,
     )
     available_after_plan = set(produced_after_modules)
     terminal_outputs = unique(module_terminal_outputs)
@@ -714,6 +775,8 @@ def resolve_workflow(
         "pause_state": pause_state,
         "task_code_execution_allowed": False,
     }
+    if resource_fallbacks:
+        plan["resource_fallbacks"] = resource_fallbacks
     if solver_backend is None:
         return code_artifact_projection(plan, {value: key for key, value in code_aliases.items()})
     plan["solver_backend"] = {

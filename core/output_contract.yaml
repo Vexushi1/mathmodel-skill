@@ -1,4 +1,4 @@
-version: 10.26.3
+version: 10.27.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -225,7 +225,7 @@ project_sync:
   write_flag: --write
   strict_flag: --strict
   command: python scripts/sync_project.py <project_root> --write --strict --delivery-scope <scope>
-  delivery_scopes: [design, code, results, figures, docx, latex, submission]
+  delivery_scopes: [design, mechanism, code, results, figures, docx, latex, submission]
   phase_scope_mapping_role: 未显式传入delivery_scope时只用于报告标签，不激活正式交付全量要求
   implicit_phase_sync_semantics: status_minimum_only
   formal_scope_requires_explicit_flag: true
@@ -244,6 +244,7 @@ project_sync:
     completed: submission
   stage_requirements_authority: core/output_contract.yaml#project_sync.stage_requirements
   stage_requirements_semantics: exact_scope
+  mechanism_scope: Pure nonnumerical draw.io delivery rechecks current approved model, bound Spec/source/preview and registered real exports read-only via the existing synchronizer; it never grants human visual approval. Numerical result_evidence uses figures scope.
   conditional_stage_requirements_semantics: additive_when_condition_true_without_changing_base_exact_scope
   formal_state_requirements:
     result_quality_status: passed
@@ -254,6 +255,7 @@ project_sync:
   # resolves the selected Python Figure roles at runtime; never require both languages.
   stage_requirements:
     design: [project_state, model_paper_framework]
+    mechanism: [project_state, model_paper_framework, mechanism_diagram_spec, editable_mechanism_source, mechanism_preview, mechanism_exports]
     code: [project_state, model_paper_framework, primary_code]
     results: [project_state, model_paper_framework, primary_code, solution_workbook, result_quality_report, result_analysis_report]
     figures: [project_state, model_paper_framework, solution_workbook, result_quality_report, result_analysis_report, matlab_scripts]
@@ -288,6 +290,7 @@ project_sync:
     active_script_resolution: scripts/plot_backend.py#resolve_question_script
     legacy_stage_names: [matlab_scripts, preprocessing_matlab_script]
     python_stage_names: [plot_scripts, preprocessing_python_plot_script]
+    project_level_only_outputs: [preprocessing_matlab_script, preprocessing_python_plot_script, preprocessing_figures]
   source_identity_lifecycle:
     current_source_identity: [primary_code_sha256, analysis_code_sha256, solver_execution.bundle_sha256, artifact_hashes.primary_code, artifact_hashes.analysis_code]
     accepted_execution_identity: [solver_execution.validated_bundle_sha256, original_RUN_RECEIPT, validated_artifact_hashes.solution_workbook, validated_artifact_hashes.result_analysis_workbook, validated_data_hash]
