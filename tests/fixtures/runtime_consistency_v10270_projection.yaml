@@ -37,7 +37,7 @@ fingerprint:
     - {"path": "scripts/resolve_workflow.py", "sha256": "71d643bf950036993564746cd71951e05c1e08aba20f050cbc1fa8942c05ea6b"}
     - {"path": "scripts/resolve_runtime.py", "sha256": "767c539f88efcad274eda13d0b8246ceb02e6f1f306a99e4122a80a790cfddc4"}
     - {"path": "scripts/reading_plan.py", "sha256": "eaf7b917dee8726cfc0fa88aa4e2e9018f670201f86d7dd51c8b43ba60e20d53"}
-    - {"path": "scripts/read_stage.py", "sha256": "b5368d61dbd5a3032fdfa306111dd892ab4f907ca5e498c846a885f8cafabe95"}
+    - {"path": "scripts/read_stage.py", "sha256": "3ba04f8d8798ea08155df64546cc1074489241c4fdfd81d8522df15ae9d0b86d"}
     - {"path": "scripts/plot_backend.py", "sha256": "2998d37633bc9ce9e10d188804ee0fa6e3b3db6d16439d0156a83d5f0b1b4c41"}
 groups:
   - case_ids: ["style_current", "style_data_change", "style_figure_drift", "style_no_approval", "mixed"]

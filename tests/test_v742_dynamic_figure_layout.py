@@ -75,7 +75,7 @@ class TestV742DynamicFigureLayout(unittest.TestCase):
         text = (ROOT / "core/global_preprocessing_contract.yaml").read_text(encoding="utf-8")
         self.assertIn("完全服从modules/04_figure_evidence.md", text)
         self.assertIn("本合同不另定义配色、整体标题或网格规则", text)
-        self.assertIn("MATLAB图内不设置整体title/sgtitle", text)
+        self.assertIn("Python/MATLAB图内不设置整体title/suptitle/sgtitle", text)
 
 
 if __name__ == "__main__":

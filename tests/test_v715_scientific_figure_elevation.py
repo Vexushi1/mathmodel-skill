@@ -145,7 +145,7 @@ class TestV715ScientificFigureElevation(unittest.TestCase):
             "Rejected alternatives",
         ):
             self.assertIn(token, contract)
-        self.assertIn("不记录 inset 坐标、透明度等 MATLAB 实现参数", contract)
+        self.assertIn("不记录 inset 坐标、透明度等 Python/MATLAB 实现参数", contract)
         self.assertIn("不作质量排序，任一级均可承担核心论证", contract)
         self.assertIn("不凑第二候选", contract)
         self.assertIn("复合形式不自动代表通过", contract)

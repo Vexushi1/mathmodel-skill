@@ -260,7 +260,8 @@ def extract(
     rows, symbolic = select_sources(
         plan, root, surface, stage_id=stage_id, condition=condition
     )
-    candidates = [row for row in rows if row["path"] == path
+    requested_path = Path(path).as_posix()
+    candidates = [row for row in rows if Path(row["path"]).as_posix() == requested_path
                   and (origin is None or row.get("origin", "skill") == origin)]
     if len(candidates) != 1:
         raise ValueError(f"required source was not uniquely selected: {path}")

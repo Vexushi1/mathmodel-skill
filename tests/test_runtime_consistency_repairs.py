@@ -86,6 +86,8 @@ class ActionAndProjectionTests(unittest.TestCase):
         router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_bytes())
         self.assertFalse(resolve_workflow.review_only_request("不修改模型，只调整图例", router))
         self.assertFalse(resolve_workflow.review_only_request("审查后同步项目状态", router))
+        scoring_model = resolve_runtime("full_solution", request="求解评分模型", solver_backend="auto")
+        self.assertEqual(scoring_model["intents"], ["full_solution"])
 
     def test_python_and_matlab_plot_requests(self):
         for text in ("Python绘图", "Python 绘图", "请用Python绘图", "python  绘图", "MATLAB绘图"):
@@ -191,6 +193,9 @@ class CurrentPlanReaderTests(unittest.TestCase):
             for path in ("模型论文框架.md", "state/project_state.yaml", "问题一求解/q1_plot.m"):
                 with self.subTest(path=path):
                     first = read_stage.extract(plan, ROOT, self.commit, "read_now", path, project_root=project, chunk_lines=50)
+                    native = read_stage.extract(plan, ROOT, self.commit, "read_now", str(Path(path)),
+                                                project_root=project, chunk_lines=50)
+                    self.assertEqual(first["source_identity"], native["source_identity"])
                     chunks = [first["returned_chunk"]] + [
                         read_stage.extract(plan, ROOT, self.commit, "read_now", path, project_root=project,
                                            chunk_lines=50, chunk_index=i)["returned_chunk"]

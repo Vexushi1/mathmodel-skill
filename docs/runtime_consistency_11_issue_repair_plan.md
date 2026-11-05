@@ -661,9 +661,12 @@ python scripts/read_stage.py
 - I09 使用现有同步器的只读 mechanism 分支，不增设独立 checker 或写状态流程。模块候选输出及 gate 输出同时收窄，避免没有生成的数值脚本或 sync_report 被列为本次交付。含 result_evidence 的 draw.io 图必须回到 figures scope。
 - I03 的 24 组覆盖是求解/绘图后端、预处理及 analysis disposition 的纯角色组合，不声称执行了 24 次数值求解或人工审图；两个实际项目读取分支另测。
 - I07 复核中发现 review Pack 的固定 submission --write 命令及 LaTeX/机理图检查模板中的 MATLAB-only 指令，同属本次直接消费者，已一并修正。
+- Windows 完整回归发现 I06 的本机反斜杠路径与 CLI 正斜杠参数未匹配；读取器改为按当前平台 Path 语义比较路径，保留原来源、项目根、状态快照及文件哈希核验，不把别的平台字面反斜杠擅自当作本机分隔符。
+- I01 的边界复核覆盖生成审查报告、审阅后的同步动作，以及“求解评分模型”的数学请求；评分相关审阅识别收窄到论文/代码/报告语境，避免把模型中的评分对象当成只读审阅动作。
 - 本次不改变用户项目或持久工作簿格式，不迁移求解/绘图后端，不替代 Human Approval、accepted workbook 或图片人工审阅。
 - 正式验收只使用 GitHub 的最终 head 证据；受管文件交由 refresh-generated。开发阶段先专项，冻结后完整验证。
 - 历史保护不通过重置 Golden 或删除断言处理：工作簿契约仅逆向还原两处经过审查的交接措辞后检查原 blob hash；P2 历史对比用 `tests/fixtures/runtime_consistency_v10270_projection.yaml` 公开记录精确指纹扩展、条件产物及 mechanism 差异，其他字段仍须逐一相等。新增反例确认无关源 hash、顺序、门禁、产物和 scope 的变化不会被抹掉。
 - 开发诊断：新行为复现、已有读取器、图表/路由/内容保护等专项已运行；19 个既有 P2 场景在登记本次必要差异后没有未登记变化。它们不替代远端正式检查。
 - 开发阶段曾发现并修正 lint 的旧 scope allowlist、旧 MATLAB-only 测试断言及工作簿措辞逆投影位置；生成文件在源码 head 上暂时落后须等待 refresh-generated，不能借手工改 hash 通过。
+- 首轮完整 Windows 回归补齐了四处旧 MATLAB-only 文案断言（整体标题与 Contract 参数范围）；仅同步双后端表述，原标题约束、参数范围约束及其他断言保留。
 - 当前状态：11 项源码及直接消费者已实现，PR #301 跟踪生成提交、Windows 专项、冻结后的完整双版本分片、MATLAB/Python Figure/LaTeX 与适用 Optimization baseline。最终 head、工作流与合并结果以 PR 描述及 GitHub Checks 的实际记录为准。

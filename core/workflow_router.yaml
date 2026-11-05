@@ -137,7 +137,7 @@ runtime_segments:
 # Only disambiguate the paper carriers; other scores and legacy multi-intent
 # inference stay unchanged. Explicit API/CLI intents remain authoritative.
 review_action_policy:
-  review_words: [终审, 审稿, 审阅, 审查, 论文检查, 评分]
+  review_words: [终审, 审稿, 审阅, 审查, 论文检查, 论文评分, 代码评分, 评分报告]
   edit_words: [修改, 改写, 重写, 修订, 修复, 更正, 润色, 生成, 编译, 调整, 创建, 新增, 删除, 补充, 同步]
   rule: Review actions consume the named carrier; a carrier token alone does not authorize authoring. Explicit conflicting intents fail before executable write planning.
 

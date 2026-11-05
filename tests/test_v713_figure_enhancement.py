@@ -60,7 +60,7 @@ class TestV713FigureEnhancement(unittest.TestCase):
         qa = (ROOT / "templates/figure/result_figure_qa.md").read_text(encoding="utf-8")
         self.assertIn("| Enhancement |", contract)
         self.assertIn("| Enhancement rationale |", contract)
-        self.assertIn("不记录 inset 坐标、透明度等 MATLAB 实现参数", contract)
+        self.assertIn("不记录 inset 坐标、透明度等 Python/MATLAB 实现参数", contract)
         for token in (
             "Local Zoom",
             "Small Multiples",
