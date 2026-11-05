@@ -445,6 +445,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_review_receipt_schema.py`
 - `tests/test_review_receipts.py`
 - `tests/test_router_contract.py`
+- `tests/test_runtime_consistency_repairs.py`
 - `tests/test_runtime_health_coherence.py`
 - `tests/test_safe_yaml.py`
 - `tests/test_schemas.py`
