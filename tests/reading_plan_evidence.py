@@ -1751,6 +1751,131 @@ def approved_v10261_cumcm_handoff_carrier_change(identifier, old, new, candidate
     return projected, changes
 
 
+C_REVIEW_STAGE_PINNED_READS = {
+    "draft_semantic_review": [
+        "core/writing_reasoning_contract.yaml",
+        "core/output_contract.yaml#per_question",
+        "core/workbook_schema.yaml",
+        "modules/05_writing/paper_writing_protocol.md#2-模板与写作职责",
+        "modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽",
+        "modules/05_writing/paper_writing_protocol.md#4-Local-Narrative-Chain",
+        "modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test",
+        "modules/05_writing/paper_writing_protocol.md#6-前置章节内容",
+        "modules/05_writing/paper_writing_protocol.md#7-模型建立",
+        "modules/05_writing/paper_writing_protocol.md#8-模型求解",
+        "modules/05_writing/paper_writing_protocol.md#9-求解结果数值与术语",
+        "modules/05_writing/paper_writing_protocol.md#10-结果与验证的分层",
+        "modules/05_writing/paper_writing_protocol.md#11-Result-Validation-Bridge",
+        "modules/05_writing/paper_writing_protocol.md#12-跨问递进",
+        "modules/05_writing/paper_writing_protocol.md#13.0-CUMCM-图表的正文落点先论证职责后图型",
+        "modules/05_writing/paper_writing_protocol.md#14-摘要",
+        "modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录",
+        "modules/05_writing/paper_writing_protocol.md#16-引用与正文语言",
+        "modules/06_review_delivery.md",
+        "modules/06_review/content_review.md",
+        "modules/04_figure_evidence.md#C 类：各问结果图合同",
+        "modules/04_figure_evidence.md#Figure Evidence 层级",
+        "modules/04_figure_evidence.md#Figure Portfolio Scientific Quality Gate",
+        "modules/04_figure_evidence.md#Missing Scientific Evidence Check",
+        "modules/04_figure_evidence.md#图题、配色与风格",
+        "modules/04_figure_evidence.md#入文闭环",
+        "templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton",
+        "modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff",
+        "current_model_paper_framework#Chapter-Handoff-Map"
+    ],
+    "final_review_and_delivery": [
+        "core/writing_reasoning_contract.yaml",
+        "core/output_contract.yaml#per_question",
+        "core/workbook_schema.yaml",
+        "modules/05_writing/paper_writing_protocol.md#2-模板与写作职责",
+        "modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽",
+        "modules/05_writing/paper_writing_protocol.md#4-Local-Narrative-Chain",
+        "modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test",
+        "modules/05_writing/paper_writing_protocol.md#6-前置章节内容",
+        "modules/05_writing/paper_writing_protocol.md#7-模型建立",
+        "modules/05_writing/paper_writing_protocol.md#8-模型求解",
+        "modules/05_writing/paper_writing_protocol.md#9-求解结果数值与术语",
+        "modules/05_writing/paper_writing_protocol.md#10-结果与验证的分层",
+        "modules/05_writing/paper_writing_protocol.md#11-Result-Validation-Bridge",
+        "modules/05_writing/paper_writing_protocol.md#12-跨问递进",
+        "modules/05_writing/paper_writing_protocol.md#13.0-CUMCM-图表的正文落点先论证职责后图型",
+        "modules/05_writing/paper_writing_protocol.md#14-摘要",
+        "modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录",
+        "modules/05_writing/paper_writing_protocol.md#16-引用与正文语言",
+        "modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff",
+        "current_model_paper_framework#Chapter-Handoff-Map",
+        "modules/06_review_delivery.md",
+        "modules/06_review/content_review.md",
+        "modules/06_review/final_delivery.md",
+        "modules/04_figure_evidence.md#C 类：各问结果图合同",
+        "modules/04_figure_evidence.md#Figure Evidence 层级",
+        "modules/04_figure_evidence.md#Figure Portfolio Scientific Quality Gate",
+        "modules/04_figure_evidence.md#Missing Scientific Evidence Check",
+        "modules/04_figure_evidence.md#图题、配色与风格",
+        "modules/04_figure_evidence.md#入文闭环",
+        "templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton",
+        "modules/05_latex_compile_quality.md#终稿检查",
+        "core/compile_profiles.yaml",
+        "config/competition_profiles.yaml",
+        "packs/competition/cumcm.md",
+        "templates/review/final_review_matrix.yaml",
+        "current_latex_audit_and_compile_reports"
+    ]
+}
+
+
+def approved_c_review_read_paths_change(identifier, old, new, candidate_authority_versions):
+    """Inverse-project only the two exact Phase C review read lists and seam run.
+
+    The frozen historical Review Split delta remains authoritative. Any
+    unregistered stage, gate, output, list order, or non-review mutation must
+    still fail the existing P2 full-plan comparison.
+    """
+    if (identifier != "cumcm_writing"
+            or candidate_authority_versions != CUMCM_D_CLEANUP_AUTHORITY_VERSIONS
+            or new.get("version") != CUMCM_D_CLEANUP_AUTHORITY_VERSIONS["skill"]):
+        return deepcopy(new), []
+
+    predecessor = deepcopy(new)
+    changes = []
+    for prefix in (("writing_runtime",), ("runtime_plan", "writing_runtime")):
+        source, target = new, predecessor
+        try:
+            for key in prefix:
+                source, target = source[key], target[key]
+            source_stages = source["authoring_sequence"]
+            target_stages = target["authoring_sequence"]
+        except (KeyError, IndexError, TypeError):
+            return deepcopy(new), []
+        if not isinstance(source_stages, list) or len(source_stages) != len(target_stages):
+            return deepcopy(new), []
+        for index, stage_id, _historical, split_reads in REVIEW_SPLIT_WRITING_DELTAS:
+            if (index >= len(source_stages)
+                    or source_stages[index].get("id") != stage_id
+                    or target_stages[index].get("id") != stage_id
+                    or source_stages[index].get("read_now") != C_REVIEW_STAGE_PINNED_READS[stage_id]):
+                return deepcopy(new), []
+            target_stages[index]["read_now"] = deepcopy(split_reads)
+            changes.append({
+                "path": ".".join((*prefix, "authoring_sequence", str(index), "read_now")),
+                "baseline": deepcopy(split_reads),
+                "candidate": deepcopy(C_REVIEW_STAGE_PINNED_READS[stage_id]),
+                "approval": "Phase C exact Review selector list; historical Review Split preserved",
+            })
+        last = target_stages[10]
+        if (last.get("id") != "final_review_and_delivery"
+                or source_stages[10].get("run_now") != ["assembled_seam_sweep"]):
+            return deepcopy(new), []
+        del last["run_now"]
+        changes.append({
+            "path": ".".join((*prefix, "authoring_sequence", "10", "run_now")),
+            "baseline": None,
+            "candidate": ["assembled_seam_sweep"],
+            "approval": "Phase C existing seam sweep in final Review; no additional gate",
+        })
+    return predecessor, changes
+
+
 # v10.26.2 authorizes only the AI Cleanup stage gate and release carrier.
 CUMCM_D_CLEANUP_GATE_OLD = "只清除模板感、空话、机械重复和证据越界，不删除章节必要建模理由/适用边界、推导、约束、solver 前提、命题、伪代码、结果或验证内容，也不按标题数量/字数机械合并或拆分。"
 CUMCM_D_CLEANUP_GATE_NEW = "只清除普通自然语言中的模板感、空话及纯重复；公式、中文推导、证明、伪代码、算法、数值及显示格式、术语定义、引用、图表实体、章节标题与层级均只读。数学或证据问题返回既有前置审查，不在 Cleanup 改写；改后在原有 Review 中复核受保护内容，不新增门禁。"
@@ -1932,6 +2057,9 @@ def compare(before, after):
         projected, cumcm_c_changes = approved_v10261_cumcm_handoff_carrier_change(
             a["id"], old, projected, b.get("authority_versions"))
         expected.extend(cumcm_c_changes)
+        projected, cumcm_c_review_changes = approved_c_review_read_paths_change(
+            a["id"], old, projected, b.get("authority_versions"))
+        expected.extend(cumcm_c_review_changes)
         projected, cumcm_d_changes = approved_v10262_prose_only_cleanup_carrier_change(
             a["id"], old, projected, b.get("authority_versions"))
         expected.extend(cumcm_d_changes)

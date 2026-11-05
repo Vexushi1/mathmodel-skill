@@ -483,10 +483,32 @@ template_first_progressive_authoring:
     - id: draft_semantic_review
       read_now:
         - core/writing_reasoning_contract.yaml
+        - core/output_contract.yaml#per_question
+        - core/workbook_schema.yaml
+        - modules/05_writing/paper_writing_protocol.md#2-模板与写作职责
+        - modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽
+        - modules/05_writing/paper_writing_protocol.md#4-Local-Narrative-Chain
         - modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test
-        - modules/05_writing/paper_writing_protocol.md#7.3-作者视角与建模解释
+        - modules/05_writing/paper_writing_protocol.md#6-前置章节内容
+        - modules/05_writing/paper_writing_protocol.md#7-模型建立
+        - modules/05_writing/paper_writing_protocol.md#8-模型求解
+        - modules/05_writing/paper_writing_protocol.md#9-求解结果数值与术语
+        - modules/05_writing/paper_writing_protocol.md#10-结果与验证的分层
+        - modules/05_writing/paper_writing_protocol.md#11-Result-Validation-Bridge
+        - modules/05_writing/paper_writing_protocol.md#12-跨问递进
+        - modules/05_writing/paper_writing_protocol.md#13.0-CUMCM-图表的正文落点先论证职责后图型
+        - modules/05_writing/paper_writing_protocol.md#14-摘要
+        - modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录
+        - modules/05_writing/paper_writing_protocol.md#16-引用与正文语言
         - modules/06_review_delivery.md
         - modules/06_review/content_review.md
+        - modules/04_figure_evidence.md#C 类：各问结果图合同
+        - modules/04_figure_evidence.md#Figure Evidence 层级
+        - modules/04_figure_evidence.md#Figure Portfolio Scientific Quality Gate
+        - modules/04_figure_evidence.md#Missing Scientific Evidence Check
+        - modules/04_figure_evidence.md#图题、配色与风格
+        - modules/04_figure_evidence.md#入文闭环
+        - templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton
         - modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff
         - current_model_paper_framework#Chapter-Handoff-Map
       run_now:
@@ -521,11 +543,43 @@ template_first_progressive_authoring:
     - id: final_review_and_delivery
       read_now:
         - core/writing_reasoning_contract.yaml
+        - core/output_contract.yaml#per_question
+        - core/workbook_schema.yaml
+        - modules/05_writing/paper_writing_protocol.md#2-模板与写作职责
+        - modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽
+        - modules/05_writing/paper_writing_protocol.md#4-Local-Narrative-Chain
+        - modules/05_writing/paper_writing_protocol.md#5-Paragraph-Handoff-Test
+        - modules/05_writing/paper_writing_protocol.md#6-前置章节内容
+        - modules/05_writing/paper_writing_protocol.md#7-模型建立
+        - modules/05_writing/paper_writing_protocol.md#8-模型求解
+        - modules/05_writing/paper_writing_protocol.md#9-求解结果数值与术语
+        - modules/05_writing/paper_writing_protocol.md#10-结果与验证的分层
+        - modules/05_writing/paper_writing_protocol.md#11-Result-Validation-Bridge
+        - modules/05_writing/paper_writing_protocol.md#12-跨问递进
+        - modules/05_writing/paper_writing_protocol.md#13.0-CUMCM-图表的正文落点先论证职责后图型
+        - modules/05_writing/paper_writing_protocol.md#14-摘要
+        - modules/05_writing/paper_writing_protocol.md#15-模型评价逐问结论与附录
+        - modules/05_writing/paper_writing_protocol.md#16-引用与正文语言
+        - modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff
+        - current_model_paper_framework#Chapter-Handoff-Map
         - modules/06_review_delivery.md
         - modules/06_review/content_review.md
         - modules/06_review/final_delivery.md
+        - modules/04_figure_evidence.md#C 类：各问结果图合同
+        - modules/04_figure_evidence.md#Figure Evidence 层级
+        - modules/04_figure_evidence.md#Figure Portfolio Scientific Quality Gate
+        - modules/04_figure_evidence.md#Missing Scientific Evidence Check
+        - modules/04_figure_evidence.md#图题、配色与风格
+        - modules/04_figure_evidence.md#入文闭环
+        - templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton
+        - modules/05_latex_compile_quality.md#终稿检查
+        - core/compile_profiles.yaml
+        - config/competition_profiles.yaml
+        - packs/competition/cumcm.md
         - templates/review/final_review_matrix.yaml
         - current_latex_audit_and_compile_reports
+      run_now:
+        - assembled_seam_sweep
       write_now:
         - review_report
       gate: 最终终审完成八类动态 coverage、原子 finding、规则核验与证据扫描后，才允许交付或进入 submission package；review matrix 不进入 official package。

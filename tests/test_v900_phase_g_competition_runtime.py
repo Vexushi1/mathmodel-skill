@@ -26,6 +26,7 @@ from reading_plan_evidence import (
     PDF_REVIEW_WRITING_DELTAS,
     REVIEW_SPLIT_AUTHORITY_VERSIONS,
     REVIEW_SPLIT_WRITING_DELTAS,
+    C_REVIEW_STAGE_PINNED_READS,
     STAGE_READING_AUTHORITY_VERSIONS,
     USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS,
     review_split_writing_predecessor,
@@ -53,6 +54,9 @@ CUMCM_C_HANDOFF_RELEASE_VERSIONS = {
 CUMCM_D_CLEANUP_RELEASE_VERSIONS = {
     **CUMCM_C_HANDOFF_RELEASE_VERSIONS, "skill": "10.26.2",
 }
+# Phase C: pin the exact review reads separately from the historical
+# Review Split migration and unchanged Phase G golden. Unregistered additions,
+# removals, order changes, or selector substitutions must fail projection.
 CUMCM_D_CLEANUP_GATE_OLD = "只清除模板感、空话、机械重复和证据越界，不删除章节必要建模理由/适用边界、推导、约束、solver 前提、命题、伪代码、结果或验证内容，也不按标题数量/字数机械合并或拆分。"
 CUMCM_D_CLEANUP_GATE_NEW = "只清除普通自然语言中的模板感、空话及纯重复；公式、中文推导、证明、伪代码、算法、数值及显示格式、术语定义、引用、图表实体、章节标题与层级均只读。数学或证据问题返回既有前置审查，不在 Cleanup 改写；改后在原有 Review 中复核受保护内容，不新增门禁。"
 
@@ -82,6 +86,34 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
     def _projection(self, plan):
         writing = copy.deepcopy(plan.get("writing_runtime"))
         if writing is not None:
+            # Phase C review-read integration is a separate, exact reversible
+            # delta. Keep the original v10.22 Review Split golden and historical
+            # projection immutable, including stage gates and output targets.
+            # Simulated pre-v10.22 carriers in the historical projection test
+            # explicitly restore the pinned *pre-split* read lists. Verify those
+            # lists without pretending they were already Phase C sources.
+            pre_split_carrier = plan["version"] in {
+                FIGURE_HANDOFF_AUTHORITY_VERSIONS["skill"],
+                USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS["skill"],
+                PDF_REVIEW_AUTHORITY_VERSIONS["skill"],
+                STAGE_READING_AUTHORITY_VERSIONS["skill"],
+                BODY_READING_AUTHORITY_VERSIONS["skill"],
+            }
+            for stage_id, expected_reads in C_REVIEW_STAGE_PINNED_READS.items():
+                candidates = [stage for stage in writing["authoring_sequence"] if stage["id"] == stage_id]
+                self.assertEqual(len(candidates), 1)
+                predecessors = [(previous, current) for _, name, previous, current
+                                in REVIEW_SPLIT_WRITING_DELTAS if name == stage_id]
+                self.assertEqual(len(predecessors), 1)
+                previous, current = predecessors[0]
+                if pre_split_carrier:
+                    self.assertEqual(candidates[0]["read_now"], previous)
+                else:
+                    self.assertEqual(candidates[0]["read_now"], expected_reads)
+                    candidates[0]["read_now"] = copy.deepcopy(current)
+            final_review = next(stage for stage in writing["authoring_sequence"]
+                                if stage["id"] == "final_review_and_delivery")
+            self.assertEqual(final_review.pop("run_now", None), ["assembled_seam_sweep"])
             # v10.18 adds one declared fallback condition, not a changed route or
             # an actual fallback decision. Require the exact new list before
             # projecting that clause back to the frozen Phase G metadata.
@@ -248,7 +280,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
             self.assertEqual(historical["id"], stage_id)
             self.assertEqual(historical["read_now"], previous_reads)
             self.assertEqual(stage["id"], stage_id)
-            self.assertEqual(stage["read_now"], current_reads)
+            self.assertEqual(stage["read_now"], C_REVIEW_STAGE_PINNED_READS[stage_id])
         self.assertEqual(self._projection(plan), self.golden["routes"]["latex"])
         self.assertEqual((plan, self.golden, REVIEW_SPLIT_WRITING_DELTAS), saved)
         for index, _, _, _ in REVIEW_SPLIT_WRITING_DELTAS:

@@ -457,6 +457,60 @@ reading_policy:
           headings: ['## 8. 模型语义修订、审批失效与跨问传播', '## 10. `模型论文框架.md`']
         - path: core/writing_reasoning_contract.yaml
           yaml_paths: [schema_version, role, scope, rule_governance, analysis_evidence_disposition, paper_fragment_stale_governance, numeric_style_contract]
+    review:
+      read_now:
+        - {path: modules/06_review_delivery.md}
+        - {path: core/writing_reasoning_contract.yaml}
+        - {path: core/output_contract.yaml, yaml_paths: [per_question]}
+        - {path: core/workbook_schema.yaml}
+        - path: modules/05_writing/paper_writing_protocol.md
+          headings:
+            - '## 2. 模板与写作职责'
+            - '## 3. 每问的四个功能槽'
+            - '## 4. Local Narrative Chain'
+            - '## 5. Paragraph Handoff Test'
+            - '## 6. 前置章节内容'
+            - '## 7. 模型建立'
+            - '## 8. 模型求解'
+            - '## 9. 求解结果、数值与术语'
+            - '## 10. 结果与验证的分层'
+            - '## 11. Result → Validation Bridge'
+            - '## 12. 跨问递进'
+            - '## 14. 摘要'
+            - '## 15. 模型评价、逐问结论与附录'
+            - '## 16. 引用与正文语言'
+        - path: modules/04_figure_evidence.md
+          headings:
+            - '## C 类：各问结果图合同'
+            - '## Figure Evidence 层级'
+            - '## Figure Portfolio Scientific Quality Gate'
+            - '## Missing Scientific Evidence Check'
+            - '## 图题、配色与风格'
+            - '## 入文闭环'
+        - {path: config/competition_profiles.yaml}
+        - {path: packs/artifact/review.md}
+        - {path: templates/review/final_review_matrix.yaml}
+        - {path: packs/artifact/algorithm_flow.md}
+      conditional:
+        - path: modules/05_writing/paper_writing_protocol.md
+          headings: ['## 5A. Cross-File Chapter Handoff']
+          when: current_cumcm_modular_latex_review
+        - path: modules/05_writing/paper_writing_protocol.md
+          headings: ['### 13.0 CUMCM 图表的正文落点：先论证职责，后图型']
+          when: current_cumcm_review
+        - path: templates/latex/cumcm/hsk/template_manifest.yaml
+          yaml_paths: [paper_skeleton]
+          when: current_cumcm_modular_latex_review
+        - path: core/writing_runtime_contract.yaml
+          yaml_paths: [per_question_writing_capability_preflight]
+          when: current_cumcm_progressive_writing_review
+        - path: modules/05_latex_compile_quality.md
+          headings: ['## 终稿检查']
+          when: final_latex_pdf_review
+        - {path: core/compile_profiles.yaml, when: final_latex_pdf_review}
+        - path: modules/05_writing/latex.md
+          headings: ['## 5. 图、表、命题和算法环境']
+          when: algorithm_presentation_review_in_scope
     figure_style:
       required_verified_artifacts: [locked_model_spec, accepted_solution_workbook, validated_results]
       needs_current_project: true
