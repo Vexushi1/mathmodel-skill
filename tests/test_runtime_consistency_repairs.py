@@ -68,7 +68,8 @@ class HistoricalProjectionTests(unittest.TestCase):
 class ActionAndProjectionTests(unittest.TestCase):
     def test_review_carrier_is_not_an_authoring_intent(self):
         for request in ("终审 LaTeX 论文，只审查，不修改", "审稿 Word 论文", "只审查 LaTeX，不修改", "请审查数学建模论文",
-                        "审查Python绘图脚本，只读", "审阅MATLAB代码，给出修改建议，不修改文件"):
+                        "审查Python绘图脚本，只读", "审阅MATLAB代码，给出修改建议，不修改文件",
+                        "审查Word论文并生成修改建议", "审阅LaTeX论文并生成一份审查报告", "给Word论文评分"):
             with self.subTest(request=request):
                 plan = resolve_runtime(request=request, competition="CUMCM")
                 self.assertEqual(plan["intents"], ["review"])
@@ -83,6 +84,7 @@ class ActionAndProjectionTests(unittest.TestCase):
         self.assertEqual(plan["intents"], ["docx"])
         router = yaml.safe_load((ROOT / "core/workflow_router.yaml").read_bytes())
         self.assertFalse(resolve_workflow.review_only_request("不修改模型，只调整图例", router))
+        self.assertFalse(resolve_workflow.review_only_request("审查后同步项目状态", router))
 
     def test_python_and_matlab_plot_requests(self):
         for text in ("Python绘图", "Python 绘图", "请用Python绘图", "python  绘图", "MATLAB绘图"):
@@ -134,8 +136,10 @@ class ActionAndProjectionTests(unittest.TestCase):
 
     def test_missing_optional_pack_falls_back_without_missing_loads(self):
         original = Path.is_file
+        original_exists = Path.exists
         absent = ROOT / "packs/competition/cumcm.md"
-        with mock.patch.object(Path, "is_file", lambda p: False if p == absent else original(p)):
+        with (mock.patch.object(Path, "is_file", lambda p: False if p == absent else original(p)),
+              mock.patch.object(Path, "exists", lambda p: False if p == absent else original_exists(p))):
             for intent in ("new_problem_design", "latex"):
                 plan = resolve_runtime(intent, competition="CUMCM")
                 self.assertNotIn("packs/competition/cumcm.md", plan["load_order"])
@@ -144,6 +148,11 @@ class ActionAndProjectionTests(unittest.TestCase):
         with mock.patch.object(resolve_workflow, "resolve_competition_pack", return_value="../unsafe.md"):
             with self.assertRaisesRegex(ValueError, "escapes"):
                 resolve_workflow.available_competition_pack("CUMCM", {})
+        with tempfile.TemporaryDirectory(dir=ROOT / "packs/competition") as directory:
+            relative = Path(directory).relative_to(ROOT).as_posix()
+            with mock.patch.object(resolve_workflow, "resolve_competition_pack", return_value=relative):
+                with self.assertRaisesRegex(ValueError, "not a file"):
+                    resolve_workflow.available_competition_pack("CUMCM", {})
 
 
 class CurrentPlanReaderTests(unittest.TestCase):
@@ -250,9 +259,12 @@ class MechanismScopeTests(unittest.TestCase):
             mixed = resolve_runtime(["editable_mechanism_diagram", "figures"], project_root=root, question="Q1")
             self.assertEqual(mixed["delivery_scope"], "figures")
             self.assertIn("figure_evidence:solution_workbook", mixed["missing_prerequisites"])
+            model_only = resolve_runtime(["editable_mechanism_diagram", "framework_sync"], project_root=root, question="Q1")
+            self.assertEqual(model_only["delivery_scope"], "mechanism")
+            self.assertNotIn("figure_evidence:solution_workbook", model_only["missing_prerequisites"])
 
     def test_numeric_evidence_and_unreviewed_preview_cannot_use_exemption(self):
-        for mutation in ("numeric", "review", "preview"):
+        for mutation in ("numeric", "review", "preview", "approval", "export"):
             with tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
                 spec = self.make_project(root)
@@ -260,8 +272,15 @@ class MechanismScopeTests(unittest.TestCase):
                     spec["semantic_anchors"]["result_evidence"] = ["问题一求解结果.xlsx#核心指标"]
                 elif mutation == "review":
                     spec["artifact"]["visual_review_status"] = "pending"
-                else:
+                elif mutation == "preview":
                     (root / spec["artifact"]["preview"]).write_bytes(b"not a preview")
+                elif mutation == "approval":
+                    path = root / "state/project_state.yaml"
+                    state = yaml.safe_load(path.read_bytes())
+                    state["subproblems"]["Q1"]["approved_semantic_identity_hash"] = "0" * 64
+                    path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
+                else:
+                    (root / spec["artifact"]["final_exports"][0]).unlink()
                 (root / spec["artifact"]["spec_source"]).write_text(yaml.safe_dump(spec, allow_unicode=True), encoding="utf-8")
                 self.assertEqual(sync_project.synchronize(root, delivery_scope="mechanism")["status"], "failed")
             output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_bytes())

@@ -81,6 +81,10 @@ def review_only_request(request: str, router: dict[str, Any]) -> bool:
     text = request.casefold()
     for word in [*review_words, *edit_words]:
         text = re.sub(r"(?:不要|不必|无需|不)\s*" + re.escape(word), "", text)
+    text = re.sub(
+        r"(?:生成|输出|列出|给出)(?:一份|一个)?(?:审查报告|审阅报告|审稿报告|终审报告|修改建议|修复建议|问题清单)",
+        "", text,
+    )
     text = re.sub(r"(?:修改|修复|改写)(?:建议|方案|清单|意见)", "", text)
     return (any(word in text for word in review_words)
             and not any(word in text for word in edit_words))
@@ -95,6 +99,8 @@ def available_competition_pack(token: str | None, profiles: dict[str, Any]) -> t
         raise ValueError(f"competition pack escapes its resource directory: {preferred}")
     if path.is_file():
         return preferred, None
+    if path.exists():
+        raise ValueError(f"competition pack is not a file: {preferred}")
     fallback = "packs/competition/auto.md"
     effective = fallback if (ROOT / fallback).is_file() else None
     return effective, {"requested": preferred, "effective": effective,
@@ -697,17 +703,18 @@ def resolve_workflow(
                 manifest,
                 workflow_order,
             )
+    delivery_scope = highest_scope(route_scopes)
+    artifact_profile = "mechanism" if delivery_scope == "mechanism" else None
     module_paths = ordered_modules(paths, manifest, workflow_order)
     dependency_closure_applied = available_artifacts is not None
     if dependency_closure_applied:
         module_paths = close_module_dependencies(
             module_paths, available_set, manifest, workflow_order,
-            input_profile="mechanism" if resolved_intents == ["editable_mechanism_diagram"] else None,
+            input_profile=artifact_profile,
         )
         paths.extend(module_paths)
     non_modules = [path for path in unique(paths) if not path.startswith("modules/")]
     ordered = unique([*non_modules, *module_paths])
-    delivery_scope = highest_scope(route_scopes)
     if formal_delivery:
         module_terminal_outputs.append("model_paper_framework")
         # Design/framework outputs are intermediate work products, not final delivery.
@@ -718,7 +725,7 @@ def resolve_workflow(
 
     missing, produced_after_modules = prerequisite_report(
         module_paths, available_set, manifest, preprocessing_decision,
-        input_profile="mechanism" if resolved_intents == ["editable_mechanism_diagram"] else None,
+        input_profile=artifact_profile,
     )
     available_after_plan = set(produced_after_modules)
     terminal_outputs = unique(module_terminal_outputs)
