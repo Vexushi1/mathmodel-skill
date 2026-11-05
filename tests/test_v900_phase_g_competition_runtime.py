@@ -84,6 +84,11 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
         )
 
     def _projection(self, plan):
+        # This release changes only version carriers. Reuse the exact audited
+        # predecessor projection without relaxing any stage or Golden field.
+        if plan.get("version") == "10.26.3":
+            plan = copy.deepcopy(plan)
+            plan["version"] = CUMCM_D_CLEANUP_RELEASE_VERSIONS["skill"]
         writing = copy.deepcopy(plan.get("writing_runtime"))
         if writing is not None:
             # Phase C review-read integration is a separate, exact reversible
@@ -270,9 +275,23 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
         self.assertEqual(self._projection(plan), self.golden["routes"]["latex"])
         self.assertEqual((plan, self.golden, FIGURE_HANDOFF_WRITING_DELTAS, PDF_REVIEW_WRITING_DELTAS), before)
 
+    def test_v10263_release_reuses_exact_v10262_projection_without_mutation(self):
+        plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
+        self.assertEqual(plan["version"], "10.26.3")
+        historical = copy.deepcopy(plan)
+        historical["version"] = CUMCM_D_CLEANUP_RELEASE_VERSIONS["skill"]
+        saved = copy.deepcopy((plan, historical, self.golden))
+        self.assertEqual(self._projection(plan), self._projection(historical))
+        self.assertEqual((plan, historical, self.golden), saved)
+        for source in (plan, historical):
+            altered = copy.deepcopy(source)
+            altered["writing_runtime"]["authoring_sequence"][7]["gate"] = "unregistered_pass"
+            with self.assertRaises(AssertionError):
+                self.assertEqual(self._projection(altered), self.golden["routes"]["latex"])
+
     def test_review_split_projection_binds_canonical_scopes_without_waiving_stage_fields(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
-        self.assertEqual(plan["version"], CUMCM_D_CLEANUP_RELEASE_VERSIONS["skill"])
+        self.assertEqual(plan["version"], "10.26.3")
         saved = copy.deepcopy((plan, self.golden, REVIEW_SPLIT_WRITING_DELTAS))
         for index, stage_id, previous_reads, current_reads in REVIEW_SPLIT_WRITING_DELTAS:
             historical = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][index]
@@ -374,7 +393,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
                 ) else current)
                 with self.assertRaises(AssertionError):
                     self._projection(declared)
-        for version in (None, "10.19.4", "10.20.6", "10.21.1", "10.22.1", "10.23.0", "10.24.1", "11.0.0"):
+        for version in (None, "10.19.4", "10.20.6", "10.21.1", "10.22.1", "10.23.0", "10.24.1", "10.26.4", "11.0.0"):
             with self.subTest(version=version):
                 altered = copy.deepcopy(plan)
                 altered["version"] = version

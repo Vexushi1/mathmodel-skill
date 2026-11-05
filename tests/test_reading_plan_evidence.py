@@ -1896,6 +1896,42 @@ class AuditClosureProjectionTests(unittest.TestCase):
             runtime["fallback_triggers"].insert(-1, EVIDENCE.COMPARISON_WRITING_TRIGGER)
         return old, new
 
+    def test_v10263_carrier_preserves_history_and_rejects_unregistered_changes(self):
+        carriers = deepcopy(EVIDENCE.V10263_RELEASE_AUTHORITY_VERSIONS)
+        self.assertEqual(EVIDENCE.CUMCM_D_CLEANUP_AUTHORITY_VERSIONS["skill"], "10.26.2")
+        self.assertEqual(carriers, {**EVIDENCE.CUMCM_D_CLEANUP_AUTHORITY_VERSIONS, "skill": "10.26.3"})
+        old, new = self.full_workflow_reading_pair("facts_current")
+        new["version"] = "10.26.3"
+        for plan, profile_hash in (
+            (old, EVIDENCE.CUMCM_A1_PROFILE_BASELINE_SHA256),
+            (new, EVIDENCE.CUMCM_A1_PROFILE_SHA256),
+        ):
+            plan["assurance"]["authority_fingerprint"]["sources"].append(
+                {"path": "config/competition_profiles.yaml", "sha256": profile_hash})
+        saved = deepcopy((old, new, carriers))
+        projected, changes = EVIDENCE.approved_v10263_release_carrier_change(
+            "facts_current", old, new, carriers)
+        self.assertEqual(projected, old)
+        versions = [item for item in changes if item["path"] == "version"]
+        self.assertEqual([item["candidate"] for item in versions], ["10.26.3"])
+        self.assertEqual(versions[0]["authority_versions"], carriers)
+        self.assertEqual((old, new, carriers), saved)
+        for bad in (None, {**carriers, "skill": "10.26.2"},
+                    {**carriers, "writing_reasoning": "1.11.1"}):
+            self.assertEqual(EVIDENCE.approved_v10263_release_carrier_change(
+                "facts_current", old, new, bad), (new, []))
+        for field, value in (("version", "10.26.4"), ("pre_delivery_gates", []),
+                             ("load_order", ["unregistered_source"])):
+            altered = deepcopy(new)
+            altered[field] = value
+            try:
+                rejected = EVIDENCE.approved_v10263_release_carrier_change(
+                    "facts_current", old, altered, carriers)
+            except ValueError:
+                # The inherited exact A1 projection also rejects drift by error.
+                continue
+            self.assertEqual(rejected, (altered, []))
+
     def test_comparison_cumcm_declared_trigger_projects_only_two_exact_leaf_lists(self):
         old, new = self.comparison_writing_pair()
         saved = deepcopy((old, new))
