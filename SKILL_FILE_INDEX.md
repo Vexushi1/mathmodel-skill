@@ -638,6 +638,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/project_solver_backend_redefinition_p1_audit.md`
 - `docs/project_solver_backend_redefinition_plan.md`
 - `docs/repository_audit_and_handoff_refactor_plan.md`
+- `docs/runtime_consistency_11_issue_repair_plan.md`
 - `docs/runtime_router_and_gate_simplification_refactor_plan.md`
 - `docs/stage_reading_execution_refactor_plan.md`
 - `docs/stage_reading_p4_validation.md`
