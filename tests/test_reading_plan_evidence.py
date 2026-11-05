@@ -1417,6 +1417,53 @@ class AuditClosureProjectionTests(unittest.TestCase):
                     stage["read_now"] = deepcopy(current)
         return old, new
 
+    def test_phase_c_review_delta_is_exact_across_both_runtime_mirrors(self):
+        pinned = EVIDENCE.C_REVIEW_STAGE_PINNED_READS
+        stages = [{"id": f"stage_{i}"} for i in range(11)]
+        for index, stage_id, _previous, _split_reads in EVIDENCE.REVIEW_SPLIT_WRITING_DELTAS:
+            stages[index] = {"id": stage_id, "read_now": deepcopy(pinned[stage_id])}
+        stages[10]["run_now"] = ["assembled_seam_sweep"]
+        new = {"version": "10.26.2", "writing_runtime": {"authoring_sequence": deepcopy(stages)},
+               "runtime_plan": {"writing_runtime": {"authoring_sequence": deepcopy(stages)}}}
+        carrier = deepcopy(EVIDENCE.CUMCM_D_CLEANUP_AUTHORITY_VERSIONS)
+        saved = deepcopy((new, carrier))
+        projected, changes = EVIDENCE.approved_c_review_read_paths_change(
+            "cumcm_writing", {}, new, carrier)
+        self.assertEqual(len(changes), 6)
+        for prefix in (("writing_runtime",), ("runtime_plan", "writing_runtime")):
+            node = projected
+            for key in prefix:
+                node = node[key]
+            for index, _name, _previous, split in EVIDENCE.REVIEW_SPLIT_WRITING_DELTAS:
+                self.assertEqual(node["authoring_sequence"][index]["read_now"], split)
+            self.assertNotIn("run_now", node["authoring_sequence"][10])
+        self.assertEqual((new, carrier), saved)
+        for case, altered, versions in (
+            ("wrong_case", deepcopy(new), carrier),
+            ("bad_carrier", deepcopy(new), {**carrier, "skill": "10.26.3"}),
+            ("missing_read", deepcopy(new), carrier),
+            ("reordered", deepcopy(new), carrier),
+            ("extra_run", deepcopy(new), carrier),
+            ("wrong_gate", deepcopy(new), carrier),
+        ):
+            if case == "missing_read":
+                altered["writing_runtime"]["authoring_sequence"][7]["read_now"].pop()
+            elif case == "reordered":
+                altered["runtime_plan"]["writing_runtime"]["authoring_sequence"][10]["read_now"].reverse()
+            elif case == "extra_run":
+                altered["writing_runtime"]["authoring_sequence"][10]["run_now"].append("invented_gate")
+            elif case == "wrong_gate":
+                altered["writing_runtime"]["authoring_sequence"][10]["gate"] = "invented_pass"
+            got, declared = EVIDENCE.approved_c_review_read_paths_change(
+                "facts_current" if case == "wrong_case" else "cumcm_writing", {}, altered, versions)
+            if case == "wrong_gate":
+                # The Phase C inverse projection only adjusts its registered
+                # leaves; it must not mask an arbitrary gate mutation.
+                self.assertEqual(got["writing_runtime"]["authoring_sequence"][10]["gate"], "invented_pass")
+            else:
+                self.assertEqual((got, declared), (altered, []))
+
+
     def test_v10220_review_split_carrier_projects_only_four_exact_read_lists(self):
         carriers = deepcopy(EVIDENCE.REVIEW_SPLIT_AUTHORITY_VERSIONS)
         self.assertEqual(carriers, {
