@@ -161,14 +161,28 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
             # Phase C review-read integration is a separate, exact reversible
             # delta. Keep the original v10.22 Review Split golden and historical
             # projection immutable, including stage gates and output targets.
+            # Simulated pre-v10.22 carriers in the historical projection test
+            # explicitly restore the pinned *pre-split* read lists. Verify those
+            # lists without pretending they were already Phase C sources.
+            pre_split_carrier = plan["version"] in {
+                FIGURE_HANDOFF_AUTHORITY_VERSIONS["skill"],
+                USER_CHECKER_WORKFLOW_AUTHORITY_VERSIONS["skill"],
+                PDF_REVIEW_AUTHORITY_VERSIONS["skill"],
+                STAGE_READING_AUTHORITY_VERSIONS["skill"],
+                BODY_READING_AUTHORITY_VERSIONS["skill"],
+            }
             for stage_id, expected_reads in C_REVIEW_STAGE_PINNED_READS.items():
                 candidates = [stage for stage in writing["authoring_sequence"] if stage["id"] == stage_id]
                 self.assertEqual(len(candidates), 1)
-                self.assertEqual(candidates[0]["read_now"], expected_reads)
-                predecessors = [current for _, name, _, current in REVIEW_SPLIT_WRITING_DELTAS
-                                if name == stage_id]
+                predecessors = [(previous, current) for _, name, previous, current
+                                in REVIEW_SPLIT_WRITING_DELTAS if name == stage_id]
                 self.assertEqual(len(predecessors), 1)
-                candidates[0]["read_now"] = copy.deepcopy(predecessors[0])
+                previous, current = predecessors[0]
+                if pre_split_carrier:
+                    self.assertEqual(candidates[0]["read_now"], previous)
+                else:
+                    self.assertEqual(candidates[0]["read_now"], expected_reads)
+                    candidates[0]["read_now"] = copy.deepcopy(current)
             final_review = next(stage for stage in writing["authoring_sequence"]
                                 if stage["id"] == "final_review_and_delivery")
             self.assertEqual(final_review.pop("run_now", None), ["assembled_seam_sweep"])
