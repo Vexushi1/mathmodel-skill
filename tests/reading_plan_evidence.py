@@ -109,6 +109,7 @@ CUMCM_A1_AUTHORITY_VERSIONS = {**PLOT_BACKEND_AUTHORITY_VERSIONS, "skill": "10.2
 CUMCM_B_WRITING_AUTHORITY_VERSIONS = {**CUMCM_A1_AUTHORITY_VERSIONS, "skill": "10.26.0"}
 CUMCM_C_HANDOFF_AUTHORITY_VERSIONS = {**CUMCM_B_WRITING_AUTHORITY_VERSIONS, "skill": "10.26.1"}
 CUMCM_D_CLEANUP_AUTHORITY_VERSIONS = {**CUMCM_C_HANDOFF_AUTHORITY_VERSIONS, "skill": "10.26.2"}
+V10263_RELEASE_AUTHORITY_VERSIONS = {**CUMCM_D_CLEANUP_AUTHORITY_VERSIONS, "skill": "10.26.3"}
 # Only these two read-list migrations are registered. Business text is separately
 # reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
 REVIEW_SPLIT_WRITING_DELTAS = (
@@ -1923,6 +1924,27 @@ def approved_v10262_prose_only_cleanup_carrier_change(identifier, old, new, cand
     return projected, approved + deltas
 
 
+def approved_v10263_release_carrier_change(identifier, old, new, candidate_authority_versions):
+    """Register only the release carrier after exact existing behavior checks."""
+    if (candidate_authority_versions != V10263_RELEASE_AUTHORITY_VERSIONS
+            or new.get("version") != V10263_RELEASE_AUTHORITY_VERSIONS["skill"]):
+        return deepcopy(new), []
+    predecessor = deepcopy(new)
+    predecessor["version"] = CUMCM_D_CLEANUP_AUTHORITY_VERSIONS["skill"]
+    predecessor, review_changes = approved_c_review_read_paths_change(
+        identifier, old, predecessor, deepcopy(CUMCM_D_CLEANUP_AUTHORITY_VERSIONS))
+    projected, changes = approved_v10262_prose_only_cleanup_carrier_change(
+        identifier, old, predecessor, deepcopy(CUMCM_D_CLEANUP_AUTHORITY_VERSIONS))
+    if projected != old or not changes:
+        return deepcopy(new), []
+    for change in changes:
+        if change["path"] == "version":
+            change["candidate"] = V10263_RELEASE_AUTHORITY_VERSIONS["skill"]
+            change["authority_versions"] = deepcopy(V10263_RELEASE_AUTHORITY_VERSIONS)
+            change["approval"] = "v10.26.3 release carrier; exact Phase C and Cleanup projections retained"
+    return projected, review_changes + changes
+
+
 def compare(before, after):
     if [r["id"] for r in before] != [r["id"] for r in after]:
         raise ValueError("Case order or identity differs")
@@ -2057,6 +2079,9 @@ def compare(before, after):
         projected, cumcm_c_changes = approved_v10261_cumcm_handoff_carrier_change(
             a["id"], old, projected, b.get("authority_versions"))
         expected.extend(cumcm_c_changes)
+        projected, release_changes = approved_v10263_release_carrier_change(
+            a["id"], old, projected, b.get("authority_versions"))
+        expected.extend(release_changes)
         projected, cumcm_c_review_changes = approved_c_review_read_paths_change(
             a["id"], old, projected, b.get("authority_versions"))
         expected.extend(cumcm_c_review_changes)
