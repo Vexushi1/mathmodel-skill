@@ -1,5 +1,12 @@
 # Changelog
 
+## 10.26.3
+
+- 完善证据约束下的论文直接表达规则；清理无事实信息的道歉、自我辩护和机械包装，同时保留比较基准、方向、数值、统计状态、数学条件、适用范围和未执行验证状态。
+- 修复逐章 Draft Review 与 Final Review 的实际读取路径，增加独立 Review reading profile；保留历史 Review receipt 1.0.0、原 required_paths、LaTeX load order、stage ID、顺序、Gate、C1/C2 资格及历史 Golden 兼容。
+- 完成 Module 06 只读职责审计；确认现有 Review 正文无需额外规则修改，避免重复定义和职责膨胀。
+- 统一活动 Skill 版本载体、README、CHANGELOG 和版本矩阵到 10.26.3；不修改数学模型、数值求解器、accepted workbook、LaTeX 模板或独立协议版本。
+
 ## 10.26.2
 
 - AI Cleanup 改为只处理普通自然语言：去除模板化、空话及纯重复；已定稿公式、中文推导、证明、伪代码、全部数值显示、术语定义、引用、图表与章节结构严格只读。

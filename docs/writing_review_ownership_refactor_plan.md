@@ -1,13 +1,13 @@
-# 论文写作与后期审查职责收束：详细实施计划（Plan Only）
+# 论文写作与后期审查职责收束：实施与验收记录
 
-> 状态：**Plan Only；待审阅，未实施任何运行时/业务规则修改**  
+> 状态：**A/B/C 实施已完成并合并验收；当前文档记录 v10.26.3 Release PR 的版本载体准备**
 > 仓库：Vexushi1/mathmodel-skill  
-> 计划基线：2026-11-04，main@87c7cbef3ca59fd3e6c5771e7fa8952f04bef0da，Skill v10.26.2  
+> 计划基线：2026-11-04，main@87c7cbef3ca59fd3e6c5771e7fa8952f04bef0da，Skill v10.26.2；实施验收基线：main@8d55272b7d108260c1c6911ff33fb8097e9bc99a
 > 维护依据：main 的 core/bootstrap.yaml、SKILL_CHANGE_GOVERNANCE.md、AGENTS.md 和现行 Authority  
 > 文档分支：docs/writing-review-ownership-refactor-plan  
-> 当前变更等级：docs，无版本升级；后续功能 PR 在实施时按最新 main 重新裁决版本等级  
-> 既有相关开放 PR：#293（旧 AI Cleanup prose-only 的 Plan Only 草稿，主要改其计划文档及受管索引）。**两者没有活动 Authority 源文件交集，但均修改受管生成文件 MANIFEST.sha256、SKILL_FILE_INDEX.md，存在合并层面的真实重叠**。不接管、不覆盖其分支；合并 #296 前须按治理先处理 #293 的关闭/归档或串行合并后重新生成索引、复核最终 head；实施前再次检查开放 PR。  
-> **本文件只是实现蓝图，不是新的写作 Authority、审查门禁、模型授权或 GitHub CI 通过记录。**
+> 初始计划变更等级：docs/no bump；本次兼容性修复按 patch 发布：v10.26.2 → v10.26.3
+> 历史相关计划 PR：#293、#296；当前无开放 PR 与本次版本载体文件重叠，受管生成文件仍由 refresh-generated 管理。
+> **本文件是实施与验收记录，不是新的写作 Authority、审查门禁或模型授权。原始 PR 与 GitHub Actions 链接作为事实证据。**
 
 ## 0. 变更简报（治理规范 §3）
 
@@ -15,7 +15,7 @@
 |---|---|
 | 修改主题 | 模块 05A/05B/05C/05D 与 Module 06 的职责清晰化、重叠规则收束、去防御性学术表达的安全融合 |
 | 当前版本 | v10.26.2；上述固定 main 提交作为计划审计基线 |
-| 目标版本 / 等级 | 本次 docs/no bump；未来实施预期为兼容性重构，可能属于 patch 或 minor，按实际规则行为变更决定，不预占版本号 |
+| 目标版本 / 等级 | v10.26.3 / patch；保持现有接口、项目结构和历史兼容 |
 | 直接目标 | 一项规则只定义一次；写作、语言修改、载体、工程验证、语义审查、交付判定各有明确负责人；质量前移但不新增重复门禁 |
 | 明确不做 | 不重设计数学模型、Formula Role、Proof、Algorithm Trace、Claim Strength、数值验证、图表 Authority、Human Model Approval、求解后端、用户项目正文或正式模板骨架 |
 | Authority | core/writing_reasoning_contract.yaml；modules/05_writing/paper_writing_protocol.md；core/writing_runtime_contract.yaml；templates/latex/cumcm/hsk/template_manifest.yaml；modules/06_review_delivery.md 及其两个真实叶文件 |
@@ -27,7 +27,7 @@
 | 验收 | 功能用例 + 读取路径回归 + Review 完整覆盖和回执来源绑定 + Cleanup 只读保护 + GitHub 最终 head 正式 CI；具体见 §8 |
 | 回滚 | 各实施 PR 原子 revert，并重验读集与索引；不回滚已发布数值/模型成果或改写用户论文 |
 
-**明确授权范围：** 当前用户批准“准备重构、先写修改计划”；此时只允许新增本计划和 Plan Only PR。正式业务源修改应在计划审阅后另开实施分支与单主题 PR，不把计划当作已经实施的授权。
+**历史授权范围：** 初始阶段仅批准准备重构并编写修改计划，因此计划 PR 本身不授权业务源修改。随后 A、B、C 已分别通过独立 PR 完成实施/审计，并以当前 `main@8d55272` 的 GitHub 验收结果作为发布输入；本文件不替代这些 PR 的实际 diff、测试或合并记录。
 
 ## 1. 当前结构与需要修复的真实问题
 
@@ -278,12 +278,13 @@ template_inspection
 - [x] 查开放 PR #293 并确认与本计划无活动 Authority 文件级冲突。
 - [x] 核对 05A/05B/05C/05D/06、Runtime、Manifest、矩阵、机器表面审计、Review 来源测试的相关现状。
 - [x] 审读外部 anti-defensive-writing 中文 Skill，归纳可采纳与不采纳原则。
-- [ ] 实施批次 A：PR #298 已建立，等待受管索引刷新、专项测试与功能验收。
-- [ ] 实施批次 B：尚未授权修改业务源；未启动。
-- [ ] 实施批次 C：视真实漂移而定；未启动。
-- [ ] 最终功能回归、版本发布与 main 合并后复核：尚未进行。
+- [x] 实施批次 A：PR #298 已合并；证据约束下的直接表达与有界 Cleanup 规则完成验证。
+- [x] 实施批次 B：完成 Module 06 只读专项审计，结论为 No-op；未为凑批次修改已有 Review 业务规则。
+- [x] 实施批次 C：PR #299 已合并；Review 逐章 Draft/Final 读取路径与独立 reading profile 完成集成验收。
+- [x] 功能合并后的 main 正式验收：`8d55272b7d108260c1c6911ff33fb8097e9bc99a`；HSK Skill CI #41977296633 为 20 项成功、1 项条件跳过、0 项失败，Generated Metadata #41977296627 成功，Optimization baseline #41962395207 成功。
+- [ ] v10.26.3 版本载体更新、Release PR、Tag 和 GitHub Release：由当前发布流程完成。
 
-**审阅口径：** 认可此计划仅表示认可分工方向；具体功能改动应先在实施 PR 展示真实 diff、测试证据及影响范围。
+**审阅口径：** 上述计划内容已由 PR #298、PR #299 及合并后 main 验收落实；本次 Release PR 只更新版本载体和发布记录，不重新定义业务规则。
 
 ## 11. 首轮细致复审与修订结论（2026-11-04）
 
@@ -416,3 +417,34 @@ template_inspection
 - GitHub 上 Adkid-Zephyr/anti-defensive-writing-Skill 当前项目元数据声明 **MIT License**，仓库 LICENSE 包含 2026 Adkid-Zephyr 版权通知。本计划只独立表述可兼容的原则，不直接复制原 Skill 大段内容；若以后需要复制实质文本，须同时遵守 MIT 所要求的版权和许可声明。
 - 05A §7.3 已有 Claim Strength、作者判断与避免堆叠“可能/也许”的要求；§15 要求评价优势和缺陷都绑定真实证据；§16 已规定“优先正向叙述”。因此 **不能为了新增一个所谓 Skill，在 05A 重复整套旧原则**。A 批次的增量价值应优先是 05C 对安全去防御性措辞的明确执行边界和正反例。
 - #293 与 #296 的生成文件重叠不能视作普通“仅文档不冲突”。尽管生成过程由 GitHub 执行，两个 PR 仍须按治理串行处理，并在最终 head 上重新验证。B/C 批次如无真实问题应记录 no-op，不建立空 PR。
+
+## 13. 实施与合并验收记录（2026-11-05）
+
+本节记录计划从设计状态进入已实施状态后的事实，不新增运行时规则，也不替代各 PR 与 GitHub Actions 的原始证据。
+
+### A 阶段：写作表达边界
+
+- 对应 PR：[#298](https://github.com/Vexushi1/mathmodel-skill/pull/298)，已合并。
+- 完善 05A 的证据约束下直接表达，并在 05C 保持有界语言清理。
+- 保留比较基准、方向、数值、统计状态、数学条件、适用范围和未执行验证状态；不因去防御性表达改变结论强度。
+
+### B 阶段：Review 职责审计
+
+- 完成 Module 06 只读专项审计，结论为 **No-op**。
+- 现有 Review 职责已满足要求，因此没有为凑实施批次重复定义规则、增加门禁或改写历史冻结正文。
+
+### C 阶段：Review 读取路径集成
+
+- 对应 PR：[#299](https://github.com/Vexushi1/mathmodel-skill/pull/299)，已合并。
+- 修复逐章 Draft/Final Review 的实际读取路径，加入独立 Review reading profile。
+- 保留历史 Review receipt 1.0.0、原 `required_paths`、LaTeX load order、stage ID、顺序、Gate、C1/C2 资格和历史 Golden 兼容。
+
+### 合并后正式验收
+
+- 合并提交：`8d55272b7d108260c1c6911ff33fb8097e9bc99a`。
+- [HSK Skill CI #41977296633](https://github.com/Vexushi1/mathmodel-skill/actions/runs/41977296633)：20 项成功、1 项条件跳过、0 项失败。
+- Generated Metadata #41977296627：成功。
+- Optimization baseline #41962395207：成功。
+- Windows Python 3.10/3.14、Static Contract Lint、Generated File Contract、MATLAB R2024b、CUMCM/MCM-ICM/电工杯 LaTeX、Production LaTeX Attestation、Python Figure 和 Regression Mode 均按合并后 main 验收记录通过。
+
+以上事实支持 `v10.26.3` Patch 发布；本文件未授权修改独立协议版本、用户项目、accepted workbook 或受管生成索引。
