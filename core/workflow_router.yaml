@@ -382,7 +382,7 @@ routing:
   latex:
     triggers: [LaTeX, PDF终稿, cumcmthesis, 终稿论文, 草稿论文, 论文草稿]
     infer_keywords: [LaTeX, PDF终稿, cumcmthesis, 终稿论文, 编译论文, 草稿论文, 论文草稿]
-    load: [core/writing_reasoning_contract.yaml, core/writing_runtime_contract.yaml, modules/05_writing/paper_writing_protocol.md, modules/05_writing/latex.md, modules/05_writing/ai_cleanup.md, modules/05_latex_compile_quality.md, modules/06_review_delivery.md, packs/artifact/latex.md, packs/artifact/algorithm_flow.md]
+    load: [core/writing_reasoning_contract.yaml, core/writing_runtime_contract.yaml, modules/05_writing/paper_writing_protocol.md, modules/05_writing/latex.md, modules/05_writing/ai_cleanup.md, modules/05_latex_compile_quality.md, packs/artifact/latex.md, packs/artifact/algorithm_flow.md]
     load_semantics: resource_availability_only
     execution_sequence: core/writing_runtime_contract.yaml#template_first_progressive_authoring
     load_competition_pack: true

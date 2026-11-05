@@ -483,8 +483,7 @@ template_first_progressive_authoring:
     - id: draft_semantic_review
       read_now:
         - core/writing_reasoning_contract.yaml
-        - path: core/output_contract.yaml
-          yaml_paths: [per_question]
+        - core/output_contract.yaml#per_question
         - core/workbook_schema.yaml
         - modules/05_writing/paper_writing_protocol.md#2-模板与写作职责
         - modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽
@@ -503,10 +502,13 @@ template_first_progressive_authoring:
         - modules/05_writing/paper_writing_protocol.md#16-引用与正文语言
         - modules/06_review_delivery.md
         - modules/06_review/content_review.md
-        - path: modules/04_figure_evidence.md
-          headings: ['## C 类：各问结果图合同', '## Figure Evidence 层级', '## Figure Portfolio Scientific Quality Gate', '## Missing Scientific Evidence Check', '## 图题、配色与风格', '## 入文闭环']
-        - path: templates/latex/cumcm/hsk/template_manifest.yaml
-          yaml_paths: [paper_skeleton]
+        - modules/04_figure_evidence.md#C 类：各问结果图合同
+        - modules/04_figure_evidence.md#Figure Evidence 层级
+        - modules/04_figure_evidence.md#Figure Portfolio Scientific Quality Gate
+        - modules/04_figure_evidence.md#Missing Scientific Evidence Check
+        - modules/04_figure_evidence.md#图题、配色与风格
+        - modules/04_figure_evidence.md#入文闭环
+        - templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton
         - modules/05_writing/paper_writing_protocol.md#5A-Cross-File-Chapter-Handoff
         - current_model_paper_framework#Chapter-Handoff-Map
       run_now:
@@ -541,8 +543,7 @@ template_first_progressive_authoring:
     - id: final_review_and_delivery
       read_now:
         - core/writing_reasoning_contract.yaml
-        - path: core/output_contract.yaml
-          yaml_paths: [per_question]
+        - core/output_contract.yaml#per_question
         - core/workbook_schema.yaml
         - modules/05_writing/paper_writing_protocol.md#2-模板与写作职责
         - modules/05_writing/paper_writing_protocol.md#3-每问的四个功能槽
@@ -564,12 +565,14 @@ template_first_progressive_authoring:
         - modules/06_review_delivery.md
         - modules/06_review/content_review.md
         - modules/06_review/final_delivery.md
-        - path: modules/04_figure_evidence.md
-          headings: ['## C 类：各问结果图合同', '## Figure Evidence 层级', '## Figure Portfolio Scientific Quality Gate', '## Missing Scientific Evidence Check', '## 图题、配色与风格', '## 入文闭环']
-        - path: templates/latex/cumcm/hsk/template_manifest.yaml
-          yaml_paths: [paper_skeleton]
-        - path: modules/05_latex_compile_quality.md
-          headings: ['## 终稿检查']
+        - modules/04_figure_evidence.md#C 类：各问结果图合同
+        - modules/04_figure_evidence.md#Figure Evidence 层级
+        - modules/04_figure_evidence.md#Figure Portfolio Scientific Quality Gate
+        - modules/04_figure_evidence.md#Missing Scientific Evidence Check
+        - modules/04_figure_evidence.md#图题、配色与风格
+        - modules/04_figure_evidence.md#入文闭环
+        - templates/latex/cumcm/hsk/template_manifest.yaml#paper_skeleton
+        - modules/05_latex_compile_quality.md#终稿检查
         - core/compile_profiles.yaml
         - config/competition_profiles.yaml
         - packs/competition/cumcm.md
