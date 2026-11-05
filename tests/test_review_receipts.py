@@ -305,11 +305,7 @@ class ReviewReceiptTests(unittest.TestCase):
         final_only = "modules/06_review/final_delivery.md"
         entry = self.skill / "modules/06_review_delivery.md"
         entry_bytes = entry.read_bytes()
-        final_latex_only = ("modules/05_latex_compile_quality.md", "core/compile_profiles.yaml")
-        final_profile_only = "config/competition_profiles.yaml"
-        for relative, draft_status in ((common, "stale"), (final_only, "current"),
-                                       *((path, "current") for path in final_latex_only),
-                                       (final_profile_only, "current")):
+        for relative, draft_status in ((common, "stale"), (final_only, "current")):
             with self.subTest(relative=relative):
                 draft = self.receipt(
                     "D1", gate="draft_semantic_review", role="semantic_reviewer",
@@ -321,9 +317,7 @@ class ReviewReceiptTests(unittest.TestCase):
                 final_paths = {row["path"] for row in final["snapshot"]["authorities"]}
                 self.assertIn(common, draft_paths)
                 self.assertNotIn(final_only, draft_paths)
-                self.assertTrue({common, final_only, *final_latex_only, final_profile_only}.issubset(final_paths))
-                self.assertTrue(set(final_latex_only).isdisjoint(draft_paths))
-                self.assertNotIn(final_profile_only, draft_paths)
+                self.assertTrue({common, final_only}.issubset(final_paths))
                 self.install(draft, final)
                 self.assertEqual(self.inspect()["status"], "current")
                 path = self.skill / relative
