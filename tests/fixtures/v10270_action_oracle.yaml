@@ -1,0 +1,114 @@
+# Independently annotated request semantics. This is test evidence, not Router policy.
+schema_version: 1
+authored_basis: human_independent_semantic_labels
+cases:
+  - id: figure_design_only
+    category: single_action
+    request: 为时空含水率数据设计新的结果图
+    competition: CUMCM
+    positive_actions: [{id: new_result_figure, intent: figures}]
+    negative_intents: [latex, full_solution]
+    informational_mentions: [时空含水率]
+    targets: [结果图]
+    read_sample_path: modules/04_figure_evidence.md
+  - id: mechanism_only
+    category: single_action
+    request: 请制作可编辑机理图
+    competition: CUMCM
+    positive_actions: [{id: editable_mechanism, intent: editable_mechanism_diagram}]
+    negative_intents: [full_solution]
+    targets: [可编辑机理图]
+    read_sample_path: modules/04_figure_evidence.md
+  - id: review_word_no_writes
+    category: read_only
+    request: 审稿 Word 论文，只给修改建议，不修改文件
+    competition: CUMCM
+    positive_actions: [{id: inspect_word_paper, intent: review}]
+    negative_intents: [docx, latex, full_solution]
+    informational_mentions: [Word 是被审载体]
+    targets: [Word 论文]
+    forbid_write_gates: true
+    read_sample_path: modules/06_review_delivery.md
+  - id: review_latex_readonly
+    category: read_only
+    request: 只审查 LaTeX 论文，不修改
+    competition: CUMCM
+    positive_actions: [{id: inspect_latex_paper, intent: review}]
+    negative_intents: [latex, docx, full_solution]
+    informational_mentions: [LaTeX 是被审载体]
+    targets: [LaTeX 论文]
+    forbid_write_gates: true
+  - id: independent_figure_and_latex
+    category: independent_actions
+    request: 修改问题二图表，并调整 LaTeX 论文中的文字说明
+    competition: CUMCM
+    positive_actions:
+      - {id: update_figure, intent: figures}
+      - {id: revise_paper_explanation, intent: latex}
+    negative_intents: [full_solution]
+    targets: [Q2 图表, 论文说明]
+    dependencies: [论文说明可能引用修改后的图表]
+    read_sample_path: core/bootstrap.yaml
+  - id: independent_validation_and_latex
+    category: independent_actions
+    request: 进行模型检验，同时编写 LaTeX 论文正文
+    competition: CUMCM
+    positive_actions:
+      - {id: model_validation, intent: validation}
+      - {id: write_latex, intent: latex}
+    negative_intents: [full_solution]
+    targets: [模型检验, LaTeX 正文]
+    dependencies: [模型检验结论必须在正文中正确引用]
+  - id: assured_protected_word_latex
+    category: historically_protected_carriers
+    request: 用 Word 和 LaTeX 写论文草稿
+    competition: CUMCM
+    positive_actions: [{id: current_assured_carrier_choice, intent: latex}]
+    negative_intents: [full_solution]
+    informational_mentions: [Word 与 LaTeX 是并列载体；本阶段保留现有 Assured 兼容选择]
+    targets: [Word 载体, LaTeX 载体]
+    protected_assured_intents: [latex]
+    read_sample_path: core/writing_runtime_contract.yaml
+  - id: explicit_figure_priority
+    category: explicit_scope
+    request: 本轮只画图；文字提到模型比较和完整求解，不请求执行它们
+    competition: CUMCM
+    explicit_intents: [figures]
+    positive_actions: [{id: explicit_figure_task, intent: figures}]
+    negative_intents: [full_solution, model_selection, review]
+    informational_mentions: [模型比较, 完整求解]
+    targets: [当前图表]
+  - id: docx_not_review
+    category: single_action
+    request: 不审稿，生成 Word 草稿
+    competition: CUMCM
+    positive_actions: [{id: write_word_draft, intent: docx}]
+    negative_intents: [review, latex]
+    targets: [Word 草稿]
+  - id: design_only_no_code
+    category: single_action
+    request: 请提供建模思路，先不要生成代码
+    competition: CUMCM
+    positive_actions: [{id: modeling_ideas, intent: new_problem_design}]
+    negative_intents: [full_solution, code_and_solution]
+    informational_mentions: [代码被明确否定]
+    targets: [建模思路]
+  - id: unapproved_solver_gate
+    category: lifecycle
+    request: 现在请完成完整求解
+    competition: CUMCM
+    explicit_intents: [full_solution]
+    positive_actions: [{id: request_primary_solver, intent: full_solution}]
+    negative_intents: [review]
+    expected_pause_state: awaiting_model_approval
+    forbid_execution_modules: [modules/03_solve_validate.md]
+    targets: [主求解代码]
+    read_sample_path: core/bootstrap.yaml
+  - id: returned_workbook
+    category: single_action
+    request: 验收返回工作簿
+    competition: CUMCM
+    positive_actions: [{id: verify_returned_workbook, intent: returned_workbook_validation}]
+    negative_intents: [full_solution]
+    informational_mentions: [工作簿尚未实际上传；这里只观测路由]
+    targets: [验收请求]
