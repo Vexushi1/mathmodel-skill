@@ -67,6 +67,10 @@ class G3APlanPresentationTests(unittest.TestCase):
         for mutator in (
             lambda view: view["read"]["read_now"].clear(),
             lambda view: view["read"]["conditional"].clear(),
+            lambda view: view["read"]["read_now"][0].update(sha256="0" * 64),
+            lambda view: view["read"]["read_now"][0].update(selectors={"headings": ["# WRONG"]}),
+            lambda view: view["read"]["conditional"][0].update(when="not_applicable"),
+            lambda view: view.update(authority_fingerprint="0" * 64),
             lambda view: view["pre_delivery_gates"].pop(),
             lambda view: view["tool_interfaces"].clear(),
             lambda view: view["status_boundaries"].update(gate_executed_or_passed=True),
