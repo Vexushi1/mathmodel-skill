@@ -10,7 +10,11 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 CI = ROOT / ".github/workflows/ci.yml"
 OPTIMIZATION = ROOT / ".github/workflows/optimization-baseline.yml"
-TARGETED_PATTERNS = ("-p test_optimization_baseline.py", "-p test_reading_plan.py")
+TARGETED_PATTERNS = (
+    "-p test_optimization_baseline.py",
+    "-p test_reading_plan.py",
+    "-p test_v10270_runtime_measurement.py",
+)
 
 
 class TestCiPlatformPolicy(unittest.TestCase):
@@ -41,10 +45,14 @@ class TestCiPlatformPolicy(unittest.TestCase):
                      if step.get("uses", "").startswith("actions/setup-python@"))
         self.assertEqual(setup["with"]["python-version"], "3.14")
         commands = "\n".join(str(step.get("run", "")) for step in characterize["steps"])
-        unittest_lines = [line for line in commands.splitlines() if "python -m unittest" in line]
-        self.assertEqual(len(unittest_lines), 2)
-        self.assertTrue(any(TARGETED_PATTERNS[0] in line for line in unittest_lines))
-        self.assertTrue(any(TARGETED_PATTERNS[1] in line for line in unittest_lines))
+        unittest_lines = [line.strip() for line in commands.splitlines()
+                          if "python -m unittest" in line]
+        # The characterization job may run only these three bounded test files.
+        # A full discovery belongs exclusively to the Windows version shards.
+        self.assertCountEqual(
+            unittest_lines,
+            [f"python -m unittest discover -s tests {pattern}" for pattern in TARGETED_PATTERNS],
+        )
 
 
 if __name__ == "__main__":
