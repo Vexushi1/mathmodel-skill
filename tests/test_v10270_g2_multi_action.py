@@ -49,6 +49,28 @@ class G2BoundedMultiActionTests(unittest.TestCase):
         self.assertNotIn("modules/03_result_analysis.md", plan["modules"])
         self.assertFalse(plan["task_code_execution_allowed"])
 
+    def test_compound_outputs_remain_candidates_not_current_accepted_evidence(self):
+        plan = resolve_runtime(
+            request="修改问题二图表，并调整 LaTeX 论文中的文字说明",
+            competition="CUMCM",
+        )
+        # Combining stages may advertise future Figure outputs but must not
+        # manufacture approved figures or an accepted workbook in assurance.
+        qualified = plan["assurance"]["artifact_assurance"]["effective_artifacts"]
+        self.assertNotIn("approved_figures", qualified)
+        self.assertNotIn("accepted_solution_workbook", qualified)
+        self.assertIn("approved_figures", plan["terminal_outputs"])
+        self.assertEqual(
+            [gate["name"] for gate in plan["pre_delivery_gates"]],
+            ["semantic_governance", "project_sync"],
+        )
+        writing = plan["writing_runtime"]
+        self.assertEqual(writing["execution_mode"], "template_first_progressive_authoring")
+        self.assertTrue(writing["full_reasoning_authority_preloaded"])
+        stage_ids = [stage["id"] for stage in writing["authoring_sequence"]]
+        self.assertIn("draft_semantic_review", stage_ids)
+        self.assertIn("final_review_and_delivery", stage_ids)
+
     def test_explicit_intent_wins_over_compound_request(self):
         request = "修改问题二图表，并调整 LaTeX 论文中的文字说明"
         for explicit in (["figures"], ["latex"], ["figures", "latex"]):
