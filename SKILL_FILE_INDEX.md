@@ -323,6 +323,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/writing_reasoning_cases.yaml`
 - `tests/fixtures/writing_reasoning_voice_cases.yaml`
 - `tests/g3a_plan_view_evidence.py`
+- `tests/g3b_reader_batch_probe.py`
 - `tests/matlab/p6b_publication_preview.m`
 - `tests/matlab/run_solver_backend_mixed_smoke.m`
 - `tests/matlab/run_solver_backend_smoke.m`
@@ -404,6 +405,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_execution_provenance.py`
 - `tests/test_framework_project_memory_contract.py`
 - `tests/test_g3a_plan_view_evidence.py`
+- `tests/test_g3b_reader_batch_probe.py`
 - `tests/test_generated_workflow_hardening.py`
 - `tests/test_latex_first_versionless_docs.py`
 - `tests/test_legacy_archive_hygiene.py`
