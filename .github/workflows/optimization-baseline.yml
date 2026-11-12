@@ -228,12 +228,9 @@ jobs:
       - name: G4A read-only duplicate YAML load and parse admission (no production API)
         shell: pwsh
         run: |
-          # Run both bounded test and measurement from the candidate source tree.
-          # Keep the existing three characterize unittest commands unchanged.
-          $test = Join-Path $env:OPT_CANDIDATE 'tests/test_g4a_resolver_parse_probe.py'
+          # The G4-A test file runs in the formal Windows full-regression shards.
+          # Characterize only the candidate probe; preserve the three-test whitelist.
           $driver = Join-Path $env:OPT_CANDIDATE 'tests/g4a_resolver_parse_probe.py'
-          python $test
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python $driver --repo-root $env:OPT_CANDIDATE --repeats 3 --output (Join-Path $env:OPT_REPORTS 'v10270-g4a-parse-admission.json')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload real measurement evidence even on failure
