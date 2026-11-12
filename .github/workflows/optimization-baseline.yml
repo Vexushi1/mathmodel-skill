@@ -44,6 +44,8 @@ on:
       - tests/test_g3a_plan_view_evidence.py
       - tests/g3b_reader_batch_probe.py
       - tests/test_g3b_reader_batch_probe.py
+      - tests/g4a_resolver_parse_probe.py
+      - tests/test_g4a_resolver_parse_probe.py
       - tests/fixtures/v10270_runtime_cases.yaml
       - tests/test_optimization_baseline.py
       - tests/fixtures/skill_optimization_cases.yaml
@@ -222,6 +224,14 @@ jobs:
         shell: pwsh
         run: |
           python tests/g3b_reader_batch_probe.py --repo-root $env:OPT_CANDIDATE --repeat 3 --output (Join-Path $env:OPT_REPORTS 'v10270-g3b-batch-probe.json')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: G4A read-only duplicate YAML load and parse admission (no production API)
+        shell: pwsh
+        run: |
+          # The G4-A test file runs in the formal Windows full-regression shards.
+          # Characterize only the candidate probe; preserve the three-test whitelist.
+          $driver = Join-Path $env:OPT_CANDIDATE 'tests/g4a_resolver_parse_probe.py'
+          python $driver --repo-root $env:OPT_CANDIDATE --repeats 3 --output (Join-Path $env:OPT_REPORTS 'v10270-g4a-parse-admission.json')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload real measurement evidence even on failure
         if: always()
