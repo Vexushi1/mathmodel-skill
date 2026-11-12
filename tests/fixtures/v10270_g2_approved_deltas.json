@@ -1,0 +1,753 @@
+{
+  "schema_version": 1,
+  "approved_behavior_deltas": [
+    {
+      "case_id": "natural_language_two_actions_probe",
+      "path": "conditional",
+      "before": [
+        {
+          "origin": "skill",
+          "path": "modules/05_writing/paper_writing_protocol.md",
+          "ranges": [
+            [
+              1,
+              819
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": "relevant_stage_or_scope_expansion_requires_this_resource"
+        },
+        {
+          "origin": "skill",
+          "path": "modules/05_writing/latex.md",
+          "ranges": [
+            [
+              1,
+              134
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": "relevant_stage_or_scope_expansion_requires_this_resource"
+        },
+        {
+          "origin": "skill",
+          "path": "packs/artifact/latex.md",
+          "ranges": [
+            [
+              1,
+              197
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": "relevant_stage_or_scope_expansion_requires_this_resource"
+        },
+        {
+          "origin": "skill",
+          "path": "packs/artifact/algorithm_flow.md",
+          "ranges": [
+            [
+              1,
+              176
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": "relevant_stage_or_scope_expansion_requires_this_resource"
+        },
+        {
+          "origin": "skill",
+          "path": "packs/competition/cumcm.md",
+          "ranges": [
+            [
+              1,
+              8
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": "relevant_stage_or_scope_expansion_requires_this_resource"
+        },
+        {
+          "origin": "skill",
+          "path": "core/compile_profiles.yaml",
+          "ranges": [
+            [
+              1,
+              39
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": "relevant_stage_or_scope_expansion_requires_this_resource"
+        },
+        {
+          "origin": "skill",
+          "path": "core/project_state.schema.yaml",
+          "ranges": [
+            [
+              1,
+              2055
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": "machine_gate_or_state_conflict_needs_field_definition"
+        },
+        {
+          "origin": "skill",
+          "path": "core/state_transition_contract.yaml",
+          "ranges": [
+            [
+              1,
+              360
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": "machine_gate_or_typed_stale_conflict_needs_interpretation"
+        },
+        {
+          "origin": "skill",
+          "path": "core/output_contract.yaml",
+          "ranges": [
+            [
+              1,
+              612
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": "current_delivery_scope_or_file_layout_requires_definition"
+        },
+        {
+          "origin": "skill",
+          "path": "modules/05_writing/ai_cleanup.md",
+          "ranges": [
+            [
+              1,
+              51
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": "relevant_stage_or_scope_expansion_requires_this_resource"
+        },
+        {
+          "origin": "skill",
+          "path": "modules/05_latex_compile_quality.md",
+          "ranges": [
+            [
+              1,
+              52
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": "relevant_stage_or_scope_expansion_requires_this_resource"
+        }
+      ],
+      "after": [],
+      "reason": "All formerly conditional source paths and ranges are covered by current full read_now; no applicable authority was omitted.",
+      "authorization": "2026-11-12 G2 user-delegated bounded correction; reviewed artifact 13952167749, no project mutation/Gate grant",
+      "test_id": "test_v10270_g2_multi_action.G2BoundedMultiActionTests.test_two_actual_independent_actions_are_selected"
+    },
+    {
+      "case_id": "natural_language_two_actions_probe",
+      "path": "intents",
+      "before": [
+        "latex"
+      ],
+      "after": [
+        "figures",
+        "latex"
+      ],
+      "reason": "Both separately requested figure and LaTeX actions are selected without an implied execution grant.",
+      "authorization": "2026-11-12 G2 user-delegated bounded correction; reviewed artifact 13952167749, no project mutation/Gate grant",
+      "test_id": "test_v10270_g2_multi_action.G2BoundedMultiActionTests.test_two_actual_independent_actions_are_selected"
+    },
+    {
+      "case_id": "natural_language_two_actions_probe",
+      "path": "load_order",
+      "before": [
+        "core/bootstrap.yaml",
+        "core/hsk_core_policy.md",
+        "core/writing_runtime_contract.yaml",
+        "templates/latex/cumcm/hsk/template_manifest.yaml",
+        "templates/latex/cumcm/hsk/hsk_main.tex",
+        "modules/05_writing/paper_writing_protocol.md",
+        "modules/05_writing/latex.md",
+        "packs/artifact/latex.md",
+        "packs/artifact/algorithm_flow.md",
+        "packs/competition/cumcm.md",
+        "core/compile_profiles.yaml",
+        "core/project_state.schema.yaml",
+        "core/state_transition_contract.yaml",
+        "core/output_contract.yaml",
+        "modules/05_writing/ai_cleanup.md",
+        "modules/05_latex_compile_quality.md"
+      ],
+      "after": [
+        "core/bootstrap.yaml",
+        "core/hsk_core_policy.md",
+        "core/writing_runtime_contract.yaml",
+        "templates/latex/cumcm/hsk/template_manifest.yaml",
+        "templates/latex/cumcm/hsk/hsk_main.tex",
+        "modules/05_writing/paper_writing_protocol.md",
+        "modules/05_writing/latex.md",
+        "packs/artifact/figure.md",
+        "templates/figure/chart_selection.md",
+        "templates/figure/figure_enhancement_patterns.md",
+        "core/writing_reasoning_contract.yaml",
+        "packs/artifact/latex.md",
+        "packs/artifact/algorithm_flow.md",
+        "packs/competition/cumcm.md",
+        "core/workbook_schema.yaml",
+        "core/compile_profiles.yaml",
+        "core/project_state.schema.yaml",
+        "core/state_transition_contract.yaml",
+        "core/output_contract.yaml",
+        "modules/04_figure_evidence.md",
+        "modules/05_writing/ai_cleanup.md",
+        "modules/05_latex_compile_quality.md"
+      ],
+      "reason": "Preserves every prior resource and adds original Figure route resources and required contracts.",
+      "authorization": "2026-11-12 G2 user-delegated bounded correction; reviewed artifact 13952167749, no project mutation/Gate grant",
+      "test_id": "test_v10270_g2_multi_action.G2BoundedMultiActionTests.test_two_actual_independent_actions_are_selected"
+    },
+    {
+      "case_id": "natural_language_two_actions_probe",
+      "path": "missing_prerequisites",
+      "before": [
+        "writing_latex:model_paper_framework",
+        "writing_latex:proposition_plan",
+        "writing_latex:locked_model_spec",
+        "writing_latex:validated_results",
+        "writing_latex:approved_figures",
+        "ai_cleanup:evidence_map"
+      ],
+      "after": [
+        "figure_evidence:preprocessing_decision",
+        "figure_evidence:solution_workbook",
+        "figure_evidence:model_paper_framework",
+        "figure_evidence:mechanism_contracts",
+        "writing_latex:proposition_plan",
+        "writing_latex:locked_model_spec",
+        "writing_latex:validated_results"
+      ],
+      "reason": "Unresolved future dependencies are recalculated for the combined modules; candidates are not accepted artifacts and Gate checks remain.",
+      "authorization": "2026-11-12 G2 user-delegated bounded correction; reviewed artifact 13952167749, no project mutation/Gate grant",
+      "test_id": "test_v10270_g2_multi_action.G2BoundedMultiActionTests.test_two_actual_independent_actions_are_selected"
+    },
+    {
+      "case_id": "natural_language_two_actions_probe",
+      "path": "modules",
+      "before": [
+        "modules/05_writing/latex.md",
+        "modules/05_writing/ai_cleanup.md",
+        "modules/05_latex_compile_quality.md",
+        "modules/05_writing/paper_writing_protocol.md"
+      ],
+      "after": [
+        "modules/04_figure_evidence.md",
+        "modules/05_writing/latex.md",
+        "modules/05_writing/ai_cleanup.md",
+        "modules/05_latex_compile_quality.md",
+        "modules/05_writing/paper_writing_protocol.md"
+      ],
+      "reason": "Figure evidence module is added while all pre-existing LaTeX modules are retained.",
+      "authorization": "2026-11-12 G2 user-delegated bounded correction; reviewed artifact 13952167749, no project mutation/Gate grant",
+      "test_id": "test_v10270_g2_multi_action.G2BoundedMultiActionTests.test_two_actual_independent_actions_are_selected"
+    },
+    {
+      "case_id": "natural_language_two_actions_probe",
+      "path": "read_now",
+      "before": [
+        {
+          "origin": "skill",
+          "path": "core/bootstrap.yaml",
+          "ranges": [
+            [
+              1,
+              107
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "core/hsk_core_policy.md",
+          "ranges": [
+            [
+              1,
+              101
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "core/workflow_router.yaml",
+          "ranges": [
+            [
+              416,
+              416
+            ],
+            [
+              419,
+              430
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {
+            "yaml_paths": [
+              "reading_policy.boundaries"
+            ]
+          },
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "core/writing_runtime_contract.yaml",
+          "ranges": [
+            [
+              1,
+              722
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "templates/latex/cumcm/hsk/template_manifest.yaml",
+          "ranges": [
+            [
+              1,
+              315
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "templates/latex/cumcm/hsk/hsk_main.tex",
+          "ranges": [
+            [
+              1,
+              49
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        }
+      ],
+      "after": [
+        {
+          "origin": "skill",
+          "path": "core/bootstrap.yaml",
+          "ranges": [
+            [
+              1,
+              107
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "core/hsk_core_policy.md",
+          "ranges": [
+            [
+              1,
+              101
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "core/workflow_router.yaml",
+          "ranges": [
+            [
+              416,
+              416
+            ],
+            [
+              419,
+              430
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {
+            "yaml_paths": [
+              "reading_policy.boundaries"
+            ]
+          },
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "core/writing_runtime_contract.yaml",
+          "ranges": [
+            [
+              1,
+              722
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "templates/latex/cumcm/hsk/template_manifest.yaml",
+          "ranges": [
+            [
+              1,
+              315
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "templates/latex/cumcm/hsk/hsk_main.tex",
+          "ranges": [
+            [
+              1,
+              49
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "modules/05_writing/paper_writing_protocol.md",
+          "ranges": [
+            [
+              1,
+              819
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "modules/05_writing/latex.md",
+          "ranges": [
+            [
+              1,
+              134
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "packs/artifact/figure.md",
+          "ranges": [
+            [
+              1,
+              66
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "templates/figure/chart_selection.md",
+          "ranges": [
+            [
+              1,
+              125
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "templates/figure/figure_enhancement_patterns.md",
+          "ranges": [
+            [
+              1,
+              541
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "core/writing_reasoning_contract.yaml",
+          "ranges": [
+            [
+              1,
+              1950
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "packs/artifact/latex.md",
+          "ranges": [
+            [
+              1,
+              197
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "packs/artifact/algorithm_flow.md",
+          "ranges": [
+            [
+              1,
+              176
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "packs/competition/cumcm.md",
+          "ranges": [
+            [
+              1,
+              8
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "core/workbook_schema.yaml",
+          "ranges": [
+            [
+              1,
+              301
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "core/compile_profiles.yaml",
+          "ranges": [
+            [
+              1,
+              39
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "core/project_state.schema.yaml",
+          "ranges": [
+            [
+              1,
+              2055
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "core/state_transition_contract.yaml",
+          "ranges": [
+            [
+              1,
+              360
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "core/output_contract.yaml",
+          "ranges": [
+            [
+              1,
+              612
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "modules/04_figure_evidence.md",
+          "ranges": [
+            [
+              1,
+              477
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "modules/05_writing/ai_cleanup.md",
+          "ranges": [
+            [
+              1,
+              51
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        },
+        {
+          "origin": "skill",
+          "path": "modules/05_latex_compile_quality.md",
+          "ranges": [
+            [
+              1,
+              52
+            ]
+          ],
+          "resolution": "exact",
+          "selectors": {},
+          "when": null
+        }
+      ],
+      "reason": "Conservative mixed-action policy expands the read set; all baseline ranges are covered.",
+      "authorization": "2026-11-12 G2 user-delegated bounded correction; reviewed artifact 13952167749, no project mutation/Gate grant",
+      "test_id": "test_v10270_g2_multi_action.G2BoundedMultiActionTests.test_two_actual_independent_actions_are_selected"
+    },
+    {
+      "case_id": "natural_language_two_actions_probe",
+      "path": "reading_profile",
+      "before": "progressive_writing",
+      "after": "full",
+      "reason": "Mixed intent routes deliberately invoke the existing full conservative read profile.",
+      "authorization": "2026-11-12 G2 user-delegated bounded correction; reviewed artifact 13952167749, no project mutation/Gate grant",
+      "test_id": "test_v10270_g2_multi_action.G2BoundedMultiActionTests.test_two_actual_independent_actions_are_selected"
+    },
+    {
+      "case_id": "natural_language_two_actions_probe",
+      "path": "reading_reasons",
+      "before": [],
+      "after": [
+        "mixed intents or unresolved assurance diagnostics"
+      ],
+      "reason": "Existing mixed-intent fallback reason is surfaced for audit.",
+      "authorization": "2026-11-12 G2 user-delegated bounded correction; reviewed artifact 13952167749, no project mutation/Gate grant",
+      "test_id": "test_v10270_g2_multi_action.G2BoundedMultiActionTests.test_two_actual_independent_actions_are_selected"
+    },
+    {
+      "case_id": "natural_language_two_actions_probe",
+      "path": "reading_status",
+      "before": "delegated",
+      "after": "conservative_fallback",
+      "reason": "Conservative full fallback replaces single-route delegated initial reading, not writing stage review.",
+      "authorization": "2026-11-12 G2 user-delegated bounded correction; reviewed artifact 13952167749, no project mutation/Gate grant",
+      "test_id": "test_v10270_g2_multi_action.G2BoundedMultiActionTests.test_two_actual_independent_actions_are_selected"
+    },
+    {
+      "case_id": "natural_language_two_actions_probe",
+      "path": "selected_intents",
+      "before": [
+        "latex"
+      ],
+      "after": [
+        "figures",
+        "latex"
+      ],
+      "reason": "Both requested actions are present in the Assured selection diagnostics.",
+      "authorization": "2026-11-12 G2 user-delegated bounded correction; reviewed artifact 13952167749, no project mutation/Gate grant",
+      "test_id": "test_v10270_g2_multi_action.G2BoundedMultiActionTests.test_two_actual_independent_actions_are_selected"
+    },
+    {
+      "case_id": "natural_language_two_actions_probe",
+      "path": "terminal_outputs",
+      "before": [
+        "latex_source",
+        "latex_audit_report",
+        "compiled_pdf",
+        "compile_report",
+        "model_paper_framework",
+        "semantic_governance_report",
+        "project_state",
+        "sync_report"
+      ],
+      "after": [
+        "preprocessing_matlab_script",
+        "preprocessing_figures",
+        "matlab_scripts",
+        "figure_contracts",
+        "approved_figures",
+        "model_paper_framework",
+        "latex_source",
+        "latex_audit_report",
+        "compiled_pdf",
+        "compile_report",
+        "semantic_governance_report",
+        "project_state",
+        "sync_report"
+      ],
+      "reason": "Figure candidate output roles are declared but not qualified as current accepted evidence.",
+      "authorization": "2026-11-12 G2 user-delegated bounded correction; reviewed artifact 13952167749, no project mutation/Gate grant",
+      "test_id": "test_v10270_g2_multi_action.G2BoundedMultiActionTests.test_two_actual_independent_actions_are_selected"
+    },
+    {
+      "case_id": "natural_language_two_actions_probe",
+      "path": "writing_mode",
+      "before": "compact",
+      "after": "full_authority",
+      "reason": "Mixed routes preload full reasoning while preserving the Template-First authoring sequence and Review stages.",
+      "authorization": "2026-11-12 G2 user-delegated bounded correction; reviewed artifact 13952167749, no project mutation/Gate grant",
+      "test_id": "test_v10270_g2_multi_action.G2BoundedMultiActionTests.test_two_actual_independent_actions_are_selected"
+    }
+  ]
+}
