@@ -40,6 +40,8 @@ on:
       - tests/test_v10270_action_observation.py
       - tests/fixtures/v10270_action_oracle.yaml
       - tests/fixtures/v10270_g2_approved_deltas.json
+      - tests/g3a_plan_view_evidence.py
+      - tests/test_g3a_plan_view_evidence.py
       - tests/fixtures/v10270_runtime_cases.yaml
       - tests/test_optimization_baseline.py
       - tests/fixtures/skill_optimization_cases.yaml
@@ -208,6 +210,11 @@ jobs:
         shell: pwsh
         run: |
           python tests/v10270_action_observation.py --repo-root $env:OPT_CANDIDATE --oracle tests/fixtures/v10270_action_oracle.yaml --repeats 3 --output (Join-Path $env:OPT_REPORTS 'v10270-g1b-action-observations.json')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: G3A read-only plan projection ROI experiment (no production interface)
+        shell: pwsh
+        run: |
+          python tests/g3a_plan_view_evidence.py --repo-root $env:OPT_CANDIDATE --output (Join-Path $env:OPT_REPORTS 'v10270-g3a-presentation-evidence.json')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload real measurement evidence even on failure
         if: always()
