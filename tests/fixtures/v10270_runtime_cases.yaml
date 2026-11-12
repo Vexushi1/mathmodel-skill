@@ -1,0 +1,28 @@
+# G1A synthetic stateless characterization. Not an action oracle or approval.
+schema_version: 1
+cases:
+  - id: pure_model_design
+    request: 请先给出建模思路
+    competition: CUMCM
+  - id: pure_python_figures
+    request: 请使用 Python 绘图
+    competition: CUMCM
+  - id: review_word_readonly
+    request: 只审查 Word 论文，不修改任何文件
+    competition: CUMCM
+  - id: two_carrier_legacy_protected
+    request: 用 Word 和 LaTeX 写论文草稿
+    competition: CUMCM
+  - id: explicit_figure_scope
+    request: 只绘图，不需要模型求解
+    intents: [figures]
+    competition: CUMCM
+  - id: natural_language_two_actions_probe
+    request: 修改问题二图表，并调整 LaTeX 论文中的文字说明
+    competition: CUMCM
+  - id: full_workflow_boundary
+    request: 请完成数学建模全流程
+    competition: CUMCM
+  - id: analysis_stage_request
+    request: 开始进行模型检验与鲁棒性分析
+    competition: CUMCM

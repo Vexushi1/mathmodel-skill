@@ -34,6 +34,9 @@ on:
       - tests/reading_plan_evidence.py
       - tests/test_reading_plan.py
       - tests/optimization_baseline.py
+      - tests/v10270_runtime_measurement.py
+      - tests/test_v10270_runtime_measurement.py
+      - tests/fixtures/v10270_runtime_cases.yaml
       - tests/test_optimization_baseline.py
       - tests/fixtures/skill_optimization_cases.yaml
       - docs/skill_optimization_status.md
@@ -180,6 +183,22 @@ jobs:
           $candidateRef = (git rev-parse HEAD).Trim()
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/reading_plan_evidence.py --baseline $env:OPT_P1 --candidate $env:OPT_CANDIDATE --candidate-ref $candidateRef --output $env:OPT_REPORTS
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: G1A same-driver v10.27.0 characterization (separate from P1/P2)
+        shell: pwsh
+        run: |
+          $controlRoot = Join-Path $env:RUNNER_TEMP 'hsk-v10270-frozen-baseline'
+          git worktree add --detach $controlRoot 5b7828ec0ae41dc97c095cd62d43f889596bd646
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $cases = 'tests/fixtures/v10270_runtime_cases.yaml'
+          $driver = 'tests/v10270_runtime_measurement.py'
+          python -m unittest discover -s tests -p test_v10270_runtime_measurement.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python $driver capture --root $controlRoot --cases $cases --output (Join-Path $env:OPT_REPORTS 'v10270-before.json')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python $driver capture --root $env:OPT_CANDIDATE --cases $cases --output (Join-Path $env:OPT_REPORTS 'v10270-after.json')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python $driver compare --baseline-report (Join-Path $env:OPT_REPORTS 'v10270-before.json') --candidate-report (Join-Path $env:OPT_REPORTS 'v10270-after.json') --output (Join-Path $env:OPT_REPORTS 'v10270-comparison.json')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload real measurement evidence even on failure
         if: always()
