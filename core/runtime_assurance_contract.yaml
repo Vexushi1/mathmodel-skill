@@ -71,7 +71,7 @@ intent_resolution:
   explicit_intent_priority: true
   inference_source: core/workflow_router.yaml:routing.*.infer_keywords
   score_meaning: sum_of_matched_keyword_character_lengths_not_probability
-  selection_rule: explicit_intents_else_top_specificity_candidates
+  selection_rule: explicit_intents_else_top_specificity_candidates_with_bounded_independent_clauses
   confidence_bands:
     explicit: high
     unique_multi_match: high
@@ -91,7 +91,9 @@ intent_resolution:
   - Apply routing Authority review_action_policy before carrier scoring. Review-only actions consume the named carrier without authoring; conflicting explicit intents fail before write planning.
   - Apply core/workflow_router.yaml#paper_carrier_disambiguation to keyword eligibility before scoring; other route scores and explicit-intent priority remain unchanged.
   - When explicit intents exist, inferred keyword matches remain provenance only and cannot silently add routes.
-  - Without explicit intent, only the highest-specificity candidate or tied highest-specificity candidates are selected; lower-scoring matches remain diagnostics only.
+  - Without explicit intent, the highest-specificity candidate or tied highest candidates normally apply; lower-scoring matches remain diagnostics unless two positive independent action clauses satisfy the explicitly bounded G2 exception.
+  - The bounded G2 exception recognizes only two distinct positive action clauses separated by an explicit connector, each with a unique top Router match, for the current pairs figures+latex or validation+latex. It retains their order, rejects ambiguous/negated clauses, and does not treat carrier mentions or selected intents as writing permission.
+  - A bounded two-action selection remains non-ambiguous when both clauses independently identify one route. A mixed reading scope stays conservative full until the separate safe-composition/reading work is validated; the original Model Approval, user execution, and delivery Gate boundaries stay authoritative.
   - full_workflow retains dominance when it is among the selected top inferred candidates.
   - Ambiguity means multiple inferred candidates share the selected top specificity score; routes that still lack required classification after hydration fail closed through the existing resolver prerequisite logic.
 
