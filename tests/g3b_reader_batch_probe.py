@@ -26,7 +26,7 @@ CHUNK_LINES = 60
 CHUNKS_PER_FILE = 4
 MAX_SOURCE_BYTES = 65536
 SOURCES = ("modules/04_figure_evidence.md",
-           "templates/figure/figure_enhancement_patterns.md")
+           "templates/figure/result_figure_contract.md")
 
 
 def git_head(root: Path) -> str:
