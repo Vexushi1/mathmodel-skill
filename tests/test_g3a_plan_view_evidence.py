@@ -75,6 +75,8 @@ class G3APlanPresentationTests(unittest.TestCase):
             lambda view: view["tool_interfaces"].clear(),
             lambda view: view["status_boundaries"].update(gate_executed_or_passed=True),
             lambda view: view["selected_intents"].pop(),
+            lambda view: view["assurance"]["artifact_evidence"][0].update(status="verified"),
+            lambda view: view["assurance"].update(conflicts=["source SHA drift"]),
         ):
             with self.subTest(mutator=str(mutator)):
                 view = VIEW.preview_from_plan(source, "d"*64)

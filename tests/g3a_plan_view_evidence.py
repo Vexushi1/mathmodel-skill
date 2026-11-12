@@ -139,6 +139,14 @@ def prove_presentation_subset(plan: dict[str, Any], view: dict[str, Any]) -> Non
     original = (plan.get("assurance") or {}).get("authority_fingerprint") or {}
     if original.get("sha256") != view["authority_fingerprint"]:
         raise ValueError("current Authority fingerprint was lost")
+    original_context = (plan.get("assurance") or {}).get("context") or {}
+    presented_assurance = view["assurance"]
+    if (presented_assurance.get("artifact_evidence")
+            != ((plan.get("assurance") or {}).get("artifact_assurance") or {}).get("evidence") or
+            presented_assurance.get("conflicts") != original_context.get("conflicts") or
+            presented_assurance.get("ambiguities") != original_context.get("ambiguities") or
+            presented_assurance.get("field_provenance") != original_context.get("field_provenance")):
+        raise ValueError("project artifact evidence or context status changed in projection")
     boundary = view["status_boundaries"]
     if any(value is True for key, value in boundary.items()
            if key != "not_a_replacement_for_machine_plan"):
