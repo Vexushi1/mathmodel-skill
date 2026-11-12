@@ -515,6 +515,56 @@ def sha256_file(path: Path) -> str | None:
     return digest.hexdigest()
 
 
+_INDEPENDENT_ACTION_SPLIT = re.compile(r"\s*(?:[,，;；]\s*)?(?:并且|同时|另外|并)\s*")
+_INDEPENDENT_ACTION_VERB = re.compile(
+    r"(?:修改|调整|编写|撰写|写|绘制|绘图|画|生成|设计|进行|开展|检验|验证|完成|新增|补充|优化|更新|改写)"
+)
+_INDEPENDENT_ACTION_NEGATION = re.compile(
+    r"(?:不要|无需|不必|暂不|不需要|禁止|别|不)\s*(?:再|去|进行)?\s*"
+    r"(?:修改|调整|编写|撰写|写|绘制|绘图|画|生成|设计|检验|验证|完成|新增|补充|优化|更新|改写)"
+)
+# A deliberately bounded G2 compatibility repair, not a second Router taxonomy.
+# Other action combinations continue through existing specificity and human adjudication.
+_INDEPENDENT_ACTION_PAIRS = frozenset({
+    frozenset(("figures", "latex")),
+    frozenset(("validation", "latex")),
+})
+
+
+def _bounded_independent_action_intents(
+    request: str, router: dict[str, Any], candidates: list[dict[str, Any]]
+) -> list[str]:
+    """Recognize exactly two positive action clauses; never infer write authorization.
+
+    Route keywords still come exclusively from the current Router. Ambiguous or
+    negated clauses remain on the existing top-specificity path, not a broad union.
+    """
+    clauses = [part.strip(" \t,，;；。") for part in _INDEPENDENT_ACTION_SPLIT.split(request)]
+    if len(clauses) != 2 or not all(clauses):
+        return []
+    if any(not _INDEPENDENT_ACTION_VERB.search(part)
+           or _INDEPENDENT_ACTION_NEGATION.search(part) for part in clauses):
+        return []
+
+    selected: list[str] = []
+    for part in clauses:
+        local = matched_inference_keywords(part, router)
+        if not local:
+            return []
+        scored = [(sum(max(1, len(word.strip())) for word in words), name)
+                  for name, words in local.items()]
+        maximum = max(score for score, _ in scored)
+        winners = [name for score, name in scored if score == maximum]
+        if len(winners) != 1:
+            return []
+        selected.append(winners[0])
+    if (frozenset(selected) not in _INDEPENDENT_ACTION_PAIRS
+            or len(set(selected)) != 2
+            or not set(selected).issubset({str(item["intent"]) for item in candidates})):
+        return []
+    return selected
+
+
 def resolve_intent_assurance(
     explicit_intents: Iterable[str],
     request: str,
@@ -538,9 +588,16 @@ def resolve_intent_assurance(
     inferred = [str(item["intent"]) for item in top]
     if "full_workflow" in inferred:
         inferred = ["full_workflow"]
+    independent_actions = (
+        _bounded_independent_action_intents(request, router, candidates)
+        if not explicit and "full_workflow" not in inferred
+        else []
+    )
+    if independent_actions:
+        inferred = independent_actions
 
     selected = explicit if explicit else inferred
-    ambiguity = bool(not explicit and len(inferred) > 1)
+    ambiguity = bool(not explicit and len(inferred) > 1 and not independent_actions)
 
     if explicit:
         confidence_band = "high"
@@ -552,6 +609,11 @@ def resolve_intent_assurance(
         confidence_score = 0.0
         mode = "unresolved"
         reason = "no explicit intent and no configured keyword matched"
+    elif independent_actions:
+        confidence_band = "medium"
+        confidence_score = 0.6
+        mode = "inferred"
+        reason = "two separately expressed positive action clauses matched bounded independent routes"
     elif ambiguity:
         confidence_band = "low"
         confidence_score = 0.35

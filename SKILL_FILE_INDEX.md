@@ -313,6 +313,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/solver_backends/python_primary.py`
 - `tests/fixtures/stage_reading_session/模型论文框架.md`
 - `tests/fixtures/v10270_action_oracle.yaml`
+- `tests/fixtures/v10270_g2_approved_deltas.json`
 - `tests/fixtures/v10270_runtime_cases.yaml`
 - `tests/fixtures/v900_phase_h_empty_sync_golden.yaml`
 - `tests/fixtures/v900_phase_i_migration_matrix.yaml`
@@ -482,6 +483,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_v10260_cumcm_writing_narrative_b.py`
 - `tests/test_v10262_ai_cleanup_prose_only.py`
 - `tests/test_v10270_action_observation.py`
+- `tests/test_v10270_g2_multi_action.py`
 - `tests/test_v10270_runtime_measurement.py`
 - `tests/test_v10_project_delivery_receipt.py`
 - `tests/test_v10_project_policy_core.py`
