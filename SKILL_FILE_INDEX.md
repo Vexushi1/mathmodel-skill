@@ -324,6 +324,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/writing_reasoning_voice_cases.yaml`
 - `tests/g3a_plan_view_evidence.py`
 - `tests/g3b_reader_batch_probe.py`
+- `tests/g4a_resolver_parse_probe.py`
 - `tests/matlab/p6b_publication_preview.m`
 - `tests/matlab/run_solver_backend_mixed_smoke.m`
 - `tests/matlab/run_solver_backend_smoke.m`
