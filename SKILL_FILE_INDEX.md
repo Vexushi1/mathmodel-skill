@@ -313,6 +313,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/solver_backends/python_primary.py`
 - `tests/fixtures/stage_reading_session/模型论文框架.md`
 - `tests/fixtures/v10270_action_oracle.yaml`
+- `tests/fixtures/v10270_g2_approved_deltas.json`
 - `tests/fixtures/v10270_runtime_cases.yaml`
 - `tests/fixtures/v900_phase_h_empty_sync_golden.yaml`
 - `tests/fixtures/v900_phase_i_migration_matrix.yaml`
