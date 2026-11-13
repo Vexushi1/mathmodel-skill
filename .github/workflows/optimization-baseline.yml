@@ -46,6 +46,8 @@ on:
       - tests/test_g3b_reader_batch_probe.py
       - tests/g4a_resolver_parse_probe.py
       - tests/test_g4a_resolver_parse_probe.py
+      - tests/g4b_selector_index_probe.py
+      - tests/test_g4b_selector_index_probe.py
       - tests/fixtures/v10270_runtime_cases.yaml
       - tests/test_optimization_baseline.py
       - tests/fixtures/skill_optimization_cases.yaml
@@ -232,6 +234,12 @@ jobs:
           # Characterize only the candidate probe; preserve the three-test whitelist.
           $driver = Join-Path $env:OPT_CANDIDATE 'tests/g4a_resolver_parse_probe.py'
           python $driver --repo-root $env:OPT_CANDIDATE --repeats 3 --output (Join-Path $env:OPT_REPORTS 'v10270-g4a-parse-admission.json')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: G4B test-only selector heading index admission (no production cache)
+        shell: pwsh
+        run: |
+          $driver = Join-Path $env:OPT_CANDIDATE 'tests/g4b_selector_index_probe.py'
+          python $driver --repo-root $env:OPT_CANDIDATE --repeats 3 --output (Join-Path $env:OPT_REPORTS 'v10270-g4b-selector-admission.json')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload real measurement evidence even on failure
         if: always()
