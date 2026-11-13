@@ -1978,6 +1978,26 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
     changes = []
     try:
         fingerprint = projected["assurance"]["authority_fingerprint"]
+        if is_patch_carrier:
+            # core/output_contract.yaml is an exact-byte historical fingerprint
+            # source. Admit only its one-line version carrier update, whose
+            # reconstruction must hash to the frozen v10.27.0 source.
+            path = "core/output_contract.yaml"
+            actual = [row for row in fingerprint["sources"] if row["path"] == path]
+            pinned = [row for row in fixture["fingerprint"]["candidate"]
+                      if row["path"] == path]
+            if len(actual) != 1 or len(pinned) != 1:
+                return deepcopy(original), []
+            raw = (HERE.parent.parent / path).read_bytes()
+            patch_header = b"version: 10.27.1\n"
+            previous_header = b"version: 10.27.0\n"
+            if (not raw.startswith(patch_header)
+                    or hashlib.sha256(raw).hexdigest() != actual[0]["sha256"]
+                    or hashlib.sha256(
+                        previous_header + raw[len(patch_header):]
+                    ).hexdigest() != pinned[0]["sha256"]):
+                return deepcopy(original), []
+            actual[0]["sha256"] = pinned[0]["sha256"]
         if fingerprint["sources"] != fixture["fingerprint"]["candidate"]:
             return deepcopy(original), []
         fingerprint["sources"] = deepcopy(fixture["fingerprint"]["baseline"])
@@ -2010,7 +2030,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 changes.append({"path": ".".join(map(str, delta["path"])),
                                 "baseline": baseline, "candidate": candidate,
                                 "approval": "v10.27.0 exact conditional Figure/mechanism repair"})
-    except (KeyError, IndexError, TypeError):
+    except (KeyError, IndexError, TypeError, OSError):
         return deepcopy(original), []
     projected["version"] = V10263_RELEASE_AUTHORITY_VERSIONS["skill"]
     changes.append({"path": "version", "baseline": projected["version"],
