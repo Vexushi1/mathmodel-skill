@@ -43,26 +43,67 @@ class HistoricalProjectionTests(unittest.TestCase):
             self.assertTrue(changes, after["id"])
             self.assertEqual(predecessor["version"], "10.26.3")
             saved = deepcopy(after)
-            for mutation in ("source_hash", "source_order", "gate", "artifact", "scope", "version"):
+            for mutation in ("source_hash", "source_order", "output_contract_hash",
+                             "gate", "artifact", "scope", "version", "authority_version"):
                 altered = deepcopy(after)
                 plan = altered["plan"]
                 if mutation == "source_hash":
                     plan["assurance"]["authority_fingerprint"]["sources"][-1]["sha256"] = "0" * 64
                 elif mutation == "source_order":
                     plan["assurance"]["authority_fingerprint"]["sources"].reverse()
+                elif mutation == "output_contract_hash":
+                    matches = [row for row in plan["assurance"]["authority_fingerprint"]["sources"]
+                               if row["path"] == "core/output_contract.yaml"]
+                    self.assertEqual(len(matches), 1)
+                    matches[0]["sha256"] = "0" * 64
                 elif mutation == "gate":
                     plan["pre_delivery_gates"] = [{"name": "unregistered_gate"}]
                 elif mutation == "artifact":
                     plan["terminal_outputs"].append("unregistered_qualification")
                 elif mutation == "scope":
                     plan["delivery_scope"] = "submission"
+                elif mutation == "version":
+                    plan["version"] = "10.27.2"  # unregistered; 10.27.1 is current
                 else:
-                    plan["version"] = "10.27.1"
+                    altered["authority_versions"]["skill"] = "10.27.0"
                 with self.subTest(case=after["id"], mutation=mutation):
-                    projected, _ = plan_evidence.runtime_consistency_predecessor(
-                        after["id"], plan_evidence.legacy_projection(plan), after["authority_versions"])
+                    projected, changes_after_mutation = plan_evidence.runtime_consistency_predecessor(
+                        after["id"], plan_evidence.legacy_projection(plan),
+                        altered["authority_versions"])
                     self.assertNotEqual(projected, predecessor)
+                    if mutation in {"version", "authority_version", "source_hash",
+                                    "source_order", "output_contract_hash"}:
+                        self.assertEqual(changes_after_mutation, [])
             self.assertEqual(after, saved)
+
+    def test_frozen_v10270_inverse_still_accepts_only_exact_carrier(self):
+        after = plan_evidence.worker(ROOT, 0)
+        self.assertEqual(after["authority_versions"]["skill"], "10.27.1")
+        self.assertEqual(after["plan"]["version"], "10.27.1")
+        old_carrier = deepcopy(after)
+        old_carrier["authority_versions"]["skill"] = "10.27.0"
+        old_carrier["plan"]["version"] = "10.27.0"
+        # Synthetic historical carrier: its output contract must carry the
+        # frozen 10.27.0 source identity, not the current 10.27.1 file hash.
+        sources = old_carrier["plan"]["assurance"]["authority_fingerprint"]["sources"]
+        pinned = plan_evidence.RUNTIME_CONSISTENCY_PROJECTION["fingerprint"]["candidate"]
+        actual_row = [row for row in sources if row["path"] == "core/output_contract.yaml"]
+        pinned_row = [row for row in pinned if row["path"] == "core/output_contract.yaml"]
+        self.assertEqual((len(actual_row), len(pinned_row)), (1, 1))
+        actual_row[0]["sha256"] = pinned_row[0]["sha256"]
+        candidate = plan_evidence.legacy_projection(old_carrier["plan"])
+        original = deepcopy(candidate)
+        predecessor, approved = plan_evidence.runtime_consistency_predecessor(
+            old_carrier["id"], candidate, old_carrier["authority_versions"])
+        self.assertTrue(approved)
+        self.assertEqual(predecessor["version"], "10.26.3")
+        self.assertEqual(candidate, original)  # observer never mutates its inputs
+        mismatch = deepcopy(old_carrier["authority_versions"])
+        mismatch["project_state"] = "999.0.0"
+        unchanged, changes = plan_evidence.runtime_consistency_predecessor(
+            old_carrier["id"], candidate, mismatch)
+        self.assertEqual(changes, [])
+        self.assertEqual(unchanged, candidate)
 
 
 class ActionAndProjectionTests(unittest.TestCase):

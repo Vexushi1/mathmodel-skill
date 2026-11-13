@@ -57,6 +57,10 @@ CUMCM_D_CLEANUP_RELEASE_VERSIONS = {
 RUNTIME_CONSISTENCY_RELEASE_VERSIONS = {
     **CUMCM_D_CLEANUP_RELEASE_VERSIONS, "skill": "10.27.0",
 }
+# v10.27.1 is a compatibility patch, not a change to the historical v10.27.0 golden.
+RUNTIME_G2_PATCH_RELEASE_VERSIONS = {
+    **RUNTIME_CONSISTENCY_RELEASE_VERSIONS, "skill": "10.27.1",
+}
 # Phase C: pin the exact review reads separately from the historical
 # Review Split migration and unchanged Phase G golden. Unregistered additions,
 # removals, order changes, or selector substitutions must fail projection.
@@ -89,7 +93,8 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
     def _projection(self, plan):
         # The runtime repair preserves this CUMCM writing projection. Accept
         # only its exact carrier; keep every stage and Golden field checked.
-        if plan.get("version") in {"10.26.3", RUNTIME_CONSISTENCY_RELEASE_VERSIONS["skill"]}:
+        if plan.get("version") in {"10.26.3", RUNTIME_CONSISTENCY_RELEASE_VERSIONS["skill"],
+                                   RUNTIME_G2_PATCH_RELEASE_VERSIONS["skill"]}:
             plan = copy.deepcopy(plan)
             plan["version"] = CUMCM_D_CLEANUP_RELEASE_VERSIONS["skill"]
         writing = copy.deepcopy(plan.get("writing_runtime"))
@@ -280,7 +285,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
 
     def test_runtime_repair_reuses_exact_writing_projection_without_mutation(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
-        self.assertEqual(plan["version"], RUNTIME_CONSISTENCY_RELEASE_VERSIONS["skill"])
+        self.assertEqual(plan["version"], RUNTIME_G2_PATCH_RELEASE_VERSIONS["skill"])
         historical = copy.deepcopy(plan)
         historical["version"] = CUMCM_D_CLEANUP_RELEASE_VERSIONS["skill"]
         saved = copy.deepcopy((plan, historical, self.golden))
@@ -294,7 +299,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
 
     def test_review_split_projection_binds_canonical_scopes_without_waiving_stage_fields(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
-        self.assertEqual(plan["version"], RUNTIME_CONSISTENCY_RELEASE_VERSIONS["skill"])
+        self.assertEqual(plan["version"], RUNTIME_G2_PATCH_RELEASE_VERSIONS["skill"])
         saved = copy.deepcopy((plan, self.golden, REVIEW_SPLIT_WRITING_DELTAS))
         for index, stage_id, previous_reads, current_reads in REVIEW_SPLIT_WRITING_DELTAS:
             historical = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][index]
