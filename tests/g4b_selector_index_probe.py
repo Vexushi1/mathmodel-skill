@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import reading_plan as READING
 import resolve_runtime as RUNTIME
+import safe_yaml
 
 MODES = ("existing", "test_only_index")
 CASES = (
@@ -126,6 +127,8 @@ class HeadingIndex:
 
 def capture(intent: str, request: str, mode: str) -> tuple[dict[str, Any], dict[str, Any]]:
     index = HeadingIndex(mode)
+    # Identical cold YAML-config cache for both paths: isolate selector-index ROI.
+    safe_yaml.clear_cache()
     original_scan = yaml.scan
     original_compose = yaml.compose
 
@@ -196,6 +199,7 @@ def collect(root: Path, repeats: int = 3) -> dict[str, Any]:
         "measurement": "one_process_real_resolver_and_test_only_markdown_index",
         "repeats": repeats, "source_sha256": hashes, "cases": cases,
         "no_production_changes": True,
+        "yaml_configuration_cache": "cleared_before_each_mode",
         "not_measured": [
             "YAML_AST_index_reuse", "project_origin_and_mutable_generation",
             "production_cache_memory_lifecycle", "real_ChatGPT_tokens",
