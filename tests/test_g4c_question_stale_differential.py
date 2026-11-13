@@ -150,6 +150,23 @@ class G4CQuestionFragmentDifferentialTests(unittest.TestCase):
             with self.subTest(case=label):
                 self.assert_equivalent(label, value, {"Q1"})
 
+    def test_unaffected_fragment_status_and_metadata_are_preserved(self):
+        fragments = [
+            fragment("paper.q1", "Q1", status="current"),
+            fragment("paper.q2", "Q2", status="not_applicable"),
+            fragment("paper.q3", "Q3", status="stale"),
+        ]
+        for fn in (SYNC._mark_paper_fragments_stale,
+                   SEMANTIC._mark_paper_fragments_stale):
+            with self.subTest(writer=fn.__module__):
+                output = observation(fn, fragments, {"Q1"})
+                self.assertEqual(output["returned_ids"], ["paper.q1"])
+                self.assertEqual(
+                    [f["status"] for f in output["framework"]["paper_fragments"]],
+                    ["stale", "not_applicable", "stale"],
+                )
+                self.assertTrue(output["unrelated_untouched"])
+
     def test_seeded_graph_matrix_differential(self):
         rng = random.Random(20261113)
         for trial in range(35):
