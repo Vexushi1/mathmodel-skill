@@ -29,7 +29,7 @@
 
 **发布门**：仍须以 v10.27.1 版本载体 PR 的最终 bot-generated head 完整 GitHub CI、合并后实际 main SHA 的正式 CI 为准。创建 Release 时 Tag 必须指向该已验收的合并后 main SHA；不得重用或移动旧 v10.27.0 Tag。
 
-[完整非退化验收与候选处置](https://github.com/Vexushi1/mathmodel-skill/blob/main/docs/v10_27_runtime_nonregression_closeout.md)；[从上一正式版本开始的变更](https://github.com/Vexushi1/mathmodel-skill/compare/v10.27.0...main)（发布后以 v10.27.1 Tag 替换 main）。
+[完整非退化验收与候选处置](https://github.com/Vexushi1/mathmodel-skill/blob/main/docs/v10_27_runtime_nonregression_closeout.md)；[自 v10.27.0 起的完整变更](https://github.com/Vexushi1/mathmodel-skill/compare/v10.27.0...v10.27.1)（此链接在 v10.27.1 Tag 正式创建后生效）。
 
 **验收限制**：上述 CI 和合成实验属于软件/契约机器证据；真实赛题模型、数值复演、Figure 人工核验、最终论文逐页和官方赛规验证仍需在具体项目内单独完成。actual_read_tokens 与真实端到端用户延迟仍未测量。
 
