@@ -327,6 +327,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/g4a_resolver_parse_probe.py`
 - `tests/g4b_selector_index_probe.py`
 - `tests/g5_effective_plan_admission.py`
+- `tests/g6a_blocked_diagnostic_probe.py`
 - `tests/matlab/p6b_publication_preview.m`
 - `tests/matlab/run_solver_backend_mixed_smoke.m`
 - `tests/matlab/run_solver_backend_smoke.m`
