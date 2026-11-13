@@ -1,6 +1,6 @@
-# mathmodel-skill v10.27.0
+# mathmodel-skill v10.27.1
 
-本版本聚焦证据约束下的论文表达边界与 Review 读取路径修复，保持既有模型、数值求解、LaTeX、独立协议和历史项目兼容性不变。
+本次兼容性补丁修复无显式意图请求中两类有界混合动作的漏识别问题（图表＋LaTeX、模型检验＋LaTeX），并纳入 G1–G6 非退化回归与审计证据。未通过安全/收益准入的生产读取缓存、混合窄读和局部 Review 快捷路径均未启用；已有模型批准、数值执行、工作簿与论文交付门禁保持不变。
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值求解语言与科研绘图语言分别在项目根统一选择；一个竞赛的所有结果图只使用一次选定的 Python 或 MATLAB 后端，保留原 Figure 设计 Authority 和历史 MATLAB 项目。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。 竞赛专属 Pack、模板与 profile 是可选适配器；缺失时回退通用规则。建模方案和框架草稿不触发仅适用于论文终稿或提交包的正式交付门禁。
 
