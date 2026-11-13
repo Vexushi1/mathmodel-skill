@@ -414,6 +414,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_g4b_selector_index_probe.py`
 - `tests/test_g4c_question_stale_differential.py`
 - `tests/test_g5_effective_plan_admission.py`
+- `tests/test_g6a_blocked_diagnostic_probe.py`
 - `tests/test_generated_workflow_hardening.py`
 - `tests/test_latex_first_versionless_docs.py`
 - `tests/test_legacy_archive_hygiene.py`
