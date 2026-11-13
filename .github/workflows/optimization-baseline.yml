@@ -48,6 +48,8 @@ on:
       - tests/test_g4a_resolver_parse_probe.py
       - tests/g4b_selector_index_probe.py
       - tests/test_g4b_selector_index_probe.py
+      - tests/g5_effective_plan_admission.py
+      - tests/test_g5_effective_plan_admission.py
       - tests/fixtures/v10270_runtime_cases.yaml
       - tests/test_optimization_baseline.py
       - tests/fixtures/skill_optimization_cases.yaml
@@ -240,6 +242,13 @@ jobs:
         run: |
           $driver = Join-Path $env:OPT_CANDIDATE 'tests/g4b_selector_index_probe.py'
           python $driver --repo-root $env:OPT_CANDIDATE --repeats 3 --output (Join-Path $env:OPT_REPORTS 'v10270-g4b-selector-admission.json')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: G5 read-only effective-plan composition admission (no narrow read enabled)
+        shell: pwsh
+        run: |
+          # Do not extend the three-command unittest whitelist.
+          $driver = Join-Path $env:OPT_CANDIDATE 'tests/g5_effective_plan_admission.py'
+          python $driver --repo-root $env:OPT_CANDIDATE --output (Join-Path $env:OPT_REPORTS 'v10270-g5-composability-admission.json')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload real measurement evidence even on failure
         if: always()
