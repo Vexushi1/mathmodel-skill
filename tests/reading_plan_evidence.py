@@ -112,6 +112,11 @@ CUMCM_D_CLEANUP_AUTHORITY_VERSIONS = {**CUMCM_C_HANDOFF_AUTHORITY_VERSIONS, "ski
 V10263_RELEASE_AUTHORITY_VERSIONS = {**CUMCM_D_CLEANUP_AUTHORITY_VERSIONS, "skill": "10.26.3"}
 RUNTIME_CONSISTENCY_PROJECTION = yaml.safe_load(
     (HERE.parent / "fixtures/runtime_consistency_v10270_projection.yaml").read_text(encoding="utf-8"))
+# v10.27.1 changes only the Skill release carrier; the v10.27.0 inverse
+# fixture and its exact delta/fingerprint assertions remain frozen.
+V10271_PATCH_AUTHORITY_VERSIONS = {
+    **RUNTIME_CONSISTENCY_PROJECTION["authority_versions"], "skill": "10.27.1",
+}
 # Only these two read-list migrations are registered. Business text is separately
 # reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
 REVIEW_SPLIT_WRITING_DELTAS = (
@@ -1954,15 +1959,27 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
     field. This is a visible behavior transition, never an equality waiver.
     """
     fixture = RUNTIME_CONSISTENCY_PROJECTION
-    if (candidate_authority_versions != fixture["authority_versions"]
+    original = deepcopy(new)
+    # Only the exact patch release carrier may reuse the frozen v10.27.0
+    # inverse; no other field, source fingerprint, or historical fixture is waived.
+    is_patch_carrier = (
+        candidate_authority_versions == V10271_PATCH_AUTHORITY_VERSIONS
+        and new.get("version") == V10271_PATCH_AUTHORITY_VERSIONS["skill"]
+    )
+    if is_patch_carrier:
+        new = deepcopy(new)
+        new["version"] = fixture["authority_versions"]["skill"]
+    if (candidate_authority_versions != (
+            V10271_PATCH_AUTHORITY_VERSIONS if is_patch_carrier
+            else fixture["authority_versions"])
             or new.get("version") != fixture["authority_versions"]["skill"]):
-        return deepcopy(new), []
+        return deepcopy(original), []
     projected = deepcopy(new)
     changes = []
     try:
         fingerprint = projected["assurance"]["authority_fingerprint"]
         if fingerprint["sources"] != fixture["fingerprint"]["candidate"]:
-            return deepcopy(new), []
+            return deepcopy(original), []
         fingerprint["sources"] = deepcopy(fixture["fingerprint"]["baseline"])
         changes.append({"path": "assurance.authority_fingerprint.sources",
                         "baseline": fixture["fingerprint"]["baseline"],
@@ -1979,26 +1996,28 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 candidate = deepcopy(parent[key])
                 if "insertions" in delta:
                     if not isinstance(candidate, list):
-                        return deepcopy(new), []
+                        return deepcopy(original), []
                     baseline = deepcopy(candidate)
                     for item in delta["insertions"]:
                         if item["value"] in baseline or item["index"] > len(baseline):
-                            return deepcopy(new), []
+                            return deepcopy(original), []
                         baseline.insert(item["index"], item["value"])
                 else:
                     if candidate != delta["candidate"]:
-                        return deepcopy(new), []
+                        return deepcopy(original), []
                     baseline = deepcopy(delta["baseline"])
                 parent[key] = baseline
                 changes.append({"path": ".".join(map(str, delta["path"])),
                                 "baseline": baseline, "candidate": candidate,
                                 "approval": "v10.27.0 exact conditional Figure/mechanism repair"})
     except (KeyError, IndexError, TypeError):
-        return deepcopy(new), []
+        return deepcopy(original), []
     projected["version"] = V10263_RELEASE_AUTHORITY_VERSIONS["skill"]
     changes.append({"path": "version", "baseline": projected["version"],
-                    "candidate": new["version"],
-                    "approval": "v10.27.0 compatible runtime repair; historical projections remain checked"})
+                    "candidate": original["version"],
+                    "approval": ("v10.27.1 carrier-only patch; exact v10.27.0 inverse verified"
+                                 if is_patch_carrier else
+                                 "v10.27.0 compatible runtime repair; historical projections remain checked")})
     return projected, changes
 
 
