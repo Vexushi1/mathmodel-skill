@@ -671,6 +671,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/v10180_analysis_comparison_plan.md`
 - `docs/v10182_routing_submission_closure_plan.md`
 - `docs/v10183_cumcm_heading_hierarchy_readability_completion_plan.md`
+- `docs/v10_27_runtime_nonregression_closeout.md`
 - `docs/v10_27_runtime_nonregression_optimization_plan.md`
 - `docs/v801_chapter_capability_preservation_audit.md`
 - `docs/v801_skill_health_remediation_plan.md`
