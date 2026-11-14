@@ -2,7 +2,7 @@
   "schema_version": 1,
   "scope": "v10.31.0_p4_optional_research_snapshot_carrier",
   "version": "10.31.0",
-  "authorizing_reason": "Exact v10.31.0 P4 optional snapshot only: no model/solver/approval route changes. Current router and optional research-source bytes are pinned; output contract additions are limited to one declared optional pointer and one optional snapshot block. Exactly two measured output read ranges are projected to v10.30 positions; no other source changes or original G2 approval waivers are allowed.",
+  "authorizing_reason": "Exact v10.31.0 P4 optional snapshot only: no model/solver/approval route changes. Current router and optional research-source bytes are pinned; output contract additions are limited to one declared optional pointer and one optional snapshot block. Exactly two measured output read ranges are projected to v10.30 positions; no other source changes or original G2 approval waivers are allowed. Four measured non-modeling conditional full-output reads are source-bound projected from 1–634 to 1–612; all other conditional reads and route leaves remain unchanged.",
   "required_case_ids": [
     "pure_model_design",
     "pure_python_figures",
@@ -160,6 +160,29 @@
         ],
         "selectors": {}
       }
+    ]
+  },
+  "output_conditional_shift": {
+    "path": "core/output_contract.yaml",
+    "candidate_sha256": "c4febf8be247448b6908d5ac274c3685d31254ea92b59c268ed0545beecdc510",
+    "current_ranges": [
+      [
+        1,
+        634
+      ]
+    ],
+    "historical_ranges": [
+      [
+        1,
+        612
+      ]
+    ],
+    "when": "current_delivery_scope_or_file_layout_requires_definition",
+    "case_ids": [
+      "pure_python_figures",
+      "review_word_readonly",
+      "two_carrier_legacy_protected",
+      "explicit_figure_scope"
     ]
   }
 }

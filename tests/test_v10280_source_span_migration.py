@@ -157,6 +157,34 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "output read shift physical span or selector drift"):
             self.measurement.project_exact_approved_source_spans(before, after, fixture)
 
+    def test_p4_conditional_output_range_requires_exact_source_and_selector(self):
+        fixture, old, new = self.cases()
+        old["id"] = new["id"] = "pure_python_figures"
+        literature = {row["path"] for row in fixture["model_intake"]["resources"]}
+        new["behavior"]["load_order"] = [
+            item for item in new["behavior"]["load_order"] if item not in literature
+        ]
+        new["behavior"]["read_now"] = [
+            item for item in new["behavior"]["read_now"] if item["path"] not in literature
+        ]
+        rule = fixture["output_conditional_shift"]
+        row = {"path": rule["path"], "ranges": deepcopy(rule["current_ranges"]),
+               "selectors": {}, "when": rule["when"], "origin": "skill", "resolution": "exact"}
+        old["behavior"]["conditional"] = [
+            {**deepcopy(row), "ranges": deepcopy(rule["historical_ranges"])}]
+        new["behavior"]["conditional"] = [row]
+        new["source_identity"]["sources"].append({
+            "path": rule["path"], "sha256": rule["candidate_sha256"]})
+        original = deepcopy(new)
+        projected, evidence = self.measurement.project_exact_approved_source_spans(
+            old, new, fixture)
+        self.assertEqual(projected["conditional"], old["behavior"]["conditional"])
+        self.assertEqual(new, original)
+        self.assertTrue(any(x.get("actual_conditional_ranges") for x in evidence))
+        new["behavior"]["conditional"][0]["when"] = "wrong_condition"
+        with self.assertRaisesRegex(ValueError, "conditional output source span or selector drift"):
+            self.measurement.project_exact_approved_source_spans(old, new, fixture)
+
     def test_manifest_fails_if_candidate_source_bytes_or_paths_change(self):
         data = json.loads(self.fixture.read_text(encoding="utf-8"))
         data["migrations"][0]["candidate_sha256"] = "0" * 64
