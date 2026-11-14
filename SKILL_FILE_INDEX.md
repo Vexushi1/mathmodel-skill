@@ -57,6 +57,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `core/compile_profiles.yaml`
 - `core/global_preprocessing_contract.yaml`
 - `core/hsk_core_policy.md`
+- `core/literature_research_contract.yaml`
 - `core/model_approval_contract.yaml`
 - `core/model_code_conformance_contract.yaml`
 - `core/module_manifest.yaml`
