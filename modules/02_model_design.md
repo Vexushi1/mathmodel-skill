@@ -70,6 +70,21 @@ Problem Contract 冻结只回答“题目是什么意思”，不等于模型已
 
 是否成立必须由题面、数据、定义或数学推导支持，不能仅凭题型标签机械宣告。
 
+### 1.2A 文献证据增强型模型研究（新设计/实质修订时）
+
+本节在前述 **Problem Contract 冻结与独立题目结构判断**之后、正式最小充分主模型确定之前执行。检索与方法证据的唯一细则在 `core/literature_research_contract.yaml`，执行说明见 `packs/artifact/literature_research.md`。当前任务只需记录本题实际使用的方法依据、未解决条件和选择理由；不复制第二套 Citation Evidence 或审批规则。
+
+1. **触发范围**：首次设计当前问、明确要求重选模型、或既有数学结构发生实质修订时，默认评估定向检索需求并在外部工具获授权且可用时实际查询；纯审题、已批准模型的常规代码/结果/绘图/论文编辑不自动重搜。当前问必须满足 `problem_contract_status=frozen`；若不满足则返回 Module 01。
+2. **检索前独立结构基准**：先写出研究对象、状态/决策变量、核心约束、数据条件、数学结构、可严格推导的关系及不可自证的外部机制；不从搜索结果反向定义题意或先选模型名。
+3. **Research Brief**：面向小问列出数学疑问、相关原始条件/可用附件字段、研究对象、双语专业术语、禁止假设、期望得到的方程/参数/理论依据和检索时间范围。以近期 3—5 年研究作为第一轮发现窗口，但数学适配和经典原始理论优先于发表时间；不设固定文献篇数。
+4. **实际搜索与验证**：真实调用当前可用且获授权的学术检索/网络工具，定位期刊或出版社原文、可靠元数据、必要的早期方法和反证。工具导航、读取本合同、模型自身知识和仅有论文标题均不能宣称检索已完成。不能联网、搜索失败、无合适论文、只见摘要、论文撤稿/版本冲突须明确分流；未获取原文公式时不得根据摘要补写其数学形式。
+5. **逐篇适配**：区分 E0 书目、E1 摘要、E2 可定位原文方法、E3 独立复核；核对文献原问题与本题对象、目标、变量、约束、单位、时空与信息边界、数据需求、Solver 前提及作者实际验证范围，记录 adopt / adapt / comparator / reference / reject / insufficient_evidence。拒绝或不确定的关键路径要说明原因。
+6. **保持独立设计权**：把文献提供的结构候选与前述 Condition → Consequence 推导比较，必要时证明化简或构造更合适的本题模型。绝不按最新、引用最多或看起来高级来决定主模型；创新主张必须指出可定位的已有结构、本题真实缺口和待验证的新机制，不因有限检索而宣称首创。
+7. **证据与停止边界**：研究到足以判断关键模型选择、重要假设及反例后停止；实际来源/时间/访问等级、采用和拒绝理由、未解决问题在本轮设计摘要中明确。不存在外部证据需求时可给出 `not_required` 理由而不机械联网；有关键外部机理/定理/参数需求却未能核验时必须将其作为 Model Challenge 的待修复风险，不得以文献数量或结构校验 PASS 代替数学前提。
+8. **现有产物与权限**：Research Brief 是正式候选模型之前的研究工作记录，不自动提前实例化 `模型论文框架.md`；形成 `proposed_model_spec` 后，仅将当前实际采纳的方法根据原有项目框架的模型理由、参数来源和 Citation Evidence 位置精简同步。`scripts/literature_evidence.py` 仅检查外部 JSON 声明的结构，不实际搜索，不证明文献/模型真实，不写 Project State，也不授权 Human Model Approval。
+
+完成这一研究后，继续 1.3 化简等级、1.4 最小充分主模型、1.5 按信息价值配置 comparator 与 1.6 结构匹配 Solver；没有任何外部研究可以跳过原有语义闭环、Complexity Sanity、双重质询或人工批准。
+
 ### 1.3 化简证据等级
 
 所有真正改变变量集、候选域、状态空间、计算域或问题维度的化简，沿用 `writing_reasoning_contract.model_construction_rationale.reduction_language` 的唯一语义：
@@ -298,7 +313,7 @@ Downstream risk hints
 |---|---|---|---|---|---|
 | C1 |  | method / theorem / parameter / data / domain_fact / prior_comparison |  |  | pending / current / stale |
 
-设计阶段可以先标 pending；进入写作前需要外部来源的核心 claim 应闭合。
+设计阶段可以先标 pending；进入写作前需要外部来源的核心 claim 应闭合。文献研究的方法卡、检索尝试与论文 Citation Key 不互相替代：只把实际用于当前模型或论文的外部结论登记为 Citation Evidence，保留可定位的原文依据；自身推导与赛题真实数值结果不得以引用替代。
 
 ### 4.6 Algorithm Trace 与呈现模式
 
@@ -519,7 +534,7 @@ surrogate 可以承担筛选、分配、产生初值或缩域角色，但最终�
 
 ### 6.1 Model Reviewer
 
-Model Reviewer 是正向适配审查，至少检查：
+Model Reviewer 是正向适配审查，至少检查（涉及外部研究方法时，同步执行 `core/model_approval_contract.yaml` 中条件式文献适用与来源边界检查；研究记录的格式验证不能替代该审查）：
 
 - 当前主模型是否真正回答冻结后的 Problem Contract；
 - 当前主模型是否已经利用题面条件完成可证明的消元、降维、分解或等价变换，且没有为了展示算法保留冗余复杂度；
@@ -543,7 +558,7 @@ Model Reviewer 是正向适配审查，至少检查：
 
 ### 6.2 Devil's Advocate
 
-Devil's Advocate 是反方挑战，至少检查：
+Devil's Advocate 是反方挑战，至少检查（若存在文献候选，还须独立质疑近期研究偏好、原文假设/本题边界不一致、数据不可获得和夸大的创新声明）：
 
 - 是否存在另一种会改变答案的合理题意解释；
 - 是否为了求解方便引入题目不允许的假设；
@@ -636,6 +651,8 @@ selected_models
 ## 10. `模型论文框架.md`
 
 `proposed_model_spec` 形成后即可按 `templates/model/model_paper_framework.md` 建立或更新项目根目录 `模型论文框架.md`，用于承载当前模型口径、Semantic Identity Block、Model Challenge 和 Approval Brief；用户批准后再把当前模型状态提升为 `locked_model_spec`。框架不是批准本身，批准事实以 machine state 中绑定的当前 revision/identity 为准。SIB 仍内嵌在 framework 中，不建立第二份模型真相；解析与 canonicalization 只复用 `scripts/semantic_identity.py`，本模块不得复制另一套 parser/canonical 规则。
+
+研究检索发生在正式框架创建之前时，不能凭聊天历史冒充已经落盘的当前证据。框架一旦按既有规则创建，只保存本题采纳的可核查外部方法、对应原始条件、被拒的关键路线理由和必要 Citation Evidence；没有采纳价值的候选文献不机械入框架，更不得把 DOI/检索日期并入 SIB 数学身份。
 
 它只承担**项目级长期工作记忆**：当前题意口径、当前 SIB、数据、变量、标准模型类型与正式模型名称、Model Construction Rationale 与 applicability boundary、Model/Solver/Validator 角色、Formula Trace、Algorithm Trace、参数证据、Primary Quality Specification、accepted 后候选深化风险、跨问依赖、Model Challenge、Human Approval 当前状态、写作选择、小节颗粒度与标题规划、命题、Citation Evidence、逐问结果摘要与 claim evidence level/scope、图表映射。v9.3 以后还应保存本题**实际改变模型结构**的高价值 Condition → Consequence / Reduction 事实、当前模型为什么达到最小充分，以及已启用 comparator 的 comparison purpose；不得把通用结构原语清单复制进项目框架。
 

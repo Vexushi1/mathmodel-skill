@@ -16,10 +16,11 @@
 8. 输出字段—含义—单位—粒度—关联键的初步 data schema；
 9. 标记待证明关系，命题准入在 Module 02 按需处理；
 10. 为每问建立 `problem_contract`，完成题意口径冻结。
+11. 仅在冻结之后，将尚待外部核实的领域机制、非显然方法来源和参数需求标成后续 Research Brief 的候选疑问；审题阶段不因这些疑问提前检索、选主模型或申请锁模。
 
 ## Problem Contract：题意口径冻结
 
-每问必须明确以下内容，并写入 `模型论文框架.md` 的对应小问“当前模型口径”中：
+每问必须明确以下内容，先形成本阶段可审查的 `problem_contract`；正式 `模型论文框架.md` 按现有 `output_contract.model_paper_framework.create_after=proposed_model_spec` 创建后，再将题意口径同步至对应小问“当前模型口径”。不得为检索或跨聊天恢复擅自提前创建正式框架：
 
 | 字段 | 要求 |
 |---|---|
@@ -45,6 +46,14 @@
 - 若关键歧义会改变对象、变量、约束或最终结论，`problem_contract_status` 保持 `pending`，不得进入 Module 02；
 - 完成后将小问 `problem_contract_status` 置为 `frozen`。后续题意解释、数据角色或小问依赖发生变化时，立即改为 `stale` 并重新审题。
 
+## 审题后的文献研究需求交接（不执行搜索）
+
+- 仅当当前小问 `problem_contract_status=frozen`，才可把题面所需但不能直接从题面、附件、定义或严格推导获得的领域事实、本构机制、外部参数或方法适用条件，标为 Module 02 的检索疑问候选。
+- 候选疑问至少保留小问编号、真实研究对象、对应题设条件/约束、未知的数学机制、可用数据、禁止引入的便利假设和期望外部证据用途；不要在本模块依据文献标题选择模型。
+- 这些信息属于既有 requirement map / risks 的组成部分，不新增机器 Artifact、Project State 字段、独立文献 Gate 或固定文献篇数。单纯审题请求仍停在审题交付点。
+- 实际的 Research Brief、网络检索、来源核验、方法迁移和自主模型构造，只在 Module 02 的新设计/实质修订范围内启动，遵守 `core/literature_research_contract.yaml`；无外部证据需求的自洽纯数学任务可以合理记录不需要检索。
+- 在 `proposed_model_spec` 创建正式框架之前，不能把聊天输出或临时研究记录宣称为已验证的持久项目文件；跨聊天无法核实时必须重新核对题目和实际来源。
+
 ## 小问依赖 DAG
 
 依赖必须区分类型，而不是只写“Q2依赖Q1”：
@@ -63,7 +72,7 @@
 - 每问 `problem_contract` 与 `problem_contract_status=frozen`；
 - 每问 classification、置信度、capability 与兼容 Pack；
 - data schema、附件清单和关键风险；
-- 下一阶段所需输入。
+- 下一阶段所需输入，包括归属于既有 requirement map / risks 的研究疑问候选（若有）；它们不是已执行检索或已确认模型的证据。
 
 ## 阶段门槛
 

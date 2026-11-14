@@ -1,16 +1,16 @@
-# mathmodel-skill v10.28.0
+# mathmodel-skill v10.29.0
 
-本版本新增文献研究证据的只读协议与显式检查入口，作为文献证据增强型模型设计的 **P1 基础阶段**。暂不自动在普通赛题路由执行学术搜索；结构检查 PASS 不证明来源真实、原文已读、数学适用或模型批准。
+本版本将文献证据研究接入**首次模型设计与实质性模型修订**：Problem Contract 冻结后先独立识别数学机制和研究缺口，再在获授权的学术检索工具可用时主动查询近期高相关原始研究，核实方法与条件、进行迁移性评价，最后构建最小充分主模型并进入既有 Model Challenge / Human Model Approval。无网络或无外部证据需求时允许透明降级；文献报告结构 PASS 仍不证明来源真实性或模型正确。
 
 本次兼容性补丁修复无显式意图请求中两类有界混合动作的漏识别问题（图表＋LaTeX、模型检验＋LaTeX），并纳入 G1–G6 非退化回归与审计证据。未通过安全/收益准入的生产读取缓存、混合窄读和局部 Review 快捷路径均未启用；已有模型批准、数值执行、工作簿与论文交付门禁保持不变。
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值求解语言与科研绘图语言分别在项目根统一选择；一个竞赛的所有结果图只使用一次选定的 Python 或 MATLAB 后端，保留原 Figure 设计 Authority 和历史 MATLAB 项目。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。 竞赛专属 Pack、模板与 profile 是可选适配器；缺失时回退通用规则。建模方案和框架草稿不触发仅适用于论文终稿或提交包的正式交付门禁。
 
-## P1 文献研究证据核验（显式只读）
+## 文献研究：模型设计实际研究与显式只读核验
 
 - 字段与证据边界：core/literature_research_contract.yaml；方法说明：packs/artifact/literature_research.md。
 - 对已有外部研究 JSON 显式选择 literature_evidence_audit，使用 python scripts/literature_evidence.py validate --report <research.json>；检查器不联网、不写入项目状态、不授予 Human Model Approval。
-- 此阶段尚未接入新题 Model Design 的自动检索；完整文献迁移判断与独立建模接入须在后续独立功能 PR 经行为审查后实施。
+- 新模型设计路线在当前问题已完成冻结且外部来源确有价值时执行 Research Brief → 实际检索 → E0–E3 核验 → 逐问方法迁移性审查 → 独立最小充分模型选择；单纯审题、锁模后的例行求解与论文编辑不自动重开搜索。
 
 ## 最短启动
 

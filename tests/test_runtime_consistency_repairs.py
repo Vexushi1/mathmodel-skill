@@ -78,8 +78,8 @@ class HistoricalProjectionTests(unittest.TestCase):
 
     def test_frozen_v10270_inverse_still_accepts_only_exact_carrier(self):
         after = plan_evidence.worker(ROOT, 0)
-        self.assertEqual(after["authority_versions"]["skill"], "10.28.0")
-        self.assertEqual(after["plan"]["version"], "10.28.0")
+        self.assertEqual(after["authority_versions"]["skill"], "10.29.0")
+        self.assertEqual(after["plan"]["version"], "10.29.0")
         old_carrier = deepcopy(after)
         old_carrier["authority_versions"]["skill"] = "10.27.0"
         old_carrier["plan"]["version"] = "10.27.0"

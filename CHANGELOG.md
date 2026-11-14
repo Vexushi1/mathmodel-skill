@@ -1,5 +1,13 @@
 # Changelog
 
+## 10.29.0
+
+- 在新赛题或实质性模型重设计中，Module 01 完成题意冻结后向 Module 02 交接检索疑问，Module 02 于正式选定最小充分主模型前执行有条件、真实工具驱动的近期相关文献研究、原文核验、迁移性判断和独立结构推理。
+- 扩展 literature_research_contract 1.1.0 的设计阶段行为边界；通过原 Router 的模型设计/待批准路线加载研究规则，不增加独立顶层阶段、项目状态字段或研究批准门。
+- Model Approval contract 1.3.0 增加仅在采用外部研究时适用的原文方法、前提和夸大创新审查，保留现有独立两轮质询与用户显式锁模绑定。
+- 澄清 Problem Contract 审题输出与 model_paper_framework.create_after=proposed_model_spec 的次序：早期疑问不自动生成正式框架；文献元数据不改变 SIB/accepted 数值资格。
+- 原有代码、工作簿、Figure、LaTeX 和正式交付 Gate 保持不变；新增行为通过模型设计路由与独立测试验证，Provider 真正执行仍取决于会话已授权工具，不使用已有知识冒充检索。
+
 ## 10.28.0
 
 - 新增文献研究 P1 基础能力：有界、只读的来源证据等级、方法卡、检索状态与迁移决定记录合同，以及显式 literature_evidence_audit 入口。

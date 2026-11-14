@@ -1,4 +1,4 @@
-version: 10.28.0
+version: 10.29.0
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -89,7 +89,7 @@ runtime_segments:
       - [solution_workbook, result_quality_report]
       - [solved_results, result_quality_report]
     stop_before_module: data_preprocessing
-    required_load: [core/model_approval_contract.yaml, core/writing_reasoning_contract.yaml, modules/01_problem_audit.md, modules/02_model_design.md]
+    required_load: [core/model_approval_contract.yaml, core/writing_reasoning_contract.yaml, core/literature_research_contract.yaml, packs/artifact/literature_research.md, modules/01_problem_audit.md, modules/02_model_design.md]
     terminal_outputs: [route_comparison, selected_models, proposed_model_spec, model_challenge, model_approval_brief, awaiting_model_approval, preprocessing_decision, formula_closure, formula_reasoning_chain, semantic_closure, complexity_sanity_check, validation_plan, model_paper_framework]
     delivery_scope: design
     pre_delivery_gates: [semantic_governance]
@@ -196,7 +196,7 @@ routing:
     boundary_roles: [model_approval]
     triggers: [新赛题, 建模方案, 建模思路, 全流程思路]
     infer_keywords: [新赛题, 建模方案, 建模思路, 审题并建模]
-    load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/model_approval_contract.yaml, core/writing_reasoning_contract.yaml, modules/01_problem_audit.md, packs/task/classifier.md]
+    load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/model_approval_contract.yaml, core/writing_reasoning_contract.yaml, core/literature_research_contract.yaml, packs/artifact/literature_research.md, modules/01_problem_audit.md, packs/task/classifier.md]
     then: [modules/02_model_design.md]
     load_classified_task_packs: true
     load_competition_pack: true
@@ -299,7 +299,7 @@ routing:
     boundary_roles: [model_approval]
     triggers: [模型比较, 建模路线, 变量, 假设, 公式, 目标函数, 约束]
     infer_keywords: [模型比较, 建模路线, 变量, 假设, 公式, 目标函数, 约束]
-    load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/model_approval_contract.yaml, core/writing_reasoning_contract.yaml, modules/02_model_design.md, packs/task/classifier.md]
+    load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/model_approval_contract.yaml, core/writing_reasoning_contract.yaml, core/literature_research_contract.yaml, packs/artifact/literature_research.md, modules/02_model_design.md, packs/task/classifier.md]
     load_classified_task_packs: true
     terminal_outputs: [route_comparison, selected_models, locked_model_spec, preprocessing_decision, formula_closure, semantic_closure, formula_reasoning_chain, complexity_sanity_check, validation_plan, proposition_plan, model_paper_framework]
     formal_delivery: true
@@ -309,7 +309,7 @@ routing:
     boundary_roles: [model_approval]
     triggers: [高级模型, W-DRO, CVaR, MPEC, Stackelberg, ALNS, GNN, 空间杜宾, DML, 强化学习, 深度学习]
     infer_keywords: [W-DRO, CVaR, MPEC, Stackelberg, ALNS, GNN, 空间杜宾, DML, 强化学习, 深度学习]
-    load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/model_approval_contract.yaml, core/writing_reasoning_contract.yaml, modules/02_model_design.md, packs/task/advanced_method_gate.md, packs/task/classifier.md]
+    load: [core/task_taxonomy.yaml, core/global_preprocessing_contract.yaml, core/model_approval_contract.yaml, core/writing_reasoning_contract.yaml, core/literature_research_contract.yaml, packs/artifact/literature_research.md, modules/02_model_design.md, packs/task/advanced_method_gate.md, packs/task/classifier.md]
     load_classified_task_packs: true
     terminal_outputs: [route_comparison, selected_models, locked_model_spec, preprocessing_decision, semantic_closure, formula_reasoning_chain, complexity_sanity_check, validation_plan, proposition_plan, model_paper_framework]
     formal_delivery: true
