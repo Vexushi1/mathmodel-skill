@@ -1,7 +1,7 @@
 # P6-A 文献增强型模型设计：历史赛题成对评估协议
 
 > 状态：PILOT PROTOCOL — REAL PAIRED RUNS NOT YET RECORDED。
-> 本文件定义独立仓库维护实验，不是模型批准、Project State、SIB 或论文 Citation Evidence 的新 Authority。参考原计划 §11–14；当前核心 Authority 永远优先。
+> 本文件定义独立仓库维护实验，不是模型批准、Project State、SIB 或论文 Citation Evidence 的新 Authority。仅参考尚未合并的 [历史修改计划 Draft PR #317](https://github.com/Vexushi1/mathmodel-skill/pull/317) 中的 §11–14；该计划不属于当前 main 的运行时 Authority，现行核心合同永远优先。
 
 ## P5 必要性裁决
 
