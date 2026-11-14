@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.29.0
+当前 Skill 版本：10.30.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -163,6 +163,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/lint_skill.py`
 - `scripts/lint_skill_checks.py`
 - `scripts/literature_evidence.py`
+- `scripts/literature_search.py`
 - `scripts/matlab_code_checks.py`
 - `scripts/measure_contract_parsing.py`
 - `scripts/measure_e1_resources.py`
@@ -425,6 +426,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_legacy_archive_hygiene.py`
 - `tests/test_literature_evidence.py`
 - `tests/test_literature_model_intake.py`
+- `tests/test_literature_search.py`
 - `tests/test_matlab_code_checks.py`
 - `tests/test_mechanism_template_compat_hygiene.py`
 - `tests/test_model_code_conformance.py`
