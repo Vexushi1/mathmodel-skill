@@ -23,6 +23,7 @@ MAX_STUDY_BYTES = 262144
 MAX_INPUT_BYTES = 25 * 1024 * 1024
 SHA = re.compile(r"^[0-9a-f]{64}$")
 ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{2,79}$")
+REVIEWER_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{1,79}$")
 AXES = (
     "requirements_coverage",
     "mathematical_sufficiency",
@@ -181,7 +182,7 @@ def _review(review: Any) -> dict[str, Any]:
     require_keys(review, {"reviewer_id", "scored_before_unblinding", "scores",
                           "blocking_issues", "unsupported_assumptions", "review_evidence"},
                  "review")
-    if not ID.fullmatch(_string(review["reviewer_id"], 80, "reviewer_id")):
+    if not REVIEWER_ID.fullmatch(_string(review["reviewer_id"], 80, "reviewer_id")):
         raise BenchmarkError("reviewer_id_invalid")
     if review["scored_before_unblinding"] is not True:
         raise BenchmarkError("review_must_precede_unblinding")
