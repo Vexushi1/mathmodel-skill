@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "scope": "v10.28.0_p1_source_only_read_ranges",
+  "version": "10.28.0",
+  "authorizing_reason": "Exact G1A measured reader line-span drift from a standalone read-only route inserted ahead of unchanged reading_policy; no ordinary task workflow or gate changes, and original G2 approvals remain immutable.",
+  "required_case_ids": [
+    "pure_model_design",
+    "pure_python_figures",
+    "review_word_readonly",
+    "two_carrier_legacy_protected",
+    "explicit_figure_scope",
+    "natural_language_two_actions_probe",
+    "full_workflow_boundary",
+    "analysis_stage_request"
+  ],
+  "migrations": [
+    {
+      "path": "core/workflow_router.yaml",
+      "baseline_sha256": "eb9d4200cc7196e72e414d590e9f7a9ffdc782986d2d13a17c5ac99e976189b6",
+      "candidate_sha256": "47177e0208cb4a4993efdb189126e76ff2503cb079b7bf9fcfd6237f16c76cc1",
+      "old_ranges": [
+        [
+          416,
+          416
+        ],
+        [
+          419,
+          430
+        ]
+      ],
+      "new_ranges": [
+        [
+          424,
+          424
+        ],
+        [
+          427,
+          438
+        ]
+      ]
+    }
+  ]
+}

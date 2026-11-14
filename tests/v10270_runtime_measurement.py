@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import hashlib
 import json
 import platform
@@ -195,8 +196,91 @@ def approved_changes(path: Path | None) -> list[dict[str, Any]]:
     return rows
 
 
+def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
+    """Accept only a complete, version-pinned source-span migration declaration."""
+    if path is None:
+        return None
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if (not isinstance(data, dict) or set(data) != {
+        "schema_version", "scope", "version", "authorizing_reason",
+        "required_case_ids", "migrations",
+    } or data["schema_version"] != SCHEMA
+        or data["scope"] != "v10.28.0_p1_source_only_read_ranges"
+        or data["version"] != "10.28.0"
+        or not isinstance(data["authorizing_reason"], str)
+        or not data["authorizing_reason"]
+        or not isinstance(data["required_case_ids"], list)
+        or not isinstance(data["migrations"], list)
+        or len(data["migrations"]) != 1):
+        raise ValueError("unsupported source span migration manifest")
+    expected_paths = {"core/workflow_router.yaml"}
+    paths = [item.get("path") for item in data["migrations"] if isinstance(item, dict)]
+    if set(paths) != expected_paths or len(paths) != 1:
+        raise ValueError("source span migration must bind exactly the current router authority")
+    for item in data["migrations"]:
+        if set(item) != {
+            "path", "baseline_sha256", "candidate_sha256",
+            "old_ranges", "new_ranges",
+        } or any(not isinstance(item[key], str) or len(item[key]) != 64
+                 for key in ("baseline_sha256", "candidate_sha256")):
+            raise ValueError("source span migration identity is incomplete")
+        if item["old_ranges"] == item["new_ranges"]:
+            raise ValueError("source span migration is not a change")
+        actual = digest((Path(__file__).resolve().parents[1] / item["path"]).read_bytes())
+        if actual != item["candidate_sha256"]:
+            raise ValueError("source span migration candidate bytes changed")
+    return data
+
+
+def project_exact_approved_source_spans(
+    old_case: dict[str, Any], new_case: dict[str, Any],
+    manifest: dict[str, Any] | None,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Rebase only exact, hash-pinned physical spans; leave all real source evidence intact."""
+    if manifest is None:
+        return new_case["behavior"], []
+    if new_case["source_identity"].get("skill_version") != manifest["version"]:
+        raise ValueError("source span migration release identity drift")
+    before_rows = old_case["behavior"].get("read_now")
+    after_rows = new_case["behavior"].get("read_now")
+    if not isinstance(before_rows, list) or not isinstance(after_rows, list):
+        raise ValueError("source span migration requires readable actual read_now")
+    expected = deepcopy(new_case["behavior"])
+    replacements = []
+    for item in manifest["migrations"]:
+        path = item["path"]
+        for source, wanted in (
+            (old_case, item["baseline_sha256"]),
+            (new_case, item["candidate_sha256"]),
+        ):
+            rows = source["source_identity"].get("sources", [])
+            sha = [row["sha256"] for row in rows if row.get("path") == path]
+            if sha != [wanted]:
+                raise ValueError("source span migration source identity drift: " + path)
+        prior = [row for row in before_rows if row.get("path") == path]
+        next_rows = [row for row in expected["read_now"] if row.get("path") == path]
+        if len(prior) != 1 or len(next_rows) != 1:
+            raise ValueError("source span migration source occurrence drift: " + path)
+        before_row, after_row = prior[0], next_rows[0]
+        if (before_row.get("ranges") != item["old_ranges"]
+                or after_row.get("ranges") != item["new_ranges"]):
+            raise ValueError("source span migration physical span drift: " + path)
+        other_before = {key: value for key, value in before_row.items() if key != "ranges"}
+        other_after = {key: value for key, value in after_row.items() if key != "ranges"}
+        if other_before != other_after:
+            raise ValueError("source span migration changed reading semantics: " + path)
+        after_row["ranges"] = deepcopy(before_row["ranges"])
+        replacements.append({
+            "path": path, "actual_ranges": deepcopy(item["new_ranges"]),
+            "historical_ranges": deepcopy(item["old_ranges"]),
+            "source_sha256": item["candidate_sha256"],
+        })
+    return expected, replacements
+
+
 def compare(before: dict[str, Any], after: dict[str, Any],
-            approvals: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+            approvals: list[dict[str, Any]] | None = None,
+            span_migrations: dict[str, Any] | None = None) -> dict[str, Any]:
     for field in ("schema_version", "driver_sha256", "cases_sha256"):
         if before.get(field) != after.get(field):
             raise ValueError(f"non-comparable G1A reports: {field}")
@@ -207,11 +291,16 @@ def compare(before: dict[str, Any], after: dict[str, Any],
         [row["id"] for row in left] != [row["id"] for row in right]
     ):
         raise ValueError("G1A case order/identity differs")
+    if span_migrations is not None and [row["id"] for row in left] != span_migrations["required_case_ids"]:
+        raise ValueError("source span migration case identities differ from pinned corpus")
     allowed = {(row["case_id"], row["path"]): row for row in (approvals or [])}
     matched: set[tuple[str, str]] = set()
     results = []
     for a, b in zip(left, right):
-        diffs = differences(a["behavior"], b["behavior"])
+        compared_behavior, approved_spans = project_exact_approved_source_spans(
+            a, b, span_migrations,
+        )
+        diffs = differences(a["behavior"], compared_behavior)
         unapproved = []
         for diff in diffs:
             token = (a["id"], diff["path"])
@@ -222,6 +311,7 @@ def compare(before: dict[str, Any], after: dict[str, Any],
                 unapproved.append(diff)
         results.append({
             "id": a["id"], "behavior_deltas": diffs, "unapproved_behavior_deltas": unapproved,
+            "exact_source_span_migrations": approved_spans,
             "source_identity_changed": a["source_identity"] != b["source_identity"],
             "source_identity_before": a["source_identity"],
             "source_identity_after": b["source_identity"],
@@ -252,6 +342,7 @@ def main() -> int:
     comp.add_argument("--baseline-report", type=Path, required=True)
     comp.add_argument("--candidate-report", type=Path, required=True)
     comp.add_argument("--approvals", type=Path)
+    comp.add_argument("--source-span-migrations", type=Path)
     comp.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if args.action == "capture":
@@ -259,7 +350,10 @@ def main() -> int:
     else:
         before = json.loads(args.baseline_report.read_text(encoding="utf-8"))
         after = json.loads(args.candidate_report.read_text(encoding="utf-8"))
-        result = compare(before, after, approved_changes(args.approvals))
+        result = compare(
+            before, after, approved_changes(args.approvals),
+            approved_source_span_migrations(args.source_span_migrations),
+        )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
                            encoding="utf-8")

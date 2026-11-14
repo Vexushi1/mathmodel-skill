@@ -1,6 +1,6 @@
 # HSK Active Template Index
 
-当前 Skill 版本：10.27.1
+当前 Skill 版本：10.28.0
 
 本索引仅覆盖活动 Skill；历史文件通过 `legacy/README.md` 追溯。
 

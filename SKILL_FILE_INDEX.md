@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.27.1
+当前 Skill 版本：10.28.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -57,6 +57,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `core/compile_profiles.yaml`
 - `core/global_preprocessing_contract.yaml`
 - `core/hsk_core_policy.md`
+- `core/literature_research_contract.yaml`
 - `core/model_approval_contract.yaml`
 - `core/model_code_conformance_contract.yaml`
 - `core/module_manifest.yaml`
@@ -106,6 +107,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `packs/artifact/figure.md`
 - `packs/artifact/full_submission.md`
 - `packs/artifact/latex.md`
+- `packs/artifact/literature_research.md`
 - `packs/artifact/proposition_proof.md`
 - `packs/artifact/review.md`
 - `packs/competition/auto.md`
@@ -160,6 +162,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/latex_delivery.py`
 - `scripts/lint_skill.py`
 - `scripts/lint_skill_checks.py`
+- `scripts/literature_evidence.py`
 - `scripts/matlab_code_checks.py`
 - `scripts/measure_contract_parsing.py`
 - `scripts/measure_e1_resources.py`
@@ -315,6 +318,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/v10270_action_oracle.yaml`
 - `tests/fixtures/v10270_g2_approved_deltas.json`
 - `tests/fixtures/v10270_runtime_cases.yaml`
+- `tests/fixtures/v10280_approved_source_spans.json`
 - `tests/fixtures/v900_phase_h_empty_sync_golden.yaml`
 - `tests/fixtures/v900_phase_i_migration_matrix.yaml`
 - `tests/fixtures/v900_phase_i_writer_retirement_inventory.yaml`
@@ -418,6 +422,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_generated_workflow_hardening.py`
 - `tests/test_latex_first_versionless_docs.py`
 - `tests/test_legacy_archive_hygiene.py`
+- `tests/test_literature_evidence.py`
 - `tests/test_matlab_code_checks.py`
 - `tests/test_mechanism_template_compat_hygiene.py`
 - `tests/test_model_code_conformance.py`
@@ -498,6 +503,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_v10270_action_observation.py`
 - `tests/test_v10270_g2_multi_action.py`
 - `tests/test_v10270_runtime_measurement.py`
+- `tests/test_v10280_source_span_migration.py`
 - `tests/test_v10_project_delivery_receipt.py`
 - `tests/test_v10_project_policy_core.py`
 - `tests/test_v10_project_runtime_policy.py`

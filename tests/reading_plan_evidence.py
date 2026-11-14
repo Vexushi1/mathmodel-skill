@@ -112,10 +112,10 @@ CUMCM_D_CLEANUP_AUTHORITY_VERSIONS = {**CUMCM_C_HANDOFF_AUTHORITY_VERSIONS, "ski
 V10263_RELEASE_AUTHORITY_VERSIONS = {**CUMCM_D_CLEANUP_AUTHORITY_VERSIONS, "skill": "10.26.3"}
 RUNTIME_CONSISTENCY_PROJECTION = yaml.safe_load(
     (HERE.parent / "fixtures/runtime_consistency_v10270_projection.yaml").read_text(encoding="utf-8"))
-# v10.27.1 changes only the Skill release carrier; the v10.27.0 inverse
+# v10.28.0 changes only the Skill release carrier; the v10.27.0 inverse
 # fixture and its exact delta/fingerprint assertions remain frozen.
 V10271_PATCH_AUTHORITY_VERSIONS = {
-    **RUNTIME_CONSISTENCY_PROJECTION["authority_versions"], "skill": "10.27.1",
+    **RUNTIME_CONSISTENCY_PROJECTION["authority_versions"], "skill": "10.28.0",
 }
 # Only these two read-list migrations are registered. Business text is separately
 # reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
@@ -1989,7 +1989,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             if len(actual) != 1 or len(pinned) != 1:
                 return deepcopy(original), []
             raw = (HERE.parent.parent / path).read_bytes()
-            patch_header = b"version: 10.27.1\n"
+            patch_header = b"version: 10.28.0\n"
             previous_header = b"version: 10.27.0\n"
             if (not raw.startswith(patch_header)
                     or hashlib.sha256(raw).hexdigest() != actual[0]["sha256"]
@@ -2035,7 +2035,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
     projected["version"] = V10263_RELEASE_AUTHORITY_VERSIONS["skill"]
     changes.append({"path": "version", "baseline": projected["version"],
                     "candidate": original["version"],
-                    "approval": ("v10.27.1 carrier-only patch; exact v10.27.0 inverse verified"
+                    "approval": ("v10.28.0 carrier-only patch; exact v10.27.0 inverse verified"
                                  if is_patch_carrier else
                                  "v10.27.0 compatible runtime repair; historical projections remain checked")})
     return projected, changes

@@ -1,4 +1,4 @@
-version: 10.27.1
+version: 10.28.0
 routing_authority: core/workflow_router.yaml
 workflow_profile_compatibility:
   authority: core/workflow_router.yaml
@@ -25,6 +25,7 @@ contracts:
   review_receipt_consumption: core/review_receipt_consumption_contract.yaml
   case_memory: knowledge/case_memory/schema.yaml
   case_memory_retrieval: core/case_memory_retrieval_contract.yaml
+  literature_research: core/literature_research_contract.yaml
   writing_reasoning: core/writing_reasoning_contract.yaml
   writing_runtime: core/writing_runtime_contract.yaml
   writing_protocol: modules/05_writing/paper_writing_protocol.md
@@ -50,6 +51,7 @@ external_artifacts:
 - existing_model_paper_framework
 - discovered_artifacts
 artifact_catalog:
+  literature_evidence_validation_report: 显式只读文献研究 JSON 记录结构和有限交叉引用检查；不证明来源真实、搜索已调用、数学迁移正确或模型已获批准
   case_memory_retrieval_report: 有界离线检索的建议、差异与禁迁移项；不授予当前模型批准或数值资格
   case_reference_report: 显式案例采用/拒绝声明及来源当前性报告；批准与 accepted 状态仍由原契约判定
   case_memory_report: 显式只读案例准入与索引报告；不授予模型批准、数值验收或项目交付资格
@@ -221,6 +223,14 @@ modules:
     inputs: [all_requested_artifacts, proposition_plan, model_paper_framework, output_contract, workbook_schema, compile_profile, compile_report]
     outputs: [review_report, submission_package]
 utility_gates:
+  literature_evidence_audit:
+    path: scripts/literature_evidence.py
+    command: python scripts/literature_evidence.py validate --report <research.json>
+    inputs: []
+    outputs: [literature_evidence_validation_report]
+    rules:
+    - Read-only validation of declarations and limited internal consistency only; no web access, project write or authorization.
+    - Passing the validator never constitutes actual literature retrieval, primary-paper verification, Human Model Approval or numerical acceptance.
   case_memory_retrieval:
     path: scripts/case_memory_retrieve.py
     command: python scripts/case_memory_retrieve.py query --query <query.json>
