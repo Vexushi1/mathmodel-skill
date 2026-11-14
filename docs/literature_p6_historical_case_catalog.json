@@ -1,0 +1,50 @@
+{
+  "catalog_version": "1.0.0",
+  "purpose": "historical_real_problem_paired_model_design_evaluation",
+  "authoritative_problem_text_embedded": false,
+  "source_policy": "official_comap_links_only_local_problem_files_required_for_evaluation",
+  "cases": [
+    {
+      "id": "COMAP-2024-MCM-A",
+      "year": 2024,
+      "competition": "MCM",
+      "problem_letter": "A",
+      "title": "Resource Availability and Sex Ratios",
+      "task_family": "mechanistic_ecosystem_dynamics",
+      "official_page_url": "https://www.comap.org/membership/member-resources/item/resource-availability-and-sex-ratios",
+      "official_problem_pdf_url": "https://www.comap.org/component/zoo/?element=71992483-3d3b-47dc-a146-3c901bdea04f&format=raw&item_id=3309&method=download&task=callelement",
+      "required_attachment_kinds": [],
+      "caveat": "Use official full problem PDF, not this abbreviated catalog. No original paper/model outputs are supplied."
+    },
+    {
+      "id": "COMAP-2024-MCM-C",
+      "year": 2024,
+      "competition": "MCM",
+      "problem_letter": "C",
+      "title": "Momentum in Tennis",
+      "task_family": "event_level_temporal_statistics",
+      "official_page_url": "https://www.comap.org/membership/member-resources/item/momentum-in-tennis",
+      "official_problem_pdf_url": "https://www.comap.org/component/zoo/?element=71992483-3d3b-47dc-a146-3c901bdea04f&format=raw&item_id=3304&method=download&task=callelement",
+      "required_attachment_kinds": [
+        "match_point_data",
+        "data_dictionary"
+      ],
+      "caveat": "Original point-by-point data and dictionary must be bound by hashes; no scores or designs are supplied."
+    },
+    {
+      "id": "COMAP-2024-ICM-D",
+      "year": 2024,
+      "competition": "ICM",
+      "problem_letter": "D",
+      "title": "Great Lakes Water Problem",
+      "task_family": "coupled_network_resource_optimization",
+      "official_page_url": "https://www.comap.org/membership/member-resources/item/great-lakes-water-problem",
+      "official_problem_pdf_url": "https://www.comap.org/component/zoo/?element=71992483-3d3b-47dc-a146-3c901bdea04f&format=raw&item_id=3305&method=download&task=callelement",
+      "required_attachment_kinds": [
+        "lake_data",
+        "problem_addendum"
+      ],
+      "caveat": "Use original task, Great Lakes data and addendum; catalogue metadata alone is not full task evidence."
+    }
+  ]
+}

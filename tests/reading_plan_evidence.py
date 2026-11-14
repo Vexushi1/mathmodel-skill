@@ -131,6 +131,10 @@ V10300_PROVIDER_METADATA_AUTHORITY_VERSIONS = {
 V10310_RESEARCH_SNAPSHOT_AUTHORITY_VERSIONS = {
     **V10300_PROVIDER_METADATA_AUTHORITY_VERSIONS, "skill": "10.31.0",
 }
+# P6-A is a repository-maintenance evaluation instrument with no runtime gate.
+V10320_LITERATURE_P6_AUTHORITY_VERSIONS = {
+    **V10310_RESEARCH_SNAPSHOT_AUTHORITY_VERSIONS, "skill": "10.32.0",
+}
 # Only these two read-list migrations are registered. Business text is separately
 # reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
 REVIEW_SPLIT_WRITING_DELTAS = (
@@ -1980,6 +1984,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
         V10271_PATCH_AUTHORITY_VERSIONS, V10290_NON_MODEL_LEGACY_AUTHORITY_VERSIONS,
         V10300_PROVIDER_METADATA_AUTHORITY_VERSIONS,
         V10310_RESEARCH_SNAPSHOT_AUTHORITY_VERSIONS,
+        V10320_LITERATURE_P6_AUTHORITY_VERSIONS,
     )
     matched_carrier = next((
         carrier for carrier in accepted_carriers
@@ -1991,6 +1996,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
         V10290_NON_MODEL_LEGACY_AUTHORITY_VERSIONS,
         V10300_PROVIDER_METADATA_AUTHORITY_VERSIONS,
         V10310_RESEARCH_SNAPSHOT_AUTHORITY_VERSIONS,
+        V10320_LITERATURE_P6_AUTHORITY_VERSIONS,
     ):
         # P2 historical comparison can borrow the v10.28 inverse only when
         # the new literature-resource pair was NOT loaded. Real modeling-route
@@ -2027,7 +2033,10 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             previous_header = b"version: 10.27.0\n"
             if not raw.startswith(patch_header) or hashlib.sha256(raw).hexdigest() != actual[0]["sha256"]:
                 return deepcopy(original), []
-            if matched_carrier == V10310_RESEARCH_SNAPSHOT_AUTHORITY_VERSIONS:
+            if matched_carrier in (
+                V10310_RESEARCH_SNAPSHOT_AUTHORITY_VERSIONS,
+                V10320_LITERATURE_P6_AUTHORITY_VERSIONS,
+            ):
                 # Reconstruct only two exact P4 output-layout additions.
                 # Do not generalize into ignoring the output contract hash.
                 pointer = ("  optional_literature_research_snapshot: research_evidence/Qn.snapshot.json"

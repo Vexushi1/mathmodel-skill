@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "scope": "v10.32.0_p6_maintenance_only_eval_carrier",
+  "version": "10.32.0",
+  "authorizing_reason": "P6-A adds a standalone repository-maintenance evaluation tool and three official real-problem source references without changing any model or writing route, gate or project artifact contract. v10.32.0 router and output-contract bytes differ only in the version header, pinned here by exact SHA256; P4 optional snapshot and conditional output-range inverse remain exact and no new runtime allowance is introduced.",
+  "required_case_ids": [
+    "pure_model_design",
+    "pure_python_figures",
+    "review_word_readonly",
+    "two_carrier_legacy_protected",
+    "explicit_figure_scope",
+    "natural_language_two_actions_probe",
+    "full_workflow_boundary",
+    "analysis_stage_request"
+  ],
+  "migrations": [
+    {
+      "path": "core/workflow_router.yaml",
+      "baseline_sha256": "eb9d4200cc7196e72e414d590e9f7a9ffdc782986d2d13a17c5ac99e976189b6",
+      "candidate_sha256": "2fd8706d2413068e2e5443c9ea478aa7daaab395ce567ea395a38e5d8a38fc66",
+      "old_ranges": [
+        [
+          416,
+          416
+        ],
+        [
+          419,
+          430
+        ]
+      ],
+      "new_ranges": [
+        [
+          424,
+          424
+        ],
+        [
+          427,
+          438
+        ]
+      ]
+    },
+    {
+      "path": "core/model_approval_contract.yaml",
+      "baseline_sha256": "d1b607ea5a7704b4e18f01defb69c24e5b82ffc0f70661e28d880f9a8fbbee25",
+      "candidate_sha256": "40aa80daf77bfc0ba1092fa8767a1b97df331d44e76b1e23875ccbf7410653ec",
+      "old_ranges": [
+        [
+          1,
+          272
+        ]
+      ],
+      "new_ranges": [
+        [
+          1,
+          290
+        ]
+      ]
+    },
+    {
+      "path": "modules/01_problem_audit.md",
+      "baseline_sha256": "6e0d674e4afe4f93b6f948d66a446114a01b4777a1550ef1251d45873a97abdc",
+      "candidate_sha256": "2fc8fecefd068f918f4a6bc698d763081bd27b73c85464c0545be9e4b176444f",
+      "old_ranges": [
+        [
+          1,
+          83
+        ]
+      ],
+      "new_ranges": [
+        [
+          1,
+          92
+        ]
+      ]
+    },
+    {
+      "path": "modules/02_model_design.md",
+      "baseline_sha256": "5541bb8e44b80aefece95a5a785b3386a0433aac79320065a71f37fb262f6b1f",
+      "candidate_sha256": "fbd22182e91666b2e54c8e4007f92a7aa06fc3ec79568e0709240848a94b66a5",
+      "old_ranges": [
+        [
+          1,
+          700
+        ]
+      ],
+      "new_ranges": [
+        [
+          1,
+          717
+        ]
+      ]
+    }
+  ],
+  "model_intake": {
+    "case_ids": [
+      "pure_model_design",
+      "full_workflow_boundary",
+      "analysis_stage_request"
+    ],
+    "resources": [
+      {
+        "path": "core/literature_research_contract.yaml",
+        "candidate_sha256": "912da4aab0f93298529dc7ab916609fec84654a8ddbed162d88a5f3e801f456e",
+        "ranges": [
+          [
+            1,
+            164
+          ]
+        ]
+      },
+      {
+        "path": "packs/artifact/literature_research.md",
+        "candidate_sha256": "6966319982f7d67aed7058058828974404e299168601c60d1293205e3b71204b",
+        "ranges": [
+          [
+            1,
+            60
+          ]
+        ]
+      }
+    ]
+  },
+  "output_read_shift": {
+    "path": "core/output_contract.yaml",
+    "candidate_sha256": "9eb65bf0c8aff493083ebe3c74bccc99aa4207745e55c2833f4fe27d43fb6143",
+    "cases": [
+      {
+        "case_id": "review_word_readonly",
+        "current_ranges": [
+          [
+            465,
+            511
+          ]
+        ],
+        "historical_ranges": [
+          [
+            443,
+            489
+          ]
+        ],
+        "selectors": {
+          "yaml_paths": [
+            "per_question"
+          ]
+        }
+      },
+      {
+        "case_id": "natural_language_two_actions_probe",
+        "current_ranges": [
+          [
+            1,
+            634
+          ]
+        ],
+        "historical_ranges": [
+          [
+            1,
+            612
+          ]
+        ],
+        "selectors": {}
+      }
+    ]
+  },
+  "output_conditional_shift": {
+    "path": "core/output_contract.yaml",
+    "candidate_sha256": "9eb65bf0c8aff493083ebe3c74bccc99aa4207745e55c2833f4fe27d43fb6143",
+    "current_ranges": [
+      [
+        1,
+        634
+      ]
+    ],
+    "historical_ranges": [
+      [
+        1,
+        612
+      ]
+    ],
+    "when": "current_delivery_scope_or_file_layout_requires_definition",
+    "case_ids": [
+      "pure_python_figures",
+      "review_word_readonly",
+      "two_carrier_legacy_protected",
+      "explicit_figure_scope"
+    ]
+  }
+}

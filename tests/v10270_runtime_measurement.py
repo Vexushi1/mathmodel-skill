@@ -207,18 +207,20 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
         ("v10.29.0_p2_exact_literature_intake_migration", "10.29.0"),
         ("v10.30.0_p3_metadata_only_adapter_carrier", "10.30.0"),
         ("v10.31.0_p4_optional_research_snapshot_carrier", "10.31.0"),
+        ("v10.32.0_p6_maintenance_only_eval_carrier", "10.32.0"),
     }
     allowed = (
         ("v10.28.0_p1_source_only_read_ranges", "10.28.0"),
         ("v10.29.0_p2_exact_literature_intake_migration", "10.29.0"),
         ("v10.30.0_p3_metadata_only_adapter_carrier", "10.30.0"),
         ("v10.31.0_p4_optional_research_snapshot_carrier", "10.31.0"),
+        ("v10.32.0_p6_maintenance_only_eval_carrier", "10.32.0"),
     )
     fields = {"schema_version", "scope", "version", "authorizing_reason",
               "required_case_ids", "migrations"}
     if model_intake_carrier:
         fields.add("model_intake")
-    if data.get("version") == "10.31.0":
+    if data.get("version") in {"10.31.0", "10.32.0"}:
         fields.update(("output_read_shift", "output_conditional_shift"))
     if (set(data) != fields or data.get("schema_version") != SCHEMA
             or (data.get("scope"), data.get("version")) not in allowed
@@ -273,7 +275,7 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
                              / source["path"]).read_bytes())
             if actual != source["candidate_sha256"]:
                 raise ValueError("literature intake source bytes changed")
-    if data.get("version") == "10.31.0":
+    if data.get("version") in {"10.31.0", "10.32.0"}:
         shift = data["output_read_shift"]
         expected_ids = ["review_word_readonly", "natural_language_two_actions_probe"]
         if (not isinstance(shift, dict)
@@ -294,7 +296,7 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
                     or not isinstance(item["historical_ranges"], list)
                     or item["current_ranges"] == item["historical_ranges"]):
                 raise ValueError("output read shift scope or range invalid")
-    if data.get("version") == "10.31.0":
+    if data.get("version") in {"10.31.0", "10.32.0"}:
         conditional = data["output_conditional_shift"]
         if (not isinstance(conditional, dict)
                 or set(conditional) != {"path", "candidate_sha256", "current_ranges",
