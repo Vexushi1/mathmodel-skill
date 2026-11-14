@@ -215,7 +215,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python $driver capture --root $env:OPT_CANDIDATE --cases $cases --output (Join-Path $env:OPT_REPORTS 'v10270-after.json')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python $driver compare --baseline-report (Join-Path $env:OPT_REPORTS 'v10270-before.json') --candidate-report (Join-Path $env:OPT_REPORTS 'v10270-after.json') --approvals tests/fixtures/v10270_g2_approved_deltas.json --source-span-migrations tests/fixtures/v10290_approved_source_spans.json --output (Join-Path $env:OPT_REPORTS 'v10270-comparison.json')
+          python $driver compare --baseline-report (Join-Path $env:OPT_REPORTS 'v10270-before.json') --candidate-report (Join-Path $env:OPT_REPORTS 'v10270-after.json') --approvals tests/fixtures/v10270_g2_approved_deltas.json --source-span-migrations tests/fixtures/v10300_approved_source_spans.json --output (Join-Path $env:OPT_REPORTS 'v10270-comparison.json')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: G1B independently labeled action and bounded read-cost observations
         shell: pwsh

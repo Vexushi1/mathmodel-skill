@@ -1,7 +1,7 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/literature/evidence-v1
 title: Literature Research Evidence — read-only structural contract
-version: 1.1.0
+version: 1.2.0
 introduced_in_skill_version: 10.28.0
 x-research:
   scope: explicit_evidence_audit_and_conditional_model_design_intake
@@ -21,6 +21,23 @@ x-research:
     existing_model_lock: unchanged_when_only_citation_metadata_or_retrieval_results_change
     approval_authority: core/model_approval_contract.yaml
     citation_authority: core/writing_reasoning_contract.yaml#citation_evidence
+  metadata_provider_adapter:
+    script: scripts/literature_search.py
+    contract: same_json_report_protocol_1.0.0
+    modes: [crossref, openalex]
+    network_permission: explicit_allow_network_required
+    remote_data_sent: only_user_approved_short_queries_not_problem_contract
+    request_hosts: [api.crossref.org, api.openalex.org]
+    max_queries: 4
+    max_results_per_query: 10
+    http_timeout_seconds: [1, 20]
+    record_evidence_ceiling: E0_metadata_only
+    no_automatic_fulltext_retrieval: true
+    no_provider_response_proves_method_validity: true
+    never_write_project_state_or_model_approval: true
+    cli_output: stdout_or_explicitly_selected_new_file_only
+    no_network_or_provider_failure: declared_skipped_unavailable_or_failed
+    provider_documents: [https://www.crossref.org/documentation/retrieve-metadata/rest-api/, https://help.openalex.org/api/]
   explicit_audit:
     route: literature_evidence_audit
     validator: scripts/literature_evidence.py
@@ -76,6 +93,9 @@ properties:
             channel: {enum: [web, academic_connector, user_supplied]}
             query: {type: string, minLength: 2, maxLength: 1024}
             status: {enum: [success, failed, unavailable]}
+            retrieved_at: {type: string, minLength: 10, maxLength: 64}
+            provider_url: {type: string, pattern: '^https://', maxLength: 256}
+            result_count: {type: integer, minimum: 0, maximum: 100}
   sources:
     type: array
     maxItems: 50
@@ -93,6 +113,11 @@ properties:
         evidence_level: {enum: [E0, E1, E2, E3]}
         method_anchor: {type: string, minLength: 4, maxLength: 1024}
         replication_anchor: {type: string, minLength: 4, maxLength: 1024}
+        publication_year: {type: integer, minimum: 1600, maximum: 2100}
+        venue: {type: string, minLength: 1, maxLength: 256}
+        provider_record_id: {type: string, minLength: 1, maxLength: 256}
+        retrieved_at: {type: string, minLength: 10, maxLength: 64}
+        is_retracted: {type: boolean}
   methods:
     type: array
     maxItems: 30

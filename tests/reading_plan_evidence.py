@@ -122,6 +122,10 @@ V10271_PATCH_AUTHORITY_VERSIONS = {
 V10290_NON_MODEL_LEGACY_AUTHORITY_VERSIONS = {
     **V10271_PATCH_AUTHORITY_VERSIONS, "skill": "10.29.0",
 }
+# P3 only adds an explicit opt-in metadata command, not a model/workflow gate.
+V10300_PROVIDER_METADATA_AUTHORITY_VERSIONS = {
+    **V10290_NON_MODEL_LEGACY_AUTHORITY_VERSIONS, "skill": "10.30.0",
+}
 # Only these two read-list migrations are registered. Business text is separately
 # reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
 REVIEW_SPLIT_WRITING_DELTAS = (
@@ -1969,6 +1973,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
     # inverse; no other field, source fingerprint, or historical fixture is waived.
     accepted_carriers = (
         V10271_PATCH_AUTHORITY_VERSIONS, V10290_NON_MODEL_LEGACY_AUTHORITY_VERSIONS,
+        V10300_PROVIDER_METADATA_AUTHORITY_VERSIONS,
     )
     matched_carrier = next((
         carrier for carrier in accepted_carriers
@@ -1976,7 +1981,10 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
         and new.get("version") == carrier["skill"]
     ), None)
     is_patch_carrier = matched_carrier is not None
-    if matched_carrier == V10290_NON_MODEL_LEGACY_AUTHORITY_VERSIONS:
+    if matched_carrier in (
+        V10290_NON_MODEL_LEGACY_AUTHORITY_VERSIONS,
+        V10300_PROVIDER_METADATA_AUTHORITY_VERSIONS,
+    ):
         # P2 historical comparison can borrow the v10.28 inverse only when
         # the new literature-resource pair was NOT loaded. Real modeling-route
         # additions remain visible and must receive separately scoped approval.

@@ -1,4 +1,4 @@
-# mathmodel-skill v10.29.0
+# mathmodel-skill v10.30.0
 
 本版本将文献证据研究接入**首次模型设计与实质性模型修订**：Problem Contract 冻结后先独立识别数学机制和研究缺口，再在获授权的学术检索工具可用时主动查询近期高相关原始研究，核实方法与条件、进行迁移性评价，最后构建最小充分主模型并进入既有 Model Challenge / Human Model Approval。无网络或无外部证据需求时允许透明降级；文献报告结构 PASS 仍不证明来源真实性或模型正确。
 
@@ -11,6 +11,10 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 - 字段与证据边界：core/literature_research_contract.yaml；方法说明：packs/artifact/literature_research.md。
 - 对已有外部研究 JSON 显式选择 literature_evidence_audit，使用 python scripts/literature_evidence.py validate --report <research.json>；检查器不联网、不写入项目状态、不授予 Human Model Approval。
 - 新模型设计路线在当前问题已完成冻结且外部来源确有价值时执行 Research Brief → 实际检索 → E0–E3 核验 → 逐问方法迁移性审查 → 独立最小充分模型选择；单纯审题、锁模后的例行求解与论文编辑不自动重开搜索。
+
+## P3 学术元数据检索（需明确授权）
+
+新增 `scripts/literature_search.py` 作为可选独立 Provider 适配器。只有在当前小问已冻结、Research Brief 已确认且明确使用 `--allow-network` 时，才向 Crossref/OpenAlex 固定 API 查询**检索词**，不上传 Problem Contract 或附件。检索结果仅为 E0 书目候选；仍需真正阅读相关原文、审查假设/方程的可迁移性，才能由 Module 02 选定主模型。独立报告仅可显式写入未存在的新文件，不能更改 Project State、批准或数值验收。详情见 `packs/artifact/literature_research.md` 和 `scripts/README.md`。
 
 ## 最短启动
 

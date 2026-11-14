@@ -12,6 +12,24 @@
 6. 保留独立的 Condition → Consequence、最小充分主模型、Solver 后置、0..N 有意义的 Comparator Envelope、Model Reviewer 与 Devil's Advocate。文献不能改变题意、自动授予批准、证明模型创新或替代数值工作簿。
 7. 进入论文的外部主张继续由 core/writing_reasoning_contract.yaml 的 citation_evidence 管理；不将每篇筛选文献强制写入参考文献。Case Memory D1/D2 是离线合成案例，B1 Claim Evidence 是自身数值来源，两者不替代学术研究。
 
+## P3：实际学术书目检索（显式许可、元数据限定）
+
+如果当前会话已经拥有获授权的学术搜索或网络工具，优先在交互环境实际执行定向检索、核对原始来源，并按本 Authority 记录核验深度。对需要独立可运行检索的完整 Python Skill 环境，也可使用 Crossref/OpenAlex 元数据适配器：
+
+\`\`\`text
+python scripts/literature_search.py run --brief research_brief.json --provider crossref --allow-network --output research_candidates.json
+python scripts/literature_search.py run --brief research_brief.json --provider openalex --allow-network --output openalex_candidates.json
+python scripts/literature_evidence.py validate --report research_candidates.json
+\`\`\`
+
+Research Brief 是 JSON 对象，其字段为 protocol_version、scope、depth、year_from 和 queries。scope 沿用 literature_research_contract.yaml 对当前小问的字段：新建模型必须提供 problem_contract_status=frozen、question=Qn、problem_contract_anchor、independent_problem_structure 和 research_questions。queries 只传 1–4 个经过审查、不含未授权私有赛题原文或附件的**简短关键词**，绝不自动将独立结构判断或 Problem Contract 发送到第三方。year_from 可用于扩展检索窗口以寻找经典奠基研究。
+
+适配器默认不访问网络，只有显式 --allow-network 才发起请求；限定 Crossref/OpenAlex 固定 HTTPS 主机、每查询最多 10 条、单次最多 4 查询与 30 个来源、短超时、小响应体、拒绝重定向。--output 只写入调用者明确选定的**不存在的新文件**，从不覆盖旧报告，不自动把该路径列入项目正式交付，也不触碰 state/project_state.yaml 或 模型论文框架.md。
+
+**关键资格边界**：脚本只取得注册/索引书目元数据，所有来源均为 E0 + access_level=metadata。来源标题/年份/DOI/出版社元数据不证明论文真实全文已读、方法方程成立、适合当前题目或有学术创新。它生成的是**候选来源清单**，不是完成的文献方法卡、模型设计、论文引用或 User Approval。下一步仍需使用原文可见材料逐项核实 E2 方法内容并由独立模型设计完成 Condition → Consequence 及 Challenge。
+
+OpenAlex 文档：<https://help.openalex.org/api/>；Crossref 元数据 API：<https://www.crossref.org/documentation/retrieve-metadata/rest-api/>。匿名基础访问、网络和限额政策由供应方决定；连接失败、账号限制或无结果必须按真实状态降级，不能声称已读原论文。
+
 ## 独立的只读验证入口（不是学术搜索引擎）
 
 执行命令：python scripts/literature_evidence.py validate --report research.json
