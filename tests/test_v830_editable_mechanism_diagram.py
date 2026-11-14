@@ -149,6 +149,32 @@ def git_blob_sha(path: Path) -> str:
 # v10.18 comparison extensions are an exact inverse projection, not a new body
 # baseline. Every authorized literal must occur once; the historical blob hashes
 # below still reject any unrelated change, including primary execution semantics.
+# Exact v10.29.0 literature checks are projected away before testing the
+# immutable historical approval authority. Any unrelated change still fails
+# against the original pinned Git blob SHA-1.
+LITERATURE_APPROVAL_V10290_RULES = """    literature_method_transfer_when_used: >-
+      If the current proposed model consumes outside research, independently verify
+      the original paper's object, assumptions, variables, constraints, data needs
+      and the current problem's transfer conditions. Presence of a citation or a
+      structurally valid literature JSON report does not prove applicability.
+      Without externally dependent model relations, this check is not_applicable.
+    literature_source_qualification_when_used: >-
+      For critical outside methods, empirical parameters and nontrivial theories,
+      retain actual source access and original-method anchors or explicit unresolved
+      evidence. E0/E1 summaries cannot establish a verified formula; where a
+      critical external premise remains unsupported, require repair before PASS.
+    literature_recency_anchor_and_novelty_bias_when_used: >-
+      Independently challenge recentness bias, inaccessible original methods,
+      incompatible boundary/data regimes, omitted counterexamples and unsupported
+      claims of first invention; do not demand a fixed number of citations.
+"""
+
+LITERATURE_APPROVAL_V10290_LIST_ITEMS = (
+    "    - literature_method_transfer_when_used\n",
+    "    - literature_source_qualification_when_used\n",
+    "    - literature_recency_anchor_and_novelty_bias_when_used\n",
+)
+
 COMPARISON_AUTHORITY_REWRITES = {
     "core/model_approval_contract.yaml": (
         ("version: 1.2.0\n", "version: 1.1.0\n"),
@@ -951,6 +977,14 @@ class ContractAndDriftTests(unittest.TestCase):
                     ).hexdigest()
                 elif relative in COMPARISON_AUTHORITY_REWRITES:
                     text = self.prior_handoff_text(relative)
+                    if relative == "core/model_approval_contract.yaml":
+                        self.assertEqual(text.count("version: 1.3.0\n"), 1)
+                        text = text.replace("version: 1.3.0\n", "version: 1.2.0\n", 1)
+                        for item in LITERATURE_APPROVAL_V10290_LIST_ITEMS:
+                            self.assertEqual(text.count(item), 1, (relative, item))
+                            text = text.replace(item, "", 1)
+                        self.assertEqual(text.count(LITERATURE_APPROVAL_V10290_RULES), 1)
+                        text = text.replace(LITERATURE_APPROVAL_V10290_RULES, "", 1)
                     for current, baseline in COMPARISON_AUTHORITY_REWRITES[relative]:
                         self.assertEqual(text.count(current), 1, (relative, current))
                         text = text.replace(current, baseline, 1)

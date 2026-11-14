@@ -1,4 +1,4 @@
-version: 1.2.0
+version: 1.3.0
 status: active
 purpose: >-
   Define the pre-code Model Challenge and explicit Human Model Approval gate.
@@ -41,6 +41,8 @@ model_challenge:
     - formula_trace_closure
     - preprocessing_fit
     - structure_before_algorithm
+    - literature_method_transfer_when_used
+    - literature_source_qualification_when_used
     - full_fidelity_computability
     - selected_backend_capabilities_and_environment
     - validation_plan_adequacy
@@ -58,6 +60,7 @@ model_challenge:
     - local_property_misstated_as_global
     - simpler_baseline_may_be_sufficient
     - problem_may_have_been_implausibly_over_simplified
+    - literature_recency_anchor_and_novelty_bias_when_used
   check_semantics:
     route_selection_fit: >-
       Compatibility check id. Interpret it as whether the current selected model is the
@@ -71,6 +74,21 @@ model_challenge:
       Adversarial minimal-sufficiency check: if a simpler model can still answer the full prompt
       with required mechanisms, constraints, precision and outputs, the current main model needs
       repair or explicit justification. A simple baseline may also remain only as a comparator.
+    literature_method_transfer_when_used: >-
+      If the current proposed model consumes outside research, independently verify
+      the original paper's object, assumptions, variables, constraints, data needs
+      and the current problem's transfer conditions. Presence of a citation or a
+      structurally valid literature JSON report does not prove applicability.
+      Without externally dependent model relations, this check is not_applicable.
+    literature_source_qualification_when_used: >-
+      For critical outside methods, empirical parameters and nontrivial theories,
+      retain actual source access and original-method anchors or explicit unresolved
+      evidence. E0/E1 summaries cannot establish a verified formula; where a
+      critical external premise remains unsupported, require repair before PASS.
+    literature_recency_anchor_and_novelty_bias_when_used: >-
+      Independently challenge recentness bias, inaccessible original methods,
+      incompatible boundary/data regimes, omitted counterexamples and unsupported
+      claims of first invention; do not demand a fixed number of citations.
   independence_rule: >-
     The reviewer and devil's-advocate passes must form conclusions independently.
     When native parallel agents are available they may run in parallel; otherwise run

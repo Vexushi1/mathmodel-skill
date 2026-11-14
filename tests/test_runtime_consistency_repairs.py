@@ -76,10 +76,24 @@ class HistoricalProjectionTests(unittest.TestCase):
                         self.assertEqual(changes_after_mutation, [])
             self.assertEqual(after, saved)
 
+    def test_v10290_model_intake_is_not_legacy_approved_by_version_only(self):
+        after = plan_evidence.worker(ROOT, 0)
+        current = plan_evidence.legacy_projection(after["plan"])
+        old, approvals = plan_evidence.runtime_consistency_predecessor(
+            after["id"], current, after["authority_versions"])
+        self.assertTrue(approvals)
+        self.assertEqual(old["version"], "10.26.3")
+        changed = deepcopy(current)
+        changed["load_order"].append("core/literature_research_contract.yaml")
+        projected, changes = plan_evidence.runtime_consistency_predecessor(
+            after["id"], changed, after["authority_versions"])
+        self.assertEqual(changes, [])
+        self.assertEqual(projected, changed)
+
     def test_frozen_v10270_inverse_still_accepts_only_exact_carrier(self):
         after = plan_evidence.worker(ROOT, 0)
-        self.assertEqual(after["authority_versions"]["skill"], "10.28.0")
-        self.assertEqual(after["plan"]["version"], "10.28.0")
+        self.assertEqual(after["authority_versions"]["skill"], "10.29.0")
+        self.assertEqual(after["plan"]["version"], "10.29.0")
         old_carrier = deepcopy(after)
         old_carrier["authority_versions"]["skill"] = "10.27.0"
         old_carrier["plan"]["version"] = "10.27.0"

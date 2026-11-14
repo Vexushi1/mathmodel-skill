@@ -1,10 +1,31 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://example.local/hsk/literature/evidence-v1
 title: Literature Research Evidence — read-only structural contract
-version: 1.0.0
+version: 1.1.0
 introduced_in_skill_version: 10.28.0
 x-research:
-  scope: explicit_literature_evidence_audit_only
+  scope: explicit_evidence_audit_and_conditional_model_design_intake
+  model_design_intake:
+    activation: new_or_substantively_revised_model_after_frozen_problem_contract
+    independent_structure_assessment_before_search: required
+    research_brief_inputs: [question, problem_contract, research_object, objective, constraints, data_availability, unknown_mechanisms, search_terms, recency_window, evidence_purpose]
+    actual_search_when_licensed_tools_available_and_evidence_material: required
+    default_depth: targeted
+    levels: [lightweight, targeted, deep]
+    no_fixed_paper_count_or_model_route_quota: true
+    fallback_states: [completed, no_suitable_source, unavailable, skipped, failed]
+    stop_criterion: key_model_decisions_and_applicability_questions_have_sufficient_evidence_or_explicitly_recorded_gaps
+    absence_of_relevant_literature: does_not_prohibit_independent_mathematical_model
+    unresolved_critical_external_assumption: expose_as_blocking_model_challenge_risk
+    framework_creation: only_after_proposed_model_spec_under_existing_output_contract
+    existing_model_lock: unchanged_when_only_citation_metadata_or_retrieval_results_change
+    approval_authority: core/model_approval_contract.yaml
+    citation_authority: core/writing_reasoning_contract.yaml#citation_evidence
+  explicit_audit:
+    route: literature_evidence_audit
+    validator: scripts/literature_evidence.py
+    contract_schema_protocol: 1.0.0
+    validation_is_read_only_and_not_external_search: true
   research_workflow: [frozen_problem_contract, independent_structure_assessment, targeted_retrieval, source_verification, method_transfer_review, independent_model_design, existing_model_challenge, explicit_human_approval]
   preferred_search_window: recent_three_to_five_years_with_foundational_papers_when_relevant
   quality_order: [problem_fit, method_applicability, source_integrity, recency]

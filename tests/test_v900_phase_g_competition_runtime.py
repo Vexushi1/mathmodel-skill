@@ -61,6 +61,11 @@ RUNTIME_CONSISTENCY_RELEASE_VERSIONS = {
 RUNTIME_G2_PATCH_RELEASE_VERSIONS = {
     **RUNTIME_CONSISTENCY_RELEASE_VERSIONS, "skill": "10.28.0",
 }
+# The v10.29.0 literature-model-intake release is a strictly scoped additive
+# model-design resource load; it does not alter historical writing stages.
+RUNTIME_LITERATURE_INTAKE_RELEASE_VERSIONS = {
+    **RUNTIME_G2_PATCH_RELEASE_VERSIONS, "skill": "10.29.0",
+}
 # Phase C: pin the exact review reads separately from the historical
 # Review Split migration and unchanged Phase G golden. Unregistered additions,
 # removals, order changes, or selector substitutions must fail projection.
@@ -91,6 +96,26 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
         )
 
     def _projection(self, plan):
+        # Exact inverse for the v10.29.0 additive model-intake resource pair.
+        # Any unexpected extra resource, missing pair, or duplicate fails the
+        # original golden instead of being silently waived.
+        if plan.get("version") == RUNTIME_LITERATURE_INTAKE_RELEASE_VERSIONS["skill"]:
+            plan = copy.deepcopy(plan)
+            source = "core/literature_research_contract.yaml"
+            pack = "packs/artifact/literature_research.md"
+            loaded = plan.get("load_order", [])
+            contracts = plan.get("contracts", [])
+            counts = (loaded.count(source), loaded.count(pack), contracts.count(source))
+            if any(counts) and counts != (1, 1, 1):
+                raise AssertionError("incomplete or duplicate literature intake resource pair")
+            if counts == (1, 1, 1):
+                if not set(plan.get("intents", [])).intersection(
+                    {"new_problem_design", "model_selection", "advanced_method",
+                     "full_solution", "full_workflow", "code_and_solution"}):
+                    raise AssertionError("literature intake appeared outside modeling scope")
+                plan["load_order"] = [x for x in loaded if x not in {source, pack}]
+                plan["contracts"] = [x for x in contracts if x != source]
+            plan["version"] = RUNTIME_G2_PATCH_RELEASE_VERSIONS["skill"]
         # The runtime repair preserves this CUMCM writing projection. Accept
         # only its exact carrier; keep every stage and Golden field checked.
         if plan.get("version") in {"10.26.3", RUNTIME_CONSISTENCY_RELEASE_VERSIONS["skill"],
@@ -285,7 +310,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
 
     def test_runtime_repair_reuses_exact_writing_projection_without_mutation(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
-        self.assertEqual(plan["version"], RUNTIME_G2_PATCH_RELEASE_VERSIONS["skill"])
+        self.assertEqual(plan["version"], RUNTIME_LITERATURE_INTAKE_RELEASE_VERSIONS["skill"])
         historical = copy.deepcopy(plan)
         historical["version"] = CUMCM_D_CLEANUP_RELEASE_VERSIONS["skill"]
         saved = copy.deepcopy((plan, historical, self.golden))
@@ -299,7 +324,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
 
     def test_review_split_projection_binds_canonical_scopes_without_waiving_stage_fields(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
-        self.assertEqual(plan["version"], RUNTIME_G2_PATCH_RELEASE_VERSIONS["skill"])
+        self.assertEqual(plan["version"], RUNTIME_LITERATURE_INTAKE_RELEASE_VERSIONS["skill"])
         saved = copy.deepcopy((plan, self.golden, REVIEW_SPLIT_WRITING_DELTAS))
         for index, stage_id, previous_reads, current_reads in REVIEW_SPLIT_WRITING_DELTAS:
             historical = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][index]
