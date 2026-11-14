@@ -206,16 +206,20 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
     model_intake_carrier = (data.get("scope"), data.get("version")) in {
         ("v10.29.0_p2_exact_literature_intake_migration", "10.29.0"),
         ("v10.30.0_p3_metadata_only_adapter_carrier", "10.30.0"),
+        ("v10.31.0_p4_optional_research_snapshot_carrier", "10.31.0"),
     }
     allowed = (
         ("v10.28.0_p1_source_only_read_ranges", "10.28.0"),
         ("v10.29.0_p2_exact_literature_intake_migration", "10.29.0"),
         ("v10.30.0_p3_metadata_only_adapter_carrier", "10.30.0"),
+        ("v10.31.0_p4_optional_research_snapshot_carrier", "10.31.0"),
     )
     fields = {"schema_version", "scope", "version", "authorizing_reason",
               "required_case_ids", "migrations"}
     if model_intake_carrier:
         fields.add("model_intake")
+    if data.get("version") == "10.31.0":
+        fields.update(("output_read_shift", "output_conditional_shift"))
     if (set(data) != fields or data.get("schema_version") != SCHEMA
             or (data.get("scope"), data.get("version")) not in allowed
             or not isinstance(data.get("authorizing_reason"), str)
@@ -269,6 +273,42 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
                              / source["path"]).read_bytes())
             if actual != source["candidate_sha256"]:
                 raise ValueError("literature intake source bytes changed")
+    if data.get("version") == "10.31.0":
+        shift = data["output_read_shift"]
+        expected_ids = ["review_word_readonly", "natural_language_two_actions_probe"]
+        if (not isinstance(shift, dict)
+                or set(shift) != {"path", "candidate_sha256", "cases"}
+                or shift["path"] != "core/output_contract.yaml"
+                or not isinstance(shift["candidate_sha256"], str)
+                or len(shift["candidate_sha256"]) != 64
+                or not isinstance(shift["cases"], list)
+                or [item.get("case_id") for item in shift["cases"]
+                    if isinstance(item, dict)] != expected_ids):
+            raise ValueError("output read shift must bind exactly two historical cases")
+        if digest((Path(__file__).resolve().parents[1] / shift["path"]).read_bytes()) != shift["candidate_sha256"]:
+            raise ValueError("output read shift source bytes changed")
+        for item in shift["cases"]:
+            if (set(item) != {"case_id", "current_ranges", "historical_ranges", "selectors"}
+                    or not isinstance(item["selectors"], dict)
+                    or not isinstance(item["current_ranges"], list)
+                    or not isinstance(item["historical_ranges"], list)
+                    or item["current_ranges"] == item["historical_ranges"]):
+                raise ValueError("output read shift scope or range invalid")
+    if data.get("version") == "10.31.0":
+        conditional = data["output_conditional_shift"]
+        if (not isinstance(conditional, dict)
+                or set(conditional) != {"path", "candidate_sha256", "current_ranges",
+                                        "historical_ranges", "when", "case_ids"}
+                or conditional["path"] != "core/output_contract.yaml"
+                or conditional["candidate_sha256"] != data["output_read_shift"]["candidate_sha256"]
+                or conditional["current_ranges"] != [[1, 634]]
+                or conditional["historical_ranges"] != [[1, 612]]
+                or conditional["when"] != "current_delivery_scope_or_file_layout_requires_definition"
+                or conditional["case_ids"] != [
+                    "pure_python_figures", "review_word_readonly",
+                    "two_carrier_legacy_protected", "explicit_figure_scope"
+                ]):
+            raise ValueError("conditional output source migration must match four historical reads")
     return data
 
 
@@ -348,6 +388,52 @@ def project_exact_approved_source_spans(
             if any(p in actual_loaded or any(row.get("path") == p for row in expected["read_now"])
                    for p in resource_paths):
                 raise ValueError("literature intake escaped to non-modeling route")
+    output_shift = manifest.get("output_read_shift")
+    if output_shift:
+        case_id = new_case["id"]
+        rule = next((row for row in output_shift["cases"] if row["case_id"] == case_id), None)
+        output_rows = [row for row in expected["read_now"]
+                       if row.get("path") == output_shift["path"]]
+        if rule:
+            found = [row["sha256"] for row in new_case["source_identity"].get("sources", [])
+                     if row.get("path") == output_shift["path"]]
+            if found != [output_shift["candidate_sha256"]]:
+                raise ValueError("output read shift source identity drift")
+            if (len(output_rows) != 1
+                    or output_rows[0].get("selectors") != rule["selectors"]
+                    or output_rows[0].get("ranges") != rule["current_ranges"]
+                    or output_rows[0].get("origin") != "skill"
+                    or output_rows[0].get("resolution") != "exact"):
+                raise ValueError("output read shift physical span or selector drift")
+            output_rows[0]["ranges"] = deepcopy(rule["historical_ranges"])
+            replacements.append({"path": output_shift["path"],
+                                 "case_id": case_id,
+                                 "source_sha256": output_shift["candidate_sha256"],
+                                 "actual_ranges": deepcopy(rule["current_ranges"]),
+                                 "historical_ranges": deepcopy(rule["historical_ranges"])})
+        elif output_rows:
+            raise ValueError("unexpected output read outside approved historical cases")
+    cond = manifest.get("output_conditional_shift")
+    if cond and new_case["id"] in cond["case_ids"]:
+        source_rows = [row["sha256"] for row in new_case["source_identity"].get("sources", [])
+                       if row.get("path") == cond["path"]]
+        if source_rows != [cond["candidate_sha256"]]:
+            raise ValueError("conditional output source identity drift")
+        current_rows = [row for row in expected.get("conditional", [])
+                        if row.get("path") == cond["path"]]
+        if (len(current_rows) != 1 or current_rows[0].get("ranges") != cond["current_ranges"]
+                or current_rows[0].get("origin") != "skill"
+                or current_rows[0].get("when") != cond["when"]
+                or current_rows[0].get("selectors") != {}
+                or current_rows[0].get("resolution") != "exact"):
+            raise ValueError("conditional output source span or selector drift")
+        current_rows[0]["ranges"] = deepcopy(cond["historical_ranges"])
+        replacements.append({
+            "path": cond["path"], "case_id": new_case["id"],
+            "source_sha256": cond["candidate_sha256"],
+            "actual_conditional_ranges": deepcopy(cond["current_ranges"]),
+            "historical_conditional_ranges": deepcopy(cond["historical_ranges"]),
+        })
     return expected, replacements
 
 

@@ -84,7 +84,7 @@ class LiteratureModelIntakeTests(unittest.TestCase):
         self.assertIn("scripts/literature_evidence.py", p["load_order"])
 
     def test_contract_preserves_report_protocol_and_separates_actual_search(self):
-        self.assertEqual(self.contract["version"], "1.2.0")
+        self.assertEqual(self.contract["version"], "1.3.0")
         self.assertEqual(self.contract["properties"]["protocol_version"]["const"], "1.0.0")
         policy = self.contract["x-research"]
         self.assertEqual(policy["model_design_intake"]["approval_authority"], "core/model_approval_contract.yaml")

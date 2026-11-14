@@ -56,6 +56,10 @@ python scripts/read_stage.py --root <同版本Skill根> --plan <当前resolver.y
 
 新增报告路径只有调用者显式给出且文件不存在时才写入；它不是 Project State、已批准模型、accepted workbook 或官方提交包。随后仍须通过 `python scripts/literature_evidence.py validate --report <new_report.json>` 检查格式，再由人工/AI 实际阅读原文并开展模型迁移审查。结构检查 PASS 不等于真实原文被核验。仓库 CI 对此适配器使用本地模拟 Provider 响应，不联网，不上传题目或附件。
 
+## P4 可选研究证据快照
+
+`scripts/literature_snapshot.py` 提供显式 `preview / record / inspect`。它仅为用户指定项目中的当前问题生成 `research_evidence/Qn.snapshot.json`，不写 Project State、SIB、模型框架或已验收工作簿，默认不包含在官方包。要记录，先用 preview 对当前 Problem Contract 文件及研究报告 JSON 取得两份原始 SHA-256，再用 record 带齐 `--expected-contract-sha256`、`--expected-report-sha256` 和 `--write` 创建**不存在的新文件**。跨聊天执行 inspect，重新核对两份原件与嵌入报告完整性；来源变更即 stale，不能自动认定模型或论文引用仍可使用。细节见 `core/literature_research_contract.yaml` 与 `core/output_contract.yaml#literature_research_snapshot`。
+
 ## 代码与用户执行
 
 - `run_config_parser.py`：P8 收敛出的共享语法级 helper，只静态抽取顶层 `RUN_CONFIG` / legacy `FULL_*` 字典常量并保持 fail-closed；字段政策与运行语义仍由 `core/user_execution_contract.yaml` 及调用方拥有，不在此建立第二 Authority。

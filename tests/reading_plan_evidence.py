@@ -126,6 +126,11 @@ V10290_NON_MODEL_LEGACY_AUTHORITY_VERSIONS = {
 V10300_PROVIDER_METADATA_AUTHORITY_VERSIONS = {
     **V10290_NON_MODEL_LEGACY_AUTHORITY_VERSIONS, "skill": "10.30.0",
 }
+# P4 adds only explicit local snapshots. Current old routes still match the
+# v10.30 carrier once the specific output-contract extension is reversed.
+V10310_RESEARCH_SNAPSHOT_AUTHORITY_VERSIONS = {
+    **V10300_PROVIDER_METADATA_AUTHORITY_VERSIONS, "skill": "10.31.0",
+}
 # Only these two read-list migrations are registered. Business text is separately
 # reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
 REVIEW_SPLIT_WRITING_DELTAS = (
@@ -1974,6 +1979,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
     accepted_carriers = (
         V10271_PATCH_AUTHORITY_VERSIONS, V10290_NON_MODEL_LEGACY_AUTHORITY_VERSIONS,
         V10300_PROVIDER_METADATA_AUTHORITY_VERSIONS,
+        V10310_RESEARCH_SNAPSHOT_AUTHORITY_VERSIONS,
     )
     matched_carrier = next((
         carrier for carrier in accepted_carriers
@@ -1984,6 +1990,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
     if matched_carrier in (
         V10290_NON_MODEL_LEGACY_AUTHORITY_VERSIONS,
         V10300_PROVIDER_METADATA_AUTHORITY_VERSIONS,
+        V10310_RESEARCH_SNAPSHOT_AUTHORITY_VERSIONS,
     ):
         # P2 historical comparison can borrow the v10.28 inverse only when
         # the new literature-resource pair was NOT loaded. Real modeling-route
@@ -2018,11 +2025,46 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             raw = (HERE.parent.parent / path).read_bytes()
             patch_header = ("version: " + matched_carrier["skill"] + "\n").encode("utf-8")
             previous_header = b"version: 10.27.0\n"
-            if (not raw.startswith(patch_header)
-                    or hashlib.sha256(raw).hexdigest() != actual[0]["sha256"]
-                    or hashlib.sha256(
-                        previous_header + raw[len(patch_header):]
-                    ).hexdigest() != pinned[0]["sha256"]):
+            if not raw.startswith(patch_header) or hashlib.sha256(raw).hexdigest() != actual[0]["sha256"]:
+                return deepcopy(original), []
+            if matched_carrier == V10310_RESEARCH_SNAPSHOT_AUTHORITY_VERSIONS:
+                # Reconstruct only two exact P4 output-layout additions.
+                # Do not generalize into ignoring the output contract hash.
+                pointer = ("  optional_literature_research_snapshot: research_evidence/Qn.snapshot.json"
+                           "（仅显式请求后按当前小问创建；不进入正式数值交付或官方包）\n").encode("utf-8")
+                block = (
+                    "literature_research_snapshot:\n"
+                    "  activation: explicit_preview_and_verified_read_set_then_write_only\n"
+                    "  path_pattern: research_evidence/Qn.snapshot.json\n"
+                    "  implementation: scripts/literature_snapshot.py\n"
+                    "  report_authority: core/literature_research_contract.yaml\n"
+                    "  per_question: true\n"
+                    "  requires_frozen_problem_contract_source_file: true\n"
+                    "  requires_valid_literature_report: true\n"
+                    "  preview_and_inspect_are_readonly: true\n"
+                    "  record_requires: [explicit_write_flag, expected_raw_contract_sha256, expected_raw_research_report_sha256]\n"
+                    "  filesystem_policy: new_file_only_no_overwrite_no_symlink_source_no_outside_project\n"
+                    "  default_generation: forbidden\n"
+                    "  project_state_field: none\n"
+                    "  semantic_identity_source: existing_framework_SIB_only\n"
+                    "  model_approval_source: existing_model_approval_contract_only\n"
+                    "  external_source_authenticity: not_attested_by_local_snapshot\n"
+                    "  official_package_default: excluded\n"
+                    "  reproducibility_package: optional_only_with_explicit_scope_and_allowlist_review\n"
+                    "  framework_creation_policy: proposed_model_spec_remains_required\n"
+                    "  citation_handoff: manual_current_method_source_summary_into_existing_Citation_Evidence_after_paper_source_review\n"
+                    "  no_automatic_model_or_citation_approval: true\n"
+                ).encode("utf-8")
+                if raw.count(pointer) != 1 or raw.count(block) != 1:
+                    return deepcopy(original), []
+                prior = raw.replace(pointer, b"", 1).replace(block, b"", 1)
+                prior = b"version: 10.30.0\n" + prior[len(patch_header):]
+                if hashlib.sha256(prior).hexdigest() != "e5e13f7d8c23fe85284fc63b05ddce85810c57c42d2b16ff44016d5fe62507e2":
+                    return deepcopy(original), []
+                raw = patch_header + prior[len(b"version: 10.30.0\n"):]
+            if hashlib.sha256(
+                previous_header + raw[len(patch_header):]
+            ).hexdigest() != pinned[0]["sha256"]:
                 return deepcopy(original), []
             actual[0]["sha256"] = pinned[0]["sha256"]
         if fingerprint["sources"] != fixture["fingerprint"]["candidate"]:

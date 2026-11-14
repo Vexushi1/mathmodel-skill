@@ -1,4 +1,4 @@
-# mathmodel-skill v10.30.0
+# mathmodel-skill v10.31.0
 
 本版本将文献证据研究接入**首次模型设计与实质性模型修订**：Problem Contract 冻结后先独立识别数学机制和研究缺口，再在获授权的学术检索工具可用时主动查询近期高相关原始研究，核实方法与条件、进行迁移性评价，最后构建最小充分主模型并进入既有 Model Challenge / Human Model Approval。无网络或无外部证据需求时允许透明降级；文献报告结构 PASS 仍不证明来源真实性或模型正确。
 
@@ -15,6 +15,10 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 ## P3 学术元数据检索（需明确授权）
 
 新增 `scripts/literature_search.py` 作为可选独立 Provider 适配器。只有在当前小问已冻结、Research Brief 已确认且明确使用 `--allow-network` 时，才向 Crossref/OpenAlex 固定 API 查询**检索词**，不上传 Problem Contract 或附件。检索结果仅为 E0 书目候选；仍需真正阅读相关原文、审查假设/方程的可迁移性，才能由 Module 02 选定主模型。独立报告仅可显式写入未存在的新文件，不能更改 Project State、批准或数值验收。详情见 `packs/artifact/literature_research.md` 和 `scripts/README.md`。
+
+## P4 可选研究证据快照与来源当前性
+
+在当前小问确有跨聊天恢复需要时，可明确选择 `scripts/literature_snapshot.py preview` 查看 Problem Contract 原文件和研究报告文件的字节哈希，再由用户确认后以 `record --write --expected-contract-sha256 ... --expected-report-sha256 ...` 创建 `research_evidence/Qn.snapshot.json`；该文件仅作研究证据副本，不修改模型框架和项目状态，默认排除官方提交包。新聊天使用 `inspect` 核对原件是否变化，变更则 stale。该检查不能证明论文方法真实、引用正确或模型已获批准。详见 `core/output_contract.yaml#literature_research_snapshot` 和 `packs/artifact/literature_research.md`。
 
 ## 最短启动
 
