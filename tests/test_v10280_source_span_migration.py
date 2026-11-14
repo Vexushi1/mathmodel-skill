@@ -147,14 +147,38 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         after["source_identity"]["sources"].append({
             "path": shift["path"], "sha256": shift["candidate_sha256"],
         })
+        # review_word_readonly also consumes the conditional output scope.
+        # Construct the complete, separately pinned source read before
+        # verifying the targeted read_now selector. Do not weaken the
+        # production fail-closed conditional-read check for an incomplete test.
+        conditional = fixture["output_conditional_shift"]
+        self.assertIn("review_word_readonly", conditional["case_ids"])
+        self.assertEqual(conditional["path"], shift["path"])
+        self.assertEqual(conditional["candidate_sha256"], shift["candidate_sha256"])
+        conditional_now = {
+            "path": conditional["path"],
+            "ranges": deepcopy(conditional["current_ranges"]),
+            "selectors": {}, "when": conditional["when"],
+            "origin": "skill", "resolution": "exact",
+        }
+        after["behavior"]["conditional"] = [conditional_now]
+        before["behavior"]["conditional"] = [{
+            **deepcopy(conditional_now),
+            "ranges": deepcopy(conditional["historical_ranges"]),
+        }]
         saved = deepcopy(after)
         projected, records = self.measurement.project_exact_approved_source_spans(
             before, after, fixture)
         self.assertEqual(projected["read_now"], before["behavior"]["read_now"])
+        self.assertEqual(projected["conditional"], before["behavior"]["conditional"])
         self.assertEqual(after, saved)
         self.assertTrue(any(x.get("case_id") == "review_word_readonly" for x in records))
         after["behavior"]["read_now"][-1]["selectors"] = {}
         with self.assertRaisesRegex(ValueError, "output read shift physical span or selector drift"):
+            self.measurement.project_exact_approved_source_spans(before, after, fixture)
+        after["behavior"]["read_now"][-1]["selectors"] = deepcopy(sample["selectors"])
+        after["behavior"]["conditional"].clear()
+        with self.assertRaisesRegex(ValueError, "conditional output source span or selector drift"):
             self.measurement.project_exact_approved_source_spans(before, after, fixture)
 
     def test_p4_conditional_output_range_requires_exact_source_and_selector(self):
