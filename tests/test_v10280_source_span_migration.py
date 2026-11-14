@@ -55,7 +55,7 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
             old, new, fixture)
         self.assertEqual(projected["read_now"], old["behavior"]["read_now"])
         self.assertEqual(new, preserved)
-        self.assertEqual(len(evidence), 2)
+        self.assertEqual(len(evidence), 1)
         self.assertTrue(all(entry["source_sha256"] for entry in evidence))
 
     def test_reject_changed_ranges_even_if_source_sha_matches(self):
@@ -66,11 +66,11 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
 
     def test_reject_changed_selector_or_unauthorized_source_provenance(self):
         fixture, old, new = self.cases()
-        new["behavior"]["read_now"][1]["selectors"] = {"yaml_paths": ["wrong"]}
+        new["behavior"]["read_now"][0]["selectors"] = {"yaml_paths": ["wrong"]}
         with self.assertRaisesRegex(ValueError, "reading semantics"):
             self.measurement.project_exact_approved_source_spans(old, new, fixture)
         _, old, new = self.cases()
-        new["source_identity"]["sources"][1]["sha256"] = "0" * 64
+        new["source_identity"]["sources"][0]["sha256"] = "0" * 64
         with self.assertRaisesRegex(ValueError, "source identity drift"):
             self.measurement.project_exact_approved_source_spans(old, new, fixture)
 
@@ -86,7 +86,7 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             p = Path(folder) / "span.json"
             p.write_text(json.dumps(data), encoding="utf-8")
-            with self.assertRaisesRegex(ValueError, "exactly two known authorities"):
+            with self.assertRaisesRegex(ValueError, "current router authority"):
                 self.measurement.approved_source_span_migrations(p)
 
 
