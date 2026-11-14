@@ -64,6 +64,10 @@ def load_brief(path: Path) -> dict[str, Any]:
         raise
     except (OSError, UnicodeError, ValueError, TypeError) as exc:
         raise SearchError("invalid_brief_json") from exc
+    return validate_brief(document)
+
+
+def validate_brief(document: Any) -> dict[str, Any]:
     if not isinstance(document, dict) or set(document) != {
         "protocol_version", "scope", "queries", "depth", "year_from",
     } or document.get("protocol_version") != "1.0.0":
@@ -238,14 +242,10 @@ def search(
         raise SearchError("provider_or_result_limit_invalid")
     if not 1 <= timeout <= 20:
         raise SearchError("timeout_out_of_bounds")
-    if not isinstance(brief, dict) or set(brief) != {
-        "protocol_version", "scope", "queries", "depth", "year_from",
-    }:
-        raise SearchError("brief_fields_invalid")
-    # Search only the explicit short keyword queries. Never send Problem Contract,
-    # attachment content or the full independent mathematical structure to a provider.
-    if not isinstance(brief["queries"], list) or not 1 <= len(brief["queries"]) <= MAX_QUERY_COUNT:
-        raise SearchError("brief_queries_invalid")
+    # The public Python API has the same frozen-contract and query-scope
+    # restrictions as the CLI parser; direct callers cannot bypass them.
+    brief = validate_brief(brief)
+    # Only short explicit queries are ever sent, never the Problem Contract.
     attempts: list[dict[str, Any]] = []
     sources: list[dict[str, Any]] = []
     seen: set[str] = set()

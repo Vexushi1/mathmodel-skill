@@ -161,6 +161,20 @@ class LiteratureProviderAdapterTests(unittest.TestCase):
             with self.assertRaisesRegex(self.api.SearchError, "duplicate_brief_key"):
                 self.api.load_brief(p)
 
+    def test_direct_python_api_enforces_same_problem_contract_and_query_bounds(self):
+        bad = self.brief()
+        bad["scope"]["problem_contract_status"] = "not_applicable"
+        def forbidden(_url, **kwargs):
+            self.fail("invalid brief escaped to the network")
+        with self.assertRaisesRegex(self.api.SearchError, "frozen"):
+            self.api.search(bad, provider="crossref", allow_network=True,
+                            fetch=forbidden)
+        bad = self.brief()
+        bad["queries"] = ["private attachment " * 100]
+        with self.assertRaisesRegex(self.api.SearchError, "brief_queries_invalid"):
+            self.api.search(bad, provider="crossref", allow_network=True,
+                            fetch=forbidden)
+
     def test_url_guard_and_syntax(self):
         url = self.api.make_url("crossref", "diffusion kinetics", year_from=2022, per_query=5)
         self.assertTrue(url.startswith("https://api.crossref.org/works?"))
