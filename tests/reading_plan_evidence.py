@@ -117,6 +117,11 @@ RUNTIME_CONSISTENCY_PROJECTION = yaml.safe_load(
 V10271_PATCH_AUTHORITY_VERSIONS = {
     **RUNTIME_CONSISTENCY_PROJECTION["authority_versions"], "skill": "10.28.0",
 }
+# Exact new v10.29 carrier for legacy read cases only. Model-intake route
+# additions are *not* eligible for this historical carrier projection.
+V10290_NON_MODEL_LEGACY_AUTHORITY_VERSIONS = {
+    **V10271_PATCH_AUTHORITY_VERSIONS, "skill": "10.29.0",
+}
 # Only these two read-list migrations are registered. Business text is separately
 # reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
 REVIEW_SPLIT_WRITING_DELTAS = (
@@ -1962,15 +1967,29 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
     original = deepcopy(new)
     # Only the exact patch release carrier may reuse the frozen v10.27.0
     # inverse; no other field, source fingerprint, or historical fixture is waived.
-    is_patch_carrier = (
-        candidate_authority_versions == V10271_PATCH_AUTHORITY_VERSIONS
-        and new.get("version") == V10271_PATCH_AUTHORITY_VERSIONS["skill"]
+    accepted_carriers = (
+        V10271_PATCH_AUTHORITY_VERSIONS, V10290_NON_MODEL_LEGACY_AUTHORITY_VERSIONS,
     )
+    matched_carrier = next((
+        carrier for carrier in accepted_carriers
+        if candidate_authority_versions == carrier
+        and new.get("version") == carrier["skill"]
+    ), None)
+    is_patch_carrier = matched_carrier is not None
+    if matched_carrier == V10290_NON_MODEL_LEGACY_AUTHORITY_VERSIONS:
+        # P2 historical comparison can borrow the v10.28 inverse only when
+        # the new literature-resource pair was NOT loaded. Real modeling-route
+        # additions remain visible and must receive separately scoped approval.
+        new_literature = {"core/literature_research_contract.yaml",
+                          "packs/artifact/literature_research.md"}
+        if any(new_literature.intersection(new.get(field, []) or [])
+               for field in ("load_order", "contracts", "packs")):
+            return deepcopy(original), []
     if is_patch_carrier:
         new = deepcopy(new)
         new["version"] = fixture["authority_versions"]["skill"]
     if (candidate_authority_versions != (
-            V10271_PATCH_AUTHORITY_VERSIONS if is_patch_carrier
+            matched_carrier if is_patch_carrier
             else fixture["authority_versions"])
             or new.get("version") != fixture["authority_versions"]["skill"]):
         return deepcopy(original), []
@@ -1989,7 +2008,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
             if len(actual) != 1 or len(pinned) != 1:
                 return deepcopy(original), []
             raw = (HERE.parent.parent / path).read_bytes()
-            patch_header = b"version: 10.28.0\n"
+            patch_header = ("version: " + matched_carrier["skill"] + "\n").encode("utf-8")
             previous_header = b"version: 10.27.0\n"
             if (not raw.startswith(patch_header)
                     or hashlib.sha256(raw).hexdigest() != actual[0]["sha256"]

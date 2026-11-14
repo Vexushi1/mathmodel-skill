@@ -205,8 +205,10 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
         "schema_version", "scope", "version", "authorizing_reason",
         "required_case_ids", "migrations",
     } or data["schema_version"] != SCHEMA
-        or data["scope"] != "v10.28.0_p1_source_only_read_ranges"
-        or data["version"] != "10.28.0"
+        or (data["scope"], data["version"]) not in {
+            ("v10.28.0_p1_source_only_read_ranges", "10.28.0"),
+            ("v10.29.0_p2_preserved_source_span_ranges", "10.29.0"),
+        }
         or not isinstance(data["authorizing_reason"], str)
         or not data["authorizing_reason"]
         or not isinstance(data["required_case_ids"], list)

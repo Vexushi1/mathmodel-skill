@@ -24,7 +24,19 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.measurement = load_measurement()
-        cls.fixture = ROOT / "tests/fixtures/v10280_approved_source_spans.json"
+        cls.fixture = ROOT / "tests/fixtures/v10290_approved_source_spans.json"
+        cls.frozen_v10280 = ROOT / "tests/fixtures/v10280_approved_source_spans.json"
+
+    def test_frozen_v10280_approval_is_preserved_not_rewritten(self):
+        legacy = json.loads(self.frozen_v10280.read_text(encoding="utf-8"))
+        self.assertEqual(legacy["scope"], "v10.28.0_p1_source_only_read_ranges")
+        self.assertEqual(legacy["version"], "10.28.0")
+        self.assertEqual(legacy["migrations"][0]["candidate_sha256"],
+                         "47177e0208cb4a4993efdb189126e76ff2503cb079b7bf9fcfd6237f16c76cc1")
+        self.assertEqual(legacy["migrations"][0]["old_ranges"], [[416, 416], [419, 430]])
+        self.assertEqual(legacy["migrations"][0]["new_ranges"], [[424, 424], [427, 438]])
+        with self.assertRaisesRegex(ValueError, "candidate bytes changed"):
+            self.measurement.approved_source_span_migrations(self.frozen_v10280)
 
     def cases(self):
         manifest = self.measurement.approved_source_span_migrations(self.fixture)

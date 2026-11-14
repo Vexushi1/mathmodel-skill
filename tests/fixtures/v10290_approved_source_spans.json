@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "scope": "v10.29.0_p2_preserved_source_span_ranges",
+  "version": "10.29.0",
+  "authorizing_reason": "The historical v10.27→v10.28 reading_policy physical ranges remain unchanged in v10.29; current router bytes are independently pinned. New model-design resource additions are behavior changes and are NOT authorized by this source-span manifest.",
+  "required_case_ids": [
+    "pure_model_design",
+    "pure_python_figures",
+    "review_word_readonly",
+    "two_carrier_legacy_protected",
+    "explicit_figure_scope",
+    "natural_language_two_actions_probe",
+    "full_workflow_boundary",
+    "analysis_stage_request"
+  ],
+  "migrations": [
+    {
+      "path": "core/workflow_router.yaml",
+      "baseline_sha256": "eb9d4200cc7196e72e414d590e9f7a9ffdc782986d2d13a17c5ac99e976189b6",
+      "candidate_sha256": "0428f7cc4fd52009b43e9f2071d818bcb091dcadcba8d171b202129e93464311",
+      "old_ranges": [
+        [
+          416,
+          416
+        ],
+        [
+          419,
+          430
+        ]
+      ],
+      "new_ranges": [
+        [
+          424,
+          424
+        ],
+        [
+          427,
+          438
+        ]
+      ]
+    }
+  ]
+}
