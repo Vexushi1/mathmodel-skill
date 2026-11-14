@@ -22,7 +22,6 @@ authoritative_sources:
   review_receipt_consumption: core/review_receipt_consumption_contract.yaml
   case_memory: knowledge/case_memory/schema.yaml
   case_memory_retrieval: core/case_memory_retrieval_contract.yaml
-  literature_research: core/literature_research_contract.yaml
   writing_reasoning: core/writing_reasoning_contract.yaml
   writing_runtime: core/writing_runtime_contract.yaml
   figure_evidence: modules/04_figure_evidence.md
@@ -41,7 +40,7 @@ startup_contract:
     - Bootstrap stores startup pointers; global rules live in core/hsk_core_policy.md.
     - Load route contracts only when needed.
     - Reading plans and resolver-owned gates follow core/runtime_assurance_contract.yaml#reading_plan.
-    - Hydration, intent, artifact assurance and contract closure follow core/runtime_assurance_contract.yaml.
+    - Context hydration, intent provenance, artifact assurance and contract closure follow core/runtime_assurance_contract.yaml.
     - Load resolver manifests and taxonomies only when the route needs them.
     - Current project semantics are restored from current 模型论文框架.md when available; numerical facts still come from accepted workbooks and machine state from project_state.
     - New 模型论文框架.md instances use scripts/instantiate_model_paper_framework.py; core/output_contract.yaml owns compact/full modes and the canonical full template.

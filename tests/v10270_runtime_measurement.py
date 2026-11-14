@@ -201,24 +201,31 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
     if path is None:
         return None
     data = json.loads(path.read_text(encoding="utf-8"))
-    if (not isinstance(data, dict) or set(data) != {
-        "schema_version", "scope", "version", "authorizing_reason",
-        "required_case_ids", "migrations",
-    } or data["schema_version"] != SCHEMA
-        or (data["scope"], data["version"]) not in {
-            ("v10.28.0_p1_source_only_read_ranges", "10.28.0"),
-            ("v10.29.0_p2_preserved_source_span_ranges", "10.29.0"),
-        }
-        or not isinstance(data["authorizing_reason"], str)
-        or not data["authorizing_reason"]
-        or not isinstance(data["required_case_ids"], list)
-        or not isinstance(data["migrations"], list)
-        or len(data["migrations"]) != 1):
+    if not isinstance(data, dict):
         raise ValueError("unsupported source span migration manifest")
-    expected_paths = {"core/workflow_router.yaml"}
+    v10290 = (data.get("scope"), data.get("version")) == (
+        "v10.29.0_p2_exact_literature_intake_migration", "10.29.0")
+    allowed = (
+        ("v10.28.0_p1_source_only_read_ranges", "10.28.0"),
+        ("v10.29.0_p2_exact_literature_intake_migration", "10.29.0"),
+    )
+    fields = {"schema_version", "scope", "version", "authorizing_reason",
+              "required_case_ids", "migrations"}
+    if v10290:
+        fields.add("model_intake")
+    if (set(data) != fields or data.get("schema_version") != SCHEMA
+            or (data.get("scope"), data.get("version")) not in allowed
+            or not isinstance(data.get("authorizing_reason"), str)
+            or not data["authorizing_reason"]
+            or not isinstance(data.get("required_case_ids"), list)
+            or not isinstance(data.get("migrations"), list)):
+        raise ValueError("unsupported source span migration manifest")
+    expected_paths = ({"core/workflow_router.yaml", "core/model_approval_contract.yaml",
+                       "modules/01_problem_audit.md", "modules/02_model_design.md"}
+                      if v10290 else {"core/workflow_router.yaml"})
     paths = [item.get("path") for item in data["migrations"] if isinstance(item, dict)]
-    if set(paths) != expected_paths or len(paths) != 1:
-        raise ValueError("source span migration must bind exactly the current router authority")
+    if set(paths) != expected_paths or len(paths) != len(expected_paths):
+        raise ValueError("source span migration must bind exactly the approved sources")
     for item in data["migrations"]:
         if set(item) != {
             "path", "baseline_sha256", "candidate_sha256",
@@ -231,6 +238,34 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
         actual = digest((Path(__file__).resolve().parents[1] / item["path"]).read_bytes())
         if actual != item["candidate_sha256"]:
             raise ValueError("source span migration candidate bytes changed")
+    if v10290:
+        intake = data["model_intake"]
+        expected_cases = ["pure_model_design", "full_workflow_boundary", "analysis_stage_request"]
+        expected_resources = ["core/literature_research_contract.yaml",
+                              "packs/artifact/literature_research.md"]
+        if (not isinstance(intake, dict) or set(intake) != {"case_ids", "resources"}
+                or intake["case_ids"] != expected_cases
+                or not isinstance(intake["resources"], list)
+                or len(intake["resources"]) != 2
+                or [r.get("path") for r in intake["resources"]
+                    if isinstance(r, dict)] != expected_resources):
+            raise ValueError("literature intake migration must bind exact routes and resources")
+        if len(set(data["required_case_ids"])) != len(data["required_case_ids"]):
+            raise ValueError("source span migration duplicate cases")
+        if not set(expected_cases) <= set(data["required_case_ids"]):
+            raise ValueError("model intake case not in pinned G1A corpus")
+        for source in intake["resources"]:
+            if set(source) != {"path", "candidate_sha256", "ranges"}:
+                raise ValueError("literature source identity shape differs")
+            if (not isinstance(source["candidate_sha256"], str)
+                    or len(source["candidate_sha256"]) != 64
+                    or not isinstance(source["ranges"], list)
+                    or not source["ranges"]):
+                raise ValueError("literature source identity incomplete")
+            actual = digest((Path(__file__).resolve().parents[1]
+                             / source["path"]).read_bytes())
+            if actual != source["candidate_sha256"]:
+                raise ValueError("literature intake source bytes changed")
     return data
 
 
@@ -257,10 +292,14 @@ def project_exact_approved_source_spans(
         ):
             rows = source["source_identity"].get("sources", [])
             sha = [row["sha256"] for row in rows if row.get("path") == path]
-            if sha != [wanted]:
+            if sha and sha != [wanted]:
                 raise ValueError("source span migration source identity drift: " + path)
+            if path == "core/workflow_router.yaml" and sha != [wanted]:
+                raise ValueError("router source span migration missing fingerprint")
         prior = [row for row in before_rows if row.get("path") == path]
         next_rows = [row for row in expected["read_now"] if row.get("path") == path]
+        if not prior and not next_rows:
+            continue
         if len(prior) != 1 or len(next_rows) != 1:
             raise ValueError("source span migration source occurrence drift: " + path)
         before_row, after_row = prior[0], next_rows[0]
@@ -277,6 +316,35 @@ def project_exact_approved_source_spans(
             "historical_ranges": deepcopy(item["old_ranges"]),
             "source_sha256": item["candidate_sha256"],
         })
+    intake = manifest.get("model_intake")
+    if intake:
+        resource_paths = [row["path"] for row in intake["resources"]]
+        active = new_case["id"] in intake["case_ids"]
+        actual_loaded = expected.get("load_order")
+        old_loaded = old_case["behavior"].get("load_order")
+        if not isinstance(actual_loaded, list) or not isinstance(old_loaded, list):
+            raise ValueError("literature intake missing routed load order")
+        if active:
+            for resource in intake["resources"]:
+                path = resource["path"]
+                if actual_loaded.count(path) != 1 or path in old_loaded:
+                    raise ValueError("literature intake load identity drift")
+                current_rows = [row for row in expected["read_now"] if row.get("path") == path]
+                old_rows = [row for row in before_rows if row.get("path") == path]
+                expected_row = {"origin": "skill", "path": path,
+                                "ranges": resource["ranges"], "resolution": "exact",
+                                "selectors": {}, "when": None}
+                if current_rows != [expected_row] or old_rows:
+                    raise ValueError("literature intake actual read identity drift")
+                actual_loaded.remove(path)
+                expected["read_now"].remove(expected_row)
+                replacements.append({"new_model_intake": path,
+                                     "source_sha256": resource["candidate_sha256"],
+                                     "scope": new_case["id"]})
+        else:
+            if any(p in actual_loaded or any(row.get("path") == p for row in expected["read_now"])
+                   for p in resource_paths):
+                raise ValueError("literature intake escaped to non-modeling route")
     return expected, replacements
 
 
