@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "scope": "v10.30.0_p3_metadata_only_adapter_carrier",
+  "version": "10.30.0",
+  "authorizing_reason": "Exact v10.30.0 source IDs and measured model-intake read spans: only the adapter's source contract and Pack text/line ranges changed; ordinary model routes, pause states, gates, artifact outputs, historical v10.27 G2 approvals and P2 model-intake source projection remain checked. This is a test-only inverse, never a production gate waiver.",
+  "required_case_ids": [
+    "pure_model_design",
+    "pure_python_figures",
+    "review_word_readonly",
+    "two_carrier_legacy_protected",
+    "explicit_figure_scope",
+    "natural_language_two_actions_probe",
+    "full_workflow_boundary",
+    "analysis_stage_request"
+  ],
+  "migrations": [
+    {
+      "path": "core/workflow_router.yaml",
+      "baseline_sha256": "eb9d4200cc7196e72e414d590e9f7a9ffdc782986d2d13a17c5ac99e976189b6",
+      "candidate_sha256": "7d6ce78333078ecc08d4751248c53e694a9a737b455c1d4fe0fb9c6cda39872e",
+      "old_ranges": [
+        [
+          416,
+          416
+        ],
+        [
+          419,
+          430
+        ]
+      ],
+      "new_ranges": [
+        [
+          424,
+          424
+        ],
+        [
+          427,
+          438
+        ]
+      ]
+    },
+    {
+      "path": "core/model_approval_contract.yaml",
+      "baseline_sha256": "d1b607ea5a7704b4e18f01defb69c24e5b82ffc0f70661e28d880f9a8fbbee25",
+      "candidate_sha256": "40aa80daf77bfc0ba1092fa8767a1b97df331d44e76b1e23875ccbf7410653ec",
+      "old_ranges": [
+        [
+          1,
+          272
+        ]
+      ],
+      "new_ranges": [
+        [
+          1,
+          290
+        ]
+      ]
+    },
+    {
+      "path": "modules/01_problem_audit.md",
+      "baseline_sha256": "6e0d674e4afe4f93b6f948d66a446114a01b4777a1550ef1251d45873a97abdc",
+      "candidate_sha256": "2fc8fecefd068f918f4a6bc698d763081bd27b73c85464c0545be9e4b176444f",
+      "old_ranges": [
+        [
+          1,
+          83
+        ]
+      ],
+      "new_ranges": [
+        [
+          1,
+          92
+        ]
+      ]
+    },
+    {
+      "path": "modules/02_model_design.md",
+      "baseline_sha256": "5541bb8e44b80aefece95a5a785b3386a0433aac79320065a71f37fb262f6b1f",
+      "candidate_sha256": "fbd22182e91666b2e54c8e4007f92a7aa06fc3ec79568e0709240848a94b66a5",
+      "old_ranges": [
+        [
+          1,
+          700
+        ]
+      ],
+      "new_ranges": [
+        [
+          1,
+          717
+        ]
+      ]
+    }
+  ],
+  "model_intake": {
+    "case_ids": [
+      "pure_model_design",
+      "full_workflow_boundary",
+      "analysis_stage_request"
+    ],
+    "resources": [
+      {
+        "path": "core/literature_research_contract.yaml",
+        "candidate_sha256": "2a76b2f635760c5308294bc3d00c680f115e81b1652c93a25e1cff7de53b98c8",
+        "ranges": [
+          [
+            1,
+            146
+          ]
+        ]
+      },
+      {
+        "path": "packs/artifact/literature_research.md",
+        "candidate_sha256": "b00e70d30a8fcf52c55f1374b648938b812bb6aa9e747ace3f8b960215a2ec8f",
+        "ranges": [
+          [
+            1,
+            39
+          ]
+        ]
+      }
+    ]
+  }
+}

@@ -203,15 +203,18 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise ValueError("unsupported source span migration manifest")
-    v10290 = (data.get("scope"), data.get("version")) == (
-        "v10.29.0_p2_exact_literature_intake_migration", "10.29.0")
+    model_intake_carrier = (data.get("scope"), data.get("version")) in {
+        ("v10.29.0_p2_exact_literature_intake_migration", "10.29.0"),
+        ("v10.30.0_p3_metadata_only_adapter_carrier", "10.30.0"),
+    }
     allowed = (
         ("v10.28.0_p1_source_only_read_ranges", "10.28.0"),
         ("v10.29.0_p2_exact_literature_intake_migration", "10.29.0"),
+        ("v10.30.0_p3_metadata_only_adapter_carrier", "10.30.0"),
     )
     fields = {"schema_version", "scope", "version", "authorizing_reason",
               "required_case_ids", "migrations"}
-    if v10290:
+    if model_intake_carrier:
         fields.add("model_intake")
     if (set(data) != fields or data.get("schema_version") != SCHEMA
             or (data.get("scope"), data.get("version")) not in allowed
@@ -222,7 +225,7 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
         raise ValueError("unsupported source span migration manifest")
     expected_paths = ({"core/workflow_router.yaml", "core/model_approval_contract.yaml",
                        "modules/01_problem_audit.md", "modules/02_model_design.md"}
-                      if v10290 else {"core/workflow_router.yaml"})
+                      if model_intake_carrier else {"core/workflow_router.yaml"})
     paths = [item.get("path") for item in data["migrations"] if isinstance(item, dict)]
     if set(paths) != expected_paths or len(paths) != len(expected_paths):
         raise ValueError("source span migration must bind exactly the approved sources")
@@ -238,7 +241,7 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
         actual = digest((Path(__file__).resolve().parents[1] / item["path"]).read_bytes())
         if actual != item["candidate_sha256"]:
             raise ValueError("source span migration candidate bytes changed")
-    if v10290:
+    if model_intake_carrier:
         intake = data["model_intake"]
         expected_cases = ["pure_model_design", "full_workflow_boundary", "analysis_stage_request"]
         expected_resources = ["core/literature_research_contract.yaml",

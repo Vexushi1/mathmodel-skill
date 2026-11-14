@@ -24,7 +24,8 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.measurement = load_measurement()
-        cls.fixture = ROOT / "tests/fixtures/v10290_approved_source_spans.json"
+        cls.fixture = ROOT / "tests/fixtures/v10300_approved_source_spans.json"
+        cls.frozen_v10290 = ROOT / "tests/fixtures/v10290_approved_source_spans.json"
         cls.frozen_v10280 = ROOT / "tests/fixtures/v10280_approved_source_spans.json"
 
     def test_frozen_v10280_approval_is_preserved_not_rewritten(self):
@@ -38,12 +39,21 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "candidate bytes changed"):
             self.measurement.approved_source_span_migrations(self.frozen_v10280)
 
+    def test_v10290_source_migration_remains_immutable(self):
+        legacy = json.loads(self.frozen_v10290.read_text(encoding="utf-8"))
+        self.assertEqual(legacy["scope"], "v10.29.0_p2_exact_literature_intake_migration")
+        self.assertEqual(legacy["version"], "10.29.0")
+        self.assertEqual(legacy["migrations"][0]["candidate_sha256"],
+                         "0428f7cc4fd52009b43e9f2071d818bcb091dcadcba8d171b202129e93464311")
+        with self.assertRaisesRegex(ValueError, "candidate bytes changed"):
+            self.measurement.approved_source_span_migrations(self.frozen_v10290)
+
     def cases(self):
         manifest = self.measurement.approved_source_span_migrations(self.fixture)
         before = {"id": "pure_model_design", "behavior": {"read_now": [], "load_order": []},
                   "source_identity": {"skill_version": "10.27.0", "sources": []}}
         after = {"id": "pure_model_design", "behavior": {"read_now": [], "load_order": []},
-                 "source_identity": {"skill_version": "10.29.0", "sources": []}}
+                 "source_identity": {"skill_version": "10.30.0", "sources": []}}
         for item in manifest["migrations"]:
             original = {
                 "origin": "skill", "path": item["path"],
