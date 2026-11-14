@@ -1,4 +1,4 @@
-# mathmodel-skill v10.31.0
+# mathmodel-skill v10.32.0
 
 本版本将文献证据研究接入**首次模型设计与实质性模型修订**：Problem Contract 冻结后先独立识别数学机制和研究缺口，再在获授权的学术检索工具可用时主动查询近期高相关原始研究，核实方法与条件、进行迁移性评价，最后构建最小充分主模型并进入既有 Model Challenge / Human Model Approval。无网络或无外部证据需求时允许透明降级；文献报告结构 PASS 仍不证明来源真实性或模型正确。
 
@@ -19,6 +19,10 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 ## P4 可选研究证据快照与来源当前性
 
 在当前小问确有跨聊天恢复需要时，可明确选择 `scripts/literature_snapshot.py preview` 查看 Problem Contract 原文件和研究报告文件的字节哈希，再由用户确认后以 `record --write --expected-contract-sha256 ... --expected-report-sha256 ...` 创建 `research_evidence/Qn.snapshot.json`；该文件仅作研究证据副本，不修改模型框架和项目状态，默认排除官方提交包。新聊天使用 `inspect` 核对原件是否变化，变更则 stale。该检查不能证明论文方法真实、引用正确或模型已获批准。详见 `core/output_contract.yaml#literature_research_snapshot` 和 `packs/artifact/literature_research.md`。
+
+## P6 历史赛题成对评估（独立仓库维护工具）
+
+新增 docs/literature_p6_historical_case_catalog.json 与 scripts/literature_p6_benchmark.py，以 2024 COMAP 官方 MCM A/C、ICM D 为真实历史题来源目录。工具要求提供**真实原题与附件文件及哈希**、原模型/文献增强模型的独立设计产物和评审记录后，才可计算七轴描述性比较。目录或 CI 合成测试本身不证明模型质量提高，也不授权数值执行/模型批准。评估细则与 P5 不加新 Gate 的裁决见 docs/literature_p6_evaluation_protocol.md；真实历史盲评和总体效果结论仍待完成。
 
 ## 最短启动
 

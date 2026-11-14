@@ -1,6 +1,6 @@
 # HSK Active Skill File Index
 
-当前 Skill 版本：10.31.0
+当前 Skill 版本：10.32.0
 
 本索引按使用语义分区。只有 **Active Runtime & Reference** 表示默认活动导航；
 Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenance，不因此成为 Runtime Authority。
@@ -163,6 +163,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/lint_skill.py`
 - `scripts/lint_skill_checks.py`
 - `scripts/literature_evidence.py`
+- `scripts/literature_p6_benchmark.py`
 - `scripts/literature_search.py`
 - `scripts/literature_snapshot.py`
 - `scripts/matlab_code_checks.py`
@@ -324,6 +325,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/v10290_approved_source_spans.json`
 - `tests/fixtures/v10300_approved_source_spans.json`
 - `tests/fixtures/v10310_approved_source_spans.json`
+- `tests/fixtures/v10320_approved_source_spans.json`
 - `tests/fixtures/v900_phase_h_empty_sync_golden.yaml`
 - `tests/fixtures/v900_phase_i_migration_matrix.yaml`
 - `tests/fixtures/v900_phase_i_writer_retirement_inventory.yaml`
@@ -429,6 +431,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_legacy_archive_hygiene.py`
 - `tests/test_literature_evidence.py`
 - `tests/test_literature_model_intake.py`
+- `tests/test_literature_p6_benchmark.py`
 - `tests/test_literature_search.py`
 - `tests/test_literature_snapshot.py`
 - `tests/test_matlab_code_checks.py`
@@ -646,6 +649,8 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/figure_paper_handoff_plan.md`
 - `docs/figure_technique_and_handoff_refactor_plan.md`
 - `docs/final_acceptance_traceability_matrix.md`
+- `docs/literature_p6_evaluation_protocol.md`
+- `docs/literature_p6_historical_case_catalog.json`
 - `docs/main-branch-protection-hardening-plan.md`
 - `docs/matlab_publication_rendering_v91_plan.md`
 - `docs/modeling_intelligence_a0_decisions.md`

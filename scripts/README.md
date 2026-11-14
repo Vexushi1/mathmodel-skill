@@ -60,6 +60,10 @@ python scripts/read_stage.py --root <同版本Skill根> --plan <当前resolver.y
 
 `scripts/literature_snapshot.py` 提供显式 `preview / record / inspect`。它仅为用户指定项目中的当前问题生成 `research_evidence/Qn.snapshot.json`，不写 Project State、SIB、模型框架或已验收工作簿，默认不包含在官方包。要记录，先用 preview 对当前 Problem Contract 文件及研究报告 JSON 取得两份原始 SHA-256，再用 record 带齐 `--expected-contract-sha256`、`--expected-report-sha256` 和 `--write` 创建**不存在的新文件**。跨聊天执行 inspect，重新核对两份原件与嵌入报告完整性；来源变更即 stale，不能自动认定模型或论文引用仍可使用。细节见 `core/literature_research_contract.yaml` 与 `core/output_contract.yaml#literature_research_snapshot`。
 
+## P6 历史赛题质量对照：维护实验（只读）
+
+仓库维护者可使用 python scripts/literature_p6_benchmark.py catalog 查看 COMAP 2024 官方题目元数据，或使用 python scripts/literature_p6_benchmark.py evaluate --study <study.json> --study-root <study_root> 对已完成的基线/文献增强设计进行本地 SHA-256 绑定与逐维度描述性比较。工具不下载题目、不运行模型、不调用真实学术检索、不修改项目，不把人工评分、布尔“盲评”声明或 CI 合成控制用例当成论文正确性证明。完整试验标准见 docs/literature_p6_evaluation_protocol.md。
+
 ## 代码与用户执行
 
 - `run_config_parser.py`：P8 收敛出的共享语法级 helper，只静态抽取顶层 `RUN_CONFIG` / legacy `FULL_*` 字典常量并保持 fail-closed；字段政策与运行语义仍由 `core/user_execution_contract.yaml` 及调用方拥有，不在此建立第二 Authority。

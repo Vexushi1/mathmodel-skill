@@ -1,6 +1,14 @@
 # Changelog
 
-## 10.31.0
+## 10.32.0
+
+- 新增历史真实赛题 P6-A 配对评估脚手架：以 COMAP 官方 2024 MCM A/C 与 ICM D 的异质题型为来源目录，不复制完整题目，也不提交原题/附件或伪造模型设计与专家评分。
+- 新增 scripts/literature_p6_benchmark.py：要求本地完整原题和必要附件、两条件设计文件的 SHA-256、同预算/同模型配置/同提示模板、至少两位独立评审的七轴评分与具体证据说明；没有真实输入时不产出质量提升结论。
+- 比较仅输出逐题与逐轴的描述性变化、关键假设错误数及实际研究成本，不自动加权排名、不声明统计显著、因果效果、真实论文方法正确或 Human Model Approval。
+- docs/literature_p6_evaluation_protocol.md 裁决 P5：尚未证明独立研究 Gate 有明确收益，本版本不加新门禁。P6 真实三题运行与人工盲评待后续实证，不能用 CI 的合成 fixture 冒充正式效果评价。
+- 全部原 03A/03B、项目状态、SIB、数字工作簿、Figure、写作与正式交付 Gate 不变；新增维护工具只读，不进入普通赛题路由。
+
+## Previous development version (unreleased): 10.31.0
 
 - 新增 P4 显式、逐问研究证据快照；在正式模型框架建立前可由确认过的当前 Problem Contract 文件和研究报告 JSON 建立受原始字节哈希绑定的可恢复证据副本。
 - 提供 scripts/literature_snapshot.py 的 preview、record、inspect。record 需明确 --write 与两份原始 SHA-256；严格限制项目路径并拒绝覆盖已存在文件。inspect 重新核对来源，变动则 stale，不凭文件存在认定当前可靠。
