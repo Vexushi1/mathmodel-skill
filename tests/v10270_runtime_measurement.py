@@ -211,12 +211,12 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
         or not data["authorizing_reason"]
         or not isinstance(data["required_case_ids"], list)
         or not isinstance(data["migrations"], list)
-        or len(data["migrations"]) != 2):
+        or len(data["migrations"]) != 1):
         raise ValueError("unsupported source span migration manifest")
-    expected_paths = {"core/bootstrap.yaml", "core/workflow_router.yaml"}
+    expected_paths = {"core/workflow_router.yaml"}
     paths = [item.get("path") for item in data["migrations"] if isinstance(item, dict)]
-    if set(paths) != expected_paths or len(paths) != 2:
-        raise ValueError("source span migration must bind exactly two known authorities")
+    if set(paths) != expected_paths or len(paths) != 1:
+        raise ValueError("source span migration must bind exactly the current router authority")
     for item in data["migrations"]:
         if set(item) != {
             "path", "baseline_sha256", "candidate_sha256",
