@@ -323,6 +323,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/fixtures/v10280_approved_source_spans.json`
 - `tests/fixtures/v10290_approved_source_spans.json`
 - `tests/fixtures/v10300_approved_source_spans.json`
+- `tests/fixtures/v10310_approved_source_spans.json`
 - `tests/fixtures/v900_phase_h_empty_sync_golden.yaml`
 - `tests/fixtures/v900_phase_i_migration_matrix.yaml`
 - `tests/fixtures/v900_phase_i_writer_retirement_inventory.yaml`
