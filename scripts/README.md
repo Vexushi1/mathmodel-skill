@@ -50,6 +50,12 @@ python scripts/read_stage.py --root <同版本Skill根> --plan <当前resolver.y
 
 只有 GitHub 读取工具时，用同一固定 commit 的 `core/stage_reading_guide.md` 定位原 Authority，保留前言／父级适用语并分段补齐；导航中的 raw 候选来源不替代当前批准、执行等待点或实际项目事实。可复制的 GPT 全局指令仅维护于 [计划 §13](../docs/stage_reading_execution_refactor_plan.md#132-可复制正文)。
 
+## P3 文献研究检索 Provider（只读外部查询，手动报告输出）
+
+在当前小问已冻结且研究疑问来自审题后独立结构分析时，优先使用当前会话真正可用的获授权学术检索工具。若完整 Python Skill 环境需要可复现的独立元数据查询，可用 `python scripts/literature_search.py run --brief <brief.json> --provider crossref --allow-network --output <new_report.json>`（也支持 `--provider openalex`）。脚本将 1–4 条经用户确认的检索词发往固定公开元数据 API；没有 `--allow-network` 则不联网，明确返回 skipped。只使用元数据 E0，不能推断原文模型公式。完整规范及字段见 `core/literature_research_contract.yaml` 与 `packs/artifact/literature_research.md`。
+
+新增报告路径只有调用者显式给出且文件不存在时才写入；它不是 Project State、已批准模型、accepted workbook 或官方提交包。随后仍须通过 `python scripts/literature_evidence.py validate --report <new_report.json>` 检查格式，再由人工/AI 实际阅读原文并开展模型迁移审查。结构检查 PASS 不等于真实原文被核验。仓库 CI 对此适配器使用本地模拟 Provider 响应，不联网，不上传题目或附件。
+
 ## 代码与用户执行
 
 - `run_config_parser.py`：P8 收敛出的共享语法级 helper，只静态抽取顶层 `RUN_CONFIG` / legacy `FULL_*` 字典常量并保持 fail-closed；字段政策与运行语义仍由 `core/user_execution_contract.yaml` 及调用方拥有，不在此建立第二 Authority。
