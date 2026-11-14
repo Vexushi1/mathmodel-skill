@@ -33,6 +33,7 @@ that route and do not preload their resources or establish qualification.
 
 | Route | Original source | Declared roles / conditions / delegation |
 |---|---|---|
+| `literature_evidence_audit` | `core/workflow_router.yaml#routing.literature_evidence_audit` | — |
 | `case_memory_retrieve` | `core/workflow_router.yaml#routing.case_memory_retrieve` | — |
 | `claim_consumption_audit` | `core/workflow_router.yaml#routing.claim_consumption_audit` | — |
 | `claim_evidence_audit` | `core/workflow_router.yaml#routing.claim_evidence_audit` | — |
