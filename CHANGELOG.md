@@ -8,7 +8,7 @@
 - 澄清 Problem Contract 审题输出与 model_paper_framework.create_after=proposed_model_spec 的次序：早期疑问不自动生成正式框架；文献元数据不改变 SIB/accepted 数值资格。
 - 原有代码、工作簿、Figure、LaTeX 和正式交付 Gate 保持不变；新增行为通过模型设计路由与独立测试验证，Provider 真正执行仍取决于会话已授权工具，不使用已有知识冒充检索。
 
-## 10.28.0
+## Previous development version (unreleased): 10.28.0
 
 - 新增文献研究 P1 基础能力：有界、只读的来源证据等级、方法卡、检索状态与迁移决定记录合同，以及显式 literature_evidence_audit 入口。
 - 新增 core/literature_research_contract.yaml、packs/artifact/literature_research.md、scripts/literature_evidence.py 和独立负例测试；校验 PASS 只说明报告结构与有限一致性合法，不证明真实学术检索、原文真实性、数学可迁移性或 Human Model Approval。
