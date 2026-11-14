@@ -107,6 +107,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `packs/artifact/figure.md`
 - `packs/artifact/full_submission.md`
 - `packs/artifact/latex.md`
+- `packs/artifact/literature_research.md`
 - `packs/artifact/proposition_proof.md`
 - `packs/artifact/review.md`
 - `packs/competition/auto.md`
