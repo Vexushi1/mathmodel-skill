@@ -202,6 +202,20 @@ class LiteratureP6BenchmarkTests(unittest.TestCase):
         with self.assertRaisesRegex(self.api.BenchmarkError, "score_invalid"):
             self.api.evaluate(s, self.catalog, self.root)
 
+    def test_malformed_catalog_case_id_or_unblinding_fails_without_traceback(self):
+        bad_catalog = deepcopy(self.catalog)
+        bad_catalog["cases"][0]["official_page_url"] = None
+        with self.assertRaisesRegex(self.api.BenchmarkError, "catalog_case_source_invalid"):
+            self.api.catalog_cases(bad_catalog)
+        study = self._study()
+        study["cases"][0]["case_id"] = []
+        with self.assertRaisesRegex(self.api.BenchmarkError, "study_case_unknown_or_duplicate"):
+            self.api.evaluate(study, self.catalog, self.root)
+        study = self._study()
+        study["cases"][0]["unblinding"]["X"] = []
+        with self.assertRaisesRegex(self.api.BenchmarkError, "arm_mapping_invalid"):
+            self.api.evaluate(study, self.catalog, self.root)
+
     def test_no_project_state_or_research_report_writes(self):
         study = self._study()
         before = {p.relative_to(self.root).as_posix(): p.read_bytes()

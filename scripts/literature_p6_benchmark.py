@@ -114,6 +114,8 @@ def catalog_cases(catalog: dict[str, Any]) -> dict[str, dict[str, Any]]:
             raise BenchmarkError("catalog_duplicate_case_id")
         if (case["year"] != 2024 or case["competition"] not in {"MCM", "ICM"}
                 or case["problem_letter"] not in {"A", "C", "D"}
+                or not isinstance(case["official_page_url"], str)
+                or not isinstance(case["official_problem_pdf_url"], str)
                 or not case["official_page_url"].startswith("https://www.comap.org/")
                 or not case["official_problem_pdf_url"].startswith("https://www.comap.org/")
                 or not isinstance(case["required_attachment_kinds"], list)
@@ -235,7 +237,7 @@ def evaluate(study: dict[str, Any], catalog: dict[str, Any], root: Path) -> dict
         if not isinstance(item, dict) or "case_id" not in item:
             raise BenchmarkError("study_case_invalid")
         cid = item["case_id"]
-        if cid not in case_catalog or cid in case_ids:
+        if not isinstance(cid, str) or cid not in case_catalog or cid in case_ids:
             raise BenchmarkError("study_case_unknown_or_duplicate")
         case_ids.append(cid)
     missing = [cid for cid in case_catalog if cid not in case_ids]
@@ -282,7 +284,8 @@ def evaluate(study: dict[str, Any], catalog: dict[str, Any], root: Path) -> dict
         if left["prompt_sha256"] != right["prompt_sha256"]:
             raise BenchmarkError("unequal_prompt_template")
         mapping = require_keys(case["unblinding"], {"X", "Y"}, "unblinding")
-        if set(mapping.values()) != {"baseline", "literature_enhanced"}:
+        if (not all(isinstance(value, str) for value in mapping.values())
+                or set(mapping.values()) != {"baseline", "literature_enhanced"}):
             raise BenchmarkError("arm_mapping_invalid")
         baseline = left if mapping["X"] == "baseline" else right
         candidate = right if mapping["Y"] == "literature_enhanced" else left
