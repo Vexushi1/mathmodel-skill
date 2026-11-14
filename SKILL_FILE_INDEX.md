@@ -162,6 +162,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `scripts/latex_delivery.py`
 - `scripts/lint_skill.py`
 - `scripts/lint_skill_checks.py`
+- `scripts/literature_evidence.py`
 - `scripts/matlab_code_checks.py`
 - `scripts/measure_contract_parsing.py`
 - `scripts/measure_e1_resources.py`
