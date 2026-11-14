@@ -503,6 +503,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `tests/test_v10270_action_observation.py`
 - `tests/test_v10270_g2_multi_action.py`
 - `tests/test_v10270_runtime_measurement.py`
+- `tests/test_v10280_source_span_migration.py`
 - `tests/test_v10_project_delivery_receipt.py`
 - `tests/test_v10_project_policy_core.py`
 - `tests/test_v10_project_runtime_policy.py`
