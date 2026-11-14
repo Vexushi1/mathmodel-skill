@@ -63,7 +63,7 @@ class HistoricalProjectionTests(unittest.TestCase):
                 elif mutation == "scope":
                     plan["delivery_scope"] = "submission"
                 elif mutation == "version":
-                    plan["version"] = "10.27.2"  # unregistered; 10.27.1 is current
+                    plan["version"] = "10.28.1"  # unregistered; 10.28.0 is current
                 else:
                     altered["authority_versions"]["skill"] = "10.27.0"
                 with self.subTest(case=after["id"], mutation=mutation):
@@ -78,13 +78,13 @@ class HistoricalProjectionTests(unittest.TestCase):
 
     def test_frozen_v10270_inverse_still_accepts_only_exact_carrier(self):
         after = plan_evidence.worker(ROOT, 0)
-        self.assertEqual(after["authority_versions"]["skill"], "10.27.1")
-        self.assertEqual(after["plan"]["version"], "10.27.1")
+        self.assertEqual(after["authority_versions"]["skill"], "10.28.0")
+        self.assertEqual(after["plan"]["version"], "10.28.0")
         old_carrier = deepcopy(after)
         old_carrier["authority_versions"]["skill"] = "10.27.0"
         old_carrier["plan"]["version"] = "10.27.0"
         # Synthetic historical carrier: its output contract must carry the
-        # frozen 10.27.0 source identity, not the current 10.27.1 file hash.
+        # frozen 10.27.0 source identity, not the current 10.28.0 file hash.
         sources = old_carrier["plan"]["assurance"]["authority_fingerprint"]["sources"]
         pinned = plan_evidence.RUNTIME_CONSISTENCY_PROJECTION["fingerprint"]["candidate"]
         actual_row = [row for row in sources if row["path"] == "core/output_contract.yaml"]

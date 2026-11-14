@@ -57,9 +57,9 @@ CUMCM_D_CLEANUP_RELEASE_VERSIONS = {
 RUNTIME_CONSISTENCY_RELEASE_VERSIONS = {
     **CUMCM_D_CLEANUP_RELEASE_VERSIONS, "skill": "10.27.0",
 }
-# v10.27.1 is a compatibility patch, not a change to the historical v10.27.0 golden.
+# v10.28.0 is a compatibility patch, not a change to the historical v10.27.0 golden.
 RUNTIME_G2_PATCH_RELEASE_VERSIONS = {
-    **RUNTIME_CONSISTENCY_RELEASE_VERSIONS, "skill": "10.27.1",
+    **RUNTIME_CONSISTENCY_RELEASE_VERSIONS, "skill": "10.28.0",
 }
 # Phase C: pin the exact review reads separately from the historical
 # Review Split migration and unchanged Phase G golden. Unregistered additions,

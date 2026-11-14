@@ -1,5 +1,12 @@
 # Changelog
 
+## 10.28.0
+
+- 新增文献研究 P1 基础能力：有界、只读的来源证据等级、方法卡、检索状态与迁移决定记录合同，以及显式 literature_evidence_audit 入口。
+- 新增 core/literature_research_contract.yaml、packs/artifact/literature_research.md、scripts/literature_evidence.py 和独立负例测试；校验 PASS 只说明报告结构与有限一致性合法，不证明真实学术检索、原文真实性、数学可迁移性或 Human Model Approval。
+- 尚未将外部网络搜索自动接入普通新赛题建模；以后按独立 PR 将真实定向检索与自主模型设计、原独立质询对接，不提前修改 SIB、Project State、Typed Stale、full_fidelity 数值执行和正式交付门。
+- 原 v10.27.x 运行时投影和 golden 属于历史证据，此发布只增加显式只读审计路由，不改变原模型、求解和论文路由的业务动作。
+
 ## 10.27.1
 
 - 修复无显式 intent 时，两个明确、非否定、可分解的正向动作分句被最高关键词得分覆盖的漏路由：仅针对图表+LaTeX、模型检验+LaTeX 两种已验证组合，保留各分句原有顺序和独立门禁。

@@ -1,4 +1,4 @@
-version: 10.27.1
+version: 10.28.0
 bootstrap: core/bootstrap.yaml
 
 # 默认只加载全局硬规则。其余核心合同按 route 显式加载，避免绘图/写作等阶段
@@ -152,6 +152,14 @@ paper_carrier_disambiguation:
   - When both carriers are explicit, preserve existing specificity and multi-intent behavior.
 
 routing:
+  literature_evidence_audit:
+    triggers: [文献研究证据核验, 学术文献方法卡校验]
+    infer_keywords: [文献研究证据核验, 学术文献方法卡校验]
+    load: [core/literature_research_contract.yaml, packs/artifact/literature_research.md, scripts/literature_evidence.py]
+    terminal_outputs: [literature_evidence_validation_report]
+    pre_delivery_gates: []
+    formal_delivery: false
+
   case_memory_retrieve:
     triggers: [案例记忆检索, 结构案例检索, 参考历史建模模式]
     infer_keywords: [案例记忆检索, 结构案例检索, 参考历史建模模式]
