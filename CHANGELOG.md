@@ -7,7 +7,7 @@
 - 尚未将外部网络搜索自动接入普通新赛题建模；以后按独立 PR 将真实定向检索与自主模型设计、原独立质询对接，不提前修改 SIB、Project State、Typed Stale、full_fidelity 数值执行和正式交付门。
 - 原 v10.27.x 运行时投影和 golden 属于历史证据，此发布只增加显式只读审计路由，不改变原模型、求解和论文路由的业务动作。
 
-## 10.27.1
+## Previous release: 10.27.1
 
 - 修复无显式 intent 时，两个明确、非否定、可分解的正向动作分句被最高关键词得分覆盖的漏路由：仅针对图表+LaTeX、模型检验+LaTeX 两种已验证组合，保留各分句原有顺序和独立门禁。
 - 继续保护显式 intent 优先、Review-only/Word-LaTeX 载体消歧、否定语义、full_workflow 优先、Model Challenge/Human Model Approval、用户 full-fidelity 数值执行与原有交付 Gate；混合请求未获组合计划准入时仍保守完整读取。
