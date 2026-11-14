@@ -1,6 +1,14 @@
 # Changelog
 
-## 10.30.0
+## 10.31.0
+
+- 新增 P4 显式、逐问研究证据快照；在正式模型框架建立前可由确认过的当前 Problem Contract 文件和研究报告 JSON 建立受原始字节哈希绑定的可恢复证据副本。
+- 提供 scripts/literature_snapshot.py 的 preview、record、inspect。record 需明确 --write 与两份原始 SHA-256；严格限制项目路径并拒绝覆盖已存在文件。inspect 重新核对来源，变动则 stale，不凭文件存在认定当前可靠。
+- 输出契约声明可选 research_evidence/Qn.snapshot.json，默认禁止创建、默认不进入 official submission、不写项目状态或 SIB；只将已核验的外部方法作为待检查的 Citation Evidence 候选，不自动生成 BibTeX、论文文本或批准状态。
+- literature_research_contract 1.3.0 定义快照权限、来源绑定和降级；研究报告协议 1.0.0 保持不变。项目事务、数值求解、MATLAB/Figure/LaTeX 运行和原 Human Model Approval 门保持不变。
+- 新增离线 P4 正反例测试，包括只读预览、原文哈希变化、原报告变化、覆盖保护、跨问伪关联、快照篡改、symlink/目录越界及非授权范围。
+
+## Previous development version (unreleased): 10.30.0
 
 - 新增可独立运行且必须显式授权联网的 Crossref/OpenAlex 元数据检索适配器，支持有限 Research Brief、短检索词、年份下界、来源去重和拒绝重定向；真实结果仅归类为 E0 书目候选。
 - 研究证据合同升级至 1.2.0，在原 JSON 报告协议 1.0.0 下兼容增补来源出版年、期刊/出版物、提供者身份和时间字段；不将元数据误称原文方法核实。

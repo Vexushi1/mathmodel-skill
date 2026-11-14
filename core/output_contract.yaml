@@ -1,4 +1,4 @@
-version: 10.30.0
+version: 10.31.0
 schema: core/workbook_schema.yaml
 preprocessing_contract: core/global_preprocessing_contract.yaml
 model_approval_contract: core/model_approval_contract.yaml
@@ -35,6 +35,7 @@ project_root:
   problem_and_attachments: 赛题、附件数据表和说明文件直接放在项目根目录
   preprocessing_outputs: 仅preprocessing_decision=project_level时创建数据预处理/；交付数据预处理.py、数据预处理结果.xlsx和项目根plotting.backend选定的data_process.py或data_process.m
   model_paper_framework: 模型论文框架.md
+  optional_literature_research_snapshot: research_evidence/Qn.snapshot.json（仅显式请求后按当前小问创建；不进入正式数值交付或官方包）
   project_state: state/project_state.yaml
   sync_report: sync_report.yaml
   draft_docx: draft_docx/
@@ -177,6 +178,27 @@ result_policy:
   result_analysis_dispositions: [support, modify, reject]
   fixed_perturbation_forbidden: true
   feedback_loop: Deep analysis may require redo/rewrite, but the detailed disposition semantics live in writing_reasoning_contract.
+literature_research_snapshot:
+  activation: explicit_preview_and_verified_read_set_then_write_only
+  path_pattern: research_evidence/Qn.snapshot.json
+  implementation: scripts/literature_snapshot.py
+  report_authority: core/literature_research_contract.yaml
+  per_question: true
+  requires_frozen_problem_contract_source_file: true
+  requires_valid_literature_report: true
+  preview_and_inspect_are_readonly: true
+  record_requires: [explicit_write_flag, expected_raw_contract_sha256, expected_raw_research_report_sha256]
+  filesystem_policy: new_file_only_no_overwrite_no_symlink_source_no_outside_project
+  default_generation: forbidden
+  project_state_field: none
+  semantic_identity_source: existing_framework_SIB_only
+  model_approval_source: existing_model_approval_contract_only
+  external_source_authenticity: not_attested_by_local_snapshot
+  official_package_default: excluded
+  reproducibility_package: optional_only_with_explicit_scope_and_allowlist_review
+  framework_creation_policy: proposed_model_spec_remains_required
+  citation_handoff: manual_current_method_source_summary_into_existing_Citation_Evidence_after_paper_source_review
+  no_automatic_model_or_citation_approval: true
 model_paper_framework:
   path: 模型论文框架.md
   template: templates/model/model_paper_framework.md

@@ -30,6 +30,27 @@ Research Brief 是 JSON 对象，其字段为 protocol_version、scope、depth�
 
 OpenAlex 文档：<https://help.openalex.org/api/>；Crossref 元数据 API：<https://www.crossref.org/documentation/retrieve-metadata/rest-api/>。匿名基础访问、网络和限额政策由供应方决定；连接失败、账号限制或无结果必须按真实状态降级，不能声称已读原论文。
 
+## P4：显式逐问研究证据快照与跨聊天检查
+
+当正式建模之前尚未创建 `模型论文框架.md`、但确有跨聊天恢复需要时，允许**显式**保存研究证据快照。必须已经有当前小问的冻结 Problem Contract **实际文件**和合法研究报告 JSON；只保存原文件路径、字节哈希以及研究报告的有界嵌入副本，不生成第二个模型身份或审批状态。
+
+先执行：
+```text
+python scripts/literature_snapshot.py preview --project-root <project_root> --question Q1 --problem-contract Q1_problem_contract.md --report Q1_research.json
+```
+
+确认输出的两份来源原始 SHA-256 及当前小问范围后，用户**明确授权写入**才能执行：
+```text
+python scripts/literature_snapshot.py record --project-root <project_root> --question Q1 --problem-contract Q1_problem_contract.md --report Q1_research.json --expected-contract-sha256 <64hex> --expected-report-sha256 <64hex> --write
+```
+
+快照只创建 `research_evidence/Q1.snapshot.json` 且不能覆盖既有快照，也不写 Project State。新聊天中执行：
+```text
+python scripts/literature_snapshot.py inspect --project-root <project_root> --question Q1
+```
+
+inspect 重新检查 Problem Contract 与研究报告**原始文件字节**。原件缺失、变动、嵌入证据异常则返回 stale，拒绝消费旧来源。即使显示 current，也只能证明所绑定的**本地文件**没有变化，不能证明外部论文没有撤稿、已实际读过方法、检索执行真实、数学模型适用或 Human Model Approval。适合的 E2/E3 方法仅作为需要再次核实的 Citation Evidence 候选；不得自动写入模型论文框架、SIB 或参考文献。独立记录不属于官方提交包，详见 `core/output_contract.yaml#literature_research_snapshot`。
+
 ## 独立的只读验证入口（不是学术搜索引擎）
 
 执行命令：python scripts/literature_evidence.py validate --report research.json
