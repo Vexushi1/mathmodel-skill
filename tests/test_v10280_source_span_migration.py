@@ -24,7 +24,8 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.measurement = load_measurement()
-        cls.fixture = ROOT / "tests/fixtures/v10300_approved_source_spans.json"
+        cls.fixture = ROOT / "tests/fixtures/v10310_approved_source_spans.json"
+        cls.frozen_v10300 = ROOT / "tests/fixtures/v10300_approved_source_spans.json"
         cls.frozen_v10290 = ROOT / "tests/fixtures/v10290_approved_source_spans.json"
         cls.frozen_v10280 = ROOT / "tests/fixtures/v10280_approved_source_spans.json"
 
@@ -48,12 +49,21 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "candidate bytes changed"):
             self.measurement.approved_source_span_migrations(self.frozen_v10290)
 
+    def test_v10300_source_migration_remains_immutable(self):
+        previous = json.loads(self.frozen_v10300.read_text(encoding="utf-8"))
+        self.assertEqual(previous["scope"], "v10.30.0_p3_metadata_only_adapter_carrier")
+        self.assertEqual(previous["version"], "10.30.0")
+        self.assertEqual(previous["migrations"][0]["candidate_sha256"],
+                         "7d6ce78333078ecc08d4751248c53e694a9a737b455c1d4fe0fb9c6cda39872e")
+        with self.assertRaisesRegex(ValueError, "candidate bytes changed"):
+            self.measurement.approved_source_span_migrations(self.frozen_v10300)
+
     def cases(self):
         manifest = self.measurement.approved_source_span_migrations(self.fixture)
         before = {"id": "pure_model_design", "behavior": {"read_now": [], "load_order": []},
                   "source_identity": {"skill_version": "10.27.0", "sources": []}}
         after = {"id": "pure_model_design", "behavior": {"read_now": [], "load_order": []},
-                 "source_identity": {"skill_version": "10.30.0", "sources": []}}
+                 "source_identity": {"skill_version": "10.31.0", "sources": []}}
         for item in manifest["migrations"]:
             original = {
                 "origin": "skill", "path": item["path"],
@@ -113,6 +123,39 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         new["id"] = "pure_python_figures"
         with self.assertRaisesRegex(ValueError, "literature intake escaped"):
             self.measurement.project_exact_approved_source_spans(old, new, fixture)
+
+    def test_exact_output_read_shift_and_prohibited_selector_drift(self):
+        fixture, before, after = self.cases()
+        before["id"] = after["id"] = "review_word_readonly"
+        lit = {row["path"] for row in fixture["model_intake"]["resources"]}
+        after["behavior"]["load_order"] = [
+            p for p in after["behavior"]["load_order"] if p not in lit
+        ]
+        after["behavior"]["read_now"] = [
+            row for row in after["behavior"]["read_now"] if row["path"] not in lit
+        ]
+        shift = fixture["output_read_shift"]
+        sample = shift["cases"][0]
+        row = {"origin": "skill", "path": shift["path"],
+               "ranges": deepcopy(sample["current_ranges"]),
+               "selectors": deepcopy(sample["selectors"]), "when": None,
+               "resolution": "exact"}
+        after["behavior"]["read_now"].append(row)
+        before["behavior"]["read_now"].append({
+            **deepcopy(row), "ranges": deepcopy(sample["historical_ranges"]),
+        })
+        after["source_identity"]["sources"].append({
+            "path": shift["path"], "sha256": shift["candidate_sha256"],
+        })
+        saved = deepcopy(after)
+        projected, records = self.measurement.project_exact_approved_source_spans(
+            before, after, fixture)
+        self.assertEqual(projected["read_now"], before["behavior"]["read_now"])
+        self.assertEqual(after, saved)
+        self.assertTrue(any(x.get("case_id") == "review_word_readonly" for x in records))
+        after["behavior"]["read_now"][-1]["selectors"] = {}
+        with self.assertRaisesRegex(ValueError, "output read shift physical span or selector drift"):
+            self.measurement.project_exact_approved_source_spans(before, after, fixture)
 
     def test_manifest_fails_if_candidate_source_bytes_or_paths_change(self):
         data = json.loads(self.fixture.read_text(encoding="utf-8"))
