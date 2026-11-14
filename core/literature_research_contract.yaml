@@ -1,0 +1,100 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: https://example.local/hsk/literature/evidence-v1
+title: Literature Research Evidence — read-only structural contract
+version: 1.0.0
+introduced_in_skill_version: 10.28.0
+x-research:
+  scope: explicit_literature_evidence_audit_only
+  research_workflow: [frozen_problem_contract, independent_structure_assessment, targeted_retrieval, source_verification, method_transfer_review, independent_model_design, existing_model_challenge, explicit_human_approval]
+  preferred_search_window: recent_three_to_five_years_with_foundational_papers_when_relevant
+  quality_order: [problem_fit, method_applicability, source_integrity, recency]
+  search_executes_externally: true
+  report_validation_attests_search_executed: false
+  report_validation_attests_source_truth: false
+  report_validation_attests_model_applicability: false
+  report_validation_grants_approval_or_numerical_acceptance: false
+  report_bytes_limit: 262144
+type: object
+additionalProperties: false
+required: [protocol_version, scope, search, sources, methods, decision]
+properties:
+  protocol_version: {const: 1.0.0}
+  scope:
+    type: object
+    additionalProperties: false
+    required: [mode, question, problem_contract_status, independent_problem_structure, research_questions]
+    properties:
+      mode: {enum: [model_design, standalone]}
+      question: {type: string, pattern: '^(Q[1-9][0-9]*|general)$'}
+      problem_contract_status: {enum: [frozen, not_applicable]}
+      problem_contract_anchor: {type: string, minLength: 1, maxLength: 512}
+      independent_problem_structure: {type: string, minLength: 8, maxLength: 4096}
+      research_questions:
+        type: array
+        minItems: 1
+        maxItems: 12
+        items: {type: string, minLength: 4, maxLength: 1024}
+  search:
+    type: object
+    additionalProperties: false
+    required: [depth, status, attempts, stop_reason]
+    properties:
+      depth: {enum: [lightweight, targeted, deep]}
+      status: {enum: [completed, no_suitable_source, unavailable, skipped, failed]}
+      searched_at: {type: string, minLength: 10, maxLength: 64}
+      stop_reason: {type: string, minLength: 4, maxLength: 2048}
+      attempts:
+        type: array
+        maxItems: 30
+        items:
+          type: object
+          additionalProperties: false
+          required: [provider, channel, query, status]
+          properties:
+            provider: {type: string, minLength: 2, maxLength: 128}
+            channel: {enum: [web, academic_connector, user_supplied]}
+            query: {type: string, minLength: 2, maxLength: 1024}
+            status: {enum: [success, failed, unavailable]}
+  sources:
+    type: array
+    maxItems: 50
+    items:
+      type: object
+      additionalProperties: false
+      required: [id, title, source_url, origin, access_level, evidence_level]
+      properties:
+        id: {type: string, pattern: '^L[1-9][0-9]*$'}
+        title: {type: string, minLength: 3, maxLength: 1024}
+        source_url: {type: string, pattern: '^https?://', maxLength: 2048}
+        doi: {type: string, minLength: 4, maxLength: 256}
+        origin: {enum: [web, academic_connector, user_supplied]}
+        access_level: {enum: [metadata, abstract, method, full]}
+        evidence_level: {enum: [E0, E1, E2, E3]}
+        method_anchor: {type: string, minLength: 4, maxLength: 1024}
+        replication_anchor: {type: string, minLength: 4, maxLength: 1024}
+  methods:
+    type: array
+    maxItems: 30
+    items:
+      type: object
+      additionalProperties: false
+      required: [id, source_id, method_summary, transferability, disposition, applicability_reason]
+      properties:
+        id: {type: string, pattern: '^M[1-9][0-9]*$'}
+        source_id: {type: string, pattern: '^L[1-9][0-9]*$'}
+        method_summary: {type: string, minLength: 6, maxLength: 4096}
+        transferability: {enum: [applicable, conditional, inapplicable, unverifiable]}
+        disposition: {enum: [adopt_as_basis, adapt_to_problem, use_as_comparator, use_for_validation, reference_only, reject, insufficient_evidence]}
+        applicability_reason: {type: string, minLength: 6, maxLength: 4096}
+        data_limitations: {type: string, maxLength: 2048}
+  decision:
+    type: object
+    additionalProperties: false
+    required: [evidence_status, independent_model_reasoning, unresolved_gaps]
+    properties:
+      evidence_status: {enum: [sufficient, partial, insufficient, not_required]}
+      independent_model_reasoning: {type: string, minLength: 8, maxLength: 4096}
+      unresolved_gaps:
+        type: array
+        maxItems: 24
+        items: {type: string, minLength: 2, maxLength: 1024}
