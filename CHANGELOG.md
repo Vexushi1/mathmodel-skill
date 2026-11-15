@@ -5,7 +5,7 @@
 - 新增历史真实赛题 P6-A 配对评估脚手架：以 COMAP 官方 2024 MCM A/C 与 ICM D 的异质题型为来源目录，不复制完整题目，也不提交原题/附件或伪造模型设计与专家评分。
 - 新增 scripts/literature_p6_benchmark.py：要求本地完整原题和必要附件、两条件设计文件的 SHA-256、同预算/同模型配置/同提示模板、至少两位独立评审的七轴评分与具体证据说明；没有真实输入时不产出质量提升结论。
 - 比较仅输出逐题与逐轴的描述性变化、关键假设错误数及实际研究成本，不自动加权排名、不声明统计显著、因果效果、真实论文方法正确或 Human Model Approval。
-- docs/literature_p6_evaluation_protocol.md 裁决 P5：尚未证明独立研究 Gate 有明确收益，本版本不加新门禁。P6 真实三题运行与人工盲评待后续实证，不能用 CI 的合成 fixture 冒充正式效果评价。
+- docs/literature_p6_evaluation_protocol.md 裁决 P5：不增加重复的独立研究 Gate。**2026-11-15 用户取消 P6 历史题收益实验**（Issue #323 关闭为 not_planned，未声称实证完成）；P6-A 工具仍独立只读留档，不进入普通模型设计路由或发布前置门。
 - 全部原 03A/03B、项目状态、SIB、数字工作簿、Figure、写作与正式交付 Gate 不变；新增维护工具只读，不进入普通赛题路由。
 
 ## Previous development version (unreleased): 10.31.0
