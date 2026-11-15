@@ -651,6 +651,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/final_acceptance_traceability_matrix.md`
 - `docs/literature_p6_evaluation_protocol.md`
 - `docs/literature_p6_historical_case_catalog.json`
+- `docs/literature_p6b_real_case_preflight.md`
 - `docs/main-branch-protection-hardening-plan.md`
 - `docs/matlab_publication_rendering_v91_plan.md`
 - `docs/modeling_intelligence_a0_decisions.md`
