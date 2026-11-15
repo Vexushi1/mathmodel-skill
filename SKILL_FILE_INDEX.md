@@ -694,6 +694,7 @@ Maintenance / Migration / Historical 分区仅保留维护、兼容与 provenanc
 - `docs/v10_27_1_release_notes.md`
 - `docs/v10_27_runtime_nonregression_closeout.md`
 - `docs/v10_27_runtime_nonregression_optimization_plan.md`
+- `docs/v10_32_0_release_notes.md`
 - `docs/v801_chapter_capability_preservation_audit.md`
 - `docs/v801_skill_health_remediation_plan.md`
 - `docs/v801_skill_health_remediation_status.md`
