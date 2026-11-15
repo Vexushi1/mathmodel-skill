@@ -1,7 +1,7 @@
 # P6-A 文献增强型模型设计：历史赛题成对评估协议
 
 > 状态：ARCHIVED OPTIONAL MAINTENANCE PROTOCOL — 2026-11-15 用户取消真实双条件收益实验；未执行真实配对评分。本文件仅留存独立工具的历史设计，不再作为发布或普通建模工作的待办/门禁。
-> 本文件定义独立仓库维护实验，不是模型批准、Project State、SIB 或论文 Citation Evidence 的新 Authority。仅参考尚未合并的 [历史修改计划 Draft PR #317](https://github.com/Vexushi1/mathmodel-skill/pull/317) 中的 §11–14；该计划不属于当前 main 的运行时 Authority，现行核心合同永远优先。
+> 本文件定义独立仓库维护实验，不是模型批准、Project State、SIB 或论文 Citation Evidence 的新 Authority。仅历史性参考已关闭且从未合并的 [旧计划 PR #317](https://github.com/Vexushi1/mathmodel-skill/pull/317) 中的 §11–14；该计划不属于当前 main 的运行时 Authority，现行核心合同永远优先。
 
 ## P5 必要性裁决
 
