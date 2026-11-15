@@ -2,7 +2,7 @@
 
 本版本将文献证据研究接入**首次模型设计与实质性模型修订**：Problem Contract 冻结后先独立识别数学机制和研究缺口，再在获授权的学术检索工具可用时主动查询近期高相关原始研究，核实方法与条件、进行迁移性评价，最后构建最小充分主模型并进入既有 Model Challenge / Human Model Approval。无网络或无外部证据需求时允许透明降级；文献报告结构 PASS 仍不证明来源真实性或模型正确。
 
-本次兼容性补丁修复无显式意图请求中两类有界混合动作的漏识别问题（图表＋LaTeX、模型检验＋LaTeX），并纳入 G1–G6 非退化回归与审计证据。未通过安全/收益准入的生产读取缓存、混合窄读和局部 Review 快捷路径均未启用；已有模型批准、数值执行、工作簿与论文交付门禁保持不变。
+此前 v10.27.1 兼容性补丁修复无显式意图请求中两类有界混合动作的漏识别问题（图表＋LaTeX、模型检验＋LaTeX），并纳入 G1–G6 非退化回归与审计证据。未通过安全/收益准入的生产读取缓存、混合窄读和局部 Review 快捷路径均未启用；已有模型批准、数值执行、工作簿与论文交付门禁保持不变。
 
 HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构化简、最小充分的 `proposed_model_spec`、独立 Model Reviewer / Devil's Advocate、`awaiting_model_approval` 到用户明确批准后的 `locked_model_spec`，以及数值求解、证据绘图、论文和终稿交付。每问保留自己的数学模型、算法、源码与结果；数值求解语言与科研绘图语言分别在项目根统一选择；一个竞赛的所有结果图只使用一次选定的 Python 或 MATLAB 后端，保留原 Figure 设计 Authority 和历史 MATLAB 项目。仓库改造不代表任何具体项目已完成后端选择、迁移或数值验收。 竞赛专属 Pack、模板与 profile 是可选适配器；缺失时回退通用规则。建模方案和框架草稿不触发仅适用于论文终稿或提交包的正式交付门禁。
 
@@ -20,9 +20,9 @@ HSK 数学建模工作流覆盖审题与 Problem Contract、条件驱动结构�
 
 在当前小问确有跨聊天恢复需要时，可明确选择 `scripts/literature_snapshot.py preview` 查看 Problem Contract 原文件和研究报告文件的字节哈希，再由用户确认后以 `record --write --expected-contract-sha256 ... --expected-report-sha256 ...` 创建 `research_evidence/Qn.snapshot.json`；该文件仅作研究证据副本，不修改模型框架和项目状态，默认排除官方提交包。新聊天使用 `inspect` 核对原件是否变化，变更则 stale。该检查不能证明论文方法真实、引用正确或模型已获批准。详见 `core/output_contract.yaml#literature_research_snapshot` 和 `packs/artifact/literature_research.md`。
 
-## P6 历史赛题成对评估（独立仓库维护工具）
+## P6 历史赛题成对评估（独立工具留档；收益实验已取消）
 
-新增 docs/literature_p6_historical_case_catalog.json 与 scripts/literature_p6_benchmark.py，以 2024 COMAP 官方 MCM A/C、ICM D 为真实历史题来源目录。工具要求提供**真实原题与附件文件及哈希**、原模型/文献增强模型的独立设计产物和评审记录后，才可计算七轴描述性比较。目录或 CI 合成测试本身不证明模型质量提高，也不授权数值执行/模型批准。评估细则与 P5 不加新 Gate 的裁决见 docs/literature_p6_evaluation_protocol.md；真实历史盲评和总体效果结论仍待完成。
+新增 docs/literature_p6_historical_case_catalog.json 与 scripts/literature_p6_benchmark.py，以 2024 COMAP 官方 MCM A/C、ICM D 为真实历史题来源目录。工具要求提供**真实原题与附件文件及哈希**、原模型/文献增强模型的独立设计产物和评审记录后，才可计算七轴描述性比较。目录或 CI 合成测试本身不证明模型质量提高，也不授权数值执行/模型批准。评估协议与 P5 不加新 Gate 的裁决见 docs/literature_p6_evaluation_protocol.md。**2026-11-15 用户已明确取消历史题双条件质量收益实验**（Issue #323：not_planned），工具保留为独立只读维护资料，不是当前发布条件，也不属于日常新赛题的文献检索链。
 
 ## 最短启动
 
