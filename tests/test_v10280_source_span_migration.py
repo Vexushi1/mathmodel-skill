@@ -182,6 +182,37 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "PQS source span identity drift"):
             self.measurement.project_exact_approved_source_spans(old, new, fixture)
 
+    def test_full_span_restores_an_exact_g2_added_read(self):
+        fixture = self.measurement.approved_source_span_migrations(self.fixture)
+        approvals = self.measurement.approved_changes(
+            ROOT / "tests/fixtures/v10270_g2_approved_deltas.json")
+        case_id = "natural_language_two_actions_probe"
+        transition = next(item for item in approvals
+                          if item["case_id"] == case_id and item["path"] == "read_now")
+        rule = next(item for item in fixture["pqs_full_source_spans"]
+                    if item["path"] == "core/workbook_schema.yaml")
+        old = {"id": case_id, "behavior": {"read_now": deepcopy(transition["before"])},
+               "source_identity": {"sources": []}}
+        approved_row = next(item for item in transition["after"] if item["path"] == rule["path"])
+        candidate_row = {**approved_row, "ranges": [[1, rule["new_last_line"]]]}
+        candidate = {"id": case_id, "behavior": {"read_now": [candidate_row]},
+                     "source_identity": {"sources": []}}
+        observed = deepcopy(candidate["behavior"])
+        evidence = self.measurement._project_pqs_full_source_spans(
+            old, candidate, observed, [rule], {"read_now": transition},
+        )
+        self.assertEqual(observed["read_now"], [approved_row])
+        self.assertEqual(evidence[0]["group"], "read_now")
+        self.assertEqual(candidate["behavior"]["read_now"][0]["ranges"], [[1, rule["new_last_line"]]])
+
+        old["behavior"]["read_now"].append({"path": "unreviewed.md"})
+        observed = deepcopy(candidate["behavior"])
+        evidence = self.measurement._project_pqs_full_source_spans(
+            old, candidate, observed, [rule], {"read_now": transition},
+        )
+        self.assertEqual(evidence, [])
+        self.assertEqual(observed, candidate["behavior"])
+
     def test_reject_changed_ranges_even_if_source_sha_matches(self):
         fixture, old, new = self.cases()
         new["behavior"]["read_now"][0]["ranges"] = [[1, 999]]

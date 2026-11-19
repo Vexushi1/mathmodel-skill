@@ -350,8 +350,8 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
     return data
 
 
-def _project_pqs_full_source_spans(old_case, new_case, expected, rules):
-    """Only restore reviewed full ranges; narrower selectors remain compared as-is."""
+def _project_pqs_full_source_spans(old_case, new_case, expected, rules, read_approvals):
+    """Restore reviewed full ranges to frozen behavior or its exact approved transition."""
     replacements = []
     for rule in rules:
         path = rule["path"]
@@ -364,6 +364,10 @@ def _project_pqs_full_source_spans(old_case, new_case, expected, rules):
         after_range = [[1, rule["new_last_line"]]]
         for group in ("read_now", "conditional"):
             previous_rows = old_case["behavior"].get(group, [])
+            approval = read_approvals.get(group)
+            if (approval and approval["before"] == previous_rows
+                    and isinstance(approval["after"], list)):
+                previous_rows = approval["after"]
             for row in expected.get(group, []):
                 if (row.get("path") != path or row.get("ranges") != after_range
                         or row.get("origin") != "skill"
@@ -382,7 +386,8 @@ def _project_pqs_full_source_spans(old_case, new_case, expected, rules):
 
 def project_exact_approved_source_spans(
     old_case: dict[str, Any], new_case: dict[str, Any],
-    manifest: dict[str, Any] | None,
+    manifest: dict[str, Any] | None, *,
+    read_approvals: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Rebase only exact, hash-pinned physical spans; leave all real source evidence intact."""
     if manifest is None:
@@ -504,6 +509,7 @@ def project_exact_approved_source_spans(
         })
     replacements.extend(_project_pqs_full_source_spans(
         old_case, new_case, expected, manifest.get("pqs_full_source_spans", []),
+        read_approvals or {},
     ))
     return expected, replacements
 
@@ -527,8 +533,10 @@ def compare(before: dict[str, Any], after: dict[str, Any],
     matched: set[tuple[str, str]] = set()
     results = []
     for a, b in zip(left, right):
+        read_approvals = {field: allowed[(a["id"], field)] for field in ("read_now", "conditional")
+                          if (a["id"], field) in allowed}
         compared_behavior, approved_spans = project_exact_approved_source_spans(
-            a, b, span_migrations,
+            a, b, span_migrations, read_approvals=read_approvals,
         )
         diffs = differences(a["behavior"], compared_behavior)
         unapproved = []
