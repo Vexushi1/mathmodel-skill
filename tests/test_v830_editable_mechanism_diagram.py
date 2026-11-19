@@ -1382,7 +1382,7 @@ class ContractAndDriftTests(unittest.TestCase):
             *P6_SOURCE_PROVENANCE_REWRITES.items(),
             *USER_CHECKER_AUTHORITY_REWRITES.items(),
         ):
-            text = (ROOT / relative).read_text(encoding="utf-8")
+            text = prior_primary_quality_binding(relative, (ROOT / relative).read_text(encoding="utf-8"))
             for current, _ in replacements:
                 for changed in (text.replace(current, "unauthorized replacement\n", 1), text + current):
                     with self.subTest(relative=relative, current=current[:80]):
@@ -1391,14 +1391,15 @@ class ContractAndDriftTests(unittest.TestCase):
 
     def test_checker_inverse_projection_does_not_erase_unrelated_changes(self):
         for relative in set(USER_CHECKER_AUTHORITY_REWRITES) | set(P6_SOURCE_PROVENANCE_REWRITES):
-            text = (ROOT / relative).read_text(encoding="utf-8")
+            current = (ROOT / relative).read_text(encoding="utf-8")
+            text = prior_primary_quality_binding(relative, current)
             changed = text + "\nunauthorized unrelated change\n"
             projected = inverse_user_checker_changes(relative, text)
             self.assertEqual(
                 inverse_user_checker_changes(relative, changed),
                 projected + "\nunauthorized unrelated change\n",
             )
-            self.assertEqual((ROOT / relative).read_text(encoding="utf-8"), text)
+            self.assertEqual((ROOT / relative).read_text(encoding="utf-8"), current)
 
     def test_matlab_ownership_and_conditional_per_question_layout_are_explicit(self):
         output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))

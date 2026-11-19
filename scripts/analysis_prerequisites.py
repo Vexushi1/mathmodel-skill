@@ -69,7 +69,7 @@ def stage_input_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str,
         issues = list(observation["issues"])
         if accepted_primary:
             raw_workbook = entry.get("solution_workbook")
-            workbook = STAGE_CODE._relative_path(Path(root), raw_workbook) if raw_workbook else None
+            workbook = (Path(root) / raw_workbook).resolve() if raw_workbook else None
             issues.extend(approved_primary_quality_issues(root, state, entry, config, workbook=workbook))
         if str(config.get("data_sha256", "")).lower() != str(entry.get("data_hash", "")).lower():
             issues.append("delivered input identity differs from current primary data_hash")

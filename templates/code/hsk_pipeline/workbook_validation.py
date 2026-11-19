@@ -220,8 +220,19 @@ def _check_quality_gate(prepared: Sequence[tuple[str, pd.DataFrame]]) -> None:
 
 
 def _check_missing_value_audit(prepared: Sequence[tuple[str, pd.DataFrame]], kind: str) -> None:
-    affected = [name for name, frame in prepared if name != "数据审计" and frame.isna().any().any()]
-    if not affected or kind != "solution":
+    if kind != "solution":
+        return
+    affected = []
+    for name, frame in prepared:
+        if name == "数据审计":
+            continue
+        missing = frame.isna()
+        if name == "主结果质量门" and {"单位", "判定关系"}.issubset(frame.columns):
+            logical_rows = frame["判定关系"].astype(str).str.strip().eq("bool_true")
+            missing.loc[logical_rows, "单位"] = False  # A logical criterion has no unit.
+        if missing.any().any():
+            affected.append(name)
+    if not affected:
         return
     audit = next((frame for name, frame in prepared if name == "数据审计"), None)
     if audit is None:

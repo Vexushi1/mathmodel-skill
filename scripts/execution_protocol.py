@@ -58,7 +58,11 @@ def primary_quality_config_issues(config: Mapping[str, Any], *, required: bool =
     quality_version = config.get("primary_quality_protocol_version")
     if (not required and receipt_version != PQS_RECEIPT_VERSION
             and quality_version != PQS_PROTOCOL_VERSION and PQS_DIGEST_FIELD not in config):
-        return []
+        if config.get("stage") == "primary":
+            return ([] if quality_version in (None, "", "1.0.0") else
+                    ["primary_quality_protocol_version必须为1.0.0"])
+        return ([] if quality_version in (None, "") else
+                ["primary_quality_protocol_version只允许出现在primary阶段运行配置"])
     issues = []
     if config.get("stage") != "primary" or receipt_version != PQS_RECEIPT_VERSION:
         issues.append("approved primary quality requires primary RUN_RECEIPT 1.3.0")

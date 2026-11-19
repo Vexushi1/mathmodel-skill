@@ -210,6 +210,8 @@ def approved_primary_quality_issues(
             return list(issues)
         if workbook is None:
             return ["approved primary quality requires the accepted primary workbook"]
+        if not workbook.is_relative_to(root.resolve()):
+            return ["approved primary quality workbook escapes the project root"]
         content = workbook.read_bytes()
         digest = hashlib.sha256(content).hexdigest()
         hashes = entry.get("validated_artifact_hashes") or {}
