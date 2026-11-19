@@ -482,6 +482,8 @@ def apply_user_execution_boundary(
     router: dict[str, Any],
     manifest: dict[str, Any],
     workflow_order: Iterable[str],
+    *,
+    project_result_prerequisites: Iterable[str] = (),
 ) -> tuple[list[str], list[str], list[str], list[str], bool, bool]:
     """Select the next declarative user-executed segment without crossing its boundary."""
     roles = route_boundary_roles(intents, router)
@@ -514,6 +516,8 @@ def apply_user_execution_boundary(
             return primary_segment(paths)
         if not analysis_accepted:
             return analysis_segment(paths)
+        if project_result_prerequisites:
+            return segment_result({}, ["core/bootstrap.yaml", *router.get("default_load", [])])
         paths = strip_modules_at_or_after(paths, manifest, workflow_order, "solve_validate")
         paths.extend(str(item) for item in final.get("final_load", []))
         return segment_result(final, paths)
@@ -541,6 +545,7 @@ def resolve_workflow(
     available_artifacts: Iterable[str] | None = None,
     preprocessing_decision: str | None = None,
     solver_backend: str | None = None,
+    project_result_prerequisites: tuple[str, ...] = (),
     router_path: Path = ROUTER_PATH,
     manifest_path: Path = MANIFEST_PATH,
     taxonomy_path: Path = TAXONOMY_PATH,
@@ -703,6 +708,7 @@ def resolve_workflow(
                 router,
                 manifest,
                 workflow_order,
+                project_result_prerequisites=project_result_prerequisites,
             )
     delivery_scope = highest_scope(route_scopes)
     artifact_profile = "mechanism" if delivery_scope == "mechanism" else None
@@ -728,6 +734,7 @@ def resolve_workflow(
         module_paths, available_set, manifest, preprocessing_decision,
         input_profile=artifact_profile,
     )
+    missing.extend(project_result_prerequisites)
     available_after_plan = set(produced_after_modules)
     terminal_outputs = unique(module_terminal_outputs)
     for gate in gates:

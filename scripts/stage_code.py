@@ -321,6 +321,27 @@ def resolve_stage_code(root: Path, question: str, stage: str,
     return StageCode(legacy, problem, stage, "python", True) if legacy.is_file() else None
 
 
+def planned_stage_code_path(root: Path, question: str, stage: str, backend: str | None,
+                            *, entry: Mapping[str, Any]) -> Path:
+    """Locate an explicit delivery target without treating a filename as delivered."""
+    if stage == "preprocessing":
+        relative = "数据预处理/数据预处理.py"
+        if entry.get("code") and entry["code"] != relative:
+            raise StageCodeError("预处理只支持既有Python标准入口")
+        return _relative_path(root, relative)
+    field = "code" if stage == "primary" else "result_analysis_code"
+    if entry.get(field):
+        bound = resolve_stage_code(root, question, stage, entry=entry, project_backend=backend)
+        if bound is None or bound.legacy:
+            raise StageCodeError(f"{question}: active {stage} delivery requires a current stage entrypoint")
+        return bound.path
+    problem = question_name(question)
+    names = _names(problem, stage)
+    if backend not in names:
+        raise StageCodeError(f"输出合同不支持后端: {backend}")
+    return _relative_path(root, f"{problem}求解/{names[backend]}")
+
+
 def parse_stage_config(path: Path, backend: str | None = None) -> tuple[str, dict[str, Any]]:
     path = Path(path)
     backend = backend or next((key for key, suffix in BACKENDS.items() if suffix == path.suffix.lower()), "")

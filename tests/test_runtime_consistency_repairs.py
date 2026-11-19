@@ -43,8 +43,10 @@ class HistoricalProjectionTests(unittest.TestCase):
             self.assertTrue(changes, after["id"])
             self.assertEqual(predecessor["version"], "10.26.3")
             saved = deepcopy(after)
-            for mutation in ("source_hash", "source_order", "output_contract_hash",
-                             "gate", "artifact", "scope", "version", "authority_version"):
+            for mutation in (
+                "source_hash", "source_order", "output_contract_hash", "resolve_runtime_hash",
+                "resolve_workflow_hash", "gate", "artifact", "scope", "version", "authority_version",
+            ):
                 altered = deepcopy(after)
                 plan = altered["plan"]
                 if mutation == "source_hash":
@@ -56,6 +58,12 @@ class HistoricalProjectionTests(unittest.TestCase):
                                if row["path"] == "core/output_contract.yaml"]
                     self.assertEqual(len(matches), 1)
                     matches[0]["sha256"] = "0" * 64
+                elif mutation in {"resolve_runtime_hash", "resolve_workflow_hash"}:
+                    path = f"scripts/{mutation.removesuffix('_hash')}.py"
+                    matches = [row for row in plan["assurance"]["authority_fingerprint"]["sources"]
+                               if row["path"] == path]
+                    self.assertEqual(len(matches), 1)
+                    matches[0]["sha256"] = "0" * 64
                 elif mutation == "gate":
                     plan["pre_delivery_gates"] = [{"name": "unregistered_gate"}]
                 elif mutation == "artifact":
@@ -63,7 +71,7 @@ class HistoricalProjectionTests(unittest.TestCase):
                 elif mutation == "scope":
                     plan["delivery_scope"] = "submission"
                 elif mutation == "version":
-                    plan["version"] = "10.32.2"  # unregistered; 10.32.1 is current
+                    plan["version"] = "10.32.3"  # unregistered; 10.32.2 is current
                 else:
                     altered["authority_versions"]["skill"] = "10.27.0"
                 with self.subTest(case=after["id"], mutation=mutation):
@@ -72,7 +80,8 @@ class HistoricalProjectionTests(unittest.TestCase):
                         altered["authority_versions"])
                     self.assertNotEqual(projected, predecessor)
                     if mutation in {"version", "authority_version", "source_hash",
-                                    "source_order", "output_contract_hash"}:
+                                    "source_order", "output_contract_hash",
+                                    "resolve_runtime_hash", "resolve_workflow_hash"}:
                         self.assertEqual(changes_after_mutation, [])
             self.assertEqual(after, saved)
 
@@ -92,19 +101,19 @@ class HistoricalProjectionTests(unittest.TestCase):
 
     def test_frozen_v10270_inverse_still_accepts_only_exact_carrier(self):
         after = plan_evidence.worker(ROOT, 0)
-        self.assertEqual(after["authority_versions"]["skill"], "10.32.1")
-        self.assertEqual(after["plan"]["version"], "10.32.1")
+        self.assertEqual(after["authority_versions"]["skill"], "10.32.2")
+        self.assertEqual(after["plan"]["version"], "10.32.2")
         old_carrier = deepcopy(after)
         old_carrier["authority_versions"]["skill"] = "10.27.0"
         old_carrier["plan"]["version"] = "10.27.0"
-        # Synthetic historical carrier: its output contract must carry the
-        # frozen 10.27.0 source identity, not the current 10.28.0 file hash.
+        # Simulate the v10.27.0 source identities for the three changed files.
         sources = old_carrier["plan"]["assurance"]["authority_fingerprint"]["sources"]
         pinned = plan_evidence.RUNTIME_CONSISTENCY_PROJECTION["fingerprint"]["candidate"]
-        actual_row = [row for row in sources if row["path"] == "core/output_contract.yaml"]
-        pinned_row = [row for row in pinned if row["path"] == "core/output_contract.yaml"]
-        self.assertEqual((len(actual_row), len(pinned_row)), (1, 1))
-        actual_row[0]["sha256"] = pinned_row[0]["sha256"]
+        for path in ("core/output_contract.yaml", "scripts/resolve_runtime.py", "scripts/resolve_workflow.py"):
+            actual_row = [row for row in sources if row["path"] == path]
+            pinned_row = [row for row in pinned if row["path"] == path]
+            self.assertEqual((len(actual_row), len(pinned_row)), (1, 1), path)
+            actual_row[0]["sha256"] = pinned_row[0]["sha256"]
         candidate = plan_evidence.legacy_projection(old_carrier["plan"])
         original = deepcopy(candidate)
         predecessor, approved = plan_evidence.runtime_consistency_predecessor(

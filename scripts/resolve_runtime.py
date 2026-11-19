@@ -10,7 +10,7 @@ import yaml
 import safe_yaml
 import stage_code as STAGE_CODE
 
-from resolve_workflow import TAXONOMY_PATH, add_solver_resources, code_artifact_projection, legacy_to_axes, resolve_workflow, review_only_request
+from resolve_workflow import TAXONOMY_PATH, add_solver_resources, code_artifact_projection, legacy_to_axes, resolve_workflow, review_only_request, route_boundary_roles
 from reading_plan import build_reading_plan
 from runtime_assurance import (
     ProjectStateSnapshot,
@@ -264,6 +264,117 @@ def _solver_context(
     return backend, context, conflicts
 
 
+def _project_result_prerequisites(
+    snapshot: ProjectStateSnapshot, hydration: dict[str, Any], question: str | None,
+    context_conflicts: list[str],
+) -> tuple[str, ...]:
+    """Requalify all project results before a question-scoped workflow can finalize."""
+    if not hydration["loaded"]:
+        return ("full_workflow_resume:project_state",)
+    if question is None or "validated_results" not in hydration["verified_artifacts"]:
+        return ()
+
+    project = hydrate_project_context(snapshot.root, state_snapshot=snapshot)
+    context_conflicts.extend(project["conflicts"])
+    if project["conflicts"]:
+        return ("full_workflow_resume:project_state",)
+    if "validated_results" in project["verified_artifacts"]:
+        return ()
+
+    evidence = project["artifact_evidence"]
+    verified = {(row["scope"], row["artifact"]) for row in evidence if row["status"] == "verified"}
+    missing = []
+    for row in evidence:
+        if row["artifact"] != "accepted_solution_workbook":
+            continue
+        scoped_question = row["scope"]
+        if row["status"] != "verified":
+            missing.append(f"full_workflow_resume:{scoped_question}:accepted_solution_workbook")
+        elif not any((scoped_question, artifact) in verified for artifact in (
+            "accepted_result_analysis_workbook", "result_analysis_not_required",
+        )):
+            missing.append(f"full_workflow_resume:{scoped_question}:validated_results")
+    return tuple(missing) or ("full_workflow_resume:validated_results",)
+
+
+def _question_receipt_target(
+    root: Path, question: str, entry: dict[str, Any]
+) -> tuple[str | None, list[str]]:
+    numeral = STAGE_CODE.question_name(question).removeprefix("问题")
+    output = load_yaml(ROOT / "core/output_contract.yaml")["per_question"]
+    folder = output["question_directory"].replace("{中文序号}", numeral)
+    patterns = {
+        "primary": output["mandatory_workbooks"]["solution"],
+        "analysis": output["conditional_workbooks"]["result_analysis"]["path"],
+    }
+    paths = {
+        stage: f"{folder.rstrip('/')}/{pattern.replace('{中文序号}', numeral)}"
+        for stage, pattern in patterns.items()
+    }
+    pending = {
+        stage: path for stage, path in paths.items()
+        if entry.get(f"{stage}_execution_status") == "awaiting_user_execution"
+    }
+    candidates = [
+        path for path in (pending or paths).values()
+        if STAGE_CODE._relative_path(root, path).is_file()
+    ]
+    return (candidates[0] if len(candidates) == 1 else None,
+            candidates or list((pending or paths).values()))
+
+
+def _scope_gate_commands(
+    plan: dict[str, Any], root: Path, state: dict[str, Any], question: str,
+    backend: str | None,
+) -> list[str]:
+    """Bind gate commands while retaining the router's ordered gate list."""
+    outputs = set(plan["module_terminal_outputs"])
+    stage_choices = [
+        stage for stage, artifact in (
+            ("preprocessing", "preprocessing_code"), ("primary", "primary_code"),
+            ("analysis", "result_analysis_code"),
+        ) if artifact in outputs
+    ]
+    stage = stage_choices[0] if len(stage_choices) == 1 else None
+    entry = (state.get("subproblems") or {}).get(question)
+    known = isinstance(entry, dict) and STAGE_CODE.question_number(question) is not None
+    issues: list[str] = []
+    for gate in plan["pre_delivery_gates"]:
+        name = gate["name"]
+        if not known and name in {"model_approval", "code_delivery", "user_execution_receipt"}:
+            issues.append(f"{question}: gate requires a supported registered question")
+        if name == "model_approval" and stage != "preprocessing":
+            target = question if known else "<registered_question>"
+            gate["command"] += f' --question "{target}"'
+        elif name == "code_delivery":
+            target = "<stage_script>"
+            if stage == "preprocessing" or (stage and backend and known):
+                try:
+                    registration = (state.get("preprocessing") or {}) if stage == "preprocessing" else entry
+                    script = STAGE_CODE.planned_stage_code_path(
+                        root, question, stage, backend, entry=registration,
+                    )
+                    target = script.relative_to(root).as_posix()
+                except (OSError, ValueError) as exc:
+                    issues.append(f"{question}: cannot bind {stage} code delivery: {exc}")
+            elif stage is None:
+                issues.append(f"{question}: select one code delivery stage")
+            gate["command"] += f' --script "{target}" --stage "{stage or "<stage>"}"'
+        elif name == "user_execution_receipt":
+            target = "<returned_workbook>"
+            if known:
+                try:
+                    path, candidates = _question_receipt_target(root, question, entry)
+                    if path:
+                        target = path
+                    else:
+                        issues.append(f"{question}: select one returned workbook: {', '.join(candidates)}")
+                except (OSError, ValueError) as exc:
+                    issues.append(f"{question}: cannot bind returned workbook: {exc}")
+            gate["command"] += f' --workbook "{target}"'
+    return issues
+
+
 def resolve_runtime(
     intents: str | Iterable[str] | None = None,
     *,
@@ -372,6 +483,11 @@ def resolve_runtime(
     context_conflicts.extend(artifact_conflicts)
     dependency_state_supplied = available_artifacts is not None or bool(project_root)
     base_available: Iterable[str] | None = effective_artifacts if dependency_state_supplied else None
+    project_result_prerequisites = ()
+    if state_snapshot is not None and "full_workflow_resume" in route_boundary_roles(selected_intents, router):
+        project_result_prerequisites = _project_result_prerequisites(
+            state_snapshot, hydration, question, context_conflicts,
+        )
 
     plan = resolve_workflow(
         selected_intents,
@@ -386,6 +502,7 @@ def resolve_runtime(
         preprocessing_decision=preprocessing_decision,
         # Backend projection follows the actual resumed stage, not the request intent.
         solver_backend=None,
+        project_result_prerequisites=project_result_prerequisites,
     )
     actual_stage = ("primary" if "modules/03_solve_validate.md" in plan["modules"] else
                     "analysis" if "modules/03_result_analysis.md" in plan["modules"] else None)
@@ -507,6 +624,11 @@ def resolve_runtime(
             ),
         ]
     )
+    if question and state_snapshot is not None:
+        selected_backend = effective_backend if solver_context and solver_context["selection_complete"] else None
+        context_conflicts = _unique([*context_conflicts, *_scope_gate_commands(
+            plan, state_snapshot.root, state_snapshot.payload(), question, selected_backend,
+        )])
     review_required = bool(context_conflicts or ambiguities)
 
     plan["version"] = bootstrap.get("skill_version", plan.get("version"))
