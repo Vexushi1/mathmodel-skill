@@ -317,6 +317,62 @@ class ReceiptContextBoundaryTests(unittest.TestCase):
         self.assertTrue(report["issues"])
         self.assertEqual((self.root / "state/project_state.yaml").read_bytes(), before)
 
+    def test_confirmed_preprocessing_drift_invalidates_downstream_data(self):
+        for changed in ("source", "raw", "workbook"):
+            with self.subTest(changed=changed), tempfile.TemporaryDirectory() as temp:
+                self.root = Path(temp)
+                fixture = self.accepted_preprocessing()
+                self.register_discoverable_primary(fixture)
+                if changed == "source":
+                    with fixture.pre_code.open("a", encoding="utf-8") as source:
+                        source.write("\n# new preprocessing revision\n")
+                elif changed == "raw":
+                    (self.root / "data/raw.csv").write_text("key,value\nA,9\n", encoding="utf-8")
+                else:
+                    self.mutate_workbook(fixture.pre_workbook,
+                                         lambda book: setattr(book["模型输入"]["A2"], "value", 7))
+                _, report = self.deliver_discovered()
+                state = self.fixture.read_state(self.root)
+                self.assertTrue(report["issues"] or report["state_transitions"], report)
+                self.assertNotEqual(state["preprocessing"]["status"], "accepted")
+                self.assertNotEqual(state["preprocessing"]["quality_status"], "passed")
+                entry = state["subproblems"]["Q1"]
+                self.assertNotEqual(entry.get("primary_execution_status"), "awaiting_user_execution")
+                self.assertIn("solution_workbook", entry["stale_layers"])
+                self.assertNotIn("bundle_sha256", (entry.get("solver_execution") or {}).get("primary", {}))
+
+    def test_rejected_preprocessing_receipt_cannot_be_promoted_by_delivery(self):
+        fixture = preprocessing_fixtures.SolverBackendPreprocessingTests()
+        fixture.prepare_root(self.root)
+        fixture.preprocessing_workbook()
+        self.mutate_workbook(fixture.pre_workbook, lambda book: setattr(book["预处理质量门"]["B2"], "value", False))
+        result, output = self.run_cli(fixture.pre_workbook)
+        self.assertEqual(result, 1, output)
+        self.assertNotEqual(self.fixture.read_state(self.root)["preprocessing"]["status"], "accepted")
+        self.deliver_discovered()
+        state = self.fixture.read_state(self.root)
+        self.assertNotEqual(state["preprocessing"]["status"], "accepted")
+        self.assertNotEqual(state["preprocessing"]["quality_status"], "passed")
+
+    def test_raw_input_changed_at_primary_commit_aborts_default_redelivery(self):
+        fixture = self.accepted_preprocessing()
+        self.register_discoverable_primary(fixture)
+        original_commit = CODE.PROJECT_TX.commit_project_state
+        before = (self.root / "state/project_state.yaml").read_bytes()
+        raw = self.root / "data/raw.csv"
+
+        def change_input_before_primary_commit(root, state, **kwargs):
+            if state["subproblems"]["Q1"].get("primary_execution_status") == "awaiting_user_execution":
+                raw.write_text("key,value\nA,11\n", encoding="utf-8")
+            return original_commit(root, state, **kwargs)
+
+        with mock.patch.object(CODE.PROJECT_TX, "commit_project_state", side_effect=change_input_before_primary_commit):
+            result, report = self.deliver_discovered()
+        self.assertEqual(result, 1, report)
+        self.assertTrue(report["issues"])
+        self.assertIn("A,11", raw.read_text(encoding="utf-8"))
+        self.assertEqual((self.root / "state/project_state.yaml").read_bytes(), before)
+
     def test_preprocessing_missing_raw_input_preserves_state_but_real_quality_failure_invalidates(self):
         fixture = preprocessing_fixtures.SolverBackendPreprocessingTests()
         fixture.prepare_root(self.root)
