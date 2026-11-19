@@ -445,6 +445,112 @@ USER_CHECKER_AUTHORITY_REWRITES = {
 }
 
 
+# PR #327 changes only these regions of validate_code_delivery.py. Each tuple
+# identifies one reviewed block by its first line, length and SHA-256, followed
+# by its exact v10.32.0 predecessor. Positions outside those blocks remain live.
+PREPROCESSING_REDELIVERY_BLOCKS = (
+    (
+        "from stage_inputs import InputUnavailableError, input_files, observe_inputs, observe_preprocessing_inputs", 1,
+        "68a96abb3254264c9f1f957ef879ebca45070b97121ef0c0d9b913637c7d338e",
+        "from stage_inputs import observe_inputs\n",
+    ),
+    (
+        "def _preprocessing_registration(state: Mapping[str, Any]) -> tuple:", 71,
+        "b89af571ccf9607ad29b21515c2f781d05b47cc0534441e34a5d68d8dd170a69",
+        (
+            "def update_state(project_root: Path, config: dict[str, Any], script: Path, *,\n"
+            "                 expected_source_sha256: str | None = None,\n"
+            "                 expected_bundle_sha256: str | None = None) -> list[dict[str, Any]]:\n"
+        ),
+    ),
+    (
+        "    stage = str(config[\"stage\"])", 16,
+        "63d9ee73e72a4d33904f77dd1d84e63d78df2ef5c92cf6ad087d55714a919fb4",
+        (
+            "    if guarded:\n"
+            "        from runtime_assurance import ProjectStateSnapshot\n"
+            "        snapshot = ProjectStateSnapshot.capture(project_root)\n"
+            "        state = snapshot.payload()\n"
+            "        base_generation = PROJECT_TX.state_generation(state)\n"
+            "    else:\n"
+            "        _, state, base_generation = PROJECT_TX.load_state_for_update(project_root)\n"
+            "    problem = str(config[\"problem_name\"])\n"
+            "    stage = str(config[\"stage\"])\n"
+        ),
+    ),
+    (
+        "        preprocessing_observed[\"project\"][relative] = new_hash", 19,
+        "b153f527c6b0e59f2b2a374a8999c383bbc33d0a4dbb1752f869922246f08467",
+        "        old_hash = preprocessing.get(\"code_sha256\")\n",
+    ),
+    (
+        "        if change:", 1,
+        "65784959f2af75b1ed4045fb247e523ab2033e33d31a7b9d41dd888a85eafcb0",
+        "        if old_hash and old_hash != new_hash:\n",
+    ),
+    (
+        "                        \"reason\": change,", 6,
+        "56143a6a50e98ab65bee46133dc514c8ad057a64405ded73f206a11569f46500",
+        (
+            "                        \"reason\": \"project-level preprocessing code changed\",\n"
+            "                    }],\n"
+            "                })\n"
+            "        PROJECT_TX.commit_project_state(\n"
+            "            project_root, state, expected_generation=base_generation\n"
+        ),
+    ),
+    (
+        "    CONFORMANCE.merge_read_sets(observed, preprocessing_observed)", 5,
+        "c235bf0565c87d811baf427e59cdc102ca148b50172d09d9c335d51235688f6e",
+        "    CONFORMANCE.assert_observed(project_root, observed)\n",
+    ),
+    (
+        "    source = root / \"数据预处理/数据预处理.py\"", 5,
+        "79bf698c733eb14c4c81438d883bb6a2bc569e3467d6621b5f9782ac9d2c28d2",
+        "    scripts = [root / \"数据预处理/数据预处理.py\"] if (root / \"数据预处理/数据预处理.py\").is_file() else []\n",
+    ),
+    (
+        "def _main() -> int:", 1,
+        "13b487cf9bbbda556930bf186edbd80718bd379256a49758131efc9db3960539",
+        "def main() -> int:\n",
+    ),
+    (
+        "    preprocessing_batch = {} if args.write and not args.script else None", 1,
+        "1b60ecbcfdb948c8d28449b70b7a8a2ad646793f5d2ddf8383ae192c018316bb",
+        "",
+    ),
+    (
+        "                                                       expected_bundle_sha256=native_report.get(\"validated_bundle_sha256\"),", 6,
+        "3c61a6f6c3bb55871d979b26f1ee8dd053dc28c78c5f3c66125fd742219296b2",
+        (
+            "                                                       expected_bundle_sha256=native_report.get(\"validated_bundle_sha256\")))\n"
+            "            except ValueError as exc:\n"
+            "                issues.append(f\"{script.name}: {exc}\")\n"
+        ),
+    ),
+    (
+        "def main() -> int:", 11,
+        "aa4cc4a77d0ce2844b75042b509a8a39561bbc6f6f33a6432f2916aeb603a4b5",
+        "",
+    ),
+)
+
+
+def prior_preprocessing_delivery(text: str) -> str:
+    lines = text.splitlines(keepends=True)
+    for first, line_count, digest, previous in PREPROCESSING_REDELIVERY_BLOCKS:
+        matches = [
+            start for start, line in enumerate(lines)
+            if line == first + "\n"
+            and hashlib.sha256("".join(lines[start:start + line_count]).encode("utf-8")).hexdigest() == digest
+        ]
+        if len(matches) != 1:
+            raise ValueError(f"preprocessing re-delivery block missing or duplicated: {first.strip()}")
+        start, = matches
+        lines[start:start + line_count] = previous.splitlines(keepends=True)
+    return "".join(lines)
+
+
 # PR #279 (P6) is an authorized, narrowly scoped source-provenance refactor.
 # Undo only its exact changed blocks before the older protected-blob projections.
 # A different or duplicated block must fail; unrelated changes remain visible
@@ -865,6 +971,8 @@ class ContractAndDriftTests(unittest.TestCase):
         for current, baseline in PDF_REVIEW_OWNER_REWRITES.get(relative, ()):
             self.assertEqual(text.count(current), 1, (relative, current))
             text = text.replace(current, baseline, 1)
+        if relative == "scripts/validate_code_delivery.py":
+            text = prior_preprocessing_delivery(text)
         text = inverse_user_checker_changes(relative, text)
         for current, baseline in HANDOFF_AUTHORITY_REWRITES.get(relative, ()):
             self.assertEqual(text.count(current), 1, (relative, current))
@@ -1091,6 +1199,19 @@ class ContractAndDriftTests(unittest.TestCase):
                 inverse_defensive_writing_changes(relative, source + unrelated),
                 projected + unrelated,
             )
+
+    def test_preprocessing_redelivery_inverse_is_exact(self):
+        source = (ROOT / "scripts/validate_code_delivery.py").read_text(encoding="utf-8")
+        predecessor = prior_preprocessing_delivery(source)
+        data = predecessor.encode("utf-8")
+        self.assertEqual(hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest(),
+                         "6a721c2620b4f1fc8023e641ae1a5b7b666f9fcc")
+        extra = "\n# unrelated change\n"
+        self.assertEqual(prior_preprocessing_delivery(source + extra), predecessor + extra)
+        first = PREPROCESSING_REDELIVERY_BLOCKS[0][0] + "\n"
+        for changed in (source.replace(first, extra, 1), source + first):
+            with self.assertRaisesRegex(ValueError, "missing or duplicated"):
+                prior_preprocessing_delivery(changed)
 
     def test_checker_inverse_projection_rejects_missing_or_duplicate_authorized_blocks(self):
         # P6 and older documentation deltas both reject a missing or duplicate

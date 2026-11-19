@@ -1,12 +1,8 @@
 # Changelog
 
-## 10.32.0
+## 10.32.1
 
-- 新增历史真实赛题 P6-A 配对评估脚手架：以 COMAP 官方 2024 MCM A/C 与 ICM D 的异质题型为来源目录，不复制完整题目，也不提交原题/附件或伪造模型设计与专家评分。
-- 新增 scripts/literature_p6_benchmark.py：要求本地完整原题和必要附件、两条件设计文件的 SHA-256、同预算/同模型配置/同提示模板、至少两位独立评审的七轴评分与具体证据说明；没有真实输入时不产出质量提升结论。
-- 比较仅输出逐题与逐轴的描述性变化、关键假设错误数及实际研究成本，不自动加权排名、不声明统计显著、因果效果、真实论文方法正确或 Human Model Approval。
-- docs/literature_p6_evaluation_protocol.md 裁决 P5：不增加重复的独立研究 Gate。**2026-11-15 用户取消 P6 历史题收益实验**（Issue #323 关闭为 not_planned，未声称实证完成）；P6-A 工具仍独立只读留档，不进入普通模型设计路由或发布前置门。
-- 全部原 03A/03B、项目状态、SIB、数字工作簿、Figure、写作与正式交付 Gate 不变；新增维护工具只读，不进入普通赛题路由。
+- 修复项目级预处理已验收后，默认代码交付命令再次发现同一脚本会撤销验收、阻塞后续主求解交付的问题。重复交付核对原始输入、已交付源码和已验收工作簿的身份，沿用现有预处理回执与项目事务。
 
 ## Previous development version (unreleased): 10.31.0
 
@@ -37,6 +33,14 @@
 - 新增 core/literature_research_contract.yaml、packs/artifact/literature_research.md、scripts/literature_evidence.py 和独立负例测试；校验 PASS 只说明报告结构与有限一致性合法，不证明真实学术检索、原文真实性、数学可迁移性或 Human Model Approval。
 - 尚未将外部网络搜索自动接入普通新赛题建模；以后按独立 PR 将真实定向检索与自主模型设计、原独立质询对接，不提前修改 SIB、Project State、Typed Stale、full_fidelity 数值执行和正式交付门。
 - 原 v10.27.x 运行时投影和 golden 属于历史证据，此发布只增加显式只读审计路由，不改变原模型、求解和论文路由的业务动作。
+
+## Previous release: 10.32.0
+
+- 新增历史真实赛题 P6-A 配对评估脚手架：以 COMAP 官方 2024 MCM A/C 与 ICM D 的异质题型为来源目录，不复制完整题目，也不提交原题/附件或伪造模型设计与专家评分。
+- 新增 scripts/literature_p6_benchmark.py：要求本地完整原题和必要附件、两条件设计文件的 SHA-256、同预算/同模型配置/同提示模板、至少两位独立评审的七轴评分与具体证据说明；没有真实输入时不产出质量提升结论。
+- 比较仅输出逐题与逐轴的描述性变化、关键假设错误数及实际研究成本，不自动加权排名、不声明统计显著、因果效果、真实论文方法正确或 Human Model Approval。
+- docs/literature_p6_evaluation_protocol.md 裁决 P5：不增加重复的独立研究 Gate。**2026-11-15 用户取消 P6 历史题收益实验**（Issue #323 关闭为 not_planned，未声称实证完成）；P6-A 工具仍独立只读留档，不进入普通模型设计路由或发布前置门。
+- 全部原 03A/03B、项目状态、SIB、数字工作簿、Figure、写作与正式交付 Gate 不变；新增维护工具只读，不进入普通赛题路由。
 
 ## Previous release: 10.27.1
 

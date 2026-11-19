@@ -28,7 +28,7 @@ import stage_code as STAGE_CODE  # noqa: E402
 import conformance_gate as CONFORMANCE  # noqa: E402
 import analysis_comparison_gate as COMPARISON  # noqa: E402
 from execution_protocol import SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, auxiliary_receipt_issues, comparison_receipt_issues
-from stage_inputs import InputUnavailableError, input_files, observe_inputs
+from stage_inputs import InputUnavailableError, input_files, observe_inputs, observe_preprocessing_inputs
 from artifact_fingerprint import combined_hash, sha256_file
 
 FALSE_FLAGS = (
@@ -680,16 +680,9 @@ def _receipt_context(root: Path, state: dict[str, Any], key: str, stage: str, re
         observation: dict[str, Any] = {}
         try:
             if current == "preprocessing":
-                paths = input_files(root, config.get("data_paths"))
-                aggregate = combined_hash(paths, root)
-                # Preprocessing 1.0 historically permits a single-file digest
-                # as well as a combined identity. Do not invent drift between
-                # these existing conventions.
-                actual = sha256_file(paths[0]) if len(paths) == 1 else aggregate
-                if aggregate == str(config.get("data_sha256", "")).lower():
-                    actual = aggregate
-                observation = {"paths": [p.relative_to(root).as_posix() for p in paths],
-                               "data_sha256": actual, "issues": []}
+                actual, raw_hashes = observe_preprocessing_inputs(root, config)
+                CONFORMANCE.merge_read_sets(result["observed_sources"], {"project": raw_hashes})
+                observation = {"paths": list(raw_hashes), "data_sha256": actual, "issues": []}
             else:
                 observation = observe_inputs(root, config, state)
         except InputUnavailableError as exc:
@@ -717,6 +710,8 @@ def _receipt_context(root: Path, state: dict[str, Any], key: str, stage: str, re
         actual = observation.get("data_sha256")
         if actual and is_sha256(config.get("data_sha256")) and actual != str(config["data_sha256"]).lower():
             result["events"].add("preprocessing_changed" if current == "preprocessing" else "data_changed")
+            if current == "preprocessing":
+                result["issues"].append("预处理原始输入当前SHA-256与已交付RUN_CONFIG不一致")
         auxiliary = observation.get("auxiliary_data_sha256")
         if auxiliary and auxiliary != str(config.get("auxiliary_data_sha256", "")).lower():
             result["events"].add("analysis_inputs_changed" if current == "analysis" else "data_changed")

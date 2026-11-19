@@ -5,7 +5,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 from typing import Any, Mapping
 
-from artifact_fingerprint import combined_hash, sha256_file
+from artifact_fingerprint import combined_hash, combined_hash_from_entries, sha256_file
 from execution_protocol import AUXILIARY_RECEIPT_VERSION, auxiliary_config_issues
 
 
@@ -59,6 +59,18 @@ def input_files(root: Path, declared: Any) -> list[Path]:
     if missing:
         raise InputUnavailableError("输入文件不存在: " + ", ".join(missing), paths=files, missing=missing)
     return files
+
+
+def observe_preprocessing_inputs(root: Path, config: Mapping[str, Any]) -> tuple[str, dict[str, str]]:
+    """Observe 1.0 raw inputs once; historical single-file and combined identities are valid."""
+    root = root.resolve()
+    files = input_files(root, config.get("data_paths"))
+    hashes = {path.relative_to(root).as_posix(): sha256_file(path) for path in files}
+    combined = combined_hash_from_entries(sorted(hashes.items()))
+    if len(hashes) == 1 and combined != str(config.get("data_sha256", "")).lower():
+        return next(iter(hashes.values())), hashes
+    assert combined is not None  # input_files requires a nonempty declaration.
+    return combined, hashes
 
 
 def observe_inputs(root: Path, config: Mapping[str, Any], state: Mapping[str, Any]) -> dict[str, Any]:
