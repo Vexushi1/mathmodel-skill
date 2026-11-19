@@ -51,7 +51,11 @@ if preprocessed
 end
 approvedProject = fullfile(projectRoot,"approved-primary-quality");
 if stage == "primary" && isfolder(approvedProject)
-    report.approved_primary_quality_workbook = run_approved_primary_quality(approvedProject);
+    report.approved_primary_quality_workbook = run_primary_fixture(approvedProject);
+end
+scaleProject = fullfile(projectRoot,"execution-scale");
+if stage == "primary" && isfolder(scaleProject)
+    report.execution_scale_workbook = run_primary_fixture(scaleProject);
 end
 fid = fopen(fullfile(projectRoot,stage + "_matlab_report.json"),'w','n','UTF-8');
 assert(fid >= 0, 'Cannot write smoke report.');
@@ -59,7 +63,7 @@ reportCleanup = onCleanup(@() fclose(fid));
 fwrite(fid,jsonencode(report),'char');
 end
 
-function workbook = run_approved_primary_quality(projectRoot)
+function workbook = run_primary_fixture(projectRoot)
 folder = fullfile(projectRoot,"问题一求解");
 previousPath = path;
 cleanup = onCleanup(@() path(previousPath));
@@ -67,7 +71,7 @@ addpath(folder);
 clear q1_solver
 actual = string(which("q1_solver"));
 expected = fullfile(folder,"q1_solver.m");
-assert(actual == expected || (ispc && strcmpi(actual, expected)), 'Approved fixture source is shadowed.');
+assert(actual == expected || (ispc && strcmpi(actual, expected)), 'Primary fixture source is shadowed.');
 workbook = q1_solver();
 clear q1_solver
 end

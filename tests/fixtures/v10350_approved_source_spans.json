@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "scope": "v10.35.0_execution_scale_commitments",
+  "version": "10.35.0",
+  "authorizing_reason": "The optional scale receipt protocol preserves existing unbound execution and output behavior. Frozen read-range comparison recognizes only the current source identities.",
+  "required_case_ids": [
+    "pure_model_design",
+    "pure_python_figures",
+    "review_word_readonly",
+    "two_carrier_legacy_protected",
+    "explicit_figure_scope",
+    "natural_language_two_actions_probe",
+    "full_workflow_boundary",
+    "analysis_stage_request"
+  ],
+  "migrations": [
+    {
+      "path": "core/workflow_router.yaml",
+      "baseline_sha256": "eb9d4200cc7196e72e414d590e9f7a9ffdc782986d2d13a17c5ac99e976189b6",
+      "candidate_sha256": "f40471fa5a19753167d8b4b085423fd030f86ecf568f2d043c363f13a66ecdfb",
+      "old_ranges": [
+        [
+          416,
+          416
+        ],
+        [
+          419,
+          430
+        ]
+      ],
+      "new_ranges": [
+        [
+          424,
+          424
+        ],
+        [
+          427,
+          438
+        ]
+      ]
+    },
+    {
+      "path": "core/model_approval_contract.yaml",
+      "baseline_sha256": "d1b607ea5a7704b4e18f01defb69c24e5b82ffc0f70661e28d880f9a8fbbee25",
+      "candidate_sha256": "3d97b5a170b1ddd6155fe47b0864caa4a2a4bf513238d6cf38ab85a0436bbc3d",
+      "old_ranges": [
+        [
+          1,
+          272
+        ]
+      ],
+      "new_ranges": [
+        [
+          1,
+          296
+        ]
+      ]
+    },
+    {
+      "path": "modules/01_problem_audit.md",
+      "baseline_sha256": "6e0d674e4afe4f93b6f948d66a446114a01b4777a1550ef1251d45873a97abdc",
+      "candidate_sha256": "2fc8fecefd068f918f4a6bc698d763081bd27b73c85464c0545be9e4b176444f",
+      "old_ranges": [
+        [
+          1,
+          83
+        ]
+      ],
+      "new_ranges": [
+        [
+          1,
+          92
+        ]
+      ]
+    },
+    {
+      "path": "modules/02_model_design.md",
+      "baseline_sha256": "5541bb8e44b80aefece95a5a785b3386a0433aac79320065a71f37fb262f6b1f",
+      "candidate_sha256": "fbd22182e91666b2e54c8e4007f92a7aa06fc3ec79568e0709240848a94b66a5",
+      "old_ranges": [
+        [
+          1,
+          700
+        ]
+      ],
+      "new_ranges": [
+        [
+          1,
+          717
+        ]
+      ]
+    }
+  ],
+  "model_intake": {
+    "case_ids": [
+      "pure_model_design",
+      "full_workflow_boundary",
+      "analysis_stage_request"
+    ],
+    "resources": [
+      {
+        "path": "core/literature_research_contract.yaml",
+        "candidate_sha256": "912da4aab0f93298529dc7ab916609fec84654a8ddbed162d88a5f3e801f456e",
+        "ranges": [
+          [
+            1,
+            164
+          ]
+        ]
+      },
+      {
+        "path": "packs/artifact/literature_research.md",
+        "candidate_sha256": "6966319982f7d67aed7058058828974404e299168601c60d1293205e3b71204b",
+        "ranges": [
+          [
+            1,
+            60
+          ]
+        ]
+      }
+    ]
+  },
+  "output_read_shift": {
+    "path": "core/output_contract.yaml",
+    "candidate_sha256": "4c8bf235d55a7b33c8d41bffa60715144eab14a35325cc33c3be6ae57479c087",
+    "cases": [
+      {
+        "case_id": "review_word_readonly",
+        "current_ranges": [
+          [
+            465,
+            511
+          ]
+        ],
+        "historical_ranges": [
+          [
+            443,
+            489
+          ]
+        ],
+        "selectors": {
+          "yaml_paths": [
+            "per_question"
+          ]
+        }
+      },
+      {
+        "case_id": "natural_language_two_actions_probe",
+        "current_ranges": [
+          [
+            1,
+            634
+          ]
+        ],
+        "historical_ranges": [
+          [
+            1,
+            612
+          ]
+        ],
+        "selectors": {}
+      }
+    ]
+  },
+  "output_conditional_shift": {
+    "path": "core/output_contract.yaml",
+    "candidate_sha256": "4c8bf235d55a7b33c8d41bffa60715144eab14a35325cc33c3be6ae57479c087",
+    "current_ranges": [
+      [
+        1,
+        634
+      ]
+    ],
+    "historical_ranges": [
+      [
+        1,
+        612
+      ]
+    ],
+    "when": "current_delivery_scope_or_file_layout_requires_definition",
+    "case_ids": [
+      "pure_python_figures",
+      "review_word_readonly",
+      "two_carrier_legacy_protected",
+      "explicit_figure_scope"
+    ]
+  },
+  "pqs_full_source_spans": [
+    {
+      "path": "core/user_execution_contract.yaml",
+      "baseline_sha256": "b05f8a41a521fa5df10f0f2369b1308f14959abad07701712f185cea3924b795",
+      "candidate_sha256": "b61f52a6ad68f0f5234bc4dec8182d52e3bd23f3e75e6c7fe85d59f8014ba6bb",
+      "old_last_line": 507,
+      "new_last_line": 543
+    },
+    {
+      "path": "core/numerical_verification_contract.yaml",
+      "baseline_sha256": "1172bc1abc7c905203fb6d5af254f85dd75467a423b4189082f5e3e259c4ac4a",
+      "candidate_sha256": "4cae35d10373e96a2eaa24fedcc83699942190933ab289dce1944aa7f15fa45f",
+      "old_last_line": 222,
+      "new_last_line": 235
+    },
+    {
+      "path": "core/workbook_schema.yaml",
+      "baseline_sha256": "d2433f32204cbba294cc8ce0565c850b8c7bf823857cd19e4e6823d2e60526eb",
+      "candidate_sha256": "568d2fa949b04748acf512a9883d7a5bd6c958221675d3548cee2fc88cded095",
+      "old_last_line": 301,
+      "new_last_line": 303
+    }
+  ]
+}

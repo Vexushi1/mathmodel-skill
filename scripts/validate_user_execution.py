@@ -32,6 +32,7 @@ from execution_protocol import (
     SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, auxiliary_receipt_issues,
     comparison_receipt_issues, primary_quality_receipt_issues,
 )
+from execution_scale import inspect_scale_plan, scale_evidence_issues, scale_receipt_issues
 from stage_inputs import InputUnavailableError, input_files, observe_inputs, observe_preprocessing_inputs
 from artifact_fingerprint import combined_hash, sha256_file
 
@@ -326,6 +327,7 @@ def validate_run_receipt_binding(
     issues.extend(auxiliary_receipt_issues(receipt, delivered or {}))
     issues.extend(comparison_receipt_issues(receipt, delivered or {}))
     issues.extend(primary_quality_receipt_issues(receipt, delivered or {}))
+    issues.extend(scale_receipt_issues(receipt, delivered or {}))
     return issues
 
 
@@ -935,6 +937,11 @@ def _validate_captured_receipt(
             return list(dict.fromkeys([*issues, *quality_issues]))
         if conformance_read_set is not None:
             CONFORMANCE.merge_read_sets(conformance_read_set, quality_observed)
+    scale_plan, _ = inspect_scale_plan(delivered or {})
+    if scale_plan is not None:
+        issues.extend(scale_evidence_issues(
+            captured_workbook, scale_plan, config, approved_specification=specification,
+        ))
     if project_backend is not None and delivered is not None and delivered.get("solver_backend") != project_backend:
         return list(dict.fromkeys([
             *issues, "项目后端与已交付RUN_CONFIG后端不一致，不能登记当前工作簿",

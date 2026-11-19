@@ -68,6 +68,7 @@ _FALLBACK_SCHEMA: dict[str, Any] = {
             "守恒残差": {"required_columns": ["守恒量", "残差", "容差", "是否满足"]},
             "离散精度": {"required_columns": ["离散参数", "取值", "目标指标", "相对变化"]},
             "收敛诊断": {"required_columns": ["迭代或样本数", "指标", "数值", "判定"]},
+            "执行停止证据": {"required_columns": ["迭代或样本数", "指标", "数值", "单位"]},
             "外样本验证": {"required_columns": ["划分或窗口", "指标", "数值"]},
             "不确定性区间": {"required_columns": ["指标", "下界", "上界"]},
             "泄漏检查": {"required_columns": ["检查项", "是否通过", "证据"]},

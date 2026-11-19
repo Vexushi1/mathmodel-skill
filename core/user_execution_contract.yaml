@@ -213,20 +213,23 @@ code_delivery:
     current_version: 1.0.0
     current_version_by_stage: {preprocessing: 1.0.0, primary: 1.1.0, analysis: 1.1.0}
     current_version_when_auxiliary_inputs: 1.2.0
-    supported_versions: [1.0.0, 1.1.0, 1.2.0, 1.3.0]
+    supported_versions: [1.0.0, 1.1.0, 1.2.0, 1.3.0, 1.4.0]
     version_required_config_fields:
       '1.1.0': [solver_backend]
       '1.2.0': [solver_backend, data_identity_mode, auxiliary_data_paths, auxiliary_data_sha256]
       '1.3.0': [solver_backend, primary_quality_protocol_version, primary_quality_spec_sha256]
+      '1.4.0': [solver_backend, execution_scale_plan, execution_scale_plan_sha256]
     version_stage_required_config_fields:
       '1.1.0':
         analysis: [primary_workbook_sha256]
       '1.2.0':
         analysis: [primary_workbook_sha256]
+      '1.4.0':
+        analysis: [primary_workbook_sha256]
     new_writer_required: true
     p5a_transitional_missing_marker_read_supported: true
     unknown_version_policy: fail_closed
-    binding: 已交付阶段代码RUN_CONFIG中的协议期望 + 返回工作簿RUN_RECEIPT中的run_receipt_version；静态读取代码并核对阶段代码SHA；1.1/1.2/1.3另按code_bundle绑定已交付与已验收实现；1.2按auxiliary_inputs绑定辅助数据
+    binding: 已交付阶段代码RUN_CONFIG中的协议期望 + 返回工作簿RUN_RECEIPT中的run_receipt_version；静态读取代码并核对阶段代码SHA；1.1及以后另按code_bundle绑定已交付与已验收实现；1.2按auxiliary_inputs绑定辅助数据
   legacy_required_config_fields:
   - execution_owner
   - execution_profile
@@ -254,11 +257,30 @@ code_delivery:
     authority: core/numerical_verification_contract.yaml#approved_primary_quality_binding
     activation: current_question_uses_approved_primary_quality_specification
     run_receipt_version: 1.3.0
+    additional_receipt_versions: [1.4.0]
     primary_quality_protocol_version: 1.1.0
     digest_field: primary_quality_spec_sha256
     scope: primary_without_independent_auxiliary_inputs
     input_echo: RUN_RECEIPT 1.3.0 records the delivered data_paths as a JSON array and echoes data_identity_mode (combined when omitted in RUN_CONFIG).
     compatibility: Earlier receipt readers reject the explicit 1.3.0 version. Existing unbound primary routes retain their original receipt versions. Do not relabel older or newer receipts.
+  execution_scale:
+    opt_in_receipt_version: 1.4.0
+    stages: [primary, analysis]
+    plan_field: execution_scale_plan
+    digest_field: execution_scale_plan_sha256
+    actual_count_field: actual_scale_count
+    profiles:
+      primary_repetitions: {axis: repetitions, modes: [exact, minimum], sheet: 重复试验结果, id: 重复编号}
+      primary_scenarios: {axis: scenarios, modes: [exact, minimum], sheet: 逐场景结果, id: 场景}
+      analysis_scenarios: {axis: scenarios, modes: [exact, minimum], sheet: 场景压力测试, id: 场景}
+      adaptive_primary: {axis: iterations, modes: [adaptive_stop], sheet: 执行停止证据, id: 迭代或样本数}
+    rules:
+    - Freeze one scale axis in the delivered literal RUN_CONFIG. Exact and minimum have a positive integer count; scenario plans also name unique required_scenario_ids. Exact requires the same full set. Minimum requires at least the count and all listed IDs.
+    - Observe unique IDs with an actual response in the corresponding workbook table. Multiple metrics for the same ID count once. The independently observed count must equal the positive integer actual_scale_count.
+    - For adaptive primary, freeze minimum_count, maximum_count and pqs_id. The ID must bind a numeric current approved PQS item pointing to 执行停止证据. Use the approved metric, unit, relation and threshold to check the last recorded step and require actual_stop_reason=criterion_met. This validates the recorded terminal checkpoint within its bounds.
+    - RUN_RECEIPT echoes the exact canonical scale plan digest and data paths as a JSON array with data identity mode (combined if omitted). Keep repetitions_or_scenarios and grid_or_time_range as descriptive execution facts; iteration_or_time_limit remains a budget.
+    - Receipt 1.4 may bind the opted-in primary quality protocol. Auxiliary inputs require the existing 1.2 version and analysis comparison keeps its existing transport. The 1.4 option applies only to the profiles above.
+    - A reader must support 1.4 for scale qualification. Older readers reject 1.4 at receipt intake; historical display does not qualify execution scale.
   primary_quality_protocol_marker_scope: primary_only
   primary_quality_protocol_binding: 已交付主求解代码RUN_CONFIG（旧项目可只读FULL_FIDELITY_CONFIG/FULL_RUN_CONFIG）+ 返回主工作簿RUN_RECEIPT；receipt静态读取已交付代码并核对代码SHA，不新增project_state字段
   no_placeholder_markers:
@@ -403,19 +425,22 @@ returned_workbook:
     current_version: 1.0.0
     current_version_by_stage: {preprocessing: 1.0.0, primary: 1.1.0, analysis: 1.1.0}
     current_version_when_auxiliary_inputs: 1.2.0
-    supported_versions: [1.0.0, 1.1.0, 1.2.0, 1.3.0]
+    supported_versions: [1.0.0, 1.1.0, 1.2.0, 1.3.0, 1.4.0]
     version_required_fields:
       '1.1.0': [solver_backend, code_bundle_sha256]
       '1.2.0': [solver_backend, code_bundle_sha256, data_identity_mode, auxiliary_data_paths, auxiliary_data_sha256]
       '1.3.0': [solver_backend, code_bundle_sha256, primary_quality_protocol_version, primary_quality_spec_sha256, data_paths, data_identity_mode]
+      '1.4.0': [solver_backend, code_bundle_sha256, execution_scale_plan_sha256, actual_scale_count, data_paths, data_identity_mode]
     version_stage_required_fields:
       '1.1.0':
         analysis: [primary_workbook_sha256]
       '1.2.0':
         analysis: [primary_workbook_sha256]
+      '1.4.0':
+        analysis: [primary_workbook_sha256]
     analysis_primary_binding:
       applies_to: {version: 1.1.0, stage: analysis}
-      additional_receipt_versions: [1.2.0]
+      additional_receipt_versions: [1.2.0, 1.4.0]
       field: primary_workbook_sha256
       format: sha256_hex
       comparison: case_insensitive

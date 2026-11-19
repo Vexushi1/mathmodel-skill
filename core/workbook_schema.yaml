@@ -101,6 +101,8 @@ solution_workbook:
     收敛诊断:
       required_columns: [迭代或样本数, 指标, 数值, 判定]
       optional_columns: [用于主判定, 容差, 说明]
+    执行停止证据:
+      required_columns: [迭代或样本数, 指标, 数值, 单位]
     外样本验证:
       required_columns: [划分或窗口, 指标, 数值]
       optional_columns: [样本数, 时间范围, 基准模型, 说明]

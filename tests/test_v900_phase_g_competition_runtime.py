@@ -96,6 +96,10 @@ RUNTIME_UPSTREAM_DEPENDENCY_DIAGNOSTICS_RELEASE_VERSIONS = {
 RUNTIME_PRIMARY_QUALITY_BINDING_RELEASE_VERSIONS = {
     **RUNTIME_UPSTREAM_DEPENDENCY_DIAGNOSTICS_RELEASE_VERSIONS, "skill": "10.34.0",
 }
+# The opt-in numerical scale protocol preserves the historical writing projection.
+RUNTIME_EXECUTION_SCALE_RELEASE_VERSIONS = {
+    **RUNTIME_PRIMARY_QUALITY_BINDING_RELEASE_VERSIONS, "skill": "10.35.0",
+}
 # Phase C: pin the exact review reads separately from the historical
 # Review Split migration and unchanged Phase G golden. Unregistered additions,
 # removals, order changes, or selector substitutions must fail projection.
@@ -132,6 +136,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
             RUNTIME_QUESTION_DELIVERY_SCOPE_RELEASE_VERSIONS["skill"],
             RUNTIME_UPSTREAM_DEPENDENCY_DIAGNOSTICS_RELEASE_VERSIONS["skill"],
             RUNTIME_PRIMARY_QUALITY_BINDING_RELEASE_VERSIONS["skill"],
+            RUNTIME_EXECUTION_SCALE_RELEASE_VERSIONS["skill"],
         }:
             plan = copy.deepcopy(plan)
             plan["version"] = RUNTIME_LITERATURE_SNAPSHOT_RELEASE_VERSIONS["skill"]
@@ -355,7 +360,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
 
     def test_runtime_repair_reuses_exact_writing_projection_without_mutation(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
-        self.assertEqual(plan["version"], RUNTIME_PRIMARY_QUALITY_BINDING_RELEASE_VERSIONS["skill"])
+        self.assertEqual(plan["version"], RUNTIME_EXECUTION_SCALE_RELEASE_VERSIONS["skill"])
         historical = copy.deepcopy(plan)
         historical["version"] = CUMCM_D_CLEANUP_RELEASE_VERSIONS["skill"]
         saved = copy.deepcopy((plan, historical, self.golden))
@@ -369,7 +374,7 @@ class PhaseGCompetitionRuntimeTests(unittest.TestCase):
 
     def test_review_split_projection_binds_canonical_scopes_without_waiving_stage_fields(self):
         plan = self.runtime.resolve_runtime("latex", competition="CUMCM")
-        self.assertEqual(plan["version"], RUNTIME_PRIMARY_QUALITY_BINDING_RELEASE_VERSIONS["skill"])
+        self.assertEqual(plan["version"], RUNTIME_EXECUTION_SCALE_RELEASE_VERSIONS["skill"])
         saved = copy.deepcopy((plan, self.golden, REVIEW_SPLIT_WRITING_DELTAS))
         for index, stage_id, previous_reads, current_reads in REVIEW_SPLIT_WRITING_DELTAS:
             historical = self.golden["routes"]["latex"]["writing_runtime"]["authoring_sequence"][index]

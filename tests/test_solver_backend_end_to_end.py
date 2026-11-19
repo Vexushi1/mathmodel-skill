@@ -116,6 +116,30 @@ def prepare_approved_primary_quality(root: Path) -> None:
     save_state(project, state)
 
 
+def prepare_execution_scale(root: Path) -> None:
+    from execution_scale import normalize_scale_plan, scale_plan_sha256
+
+    approved = root / "approved-primary-quality"
+    project = root / "execution-scale"
+    project.mkdir()
+    for filename in ("input.json", "synthetic_fixture.json", "模型论文框架.md"):
+        shutil.copyfile(approved / filename, project / filename)
+
+    approved_code = approved / QUESTION / "q1_solver.m"
+    approved_config = json.loads(CONFIG.search(approved_code.read_text(encoding="utf-8")).group(1))
+    plan = normalize_scale_plan({"axis": "repetitions", "mode": "exact", "count": 1}, "primary")
+    code = instantiate(
+        project, "primary", run_receipt_protocol_version="1.4.0", execution_scale_plan=plan,
+        execution_scale_plan_sha256=scale_plan_sha256(plan), primary_quality_protocol_version="1.1.0",
+        primary_quality_spec_sha256=approved_config["primary_quality_spec_sha256"],
+    )
+    state = yaml.safe_load((approved / "state/project_state.yaml").read_text(encoding="utf-8"))
+    state["subproblems"]["Q1"].update(
+        primary_code_sha256=file_hash(code), solver_execution={"primary": stage_state(project, "primary", code)},
+    )
+    save_state(project, state)
+
+
 def prepare(root: Path) -> None:
     root.mkdir(parents=True, exist_ok=True)
     if (root / QUESTION / "问题一求解结果.xlsx").exists():
@@ -137,6 +161,7 @@ def prepare(root: Path) -> None:
              }}}
     save_state(root, state)
     prepare_approved_primary_quality(root)
+    prepare_execution_scale(root)
     writer = (ROOT / "templates/code/matlab/q1_solver.m").read_text(encoding="utf-8")
     writer = writer[writer.index("function write_workbook("):]
     probe = '''function native_writer_probe(filename,mode)
@@ -262,6 +287,8 @@ def verify(root: Path, stage: str) -> None:
     save_state(root, state)
     if stage == "primary" and (root / "approved-primary-quality").is_dir():
         verify_approved_primary_quality(root, runtime_report, receipt)
+    if stage == "primary" and (root / "execution-scale").is_dir():
+        verify_execution_scale(root, runtime_report, receipt)
     if stage == "analysis":
         # Exercise read-only migration preflight against the actual native receipts.
         # This is not execution/confirmation of a backend migration.
@@ -299,6 +326,36 @@ def verify_approved_primary_quality(root: Path, runtime_report: dict, receipt) -
         assert book["主结果质量门"]["J2"].value == "1"
     finally:
         book.close()
+    result_io.validate_workbook_file(
+        workbook, "solution", capabilities=state["subproblems"]["Q1"]["capabilities"],
+    )
+    issues = receipt.validate_one(project, workbook, state, True)
+    assert not issues, issues
+    assert state["subproblems"]["Q1"]["primary_execution_status"] == "accepted"
+    save_state(project, state)
+
+
+def verify_execution_scale(root: Path, runtime_report: dict, receipt) -> None:
+    project = root / "execution-scale"
+    workbook = project / QUESTION / "问题一求解结果.xlsx"
+    assert Path(runtime_report["execution_scale_workbook"]).resolve() == workbook.resolve()
+    code = project / QUESTION / "q1_solver.m"
+    delivered = json.loads(CONFIG.search(code.read_text(encoding="utf-8")).group(1))
+    config, issues = receipt.configuration_map(workbook)
+    assert not issues, issues
+    assert config["run_receipt_version"] == "1.4.0"
+    assert config["execution_scale_plan_sha256"] == delivered["execution_scale_plan_sha256"]
+    assert config["primary_quality_spec_sha256"] == delivered["primary_quality_spec_sha256"]
+    assert json.loads(config["data_paths"]) == delivered["data_paths"]
+    assert config["data_identity_mode"] == delivered.get("data_identity_mode", "combined")
+    book = openpyxl.load_workbook(workbook, data_only=True)
+    try:
+        rows = list(book["重复试验结果"].values)
+        assert rows == [("重复编号", "指标", "数值"), ("1", "解", 3)]
+        assert config["actual_scale_count"] == len(rows) - 1
+    finally:
+        book.close()
+    state = yaml.safe_load((project / "state/project_state.yaml").read_text(encoding="utf-8"))
     result_io.validate_workbook_file(
         workbook, "solution", capabilities=state["subproblems"]["Q1"]["capabilities"],
     )
@@ -354,8 +411,10 @@ def deliver(root: Path, stage: str, matlab_command: str) -> None:
     assert entry[f"{stage}_execution_status"] == "awaiting_user_execution"
     assert entry["solver_execution"][stage]["bundle_sha256"] == reference_digest(root, [script])
     assert "validated_bundle_sha256" not in entry["solver_execution"][stage]
-    if stage == "primary" and (root / "approved-primary-quality").is_dir():
-        deliver(root / "approved-primary-quality", stage, matlab_command)
+    if stage == "primary":
+        for profile in ("approved-primary-quality", "execution-scale"):
+            if (root / profile).is_dir():
+                deliver(root / profile, stage, matlab_command)
 
 
 class SolverBackendFixtureTests(unittest.TestCase):
@@ -374,6 +433,11 @@ class SolverBackendFixtureTests(unittest.TestCase):
             self.assertEqual(approved["run_receipt_protocol_version"], "1.3.0")
             self.assertEqual(approved["primary_quality_protocol_version"], "1.1.0")
             self.assertRegex(approved["primary_quality_spec_sha256"], r"^[0-9a-f]{64}$")
+            scale_source = root / "execution-scale" / QUESTION / "q1_solver.m"
+            scale = json.loads(CONFIG.search(scale_source.read_text(encoding="utf-8")).group(1))
+            self.assertEqual(scale["run_receipt_protocol_version"], "1.4.0")
+            self.assertEqual(scale["execution_scale_plan"], {"axis": "repetitions", "count": 1, "mode": "exact"})
+            self.assertRegex(scale["execution_scale_plan_sha256"], r"^[0-9a-f]{64}$")
 
     def test_analysis_template_does_not_call_primary_or_write_its_workbook(self):
         source = (ROOT / "templates/code/matlab/q1_analysis.m").read_text(encoding="utf-8")

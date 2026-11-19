@@ -30,6 +30,7 @@ from execution_protocol import (
     SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, comparison_config_issues,
     primary_quality_config_issues,
 )
+from execution_scale import adaptive_plan_issues, inspect_scale_plan
 from stage_inputs import InputUnavailableError, input_files, observe_inputs, observe_preprocessing_inputs
 import matlab_code_checks as MATLAB_CHECKS  # noqa: E402
 STATE_TRANSITION_CONTRACT = yaml.safe_load(
@@ -439,6 +440,8 @@ def validate_script(
     modern = is_source_receipt(receipt_protocol)
     issues.extend(auxiliary_config_issues(config))
     issues.extend(comparison_config_issues(config))
+    scale_plan, scale_issues = inspect_scale_plan(config)
+    issues.extend(scale_issues)
     source_fingerprint = None
     data_identity_mode = config.get("data_identity_mode", "combined")
     if "data_identity_mode" in config and (not modern or data_identity_mode not in ("combined", "preprocessing_workbook")):
@@ -481,10 +484,12 @@ def validate_script(
         for field in sorted(PRIMARY_REQUIRED_FIELDS):
             if field not in config or config[field] in (None, "", []):
                 issues.append(f"primary嵌入运行配置缺少字段: {field}")
-        _, quality_issues, _ = PRIMARY_QUALITY.inspect_gate(
+        specification, quality_issues, _ = PRIMARY_QUALITY.inspect_gate(
             project_root, state, _question_key(problem), config, enforce_current_sib=True,
         )
         issues.extend(quality_issues)
+        if scale_plan is not None:
+            issues.extend(adaptive_plan_issues(scale_plan, specification))
     issues.extend(primary_quality_config_issues(config))
     if stage and stage != filename_stage:
         issues.append(f"脚本文件名对应{filename_stage}阶段，但{config_name or '嵌入运行配置'}.stage={stage}")
@@ -698,6 +703,8 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
                  preprocessing_batch: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     configuration_issues = auxiliary_config_issues(config)
     configuration_issues.extend(comparison_config_issues(config))
+    scale_plan, scale_issues = inspect_scale_plan(config)
+    configuration_issues.extend(scale_issues)
     if configuration_issues:
         raise ValueError("; ".join(configuration_issues))
     state_path = project_root / "state" / "project_state.yaml"
@@ -706,7 +713,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
             return []
         raise ValueError("缺少项目状态与已锁项目后端，禁止正式数值代码交付")
     observed_state = load_yaml(state_path)
-    guarded = PRIMARY_QUALITY.binding_present(config) or any(
+    guarded = scale_plan is not None or PRIMARY_QUALITY.binding_present(config) or any(
         CONFORMANCE.present(entry) or COMPARISON.present(entry, config=config)
         for entry in (observed_state.get("subproblems") or {}).values()
     )
@@ -823,17 +830,20 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
     key = _question_key(problem)
     entry = state.setdefault("subproblems", {}).setdefault(key, {})
     quality_observed = {"project": {}, "skill": {}}
+    specification = None
     if stage == "primary":
         specification, quality_issues, quality_observed = PRIMARY_QUALITY.inspect_gate(
             project_root, state, key, config, enforce_current_sib=True,
         )
+        if scale_plan is not None:
+            quality_issues.extend(adaptive_plan_issues(scale_plan, specification))
         if quality_issues:
             raise ValueError("; ".join(quality_issues))
-        if specification is not None:
-            _, actual_config = STAGE_CODE.parse_stage_config(script)
-            if actual_config != config:
-                raise ValueError("PQS: delivery configuration differs from the actual primary source")
-            quality_observed["project"][relative] = new_hash
+    if scale_plan is not None or specification is not None:
+        _, actual_config = STAGE_CODE.parse_stage_config(script)
+        if actual_config != config:
+            raise ValueError("delivery configuration differs from the actual stage source")
+        quality_observed["project"][relative] = new_hash
     conformance = CONFORMANCE.inspect_gate(
         project_root, state, key, stage, boundary="delivery",
     )

@@ -24,7 +24,8 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.measurement = load_measurement()
-        cls.fixture = ROOT / "tests/fixtures/v10340_approved_source_spans.json"
+        cls.fixture = ROOT / "tests/fixtures/v10350_approved_source_spans.json"
+        cls.frozen_v10340 = ROOT / "tests/fixtures/v10340_approved_source_spans.json"
         cls.frozen_v10330 = ROOT / "tests/fixtures/v10330_approved_source_spans.json"
         cls.frozen_v10322 = ROOT / "tests/fixtures/v10322_approved_source_spans.json"
         cls.frozen_v10321 = ROOT / "tests/fixtures/v10321_approved_source_spans.json"
@@ -108,12 +109,21 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "candidate bytes changed"):
             self.measurement.approved_source_span_migrations(self.frozen_v10330)
 
+    def test_v10340_approval_source_spans_remain_frozen(self):
+        prior = json.loads(self.frozen_v10340.read_text(encoding="utf-8"))
+        self.assertEqual(prior["scope"], "v10.34.0_primary_quality_approval_binding")
+        self.assertEqual(prior["version"], "10.34.0")
+        self.assertEqual(prior["migrations"][0]["candidate_sha256"],
+                         "d311599dafb2fcfcbf88a56301233d19692497368cd3e91c28314451ebf6f41c")
+        with self.assertRaisesRegex(ValueError, "candidate bytes changed"):
+            self.measurement.approved_source_span_migrations(self.frozen_v10340)
+
     def cases(self):
         manifest = self.measurement.approved_source_span_migrations(self.fixture)
         before = {"id": "pure_model_design", "behavior": {"read_now": [], "load_order": []},
                   "source_identity": {"skill_version": "10.27.0", "sources": []}}
         after = {"id": "pure_model_design", "behavior": {"read_now": [], "load_order": []},
-                 "source_identity": {"skill_version": "10.34.0", "sources": []}}
+                 "source_identity": {"skill_version": "10.35.0", "sources": []}}
         for item in manifest["migrations"]:
             original = {
                 "origin": "skill", "path": item["path"],
@@ -171,6 +181,37 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         new["source_identity"]["sources"][-1]["sha256"] = "0" * 64
         with self.assertRaisesRegex(ValueError, "PQS source span identity drift"):
             self.measurement.project_exact_approved_source_spans(old, new, fixture)
+
+    def test_full_span_restores_an_exact_g2_added_read(self):
+        fixture = self.measurement.approved_source_span_migrations(self.fixture)
+        approvals = self.measurement.approved_changes(
+            ROOT / "tests/fixtures/v10270_g2_approved_deltas.json")
+        case_id = "natural_language_two_actions_probe"
+        transition = next(item for item in approvals
+                          if item["case_id"] == case_id and item["path"] == "read_now")
+        rule = next(item for item in fixture["pqs_full_source_spans"]
+                    if item["path"] == "core/workbook_schema.yaml")
+        old = {"id": case_id, "behavior": {"read_now": deepcopy(transition["before"])},
+               "source_identity": {"sources": []}}
+        approved_row = next(item for item in transition["after"] if item["path"] == rule["path"])
+        candidate_row = {**approved_row, "ranges": [[1, rule["new_last_line"]]]}
+        candidate = {"id": case_id, "behavior": {"read_now": [candidate_row]},
+                     "source_identity": {"sources": []}}
+        observed = deepcopy(candidate["behavior"])
+        evidence = self.measurement._project_pqs_full_source_spans(
+            old, candidate, observed, [rule], {"read_now": transition},
+        )
+        self.assertEqual(observed["read_now"], [approved_row])
+        self.assertEqual(evidence[0]["group"], "read_now")
+        self.assertEqual(candidate["behavior"]["read_now"][0]["ranges"], [[1, rule["new_last_line"]]])
+
+        old["behavior"]["read_now"].append({"path": "unreviewed.md"})
+        observed = deepcopy(candidate["behavior"])
+        evidence = self.measurement._project_pqs_full_source_spans(
+            old, candidate, observed, [rule], {"read_now": transition},
+        )
+        self.assertEqual(evidence, [])
+        self.assertEqual(observed, candidate["behavior"])
 
     def test_reject_changed_ranges_even_if_source_sha_matches(self):
         fixture, old, new = self.cases()

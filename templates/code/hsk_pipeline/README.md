@@ -37,6 +37,8 @@
 
 选用已批准的质量规范绑定时，主求解入口按执行合同使用回执 1.3.0，回显 `primary_quality_spec_sha256`、质量协议版本、JSON 路径列表 `data_paths` 和实际采用的 `data_identity_mode`。在提供给 writer 的 `主结果质量门` 中写入已批准数值项的 `单位`。
 
+正式执行规模的实例按执行合同使用回执 1.4.0。入口将规模计划和摘要锁定于配置，按真实记录计算 `actual_scale_count`，回显规模摘要、实际 JSON 输入路径和身份模式。将规模证据表连同其他工作表交给 `result_io.write_workbook()`。数值与停止判据的复核由现有验收入口承担。
+
 保留的 PipelineConfig 和题型 starter 是数学/IO骨架，不会自动升级为 1.1 交付入口；旧连跑 API 已停止执行。实例化时须补齐上述运行配置与真实回执，并把 `运行配置` 工作表交给共用 `result_io.write_workbook()`；writer 接受该表的新字段，但不替调用方生成后端/bundle 证明。用户运行代码只依赖交付到项目内的源码与声明环境，不依赖 Skill 安装路径。
 
 新 1.1 的 `project_level` 路径显式使用 `data_identity_mode="preprocessing_workbook"`，`data_paths` 恰为已验收预处理 XLSX，`data_sha256` 为其普通文件 SHA。其他两种预处理决策默认 `combined`；完整数据身份规则只由 `core/user_execution_contract.yaml#code_delivery.data_identity_mode` 维护。

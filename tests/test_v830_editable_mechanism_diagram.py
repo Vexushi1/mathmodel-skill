@@ -559,19 +559,117 @@ PRIMARY_QUALITY_BINDING_BLOCKS = {
 }
 
 
-def prior_primary_quality_binding(relative: str, text: str) -> str:
+# Reconstruct only the exact scoped v10.35.0 execution scale edits.
+EXECUTION_SCALE_BINDING_BLOCKS = {
+    "core/workbook_schema.yaml": (
+        (
+            "      optional_columns: [用于主判定, 容差, 说明]", 4,
+            "62e89517bfe04c7e10b07cf7b8e0f49b474ea73ffecf019286a8a67098709e21",
+            (
+                "      optional_columns: [用于主判定, 容差, 说明]\n"
+                "    外样本验证:\n"
+            ),
+        ),
+    ),
+    "scripts/validate_code_delivery.py": (
+        (
+            ")", 3,
+            "4ea62d8d4e0e752e740da6da52e5c6316c3da51bdc8815c116b3e3f4b7faef0d",
+            (
+                ")\n"
+                "from stage_inputs import InputUnavailableError, input_files, observe_inputs, observe_preprocessing_inputs\n"
+            ),
+        ),
+        (
+            "    issues.extend(comparison_config_issues(config))", 4,
+            "3b3c0149ebca5197a0c6b7d4eefe2f879de2cee3c9434a89456329f01198ebfc",
+            (
+                "    issues.extend(comparison_config_issues(config))\n"
+                "    source_fingerprint = None\n"
+            ),
+        ),
+        (
+            "                issues.append(f\"primary嵌入运行配置缺少字段: {field}\")", 3,
+            "4e58e943802b71898209e2ec625598dcb9436b80a5e7d50fc07394f3d9c9372b",
+            (
+                "                issues.append(f\"primary嵌入运行配置缺少字段: {field}\")\n"
+                "        _, quality_issues, _ = PRIMARY_QUALITY.inspect_gate(\n"
+                "            project_root, state, _question_key(problem), config, enforce_current_sib=True,\n"
+            ),
+        ),
+        (
+            "        issues.extend(quality_issues)", 4,
+            "09945c58cad52a3511b2f45c3680c73bfaa571bd7d6669cec33f3cf95beb4f38",
+            (
+                "        issues.extend(quality_issues)\n"
+                "    issues.extend(primary_quality_config_issues(config))\n"
+            ),
+        ),
+        (
+            "    configuration_issues.extend(comparison_config_issues(config))", 4,
+            "74e30ad75c91f2ec3af7d4accc0c613f6c23523ecaf8facf4c2a3ba9602bb573",
+            (
+                "    configuration_issues.extend(comparison_config_issues(config))\n"
+                "    if configuration_issues:\n"
+            ),
+        ),
+        (
+            "    observed_state = load_yaml(state_path)", 3,
+            "949581c67d440608b1a6d7050ac9073ba6cb615fb8e1b8927f2dad96c8bc0c0f",
+            (
+                "    observed_state = load_yaml(state_path)\n"
+                "    guarded = PRIMARY_QUALITY.binding_present(config) or any(\n"
+                "        CONFORMANCE.present(entry) or COMPARISON.present(entry, config=config)\n"
+            ),
+        ),
+        (
+            "    quality_observed = {\"project\": {}, \"skill\": {}}", 3,
+            "0ba55625591ad2048ae3531f8b349a06e134b48851579892e717666be3fc7aad",
+            (
+                "    quality_observed = {\"project\": {}, \"skill\": {}}\n"
+                "    if stage == \"primary\":\n"
+            ),
+        ),
+        (
+            "        )", 11,
+            "a4603adb2d0aee6dd7d24bc86fdb27626f889f36d37331d9c96ca66ed263120e",
+            (
+                "        )\n"
+                "        if quality_issues:\n"
+                "            raise ValueError(\"; \".join(quality_issues))\n"
+                "        if specification is not None:\n"
+                "            _, actual_config = STAGE_CODE.parse_stage_config(script)\n"
+                "            if actual_config != config:\n"
+                "                raise ValueError(\"PQS: delivery configuration differs from the actual primary source\")\n"
+                "            quality_observed[\"project\"][relative] = new_hash\n"
+                "    conformance = CONFORMANCE.inspect_gate(\n"
+            ),
+        ),
+    ),
+}
+
+
+def _prior_reviewed_blocks(relative: str, text: str, blocks, label: str) -> str:
     lines = text.splitlines(keepends=True)
-    for first, count, digest, previous in PRIMARY_QUALITY_BINDING_BLOCKS.get(relative, ()):
+    for first, count, digest, previous in blocks.get(relative, ()):
         matches = [
             start for start, line in enumerate(lines)
             if line == first + "\n"
             and hashlib.sha256("".join(lines[start:start + count]).encode("utf-8")).hexdigest() == digest
         ]
         if len(matches) != 1:
-            raise ValueError(f"{relative}: approved PQS block missing or duplicated: {first.strip()}")
+            raise ValueError(f"{relative}: approved {label} block missing or duplicated: {first.strip()}")
         start, = matches
         lines[start:start + count] = previous.splitlines(keepends=True)
     return "".join(lines)
+
+
+def prior_execution_scale_binding(relative: str, text: str) -> str:
+    return _prior_reviewed_blocks(relative, text, EXECUTION_SCALE_BINDING_BLOCKS, "execution scale")
+
+
+def prior_primary_quality_binding(relative: str, text: str) -> str:
+    return _prior_reviewed_blocks(relative, text, PRIMARY_QUALITY_BINDING_BLOCKS, "PQS")
 
 
 # PR #327 changes only these regions of validate_code_delivery.py. Each tuple
@@ -1088,7 +1186,7 @@ class ContractAndDriftTests(unittest.TestCase):
         # neither the old protected blob hash nor its inverse rules are waived.
         text = (historical_review_text(ROOT) if relative == "modules/06_review_delivery.md"
                 else (ROOT / relative).read_text(encoding="utf-8"))
-        text = prior_primary_quality_binding(relative, text)
+        text = prior_primary_quality_binding(relative, prior_execution_scale_binding(relative, text))
         if relative == "core/workbook_schema.yaml":
             # Renderer-neutral handoff wording does not change the workbook
             # format. Reverse only these exact leaves before the old projections.
@@ -1305,7 +1403,8 @@ class ContractAndDriftTests(unittest.TestCase):
                         b"blob " + str(len(data)).encode("ascii") + b"\0" + data
                     ).hexdigest()
                 elif relative in PRIMARY_QUALITY_BINDING_BLOCKS:
-                    text = prior_primary_quality_binding(relative, path.read_text(encoding="utf-8"))
+                    predecessor = prior_execution_scale_binding(relative, path.read_text(encoding="utf-8"))
+                    text = prior_primary_quality_binding(relative, predecessor)
                     data = text.encode("utf-8")
                     actual = hashlib.sha1(
                         b"blob " + str(len(data)).encode("ascii") + b"\0" + data
@@ -1336,6 +1435,28 @@ class ContractAndDriftTests(unittest.TestCase):
                 projected + unrelated,
             )
 
+    def test_execution_scale_binding_inverse_is_exact(self):
+        source_hashes = {
+            "core/workbook_schema.yaml": "1d535ce535a4166907808144db7b54a4573ae73a694c1eba5c5608a58f11ce75",
+            "scripts/validate_code_delivery.py": "50381540e0900f499713b4aedd6477917128beaeffde410bbfdaae2938b756ae",
+        }
+        for relative, expected in source_hashes.items():
+            with self.subTest(relative=relative):
+                current = (ROOT / relative).read_text(encoding="utf-8")
+                prior = prior_execution_scale_binding(relative, current)
+                self.assertEqual(hashlib.sha256(prior.encode("utf-8")).hexdigest(), expected)
+                extra = "\n# unauthorized separate change\n"
+                self.assertEqual(prior_execution_scale_binding(relative, current + extra), prior + extra)
+
+                first, count, digest, _ = EXECUTION_SCALE_BINDING_BLOCKS[relative][0]
+                lines = current.splitlines(keepends=True)
+                block, = (chunk for offset, line in enumerate(lines) if line == first + "\n"
+                          for chunk in ["".join(lines[offset:offset + count])]
+                          if hashlib.sha256(chunk.encode("utf-8")).hexdigest() == digest)
+                for changed in (current.replace(block, extra, 1), current + block):
+                    with self.assertRaisesRegex(ValueError, "missing or duplicated"):
+                        prior_execution_scale_binding(relative, changed)
+
     def test_primary_quality_binding_inverse_is_exact(self):
         source_hashes = {
             "core/model_approval_contract.yaml": "40aa80daf77bfc0ba1092fa8767a1b97df331d44e76b1e23875ccbf7410653ec",
@@ -1346,6 +1467,7 @@ class ContractAndDriftTests(unittest.TestCase):
         for relative, expected in source_hashes.items():
             with self.subTest(relative=relative):
                 current = (ROOT / relative).read_text(encoding="utf-8")
+                current = prior_execution_scale_binding(relative, current)
                 prior = prior_primary_quality_binding(relative, current)
                 self.assertEqual(hashlib.sha256(prior.encode("utf-8")).hexdigest(), expected)
                 extra = "\n# unauthorized separate change\n"
@@ -1363,7 +1485,7 @@ class ContractAndDriftTests(unittest.TestCase):
     def test_preprocessing_redelivery_inverse_is_exact(self):
         relative = "scripts/validate_code_delivery.py"
         current = (ROOT / relative).read_text(encoding="utf-8")
-        source = prior_primary_quality_binding(relative, current)
+        source = prior_primary_quality_binding(relative, prior_execution_scale_binding(relative, current))
         predecessor = prior_preprocessing_delivery(source)
         data = predecessor.encode("utf-8")
         self.assertEqual(hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest(),
@@ -1382,7 +1504,8 @@ class ContractAndDriftTests(unittest.TestCase):
             *P6_SOURCE_PROVENANCE_REWRITES.items(),
             *USER_CHECKER_AUTHORITY_REWRITES.items(),
         ):
-            text = prior_primary_quality_binding(relative, (ROOT / relative).read_text(encoding="utf-8"))
+            live = (ROOT / relative).read_text(encoding="utf-8")
+            text = prior_primary_quality_binding(relative, prior_execution_scale_binding(relative, live))
             for current, _ in replacements:
                 for changed in (text.replace(current, "unauthorized replacement\n", 1), text + current):
                     with self.subTest(relative=relative, current=current[:80]):
@@ -1392,7 +1515,7 @@ class ContractAndDriftTests(unittest.TestCase):
     def test_checker_inverse_projection_does_not_erase_unrelated_changes(self):
         for relative in set(USER_CHECKER_AUTHORITY_REWRITES) | set(P6_SOURCE_PROVENANCE_REWRITES):
             current = (ROOT / relative).read_text(encoding="utf-8")
-            text = prior_primary_quality_binding(relative, current)
+            text = prior_primary_quality_binding(relative, prior_execution_scale_binding(relative, current))
             changed = text + "\nunauthorized unrelated change\n"
             projected = inverse_user_checker_changes(relative, text)
             self.assertEqual(
