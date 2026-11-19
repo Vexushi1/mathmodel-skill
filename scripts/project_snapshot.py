@@ -690,6 +690,10 @@ def _snapshot_question(
             input_issues.extend(f"{stage}: {issue}" for issue in observation["issues"])
             if stage == "primary":
                 data_hash = observation["data_sha256"]
+                if current_state and entry.get("primary_execution_status") == "accepted" and stage not in provenance_stages:
+                    workbook_issues.extend(EXECUTION_PROVENANCE.approved_primary_quality_issues(
+                        root, state or {}, entry, config, workbook=solution,
+                    ))
             elif str(config.get("data_sha256", "")).lower() != str(entry.get("data_hash", "")).lower():
                 input_issues.append("analysis data_sha256必须继承主结果data_hash，不得覆盖主数据身份")
         except (ValueError, OSError, TypeError) as exc:

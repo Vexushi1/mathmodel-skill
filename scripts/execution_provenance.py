@@ -7,13 +7,14 @@ accepted workbook and its recorded run identity independently of today's source.
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import re
 import zipfile
 from pathlib import Path
 from typing import Any, Mapping
 
-from execution_protocol import is_source_receipt
+from execution_protocol import PQS_RECEIPT_VERSION, is_source_receipt
 import artifact_identity as ARTIFACT_IDENTITY
 import artifact_fingerprint as ARTIFACT_FINGERPRINT
 
@@ -146,13 +147,14 @@ def can_consume_accepted_result(entry: Mapping[str, Any], stage: str) -> bool:
     return not (entry.get("artifacts_stale") is True and not stale)
 
 
-def _workbook_config(path: Path) -> tuple[dict[str, Any], list[str]]:
-    if not path.is_file():
+def _workbook_config(path: Path | bytes) -> tuple[dict[str, Any], list[str]]:
+    if isinstance(path, Path) and not path.is_file():
         return {}, ["accepted workbook is missing"]
     from openpyxl import load_workbook
     from openpyxl.utils.exceptions import InvalidFileException
     try:
-        book = load_workbook(path, read_only=True, data_only=True)
+        book = load_workbook(io.BytesIO(path) if isinstance(path, bytes) else path,
+                             read_only=True, data_only=True)
     except InvalidFileException as exc:
         raise ValueError(f"invalid accepted workbook format: {exc}") from exc
     try:
@@ -177,9 +179,51 @@ def _workbook_config(path: Path) -> tuple[dict[str, Any], list[str]]:
                 except json.JSONDecodeError:
                     issues.append(f"accepted workbook has malformed JSON path list: {key}")
             mapping[key] = value
+        if mapping.get("run_receipt_version") == PQS_RECEIPT_VERSION:
+            mapping.setdefault("run_receipt_protocol_version", PQS_RECEIPT_VERSION)
         return mapping, issues
     finally:
         book.close()
+
+
+def approved_primary_quality_issues(
+    root: Path, state: Mapping[str, Any], entry: Mapping[str, Any], config: Mapping[str, Any],
+    *, workbook: Path | None = None, accepted_receipt: bool = False,
+) -> list[str]:
+    """Recheck the approved identity of a previously accepted primary workbook."""
+    from primary_quality_binding import binding_present, inspect_gate
+
+    marker = binding_present(config)
+    if not marker and not entry.get("approved_semantic_identity_hash"):
+        return []
+    from conformance_gate import assert_observed, merge_read_sets, question_for
+    from project_transaction import ProjectTransactionError
+
+    try:
+        question = question_for(state, entry)
+    except ValueError as exc:
+        return [f"approved primary quality cannot be rechecked: {exc}"] if marker else []
+    try:
+        spec, issues, observed = inspect_gate(root, state, question, config, accepted_receipt=accepted_receipt)
+        if issues or spec is None or accepted_receipt:
+            assert_observed(root, observed)
+            return list(issues)
+        if workbook is None:
+            return ["approved primary quality requires the accepted primary workbook"]
+        content = workbook.read_bytes()
+        digest = hashlib.sha256(content).hexdigest()
+        hashes = entry.get("validated_artifact_hashes") or {}
+        expected = str(hashes.get("solution_workbook", "")).lower() if isinstance(hashes, Mapping) else ""
+        if digest != expected:
+            return ["approved primary quality cannot use an unverified accepted workbook identity"]
+        receipt, receipt_issues = _workbook_config(content)
+        _, gate_issues, gate_observed = inspect_gate(root, state, question, config, receipt=receipt)
+        merge_read_sets(observed, gate_observed)
+        merge_read_sets(observed, {"project": {workbook.relative_to(root.resolve()).as_posix(): digest}})
+        assert_observed(root, observed)
+        return [*receipt_issues, *gate_issues]
+    except (OSError, ValueError, TypeError, SyntaxError, KeyError, zipfile.BadZipFile, ProjectTransactionError) as exc:
+        return [f"approved primary quality cannot be rechecked: {exc}"]
 
 
 def accepted_workbook_data_identity(
@@ -252,11 +296,13 @@ def accepted_result_issues(
         return [*issues, "accepted workbook path escapes project root"], warnings
     validated = entry.get("validated_artifact_hashes") or {}
     expected_workbook = validated.get(layer) if isinstance(validated, Mapping) else None
+    workbook_content = None
     if not isinstance(expected_workbook, str) or not SHA256_RE.fullmatch(expected_workbook):
         issues.append(f"{stage} accepted workbook lacks a validated raw SHA-256")
     else:
         try:
-            actual_workbook = hashlib.sha256(path.read_bytes()).hexdigest()
+            workbook_content = path.read_bytes()
+            actual_workbook = hashlib.sha256(workbook_content).hexdigest()
         except OSError as exc:
             actual_workbook = None
             issues.append(f"{stage} accepted workbook cannot be read: {exc}")
@@ -303,7 +349,7 @@ def accepted_result_issues(
     accepted_bundle = str(selection.get("validated_bundle_sha256") or "").lower()
     current_bundle = str(selection.get("bundle_sha256") or "").lower()
     try:
-        config, config_issues = _workbook_config(path)
+        config, config_issues = _workbook_config(workbook_content if workbook_content is not None else path)
     except (OSError, ValueError, TypeError, zipfile.BadZipFile) as exc:
         issues.append(f"{stage} accepted workbook receipt cannot be read: {exc}")
         return list(dict.fromkeys(issues)), list(dict.fromkeys(warnings))
@@ -314,6 +360,8 @@ def accepted_result_issues(
             issues.extend(config_issues)
     if not config:
         warnings.append(f"{stage} legacy workbook has no machine-readable run configuration")
+    if stage == "primary":
+        issues.extend(approved_primary_quality_issues(root, state, entry, config, accepted_receipt=True))
     if config:
         declared_stage = str(config.get("stage") or "").strip()
         if declared_stage and declared_stage != stage:

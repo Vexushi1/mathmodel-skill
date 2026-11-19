@@ -20,12 +20,16 @@ import state_transitions as STATE_TRANSITIONS  # noqa: E402
 import artifact_identity as ARTIFACT_IDENTITY  # noqa: E402
 import project_transaction as PROJECT_TX  # noqa: E402
 import run_config_parser as RUN_CONFIG_PARSER  # noqa: E402
+import primary_quality_binding as PRIMARY_QUALITY  # noqa: E402
 import analysis_prerequisites as ANALYSIS_PREREQUISITES  # noqa: E402
 import stage_code as STAGE_CODE  # noqa: E402
 import execution_provenance as EXECUTION_PROVENANCE  # noqa: E402
 import conformance_gate as CONFORMANCE  # noqa: E402
 import analysis_comparison_gate as COMPARISON  # noqa: E402
-from execution_protocol import SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, comparison_config_issues
+from execution_protocol import (
+    SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, comparison_config_issues,
+    primary_quality_config_issues,
+)
 from stage_inputs import InputUnavailableError, input_files, observe_inputs, observe_preprocessing_inputs
 import matlab_code_checks as MATLAB_CHECKS  # noqa: E402
 STATE_TRANSITION_CONTRACT = yaml.safe_load(
@@ -51,7 +55,6 @@ POLICY_INVARIANTS = {
 LEGACY_REQUIRED_FIELDS = {
     *TASK_REQUIRED_FIELDS, "solver_version", *POLICY_INVARIANTS,
 }
-PRIMARY_QUALITY_PROTOCOL_VERSION = "1.0.0"
 PRIMARY_REQUIRED_FIELDS = {"primary_quality_protocol_version"}
 RUN_RECEIPT_PROTOCOL_VERSION = "1.0.0"
 SOLVER_RECEIPT_PROTOCOL_VERSION = "1.1.0"
@@ -478,10 +481,11 @@ def validate_script(
         for field in sorted(PRIMARY_REQUIRED_FIELDS):
             if field not in config or config[field] in (None, "", []):
                 issues.append(f"primary嵌入运行配置缺少字段: {field}")
-        if config.get("primary_quality_protocol_version") not in (None, "", PRIMARY_QUALITY_PROTOCOL_VERSION):
-            issues.append(f"primary_quality_protocol_version必须为{PRIMARY_QUALITY_PROTOCOL_VERSION}")
-    elif config.get("primary_quality_protocol_version") not in (None, ""):
-        issues.append("primary_quality_protocol_version只允许出现在primary阶段运行配置")
+        _, quality_issues, _ = PRIMARY_QUALITY.inspect_gate(
+            project_root, state, _question_key(problem), config, enforce_current_sib=True,
+        )
+        issues.extend(quality_issues)
+    issues.extend(primary_quality_config_issues(config))
     if stage and stage != filename_stage:
         issues.append(f"脚本文件名对应{filename_stage}阶段，但{config_name or '嵌入运行配置'}.stage={stage}")
     if expected_stage and stage != expected_stage:
@@ -702,9 +706,14 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
             return []
         raise ValueError("缺少项目状态与已锁项目后端，禁止正式数值代码交付")
     observed_state = load_yaml(state_path)
-    guarded = any(CONFORMANCE.present(entry) or COMPARISON.present(entry, config=config)
-                  for entry in (observed_state.get("subproblems") or {}).values())
+    guarded = PRIMARY_QUALITY.binding_present(config) or any(
+        CONFORMANCE.present(entry) or COMPARISON.present(entry, config=config)
+        for entry in (observed_state.get("subproblems") or {}).values()
+    )
     stage = str(config["stage"])
+    quality_issues = primary_quality_config_issues(config)
+    if quality_issues:
+        raise ValueError("; ".join(quality_issues))
     if not guarded:
         _, state, base_generation = PROJECT_TX.load_state_for_update(project_root)
     snapshot = None
@@ -813,6 +822,18 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
 
     key = _question_key(problem)
     entry = state.setdefault("subproblems", {}).setdefault(key, {})
+    quality_observed = {"project": {}, "skill": {}}
+    if stage == "primary":
+        specification, quality_issues, quality_observed = PRIMARY_QUALITY.inspect_gate(
+            project_root, state, key, config, enforce_current_sib=True,
+        )
+        if quality_issues:
+            raise ValueError("; ".join(quality_issues))
+        if specification is not None:
+            _, actual_config = STAGE_CODE.parse_stage_config(script)
+            if actual_config != config:
+                raise ValueError("PQS: delivery configuration differs from the actual primary source")
+            quality_observed["project"][relative] = new_hash
     conformance = CONFORMANCE.inspect_gate(
         project_root, state, key, stage, boundary="delivery",
     )
@@ -999,6 +1020,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
     observed = conformance["observed_sources"]
     CONFORMANCE.merge_read_sets(observed, comparison["observed_sources"])
     CONFORMANCE.merge_read_sets(observed, preprocessing_observed)
+    CONFORMANCE.merge_read_sets(observed, quality_observed)
     CONFORMANCE.assert_observed(project_root, observed)
     if preprocessing_batch and state == snapshot.payload():
         snapshot.assert_current()

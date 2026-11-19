@@ -78,6 +78,44 @@ def save_state(root: Path, state: dict) -> None:
         yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
 
 
+def prepare_approved_primary_quality(root: Path) -> None:
+    from tests.test_v900_semantic_identity_binding import framework, identity, structured_question
+    from primary_quality_specification import normalize_specification, specification_sha256
+
+    project = root / "approved-primary-quality"
+    project.mkdir()
+    for filename in ("input.json", "synthetic_fixture.json"):
+        shutil.copyfile(root / filename, project / filename)
+
+    payload = identity()
+    payload.update(
+        research_object="scalar linear equation",
+        data_scope=[{"id": "D1", "source": "input.json", "role": "input"}],
+        variables=[{"id": "V1", "symbol": "x", "role": "solution", "domain": "real"}],
+        parameters=[{"id": "P1", "symbol": "a", "unit": "1"}, {"id": "P2", "symbol": "b", "unit": "1"}],
+        assumptions=[{"id": "A1", "statement": "a is finite and nonzero and b is finite"}],
+        objective={"expression": "solve a*x=b"},
+        constraints=[{"id": "C1", "expression": "a*x=b"}],
+        preprocessing_decision="not_needed",
+        algorithm_semantics={"model_family": "scalar linear system", "solver_role": "direct"},
+    )
+    payload["extensions"] = {"primary_quality_specification": {"version": "1.0.0", "items": [{
+        "id": "PQ-Q1-01", "metric": "方程残差", "relation": "abs<=", "threshold": 1e-10,
+        "threshold_source": "solver_tolerance", "evidence_sheet": "均衡残差", "unit": "1",
+    }]}}
+    specification = normalize_specification(payload["extensions"]["primary_quality_specification"], "Q1")
+    digest = specification_sha256(specification)
+    code = instantiate(project, "primary", run_receipt_protocol_version="1.3.0",
+                       primary_quality_protocol_version="1.1.0", primary_quality_spec_sha256=digest)
+    state = yaml.safe_load((root / "state/project_state.yaml").read_text(encoding="utf-8"))
+    state["subproblems"]["Q1"].update(
+        structured_question(payload), primary_code_sha256=file_hash(code),
+        solver_execution={"primary": stage_state(project, "primary", code)},
+    )
+    (project / "模型论文框架.md").write_text(framework(payload), encoding="utf-8")
+    save_state(project, state)
+
+
 def prepare(root: Path) -> None:
     root.mkdir(parents=True, exist_ok=True)
     if (root / QUESTION / "问题一求解结果.xlsx").exists():
@@ -98,6 +136,7 @@ def prepare(root: Path) -> None:
                  "solver_execution": {"primary": stage_state(root, "primary", code)},
              }}}
     save_state(root, state)
+    prepare_approved_primary_quality(root)
     writer = (ROOT / "templates/code/matlab/q1_solver.m").read_text(encoding="utf-8")
     writer = writer[writer.index("function write_workbook("):]
     probe = '''function native_writer_probe(filename,mode)
@@ -221,6 +260,8 @@ def verify(root: Path, stage: str) -> None:
         assert file_hash(root / "数据预处理/数据预处理结果.xlsx") == baseline["workbook_sha256"]
         assert runtime_report["preprocessing_workbook_unchanged"]
     save_state(root, state)
+    if stage == "primary" and (root / "approved-primary-quality").is_dir():
+        verify_approved_primary_quality(root, runtime_report, receipt)
     if stage == "analysis":
         # Exercise read-only migration preflight against the actual native receipts.
         # This is not execution/confirmation of a backend migration.
@@ -236,6 +277,35 @@ def verify(root: Path, stage: str) -> None:
             ("Q1", "primary"), ("Q1", "analysis")}, other["effects"]
         assert not other["migration_authorized"] and not other["write_supported"]
         assert {p.relative_to(root).as_posix(): file_hash(p) for p in root.rglob("*") if p.is_file()} == before
+
+
+def verify_approved_primary_quality(root: Path, runtime_report: dict, receipt) -> None:
+    project = root / "approved-primary-quality"
+    workbook = project / QUESTION / "问题一求解结果.xlsx"
+    assert Path(runtime_report["approved_primary_quality_workbook"]).resolve() == workbook.resolve()
+    state = yaml.safe_load((project / "state/project_state.yaml").read_text(encoding="utf-8"))
+    code = project / QUESTION / "q1_solver.m"
+    delivered = json.loads(CONFIG.search(code.read_text(encoding="utf-8")).group(1))
+    config, issues = receipt.configuration_map(workbook)
+    assert not issues, issues
+    assert config["run_receipt_version"] == "1.3.0"
+    assert config["primary_quality_protocol_version"] == "1.1.0"
+    assert config["primary_quality_spec_sha256"] == delivered["primary_quality_spec_sha256"]
+    assert json.loads(config["data_paths"]) == delivered["data_paths"]
+    assert config["data_identity_mode"] == delivered.get("data_identity_mode", "combined")
+    book = openpyxl.load_workbook(workbook, data_only=True)
+    try:
+        assert book["主结果质量门"]["J1"].value == "单位"
+        assert book["主结果质量门"]["J2"].value == "1"
+    finally:
+        book.close()
+    result_io.validate_workbook_file(
+        workbook, "solution", capabilities=state["subproblems"]["Q1"]["capabilities"],
+    )
+    issues = receipt.validate_one(project, workbook, state, True)
+    assert not issues, issues
+    assert state["subproblems"]["Q1"]["primary_execution_status"] == "accepted"
+    save_state(project, state)
 
 
 def prepare_analysis(root: Path) -> None:
@@ -284,6 +354,8 @@ def deliver(root: Path, stage: str, matlab_command: str) -> None:
     assert entry[f"{stage}_execution_status"] == "awaiting_user_execution"
     assert entry["solver_execution"][stage]["bundle_sha256"] == reference_digest(root, [script])
     assert "validated_bundle_sha256" not in entry["solver_execution"][stage]
+    if stage == "primary" and (root / "approved-primary-quality").is_dir():
+        deliver(root / "approved-primary-quality", stage, matlab_command)
 
 
 class SolverBackendFixtureTests(unittest.TestCase):
@@ -297,6 +369,11 @@ class SolverBackendFixtureTests(unittest.TestCase):
             self.assertEqual(config["solver_backend"], "matlab")
             self.assertFalse(list(root.rglob("*.xlsx")))
             self.assertTrue((root / "negative/nonfinite_result" / QUESTION / "q1_solver.m").is_file())
+            approved_code = root / "approved-primary-quality" / QUESTION / "q1_solver.m"
+            approved = json.loads(CONFIG.search(approved_code.read_text(encoding="utf-8")).group(1))
+            self.assertEqual(approved["run_receipt_protocol_version"], "1.3.0")
+            self.assertEqual(approved["primary_quality_protocol_version"], "1.1.0")
+            self.assertRegex(approved["primary_quality_spec_sha256"], r"^[0-9a-f]{64}$")
 
     def test_analysis_template_does_not_call_primary_or_write_its_workbook(self):
         source = (ROOT / "templates/code/matlab/q1_analysis.m").read_text(encoding="utf-8")

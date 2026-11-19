@@ -80,7 +80,7 @@ solution_workbook:
       required_columns: [等级, 检查项, 信息, 处理方式]
     主结果质量门:
       required_columns: [检查项, 是否通过, 证据]
-      optional_columns: [Verification ID, 判定关系, 阈值或容差, 实际值, 证据工作表, 阈值来源, 说明]
+      optional_columns: [Verification ID, 判定关系, 阈值或容差, 实际值, 证据工作表, 阈值来源, 单位, 说明]
   common_recommended_sheets:
     推荐方案:
       required_columns: [方案]

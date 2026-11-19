@@ -24,10 +24,14 @@ sheets(end + 1, :) = {'运行配置',receipt_cells(receipt)};
 sheets(end + 1, :) = {'核心指标',{'指标','数值'; '解',solution; '绝对方程残差',residual}};
 sheets(end + 1, :) = {'数据审计',{'等级','检查项','信息','处理方式'; ...
     'info','有限输入与非零系数','全部已验证；未改变原始输入','只读检查'}};
-sheets(end + 1, :) = {'主结果质量门',{'Verification ID','检查项','是否通过','证据','判定关系', ...
+quality = {'Verification ID','检查项','是否通过','证据','判定关系', ...
     '阈值或容差','实际值','证据工作表','阈值来源'; ...
     'PQ-Q1-01','方程残差',passed,'由原始系数与求解值重算','abs<=', ...
-    RUN_CONFIG.tolerance,residual,'均衡残差','solver_tolerance'}};
+    RUN_CONFIG.tolerance,residual,'均衡残差','solver_tolerance'};
+if strcmp(RUN_CONFIG.run_receipt_protocol_version, '1.3.0')
+    quality(:, end + 1) = {'单位'; '1'};
+end
+sheets(end + 1, :) = {'主结果质量门',quality};
 sheets(end + 1, :) = {'均衡残差',{'主体或均衡','残差','容差','是否满足'; ...
     'a*x=b',residual,RUN_CONFIG.tolerance,passed}};
 sheets(end + 1, :) = {'状态明细',{'记录键','状态','数值','单位'; '0001','解',solution,'无量纲'}};
@@ -40,6 +44,7 @@ end
 
 function identity = verify_inputs(root, entrypoint, config)
 assert(strcmp(config.solver_backend, 'matlab'), 'HSK:Backend', 'Wrong execution backend.');
+assert_primary_quality_protocol(config);
 validateattributes(config.random_seed, {'numeric'}, {'scalar','integer','nonnegative','<=',2^32-1});
 validateattributes(config.tolerance, {'numeric'}, {'scalar','real','finite','positive'});
 inputs = string(config.data_paths(:));
@@ -70,13 +75,26 @@ identity.code_sha256 = file_digest(entrypoint);
 identity.code_bundle_sha256 = files_digest(root, sources);
 end
 
+function assert_primary_quality_protocol(config)
+hasSpec = isfield(config, 'primary_quality_spec_sha256');
+if strcmp(config.run_receipt_protocol_version, '1.3.0')
+    assert(strcmp(config.stage, 'primary') && strcmp(config.primary_quality_protocol_version, '1.1.0') ...
+        && hasSpec && ischar(config.primary_quality_spec_sha256) ...
+        && ~isempty(regexp(config.primary_quality_spec_sha256, '^[0-9a-fA-F]{64}$', 'once')), ...
+        'HSK:Protocol', 'Receipt 1.3.0 requires the approved primary quality specification.');
+else
+    assert(strcmp(config.primary_quality_protocol_version, '1.0.0') && ~hasSpec, ...
+        'HSK:Protocol', 'An approved primary quality specification requires receipt 1.3.0.');
+end
+end
+
 function hash = auxiliary_input_digest(root, inputs, config)
 protocol = string(config.run_receipt_protocol_version);
-assert(isscalar(protocol) && any(protocol == ["1.1.0","1.2.0"]), ...
+assert(isscalar(protocol) && any(protocol == ["1.1.0","1.2.0","1.3.0"]), ...
     'HSK:Protocol', 'Unsupported numerical receipt protocol.');
 fields = isfield(config, {'auxiliary_data_paths','auxiliary_data_sha256'});
 hash = "";
-if protocol == "1.1.0"
+if protocol ~= "1.2.0"
     assert(~any(fields), 'HSK:Protocol', 'Auxiliary inputs require receipt 1.2.0.');
     return
 end
@@ -205,6 +223,10 @@ if strcmp(config.run_receipt_protocol_version, '1.2.0')
     receipt.data_identity_mode = 'preprocessing_workbook';
     receipt.auxiliary_data_paths = jsonencode(config.auxiliary_data_paths(:).');
     receipt.auxiliary_data_sha256 = identity.auxiliary_data_sha256;
+elseif strcmp(config.run_receipt_protocol_version, '1.3.0')
+    receipt.primary_quality_spec_sha256 = config.primary_quality_spec_sha256;
+    receipt.data_paths = jsonencode(config.data_paths(:).');
+    receipt.data_identity_mode = data_identity_mode(config);
 end
 end
 

@@ -22,12 +22,16 @@ if SCRIPT_DIR not in sys.path:
 import artifact_identity as ARTIFACT_IDENTITY  # noqa: E402
 import project_transaction as PROJECT_TX  # noqa: E402
 import run_config_parser as RUN_CONFIG_PARSER  # noqa: E402
+import primary_quality_binding as PRIMARY_QUALITY  # noqa: E402
 import analysis_prerequisites as ANALYSIS_PREREQUISITES  # noqa: E402
 import state_transitions as STATE_TRANSITIONS  # noqa: E402
 import stage_code as STAGE_CODE  # noqa: E402
 import conformance_gate as CONFORMANCE  # noqa: E402
 import analysis_comparison_gate as COMPARISON  # noqa: E402
-from execution_protocol import SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, auxiliary_receipt_issues, comparison_receipt_issues
+from execution_protocol import (
+    SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, auxiliary_receipt_issues,
+    comparison_receipt_issues, primary_quality_receipt_issues,
+)
 from stage_inputs import InputUnavailableError, input_files, observe_inputs, observe_preprocessing_inputs
 from artifact_fingerprint import combined_hash, sha256_file
 
@@ -321,6 +325,7 @@ def validate_run_receipt_binding(
                 issues.append("RUN_RECEIPT.primary_workbook_sha256与已交付RUN_CONFIG不一致")
     issues.extend(auxiliary_receipt_issues(receipt, delivered or {}))
     issues.extend(comparison_receipt_issues(receipt, delivered or {}))
+    issues.extend(primary_quality_receipt_issues(receipt, delivered or {}))
     return issues
 
 
@@ -920,6 +925,16 @@ def _validate_captured_receipt(
     delivered, delivered_issues = delivered_stage_config(root, state, entry, stage)
     issues.extend(delivered_issues)
     issues.extend(validate_run_receipt_binding(config, delivered))
+    specification = None
+    quality_observed = {"project": {}, "skill": {}}
+    if stage == "primary":
+        specification, quality_issues, quality_observed = PRIMARY_QUALITY.inspect_gate(
+            root, state, key, delivered or {}, receipt=config, enforce_current_sib=True,
+        )
+        if quality_issues:
+            return list(dict.fromkeys([*issues, *quality_issues]))
+        if conformance_read_set is not None:
+            CONFORMANCE.merge_read_sets(conformance_read_set, quality_observed)
     if project_backend is not None and delivered is not None and delivered.get("solver_backend") != project_backend:
         return list(dict.fromkeys([
             *issues, "项目后端与已交付RUN_CONFIG后端不一致，不能登记当前工作簿",
@@ -999,6 +1014,7 @@ def _validate_captured_receipt(
             entry.get("capabilities") or {},
             force_strict=force_strict,
             contract=yaml.safe_load(numerical_bytes),
+            approved_specification=specification,
         )
         issues.extend(numerical_issues)
         passed = passed and numerical_passed
@@ -1016,6 +1032,11 @@ def _validate_captured_receipt(
                     CONFORMANCE.merge_read_sets(conformance_read_set, conformance["observed_sources"])
             except (OSError, ValueError, RuntimeError) as exc:
                 return list(dict.fromkeys([*issues, f"conformance receipt read-set conflict: {exc}"]))
+        try:
+            CONFORMANCE.assert_observed(root, quality_observed)
+        except PROJECT_TX.ReadSetConflictError as exc:
+            detail = f"{key} PQS: approved framework changed during receipt validation: {exc}"
+            return list(dict.fromkeys([*issues, detail]))
         if write:
             CONFORMANCE.assert_observed(root, workbook_observed)
             issues.extend(_execution_read_issues(root, execution_observed))
