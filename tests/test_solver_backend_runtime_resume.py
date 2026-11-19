@@ -128,6 +128,96 @@ class SolverBackendRuntimeResumeTests(unittest.TestCase):
             self.assertIn("stage_code", string_values(interface))
         self.assertFalse({"python_code", "stage_python_code"} & string_values(plan))
 
+    def test_selected_question_cannot_finalize_with_incomplete_project_results(self):
+        from semantic_identity import inspect_question_semantics, question_sections
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            canonical_primary_project(root, "python")
+            state_path = root / "state/project_state.yaml"
+            state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+            q1 = state["subproblems"]["Q1"]
+            q1.update(result_analysis_status="not_required",
+                      result_analysis_requirement_reason="No additional claims require analysis")
+            q2 = {"status": "designed", "depends_on": [{"question": "Q1", "kind": "result"}]}
+            state["subproblems"]["Q2"] = q2
+
+            def write_state_and_resolve():
+                state_path.write_text(yaml.safe_dump(state, allow_unicode=True), encoding="utf-8")
+                original = state_path.read_bytes()
+                plan = resolve_runtime(("full_workflow", "latex"), project_root=root, question="Q1")
+                self.assertEqual(state_path.read_bytes(), original)
+                return plan
+
+            def assert_waits_for(plan, artifact):
+                self.assertIn("validated_results", plan["assurance"]["artifact_assurance"]["effective_artifacts"])
+                self.assertIn(f"full_workflow_resume:Q2:{artifact}", plan["missing_prerequisites"])
+                self.assertIsNone(plan["delivery_scope"])
+                self.assertEqual(plan["modules"], [])
+                self.assertEqual(plan["pre_delivery_gates"], [])
+                self.assertEqual(plan["reading_plan"]["tool_interfaces"], [])
+                self.assertFalse(plan["terminal_outputs"])
+
+            assert_waits_for(write_state_and_resolve(), "accepted_solution_workbook")
+
+            directory = root / "问题二求解"
+            directory.mkdir()
+            code = directory / "问题二求解.py"
+            code.write_text((root / q1["code"]).read_text(encoding="utf-8").replace(
+                "问题一", "问题二"), encoding="utf-8")
+            workbook = directory / "问题二求解结果.xlsx"
+            workbook.write_bytes(b"Q2 synthetic hash-only route evidence")
+            fingerprint = stage_code.stage_code_fingerprint(root, code)
+            hashes = {"primary_code": fingerprint["entry_sha256"],
+                      "solution_workbook": hashlib.sha256(workbook.read_bytes()).hexdigest()}
+
+            payload = dict(identity(), question="Q2")
+            question_framework = framework(payload).replace("Q1", "Q2").replace("第一问", "第二问")
+            framework_path = root / "模型论文框架.md"
+            framework_path.write_text(
+                framework_path.read_text(encoding="utf-8") + "\n" + question_framework.split("\n", 2)[2],
+                encoding="utf-8",
+            )
+            semantic = inspect_question_semantics(question_sections(question_framework)["Q2"], "Q2")
+            q2.update(structured_question(), classification=q1["classification"], status="solved",
+                      code=code.relative_to(root).as_posix(), data_hash=q1["data_hash"],
+                      primary_code_sha256=hashes["primary_code"], primary_execution_status="accepted",
+                      solution_workbook=workbook.relative_to(root).as_posix(), result_quality_status="passed",
+                      artifact_hashes=hashes, validated_artifact_hashes=dict(hashes),
+                      result_analysis_status="pending", analysis_execution_status="pending",
+                      result_analysis_requirement_reason="Need a parameter sensitivity assessment",
+                      analysis_methods=["parameter_sensitivity"],
+                      solver_execution={"primary": {"bundle_sha256": fingerprint["bundle_sha256"],
+                                                    "validated_bundle_sha256": fingerprint["bundle_sha256"]}})
+            q2["semantic_text_hash"] = semantic["semantic_text_hash"]
+            for field in ("semantic_identity_hash", "validated_semantic_identity_hash", "approved_semantic_identity_hash"):
+                q2[field] = semantic["semantic_identity_hash"]
+
+            assert_waits_for(write_state_and_resolve(), "validated_results")
+            q2["result_analysis_status"] = "not_required"
+            q2.pop("result_analysis_requirement_reason")
+            q2.pop("analysis_methods")
+            assert_waits_for(write_state_and_resolve(), "validated_results")
+
+            q2["result_analysis_requirement_reason"] = "The accepted result needs no additional claims"
+            final = write_state_and_resolve()
+            self.assertEqual(final["delivery_scope"], "submission")
+            self.assertIn("modules/05_writing/latex.md", final["modules"])
+            self.assertIn("submission_package_validation",
+                          [gate["name"] for gate in final["pre_delivery_gates"]])
+            unscoped = resolve_runtime("full_workflow", project_root=root)
+            self.assertEqual(unscoped["delivery_scope"], "submission")
+
+    def test_full_workflow_requires_project_evidence_before_finalizing(self):
+        legacy = ("accepted_solution_workbook", "validated_results")
+        self.assertEqual(resolve_runtime("full_workflow", available_artifacts=legacy)["delivery_scope"],
+                         "submission")
+        with tempfile.TemporaryDirectory() as temp:
+            plan = resolve_runtime("full_workflow", project_root=Path(temp), available_artifacts=legacy)
+        self.assertIsNone(plan["delivery_scope"])
+        self.assertIn("full_workflow_resume:project_state", plan["missing_prerequisites"])
+        self.assertEqual(plan["pre_delivery_gates"], [])
+
     def test_explicit_analysis_request_cannot_override_project_backend(self):
         for intent in ("result_analysis", "full_workflow"):
             with self.subTest(intent=intent), tempfile.TemporaryDirectory() as temp:

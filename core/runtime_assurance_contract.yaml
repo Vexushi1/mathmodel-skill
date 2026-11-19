@@ -171,7 +171,7 @@ artifact_assurance:
   - validated_results requires a current verified primary result plus either current verified analysis or a reasoned not_required decision for every scoped question.
   - A current required analysis-comparison item prevents not_required qualification; technical comparison coverage cannot certify mathematical truth or independent model validity.
   - With project state loaded, solution_workbook, solved_results, and result_quality_report declarations share accepted_solution_workbook qualification; result_analysis_workbook shares accepted_result_analysis_workbook qualification. A derived validated_results declaration cannot bypass these qualifications.
-  - With --question Qn, semantic and workbook evidence is evaluated for that question.
+  - With --question Qn, semantic and workbook evidence is evaluated for that question. Before advancing a project-backed full_workflow to final delivery, verify validated_results for all registered questions from the same project snapshot.
   - Without a question scope, generic locked_model_spec is promoted only when every scoped question passes the structured identity evidence chain; legacy questions remain readable provenance but are not promoted as verified locked_model_spec.
   - Without a question scope, generic accepted_solution_workbook or accepted_result_analysis_workbook is promoted only when every scoped subproblem satisfies the corresponding condition.
   - A known stale, rejected, hash-mismatched, missing, malformed, identity-mode-mismatched, legacy-review-required, or outside-project-root artifact must not be promoted merely because its legacy name appears in available_artifacts.

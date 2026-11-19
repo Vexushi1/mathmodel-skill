@@ -139,6 +139,10 @@ V10320_LITERATURE_P6_AUTHORITY_VERSIONS = {
 V10321_PREPROCESSING_REDELIVERY_AUTHORITY_VERSIONS = {
     **V10320_LITERATURE_P6_AUTHORITY_VERSIONS, "skill": "10.32.1",
 }
+# Project-aware question delivery leaves the protected stateless projections intact.
+V10322_QUESTION_DELIVERY_SCOPE_AUTHORITY_VERSIONS = {
+    **V10321_PREPROCESSING_REDELIVERY_AUTHORITY_VERSIONS, "skill": "10.32.2",
+}
 # Only these two read-list migrations are registered. Business text is separately
 # reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
 REVIEW_SPLIT_WRITING_DELTAS = (
@@ -1990,6 +1994,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
         V10310_RESEARCH_SNAPSHOT_AUTHORITY_VERSIONS,
         V10320_LITERATURE_P6_AUTHORITY_VERSIONS,
         V10321_PREPROCESSING_REDELIVERY_AUTHORITY_VERSIONS,
+        V10322_QUESTION_DELIVERY_SCOPE_AUTHORITY_VERSIONS,
     )
     matched_carrier = next((
         carrier for carrier in accepted_carriers
@@ -2003,6 +2008,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
         V10310_RESEARCH_SNAPSHOT_AUTHORITY_VERSIONS,
         V10320_LITERATURE_P6_AUTHORITY_VERSIONS,
         V10321_PREPROCESSING_REDELIVERY_AUTHORITY_VERSIONS,
+        V10322_QUESTION_DELIVERY_SCOPE_AUTHORITY_VERSIONS,
     ):
         # P2 historical comparison can borrow the v10.28 inverse only when
         # the new literature-resource pair was NOT loaded. Real modeling-route
@@ -2043,6 +2049,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 V10310_RESEARCH_SNAPSHOT_AUTHORITY_VERSIONS,
                 V10320_LITERATURE_P6_AUTHORITY_VERSIONS,
                 V10321_PREPROCESSING_REDELIVERY_AUTHORITY_VERSIONS,
+                V10322_QUESTION_DELIVERY_SCOPE_AUTHORITY_VERSIONS,
             ):
                 # Reconstruct only two exact P4 output-layout additions.
                 # Do not generalize into ignoring the output contract hash.
