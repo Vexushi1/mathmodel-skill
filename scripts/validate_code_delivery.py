@@ -26,7 +26,7 @@ import execution_provenance as EXECUTION_PROVENANCE  # noqa: E402
 import conformance_gate as CONFORMANCE  # noqa: E402
 import analysis_comparison_gate as COMPARISON  # noqa: E402
 from execution_protocol import SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, comparison_config_issues
-from stage_inputs import input_files, observe_inputs, observe_preprocessing_inputs
+from stage_inputs import InputUnavailableError, input_files, observe_inputs, observe_preprocessing_inputs
 import matlab_code_checks as MATLAB_CHECKS  # noqa: E402
 STATE_TRANSITION_CONTRACT = yaml.safe_load(
     (SKILL_ROOT / "core" / "state_transition_contract.yaml").read_text(encoding="utf-8")
@@ -621,12 +621,20 @@ def _question_key(problem: str) -> str:
     return f"Q{order.index(suffix) + 1}" if suffix in order else problem
 
 
+def _preprocessing_registration(state: Mapping[str, Any]) -> tuple:
+    pre = state.get("preprocessing") or {}
+    data = state.get("data") or {}
+    return (pre, data.get("active_source_mode"),
+            (data.get("version_hashes") or {}).get("preprocessing_input"))
+
+
 def _accepted_preprocessing_change(root: Path, state: dict[str, Any], observed: dict,
-                                   delivered_config: dict[str, Any] | None = None) -> str | None:
+                                   delivered_config: dict[str, Any]) -> str | None:
     """Compare an existing acceptance with current evidence, never granting qualification."""
     from zipfile import BadZipFile
     import validate_user_execution as receipt_gate
 
+    root = root.resolve()
     pre = state["preprocessing"]
     expected_input = ((state.get("data") or {}).get("version_hashes") or {}).get("preprocessing_input")
     if not all(is_sha256(item) for item in (pre.get("code_sha256"), expected_input, pre.get("workbook_sha256"))):
@@ -640,12 +648,19 @@ def _accepted_preprocessing_change(root: Path, state: dict[str, Any], observed: 
     if source_hash != str(pre["code_sha256"]).lower():
         return f"预处理源码已改变: {pre['code']}"
     _, config = embedded_config(raw.decode("utf-8-sig"))
-    if delivered_config is not None and delivered_config != config:
+    if delivered_config != config:
         raise ValueError("交付配置与本次观察到的预处理源码不一致")
-    data_hash, input_hashes = observe_preprocessing_inputs(root, config)
-    CONFORMANCE.merge_read_sets(observed, {"project": input_hashes})
-    if data_hash != str(expected_input).lower() or data_hash != str(config.get("data_sha256", "")).lower():
-        return "预处理原始输入身份不一致: " + ", ".join(input_hashes)
+    incomplete_input = None
+    try:
+        data_hash, input_hashes = observe_preprocessing_inputs(root, config)
+    except (OSError, InputUnavailableError) as exc:
+        incomplete_input = exc
+        if isinstance(exc, InputUnavailableError):
+            CONFORMANCE.merge_read_sets(observed, {"project": {name: None for name in exc.missing}})
+    else:
+        CONFORMANCE.merge_read_sets(observed, {"project": input_hashes})
+        if data_hash != str(expected_input).lower() or data_hash != str(config.get("data_sha256", "")).lower():
+            return "预处理原始输入身份不一致: " + ", ".join(input_hashes)
 
     workbook, = input_files(root, [pre.get("workbook")])
     problem, stage, issues = receipt_gate.workbook_identity(root, workbook)
@@ -666,6 +681,8 @@ def _accepted_preprocessing_change(root: Path, state: dict[str, Any], observed: 
     issues.extend(receipt_gate.validate_run_receipt_binding(receipt, config))
     if issues:
         return "预处理原回执身份不一致: " + "; ".join(issues)
+    if incomplete_input is not None:
+        raise ValueError(f"预处理原始输入暂无法复核: {incomplete_input}") from incomplete_input
     if (state.get("data") or {}).get("active_source_mode") != "preprocessed":
         raise ValueError("预处理已验收记录与当前数据来源状态不一致")
     return None
@@ -673,7 +690,8 @@ def _accepted_preprocessing_change(root: Path, state: dict[str, Any], observed: 
 
 def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
                  expected_source_sha256: str | None = None,
-                 expected_bundle_sha256: str | None = None) -> list[dict[str, Any]]:
+                 expected_bundle_sha256: str | None = None,
+                 preprocessing_batch: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     configuration_issues = auxiliary_config_issues(config)
     configuration_issues.extend(comparison_config_issues(config))
     if configuration_issues:
@@ -689,19 +707,18 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
     stage = str(config["stage"])
     if not guarded:
         _, state, base_generation = PROJECT_TX.load_state_for_update(project_root)
-    candidate = observed_state if guarded else state
-    pre = candidate.get("preprocessing") or {}
-    if not isinstance(pre, Mapping):
-        raise ValueError("preprocessing must be a mapping")
-    shared_inputs = pre.get("decision") == "project_level"
     snapshot = None
     preprocessing_observed = {"project": {}, "skill": {}}
-    if guarded or stage == "preprocessing" or shared_inputs:
+    if guarded or stage == "preprocessing" or preprocessing_batch:
         from runtime_assurance import ProjectStateSnapshot
         snapshot = ProjectStateSnapshot.capture(project_root)
         state = snapshot.payload()
         base_generation = PROJECT_TX.state_generation(state)
         preprocessing_observed["project"][PROJECT_TX.STATE_RELATIVE_PATH] = snapshot.describe()["sha256"]
+    if preprocessing_batch:
+        if _preprocessing_registration(state) != preprocessing_batch["registration"]:
+            raise ValueError("项目级预处理登记在本次交付期间改变，请重新检查")
+        CONFORMANCE.merge_read_sets(preprocessing_observed, {"project": preprocessing_batch["files"]})
     problem = str(config["problem_name"])
     if stage in {"primary", "analysis"}:
         project_backend = STAGE_CODE.current_project_backend(state, required=True)
@@ -729,11 +746,6 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
                 gate_issues.append(f"阶段实际输入无法核验: {exc}")
         if gate_issues:
             raise ValueError("; ".join(gate_issues))
-        preprocessing = state.get("preprocessing") or {}
-        if preprocessing.get("decision") == "project_level":
-            change = _accepted_preprocessing_change(project_root, state, preprocessing_observed)
-            if change:
-                raise ValueError(change)
     transition_reports: list[dict[str, Any]] = []
 
     if stage == "preprocessing":
@@ -748,6 +760,14 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
             if not change:
                 CONFORMANCE.assert_observed(project_root, preprocessing_observed)
                 snapshot.assert_current()
+                if preprocessing_batch is not None:
+                    # Later questions take fresh State snapshots after this process's own writes,
+                    # while every dependent commit remains bound to the same original observations.
+                    preprocessing_batch["registration"] = _preprocessing_registration(state)
+                    preprocessing_batch["files"] = {
+                        name: digest for name, digest in preprocessing_observed["project"].items()
+                        if name != PROJECT_TX.STATE_RELATIVE_PATH
+                    }
                 return []
         elif old_hash and old_hash != new_hash:
             change = f"预处理源码已改变: {relative}"
@@ -980,7 +1000,7 @@ def update_state(project_root: Path, config: dict[str, Any], script: Path, *,
     CONFORMANCE.merge_read_sets(observed, comparison["observed_sources"])
     CONFORMANCE.merge_read_sets(observed, preprocessing_observed)
     CONFORMANCE.assert_observed(project_root, observed)
-    if shared_inputs and snapshot is not None and state == snapshot.payload():
+    if preprocessing_batch and state == snapshot.payload():
         snapshot.assert_current()
         return transition_reports
     PROJECT_TX.commit_project_state(
@@ -996,7 +1016,8 @@ def discover_scripts(root: Path) -> list[Path]:
     state = load_yaml(state_path) if state_path.is_file() else {}
     source = root / "数据预处理/数据预处理.py"
     pre = state.get("preprocessing") or {}
-    registered = isinstance(pre, Mapping) and pre.get("decision") == "project_level" and pre.get("code")
+    registered = (isinstance(pre, Mapping) and pre.get("decision") == "project_level"
+                  and (pre.get("code") or pre.get("status") == "accepted"))
     scripts = [source] if source.is_file() or registered else []
     for folder in sorted(root.glob("问题*求解")):
         if not folder.is_dir():
@@ -1042,6 +1063,7 @@ def _main() -> int:
     metrics: dict[str, Any] = {}
     checked: list[str] = []
     transition_reports: list[dict[str, Any]] = []
+    preprocessing_batch = {} if args.write and not args.script else None
     for script in scripts:
         script = STAGE_CODE._expand_windows_short_path(script.absolute())
         checked_source_sha256 = sha256(script)
@@ -1077,7 +1099,8 @@ def _main() -> int:
             try:
                 transition_reports.extend(update_state(root, config, script,
                                                        expected_source_sha256=checked_source_sha256,
-                                                       expected_bundle_sha256=native_report.get("validated_bundle_sha256")))
+                                                       expected_bundle_sha256=native_report.get("validated_bundle_sha256"),
+                                                       preprocessing_batch=preprocessing_batch))
             except (OSError, ValueError, PROJECT_TX.ProjectTransactionError) as exc:
                 issues.append(f"{script.name}: {exc}")
         if args.write and script == root / "数据预处理/数据预处理.py" and issues:

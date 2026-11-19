@@ -710,6 +710,8 @@ def _receipt_context(root: Path, state: dict[str, Any], key: str, stage: str, re
         actual = observation.get("data_sha256")
         if actual and is_sha256(config.get("data_sha256")) and actual != str(config["data_sha256"]).lower():
             result["events"].add("preprocessing_changed" if current == "preprocessing" else "data_changed")
+            if current == "preprocessing":
+                result["issues"].append("预处理原始输入当前SHA-256与已交付RUN_CONFIG不一致")
         auxiliary = observation.get("auxiliary_data_sha256")
         if auxiliary and auxiliary != str(config.get("auxiliary_data_sha256", "")).lower():
             result["events"].add("analysis_inputs_changed" if current == "analysis" else "data_changed")
