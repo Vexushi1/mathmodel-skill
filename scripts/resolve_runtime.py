@@ -12,6 +12,7 @@ import stage_code as STAGE_CODE
 
 from resolve_workflow import TAXONOMY_PATH, add_solver_resources, code_artifact_projection, legacy_to_axes, resolve_workflow, review_only_request, route_boundary_roles
 from reading_plan import build_reading_plan
+from state_transitions import dependency_cycles, dependency_edges
 from runtime_assurance import (
     ProjectStateSnapshot,
     apply_contract_dependency_closure,
@@ -375,6 +376,64 @@ def _scope_gate_commands(
     return issues
 
 
+def _dependency_diagnostics(
+    snapshot: ProjectStateSnapshot, question: str | None, stage: str,
+    artifact_evidence: Iterable[dict[str, Any]],
+) -> dict[str, Any]:
+    """Observe scoped result dependencies without inferring execution requirements."""
+    subproblems = snapshot.payload().get("subproblems") or {}
+    incoming: dict[str, set[tuple[str, str]]] = {}
+    for edge in dependency_edges(subproblems):
+        if edge["kind"] in {"result", "legacy_untyped"}:
+            incoming.setdefault(edge["target"], set()).add((edge["source"], edge["kind"]))
+
+    results = {
+        row["scope"]: row for row in artifact_evidence
+        if row["artifact"] == "accepted_solution_workbook"
+    }
+    pending = [question] if question is not None else sorted(subproblems, reverse=True)
+    visited: set[str] = set()
+    observations = []
+    legacy = []
+    unresolved: dict[str, Any] = {}
+    while pending:
+        target = pending.pop()
+        if target in visited:
+            continue
+        visited.add(target)
+        for upstream, kind in sorted(incoming.get(target, ())):
+            edge = {"question": target, "upstream": upstream}
+            if kind == "legacy_untyped":
+                legacy.append(edge)
+                continue
+            if upstream not in subproblems:
+                observations.append({**edge, "status": "unregistered",
+                                     "reason": "upstream question is not registered in project state"})
+                continue
+            if upstream not in results:
+                context = hydrate_project_context(snapshot.root, upstream, state_snapshot=snapshot)
+                results[upstream] = next((
+                    row for row in context["artifact_evidence"]
+                    if row["artifact"] == "accepted_solution_workbook" and row["scope"] == upstream
+                ), {"status": "unavailable", "reason": "no current accepted primary workbook evidence"})
+            row = results[upstream]
+            observations.append({**edge, "status": row["status"], "reason": row["reason"]})
+            if row["status"] != "verified":
+                unresolved.setdefault(target, {"depends_on": []})["depends_on"].append(
+                    {"question": upstream, "kind": "result"}
+                )
+                pending.append(upstream)
+
+    if not observations and not legacy:
+        return {}
+    return {
+        "stage": stage,
+        "result_dependencies": observations,
+        "unresolved_result_cycles": dependency_cycles(unresolved),
+        "legacy_dependencies": legacy,
+    }
+
+
 def resolve_runtime(
     intents: str | Iterable[str] | None = None,
     *,
@@ -629,6 +688,12 @@ def resolve_runtime(
         context_conflicts = _unique([*context_conflicts, *_scope_gate_commands(
             plan, state_snapshot.root, state_snapshot.payload(), question, selected_backend,
         )])
+    dependency_diagnostics = {}
+    if (state_snapshot is not None and actual_stage and hydration.get("loaded")
+            and any(gate["name"] == "code_delivery" for gate in plan["pre_delivery_gates"])):
+        dependency_diagnostics = _dependency_diagnostics(
+            state_snapshot, question, actual_stage, hydration["artifact_evidence"],
+        )
     review_required = bool(context_conflicts or ambiguities)
 
     plan["version"] = bootstrap.get("skill_version", plan.get("version"))
@@ -656,6 +721,7 @@ def resolve_runtime(
             "field_provenance": field_provenance,
             "conflicts": context_conflicts,
             "ambiguities": ambiguities,
+            **({"dependency_diagnostics": dependency_diagnostics} if dependency_diagnostics else {}),
             **({"backend_policy": hydration.get("backend_policy")} if solver_context is not None else {}),
         },
         "intent_resolution": intent_diagnostics,
