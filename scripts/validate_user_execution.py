@@ -929,7 +929,7 @@ def _validate_captured_receipt(
     quality_observed = {"project": {}, "skill": {}}
     if stage == "primary":
         specification, quality_issues, quality_observed = PRIMARY_QUALITY.inspect_gate(
-            root, state, key, delivered or {}, receipt=config, enforce_current_sib=True,
+            root, state, key, delivered or {}, receipt=config, enforce_current_sib=registration_requested,
         )
         if quality_issues:
             return list(dict.fromkeys([*issues, *quality_issues]))
