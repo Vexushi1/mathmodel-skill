@@ -15,6 +15,7 @@ from typing import Any, Mapping
 
 import yaml
 from claim_values import EvidenceError, converted, derive, number, unit_info
+from primary_quality_specification import SPECIFICATION_KEY
 from semantic_identity import canonical_semantic_identity, semantic_identity_hash
 
 VERSION = "1.0.0"
@@ -146,7 +147,7 @@ def extract_specs(framework_text: str, question: str) -> dict:
 
 
 def mathematical_projection(identity: Mapping[str, Any], pure_algorithm_keys=()) -> dict:
-    """Keep all math/unknown extensions; only reviewed scalar implementation keys may leave."""
+    """Project model mathematics for distinctness independently of primary acceptance criteria."""
     canonical = canonical_semantic_identity(identity)
     keys = _strings(list(pure_algorithm_keys), "pure_algorithm_keys", nonempty=False)
     if set(keys) - PURE_ALGORITHM_KEYS:
@@ -156,6 +157,11 @@ def mathematical_projection(identity: Mapping[str, Any], pure_algorithm_keys=())
         if key not in algorithm or not isinstance(algorithm[key], str):
             raise ComparisonError("excluded implementation key must be present scalar text")
     canonical["algorithm_semantics"] = {key: value for key, value in algorithm.items() if key not in keys}
+    extensions = canonical.get("extensions")
+    if extensions is not None:
+        extensions.pop(SPECIFICATION_KEY, None)
+        if not extensions:
+            del canonical["extensions"]
     return canonical
 
 

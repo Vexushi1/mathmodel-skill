@@ -445,6 +445,135 @@ USER_CHECKER_AUTHORITY_REWRITES = {
 }
 
 
+# Reconstruct the exact predecessors of the v10.34.0 PQS changes.
+# Each tuple binds a unique changed range by its first line, size and digest.
+# Bytes elsewhere stay visible to the pre-existing historical checks.
+PRIMARY_QUALITY_BINDING_BLOCKS = {
+    "core/model_approval_contract.yaml": (
+        (
+            "  approval_brief_field_semantics:", 6,
+            "21c5dbfb0396c138461e986af2a7e4539c7e20671e5be0ba161fcb95158cb536",
+            (
+                "  approval_brief_field_semantics:\n"
+                "    next_stage_implementation_scope: >-\n"
+            ),
+        ),
+        (
+            "    purpose: declared_model_comparison_only_not_a_new_global_identity", 5,
+            "c832bff2d01709ce465b0c97291dcde90cc67773b873610bc567371dc02b80ff",
+            (
+                "    purpose: declared_model_comparison_only_not_a_new_global_identity\n"
+                "    retain: all_model_fields_all_extensions_and_unknown_algorithm_content\n"
+                "    removable_scalar_implementation_keys: [family, method, solver, solver_role, implementation, backend]\n"
+            ),
+        ),
+    ),
+    "core/numerical_verification_contract.yaml": (
+        (
+            "", 15,
+            "dc4837096f273aa7bf347cb1c6d59d1d4d0f49224402ea8325a5f9fe892f7af3",
+            (
+                "\n"
+                "strict_v714_trace:\n"
+            ),
+        ),
+    ),
+    "core/workbook_schema.yaml": (
+        (
+            "      required_columns: [检查项, 是否通过, 证据]", 3,
+            "4d1208f3239ea57af87ee9fb7c3619fc43819530047fc0d0c0b1f36e36ff4f10",
+            (
+                "      required_columns: [检查项, 是否通过, 证据]\n"
+                "      optional_columns: [Verification ID, 判定关系, 阈值或容差, 实际值, 证据工作表, 阈值来源, 说明]\n"
+                "  common_recommended_sheets:\n"
+            ),
+        ),
+    ),
+    "scripts/validate_code_delivery.py": (
+        (
+            "import run_config_parser as RUN_CONFIG_PARSER  # noqa: E402", 3,
+            "6e925d87ce6663d85fbf936c57ff6397d728473513e0fdad2036f26569515ac2",
+            (
+                "import run_config_parser as RUN_CONFIG_PARSER  # noqa: E402\n"
+                "import analysis_prerequisites as ANALYSIS_PREREQUISITES  # noqa: E402\n"
+            ),
+        ),
+        (
+            "import analysis_comparison_gate as COMPARISON  # noqa: E402", 6,
+            "c5a91bb6f15680553c2d3c90a3d1762b0219314dac9b36d27fc37b670491df16",
+            (
+                "import analysis_comparison_gate as COMPARISON  # noqa: E402\n"
+                "from execution_protocol import SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, comparison_config_issues\n"
+                "from stage_inputs import InputUnavailableError, input_files, observe_inputs, observe_preprocessing_inputs\n"
+            ),
+        ),
+        (
+            "}", 2,
+            "ae9875969ebd12ee08892dd52ec6ae54d549c9629a948c4c3467f5814fcf8320",
+            (
+                "}\n"
+                "PRIMARY_QUALITY_PROTOCOL_VERSION = \"1.0.0\"\n"
+                "PRIMARY_REQUIRED_FIELDS = {\"primary_quality_protocol_version\"}\n"
+            ),
+        ),
+        (
+            "                issues.append(f\"primary嵌入运行配置缺少字段: {field}\")", 7,
+            "9513aef5df2b7dabee7df3531c821cfad359b151526d4bfbd4775718971927f3",
+            (
+                "                issues.append(f\"primary嵌入运行配置缺少字段: {field}\")\n"
+                "        if config.get(\"primary_quality_protocol_version\") not in (None, \"\", PRIMARY_QUALITY_PROTOCOL_VERSION):\n"
+                "            issues.append(f\"primary_quality_protocol_version必须为{PRIMARY_QUALITY_PROTOCOL_VERSION}\")\n"
+                "    elif config.get(\"primary_quality_protocol_version\") not in (None, \"\"):\n"
+                "        issues.append(\"primary_quality_protocol_version只允许出现在primary阶段运行配置\")\n"
+                "    if stage and stage != filename_stage:\n"
+            ),
+        ),
+        (
+            "    observed_state = load_yaml(state_path)", 10,
+            "4307f8398ede56a5bb971b98332796ad7897fdba705ff4505b5bffd48791283f",
+            (
+                "    observed_state = load_yaml(state_path)\n"
+                "    guarded = any(CONFORMANCE.present(entry) or COMPARISON.present(entry, config=config)\n"
+                "                  for entry in (observed_state.get(\"subproblems\") or {}).values())\n"
+                "    stage = str(config[\"stage\"])\n"
+                "    if not guarded:\n"
+            ),
+        ),
+        (
+            "    entry = state.setdefault(\"subproblems\", {}).setdefault(key, {})", 14,
+            "572a657ac42a12e42917e2af7d16092c71afafdca18d408aa5d0d24e103ae8a9",
+            (
+                "    entry = state.setdefault(\"subproblems\", {}).setdefault(key, {})\n"
+                "    conformance = CONFORMANCE.inspect_gate(\n"
+            ),
+        ),
+        (
+            "    CONFORMANCE.merge_read_sets(observed, preprocessing_observed)", 3,
+            "a4ed8a3d796392cd7d2b640f8b8f8b775076ec118ca02e5801b282b600247563",
+            (
+                "    CONFORMANCE.merge_read_sets(observed, preprocessing_observed)\n"
+                "    CONFORMANCE.assert_observed(project_root, observed)\n"
+            ),
+        ),
+    ),
+}
+
+
+def prior_primary_quality_binding(relative: str, text: str) -> str:
+    lines = text.splitlines(keepends=True)
+    for first, count, digest, previous in PRIMARY_QUALITY_BINDING_BLOCKS.get(relative, ()):
+        matches = [
+            start for start, line in enumerate(lines)
+            if line == first + "\n"
+            and hashlib.sha256("".join(lines[start:start + count]).encode("utf-8")).hexdigest() == digest
+        ]
+        if len(matches) != 1:
+            raise ValueError(f"{relative}: approved PQS block missing or duplicated: {first.strip()}")
+        start, = matches
+        lines[start:start + count] = previous.splitlines(keepends=True)
+    return "".join(lines)
+
+
 # PR #327 changes only these regions of validate_code_delivery.py. Each tuple
 # identifies one reviewed block by its first line, length and SHA-256, followed
 # by its exact v10.32.0 predecessor. Positions outside those blocks remain live.
@@ -959,6 +1088,7 @@ class ContractAndDriftTests(unittest.TestCase):
         # neither the old protected blob hash nor its inverse rules are waived.
         text = (historical_review_text(ROOT) if relative == "modules/06_review_delivery.md"
                 else (ROOT / relative).read_text(encoding="utf-8"))
+        text = prior_primary_quality_binding(relative, text)
         if relative == "core/workbook_schema.yaml":
             # Renderer-neutral handoff wording does not change the workbook
             # format. Reverse only these exact leaves before the old projections.
@@ -1174,6 +1304,12 @@ class ContractAndDriftTests(unittest.TestCase):
                     actual = hashlib.sha1(
                         b"blob " + str(len(data)).encode("ascii") + b"\0" + data
                     ).hexdigest()
+                elif relative in PRIMARY_QUALITY_BINDING_BLOCKS:
+                    text = prior_primary_quality_binding(relative, path.read_text(encoding="utf-8"))
+                    data = text.encode("utf-8")
+                    actual = hashlib.sha1(
+                        b"blob " + str(len(data)).encode("ascii") + b"\0" + data
+                    ).hexdigest()
                 else:
                     actual = git_blob_sha(path)
                 self.assertEqual(actual, expected)
@@ -1200,8 +1336,34 @@ class ContractAndDriftTests(unittest.TestCase):
                 projected + unrelated,
             )
 
+    def test_primary_quality_binding_inverse_is_exact(self):
+        source_hashes = {
+            "core/model_approval_contract.yaml": "40aa80daf77bfc0ba1092fa8767a1b97df331d44e76b1e23875ccbf7410653ec",
+            "core/numerical_verification_contract.yaml": "1172bc1abc7c905203fb6d5af254f85dd75467a423b4189082f5e3e259c4ac4a",
+            "core/workbook_schema.yaml": "d2433f32204cbba294cc8ce0565c850b8c7bf823857cd19e4e6823d2e60526eb",
+            "scripts/validate_code_delivery.py": "4a6f846c22480cd2c4553681d9243dfc211599e39d67b151a3fbc46f3a855d91",
+        }
+        for relative, expected in source_hashes.items():
+            with self.subTest(relative=relative):
+                current = (ROOT / relative).read_text(encoding="utf-8")
+                prior = prior_primary_quality_binding(relative, current)
+                self.assertEqual(hashlib.sha256(prior.encode("utf-8")).hexdigest(), expected)
+                extra = "\n# unauthorized separate change\n"
+                self.assertEqual(prior_primary_quality_binding(relative, current + extra), prior + extra)
+
+                first, count, digest, _ = PRIMARY_QUALITY_BINDING_BLOCKS[relative][0]
+                lines = current.splitlines(keepends=True)
+                block, = (chunk for offset, line in enumerate(lines) if line == first + "\n"
+                          for chunk in ["".join(lines[offset:offset + count])]
+                          if hashlib.sha256(chunk.encode("utf-8")).hexdigest() == digest)
+                for changed in (current.replace(block, extra, 1), current + block):
+                    with self.assertRaisesRegex(ValueError, "missing or duplicated"):
+                        prior_primary_quality_binding(relative, changed)
+
     def test_preprocessing_redelivery_inverse_is_exact(self):
-        source = (ROOT / "scripts/validate_code_delivery.py").read_text(encoding="utf-8")
+        relative = "scripts/validate_code_delivery.py"
+        current = (ROOT / relative).read_text(encoding="utf-8")
+        source = prior_primary_quality_binding(relative, current)
         predecessor = prior_preprocessing_delivery(source)
         data = predecessor.encode("utf-8")
         self.assertEqual(hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest(),
@@ -1220,7 +1382,7 @@ class ContractAndDriftTests(unittest.TestCase):
             *P6_SOURCE_PROVENANCE_REWRITES.items(),
             *USER_CHECKER_AUTHORITY_REWRITES.items(),
         ):
-            text = (ROOT / relative).read_text(encoding="utf-8")
+            text = prior_primary_quality_binding(relative, (ROOT / relative).read_text(encoding="utf-8"))
             for current, _ in replacements:
                 for changed in (text.replace(current, "unauthorized replacement\n", 1), text + current):
                     with self.subTest(relative=relative, current=current[:80]):
@@ -1229,14 +1391,15 @@ class ContractAndDriftTests(unittest.TestCase):
 
     def test_checker_inverse_projection_does_not_erase_unrelated_changes(self):
         for relative in set(USER_CHECKER_AUTHORITY_REWRITES) | set(P6_SOURCE_PROVENANCE_REWRITES):
-            text = (ROOT / relative).read_text(encoding="utf-8")
+            current = (ROOT / relative).read_text(encoding="utf-8")
+            text = prior_primary_quality_binding(relative, current)
             changed = text + "\nunauthorized unrelated change\n"
             projected = inverse_user_checker_changes(relative, text)
             self.assertEqual(
                 inverse_user_checker_changes(relative, changed),
                 projected + "\nunauthorized unrelated change\n",
             )
-            self.assertEqual((ROOT / relative).read_text(encoding="utf-8"), text)
+            self.assertEqual((ROOT / relative).read_text(encoding="utf-8"), current)
 
     def test_matlab_ownership_and_conditional_per_question_layout_are_explicit(self):
         output = yaml.safe_load((ROOT / "core/output_contract.yaml").read_text(encoding="utf-8"))

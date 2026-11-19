@@ -12,11 +12,17 @@ import argparse
 import io
 import math
 import re
+import sys
 from pathlib import Path
 from typing import Any, Mapping
 
 import openpyxl
 import yaml
+
+SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
+from primary_quality_specification import PrimaryQualitySpecificationError, numeric_threshold  # noqa: E402
 
 
 def _as_bool(value: Any) -> bool | None:
@@ -221,6 +227,32 @@ def _recheck_evidence(
     return None, [f"未实现的numerical verification recheck_mode: {mode}"]
 
 
+def _approved_quality_row_issues(
+    row: Mapping[str, Any], approved: Mapping[str, Any], verification_id: str,
+) -> list[str]:
+    """Compare admissibility criteria independently of returned measurements."""
+    issues = []
+    for column, field in (
+        ("检查项", "metric"), ("判定关系", "relation"), ("单位", "unit"),
+        ("证据工作表", "evidence_sheet"), ("阈值来源", "threshold_source"),
+    ):
+        actual = row.get(column)
+        text = "" if actual is None else str(actual).strip()
+        if text != approved.get(field, ""):
+            issues.append(f"{verification_id} PQS: {column} differs from approved {field}")
+    threshold = row.get("阈值或容差")
+    if approved["relation"] == "bool_true":
+        matches = _as_bool(threshold) is True
+    else:
+        try:
+            matches = numeric_threshold(threshold, verification_id) == approved["threshold"]
+        except PrimaryQualitySpecificationError:
+            matches = False
+    if not matches:
+        issues.append(f"{verification_id} PQS: threshold differs from the approved threshold")
+    return issues
+
+
 def validate_primary_numerical_evidence(
     workbook: Path | bytes,
     capabilities: Mapping[str, bool] | None = None,
@@ -228,6 +260,7 @@ def validate_primary_numerical_evidence(
     contract_path: Path | None = None,
     force_strict: bool | None = None,
     contract: Mapping[str, Any] | None = None,
+    approved_specification: Mapping[str, Any] | None = None,
 ) -> tuple[bool, list[str], dict[str, Any]]:
     """Validate one primary workbook without executing task-specific code."""
     contract = load_contract(contract_path) if contract is None else contract
@@ -244,7 +277,8 @@ def validate_primary_numerical_evidence(
         marker_present = "Verification ID" in quality_headers and any(
             str(row.get("Verification ID", "")).strip() for row in quality_rows
         )
-        strict = marker_present if force_strict is None else bool(force_strict)
+        strict = (approved_specification is not None
+                  or (marker_present if force_strict is None else bool(force_strict)))
 
         protocol_map = contract.get("capability_protocols") or {}
         active_capabilities = sorted(
@@ -329,6 +363,10 @@ def validate_primary_numerical_evidence(
                 if failed_rows:
                     issues.append(f"{sheet}存在未满足容差的主数值证据行: {failed_rows}")
 
+        approved_items = (
+            {item["id"]: item for item in approved_specification["items"]}
+            if approved_specification is not None else None
+        )
         checked_ids: list[str] = []
         for row_number, row in enumerate(quality_rows, start=2):
             verification_id = str(row.get("Verification ID", "")).strip()
@@ -341,6 +379,12 @@ def validate_primary_numerical_evidence(
                 issues.append(f"主结果质量门Verification ID重复: {verification_id}")
             seen_ids.add(verification_id)
             checked_ids.append(verification_id)
+            approved = approved_items.get(verification_id) if approved_items is not None else None
+            if approved_items is not None:
+                if approved is None:
+                    issues.append(f"{verification_id} PQS: unapproved verification ID")
+                else:
+                    issues.extend(_approved_quality_row_issues(row, approved, verification_id))
 
             evidence_sheet = str(row.get("证据工作表", "")).strip()
             if not evidence_sheet:
@@ -366,8 +410,10 @@ def validate_primary_numerical_evidence(
             if relation not in allowed_relations:
                 issues.append(f"{verification_id}使用未登记判定关系: {relation}")
                 continue
+            evaluation_relation = approved["relation"] if approved is not None else relation
+            evaluation_threshold = approved["threshold"] if approved is not None else row.get("阈值或容差")
             expected_pass, relation_issue = _relation_result(
-                relation, row.get("实际值"), row.get("阈值或容差")
+                evaluation_relation, row.get("实际值"), evaluation_threshold,
             )
             if relation_issue:
                 issues.append(f"{verification_id}: {relation_issue}")
@@ -381,7 +427,7 @@ def validate_primary_numerical_evidence(
             if evidence_sheet in computed_by_sheet and computed_by_sheet[evidence_sheet] is not None:
                 computed = computed_by_sheet[evidence_sheet]
                 computed_pass, computed_issue = _relation_result(
-                    relation, computed, row.get("阈值或容差")
+                    evaluation_relation, computed, evaluation_threshold,
                 )
                 if computed_issue:
                     issues.append(f"{verification_id}重算指标: {computed_issue}")
@@ -396,6 +442,9 @@ def validate_primary_numerical_evidence(
                     if actual_number is None or not _numeric_equal(actual_number, float(computed), contract):
                         issues.append(f"{verification_id}实际值与{evidence_sheet}重算指标不一致")
 
+        if approved_items is not None:
+            issues.extend(f"{verification_id} PQS: missing approved verification ID"
+                          for verification_id in sorted(set(approved_items) - seen_ids))
         required_sheets = {
             str((protocol_map[capability] or {}).get("evidence_sheet", "")).strip()
             for capability in active_capabilities

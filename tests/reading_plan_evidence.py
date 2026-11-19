@@ -146,6 +146,9 @@ V10322_QUESTION_DELIVERY_SCOPE_AUTHORITY_VERSIONS = {
 V10330_UPSTREAM_DEPENDENCY_DIAGNOSTICS_AUTHORITY_VERSIONS = {
     **V10322_QUESTION_DELIVERY_SCOPE_AUTHORITY_VERSIONS, "skill": "10.33.0",
 }
+V10340_PRIMARY_QUALITY_BINDING_AUTHORITY_VERSIONS = {
+    **V10330_UPSTREAM_DEPENDENCY_DIAGNOSTICS_AUTHORITY_VERSIONS, "skill": "10.34.0",
+}
 # Only these two read-list migrations are registered. Business text is separately
 # reconstructed against the unchanged a944de2 Module 06 preservation snapshot.
 REVIEW_SPLIT_WRITING_DELTAS = (
@@ -1999,6 +2002,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
         V10321_PREPROCESSING_REDELIVERY_AUTHORITY_VERSIONS,
         V10322_QUESTION_DELIVERY_SCOPE_AUTHORITY_VERSIONS,
         V10330_UPSTREAM_DEPENDENCY_DIAGNOSTICS_AUTHORITY_VERSIONS,
+        V10340_PRIMARY_QUALITY_BINDING_AUTHORITY_VERSIONS,
     )
     matched_carrier = next((
         carrier for carrier in accepted_carriers
@@ -2014,6 +2018,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
         V10321_PREPROCESSING_REDELIVERY_AUTHORITY_VERSIONS,
         V10322_QUESTION_DELIVERY_SCOPE_AUTHORITY_VERSIONS,
         V10330_UPSTREAM_DEPENDENCY_DIAGNOSTICS_AUTHORITY_VERSIONS,
+        V10340_PRIMARY_QUALITY_BINDING_AUTHORITY_VERSIONS,
     ):
         # P2 historical comparison can borrow the v10.28 inverse only when
         # the new literature-resource pair was NOT loaded. Real modeling-route
@@ -2056,6 +2061,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 V10321_PREPROCESSING_REDELIVERY_AUTHORITY_VERSIONS,
                 V10322_QUESTION_DELIVERY_SCOPE_AUTHORITY_VERSIONS,
                 V10330_UPSTREAM_DEPENDENCY_DIAGNOSTICS_AUTHORITY_VERSIONS,
+                V10340_PRIMARY_QUALITY_BINDING_AUTHORITY_VERSIONS,
             ):
                 # Reconstruct only two exact P4 output-layout additions.
                 # Do not generalize into ignoring the output contract hash.
@@ -2099,6 +2105,7 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
         if matched_carrier in (
             V10322_QUESTION_DELIVERY_SCOPE_AUTHORITY_VERSIONS,
             V10330_UPSTREAM_DEPENDENCY_DIAGNOSTICS_AUTHORITY_VERSIONS,
+            V10340_PRIMARY_QUALITY_BINDING_AUTHORITY_VERSIONS,
         ):
             # Only this exact resolver pair may project onto the frozen source identities.
             # The projected plan must still match the historical behavior field by field.
@@ -2107,12 +2114,18 @@ def runtime_consistency_predecessor(identifier, new, candidate_authority_version
                 "scripts/resolve_runtime.py": "3a69957efd0b4c46359360e376c28790069558aec48790aaf47e4b1cfc7f6cc4",
             }
             approval = "v10.32.2 reviewed question scope and full readiness"
-            if matched_carrier == V10330_UPSTREAM_DEPENDENCY_DIAGNOSTICS_AUTHORITY_VERSIONS:
+            if matched_carrier in (
+                V10330_UPSTREAM_DEPENDENCY_DIAGNOSTICS_AUTHORITY_VERSIONS,
+                V10340_PRIMARY_QUALITY_BINDING_AUTHORITY_VERSIONS,
+            ):
                 resolver_hashes = {
                     "scripts/resolve_workflow.py": "706a97aa937e38df4ea7cfe1a2607859209b47be8f8fffcc28bd7af1c6361f42",
                     "scripts/resolve_runtime.py": "a894882de3bd0f0037575adbe13d457ac636d5d87924c2857a3cb7c883442f7c",
                 }
                 approval = "v10.33.0 reviewed current-scope dependency diagnostics"
+            if matched_carrier == V10340_PRIMARY_QUALITY_BINDING_AUTHORITY_VERSIONS:
+                resolver_hashes["core/user_execution_contract.yaml"] = "8a01f89aeb9ab635a6c273b5476a5d3bc402ed8681d3880ef3657ae5f35b1e3b"
+                approval = "v10.34.0 reviewed opt-in primary quality receipt contract"
             predecessor_hashes = {
                 row["path"]: row["sha256"] for row in fixture["fingerprint"]["candidate"]
                 if row["path"] in resolver_hashes

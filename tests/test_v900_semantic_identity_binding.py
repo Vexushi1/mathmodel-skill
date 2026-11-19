@@ -14,6 +14,9 @@ SCRIPTS = str(ROOT / "scripts")
 if SCRIPTS not in sys.path:
     sys.path.insert(0, SCRIPTS)
 
+from analysis_comparison import mathematical_projection
+from instantiate_model_paper_framework import expand_to_full, instantiate
+
 
 def load_module(name: str, relative: str):
     path = ROOT / relative
@@ -117,6 +120,95 @@ def locked_row(hydration: dict) -> dict:
         for item in hydration["artifact_evidence"]
         if item["artifact"] == "locked_model_spec" and item["scope"] == "Q1"
     )
+
+
+def bound_quality_identity() -> dict:
+    payload = identity()
+    payload["extensions"] = {
+        "primary_quality_specification": {
+            "version": "1.0.0",
+            "items": [
+                {"id": "PQ-Q1-01", "metric": "relative_error", "relation": "<=", "threshold": 0.05,
+                 "unit": "1", "threshold_source": "problem_or_official_requirement", "evidence_sheet": "精度"},
+                {"id": "PQ-Q1-02", "metric": "feasible", "relation": "bool_true", "threshold": True,
+                 "threshold_source": "mathematical_definition", "evidence_sheet": "可行性"},
+            ],
+        },
+    }
+    return payload
+
+
+class BoundQualityIdentityTests(unittest.TestCase):
+    def test_threshold_and_evidence_locator_are_bound_but_order_and_prose_are_not(self):
+        payload = bound_quality_identity()
+        original = SEMANTIC.inspect_question_semantics(
+            SEMANTIC.question_sections(framework(payload))["Q1"], "Q1"
+        )
+        reordered = deepcopy(payload)
+        items = reordered["extensions"]["primary_quality_specification"]["items"]
+        items[0]["threshold"] = "5e-2"
+        items[1]["unit"] = ""
+        items.reverse()
+        same = SEMANTIC.inspect_question_semantics(
+            SEMANTIC.question_sections(framework(reordered, prose="调整人类可读说明。"))["Q1"], "Q1"
+        )
+        self.assertEqual(original["semantic_identity_hash"], same["semantic_identity_hash"])
+        self.assertNotEqual(original["semantic_text_hash"], same["semantic_text_hash"])
+        for name, value in (("threshold", 0.10), ("relation", ">="), ("unit", "%"),
+                            ("evidence_sheet", "其他底层证据")):
+            with self.subTest(name=name):
+                changed = deepcopy(payload)
+                changed["extensions"]["primary_quality_specification"]["items"][0][name] = value
+                self.assertNotEqual(original["semantic_identity_hash"], SEMANTIC.semantic_identity_hash(changed))
+
+    def test_malformed_bound_criteria_do_not_create_an_identity(self):
+        for field, value in (("id", "PQ-Q2-01"), ("unit", None), ("threshold", "Infinity"),
+                             ("threshold", "0.050000000000000001"), ("threshold", True)):
+            with self.subTest(field=field, value=value):
+                payload = bound_quality_identity()
+                items = payload["extensions"]["primary_quality_specification"]["items"]
+                items[0][field] = value
+                with self.assertRaises(SEMANTIC.SemanticIdentityError):
+                    SEMANTIC.semantic_identity_hash(payload)
+        payload = bound_quality_identity()
+        items = payload["extensions"]["primary_quality_specification"]["items"]
+        items.append(deepcopy(items[0]))
+        with self.assertRaisesRegex(SEMANTIC.SemanticIdentityError, "duplicate PQS id"):
+            SEMANTIC.semantic_identity_hash(payload)
+
+    def test_yaml_duplicate_threshold_is_ambiguous_in_bound_form(self):
+        duplicate = framework(bound_quality_identity()).replace(
+            "      threshold: 0.05\n",
+            "      threshold: 0.05\n      threshold: 0.1\n",
+        )
+        self.assertIn("      threshold: 0.1", duplicate)
+        with self.assertRaisesRegex(SEMANTIC.SemanticIdentityError, "unique YAML keys"):
+            SEMANTIC.inspect_question_semantics(SEMANTIC.question_sections(duplicate)["Q1"], "Q1")
+
+    def test_compact_expansion_keeps_bound_criteria_and_identity(self):
+        payload = bound_quality_identity()
+        compact = instantiate("compact")
+        start = "<!-- HSK_SEMANTIC_IDENTITY_BEGIN Q1 -->"
+        end = "<!-- HSK_SEMANTIC_IDENTITY_END Q1 -->"
+        authored = framework(payload)
+        block = authored[authored.index(start):authored.index(end) + len(end)]
+        compact = compact.replace("#### 当前模型口径\n", "#### 当前模型口径\n\n" + block + "\n", 1)
+        full = expand_to_full(compact)
+        self.assertIn(block, full)
+        self.assertEqual(
+            SEMANTIC.inspect_question_semantics(SEMANTIC.question_sections(full)["Q1"], "Q1")["semantic_identity_hash"],
+            SEMANTIC.semantic_identity_hash(payload),
+        )
+
+    def test_quality_only_change_cannot_make_an_alternative_mathematical_model(self):
+        bare = identity()
+        bound = bound_quality_identity()
+        self.assertNotEqual(SEMANTIC.semantic_identity_hash(bare), SEMANTIC.semantic_identity_hash(bound))
+        self.assertEqual(mathematical_projection(bare), mathematical_projection(bound))
+        bare["extensions"] = {}
+        self.assertEqual(mathematical_projection(bare), mathematical_projection(bound))
+        bound["extensions"]["typed_mathematical_term"] = {"value": 3}
+        self.assertNotEqual(mathematical_projection(bare), mathematical_projection(bound))
 
 
 class StructuredApprovalTests(unittest.TestCase):

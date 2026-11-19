@@ -132,6 +132,10 @@ human_approval:
   - residual_warnings
   - next_stage_implementation_scope
   approval_brief_field_semantics:
+    primary_quality_specification_when_bound: >-
+      Display the complete ordered criteria from the current Structured Identity Block in the
+      existing brief under core/numerical_verification_contract.yaml#primary_quality_specification.
+      The explicit approval of that model identity also covers these criteria.
     next_stage_implementation_scope: >-
       Include the chosen Python/MATLAB backend, concrete solver, selection reason,
       required packages/toolboxes and any unverified environment conditions under
@@ -192,7 +196,9 @@ analysis_comparison_approval:
     excludes: [future_primary_workbook_hash, actual_results, final_evidence_row_positions, approval_records]
   mathematical_projection:
     purpose: declared_model_comparison_only_not_a_new_global_identity
-    retain: all_model_fields_all_extensions_and_unknown_algorithm_content
+    retain: all_model_fields_unknown_extensions_and_unknown_algorithm_content
+    exclude_for_model_distinctness_only: validated_extensions.primary_quality_specification
+    retain_in_full_identity_and_scope_digest: extensions.primary_quality_specification
     removable_scalar_implementation_keys: [family, method, solver, solver_role, implementation, backend]
     removal_requires: explicit_pure_algorithm_keys_and_scope_bound_two_pass_boundary_review
     comparison_partition: identical_pure_algorithm_key_sets_for_compared_model_specs

@@ -135,6 +135,24 @@ class TestResultIO(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "缺少必需字段"):
             MOD.validate_workbook_tables(tables, "solution")
 
+    def test_only_logical_quality_row_may_omit_unit_without_audit(self):
+        tables = self.solution_tables()
+        tables["主结果质量门"] = pd.DataFrame({
+            "检查项": ["收敛", "残差"],
+            "是否通过": [True, True],
+            "证据": ["达到终止条件", "由结果重算"],
+            "判定关系": ["bool_true", "<="],
+            "单位": [None, "1"],
+        })
+        MOD.validate_workbook_tables(tables, "solution")
+
+        for row, column in ((1, "单位"), (0, "证据")):
+            with self.subTest(row=row, column=column):
+                invalid = {name: frame.copy() for name, frame in tables.items()}
+                invalid["主结果质量门"].loc[row, column] = None
+                with self.assertRaisesRegex(ValueError, "缺失值.*数据审计"):
+                    MOD.validate_workbook_tables(invalid, "solution")
+
     def test_failed_quality_gate_is_rejected_for_downstream(self):
         tables = self.solution_tables()
         tables["主结果质量门"].loc[0, "是否通过"] = False

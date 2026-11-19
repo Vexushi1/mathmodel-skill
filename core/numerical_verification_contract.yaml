@@ -81,6 +81,19 @@ primary_quality_specification:
   - The specification defines minimum intrinsic admissibility only; it must not precompute a result_analysis_plan.
   - Candidate post-acceptance risks may be recorded separately as downstream risk hints.
 
+approved_primary_quality_binding:
+  authority_for: approved_primary_quality_specification
+  semantic_identity_location: extensions.primary_quality_specification
+  specification_version: 1.0.0
+  item_fields: [id, metric, relation, threshold, threshold_source, evidence_sheet, unit]
+  execution_contract: core/user_execution_contract.yaml#code_delivery.approved_primary_quality
+  rules:
+  - The current question's existing Model Challenge and Human Approval bind the canonical specification as part of the structured model identity. Order items by ID and keep explanatory prose outside the canonical fields.
+  - Every listed item is mandatory. Supply the same Verification IDs, metric, relation, threshold, source tag, unit and evidence sheet. Every numeric threshold has an explicit unit (use 1 for a dimensionless number); Boolean items require true with no unit.
+  - Compare declared criteria with the approved values before using the existing numerical evidence rechecks. Do not use tolerance to relax a frozen threshold. Keep the existing distinction between independently recomputed evidence and summary-only checks.
+  - Code delivery and receipt bind the approved digest with the original project transaction. A changed criterion, unit or evidence location is a semantic edit that requires a new review and approval. Reordering and edits to explanatory prose retain the identity.
+  - Existing receipts without a bound specification retain their historical quality semantics. Restoring them does not synthesize an approved threshold. The new reader requires the bound specification and matching receipt identity for a current opted-in result.
+
 strict_v714_trace:
   activation:
     any:

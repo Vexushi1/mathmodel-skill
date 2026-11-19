@@ -24,7 +24,8 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.measurement = load_measurement()
-        cls.fixture = ROOT / "tests/fixtures/v10330_approved_source_spans.json"
+        cls.fixture = ROOT / "tests/fixtures/v10340_approved_source_spans.json"
+        cls.frozen_v10330 = ROOT / "tests/fixtures/v10330_approved_source_spans.json"
         cls.frozen_v10322 = ROOT / "tests/fixtures/v10322_approved_source_spans.json"
         cls.frozen_v10321 = ROOT / "tests/fixtures/v10321_approved_source_spans.json"
         cls.frozen_v10320 = ROOT / "tests/fixtures/v10320_approved_source_spans.json"
@@ -98,12 +99,21 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "candidate bytes changed"):
             self.measurement.approved_source_span_migrations(self.frozen_v10322)
 
+    def test_v10330_approval_source_spans_remain_frozen(self):
+        prior = json.loads(self.frozen_v10330.read_text(encoding="utf-8"))
+        self.assertEqual(prior["scope"], "v10.33.0_upstream_dependency_diagnostics")
+        self.assertEqual(prior["version"], "10.33.0")
+        self.assertEqual(prior["migrations"][0]["candidate_sha256"],
+                         "5ba885794caeaa59eaaba1523cca3164e1921ff8b8bd593b6eb13e8478273f70")
+        with self.assertRaisesRegex(ValueError, "candidate bytes changed"):
+            self.measurement.approved_source_span_migrations(self.frozen_v10330)
+
     def cases(self):
         manifest = self.measurement.approved_source_span_migrations(self.fixture)
         before = {"id": "pure_model_design", "behavior": {"read_now": [], "load_order": []},
                   "source_identity": {"skill_version": "10.27.0", "sources": []}}
         after = {"id": "pure_model_design", "behavior": {"read_now": [], "load_order": []},
-                 "source_identity": {"skill_version": "10.33.0", "sources": []}}
+                 "source_identity": {"skill_version": "10.34.0", "sources": []}}
         for item in manifest["migrations"]:
             original = {
                 "origin": "skill", "path": item["path"],
@@ -137,6 +147,30 @@ class V10280ApprovedSourceSpanTests(unittest.TestCase):
         self.assertEqual(new, preserved)
         self.assertEqual(len(evidence), 6)
         self.assertTrue(all(entry["source_sha256"] for entry in evidence))
+
+    def test_pqs_full_extent_projection_preserves_other_read_semantics(self):
+        fixture, old, new = self.cases()
+        rule = fixture["pqs_full_source_spans"][0]
+        before = {
+            "origin": "skill", "path": rule["path"], "ranges": [[1, rule["old_last_line"]]],
+            "selectors": {"yaml_paths": ["solver_backends"]}, "when": None, "resolution": "exact",
+        }
+        after = {**before, "ranges": [[1, rule["new_last_line"]]]}
+        for case, row, hash_key in ((old, before, "baseline_sha256"), (new, after, "candidate_sha256")):
+            case["behavior"]["read_now"].append(row)
+            case["source_identity"]["sources"].append({"path": rule["path"], "sha256": rule[hash_key]})
+        saved = deepcopy(new)
+        projected, evidence = self.measurement.project_exact_approved_source_spans(old, new, fixture)
+        self.assertEqual(projected["read_now"][-1], before)
+        self.assertEqual(new, saved)
+        self.assertEqual(evidence[-1]["group"], "read_now")
+
+        new["behavior"]["read_now"][-1]["selectors"] = {"yaml_paths": ["unreviewed"]}
+        projected, _ = self.measurement.project_exact_approved_source_spans(old, new, fixture)
+        self.assertEqual(projected["read_now"][-1]["ranges"], [[1, rule["new_last_line"]]])
+        new["source_identity"]["sources"][-1]["sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "PQS source span identity drift"):
+            self.measurement.project_exact_approved_source_spans(old, new, fixture)
 
     def test_reject_changed_ranges_even_if_source_sha_matches(self):
         fixture, old, new = self.cases()

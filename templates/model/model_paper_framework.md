@@ -412,7 +412,7 @@ $$
 - 代码实现锚点：
 - 初始化/随机种子：
 - 容差与终止条件：
-- 03A 当前主计算必须闭合的检验：
+- 03A 当前主计算必须闭合的检验：启用批准绑定时，将机读条目写入本问当前模型口径的 SIB `extensions.primary_quality_specification`，按 `core/numerical_verification_contract.yaml#primary_quality_specification` 在 Model Approval Brief 展示。说明性文字可保留在这里。
 - 03B accepted 后才执行的候选深化风险：
 - 多方法数值一致性指标：
 - 多方法结构一致性指标：

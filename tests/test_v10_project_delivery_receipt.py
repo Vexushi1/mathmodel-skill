@@ -5,7 +5,9 @@ not a competition model or a claim about native MATLAB execution.
 """
 from __future__ import annotations
 
+from contextlib import redirect_stdout
 from copy import deepcopy
+import io
 import os
 import shlex
 from pathlib import Path
@@ -13,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import openpyxl
 import yaml
@@ -20,11 +23,13 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import analysis_prerequisites as PREREQUISITES
+from primary_quality_specification import normalize_specification, specification_sha256
 from resolve_runtime import resolve_runtime
+from runtime_assurance import hydrate_project_context
 from semantic_identity import inspect_question_semantics, question_sections
 import validate_code_delivery as DELIVERY
 import validate_user_execution as RECEIPT
-from tests.test_copied_support_source_closure import instantiate
+from tests.test_copied_support_source_closure import instantiate, replace_once, rewrite_config
 from tests.test_solver_backend_end_to_end import prepare as prepare_matlab
 from tests.test_v900_semantic_identity_binding import framework, identity, structured_question
 
@@ -88,9 +93,9 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
         self.deliver()
         self.assertEqual(DELIVERY.discover_scripts(self.root), [self.code])
 
-    def approved_question_scope(self):
+    def approved_question_scope(self, payload=None):
         state = self.state()
-        payload = identity()
+        payload = identity() if payload is None else payload
         payload["preprocessing_decision"] = "not_needed"
         state["semantic_governance_version"] = "1.0.0"
         state["subproblems"]["Q1"].update(
@@ -375,6 +380,160 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
         issues = RECEIPT.validate_one(self.root, self.workbook, state, True)
         self.assertTrue(any("项目后端" in item for item in issues))
         self.assertEqual(state, before)
+
+    def configure_approved_primary_quality(self):
+        specification = {
+            "version": "1.0.0",
+            "items": [
+                {"id": "PQ-Q1-01", "metric": "方程残差", "relation": "abs<=",
+                 "threshold": 0.05, "threshold_source": "solver_tolerance",
+                 "evidence_sheet": "均衡残差", "unit": "1"},
+                {"id": "PQ-Q1-02", "metric": "输出齐备", "relation": "bool_true",
+                 "threshold": True, "threshold_source": "mathematical_definition",
+                 "evidence_sheet": "核心指标", "unit": None},
+            ],
+        }
+        payload = identity()
+        payload["extensions"] = {"primary_quality_specification": specification}
+        self.approved_question_scope(payload)
+        digest = specification_sha256(normalize_specification(specification, "Q1"))
+        self.config.update(
+            run_receipt_protocol_version="1.3.0",
+            primary_quality_protocol_version="1.1.0",
+            primary_quality_spec_sha256=digest,
+            tolerance=0.05,
+        )
+        rewrite_config(self.code, self.config)
+        source = self.code.read_text(encoding="utf-8")
+        source = replace_once(
+            source, 'receipt = dict(run_receipt_version="1.1.0", primary_quality_protocol_version="1.0.0",',
+            'receipt = dict(run_receipt_version=config["run_receipt_protocol_version"],\n'
+            '                   primary_quality_protocol_version=config["primary_quality_protocol_version"],\n'
+            '                   primary_quality_spec_sha256=config["primary_quality_spec_sha256"],\n'
+            '                   data_paths=json.dumps(config["data_paths"], ensure_ascii=False),\n'
+            '                   data_identity_mode=config.get("data_identity_mode", "combined"),',
+        )
+        source = replace_once(
+            source, '"实际值", "证据工作表", "阈值来源"),',
+            '"实际值", "证据工作表", "阈值来源", "单位"),',
+        )
+        source = replace_once(
+            source, 'residual, "均衡残差", "solver_tolerance")],',
+            'residual, "均衡残差", "solver_tolerance", "1"),\n'
+            '                    ("PQ-Q1-02", "输出齐备", True, "主输出", "bool_true", True, True,\n'
+            '                     "核心指标", "mathematical_definition", None)],',
+        )
+        self.code.write_text(source, encoding="utf-8", newline="\n")
+        return payload
+
+    def deliver_approved_primary_quality(self):
+        plan = resolve_runtime("code_and_solution", project_root=self.root, question="Q1")
+        self.run_scoped_gates(plan, ["semantic_governance", "model_approval", "code_delivery"])
+        self.execute()
+
+    def test_approved_primary_quality_survives_reordering_and_prose_edit(self):
+        payload = self.configure_approved_primary_quality()
+        self.deliver_approved_primary_quality()
+        payload["extensions"]["primary_quality_specification"]["items"].reverse()
+        (self.root / "模型论文框架.md").write_text(
+            framework(payload, prose="说明改写，判据与证据要求相同。"), encoding="utf-8",
+        )
+        receipt = resolve_runtime("returned_workbook_validation", project_root=self.root, question="Q1")
+        self.run_scoped_gates(receipt, ["semantic_governance", "user_execution_receipt"])
+        result = self.state()["subproblems"]["Q1"]
+        self.assertEqual(result["primary_execution_status"], "accepted")
+        self.assertIn("accepted_solution_workbook",
+                      hydrate_project_context(self.root, "Q1")["verified_artifacts"])
+
+        numeric = next(item for item in payload["extensions"]["primary_quality_specification"]["items"]
+                       if item["id"] == "PQ-Q1-01")
+        numeric["threshold"] = 0.04
+        (self.root / "模型论文框架.md").write_text(framework(payload), encoding="utf-8")
+        resumed = hydrate_project_context(self.root, "Q1")
+        self.assertNotIn("locked_model_spec", resumed["verified_artifacts"])
+        self.assertNotIn("accepted_solution_workbook", resumed["verified_artifacts"])
+
+    def test_returned_primary_quality_cannot_change_or_drop_approved_criteria(self):
+        self.configure_approved_primary_quality()
+        self.deliver_approved_primary_quality()
+        original_workbook = self.workbook.read_bytes()
+        initial_state = self.state()
+        cases = (
+            ("threshold", "PQ-Q1-01"), ("relation", "PQ-Q1-01"), ("unit", "PQ-Q1-01"),
+            ("omission", "PQ-Q1-02"), ("duplicate", "PQ-Q1-02"), ("boolean", "PQ-Q1-02"),
+            ("unapproved", "PQ-Q1-03"), ("missing_echo", "primary_quality_spec_sha256"),
+        )
+        try:
+            for change, expected in cases:
+                with self.subTest(change=change):
+                    self.workbook.write_bytes(original_workbook)
+                    book = openpyxl.load_workbook(self.workbook)
+                    try:
+                        quality = book["主结果质量门"]
+                        if change == "threshold":
+                            # Older numeric checks alone accept 7% against the returned 10%.
+                            quality["F2"], quality["G2"] = 0.10, 0.07
+                            evidence = book["均衡残差"]
+                            evidence["B2"], evidence["C2"] = 0.07, 0.10
+                        elif change == "relation":
+                            quality["E2"] = "<="
+                        elif change == "unit":
+                            quality["J2"] = "%"
+                        elif change == "omission":
+                            quality.delete_rows(3)
+                        elif change == "duplicate":
+                            quality.append([cell.value for cell in quality[3]])
+                        elif change == "boolean":
+                            quality["F3"] = False
+                        elif change == "unapproved":
+                            quality.append(["PQ-Q1-03", *[cell.value for cell in quality[3][1:]]])
+                        elif change == "missing_echo":
+                            config = book["运行配置"]
+                            config.delete_rows(next(
+                                row[0].row for row in config.iter_rows(min_row=2)
+                                if row[0].value == "primary_quality_spec_sha256"
+                            ))
+                        book.save(self.workbook)
+                    finally:
+                        book.close()
+                    state = deepcopy(initial_state)
+                    issues = RECEIPT.validate_one(self.root, self.workbook, state, True)
+                    self.assertTrue(any(expected in issue for issue in issues), issues)
+                    self.assertNotEqual(state["subproblems"]["Q1"]["primary_execution_status"], "accepted")
+        finally:
+            self.workbook.write_bytes(original_workbook)
+
+    def test_approved_primary_quality_rejects_old_source_protocol(self):
+        self.configure_approved_primary_quality()
+        self.config["run_receipt_protocol_version"] = "1.1.0"
+        self.config["primary_quality_protocol_version"] = "1.0.0"
+        self.config.pop("primary_quality_spec_sha256")
+        rewrite_config(self.code, self.config)
+        before = self.state_path.read_bytes()
+        issues, _ = DELIVERY.validate_script(self.root, self.code, "primary")
+        self.assertTrue(any("PQS" in issue or "primary_quality" in issue for issue in issues), issues)
+        self.assertEqual(self.state_path.read_bytes(), before)
+
+    def test_approved_primary_quality_framework_is_in_receipt_transaction_read_set(self):
+        self.configure_approved_primary_quality()
+        self.deliver_approved_primary_quality()
+        self.assertEqual(RECEIPT.validate_one(self.root, self.workbook, self.state(), False), [])
+        before = self.state_path.read_bytes()
+        framework_path = self.root / "模型论文框架.md"
+        commit = RECEIPT.PROJECT_TX.commit_project_state
+
+        def edit_framework_before_commit(*args, **kwargs):
+            framework_path.write_bytes(framework_path.read_bytes() + b"\n")
+            return commit(*args, **kwargs)
+
+        with patch.object(RECEIPT.PROJECT_TX, "commit_project_state", side_effect=edit_framework_before_commit), \
+                patch.object(sys, "argv", [
+                    "validate_user_execution.py", str(self.root), "--write", "--strict",
+                    "--workbook", str(self.workbook),
+                ]), redirect_stdout(io.StringIO()):
+            with self.assertRaises(RECEIPT.PROJECT_TX.ReadSetConflictError):
+                RECEIPT.main()
+        self.assertEqual(self.state_path.read_bytes(), before)
 
     def test_old_state_is_read_only_for_analysis_prerequisites(self):
         state = self.state()

@@ -211,6 +211,7 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
         ("v10.32.1_preprocessing_redelivery", "10.32.1"),
         ("v10.32.2_question_delivery_scope", "10.32.2"),
         ("v10.33.0_upstream_dependency_diagnostics", "10.33.0"),
+        ("v10.34.0_primary_quality_approval_binding", "10.34.0"),
     }
     allowed = (
         ("v10.28.0_p1_source_only_read_ranges", "10.28.0"),
@@ -221,12 +222,15 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
         ("v10.32.1_preprocessing_redelivery", "10.32.1"),
         ("v10.32.2_question_delivery_scope", "10.32.2"),
         ("v10.33.0_upstream_dependency_diagnostics", "10.33.0"),
+        ("v10.34.0_primary_quality_approval_binding", "10.34.0"),
     )
     fields = {"schema_version", "scope", "version", "authorizing_reason",
               "required_case_ids", "migrations"}
     if model_intake_carrier:
         fields.add("model_intake")
-    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0"}:
+    if data.get("version") == "10.34.0":
+        fields.add("pqs_full_source_spans")
+    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0"}:
         fields.update(("output_read_shift", "output_conditional_shift"))
     if (set(data) != fields or data.get("schema_version") != SCHEMA
             or (data.get("scope"), data.get("version")) not in allowed
@@ -281,7 +285,7 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
                              / source["path"]).read_bytes())
             if actual != source["candidate_sha256"]:
                 raise ValueError("literature intake source bytes changed")
-    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0"}:
+    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0"}:
         shift = data["output_read_shift"]
         expected_ids = ["review_word_readonly", "natural_language_two_actions_probe"]
         if (not isinstance(shift, dict)
@@ -302,7 +306,7 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
                     or not isinstance(item["historical_ranges"], list)
                     or item["current_ranges"] == item["historical_ranges"]):
                 raise ValueError("output read shift scope or range invalid")
-    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0"}:
+    if data.get("version") in {"10.31.0", "10.32.0", "10.32.1", "10.32.2", "10.33.0", "10.34.0"}:
         conditional = data["output_conditional_shift"]
         if (not isinstance(conditional, dict)
                 or set(conditional) != {"path", "candidate_sha256", "current_ranges",
@@ -317,7 +321,59 @@ def approved_source_span_migrations(path: Path | None) -> dict[str, Any] | None:
                     "two_carrier_legacy_protected", "explicit_figure_scope"
                 ]):
             raise ValueError("conditional output source migration must match four historical reads")
+    if data.get("version") == "10.34.0":
+        paths = ["core/user_execution_contract.yaml",
+                 "core/numerical_verification_contract.yaml"]
+        declared = data["pqs_full_source_spans"]
+        if (not isinstance(declared, list)
+                or [row.get("path") for row in declared if isinstance(row, dict)] != paths
+                or len(declared) != len(paths)):
+            raise ValueError("PQS source spans must bind the two reviewed authorities")
+        for row in declared:
+            if set(row) != {"path", "baseline_sha256", "candidate_sha256",
+                            "old_last_line", "new_last_line"}:
+                raise ValueError("PQS source span identity is incomplete")
+            if any(not isinstance(row[key], str) or len(row[key]) != 64
+                   for key in ("baseline_sha256", "candidate_sha256")):
+                raise ValueError("PQS source span hashes are incomplete")
+            if (any(type(row[key]) is not int or row[key] <= 0
+                    for key in ("old_last_line", "new_last_line"))
+                    or row["old_last_line"] == row["new_last_line"]):
+                raise ValueError("PQS source span must record exact changed lines")
+            raw = (Path(__file__).resolve().parents[1] / row["path"]).read_bytes()
+            if digest(raw) != row["candidate_sha256"] or len(raw.splitlines()) != row["new_last_line"]:
+                raise ValueError("PQS source span candidate bytes changed")
     return data
+
+
+def _project_pqs_full_source_spans(old_case, new_case, expected, rules):
+    """Only restore reviewed full ranges; narrower selectors remain compared as-is."""
+    replacements = []
+    for rule in rules:
+        path = rule["path"]
+        for report, field in ((old_case, "baseline_sha256"), (new_case, "candidate_sha256")):
+            found = [row["sha256"] for row in report["source_identity"].get("sources", [])
+                     if row.get("path") == path]
+            if found and found != [rule[field]]:
+                raise ValueError("PQS source span identity drift: " + path)
+        before_range = [[1, rule["old_last_line"]]]
+        after_range = [[1, rule["new_last_line"]]]
+        for group in ("read_now", "conditional"):
+            previous_rows = old_case["behavior"].get(group, [])
+            for row in expected.get(group, []):
+                if (row.get("path") != path or row.get("ranges") != after_range
+                        or row.get("origin") != "skill"
+                        or row.get("resolution") != "exact"):
+                    continue
+                previous = {**row, "ranges": before_range}
+                if previous_rows.count(previous) != 1:
+                    continue
+                row["ranges"] = deepcopy(before_range)
+                replacements.append({"path": path, "case_id": new_case["id"], "group": group,
+                                     "source_sha256": rule["candidate_sha256"],
+                                     "actual_ranges": deepcopy(after_range),
+                                     "historical_ranges": deepcopy(before_range)})
+    return replacements
 
 
 def project_exact_approved_source_spans(
@@ -442,6 +498,9 @@ def project_exact_approved_source_spans(
             "actual_conditional_ranges": deepcopy(cond["current_ranges"]),
             "historical_conditional_ranges": deepcopy(cond["historical_ranges"]),
         })
+    replacements.extend(_project_pqs_full_source_spans(
+        old_case, new_case, expected, manifest.get("pqs_full_source_spans", []),
+    ))
     return expected, replacements
 
 

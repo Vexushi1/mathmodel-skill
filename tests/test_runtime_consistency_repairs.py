@@ -71,7 +71,7 @@ class HistoricalProjectionTests(unittest.TestCase):
                 elif mutation == "scope":
                     plan["delivery_scope"] = "submission"
                 elif mutation == "version":
-                    plan["version"] = "10.33.1"  # unregistered; 10.33.0 is current
+                    plan["version"] = "10.34.1"  # unregistered; 10.34.0 is current
                 else:
                     altered["authority_versions"]["skill"] = "10.27.0"
                 with self.subTest(case=after["id"], mutation=mutation):
@@ -101,15 +101,16 @@ class HistoricalProjectionTests(unittest.TestCase):
 
     def test_frozen_v10270_inverse_still_accepts_only_exact_carrier(self):
         after = plan_evidence.worker(ROOT, 0)
-        self.assertEqual(after["authority_versions"]["skill"], "10.33.0")
-        self.assertEqual(after["plan"]["version"], "10.33.0")
+        self.assertEqual(after["authority_versions"]["skill"], "10.34.0")
+        self.assertEqual(after["plan"]["version"], "10.34.0")
         old_carrier = deepcopy(after)
         old_carrier["authority_versions"]["skill"] = "10.27.0"
         old_carrier["plan"]["version"] = "10.27.0"
-        # Simulate the v10.27.0 source identities for the three changed files.
+        # Simulate the exact v10.27.0 source identities.
         sources = old_carrier["plan"]["assurance"]["authority_fingerprint"]["sources"]
         pinned = plan_evidence.RUNTIME_CONSISTENCY_PROJECTION["fingerprint"]["candidate"]
-        for path in ("core/output_contract.yaml", "scripts/resolve_runtime.py", "scripts/resolve_workflow.py"):
+        for path in ("core/output_contract.yaml", "core/user_execution_contract.yaml",
+                     "scripts/resolve_runtime.py", "scripts/resolve_workflow.py"):
             actual_row = [row for row in sources if row["path"] == path]
             pinned_row = [row for row in pinned if row["path"] == path]
             self.assertEqual((len(actual_row), len(pinned_row)), (1, 1), path)

@@ -7,6 +7,7 @@ from typing import Any, Mapping
 
 import artifact_identity as ARTIFACT_IDENTITY
 import conformance_gate as CONFORMANCE
+from execution_provenance import approved_primary_quality_issues
 import stage_code as STAGE_CODE
 import analysis_comparison_gate as COMPARISON
 from stage_inputs import observe_inputs
@@ -47,7 +48,8 @@ def _project_backend(state: Mapping[str, Any], *, required: bool) -> tuple[str |
         return None, [str(exc)]
 
 
-def stage_input_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, Any], stage: str) -> list[str]:
+def stage_input_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, Any], stage: str,
+                       *, accepted_primary: bool = False) -> list[str]:
     """Observe modern inputs at every current-qualification boundary, without sync."""
     field = "code" if stage == "primary" else "result_analysis_code"
     relative = entry.get(field)
@@ -65,6 +67,10 @@ def stage_input_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str,
             return auxiliary_config_issues(config)  # Unsupported modern versions are rejected by stage binding.
         observation = observe_inputs(Path(root), config, state)
         issues = list(observation["issues"])
+        if accepted_primary:
+            raw_workbook = entry.get("solution_workbook")
+            workbook = (Path(root) / raw_workbook).resolve() if raw_workbook else None
+            issues.extend(approved_primary_quality_issues(root, state, entry, config, workbook=workbook))
         if str(config.get("data_sha256", "")).lower() != str(entry.get("data_hash", "")).lower():
             issues.append("delivered input identity differs from current primary data_hash")
         return [f"{stage} input: {issue}" for issue in issues]
@@ -117,7 +123,7 @@ def primary_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, Any
         issues.extend(_file_issues(root, preprocessing.get("workbook"), digest, "预处理工作簿"))
         if not digest or str(entry.get("data_hash", "")).lower() != str(digest).lower():
             issues.append("主结果数据身份必须绑定已验收预处理工作簿")
-    issues.extend(stage_input_issues(root, state, entry, "primary"))
+    issues.extend(stage_input_issues(root, state, entry, "primary", accepted_primary=True))
     issues.extend(CONFORMANCE.read_issues(root, state, entry, "primary"))
     return list(dict.fromkeys(issues))
 

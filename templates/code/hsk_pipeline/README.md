@@ -35,6 +35,8 @@
 
 用户运行时由代码自动构造逻辑 `RUN_RECEIPT`，**仍序列化到既有工作簿 `运行配置(项目, 值)`**，不新增回执工作表或独立 YAML/JSON。新 03A/03B 写 `run_receipt_version="1.1.0"`、`solver_backend="python"`、`code_sha256` 和 `code_bundle_sha256`，记录 owner/profile、solver/version、实际停止原因、平台、fallback 和 no-degradation 标志，并回显配置任务字段。入口必须在执行前绑定源码和输入、写出前复核；完整身份序列化只服从执行 Authority。未知或不匹配版本 fail closed。
 
+选用已批准的质量规范绑定时，主求解入口按执行合同使用回执 1.3.0，回显 `primary_quality_spec_sha256`、质量协议版本、JSON 路径列表 `data_paths` 和实际采用的 `data_identity_mode`。在提供给 writer 的 `主结果质量门` 中写入已批准数值项的 `单位`。
+
 保留的 PipelineConfig 和题型 starter 是数学/IO骨架，不会自动升级为 1.1 交付入口；旧连跑 API 已停止执行。实例化时须补齐上述运行配置与真实回执，并把 `运行配置` 工作表交给共用 `result_io.write_workbook()`；writer 接受该表的新字段，但不替调用方生成后端/bundle 证明。用户运行代码只依赖交付到项目内的源码与声明环境，不依赖 Skill 安装路径。
 
 新 1.1 的 `project_level` 路径显式使用 `data_identity_mode="preprocessing_workbook"`，`data_paths` 恰为已验收预处理 XLSX，`data_sha256` 为其普通文件 SHA。其他两种预处理决策默认 `combined`；完整数据身份规则只由 `core/user_execution_contract.yaml#code_delivery.data_identity_mode` 维护。

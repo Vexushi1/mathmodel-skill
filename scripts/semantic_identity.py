@@ -14,6 +14,12 @@ from typing import Any
 
 import yaml
 
+from primary_quality_specification import (
+    PrimaryQualitySpecificationError,
+    SPECIFICATION_KEY,
+    normalize_specification,
+)
+
 SEMANTIC_IDENTITY_SCHEMA_VERSION = "1.0.0"
 Q_HEADING_RE = re.compile(r"^###[ \t]+(Q\d+)[:：].*$", re.MULTILINE)
 FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
@@ -125,6 +131,27 @@ def _strip_yaml_fence(block: str) -> str:
     return "\n".join(lines[1:-1]).strip()
 
 
+class _SemanticIdentityLoader(yaml.SafeLoader):
+    """Record duplicate YAML keys and aliases for the new bound PQS form."""
+
+    def __init__(self, stream):
+        super().__init__(stream)
+        self.quality_declared = False
+        self.duplicate_keys = False
+        self.aliases = False
+
+    def compose_node(self, parent, index):
+        if self.check_event(yaml.AliasEvent):
+            self.aliases = True
+        return super().compose_node(parent, index)
+
+    def construct_mapping(self, node, deep=False):
+        mapping = super().construct_mapping(node, deep=deep)
+        self.quality_declared = self.quality_declared or SPECIFICATION_KEY in mapping
+        self.duplicate_keys = self.duplicate_keys or len(mapping) != len(node.value)
+        return mapping
+
+
 def extract_semantic_identity(section: str, question: str) -> dict[str, Any] | None:
     """Parse one embedded SIB. Return None only when no identity marker exists at all."""
     begin = _marker(question, "BEGIN")
@@ -143,10 +170,17 @@ def extract_semantic_identity(section: str, question: str) -> dict[str, Any] | N
     raw = _strip_yaml_fence(section[start:stop])
     if not raw:
         raise SemanticIdentityError(f"{question}: Semantic Identity Block is empty")
+    loader = _SemanticIdentityLoader(raw)
     try:
-        payload = yaml.safe_load(raw)
+        payload = loader.get_single_data()
+        if loader.quality_declared and (loader.duplicate_keys or loader.aliases):
+            raise SemanticIdentityError(
+                f"{question}: Semantic Identity Block with PQS requires unique YAML keys and no aliases"
+            )
     except yaml.YAMLError as exc:
         raise SemanticIdentityError(f"{question}: Semantic Identity Block YAML is invalid: {exc}") from exc
+    finally:
+        loader.dispose()
     if not isinstance(payload, dict):
         raise SemanticIdentityError(f"{question}: Semantic Identity Block root must be a mapping")
     validate_semantic_identity(payload, expected_question=question)
@@ -198,6 +232,16 @@ def _check_canonical_mapping_keys(value: Any, *, path: str = "identity") -> None
     elif isinstance(value, list):
         for index, item in enumerate(value):
             _check_canonical_mapping_keys(item, path=f"{path}[{index}]")
+
+
+def primary_quality_specification(identity: Mapping[str, Any]) -> dict[str, Any] | None:
+    extensions = identity.get("extensions")
+    if not isinstance(extensions, Mapping) or SPECIFICATION_KEY not in extensions:
+        return None
+    try:
+        return normalize_specification(extensions[SPECIFICATION_KEY], str(identity.get("question", "")).strip())
+    except PrimaryQualitySpecificationError as exc:
+        raise SemanticIdentityError(f"{identity.get('question', '<unknown>')}: {exc}") from exc
 
 
 def validate_semantic_identity(identity: Mapping[str, Any], *, expected_question: str | None = None) -> None:
@@ -264,6 +308,10 @@ def validate_semantic_identity(identity: Mapping[str, Any], *, expected_question
 
     if "extensions" in identity and not isinstance(identity.get("extensions"), Mapping):
         errors.append("extensions must be a mapping when present")
+    try:
+        primary_quality_specification(identity)
+    except SemanticIdentityError as exc:
+        errors.append(str(exc))
     if _contains_placeholder(identity):
         errors.append("Semantic Identity Block still contains __PLACEHOLDER__ tokens")
 
@@ -298,6 +346,9 @@ def canonical_semantic_identity(identity: Mapping[str, Any]) -> dict[str, Any]:
         canonical["dependencies"],
         key=lambda item: json.dumps(item, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
     )
+    specification = primary_quality_specification(identity)
+    if specification is not None:
+        canonical["extensions"][SPECIFICATION_KEY] = specification
     return canonical
 
 
