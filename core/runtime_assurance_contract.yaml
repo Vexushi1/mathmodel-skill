@@ -56,6 +56,18 @@ runtime_context:
   - Multi-question classification is hydrated automatically only when the scoped questions agree; otherwise the resolver reports ambiguity and requires explicit classification for routes that need task packs.
   - Exact claim-consumption policies 1.4.0 and 1.5.0 shape-check current modify/reject rows before project sync. Malformed rows fail closed; valid core-answer rejection revokes result qualification, model-validity rejection also revokes model lock, and State Transition Authority projects the same effect through typed or legacy dependencies.
 
+  dependency_diagnostics:
+    output: assurance.context.dependency_diagnostics
+    activation: a loaded project with an effective primary or analysis code_delivery gate and a relevant result or legacy dependency
+    fields: [stage, result_dependencies, unresolved_result_cycles, legacy_dependencies]
+    edge_fields: [question, upstream]
+    result_dependency_fields: [question, upstream, status, reason]
+    rules:
+    - Follow incoming result edges from the selected question, or all registered questions for project scope. Reuse the same project State snapshot and existing accepted_solution_workbook qualification. Report unregistered upstream questions.
+    - A verified primary workbook satisfies the availability check and stops the traversal through that edge. Report cycles only among the reachable known questions still missing verified results.
+    - These are candidate startup waits. The declared state edges carry no mandatory stage semantics or representation of joint solves, initial conditions, or iteration rules. Keep legacy edges visible without interpreting them as result prerequisites.
+    - This report supplies read-only evidence for examining the model and its possible starting inputs. It does not change gate eligibility, stale propagation, or execution authorization.
+
   state_read_consistency:
     implementation: scripts/runtime_assurance.py:ProjectStateSnapshot
     identity: original_state_bytes_and_state_generation

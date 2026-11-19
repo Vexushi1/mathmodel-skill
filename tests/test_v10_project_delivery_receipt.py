@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import analysis_prerequisites as PREREQUISITES
 from resolve_runtime import resolve_runtime
+from semantic_identity import inspect_question_semantics, question_sections
 import validate_code_delivery as DELIVERY
 import validate_user_execution as RECEIPT
 from tests.test_copied_support_source_closure import instantiate
@@ -170,6 +171,122 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
         self.assertEqual(plan["assurance"]["status"], "review_required")
         command = plan["pre_delivery_gates"][1]["command"]
         self.assertEqual(shlex.split(command)[-2:], ["--workbook", "<returned_workbook>"])
+
+    def approve_additional_question(self, question):
+        state = self.state()
+        payload = dict(identity(), question=question, preprocessing_decision="not_needed")
+        section = (framework(payload)
+                   .replace("### Q1：", f"### {question}：")
+                   .replace("IDENTITY_BEGIN Q1", f"IDENTITY_BEGIN {question}")
+                   .replace("IDENTITY_END Q1", f"IDENTITY_END {question}"))
+        inspection = inspect_question_semantics(question_sections(section)[question], question)
+        entry = state["subproblems"].setdefault(question, {})
+        entry.update(
+            structured_question(),
+            status="designed",
+            problem_contract_status="frozen",
+            semantic_closure_status="passed",
+            complexity_sanity_status="passed",
+            semantic_change_categories=["initial_design"],
+            semantic_text_hash=inspection["semantic_text_hash"],
+        )
+        for field in ("semantic_identity_hash", "validated_semantic_identity_hash",
+                      "approved_semantic_identity_hash"):
+            entry[field] = inspection["semantic_identity_hash"]
+        self.save(state)
+        with (self.root / "模型论文框架.md").open("a", encoding="utf-8") as file:
+            file.write("\n" + section.split("\n", 2)[2])
+
+    def dependency_plan(self, question, *, intent="code_and_solution"):
+        before = self.state_path.read_bytes()
+        plan = resolve_runtime(intent, project_root=self.root, question=question)
+        self.assertEqual(self.state_path.read_bytes(), before)
+        return plan, plan["assurance"]["context"].get("dependency_diagnostics")
+
+    def accept_primary_fixture(self):
+        self.deliver()
+        self.execute()
+        state = self.state()
+        self.assertEqual(RECEIPT.validate_one(self.root, self.workbook, state, True), [])
+        self.save(state)
+
+    def test_missing_upstream_result_is_diagnostic_and_verified_artifact_clears_it(self):
+        self.approved_question_scope()
+        self.approve_additional_question("Q2")
+        unresolved, diagnostic = self.dependency_plan("Q2")
+        self.assertEqual(diagnostic["stage"], "primary")
+        self.assertEqual(diagnostic["unresolved_result_cycles"], [])
+        self.assertEqual(
+            [(row["question"], row["upstream"], row["status"])
+             for row in diagnostic["result_dependencies"]],
+            [("Q2", "Q1", "not_accepted")],
+        )
+        self.assertTrue(diagnostic["result_dependencies"][0]["reason"])
+        self.assertIn("code_delivery", unresolved["runtime_plan"]["pre_delivery_gate_names"])
+
+        self.accept_primary_fixture()
+        resume, diagnostic = self.dependency_plan("Q2")
+        self.assertEqual(diagnostic["result_dependencies"][0]["status"], "verified")
+        for field in ("pre_delivery_gates", "missing_prerequisites", "pause_state"):
+            self.assertEqual(unresolved[field], resume[field], field)
+
+        self.workbook.write_bytes(self.workbook.read_bytes() + b"changed after acceptance")
+        _, diagnostic = self.dependency_plan("Q2")
+        self.assertNotEqual(diagnostic["result_dependencies"][0]["status"], "verified")
+
+    def test_unresolved_result_cycle_is_scoped_and_ends_at_a_verified_result(self):
+        self.approved_question_scope()
+        self.approve_additional_question("Q2")
+        self.approve_additional_question("Q3")
+        state = self.state()
+        state["subproblems"]["Q1"]["depends_on"] = [{"question": "Q2", "kind": "result"}]
+        self.save(state)
+
+        for question in ("Q1", "Q2", None):
+            with self.subTest(question=question):
+                _, diagnostic = self.dependency_plan(question)
+                self.assertEqual(diagnostic["unresolved_result_cycles"], ["Q1 -> Q2 -> Q1"])
+                self.assertCountEqual(
+                    [(row["question"], row["upstream"]) for row in diagnostic["result_dependencies"]],
+                    [("Q1", "Q2"), ("Q2", "Q1")],
+                )
+        independent, diagnostic = self.dependency_plan("Q3")
+        self.assertIsNone(diagnostic)
+        self.assertIn("code_delivery", independent["runtime_plan"]["pre_delivery_gate_names"])
+        self.assertEqual(independent["assurance"]["status"], "pass")
+
+        self.accept_primary_fixture()
+        _, diagnostic = self.dependency_plan("Q2")
+        self.assertEqual(diagnostic["unresolved_result_cycles"], [])
+        self.assertEqual(
+            [(row["question"], row["upstream"], row["status"])
+             for row in diagnostic["result_dependencies"]],
+            [("Q2", "Q1", "verified")],
+        )
+        _, analysis = self.dependency_plan("Q1", intent="result_analysis")
+        self.assertEqual(analysis["stage"], "analysis")
+
+    def test_legacy_and_model_edges_do_not_close_a_result_cycle(self):
+        self.approved_question_scope()
+        self.approve_additional_question("Q2")
+        state = self.state()
+        state["subproblems"]["Q1"]["depends_on"] = [{"question": "Q2", "kind": "result"}]
+        state["subproblems"]["Q2"]["depends_on"] = [
+            {"question": "Q1", "kind": "model", "note": "joint model equations"}, "Q1",
+            {"question": "Q4", "kind": "result"},
+        ]
+        self.save(state)
+        plan, diagnostic = self.dependency_plan("Q1")
+        self.assertEqual(diagnostic["unresolved_result_cycles"], [])
+        self.assertIn({"question": "Q2", "upstream": "Q1"}, diagnostic["legacy_dependencies"])
+        self.assertEqual(
+            [(row["question"], row["upstream"], row["status"])
+             for row in diagnostic["result_dependencies"]],
+            [("Q1", "Q2", "not_accepted"), ("Q2", "Q4", "unregistered")],
+        )
+        self.assertIn("code_delivery", plan["runtime_plan"]["pre_delivery_gate_names"])
+        _, diagnostic = self.dependency_plan("Q1", intent="returned_workbook_validation")
+        self.assertIsNone(diagnostic)
 
     def test_missing_or_conflicting_policy_cannot_deliver(self):
         state = self.state()
