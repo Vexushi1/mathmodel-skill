@@ -1,4 +1,4 @@
-# mathmodel-skill v10.35.0
+# mathmodel-skill v10.35.1
 
 本版本将文献证据研究接入**首次模型设计与实质性模型修订**：Problem Contract 冻结后先独立识别数学机制和研究缺口，再在获授权的学术检索工具可用时主动查询近期高相关原始研究，核实方法与条件、进行迁移性评价，最后构建最小充分主模型并进入既有 Model Challenge / Human Model Approval。无网络或无外部证据需求时允许透明降级；文献报告结构 PASS 仍不证明来源真实性或模型正确。
 

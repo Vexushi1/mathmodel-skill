@@ -292,6 +292,194 @@ class UserExecutionContractTests(unittest.TestCase):
             self.assertEqual(entry["validated_artifact_hashes"]["solution_workbook"], primary_hash)
             self.assertEqual(entry["primary_execution_status"], "accepted")
 
+    @staticmethod
+    def add_pressure_evidence(book, record=("stress", "增加需求", 0, False)):
+        sheet = book.create_sheet("场景压力测试")
+        sheet.append(["场景", "变化条件", "结果指标", "是否可行"])
+        sheet.append(record)
+
+    def prepare_ordinary_analysis(self, root: Path, methods: list[str]) -> Path:
+        primary = self.make_project(root)
+        self.accept_primary(root, primary)
+        self.activate_analysis(root)
+        state = self.read_state(root)
+        state["subproblems"]["Q1"]["analysis_methods"] = methods
+        self.write_state(root, state)
+        analysis = self.make_analysis_code(root)
+        issues, config = CODE.validate_script(root, analysis, "analysis")
+        self.assertEqual(issues, [])
+        CODE.update_state(root, config, analysis)
+        return self.make_analysis_workbook(root, analysis)
+
+    def test_each_registered_ordinary_method_requires_substantive_evidence(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            workbook = self.prepare_ordinary_analysis(root, ["参数敏感性", "场景压力测试"])
+            original = workbook.read_bytes()
+            cases = (
+                ("missing", None, True, False),
+                ("placeholder", ("stress", " ", 0, False), True, False),
+                ("missing_with_negative_summary", None, False, False),
+                ("observed_zero_and_false", ("stress", "增加需求", 0, False), True, True),
+            )
+            for case, record, maintained, complete in cases:
+                with self.subTest(case=case):
+                    workbook.write_bytes(original)
+                    book = openpyxl.load_workbook(workbook)
+                    try:
+                        book["结论稳定性汇总"]["D2"] = maintained
+                        if record is not None:
+                            self.add_pressure_evidence(book, record)
+                        book.save(workbook)
+                    finally:
+                        book.close()
+                    state = self.read_state(root)
+                    state["project"]["current_phase"] = "result_analysis"
+                    state["paper_framework"]["claim_consumption_policy"] = {
+                        "protocol_version": "1.4.0", "mode": "enforce_latex_text_and_figure_chain",
+                    }
+                    issues = RECEIPT.validate_one(root, workbook, state, True)
+                    entry = state["subproblems"]["Q1"]
+                    if complete:
+                        self.assertEqual(issues, [], issues)
+                        self.assertEqual(entry["analysis_execution_status"], "accepted")
+                    else:
+                        self.assertTrue(any("场景压力测试" in issue for issue in issues), issues)
+                        self.assertEqual(entry["analysis_execution_status"], "rejected")
+                        self.assertEqual(entry["result_analysis_status"], "failed")
+                        self.assertNotIn("result_analysis_workbook", entry["validated_artifact_hashes"])
+                    self.assertEqual(entry["primary_execution_status"], "accepted")
+                    self.assertEqual(entry["validated_artifact_hashes"]["solution_workbook"],
+                                     self.primary_workbook_sha)
+                    self.assertNotIn("solution_workbook", entry.get("stale_layers", []))
+
+    def test_unknown_legacy_analysis_method_does_not_invent_a_required_sheet(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            workbook = self.prepare_ordinary_analysis(root, ["历史项目自定义分析名称"])
+            state = self.read_state(root)
+            issues = RECEIPT.validate_one(root, workbook, state, True)
+            self.assertEqual(issues, [], issues)
+            self.assertEqual(state["subproblems"]["Q1"]["analysis_execution_status"], "accepted")
+
+    def test_unversioned_analysis_read_checks_only_mapped_ordinary_evidence(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            workbook = self.prepare_ordinary_analysis(root, ["历史项目自定义分析名称"])
+            state = self.read_state(root)
+            entry = state["subproblems"]["Q1"]
+            state.pop("execution")
+            entry.pop("solver_execution")
+            for stage, path_field, hash_field, expected_workbook in (
+                ("primary", "code", "primary_code_sha256", Path(entry["solution_workbook"]).name),
+                ("analysis", "result_analysis_code", "analysis_code_sha256", workbook.name),
+            ):
+                code = root / entry[path_field]
+                config = self.config(stage, expected_workbook)
+                config.pop("run_receipt_protocol_version")
+                code.write_text(f"FULL_FIDELITY_CONFIG = {config!r}\n", encoding="utf-8")
+                digest = hashlib.sha256(code.read_bytes()).hexdigest()
+                entry[hash_field] = digest
+                entry["artifact_hashes"][f"{stage}_code"] = digest
+                if stage == "primary":
+                    entry["validated_artifact_hashes"]["primary_code"] = digest
+
+            book = openpyxl.load_workbook(workbook)
+            try:
+                runtime = book["运行配置"]
+                for index in range(runtime.max_row, 1, -1):
+                    key = runtime.cell(index, 1).value
+                    if key in {"run_receipt_version", "solver_backend", "code_bundle_sha256",
+                               "primary_workbook_sha256"}:
+                        runtime.delete_rows(index)
+                    elif key == "code_sha256":
+                        runtime.cell(index, 2, entry["analysis_code_sha256"])
+                book["分析设计"].cell(1, 1, "旧风险字段")
+                book.save(workbook)
+
+                self.assertEqual(RECEIPT.validate_one(root, workbook, state, False), [])
+                entry["analysis_methods"].append("场景压力测试")
+                issues = RECEIPT.validate_one(root, workbook, state, False)
+                self.assertTrue(any("场景压力测试" in issue for issue in issues), issues)
+
+                self.add_pressure_evidence(book)
+                book.save(workbook)
+                self.assertEqual(RECEIPT.validate_one(root, workbook, state, False), [])
+            finally:
+                book.close()
+
+    def test_malformed_summary_is_failed_evidence_without_a_core_rejection(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            workbook = self.prepare_ordinary_analysis(root, ["参数敏感性"])
+            for value in (None, "未核对"):
+                with self.subTest(value=value):
+                    book = openpyxl.load_workbook(workbook)
+                    try:
+                        book["结论稳定性汇总"]["D2"] = value
+                        book.save(workbook)
+                    finally:
+                        book.close()
+                    state = self.read_state(root)
+                    state["project"]["current_phase"] = "result_analysis"
+                    state["paper_framework"]["claim_consumption_policy"] = {
+                        "protocol_version": "1.4.0", "mode": "enforce_latex_text_and_figure_chain",
+                    }
+                    issues = RECEIPT.validate_one(root, workbook, state, True)
+                    self.assertTrue(any("是否保持" in issue for issue in issues), issues)
+                    self.assertNotIn("存在核心结论未保持", issues)
+                    entry = state["subproblems"]["Q1"]
+                    self.assertEqual(entry["analysis_execution_status"], "rejected")
+                    self.assertEqual(entry["result_analysis_status"], "failed")
+                    self.assertEqual(entry["primary_execution_status"], "accepted")
+                    self.assertEqual(state["project"]["current_phase"], "result_analysis")
+                    self.assertNotIn("solution_workbook", entry.get("stale_layers", []))
+
+    def test_legacy_exact_accepted_analysis_remains_readable_without_new_coverage(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            workbook = self.prepare_ordinary_analysis(root, ["参数敏感性"])
+            state = self.read_state(root)
+            self.assertEqual(RECEIPT.validate_one(root, workbook, state, True), [])
+            # Represent an existing historical acceptance made before all selected tables were checked.
+            entry = state["subproblems"]["Q1"]
+            accepted = entry["validated_artifact_hashes"]["result_analysis_workbook"]
+            entry["analysis_methods"].append("场景压力测试")
+            self.write_state(root, state)
+            before = (root / "state/project_state.yaml").read_bytes()
+            self.assertEqual(RECEIPT.validate_one(root, workbook, state, False), [])
+            self.assertEqual(hashlib.sha256(workbook.read_bytes()).hexdigest(), accepted)
+            self.assertEqual((root / "state/project_state.yaml").read_bytes(), before)
+
+            observed_only = self.read_state(root)
+            observed_entry = observed_only["subproblems"]["Q1"]
+            del observed_entry["validated_artifact_hashes"]["result_analysis_workbook"]
+            # Synchronization may record changed bytes here without independent acceptance.
+            observed_entry.setdefault("artifact_hashes", {})["result_analysis_workbook"] = accepted
+            issues = RECEIPT.validate_one(root, workbook, observed_only, False)
+            self.assertTrue(any("场景压力测试" in issue for issue in issues), issues)
+            self.assertEqual(observed_entry["analysis_execution_status"], "accepted")
+            self.assertEqual(observed_entry["result_analysis_status"], "passed")
+
+            unaccepted = self.read_state(root)
+            unaccepted["subproblems"]["Q1"].update(
+                analysis_execution_status="rejected", result_analysis_status="failed",
+            )
+            issues = RECEIPT.validate_one(root, workbook, unaccepted, False)
+            self.assertTrue(any("场景压力测试" in issue for issue in issues), issues)
+
+            book = openpyxl.load_workbook(workbook)
+            try:
+                book["参数敏感性"]["D2"] = 3.0
+                book.save(workbook)
+            finally:
+                book.close()
+            issues = RECEIPT.validate_one(root, workbook, state, True)
+            self.assertTrue(any("场景压力测试" in issue for issue in issues), issues)
+            self.assertEqual(entry["analysis_execution_status"], "rejected")
+            self.assertEqual(entry["validated_artifact_hashes"]["result_analysis_workbook"], accepted)
+            self.assertEqual(entry["primary_execution_status"], "accepted")
+
     def test_malformed_schema_context_returns_issues_without_qualification(self):
         for field in ("classification", "problem_types", "capabilities"):
             for invalid in ([], ["unexpected"], "unexpected"):

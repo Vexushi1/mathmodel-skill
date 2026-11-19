@@ -460,6 +460,32 @@ assert 'openpyxl' not in sys.modules
             row["status"] = "resolved"
             self.assertTrue(runtime._current_structured_rejections(state, ["Q1"])["Q1"]["blocks_primary"])
 
+    def test_mixed_comparison_and_ordinary_pressure_evidence_are_checked_separately(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            fixture, state, _, workbook, primary = self.project(root)
+            entry = state["subproblems"]["Q1"]
+            entry["analysis_methods"].extend(["参数敏感性", "场景压力测试"])
+            fixture.write_state(root, state)
+            primary_bytes = primary.read_bytes()
+
+            incomplete = fixture.read_state(root)
+            issues = legacy.RECEIPT.validate_one(root, workbook, incomplete, True)
+            self.assertTrue(any("场景压力测试" in issue for issue in issues), issues)
+            self.assertEqual(incomplete["subproblems"]["Q1"]["analysis_execution_status"], "rejected")
+            self.assertEqual(incomplete["subproblems"]["Q1"]["primary_execution_status"], "accepted")
+
+            book = openpyxl.load_workbook(workbook)
+            try:
+                fixture.add_pressure_evidence(book)
+                book.save(workbook)
+            finally:
+                book.close()
+            self.assertEqual(legacy.RECEIPT.validate_one(root, workbook, state, True), [])
+            self.assertEqual(entry["analysis_execution_status"], "accepted")
+            self.assertEqual(entry["primary_execution_status"], "accepted")
+            self.assertEqual(primary.read_bytes(), primary_bytes)
+
     def test_comparison_modify_does_not_suppress_noncomparison_instability(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

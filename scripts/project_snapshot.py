@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import ast
 import re
 import sys
@@ -13,6 +14,7 @@ import artifact_fingerprint as ARTIFACT_FINGERPRINT
 import stage_code as STAGE_CODE
 import execution_provenance as EXECUTION_PROVENANCE
 import analysis_comparison_gate as COMPARISON
+from analysis_prerequisites import accepted_analysis_workbook_matches
 import plot_backend as PLOT_BACKEND
 from stage_inputs import observe_inputs
 
@@ -393,15 +395,23 @@ def scoped_figure_files(
     return sorted(figures, key=lambda path: path.as_posix()), sorted(set(issues))
 
 
-def _validate_workbook(path: Path, kind: str, schema: Mapping[str, Any], entry: Mapping[str, Any]) -> list[str]:
+def _validate_workbook(path: Path, kind: str, schema: Mapping[str, Any], entry: Mapping[str, Any], *,
+                       project_root: Path | None = None) -> list[str]:
     objective, structures, problem_types, capabilities = _classification(entry)
     try:
+        source: Path | bytes = path
+        require_ordinary_method_coverage = True
+        if kind == "result_analysis" and project_root is not None:
+            source = path.read_bytes()
+            require_ordinary_method_coverage = not accepted_analysis_workbook_matches(
+                project_root, entry, path, workbook_sha256=hashlib.sha256(source).hexdigest())
         WORKBOOK_VALIDATION.validate_workbook_file(
-            path, kind, schema=schema, problem_types=problem_types,
+            source, kind, schema=schema, problem_types=problem_types,
             capabilities=capabilities, objective=objective, structures=structures,
             require_quality_passed=True,
             analysis_methods=entry.get("analysis_methods", ()),
             comparison_plan=entry.get("analysis_comparison"),
+            require_ordinary_method_coverage=require_ordinary_method_coverage,
         )
     except Exception as exc:  # noqa: BLE001
         return [f"{path.name}: {exc}"]
@@ -807,7 +817,7 @@ def _snapshot_question(
     if solution and solution.is_file():
         issues.extend(_validate_workbook(solution, "solution", schema, entry))
     if analysis_workbook and analysis_workbook.is_file():
-        issues.extend(_validate_workbook(analysis_workbook, "result_analysis", schema, entry))
+        issues.extend(_validate_workbook(analysis_workbook, "result_analysis", schema, entry, project_root=root))
         if legacy_analysis_workbook:
             warnings.append("使用旧敏感性与鲁棒性工作簿名；新交付应迁移为结果深化分析工作簿")
 

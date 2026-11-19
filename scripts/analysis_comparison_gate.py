@@ -92,8 +92,9 @@ def workbook_structure_issues(raw: bytes, contract: Mapping[str, Any], entry: Ma
         methods = entry.get("analysis_methods", ())
         methods = methods if isinstance(methods, (list, tuple)) else ()
         plan = entry.get("analysis_comparison")
+        # The receipt and project workbook validators own ordinary method coverage.
         module.validate_tables(module.read_workbook_tables(io.BytesIO(raw)), "result_analysis", schema=contract,
-                               analysis_methods=methods,
+                               analysis_methods=methods, require_ordinary_method_coverage=False,
                                comparison_plan=plan if isinstance(plan, Mapping) else None)
     except (ValueError, TypeError, KeyError) as exc:
         return [f"comparison workbook structure: {exc}"]

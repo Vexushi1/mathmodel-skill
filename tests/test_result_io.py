@@ -246,6 +246,46 @@ class TestResultIO(unittest.TestCase):
     def test_legacy_robustness_kind_is_read_compatible(self):
         MOD.validate_workbook_tables(self.analysis_tables(), "robustness")
 
+    def test_selected_ordinary_methods_need_each_evidence_table(self):
+        tables = self.analysis_tables()
+        tables["参数敏感性"] = pd.DataFrame(
+            {"参数": ["a"], "基准值": [0], "变化值": [1], "结果指标": [0]}
+        )
+        methods = ["parameter_sensitivity", "场景压力测试"]
+        with self.assertRaisesRegex(ValueError, "缺少已选择的普通证据表.*场景压力测试"):
+            MOD.validate_workbook_tables(tables, "result_analysis", analysis_methods=methods)
+        tables["场景压力测试"] = pd.DataFrame(
+            {"场景": ["S1"], "变化条件": [" "], "结果指标": [0], "是否可行": [False]}
+        )
+        with self.assertRaisesRegex(ValueError, "场景压力测试.*必需字段完整的实质记录"):
+            MOD.validate_workbook_tables(tables, "result_analysis", analysis_methods=methods)
+        tables["场景压力测试"].loc[0, "变化条件"] = "低容量"
+        tables["结论稳定性汇总"].loc[0, "是否保持"] = False
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "问题一结果深化分析.xlsx"
+            MOD.write_workbook(path, tables, analysis_methods=methods)
+            restored = dict(MOD.validate_workbook_file(
+                path, "result_analysis", analysis_methods=["parameter_sensitivity", "scenario_stress_testing"],
+            ))
+        self.assertEqual(restored["场景压力测试"].iloc[0]["结果指标"], 0)
+        self.assertEqual(restored["场景压力测试"].iloc[0]["是否可行"], False)
+
+    def test_unmapped_ordinary_method_remains_compatible(self):
+        MOD.validate_workbook_tables(
+            self.analysis_tables(), "result_analysis", analysis_methods=["项目专用重采样检验"],
+        )
+
+    def test_standalone_fallback_has_current_ordinary_method_schema(self):
+        current = MOD.load_workbook_schema()["result_analysis_workbook"]
+        fallback = MOD._FALLBACK_SCHEMA["result_analysis_workbook"]
+        mapping = current["ordinary_method_sheets"]
+        self.assertEqual(mapping, fallback["ordinary_method_sheets"])
+        self.assertFalse(set(mapping).intersection(current["comparison_method_sheets"]))
+        self.assertFalse(set(mapping.values()).intersection(current["comparison_method_sheets"].values()))
+        for sheet in set(mapping.values()):
+            self.assertEqual(current["sheet_schemas"][sheet]["required_columns"],
+                             fallback["sheet_schemas"][sheet]["required_columns"])
+
     def test_selected_comparison_cannot_be_replaced_by_legacy_algorithm_table(self):
         with self.assertRaisesRegex(ValueError, "缺少已选择的比较证据表"):
             MOD.validate_workbook_tables(self.analysis_tables(), "result_analysis", analysis_methods=["多模型检验"])
