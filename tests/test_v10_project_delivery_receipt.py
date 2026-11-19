@@ -23,6 +23,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import analysis_prerequisites as PREREQUISITES
+from execution_scale import normalize_scale_plan, scale_plan_sha256
 from primary_quality_specification import normalize_specification, specification_sha256
 from resolve_runtime import resolve_runtime
 from runtime_assurance import hydrate_project_context
@@ -381,7 +382,7 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
         self.assertTrue(any("项目后端" in item for item in issues))
         self.assertEqual(state, before)
 
-    def configure_approved_primary_quality(self):
+    def configure_approved_primary_quality(self, additional_items=()):
         specification = {
             "version": "1.0.0",
             "items": [
@@ -391,6 +392,7 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
                 {"id": "PQ-Q1-02", "metric": "输出齐备", "relation": "bool_true",
                  "threshold": True, "threshold_source": "mathematical_definition",
                  "evidence_sheet": "核心指标", "unit": None},
+                *additional_items,
             ],
         }
         payload = identity()
@@ -426,14 +428,14 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
         self.code.write_text(source, encoding="utf-8", newline="\n")
         return payload
 
-    def deliver_approved_primary_quality(self):
+    def deliver_and_execute_primary_fixture(self):
         plan = resolve_runtime("code_and_solution", project_root=self.root, question="Q1")
         self.run_scoped_gates(plan, ["semantic_governance", "model_approval", "code_delivery"])
         self.execute()
 
     def test_approved_primary_quality_survives_reordering_and_prose_edit(self):
         payload = self.configure_approved_primary_quality()
-        self.deliver_approved_primary_quality()
+        self.deliver_and_execute_primary_fixture()
         payload["extensions"]["primary_quality_specification"]["items"].reverse()
         (self.root / "模型论文框架.md").write_text(
             framework(payload, prose="说明改写，判据与证据要求相同。"), encoding="utf-8",
@@ -455,7 +457,7 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
 
     def test_returned_primary_quality_cannot_change_or_drop_approved_criteria(self):
         self.configure_approved_primary_quality()
-        self.deliver_approved_primary_quality()
+        self.deliver_and_execute_primary_fixture()
         original_workbook = self.workbook.read_bytes()
         initial_state = self.state()
         cases = (
@@ -516,7 +518,7 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
 
     def test_approved_primary_quality_framework_is_in_receipt_transaction_read_set(self):
         self.configure_approved_primary_quality()
-        self.deliver_approved_primary_quality()
+        self.deliver_and_execute_primary_fixture()
         self.assertEqual(RECEIPT.validate_one(self.root, self.workbook, self.state(), False), [])
         before = self.state_path.read_bytes()
         framework_path = self.root / "模型论文框架.md"
@@ -534,6 +536,140 @@ class ProjectDeliveryReceiptTests(unittest.TestCase):
             with self.assertRaises(RECEIPT.PROJECT_TX.ReadSetConflictError):
                 RECEIPT.main()
         self.assertEqual(self.state_path.read_bytes(), before)
+
+    def configure_primary_scale(self, plan, table, columns, records):
+        count_expr = (
+            "max(row[0] for row in scale_rows)" if plan["axis"] == "iterations"
+            else "len({row[0] for row in scale_rows})"
+        )
+        self.config.update(
+            run_receipt_protocol_version="1.4.0",
+            execution_scale_plan=plan,
+            execution_scale_plan_sha256=scale_plan_sha256(normalize_scale_plan(plan, "primary")),
+        )
+        rewrite_config(self.code, self.config)
+        source = self.code.read_text(encoding="utf-8")
+        source = replace_once(
+            source, '    receipt.update({name: False for name in (\n',
+            f"    scale_rows = {records!r}\n"
+            f"    actual_count = {count_expr}\n"
+            '    receipt.update(run_receipt_version=config["run_receipt_protocol_version"],\n'
+            '                   execution_scale_plan_sha256=config["execution_scale_plan_sha256"],\n'
+            '                   actual_scale_count=actual_count,\n'
+            '                   data_paths=json.dumps(config["data_paths"], ensure_ascii=False),\n'
+            '                   data_identity_mode=config.get("data_identity_mode", "combined"))\n'
+            + ('    receipt["actual_stop_reason"] = "criterion_met"\n'
+               if plan["axis"] == "iterations" else
+               '    receipt["repetitions_or_scenarios"] = actual_count\n')
+            + '    receipt.update({name: False for name in (\n',
+        )
+        source = replace_once(
+            source, "    tables = {name: pd.DataFrame(rows[1:], columns=rows[0]) for name, rows in sheets.items()}\n",
+            f"    sheets[{table!r}] = [{columns!r}, *scale_rows]\n"
+            "    tables = {name: pd.DataFrame(rows[1:], columns=rows[0]) for name, rows in sheets.items()}\n",
+        )
+        self.code.write_text(source, encoding="utf-8", newline="\n")
+
+    def assert_current_primary_acceptance(self):
+        receipt = resolve_runtime("returned_workbook_validation", project_root=self.root, question="Q1")
+        self.run_scoped_gates(receipt, ["semantic_governance", "user_execution_receipt"])
+        self.assertEqual(self.state()["subproblems"]["Q1"]["primary_execution_status"], "accepted")
+        self.assertIn("accepted_solution_workbook",
+                      hydrate_project_context(self.root, "Q1")["verified_artifacts"])
+
+    def test_exact_execution_scale_rejects_eighty_runs_even_with_one_hundred_rows(self):
+        self.approved_question_scope()
+        records = [(index, "结果", 3.0) for index in range(1, 81)]
+        records += [(index, "残差", 0.0) for index in range(1, 21)]
+        self.configure_primary_scale(
+            {"axis": "repetitions", "mode": "exact", "count": 100},
+            "重复试验结果", ("重复编号", "指标", "数值"), records,
+        )
+        self.deliver_and_execute_primary_fixture()
+        issues = RECEIPT.validate_one(self.root, self.workbook, self.state(), False)
+        self.assertTrue(any("100" in issue and "80" in issue for issue in issues), issues)
+        book = openpyxl.load_workbook(self.workbook)
+        try:
+            for key, value in book["运行配置"].iter_rows(min_row=2, max_col=2):
+                if key.value == "actual_scale_count":
+                    value.value = 100
+                    break
+            else:
+                self.fail("fixture did not return actual_scale_count")
+            book.save(self.workbook)
+        finally:
+            book.close()
+        state = self.state()
+        issues = RECEIPT.validate_one(self.root, self.workbook, state, True)
+        self.assertTrue(any("actual_scale_count" in issue and "80" in issue for issue in issues), issues)
+        self.assertNotEqual(state["subproblems"]["Q1"]["primary_execution_status"], "accepted")
+
+    def test_minimum_execution_scale_accepts_one_hundred_twenty_runs(self):
+        self.approved_question_scope()
+        self.configure_primary_scale(
+            {"axis": "repetitions", "mode": "minimum", "count": 100},
+            "重复试验结果", ("重复编号", "指标", "数值"),
+            [(index, "结果", 3.0) for index in range(1, 121)],
+        )
+        self.deliver_and_execute_primary_fixture()
+        self.assert_current_primary_acceptance()
+
+    def test_execution_scale_checks_scenario_ids_even_when_counts_match(self):
+        self.approved_question_scope()
+        self.configure_primary_scale(
+            {"axis": "scenarios", "mode": "exact", "count": 2,
+             "required_scenario_ids": ["base", "stress"]},
+            "逐场景结果", ("场景", "指标", "数值"),
+            [("base", "结果", 3.0), ("stress", "结果", 3.0), ("base", "残差", 0.0)],
+        )
+        self.deliver_and_execute_primary_fixture()
+        self.assert_current_primary_acceptance()
+        book = openpyxl.load_workbook(self.workbook)
+        try:
+            book["逐场景结果"]["A3"] = "wrong"
+            book.save(self.workbook)
+        finally:
+            book.close()
+        state = self.state()
+        issues = RECEIPT.validate_one(self.root, self.workbook, state, True)
+        self.assertTrue(any("stress" in issue for issue in issues), issues)
+        self.assertNotIn("accepted_solution_workbook",
+                         hydrate_project_context(self.root, "Q1")["verified_artifacts"])
+
+    def test_adaptive_execution_scale_rechecks_observed_checkpoint_at_iteration_eighty(self):
+        self.configure_approved_primary_quality(additional_items=({
+            "id": "PQ-Q1-03", "metric": "停止误差", "relation": "<=", "threshold": 0.05,
+            "threshold_source": "solver_tolerance", "evidence_sheet": "执行停止证据", "unit": "1",
+        },))
+        self.configure_primary_scale(
+            {"axis": "iterations", "mode": "adaptive_stop", "minimum_count": 20,
+             "maximum_count": 100, "pqs_id": "PQ-Q1-03"},
+            "执行停止证据", ("迭代或样本数", "指标", "数值", "单位"),
+            [(20, "停止误差", 0.16, "1"), (50, "停止误差", 0.08, "1"), (80, "停止误差", 0.04, "1")],
+        )
+        source = replace_once(
+            self.code.read_text(encoding="utf-8"),
+            '                     "核心指标", "mathematical_definition", None)],',
+            '                     "核心指标", "mathematical_definition", None),\n'
+            '                    ("PQ-Q1-03", "停止误差", True, "终止检查点", "<=", 0.05, scale_rows[-1][2],\n'
+            '                     "执行停止证据", "solver_tolerance", "1")],',
+        )
+        self.code.write_text(source, encoding="utf-8", newline="\n")
+        self.deliver_and_execute_primary_fixture()
+        self.assert_current_primary_acceptance()
+
+        # Keep the returned quality summary favorable while altering the actual terminal evidence.
+        book = openpyxl.load_workbook(self.workbook)
+        try:
+            book["执行停止证据"]["C4"] = 0.07
+            book.save(self.workbook)
+        finally:
+            book.close()
+        state = self.state()
+        issues = RECEIPT.validate_one(self.root, self.workbook, state, True)
+        self.assertTrue(any("does not satisfy" in issue for issue in issues), issues)
+        self.assertNotIn("accepted_solution_workbook",
+                         hydrate_project_context(self.root, "Q1")["verified_artifacts"])
 
     def test_old_state_is_read_only_for_analysis_prerequisites(self):
         state = self.state()

@@ -30,7 +30,13 @@ started = tic;
 values = input.right_hand_side ./ coefficients;
 assert(all(isfinite(values)), 'HSK:NumericalQuality', 'Nonfinite sensitivity output.');
 kept = all(values > 0) && baseline > 0;
-receipt = make_receipt(RUN_CONFIG, identity, toc(started), 'all_scenarios_completed', numel(values));
+scaleEnabled = strcmp(RUN_CONFIG.run_receipt_protocol_version, '1.4.0');
+actualCount = numel(values);
+if scaleEnabled
+    scenarios = scenario_trace(RUN_CONFIG.execution_scale_plan, coefficients, values);
+    actualCount = size(scenarios, 1);
+end
+receipt = make_receipt(RUN_CONFIG, identity, toc(started), 'all_scenarios_completed', actualCount);
 receipt.primary_workbook_sha256 = RUN_CONFIG.primary_workbook_sha256;
 rows = [repmat({'a'}, numel(values), 1), num2cell(repmat(input.coefficient,numel(values),1)), ...
     num2cell(coefficients), num2cell(values)];
@@ -39,6 +45,9 @@ sheets(end + 1, :) = {'运行配置',receipt_cells(receipt)};
 sheets(end + 1, :) = {'分析设计',{'风险来源','分析问题','方法','指标','通过标准'; ...
     '系数变化','解是否保持正值','参数敏感性','x','全部声明场景x>0'}};
 sheets(end + 1, :) = {'参数敏感性',[{'参数','基准值','变化值','结果指标'}; rows]};
+if scaleEnabled
+    sheets(end + 1, :) = {'场景压力测试',[{'场景','变化条件','结果指标','是否可行'}; scenarios]};
+end
 sheets(end + 1, :) = {'结论稳定性汇总',{'核心结论','分析方法','稳定范围','是否保持'; ...
     '解为正值','参数敏感性',sprintf('a in [%.17g, %.17g]',min(coefficients),max(coefficients)),kept}};
 current = verify_inputs(root, entrypoint, RUN_CONFIG);
@@ -50,8 +59,18 @@ write_workbook(workbook, sheets);
 assert(kept, 'HSK:AnalysisConclusion', 'The workbook records a conclusion that did not remain valid.');
 end
 
+function scenarios = scenario_trace(plan, coefficients, values)
+identifiers = cellstr(compose('a=%.17g', coefficients));
+expected = string(plan.required_scenario_ids(:));
+actual = string(identifiers);
+assert(numel(unique(actual)) == numel(actual) && numel(actual) == plan.count ...
+    && isequal(sort(expected), sort(actual)), 'HSK:ExecutionScale', 'Recorded scenarios differ from the plan.');
+scenarios = [identifiers, repmat({'改变系数 a'}, numel(values), 1), num2cell(values), num2cell(values > 0)];
+end
+
 function identity = verify_inputs(root, entrypoint, config)
 assert(strcmp(config.solver_backend, 'matlab'), 'HSK:Backend', 'Wrong execution backend.');
+assert_execution_scale_protocol(config);
 validateattributes(config.random_seed, {'numeric'}, {'scalar','integer','nonnegative','<=',2^32-1});
 validateattributes(config.tolerance, {'numeric'}, {'scalar','real','finite','positive'});
 inputs = string(config.data_paths(:));
@@ -82,13 +101,29 @@ identity.code_sha256 = file_digest(entrypoint);
 identity.code_bundle_sha256 = files_digest(root, sources);
 end
 
+function assert_execution_scale_protocol(config)
+fields = isfield(config, {'execution_scale_plan','execution_scale_plan_sha256'});
+if strcmp(config.run_receipt_protocol_version, '1.4.0')
+    assert(all(fields) && ischar(config.execution_scale_plan_sha256) ...
+        && ~isempty(regexp(config.execution_scale_plan_sha256, '^[0-9a-fA-F]{64}$', 'once')), ...
+        'HSK:Protocol', 'Receipt 1.4.0 requires the approved execution scale specification.');
+    scale = config.execution_scale_plan;
+    assert(isstruct(scale) && isscalar(scale) && all(isfield(scale, {'axis','mode','count'})) ...
+        && strcmp(scale.axis, 'scenarios') && strcmp(scale.mode, 'exact') ...
+        && isfield(scale, 'required_scenario_ids'), ...
+        'HSK:ExecutionScale', 'This example requires its exact execution scale.');
+else
+    assert(~any(fields), 'HSK:Protocol', 'Execution scale fields require receipt 1.4.0.');
+end
+end
+
 function hash = auxiliary_input_digest(root, inputs, config)
 protocol = string(config.run_receipt_protocol_version);
-assert(isscalar(protocol) && any(protocol == ["1.1.0","1.2.0"]), ...
+assert(isscalar(protocol) && any(protocol == ["1.1.0","1.2.0","1.4.0"]), ...
     'HSK:Protocol', 'Unsupported numerical receipt protocol.');
 fields = isfield(config, {'auxiliary_data_paths','auxiliary_data_sha256'});
 hash = "";
-if protocol == "1.1.0"
+if protocol ~= "1.2.0"
     assert(~any(fields), 'HSK:Protocol', 'Auxiliary inputs require receipt 1.2.0.');
     return
 end
@@ -217,6 +252,11 @@ if strcmp(config.run_receipt_protocol_version, '1.2.0')
     receipt.data_identity_mode = 'preprocessing_workbook';
     receipt.auxiliary_data_paths = jsonencode(config.auxiliary_data_paths(:).');
     receipt.auxiliary_data_sha256 = identity.auxiliary_data_sha256;
+elseif strcmp(config.run_receipt_protocol_version, '1.4.0')
+    receipt.data_paths = jsonencode(config.data_paths(:).');
+    receipt.data_identity_mode = data_identity_mode(config);
+    receipt.execution_scale_plan_sha256 = config.execution_scale_plan_sha256;
+    receipt.actual_scale_count = count;
 end
 end
 

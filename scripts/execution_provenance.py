@@ -14,7 +14,7 @@ import zipfile
 from pathlib import Path
 from typing import Any, Mapping
 
-from execution_protocol import PQS_RECEIPT_VERSION, is_source_receipt
+from execution_protocol import PQS_RECEIPT_VERSION, SCALE_RECEIPT_VERSION, is_source_receipt
 import artifact_identity as ARTIFACT_IDENTITY
 import artifact_fingerprint as ARTIFACT_FINGERPRINT
 
@@ -179,8 +179,9 @@ def _workbook_config(path: Path | bytes) -> tuple[dict[str, Any], list[str]]:
                 except json.JSONDecodeError:
                     issues.append(f"accepted workbook has malformed JSON path list: {key}")
             mapping[key] = value
-        if mapping.get("run_receipt_version") == PQS_RECEIPT_VERSION:
-            mapping.setdefault("run_receipt_protocol_version", PQS_RECEIPT_VERSION)
+        version = mapping.get("run_receipt_version")
+        if version in (PQS_RECEIPT_VERSION, SCALE_RECEIPT_VERSION):
+            mapping.setdefault("run_receipt_protocol_version", version)
         return mapping, issues
     finally:
         book.close()

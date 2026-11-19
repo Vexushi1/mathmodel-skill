@@ -9,10 +9,12 @@ import json
 import re
 from typing import Any, Mapping
 
+from execution_scale import SCALE_RECEIPT_VERSION
+
 PQS_RECEIPT_VERSION = "1.3.0"
 PQS_PROTOCOL_VERSION = "1.1.0"
 PQS_DIGEST_FIELD = "primary_quality_spec_sha256"
-SOURCE_RECEIPT_VERSIONS = frozenset({"1.1.0", "1.2.0", PQS_RECEIPT_VERSION})
+SOURCE_RECEIPT_VERSIONS = frozenset({"1.1.0", "1.2.0", PQS_RECEIPT_VERSION, SCALE_RECEIPT_VERSION})
 AUXILIARY_RECEIPT_VERSION = "1.2.0"
 AUXILIARY_FIELDS = ("auxiliary_data_paths", "auxiliary_data_sha256")
 COMPARISON_PROTOCOL_VERSION = "1.0.0"
@@ -64,8 +66,8 @@ def primary_quality_config_issues(config: Mapping[str, Any], *, required: bool =
         return ([] if quality_version in (None, "") else
                 ["primary_quality_protocol_version只允许出现在primary阶段运行配置"])
     issues = []
-    if config.get("stage") != "primary" or receipt_version != PQS_RECEIPT_VERSION:
-        issues.append("approved primary quality requires primary RUN_RECEIPT 1.3.0")
+    if config.get("stage") != "primary" or receipt_version not in (PQS_RECEIPT_VERSION, SCALE_RECEIPT_VERSION):
+        issues.append("approved primary quality requires primary RUN_RECEIPT 1.3.0 or 1.4.0")
     if quality_version != PQS_PROTOCOL_VERSION:
         issues.append("approved primary quality requires primary_quality_protocol_version=1.1.0")
     digest = config.get(PQS_DIGEST_FIELD)
@@ -85,8 +87,9 @@ def primary_quality_receipt_issues(receipt: Mapping[str, Any], config: Mapping[s
             and PQS_DIGEST_FIELD not in receipt):
         return []
     issues = primary_quality_config_issues(config, required=True)
-    if receipt.get("stage") != "primary" or receipt.get("run_receipt_version") != PQS_RECEIPT_VERSION:
-        issues.append("approved primary quality must return primary RUN_RECEIPT 1.3.0")
+    if (receipt.get("stage") != "primary"
+            or receipt.get("run_receipt_version") != config.get("run_receipt_protocol_version")):
+        issues.append("approved primary quality must return the same primary RUN_RECEIPT version")
     if receipt.get("primary_quality_protocol_version") != PQS_PROTOCOL_VERSION:
         issues.append("RUN_RECEIPT must echo primary_quality_protocol_version=1.1.0")
     paths = receipt.get("data_paths")

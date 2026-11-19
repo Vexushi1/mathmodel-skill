@@ -10,6 +10,8 @@
 
 主求解选用已批准的质量规范绑定时，按 `core/user_execution_contract.yaml` 使用 RUN_CONFIG 与 RUN_RECEIPT 1.3.0，回显质量协议、规范摘要、JSON 路径列表 `data_paths` 和实际采用的 `data_identity_mode`。`主结果质量门` 的数值行写入规范声明的 `单位`，示例的方程残差使用 `1` 表示无量纲。阈值、关系、证据表和单位随实际批准项一起实例化。
 
+启用正式执行规模时使用回执 1.4.0，由实例化者按执行合同冻结 `execution_scale_plan` 及其摘要。原生示例仅支持各自实际执行的精确计划。主求解记录一次实算到 `重复试验结果`，深化记录敏感性扫描的每个真实系数场景到 `场景压力测试`，场景标识由实算系数生成。回执的 `actual_scale_count` 来自记录行数，同时回显计划摘要、实际 JSON 输入路径和身份模式。自适应执行需要题目专属主求解实现，以及绑定数值 PQS 判据的 `执行停止证据`。
+
 原始入口 SHA 与包含入口及声明 helper 的 bundle SHA 各自保留。bundle 按项目相对 POSIX 路径的 UTF-8 次序，把路径 UTF-8、NUL 与原始文件 SHA 字节连接后计算 SHA-256。数据摘要沿既有数据身份算法。入口及输入在运行前、写出前再次核对；helper 的路径、摘要和 MATLAB 实际解析位置也必须一致。调用 helper 的实例须声明实际项目源码并确保它被合法解析；未知动态加载不得声称闭包已验证。
 
 数据身份在实例化时明确：省略 `data_identity_mode` 或设为 `combined`，使用既有“路径、NUL、文件 SHA 字节”的组合摘要；`project_level` 必须声明 `preprocessing_workbook`，`data_paths` 只包含既有已验收预处理 XLSX，`data_sha256` 使用该工作簿原始文件 SHA，与项目状态保持一致。此模式不再读取被预处理覆盖的原始源。微型例子通过 `模型输入` 表精确读取 `coefficient`、`right_hand_side`、`sensitivity_coefficients`，最后一列是明确记录的 JSON 数组；实际题目须实例化为自身真实字段，不能机械套用该表。主、深化遵守同一数据身份；03B 另行绑定 accepted 主工作簿 SHA。
