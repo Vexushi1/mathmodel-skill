@@ -35,6 +35,27 @@ def _hashes(entry: Mapping[str, Any]) -> tuple[dict, dict]:
     return current, validated
 
 
+def accepted_analysis_workbook_matches(root: Path, entry: Mapping[str, Any], workbook: Path, *,
+                                       workbook_sha256: str | None = None) -> bool:
+    """Return whether this is the previously accepted analysis workbook at its recorded path."""
+    if entry.get("analysis_execution_status") != "accepted" or entry.get("result_analysis_status") != "passed":
+        return False
+    saved = entry.get("result_analysis_workbook") or entry.get("robustness_workbook")
+    if not isinstance(saved, str) or not saved.strip():
+        return False
+    try:
+        current, validated = _hashes(entry)
+        digest = validated.get("result_analysis_workbook") or current.get("result_analysis_workbook")
+        candidate = (root / saved).resolve()
+        if not digest or not candidate.is_relative_to(root.resolve()) or candidate != workbook.resolve():
+            return False
+        if workbook_sha256 is None:
+            workbook_sha256 = hashlib.sha256(candidate.read_bytes()).hexdigest()
+        return workbook_sha256 == digest.lower()
+    except (OSError, ValueError, RuntimeError):
+        return False
+
+
 def _project_backend(state: Mapping[str, Any], *, required: bool) -> tuple[str | None, list[str]]:
     """Use current policy for active work, leaving old states to read-only callers."""
     execution = state.get("execution") or {}
@@ -146,16 +167,8 @@ def analysis_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, An
             issues.append(f"analysis comparison prerequisite: {exc}")
     if entry.get("result_analysis_status") == "not_required":
         return [*issues, "Analysis Necessity Gate=not_required，必须显式重新裁决后才能交付或验收分析"]
-    # Only the identical previously accepted artifact may use historical read compatibility.
-    historical_read = False
-    if historical_workbook is not None and entry.get("analysis_execution_status") == "accepted" and entry.get("result_analysis_status") == "passed":
-        try:
-            current, validated = _hashes(entry)
-            saved = entry.get("result_analysis_workbook") or entry.get("robustness_workbook")
-            digest = validated.get("result_analysis_workbook") or current.get("result_analysis_workbook")
-            historical_read = bool(saved) and (root / saved).resolve() == historical_workbook.resolve() and not _file_issues(root, saved, digest, "分析工作簿")
-        except ARTIFACT_IDENTITY.ArtifactIdentityError:
-            pass
+    historical_read = historical_workbook is not None and accepted_analysis_workbook_matches(
+        root, entry, historical_workbook)
     if not historical_read:
         reason = entry.get("result_analysis_requirement_reason")
         methods = entry.get("analysis_methods")

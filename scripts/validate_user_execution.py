@@ -424,17 +424,23 @@ def analysis_passed(workbook: Path | bytes, *, comparison_methods=()) -> tuple[b
             return False, "failed", ["结论稳定性汇总缺少是否保持列"]
         index = headers.index("是否保持")
         method_index = headers.index("分析方法") if "分析方法" in headers else None
-        unstable = [
-            row for row in rows[1:]
-            if row and as_bool(row[index] if len(row) > index else None) is not True
-            and not (method_index is not None and len(row) > method_index
-                     and row[method_index] in comparison_methods)
-        ]
-        return (
-            not unstable,
-            "passed" if not unstable else "redo_required",
-            ["存在核心结论未保持"] if unstable else [],
-        )
+        has_summary_rows = False
+        unstable = False
+        for row_number, row in enumerate(rows[1:], start=2):
+            if not any(value is not None and str(value).strip() for value in row):
+                continue
+            has_summary_rows = True
+            if method_index is not None and len(row) > method_index and row[method_index] in comparison_methods:
+                continue
+            verdict = as_bool(row[index] if len(row) > index else None)
+            if verdict is None:
+                return False, "failed", [f"结论稳定性汇总第{row_number}行的是否保持必须为明确布尔值"]
+            unstable = unstable or verdict is False
+        if not has_summary_rows:
+            return False, "failed", ["结论稳定性汇总无实质数据"]
+        if unstable:
+            return False, "redo_required", ["存在核心结论未保持"]
+        return True, "passed", []
     finally:
         book.close()
 
@@ -485,7 +491,8 @@ def validate_execution_evidence(
 
 
 def _workbook_schema_issues(captured_workbook: bytes, entry: Mapping[str, Any], stage: str,
-                            observed: dict[str, Any]) -> tuple[list[str], bool]:
+                            observed: dict[str, Any], *,
+                            require_ordinary_method_coverage: bool) -> tuple[list[str], bool]:
     """Check captured workbook bytes without requiring execution prerequisites."""
     schema_path = Path(SCRIPT_DIR).parent / "core/workbook_schema.yaml"
     schema_bytes = schema_path.read_bytes()
@@ -515,6 +522,7 @@ def _workbook_schema_issues(captured_workbook: bytes, entry: Mapping[str, Any], 
             capabilities=capabilities, objective=classification.get("objective"),
             structures=structures or (), require_quality_passed=False,
             analysis_methods=methods or (), comparison_plan=entry.get("analysis_comparison"),
+            require_ordinary_method_coverage=require_ordinary_method_coverage,
         )
     except (ValueError, OSError, KeyError, TypeError) as exc:
         return [f"工作簿结构Schema未通过: {exc}"], True
@@ -534,6 +542,7 @@ def _execution_read_issues(root: Path, observed: dict[str, Any]) -> list[str]:
 def _incomplete_workbook_issues(
     captured_workbook: bytes, state: dict[str, Any], key: str, stage: str,
     config: dict[str, Any], observed: dict[str, Any], delivered: dict[str, Any] | None,
+    *, require_ordinary_method_coverage: bool,
 ) -> tuple[list[str], bool, list[str]]:
     """Separate candidate counterexamples from unverified State context diagnostics."""
     entry = {} if stage == "preprocessing" else (state.get("subproblems") or {}).get(key, {})
@@ -556,7 +565,10 @@ def _incomplete_workbook_issues(
     if stage == "preprocessing":
         issues.extend(preprocessing_passed(captured_workbook)[1])
     else:
-        schema_issues, context_valid = _workbook_schema_issues(captured_workbook, entry, stage, observed)
+        schema_issues, context_valid = _workbook_schema_issues(
+            captured_workbook, entry, stage, observed,
+            require_ordinary_method_coverage=require_ordinary_method_coverage,
+        )
         if context_valid:
             issues.extend(schema_issues)
         else:
@@ -578,8 +590,9 @@ def _incomplete_workbook_issues(
                 captured_workbook, comparison_methods=(
                     {"model_comparison", "algorithm_comparison", "多模型检验", "同模型多算法检验"}
                     if COMPARISON.present(entry) else ()))
-            issues.extend(analysis_issues)
-            negative_analysis = result_status == "redo_required"
+            negative_analysis = result_status == "redo_required" and context_valid and not issues
+            if result_status == "failed" or negative_analysis:
+                issues.extend(analysis_issues)
     return list(dict.fromkeys(issues)), negative_analysis, context_diagnostics
 
 
@@ -789,6 +802,10 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool,
     except OSError as exc:
         return [f"工作簿无法读取: {exc}"]
     workbook_hash = hashlib.sha256(captured_workbook).hexdigest()
+    require_ordinary_method_coverage = stage == "analysis" and (
+        write or not ANALYSIS_PREREQUISITES.accepted_analysis_workbook_matches(
+            root, entry, workbook, workbook_sha256=workbook_hash)
+    )
     workbook_observed = {"project": {workbook.relative_to(root).as_posix(): workbook_hash}, "skill": {}}
     # Recheck captured metadata too: a changed candidate cannot lose strict
     # activation merely because the initial discovery read lacked the marker.
@@ -829,6 +846,7 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool,
             workbook_observed=workbook_observed, comparison_observed=comparison_observed,
             conformance_read_set=conformance_read_set, incomplete_context=incomplete,
             registration_requested=write, execution_observed=execution_observed,
+            require_ordinary_method_coverage=require_ordinary_method_coverage,
         )
     except (FileNotFoundError, PermissionError) as exc:
         if not incomplete:
@@ -845,7 +863,9 @@ def validate_one(root: Path, workbook: Path, state: dict[str, Any], write: bool,
             delivered = None
             issues.append(f"已交付源码读取未完成: {exc}")
         local_issues, negative_analysis, context_diagnostics = _incomplete_workbook_issues(
-            captured_workbook, inspected_state, key, stage, config, workbook_observed, delivered)
+            captured_workbook, inspected_state, key, stage, config, workbook_observed, delivered,
+            require_ordinary_method_coverage=require_ordinary_method_coverage,
+        )
         issues.extend(context_diagnostics)
         issues.extend(local_issues)
         if local_issues:
@@ -874,6 +894,7 @@ def _validate_captured_receipt(
     workbook_hash: str, workbook_observed: dict[str, Any], comparison_observed: dict[str, Any],
     conformance_read_set: dict | None, incomplete_context: bool,
     registration_requested: bool, execution_observed: dict[str, Any],
+    require_ordinary_method_coverage: bool,
 ) -> list[str]:
     entry = {} if stage == "preprocessing" else (state.get("subproblems") or {}).get(key, {})
     conformance = {"enabled": False, "observed_sources": {"project": {}, "skill": {}}}
@@ -948,8 +969,11 @@ def _validate_captured_receipt(
         ]))
     modern = (is_source_receipt(config.get("run_receipt_version"))
               or is_source_receipt((delivered or {}).get("run_receipt_protocol_version")))
-    if stage != "preprocessing" and (registration_requested or modern):
-        schema_issues, context_valid = _workbook_schema_issues(captured_workbook, entry, stage, workbook_observed)
+    if stage != "preprocessing" and (registration_requested or modern or require_ordinary_method_coverage):
+        schema_issues, context_valid = _workbook_schema_issues(
+            captured_workbook, entry, stage, workbook_observed,
+            require_ordinary_method_coverage=require_ordinary_method_coverage,
+        )
         issues.extend(schema_issues)
         if not context_valid:
             return list(dict.fromkeys(issues))
@@ -1074,6 +1098,8 @@ def _validate_captured_receipt(
                             conformance["delivery_candidate"], workbook_hash)
     else:
         negative_analysis_issues = []
+        comparison_methods = ()
+        core_rejections = []
         comparison = COMPARISON.inspect_gate(
             root, state, key, boundary="receipt", config=delivered, receipt=config,
             workbook=workbook, analysis_bytes=captured_workbook)
@@ -1082,23 +1108,17 @@ def _validate_captured_receipt(
             CONFORMANCE.merge_read_sets(conformance_read_set, comparison_observed)
         if comparison["enabled"]:
             issues.extend(comparison["issues"])
-            _, legacy_status, legacy_issues = analysis_passed(
-                captured_workbook,
-                comparison_methods={"model_comparison", "algorithm_comparison", "多模型检验", "同模型多算法检验"})
-            if legacy_status == "failed":
-                issues.extend(legacy_issues)
-            elif legacy_status == "redo_required":
-                negative_analysis_issues = legacy_issues
-            core_rejections = COMPARISON.rejection_events(entry) if not comparison["issues"] else []
-            result_status = "failed" if issues else "redo_required" if core_rejections or negative_analysis_issues else "passed"
-            passed = not issues and not core_rejections and not negative_analysis_issues
+            comparison_methods = {"model_comparison", "algorithm_comparison", "多模型检验", "同模型多算法检验"}
+            if not comparison["issues"]:
+                core_rejections = COMPARISON.rejection_events(entry)
+        passed, result_status, analysis_issues = analysis_passed(
+            captured_workbook, comparison_methods=comparison_methods)
+        if result_status == "redo_required":
+            negative_analysis_issues = analysis_issues
         else:
-            core_rejections = []
-            passed, result_status, analysis_issues = analysis_passed(captured_workbook)
-            if result_status == "redo_required":
-                negative_analysis_issues = analysis_issues
-            else:
-                issues.extend(analysis_issues)
+            issues.extend(analysis_issues)
+        if core_rejections:
+            result_status, passed = "redo_required", False
         if modern:
             issues.extend(STAGE_CODE.validate_stage_binding(root, entry, stage, project_backend=project_backend))
             issues.extend(ANALYSIS_PREREQUISITES.stage_input_issues(root, state, entry, stage))
@@ -1117,12 +1137,11 @@ def _validate_captured_receipt(
         if write:
             CONFORMANCE.assert_observed(root, workbook_observed)
             issues.extend(_execution_read_issues(root, execution_observed))
-            if issues:
-                result_status, passed, core_rejections = "failed", False, []
             if comparison["enabled"]:
                 CONFORMANCE.assert_observed(root, comparison_observed)
-                if issues:
-                    result_status, passed, core_rejections = "failed", False, []
+        if issues:
+            result_status, passed, core_rejections = "failed", False, []
+        if write:
             accepted_workbook_hash = workbook_hash
             entry["analysis_execution_status"] = (
                 "accepted" if not issues and passed
@@ -1166,7 +1185,8 @@ def _validate_captured_receipt(
                     ]
                     entry["result_summary_status"] = "stale"
                     state.setdefault("project", {})["current_phase"] = "solve_validate"
-        issues.extend(negative_analysis_issues)
+        if result_status == "redo_required":
+            issues.extend(negative_analysis_issues)
     if write and conformance["enabled"] and issues:
         previous = entry.get("solver_execution", {}).get(stage, {}).get(CONFORMANCE.ACCEPTANCE)
         if isinstance(previous, dict):

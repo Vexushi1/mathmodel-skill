@@ -71,7 +71,7 @@ class HistoricalProjectionTests(unittest.TestCase):
                 elif mutation == "scope":
                     plan["delivery_scope"] = "submission"
                 elif mutation == "version":
-                    plan["version"] = "10.35.1"  # unregistered; 10.35.0 is current
+                    plan["version"] = "10.35.2"  # unregistered; 10.35.1 is current
                 else:
                     altered["authority_versions"]["skill"] = "10.27.0"
                 with self.subTest(case=after["id"], mutation=mutation):
@@ -101,8 +101,8 @@ class HistoricalProjectionTests(unittest.TestCase):
 
     def test_frozen_v10270_inverse_still_accepts_only_exact_carrier(self):
         after = plan_evidence.worker(ROOT, 0)
-        self.assertEqual(after["authority_versions"]["skill"], "10.35.0")
-        self.assertEqual(after["plan"]["version"], "10.35.0")
+        self.assertEqual(after["authority_versions"]["skill"], "10.35.1")
+        self.assertEqual(after["plan"]["version"], "10.35.1")
         old_carrier = deepcopy(after)
         old_carrier["authority_versions"]["skill"] = "10.27.0"
         old_carrier["plan"]["version"] = "10.27.0"

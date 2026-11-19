@@ -664,8 +664,28 @@ def _prior_reviewed_blocks(relative: str, text: str, blocks, label: str) -> str:
     return "".join(lines)
 
 
+# Reconstruct only the approved v10.35.1 ordinary-method schema additions.
+ORDINARY_ANALYSIS_COVERAGE_BLOCKS = {
+    "core/workbook_schema.yaml": (
+        (
+            "  - 同模型多算法检验", 17,
+            "7e5586ce8755032825ac417bcf111f8eddfcc244c3b3103432283c7046f6ffc0",
+            (
+                "  - 同模型多算法检验\n"
+                "  comparison_method_sheets:\n"
+            ),
+        ),
+    ),
+}
+
+
+def prior_ordinary_analysis_coverage(relative: str, text: str) -> str:
+    return _prior_reviewed_blocks(relative, text, ORDINARY_ANALYSIS_COVERAGE_BLOCKS, "ordinary analysis")
+
+
 def prior_execution_scale_binding(relative: str, text: str) -> str:
-    return _prior_reviewed_blocks(relative, text, EXECUTION_SCALE_BINDING_BLOCKS, "execution scale")
+    predecessor = prior_ordinary_analysis_coverage(relative, text)
+    return _prior_reviewed_blocks(relative, predecessor, EXECUTION_SCALE_BINDING_BLOCKS, "execution scale")
 
 
 def prior_primary_quality_binding(relative: str, text: str) -> str:
@@ -1434,6 +1454,24 @@ class ContractAndDriftTests(unittest.TestCase):
                 inverse_defensive_writing_changes(relative, source + unrelated),
                 projected + unrelated,
             )
+
+    def test_ordinary_analysis_coverage_inverse_restores_exact_scale_source(self):
+        relative = "core/workbook_schema.yaml"
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        prior = prior_ordinary_analysis_coverage(relative, text)
+        self.assertEqual(hashlib.sha256(prior.encode("utf-8")).hexdigest(),
+                         "568d2fa949b04748acf512a9883d7a5bd6c958221675d3548cee2fc88cded095")
+        extra = "\n# unauthorized separate change\n"
+        self.assertEqual(prior_ordinary_analysis_coverage(relative, text + extra), prior + extra)
+
+        first, count, digest, _ = ORDINARY_ANALYSIS_COVERAGE_BLOCKS[relative][0]
+        lines = text.splitlines(keepends=True)
+        block, = (chunk for offset, line in enumerate(lines) if line == first + "\n"
+                  for chunk in ["".join(lines[offset:offset + count])]
+                  if hashlib.sha256(chunk.encode("utf-8")).hexdigest() == digest)
+        for changed in (text.replace(block, extra, 1), text + block):
+            with self.assertRaisesRegex(ValueError, "missing or duplicated"):
+                prior_ordinary_analysis_coverage(relative, changed)
 
     def test_execution_scale_binding_inverse_is_exact(self):
         source_hashes = {
