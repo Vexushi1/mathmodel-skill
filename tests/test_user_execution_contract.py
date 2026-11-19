@@ -362,6 +362,52 @@ class UserExecutionContractTests(unittest.TestCase):
             self.assertEqual(issues, [], issues)
             self.assertEqual(state["subproblems"]["Q1"]["analysis_execution_status"], "accepted")
 
+    def test_unversioned_analysis_read_checks_only_mapped_ordinary_evidence(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            workbook = self.prepare_ordinary_analysis(root, ["历史项目自定义分析名称"])
+            state = self.read_state(root)
+            entry = state["subproblems"]["Q1"]
+            state.pop("execution")
+            entry.pop("solver_execution")
+            for stage, path_field, hash_field, expected_workbook in (
+                ("primary", "code", "primary_code_sha256", Path(entry["solution_workbook"]).name),
+                ("analysis", "result_analysis_code", "analysis_code_sha256", workbook.name),
+            ):
+                code = root / entry[path_field]
+                config = self.config(stage, expected_workbook)
+                config.pop("run_receipt_protocol_version")
+                code.write_text(f"FULL_FIDELITY_CONFIG = {config!r}\n", encoding="utf-8")
+                digest = hashlib.sha256(code.read_bytes()).hexdigest()
+                entry[hash_field] = digest
+                entry["artifact_hashes"][f"{stage}_code"] = digest
+                if stage == "primary":
+                    entry["validated_artifact_hashes"]["primary_code"] = digest
+
+            book = openpyxl.load_workbook(workbook)
+            try:
+                runtime = book["运行配置"]
+                for index in range(runtime.max_row, 1, -1):
+                    key = runtime.cell(index, 1).value
+                    if key in {"run_receipt_version", "solver_backend", "code_bundle_sha256",
+                               "primary_workbook_sha256"}:
+                        runtime.delete_rows(index)
+                    elif key == "code_sha256":
+                        runtime.cell(index, 2, entry["analysis_code_sha256"])
+                book["分析设计"].cell(1, 1, "旧风险字段")
+                book.save(workbook)
+
+                self.assertEqual(RECEIPT.validate_one(root, workbook, state, False), [])
+                entry["analysis_methods"].append("场景压力测试")
+                issues = RECEIPT.validate_one(root, workbook, state, False)
+                self.assertTrue(any("场景压力测试" in issue for issue in issues), issues)
+
+                self.add_pressure_evidence(book)
+                book.save(workbook)
+                self.assertEqual(RECEIPT.validate_one(root, workbook, state, False), [])
+            finally:
+                book.close()
+
     def test_malformed_summary_is_failed_evidence_without_a_core_rejection(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -404,6 +450,16 @@ class UserExecutionContractTests(unittest.TestCase):
             self.assertEqual(RECEIPT.validate_one(root, workbook, state, False), [])
             self.assertEqual(hashlib.sha256(workbook.read_bytes()).hexdigest(), accepted)
             self.assertEqual((root / "state/project_state.yaml").read_bytes(), before)
+
+            observed_only = self.read_state(root)
+            observed_entry = observed_only["subproblems"]["Q1"]
+            del observed_entry["validated_artifact_hashes"]["result_analysis_workbook"]
+            # Synchronization may record changed bytes here without independent acceptance.
+            observed_entry.setdefault("artifact_hashes", {})["result_analysis_workbook"] = accepted
+            issues = RECEIPT.validate_one(root, workbook, observed_only, False)
+            self.assertTrue(any("场景压力测试" in issue for issue in issues), issues)
+            self.assertEqual(observed_entry["analysis_execution_status"], "accepted")
+            self.assertEqual(observed_entry["result_analysis_status"], "passed")
 
             unaccepted = self.read_state(root)
             unaccepted["subproblems"]["Q1"].update(

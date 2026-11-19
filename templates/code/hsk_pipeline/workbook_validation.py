@@ -65,12 +65,16 @@ def prepare_tables(
     return prepared
 
 
-def read_workbook_tables(path: Path | bytes) -> dict[str, pd.DataFrame]:
+def read_workbook_tables(
+    path: Path | bytes, *, only_sheets: set[str] | None = None,
+) -> dict[str, pd.DataFrame]:
     workbook = load_workbook(io.BytesIO(path) if isinstance(path, bytes) else path,
                              read_only=True, data_only=True)
     tables: dict[str, pd.DataFrame] = {}
     try:
         for worksheet in workbook.worksheets:
+            if only_sheets is not None and worksheet.title not in only_sheets:
+                continue
             rows = list(worksheet.iter_rows(values_only=True))
             if not rows:
                 raise ValueError(f"工作表“{worksheet.title}”为空")
@@ -248,6 +252,12 @@ def _required_ordinary_sheets(section: Mapping[str, Any], analysis_methods: Sequ
     return {mapping[method] for method in methods if method in mapping}
 
 
+def _check_ordinary_sheets_present(names: set[str], required: set[str]) -> None:
+    missing = sorted(required - names)
+    if missing:
+        raise ValueError(f"结果深化分析缺少已选择的普通证据表: {missing}")
+
+
 def _check_ordinary_evidence(sheet: str, frame: pd.DataFrame, spec: Mapping[str, Any]) -> None:
     """Confirm that a selected method has at least one substantive observation."""
     columns = spec["required_columns"]
@@ -334,9 +344,7 @@ def validate_tables(
             raise ValueError(f"结果深化分析工作簿包含未登记工作表: {unknown_sheets}")
         if require_ordinary_method_coverage:
             ordinary_sheets = _required_ordinary_sheets(section, analysis_methods)
-            missing_ordinary = sorted(ordinary_sheets - names)
-            if missing_ordinary:
-                raise ValueError(f"结果深化分析缺少已选择的普通证据表: {missing_ordinary}")
+            _check_ordinary_sheets_present(names, ordinary_sheets)
         if not names.intersection(allowed_any):
             raise ValueError(f"结果深化分析工作簿至少需要一个实质分析表: {sorted(allowed_any)}")
         _check_required_comparison_sheets(names, section, analysis_methods, comparison_plan)
@@ -354,6 +362,22 @@ def validate_tables(
         _check_quality_gate(prepared)
     _check_missing_value_audit(prepared, kind)
     return prepared
+
+
+def validate_ordinary_method_coverage(
+    path: Path | bytes, *, schema: Mapping[str, Any], analysis_methods: Sequence[str],
+) -> None:
+    """Check selected evidence sheets without imposing new schemas on unrelated legacy sheets."""
+    section = schema["result_analysis_workbook"]
+    required = _required_ordinary_sheets(section, analysis_methods)
+    if not required:
+        return
+    tables = read_workbook_tables(path, only_sheets=required)
+    _check_ordinary_sheets_present(set(tables), required)
+    for sheet, frame in tables.items():
+        spec = section["sheet_schemas"][sheet]
+        _check_required_columns(sheet, frame, spec)
+        _check_ordinary_evidence(sheet, frame, spec)
 
 
 def validate_workbook_file(

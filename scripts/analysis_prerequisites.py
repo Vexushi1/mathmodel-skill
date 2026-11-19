@@ -36,8 +36,9 @@ def _hashes(entry: Mapping[str, Any]) -> tuple[dict, dict]:
 
 
 def accepted_analysis_workbook_matches(root: Path, entry: Mapping[str, Any], workbook: Path, *,
-                                       workbook_sha256: str | None = None) -> bool:
-    """Return whether this is the previously accepted analysis workbook at its recorded path."""
+                                       workbook_sha256: str | None = None,
+                                       allow_observed_hash: bool = False) -> bool:
+    """Check the exact accepted analysis workbook. Only legacy plan reads may use the observed hash."""
     if entry.get("analysis_execution_status") != "accepted" or entry.get("result_analysis_status") != "passed":
         return False
     saved = entry.get("result_analysis_workbook") or entry.get("robustness_workbook")
@@ -45,7 +46,9 @@ def accepted_analysis_workbook_matches(root: Path, entry: Mapping[str, Any], wor
         return False
     try:
         current, validated = _hashes(entry)
-        digest = validated.get("result_analysis_workbook") or current.get("result_analysis_workbook")
+        digest = validated.get("result_analysis_workbook") or validated.get("robustness_workbook")
+        if allow_observed_hash and not digest:
+            digest = current.get("result_analysis_workbook")
         candidate = (root / saved).resolve()
         if not digest or not candidate.is_relative_to(root.resolve()) or candidate != workbook.resolve():
             return False
@@ -168,7 +171,7 @@ def analysis_issues(root: Path, state: Mapping[str, Any], entry: Mapping[str, An
     if entry.get("result_analysis_status") == "not_required":
         return [*issues, "Analysis Necessity Gate=not_required，必须显式重新裁决后才能交付或验收分析"]
     historical_read = historical_workbook is not None and accepted_analysis_workbook_matches(
-        root, entry, historical_workbook)
+        root, entry, historical_workbook, allow_observed_hash=True)
     if not historical_read:
         reason = entry.get("result_analysis_requirement_reason")
         methods = entry.get("analysis_methods")

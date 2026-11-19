@@ -492,12 +492,19 @@ def validate_execution_evidence(
 
 def _workbook_schema_issues(captured_workbook: bytes, entry: Mapping[str, Any], stage: str,
                             observed: dict[str, Any], *,
-                            require_ordinary_method_coverage: bool) -> tuple[list[str], bool]:
+                            require_ordinary_method_coverage: bool,
+                            ordinary_coverage_only: bool = False) -> tuple[list[str], bool]:
     """Check captured workbook bytes without requiring execution prerequisites."""
     schema_path = Path(SCRIPT_DIR).parent / "core/workbook_schema.yaml"
     schema_bytes = schema_path.read_bytes()
     observed["skill"]["core/workbook_schema.yaml"] = hashlib.sha256(schema_bytes).hexdigest()
     try:
+        schema = yaml.safe_load(schema_bytes)
+        if ordinary_coverage_only:
+            WORKBOOK_VALIDATION.validate_ordinary_method_coverage(
+                captured_workbook, schema=schema, analysis_methods=entry.get("analysis_methods") or (),
+            )
+            return [], True
         classification = entry.get("classification")
         legacy_types = entry.get("problem_types")
         capabilities = entry.get("capabilities")
@@ -518,7 +525,7 @@ def _workbook_schema_issues(captured_workbook: bytes, entry: Mapping[str, Any], 
             legacy_types.get("primary"), *(secondary or [])) if item)
         WORKBOOK_VALIDATION.validate_workbook_file(
             captured_workbook, "solution" if stage == "primary" else "result_analysis",
-            schema=yaml.safe_load(schema_bytes), problem_types=problem_types,
+            schema=schema, problem_types=problem_types,
             capabilities=capabilities, objective=classification.get("objective"),
             structures=structures or (), require_quality_passed=False,
             analysis_methods=methods or (), comparison_plan=entry.get("analysis_comparison"),
@@ -969,10 +976,12 @@ def _validate_captured_receipt(
         ]))
     modern = (is_source_receipt(config.get("run_receipt_version"))
               or is_source_receipt((delivered or {}).get("run_receipt_protocol_version")))
-    if stage != "preprocessing" and (registration_requested or modern or require_ordinary_method_coverage):
+    full_schema_required = registration_requested or modern
+    if stage != "preprocessing" and (full_schema_required or require_ordinary_method_coverage):
         schema_issues, context_valid = _workbook_schema_issues(
             captured_workbook, entry, stage, workbook_observed,
             require_ordinary_method_coverage=require_ordinary_method_coverage,
+            ordinary_coverage_only=not full_schema_required,
         )
         issues.extend(schema_issues)
         if not context_valid:
