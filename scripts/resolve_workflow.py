@@ -69,6 +69,45 @@ def resolve_competition_pack(token: str | None, profiles: dict[str, Any]) -> str
     return None
 
 
+# Commands must start a clause. A workflow mentioned as the object of a review
+# or explanation stays on the ordinary keyword path.
+_FLOW_DIRECTIVE = re.compile(
+    r"(?P<boundary>^|[，,；;。！？!?\n])\s*(?:请\s*)?"
+    r"(?P<negative>不要|不需要|不必|无需|暂不|禁止|别|不)?\s*"
+    r"(?:按照|按|执行|运行|启动|完成|走|跑)\s*(?:数学建模\s*)?(?P<name>完整流程|全流程)"
+    r"(?=\s*(?:$|[，,；;。！？!?\n]|只|仅|来做|做|处理|进行|推进|执行|求解|建模))"
+)
+_FLOW_STAGE_ONLY = re.compile(
+    r"(?:只|仅)(?:需(?:要)?|要)?\s*(?:做|进行|执行|完成)?\s*"
+    r"(?:审题|题目拆解|模型设计|建模|求解|绘图|写作)"
+)
+_FLOW_QUESTION = re.compile(
+    r"(?:^|[，,；;。\n])\s*(?:为什么|怎么|如何|能否|是否)[^。！？!?\n]*[？?]"
+    r"|还是[^。！？!?\n]*[？?]"
+)
+_FLOW_REVIEW_LIMIT = re.compile(
+    r"(?<!不)(?:只|仅)(?:需|要)?\s*(?:给(?:出)?(?:修改)?(?:意见|建议)|审查|审阅|审稿|终审|读)"
+    r"|(?:^|[，,；;。！？!?\n])\s*(?:请\s*)?(?:不做修改|(?:不要|不)(?:修改|执行))"
+    r"(?:文件|项目文件)?\s*(?=$|[，,；;。！？!?\n])"
+)
+
+
+def workflow_request_scope(request: str, router: dict[str, Any]) -> tuple[str, str | None]:
+    """Keep the last direct workflow instruction and its independent stage requests."""
+    if "full_workflow" not in (router.get("routing") or {}):
+        return request, None
+    directives = list(_FLOW_DIRECTIVE.finditer(request))
+    if not directives:
+        return request, None
+    last = directives[-1]
+    if last["negative"] or _FLOW_STAGE_ONLY.search(request) or _FLOW_QUESTION.search(request):
+        return _FLOW_DIRECTIVE.sub(lambda match: match["boundary"], request), None
+    keywords = _FLOW_DIRECTIVE.sub(
+        lambda match: match["boundary"] if match["negative"] else match[0], request,
+    )
+    return keywords, last["name"]
+
+
 def review_only_request(request: str, router: dict[str, Any]) -> bool:
     """Keep a review action distinct from the carrier being inspected.
 
@@ -78,7 +117,10 @@ def review_only_request(request: str, router: dict[str, Any]) -> bool:
     policy = router.get("review_action_policy") or {}
     review_words = policy.get("review_words", [])
     edit_words = policy.get("edit_words", [])
-    text = request.casefold()
+    text, workflow = workflow_request_scope(request.casefold(), router)
+    if workflow:
+        # A read-only instruction applies on either side of the stage list.
+        return bool(_FLOW_REVIEW_LIMIT.search(text))
     for word in [*review_words, *edit_words]:
         text = re.sub(r"(?:不要|不必|无需|不)\s*" + re.escape(word), "", text)
     has_review_action = any(word in text for word in review_words)
@@ -110,7 +152,7 @@ def available_competition_pack(token: str | None, profiles: dict[str, Any]) -> t
 
 def matched_inference_keywords(request: str, router: dict[str, Any]) -> dict[str, list[str]]:
     """Apply the router's bounded paper-carrier rule before either resolver scores."""
-    text = request.strip().lower()
+    text, workflow = workflow_request_scope(request.strip().lower(), router)
     text = re.sub(r"(python|matlab)\s+(?=绘图)", r"\1 ", text)
     if not text:
         return {}
@@ -136,6 +178,9 @@ def matched_inference_keywords(request: str, router: dict[str, Any]) -> dict[str
         if matched:
             matches[str(name)] = matched
 
+    if workflow and workflow not in matches.get("full_workflow", []):
+        matches.setdefault("full_workflow", []).append(workflow)
+
     explicit_carriers = {
         str(name) for name, words in carrier_keywords.items()
         if any(str(word).lower() in {item.lower() for item in matches.get(str(name), [])}
@@ -148,7 +193,12 @@ def matched_inference_keywords(request: str, router: dict[str, Any]) -> dict[str
             del matches["latex"]
     if review_only_request(request, router):
         # Carrier keywords remain in the request; they are not authoring actions.
-        matches = {name: words for name, words in matches.items() if name == "review"}
+        review = matches.get("review", [])
+        if not review and workflow and "review" in (router.get("routing") or {}):
+            limit = _FLOW_REVIEW_LIMIT.search(request)
+            if limit:
+                review = [limit[0]]
+        return {"review": review} if review else {}
     return matches
 
 

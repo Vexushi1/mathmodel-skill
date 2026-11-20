@@ -27,7 +27,7 @@ import execution_provenance as EXECUTION_PROVENANCE
 import stage_code as STAGE_CODE
 import state_transitions as STATE_TRANSITIONS
 from project_transaction import JOURNAL_RELATIVE_PATH, STATE_RELATIVE_PATH, ProjectTransactionError, state_generation
-from resolve_workflow import matched_inference_keywords
+from resolve_workflow import matched_inference_keywords, workflow_request_scope
 
 FRAMEWORK_RELATIVE_PATH = "模型论文框架.md"
 QUALIFIED_ARTIFACT_ALIASES = {
@@ -586,7 +586,12 @@ def resolve_intent_assurance(
     top_score = int(candidates[0]["score"]) if candidates else 0
     top = [item for item in candidates if int(item["score"]) == top_score]
     inferred = [str(item["intent"]) for item in top]
-    if "full_workflow" in inferred:
+    scope_override = (
+        not explicit and "full_workflow" not in inferred
+        and any(item["intent"] == "full_workflow" for item in candidates)
+        and workflow_request_scope(request, router)[1] is not None
+    )
+    if scope_override or "full_workflow" in inferred:
         inferred = ["full_workflow"]
     independent_actions = (
         _bounded_independent_action_intents(request, router, candidates)
@@ -609,6 +614,11 @@ def resolve_intent_assurance(
         confidence_score = 0.0
         mode = "unresolved"
         reason = "no explicit intent and no configured keyword matched"
+    elif scope_override:
+        confidence_band = "high"
+        confidence_score = 0.8
+        mode = "inferred"
+        reason = "an affirmative full-workflow command sets the scope of the requested stages"
     elif independent_actions:
         confidence_band = "medium"
         confidence_score = 0.6

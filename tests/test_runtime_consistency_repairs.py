@@ -71,7 +71,7 @@ class HistoricalProjectionTests(unittest.TestCase):
                 elif mutation == "scope":
                     plan["delivery_scope"] = "submission"
                 elif mutation == "version":
-                    plan["version"] = "10.35.2"  # unregistered; 10.35.1 is current
+                    plan["version"] = "10.35.3"  # unregistered; 10.35.2 is current
                 else:
                     altered["authority_versions"]["skill"] = "10.27.0"
                 with self.subTest(case=after["id"], mutation=mutation):
@@ -101,8 +101,8 @@ class HistoricalProjectionTests(unittest.TestCase):
 
     def test_frozen_v10270_inverse_still_accepts_only_exact_carrier(self):
         after = plan_evidence.worker(ROOT, 0)
-        self.assertEqual(after["authority_versions"]["skill"], "10.35.1")
-        self.assertEqual(after["plan"]["version"], "10.35.1")
+        self.assertEqual(after["authority_versions"]["skill"], "10.35.2")
+        self.assertEqual(after["plan"]["version"], "10.35.2")
         old_carrier = deepcopy(after)
         old_carrier["authority_versions"]["skill"] = "10.27.0"
         old_carrier["plan"]["version"] = "10.27.0"
@@ -153,6 +153,82 @@ class ActionAndProjectionTests(unittest.TestCase):
         self.assertFalse(resolve_workflow.review_only_request("审查后同步项目状态", router))
         scoring_model = resolve_runtime("full_solution", request="求解评分模型", solver_backend="auto")
         self.assertEqual(scoring_model["intents"], ["full_solution"])
+
+    def test_full_workflow_request_with_named_stages_stops_at_model_approval(self):
+        for request in (
+            "全流程",
+            "请按全流程，先审题，最后终审",
+            "请完成数学建模全流程，最后终审",
+            "请按完整流程，先审题，再分析变量、假设、目标函数和约束，最后终审",
+            "请按全流程，先审题，再梳理变量、假设、目标函数和约束",
+        ):
+            for resolver in (resolve_workflow.resolve_workflow, resolve_runtime):
+                with self.subTest(resolver=resolver.__name__, request=request):
+                    plan = resolver(request=request)
+                    self.assertEqual(plan["intents"], ["full_workflow"])
+                    self.assertEqual(plan["pause_state"], "awaiting_model_approval")
+                    self.assertNotIn("modules/06_review_delivery.md", plan["modules"])
+                    self.assertFalse(plan["task_code_execution_allowed"])
+
+    def test_full_workflow_request_preserves_explicit_intent_contracts(self):
+        request = "请按全流程，先审题，最后终审"
+        for resolver in (resolve_workflow.resolve_workflow, resolve_runtime):
+            with self.subTest(resolver=resolver.__name__):
+                plan = resolver("full_workflow", request=request)
+                self.assertEqual(plan["intents"], ["full_workflow"])
+                self.assertEqual(plan["pause_state"], "awaiting_model_approval")
+        self.assertEqual(resolve_runtime("problem_analysis", request=request)["intents"],
+                         ["problem_analysis"])
+        self.assertEqual(resolve_workflow.resolve_workflow("problem_analysis", request=request)["intents"],
+                         ["problem_analysis", "full_workflow"])
+
+    def test_review_of_a_workflow_does_not_request_its_execution(self):
+        for request in (
+            "请审阅这个全流程，只给意见",
+            "只审查全流程，不修改",
+            "请按全流程审查方案，只给意见",
+            "只给意见，请按全流程，最后终审",
+            "请按全流程，最后终审，只给意见",
+            "请不要执行全流程，只审阅方案",
+            "请按全流程，先审题，最后终审，不要执行全流程",
+            "按完整流程，为什么要先审题和终审？",
+            "最后终审",
+        ):
+            for resolver in (resolve_workflow.resolve_workflow, resolve_runtime):
+                with self.subTest(resolver=resolver.__name__, request=request):
+                    plan = resolver(request=request)
+                    self.assertEqual(plan["intents"], ["review"])
+                    self.assertIn("review_report", plan["terminal_outputs"])
+                    self.assertFalse(any("--write" in gate["command"] for gate in plan["pre_delivery_gates"]))
+        for resolver in (resolve_workflow.resolve_workflow, resolve_runtime):
+            with self.subTest(resolver=resolver.__name__):
+                with self.assertRaisesRegex(ValueError, "review-only"):
+                    resolver("full_workflow", request="只审查全流程，不修改")
+
+    def test_a_request_limited_to_problem_analysis_stops_after_that_stage(self):
+        for request in ("不要执行全流程，只审题", "请按完整流程，只做审题"):
+            for resolver in (resolve_workflow.resolve_workflow, resolve_runtime):
+                with self.subTest(resolver=resolver.__name__, request=request):
+                    plan = resolver(request=request)
+                    self.assertEqual(plan["intents"], ["problem_analysis"])
+                    self.assertIsNone(plan["pause_state"])
+
+    def test_workflow_descriptions_do_not_introduce_inference_keywords(self):
+        for request in ("完整流程", "比赛流程", "我运行一个数学建模比赛主要的大致流程是什么"):
+            for resolver in (resolve_workflow.resolve_workflow, resolve_runtime):
+                with self.subTest(resolver=resolver.__name__, request=request):
+                    with self.assertRaisesRegex(ValueError, "no workflow intent resolved"):
+                        resolver(request=request)
+
+    def test_workflow_mention_preserves_existing_independent_action_pairs(self):
+        cases = (
+            ("修改图表，并编写 LaTeX 论文正文（供完整流程文档留存）", ["figures", "latex"]),
+            ("进行模型检验，同时编写 LaTeX 论文正文（供完整流程文档留存）", ["validation", "latex"]),
+        )
+        for request, expected in cases:
+            with self.subTest(request=request):
+                self.assertEqual(resolve_runtime(request=request)["intents"], expected)
+                self.assertCountEqual(resolve_workflow.resolve_workflow(request=request)["intents"], expected)
 
     def test_python_and_matlab_plot_requests(self):
         for text in ("Python绘图", "Python 绘图", "请用Python绘图", "python  绘图", "MATLAB绘图"):
