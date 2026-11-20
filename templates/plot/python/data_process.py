@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 import numbers
 from pathlib import Path
+import warnings
 
 import matplotlib.pyplot as plt
 from openpyxl import load_workbook
@@ -28,6 +29,7 @@ SORT_BY_X = False
 SORT_REASON = ""  # A justified chronological/continuous order, never inferred.
 CONNECT_POINTS = False  # MATLAB parity: don't imply continuity without evidence.
 MARKER_EVERY = 1  # Sparse marks on a connected line must preserve isolated points.
+FONT_FAMILY = None  # Set a locally available font that covers the actual labels.
 EXPORT_FILE = None  # Default interactive preview; optional "data_process_...png" export.
 
 
@@ -168,16 +170,20 @@ def main():
                     values, connected=CONNECT_POINTS, every=MARKER_EVERY,
                 ),
                 color=color, label=name, linewidth=1.6, markersize=4.5)
-    ax.set_xlabel(X_LABEL)
-    ax.set_ylabel(Y_LABEL)
+    ax.set_xlabel(X_LABEL, fontfamily=FONT_FAMILY)
+    ax.set_ylabel(Y_LABEL, fontfamily=FONT_FAMILY)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.legend(frameon=False)
+    ax.legend(frameon=False, prop={"family": FONT_FAMILY} if FONT_FAMILY else None)
     if EXPORT_FILE:
         out = (directory / EXPORT_FILE).resolve()
         if not out.is_relative_to(directory) or not out.stem.startswith("data_process"):
             raise ValueError("Preprocessing Figure export must use data_process stem")
-        fig.savefig(out, bbox_inches="tight")
+        # Draw before opening the destination so an absent glyph preserves an existing export.
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error", message=r"Glyph \d+ .*missing from .*font")
+            fig.canvas.draw()
+            fig.savefig(out, bbox_inches="tight")
     plt.show()
 
 

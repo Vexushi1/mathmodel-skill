@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 import numbers
 from pathlib import Path
+import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,6 +29,7 @@ MISSING_TOKENS: tuple[str, ...] = ()  # Only actual, declared text missing token
 SORT_BY_X = False
 SORT_REASON = ""  # Required for an evidence-supported chronological/continuous sort.
 CONNECT_POINTS = False  # Only when a meaningful order/continuity exists.
+FONT_FAMILY = None  # Set a locally available font that covers the actual labels.
 EXPORT_FILE = None  # None: open the figure for human review; explicit path: export after review.
 
 
@@ -119,11 +121,11 @@ def make_figure(x: np.ndarray, y: np.ndarray, *, color: tuple[float, float, floa
     fig, ax = plt.subplots(figsize=(8.4, 5.2), layout="constrained")
     ax.plot(x, y, linestyle="-" if connect else "None", marker="o",
             linewidth=1.6, markersize=4.8, color=color, label=series_label)
-    ax.set_xlabel(x_label)
-    ax.set_ylabel(y_label)
+    ax.set_xlabel(x_label, fontfamily=FONT_FAMILY)
+    ax.set_ylabel(y_label, fontfamily=FONT_FAMILY)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.legend(frameon=False)
+    ax.legend(frameon=False, prop={"family": FONT_FAMILY} if FONT_FAMILY else None)
     # No figure/axes title: the formal caption is owned by LaTeX/DOCX.
     return fig
 
@@ -151,7 +153,11 @@ def main() -> None:
         out = (result_dir / EXPORT_FILE).resolve()
         if not out.is_relative_to(result_dir):
             raise ValueError("Figure export must stay inside the question directory")
-        fig.savefig(out, bbox_inches="tight")
+        # Draw before opening the destination so an absent glyph preserves an existing export.
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error", message=r"Glyph \d+ .*missing from .*font")
+            fig.canvas.draw()
+            fig.savefig(out, bbox_inches="tight")
     plt.show()
 
 

@@ -2,13 +2,18 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 from pathlib import Path
 import tempfile
 import unittest
 from unittest import mock
+import warnings
+from xml.etree import ElementTree
 
 import matplotlib
 matplotlib.use("Agg")
+from matplotlib import font_manager, image as mpl_image
+import matplotlib.pyplot as plt
 import numpy as np
 from openpyxl import Workbook
 
@@ -24,6 +29,19 @@ def module(name: str):
 
 
 class PlotRenderingSmoke(unittest.TestCase):
+    def cjk_family(self):
+        font_file = os.environ.get("HSK_TEST_CJK_FONT")
+        if font_file:
+            font_manager.fontManager.addfont(font_file)
+            return font_manager.FontProperties(fname=font_file).get_name()
+        for family in ("Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "SimHei", "PingFang SC"):
+            try:
+                font_manager.findfont(family, fallback_to_default=False)
+            except ValueError:
+                continue
+            return family
+        self.skipTest("The export check needs a CJK font (HSK_TEST_CJK_FONT)")
+
     def _book(self, path: Path, headers, rows):
         book = Workbook()
         sheet = book.active
@@ -44,16 +62,71 @@ class PlotRenderingSmoke(unittest.TestCase):
                                 allow_y_missing=True)
             self.assertEqual(x.tolist(), [0, 1, 2])
             self.assertTrue(np.isnan(y[1]))
+            plot.FONT_FAMILY = self.cjk_family()
             fig = plot.make_figure(x, y, color=(.2, .4, .6),
                                    x_label="时刻 / s", y_label="误差率 / %",
                                    series_label="误差", connect=True)
             self.assertEqual(fig.axes[0].get_title(), "")
             self.assertEqual(fig.axes[0].lines[0].get_ydata()[0], 1.2)
             output = Path(tmp) / "q1_evidence.png"
-            fig.savefig(output)
-            self.assertGreater(output.stat().st_size, 1000)
-            import matplotlib.pyplot as plt
+            with warnings.catch_warnings():
+                warnings.filterwarnings("error", message=r"Glyph \d+ .*missing from .*font")
+                fig.savefig(output)
+            self.assertGreater(float(mpl_image.imread(output)[..., :3].std()), .01)
             plt.close(fig)
+
+    def test_exported_svg_contains_each_chinese_label_glyph(self):
+        family = self.cjk_family()
+        for name in ("q1_plot", "data_process"):
+            with self.subTest(template=name), tempfile.TemporaryDirectory() as tmp:
+                plot = module(name)
+                directory = Path(tmp) / "问题一求解"
+                directory.mkdir()
+                plot.__file__ = str(directory / (name + ".py"))
+                plot.WORKSHEET = "逐时结果"
+                plot.X_HEADER, plot.X_LABEL = "时刻", "时刻 / s"
+                if name == "q1_plot":
+                    workbook = "问题一求解结果.xlsx"
+                    headers = ["时刻", "误差率"]
+                    rows = [[0, 2], [1, 1]]
+                    plot.Y_HEADER, plot.Y_LABEL = "误差率", "误差率 / %"
+                    plot.SERIES_LABEL, plot.SERIES_RGB = "预测误差", (.2, .4, .6)
+                    labels = [plot.X_LABEL, plot.Y_LABEL, plot.SERIES_LABEL]
+                else:
+                    workbook = "数据预处理结果.xlsx"
+                    headers = ["时刻", "处理前", "处理后"]
+                    rows = [[0, 2, 1], [1, 4, 3]]
+                    plot.BEFORE_HEADER, plot.AFTER_HEADER = headers[1:]
+                    plot.Y_LABEL = "温度变化 / K"
+                    plot.BEFORE_LABEL, plot.AFTER_LABEL = "处理前能耗", "处理后能耗"
+                    plot.SERIES_COLORS = ((.2, .4, .6), (.7, .3, .1))
+                    labels = [plot.X_LABEL, plot.Y_LABEL, plot.BEFORE_LABEL, plot.AFTER_LABEL]
+                self._book(directory / workbook, headers, rows)
+                plot.EXPORT_FILE = name + ".svg"
+                output = directory / plot.EXPORT_FILE
+                try:
+                    with mock.patch.object(plt, "show"), matplotlib.rc_context({"svg.fonttype": "path"}):
+                        output.write_bytes(b"prior export")
+                        plot.FONT_FAMILY = "DejaVu Sans"
+                        with self.assertRaisesRegex(UserWarning, "Glyph"):
+                            plot.main()
+                        self.assertEqual(output.read_bytes(), b"prior export")
+                        plot.FONT_FAMILY = family
+                        plot.main()
+                    root = ElementTree.parse(output).getroot()
+                    paths = {p.get("id"): p.get("d") for p in root.findall(".//{*}path")}
+                    uses = {u.get("{http://www.w3.org/1999/xlink}href", "").lstrip("#")
+                            for u in root.findall(".//{*}use")}
+                    chars = set(c for text in labels for c in text if "\u4e00" <= c <= "\u9fff")
+                    outlines = set()
+                    for char in chars:
+                        matches = [key for key in uses if key.endswith(f"-{ord(char):x}")]
+                        self.assertEqual(len(matches), 1, char)
+                        self.assertTrue(paths.get(matches[0]), char)
+                        outlines.add(paths[matches[0]])
+                    self.assertEqual(len(outlines), len(chars), "distinct Chinese glyph outlines")
+                finally:
+                    plt.close("all")
 
     def test_raw_duplicate_headers_do_not_get_silently_renamed(self):
         plot = module("q1_plot")
