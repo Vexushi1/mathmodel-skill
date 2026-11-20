@@ -6,6 +6,7 @@ reprocessing, model fitting, interpolation or inferred sample trajectories.
 """
 from __future__ import annotations
 
+from contextlib import closing
 import math
 import numbers
 from pathlib import Path
@@ -65,6 +66,16 @@ def _value(raw: object, *, missing: bool, row: int, header: str,
     return val
 
 
+def _recorded_value(value, source_cell, sheet: str, header: str, layer: str):
+    """A formula can supply plot evidence only through a finite numeric cache."""
+    if source_cell.data_type == "f" and (
+        isinstance(value, bool) or not isinstance(value, numbers.Real) or not math.isfinite(value)
+    ):
+        raise ValueError(f"{sheet}!{source_cell.coordinate} ({header}, row {source_cell.row}): "
+                         f"formula has no finite numeric cache for plot layer {layer}")
+    return value
+
+
 def read_before_after(workbook: Path, sheet: str, x_header: str,
                       before_header: str, after_header: str, *,
                       allow_missing_headers: tuple[str, ...] = (),
@@ -88,12 +99,14 @@ def read_before_after(workbook: Path, sheet: str, x_header: str,
     """Read already persisted before/after evidence in the original row order."""
     if not workbook.is_file():
         raise FileNotFoundError(workbook)
-    book = load_workbook(workbook, read_only=True, data_only=True)
-    try:
+    with (
+        workbook.open("rb") as source,
+        closing(load_workbook(source, read_only=True, data_only=True)) as book,
+        closing(load_workbook(source, read_only=True, data_only=False)) as formulas,
+    ):
         if sheet not in book.sheetnames:
             raise ValueError(f"{workbook}: worksheet {sheet!r} does not exist")
-        rows = book[sheet].iter_rows(values_only=True)
-        first = next(rows, None)
+        first = next(book[sheet].iter_rows(max_row=1, values_only=True), None)
         if first is None:
             raise ValueError("Empty worksheet")
         headers = [v.strip() if isinstance(v, str) else v for v in first]
@@ -104,15 +117,19 @@ def read_before_after(workbook: Path, sheet: str, x_header: str,
             return positions[0]
         ix, ib, ia = (index(x_header), index(before_header), index(after_header))
         x, before, after = [], [], []
-        for i, row in enumerate(rows, 2):
-            x.append(_value(row[ix], missing=False, row=i, header=x_header,
+        last_col = max(ix, ib, ia) + 1
+        rows = book[sheet].iter_rows(min_row=2, max_col=last_col, values_only=True)
+        formula_rows = formulas[sheet].iter_rows(min_row=2, max_col=last_col)
+        for i, (row, cells) in enumerate(zip(rows, formula_rows, strict=True), 2):
+            x_value = _recorded_value(row[ix], cells[ix], sheet, x_header, f"{before_header}/{after_header}")
+            before_value = _recorded_value(row[ib], cells[ib], sheet, before_header, before_header)
+            after_value = _recorded_value(row[ia], cells[ia], sheet, after_header, after_header)
+            x.append(_value(x_value, missing=False, row=i, header=x_header,
                             missing_tokens=missing_tokens))
-            before.append(_value(row[ib], missing=before_header in allow_missing_headers,
+            before.append(_value(before_value, missing=before_header in allow_missing_headers,
                                  row=i, header=before_header, missing_tokens=missing_tokens))
-            after.append(_value(row[ia], missing=after_header in allow_missing_headers,
+            after.append(_value(after_value, missing=after_header in allow_missing_headers,
                                 row=i, header=after_header, missing_tokens=missing_tokens))
-    finally:
-        book.close()
     if not x or not any(math.isfinite(v) for v in [*before, *after]):
         raise ValueError("No plottable recorded preprocessing evidence")
     return x, before, after

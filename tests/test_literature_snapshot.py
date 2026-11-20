@@ -166,7 +166,7 @@ class LiteratureSnapshotTests(unittest.TestCase):
         self.assertIn("embedded_report_digest_mismatch", report["issues"])
         self.assertIn("embedded_report_invalid", report["issues"])
 
-    def test_qualified_citation_is_a_candidate_only(self):
+    def set_method_report(self):
         source = {
             "id": "L1", "title": "Synthetic method metadata for tests",
             "source_url": "https://example.org/paper", "origin": "user_supplied",
@@ -182,6 +182,9 @@ class LiteratureSnapshotTests(unittest.TestCase):
         }]
         (self.root / "research.json").write_text(
             json.dumps(self.report, ensure_ascii=False), encoding="utf-8")
+
+    def test_qualified_citation_is_a_candidate_only(self):
+        self.set_method_report()
         self.commit()
         result = SNAP.inspect(self.root, "Q1")
         self.assertEqual(result["status"], "current")
@@ -189,6 +192,40 @@ class LiteratureSnapshotTests(unittest.TestCase):
         self.assertIsNone(result["citation_candidates"][0]["citation_key"])
         self.assertEqual(result["source_authenticity"], "not_assessed")
         self.assertEqual(result["model_approval"], "not_granted")
+
+    def test_document_retraction_and_keep_an_independent_method_candidate(self):
+        self.set_method_report()
+        source, method = self.report["sources"][0], self.report["methods"][0]
+        self.report["sources"].append(dict(source, id="L2", is_retracted=True))
+        self.report["methods"].append(dict(method, id="M2", source_id="L2", disposition="reference_only"))
+        self.report["methods"].append(dict(method, id="M3", source_id="L2", disposition="reject"))
+        (self.root / "research.json").write_text(json.dumps(self.report), encoding="utf-8")
+        self.commit()
+        result = SNAP.inspect(self.root, "Q1")
+        self.assertEqual(result["status"], "current")
+        self.assertEqual([row["method_id"] for row in result["citation_candidates"]], ["M1"])
+
+    def test_retracted_method_in_preexisting_bound_snapshot_is_rechecked(self):
+        self.set_method_report()
+        self.commit()
+        # Recreate the bytes and matching bindings that the previous validator accepted.
+        self.report["sources"][0]["is_retracted"] = True
+        raw = json.dumps(self.report).encode("utf-8")
+        (self.root / "research.json").write_bytes(raw)
+        path = self.root / "research_evidence/Q1.snapshot.json"
+        snapshot = json.loads(path.read_bytes())
+        snapshot["report_source"].update(sha256=SNAP.sha(raw), bytes=len(raw))
+        snapshot["research"] = self.report
+        snapshot["research_sha256"] = SNAP.sha(SNAP.canonical(self.report))
+        old = json.dumps(snapshot).encode("utf-8")
+        path.write_bytes(old)
+        with self.assertRaisesRegex(SNAP.SnapshotError, "report_invalid"):
+            self.preview()
+        result = SNAP.inspect(self.root, "Q1")
+        self.assertEqual(result["status"], "stale")
+        self.assertEqual(result["issues"], ["embedded_report_invalid"])
+        self.assertEqual(result["citation_candidates"], [])
+        self.assertEqual(path.read_bytes(), old)
 
 
 if __name__ == "__main__":
