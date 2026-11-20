@@ -85,7 +85,8 @@ def run(root: Path, matlab: str) -> None:
                 values = dict(book["核心指标"].iter_rows(min_row=2, values_only=True))
                 assert values["解"] == 3
             else:
-                assert [row[3] for row in book["参数敏感性"].iter_rows(min_row=2, values_only=True)] == [4, 3, 2]
+                fixture.check_ordinary_experiments(book, {"SENS-Q1-SIGN": [4, 3, 2], "SENS-Q1-CHANGE": [1, 0, 1]},
+                                                   {"SENS-Q1-SIGN": True, "SENS-Q1-CHANGE": True})
                 assert primary.read_bytes() == before_primary
         finally:
             book.close()

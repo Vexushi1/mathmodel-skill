@@ -205,6 +205,34 @@ def setup_project(
 
 
 class TestSyncProject(unittest.TestCase):
+    def test_candidate_snapshot_uses_source_ids_after_all_rows_for_one_experiment_are_removed(self):
+        from openpyxl import load_workbook
+        from tests import test_user_execution_contract as execution
+
+        fixture = execution.UserExecutionContractTests()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            fixture.accept_primary(root, fixture.make_project(root))
+            fixture.activate_analysis(root)
+            experiments = [{"id": key, "method": "参数敏感性", "target": f"测试 {key}", "claim": f"{key} 稳定"}
+                           for key in ("a", "b")]
+            code = fixture.make_analysis_code(root, experiments=experiments)
+            problems, config = execution.CODE.validate_script(root, code, "analysis")
+            self.assertEqual(problems, [])
+            execution.CODE.update_state(root, config, code)
+            entry = fixture.read_state(root)["subproblems"]["Q1"]
+            path = fixture.make_analysis_workbook(root, code)
+            schema = yaml.safe_load((ROOT / "core/workbook_schema.yaml").read_text(encoding="utf-8"))
+            validate = load_syncer().PROJECT_SNAPSHOT._validate_workbook
+            self.assertEqual(validate(path, "result_analysis", schema, entry, project_root=root), [])
+            book = load_workbook(path)
+            for sheet in ("分析设计", "参数敏感性", "结论稳定性汇总"):
+                book[sheet].delete_rows(3)
+            book.save(path)
+            book.close()
+            issues = validate(path, "result_analysis", schema, entry, project_root=root)
+            self.assertTrue(any("b 稳定" in issue and "观测" in issue for issue in issues), issues)
+
     def test_discovers_artifacts_writes_report_and_final_framework_hash(self):
         syncer = load_syncer()
         with tempfile.TemporaryDirectory() as temp:

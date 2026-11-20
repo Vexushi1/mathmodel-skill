@@ -1,5 +1,8 @@
 import sys
 import io
+import json
+import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -285,6 +288,155 @@ class TestResultIO(unittest.TestCase):
         for sheet in set(mapping.values()):
             self.assertEqual(current["sheet_schemas"][sheet]["required_columns"],
                              fallback["sheet_schemas"][sheet]["required_columns"])
+        for key in ("version", "observation_statuses", "dispositions"):
+            self.assertEqual(current["ordinary_experiment_protocol"][key],
+                             fallback["ordinary_experiment_protocol"][key])
+
+    def ordinary_experiment_book(self):
+        plan = [
+            {"id": key, "method": "scenario_stress_testing", "target": f"改变{key}是否可行",
+             "claim": f"{key}上升后方案仍可行"} for key in ("a", "b")
+        ]
+        config = self.run_config("analysis")
+        config.loc[len(config)] = ["ordinary_experiment_protocol_version", "1.0.0"]
+        design, detail, summary = [], [], []
+        for row in plan:
+            key = row["id"]
+            design.append({"检验ID": key, "分析问题": row["target"], "方法": "场景压力测试",
+                           "风险来源": "供给不足", "指标": "是否可行", "通过标准": "可行"})
+            for change in ("低", "高"):
+                detail.append({"检验ID": key, "场景": key, "变化条件": change, "结果指标": 0,
+                               "是否可行": key == "a", "观测状态": "completed"})
+            summary.append({"检验ID": key, "核心结论": row["claim"], "分析方法": "场景压力测试",
+                            "证据工作表": "场景压力测试", "稳定范围": "测试的两种供给水平",
+                            "是否保持": key == "a", "主张处置": "support" if key == "a" else "reject"})
+        return plan, {"运行配置": config, "分析设计": pd.DataFrame(design),
+                      "场景压力测试": pd.DataFrame(detail), "结论稳定性汇总": pd.DataFrame(summary)}
+
+    def test_ordinary_experiments_round_trip_and_standalone_copied_package(self):
+        plan, tables = self.ordinary_experiment_book()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "问题一结果深化分析.xlsx"
+            MOD.write_workbook(path, tables, ordinary_experiments=plan)
+            restored = dict(MOD.WORKBOOK_VALIDATION.validate_workbook_file(
+                path.read_bytes(), "result_analysis", schema=MOD.load_workbook_schema(),
+                ordinary_experiments=plan))
+            self.assertEqual(restored["场景压力测试"]["结果指标"].tolist(), [0] * 4)
+            self.assertEqual(restored["场景压力测试"]["是否可行"].tolist(), [True, True, False, False])
+            for name in ("result_io.py", "workbook_validation.py"):
+                shutil.copy(Path(MOD.__file__).with_name(name), root / name)
+            program = """
+import json, os, sys
+from pathlib import Path
+sys.path.insert(0, str(Path.cwd()))
+os.environ.pop("HSK_WORKBOOK_SCHEMA", None)
+import result_io
+assert result_io.load_workbook_schema() is result_io._FALLBACK_SCHEMA
+plan = json.loads(sys.argv[2])
+path = Path(sys.argv[1])
+tables = dict(result_io.validate_workbook_file(path, "result_analysis", ordinary_experiments=plan))
+tables["场景压力测试"] = tables["场景压力测试"].query("检验ID == 'a'")
+try:
+    result_io.write_workbook(path, tables, ordinary_experiments=plan)
+except ValueError as exc:
+    assert "b" in str(exc) and "实质观测" in str(exc), str(exc)
+else:
+    raise AssertionError("isolated writer accepted absent experiment b")
+"""
+            before = path.read_bytes()
+            subprocess.run([sys.executable, "-I", "-c", program, str(path), json.dumps(plan)],
+                           cwd=root, check=True, capture_output=True)
+            self.assertEqual(path.read_bytes(), before)
+
+    def test_missing_rows_are_reported_for_every_id_and_its_claim(self):
+        plan, tables = self.ordinary_experiment_book()
+        for name in ("分析设计", "场景压力测试", "结论稳定性汇总"):
+            tables[name] = tables[name].iloc[:0]
+        with tempfile.TemporaryDirectory() as tmp:
+            file = Path(tmp) / "partial.xlsx"
+            with pd.ExcelWriter(file, engine="openpyxl") as writer:
+                for name, frame in tables.items():
+                    frame.to_excel(writer, sheet_name=name, index=False)
+            with self.assertRaises(ValueError) as caught:
+                MOD.validate_workbook_file(file, "result_analysis", ordinary_experiments=plan)
+        issue = str(caught.exception)
+        for row in plan:
+            for missing in ("设计", "观测", "处置"):
+                self.assertTrue(any(row["id"] in s and row["claim"] in s and missing in s
+                                    for s in issue.split("；")), issue)
+
+    def test_design_observation_and_claim_are_bound_to_the_same_experiment(self):
+        for sheet, column, value, message in (
+            ("分析设计", "分析问题", "改变a是否可行", "目标"),
+            ("结论稳定性汇总", "核心结论", "a上升后方案仍可行", "主张"),
+            ("结论稳定性汇总", "分析方法", "参数敏感性", "方法"),
+            ("结论稳定性汇总", "证据工作表", "参数敏感性", "证据工作表"),
+            ("结论稳定性汇总", "主张处置", "", "处置"),
+            ("结论稳定性汇总", "主张处置", "support", "矛盾"),
+            ("结论稳定性汇总", "是否保持", True, "矛盾"),
+            ("场景压力测试", "观测状态", "technical_failure", "实质观测"),
+            ("场景压力测试", "观测状态", "exploratory", "实质观测"),
+            ("场景压力测试", "结果指标", "待填", "实质观测"),
+            ("场景压力测试", "结果指标", "=A1+1", "实质观测"),
+        ):
+            with self.subTest(sheet=sheet, column=column, value=value):
+                plan, tables = self.ordinary_experiment_book()
+                tables[sheet][column] = tables[sheet][column].astype(object)
+                tables[sheet].loc[tables[sheet]["检验ID"] == "b", column] = value
+                with self.assertRaisesRegex(ValueError, f"b.*{message}"):
+                    MOD.validate_workbook_tables(tables, "result_analysis", ordinary_experiments=plan)
+
+    def test_uncached_excel_formula_cannot_be_the_observation(self):
+        plan, tables = self.ordinary_experiment_book()
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "问题一结果深化分析.xlsx"
+            MOD.write_workbook(path, tables, ordinary_experiments=plan)
+            book = openpyxl.load_workbook(path)
+            detail = book["场景压力测试"]
+            for row in detail.iter_rows(min_row=2):
+                if row[0].value == "b":
+                    row[3].value = "=4-4"
+            book.save(path)
+            book.close()
+            with self.assertRaisesRegex(ValueError, "b.*实质观测"):
+                MOD.validate_workbook_file(path, "result_analysis", ordinary_experiments=plan)
+
+    def test_unregistered_ordinary_summary_cannot_claim_support(self):
+        for identifier in ("c", None):
+            with self.subTest(identifier=identifier):
+                plan, tables = self.ordinary_experiment_book()
+                summaries = tables["结论稳定性汇总"]
+                extra = {**summaries.iloc[0].to_dict(), "检验ID": identifier, "核心结论": "额外主张"}
+                tables["结论稳定性汇总"] = pd.concat([summaries, pd.DataFrame([extra])], ignore_index=True)
+                with self.assertRaisesRegex(ValueError, "未登记.*额外主张"):
+                    MOD.validate_workbook_tables(tables, "result_analysis", ordinary_experiments=plan)
+                extra.update({"主张处置": None, "是否保持": None, "说明": "探索记录，结论待检验"})
+                tables["结论稳定性汇总"] = pd.concat([summaries, pd.DataFrame([extra])], ignore_index=True)
+                MOD.validate_workbook_tables(tables, "result_analysis", ordinary_experiments=plan)
+
+    def test_optional_technical_failure_does_not_acquit_a_required_id(self):
+        plan, tables = self.ordinary_experiment_book()
+        plan[1]["required"] = False
+        rows = tables["场景压力测试"]
+        rows.loc[rows["检验ID"] == "b", "观测状态"] = "technical_failure"
+        rows.loc[rows["检验ID"] == "b", "结果指标"] = None
+        tables["结论稳定性汇总"] = tables["结论稳定性汇总"].iloc[:1]
+        MOD.validate_workbook_tables(tables, "result_analysis", ordinary_experiments=plan)
+        rows.loc[rows["检验ID"] == "a", "观测状态"] = "exploratory"
+        with self.assertRaisesRegex(ValueError, "a.*实质观测"):
+            MOD.validate_workbook_tables(tables, "result_analysis", ordinary_experiments=plan)
+
+    def test_source_plan_rejects_duplicate_or_wrong_method_and_false_flags(self):
+        plan, _ = self.ordinary_experiment_book()
+        check = MOD.WORKBOOK_VALIDATION.ordinary_experiment_plan_issues
+        schema = MOD.load_workbook_schema()
+        self.assertFalse(check(plan, schema=schema, analysis_methods=["场景压力测试"]))
+        for changes in ({"id": "a"}, {"method": "多模型检验"}, {"required": "false"},
+                        {"claim": "   "}, {"target": "待填"}, {"require": False}):
+            with self.subTest(changes=changes):
+                self.assertTrue(check([plan[0], {**plan[1], **changes}], schema=schema))
+        self.assertTrue(check(plan, schema=schema, analysis_methods=["异质性分析"]))
 
     def test_selected_comparison_cannot_be_replaced_by_legacy_algorithm_table(self):
         with self.assertRaisesRegex(ValueError, "缺少已选择的比较证据表"):

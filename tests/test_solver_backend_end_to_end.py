@@ -1,7 +1,7 @@
 """Prepare synthetic fixtures and verify outputs of an actual MATLAB process.
 
-Ordinary unittest discovery checks fixture instantiation only. Native-output tests
-run only when HSK_MATLAB_SOLVER_OUTPUT points to a completed MATLAB smoke run.
+Ordinary unittest discovery also runs the Python analysis template in an isolated
+project. Native-output tests read a completed MATLAB run from HSK_MATLAB_SOLVER_OUTPUT.
 """
 from __future__ import annotations
 
@@ -24,6 +24,8 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+if str(ROOT / "scripts") not in sys.path:
+    sys.path.insert(0, str(ROOT / "scripts"))
 from templates.code.hsk_pipeline import result_io
 QUESTION = "问题一求解"
 CONFIG = re.compile(r"RUN_CONFIG = jsondecode\('([^\n]*)'\);")
@@ -49,6 +51,29 @@ def reference_digest(root: Path, paths: list[str]) -> str:
         digest.update(relative.encode("utf-8") + b"\0")
         digest.update(bytes.fromhex(file_hash(root / relative)))
     return digest.hexdigest()
+
+
+def check_ordinary_experiments(book, expected, kept):
+    def records(sheet):
+        rows = book[sheet].iter_rows(values_only=True)
+        headers = next(rows)
+        return [dict(zip(headers, row)) for row in rows]
+
+    design = {row["检验ID"]: row for row in records("分析设计")}
+    summary = {row["检验ID"]: row for row in records("结论稳定性汇总")}
+    detail = records("参数敏感性")
+    assert set(design) == set(summary) == set(expected) == {row["检验ID"] for row in detail}
+    observed = {}
+    for identifier, values in expected.items():
+        rows = [row for row in detail if row["检验ID"] == identifier]
+        observed[identifier] = [row["结果指标"] for row in rows]
+        assert observed[identifier] == values
+        assert all(row["观测状态"] == "completed" for row in rows)
+        claim = summary[identifier]
+        assert claim["是否保持"] == kept[identifier]
+        assert claim["主张处置"] == ("support" if kept[identifier] else "reject")
+        assert claim["证据工作表"] == "参数敏感性"
+    return observed
 
 
 def instantiate(root: Path, stage: str, **updates) -> Path:
@@ -263,8 +288,9 @@ def verify(root: Path, stage: str) -> None:
             assert values["绝对方程残差"] <= 1e-10
             assert book["状态明细"]["A2"].value == "0001"
         else:
-            actual = [row[3] for row in book["参数敏感性"].iter_rows(min_row=2, values_only=True)]
-            assert actual == [4, 3, 2]
+            assert config["ordinary_experiment_protocol_version"] == "1.0.0"
+            check_ordinary_experiments(book, {"SENS-Q1-SIGN": [4, 3, 2], "SENS-Q1-CHANGE": [1, 0, 1]},
+                                       {"SENS-Q1-SIGN": True, "SENS-Q1-CHANGE": True})
     finally:
         book.close()
     if stage == "primary" and runtime_report.get("type_probe") == "text_keys_logicals_missing_rows_and_rejections_passed":
@@ -418,6 +444,58 @@ def deliver(root: Path, stage: str, matlab_command: str) -> None:
 
 
 class SolverBackendFixtureTests(unittest.TestCase):
+    def test_ordinary_python_analysis_runs_with_statically_bound_matlab_equivalent_plan(self):
+        from validate_user_execution import analysis_passed
+        import stage_code
+
+        template = ROOT / "templates/code/starter/q1_analysis.py"
+        matlab = ROOT / "templates/code/matlab/q1_analysis.m"
+        expected_plan = stage_code.parse_stage_config(matlab, "matlab")[1]["ordinary_experiments"]
+        for rhs in (6, 0):
+            with self.subTest(right_hand_side=rhs), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                folder = root / QUESTION
+                folder.mkdir()
+                primary = folder / "问题一求解结果.xlsx"
+                book = openpyxl.Workbook()
+                book.active.title = "核心指标"
+                book.active.append(["指标", "数值"])
+                book.active.append(["解", rhs / 2])
+                book.save(primary)
+                book.close()
+                before = primary.read_bytes()
+                (root / "input.json").write_text(json.dumps({
+                    "coefficient": 2, "right_hand_side": rhs, "sensitivity_coefficients": [1.5, 2, 3],
+                }), encoding="utf-8")
+                script = folder / "问题一结果深化分析.py"
+                source = template.read_text(encoding="utf-8").replace("__ACCEPTED_PRIMARY_SHA256__", file_hash(primary))
+                script.write_text(source.replace("__DATA_SHA256__", reference_digest(root, ["input.json"])),
+                                  encoding="utf-8", newline="\n")
+                config = stage_code.parse_stage_config(script, "python")[1]
+                self.assertEqual(config["ordinary_experiments"], expected_plan)
+                process = subprocess.run([sys.executable, str(script)], cwd=root, capture_output=True,
+                                         encoding="utf-8", env={**os.environ, "PYTHONUTF8": "1"})
+                self.assertEqual(process.returncode, 0, process.stderr)
+                workbook = root / config["expected_workbook"]
+                result_io.validate_workbook_file(workbook, "result_analysis", analysis_methods=["参数敏感性"],
+                                                 ordinary_experiments=expected_plan)
+                observed_status = analysis_passed(workbook, ordinary_experiments=expected_plan)
+                self.assertEqual(observed_status[:2], (True, "passed") if rhs else (False, "redo_required"))
+                with workbook.open("rb") as stream:
+                    book = openpyxl.load_workbook(stream, read_only=True, data_only=True)
+                    try:
+                        check_ordinary_experiments(book, {"SENS-Q1-SIGN": [4, 3, 2] if rhs else [0, 0, 0],
+                                                         "SENS-Q1-CHANGE": [1, 0, 1] if rhs else [0, 0, 0]},
+                                                   {"SENS-Q1-SIGN": bool(rhs), "SENS-Q1-CHANGE": bool(rhs)})
+                        receipt = dict(list(book["运行配置"].values)[1:])
+                        self.assertEqual(receipt["ordinary_experiment_protocol_version"], "1.0.0")
+                        self.assertEqual(receipt["code_sha256"], file_hash(script))
+                        self.assertEqual(receipt["code_bundle_sha256"], reference_digest(root, [script.relative_to(root).as_posix()]))
+                        self.assertEqual(receipt["primary_workbook_sha256"], file_hash(primary))
+                    finally:
+                        book.close()
+                self.assertEqual(primary.read_bytes(), before)
+
     def test_instantiation_binds_real_input_bytes_without_running_matlab(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

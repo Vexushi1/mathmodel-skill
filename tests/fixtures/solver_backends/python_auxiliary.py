@@ -84,14 +84,19 @@ def result_sheets(root, config, a, b, coefficients, metadata):
         assert file_sha(primary) == config["primary_workbook_sha256"]
         metadata["primary_workbook_sha256"] = file_sha(primary)
         values = [b / coefficient for coefficient in coefficients]
-        assert all(math.isfinite(value) and value > 0 for value in values)
+        assert values and all(math.isfinite(value) for value in values)
+        kept = all(value > 0 for value in values)
+        experiment, = config["ordinary_experiments"]
+        identifier = experiment["id"]
+        metadata["ordinary_experiment_protocol_version"] = config["ordinary_experiment_protocol_version"]
         metadata["repetitions_or_scenarios"] = len(values)
-        return {"分析设计": [("风险来源", "分析问题", "方法", "指标", "通过标准"),
-                            ("系数变化", "解是否为正", "参数敏感性", "x", "所有场景正值")],
-                "参数敏感性": [("参数", "基准值", "变化值", "结果指标"),
-                            *[("a", a, coefficient, value) for coefficient, value in zip(coefficients, values)]],
-                "结论稳定性汇总": [("核心结论", "分析方法", "稳定范围", "是否保持"),
-                                  ("解为正值", "参数敏感性", "全部声明场景", True)]}
+        return {"分析设计": [("风险来源", "分析问题", "方法", "指标", "通过标准", "检验ID"),
+                            ("系数变化", experiment["target"], "参数敏感性", "x", "所有场景正值", identifier)],
+                "参数敏感性": [("参数", "基准值", "变化值", "结果指标", "检验ID", "观测状态"),
+                            *[("a", a, coefficient, value, identifier, "completed") for coefficient, value in zip(coefficients, values)]],
+                "结论稳定性汇总": [("核心结论", "分析方法", "稳定范围", "是否保持", "检验ID", "主张处置", "证据工作表"),
+                                  (experiment["claim"], "参数敏感性", "全部声明场景", kept, identifier,
+                                   "support" if kept else "reject", "参数敏感性")]}
     solution = b / a
     residual = abs(a * solution - b)
     passed = math.isfinite(solution) and residual <= config["tolerance"]

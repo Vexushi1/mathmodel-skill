@@ -30,7 +30,7 @@ import conformance_gate as CONFORMANCE  # noqa: E402
 import analysis_comparison_gate as COMPARISON  # noqa: E402
 from execution_protocol import (
     SOURCE_RECEIPT_VERSIONS, is_source_receipt, auxiliary_config_issues, auxiliary_receipt_issues,
-    comparison_receipt_issues, primary_quality_receipt_issues,
+    comparison_receipt_issues, primary_quality_receipt_issues, ordinary_protocol_issues, ORDINARY_ROWS, ORDINARY_VERSION,
 )
 from execution_scale import inspect_scale_plan, scale_evidence_issues, scale_receipt_issues
 from stage_inputs import InputUnavailableError, input_files, observe_inputs, observe_preprocessing_inputs
@@ -230,16 +230,19 @@ def delivered_stage_config(
         return None, [f"项目状态中的{label}代码路径越出项目根目录"]
     if not code.is_file():
         return None, [f"项目状态登记的已交付{label}代码不存在"]
-    actual_hash = file_hash(code).lower()
+    source = code.read_bytes()
+    actual_hash = hashlib.sha256(source).hexdigest()
     if expected_hash and actual_hash != expected_hash:
         return None, [f"已交付{label}代码实际SHA-256与项目状态不一致"]
     try:
         backend = "matlab" if code.suffix.lower() == ".m" else "python"
         _, delivered = RUN_CONFIG_PARSER.parse_embedded_config(
-            code.read_text(encoding="utf-8-sig", errors="strict"),
+            source.decode("utf-8-sig", errors="strict"),
             messages=RUN_CONFIG_PARSER.RETURNED_EXECUTION_MESSAGES, backend=backend)
     except (SyntaxError, ValueError) as exc:
         return None, [str(exc)]
+    if (ORDINARY_ROWS in delivered or ORDINARY_VERSION in delivered) and not expected_hash:
+        return None, ["普通深化实验缺少项目状态中的已交付源码SHA-256绑定"]
     return delivered, []
 
 
@@ -307,6 +310,7 @@ def validate_run_receipt_binding(
                     continue
                 if not _receipt_values_equal(field, delivered[field], receipt[field]):
                     issues.append(f"RUN_RECEIPT.{field}与已交付RUN_CONFIG不一致")
+    issues.extend(ordinary_protocol_issues(delivered or {}, receipt=receipt))
     if any(is_source_receipt(value) for value in (expected_version, receipt_version)):
         if delivered is None or delivered.get("solver_backend") not in ("python", "matlab"):
             issues.append("RUN_RECEIPT 1.1必须绑定已交付solver_backend")
@@ -408,7 +412,7 @@ def quality_passed(workbook: Path | bytes) -> tuple[bool, list[str]]:
     return _boolean_gate(workbook, "主结果质量门", "是否通过")
 
 
-def analysis_passed(workbook: Path | bytes, *, comparison_methods=()) -> tuple[bool, str, list[str]]:
+def analysis_passed(workbook: Path | bytes, *, comparison_methods=(), ordinary_experiments=None) -> tuple[bool, str, list[str]]:
     book = openpyxl.load_workbook(io.BytesIO(workbook) if isinstance(workbook, bytes) else workbook,
                                  read_only=True, data_only=True)
     try:
@@ -424,6 +428,11 @@ def analysis_passed(workbook: Path | bytes, *, comparison_methods=()) -> tuple[b
             return False, "failed", ["结论稳定性汇总缺少是否保持列"]
         index = headers.index("是否保持")
         method_index = headers.index("分析方法") if "分析方法" in headers else None
+        id_column = headers.index("检验ID") if "检验ID" in headers else None
+        disposition_column = headers.index("主张处置") if "主张处置" in headers else None
+        registered = ordinary_experiments if isinstance(ordinary_experiments, list) else ()
+        exploratory = {item["id"] for item in registered
+                       if isinstance(item, Mapping) and isinstance(item.get("id"), str) and item.get("required") is False}
         has_summary_rows = False
         unstable = False
         for row_number, row in enumerate(rows[1:], start=2):
@@ -431,6 +440,10 @@ def analysis_passed(workbook: Path | bytes, *, comparison_methods=()) -> tuple[b
                 continue
             has_summary_rows = True
             if method_index is not None and len(row) > method_index and row[method_index] in comparison_methods:
+                continue
+            if (id_column is not None and row[id_column] in exploratory
+                    and (disposition_column is None or row[disposition_column] in (None, ""))):
+                # The registered optional trial made no scientific claim about this result.
                 continue
             verdict = as_bool(row[index] if len(row) > index else None)
             if verdict is None:
@@ -490,21 +503,45 @@ def validate_execution_evidence(
     return issues
 
 
+def ordinary_experiment_issues(delivered, analysis_methods, schema, *, require_current, receipt=None):
+    """Check a source-bound declaration against the selected question's registered ordinary methods."""
+    config = delivered or {}
+    methods = analysis_methods if isinstance(analysis_methods, (list, tuple)) else ()
+    mapping = schema["result_analysis_workbook"]["ordinary_method_sheets"]
+    active = [m for m in methods if isinstance(m, str) and m in mapping]
+    issues = ordinary_protocol_issues(config, required=bool(require_current and active), receipt=receipt)
+    if require_current and active and ORDINARY_ROWS not in config:
+        issues.append("已激活普通深化方法缺少冻结实验: " + "、".join(active))
+    if ORDINARY_ROWS in config:
+        issues.extend(WORKBOOK_VALIDATION.ordinary_experiment_plan_issues(
+            config[ORDINARY_ROWS], schema=schema, analysis_methods=methods if require_current else (),
+        ))
+    return issues
+
+
 def _workbook_schema_issues(captured_workbook: bytes, entry: Mapping[str, Any], stage: str,
                             observed: dict[str, Any], *,
                             require_ordinary_method_coverage: bool,
-                            ordinary_coverage_only: bool = False) -> tuple[list[str], bool]:
+                            ordinary_coverage_only: bool = False, delivered=None, receipt=None,
+                            source_unavailable: bool = False) -> tuple[list[str], bool]:
     """Check captured workbook bytes without requiring execution prerequisites."""
     schema_path = Path(SCRIPT_DIR).parent / "core/workbook_schema.yaml"
     schema_bytes = schema_path.read_bytes()
     observed["skill"]["core/workbook_schema.yaml"] = hashlib.sha256(schema_bytes).hexdigest()
+    binding_issues = []
     try:
         schema = yaml.safe_load(schema_bytes)
+        experiments = (delivered or {}).get(ORDINARY_ROWS)
+        if not source_unavailable:
+            binding_issues = ordinary_experiment_issues(
+                delivered, entry.get("analysis_methods") if stage == "analysis" else (), schema,
+                require_current=stage == "analysis" and require_ordinary_method_coverage, receipt=receipt,
+            )
         if ordinary_coverage_only:
             WORKBOOK_VALIDATION.validate_ordinary_method_coverage(
                 captured_workbook, schema=schema, analysis_methods=entry.get("analysis_methods") or (),
             )
-            return [], True
+            return binding_issues, True
         classification = entry.get("classification")
         legacy_types = entry.get("problem_types")
         capabilities = entry.get("capabilities")
@@ -529,11 +566,12 @@ def _workbook_schema_issues(captured_workbook: bytes, entry: Mapping[str, Any], 
             capabilities=capabilities, objective=classification.get("objective"),
             structures=structures or (), require_quality_passed=False,
             analysis_methods=methods or (), comparison_plan=entry.get("analysis_comparison"),
+            ordinary_experiments=experiments,
             require_ordinary_method_coverage=require_ordinary_method_coverage,
         )
     except (ValueError, OSError, KeyError, TypeError) as exc:
-        return [f"工作簿结构Schema未通过: {exc}"], True
-    return [], True
+        return [*binding_issues, f"工作簿结构Schema未通过: {exc}"], True
+    return binding_issues, True
 
 
 def _execution_read_issues(root: Path, observed: dict[str, Any]) -> list[str]:
@@ -574,7 +612,8 @@ def _incomplete_workbook_issues(
     else:
         schema_issues, context_valid = _workbook_schema_issues(
             captured_workbook, entry, stage, observed,
-            require_ordinary_method_coverage=require_ordinary_method_coverage,
+            require_ordinary_method_coverage=require_ordinary_method_coverage, delivered=delivered, receipt=config,
+            source_unavailable=delivered is None,
         )
         if context_valid:
             issues.extend(schema_issues)
@@ -593,8 +632,12 @@ def _incomplete_workbook_issues(
                     captured_workbook, capabilities or {}, force_strict=force_strict,
                     contract=yaml.safe_load(numerical_bytes))[1])
         else:
+            if ORDINARY_VERSION in config and delivered is None:
+                # The source alone distinguishes a failed optional trial from a rejected core claim.
+                context_diagnostics.append("普通深化实验缺少可读取的已交付源码，无法判定主张处置")
+                return list(dict.fromkeys(issues)), False, context_diagnostics
             _, result_status, analysis_issues = analysis_passed(
-                captured_workbook, comparison_methods=(
+                captured_workbook, ordinary_experiments=(delivered or {}).get(ORDINARY_ROWS), comparison_methods=(
                     {"model_comparison", "algorithm_comparison", "多模型检验", "同模型多算法检验"}
                     if COMPARISON.present(entry) else ()))
             negative_analysis = result_status == "redo_required" and context_valid and not issues
@@ -981,7 +1024,7 @@ def _validate_captured_receipt(
         schema_issues, context_valid = _workbook_schema_issues(
             captured_workbook, entry, stage, workbook_observed,
             require_ordinary_method_coverage=require_ordinary_method_coverage,
-            ordinary_coverage_only=not full_schema_required,
+            ordinary_coverage_only=not full_schema_required, delivered=delivered, receipt=config,
         )
         issues.extend(schema_issues)
         if not context_valid:
@@ -1121,7 +1164,7 @@ def _validate_captured_receipt(
             if not comparison["issues"]:
                 core_rejections = COMPARISON.rejection_events(entry)
         passed, result_status, analysis_issues = analysis_passed(
-            captured_workbook, comparison_methods=comparison_methods)
+            captured_workbook, comparison_methods=comparison_methods, ordinary_experiments=(delivered or {}).get(ORDINARY_ROWS))
         if result_status == "redo_required":
             negative_analysis_issues = analysis_issues
         else:

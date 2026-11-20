@@ -188,6 +188,11 @@ excerpts:
     ranges:
     - - null
       - from __future__ import annotations
+  templates/code/starter/q1_analysis.py:
+    role: implementation_use_conditions
+    ranges:
+    - - null
+      - from __future__ import annotations
   templates/plot/python/figure_patterns.py:
     role: implementation_use_conditions
     ranges:

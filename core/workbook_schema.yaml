@@ -228,6 +228,20 @@ result_analysis_workbook:
   - 外样本稳定性
   - 多模型检验
   - 同模型多算法检验
+  ordinary_experiment_protocol:
+    version: "1.0.0"
+    source: 已交付且源码身份匹配的分析 RUN_CONFIG.ordinary_experiments
+    declaration_fields: [id, method, target, claim]
+    optional_declaration_fields: [required]
+    design_fields: [检验ID, 方法, 分析问题]
+    observation_fields: [检验ID, 观测状态]
+    summary_fields: [检验ID, 分析方法, 核心结论, 证据工作表, 是否保持, 主张处置]
+    observation_statuses: [completed, technical_failure, exploratory]
+    dispositions: [support, modify, reject]
+    design_binding: 分析设计以检验ID、方法及分析问题绑定预登记目标。
+    observation_binding: 按方法对应工作表中的检验ID归集多行观测。只有标记completed且必需字段完整的观测可交付对应实验。
+    claim_binding: 结论稳定性汇总以检验ID、分析方法、核心结论、证据工作表及主张处置绑定预登记主张。否定性结果和失败记录保留原义。
+    historical_binding: 未启用协议时，仅用已选择普通方法的显式设计ID核对观测。专用比较使用各自协议。
   # Each recognized ordinary method in the current plan requires its own substantive table.
   # Unregistered historical method labels retain their existing compatibility.
   ordinary_method_sheets:
